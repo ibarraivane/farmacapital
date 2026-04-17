@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
-import { C_LIGHT, C_DARK } from "./constants";
 import { useTheme } from "./themeContext";
 
-const C = C_LIGHT; // ← tema dinámico vía ThemeContext
 const BRAND = { primary:"#0052cc", gradient:"linear-gradient(135deg,#0052cc,#0099e6)" };
 
 const URL_ADMIN = "https://farmax-seven.vercel.app/admin";

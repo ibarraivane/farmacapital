@@ -23,18 +23,20 @@ const mkS = (C) => ({
   wrap:    { background:C.bg, minHeight:'100vh', padding:'24px', fontFamily:"'Plus Jakarta Sans', Inter, sans-serif", color:C.text },
   section: { background:C.card, border:`1px solid ${C.border}`, borderRadius:12, padding:'24px', marginBottom:24 },
   h2:      { fontSize:16, fontWeight:700, color:C.blue, marginBottom:16, display:'flex', alignItems:'center', gap:8 },
-  label:   { display:'block', fontSize:11, color:C.muted, marginBottom:4, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em' },
+  label:   { display:'block', fontSize:11, color:C.textMid, marginBottom:4, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em' },
   input:   { width:'100%', background:C.bg, border:`1px solid ${C.border}`, borderRadius:8, padding:'9px 12px', color:C.text, fontSize:13, boxSizing:'border-box', outline:'none' },
   select:  { width:'100%', background:C.bg, border:`1px solid ${C.border}`, borderRadius:8, padding:'9px 12px', color:C.text, fontSize:13, boxSizing:'border-box', outline:'none' },
   btnBlue: { background:C.blue,    color:'#fff', border:'none', borderRadius:8, padding:'9px 18px', fontSize:13, fontWeight:700, cursor:'pointer' },
   btnGreen:{ background:C.green,   color:'#fff', border:'none', borderRadius:8, padding:'9px 18px', fontSize:13, fontWeight:700, cursor:'pointer' },
   btnRed:  { background:C.red,     color:'#fff', border:'none', borderRadius:8, padding:'5px 10px', fontSize:12, fontWeight:700, cursor:'pointer' },
   btnGray: { background:'#1e3248', color:C.text, border:'none', borderRadius:8, padding:'5px 10px', fontSize:12, fontWeight:700, cursor:'pointer' },
-  th:      { padding:'8px 12px', textAlign:'left', fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:'0.06em', borderBottom:`1px solid ${C.border}` },
+  th:      { padding:'8px 12px', textAlign:'left', fontSize:10, fontWeight:700, color:C.textMid, textTransform:'uppercase', letterSpacing:'0.06em', borderBottom:`1px solid ${C.border}` },
   td:      { padding:'9px 12px', fontSize:13, borderBottom:`1px solid ${C.border}` },
 });
 
 export default function RRHHModule() {
+  const C = useTheme();
+  const S = mkS(C);
   const [empleados, setEmpleados] = useState([]);
   const [loading, setLoading]     = useState(true);
   const emptyForm = { nombre:'', telefono:'', rol:'vendedor', turno:'matutino', salario_quincenal:'' };
@@ -173,21 +175,21 @@ export default function RRHHModule() {
     URL.revokeObjectURL(url);
   };
 
-  const rolColor = r => ({ admin:'#9d6fff', vendedor:C.blue, doctora:C.green, farmaceutico:C.yellow }[r] || C.muted);
+  const rolColor = r => ({ admin:'#9d6fff', vendedor:C.blue, doctora:C.green, farmaceutico:C.amber }[r] || C.textMid);
 
   return (
     <>
     <div style={S.wrap}>
       <div style={{ marginBottom:24 }}>
         <h1 style={{ fontSize:22, fontWeight:800, color:C.text, margin:0 }}>◑ Recursos Humanos</h1>
-        <p style={{ color:C.muted, margin:'4px 0 0', fontSize:13 }}>Empleados · Horarios · Nómina quincenal — Farmax</p>
+        <p style={{ color:C.textMid, margin:'4px 0 0', fontSize:13 }}>Empleados · Horarios · Nómina quincenal — Farmax</p>
       </div>
 
       {/* LISTA EMPLEADOS */}
       <div style={S.section}>
         <div style={S.h2}>📋 Empleados registrados</div>
-        {loading ? <p style={{ color:C.muted }}>Cargando…</p> :
-         !empleados.length ? <p style={{ color:C.muted }}>No hay empleados. Registra el primero abajo.</p> : (
+        {loading ? <p style={{ color:C.textMid }}>Cargando…</p> :
+         !empleados.length ? <p style={{ color:C.textMid }}>No hay empleados. Registra el primero abajo.</p> : (
           <div style={{ overflowX:'auto' }}>
             <table style={{ width:'100%', borderCollapse:'collapse' }}>
               <thead><tr>
@@ -200,11 +202,11 @@ export default function RRHHModule() {
                     onMouseEnter={e=>e.currentTarget.style.background='#0e1e2e'}
                     onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
                     <td style={{ ...S.td, fontWeight:700 }}>{emp.nombre}</td>
-                    <td style={{ ...S.td, color:C.muted }}>{emp.telefono || '—'}</td>
+                    <td style={{ ...S.td, color:C.textMid }}>{emp.telefono || '—'}</td>
                     <td style={S.td}>
                       <span style={{ background:rolColor(emp.rol)+'22', color:rolColor(emp.rol), padding:'3px 10px', borderRadius:20, fontSize:11, fontWeight:700, textTransform:'capitalize' }}>{emp.rol}</span>
                     </td>
-                    <td style={{ ...S.td, color:C.muted, fontSize:12, textTransform:'capitalize' }}>{emp.turno}</td>
+                    <td style={{ ...S.td, color:C.textMid, fontSize:12, textTransform:'capitalize' }}>{emp.turno}</td>
                     <td style={{ ...S.td, fontWeight:700, color:C.green }}>{fmt(emp.salario_quincenal)}</td>
                     <td style={S.td}>
                       <span style={{ background: emp.estado?'#00c46a22':'#e0525222', color:emp.estado?C.green:C.red, padding:'3px 10px', borderRadius:20, fontSize:11, fontWeight:700 }}>
@@ -260,7 +262,7 @@ export default function RRHHModule() {
       {/* HORARIO SEMANAL */}
       <div style={S.section}>
         <div style={S.h2}>📅 Horario semanal</div>
-        {!empleados.length ? <p style={{ color:C.muted }}>Registra empleados primero.</p> : (
+        {!empleados.length ? <p style={{ color:C.textMid }}>Registra empleados primero.</p> : (
           <div style={{ overflowX:'auto' }}>
             <table style={{ width:'100%', borderCollapse:'collapse' }}>
               <thead><tr>
@@ -287,7 +289,7 @@ export default function RRHHModule() {
                         </td>
                       ))}
                       <td style={{ ...S.td, textAlign:'center', fontWeight:800,
-                        color:total>=5?C.green:total>=3?C.yellow:C.muted }}>{total}d</td>
+                        color:total>=5?C.green:total>=3?C.amber:C.textMid }}>{total}d</td>
                     </tr>
                   );
                 })}
@@ -319,10 +321,10 @@ export default function RRHHModule() {
         <div style={{ background:C.bg, border:`1px solid ${C.border}`, borderRadius:10, padding:20, marginBottom:16 }}>
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0 32px' }}>
             <div>
-              <p style={{ fontSize:11, color:C.muted, fontWeight:700, textTransform:'uppercase', marginBottom:12 }}>📈 Percepciones</p>
+              <p style={{ fontSize:11, color:C.textMid, fontWeight:700, textTransform:'uppercase', marginBottom:12 }}>📈 Percepciones</p>
               {[['Salario base',fmt(calcBase)],[`Horas extra (${calcHE}h × $50)`,fmt(montoHE)],['Prima dominical',fmt(calcPD)],['Bono',fmt(calcBono)]].map(([lbl,val])=>(
                 <div key={lbl} style={{ display:'flex', justifyContent:'space-between', padding:'5px 0', borderBottom:`1px solid ${C.border}` }}>
-                  <span style={{ fontSize:12, color:C.muted }}>{lbl}</span>
+                  <span style={{ fontSize:12, color:C.textMid }}>{lbl}</span>
                   <span style={{ fontSize:12, color:C.text, fontWeight:600 }}>{val}</span>
                 </div>
               ))}
@@ -332,10 +334,10 @@ export default function RRHHModule() {
               </div>
             </div>
             <div>
-              <p style={{ fontSize:11, color:C.muted, fontWeight:700, textTransform:'uppercase', marginBottom:12 }}>📉 Deducciones</p>
+              <p style={{ fontSize:11, color:C.textMid, fontWeight:700, textTransform:'uppercase', marginBottom:12 }}>📉 Deducciones</p>
               {[['IMSS obrero (2.375%)',fmt(imss)],['ISR estimado (8%)',fmt(isr)]].map(([lbl,val])=>(
                 <div key={lbl} style={{ display:'flex', justifyContent:'space-between', padding:'5px 0', borderBottom:`1px solid ${C.border}` }}>
-                  <span style={{ fontSize:12, color:C.muted }}>{lbl}</span>
+                  <span style={{ fontSize:12, color:C.textMid }}>{lbl}</span>
                   <span style={{ fontSize:12, color:C.red, fontWeight:600 }}>{val}</span>
                 </div>
               ))}

@@ -9,10 +9,9 @@ import { $, dC, cC, abc, aCol, nCol, hashPwd, hashPwdLegacy, generateSalt, logAu
 import { Logo, Box, Tag, Btn, Inp, KPI, Modal, NotificacionesToast, showToast, ToastProvider, ConfirmDialog, SkeletonTable, SkeletonKPIs, SkeletonCard, Paginador, SearchDropdown, GlobalHoverStyles } from "./ui";
 import { getSiguienteFolio } from "./utils/folioGenerator";
 import { guardarVentaPendiente, sincronizarVentasPendientes, contarVentasPendientes } from "./utils/offlineQueue";
-import { ThemeContext, useTheme } from './themeContext';
+import { useTheme, useThemeMode } from './themeContext';
 
-// C global para componentes fuera de FarmaxAdmin
-// FarmaxAdmin sobreescribe C dinámicamente con darkMode
+// Fallback estático para estilos fuera de componentes (evita undefined en import).
 const C = C_LIGHT;
 
 // ── Lazy loading — módulos se cargan solo cuando se necesitan ──
@@ -2397,6 +2396,8 @@ function GestionUsuarios(){
 // APP PRINCIPAL
 // ══════════════════════════════════════════════════════════════
 export default function FarmaxAdmin(){
+  const { darkMode, setDarkMode } = useThemeMode();
+  const C = useTheme();
   const [usuario,setUsuario] = useState(()=>{
     try{
       const u = sessionStorage.getItem("farmax_admin_user");
@@ -2415,16 +2416,12 @@ export default function FarmaxAdmin(){
     // Restaurar página activa al hacer refresh
     return sessionStorage.getItem("farmax_active_page")||"dash";
   });
-  const [darkMode,setDarkMode] = useState(()=>localStorage.getItem("farmax_dark")==="1");
 
   // Guardar página activa al cambiar
   const setPageAndSave = (p) => {
     sessionStorage.setItem("farmax_active_page", p);
     setPage(p);
   };
-  const C = darkMode ? C_DARK : C_LIGHT;
-  // Sincronizar C global para componentes externos
-
   const [notifs,setNotifs]         = useState([]);
   const [ventasOffline,setVentasOff] = useState(0);
   const [confirmDlg, setConfirmDlg] = useState({open:false,titulo:"",mensaje:"",onConfirm:null,danger:false});
@@ -2657,7 +2654,6 @@ export default function FarmaxAdmin(){
   };
 
   return(
-  <ThemeContext.Provider value={C}>
     <>
     <GlobalHoverStyles/>
     <NotificacionesToast notifs={notifs} onDismiss={dismissNotif}/>
@@ -2689,6 +2685,5 @@ export default function FarmaxAdmin(){
       </main>
     </div>
   </>
-  </ThemeContext.Provider>
   );
 }
