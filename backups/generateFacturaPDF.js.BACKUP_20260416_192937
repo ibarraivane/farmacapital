@@ -1,0 +1,258 @@
+// ═══════════════════════════════════════════════════════════
+// FARMAX — Generador de Facturas PDF (A4 Portrait)
+// Usa jsPDF — Listo para integración CFDI con PAC
+// ═══════════════════════════════════════════════════════════
+import { jsPDF } from "jspdf";
+
+/**
+ * Genera una factura PDF profesional
+ * @param {Object} opts
+ * @param {Object} opts.venta      - Datos de la venta
+ * @param {Array}  opts.productos  - Lista de productos
+ * @param {Object} opts.cliente    - Datos del cliente
+ * @param {Object} opts.config     - Configuración de la farmacia
+ * @param {string} opts.metodoPago - Método de pago
+ * @returns {jsPDF} instancia del PDF
+ */
+export function generateFacturaPDF({ venta={}, productos=[], cliente={}, config={}, metodoPago="Efectivo" }) {
+  const doc = new jsPDF({ orientation:"portrait", unit:"mm", format:"a4" });
+
+  // ── Colores ──────────────────────────────────────────────
+  const AZUL    = [0,  82, 204];
+  const AZUL_L  = [239,246,255];
+  const GRIS    = [71, 85, 105];
+  const GRIS_L  = [248,250,252];
+  const NEGRO   = [15, 23, 42];
+  const VERDE   = [0, 196,106];
+  const BLANCO  = [255,255,255];
+
+  // ── Helpers ───────────────────────────────────────────────
+  const fmt  = n  => `$${parseFloat(n||0).toLocaleString("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+  const fmtN = n  => parseFloat(n||0).toFixed(2);
+  const hoy  = new Date(venta.created_at||Date.now());
+  const fechaStr = hoy.toLocaleDateString("es-MX",{day:"2-digit",month:"long",year:"numeric"});
+  const horaStr  = hoy.toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"});
+  const folio    = String(venta.id||"0").padStart(6,"0");
+  const subtotal = parseFloat(venta.total||0);
+  const iva      = subtotal*0.16;
+  const total    = subtotal;
+
+  const W = 210; // A4 width mm
+  const M = 14;  // margin
+
+  // ══════════════════════════════════════════════════════════
+  // HEADER — Barra azul superior
+  // ══════════════════════════════════════════════════════════
+  doc.setFillColor(...AZUL);
+  doc.rect(0,0,W,38,"F");
+
+  // Logo / Nombre farmacia
+  doc.setTextColor(...BLANCO);
+  doc.setFont("helvetica","bold");
+  doc.setFontSize(22);
+  doc.text("FARMAX", M, 16);
+
+  doc.setFont("helvetica","normal");
+  doc.setFontSize(9);
+  doc.text("Farmacia & Salud", M, 22);
+  doc.text(config.direccion_farmacia||"Chinampac de Juárez, Iztapalapa, CDMX", M, 27);
+  if(config.telefono_farmacia) doc.text(`Tel: ${config.telefono_farmacia}`, M, 32);
+  if(config.rfc) doc.text(`RFC: ${config.rfc}`, M+80, 32);
+
+  // Título FACTURA
+  doc.setFont("helvetica","bold");
+  doc.setFontSize(18);
+  doc.text("FACTURA", W-M, 16, {align:"right"});
+
+  doc.setFont("helvetica","normal");
+  doc.setFontSize(9);
+  doc.text(`Folio: #${folio}`, W-M, 23, {align:"right"});
+  doc.text(`Fecha: ${fechaStr}`, W-M, 28, {align:"right"});
+  doc.text(`Hora: ${horaStr}`, W-M, 33, {align:"right"});
+
+  // ══════════════════════════════════════════════════════════
+  // DATOS DEL CLIENTE
+  // ══════════════════════════════════════════════════════════
+  let y = 46;
+
+  doc.setFillColor(...AZUL_L);
+  doc.rect(M, y, W-M*2, 28, "F");
+  doc.setDrawColor(...AZUL);
+  doc.setLineWidth(0.5);
+  doc.rect(M, y, W-M*2, 28, "S");
+
+  doc.setTextColor(...AZUL);
+  doc.setFont("helvetica","bold");
+  doc.setFontSize(9);
+  doc.text("DATOS DEL CLIENTE", M+4, y+6);
+
+  doc.setTextColor(...NEGRO);
+  doc.setFont("helvetica","normal");
+  doc.setFontSize(9);
+
+  const cl = cliente||{};
+  doc.text(`Nombre / Razón Social: ${cl.razon_social||cl.nombre||"—"}`, M+4, y+13);
+  doc.text(`RFC: ${cl.rfc||"XAXX010101000"}`, M+4, y+19);
+  doc.text(`Correo: ${cl.email||"—"}`, M+4, y+25);
+  doc.text(`Uso CFDI: ${cl.uso_cfdi||"G03 — Gastos en general"}`, M+100, y+19);
+  doc.text(`Régimen fiscal: ${cl.regimen_fiscal||"616 — Sin obligaciones"}`, M+100, y+25);
+
+  // ══════════════════════════════════════════════════════════
+  // TABLA DE PRODUCTOS
+  // ══════════════════════════════════════════════════════════
+  y += 36;
+
+  // Header de tabla
+  doc.setFillColor(...AZUL);
+  doc.rect(M, y, W-M*2, 8, "F");
+  doc.setTextColor(...BLANCO);
+  doc.setFont("helvetica","bold");
+  doc.setFontSize(8);
+
+  const cols = { desc:M+2, cant:M+95, precio:M+120, iva:M+145, total:W-M-2 };
+  doc.text("DESCRIPCIÓN DEL PRODUCTO/SERVICIO", cols.desc, y+5.5);
+  doc.text("CANT.", cols.cant, y+5.5, {align:"center"});
+  doc.text("P. UNIT.", cols.precio, y+5.5, {align:"right"});
+  doc.text("IVA", cols.iva, y+5.5, {align:"right"});
+  doc.text("TOTAL", cols.total, y+5.5, {align:"right"});
+
+  y += 8;
+
+  // Filas de productos
+  doc.setFont("helvetica","normal");
+  doc.setFontSize(8);
+  let rowBg = false;
+
+  productos.forEach((p,i) => {
+    const nombre   = (p.nombre||"Producto").slice(0,45);
+    const qty      = p.qty||p.cantidad||1;
+    const precio   = parseFloat(p.precio||p.precio_unitario||0);
+    const ivaItem  = precio*qty*0.16;
+    const totalItem= precio*qty;
+    const rowH     = 7;
+
+    if(rowBg) {
+      doc.setFillColor(...GRIS_L);
+      doc.rect(M, y, W-M*2, rowH, "F");
+    }
+    rowBg = !rowBg;
+
+    doc.setTextColor(...NEGRO);
+    doc.text(nombre, cols.desc, y+5);
+    doc.text(String(qty), cols.cant, y+5, {align:"center"});
+    doc.text(`$${fmtN(precio)}`, cols.precio, y+5, {align:"right"});
+    doc.text(`$${fmtN(ivaItem)}`, cols.iva, y+5, {align:"right"});
+    doc.text(`$${fmtN(totalItem)}`, cols.total, y+5, {align:"right"});
+
+    // Línea separadora
+    doc.setDrawColor(220,220,220);
+    doc.setLineWidth(0.2);
+    doc.line(M, y+rowH, W-M, y+rowH);
+
+    y += rowH;
+  });
+
+  // ══════════════════════════════════════════════════════════
+  // TOTALES
+  // ══════════════════════════════════════════════════════════
+  y += 6;
+  const totW = 80;
+  const totX = W-M-totW;
+
+  // Subtotal
+  doc.setFillColor(...GRIS_L);
+  doc.rect(totX, y, totW, 7, "F");
+  doc.setTextColor(...GRIS);
+  doc.setFont("helvetica","normal");
+  doc.setFontSize(9);
+  doc.text("Subtotal:", totX+4, y+5);
+  doc.text(fmt(subtotal), W-M-2, y+5, {align:"right"});
+
+  y += 7;
+  doc.setFillColor(...GRIS_L);
+  doc.rect(totX, y, totW, 7, "F");
+  doc.text("IVA (16%):", totX+4, y+5);
+  doc.text(fmt(iva), W-M-2, y+5, {align:"right"});
+
+  y += 7;
+  // Total final
+  doc.setFillColor(...AZUL);
+  doc.rect(totX, y, totW, 10, "F");
+  doc.setTextColor(...BLANCO);
+  doc.setFont("helvetica","bold");
+  doc.setFontSize(11);
+  doc.text("TOTAL:", totX+4, y+7);
+  doc.text(fmt(total), W-M-2, y+7, {align:"right"});
+
+  // ══════════════════════════════════════════════════════════
+  // MÉTODO DE PAGO
+  // ══════════════════════════════════════════════════════════
+  y += 18;
+  doc.setTextColor(...NEGRO);
+  doc.setFont("helvetica","normal");
+  doc.setFontSize(9);
+  doc.text(`Forma de pago: ${metodoPago}`, M, y);
+  doc.text(`Moneda: MXN (Pesos Mexicanos)`, M, y+5);
+
+  // ══════════════════════════════════════════════════════════
+  // QR PLACEHOLDER (futuro CFDI)
+  // ══════════════════════════════════════════════════════════
+  y += 16;
+  doc.setDrawColor(...AZUL);
+  doc.setLineWidth(0.5);
+  doc.rect(M, y, 35, 35, "S");
+
+  doc.setTextColor(...GRIS);
+  doc.setFontSize(7);
+  doc.text("QR CFDI", M+17.5, y+16, {align:"center"});
+  doc.text("(Próximamente)", M+17.5, y+21, {align:"center"});
+
+  // Info CFDI
+  doc.setFontSize(7.5);
+  doc.text("Este documento es una factura en preparación.", M+38, y+8);
+  doc.text("La integración con el PAC (Facturama) se activará", M+38, y+13);
+  doc.text("al contratar el servicio de timbrado CFDI.", M+38, y+18);
+  doc.text(`Folio interno: #${folio}`, M+38, y+26);
+  doc.text(`Generado: ${fechaStr} ${horaStr}`, M+38, y+31);
+
+  // ══════════════════════════════════════════════════════════
+  // FOOTER
+  // ══════════════════════════════════════════════════════════
+  const footerY = 275;
+  doc.setFillColor(...AZUL);
+  doc.rect(0, footerY, W, 22, "F");
+
+  doc.setTextColor(...BLANCO);
+  doc.setFont("helvetica","bold");
+  doc.setFontSize(10);
+  doc.text("¡Gracias por su preferencia!", W/2, footerY+7, {align:"center"});
+
+  doc.setFont("helvetica","normal");
+  doc.setFontSize(8);
+  doc.text(config.nombre_farmacia||"Farmax Farmacia", W/2, footerY+13, {align:"center"});
+  doc.text(config.direccion_farmacia||"Chinampac de Juárez, Iztapalapa, CDMX", W/2, footerY+18, {align:"center"});
+
+  return doc;
+}
+
+/**
+ * Descarga la factura como PDF
+ * @param {Object} opts - Mismos parámetros que generateFacturaPDF
+ */
+export function downloadFacturaPDF(opts) {
+  const doc = generateFacturaPDF(opts);
+  const folio = String(opts.venta?.id||"0").padStart(6,"0");
+  doc.save(`Factura_Farmax_${folio}_${new Date().toISOString().slice(0,10)}.pdf`);
+}
+
+/**
+ * Abre la factura en nueva pestaña para imprimir
+ * @param {Object} opts - Mismos parámetros que generateFacturaPDF
+ */
+export function printFacturaPDF(opts) {
+  const doc = generateFacturaPDF(opts);
+  const blob = doc.output("blob");
+  const url  = URL.createObjectURL(blob);
+  const win  = window.open(url,"_blank");
+  if(win) setTimeout(()=>win.print(), 1000);
+}

@@ -1,0 +1,256 @@
+import { useState, useEffect, useCallback } from "react";
+import { supabase } from "./supabase";
+
+const C = {
+  bg:"#f7f9fc",     card:"#ffffff",     cardDark:"#f0f4f9",
+  border:"#e2e8f0", borderHi:"#bfdbfe",
+  blue:"#0099e6",   blueDark:"#0052cc", blueDim:"#eff6ff",
+  green:"#00c46a",  greenDark:"#009952",greenDim:"#dcfce7",
+  amber:"#f59e0b",  amberDim:"#fef3c7",
+  red:"#ef4444",    redDim:"#fee2e2",
+  purple:"#7c3aed", purpleDim:"#ede9fe",
+  teal:"#0891b2",   tealDim:"#cffafe",
+  text:"#0f172a",   textMid:"#475569",  textDim:"#94a3b8",
+};
+const BRAND = { primary:"#0052cc", secondary:"#0099e6", gradient:"linear-gradient(135deg,#0052cc,#0099e6)" };
+const INVERSION = 710433;
+
+const fmt     = (n) => `$${parseFloat(n||0).toLocaleString("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+const fmtK    = (n) => n>=1000?`$${(n/1000).toFixed(1)}k`:fmt(n);
+const fmtDate = () => new Date().toLocaleDateString("es-MX",{weekday:"long",day:"2-digit",month:"long",year:"numeric"});
+
+const rangeToday = () => { const d=new Date(),y=d.getFullYear(),m=d.getMonth(),dd=d.getDate(); return {start:new Date(y,m,dd,0,0,0).toISOString(),end:new Date(y,m,dd,23,59,59).toISOString()}; };
+const rangeWeek  = () => { const d=new Date(); d.setDate(d.getDate()-7); return {start:d.toISOString(),end:new Date().toISOString()}; };
+const rangeMonth = () => { const d=new Date(),y=d.getFullYear(),m=d.getMonth(); return {start:new Date(y,m,1).toISOString(),end:new Date().toISOString()}; };
+
+function KpiCard({ label, value, col, sub, icon }) {
+  return (
+    <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"16px 20px"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
+        <div style={{color:C.textMid,fontSize:11,fontWeight:700,letterSpacing:.4}}>{label.toUpperCase()}</div>
+        <span style={{fontSize:18}}>{icon}</span>
+      </div>
+      <div style={{color:col||C.blue,fontWeight:800,fontSize:26,marginBottom:2}}>{value}</div>
+      {sub&&<div style={{color:C.textDim,fontSize:10}}>{sub}</div>}
+    </div>
+  );
+}
+
+function BarChart({ data, colorFn }) {
+  const max = Math.max(...data.map(d=>d.value),1);
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:10}}>
+      {data.map((d,i)=>(
+        <div key={i} style={{display:"flex",alignItems:"center",gap:12}}>
+          <div style={{width:110,color:C.textMid,fontSize:12,textAlign:"right",flexShrink:0}}>{d.label}</div>
+          <div style={{flex:1,background:C.bg,borderRadius:6,height:28,overflow:"hidden",position:"relative"}}>
+            <div style={{position:"absolute",left:0,top:0,bottom:0,width:`${Math.max((d.value/max)*100,1)}%`,background:colorFn?colorFn(i):BRAND.gradient,borderRadius:6,transition:"width .6s ease",display:"flex",alignItems:"center",paddingLeft:8}}>
+              {d.value>max*0.15&&<span style={{color:"#fff",fontSize:11,fontWeight:700}}>{fmtK(d.value)}</span>}
+            </div>
+            {d.value<=max*0.15&&<span style={{position:"absolute",left:`${(d.value/max)*100+1}%`,top:"50%",transform:"translateY(-50%)",color:C.textMid,fontSize:11,fontWeight:700}}>{fmtK(d.value)}</span>}
+          </div>
+          <div style={{width:80,color:C.text,fontSize:11,fontWeight:700,flexShrink:0}}>{fmt(d.value)}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function AlertCard({ icon, label, count, col, sub, onAction, actionLabel }) {
+  const bg = col===C.red?C.redDim:C.amberDim;
+  return (
+    <div style={{background:count>0?bg:C.card,border:count>0?`1px solid ${col}30`:`1px solid ${C.border}`,borderRadius:12,padding:"16px 18px"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+        <div>
+          <div style={{color:count>0?col:C.textMid,fontWeight:800,fontSize:22}}>{count>0?count:"✓"}</div>
+          <div style={{color:count>0?col:C.textMid,fontSize:12,fontWeight:700,marginTop:2}}>{label}</div>
+        </div>
+        <span style={{fontSize:22}}>{icon}</span>
+      </div>
+      {sub&&count>0&&<div style={{color:C.textMid,fontSize:11,marginBottom:10}}>{sub}</div>}
+      {count>0&&onAction&&<button onClick={onAction} style={{padding:"5px 12px",borderRadius:6,border:`1px solid ${col}40`,background:"transparent",color:col,cursor:"pointer",fontSize:11,fontWeight:700}}>{actionLabel||"Ver →"}</button>}
+      {count===0&&<div style={{color:C.textDim,fontSize:11}}>Todo en orden</div>}
+    </div>
+  );
+}
+
+export default function DashboardModule({ usuario, setPage }) {
+  const [data,    setData]    = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchAll = useCallback(async () => {
+    setLoading(true);
+    const today=rangeToday(), week=rangeWeek(), month=rangeMonth();
+    const [
+      {data:pedHoy},{data:pedSemana},{data:pedMes},{data:pedTodos},{data:pedMesAnt},
+      {data:citasHoy},{data:pedOnline},{data:pedMesTipo},
+      {data:pedItems},{data:bajoStock},{data:porCaducar},
+      {data:pedPend},{data:cortesConDif},
+    ] = await Promise.all([
+      supabase.from("pedidos").select("total").eq("estado","completado").gte("created_at",today.start).lte("created_at",today.end),
+      supabase.from("pedidos").select("total").eq("estado","completado").gte("created_at",week.start),
+      supabase.from("pedidos").select("total,atendido_por").eq("estado","completado").gte("created_at",month.start),
+      supabase.from("pedidos").select("total").eq("estado","completado"),
+      supabase.from("pedidos").select("total").eq("estado","completado").gte("created_at",new Date(new Date().getFullYear(),new Date().getMonth()-1,1).toISOString()).lte("created_at",new Date(new Date().getFullYear(),new Date().getMonth(),0).toISOString()),
+      supabase.from("citas").select("id").eq("estado","completada").gte("fecha",today.start).lte("fecha",today.end),
+      supabase.from("pedidos").select("id").eq("estado","pendiente").eq("tipo","online"),
+      supabase.from("pedidos").select("total,tipo").eq("estado","completado").gte("created_at",month.start),
+      supabase.from("pedido_items").select("cantidad,precio_unitario,productos(nombre)").limit(1000),
+      supabase.from("productos").select("id,nombre,stock,stock_minimo").lte("stock",0).eq("activo",true).limit(5),
+      supabase.from("productos").select("id").eq("activo",true).lte("fecha_caducidad",new Date(Date.now()+30*86400000).toISOString().slice(0,10)),
+      supabase.from("pedidos").select("id").eq("estado","pendiente").eq("tipo","online"),
+      supabase.from("cortes_caja").select("id,diferencia").neq("diferencia",0).limit(10),
+    ]);
+
+    const ventasHoy    = (pedHoy||[]).reduce((a,p)=>a+parseFloat(p.total||0),0);
+    const ventasSemana = (pedSemana||[]).reduce((a,p)=>a+parseFloat(p.total||0),0);
+    const ventasMes    = (pedMes||[]).reduce((a,p)=>a+parseFloat(p.total||0),0);
+    const totalPedMes  = (pedMes||[]).length;
+    const ticketProm   = totalPedMes>0?ventasMes/totalPedMes:0;
+    const recuperado   = (pedTodos||[]).reduce((a,p)=>a+parseFloat(p.total||0),0);
+    const pctRecuperado= Math.min((recuperado/INVERSION)*100,100);
+    const gananciaMes  = ventasMes*0.55;
+    const ventasMesAnt = (pedMesAnt||[]).reduce((a,p)=>a+parseFloat(p.total||0),0);
+    const crecimiento  = ventasMesAnt>0?((ventasMes-ventasMesAnt)/ventasMesAnt*100).toFixed(1):null;
+    const restante     = INVERSION-recuperado;
+    const paybackMeses = gananciaMes>0?Math.max(Math.ceil(restante/gananciaMes),0):null;
+
+    const fisica  = (pedMesTipo||[]).filter(p=>!p.tipo||p.tipo==="fisica").reduce((a,p)=>a+parseFloat(p.total||0),0);
+    const online2 = (pedMesTipo||[]).filter(p=>p.tipo==="online").reduce((a,p)=>a+parseFloat(p.total||0),0);
+    const consult = (pedMesTipo||[]).filter(p=>p.tipo==="consulta").reduce((a,p)=>a+parseFloat(p.total||0),0);
+
+    const byEmp = {};
+    (pedMes||[]).forEach(p=>{ const k=p.atendido_por||"Sin asignar"; byEmp[k]=(byEmp[k]||0)+parseFloat(p.total||0); });
+    const empleados = Object.entries(byEmp).sort((a,b)=>b[1]-a[1]).slice(0,5);
+
+    const byProd = {};
+    (pedItems||[]).forEach(it=>{ const n=it.productos?.nombre||"Producto"; if(!byProd[n]) byProd[n]={unidades:0,ingreso:0}; byProd[n].unidades+=parseInt(it.cantidad||1); byProd[n].ingreso+=parseFloat(it.precio_unitario||0)*parseInt(it.cantidad||1); });
+    const topProductos = Object.entries(byProd).sort((a,b)=>b[1].unidades-a[1].unidades).slice(0,10);
+
+    setData({
+      ventasHoy,ventasSemana,ventasMes,ventasMesAnt,crecimiento,ticketProm,consultasHoy:(citasHoy||[]).length,onlinePend:(pedOnline||[]).length,
+      recuperado,pctRecuperado,gananciaMes,paybackMeses,restante,
+      fuentes:[{label:"Farmacia física",value:fisica},{label:"Tienda online",value:online2},{label:"Consultorio",value:consult}],
+      empleados, topProductos,
+      alertas:{bajoStock:(bajoStock||[]).length,bajoStockNombres:(bajoStock||[]).map(p=>p.nombre).slice(0,3),porCaducar:(porCaducar||[]).length,sinAtender:(pedPend||[]).length,cortesConDif:(cortesConDif||[]).length},
+    });
+    setLoading(false);
+  }, []);
+
+  useEffect(()=>{ fetchAll(); },[fetchAll]);
+
+  if (loading) return <div style={{padding:24,background:C.bg,minHeight:"100vh",fontFamily:"'Plus Jakarta Sans',sans-serif",display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{color:C.textMid,fontSize:14}}>⏳ Cargando dashboard…</div></div>;
+
+  const {ventasHoy,ventasSemana,ventasMes,ventasMesAnt,crecimiento,ticketProm,consultasHoy,onlinePend,recuperado,pctRecuperado,gananciaMes,paybackMeses,restante,fuentes,empleados,topProductos,alertas} = data;
+  const roiCol = pctRecuperado>=75?C.green:pctRecuperado>=40?C.amber:C.red;
+  const totalEmp = empleados.reduce((a,e)=>a+e[1],0);
+
+  return (
+    <div style={{padding:24,background:C.bg,minHeight:"100vh",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24,flexWrap:"wrap",gap:12}}>
+        <div>
+          <h1 style={{margin:0,color:C.text,fontSize:20,fontWeight:800}}>◈ Dashboard</h1>
+          <p style={{margin:"4px 0 0",color:C.textMid,fontSize:12,textTransform:"capitalize"}}>{fmtDate()}</p>
+        </div>
+        <div style={{display:"flex",gap:10,alignItems:"center"}}>
+          <div style={{color:C.textMid,fontSize:12}}>Hola, <strong style={{color:C.text}}>{usuario?.nombre?.split(" ")[0]}</strong> 👋</div>
+          <button onClick={fetchAll} style={{padding:"7px 14px",borderRadius:8,border:`1px solid ${C.border}`,background:"transparent",color:C.textMid,cursor:"pointer",fontWeight:700,fontSize:12}}>🔄 Actualizar</button>
+        </div>
+      </div>
+
+      <div style={{color:C.textDim,fontSize:10,fontWeight:700,letterSpacing:1.5,marginBottom:12}}>VENTAS Y ACTIVIDAD</div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:12,marginBottom:24}}>
+        <KpiCard label="Ventas hoy"        value={fmtK(ventasHoy)}    col={C.green}  icon="💵" sub="pedidos completados"/>
+        <KpiCard label="Esta semana"       value={fmtK(ventasSemana)} col={C.blue}   icon="📈" sub="últimos 7 días"/>
+        <KpiCard label="Este mes"          value={fmtK(ventasMes)}    col={C.blue}   icon="📅" sub="mes en curso"/>
+        <KpiCard label="Mes anterior"      value={fmtK(ventasMesAnt)} col={C.textMid} icon="📆" sub={crecimiento?`${crecimiento>0?"+":""}${crecimiento}% vs este mes`:"Sin datos"}/>
+        <KpiCard label="Ticket promedio"   value={fmtK(ticketProm)}   col={C.purple} icon="🧾" sub="por transacción"/>
+        <KpiCard label="Consultas hoy"     value={consultasHoy}       col={C.green}  icon="♥"  sub="completadas"/>
+        <KpiCard label="Online pendientes" value={onlinePend}         col={onlinePend>0?C.amber:C.green} icon="🌐" sub="sin atender"/>
+      </div>
+
+      <div style={{color:C.textDim,fontSize:10,fontWeight:700,letterSpacing:1.5,marginBottom:12}}>INVERSIÓN Y RETORNO</div>
+      <div style={{background:C.card,border:`1px solid ${roiCol}30`,borderRadius:14,padding:24,marginBottom:24}}>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:20,marginBottom:20}}>
+          <div><div style={{color:C.textMid,fontSize:11,fontWeight:700,marginBottom:4}}>INVERSIÓN TOTAL</div><div style={{color:C.text,fontWeight:800,fontSize:22}}>{fmt(INVERSION)}</div></div>
+          <div><div style={{color:C.textMid,fontSize:11,fontWeight:700,marginBottom:4}}>TOTAL RECUPERADO</div><div style={{color:roiCol,fontWeight:800,fontSize:22}}>{fmt(recuperado)}</div></div>
+          <div><div style={{color:C.textMid,fontSize:11,fontWeight:700,marginBottom:4}}>GANANCIA NETA EST./MES</div><div style={{color:C.green,fontWeight:800,fontSize:18}}>{fmt(gananciaMes)}</div></div>
+          <div><div style={{color:C.textMid,fontSize:11,fontWeight:700,marginBottom:4}}>PAYBACK RESTANTE</div><div style={{color:restante<=0?C.green:C.amber,fontWeight:800,fontSize:18}}>{restante<=0?"✅ Recuperada":paybackMeses?`~${paybackMeses} meses`:"Calculando…"}</div></div>
+        </div>
+        <div style={{marginBottom:8,display:"flex",justifyContent:"space-between"}}>
+          <div style={{color:C.textMid,fontSize:12}}>Progreso de recuperación</div>
+          <div style={{color:roiCol,fontWeight:800,fontSize:18}}>{pctRecuperado.toFixed(1)}%</div>
+        </div>
+        <div style={{background:C.bg,borderRadius:8,height:20,overflow:"hidden"}}>
+          <div style={{height:"100%",width:`${pctRecuperado}%`,background:roiCol===C.green?"linear-gradient(90deg,#00c46a,#00e87d)":roiCol===C.amber?"linear-gradient(90deg,#ffaa00,#ffd000)":"linear-gradient(90deg,#ff3d5a,#ff6b7a)",borderRadius:8,transition:"width 1s ease",display:"flex",alignItems:"center",justifyContent:"flex-end",paddingRight:8}}>
+            {pctRecuperado>15&&<span style={{color:"#fff",fontSize:10,fontWeight:800}}>{fmt(recuperado)}</span>}
+          </div>
+        </div>
+        <div style={{color:C.textDim,fontSize:10,marginTop:6}}>Recuperado {fmt(recuperado)} de {fmt(INVERSION)} · Resta {fmt(Math.max(restante,0))}</div>
+      </div>
+
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20,marginBottom:24}}>
+        <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:20}}>
+          <div style={{color:C.textDim,fontSize:10,fontWeight:700,letterSpacing:1.5,marginBottom:16}}>INGRESOS POR FUENTE — ESTE MES</div>
+          <BarChart data={fuentes} colorFn={(i)=>[`linear-gradient(90deg,${C.blue},${C.secondary})`,`linear-gradient(90deg,${C.purple},#b57aff)`,`linear-gradient(90deg,${C.green},#00e87d)`][i]}/>
+          <div style={{marginTop:14,borderTop:`1px solid ${C.border}`,paddingTop:12,display:"flex",justifyContent:"space-between"}}>
+            <span style={{color:C.textMid,fontSize:11}}>Total mes</span>
+            <span style={{color:C.text,fontWeight:800,fontSize:13}}>{fmt(fuentes.reduce((a,f)=>a+f.value,0))}</span>
+          </div>
+        </div>
+        <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:20}}>
+          <div style={{color:C.textDim,fontSize:10,fontWeight:700,letterSpacing:1.5,marginBottom:16}}>VENTAS POR EMPLEADO — ESTE MES</div>
+          {empleados.length===0
+            ? <div style={{color:C.textMid,fontSize:12,textAlign:"center",padding:20}}>Sin datos este mes</div>
+            : <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                <thead><tr>{["Empleado","Ventas","%"].map(h=><th key={h} style={{padding:"6px 8px",textAlign:"left",color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`,fontSize:10}}>{h}</th>)}</tr></thead>
+                <tbody>
+                  {empleados.map(([nombre,total],i)=>(
+                    <tr key={i}>
+                      <td style={{padding:"8px",color:C.text,borderBottom:`1px solid ${C.border}`,fontWeight:600}}>{nombre}</td>
+                      <td style={{padding:"8px",color:C.green,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{fmt(total)}</td>
+                      <td style={{padding:"8px",borderBottom:`1px solid ${C.border}`}}>
+                        <span style={{padding:"2px 8px",borderRadius:12,fontSize:10,fontWeight:700,background:C.blueDim,color:C.blue}}>{totalEmp>0?((total/totalEmp)*100).toFixed(0):0}%</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+          }
+        </div>
+      </div>
+
+      <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:20,marginBottom:24}}>
+        <div style={{color:C.textDim,fontSize:10,fontWeight:700,letterSpacing:1.5,marginBottom:16}}>🏆 TOP 10 PRODUCTOS MÁS VENDIDOS</div>
+        {topProductos.length===0
+          ? <div style={{color:C.textMid,fontSize:12,textAlign:"center",padding:20}}>Sin datos de ventas</div>
+          : <div style={{overflowX:"auto"}}>
+              <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                <thead><tr style={{background:C.bg}}>{["#","Producto","Unidades","Ingreso total"].map(h=><th key={h} style={{padding:"8px 12px",textAlign:"left",color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>{h}</th>)}</tr></thead>
+                <tbody>
+                  {topProductos.map(([nombre,stats],i)=>(
+                    <tr key={i} style={{background:i%2===0?"transparent":C.bg}}>
+                      <td style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`}}>
+                        <span style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:22,height:22,borderRadius:"50%",fontSize:10,fontWeight:800,background:i<3?BRAND.gradient:C.border,color:i<3?"#fff":C.textMid}}>{i+1}</span>
+                      </td>
+                      <td style={{padding:"8px 12px",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>{nombre}</td>
+                      <td style={{padding:"8px 12px",color:C.amber,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{stats.unidades.toLocaleString()}</td>
+                      <td style={{padding:"8px 12px",color:C.green,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{fmt(stats.ingreso)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+        }
+      </div>
+
+      <div style={{color:C.textDim,fontSize:10,fontWeight:700,letterSpacing:1.5,marginBottom:12}}>ALERTAS OPERATIVAS</div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:12}}>
+        <AlertCard icon="📦" label="Bajo stock" count={alertas.bajoStock} col={C.red} sub={alertas.bajoStockNombres.join(", ")} onAction={()=>setPage&&setPage("inv")} actionLabel="Ver inventario"/>
+        <AlertCard icon="⏰" label="Por caducar (30d)" count={alertas.porCaducar} col={C.amber} onAction={()=>setPage&&setPage("inv")} actionLabel="Ver inventario"/>
+        <AlertCard icon="🌐" label="Pedidos sin atender" count={alertas.sinAtender} col={C.amber} onAction={()=>setPage&&setPage("pos")} actionLabel="Ir a POS"/>
+        <AlertCard icon="⊞" label="Cortes con diferencia" count={alertas.cortesConDif} col={C.red} onAction={()=>setPage&&setPage("caja")} actionLabel="Ver cortes"/>
+      </div>
+    </div>
+  );
+}

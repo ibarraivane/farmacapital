@@ -1,0 +1,200 @@
+import React, { useRef, useEffect } from "react";
+import TicketVenta from "./TicketVenta";
+import { printTicket } from "../../utils/printTicket";
+
+/**
+ * FARMAX — Modal de preview de ticket
+ * Se muestra automáticamente después de una venta
+ *
+ * Props:
+ * @param {boolean} open - Si el modal está abierto
+ * @param {Object}  venta - Datos de la venta
+ * @param {Array}   productos - Lista de productos vendidos
+ * @param {Object}  cliente - Datos del cliente (opcional)
+ * @param {string}  metodoPago - Método de pago usado
+ * @param {Object}  config - Configuración de la farmacia
+ * @param {Function} onClose - Callback al cerrar
+ * @param {Function} onNuevaVenta - Callback para nueva venta
+ */
+export default function TicketPreviewModal({
+  open, venta={}, productos=[], cliente=null,
+  metodoPago="Efectivo", config={},
+  promoMsg=null,
+  onClose, onNuevaVenta
+}) {
+  const ticketRef = useRef(null);
+  const [showFactura, setShowFactura] = React.useState(false);
+
+  // Auto-imprimir al abrir (opcional — comentar si no se quiere)
+  // useEffect(() => { if(open) setTimeout(()=>printTicket("farmax-ticket"), 1000); }, [open]);
+
+  if (!open) return null;
+
+  const handlePrint = () => printTicket("farmax-ticket");
+
+  const handleWhatsApp = () => {
+    const tel = cliente?.telefono || prompt("📱 Teléfono del cliente (10 dígitos):");
+    if (!tel) return;
+    const items = productos.map(p =>
+      `• ${p.nombre} ×${p.qty||1} = $${(parseFloat(p.precio||0)*(p.qty||1)).toFixed(2)}`
+    ).join("\n");
+    const msg = `🏥 *${config?.nombre_farmacia||"Farmax"}*\n${config?.direccion_farmacia||"Chinampac de Juárez, CDMX"}\n\n*Ticket #${venta.id}*\n\n${items}\n\n💰 *Total: $${parseFloat(venta.total||0).toFixed(2)}*\n💳 ${metodoPago}\n\n¡Gracias por su preferencia! 💊`;
+    window.open("https://wa.me/52" + tel.replace(/\D/g,"") + "?text=" + encodeURIComponent(msg), "_blank");
+  };
+
+  return (
+    <div style={{
+      position:"fixed", inset:0, zIndex:9000,
+      background:"rgba(15,23,42,.6)",
+      backdropFilter:"blur(4px)",
+      display:"flex", alignItems:"center", justifyContent:"center",
+      padding:20,
+    }} onClick={e=>e.target===e.currentTarget&&onClose?.()}>
+      <div style={{
+        background:"#fff", borderRadius:16,
+        width:"min(420px,95vw)", maxHeight:"95vh",
+        overflowY:"auto",
+        boxShadow:"0 24px 80px rgba(0,82,204,.2)",
+        display:"flex", flexDirection:"column",
+      }}>
+        {/* Header del modal */}
+        <div style={{
+          padding:"16px 20px",
+          borderBottom:"1px solid #e2e8f0",
+          display:"flex", justifyContent:"space-between", alignItems:"center",
+          background:"linear-gradient(135deg,#0052cc,#0099e6)",
+          borderRadius:"16px 16px 0 0",
+        }}>
+          <div style={{color:"#fff", fontWeight:800, fontSize:16}}>
+            ✅ Venta registrada — Ticket #{venta.id||"—"}
+          </div>
+          <button onClick={onClose} style={{
+            background:"rgba(255,255,255,.2)", border:"none",
+            color:"#fff", width:28, height:28, borderRadius:"50%",
+            cursor:"pointer", fontSize:16, display:"flex",
+            alignItems:"center", justifyContent:"center",
+          }}>✕</button>
+        </div>
+
+        {/* Preview del ticket */}
+        <div style={{
+          padding:16,
+          background:"#f8fafc",
+          display:"flex", justifyContent:"center",
+          borderBottom:"1px solid #e2e8f0",
+          overflowY:"auto",
+          maxHeight:"55vh",
+        }}>
+          <div style={{
+            background:"#fff",
+            boxShadow:"0 2px 12px rgba(0,0,0,.1)",
+            borderRadius:4,
+            padding:4,
+          }}>
+            <TicketVenta
+              ref={ticketRef}
+              venta={venta}
+              productos={productos}
+              cliente={cliente}
+              metodoPago={metodoPago}
+              config={config}
+              promoMsg={promoMsg}
+            />
+          </div>
+        </div>
+
+        {/* Acciones */}
+        <div style={{padding:16, display:"flex", flexDirection:"column", gap:10}}>
+          {/* Imprimir */}
+          <button onClick={handlePrint} style={{
+            padding:"12px", borderRadius:10, border:"none",
+            background:"linear-gradient(135deg,#0052cc,#0099e6)",
+            color:"#fff", fontWeight:800, fontSize:15,
+            cursor:"pointer", display:"flex",
+            alignItems:"center", justifyContent:"center", gap:8,
+          }}>
+            🖨️ Imprimir ticket (Epson TM-T20III)
+          </button>
+
+          {/* Solicitar factura */}
+          <button onClick={()=>setShowFactura(true)} style={{
+            padding:"10px", borderRadius:10,
+            border:"1px solid #0052cc",
+            background:"#eff6ff", color:"#0052cc",
+            fontWeight:700, fontSize:13, cursor:"pointer",
+            display:"flex", alignItems:"center", justifyContent:"center", gap:8,
+          }}>
+            🧾 Solicitar factura CFDI
+          </button>
+
+          {/* WhatsApp */}
+          <button onClick={handleWhatsApp} style={{
+            padding:"10px", borderRadius:10,
+            border:"1px solid #25D366",
+            background:"#dcfce7", color:"#16a34a",
+            fontWeight:700, fontSize:13, cursor:"pointer",
+            display:"flex", alignItems:"center", justifyContent:"center", gap:8,
+          }}>
+            📱 Enviar por WhatsApp
+          </button>
+
+          <div style={{display:"flex", gap:8}}>
+            {/* Reimprimir después */}
+            <button onClick={handlePrint} style={{
+              flex:1, padding:"9px", borderRadius:10,
+              border:"1px solid #e2e8f0", background:"#f8fafc",
+              color:"#475569", fontWeight:700, fontSize:12, cursor:"pointer",
+            }}>
+              🔄 Reimprimir
+            </button>
+
+            {/* Nueva venta */}
+            <button onClick={onNuevaVenta||onClose} style={{
+              flex:2, padding:"9px", borderRadius:10, border:"none",
+              background:"#00c46a", color:"#fff",
+              fontWeight:800, fontSize:13, cursor:"pointer",
+            }}>
+              ✅ Nueva venta
+            </button>
+          </div>
+
+          {/* Mini form de factura */}
+          {showFactura&&(
+            <FacturaInlineForm
+              venta={venta}
+              cliente={cliente}
+              onClose={()=>setShowFactura(false)}
+            />
+          )}
+
+          {/* Info impresora Epson TM-T20III */}
+          <details style={{marginTop:4}}>
+            <summary style={{
+              fontSize:11, color:"#1d4ed8", cursor:"pointer",
+              background:"#eff6ff", padding:"6px 10px",
+              borderRadius:8, listStyle:"none", userSelect:"none",
+            }}>
+              🖨️ Guía de configuración Epson TM-T20III
+            </summary>
+            <div style={{
+              background:"#f8fafc", border:"1px solid #e2e8f0",
+              borderRadius:"0 0 8px 8px", padding:"10px 12px",
+              fontSize:10, color:"#475569", lineHeight:1.7,
+            }}>
+              <div style={{fontWeight:700,color:"#0f172a",marginBottom:4}}>Pasos para imprimir correctamente:</div>
+              <div>1️⃣ Click en "Imprimir ticket"</div>
+              <div>2️⃣ En "Impresora" selecciona <strong>Epson TM-T20III</strong></div>
+              <div>3️⃣ En "Más configuraciones" → Tamaño de papel: <strong>Roll Paper 80x297mm</strong></div>
+              <div>4️⃣ Márgenes: <strong>Sin márgenes (None)</strong></div>
+              <div>5️⃣ Escala: <strong>100%</strong></div>
+              <div>6️⃣ Click en <strong>Imprimir</strong></div>
+              <div style={{marginTop:6,padding:"4px 8px",background:"#fef3c7",borderRadius:4,color:"#92400e"}}>
+                ⚠️ Si el ticket se ve cortado, reduce la escala a 90%
+              </div>
+            </div>
+          </details>
+        </div>
+      </div>
+    </div>
+  );
+}

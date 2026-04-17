@@ -1,0 +1,114 @@
+// FARMAX — Utilidad de impresión de tickets
+
+/**
+ * Imprime el contenido del ticket usando window.print()
+ * Compatible con impresoras térmicas 80mm (Epson TM-T20III, etc.)
+ * @param {string} ticketId - ID del elemento DOM del ticket
+ */
+export function printTicket(ticketId = "farmax-ticket") {
+  const ticket = document.getElementById(ticketId);
+  if (!ticket) {
+    console.error("[Farmax] Ticket no encontrado:", ticketId);
+    return;
+  }
+
+  // Guardar estilos originales
+  const originalTitle = document.title;
+  document.title = `Ticket_Farmax_${Date.now()}`;
+
+  // Imprimir
+  window.print();
+
+  // Restaurar
+  document.title = originalTitle;
+}
+
+/**
+ * Genera el HTML del ticket para impresión directa
+ * Compatible con futura implementación ESC/POS
+ * @param {Object} data - Datos de la venta
+ */
+export function generateTicketHTML(data) {
+  const { venta, productos, cliente, metodoPago, config } = data;
+  const fecha = new Date(venta.created_at || Date.now());
+  const fechaStr = fecha.toLocaleDateString("es-MX", { day:"2-digit", month:"2-digit", year:"numeric" });
+  const horaStr  = fecha.toLocaleTimeString("es-MX", { hour:"2-digit", minute:"2-digit" });
+
+  const rows = productos.map(p => `
+    <tr>
+      <td class="col-prod">${p.nombre?.slice(0,20)||"Producto"}</td>
+      <td class="col-cant">${p.qty||p.cantidad||1}</td>
+      <td class="col-precio">$${parseFloat(p.precio||p.precio_unitario||0).toFixed(2)}</td>
+      <td class="col-total">$${(parseFloat(p.precio||p.precio_unitario||0)*(p.qty||p.cantidad||1)).toFixed(2)}</td>
+    </tr>
+  `).join("");
+
+  const subtotal = parseFloat(venta.total||0);
+  const iva = subtotal * 0.16;
+  const total = subtotal;
+
+  return `
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="UTF-8">
+      <title>Ticket Farmax</title>
+      <style>
+        body { font-family: 'Courier New', monospace; font-size: 11px; width: 280px; margin: 0; padding: 8px; }
+        .center { text-align: center; }
+        .right { text-align: right; }
+        .bold { font-weight: bold; }
+        .big { font-size: 14px; }
+        hr { border: none; border-top: 1px dashed #000; margin: 6px 0; }
+        table { width: 100%; font-size: 10px; border-collapse: collapse; }
+        th { font-size: 9px; text-transform: uppercase; border-bottom: 1px dashed #000; }
+        .total-row { display: flex; justify-content: space-between; }
+        .total-final { font-size: 14px; font-weight: 900; }
+        @page { size: 80mm auto; margin: 0; }
+      </style>
+    </head>
+    <body>
+      <div class="center bold" style="font-size:16px">FARMAX</div>
+      <div class="center">Farmacia & Salud</div>
+      <div class="center" style="font-size:9px">Chinampac de Juárez, Iztapalapa, CDMX</div>
+      <div class="center" style="font-size:9px">Tel: ${config?.telefono_farmacia||"—"}</div>
+      <hr>
+      <div>Fecha: ${fechaStr}  Hora: ${horaStr}</div>
+      <div>Folio: #${venta.id||"—"}</div>
+      ${cliente ? `<div>Cliente: ${cliente.nombre||"—"}</div>` : ""}
+      <hr>
+      <table>
+        <thead><tr><th>Producto</th><th>Cant</th><th>Precio</th><th>Total</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <hr>
+      <div class="total-row"><span>Subtotal:</span><span>$${subtotal.toFixed(2)}</span></div>
+      <div class="total-row"><span>IVA (16%):</span><span>$${iva.toFixed(2)}</span></div>
+      <hr>
+      <div class="total-row total-final"><span>TOTAL:</span><span>$${total.toFixed(2)}</span></div>
+      <hr>
+      <div>Método de pago: ${metodoPago||"Efectivo"}</div>
+      ${cliente?.puntos ? `<div class="center bold" style="background:#000;color:#fff;padding:4px;margin:4px 0">⭐ +${Math.floor(total/10)} puntos ganados</div>` : ""}
+      <hr>
+      <div class="center" style="font-size:9px">¡Gracias por su preferencia!</div>
+      <div class="center" style="font-size:9px">Vuelva pronto a Farmax</div>
+      <div style="width:80px;height:80px;border:1px dashed #999;margin:8px auto;display:flex;align-items:center;justify-content:center;font-size:8px;color:#999">QR Code</div>
+      <div class="center" style="font-size:8px">farmax-seven.vercel.app</div>
+    </body>
+    </html>
+  `;
+}
+
+/**
+ * Abre ventana de impresión con el ticket generado
+ * @param {Object} data - Datos de la venta
+ */
+export function printTicketWindow(data) {
+  const html = generateTicketHTML(data);
+  const win = window.open("", "_blank", "width=320,height=600,toolbar=0,menubar=0");
+  if (!win) { alert("Por favor permite las ventanas emergentes para imprimir."); return; }
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(() => { win.print(); }, 800);
+}

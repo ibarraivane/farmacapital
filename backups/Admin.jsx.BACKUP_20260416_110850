@@ -1,0 +1,2283 @@
+import { useState, useEffect, useRef, useCallback, lazy, Suspense } from "react";
+import { supabase } from "./supabase";
+import { C as _C, C_LIGHT, C_DARK, BRAND, NEG, NAV_ADMIN, NAV_VENDEDOR, NAV_DOCTORA, NAV_ITEMS } from "./constants";
+import { $, dC, cC, abc, aCol, nCol, hashPwd, logAudit, logMovimiento } from "./utils";
+import { Logo, Box, Tag, Btn, Inp, KPI, Modal, NotificacionesToast, showToast, ToastProvider, ConfirmDialog, SkeletonTable, SkeletonKPIs, SkeletonCard, Paginador, SearchDropdown } from "./ui";
+
+// C global para componentes fuera de FarmaxAdmin (LoginScreen, Sidebar, etc.)
+// FarmaxAdmin sobreescribe C dinámicamente con darkMode
+const C = C_LIGHT;
+
+// ── Lazy loading — módulos se cargan solo cuando se necesitan ──
+const RRHHModule       = lazy(()=>import("./RRHHModule"));
+const InventarioModule = lazy(()=>import("./InventarioModule"));
+const CorteCajaModule  = lazy(()=>import("./CorteCajaModule"));
+const ClientesModule   = lazy(()=>import("./ClientesModule"));
+const ConsultorioModule= lazy(()=>import("./ConsultorioModule"));
+const COFEPRISModule   = lazy(()=>import("./COFEPRISModule"));
+const AsistenteIA      = lazy(()=>import("./AsistenteIA"));
+const PromocionesModule= lazy(()=>import("./PromocionesModule"));
+const DevolucionesModule=lazy(()=>import("./DevolucionesModule"));
+const FacturacionModule= lazy(()=>import("./FacturacionModule"));
+const DashboardModule  = lazy(()=>import("./DashboardModule"));
+const ReabastoModule   = lazy(()=>import("./ReabastoModule"));
+const InstalarPWA      = lazy(()=>import("./InstalarPWA"));
+
+// ── Skeleton loader para módulos cargando ─────────────────────
+function ModuleSkeleton() {
+  return (
+    <div style={{padding:40,display:"flex",flexDirection:"column",gap:16,animation:"pulse 1.5s infinite"}}>
+      {[1,2,3].map(i=>(
+        <div key={i} style={{height:i===1?40:80,borderRadius:12,background:"linear-gradient(90deg,#f0f4f9 25%,#e2e8f0 50%,#f0f4f9 75%)",backgroundSize:"200% 100%"}}/>
+      ))}
+      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.7}}`}</style>
+    </div>
+  );
+}
+// ═══════════════════════════════════════════════════════════════
+// FARMAX — Sistema Admin v2
+// Login por perfil · Admin · Vendedor · Doctora
+// Conectado a Supabase + Tienda en línea
+// ═══════════════════════════════════════════════════════════════
+
+// ← constantes movidas a src/constants.js
+// ← utils movidos a src/utils.js
+// ← NotificacionesToast movido a src/ui.jsx
+
+// ← logAudit y logMovimiento movidos a src/utils.js
+
+// ← hashPwd movido a src/utils.js
+
+// ← UI base (Logo,Box,Tag,Btn,Inp,KPI,Modal) movidos a src/ui.jsx
+
+// ── PUENTE ONLINE ─────────────────────────────────────────────
+function PuenteOnline({count,label,color}){
+  if(!count) return null;
+  return(
+    <div style={{background:color+"12",border:`1px solid ${color}30`,borderRadius:10,padding:"10px 16px",display:"flex",alignItems:"center",gap:12,marginBottom:12}}>
+      <div style={{width:8,height:8,borderRadius:"50%",background:color,flexShrink:0}}/>
+      <div style={{flex:1,color:C.text,fontSize:13,fontWeight:700}}>{label}</div>
+      <span style={{background:color,color:"#fff",borderRadius:20,padding:"2px 10px",fontSize:11,fontWeight:800}}>{count}</span>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// PANTALLA LOGIN
+// ══════════════════════════════════════════════════════════════
+function LoginScreen({onLogin}){
+  const [tel,setTel]     = useState("");
+  const [pwd,setPwd]     = useState("");
+  const [error,setError] = useState("");
+  const [loading,setLoad]= useState(false);
+
+  const [loadErr,setLoadErr] = useState("");
+  const entrar = async () => {
+    if(!tel||!pwd) return;
+
+    // ── E3: Bloqueo por intentos fallidos ──
+    const bloqueoKey = "farmax_login_bloqueo_"+tel;
+    const intentosKey = "farmax_login_intentos_"+tel;
+    const bloqueoHasta = localStorage.getItem(bloqueoKey);
+    if (bloqueoHasta && Date.now() < parseInt(bloqueoHasta)) {
+      const mins = Math.ceil((parseInt(bloqueoHasta)-Date.now())/60000);
+      setError(`Demasiados intentos fallidos. Intenta en ${mins} minuto${mins>1?"s":""}.`);
+      return;
+    }
+
+    // ── E4: Validación mínima de contraseña ──
+    if (pwd.length < 6) { setError("La contraseña debe tener al menos 6 caracteres."); return; }
+
+    setLoad(true); setError("");
+    try {
+      const hash = await hashPwd(pwd);
+      const { data, error:err } = await supabase
+        .from("usuarios")
+        .select("*")
+        .eq("telefono", tel)
+        .eq("password_hash", hash)
+        .eq("activo", true)
+        .single();
+
+      if(err||!data) {
+        // Incrementar contador de intentos
+        const intentos = parseInt(localStorage.getItem(intentosKey)||"0") + 1;
+        localStorage.setItem(intentosKey, intentos);
+        if (intentos >= 5) {
+          localStorage.setItem(bloqueoKey, Date.now() + 15*60*1000);
+          localStorage.removeItem(intentosKey);
+          setError("Cuenta bloqueada temporalmente. Intenta en 15 minutos.");
+        } else {
+          setError(`Teléfono o contraseña incorrectos. (${intentos}/5 intentos)`);
+        }
+        setLoad(false); return;
+      }
+
+      // Login exitoso: limpiar contadores
+      localStorage.removeItem(intentosKey);
+      localStorage.removeItem(bloqueoKey);
+
+      // ── E2: Guardar timestamp de login para expiración ──
+      const loginData = { ...data, loginTimestamp: Date.now() };
+      // L3: Guardar último acceso en Supabase
+      supabase.from("usuarios").update({notas:(data.notas||"")+""}).eq("id",data.id).then(()=>{});
+      localStorage.setItem("farmax_last_login_"+data.id, new Date().toLocaleString("es-MX"));
+      sessionStorage.setItem("farmax_admin_user", JSON.stringify(loginData));
+      logAudit(data, "LOGIN", "usuarios", data.id, {rol:data.rol});
+      onLogin(loginData);
+    } catch(e) {
+      setError("Error de conexión. Verifica tu internet.");
+    }
+    setLoad(false);
+  };
+
+  return(
+    <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#f0f4ff 0%,#f7f9fc 50%,#e8f4fd 100%)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+      <div style={{width:"100%",maxWidth:400}}>
+        <div style={{textAlign:"center",marginBottom:32}}>
+          <div style={{display:"flex",justifyContent:"center",marginBottom:16}}><Logo size={48}/></div>
+          <div style={{color:C.textMid,fontSize:14}}>Sistema de gestión · Acceso interno</div>
+        </div>
+        <Box style={{padding:32,boxShadow:"0 4px 24px rgba(0,82,204,.10)"}}>
+          <div style={{color:C.text,fontWeight:800,fontSize:18,marginBottom:24}}>Iniciar sesión</div>
+          <div style={{marginBottom:14}}>
+            <div style={{color:C.textMid,fontSize:11,marginBottom:6,fontWeight:700}}>TELÉFONO</div>
+            <Inp value={tel} onChange={e=>setTel(e.target.value)} placeholder="55XXXXXXXX" type="tel" style={{width:"100%",boxSizing:"border-box"}}/>
+          </div>
+          <div style={{marginBottom:20}}>
+            <div style={{color:C.textMid,fontSize:11,marginBottom:6,fontWeight:700}}>CONTRASEÑA</div>
+            <Inp value={pwd} onChange={e=>setPwd(e.target.value)} onKeyDown={e=>e.key==="Enter"&&entrar()} placeholder="••••••••" type="password" style={{width:"100%",boxSizing:"border-box"}}/>
+          </div>
+          {error&&<div style={{background:C.redDim,border:`1px solid ${C.red}30`,borderRadius:8,padding:"10px 12px",marginBottom:16,color:C.red,fontSize:13}}>{error}</div>}
+          <Btn onClick={entrar} full col={BRAND.primary} dis={!tel||!pwd||loading}>{loading?"Verificando...":"Entrar →"}</Btn>
+          <div style={{marginTop:16,textAlign:"center"}}>
+            <span style={{color:C.textDim,fontSize:11}}>¿Olvidaste tu contraseña? <span style={{color:C.blue,cursor:"pointer"}}>Contacta al admin</span></span>
+          </div>
+        </Box>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// SIDEBAR
+// ══════════════════════════════════════════════════════════════
+function Sidebar({active,setActive,negocio,setNegocio,usuario,onLogout,alertas,darkMode,setDarkMode}){
+  const navIds = usuario.rol==="admin"?NAV_ADMIN:usuario.rol==="vendedor"?NAV_VENDEDOR:NAV_DOCTORA;
+  const navItems = NAV_ITEMS.filter(n=>navIds.includes(n.id));
+  const rolColor = usuario.rol==="admin"?C.purple:usuario.rol==="vendedor"?C.blue:C.green;
+
+  return(
+    <div style={{width:220,minHeight:"100vh",background:"#ffffff",borderRight:`1px solid ${C.border}`,boxShadow:"2px 0 8px rgba(0,0,0,.06)",display:"flex",flexDirection:"column",position:"fixed",left:0,top:0,zIndex:100}}>
+      <div style={{padding:"18px 14px 14px",borderBottom:`1px solid ${C.border}`}}>
+        <Logo size={32} showText={true}/>
+      {usuario.rol==="admin"&&(
+          <div style={{display:"flex",gap:4,marginTop:12}}>
+            {/* MINISUPER OCULTO — segunda fase
+            {Object.entries(NEG).map(([k,n])=>(
+              <button key={k}>...</button>
+            ))}
+            */}
+          </div>
+      )}
+      </div>
+
+      {/* Usuario actual */}
+      <div style={{padding:"10px 14px",borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:10}}>
+        <div style={{width:32,height:32,borderRadius:"50%",background:rolColor+"30",border:`1px solid ${rolColor}40`,display:"flex",alignItems:"center",justifyContent:"center",color:rolColor,fontWeight:800,fontSize:13,flexShrink:0}}>
+          {(usuario.nombre||"U")[0]}
+        </div>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{color:C.text,fontWeight:700,fontSize:12,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{usuario.nombre}</div>
+          <Tag col={rolColor} sm>{usuario.rol}</Tag>
+        </div>
+      </div>
+
+      <div style={{flex:1,padding:"8px 8px",overflowY:"auto"}}>
+        {navItems.map(n=>(
+          <button key={n.id} onClick={()=>setActive(n.id)}
+            style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"8px 10px",borderRadius:8,border:"none",cursor:"pointer",marginBottom:2,textAlign:"left",fontSize:12,fontWeight:600,fontFamily:"'Plus Jakarta Sans',sans-serif",background:active===n.id?"#eff6ff":"transparent",color:active===n.id?BRAND.primary:C.textMid,borderLeft:`3px solid ${active===n.id?BRAND.primary:"transparent"}`,transition:"all .15s"}}>
+            <span style={{fontSize:12,width:16,textAlign:"center"}}>{n.icon}</span>{n.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Alertas y logout */}
+      <div style={{padding:"0 8px 16px"}}>
+        {alertas.stock>0&&<div style={{background:C.redDim,border:`1px solid ${C.red}20`,borderRadius:8,padding:"8px 12px",marginBottom:6}}><div style={{color:C.red,fontSize:11,fontWeight:700}}>⚠ {alertas.stock} bajo stock</div></div>}
+        {alertas.pedidos>0&&<div style={{background:C.blueDim,border:`1px solid ${C.blue}20`,borderRadius:8,padding:"8px 12px",marginBottom:6}}><div style={{color:C.blue,fontSize:11,fontWeight:700}}>🌐 {alertas.pedidos} pedidos online</div></div>}
+        {alertas.citas>0&&<div style={{background:C.greenDim,border:`1px solid ${C.green}20`,borderRadius:8,padding:"8px 12px",marginBottom:6}}><div style={{color:C.green,fontSize:11,fontWeight:700}}>📅 {alertas.citas} citas nuevas</div></div>}
+        <button onClick={()=>{ const nd=!darkMode; if(setDarkMode) setDarkMode(nd); localStorage.setItem("farmax_dark",nd?"1":"0"); }}
+          style={{width:"100%",padding:"7px",borderRadius:8,border:`1px solid ${C.border}`,background:darkMode?C.card:"transparent",color:C.textMid,fontSize:11,fontWeight:700,cursor:"pointer",marginTop:4,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+          {darkMode?"☀️ Modo claro":"🌙 Modo oscuro"}
+        </button>
+        <button onClick={onLogout} style={{width:"100%",padding:"7px",borderRadius:8,border:`1px solid ${C.border}`,background:"transparent",color:C.textMid,fontSize:11,fontWeight:700,cursor:"pointer",marginTop:4}}>⎋ Cerrar sesión</button>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// DASHBOARD (Admin)
+// ══════════════════════════════════════════════════════════════
+function Dashboard({negocio,alertas,setPage}){
+  const [kpis,setKpis]       = useState({hoy:0,semana:0,mes:0,consultas:0});
+  const [pedOnline,setPedOn] = useState([]);
+  const [citasHoy,setCitasH] = useState([]);
+  const [loading,setLoad]    = useState(true);
+
+  useEffect(()=>{
+    const cargar = async () => {
+      setLoad(true);
+      if (typeof setLoadErr === "function") setLoadErr("");
+      // Cargar configuración
+      supabase.from("configuracion").select("*").then(({data:cfg})=>{
+        if(cfg&&cfg.length){
+          const map={}; cfg.forEach(r=>{map[r.clave]=r.valor;}); 
+          setConfig(p=>({...p,...{precio_consulta:parseFloat(map.precio_consulta)||300,nombre_doctor:map.nombre_doctor||p.nombre_doctor,nombre_farmacia:map.nombre_farmacia||p.nombre_farmacia,telefono_farmacia:map.telefono_farmacia||"",direccion_farmacia:map.direccion_farmacia||p.direccion_farmacia}}));
+        }
+      });
+      try {
+        // Fecha local YYYY-MM-DD (evita problemas por UTC)
+        const hoyLocal = new Date().toLocaleDateString("sv-SE");
+
+        // F1: Cargar ventas del día del empleado actual
+        const sesion = JSON.parse(sessionStorage.getItem("farmax_admin_user")||"{}");
+        if (sesion?.id) {
+          supabase.from("pedidos")
+            .select("total")
+            .eq("atendido_por", sesion.id)
+            .eq("estado","completado")
+            .gte("created_at", new Date().toLocaleDateString("sv-SE")+"T00:00:00")
+            .then(({data:vd})=>{
+              if(vd) setVentasDia({
+                total: vd.reduce((a,p)=>a+parseFloat(p.total||0),0),
+                count: vd.length
+              });
+            });
+        }
+
+        const [prodsRes, pedsRes, citasRes] = await Promise.all([
+          supabase.from("productos").select("*").eq("activo",true).order("nombre"),
+          supabase.from("pedidos").select(`
+            id,total,created_at,tipo,
+            clientes(nombre,telefono),
+            pedido_items(cantidad,precio_unitario,productos(nombre,sku))
+          `).eq("tipo","online").eq("estado","pendiente").order("created_at",{ascending:false}),
+          supabase.from("citas").select(`
+            id,nombre,telefono,hora,fecha,motivo,estado,
+            consumibles_consulta(id,cantidad,precio,cobrado,productos(nombre))
+          `).eq("fecha", hoyLocal).eq("estado","completada"),
+        ]);
+
+        const errs = [];
+        if (prodsRes?.error) errs.push(`Productos (${prodsRes.status||"?"}): ${prodsRes.error.message}`);
+        if (pedsRes?.error)  errs.push(`Pedidos online (${pedsRes.status||"?"}): ${pedsRes.error.message}`);
+        if (citasRes?.error) errs.push(`Citas hoy (${citasRes.status||"?"}): ${citasRes.error.message}`);
+
+        if (errs.length) {
+          console.error("[POS] Errores de carga:", { prodsRes, pedsRes, citasRes });
+          if (typeof setLoadErr === "function") setLoadErr(errs.join(" | "));
+        }
+
+        setProds(prodsRes?.data || []);
+        setPedOn(pedsRes?.data || []);
+
+        const citas = (citasRes?.data || []);
+        // Citas con consumibles por cobrar
+        setConsCobrar(citas.filter(c => (c.consumibles_consulta||[]).some(x => !x.cobrado)));
+
+      } catch (e) {
+        console.error("[POS] Excepción cargando datos:", e);
+        if (typeof setLoadErr === "function") setLoadErr("Error inesperado cargando datos. Revisa consola.");
+        setProds([]); setPedOn([]); setConsCobrar([]);
+      } finally {
+        setLoad(false);
+      }
+    };
+    cargar();
+  },[]);
+
+
+  return(
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:24}}>
+        <div>
+          <h1 style={{color:C.text,fontSize:22,fontWeight:800,margin:0}}>{NEG[negocio].icon} {NEG[negocio].label}</h1>
+          <div style={{color:C.textMid,fontSize:12,marginTop:4}}>{NEG[negocio].owner} · {new Date().toLocaleDateString("es-MX",{weekday:"long",year:"numeric",month:"long",day:"numeric"})}</div>
+        </div>
+        <Tag col={C.green}>● Sistema activo</Tag>
+      </div>
+
+      {/* Alertas online */}
+      {alertas.pedidos>0&&<PuenteOnline count={alertas.pedidos} label={`${alertas.pedidos} pedidos nuevos desde la tienda web`} color={C.blue}/>}
+      {alertas.citas>0&&<PuenteOnline count={alertas.citas} label={`${alertas.citas} citas agendadas en línea hoy`} color={C.green}/>}
+
+      {/* KPIs */}
+      <div style={{display:"flex",gap:12,marginBottom:20,flexWrap:"wrap"}}>
+        <KPI label="Ventas hoy"    value={$(kpis.hoy)}    col={C.blue}   icon="💵" trend={12}/>
+        <KPI label="Esta semana"   value={$(kpis.semana)} col={C.teal}   icon="📈"/>
+        <KPI label="Este mes"      value={$(kpis.mes)}    col={C.green}  icon="📊"/>
+        <KPI label="Consultas hoy" value={kpis.consultas} col={C.purple} icon="🏥" sub="completadas"/>
+        {alertas.stock>0&&<KPI label="Bajo stock" value={alertas.stock} col={C.red} icon="⚠️" sub="productos"/>}
+      </div>
+
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}>
+        {/* Pedidos online pendientes */}
+        <Box style={{padding:20}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+            <div style={{color:C.text,fontWeight:700,fontSize:13}}>🌐 Pedidos online pendientes</div>
+            {pedOnline.length>0&&<Btn sm col={C.blue} onClick={()=>setPage("pos")}>Ver todos</Btn>}
+          </div>
+          {loading?<SkeletonCard height={40} style={{margin:"8px 0"}}/>:
+           !pedOnline.length?<div style={{color:C.textMid,fontSize:12}}>✓ Sin pedidos pendientes</div>:
+           pedOnline.map(p=>(
+            <div key={p.id} style={{background:C.blueDim,border:`1px solid ${C.blue}30`,borderRadius:8,padding:"10px 12px",marginBottom:8}}>
+              <div style={{display:"flex",justifyContent:"space-between"}}>
+                <span style={{color:C.text,fontSize:12,fontWeight:700}}>Pedido #{p.id}</span>
+                <Tag col={C.blue} sm>Online</Tag>
+              </div>
+              <div style={{color:C.textMid,fontSize:11,marginTop:3}}>{p.clientes?.nombre||"Cliente"} · {$(p.total)}</div>
+            </div>
+          ))}
+        </Box>
+
+        {/* Agenda del día */}
+        <Box style={{padding:20}}>
+          <div style={{color:C.text,fontWeight:700,fontSize:13,marginBottom:14}}>📅 Consultorio hoy — Dra. Lourdes</div>
+          {loading?<div style={{color:C.textMid,fontSize:12}}>Cargando...</div>:
+           !citasHoy.length?<div style={{color:C.textMid,fontSize:12}}>Sin citas agendadas hoy</div>:
+           citasHoy.map(c=>(
+            <div key={c.id} style={{display:"flex",alignItems:"center",gap:10,padding:"7px 0",borderBottom:`1px solid ${C.border}`}}>
+              <span style={{color:C.blue,fontWeight:800,fontSize:12,width:44,flexShrink:0}}>{c.hora}</span>
+              <div style={{flex:1}}>
+                <div style={{color:C.text,fontSize:12,fontWeight:600}}>{c.nombre}</div>
+                <div style={{color:C.textMid,fontSize:10}}>{c.motivo||"Consulta general"}</div>
+              </div>
+              <Tag col={c.estado==="completada"?C.green:c.estado==="confirmada"?C.blue:C.amber} sm>{c.estado||"pendiente"}</Tag>
+            </div>
+          ))}
+        </Box>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// POS — Punto de Venta (Admin + Vendedor)
+// Incluye pedidos online + cobro de consultas
+// ══════════════════════════════════════════════════════════════
+function POS({negocio,usuario}){
+  const [tab,setTab]         = useState("venta"); // venta | online | consultas
+  const [productos,setProds] = useState([]);
+  const [cart,setCart]       = useState([]);
+  const [srch,setSrch]       = useState("");
+  const srchRef = useRef(null);
+  useEffect(()=>{ if(tab==="venta" && srchRef.current) srchRef.current.focus(); },[tab]);
+  const [favs,setFavs]       = useState(()=>{ try{ return JSON.parse(localStorage.getItem("farmax_pos_favs")||"[]"); }catch{ return []; } });
+  const toggleFav = id => {
+    setFavs(p=>{
+      const n = p.includes(id)?p.filter(x=>x!==id):[...p,id].slice(0,8);
+      localStorage.setItem("farmax_pos_favs", JSON.stringify(n));
+      return n;
+    });
+  };
+  const [pay,setPay]         = useState("Efectivo");
+  const [tel,setTel]         = useState("");
+  const [cli,setCli]         = useState(null);
+  const [ticket,setTicket]   = useState(null);
+  const [rxM,setRxM]         = useState(null);
+  const [rx,setRx]           = useState({receta:"",medico:"",cedula:"",paciente:"",indicaciones:""});
+  const [pedOnline,setPedOn] = useState([]);
+  const [consxCobrar,setConsCobrar] = useState([]);
+  const [loading,setLoad]    = useState(false);
+  const [guardando,setGuard] = useState(false);
+  const [cartOpen,setCartOpen] = useState(true);
+  const [ventasDia,setVentasDia] = useState({total:0,count:0});
+  const [config,setConfig]   = useState({precio_consulta:300,nombre_doctor:"Dra. Lourdes Lucio Falcón",nombre_farmacia:"Farmax",telefono_farmacia:"",direccion_farmacia:"Chinampac de Juárez, Iztapalapa, CDMX"});
+
+  useEffect(()=>{
+    const cargar = async () => {
+      setLoad(true);
+      if (typeof setLoadErr === "function") setLoadErr("");
+      try {
+        // Fecha local YYYY-MM-DD (evita problemas por UTC)
+        const hoyLocal = new Date().toLocaleDateString("sv-SE");
+
+        const [prodsRes, pedsRes, citasRes] = await Promise.all([
+          supabase.from("productos").select("*").eq("activo",true).order("nombre"),
+          supabase.from("pedidos").select(`
+            id,total,created_at,tipo,
+            clientes(nombre,telefono),
+            pedido_items(cantidad,precio_unitario,productos(nombre,sku))
+          `).eq("tipo","online").eq("estado","pendiente").order("created_at",{ascending:false}),
+          supabase.from("citas").select(`
+            id,nombre,telefono,hora,fecha,motivo,estado,
+            consumibles_consulta(id,cantidad,precio,cobrado,productos(nombre))
+          `).eq("fecha", hoyLocal).eq("estado","completada"),
+        ]);
+
+        const errs = [];
+        if (prodsRes?.error) errs.push(`Productos (${prodsRes.status||"?"}): ${prodsRes.error.message}`);
+        if (pedsRes?.error)  errs.push(`Pedidos online (${pedsRes.status||"?"}): ${pedsRes.error.message}`);
+        if (citasRes?.error) errs.push(`Citas hoy (${citasRes.status||"?"}): ${citasRes.error.message}`);
+
+        if (errs.length) {
+          console.error("[POS] Errores de carga:", { prodsRes, pedsRes, citasRes });
+          if (typeof setLoadErr === "function") setLoadErr(errs.join(" | "));
+        }
+
+        setProds(prodsRes?.data || []);
+        setPedOn(pedsRes?.data || []);
+
+        const citas = (citasRes?.data || []);
+        // Citas con consumibles por cobrar
+        setConsCobrar(citas.filter(c => (c.consumibles_consulta||[]).some(x => !x.cobrado)));
+
+      } catch (e) {
+        console.error("[POS] Excepción cargando datos:", e);
+        if (typeof setLoadErr === "function") setLoadErr("Error inesperado cargando datos. Revisa consola.");
+        setProds([]); setPedOn([]); setConsCobrar([]);
+      } finally {
+        setLoad(false);
+      }
+    };
+    cargar();
+  },[]);
+
+
+  const buscarCli = async (t) => {
+  setTel(t);
+  if (t.length < 10) { if(t.length===0) setCli(null); return; }
+
+  const { data, error } = await supabase
+    .from("clientes")
+    .select("*")
+    .eq("telefono", t)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Error buscando cliente:", error);
+    setCli(null);
+    return;
+  }
+
+  setCli(data || null);
+};
+
+
+  const fil = productos.filter(p=>
+    (negocio==="farmacia"?["Analgésico","Antiinflamatorio","Gastro","Antibiótico","Diabetes","Hipertensión","Alergia","Vitaminas","Hidratación","Cardiovascular","Respiratorio","Botiquín"].includes(p.categoria):true)&&
+    (p.nombre.toLowerCase().includes(srch.toLowerCase())||p.sku?.toLowerCase().includes(srch.toLowerCase()))
+  );
+
+  const add = (item, esUnidad=false) => {
+    if((item.requiere_receta || item.categoria==="Antibiótico") && !esUnidad) { setRxM(item); return; }
+    if (esUnidad) {
+      const keyU = item.id+"_unit";
+      setCart(p=>{ const ex=p.find(c=>c.id===keyU); return ex?p.map(c=>c.id===keyU?{...c,qty:c.qty+1}:c):[...p,{...item,id:keyU,qty:1,rxI:null,esUnidad:true,precio:Math.ceil(item.precio_unidad||0),nombre:item.nombre+" (unidad)"}]; });
+    } else {
+      setCart(p=>{
+        const ex=p.find(c=>c.id===item.id);
+        if(ex){
+          if(ex.qty>=(item.stock||99)){ showToast(`Stock máximo: ${item.stock} unidades`,"warning"); return p; }
+          return p.map(c=>c.id===item.id?{...c,qty:c.qty+1}:c);
+        }
+        return [...p,{...item,qty:1,rxI:null,esUnidad:false}];
+      });
+    }
+  };
+
+  const abrirCaja = async (item) => {
+    if (item.stock <= 0) { showToast("Sin stock de cajas disponibles.", "warning"); return; }
+    const nuevasCajas = item.stock - 1;
+    const nuevasUnidades = (item.stock_unidades||0) + (item.unidades_por_caja||0);
+    await supabase.from("productos").update({ stock: nuevasCajas, stock_unidades: nuevasUnidades }).eq("id", item.id);
+    showToast(`Caja abierta. Unidades disponibles: ${nuevasUnidades}`, "success");
+  };
+
+  const confRx = () => {
+    if(!rx.receta||!rx.medico||!rx.cedula||!rx.paciente) return;
+    setCart(p=>[...p,{...rxM,qty:1,rxI:{...rx}}]);
+    setRxM(null); setRx({receta:"",medico:"",cedula:"",paciente:"",indicaciones:""});
+  };
+
+  const sub   = cart.reduce((a,c)=>a+c.precio*c.qty,0);
+  const ptsG  = Math.floor(sub/10);
+  const total = sub;
+
+  const cobrar = async () => {
+    if(!cart.length) return;
+    setGuard(true);
+    try {
+      // Actualizar stock + kardex
+      for(const item of cart) {
+        const nuevoStock = (item.stock||0) - item.qty;
+        await supabase.from("productos").update({stock:nuevoStock}).eq("id",item.id);
+        await logMovimiento(item.id, "salida", item.qty, item.stock||0, nuevoStock, "Venta POS", usuario?.id||null);
+      }
+      // Crear pedido
+      const {data:pedido} = await supabase.from("pedidos").insert({
+        cliente_id: cli?.id||null,
+        total, estado:"completado",
+        tipo:"tienda_fisica",
+        metodo_pago:pay,
+        atendido_por:usuario.id,
+      }).select().single();
+      // Items
+      if(pedido) await supabase.from("pedido_items").insert(
+        cart.map(c=>({pedido_id:pedido.id,producto_id:c.id,cantidad:c.qty,precio_unitario:c.precio}))
+      );
+      // Puntos
+      if(cli) await supabase.from("clientes").update({puntos:(cli.puntos||0)+ptsG}).eq("id",cli.id);
+      // Bitácora COFEPRIS
+      const rxItems = cart.filter(c=>c.rxI);
+      if(rxItems.length) {
+        await supabase.from("bitacora_cofepris").insert(rxItems.map(c=>({
+          medicamento:c.nombre, lote:c.lote||"", cantidad:c.qty,
+          receta:c.rxI.receta, medico:c.rxI.medico, cedula_medico:c.rxI.cedula, paciente:c.rxI.paciente,
+          empleado_id:usuario.id,
+        })));
+      }
+      setTicket({id:pedido?.id||Date.now(),items:[...cart],sub,total,pay,cli,ptsG});
+      setVentasDia(p=>({total:p.total+total, count:p.count+1}));
+      logAudit(usuario, "VENTA", "pedidos", pedido?.id||"", {total, metodo_pago:pay, items:cart.length});
+      setCart([]); setTel(""); setCli(null);
+    } catch(e) { console.error(e); }
+    setGuard(false);
+  };
+
+  const surtirOnline = async (pedido) => {
+    setGuard(true);
+    try {
+      await supabase.from("pedidos").update({estado:"listo",atendido_por:usuario.id}).eq("id",pedido.id);
+      // Descontar stock
+      for(const item of (pedido.pedido_items||[])) {
+        if(item.productos?.id) {
+          // Leer stock actual y restar
+          const { data: prod } = await supabase
+            .from("productos")
+            .select("stock")
+            .eq("id", item.productos.id)
+            .single();
+          if (prod) {
+            const nuevoStock = Math.max(0, (prod.stock || 0) - (item.cantidad || 0));
+            await supabase
+              .from("productos")
+              .update({ stock: nuevoStock })
+              .eq("id", item.productos.id);
+          }
+        }
+      }
+      setPedOn(p=>p.filter(x=>x.id!==pedido.id));
+      // L4: Notificar al cliente por WhatsApp cuando pedido está listo
+      const telCli = pedido.clientes?.telefono;
+      if(telCli) {
+        const msg = `🏥 *Farmax Farmacia*\n\n✅ ¡Tu pedido #${pedido.id} está listo!\n\nPuedes pasar a recogerlo en:\n📍 Chinampac de Juárez, Iztapalapa, CDMX\n\n¡Te esperamos! 💊`;
+        showToast(`Pedido listo. ${telCli?"Puedes notificar al cliente por WhatsApp":""}`, "success");
+        // Botón manual para no abrir sin permiso
+      }
+    } catch(e) { console.error(e); }
+    setGuard(false);
+  };
+
+  const cobrarConsulta = async (cita) => {
+    setGuard(true);
+    try {
+      const consumibles = (cita.consumibles_consulta||[]).filter(c=>!c.cobrado);
+      const totalConsumibles = consumibles.reduce((a,c)=>a+c.precio*c.cantidad,0);
+      const totalFinal = (parseFloat(config?.precio_consulta)||300) + totalConsumibles; // precio desde configuracion
+      const {data:pedido} = await supabase.from("pedidos").insert({
+        cliente_id: cli?.id||null,
+        total:totalFinal, estado:"completado",
+        tipo:"tienda_fisica", metodo_pago:pay,
+        atendido_por:usuario.id,
+      }).select().single();
+      // Marcar consumibles como cobrados
+      for(const c of consumibles) {
+        await supabase.from("consumibles_consulta").update({cobrado:true}).eq("id",c.id);
+      }
+      // Actualizar cita como "pagada"
+      await supabase.from("citas").update({estado:"pagada"}).eq("id",cita.id);
+      if(cli) await supabase.from("clientes").update({puntos:(cli.puntos||0)+Math.floor(totalFinal/10)}).eq("id",cli.id);
+      setConsCobrar(p=>p.filter(x=>x.id!==cita.id));
+      setTicket({id:pedido?.id||Date.now(),items:[{nombre:"Consulta médica Dra. Lourdes",qty:1,precio:300},...consumibles.map(c=>({nombre:c.productos?.nombre||"Consumible",qty:c.cantidad,precio:c.precio}))],sub:totalFinal,total:totalFinal,pay,cli,ptsG:Math.floor(totalFinal/10)});
+    } catch(e){ console.error(e); }
+    setGuard(false);
+  };
+
+  return(
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+        {loadErr && (
+        <div style={{
+          background:"#ff000022",
+          border:"1px solid #ff4444",
+          borderRadius:8,
+          padding:"10px 16px",
+          marginBottom:16,
+          color:"#ff6666",
+          fontSize:12,
+          fontWeight:600,
+          display:"flex",
+          justifyContent:"space-between",
+          alignItems:"center"
+        }}>
+          <span>⚠️ {loadErr}</span>
+          <button onClick={()=>setLoadErr("")} style={{background:"transparent",border:"none",color:"#ff6666",cursor:"pointer",fontSize:14}}>✕</button>
+        </div>
+      )}
+      <div style={{display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
+        <h1 style={{color:C.text,fontSize:20,fontWeight:800,margin:0}}>⊡ Punto de Venta</h1>
+        {ventasDia.count>0&&(
+          <div style={{display:"flex",gap:12,alignItems:"center",background:C.greenDim,border:`1px solid ${C.green}30`,borderRadius:10,padding:"6px 14px",flexWrap:"wrap"}}>
+            <div style={{textAlign:"center"}}>
+              <div style={{color:C.textDim,fontSize:9,fontWeight:700,textTransform:"uppercase"}}>Mi día</div>
+              <div style={{color:C.green,fontWeight:900,fontSize:16}}>{$(ventasDia.total)}</div>
+            </div>
+            <div style={{width:1,height:28,background:C.border}}/>
+            <div style={{textAlign:"center"}}>
+              <div style={{color:C.textDim,fontSize:9,fontWeight:700,textTransform:"uppercase"}}>Ventas</div>
+              <div style={{color:C.green,fontWeight:900,fontSize:16}}>{ventasDia.count}</div>
+            </div>
+            <div style={{width:1,height:28,background:C.border}}/>
+            <div style={{textAlign:"center"}}>
+              <div style={{color:C.textDim,fontSize:9,fontWeight:700,textTransform:"uppercase"}}>Ticket prom.</div>
+              <div style={{color:C.blue,fontWeight:900,fontSize:16}}>{$(ventasDia.count?ventasDia.total/ventasDia.count:0)}</div>
+            </div>
+            <div style={{width:1,height:28,background:C.border}}/>
+            <div style={{textAlign:"center"}}>
+              <div style={{color:C.textDim,fontSize:9,fontWeight:700,textTransform:"uppercase"}}>En carrito</div>
+              <div style={{color:C.amber,fontWeight:900,fontSize:16}}>{cart.length}</div>
+            </div>
+          </div>
+        )}
+      </div>
+        <div style={{display:"flex",gap:6,alignItems:"center"}}>
+          {[["venta","Venta normal"],["online",`Online (${pedOnline.length})`],["consultas",`Consultas (${consxCobrar.length})`]].map(([v,l])=>(
+            <button key={v} onClick={()=>setTab(v)} style={{padding:"6px 14px",borderRadius:8,border:`1px solid ${tab===v?BRAND.primary:C.border}`,background:tab===v?BRAND.primary+"18":"transparent",color:tab===v?BRAND.secondary:C.textMid,fontSize:12,fontWeight:700,cursor:"pointer"}}>
+              {l}
+            </button>
+          ))}
+          <button onClick={()=>setActive("caja")} style={{
+            padding:"6px 14px",borderRadius:8,border:`1px solid ${C.amber}`,
+            background:C.amberDim,color:C.amber,fontSize:12,fontWeight:700,
+            cursor:"pointer",marginLeft:8,
+          }}>⊞ Cerrar turno</button>
+        </div>
+      </div>
+
+      {/* Modal RX */}
+      <Modal open={!!rxM} onClose={()=>setRxM(null)} title="⚕ Medicamento con Receta — COFEPRIS" ac={C.amber}>
+        <div style={{color:C.textMid,fontSize:13,marginBottom:14}}><strong style={{color:C.text}}>{rxM?.nombre}</strong> — se registrará en bitácora COFEPRIS/SICAD</div>
+        {[["Número de receta","receta","RX-2024-XXX"],["Médico prescriptor","medico","Dr. Nombre Completo"],["Cédula profesional","cedula","Número cédula SEP"],["Nombre del paciente","paciente","Nombre completo"]].map(([l,k,ph])=>(
+          <div key={k} style={{marginBottom:12}}>
+            <div style={{color:C.textMid,fontSize:11,marginBottom:4}}>{l} *</div>
+            <Inp value={rx[k]} onChange={e=>setRx(p=>({...p,[k]:e.target.value}))} placeholder={ph} style={{width:"100%",boxSizing:"border-box"}}/>
+          </div>
+        ))}
+        {/* Indicaciones */}
+        <div style={{marginBottom:12}}>
+          <div style={{color:C.textMid,fontSize:11,marginBottom:6}}>Indicaciones / Precauciones (opcional)</div>
+          <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:6}}>
+            {["Cada 8 hrs con alimentos","Cada 12 hrs, completar tratamiento","En ayunas, 30 min antes de desayuno","Solo por la noche antes de dormir","No exceder dosis indicada por médico"].map(t=>(
+              <button key={t} onClick={()=>setRx(p=>({...p,indicaciones:t}))}
+                style={{padding:"3px 8px",borderRadius:20,fontSize:10,fontWeight:600,cursor:"pointer",
+                  background:rx.indicaciones===t?C.amberDim:"#f8fafc",
+                  border:`1px solid ${rx.indicaciones===t?C.amber:C.border}`,
+                  color:rx.indicaciones===t?C.amber:C.textMid}}>{t}</button>
+            ))}
+          </div>
+          <textarea value={rx.indicaciones} onChange={e=>setRx(p=>({...p,indicaciones:e.target.value}))}
+            rows={2} maxLength={300} placeholder="O escribe indicaciones personalizadas..."
+            style={{width:"100%",boxSizing:"border-box",padding:"8px 10px",borderRadius:8,
+              border:`1px solid ${C.border}`,background:"#fff",color:C.text,
+              fontSize:12,outline:"none",resize:"vertical",fontFamily:"inherit"}}/>
+        </div>
+        <div style={{display:"flex",gap:8}}>
+          <Btn onClick={()=>setRxM(null)} ol col={C.textMid} sm>Cancelar</Btn>
+          <Btn onClick={confRx} col={C.amber} dis={!rx.receta||!rx.medico||!rx.cedula||!rx.paciente}>✓ Registrar y agregar</Btn>
+        </div>
+      </Modal>
+
+      {/* Modal ticket */}
+      <Modal open={!!ticket} onClose={()=>setTicket(null)} title="✅ Venta registrada" ac={C.green}>
+        {ticket&&<>
+          <div style={{color:C.textMid,fontSize:12,marginBottom:12}}>Ticket #{ticket.id} · {pay}</div>
+          {ticket.items.map((i,idx)=>(
+            <div key={idx} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${C.border}`}}>
+              <span style={{color:C.text,fontSize:13}}>{i.nombre} ×{i.qty}</span>
+              <span style={{color:C.green,fontWeight:700}}>{$(i.precio*i.qty)}</span>
+            </div>
+          ))}
+          <div style={{display:"flex",justifyContent:"space-between",padding:"12px 0",borderBottom:`1px solid ${C.border}`}}>
+            <span style={{color:C.text,fontWeight:800}}>TOTAL</span>
+            <span style={{color:C.green,fontWeight:900,fontSize:18}}>{$(ticket.total)}</span>
+          </div>
+          {ticket.cli&&<div style={{color:C.purple,fontSize:12,fontWeight:700,marginTop:8}}>⭐ +{ticket.ptsG} puntos → {ticket.cli.nombre}</div>}
+          <div style={{color:C.textDim,fontSize:10,marginTop:8,textAlign:"center"}}>{config?.nombre_farmacia||"Farmax"} · {config?.direccion_farmacia||"Chinampac de Juárez, CDMX"}</div>
+          <Btn onClick={()=>{
+            const items = ticket.items.map(i=>`• ${i.nombre} ×${i.qty} = $${(i.precio*i.qty).toFixed(2)}`).join("\n");
+            const rxItems = ticket.items.filter(i=>i.rxI);
+            const indicaciones = rxItems.length ? "\n\n📋 *Indicaciones:*\n" + rxItems.map(i=>`• ${i.nombre}: ${i.rxI?.indicaciones||"Sigue las indicaciones del médico"}`).join("\n") : "";
+            const msg = `🏥 *${config?.nombre_farmacia||"Farmax"}*\n${config?.direccion_farmacia||"Chinampac de Juárez, CDMX"}\n\n*Ticket #${ticket.id}*\n\n${items}\n\n💰 *Total: $${ticket.total.toFixed(2)}*\n💳 Método: ${ticket.pay||"Efectivo"}${indicaciones}\n\n¿Tienes alguna duda? Estamos para ayudarte. 💊`;
+            const tel = ticket.cli?.telefono||prompt("📱 Teléfono del paciente (10 dígitos):");
+            if(tel) window.open("https://wa.me/52"+tel.replace(/\D/g,"")+"?text="+encodeURIComponent(msg),"_blank");
+          }} full col={C.teal} style={{marginTop:8}}>📱 Enviar por WhatsApp</Btn>
+          <div style={{display:"flex",gap:8,marginTop:8}}>
+            <Btn onClick={()=>{
+              const w=window.open("","_blank","width=400,height=600");
+              const items=ticket.items.map(i=>`<tr><td>${i.nombre} ×${i.qty}</td><td style="text-align:right">$${(i.precio*i.qty).toFixed(2)}</td></tr>`).join("");
+              w.document.write(`<!DOCTYPE html><html><head><title>Ticket</title><style>body{font-family:monospace;font-size:12px;padding:16px;max-width:300px}h3{text-align:center}table{width:100%}td{padding:2px 0}.total{font-size:16px;font-weight:bold;border-top:1px dashed #000;padding-top:8px}.footer{text-align:center;margin-top:12px;font-size:10px;color:#666}</style></head><body><h3>FARMAX</h3><p style="text-align:center;font-size:10px">Chinampac de Juárez, CDMX</p><hr/><p>Ticket #${ticket.id}</p><table>${items}</table><div class="total"><table><tr><td>TOTAL</td><td style="text-align:right">$${ticket.total.toFixed(2)}</td></tr><tr><td>Método</td><td style="text-align:right">${ticket.pay}</td></tr>${ticket.cli?`<tr><td>⭐ Puntos</td><td style="text-align:right">+${ticket.ptsG}</td></tr>`:""}</table></div><div class="footer">Farmax Farmacia<br/>¡Gracias por su preferencia!</div></body></html>`);
+              w.document.close(); w.focus(); setTimeout(()=>w.print(),500);
+            }} outline col={C.blue} style={{flex:1}}>🖨️ Imprimir</Btn>
+            <Btn onClick={()=>setTicket(null)} full col={C.green} style={{flex:1}}>Nueva venta</Btn>
+          </div>
+        </>}
+      </Modal>
+
+      {/* TAB: VENTA NORMAL */}
+      {tab==="venta"&&(
+        <div style={{display:"grid",gridTemplateColumns:cartOpen?"1fr 320px":"1fr",gap:16,alignItems:"start",position:"relative"}}>
+          <div>
+            <div style={{display:"flex",gap:8,marginBottom:12,alignItems:"center"}}>
+              <input ref={srchRef} value={srch} onChange={e=>setSrch(e.target.value)}
+                onKeyDown={e=>{
+                  if(e.key==="Enter"){
+                    const exact=productos.find(p=>p.sku&&p.sku.toLowerCase()===srch.toLowerCase().trim());
+                    if(exact){add(exact,false);setSrch("");e.preventDefault();}
+                  }
+                }}
+                placeholder="🔍 Buscar por nombre o SKU · Enter para agregar"
+                style={{flex:1,boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:C.bg,color:C.text,fontSize:13,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}/>
+              <button onClick={()=>setCartOpen(p=>!p)} style={{
+                padding:"9px 14px",borderRadius:8,border:`1px solid ${C.border}`,
+                background:cart.length?BRAND.primary+"18":"transparent",
+                color:cart.length?BRAND.primary:C.textMid,
+                fontWeight:700,fontSize:12,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,
+              }}>🛒{cart.length>0?` (${cart.length})`:""} {cartOpen?"▶":"◀"}</button>
+            </div>
+            {favs.length>0&&(
+              <div style={{marginBottom:12}}>
+                <div style={{color:C.textDim,fontSize:10,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:6}}>⭐ Favoritos</div>
+                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                  {productos.filter(p=>favs.includes(p.id)&&p.activo).map(p=>(
+                    <button key={p.id} onClick={()=>add(p,false)}
+                      style={{padding:"5px 10px",borderRadius:8,border:`1px solid ${C.amber}`,background:C.amberDim,color:"#92400e",fontSize:11,fontWeight:700,cursor:"pointer",maxWidth:130,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                      ⭐ {p.nombre.split(" ").slice(0,3).join(" ")}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))",gap:8}}>
+              {fil.map(item=>(
+                <Box key={item.id}
+                  style={{padding:12,opacity:item.stock===0&&(!item.venta_unidad||item.stock_unidades===0)?.5:1,cursor:"default"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
+                    <div style={{color:C.textDim,fontSize:9,letterSpacing:1}}>{item.sku}</div>
+                    <button onClick={e=>{e.stopPropagation();toggleFav(item.id);}} style={{background:"none",border:"none",cursor:"pointer",fontSize:12,padding:0,lineHeight:1}}>
+                      {favs.includes(item.id)?"⭐":"☆"}
+                    </button>
+                  </div>
+                  <div style={{color:C.text,fontSize:11,fontWeight:700,lineHeight:1.3,marginBottom:6,minHeight:28}}>{item.nombre}</div>
+                  <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:6}}>
+                    {item.requiere_receta&&<span style={{background:C.amber,color:"#fff",fontSize:9,fontWeight:800,borderRadius:4,padding:"2px 6px"}}>⚕ RX</span>}
+                    {item.tipo==="generico"&&<Tag col={C.teal} sm>Gen</Tag>}
+                  </div>
+                  {item.venta_unidad?(
+                    <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                      <button
+                        disabled={item.stock===0}
+                        onClick={()=>add(item,false)}
+                        style={{padding:"4px 6px",borderRadius:6,border:`1px solid ${C.blue}30`,background:"#eff6ff",color:C.blue,cursor:item.stock===0?"not-allowed":"pointer",fontSize:10,fontWeight:700,opacity:item.stock===0?.4:1}}>
+                        📦 Caja {$(item.precio_venta||item.precio)} · {item.stock} cajas
+                      </button>
+                      <button
+                        disabled={item.stock_unidades===0&&item.stock===0}
+                        onClick={()=>{
+                          if(item.stock_unidades>0){ add(item,true); }
+                          else if(item.stock>0){ abrirCaja(item); }
+                          else { showToast("Sin stock disponible.", "warning"); }
+                        }}
+                        style={{padding:"4px 6px",borderRadius:6,border:`1px solid ${C.green}30`,background:C.greenDim,color:C.greenDark,cursor:(item.stock_unidades===0&&item.stock===0)?"not-allowed":"pointer",fontSize:10,fontWeight:700,opacity:(item.stock_unidades===0&&item.stock===0)?.4:1}}>
+                        💊 x1 {$(Math.ceil(item.precio_unidad||0))} · {item.stock_unidades} sueltas
+                      </button>
+                    </div>
+                  ):(
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}
+                      onClick={item.stock===0?undefined:()=>add(item,false)}
+                      style={{cursor:item.stock===0?"not-allowed":"pointer"}}>
+                      <div>
+                        {item.descuento_porcentaje>0?(
+                          <>
+                            <span style={{color:C.textDim,fontSize:10,textDecoration:"line-through",display:"block"}}>{$(item.precio_venta||item.precio)}</span>
+                            <span style={{color:C.red,fontWeight:900,fontSize:15}}>{$(Math.round((item.precio_venta||item.precio)*(1-item.descuento_porcentaje/100)))}</span>
+                            <span style={{background:C.red,color:"#fff",fontSize:8,fontWeight:700,borderRadius:4,padding:"1px 4px",marginLeft:4}}>-{item.descuento_porcentaje}%</span>
+                          </>
+                        ):(
+                          <span style={{color:C.blue,fontWeight:800,fontSize:15}}>{$(item.precio)}</span>
+                        )}
+                      </div>
+                      <Tag col={item.stock===0?C.red:item.stock<item.stock_minimo?C.amber:C.green} sm>{item.stock===0?"Agotado":item.stock}</Tag>
+                    </div>
+                  )}
+                </Box>
+              ))}
+            </div>
+          </div>
+          {/* Carrito */}
+          {cartOpen&&<div style={{position:"sticky",top:20}}>
+            <Box style={{padding:16,marginBottom:12}}>
+              <div style={{color:C.text,fontWeight:700,fontSize:13,marginBottom:12}}>🛒 Carrito</div>
+              <SearchDropdown
+                value={tel}
+                onChange={t=>buscarCli(t)}
+                onSelect={c=>{ setTel(c.telefono||""); setCli(c); }}
+                placeholder="📱 Teléfono o nombre del cliente"
+                items={[]}
+                labelKey="nombre"
+                subKey="telefono"
+                badgeKey="puntos"
+                badgeCol="#7c3aed"
+                style={{marginBottom:8}}
+                emptyMsg="Escribe el teléfono completo (10 dígitos)"
+              />
+              {cli&&<div style={{background:C.purpleDim,border:`1px solid ${C.purple}30`,borderRadius:8,padding:"8px 10px",marginBottom:10}}>
+                <div style={{color:C.purple,fontWeight:700,fontSize:12}}>{cli.nombre}</div>
+                <div style={{color:C.textMid,fontSize:10}}>⭐ {cli.puntos||0} puntos Farmax</div>
+              </div>}
+              {!cart.length?<div style={{color:C.textMid,fontSize:12,textAlign:"center",padding:"20px 0"}}>Agrega productos</div>:
+               cart.map(item=>(
+                <div key={item.id} style={{marginBottom:10,paddingBottom:10,borderBottom:`1px solid ${C.border}`}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:6,marginBottom:6}}>
+                    <div style={{color:C.text,fontSize:11,fontWeight:700,flex:1}}>{item.nombre}</div>
+                    <button onClick={()=>setCart(p=>p.filter(c=>c.id!==item.id))} style={{background:"none",border:"none",color:C.red,cursor:"pointer",fontSize:14}}>×</button>
+                  </div>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:6}}>
+                      <button onClick={()=>setCart(p=>p.map(c=>c.id===item.id?{...c,qty:Math.max(1,c.qty-1)}:c))} style={{width:22,height:22,borderRadius:4,border:`1px solid ${C.border}`,background:"none",color:C.text,cursor:"pointer",fontSize:13}}>−</button>
+                      <span style={{color:C.text,fontSize:12,fontWeight:700}}>{item.qty}</span>
+                      <button onClick={()=>setCart(p=>p.map(c=>c.id===item.id?(c.qty>=(item.stock||99)?(showToast(`Máx: ${item.stock}`,"warning"),c):{...c,qty:c.qty+1}):c))} style={{width:22,height:22,borderRadius:4,border:`1px solid ${C.border}`,background:"none",color:C.text,cursor:"pointer",fontSize:13}}>+</button>
+                    </div>
+                    <span style={{color:C.blue,fontWeight:700,fontSize:13}}>{$(item.precio*item.qty)}</span>
+                  </div>
+                </div>
+              ))}
+            </Box>
+            {/* Sugerencias */}
+            {cart.length>0&&(()=>{
+              const cats = [...new Set(cart.map(i=>i.categoria).filter(Boolean))];
+              const idsEnCart = new Set(cart.map(i=>typeof i.id==="string"?i.id:String(i.id)));
+              const sugs = productos.filter(p=>
+                cats.includes(p.categoria) &&
+                !idsEnCart.has(String(p.id)) &&
+                p.activo && p.stock>0
+              ).slice(0,4);
+              if(!sugs.length) return null;
+              return (
+                <Box style={{padding:12,marginBottom:12}}>
+                  <div style={{color:C.textMid,fontSize:10,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>💡 Sugeridos</div>
+                  <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                    {sugs.map(p=>(
+                      <div key={p.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 8px",borderRadius:7,background:C.bg,cursor:"pointer"}}
+                        onClick={()=>add(p,false)}
+                        onMouseEnter={e=>e.currentTarget.style.background=C.blueDim}
+                        onMouseLeave={e=>e.currentTarget.style.background=C.bg}>
+                        <div style={{flex:1}}>
+                          <div style={{color:C.text,fontSize:11,fontWeight:600,lineHeight:1.3}}>{p.nombre}</div>
+                          <div style={{color:C.textDim,fontSize:9}}>{p.categoria}</div>
+                        </div>
+                        <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+                          <span style={{color:C.blue,fontWeight:700,fontSize:11}}>{$(p.precio_venta||p.precio||0)}</span>
+                          <span style={{color:C.green,fontSize:14,fontWeight:700}}>+</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Box>
+              );
+            })()}
+
+            {/* Método pago */}
+            <Box style={{padding:14,marginBottom:12}}>
+              <div style={{color:C.textDim,fontSize:10,letterSpacing:1.5,textTransform:"uppercase",marginBottom:8}}>Método de pago</div>
+              <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+                {["Efectivo","Tarjeta","SPEI","MercadoPago"].map(m=>(
+                  <button key={m} onClick={()=>setPay(m)} style={{padding:"4px 10px",borderRadius:20,border:`1px solid ${pay===m?C.blue:C.border}`,background:pay===m?C.blueDim:"transparent",color:pay===m?C.blue:C.textMid,fontSize:10,fontWeight:700,cursor:"pointer"}}>{m}</button>
+                ))}
+              </div>
+            </Box>
+            {/* Total */}
+            <Box style={{padding:16}}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                <span style={{color:C.textMid,fontSize:13}}>Total</span>
+                <span style={{color:C.blue,fontWeight:900,fontSize:20}}>{$(total)}</span>
+              </div>
+              {cli&&<div style={{color:C.purple,fontSize:11,fontWeight:700,marginBottom:10}}>+{ptsG} puntos → {cli.nombre}</div>}
+              <Btn onClick={cobrar} full col={C.green} dis={!cart.length||guardando}
+                onKeyDown={e=>e.key==="Enter"&&!guardando&&cart.length&&cobrar()}
+              >{guardando?"Procesando...":"✅ Cobrar "+$(total)+" (Enter)"}</Btn>
+            </Box>
+          </div>}
+        </div>
+      )}
+
+      {/* TAB: PEDIDOS ONLINE */}
+      {tab==="online"&&(
+        <div>
+          {loading?<SkeletonTable rows={3} cols={4}/>:
+           !pedOnline.length?<div style={{color:C.textMid,padding:40,textAlign:"center"}}>✓ Sin pedidos online pendientes</div>:
+           pedOnline.map(p=>(
+            <Box key={p.id} style={{padding:20,marginBottom:12}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
+                <div>
+                  <div style={{color:C.text,fontWeight:800,fontSize:15}}>Pedido #{p.id} — Online</div>
+                  <div style={{color:C.textMid,fontSize:12,marginTop:3}}>{p.clientes?.nombre} · {p.clientes?.telefono}</div>
+                  <div style={{color:C.textDim,fontSize:11,marginTop:2}}>{new Date(p.created_at).toLocaleString("es-MX")}</div>
+                </div>
+                <div style={{textAlign:"right"}}>
+                  <div style={{color:C.blue,fontWeight:900,fontSize:18}}>{$(p.total)}</div>
+                  <Tag col={C.amber} sm>Pendiente</Tag>
+                </div>
+              </div>
+              <div style={{background:C.bg,borderRadius:8,padding:"10px 14px",marginBottom:12}}>
+                <div style={{color:C.textDim,fontSize:10,letterSpacing:1,textTransform:"uppercase",marginBottom:6}}>Productos</div>
+                {(p.pedido_items||[]).map((item,i)=>(
+                  <div key={i} style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                    <span style={{color:C.text,fontSize:12}}>{item.productos?.nombre} ×{item.cantidad}</span>
+                    <span style={{color:C.blue,fontSize:12,fontWeight:700}}>{$(item.precio_unitario*item.cantidad)}</span>
+                  </div>
+                ))}
+              </div>
+              <div style={{display:"flex",gap:8}}>
+                <Btn onClick={()=>surtirOnline(p)} col={C.green} dis={guardando}>✓ Surtir y marcar listo</Btn>
+                <Btn ol col={C.red} sm onClick={async()=>{ await supabase.from("pedidos").update({estado:"cancelado"}).eq("id",p.id); setPedOn(x=>x.filter(z=>z.id!==p.id)); }}>Cancelar</Btn>
+              </div>
+            </Box>
+          ))}
+        </div>
+      )}
+
+      {/* TAB: COBRAR CONSULTAS */}
+      {tab==="consultas"&&(
+        <div>
+          <div style={{background:C.blueDim,border:`1px solid ${C.blue}30`,borderRadius:10,padding:"12px 16px",marginBottom:16}}>
+            <div style={{color:C.blue,fontSize:13,fontWeight:700}}>ℹ Aquí aparecen las consultas completadas por la Dra. Lourdes que necesitan cobro en farmacia.</div>
+          </div>
+          {!consxCobrar.length?<div style={{color:C.textMid,padding:40,textAlign:"center"}}>✓ Sin consultas pendientes de cobro</div>:
+           consxCobrar.map(cita=>{
+            const consumibles=(cita.consumibles_consulta||[]).filter(c=>!c.cobrado);
+            const totalCons=consumibles.reduce((a,c)=>a+c.precio*c.cantidad,0);
+            return(
+              <Box key={cita.id} style={{padding:20,marginBottom:12}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:12}}>
+                  <div>
+                    <div style={{color:C.text,fontWeight:800,fontSize:15}}>Consulta — {cita.nombre}</div>
+                    <div style={{color:C.textMid,fontSize:12,marginTop:2}}>{cita.hora} hrs · {cita.motivo||"Consulta general"}</div>
+                  </div>
+                  <div style={{textAlign:"right"}}>
+                    <div style={{color:C.green,fontWeight:900,fontSize:18}}>{$(300+totalCons)}</div>
+                    <div style={{color:C.textDim,fontSize:10}}>Consulta $300 + consumibles ${totalCons}</div>
+                  </div>
+                </div>
+                {consumibles.length>0&&(
+                  <div style={{background:C.bg,borderRadius:8,padding:"10px 14px",marginBottom:12}}>
+                    <div style={{color:C.textDim,fontSize:10,letterSpacing:1,marginBottom:6}}>CONSUMIBLES USADOS</div>
+                    {consumibles.map((c,i)=>(
+                      <div key={i} style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
+                        <span style={{color:C.text,fontSize:12}}>{c.productos?.nombre} ×{c.cantidad}</span>
+                        <span style={{color:C.amber,fontSize:12,fontWeight:700}}>{$(c.precio*c.cantidad)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <Inp value={tel} onChange={e=>buscarCli(e.target.value)} placeholder="📱 Teléfono cliente (puntos)" type="tel" style={{width:"100%",boxSizing:"border-box",marginBottom:8}}/>
+                {cli&&<div style={{background:C.purpleDim,border:`1px solid ${C.purple}30`,borderRadius:6,padding:"6px 10px",marginBottom:8}}><span style={{color:C.purple,fontSize:11,fontWeight:700}}>{cli.nombre} · {cli.puntos||0} pts</span></div>}
+                <div style={{display:"flex",gap:6,marginBottom:10,flexWrap:"wrap"}}>
+                  {["Efectivo","Tarjeta","SPEI"].map(m=>(
+                    <button key={m} onClick={()=>setPay(m)} style={{padding:"4px 10px",borderRadius:20,border:`1px solid ${pay===m?C.green:C.border}`,background:pay===m?C.greenDim:"transparent",color:pay===m?C.green:C.textMid,fontSize:10,fontWeight:700,cursor:"pointer"}}>{m}</button>
+                  ))}
+                </div>
+                <Btn onClick={()=>cobrarConsulta(cita)} col={C.green} dis={guardando}>✅ Cobrar {$(300+totalCons)}</Btn>
+              </Box>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// CONSULTORIO — Vista Admin (agenda + expedientes)
+// ══════════════════════════════════════════════════════════════
+function Consultorio(){
+  const [citas,setCitas]   = useState([]);
+  const [exps,setExps]     = useState([]);
+  const [tab,setTab]       = useState("agenda");
+  const [loading,setLoad]  = useState(true);
+  const hoy = new Date().toISOString().split("T")[0];
+
+  useEffect(()=>{
+    const cargar = async () => {
+      setLoad(true);
+      if (typeof setLoadErr === "function") setLoadErr("");
+      try {
+        // Fecha local YYYY-MM-DD (evita problemas por UTC)
+        const hoyLocal = new Date().toLocaleDateString("sv-SE");
+
+        const [prodsRes, pedsRes, citasRes] = await Promise.all([
+          supabase.from("productos").select("*").eq("activo",true).order("nombre"),
+          supabase.from("pedidos").select(`
+            id,total,created_at,tipo,
+            clientes(nombre,telefono),
+            pedido_items(cantidad,precio_unitario,productos(nombre,sku))
+          `).eq("tipo","online").eq("estado","pendiente").order("created_at",{ascending:false}),
+          supabase.from("citas").select(`
+            id,nombre,telefono,hora,fecha,motivo,estado,
+            consumibles_consulta(id,cantidad,precio,cobrado,productos(nombre))
+          `).eq("fecha", hoyLocal).eq("estado","completada"),
+        ]);
+
+        const errs = [];
+        if (prodsRes?.error) errs.push(`Productos (${prodsRes.status||"?"}): ${prodsRes.error.message}`);
+        if (pedsRes?.error)  errs.push(`Pedidos online (${pedsRes.status||"?"}): ${pedsRes.error.message}`);
+        if (citasRes?.error) errs.push(`Citas hoy (${citasRes.status||"?"}): ${citasRes.error.message}`);
+
+        if (errs.length) {
+          console.error("[POS] Errores de carga:", { prodsRes, pedsRes, citasRes });
+          if (typeof setLoadErr === "function") setLoadErr(errs.join(" | "));
+        }
+
+        setProds(prodsRes?.data || []);
+        setPedOn(pedsRes?.data || []);
+
+        const citas = (citasRes?.data || []);
+        // Citas con consumibles por cobrar
+        setConsCobrar(citas.filter(c => (c.consumibles_consulta||[]).some(x => !x.cobrado)));
+
+      } catch (e) {
+        console.error("[POS] Excepción cargando datos:", e);
+        if (typeof setLoadErr === "function") setLoadErr("Error inesperado cargando datos. Revisa consola.");
+        setProds([]); setPedOn([]); setConsCobrar([]);
+      } finally {
+        setLoad(false);
+      }
+    };
+    cargar();
+  },[]);
+
+
+  return(
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+        <h1 style={{color:C.text,fontSize:20,fontWeight:800,margin:0}}>♥ Consultorio — Dra. Lourdes Lucio Falcón</h1>
+        <Tag col={C.green}>Médico General</Tag>
+      </div>
+      {/* Alerta citas online */}
+      {citas.filter(c=>c.cliente_id).length>0&&(
+        <div style={{background:C.blueDim,border:`1px solid ${C.blue}30`,borderRadius:10,padding:"10px 16px",marginBottom:14}}>
+          <div style={{color:C.blue,fontSize:13,fontWeight:700}}>🌐 {citas.filter(c=>c.cliente_id).length} citas agendadas desde la tienda web farmax-seven.vercel.app</div>
+        </div>
+      )}
+      <div style={{display:"flex",gap:6,marginBottom:16}}>
+        {[["agenda","📅 Agenda hoy"],["expedientes","📋 Clientes"]].map(([v,l])=>(
+          <button key={v} onClick={()=>setTab(v)} style={{padding:"7px 14px",borderRadius:8,border:`1px solid ${tab===v?BRAND.primary:C.border}`,background:tab===v?BRAND.primary+"18":"transparent",color:tab===v?BRAND.secondary:C.textMid,fontSize:12,fontWeight:700,cursor:"pointer"}}>{l}</button>
+        ))}
+      </div>
+      {tab==="agenda"&&(
+        loading?<SkeletonTable rows={4} cols={5}/>:
+        !citas.length?<Box style={{padding:40,textAlign:"center"}}><div style={{color:C.textMid}}>Sin citas agendadas para hoy</div></Box>:
+        <div style={{display:"grid",gap:10}}>
+          {citas.map(c=>(
+            <Box key={c.id} style={{padding:18}}>
+              <div style={{display:"flex",alignItems:"center",gap:14}}>
+                <div style={{color:C.blue,fontWeight:800,fontSize:16,width:50,flexShrink:0}}>{c.hora}</div>
+                <div style={{flex:1}}>
+                  <div style={{color:C.text,fontWeight:700,fontSize:14}}>{c.nombre}</div>
+                  <div style={{color:C.textMid,fontSize:12,marginTop:2}}>{c.motivo||"Consulta general"} {c.telefono&&`· ${c.telefono}`}</div>
+                  {c.cliente_id&&<Tag col={C.blue} sm>App web</Tag>}
+                </div>
+                <Tag col={c.estado==="completada"?C.green:c.estado==="confirmada"?C.blue:c.estado==="pagada"?C.purple:C.amber} sm>{c.estado||"pendiente"}</Tag>
+              </div>
+            </Box>
+          ))}
+        </div>
+      )}
+      {tab==="expedientes"&&(
+        <Box>
+          <table style={{width:"100%",borderCollapse:"collapse"}}>
+            <thead><tr>{["Nombre","Teléfono","Registrado"].map(h=><th key={h} style={{padding:"8px 14px",color:C.textDim,fontSize:9,textAlign:"left",letterSpacing:1.5,textTransform:"uppercase",borderBottom:`1px solid ${C.border}`}}>{h}</th>)}</tr></thead>
+            <tbody>
+              {exps.map(e=>(
+                <tr key={e.id}>
+                  <td style={{padding:"10px 14px",color:C.text,fontWeight:700,fontSize:13}}>{e.nombre}</td>
+                  <td style={{padding:"10px 14px",color:C.textMid,fontSize:12}}>{e.telefono}</td>
+                  <td style={{padding:"10px 14px",color:C.textDim,fontSize:11}}>{new Date(e.created_at).toLocaleDateString("es-MX")}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Box>
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// MÓDULO DOCTORA — Su vista propia
+// Agenda + registrar consumibles
+// ══════════════════════════════════════════════════════════════
+function ConsDoctora({usuario}){
+  const [citas,setCitas]     = useState([]);
+  const [loading,setLoad]    = useState(true);
+  const [citaSel,setCitaSel] = useState(null);
+  const [consumibles,setCons]= useState([]);
+  const [prodList,setProdList]= useState([]);
+  const [guardando,setGuard] = useState(false);
+  const hoy = new Date().toISOString().split("T")[0];
+
+  useEffect(()=>{
+    const cargar = async () => {
+      setLoad(true);
+      if (typeof setLoadErr === "function") setLoadErr("");
+      try {
+        // Fecha local YYYY-MM-DD (evita problemas por UTC)
+        const hoyLocal = new Date().toLocaleDateString("sv-SE");
+
+        const [prodsRes, pedsRes, citasRes] = await Promise.all([
+          supabase.from("productos").select("*").eq("activo",true).order("nombre"),
+          supabase.from("pedidos").select(`
+            id,total,created_at,tipo,
+            clientes(nombre,telefono),
+            pedido_items(cantidad,precio_unitario,productos(nombre,sku))
+          `).eq("tipo","online").eq("estado","pendiente").order("created_at",{ascending:false}),
+          supabase.from("citas").select(`
+            id,nombre,telefono,hora,fecha,motivo,estado,
+            consumibles_consulta(id,cantidad,precio,cobrado,productos(nombre))
+          `).eq("fecha", hoyLocal).eq("estado","completada"),
+        ]);
+
+        const errs = [];
+        if (prodsRes?.error) errs.push(`Productos (${prodsRes.status||"?"}): ${prodsRes.error.message}`);
+        if (pedsRes?.error)  errs.push(`Pedidos online (${pedsRes.status||"?"}): ${pedsRes.error.message}`);
+        if (citasRes?.error) errs.push(`Citas hoy (${citasRes.status||"?"}): ${citasRes.error.message}`);
+
+        if (errs.length) {
+          console.error("[POS] Errores de carga:", { prodsRes, pedsRes, citasRes });
+          if (typeof setLoadErr === "function") setLoadErr(errs.join(" | "));
+        }
+
+        setProds(prodsRes?.data || []);
+        setPedOn(pedsRes?.data || []);
+
+        const citas = (citasRes?.data || []);
+        // Citas con consumibles por cobrar
+        setConsCobrar(citas.filter(c => (c.consumibles_consulta||[]).some(x => !x.cobrado)));
+
+      } catch (e) {
+        console.error("[POS] Excepción cargando datos:", e);
+        if (typeof setLoadErr === "function") setLoadErr("Error inesperado cargando datos. Revisa consola.");
+        setProds([]); setPedOn([]); setConsCobrar([]);
+      } finally {
+        setLoad(false);
+      }
+    };
+    cargar();
+  },[]);
+
+
+  const agregarConsumible = async (cita,prod,qty) => {
+    setGuard(true);
+    try {
+      await supabase.from("consumibles_consulta").insert({
+        cita_id:cita.id, producto_id:prod.id, cantidad:qty, precio:prod.precio, cobrado:false,
+      });
+      // Actualizar estado cita a en_consulta
+      await supabase.from("citas").update({estado:"en_consulta"}).eq("id",cita.id);
+      // Recargar
+      const {data} = await supabase.from("citas").select(`*,consumibles_consulta(*,productos(nombre))`).eq("fecha",hoy).order("hora");
+      setCitas(data||[]);
+    } catch(e){ console.error(e); }
+    setGuard(false);
+  };
+
+  const completarCita = async (cita) => {
+    await supabase.from("citas").update({estado:"completada"}).eq("id",cita.id);
+    setCitas(p=>p.map(c=>c.id===cita.id?{...c,estado:"completada"}:c));
+    setCitaSel(null);
+  };
+
+  return(
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+        <div>
+          <h1 style={{color:C.text,fontSize:20,fontWeight:800,margin:0}}>♥ Mi Consultorio</h1>
+          <div style={{color:C.textMid,fontSize:12,marginTop:4}}>Dra. Lourdes Lucio Falcón · Médico General · {new Date().toLocaleDateString("es-MX")}</div>
+        </div>
+        <Tag col={C.green}>En turno</Tag>
+      </div>
+
+      {/* Modal agregar consumibles */}
+      <Modal open={!!citaSel} onClose={()=>setCitaSel(null)} title="➕ Registrar consumibles usados" ac={C.amber}>
+        {citaSel&&<>
+          <div style={{color:C.textMid,fontSize:13,marginBottom:16}}>Paciente: <strong style={{color:C.text}}>{citaSel.nombre}</strong></div>
+          <div style={{color:C.textDim,fontSize:10,letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>Seleccionar consumible</div>
+          <div style={{display:"grid",gap:6,maxHeight:300,overflowY:"auto"}}>
+            {prodList.map(p=>(
+              <div key={p.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 12px",background:C.bg,borderRadius:8,border:`1px solid ${C.border}`}}>
+                <div>
+                  <div style={{color:C.text,fontSize:12,fontWeight:700}}>{p.nombre}</div>
+                  <div style={{color:C.textMid,fontSize:11}}>{$(p.precio)}/ud</div>
+                </div>
+                <div style={{display:"flex",gap:4}}>
+                  {[1,2,3].map(qty=>(
+                    <button key={qty} onClick={()=>agregarConsumible(citaSel,p,qty)} disabled={guardando}
+                      style={{padding:"4px 10px",borderRadius:6,border:`1px solid ${C.blue}`,background:C.blueDim,color:C.blue,fontSize:11,fontWeight:700,cursor:"pointer"}}>+{qty}</button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* Consumibles ya registrados */}
+          {(citaSel.consumibles_consulta||[]).length>0&&(
+            <div style={{marginTop:16}}>
+              <div style={{color:C.textDim,fontSize:10,letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>Ya registrado</div>
+              {citaSel.consumibles_consulta.map((c,i)=>(
+                <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:`1px solid ${C.border}`}}>
+                  <span style={{color:C.text,fontSize:12}}>{c.productos?.nombre} ×{c.cantidad}</span>
+                  <span style={{color:C.amber,fontSize:12,fontWeight:700}}>{$(c.precio*c.cantidad)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          <div style={{display:"flex",gap:8,marginTop:16}}>
+            <Btn onClick={()=>setCitaSel(null)} ol col={C.textMid} sm>Cerrar</Btn>
+            <Btn onClick={()=>completarCita(citaSel)} col={C.green} dis={guardando}>✓ Finalizar consulta</Btn>
+          </div>
+        </>}
+      </Modal>
+
+      {/* Lista de citas */}
+      {loading?<SkeletonTable rows={3} cols={3}/>:
+       !citas.length?<Box style={{padding:40,textAlign:"center"}}><div style={{color:C.textMid,fontSize:14}}>Sin citas para hoy</div></Box>:
+       <div style={{display:"grid",gap:10}}>
+         {citas.map(c=>(
+          <Box key={c.id} style={{padding:18,borderColor:c.estado==="en_consulta"?C.amber+"60":c.estado==="completada"?C.green+"40":C.border}}>
+            <div style={{display:"flex",alignItems:"center",gap:14}}>
+              <div style={{color:C.blue,fontWeight:800,fontSize:18,width:55,flexShrink:0}}>{c.hora}</div>
+              <div style={{flex:1}}>
+                <div style={{color:C.text,fontWeight:700,fontSize:15}}>{c.nombre}</div>
+                <div style={{color:C.textMid,fontSize:12,marginTop:2}}>{c.motivo||"Consulta general"}</div>
+                {(c.consumibles_consulta||[]).length>0&&(
+                  <div style={{color:C.amber,fontSize:11,marginTop:4}}>
+                    + {(c.consumibles_consulta||[]).length} consumibles registrados
+                  </div>
+                )}
+              </div>
+              <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                <Tag col={c.estado==="completada"?C.green:c.estado==="pagada"?C.purple:c.estado==="en_consulta"?C.amber:C.blue} sm>
+                  {c.estado||"confirmada"}
+                </Tag>
+                {c.estado!=="completada"&&c.estado!=="pagada"&&(
+                  <Btn sm col={C.amber} onClick={()=>setCitaSel(c)}>+ Consumibles</Btn>
+                )}
+              </div>
+            </div>
+          </Box>
+         ))}
+       </div>
+      }
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// REPORTES — Admin con ROI + métricas clave
+// ══════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
+// TRANSACCIONES — Tab dentro de Reportes
+// ══════════════════════════════════════════════════════════════
+function TransaccionesTab({ usuario }) {
+  const [pedidos,      setPedidos]   = useState([]);
+  const [loading,      setLoading]   = useState(true);
+  const [busqueda,     setBusqueda]  = useState("");
+  const [filtroFecha,  setFiltroF]   = useState("mes");
+  const [filtroTipo,   setFiltroT]   = useState("todos");
+  const [filtroEstado, setFiltroE]   = useState("todos");
+  const [fechaDesde,   setFDesde]    = useState("");
+  const [fechaHasta,   setFHasta]    = useState("");
+  const [modalDetalle, setModalDet]  = useState(null);
+  const [modalEditar,  setModalEdit] = useState(null);
+  const [pagina, setPagina] = useState(1);
+  const POR_PAGINA = 50;
+  const [detItems,     setDetItems]  = useState([]);
+  const [loadDet,      setLoadDet]   = useState(false);
+  const [editForm,     setEditForm]  = useState({});
+  const [saving,       setSaving]    = useState(false);
+
+  const getRango = () => {
+    const h=new Date(),y=h.getFullYear(),m=h.getMonth(),d=h.getDate();
+    if (filtroFecha==="hoy")    return {desde:new Date(y,m,d,0,0,0).toISOString(),  hasta:new Date(y,m,d,23,59,59).toISOString()};
+    if (filtroFecha==="semana") return {desde:new Date(Date.now()-7*86400000).toISOString(), hasta:h.toISOString()};
+    if (filtroFecha==="mes")    return {desde:new Date(y,m,1).toISOString(), hasta:h.toISOString()};
+    if (filtroFecha==="custom"&&fechaDesde) return {desde:new Date(fechaDesde).toISOString(), hasta:fechaHasta?new Date(fechaHasta+"T23:59:59").toISOString():h.toISOString()};
+    return null;
+  };
+
+  const fetchPedidos = useCallback(async () => {
+    setLoading(true);
+    let q = supabase.from("pedidos").select("*, clientes(nombre,telefono), usuarios(nombre)").order("created_at",{ascending:false}).limit(300);
+    const rango = getRango();
+    if (rango) q = q.gte("created_at",rango.desde).lte("created_at",rango.hasta);
+    const { data, error } = await q;
+    if (!error) setPedidos(data||[]);
+    setLoading(false);
+  }, [filtroFecha, fechaDesde, fechaHasta]);
+
+  useEffect(() => { fetchPedidos(); }, [fetchPedidos]);
+
+  // M3: Resetear página al cambiar filtros
+  const filtradosTodos = pedidos.filter(p => {
+    const q = busqueda.toLowerCase();
+    const matchB = !q || p.id?.toString().includes(q) || p.clientes?.nombre?.toLowerCase().includes(q);
+    const matchT = filtroTipo==="todos" || p.tipo===filtroTipo || (!p.tipo&&filtroTipo==="fisica");
+    const matchE = filtroEstado==="todos" || p.estado===filtroEstado;
+    return matchB && matchT && matchE;
+  });
+  const filtrados = filtradosTodos.slice((pagina-1)*POR_PAGINA, pagina*POR_PAGINA);
+
+  const abrirDetalle = async (p) => {
+    setModalDet(p); setLoadDet(true); setDetItems([]);
+    const { data } = await supabase.from("pedido_items").select("*, productos(nombre)").eq("pedido_id", p.id);
+    setDetItems(data||[]); setLoadDet(false);
+  };
+
+  const abrirEditar = (p) => {
+    setModalEdit(p);
+    setEditForm({ estado:p.estado||"", metodo_pago:p.metodo_pago||"", notas:p.notas||"" });
+  };
+
+  const guardarEditar = async () => {
+    setSaving(true);
+    await supabase.from("pedidos").update({ estado:editForm.estado, metodo_pago:editForm.metodo_pago, notas:editForm.notas||null }).eq("id", modalEditar.id);
+    setSaving(false); setModalEdit(null); fetchPedidos();
+  };
+
+  const cancelarPed = async (p) => {
+    showConfirm("Cancelar pedido",`¿Cancelar el pedido #${p.id}? El estado cambiará a cancelado.`, async()=>{
+      await supabase.from("pedidos").update({ estado:"cancelado" }).eq("id", p.id);
+      fetchPedidos();
+      showToast(`Pedido #${p.id} cancelado.`, "info");
+    }); return;
+    await supabase.from("pedidos").update({ estado:"cancelado" }).eq("id", p.id);
+    fetchPedidos();
+  };
+
+  const eliminarPed = async (p) => {
+    showConfirm("Eliminar pedido",`¿Eliminar el pedido #${p.id}? Se restaurará el stock y esta acción NO se puede deshacer.`, async()=>{ await _eliminarPedConfirmado(p); }, true); return;
+    
+    const { data:items } = await supabase.from("pedido_items").select("*").eq("pedido_id", p.id);
+    for (const it of (items||[])) {
+      if (it.producto_id) {
+        const { data:prod } = await supabase.from("productos").select("stock").eq("id",it.producto_id).single();
+        if (prod) await supabase.from("productos").update({ stock:(prod.stock||0)+(it.cantidad||1) }).eq("id",it.producto_id);
+      }
+    }
+    await supabase.from("pedido_items").delete().eq("pedido_id", p.id);
+    await supabase.from("pedidos").delete().eq("id", p.id);
+    fetchPedidos();
+  };
+
+  const fmtM  = (n) => `$${parseFloat(n||0).toLocaleString("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+  const fmtDT = (s) => { if(!s)return"—"; const d=new Date(s); return d.toLocaleDateString("es-MX",{day:"2-digit",month:"short"})+" "+d.toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"}); };
+  const estCol = (e) => e==="completado"?C.green:e==="cancelado"?C.red:C.amber;
+  const inpS   = { padding:"7px 10px", borderRadius:7, border:`1px solid ${C.border}`, background:"#fff", color:C.text, fontSize:12, outline:"none" };
+
+  const sumaTotal = filtradosTodos.reduce((a,p)=>a+parseFloat(p.total||0),0);
+  const promedio  = filtradosTodos.length?sumaTotal/filtradosTodos.length:0;
+  const byMetodo  = filtradosTodos.reduce((acc,p)=>{ const k=p.metodo_pago||"otro"; acc[k]=(acc[k]||0)+parseFloat(p.total||0); return acc; },{});
+
+  return (
+    <div>
+      <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap",alignItems:"center"}}>
+        <input placeholder="🔍 ID o cliente…" value={busqueda} onChange={e=>setBusqueda(e.target.value)} style={{...inpS,maxWidth:180}}/>
+        <select value={filtroFecha} onChange={e=>setFiltroF(e.target.value)} style={inpS}>
+          <option value="hoy">Hoy</option>
+          <option value="semana">Esta semana</option>
+          <option value="mes">Este mes</option>
+          <option value="custom">Rango custom</option>
+        </select>
+        {filtroFecha==="custom"&&<>
+          <input type="date" value={fechaDesde} onChange={e=>setFDesde(e.target.value)} style={inpS}/>
+          <input type="date" value={fechaHasta} onChange={e=>setFHasta(e.target.value)} style={inpS}/>
+        </>}
+        <select value={filtroTipo} onChange={e=>setFiltroT(e.target.value)} style={inpS}>
+          <option value="todos">Todos los tipos</option>
+          <option value="fisica">Física</option>
+          <option value="online">Online</option>
+          <option value="consulta">Consulta</option>
+        </select>
+        <select value={filtroEstado} onChange={e=>setFiltroE(e.target.value)} style={inpS}>
+          <option value="todos">Todos los estados</option>
+          <option value="completado">Completado</option>
+          <option value="pendiente">Pendiente</option>
+          <option value="cancelado">Cancelado</option>
+        </select>
+        <span style={{color:C.textMid,fontSize:11,marginLeft:"auto"}}>{filtradosTodos.length} transacciones</span>
+      </div>
+
+      {loading ? <SkeletonTable rows={5} cols={6}/> : (
+        <div style={{overflowX:"auto",borderRadius:12,border:`1px solid ${C.border}`,marginBottom:16}}>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+            <thead>
+              <tr style={{background:"#f8fafc"}}>
+                {["ID","Fecha/Hora","Cliente","Total","Método","Tipo","Atendido por","Estado","Acciones"].map(h=>(
+                  <th key={h} style={{padding:"9px 12px",textAlign:"left",color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filtrados.length===0&&<tr><td colSpan={9} style={{textAlign:"center",padding:32,color:C.textMid}}>Sin transacciones en este período</td></tr>}
+              {filtrados.map((p,i)=>(
+                <tr key={p.id} style={{background:p.estado==="cancelado"?"#fff5f5":i%2===0?"transparent":"#f8fafc"}}>
+                  <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,fontFamily:"monospace",fontSize:11}}>#{p.id}</td>
+                  <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>{fmtDT(p.created_at)}</td>
+                  <td style={{padding:"8px 12px",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>{p.clientes?.nombre||"—"}</td>
+                  <td style={{padding:"8px 12px",color:C.green,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{fmtM(p.total)}</td>
+                  <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{p.metodo_pago||"—"}</td>
+                  <td style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`}}>
+                    <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,
+                      background:p.tipo==="online"?"#ede9fe":p.tipo==="consulta"?"#dcfce7":"#eff6ff",
+                      color:p.tipo==="online"?C.purple:p.tipo==="consulta"?C.green:C.blue}}>
+                      {p.tipo||"física"}
+                    </span>
+                  </td>
+                  <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{p.usuarios?.nombre||"—"}</td>
+                  <td style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`}}>
+                    <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:estCol(p.estado)+"20",color:estCol(p.estado)}}>{p.estado||"—"}</span>
+                  </td>
+                  <td style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>
+                    <button onClick={()=>abrirDetalle(p)} style={{padding:"3px 8px",borderRadius:5,border:`1px solid ${C.blue}30`,background:"#eff6ff",color:C.blue,cursor:"pointer",fontSize:10,fontWeight:700,marginRight:4}}>👁 Ver</button>
+                    {usuario?.rol==="admin"&&<>
+                      <button onClick={()=>abrirEditar(p)} style={{padding:"3px 8px",borderRadius:5,border:`1px solid ${C.amber}30`,background:"#fef3c7",color:C.amber,cursor:"pointer",fontSize:10,fontWeight:700,marginRight:4}}>✏️</button>
+                      {p.estado!=="cancelado"&&<button onClick={()=>cancelarPed(p)} style={{padding:"3px 8px",borderRadius:5,border:"1px solid #94a3b830",background:"#f1f5f9",color:C.textMid,cursor:"pointer",fontSize:10,fontWeight:700,marginRight:4}}>❌</button>}
+                      <button onClick={()=>eliminarPed(p)} style={{padding:"3px 8px",borderRadius:5,border:`1px solid ${C.red}30`,background:"#fee2e2",color:C.red,cursor:"pointer",fontSize:10,fontWeight:700}}>🗑️</button>
+                    </>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <Paginador total={filtradosTodos.length} porPagina={POR_PAGINA} pagina={pagina} setPagina={setPagina}/>
+      {filtradosTodos.length>0&&(
+        <div style={{background:"#fff",border:`1px solid ${C.border}`,borderRadius:12,padding:16,display:"flex",gap:16,flexWrap:"wrap",alignItems:"center"}}>
+          <div><div style={{color:C.textMid,fontSize:10,fontWeight:700}}>TRANSACCIONES</div><div style={{color:C.blue,fontWeight:800,fontSize:18}}>{filtradosTodos.length}</div></div>
+          <div><div style={{color:C.textMid,fontSize:10,fontWeight:700}}>TOTAL PERÍODO</div><div style={{color:C.green,fontWeight:800,fontSize:18}}>{fmtM(sumaTotal)}</div></div>
+          <div><div style={{color:C.textMid,fontSize:10,fontWeight:700}}>PROMEDIO</div><div style={{color:C.purple,fontWeight:800,fontSize:18}}>{fmtM(promedio)}</div></div>
+          <div style={{flex:1,minWidth:200}}>
+            <div style={{color:C.textMid,fontSize:10,fontWeight:700,marginBottom:6}}>POR MÉTODO</div>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+              {Object.entries(byMetodo).map(([k,v])=>(
+                <span key={k} style={{padding:"2px 10px",borderRadius:20,fontSize:11,fontWeight:700,background:"#eff6ff",color:C.blue}}>{k}: {fmtM(v)}</span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {modalDetalle&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,.45)",backdropFilter:"blur(4px)",zIndex:400,display:"flex",alignItems:"center",justifyContent:"center",padding:20}} onClick={e=>e.target===e.currentTarget&&setModalDet(null)}>
+          <div style={{background:"#fff",borderRadius:14,width:"min(600px,95vw)",maxHeight:"85vh",overflowY:"auto",padding:24,boxShadow:"0 20px 60px rgba(0,82,204,.15)"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+              <h3 style={{margin:0,color:C.text,fontSize:15,fontWeight:800}}>👁 Detalle — Pedido #{modalDetalle.id}</h3>
+              <button onClick={()=>setModalDet(null)} style={{background:"none",border:"none",color:C.textMid,fontSize:20,cursor:"pointer"}}>✕</button>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16,fontSize:12}}>
+              <div><span style={{color:C.textMid}}>Cliente: </span><strong style={{color:C.text}}>{modalDetalle.clientes?.nombre||"—"}</strong></div>
+              <div><span style={{color:C.textMid}}>Fecha: </span><strong style={{color:C.text}}>{fmtDT(modalDetalle.created_at)}</strong></div>
+              <div><span style={{color:C.textMid}}>Total: </span><strong style={{color:C.green}}>{fmtM(modalDetalle.total)}</strong></div>
+              <div><span style={{color:C.textMid}}>Método: </span><strong style={{color:C.text}}>{modalDetalle.metodo_pago||"—"}</strong></div>
+              <div><span style={{color:C.textMid}}>Estado: </span><strong style={{color:estCol(modalDetalle.estado)}}>{modalDetalle.estado}</strong></div>
+              <div><span style={{color:C.textMid}}>Tipo: </span><strong style={{color:C.text}}>{modalDetalle.tipo||"física"}</strong></div>
+            </div>
+            {modalDetalle.notas&&<div style={{background:"#f8fafc",borderRadius:8,padding:"8px 12px",marginBottom:14,color:C.textMid,fontSize:12}}>📝 {modalDetalle.notas}</div>}
+            <div style={{fontWeight:700,color:C.text,fontSize:13,marginBottom:10}}>Productos:</div>
+            {loadDet?<SkeletonTable rows={3} cols={4}/>:(
+              <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                <thead><tr style={{background:"#f8fafc"}}>{["Producto","Cant.","Precio","Subtotal"].map(h=><th key={h} style={{padding:"7px 10px",textAlign:"left",color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{h}</th>)}</tr></thead>
+                <tbody>
+                  {detItems.map((it,i)=>(
+                    <tr key={i}>
+                      <td style={{padding:"7px 10px",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>{it.productos?.nombre||it.nombre||"—"}</td>
+                      <td style={{padding:"7px 10px",color:C.amber,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{it.cantidad}</td>
+                      <td style={{padding:"7px 10px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{fmtM(it.precio_unitario||it.precio||0)}</td>
+                      <td style={{padding:"7px 10px",color:C.green,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{fmtM((it.precio_unitario||it.precio||0)*(it.cantidad||1))}</td>
+                    </tr>
+                  ))}
+                  <tr><td colSpan={3} style={{padding:"8px 10px",textAlign:"right",fontWeight:800,color:C.text}}>TOTAL</td><td style={{padding:"8px 10px",color:C.green,fontWeight:900,fontSize:14}}>{fmtM(modalDetalle.total)}</td></tr>
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      )}
+
+      {modalEditar&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,.45)",backdropFilter:"blur(4px)",zIndex:400,display:"flex",alignItems:"center",justifyContent:"center",padding:20}} onClick={e=>e.target===e.currentTarget&&setModalEdit(null)}>
+          <div style={{background:"#fff",borderRadius:14,width:"min(440px,95vw)",padding:24,boxShadow:"0 20px 60px rgba(0,82,204,.15)"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
+              <h3 style={{margin:0,color:C.text,fontSize:15,fontWeight:800}}>✏️ Editar — Pedido #{modalEditar.id}</h3>
+              <button onClick={()=>setModalEdit(null)} style={{background:"none",border:"none",color:C.textMid,fontSize:20,cursor:"pointer"}}>✕</button>
+            </div>
+            <div style={{marginBottom:12}}>
+              <label style={{color:C.textMid,fontSize:10,fontWeight:700,display:"block",marginBottom:4}}>ESTADO</label>
+              <select value={editForm.estado} onChange={e=>setEditForm(f=>({...f,estado:e.target.value}))} style={{width:"100%",padding:"8px 10px",borderRadius:7,border:`1px solid ${C.border}`,background:"#fff",color:C.text,fontSize:12,outline:"none"}}>
+                <option value="completado">Completado</option>
+                <option value="pendiente">Pendiente</option>
+                <option value="cancelado">Cancelado</option>
+              </select>
+            </div>
+            <div style={{marginBottom:12}}>
+              <label style={{color:C.textMid,fontSize:10,fontWeight:700,display:"block",marginBottom:4}}>MÉTODO DE PAGO</label>
+              <select value={editForm.metodo_pago} onChange={e=>setEditForm(f=>({...f,metodo_pago:e.target.value}))} style={{width:"100%",padding:"8px 10px",borderRadius:7,border:`1px solid ${C.border}`,background:"#fff",color:C.text,fontSize:12,outline:"none"}}>
+                <option value="efectivo">Efectivo</option>
+                <option value="tarjeta">Tarjeta</option>
+                <option value="spei">SPEI / Transferencia</option>
+                <option value="mercadopago">MercadoPago</option>
+              </select>
+            </div>
+            <div style={{marginBottom:16}}>
+              <label style={{color:C.textMid,fontSize:10,fontWeight:700,display:"block",marginBottom:4}}>NOTAS</label>
+              <textarea value={editForm.notas} onChange={e=>setEditForm(f=>({...f,notas:e.target.value}))} rows={3} placeholder="Observaciones…" style={{width:"100%",padding:"8px 10px",borderRadius:7,border:`1px solid ${C.border}`,background:"#fff",color:C.text,fontSize:12,outline:"none",resize:"vertical",boxSizing:"border-box"}}/>
+            </div>
+            <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
+              <button onClick={()=>setModalEdit(null)} style={{padding:"8px 16px",borderRadius:8,border:`1px solid ${C.border}`,background:"transparent",color:C.textMid,cursor:"pointer",fontWeight:700,fontSize:12}}>Cancelar</button>
+              <button onClick={guardarEditar} disabled={saving} style={{padding:"8px 18px",borderRadius:8,border:"none",background:BRAND.gradient,color:"#fff",cursor:"pointer",fontWeight:700,fontSize:12}}>
+                {saving?"Guardando…":"💾 Guardar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+function Reportes(){
+  const [data,setData]   = useState({ventas:[],clientes:0,consultas:0,online:0});
+  const [tabRep,setTabRep]= useState("resumen");
+  const [periodo,setPer] = useState("mes");
+  const [loading,setLoad]= useState(true);
+
+  useEffect(()=>{
+    const cargar = async () => {
+      const dias = periodo==="dia"?1:periodo==="semana"?7:30;
+      const desde = new Date(Date.now()-dias*86400000).toISOString();
+      const [{data:peds},{data:clis},{data:cons},{data:ponl},{data:devs},{data:pedsCat}] = await Promise.all([
+        supabase.from("pedidos").select("total,created_at,tipo,atendido_por,usuarios(nombre)").gte("created_at",desde).eq("estado","completado"),
+        supabase.from("clientes").select("id",{count:"exact"}).gte("created_at",desde),
+        supabase.from("citas").select("id",{count:"exact"}).gte("created_at",desde).eq("estado","pagada"),
+        supabase.from("pedidos").select("total").gte("created_at",desde).eq("tipo","online"),
+        supabase.from("devoluciones").select("total_devuelto").gte("created_at",desde).eq("estado","aprobada"),
+        supabase.from("pedidos").select("total,productos:pedido_items(precio_unitario,cantidad,productos(categoria,costo))").gte("created_at",desde).eq("estado","completado"),
+      ]);
+      // H3: Ventas netas = brutas - devoluciones
+      const totalDevoluciones = (devs||[]).reduce((a,d)=>a+parseFloat(d.total_devuelto||0),0);
+      // H1: Margen por categoría
+      const margenCat = {};
+      (pedsCat||[]).forEach(ped=>{
+        (ped.productos||[]).forEach(item=>{
+          const cat = item.productos?.categoria||"Sin categoría";
+          const ingreso = parseFloat(item.precio_unitario||0)*parseInt(item.cantidad||1);
+          const costo = parseFloat(item.productos?.costo||0)*parseInt(item.cantidad||1);
+          if(!margenCat[cat]) margenCat[cat]={ingreso:0,costo:0};
+          margenCat[cat].ingreso+=ingreso;
+          margenCat[cat].costo+=costo;
+        });
+      });
+      const margenPorCat = Object.entries(margenCat).map(([cat,v])=>({
+        cat, ingreso:v.ingreso, costo:v.costo,
+        margen: v.ingreso>0?((v.ingreso-v.costo)/v.ingreso*100).toFixed(1):0,
+        ganancia: v.ingreso-v.costo,
+      })).sort((a,b)=>b.ingreso-a.ingreso);
+      setData({
+        ventas:peds||[], clientes:clis?.length||0,
+        consultas:cons?.length||0, online:(ponl||[]).reduce((a,p)=>a+p.total,0),
+        totalDevoluciones, margenPorCat,
+      });
+      setLoad(false);
+    };
+    cargar();
+  },[periodo]);
+
+  const totalVentas   = data.ventas.reduce((a,p)=>a+p.total,0);
+  const totalOnline   = data.online;
+  const ticketPromedio= data.ventas.length?totalVentas/data.ventas.length:0;
+  const ingresoConsultas = data.consultas*300;
+  const INVERSION_TOTAL  = 710433;
+
+  // Ventas por empleado
+  const porEmpleado = data.ventas.reduce((acc,p)=>{
+    const nombre = p.usuarios?.nombre||"Sin asignar";
+    acc[nombre]=(acc[nombre]||0)+p.total;
+    return acc;
+  },{});
+
+  return(
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+        <h1 style={{color:C.text,fontSize:20,fontWeight:800,margin:0}}>◧ Reportes</h1>
+        <div style={{display:"flex",gap:6}}>
+          {[["dia","Hoy"],["semana","7 días"],["mes","30 días"]].map(([v,l])=>(
+            <button key={v} onClick={()=>setPer(v)} style={{padding:"6px 14px",borderRadius:8,border:`1px solid ${periodo===v?BRAND.primary:C.border}`,background:periodo===v?BRAND.primary+"18":"transparent",color:periodo===v?BRAND.secondary:C.textMid,fontSize:12,fontWeight:700,cursor:"pointer"}}>{l}</button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{display:"flex",gap:4,marginBottom:20,borderBottom:`1px solid ${C.border}`}}>
+        {[["resumen","📊 Resumen"],["transacciones","🔄 Transacciones"],["margen","📈 Margen"]].map(([id,label])=>(
+          <button key={id} onClick={()=>setTabRep(id)} style={{
+            padding:"8px 18px",border:"none",cursor:"pointer",fontWeight:700,fontSize:12,
+            borderRadius:"8px 8px 0 0",background:"transparent",
+            color:tabRep===id?BRAND.primary:C.textMid,
+            borderBottom:tabRep===id?`2px solid ${BRAND.primary}`:"2px solid transparent",
+          }}>{label}</button>
+        ))}
+      </div>
+      {tabRep==="transacciones"&&<TransaccionesTab usuario={JSON.parse(sessionStorage.getItem("farmax_admin_user")||"{}")}/>}
+      {tabRep==="margen"&&!loading&&(
+        <div>
+          {/* H3: Ventas netas */}
+          <div style={{display:"flex",gap:12,marginBottom:20,flexWrap:"wrap"}}>
+            <KPI label="Ventas brutas" value={$(totalVentas)} col={C.blue} icon="💵"/>
+            <KPI label="Devoluciones" value={$(data.totalDevoluciones||0)} col={C.red} icon="↩️"/>
+            <KPI label="Ventas netas" value={$(totalVentas-(data.totalDevoluciones||0))} col={C.green} icon="✅"/>
+            <KPI label="% devuelto" value={totalVentas>0?((data.totalDevoluciones||0)/totalVentas*100).toFixed(1)+"%":"0%"} col={C.amber} icon="📊"/>
+          </div>
+          {/* H1: Margen por categoría */}
+          <div style={{background:"#fff",border:`1px solid ${C.border}`,borderRadius:12,overflow:"hidden"}}>
+            <div style={{padding:"14px 16px",borderBottom:`1px solid ${C.border}`,fontWeight:700,color:C.text,fontSize:14}}>📈 Margen por categoría</div>
+            <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+              <thead>
+                <tr style={{background:"#f8fafc"}}>
+                  {["Categoría","Ingreso","Costo","Ganancia","Margen %"].map(h=>(
+                    <th key={h} style={{padding:"9px 14px",textAlign:"left",color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {!(data.margenPorCat||[]).length&&<tr><td colSpan={5} style={{padding:32,textAlign:"center",color:C.textMid}}>Sin datos en este período</td></tr>}
+                {(data.margenPorCat||[]).map((r,i)=>(
+                  <tr key={r.cat} style={{background:i%2===0?"transparent":"#f8fafc"}}>
+                    <td style={{padding:"9px 14px",fontWeight:600,color:C.text,borderBottom:`1px solid ${C.border}`}}>{r.cat}</td>
+                    <td style={{padding:"9px 14px",color:C.blue,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{$(r.ingreso)}</td>
+                    <td style={{padding:"9px 14px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{$(r.costo)}</td>
+                    <td style={{padding:"9px 14px",color:r.ganancia>=0?C.green:C.red,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{$(r.ganancia)}</td>
+                    <td style={{padding:"9px 14px",borderBottom:`1px solid ${C.border}`}}>
+                      <div style={{display:"flex",alignItems:"center",gap:8}}>
+                        <div style={{flex:1,height:6,background:"#f1f5f9",borderRadius:3,overflow:"hidden"}}>
+                          <div style={{height:"100%",width:`${Math.min(parseFloat(r.margen),100)}%`,background:parseFloat(r.margen)>30?C.green:parseFloat(r.margen)>15?C.amber:C.red,borderRadius:3}}/>
+                        </div>
+                        <span style={{fontWeight:700,color:parseFloat(r.margen)>30?C.green:parseFloat(r.margen)>15?C.amber:C.red,minWidth:40}}>{r.margen}%</span>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+      {tabRep==="resumen"&&<>
+      {loading?<SkeletonKPIs count={5}/>:(
+      <>
+        <div style={{display:"flex",gap:12,marginBottom:20,flexWrap:"wrap"}}>
+          <KPI label="Ventas totales"   value={$(totalVentas)}        col={C.blue}   icon="💵"/>
+          <KPI label="Ventas online"    value={$(totalOnline)}        col={C.teal}   icon="🌐"/>
+          <KPI label="Consultas"        value={$(ingresoConsultas)}   col={C.purple} icon="🏥" sub={`${data.consultas} citas`}/>
+          <KPI label="Ticket promedio"  value={$(ticketPromedio)}     col={C.green}  icon="🧾"/>
+          <KPI label="Clientes nuevos"  value={data.clientes}         col={C.amber}  icon="👤"/>
+        </div>
+
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}>
+          {/* ROI */}
+          <Box style={{padding:20}}>
+            <div style={{color:C.text,fontWeight:700,fontSize:14,marginBottom:16}}>📈 ROI — Retorno de Inversión</div>
+            <div style={{color:C.textDim,fontSize:10,letterSpacing:1,textTransform:"uppercase",marginBottom:12}}>Inversión total del proyecto</div>
+            {[
+              ["Construcción",464999,C.blue],
+              ["Equipo farmacia",8899,C.teal],
+              ["Equipo consultorio",21650,C.green],
+              ["Inventario inicial",134000,C.amber],
+              ["Trámites y legales",16300,C.purple],
+              ["Imprevistos",64585,C.red],
+            ].map(([l,v,col])=>(
+              <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:`1px solid ${C.border}`}}>
+                <span style={{color:C.textMid,fontSize:12}}>{l}</span>
+                <span style={{color:col,fontSize:12,fontWeight:700}}>{$(v)}</span>
+              </div>
+            ))}
+            <div style={{display:"flex",justifyContent:"space-between",padding:"10px 0",marginTop:4}}>
+              <span style={{color:C.text,fontWeight:800,fontSize:14}}>TOTAL INVERTIDO</span>
+              <span style={{color:C.red,fontWeight:900,fontSize:16}}>{$(INVERSION_TOTAL)}</span>
+            </div>
+            <div style={{background:C.greenDim,border:`1px solid ${C.green}30`,borderRadius:8,padding:"10px 12px",marginTop:4}}>
+              <div style={{color:C.green,fontSize:12,fontWeight:700}}>
+                Recuperado hasta hoy: {$(totalVentas)} ({((totalVentas/INVERSION_TOTAL)*100).toFixed(2)}%)
+              </div>
+            </div>
+          </Box>
+
+          {/* Ventas por fuente */}
+          <Box style={{padding:20}}>
+            <div style={{color:C.text,fontWeight:700,fontSize:14,marginBottom:16}}>📊 Ingresos por fuente</div>
+            {[
+              ["Farmacia física", totalVentas-totalOnline-ingresoConsultas, C.blue],
+              ["Tienda en línea", totalOnline, C.teal],
+              ["Consultorio",     ingresoConsultas, C.purple],
+            ].map(([l,v,col])=>{
+              const pct = totalVentas>0?Math.round((v/totalVentas)*100):0;
+              return(
+                <div key={l} style={{marginBottom:12}}>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                    <span style={{color:C.textMid,fontSize:12}}>{l}</span>
+                    <span style={{color:col,fontWeight:700,fontSize:12}}>{$(v)}</span>
+                  </div>
+                  <div style={{background:C.border,borderRadius:4,height:8,overflow:"hidden"}}>
+                    <div style={{width:`${pct}%`,height:"100%",background:col,borderRadius:4}}/>
+                  </div>
+                  <div style={{color:C.textDim,fontSize:10,marginTop:2}}>{pct}% del total</div>
+                </div>
+              );
+            })}
+          </Box>
+        </div>
+
+        {/* Ventas por empleado */}
+        <Box style={{padding:20}}>
+          <div style={{color:C.text,fontWeight:700,fontSize:14,marginBottom:14}}>👥 Ventas por empleado</div>
+          {!Object.keys(porEmpleado).length?<div style={{color:C.textMid,fontSize:12}}>Sin datos en este periodo</div>:
+           Object.entries(porEmpleado).sort((a,b)=>b[1]-a[1]).map(([nombre,total])=>(
+            <div key={nombre} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${C.border}`}}>
+              <span style={{color:C.text,fontSize:13,fontWeight:600}}>{nombre}</span>
+              <div style={{display:"flex",gap:10,alignItems:"center"}}>
+                <span style={{color:C.green,fontWeight:800,fontSize:14}}>{$(total)}</span>
+                <Tag col={C.green} sm>{((total/totalVentas)*100).toFixed(0)}%</Tag>
+              </div>
+            </div>
+          ))}
+        </Box>
+      </>)}</>
+      }
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// REPORTE DOCTORA — Vista simplificada
+// ══════════════════════════════════════════════════════════════
+function ReporteDoctora(){
+  const [citas,setCitas] = useState([]);
+  const [loading,setLoad]= useState(true);
+  const [periodo,setPer] = useState("semana");
+
+  useEffect(()=>{
+    const cargar = async () => {
+      const dias = periodo==="dia"?1:periodo==="semana"?7:30;
+      const desde = new Date(Date.now()-dias*86400000).toISOString().split("T")[0];
+      const {data} = await supabase.from("citas").select(`
+        id,nombre,fecha,hora,motivo,estado,
+        consumibles_consulta(precio,cantidad,cobrado)
+      `).gte("fecha",desde).order("fecha",{ascending:false});
+      setCitas(data||[]); setLoad(false);
+    };
+    cargar();
+  },[periodo]);
+
+  const completadas = citas.filter(c=>c.estado==="completada"||c.estado==="pagada");
+  const ingresos    = completadas.length*300;
+
+  return(
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+        <h1 style={{color:C.text,fontSize:20,fontWeight:800,margin:0}}>◧ Mis Reportes</h1>
+        <div style={{display:"flex",gap:6}}>
+          {[["dia","Hoy"],["semana","Esta semana"],["mes","Este mes"]].map(([v,l])=>(
+            <button key={v} onClick={()=>setPer(v)} style={{padding:"6px 12px",borderRadius:8,border:`1px solid ${periodo===v?BRAND.primary:C.border}`,background:periodo===v?BRAND.primary+"18":"transparent",color:periodo===v?BRAND.secondary:C.textMid,fontSize:12,fontWeight:700,cursor:"pointer"}}>{l}</button>
+          ))}
+        </div>
+      </div>
+      <div style={{display:"flex",gap:12,marginBottom:20,flexWrap:"wrap"}}>
+        <KPI label="Consultas atendidas" value={completadas.length} col={C.green} icon="🏥"/>
+        <KPI label="Ingresos generados" value={$(ingresos)} col={C.blue} icon="💰" sub="70% para ti"/>
+        <KPI label="Tu parte (70%)" value={$(ingresos*.7)} col={C.purple} icon="⭐"/>
+      </div>
+      {loading?<SkeletonTable rows={4} cols={4}/>:(
+        <Box>
+          <table style={{width:"100%",borderCollapse:"collapse"}}>
+            <thead><tr>{["Fecha","Hora","Paciente","Motivo","Estado"].map(h=><th key={h} style={{padding:"8px 14px",color:C.textDim,fontSize:9,textAlign:"left",letterSpacing:1.5,textTransform:"uppercase",borderBottom:`1px solid ${C.border}`}}>{h}</th>)}</tr></thead>
+            <tbody>
+              {citas.map(c=>(
+                <tr key={c.id}>
+                  <td style={{padding:"9px 14px",color:C.textMid,fontSize:11}}>{c.fecha}</td>
+                  <td style={{padding:"9px 14px",color:C.blue,fontWeight:700,fontSize:12}}>{c.hora}</td>
+                  <td style={{padding:"9px 14px",color:C.text,fontWeight:700,fontSize:13}}>{c.nombre}</td>
+                  <td style={{padding:"9px 14px",color:C.textMid,fontSize:12}}>{c.motivo||"Consulta general"}</td>
+                  <td style={{padding:"9px 14px"}}><Tag col={c.estado==="pagada"?C.green:c.estado==="completada"?C.blue:C.amber} sm>{c.estado}</Tag></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Box>
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// GESTIÓN DE USUARIOS (solo Admin)
+// ══════════════════════════════════════════════════════════════
+function BannersAdmin(){
+  const [banners,setBanners] = useState([]);
+  const [loading,setLoad]   = useState(true);
+  const [modal,setModal]    = useState(null);
+  const [form,setForm]      = useState({titulo:"",subtitulo:"",descripcion:"",emoji:"💊",bg:"linear-gradient(135deg,#0052cc,#0099e6)",cta:"Ver más →",pagina:"catalogo",orden:0,activo:true});
+  const [saving,setSaving]  = useState(false);
+
+  const fetch = async()=>{ setLoad(true); const{data}=await supabase.from("banners").select("*").order("orden"); setBanners(data||[]); setLoad(false); };
+  useEffect(()=>{ fetch(); },[]);
+
+  const guardar = async()=>{
+    setSaving(true);
+    if(modal==="new") await supabase.from("banners").insert(form);
+    else await supabase.from("banners").update(form).eq("id",modal.id);
+    setSaving(false); setModal(null); fetch();
+    showToast("Banner guardado correctamente","success");
+  };
+
+  const eliminar = async(id)=>{
+    if(!window.confirm("¿Eliminar este banner?")) return;
+    await supabase.from("banners").delete().eq("id",id);
+    fetch(); showToast("Banner eliminado","info");
+  };
+
+  const toggleActivo = async(b)=>{
+    await supabase.from("banners").update({activo:!b.activo}).eq("id",b.id);
+    fetch();
+  };
+
+  const inpS = {width:"100%",boxSizing:"border-box",padding:"8px 12px",borderRadius:8,border:`1px solid ${C.border}`,background:"#fff",color:C.text,fontSize:13,outline:"none",marginBottom:10};
+
+  return(
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+        <h1 style={{color:C.text,fontSize:20,fontWeight:800,margin:0}}>🖼️ Banners de la tienda</h1>
+        <Btn col={BRAND.primary} onClick={()=>{setForm({titulo:"",subtitulo:"",descripcion:"",emoji:"💊",bg:BRAND.gradient,cta:"Ver más →",pagina:"catalogo",orden:banners.length+1,activo:true});setModal("new");}}>+ Nuevo banner</Btn>
+      </div>
+      <div style={{background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:10,padding:"10px 16px",marginBottom:16,fontSize:12,color:"#1d4ed8"}}>
+        💡 Los banners se muestran en la tienda web en rotación automática. Ordénalos con el campo "Orden".
+      </div>
+      {loading?<SkeletonTable rows={5} cols={5}/>:(
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {!banners.length&&<div style={{color:C.textMid,textAlign:"center",padding:40,background:"#fff",borderRadius:12,border:`1px solid ${C.border}`}}>Sin banners. Crea el primero.</div>}
+          {banners.map(b=>(
+            <div key={b.id} style={{background:"#fff",borderRadius:12,border:`1px solid ${C.border}`,padding:16,display:"flex",gap:16,alignItems:"center",flexWrap:"wrap"}}>
+              <div style={{width:48,height:48,borderRadius:10,background:b.bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0}}>{b.emoji}</div>
+              <div style={{flex:1,minWidth:200}}>
+                <div style={{fontWeight:800,color:C.text,fontSize:14}}>{b.titulo}</div>
+                <div style={{color:C.textMid,fontSize:12,marginTop:2}}>{b.subtitulo} · {b.descripcion?.slice(0,60)}{b.descripcion?.length>60?"…":""}</div>
+                <div style={{color:C.textDim,fontSize:11,marginTop:4}}>Orden: {b.orden} · Página: {b.pagina} · CTA: {b.cta}</div>
+              </div>
+              <div style={{display:"flex",gap:8,flexShrink:0}}>
+                <button onClick={()=>toggleActivo(b)} style={{padding:"5px 10px",borderRadius:6,border:`1px solid ${b.activo?C.green:C.border}`,background:b.activo?C.greenDim:"transparent",color:b.activo?C.green:C.textMid,fontSize:11,fontWeight:700,cursor:"pointer"}}>{b.activo?"✓ Activo":"○ Inactivo"}</button>
+                <button onClick={()=>{setForm({...b});setModal(b);}} style={{padding:"5px 10px",borderRadius:6,border:`1px solid ${C.amber}`,background:C.amberDim,color:C.amber,fontSize:11,fontWeight:700,cursor:"pointer"}}>✏️ Editar</button>
+                <button onClick={()=>eliminar(b.id)} style={{padding:"5px 10px",borderRadius:6,border:`1px solid ${C.red}`,background:C.redDim,color:C.red,fontSize:11,fontWeight:700,cursor:"pointer"}}>🗑️</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {modal&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,.45)",backdropFilter:"blur(4px)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:20}} onClick={e=>e.target===e.currentTarget&&setModal(null)}>
+          <div style={{background:"#fff",borderRadius:14,width:"min(520px,95vw)",maxHeight:"90vh",overflowY:"auto",padding:28,boxShadow:"0 20px 60px rgba(0,82,204,.15)"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+              <h3 style={{margin:0,color:C.text,fontSize:16,fontWeight:800}}>{modal==="new"?"➕ Nuevo":"✏️ Editar"} Banner</h3>
+              <button onClick={()=>setModal(null)} style={{background:"none",border:"none",color:C.textMid,fontSize:22,cursor:"pointer"}}>✕</button>
+            </div>
+            {[["Título *","titulo"],["Subtítulo","subtitulo"],["Descripción","descripcion"],["Emoji","emoji"],["Texto del botón","cta"],["Página destino","pagina"]].map(([l,k])=>(
+              <div key={k}><label style={{color:C.textMid,fontSize:11,fontWeight:700,display:"block",marginBottom:3}}>{l.toUpperCase()}</label><input style={inpS} value={form[k]||""} onChange={e=>setForm(p=>({...p,[k]:e.target.value}))} placeholder={l}/></div>
+            ))}
+            <div><label style={{color:C.textMid,fontSize:11,fontWeight:700,display:"block",marginBottom:3}}>COLOR DE FONDO (CSS gradient)</label><input style={inpS} value={form.bg||""} onChange={e=>setForm(p=>({...p,bg:e.target.value}))} placeholder="linear-gradient(...)"/></div>
+            <div><label style={{color:C.textMid,fontSize:11,fontWeight:700,display:"block",marginBottom:3}}>ORDEN</label><input type="number" style={inpS} value={form.orden||0} onChange={e=>setForm(p=>({...p,orden:parseInt(e.target.value)||0}))}/></div>
+            <div style={{display:"flex",gap:10,justifyContent:"flex-end",marginTop:8}}>
+              <button onClick={()=>setModal(null)} style={{padding:"9px 20px",borderRadius:8,border:`1px solid ${C.border}`,background:"transparent",color:C.textMid,fontWeight:700,cursor:"pointer"}}>Cancelar</button>
+              <button onClick={guardar} disabled={saving||!form.titulo} style={{padding:"9px 20px",borderRadius:8,border:"none",background:BRAND.gradient,color:"#fff",fontWeight:700,cursor:"pointer"}}>{saving?"Guardando…":"💾 Guardar"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GestionUsuarios(){
+  const [usuarios,setUsers] = useState([]);
+  const [modal,setModal]    = useState(false);
+  const [form,setForm]      = useState({nombre:"",telefono:"",password:"",rol:"vendedor",notas:""});
+  const [loading,setLoad]   = useState(true);
+  const [guardando,setGuard]= useState(false);
+  const [error,setError]    = useState("");
+
+  useEffect(()=>{
+    supabase.from("usuarios").select("*").order("nombre").then(({data})=>{ setUsers(data||[]); setLoad(false); });
+  },[]);
+
+  const crear = async () => {
+    if(!form.nombre||!form.telefono||!form.password) return;
+    setGuard(true); setError("");
+    try {
+      const hash = await hashPwd(form.password);
+      const {data,error:err} = await supabase.from("usuarios").insert({
+        nombre:form.nombre, telefono:form.telefono,
+        password_hash:hash, rol:form.rol, activo:true, notas:form.notas.trim()||null,
+      }).select().single();
+      if(err) { setError(err.message); setGuard(false); return; }
+      setUsers(p=>[...p,data]);
+      setModal(false); setForm({nombre:"",telefono:"",password:"",rol:"vendedor"});
+    } catch(e){ setError("Error al crear usuario"); }
+    setGuard(false);
+  };
+
+  const toggle = async (id,activo) => {
+    await supabase.from("usuarios").update({activo:!activo}).eq("id",id);
+    setUsers(p=>p.map(u=>u.id===id?{...u,activo:!activo}:u));
+  };
+
+  const cambiarMiPwd = async () => {
+    const sesion = JSON.parse(sessionStorage.getItem("farmax_admin_user")||"{}");
+    const actual = prompt("Contraseña actual:");
+    if(!actual) return;
+    const hashActual = await hashPwd(actual);
+    const {data:check} = await supabase.from("usuarios").select("id").eq("id",sesion.id).eq("password_hash",hashActual).maybeSingle();
+    if(!check) { showToast("Contraseña actual incorrecta","error"); return; }
+    const nueva = prompt("Nueva contraseña (mínimo 6 caracteres):");
+    if(!nueva||nueva.length<6) { showToast("La contraseña debe tener al menos 6 caracteres","warning"); return; }
+    const nueva2 = prompt("Confirma la nueva contraseña:");
+    if(nueva!==nueva2) { showToast("Las contraseñas no coinciden","error"); return; }
+    const hashNueva = await hashPwd(nueva);
+    const {error} = await supabase.from("usuarios").update({password_hash:hashNueva}).eq("id",sesion.id);
+    if(error) { showToast("Error al cambiar contraseña: "+error.message,"error"); return; }
+    showToast("✅ Contraseña cambiada correctamente. Vuelve a iniciar sesión.","success");
+    logAudit(sesion,"CAMBIO_PWD","usuarios",sesion.id,{});
+  };
+
+  const resetPwd = async (u) => {
+    const nueva = prompt(`Nueva contraseña para ${u.nombre} (mínimo 6 caracteres):`);
+    if (!nueva || nueva.length < 6) { showToast("Contraseña muy corta (mínimo 6 caracteres)","warning"); return; }
+    const hash = await hashPwd(nueva);
+    const {error} = await supabase.from("usuarios").update({password_hash:hash}).eq("id",u.id);
+    if(error) { showToast("Error al cambiar contraseña: "+error.message,"error"); return; }
+    showToast(`✅ Contraseña de ${u.nombre} actualizada`,"success");
+    logAudit(JSON.parse(sessionStorage.getItem("farmax_admin_user")||"{}"), "RESET_PWD", "usuarios", u.id, {nombre:u.nombre});
+  };
+
+  const eliminar = async (id,nombre) => {
+    const sesion = JSON.parse(sessionStorage.getItem("farmax_admin_user")||"{}");
+    if(sesion.id===id) { showToast("No puedes eliminar tu propio usuario.", "warning"); return; }
+    showConfirm("Eliminar usuario",`¿Eliminar al usuario ${nombre}? Esta acción no se puede deshacer.`, async()=>{ await supabase.from("usuarios").delete().eq("id",id); setUsers(p=>p.filter(u=>u.id!==id)); showToast(`Usuario ${nombre} eliminado.`,"info"); }, true); return;
+  };
+
+  const rolColor = r => r==="admin"?C.purple:r==="vendedor"?C.blue:C.green;
+
+  return(
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:10}}>
+        <h1 style={{color:C.text,fontSize:20,fontWeight:800,margin:0}}>👤 Gestión de Usuarios</h1>
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={cambiarMiPwd} style={{padding:"9px 16px",borderRadius:8,border:`1px solid ${C.border}`,background:C.bg,color:C.textMid,fontWeight:700,fontSize:12,cursor:"pointer"}}>🔑 Mi contraseña</button>
+          <Btn col={BRAND.primary} onClick={()=>setModal(true)}>+ Nuevo usuario</Btn>
+        </div>
+      </div>
+
+      <Modal open={modal} onClose={()=>setModal(false)} title="Crear nuevo usuario">
+        <div style={{marginBottom:12}}>
+          <div style={{color:C.textMid,fontSize:11,marginBottom:4}}>Nombre completo *</div>
+          <Inp value={form.nombre} onChange={e=>setForm(p=>({...p,nombre:e.target.value}))} placeholder="Nombre del empleado" style={{width:"100%",boxSizing:"border-box"}}/>
+        </div>
+        <div style={{marginBottom:12}}>
+          <div style={{color:C.textMid,fontSize:11,marginBottom:4}}>Teléfono (será su usuario) *</div>
+          <Inp value={form.telefono} onChange={e=>setForm(p=>({...p,telefono:e.target.value}))} placeholder="55XXXXXXXX" type="tel" style={{width:"100%",boxSizing:"border-box"}}/>
+        </div>
+        <div style={{marginBottom:12}}>
+          <div style={{color:C.textMid,fontSize:11,marginBottom:4}}>Contraseña *</div>
+          <Inp value={form.password} onChange={e=>setForm(p=>({...p,password:e.target.value}))} placeholder="Mínimo 6 caracteres" type="password" style={{width:"100%",boxSizing:"border-box"}}/>
+        </div>
+        <div style={{marginBottom:12}}>
+          <div style={{color:C.textMid,fontSize:11,marginBottom:4}}>Perfil *</div>
+          <select value={form.rol} onChange={e=>setForm(p=>({...p,rol:e.target.value}))}
+            style={{width:"100%",background:C.bg,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,padding:"9px 13px",fontSize:13,outline:"none"}}>
+            <option value="vendedor">🏪 Vendedor — POS + cobros</option>
+            <option value="doctora">👩‍⚕️ Doctora — Consultorio</option>
+            <option value="admin">👑 Admin — Acceso total</option>
+          </select>
+        </div>
+        {error&&<div style={{background:C.redDim,border:`1px solid ${C.red}30`,borderRadius:8,padding:"10px 12px",marginBottom:12,color:C.red,fontSize:13}}>{error}</div>}
+        <div style={{marginBottom:12}}>
+          <div style={{color:C.textMid,fontSize:11,marginBottom:4}}>Notas / Turno</div>
+          <Inp value={form.notas} onChange={e=>setForm(p=>({...p,notas:e.target.value}))} placeholder="Turno, observaciones, etc." style={{width:"100%",boxSizing:"border-box"}}/>
+        </div>
+        <div style={{background:C.amberDim,border:`1px solid ${C.amber}30`,borderRadius:8,padding:"10px 12px",marginBottom:16}}>
+          <div style={{color:C.amber,fontSize:11}}>El usuario iniciará sesión con su teléfono y esta contraseña. Compártela de forma segura.</div>
+        </div>
+        <div style={{display:"flex",gap:8}}>
+          <Btn onClick={()=>setModal(false)} ol col={C.textMid}>Cancelar</Btn>
+          <Btn onClick={crear} col={BRAND.primary} dis={!form.nombre||!form.telefono||!form.password||guardando}>{guardando?"Creando...":"Crear usuario"}</Btn>
+        </div>
+      </Modal>
+
+      {loading?<SkeletonTable rows={4} cols={5}/>:(
+        <Box>
+          <table style={{width:"100%",borderCollapse:"collapse"}}>
+            <thead><tr>{["Nombre","Teléfono","Perfil","Notas","Estado","Acciones"].map(h=><th key={h} style={{padding:"8px 14px",color:C.textDim,fontSize:9,textAlign:"left",letterSpacing:1.5,textTransform:"uppercase",borderBottom:`1px solid ${C.border}`}}>{h}</th>)}</tr></thead>
+            <tbody>
+              {usuarios.map(u=>(
+                <tr key={u.id}>
+                  <td style={{padding:"10px 14px",color:C.text,fontWeight:700,fontSize:13}}>{u.nombre}</td>
+                  <td style={{padding:"10px 14px",color:C.textMid,fontSize:12}}>{u.telefono}</td>
+                  <td style={{padding:"10px 14px"}}><Tag col={rolColor(u.rol)} sm>{u.rol}</Tag></td>
+                  <td style={{padding:"10px 14px"}}><Tag col={u.activo?C.green:C.red} sm>{u.activo?"Activo":"Inactivo"}</Tag></td>
+                  <td style={{padding:"10px 14px"}}>
+                    <button onClick={()=>toggle(u.id,u.activo)}
+                      style={{padding:"4px 10px",borderRadius:6,border:`1px solid ${u.activo?C.red:C.green}`,background:"transparent",color:u.activo?C.red:C.green,fontSize:10,fontWeight:700,cursor:"pointer"}}>
+                      {u.activo?"Desactivar":"Activar"}
+                    </button>
+                    <button onClick={()=>resetPwd(u)} style={{padding:"4px 10px",borderRadius:6,border:`1px solid ${C.blue}`,background:C.blueDim,color:C.blue,fontSize:10,fontWeight:700,cursor:"pointer",marginLeft:4}}>🔑 Reset</button>
+                  </td>
+                  <td style={{padding:"10px 14px"}}>
+                    <button onClick={()=>eliminar(u.id,u.nombre)}
+                      style={{padding:"4px 10px",borderRadius:6,border:`1px solid ${C.red}30`,background:C.redDim,color:C.red,cursor:"pointer",fontSize:11,fontWeight:700}}>
+                      🗑️ Eliminar
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Box>
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// APP PRINCIPAL
+// ══════════════════════════════════════════════════════════════
+export default function FarmaxAdmin(){
+  const [usuario,setUsuario] = useState(()=>{
+    try{
+      const u = sessionStorage.getItem("farmax_admin_user");
+      if (!u) return null;
+      const data = JSON.parse(u);
+      // E2: Verificar expiración de sesión (8 horas)
+      if (data.loginTimestamp && Date.now() - data.loginTimestamp > 8*60*60*1000) {
+        sessionStorage.removeItem("farmax_admin_user");
+        return null;
+      }
+      return data;
+    } catch{ return null; }
+  });
+  const [page,setPage]   = useState("dash");
+  const [darkMode,setDarkMode] = useState(()=>localStorage.getItem("farmax_dark")==="1");
+  const C = darkMode ? C_DARK : C_LIGHT;
+  const [notifs,setNotifs] = useState([]);
+  const [confirmDlg, setConfirmDlg] = useState({open:false,titulo:"",mensaje:"",onConfirm:null,danger:false});
+  const showConfirm = (titulo,mensaje,onConfirm,danger=false) => setConfirmDlg({open:true,titulo,mensaje,onConfirm,danger});
+
+  // ── M4: Registrar Service Worker + solicitar permiso push ──
+  useEffect(()=>{
+    if(!usuario) return;
+    // Registrar SW
+    if("serviceWorker" in navigator){
+      navigator.serviceWorker.register("/service-worker.js")
+        .then(reg=>{
+          console.log("[Farmax] SW registrado:", reg.scope);
+          // Solicitar permiso de notificaciones
+          if("Notification" in window && Notification.permission==="default"){
+            setTimeout(()=>{
+              Notification.requestPermission().then(perm=>{
+                if(perm==="granted"){
+                  showToast("✅ Notificaciones activadas. Te avisaremos de pedidos nuevos.","success");
+                }
+              });
+            }, 3000); // esperar 3s para no interrumpir el login
+          }
+        })
+        .catch(e=>console.warn("[Farmax] SW error:", e));
+    }
+    // Escuchar mensajes del SW (sync complete)
+    const handler = e=>{
+      if(e.data?.type==="SYNC_COMPLETE"){
+        showToast(`✅ ${e.data.count} registros sincronizados (${e.data.entity})`,"success");
+      }
+    };
+    navigator.serviceWorker?.addEventListener("message", handler);
+    return ()=>navigator.serviceWorker?.removeEventListener("message", handler);
+  },[usuario]);
+
+  // ── M4: Función para mostrar notificación push manual ──────
+  const pushNotif = (titulo, cuerpo, url="/admin") => {
+    if("Notification" in window && Notification.permission==="granted"){
+      if(navigator.serviceWorker.controller){
+        navigator.serviceWorker.controller.postMessage({
+          type:"SHOW_NOTIFICATION", titulo, cuerpo, url
+        });
+      } else {
+        new Notification(titulo,{ body:cuerpo, icon:"/icons/farmax-192.png" });
+      }
+    }
+  };
+
+  // ── E5: Guard de sesión — verificar expiración cada minuto ──
+  useEffect(()=>{
+    const check = () => {
+      const u = sessionStorage.getItem("farmax_admin_user");
+      if (!u) return;
+      try {
+        const data = JSON.parse(u);
+        if (data.loginTimestamp && Date.now() - data.loginTimestamp > 8*60*60*1000) {
+          sessionStorage.removeItem("farmax_admin_user");
+          setUsuario(null);
+          showToast("Tu sesión expiró. Por favor inicia sesión de nuevo.", "warning");
+        }
+      } catch(e) { sessionStorage.removeItem("farmax_admin_user"); setUsuario(null); }
+    };
+    const interval = setInterval(check, 60*1000); // cada minuto
+    return () => clearInterval(interval);
+  },[]);
+  const notifId = useRef(0);
+
+  const addNotif = useCallback((titulo,mensaje,icon="🔔",col="#0052cc")=>{
+    const id=++notifId.current;
+    const hora=new Date().toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"});
+    setNotifs(p=>[{id,titulo,mensaje,icon,col,hora},...p].slice(0,5));
+    setTimeout(()=>setNotifs(p=>p.filter(n=>n.id!==id)),8000);
+  },[]);
+
+  const dismissNotif = useCallback(id=>setNotifs(p=>p.filter(n=>n.id!==id)),[]);
+
+  useEffect(()=>{
+    if(!usuario) return;
+    const ch=supabase.channel("farmax-rt")
+      .on("postgres_changes",{event:"INSERT",schema:"public",table:"pedidos"},
+        pl=>{ if(pl.new?.tipo==="online") addNotif("🛒 Nuevo pedido online",`Pedido #${pl.new.id} · $${parseFloat(pl.new.total||0).toFixed(2)}`,"🛒","#0052cc");
+          pushNotif("🛒 Nuevo pedido online",`Pedido #${pl.new.id} · $${parseFloat(pl.new.total||0).toFixed(2)} · Pendiente de surtir`,"/admin");
+          supabase.from("pedidos").select("id,total,created_at,tipo,clientes(nombre,telefono),pedido_items(cantidad,precio_unitario,productos(nombre,sku))").eq("tipo","online").eq("estado","pendiente").order("created_at",{ascending:false}).then(({data})=>{ if(data) setPedOn(data); }); })
+      .on("postgres_changes",{event:"INSERT",schema:"public",table:"citas"},
+        pl=>{ addNotif("📅 Nueva cita",`${pl.new?.nombre||"Paciente"} · ${pl.new?.fecha||""} ${pl.new?.hora||""}`,"📅","#7c3aed");
+          pushNotif("📅 Nueva cita agendada",`${pl.new?.nombre||"Paciente"} · ${pl.new?.fecha||""} ${pl.new?.hora||""}`,"/admin"); })
+      .on("postgres_changes",{event:"UPDATE",schema:"public",table:"pedidos"},
+        pl=>{ if(pl.new?.estado==="listo") addNotif("✅ Pedido listo",`Pedido #${pl.new.id} listo para entrega`,"✅","#00c46a"); })
+      .subscribe();
+    return ()=>supabase.removeChannel(ch);
+  },[usuario,addNotif]);
+  const [neg,setNeg]     = useState("farmacia");
+  const [alertas,setAlr] = useState({stock:0,pedidos:0,citas:0});
+
+  // Cargar alertas
+  useEffect(()=>{
+    if(!usuario) return;
+    const cargar = async () => {
+      const hoy = new Date().toISOString().split("T")[0];
+      const [{data:prods},{data:peds},{data:cits}] = await Promise.all([
+        supabase.from("productos").select("id,stock,stock_minimo"),
+        supabase.from("pedidos").select("id").eq("tipo","online").eq("estado","pendiente"),
+        supabase.from("citas").select("id").eq("fecha",hoy).is("cliente_id","not.null"),
+      ]);
+      setAlr({
+        stock: (prods||[]).filter(p=>p.stock<p.stock_minimo).length,
+        pedidos: (peds||[]).length,
+        citas: (cits||[]).length,
+      });
+    };
+    cargar();
+    const interval = setInterval(cargar, 30000); // cada 30 seg
+    return ()=>clearInterval(interval);
+  },[usuario]);
+
+  // Setear página inicial según rol
+  useEffect(()=>{
+    if(!usuario) return;
+    if(usuario.rol==="vendedor") setPage("pos");
+    else if(usuario.rol==="doctora") setPage("cons_dr");
+    else setPage("dash");
+  },[usuario]);
+
+  const logout = () => {
+    sessionStorage.removeItem("farmax_admin_user");
+    setUsuario(null);
+  };
+
+  if(!usuario) return <LoginScreen onLogin={u=>{ sessionStorage.setItem("farmax_admin_user",JSON.stringify(u)); setUsuario(u); }}/>;
+
+  const renderPage = () => {
+    switch(page){
+      case "dash":      return <DashboardModule usuario={usuario} setPage={(p)=>setActive(p)}/>;
+      case "pos":       return <POS negocio={neg} usuario={usuario}/>;
+      case "cons":      return <ConsultorioModule usuario={usuario}/>;
+      case "cons_cobro":return <POS negocio={neg} usuario={usuario}/>;
+      case "cons_dr":   return <ConsDoctora usuario={usuario}/>;
+      case "rep":       return <Reportes/>;
+      case "rep_dr":    return <ReporteDoctora/>;
+      case "inv":  return <InventarioModule/>;
+      case "rea":  return <ReabastoModule/>;
+      case "rrhh": return <RRHHModule/>;
+      case "caja":  return <CorteCajaModule usuario={usuario}/>;
+      case "cof":      return <COFEPRISModule/>;
+      case "promo":    return <PromocionesModule/>;
+      case "dev":      return <DevolucionesModule usuario={usuario}/>;
+      case "fact":     return <FacturacionModule/>;
+      case "banners":  return <BannersAdmin/>;
+      case "bot":      return <AsistenteIA/>;
+      case "cli":   return <ClientesModule/>;
+      case "pwa":       return <InstalarPWA/>;
+      case "usuarios":  return <GestionUsuarios/>;
+      default: return <div style={{color:C.textMid,padding:40,textAlign:"center"}}>Módulo en construcción...</div>;
+    }
+  };
+
+  return(
+    <>
+    <NotificacionesToast notifs={notifs} onDismiss={dismissNotif}/>
+    <ToastProvider/>
+    <ConfirmDialog
+      open={confirmDlg.open}
+      titulo={confirmDlg.titulo}
+      mensaje={confirmDlg.mensaje}
+      danger={confirmDlg.danger}
+      onConfirm={()=>{ confirmDlg.onConfirm?.(); setConfirmDlg(p=>({...p,open:false})); }}
+      onCancel={()=>setConfirmDlg(p=>({...p,open:false}))}
+    />
+    <div style={{background:C.bg,minHeight:"100vh",fontFamily:"'Plus Jakarta Sans',sans-serif",transition:"background .3s,color .3s"}}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');*{box-sizing:border-box;margin:0;padding:0;}`}</style>
+      <Sidebar
+        active={page} setActive={setPage}
+        negocio={neg} setNegocio={setNeg}
+        usuario={usuario} onLogout={logout}
+        alertas={alertas}
+        darkMode={darkMode} setDarkMode={setDarkMode}
+      />
+      <main style={{marginLeft:220,padding:28,minHeight:"100vh"}}>
+        <Suspense fallback={<ModuleSkeleton/>}>
+        {renderPage()}
+        </Suspense>
+      </main>
+    </div>
+  </>
+  );
+}
