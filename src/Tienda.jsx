@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "./supabase";
+import { useTheme } from "./themeContext";
 
 // ═══════════════════════════════════════════════════════════════
 // FARMAX — Tienda en Línea v4
@@ -128,6 +129,7 @@ const Inp=({value,onChange,placeholder,type,style,onKeyDown})=>(
 
 // ── POPUP BIENVENIDA ──────────────────────────────────────────
 function PopupBienvenida({onClose,setPage}){
+  const C = useTheme();
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.55)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
       <div style={{background:C.white,borderRadius:20,maxWidth:420,width:"100%",overflow:"hidden",boxShadow:"0 20px 60px rgba(0,0,0,.3)"}}>
@@ -156,6 +158,7 @@ function PopupBienvenida({onClose,setPage}){
 
 // ── BANNERS ROTATIVOS ─────────────────────────────────────────
 function BannersRotativos({setPage}){
+  const C = useTheme();
   const [idx,setIdx]=useState(0);
   const [banners,setBanners]=useState(BANNERS);
   useEffect(()=>{
@@ -203,6 +206,7 @@ function BannersRotativos({setPage}){
 
 // ── HEADER ────────────────────────────────────────────────────
 function Header({page,setPage,cart,user,setUser}){
+  const C = useTheme();
   const n=cart.reduce((a,c)=>a+c.qty,0);
   return(
     <div>
@@ -261,6 +265,7 @@ function Header({page,setPage,cart,user,setUser}){
 
 // ── PRODUCT CARD ──────────────────────────────────────────────
 function ProductCard({prod,addToCart,onClick}){
+  const C = useTheme();
   const [added,setAdded]=useState(false);
   const d=prod.disponible||(prod.stock>0?"inmediato":"48hrs");
   return(
@@ -301,6 +306,7 @@ function ProductCard({prod,addToCart,onClick}){
 
 // ── DETALLE PRODUCTO ──────────────────────────────────────────
 function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle}){
+  const C = useTheme();
   if(!prod) return null;
   const similares=productos.filter(p=>p.categoria===prod.categoria&&p.id!==prod.id).slice(0,4);
   const d=prod.disponible||(prod.stock>0?"inmediato":"48hrs");
@@ -364,6 +370,7 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle}){
 
 // ── FOOTER COMPLETO ───────────────────────────────────────────
 function Footer({setPage}){
+  const C = useTheme();
   return(
     <footer style={{background:C.dark,marginTop:48}}>
       {/* Links principales */}
@@ -430,6 +437,7 @@ function Footer({setPage}){
 
 // ── HOME ──────────────────────────────────────────────────────
 function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero}){
+  const C = useTheme();
   const [promos, setPromos] = useState([]);
   useEffect(()=>{
     const hoy = new Date().toISOString().split("T")[0];
@@ -562,6 +570,7 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero})
 
 // ── CATÁLOGO ──────────────────────────────────────────────────
 function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero}){
+  const C = useTheme();
   const [cat,setCat]=useState(()=>sessionStorage.getItem("farmax_cat")||"Todos");
   const [busq,setBusq]=useState(busqHero||sessionStorage.getItem("farmax_busq")||"");
   const [tipo,setTipo]=useState(()=>sessionStorage.getItem("farmax_tipo")||"todos");
@@ -622,6 +631,7 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero}){
 
 // ── CARRITO ───────────────────────────────────────────────────
 function Carrito({cart,setCart,setPage,setEntregaGlobal}){
+  const C = useTheme();
   const [entrega,setEntrega]=useState("pickup");
   useEffect(()=>{ setEntregaGlobal?.(entrega); },[entrega,setEntregaGlobal]);
   const sub=cart.reduce((a,c)=>a+c.precio*c.qty,0);
@@ -678,6 +688,7 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
 
 // ── CHECKOUT ──────────────────────────────────────────────────
 function Checkout({cart,setCart,setPage,user,entrega="pickup"}){
+  const C = useTheme();
   const [step,setStep]=useState(1);
   const [datos,setDatos]=useState({nombre:user?.nombre||"",tel:user?.telefono||"",email:user?.email||"",calle:"",colonia:"",cp:""});
   const [metodo,setMetodo]=useState("tarjeta");
@@ -775,6 +786,7 @@ function Checkout({cart,setCart,setPage,user,entrega="pickup"}){
 
 // ── CONSULTORIO CON MAPA ──────────────────────────────────────
 function AgendarCita({setPage,user}){
+  const C = useTheme();
   const [nombre,setNombre]=useState(user?.nombre||"");
   const [tel,setTel]=useState(user?.telefono||"");
   const [fecha,setFecha]=useState("");
@@ -898,6 +910,7 @@ function AgendarCita({setPage,user}){
 
 // ── FAQ ───────────────────────────────────────────────────────
 function FAQPage({setPage}){
+  const C = useTheme();
   const [abierto,setAbierto]=useState(null);
   return(
     <div style={{maxWidth:800,margin:"0 auto",padding:"40px 24px"}}>
@@ -937,6 +950,7 @@ function FAQPage({setPage}){
 
 // ── PÁGINAS LEGALES ───────────────────────────────────────────
 function PaginaLegal({titulo,children,setPage}){
+  const C = useTheme();
   return(
     <div style={{maxWidth:800,margin:"0 auto",padding:"40px 24px"}}>
       <button onClick={()=>setPage("home")} style={{background:"none",border:"none",color:BRAND.primary,cursor:"pointer",fontSize:14,fontWeight:700,marginBottom:20,display:"flex",alignItems:"center",gap:6}}>← Volver al inicio</button>
@@ -950,6 +964,7 @@ function PaginaLegal({titulo,children,setPage}){
 }
 
 function AvisoPrivacidad({setPage}){
+  const C = useTheme();
   return(
     <PaginaLegal titulo="📄 Aviso de Privacidad" setPage={setPage}>
       <p style={{color:C.dark,fontWeight:700,marginBottom:16}}>De conformidad con la Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP) y su Reglamento, Farmax Farmacia pone a su disposición el presente Aviso de Privacidad.</p>
@@ -971,6 +986,7 @@ function AvisoPrivacidad({setPage}){
 }
 
 function TerminosCondiciones({setPage}){
+  const C = useTheme();
   return(
     <PaginaLegal titulo="📋 Términos y Condiciones" setPage={setPage}>
       {[
@@ -992,6 +1008,7 @@ function TerminosCondiciones({setPage}){
 }
 
 function PoliticaEnvios({setPage}){
+  const C = useTheme();
   return(
     <PaginaLegal titulo="📦 Política de Envíos y Devoluciones" setPage={setPage}>
       {[
@@ -1011,6 +1028,7 @@ function PoliticaEnvios({setPage}){
 }
 
 function TerminosPuntos({setPage}){
+  const C = useTheme();
   return(
     <PaginaLegal titulo="⭐ Términos del Programa Puntos Farmax" setPage={setPage}>
       {[
@@ -1031,6 +1049,7 @@ function TerminosPuntos({setPage}){
 
 // ── REGISTRO ──────────────────────────────────────────────────
 function Registro({setUser,setPage}){
+  const C = useTheme();
   const [nombre,  setNombre] = useState("");
   const [tel,     setTel]    = useState("");
   const [email,   setEmail]  = useState("");
@@ -1108,6 +1127,7 @@ function Registro({setUser,setPage}){
 
 // ── LOGIN ─────────────────────────────────────────────────────
 function Login({setUser,setPage}){
+  const C = useTheme();
   const [tel,     setTel]  = useState("");
   const [pwd,     setPwd]  = useState("");
   const [buscando,setBusc] = useState(false);
@@ -1172,6 +1192,7 @@ function Login({setUser,setPage}){
 
 // ── CUENTA ────────────────────────────────────────────────────
 function CambiarPwdCliente({user}) {
+  const C = useTheme();
   const [pwdA,  setPwdA]  = useState("");
   const [pwdN,  setPwdN]  = useState("");
   const [pwdN2, setPwdN2] = useState("");
@@ -1215,6 +1236,7 @@ function CambiarPwdCliente({user}) {
 }
 
 function Cuenta({user,setPage,setUser}){
+  const C = useTheme();
   const [tab,setTab]=useState("pedidos");
   const [pedidos,setPeds]=useState([]);
   const [citas,setCitas]=useState([]);
@@ -1293,6 +1315,7 @@ function Cuenta({user,setPage,setUser}){
 
 // ── APP PRINCIPAL ─────────────────────────────────────────────
 export default function TiendaFarmax(){
+  const C = useTheme();
   const [page,setPageRaw] = useState("home");
   const setPage = (p) => { window.history.pushState({page:p},"",window.location.pathname); setPageRaw(p); };
   useEffect(()=>{
