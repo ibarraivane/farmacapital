@@ -162,6 +162,7 @@ function PromoModal({initial, productos, onClose, onSaved }) {
 
 // ── Sección 1: Promociones ────────────────────────────────────
 function Promociones({ productos }) {
+  const C = useTheme();
   const [promos,   setPromos]  = useState([]);
   const [loading,  setLoading] = useState(true);
   const [modal,    setModal]   = useState(null); // null | "new" | promo obj
@@ -247,6 +248,7 @@ function Promociones({ productos }) {
 
 // ── Sección 2: Comparación de precios ────────────────────────
 function CompetidoresPrecios({ productos, onReload }) {
+  const C = useTheme();
   const [editId,  setEditId]  = useState(null);
   const [editForm,setEditForm]= useState({precio_similares:"",precio_del_ahorro:""});
   const [saving,  setSaving]  = useState(false);
@@ -358,6 +360,7 @@ function CompetidoresPrecios({ productos, onReload }) {
 
 // ── Módulo principal ──────────────────────────────────────────
 export default function PromocionesModule() {
+  const C = useTheme();
   const [tab,       setTab]      = useState("promos");
   const [productos, setProductos]= useState([]);
 

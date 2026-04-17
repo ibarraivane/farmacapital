@@ -189,6 +189,7 @@ function SolicitarFacturaModal({pedido, onClose, onSaved }) {
 
 // ── Módulo principal ──────────────────────────────────────────
 export default function FacturacionModule() {
+  const C = useTheme();
   const [facturas,  setFacturas] = useState([]);
   const [loading,   setLoading]  = useState(true);
   const [modal,     setModal]    = useState(null);

@@ -78,6 +78,7 @@ function ProcedimientoModal({initial, onClose, onSaved }) {
 }
 
 function MedicoModal({ initial, onClose, onSaved }) {
+  const C = useTheme();
   const empty = { nombre:"", especialidad:"Medicina General", cedula:"", turno:"", modelo_pago:"porcentaje", monto_fijo:"", porcentaje:"70", activo:true };
   const [form, setForm] = useState(initial||empty);
   const [saving, setSaving] = useState(false);
@@ -133,6 +134,7 @@ function MedicoModal({ initial, onClose, onSaved }) {
 }
 
 function ListaEspera() {
+  const C = useTheme();
   const [citas,   setCitas]   = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -241,6 +243,7 @@ function ListaEspera() {
 }
 
 function EnConsulta() {
+  const C = useTheme();
   const [citaActual,     setCitaActual]     = useState(null);
   const [historial,      setHistorial]      = useState([]);
   const [procedimientos, setProcedimientos] = useState([]);
@@ -564,6 +567,7 @@ function EnConsulta() {
 }
 
 function Procedimientos() {
+  const C = useTheme();
   const [procs,   setProcs]   = useState([]);
   const [loading, setLoading] = useState(true);
   const [modal,   setModal]   = useState(null);
@@ -629,6 +633,7 @@ function Procedimientos() {
 }
 
 function Medicos() {
+  const C = useTheme();
   const [medicos,  setMedicos]  = useState([]);
   const [loading,  setLoading]  = useState(true);
   const [modal,    setModal]    = useState(null);

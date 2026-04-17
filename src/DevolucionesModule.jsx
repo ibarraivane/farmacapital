@@ -231,6 +231,7 @@ function NuevaDevolucionModal({usuario, onClose, onSaved }) {
 
 // ── Módulo principal ──────────────────────────────────────────
 export default function DevolucionesModule({ usuario }) {
+  const C = useTheme();
   const [devoluciones, setDev]    = useState([]);
   const [loading,      setLoad]   = useState(true);
   const [modal,        setModal]  = useState(false);

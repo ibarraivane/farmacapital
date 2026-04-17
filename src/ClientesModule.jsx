@@ -33,6 +33,7 @@ function Avatar({nombre, puntos, size=36 }) {
 }
 
 function AgregarCliente({ onSaved, onCancel }) {
+  const C = useTheme();
   const [form, setForm]     = useState({ nombre:"", telefono:"", email:"", notas:"" });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -80,6 +81,7 @@ function AgregarCliente({ onSaved, onCancel }) {
 }
 
 function ClienteDetalle({ cliente, onReload }) {
+  const C = useTheme();
   const [tab,      setTab]     = useState("compras");
   const [pedidos,  setPedidos] = useState([]);
   const [citas,    setCitas]   = useState([]);
@@ -285,6 +287,7 @@ function ClienteDetalle({ cliente, onReload }) {
 }
 
 export default function ClientesModule() {
+  const C = useTheme();
   const [clientes,   setClientes]   = useState([]);
   const [loading,    setLoading]    = useState(true);
   const [paginaCli, setPaginaCli] = useState(1);

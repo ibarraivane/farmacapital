@@ -257,6 +257,7 @@ function ProductoModal({initial, onClose, onSaved }) {
 }
 
 function RecibirModal({ productos, onClose, onSaved }) {
+  const C = useTheme();
   const [busq,     setBusq]    = useState("");
   const [selId,    setSelId]   = useState("");
   const [cantidad, setCantidad]= useState("");
@@ -381,6 +382,7 @@ function RecibirModal({ productos, onClose, onSaved }) {
 }
 
 export default function InventarioModule() {
+  const C = useTheme();
   const [productos,       setProductos]       = useState([]);
   const [loading,         setLoading]         = useState(true);
   const [busqueda,        setBusqueda]        = useState("");

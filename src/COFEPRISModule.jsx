@@ -121,6 +121,7 @@ function AlertasLegales() {
 }
 
 function BitacoraAntibioticos() {
+  const C = useTheme();
   const [registros,   setRegistros]   = useState([]);
   const [loading,     setLoading]     = useState(true);
   const [busqueda,    setBusqueda]    = useState("");
@@ -206,6 +207,7 @@ function BitacoraAntibioticos() {
 }
 
 function Controlados() {
+  const C = useTheme();
   const [registros, setRegistros] = useState([]);
   const [loading,   setLoading]   = useState(true);
 
@@ -277,6 +279,7 @@ function Controlados() {
 }
 
 export default function COFEPRISModule() {
+  const C = useTheme();
   const [tab, setTab] = useState("alertas");
   const TABS = [["alertas","🚦 Alertas legales"],["bitacora","📋 Bitácora antibióticos"],["controlados","💊 Controlados"]];
   return (
