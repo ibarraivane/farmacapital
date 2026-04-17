@@ -3,13 +3,14 @@
 // Caché offline · Cola de sincronización · Push notifications
 // ═══════════════════════════════════════════════════════════════
 
-const VERSION       = "farmax-v1.0.0";
+const VERSION       = "farmax-v1.0.1";
 const CACHE_STATIC  = `${VERSION}-static`;
 const CACHE_DYNAMIC = `${VERSION}-dynamic`;
 
 const STATIC_ASSETS = [
-  "/", "/index.html", "/farmax-manifest.json",
-  "/static/js/main.chunk.js", "/static/js/bundle.js", "/static/css/main.chunk.css",
+  "/",
+  "/index.html",
+  "/manifest.json",
   "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap",
 ];
 
@@ -45,6 +46,11 @@ self.addEventListener("fetch", event => {
     event.respondWith(fetch(event.request).catch(() =>
       new Response(JSON.stringify({ error: "Sin conexión", offline: true }), { headers: { "Content-Type": "application/json" } })
     ));
+    return;
+  }
+  if (isBuildAsset(event.request)) {
+    // Los assets con hash deben venir de red primero para evitar chunks viejos.
+    event.respondWith(networkFirst(event.request));
     return;
   }
   if (isStaticAsset(event.request)) {
@@ -182,7 +188,12 @@ function eliminarPendiente(db, storeName, id) {
 
 function isStaticAsset(request) {
   const url = request.url;
-  return ["/static/",".js",".css",".png",".jpg",".svg",".ico",".woff",".woff2","fonts.googleapis","fonts.gstatic"].some(s => url.includes(s));
+  return [".png",".jpg",".svg",".ico",".woff",".woff2","fonts.googleapis","fonts.gstatic","manifest.json"].some(s => url.includes(s));
+}
+
+function isBuildAsset(request) {
+  const url = request.url;
+  return url.includes("/static/") && (url.includes(".js") || url.includes(".css"));
 }
 
 console.log("[Farmax SW] Cargado:", VERSION);
