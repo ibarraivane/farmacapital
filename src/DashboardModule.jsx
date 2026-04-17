@@ -70,6 +70,7 @@ function AlertCard({ icon, label, count, col, sub, onAction, actionLabel }) {
 }
 
 export default function DashboardModule({ usuario, setPage }) {
+  const C = useTheme();
   const [data,    setData]    = useState(null);
   const [loading, setLoading] = useState(true);
 
