@@ -257,6 +257,10 @@ function ProductoModal({initial, onClose, onSaved }) {
 
 function RecibirModal({ productos, onClose, onSaved }) {
   const C = C_LIGHT;
+  const inputStyle = mkInputStyle(C);
+  const labelStyle = mkLabelStyle(C);
+  const btnSecondary = mkBtnSecondary(C);
+  const btnGreen = mkBtnGreen(C);
   const [busq,     setBusq]    = useState("");
   const [selId,    setSelId]   = useState("");
   const [cantidad, setCantidad]= useState("");
