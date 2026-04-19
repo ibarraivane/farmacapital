@@ -985,9 +985,9 @@ function POS({negocio,usuario}){
                       </button>
                     </div>
                   ):(
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}
-                      onClick={item.stock===0?undefined:()=>add(item,false)}
-                      style={{cursor:item.stock===0?"not-allowed":"pointer"}}>
+                    <div
+                      style={{display:"flex",justifyContent:"space-between",alignItems:"center",cursor:item.stock===0?"not-allowed":"pointer"}}
+                      onClick={item.stock===0?undefined:()=>add(item,false)}>
                       <div>
                         {item.descuento_pct>0?(
                           <>
@@ -2192,7 +2192,7 @@ function GestionUsuarios(){
   const C = C_LIGHT;
   const [usuarios,setUsers] = useState([]);
   const [modal,setModal]    = useState(false);
-  const [form,setForm]      = useState({nombre:"",telefono:"",password:"",rol:"vendedor",notas:""});
+  const [form,setForm]      = useState({nombre:"",email:"",telefono:"",password:"",rol:"vendedor",notas:""});
   const [loading,setLoad]   = useState(true);
   const [guardando,setGuard]= useState(false);
   const [error,setError]    = useState("");
@@ -2202,19 +2202,24 @@ function GestionUsuarios(){
   },[]);
 
   const crear = async () => {
-    if(!form.nombre||!form.telefono||!form.password) return;
+    const emailUsuario = (form.email || "").trim().toLowerCase();
+    if(!form.nombre||!emailUsuario||!form.password) return;
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailUsuario)) {
+      setError("Ingresa un correo electrónico válido.");
+      return;
+    }
     setGuard(true); setError("");
     try {
-      // Crear en Supabase Auth con email interno
-      const emailInterno = form.telefono.trim().replace(/\D/g,"") + "@farmax.internal";
+      // Crear en Supabase Auth con correo real del usuario
       const { data:authData, error:authErr } = await supabase.auth.signUp({
-        email: emailInterno,
+        email: emailUsuario,
         password: form.password,
         options: {
           data: {
             nombre: form.nombre.trim(),
             rol:    form.rol,
-            telefono: form.telefono.trim(),
+            telefono: (form.telefono || "").trim(),
+            email: emailUsuario,
           }
         }
       });
@@ -2228,15 +2233,14 @@ function GestionUsuarios(){
       const hash = await hashPwd(form.password, salt);
       const payload = {
         nombre:form.nombre.trim(),
-        telefono:form.telefono.trim(),
+        telefono:(form.telefono || "").trim(),
+        email:emailUsuario,
         password_hash:hash,
         salt:salt,
         rol:form.rol,
         activo:true,
         notas:form.notas?.trim()||null,
       };
-      // Agregar email solo si la columna existe (evita error si no existe)
-      try { payload.email = emailInterno; } catch(_){}
       const {data,error:err} = await supabase.from("usuarios").insert(payload).select().single();
       if(err) {
         console.error("[Farmax] Error crear usuario:", err);
@@ -2249,13 +2253,13 @@ function GestionUsuarios(){
           id: authData.user.id,
           rol: form.rol,
           nombre: form.nombre.trim(),
-          telefono: form.telefono.trim(),
+          telefono: (form.telefono || "").trim(),
           activo: true,
         }).catch(()=>{});
       }
       setUsers(p=>[...p,data]);
       setModal(false);
-      setForm({nombre:"",telefono:"",password:"",rol:"vendedor",notas:""});
+      setForm({nombre:"",email:"",telefono:"",password:"",rol:"vendedor",notas:""});
       showToast(`✅ Usuario ${form.nombre} creado correctamente`, "success");
     } catch(e){
       console.error("[Farmax] Error crear usuario:", e);
@@ -2323,7 +2327,11 @@ function GestionUsuarios(){
           <Inp value={form.nombre} onChange={e=>setForm(p=>({...p,nombre:e.target.value}))} placeholder="Nombre del empleado" style={{width:"100%",boxSizing:"border-box"}}/>
         </div>
         <div style={{marginBottom:12}}>
-          <div style={{color:C.textMid,fontSize:11,marginBottom:4}}>Teléfono (será su usuario) *</div>
+          <div style={{color:C.textMid,fontSize:11,marginBottom:4}}>Correo electrónico (será su usuario) *</div>
+          <Inp value={form.email} onChange={e=>setForm(p=>({...p,email:e.target.value}))} placeholder="usuario@empresa.com" type="email" style={{width:"100%",boxSizing:"border-box"}}/>
+        </div>
+        <div style={{marginBottom:12}}>
+          <div style={{color:C.textMid,fontSize:11,marginBottom:4}}>Teléfono (opcional)</div>
           <Inp value={form.telefono} onChange={e=>setForm(p=>({...p,telefono:e.target.value}))} placeholder="55XXXXXXXX" type="tel" style={{width:"100%",boxSizing:"border-box"}}/>
         </div>
         <div style={{marginBottom:12}}>
@@ -2345,23 +2353,23 @@ function GestionUsuarios(){
           <Inp value={form.notas} onChange={e=>setForm(p=>({...p,notas:e.target.value}))} placeholder="Turno, observaciones, etc." style={{width:"100%",boxSizing:"border-box"}}/>
         </div>
         <div style={{background:C.amberDim,border:`1px solid ${C.amber}30`,borderRadius:8,padding:"10px 12px",marginBottom:16}}>
-          <div style={{color:C.amber,fontSize:11}}>El usuario iniciará sesión con su teléfono y esta contraseña. Compártela de forma segura.</div>
+          <div style={{color:C.amber,fontSize:11}}>El usuario iniciará sesión con su correo electrónico y esta contraseña. Compártela de forma segura.</div>
         </div>
         <div style={{display:"flex",gap:8}}>
           <Btn onClick={()=>setModal(false)} ol col={C.textMid}>Cancelar</Btn>
-          <Btn onClick={crear} col={BRAND.primary} dis={!form.nombre||!form.telefono||!form.password||guardando}>{guardando?"Creando...":"Crear usuario"}</Btn>
+          <Btn onClick={crear} col={BRAND.primary} dis={!form.nombre||!form.email||!form.password||guardando}>{guardando?"Creando...":"Crear usuario"}</Btn>
         </div>
       </Modal>
 
       {loading?<SkeletonTable rows={4} cols={5}/>:(
         <Box>
           <table style={{width:"100%",borderCollapse:"collapse"}}>
-            <thead><tr>{["Nombre","Teléfono","Perfil","Notas","Estado","Acciones"].map(h=><th key={h} style={{padding:"8px 14px",color:C.textDim,fontSize:9,textAlign:"left",letterSpacing:1.5,textTransform:"uppercase",borderBottom:`1px solid ${C.border}`}}>{h}</th>)}</tr></thead>
+            <thead><tr>{["Nombre","Usuario (correo)","Perfil","Notas","Estado","Acciones"].map(h=><th key={h} style={{padding:"8px 14px",color:C.textDim,fontSize:9,textAlign:"left",letterSpacing:1.5,textTransform:"uppercase",borderBottom:`1px solid ${C.border}`}}>{h}</th>)}</tr></thead>
             <tbody>
               {usuarios.map(u=>(
                 <tr key={u.id}>
                   <td style={{padding:"10px 14px",color:C.text,fontWeight:700,fontSize:13}}>{u.nombre}</td>
-                  <td style={{padding:"10px 14px",color:C.textMid,fontSize:12}}>{u.telefono}</td>
+                  <td style={{padding:"10px 14px",color:C.textMid,fontSize:12}}>{u.email||u.telefono||"—"}</td>
                   <td style={{padding:"10px 14px"}}><Tag col={rolColor(u.rol)} sm>{u.rol}</Tag></td>
                   <td style={{padding:"10px 14px"}}><Tag col={u.activo?C.green:C.red} sm>{u.activo?"Activo":"Inactivo"}</Tag></td>
                   <td style={{padding:"10px 14px"}}>
