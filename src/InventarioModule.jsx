@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { C_LIGHT, C_DARK } from "./constants";
-import { useTheme } from "./themeContext";
+import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
 import { logAudit } from "./utils";
 import { SkeletonTable, Paginador, SearchDropdown } from "./ui";
@@ -100,7 +99,7 @@ const exportarCSV = (productos) => {
 };
 
 function ProductoModal({initial, onClose, onSaved }) {
-  const C = useTheme();
+  const C = C_LIGHT;
   const inputStyle = mkInputStyle(C);
   const labelStyle = mkLabelStyle(C);
   const btnSecondary = mkBtnSecondary(C);
@@ -257,7 +256,7 @@ function ProductoModal({initial, onClose, onSaved }) {
 }
 
 function RecibirModal({ productos, onClose, onSaved }) {
-  const C = useTheme();
+  const C = C_LIGHT;
   const [busq,     setBusq]    = useState("");
   const [selId,    setSelId]   = useState("");
   const [cantidad, setCantidad]= useState("");
@@ -382,7 +381,13 @@ function RecibirModal({ productos, onClose, onSaved }) {
 }
 
 export default function InventarioModule() {
-  const C = useTheme();
+  const C = C_LIGHT;
+  const inputStyle = mkInputStyle(C);
+  const labelStyle = mkLabelStyle(C);
+  const btnPrimary = mkBtnPrimary(C);
+  const btnOutline = mkBtnOutline(C);
+  const btnGreen = mkBtnGreen(C);
+  const btnSecondary = mkBtnSecondary(C);
   const [productos,       setProductos]       = useState([]);
   const [loading,         setLoading]         = useState(true);
   const [busqueda,        setBusqueda]        = useState("");

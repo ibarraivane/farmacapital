@@ -11,22 +11,6 @@ export const C_LIGHT = {
   text:"#0f172a",   textMid:"#475569",  textDim:"#94a3b8",
 };
 
-export const C_DARK = {
-  // Fondos — escala de grises oscuros profesionales
-  bg:"#111827",      card:"#1f2937",      cardDark:"#1a2333",
-  // Bordes sutiles
-  border:"#374151",  borderHi:"#4b5563",
-  // Colores de acento (mismos que claro para consistencia)
-  blue:"#38bdf8",    blueDark:"#0ea5e9",  blueDim:"#38bdf820",
-  green:"#34d399",   greenDark:"#10b981", greenDim:"#34d39920",
-  amber:"#fbbf24",   amberDim:"#fbbf2420",
-  red:"#f87171",     redDim:"#f8717120",
-  purple:"#a78bfa",  purpleDim:"#a78bfa20",
-  teal:"#22d3ee",    tealDim:"#22d3ee20",
-  // Textos — escala de grises clara para legibilidad
-  text:"#f9fafb",    textMid:"#9ca3af",   textDim:"#6b7280",
-};
-
 // C se exporta dinámico — se sobreescribe en runtime desde Admin.jsx
 export let C = {...C_LIGHT};
 

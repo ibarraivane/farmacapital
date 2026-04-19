@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { C_LIGHT, C_DARK } from "./constants";
-import { useTheme } from "./themeContext";
+import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
 import { showToast } from "./ui";
 
@@ -33,7 +32,7 @@ const DEFAULT_PROCEDIMIENTOS = [
 ];
 
 function ProcedimientoModal({initial, onClose, onSaved }) {
-  const C = useTheme();
+  const C = C_LIGHT;
   const inputStyle = mkInputStyle(C);
   const labelStyle = mkLabelStyle(C);
   const btnSecondary = mkBtnSecondary(C);
@@ -78,7 +77,7 @@ function ProcedimientoModal({initial, onClose, onSaved }) {
 }
 
 function MedicoModal({ initial, onClose, onSaved }) {
-  const C = useTheme();
+  const C = C_LIGHT;
   const empty = { nombre:"", especialidad:"Medicina General", cedula:"", turno:"", modelo_pago:"porcentaje", monto_fijo:"", porcentaje:"70", activo:true };
   const [form, setForm] = useState(initial||empty);
   const [saving, setSaving] = useState(false);
@@ -134,7 +133,11 @@ function MedicoModal({ initial, onClose, onSaved }) {
 }
 
 function ListaEspera() {
-  const C = useTheme();
+  const C = C_LIGHT;
+  const btnSecondary = mkBtnSecondary(C);
+  const btnPrimary = mkBtnPrimary(C);
+  const btnOutline = mkBtnOutline(C);
+  const btnGreen = mkBtnGreen(C);
   const [citas,   setCitas]   = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -243,7 +246,11 @@ function ListaEspera() {
 }
 
 function EnConsulta() {
-  const C = useTheme();
+  const C = C_LIGHT;
+  const btnSecondary = mkBtnSecondary(C);
+  const btnPrimary = mkBtnPrimary(C);
+  const btnOutline = mkBtnOutline(C);
+  const btnGreen = mkBtnGreen(C);
   const [citaActual,     setCitaActual]     = useState(null);
   const [historial,      setHistorial]      = useState([]);
   const [procedimientos, setProcedimientos] = useState([]);
@@ -567,7 +574,11 @@ function EnConsulta() {
 }
 
 function Procedimientos() {
-  const C = useTheme();
+  const C = C_LIGHT;
+  const btnSecondary = mkBtnSecondary(C);
+  const btnPrimary = mkBtnPrimary(C);
+  const btnOutline = mkBtnOutline(C);
+  const btnGreen = mkBtnGreen(C);
   const [procs,   setProcs]   = useState([]);
   const [loading, setLoading] = useState(true);
   const [modal,   setModal]   = useState(null);
@@ -633,7 +644,11 @@ function Procedimientos() {
 }
 
 function Medicos() {
-  const C = useTheme();
+  const C = C_LIGHT;
+  const btnSecondary = mkBtnSecondary(C);
+  const btnPrimary = mkBtnPrimary(C);
+  const btnOutline = mkBtnOutline(C);
+  const btnGreen = mkBtnGreen(C);
   const [medicos,  setMedicos]  = useState([]);
   const [loading,  setLoading]  = useState(true);
   const [modal,    setModal]    = useState(null);
@@ -701,7 +716,15 @@ function Medicos() {
 }
 
 export default function ConsultorioModule({ usuario }) {
-  const C = useTheme();
+  const C = C_LIGHT;
+  const inputStyle = mkInputStyle(C);
+  const labelStyle = mkLabelStyle(C);
+  const btnPrimary = mkBtnPrimary(C);
+  const btnSecondary = mkBtnSecondary(C);
+  const btnGreen = mkBtnGreen(C);
+  const btnSmBlue = mkBtnSmBlue(C);
+  const btnSmGreen = mkBtnSmGreen(C);
+  const btnSmRed = mkBtnSmRed(C);
   const [tab, setTab] = useState("espera");
   const TABS = [["espera","⏳ Lista de espera"],["consulta","🏥 En consulta"],["procedimientos","⚕ Procedimientos"],["medicos","👨‍⚕️ Médicos"]];
   return (

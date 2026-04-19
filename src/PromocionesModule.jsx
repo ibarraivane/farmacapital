@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { C_LIGHT, C_DARK } from "./constants";
-import { useTheme } from "./themeContext";
+import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
 import { showToast } from "./ui";
 
@@ -38,7 +37,7 @@ const mkBtnOutline = (C) => ({
 
 // ── Modal Crear/Editar Promoción ──────────────────────────────
 function PromoModal({initial, productos, onClose, onSaved }) {
-  const C = useTheme();
+  const C = C_LIGHT;
   const inpS = mkInpS(C);
   const labelS = mkLabelS(C);
   const btnPrimary = mkBtnPrimary(C);
@@ -162,7 +161,7 @@ function PromoModal({initial, productos, onClose, onSaved }) {
 
 // ── Sección 1: Promociones ────────────────────────────────────
 function Promociones({ productos }) {
-  const C = useTheme();
+  const C = C_LIGHT;
   const [promos,   setPromos]  = useState([]);
   const [loading,  setLoading] = useState(true);
   const [modal,    setModal]   = useState(null); // null | "new" | promo obj
@@ -248,7 +247,7 @@ function Promociones({ productos }) {
 
 // ── Sección 2: Comparación de precios ────────────────────────
 function CompetidoresPrecios({ productos, onReload }) {
-  const C = useTheme();
+  const C = C_LIGHT;
   const [editId,  setEditId]  = useState(null);
   const [editForm,setEditForm]= useState({precio_similares:"",precio_del_ahorro:""});
   const [saving,  setSaving]  = useState(false);
@@ -360,7 +359,11 @@ function CompetidoresPrecios({ productos, onReload }) {
 
 // ── Módulo principal ──────────────────────────────────────────
 export default function PromocionesModule() {
-  const C = useTheme();
+  const C = C_LIGHT;
+  const inpS = mkInpS(C);
+  const labelS = mkLabelS(C);
+  const btnPrimary = mkBtnPrimary(C);
+  const btnOutline = mkBtnOutline(C);
   const [tab,       setTab]      = useState("promos");
   const [productos, setProductos]= useState([]);
 

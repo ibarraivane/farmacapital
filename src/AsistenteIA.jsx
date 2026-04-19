@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { C_LIGHT, C_DARK } from "./constants";
-import { useTheme } from "./themeContext";
+import { C_LIGHT } from "./constants";
 
 const BRAND = { primary:"#0052cc", secondary:"#0099e6", gradient:"linear-gradient(135deg,#0052cc,#0099e6)" };
 
@@ -15,7 +14,7 @@ const CHIPS = [
 ];
 
 export default function AsistenteIA() {
-  const C = useTheme();
+  const C = C_LIGHT;
   const apiKey = "AQ.Ab8RN6KcO6WdzbtmvVo07O23p1GmYKBo9_J6KX_n-AuqPH7NDg";
   const [messages, setMessages] = useState([]);
   const [input,    setInput]    = useState("");

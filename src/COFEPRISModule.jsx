@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { C_LIGHT, C_DARK } from "./constants";
-import { useTheme } from "./themeContext";
+import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
 
 const BRAND = { primary:"#0052cc", secondary:"#0099e6", gradient:"linear-gradient(135deg,#0052cc,#0099e6)" };
@@ -46,7 +45,7 @@ const exportarCSV = (rows, cols, filename) => {
 };
 
 function AlertasLegales() {
-  const C = useTheme();
+  const C = C_LIGHT;
   const inputStyle = mkInputStyle(C);
   const labelStyle = mkLabelStyle(C);
   const btnSecondary = mkBtnSecondary(C);
@@ -121,7 +120,7 @@ function AlertasLegales() {
 }
 
 function BitacoraAntibioticos() {
-  const C = useTheme();
+  const C = C_LIGHT;
   const [registros,   setRegistros]   = useState([]);
   const [loading,     setLoading]     = useState(true);
   const [busqueda,    setBusqueda]    = useState("");
@@ -207,7 +206,7 @@ function BitacoraAntibioticos() {
 }
 
 function Controlados() {
-  const C = useTheme();
+  const C = C_LIGHT;
   const [registros, setRegistros] = useState([]);
   const [loading,   setLoading]   = useState(true);
 
@@ -279,7 +278,12 @@ function Controlados() {
 }
 
 export default function COFEPRISModule() {
-  const C = useTheme();
+  const C = C_LIGHT;
+  const inputStyle = mkInputStyle(C);
+  const labelStyle = mkLabelStyle(C);
+  const btnPrimary = mkBtnPrimary(C);
+  const btnSecondary = mkBtnSecondary(C);
+  const btnSmBlue = mkBtnSmBlue(C);
   const [tab, setTab] = useState("alertas");
   const TABS = [["alertas","🚦 Alertas legales"],["bitacora","📋 Bitácora antibióticos"],["controlados","💊 Controlados"]];
   return (

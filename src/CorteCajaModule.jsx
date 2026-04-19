@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { C_LIGHT, C_DARK } from "./constants";
-import { useTheme } from "./themeContext";
+import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
 import { showToast } from "./ui";
 
@@ -29,7 +28,7 @@ const getRangoFiltro = (filtro) => {
 };
 
 export default function CorteCajaModule({usuario }) {
-  const C = useTheme();
+  const C = C_LIGHT;
   const inputStyle = mkInputStyle(C);
   const labelStyle = mkLabelStyle(C);
   const btnSecondary = mkBtnSecondary(C);

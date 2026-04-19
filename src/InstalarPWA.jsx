@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
-import { useTheme } from "./themeContext";
+import { C_LIGHT } from "./constants";
 
 const BRAND = { primary:"#0052cc", gradient:"linear-gradient(135deg,#0052cc,#0099e6)" };
 
 const URL_ADMIN = "https://farmax-seven.vercel.app/admin";
 
 export default function InstalarPWA() {
-  const C = useTheme();
+  const C = C_LIGHT;
   const [yaInstalada, setYaInstalada] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [instalando, setInstalando] = useState(false);

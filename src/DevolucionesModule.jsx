@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { C_LIGHT, C_DARK } from "./constants";
-import { useTheme } from "./themeContext";
+import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
 
 const BRAND = { primary:"#0052cc", secondary:"#0099e6", gradient:"linear-gradient(135deg,#0052cc,#0099e6)" };
@@ -17,7 +16,7 @@ const estCol = (e, C) => e==="aprobada"?C.green:e==="rechazada"?C.red:C.amber;
 
 // ── Modal Nueva Devolución ────────────────────────────────────
 function NuevaDevolucionModal({usuario, onClose, onSaved }) {
-  const C = useTheme();
+  const C = C_LIGHT;
   const labelS = mkLabelS(C);
   const inpS = mkInpS(C);
   const btnPrimary = mkBtnPrimary(C);
@@ -231,7 +230,11 @@ function NuevaDevolucionModal({usuario, onClose, onSaved }) {
 
 // ── Módulo principal ──────────────────────────────────────────
 export default function DevolucionesModule({ usuario }) {
-  const C = useTheme();
+  const C = C_LIGHT;
+  const inpS = mkInpS(C);
+  const labelS = mkLabelS(C);
+  const btnPrimary = mkBtnPrimary(C);
+  const btnOutline = mkBtnOutline(C);
   const [devoluciones, setDev]    = useState([]);
   const [loading,      setLoad]   = useState(true);
   const [modal,        setModal]  = useState(false);

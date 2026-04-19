@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { C_LIGHT, C_DARK } from "./constants";
-import { useTheme } from "./themeContext";
+import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
 import { SkeletonTable, Paginador, SearchDropdown, showToast } from "./ui";
 
@@ -16,7 +15,7 @@ const mkBtnSecondary = (C) => ({ padding:"8px 16px", borderRadius:8, cursor:"poi
 const mkBtnGreen = (C) => ({ padding:"9px 18px", borderRadius:8, border:"none", cursor:"pointer", background:C.green, color:"#fff", fontWeight:700, fontSize:12 });
 
 function Avatar({nombre, puntos, size=36 }) {
-  const C = useTheme();
+  const C = C_LIGHT;
   const inputStyle = mkInputStyle(C);
   const labelStyle = mkLabelStyle(C);
   const btnSecondary = mkBtnSecondary(C);
@@ -33,7 +32,7 @@ function Avatar({nombre, puntos, size=36 }) {
 }
 
 function AgregarCliente({ onSaved, onCancel }) {
-  const C = useTheme();
+  const C = C_LIGHT;
   const [form, setForm]     = useState({ nombre:"", telefono:"", email:"", notas:"" });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -81,7 +80,7 @@ function AgregarCliente({ onSaved, onCancel }) {
 }
 
 function ClienteDetalle({ cliente, onReload }) {
-  const C = useTheme();
+  const C = C_LIGHT;
   const [tab,      setTab]     = useState("compras");
   const [pedidos,  setPedidos] = useState([]);
   const [citas,    setCitas]   = useState([]);
@@ -287,7 +286,12 @@ function ClienteDetalle({ cliente, onReload }) {
 }
 
 export default function ClientesModule() {
-  const C = useTheme();
+  const C = C_LIGHT;
+  const inputStyle = mkInputStyle(C);
+  const labelStyle = mkLabelStyle(C);
+  const btnPrimary = mkBtnPrimary(C);
+  const btnSecondary = mkBtnSecondary(C);
+  const btnGreen = mkBtnGreen(C);
   const [clientes,   setClientes]   = useState([]);
   const [loading,    setLoading]    = useState(true);
   const [paginaCli, setPaginaCli] = useState(1);

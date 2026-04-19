@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { C_LIGHT, C_DARK } from "./constants";
-import { useTheme } from "./themeContext";
+import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
 import { downloadFacturaPDF } from "./utils/generateFacturaPDF";
 
@@ -44,7 +43,7 @@ const REGIMEN_FISCAL = [
 
 // ── Modal Solicitar Factura ───────────────────────────────────
 function SolicitarFacturaModal({pedido, onClose, onSaved }) {
-  const C = useTheme();
+  const C = C_LIGHT;
   const labelS = mkLabelS(C);
   const inpS = mkInpS(C);
   const btnPrimary = mkBtnPrimary(C);
@@ -189,7 +188,11 @@ function SolicitarFacturaModal({pedido, onClose, onSaved }) {
 
 // ── Módulo principal ──────────────────────────────────────────
 export default function FacturacionModule() {
-  const C = useTheme();
+  const C = C_LIGHT;
+  const inpS = mkInpS(C);
+  const labelS = mkLabelS(C);
+  const btnPrimary = mkBtnPrimary(C);
+  const btnOutline = mkBtnOutline(C);
   const [facturas,  setFacturas] = useState([]);
   const [loading,   setLoading]  = useState(true);
   const [modal,     setModal]    = useState(null);

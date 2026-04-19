@@ -1,10 +1,9 @@
 import React from "react";
 // FARMAX — Componentes UI base
 import { C_LIGHT, BRAND } from "./constants";
-import { useTheme } from "./themeContext";
 
 export function Logo({size=36,showText=true,light=false}){
-  const C = useTheme();
+  const C = C_LIGHT;
   const t=light?C.card:BRAND.primary, s=light?"rgba(255,255,255,.7)":BRAND.secondary;
   return(
     <div style={{display:"flex",alignItems:"center",gap:10}}>
@@ -23,7 +22,7 @@ export function Logo({size=36,showText=true,light=false}){
 }
 
 export function Box({children,style,onClick,ac}){
-  const C = useTheme();
+  const C = C_LIGHT;
   return(
 
   <div onClick={onClick} style={{background:C.card,borderRadius:14,border:`1px solid ${ac?ac+"40":C.border}`,boxShadow:"0 1px 4px rgba(0,0,0,.06)",transition:"border-color .2s,box-shadow .2s",cursor:onClick?"pointer":"default",...style}}
@@ -36,7 +35,7 @@ export function Box({children,style,onClick,ac}){
 };
 
 export function Tag({col,children,sm}){
-  const C = useTheme();
+  const C = C_LIGHT;
   return(
 
   <span style={{background:col+"15",color:col,border:`1px solid ${col}30`,borderRadius:20,padding:sm?"2px 8px":"3px 11px",fontSize:sm?9:11,fontWeight:700,letterSpacing:.5,textTransform:"uppercase",whiteSpace:"nowrap",display:"inline-block"}}>{children}</span>
@@ -45,7 +44,7 @@ export function Tag({col,children,sm}){
 };
 
 export function Btn({children,onClick,col,sm,ol,dis,full,style}){
-  const C = useTheme();
+  const C = C_LIGHT;
   return(
 
   <button onClick={onClick} disabled={dis} style={{padding:sm?"5px 12px":"9px 18px",borderRadius:8,border:`1px solid ${ol?(col||BRAND.primary):"transparent"}`,background:ol?"transparent":dis?C.border:(col||BRAND.primary),color:ol?(col||BRAND.primary):dis?C.textMid:C.card,fontWeight:700,fontSize:sm?11:13,cursor:dis?"not-allowed":"pointer",fontFamily:"'Plus Jakarta Sans',sans-serif",opacity:dis?.5:1,width:full?"100%":undefined,transition:"opacity .15s",...style}}>{children}</button>
@@ -54,7 +53,7 @@ export function Btn({children,onClick,col,sm,ol,dis,full,style}){
 };
 
 export function Inp({value,onChange,placeholder,style,type,onKeyDown}){
-  const C = useTheme();
+  const C = C_LIGHT;
   return(
 
   <input value={value} onChange={onChange} placeholder={placeholder} type={type||"text"} onKeyDown={onKeyDown}
@@ -65,7 +64,7 @@ export function Inp({value,onChange,placeholder,style,type,onKeyDown}){
 };
 
 export function KPI({label,value,sub,col,icon,trend}){
-  const C = useTheme();
+  const C = C_LIGHT;
   return(
 
   <Box style={{padding:"18px 20px",flex:1,minWidth:140}}>
@@ -84,7 +83,7 @@ export function KPI({label,value,sub,col,icon,trend}){
 };
 
 export function Modal({open,onClose,title,children,ac}){
-  const C = useTheme();
+  const C = C_LIGHT;
   if(!open) return null;
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.45)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}} onClick={onClose}>
@@ -100,7 +99,7 @@ export function Modal({open,onClose,title,children,ac}){
 }
 
 export function NotificacionesToast({ notifs, onDismiss }) {
-  const C = useTheme();
+  const C = C_LIGHT;
   if(!notifs?.length) return null;
   return (
     <div style={{position:"fixed",top:16,right:16,zIndex:9999,display:"flex",flexDirection:"column",gap:8,maxWidth:360}}>
@@ -128,7 +127,7 @@ export const showToast = (msg, tipo="info") => {
 };
 
 export function ToastProvider() {
-  const C = useTheme();
+  const C = C_LIGHT;
   const [toasts, setToasts] = React.useState([]);
   React.useEffect(()=>{
     registerToast((msg, tipo)=>{
@@ -160,7 +159,7 @@ export function ToastProvider() {
 
 // ── Confirm dialog elegante ───────────────────────────────────
 export function ConfirmDialog({open,titulo,mensaje,onConfirm,onCancel,danger=false}){
-  const C = useTheme();
+  const C = C_LIGHT;
   if(!open) return null;
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,.5)",backdropFilter:"blur(4px)",zIndex:9997,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
@@ -179,7 +178,7 @@ export function ConfirmDialog({open,titulo,mensaje,onConfirm,onCancel,danger=fal
 
 // ── Skeleton Loaders ──────────────────────────────────────────
 export function SkeletonRow({ cols=4, height=40 }) {
-  const C = useTheme();
+  const C = C_LIGHT;
   return (
     <tr>
       {Array(cols).fill(0).map((_,i)=>(
@@ -193,7 +192,7 @@ export function SkeletonRow({ cols=4, height=40 }) {
 }
 
 export function SkeletonCard({ height=80, style={} }) {
-  const C = useTheme();
+  const C = C_LIGHT;
   return (
     <div style={{borderRadius:12,background:"linear-gradient(90deg,#f0f4f9 25%,#e2e8f0 50%,#f0f4f9 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite",height,...style}}>
       <style>{`@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
@@ -202,7 +201,7 @@ export function SkeletonCard({ height=80, style={} }) {
 }
 
 export function SkeletonTable({ rows=5, cols=5 }) {
-  const C = useTheme();
+  const C = C_LIGHT;
   return (
     <div style={{borderRadius:12,border:"1px solid #e2e8f0",overflow:"hidden"}}>
       <table style={{width:"100%",borderCollapse:"collapse"}}>
@@ -224,7 +223,7 @@ export function SkeletonTable({ rows=5, cols=5 }) {
 }
 
 export function SkeletonKPIs({ count=4 }) {
-  const C = useTheme();
+  const C = C_LIGHT;
   return (
     <div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:20}}>
       {Array(count).fill(0).map((_,i)=>(
@@ -240,7 +239,7 @@ export function SkeletonKPIs({ count=4 }) {
 
 // ── Paginador ─────────────────────────────────────────────────
 export function Paginador({ total, porPagina=50, pagina, setPagina }) {
-  const C = useTheme();
+  const C = C_LIGHT;
   const totalPags = Math.ceil(total / porPagina);
   if (totalPags <= 1) return null;
   const desde = (pagina-1)*porPagina+1;
@@ -283,7 +282,7 @@ export function SearchDropdown({
   items=[], labelKey="nombre", subKey=null, badgeKey=null, badgeCol=null,
   style={}, maxResults=8, emptyMsg="Sin resultados"
 }) {
-  const C = useTheme();
+  const C = C_LIGHT;
   const [open, setOpen] = React.useState(false);
   const [idx,  setIdx]  = React.useState(-1);
   const ref = React.useRef(null);
@@ -395,6 +394,6 @@ export const hoverStyles = `
 `;
 
 export function GlobalHoverStyles() {
-  const C = useTheme();
+  const C = C_LIGHT;
   return React.createElement('style', null, hoverStyles);
 }

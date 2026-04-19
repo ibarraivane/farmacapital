@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { C_LIGHT, C_DARK } from "./constants";
-import { useTheme } from "./themeContext";
+import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
 import { showToast } from "./ui";
 
@@ -9,7 +8,7 @@ const fmt = n => `$${parseFloat(n||0).toFixed(2)}`;
 const mkInpS = (C) => ({width:"100%",boxSizing:"border-box",padding:"8px 12px",borderRadius:8,border:`1px solid ${C.border}`,background:C.card,color:C.text,fontSize:13,outline:"none"});
 
 export default function LotesModule() {
-  const C = useTheme();
+  const C = C_LIGHT;
   const inpS = mkInpS(C);
   const [lotes,      setLotes]     = useState([]);
   const [productos,  setProductos] = useState([]);

@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { C_LIGHT, C_DARK } from "./constants";
-import { useTheme } from "./themeContext";
+import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
 import { SkeletonKPIs, SkeletonTable, SkeletonCard } from "./ui";
 
@@ -16,7 +15,7 @@ const rangeWeek  = () => { const d=new Date(); d.setDate(d.getDate()-7); return 
 const rangeMonth = () => { const d=new Date(),y=d.getFullYear(),m=d.getMonth(); return {start:new Date(y,m,1).toISOString(),end:new Date().toISOString()}; };
 
 function KpiCard({label, value, col, sub, icon }) {
-  const C = useTheme();
+  const C = C_LIGHT;
   return (
     <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"16px 20px"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
@@ -30,7 +29,7 @@ function KpiCard({label, value, col, sub, icon }) {
 }
 
 function BarChart({ data, colorFn }) {
-  const C = useTheme();
+  const C = C_LIGHT;
   const max = Math.max(...data.map(d=>d.value),1);
   return (
     <div style={{display:"flex",flexDirection:"column",gap:10}}>
@@ -51,7 +50,7 @@ function BarChart({ data, colorFn }) {
 }
 
 function AlertCard({ icon, label, count, col, sub, onAction, actionLabel }) {
-  const C = useTheme();
+  const C = C_LIGHT;
   const bg = col===C.red?C.redDim:C.amberDim;
   return (
     <div style={{background:count>0?bg:C.card,border:count>0?`1px solid ${col}30`:`1px solid ${C.border}`,borderRadius:12,padding:"16px 18px"}}>
@@ -70,7 +69,7 @@ function AlertCard({ icon, label, count, col, sub, onAction, actionLabel }) {
 }
 
 export default function DashboardModule({ usuario, setPage }) {
-  const C = useTheme();
+  const C = C_LIGHT;
   const [data,    setData]    = useState(null);
   const [loading, setLoading] = useState(true);
 

@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { C_LIGHT, C_DARK } from "./constants";
-import { useTheme } from "./themeContext";
+import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
 import { showToast } from "./ui";
 
@@ -10,7 +9,7 @@ const fmt = n => `$${parseFloat(n||0).toLocaleString("es-MX",{minimumFractionDig
 const PROVEEDORES_COMUNES = ["Nadro","Marzam","Casa Saba","Fármacos Nacionales","Proveedor local","Otro"];
 
 export default function ReabastoModule() {
-  const C = useTheme();
+  const C = C_LIGHT;
   const [productos,   setProductos]   = useState([]);
   const [loading,     setLoading]     = useState(true);
   const [ordenesEnv,  setOrdenesEnv]  = useState([]);

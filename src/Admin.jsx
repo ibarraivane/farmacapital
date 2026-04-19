@@ -4,12 +4,11 @@ import MercadoPagoModal from "./components/MercadoPagoModal";
 import TicketPreviewModal from "./components/tickets/TicketPreviewModal";
 import { printTicket } from "./utils/printTicket";
 import { supabase } from "./supabase";
-import { C as _C, C_LIGHT, C_DARK, BRAND, NEG, NAV_ADMIN, NAV_VENDEDOR, NAV_DOCTORA, NAV_ITEMS } from "./constants";
+import { C as _C, C_LIGHT, BRAND, NEG, NAV_ADMIN, NAV_VENDEDOR, NAV_DOCTORA, NAV_ITEMS } from "./constants";
 import { $, dC, cC, abc, aCol, nCol, hashPwd, hashPwdLegacy, generateSalt, logAudit, logMovimiento } from "./utils";
 import { Logo, Box, Tag, Btn, Inp, KPI, Modal, NotificacionesToast, showToast, ToastProvider, ConfirmDialog, SkeletonTable, SkeletonKPIs, SkeletonCard, Paginador, SearchDropdown, GlobalHoverStyles } from "./ui";
 import { getSiguienteFolio } from "./utils/folioGenerator";
 import { guardarVentaPendiente, sincronizarVentasPendientes, contarVentasPendientes } from "./utils/offlineQueue";
-import { useTheme, useThemeMode } from './themeContext';
 
 // Fallback estático para estilos fuera de componentes (evita undefined en import).
 const C = C_LIGHT;
@@ -53,7 +52,7 @@ class ModuleErrorBoundary extends React.Component {
 
 // ── Skeleton loader para módulos cargando ─────────────────────
 function ModuleSkeleton() {
-  const C = useTheme();
+  const C = C_LIGHT;
   return (
     <div style={{padding:40,display:"flex",flexDirection:"column",gap:16,animation:"pulse 1.5s infinite"}}>
       {[1,2,3].map(i=>(
@@ -81,7 +80,7 @@ function ModuleSkeleton() {
 
 // ── PUENTE ONLINE ─────────────────────────────────────────────
 function PuenteOnline({count,label,color}){
-  const C = useTheme();
+  const C = C_LIGHT;
   if(!count) return null;
   return(
     <div style={{background:color+"12",border:`1px solid ${color}30`,borderRadius:10,padding:"10px 16px",display:"flex",alignItems:"center",gap:12,marginBottom:12}}>
@@ -96,7 +95,7 @@ function PuenteOnline({count,label,color}){
 // PANTALLA LOGIN
 // ══════════════════════════════════════════════════════════════
 function LoginScreen({onLogin}){
-  const C = useTheme();
+  const C = C_LIGHT;
   const [email,setEmail] = useState("");
   const [pwd,setPwd]     = useState("");
   const [error,setError] = useState("");
@@ -218,8 +217,8 @@ function LoginScreen({onLogin}){
 // ══════════════════════════════════════════════════════════════
 // SIDEBAR
 // ══════════════════════════════════════════════════════════════
-function Sidebar({active,setActive,negocio,setNegocio,usuario,onLogout,alertas,darkMode,setDarkMode,ventasOffline=0}){
-  const C = useTheme();
+function Sidebar({active,setActive,negocio,setNegocio,usuario,onLogout,alertas,ventasOffline=0}){
+  const C = C_LIGHT;
   // Sidebar usa C del scope global (C_LIGHT por defecto)
   // Para modo oscuro completo, pasar C como prop en versión futura
   const navIds = usuario.rol==="admin"?NAV_ADMIN:usuario.rol==="vendedor"?NAV_VENDEDOR:NAV_DOCTORA;
@@ -269,10 +268,6 @@ function Sidebar({active,setActive,negocio,setNegocio,usuario,onLogout,alertas,d
 
         {alertas.pedidos>0&&<div style={{background:C.blueDim,border:`1px solid ${C.blue}20`,borderRadius:8,padding:"8px 12px",marginBottom:6}}><div style={{color:C.blue,fontSize:11,fontWeight:700}}>🌐 {alertas.pedidos} pedidos online</div></div>}
         {alertas.citas>0&&<div style={{background:C.greenDim,border:`1px solid ${C.green}20`,borderRadius:8,padding:"8px 12px",marginBottom:6}}><div style={{color:C.green,fontSize:11,fontWeight:700}}>📅 {alertas.citas} citas nuevas</div></div>}
-        <button onClick={()=>{ const nd=!darkMode; if(setDarkMode) setDarkMode(nd); localStorage.setItem("farmax_dark",nd?"1":"0"); }}
-          style={{width:"100%",padding:"7px",borderRadius:8,border:`1px solid ${C.border}`,background:darkMode?C.card:"transparent",color:C.textMid,fontSize:11,fontWeight:700,cursor:"pointer",marginTop:4,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
-          {darkMode?"☀️ Modo claro":"🌙 Modo oscuro"}
-        </button>
         {ventasOffline>0&&(
           <div style={{background:C.amberDim,border:`1px solid ${C.amber}30`,borderRadius:8,padding:"6px 10px",marginBottom:4,fontSize:10,color:C.amber,fontWeight:700,textAlign:"center"}}>
             📵 {ventasOffline} venta{ventasOffline>1?"s":""} offline pendiente{ventasOffline>1?"s":""}
@@ -288,7 +283,7 @@ function Sidebar({active,setActive,negocio,setNegocio,usuario,onLogout,alertas,d
 // DASHBOARD (Admin)
 // ══════════════════════════════════════════════════════════════
 function Dashboard({negocio,alertas,setPage}){
-  const C = useTheme();
+  const C = C_LIGHT;
   const [kpis,setKpis]       = useState({hoy:0,semana:0,mes:0,consultas:0});
   const [pedOnline,setPedOn] = useState([]);
   const [citasHoy,setCitasH] = useState([]);
@@ -452,7 +447,7 @@ function Dashboard({negocio,alertas,setPage}){
 // Incluye pedidos online + cobro de consultas
 // ══════════════════════════════════════════════════════════════
 function POS({negocio,usuario}){
-  const C = useTheme();
+  const C = C_LIGHT;
   const [tab,setTab]         = useState("venta"); // venta | online | consultas
   const [productos,setProds] = useState([]);
   const [cart,setCart]       = useState([]);
@@ -1207,7 +1202,7 @@ function POS({negocio,usuario}){
 // CONSULTORIO — Vista Admin (agenda + expedientes)
 // ══════════════════════════════════════════════════════════════
 function Consultorio(){
-  const C = useTheme();
+  const C = C_LIGHT;
   const [citas,setCitas]   = useState([]);
   const [exps,setExps]     = useState([]);
   const [tab,setTab]       = useState("agenda");
@@ -1325,7 +1320,7 @@ function Consultorio(){
 // Agenda + registrar consumibles
 // ══════════════════════════════════════════════════════════════
 function ConsDoctora({usuario}){
-  const C = useTheme();
+  const C = C_LIGHT;
   const [citas,setCitas]     = useState([]);
   const [loading,setLoad]    = useState(true);
   const [citaSel,setCitaSel] = useState(null);
@@ -1496,7 +1491,7 @@ function ConsDoctora({usuario}){
 // TRANSACCIONES — Tab dentro de Reportes
 // ══════════════════════════════════════════════════════════════
 function TransaccionesTab({ usuario }) {
-  const C = useTheme();
+  const C = C_LIGHT;
   const [pedidos,      setPedidos]   = useState([]);
   const [loading,      setLoading]   = useState(true);
   const [busqueda,     setBusqueda]  = useState("");
@@ -1834,7 +1829,7 @@ function TransaccionesTab({ usuario }) {
 
 
 function Reportes(){
-  const C = useTheme();
+  const C = C_LIGHT;
   const [data,setData]   = useState({ventas:[],clientes:0,consultas:0,online:0});
   const [tabRep,setTabRep]= useState("resumen");
   const [periodo,setPer] = useState("mes");
@@ -2048,7 +2043,7 @@ function Reportes(){
 // REPORTE DOCTORA — Vista simplificada
 // ══════════════════════════════════════════════════════════════
 function ReporteDoctora(){
-  const C = useTheme();
+  const C = C_LIGHT;
   const [citas,setCitas] = useState([]);
   const [loading,setLoad]= useState(true);
   const [periodo,setPer] = useState("semana");
@@ -2110,7 +2105,7 @@ function ReporteDoctora(){
 // GESTIÓN DE USUARIOS (solo Admin)
 // ══════════════════════════════════════════════════════════════
 function BannersAdmin(){
-  const C = useTheme();
+  const C = C_LIGHT;
   const [banners,setBanners] = useState([]);
   const [loading,setLoad]   = useState(true);
   const [modal,setModal]    = useState(null);
@@ -2194,7 +2189,7 @@ function BannersAdmin(){
 }
 
 function GestionUsuarios(){
-  const C = useTheme();
+  const C = C_LIGHT;
   const [usuarios,setUsers] = useState([]);
   const [modal,setModal]    = useState(false);
   const [form,setForm]      = useState({nombre:"",telefono:"",password:"",rol:"vendedor",notas:""});
@@ -2396,8 +2391,7 @@ function GestionUsuarios(){
 // APP PRINCIPAL
 // ══════════════════════════════════════════════════════════════
 export default function FarmaxAdmin(){
-  const { darkMode, setDarkMode } = useThemeMode();
-  const C = useTheme();
+  const C = C_LIGHT;
   const [usuario,setUsuario] = useState(()=>{
     try{
       const u = sessionStorage.getItem("farmax_admin_user");
@@ -2673,7 +2667,6 @@ export default function FarmaxAdmin(){
         negocio={neg} setNegocio={setNeg}
         usuario={usuario} onLogout={logout}
         alertas={alertas}
-        darkMode={darkMode} setDarkMode={setDarkMode}
          ventasOffline={ventasOffline}
       />
       <main style={{marginLeft:220,padding:28,minHeight:"100vh",maxWidth:"calc(100vw - 220px)",overflowX:"hidden",boxSizing:"border-box"}}>

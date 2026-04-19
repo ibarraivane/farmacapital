@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useTheme } from "./themeContext";
 import { supabase } from './supabase';
 import { showToast } from './ui';
-import { BRAND } from './constants';
+import { C_LIGHT, BRAND } from "./constants";
 
 const fmt = (n) =>
   new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(n || 0);
@@ -35,7 +34,8 @@ const mkS = (C) => ({
 });
 
 export default function RRHHModule() {
-  const C = useTheme();
+  const C = C_LIGHT;
+  const s = mkS(C);
   const S = mkS(C);
   const [empleados, setEmpleados] = useState([]);
   const [loading, setLoading]     = useState(true);
