@@ -162,6 +162,7 @@ function PromoModal({initial, productos, onClose, onSaved }) {
 // ── Sección 1: Promociones ────────────────────────────────────
 function Promociones({ productos }) {
   const C = C_LIGHT;
+  const btnPrimary = mkBtnPrimary(C);
   const [promos,   setPromos]  = useState([]);
   const [loading,  setLoading] = useState(true);
   const [modal,    setModal]   = useState(null); // null | "new" | promo obj
@@ -368,8 +369,15 @@ export default function PromocionesModule() {
   const [productos, setProductos]= useState([]);
 
   const fetchProds = useCallback(async () => {
-    const { data } = await supabase.from("productos").select("id,nombre,precio,precio_similares,precio_del_ahorro,fecha_actualizacion_precios").eq("activo",true).order("nombre");
-    setProductos(data||[]);
+    const fullCols = "id,nombre,precio,precio_similares,precio_del_ahorro,fecha_actualizacion_precios";
+    const baseCols = "id,nombre,precio";
+    const first = await supabase.from("productos").select(fullCols).eq("activo",true).order("nombre");
+    if (first.error) {
+      const fallback = await supabase.from("productos").select(baseCols).eq("activo",true).order("nombre");
+      setProductos(fallback.data || []);
+      return;
+    }
+    setProductos(first.data || []);
   }, []);
 
   useEffect(() => { fetchProds(); }, [fetchProds]);

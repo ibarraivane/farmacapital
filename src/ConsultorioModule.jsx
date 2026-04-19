@@ -16,6 +16,7 @@ const mkInputStyle = (C) => ({ width:"100%", padding:"8px 11px", borderRadius:7,
 const mkLabelStyle = (C) => ({ color:C.textMid, fontSize:10, fontWeight:700, marginBottom:3, display:"block", letterSpacing:.4 });
 const mkBtnPrimary = (C) => ({ padding:"9px 18px", borderRadius:8, border:"none", cursor:"pointer", background:BRAND.gradient, color:"#fff", fontWeight:700, fontSize:12 });
 const mkBtnSecondary = (C) => ({ padding:"8px 15px", borderRadius:8, cursor:"pointer", fontWeight:700, fontSize:12, border:`1px solid ${C.border}`, background:"transparent", color:C.textMid });
+const mkBtnOutline = (C) => ({ padding:"8px 15px", borderRadius:8, cursor:"pointer", fontWeight:700, fontSize:12, border:`1px solid ${C.blue}`, background:"transparent", color:C.blue });
 const mkBtnGreen = (C) => ({ padding:"9px 18px", borderRadius:8, border:"none", cursor:"pointer", background:C.green, color:"#fff", fontWeight:700, fontSize:12 });
 const mkBtnSmBlue = (C) => ({ padding:"4px 10px", borderRadius:6, cursor:"pointer", background:C.blueDim, color:C.blue, fontWeight:700, fontSize:11, border:`1px solid ${C.blue}30` });
 const mkBtnSmGreen = (C) => ({ padding:"4px 10px", borderRadius:6, cursor:"pointer", background:C.greenDim, color:C.green, fontWeight:700, fontSize:11, border:`1px solid ${C.green}30` });

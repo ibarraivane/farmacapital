@@ -31,15 +31,23 @@ export const hashPwdLegacy = async pwd => {
   return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
 };
 
+let auditLogDisabled = false;
+
 export const logAudit = async (usuario, accion, tabla="", registro_id="", detalle={}) => {
+  if (auditLogDisabled) return;
   try {
-    await supabase.from("audit_log").insert({
+    const { error } = await supabase.from("audit_log").insert({
       usuario_id: usuario?.id||null,
       usuario_nombre: usuario?.nombre||"Sistema",
       accion, tabla,
       registro_id: String(registro_id),
       detalle,
     });
+    if (error) {
+      // If audit table/columns are missing in this environment, stop retrying.
+      auditLogDisabled = true;
+      console.warn("audit_log disabled:", error.message);
+    }
   } catch(e) { console.warn("audit_log error:", e); }
 };
 
