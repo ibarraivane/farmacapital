@@ -610,7 +610,7 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
           <Box style={{ padding: 14, marginBottom: 12 }}>
             <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, marginBottom: 10 }}>CONSUMIBLES (material de curación)</div>
             <div style={{ color: C.textDim, fontSize: 10, marginBottom: 10, lineHeight: 1.4 }}>
-              Solo material típico de consultorio (gasas, jeringas, guantes, etc.). Los precios de productos se editan en Inventario; las categorías permitidas, en <strong>Config. consultorio</strong> (admin).
+              Solo material típico de consultorio (gasas, jeringas, guantes, etc.). Los precios de productos se editan en Inventario; las categorías permitidas, en <strong>Metas y Precios</strong> (admin).
             </div>
             <div style={{ display: "grid", gap: 6, maxHeight: 200, overflowY: "auto" }}>
               {prodList.map((p) => (

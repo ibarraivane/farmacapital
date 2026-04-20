@@ -561,7 +561,7 @@ function EnConsulta() {
           {botiquin.length>0&&(
             <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:18}}>
               <div style={{color:C.textMid,fontSize:12,fontWeight:700,letterSpacing:.5,marginBottom:12}}>CONSUMIBLES (material de curación)</div>
-              <div style={{color:C.textDim,fontSize:10,marginBottom:8,lineHeight:1.35}}>Gasas, jeringas, guantes, etc. — no medicamentos de venta. La lista viene de Inventario según categorías en Config. consultorio.</div>
+              <div style={{color:C.textDim,fontSize:10,marginBottom:8,lineHeight:1.35}}>Gasas, jeringas, guantes, etc. — no medicamentos de venta. La lista viene de Inventario según categorías en Metas y Precios.</div>
               <select onChange={e=>{ const p=botiquin.find(b=>b.id===parseInt(e.target.value)); if(p)addConsumible(p); e.target.value=""; }} style={{...inputStyle,marginBottom:10}}>
                 <option value="">Seleccionar consumible…</option>
                 {botiquin.map(b=><option key={b.id} value={b.id}>{b.nombre} (stock: {b.stock})</option>)}

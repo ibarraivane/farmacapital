@@ -55,6 +55,7 @@ import {
   Wallet, Stethoscope, Users, UserCog, ShieldCheck,
   Target, Undo2, Receipt, Image as ImageIcon, Sparkles,
   Download, UserPlus, Settings, CreditCard, HeartPulse, BarChart3,
+  SlidersHorizontal,
 } from "lucide-react";
 
 export const NAV_ITEMS = [
@@ -67,7 +68,7 @@ export const NAV_ITEMS = [
   // ══ OPERACIONES ═══════════════════════════
   {id:"caja",       icon: Wallet,          label:"Corte de Caja"},
   {id:"cons",       icon: Stethoscope,     label:"Consultorio"},
-  {id:"config_cons",icon: Settings,        label:"Config. consultorio"},
+  {id:"config_cons",icon: SlidersHorizontal,label:"Metas y Precios"},
   {id:"cli",        icon: Users,           label:"Clientes & Puntos"},
   // ══ EQUIPO ════════════════════════════════
   {id:"rrhh",       icon: UserCog,         label:"RR.HH."},
