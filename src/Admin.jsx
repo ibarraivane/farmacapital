@@ -361,7 +361,9 @@ function Sidebar({active,setActive,negocio,setNegocio,usuario,onLogout,alertas,v
                 onMouseEnter={e=>{if(!rowActive){e.currentTarget.style.background=BRAND.primary+"10";e.currentTarget.style.color=BRAND.primary;e.currentTarget.style.borderLeftColor=BRAND.primary+"50";}}}
                 onMouseLeave={e=>{if(!rowActive){e.currentTarget.style.background="transparent";e.currentTarget.style.color=C.textMid;e.currentTarget.style.borderLeftColor="transparent";}}}
                 style={{...btnStyle,width:"100%",marginBottom:2}}>
-                <span style={{fontSize:12,width:16,textAlign:"center",flexShrink:0}}>{n.icon}</span>
+                <span style={{width:18,height:18,display:"inline-flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                  {typeof n.icon === "function" ? <n.icon size={16} strokeWidth={2.1} /> : <span style={{fontSize:12}}>{n.icon}</span>}
+                </span>
                 <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{n.label}</span>
               </button>
             );
@@ -408,7 +410,9 @@ function Sidebar({active,setActive,negocio,setNegocio,usuario,onLogout,alertas,v
               }}
             >
               <div style={{...btnStyle,width:"100%",margin:0}}>
-                <span style={{fontSize:12,width:16,textAlign:"center",flexShrink:0}}>{n.icon}</span>
+                <span style={{width:18,height:18,display:"inline-flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                  {typeof n.icon === "function" ? <n.icon size={16} strokeWidth={2.1} /> : <span style={{fontSize:12}}>{n.icon}</span>}
+                </span>
                 <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{n.label}</span>
               </div>
             </div>

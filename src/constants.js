@@ -47,34 +47,43 @@ export const NAV_ADMIN = [
 export const NAV_VENDEDOR = ["pos","cons_cobro"];
 export const NAV_DOCTORA  = ["cons_dr","rep_dr"];
 
+// Iconos: usamos lucide-react (componentes) en vez de emojis para look consistente.
+// El render del Sidebar acepta tanto componentes como strings (compatibilidad).
+import {
+  LayoutDashboard, ShoppingCart, Package, Truck, Tags,
+  Wallet, Stethoscope, Users, UserCog, ShieldCheck,
+  Target, Undo2, Receipt, Image as ImageIcon, Sparkles,
+  Download, UserPlus, Settings, CreditCard, HeartPulse, BarChart3,
+} from "lucide-react";
+
 export const NAV_ITEMS = [
   // ══ VENTAS ════════════════════════════════
-  {id:"pos",        icon:"⊡", label:"Punto de Venta"},
+  {id:"pos",        icon: ShoppingCart,    label:"Punto de Venta"},
   // ══ INVENTARIO ════════════════════════════
-  {id:"inv",        icon:"▤", label:"Inventario"},
-  {id:"rea",        icon:"📦", label:"Reabasto"},
-  {id:"lotes",      icon:"🏷️", label:"Lotes PEPS"},
+  {id:"inv",        icon: Package,         label:"Inventario"},
+  {id:"rea",        icon: Truck,           label:"Reabasto"},
+  {id:"lotes",      icon: Tags,            label:"Lotes PEPS"},
   // ══ OPERACIONES ═══════════════════════════
-  {id:"caja",       icon:"⊞", label:"Corte de Caja"},
-  {id:"cons",       icon:"♥", label:"Consultorio"},
-  {id:"config_cons",icon:"⚙", label:"Config. consultorio"},
-  {id:"cli",        icon:"◉", label:"Clientes & Puntos"},
+  {id:"caja",       icon: Wallet,          label:"Corte de Caja"},
+  {id:"cons",       icon: Stethoscope,     label:"Consultorio"},
+  {id:"config_cons",icon: Settings,        label:"Config. consultorio"},
+  {id:"cli",        icon: Users,           label:"Clientes & Puntos"},
   // ══ EQUIPO ════════════════════════════════
-  {id:"rrhh",       icon:"◑", label:"RR.HH."},
+  {id:"rrhh",       icon: UserCog,         label:"RR.HH."},
   // ══ COMPLIANCE ════════════════════════════
-  {id:"cof",        icon:"⚕", label:"COFEPRIS"},
+  {id:"cof",        icon: ShieldCheck,     label:"COFEPRIS"},
   // ══ NEGOCIO ═══════════════════════════════
-  {id:"dash",       icon:"◈", label:"Dashboard"},
-  {id:"promo",      icon:"🎯", label:"Promociones"},
-  {id:"dev",        icon:"↩️", label:"Devoluciones"},
-  {id:"fact",       icon:"🧾", label:"Facturación"},
+  {id:"dash",       icon: LayoutDashboard, label:"Dashboard"},
+  {id:"promo",      icon: Target,          label:"Promociones"},
+  {id:"dev",        icon: Undo2,           label:"Devoluciones"},
+  {id:"fact",       icon: Receipt,         label:"Facturación"},
   // ══ SISTEMA ═══════════════════════════════
-  {id:"banners",    icon:"🖼️", label:"Banners"},
-  {id:"bot",        icon:"✦", label:"Asistente IA"},
-  {id:"pwa",        icon:"📱", label:"Instalar app"},
-  {id:"usuarios",   icon:"👤", label:"Usuarios"},
-  // ══ ROLES ESPECIALES ══════════════════════
-  {id:"cons_cobro", icon:"💳", label:"Cobrar Consulta"},
-  {id:"cons_dr",    icon:"♥", label:"Mi Consultorio"},
-  {id:"rep_dr",     icon:"◧", label:"Mis Reportes"},
+  {id:"banners",    icon: ImageIcon,       label:"Banners"},
+  {id:"bot",        icon: Sparkles,        label:"Asistente IA"},
+  {id:"pwa",        icon: Download,        label:"Instalar app"},
+  {id:"usuarios",   icon: UserPlus,        label:"Usuarios"},
+  // ══ ROLES ESPECIALES (vendedor / doctora) ══
+  {id:"cons_cobro", icon: CreditCard,      label:"Cobrar Consulta"},
+  {id:"cons_dr",    icon: HeartPulse,      label:"Mi Consultorio"},
+  {id:"rep_dr",     icon: BarChart3,       label:"Mis Reportes"},
 ];
