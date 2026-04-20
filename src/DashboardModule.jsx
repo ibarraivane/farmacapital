@@ -35,6 +35,34 @@ function resumenLineasReceta(citasRows) {
 const rangeToday = () => { const d=new Date(),y=d.getFullYear(),m=d.getMonth(),dd=d.getDate(); return {start:new Date(y,m,dd,0,0,0).toISOString(),end:new Date(y,m,dd,23,59,59).toISOString()}; };
 const rangeWeek  = () => { const d=new Date(); d.setDate(d.getDate()-7); return {start:d.toISOString(),end:new Date().toISOString()}; };
 const rangeMonth = () => { const d=new Date(),y=d.getFullYear(),m=d.getMonth(); return {start:new Date(y,m,1).toISOString(),end:new Date().toISOString()}; };
+const rangeYesterday = () => { const d=new Date(),y=d.getFullYear(),m=d.getMonth(),dd=d.getDate()-1; return {start:new Date(y,m,dd,0,0,0).toISOString(),end:new Date(y,m,dd,23,59,59).toISOString()}; };
+const rangeWeekPrev  = () => { const end=new Date(); end.setDate(end.getDate()-7); const start=new Date(end); start.setDate(start.getDate()-7); return {start:start.toISOString(),end:end.toISOString()}; };
+const yesterdayLocal = () => { const d=new Date(); d.setDate(d.getDate()-1); return d.toLocaleDateString("sv-SE"); };
+
+// Calcula el tramo transcurrido del mes actual (0..1) para proyectar metas.
+function fraccionMesTranscurrido() {
+  const d = new Date();
+  const dia = d.getDate();
+  const fin = new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
+  return Math.min(Math.max(dia / fin, 0.01), 1);
+}
+
+function parseMeta(rows, clave, def) {
+  const r = (rows || []).find(x => x.clave === clave);
+  if (!r) return def;
+  const v = parseFloat(r.valor);
+  return Number.isFinite(v) && v > 0 ? v : def;
+}
+
+function pctCumplimiento(actual, meta) {
+  if (!meta || meta <= 0) return 0;
+  return Math.max(0, (actual / meta) * 100);
+}
+
+function trendDelta(actual, anterior) {
+  if (anterior === 0 || anterior == null) return null;
+  return ((actual - anterior) / anterior) * 100;
+}
 
 function KpiCard({label, value, col, sub, icon }) {
   const C = C_LIGHT;
@@ -90,6 +118,98 @@ function AlertCard({ icon, label, count, col, sub, onAction, actionLabel }) {
   );
 }
 
+// Tarjeta KPI "accionable": muestra valor, meta, % cumplimiento y tendencia vs período anterior.
+function InsightCard({ label, icon, value, display, meta, metaLabel, delta, col, formatMeta, onAction, actionLabel }) {
+  const C = C_LIGHT;
+  const tieneMeta = Number.isFinite(meta) && meta > 0;
+  const pct = tieneMeta ? pctCumplimiento(value, meta) : 0;
+  const pctClamp = Math.min(pct, 100);
+  const barColor = pct >= 100 ? C.green : pct >= 70 ? (col || C.blue) : pct >= 40 ? C.amber : C.red;
+  const mainCol = col || C.blue;
+  const hasTrend = Number.isFinite(delta);
+  const up = hasTrend && delta >= 0;
+  const fmtMeta = formatMeta || ((n) => n.toLocaleString("es-MX"));
+  return (
+    <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"16px 18px",display:"flex",flexDirection:"column",gap:10}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+        <div style={{color:C.textMid,fontSize:11,fontWeight:700,letterSpacing:.4}}>{label.toUpperCase()}</div>
+        {icon && <span style={{fontSize:18}}>{icon}</span>}
+      </div>
+      <div style={{color:mainCol,fontWeight:800,fontSize:26,lineHeight:1.1}}>{display ?? value}</div>
+      {tieneMeta && (
+        <>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:10,color:C.textMid}}>
+            <span>Meta {metaLabel || ""}: <strong style={{color:C.text}}>{fmtMeta(meta)}</strong></span>
+            <span style={{fontWeight:800,color:barColor}}>{pct.toFixed(0)}%</span>
+          </div>
+          <div style={{background:C.bg,borderRadius:4,height:6,overflow:"hidden"}}>
+            <div style={{height:"100%",width:`${pctClamp}%`,background:barColor,borderRadius:4,transition:"width .6s ease"}}/>
+          </div>
+        </>
+      )}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:tieneMeta?0:4}}>
+        {hasTrend ? (
+          <span style={{fontSize:11,fontWeight:700,color:up?C.green:C.red}}>
+            {up?"↑":"↓"} {Math.abs(delta).toFixed(1)}% <span style={{color:C.textDim,fontWeight:500}}>vs periodo anterior</span>
+          </span>
+        ) : <span style={{fontSize:11,color:C.textDim}}>Sin comparativo</span>}
+        {onAction && (pct < 70 || !tieneMeta) && (
+          <button onClick={onAction} style={{padding:"4px 10px",borderRadius:6,border:`1px solid ${mainCol}40`,background:"transparent",color:mainCol,cursor:"pointer",fontSize:10,fontWeight:700}}>
+            {actionLabel || "Ver detalle →"}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// "Lo que necesitas hacer hoy" — lista de pendientes accionables con navegación al módulo destino.
+function TodoHoy({ items }) {
+  const C = C_LIGHT;
+  const pendientes = items.filter(i => i.count > 0);
+  const total = pendientes.reduce((a, i) => a + i.count, 0);
+  return (
+    <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:20,marginBottom:24}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+        <div>
+          <div style={{color:C.text,fontWeight:800,fontSize:15,display:"flex",alignItems:"center",gap:8}}>
+            📌 Lo que necesitas hacer hoy
+          </div>
+          <div style={{color:C.textMid,fontSize:11,marginTop:2}}>
+            {total === 0 ? "Nada pendiente. Todo en orden ✅" : `${total} pendiente${total !== 1 ? "s" : ""} entre ${pendientes.length} área${pendientes.length !== 1 ? "s" : ""}`}
+          </div>
+        </div>
+        {total === 0 && <span style={{padding:"4px 10px",borderRadius:999,background:C.greenDim,color:C.green,fontSize:11,fontWeight:800}}>✓ Al día</span>}
+      </div>
+      {total === 0 ? (
+        <div style={{color:C.textDim,fontSize:12,padding:"8px 0"}}>
+          No hay tareas críticas en inventario, caja, pedidos en línea ni documentos COFEPRIS.
+        </div>
+      ) : (
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:10}}>
+          {pendientes.map(i => (
+            <div key={i.id} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 12px",background:i.col+"10",border:`1px solid ${i.col}30`,borderRadius:10}}>
+              <div style={{fontSize:22,width:32,textAlign:"center"}}>{i.icon}</div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{color:i.col,fontWeight:800,fontSize:13,display:"flex",alignItems:"center",gap:6}}>
+                  <span style={{background:i.col,color:"#fff",borderRadius:999,padding:"1px 8px",fontSize:11}}>{i.count}</span>
+                  {i.label}
+                </div>
+                {i.sub && <div style={{color:C.textMid,fontSize:11,marginTop:2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{i.sub}</div>}
+              </div>
+              {i.onAction && (
+                <button onClick={i.onAction} style={{padding:"5px 10px",borderRadius:6,border:`1px solid ${i.col}40`,background:"#fff",color:i.col,cursor:"pointer",fontSize:11,fontWeight:700,whiteSpace:"nowrap"}}>
+                  {i.actionLabel || "Resolver →"}
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function DashboardModule({ usuario, setPage, showConfirm }) {
   const C = C_LIGHT;
   const [data, setData] = useState(null);
@@ -102,26 +222,35 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
   const fetchAll = useCallback(async () => {
     setLoading(true);
     const today = rangeToday(), week = rangeWeek(), month = rangeMonth();
+    const yesterday = rangeYesterday();
+    const weekPrev = rangeWeekPrev();
     const hoyLocal = new Date().toLocaleDateString("sv-SE");
+    const ayerLocal = yesterdayLocal();
     const inicioMesLocal = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toLocaleDateString("sv-SE");
+    const cofeprisLimite = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
     const [
-      { data: pedHoy }, { data: pedSemana }, { data: pedMes }, { data: pedTodos }, { data: pedMesAnt },
+      { data: pedHoy }, { data: pedAyer }, { data: pedSemana }, { data: pedSemanaAnt }, { data: pedMes }, { data: pedTodos }, { data: pedMesAnt },
       { data: citasHoy, error: errCitasHoy },
+      { data: citasAyer, error: errCitasAyer },
       { count: onlinePendCount, error: errOnlinePend },
       { data: pedMesTipo },
       { data: pedItems }, { data: bajoStock }, { data: porCaducar },
       { data: cortesConDif },
       { data: pedRecetaFarmax },
       { count: citasRecetaExternaMes, error: errRecetaExt },
-      { data: cfgEstimadoReceta },
+      { data: cfgRows },
       { data: citasKpiMes },
+      { data: alertasCofepris, error: errAlertasCof },
     ] = await Promise.all([
       supabase.from("pedidos").select("total").eq("estado", "completado").gte("created_at", today.start).lte("created_at", today.end),
+      supabase.from("pedidos").select("total").eq("estado", "completado").gte("created_at", yesterday.start).lte("created_at", yesterday.end),
       supabase.from("pedidos").select("total").eq("estado", "completado").gte("created_at", week.start),
+      supabase.from("pedidos").select("total").eq("estado", "completado").gte("created_at", weekPrev.start).lte("created_at", weekPrev.end),
       supabase.from("pedidos").select("total,atendido_por").eq("estado", "completado").gte("created_at", month.start),
       supabase.from("pedidos").select("total").eq("estado", "completado"),
       supabase.from("pedidos").select("total").eq("estado", "completado").gte("created_at", new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toISOString()).lte("created_at", new Date(new Date().getFullYear(), new Date().getMonth(), 0).toISOString()),
       supabase.from("citas").select("id").eq("fecha", hoyLocal).neq("estado", "cancelada").or("estado.in.(completada,pagada),pago_estado.eq.pagada"),
+      supabase.from("citas").select("id").eq("fecha", ayerLocal).neq("estado", "cancelada").or("estado.in.(completada,pagada),pago_estado.eq.pagada"),
       supabase
         .from("pedidos")
         .select("id", { count: "exact", head: true })
@@ -140,15 +269,24 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
         .gte("fecha", inicioMesLocal)
         .neq("estado", "cancelada")
         .or("estado.in.(completada,pagada),pago_estado.eq.pagada"),
-      supabase.from("configuracion").select("valor").eq("clave", "estimado_receta_externa").maybeSingle(),
+      supabase.from("configuracion").select("clave,valor").in("clave", [
+        "estimado_receta_externa",
+        "meta_ventas_dia", "meta_ventas_semana", "meta_ventas_mes",
+        "meta_ticket_prom", "meta_consultas_dia", "meta_consultas_mes",
+      ]),
       supabase.from("citas").select("medicamentos_prescritos,duracion_consulta_segundos").gte("fecha", inicioMesLocal).neq("estado", "cancelada"),
+      supabase.from("alertas_legales").select("id,nombre,fecha_vencimiento").eq("activo", true).lte("fecha_vencimiento", cofeprisLimite).not("fecha_vencimiento", "is", null),
     ]);
     if (errCitasHoy) console.warn("[Dashboard] citas hoy:", errCitasHoy.message);
+    if (errCitasAyer) console.warn("[Dashboard] citas ayer:", errCitasAyer.message);
     if (errOnlinePend) console.warn("[Dashboard] online pendientes:", errOnlinePend.message);
     if (errRecetaExt) console.warn("[Dashboard] citas receta externa (mes):", errRecetaExt.message);
+    if (errAlertasCof) console.warn("[Dashboard] alertas legales cofepris:", errAlertasCof.message);
 
     const ventasHoy = (pedHoy || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
+    const ventasAyer = (pedAyer || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
     const ventasSemana = (pedSemana || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
+    const ventasSemanaAnt = (pedSemanaAnt || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
     const ventasMes = (pedMes || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
     const totalPedMes = (pedMes || []).length;
     const ticketProm = totalPedMes > 0 ? ventasMes / totalPedMes : 0;
@@ -156,9 +294,34 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
     const pctRecuperado = Math.min((recuperado / INVERSION) * 100, 100);
     const gananciaMes = ventasMes * 0.55;
     const ventasMesAnt = (pedMesAnt || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
+    const ticketPromMesAnt = (pedMesAnt || []).length > 0 ? ventasMesAnt / (pedMesAnt || []).length : 0;
     const crecimiento = ventasMesAnt > 0 ? ((ventasMes - ventasMesAnt) / ventasMesAnt * 100).toFixed(1) : null;
     const restante = INVERSION - recuperado;
     const paybackMeses = gananciaMes > 0 ? Math.max(Math.ceil(restante / gananciaMes), 0) : null;
+
+    const metas = {
+      ventasDia:     parseMeta(cfgRows, "meta_ventas_dia", 3000),
+      ventasSemana:  parseMeta(cfgRows, "meta_ventas_semana", 20000),
+      ventasMes:     parseMeta(cfgRows, "meta_ventas_mes", 80000),
+      ticketProm:    parseMeta(cfgRows, "meta_ticket_prom", 250),
+      consultasDia:  parseMeta(cfgRows, "meta_consultas_dia", 8),
+      consultasMes:  parseMeta(cfgRows, "meta_consultas_mes", 180),
+    };
+    const trends = {
+      ventasHoy:     trendDelta(ventasHoy, ventasAyer),
+      ventasSemana:  trendDelta(ventasSemana, ventasSemanaAnt),
+      ventasMes:     trendDelta(ventasMes, ventasMesAnt),
+      ticketProm:    trendDelta(ticketProm, ticketPromMesAnt),
+      consultasHoy:  null,
+    };
+
+    const hoyISO = new Date().toISOString().slice(0,10);
+    const cofeprisItems = (alertasCofepris || []).map(a => ({
+      id: a.id, nombre: a.nombre, fecha: a.fecha_vencimiento,
+      vencida: a.fecha_vencimiento && a.fecha_vencimiento < hoyISO,
+    }));
+    const cofeprisVencidas = cofeprisItems.filter(c => c.vencida).length;
+    const cofeprisPorVencer = cofeprisItems.length;
 
     const fisica = (pedMesTipo || []).filter((p) => !p.tipo || p.tipo === "fisica").reduce((a, p) => a + parseFloat(p.total || 0), 0);
     const online2 = (pedMesTipo || []).filter((p) => p.tipo === "online").reduce((a, p) => a + parseFloat(p.total || 0), 0);
@@ -176,7 +339,8 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
     const sinAtender = onlinePend;
 
     const ventasRecetaMedicoFarmaxMes = (pedRecetaFarmax || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
-    const estCfg = parseFloat(cfgEstimadoReceta?.valor);
+    const cfgEst = (cfgRows || []).find(r => r.clave === "estimado_receta_externa");
+    const estCfg = parseFloat(cfgEst?.valor);
     const estimadoRecetaExterna = Number.isFinite(estCfg) && estCfg >= 0 ? estCfg : 350;
     const nRecetasExternasMes = citasRecetaExternaMes ?? 0;
     const oportunidadPerdidaRecetaEst = nRecetasExternasMes * estimadoRecetaExterna;
@@ -185,9 +349,14 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
     const durVals = (citasKpiMes || []).map((c) => c.duracion_consulta_segundos).filter((n) => Number.isFinite(n) && n > 0);
     const tiempoPromConsultaMin = durVals.length ? durVals.reduce((a, b) => a + b, 0) / durVals.length / 60 : null;
 
+    const consultasHoy = (citasHoy || []).length;
+    const consultasAyer = (citasAyer || []).length;
+    trends.consultasHoy = trendDelta(consultasHoy, consultasAyer);
+
     setData({
-      ventasHoy, ventasSemana, ventasMes, ventasMesAnt, crecimiento, ticketProm, consultasHoy: (citasHoy || []).length, onlinePend,
+      ventasHoy, ventasAyer, ventasSemana, ventasSemanaAnt, ventasMes, ventasMesAnt, crecimiento, ticketProm, consultasHoy, consultasAyer, onlinePend,
       recuperado, pctRecuperado, gananciaMes, paybackMeses, restante,
+      metas, trends,
       fuentes: [{ label: "Farmacia física", value: fisica }, { label: "Tienda online", value: online2 }, { label: "Consultorio", value: consult }],
       empleados, topProductos,
       ventasRecetaMedicoFarmaxMes,
@@ -199,7 +368,16 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
       lineasRecetaPendiente: lineasRec.pend,
       lineasRecetaConCatalogo: lineasRec.conProductoId,
       tiempoPromConsultaMin,
-      alertas: { bajoStock: (bajoStock || []).length, bajoStockNombres: (bajoStock || []).map((p) => p.nombre).slice(0, 3), porCaducar: (porCaducar || []).length, sinAtender, cortesConDif: (cortesConDif || []).length },
+      alertas: {
+        bajoStock: (bajoStock || []).length,
+        bajoStockNombres: (bajoStock || []).map((p) => p.nombre).slice(0, 3),
+        porCaducar: (porCaducar || []).length,
+        sinAtender,
+        cortesConDif: (cortesConDif || []).length,
+        cofeprisVencidas,
+        cofeprisPorVencer,
+        cofeprisItems,
+      },
     });
     setLoading(false);
   }, []);
@@ -289,7 +467,18 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
     </div>
   );
 
-  const {ventasHoy,ventasSemana,ventasMes,ventasMesAnt,crecimiento,ticketProm,consultasHoy,onlinePend,recuperado,pctRecuperado,gananciaMes,paybackMeses,restante,fuentes,empleados,topProductos,alertas,ventasRecetaMedicoFarmaxMes,nRecetasExternasMes,oportunidadPerdidaRecetaEst,estimadoRecetaExternaUnit,lineasRecetaFarmax,lineasRecetaExterna,lineasRecetaPendiente,lineasRecetaConCatalogo,tiempoPromConsultaMin} = data;
+  const {ventasHoy,ventasSemana,ventasMes,ventasMesAnt,crecimiento,ticketProm,consultasHoy,onlinePend,recuperado,pctRecuperado,gananciaMes,paybackMeses,restante,fuentes,empleados,topProductos,alertas,ventasRecetaMedicoFarmaxMes,nRecetasExternasMes,oportunidadPerdidaRecetaEst,estimadoRecetaExternaUnit,lineasRecetaFarmax,lineasRecetaExterna,lineasRecetaPendiente,lineasRecetaConCatalogo,tiempoPromConsultaMin,metas,trends} = data;
+  const fracMes = fraccionMesTranscurrido();
+  const metaVentasMesProrrateada = Math.round((metas?.ventasMes || 0) * fracMes);
+  const metaConsultasMesProrrateada = Math.round((metas?.consultasMes || 0) * fracMes);
+  const goToPage = (id) => { if (setPage) setPage(id); };
+  const todoItems = [
+    { id:"stock",    icon:"📦", count: alertas.bajoStock,      col: C.red,    label: "Reordenar productos",                sub: alertas.bajoStockNombres.join(", ") || "stock en 0",          onAction: () => goToPage("rea"), actionLabel: "Ir a reabasto →" },
+    { id:"caduca",   icon:"⏰", count: alertas.porCaducar,     col: C.amber,  label: "Próximos a caducar (30 días)",       sub: "Revisa lotes y aplica descuentos",                            onAction: () => goToPage("lotes"), actionLabel: "Ver lotes →" },
+    { id:"cortes",   icon:"💰", count: alertas.cortesConDif,   col: C.red,    label: "Cortes de caja con diferencia",       sub: "Revisa faltantes o sobrantes",                                onAction: () => goToPage("caja"), actionLabel: "Ver cortes →" },
+    { id:"online",   icon:"🌐", count: alertas.sinAtender,     col: C.amber,  label: "Pedidos online pendientes",           sub: "Clientes esperando preparación",                              onAction: () => goToPage("pos"), actionLabel: "Atender →" },
+    { id:"cofepris", icon:"⚖️", count: alertas.cofeprisPorVencer, col: (alertas.cofeprisVencidas > 0 ? C.red : C.amber), label: alertas.cofeprisVencidas > 0 ? `COFEPRIS · ${alertas.cofeprisVencidas} vencido${alertas.cofeprisVencidas!==1?"s":""}` : "Documentos COFEPRIS por vencer", sub: (alertas.cofeprisItems||[]).slice(0,2).map(x=>x.nombre).join(" · "), onAction: () => goToPage("cof"), actionLabel: "Ver alertas →" },
+  ];
   const roiCol = pctRecuperado>=75?C.green:pctRecuperado>=40?C.amber:C.red;
   const totalEmp = empleados.reduce((a,e)=>a+e[1],0);
 
@@ -473,15 +662,55 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
       )}
 
       {panelTab==="operacion" && (<>
-      <div style={{color:C.textDim,fontSize:10,fontWeight:700,letterSpacing:1.5,marginBottom:12}}>VENTAS Y ACTIVIDAD</div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:12,marginBottom:24}}>
-        <KpiCard label="Ventas hoy" value={ventasHoy===0?"Sin ventas aún":fmtK(ventasHoy)} col={ventasHoy===0?C.textMid:C.green} icon="💵" sub={ventasHoy===0?"El día acaba de comenzar 🌅":"pedidos completados"}/>
-        <KpiCard label="Esta semana"       value={fmtK(ventasSemana)} col={C.blue}   icon="📈" sub="últimos 7 días"/>
-        <KpiCard label="Este mes"          value={fmtK(ventasMes)}    col={C.blue}   icon="📅" sub="mes en curso"/>
+      <TodoHoy items={todoItems}/>
+
+      <div style={{color:C.textDim,fontSize:10,fontWeight:700,letterSpacing:1.5,marginBottom:12}}>KPIS ACCIONABLES · VENTAS Y ACTIVIDAD</div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:12,marginBottom:16}}>
+        <InsightCard
+          label="Ventas hoy" icon="💵" col={C.green}
+          value={ventasHoy} display={fmtK(ventasHoy)}
+          meta={metas?.ventasDia} metaLabel="diaria" formatMeta={fmtK}
+          delta={trends?.ventasHoy}
+          onAction={() => goToPage("pos")} actionLabel="Ir a POS →"
+        />
+        <InsightCard
+          label="Ventas esta semana" icon="📈" col={C.blue}
+          value={ventasSemana} display={fmtK(ventasSemana)}
+          meta={metas?.ventasSemana} metaLabel="7 días" formatMeta={fmtK}
+          delta={trends?.ventasSemana}
+          onAction={() => setPanelTab("resumen")} actionLabel="Ver resumen →"
+        />
+        <InsightCard
+          label="Ventas del mes" icon="📅" col={C.blue}
+          value={ventasMes} display={fmtK(ventasMes)}
+          meta={metaVentasMesProrrateada || metas?.ventasMes} metaLabel={`prorrateada (${(fracMes*100).toFixed(0)}% del mes)`} formatMeta={fmtK}
+          delta={trends?.ventasMes}
+          onAction={() => setPanelTab("resumen")} actionLabel="Ver detalle →"
+        />
+        <InsightCard
+          label="Ticket promedio" icon="🧾" col={C.purple}
+          value={ticketProm} display={fmtK(ticketProm)}
+          meta={metas?.ticketProm} metaLabel="por venta" formatMeta={fmtK}
+          delta={trends?.ticketProm}
+          onAction={() => setPanelTab("margen")} actionLabel="Ver margen →"
+        />
+        <InsightCard
+          label="Consultas hoy" icon="🩺" col={C.teal}
+          value={consultasHoy} display={consultasHoy.toString()}
+          meta={metas?.consultasDia} metaLabel="diaria"
+          delta={trends?.consultasHoy}
+          onAction={() => goToPage("cons")} actionLabel="Ir al consultorio →"
+        />
+        <InsightCard
+          label="Online pendientes" icon="🌐" col={onlinePend>0?C.amber:C.green}
+          value={onlinePend} display={onlinePend.toString()}
+          onAction={() => goToPage("pos")} actionLabel="Atender →"
+        />
+      </div>
+
+      <div style={{color:C.textDim,fontSize:10,fontWeight:700,letterSpacing:1.5,marginBottom:12}}>RECETAS MÉDICAS · IMPACTO EN VENTAS</div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:12,marginBottom:24}}>
         <KpiCard label="Mes anterior"      value={fmtK(ventasMesAnt)} col={C.textMid} icon="📆" sub={crecimiento?`${crecimiento>0?"+":""}${crecimiento}% vs este mes`:"Sin datos"}/>
-        <KpiCard label="Ticket promedio"   value={fmtK(ticketProm)}   col={C.purple} icon="🧾" sub="por transacción"/>
-        <KpiCard label="Consultas hoy"     value={consultasHoy}       col={C.green}  icon="♥"  sub="Pagadas en caja o cerradas por la doctora hoy"/>
-        <KpiCard label="Online pendientes" value={onlinePend}         col={onlinePend>0?C.amber:C.green} icon="🌐" sub="sin atender"/>
         <KpiCard label="Ventas con receta Farmax" value={fmtK(ventasRecetaMedicoFarmaxMes||0)} col={C.purple} icon="📋" sub="POS · receta de médico del consultorio · mes"/>
         <KpiCard label="Oportunidad perdida (est.)" value={fmtK(oportunidadPerdidaRecetaEst||0)} col={nRecetasExternasMes>0?C.amber:C.green} icon="📤" sub={`${nRecetasExternasMes||0} recetas surtidas fuera × ${fmt(estimadoRecetaExternaUnit||350)}`}/>
       </div>
