@@ -45,7 +45,7 @@ export const NAV_ADMIN = [
   "promo","dev","fact",
   "banners","bot","pwa","usuarios"
 ];
-export const NAV_VENDEDOR = ["pos","cons_cobro"];
+export const NAV_VENDEDOR = ["midia","pos","cons_cobro"];
 export const NAV_DOCTORA  = ["cons_dr","rep_dr"];
 
 // Iconos: usamos lucide-react (componentes) en vez de emojis para look consistente.
@@ -55,10 +55,12 @@ import {
   Wallet, Stethoscope, Users, UserCog, ShieldCheck,
   Target, Undo2, Receipt, Image as ImageIcon, Sparkles,
   Download, UserPlus, Settings, CreditCard, HeartPulse, BarChart3,
-  SlidersHorizontal,
+  SlidersHorizontal, Gauge,
 } from "lucide-react";
 
 export const NAV_ITEMS = [
+  // ══ INICIO VENDEDOR ════════════════════════
+  {id:"midia",      icon: Gauge,           label:"Mi Día"},
   // ══ VENTAS ════════════════════════════════
   {id:"pos",        icon: ShoppingCart,    label:"Punto de Venta"},
   // ══ INVENTARIO (hub con tabs catálogo/reabasto/lotes) ══

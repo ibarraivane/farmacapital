@@ -28,6 +28,7 @@ const C = C_LIGHT;
 // ── Lazy loading — módulos se cargan solo cuando se necesitan ──
 const RRHHModule       = lazy(()=>import("./RRHHModule"));
 const InventarioHub    = lazy(()=>import("./InventarioHub"));
+const MiDia            = lazy(()=>import("./MiDia"));
 const CorteCajaModule  = lazy(()=>import("./CorteCajaModule"));
 const ClientesModule   = lazy(()=>import("./ClientesModule"));
 const ConsultorioModule= lazy(()=>import("./ConsultorioModule"));
@@ -3251,7 +3252,7 @@ export default function FarmaxAdmin(){
   // Setear página inicial según rol
   useEffect(()=>{
     if(!usuario) return;
-    if(usuario.rol==="vendedor") setPage("pos");
+    if(usuario.rol==="vendedor") setPage("midia");
     else if(usuario.rol==="doctora") setPage("cons_dr");
     else setPage("dash");
   },[usuario]);
@@ -3272,6 +3273,7 @@ export default function FarmaxAdmin(){
 
   const renderPage = () => {
     switch(page){
+      case "midia":     return <MiDia usuario={usuario} setPage={setPageAndSave}/>;
       case "dash":      return <DashboardModule usuario={usuario} setPage={setPageAndSave} showConfirm={showConfirm}/>;
       case "pos":       return <POS negocio={neg} usuario={usuario} initialTab="venta" onNavigate={setPageAndSave}/>;
       case "cons":      return <ConsultorioModule usuario={usuario}/>;
