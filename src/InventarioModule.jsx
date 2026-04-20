@@ -4,6 +4,7 @@ import { supabase } from "./supabase";
 import { logAudit } from "./utils";
 import { SkeletonTable, Paginador, SearchDropdown } from "./ui";
 import { showToast } from "./ui";
+import OnboardingTour from "./components/OnboardingTour";
 
 const BRAND = { primary:"#0052cc", secondary:"#0099e6", gradient:"linear-gradient(135deg,#0052cc,#0099e6)" };
 const CATEGORIAS = [
@@ -507,7 +508,7 @@ if (!window.confirm("¿Desactivar este producto?")) return;
           <button style={btnOutline} onClick={()=>setModalImportar(true)}>📥 Importar CSV</button>
           <button style={btnOutline} onClick={descargarPlantilla}>📋 Plantilla</button>
           <button style={btnOutline} onClick={()=>exportarCSV(filtrados)}>⬇ Exportar CSV</button>
-          <button style={btnPrimary} onClick={()=>setModal(EMPTY)}>➕ Nuevo producto</button>
+          <button data-tour="inv-agregar" style={btnPrimary} onClick={()=>setModal(EMPTY)}>➕ Nuevo producto</button>
         </div>
       </div>
 
@@ -529,7 +530,7 @@ if (!window.confirm("¿Desactivar este producto?")) return;
         ))}
       </div>
 
-      <div style={{display:"flex",gap:10,marginBottom:16,flexWrap:"wrap",alignItems:"center"}}>
+      <div data-tour="inv-buscar" style={{display:"flex",gap:10,marginBottom:16,flexWrap:"wrap",alignItems:"center"}}>
         <SearchDropdown value={busqueda} onChange={setBusqueda} onSelect={p=>setBusqueda(p.nombre)} placeholder="🔍 Nombre o SKU…" items={productos} labelKey="nombre" subKey="sku" badgeKey="stock" badgeCol="#0099e6" style={{flex:1}} emptyMsg="Sin productos"/>
         <select value={filtroCategoria} onChange={e=>setFiltroCategoria(e.target.value)} style={{...inputStyle,maxWidth:180}}>
           <option value="todas">Todas las categorías</option>
@@ -559,7 +560,7 @@ if (!window.confirm("¿Desactivar este producto?")) return;
       {loading ? (
         <SkeletonTable rows={8} cols={7}/>
       ) : (
-        <div style={{overflowX:"auto",borderRadius:12,border:`1px solid ${C.border}`}}>
+        <div data-tour="inv-tabla" style={{overflowX:"auto",borderRadius:12,border:`1px solid ${C.border}`}}>
           <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
             <thead>
               <tr style={{background:C.card}}>
@@ -732,6 +733,7 @@ if (!window.confirm("¿Desactivar este producto?")) return;
           </div>
         </div>
       )}
+      <OnboardingTour tourId="inv" />
     </div>
   );
 }

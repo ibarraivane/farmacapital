@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
 import { showToast } from "./ui";
+import OnboardingTour from "./components/OnboardingTour";
 
 const BRAND = { primary:"#0052cc", secondary:"#0099e6", gradient:"linear-gradient(135deg,#0052cc,#0099e6)" };
 
@@ -172,7 +173,7 @@ export default function CorteCajaModule({usuario }) {
           )}
 
           {/* Selector turno */}
-          <div style={{marginBottom:24}}>
+          <div data-tour="caja-turno" style={{marginBottom:24}}>
             <label style={labelStyle}>TURNO</label>
             <div style={{display:"flex",gap:10}}>
               {[["matutino","🌅 Matutino","8:00 – 16:00h"],["vespertino","🌆 Vespertino","16:00 – 22:00h"]].map(([val,label,hora])=>(
@@ -193,7 +194,7 @@ export default function CorteCajaModule({usuario }) {
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20}}>
 
             {/* Inputs */}
-            <div style={{background:C.card,borderRadius:12,border:`1px solid ${C.border}`,padding:20}}>
+            <div data-tour="caja-declarado" style={{background:C.card,borderRadius:12,border:`1px solid ${C.border}`,padding:20}}>
               <div style={{color:C.text,fontWeight:800,fontSize:14,marginBottom:16}}>💵 Ingresos del turno</div>
 
               <div style={{marginBottom:14}}>
@@ -230,7 +231,7 @@ export default function CorteCajaModule({usuario }) {
                 <div style={{color:C.textDim,fontSize:11,marginTop:4}}>Ventas en efectivo · turno {turno}</div>
               </div>
 
-              <div style={{background:difBg,borderRadius:12,border:`1px solid ${difCol}30`,padding:20}}>
+              <div data-tour="caja-diferencia" style={{background:difBg,borderRadius:12,border:`1px solid ${difCol}30`,padding:20}}>
                 <div style={{color:C.textMid,fontSize:11,fontWeight:700,letterSpacing:.5,marginBottom:8}}>DIFERENCIA</div>
                 <div style={{color:difCol,fontWeight:800,fontSize:24}}>{difTxt}</div>
                 <div style={{color:C.textDim,fontSize:11,marginTop:4}}>Declarado {fmt(efDec)} — Sistema {fmt(efectivo_sistema)}</div>
@@ -252,7 +253,7 @@ export default function CorteCajaModule({usuario }) {
                 </div>
               </div>
 
-              <button onClick={guardarCorte} disabled={saving||!efectivo_declarado} style={{
+              <button data-tour="caja-guardar" onClick={guardarCorte} disabled={saving||!efectivo_declarado} style={{
                 width:"100%",padding:"14px",borderRadius:10,border:"none",cursor:"pointer",
                 background:saving||!efectivo_declarado?C.border:C.green,
                 color:"#fff",fontWeight:800,fontSize:15,transition:"all .2s",
@@ -351,6 +352,7 @@ export default function CorteCajaModule({usuario }) {
           )}
         </div>
       )}
+      <OnboardingTour tourId="caja" usuario={usuario} />
     </div>
   );
 }

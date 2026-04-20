@@ -19,6 +19,7 @@ import { CitaFichaModal } from "./CitaFichaDoctora";
 import { desgloseCambioMN, sugerenciasPagoCliente } from "./utils/cambioCaja";
 import { loadAdminNavOrder, saveAdminNavOrder, reorderNavIds, mergeAdminNavOrder, clearAdminNavOrder } from "./utils/adminNavOrder";
 import { marcarMedicamentosRecetaFarmaxSurtidos } from "./utils/recetaCitaSync";
+import OnboardingTour from "./components/OnboardingTour";
 
 // Fallback estático para estilos fuera de componentes (evita undefined en import).
 const C = C_LIGHT;
@@ -1463,6 +1464,7 @@ function POS({negocio,usuario,initialTab="venta",onNavigate}){
           <div>
             <div style={{display:"flex",gap:8,marginBottom:12,alignItems:"center"}}>
               <input ref={srchRef} value={srch} onChange={e=>setSrch(e.target.value)}
+                data-tour="pos-buscador"
                 onKeyDown={e=>{
                   if(e.key==="Enter"){
                     const q = srch.toLowerCase().trim();
@@ -1484,7 +1486,7 @@ function POS({negocio,usuario,initialTab="venta",onNavigate}){
               }}>🛒{cart.length>0?` (${cart.length})`:""} {cartOpen?"▶":"◀"}</button>
             </div>
             {favs.length>0&&(
-              <div style={{marginBottom:12}}>
+              <div data-tour="pos-favoritos" style={{marginBottom:12}}>
                 <div style={{color:C.textDim,fontSize:10,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:6}}>⭐ Favoritos</div>
                 <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
                   {productos.filter(p=>favs.includes(p.id)&&p.activo).map(p=>(
@@ -1568,9 +1570,10 @@ function POS({negocio,usuario,initialTab="venta",onNavigate}){
             </div>
           </div>
           {/* Carrito */}
-          {cartOpen&&<div style={{position:"sticky",top:20}}>
+          {cartOpen&&<div data-tour="pos-carrito" style={{position:"sticky",top:20}}>
             <Box style={{padding:16,marginBottom:12}}>
               <div style={{color:C.text,fontWeight:700,fontSize:13,marginBottom:12}}>🛒 Carrito</div>
+              <div data-tour="pos-cliente">
               <SearchDropdown
                 value={tel}
                 onChange={t=>buscarCli(t)}
@@ -1584,6 +1587,7 @@ function POS({negocio,usuario,initialTab="venta",onNavigate}){
                 style={{marginBottom:8}}
                 emptyMsg="Escribe el teléfono completo (10 dígitos)"
               />
+              </div>
               {cli&&<div style={{background:C.purpleDim,border:`1px solid ${C.purple}30`,borderRadius:8,padding:"8px 10px",marginBottom:10}}>
                 <div style={{color:C.purple,fontWeight:700,fontSize:12}}>{cli.nombre}</div>
                 <div style={{color:C.textMid,fontSize:10}}>⭐ {cli.puntos||0} puntos Farmax</div>
@@ -1690,6 +1694,7 @@ function POS({negocio,usuario,initialTab="venta",onNavigate}){
               </Box>
             )}
             {/* Total */}
+            <div data-tour="pos-cobrar">
             <Box style={{padding:16}}>
               <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
                 <span style={{color:C.textMid,fontSize:13}}>Total</span>
@@ -1711,6 +1716,7 @@ function POS({negocio,usuario,initialTab="venta",onNavigate}){
                 </div>
               )}
             </Box>
+            </div>
           </div>}
         </div>
       )}
@@ -1938,6 +1944,7 @@ function POS({negocio,usuario,initialTab="venta",onNavigate}){
           })}
         </div>
       )}
+      <OnboardingTour tourId="pos" usuario={usuario} />
     </div>
   );
 }

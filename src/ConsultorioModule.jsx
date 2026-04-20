@@ -3,6 +3,7 @@ import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
 import { showToast } from "./ui";
 import { fetchProductosConsumiblesConsultorio } from "./utils/consumiblesConsultorio";
+import OnboardingTour from "./components/OnboardingTour";
 
 const BRAND = { primary:"#0052cc", secondary:"#0099e6", gradient:"linear-gradient(135deg,#0052cc,#0099e6)" };
 
@@ -200,7 +201,7 @@ function ListaEspera() {
 
   return (
     <div>
-      <div style={{display:"flex",gap:12,marginBottom:20,flexWrap:"wrap"}}>
+      <div data-tour="cons-kpis" style={{display:"flex",gap:12,marginBottom:20,flexWrap:"wrap"}}>
         {[["⏳ Esperando",esperando,C.amber],["🩺 En consulta",enConsulta,C.blue],["✅ Completadas",completadas,C.green],["💰 Pagadas",citas.filter(c=>c.estado==="pagada").length,"#16a34a"]].map(([lbl,val,col])=>(
           <div key={lbl} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"10px 18px",minWidth:130}}>
             <div style={{color:col,fontWeight:800,fontSize:22}}>{val}</div>
@@ -210,7 +211,7 @@ function ListaEspera() {
         <button onClick={fetchCitas} style={{...btnSecondary,marginLeft:"auto",alignSelf:"center"}}>🔄 Actualizar</button>
       </div>
       {loading ? <div style={{color:C.textMid,textAlign:"center",padding:40}}>Cargando…</div> : (
-        <div style={{overflowX:"auto",borderRadius:12,border:`1px solid ${C.border}`}}>
+        <div data-tour="cons-lista" style={{overflowX:"auto",borderRadius:12,border:`1px solid ${C.border}`}}>
           <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
             <thead>
               <tr style={{background:C.card}}>
@@ -769,6 +770,7 @@ export default function ConsultorioModule({ usuario }) {
       {tab==="consulta"       && <EnConsulta/>}
       {tab==="procedimientos" && <Procedimientos/>}
       {tab==="medicos"        && <Medicos/>}
+      <OnboardingTour tourId="cons" usuario={usuario} />
     </div>
   );
 }

@@ -1,0 +1,187 @@
+/**
+ * OnboardingTour
+ * ──────────────────────────────────────────────────────────────
+ * Corre un tour de react-joyride para un módulo (POS, Inventario,
+ * Corte de Caja, Consultorio) la primera vez que un usuario lo abre.
+ *
+ * Props:
+ *   - usuario:  objeto sesión (se usa usuario.id para clave localStorage).
+ *               Si no se pasa, cae a sessionStorage farmax_admin_user.
+ *   - tourId:   "pos" | "inv" | "caja" | "cons"  (ver src/utils/tours.js)
+ *   - autoStart: boolean  (default true; si false, solo se muestra FAB "?")
+ *
+ * Uso:
+ *   <OnboardingTour tourId="pos" usuario={usuario} />
+ */
+
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Joyride, STATUS } from "react-joyride";
+import { TOURS, tourStorageKey } from "../utils/tours";
+
+const JOYRIDE_STYLES = {
+  options: {
+    primaryColor: "#0052CC",
+    zIndex: 10000,
+    arrowColor: "#ffffff",
+    backgroundColor: "#ffffff",
+    textColor: "#1f2937",
+    overlayColor: "rgba(10, 25, 55, 0.55)",
+  },
+  tooltip: {
+    borderRadius: 14,
+    padding: 16,
+    fontSize: 13,
+    boxShadow: "0 24px 60px rgba(10, 25, 55, 0.35)",
+  },
+  tooltipTitle: {
+    fontSize: 15,
+    fontWeight: 800,
+    color: "#0052CC",
+  },
+  buttonNext: {
+    borderRadius: 8,
+    fontWeight: 700,
+    fontSize: 12,
+    padding: "8px 14px",
+  },
+  buttonBack: {
+    color: "#0052CC",
+    fontSize: 12,
+  },
+  buttonSkip: {
+    color: "#64748b",
+    fontSize: 12,
+  },
+};
+
+const LOCALE = {
+  back: "Atrás",
+  close: "Cerrar",
+  last: "¡Listo!",
+  next: "Siguiente",
+  skip: "Saltar",
+  open: "Abrir",
+};
+
+function usuarioDeSesion() {
+  try {
+    return JSON.parse(sessionStorage.getItem("farmax_admin_user") || "{}");
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Filtra los pasos cuyo `target` no está presente en el DOM.
+ * Evita que Joyride reviente si algún elemento todavía no se renderizó
+ * (ej. una pestaña oculta dentro del módulo).
+ */
+function filtrarPasosVivos(steps) {
+  if (typeof document === "undefined") return steps;
+  return steps.filter((s) => {
+    if (!s?.target || typeof s.target !== "string") return true;
+    try {
+      return !!document.querySelector(s.target);
+    } catch {
+      return false;
+    }
+  });
+}
+
+export default function OnboardingTour({ tourId, usuario, autoStart = true }) {
+  const tour = TOURS[tourId];
+  const user = usuario && usuario.id ? usuario : usuarioDeSesion();
+  const storageKey = useMemo(
+    () => tourStorageKey(tourId, user?.id),
+    [tourId, user?.id]
+  );
+
+  const [run, setRun] = useState(false);
+  const [steps, setSteps] = useState([]);
+
+  const abrirTour = useCallback(() => {
+    if (!tour) return;
+    const vivos = filtrarPasosVivos(tour.steps);
+    if (!vivos.length) {
+      console.info(`[Tour ${tourId}] ningún target visible; se omite.`);
+      return;
+    }
+    setSteps(vivos);
+    setRun(true);
+  }, [tour, tourId]);
+
+  // Auto-arranque si el usuario no lo ha visto.
+  useEffect(() => {
+    if (!autoStart || !tour || !storageKey) return;
+    let done = null;
+    try {
+      done = localStorage.getItem(storageKey);
+    } catch {
+      /* localStorage deshabilitado */
+    }
+    if (done === "done") return;
+    const t = setTimeout(abrirTour, 600); // dejar renderizar la página
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storageKey, autoStart]);
+
+  const handleCallback = useCallback(
+    (data) => {
+      const { status } = data;
+      const finished = [STATUS.FINISHED, STATUS.SKIPPED].includes(status);
+      if (finished) {
+        setRun(false);
+        if (storageKey) {
+          try {
+            localStorage.setItem(storageKey, "done");
+          } catch {
+            /* noop */
+          }
+        }
+      }
+    },
+    [storageKey]
+  );
+
+  if (!tour) return null;
+
+  return (
+    <>
+      <Joyride
+        steps={steps}
+        run={run}
+        continuous
+        showProgress
+        showSkipButton
+        disableOverlayClose
+        locale={LOCALE}
+        styles={JOYRIDE_STYLES}
+        callback={handleCallback}
+      />
+      <button
+        type="button"
+        onClick={abrirTour}
+        aria-label={tour.label}
+        title={tour.label}
+        style={{
+          position: "fixed",
+          right: 18,
+          bottom: 18,
+          width: 44,
+          height: 44,
+          borderRadius: 22,
+          border: "none",
+          background: "linear-gradient(135deg,#0052CC,#0099e6)",
+          color: "#fff",
+          fontWeight: 800,
+          fontSize: 20,
+          cursor: "pointer",
+          boxShadow: "0 8px 20px rgba(0, 82, 204, 0.35)",
+          zIndex: 9500,
+        }}
+      >
+        ?
+      </button>
+    </>
+  );
+}
