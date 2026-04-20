@@ -296,11 +296,16 @@ function Sidebar({active,setActive,negocio,setNegocio,usuario,onLogout,alertas,v
     setAdminOrder(loadAdminNavOrder(usuario));
   }, [isAdmin, usuario?.id]);
 
+  // Si el usuario tiene modulos_custom configurado, respétalo por encima del default del rol.
+  // (Un admin no puede recibir modulos_custom restringido — siempre ve todo su NAV_ADMIN.)
+  const customActivos = Array.isArray(usuario.modulos_custom?.activos) ? usuario.modulos_custom.activos : null;
   const navIds = isAdmin
     ? (adminOrder ?? NAV_ADMIN)
-    : usuario.rol==="vendedor"
-      ? NAV_VENDEDOR
-      : NAV_DOCTORA;
+    : (customActivos && customActivos.length > 0)
+      ? customActivos
+      : usuario.rol==="vendedor"
+        ? NAV_VENDEDOR
+        : NAV_DOCTORA;
   const navItems = navIds.map((id) => NAV_ITEMS.find((n) => n.id === id)).filter(Boolean);
   const rolColor = usuario.rol==="admin"?C.purple:usuario.rol==="vendedor"?C.blue:C.green;
 
@@ -2561,6 +2566,24 @@ function BannersAdmin(){
   );
 }
 
+// Módulos candidatos a habilitar para un rol no-admin. Los admin siempre ven su NAV_ADMIN completo.
+// (En Instrucción 3 esta lista vivirá en utils/permissions.js con validación formal.)
+const MODULOS_CANDIDATOS_VENDEDOR_TMP = ["midia","pos","cons_cobro","inv","cli","cof","caja"];
+const MODULOS_CANDIDATOS_DOCTORA_TMP  = ["cons_dr","rep_dr","cons","cli"];
+
+function candidatosPorRolTmp(rol) {
+  if (rol === "vendedor") return MODULOS_CANDIDATOS_VENDEDOR_TMP;
+  if (rol === "doctora")  return MODULOS_CANDIDATOS_DOCTORA_TMP;
+  return [];
+}
+
+function defaultIdsPorRol(rol) {
+  if (rol === "admin")    return NAV_ADMIN;
+  if (rol === "vendedor") return NAV_VENDEDOR;
+  if (rol === "doctora")  return NAV_DOCTORA;
+  return [];
+}
+
 function GestionUsuarios(){
   const C = C_LIGHT;
   const [usuarios,setUsers] = useState([]);
@@ -2573,6 +2596,10 @@ function GestionUsuarios(){
   const [guardandoEdit,setGuardandoEdit] = useState(false);
   const [error,setError]    = useState("");
   const [editError,setEditError] = useState("");
+  // Modal de permisos por usuario
+  const [modulosModal,setModulosModal] = useState(null); // objeto usuario o null
+  const [modulosCheck,setModulosCheck] = useState(() => new Set());
+  const [guardandoModulos,setGuardandoModulos] = useState(false);
 
   useEffect(()=>{
     supabase.from("usuarios").select("*").order("nombre").then(({data})=>{ setUsers(data||[]); setLoad(false); });
@@ -2671,6 +2698,53 @@ function GestionUsuarios(){
   const toggle = async (id,activo) => {
     await supabase.from("usuarios").update({activo:!activo}).eq("id",id);
     setUsers(p=>p.map(u=>u.id===id?{...u,activo:!activo}:u));
+  };
+
+  // ── MÓDULOS PERSONALIZADOS ─────────────────────────────────
+  const abrirModulos = (u) => {
+    const activos = Array.isArray(u.modulos_custom?.activos) && u.modulos_custom.activos.length > 0
+      ? u.modulos_custom.activos
+      : defaultIdsPorRol(u.rol);
+    setModulosCheck(new Set(activos));
+    setModulosModal(u);
+  };
+
+  const toggleModulo = (id) => {
+    setModulosCheck((prev) => {
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id); else n.add(id);
+      return n;
+    });
+  };
+
+  const restablecerModulos = () => {
+    if (!modulosModal) return;
+    setModulosCheck(new Set(defaultIdsPorRol(modulosModal.rol)));
+  };
+
+  const guardarModulos = async () => {
+    if (!modulosModal) return;
+    setGuardandoModulos(true);
+    try {
+      const seleccionados = [...modulosCheck];
+      const defaults = defaultIdsPorRol(modulosModal.rol);
+      // Si la selección es exactamente igual al default del rol, guardamos NULL (limpio).
+      const igualAlDefault = seleccionados.length === defaults.length
+        && seleccionados.every((id) => defaults.includes(id));
+      const payload = igualAlDefault ? null : { activos: seleccionados };
+      const { error:err } = await supabase
+        .from("usuarios")
+        .update({ modulos_custom: payload })
+        .eq("id", modulosModal.id);
+      if (err) throw err;
+      setUsers((prev) => prev.map((u) => u.id === modulosModal.id ? { ...u, modulos_custom: payload } : u));
+      showToast(igualAlDefault ? "Restablecido al default del rol." : "Permisos guardados.", "success");
+      setModulosModal(null);
+    } catch (e) {
+      console.error("[Usuarios] guardarModulos:", e);
+      showToast("No se pudo guardar: " + (e?.message || JSON.stringify(e)), "error");
+    }
+    setGuardandoModulos(false);
   };
 
   const abrirEditar = (u) => {
@@ -2932,6 +3006,79 @@ function GestionUsuarios(){
         </div>
       </Modal>
 
+      {/* ── MODAL: MÓDULOS / PERMISOS ───────────────────────── */}
+      <Modal open={!!modulosModal} onClose={()=>setModulosModal(null)} title={modulosModal ? `Módulos de ${modulosModal.nombre}` : "Módulos"} closeOnBackdrop={!guardandoModulos}>
+        {modulosModal && (() => {
+          const defaults = defaultIdsPorRol(modulosModal.rol);
+          const candidatos = candidatosPorRolTmp(modulosModal.rol);
+          // adicionales = candidatos que NO están en el default
+          const adicionales = candidatos.filter((id) => !defaults.includes(id));
+          const tieneCustom = Array.isArray(modulosModal.modulos_custom?.activos) && modulosModal.modulos_custom.activos.length > 0;
+
+          return (
+            <>
+              <div style={{marginBottom:14, padding:"10px 12px", background:C.bg, border:`1px solid ${C.border}`, borderRadius:8}}>
+                <div style={{color:C.textMid, fontSize:11, fontWeight:700, letterSpacing:0.6, textTransform:"uppercase", marginBottom:4}}>
+                  Rol: {modulosModal.rol}
+                </div>
+                <div style={{color:C.textDim, fontSize:12}}>
+                  {tieneCustom
+                    ? "Este usuario tiene permisos personalizados activos."
+                    : "Este usuario usa los módulos default de su rol. Puedes personalizar."}
+                </div>
+              </div>
+
+              <div style={{marginBottom:16}}>
+                <div style={{color:C.textDim, fontSize:10, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", marginBottom:8}}>
+                  Default del rol
+                </div>
+                <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(200px, 1fr))", gap:6}}>
+                  {defaults.map((id) => {
+                    const item = NAV_ITEMS.find((n) => n.id === id);
+                    if (!item) return null;
+                    const checked = modulosCheck.has(id);
+                    return (
+                      <label key={id} style={{display:"flex", alignItems:"center", gap:8, padding:"8px 10px", background:checked?C.greenDim:C.bg, border:`1px solid ${checked?C.green+"50":C.border}`, borderRadius:8, cursor:"pointer", fontSize:13, color:C.text}}>
+                        <input type="checkbox" checked={checked} onChange={()=>toggleModulo(id)}/>
+                        <span style={{fontWeight:600}}>{item.label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {adicionales.length > 0 && (
+                <div style={{marginBottom:16}}>
+                  <div style={{color:C.textDim, fontSize:10, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", marginBottom:8}}>
+                    Módulos adicionales
+                  </div>
+                  <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(200px, 1fr))", gap:6}}>
+                    {adicionales.map((id) => {
+                      const item = NAV_ITEMS.find((n) => n.id === id);
+                      if (!item) return null;
+                      const checked = modulosCheck.has(id);
+                      return (
+                        <label key={id} style={{display:"flex", alignItems:"center", gap:8, padding:"8px 10px", background:checked?C.blueDim:C.bg, border:`1px solid ${checked?C.blue+"50":C.border}`, borderRadius:8, cursor:"pointer", fontSize:13, color:C.text}}>
+                          <input type="checkbox" checked={checked} onChange={()=>toggleModulo(id)}/>
+                          <span style={{fontWeight:600}}>{item.label}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              <div style={{display:"flex", gap:8, justifyContent:"flex-end", marginTop:10}}>
+                <Btn onClick={restablecerModulos} ol col={C.textMid} dis={guardandoModulos}>🔄 Restablecer default</Btn>
+                <Btn onClick={guardarModulos} col={BRAND.primary} dis={guardandoModulos}>
+                  {guardandoModulos?"Guardando...":"💾 Guardar"}
+                </Btn>
+              </div>
+            </>
+          );
+        })()}
+      </Modal>
+
       {loading?<SkeletonTable rows={4} cols={5}/>:(
         <Box>
           <table style={{width:"100%",borderCollapse:"collapse"}}>
@@ -2956,6 +3103,19 @@ function GestionUsuarios(){
                         <path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
                       </svg>
                     </button>
+                    {u.rol !== "admin" && (
+                      <button
+                        onClick={()=>abrirModulos(u)}
+                        title="Módulos y permisos"
+                        aria-label="Módulos y permisos"
+                        style={{...actionBtnBase, border:`1px solid ${C.purple}40`, background:C.purpleDim, color:C.purple}}
+                      >
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <path d="M3 9l3-3 3 3M3 15l3 3 3-3M18 9l3-3-3-3M18 15l3 3-3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M9 12h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                        </svg>
+                      </button>
+                    )}
                     <button onClick={()=>toggle(u.id,u.activo)}
                       title={u.activo?"Desactivar usuario":"Activar usuario"}
                       aria-label={u.activo?"Desactivar usuario":"Activar usuario"}
