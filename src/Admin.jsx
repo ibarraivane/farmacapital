@@ -362,7 +362,9 @@ function Sidebar({active,setActive,negocio,setNegocio,usuario,onLogout,alertas,v
                 onMouseLeave={e=>{if(!rowActive){e.currentTarget.style.background="transparent";e.currentTarget.style.color=C.textMid;e.currentTarget.style.borderLeftColor="transparent";}}}
                 style={{...btnStyle,width:"100%",marginBottom:2}}>
                 <span style={{width:18,height:18,display:"inline-flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                  {typeof n.icon === "function" ? <n.icon size={16} strokeWidth={2.1} /> : <span style={{fontSize:12}}>{n.icon}</span>}
+                  {typeof n.icon === "string"
+                    ? <span style={{fontSize:12}}>{n.icon}</span>
+                    : n.icon ? <n.icon size={16} strokeWidth={2.1} /> : null}
                 </span>
                 <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{n.label}</span>
               </button>
@@ -411,7 +413,9 @@ function Sidebar({active,setActive,negocio,setNegocio,usuario,onLogout,alertas,v
             >
               <div style={{...btnStyle,width:"100%",margin:0}}>
                 <span style={{width:18,height:18,display:"inline-flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                  {typeof n.icon === "function" ? <n.icon size={16} strokeWidth={2.1} /> : <span style={{fontSize:12}}>{n.icon}</span>}
+                  {typeof n.icon === "string"
+                    ? <span style={{fontSize:12}}>{n.icon}</span>
+                    : n.icon ? <n.icon size={16} strokeWidth={2.1} /> : null}
                 </span>
                 <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{n.label}</span>
               </div>
