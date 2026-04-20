@@ -473,8 +473,7 @@ function Sidebar({active,setActive,negocio,setNegocio,usuario,onLogout,alertas,v
 
       {/* Alertas y logout */}
       <div style={{padding:"0 8px 16px"}}>
-        {alertas.stock>0&&<div style={{background:C.redDim,border:`1px solid ${C.red}20`,borderRadius:8,padding:"8px 12px",marginBottom:6}}><div style={{color:C.red,fontSize:11,fontWeight:700}}>⚠ {alertas.stock} bajo stock</div></div>}
-
+        {/* "bajo stock" ahora se muestra como badge junto a Inventario en el sidebar. */}
         {alertas.pedidos>0&&<div style={{background:C.blueDim,border:`1px solid ${C.blue}20`,borderRadius:8,padding:"8px 12px",marginBottom:6}}><div style={{color:C.blue,fontSize:11,fontWeight:700}}>🌐 {alertas.pedidos} pedidos online</div></div>}
         {alertas.citas>0&&<div style={{background:C.greenDim,border:`1px solid ${C.green}20`,borderRadius:8,padding:"8px 12px",marginBottom:6}}><div style={{color:C.green,fontSize:11,fontWeight:700}}>📅 {alertas.citas} citas nuevas</div></div>}
         {ventasOffline>0&&(
