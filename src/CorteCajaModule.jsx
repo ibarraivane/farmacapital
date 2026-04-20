@@ -38,7 +38,6 @@ export default function CorteCajaModule({usuario }) {
   const [turno,              setTurno]   = useState("matutino");
   const [efectivo_declarado, setEfDec]   = useState("");
   const [tarjeta,            setTarjeta] = useState("");
-  const [spei,               setSpei]    = useState("");
   const [mercadopago,        setMp]      = useState("");
   const [notas,              setNotas]   = useState("");
   const [efectivo_sistema,   setEfSis]   = useState(0);
@@ -55,10 +54,9 @@ export default function CorteCajaModule({usuario }) {
   // Calculados
   const efDec   = parseFloat(efectivo_declarado||0);
   const tar     = parseFloat(tarjeta||0);
-  const sp      = parseFloat(spei||0);
   const mp      = parseFloat(mercadopago||0);
   const diferencia    = efDec - efectivo_sistema;
-  const total_general = efDec + tar + sp + mp;
+  const total_general = efDec + tar + mp;
 
   const fetchEfectivoSistema = useCallback(async () => {
     setLoadSis(true);
@@ -123,13 +121,13 @@ export default function CorteCajaModule({usuario }) {
     const { error } = await supabase.from("cortes_caja").insert({
       turno, cajero: usuario?.nombre||"Sistema",
       efectivo_declarado: efDec, efectivo_sistema, tarjeta: tar,
-      spei: sp, mercadopago: mp, diferencia, total_general,
+      spei: 0, mercadopago: mp, diferencia, total_general,
       notas: notas.trim()||null, fecha: new Date().toISOString(),
     });
     setSaving(false);
     if (error) { showToast("Error al guardar corte: "+error.message, "error"); return; }
     setSaved(true);
-    setEfDec(""); setTarjeta(""); setSpei(""); setMp(""); setNotas("");
+    setEfDec(""); setTarjeta(""); setMp(""); setNotas("");
     setTimeout(()=>setSaved(false), 3500);
     fetchEfectivoSistema();
   };
@@ -140,7 +138,6 @@ export default function CorteCajaModule({usuario }) {
 
   const sumEf  = cortes.reduce((a,c)=>a+parseFloat(c.efectivo_declarado||0),0);
   const sumTar = cortes.reduce((a,c)=>a+parseFloat(c.tarjeta||0),0);
-  const sumSp  = cortes.reduce((a,c)=>a+parseFloat(c.spei||0),0);
   const sumMp  = cortes.reduce((a,c)=>a+parseFloat(c.mercadopago||0),0);
   const sumTot = cortes.reduce((a,c)=>a+parseFloat(c.total_general||0),0);
 
@@ -206,15 +203,9 @@ export default function CorteCajaModule({usuario }) {
                 <div style={{color:C.textDim,fontSize:10,marginTop:4}}>Lo que cuenta físicamente el cajero</div>
               </div>
 
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:14}}>
-                <div>
-                  <label style={labelStyle}>TARJETA</label>
-                  <input type="number" value={tarjeta} onChange={e=>setTarjeta(e.target.value)} placeholder="0.00" style={inputStyle}/>
-                </div>
-                <div>
-                  <label style={labelStyle}>SPEI / TRANSFERENCIA</label>
-                  <input type="number" value={spei} onChange={e=>setSpei(e.target.value)} placeholder="0.00" style={inputStyle}/>
-                </div>
+              <div style={{marginBottom:14}}>
+                <label style={labelStyle}>TARJETA</label>
+                <input type="number" value={tarjeta} onChange={e=>setTarjeta(e.target.value)} placeholder="0.00" style={inputStyle}/>
               </div>
 
               <div style={{marginBottom:14}}>
@@ -247,7 +238,7 @@ export default function CorteCajaModule({usuario }) {
 
               <div style={{background:C.card,borderRadius:12,border:`1px solid ${C.border}`,padding:20}}>
                 <div style={{color:C.textMid,fontSize:11,fontWeight:700,letterSpacing:.5,marginBottom:12}}>DESGLOSE</div>
-                {[["Efectivo",efDec,C.green],["Tarjeta",tar,C.blue],["SPEI",sp,C.purple],["MercadoPago",mp,C.amber]].map(([lbl,val,col])=>(
+                {[["Efectivo",efDec,C.green],["Tarjeta",tar,C.blue],["MercadoPago",mp,C.amber]].map(([lbl,val,col])=>(
                   <div key={lbl} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
                     <span style={{color:C.textMid,fontSize:12}}>{lbl}</span>
                     <span style={{color:col,fontWeight:700,fontSize:13}}>{fmt(val)}</span>
@@ -300,14 +291,14 @@ export default function CorteCajaModule({usuario }) {
               <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                 <thead>
                   <tr style={{background:C.card}}>
-                    {["Fecha/Hora","Turno","Cajero","Ef. Declarado","Ef. Sistema","Diferencia","Tarjeta","SPEI","MP","Total","Notas"].map(h=>(
+                    {["Fecha/Hora","Turno","Cajero","Ef. Declarado","Ef. Sistema","Diferencia","Tarjeta","MP","Total","Notas"].map(h=>(
                       <th key={h} style={{padding:"10px 12px",textAlign:"left",color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {cortes.length===0&&(
-                    <tr><td colSpan={11} style={{textAlign:"center",padding:32,color:C.textMid}}>Sin cortes en este período</td></tr>
+                    <tr><td colSpan={10} style={{textAlign:"center",padding:32,color:C.textMid}}>Sin cortes en este período</td></tr>
                   )}
                   {cortes.map((c,i)=>{
                     const dif    = parseFloat(c.diferencia||0);
@@ -332,7 +323,6 @@ export default function CorteCajaModule({usuario }) {
                         <td style={{padding:"9px 12px",color:C.blue,borderBottom:`1px solid ${C.border}`}}>{fmt(c.efectivo_sistema)}</td>
                         <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`}}><span style={{color:dc,fontWeight:700}}>{dt}</span></td>
                         <td style={{padding:"9px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{fmt(c.tarjeta)}</td>
-                        <td style={{padding:"9px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{fmt(c.spei)}</td>
                         <td style={{padding:"9px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{fmt(c.mercadopago)}</td>
                         <td style={{padding:"9px 12px",color:C.text,fontWeight:800,borderBottom:`1px solid ${C.border}`}}>{fmt(c.total_general)}</td>
                         <td style={{padding:"9px 12px",color:C.textDim,fontSize:11,borderBottom:`1px solid ${C.border}`,maxWidth:130,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.notas||"—"}</td>
@@ -350,7 +340,7 @@ export default function CorteCajaModule({usuario }) {
                 📊 Resumen del período — {cortes.length} corte{cortes.length!==1?"s":""}
               </div>
               <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
-                {[["Efectivo",sumEf,C.green],["Tarjeta",sumTar,C.blue],["SPEI",sumSp,C.purple],["MercadoPago",sumMp,C.amber],["Gran total",sumTot,C.text]].map(([lbl,val,col])=>(
+                {[["Efectivo",sumEf,C.green],["Tarjeta",sumTar,C.blue],["MercadoPago",sumMp,C.amber],["Gran total",sumTot,C.text]].map(([lbl,val,col])=>(
                   <div key={lbl} style={{background:C.bg,borderRadius:10,padding:"12px 18px",minWidth:130,border:`1px solid ${C.border}`}}>
                     <div style={{color:C.textMid,fontSize:10,fontWeight:700,marginBottom:4}}>{lbl.toUpperCase()}</div>
                     <div style={{color:col,fontWeight:800,fontSize:18}}>{fmt(val)}</div>

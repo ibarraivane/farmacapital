@@ -1,3 +1,5 @@
+import { idEmpleadoUsuarios, parseUsuariosBigintId } from "./usuarioId";
+
 // ═══════════════════════════════════════════════════════════
 // FARMAX — Offline Sale Queue
 // Guarda ventas en IndexedDB cuando no hay internet
@@ -113,8 +115,13 @@ export async function sincronizarVentasPendientes(supabase, usuario) {
         throw new Error("Venta offline sin items");
       }
 
+      const pUserId = parseUsuariosBigintId(d.atendido_por) ?? (await idEmpleadoUsuarios(usuario));
+      if (pUserId == null) {
+        throw new Error("Usuario no vinculado: no hay id de empleado para sincronizar la venta offline");
+      }
+
       const { data: rpcData, error: rpcError } = await supabase.rpc("create_sale_transaction_v2", {
-        p_user_id: d.atendido_por || usuario?.id || null,
+        p_user_id: pUserId,
         p_metodo_pago: d.metodo_pago || "efectivo",
         p_total: d.total || 0,
         p_cart_items: cartItemsMapped,

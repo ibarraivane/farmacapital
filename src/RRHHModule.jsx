@@ -27,11 +27,21 @@ const mkS = (C) => ({
   select:  { width:'100%', background:C.bg, border:`1px solid ${C.border}`, borderRadius:8, padding:'9px 12px', color:C.text, fontSize:13, boxSizing:'border-box', outline:'none' },
   btnBlue: { background:C.blue,    color:'#fff', border:'none', borderRadius:8, padding:'9px 18px', fontSize:13, fontWeight:700, cursor:'pointer' },
   btnGreen:{ background:C.green,   color:'#fff', border:'none', borderRadius:8, padding:'9px 18px', fontSize:13, fontWeight:700, cursor:'pointer' },
-  btnRed:  { background:C.red,     color:'#fff', border:'none', borderRadius:8, padding:'5px 10px', fontSize:12, fontWeight:700, cursor:'pointer' },
-  btnGray: { background:'#1e3248', color:C.text, border:'none', borderRadius:8, padding:'5px 10px', fontSize:12, fontWeight:700, cursor:'pointer' },
   th:      { padding:'8px 12px', textAlign:'left', fontSize:10, fontWeight:700, color:C.textMid, textTransform:'uppercase', letterSpacing:'0.06em', borderBottom:`1px solid ${C.border}` },
   td:      { padding:'9px 12px', fontSize:13, borderBottom:`1px solid ${C.border}` },
 });
+
+const actionBtnBase = {
+  width: 18,
+  height: 18,
+  borderRadius: 5,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  cursor: "pointer",
+  padding: 0,
+  marginLeft: 1,
+};
 
 export default function RRHHModule() {
   const C = C_LIGHT;
@@ -199,8 +209,8 @@ export default function RRHHModule() {
               <tbody>
                 {empleados.map(emp => (
                   <tr key={emp.id}
-                    onMouseEnter={e=>e.currentTarget.style.background='#0e1e2e'}
-                    onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                    onMouseEnter={e=>{ e.currentTarget.style.background = C.blueDim; }}
+                    onMouseLeave={e=>{ e.currentTarget.style.background = "transparent"; }}>
                     <td style={{ ...S.td, fontWeight:700 }}>{emp.nombre}</td>
                     <td style={{ ...S.td, color:C.textMid }}>{emp.telefono || '—'}</td>
                     <td style={S.td}>
@@ -214,11 +224,49 @@ export default function RRHHModule() {
                       </span>
                     </td>
                     <td style={{ ...S.td }}>
-                      <div style={{ display:'flex', gap:6 }}>
-                        <button style={S.btnGray} onClick={() => toggleEstado(emp)} title={emp.estado?'Desactivar':'Activar'}>
-                          {emp.estado ? '🔕' : '✅'}
+                      <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+                        <button
+                          type="button"
+                          onClick={() => toggleEstado(emp)}
+                          title={emp.estado ? "Desactivar" : "Activar"}
+                          aria-label={emp.estado ? "Desactivar empleado" : "Activar empleado"}
+                          style={{
+                            ...actionBtnBase,
+                            marginLeft: 0,
+                            border: `1px solid ${emp.estado ? C.red : C.green}`,
+                            background: "transparent",
+                            color: emp.estado ? C.red : C.green,
+                          }}
+                        >
+                          {emp.estado ? (
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                              <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2"/>
+                              <path d="M8 8l8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                            </svg>
+                          ) : (
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                              <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2"/>
+                              <path d="M8 12l3 3 5-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          )}
                         </button>
-                        <button style={S.btnRed} onClick={() => deleteEmp(emp.id)} title="Eliminar">🗑️</button>
+                        <button
+                          type="button"
+                          onClick={() => deleteEmp(emp.id)}
+                          title="Eliminar empleado"
+                          aria-label="Eliminar empleado"
+                          style={{
+                            ...actionBtnBase,
+                            border: `1px solid ${C.red}30`,
+                            background: C.redDim,
+                            color: C.red,
+                          }}
+                        >
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M3 6h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                            <path d="M8 6V4h8v2M7 6l1 14h8l1-14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -276,8 +324,8 @@ export default function RRHHModule() {
                   const total = dias.filter(Boolean).length;
                   return (
                     <tr key={emp.id}
-                      onMouseEnter={e=>e.currentTarget.style.background='#0e1e2e'}
-                      onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                      onMouseEnter={e=>{ e.currentTarget.style.background = C.blueDim; }}
+                      onMouseLeave={e=>{ e.currentTarget.style.background = "transparent"; }}>
                       <td style={{ ...S.td, fontWeight:700, whiteSpace:'nowrap' }}>{emp.nombre}</td>
                       {dias.map((checked,idx)=>(
                         <td key={idx} style={{ ...S.td, textAlign:'center' }}>

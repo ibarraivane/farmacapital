@@ -21,16 +21,19 @@ export function Logo({size=36,showText=true,light=false}){
   );
 }
 
-export function Box({children,style,onClick,ac}){
+export function Box({children,style,onClick,ac,className}){
   const C = C_LIGHT;
+  const useCssHover = className && String(className).includes("farmax-product-card");
   return(
-
-  <div onClick={onClick} style={{background:C.card,borderRadius:14,border:`1px solid ${ac?ac+"40":C.border}`,boxShadow:"0 1px 4px rgba(0,0,0,.06)",transition:"border-color .2s,box-shadow .2s",cursor:onClick?"pointer":"default",...style}}
-    onMouseEnter={e=>onClick&&(e.currentTarget.style.borderColor=ac||C.borderHi)}
-    onMouseLeave={e=>onClick&&(e.currentTarget.style.borderColor=ac?ac+"40":C.border)}>
+  <div
+    className={className||undefined}
+    onClick={onClick}
+    style={{background:C.card,borderRadius:14,border:`1px solid ${ac?ac+"40":C.border}`,boxShadow:"0 1px 4px rgba(0,0,0,.06)",transition:"border-color .2s,box-shadow .2s",cursor:onClick?"pointer":"default",...style}}
+    onMouseEnter={!useCssHover&&onClick?(e=>{ e.currentTarget.style.borderColor=ac||C.borderHi; }):undefined}
+    onMouseLeave={!useCssHover&&onClick?(e=>{ e.currentTarget.style.borderColor=ac?ac+"40":C.border; }):undefined}
+  >
     {children}
   </div>
-
   );
 };
 
@@ -52,12 +55,12 @@ export function Btn({children,onClick,col,sm,ol,dis,full,style}){
   );
 };
 
-export function Inp({value,onChange,placeholder,style,type,onKeyDown}){
+export function Inp({value,onChange,placeholder,style,type,onKeyDown,disabled}){
   const C = C_LIGHT;
   return(
 
-  <input value={value} onChange={onChange} placeholder={placeholder} type={type||"text"} onKeyDown={onKeyDown}
-    style={{background:C.bg,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,padding:"9px 13px",fontSize:13,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif",...style}}
+  <input value={value} onChange={onChange} disabled={disabled} placeholder={placeholder} type={type||"text"} onKeyDown={onKeyDown}
+    style={{background:C.bg,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,padding:"9px 13px",fontSize:13,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif",opacity:disabled?0.6:1,cursor:disabled?"not-allowed":"text",...style}}
     onFocus={e=>{e.target.style.borderColor=C.blue;e.target.style.boxShadow="0 0 0 3px "+C.blueDim;}} onBlur={e=>{e.target.style.borderColor=C.border;e.target.style.boxShadow="none;"}}/>
 
   );
@@ -82,11 +85,11 @@ export function KPI({label,value,sub,col,icon,trend}){
   );
 };
 
-export function Modal({open,onClose,title,children,ac}){
+export function Modal({open,onClose,title,children,ac,closeOnBackdrop=true}){
   const C = C_LIGHT;
   if(!open) return null;
   return(
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.45)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}} onClick={onClose}>
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.45)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}} onClick={closeOnBackdrop ? onClose : undefined}>
       <div style={{background:C.card,borderRadius:16,padding:28,minWidth:320,maxWidth:560,width:"100%",boxShadow:"0 8px 40px rgba(0,0,0,.18)",border:`1px solid ${C.border}`}} onClick={e=>e.stopPropagation()}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:18}}>
           <div style={{fontWeight:800,fontSize:16,color:C.text}}>{title}</div>
@@ -138,6 +141,12 @@ export function ToastProvider() {
   },[]);
   const cols = { success:C.green, error:C.red, warning:C.amber, info:C.blue };
   const icons = { success:"✅", error:"❌", warning:"⚠️", info:"ℹ️" };
+  const toastText = (msg, tipo) => {
+    if (typeof msg !== "string") return msg;
+    const lead = icons[tipo] || "";
+    if (lead && msg.startsWith(lead)) return msg.slice(lead.length).trimStart();
+    return msg;
+  };
   if (!toasts.length) return null;
   return (
     <div style={{position:"fixed",bottom:20,right:20,zIndex:9998,display:"flex",flexDirection:"column",gap:8,maxWidth:340}}>
@@ -150,7 +159,7 @@ export function ToastProvider() {
           animation:"slideUp .3s ease",
         }}>
           <span style={{fontSize:18,flexShrink:0}}>{icons[t.tipo]||"ℹ️"}</span>
-          <span style={{color:C.text,fontSize:13,fontWeight:600,flex:1}}>{t.msg}</span>
+          <span style={{color:C.text,fontSize:13,fontWeight:600,flex:1}}>{toastText(t.msg, t.tipo)}</span>
         </div>
       ))}
     </div>
@@ -361,11 +370,13 @@ export const hoverStyles = `
     transform: translateY(-1px);
   }
 
-  /* Cards de producto en POS */
-  .farmax-product-card { transition: border-color .15s, box-shadow .15s; }
+  /* Cards de producto en POS (clic en toda la tarjeta) */
+  .farmax-product-card { transition: border-color .15s, box-shadow .15s, transform .12s, background .12s; }
   .farmax-product-card:hover {
     border-color: #0052cc !important;
-    box-shadow: 0 2px 12px rgba(0,82,204,.15) !important;
+    box-shadow: 0 4px 16px rgba(0,82,204,.14) !important;
+    transform: translateY(-1px);
+    background: #fbfdff !important;
   }
 
   /* Botones secundarios */

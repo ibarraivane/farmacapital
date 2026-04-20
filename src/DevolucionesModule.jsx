@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
+import { idEmpleadoUsuarios } from "./utils/usuarioId";
 
 const BRAND = { primary:"#0052cc", secondary:"#0099e6", gradient:"linear-gradient(135deg,#0052cc,#0099e6)" };
 const fmt = n => `$${parseFloat(n||0).toLocaleString("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2})}`;
@@ -70,6 +71,12 @@ function NuevaDevolucionModal({usuario, onClose, onSaved }) {
     if (!motivo) { setError("Indica el motivo de la devolución."); return; }
     setSaving(true); setError("");
     try {
+      const empleadoId = await idEmpleadoUsuarios(usuario);
+      if (empleadoId == null) {
+        setError("No se pudo identificar al usuario: debe existir un registro en Usuarios con el mismo correo que usaste para iniciar sesión.");
+        setSaving(false);
+        return;
+      }
       const { data: dev } = await supabase.from("devoluciones").insert({
         pedido_id: pedSel.id,
         cliente_id: pedSel.cliente_id||null,
@@ -77,7 +84,7 @@ function NuevaDevolucionModal({usuario, onClose, onSaved }) {
         total_devuelto: totalDevolver,
         metodo_reembolso: metodo,
         notas: notas||null,
-        atendido_por: usuario?.id||null,
+        atendido_por: empleadoId,
       }).select().single();
 
       if (dev) {

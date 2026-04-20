@@ -1,0 +1,14 @@
+-- ═══════════════════════════════════════════════════════════════════════════
+-- FARMAX — Error: column p.precio_venta does not exist (42703)
+--
+-- La tabla `productos` usa `precio` y `precio_unidad`, no `precio_venta`.
+-- El archivo `create_sale_transaction.sql` ya no referencia precio_venta.
+--
+-- PASOS EN SUPABASE
+-- 1. SQL Editor → Run without RLS
+-- 2. Copia TODO el archivo `create_sale_transaction.sql` y ejecútalo de una vez
+--    (incluye get_lote_fefo + create_sale_transaction_v2 + grants).
+--
+-- Si falla por columna: asegúrate de que `productos` tenga al menos:
+--   precio, precio_unidad, unidades_por_caja, stock, stock_unidades
+-- ═══════════════════════════════════════════════════════════════════════════

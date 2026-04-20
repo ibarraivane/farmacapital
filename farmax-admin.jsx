@@ -505,7 +505,7 @@ function POS({negocio}){
                   {cli&&<div style={{color:C.purple,fontSize:11,fontWeight:700,marginTop:4}}>+{ptsG} puntos Farmax al pagar</div>}
                 </div>
                 <div style={{display:"flex",gap:5,marginBottom:12}}>
-                  {["Efectivo","Tarjeta","OXXO","SPEI"].map(p=>(
+                  {["Efectivo","Tarjeta","OXXO"].map(p=>(
                     <button key={p} onClick={()=>setPay(p)} style={{flex:1,padding:"6px 2px",borderRadius:6,border:`1px solid ${pay===p?ac:C.border}`,background:pay===p?ac+"20":"transparent",color:pay===p?ac:C.textMid,cursor:"pointer",fontSize:9,fontWeight:700}}>{p}</button>
                   ))}
                 </div>

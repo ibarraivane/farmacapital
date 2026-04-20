@@ -241,6 +241,11 @@ declare
   v_lote_caducidad date;
   v_lote_disponible integer;
   v_lote_tomar integer;
+  v_precio_prod numeric;
+  v_precio_unidad_prod numeric;
+  v_upc integer;
+  v_notas text;
+  v_tipo_guardado text;
 begin
   if p_user_id is null then
     raise exception 'user_id es requerido';
@@ -293,14 +298,25 @@ begin
     select
       p.stock,
       coalesce(p.stock_unidades, 0),
-      coalesce(p.precio_venta, p.precio, 0)
-      into v_stock_actual, v_stock_unidades_actual, v_db_precio
+      coalesce(p.precio, 0),
+      coalesce(p.precio_unidad, 0)::numeric,
+      greatest(coalesce(p.unidades_por_caja, 1), 1)
+    into v_stock_actual, v_stock_unidades_actual, v_precio_prod, v_precio_unidad_prod, v_upc
     from public.productos p
     where p.id = v_producto_id
     for update;
 
     if not found then
       raise exception 'producto % no existe', v_producto_id;
+    end if;
+
+    if v_modo_venta = 'unidad' then
+      v_db_precio := coalesce(
+        nullif(v_precio_unidad_prod, 0),
+        ceil((v_precio_prod / nullif(v_upc, 0))::numeric)::numeric
+      );
+    else
+      v_db_precio := coalesce(v_precio_prod, 0);
     end if;
 
     if v_modo_venta = 'unidad' then
@@ -348,6 +364,34 @@ begin
     raise exception 'Total mismatch detected';
   end if;
 
+  -- Dirección / entrega: muchas bases solo tienen notas (no columna direccion).
+  v_notas := null;
+  if (p_direccion is not null and btrim(p_direccion) <> '')
+     or (p_tipo_entrega is not null and btrim(p_tipo_entrega) <> '') then
+    v_notas := trim(
+      concat_ws(
+        E'\n',
+        case
+          when p_tipo_entrega is not null and btrim(p_tipo_entrega) <> '' then 'Entrega: ' || btrim(p_tipo_entrega)
+          else null
+        end,
+        case
+          when p_direccion is not null and btrim(p_direccion) <> '' then 'Dirección: ' || btrim(p_direccion)
+          else null
+        end
+      )
+    );
+  end if;
+
+  -- Valor guardado en pedidos.tipo (el UI y reportes usan tienda_fisica / online).
+  v_tipo_guardado := case p_tipo
+    when 'pos' then 'tienda_fisica'
+    when 'online' then 'online'
+    when 'pickup' then 'online'
+    when 'delivery' then 'online'
+    else 'tienda_fisica'
+  end;
+
   -- 2) Create pedido with channel/delivery fields.
   insert into public.pedidos (
     cliente_id,
@@ -355,19 +399,19 @@ begin
     estado,
     tipo,
     tipo_entrega,
-    direccion,
     metodo_pago,
-    atendido_por
+    atendido_por,
+    notas
   )
   values (
     p_cliente_id,
     p_total,
     'completado',
-    p_tipo,
+    v_tipo_guardado,
     p_tipo_entrega,
-    p_direccion,
     p_metodo_pago,
-    p_user_id
+    p_user_id,
+    v_notas
   )
   returning id into v_pedido_id;
 
@@ -384,11 +428,26 @@ begin
     select
       p.stock,
       coalesce(p.stock_unidades, 0),
-      coalesce(p.precio_venta, p.precio, 0)
-      into v_stock_actual, v_stock_unidades_actual, v_db_precio
+      coalesce(p.precio, 0),
+      coalesce(p.precio_unidad, 0)::numeric,
+      greatest(coalesce(p.unidades_por_caja, 1), 1)
+    into v_stock_actual, v_stock_unidades_actual, v_precio_prod, v_precio_unidad_prod, v_upc
     from public.productos p
     where p.id = v_producto_id
     for update;
+
+    if not found then
+      raise exception 'producto % no existe', v_producto_id;
+    end if;
+
+    if v_modo_venta = 'unidad' then
+      v_db_precio := coalesce(
+        nullif(v_precio_unidad_prod, 0),
+        ceil((v_precio_prod / nullif(v_upc, 0))::numeric)::numeric
+      );
+    else
+      v_db_precio := coalesce(v_precio_prod, 0);
+    end if;
 
     if v_modo_venta = 'unidad' then
       v_stock_unidades_nuevo := v_stock_unidades_actual - v_cantidad;

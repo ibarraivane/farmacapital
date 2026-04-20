@@ -4,7 +4,7 @@ import { crearIntenciónDePago, esperarConfirmacionPago, cancelarPago, isMPConfi
 /**
  * FARMAX — Modal de pago con Mercado Pago Point Smart 2
  */
-export default function MercadoPagoModal({ open, total, folio, onSuccess, onCancel }) {
+export default function MercadoPagoModal({ open, total, folio, hint, onSuccess, onCancel }) {
   const [estado,    setEstado]    = useState("idle"); // idle|iniciando|esperando|exito|error|cancelado
   const [mensaje,   setMensaje]   = useState("");
   const [intentId,  setIntentId]  = useState(null);
@@ -75,8 +75,11 @@ export default function MercadoPagoModal({ open, total, folio, onSuccess, onCanc
         {/* Header */}
         <div style={{textAlign:"center",marginBottom:24}}>
           <div style={{fontSize:48,marginBottom:8}}>{iconos[estado]}</div>
-          <div style={{fontWeight:800,fontSize:18,color:"#0f172a"}}>Mercado Pago Point Smart 2</div>
+          <div style={{fontWeight:800,fontSize:18,color:"#0f172a"}}>Pago con tarjeta — Point Smart 2</div>
           <div style={{color:"#475569",fontSize:13,marginTop:4}}>Folio: {folio}</div>
+          {hint && (
+            <div style={{color:"#64748b",fontSize:11,marginTop:10,lineHeight:1.45,maxWidth:340,marginLeft:"auto",marginRight:"auto"}}>{hint}</div>
+          )}
         </div>
 
         {/* Monto */}

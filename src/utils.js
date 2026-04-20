@@ -9,6 +9,19 @@ export const abc  = i => { const v=i.stock*i.price; return v>800?"A":v>300?"B":"
 export const aCol = a => ({A:C.green,B:C.amber,C:C.red}[a]);
 export const nCol = n => ({Gold:C.amber,Silver:C.textMid,Bronze:"#cd7f32"}[n]||C.textMid);
 
+/** Primer nombre (primer token) para saludos en UI. */
+export const primerNombre = (nombre) => {
+  const s = String(nombre ?? "").trim();
+  if (!s) return "";
+  return s.split(/\s+/)[0];
+};
+
+/** "Hola Juan" para barras laterales / cabeceras; sin nombre → "Hola". */
+export const saludoUsuario = (nombre) => {
+  const p = primerNombre(nombre);
+  return p ? `Hola ${p}` : "Hola";
+};
+
 // Genera un salt aleatorio único (32 chars hex)
 export const generateSalt = () => {
   const arr = new Uint8Array(16);

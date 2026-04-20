@@ -1,6 +1,10 @@
 import { useState, useEffect } from "react";
 import { supabase } from "./supabase";
 import { useTheme } from "./themeContext";
+import { useMediaQuery } from "./hooks/useMediaQuery";
+import { saludoUsuario, primerNombre, $ } from "./utils";
+import { CONSULTA_PRECIO_DEFAULT } from "./utils/consultaConstants";
+import { fetchPrecioConsultaConfig } from "./utils/consumiblesConsultorio";
 
 // ═══════════════════════════════════════════════════════════════
 // FARMAX — Tienda en Línea v4
@@ -42,7 +46,7 @@ const BANNERS = [
   {
     id:2,
     titulo:"Consulta médica",
-    subtitulo:"$300 por consulta",
+    subtitulo:`$${CONSULTA_PRECIO_DEFAULT} por consulta`,
     descripcion:"O gratis con 160 puntos Farmax. Médico general disponible.",
     cta:"Agendar cita",
     pagina:"cita",
@@ -60,6 +64,22 @@ const BANNERS = [
     emoji:"⭐",
   },
 ];
+
+/** Normaliza fila Supabase → props de UI; slot: hero | strip | tile */
+function mapBannerFromRow(b){
+  const s = String(b.slot||"hero").toLowerCase();
+  const slot = s==="strip"||s==="tile" ? s : "hero";
+  return {
+    titulo: b.titulo,
+    subtitulo: b.subtitulo||"",
+    descripcion: b.descripcion||"",
+    emoji: b.emoji||"💊",
+    bg: b.bg||BRAND.gradient,
+    cta: b.cta||"Ver más",
+    pagina: b.pagina||"catalogo",
+    slot,
+  };
+}
 
 // ── FAQ ───────────────────────────────────────────────────────
 const FAQ_ITEMS = [
@@ -80,7 +100,6 @@ const HORARIOS_DOCTORA = [
 ];
 const TODOS_HORARIOS = ["09:00","09:30","10:00","10:30","11:00","11:30","16:00","16:30","17:00","17:30","18:00","18:30"];
 
-const $ = n => `$${Number(n).toLocaleString("es-MX")}`;
 const ptsGana = p => Math.floor(p/10);
 const labelPts = n => `${n} ${n===1?"punto":"puntos"} Farmax`;
 
@@ -128,20 +147,22 @@ const Inp=({value,onChange,placeholder,type,style,onKeyDown})=>(
 );
 
 // ── POPUP BIENVENIDA ──────────────────────────────────────────
-function PopupBienvenida({onClose,setPage}){
+function PopupBienvenida({onClose,setPage,precioConsulta}){
   const C = useTheme();
+  const stack = useMediaQuery("(max-width: 480px)");
+  const pc = Math.round(Number(precioConsulta) || CONSULTA_PRECIO_DEFAULT);
   return(
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.55)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.55)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
       <div style={{background:C.white,borderRadius:20,maxWidth:420,width:"100%",overflow:"hidden",boxShadow:"0 20px 60px rgba(0,0,0,.3)"}}>
-        <div style={{background:BRAND.gradient,padding:"32px 28px",textAlign:"center",position:"relative"}}>
-          <button onClick={onClose} style={{position:"absolute",top:12,right:16,background:"rgba(255,255,255,.2)",border:"none",color:C.white,width:28,height:28,borderRadius:"50%",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
+        <div style={{background:BRAND.gradient,padding:"28px 20px",textAlign:"center",position:"relative"}}>
+          <button type="button" onClick={onClose} style={{position:"absolute",top:12,right:16,background:"rgba(255,255,255,.2)",border:"none",color:C.white,width:28,height:28,borderRadius:"50%",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
           <div style={{fontSize:48,marginBottom:12}}>⭐</div>
-          <h2 style={{color:C.white,fontSize:22,fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif",marginBottom:8}}>¡Bienvenido a Farmax!</h2>
+          <h2 style={{color:C.white,fontSize:"clamp(18px,4.5vw,22px)",fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif",marginBottom:8}}>¡Bienvenido a Farmax!</h2>
           <p style={{color:"rgba(255,255,255,.9)",fontSize:14,lineHeight:1.6}}>Regístrate hoy y gana <strong>10 puntos de bienvenida</strong> — equivalen a $5 de descuento en tu próxima compra.</p>
         </div>
-        <div style={{padding:"24px 28px"}}>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:20}}>
-            {[["💊","Genéricos desde $10"],["📦","Envío a domicilio"],["🏥","Consulta médica $300"],["⭐","Acumula puntos"]].map(([e,t])=>(
+        <div style={{padding:"20px 20px"}}>
+          <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:10,marginBottom:20}}>
+            {[["💊","Genéricos desde $10"],["📦","Envío a domicilio"],["🏥",`Consulta médica $${pc}`],["⭐","Acumula puntos"]].map(([e,t])=>(
               <div key={t} style={{display:"flex",alignItems:"center",gap:8}}>
                 <span style={{fontSize:18}}>{e}</span>
                 <span style={{color:C.mid,fontSize:12}}>{t}</span>
@@ -156,108 +177,220 @@ function PopupBienvenida({onClose,setPage}){
   );
 }
 
-// ── BANNERS ROTATIVOS ─────────────────────────────────────────
-function BannersRotativos({setPage}){
+// ── CARRUSEL PRINCIPAL (zona hero) ────────────────────────────
+function HeroCarousel({setPage, items, precioConsulta}){
   const C = useTheme();
   const [idx,setIdx]=useState(0);
-  const [banners,setBanners]=useState(BANNERS);
+  const banners = items.length
+    ? items
+    : BANNERS.map((b) =>
+        b.id === 2 && precioConsulta
+          ? {
+              ...b,
+              subtitulo: `$${Math.round(Number(precioConsulta) || CONSULTA_PRECIO_DEFAULT)} por consulta`,
+            }
+          : b
+      );
+  useEffect(()=>{ setIdx(0); },[banners.length]);
   useEffect(()=>{
-    // I1: Cargar banners dinámicos desde Supabase
-    supabase.from("banners").select("*").eq("activo",true).order("orden").then(({data})=>{
-      if(data&&data.length) setBanners(data.map(b=>({
-        titulo:b.titulo, subtitulo:b.subtitulo||"",
-        descripcion:b.descripcion||"", emoji:b.emoji||"💊",
-        bg:b.bg||BRAND.gradient, cta:b.cta||"Ver más", pagina:b.pagina||"catalogo",
-      })));
-    });
-  },[]);
-  useEffect(()=>{
+    if(banners.length<=1) return undefined;
     const t=setInterval(()=>setIdx(i=>(i+1)%banners.length),4000);
     return ()=>clearInterval(t);
   },[banners.length]);
   const b=banners[idx]||BANNERS[0];
   return(
     <div style={{position:"relative",overflow:"hidden"}}>
-      <div style={{background:b.bg,padding:"48px 24px",textAlign:"center",transition:"background .5s"}}>
+      <div style={{background:b.bg,padding:"clamp(28px,8vw,48px) 16px",textAlign:"center",transition:"background .5s"}}>
         <div style={{maxWidth:700,margin:"0 auto"}}>
-          <div style={{fontSize:52,marginBottom:12}}>{b.emoji}</div>
-          <div style={{color:"rgba(255,255,255,.8)",fontSize:13,letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>{b.subtitulo}</div>
-          <h2 style={{color:C.white,fontSize:32,fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif",marginBottom:12}}>{b.titulo}</h2>
-          <p style={{color:"rgba(255,255,255,.85)",fontSize:15,marginBottom:24,lineHeight:1.6}}>{b.descripcion}</p>
+          <div style={{fontSize:"clamp(40px, 12vw, 52px)",marginBottom:12}}>{b.emoji}</div>
+          <div style={{color:"rgba(255,255,255,.8)",fontSize:"clamp(11px, 3vw, 13px)",letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>{b.subtitulo}</div>
+          <h2 style={{color:C.white,fontSize:"clamp(22px, 6vw, 32px)",fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif",marginBottom:12,lineHeight:1.2}}>{b.titulo}</h2>
+          <p style={{color:"rgba(255,255,255,.85)",fontSize:"clamp(14px, 3.5vw, 15px)",marginBottom:24,lineHeight:1.6}}>{b.descripcion}</p>
           <Btn onClick={()=>setPage(b.pagina)} style={{background:C.white,color:BRAND.primary,border:"none"}}>{b.cta}</Btn>
         </div>
       </div>
-      {/* Indicadores */}
+      {banners.length>1&&(
+      <>
       <div style={{position:"absolute",bottom:12,left:"50%",transform:"translateX(-50%)",display:"flex",gap:6}}>
         {banners.map((_,i)=>(
-          <button key={i} onClick={()=>setIdx(i)} style={{width:i===idx?24:8,height:8,borderRadius:4,border:"none",background:i===idx?"rgba(255,255,255,.9)":"rgba(255,255,255,.4)",cursor:"pointer",transition:"all .3s",padding:0}}/>
+          <button key={i} type="button" aria-label={`Banner ${i+1}`} onClick={()=>setIdx(i)} style={{width:i===idx?24:8,height:8,borderRadius:4,border:"none",background:i===idx?"rgba(255,255,255,.9)":"rgba(255,255,255,.4)",cursor:"pointer",transition:"all .3s",padding:0}}/>
         ))}
       </div>
-      {/* Flechas */}
       {[[-1,"←"],[1,"→"]].map(([d,icon])=>(
-        <button key={d} onClick={()=>setIdx(i=>(i+d+BANNERS.length)%BANNERS.length)}
+        <button key={d} type="button" onClick={()=>setIdx(i=>(i+d+banners.length)%banners.length)}
           style={{position:"absolute",top:"50%",transform:"translateY(-50%)",...( d===-1?{left:16}:{right:16}),background:"rgba(255,255,255,.2)",border:"none",color:C.white,width:36,height:36,borderRadius:"50%",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center"}}>
           {icon}
         </button>
       ))}
+      </>
+      )}
+    </div>
+  );
+}
+
+// ── FRANJA: tarjetas anchas (zona strip) ─────────────────────
+function HomeBannersStrip({setPage, items}){
+  const C = useTheme();
+  if(!items?.length) return null;
+  return(
+    <div style={{background:"linear-gradient(180deg,#f0f7ff,#f7f9fc)",borderBottom:`1px solid ${C.border}`,padding:"16px 12px"}}>
+      <div style={{maxWidth:1200,margin:"0 auto",display:"flex",gap:12,flexWrap:"wrap",justifyContent:"center"}}>
+        {items.map((b,i)=>(
+          <button
+            key={`${b.titulo}-${i}`}
+            type="button"
+            onClick={()=>setPage(b.pagina)}
+            style={{
+              flex:"1 1 280px",maxWidth:420,minWidth:0,textAlign:"left",cursor:"pointer",border:"none",borderRadius:14,
+              background:b.bg,color:"#fff",padding:"16px 18px",boxShadow:"0 4px 20px rgba(0,82,204,.12)",
+              display:"flex",alignItems:"center",gap:14,transition:"transform .15s, box-shadow .15s",
+            }}
+            onMouseEnter={e=>{ e.currentTarget.style.transform="translateY(-2px)"; e.currentTarget.style.boxShadow="0 8px 28px rgba(0,82,204,.2)"; }}
+            onMouseLeave={e=>{ e.currentTarget.style.transform="none"; e.currentTarget.style.boxShadow="0 4px 20px rgba(0,82,204,.12)"; }}
+          >
+            <span style={{fontSize:36,flexShrink:0}}>{b.emoji}</span>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontWeight:800,fontSize:"clamp(14px,3.5vw,16px)",lineHeight:1.25,marginBottom:4}}>{b.titulo}</div>
+              <div style={{fontSize:12,opacity:.9,lineHeight:1.35}}>{b.subtitulo||b.descripcion?.slice(0,80)}{(b.descripcion?.length>80?"…":"")}</div>
+              <div style={{fontSize:11,fontWeight:700,marginTop:8,opacity:.95}}>{b.cta} →</div>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── MOSAICO: rejilla compacta (zona tile) ─────────────────────
+function HomeBannersTiles({setPage, items, stack}){
+  const C = useTheme();
+  if(!items?.length) return null;
+  return(
+    <div style={{maxWidth:1200,margin:"0 auto",padding:"0 12px 20px"}}>
+      <div style={{
+        display:"grid",
+        gridTemplateColumns:stack?"repeat(2, 1fr)":"repeat(auto-fill, minmax(200px, 1fr))",
+        gap:12,
+      }}>
+        {items.map((b,i)=>(
+          <button
+            key={`${b.titulo}-${i}`}
+            type="button"
+            onClick={()=>setPage(b.pagina)}
+            style={{
+              textAlign:"left",cursor:"pointer",border:`1px solid ${C.border}`,borderRadius:14,
+              background:b.bg,color:"#fff",padding:16,minHeight:120,
+              display:"flex",flexDirection:"column",justifyContent:"space-between",gap:8,
+              boxShadow:"0 2px 12px rgba(0,0,0,.06)",transition:"transform .15s",
+            }}
+            onMouseEnter={e=>{ e.currentTarget.style.transform="translateY(-2px)"; }}
+            onMouseLeave={e=>{ e.currentTarget.style.transform="none"; }}
+          >
+            <span style={{fontSize:28}}>{b.emoji}</span>
+            <div>
+              <div style={{fontWeight:800,fontSize:14,lineHeight:1.25}}>{b.titulo}</div>
+              {b.subtitulo&&<div style={{fontSize:11,opacity:.9,marginTop:4,lineHeight:1.3}}>{b.subtitulo}</div>}
+            </div>
+            <div style={{fontSize:11,fontWeight:700}}>{b.cta} →</div>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
 
 // ── HEADER ────────────────────────────────────────────────────
+const NAV_LINKS = [["home","Inicio"],["catalogo","Catálogo"],["promo","Promociones"],["cita","Consulta médica"],["puntos","Puntos Farmax"],["faq","Ayuda"]];
+
 function Header({page,setPage,cart,user,setUser}){
   const C = useTheme();
+  const narrow = useMediaQuery("(max-width: 900px)");
+  const [mobileMenu, setMobileMenu] = useState(false);
   const n=cart.reduce((a,c)=>a+c.qty,0);
+
+  useEffect(()=>{ setMobileMenu(false); }, [page]);
+
+  const navBtn = (id,l)=>(
+    <button key={id} type="button" onClick={()=>setPage(id)} style={{
+      padding:"8px 14px",borderRadius:8,border:"none",
+      background:page===id?BRAND.primary+"18":"transparent",
+      color:page===id?BRAND.primary:C.mid,fontWeight:page===id?700:500,
+      fontSize:narrow?13:14,cursor:"pointer",fontFamily:"'Plus Jakarta Sans',sans-serif",
+      textAlign:narrow?"left":"center",width:narrow?"100%":"auto",
+    }}>{l}</button>
+  );
+
   return(
     <div>
-      {/* Barra superior */}
-      <div style={{background:BRAND.primary,padding:"6px 24px",textAlign:"center"}}>
-        <div style={{maxWidth:1200,margin:"0 auto",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <span style={{color:"rgba(255,255,255,.8)",fontSize:12}}>📍 Radiodifusora 100, Iztapalapa, CDMX</span>
-          <span style={{color:"rgba(255,255,255,.8)",fontSize:12}}>🕐 Lun–Vie 8:00–22:00 · Sáb 8:00–20:00 · Dom 9:00–18:00</span>
-          {/* Descomentar cuando tengas número:
-          <a href="tel:55XXXXXXXX" style={{color:C.white,fontSize:12,fontWeight:700,textDecoration:"none"}}>📞 55 XXXX XXXX</a>
-          */}
-          <span style={{color:"rgba(255,255,255,.7)",fontSize:12}}>📧 contacto@farmax.mx</span>
+      <div style={{background:BRAND.primary,padding:"8px 16px",textAlign:"center"}}>
+        <div style={{
+          maxWidth:1200,margin:"0 auto",display:"flex",justifyContent:"center",alignItems:"center",
+          flexWrap:"wrap",gap:"6px 14px",fontSize:"clamp(10px, 2.6vw, 12px)",lineHeight:1.4,
+        }}>
+          <span style={{color:"rgba(255,255,255,.85)"}}>📍 Radiodifusora 100, Iztapalapa, CDMX</span>
+          <span style={{color:"rgba(255,255,255,.85)"}}>🕐 Lun–Vie 8:00–22:00 · Sáb 8:00–20:00 · Dom 9:00–18:00</span>
+          <span style={{color:"rgba(255,255,255,.75)"}}>📧 contacto@farmax.mx</span>
         </div>
       </div>
-      {/* Header principal */}
       <header style={{background:C.white,borderBottom:`1px solid ${C.border}`,position:"sticky",top:0,zIndex:100,boxShadow:"0 1px 12px #0001"}}>
-        <div style={{maxWidth:1200,margin:"0 auto",padding:"0 24px",display:"flex",alignItems:"center",justifyContent:"space-between",height:64}}>
-          <div onClick={()=>setPage("home")}><Logo size={32}/></div>
-          <nav style={{display:"flex",gap:4}}>
-            {[["home","Inicio"],["catalogo","Catálogo"],["cita","Consulta médica"],["puntos","Puntos Farmax"],["faq","Ayuda"]].map(([id,l])=>(
-              <button key={id} onClick={()=>setPage(id)} style={{padding:"8px 14px",borderRadius:8,border:"none",background:page===id?BRAND.primary+"18":"transparent",color:page===id?BRAND.primary:C.mid,fontWeight:page===id?700:500,fontSize:14,cursor:"pointer",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{l}</button>
-            ))}
-          </nav>
-          <div style={{display:"flex",alignItems:"center",gap:10}}>
+        <div style={{
+          maxWidth:1200,margin:"0 auto",padding:"10px 16px",display:"flex",alignItems:"center",
+          justifyContent:"space-between",gap:12,flexWrap:"wrap",minHeight:56,
+        }}>
+          <div style={{display:"flex",alignItems:"center",gap:10,flex:"1 1 auto",minWidth:0}}>
+            <div onClick={()=>setPage("home")} style={{cursor:"pointer"}}><Logo size={narrow?28:32}/></div>
+            {!narrow && (
+              <nav style={{display:"flex",gap:4,flexWrap:"wrap"}}>{NAV_LINKS.map(([id,l])=>navBtn(id,l))}</nav>
+            )}
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0,flexWrap:"wrap",justifyContent:"flex-end"}}>
             {user?(
-              <div style={{display:"flex",alignItems:"center",gap:6}}>
-                <div onClick={()=>setPage("cuenta")} style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",padding:"6px 12px",borderRadius:10,background:BRAND.primary+"18"}}>
-                  <div style={{width:28,height:28,borderRadius:"50%",background:BRAND.gradient,display:"flex",alignItems:"center",justifyContent:"center",color:C.white,fontWeight:800,fontSize:13}}>{(user.nombre||"C")[0]}</div>
-                  <div>
-                    <div style={{color:BRAND.primary,fontWeight:700,fontSize:12,lineHeight:1}}>{(user.nombre||"").split(" ")[0]}</div>
+              <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+                <div onClick={()=>setPage("cuenta")} style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",padding:"6px 10px",borderRadius:10,background:BRAND.primary+"18",maxWidth:narrow?200:undefined}}>
+                  <div style={{width:28,height:28,borderRadius:"50%",background:BRAND.gradient,display:"flex",alignItems:"center",justifyContent:"center",color:C.white,fontWeight:800,fontSize:13,flexShrink:0}}>{(primerNombre(user.nombre)||"C")[0].toUpperCase()}</div>
+                  <div style={{minWidth:0,overflow:"hidden"}}>
+                    <div style={{color:BRAND.primary,fontWeight:700,fontSize:12,lineHeight:1,whiteSpace:"nowrap",textOverflow:"ellipsis",overflow:"hidden",maxWidth:160}}>{saludoUsuario(user.nombre)}</div>
                     <div style={{color:BRAND.secondary,fontSize:10}}>⭐ {user.puntos||0} pts</div>
                   </div>
                 </div>
-                <button onClick={()=>{setUser(null);sessionStorage.removeItem("farmax_user");setPage("home");}}
+                <button type="button" onClick={()=>{setUser(null);sessionStorage.removeItem("farmax_user");setPage("home");}}
                   title="Cerrar sesión"
                   style={{padding:"6px 10px",borderRadius:8,border:`1px solid ${C.border}`,background:"transparent",color:C.mid,fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>
                   ⎋ <span style={{fontSize:11}}>Salir</span>
                 </button>
               </div>
             ):(
-              <div style={{display:"flex",gap:8}}>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                 <Btn onClick={()=>setPage("registro")} col={BRAND.accent} sm>Crear cuenta</Btn>
                 <Btn onClick={()=>setPage("login")} outline col={BRAND.primary} sm>Iniciar sesión</Btn>
               </div>
             )}
-            <button onClick={()=>setPage("carrito")} style={{position:"relative",background:"none",border:"none",cursor:"pointer",padding:8}}>
+            <button type="button" onClick={()=>setPage("carrito")} style={{position:"relative",background:"none",border:"none",cursor:"pointer",padding:8}}>
               <span style={{fontSize:22}}>🛒</span>
               {n>0&&<span style={{position:"absolute",top:2,right:2,background:C.red,color:C.white,borderRadius:"50%",width:18,height:18,fontSize:10,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{n}</span>}
             </button>
+            {narrow && (
+              <button
+                type="button"
+                aria-label={mobileMenu?"Cerrar menú":"Abrir menú"}
+                aria-expanded={mobileMenu}
+                onClick={()=>setMobileMenu(m=>!m)}
+                style={{
+                  width:44,height:40,borderRadius:10,border:`1px solid ${C.border}`,background:C.card,
+                  cursor:"pointer",fontSize:18,color:C.dark,
+                }}
+              >☰</button>
+            )}
           </div>
         </div>
+        {narrow && mobileMenu && (
+          <nav style={{
+            borderTop:`1px solid ${C.border}`,padding:"8px 16px 14px",
+            display:"flex",flexDirection:"column",gap:2,background:C.white,
+          }}>
+            {NAV_LINKS.map(([id,l])=>navBtn(id,l))}
+          </nav>
+        )}
       </header>
     </div>
   );
@@ -307,15 +440,16 @@ function ProductCard({prod,addToCart,onClick}){
 // ── DETALLE PRODUCTO ──────────────────────────────────────────
 function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle}){
   const C = useTheme();
+  const stack = useMediaQuery("(max-width: 700px)");
   if(!prod) return null;
   const similares=productos.filter(p=>p.categoria===prod.categoria&&p.id!==prod.id).slice(0,4);
   const d=prod.disponible||(prod.stock>0?"inmediato":"48hrs");
   const [added,setAdded]=useState(false);
   return(
-    <div style={{maxWidth:1100,margin:"0 auto",padding:"32px 24px"}}>
-      <button onClick={()=>setProdDetalle(null)} style={{background:"none",border:"none",color:BRAND.primary,cursor:"pointer",fontSize:14,fontWeight:700,marginBottom:20,display:"flex",alignItems:"center",gap:6}}>← Volver al catálogo</button>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:32,marginBottom:48}}>
-        <div style={{background:C.cardDark,borderRadius:20,display:"flex",alignItems:"center",justifyContent:"center",fontSize:120,padding:48}}>💊</div>
+    <div style={{maxWidth:1100,margin:"0 auto",padding:"clamp(20px, 4vw, 32px) 16px"}}>
+      <button type="button" onClick={()=>setProdDetalle(null)} style={{background:"none",border:"none",color:BRAND.primary,cursor:"pointer",fontSize:14,fontWeight:700,marginBottom:20,display:"flex",alignItems:"center",gap:6}}>← Volver al catálogo</button>
+      <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:stack?24:32,marginBottom:48}}>
+        <div style={{background:C.cardDark,borderRadius:20,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"clamp(64px, 22vw, 120px)",padding:stack?32:48}}>💊</div>
         <div>
           <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
             <Tag col={d==="inmediato"?BRAND.accent:"#f59e0b"}>{d==="inmediato"?"✓ Disponible hoy":"📦 24-48 hrs"}</Tag>
@@ -323,11 +457,11 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle}){
             {prod.requiere_receta&&<Tag col={C.red}>Requiere receta</Tag>}
             <Tag col={C.mid} sm>{prod.categoria}</Tag>
           </div>
-          <h1 style={{color:C.dark,fontSize:28,fontWeight:800,marginBottom:8}}>{prod.nombre}</h1>
+          <h1 style={{color:C.dark,fontSize:"clamp(20px, 5vw, 28px)",fontWeight:800,marginBottom:8,lineHeight:1.25}}>{prod.nombre}</h1>
           {prod.marca&&<div style={{color:C.mid,fontSize:14,marginBottom:16}}>Marca de referencia: {prod.marca}</div>}
           <div style={{marginBottom:20}}>
-            <div style={{display:"flex",alignItems:"baseline",gap:12}}>
-              <span style={{color:BRAND.primary,fontWeight:900,fontSize:36}}>{$(prod.precio||prod.precio||0)}</span>
+            <div style={{display:"flex",alignItems:"baseline",gap:12,flexWrap:"wrap"}}>
+              <span style={{color:BRAND.primary,fontWeight:900,fontSize:"clamp(26px, 7vw, 36px)"}}>{$(prod.precio||prod.precio||0)}</span>
               {prod.precio_marca&&<span style={{color:C.dim,fontSize:16,textDecoration:"line-through"}}>{$(prod.precio_marca)} marca</span>}
             </div>
             {prod.tipo==="generico"&&prod.precio_marca&&(
@@ -350,9 +484,9 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle}){
               <div style={{color:C.red,fontWeight:700,fontSize:13}}>⚕ Requiere receta médica. Se solicitará al entregar.</div>
             </div>
           )}
-          <div style={{display:"flex",gap:12}}>
-            <Btn onClick={()=>{addToCart(prod);setAdded(true);setTimeout(()=>setAdded(false),1500);}} col={added?BRAND.secondary:BRAND.primary} style={{flex:1}}>{added?"✓ Agregado":"Agregar al carrito"}</Btn>
-            <Btn onClick={()=>{addToCart(prod);setPage("carrito");}} outline col={BRAND.primary} style={{flex:1}}>Comprar ahora</Btn>
+          <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
+            <Btn onClick={()=>{addToCart(prod);setAdded(true);setTimeout(()=>setAdded(false),1500);}} col={added?BRAND.secondary:BRAND.primary} style={{flex:"1 1 200px",minWidth:0}}>{added?"✓ Agregado":"Agregar al carrito"}</Btn>
+            <Btn onClick={()=>{addToCart(prod);setPage("carrito");}} outline col={BRAND.primary} style={{flex:"1 1 200px",minWidth:0}}>Comprar ahora</Btn>
           </div>
         </div>
       </div>
@@ -371,10 +505,11 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle}){
 // ── FOOTER COMPLETO ───────────────────────────────────────────
 function Footer({setPage}){
   const C = useTheme();
+  const stack = useMediaQuery("(max-width: 768px)");
   return(
     <footer style={{background:C.dark,marginTop:48}}>
       {/* Links principales */}
-      <div style={{maxWidth:1200,margin:"0 auto",padding:"48px 24px 32px",display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:32}}>
+      <div style={{maxWidth:1200,margin:"0 auto",padding:"48px 24px 32px",display:"grid",gridTemplateColumns:stack?"1fr":"repeat(4,1fr)",gap:stack?28:32}}>
         {/* Farmax */}
         <div>
           <div style={{marginBottom:16}}><Logo size={28} light/></div>
@@ -421,7 +556,7 @@ function Footer({setPage}){
         <div style={{maxWidth:1200,margin:"0 auto",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:16}}>
           <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
             <span style={{color:"rgba(255,255,255,.5)",fontSize:12}}>Métodos de pago:</span>
-            {["💳 Tarjeta","🏦 SPEI","🔵 Mercado Pago"].map(m=>(
+            {["💳 Tarjeta","🔵 Mercado Pago"].map(m=>(
               <span key={m} style={{background:"rgba(255,255,255,.1)",color:"rgba(255,255,255,.7)",fontSize:11,padding:"3px 10px",borderRadius:20}}>{m}</span>
             ))}
           </div>
@@ -436,9 +571,12 @@ function Footer({setPage}){
 }
 
 // ── HOME ──────────────────────────────────────────────────────
-function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero}){
+function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,precioConsulta}){
   const C = useTheme();
+  const stack = useMediaQuery("(max-width: 768px)");
   const [promos, setPromos] = useState([]);
+  const [bannerZones, setBannerZones] = useState({hero:[], strip:[], tile:[]});
+
   useEffect(()=>{
     const hoy = new Date().toISOString().split("T")[0];
     supabase.from("promociones").select("*")
@@ -446,15 +584,26 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero})
       .or(`fecha_fin.is.null,fecha_fin.gte.${hoy}`)
       .then(({data})=>setPromos(data||[]));
   },[]);
+
+  useEffect(()=>{
+    supabase.from("banners").select("*").eq("activo",true).order("orden").then(({data})=>{
+      const rows = (data||[]).map(mapBannerFromRow);
+      setBannerZones({
+        hero: rows.filter(r=>r.slot==="hero"),
+        strip: rows.filter(r=>r.slot==="strip"),
+        tile: rows.filter(r=>r.slot==="tile"),
+      });
+    });
+  },[]);
+
   return(
     <div>
-      {/* Banners rotativos */}
-      <BannersRotativos setPage={setPage}/>
+      <HeroCarousel setPage={setPage} items={bannerZones.hero} precioConsulta={precioConsulta}/>
 
       {/* Badges */}
       <div style={{background:C.white,borderBottom:`1px solid ${C.border}`,padding:"14px 24px"}}>
         <div style={{maxWidth:1200,margin:"0 auto",display:"flex",gap:24,justifyContent:"center",flexWrap:"wrap"}}>
-          {[["🚀","Pick-up gratis","Recoge hoy en Farmax"],["🛵","CDMX express","Rappi & Uber Connect"],["📦","Envío foráneo","$89 · Skydropx"],["⭐","Puntos Farmax","Acumula en cada compra"],["💳","Pago seguro","Tarjeta, SPEI, MercadoPago"]].map(([icon,t,s])=>(
+          {[["🚀","Pick-up gratis","Recoge hoy en Farmax"],["🛵","CDMX express","Rappi & Uber Connect"],["📦","Envío foráneo","$89 · Skydropx"],["⭐","Puntos Farmax","Acumula en cada compra"],["💳","Pago seguro","Tarjeta y Mercado Pago"]].map(([icon,t,s])=>(
             <div key={t} style={{display:"flex",alignItems:"center",gap:8}}>
               <div style={{fontSize:20}}>{icon}</div>
               <div><div style={{color:C.dark,fontWeight:700,fontSize:12}}>{t}</div><div style={{color:C.dim,fontSize:11}}>{s}</div></div>
@@ -463,8 +612,10 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero})
         </div>
       </div>
 
+      <HomeBannersStrip setPage={setPage} items={bannerZones.strip}/>
+
       {/* Barra búsqueda */}
-      <div style={{background:`linear-gradient(180deg,${BRAND.primary}10,transparent)`,padding:"28px 24px"}}>
+      <div style={{background:`linear-gradient(180deg,${BRAND.primary}10,transparent)`,padding:"24px 16px"}}>
         <div style={{maxWidth:600,margin:"0 auto",position:"relative"}}>
           <input value={busqHero} onChange={e=>setBusqHero(e.target.value)}
             onKeyDown={e=>{
@@ -475,23 +626,31 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero})
             }}
             placeholder="🔍 Busca tu medicamento por nombre o principio activo..."
             style={{width:"100%",boxSizing:"border-box",padding:"16px 56px 16px 20px",borderRadius:30,border:`2px solid ${BRAND.primary}30`,fontSize:15,fontFamily:"'Plus Jakarta Sans',sans-serif",outline:"none",background:C.white,boxShadow:"0 4px 20px rgba(0,82,204,.1)"}}/>
-          <button onClick={()=>busqHero.trim()&&setPage("catalogo")}
+          <button type="button" onClick={()=>busqHero.trim()&&setPage("catalogo")}
             style={{position:"absolute",right:6,top:"50%",transform:"translateY(-50%)",background:BRAND.gradient,border:"none",borderRadius:24,width:44,height:44,cursor:"pointer",color:C.white,fontSize:18,display:"flex",alignItems:"center",justifyContent:"center"}}>→</button>
         </div>
       </div>
 
-      {/* Promociones vigentes */}
-      {promos.length>0&&(
-        <div style={{maxWidth:1200,margin:"0 auto",padding:"0 24px 32px"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-            <h2 style={{color:C.dark,fontSize:22,fontWeight:800,margin:0}}>🏷️ Promociones vigentes</h2>
+      <HomeBannersTiles setPage={setPage} items={bannerZones.tile} stack={stack}/>
+
+      {/* Promociones y descuentos (tabla promociones + Admin módulo Promociones) */}
+      <div style={{maxWidth:1200,margin:"0 auto",padding:"8px 16px 32px"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:12}}>
+          <div>
+            <h2 style={{color:C.dark,fontSize:"clamp(18px,4.2vw,22px)",fontWeight:800,margin:0}}>🏷️ Promociones y descuentos</h2>
+            <p style={{color:C.mid,fontSize:12,margin:"6px 0 0",maxWidth:520}}>
+              Ofertas activas gestionadas en el panel <strong>Promociones</strong>. Los banners del inicio pueden enviar a la página <button type="button" onClick={()=>setPage("promo")} style={{background:"none",border:"none",padding:0,color:BRAND.primary,fontWeight:700,cursor:"pointer",textDecoration:"underline"}}>Promociones</button>.
+            </p>
           </div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:12}}>
+          <Btn onClick={()=>setPage("promo")} outline col={BRAND.primary} sm>Ver todas →</Btn>
+        </div>
+        {promos.length>0 ? (
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(100%,260px),1fr))",gap:12}}>
             {promos.map(p=>(
-              <div key={p.id} style={{background:"#fff",borderRadius:14,border:`2px solid ${BRAND.primary}20`,padding:20,display:"flex",flexDirection:"column",gap:8}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                  <span style={{fontWeight:800,color:C.dark,fontSize:15}}>{p.nombre}</span>
-                  <span style={{padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:700,
+              <div key={p.id} style={{background:"#fff",borderRadius:14,border:`2px solid ${BRAND.primary}25`,padding:18,display:"flex",flexDirection:"column",gap:8,boxShadow:"0 2px 12px rgba(0,82,204,.06)"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
+                  <span style={{fontWeight:800,color:C.dark,fontSize:15,lineHeight:1.3}}>{p.nombre}</span>
+                  <span style={{padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:700,flexShrink:0,
                     background:p.tipo==="descuento_pct"?"#eff6ff":p.tipo==="2x1"?"#ede9fe":"#dcfce7",
                     color:p.tipo==="descuento_pct"?BRAND.primary:p.tipo==="2x1"?"#7c3aed":"#16a34a"}}>
                     {p.tipo==="descuento_pct"?`${p.valor}% OFF`:p.tipo==="descuento_fijo"?`$${p.valor} OFF`:p.tipo==="2x1"?"2×1":"Combo"}
@@ -499,20 +658,35 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero})
                 </div>
                 {p.descripcion&&<p style={{color:C.mid,fontSize:13,margin:0,lineHeight:1.5}}>{p.descripcion}</p>}
                 {p.fecha_fin&&<div style={{color:C.dim,fontSize:11}}>⏰ Válido hasta: {p.fecha_fin}</div>}
-                <Btn onClick={()=>setPage("catalogo")} col={BRAND.primary} sm style={{marginTop:4}}>Ver productos →</Btn>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:4}}>
+                  <Btn onClick={()=>setPage("catalogo")} col={BRAND.primary} sm>Ver productos</Btn>
+                  <Btn onClick={()=>setPage("promo")} outline col={BRAND.primary} sm>Detalle</Btn>
+                </div>
               </div>
             ))}
           </div>
-        </div>
-      )}
+        ) : (
+          <div style={{background:C.cardDark,borderRadius:14,border:`1px dashed ${C.border}`,padding:28,textAlign:"center"}}>
+            <div style={{fontSize:32,marginBottom:8}}>📣</div>
+            <div style={{color:C.dark,fontWeight:700,fontSize:15,marginBottom:6}}>Próximamente nuevas ofertas</div>
+            <div style={{color:C.mid,fontSize:13,marginBottom:16,maxWidth:400,marginLeft:"auto",marginRight:"auto",lineHeight:1.5}}>
+              Cuando cargues promociones en administración aparecerán aquí. Mientras tanto, explorá el catálogo o activá banners con destino <strong>promo</strong>.
+            </div>
+            <div style={{display:"flex",gap:10,justifyContent:"center",flexWrap:"wrap"}}>
+              <Btn onClick={()=>setPage("catalogo")} col={BRAND.primary} sm>Ir al catálogo</Btn>
+              <Btn onClick={()=>setPage("promo")} outline col={BRAND.primary} sm>Página promociones</Btn>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Más vendidos */}
-      <div style={{maxWidth:1200,margin:"0 auto",padding:"0 24px 48px"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
-          <h2 style={{color:C.dark,fontSize:24,fontWeight:800,margin:0}}>🔥 Más vendidos en Farmax</h2>
+      <div style={{maxWidth:1200,margin:"0 auto",padding:"0 16px 48px"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24,flexWrap:"wrap",gap:12}}>
+          <h2 style={{color:C.dark,fontSize:"clamp(20px,4.5vw,24px)",fontWeight:800,margin:0}}>🔥 Más vendidos en Farmax</h2>
           <Btn onClick={()=>setPage("catalogo")} outline col={BRAND.primary} sm>Ver catálogo →</Btn>
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:16}}>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(100%,220px),1fr))",gap:16}}>
           {productos.slice(0,6).map(p=><ProductCard key={p.id} prod={p} addToCart={addToCart} onClick={()=>{setProdDetalle(p);setPage("detalle");}}/>)}
         </div>
       </div>
@@ -522,21 +696,21 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero})
         <div style={{maxWidth:800,margin:"0 auto",textAlign:"center"}}>
           <div style={{fontSize:48,marginBottom:16}}>🏥</div>
           <h2 style={{color:C.dark,fontSize:28,fontWeight:800,marginBottom:12}}>Consultorio médico Farmax</h2>
-          <p style={{color:C.mid,fontSize:16,lineHeight:1.7,marginBottom:28}}>Atención médica general · <strong>$300 por consulta</strong> · O gratis con <strong style={{color:BRAND.primary}}>160 puntos Farmax</strong>. Al terminar tu consulta, surte tu receta con <strong>10% de descuento</strong>.</p>
+          <p style={{color:C.mid,fontSize:16,lineHeight:1.7,marginBottom:28}}>Atención médica general · <strong>{$(precioConsulta ?? CONSULTA_PRECIO_DEFAULT)} por consulta</strong> · O gratis con <strong style={{color:BRAND.primary}}>160 puntos Farmax</strong>. Al terminar tu consulta, surte tu receta con <strong>10% de descuento</strong>.</p>
           <Btn onClick={()=>setPage("cita")} col={BRAND.primary}>📅 Agendar cita online</Btn>
         </div>
       </div>
 
       {/* Puntos Farmax */}
-      <div style={{maxWidth:1200,margin:"48px auto",padding:"0 24px"}}>
-        <div style={{background:C.dark,borderRadius:20,padding:"40px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:40,alignItems:"center"}}>
+      <div style={{maxWidth:1200,margin:"48px auto",padding:"0 16px"}}>
+        <div style={{background:C.dark,borderRadius:20,padding:stack?"28px 20px":"40px",display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:stack?28:40,alignItems:"center"}}>
           <div>
             <div style={{color:BRAND.secondary,fontWeight:700,fontSize:13,letterSpacing:2,textTransform:"uppercase",marginBottom:12}}>Programa de lealtad</div>
-            <h2 style={{color:C.white,fontSize:28,fontWeight:800,marginBottom:16}}>⭐ Puntos Farmax</h2>
+            <h2 style={{color:C.white,fontSize:"clamp(22px,5vw,28px)",fontWeight:800,marginBottom:16}}>⭐ Puntos Farmax</h2>
             <p style={{color:"rgba(255,255,255,.75)",fontSize:15,lineHeight:1.7,marginBottom:24}}>Acumula puntos en farmacia, minisuper y consultorio. Canjéalos por descuentos o consultas gratis.</p>
             <Btn onClick={()=>setPage("puntos")} style={{background:BRAND.accent,color:C.white,border:"none"}}>Ver programa de puntos</Btn>
           </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+          <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:12}}>
             {[["$10 en Farmax","1 punto",BRAND.secondary],["1 consulta","5 puntos",BRAND.accent],["160 puntos","Consulta gratis","#ffaa00"],["100 puntos","$50 descuento","#9d6fff"]].map(([a,b,col])=>(
               <div key={a} style={{background:"rgba(255,255,255,.08)",borderRadius:12,padding:16,border:"1px solid rgba(255,255,255,.1)"}}>
                 <div style={{color:col,fontWeight:700,fontSize:13,marginBottom:4}}>{b}</div>
@@ -548,12 +722,12 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero})
       </div>
 
       {/* FAQ preview */}
-      <div style={{maxWidth:1200,margin:"0 auto 48px",padding:"0 24px"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-          <h2 style={{color:C.dark,fontSize:22,fontWeight:800,margin:0}}>❓ Preguntas frecuentes</h2>
+      <div style={{maxWidth:1200,margin:"0 auto 48px",padding:"0 16px"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:12}}>
+          <h2 style={{color:C.dark,fontSize:"clamp(18px,4vw,22px)",fontWeight:800,margin:0}}>❓ Preguntas frecuentes</h2>
           <Btn onClick={()=>setPage("faq")} outline col={BRAND.primary} sm>Ver todas →</Btn>
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+        <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:12}}>
           {FAQ_ITEMS.slice(0,4).map((f,i)=>(
             <div key={i} style={{background:C.white,borderRadius:12,border:`1px solid ${C.border}`,padding:16,cursor:"pointer"}} onClick={()=>setPage("faq")}>
               <div style={{color:C.dark,fontWeight:700,fontSize:14,marginBottom:6}}>❓ {f.p}</div>
@@ -571,6 +745,7 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero})
 // ── CATÁLOGO ──────────────────────────────────────────────────
 function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero}){
   const C = useTheme();
+  const stack = useMediaQuery("(max-width: 768px)");
   const [cat,setCat]=useState(()=>sessionStorage.getItem("farmax_cat")||"Todos");
   const [busq,setBusq]=useState(busqHero||sessionStorage.getItem("farmax_busq")||"");
   const [tipo,setTipo]=useState(()=>sessionStorage.getItem("farmax_tipo")||"todos");
@@ -589,8 +764,8 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero}){
     .filter(p=>!precioMin||parseFloat(p.precio)>=parseFloat(precioMin))
     .filter(p=>!precioMax||parseFloat(p.precio)<=parseFloat(precioMax));
   return(
-    <div style={{maxWidth:1200,margin:"0 auto",padding:"32px 24px"}}>
-      <h1 style={{color:C.dark,fontSize:28,fontWeight:800,marginBottom:6}}>Catálogo Farmax</h1>
+    <div style={{maxWidth:1200,margin:"0 auto",padding:"clamp(20px,4vw,32px) 16px"}}>
+      <h1 style={{color:C.dark,fontSize:"clamp(22px,5vw,28px)",fontWeight:800,marginBottom:6}}>Catálogo Farmax</h1>
       <div style={{color:C.dim,fontSize:14,marginBottom:24}}>{fil.length} productos disponibles</div>
       <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:20,marginBottom:20}}>
         <Inp value={busq} onChange={e=>setBusq(e.target.value)} placeholder="🔍 Buscar por nombre o marca..." style={{width:"100%",boxSizing:"border-box",fontSize:15,marginBottom:16}}/>
@@ -614,14 +789,14 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero}){
           </div>
         </div>
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"180px 1fr",gap:20}}>
-        <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:16,height:"fit-content",position:"sticky",top:80}}>
+      <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"180px 1fr",gap:20,alignItems:"start"}}>
+        <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:16,height:"fit-content",position:stack?"relative":"sticky",top:80}}>
           <div style={{color:C.dark,fontWeight:700,fontSize:13,marginBottom:12}}>Categorías</div>
           {cats.map(c=>(
-            <button key={c} onClick={()=>setCat(c)} style={{width:"100%",textAlign:"left",padding:"8px 10px",borderRadius:8,border:"none",background:cat===c?BRAND.primary+"18":"transparent",color:cat===c?BRAND.primary:C.mid,fontSize:13,fontWeight:cat===c?700:400,cursor:"pointer",marginBottom:2}}>{c}</button>
+            <button key={c} type="button" onClick={()=>setCat(c)} style={{width:"100%",textAlign:"left",padding:"8px 10px",borderRadius:8,border:"none",background:cat===c?BRAND.primary+"18":"transparent",color:cat===c?BRAND.primary:C.mid,fontSize:13,fontWeight:cat===c?700:400,cursor:"pointer",marginBottom:2}}>{c}</button>
           ))}
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:14}}>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(100%, 200px), 1fr))",gap:14,minWidth:0}}>
           {fil.length===0?(<div style={{padding:40,textAlign:"center",color:C.mid,gridColumn:"1/-1"}}>Sin resultados para "{busq}"</div>):fil.map(p=><ProductCard key={p.id} prod={p} addToCart={addToCart} onClick={()=>{setProdDetalle(p);setPage("detalle");}}/>)}
         </div>
       </div>
@@ -632,6 +807,7 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero}){
 // ── CARRITO ───────────────────────────────────────────────────
 function Carrito({cart,setCart,setPage,setEntregaGlobal}){
   const C = useTheme();
+  const stack = useMediaQuery("(max-width: 768px)");
   const [entrega,setEntrega]=useState("pickup");
   useEffect(()=>{ setEntregaGlobal?.(entrega); },[entrega,setEntregaGlobal]);
   const sub=cart.reduce((a,c)=>a+c.precio*c.qty,0);
@@ -644,28 +820,28 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
   const rm=id=>setCart(p=>p.filter(c=>c.id!==id));
   if(!cart.length) return(<div style={{maxWidth:600,margin:"80px auto",padding:"0 24px",textAlign:"center"}}><div style={{fontSize:64,marginBottom:16}}>🛒</div><h2 style={{color:C.dark,fontSize:24,fontWeight:800,marginBottom:16}}>Carrito vacío</h2><Btn onClick={()=>setPage("catalogo")} col={BRAND.primary}>Ver catálogo</Btn></div>);
   return(
-    <div style={{maxWidth:1100,margin:"0 auto",padding:"32px 24px"}}>
-      <h1 style={{color:C.dark,fontSize:26,fontWeight:800,marginBottom:24}}>🛒 Tu carrito</h1>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 340px",gap:24,alignItems:"start"}}>
-        <div>
+    <div style={{maxWidth:1100,margin:"0 auto",padding:"clamp(20px,4vw,32px) 16px"}}>
+      <h1 style={{color:C.dark,fontSize:"clamp(22px,5vw,26px)",fontWeight:800,marginBottom:24}}>🛒 Tu carrito</h1>
+      <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr min(340px, 100%)",gap:24,alignItems:"start"}}>
+        <div style={{minWidth:0}}>
           {cart.map(item=>(
-            <div key={item.id} style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:20,marginBottom:12,display:"flex",gap:16,alignItems:"center"}}>
+            <div key={item.id} style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:16,marginBottom:12,display:"flex",gap:16,alignItems:"center",flexWrap:"wrap"}}>
               <div style={{fontSize:40,background:C.cardDark,borderRadius:10,width:64,height:64,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>💊</div>
               <div style={{flex:1}}><div style={{color:C.dark,fontWeight:700,fontSize:15}}>{item.nombre}</div><div style={{color:C.dim,fontSize:11,marginTop:4}}>+{labelPts(ptsGana(item.precio*item.qty))}</div></div>
-              <div style={{display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
+              <div style={{display:"flex",alignItems:"center",gap:10,flexShrink:0,flexWrap:"wrap",marginLeft:"auto"}}>
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
-                  <button onClick={()=>upd(item.id,-1)} style={{width:28,height:28,borderRadius:8,border:`1px solid ${C.border}`,background:C.white,cursor:"pointer",fontSize:16}}>−</button>
+                  <button type="button" onClick={()=>upd(item.id,-1)} style={{width:28,height:28,borderRadius:8,border:`1px solid ${C.border}`,background:C.white,cursor:"pointer",fontSize:16}}>−</button>
                   <span style={{color:C.dark,fontWeight:700,fontSize:15,minWidth:24,textAlign:"center"}}>{item.qty}</span>
-                  <button onClick={()=>upd(item.id,1)} style={{width:28,height:28,borderRadius:8,border:`1px solid ${C.border}`,background:C.white,cursor:"pointer",fontSize:16}}>+</button>
+                  <button type="button" onClick={()=>upd(item.id,1)} style={{width:28,height:28,borderRadius:8,border:`1px solid ${C.border}`,background:C.white,cursor:"pointer",fontSize:16}}>+</button>
                 </div>
                 <div style={{color:BRAND.primary,fontWeight:800,fontSize:18,minWidth:60,textAlign:"right"}}>{$(item.precio*item.qty)}</div>
-                <button onClick={()=>rm(item.id)} style={{background:"none",border:"none",color:C.dim,cursor:"pointer",fontSize:18}}>🗑️</button>
+                <button type="button" onClick={()=>rm(item.id)} style={{background:"none",border:"none",color:C.dim,cursor:"pointer",fontSize:18}}>🗑️</button>
               </div>
             </div>
           ))}
           <Btn onClick={()=>setPage("catalogo")} outline col={BRAND.primary} sm>← Seguir comprando</Btn>
         </div>
-        <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:24,position:"sticky",top:80}}>
+        <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:24,position:stack?"relative":"sticky",top:80}}>
           <div style={{color:C.dark,fontWeight:800,fontSize:16,marginBottom:14}}>Tipo de entrega</div>
           {[["pickup","🏪 Pick-up en Farmax","Gratis · Mismo día"],["cdmx","🛵 Reparto CDMX","Rappi/Uber · Costo del servicio"],["foraneo","📦 Envío foráneo","$89 · 2-5 días · Skydropx"]].map(([v,l,s])=>(
             <div key={v} onClick={()=>setEntrega(v)} style={{padding:"12px 14px",borderRadius:10,border:`2px solid ${entrega===v?BRAND.primary:C.border}`,background:entrega===v?BRAND.primary+"18":C.white,cursor:"pointer",marginBottom:8}}>
@@ -689,6 +865,7 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
 // ── CHECKOUT ──────────────────────────────────────────────────
 function Checkout({cart,setCart,setPage,user,entrega="pickup"}){
   const C = useTheme();
+  const stack = useMediaQuery("(max-width: 768px)");
   const [step,setStep]=useState(1);
   const [datos,setDatos]=useState({nombre:user?.nombre||"",tel:user?.telefono||"",email:user?.email||"",calle:"",colonia:"",cp:""});
   const [metodo,setMetodo]=useState("tarjeta");
@@ -737,7 +914,7 @@ function Checkout({cart,setCart,setPage,user,entrega="pickup"}){
       }
       if(!cid&&datos.tel){const{data:cx}=await supabase.from("clientes").select("id,puntos").eq("telefono",datos.tel).single();if(cx){cid=cx.id;await supabase.from("clientes").update({puntos:cx.puntos+ptsG}).eq("id",cx.id);}else{const{data:nc}=await supabase.from("clientes").insert({nombre:datos.nombre,telefono:datos.tel,email:datos.email,puntos:ptsG}).select().single();if(nc)cid=nc.id;}}
       else if(cid){await supabase.from("clientes").update({puntos:(user.puntos||0)+ptsG}).eq("id",cid);}
-      const{data:p}=await supabase.from("pedidos").insert({cliente_id:cid,total:sub,estado:"pendiente",tipo_entrega:entrega,metodo_pago:metodo}).select().single();
+      const{data:p}=await supabase.from("pedidos").insert({cliente_id:cid,total:sub,estado:"pendiente",tipo:"online",tipo_entrega:entrega,metodo_pago:metodo}).select().single();
       if(p)await supabase.from("pedido_items").insert(cart.map(c=>{
         const dbp = stockMap.get(c.id);
         return ({pedido_id:p.id,producto_id:c.id,cantidad:Number(c.qty),precio_unitario:Number(dbp?.precio ?? c.precio)});
@@ -750,13 +927,13 @@ function Checkout({cart,setCart,setPage,user,entrega="pickup"}){
     }
     setG(false);
   };
-  if(conf) return(<div style={{maxWidth:600,margin:"80px auto",padding:"0 24px",textAlign:"center"}}><div style={{fontSize:72,marginBottom:16}}>✅</div><h1 style={{color:C.dark,fontSize:28,fontWeight:800,marginBottom:8}}>¡Pedido confirmado!</h1><p style={{color:C.mid,fontSize:16,marginBottom:24}}>Te avisamos por WhatsApp cuando esté listo.</p><div style={{background:"#fef3c7",border:"1px solid #f59e0b30",borderRadius:12,padding:16,marginBottom:24}}><div style={{color:"#92400e",fontWeight:700}}>⭐ +{labelPts(ptsG)} agregados a tu cuenta</div></div><div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap"}}>
+  if(conf) return(<div style={{maxWidth:600,margin:"clamp(40px,12vw,80px) auto",padding:"0 16px",textAlign:"center"}}><div style={{fontSize:"clamp(48px,15vw,72px)",marginBottom:16}}>✅</div><h1 style={{color:C.dark,fontSize:"clamp(22px,5vw,28px)",fontWeight:800,marginBottom:8,lineHeight:1.2}}>¡Pedido confirmado!</h1><p style={{color:C.mid,fontSize:"clamp(14px,3.5vw,16px)",marginBottom:24,lineHeight:1.5}}>Te avisamos por WhatsApp cuando esté listo.</p><div style={{background:"#fef3c7",border:"1px solid #f59e0b30",borderRadius:12,padding:16,marginBottom:24}}><div style={{color:"#92400e",fontWeight:700,fontSize:"clamp(13px,3.2vw,15px)"}}>⭐ +{labelPts(ptsG)} agregados a tu cuenta</div></div><div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap"}}>
           <Btn onClick={()=>setPage("home")} col={BRAND.primary}>Ir al inicio</Btn>
           <Btn onClick={()=>setPage("cuenta")} outline col={BRAND.primary}>Ver mis pedidos</Btn>
         </div>
         {datos?.tel&&(
           <div style={{marginTop:16}}>
-            <button onClick={()=>{
+            <button type="button" onClick={()=>{
               const items=cart.map(i=>`• ${i.nombre} ×${i.qty} = $${(i.precio*i.qty).toFixed(2)}`).join("\n");
               const msg=`🏥 *Farmax Farmacia*\nChinampac de Juárez, CDMX\n\n✅ *Pedido confirmado*\n\n${items}\n\n💰 *Total: $${sub.toFixed(2)}*\n\n📍 Pasa a recogerlo a la farmacia. Te avisamos cuando esté listo.\n\n¡Gracias por tu preferencia! 💊`;
               window.open("https://wa.me/52"+datos.tel.replace(/\D/g,"")+"?text="+encodeURIComponent(msg),"_blank");
@@ -766,15 +943,15 @@ function Checkout({cart,setCart,setPage,user,entrega="pickup"}){
           </div>
         )}</div>);
   return(
-    <div style={{maxWidth:900,margin:"0 auto",padding:"32px 24px"}}>
-      <h1 style={{color:C.dark,fontSize:26,fontWeight:800,marginBottom:24}}>Finalizar compra</h1>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 300px",gap:24,alignItems:"start"}}>
-        <div>
-          {step===1&&(<div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:24}}><div style={{color:C.dark,fontWeight:700,fontSize:18,marginBottom:20}}>📋 Datos de contacto</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>{[["Nombre completo","nombre"],["Teléfono","tel"],["Correo electrónico","email"],["Calle y número","calle"],["Colonia","colonia"],["Código postal","cp"]].map(([l,k])=>(<div key={k} style={{gridColumn:k==="email"||k==="calle"?"1/-1":undefined}}><div style={{color:C.mid,fontSize:12,marginBottom:6,fontWeight:600}}>{l}</div><Inp value={datos[k]} onChange={e=>setDatos(p=>({...p,[k]:e.target.value}))} placeholder={l} style={{width:"100%",boxSizing:"border-box"}}/></div>))}</div><Btn onClick={()=>setStep(2)} col={BRAND.primary} style={{marginTop:20}} disabled={!datos.nombre||!datos.tel}>Continuar al pago →</Btn></div>)}
-          {step===2&&(<div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:24}}><div style={{color:C.dark,fontWeight:700,fontSize:18,marginBottom:20}}>💳 Método de pago</div>{[["tarjeta","💳 Tarjeta de crédito/débito","Visa, Mastercard, Amex"],["spei","🏦 Transferencia SPEI","Pago inmediato desde tu banco"],["mercadopago","🔵 Mercado Pago","Wallet · Cuotas sin intereses"]].map(([v,l,s])=>(<div key={v} onClick={()=>setMetodo(v)} style={{padding:"14px 16px",borderRadius:10,border:`2px solid ${metodo===v?BRAND.primary:C.border}`,background:metodo===v?BRAND.primary+"18":C.white,cursor:"pointer",marginBottom:10}}><div style={{color:metodo===v?BRAND.primary:C.dark,fontWeight:700,fontSize:14}}>{l}</div><div style={{color:C.dim,fontSize:12,marginTop:2}}>{s}</div></div>))}<div style={{display:"flex",gap:10,marginTop:8}}><Btn onClick={()=>setStep(1)} outline col={C.mid} sm>← Atrás</Btn><Btn onClick={()=>setStep(3)} col={BRAND.primary}>Revisar pedido →</Btn></div></div>)}
-          {step===3&&(<div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:24}}><div style={{color:C.dark,fontWeight:700,fontSize:18,marginBottom:16}}>✅ Confirmar pedido</div>{cart.map(item=>(<div key={item.id} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:`1px solid ${C.border}`}}><span style={{color:C.dark,fontSize:13,fontWeight:600}}>{item.nombre} ×{item.qty}</span><span style={{color:BRAND.primary,fontWeight:700}}>{$(item.precio*item.qty)}</span></div>))}<div style={{display:"flex",gap:10,marginTop:16}}><Btn onClick={()=>setStep(2)} outline col={C.mid} sm>← Atrás</Btn><Btn onClick={confirmar} col={BRAND.primary} disabled={guardando}>{guardando?"Guardando...":"✅ Confirmar "+$(sub)}</Btn></div></div>)}
+    <div style={{maxWidth:900,margin:"0 auto",padding:"clamp(20px,4vw,32px) 16px"}}>
+      <h1 style={{color:C.dark,fontSize:"clamp(22px,5vw,26px)",fontWeight:800,marginBottom:24,lineHeight:1.2}}>Finalizar compra</h1>
+      <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr min(300px,100%)",gap:24,alignItems:"start"}}>
+        <div style={{minWidth:0}}>
+          {step===1&&(<div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}><div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:20}}>📋 Datos de contacto</div><div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:14}}>{[["Nombre completo","nombre"],["Teléfono","tel"],["Correo electrónico","email"],["Calle y número","calle"],["Colonia","colonia"],["Código postal","cp"]].map(([l,k])=>(<div key={k} style={{gridColumn:!stack&&(k==="email"||k==="calle")?"1/-1":undefined}}><div style={{color:C.mid,fontSize:12,marginBottom:6,fontWeight:600}}>{l}</div><Inp value={datos[k]} onChange={e=>setDatos(p=>({...p,[k]:e.target.value}))} placeholder={l} style={{width:"100%",boxSizing:"border-box"}}/></div>))}</div><Btn onClick={()=>setStep(2)} col={BRAND.primary} style={{marginTop:20,width:stack?"100%":undefined}} disabled={!datos.nombre||!datos.tel}>Continuar al pago →</Btn></div>)}
+          {step===2&&(<div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}><div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:20}}>💳 Método de pago</div>{[["tarjeta","💳 Tarjeta de crédito/débito","Visa, Mastercard, Amex"],["mercadopago","🔵 Mercado Pago","Wallet · Cuotas sin intereses"]].map(([v,l,s])=>(<div key={v} onClick={()=>setMetodo(v)} style={{padding:"14px 16px",borderRadius:10,border:`2px solid ${metodo===v?BRAND.primary:C.border}`,background:metodo===v?BRAND.primary+"18":C.white,cursor:"pointer",marginBottom:10}}><div style={{color:metodo===v?BRAND.primary:C.dark,fontWeight:700,fontSize:"clamp(13px,3.2vw,14px)"}}>{l}</div><div style={{color:C.dim,fontSize:12,marginTop:2}}>{s}</div></div>))}<div style={{display:"flex",gap:10,marginTop:8,flexWrap:"wrap"}}><Btn onClick={()=>setStep(1)} outline col={C.mid} sm>← Atrás</Btn><Btn onClick={()=>setStep(3)} col={BRAND.primary} style={{flex:stack?1:undefined,minWidth:stack?0:undefined}}>Revisar pedido →</Btn></div></div>)}
+          {step===3&&(<div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}><div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:16}}>✅ Confirmar pedido</div>{cart.map(item=>(<div key={item.id} style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,padding:"8px 0",borderBottom:`1px solid ${C.border}`}}><span style={{color:C.dark,fontSize:13,fontWeight:600,flex:1,minWidth:0,wordBreak:"break-word"}}>{item.nombre} ×{item.qty}</span><span style={{color:BRAND.primary,fontWeight:700,flexShrink:0}}>{$(item.precio*item.qty)}</span></div>))}<div style={{display:"flex",gap:10,marginTop:16,flexWrap:"wrap"}}><Btn onClick={()=>setStep(2)} outline col={C.mid} sm>← Atrás</Btn><Btn onClick={confirmar} col={BRAND.primary} disabled={guardando} style={{flex:stack?1:undefined,minWidth:0}}>{guardando?"Guardando...":"✅ Confirmar "+$(sub)}</Btn></div></div>)}
         </div>
-        <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:20,position:"sticky",top:80}}>
+        <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:20,position:stack?"relative":"sticky",top:80}}>
           <div style={{color:C.dark,fontWeight:700,fontSize:15,marginBottom:14}}>Tu pedido</div>
           {cart.map(item=>(<div key={item.id} style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><span style={{color:C.mid,fontSize:13}}>{item.nombre} ×{item.qty}</span><span style={{color:C.dark,fontSize:13,fontWeight:600}}>{$(item.precio*item.qty)}</span></div>))}
           <div style={{borderTop:`1px solid ${C.border}`,marginTop:12,paddingTop:12}}><div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:C.dark,fontWeight:800}}>Total</span><span style={{color:BRAND.primary,fontWeight:900,fontSize:20}}>{$(sub)}</span></div></div>
@@ -787,6 +964,7 @@ function Checkout({cart,setCart,setPage,user,entrega="pickup"}){
 // ── CONSULTORIO CON MAPA ──────────────────────────────────────
 function AgendarCita({setPage,user}){
   const C = useTheme();
+  const stack = useMediaQuery("(max-width: 768px)");
   const [nombre,setNombre]=useState(user?.nombre||"");
   const [tel,setTel]=useState(user?.telefono||"");
   const [fecha,setFecha]=useState("");
@@ -811,25 +989,31 @@ function AgendarCita({setPage,user}){
     if(!nombre||!fecha||!hora)return;
     // J5: Verificar disponibilidad en tiempo real antes de confirmar
     const {data:ocupado}=await supabase.from("citas").select("id").eq("fecha",fecha).eq("hora",hora).not("estado","eq","cancelada");
-    if(ocupado&&ocupado.length>=2){
+    if(ocupado&&ocupado.length>=1){
       alert("Lo sentimos, ese horario ya no está disponible. Por favor elige otro.");
       setHora(""); return;
     }
     setG(true);
-    try{await supabase.from("citas").insert({nombre,telefono:tel,fecha,hora,motivo,cliente_id:user?.id||null});}catch(e){console.warn(e);}
+    try{
+      await supabase.from("citas").insert({
+        nombre,telefono:tel,fecha,hora,motivo,cliente_id:user?.id||null,
+        canal:"web",
+        pago_estado:"pendiente",
+      });
+    }catch(e){console.warn(e);}
     setG(false);setConf(true);
   };
   if(conf) return(
-    <div style={{maxWidth:500,margin:"80px auto",padding:"0 24px",textAlign:"center"}}>
-      <div style={{fontSize:64,marginBottom:16}}>📅</div>
-      <h1 style={{color:C.dark,fontSize:26,fontWeight:800,marginBottom:16}}>¡Cita confirmada!</h1>
-      <p style={{color:C.mid,marginBottom:24}}>📲 Te enviamos recordatorio por WhatsApp 24 hrs antes.</p>
+    <div style={{maxWidth:500,margin:"clamp(40px,12vw,80px) auto",padding:"0 16px",textAlign:"center"}}>
+      <div style={{fontSize:"clamp(48px,14vw,64px)",marginBottom:16}}>📅</div>
+      <h1 style={{color:C.dark,fontSize:"clamp(22px,5vw,26px)",fontWeight:800,marginBottom:16,lineHeight:1.2}}>¡Cita confirmada!</h1>
+      <p style={{color:C.mid,marginBottom:24,fontSize:"clamp(14px,3.5vw,16px)",lineHeight:1.5}}>📲 Te enviamos recordatorio por WhatsApp 24 hrs antes.</p>
       <div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap",marginBottom:16}}>
         <Btn onClick={()=>setPage("cuenta")} col={BRAND.primary}>Ver mis citas</Btn>
         <Btn onClick={()=>setPage("catalogo")} outline col={BRAND.primary}>Ver catálogo</Btn>
       </div>
       {(tel||user?.telefono)&&(
-        <button onClick={()=>{
+        <button type="button" onClick={()=>{
           const t = tel||user?.telefono||"";
           const msg = `📅 *Cita confirmada en Farmax*\n\nHola${nombre?" "+nombre:""}! Tu cita médica ha sido registrada.\n\n🗓 Fecha: ${fecha}\n🕐 Hora: ${hora}\n👩‍⚕️ Médico general\n📍 Chinampac de Juárez, Iztapalapa, CDMX\n\n${motivo?"Motivo: "+motivo+"\n\n":""}💊 Al terminar tu consulta, surte tu receta en Farmax con 10% de descuento.\n\n¡Te esperamos! 🏥`;
           window.open("https://wa.me/52"+t.replace(/\D/g,"")+"?text="+encodeURIComponent(msg),"_blank");
@@ -840,13 +1024,13 @@ function AgendarCita({setPage,user}){
     </div>
   );
   return(
-    <div style={{maxWidth:900,margin:"0 auto",padding:"40px 24px"}}>
-      <div style={{textAlign:"center",marginBottom:40}}>
-        <div style={{fontSize:48,marginBottom:12}}>🏥</div>
-        <h1 style={{color:C.dark,fontSize:28,fontWeight:800,marginBottom:8}}>Consultorio Farmax</h1>
-        <p style={{color:C.mid,fontSize:15}}>Médico general · $300 por consulta · O gratis con 160 puntos Farmax</p>
+    <div style={{maxWidth:900,margin:"0 auto",padding:"clamp(24px,5vw,40px) 16px"}}>
+      <div style={{textAlign:"center",marginBottom:32}}>
+        <div style={{fontSize:"clamp(40px,11vw,48px)",marginBottom:12}}>🏥</div>
+        <h1 style={{color:C.dark,fontSize:"clamp(22px,5vw,28px)",fontWeight:800,marginBottom:8,lineHeight:1.2}}>Consultorio Farmax</h1>
+        <p style={{color:C.mid,fontSize:"clamp(14px,3.5vw,15px)",lineHeight:1.5}}>Médico general · $80 por consulta (pago en farmacia el día de la cita) · O gratis con 160 puntos Farmax</p>
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:24,marginBottom:24}}>
+      <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:24,marginBottom:24}}>
         {/* Info doctora */}
         <div style={{background:C.white,borderRadius:16,border:`1px solid ${C.border}`,padding:24}}>
           <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:16}}>
@@ -885,10 +1069,10 @@ function AgendarCita({setPage,user}){
         </div>
       </div>
       {/* Formulario */}
-      <div style={{background:C.white,borderRadius:16,border:`1px solid ${C.border}`,padding:32}}>
-        <div style={{color:C.dark,fontWeight:700,fontSize:16,marginBottom:16}}>Agendar mi cita</div>
+      <div style={{background:C.white,borderRadius:16,border:`1px solid ${C.border}`,padding:"clamp(20px,4vw,32px)"}}>
+        <div style={{color:C.dark,fontWeight:700,fontSize:"clamp(15px,3.8vw,16px)",marginBottom:16}}>Agendar mi cita</div>
         {user&&(<div style={{background:BRAND.primary+"10",border:`1px solid ${BRAND.primary}30`,borderRadius:8,padding:"10px 12px",marginBottom:16}}><div style={{color:BRAND.primary,fontSize:13}}>✓ Datos precargados de tu cuenta. Puedes editarlos si la cita es para otra persona.</div></div>)}
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}>
+        <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:16,marginBottom:16}}>
           <div><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Nombre del paciente</div><Inp value={nombre} onChange={e=>setNombre(e.target.value)} placeholder="Nombre completo" style={{width:"100%",boxSizing:"border-box"}}/></div>
           <div><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Teléfono de contacto</div><Inp value={tel} onChange={e=>setTel(e.target.value)} placeholder="55XXXXXXXX" type="tel" style={{width:"100%",boxSizing:"border-box"}}/></div>
           <div><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Fecha</div><input type="date" value={fecha} onChange={e=>setFecha(e.target.value)} min={new Date().toLocaleDateString("sv-SE")} style={{width:"100%",boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:C.white,color:C.dark,fontSize:13,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}/></div>
@@ -900,10 +1084,61 @@ function AgendarCita({setPage,user}){
             </select>
             {fecha&&horarios.length===0&&<div style={{color:C.red,fontSize:11,marginTop:4}}>No hay horarios disponibles. Selecciona otra fecha.</div>}
           </div>
-          <div style={{gridColumn:"1/-1"}}><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Motivo de consulta (opcional)</div><Inp value={motivo} onChange={e=>setMotivo(e.target.value)} placeholder="Ej: revisión general, control de presión..." style={{width:"100%",boxSizing:"border-box"}}/></div>
+          <div style={{gridColumn:stack?undefined:"1/-1"}}><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Motivo de consulta (opcional)</div><Inp value={motivo} onChange={e=>setMotivo(e.target.value)} placeholder="Ej: revisión general, control de presión..." style={{width:"100%",boxSizing:"border-box"}}/></div>
         </div>
         <Btn onClick={confirmar} col={BRAND.primary} full disabled={!nombre||!fecha||!hora||guardando}>{guardando?"Guardando...":"📅 Confirmar cita"}</Btn>
       </div>
+    </div>
+  );
+}
+
+// ── PROMOCIONES (página dedicada; los banners pueden usar pagina: "promo") ──
+function PromocionesPage({setPage}){
+  const C = useTheme();
+  const stack = useMediaQuery("(max-width: 768px)");
+  const [promos, setPromos] = useState([]);
+  const [load, setLoad] = useState(true);
+  useEffect(()=>{
+    const hoy = new Date().toISOString().split("T")[0];
+    supabase.from("promociones").select("*")
+      .eq("activa",true)
+      .or(`fecha_fin.is.null,fecha_fin.gte.${hoy}`)
+      .then(({data})=>{ setPromos(data||[]); setLoad(false); });
+  },[]);
+  return(
+    <div style={{maxWidth:1200,margin:"0 auto",padding:"clamp(24px,5vw,40px) 16px"}}>
+      <button type="button" onClick={()=>setPage("home")} style={{background:"none",border:"none",color:BRAND.primary,cursor:"pointer",fontSize:14,fontWeight:700,marginBottom:16,display:"flex",alignItems:"center",gap:6}}>← Inicio</button>
+      <div style={{marginBottom:28}}>
+        <h1 style={{color:C.dark,fontSize:"clamp(24px,5.5vw,30px)",fontWeight:800,marginBottom:8,lineHeight:1.2}}>🏷️ Promociones vigentes</h1>
+        <p style={{color:C.mid,fontSize:"clamp(14px,3.5vw,15px)",lineHeight:1.6,maxWidth:640}}>
+          Ofertas y campañas activas en Farmax. Los banners del inicio pueden enlazar aquí: en administración, en el campo <strong>Página destino</strong> escribe <code style={{background:C.cardDark,padding:"2px 6px",borderRadius:4}}>promo</code>.
+        </p>
+      </div>
+      {load ? (
+        <div style={{color:C.mid,fontSize:14}}>Cargando promociones…</div>
+      ) : promos.length===0 ? (
+        <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:40,textAlign:"center",color:C.mid}}>
+          No hay promociones activas en este momento. Revisa el catálogo o vuelve pronto.
+        </div>
+      ) : (
+        <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"repeat(auto-fill,minmax(min(100%,260px),1fr))",gap:14}}>
+          {promos.map(p=>(
+            <div key={p.id} style={{background:"#fff",borderRadius:14,border:`2px solid ${BRAND.primary}20`,padding:20,display:"flex",flexDirection:"column",gap:8}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
+                <span style={{fontWeight:800,color:C.dark,fontSize:15}}>{p.nombre}</span>
+                <span style={{padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:700,flexShrink:0,
+                  background:p.tipo==="descuento_pct"?"#eff6ff":p.tipo==="2x1"?"#ede9fe":"#dcfce7",
+                  color:p.tipo==="descuento_pct"?BRAND.primary:p.tipo==="2x1"?"#7c3aed":"#16a34a"}}>
+                  {p.tipo==="descuento_pct"?`${p.valor}% OFF`:p.tipo==="descuento_fijo"?`$${p.valor} OFF`:p.tipo==="2x1"?"2×1":"Combo"}
+                </span>
+              </div>
+              {p.descripcion&&<p style={{color:C.mid,fontSize:13,margin:0,lineHeight:1.5}}>{p.descripcion}</p>}
+              {p.fecha_fin&&<div style={{color:C.dim,fontSize:11}}>⏰ Válido hasta: {p.fecha_fin}</div>}
+              <Btn onClick={()=>setPage("catalogo")} col={BRAND.primary} sm style={{marginTop:4}}>Ver productos →</Btn>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -913,30 +1148,30 @@ function FAQPage({setPage}){
   const C = useTheme();
   const [abierto,setAbierto]=useState(null);
   return(
-    <div style={{maxWidth:800,margin:"0 auto",padding:"40px 24px"}}>
-      <div style={{textAlign:"center",marginBottom:40}}>
-        <div style={{fontSize:48,marginBottom:12}}>❓</div>
-        <h1 style={{color:C.dark,fontSize:28,fontWeight:800,marginBottom:8}}>Preguntas frecuentes</h1>
-        <p style={{color:C.mid,fontSize:15}}>Todo lo que necesitas saber sobre Farmax</p>
+    <div style={{maxWidth:800,margin:"0 auto",padding:"clamp(24px,5vw,40px) 16px"}}>
+      <div style={{textAlign:"center",marginBottom:32}}>
+        <div style={{fontSize:"clamp(40px,12vw,48px)",marginBottom:12}}>❓</div>
+        <h1 style={{color:C.dark,fontSize:"clamp(22px,5vw,28px)",fontWeight:800,marginBottom:8,lineHeight:1.2}}>Preguntas frecuentes</h1>
+        <p style={{color:C.mid,fontSize:"clamp(14px,3.5vw,15px)",lineHeight:1.5}}>Todo lo que necesitas saber sobre Farmax</p>
       </div>
-      <div style={{display:"grid",gap:10,marginBottom:40}}>
+      <div style={{display:"grid",gap:10,marginBottom:32}}>
         {FAQ_ITEMS.map((f,i)=>(
           <div key={i} style={{background:C.white,borderRadius:12,border:`1px solid ${abierto===i?BRAND.primary+"40":C.border}`,overflow:"hidden",transition:"border-color .2s"}}>
-            <button onClick={()=>setAbierto(abierto===i?null:i)} style={{width:"100%",padding:"16px 20px",background:"none",border:"none",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
-              <span style={{color:C.dark,fontWeight:700,fontSize:15,textAlign:"left"}}>{f.p}</span>
-              <span style={{color:BRAND.primary,fontSize:18,flexShrink:0,marginLeft:12}}>{abierto===i?"−":"+"}</span>
+            <button type="button" onClick={()=>setAbierto(abierto===i?null:i)} style={{width:"100%",padding:"14px 16px",background:"none",border:"none",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,fontFamily:"'Plus Jakarta Sans',sans-serif",textAlign:"left"}}>
+              <span style={{color:C.dark,fontWeight:700,fontSize:"clamp(14px,3.5vw,15px)",lineHeight:1.35,wordBreak:"break-word"}}>{f.p}</span>
+              <span style={{color:BRAND.primary,fontSize:18,flexShrink:0,lineHeight:1.2}}>{abierto===i?"−":"+"}</span>
             </button>
             {abierto===i&&(
-              <div style={{padding:"0 20px 16px",color:C.mid,fontSize:14,lineHeight:1.7,borderTop:`1px solid ${C.border}`}}>
+              <div style={{padding:"0 16px 16px",color:C.mid,fontSize:"clamp(13px,3.2vw,14px)",lineHeight:1.7,borderTop:`1px solid ${C.border}`,wordBreak:"break-word",overflowWrap:"break-word"}}>
                 <div style={{paddingTop:12}}>{f.r}</div>
               </div>
             )}
           </div>
         ))}
       </div>
-      <div style={{background:BRAND.primary+"10",border:`1px solid ${BRAND.primary}30`,borderRadius:14,padding:24,textAlign:"center"}}>
-        <div style={{color:C.dark,fontWeight:700,fontSize:16,marginBottom:8}}>¿No encontraste tu respuesta?</div>
-        <div style={{color:C.mid,fontSize:14,marginBottom:16}}>Escríbenos y te respondemos a la brevedad.</div>
+      <div style={{background:BRAND.primary+"10",border:`1px solid ${BRAND.primary}30`,borderRadius:14,padding:"clamp(18px,4vw,24px)",textAlign:"center"}}>
+        <div style={{color:C.dark,fontWeight:700,fontSize:"clamp(15px,3.8vw,16px)",marginBottom:8}}>¿No encontraste tu respuesta?</div>
+        <div style={{color:C.mid,fontSize:"clamp(13px,3.2vw,14px)",marginBottom:16,lineHeight:1.5}}>Escríbenos y te respondemos a la brevedad.</div>
         <div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap"}}>
           <a href="mailto:contacto@farmax.mx" style={{color:BRAND.primary,fontWeight:700,fontSize:14,textDecoration:"none"}}>📧 contacto@farmax.mx</a>
           {/* Descomentar cuando tengas WhatsApp:
@@ -952,11 +1187,11 @@ function FAQPage({setPage}){
 function PaginaLegal({titulo,children,setPage}){
   const C = useTheme();
   return(
-    <div style={{maxWidth:800,margin:"0 auto",padding:"40px 24px"}}>
-      <button onClick={()=>setPage("home")} style={{background:"none",border:"none",color:BRAND.primary,cursor:"pointer",fontSize:14,fontWeight:700,marginBottom:20,display:"flex",alignItems:"center",gap:6}}>← Volver al inicio</button>
-      <h1 style={{color:C.dark,fontSize:26,fontWeight:800,marginBottom:8}}>{titulo}</h1>
-      <div style={{color:C.dim,fontSize:13,marginBottom:32}}>Última actualización: Abril 2026 · Farmax Farmacia · Iztapalapa, CDMX</div>
-      <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:32,lineHeight:1.8,color:C.mid,fontSize:14}}>
+    <div style={{maxWidth:800,margin:"0 auto",padding:"clamp(24px,5vw,40px) 16px"}}>
+      <button type="button" onClick={()=>setPage("home")} style={{background:"none",border:"none",color:BRAND.primary,cursor:"pointer",fontSize:14,fontWeight:700,marginBottom:20,display:"flex",alignItems:"center",gap:6}}>← Volver al inicio</button>
+      <h1 style={{color:C.dark,fontSize:"clamp(20px,4.8vw,26px)",fontWeight:800,marginBottom:8,lineHeight:1.2,wordBreak:"break-word"}}>{titulo}</h1>
+      <div style={{color:C.dim,fontSize:"clamp(12px,3vw,13px)",marginBottom:24,lineHeight:1.5}}>Última actualización: Abril 2026 · Farmax Farmacia · Iztapalapa, CDMX</div>
+      <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:"clamp(20px,4vw,32px)",lineHeight:1.8,color:C.mid,fontSize:"clamp(13px,3.2vw,14px)",wordBreak:"break-word",overflowWrap:"break-word"}}>
         {children}
       </div>
     </div>
@@ -1253,8 +1488,8 @@ function Cuenta({user,setPage,setUser}){
   return(
     <div style={{maxWidth:900,margin:"0 auto",padding:"32px 24px"}}>
       <div style={{background:BRAND.gradient,borderRadius:16,padding:28,marginBottom:24,display:"flex",alignItems:"center",gap:20}}>
-        <div style={{width:64,height:64,borderRadius:"50%",background:"rgba(255,255,255,.25)",display:"flex",alignItems:"center",justifyContent:"center",color:C.white,fontWeight:900,fontSize:26}}>{(user.nombre||"C")[0]}</div>
-        <div style={{flex:1}}><div style={{color:C.white,fontWeight:800,fontSize:22}}>{user.nombre}</div><div style={{color:"rgba(255,255,255,.8)",fontSize:14,marginTop:2}}>{user.telefono}</div></div>
+        <div style={{width:64,height:64,borderRadius:"50%",background:"rgba(255,255,255,.25)",display:"flex",alignItems:"center",justifyContent:"center",color:C.white,fontWeight:900,fontSize:26}}>{(primerNombre(user.nombre)||"C")[0].toUpperCase()}</div>
+        <div style={{flex:1}}><div style={{color:C.white,fontWeight:800,fontSize:22}}>{saludoUsuario(user.nombre)}</div><div style={{color:"rgba(255,255,255,.8)",fontSize:14,marginTop:2}}>{user.telefono}</div></div>
         <div style={{textAlign:"center"}}><div style={{color:"#ffaa00",fontWeight:900,fontSize:36}}>{user.puntos||0}</div><div style={{color:"rgba(255,255,255,.8)",fontSize:13}}>puntos Farmax</div><div style={{color:"rgba(255,255,255,.6)",fontSize:11}}>= ${((user.puntos||0)*0.5).toFixed(0)} en descuentos</div></div>
       </div>
       <div style={{display:"flex",gap:6,marginBottom:20,background:C.white,borderRadius:12,padding:6,border:`1px solid ${C.border}`}}>
@@ -1332,6 +1567,11 @@ export default function TiendaFarmax(){
   const [busqHero,setBusqHero]   = useState("");
   const [showPopup,setShowPopup] = useState(false);
   const [entregaCheckout,setEntregaCheckout] = useState("pickup");
+  const [precioConsultaCfg,setPrecioConsultaCfg] = useState(CONSULTA_PRECIO_DEFAULT);
+
+  useEffect(() => {
+    fetchPrecioConsultaConfig(supabase).then(setPrecioConsultaCfg);
+  }, []);
 
   // Sesión persistente
   useEffect(()=>{
@@ -1425,8 +1665,9 @@ export default function TiendaFarmax(){
   );
 
   const pages={
-    home:          <Home setPage={setPage} addToCart={addToCart} productos={productos} setProdDetalle={setProdD} busqHero={busqHero} setBusqHero={setBusqHero}/>,
+    home:          <Home setPage={setPage} addToCart={addToCart} productos={productos} setProdDetalle={setProdD} busqHero={busqHero} setBusqHero={setBusqHero} precioConsulta={precioConsultaCfg}/>,
     catalogo:      <Catalogo addToCart={addToCart} productos={productos} setProdDetalle={setProdD} setPage={setPage} busqHero={busqHero}/>,
+    promo:         <PromocionesPage setPage={setPage}/>,
     detalle:       <DetalleProducto prod={prodDetalle} productos={productos} addToCart={addToCart} setPage={setPage} setProdDetalle={setProdD}/>,
     carrito:       <Carrito cart={cart} setCart={setCart} setPage={setPage} setEntregaGlobal={setEntregaCheckout}/>,
     checkout:      <Checkout cart={cart} setCart={setCart} setPage={setPage} user={user} entrega={entregaCheckout}/>,
@@ -1450,16 +1691,18 @@ export default function TiendaFarmax(){
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
         *{box-sizing:border-box;margin:0;padding:0;}
         body{background:${C.bg};font-family:'Plus Jakarta Sans',sans-serif;color:${C.dark};}
+        main{overflow-x:hidden;width:100%;max-width:100vw;}
+        img,svg,video,canvas{max-width:100%;height:auto;}
         ::-webkit-scrollbar{width:6px;}::-webkit-scrollbar-track{background:${C.bg};}::-webkit-scrollbar-thumb{background:${C.border};border-radius:4px;}
         button,select{font-family:'Plus Jakarta Sans',sans-serif;}
       `}</style>
 
       {/* Popup bienvenida */}
-      {showPopup&&<PopupBienvenida onClose={()=>setShowPopup(false)} setPage={setPage}/>}
+      {showPopup&&<PopupBienvenida onClose={()=>setShowPopup(false)} setPage={setPage} precioConsulta={precioConsultaCfg}/>}
 
       <Header page={page} setPage={setPage} cart={cart} user={user} setUser={setUser}/>
 
-      <main style={{minHeight:"calc(100vh - 64px)",background:C.bg}}>
+      <main style={{minHeight:"min(100vh, 100dvh)",background:C.bg}}>
         {pages[page]||pages.home}
       </main>
 

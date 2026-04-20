@@ -1,14 +1,24 @@
 import React, { useState, useEffect, useRef, useCallback, lazy, Suspense } from "react";
+import { useMediaQuery } from "./hooks/useMediaQuery";
 import TicketVenta from "./components/tickets/TicketVenta";
 import MercadoPagoModal from "./components/MercadoPagoModal";
 import TicketPreviewModal from "./components/tickets/TicketPreviewModal";
 import { printTicket } from "./utils/printTicket";
 import { supabase } from "./supabase";
 import { C as _C, C_LIGHT, BRAND, NEG, NAV_ADMIN, NAV_VENDEDOR, NAV_DOCTORA, NAV_ITEMS } from "./constants";
-import { $, dC, cC, abc, aCol, nCol, hashPwd, hashPwdLegacy, generateSalt, logAudit, logMovimiento } from "./utils";
+import { $, dC, cC, abc, aCol, nCol, hashPwd, hashPwdLegacy, generateSalt, logAudit, logMovimiento, primerNombre, saludoUsuario } from "./utils";
 import { Logo, Box, Tag, Btn, Inp, KPI, Modal, NotificacionesToast, showToast, ToastProvider, ConfirmDialog, SkeletonTable, SkeletonKPIs, SkeletonCard, Paginador, SearchDropdown, GlobalHoverStyles } from "./ui";
 import { getSiguienteFolio } from "./utils/folioGenerator";
 import { guardarVentaPendiente, sincronizarVentasPendientes, contarVentasPendientes } from "./utils/offlineQueue";
+import { idEmpleadoUsuarios } from "./utils/usuarioId";
+import { CONSULTA_PRECIO_DEFAULT, CONSULTA_PARTE_DOCTOR, repartoConsulta, citaPagoPendiente, citaPagoOk, citaEstaPagada, labelCanal } from "./utils/consultaConstants";
+import { horariosDisponiblesCita, puedeCancelarCitaNoShow, addDaysSv, formatFechaAgendaLargaEs } from "./utils/citasAgenda";
+import { fetchProductosConsumiblesConsultorio } from "./utils/consumiblesConsultorio";
+import { esPedidoTiendaWebPendiente } from "./utils/pedidosTiendaWeb";
+import { CitaFichaModal } from "./CitaFichaDoctora";
+import { desgloseCambioMN, sugerenciasPagoCliente } from "./utils/cambioCaja";
+import { loadAdminNavOrder, saveAdminNavOrder, reorderNavIds, mergeAdminNavOrder, clearAdminNavOrder } from "./utils/adminNavOrder";
+import { marcarMedicamentosRecetaFarmaxSurtidos } from "./utils/recetaCitaSync";
 
 // Fallback estático para estilos fuera de componentes (evita undefined en import).
 const C = C_LIGHT;
@@ -19,6 +29,7 @@ const InventarioModule = lazy(()=>import("./InventarioModule"));
 const CorteCajaModule  = lazy(()=>import("./CorteCajaModule"));
 const ClientesModule   = lazy(()=>import("./ClientesModule"));
 const ConsultorioModule= lazy(()=>import("./ConsultorioModule"));
+const ConfigConsultorioModule = lazy(()=>import("./ConfigConsultorioModule"));
 const COFEPRISModule   = lazy(()=>import("./COFEPRISModule"));
 const AsistenteIA      = lazy(()=>import("./AsistenteIA"));
 const PromocionesModule= lazy(()=>import("./PromocionesModule"));
@@ -104,6 +115,7 @@ function LoginScreen({onLogin}){
   const entrar = async () => {
     if(!email||!pwd) return;
     if(pwd.length < 6) { setError("La contraseña debe tener al menos 6 caracteres."); return; }
+    const emailNorm = email.trim().toLowerCase();
 
     const bloqueoKey  = "farmax_login_bloqueo_"+email;
     const intentosKey = "farmax_login_intentos_"+email;
@@ -118,11 +130,41 @@ function LoginScreen({onLogin}){
     try {
       // ── Supabase Auth — login real con JWT ──
       const { data:authData, error:authErr } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
+        email: emailNorm,
         password: pwd,
       });
 
       if(authErr || !authData?.user) {
+        // Fallback local (tabla usuarios) para entornos donde Auth signup/login falla.
+        const { data:localUser } = await supabase.from("usuarios").select("*").eq("email", emailNorm).maybeSingle();
+        if (localUser) {
+          const hashInput = await hashPwd(pwd, localUser.salt || null);
+          if (hashInput === localUser.password_hash) {
+            if (localUser.activo === false) {
+              setError("Tu usuario está desactivado. Contacta al administrador.");
+              setLoad(false);
+              return;
+            }
+            localStorage.removeItem(intentosKey);
+            localStorage.removeItem(bloqueoKey);
+            const data = {
+              id: localUser.id,
+              nombre: localUser.nombre || localUser.email || "Usuario",
+              email: localUser.email || emailNorm,
+              telefono: localUser.telefono || "",
+              rol: localUser.rol || "vendedor",
+              activo: localUser.activo !== false,
+              loginTimestamp: Date.now(),
+            };
+            localStorage.setItem("farmax_last_login_"+data.id, new Date().toLocaleString("es-MX"));
+            sessionStorage.setItem("farmax_admin_user", JSON.stringify(data));
+            logAudit(data, "LOGIN_LOCAL", "usuarios", data.id, {rol:data.rol, email:data.email});
+            onLogin(data);
+            setLoad(false);
+            return;
+          }
+        }
+
         const intentos = parseInt(localStorage.getItem(intentosKey)||"0") + 1;
         localStorage.setItem(intentosKey, intentos);
         if(intentos >= 5) {
@@ -168,8 +210,8 @@ function LoginScreen({onLogin}){
   };
 
   return(
-    <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#f0f4ff 0%,#f7f9fc 50%,#e8f4fd 100%)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-      <div style={{width:"100%",maxWidth:400}}>
+    <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#f0f4ff 0%,#f7f9fc 50%,#e8f4fd 100%)",display:"flex",alignItems:"center",justifyContent:"center",padding:"clamp(12px,4vw,20px)",boxSizing:"border-box",overflowX:"hidden"}}>
+      <div style={{width:"100%",maxWidth:400,minWidth:0}}>
         <div style={{textAlign:"center",marginBottom:32}}>
           <div style={{display:"flex",justifyContent:"center",marginBottom:16}}><Logo size={48}/></div>
           <div style={{color:C.textMid,fontSize:14}}>Sistema de gestión · Acceso interno</div>
@@ -217,16 +259,63 @@ function LoginScreen({onLogin}){
 // ══════════════════════════════════════════════════════════════
 // SIDEBAR
 // ══════════════════════════════════════════════════════════════
-function Sidebar({active,setActive,negocio,setNegocio,usuario,onLogout,alertas,ventasOffline=0}){
+function Sidebar({active,setActive,negocio,setNegocio,usuario,onLogout,alertas,ventasOffline=0,mobile=false,navOpen=false}){
   const C = C_LIGHT;
-  // Sidebar usa C del scope global (C_LIGHT por defecto)
-  // Para modo oscuro completo, pasar C como prop en versión futura
-  const navIds = usuario.rol==="admin"?NAV_ADMIN:usuario.rol==="vendedor"?NAV_VENDEDOR:NAV_DOCTORA;
-  const navItems = NAV_ITEMS.filter(n=>navIds.includes(n.id));
+  const isAdmin = usuario.rol==="admin";
+  const [adminOrder, setAdminOrder] = useState(() => (isAdmin ? loadAdminNavOrder(usuario) : null));
+  const [draggingId, setDraggingId] = useState(null);
+  const [dragOverId, setDragOverId] = useState(null);
+  /** Evita que el clic después de arrastrar active la misma fila. */
+  const skipClickForIdRef = useRef(null);
+
+  useEffect(() => {
+    if (!isAdmin) {
+      setAdminOrder(null);
+      return;
+    }
+    setAdminOrder(loadAdminNavOrder(usuario));
+  }, [isAdmin, usuario?.id]);
+
+  const navIds = isAdmin
+    ? (adminOrder ?? NAV_ADMIN)
+    : usuario.rol==="vendedor"
+      ? NAV_VENDEDOR
+      : NAV_DOCTORA;
+  const navItems = navIds.map((id) => NAV_ITEMS.find((n) => n.id === id)).filter(Boolean);
   const rolColor = usuario.rol==="admin"?C.purple:usuario.rol==="vendedor"?C.blue:C.green;
 
+  const onNavDrop = (e, targetId) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const fromId = (e.dataTransfer.getData("application/x-farmax-nav") || e.dataTransfer.getData("text/plain") || "").trim();
+    if (!fromId || fromId === targetId) {
+      setDraggingId(null);
+      setDragOverId(null);
+      return;
+    }
+    setAdminOrder((prev) => {
+      const base = prev ?? [...NAV_ADMIN];
+      const next = reorderNavIds(base, fromId, targetId);
+      saveAdminNavOrder(usuario, next);
+      return next;
+    });
+    setDraggingId(null);
+    setDragOverId(null);
+  };
+
+  const handleNavDragOver = (e, rowId) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDragOverId(rowId);
+  };
+
   return(
-    <div style={{width:220,height:"100vh",maxHeight:"100vh",flexShrink:0,background:C.card,borderRight:`1px solid ${C.border}`,boxShadow:"2px 0 8px rgba(0,0,0,.06)",display:"flex",flexDirection:"column",position:"fixed",left:0,top:0,zIndex:100,overflow:"hidden"}}>
+    <div style={{
+      width:220,height:"100vh",maxHeight:"100vh",flexShrink:0,background:C.card,borderRight:`1px solid ${C.border}`,
+      boxShadow: mobile?"4px 0 24px rgba(0,0,0,.12)":"2px 0 8px rgba(0,0,0,.06)",
+      display:"flex",flexDirection:"column",position:"fixed",left:mobile?(navOpen?0:-220):0,top:0,
+      zIndex:mobile?1001:100,overflow:"hidden",transition:"left .22s ease",
+    }}>
       <div style={{padding:"18px 14px 14px",borderBottom:`1px solid ${C.border}`}}>
         <Logo size={32} showText={true}/>
       {usuario.rol==="admin"&&(
@@ -243,23 +332,104 @@ function Sidebar({active,setActive,negocio,setNegocio,usuario,onLogout,alertas,v
       {/* Usuario actual */}
       <div style={{padding:"10px 14px",borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:10}}>
         <div style={{width:32,height:32,borderRadius:"50%",background:rolColor+"30",border:`1px solid ${rolColor}40`,display:"flex",alignItems:"center",justifyContent:"center",color:rolColor,fontWeight:800,fontSize:13,flexShrink:0}}>
-          {(usuario.nombre||"U")[0]}
+          {(primerNombre(usuario.nombre)||"U")[0].toUpperCase()}
         </div>
         <div style={{flex:1,minWidth:0}}>
-          <div style={{color:C.text,fontWeight:700,fontSize:12,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{usuario.nombre}</div>
+          <div style={{color:C.text,fontWeight:700,fontSize:12,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{saludoUsuario(usuario.nombre)}</div>
           <Tag col={rolColor} sm>{usuario.rol}</Tag>
         </div>
       </div>
 
       <div style={{flex:1,padding:"8px 8px",overflowY:"auto",scrollbarWidth:"thin",scrollbarColor:`${BRAND.primary}30 transparent`}}>
-        {navItems.map(n=>(
-          <button key={n.id} onClick={()=>setActive(n.id)}
-            onMouseEnter={e=>{if(active!==n.id){e.currentTarget.style.background=BRAND.primary+"10";e.currentTarget.style.color=BRAND.primary;e.currentTarget.style.borderLeftColor=BRAND.primary+"50";}}}
-            onMouseLeave={e=>{if(active!==n.id){e.currentTarget.style.background="transparent";e.currentTarget.style.color=C.textMid;e.currentTarget.style.borderLeftColor="transparent";}}}
-            style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"8px 10px",borderRadius:8,border:"none",cursor:"pointer",marginBottom:2,textAlign:"left",fontSize:12,fontWeight:600,fontFamily:"'Plus Jakarta Sans',sans-serif",background:active===n.id?BRAND.primary+"18":"transparent",color:active===n.id?BRAND.primary:C.textMid,borderLeft:`3px solid ${active===n.id?BRAND.primary:"transparent"}`,transition:"all .15s"}}>
-            <span style={{fontSize:12,width:16,textAlign:"center"}}>{n.icon}</span>{n.label}
+        {navItems.map((n) => {
+          const rowActive = active === n.id;
+          const rowDrop = isAdmin && dragOverId === n.id && draggingId && draggingId !== n.id;
+          const btnStyle = {
+            flex:1,minWidth:0,
+            display:"flex",alignItems:"center",gap:10,
+            padding:"8px 10px",borderRadius:8,border:"none",cursor:"pointer",
+            textAlign:"left",fontSize:12,fontWeight:600,fontFamily:"'Plus Jakarta Sans',sans-serif",
+            background:rowActive?BRAND.primary+"18":"transparent",
+            color:rowActive?BRAND.primary:C.textMid,
+            borderLeft:`3px solid ${rowActive?BRAND.primary:"transparent"}`,
+            transition:"all .15s",
+          };
+          if (!isAdmin) {
+            return (
+              <button key={n.id} onClick={()=>setActive(n.id)}
+                onMouseEnter={e=>{if(!rowActive){e.currentTarget.style.background=BRAND.primary+"10";e.currentTarget.style.color=BRAND.primary;e.currentTarget.style.borderLeftColor=BRAND.primary+"50";}}}
+                onMouseLeave={e=>{if(!rowActive){e.currentTarget.style.background="transparent";e.currentTarget.style.color=C.textMid;e.currentTarget.style.borderLeftColor="transparent";}}}
+                style={{...btnStyle,width:"100%",marginBottom:2}}>
+                <span style={{fontSize:12,width:16,textAlign:"center",flexShrink:0}}>{n.icon}</span>
+                <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{n.label}</span>
+              </button>
+            );
+          }
+          return (
+            <div
+              key={n.id}
+              draggable
+              role="row"
+              aria-grabbed={draggingId===n.id}
+              onDragStart={(e)=>{
+                e.dataTransfer.setData("text/plain", n.id);
+                e.dataTransfer.setData("application/x-farmax-nav", n.id);
+                e.dataTransfer.effectAllowed = "move";
+                setDraggingId(n.id);
+              }}
+              onDragEnd={()=>{
+                skipClickForIdRef.current = n.id;
+                setDraggingId(null);
+                setDragOverId(null);
+                window.setTimeout(() => {
+                  if (skipClickForIdRef.current === n.id) skipClickForIdRef.current = null;
+                }, 400);
+              }}
+              onDragOver={(e)=>handleNavDragOver(e, n.id)}
+              onDragLeave={(e)=>{ if (!e.currentTarget.contains(e.relatedTarget)) setDragOverId((d)=>d===n.id?null:d); }}
+              onDrop={(e)=>onNavDrop(e, n.id)}
+              onClick={(e)=>{
+                if (skipClickForIdRef.current === n.id) {
+                  skipClickForIdRef.current = null;
+                  e.preventDefault();
+                  return;
+                }
+                setActive(n.id);
+              }}
+              style={{
+                display:"flex",alignItems:"stretch",gap:0,marginBottom:2,width:"100%",
+                borderRadius:8,
+                outline:rowDrop?`2px dashed ${BRAND.primary}`:"none",
+                outlineOffset:1,
+                opacity:draggingId===n.id?0.55:1,
+                cursor:draggingId===n.id?"grabbing":"grab",
+                userSelect:"none",
+              }}
+            >
+              <div style={{...btnStyle,width:"100%",margin:0}}>
+                <span style={{fontSize:12,width:16,textAlign:"center",flexShrink:0}}>{n.icon}</span>
+                <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{n.label}</span>
+              </div>
+            </div>
+          );
+        })}
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={()=>{
+              clearAdminNavOrder(usuario);
+              setAdminOrder(mergeAdminNavOrder(null));
+              showToast("Orden del menú restaurado", "info");
+            }}
+            style={{
+              width:"100%",marginTop:10,padding:"6px 8px",borderRadius:8,
+              border:`1px dashed ${C.border}`,background:"transparent",color:C.textDim,
+              fontSize:10,fontWeight:600,cursor:"pointer",
+            }}
+          >
+            Restaurar orden predeterminado
           </button>
-        ))}
+        )}
       </div>
 
       {/* Alertas y logout */}
@@ -292,84 +462,56 @@ function Dashboard({negocio,alertas,setPage}){
   useEffect(()=>{
     const cargar = async () => {
       setLoad(true);
-      if (typeof setLoadErr === "function") setLoadErr("");
-      // Cargar configuración
-      supabase.from("configuracion").select("*").then(({data:cfg})=>{
-        if(cfg&&cfg.length){
-          const map={}; cfg.forEach(r=>{map[r.clave]=r.valor;}); 
-          setConfig(p=>({...p,...{precio_consulta:parseFloat(map.precio_consulta)||300,nombre_doctor:map.nombre_doctor||p.nombre_doctor,nombre_farmacia:map.nombre_farmacia||p.nombre_farmacia,telefono_farmacia:map.telefono_farmacia||"",direccion_farmacia:map.direccion_farmacia||p.direccion_farmacia}}));
-        }
-      });
       try {
-        // Fecha local YYYY-MM-DD (evita problemas por UTC)
         const hoyLocal = new Date().toLocaleDateString("sv-SE");
+        const t0 = new Date();
+        t0.setHours(0, 0, 0, 0);
+        const t1 = new Date();
+        t1.setHours(23, 59, 59, 999);
+        const weekAgo = new Date(Date.now() - 7 * 86400000);
+        const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
-        // Cargar promoción activa para mostrar en ticket
-        supabase.from("promociones").select("nombre,descripcion,tipo,valor")
-          .eq("activa",true)
-          .or(`fecha_fin.is.null,fecha_fin.gte.${hoyLocal}`)
-          .order("created_at",{ascending:false})
-          .limit(1)
-          .then(({data:promos})=>{
-            if(promos&&promos.length){
-              const p = promos[0];
-              const desc = p.tipo==="descuento_pct"?`${p.valor}% OFF`:p.tipo==="2x1"?"2×1":p.tipo==="descuento_fijo"?`$${p.valor} OFF`:"Promoción";
-              setPromoTicket(`${p.nombre} — ${desc}`);
-            } else {
-              setPromoTicket(null);
-            }
-          });
-
-        // F1: Cargar ventas del día del empleado actual
-        const sesion = JSON.parse(sessionStorage.getItem("farmax_admin_user")||"{}");
-        if (sesion?.id) {
-          supabase.from("pedidos")
-            .select("total")
-            .eq("atendido_por", sesion.id)
-            .eq("estado","completado")
-            .gte("created_at", new Date().toLocaleDateString("sv-SE")+"T00:00:00")
-            .then(({data:vd})=>{
-              if(vd) setVentasDia({
-                total: vd.reduce((a,p)=>a+parseFloat(p.total||0),0),
-                count: vd.length
-              });
-            });
-        }
-
-        const [prodsRes, pedsRes, citasRes] = await Promise.all([
-          supabase.from("productos").select("*").eq("activo",true).order("nombre"),
+        const [
+          pedsRes,
+          citasRes,
+          ventasHoyRes,
+          ventasSemanaRes,
+          ventasMesRes,
+          citasComplRes,
+        ] = await Promise.all([
           supabase.from("pedidos").select(`
-            id,total,created_at,tipo,
+            id,total,created_at,tipo,metodo_pago,estado,
             clientes(nombre,telefono),
             pedido_items(cantidad,precio_unitario,productos(nombre,sku))
-          `).eq("tipo","online").eq("estado","pendiente").order("created_at",{ascending:false}),
+          `).eq("estado","pendiente").or("tipo.eq.online,and(tipo.is.null,metodo_pago.eq.tarjeta),and(tipo.is.null,metodo_pago.eq.mercadopago)").order("created_at",{ascending:false}),
           supabase.from("citas").select(`
-            id,nombre,telefono,hora,fecha,motivo,estado,
+            id,nombre,telefono,hora,fecha,motivo,estado,pago_estado,
             consumibles_consulta!cita_id(id,cantidad,precio,cobrado,productos!producto_id(nombre))
           `).eq("fecha", hoyLocal).in("estado",["confirmada","en_consulta","completada","pagada"]),
+          supabase.from("pedidos").select("total").eq("estado","completado").gte("created_at", t0.toISOString()).lte("created_at", t1.toISOString()),
+          supabase.from("pedidos").select("total").eq("estado","completado").gte("created_at", weekAgo.toISOString()),
+          supabase.from("pedidos").select("total").eq("estado","completado").gte("created_at", monthStart.toISOString()),
+          supabase.from("citas").select("id").eq("fecha", hoyLocal).neq("estado", "cancelada").or("estado.in.(completada,pagada),pago_estado.eq.pagada"),
         ]);
 
-        const errs = [];
-        if (prodsRes?.error) errs.push(`Productos (${prodsRes.status||"?"}): ${prodsRes.error.message}`);
-        if (pedsRes?.error)  errs.push(`Pedidos online (${pedsRes.status||"?"}): ${pedsRes.error.message}`);
-        if (citasRes?.error) errs.push(`Citas hoy (${citasRes.status||"?"}): ${citasRes.error.message}`);
+        if (pedsRes?.error) console.error("[Dashboard] Pedidos:", pedsRes.error);
+        if (citasRes?.error) console.error("[Dashboard] Citas:", citasRes.error);
+        if (citasComplRes?.error) console.warn("[Dashboard] Citas realizadas hoy:", citasComplRes.error);
 
-        if (errs.length) {
-          console.error("[POS] Errores de carga:", { prodsRes, pedsRes, citasRes });
-          if (typeof setLoadErr === "function") setLoadErr(errs.join(" | "));
-        }
+        setPedOn((pedsRes?.data || []).filter(esPedidoTiendaWebPendiente));
+        setCitasH(citasRes?.data || []);
 
-        setProds(prodsRes?.data || []);
-        setPedOn(pedsRes?.data || []);
+        const hoy = (ventasHoyRes?.data || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
+        const semana = (ventasSemanaRes?.data || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
+        const mes = (ventasMesRes?.data || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
+        const consultas = (citasComplRes?.data || []).length;
 
-        const citas = (citasRes?.data || []);
-        // Citas con consumibles por cobrar
-        setConsCobrar(citas.filter(c => (c.consumibles_consulta||[]).some(x => !x.cobrado)));
-
+        setKpis({ hoy, semana, mes, consultas });
       } catch (e) {
-        console.error("[POS] Excepción cargando datos:", e);
-        if (typeof setLoadErr === "function") setLoadErr("Error inesperado cargando datos. Revisa consola.");
-        setProds([]); setPedOn([]); setConsCobrar([]);
+        console.error("[Dashboard] cargar:", e);
+        setPedOn([]);
+        setCitasH([]);
+        setKpis({ hoy: 0, semana: 0, mes: 0, consultas: 0 });
       } finally {
         setLoad(false);
       }
@@ -445,10 +587,12 @@ function Dashboard({negocio,alertas,setPage}){
 // ══════════════════════════════════════════════════════════════
 // POS — Punto de Venta (Admin + Vendedor)
 // Incluye pedidos online + cobro de consultas
+// initialTab: "consultas" al entrar por menú «Cobrar consulta» (cons_cobro)
+// onNavigate: ir a otros módulos (p. ej. Corte de caja)
 // ══════════════════════════════════════════════════════════════
-function POS({negocio,usuario}){
+function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const C = C_LIGHT;
-  const [tab,setTab]         = useState("venta"); // venta | online | consultas
+  const [tab,setTab]         = useState(initialTab); // venta | online | consultas
   const [productos,setProds] = useState([]);
   const [cart,setCart]       = useState([]);
   const [srch,setSrch]       = useState("");
@@ -463,6 +607,7 @@ function POS({negocio,usuario}){
     });
   };
   const [pay,setPay]         = useState("efectivo");
+  const [montoRecibido, setMontoRecibido] = useState("");
   const [tel,setTel]         = useState("");
   const [cli,setCli]         = useState(null);
   const [ticket,setTicket]   = useState(null);
@@ -471,65 +616,189 @@ function POS({negocio,usuario}){
   const [rx,setRx]           = useState({receta:"",medico:"",cedula:"",paciente:"",indicaciones:""});
   const [pedOnline,setPedOn] = useState([]);
   const [consxCobrar,setConsCobrar] = useState([]);
+  const [citasAgenda,setCitasAgenda] = useState([]);
+  /** Vista de agenda en pestaña Consultas: hoy | un día elegido (calendario) | semana (lun–dom). Una sola doctora → un cupo por horario. */
+  const [rangoAgendaPOS, setRangoAgendaPOS] = useState("hoy");
+  const [fechaAgendaElegida, setFechaAgendaElegida] = useState(() =>
+    addDaysSv(new Date().toLocaleDateString("sv-SE"), 1)
+  );
+  const [nuevaCita,setNuevaCita] = useState(()=>({
+    nombre:"",telefono:"",fecha:new Date().toLocaleDateString("sv-SE"),hora:"",motivo:"",
+  }));
+  /** Conteo de citas por hora para la fecha del formulario (máx. 1 por slot — una doctora). */
+  const [ocupacionPorHora, setOcupacionPorHora] = useState({});
   const [loading,setLoad]    = useState(false);
   const [guardando,setGuard] = useState(false);
   const [cartOpen,setCartOpen]   = useState(true);
   const [mpModal,setMpModal]     = useState(false);
   const [mpFolio,setMpFolio]     = useState("");
+  /** Tras elegir origen de receta, cobro con tarjeta (Point) usa este valor al confirmar el pago. */
+  const recetaOrigenPendienteRef = useRef("no_aplica");
+  const [modalRecetaVenta, setModalRecetaVenta] = useState(false);
+  const [modalRecetaModo, setModalRecetaModo] = useState(null);
+  const [recetaOrigenSel, setRecetaOrigenSel] = useState("no_aplica");
+  /** Si no es null, el modal MP cobra esa cita (no venta de carrito). */
+  const mpCitaRef = useRef(null);
   const [ventasDia,setVentasDia] = useState({total:0,count:0});
   const [folioActual,setFolioActual] = useState("VTA-00000000");
   const [promoTicket,setPromoTicket] = useState(null);
   const [loadErr,setLoadErr] = useState("");
-  const [config,setConfig]   = useState({precio_consulta:300,nombre_doctor:"Dra. Lourdes Lucio Falcón",nombre_farmacia:"Farmax",telefono_farmacia:"",direccion_farmacia:"Chinampac de Juárez, Iztapalapa, CDMX"});
+  const [config,setConfig]   = useState({precio_consulta:CONSULTA_PRECIO_DEFAULT,nombre_doctor:"Dra. Lourdes Lucio Falcón",nombre_farmacia:"Farmax",telefono_farmacia:"",direccion_farmacia:"Chinampac de Juárez, Iztapalapa, CDMX"});
+
+  useEffect(()=>{ setTab(initialTab); },[initialTab]);
+
+  useEffect(()=>{
+    supabase.from("configuracion").select("*").then(({ data: cfg }) => {
+      if (cfg && cfg.length) {
+        const map = {};
+        cfg.forEach((r) => {
+          map[r.clave] = r.valor;
+        });
+        setConfig((p) => ({
+          ...p,
+          precio_consulta: parseFloat(map.precio_consulta) || CONSULTA_PRECIO_DEFAULT,
+          nombre_doctor: map.nombre_doctor || p.nombre_doctor,
+          nombre_farmacia: map.nombre_farmacia || p.nombre_farmacia,
+          telefono_farmacia: map.telefono_farmacia || "",
+          direccion_farmacia: map.direccion_farmacia || p.direccion_farmacia,
+        }));
+      }
+    });
+  }, []);
+
+  const fechasAgendaPOS = useCallback(() => {
+    const hoy = new Date();
+    const y = hoy.getFullYear();
+    const m = hoy.getMonth();
+    const d = hoy.getDate();
+    const pad = (n) => String(n).padStart(2, "0");
+    const toSv = (dt) => `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`;
+    if (rangoAgendaPOS === "hoy") {
+      const x = new Date(y, m, d);
+      return { desde: toSv(x), hasta: toSv(x) };
+    }
+    if (rangoAgendaPOS === "dia") {
+      const f = fechaAgendaElegida || new Date().toLocaleDateString("sv-SE");
+      return { desde: f, hasta: f };
+    }
+    const day = hoy.getDay();
+    const diffToMon = day === 0 ? -6 : 1 - day;
+    const mon = new Date(y, m, d + diffToMon);
+    const sun = new Date(mon);
+    sun.setDate(mon.getDate() + 6);
+    return { desde: toSv(mon), hasta: toSv(sun) };
+  }, [rangoAgendaPOS, fechaAgendaElegida]);
+
+  const refrescarCitasPOS = useCallback(async () => {
+    const { desde, hasta } = fechasAgendaPOS();
+    const { data, error } = await supabase
+      .from("citas")
+      .select(`
+        id,nombre,telefono,hora,fecha,motivo,estado,canal,pago_estado,pedido_consulta_id,precio_consulta_cobrado,ingreso_doctor,ingreso_farmacia,
+        consumibles_consulta!cita_id(id,cantidad,precio,cobrado,productos!producto_id(nombre))
+      `)
+      .gte("fecha", desde)
+      .lte("fecha", hasta)
+      .not("estado", "eq", "cancelada");
+    if (error) {
+      console.error("[POS] Citas:", error);
+      setCitasAgenda([]);
+      setConsCobrar([]);
+      return;
+    }
+    const citas = data || [];
+    setCitasAgenda(citas);
+    setConsCobrar(
+      citas.filter((c) => {
+        const pendientePago = citaPagoPendiente(c);
+        const consumiblesPend = (c.consumibles_consulta || []).some((x) => !x.cobrado);
+        return pendientePago || consumiblesPend;
+      })
+    );
+  }, [fechasAgendaPOS]);
+
+  const hoyStrPOS = new Date().toLocaleDateString("sv-SE");
+  useEffect(() => {
+    if (!nuevaCita.fecha) {
+      setOcupacionPorHora({});
+      return;
+    }
+    if (nuevaCita.fecha === hoyStrPOS) {
+      const counts = {};
+      (citasAgenda || []).forEach((c) => {
+        if (c.fecha !== nuevaCita.fecha) return;
+        const k = c.hora;
+        if (!k) return;
+        counts[k] = (counts[k] || 0) + 1;
+      });
+      setOcupacionPorHora(counts);
+      return;
+    }
+    supabase
+      .from("citas")
+      .select("hora")
+      .eq("fecha", nuevaCita.fecha)
+      .not("estado", "eq", "cancelada")
+      .then(({ data }) => {
+        const counts = {};
+        (data || []).forEach((c) => {
+          const k = c.hora;
+          if (!k) return;
+          counts[k] = (counts[k] || 0) + 1;
+        });
+        setOcupacionPorHora(counts);
+      });
+  }, [nuevaCita.fecha, citasAgenda, hoyStrPOS]);
+
+  useEffect(() => {
+    const libres = horariosDisponiblesCita(nuevaCita.fecha).filter(
+      (h) => (ocupacionPorHora[h] || 0) < 1
+    );
+    if (nuevaCita.hora && !libres.includes(nuevaCita.hora)) {
+      setNuevaCita((p) => ({ ...p, hora: "" }));
+    }
+  }, [nuevaCita.fecha, nuevaCita.hora, ocupacionPorHora]);
 
   useEffect(()=>{
     const cargar = async () => {
       setLoad(true);
       if (typeof setLoadErr === "function") setLoadErr("");
       try {
-        // Fecha local YYYY-MM-DD (evita problemas por UTC)
-        const hoyLocal = new Date().toLocaleDateString("sv-SE");
-
-        const [prodsRes, pedsRes, citasRes] = await Promise.all([
+        const [prodsRes, pedsRes] = await Promise.all([
           supabase.from("productos").select("*").eq("activo",true).order("nombre"),
           supabase.from("pedidos").select(`
-            id,total,created_at,tipo,
+            id,total,created_at,tipo,metodo_pago,estado,
             clientes(nombre,telefono),
             pedido_items(cantidad,precio_unitario,productos(nombre,sku))
-          `).eq("tipo","online").eq("estado","pendiente").order("created_at",{ascending:false}),
-          supabase.from("citas").select(`
-            id,nombre,telefono,hora,fecha,motivo,estado,
-            consumibles_consulta!cita_id(id,cantidad,precio,cobrado,productos!producto_id(nombre))
-          `).eq("fecha", hoyLocal).in("estado",["confirmada","en_consulta","completada","pagada"]),
+          `).eq("estado","pendiente").or("tipo.eq.online,and(tipo.is.null,metodo_pago.eq.tarjeta),and(tipo.is.null,metodo_pago.eq.mercadopago)").order("created_at",{ascending:false}),
         ]);
 
         const errs = [];
         if (prodsRes?.error) errs.push(`Productos (${prodsRes.status||"?"}): ${prodsRes.error.message}`);
         if (pedsRes?.error)  errs.push(`Pedidos online (${pedsRes.status||"?"}): ${pedsRes.error.message}`);
-        if (citasRes?.error) errs.push(`Citas hoy (${citasRes.status||"?"}): ${citasRes.error.message}`);
 
         if (errs.length) {
-          console.error("[POS] Errores de carga:", { prodsRes, pedsRes, citasRes });
+          console.error("[POS] Errores de carga:", { prodsRes, pedsRes });
           if (typeof setLoadErr === "function") setLoadErr(errs.join(" | "));
         }
 
         setProds(prodsRes?.data || []);
-        setPedOn(pedsRes?.data || []);
-
-        const citas = (citasRes?.data || []);
-        // Citas con consumibles por cobrar
-        setConsCobrar(citas.filter(c => (c.consumibles_consulta||[]).some(x => !x.cobrado)));
+        setPedOn((pedsRes?.data || []).filter(esPedidoTiendaWebPendiente));
 
       } catch (e) {
         console.error("[POS] Excepción cargando datos:", e);
         if (typeof setLoadErr === "function") setLoadErr("Error inesperado cargando datos. Revisa consola.");
-        setProds([]); setPedOn([]); setConsCobrar([]);
+        setProds([]); setPedOn([]); setConsCobrar([]); setCitasAgenda([]);
       } finally {
         setLoad(false);
       }
     };
     cargar();
-  },[]);
+  },[refrescarCitasPOS]);
+
+  useEffect(() => {
+    refrescarCitasPOS();
+  }, [refrescarCitasPOS]);
 
 
   const buscarCli = async (t) => {
@@ -563,8 +832,17 @@ function POS({negocio,usuario}){
     efectivo: "Efectivo",
     tarjeta: "Tarjeta",
     spei: "SPEI",
-    mercadopago: "MercadoPago",
+    mercadopago: "Tarjeta",
   }[method] || "Otro");
+
+  const totalCobroConsulta = (cita) => {
+    const precioBase = parseFloat(config?.precio_consulta) || CONSULTA_PRECIO_DEFAULT;
+    const yaPagoConsulta =
+      cita.pago_estado === "pagada" || cita.estado === "pagada" || !!cita.pedido_consulta_id;
+    const consumibles = (cita.consumibles_consulta || []).filter((c) => !c.cobrado);
+    const totalCons = consumibles.reduce((a, c) => a + c.precio * c.cantidad, 0);
+    return (yaPagoConsulta ? 0 : precioBase) + totalCons;
+  };
 
   const add = (item, esUnidad=false) => {
     // Validar producto no vencido
@@ -616,6 +894,25 @@ function POS({negocio,usuario}){
     showToast(`Caja abierta. Unidades disponibles: ${nuevasUnidades}`, "success");
   };
 
+  const RX_IND_PRESETS = ["Cada 8 hrs con alimentos","Cada 12 hrs, completar tratamiento","En ayunas, 30 min antes de desayuno","Solo por la noche antes de dormir","No exceder dosis indicada por médico"];
+
+  const toggleRxIndicacion = (t) => {
+    setRx((p) => {
+      const parts = (p.indicaciones || "").split(/\s*;\s*/).map((s) => s.trim()).filter(Boolean);
+      const i = parts.indexOf(t);
+      if (i >= 0) parts.splice(i, 1);
+      else parts.push(t);
+      return { ...p, indicaciones: parts.join("; ") };
+    });
+  };
+
+  const rxPresetActiva = (t) =>
+    (rx.indicaciones || "")
+      .split(/\s*;\s*/)
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .includes(t);
+
   const confRx = () => {
     if(!rx.receta||!rx.medico||!rx.cedula||!rx.paciente) return;
     setCart(p=>[...p,{...rxM,qty:1,rxI:{...rx}}]);
@@ -637,10 +934,48 @@ function POS({negocio,usuario}){
   const ptsG  = Math.floor(sub/10);
   const total = sub;
 
-  const cobrar = async () => {
+  const parseMontoEfectivo = (s) => {
+    const x = String(s ?? "").replace(/,/g, "").trim().replace(/^\$/, "");
+    const n = parseFloat(x);
+    return Number.isFinite(n) ? Math.round(n * 100) / 100 : NaN;
+  };
+  const recibidoNum = parseMontoEfectivo(montoRecibido);
+  const cambioNum = pay === "efectivo" && Number.isFinite(recibidoNum) ? Math.round(Math.max(0, recibidoNum - total) * 100) / 100 : null;
+
+  const abrirModalRecetaVenta = (modo) => {
+    if (!cart.length) return;
+    if (modo === "efectivo") {
+      const rec = parseMontoEfectivo(montoRecibido);
+      if (!Number.isFinite(rec) || rec < total) {
+        showToast(`Indica cuánto te entregó el cliente en efectivo (mínimo ${$(total)}).`, "warning");
+        return;
+      }
+    }
+    setRecetaOrigenSel("no_aplica");
+    setModalRecetaModo(modo);
+    setModalRecetaVenta(true);
+  };
+
+  const ejecutarCobrar = async (recetaOrigen = "no_aplica") => {
     if(!cart.length) return;
+    if (pay === "efectivo") {
+      const rec = parseMontoEfectivo(montoRecibido);
+      if (!Number.isFinite(rec) || rec < total) {
+        showToast(`Indica cuánto te entregó el cliente en efectivo (mínimo ${$(total)}).`, "warning");
+        return;
+      }
+    }
     setGuard(true);
     try {
+      const empleadoId = await idEmpleadoUsuarios(usuario);
+      if (empleadoId == null) {
+        alert(
+          "No se pudo identificar al cajero: tu sesión no está vinculada a un usuario en el sistema. Comprueba que exista un registro en Usuarios con el mismo correo que usaste para iniciar sesión."
+        );
+        setGuard(false);
+        return;
+      }
+
       const cartItemsMapped = cart.map(c=>({
         producto_id: c.producto_id ?? c.id,
         cantidad: c.qty,
@@ -649,7 +984,7 @@ function POS({negocio,usuario}){
       }));
 
       const { data: rpcData, error: rpcError } = await supabase.rpc("create_sale_transaction_v2", {
-        p_user_id: usuario.id,
+        p_user_id: empleadoId,
         p_metodo_pago: pay,
         p_total: total,
         p_cart_items: cartItemsMapped,
@@ -668,6 +1003,25 @@ function POS({negocio,usuario}){
         throw new Error("RPC create_sale_transaction_v2 devolvió una respuesta inválida");
       }
 
+      const ro = recetaOrigen === "medico_farmax" || recetaOrigen === "medico_externo" ? recetaOrigen : "no_aplica";
+      const { error: uErr } = await supabase.from("pedidos").update({ receta_origen: ro }).eq("id", pedidoId);
+      if (uErr) console.warn("[POS] receta_origen:", uErr);
+
+      if (ro === "medico_farmax") {
+        const fechaSv = new Date().toLocaleDateString("sv-SE");
+        try {
+          await marcarMedicamentosRecetaFarmaxSurtidos(supabase, {
+            fechaCitaLocal: fechaSv,
+            telefonoCliente: cli?.telefono,
+            clienteId: cli?.id ?? null,
+            pedidoId,
+            items: cart.map((c) => ({ producto_id: c.producto_id ?? c.id, qty: c.qty })),
+          });
+        } catch (e) {
+          console.warn("[POS] sync receta-cita:", e);
+        }
+      }
+
       setFolioActual(`VTA-${String(pedidoId).padStart(8,"0")}`);
 
       // Puntos
@@ -678,7 +1032,7 @@ function POS({negocio,usuario}){
         await supabase.from("bitacora_cofepris").insert(rxItems.map(c=>({
           medicamento:c.nombre, lote:c.lote||"", cantidad:c.qty,
           receta:c.rxI.receta, medico:c.rxI.medico, cedula_medico:c.rxI.cedula, paciente:c.rxI.paciente,
-          empleado_id:usuario.id,
+          empleado_id:empleadoId,
         })));
       }
       const { data: pedidoItems, error: pedidoItemsError } = await supabase
@@ -700,6 +1054,9 @@ function POS({negocio,usuario}){
       const ivaAmt = parseFloat((total * 0.16 / 1.16).toFixed(2));
       const netoAmt = parseFloat((total - ivaAmt).toFixed(2));
       const folioVenta = `VTA-${String(pedidoId).padStart(8,"0")}`;
+      const recEf = pay === "efectivo" ? parseMontoEfectivo(montoRecibido) : null;
+      const cambioEf = pay === "efectivo" && Number.isFinite(recEf) ? Math.round(Math.max(0, recEf - total) * 100) / 100 : null;
+      const desgloseEf = pay === "efectivo" && cambioEf != null && cambioEf > 0 ? desgloseCambioMN(cambioEf) : "";
       setTicket({
         id:pedidoId,
         folio:folioVenta,
@@ -710,24 +1067,60 @@ function POS({negocio,usuario}){
         iva:ivaAmt,
         pay:paymentLabel(pay),
         cli,
-        ptsG
+        ptsG,
+        ...(pay === "efectivo" && Number.isFinite(recEf)
+          ? { recibido: recEf, cambio: cambioEf, cambioDesglose: desgloseEf }
+          : {}),
       });
       setVentasDia(p=>({total:p.total+total, count:p.count+1}));
-      logAudit(usuario, "VENTA", "pedidos", pedidoId, {total, metodo_pago:pay, items:cart.length});
+      logAudit(usuario, "VENTA", "pedidos", pedidoId, {
+        total, metodo_pago: pay, items: cart.length,
+        ...(pay === "efectivo" && Number.isFinite(recEf) ? { efectivo_recibido: recEf, cambio: cambioEf } : {}),
+      });
       showToast("Venta registrada correctamente", "success");
       setCart([]); setTel(""); setCli(null);
-      setTimeout(()=>printTicket("farmax-ticket"), 500);
+      setMontoRecibido("");
+      setTimeout(() => printTicket("farmax-ticket"), 500);
     } catch(e) {
       console.error(e);
-      alert("Stock insuficiente o error en venta");
+      const msg = e?.message || e?.details || String(e);
+      const lower = msg.toLowerCase();
+      if (lower.includes("stock") || lower.includes("insuficiente")) {
+        alert("Stock insuficiente o no se pudo completar el descuento de inventario.");
+      } else {
+        alert(`No se pudo completar la venta.\n\n${msg}`);
+      }
     }
     setGuard(false);
+  };
+
+  const cobrar = () => abrirModalRecetaVenta("efectivo");
+
+  const confirmarRecetaVentaYContinuar = () => {
+    const ro = recetaOrigenSel === "medico_farmax" || recetaOrigenSel === "medico_externo" ? recetaOrigenSel : "no_aplica";
+    setModalRecetaVenta(false);
+    const modo = modalRecetaModo;
+    setModalRecetaModo(null);
+    if (modo === "tarjeta") {
+      mpCitaRef.current = null;
+      recetaOrigenPendienteRef.current = ro;
+      setMpFolio(folioActual || "VTA-PENDIENTE");
+      setMpModal(true);
+    } else if (modo === "efectivo") {
+      ejecutarCobrar(ro);
+    }
   };
 
   const surtirOnline = async (pedido) => {
     setGuard(true);
     try {
-      await supabase.from("pedidos").update({estado:"listo",atendido_por:usuario.id}).eq("id",pedido.id);
+      const empleadoId = await idEmpleadoUsuarios(usuario);
+      if (empleadoId == null) {
+        alert("No se pudo registrar quién surtió el pedido (usuario no vinculado).");
+        setGuard(false);
+        return;
+      }
+      await supabase.from("pedidos").update({estado:"listo",atendido_por:empleadoId}).eq("id",pedido.id);
       // Descontar stock
       for(const item of (pedido.pedido_items||[])) {
         if(item.productos?.id) {
@@ -758,28 +1151,140 @@ function POS({negocio,usuario}){
     setGuard(false);
   };
 
+  const guardarNuevaCitaMostrador = async () => {
+    if (!nuevaCita.nombre?.trim() || !nuevaCita.fecha || !nuevaCita.hora) {
+      showToast("Nombre, fecha y hora son obligatorios.", "warning");
+      return;
+    }
+    setGuard(true);
+    try {
+      const { data: ocupado } = await supabase
+        .from("citas")
+        .select("id")
+        .eq("fecha", nuevaCita.fecha)
+        .eq("hora", nuevaCita.hora)
+        .not("estado", "eq", "cancelada");
+      if (ocupado && ocupado.length >= 1) {
+        alert("Ese horario ya no está disponible. Elige otro.");
+        setGuard(false);
+        return;
+      }
+      const { error } = await supabase.from("citas").insert({
+        nombre: nuevaCita.nombre.trim(),
+        telefono: nuevaCita.telefono.trim() || null,
+        fecha: nuevaCita.fecha,
+        hora: nuevaCita.hora,
+        motivo: nuevaCita.motivo.trim() || null,
+        canal: "mostrador",
+        pago_estado: "pendiente",
+      });
+      if (error) throw error;
+      showToast("Cita registrada. Cobrar la consulta abajo para que la doctora vea «Pagado».", "success");
+      setNuevaCita({
+        nombre: "",
+        telefono: "",
+        fecha: new Date().toLocaleDateString("sv-SE"),
+        hora: "",
+        motivo: "",
+      });
+      await refrescarCitasPOS();
+    } catch (e) {
+      console.error(e);
+      alert("No se pudo guardar la cita: " + (e?.message || e));
+    }
+    setGuard(false);
+  };
+
+  const cancelarCitaPorNoShow = async (cita) => {
+    if (!puedeCancelarCitaNoShow(cita)) return;
+    if (!window.confirm(`¿Cancelar la cita de ${cita.nombre} (${cita.hora}) y liberar el horario? Solo aplica si pasaron 10 min del inicio sin pago en caja.`)) return;
+    setGuard(true);
+    try {
+      const { error } = await supabase.from("citas").update({ estado: "cancelada" }).eq("id", cita.id);
+      if (error) throw error;
+      showToast("Cita cancelada. El horario queda libre.", "info");
+      await refrescarCitasPOS();
+    } catch (e) {
+      console.error(e);
+      alert("No se pudo cancelar: " + (e?.message || e));
+    }
+    setGuard(false);
+  };
+
   const cobrarConsulta = async (cita) => {
     setGuard(true);
     try {
-      const consumibles = (cita.consumibles_consulta||[]).filter(c=>!c.cobrado);
-      const totalConsumibles = consumibles.reduce((a,c)=>a+c.precio*c.cantidad,0);
-      const totalFinal = (parseFloat(config?.precio_consulta)||300) + totalConsumibles; // precio desde configuracion
-      const {data:pedido} = await supabase.from("pedidos").insert({
-        cliente_id: cli?.id||null,
-        total:totalFinal, estado:"completado",
-        tipo:"tienda_fisica", metodo_pago:pay,
-        atendido_por:usuario.id,
-      }).select().single();
-      // Marcar consumibles como cobrados
-      for(const c of consumibles) {
-        await supabase.from("consumibles_consulta").update({cobrado:true}).eq("id",c.id);
+      const empleadoId = await idEmpleadoUsuarios(usuario);
+      if (empleadoId == null) {
+        alert("No se pudo registrar la consulta (usuario no vinculado en Usuarios).");
+        setGuard(false);
+        return;
       }
-      // Actualizar cita como "pagada"
-      await supabase.from("citas").update({estado:"pagada"}).eq("id",cita.id);
-      if(cli) await supabase.from("clientes").update({puntos:(cli.puntos||0)+Math.floor(totalFinal/10)}).eq("id",cli.id);
-      setConsCobrar(p=>p.filter(x=>x.id!==cita.id));
-      setTicket({id:pedido?.id||Date.now(),items:[{nombre:"Consulta médica Dra. Lourdes",qty:1,precio:300},...consumibles.map(c=>({nombre:c.productos?.nombre||"Consumible",qty:c.cantidad,precio:c.precio}))],sub:totalFinal,total:totalFinal,pay:paymentLabel(pay),cli,ptsG:Math.floor(totalFinal/10)});
-    } catch(e){ console.error(e); }
+      const precioBase = parseFloat(config?.precio_consulta) || CONSULTA_PRECIO_DEFAULT;
+      const yaPagoConsulta =
+        cita.pago_estado === "pagada" || cita.estado === "pagada" || !!cita.pedido_consulta_id;
+      const consumibles = (cita.consumibles_consulta || []).filter((c) => !c.cobrado);
+      const totalConsumibles = consumibles.reduce((a, c) => a + c.precio * c.cantidad, 0);
+      const baseCobrar = yaPagoConsulta ? 0 : precioBase;
+      const totalFinal = baseCobrar + totalConsumibles;
+      if (totalFinal <= 0) {
+        alert("No hay monto por cobrar.");
+        setGuard(false);
+        return;
+      }
+      const partes = repartoConsulta(baseCobrar);
+      const { data: pedido } = await supabase
+        .from("pedidos")
+        .insert({
+          cliente_id: cli?.id || null,
+          total: totalFinal,
+          estado: "completado",
+          tipo: "consulta",
+          metodo_pago: pay,
+          atendido_por: empleadoId,
+        })
+        .select()
+        .single();
+      for (const c of consumibles) {
+        await supabase.from("consumibles_consulta").update({ cobrado: true }).eq("id", c.id);
+      }
+      const upd = {
+        pago_estado: "pagada",
+        pedido_consulta_id: pedido?.id || null,
+      };
+      if (baseCobrar > 0) {
+        upd.precio_consulta_cobrado = precioBase;
+        upd.ingreso_doctor = partes.doctor;
+        upd.ingreso_farmacia = partes.farmacia;
+      }
+      await supabase.from("citas").update(upd).eq("id", cita.id);
+      if (cli) await supabase.from("clientes").update({ puntos: (cli.puntos || 0) + Math.floor(totalFinal / 10) }).eq("id", cli.id);
+      await refrescarCitasPOS();
+      const itemsConsulta =
+        baseCobrar > 0
+          ? [{ nombre: "Consulta médica", qty: 1, precio: precioBase }]
+          : [];
+      setTicket({
+        id: pedido?.id || Date.now(),
+        items: [
+          ...itemsConsulta,
+          ...consumibles.map((c) => ({
+            nombre: c.productos?.nombre || "Consumible",
+            qty: c.cantidad,
+            precio: c.precio,
+          })),
+        ],
+        sub: totalFinal,
+        total: totalFinal,
+        pay: paymentLabel(pay),
+        cli,
+        ptsG: Math.floor(totalFinal / 10),
+      });
+      setTimeout(() => printTicket("farmax-ticket"), 500);
+    } catch (e) {
+      console.error(e);
+      alert("No se pudo cobrar la consulta: " + (e?.message || e));
+    }
     setGuard(false);
   };
 
@@ -806,7 +1311,12 @@ function POS({negocio,usuario}){
       )}
       <div style={{display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
         <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
-          <h1 style={{color:C.text,fontSize:20,fontWeight:800,margin:0}}>⊡ Punto de Venta</h1>
+          <h1 style={{color:C.text,fontSize:20,fontWeight:800,margin:0}}>
+            ⊡ Punto de Venta
+            {initialTab==="consultas"&&(
+              <span style={{fontWeight:700,fontSize:14,color:C.purple}}> · Cobro de consultas</span>
+            )}
+          </h1>
           {folioActual!=="VTA-00000000"&&(
             <span style={{padding:"3px 10px",borderRadius:20,fontSize:10,fontWeight:700,background:C.blueDim,color:C.blue}}>
               Último folio: {folioActual}
@@ -838,12 +1348,12 @@ function POS({negocio,usuario}){
         )}
       </div>
         <div style={{display:"flex",gap:6,alignItems:"center"}}>
-          {[["venta","Venta normal"],["online",`Online (${pedOnline.length})`],["consultas",`Consultas (${consxCobrar.length})`]].map(([v,l])=>(
+          {[["venta","Venta normal"],["online",`Online (${pedOnline.length})`],["consultas",`Consultas (${citasAgenda.length})`]].map(([v,l])=>(
             <button key={v} onClick={()=>setTab(v)} style={{padding:"6px 14px",borderRadius:8,border:`1px solid ${tab===v?BRAND.primary:C.border}`,background:tab===v?BRAND.primary+"18":"transparent",color:tab===v?BRAND.secondary:C.textMid,fontSize:12,fontWeight:700,cursor:"pointer"}}>
               {l}
             </button>
           ))}
-          <button onClick={()=>setActive("caja")} style={{
+          <button type="button" onClick={()=>onNavigate?.("caja")} style={{
             padding:"6px 14px",borderRadius:8,border:`1px solid ${C.amber}`,
             background:C.amberDim,color:C.amber,fontSize:12,fontWeight:700,
             cursor:"pointer",marginLeft:8,
@@ -863,17 +1373,18 @@ function POS({negocio,usuario}){
         {/* Indicaciones */}
         <div style={{marginBottom:12}}>
           <div style={{color:C.textMid,fontSize:11,marginBottom:6}}>Indicaciones / Precauciones (opcional)</div>
+          <div style={{color:C.textDim,fontSize:10,marginBottom:6}}>Toca varias opciones para combinarlas (se unen con «;»). Puedes editar el texto abajo.</div>
           <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:6}}>
-            {["Cada 8 hrs con alimentos","Cada 12 hrs, completar tratamiento","En ayunas, 30 min antes de desayuno","Solo por la noche antes de dormir","No exceder dosis indicada por médico"].map(t=>(
-              <button key={t} onClick={()=>setRx(p=>({...p,indicaciones:t}))}
+            {RX_IND_PRESETS.map((t)=>(
+              <button key={t} type="button" onClick={()=>toggleRxIndicacion(t)}
                 style={{padding:"3px 8px",borderRadius:20,fontSize:10,fontWeight:600,cursor:"pointer",
-                  background:rx.indicaciones===t?C.amberDim:"#f8fafc",
-                  border:`1px solid ${rx.indicaciones===t?C.amber:C.border}`,
-                  color:rx.indicaciones===t?C.amber:C.textMid}}>{t}</button>
+                  background:rxPresetActiva(t)?C.amberDim:"#f8fafc",
+                  border:`1px solid ${rxPresetActiva(t)?C.amber:C.border}`,
+                  color:rxPresetActiva(t)?C.amber:C.textMid}}>{t}</button>
             ))}
           </div>
           <textarea value={rx.indicaciones} onChange={e=>setRx(p=>({...p,indicaciones:e.target.value}))}
-            rows={2} maxLength={300} placeholder="O escribe indicaciones personalizadas..."
+            rows={3} maxLength={500} placeholder="Texto final (editable): combina frases de arriba o escribe libremente..."
             style={{width:"100%",boxSizing:"border-box",padding:"8px 10px",borderRadius:8,
               border:`1px solid ${C.border}`,background:C.card,color:C.text,
               fontSize:12,outline:"none",resize:"vertical",fontFamily:"inherit"}}/>
@@ -884,18 +1395,53 @@ function POS({negocio,usuario}){
         </div>
       </Modal>
 
+      {/* Origen de receta (POS) — antes de registrar la venta */}
+      <Modal
+        open={modalRecetaVenta}
+        onClose={()=>{ setModalRecetaVenta(false); setModalRecetaModo(null); }}
+        title="¿La receta es de un médico de Farmax?"
+        ac={C.blue}
+      >
+        <div style={{color:C.textMid,fontSize:13,marginBottom:14,lineHeight:1.45}}>
+          Indica si el medicamento surtido corresponde a receta prescrita por algún médico o médica que atiende en el consultorio Farmax. Así medimos ventas ligadas a consultas y estimamos oportunidad cuando el paciente surte fuera.
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
+          {[
+            ["no_aplica", "No aplica / venta sin receta de consultorio"],
+            ["medico_farmax", "Sí — receta de doctor(a) de Farmax"],
+            ["medico_externo", "Receta de otro médico (externo)"],
+          ].map(([val, lab])=>(
+            <label key={val} style={{display:"flex",alignItems:"flex-start",gap:10,cursor:"pointer",padding:"8px 10px",borderRadius:8,border:`1px solid ${recetaOrigenSel===val?C.blue:C.border}`,background:recetaOrigenSel===val?C.blueDim:C.card}}>
+              <input type="radio" name="recetaOrigenPos" checked={recetaOrigenSel===val} onChange={()=>setRecetaOrigenSel(val)} style={{marginTop:3}} />
+              <span style={{color:C.text,fontSize:13,fontWeight:600}}>{lab}</span>
+            </label>
+          ))}
+        </div>
+        <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+          <Btn ol col={C.textMid} sm onClick={()=>{ setModalRecetaVenta(false); setModalRecetaModo(null); }}>Cancelar</Btn>
+          <Btn col={C.green} onClick={confirmarRecetaVentaYContinuar} dis={guardando}>Continuar</Btn>
+        </div>
+      </Modal>
+
       {/* Modal ticket — TicketPreviewModal (aparece automáticamente después de venta) */}
       {/* Mercado Pago Point Smart 2 Modal */}
       <MercadoPagoModal
         open={mpModal}
-        total={total}
-        folio={mpFolio}
-        onSuccess={async (data)=>{
+        total={mpCitaRef.current ? totalCobroConsulta(mpCitaRef.current) : total}
+        folio={mpCitaRef.current ? `CONS-${mpCitaRef.current.id}` : mpFolio}
+        hint="El terminal recibe el monto; el cajero confirma en el Point; al aprobarse el pago se registra la operación y se imprime el ticket."
+        onSuccess={async ()=>{
           setMpModal(false);
-          // Procesar venta con método MercadoPago confirmado
-          await cobrar();
+          const citaMp = mpCitaRef.current;
+          mpCitaRef.current = null;
+          if (citaMp) await cobrarConsulta(citaMp);
+          else {
+            const ro = recetaOrigenPendienteRef.current || "no_aplica";
+            recetaOrigenPendienteRef.current = "no_aplica";
+            await ejecutarCobrar(ro);
+          }
         }}
-        onCancel={()=>setMpModal(false)}
+        onCancel={()=>{ setMpModal(false); mpCitaRef.current = null; recetaOrigenPendienteRef.current = "no_aplica"; }}
       />
 
       {ticket&&<TicketPreviewModal
@@ -951,12 +1497,28 @@ function POS({negocio,usuario}){
               </div>
             )}
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))",gap:8}}>
-              {fil.map(item=>(
-                <Box key={item.id}
-                  style={{padding:12,opacity:item.stock===0&&(!item.venta_unidad||item.stock_unidades===0)?.5:1,cursor:"default"}}>
+              {fil.map(item=>{
+                const posCardClick = (e)=>{
+                  if(e.target.closest("button")) return;
+                  if(item.stock===0&&(!item.venta_unidad||item.stock_unidades===0)){
+                    showToast("Sin stock disponible.","warning"); return;
+                  }
+                  if(item.venta_unidad){
+                    if(item.stock>0) add(item,false);
+                    else if(item.stock_unidades>0) add(item,true);
+                    else if(item.stock>0) abrirCaja(item);
+                    else showToast("Sin stock disponible.","warning");
+                  }else if(item.stock>0){
+                    add(item,false);
+                  }
+                };
+                return(
+                <Box key={item.id} className="farmax-product-card"
+                  onClick={posCardClick}
+                  style={{padding:12,opacity:item.stock===0&&(!item.venta_unidad||item.stock_unidades===0)?.5:1}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
                     <div style={{color:C.textDim,fontSize:9,letterSpacing:1}}>{item.sku}</div>
-                    <button onClick={e=>{e.stopPropagation();toggleFav(item.id);}} style={{background:"none",border:"none",cursor:"pointer",fontSize:12,padding:0,lineHeight:1}}>
+                    <button type="button" onClick={e=>{e.stopPropagation();toggleFav(item.id);}} style={{background:"none",border:"none",cursor:"pointer",fontSize:12,padding:0,lineHeight:1}} title="Favorito">
                       {favs.includes(item.id)?"⭐":"☆"}
                     </button>
                   </div>
@@ -967,15 +1529,15 @@ function POS({negocio,usuario}){
                   </div>
                   {item.venta_unidad?(
                     <div style={{display:"flex",flexDirection:"column",gap:4}}>
-                      <button
+                      <button type="button"
                         disabled={item.stock===0}
-                        onClick={()=>add(item,false)}
+                        onClick={e=>{e.stopPropagation();add(item,false);}}
                         style={{padding:"4px 6px",borderRadius:6,border:`1px solid ${C.blue}30`,background:"#eff6ff",color:C.blue,cursor:item.stock===0?"not-allowed":"pointer",fontSize:10,fontWeight:700,opacity:item.stock===0?.4:1}}>
                         📦 Caja {$(item.precio||item.precio)} · {item.stock} cajas
                       </button>
-                      <button
+                      <button type="button"
                         disabled={item.stock_unidades===0&&item.stock===0}
-                        onClick={()=>{
+                        onClick={e=>{e.stopPropagation();
                           if(item.stock_unidades>0){ add(item,true); }
                           else if(item.stock>0){ abrirCaja(item); }
                           else { showToast("Sin stock disponible.", "warning"); }
@@ -985,9 +1547,7 @@ function POS({negocio,usuario}){
                       </button>
                     </div>
                   ):(
-                    <div
-                      style={{display:"flex",justifyContent:"space-between",alignItems:"center",cursor:item.stock===0?"not-allowed":"pointer"}}
-                      onClick={item.stock===0?undefined:()=>add(item,false)}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",pointerEvents:"none"}}>
                       <div>
                         {item.descuento_pct>0?(
                           <>
@@ -1003,7 +1563,8 @@ function POS({negocio,usuario}){
                     </div>
                   )}
                 </Box>
-              ))}
+                );
+              })}
             </div>
           </div>
           {/* Carrito */}
@@ -1083,11 +1644,51 @@ function POS({negocio,usuario}){
             <Box style={{padding:14,marginBottom:12}}>
               <div style={{color:C.textDim,fontSize:10,letterSpacing:1.5,textTransform:"uppercase",marginBottom:8}}>Método de pago</div>
               <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-                {[["efectivo","Efectivo"],["tarjeta","Tarjeta"],["spei","SPEI"],["mercadopago","MercadoPago"]].map(([v,l])=>(
-                  <button key={v} onClick={()=>setPay(v)} style={{padding:"4px 10px",borderRadius:20,border:`1px solid ${pay===v?C.blue:C.border}`,background:pay===v?C.blueDim:"transparent",color:pay===v?C.blue:C.textMid,fontSize:10,fontWeight:700,cursor:"pointer"}}>{l}</button>
+                {[["efectivo","Efectivo"],["tarjeta","Tarjeta (Point)"]].map(([v,l])=>(
+                  <button key={v} type="button" onClick={()=>{ setPay(v); if(v!=="efectivo") setMontoRecibido(""); }} style={{padding:"4px 10px",borderRadius:20,border:`1px solid ${pay===v?C.blue:C.border}`,background:pay===v?C.blueDim:"transparent",color:pay===v?C.blue:C.textMid,fontSize:10,fontWeight:700,cursor:"pointer"}}>{l}</button>
                 ))}
               </div>
             </Box>
+            {pay==="efectivo"&&cart.length>0&&(
+              <Box style={{padding:14,marginBottom:12,background:C.greenDim,border:`1px solid ${C.green}25`}}>
+                <div style={{color:C.textDim,fontSize:10,letterSpacing:1.2,textTransform:"uppercase",marginBottom:8}}>Efectivo</div>
+                <div style={{color:C.textMid,fontSize:11,marginBottom:8}}>¿Cuánto te entregó el cliente?</div>
+                <Inp
+                  value={montoRecibido}
+                  onChange={(e)=>setMontoRecibido(e.target.value)}
+                  placeholder={`Mínimo ${$(total)}`}
+                  inputMode="decimal"
+                  style={{width:"100%",boxSizing:"border-box",marginBottom:8,fontSize:16,fontWeight:700}}
+                />
+                <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
+                  <button type="button" onClick={()=>setMontoRecibido(String(total))} style={{padding:"4px 10px",borderRadius:8,border:`1px solid ${C.green}`,background:"#fff",color:C.green,fontSize:10,fontWeight:700,cursor:"pointer"}}>Exacto {$(total)}</button>
+                  {sugerenciasPagoCliente(total).map(({billete,cambio})=>(
+                    <button key={billete} type="button" onClick={()=>setMontoRecibido(String(billete))} style={{padding:"4px 10px",borderRadius:8,border:`1px solid ${C.border}`,background:C.card,fontSize:10,fontWeight:600,cursor:"pointer",color:C.text}}>
+                      ${billete} → cambio {$(cambio)}
+                    </button>
+                  ))}
+                </div>
+                {Number.isFinite(recibidoNum)&&recibidoNum>=total&&(
+                  <div style={{marginBottom:8}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
+                      <span style={{color:C.textMid,fontSize:12}}>Cambio a entregar</span>
+                      <span style={{color:C.green,fontWeight:900,fontSize:22}}>{$(cambioNum)}</span>
+                    </div>
+                    {cambioNum>0&&desgloseCambioMN(cambioNum)&&(
+                      <div style={{color:C.textMid,fontSize:10,marginTop:4,lineHeight:1.4}}>
+                        <strong style={{color:C.text}}>Sugerido:</strong> {desgloseCambioMN(cambioNum)}
+                      </div>
+                    )}
+                  </div>
+                )}
+                {Number.isFinite(recibidoNum)&&recibidoNum>0&&recibidoNum<total&&(
+                  <div style={{color:C.red,fontSize:11,fontWeight:700}}>Falta ${(total-recibidoNum).toFixed(2)}</div>
+                )}
+                <div style={{color:C.textDim,fontSize:9,marginTop:6,lineHeight:1.35}}>
+                  Consejo caja: si te quedas sin billetes chicos, pide al cliente pagar con el monto exacto o con billetes que dejen un cambio “redondo” (usa los botones de arriba). Para control fino por denominación usa el corte de caja al cerrar turno.
+                </div>
+              </Box>
+            )}
             {/* Total */}
             <Box style={{padding:16}}>
               <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
@@ -1095,18 +1696,20 @@ function POS({negocio,usuario}){
                 <span style={{color:C.blue,fontWeight:900,fontSize:20}}>{$(total)}</span>
               </div>
               {cli&&<div style={{color:C.purple,fontSize:11,fontWeight:700,marginBottom:10}}>+{ptsG} puntos → {cli.nombre}</div>}
-              <div style={{display:"flex",gap:8}}>
-                <Btn onClick={cobrar} full col={C.green} dis={!cart.length||guardando}
-                  onKeyDown={e=>e.key==="Enter"&&!guardando&&cart.length&&cobrar()}
-                  style={{flex:2}}
+              {pay==="efectivo" ? (
+                <Btn onClick={cobrar} full col={C.green} dis={!cart.length||guardando||(!Number.isFinite(recibidoNum)||recibidoNum<total)}
+                  onKeyDown={e=>e.key==="Enter"&&!guardando&&cart.length&&Number.isFinite(recibidoNum)&&recibidoNum>=total&&cobrar()}
                 >{guardando?"Procesando...":"✅ Cobrar "+$(total)}</Btn>
-                {pay==="MercadoPago"&&(
-                  <Btn onClick={()=>{ setMpFolio(folioActual||"VTA-PENDIENTE"); setMpModal(true); }}
-                    col="#009ee3" sm dis={!cart.length||guardando} style={{flex:1}}>
-                    💳 Point
-                  </Btn>
-                )}
-              </div>
+              ) : (
+                <div>
+                  <Btn onClick={()=>abrirModalRecetaVenta("tarjeta")}
+                    full col="#009ee3" dis={!cart.length||guardando}
+                  >💳 Cobrar con tarjeta (terminal Point)</Btn>
+                  <div style={{color:C.textDim,fontSize:10,marginTop:10,lineHeight:1.45}}>
+                    La app <strong>espera</strong> a que el Point Smart 2 confirme el pago con tarjeta. Recién entonces se registra la venta y se envía el ticket a la impresora Epson (mismo flujo que al cobrar en efectivo).
+                  </div>
+                </div>
+              )}
             </Box>
           </div>}
         </div>
@@ -1152,22 +1755,142 @@ function POS({negocio,usuario}){
       {tab==="consultas"&&(
         <div>
           <div style={{background:C.blueDim,border:`1px solid ${C.blue}30`,borderRadius:10,padding:"12px 16px",marginBottom:16}}>
-            <div style={{color:C.blue,fontSize:13,fontWeight:700}}>ℹ Aquí aparecen las consultas completadas por la Dra. Lourdes que necesitan cobro en farmacia.</div>
+            <div style={{color:C.blue,fontSize:13,fontWeight:700,lineHeight:1.45}}>
+              ℹ Agenda del día: citas en línea y en mostrador. Las citas hechas <strong>en la tienda en línea</strong> quedan <strong>pendientes de pago</strong> hasta que el paciente pague en caja. Cobrar aquí para que la doctora vea el nombre y <strong>Pagado</strong>. Consulta {$(parseFloat(config?.precio_consulta)||CONSULTA_PRECIO_DEFAULT)}.
+              {usuario?.rol==="admin" && (
+                <span style={{display:"block",marginTop:8,fontSize:11,color:C.textMid,fontWeight:600}}>
+                  Reparto interno (solo admin): 70% médico / 30% farmacia sobre el monto de la consulta.
+                </span>
+              )}
+            </div>
           </div>
-          {!consxCobrar.length?<div style={{color:C.textMid,padding:40,textAlign:"center"}}>✓ Sin consultas pendientes de cobro</div>:
+
+          {/* Agenda de hoy (todas las citas activas) */}
+          <Box style={{padding:18,marginBottom:16}}>
+            <div style={{display:"flex",flexWrap:"wrap",alignItems:"center",gap:10,marginBottom:10}}>
+              <div style={{color:C.text,fontWeight:800,fontSize:14}}>📅 Agenda</div>
+              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                {[
+                  ["hoy","Hoy"],
+                  ["dia","Elegir día"],
+                  ["semana","Esta semana"],
+                ].map(([v,l])=>(
+                  <button key={v} type="button" onClick={()=>setRangoAgendaPOS(v)} style={{
+                    padding:"5px 12px",borderRadius:20,border:`1px solid ${rangoAgendaPOS===v?BRAND.primary:C.border}`,
+                    background:rangoAgendaPOS===v?BRAND.primary+"18":"transparent",color:rangoAgendaPOS===v?BRAND.secondary:C.textMid,
+                    fontSize:11,fontWeight:700,cursor:"pointer",
+                  }}>{l}</button>
+                ))}
+              </div>
+            </div>
+            {rangoAgendaPOS==="dia"&&(
+              <div style={{marginBottom:12,padding:"10px 12px",background:C.bg,borderRadius:10,border:`1px solid ${C.border}`}}>
+                <div style={{color:C.textDim,fontSize:10,fontWeight:700,letterSpacing:.5,marginBottom:8}}>VER OTRO DÍA</div>
+                <div style={{display:"flex",flexWrap:"wrap",alignItems:"center",gap:8}}>
+                  <button type="button" onClick={()=>setFechaAgendaElegida((p)=>addDaysSv(p,-1))} title="Día anterior"
+                    style={{padding:"6px 10px",borderRadius:8,border:`1px solid ${C.border}`,background:C.card,cursor:"pointer",fontWeight:800}}>◀</button>
+                  <input type="date" value={fechaAgendaElegida} onChange={(e)=>setFechaAgendaElegida(e.target.value)}
+                    style={{padding:"6px 10px",borderRadius:8,border:`1px solid ${C.border}`,fontSize:13,fontWeight:600,color:C.text}} />
+                  <button type="button" onClick={()=>setFechaAgendaElegida((p)=>addDaysSv(p,1))} title="Día siguiente"
+                    style={{padding:"6px 10px",borderRadius:8,border:`1px solid ${C.border}`,background:C.card,cursor:"pointer",fontWeight:800}}>▶</button>
+                  <button type="button" onClick={()=>setFechaAgendaElegida(new Date().toLocaleDateString("sv-SE"))} style={{padding:"6px 10px",borderRadius:8,border:`1px solid ${C.blue}40`,background:C.blueDim,color:C.blue,cursor:"pointer",fontSize:11,fontWeight:700}}>Ir a hoy</button>
+                  <button type="button" onClick={()=>setFechaAgendaElegida(addDaysSv(new Date().toLocaleDateString("sv-SE"),1))} style={{padding:"6px 10px",borderRadius:8,border:`1px solid ${C.green}40`,background:C.greenDim,color:C.greenDark,cursor:"pointer",fontSize:11,fontWeight:700}}>Mañana</button>
+                </div>
+                <div style={{color:C.textMid,fontSize:12,marginTop:8,textTransform:"capitalize"}}>{formatFechaAgendaLargaEs(fechaAgendaElegida)}</div>
+                <div style={{color:C.textDim,fontSize:10,marginTop:6,lineHeight:1.4}}>El campo de fecha abre el calendario del sistema (móvil o escritorio). Las flechas cambian un día.</div>
+              </div>
+            )}
+            <div style={{color:C.textMid,fontSize:11,marginBottom:12}}>
+              {citasAgenda.length} cita{citasAgenda.length!==1?"s":""} en el período. Un solo cupo por horario (una doctora). Tras hora + 10 min sin pago, puedes cancelar y liberar el espacio.
+            </div>
+            {!citasAgenda.length ? (
+              <div style={{color:C.textDim,fontSize:13}}>
+                {rangoAgendaPOS==="hoy"&&"Sin citas para hoy."}
+                {rangoAgendaPOS==="dia"&&"Sin citas para el día seleccionado."}
+                {rangoAgendaPOS==="semana"&&"Sin citas en esta semana (lun–dom)."}
+              </div>
+            ) : (
+              <div style={{display:"grid",gap:8}}>
+                {[...citasAgenda].sort((a,b)=>{
+                  const df = String(a.fecha||"").localeCompare(String(b.fecha||""));
+                  if (df !== 0) return df;
+                  return String(a.hora||"").localeCompare(String(b.hora||""));
+                }).map((c)=>(
+                  <div key={c.id} style={{display:"flex",flexWrap:"wrap",alignItems:"center",gap:10,justifyContent:"space-between",padding:"10px 12px",background:C.bg,borderRadius:8,border:`1px solid ${C.border}`}}>
+                    <div style={{minWidth:200}}>
+                      {rangoAgendaPOS==="semana"&&c.fecha&&(
+                        <div style={{color:C.textDim,fontSize:10,marginBottom:2}}>{c.fecha}</div>
+                      )}
+                      <span style={{color:C.blue,fontWeight:800,fontSize:13}}>{c.hora}</span>
+                      <span style={{color:C.text,fontWeight:700,marginLeft:10}}>{c.nombre}</span>
+                      <div style={{color:C.textMid,fontSize:11,marginTop:2}}>{c.telefono||"—"} · {c.motivo||"Consulta"}</div>
+                      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:6}}>
+                        {citaPagoPendiente(c) && <Tag col={C.amber} sm>Pendiente de pago</Tag>}
+                        {citaEstaPagada(c) && <Tag col={C.green} sm>Pagada</Tag>}
+                        {c.canal && <Tag col={C.teal} sm>{labelCanal(c)}</Tag>}
+                        <Tag col={C.textDim} sm>{c.estado}</Tag>
+                      </div>
+                    </div>
+                    <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                      {puedeCancelarCitaNoShow(c) && (
+                        <Btn sm ol col={C.red} onClick={()=>cancelarCitaPorNoShow(c)} dis={guardando}>Cancelar (no asistió)</Btn>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Box>
+
+          {/* Nueva cita mostrador */}
+          <Box style={{padding:18,marginBottom:16}}>
+            <div style={{color:C.text,fontWeight:800,fontSize:14,marginBottom:12}}>➕ Nueva cita (mostrador)</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:12}}>
+              <div><div style={{color:C.textMid,fontSize:11,marginBottom:4}}>Nombre</div><Inp value={nuevaCita.nombre} onChange={e=>setNuevaCita(p=>({...p,nombre:e.target.value}))} placeholder="Paciente" style={{width:"100%"}}/></div>
+              <div><div style={{color:C.textMid,fontSize:11,marginBottom:4}}>Teléfono</div><Inp value={nuevaCita.telefono} onChange={e=>setNuevaCita(p=>({...p,telefono:e.target.value}))} placeholder="55…" type="tel" style={{width:"100%"}}/></div>
+              <div><div style={{color:C.textMid,fontSize:11,marginBottom:4}}>Fecha</div><input type="date" value={nuevaCita.fecha} onChange={e=>setNuevaCita(p=>({...p,fecha:e.target.value}))} min={new Date().toLocaleDateString("sv-SE")} style={{width:"100%",padding:"9px 11px",borderRadius:8,border:`1px solid ${C.border}`,fontSize:13}}/></div>
+              <div>
+                <div style={{color:C.textMid,fontSize:11,marginBottom:4}}>Hora</div>
+                <select value={nuevaCita.hora} onChange={e=>setNuevaCita(p=>({...p,hora:e.target.value}))} style={{width:"100%",padding:"9px 11px",borderRadius:8,border:`1px solid ${C.border}`,fontSize:13}}>
+                  <option value="">Seleccionar…</option>
+                  {horariosDisponiblesCita(nuevaCita.fecha).filter((h)=>(ocupacionPorHora[h]||0)<1).map((h)=>(
+                    <option key={h} value={h}>{h}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div style={{marginTop:12}}><div style={{color:C.textMid,fontSize:11,marginBottom:4}}>Motivo (opcional)</div><Inp value={nuevaCita.motivo} onChange={e=>setNuevaCita(p=>({...p,motivo:e.target.value}))} placeholder="Ej. control, dolor…" style={{width:"100%",maxWidth:480}}/></div>
+            <Btn col={BRAND.primary} style={{marginTop:14}} onClick={guardarNuevaCitaMostrador} dis={guardando}>Guardar cita</Btn>
+          </Box>
+
+          <div style={{color:C.text,fontWeight:800,fontSize:14,marginBottom:10}}>💳 Cobrar en caja</div>
+          <div style={{color:C.textMid,fontSize:12,marginBottom:14}}>Solo aparecen citas con consulta o consumibles pendientes de cobro.</div>
+
+          {!consxCobrar.length?<div style={{color:C.textMid,padding:24,textAlign:"center"}}>✓ Nada pendiente de cobro en caja</div>:
            consxCobrar.map(cita=>{
+            const precioBase = parseFloat(config?.precio_consulta) || CONSULTA_PRECIO_DEFAULT;
+            const yaPagoConsulta =
+              cita.pago_estado === "pagada" || cita.estado === "pagada" || !!cita.pedido_consulta_id;
             const consumibles=(cita.consumibles_consulta||[]).filter(c=>!c.cobrado);
             const totalCons=consumibles.reduce((a,c)=>a+c.precio*c.cantidad,0);
+            const totalCobro = (yaPagoConsulta ? 0 : precioBase) + totalCons;
             return(
               <Box key={cita.id} style={{padding:20,marginBottom:12}}>
                 <div style={{display:"flex",justifyContent:"space-between",marginBottom:12}}>
                   <div>
-                    <div style={{color:C.text,fontWeight:800,fontSize:15}}>Consulta — {cita.nombre}</div>
+                    <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                      <div style={{color:C.text,fontWeight:800,fontSize:15}}>Consulta — {cita.nombre}</div>
+                      {citaPagoPendiente(cita) && <Tag col={C.amber} sm>Pendiente de pago</Tag>}
+                      {cita.canal && <Tag col={C.blue} sm>{labelCanal(cita)}</Tag>}
+                    </div>
                     <div style={{color:C.textMid,fontSize:12,marginTop:2}}>{cita.hora} hrs · {cita.motivo||"Consulta general"}</div>
                   </div>
                   <div style={{textAlign:"right"}}>
-                    <div style={{color:C.green,fontWeight:900,fontSize:18}}>{$(300+totalCons)}</div>
-                    <div style={{color:C.textDim,fontSize:10}}>Consulta $300 + consumibles ${totalCons}</div>
+                    <div style={{color:C.green,fontWeight:900,fontSize:18}}>{$(totalCobro)}</div>
+                    <div style={{color:C.textDim,fontSize:10}}>
+                      {yaPagoConsulta ? `Solo consumibles · ` : `Consulta ${$(precioBase)} + consumibles · `}
+                      {totalCons>0?$(totalCons):"$0.00"}
+                    </div>
                   </div>
                 </div>
                 {consumibles.length>0&&(
@@ -1184,11 +1907,32 @@ function POS({negocio,usuario}){
                 <Inp value={tel} onChange={e=>buscarCli(e.target.value)} placeholder="📱 Teléfono cliente (puntos)" type="tel" style={{width:"100%",boxSizing:"border-box",marginBottom:8}}/>
                 {cli&&<div style={{background:C.purpleDim,border:`1px solid ${C.purple}30`,borderRadius:6,padding:"6px 10px",marginBottom:8}}><span style={{color:C.purple,fontSize:11,fontWeight:700}}>{cli.nombre} · {cli.puntos||0} pts</span></div>}
                 <div style={{display:"flex",gap:6,marginBottom:10,flexWrap:"wrap"}}>
-                  {[["efectivo","Efectivo"],["tarjeta","Tarjeta"],["spei","SPEI"]].map(([v,l])=>(
-                    <button key={v} onClick={()=>setPay(v)} style={{padding:"4px 10px",borderRadius:20,border:`1px solid ${pay===v?C.green:C.border}`,background:pay===v?C.greenDim:"transparent",color:pay===v?C.green:C.textMid,fontSize:10,fontWeight:700,cursor:"pointer"}}>{l}</button>
+                  {[["efectivo","Efectivo"],["tarjeta","Tarjeta (Point)"]].map(([v,l])=>(
+                    <button key={v} type="button" onClick={()=>setPay(v)} style={{padding:"4px 10px",borderRadius:20,border:`1px solid ${pay===v?C.green:C.border}`,background:pay===v?C.greenDim:"transparent",color:pay===v?C.green:C.textMid,fontSize:10,fontWeight:700,cursor:"pointer"}}>{l}</button>
                   ))}
                 </div>
-                <Btn onClick={()=>cobrarConsulta(cita)} col={C.green} dis={guardando}>✅ Cobrar {$(300+totalCons)}</Btn>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
+                  {pay==="efectivo" ? (
+                    <Btn onClick={()=>cobrarConsulta(cita)} col={C.green} dis={guardando} style={{flex:"1 1 200px"}}>✅ Cobrar {$(totalCobro)}</Btn>
+                  ) : (
+                    <div style={{flex:1,minWidth:220}}>
+                      <Btn
+                        onClick={()=>{
+                          setPay("tarjeta");
+                          mpCitaRef.current = cita;
+                          setMpFolio(`CONS-${cita.id}`);
+                          setMpModal(true);
+                        }}
+                        col="#009ee3"
+                        dis={guardando||totalCobro<=0}
+                        full
+                      >💳 Cobrar con tarjeta (terminal Point)</Btn>
+                      <div style={{color:C.textDim,fontSize:10,marginTop:8,lineHeight:1.4}}>
+                        Mismo flujo que en venta: se espera la aprobación en el Point; luego se marca pagada la consulta y se imprime el ticket.
+                      </div>
+                    </div>
+                  )}
+                </div>
               </Box>
             );
           })}
@@ -1212,45 +1956,18 @@ function Consultorio(){
   useEffect(()=>{
     const cargar = async () => {
       setLoad(true);
-      if (typeof setLoadErr === "function") setLoadErr("");
       try {
-        // Fecha local YYYY-MM-DD (evita problemas por UTC)
         const hoyLocal = new Date().toLocaleDateString("sv-SE");
-
-        const [prodsRes, pedsRes, citasRes] = await Promise.all([
-          supabase.from("productos").select("*").eq("activo",true).order("nombre"),
-          supabase.from("pedidos").select(`
-            id,total,created_at,tipo,
-            clientes(nombre,telefono),
-            pedido_items(cantidad,precio_unitario,productos(nombre,sku))
-          `).eq("tipo","online").eq("estado","pendiente").order("created_at",{ascending:false}),
-          supabase.from("citas").select(`
-            id,nombre,telefono,hora,fecha,motivo,estado,
+        const citasRes = await supabase.from("citas").select(`
+            id,nombre,telefono,hora,fecha,motivo,estado,cliente_id,canal,pago_estado,
             consumibles_consulta!cita_id(id,cantidad,precio,cobrado,productos!producto_id(nombre))
-          `).eq("fecha", hoyLocal).in("estado",["confirmada","en_consulta","completada","pagada"]),
-        ]);
+          `).eq("fecha", hoyLocal).in("estado",["confirmada","en_consulta","completada","pagada"]);
 
-        const errs = [];
-        if (prodsRes?.error) errs.push(`Productos (${prodsRes.status||"?"}): ${prodsRes.error.message}`);
-        if (pedsRes?.error)  errs.push(`Pedidos online (${pedsRes.status||"?"}): ${pedsRes.error.message}`);
-        if (citasRes?.error) errs.push(`Citas hoy (${citasRes.status||"?"}): ${citasRes.error.message}`);
-
-        if (errs.length) {
-          console.error("[POS] Errores de carga:", { prodsRes, pedsRes, citasRes });
-          if (typeof setLoadErr === "function") setLoadErr(errs.join(" | "));
-        }
-
-        setProds(prodsRes?.data || []);
-        setPedOn(pedsRes?.data || []);
-
-        const citas = (citasRes?.data || []);
-        // Citas con consumibles por cobrar
-        setConsCobrar(citas.filter(c => (c.consumibles_consulta||[]).some(x => !x.cobrado)));
-
+        if (citasRes?.error) console.error("[Consultorio] Citas:", citasRes.error);
+        setCitas(citasRes?.data || []);
       } catch (e) {
-        console.error("[POS] Excepción cargando datos:", e);
-        if (typeof setLoadErr === "function") setLoadErr("Error inesperado cargando datos. Revisa consola.");
-        setProds([]); setPedOn([]); setConsCobrar([]);
+        console.error("[Consultorio] cargar:", e);
+        setCitas([]);
       } finally {
         setLoad(false);
       }
@@ -1287,7 +2004,11 @@ function Consultorio(){
                 <div style={{flex:1}}>
                   <div style={{color:C.text,fontWeight:700,fontSize:14}}>{c.nombre}</div>
                   <div style={{color:C.textMid,fontSize:12,marginTop:2}}>{c.motivo||"Consulta general"} {c.telefono&&`· ${c.telefono}`}</div>
-                  {c.cliente_id&&<Tag col={C.blue} sm>App web</Tag>}
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:6}}>
+                    {c.cliente_id&&<Tag col={C.blue} sm>App web</Tag>}
+                    {citaPagoPendiente(c) && <Tag col={C.amber} sm>Pendiente de pago</Tag>}
+                    {c.canal && <Tag col={C.teal} sm>{labelCanal(c)}</Tag>}
+                  </div>
                 </div>
                 <Tag col={c.estado==="completada"?C.green:c.estado==="confirmada"?C.blue:c.estado==="pagada"?C.purple:C.amber} sm>{c.estado||"pendiente"}</Tag>
               </div>
@@ -1317,727 +2038,318 @@ function Consultorio(){
 
 // ══════════════════════════════════════════════════════════════
 // MÓDULO DOCTORA — Su vista propia
-// Agenda + registrar consumibles
+// Agenda + ficha + consumibles / procedimientos
 // ══════════════════════════════════════════════════════════════
-function ConsDoctora({usuario}){
+function ConsDoctora() {
   const C = C_LIGHT;
-  const [citas,setCitas]     = useState([]);
-  const [loading,setLoad]    = useState(true);
-  const [citaSel,setCitaSel] = useState(null);
-  const [consumibles,setCons]= useState([]);
-  const [prodList,setProdList]= useState([]);
-  const [guardando,setGuard] = useState(false);
-  const hoy = new Date().toISOString().split("T")[0];
+  const [citas, setCitas] = useState([]);
+  const [loading, setLoad] = useState(true);
+  const [citaSel, setCitaSel] = useState(null);
+  const [prodList, setProdList] = useState([]);
+  const [procsList, setProcsList] = useState([]);
+  const [guardando, setGuard] = useState(false);
+  const [fichaCita, setFichaCita] = useState(null);
+  const hoyLocal = new Date().toLocaleDateString("sv-SE");
 
-  useEffect(()=>{
-    const cargar = async () => {
+  const recargar = useCallback(async () => {
+    const [consumibles, citasRes, procRes] = await Promise.all([
+      fetchProductosConsumiblesConsultorio(supabase),
+      supabase.from("citas").select(`
+          id,nombre,telefono,hora,fecha,motivo,estado,canal,pago_estado,cliente_id,
+          confirmada_inicio_at,
+          consumibles_consulta!cita_id(id,cantidad,precio,cobrado,productos!producto_id(nombre))
+        `)
+        .eq("fecha", hoyLocal)
+        .in("estado", ["confirmada", "en_consulta", "completada", "pagada"]),
+      supabase.from("procedimientos_medicos").select("*").eq("activo", true).order("nombre"),
+    ]);
+    if (citasRes?.error) console.error("[ConsDoctora] Citas:", citasRes.error);
+    if (procRes?.error) console.error("[ConsDoctora] Procedimientos:", procRes.error);
+    setProdList(consumibles || []);
+    setCitas(citasRes?.data || []);
+    setProcsList(procRes?.data || []);
+  }, [hoyLocal]);
+
+  useEffect(() => {
+    (async () => {
       setLoad(true);
-      if (typeof setLoadErr === "function") setLoadErr("");
       try {
-        // Fecha local YYYY-MM-DD (evita problemas por UTC)
-        const hoyLocal = new Date().toLocaleDateString("sv-SE");
-
-        const [prodsRes, pedsRes, citasRes] = await Promise.all([
-          supabase.from("productos").select("*").eq("activo",true).order("nombre"),
-          supabase.from("pedidos").select(`
-            id,total,created_at,tipo,
-            clientes(nombre,telefono),
-            pedido_items(cantidad,precio_unitario,productos(nombre,sku))
-          `).eq("tipo","online").eq("estado","pendiente").order("created_at",{ascending:false}),
-          supabase.from("citas").select(`
-            id,nombre,telefono,hora,fecha,motivo,estado,
-            consumibles_consulta!cita_id(id,cantidad,precio,cobrado,productos!producto_id(nombre))
-          `).eq("fecha", hoyLocal).in("estado",["confirmada","en_consulta","completada","pagada"]),
-        ]);
-
-        const errs = [];
-        if (prodsRes?.error) errs.push(`Productos (${prodsRes.status||"?"}): ${prodsRes.error.message}`);
-        if (pedsRes?.error)  errs.push(`Pedidos online (${pedsRes.status||"?"}): ${pedsRes.error.message}`);
-        if (citasRes?.error) errs.push(`Citas hoy (${citasRes.status||"?"}): ${citasRes.error.message}`);
-
-        if (errs.length) {
-          console.error("[POS] Errores de carga:", { prodsRes, pedsRes, citasRes });
-          if (typeof setLoadErr === "function") setLoadErr(errs.join(" | "));
-        }
-
-        setProds(prodsRes?.data || []);
-        setPedOn(pedsRes?.data || []);
-
-        const citas = (citasRes?.data || []);
-        // Citas con consumibles por cobrar
-        setConsCobrar(citas.filter(c => (c.consumibles_consulta||[]).some(x => !x.cobrado)));
-
+        await recargar();
       } catch (e) {
-        console.error("[POS] Excepción cargando datos:", e);
-        if (typeof setLoadErr === "function") setLoadErr("Error inesperado cargando datos. Revisa consola.");
-        setProds([]); setPedOn([]); setConsCobrar([]);
+        console.error("[ConsDoctora] cargar:", e);
+        setProdList([]);
+        setCitas([]);
+        setProcsList([]);
       } finally {
         setLoad(false);
       }
-    };
-    cargar();
-  },[]);
+    })();
+  }, [recargar]);
 
-
-  const agregarConsumible = async (cita,prod,qty) => {
+  const agregarConsumible = async (cita, prod, qty) => {
     setGuard(true);
     try {
       await supabase.from("consumibles_consulta").insert({
-        cita_id:cita.id, producto_id:prod.id, cantidad:qty, precio:prod.precio, cobrado:false,
+        cita_id: cita.id,
+        producto_id: prod.id,
+        cantidad: qty,
+        precio: prod.precio,
+        cobrado: false,
       });
-      // Actualizar estado cita a en_consulta
-      await supabase.from("citas").update({estado:"en_consulta"}).eq("id",cita.id);
-      // Recargar
-      const {data} = await supabase.from("citas").select(`*,consumibles_consulta(*,productos(nombre))`).eq("fecha",hoy).order("hora");
-      setCitas(data||[]);
-    } catch(e){ console.error(e); }
+      await supabase.from("citas").update({ estado: "en_consulta" }).eq("id", cita.id);
+      await recargar();
+      const { data: fresh } = await supabase
+        .from("citas")
+        .select(`*,consumibles_consulta(*,productos!producto_id(nombre))`)
+        .eq("id", cita.id)
+        .single();
+      if (fresh) setCitaSel(fresh);
+    } catch (e) {
+      console.error(e);
+    }
+    setGuard(false);
+  };
+
+  const confirmarInicio = async (cita) => {
+    if (!citaPagoOk(cita)) return;
+    const otraEnConsulta = citas.some((x) => x.id !== cita.id && x.estado === "en_consulta");
+    if (otraEnConsulta) {
+      showToast("Termina la consulta en curso (o márcala como terminada) antes de iniciar otra.", "warning");
+      return;
+    }
+    setGuard(true);
+    try {
+      await supabase
+        .from("citas")
+        .update({ estado: "en_consulta", confirmada_inicio_at: new Date().toISOString() })
+        .eq("id", cita.id);
+      await recargar();
+    } catch (e) {
+      console.error(e);
+      alert("No se pudo confirmar el inicio: " + (e?.message || e));
+    }
     setGuard(false);
   };
 
   const completarCita = async (cita) => {
-    await supabase.from("citas").update({estado:"completada"}).eq("id",cita.id);
-    setCitas(p=>p.map(c=>c.id===cita.id?{...c,estado:"completada"}:c));
-    setCitaSel(null);
+    setGuard(true);
+    try {
+      const finIso = new Date().toISOString();
+      let durSec = null;
+      if (cita.confirmada_inicio_at) {
+        durSec = Math.max(0, Math.floor((Date.now() - Date.parse(cita.confirmada_inicio_at)) / 1000));
+      }
+      const { error } = await supabase
+        .from("citas")
+        .update({
+          estado: "completada",
+          consulta_fin_at: finIso,
+          duracion_consulta_segundos: durSec,
+        })
+        .eq("id", cita.id);
+      if (error) throw error;
+      setCitaSel(null);
+      await recargar();
+      showToast("Consulta terminada.", "success");
+    } catch (e) {
+      console.error(e);
+      showToast("No se pudo terminar la consulta: " + (e?.message || e), "error");
+    }
+    setGuard(false);
   };
 
-  return(
+  const pagoEtiqueta = (c) => {
+    if (citaPagoPendiente(c)) return { col: C.amber, txt: "Pendiente de pago" };
+    if (citaPagoOk(c) || c.estado === "pagada") return { col: C.green, txt: "Pagada" };
+    return { col: C.textDim, txt: "—" };
+  };
+
+  const puedeConsumibles = (c) =>
+    c.estado !== "completada" && (c.estado === "en_consulta" || c.estado === "confirmada" || c.estado === "pagada");
+
+  return (
     <div>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <div>
-          <h1 style={{color:C.text,fontSize:20,fontWeight:800,margin:0}}>♥ Mi Consultorio</h1>
-          <div style={{color:C.textMid,fontSize:12,marginTop:4}}>Dra. Lourdes Lucio Falcón · Médico General · {new Date().toLocaleDateString("es-MX")}</div>
+          <h1 style={{ color: C.text, fontSize: 20, fontWeight: 800, margin: 0 }}>♥ Mi Consultorio</h1>
+          <div style={{ color: C.textMid, fontSize: 12, marginTop: 4 }}>
+            Dra. Lourdes Lucio Falcón · Médico General · {new Date().toLocaleDateString("es-MX")}
+          </div>
         </div>
         <Tag col={C.green}>En turno</Tag>
       </div>
 
-      {/* Modal agregar consumibles */}
-      <Modal open={!!citaSel} onClose={()=>setCitaSel(null)} title="➕ Registrar consumibles usados" ac={C.amber}>
-        {citaSel&&<>
-          <div style={{color:C.textMid,fontSize:13,marginBottom:16}}>Paciente: <strong style={{color:C.text}}>{citaSel.nombre}</strong></div>
-          <div style={{color:C.textDim,fontSize:10,letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>Seleccionar consumible</div>
-          <div style={{display:"grid",gap:6,maxHeight:300,overflowY:"auto"}}>
-            {prodList.map(p=>(
-              <div key={p.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 12px",background:C.bg,borderRadius:8,border:`1px solid ${C.border}`}}>
-                <div>
-                  <div style={{color:C.text,fontSize:12,fontWeight:700}}>{p.nombre}</div>
-                  <div style={{color:C.textMid,fontSize:11}}>{$(p.precio)}/ud</div>
-                </div>
-                <div style={{display:"flex",gap:4}}>
-                  {[1,2,3].map(qty=>(
-                    <button key={qty} onClick={()=>agregarConsumible(citaSel,p,qty)} disabled={guardando}
-                      style={{padding:"4px 10px",borderRadius:6,border:`1px solid ${C.blue}`,background:C.blueDim,color:C.blue,fontSize:11,fontWeight:700,cursor:"pointer"}}>+{qty}</button>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-          {/* Consumibles ya registrados */}
-          {(citaSel.consumibles_consulta||[]).length>0&&(
-            <div style={{marginTop:16}}>
-              <div style={{color:C.textDim,fontSize:10,letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>Ya registrado</div>
-              {citaSel.consumibles_consulta.map((c,i)=>(
-                <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:`1px solid ${C.border}`}}>
-                  <span style={{color:C.text,fontSize:12}}>{c.productos?.nombre} ×{c.cantidad}</span>
-                  <span style={{color:C.amber,fontSize:12,fontWeight:700}}>{$(c.precio*c.cantidad)}</span>
+      <CitaFichaModal
+        cita={fichaCita}
+        open={!!fichaCita}
+        onClose={() => setFichaCita(null)}
+        prodList={prodList}
+        procsList={procsList}
+        onSaved={recargar}
+      />
+
+      <Modal open={!!citaSel} onClose={() => setCitaSel(null)} title="➕ Registrar consumibles usados" ac={C.amber}>
+        {citaSel && (
+          <>
+            <div style={{ color: C.textMid, fontSize: 13, marginBottom: 16 }}>
+              Paciente:{" "}
+              <strong style={{ color: C.text }}>{citaSel.nombre}</strong>
+            </div>
+            <div style={{ color: C.textDim, fontSize: 10, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>Seleccionar consumible</div>
+            <div style={{ display: "grid", gap: 6, maxHeight: 300, overflowY: "auto" }}>
+              {prodList.map((p) => (
+                <div
+                  key={p.id}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    padding: "8px 12px",
+                    background: C.bg,
+                    borderRadius: 8,
+                    border: `1px solid ${C.border}`,
+                  }}
+                >
+                  <div>
+                    <div style={{ color: C.text, fontSize: 12, fontWeight: 700 }}>{p.nombre}</div>
+                    <div style={{ color: C.textMid, fontSize: 11 }}>
+                      {$(p.precio)}/ud
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: 4 }}>
+                    {[1, 2, 3].map((qty) => (
+                      <button
+                        key={qty}
+                        onClick={() => agregarConsumible(citaSel, p, qty)}
+                        disabled={guardando}
+                        style={{
+                          padding: "4px 10px",
+                          borderRadius: 6,
+                          border: `1px solid ${C.blue}`,
+                          background: C.blueDim,
+                          color: C.blue,
+                          fontSize: 11,
+                          fontWeight: 700,
+                          cursor: "pointer",
+                        }}
+                      >
+                        +{qty}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>
-          )}
-          <div style={{display:"flex",gap:8,marginTop:16}}>
-            <Btn onClick={()=>setCitaSel(null)} ol col={C.textMid} sm>Cerrar</Btn>
-            <Btn onClick={()=>completarCita(citaSel)} col={C.green} dis={guardando}>✓ Finalizar consulta</Btn>
-          </div>
-        </>}
+            {(citaSel.consumibles_consulta || []).length > 0 && (
+              <div style={{ marginTop: 16 }}>
+                <div style={{ color: C.textDim, fontSize: 10, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>Ya registrado</div>
+                {citaSel.consumibles_consulta.map((c, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", borderBottom: `1px solid ${C.border}` }}>
+                    <span style={{ color: C.text, fontSize: 12 }}>
+                      {c.productos?.nombre} ×{c.cantidad}
+                    </span>
+                    <span style={{ color: C.amber, fontSize: 12, fontWeight: 700 }}>{$(c.precio * c.cantidad)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+              <Btn onClick={() => setCitaSel(null)} ol col={C.textMid} sm>
+                Cerrar
+              </Btn>
+              <Btn onClick={() => completarCita(citaSel)} col={C.green} dis={guardando}>
+                ✓ Terminar consulta
+              </Btn>
+            </div>
+          </>
+        )}
       </Modal>
 
-      {/* Lista de citas */}
-      {loading?<SkeletonTable rows={3} cols={3}/>:
-       !citas.length?<Box style={{padding:40,textAlign:"center"}}><div style={{color:C.textMid,fontSize:14}}>Sin citas para hoy</div></Box>:
-       <div style={{display:"grid",gap:10}}>
-         {citas.map(c=>(
-          <Box key={c.id} style={{padding:18,borderColor:c.estado==="en_consulta"?C.amber+"60":c.estado==="completada"?C.green+"40":C.border}}>
-            <div style={{display:"flex",alignItems:"center",gap:14}}>
-              <div style={{color:C.blue,fontWeight:800,fontSize:18,width:55,flexShrink:0}}>{c.hora}</div>
-              <div style={{flex:1}}>
-                <div style={{color:C.text,fontWeight:700,fontSize:15}}>{c.nombre}</div>
-                <div style={{color:C.textMid,fontSize:12,marginTop:2}}>{c.motivo||"Consulta general"}</div>
-                {(c.consumibles_consulta||[]).length>0&&(
-                  <div style={{color:C.amber,fontSize:11,marginTop:4}}>
-                    + {(c.consumibles_consulta||[]).length} consumibles registrados
-                  </div>
-                )}
-              </div>
-              <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                <Tag col={c.estado==="completada"?C.green:c.estado==="pagada"?C.purple:c.estado==="en_consulta"?C.amber:C.blue} sm>
-                  {c.estado||"confirmada"}
-                </Tag>
-                {c.estado!=="completada"&&c.estado!=="pagada"&&(
-                  <Btn sm col={C.amber} onClick={()=>setCitaSel(c)}>+ Consumibles</Btn>
-                )}
-              </div>
-            </div>
-          </Box>
-         ))}
-       </div>
-      }
-    </div>
-  );
-}
-
-// ══════════════════════════════════════════════════════════════
-// REPORTES — Admin con ROI + métricas clave
-// ══════════════════════════════════════════════════════════════
-// ══════════════════════════════════════════════════════════════
-// TRANSACCIONES — Tab dentro de Reportes
-// ══════════════════════════════════════════════════════════════
-function TransaccionesTab({ usuario }) {
-  const C = C_LIGHT;
-  const [pedidos,      setPedidos]   = useState([]);
-  const [loading,      setLoading]   = useState(true);
-  const [busqueda,     setBusqueda]  = useState("");
-  const [filtroFecha,  setFiltroF]   = useState("mes");
-  const [filtroTipo,   setFiltroT]   = useState("todos");
-  const [filtroEstado, setFiltroE]   = useState("todos");
-  const [fechaDesde,   setFDesde]    = useState("");
-  const [fechaHasta,   setFHasta]    = useState("");
-  const [modalDetalle, setModalDet]  = useState(null);
-  const [modalEditar,  setModalEdit] = useState(null);
-  const [pagina, setPagina] = useState(1);
-  const POR_PAGINA = 50;
-  const [ticketReprint, setTicketReprint] = useState(null);
-  const [loadingReprint, setLoadingReprint] = useState(false);
-  const [detItems,     setDetItems]  = useState([]);
-  const [loadDet,      setLoadDet]   = useState(false);
-  const [editForm,     setEditForm]  = useState({});
-  const [saving,       setSaving]    = useState(false);
-
-  const getRango = () => {
-    const h=new Date(),y=h.getFullYear(),m=h.getMonth(),d=h.getDate();
-    if (filtroFecha==="hoy")    return {desde:new Date(y,m,d,0,0,0).toISOString(),  hasta:new Date(y,m,d,23,59,59).toISOString()};
-    if (filtroFecha==="semana") return {desde:new Date(Date.now()-7*86400000).toISOString(), hasta:h.toISOString()};
-    if (filtroFecha==="mes")    return {desde:new Date(y,m,1).toISOString(), hasta:h.toISOString()};
-    if (filtroFecha==="custom"&&fechaDesde) return {desde:new Date(fechaDesde).toISOString(), hasta:fechaHasta?new Date(fechaHasta+"T23:59:59").toISOString():h.toISOString()};
-    return null;
-  };
-
-  // N8: Resetear página al cambiar filtros
-  useEffect(()=>{ setPagina(1); },[filtroFecha,filtroTipo,filtroEstado,busqueda]);
-
-  const fetchPedidos = useCallback(async () => {
-    setLoading(true);
-    let q = supabase.from("pedidos").select("*, clientes(nombre,telefono), usuarios(nombre)").order("created_at",{ascending:false}).limit(300);
-    const rango = getRango();
-    if (rango) q = q.gte("created_at",rango.desde).lte("created_at",rango.hasta);
-    const { data, error } = await q;
-    if (!error) setPedidos(data||[]);
-    setLoading(false);
-  }, [filtroFecha, fechaDesde, fechaHasta]);
-
-  useEffect(() => { fetchPedidos(); }, [fetchPedidos]);
-
-  // M3: Resetear página al cambiar filtros
-  const filtradosTodos = pedidos.filter(p => {
-    const q = busqueda.toLowerCase();
-    const matchB = !q || p.id?.toString().includes(q) || p.clientes?.nombre?.toLowerCase().includes(q);
-    const matchT = filtroTipo==="todos" || p.tipo===filtroTipo || (!p.tipo&&filtroTipo==="fisica");
-    const matchE = filtroEstado==="todos" || p.estado===filtroEstado;
-    return matchB && matchT && matchE;
-  });
-  const filtrados = filtradosTodos.slice((pagina-1)*POR_PAGINA, pagina*POR_PAGINA);
-
-  const reimprimir = async (p) => {
-    setLoadingReprint(true);
-    // Cargar items del pedido
-    const { data:items } = await supabase
-      .from("pedido_items")
-      .select("*, productos(nombre,sku)")
-      .eq("pedido_id", p.id);
-    // Cargar cliente si existe
-    let cliente = null;
-    if(p.cliente_id) {
-      const { data:cli } = await supabase.from("clientes").select("*").eq("id",p.cliente_id).single();
-      cliente = cli;
-    }
-    setTicketReprint({
-      venta: { id:p.id, total:p.total, created_at:p.created_at, metodo_pago:p.metodo_pago },
-      productos: (items||[]).map(i=>({
-        nombre: i.productos?.nombre||"Producto",
-        qty: i.cantidad,
-        precio: i.precio_unitario,
-      })),
-      cliente,
-      metodoPago: p.metodo_pago||"Efectivo",
-    });
-    setLoadingReprint(false);
-  };
-
-  const abrirDetalle = async (p) => {
-    setModalDet(p); setLoadDet(true); setDetItems([]);
-    const { data } = await supabase.from("pedido_items").select("*, productos(nombre,sku)").eq("pedido_id", p.id);
-    setDetItems(data||[]); setLoadDet(false);
-  };
-
-  const abrirEditar = (p) => {
-    setModalEdit(p);
-    setEditForm({ estado:p.estado||"", metodo_pago:p.metodo_pago||"", notas:p.notas||"" });
-  };
-
-  const guardarEditar = async () => {
-    setSaving(true);
-    await supabase.from("pedidos").update({ estado:editForm.estado, metodo_pago:editForm.metodo_pago, notas:editForm.notas||null }).eq("id", modalEditar.id);
-    setSaving(false); setModalEdit(null); fetchPedidos();
-  };
-
-  const cancelarPed = async (p) => {
-    showConfirm("Cancelar pedido",`¿Cancelar el pedido #${p.id}? El estado cambiará a cancelado.`, async()=>{
-      await supabase.from("pedidos").update({ estado:"cancelado" }).eq("id", p.id);
-      fetchPedidos();
-      showToast(`Pedido #${p.id} cancelado.`, "info");
-    }); return;
-    await supabase.from("pedidos").update({ estado:"cancelado" }).eq("id", p.id);
-    fetchPedidos();
-  };
-
-  const eliminarPed = async (p) => {
-    showConfirm("Eliminar pedido",`¿Eliminar el pedido #${p.id}? Se restaurará el stock y esta acción NO se puede deshacer.`, async()=>{ await _eliminarPedConfirmado(p); }, true); return;
-    
-    const { data:items } = await supabase.from("pedido_items").select("*").eq("pedido_id", p.id);
-    for (const it of (items||[])) {
-      if (it.producto_id) {
-        const { data:prod } = await supabase.from("productos").select("stock").eq("id",it.producto_id).single();
-        if (prod) await supabase.from("productos").update({ stock:(prod.stock||0)+(it.cantidad||1) }).eq("id",it.producto_id);
-      }
-    }
-    await supabase.from("pedido_items").delete().eq("pedido_id", p.id);
-    await supabase.from("pedidos").delete().eq("id", p.id);
-    fetchPedidos();
-  };
-
-  const fmtM  = (n) => `$${parseFloat(n||0).toLocaleString("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2})}`;
-  const fmtDT = (s) => { if(!s)return"—"; const d=new Date(s); return d.toLocaleDateString("es-MX",{day:"2-digit",month:"short"})+" "+d.toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"}); };
-  const estCol = (e) => e==="completado"?C.green:e==="cancelado"?C.red:C.amber;
-  const inpS   = { padding:"7px 10px", borderRadius:7, border:`1px solid ${C.border}`, background:C.card, color:C.text, fontSize:12, outline:"none" };
-
-  const sumaTotal = filtradosTodos.reduce((a,p)=>a+parseFloat(p.total||0),0);
-  const promedio  = filtradosTodos.length?sumaTotal/filtradosTodos.length:0;
-  const byMetodo  = filtradosTodos.reduce((acc,p)=>{ const k=p.metodo_pago||"otro"; acc[k]=(acc[k]||0)+parseFloat(p.total||0); return acc; },{});
-
-  return (
-    <div>
-      <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap",alignItems:"center"}}>
-        <input placeholder="🔍 ID o cliente…" value={busqueda} onChange={e=>setBusqueda(e.target.value)} style={{...inpS,maxWidth:180}}/>
-        <select value={filtroFecha} onChange={e=>setFiltroF(e.target.value)} style={inpS}>
-          <option value="hoy">Hoy</option>
-          <option value="semana">Esta semana</option>
-          <option value="mes">Este mes</option>
-          <option value="custom">Rango custom</option>
-        </select>
-        {filtroFecha==="custom"&&<>
-          <input type="date" value={fechaDesde} onChange={e=>setFDesde(e.target.value)} style={inpS}/>
-          <input type="date" value={fechaHasta} onChange={e=>setFHasta(e.target.value)} style={inpS}/>
-        </>}
-        <select value={filtroTipo} onChange={e=>setFiltroT(e.target.value)} style={inpS}>
-          <option value="todos">Todos los tipos</option>
-          <option value="fisica">Física</option>
-          <option value="online">Online</option>
-          <option value="consulta">Consulta</option>
-        </select>
-        <select value={filtroEstado} onChange={e=>setFiltroE(e.target.value)} style={inpS}>
-          <option value="todos">Todos los estados</option>
-          <option value="completado">Completado</option>
-          <option value="pendiente">Pendiente</option>
-          <option value="cancelado">Cancelado</option>
-        </select>
-        <span style={{color:C.textMid,fontSize:11,marginLeft:"auto"}}>{filtradosTodos.length} transacciones</span>
-      </div>
-
-      {loading ? <SkeletonTable rows={5} cols={6}/> : (
-        <div style={{overflowX:"auto",borderRadius:12,border:`1px solid ${C.border}`,marginBottom:16}}>
-          <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-            <thead>
-              <tr style={{background:C.cardDark}}>
-                {["ID","Fecha/Hora","Cliente","Total","Método","Tipo","Atendido por","Estado","Acciones"].map(h=>(
-                  <th key={h} style={{padding:"9px 12px",textAlign:"left",color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtrados.length===0&&<tr><td colSpan={9} style={{textAlign:"center",padding:32,color:C.textMid}}>Sin transacciones en este período</td></tr>}
-              {filtrados.map((p,i)=>(
-                <tr className="farmax-table-row" key={p.id} style={{background:p.estado==="cancelado"?"#fff5f5":i%2===0?"transparent":"#f8fafc"}}>
-                  <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,fontFamily:"monospace",fontSize:11}}>#{p.id}</td>
-                  <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>{fmtDT(p.created_at)}</td>
-                  <td style={{padding:"8px 12px",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>{p.clientes?.nombre||"—"}</td>
-                  <td style={{padding:"8px 12px",color:C.green,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{fmtM(p.total)}</td>
-                  <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{p.metodo_pago||"—"}</td>
-                  <td style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`}}>
-                    <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,
-                      background:p.tipo==="online"?"#ede9fe":p.tipo==="consulta"?"#dcfce7":"#eff6ff",
-                      color:p.tipo==="online"?C.purple:p.tipo==="consulta"?C.green:C.blue}}>
-                      {p.tipo||"física"}
-                    </span>
-                  </td>
-                  <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{p.usuarios?.nombre||"—"}</td>
-                  <td style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`}}>
-                    <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:estCol(p.estado)+"20",color:estCol(p.estado)}}>{p.estado||"—"}</span>
-                  </td>
-                  <td style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>
-                    <button onClick={()=>abrirDetalle(p)} style={{padding:"3px 8px",borderRadius:5,border:`1px solid ${C.blue}30`,background:"#eff6ff",color:C.blue,cursor:"pointer",fontSize:10,fontWeight:700,marginRight:4}}>👁 Ver</button>
-                    <button onClick={()=>reimprimir(p)} disabled={loadingReprint} style={{padding:"3px 8px",borderRadius:5,border:`1px solid ${C.purple}30`,background:"#ede9fe",color:C.purple,cursor:"pointer",fontSize:10,fontWeight:700,marginRight:4}}>🖨️ Reimprimir</button>
-                    {usuario?.rol==="admin"&&<>
-                      <button onClick={()=>abrirEditar(p)} style={{padding:"3px 8px",borderRadius:5,border:`1px solid ${C.amber}30`,background:"#fef3c7",color:C.amber,cursor:"pointer",fontSize:10,fontWeight:700,marginRight:4}}>✏️</button>
-                      {p.estado!=="cancelado"&&<button onClick={()=>cancelarPed(p)} style={{padding:"3px 8px",borderRadius:5,border:"1px solid #94a3b830",background:"#f1f5f9",color:C.textMid,cursor:"pointer",fontSize:10,fontWeight:700,marginRight:4}}>❌</button>}
-                      <button onClick={()=>eliminarPed(p)} style={{padding:"3px 8px",borderRadius:5,border:`1px solid ${C.red}30`,background:"#fee2e2",color:C.red,cursor:"pointer",fontSize:10,fontWeight:700}}>🗑️</button>
-                    </>}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      <Paginador total={filtradosTodos.length} porPagina={POR_PAGINA} pagina={pagina} setPagina={setPagina}/>
-      {filtradosTodos.length>0&&(
-        <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:16,display:"flex",gap:16,flexWrap:"wrap",alignItems:"center"}}>
-          <div><div style={{color:C.textMid,fontSize:10,fontWeight:700}}>TRANSACCIONES</div><div style={{color:C.blue,fontWeight:800,fontSize:18}}>{filtradosTodos.length}</div></div>
-          <div><div style={{color:C.textMid,fontSize:10,fontWeight:700}}>TOTAL PERÍODO</div><div style={{color:C.green,fontWeight:800,fontSize:18}}>{fmtM(sumaTotal)}</div></div>
-          <div><div style={{color:C.textMid,fontSize:10,fontWeight:700}}>PROMEDIO</div><div style={{color:C.purple,fontWeight:800,fontSize:18}}>{fmtM(promedio)}</div></div>
-          <div style={{flex:1,minWidth:200}}>
-            <div style={{color:C.textMid,fontSize:10,fontWeight:700,marginBottom:6}}>POR MÉTODO</div>
-            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-              {Object.entries(byMetodo).map(([k,v])=>(
-                <span key={k} style={{padding:"2px 10px",borderRadius:20,fontSize:11,fontWeight:700,background:"#eff6ff",color:C.blue}}>{k}: {fmtM(v)}</span>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {modalDetalle&&(
-        <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,.45)",backdropFilter:"blur(4px)",zIndex:400,display:"flex",alignItems:"center",justifyContent:"center",padding:20}} onClick={e=>e.target===e.currentTarget&&setModalDet(null)}>
-          <div style={{background:C.card,borderRadius:14,width:"min(600px,95vw)",maxHeight:"85vh",overflowY:"auto",padding:24,boxShadow:"0 20px 60px rgba(0,82,204,.15)"}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-              <h3 style={{margin:0,color:C.text,fontSize:15,fontWeight:800}}>👁 Detalle — Pedido #{modalDetalle.id}</h3>
-              <button onClick={()=>setModalDet(null)} style={{background:"none",border:"none",color:C.textMid,fontSize:20,cursor:"pointer"}}>✕</button>
-            </div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16,fontSize:12}}>
-              <div><span style={{color:C.textMid}}>Cliente: </span><strong style={{color:C.text}}>{modalDetalle.clientes?.nombre||"—"}</strong></div>
-              <div><span style={{color:C.textMid}}>Fecha: </span><strong style={{color:C.text}}>{fmtDT(modalDetalle.created_at)}</strong></div>
-              <div><span style={{color:C.textMid}}>Total: </span><strong style={{color:C.green}}>{fmtM(modalDetalle.total)}</strong></div>
-              <div><span style={{color:C.textMid}}>Método: </span><strong style={{color:C.text}}>{modalDetalle.metodo_pago||"—"}</strong></div>
-              <div><span style={{color:C.textMid}}>Estado: </span><strong style={{color:estCol(modalDetalle.estado)}}>{modalDetalle.estado}</strong></div>
-              <div><span style={{color:C.textMid}}>Tipo: </span><strong style={{color:C.text}}>{modalDetalle.tipo||"física"}</strong></div>
-            </div>
-            {modalDetalle.notas&&<div style={{background:C.cardDark,borderRadius:8,padding:"8px 12px",marginBottom:14,color:C.textMid,fontSize:12}}>📝 {modalDetalle.notas}</div>}
-            <div style={{fontWeight:700,color:C.text,fontSize:13,marginBottom:10}}>Productos:</div>
-            {loadDet?<SkeletonTable rows={3} cols={4}/>:(
-              <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-                <thead><tr style={{background:C.cardDark}}>{["Producto","Cant.","Precio","Subtotal"].map(h=><th key={h} style={{padding:"7px 10px",textAlign:"left",color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{h}</th>)}</tr></thead>
-                <tbody>
-                  {detItems.map((it,i)=>(
-                    <tr key={i}>
-                      <td style={{padding:"7px 10px",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>
-                        {it.productos?.nombre||it.nombre||"—"}
-                        {it.lote&&<div style={{fontSize:9,color:C.textDim,marginTop:1}}>Lote: {it.lote}{it.caducidad?` | Cad: ${it.caducidad}`:""}</div>}
-                      </td>
-                      <td style={{padding:"7px 10px",color:C.amber,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{it.cantidad}</td>
-                      <td style={{padding:"7px 10px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{fmtM(it.precio_unitario||it.precio||0)}</td>
-                      <td style={{padding:"7px 10px",color:C.green,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{fmtM((it.precio_unitario||it.precio||0)*(it.cantidad||1))}</td>
-                    </tr>
-                  ))}
-                  <tr><td colSpan={3} style={{padding:"8px 10px",textAlign:"right",fontWeight:800,color:C.text}}>TOTAL</td><td style={{padding:"8px 10px",color:C.green,fontWeight:900,fontSize:14}}>{fmtM(modalDetalle.total)}</td></tr>
-                </tbody>
-              </table>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Modal Reimprimir Ticket */}
-      {ticketReprint&&(
-        <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,.6)",backdropFilter:"blur(4px)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}
-          onClick={e=>e.target===e.currentTarget&&setTicketReprint(null)}>
-          <div style={{background:C.card,borderRadius:16,width:"min(380px,95vw)",maxHeight:"90vh",overflowY:"auto",boxShadow:"0 24px 80px rgba(0,82,204,.2)"}}>
-            <div style={{padding:"14px 20px",borderBottom:"1px solid #e2e8f0",display:"flex",justifyContent:"space-between",alignItems:"center",background:"linear-gradient(135deg,#7c3aed,#9d6fff)",borderRadius:"16px 16px 0 0"}}>
-              <div style={{color:"#fff",fontWeight:800,fontSize:15}}>🖨️ Reimprimir Ticket #{ticketReprint.venta.id}</div>
-              <button onClick={()=>setTicketReprint(null)} style={{background:"rgba(255,255,255,.2)",border:"none",color:"#fff",width:28,height:28,borderRadius:"50%",cursor:"pointer",fontSize:16}}>✕</button>
-            </div>
-            <div style={{padding:16,background:"#f8fafc",display:"flex",justifyContent:"center",borderBottom:"1px solid #e2e8f0",maxHeight:"60vh",overflowY:"auto"}}>
-              <div style={{background:C.card,boxShadow:"0 2px 12px rgba(0,0,0,.1)",borderRadius:4,padding:4}}>
-                <TicketVenta
-                  venta={ticketReprint.venta}
-                  productos={ticketReprint.productos}
-                  cliente={ticketReprint.cliente}
-                  metodoPago={ticketReprint.metodoPago}
-                  config={{}}
-                />
-              </div>
-            </div>
-            <div style={{padding:16,display:"flex",gap:10}}>
-              <button onClick={()=>printTicket("farmax-ticket")} style={{flex:2,padding:"11px",borderRadius:10,border:"none",background:"linear-gradient(135deg,#7c3aed,#9d6fff)",color:"#fff",fontWeight:800,fontSize:14,cursor:"pointer"}}>
-                🖨️ Imprimir
-              </button>
-              <button onClick={()=>setTicketReprint(null)} style={{flex:1,padding:"11px",borderRadius:10,border:"1px solid #e2e8f0",background:"transparent",color:"#475569",fontWeight:700,fontSize:13,cursor:"pointer"}}>
-                Cerrar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {modalEditar&&(
-        <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,.45)",backdropFilter:"blur(4px)",zIndex:400,display:"flex",alignItems:"center",justifyContent:"center",padding:20}} onClick={e=>e.target===e.currentTarget&&setModalEdit(null)}>
-          <div style={{background:C.card,borderRadius:14,width:"min(440px,95vw)",padding:24,boxShadow:"0 20px 60px rgba(0,82,204,.15)"}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
-              <h3 style={{margin:0,color:C.text,fontSize:15,fontWeight:800}}>✏️ Editar — Pedido #{modalEditar.id}</h3>
-              <button onClick={()=>setModalEdit(null)} style={{background:"none",border:"none",color:C.textMid,fontSize:20,cursor:"pointer"}}>✕</button>
-            </div>
-            <div style={{marginBottom:12}}>
-              <label style={{color:C.textMid,fontSize:10,fontWeight:700,display:"block",marginBottom:4}}>ESTADO</label>
-              <select value={editForm.estado} onChange={e=>setEditForm(f=>({...f,estado:e.target.value}))} style={{width:"100%",padding:"8px 10px",borderRadius:7,border:`1px solid ${C.border}`,background:C.card,color:C.text,fontSize:12,outline:"none"}}>
-                <option value="completado">Completado</option>
-                <option value="pendiente">Pendiente</option>
-                <option value="cancelado">Cancelado</option>
-              </select>
-            </div>
-            <div style={{marginBottom:12}}>
-              <label style={{color:C.textMid,fontSize:10,fontWeight:700,display:"block",marginBottom:4}}>MÉTODO DE PAGO</label>
-              <select value={editForm.metodo_pago} onChange={e=>setEditForm(f=>({...f,metodo_pago:e.target.value}))} style={{width:"100%",padding:"8px 10px",borderRadius:7,border:`1px solid ${C.border}`,background:C.card,color:C.text,fontSize:12,outline:"none"}}>
-                <option value="efectivo">Efectivo</option>
-                <option value="tarjeta">Tarjeta</option>
-                <option value="spei">SPEI / Transferencia</option>
-                <option value="mercadopago">MercadoPago</option>
-              </select>
-            </div>
-            <div style={{marginBottom:16}}>
-              <label style={{color:C.textMid,fontSize:10,fontWeight:700,display:"block",marginBottom:4}}>NOTAS</label>
-              <textarea value={editForm.notas} onChange={e=>setEditForm(f=>({...f,notas:e.target.value}))} rows={3} placeholder="Observaciones…" style={{width:"100%",padding:"8px 10px",borderRadius:7,border:`1px solid ${C.border}`,background:C.card,color:C.text,fontSize:12,outline:"none",resize:"vertical",boxSizing:"border-box"}}/>
-            </div>
-            <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
-              <button onClick={()=>setModalEdit(null)} style={{padding:"8px 16px",borderRadius:8,border:`1px solid ${C.border}`,background:"transparent",color:C.textMid,cursor:"pointer",fontWeight:700,fontSize:12}}>Cancelar</button>
-              <button onClick={guardarEditar} disabled={saving} style={{padding:"8px 18px",borderRadius:8,border:"none",background:BRAND.gradient,color:"#fff",cursor:"pointer",fontWeight:700,fontSize:12}}>
-                {saving?"Guardando…":"💾 Guardar"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-
-function Reportes(){
-  const C = C_LIGHT;
-  const [data,setData]   = useState({ventas:[],clientes:0,consultas:0,online:0});
-  const [tabRep,setTabRep]= useState("resumen");
-  const [periodo,setPer] = useState("mes");
-  const [loading,setLoad]= useState(true);
-
-  useEffect(()=>{
-    const cargar = async () => {
-      const dias = periodo==="dia"?1:periodo==="semana"?7:30;
-      const desde = new Date(Date.now()-dias*86400000).toISOString();
-      const [{data:peds},{data:clis},{data:cons},{data:ponl},{data:devs},{data:pedsCat}] = await Promise.all([
-        supabase.from("pedidos").select("total,created_at,tipo,atendido_por,usuarios(nombre)").gte("created_at",desde).eq("estado","completado"),
-        supabase.from("clientes").select("id",{count:"exact"}).gte("created_at",desde),
-        supabase.from("citas").select("id",{count:"exact"}).gte("created_at",desde).eq("estado","pagada"),
-        supabase.from("pedidos").select("total").gte("created_at",desde).eq("tipo","online"),
-        supabase.from("devoluciones").select("total_devuelto").gte("created_at",desde).eq("estado","aprobada"),
-        supabase.from("pedidos").select("total,productos:pedido_items(precio_unitario,cantidad,productos(categoria,costo))").gte("created_at",desde).eq("estado","completado"),
-      ]);
-      // H3: Ventas netas = brutas - devoluciones
-      const totalDevoluciones = (devs||[]).reduce((a,d)=>a+parseFloat(d.total_devuelto||0),0);
-      // H1: Margen por categoría
-      const margenCat = {};
-      (pedsCat||[]).forEach(ped=>{
-        (ped.productos||[]).forEach(item=>{
-          const cat = item.productos?.categoria||"Sin categoría";
-          const ingreso = parseFloat(item.precio_unitario||0)*parseInt(item.cantidad||1);
-          const costo = parseFloat(item.productos?.costo||0)*parseInt(item.cantidad||1);
-          if(!margenCat[cat]) margenCat[cat]={ingreso:0,costo:0};
-          margenCat[cat].ingreso+=ingreso;
-          margenCat[cat].costo+=costo;
-        });
-      });
-      const margenPorCat = Object.entries(margenCat).map(([cat,v])=>({
-        cat, ingreso:v.ingreso, costo:v.costo,
-        margen: v.ingreso>0?((v.ingreso-v.costo)/v.ingreso*100).toFixed(1):0,
-        ganancia: v.ingreso-v.costo,
-      })).sort((a,b)=>b.ingreso-a.ingreso);
-      setData({
-        ventas:peds||[], clientes:clis?.length||0,
-        consultas:cons?.length||0, online:(ponl||[]).reduce((a,p)=>a+p.total,0),
-        totalDevoluciones, margenPorCat,
-      });
-      setLoad(false);
-    };
-    cargar();
-  },[periodo]);
-
-  const totalVentas   = data.ventas.reduce((a,p)=>a+p.total,0);
-  const totalOnline   = data.online;
-  const ticketPromedio= data.ventas.length?totalVentas/data.ventas.length:0;
-  const ingresoConsultas = data.consultas*300;
-  const INVERSION_TOTAL  = 710433;
-
-  // Ventas por empleado
-  const porEmpleado = data.ventas.reduce((acc,p)=>{
-    const nombre = p.usuarios?.nombre||"Sin asignar";
-    acc[nombre]=(acc[nombre]||0)+p.total;
-    return acc;
-  },{});
-
-  return(
-    <div>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-        <h1 style={{color:C.text,fontSize:20,fontWeight:800,margin:0}}>◧ Reportes</h1>
-        <div style={{display:"flex",gap:6}}>
-          {[["dia","Hoy"],["semana","7 días"],["mes","30 días"]].map(([v,l])=>(
-            <button key={v} onClick={()=>setPer(v)} style={{padding:"6px 14px",borderRadius:8,border:`1px solid ${periodo===v?BRAND.primary:C.border}`,background:periodo===v?BRAND.primary+"18":"transparent",color:periodo===v?BRAND.secondary:C.textMid,fontSize:12,fontWeight:700,cursor:"pointer"}}>{l}</button>
-          ))}
-        </div>
-      </div>
-
-      <div style={{display:"flex",gap:4,marginBottom:20,borderBottom:`1px solid ${C.border}`}}>
-        {[["resumen","📊 Resumen"],["transacciones","🔄 Transacciones"],["margen","📈 Margen"]].map(([id,label])=>(
-          <button key={id} onClick={()=>setTabRep(id)} style={{
-            padding:"8px 18px",border:"none",cursor:"pointer",fontWeight:700,fontSize:12,
-            borderRadius:"8px 8px 0 0",background:"transparent",
-            color:tabRep===id?BRAND.primary:C.textMid,
-            borderBottom:tabRep===id?`2px solid ${BRAND.primary}`:"2px solid transparent",
-          }}>{label}</button>
-        ))}
-      </div>
-      {tabRep==="transacciones"&&<TransaccionesTab usuario={JSON.parse(sessionStorage.getItem("farmax_admin_user")||"{}")}/>}
-      {tabRep==="margen"&&!loading&&(
-        <div>
-          {/* H3: Ventas netas */}
-          <div style={{display:"flex",gap:12,marginBottom:20,flexWrap:"wrap"}}>
-            <KPI label="Ventas brutas" value={$(totalVentas)} col={C.blue} icon="💵"/>
-            <KPI label="Devoluciones" value={$(data.totalDevoluciones||0)} col={C.red} icon="↩️"/>
-            <KPI label="Ventas netas" value={$(totalVentas-(data.totalDevoluciones||0))} col={C.green} icon="✅"/>
-            <KPI label="% devuelto" value={totalVentas>0?((data.totalDevoluciones||0)/totalVentas*100).toFixed(1)+"%":"0%"} col={C.amber} icon="📊"/>
-          </div>
-          {/* H1: Margen por categoría */}
-          <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,overflow:"hidden"}}>
-            <div style={{padding:"14px 16px",borderBottom:`1px solid ${C.border}`,fontWeight:700,color:C.text,fontSize:14}}>📈 Margen por categoría</div>
-            <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-              <thead>
-                <tr style={{background:C.cardDark}}>
-                  {["Categoría","Ingreso","Costo","Ganancia","Margen %"].map(h=>(
-                    <th key={h} style={{padding:"9px 14px",textAlign:"left",color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {!(data.margenPorCat||[]).length&&<tr><td colSpan={5} style={{padding:32,textAlign:"center",color:C.textMid}}>Sin datos en este período</td></tr>}
-                {(data.margenPorCat||[]).map((r,i)=>(
-                  <tr key={r.cat} style={{background:i%2===0?"transparent":"#f8fafc"}}>
-                    <td style={{padding:"9px 14px",fontWeight:600,color:C.text,borderBottom:`1px solid ${C.border}`}}>{r.cat}</td>
-                    <td style={{padding:"9px 14px",color:C.blue,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{$(r.ingreso)}</td>
-                    <td style={{padding:"9px 14px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{$(r.costo)}</td>
-                    <td style={{padding:"9px 14px",color:r.ganancia>=0?C.green:C.red,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{$(r.ganancia)}</td>
-                    <td style={{padding:"9px 14px",borderBottom:`1px solid ${C.border}`}}>
-                      <div style={{display:"flex",alignItems:"center",gap:8}}>
-                        <div style={{flex:1,height:6,background:"#f1f5f9",borderRadius:3,overflow:"hidden"}}>
-                          <div style={{height:"100%",width:`${Math.min(parseFloat(r.margen),100)}%`,background:parseFloat(r.margen)>30?C.green:parseFloat(r.margen)>15?C.amber:C.red,borderRadius:3}}/>
-                        </div>
-                        <span style={{fontWeight:700,color:parseFloat(r.margen)>30?C.green:parseFloat(r.margen)>15?C.amber:C.red,minWidth:40}}>{r.margen}%</span>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-      {tabRep==="resumen"&&<>
-      {loading?<SkeletonKPIs count={5}/>:(
-      <>
-        <div style={{display:"flex",gap:12,marginBottom:20,flexWrap:"wrap"}}>
-          <KPI label="Ventas totales"   value={$(totalVentas)}        col={C.blue}   icon="💵"/>
-          <KPI label="Ventas online"    value={$(totalOnline)}        col={C.teal}   icon="🌐"/>
-          <KPI label="Consultas"        value={$(ingresoConsultas)}   col={C.purple} icon="🏥" sub={`${data.consultas} citas`}/>
-          <KPI label="Ticket promedio"  value={$(ticketPromedio)}     col={C.green}  icon="🧾"/>
-          <KPI label="Clientes nuevos"  value={data.clientes}         col={C.amber}  icon="👤"/>
-        </div>
-
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}>
-          {/* ROI */}
-          <Box style={{padding:20}}>
-            <div style={{color:C.text,fontWeight:700,fontSize:14,marginBottom:16}}>📈 ROI — Retorno de Inversión</div>
-            <div style={{color:C.textDim,fontSize:10,letterSpacing:1,textTransform:"uppercase",marginBottom:12}}>Inversión total del proyecto</div>
-            {[
-              ["Construcción",464999,C.blue],
-              ["Equipo farmacia",8899,C.teal],
-              ["Equipo consultorio",21650,C.green],
-              ["Inventario inicial",134000,C.amber],
-              ["Trámites y legales",16300,C.purple],
-              ["Imprevistos",64585,C.red],
-            ].map(([l,v,col])=>(
-              <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:`1px solid ${C.border}`}}>
-                <span style={{color:C.textMid,fontSize:12}}>{l}</span>
-                <span style={{color:col,fontSize:12,fontWeight:700}}>{$(v)}</span>
-              </div>
-            ))}
-            <div style={{display:"flex",justifyContent:"space-between",padding:"10px 0",marginTop:4}}>
-              <span style={{color:C.text,fontWeight:800,fontSize:14}}>TOTAL INVERTIDO</span>
-              <span style={{color:C.red,fontWeight:900,fontSize:16}}>{$(INVERSION_TOTAL)}</span>
-            </div>
-            <div style={{background:C.greenDim,border:`1px solid ${C.green}30`,borderRadius:8,padding:"10px 12px",marginTop:4}}>
-              <div style={{color:C.green,fontSize:12,fontWeight:700}}>
-                Recuperado hasta hoy: {$(totalVentas)} ({((totalVentas/INVERSION_TOTAL)*100).toFixed(2)}%)
-              </div>
-            </div>
-          </Box>
-
-          {/* Ventas por fuente */}
-          <Box style={{padding:20}}>
-            <div style={{color:C.text,fontWeight:700,fontSize:14,marginBottom:16}}>📊 Ingresos por fuente</div>
-            {[
-              ["Farmacia física", totalVentas-totalOnline-ingresoConsultas, C.blue],
-              ["Tienda en línea", totalOnline, C.teal],
-              ["Consultorio",     ingresoConsultas, C.purple],
-            ].map(([l,v,col])=>{
-              const pct = totalVentas>0?Math.round((v/totalVentas)*100):0;
-              return(
-                <div key={l} style={{marginBottom:12}}>
-                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-                    <span style={{color:C.textMid,fontSize:12}}>{l}</span>
-                    <span style={{color:col,fontWeight:700,fontSize:12}}>{$(v)}</span>
-                  </div>
-                  <div style={{background:C.border,borderRadius:4,height:8,overflow:"hidden"}}>
-                    <div style={{width:`${pct}%`,height:"100%",background:col,borderRadius:4}}/>
-                  </div>
-                  <div style={{color:C.textDim,fontSize:10,marginTop:2}}>{pct}% del total</div>
-                </div>
-              );
-            })}
-          </Box>
-        </div>
-
-        {/* Ventas por empleado */}
-        <Box style={{padding:20}}>
-          <div style={{color:C.text,fontWeight:700,fontSize:14,marginBottom:14}}>👥 Ventas por empleado</div>
-          {!Object.keys(porEmpleado).length?<div style={{color:C.textMid,fontSize:12}}>Sin datos en este periodo</div>:
-           Object.entries(porEmpleado).sort((a,b)=>b[1]-a[1]).map(([nombre,total])=>(
-            <div key={nombre} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${C.border}`}}>
-              <span style={{color:C.text,fontSize:13,fontWeight:600}}>{nombre}</span>
-              <div style={{display:"flex",gap:10,alignItems:"center"}}>
-                <span style={{color:C.green,fontWeight:800,fontSize:14}}>{$(total)}</span>
-                <Tag col={C.green} sm>{((total/totalVentas)*100).toFixed(0)}%</Tag>
-              </div>
-            </div>
-          ))}
+      {loading ? (
+        <SkeletonTable rows={3} cols={3} />
+      ) : !citas.length ? (
+        <Box style={{ padding: 40, textAlign: "center" }}>
+          <div style={{ color: C.textMid, fontSize: 14 }}>Sin citas para hoy</div>
         </Box>
-      </>)}</>
-      }
+      ) : (
+        <div style={{ display: "grid", gap: 10 }}>
+          {citas.map((c) => {
+            const pe = pagoEtiqueta(c);
+            return (
+              <Box
+                key={c.id}
+                style={{
+                  padding: 18,
+                  borderColor:
+                    c.estado === "en_consulta" ? C.amber + "60" : c.estado === "completada" ? C.green + "40" : C.border,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 14, flexWrap: "wrap" }}>
+                  <div style={{ color: C.blue, fontWeight: 800, fontSize: 18, width: 55, flexShrink: 0 }}>{c.hora}</div>
+                  <div style={{ flex: 1, minWidth: 200 }}>
+                    <button
+                      type="button"
+                      onClick={() => setFichaCita(c)}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        padding: 0,
+                        cursor: "pointer",
+                        textAlign: "left",
+                      }}
+                    >
+                      <div style={{ color: BRAND.primary, fontWeight: 700, fontSize: 15, textDecoration: "underline" }}>{c.nombre}</div>
+                    </button>
+                    <div style={{ color: C.textMid, fontSize: 12, marginTop: 2 }}>{c.motivo || "Consulta general"}</div>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+                      <Tag col={pe.col} sm>
+                        {pe.txt}
+                      </Tag>
+                      {c.canal && (
+                        <Tag col={C.blue} sm>
+                          {labelCanal(c)}
+                        </Tag>
+                      )}
+                      <Tag
+                        col={
+                          c.estado === "completada" ? C.green : c.estado === "en_consulta" ? C.amber : c.estado === "pagada" ? C.purple : C.blue
+                        }
+                        sm
+                      >
+                        {c.estado || "confirmada"}
+                      </Tag>
+                    </div>
+                    {(c.consumibles_consulta || []).length > 0 && (
+                      <div style={{ color: C.amber, fontSize: 11, marginTop: 4 }}>+ {(c.consumibles_consulta || []).length} consumibles registrados</div>
+                    )}
+                  </div>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                    {citaPagoOk(c) && c.estado === "confirmada" && (
+                      <Btn sm col={C.green} onClick={() => confirmarInicio(c)} dis={guardando}>
+                        Confirmar inicio
+                      </Btn>
+                    )}
+                    {c.estado === "en_consulta" && (
+                      <Btn sm col={C.green} onClick={() => completarCita(c)} dis={guardando}>
+                        Terminar consulta
+                      </Btn>
+                    )}
+                    {puedeConsumibles(c) && c.estado !== "completada" && (
+                      <Btn sm col={C.amber} onClick={() => setCitaSel(c)}>
+                        + Consumibles
+                      </Btn>
+                    )}
+                  </div>
+                </div>
+              </Box>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
+
 
 // ══════════════════════════════════════════════════════════════
 // REPORTE DOCTORA — Vista simplificada
@@ -2053,7 +2365,7 @@ function ReporteDoctora(){
       const dias = periodo==="dia"?1:periodo==="semana"?7:30;
       const desde = new Date(Date.now()-dias*86400000).toISOString().split("T")[0];
       const {data} = await supabase.from("citas").select(`
-        id,nombre,fecha,hora,motivo,estado,
+        id,nombre,fecha,hora,motivo,estado,ingreso_doctor,ingreso_farmacia,precio_consulta_cobrado,receta_surtido_en,
         consumibles_consulta(precio,cantidad,cobrado)
       `).gte("fecha",desde).order("fecha",{ascending:false});
       setCitas(data||[]); setLoad(false);
@@ -2062,7 +2374,13 @@ function ReporteDoctora(){
   },[periodo]);
 
   const completadas = citas.filter(c=>c.estado==="completada"||c.estado==="pagada");
-  const ingresos    = completadas.length*300;
+  const ingresoDoctorSum = completadas.reduce((a,c)=>{
+    const v = parseFloat(c.ingreso_doctor);
+    if (Number.isFinite(v)) return a+v;
+    return a + (CONSULTA_PRECIO_DEFAULT * CONSULTA_PARTE_DOCTOR);
+  },0);
+  const recetasExternas = citas.filter(c=>c.receta_surtido_en==="externa").length;
+  const recetasFarmax = citas.filter(c=>c.receta_surtido_en==="farmax").length;
 
   return(
     <div>
@@ -2076,13 +2394,14 @@ function ReporteDoctora(){
       </div>
       <div style={{display:"flex",gap:12,marginBottom:20,flexWrap:"wrap"}}>
         <KPI label="Consultas atendidas" value={completadas.length} col={C.green} icon="🏥"/>
-        <KPI label="Ingresos generados" value={$(ingresos)} col={C.blue} icon="💰" sub="70% para ti"/>
-        <KPI label="Tu parte (70%)" value={$(ingresos*.7)} col={C.purple} icon="⭐"/>
+        <KPI label="Tu parte acumulada (consulta)" value={$(ingresoDoctorSum)} col={C.purple} icon="⭐" sub="desde ingreso_doctor por cita"/>
+        <KPI label="Recetas surtidas en Farmax" value={recetasFarmax} col={C.blue} icon="💊"/>
+        <KPI label="Recetas en otra farmacia" value={recetasExternas} col={C.amber} icon="↗️" sub="seguimiento de desviación"/>
       </div>
       {loading?<SkeletonTable rows={4} cols={4}/>:(
         <Box>
           <table style={{width:"100%",borderCollapse:"collapse"}}>
-            <thead><tr>{["Fecha","Hora","Paciente","Motivo","Estado"].map(h=><th key={h} style={{padding:"8px 14px",color:C.textDim,fontSize:9,textAlign:"left",letterSpacing:1.5,textTransform:"uppercase",borderBottom:`1px solid ${C.border}`}}>{h}</th>)}</tr></thead>
+            <thead><tr>{["Fecha","Hora","Paciente","Motivo","Estado","Tu parte","Receta"].map(h=><th key={h} style={{padding:"8px 14px",color:C.textDim,fontSize:9,textAlign:"left",letterSpacing:1.5,textTransform:"uppercase",borderBottom:`1px solid ${C.border}`}}>{h}</th>)}</tr></thead>
             <tbody>
               {citas.map(c=>(
                 <tr key={c.id}>
@@ -2091,6 +2410,12 @@ function ReporteDoctora(){
                   <td style={{padding:"9px 14px",color:C.text,fontWeight:700,fontSize:13}}>{c.nombre}</td>
                   <td style={{padding:"9px 14px",color:C.textMid,fontSize:12}}>{c.motivo||"Consulta general"}</td>
                   <td style={{padding:"9px 14px"}}><Tag col={c.estado==="pagada"?C.green:c.estado==="completada"?C.blue:C.amber} sm>{c.estado}</Tag></td>
+                  <td style={{padding:"9px 14px",color:C.purple,fontWeight:700,fontSize:12}}>
+                    {(c.estado==="completada"||c.estado==="pagada")
+                      ? $(parseFloat(c.ingreso_doctor)||CONSULTA_PRECIO_DEFAULT*CONSULTA_PARTE_DOCTOR)
+                      : "—"}
+                  </td>
+                  <td style={{padding:"9px 14px",fontSize:11,color:C.textMid}}>{c.receta_surtido_en==="farmax"?"Farmax":c.receta_surtido_en==="externa"?"Otra":"—"}</td>
                 </tr>
               ))}
             </tbody>
@@ -2109,7 +2434,7 @@ function BannersAdmin(){
   const [banners,setBanners] = useState([]);
   const [loading,setLoad]   = useState(true);
   const [modal,setModal]    = useState(null);
-  const [form,setForm]      = useState({titulo:"",subtitulo:"",descripcion:"",emoji:"💊",bg:"linear-gradient(135deg,#0052cc,#0099e6)",cta:"Ver más →",pagina:"catalogo",orden:0,activo:true});
+  const [form,setForm]      = useState({titulo:"",subtitulo:"",descripcion:"",emoji:"💊",bg:"linear-gradient(135deg,#0052cc,#0099e6)",cta:"Ver más →",pagina:"catalogo",orden:0,activo:true,slot:"hero"});
   const [saving,setSaving]  = useState(false);
 
   const fetch = async()=>{ setLoad(true); const{data}=await supabase.from("banners").select("*").order("orden"); setBanners(data||[]); setLoad(false); };
@@ -2140,10 +2465,12 @@ function BannersAdmin(){
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
         <h1 style={{color:C.text,fontSize:20,fontWeight:800,margin:0}}>🖼️ Banners de la tienda</h1>
-        <Btn col={BRAND.primary} onClick={()=>{setForm({titulo:"",subtitulo:"",descripcion:"",emoji:"💊",bg:BRAND.gradient,cta:"Ver más →",pagina:"catalogo",orden:banners.length+1,activo:true});setModal("new");}}>+ Nuevo banner</Btn>
+        <Btn col={BRAND.primary} onClick={()=>{setForm({titulo:"",subtitulo:"",descripcion:"",emoji:"💊",bg:BRAND.gradient,cta:"Ver más →",pagina:"promo",orden:banners.length+1,activo:true,slot:"hero"});setModal("new");}}>+ Nuevo banner</Btn>
       </div>
-      <div style={{background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:10,padding:"10px 16px",marginBottom:16,fontSize:12,color:"#1d4ed8"}}>
-        💡 Los banners se muestran en la tienda web en rotación automática. Ordénalos con el campo "Orden".
+      <div style={{background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:10,padding:"10px 16px",marginBottom:16,fontSize:12,color:"#1d4ed8",lineHeight:1.55}}>
+        💡 <strong>Zona:</strong> <em>Carrusel</em> (arriba, rotación automática) · <em>Franja</em> (tarjetas anchas bajo la barra de servicios) · <em>Mosaico</em> (rejilla bajo la búsqueda). Ordená con <strong>Orden</strong>.
+        {" "}En <strong>Página destino</strong>: <code style={{background:"#fff",padding:"1px 6px",borderRadius:4}}>promo</code>, <code style={{background:"#fff",padding:"1px 6px",borderRadius:4}}>catalogo</code>, <code style={{background:"#fff",padding:"1px 6px",borderRadius:4}}>cita</code>…
+        {" "}Si no ves el campo <strong>Zona</strong> en Supabase, ejecutá <code style={{background:"#fff",padding:"1px 6px",borderRadius:4}}>sql/banners_slot.sql</code>.
       </div>
       {loading?<SkeletonTable rows={5} cols={5}/>:(
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
@@ -2154,7 +2481,9 @@ function BannersAdmin(){
               <div style={{flex:1,minWidth:200}}>
                 <div style={{fontWeight:800,color:C.text,fontSize:14}}>{b.titulo}</div>
                 <div style={{color:C.textMid,fontSize:12,marginTop:2}}>{b.subtitulo} · {b.descripcion?.slice(0,60)}{b.descripcion?.length>60?"…":""}</div>
-                <div style={{color:C.textDim,fontSize:11,marginTop:4}}>Orden: {b.orden} · Página: {b.pagina} · CTA: {b.cta}</div>
+                <div style={{color:C.textDim,fontSize:11,marginTop:4}}>
+                  {(b.slot==="strip"?"▤ Franja":b.slot==="tile"?"▦ Mosaico":"▶ Carrusel")} · Orden: {b.orden} · {b.pagina} · {b.cta}
+                </div>
               </div>
               <div style={{display:"flex",gap:8,flexShrink:0}}>
                 <button onClick={()=>toggleActivo(b)} style={{padding:"5px 10px",borderRadius:6,border:`1px solid ${b.activo?C.green:C.border}`,background:b.activo?C.greenDim:"transparent",color:b.activo?C.green:C.textMid,fontSize:11,fontWeight:700,cursor:"pointer"}}>{b.activo?"✓ Activo":"○ Inactivo"}</button>
@@ -2175,6 +2504,14 @@ function BannersAdmin(){
             {[["Título *","titulo"],["Subtítulo","subtitulo"],["Descripción","descripcion"],["Emoji","emoji"],["Texto del botón","cta"],["Página destino","pagina"]].map(([l,k])=>(
               <div key={k}><label style={{color:C.textMid,fontSize:11,fontWeight:700,display:"block",marginBottom:3}}>{l.toUpperCase()}</label><input style={inpS} value={form[k]||""} onChange={e=>setForm(p=>({...p,[k]:e.target.value}))} placeholder={l}/></div>
             ))}
+            <div>
+              <label style={{color:C.textMid,fontSize:11,fontWeight:700,display:"block",marginBottom:3}}>ZONA EN EL HOME</label>
+              <select style={{...inpS,marginBottom:10}} value={form.slot||"hero"} onChange={e=>setForm(p=>({...p,slot:e.target.value}))}>
+                <option value="hero">▶ Carrusel principal (arriba)</option>
+                <option value="strip">▤ Franja (bajo iconos de servicio)</option>
+                <option value="tile">▦ Mosaico (bajo la barra de búsqueda)</option>
+              </select>
+            </div>
             <div><label style={{color:C.textMid,fontSize:11,fontWeight:700,display:"block",marginBottom:3}}>COLOR DE FONDO (CSS gradient)</label><input style={inpS} value={form.bg||""} onChange={e=>setForm(p=>({...p,bg:e.target.value}))} placeholder="linear-gradient(...)"/></div>
             <div><label style={{color:C.textMid,fontSize:11,fontWeight:700,display:"block",marginBottom:3}}>ORDEN</label><input type="number" style={inpS} value={form.orden||0} onChange={e=>setForm(p=>({...p,orden:parseInt(e.target.value)||0}))}/></div>
             <div style={{display:"flex",gap:10,justifyContent:"flex-end",marginTop:8}}>
@@ -2192,10 +2529,14 @@ function GestionUsuarios(){
   const C = C_LIGHT;
   const [usuarios,setUsers] = useState([]);
   const [modal,setModal]    = useState(false);
+  const [editModal,setEditModal] = useState(false);
   const [form,setForm]      = useState({nombre:"",email:"",telefono:"",password:"",rol:"vendedor",notas:""});
+  const [editForm,setEditForm] = useState({id:null,nombre:"",email:"",telefono:"",rol:"vendedor",notas:"",activo:true});
   const [loading,setLoad]   = useState(true);
   const [guardando,setGuard]= useState(false);
+  const [guardandoEdit,setGuardandoEdit] = useState(false);
   const [error,setError]    = useState("");
+  const [editError,setEditError] = useState("");
 
   useEffect(()=>{
     supabase.from("usuarios").select("*").order("nombre").then(({data})=>{ setUsers(data||[]); setLoad(false); });
@@ -2203,29 +2544,40 @@ function GestionUsuarios(){
 
   const crear = async () => {
     const emailUsuario = (form.email || "").trim().toLowerCase();
+    const telefonoLimpio = (form.telefono || "").trim();
+    const telefonoValor = telefonoLimpio || null;
     if(!form.nombre||!emailUsuario||!form.password) return;
     if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailUsuario)) {
       setError("Ingresa un correo electrónico válido.");
       return;
     }
+    if((form.password || "").length < 6) {
+      setError("La contraseña debe tener al menos 6 caracteres.");
+      return;
+    }
     setGuard(true); setError("");
     try {
+      let authData = null;
+      let authErr = null;
       // Crear en Supabase Auth con correo real del usuario
-      const { data:authData, error:authErr } = await supabase.auth.signUp({
+      ({ data:authData, error:authErr } = await supabase.auth.signUp({
         email: emailUsuario,
         password: form.password,
         options: {
           data: {
             nombre: form.nombre.trim(),
             rol:    form.rol,
-            telefono: (form.telefono || "").trim(),
+            telefono: telefonoLimpio,
             email: emailUsuario,
           }
         }
-      });
+      }));
       if(authErr) {
-        // Si ya existe en Auth, continuar con tabla usuarios
-        console.warn("[Farmax] Auth signup:", authErr.message);
+        // Continuar con usuario local para no bloquear operación por problemas de Auth.
+        // El 500 en red es del servidor (p. ej. trigger en auth.users); revisar Supabase → Logs → Auth.
+        if (process.env.NODE_ENV === "development") {
+          console.debug("[Farmax] Auth signup:", authErr.message);
+        }
       }
 
       // Crear en tabla usuarios (login por teléfono)
@@ -2233,7 +2585,7 @@ function GestionUsuarios(){
       const hash = await hashPwd(form.password, salt);
       const payload = {
         nombre:form.nombre.trim(),
-        telefono:(form.telefono || "").trim(),
+        telefono:telefonoValor,
         email:emailUsuario,
         password_hash:hash,
         salt:salt,
@@ -2244,6 +2596,14 @@ function GestionUsuarios(){
       const {data,error:err} = await supabase.from("usuarios").insert(payload).select().single();
       if(err) {
         console.error("[Farmax] Error crear usuario:", err);
+        if (err.code === "23502" && String(err.message || "").includes("telefono")) {
+          setError("La base aún exige teléfono obligatorio. En Supabase ejecuta sql/alter_usuarios_telefono_opcional.sql, o ingresa un teléfono.");
+          setGuard(false); return;
+        }
+        if (err.code === "23505" && /telefono/i.test(String(err.message || ""))) {
+          setError("Ese teléfono ya está registrado. Usa otro o deja el campo vacío (tras aplicar el script de teléfono opcional).");
+          setGuard(false); return;
+        }
         setError(`Error: ${err.message}`);
         setGuard(false); return;
       }
@@ -2253,14 +2613,18 @@ function GestionUsuarios(){
           id: authData.user.id,
           rol: form.rol,
           nombre: form.nombre.trim(),
-          telefono: (form.telefono || "").trim(),
+          telefono: telefonoValor,
           activo: true,
         }).catch(()=>{});
       }
       setUsers(p=>[...p,data]);
       setModal(false);
       setForm({nombre:"",email:"",telefono:"",password:"",rol:"vendedor",notas:""});
-      showToast(`✅ Usuario ${form.nombre} creado correctamente`, "success");
+      if (authErr) {
+        showToast(`⚠️ Usuario ${form.nombre} creado en base local. Auth reportó: ${authErr.message}`, "warning");
+      } else {
+        showToast(`✅ Usuario ${form.nombre} creado correctamente`, "success");
+      }
     } catch(e){
       console.error("[Farmax] Error crear usuario:", e);
       setError("Error al crear usuario: " + e.message);
@@ -2273,23 +2637,130 @@ function GestionUsuarios(){
     setUsers(p=>p.map(u=>u.id===id?{...u,activo:!activo}:u));
   };
 
+  const abrirEditar = (u) => {
+    setEditError("");
+    setEditForm({
+      id: u.id,
+      nombre: u.nombre || "",
+      email: u.email || "",
+      telefono: u.telefono || "",
+      rol: u.rol || "vendedor",
+      notas: u.notas || "",
+      activo: u.activo !== false,
+    });
+    setEditModal(true);
+  };
+
+  const guardarEdicion = async () => {
+    if (!editForm.id) return;
+    if (!editForm.nombre?.trim()) {
+      setEditError("El nombre es obligatorio.");
+      return;
+    }
+    setGuardandoEdit(true);
+    setEditError("");
+    const emailNuevo = (editForm.email || "").trim().toLowerCase();
+    if (!emailNuevo) {
+      setEditError("El correo de acceso es obligatorio.");
+      setGuardandoEdit(false);
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailNuevo)) {
+      setEditError("Ingresa un correo electrónico válido.");
+      setGuardandoEdit(false);
+      return;
+    }
+    const payload = {
+      nombre: editForm.nombre.trim(),
+      telefono: (editForm.telefono || "").trim() || null,
+      email: emailNuevo,
+      rol: editForm.rol,
+      notas: editForm.notas?.trim() || null,
+      activo: !!editForm.activo,
+    };
+    const { data, error:err } = await supabase
+      .from("usuarios")
+      .update(payload)
+      .eq("id", editForm.id)
+      .select()
+      .single();
+    if (err) {
+      if (err.code === "23502" && String(err.message || "").includes("telefono")) {
+        setEditError("La base aún exige teléfono obligatorio. Ejecuta sql/alter_usuarios_telefono_opcional.sql en Supabase, o ingresa un teléfono.");
+        setGuardandoEdit(false);
+        return;
+      }
+      if (err.code === "23505" && /telefono/i.test(String(err.message || ""))) {
+        setEditError("Ese teléfono ya está registrado. Usa otro o deja el campo vacío (tras aplicar el script de teléfono opcional).");
+        setGuardandoEdit(false);
+        return;
+      }
+      if (err.code === "23505" && /email/i.test(String(err.message || ""))) {
+        setEditError("Ese correo ya está registrado en otro usuario.");
+        setGuardandoEdit(false);
+        return;
+      }
+      setEditError(`Error: ${err.message}`);
+      setGuardandoEdit(false);
+      return;
+    }
+    setUsers(prev => prev.map(u => u.id === editForm.id ? { ...u, ...data } : u));
+    setEditModal(false);
+    setGuardandoEdit(false);
+    showToast("✅ Usuario actualizado", "success");
+  };
+
   const cambiarMiPwd = async () => {
     const sesion = JSON.parse(sessionStorage.getItem("farmax_admin_user")||"{}");
+    const email = (sesion.email || "").trim().toLowerCase();
+    if (!email) {
+      showToast("No hay correo en la sesión. Cierra sesión y entra de nuevo.", "error");
+      return;
+    }
     const actual = prompt("Contraseña actual:");
-    if(!actual) return;
-    const hashActual = await hashPwd(actual);
-    const {data:check} = await supabase.from("usuarios").select("id").eq("id",sesion.id).eq("password_hash",hashActual).maybeSingle();
-    if(!check) { showToast("Contraseña actual incorrecta","error"); return; }
+    if (!actual) return;
+    const { data: localUser, error: fetchErr } = await supabase
+      .from("usuarios")
+      .select("id,password_hash,salt")
+      .eq("email", email)
+      .maybeSingle();
+    if (fetchErr || !localUser) {
+      showToast("No se encontró tu usuario en la tabla interna. Contacta al administrador.", "error");
+      return;
+    }
+    const hashActual = await hashPwd(actual, localUser.salt || null);
+    if (hashActual !== localUser.password_hash) {
+      showToast("Contraseña actual incorrecta", "error");
+      return;
+    }
     const nueva = prompt("Nueva contraseña (mínimo 6 caracteres):");
-    if(!nueva||nueva.length<6) { showToast("La contraseña debe tener al menos 6 caracteres","warning"); return; }
+    if (!nueva || nueva.length < 6) {
+      showToast("La contraseña debe tener al menos 6 caracteres", "warning");
+      return;
+    }
     const nueva2 = prompt("Confirma la nueva contraseña:");
-    if(nueva!==nueva2) { showToast("Las contraseñas no coinciden","error"); return; }
+    if (nueva !== nueva2) {
+      showToast("Las contraseñas no coinciden", "error");
+      return;
+    }
     const mySalt = generateSalt();
     const hashNueva = await hashPwd(nueva, mySalt);
-    const {error} = await supabase.from("usuarios").update({password_hash:hashNueva, salt:mySalt}).eq("id",sesion.id);
-    if(error) { showToast("Error al cambiar contraseña: "+error.message,"error"); return; }
-    showToast("✅ Contraseña cambiada correctamente. Vuelve a iniciar sesión.","success");
-    logAudit(sesion,"CAMBIO_PWD","usuarios",sesion.id,{});
+    const { data: updated, error } = await supabase
+      .from("usuarios")
+      .update({ password_hash: hashNueva, salt: mySalt })
+      .eq("id", localUser.id)
+      .select("id")
+      .maybeSingle();
+    if (error || !updated) {
+      showToast("Error al guardar la contraseña: " + (error?.message || "sin filas actualizadas"), "error");
+      return;
+    }
+    const { error: authUpdErr } = await supabase.auth.updateUser({ password: nueva });
+    if (authUpdErr && process.env.NODE_ENV === "development") {
+      console.debug("[Farmax] Auth password sync (opcional):", authUpdErr.message);
+    }
+    showToast("✅ Contraseña actualizada en el sistema. Si entrabas con Google/Auth, ya está alineada. Cierra sesión y vuelve a entrar.", "success");
+    logAudit(sesion, "CAMBIO_PWD", "usuarios", localUser.id, { email });
   };
 
   const resetPwd = async (u) => {
@@ -2310,18 +2781,28 @@ function GestionUsuarios(){
   };
 
   const rolColor = r => r==="admin"?C.purple:r==="vendedor"?C.blue:C.green;
+  const actionBtnBase = {
+    width: 18,
+    height: 18,
+    borderRadius: 5,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+    padding: 0,
+    marginLeft: 1,
+  };
 
   return(
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:10}}>
         <h1 style={{color:C.text,fontSize:20,fontWeight:800,margin:0}}>👤 Gestión de Usuarios</h1>
         <div style={{display:"flex",gap:8}}>
-          <button onClick={cambiarMiPwd} style={{padding:"9px 16px",borderRadius:8,border:`1px solid ${C.border}`,background:C.bg,color:C.textMid,fontWeight:700,fontSize:12,cursor:"pointer"}}>🔑 Mi contraseña</button>
           <Btn col={BRAND.primary} onClick={()=>setModal(true)}>+ Nuevo usuario</Btn>
         </div>
       </div>
 
-      <Modal open={modal} onClose={()=>setModal(false)} title="Crear nuevo usuario">
+      <Modal open={modal} onClose={()=>setModal(false)} title="Crear nuevo usuario" closeOnBackdrop={false}>
         <div style={{marginBottom:12}}>
           <div style={{color:C.textMid,fontSize:11,marginBottom:4}}>Nombre completo *</div>
           <Inp value={form.nombre} onChange={e=>setForm(p=>({...p,nombre:e.target.value}))} placeholder="Nombre del empleado" style={{width:"100%",boxSizing:"border-box"}}/>
@@ -2357,7 +2838,61 @@ function GestionUsuarios(){
         </div>
         <div style={{display:"flex",gap:8}}>
           <Btn onClick={()=>setModal(false)} ol col={C.textMid}>Cancelar</Btn>
-          <Btn onClick={crear} col={BRAND.primary} dis={!form.nombre||!form.email||!form.password||guardando}>{guardando?"Creando...":"Crear usuario"}</Btn>
+          <Btn
+            onClick={crear}
+            col={BRAND.primary}
+            dis={!form.nombre||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((form.email||"").trim())||!form.password||form.password.length<6||guardando}
+          >
+            {guardando?"Creando...":"Crear usuario"}
+          </Btn>
+        </div>
+      </Modal>
+
+      <Modal open={editModal} onClose={()=>setEditModal(false)} title="Editar usuario" closeOnBackdrop={false}>
+        <div style={{marginBottom:12}}>
+          <div style={{color:C.textMid,fontSize:11,marginBottom:4}}>Nombre completo *</div>
+          <Inp value={editForm.nombre} onChange={e=>setEditForm(p=>({...p,nombre:e.target.value}))} placeholder="Nombre del empleado" style={{width:"100%",boxSizing:"border-box"}}/>
+        </div>
+        <div style={{marginBottom:12}}>
+          <div style={{color:C.textMid,fontSize:11,marginBottom:4}}>Correo de acceso</div>
+          <Inp
+            value={editForm.email}
+            onChange={e=>setEditForm(p=>({...p,email:e.target.value}))}
+            placeholder="tu@correo.com"
+            type="email"
+            style={{width:"100%",boxSizing:"border-box"}}
+          />
+          <div style={{color:C.textDim,fontSize:10,marginTop:4}}>Puedes corregir el correo para que inicie sesión con email + contraseña.</div>
+        </div>
+        <div style={{marginBottom:12}}>
+          <div style={{color:C.textMid,fontSize:11,marginBottom:4}}>Teléfono</div>
+          <Inp value={editForm.telefono} onChange={e=>setEditForm(p=>({...p,telefono:e.target.value}))} placeholder="55XXXXXXXX" type="tel" style={{width:"100%",boxSizing:"border-box"}}/>
+        </div>
+        <div style={{marginBottom:12}}>
+          <div style={{color:C.textMid,fontSize:11,marginBottom:4}}>Perfil *</div>
+          <select value={editForm.rol} onChange={e=>setEditForm(p=>({...p,rol:e.target.value}))}
+            style={{width:"100%",background:C.bg,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,padding:"9px 13px",fontSize:13,outline:"none"}}>
+            <option value="vendedor">🏪 Vendedor — POS + cobros</option>
+            <option value="doctora">👩‍⚕️ Doctora — Consultorio</option>
+            <option value="admin">👑 Admin — Acceso total</option>
+          </select>
+        </div>
+        <div style={{marginBottom:12}}>
+          <div style={{color:C.textMid,fontSize:11,marginBottom:4}}>Notas / Turno</div>
+          <Inp value={editForm.notas} onChange={e=>setEditForm(p=>({...p,notas:e.target.value}))} placeholder="Turno, observaciones, etc." style={{width:"100%",boxSizing:"border-box"}}/>
+        </div>
+        <div style={{marginBottom:16}}>
+          <label style={{display:"flex",alignItems:"center",gap:8,color:C.textMid,fontSize:12,fontWeight:600}}>
+            <input type="checkbox" checked={editForm.activo} onChange={e=>setEditForm(p=>({...p,activo:e.target.checked}))}/>
+            Usuario activo
+          </label>
+        </div>
+        {editError&&<div style={{background:C.redDim,border:`1px solid ${C.red}30`,borderRadius:8,padding:"10px 12px",marginBottom:12,color:C.red,fontSize:13}}>{editError}</div>}
+        <div style={{display:"flex",gap:8}}>
+          <Btn onClick={()=>setEditModal(false)} ol col={C.textMid}>Cancelar</Btn>
+          <Btn onClick={guardarEdicion} col={BRAND.primary} dis={!editForm.nombre||guardandoEdit}>
+            {guardandoEdit?"Guardando...":"Guardar cambios"}
+          </Btn>
         </div>
       </Modal>
 
@@ -2371,18 +2906,55 @@ function GestionUsuarios(){
                   <td style={{padding:"10px 14px",color:C.text,fontWeight:700,fontSize:13}}>{u.nombre}</td>
                   <td style={{padding:"10px 14px",color:C.textMid,fontSize:12}}>{u.email||u.telefono||"—"}</td>
                   <td style={{padding:"10px 14px"}}><Tag col={rolColor(u.rol)} sm>{u.rol}</Tag></td>
+                  <td style={{padding:"10px 14px",color:C.textMid,fontSize:12}}>{u.notas||"—"}</td>
                   <td style={{padding:"10px 14px"}}><Tag col={u.activo?C.green:C.red} sm>{u.activo?"Activo":"Inactivo"}</Tag></td>
                   <td style={{padding:"10px 14px"}}>
-                    <button onClick={()=>toggle(u.id,u.activo)}
-                      style={{padding:"4px 10px",borderRadius:6,border:`1px solid ${u.activo?C.red:C.green}`,background:"transparent",color:u.activo?C.red:C.green,fontSize:10,fontWeight:700,cursor:"pointer"}}>
-                      {u.activo?"Desactivar":"Activar"}
+                    <button
+                      onClick={()=>abrirEditar(u)}
+                      title="Editar usuario"
+                      aria-label="Editar usuario"
+                      style={{...actionBtnBase, border:`1px solid ${C.amber}30`, background:C.amberDim, color:C.amber, marginLeft:0}}
+                    >
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M12 20h9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                        <path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
+                      </svg>
                     </button>
-                    <button onClick={()=>resetPwd(u)} style={{padding:"4px 10px",borderRadius:6,border:`1px solid ${C.blue}`,background:C.blueDim,color:C.blue,fontSize:10,fontWeight:700,cursor:"pointer",marginLeft:4}}>🔑 Reset</button>
-                  </td>
-                  <td style={{padding:"10px 14px"}}>
+                    <button onClick={()=>toggle(u.id,u.activo)}
+                      title={u.activo?"Desactivar usuario":"Activar usuario"}
+                      aria-label={u.activo?"Desactivar usuario":"Activar usuario"}
+                      style={{...actionBtnBase,border:`1px solid ${u.activo?C.red:C.green}`,background:"transparent",color:u.activo?C.red:C.green}}>
+                      {u.activo ? (
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2"/>
+                          <path d="M8 8l8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                        </svg>
+                      ) : (
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2"/>
+                          <path d="M8 12l3 3 5-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      )}
+                    </button>
+                    <button
+                      onClick={()=>resetPwd(u)}
+                      title="Resetear contraseña"
+                      aria-label="Resetear contraseña"
+                      style={{...actionBtnBase,border:`1px solid ${C.blue}`,background:C.blueDim,color:C.blue}}
+                    >
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <circle cx="8" cy="12" r="3" stroke="currentColor" strokeWidth="2"/>
+                        <path d="M11 12h10M17 12v3M20 12v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                      </svg>
+                    </button>
                     <button onClick={()=>eliminar(u.id,u.nombre)}
-                      style={{padding:"4px 10px",borderRadius:6,border:`1px solid ${C.red}30`,background:C.redDim,color:C.red,cursor:"pointer",fontSize:11,fontWeight:700}}>
-                      🗑️ Eliminar
+                      title="Eliminar usuario"
+                      aria-label="Eliminar usuario"
+                      style={{...actionBtnBase,border:`1px solid ${C.red}30`,background:C.redDim,color:C.red}}>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M3 6h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                        <path d="M8 6V4h8v2M7 6l1 14h8l1-14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
                     </button>
                   </td>
                 </tr>
@@ -2415,15 +2987,23 @@ export default function FarmaxAdmin(){
     } catch{ return null; }
   });
   const [page,setPage]   = useState(()=>{
-    // Restaurar página activa al hacer refresh
-    return sessionStorage.getItem("farmax_active_page")||"dash";
+    const p = sessionStorage.getItem("farmax_active_page") || "dash";
+    return p === "rep" ? "dash" : p;
   });
 
-  // Guardar página activa al cambiar
+  const isMobileLayout = useMediaQuery("(max-width: 900px)");
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
   const setPageAndSave = (p) => {
-    sessionStorage.setItem("farmax_active_page", p);
-    setPage(p);
+    const next = p === "rep" ? "dash" : p;
+    sessionStorage.setItem("farmax_active_page", next);
+    setPage(next);
+    if (isMobileLayout) setMobileNavOpen(false);
   };
+
+  useEffect(() => {
+    if (!isMobileLayout) setMobileNavOpen(false);
+  }, [isMobileLayout]);
   const [notifs,setNotifs]         = useState([]);
   const [ventasOffline,setVentasOff] = useState(0);
   const [confirmDlg, setConfirmDlg] = useState({open:false,titulo:"",mensaje:"",onConfirm:null,danger:false});
@@ -2564,9 +3144,12 @@ export default function FarmaxAdmin(){
           showToast(`🔑 Solicitud de reset: ${req.email_o_telefono}`,"warning");
         })
       .on("postgres_changes",{event:"INSERT",schema:"public",table:"pedidos"},
-        pl=>{ if(pl.new?.tipo==="online") addNotif("🛒 Nuevo pedido online",`Pedido #${pl.new.id} · $${parseFloat(pl.new.total||0).toFixed(2)}`,"🛒","#0052cc");
-          pushNotif("🛒 Nuevo pedido online",`Pedido #${pl.new.id} · $${parseFloat(pl.new.total||0).toFixed(2)} · Pendiente de surtir`,"/admin");
-          supabase.from("pedidos").select("id,total,created_at,tipo,clientes(nombre,telefono),pedido_items(cantidad,precio_unitario,productos(nombre,sku))").eq("tipo","online").eq("estado","pendiente").order("created_at",{ascending:false}).then(({data})=>{ if(data) setPedOn(data); }); })
+        pl=>{
+          const row = pl.new;
+          if (!row || row.estado !== "pendiente" || !esPedidoTiendaWebPendiente(row)) return;
+          addNotif("🛒 Nuevo pedido online",`Pedido #${row.id} · $${parseFloat(row.total||0).toFixed(2)}`,"🛒","#0052cc");
+          pushNotif("🛒 Nuevo pedido online",`Pedido #${row.id} · $${parseFloat(row.total||0).toFixed(2)} · Pendiente de surtir`,"/admin");
+        })
       .on("postgres_changes",{event:"INSERT",schema:"public",table:"citas"},
         pl=>{ addNotif("📅 Nueva cita",`${pl.new?.nombre||"Paciente"} · ${pl.new?.fecha||""} ${pl.new?.hora||""}`,"📅","#7c3aed");
           pushNotif("📅 Nueva cita agendada",`${pl.new?.nombre||"Paciente"} · ${pl.new?.fecha||""} ${pl.new?.hora||""}`,"/admin"); })
@@ -2583,14 +3166,14 @@ export default function FarmaxAdmin(){
     if(!usuario) return;
     const cargar = async () => {
       const hoy = new Date().toISOString().split("T")[0];
-      const [{data:prods},{data:peds},{data:cits}] = await Promise.all([
+      const [{ data: prods }, { data: pendPedidos }, { data: cits }] = await Promise.all([
         supabase.from("productos").select("id,stock,stock_minimo"),
-        supabase.from("pedidos").select("id").eq("tipo","online").eq("estado","pendiente"),
+        supabase.from("pedidos").select("id,tipo,metodo_pago,estado").eq("estado", "pendiente"),
         supabase.from("citas").select("id").eq("fecha",hoy).not("cliente_id","is",null),
       ]);
       setAlr({
         stock: (prods||[]).filter(p=>p.stock<p.stock_minimo).length,
-        pedidos: (peds||[]).length,
+        pedidos: (pendPedidos||[]).filter(esPedidoTiendaWebPendiente).length,
         citas: (cits||[]).length,
       });
     };
@@ -2623,13 +3206,12 @@ export default function FarmaxAdmin(){
 
   const renderPage = () => {
     switch(page){
-      case "dash":      return <DashboardModule usuario={usuario} setPage={(p)=>setPageAndSave(p)}/>;
-      case "pos":       return <POS negocio={neg} usuario={usuario}/>;
+      case "dash":      return <DashboardModule usuario={usuario} setPage={(p)=>setPageAndSave(p)} showConfirm={showConfirm}/>;
+      case "pos":       return <POS negocio={neg} usuario={usuario} initialTab="venta" onNavigate={setPageAndSave}/>;
       case "cons":      return <ConsultorioModule usuario={usuario}/>;
-      case "cons_cobro":return <POS negocio={neg} usuario={usuario}/>;
-      case "cons_dr":   return <ConsDoctora usuario={usuario}/>;
-      // rep fusionado con dash
-      case "rep":       setPage("dash"); return <DashboardModule usuario={usuario} setPage={(p)=>setPageAndSave(p)}/>;
+      case "config_cons": return <ConfigConsultorioModule />;
+      case "cons_cobro":return <POS negocio={neg} usuario={usuario} initialTab="consultas" onNavigate={setPageAndSave}/>;
+      case "cons_dr":   return <ConsDoctora />;
       case "rep_dr":    return <ReporteDoctora/>;
       case "inv":  return <InventarioModule/>;
       case "rea":  return <ReabastoModule/>;
@@ -2640,13 +3222,7 @@ export default function FarmaxAdmin(){
       case "promo":    return <PromocionesModule/>;
       case "dev":      return <DevolucionesModule usuario={usuario}/>;
       case "fact":     return <FacturacionModule/>;
-      case "banners": return (
-        <div style={{padding:40,textAlign:"center",color:"#475569"}}>
-          <div style={{fontSize:48,marginBottom:16}}>🖼️</div>
-          <div style={{fontWeight:700,fontSize:18,marginBottom:8}}>Banners de la tienda</div>
-          <div style={{fontSize:14}}>Módulo en desarrollo — próximamente</div>
-        </div>
-      );
+      case "banners": return <BannersAdmin/>;
       case "bot":      return <AsistenteIA/>;
       case "cli":   return <ClientesModule/>;
       case "pwa":       return <InstalarPWA/>;
@@ -2670,14 +3246,52 @@ export default function FarmaxAdmin(){
     />
     <div style={{background:C.bg,minHeight:"100vh",fontFamily:"'Plus Jakarta Sans',sans-serif",transition:"background .3s,color .3s",color:C.text,overflowX:"hidden"}}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');*{box-sizing:border-box;margin:0;padding:0;}`}</style>
+      {isMobileLayout && mobileNavOpen && (
+        <div
+          role="presentation"
+          onClick={()=>setMobileNavOpen(false)}
+          style={{
+            position:"fixed",inset:0,zIndex:1000,
+            background:"rgba(15,23,42,.45)",backdropFilter:"blur(2px)",cursor:"pointer",
+          }}
+        />
+      )}
+      {isMobileLayout && (
+        <button
+          type="button"
+          aria-label="Abrir menú de navegación"
+          aria-expanded={mobileNavOpen}
+          onClick={()=>setMobileNavOpen(o=>!o)}
+          style={{
+            position:"fixed",top:12,left:12,zIndex:999,
+            width:44,height:44,borderRadius:10,
+            border:`1px solid ${C.border}`,background:C.card,
+            boxShadow:"0 4px 20px rgba(0,0,0,.08)",cursor:"pointer",
+            fontSize:20,lineHeight:1,display:"flex",alignItems:"center",justifyContent:"center",
+            color:C.text,
+          }}
+        >
+          ☰
+        </button>
+      )}
       <Sidebar
         active={page} setActive={setPageAndSave}
         negocio={neg} setNegocio={setNeg}
         usuario={usuario} onLogout={logout}
         alertas={alertas}
-         ventasOffline={ventasOffline}
+        ventasOffline={ventasOffline}
+        mobile={isMobileLayout}
+        navOpen={mobileNavOpen}
       />
-      <main style={{marginLeft:220,padding:28,minHeight:"100vh",maxWidth:"calc(100vw - 220px)",overflowX:"hidden",boxSizing:"border-box"}}>
+      <main style={{
+        marginLeft:isMobileLayout?0:220,
+        padding:isMobileLayout?"56px 16px 20px":28,
+        minHeight:"100vh",
+        maxWidth:isMobileLayout?"100%":"calc(100vw - 220px)",
+        width:"100%",
+        overflowX:"hidden",
+        boxSizing:"border-box",
+      }}>
         <ModuleErrorBoundary>
         <Suspense fallback={<ModuleSkeleton/>}>
         {renderPage()}

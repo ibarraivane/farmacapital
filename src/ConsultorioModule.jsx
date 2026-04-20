@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
 import { showToast } from "./ui";
+import { fetchProductosConsumiblesConsultorio } from "./utils/consumiblesConsultorio";
 
 const BRAND = { primary:"#0052cc", secondary:"#0099e6", gradient:"linear-gradient(135deg,#0052cc,#0099e6)" };
 
@@ -170,7 +171,19 @@ function ListaEspera() {
   }, [fetchCitas]);
 
   const cambiarEstado = async (id, nuevoEstado) => {
-    await supabase.from("citas").update({ estado:nuevoEstado }).eq("id",id);
+    const nowIso = new Date().toISOString();
+    const patch = { estado: nuevoEstado };
+    if (nuevoEstado === "en_consulta") {
+      patch.confirmada_inicio_at = nowIso;
+    }
+    if (nuevoEstado === "completada") {
+      patch.consulta_fin_at = nowIso;
+      const { data: row } = await supabase.from("citas").select("confirmada_inicio_at").eq("id", id).maybeSingle();
+      if (row?.confirmada_inicio_at) {
+        patch.duracion_consulta_segundos = Math.max(0, Math.floor((Date.now() - Date.parse(row.confirmada_inicio_at)) / 1000));
+      }
+    }
+    await supabase.from("citas").update(patch).eq("id", id);
     fetchCitas();
   };
 
@@ -233,7 +246,7 @@ function ListaEspera() {
                           cambiarEstado(c.id,"en_consulta");
                         }} style={{...mkBtnSmBlue(C),marginRight:6,fontWeight:800}}>📞 Llamar</button>
                       )}
-                      {c.estado==="en_consulta"&&<button onClick={()=>cambiarEstado(c.id,"completada")} style={mkBtnSmGreen(C)}>✓ Completar</button>}
+                      {c.estado==="en_consulta"&&<button onClick={()=>cambiarEstado(c.id,"completada")} style={mkBtnSmGreen(C)}>Terminar consulta</button>}
                     </td>
                   </tr>
                 );
@@ -275,10 +288,10 @@ function EnConsulta() {
     const cita = data?.[0]||null;
     setCitaActual(cita);
     if (cita) {
-      const [{ data:hist },{ data:procs },{ data:bot },{ data:cliente }] = await Promise.all([
+      const [{ data:hist },{ data:procs },bot,{ data:cliente }] = await Promise.all([
         supabase.from("citas").select("*").eq("telefono",cita.telefono).eq("estado","completada").order("fecha",{ascending:false}).limit(5),
         supabase.from("procedimientos_medicos").select("*").eq("activo",true).order("nombre"),
-        supabase.from("productos").select("id,nombre,stock").eq("categoria","Botiquín").eq("activo",true).order("nombre"),
+        fetchProductosConsumiblesConsultorio(supabase),
         supabase.from("clientes").select("notas,nombre,email").eq("telefono",cita.telefono).maybeSingle(),
       ]);
       setHistorial(hist||[]); setProcedimientos(procs||[]); setBotiquin(bot||[]);
@@ -413,11 +426,18 @@ function EnConsulta() {
       const nota = [alergias.trim()&&`ALERGIAS: ${alergias.trim()}`, antecedentes.trim()&&`ANTECEDENTES: ${antecedentes.trim()}`].filter(Boolean).join(" | ");
       await supabase.from("clientes").update({notas:nota}).eq("telefono",citaActual.telefono);
     }
+    const finIso = new Date().toISOString();
+    let durSec = null;
+    if (citaActual.confirmada_inicio_at) {
+      durSec = Math.max(0, Math.floor((Date.now() - Date.parse(citaActual.confirmada_inicio_at)) / 1000));
+    }
     const { error:e1 } = await supabase.from("citas").update({
       estado:"completada", diagnostico:diagnostico.trim(),
       medicamentos_prescritos: medicamentos.filter(m=>m.medicamento.trim()),
       procedimientos_realizados: procSel,
       notas_medico: notasMedico.trim()||null,
+      consulta_fin_at: finIso,
+      duracion_consulta_segundos: durSec,
     }).eq("id",citaActual.id);
     if (e1) { showToast("Error al guardar consulta: "+e1.message, "error"); setSaving(false); return; }
     if (consumibles.length>0) {
@@ -539,7 +559,8 @@ function EnConsulta() {
           )}
           {botiquin.length>0&&(
             <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:18}}>
-              <div style={{color:C.textMid,fontSize:12,fontWeight:700,letterSpacing:.5,marginBottom:12}}>CONSUMIBLES USADOS</div>
+              <div style={{color:C.textMid,fontSize:12,fontWeight:700,letterSpacing:.5,marginBottom:12}}>CONSUMIBLES (material de curación)</div>
+              <div style={{color:C.textDim,fontSize:10,marginBottom:8,lineHeight:1.35}}>Gasas, jeringas, guantes, etc. — no medicamentos de venta. La lista viene de Inventario según categorías en Config. consultorio.</div>
               <select onChange={e=>{ const p=botiquin.find(b=>b.id===parseInt(e.target.value)); if(p)addConsumible(p); e.target.value=""; }} style={{...inputStyle,marginBottom:10}}>
                 <option value="">Seleccionar consumible…</option>
                 {botiquin.map(b=><option key={b.id} value={b.id}>{b.nombre} (stock: {b.stock})</option>)}

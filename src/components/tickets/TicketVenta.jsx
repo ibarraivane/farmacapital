@@ -115,6 +115,15 @@ const TicketVenta = forwardRef(({
 
       {/* ══ MÉTODO DE PAGO ══ */}
       <div style={{fontSize:10}}>Método: {metodoPago}</div>
+      {metodoPago === "Efectivo" && venta.recibido != null && (
+        <div style={{fontSize:9,lineHeight:1.5,marginTop:4}}>
+          <div>Recibido: {fmt(venta.recibido)}</div>
+          <div style={{fontWeight:"bold"}}>Cambio: {fmt(venta.cambio)}</div>
+          {venta.cambioDesglose && (
+            <div style={{fontSize:8,color:"#555",marginTop:2}}>Entregar: {venta.cambioDesglose}</div>
+          )}
+        </div>
+      )}
 
       {/* ══ PUNTOS FARMAX ══ */}
       {ptsG > 0 && (

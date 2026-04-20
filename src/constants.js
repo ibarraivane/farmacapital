@@ -25,18 +25,20 @@ export const NEG = {
 };
 
 // ── Navegación agrupada por área ────────────────────────────
-// VENTAS: pos
+// VENTAS: pos, cons_cobro (mismo POS; cons_cobro abre pestaña Consultas)
+// DOCTORA (también admin): cons_dr, rep_dr
 // INVENTARIO: inv, rea, lotes
-// OPERACIONES: caja, cons, cli
-// NEGOCIO: dash, rep, promo, fact
+// OPERACIONES: caja, cons (consultorio + procedimientos), cli
+// NEGOCIO: dash, promo, fact
 // COMPLIANCE: cof
 // EQUIPO: rrhh, usuarios
 // SISTEMA: banners, bot, pwa, dev
 export const NAV_ADMIN = [
   "dash",
-  "pos",
+  "pos","cons_cobro",
+  "cons_dr","rep_dr",
   "inv","rea","lotes",
-  "caja","cons","cli",
+  "caja","cons","config_cons","cli",
   "rrhh",
   "cof",
   "promo","dev","fact",
@@ -55,13 +57,14 @@ export const NAV_ITEMS = [
   // ══ OPERACIONES ═══════════════════════════
   {id:"caja",       icon:"⊞", label:"Corte de Caja"},
   {id:"cons",       icon:"♥", label:"Consultorio"},
+  {id:"config_cons",icon:"⚙", label:"Config. consultorio"},
   {id:"cli",        icon:"◉", label:"Clientes & Puntos"},
   // ══ EQUIPO ════════════════════════════════
   {id:"rrhh",       icon:"◑", label:"RR.HH."},
   // ══ COMPLIANCE ════════════════════════════
   {id:"cof",        icon:"⚕", label:"COFEPRIS"},
   // ══ NEGOCIO ═══════════════════════════════
-  {id:"dash",       icon:"◈", label:"Dashboard & Reportes"},
+  {id:"dash",       icon:"◈", label:"Dashboard"},
   {id:"promo",      icon:"🎯", label:"Promociones"},
   {id:"dev",        icon:"↩️", label:"Devoluciones"},
   {id:"fact",       icon:"🧾", label:"Facturación"},
