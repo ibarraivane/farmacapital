@@ -1,0 +1,94 @@
+name: FARMAX DB Backup
+
+# Se dispara por:
+#   - Vercel Cron → /api/backup → repository_dispatch (event_type: farmax-backup)
+#   - schedule de respaldo (por si /api/backup falla)
+#   - workflow_dispatch (manual desde la UI)
+
+on:
+  repository_dispatch:
+    types: [farmax-backup]
+  schedule:
+    - cron: "30 6 * * *" # 06:30 UTC (30 min después del trigger de Vercel)
+  workflow_dispatch:
+
+concurrency:
+  group: farmax-backup
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      # Debe ser >= la versión de Postgres de Supabase. Ajustar si cambia.
+      PG_MAJOR: "17"
+
+    steps:
+      - name: Checkout repo principal (código del script)
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Instalar postgresql-client-${{ env.PG_MAJOR }}
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq curl ca-certificates gnupg lsb-release
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+            | sudo gpg --dearmor -o /usr/share/keyrings/postgresql-archive-keyring.gpg
+          echo "deb [signed-by=/usr/share/keyrings/postgresql-archive-keyring.gpg] http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq "postgresql-client-${PG_MAJOR}"
+          pg_dump --version
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+
+      - name: Ejecutar backup end-to-end
+        env:
+          SUPABASE_DB_URL:     ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_GITHUB_REPO:  ${{ secrets.BACKUP_GITHUB_REPO }}
+          BACKUP_GITHUB_TOKEN: ${{ secrets.BACKUP_GITHUB_TOKEN }}
+          BACKUP_OUTPUT_DIR:   ${{ github.workspace }}/tmp/backups
+          BACKUP_MAX_SIZE_MB:  "500"
+          BACKUP_MIN_SIZE_KB:  "10"
+          BACKUP_TIMEOUT_SEC:  "900"
+          BACKUP_SUBDIR:       "backups"
+          BACKUP_RETENTION_DAYS: "30"
+        run: node scripts/backup-db.js | tee backup.log
+
+      # -----------------------------------------------------------------
+      # Opcional: upload a Cloudflare R2 (solo si R2_ENABLED=true)
+      # -----------------------------------------------------------------
+      - name: Upload a R2 (stub, desactivado por default)
+        if: ${{ secrets.R2_ENABLED == 'true' }}
+        env:
+          R2_ENABLED:           ${{ secrets.R2_ENABLED }}
+          R2_ACCOUNT_ID:        ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID:     ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET_NAME:       ${{ secrets.R2_BUCKET_NAME }}
+        run: |
+          # Extraer path del dump de la salida del script
+          BACKUP_PATH=$(grep '^\[backup-db\].*::backup-path::' backup.log \
+                        | tail -1 \
+                        | sed 's/.*::backup-path:://')
+          node scripts/upload-r2.js "$BACKUP_PATH" || true
+
+      - name: Resumen
+        if: always()
+        run: |
+          echo "## Backup FARMAX" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Trigger: ${{ github.event_name }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Destino: ${{ secrets.BACKUP_GITHUB_REPO }}" >> "$GITHUB_STEP_SUMMARY"
+          if grep -q '::backup-filename::' backup.log 2>/dev/null; then
+            echo "- Archivo: $(grep '::backup-filename::' backup.log | tail -1 | sed 's/.*::backup-filename:://')" >> "$GITHUB_STEP_SUMMARY"
+            echo "- Tamaño: $(grep '::backup-size-bytes::' backup.log | tail -1 | sed 's/.*::backup-size-bytes:://') bytes" >> "$GITHUB_STEP_SUMMARY"
+          fi

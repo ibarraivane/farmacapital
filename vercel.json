@@ -4,8 +4,18 @@
   "framework": "create-react-app",
   "rewrites": [
     {
-      "source": "/((?!static/|icons/|manifest\\.json|service-worker\\.js|favicon\\.ico|asset-manifest\\.json|robots\\.txt).*)",
+      "source": "/((?!api/|static/|icons/|manifest\\.json|service-worker\\.js|favicon\\.ico|asset-manifest\\.json|robots\\.txt).*)",
       "destination": "/index.html"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/backup",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/health",
+      "schedule": "0 12 * * *"
     }
   ]
 }
