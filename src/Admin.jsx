@@ -19,6 +19,7 @@ import { esPedidoTiendaWebPendiente } from "./utils/pedidosTiendaWeb";
 import { CitaFichaModal } from "./CitaFichaDoctora";
 import { desgloseCambioMN, sugerenciasPagoCliente } from "./utils/cambioCaja";
 import { loadAdminNavOrder, saveAdminNavOrder, reorderNavIds, mergeAdminNavOrder, clearAdminNavOrder } from "./utils/adminNavOrder";
+import { puedeVerModulo, modulosPermitidosParaRol } from "./utils/permissions";
 import { marcarMedicamentosRecetaFarmaxSurtidos } from "./utils/recetaCitaSync";
 import OnboardingTour from "./components/OnboardingTour";
 
@@ -299,13 +300,16 @@ function Sidebar({active,setActive,negocio,setNegocio,usuario,onLogout,alertas,v
   // Si el usuario tiene modulos_custom configurado, respétalo por encima del default del rol.
   // (Un admin no puede recibir modulos_custom restringido — siempre ve todo su NAV_ADMIN.)
   const customActivos = Array.isArray(usuario.modulos_custom?.activos) ? usuario.modulos_custom.activos : null;
-  const navIds = isAdmin
+  const navIdsRaw = isAdmin
     ? (adminOrder ?? NAV_ADMIN)
     : (customActivos && customActivos.length > 0)
       ? customActivos
       : usuario.rol==="vendedor"
         ? NAV_VENDEDOR
         : NAV_DOCTORA;
+  // Defensa en profundidad: aunque alguien haya guardado un módulo prohibido
+  // en modulos_custom, filtramos aquí contra la whitelist del rol.
+  const navIds = isAdmin ? navIdsRaw : navIdsRaw.filter((id) => puedeVerModulo(usuario, id));
   const navItems = navIds.map((id) => NAV_ITEMS.find((n) => n.id === id)).filter(Boolean);
   const rolColor = usuario.rol==="admin"?C.purple:usuario.rol==="vendedor"?C.blue:C.green;
 
@@ -2566,15 +2570,11 @@ function BannersAdmin(){
   );
 }
 
-// Módulos candidatos a habilitar para un rol no-admin. Los admin siempre ven su NAV_ADMIN completo.
-// (En Instrucción 3 esta lista vivirá en utils/permissions.js con validación formal.)
-const MODULOS_CANDIDATOS_VENDEDOR_TMP = ["midia","pos","cons_cobro","inv","cli","cof","caja"];
-const MODULOS_CANDIDATOS_DOCTORA_TMP  = ["cons_dr","rep_dr","cons","cli"];
-
 function candidatosPorRolTmp(rol) {
-  if (rol === "vendedor") return MODULOS_CANDIDATOS_VENDEDOR_TMP;
-  if (rol === "doctora")  return MODULOS_CANDIDATOS_DOCTORA_TMP;
-  return [];
+  // Usa la whitelist de permissions.js como fuente de verdad.
+  const permitidos = modulosPermitidosParaRol(rol);
+  if (permitidos === "all") return NAV_ADMIN;
+  return Array.isArray(permitidos) ? permitidos : [];
 }
 
 function defaultIdsPorRol(rol) {
@@ -3432,6 +3432,27 @@ export default function FarmaxAdmin(){
   if(!usuario) return <LoginScreen onLogin={u=>{ sessionStorage.setItem("farmax_admin_user",JSON.stringify(u)); setUsuario(u); }}/>;
 
   const renderPage = () => {
+    // Guard de permisos: bloquea acceso a módulos fuera del rol.
+    if (!puedeVerModulo(usuario, page)) {
+      return (
+        <div style={{padding:60, maxWidth:520, margin:"0 auto", textAlign:"center", background:C_LIGHT.bg, minHeight:"70vh"}}>
+          <div style={{fontSize:56, marginBottom:16}}>🔒</div>
+          <h2 style={{color:C_LIGHT.text, fontSize:22, fontWeight:800, marginBottom:10}}>Acceso restringido</h2>
+          <p style={{color:C_LIGHT.textMid, fontSize:14, lineHeight:1.5, marginBottom:20}}>
+            Este módulo no está disponible para tu perfil. Si crees que deberías tener
+            acceso, pídele al administrador que lo habilite desde Usuarios → 🔧 Módulos.
+          </p>
+          <button
+            type="button"
+            onClick={()=>setPageAndSave(usuario.rol==="vendedor"?"midia":usuario.rol==="doctora"?"cons_dr":"dash")}
+            style={{padding:"10px 20px", background:BRAND.primary, color:"#fff", border:"none", borderRadius:8, fontSize:13, fontWeight:700, cursor:"pointer"}}
+          >
+            ← Volver al inicio
+          </button>
+        </div>
+      );
+    }
+
     switch(page){
       case "midia":     return <MiDia usuario={usuario} setPage={setPageAndSave}/>;
       case "dash":      return <DashboardModule usuario={usuario} setPage={setPageAndSave} showConfirm={showConfirm}/>;
