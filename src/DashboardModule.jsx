@@ -99,25 +99,6 @@ function BarChart({ data, colorFn }) {
   );
 }
 
-function AlertCard({ icon, label, count, col, sub, onAction, actionLabel }) {
-  const C = C_LIGHT;
-  const bg = col===C.red?C.redDim:C.amberDim;
-  return (
-    <div style={{background:count>0?bg:C.card,border:count>0?`1px solid ${col}30`:`1px solid ${C.border}`,borderRadius:12,padding:"16px 18px"}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
-        <div>
-          <div style={{color:count>0?col:C.textMid,fontWeight:800,fontSize:22}}>{count>0?count:"✓"}</div>
-          <div style={{color:count>0?col:C.textMid,fontSize:12,fontWeight:700,marginTop:2}}>{label}</div>
-        </div>
-        <span style={{fontSize:22}}>{icon}</span>
-      </div>
-      {sub&&count>0&&<div style={{color:C.textMid,fontSize:11,marginBottom:10}}>{sub}</div>}
-      {count>0&&onAction&&<button onClick={onAction} style={{padding:"5px 12px",borderRadius:6,border:`1px solid ${col}40`,background:"transparent",color:col,cursor:"pointer",fontSize:11,fontWeight:700}}>{actionLabel||"Ver →"}</button>}
-      {count===0&&<div style={{color:C.textDim,fontSize:11}}>Todo en orden</div>}
-    </div>
-  );
-}
-
 // Tarjeta KPI "accionable": muestra valor, meta, % cumplimiento y tendencia vs período anterior.
 function InsightCard({ label, icon, value, display, meta, metaLabel, delta, col, formatMeta, onAction, actionLabel }) {
   const C = C_LIGHT;
@@ -798,13 +779,6 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
         }
       </div>
 
-      <div style={{color:C.textDim,fontSize:10,fontWeight:700,letterSpacing:1.5,marginBottom:12}}>ALERTAS OPERATIVAS</div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:12}}>
-        <AlertCard icon="📦" label="Bajo stock" count={alertas.bajoStock} col={C.red} sub={alertas.bajoStockNombres.join(", ")} onAction={()=>setPage&&setPage("inv")} actionLabel="Ver inventario"/>
-        <AlertCard icon="⏰" label="Por caducar (30d)" count={alertas.porCaducar} col={C.amber} onAction={()=>setPage&&setPage("inv")} actionLabel="Ver inventario"/>
-        <AlertCard icon="🌐" label="Pedidos sin atender" count={alertas.sinAtender} col={C.amber} onAction={()=>setPage&&setPage("pos")} actionLabel="Ir a POS"/>
-        <AlertCard icon="⊞" label="Cortes con diferencia" count={alertas.cortesConDif} col={C.red} onAction={()=>setPage&&setPage("caja")} actionLabel="Ver cortes"/>
-      </div>
       </>)}
     </div>
   );

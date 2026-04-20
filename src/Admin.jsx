@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, lazy, Suspense } from "react";
 import { useMediaQuery } from "./hooks/useMediaQuery";
+import useSidebarBadges from "./hooks/useSidebarBadges";
 import TicketVenta from "./components/tickets/TicketVenta";
 import MercadoPagoModal from "./components/MercadoPagoModal";
 import TicketPreviewModal from "./components/tickets/TicketPreviewModal";
@@ -260,7 +261,26 @@ function LoginScreen({onLogin}){
 // ══════════════════════════════════════════════════════════════
 // SIDEBAR
 // ══════════════════════════════════════════════════════════════
-function Sidebar({active,setActive,negocio,setNegocio,usuario,onLogout,alertas,ventasOffline=0,mobile=false,navOpen=false}){
+function SidebarBadge({count, critical}) {
+  if (!count) return null;
+  const C = C_LIGHT;
+  const col = critical ? C.red : C.amber;
+  const txt = count > 99 ? "99+" : String(count);
+  return (
+    <span
+      title={`${count} pendiente${count!==1?"s":""}`}
+      style={{
+        minWidth: 18, height: 18, padding: "0 5px",
+        display: "inline-flex", alignItems: "center", justifyContent: "center",
+        background: col, color: "#fff",
+        borderRadius: 999, fontSize: 10, fontWeight: 800,
+        marginLeft: "auto", flexShrink: 0, letterSpacing: .2,
+      }}
+    >{txt}</span>
+  );
+}
+
+function Sidebar({active,setActive,negocio,setNegocio,usuario,onLogout,alertas,ventasOffline=0,mobile=false,navOpen=false,badgeCounts={},badgeCritical={}}){
   const C = C_LIGHT;
   const isAdmin = usuario.rol==="admin";
   const [adminOrder, setAdminOrder] = useState(() => (isAdmin ? loadAdminNavOrder(usuario) : null));
@@ -366,7 +386,8 @@ function Sidebar({active,setActive,negocio,setNegocio,usuario,onLogout,alertas,v
                     ? <span style={{fontSize:12}}>{n.icon}</span>
                     : n.icon ? <n.icon size={16} strokeWidth={2.1} /> : null}
                 </span>
-                <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{n.label}</span>
+                <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>{n.label}</span>
+                <SidebarBadge count={badgeCounts[n.id]} critical={badgeCritical[n.id]} />
               </button>
             );
           }
@@ -417,7 +438,8 @@ function Sidebar({active,setActive,negocio,setNegocio,usuario,onLogout,alertas,v
                     ? <span style={{fontSize:12}}>{n.icon}</span>
                     : n.icon ? <n.icon size={16} strokeWidth={2.1} /> : null}
                 </span>
-                <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{n.label}</span>
+                <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>{n.label}</span>
+                <SidebarBadge count={badgeCounts[n.id]} critical={badgeCritical[n.id]} />
               </div>
             </div>
           );
@@ -3006,6 +3028,8 @@ export default function FarmaxAdmin(){
     return p === "rep" ? "dash" : p;
   });
 
+  const { counts: badgeCounts, critical: badgeCritical } = useSidebarBadges(usuario ? page : undefined);
+
   const isMobileLayout = useMediaQuery("(max-width: 900px)");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
@@ -3297,6 +3321,8 @@ export default function FarmaxAdmin(){
         ventasOffline={ventasOffline}
         mobile={isMobileLayout}
         navOpen={mobileNavOpen}
+        badgeCounts={badgeCounts}
+        badgeCritical={badgeCritical}
       />
       <main style={{
         marginLeft:isMobileLayout?0:220,
