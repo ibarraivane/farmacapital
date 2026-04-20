@@ -28,7 +28,7 @@ export const NEG = {
 // ── Navegación agrupada por área ────────────────────────────
 // VENTAS: pos, cons_cobro (mismo POS; cons_cobro abre pestaña Consultas)
 // DOCTORA (también admin): cons_dr, rep_dr
-// INVENTARIO: inv, rea, lotes
+// INVENTARIO: inv (hub con tabs catálogo/reabasto/lotes)
 // OPERACIONES: caja, cons (consultorio + procedimientos), cli
 // NEGOCIO: dash, promo, fact
 // COMPLIANCE: cof
@@ -38,7 +38,7 @@ export const NAV_ADMIN = [
   "dash",
   "pos","cons_cobro",
   "cons_dr","rep_dr",
-  "inv","rea","lotes",
+  "inv",
   "caja","cons","config_cons","cli",
   "rrhh",
   "cof",
@@ -51,7 +51,7 @@ export const NAV_DOCTORA  = ["cons_dr","rep_dr"];
 // Iconos: usamos lucide-react (componentes) en vez de emojis para look consistente.
 // El render del Sidebar acepta tanto componentes como strings (compatibilidad).
 import {
-  LayoutDashboard, ShoppingCart, Package, Truck, Tags,
+  LayoutDashboard, ShoppingCart, Package,
   Wallet, Stethoscope, Users, UserCog, ShieldCheck,
   Target, Undo2, Receipt, Image as ImageIcon, Sparkles,
   Download, UserPlus, Settings, CreditCard, HeartPulse, BarChart3,
@@ -61,10 +61,8 @@ import {
 export const NAV_ITEMS = [
   // ══ VENTAS ════════════════════════════════
   {id:"pos",        icon: ShoppingCart,    label:"Punto de Venta"},
-  // ══ INVENTARIO ════════════════════════════
+  // ══ INVENTARIO (hub con tabs catálogo/reabasto/lotes) ══
   {id:"inv",        icon: Package,         label:"Inventario"},
-  {id:"rea",        icon: Truck,           label:"Reabasto"},
-  {id:"lotes",      icon: Tags,            label:"Lotes PEPS"},
   // ══ OPERACIONES ═══════════════════════════
   {id:"caja",       icon: Wallet,          label:"Corte de Caja"},
   {id:"cons",       icon: Stethoscope,     label:"Consultorio"},

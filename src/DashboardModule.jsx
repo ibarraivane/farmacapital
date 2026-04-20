@@ -452,10 +452,10 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
   const fracMes = fraccionMesTranscurrido();
   const metaVentasMesProrrateada = Math.round((metas?.ventasMes || 0) * fracMes);
   const metaConsultasMesProrrateada = Math.round((metas?.consultasMes || 0) * fracMes);
-  const goToPage = (id) => { if (setPage) setPage(id); };
+  const goToPage = (id, opts) => { if (setPage) setPage(id, opts); };
   const todoItems = [
-    { id:"stock",    icon:"📦", count: alertas.bajoStock,      col: C.red,    label: "Reordenar productos",                sub: alertas.bajoStockNombres.join(", ") || "stock en 0",          onAction: () => goToPage("rea"), actionLabel: "Ir a reabasto →" },
-    { id:"caduca",   icon:"⏰", count: alertas.porCaducar,     col: C.amber,  label: "Próximos a caducar (30 días)",       sub: "Revisa lotes y aplica descuentos",                            onAction: () => goToPage("lotes"), actionLabel: "Ver lotes →" },
+    { id:"stock",    icon:"📦", count: alertas.bajoStock,      col: C.red,    label: "Reordenar productos",                sub: alertas.bajoStockNombres.join(", ") || "stock en 0",          onAction: () => goToPage("inv", {tab:"reabasto"}), actionLabel: "Ir a reabasto →" },
+    { id:"caduca",   icon:"⏰", count: alertas.porCaducar,     col: C.amber,  label: "Próximos a caducar (30 días)",       sub: "Revisa lotes y aplica descuentos",                            onAction: () => goToPage("inv", {tab:"lotes"}), actionLabel: "Ver lotes →" },
     { id:"cortes",   icon:"💰", count: alertas.cortesConDif,   col: C.red,    label: "Cortes de caja con diferencia",       sub: "Revisa faltantes o sobrantes",                                onAction: () => goToPage("caja"), actionLabel: "Ver cortes →" },
     { id:"online",   icon:"🌐", count: alertas.sinAtender,     col: C.amber,  label: "Pedidos online pendientes",           sub: "Clientes esperando preparación",                              onAction: () => goToPage("pos"), actionLabel: "Atender →" },
     { id:"cofepris", icon:"⚖️", count: alertas.cofeprisPorVencer, col: (alertas.cofeprisVencidas > 0 ? C.red : C.amber), label: alertas.cofeprisVencidas > 0 ? `COFEPRIS · ${alertas.cofeprisVencidas} vencido${alertas.cofeprisVencidas!==1?"s":""}` : "Documentos COFEPRIS por vencer", sub: (alertas.cofeprisItems||[]).slice(0,2).map(x=>x.nombre).join(" · "), onAction: () => goToPage("cof"), actionLabel: "Ver alertas →" },

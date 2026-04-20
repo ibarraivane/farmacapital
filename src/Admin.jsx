@@ -27,7 +27,7 @@ const C = C_LIGHT;
 
 // ── Lazy loading — módulos se cargan solo cuando se necesitan ──
 const RRHHModule       = lazy(()=>import("./RRHHModule"));
-const InventarioModule = lazy(()=>import("./InventarioModule"));
+const InventarioHub    = lazy(()=>import("./InventarioHub"));
 const CorteCajaModule  = lazy(()=>import("./CorteCajaModule"));
 const ClientesModule   = lazy(()=>import("./ClientesModule"));
 const ConsultorioModule= lazy(()=>import("./ConsultorioModule"));
@@ -38,8 +38,6 @@ const PromocionesModule= lazy(()=>import("./PromocionesModule"));
 const DevolucionesModule=lazy(()=>import("./DevolucionesModule"));
 const FacturacionModule= lazy(()=>import("./FacturacionModule"));
 const DashboardModule  = lazy(()=>import("./DashboardModule"));
-const ReabastoModule   = lazy(()=>import("./ReabastoModule"));
-const LotesModule      = lazy(()=>import("./LotesModule"));
 const InstalarPWA      = lazy(()=>import("./InstalarPWA"));
 
 // ── ErrorBoundary para módulos lazy ──────────────────────────
@@ -3023,9 +3021,27 @@ export default function FarmaxAdmin(){
       return data;
     } catch{ return null; }
   });
-  const [page,setPage]   = useState(()=>{
-    const p = sessionStorage.getItem("farmax_active_page") || "dash";
-    return p === "rep" ? "dash" : p;
+  // Migración: ids antiguos "rea" y "lotes" ahora son tabs dentro de "inv".
+  // También migramos "rep" al dashboard (legacy).
+  function migratePageId(p) {
+    if (!p || p === "rep") return { page: "dash", invTab: null };
+    if (p === "rea")   return { page: "inv",  invTab: "reabasto" };
+    if (p === "lotes") return { page: "inv",  invTab: "lotes" };
+    return { page: p, invTab: null };
+  }
+  const [page, setPage] = useState(() => {
+    const raw = sessionStorage.getItem("farmax_active_page") || "dash";
+    const { page: p, invTab } = migratePageId(raw);
+    if (invTab) {
+      try {
+        sessionStorage.setItem("farmax_inv_tab", invTab);
+        sessionStorage.setItem("farmax_active_page", p);
+      } catch (_) { /* noop */ }
+    }
+    return p;
+  });
+  const [invInitialTab, setInvInitialTab] = useState(() => {
+    try { return sessionStorage.getItem("farmax_inv_tab") || null; } catch { return null; }
   });
 
   const { counts: badgeCounts, critical: badgeCritical } = useSidebarBadges(usuario ? page : undefined);
@@ -3033,9 +3049,20 @@ export default function FarmaxAdmin(){
   const isMobileLayout = useMediaQuery("(max-width: 900px)");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
-  const setPageAndSave = (p) => {
-    const next = p === "rep" ? "dash" : p;
-    sessionStorage.setItem("farmax_active_page", next);
+  // setPageAndSave(id) o setPageAndSave(id, { tab: "reabasto" }) para deep-link a tabs del hub.
+  const setPageAndSave = (p, opts = {}) => {
+    const migrated = migratePageId(p);
+    const next = migrated.page;
+    const tabHint = opts?.tab ?? migrated.invTab ?? null;
+    try {
+      sessionStorage.setItem("farmax_active_page", next);
+      if (next === "inv" && tabHint) {
+        sessionStorage.setItem("farmax_inv_tab", tabHint);
+        setInvInitialTab(tabHint);
+      } else if (next !== "inv") {
+        // Al salir de inv, no borramos farmax_inv_tab — al volver recordará la última tab.
+      }
+    } catch (_) { /* noop */ }
     setPage(next);
     if (isMobileLayout) setMobileNavOpen(false);
   };
@@ -3245,16 +3272,14 @@ export default function FarmaxAdmin(){
 
   const renderPage = () => {
     switch(page){
-      case "dash":      return <DashboardModule usuario={usuario} setPage={(p)=>setPageAndSave(p)} showConfirm={showConfirm}/>;
+      case "dash":      return <DashboardModule usuario={usuario} setPage={setPageAndSave} showConfirm={showConfirm}/>;
       case "pos":       return <POS negocio={neg} usuario={usuario} initialTab="venta" onNavigate={setPageAndSave}/>;
       case "cons":      return <ConsultorioModule usuario={usuario}/>;
       case "config_cons": return <ConfigConsultorioModule />;
       case "cons_cobro":return <POS negocio={neg} usuario={usuario} initialTab="consultas" onNavigate={setPageAndSave}/>;
       case "cons_dr":   return <ConsDoctora />;
       case "rep_dr":    return <ReporteDoctora/>;
-      case "inv":  return <InventarioModule/>;
-      case "rea":  return <ReabastoModule/>;
-      case "lotes": return <LotesModule/>;
+      case "inv":  return <InventarioHub initialTab={invInitialTab}/>;
       case "rrhh": return <RRHHModule/>;
       case "caja":  return <CorteCajaModule usuario={usuario}/>;
       case "cof":      return <COFEPRISModule/>;
