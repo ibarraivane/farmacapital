@@ -7,14 +7,19 @@ import { CATEGORIAS_CONSUMIBLE_CONSULTORIO_SUGERIDAS } from "./utils/consumibles
 
 const C = C_LIGHT;
 
+// Upsert atomico: requiere UNIQUE en configuracion.clave (ya lo tenemos, el seed usa ON CONFLICT).
 async function upsertConfig(clave, valor) {
-  const { data: ex } = await supabase.from("configuracion").select("id").eq("clave", clave).maybeSingle();
-  if (ex?.id) {
-    const { error } = await supabase.from("configuracion").update({ valor: String(valor) }).eq("id", ex.id);
-    return error;
-  }
-  const { error } = await supabase.from("configuracion").insert({ clave, valor: String(valor) });
+  const { error } = await supabase
+    .from("configuracion")
+    .upsert({ clave, valor: String(valor) }, { onConflict: "clave" });
+  if (error) console.error(`[ConfigCons] upsert ${clave}:`, error);
   return error;
+}
+
+function msgError(e) {
+  if (!e) return "Error desconocido";
+  if (typeof e === "string") return e;
+  return e.message || e.hint || e.details || JSON.stringify(e);
 }
 
 const DEFAULT_ESTIMADO_RECETA_EXTERNA = 350;
@@ -164,14 +169,19 @@ export default function ConfigConsultorioModule() {
     }
     setGuard(true);
     try {
+      const errores = [];
       for (const k of METAS_KEYS) {
         const err = await upsertConfig(k, String(parseFloat(metas[k])));
-        if (err) throw err;
+        if (err) errores.push({ k, err });
+      }
+      if (errores.length) {
+        const first = errores[0];
+        throw new Error(`[${first.k}] ${msgError(first.err)}${errores.length > 1 ? ` (+${errores.length - 1} más)` : ""}`);
       }
       showToast("Metas guardadas. El Dashboard las mostrará al recargar.", "success");
     } catch (e) {
-      console.error(e);
-      showToast("No se pudo guardar: " + (e?.message || e), "error");
+      console.error("[ConfigCons] guardarMetas error:", e);
+      showToast("No se pudo guardar metas: " + msgError(e), "error");
     }
     setGuard(false);
   };
@@ -187,20 +197,21 @@ export default function ConfigConsultorioModule() {
       showToast("Indica un estimado válido para receta surtida fuera (puede ser 0).", "warning");
       return;
     }
-    if (cats.size === 0) {
-      showToast("Selecciona al menos una categoría de consumibles para consultorio.", "warning");
-      return;
-    }
     setGuard(true);
     try {
       const e1 = await upsertConfig("precio_consulta", String(n));
-      const e2 = await upsertConfig("consumibles_categorias", JSON.stringify([...cats]));
+      if (e1) throw new Error(`[precio_consulta] ${msgError(e1)}`);
       const e3 = await upsertConfig("estimado_receta_externa", String(est));
-      if (e1 || e2 || e3) throw e1 || e2 || e3;
+      if (e3) throw new Error(`[estimado_receta_externa] ${msgError(e3)}`);
+      // Categorías solo se guardan si hay al menos una seleccionada.
+      if (cats.size > 0) {
+        const e2 = await upsertConfig("consumibles_categorias", JSON.stringify([...cats]));
+        if (e2) throw new Error(`[consumibles_categorias] ${msgError(e2)}`);
+      }
       showToast("Ajustes guardados. El POS y la tienda usarán el nuevo precio al recargar.", "success");
     } catch (e) {
-      console.error(e);
-      showToast("No se pudo guardar: " + (e?.message || e), "error");
+      console.error("[ConfigCons] guardarPrecios error:", e);
+      showToast("No se pudo guardar precios: " + msgError(e), "error");
     }
     setGuard(false);
   };
