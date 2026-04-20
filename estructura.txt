@@ -1,0 +1,319 @@
+
+[1m[33m/Users/ibarra/farmax
+├── 11.12.1
+├── README.md
+├── backups
+|  ├── Admin.jsx.BACKUP_20260415_142823
+|  ├── Admin.jsx.BACKUP_20260415_143123
+|  ├── Admin.jsx.BACKUP_20260415_143733
+|  ├── Admin.jsx.BACKUP_20260415_144145
+|  ├── Admin.jsx.BACKUP_20260415_150239
+|  ├── Admin.jsx.BACKUP_20260415_150803
+|  ├── Admin.jsx.BACKUP_20260415_150937
+|  ├── Admin.jsx.BACKUP_20260415_151708
+|  ├── Admin.jsx.BACKUP_20260415_152042
+|  ├── Admin.jsx.BACKUP_20260415_152411
+|  ├── Admin.jsx.BACKUP_20260415_153104
+|  ├── Admin.jsx.BACKUP_20260415_153125
+|  ├── Admin.jsx.BACKUP_20260415_154908
+|  ├── Admin.jsx.BACKUP_20260415_155118
+|  ├── Admin.jsx.BACKUP_20260415_155901
+|  ├── Admin.jsx.BACKUP_20260415_160419
+|  ├── Admin.jsx.BACKUP_20260415_160530
+|  ├── Admin.jsx.BACKUP_20260415_160938
+|  ├── Admin.jsx.BACKUP_20260415_161009
+|  ├── Admin.jsx.BACKUP_20260415_161043
+|  ├── Admin.jsx.BACKUP_20260415_161208
+|  ├── Admin.jsx.BACKUP_20260415_172743
+|  ├── Admin.jsx.BACKUP_20260415_173355
+|  ├── Admin.jsx.BACKUP_20260415_174150
+|  ├── Admin.jsx.BACKUP_20260415_174304
+|  ├── Admin.jsx.BACKUP_20260415_175850
+|  ├── Admin.jsx.BACKUP_20260415_175943
+|  ├── Admin.jsx.BACKUP_20260415_183923
+|  ├── Admin.jsx.BACKUP_20260415_184403
+|  ├── Admin.jsx.BACKUP_20260415_185511
+|  ├── Admin.jsx.BACKUP_20260415_190311
+|  ├── Admin.jsx.BACKUP_20260415_214646
+|  ├── Admin.jsx.BACKUP_20260415_215113
+|  ├── Admin.jsx.BACKUP_20260416_083517
+|  ├── Admin.jsx.BACKUP_20260416_090134
+|  ├── Admin.jsx.BACKUP_20260416_090519
+|  ├── Admin.jsx.BACKUP_20260416_091804
+|  ├── Admin.jsx.BACKUP_20260416_092403
+|  ├── Admin.jsx.BACKUP_20260416_093145
+|  ├── Admin.jsx.BACKUP_20260416_094203
+|  ├── Admin.jsx.BACKUP_20260416_094310
+|  ├── Admin.jsx.BACKUP_20260416_094618
+|  ├── Admin.jsx.BACKUP_20260416_094945
+|  ├── Admin.jsx.BACKUP_20260416_095216
+|  ├── Admin.jsx.BACKUP_20260416_095536
+|  ├── Admin.jsx.BACKUP_20260416_101046
+|  ├── Admin.jsx.BACKUP_20260416_103352
+|  ├── Admin.jsx.BACKUP_20260416_105059
+|  ├── Admin.jsx.BACKUP_20260416_105748
+|  ├── Admin.jsx.BACKUP_20260416_110850
+|  ├── Admin.jsx.BACKUP_20260416_111113
+|  ├── Admin.jsx.BACKUP_20260416_111356
+|  ├── Admin.jsx.BACKUP_20260416_111943
+|  ├── Admin.jsx.BACKUP_20260416_112600
+|  ├── Admin.jsx.BACKUP_20260416_113021
+|  ├── Admin.jsx.BACKUP_20260416_114735
+|  ├── Admin.jsx.BACKUP_20260416_185909
+|  ├── Admin.jsx.BACKUP_20260416_190341
+|  ├── Admin.jsx.BACKUP_20260416_190706
+|  ├── Admin.jsx.BACKUP_20260416_190724
+|  ├── Admin.jsx.BACKUP_20260416_191109
+|  ├── Admin.jsx.BACKUP_20260416_193654
+|  ├── Admin.jsx.BACKUP_20260416_193840
+|  ├── Admin.jsx.BACKUP_20260416_194124
+|  ├── Admin.jsx.BACKUP_20260416_201932
+|  ├── Admin.jsx.BACKUP_20260416_202020
+|  ├── Admin.jsx.BACKUP_20260416_202254
+|  ├── Admin.jsx.BACKUP_20260416_202405
+|  ├── Admin.jsx.BACKUP_20260416_202724
+|  ├── Admin.jsx.BACKUP_20260416_203037
+|  ├── Admin.jsx.BACKUP_20260416_205413
+|  ├── Admin.jsx.BACKUP_20260416_210101
+|  ├── Admin.jsx.BACKUP_20260416_212315
+|  ├── Admin.jsx.BACKUP_20260416_212436
+|  ├── Admin.jsx.BACKUP_20260416_213439
+|  ├── Admin.jsx.BACKUP_20260416_213642
+|  ├── Admin.jsx.BACKUP_20260416_213742
+|  ├── Admin.jsx.BACKUP_20260416_214206
+|  ├── Admin.jsx.BACKUP_20260416_214226
+|  ├── Admin.jsx.BACKUP_20260416_214325
+|  ├── Admin.jsx.BACKUP_20260416_214347
+|  ├── Admin.jsx.BACKUP_20260416_214912
+|  ├── Admin.jsx.BACKUP_20260416_215454
+|  ├── Admin.jsx.BACKUP_20260416_215557
+|  ├── Admin.jsx.BACKUP_20260416_215931
+|  ├── Admin.jsx.BACKUP_20260416_220501
+|  ├── Admin.jsx.BACKUP_20260416_220841
+|  ├── Admin.jsx.BACKUP_20260416_220921
+|  ├── Admin.jsx.BACKUP_20260416_220945
+|  ├── Admin.jsx.BACKUP_20260416_223909
+|  ├── Admin.jsx.BACKUP_20260416_224402
+|  ├── Admin.jsx.BACKUP_20260416_224842
+|  ├── Admin.jsx.BACKUP_20260416_225723
+|  ├── Admin.jsx.BACKUP_20260416_230043
+|  ├── AsistenteIA.jsx.BACKUP_20260416_110850
+|  ├── AsistenteIA.jsx.BACKUP_20260416_112600
+|  ├── AsistenteIA.jsx.BACKUP_20260416_120119
+|  ├── AsistenteIA.jsx.BACKUP_20260416_121410
+|  ├── ClientesModule.jsx.BACKUP_20260416_094618
+|  ├── ClientesModule.jsx.BACKUP_20260416_094945
+|  ├── ClientesModule.jsx.BACKUP_20260416_103352
+|  ├── ClientesModule.jsx.BACKUP_20260416_114344
+|  ├── ClientesModule.jsx.BACKUP_20260416_224402
+|  ├── ConsultorioModule.jsx.BACKUP_20260415_160213
+|  ├── ConsultorioModule.jsx.BACKUP_20260415_184403
+|  ├── ConsultorioModule.jsx.BACKUP_20260415_190311
+|  ├── ConsultorioModule.jsx.BACKUP_20260415_215113
+|  ├── ConsultorioModule.jsx.BACKUP_20260416_083154
+|  ├── ConsultorioModule.jsx.BACKUP_20260416_091002
+|  ├── ConsultorioModule.jsx.BACKUP_20260416_091804
+|  ├── ConsultorioModule.jsx.BACKUP_20260416_092403
+|  ├── ConsultorioModule.jsx.BACKUP_20260416_114735
+|  ├── CorteCajaModule.jsx.BACKUP_20260416_090134
+|  ├── CorteCajaModule.jsx.BACKUP_20260416_090519
+|  ├── CorteCajaModule.jsx.BACKUP_20260416_114735
+|  ├── CorteCajaModule.jsx.BACKUP_20260416_212315
+|  ├── CorteCajaModule.jsx.BACKUP_20260416_212436
+|  ├── CorteCajaModule.jsx.BACKUP_20260416_212634
+|  ├── DashboardModule.jsx.BACKUP_20260415_214646
+|  ├── DashboardModule.jsx.BACKUP_20260416_091804
+|  ├── DashboardModule.jsx.BACKUP_20260416_094618
+|  ├── FacturacionModule.jsx.BACKUP_20260416_192249
+|  ├── InventarioModule.jsx.BACKUP_20260415_151346
+|  ├── InventarioModule.jsx.BACKUP_20260415_155118
+|  ├── InventarioModule.jsx.BACKUP_20260415_184403
+|  ├── InventarioModule.jsx.BACKUP_20260415_185511
+|  ├── InventarioModule.jsx.BACKUP_20260415_185558
+|  ├── InventarioModule.jsx.BACKUP_20260415_214646
+|  ├── InventarioModule.jsx.BACKUP_20260415_214811
+|  ├── InventarioModule.jsx.BACKUP_20260415_214833
+|  ├── InventarioModule.jsx.BACKUP_20260416_094618
+|  ├── InventarioModule.jsx.BACKUP_20260416_094945
+|  ├── InventarioModule.jsx.BACKUP_20260416_103024
+|  ├── InventarioModule.jsx.BACKUP_20260416_103208
+|  ├── InventarioModule.jsx.BACKUP_20260416_103352
+|  ├── InventarioModule.jsx.BACKUP_20260416_111113
+|  ├── InventarioModule.jsx.BACKUP_20260416_113744
+|  ├── InventarioModule.jsx.BACKUP_20260416_202405
+|  ├── InventarioModule.jsx.BACKUP_20260416_210101
+|  ├── InventarioModule.jsx.BACKUP_20260416_224402
+|  ├── InventarioModule.jsx.BACKUP_20260416_225723
+|  ├── PromocionesModule.jsx.BACKUP_20260416_225723
+|  ├── RRHHModule.jsx.BACKUP_20260415_161422
+|  ├── RRHHModule.jsx.BACKUP_20260415_161452
+|  ├── RRHHModule.jsx.BACKUP_20260415_161601
+|  ├── RRHHModule.jsx.BACKUP_20260416_110207
+|  ├── TicketPreviewModal.jsx.BACKUP_20260416_191109
+|  ├── TicketPreviewModal.jsx.BACKUP_20260416_191445
+|  ├── TicketPreviewModal.jsx.BACKUP_20260416_191647
+|  ├── TicketPreviewModal.jsx.BACKUP_20260416_192249
+|  ├── TicketPreviewModal.jsx.BACKUP_20260416_193432
+|  ├── TicketVenta.jsx.BACKUP_20260416_191209
+|  ├── TicketVenta.jsx.BACKUP_20260416_192739
+|  ├── TicketVenta.jsx.BACKUP_20260416_193840
+|  ├── TicketVenta.jsx.BACKUP_20260416_194124
+|  ├── TicketVenta.jsx.BACKUP_20260416_212315
+|  ├── TicketVenta.jsx.BACKUP_20260416_212436
+|  ├── Tienda.jsx.BACKUP_20260415_144632
+|  ├── Tienda.jsx.BACKUP_20260415_153202
+|  ├── Tienda.jsx.BACKUP_20260415_153357
+|  ├── Tienda.jsx.BACKUP_20260415_153437
+|  ├── Tienda.jsx.BACKUP_20260415_153544
+|  ├── Tienda.jsx.BACKUP_20260415_175802
+|  ├── Tienda.jsx.BACKUP_20260415_185921
+|  ├── Tienda.jsx.BACKUP_20260415_190311
+|  ├── Tienda.jsx.BACKUP_20260416_083517
+|  ├── Tienda.jsx.BACKUP_20260416_090134
+|  ├── Tienda.jsx.BACKUP_20260416_091002
+|  ├── Tienda.jsx.BACKUP_20260416_091804
+|  ├── Tienda.jsx.BACKUP_20260416_092403
+|  ├── Tienda.jsx.BACKUP_20260416_093226
+|  ├── Tienda.jsx.BACKUP_20260416_104356
+|  ├── Tienda.jsx.BACKUP_20260416_104513
+|  ├── Tienda.jsx.BACKUP_20260416_105838
+|  ├── Tienda.jsx.BACKUP_20260416_111113
+|  ├── Tienda.jsx.BACKUP_20260416_111214
+|  ├── Tienda.jsx.BACKUP_20260416_183254
+|  ├── Tienda.jsx.BACKUP_20260416_212315
+|  ├── Tienda.jsx.BACKUP_20260416_212436
+|  ├── Tienda.jsx.BACKUP_20260416_225723
+|  ├── constants.js.BACKUP_20260416_094203
+|  ├── constants.js.BACKUP_20260416_095638
+|  ├── constants.js.BACKUP_20260416_101151
+|  ├── constants.js.BACKUP_20260416_214912
+|  ├── constants.js.BACKUP_20260416_220640
+|  ├── constants.js.BACKUP_20260416_220720
+|  ├── constants.js.BACKUP_20260416_220841
+|  ├── constants.js.BACKUP_20260416_220921
+|  ├── constants.js.BACKUP_20260416_220945
+|  ├── constants.js.BACKUP_20260416_224651
+|  ├── generateFacturaPDF.js.BACKUP_20260416_192937
+|  ├── generateFacturaPDF.js.BACKUP_20260416_193049
+|  ├── generateFacturaPDF.js.BACKUP_20260416_193111
+|  ├── index.html.BACKUP_20260416_095816
+|  ├── index.html.BACKUP_20260416_215931
+|  ├── printTicket.js.BACKUP_20260416_191647
+|  ├── ticket.css.BACKUP_20260416_191647
+|  ├── ui.jsx.BACKUP_20260416_094618
+|  ├── ui.jsx.BACKUP_20260416_094945
+|  ├── ui.jsx.BACKUP_20260416_103352
+|  ├── ui.jsx.BACKUP_20260416_224402
+|  ├── utils.js.BACKUP_20260416_111356
+|  └── utils.js.BACKUP_20260416_202254
+├── estructura.txt
+├── farmax-admin.jsx
+├── package-lock.json
+├── package.json
+├── public
+|  ├── favicon.ico
+|  ├── icons
+|  |  ├── farmax-128.png
+|  |  ├── farmax-192.png
+|  |  ├── farmax-512.png
+|  |  ├── farmax-72.png
+|  |  └── farmax-96.png
+|  ├── index.html
+|  ├── logo192.png
+|  ├── logo512.png
+|  ├── manifest.json
+|  ├── robots.txt
+|  └── service-worker.js
+├── setup.py
+├── setup2.py
+├── setup3.py
+├── setup_t90.py
+├── setup_tienda90.py
+├── sql
+|  ├── alter_citas_consultorio.sql
+|  ├── alter_citas_receta_duracion.sql
+|  ├── alter_pedidos_receta_origen.sql
+|  ├── alter_usuarios_modulos_custom.sql
+|  ├── alter_usuarios_telefono_opcional.sql
+|  ├── backfill_pedidos_tipo_online.sql
+|  ├── banners.sql
+|  ├── banners_slot.sql
+|  ├── create_sale_transaction.sql
+|  ├── create_sale_transaction.sql.bak_20260417_084523
+|  ├── expand_config_metas_precios.sql
+|  ├── migration_fix_rpc_precio_venta.sql
+|  └── seed_metas_dashboard.sql
+├── src
+|  ├── Admin.jsx
+|  ├── AdminDashboard.jsx
+|  ├── App.css
+|  ├── App.js
+|  ├── App.test.js
+|  ├── AsistenteIA.jsx
+|  ├── COFEPRISModule.jsx
+|  ├── CitaFichaDoctora.jsx
+|  ├── ClientesModule.jsx
+|  ├── ConfigConsultorioModule.jsx
+|  ├── ConsultorioModule.jsx
+|  ├── CorteCajaModule.jsx
+|  ├── DashboardModule.jsx
+|  ├── DevolucionesModule.jsx
+|  ├── FacturacionModule.jsx
+|  ├── InstalarPWA.jsx
+|  ├── InventarioHub.jsx
+|  ├── InventarioModule.jsx
+|  ├── LotesModule.jsx
+|  ├── MiDia.jsx
+|  ├── PromocionesModule.jsx
+|  ├── RRHHModule.jsx
+|  ├── ReabastoModule.jsx
+|  ├── Tienda.jsx
+|  ├── TransaccionesTab.jsx
+|  ├── components
+|  |  ├── MercadoPagoModal.jsx
+|  |  ├── OnboardingTour.jsx
+|  |  └── tickets
+|  ├── constants.js
+|  ├── db.js
+|  ├── hooks
+|  |  ├── useMediaQuery.js
+|  |  └── useSidebarBadges.js
+|  ├── index.css
+|  ├── index.js
+|  ├── logo.svg
+|  ├── pwa.jsx
+|  ├── reportWebVitals.js
+|  ├── setupTests.js
+|  ├── styles
+|  |  └── ticket.css
+|  ├── supabase.js
+|  ├── themeContext.js
+|  ├── ui.jsx
+|  ├── utils
+|  |  ├── adminNavOrder.js
+|  |  ├── cambioCaja.js
+|  |  ├── citasAgenda.js
+|  |  ├── consultaConstants.js
+|  |  ├── consumiblesConsultorio.js
+|  |  ├── escpos.js
+|  |  ├── folioGenerator.js
+|  |  ├── generateFacturaPDF.js
+|  |  ├── mercadoPago.js
+|  |  ├── offlineQueue.js
+|  |  ├── pedidosTiendaWeb.js
+|  |  ├── permissions.js
+|  |  ├── printTicket.js
+|  |  ├── recetaCitaSync.js
+|  |  ├── tours.js
+|  |  ├── turnosMetas.js
+|  |  └── usuarioId.js
+|  └── utils.js
+├── vercel.json
+└── {
+
+directory: 1926 file: 5951
+
+ignored: directory (268)
+[39m[22m
+
+[2K[1G
