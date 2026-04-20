@@ -117,10 +117,10 @@ function LoginScreen({onLogin}){
   const entrar = async () => {
     if(!email||!pwd) return;
     if(pwd.length < 6) { setError("La contraseña debe tener al menos 6 caracteres."); return; }
-    const emailNorm = email.trim().toLowerCase();
+    const idNorm = email.trim().toLowerCase();
 
-    const bloqueoKey  = "farmax_login_bloqueo_"+email;
-    const intentosKey = "farmax_login_intentos_"+email;
+    const bloqueoKey  = "farmax_login_bloqueo_"+idNorm;
+    const intentosKey = "farmax_login_intentos_"+idNorm;
     const bloqueoHasta = localStorage.getItem(bloqueoKey);
     if(bloqueoHasta && Date.now() < parseInt(bloqueoHasta)) {
       const mins = Math.ceil((parseInt(bloqueoHasta)-Date.now())/60000);
@@ -130,80 +130,49 @@ function LoginScreen({onLogin}){
 
     setLoad(true); setError("");
     try {
-      // ── Supabase Auth — login real con JWT ──
-      const { data:authData, error:authErr } = await supabase.auth.signInWithPassword({
-        email: emailNorm,
-        password: pwd,
+      const { data:resp, error:rpcErr } = await supabase.rpc("login_empleado", {
+        p_identificador: idNorm,
+        p_password:      pwd,
+        p_user_agent:    navigator.userAgent || null,
       });
 
-      if(authErr || !authData?.user) {
-        // Fallback local (tabla usuarios) para entornos donde Auth signup/login falla.
-        const { data:localUser } = await supabase.from("usuarios").select("*").eq("email", emailNorm).maybeSingle();
-        if (localUser) {
-          const hashInput = await hashPwd(pwd, localUser.salt || null);
-          if (hashInput === localUser.password_hash) {
-            if (localUser.activo === false) {
-              setError("Tu usuario está desactivado. Contacta al administrador.");
-              setLoad(false);
-              return;
-            }
-            localStorage.removeItem(intentosKey);
-            localStorage.removeItem(bloqueoKey);
-            const data = {
-              id: localUser.id,
-              nombre: localUser.nombre || localUser.email || "Usuario",
-              email: localUser.email || emailNorm,
-              telefono: localUser.telefono || "",
-              rol: localUser.rol || "vendedor",
-              activo: localUser.activo !== false,
-              loginTimestamp: Date.now(),
-            };
-            localStorage.setItem("farmax_last_login_"+data.id, new Date().toLocaleString("es-MX"));
-            sessionStorage.setItem("farmax_admin_user", JSON.stringify(data));
-            logAudit(data, "LOGIN_LOCAL", "usuarios", data.id, {rol:data.rol, email:data.email});
-            onLogin(data);
-            setLoad(false);
-            return;
-          }
-        }
+      if (rpcErr) {
+        setError("Error de conexión. Verifica tu internet.");
+        setLoad(false);
+        return;
+      }
 
+      if (!resp?.success) {
         const intentos = parseInt(localStorage.getItem(intentosKey)||"0") + 1;
         localStorage.setItem(intentosKey, intentos);
-        if(intentos >= 5) {
+        if (intentos >= 5) {
           localStorage.setItem(bloqueoKey, Date.now() + 15*60*1000);
           localStorage.removeItem(intentosKey);
           setError("Cuenta bloqueada 15 minutos por demasiados intentos.");
         } else {
-          setError(`Email o contraseña incorrectos. (${intentos}/5)`);
+          setError(`${resp?.error || "Credenciales inválidas"} (${intentos}/5)`);
         }
-        setLoad(false); return;
+        setLoad(false);
+        return;
       }
 
       localStorage.removeItem(intentosKey);
       localStorage.removeItem(bloqueoKey);
 
-      const user = authData.user;
-      const meta = user.user_metadata || {};
-
-      // Obtener perfil desde tabla perfiles
-      const { data:perfil } = await supabase
-        .from("perfiles").select("*").eq("id", user.id).single();
-
-      let data = {
-        id:             user.id,
-        nombre:         perfil?.nombre || meta.nombre || user.email,
-        email:          user.email,
-        telefono:       perfil?.telefono || meta.telefono || "",
-        rol:            perfil?.rol || meta.rol || "vendedor",
-        activo:         perfil?.activo !== false,
+      const u = resp.user || {};
+      const data = {
+        id:             u.id,
+        nombre:         u.nombre || idNorm,
+        email:          u.email || null,
+        telefono:       u.telefono || "",
+        rol:            u.rol || "vendedor",
+        activo:         true,
         loginTimestamp: Date.now(),
       };
 
-      // Login exitoso: limpiar contadores
-      // Guardar sesión
-      localStorage.setItem("farmax_last_login_"+data.id, new Date().toLocaleString("es-MX"));
+      sessionStorage.setItem("farmax_session_token", resp.session_token);
       sessionStorage.setItem("farmax_admin_user", JSON.stringify(data));
-      logAudit(data, "LOGIN", "auth", data.id, {rol:data.rol, email:data.email});
+      localStorage.setItem("farmax_last_login_"+data.id, new Date().toLocaleString("es-MX"));
       onLogin(data);
     } catch(e) {
       setError("Error de conexión. Verifica tu internet.");
@@ -236,14 +205,16 @@ function LoginScreen({onLogin}){
               <span
                 style={{color:C.blue,cursor:"pointer",textDecoration:"underline",fontWeight:600}}
                 onClick={async()=>{
-                  const contacto = email.trim()||"No especificado";
+                  const contacto = email.trim()||"";
+                  if(!contacto){ alert("Escribe tu email o teléfono primero."); return; }
                   try {
-                    await supabase.from("password_reset_requests").insert({
-                      email_o_telefono: contacto,
-                      mensaje: `Solicitud de reset desde login. Usuario: ${contacto}`,
-                      user_agent: navigator.userAgent,
+                    const { data:resp, error:err } = await supabase.rpc("solicitar_reset_password", {
+                      p_identificador: contacto,
+                      p_mensaje: `Solicitud de reset desde login de admin.`,
+                      p_user_agent: navigator.userAgent,
                     });
-                    alert("✅ Solicitud enviada. El administrador te contactará pronto a través del sistema.");
+                    if (err || !resp?.success) throw new Error(resp?.error || err?.message || "Error");
+                    alert("✅ Solicitud enviada. El administrador te contactará.");
                   } catch(e) {
                     alert("Contacta directamente a: ibarra.ivan@outlook.com");
                   }
@@ -803,7 +774,9 @@ function POS({negocio,usuario,initialTab="venta",onNavigate}){
       if (typeof setLoadErr === "function") setLoadErr("");
       try {
         const [prodsRes, pedsRes] = await Promise.all([
-          supabase.from("productos").select("*").eq("activo",true).order("nombre"),
+          supabase.from("productos")
+            .select("*, lotes(fecha_caducidad,cantidad_actual,activo)")
+            .eq("activo",true).order("nombre"),
           supabase.from("pedidos").select(`
             id,total,created_at,tipo,metodo_pago,estado,
             clientes(nombre,telefono),
@@ -820,7 +793,12 @@ function POS({negocio,usuario,initialTab="venta",onNavigate}){
           if (typeof setLoadErr === "function") setLoadErr(errs.join(" | "));
         }
 
-        setProds(prodsRes?.data || []);
+        const prodsConCad = (prodsRes?.data || []).map(p => {
+          const activos = (p.lotes || []).filter(l => l.activo !== false && (l.cantidad_actual || 0) > 0 && l.fecha_caducidad);
+          const minCad = activos.reduce((m, l) => (!m || l.fecha_caducidad < m) ? l.fecha_caducidad : m, null);
+          return { ...p, min_caducidad_lotes: minCad };
+        });
+        setProds(prodsConCad);
         setPedOn((pedsRes?.data || []).filter(esPedidoTiendaWebPendiente));
 
       } catch (e) {
@@ -883,11 +861,11 @@ function POS({negocio,usuario,initialTab="venta",onNavigate}){
   };
 
   const add = (item, esUnidad=false) => {
-    // Validar producto no vencido
-    if(item.fecha_caducidad) {
+    // Validar que el lote FEFO activo más próximo no esté vencido
+    if(item.min_caducidad_lotes) {
       const hoy = new Date().toLocaleDateString("sv-SE");
-      if(item.fecha_caducidad < hoy) {
-        showToast(`⚠️ ${item.nombre} está VENCIDO (${item.fecha_caducidad}). No se puede vender.`, "error");
+      if(item.min_caducidad_lotes < hoy) {
+        showToast(`⚠️ ${item.nombre} tiene lote VENCIDO (${item.min_caducidad_lotes}). No se puede vender.`, "error");
         return;
       }
     }
@@ -926,9 +904,19 @@ function POS({negocio,usuario,initialTab="venta",onNavigate}){
 
   const abrirCaja = async (item) => {
     if (item.stock <= 0) { showToast("Sin stock de cajas disponibles.", "warning"); return; }
-    const nuevasCajas = item.stock - 1;
-    const nuevasUnidades = (item.stock_unidades||0) + (item.unidades_por_caja||0);
-    await supabase.from("productos").update({ stock: nuevasCajas, stock_unidades: nuevasUnidades }).eq("id", item.id);
+    const tok = sessionStorage.getItem("farmax_session_token");
+    if (!tok) { showToast("Sesión expirada.", "error"); return; }
+    const { data, error } = await supabase.rpc("abrir_caja_secure", {
+      p_session_token: tok,
+      p_producto_id: item.id,
+    });
+    if (error) {
+      showToast(`Error al abrir caja: ${error.message}`, "error");
+      return;
+    }
+    const nuevasUnidades =
+      data?.[0]?.stock_unidades_nuevo ??
+      ((item.stock_unidades || 0) + (item.unidades_por_caja || 0));
     showToast(`Caja abierta. Unidades disponibles: ${nuevasUnidades}`, "success");
   };
 
@@ -1005,11 +993,9 @@ function POS({negocio,usuario,initialTab="venta",onNavigate}){
     }
     setGuard(true);
     try {
-      const empleadoId = await idEmpleadoUsuarios(usuario);
-      if (empleadoId == null) {
-        alert(
-          "No se pudo identificar al cajero: tu sesión no está vinculada a un usuario en el sistema. Comprueba que exista un registro en Usuarios con el mismo correo que usaste para iniciar sesión."
-        );
+      const tok = sessionStorage.getItem("farmax_session_token");
+      if (!tok) {
+        alert("Sesión expirada. Inicia sesión de nuevo.");
         setGuard(false);
         return;
       }
@@ -1021,8 +1007,8 @@ function POS({negocio,usuario,initialTab="venta",onNavigate}){
         modo_venta: c.esUnidad ? "unidad" : "caja",
       }));
 
-      const { data: rpcData, error: rpcError } = await supabase.rpc("create_sale_transaction_v2", {
-        p_user_id: empleadoId,
+      const { data: rpcData, error: rpcError } = await supabase.rpc("create_sale_transaction_secure", {
+        p_session_token: tok,
         p_metodo_pago: pay,
         p_total: total,
         p_cart_items: cartItemsMapped,
@@ -1038,12 +1024,17 @@ function POS({negocio,usuario,initialTab="venta",onNavigate}){
       const pedidoId = rpcRow?.pedido_id;
       const ok = rpcRow?.success === true;
       if (!pedidoId || !ok) {
-        throw new Error("RPC create_sale_transaction_v2 devolvió una respuesta inválida");
+        throw new Error("RPC create_sale_transaction_secure devolvió una respuesta inválida");
       }
 
       const ro = recetaOrigen === "medico_farmax" || recetaOrigen === "medico_externo" ? recetaOrigen : "no_aplica";
-      const { error: uErr } = await supabase.from("pedidos").update({ receta_origen: ro }).eq("id", pedidoId);
-      if (uErr) console.warn("[POS] receta_origen:", uErr);
+      const tokRo = sessionStorage.getItem("farmax_session_token");
+      if (tokRo) {
+        const { error: uErr } = await supabase.rpc("admin_set_receta_origen_pedido", {
+          p_session_token: tokRo, p_pedido_id: pedidoId, p_receta_origen: ro,
+        });
+        if (uErr) console.warn("[POS] receta_origen:", uErr);
+      }
 
       if (ro === "medico_farmax") {
         const fechaSv = new Date().toLocaleDateString("sv-SE");
@@ -1062,31 +1053,52 @@ function POS({negocio,usuario,initialTab="venta",onNavigate}){
 
       setFolioActual(`VTA-${String(pedidoId).padStart(8,"0")}`);
 
-      // Puntos
-      if(cli) await supabase.from("clientes").update({puntos:(cli.puntos||0)+ptsG}).eq("id",cli.id);
-      // Bitácora COFEPRIS
-      const rxItems = cart.filter(c=>c.rxI);
-      if(rxItems.length) {
-        await supabase.from("bitacora_cofepris").insert(rxItems.map(c=>({
-          medicamento:c.nombre, lote:c.lote||"", cantidad:c.qty,
-          receta:c.rxI.receta, medico:c.rxI.medico, cedula_medico:c.rxI.cedula, paciente:c.rxI.paciente,
-          empleado_id:empleadoId,
-        })));
-      }
       const { data: pedidoItems, error: pedidoItemsError } = await supabase
         .from("pedido_items")
-        .select("cantidad,precio_unitario,lote,caducidad,productos(nombre,sku)")
+        .select("producto_id,cantidad,precio_unitario,lote_id,productos(nombre,sku),lotes(numero_lote,fecha_caducidad)")
         .eq("pedido_id", pedidoId)
         .order("id", { ascending: true });
       if (pedidoItemsError) throw pedidoItemsError;
+
+      const rxItems = cart.filter(c=>c.rxI);
+      if(rxItems.length) {
+        const loteByProd = new Map();
+        (pedidoItems || []).forEach((it) => {
+          if (it.producto_id && it.lotes?.numero_lote && !loteByProd.has(it.producto_id)) {
+            loteByProd.set(it.producto_id, {
+              numero: it.lotes.numero_lote,
+              caducidad: it.lotes.fecha_caducidad || null,
+            });
+          }
+        });
+        const tokCof = sessionStorage.getItem("farmax_session_token");
+        if (tokCof) {
+          await supabase.rpc("admin_registrar_bitacora_cofepris", {
+            p_session_token: tokCof,
+            p_items: rxItems.map(c => {
+              const loteInfo = loteByProd.get(c.producto_id ?? c.id) || {};
+              return {
+                medicamento: c.nombre,
+                lote:        loteInfo.numero || "",
+                caducidad:   loteInfo.caducidad || null,
+                cantidad:    c.qty,
+                receta:      c.rxI.receta,
+                medico:      c.rxI.medico,
+                cedula_medico: c.rxI.cedula,
+                paciente:    c.rxI.paciente,
+              };
+            }),
+          });
+        }
+      }
 
       const ticketItems = (pedidoItems || []).map((it) => ({
         nombre: it.productos?.nombre || "Producto",
         sku: it.productos?.sku || "",
         qty: it.cantidad || 1,
         precio: it.precio_unitario || 0,
-        lote: it.lote || null,
-        caducidad: it.caducidad || null,
+        lote: it.lotes?.numero_lote || null,
+        caducidad: it.lotes?.fecha_caducidad || null,
       }));
 
       const ivaAmt = parseFloat((total * 0.16 / 1.16).toFixed(2));
@@ -1152,31 +1164,14 @@ function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const surtirOnline = async (pedido) => {
     setGuard(true);
     try {
-      const empleadoId = await idEmpleadoUsuarios(usuario);
-      if (empleadoId == null) {
-        alert("No se pudo registrar quién surtió el pedido (usuario no vinculado).");
-        setGuard(false);
-        return;
-      }
-      await supabase.from("pedidos").update({estado:"listo",atendido_por:empleadoId}).eq("id",pedido.id);
-      // Descontar stock
-      for(const item of (pedido.pedido_items||[])) {
-        if(item.productos?.id) {
-          // Leer stock actual y restar
-          const { data: prod } = await supabase
-            .from("productos")
-            .select("stock")
-            .eq("id", item.productos.id)
-            .single();
-          if (prod) {
-            const nuevoStock = Math.max(0, (prod.stock || 0) - (item.cantidad || 0));
-            await supabase
-              .from("productos")
-              .update({ stock: nuevoStock })
-              .eq("id", item.productos.id);
-          }
-        }
-      }
+      const tok = sessionStorage.getItem("farmax_session_token");
+      if (!tok) { alert("Sesión expirada."); setGuard(false); return; }
+      // F6b: marcar_pedido_listo ya descuenta stock FEFO internamente
+      const { data: resp, error: rpcErr } = await supabase.rpc("marcar_pedido_listo", {
+        p_session_token: tok, p_pedido_id: pedido.id,
+      });
+      if (rpcErr) throw rpcErr;
+      if (!resp?.success) throw new Error(resp?.error || "No se pudo surtir");
       setPedOn(p=>p.filter(x=>x.id!==pedido.id));
       // L4: Notificar al cliente por WhatsApp cuando pedido está listo
       const telCli = pedido.clientes?.telefono;
@@ -1207,16 +1202,19 @@ function POS({negocio,usuario,initialTab="venta",onNavigate}){
         setGuard(false);
         return;
       }
-      const { error } = await supabase.from("citas").insert({
-        nombre: nuevaCita.nombre.trim(),
-        telefono: nuevaCita.telefono.trim() || null,
-        fecha: nuevaCita.fecha,
-        hora: nuevaCita.hora,
-        motivo: nuevaCita.motivo.trim() || null,
-        canal: "mostrador",
-        pago_estado: "pendiente",
+      const tok = sessionStorage.getItem("farmax_session_token");
+      if (!tok) throw new Error("Sesión expirada");
+      const { data: resp, error } = await supabase.rpc("crear_cita", {
+        p_session_token: tok,
+        p_nombre: nuevaCita.nombre.trim(),
+        p_telefono: nuevaCita.telefono.trim() || null,
+        p_fecha: nuevaCita.fecha,
+        p_hora: nuevaCita.hora,
+        p_motivo: nuevaCita.motivo.trim() || null,
+        p_canal: "mostrador",
       });
       if (error) throw error;
+      if (!resp?.success) throw new Error(resp?.error || "No se pudo crear la cita");
       showToast("Cita registrada. Cobrar la consulta abajo para que la doctora vea «Pagado».", "success");
       setNuevaCita({
         nombre: "",
@@ -1238,8 +1236,12 @@ function POS({negocio,usuario,initialTab="venta",onNavigate}){
     if (!window.confirm(`¿Cancelar la cita de ${cita.nombre} (${cita.hora}) y liberar el horario? Solo aplica si pasaron 10 min del inicio sin pago en caja.`)) return;
     setGuard(true);
     try {
-      const { error } = await supabase.from("citas").update({ estado: "cancelada" }).eq("id", cita.id);
+      const tok = sessionStorage.getItem("farmax_session_token");
+      const { data: resp, error } = await supabase.rpc("actualizar_estado_cita", {
+        p_session_token: tok, p_cita_id: cita.id, p_nuevo_estado: "cancelada",
+      });
       if (error) throw error;
+      if (!resp?.success) throw new Error(resp?.error || "No se pudo cancelar");
       showToast("Cita cancelada. El horario queda libre.", "info");
       await refrescarCitasPOS();
     } catch (e) {
@@ -1252,58 +1254,31 @@ function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const cobrarConsulta = async (cita) => {
     setGuard(true);
     try {
-      const empleadoId = await idEmpleadoUsuarios(usuario);
-      if (empleadoId == null) {
-        alert("No se pudo registrar la consulta (usuario no vinculado en Usuarios).");
-        setGuard(false);
-        return;
-      }
+      const tok = sessionStorage.getItem("farmax_session_token");
+      if (!tok) throw new Error("Sesión expirada");
+      const { data: resp, error } = await supabase.rpc("cobrar_consulta", {
+        p_session_token: tok,
+        p_cita_id:       cita.id,
+        p_cliente_id:    cli?.id || null,
+        p_metodo_pago:   pay,
+      });
+      if (error) throw error;
+      if (!resp?.success) throw new Error(resp?.error || "No se pudo cobrar");
+
       const precioBase = parseFloat(config?.precio_consulta) || CONSULTA_PRECIO_DEFAULT;
       const yaPagoConsulta =
         cita.pago_estado === "pagada" || cita.estado === "pagada" || !!cita.pedido_consulta_id;
       const consumibles = (cita.consumibles_consulta || []).filter((c) => !c.cobrado);
-      const totalConsumibles = consumibles.reduce((a, c) => a + c.precio * c.cantidad, 0);
       const baseCobrar = yaPagoConsulta ? 0 : precioBase;
-      const totalFinal = baseCobrar + totalConsumibles;
-      if (totalFinal <= 0) {
-        alert("No hay monto por cobrar.");
-        setGuard(false);
-        return;
-      }
-      const partes = repartoConsulta(baseCobrar);
-      const { data: pedido } = await supabase
-        .from("pedidos")
-        .insert({
-          cliente_id: cli?.id || null,
-          total: totalFinal,
-          estado: "completado",
-          tipo: "consulta",
-          metodo_pago: pay,
-          atendido_por: empleadoId,
-        })
-        .select()
-        .single();
-      for (const c of consumibles) {
-        await supabase.from("consumibles_consulta").update({ cobrado: true }).eq("id", c.id);
-      }
-      const upd = {
-        pago_estado: "pagada",
-        pedido_consulta_id: pedido?.id || null,
-      };
-      if (baseCobrar > 0) {
-        upd.precio_consulta_cobrado = precioBase;
-        upd.ingreso_doctor = partes.doctor;
-        upd.ingreso_farmacia = partes.farmacia;
-      }
-      await supabase.from("citas").update(upd).eq("id", cita.id);
-      if (cli) await supabase.from("clientes").update({ puntos: (cli.puntos || 0) + Math.floor(totalFinal / 10) }).eq("id", cli.id);
+      const totalFinal = resp.total || 0;
+
       await refrescarCitasPOS();
       const itemsConsulta =
         baseCobrar > 0
           ? [{ nombre: "Consulta médica", qty: 1, precio: precioBase }]
           : [];
       setTicket({
-        id: pedido?.id || Date.now(),
+        id: resp.pedido_id || Date.now(),
         items: [
           ...itemsConsulta,
           ...consumibles.map((c) => ({
@@ -1787,7 +1762,14 @@ function POS({negocio,usuario,initialTab="venta",onNavigate}){
               </div>
               <div style={{display:"flex",gap:8}}>
                 <Btn onClick={()=>surtirOnline(p)} col={C.green} dis={guardando}>✓ Surtir y marcar listo</Btn>
-                <Btn ol col={C.red} sm onClick={async()=>{ await supabase.from("pedidos").update({estado:"cancelado"}).eq("id",p.id); setPedOn(x=>x.filter(z=>z.id!==p.id)); }}>Cancelar</Btn>
+                <Btn ol col={C.red} sm onClick={async()=>{
+                  const tok = sessionStorage.getItem("farmax_session_token");
+                  const { error } = await supabase.rpc("admin_cancelar_pedido", {
+                    p_session_token: tok, p_pedido_id: p.id,
+                  });
+                  if (error) showToast("Error: "+error.message, "error");
+                  setPedOn(x=>x.filter(z=>z.id!==p.id));
+                }}>Cancelar</Btn>
               </div>
             </Box>
           ))}
@@ -2133,14 +2115,17 @@ function ConsDoctora() {
   const agregarConsumible = async (cita, prod, qty) => {
     setGuard(true);
     try {
-      await supabase.from("consumibles_consulta").insert({
-        cita_id: cita.id,
-        producto_id: prod.id,
-        cantidad: qty,
-        precio: prod.precio,
-        cobrado: false,
+      const tok = sessionStorage.getItem("farmax_session_token");
+      if (!tok) throw new Error("Sesión expirada");
+      const { data: resp, error } = await supabase.rpc("agregar_consumible_cita", {
+        p_session_token: tok,
+        p_cita_id: cita.id,
+        p_producto_id: prod.id,
+        p_cantidad: qty,
+        p_precio: prod.precio,
       });
-      await supabase.from("citas").update({ estado: "en_consulta" }).eq("id", cita.id);
+      if (error) throw error;
+      if (!resp?.success) throw new Error(resp?.error || "No se pudo agregar");
       await recargar();
       const { data: fresh } = await supabase
         .from("citas")
@@ -2163,10 +2148,11 @@ function ConsDoctora() {
     }
     setGuard(true);
     try {
-      await supabase
-        .from("citas")
-        .update({ estado: "en_consulta", confirmada_inicio_at: new Date().toISOString() })
-        .eq("id", cita.id);
+      const tok = sessionStorage.getItem("farmax_session_token");
+      const { error } = await supabase.rpc("actualizar_estado_cita", {
+        p_session_token: tok, p_cita_id: cita.id, p_nuevo_estado: "en_consulta",
+      });
+      if (error) throw error;
       await recargar();
     } catch (e) {
       console.error(e);
@@ -2486,20 +2472,34 @@ function BannersAdmin(){
 
   const guardar = async()=>{
     setSaving(true);
-    if(modal==="new") await supabase.from("banners").insert(form);
-    else await supabase.from("banners").update(form).eq("id",modal.id);
-    setSaving(false); setModal(null); fetch();
+    const tok = sessionStorage.getItem("farmax_session_token");
+    const { error } = await supabase.rpc("admin_upsert_banner", {
+      p_session_token: tok,
+      p_id:            modal === "new" ? null : modal.id,
+      p_payload:       form,
+    });
+    setSaving(false);
+    if (error) { showToast("Error: "+error.message, "error"); return; }
+    setModal(null); fetch();
     showToast("Banner guardado correctamente","success");
   };
 
   const eliminar = async(id)=>{
     if(!window.confirm("¿Eliminar este banner?")) return;
-    await supabase.from("banners").delete().eq("id",id);
+    const tok = sessionStorage.getItem("farmax_session_token");
+    const { error } = await supabase.rpc("admin_eliminar_banner", {
+      p_session_token: tok, p_id: id,
+    });
+    if (error) { showToast("Error: "+error.message, "error"); return; }
     fetch(); showToast("Banner eliminado","info");
   };
 
   const toggleActivo = async(b)=>{
-    await supabase.from("banners").update({activo:!b.activo}).eq("id",b.id);
+    const tok = sessionStorage.getItem("farmax_session_token");
+    const { error } = await supabase.rpc("admin_toggle_banner", {
+      p_session_token: tok, p_id: b.id, p_activo: !b.activo,
+    });
+    if (error) showToast("Error: "+error.message, "error");
     fetch();
   };
 
@@ -2601,7 +2601,10 @@ function GestionUsuarios(){
   const [guardandoModulos,setGuardandoModulos] = useState(false);
 
   useEffect(()=>{
-    supabase.from("usuarios").select("*").order("nombre").then(({data})=>{ setUsers(data||[]); setLoad(false); });
+    const tok = sessionStorage.getItem("farmax_session_token");
+    supabase.rpc("admin_listar_usuarios", { p_session_token: tok }).then(({data})=>{
+      setUsers(data||[]); setLoad(false);
+    });
   },[]);
 
   const crear = async () => {
@@ -2619,74 +2622,26 @@ function GestionUsuarios(){
     }
     setGuard(true); setError("");
     try {
-      let authData = null;
-      let authErr = null;
-      // Crear en Supabase Auth con correo real del usuario
-      ({ data:authData, error:authErr } = await supabase.auth.signUp({
-        email: emailUsuario,
-        password: form.password,
-        options: {
-          data: {
-            nombre: form.nombre.trim(),
-            rol:    form.rol,
-            telefono: telefonoLimpio,
-            email: emailUsuario,
-          }
-        }
-      }));
-      if(authErr) {
-        // Continuar con usuario local para no bloquear operación por problemas de Auth.
-        // El 500 en red es del servidor (p. ej. trigger en auth.users); revisar Supabase → Logs → Auth.
-        if (process.env.NODE_ENV === "development") {
-          console.debug("[Farmax] Auth signup:", authErr.message);
-        }
-      }
-
-      // Crear en tabla usuarios (login por teléfono)
-      const salt = generateSalt();
-      const hash = await hashPwd(form.password, salt);
-      const payload = {
-        nombre:form.nombre.trim(),
-        telefono:telefonoValor,
-        email:emailUsuario,
-        password_hash:hash,
-        salt:salt,
-        rol:form.rol,
-        activo:true,
-        notas:form.notas?.trim()||null,
-      };
-      const {data,error:err} = await supabase.from("usuarios").insert(payload).select().single();
-      if(err) {
-        console.error("[Farmax] Error crear usuario:", err);
-        if (err.code === "23502" && String(err.message || "").includes("telefono")) {
-          setError("La base aún exige teléfono obligatorio. En Supabase ejecuta sql/alter_usuarios_telefono_opcional.sql, o ingresa un teléfono.");
-          setGuard(false); return;
-        }
-        if (err.code === "23505" && /telefono/i.test(String(err.message || ""))) {
-          setError("Ese teléfono ya está registrado. Usa otro o deja el campo vacío (tras aplicar el script de teléfono opcional).");
-          setGuard(false); return;
-        }
-        setError(`Error: ${err.message}`);
+      const tok = sessionStorage.getItem("farmax_session_token");
+      if (!tok) { setError("Sesión expirada."); setGuard(false); return; }
+      const { data: resp, error: err } = await supabase.rpc("admin_crear_usuario", {
+        p_session_token: tok,
+        p_nombre:    form.nombre.trim(),
+        p_email:     emailUsuario,
+        p_telefono:  telefonoValor,
+        p_password:  form.password,
+        p_rol:       form.rol,
+        p_notas:     form.notas?.trim() || null,
+      });
+      if (err || !resp?.success) {
+        setError("Error: " + (resp?.error || err?.message || "desconocido"));
         setGuard(false); return;
       }
-      // Crear perfil en Supabase Auth perfiles si authData existe
-      if(authData?.user) {
-        await supabase.from("perfiles").upsert({
-          id: authData.user.id,
-          rol: form.rol,
-          nombre: form.nombre.trim(),
-          telefono: telefonoValor,
-          activo: true,
-        }).catch(()=>{});
-      }
-      setUsers(p=>[...p,data]);
+      const nuevo = resp.user;
+      setUsers(p => [...p, nuevo]);
       setModal(false);
       setForm({nombre:"",email:"",telefono:"",password:"",rol:"vendedor",notas:""});
-      if (authErr) {
-        showToast(`⚠️ Usuario ${form.nombre} creado en base local. Auth reportó: ${authErr.message}`, "warning");
-      } else {
-        showToast(`✅ Usuario ${form.nombre} creado correctamente`, "success");
-      }
+      showToast(`✅ Usuario ${form.nombre} creado correctamente`, "success");
     } catch(e){
       console.error("[Farmax] Error crear usuario:", e);
       setError("Error al crear usuario: " + e.message);
@@ -2695,7 +2650,11 @@ function GestionUsuarios(){
   };
 
   const toggle = async (id,activo) => {
-    await supabase.from("usuarios").update({activo:!activo}).eq("id",id);
+    const tok = sessionStorage.getItem("farmax_session_token");
+    const { error } = await supabase.rpc("admin_toggle_usuario", {
+      p_session_token: tok, p_usuario_id: id, p_activo: !activo,
+    });
+    if (error) { showToast("Error: "+error.message, "error"); return; }
     setUsers(p=>p.map(u=>u.id===id?{...u,activo:!activo}:u));
   };
 
@@ -2820,73 +2779,50 @@ function GestionUsuarios(){
   };
 
   const cambiarMiPwd = async () => {
-    const sesion = JSON.parse(sessionStorage.getItem("farmax_admin_user")||"{}");
-    const email = (sesion.email || "").trim().toLowerCase();
-    if (!email) {
-      showToast("No hay correo en la sesión. Cierra sesión y entra de nuevo.", "error");
-      return;
-    }
+    const tok = sessionStorage.getItem("farmax_session_token");
+    if (!tok) { showToast("Sesión expirada. Entra de nuevo.", "error"); return; }
     const actual = prompt("Contraseña actual:");
     if (!actual) return;
-    const { data: localUser, error: fetchErr } = await supabase
-      .from("usuarios")
-      .select("id,password_hash,salt")
-      .eq("email", email)
-      .maybeSingle();
-    if (fetchErr || !localUser) {
-      showToast("No se encontró tu usuario en la tabla interna. Contacta al administrador.", "error");
-      return;
-    }
-    const hashActual = await hashPwd(actual, localUser.salt || null);
-    if (hashActual !== localUser.password_hash) {
-      showToast("Contraseña actual incorrecta", "error");
-      return;
-    }
     const nueva = prompt("Nueva contraseña (mínimo 6 caracteres):");
-    if (!nueva || nueva.length < 6) {
-      showToast("La contraseña debe tener al menos 6 caracteres", "warning");
-      return;
-    }
+    if (!nueva || nueva.length < 6) { showToast("La contraseña debe tener al menos 6 caracteres","warning"); return; }
     const nueva2 = prompt("Confirma la nueva contraseña:");
-    if (nueva !== nueva2) {
-      showToast("Las contraseñas no coinciden", "error");
+    if (nueva !== nueva2) { showToast("Las contraseñas no coinciden","error"); return; }
+
+    const { data: resp, error } = await supabase.rpc("empleado_cambiar_password", {
+      p_session_token:   tok,
+      p_password_actual: actual,
+      p_password_nueva:  nueva,
+    });
+    if (error || !resp?.success) {
+      showToast("Error: " + (resp?.error || error?.message || "desconocido"), "error");
       return;
     }
-    const mySalt = generateSalt();
-    const hashNueva = await hashPwd(nueva, mySalt);
-    const { data: updated, error } = await supabase
-      .from("usuarios")
-      .update({ password_hash: hashNueva, salt: mySalt })
-      .eq("id", localUser.id)
-      .select("id")
-      .maybeSingle();
-    if (error || !updated) {
-      showToast("Error al guardar la contraseña: " + (error?.message || "sin filas actualizadas"), "error");
-      return;
-    }
-    const { error: authUpdErr } = await supabase.auth.updateUser({ password: nueva });
-    if (authUpdErr && process.env.NODE_ENV === "development") {
-      console.debug("[Farmax] Auth password sync (opcional):", authUpdErr.message);
-    }
-    showToast("✅ Contraseña actualizada en el sistema. Si entrabas con Google/Auth, ya está alineada. Cierra sesión y vuelve a entrar.", "success");
-    logAudit(sesion, "CAMBIO_PWD", "usuarios", localUser.id, { email });
+    showToast("✅ Contraseña actualizada", "success");
   };
 
   const resetPwd = async (u) => {
     const nueva = prompt(`Nueva contraseña para ${u.nombre} (mínimo 6 caracteres):`);
     if (!nueva || nueva.length < 6) { showToast("Contraseña muy corta (mínimo 6 caracteres)","warning"); return; }
-    const newSalt = generateSalt();
-    const hash = await hashPwd(nueva, newSalt);
-    const {error} = await supabase.from("usuarios").update({password_hash:hash, salt:newSalt}).eq("id",u.id);
-    if(error) { showToast("Error al cambiar contraseña: "+error.message,"error"); return; }
+    const tok = sessionStorage.getItem("farmax_session_token");
+    const { data: resp, error } = await supabase.rpc("admin_reset_password", {
+      p_session_token: tok, p_usuario_id: u.id, p_nueva_password: nueva,
+    });
+    if (error || !resp?.success) { showToast("Error: "+(resp?.error||error?.message),"error"); return; }
     showToast(`✅ Contraseña de ${u.nombre} actualizada`,"success");
-    logAudit(JSON.parse(sessionStorage.getItem("farmax_admin_user")||"{}"), "RESET_PWD", "usuarios", u.id, {nombre:u.nombre});
   };
 
   const eliminar = async (id,nombre) => {
     const sesion = JSON.parse(sessionStorage.getItem("farmax_admin_user")||"{}");
     if(sesion.id===id) { showToast("No puedes eliminar tu propio usuario.", "warning"); return; }
-    showConfirm("Eliminar usuario",`¿Eliminar al usuario ${nombre}? Esta acción no se puede deshacer.`, async()=>{ await supabase.from("usuarios").delete().eq("id",id); setUsers(p=>p.filter(u=>u.id!==id)); showToast(`Usuario ${nombre} eliminado.`,"info"); }, true); return;
+    showConfirm("Eliminar usuario",`¿Eliminar al usuario ${nombre}? Esta acción no se puede deshacer.`, async()=>{
+      const tok = sessionStorage.getItem("farmax_session_token");
+      const { data: resp, error } = await supabase.rpc("admin_eliminar_usuario", {
+        p_session_token: tok, p_usuario_id: id,
+      });
+      if (error || !resp?.success) { showToast("Error: "+(resp?.error||error?.message),"error"); return; }
+      setUsers(p=>p.filter(u=>u.id!==id));
+      showToast(`Usuario ${nombre} eliminado.`,"info");
+    }, true);
   };
 
   const rolColor = r => r==="admin"?C.purple:r==="vendedor"?C.blue:C.green;
@@ -3175,7 +3111,7 @@ export default function FarmaxAdmin(){
       // Verificar expiración (8 horas)
       if (data.loginTimestamp && Date.now() - data.loginTimestamp > 8*60*60*1000) {
         sessionStorage.removeItem("farmax_admin_user");
-        supabase.auth.signOut().catch(()=>{});
+        sessionStorage.removeItem("farmax_session_token");
         return null;
       }
       return data;
@@ -3283,8 +3219,11 @@ export default function FarmaxAdmin(){
   useEffect(()=>{
     if(!usuario || usuario.rol !== "admin") return;
     const checkResets = async() => {
-      const {count} = await supabase.from("password_reset_requests")
-        .select("id",{count:"exact"}).eq("atendido",false);
+      const tok = sessionStorage.getItem("farmax_session_token");
+      const { data } = await supabase.rpc("admin_contar_password_resets_pendientes", {
+        p_session_token: tok,
+      });
+      const count = data || 0;
       if(count > 0) {
         addNotif(
           `🔑 ${count} solicitud${count>1?"es":""} de contraseña pendiente${count>1?"s":""}`,
@@ -3337,10 +3276,15 @@ export default function FarmaxAdmin(){
         const data = JSON.parse(u);
         if (data.loginTimestamp && Date.now() - data.loginTimestamp > 8*60*60*1000) {
           sessionStorage.removeItem("farmax_admin_user");
+          sessionStorage.removeItem("farmax_session_token");
           setUsuario(null);
           showToast("Tu sesión expiró. Por favor inicia sesión de nuevo.", "warning");
         }
-      } catch(e) { sessionStorage.removeItem("farmax_admin_user"); setUsuario(null); }
+      } catch(e) {
+        sessionStorage.removeItem("farmax_admin_user");
+        sessionStorage.removeItem("farmax_session_token");
+        setUsuario(null);
+      }
     };
     const interval = setInterval(check, 60*1000); // cada minuto
     return () => clearInterval(interval);
@@ -3417,9 +3361,11 @@ export default function FarmaxAdmin(){
   },[usuario]);
 
   const logout = async () => {
-    logAudit(usuario, "LOGOUT", "auth", usuario?.id||"", {rol:usuario?.rol});
-    // Cerrar sesión en Supabase Auth
-    await supabase.auth.signOut();
+    const tok = sessionStorage.getItem("farmax_session_token");
+    if (tok) {
+      try { await supabase.rpc("logout_empleado", { p_session_token: tok }); } catch(e) {}
+    }
+    sessionStorage.removeItem("farmax_session_token");
     sessionStorage.removeItem("farmax_admin_user");
     localStorage.removeItem("farmax_pos_favs");
     localStorage.removeItem("farmax_busqs");

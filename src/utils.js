@@ -44,6 +44,45 @@ export const hashPwdLegacy = async pwd => {
   return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
 };
 
+// ────────────────────────────────────────────────────────────────
+// F6b: helpers de sesión para llamar RPCs *_secure / admin_* / etc.
+// ────────────────────────────────────────────────────────────────
+
+/** Token de sesión de empleado (null si no hay sesión admin). */
+export const getSessionToken = () => {
+  try { return sessionStorage.getItem("farmax_session_token") || null; }
+  catch { return null; }
+};
+
+/** Token de sesión de cliente (tienda pública). */
+export const getClienteToken = () => {
+  try { return sessionStorage.getItem("farmax_cliente_token") || null; }
+  catch { return null; }
+};
+
+/**
+ * Llama una RPC con p_session_token automático. Si la RPC devuelve
+ * un error de sesión (28000 / 42501), propaga un mensaje claro.
+ *
+ *   const { data, error } = await rpcSecure("admin_editar_producto", { p_producto_id, p_patch });
+ */
+export const rpcSecure = async (fn, args = {}) => {
+  const tok = getSessionToken();
+  if (!tok) {
+    return { data: null, error: new Error("Sesión no iniciada") };
+  }
+  return await supabase.rpc(fn, { p_session_token: tok, ...args });
+};
+
+/** Igual que rpcSecure pero usa el token de cliente (Tienda). */
+export const rpcClienteSecure = async (fn, args = {}) => {
+  const tok = getClienteToken();
+  if (!tok) {
+    return { data: null, error: new Error("Sesión cliente no iniciada") };
+  }
+  return await supabase.rpc(fn, { p_session_token: tok, ...args });
+};
+
 let auditLogDisabled = false;
 
 export const logAudit = async (usuario, accion, tabla="", registro_id="", detalle={}) => {
@@ -64,10 +103,17 @@ export const logAudit = async (usuario, accion, tabla="", registro_id="", detall
   } catch(e) { console.warn("audit_log error:", e); }
 };
 
+let movimientoLogDisabled = false;
+
 export const logMovimiento = async (producto_id, tipo, cantidad, stock_antes, stock_despues, motivo="", usuario_id=null) => {
+  if (movimientoLogDisabled) return;
   try {
-    await supabase.from("movimientos_inventario").insert({
+    const { error } = await supabase.from("movimientos_inventario").insert({
       producto_id, tipo, cantidad, stock_antes, stock_despues, motivo, usuario_id,
     });
+    if (error) {
+      movimientoLogDisabled = true;
+      console.warn("movimientos_inventario disabled:", error.message);
+    }
   } catch(e) { console.warn("movimientos_inventario error:", e); }
 };

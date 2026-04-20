@@ -1,5 +1,3 @@
-import { supabase } from "../supabase";
-
 /** Valor ya es `usuarios.id` (bigint en JS como number o string de dígitos). */
 export function parseUsuariosBigintId(value) {
   if (value == null) return null;
@@ -10,17 +8,13 @@ export function parseUsuariosBigintId(value) {
 }
 
 /**
- * Resuelve el id numérico de `public.usuarios` para RPC/columnas bigint.
- * Tras login con Supabase Auth, `usuario.id` en sesión es UUID; `atendido_por` y
- * `create_sale_transaction_v2(p_user_id)` esperan bigint.
+ * Resuelve el id numérico de `public.usuarios`.
+ * En el flujo con session tokens custom (F6), `usuario.id` ya es bigint
+ * nativamente — este helper solo parsea. El fallback vía email fue
+ * removido porque requería SELECT directo a `usuarios` (revocado en F6a 2/4);
+ * cualquier consumidor nuevo debe obtener el id desde el objeto de sesión.
  */
 export async function idEmpleadoUsuarios(usuario) {
   if (!usuario?.id) return null;
-  const parsed = parseUsuariosBigintId(usuario.id);
-  if (parsed != null) return parsed;
-  const email = (usuario.email || "").trim().toLowerCase();
-  if (!email) return null;
-  const { data, error } = await supabase.from("usuarios").select("id").eq("email", email).maybeSingle();
-  if (error) console.warn("[Farmax] idEmpleadoUsuarios:", error.message);
-  return data?.id ?? null;
+  return parseUsuariosBigintId(usuario.id);
 }

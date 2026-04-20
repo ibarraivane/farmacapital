@@ -63,7 +63,6 @@ function PromoModal({initial, productos, onClose, onSaved }) {
     if (!form.nombre || !form.tipo || form.valor==="") { setError("Completa nombre, tipo y valor."); return; }
     setSaving(true); setError("");
     try {
-      let promoId = initial?.id;
       const payload = {
         nombre: form.nombre.trim(),
         tipo: form.tipo,
@@ -73,17 +72,14 @@ function PromoModal({initial, productos, onClose, onSaved }) {
         fecha_fin: form.fecha_fin||null,
         activa: form.activa,
       };
-      if (promoId) {
-        await supabase.from("promociones").update(payload).eq("id", promoId);
-      } else {
-        const { data } = await supabase.from("promociones").insert(payload).select().single();
-        promoId = data.id;
-      }
-      // Sincronizar productos
-      await supabase.from("promocion_productos").delete().eq("promocion_id", promoId);
-      if (selProds.length) {
-        await supabase.from("promocion_productos").insert(selProds.map(pid=>({ promocion_id:promoId, producto_id:pid })));
-      }
+      const tok = sessionStorage.getItem("farmax_session_token");
+      const { error: rpcErr } = await supabase.rpc("admin_upsert_promocion", {
+        p_session_token: tok,
+        p_id:            initial?.id || null,
+        p_payload:       payload,
+        p_productos_ids: selProds.length ? selProds : [],
+      });
+      if (rpcErr) throw rpcErr;
       onSaved();
     } catch(e) { setError("Error al guardar: " + e.message); }
     setSaving(false);
@@ -177,13 +173,21 @@ function Promociones({ productos }) {
   useEffect(() => { fetch(); }, [fetch]);
 
   const toggle = async (p) => {
-    await supabase.from("promociones").update({activa:!p.activa}).eq("id",p.id);
+    const tok = sessionStorage.getItem("farmax_session_token");
+    const { error } = await supabase.rpc("admin_toggle_promocion", {
+      p_session_token: tok, p_id: p.id, p_activa: !p.activa,
+    });
+    if (error) { showToast("Error: "+error.message,"error"); return; }
     setPromos(prev=>prev.map(x=>x.id===p.id?{...x,activa:!x.activa}:x));
   };
 
   const eliminar = async (p) => {
-    if (!window.confirm(`¿Eliminar la promoción "${p.nombre}"?`)) return; // TODO: ConfirmDialog
-    await supabase.from("promociones").delete().eq("id",p.id);
+    if (!window.confirm(`¿Eliminar la promoción "${p.nombre}"?`)) return;
+    const tok = sessionStorage.getItem("farmax_session_token");
+    const { error } = await supabase.rpc("admin_eliminar_promocion", {
+      p_session_token: tok, p_id: p.id,
+    });
+    if (error) { showToast("Error: "+error.message,"error"); return; }
     setPromos(prev=>prev.filter(x=>x.id!==p.id));
   };
 
@@ -263,12 +267,18 @@ function CompetidoresPrecios({ productos, onReload }) {
 
   const guardar = async (id) => {
     setSaving(true);
-    await supabase.from("productos").update({
-      precio_similares: editForm.precio_similares ? parseFloat(editForm.precio_similares) : null,
-      precio_del_ahorro: editForm.precio_del_ahorro ? parseFloat(editForm.precio_del_ahorro) : null,
-      fecha_actualizacion_precios: new Date().toISOString().split("T")[0],
-    }).eq("id", id);
+    const tok = sessionStorage.getItem("farmax_session_token");
+    const { error } = await supabase.rpc("admin_editar_producto", {
+      p_session_token: tok,
+      p_producto_id:   id,
+      p_patch: {
+        precio_similares:            editForm.precio_similares ? parseFloat(editForm.precio_similares) : null,
+        precio_del_ahorro:           editForm.precio_del_ahorro ? parseFloat(editForm.precio_del_ahorro) : null,
+        fecha_actualizacion_precios: new Date().toISOString().split("T")[0],
+      },
+    });
     setSaving(false);
+    if (error) { showToast("Error: "+error.message,"error"); return; }
     setEditId(null);
     onReload();
   };

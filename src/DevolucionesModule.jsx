@@ -37,7 +37,7 @@ function NuevaDevolucionModal({usuario, onClose, onSaved }) {
   const buscarPedido = async () => {
     if (!busqPed) return;
     const { data } = await supabase.from("pedidos")
-      .select("*, clientes(nombre,telefono), pedido_items(id,cantidad,precio_unitario,productos(id,nombre,stock))")
+      .select("*, clientes(nombre,telefono), pedido_items(id,cantidad,precio_unitario,lote_id,productos(id,nombre,stock))")
       .or(`id.eq.${isNaN(busqPed)?0:busqPed},clientes.telefono.eq.${busqPed}`)
       .eq("estado","completado")
       .order("created_at",{ascending:false})
@@ -71,49 +71,30 @@ function NuevaDevolucionModal({usuario, onClose, onSaved }) {
     if (!motivo) { setError("Indica el motivo de la devolución."); return; }
     setSaving(true); setError("");
     try {
-      const empleadoId = await idEmpleadoUsuarios(usuario);
-      if (empleadoId == null) {
-        setError("No se pudo identificar al usuario: debe existir un registro en Usuarios con el mismo correo que usaste para iniciar sesión.");
-        setSaving(false);
-        return;
-      }
-      const { data: dev } = await supabase.from("devoluciones").insert({
-        pedido_id: pedSel.id,
-        cliente_id: pedSel.cliente_id||null,
-        motivo, estado:"aprobada",
-        total_devuelto: totalDevolver,
-        metodo_reembolso: metodo,
-        notas: notas||null,
-        atendido_por: empleadoId,
-      }).select().single();
+      const tok = sessionStorage.getItem("farmax_session_token");
+      if (!tok) { setError("Sesión expirada. Inicia sesión de nuevo."); setSaving(false); return; }
 
-      if (dev) {
-        await supabase.from("devolucion_items").insert(
-          itemsSel.map(i=>({
-            devolucion_id: dev.id,
-            producto_id: i.productos?.id||null,
-            producto_nombre: i.productos?.nombre||"Producto",
-            cantidad: selItems[i.id],
-            precio_unitario: i.precio_unitario,
-          }))
-        );
-        // Restaurar stock
-        for (const i of itemsSel) {
-          if (i.productos?.id) {
-            const nuevoStock = (i.productos.stock||0) + (selItems[i.id]||0);
-            await supabase.from("productos").update({stock:nuevoStock}).eq("id",i.productos.id);
-          }
-        }
-        // Audit log
-        await supabase.from("audit_log").insert({
-          usuario_id: usuario?.id||null,
-          usuario_nombre: usuario?.nombre||"Sistema",
-          accion: "DEVOLUCION",
-          tabla: "devoluciones",
-          registro_id: String(dev.id),
-          detalle: { pedido_id:pedSel.id, total:totalDevolver, items:itemsSel.length },
-        });
-      }
+      const payloadItems = itemsSel.map(i => ({
+        pedido_item_id:  i.id,
+        producto_id:     i.productos?.id || null,
+        producto_nombre: i.productos?.nombre || "Producto",
+        lote_id:         i.lote_id || null,
+        cantidad:        selItems[i.id],
+        precio_unitario: i.precio_unitario,
+      }));
+
+      const { data: resp, error: rpcErr } = await supabase.rpc("crear_devolucion", {
+        p_session_token:    tok,
+        p_pedido_id:        pedSel.id,
+        p_motivo:           motivo,
+        p_metodo_reembolso: metodo,
+        p_items:            payloadItems,
+        p_notas:            notas || null,
+      });
+
+      if (rpcErr) throw rpcErr;
+      if (!resp?.success) throw new Error(resp?.error || "Error al crear devolución");
+
       onSaved();
     } catch(e) { setError("Error al guardar: "+e.message); }
     setSaving(false);

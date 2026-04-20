@@ -5,6 +5,15 @@ import { logAudit } from "./utils";
 import { SkeletonTable, Paginador, SearchDropdown } from "./ui";
 import { showToast } from "./ui";
 import OnboardingTour from "./components/OnboardingTour";
+import { idEmpleadoUsuarios } from "./utils/usuarioId";
+
+const leerSesion = () => {
+  try {
+    return JSON.parse(sessionStorage.getItem("farmax_admin_user") || "{}");
+  } catch {
+    return {};
+  }
+};
 
 const BRAND = { primary:"#0052cc", secondary:"#0099e6", gradient:"linear-gradient(135deg,#0052cc,#0099e6)" };
 const CATEGORIAS = [
@@ -16,6 +25,13 @@ const EMPTY = {
   nombre:"", sku:"", codigo_barras:"", categoria:"Otro", precio:"", costo:"", venta_unidad:false, unidades_por_caja:"", precio_unidad:"", stock_unidades:"",
   stock:"", stock_minimo:"", tipo:"generico", proveedor:"", lote:"",
   fecha_caducidad:"", descuento_pct:"0", activo:true,
+};
+
+// F4: campos lote/fecha_caducidad ya NO viven en productos; son del lote.
+// Para productos ya existentes derivamos min_caducidad desde lotes activos.
+const minCaducidadLotes = (lotes) => {
+  const activos = (lotes || []).filter(l => l.activo !== false && (l.cantidad_actual || 0) > 0 && l.fecha_caducidad);
+  return activos.reduce((m, l) => (!m || l.fecha_caducidad < m) ? l.fecha_caducidad : m, null);
 };
 
 const mkInputStyle = (C) => ({ width:"100%", padding:"8px 10px", borderRadius:7, border:`1px solid ${C.border}`, background:C.bg, color:C.text, fontSize:12, outline:"none", boxSizing:"border-box" });
@@ -84,12 +100,12 @@ const parsearCSV = (texto) => {
 };
 
 const exportarCSV = (productos) => {
-  const headers = ["SKU","Nombre","Categoría","Tipo","Stock","Stock Mín","Precio Venta","Costo","Margen%","Caducidad","Proveedor","Lote","Descuento%","Estado"];
+  const headers = ["SKU","Nombre","Categoría","Tipo","Stock","Stock Mín","Precio Venta","Costo","Margen%","Caducidad","Proveedor","Descuento%","Estado"];
   const rows = productos.map(p => [
     p.sku||"", p.nombre, p.categoria, p.tipo, p.stock, p.stock_minimo??0,
     parseFloat(p.precio||0).toFixed(2), parseFloat(p.costo||0).toFixed(2),
-    margen(p.precio, p.costo), p.fecha_caducidad||"", p.proveedor||"",
-    p.lote||"", p.descuento_pct||0, p.activo?"Activo":"Inactivo",
+    margen(p.precio, p.costo), p.min_caducidad_lotes||"", p.proveedor||"",
+    p.descuento_pct||0, p.activo?"Activo":"Inactivo",
   ]);
   const csv = [headers, ...rows].map(r => r.map(v => `"${v}"`).join(",")).join("\n");
   const blob = new Blob([csv], { type:"text/csv;charset=utf-8;" });
@@ -123,28 +139,73 @@ function ProductoModal({initial, onClose, onSaved }) {
     const e = validate();
     if (Object.keys(e).length) { setErrors(e); return; }
     setSaving(true);
-    const payload = {
-      nombre: form.nombre.trim(), sku: form.sku.trim()||null,
-      codigo_barras: form.codigo_barras?.trim()||null,
-      categoria: form.categoria, precio: parseFloat(form.precio),
-      costo: parseFloat(form.costo), stock: parseInt(form.stock),
-      stock_minimo: form.stock_minimo!==""?parseInt(form.stock_minimo):0,
-      tipo: form.tipo, proveedor: form.proveedor.trim()||null,
-      lote: form.lote.trim()||null, fecha_caducidad: form.fecha_caducidad||null,
-      descuento_pct: parseFloat(form.descuento_pct)||0, activo: form.activo,
-      venta_unidad: form.venta_unidad||false,
-      unidades_por_caja: form.venta_unidad ? parseInt(form.unidades_por_caja)||0 : 0,
-      precio_unidad: form.venta_unidad ? Math.ceil(parseFloat(form.precio_unidad)||0) : 0,
-      stock_unidades: form.venta_unidad ? parseInt(form.stock_unidades)||0 : 0,
+    const stockInt = parseInt(form.stock) || 0;
+    const costoNum = parseFloat(form.costo) || 0;
+
+    // Campos del producto (sin stock/costo que viajan al lote en el alta)
+    const productoFields = {
+      nombre: form.nombre.trim(),
+      sku: form.sku.trim() || null,
+      codigo_barras: form.codigo_barras?.trim() || null,
+      categoria: form.categoria,
+      precio: parseFloat(form.precio),
+      stock_minimo: form.stock_minimo !== "" ? parseInt(form.stock_minimo) : 0,
+      tipo: form.tipo,
+      proveedor: form.proveedor.trim() || null,
+      descuento_pct: parseFloat(form.descuento_pct) || 0,
+      activo: form.activo,
+      venta_unidad: form.venta_unidad || false,
+      unidades_por_caja: form.venta_unidad ? parseInt(form.unidades_por_caja) || 0 : 0,
+      precio_unidad: form.venta_unidad ? Math.ceil(parseFloat(form.precio_unidad) || 0) : 0,
+      stock_unidades: form.venta_unidad ? parseInt(form.stock_unidades) || 0 : 0,
     };
+
+    const sesion = leerSesion();
+    const empleadoId = await idEmpleadoUsuarios(sesion);
+
+    const tok = sessionStorage.getItem("farmax_session_token");
+    if (!tok) {
+      setSaving(false);
+      showToast("Sesión expirada. Inicia sesión de nuevo.", "error");
+      return;
+    }
+
     let err;
     if (form.id) {
-      ({ error:err } = await supabase.from("productos").update(payload).eq("id", form.id));
+      // F6b: admin_editar_producto (whitelist server-side, no permite tocar stock)
+      const { error: editErr } = await supabase.rpc("admin_editar_producto", {
+        p_session_token: tok,
+        p_producto_id: form.id,
+        p_patch: { ...productoFields, costo: costoNum },
+      });
+      err = editErr;
+      if (!err) {
+        const { error: adjErr } = await supabase.rpc("adjust_stock_secure", {
+          p_session_token: tok,
+          p_producto_id: form.id,
+          p_nuevo_stock: stockInt,
+          p_motivo: "Edición manual desde Inventario",
+        });
+        if (adjErr) err = adjErr;
+      }
     } else {
-      ({ error:err } = await supabase.from("productos").insert(payload));
+      // F6b: create_producto_secure valida rol admin/gerente
+      const { error: rpcErr } = await supabase.rpc("create_producto_secure", {
+        p_session_token: tok,
+        p_producto_data: {
+          ...productoFields,
+          costo: costoNum,
+        },
+        p_cantidad_inicial: stockInt,
+        p_numero_lote: form.lote.trim() || null,
+        p_fecha_caducidad: form.fecha_caducidad || null,
+        p_costo_unitario: costoNum || null,
+        p_user_id: empleadoId,
+      });
+      err = rpcErr;
     }
     setSaving(false);
-    if (err) { showToast("Error al guardar: "+err.message, "error"); return; }
+    if (err) { showToast("Error al guardar: " + err.message, "error"); return; }
     // Fix 3: Audit log en cambios de precio/producto
     const sesion = JSON.parse(sessionStorage.getItem("farmax_admin_user")||"{}");
     if(form.id) {
@@ -192,8 +253,14 @@ function ProductoModal({initial, onClose, onSaved }) {
               </select>
             </div>
             {field("Proveedor","proveedor")}
-            {field("Lote","lote")}
-            {field("Fecha de caducidad","fecha_caducidad","date")}
+            {!form.id && field("Lote inicial","lote")}
+            {!form.id && field("Fecha de caducidad (lote inicial)","fecha_caducidad","date")}
+            {form.id && (
+              <div style={{marginBottom:12,padding:"10px 12px",background:C.blueDim,borderRadius:8,fontSize:11,color:C.blue,lineHeight:1.5}}>
+                💡 Lote y caducidad ahora viven en la tabla <strong>lotes</strong>.
+                Para agregar un nuevo lote a este producto usa <strong>📦 Recibir mercancía</strong>.
+              </div>
+            )}
           </div>
           <div>
             {field("Precio de venta","precio","number",true)}
@@ -276,28 +343,22 @@ function RecibirModal({ productos, onClose, onSaved }) {
   const selProd   = productos.find(p => p.id === parseInt(selId));
 
   const handleRecibir = async () => {
-    if (!selId)                       { setError("Selecciona un producto"); return; }
+    if (!selId) { setError("Selecciona un producto"); return; }
     if (!cantidad || parseInt(cantidad) <= 0) { setError("Cantidad inválida"); return; }
     setSaving(true); setError("");
-    const stockAntes   = selProd.stock || 0;
-    const stockDespues = stockAntes + parseInt(cantidad);
-    const updates = { stock: stockDespues };
-    // Kardex
-    supabase.from("movimientos_inventario").insert({
-      producto_id: selProd.id,
-      tipo: "entrada",
-      cantidad: parseInt(cantidad),
-      stock_antes: stockAntes,
-      stock_despues: stockDespues,
-      motivo: "Recepción de mercancía",
-    }).then(()=>{});
-    if (lote.trim())      updates.lote           = lote.trim();
-    if (caducidad)        updates.fecha_caducidad = caducidad;
-    if (costo)            updates.costo           = parseFloat(costo);
-    if (proveedor.trim()) updates.proveedor       = proveedor.trim();
-    const { error:err } = await supabase.from("productos").update(updates).eq("id", selProd.id);
+    const tok = sessionStorage.getItem("farmax_session_token");
+    if (!tok) { setSaving(false); setError("Sesión expirada."); return; }
+    const { error: err } = await supabase.rpc("receive_merchandise_secure", {
+      p_session_token: tok,
+      p_producto_id: selProd.id,
+      p_cantidad: parseInt(cantidad),
+      p_numero_lote: lote.trim() || null,
+      p_fecha_caducidad: caducidad || null,
+      p_costo_unitario: costo ? parseFloat(costo) : null,
+      p_proveedor: proveedor.trim() || null,
+    });
     setSaving(false);
-    if (err) { setError("Error: "+err.message); return; }
+    if (err) { setError("Error: " + err.message); return; }
     onSaved();
   };
 
@@ -335,7 +396,7 @@ function RecibirModal({ productos, onClose, onSaved }) {
             <div style={{color:C.textMid,fontSize:11,marginTop:4}}>
               Stock actual: <strong style={{color:C.amber}}>{selProd.stock}</strong>
               {selProd.stock_minimo ? ` · Mínimo: ${selProd.stock_minimo}` : ""}
-              {selProd.lote ? ` · Lote: ${selProd.lote}` : ""}
+              {selProd.min_caducidad_lotes ? ` · Próx. caduca: ${selProd.min_caducidad_lotes}` : ""}
             </div>
           </div>
         )}
@@ -405,6 +466,7 @@ export default function InventarioModule() {
   const [importando,      setImportando]      = useState(false);
   const [importResult,    setImportResult]    = useState(null);
   const [paginaInv, setPaginaInv] = useState(1);
+  const [modalLotes, setModalLotes] = useState(null);
   // N8: Resetear página al cambiar filtros
   useEffect(()=>{ setPaginaInv(1); },[filtroCategoria,filtroAlerta,busqueda]);
   const INV_POR_PAG = 50;
@@ -427,29 +489,39 @@ export default function InventarioModule() {
   const confirmarImport = async () => {
     if(!importResult?.rows?.length) return;
     setImportando(true);
-    let ok=0, err=0;
-    const BATCH = 20;
-    for(let i=0;i<importResult.rows.length;i+=BATCH){
-      const batch = importResult.rows.slice(i,i+BATCH);
-      const {error} = await supabase.from("productos").insert(batch);
-      if(error){ err+=batch.length; console.error("Import error:",error); }
-      else ok+=batch.length;
+    const tok = sessionStorage.getItem("farmax_session_token");
+    if (!tok) { setImportando(false); showToast("Sesión expirada.", "error"); return; }
+    let ok = 0, err = 0;
+    for (const row of importResult.rows) {
+      const { stock, lote, fecha_caducidad, costo, ...resto } = row;
+      const { error: rpcErr } = await supabase.rpc("create_producto_secure", {
+        p_session_token: tok,
+        p_producto_data: { ...resto, costo: costo ?? null },
+        p_cantidad_inicial: stock || 0,
+        p_numero_lote: lote || null,
+        p_fecha_caducidad: fecha_caducidad || null,
+        p_costo_unitario: costo ?? null,
+      });
+      if (rpcErr) { err++; console.error("Import error:", rpcErr); }
+      else ok++;
     }
     setImportando(false);
     setModalImportar(false);
     setImportResult(null);
     fetchProductos();
-    if(err>0) showToast(`Importados ${ok} productos. ${err} con error.`,"warning");
-    else showToast(`✅ ${ok} productos importados correctamente`,"success");
+    if (err > 0) showToast(`Importados ${ok} productos. ${err} con error.`, "warning");
+    else showToast(`✅ ${ok} productos importados correctamente`, "success");
   };
 
   const liquidar = async (prod) => {
     const pct = window.prompt(`¿Qué % de descuento aplicar para liquidar "${prod.nombre}"?\nPrecio actual: $${prod.precio}`, "30");
     if (!pct || isNaN(pct) || parseFloat(pct)<=0 || parseFloat(pct)>=100) return;
-    const nuevoPrecio = Math.round(prod.precio * (1 - parseFloat(pct)/100) * 100) / 100;
-    const { error } = await supabase.from("productos")
-      .update({ descuento_pct: parseFloat(pct) })
-      .eq("id", prod.id);
+    const tok = sessionStorage.getItem("farmax_session_token");
+    const { error } = await supabase.rpc("admin_editar_producto", {
+      p_session_token: tok,
+      p_producto_id: prod.id,
+      p_patch: { descuento_pct: parseFloat(pct) },
+    });
     if (error) { showToast("Error al liquidar: "+error.message, "error"); return; }
     showToast(`✅ ${prod.nombre} liquidado con ${pct}% descuento. Nuevo precio: $${nuevoPrecio}`, "success");
     fetchProductos();
@@ -457,10 +529,19 @@ export default function InventarioModule() {
 
   const fetchProductos = useCallback(async () => {
     setLoading(true);
-    let q = supabase.from("productos").select("*").order("nombre");
+    let q = supabase.from("productos")
+      .select("*, lotes(id,numero_lote,fecha_caducidad,cantidad_actual,costo_unitario,activo)")
+      .order("nombre");
     if (!verInactivos) q = q.eq("activo", true);
     const { data, error } = await q;
-    if (!error) setProductos(data||[]);
+    if (!error) {
+      const enriched = (data || []).map(p => ({
+        ...p,
+        min_caducidad_lotes: minCaducidadLotes(p.lotes),
+        lotes_activos: (p.lotes || []).filter(l => l.activo !== false && (l.cantidad_actual || 0) > 0),
+      }));
+      setProductos(enriched);
+    }
     setLoading(false);
   }, [verInactivos]);
 
@@ -470,7 +551,7 @@ export default function InventarioModule() {
     const q   = busqueda.toLowerCase();
     const txt = p.nombre?.toLowerCase().includes(q) || p.sku?.toLowerCase().includes(q);
     const cat = filtroCategoria === "todas" || p.categoria === filtroCategoria;
-    const dias = diasParaCaducar(p.fecha_caducidad);
+    const dias = diasParaCaducar(p.min_caducidad_lotes);
     const alerta =
       filtroAlerta === "todos"       ? true :
       filtroAlerta === "bajo_stock"  ? (p.stock <= (p.stock_minimo??0)) :
@@ -481,17 +562,24 @@ export default function InventarioModule() {
 
   const activos    = productos.filter(p => p.activo).length;
   const bajoStock  = productos.filter(p => p.activo && p.stock<=(p.stock_minimo??0)).length;
-  const porCaducar = productos.filter(p => { const d=diasParaCaducar(p.fecha_caducidad); return d!==null&&d<=30&&d>=0; }).length;
+  const porCaducar = productos.filter(p => { const d=diasParaCaducar(p.min_caducidad_lotes); return d!==null&&d<=30&&d>=0; }).length;
   const inactivos  = productos.filter(p => !p.activo).length;
 
   const desactivar = async (id) => {
-    // confirm reemplazado por showToast
-if (!window.confirm("¿Desactivar este producto?")) return;
-    await supabase.from("productos").update({activo:false}).eq("id",id);
+    if (!window.confirm("¿Desactivar este producto?")) return;
+    const tok = sessionStorage.getItem("farmax_session_token");
+    const { error } = await supabase.rpc("admin_toggle_producto", {
+      p_session_token: tok, p_producto_id: id, p_activo: false,
+    });
+    if (error) showToast("Error: "+error.message, "error");
     fetchProductos();
   };
   const reactivar = async (id) => {
-    await supabase.from("productos").update({activo:true}).eq("id",id);
+    const tok = sessionStorage.getItem("farmax_session_token");
+    const { error } = await supabase.rpc("admin_toggle_producto", {
+      p_session_token: tok, p_producto_id: id, p_activo: true,
+    });
+    if (error) showToast("Error: "+error.message, "error");
     fetchProductos();
   };
 
@@ -579,7 +667,7 @@ if (!window.confirm("¿Desactivar este producto?")) return;
               {filtrados.map((p,_rowIdx)=>{
                 const bajo    = p.activo && p.stock<=(p.stock_minimo??0);
                 const inact   = !p.activo;
-                const dias    = diasParaCaducar(p.fecha_caducidad);
+                const dias    = diasParaCaducar(p.min_caducidad_lotes);
                 const nearCad = dias!==null && dias<=30 && dias>=0;
                 const mgn     = margen(p.precio, p.costo);
                 const mgnNum  = parseFloat(mgn);
@@ -626,7 +714,10 @@ if (!window.confirm("¿Desactivar este producto?")) return;
                       <button onClick={()=>setModal(p)} style={{background:C.blueDim,border:`1px solid ${C.blue}30`,
                         color:C.blue,borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:11,fontWeight:700,marginRight:6}}>
                         ✏️ Editar</button>
-                      {p.fecha_caducidad && diasParaCaducar(p.fecha_caducidad)<=30 && diasParaCaducar(p.fecha_caducidad)>=0 && (
+                      <button onClick={()=>setModalLotes(p)} style={{background:"#f1f5f9",border:`1px solid ${C.border}`,
+                        color:C.textMid,borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:11,fontWeight:700,marginRight:6}}>
+                        📦 Lotes ({(p.lotes_activos||[]).length})</button>
+                      {p.min_caducidad_lotes && diasParaCaducar(p.min_caducidad_lotes)<=30 && diasParaCaducar(p.min_caducidad_lotes)>=0 && (
                         <button onClick={()=>liquidar(p)}
                           style={{...btnSecondary,padding:"5px 10px",fontSize:10,color:C.red,borderColor:C.red,background:C.redDim,marginLeft:4}}>
                           🏷️ Liquidar
@@ -653,6 +744,62 @@ if (!window.confirm("¿Desactivar este producto?")) return;
       {modal!==null&&(
         <ProductoModal initial={modal} onClose={()=>setModal(null)}
           onSaved={()=>{setModal(null);fetchProductos();}}/>
+      )}
+      {modalLotes&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,.45)",backdropFilter:"blur(4px)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}
+          onClick={e=>e.target===e.currentTarget&&setModalLotes(null)}>
+          <div style={{background:C.card,borderRadius:14,width:"min(720px,95vw)",maxHeight:"85vh",overflowY:"auto",padding:24,boxShadow:"0 20px 60px rgba(0,82,204,.15)"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+              <div>
+                <h3 style={{margin:0,color:C.text,fontSize:15,fontWeight:800}}>📦 Lotes de {modalLotes.nombre}</h3>
+                <div style={{color:C.textMid,fontSize:11,marginTop:2}}>
+                  Stock total: <strong style={{color:C.blue}}>{modalLotes.stock}</strong>
+                  {` · ${(modalLotes.lotes_activos||[]).length} lote(s) activo(s)`}
+                </div>
+              </div>
+              <button onClick={()=>setModalLotes(null)} style={{background:"none",border:"none",color:C.textMid,fontSize:20,cursor:"pointer"}}>✕</button>
+            </div>
+            {(modalLotes.lotes_activos||[]).length===0 ? (
+              <div style={{textAlign:"center",padding:40,color:C.textMid,fontSize:13}}>
+                Este producto no tiene lotes activos. Usa <strong>📦 Recibir mercancía</strong> para agregar uno.
+              </div>
+            ) : (
+              <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                <thead>
+                  <tr style={{background:C.cardDark}}>
+                    {["Lote","Caducidad","Días","Cantidad","Costo unit."].map(h=>(
+                      <th key={h} style={{padding:"8px 12px",textAlign:"left",color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {(modalLotes.lotes_activos||[])
+                    .slice()
+                    .sort((a,b)=>{
+                      if(!a.fecha_caducidad) return 1;
+                      if(!b.fecha_caducidad) return -1;
+                      return a.fecha_caducidad.localeCompare(b.fecha_caducidad);
+                    })
+                    .map((l,i)=>{
+                      const dias = diasParaCaducar(l.fecha_caducidad);
+                      const col  = dias===null?C.textMid:dias<0?C.red:dias<=15?C.red:dias<=30?C.amber:C.green;
+                      return (
+                        <tr key={l.id} style={{background:i%2===0?"transparent":"#f8fafc"}}>
+                          <td style={{padding:"8px 12px",color:C.text,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{l.numero_lote||"—"}</td>
+                          <td style={{padding:"8px 12px",color:col,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>{l.fecha_caducidad||"—"}</td>
+                          <td style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`}}>
+                            {dias===null?"—":<span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:col+"20",color:col}}>{dias<0?"Vencido":dias===0?"Hoy":`${dias}d`}</span>}
+                          </td>
+                          <td style={{padding:"8px 12px",color:C.blue,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{l.cantidad_actual}</td>
+                          <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>${parseFloat(l.costo_unitario||0).toFixed(2)}</td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
       )}
       {modalRecibir&&(
         <RecibirModal productos={productos} onClose={()=>setModalRecibir(false)}

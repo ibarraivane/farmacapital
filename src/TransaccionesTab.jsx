@@ -4,6 +4,7 @@ import { C_LIGHT, BRAND } from "./constants";
 import { showToast, SkeletonTable, Paginador } from "./ui";
 import TicketVenta from "./components/tickets/TicketVenta";
 import { printTicket } from "./utils/printTicket";
+import { idEmpleadoUsuarios } from "./utils/usuarioId";
 
 /** Listado de pedidos con filtros — antes dentro de Admin/Reportes; requiere showConfirm del padre. */
 export default function TransaccionesTab({ usuario, showConfirm }) {
@@ -51,15 +52,12 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
   useEffect(() => { fetchPedidos(); }, [fetchPedidos]);
 
   const eliminarPedidoCompleto = async (p) => {
-    const { data: items } = await supabase.from("pedido_items").select("*").eq("pedido_id", p.id);
-    for (const it of items || []) {
-      if (it.producto_id) {
-        const { data: prod } = await supabase.from("productos").select("stock").eq("id", it.producto_id).single();
-        if (prod) await supabase.from("productos").update({ stock: (prod.stock || 0) + (it.cantidad || 1) }).eq("id", it.producto_id);
-      }
-    }
-    await supabase.from("pedido_items").delete().eq("pedido_id", p.id);
-    await supabase.from("pedidos").delete().eq("id", p.id);
+    const tok = sessionStorage.getItem("farmax_session_token");
+    if (!tok) { showToast("Sesión expirada","error"); return; }
+    const { error } = await supabase.rpc("admin_eliminar_pedido", {
+      p_session_token: tok, p_pedido_id: p.id,
+    });
+    if (error) showToast("Error: "+error.message, "error");
   };
 
   const filtradosTodos = pedidos.filter((p) => {
@@ -73,10 +71,13 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
 
   const reimprimir = async (p) => {
     setLoadingReprint(true);
-    const { data: items } = await supabase.from("pedido_items").select("*, productos(nombre,sku)").eq("pedido_id", p.id);
+    const { data: items } = await supabase.from("pedido_items").select("*, productos(nombre,sku), lotes(numero_lote,fecha_caducidad)").eq("pedido_id", p.id);
     let cliente = null;
     if (p.cliente_id) {
-      const { data: cli } = await supabase.from("clientes").select("*").eq("id", p.cliente_id).single();
+      const tok = sessionStorage.getItem("farmax_session_token");
+      const { data: cli } = await supabase.rpc("admin_obtener_cliente", {
+        p_session_token: tok, p_cliente_id: p.cliente_id,
+      });
       cliente = cli;
     }
     setTicketReprint({
@@ -94,7 +95,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
 
   const abrirDetalle = async (p) => {
     setModalDet(p); setLoadDet(true); setDetItems([]);
-    const { data } = await supabase.from("pedido_items").select("*, productos(nombre,sku)").eq("pedido_id", p.id);
+    const { data } = await supabase.from("pedido_items").select("*, productos(nombre,sku), lotes(numero_lote,fecha_caducidad)").eq("pedido_id", p.id);
     setDetItems(data || []); setLoadDet(false);
   };
 
@@ -106,8 +107,17 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
 
   const guardarEditar = async () => {
     setSaving(true);
-    await supabase.from("pedidos").update({ estado: editForm.estado, metodo_pago: editForm.metodo_pago, notas: editForm.notas || null }).eq("id", modalEditar.id);
-    setSaving(false); setModalEdit(null); fetchPedidos();
+    const tok = sessionStorage.getItem("farmax_session_token");
+    const { error } = await supabase.rpc("admin_editar_pedido", {
+      p_session_token: tok,
+      p_pedido_id: modalEditar.id,
+      p_estado: editForm.estado,
+      p_metodo_pago: editForm.metodo_pago,
+      p_notas: editForm.notas || null,
+    });
+    setSaving(false); setModalEdit(null);
+    if (error) showToast("Error: "+error.message, "error");
+    fetchPedidos();
   };
 
   const cancelarPed = async (p) => {
@@ -116,7 +126,11 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
       return;
     }
     showConfirm("Cancelar pedido", `¿Cancelar el pedido #${p.id}? El estado cambiará a cancelado.`, async () => {
-      await supabase.from("pedidos").update({ estado: "cancelado" }).eq("id", p.id);
+      const tok = sessionStorage.getItem("farmax_session_token");
+      const { error } = await supabase.rpc("admin_cancelar_pedido", {
+        p_session_token: tok, p_pedido_id: p.id,
+      });
+      if (error) showToast("Error: "+error.message, "error");
       fetchPedidos();
       showToast(`Pedido #${p.id} cancelado.`, "info");
     });
@@ -260,7 +274,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                     <tr key={i}>
                       <td style={{ padding: "7px 10px", color: C.text, fontWeight: 600, borderBottom: `1px solid ${C.border}` }}>
                         {it.productos?.nombre || it.nombre || "—"}
-                        {it.lote && <div style={{ fontSize: 9, color: C.textDim, marginTop: 1 }}>Lote: {it.lote}{it.caducidad ? ` | Cad: ${it.caducidad}` : ""}</div>}
+                        {it.lotes?.numero_lote && <div style={{ fontSize: 9, color: C.textDim, marginTop: 1 }}>Lote: {it.lotes.numero_lote}{it.lotes.fecha_caducidad ? ` | Cad: ${it.lotes.fecha_caducidad}` : ""}</div>}
                       </td>
                       <td style={{ padding: "7px 10px", color: C.amber, fontWeight: 700, borderBottom: `1px solid ${C.border}` }}>{it.cantidad}</td>
                       <td style={{ padding: "7px 10px", color: C.textMid, borderBottom: `1px solid ${C.border}` }}>{fmtM(it.precio_unitario || it.precio || 0)}</td>

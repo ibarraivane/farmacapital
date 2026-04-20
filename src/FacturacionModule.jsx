@@ -67,32 +67,23 @@ function SolicitarFacturaModal({pedido, onClose, onSaved }) {
 
     try {
       if (PAC_CONFIG.modo === "simulado") {
-        // Modo simulado: guarda en BD sin timbrar realmente
-        await new Promise(r=>setTimeout(r,1500)); // simula delay
+        await new Promise(r=>setTimeout(r,1500));
         const folioSimulado = "SIM-"+Date.now();
-        const { error: dbErr } = await supabase.from("facturas").insert({
-          pedido_id: pedido.id,
-          cliente_id: pedido.cliente_id||null,
-          rfc: rfc.trim().toUpperCase(),
-          razon_social: razon.trim().toUpperCase(),
-          uso_cfdi: usoCfdi,
-          regimen_fiscal: regimen,
-          total: pedido.total,
-          estado: "pendiente",
-          folio_fiscal: folioSimulado,
-          pac_proveedor: "simulado",
+        const tok = sessionStorage.getItem("farmax_session_token");
+        if (!tok) throw new Error("Sesión expirada");
+        const { data: resp, error: rpcErr } = await supabase.rpc("crear_factura", {
+          p_session_token: tok,
+          p_pedido_id:     pedido.id,
+          p_rfc:           rfc.trim().toUpperCase(),
+          p_razon_social:  razon.trim().toUpperCase(),
+          p_uso_cfdi:      usoCfdi,
+          p_regimen_fiscal: regimen,
+          p_folio_fiscal:  folioSimulado,
+          p_pac_proveedor: "simulado",
+          p_email:         email || null,
         });
-        if (dbErr) throw dbErr;
-
-        // Actualizar RFC en cliente si existe
-        if (pedido.cliente_id) {
-          await supabase.from("clientes").update({
-            rfc: rfc.trim().toUpperCase(),
-            razon_social: razon.trim().toUpperCase(),
-            regimen_fiscal: regimen,
-            uso_cfdi: usoCfdi,
-          }).eq("id", pedido.cliente_id);
-        }
+        if (rpcErr) throw rpcErr;
+        if (!resp?.success) throw new Error(resp?.error || "No se pudo timbrar");
         setSuccess(true);
       } else {
         // ── Modo real con Facturama ──────────────────────────

@@ -1,5 +1,14 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { supabase } from "./supabase";
+import { idEmpleadoUsuarios } from "./utils/usuarioId";
+
+const leerSesion = () => {
+  try {
+    return JSON.parse(sessionStorage.getItem("farmax_admin_user") || "{}");
+  } catch {
+    return {};
+  }
+};
 
 const initialForm = {
   id: null,
@@ -60,31 +69,56 @@ export default function AdminDashboard() {
     setError("");
     setOkMsg("");
 
-    const payload = {
-      nombre: form.nombre.trim(),
+    const nombre = form.nombre.trim();
+    const stockTarget = asNumber(form.stock, 0);
+    const productoFields = {
+      nombre,
       sku: form.sku.trim() || null,
       categoria: form.categoria.trim() || "General",
       precio: asNumber(form.precio, 0),
-      stock: asNumber(form.stock, 0),
       activo: !!form.activo,
     };
 
-    if (!payload.nombre) {
+    if (!nombre) {
       setError("El nombre es obligatorio.");
+      setSaving(false);
+      return;
+    }
+
+    const tok = sessionStorage.getItem("farmax_session_token");
+    if (!tok) {
+      setError("Sesión expirada. Inicia sesión de nuevo.");
       setSaving(false);
       return;
     }
 
     let dbError = null;
     if (isEdit) {
-      const { error: updError } = await supabase
-        .from("productos")
-        .update(payload)
-        .eq("id", form.id);
+      const { error: updError } = await supabase.rpc("admin_editar_producto", {
+        p_session_token: tok,
+        p_producto_id:   form.id,
+        p_patch:         productoFields,
+      });
       dbError = updError;
+      if (!dbError) {
+        const { error: adjErr } = await supabase.rpc("adjust_stock_secure", {
+          p_session_token: tok,
+          p_producto_id:   form.id,
+          p_nuevo_stock:   stockTarget,
+          p_motivo:        "Edición manual (Admin Dashboard)",
+        });
+        if (adjErr) dbError = adjErr;
+      }
     } else {
-      const { error: insError } = await supabase.from("productos").insert(payload);
-      dbError = insError;
+      const { error: rpcErr } = await supabase.rpc("create_producto_secure", {
+        p_session_token:   tok,
+        p_producto_data:   productoFields,
+        p_cantidad_inicial: stockTarget,
+        p_numero_lote:     null,
+        p_fecha_caducidad: null,
+        p_costo_unitario:  null,
+      });
+      dbError = rpcErr;
     }
 
     if (dbError) {
@@ -113,9 +147,13 @@ export default function AdminDashboard() {
     if (!window.confirm("¿Eliminar este producto?")) return;
     setError("");
     setOkMsg("");
-    const { error: delError } = await supabase.from("productos").delete().eq("id", id);
-    if (delError) {
-      setError(`No se pudo eliminar: ${delError.message}`);
+    const tok = sessionStorage.getItem("farmax_session_token");
+    if (!tok) { setError("Sesión expirada."); return; }
+    const { data: resp, error: delError } = await supabase.rpc("admin_eliminar_producto", {
+      p_session_token: tok, p_producto_id: id,
+    });
+    if (delError || !resp?.success) {
+      setError(`No se pudo eliminar: ${resp?.error || delError?.message}`);
       return;
     }
     setOkMsg("Producto eliminado.");

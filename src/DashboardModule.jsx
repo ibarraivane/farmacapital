@@ -240,7 +240,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
       supabase.from("pedidos").select("total,tipo").eq("estado", "completado").gte("created_at", month.start),
       supabase.from("pedido_items").select("cantidad,precio_unitario,productos(nombre)").limit(1000),
       supabase.from("productos").select("id,nombre,stock,stock_minimo").lte("stock", 0).eq("activo", true).limit(5),
-      supabase.from("productos").select("id").eq("activo", true).lte("fecha_caducidad", new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)),
+      supabase.from("lotes").select("producto_id").eq("activo", true).gt("cantidad_actual", 0).lte("fecha_caducidad", new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)).not("fecha_caducidad", "is", null),
       supabase.from("cortes_caja").select("id,diferencia").neq("diferencia", 0).limit(10),
       supabase.from("pedidos").select("total").eq("estado", "completado").eq("receta_origen", "medico_farmax").gte("created_at", month.start),
       supabase
@@ -352,7 +352,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
       alertas: {
         bajoStock: (bajoStock || []).length,
         bajoStockNombres: (bajoStock || []).map((p) => p.nombre).slice(0, 3),
-        porCaducar: (porCaducar || []).length,
+        porCaducar: new Set((porCaducar || []).map(l => l.producto_id)).size,
         sinAtender,
         cortesConDif: (cortesConDif || []).length,
         cofeprisVencidas,
@@ -374,7 +374,10 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
       { count: citasRecetaExternaPeriod },
     ] = await Promise.all([
       supabase.from("pedidos").select("total,created_at,tipo,atendido_por,usuarios(nombre)").gte("created_at", desde).eq("estado", "completado"),
-      supabase.from("clientes").select("id", { count: "exact", head: true }).gte("created_at", desde),
+      supabase.rpc("admin_contar_clientes_desde", {
+        p_session_token: sessionStorage.getItem("farmax_session_token"),
+        p_desde:         desde,
+      }).then(r => ({ count: r.data || 0 })),
       supabase.from("citas").select("id").gte("fecha", desdeFecha).neq("estado", "cancelada").or("estado.in.(completada,pagada),pago_estado.eq.pagada"),
       supabase.from("pedidos").select("total").gte("created_at", desde).eq("tipo", "online").eq("estado", "completado"),
       supabase.from("devoluciones").select("total_devuelto").gte("created_at", desde).eq("estado", "aprobada"),

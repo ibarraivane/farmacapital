@@ -10,26 +10,28 @@ const mkInpS = (C) => ({width:"100%",boxSizing:"border-box",padding:"8px 12px",b
 export default function LotesModule() {
   const C = C_LIGHT;
   const inpS = mkInpS(C);
-  const [lotes,      setLotes]     = useState([]);
-  const [productos,  setProductos] = useState([]);
-  const [loading,    setLoading]   = useState(true);
-  const [modal,      setModal]     = useState(false);
-  const [filtroP,    setFiltroP]   = useState("");
-  const [filtroVenc, setFiltroV]   = useState("todos");
-  const [form,       setForm]      = useState({
+  const [lotes,       setLotes]       = useState([]);
+  const [productos,   setProductos]   = useState([]);
+  const [proveedores, setProveedores] = useState([]);
+  const [loading,     setLoading]     = useState(true);
+  const [modal,       setModal]       = useState(false);
+  const [filtroP,     setFiltroP]     = useState("");
+  const [filtroVenc,  setFiltroV]     = useState("todos");
+  const [form,        setForm]        = useState({
     producto_id:"", numero_lote:"", fecha_caducidad:"",
-    cantidad_inicial:"", costo_unitario:"", proveedor:"",
+    cantidad_inicial:"", costo_unitario:"", proveedor_id:"",
     fecha_recepcion: new Date().toLocaleDateString("sv-SE"),
   });
   const [saving, setSaving] = useState(false);
 
   const fetchData = useCallback(async()=>{
     setLoading(true);
-    const [{ data:ls },{ data:ps }] = await Promise.all([
-      supabase.from("lotes").select("*, productos(nombre,sku,categoria)").eq("activo",true).order("fecha_caducidad",{ascending:true}),
+    const [{ data:ls },{ data:ps },{ data:pv }] = await Promise.all([
+      supabase.from("lotes").select("*, productos(nombre,sku,categoria), proveedores(id,nombre)").eq("activo",true).order("fecha_caducidad",{ascending:true}),
       supabase.from("productos").select("id,nombre,sku").eq("activo",true).order("nombre"),
+      supabase.from("proveedores").select("id,nombre").order("nombre"),
     ]);
-    setLotes(ls||[]); setProductos(ps||[]);
+    setLotes(ls||[]); setProductos(ps||[]); setProveedores(pv||[]);
     setLoading(false);
   },[]);
 
@@ -58,15 +60,16 @@ export default function LotesModule() {
     if(!form.producto_id||!form.numero_lote||!form.cantidad_inicial){ showToast("Completa producto, lote y cantidad","warning"); return; }
     setSaving(true);
     const qty = parseInt(form.cantidad_inicial)||0;
-    const { error } = await supabase.from("lotes").insert({
-      producto_id:      parseInt(form.producto_id),
-      numero_lote:      form.numero_lote.trim(),
-      fecha_caducidad:  form.fecha_caducidad||null,
-      cantidad_inicial: qty,
-      cantidad_actual:  qty,
-      costo_unitario:   parseFloat(form.costo_unitario)||0,
-      proveedor:        form.proveedor.trim()||null,
-      fecha_recepcion:  form.fecha_recepcion||null,
+    const tok = sessionStorage.getItem("farmax_session_token");
+    if (!tok) { showToast("Sesión expirada","error"); setSaving(false); return; }
+    const { error } = await supabase.rpc("admin_crear_lote", {
+      p_session_token:  tok,
+      p_producto_id:    parseInt(form.producto_id),
+      p_numero_lote:    form.numero_lote.trim(),
+      p_cantidad:       qty,
+      p_fecha_caducidad: form.fecha_caducidad || null,
+      p_costo_unitario: parseFloat(form.costo_unitario) || null,
+      p_proveedor_id:   form.proveedor_id ? parseInt(form.proveedor_id) : null,
     });
     if(error){ showToast("Error: "+error.message,"error"); }
     else { showToast("✅ Lote registrado","success"); setModal(false); fetchData(); }
@@ -75,9 +78,12 @@ export default function LotesModule() {
 
   const desactivar = async(id)=>{
     if(!window.confirm("¿Desactivar este lote?")) return;
-    await supabase.from("lotes").update({activo:false}).eq("id",id);
-    showToast("Lote desactivado","info");
-    fetchData();
+    const tok = sessionStorage.getItem("farmax_session_token");
+    const { error } = await supabase.rpc("admin_desactivar_lote", {
+      p_session_token: tok, p_lote_id: id, p_motivo: "Desactivación manual",
+    });
+    if (error) showToast("Error: "+error.message, "error");
+    else { showToast("Lote desactivado","info"); fetchData(); }
   };
 
   const vencidos  = lotes.filter(l=>{ const d=diasRestantes(l.fecha_caducidad); return d!==null&&d<0; }).length;
@@ -169,7 +175,7 @@ export default function LotesModule() {
                     </td>
                     <td style={{padding:"8px 12px",color:l.cantidad_actual<=0?C.red:C.blue,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{l.cantidad_actual}</td>
                     <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{fmt(l.costo_unitario)}</td>
-                    <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{l.proveedor||"—"}</td>
+                    <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{l.proveedores?.nombre||"—"}</td>
                     <td style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`}}>
                       <button onClick={()=>desactivar(l.id)} style={{padding:"4px 10px",borderRadius:6,border:`1px solid ${C.red}30`,background:C.redDim,color:C.red,fontSize:10,fontWeight:700,cursor:"pointer"}}>
                         Desactivar
@@ -205,7 +211,6 @@ export default function LotesModule() {
                 ["FECHA DE CADUCIDAD","fecha_caducidad","date",""],
                 ["CANTIDAD INICIAL *","cantidad_inicial","number","0"],
                 ["COSTO UNITARIO","costo_unitario","number","0.00"],
-                ["PROVEEDOR","proveedor","text","Ej: Nadro"],
                 ["FECHA DE RECEPCIÓN","fecha_recepcion","date",""],
               ].map(([label,key,type,ph])=>(
                 <div key={key}>
@@ -213,6 +218,13 @@ export default function LotesModule() {
                   <input type={type} style={inpS} value={form[key]||""} onChange={e=>setForm(p=>({...p,[key]:e.target.value}))} placeholder={ph}/>
                 </div>
               ))}
+              <div>
+                <label style={{color:C.textMid,fontSize:11,fontWeight:700,display:"block",marginBottom:4}}>PROVEEDOR</label>
+                <select style={inpS} value={form.proveedor_id} onChange={e=>setForm(p=>({...p,proveedor_id:e.target.value}))}>
+                  <option value="">Sin proveedor</option>
+                  {proveedores.map(pv=><option key={pv.id} value={pv.id}>{pv.nombre}</option>)}
+                </select>
+              </div>
             </div>
             <div style={{display:"flex",gap:10,justifyContent:"flex-end",marginTop:16}}>
               <button onClick={()=>setModal(false)} style={{padding:"9px 20px",borderRadius:8,border:`1px solid ${C.border}`,background:"transparent",color:C.textMid,fontWeight:700,cursor:"pointer"}}>Cancelar</button>

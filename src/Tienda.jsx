@@ -353,7 +353,13 @@ function Header({page,setPage,cart,user,setUser}){
                     <div style={{color:BRAND.secondary,fontSize:10}}>⭐ {user.puntos||0} pts</div>
                   </div>
                 </div>
-                <button type="button" onClick={()=>{setUser(null);sessionStorage.removeItem("farmax_user");setPage("home");}}
+                <button type="button" onClick={async()=>{
+                  const tok = sessionStorage.getItem("farmax_cliente_token");
+                  if (tok) { try { await supabase.rpc("logout_cliente", { p_session_token: tok }); } catch(e){} }
+                  sessionStorage.removeItem("farmax_cliente_token");
+                  sessionStorage.removeItem("farmax_user");
+                  setUser(null); setPage("home");
+                }}
                   title="Cerrar sesión"
                   style={{padding:"6px 10px",borderRadius:8,border:`1px solid ${C.border}`,background:"transparent",color:C.mid,fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>
                   ⎋ <span style={{fontSize:11}}>Salir</span>
@@ -898,27 +904,34 @@ function Checkout({cart,setCart,setPage,user,entrega="pickup"}){
         return;
       }
 
-      let cid=user?.id||null;
-      // Reservar stock (previene oversell concurrente)
-      const sessionId = `chk_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
-      try {
-        const { error:resErr } = await supabase.rpc("reserve_stock_for_checkout",{
-          p_session_id: sessionId,
-          p_items: cart.map(c=>({producto_id:c.id,cantidad:c.qty})),
-          p_ttl_minutes: 10,
-        });
-        if(resErr) throw resErr;
-      } catch(re) {
-        alert("Stock insuficiente. Algunos productos ya no están disponibles.");
+      const tokCli = sessionStorage.getItem("farmax_cliente_token");
+      if (!tokCli) {
+        alert("Inicia sesión para confirmar tu pedido.");
         setG(false); return;
       }
-      if(!cid&&datos.tel){const{data:cx}=await supabase.from("clientes").select("id,puntos").eq("telefono",datos.tel).single();if(cx){cid=cx.id;await supabase.from("clientes").update({puntos:cx.puntos+ptsG}).eq("id",cx.id);}else{const{data:nc}=await supabase.from("clientes").insert({nombre:datos.nombre,telefono:datos.tel,email:datos.email,puntos:ptsG}).select().single();if(nc)cid=nc.id;}}
-      else if(cid){await supabase.from("clientes").update({puntos:(user.puntos||0)+ptsG}).eq("id",cid);}
-      const{data:p}=await supabase.from("pedidos").insert({cliente_id:cid,total:sub,estado:"pendiente",tipo:"online",tipo_entrega:entrega,metodo_pago:metodo}).select().single();
-      if(p)await supabase.from("pedido_items").insert(cart.map(c=>{
+
+      const payloadItems = cart.map(c => {
         const dbp = stockMap.get(c.id);
-        return ({pedido_id:p.id,producto_id:c.id,cantidad:Number(c.qty),precio_unitario:Number(dbp?.precio ?? c.precio)});
-      }));
+        return {
+          producto_id:     c.id,
+          cantidad:        Number(c.qty),
+          precio_unitario: Number(dbp?.precio ?? c.precio),
+        };
+      });
+
+      const { data: resp, error: rpcErr } = await supabase.rpc("cliente_crear_pedido_online", {
+        p_session_token: tokCli,
+        p_items:         payloadItems,
+        p_tipo_entrega:  entrega,
+        p_metodo_pago:   metodo,
+        p_direccion:     [datos.calle, datos.colonia, datos.cp].filter(Boolean).join(", ") || null,
+        p_notas:         null,
+      });
+      if (rpcErr) throw rpcErr;
+      if (!resp?.success) {
+        alert(resp?.error || "No se pudo crear el pedido");
+        setG(false); return;
+      }
       setG(false);setConf(true);setCart([]);
       return;
     }catch(e){
@@ -995,12 +1008,19 @@ function AgendarCita({setPage,user}){
     }
     setG(true);
     try{
-      await supabase.from("citas").insert({
-        nombre,telefono:tel,fecha,hora,motivo,cliente_id:user?.id||null,
-        canal:"web",
-        pago_estado:"pendiente",
+      const tokCli = sessionStorage.getItem("farmax_cliente_token");
+      if (!tokCli) { alert("Inicia sesión para agendar tu cita."); setG(false); return; }
+      const { data: resp, error } = await supabase.rpc("cliente_agendar_cita", {
+        p_session_token: tokCli,
+        p_nombre:        nombre,
+        p_telefono:      tel,
+        p_fecha:         fecha,
+        p_hora:          hora,
+        p_motivo:        motivo || null,
       });
-    }catch(e){console.warn(e);}
+      if (error) throw error;
+      if (!resp?.success) { alert(resp?.error || "No se pudo agendar"); setG(false); return; }
+    }catch(e){ alert("No se pudo agendar. Intenta de nuevo."); console.warn(e); }
     setG(false);setConf(true);
   };
   if(conf) return(
@@ -1305,18 +1325,23 @@ function Registro({setUser,setPage}){
     if(pwd !== pwd2) { setError("Las contraseñas no coinciden."); return; }
     setC(true); setError("");
     try{
-      const{data:existe}=await supabase.from("clientes").select("id").eq("telefono",tel).maybeSingle();
-      if(existe){setError("Ya existe una cuenta con ese teléfono. Inicia sesión.");setC(false);return;}
-      const hash = await hashPwd(pwd);
-      const{data:nuevo,error:err}=await supabase.from("clientes").insert({
-        nombre, telefono:tel, email, puntos:10,
-        password_hash: hash,
-        consentimiento_privacidad: true,
-        fecha_consentimiento: new Date().toISOString(),
-        notas:"Consentimiento LFPDPPP aceptado: "+new Date().toISOString()
-      }).select().single();
-      if(err)throw err;
-      if(nuevo){setUser(nuevo);sessionStorage.setItem("farmax_user",JSON.stringify(nuevo));setPage("cuenta");}
+      const { data:resp, error:err } = await supabase.rpc("registrar_cliente", {
+        p_nombre:   nombre.trim(),
+        p_telefono: tel.trim(),
+        p_password: pwd,
+        p_email:    email?.trim() || null,
+        p_user_agent: navigator.userAgent || null,
+      });
+      if (err) throw err;
+      if (!resp?.success) {
+        setError(resp?.error || "No se pudo crear la cuenta.");
+        setC(false); return;
+      }
+      const nuevo = resp.user || {};
+      sessionStorage.setItem("farmax_cliente_token", resp.session_token);
+      sessionStorage.setItem("farmax_user", JSON.stringify(nuevo));
+      setUser(nuevo);
+      setPage("cuenta");
     }catch(e){setError("Error al crear cuenta. Intenta de nuevo.");}
     setC(false);
   };
@@ -1379,23 +1404,26 @@ function Login({setUser,setPage}){
     if(intentos>=5){ setError("Demasiados intentos. Espera unos minutos."); return; }
     setBusc(true); setError("");
     try{
-      const hash = await hashPwd(pwd);
-      const{data}=await supabase.from("clientes").select("*").eq("telefono",tel).eq("password_hash",hash).maybeSingle();
-      if(data){
-        setInt(0);
-        setUser(data);
-        sessionStorage.setItem("farmax_user",JSON.stringify(data));
-        setPage("cuenta");
-      } else {
-        setInt(i=>i+1);
-        // Verificar si la cuenta existe pero sin contraseña (clientes anteriores)
-        const{data:existe}=await supabase.from("clientes").select("id,password_hash").eq("telefono",tel).maybeSingle();
-        if(existe&&!existe.password_hash){
-          setError("Tu cuenta necesita una contraseña. Regístrate de nuevo o contacta a Farmax.");
-        } else {
-          setError(`Teléfono o contraseña incorrectos. (${intentos+1}/5)`);
-        }
+      const { data:resp, error:err } = await supabase.rpc("login_cliente", {
+        p_telefono: tel.trim(),
+        p_password: pwd,
+        p_user_agent: navigator.userAgent || null,
+      });
+      if (err) {
+        setError("Error de conexión. Intenta de nuevo.");
+        setBusc(false); return;
       }
+      if (!resp?.success) {
+        setInt(i=>i+1);
+        setError(`${resp?.error || "Credenciales inválidas"} (${intentos+1}/5)`);
+        setBusc(false); return;
+      }
+      const cliente = resp.user || {};
+      setInt(0);
+      sessionStorage.setItem("farmax_cliente_token", resp.session_token);
+      sessionStorage.setItem("farmax_user", JSON.stringify(cliente));
+      setUser(cliente);
+      setPage("cuenta");
     }catch(e){setError("Error de conexión. Intenta de nuevo.");}
     setBusc(false);
   };
@@ -1445,12 +1473,15 @@ function CambiarPwdCliente({user}) {
     if(pwdN!==pwdN2) { setMsg({ok:false,txt:"Las contraseñas no coinciden"}); return; }
     setCarg(true); setMsg(null);
     try {
-      const hashA = await hashP(pwdA);
-      const {data:check} = await supabase.from("clientes").select("id").eq("id",user.id).eq("password_hash",hashA).maybeSingle();
-      if(!check) { setMsg({ok:false,txt:"Contraseña actual incorrecta"}); setCarg(false); return; }
-      const hashN = await hashP(pwdN);
-      const {error} = await supabase.from("clientes").update({password_hash:hashN}).eq("id",user.id);
-      if(error) throw error;
+      const tok = sessionStorage.getItem("farmax_cliente_token");
+      if (!tok) { setMsg({ok:false,txt:"Sesión expirada. Inicia sesión de nuevo."}); setCarg(false); return; }
+      const { data:resp, error:err } = await supabase.rpc("cliente_cambiar_password", {
+        p_session_token: tok,
+        p_password_actual: pwdA,
+        p_password_nueva:  pwdN,
+      });
+      if (err) throw err;
+      if (!resp?.success) { setMsg({ok:false,txt:resp?.error || "No se pudo cambiar"}); setCarg(false); return; }
       setMsg({ok:true,txt:"✅ Contraseña cambiada correctamente"});
       setPwdA(""); setPwdN(""); setPwdN2("");
     } catch(e) { setMsg({ok:false,txt:"Error: "+e.message}); }
@@ -1541,7 +1572,13 @@ function Cuenta({user,setPage,setUser}){
             <div style={{color:C.dark,fontWeight:700,fontSize:13,marginBottom:12}}>🔑 Cambiar contraseña</div>
             <CambiarPwdCliente user={user}/>
           </div>
-          <div style={{marginTop:16}}><Btn sm col={C.red} outline onClick={()=>{setUser(null);sessionStorage.removeItem("farmax_user");setPage("home");}}>⎋ Cerrar sesión</Btn></div>
+          <div style={{marginTop:16}}><Btn sm col={C.red} outline onClick={async()=>{
+            const tok = sessionStorage.getItem("farmax_cliente_token");
+            if (tok) { try { await supabase.rpc("logout_cliente", { p_session_token: tok }); } catch(e){} }
+            sessionStorage.removeItem("farmax_cliente_token");
+            sessionStorage.removeItem("farmax_user");
+            setUser(null); setPage("home");
+          }}>⎋ Cerrar sesión</Btn></div>
         </div>
       )}
     </div>

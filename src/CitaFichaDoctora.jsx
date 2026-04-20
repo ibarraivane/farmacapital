@@ -164,14 +164,17 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
   const agregarConsumible = async (prod, qty) => {
     if (!citaLocal?.id) return;
     try {
-      await supabase.from("consumibles_consulta").insert({
-        cita_id: citaLocal.id,
-        producto_id: prod.id,
-        cantidad: qty,
-        precio: prod.precio,
-        cobrado: false,
+      const tok = sessionStorage.getItem("farmax_session_token");
+      if (!tok) throw new Error("Sesión expirada");
+      const { data: resp, error } = await supabase.rpc("agregar_consumible_cita", {
+        p_session_token: tok,
+        p_cita_id:       citaLocal.id,
+        p_producto_id:   prod.id,
+        p_cantidad:      qty,
+        p_precio:        prod.precio,
       });
-      await supabase.from("citas").update({ estado: "en_consulta" }).eq("id", citaLocal.id);
+      if (error) throw error;
+      if (!resp?.success) throw new Error(resp?.error || "No se pudo agregar");
       await reload();
     } catch (e) {
       console.error(e);
@@ -181,17 +184,19 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
   const aplicarPlantillaProc = async (proc) => {
     const tpl = getPlantilla(proc);
     if (!citaLocal?.id || !tpl.length) return;
+    const tok = sessionStorage.getItem("farmax_session_token");
+    if (!tok) return;
     for (const row of tpl) {
       const pid = row.producto_id;
       const cant = Number(row.cantidad) || 1;
       const prod = prodList.find((p) => p.id === pid);
       if (!prod) continue;
-      await supabase.from("consumibles_consulta").insert({
-        cita_id: citaLocal.id,
-        producto_id: pid,
-        cantidad: cant,
-        precio: prod.precio,
-        cobrado: false,
+      await supabase.rpc("agregar_consumible_cita", {
+        p_session_token: tok,
+        p_cita_id:       citaLocal.id,
+        p_producto_id:   pid,
+        p_cantidad:      cant,
+        p_precio:        prod.precio,
       });
     }
     await reload();
@@ -230,41 +235,36 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
     if (!citaLocal?.id) return;
     setGuard(true);
     try {
+      const tok = sessionStorage.getItem("farmax_session_token");
+      if (!tok) throw new Error("Sesión expirada");
       const medsArr = serializeMeds(medsRows);
 
-      const { error } = await supabase
-        .from("citas")
-        .update({
-          signos_vitales: {
-            ta: vit.ta || null,
-            fc: vit.fc || null,
-            temp: vit.temp || null,
-            sat: vit.sat || null,
-            peso: vit.peso || null,
-            talla: vit.talla || null,
-          },
-          expediente_json: {
-            alergias: exp.alergias || null,
-            antecedentes: exp.antecedentes || null,
-            sexo: exp.sexo || null,
-            edad: exp.edad || null,
-          },
-          diagnostico: diagnostico.trim() || null,
-          notas_medico: notas.trim() || null,
-          medicamentos_prescritos: medsArr.length ? medsArr : null,
-          receta_surtido_en: recetaSurtido === "pendiente" ? null : recetaSurtido,
-          procedimientos_realizados: procSel.length ? procSel : null,
-        })
-        .eq("id", citaLocal.id);
+      const { data: resp, error } = await supabase.rpc("doctora_completar_consulta", {
+        p_session_token: tok,
+        p_cita_id:       citaLocal.id,
+        p_diagnostico:   diagnostico.trim() || null,
+        p_medicamentos:  medsArr.length ? medsArr : [],
+        p_procedimientos: procSel.length ? procSel : [],
+        p_notas_medico:  notas.trim() || null,
+        p_alergias:      exp.alergias || null,
+        p_antecedentes:  exp.antecedentes || null,
+        p_consumibles:   [],
+        p_signos_vitales: {
+          ta: vit.ta || null,  fc: vit.fc || null,  temp: vit.temp || null,
+          sat: vit.sat || null, peso: vit.peso || null, talla: vit.talla || null,
+        },
+        p_expediente: {
+          alergias: exp.alergias || null,
+          antecedentes: exp.antecedentes || null,
+          sexo: exp.sexo || null,
+          edad: exp.edad || null,
+        },
+        p_receta_surtido: recetaSurtido === "pendiente" ? null : recetaSurtido,
+        p_completar:     false,
+      });
 
       if (error) throw error;
-
-      if (citaLocal.telefono && (exp.alergias?.trim() || exp.antecedentes?.trim())) {
-        const nota = [exp.alergias?.trim() && `ALERGIAS: ${exp.alergias.trim()}`, exp.antecedentes?.trim() && `ANTECEDENTES: ${exp.antecedentes.trim()}`]
-          .filter(Boolean)
-          .join(" | ");
-        await supabase.from("clientes").update({ notas: nota }).eq("telefono", citaLocal.telefono);
-      }
+      if (!resp?.success) throw new Error(resp?.error || "No se pudo guardar");
 
       showToast("Ficha guardada.", "success");
       onSaved?.();
@@ -285,44 +285,36 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
     }
     setGuard(true);
     try {
+      const tok = sessionStorage.getItem("farmax_session_token");
+      if (!tok) throw new Error("Sesión expirada");
       const medsArr = serializeMeds(medsRows);
-      const finPatch = patchConsultaFin(citaLocal);
 
-      const { error } = await supabase
-        .from("citas")
-        .update({
-          signos_vitales: {
-            ta: vit.ta || null,
-            fc: vit.fc || null,
-            temp: vit.temp || null,
-            sat: vit.sat || null,
-            peso: vit.peso || null,
-            talla: vit.talla || null,
-          },
-          expediente_json: {
-            alergias: exp.alergias || null,
-            antecedentes: exp.antecedentes || null,
-            sexo: exp.sexo || null,
-            edad: exp.edad || null,
-          },
-          diagnostico: diagnostico.trim(),
-          notas_medico: notas.trim() || null,
-          medicamentos_prescritos: medsArr.length ? medsArr : null,
-          receta_surtido_en: recetaSurtido === "pendiente" ? null : recetaSurtido,
-          procedimientos_realizados: procSel.length ? procSel : null,
-          estado: "completada",
-          ...finPatch,
-        })
-        .eq("id", citaLocal.id);
+      const { data: resp, error } = await supabase.rpc("doctora_completar_consulta", {
+        p_session_token:  tok,
+        p_cita_id:        citaLocal.id,
+        p_diagnostico:    diagnostico.trim(),
+        p_medicamentos:   medsArr.length ? medsArr : [],
+        p_procedimientos: procSel.length ? procSel : [],
+        p_notas_medico:   notas.trim() || null,
+        p_alergias:       exp.alergias || null,
+        p_antecedentes:   exp.antecedentes || null,
+        p_consumibles:    [],
+        p_signos_vitales: {
+          ta: vit.ta || null,  fc: vit.fc || null,  temp: vit.temp || null,
+          sat: vit.sat || null, peso: vit.peso || null, talla: vit.talla || null,
+        },
+        p_expediente: {
+          alergias: exp.alergias || null,
+          antecedentes: exp.antecedentes || null,
+          sexo: exp.sexo || null,
+          edad: exp.edad || null,
+        },
+        p_receta_surtido: recetaSurtido === "pendiente" ? null : recetaSurtido,
+        p_completar:     true,
+      });
 
       if (error) throw error;
-
-      if (citaLocal.telefono && (exp.alergias?.trim() || exp.antecedentes?.trim())) {
-        const nota = [exp.alergias?.trim() && `ALERGIAS: ${exp.alergias.trim()}`, exp.antecedentes?.trim() && `ANTECEDENTES: ${exp.antecedentes.trim()}`]
-          .filter(Boolean)
-          .join(" | ");
-        await supabase.from("clientes").update({ notas: nota }).eq("telefono", citaLocal.telefono);
-      }
+      if (!resp?.success) throw new Error(resp?.error || "No se pudo terminar");
 
       showToast("Consulta terminada y registrada como concluida.", "success");
       onSaved?.();

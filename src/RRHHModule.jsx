@@ -94,7 +94,8 @@ export default function RRHHModule() {
 
   const fetchEmpleados = async () => {
     setLoading(true);
-    const { data, error } = await supabase.from('empleados').select('*').order('nombre');
+    const tok = sessionStorage.getItem("farmax_session_token");
+    const { data, error } = await supabase.rpc("admin_listar_empleados", { p_session_token: tok });
     if (!error && data) {
       setEmpleados(data);
       setSchedule(prev => {
@@ -109,24 +110,37 @@ export default function RRHHModule() {
   useEffect(() => { fetchEmpleados(); }, []);
 
   const toggleEstado = async (emp) => {
-    await supabase.from('empleados').update({ estado: !emp.estado }).eq('id', emp.id);
+    const tok = sessionStorage.getItem("farmax_session_token");
+    const { error } = await supabase.rpc("admin_toggle_empleado", {
+      p_session_token: tok, p_empleado_id: emp.id, p_estado: !emp.estado,
+    });
+    if (error) alert("Error: "+error.message);
     fetchEmpleados();
   };
 
   const deleteEmp = async (id) => {
-    if (!window.confirm('¿Eliminar este empleado? Esta acción no se puede deshacer.')) return; // TODO: reemplazar por ConfirmDialog
-    await supabase.from('empleados').delete().eq('id', id);
+    if (!window.confirm('¿Eliminar este empleado? Esta acción no se puede deshacer.')) return;
+    const tok = sessionStorage.getItem("farmax_session_token");
+    const { error } = await supabase.rpc("admin_eliminar_empleado", {
+      p_session_token: tok, p_empleado_id: id,
+    });
+    if (error) alert("Error: "+error.message);
     fetchEmpleados();
   };
 
   const handleFormSubmit = async (e) => {
     e.preventDefault(); setFormMsg(null);
     if (!form.nombre.trim()) { setFormMsg({ ok:false, text:'El nombre es obligatorio.' }); return; }
-    const { error } = await supabase.from('empleados').insert([{
-      nombre: form.nombre.trim(), telefono: form.telefono.trim(),
-      rol: form.rol, turno: form.turno,
-      salario_quincenal: parseFloat(form.salario_quincenal) || 0, estado: true,
-    }]);
+    const tok = sessionStorage.getItem("farmax_session_token");
+    if (!tok) { setFormMsg({ ok:false, text:'Sesión expirada.' }); return; }
+    const { error } = await supabase.rpc("admin_crear_empleado", {
+      p_session_token: tok,
+      p_nombre: form.nombre.trim(),
+      p_telefono: form.telefono.trim() || null,
+      p_rol: form.rol,
+      p_turno: form.turno,
+      p_salario_quincenal: parseFloat(form.salario_quincenal) || 0,
+    });
     if (error) setFormMsg({ ok:false, text:`Error: ${error.message}` });
     else { setFormMsg({ ok:true, text:'✅ Empleado registrado.' }); setForm(emptyForm); fetchEmpleados(); }
   };
@@ -144,13 +158,23 @@ export default function RRHHModule() {
   const guardarNomina = async () => {
     if (!selEmp) { setNominaMsg({ ok:false, text:'Selecciona un empleado.' }); return; }
     const { inicio, fin } = getQuincena();
-    const { error } = await supabase.from('nomina_empleados').insert([{
-      empleado_id: selEmp.id, periodo_inicio: inicio, periodo_fin: fin,
-      salario_base: calcBase, horas_extra: parseFloat(calcHE) || 0,
-      prima_dominical: parseFloat(calcPD) || 0, bono: parseFloat(calcBono) || 0,
-      total_percepciones: percepciones, imss_obrero: imss, isr,
-      total_deducciones: deducciones, neto_pagar: neto, pagado: false,
-    }]);
+    const tok = sessionStorage.getItem("farmax_session_token");
+    if (!tok) { setNominaMsg({ ok:false, text:'Sesión expirada.' }); return; }
+    const { error } = await supabase.rpc("registrar_nomina", {
+      p_session_token: tok,
+      p_empleado_id: selEmp.id,
+      p_periodo_inicio: inicio,
+      p_periodo_fin: fin,
+      p_salario_base: calcBase,
+      p_horas_extra: parseFloat(calcHE) || 0,
+      p_prima_dominical: parseFloat(calcPD) || 0,
+      p_bono: parseFloat(calcBono) || 0,
+      p_total_percepciones: percepciones,
+      p_imss_obrero: imss,
+      p_isr: isr,
+      p_total_deducciones: deducciones,
+      p_neto_pagar: neto,
+    });
     if (error) setNominaMsg({ ok:false, text:`Error: ${error.message}` });
     else       setNominaMsg({ ok:true,  text:`✅ Nómina guardada para ${selEmp.nombre}.` });
   };

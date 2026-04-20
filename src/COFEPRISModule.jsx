@@ -62,7 +62,13 @@ function AlertasLegales() {
     const { data, error } = await supabase.from("alertas_legales").select("*").order("nombre");
     if (!error) {
       if ((data||[]).length===0) {
-        await supabase.from("alertas_legales").insert(ALERTAS_DEFAULT.map(a=>({...a,activo:true})));
+        const tok = sessionStorage.getItem("farmax_session_token");
+        if (tok) {
+          await supabase.rpc("admin_seed_alertas_legales", {
+            p_session_token: tok,
+            p_items:         ALERTAS_DEFAULT,
+          });
+        }
         const { data:d2 } = await supabase.from("alertas_legales").select("*").order("nombre");
         setAlertas(d2||[]);
       } else setAlertas(data||[]);
@@ -75,7 +81,12 @@ function AlertasLegales() {
   const actualizarFecha = async (id) => {
     if (!editFecha) return;
     setSaving(true);
-    await supabase.from("alertas_legales").update({ fecha_vencimiento:editFecha }).eq("id",id);
+    const tok = sessionStorage.getItem("farmax_session_token");
+    await supabase.rpc("admin_actualizar_alerta_legal", {
+      p_session_token:     tok,
+      p_id:                id,
+      p_fecha_vencimiento: editFecha,
+    });
     setSaving(false); setEditId(null); setEditFecha(""); fetchAlertas();
   };
 

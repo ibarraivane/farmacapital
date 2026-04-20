@@ -46,24 +46,21 @@ function FacturaInlineForm({ venta, cliente, onClose }) {
     if(!nombre.trim())      { setErr("El nombre/razón social es requerido"); return; }
     setSaving(true); setErr("");
     try {
-      const { error } = await supabase.from("facturas").insert({
-        pedido_id:     venta?.id || null,
-        rfc:           rfc.trim().toUpperCase(),
-        razon_social:  nombre.trim().toUpperCase(),
-        uso_cfdi:      uso,
-        total:         parseFloat(venta?.total || 0),
-        estado:        "pendiente",
-        pac_proveedor: "pendiente",
+      const tok = sessionStorage.getItem("farmax_session_token");
+      if (!tok) throw new Error("Sesión expirada");
+      const { data: resp, error } = await supabase.rpc("crear_factura", {
+        p_session_token:  tok,
+        p_pedido_id:      venta?.id || null,
+        p_rfc:            rfc.trim().toUpperCase(),
+        p_razon_social:   nombre.trim().toUpperCase(),
+        p_uso_cfdi:       uso,
+        p_regimen_fiscal: null,
+        p_folio_fiscal:   null,
+        p_pac_proveedor:  "pendiente",
+        p_email:          null,
       });
-      if(error) throw error;
-      // Guardar RFC en cliente si existe
-      if(cliente?.id) {
-        await supabase.from("clientes").update({
-          rfc:           rfc.trim().toUpperCase(),
-          razon_social:  nombre.trim().toUpperCase(),
-          uso_cfdi:      uso,
-        }).eq("id", cliente.id);
-      }
+      if (error) throw error;
+      if (!resp?.success) throw new Error(resp?.error || "No se pudo solicitar");
       setOk(true);
     } catch(e) { setErr("Error al guardar: " + e.message); }
     setSaving(false);

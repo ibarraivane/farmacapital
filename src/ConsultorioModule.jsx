@@ -49,9 +49,12 @@ function ProcedimientoModal({initial, onClose, onSaved }) {
     if (!form.nombre.trim()||!form.precio) { showToast("Nombre y precio son requeridos.", "warning"); return; }
     setSaving(true);
     const payload = { nombre:form.nombre.trim(), precio:parseFloat(form.precio), descripcion:form.descripcion.trim()||null, activo:form.activo };
-    let err;
-    if (form.id) ({ error:err } = await supabase.from("procedimientos_medicos").update(payload).eq("id",form.id));
-    else         ({ error:err } = await supabase.from("procedimientos_medicos").insert(payload));
+    const tok = sessionStorage.getItem("farmax_session_token");
+    const { error: err } = await supabase.rpc("admin_upsert_procedimiento_medico", {
+      p_session_token: tok,
+      p_id:            form.id || null,
+      p_payload:       payload,
+    });
     setSaving(false);
     if (err) { showToast("Error al guardar: "+err.message, "error"); return; }
     onSaved();
@@ -89,9 +92,12 @@ function MedicoModal({ initial, onClose, onSaved }) {
     if (!form.nombre.trim()) { showToast("El nombre del médico es requerido.", "warning"); return; }
     setSaving(true);
     const payload = { nombre:form.nombre.trim(), especialidad:form.especialidad||"Medicina General", cedula:form.cedula.trim()||null, turno:form.turno.trim()||null, modelo_pago:form.modelo_pago, monto_fijo:parseFloat(form.monto_fijo)||0, porcentaje:parseFloat(form.porcentaje)||70, activo:form.activo };
-    let err;
-    if (form.id) ({ error:err } = await supabase.from("medicos").update(payload).eq("id",form.id));
-    else         ({ error:err } = await supabase.from("medicos").insert(payload));
+    const tok = sessionStorage.getItem("farmax_session_token");
+    const { error: err } = await supabase.rpc("admin_upsert_medico", {
+      p_session_token: tok,
+      p_id:            form.id || null,
+      p_payload:       payload,
+    });
     setSaving(false);
     if (err) { alert("Error: "+err.message); return; }
     onSaved();
@@ -172,19 +178,12 @@ function ListaEspera() {
   }, [fetchCitas]);
 
   const cambiarEstado = async (id, nuevoEstado) => {
-    const nowIso = new Date().toISOString();
-    const patch = { estado: nuevoEstado };
-    if (nuevoEstado === "en_consulta") {
-      patch.confirmada_inicio_at = nowIso;
-    }
-    if (nuevoEstado === "completada") {
-      patch.consulta_fin_at = nowIso;
-      const { data: row } = await supabase.from("citas").select("confirmada_inicio_at").eq("id", id).maybeSingle();
-      if (row?.confirmada_inicio_at) {
-        patch.duracion_consulta_segundos = Math.max(0, Math.floor((Date.now() - Date.parse(row.confirmada_inicio_at)) / 1000));
-      }
-    }
-    await supabase.from("citas").update(patch).eq("id", id);
+    const tok = sessionStorage.getItem("farmax_session_token");
+    if (!tok) { alert("Sesión expirada."); return; }
+    const { error } = await supabase.rpc("actualizar_estado_cita", {
+      p_session_token: tok, p_cita_id: id, p_nuevo_estado: nuevoEstado,
+    });
+    if (error) alert("Error: "+error.message);
     fetchCitas();
   };
 
@@ -289,11 +288,14 @@ function EnConsulta() {
     const cita = data?.[0]||null;
     setCitaActual(cita);
     if (cita) {
+      const tok = sessionStorage.getItem("farmax_session_token");
       const [{ data:hist },{ data:procs },bot,{ data:cliente }] = await Promise.all([
         supabase.from("citas").select("*").eq("telefono",cita.telefono).eq("estado","completada").order("fecha",{ascending:false}).limit(5),
         supabase.from("procedimientos_medicos").select("*").eq("activo",true).order("nombre"),
         fetchProductosConsumiblesConsultorio(supabase),
-        supabase.from("clientes").select("notas,nombre,email").eq("telefono",cita.telefono).maybeSingle(),
+        supabase.rpc("admin_obtener_cliente_por_telefono", {
+          p_session_token: tok, p_telefono: cita.telefono,
+        }),
       ]);
       setHistorial(hist||[]); setProcedimientos(procs||[]); setBotiquin(bot||[]);
       // J6: Cargar alergias y antecedentes previos del cliente
@@ -422,28 +424,29 @@ function EnConsulta() {
   const guardarConsulta = async () => {
     if (!diagnostico.trim()) { showToast("El diagnóstico es requerido para guardar.", "warning"); return; }
     setSaving(true);
-    // I3: Guardar alergias y antecedentes en cliente
-    if (citaActual.telefono && (alergias.trim()||antecedentes.trim())) {
-      const nota = [alergias.trim()&&`ALERGIAS: ${alergias.trim()}`, antecedentes.trim()&&`ANTECEDENTES: ${antecedentes.trim()}`].filter(Boolean).join(" | ");
-      await supabase.from("clientes").update({notas:nota}).eq("telefono",citaActual.telefono);
+    const tok = sessionStorage.getItem("farmax_session_token");
+    if (!tok) { showToast("Sesión expirada.", "error"); setSaving(false); return; }
+
+    const { data: resp, error } = await supabase.rpc("doctora_completar_consulta", {
+      p_session_token:  tok,
+      p_cita_id:        citaActual.id,
+      p_diagnostico:    diagnostico.trim(),
+      p_medicamentos:   medicamentos.filter(m => m.medicamento.trim()),
+      p_procedimientos: procSel,
+      p_notas_medico:   notasMedico.trim() || null,
+      p_alergias:       alergias.trim() || null,
+      p_antecedentes:   antecedentes.trim() || null,
+      p_consumibles:    consumibles.map(c => ({
+        producto_id: c.id,
+        cantidad:    c.cantidad,
+        precio:      c.precio || 0,
+      })),
+    });
+    if (error || !resp?.success) {
+      showToast("Error al guardar consulta: "+(resp?.error||error?.message), "error");
+      setSaving(false); return;
     }
-    const finIso = new Date().toISOString();
-    let durSec = null;
-    if (citaActual.confirmada_inicio_at) {
-      durSec = Math.max(0, Math.floor((Date.now() - Date.parse(citaActual.confirmada_inicio_at)) / 1000));
-    }
-    const { error:e1 } = await supabase.from("citas").update({
-      estado:"completada", diagnostico:diagnostico.trim(),
-      medicamentos_prescritos: medicamentos.filter(m=>m.medicamento.trim()),
-      procedimientos_realizados: procSel,
-      notas_medico: notasMedico.trim()||null,
-      consulta_fin_at: finIso,
-      duracion_consulta_segundos: durSec,
-    }).eq("id",citaActual.id);
-    if (e1) { showToast("Error al guardar consulta: "+e1.message, "error"); setSaving(false); return; }
-    if (consumibles.length>0) {
-      await supabase.from("consumibles_consulta").insert(consumibles.map(c=>({ cita_id:citaActual.id, producto_id:c.id, nombre:c.nombre, cantidad:c.cantidad })));
-    }
+
     setSaving(false); setSaved(true);
     setDiagnostico(""); setMedicamentos([{medicamento:"",dosis:"",indicaciones:""}]);
     setProcSel([]); setConsumibles([]); setNotasMedico("");
@@ -611,7 +614,13 @@ function Procedimientos() {
     const { data, error } = await supabase.from("procedimientos_medicos").select("*").order("nombre");
     if (!error) {
       if ((data||[]).length===0) {
-        await supabase.from("procedimientos_medicos").insert(DEFAULT_PROCEDIMIENTOS.map(p=>({...p,activo:true})));
+        const tok = sessionStorage.getItem("farmax_session_token");
+        if (tok) {
+          await supabase.rpc("admin_seed_procedimientos_medicos", {
+            p_session_token: tok,
+            p_items:         DEFAULT_PROCEDIMIENTOS,
+          });
+        }
         const { data:d2 } = await supabase.from("procedimientos_medicos").select("*").order("nombre");
         setProcs(d2||[]);
       } else setProcs(data||[]);
@@ -622,7 +631,10 @@ function Procedimientos() {
   useEffect(() => { fetchProcs(); }, [fetchProcs]);
 
   const toggleActivo = async (p) => {
-    await supabase.from("procedimientos_medicos").update({activo:!p.activo}).eq("id",p.id);
+    const tok = sessionStorage.getItem("farmax_session_token");
+    await supabase.rpc("admin_toggle_procedimiento_medico", {
+      p_session_token: tok, p_id: p.id, p_activo: !p.activo,
+    });
     fetchProcs();
   };
 
@@ -686,7 +698,10 @@ function Medicos() {
   useEffect(() => { fetchMedicos(); }, [fetchMedicos]);
 
   const toggleActivo = async (m) => {
-    await supabase.from("medicos").update({activo:!m.activo}).eq("id",m.id);
+    const tok = sessionStorage.getItem("farmax_session_token");
+    await supabase.rpc("admin_toggle_medico", {
+      p_session_token: tok, p_id: m.id, p_activo: !m.activo,
+    });
     fetchMedicos();
   };
 

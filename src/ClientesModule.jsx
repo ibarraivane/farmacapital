@@ -43,13 +43,21 @@ function AgregarCliente({ onSaved, onCancel }) {
     if (!form.telefono.trim()) e.telefono = "Requerido";
     if (Object.keys(e).length) { setErrors(e); return; }
     setSaving(true);
-    const { data, error } = await supabase.from("clientes").insert({
-      nombre: form.nombre.trim(), telefono: form.telefono.trim(),
-      email: form.email.trim()||null, notas: form.notas.trim()||null, puntos: 0,
-    }).select().single();
+    const tok = sessionStorage.getItem("farmax_session_token");
+    if (!tok) { setSaving(false); showToast("Sesión expirada.","error"); return; }
+    const { data: resp, error } = await supabase.rpc("admin_crear_cliente_manual", {
+      p_session_token: tok,
+      p_nombre:   form.nombre.trim(),
+      p_telefono: form.telefono.trim(),
+      p_email:    form.email.trim() || null,
+      p_notas:    form.notas.trim() || null,
+    });
     setSaving(false);
-    if (error) { showToast("Error al guardar cliente: "+error.message, "error"); return; }
-    onSaved(data);
+    if (error || !resp?.success) {
+      showToast("Error al guardar cliente: "+(resp?.error||error?.message),"error");
+      return;
+    }
+    onSaved(resp.cliente || resp);
   };
   const field = (label, key, type="text", required=false, multiline=false) => (
     <div style={{ marginBottom:14 }}>
@@ -117,18 +125,29 @@ function ClienteDetalle({ cliente, onReload }) {
   const aplicarAjuste = async () => {
     if (!ajuste || !motivo.trim()) { setMsg("⚠ Ingresa cantidad y motivo"); return; }
     setSaving(true);
-    const { error } = await supabase.from("clientes").update({ puntos: (cliente.puntos||0) + parseInt(ajuste) }).eq("id", cliente.id);
+    const tok = sessionStorage.getItem("farmax_session_token");
+    const { data: resp, error } = await supabase.rpc("admin_ajustar_puntos", {
+      p_session_token: tok,
+      p_cliente_id:    cliente.id,
+      p_delta:         parseInt(ajuste),
+      p_motivo:        motivo.trim(),
+    });
     setSaving(false);
-    if (error) { setMsg("Error: "+error.message); return; }
+    if (error || !resp?.success) { setMsg("Error: "+(resp?.error||error?.message)); return; }
     setMsg("✅ Puntos actualizados"); setAjuste(""); setMotivo("");
     setTimeout(()=>setMsg(""), 3000); onReload();
   };
 
   const guardarNota = async () => {
     setSaving(true);
-    const { error } = await supabase.from("clientes").update({ notas: nota.trim()||null }).eq("id", cliente.id);
+    const tok = sessionStorage.getItem("farmax_session_token");
+    const { data: resp, error } = await supabase.rpc("admin_ajustar_nota_cliente", {
+      p_session_token: tok,
+      p_cliente_id:    cliente.id,
+      p_nota:          nota.trim() || null,
+    });
     setSaving(false);
-    if (error) { setMsg("Error: "+error.message); return; }
+    if (error || !resp?.success) { setMsg("Error: "+(resp?.error||error?.message)); return; }
     setMsg("✅ Nota guardada"); setTimeout(()=>setMsg(""), 3000); onReload();
   };
 
@@ -302,7 +321,8 @@ export default function ClientesModule() {
 
   const fetchClientes = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase.from("clientes").select("*").order("nombre");
+    const tok = sessionStorage.getItem("farmax_session_token");
+    const { data, error } = await supabase.rpc("admin_listar_clientes", { p_session_token: tok });
     if (!error) setClientes(data||[]);
     setLoading(false);
   }, []);
@@ -312,7 +332,10 @@ export default function ClientesModule() {
   const reloadSel = async () => {
     await fetchClientes();
     if (clienteSel) {
-      const { data } = await supabase.from("clientes").select("*").eq("id", clienteSel.id).single();
+      const tok = sessionStorage.getItem("farmax_session_token");
+      const { data } = await supabase.rpc("admin_obtener_cliente", {
+        p_session_token: tok, p_cliente_id: clienteSel.id,
+      });
       if (data) setClienteSel(data);
     }
   };

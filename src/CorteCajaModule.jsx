@@ -119,11 +119,18 @@ export default function CorteCajaModule({usuario }) {
       if (!ok) return;
     }
     setSaving(true);
-    const { error } = await supabase.from("cortes_caja").insert({
-      turno, cajero: usuario?.nombre||"Sistema",
-      efectivo_declarado: efDec, efectivo_sistema, tarjeta: tar,
-      spei: 0, mercadopago: mp, diferencia, total_general,
-      notas: notas.trim()||null, fecha: new Date().toISOString(),
+    const tok = sessionStorage.getItem("farmax_session_token");
+    if (!tok) { setSaving(false); alert("Sesión expirada. Inicia sesión de nuevo."); return; }
+    const { error } = await supabase.rpc("registrar_corte_caja", {
+      p_session_token: tok,
+      p_turno: turno,
+      p_efectivo_declarado: efDec,
+      p_efectivo_sistema: efectivo_sistema,
+      p_tarjeta: tar,
+      p_mercadopago: mp,
+      p_diferencia: diferencia,
+      p_total_general: total_general,
+      p_notas: notas.trim() || null,
     });
     setSaving(false);
     if (error) { showToast("Error al guardar corte: "+error.message, "error"); return; }
