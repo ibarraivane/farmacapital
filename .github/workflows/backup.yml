@@ -27,6 +27,7 @@ jobs:
     env:
       # Debe ser >= la versión de Postgres de Supabase. Ajustar si cambia.
       PG_MAJOR: "17"
+      R2_ENABLED: ${{ secrets.R2_ENABLED }}
 
     steps:
       - name: Checkout repo principal (código del script)
@@ -68,7 +69,7 @@ jobs:
       # Opcional: upload a Cloudflare R2 (solo si R2_ENABLED=true)
       # -----------------------------------------------------------------
       - name: Upload a R2 (stub, desactivado por default)
-        if: ${{ secrets.R2_ENABLED == 'true' }}
+        if: env.R2_ENABLED == 'true'
         env:
           R2_ENABLED:           ${{ secrets.R2_ENABLED }}
           R2_ACCOUNT_ID:        ${{ secrets.R2_ACCOUNT_ID }}
