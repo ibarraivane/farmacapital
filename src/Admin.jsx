@@ -524,7 +524,7 @@ function Dashboard({negocio,alertas,setPage}){
           supabase.from("pedidos").select("total").eq("estado","completado").gte("created_at", t0.toISOString()).lte("created_at", t1.toISOString()),
           supabase.from("pedidos").select("total").eq("estado","completado").gte("created_at", weekAgo.toISOString()),
           supabase.from("pedidos").select("total").eq("estado","completado").gte("created_at", monthStart.toISOString()),
-          supabase.from("citas").select("id").eq("fecha", hoyLocal).neq("estado", "cancelada").or("estado=in.(completada,pagada),pago_estado.eq.pagada"),
+          supabase.from("citas").select("id").eq("fecha", hoyLocal).neq("estado", "cancelada").or("estado.eq.completada,estado.eq.pagada,pago_estado.eq.pagada"),
         ]);
 
         if (pedsRes?.error) console.error("[Dashboard] Pedidos:", pedsRes.error);
