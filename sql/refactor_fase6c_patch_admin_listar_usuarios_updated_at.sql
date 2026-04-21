@@ -3,10 +3,14 @@
 --   • "column u.updated_at does not exist"
 --   • "structure of query does not match function result type" (p. ej. id integer, created_at timestamp)
 -- Ejecutar en Supabase SQL Editor (idempotente).
+--
+-- Si aparece 42P13 "cannot change return type", este script incluye DROP primero.
 
 begin;
 
-create or replace function public.admin_listar_usuarios(
+drop function if exists public.admin_listar_usuarios(uuid);
+
+create function public.admin_listar_usuarios(
   p_session_token uuid
 )
 returns table (
@@ -39,5 +43,7 @@ begin
   order by u.nombre;
 end;
 $$;
+
+grant execute on function public.admin_listar_usuarios(uuid) to anon, authenticated;
 
 commit;

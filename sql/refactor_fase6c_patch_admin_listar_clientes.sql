@@ -4,10 +4,15 @@
 -- information_schema a veces no coincide con la tabla real; pg_attribute sí.
 --
 -- Ejecutar en Supabase SQL Editor (idempotente).
+--
+-- Si aparece 42P13 "cannot change return type of existing function",
+-- este script ya incluye DROP; vuelve a ejecutarlo completo.
 
 begin;
 
-create or replace function public.admin_listar_clientes(
+drop function if exists public.admin_listar_clientes(uuid);
+
+create function public.admin_listar_clientes(
   p_session_token uuid
 )
 returns table (

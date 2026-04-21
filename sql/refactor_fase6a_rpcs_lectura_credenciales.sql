@@ -15,7 +15,10 @@ begin;
 -- ============================================================
 -- No devuelve password_hash ni salt.
 -- Solo admin puede llamar.
+-- DROP: no se puede cambiar RETURNS TABLE solo con CREATE OR REPLACE.
 -- ============================================================
+drop function if exists public.admin_listar_usuarios(uuid);
+
 create or replace function public.admin_listar_usuarios(
   p_session_token uuid
 )
@@ -58,7 +61,10 @@ grant execute on function public.admin_listar_usuarios(uuid) to anon, authentica
 -- ============================================================
 -- No devuelve password_hash ni salt.
 -- Cualquier empleado puede listar clientes (ventas, caja, consultorio).
+-- DROP: Postgres no permite cambiar RETURNS TABLE solo con CREATE OR REPLACE.
 -- ============================================================
+drop function if exists public.admin_listar_clientes(uuid);
+
 create or replace function public.admin_listar_clientes(
   p_session_token uuid
 )
