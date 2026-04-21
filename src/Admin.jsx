@@ -1265,7 +1265,7 @@ function POS({negocio,usuario,initialTab="venta",onNavigate}){
     try {
       const tok = sessionStorage.getItem("farmax_session_token");
       const { data: resp, error } = await supabase.rpc("actualizar_estado_cita", {
-        p_session_token: tok, p_cita_id: cita.id, p_nuevo_estado: "cancelada",
+        p_session_token: tok, p_cita_id: cita.id, p_estado: "cancelada",
       });
       if (error) throw error;
       if (!resp?.success) throw new Error(resp?.error || "No se pudo cancelar");
@@ -2177,7 +2177,7 @@ function ConsDoctora() {
     try {
       const tok = sessionStorage.getItem("farmax_session_token");
       const { error } = await supabase.rpc("actualizar_estado_cita", {
-        p_session_token: tok, p_cita_id: cita.id, p_nuevo_estado: "en_consulta",
+        p_session_token: tok, p_cita_id: cita.id, p_estado: "en_consulta",
       });
       if (error) throw error;
       await recargar();

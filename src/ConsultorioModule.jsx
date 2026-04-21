@@ -181,7 +181,7 @@ function ListaEspera() {
     const tok = sessionStorage.getItem("farmax_session_token");
     if (!tok) { alert("Sesión expirada."); return; }
     const { error } = await supabase.rpc("actualizar_estado_cita", {
-      p_session_token: tok, p_cita_id: id, p_nuevo_estado: nuevoEstado,
+      p_session_token: tok, p_cita_id: id, p_estado: nuevoEstado,
     });
     if (error) alert("Error: "+error.message);
     fetchCitas();
