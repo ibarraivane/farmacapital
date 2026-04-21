@@ -83,6 +83,17 @@ export const rpcClienteSecure = async (fn, args = {}) => {
   return await supabase.rpc(fn, { p_session_token: tok, ...args });
 };
 
+/**
+ * Las RPC F6a/F6b devuelven `token` + `usuario` o `cliente`; el frontend
+ * histórico usa `session_token` + `user`. Unifica ambos formatos.
+ */
+export function normalizarSesionLoginResp(resp) {
+  if (!resp || typeof resp !== "object") return resp;
+  const session_token = resp.session_token ?? resp.token ?? null;
+  const user = resp.user ?? resp.usuario ?? resp.cliente ?? null;
+  return { ...resp, session_token, user };
+}
+
 let auditLogDisabled = false;
 
 export const logAudit = async (usuario, accion, tabla="", registro_id="", detalle={}) => {

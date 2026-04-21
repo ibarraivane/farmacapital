@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "./supabase";
 import { useTheme } from "./themeContext";
 import { useMediaQuery } from "./hooks/useMediaQuery";
-import { saludoUsuario, primerNombre, $ } from "./utils";
+import { saludoUsuario, primerNombre, $, normalizarSesionLoginResp } from "./utils";
 import { CONSULTA_PRECIO_DEFAULT } from "./utils/consultaConstants";
 import { fetchPrecioConsultaConfig } from "./utils/consumiblesConsultorio";
 
@@ -1325,7 +1325,7 @@ function Registro({setUser,setPage}){
     if(pwd !== pwd2) { setError("Las contraseñas no coinciden."); return; }
     setC(true); setError("");
     try{
-      const { data:resp, error:err } = await supabase.rpc("registrar_cliente", {
+      const { data: raw, error: err } = await supabase.rpc("registrar_cliente", {
         p_nombre:   nombre.trim(),
         p_telefono: tel.trim(),
         p_password: pwd,
@@ -1333,12 +1333,13 @@ function Registro({setUser,setPage}){
         p_user_agent: navigator.userAgent || null,
       });
       if (err) throw err;
+      const resp = normalizarSesionLoginResp(raw);
       if (!resp?.success) {
         setError(resp?.error || "No se pudo crear la cuenta.");
         setC(false); return;
       }
       const nuevo = resp.user || {};
-      sessionStorage.setItem("farmax_cliente_token", resp.session_token);
+      sessionStorage.setItem("farmax_cliente_token", String(resp.session_token));
       sessionStorage.setItem("farmax_user", JSON.stringify(nuevo));
       setUser(nuevo);
       setPage("cuenta");
@@ -1404,7 +1405,7 @@ function Login({setUser,setPage}){
     if(intentos>=5){ setError("Demasiados intentos. Espera unos minutos."); return; }
     setBusc(true); setError("");
     try{
-      const { data:resp, error:err } = await supabase.rpc("login_cliente", {
+      const { data: raw, error: err } = await supabase.rpc("login_cliente", {
         p_telefono: tel.trim(),
         p_password: pwd,
         p_user_agent: navigator.userAgent || null,
@@ -1413,6 +1414,7 @@ function Login({setUser,setPage}){
         setError("Error de conexión. Intenta de nuevo.");
         setBusc(false); return;
       }
+      const resp = normalizarSesionLoginResp(raw);
       if (!resp?.success) {
         setInt(i=>i+1);
         setError(`${resp?.error || "Credenciales inválidas"} (${intentos+1}/5)`);
@@ -1420,7 +1422,7 @@ function Login({setUser,setPage}){
       }
       const cliente = resp.user || {};
       setInt(0);
-      sessionStorage.setItem("farmax_cliente_token", resp.session_token);
+      sessionStorage.setItem("farmax_cliente_token", String(resp.session_token));
       sessionStorage.setItem("farmax_user", JSON.stringify(cliente));
       setUser(cliente);
       setPage("cuenta");

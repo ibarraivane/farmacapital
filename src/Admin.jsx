@@ -7,7 +7,7 @@ import TicketPreviewModal from "./components/tickets/TicketPreviewModal";
 import { printTicket } from "./utils/printTicket";
 import { supabase } from "./supabase";
 import { C as _C, C_LIGHT, BRAND, NEG, NAV_ADMIN, NAV_VENDEDOR, NAV_DOCTORA, NAV_ITEMS } from "./constants";
-import { $, dC, cC, abc, aCol, nCol, hashPwd, hashPwdLegacy, generateSalt, logAudit, logMovimiento, primerNombre, saludoUsuario } from "./utils";
+import { $, dC, cC, abc, aCol, nCol, hashPwd, hashPwdLegacy, generateSalt, logAudit, logMovimiento, primerNombre, saludoUsuario, normalizarSesionLoginResp } from "./utils";
 import { Logo, Box, Tag, Btn, Inp, KPI, Modal, NotificacionesToast, showToast, ToastProvider, ConfirmDialog, SkeletonTable, SkeletonKPIs, SkeletonCard, Paginador, SearchDropdown, GlobalHoverStyles } from "./ui";
 import { getSiguienteFolio } from "./utils/folioGenerator";
 import { guardarVentaPendiente, sincronizarVentasPendientes, contarVentasPendientes } from "./utils/offlineQueue";
@@ -112,6 +112,7 @@ function LoginScreen({onLogin}){
   const [email,setEmail] = useState("");
   const [pwd,setPwd]     = useState("");
   const [error,setError] = useState("");
+  const [errorDetail,setErrorDetail] = useState("");
   const [loading,setLoad]= useState(false);
 
   const entrar = async () => {
@@ -128,19 +129,32 @@ function LoginScreen({onLogin}){
       return;
     }
 
-    setLoad(true); setError("");
+    setLoad(true); setError(""); setErrorDetail("");
     try {
-      const { data:resp, error:rpcErr } = await supabase.rpc("login_empleado", {
+      const { data: raw, error: rpcErr } = await supabase.rpc("login_empleado", {
         p_identificador: idNorm,
         p_password:      pwd,
         p_user_agent:    navigator.userAgent || null,
       });
 
       if (rpcErr) {
-        setError("Error de conexión. Verifica tu internet.");
+        const tech = rpcErr.message || String(rpcErr);
+        const low = tech.toLowerCase();
+        let msg = "No pudimos conectar con el servidor de datos.";
+        if (low.includes("failed to fetch") || low.includes("network")) {
+          msg = "No hay conexión a internet o la dirección del servidor no coincide con tu proyecto en Supabase.";
+        } else if (rpcErr.code === "PGRST202" || low.includes("could not find the function")) {
+          msg = "Falta actualizar la base de datos (función de inicio de sesión no encontrada).";
+        } else if (rpcErr.code === "42501" || low.includes("permission denied")) {
+          msg = "El servidor rechazó el inicio de sesión por permisos. Hay que reaplicar los permisos de la función login en Supabase.";
+        }
+        setError(msg);
+        setErrorDetail(tech.length > 120 ? tech.slice(0, 120) + "…" : tech);
         setLoad(false);
         return;
       }
+
+      const resp = normalizarSesionLoginResp(raw);
 
       if (!resp?.success) {
         const intentos = parseInt(localStorage.getItem(intentosKey)||"0") + 1;
@@ -159,6 +173,12 @@ function LoginScreen({onLogin}){
       localStorage.removeItem(intentosKey);
       localStorage.removeItem(bloqueoKey);
 
+      if (!resp.session_token) {
+        setError("La base respondió bien pero sin token de sesión. Revisa la versión del código y de la función login_empleado.");
+        setLoad(false);
+        return;
+      }
+
       const u = resp.user || {};
       const data = {
         id:             u.id,
@@ -170,12 +190,13 @@ function LoginScreen({onLogin}){
         loginTimestamp: Date.now(),
       };
 
-      sessionStorage.setItem("farmax_session_token", resp.session_token);
+      sessionStorage.setItem("farmax_session_token", String(resp.session_token));
       sessionStorage.setItem("farmax_admin_user", JSON.stringify(data));
       localStorage.setItem("farmax_last_login_"+data.id, new Date().toLocaleString("es-MX"));
       onLogin(data);
     } catch(e) {
-      setError("Error de conexión. Verifica tu internet.");
+      setError("No pudimos conectar. Revisa tu internet o vuelve a intentar en unos segundos.");
+      setErrorDetail(e?.message ? String(e.message) : "");
     }
     setLoad(false);
   };
@@ -197,7 +218,10 @@ function LoginScreen({onLogin}){
             <div style={{color:C.textMid,fontSize:11,marginBottom:6,fontWeight:700}}>CONTRASEÑA</div>
             <Inp value={pwd} onChange={e=>setPwd(e.target.value)} onKeyDown={e=>e.key==="Enter"&&entrar()} placeholder="••••••••" type="password" style={{width:"100%",boxSizing:"border-box"}}/>
           </div>
-          {error&&<div style={{background:C.redDim,border:`1px solid ${C.red}30`,borderRadius:8,padding:"10px 12px",marginBottom:16,color:C.red,fontSize:13}}>{error}</div>}
+          {error&&<div style={{background:C.redDim,border:`1px solid ${C.red}30`,borderRadius:8,padding:"10px 12px",marginBottom:16,color:C.red,fontSize:13}}>
+            <div>{error}</div>
+            {errorDetail ? <div style={{marginTop:8,fontSize:11,opacity:0.9,wordBreak:"break-word"}}>{errorDetail}</div> : null}
+          </div>}
           <Btn onClick={entrar} full col={BRAND.primary} dis={!email||!pwd||loading}>{loading?"Verificando...":"Entrar →"}</Btn>
           <div style={{marginTop:16,textAlign:"center"}}>
             <div style={{fontSize:11,color:C.textDim,textAlign:"center"}}>

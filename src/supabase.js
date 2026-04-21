@@ -8,7 +8,8 @@ const SUPABASE_URL =
   env.VITE_SUPABASE_URL ||
   runtimeEnv.REACT_APP_SUPABASE_URL ||
   runtimeEnv.VITE_SUPABASE_URL ||
-  'https://qyabhoftqfmqwpqcsdrb.supabase.co';
+  // Debe coincidir con Project URL en Supabase (Settings → API). Sin .env, se usa este fallback.
+  'https://qyabhoftqfmwqpqcsdrb.supabase.co';
 const SUPABASE_ANON_KEY =
   env.REACT_APP_SUPABASE_ANON_KEY ||
   env.VITE_SUPABASE_ANON_KEY ||
