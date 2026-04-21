@@ -7,13 +7,29 @@ import { CATEGORIAS_CONSUMIBLE_CONSULTORIO_SUGERIDAS } from "./utils/consumibles
 
 const C = C_LIGHT;
 
-// Upsert atómico: requiere UNIQUE en configuracion.clave.
+// F6: sin INSERT/UPDATE directo; usa RPC SECURITY DEFINER.
 async function upsertConfig(clave, valor) {
-  const { error } = await supabase
-    .from("configuracion")
-    .upsert({ clave, valor: String(valor) }, { onConflict: "clave" });
-  if (error) console.error(`[ConfigCons] upsert ${clave}:`, error);
-  return error;
+  const tok = sessionStorage.getItem("farmax_session_token");
+  if (!tok) {
+    const err = { message: "Sesión no iniciada" };
+    console.error(`[ConfigCons] upsert ${clave}:`, err);
+    return err;
+  }
+  const { data, error } = await supabase.rpc("empleado_upsert_configuracion", {
+    p_session_token: tok,
+    p_clave: clave,
+    p_valor: String(valor),
+  });
+  if (error) {
+    console.error(`[ConfigCons] upsert ${clave}:`, error);
+    return error;
+  }
+  if (!data?.success) {
+    const err = { message: data?.error || "Error al guardar" };
+    console.error(`[ConfigCons] upsert ${clave}:`, err);
+    return err;
+  }
+  return null;
 }
 
 function msgError(e) {
