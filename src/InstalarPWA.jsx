@@ -3,7 +3,7 @@ import { C_LIGHT } from "./constants";
 
 const BRAND = { primary:"#0052cc", gradient:"linear-gradient(135deg,#0052cc,#0099e6)" };
 
-const URL_ADMIN = "https://farmax-seven.vercel.app/admin";
+const URL_ADMIN = "https://farmax-app.vercel.app/admin";
 
 export default function InstalarPWA() {
   const C = C_LIGHT;

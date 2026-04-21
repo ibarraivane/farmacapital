@@ -102,7 +102,7 @@ export function generateTicketHTML(data) {
       <div class="center" style="font-size:9px">¡Gracias por su preferencia!</div>
       <div class="center" style="font-size:9px">Vuelva pronto a Farmax</div>
       <div style="width:80px;height:80px;border:1px dashed #999;margin:8px auto;display:flex;align-items:center;justify-content:center;font-size:8px;color:#999">QR Code</div>
-      <div class="center" style="font-size:8px">farmax-seven.vercel.app</div>
+      <div class="center" style="font-size:8px">farmax-app.vercel.app</div>
     </body>
     </html>
   `;

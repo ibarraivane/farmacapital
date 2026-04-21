@@ -152,7 +152,7 @@ export function generarESCPOS(ticketData) {
   data.push(CMD.ALIGN_CENTER);
   data.push("Gracias por su compra\n");
   data.push("!Vuelva pronto!\n");
-  data.push("farmax-seven.vercel.app\n");
+  data.push("farmax-app.vercel.app\n");
 
   // CORTE
   data.push(CMD.FEED_LINES(3));

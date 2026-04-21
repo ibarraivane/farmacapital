@@ -12,6 +12,17 @@ import ExpedientesDoctora from "./modules/clinical/patients/ExpedientesDoctora";
 import { loadAdminNavOrder, saveAdminNavOrder, reorderNavIds, mergeAdminNavOrder, clearAdminNavOrder } from "./utils/adminNavOrder";
 import { puedeVerModulo, modulosPermitidosParaRol } from "./utils/permissions";
 import { adminPathnameToPageId, pageIdToAdminPath } from "./shared/adminRoutes";
+import { initEventStore } from "./core/eventStore/initEventStore";
+import { syncAllModels } from "./core/jobs/syncAllModels";
+import { initBillingListeners } from "./modules/billing/core/initBillingListeners";
+import { canAccessRoute } from "./core/security/routeGuard";
+import Sidebar from "./modules/shared/navigation/Sidebar";
+
+initEventStore();
+
+setInterval(() => {
+  syncAllModels();
+}, 60 * 1000); // cada minuto
 
 // Fallback estático para estilos fuera de componentes (evita undefined en import).
 const C = C_LIGHT;
@@ -266,7 +277,7 @@ function SidebarBadge({count, critical}) {
   );
 }
 
-function Sidebar({active,setActive,negocio,setNegocio,usuario,onLogout,alertas,ventasOffline=0,mobile=false,navOpen=false,badgeCounts={},badgeCritical={}}){
+function AdminNavSidebar({active,setActive,negocio,setNegocio,usuario,onLogout,alertas,ventasOffline=0,mobile=false,navOpen=false,badgeCounts={},badgeCritical={}}){
   const C = C_LIGHT;
   const isAdmin = usuario.rol==="admin";
   const [adminOrder, setAdminOrder] = useState(() => (isAdmin ? loadAdminNavOrder(usuario) : null));
@@ -282,6 +293,10 @@ function Sidebar({active,setActive,negocio,setNegocio,usuario,onLogout,alertas,v
     }
     setAdminOrder(loadAdminNavOrder(usuario));
   }, [isAdmin, usuario?.id]);
+
+  useEffect(() => {
+    console.log("REAL SIDEBAR LOADED");
+  }, []);
 
   // Si el usuario tiene modulos_custom configurado, respétalo por encima del default del rol.
   // (Un admin no puede recibir modulos_custom restringido — siempre ve todo su NAV_ADMIN.)
@@ -1340,6 +1355,10 @@ export default function FarmaxAdmin(){
   }, [isMobileLayout]);
 
   useEffect(() => {
+    initBillingListeners();
+  }, []);
+
+  useEffect(() => {
     const onPop = () => {
       const id = adminPathnameToPageId(window.location.pathname);
       if (!id) return;
@@ -1588,6 +1607,8 @@ export default function FarmaxAdmin(){
 
   if(!usuario) return <LoginScreen onLogin={u=>{ sessionStorage.setItem("farmax_admin_user",JSON.stringify(u)); setUsuario(u); }}/>;
 
+  const user = usuario;
+
   const renderPage = () => {
     // Guard de permisos: bloquea acceso a módulos fuera del rol.
     if (!puedeVerModulo(usuario, page)) {
@@ -1613,7 +1634,11 @@ export default function FarmaxAdmin(){
     switch(page){
       case "midia":     return <MiDia usuario={usuario} setPage={setPageAndSave}/>;
       case "dash":      return <DashboardModule usuario={usuario} setPage={setPageAndSave} showConfirm={showConfirm}/>;
-      case "pos":       return <POS negocio={neg} usuario={usuario} initialTab="venta" onNavigate={setPageAndSave}/>;
+      case "pos":
+        if (!canAccessRoute(usuario.rol, "/pos")) {
+          return <div>No autorizado</div>;
+        }
+        return <POS negocio={neg} usuario={usuario} initialTab="venta" onNavigate={setPageAndSave}/>;
       case "cons":      return <ConsultorioModule usuario={usuario}/>;
       case "config_cons": return <ConfigConsultorioModule />;
       case "cons_cobro":return <POS negocio={neg} usuario={usuario} initialTab="consultas" onNavigate={setPageAndSave}/>;
@@ -1678,7 +1703,7 @@ export default function FarmaxAdmin(){
           ☰
         </button>
       )}
-      <Sidebar
+      <AdminNavSidebar
         active={page} setActive={setPageAndSave}
         negocio={neg} setNegocio={setNeg}
         usuario={usuario} onLogout={logout}
@@ -1689,6 +1714,7 @@ export default function FarmaxAdmin(){
         badgeCounts={badgeCounts}
         badgeCritical={badgeCritical}
       />
+      <Sidebar user={user} />
       <main style={{
         marginLeft:isMobileLayout?0:220,
         padding:isMobileLayout?"56px 16px 20px":28,
