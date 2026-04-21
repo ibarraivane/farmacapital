@@ -4,6 +4,7 @@
 // baje al instante cuando resuelve algo).
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../supabase";
+import { countPedidosTiendaPendientesHead } from "../utils/pedidosTiendaWeb";
 
 const REFRESH_MS = 60 * 1000;
 
@@ -39,11 +40,7 @@ export default function useSidebarBadges(currentPage) {
       ] = await Promise.all([
         supabase.from("productos").select("id", { count: "exact", head: true }).eq("activo", true).lte("stock", 0),
         supabase.from("cortes_caja").select("id", { count: "exact", head: true }).neq("diferencia", 0),
-        supabase
-          .from("pedidos")
-          .select("id", { count: "exact", head: true })
-          .eq("estado", "pendiente")
-          .or("tipo.eq.online,and(tipo.is.null,metodo_pago.eq.tarjeta),and(tipo.is.null,metodo_pago.eq.mercadopago)"),
+        countPedidosTiendaPendientesHead(supabase),
         cofeprisRpc,
       ]);
       if (errBajo) console.warn("[Badges] bajo stock:", errBajo.message);

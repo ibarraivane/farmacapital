@@ -5,6 +5,7 @@ import { saludoUsuario, $ } from "./utils";
 import { SkeletonKPIs, SkeletonTable, SkeletonCard, KPI, Box, Tag } from "./ui";
 import { CONSULTA_PRECIO_DEFAULT } from "./utils/consultaConstants";
 import TransaccionesTab from "./TransaccionesTab";
+import { countPedidosTiendaPendientesHead } from "./utils/pedidosTiendaWeb";
 
 const INVERSION = 710433;
 const INVERSION_TOTAL = 710433;
@@ -240,11 +241,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
       supabase.from("pedidos").select("total").eq("estado", "completado").gte("created_at", new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toISOString()).lte("created_at", new Date(new Date().getFullYear(), new Date().getMonth(), 0).toISOString()),
       supabase.from("citas").select("id").eq("fecha", hoyLocal).neq("estado", "cancelada").or("estado.eq.completada,estado.eq.pagada,pago_estado.eq.pagada"),
       supabase.from("citas").select("id").eq("fecha", ayerLocal).neq("estado", "cancelada").or("estado.eq.completada,estado.eq.pagada,pago_estado.eq.pagada"),
-      supabase
-        .from("pedidos")
-        .select("id", { count: "exact", head: true })
-        .eq("estado", "pendiente")
-        .or("tipo.eq.online,and(tipo.is.null,metodo_pago.eq.tarjeta),and(tipo.is.null,metodo_pago.eq.mercadopago)"),
+      countPedidosTiendaPendientesHead(supabase),
       supabase.from("pedidos").select("total,tipo").eq("estado", "completado").gte("created_at", month.start),
       supabase.from("pedido_items").select("cantidad,precio_unitario,productos(nombre)").limit(1000),
       supabase.from("productos").select("id,nombre,stock,stock_minimo").lte("stock", 0).eq("activo", true).limit(5),

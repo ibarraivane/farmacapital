@@ -15,7 +15,7 @@ import { idEmpleadoUsuarios } from "./utils/usuarioId";
 import { CONSULTA_PRECIO_DEFAULT, CONSULTA_PARTE_DOCTOR, repartoConsulta, citaPagoPendiente, citaPagoOk, citaEstaPagada, labelCanal } from "./utils/consultaConstants";
 import { horariosDisponiblesCita, puedeCancelarCitaNoShow, addDaysSv, formatFechaAgendaLargaEs } from "./utils/citasAgenda";
 import { fetchProductosConsumiblesConsultorio } from "./utils/consumiblesConsultorio";
-import { esPedidoTiendaWebPendiente } from "./utils/pedidosTiendaWeb";
+import { esPedidoTiendaWebPendiente, fetchPedidosTiendaPendientesMerged } from "./utils/pedidosTiendaWeb";
 import { CitaFichaModal } from "./CitaFichaDoctora";
 import { desgloseCambioMN, sugerenciasPagoCliente } from "./utils/cambioCaja";
 import { loadAdminNavOrder, saveAdminNavOrder, reorderNavIds, mergeAdminNavOrder, clearAdminNavOrder } from "./utils/adminNavOrder";
@@ -504,6 +504,11 @@ function Dashboard({negocio,alertas,setPage}){
         const weekAgo = new Date(Date.now() - 7 * 86400000);
         const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
+        const pedidosTiendaSelect = `
+            id,total,created_at,tipo,metodo_pago,estado,
+            clientes(nombre,telefono),
+            pedido_items(cantidad,precio_unitario,productos(nombre,sku))
+          `;
         const [
           pedsRes,
           citasRes,
@@ -512,11 +517,7 @@ function Dashboard({negocio,alertas,setPage}){
           ventasMesRes,
           citasComplRes,
         ] = await Promise.all([
-          supabase.from("pedidos").select(`
-            id,total,created_at,tipo,metodo_pago,estado,
-            clientes(nombre,telefono),
-            pedido_items(cantidad,precio_unitario,productos(nombre,sku))
-          `).eq("estado","pendiente").or("tipo.eq.online,and(tipo.is.null,metodo_pago.eq.tarjeta),and(tipo.is.null,metodo_pago.eq.mercadopago)").order("created_at",{ascending:false}),
+          fetchPedidosTiendaPendientesMerged(supabase, pedidosTiendaSelect, { perBranchLimit: 80, maxRows: 200 }),
           supabase.from("citas").select(`
             id,nombre,telefono,hora,fecha,motivo,estado,pago_estado,
             consumibles_consulta!cita_id(id,cantidad,precio,cobrado,productos!producto_id(nombre))
@@ -797,15 +798,16 @@ function POS({negocio,usuario,initialTab="venta",onNavigate}){
       setLoad(true);
       if (typeof setLoadErr === "function") setLoadErr("");
       try {
+        const pedidosTiendaSelectPos = `
+            id,total,created_at,tipo,metodo_pago,estado,
+            clientes(nombre,telefono),
+            pedido_items(cantidad,precio_unitario,productos(nombre,sku))
+          `;
         const [prodsRes, pedsRes] = await Promise.all([
           supabase.from("productos")
             .select("*, lotes(fecha_caducidad,cantidad_actual,activo)")
             .eq("activo",true).order("nombre"),
-          supabase.from("pedidos").select(`
-            id,total,created_at,tipo,metodo_pago,estado,
-            clientes(nombre,telefono),
-            pedido_items(cantidad,precio_unitario,productos(nombre,sku))
-          `).eq("estado","pendiente").or("tipo.eq.online,and(tipo.is.null,metodo_pago.eq.tarjeta),and(tipo.is.null,metodo_pago.eq.mercadopago)").order("created_at",{ascending:false}),
+          fetchPedidosTiendaPendientesMerged(supabase, pedidosTiendaSelectPos, { perBranchLimit: 100, maxRows: 300 }),
         ]);
 
         const errs = [];
