@@ -1066,6 +1066,7 @@ function POS({negocio,usuario,initialTab="venta",onNavigate}){
         const fechaSv = new Date().toLocaleDateString("sv-SE");
         try {
           await marcarMedicamentosRecetaFarmaxSurtidos(supabase, {
+            p_session_token: tokRo,
             fechaCitaLocal: fechaSv,
             telefonoCliente: cli?.telefono,
             clienteId: cli?.id ?? null,
@@ -2190,19 +2191,20 @@ function ConsDoctora() {
   const completarCita = async (cita) => {
     setGuard(true);
     try {
-      const finIso = new Date().toISOString();
-      let durSec = null;
-      if (cita.confirmada_inicio_at) {
-        durSec = Math.max(0, Math.floor((Date.now() - Date.parse(cita.confirmada_inicio_at)) / 1000));
-      }
-      const { error } = await supabase
-        .from("citas")
-        .update({
-          estado: "completada",
-          consulta_fin_at: finIso,
-          duracion_consulta_segundos: durSec,
-        })
-        .eq("id", cita.id);
+      const tok = sessionStorage.getItem("farmax_session_token");
+      const diag = (cita.diagnostico && String(cita.diagnostico).trim())
+        ? String(cita.diagnostico).trim()
+        : "Consulta finalizada.";
+      const meds = Array.isArray(cita.medicamentos_prescritos) ? cita.medicamentos_prescritos : [];
+      const procs = Array.isArray(cita.procedimientos_realizados) ? cita.procedimientos_realizados : [];
+      const { error } = await supabase.rpc("doctora_completar_consulta", {
+        p_session_token: tok,
+        p_cita_id: cita.id,
+        p_diagnostico: diag,
+        p_medicamentos: meds,
+        p_procedimientos: procs,
+        p_completar: true,
+      });
       if (error) throw error;
       setCitaSel(null);
       await recargar();
@@ -2681,7 +2683,8 @@ function GestionUsuarios(){
   const toggle = async (id,activo) => {
     const tok = sessionStorage.getItem("farmax_session_token");
     const { error } = await supabase.rpc("admin_toggle_usuario", {
-      p_session_token: tok, p_usuario_id: id, p_activo: !activo,
+      p_session_token: tok,
+      p_target_id: id,
     });
     if (error) { showToast("Error: "+error.message, "error"); return; }
     setUsers(p=>p.map(u=>u.id===id?{...u,activo:!activo}:u));
@@ -2719,11 +2722,14 @@ function GestionUsuarios(){
       const igualAlDefault = seleccionados.length === defaults.length
         && seleccionados.every((id) => defaults.includes(id));
       const payload = igualAlDefault ? null : { activos: seleccionados };
-      const { error:err } = await supabase
-        .from("usuarios")
-        .update({ modulos_custom: payload })
-        .eq("id", modulosModal.id);
+      const tok = sessionStorage.getItem("farmax_session_token");
+      const { data: modData, error: err } = await supabase.rpc("admin_set_usuario_modulos_custom", {
+        p_session_token: tok,
+        p_usuario_id: modulosModal.id,
+        p_modulos_custom: payload,
+      });
       if (err) throw err;
+      if (!modData?.success) throw new Error(modData?.error || "Error al guardar módulos");
       setUsers((prev) => prev.map((u) => u.id === modulosModal.id ? { ...u, modulos_custom: payload } : u));
       showToast(igualAlDefault ? "Restablecido al default del rol." : "Permisos guardados.", "success");
       setModulosModal(null);
@@ -2767,20 +2773,17 @@ function GestionUsuarios(){
       setGuardandoEdit(false);
       return;
     }
-    const payload = {
-      nombre: editForm.nombre.trim(),
-      telefono: (editForm.telefono || "").trim() || null,
-      email: emailNuevo,
-      rol: editForm.rol,
-      notas: editForm.notas?.trim() || null,
-      activo: !!editForm.activo,
-    };
-    const { data, error:err } = await supabase
-      .from("usuarios")
-      .update(payload)
-      .eq("id", editForm.id)
-      .select()
-      .single();
+    const tok = sessionStorage.getItem("farmax_session_token");
+    const { data, error: err } = await supabase.rpc("admin_actualizar_usuario_datos", {
+      p_session_token: tok,
+      p_usuario_id: editForm.id,
+      p_nombre: editForm.nombre.trim(),
+      p_email: emailNuevo,
+      p_telefono: (editForm.telefono || "").trim() || null,
+      p_rol: editForm.rol,
+      p_notas: editForm.notas?.trim() || null,
+      p_activo: !!editForm.activo,
+    });
     if (err) {
       if (err.code === "23502" && String(err.message || "").includes("telefono")) {
         setEditError("La base aún exige teléfono obligatorio. Ejecuta sql/alter_usuarios_telefono_opcional.sql en Supabase, o ingresa un teléfono.");
@@ -2801,7 +2804,13 @@ function GestionUsuarios(){
       setGuardandoEdit(false);
       return;
     }
-    setUsers(prev => prev.map(u => u.id === editForm.id ? { ...u, ...data } : u));
+    if (!data?.success) {
+      setEditError(data?.error || "No se pudo guardar");
+      setGuardandoEdit(false);
+      return;
+    }
+    const row = data.user;
+    setUsers((prev) => prev.map((u) => (u.id === editForm.id ? { ...u, ...row } : u)));
     setEditModal(false);
     setGuardandoEdit(false);
     showToast("✅ Usuario actualizado", "success");

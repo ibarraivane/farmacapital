@@ -3,12 +3,14 @@
  * los renglones de medicamentos_prescritos que tienen producto_id y coinciden con el carrito.
  */
 export async function marcarMedicamentosRecetaFarmaxSurtidos(supabase, {
+  p_session_token,
   fechaCitaLocal,
   telefonoCliente,
   clienteId,
   pedidoId,
   items,
 }) {
+  if (!p_session_token) return { ok: false, reason: "sin_sesion" };
   if (!items?.length || (!telefonoCliente && !clienteId)) return { ok: false, reason: "sin_datos" };
 
   const telNorm = String(telefonoCliente || "")
@@ -64,11 +66,16 @@ export async function marcarMedicamentosRecetaFarmaxSurtidos(supabase, {
 
   if (!changed) return { ok: false, reason: "sin_coincidencia" };
 
-  const { error: uErr } = await supabase
-    .from("citas")
-    .update({ medicamentos_prescritos: next })
-    .eq("id", match.id);
+  const { data: patchData, error: uErr } = await supabase.rpc("empleado_patch_cita_medicamentos", {
+    p_session_token,
+    p_cita_id: match.id,
+    p_medicamentos: next,
+  });
 
-  if (uErr) console.warn("[recetaCitaSync] update", uErr);
-  return { ok: !uErr, citaId: match.id };
+  if (uErr) console.warn("[recetaCitaSync] rpc", uErr);
+  if (!uErr && patchData && patchData.success === false) {
+    console.warn("[recetaCitaSync]", patchData.error);
+  }
+  const ok = !uErr && patchData?.success !== false;
+  return { ok, citaId: match.id };
 }
