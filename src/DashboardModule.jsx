@@ -238,8 +238,8 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
       supabase.from("pedidos").select("total,atendido_por").eq("estado", "completado").gte("created_at", month.start),
       supabase.from("pedidos").select("total").eq("estado", "completado"),
       supabase.from("pedidos").select("total").eq("estado", "completado").gte("created_at", new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toISOString()).lte("created_at", new Date(new Date().getFullYear(), new Date().getMonth(), 0).toISOString()),
-      supabase.from("citas").select("id").eq("fecha", hoyLocal).neq("estado", "cancelada").or("estado.in.(completada,pagada),pago_estado.eq.pagada"),
-      supabase.from("citas").select("id").eq("fecha", ayerLocal).neq("estado", "cancelada").or("estado.in.(completada,pagada),pago_estado.eq.pagada"),
+      supabase.from("citas").select("id").eq("fecha", hoyLocal).neq("estado", "cancelada").or("estado=in.(completada,pagada),pago_estado.eq.pagada"),
+      supabase.from("citas").select("id").eq("fecha", ayerLocal).neq("estado", "cancelada").or("estado=in.(completada,pagada),pago_estado.eq.pagada"),
       supabase
         .from("pedidos")
         .select("id", { count: "exact", head: true })
@@ -257,7 +257,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
         .eq("receta_surtido_en", "externa")
         .gte("fecha", inicioMesLocal)
         .neq("estado", "cancelada")
-        .or("estado.in.(completada,pagada),pago_estado.eq.pagada"),
+        .or("estado=in.(completada,pagada),pago_estado.eq.pagada"),
       supabase.from("configuracion").select("clave,valor").in("clave", [
         "estimado_receta_externa",
         "meta_ventas_dia", "meta_ventas_semana", "meta_ventas_mes",
@@ -388,7 +388,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
         p_session_token: sessionStorage.getItem("farmax_session_token"),
         p_desde:         desde,
       }).then(r => ({ count: r.data || 0 })),
-      supabase.from("citas").select("id").gte("fecha", desdeFecha).neq("estado", "cancelada").or("estado.in.(completada,pagada),pago_estado.eq.pagada"),
+      supabase.from("citas").select("id").gte("fecha", desdeFecha).neq("estado", "cancelada").or("estado=in.(completada,pagada),pago_estado.eq.pagada"),
       supabase.from("pedidos").select("total").gte("created_at", desde).eq("tipo", "online").eq("estado", "completado"),
       supabase.from("devoluciones").select("total_devuelto").gte("created_at", desde).eq("estado", "aprobada"),
       supabase.from("pedidos").select("total,productos:pedido_items(precio_unitario,cantidad,productos(categoria,costo))").gte("created_at", desde).eq("estado", "completado"),
@@ -399,7 +399,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
         .gte("fecha", desdeFecha)
         .eq("receta_surtido_en", "externa")
         .neq("estado", "cancelada")
-        .or("estado.in.(completada,pagada),pago_estado.eq.pagada"),
+        .or("estado=in.(completada,pagada),pago_estado.eq.pagada"),
     ]);
     const totalDevoluciones = (devs || []).reduce((a, d) => a + parseFloat(d.total_devuelto || 0), 0);
     const margenCat = {};
