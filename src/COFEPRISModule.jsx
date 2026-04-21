@@ -141,6 +141,8 @@ function AlertasLegales() {
 
 function BitacoraAntibioticos() {
   const C = C_LIGHT;
+  const inputStyle = mkInputStyle(C);
+  const btnSecondary = mkBtnSecondary(C);
   const [registros,   setRegistros]   = useState([]);
   const [loading,     setLoading]     = useState(true);
   const [busqueda,    setBusqueda]    = useState("");
@@ -227,6 +229,7 @@ function BitacoraAntibioticos() {
 
 function Controlados() {
   const C = C_LIGHT;
+  const btnSecondary = mkBtnSecondary(C);
   const [registros, setRegistros] = useState([]);
   const [loading,   setLoading]   = useState(true);
 

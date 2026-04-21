@@ -2410,6 +2410,130 @@ function ConsDoctora() {
 
 
 // ══════════════════════════════════════════════════════════════
+// HISTORIAL PACIENTE (modal desde Mis Reportes)
+// ══════════════════════════════════════════════════════════════
+function HistorialPaciente({ telefono, nombre, onVerCita }) {
+  const C = C_LIGHT;
+  const [citas, setCitas] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      if (!telefono) {
+        setLoading(false);
+        return;
+      }
+      const { data } = await supabase
+        .from("citas")
+        .select("id,nombre,telefono,fecha,hora,motivo,estado,diagnostico,notas_medico,medicamentos_prescritos,signos_vitales,expediente_json,procedimientos_realizados,duracion_consulta_segundos,confirmada_inicio_at,consulta_fin_at,ingreso_doctor,precio_consulta_cobrado,consumibles_consulta(precio,cantidad,cobrado,productos!producto_id(nombre))")
+        .eq("telefono", telefono)
+        .order("fecha", { ascending: false })
+        .order("hora", { ascending: false });
+      setCitas(data || []);
+      setLoading(false);
+    })();
+  }, [telefono]);
+
+  if (loading) return <div style={{ color: C.textMid, padding: 20, textAlign: "center" }}>Cargando…</div>;
+
+  if (!citas.length) {
+    return (
+      <div style={{ color: C.textMid, padding: 20, textAlign: "center" }}>
+        Sin consultas previas{nombre ? ` para ${nombre}` : ""}.
+      </div>
+    );
+  }
+
+  const completadas = citas.filter(c => c.estado === "completada" || c.estado === "pagada");
+  const diagnosticosFrec = {};
+  completadas.forEach(c => {
+    if (c.diagnostico) {
+      const dx = c.diagnostico.trim().toLowerCase();
+      diagnosticosFrec[dx] = (diagnosticosFrec[dx] || 0) + 1;
+    }
+  });
+  const topDx = Object.entries(diagnosticosFrec)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 3);
+
+  return (
+    <div>
+      <Box style={{ padding: 14, marginBottom: 14 }}>
+        <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, marginBottom: 6 }}>📊 RESUMEN</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(120px,1fr))", gap: 8 }}>
+          <div>
+            <div style={{ color: C.blue, fontWeight: 800, fontSize: 20 }}>{citas.length}</div>
+            <div style={{ color: C.textMid, fontSize: 11 }}>Total consultas</div>
+          </div>
+          <div>
+            <div style={{ color: C.green, fontWeight: 800, fontSize: 20 }}>{completadas.length}</div>
+            <div style={{ color: C.textMid, fontSize: 11 }}>Completadas</div>
+          </div>
+          <div>
+            <div style={{ color: C.purple, fontWeight: 800, fontSize: 14 }}>
+              {citas[0]?.fecha || "—"}
+            </div>
+            <div style={{ color: C.textMid, fontSize: 11 }}>Última visita</div>
+          </div>
+        </div>
+        {topDx.length > 0 && (
+          <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.border}` }}>
+            <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, marginBottom: 6 }}>DIAGNÓSTICOS FRECUENTES</div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {topDx.map(([dx, count]) => (
+                <Tag key={dx} col={C.amber} sm>
+                  {dx} ({count}×)
+                </Tag>
+              ))}
+            </div>
+          </div>
+        )}
+      </Box>
+
+      <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, marginBottom: 8, letterSpacing: 1.5 }}>HISTORIAL DE CONSULTAS</div>
+      <div style={{ display: "grid", gap: 8, maxHeight: 400, overflowY: "auto" }}>
+        {citas.map(c => (
+          <button
+            key={c.id}
+            type="button"
+            onClick={() => onVerCita(c)}
+            style={{
+              textAlign: "left",
+              padding: 12,
+              background: C.bg,
+              border: `1px solid ${C.border}`,
+              borderRadius: 8,
+              cursor: "pointer",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+              <div>
+                <strong style={{ color: C.text }}>{c.fecha}</strong>
+                <span style={{ color: C.blue, marginLeft: 8 }}>{c.hora}</span>
+              </div>
+              <Tag
+                col={c.estado === "pagada" || c.estado === "completada" ? C.green : C.amber}
+                sm
+              >
+                {c.estado}
+              </Tag>
+            </div>
+            <div style={{ color: C.textMid, fontSize: 12 }}>
+              {c.motivo || "Consulta general"}
+            </div>
+            {c.diagnostico && (
+              <div style={{ color: C.textDim, fontSize: 11, marginTop: 4 }}>
+                Dx: {c.diagnostico}
+              </div>
+            )}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
 // REPORTE DOCTORA — Vista simplificada
 // ══════════════════════════════════════════════════════════════
 function ReporteDoctora(){
@@ -2417,14 +2541,16 @@ function ReporteDoctora(){
   const [citas,setCitas] = useState([]);
   const [loading,setLoad]= useState(true);
   const [periodo,setPer] = useState("semana");
+  const [pacienteModal, setPacienteModal] = useState(null);
+  const [citaVerModal, setCitaVerModal] = useState(null);
 
   useEffect(()=>{
     const cargar = async () => {
       const dias = periodo==="dia"?1:periodo==="semana"?7:30;
       const desde = new Date(Date.now()-dias*86400000).toISOString().split("T")[0];
       const {data} = await supabase.from("citas").select(`
-        id,nombre,fecha,hora,motivo,estado,ingreso_doctor,ingreso_farmacia,precio_consulta_cobrado,receta_surtido_en,
-        consumibles_consulta(precio,cantidad,cobrado)
+        id,nombre,telefono,fecha,hora,motivo,estado,ingreso_doctor,precio_consulta_cobrado,diagnostico,duracion_consulta_segundos,procedimientos_realizados,notas_medico,medicamentos_prescritos,signos_vitales,expediente_json,confirmada_inicio_at,consulta_fin_at,
+        consumibles_consulta(precio,cantidad,cobrado,productos!producto_id(nombre))
       `).gte("fecha",desde).order("fecha",{ascending:false});
       setCitas(data||[]); setLoad(false);
     };
@@ -2437,8 +2563,28 @@ function ReporteDoctora(){
     if (Number.isFinite(v)) return a+v;
     return a + (CONSULTA_PRECIO_DEFAULT * CONSULTA_PARTE_DOCTOR);
   },0);
-  const recetasExternas = citas.filter(c=>c.receta_surtido_en==="externa").length;
-  const recetasFarmax = citas.filter(c=>c.receta_surtido_en==="farmax").length;
+
+  const procedimientosCount = completadas.reduce((a, c) => {
+    try {
+      const procs = c.procedimientos_realizados;
+      if (Array.isArray(procs)) return a + procs.length;
+      if (typeof procs === "string") {
+        const parsed = JSON.parse(procs || "[]");
+        return a + (Array.isArray(parsed) ? parsed.length : 0);
+      }
+    } catch { /* ignorar */ }
+    return a;
+  }, 0);
+
+  const tiemposValidos = completadas
+    .map(c => parseFloat(c.duracion_consulta_segundos))
+    .filter(d => Number.isFinite(d) && d > 0);
+  const promedioSeg = tiemposValidos.length
+    ? tiemposValidos.reduce((a, b) => a + b, 0) / tiemposValidos.length
+    : 0;
+  const tiempoPromedio = promedioSeg > 0
+    ? `${Math.round(promedioSeg / 60)} min`
+    : "—";
 
   return(
     <div>
@@ -2452,20 +2598,51 @@ function ReporteDoctora(){
       </div>
       <div style={{display:"flex",gap:12,marginBottom:20,flexWrap:"wrap"}}>
         <KPI label="Consultas atendidas" value={completadas.length} col={C.green} icon="🏥"/>
-        <KPI label="Tu parte acumulada (consulta)" value={$(ingresoDoctorSum)} col={C.purple} icon="⭐" sub="desde ingreso_doctor por cita"/>
-        <KPI label="Recetas surtidas en Farmax" value={recetasFarmax} col={C.blue} icon="💊"/>
-        <KPI label="Recetas en otra farmacia" value={recetasExternas} col={C.amber} icon="↗️" sub="seguimiento de desviación"/>
+        <KPI label="Mis ingresos por consulta" value={$(ingresoDoctorSum)} col={C.purple} icon="💰" sub={periodo==="dia"?"hoy":periodo==="semana"?"esta semana":"este mes"}/>
+        <KPI label="Procedimientos realizados" value={procedimientosCount} col={C.blue} icon="🩺" sub="hechos este período"/>
+        <KPI label="Tiempo promedio" value={tiempoPromedio} col={C.amber} icon="⏱️" sub="por consulta"/>
       </div>
       {loading?<SkeletonTable rows={4} cols={4}/>:(
         <Box>
           <table style={{width:"100%",borderCollapse:"collapse"}}>
-            <thead><tr>{["Fecha","Hora","Paciente","Motivo","Estado","Tu parte","Receta"].map(h=><th key={h} style={{padding:"8px 14px",color:C.textDim,fontSize:9,textAlign:"left",letterSpacing:1.5,textTransform:"uppercase",borderBottom:`1px solid ${C.border}`}}>{h}</th>)}</tr></thead>
+            <thead><tr>{["Fecha","Hora","Paciente","Motivo","Estado","Ingreso"].map(h=><th key={h} style={{padding:"8px 14px",color:C.textDim,fontSize:9,textAlign:"left",letterSpacing:1.5,textTransform:"uppercase",borderBottom:`1px solid ${C.border}`}}>{h}</th>)}</tr></thead>
             <tbody>
               {citas.map(c=>(
-                <tr key={c.id}>
+                <tr
+                  key={c.id}
+                  style={{ cursor: "pointer" }}
+                  onClick={(e) => {
+                    if (e.target.closest("button")) return;
+                    setCitaVerModal(c);
+                  }}
+                >
                   <td style={{padding:"9px 14px",color:C.textMid,fontSize:11}}>{c.fecha}</td>
                   <td style={{padding:"9px 14px",color:C.blue,fontWeight:700,fontSize:12}}>{c.hora}</td>
-                  <td style={{padding:"9px 14px",color:C.text,fontWeight:700,fontSize:13}}>{c.nombre}</td>
+                  <td style={{padding:"9px 14px"}}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!String(c.telefono || "").trim()) {
+                          showToast("Esta cita no tiene teléfono; no se puede abrir el historial del paciente.", "warning");
+                          return;
+                        }
+                        setPacienteModal({ telefono: c.telefono, nombre: c.nombre });
+                      }}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        padding: 0,
+                        cursor: "pointer",
+                        color: BRAND.primary,
+                        fontWeight: 700,
+                        fontSize: 13,
+                        textDecoration: "underline",
+                        textAlign: "left",
+                      }}
+                    >
+                      {c.nombre}
+                    </button>
+                  </td>
                   <td style={{padding:"9px 14px",color:C.textMid,fontSize:12}}>{c.motivo||"Consulta general"}</td>
                   <td style={{padding:"9px 14px"}}><Tag col={c.estado==="pagada"?C.green:c.estado==="completada"?C.blue:C.amber} sm>{c.estado}</Tag></td>
                   <td style={{padding:"9px 14px",color:C.purple,fontWeight:700,fontSize:12}}>
@@ -2473,13 +2650,40 @@ function ReporteDoctora(){
                       ? $(parseFloat(c.ingreso_doctor)||CONSULTA_PRECIO_DEFAULT*CONSULTA_PARTE_DOCTOR)
                       : "—"}
                   </td>
-                  <td style={{padding:"9px 14px",fontSize:11,color:C.textMid}}>{c.receta_surtido_en==="farmax"?"Farmax":c.receta_surtido_en==="externa"?"Otra":"—"}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </Box>
       )}
+
+      <Modal
+        open={!!pacienteModal}
+        onClose={() => setPacienteModal(null)}
+        title={`👤 Historial clínico · ${pacienteModal?.nombre || ""}`}
+        ac={BRAND.primary}
+      >
+        {pacienteModal && (
+          <HistorialPaciente
+            telefono={pacienteModal.telefono}
+            nombre={pacienteModal.nombre}
+            onVerCita={(cita) => {
+              setPacienteModal(null);
+              setCitaVerModal(cita);
+            }}
+          />
+        )}
+      </Modal>
+
+      <CitaFichaModal
+        cita={citaVerModal}
+        open={!!citaVerModal}
+        onClose={() => setCitaVerModal(null)}
+        prodList={[]}
+        procsList={[]}
+        onSaved={() => setCitaVerModal(null)}
+        readOnly={true}
+      />
     </div>
   );
 }

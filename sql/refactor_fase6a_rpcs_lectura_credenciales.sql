@@ -20,7 +20,7 @@ create or replace function public.admin_listar_usuarios(
   p_session_token uuid
 )
 returns table (
-  id         bigint,
+  id         integer,
   nombre     text,
   email      text,
   rol        text,
@@ -35,8 +35,16 @@ as $$
 begin
   perform public.fn_require_admin(p_session_token);
 
+  -- Sin columna updated_at: se devuelve created_at dos veces. id = integer (int4) como en la tabla.
   return query
-  select u.id, u.nombre, u.email, u.rol, u.activo, u.created_at, u.updated_at
+  select
+    u.id,
+    u.nombre,
+    u.email,
+    u.rol,
+    coalesce(u.activo, false),
+    u.created_at,
+    u.created_at
   from public.usuarios u
   order by u.nombre;
 end;
@@ -55,7 +63,7 @@ create or replace function public.admin_listar_clientes(
   p_session_token uuid
 )
 returns table (
-  id                bigint,
+  id                integer,
   nombre            text,
   telefono          text,
   email             text,
@@ -74,30 +82,104 @@ security definer
 set search_path = public, pg_temp
 as $$
 declare
-  v_cols text[];
+  has_email    boolean;
+  has_puntos   boolean;
+  has_notas    boolean;
+  has_created  boolean;
+  has_updated  boolean;
+  expr_email   text;
+  expr_puntos  text;
+  expr_notas   text;
+  expr_ca      text;
+  expr_upd     text;
 begin
   perform public.fn_require_empleado(p_session_token);
 
-  select array_agg(column_name::text) into v_cols
-  from information_schema.columns
-  where table_schema = 'public' and table_name = 'clientes';
-
-  -- Proyección dinámica: solo columnas que existan
-  return query
   select
-    c.id, c.nombre, c.telefono,
-    case when 'email'            = any(v_cols) then c.email            else null end,
-    case when 'puntos'           = any(v_cols) then c.puntos           else 0    end,
-    case when 'notas'            = any(v_cols) then c.notas            else null end,
-    case when 'alergias'         = any(v_cols) then c.alergias         else null end,
-    case when 'antecedentes'     = any(v_cols) then c.antecedentes     else null end,
-    case when 'direccion'        = any(v_cols) then c.direccion        else null end,
-    case when 'fecha_nacimiento' = any(v_cols) then c.fecha_nacimiento else null end,
-    case when 'genero'           = any(v_cols) then c.genero           else null end,
-    c.created_at,
-    case when 'updated_at'       = any(v_cols) then c.updated_at       else null end
-  from public.clientes c
-  order by c.nombre;
+    exists (
+      select 1 from pg_catalog.pg_attribute a
+      join pg_catalog.pg_class c on c.oid = a.attrelid
+      join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+      where n.nspname = 'public' and c.relname = 'clientes'
+        and a.attname = 'email' and a.attnum > 0 and not a.attisdropped
+    ),
+    exists (
+      select 1 from pg_catalog.pg_attribute a
+      join pg_catalog.pg_class c on c.oid = a.attrelid
+      join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+      where n.nspname = 'public' and c.relname = 'clientes'
+        and a.attname = 'puntos' and a.attnum > 0 and not a.attisdropped
+    ),
+    exists (
+      select 1 from pg_catalog.pg_attribute a
+      join pg_catalog.pg_class c on c.oid = a.attrelid
+      join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+      where n.nspname = 'public' and c.relname = 'clientes'
+        and a.attname = 'notas' and a.attnum > 0 and not a.attisdropped
+    ),
+    exists (
+      select 1 from pg_catalog.pg_attribute a
+      join pg_catalog.pg_class c on c.oid = a.attrelid
+      join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+      where n.nspname = 'public' and c.relname = 'clientes'
+        and a.attname = 'created_at' and a.attnum > 0 and not a.attisdropped
+    ),
+    exists (
+      select 1 from pg_catalog.pg_attribute a
+      join pg_catalog.pg_class c on c.oid = a.attrelid
+      join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+      where n.nspname = 'public' and c.relname = 'clientes'
+        and a.attname = 'updated_at' and a.attnum > 0 and not a.attisdropped
+    )
+  into has_email, has_puntos, has_notas, has_created, has_updated;
+
+  expr_email  := case when has_email  then 'c.email::text' else 'null::text' end;
+  expr_puntos := case when has_puntos then 'round(coalesce(c.puntos, 0))::integer' else '0::integer' end;
+  expr_notas  := case when has_notas  then 'c.notas::text' else 'null::text' end;
+
+  if has_created then
+    expr_ca := 'c.created_at::timestamptz';
+  elsif has_updated then
+    expr_ca := 'c.updated_at::timestamptz';
+  else
+    expr_ca := 'now()::timestamptz';
+  end if;
+
+  if has_updated and has_created then
+    expr_upd := 'coalesce(c.updated_at, c.created_at)::timestamptz';
+  elsif has_updated then
+    expr_upd := 'c.updated_at::timestamptz';
+  elsif has_created then
+    expr_upd := 'c.created_at::timestamptz';
+  else
+    expr_upd := 'now()::timestamptz';
+  end if;
+
+  return query execute format(
+    $q$
+    select
+      c.id::integer,
+      c.nombre,
+      c.telefono,
+      %s,
+      %s,
+      %s,
+      null::text,
+      null::text,
+      null::text,
+      null::date,
+      null::text,
+      %s,
+      %s
+    from public.clientes c
+    order by c.nombre
+    $q$,
+    expr_email,
+    expr_puntos,
+    expr_notas,
+    expr_ca,
+    expr_upd
+  );
 end;
 $$;
 

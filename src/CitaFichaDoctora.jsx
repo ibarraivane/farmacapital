@@ -83,7 +83,7 @@ function getPlantilla(proc) {
 /**
  * Ficha clínica por cita: signos vitales, expediente, diagnóstico, medicamentos, receta surtida, procedimientos, consumibles.
  */
-export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSaved }) {
+export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSaved, readOnly = false }) {
   const [vit, setVit] = useState(emptyVitals);
   const [exp, setExp] = useState(emptyExp);
   const [diagnostico, setDx] = useState("");
@@ -142,7 +142,7 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
   }, [open, cita?.id, reload]);
 
   useEffect(() => {
-    if (!open || !cita?.id) return;
+    if (!open || !cita?.id || readOnly) return;
     let cancelled = false;
     (async () => {
       const { data } = await supabase.from("productos").select("id,nombre,precio,sku,stock").eq("activo", true).order("nombre").limit(2500);
@@ -151,7 +151,7 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
     return () => {
       cancelled = true;
     };
-  }, [open, cita?.id]);
+  }, [open, cita?.id, readOnly]);
 
   const toggleProc = (p) => {
     setProcSel((prev) => {
@@ -232,7 +232,7 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
   const setMedRow = (_uid, patch) => setMedsRows((rows) => rows.map((r) => (r._uid === _uid ? { ...r, ...patch } : r)));
 
   const guardar = async () => {
-    if (!citaLocal?.id) return;
+    if (readOnly || !citaLocal?.id) return;
     setGuard(true);
     try {
       const tok = sessionStorage.getItem("farmax_session_token");
@@ -278,7 +278,7 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
 
   /** Cierra la consulta clínicamente: guarda ficha y marca la cita como completada (requiere diagnóstico). */
   const terminarConsulta = async () => {
-    if (!citaLocal?.id) return;
+    if (readOnly || !citaLocal?.id) return;
     if (!diagnostico.trim()) {
       showToast("Indica un diagnóstico antes de terminar la consulta.", "warning");
       return;
@@ -328,12 +328,13 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
 
   if (!open || !cita) return null;
 
-  const puedeEditar = citaPagoOk(citaLocal || cita);
+  const pagoOk = citaPagoOk(citaLocal || cita);
+  const puedeEditar = !readOnly && pagoOk;
 
   return (
     <Modal open={open} onClose={onClose} title="📋 Ficha clínica" ac={BRAND.primary}>
       <div style={{ maxHeight: "min(78vh, 720px)", overflowY: "auto", paddingRight: 4 }}>
-        {!puedeEditar && (
+        {!readOnly && !pagoOk && (
           <div style={{ background: C.amberDim, border: `1px solid ${C.amber}40`, borderRadius: 10, padding: 12, marginBottom: 14, color: C.amber, fontSize: 12, fontWeight: 700 }}>
             Pendiente de pago en caja. La ficha completa estará disponible cuando el paciente pague la consulta.
           </div>
@@ -409,9 +410,11 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
 
         <Box style={{ padding: 14, marginBottom: 12 }}>
           <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, marginBottom: 6 }}>MEDICAMENTOS (catálogo Farmax + texto libre)</div>
-          <div style={{ color: C.textMid, fontSize: 10, marginBottom: 10, lineHeight: 1.45 }}>
-            Agrega productos del <strong>inventario</strong> para vincular con caja: cuando el paciente pague en mostrador con «receta de médico Farmax», el sistema marcará esas líneas como surtidas aquí. Puedes añadir líneas solo con nombre si la receta es externa o a mano.
-          </div>
+          {!readOnly && (
+            <div style={{ color: C.textMid, fontSize: 10, marginBottom: 10, lineHeight: 1.45 }}>
+              Agrega productos del <strong>inventario</strong> para vincular con caja: cuando el paciente pague en mostrador con «receta de médico Farmax», el sistema marcará esas líneas como surtidas aquí. Puedes añadir líneas solo con nombre si la receta es externa o a mano.
+            </div>
+          )}
           {puedeEditar && (
             <div style={{ marginBottom: 12 }}>
               <SearchDropdown
@@ -535,23 +538,6 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
         </Box>
 
         <Box style={{ padding: 14, marginBottom: 12 }}>
-          <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, marginBottom: 6 }}>¿Dónde surtió la receta?</div>
-          <select
-            value={recetaSurtido}
-            onChange={(e) => setRecetaSurtido(e.target.value)}
-            disabled={!puedeEditar}
-            style={{ width: "100%", padding: 8, borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 12 }}
-          >
-            <option value="pendiente">Pendiente / no aplica</option>
-            <option value="farmax">Farmax (esta farmacia)</option>
-            <option value="externa">Otra farmacia</option>
-          </select>
-          <div style={{ color: C.textDim, fontSize: 10, marginTop: 6, lineHeight: 1.4 }}>
-            Registrar aquí permite medir ingresos por recetas surtidas en Farmax frente a desviaciones a otras farmacias.
-          </div>
-        </Box>
-
-        <Box style={{ padding: 14, marginBottom: 12 }}>
           <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, marginBottom: 8 }}>NOTAS DE CONSULTA</div>
           <textarea
             value={notas}
@@ -562,7 +548,20 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
           />
         </Box>
 
-        {procsList?.length > 0 && puedeEditar && (
+        {readOnly && procSel.length > 0 && (
+          <Box style={{ padding: 14, marginBottom: 12 }}>
+            <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, marginBottom: 10 }}>PROCEDIMIENTOS</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {procSel.map((p) => (
+                <Tag key={p.id || p.nombre} col={C.blue} sm>
+                  {p.nombre}
+                </Tag>
+              ))}
+            </div>
+          </Box>
+        )}
+
+        {!readOnly && procsList?.length > 0 && puedeEditar && (
           <Box style={{ padding: 14, marginBottom: 12 }}>
             <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, marginBottom: 10 }}>PROCEDIMIENTOS</div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -598,26 +597,30 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
           </Box>
         )}
 
-        {puedeEditar && prodList?.length > 0 && (
+        {((puedeEditar && prodList?.length > 0) || (readOnly && (citaLocal?.consumibles_consulta || []).length > 0)) && (
           <Box style={{ padding: 14, marginBottom: 12 }}>
             <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, marginBottom: 10 }}>CONSUMIBLES (material de curación)</div>
-            <div style={{ color: C.textDim, fontSize: 10, marginBottom: 10, lineHeight: 1.4 }}>
-              Solo material típico de consultorio (gasas, jeringas, guantes, etc.). Los precios de productos se editan en Inventario; las categorías permitidas, en <strong>Metas y Precios</strong> (admin).
-            </div>
-            <div style={{ display: "grid", gap: 6, maxHeight: 200, overflowY: "auto" }}>
-              {prodList.map((p) => (
-                <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: 12 }}>{p.nombre}</span>
-                  <div style={{ display: "flex", gap: 4 }}>
-                    {[1, 2, 3].map((q) => (
-                      <button key={q} type="button" onClick={() => agregarConsumible(p, q)} style={{ padding: "4px 8px", borderRadius: 6, border: `1px solid ${C.blue}`, fontSize: 10, cursor: "pointer" }}>
-                        +{q}
-                      </button>
-                    ))}
-                  </div>
+            {puedeEditar && prodList?.length > 0 && (
+              <>
+                <div style={{ color: C.textDim, fontSize: 10, marginBottom: 10, lineHeight: 1.4 }}>
+                  Solo material típico de consultorio (gasas, jeringas, guantes, etc.). Los precios de productos se editan en Inventario; las categorías permitidas, en <strong>Metas y Precios</strong> (admin).
                 </div>
-              ))}
-            </div>
+                <div style={{ display: "grid", gap: 6, maxHeight: 200, overflowY: "auto" }}>
+                  {prodList.map((p) => (
+                    <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 12 }}>{p.nombre}</span>
+                      <div style={{ display: "flex", gap: 4 }}>
+                        {[1, 2, 3].map((q) => (
+                          <button key={q} type="button" onClick={() => agregarConsumible(p, q)} style={{ padding: "4px 8px", borderRadius: 6, border: `1px solid ${C.blue}`, fontSize: 10, cursor: "pointer" }}>
+                            +{q}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
             {(citaLocal?.consumibles_consulta || []).length > 0 && (
               <div style={{ marginTop: 10, fontSize: 11, color: C.textMid }}>
                 {(citaLocal.consumibles_consulta || []).map((c, i) => (

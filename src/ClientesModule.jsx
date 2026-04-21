@@ -322,8 +322,21 @@ export default function ClientesModule() {
   const fetchClientes = useCallback(async () => {
     setLoading(true);
     const tok = sessionStorage.getItem("farmax_session_token");
+    if (!tok) {
+      showToast("Sesión expirada. Entra de nuevo al admin para ver clientes.", "error");
+      setClientes([]);
+      setLoading(false);
+      return;
+    }
     const { data, error } = await supabase.rpc("admin_listar_clientes", { p_session_token: tok });
-    if (!error) setClientes(data||[]);
+    if (error) {
+      const detail = [error.message, error.details, error.hint].filter(Boolean).join(" — ");
+      console.warn("[Clientes] admin_listar_clientes:", detail || error);
+      showToast("No se pudo cargar clientes: " + (detail || error.message || "error"), "error");
+      setClientes([]);
+    } else {
+      setClientes(Array.isArray(data) ? data : []);
+    }
     setLoading(false);
   }, []);
 
@@ -352,7 +365,7 @@ export default function ClientesModule() {
       <div style={{ width:360, minWidth:280, borderRight:`1px solid ${C.border}`, display:"flex", flexDirection:"column", background:C.card }}>
         <div style={{ padding:"18px 16px 12px", borderBottom:`1px solid ${C.border}` }}>
           <h1 style={{ margin:"0 0 10px", color:C.text, fontSize:17, fontWeight:800 }}>◉ Clientes</h1>
-          <SearchDropdown value={busqueda} onChange={setBusqueda} onSelect={c=>{setBusqueda(c.nombre);setSelCliente(c);}} placeholder="🔍 Buscar por nombre o teléfono…" items={clientes} labelKey="nombre" subKey="telefono" badgeKey="puntos" badgeCol="#7c3aed" style={{flex:1}} emptyMsg="Sin clientes con ese nombre/teléfono"/>
+          <SearchDropdown value={busqueda} onChange={setBusqueda} onSelect={c=>{setBusqueda(c.nombre);setClienteSel(c);}} placeholder="🔍 Buscar por nombre o teléfono…" items={clientes} labelKey="nombre" subKey="telefono" badgeKey="puntos" badgeCol="#7c3aed" style={{flex:1}} emptyMsg="Sin clientes con ese nombre/teléfono"/>
           <div style={{ color:C.textDim, fontSize:10, marginTop:6 }}>{filtrados.length} cliente{filtrados.length!==1?"s":""}</div>
         </div>
         <div style={{ flex:1, overflowY:"auto" }}>
