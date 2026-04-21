@@ -27,6 +27,8 @@ jobs:
     env:
       # Debe ser >= la versión de Postgres de Supabase. Ajustar si cambia.
       PG_MAJOR: "17"
+      # Silencia el warning de Node.js 20 en acciones de JavaScript (GitHub Actions).
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       - name: Checkout repo principal (código del script)
