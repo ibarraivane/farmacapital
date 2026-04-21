@@ -22,11 +22,20 @@ export default function useSidebarBadges(currentPage) {
     const hoyISO = new Date().toISOString().slice(0, 10);
     const limite30 = addDaysISO(30);
     try {
+      const tok = sessionStorage.getItem("farmax_session_token");
+      const cofeprisRpc = tok
+        ? supabase.rpc("admin_alertas_cofepris_ventana", {
+            p_session_token: tok,
+            p_limite: limite30,
+            p_hoy: hoyISO,
+          })
+        : Promise.resolve({ data: null, error: null });
+
       const [
         { count: bajoStock, error: errBajo },
         { count: cortesDif, error: errCortes },
         { count: onlinePend, error: errOnline },
-        { data: cofeprisRows, error: errCof },
+        { data: cofeprisVentana, error: errCof },
       ] = await Promise.all([
         supabase.from("productos").select("id", { count: "exact", head: true }).eq("activo", true).lte("stock", 0),
         supabase.from("cortes_caja").select("id", { count: "exact", head: true }).neq("diferencia", 0),
@@ -35,15 +44,15 @@ export default function useSidebarBadges(currentPage) {
           .select("id", { count: "exact", head: true })
           .eq("estado", "pendiente")
           .or("tipo.eq.online,and(tipo.is.null,metodo_pago.eq.tarjeta),and(tipo.is.null,metodo_pago.eq.mercadopago)"),
-        supabase.from("alertas_legales").select("fecha_vencimiento").eq("activo", true).not("fecha_vencimiento", "is", null).lte("fecha_vencimiento", limite30),
+        cofeprisRpc,
       ]);
       if (errBajo) console.warn("[Badges] bajo stock:", errBajo.message);
       if (errCortes) console.warn("[Badges] cortes con diferencia:", errCortes.message);
       if (errOnline) console.warn("[Badges] pedidos online:", errOnline.message);
       if (errCof) console.warn("[Badges] alertas cofepris:", errCof.message);
 
-      const cofeprisCount = (cofeprisRows || []).length;
-      const cofeprisVencidas = (cofeprisRows || []).filter(r => r.fecha_vencimiento && r.fecha_vencimiento < hoyISO).length;
+      const cofeprisCount = Number(cofeprisVentana?.total_ventana) || 0;
+      const cofeprisVencidas = Number(cofeprisVentana?.vencidas) || 0;
 
       // El badge de inv consolidó Reabasto y Lotes PEPS en tabs. Solo mostramos
       // el crítico (bajo stock) en el sidebar — por caducar sigue visible en la

@@ -59,19 +59,28 @@ function AlertasLegales() {
 
   const fetchAlertas = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase.from("alertas_legales").select("*").order("nombre");
+    const tok = sessionStorage.getItem("farmax_session_token");
+    if (!tok) {
+      setAlertas([]);
+      setLoading(false);
+      return;
+    }
+    const { data, error } = await supabase.rpc("admin_listar_alertas_legales", {
+      p_session_token: tok,
+    });
+    let rows = Array.isArray(data) ? data : [];
     if (!error) {
-      if ((data||[]).length===0) {
-        const tok = sessionStorage.getItem("farmax_session_token");
-        if (tok) {
-          await supabase.rpc("admin_seed_alertas_legales", {
-            p_session_token: tok,
-            p_items:         ALERTAS_DEFAULT,
-          });
-        }
-        const { data:d2 } = await supabase.from("alertas_legales").select("*").order("nombre");
-        setAlertas(d2||[]);
-      } else setAlertas(data||[]);
+      if (rows.length === 0) {
+        await supabase.rpc("admin_seed_alertas_legales", {
+          p_session_token: tok,
+          p_items: ALERTAS_DEFAULT,
+        });
+        const { data: d2 } = await supabase.rpc("admin_listar_alertas_legales", {
+          p_session_token: tok,
+        });
+        rows = Array.isArray(d2) ? d2 : [];
+      }
+      setAlertas(rows);
     }
     setLoading(false);
   }, []);

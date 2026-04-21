@@ -209,6 +209,14 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
     const ayerLocal = yesterdayLocal();
     const inicioMesLocal = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toLocaleDateString("sv-SE");
     const cofeprisLimite = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+    const adminTok = sessionStorage.getItem("farmax_session_token");
+    const cofeprisRpc = adminTok
+      ? supabase.rpc("admin_alertas_cofepris_ventana", {
+          p_session_token: adminTok,
+          p_limite: cofeprisLimite,
+          p_hoy: new Date().toISOString().slice(0, 10),
+        })
+      : Promise.resolve({ data: null, error: { message: "sin sesión" } });
     const [
       { data: pedHoy }, { data: pedAyer }, { data: pedSemana }, { data: pedSemanaAnt }, { data: pedMes }, { data: pedTodos }, { data: pedMesAnt },
       { data: citasHoy, error: errCitasHoy },
@@ -221,7 +229,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
       { count: citasRecetaExternaMes, error: errRecetaExt },
       { data: cfgRows },
       { data: citasKpiMes },
-      { data: alertasCofepris, error: errAlertasCof },
+      { data: cofeprisRpcData, error: errAlertasCof },
     ] = await Promise.all([
       supabase.from("pedidos").select("total").eq("estado", "completado").gte("created_at", today.start).lte("created_at", today.end),
       supabase.from("pedidos").select("total").eq("estado", "completado").gte("created_at", yesterday.start).lte("created_at", yesterday.end),
@@ -256,13 +264,15 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
         "meta_ticket_prom", "meta_consultas_dia", "meta_consultas_mes",
       ]),
       supabase.from("citas").select("medicamentos_prescritos,duracion_consulta_segundos").gte("fecha", inicioMesLocal).neq("estado", "cancelada"),
-      supabase.from("alertas_legales").select("id,nombre,fecha_vencimiento").eq("activo", true).lte("fecha_vencimiento", cofeprisLimite).not("fecha_vencimiento", "is", null),
+      cofeprisRpc,
     ]);
     if (errCitasHoy) console.warn("[Dashboard] citas hoy:", errCitasHoy.message);
     if (errCitasAyer) console.warn("[Dashboard] citas ayer:", errCitasAyer.message);
     if (errOnlinePend) console.warn("[Dashboard] online pendientes:", errOnlinePend.message);
     if (errRecetaExt) console.warn("[Dashboard] citas receta externa (mes):", errRecetaExt.message);
     if (errAlertasCof) console.warn("[Dashboard] alertas legales cofepris:", errAlertasCof.message);
+
+    const alertasCofepris = Array.isArray(cofeprisRpcData?.items) ? cofeprisRpcData.items : [];
 
     const ventasHoy = (pedHoy || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
     const ventasAyer = (pedAyer || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);

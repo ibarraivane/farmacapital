@@ -206,8 +206,7 @@ function ProductoModal({initial, onClose, onSaved }) {
     }
     setSaving(false);
     if (err) { showToast("Error al guardar: " + err.message, "error"); return; }
-    // Fix 3: Audit log en cambios de precio/producto
-    const sesion = JSON.parse(sessionStorage.getItem("farmax_admin_user")||"{}");
+    // Fix 3: Audit log en cambios de precio/producto (sesion ya viene de leerSesion() arriba)
     if(form.id) {
       logAudit(sesion, "EDITAR_PRODUCTO", "productos", form.id, {
         nombre: form.nombre, precio: form.precio, costo: form.costo, stock: form.stock
