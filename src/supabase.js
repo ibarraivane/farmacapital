@@ -8,19 +8,28 @@ const SUPABASE_URL =
   env.VITE_SUPABASE_URL ||
   runtimeEnv.REACT_APP_SUPABASE_URL ||
   runtimeEnv.VITE_SUPABASE_URL ||
-  // Debe coincidir con Project URL en Supabase (Settings → API). Sin .env, se usa este fallback.
-  'https://qyabhoftqfmqwpqcsdrb.supabase.co';
+  "";
+
 const SUPABASE_ANON_KEY =
   env.REACT_APP_SUPABASE_ANON_KEY ||
   env.VITE_SUPABASE_ANON_KEY ||
   runtimeEnv.REACT_APP_SUPABASE_ANON_KEY ||
   runtimeEnv.VITE_SUPABASE_ANON_KEY ||
-  'sb_publishable_xheeQJTGohfTzPaaQ3VqFQ_8U0nx-Ec';
+  "";
 
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  // Keep app booting, but make misconfiguration obvious in console.
+const isProd = process.env.NODE_ENV === "production";
+
+if (isProd && (!SUPABASE_URL || !SUPABASE_ANON_KEY)) {
+  throw new Error(
+    "[Farmax] Definí REACT_APP_SUPABASE_URL y REACT_APP_SUPABASE_ANON_KEY en el entorno de build (p. ej. Vercel → Environment Variables)."
+  );
+}
+
+if (!isProd && (!SUPABASE_URL || !SUPABASE_ANON_KEY)) {
   // eslint-disable-next-line no-console
-  console.error("[Farmax] Missing Supabase configuration variables.");
+  console.warn(
+    "[Farmax] Faltan REACT_APP_SUPABASE_URL / REACT_APP_SUPABASE_ANON_KEY. Creá .env.local para desarrollo o inyectá window.__FARMAX_ENV."
+  );
 }
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);

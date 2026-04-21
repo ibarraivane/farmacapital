@@ -5,6 +5,11 @@
 import '@testing-library/jest-dom';
 import { TextEncoder, TextDecoder } from 'util';
 
+process.env.REACT_APP_SUPABASE_URL =
+  process.env.REACT_APP_SUPABASE_URL || "https://test.supabase.co";
+process.env.REACT_APP_SUPABASE_ANON_KEY =
+  process.env.REACT_APP_SUPABASE_ANON_KEY || "test-anon-key";
+
 if (!global.TextEncoder) {
   global.TextEncoder = TextEncoder;
 }

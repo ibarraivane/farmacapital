@@ -5,10 +5,7 @@ export default function Sidebar({ user }) {
   const [menu, setMenu] = useState([]);
 
   useEffect(() => {
-    console.log("SIDEBAR ACTIVE");
-    console.log("USER:", user);
     const role = user?.rol || user?.role;
-    console.log("ROLE:", role);
     setMenu(getMenuByRole(role));
   }, [user]);
 
