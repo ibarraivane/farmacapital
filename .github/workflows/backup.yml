@@ -66,6 +66,17 @@ jobs:
           BACKUP_RETENTION_DAYS: "30"
         run: node scripts/backup-db.js | tee backup.log
 
+      - name: Validar integridad del dump
+        if: success()
+        run: |
+          BACKUP_PATH=$(grep '::backup-path::' backup.log | tail -1 | sed 's/.*::backup-path:://')
+          if [ -z "$BACKUP_PATH" ] || [ ! -f "$BACKUP_PATH" ]; then
+            echo "No se encontró ruta de backup en backup.log o el archivo no existe."
+            exit 1
+          fi
+          pg_restore --list "$BACKUP_PATH" > /dev/null
+          echo "✅ Dump íntegro y legible"
+
       - name: Resumen
         if: always()
         run: |

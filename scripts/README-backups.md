@@ -174,7 +174,58 @@ Para probar solo el dump (sin git):
 BACKUP_SKIP_GIT=true node scripts/backup-db.js
 ```
 
-## Restauración
+## Restauración con script
+
+Restauración automática **recomendada** vía `scripts/restore-db.js`:
+
+El script lista backups en el repo privado, descarga el archivo elegido, valida SHA-256 opcional (`.sha256` junto al `.backup`), ejecuta `pg_restore --list` antes de escribir en la base y solo entonces pide confirmación (`RESTORE` y, si usas `SUPABASE_DB_URL` sin `RESTORE_DB_URL`, `USE_PRODUCTION_DB`). Los logs se anexan a `./logs/restore-YYYY-MM-DD.log`.
+
+### Listar backups disponibles
+
+```bash
+node scripts/restore-db.js --list
+```
+
+### Restaurar el último backup (modo interactivo)
+
+```bash
+node scripts/restore-db.js
+```
+
+### Restaurar un backup específico
+
+```bash
+node scripts/restore-db.js --file=farmax-backup-2026-04-15.backup
+```
+
+### Verificar integridad sin restaurar
+
+```bash
+node scripts/restore-db.js --file=farmax-backup-2026-04-15.backup --dry-run
+```
+
+### Restaurar sin prompts (CI / automatización)
+
+Requiere `--file=…` y variables `RESTORE_DB_URL` o `SUPABASE_DB_URL`. **Destruye datos** en la base destino.
+
+```bash
+node scripts/restore-db.js --file=farmax-backup-2026-04-15.backup --yes
+```
+
+### Variables de entorno necesarias
+
+| Variable | Uso |
+|---|---|
+| `BACKUP_GITHUB_REPO` | Repo de backups (`owner/repo`) |
+| `BACKUP_GITHUB_TOKEN` | PAT con permiso de **lectura** (y push si el mismo token se usa en CI para backups; para restore basta lectura del contenido) |
+| `BACKUP_GITHUB_REF` | Rama (opcional, default `main`) |
+| `RESTORE_DB_URL` | Conexión de destino (recomendado: base de **prueba**) |
+| `SUPABASE_DB_URL` | Solo si no defines `RESTORE_DB_URL`; exige confirmación extra `USE_PRODUCTION_DB` |
+| `RESTORE_TIMEOUT_SEC` | Timeout de `pg_restore` en segundos (default `1800`) |
+
+Requisitos en PATH: `pg_restore` (obligatorio); `psql` opcional para el resumen de tablas/filas tras un restore exitoso.
+
+## Restauración manual (pg_restore)
 
 ### Restauración completa
 
