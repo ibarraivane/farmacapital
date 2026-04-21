@@ -3,15 +3,15 @@
 // información de negocio al personal de piso.
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Gauge, ShoppingCart, ClipboardList, Target, Award, Zap, Flame, Users as UsersIcon } from "lucide-react";
-import { C_LIGHT, BRAND } from "./constants";
-import { supabase } from "./supabase";
-import { showToast } from "./ui";
-import { idEmpleadoUsuarios } from "./utils/usuarioId";
-import { primerNombre, saludoUsuario } from "./utils";
+import { C_LIGHT, BRAND } from "../../constants";
+import { supabase } from "../../supabase";
+import { showToast } from "../../ui";
+import { idEmpleadoUsuarios } from "../../utils/usuarioId";
+import { primerNombre, saludoUsuario } from "../../utils";
 import {
   inferirTurno, inicioDelTurno, finDelTurno, claveMetaTurno,
   calcularMultiplicador, cargarConfigMetas, escalonBono,
-} from "./utils/turnosMetas";
+} from "../../utils/turnosMetas";
 
 const C = C_LIGHT;
 

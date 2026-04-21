@@ -41,7 +41,11 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
 
   const fetchPedidos = useCallback(async () => {
     setLoading(true);
-    let q = supabase.from("pedidos").select("*, clientes(nombre,telefono), usuarios(nombre)").order("created_at", { ascending: false }).limit(300);
+    let q = supabase
+      .from("pedidos")
+      .select("*, clientes(nombre,telefono), usuarios(nombre)")
+      .order("created_at", { ascending: false })
+      .limit(300);
     const rango = getRango();
     if (rango) q = q.gte("created_at", rango.desde).lte("created_at", rango.hasta);
     const { data, error } = await q;
@@ -71,7 +75,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
 
   const reimprimir = async (p) => {
     setLoadingReprint(true);
-    const { data: items } = await supabase.from("pedido_items").select("*, productos(nombre,sku), lotes(numero_lote,fecha_caducidad)").eq("pedido_id", p.id);
+    const { data: items } = await supabase.from("pedido_items").select("*, productos(nombre,sku)").eq("pedido_id", p.id);
     let cliente = null;
     if (p.cliente_id) {
       const tok = sessionStorage.getItem("farmax_session_token");

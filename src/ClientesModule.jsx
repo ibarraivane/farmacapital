@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
 import { SkeletonTable, Paginador, SearchDropdown, showToast } from "./ui";
+import { nombreCompletoPacienteValido, telefonoMxValido } from "./utils";
 
 const BRAND = { primary:"#0052cc", secondary:"#0099e6", gradient:"linear-gradient(135deg,#0052cc,#0099e6)" };
 
@@ -39,8 +40,10 @@ function AgregarCliente({ onSaved, onCancel }) {
   const set = (k,v) => setForm(f=>({...f,[k]:v}));
   const handleSave = async () => {
     const e = {};
-    if (!form.nombre.trim())   e.nombre   = "Requerido";
+    if (!form.nombre.trim()) e.nombre = "Requerido";
+    else if (!nombreCompletoPacienteValido(form.nombre)) e.nombre = "Indica nombre y apellido";
     if (!form.telefono.trim()) e.telefono = "Requerido";
+    else if (!telefonoMxValido(form.telefono)) e.telefono = "Mínimo 10 dígitos";
     if (Object.keys(e).length) { setErrors(e); return; }
     setSaving(true);
     const tok = sessionStorage.getItem("farmax_session_token");

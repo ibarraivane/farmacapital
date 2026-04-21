@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
-import { C_LIGHT } from "./constants";
-import { supabase } from "./supabase";
-import { showToast } from "./ui";
-import { fetchProductosConsumiblesConsultorio } from "./utils/consumiblesConsultorio";
-import OnboardingTour from "./components/OnboardingTour";
+import { C_LIGHT } from "../../constants";
+import { supabase } from "../../supabase";
+import { showToast } from "../../ui";
+import { fetchProductosConsumiblesConsultorio } from "../../utils/consumiblesConsultorio";
+import OnboardingTour from "../../components/OnboardingTour";
+import { Paciente } from "./Paciente";
+import { Historial } from "./Historial";
 
 const BRAND = { primary:"#0052cc", secondary:"#0099e6", gradient:"linear-gradient(135deg,#0052cc,#0099e6)" };
 
@@ -84,6 +86,10 @@ function ProcedimientoModal({initial, onClose, onSaved }) {
 
 function MedicoModal({ initial, onClose, onSaved }) {
   const C = C_LIGHT;
+  const inputStyle = mkInputStyle(C);
+  const labelStyle = mkLabelStyle(C);
+  const btnSecondary = mkBtnSecondary(C);
+  const btnPrimary = mkBtnPrimary(C);
   const empty = { nombre:"", especialidad:"Medicina General", cedula:"", turno:"", modelo_pago:"porcentaje", monto_fijo:"", porcentaje:"70", activo:true };
   const [form, setForm] = useState(initial||empty);
   const [saving, setSaving] = useState(false);
@@ -261,6 +267,8 @@ function ListaEspera() {
 
 function EnConsulta() {
   const C = C_LIGHT;
+  const inputStyle = mkInputStyle(C);
+  const labelStyle = mkLabelStyle(C);
   const btnSecondary = mkBtnSecondary(C);
   const btnPrimary = mkBtnPrimary(C);
   const btnOutline = mkBtnOutline(C);
@@ -468,43 +476,18 @@ function EnConsulta() {
       {saved&&<div style={{background:C.greenDim,border:`1px solid ${C.green}40`,borderRadius:10,padding:"12px 18px",marginBottom:20,color:C.green,fontWeight:700}}>✅ Consulta guardada correctamente</div>}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1.6fr",gap:20}}>
         <div>
-          <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:18,marginBottom:14}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-              <div style={{color:C.blue,fontWeight:800,fontSize:14}}>👤 Paciente en consulta</div>
-              <button onClick={()=>setEditExp(p=>!p)} style={{fontSize:10,padding:"3px 8px",borderRadius:6,border:`1px solid ${C.border}`,background:"transparent",color:C.textMid,cursor:"pointer"}}>{editExpediente?"✕ Cerrar":"📋 Expediente"}</button>
-            </div>
-            <div style={{color:C.text,fontWeight:700,fontSize:16,marginBottom:6}}>{citaActual.nombre||citaActual.paciente||"—"}</div>
-            <div style={{color:C.textMid,fontSize:12}}>📞 {citaActual.telefono||"—"}</div>
-            {citaActual.motivo&&<div style={{color:C.textMid,fontSize:12,marginTop:8}}>Motivo: <strong style={{color:C.text}}>{citaActual.motivo}</strong></div>}
-            {citaActual.hora&&<div style={{color:C.textMid,fontSize:12,marginTop:4}}>Hora: <strong style={{color:C.amber}}>{citaActual.hora}</strong></div>}
-            {editExpediente&&(
-              <div style={{marginTop:12,borderTop:`1px solid ${C.border}`,paddingTop:12}}>
-                <div style={{marginBottom:8}}>
-                  <div style={{color:C.red,fontSize:10,fontWeight:700,marginBottom:3}}>⚠️ ALERGIAS</div>
-                  <textarea value={alergias} onChange={e=>setAlergias(e.target.value)} rows={2}
-                    placeholder="Ej: Penicilina, AINES, látex..." style={{...inputStyle,fontSize:11,resize:"none",width:"100%"}}/>
-                </div>
-                <div>
-                  <div style={{color:C.amber,fontSize:10,fontWeight:700,marginBottom:3}}>📋 ANTECEDENTES</div>
-                  <textarea value={antecedentes} onChange={e=>setAntecedentes(e.target.value)} rows={2}
-                    placeholder="Ej: DM2, HTA, cirugías previas..." style={{...inputStyle,fontSize:11,resize:"none",width:"100%"}}/>
-                </div>
-              </div>
-            )}
-          </div>
-          <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:18}}>
-            <div style={{color:C.textMid,fontSize:11,fontWeight:700,letterSpacing:.5,marginBottom:12}}>CONSULTAS ANTERIORES</div>
-            {historial.length===0
-              ? <div style={{color:C.textDim,fontSize:12}}>Primera visita</div>
-              : historial.map((h,i)=>(
-                  <div key={h.id||i} style={{borderBottom:`1px solid ${C.border}`,paddingBottom:8,marginBottom:8}}>
-                    <div style={{color:C.text,fontSize:12,fontWeight:600}}>{fmtDate(h.fecha)}</div>
-                    {h.motivo&&<div style={{color:C.textMid,fontSize:11}}>{h.motivo}</div>}
-                    {h.diagnostico&&<div style={{color:C.textDim,fontSize:11,fontStyle:"italic",marginTop:2}}>Dx: {h.diagnostico}</div>}
-                  </div>
-                ))
-            }
-          </div>
+          <Paciente
+            citaActual={citaActual}
+            editExpediente={editExpediente}
+            onToggleExpediente={() => setEditExp((p) => !p)}
+            alergias={alergias}
+            setAlergias={setAlergias}
+            antecedentes={antecedentes}
+            setAntecedentes={setAntecedentes}
+            inputStyle={inputStyle}
+            C={C}
+          />
+          <Historial items={historial} fmtDate={fmtDate} C={C} />
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:14}}>
           <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:18}}>

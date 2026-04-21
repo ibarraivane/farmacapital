@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "./supabase";
 import { useTheme } from "./themeContext";
 import { useMediaQuery } from "./hooks/useMediaQuery";
-import { saludoUsuario, primerNombre, $, normalizarSesionLoginResp } from "./utils";
+import { saludoUsuario, primerNombre, $, normalizarSesionLoginResp, nombreCompletoPacienteValido, telefonoMxValido } from "./utils";
 import { CONSULTA_PRECIO_DEFAULT } from "./utils/consultaConstants";
 import { fetchPrecioConsultaConfig } from "./utils/consumiblesConsultorio";
 
@@ -999,7 +999,15 @@ function AgendarCita({setPage,user}){
   useEffect(()=>{if(hora&&!horariosLibres.includes(hora))setHora("");},[fecha,horariosLibres]);
 
   const confirmar=async()=>{
-    if(!nombre||!fecha||!hora)return;
+    if(!nombre?.trim()||!fecha||!hora)return;
+    if(!nombreCompletoPacienteValido(nombre)){
+      alert("Escribe el nombre completo del paciente (nombre y apellido).");
+      return;
+    }
+    if(!telefonoMxValido(tel)){
+      alert("El teléfono de contacto es obligatorio (al menos 10 dígitos).");
+      return;
+    }
     // J5: Verificar disponibilidad en tiempo real antes de confirmar
     const {data:ocupado}=await supabase.from("citas").select("id").eq("fecha",fecha).eq("hora",hora).not("estado","eq","cancelada");
     if(ocupado&&ocupado.length>=1){
@@ -1093,8 +1101,8 @@ function AgendarCita({setPage,user}){
         <div style={{color:C.dark,fontWeight:700,fontSize:"clamp(15px,3.8vw,16px)",marginBottom:16}}>Agendar mi cita</div>
         {user&&(<div style={{background:BRAND.primary+"10",border:`1px solid ${BRAND.primary}30`,borderRadius:8,padding:"10px 12px",marginBottom:16}}><div style={{color:BRAND.primary,fontSize:13}}>✓ Datos precargados de tu cuenta. Puedes editarlos si la cita es para otra persona.</div></div>)}
         <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:16,marginBottom:16}}>
-          <div><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Nombre del paciente</div><Inp value={nombre} onChange={e=>setNombre(e.target.value)} placeholder="Nombre completo" style={{width:"100%",boxSizing:"border-box"}}/></div>
-          <div><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Teléfono de contacto</div><Inp value={tel} onChange={e=>setTel(e.target.value)} placeholder="55XXXXXXXX" type="tel" style={{width:"100%",boxSizing:"border-box"}}/></div>
+          <div><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Nombre completo <span style={{color:"#ef4444"}}>*</span></div><Inp value={nombre} onChange={e=>setNombre(e.target.value)} placeholder="Nombre y apellido" style={{width:"100%",boxSizing:"border-box"}}/></div>
+          <div><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Teléfono <span style={{color:"#ef4444"}}>*</span></div><Inp value={tel} onChange={e=>setTel(e.target.value)} placeholder="10+ dígitos" type="tel" style={{width:"100%",boxSizing:"border-box"}}/></div>
           <div><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Fecha</div><input type="date" value={fecha} onChange={e=>setFecha(e.target.value)} min={new Date().toLocaleDateString("sv-SE")} style={{width:"100%",boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:C.white,color:C.dark,fontSize:13,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}/></div>
           <div>
             <div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Horario {fecha&&horarios.length===0?"— Sin disponibilidad hoy":""}</div>
@@ -1106,7 +1114,7 @@ function AgendarCita({setPage,user}){
           </div>
           <div style={{gridColumn:stack?undefined:"1/-1"}}><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Motivo de consulta (opcional)</div><Inp value={motivo} onChange={e=>setMotivo(e.target.value)} placeholder="Ej: revisión general, control de presión..." style={{width:"100%",boxSizing:"border-box"}}/></div>
         </div>
-        <Btn onClick={confirmar} col={BRAND.primary} full disabled={!nombre||!fecha||!hora||guardando}>{guardando?"Guardando...":"📅 Confirmar cita"}</Btn>
+        <Btn onClick={confirmar} col={BRAND.primary} full disabled={!nombre?.trim()||!telefonoMxValido(tel)||!nombreCompletoPacienteValido(nombre)||!fecha||!hora||guardando}>{guardando?"Guardando...":"📅 Confirmar cita"}</Btn>
       </div>
     </div>
   );

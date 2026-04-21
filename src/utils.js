@@ -9,6 +9,22 @@ export const abc  = i => { const v=i.stock*i.price; return v>800?"A":v>300?"B":"
 export const aCol = a => ({A:C.green,B:C.amber,C:C.red}[a]);
 export const nCol = n => ({Gold:C.amber,Silver:C.textMid,Bronze:"#cd7f32"}[n]||C.textMid);
 
+/** Solo dígitos del teléfono (para validar longitud). */
+export const soloDigitosTel = (t) => String(t ?? "").replace(/\D/g, "");
+
+/** Teléfono de contacto México: al menos 10 dígitos. */
+export const telefonoMxValido = (t) => soloDigitosTel(t).length >= 10;
+
+/**
+ * Nombre completo del paciente: al menos dos palabras (nombre + apellido) y longitud mínima.
+ */
+export const nombreCompletoPacienteValido = (n) => {
+  const s = String(n ?? "").trim();
+  if (s.length < 5) return false;
+  const parts = s.split(/\s+/).filter(Boolean);
+  return parts.length >= 2;
+};
+
 /** Primer nombre (primer token) para saludos en UI. */
 export const primerNombre = (nombre) => {
   const s = String(nombre ?? "").trim();

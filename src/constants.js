@@ -27,7 +27,7 @@ export const NEG = {
 
 // ── Navegación agrupada por área ────────────────────────────
 // VENTAS: pos, cons_cobro (mismo POS; cons_cobro abre pestaña Consultas)
-// DOCTORA (también admin): cons_dr, rep_dr
+// DOCTORA (también admin): cons_dr, exp_dr
 // INVENTARIO: inv (hub con tabs catálogo/reabasto/lotes)
 // OPERACIONES: caja, cons (consultorio + procedimientos), cli
 // NEGOCIO: dash, promo, fact
@@ -37,7 +37,7 @@ export const NEG = {
 export const NAV_ADMIN = [
   "dash",
   "pos","cons_cobro",
-  "cons_dr","rep_dr",
+  "cons_dr","exp_dr",
   "inv",
   "caja","cons","config_cons","cli",
   "rrhh",
@@ -46,7 +46,7 @@ export const NAV_ADMIN = [
   "banners","bot","pwa","usuarios"
 ];
 export const NAV_VENDEDOR = ["midia","pos","cons_cobro"];
-export const NAV_DOCTORA  = ["cons_dr","rep_dr"];
+export const NAV_DOCTORA  = ["cons_dr","exp_dr"];
 
 // Iconos: usamos lucide-react (componentes) en vez de emojis para look consistente.
 // El render del Sidebar acepta tanto componentes como strings (compatibilidad).
@@ -54,8 +54,8 @@ import {
   LayoutDashboard, ShoppingCart, Package,
   Wallet, Stethoscope, Users, UserCog, ShieldCheck,
   Target, Undo2, Receipt, Image as ImageIcon, Sparkles,
-  Download, UserPlus, Settings, CreditCard, HeartPulse, BarChart3,
-  SlidersHorizontal, Gauge,
+  Download, UserPlus, Settings, CreditCard, HeartPulse,
+  SlidersHorizontal, Gauge, FolderOpen,
 } from "lucide-react";
 
 export const NAV_ITEMS = [
@@ -87,5 +87,5 @@ export const NAV_ITEMS = [
   // ══ ROLES ESPECIALES (vendedor / doctora) ══
   {id:"cons_cobro", icon: CreditCard,      label:"Cobrar Consulta"},
   {id:"cons_dr",    icon: HeartPulse,      label:"Mi Consultorio"},
-  {id:"rep_dr",     icon: BarChart3,       label:"Mis Reportes"},
+  {id:"exp_dr",     icon: FolderOpen,      label:"Expedientes"},
 ];

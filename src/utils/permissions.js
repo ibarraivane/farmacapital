@@ -41,8 +41,8 @@ export const MODULOS_DISPONIBLES_VENDEDOR = [
 
 // Módulos para doctora.
 export const MODULOS_DISPONIBLES_DOCTORA = [
-  "cons_dr",    // Consultas (agenda + ficha)
-  "rep_dr",     // Reportes
+  "cons_dr",    // Consultas (agenda + ficha + indicadores del período)
+  "exp_dr",     // Lista de pacientes / expedientes clínicos
   "cons",       // Consultorio (vista completa si admin lo habilita)
   "cli",        // Clientes
   "pwa",        // Instalar app

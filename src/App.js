@@ -2,6 +2,7 @@ import React from "react";
 import FarmaxAdmin from "./Admin";
 import Tienda from "./Tienda";
 import AdminDashboard from "./AdminDashboard";
+import { adminPathnameToPageId } from "./shared/adminRoutes";
 
 class AdminRouteBoundary extends React.Component {
   constructor(props) {
@@ -28,7 +29,8 @@ class AdminRouteBoundary extends React.Component {
 
 export default function App() {
   const path = window.location.pathname;
-  if (path.startsWith("/admin")) {
+  const useAdminShell = path.startsWith("/admin") || adminPathnameToPageId(path) != null;
+  if (useAdminShell) {
     return (
       <AdminRouteBoundary>
         <FarmaxAdmin />

@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "./supabase";
-import { C_LIGHT, BRAND } from "./constants";
-import { $ } from "./utils";
-import { Btn, Modal, Box, Tag, Inp, showToast, SearchDropdown } from "./ui";
-import { citaPagoOk } from "./utils/consultaConstants";
+import { supabase } from "../../supabase";
+import { C_LIGHT, BRAND } from "../../constants";
+import { $ } from "../../utils";
+import { Btn, Modal, Box, Tag, Inp, showToast, SearchDropdown } from "../../ui";
+import { citaPagoOk } from "../../utils/consultaConstants";
 
 const C = C_LIGHT;
 
@@ -28,6 +28,15 @@ function parseMedsPrescritos(mp) {
       .filter((m) => m.medicamento || m.producto_id);
   }
   if (typeof mp === "string") {
+    const t = mp.trim();
+    if (t.startsWith("[")) {
+      try {
+        const arr = JSON.parse(t);
+        if (Array.isArray(arr)) return parseMedsPrescritos(arr);
+      } catch {
+        /* texto legacy */
+      }
+    }
     return mp
       .split("\n")
       .map((line) => line.trim())
@@ -68,6 +77,33 @@ function emptyExp() {
   return { alergias: "", antecedentes: "", sexo: "", edad: "" };
 }
 
+/** Acepta objeto o JSON string (PostgREST a veces devuelve texto). */
+function parseJsonObject(raw) {
+  if (raw && typeof raw === "object") return raw;
+  if (typeof raw === "string" && raw.trim()) {
+    try {
+      const p = JSON.parse(raw);
+      return typeof p === "object" && p !== null ? p : {};
+    } catch {
+      return {};
+    }
+  }
+  return {};
+}
+
+function parseJsonArray(raw) {
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === "string" && raw.trim()) {
+    try {
+      const p = JSON.parse(raw);
+      return Array.isArray(p) ? p : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
 function getPlantilla(proc) {
   let t = proc?.plantilla_consumibles;
   if (typeof t === "string") {
@@ -100,7 +136,7 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
     if (!cita?.id) return;
     const { data, error } = await supabase
       .from("citas")
-      .select(`*,consumibles_consulta(id,cantidad,precio,cobrado,producto_id,productos!producto_id(nombre))`)
+      .select(`*,consumibles_consulta(id,cantidad,precio,cobrado,producto_id,nombre)`)
       .eq("id", cita.id)
       .single();
     if (error) {
@@ -109,7 +145,7 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
       return;
     }
     setCitaLocal(data);
-    const sv = data.signos_vitales && typeof data.signos_vitales === "object" ? data.signos_vitales : {};
+    const sv = parseJsonObject(data.signos_vitales);
     setVit({
       ta: sv.ta ?? "",
       fc: sv.fc ?? "",
@@ -118,7 +154,7 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
       peso: sv.peso ?? "",
       talla: sv.talla ?? "",
     });
-    const ej = data.expediente_json && typeof data.expediente_json === "object" ? data.expediente_json : {};
+    const ej = parseJsonObject(data.expediente_json);
     setExp({
       alergias: ej.alergias ?? "",
       antecedentes: ej.antecedentes ?? "",
@@ -129,8 +165,8 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
     setNotas(data.notas_medico || "");
     setMedsRows(parseMedsPrescritos(data.medicamentos_prescritos));
     setRecetaSurtido(data.receta_surtido_en || "pendiente");
-    const pr = data.procedimientos_realizados;
-    if (Array.isArray(pr) && pr.length && typeof pr[0] === "object") {
+    const pr = parseJsonArray(data.procedimientos_realizados);
+    if (pr.length && typeof pr[0] === "object") {
       setProcSel(pr);
     } else {
       setProcSel([]);
@@ -339,6 +375,11 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
             Pendiente de pago en caja. La ficha completa estará disponible cuando el paciente pague la consulta.
           </div>
         )}
+        {readOnly && (
+          <div style={{ background: C.blueDim, border: `1px solid ${C.blue}35`, borderRadius: 10, padding: 10, marginBottom: 14, color: C.blue, fontSize: 12, fontWeight: 700 }}>
+            Solo lectura — expediente / historial. No se pueden guardar cambios.
+          </div>
+        )}
 
         <div style={{ color: C.textMid, fontSize: 13, marginBottom: 16 }}>
           <strong style={{ color: C.text }}>{(citaLocal || cita).nombre}</strong> · {(citaLocal || cita).telefono || "—"} · {(citaLocal || cita).hora}
@@ -481,12 +522,12 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
                         style={{ flex: 1, minWidth: 160 }}
                       />
                     )}
-                    {row.surtido === "farmax" && (
+                    {!readOnly && row.surtido === "farmax" && (
                       <Tag col={C.green} sm>
                         Surtido Farmax
                       </Tag>
                     )}
-                    {row.surtido === "externa" && (
+                    {!readOnly && row.surtido === "externa" && (
                       <Tag col={C.amber} sm>
                         Otra farmacia
                       </Tag>
@@ -512,19 +553,21 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
                       <div style={{ fontSize: 9, color: C.textDim, marginBottom: 2 }}>Indicaciones</div>
                       <Inp value={row.indicaciones} onChange={(e) => setMedRow(row._uid, { indicaciones: e.target.value })} disabled={!puedeEditar} style={{ width: "100%" }} />
                     </div>
-                    <div style={{ minWidth: 130 }}>
-                      <div style={{ fontSize: 9, color: C.textDim, marginBottom: 2 }}>Surtido</div>
-                      <select
-                        value={row.surtido || "pendiente"}
-                        onChange={(e) => setMedRow(row._uid, { surtido: e.target.value })}
-                        disabled={!puedeEditar}
-                        style={{ width: "100%", padding: "6px 8px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 11 }}
-                      >
-                        <option value="pendiente">Pendiente</option>
-                        <option value="farmax">Farmax</option>
-                        <option value="externa">Otra farmacia</option>
-                      </select>
-                    </div>
+                    {!readOnly && (
+                      <div style={{ minWidth: 130 }}>
+                        <div style={{ fontSize: 9, color: C.textDim, marginBottom: 2 }}>Surtido</div>
+                        <select
+                          value={row.surtido || "pendiente"}
+                          onChange={(e) => setMedRow(row._uid, { surtido: e.target.value })}
+                          disabled={!puedeEditar}
+                          style={{ width: "100%", padding: "6px 8px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 11 }}
+                        >
+                          <option value="pendiente">Pendiente</option>
+                          <option value="farmax">Farmax</option>
+                          <option value="externa">Otra farmacia</option>
+                        </select>
+                      </div>
+                    )}
                   </div>
                 </div>
                 {puedeEditar && (
@@ -625,7 +668,7 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
               <div style={{ marginTop: 10, fontSize: 11, color: C.textMid }}>
                 {(citaLocal.consumibles_consulta || []).map((c, i) => (
                   <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: `1px solid ${C.border}` }}>
-                    <span>{c.productos?.nombre || "—"} ×{c.cantidad}</span>
+                    <span>{c.productos?.nombre || c.nombre || "—"} ×{c.cantidad}</span>
                     <span>{c.cobrado ? <Tag col={C.green} sm>Cobrado</Tag> : <Tag col={C.amber} sm>Pend. caja</Tag>}</span>
                   </div>
                 ))}

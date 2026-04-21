@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { C_LIGHT, BRAND } from "./constants";
-import { supabase } from "./supabase";
-import { Box, Btn, showToast } from "./ui";
-import { CONSULTA_PRECIO_DEFAULT } from "./utils/consultaConstants";
-import { CATEGORIAS_CONSUMIBLE_CONSULTORIO_SUGERIDAS } from "./utils/consumiblesConsultorio";
+import { C_LIGHT, BRAND } from "../../constants";
+import { supabase } from "../../supabase";
+import { Box, Btn, showToast } from "../../ui";
+import { CONSULTA_PRECIO_DEFAULT } from "../../utils/consultaConstants";
+import { CATEGORIAS_CONSUMIBLE_CONSULTORIO_SUGERIDAS } from "../../utils/consumiblesConsultorio";
 
 const C = C_LIGHT;
 

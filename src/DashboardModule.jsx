@@ -1,37 +1,52 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { C_LIGHT, BRAND } from "./constants";
 import { supabase } from "./supabase";
 import { saludoUsuario, $ } from "./utils";
 import { SkeletonKPIs, SkeletonTable, SkeletonCard, KPI, Box, Tag } from "./ui";
 import { CONSULTA_PRECIO_DEFAULT } from "./utils/consultaConstants";
+import { resumenLineasReceta } from "./utils/recetaLineas";
 import TransaccionesTab from "./TransaccionesTab";
 import { countPedidosTiendaPendientesHead } from "./utils/pedidosTiendaWeb";
 
 const INVERSION = 710433;
 const INVERSION_TOTAL = 710433;
 
+/** CAPEX macro del proyecto (apertura). Actualiza montos aquí si cambian en la vida real. */
+const PROYECTO_CAPEX_LINEAS = [
+  { label: "Construcción y acondicionamiento del local", nota: "Obra civil, instalaciones y acabados", monto: 464_999 },
+  { label: "Mobiliario y equipamiento — área de venta", nota: "Mostrador, vitrinas, estantería, punto de venta", monto: 8_899 },
+  { label: "Equipamiento — consultorio médico", nota: "Mobiliario y equipo clínico", monto: 21_650 },
+  { label: "Inventario inicial de farmacia", nota: "Compra de stock de apertura", monto: 134_000 },
+  { label: "Trámites, licencias y gastos legales", nota: "Permisos, registros y asesoría", monto: 16_300 },
+  { label: "Contingencia e imprevistos", nota: "Reserva del proyecto", monto: 64_585 },
+];
+
+const DASHBOARD_TABS_DEFAULT = ["proyecto", "operacion", "resumen", "transacciones", "margen"];
+const DASHBOARD_TAB_LABELS = {
+  proyecto: "💼 Proyecto Farma · inversión",
+  operacion: "📊 Operación — farmacia",
+  resumen: "📈 Resumen por período",
+  transacciones: "🔄 Transacciones",
+  margen: "💹 Margen por categoría",
+};
+
+function loadDashboardTabOrder() {
+  try {
+    const raw = localStorage.getItem("farmax_dashboard_tab_order");
+    if (!raw) return [...DASHBOARD_TABS_DEFAULT];
+    const p = JSON.parse(raw);
+    if (!Array.isArray(p)) return [...DASHBOARD_TABS_DEFAULT];
+    const ok = p.filter((id) => DASHBOARD_TABS_DEFAULT.includes(id));
+    const miss = DASHBOARD_TABS_DEFAULT.filter((id) => !ok.includes(id));
+    return [...ok, ...miss];
+  } catch {
+    return [...DASHBOARD_TABS_DEFAULT];
+  }
+}
+
 const fmt     = (n) => `$${parseFloat(n||0).toLocaleString("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2})}`;
 const fmtK    = (n) => n>=1000?`$${(n/1000).toFixed(1)}k`:fmt(n);
 const fmtDate = () => new Date().toLocaleDateString("es-MX",{weekday:"long",day:"2-digit",month:"long",year:"numeric"});
-
-/** Cuenta renglones en medicamentos_prescritos (JSON) por surtido. */
-function resumenLineasReceta(citasRows) {
-  let farmax = 0;
-  let externa = 0;
-  let pend = 0;
-  let conProductoId = 0;
-  for (const c of citasRows || []) {
-    const arr = Array.isArray(c.medicamentos_prescritos) ? c.medicamentos_prescritos : [];
-    for (const m of arr) {
-      if (m.producto_id != null) conProductoId++;
-      const s = m.surtido || "pendiente";
-      if (s === "farmax") farmax++;
-      else if (s === "externa") externa++;
-      else pend++;
-    }
-  }
-  return { farmax, externa, pend, conProductoId };
-}
 
 const rangeToday = () => { const d=new Date(),y=d.getFullYear(),m=d.getMonth(),dd=d.getDate(); return {start:new Date(y,m,dd,0,0,0).toISOString(),end:new Date(y,m,dd,23,59,59).toISOString()}; };
 const rangeWeek  = () => { const d=new Date(); d.setDate(d.getDate()-7); return {start:d.toISOString(),end:new Date().toISOString()}; };
@@ -197,9 +212,28 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [panelTab, setPanelTab] = useState("operacion");
+  const [tabOrder, setTabOrder] = useState(loadDashboardTabOrder);
+  const dragTabId = useRef(null);
   const [periodo, setPeriodo] = useState("mes");
   const [rep, setRep] = useState(null);
   const [repLoading, setRepLoading] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem("farmax_dashboard_tab_order", JSON.stringify(tabOrder));
+  }, [tabOrder]);
+
+  const reorderTabs = (draggedId, targetId) => {
+    if (!draggedId || !targetId || draggedId === targetId) return;
+    setTabOrder((ord) => {
+      const i = ord.indexOf(draggedId);
+      const j = ord.indexOf(targetId);
+      if (i < 0 || j < 0) return ord;
+      const next = [...ord];
+      next.splice(i, 1);
+      next.splice(j, 0, draggedId);
+      return next;
+    });
+  };
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -375,16 +409,19 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
     const dias = periodo === "dia" ? 1 : periodo === "semana" ? 7 : 30;
     const desde = new Date(Date.now() - dias * 86400000).toISOString();
     const desdeFecha = new Date(Date.now() - dias * 86400000).toISOString().split("T")[0];
+    const sessionTok = sessionStorage.getItem("farmax_session_token");
     const [
       { data: peds }, { count: clientesNuevos }, { data: cons }, { data: ponl }, { data: devs }, { data: pedsCat },
       { data: pedsRecetaFarmax },
       { count: citasRecetaExternaPeriod },
     ] = await Promise.all([
       supabase.from("pedidos").select("total,created_at,tipo,atendido_por,usuarios(nombre)").gte("created_at", desde).eq("estado", "completado"),
-      supabase.rpc("admin_contar_clientes_desde", {
-        p_session_token: sessionStorage.getItem("farmax_session_token"),
-        p_desde:         desde,
-      }).then(r => ({ count: r.data || 0 })),
+      sessionTok
+        ? supabase.rpc("admin_contar_clientes_desde", { p_session_token: sessionTok, p_desde: desde }).then((r) => {
+            if (r.error) console.warn("[Dashboard] admin_contar_clientes_desde:", r.error.message);
+            return { count: r.error ? 0 : (r.data ?? 0) };
+          })
+        : Promise.resolve({ count: 0 }),
       supabase.from("citas").select("id").gte("fecha", desdeFecha).neq("estado", "cancelada").or("estado.eq.completada,estado.eq.pagada,pago_estado.eq.pagada"),
       supabase.from("pedidos").select("total").gte("created_at", desde).eq("tipo", "online").eq("estado", "completado"),
       supabase.from("devoluciones").select("total_devuelto").gte("created_at", desde).eq("estado", "aprobada"),
@@ -458,7 +495,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
     </div>
   );
 
-  const {ventasHoy,ventasSemana,ventasMes,ventasMesAnt,crecimiento,ticketProm,consultasHoy,onlinePend,recuperado,pctRecuperado,gananciaMes,paybackMeses,restante,fuentes,empleados,topProductos,alertas,ventasRecetaMedicoFarmaxMes,nRecetasExternasMes,oportunidadPerdidaRecetaEst,estimadoRecetaExternaUnit,lineasRecetaFarmax,lineasRecetaExterna,lineasRecetaPendiente,lineasRecetaConCatalogo,tiempoPromConsultaMin,metas,trends} = data;
+  const {ventasHoy,ventasSemana,ventasMes,crecimiento,ticketProm,consultasHoy,onlinePend,recuperado,pctRecuperado,gananciaMes,paybackMeses,restante,fuentes,empleados,topProductos,alertas,ventasRecetaMedicoFarmaxMes,nRecetasExternasMes,oportunidadPerdidaRecetaEst,estimadoRecetaExternaUnit,lineasRecetaFarmax,lineasRecetaExterna,lineasRecetaPendiente,lineasRecetaConCatalogo,tiempoPromConsultaMin,metas,trends} = data;
   const fracMes = fraccionMesTranscurrido();
   const metaVentasMesProrrateada = Math.round((metas?.ventasMes || 0) * fracMes);
   const metaConsultasMesProrrateada = Math.round((metas?.consultasMes || 0) * fracMes);
@@ -496,20 +533,111 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
         </div>
       </div>
 
-      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:20,borderBottom:`1px solid ${C.border}`,paddingBottom:12}}>
-        {[
-          ["operacion","📊 Operación"],
-          ["resumen","📈 Resumen por período"],
-          ["transacciones","🔄 Transacciones"],
-          ["margen","💹 Margen por categoría"],
-        ].map(([id,label])=>(
-          <button key={id} type="button" onClick={()=>setPanelTab(id)} style={{
-            padding:"8px 14px",borderRadius:8,border:`1px solid ${panelTab===id?BRAND.primary:C.border}`,
-            background:panelTab===id?BRAND.primary+"22":"transparent",color:panelTab===id?BRAND.primary:C.textMid,
-            fontWeight:700,fontSize:12,cursor:"pointer",
-          }}>{label}</button>
+      <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:20,borderBottom:`1px solid ${C.border}`,paddingBottom:12}}>
+        <span style={{color:C.textDim,fontSize:11,marginRight:4}} title="Arrastra ⋮⋮ para cambiar el orden de las pestañas">Orden:</span>
+        {tabOrder.map((id) => (
+          <div
+            key={id}
+            style={{display:"flex",alignItems:"center",gap:2}}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              const from = e.dataTransfer.getData("text/dashboard-tab") || dragTabId.current;
+              reorderTabs(from, id);
+              dragTabId.current = null;
+            }}
+          >
+            <span
+              draggable
+              onDragStart={(e) => {
+                dragTabId.current = id;
+                e.dataTransfer.setData("text/dashboard-tab", id);
+                e.dataTransfer.effectAllowed = "move";
+              }}
+              onDragEnd={() => { dragTabId.current = null; }}
+              title="Arrastrar para reordenar pestañas"
+              style={{
+                cursor: "grab",
+                color: C.textDim,
+                fontSize: 12,
+                padding: "6px 4px",
+                userSelect: "none",
+                lineHeight: 1,
+              }}
+              aria-hidden
+            >⋮⋮</span>
+            <button type="button" onClick={()=>setPanelTab(id)} style={{
+              padding:"8px 14px",borderRadius:8,border:`1px solid ${panelTab===id?BRAND.primary:C.border}`,
+              background:panelTab===id?BRAND.primary+"22":"transparent",color:panelTab===id?BRAND.primary:C.textMid,
+              fontWeight:700,fontSize:12,cursor:"pointer",
+            }}>{DASHBOARD_TAB_LABELS[id]}</button>
+          </div>
         ))}
       </div>
+
+      {panelTab==="proyecto" && (
+        <div>
+          <p style={{ margin: "0 0 20px", color: C.textMid, fontSize: 13, lineHeight: 1.55, maxWidth: 720 }}>
+            Indicadores <strong style={{ color: C.text }}>macro del proyecto</strong>: capital invertido en apertura (obra, mobiliario, stock inicial, trámites) y recuperación frente a ventas acumuladas.
+            Para el día a día de mostrador, consultorio y metas, usa <strong style={{ color: C.text }}>Operación</strong> y <strong style={{ color: C.text }}>Resumen</strong>.
+          </p>
+
+          <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, letterSpacing: 1.2, marginBottom: 10 }}>DESGLOSE DE INVERSIÓN (CAPEX APERTURA)</div>
+          <Box style={{ padding: 0, marginBottom: 20, overflow: "hidden" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+              <thead>
+                <tr style={{ background: C.cardDark }}>
+                  <th style={{ padding: "10px 14px", textAlign: "left", color: C.textMid, fontWeight: 700, borderBottom: `1px solid ${C.border}` }}>Concepto</th>
+                  <th style={{ padding: "10px 14px", textAlign: "right", color: C.textMid, fontWeight: 700, borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap" }}>% del total</th>
+                  <th style={{ padding: "10px 14px", textAlign: "right", color: C.textMid, fontWeight: 700, borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap" }}>Monto</th>
+                </tr>
+              </thead>
+              <tbody>
+                {PROYECTO_CAPEX_LINEAS.map((row, i) => {
+                  const pct = INVERSION_TOTAL > 0 ? (row.monto / INVERSION_TOTAL) * 100 : 0;
+                  return (
+                    <tr key={row.label} style={{ background: i % 2 === 0 ? "transparent" : C.bg }}>
+                      <td style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, verticalAlign: "top" }}>
+                        <div style={{ color: C.text, fontWeight: 600 }}>{row.label}</div>
+                        <div style={{ color: C.textDim, fontSize: 11, marginTop: 4, lineHeight: 1.35 }}>{row.nota}</div>
+                      </td>
+                      <td style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, textAlign: "right", color: C.textMid, fontWeight: 700 }}>{pct.toFixed(1)}%</td>
+                      <td style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, textAlign: "right", color: C.blue, fontWeight: 800 }}>{$(row.monto)}</td>
+                    </tr>
+                  );
+                })}
+                <tr style={{ background: C.amberDim }}>
+                  <td style={{ padding: "12px 14px", fontWeight: 800, color: C.text, fontSize: 13 }}>TOTAL INVERTIDO (PROYECTO)</td>
+                  <td style={{ padding: "12px 14px", textAlign: "right", fontWeight: 800, color: C.text }}>100%</td>
+                  <td style={{ padding: "12px 14px", textAlign: "right", fontWeight: 900, color: C.red, fontSize: 15 }}>{$(INVERSION_TOTAL)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </Box>
+
+          <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, letterSpacing: 1.2, marginBottom: 10 }}>RETORNO Y RECUPERACIÓN (VS. VENTAS ACUMULADAS)</div>
+          <div style={{ background: C.card, border: `1px solid ${roiCol}30`, borderRadius: 14, padding: 24, marginBottom: 16 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(180px,1fr))", gap: 20, marginBottom: 20 }}>
+              <div><div style={{ color: C.textMid, fontSize: 11, fontWeight: 700, marginBottom: 4 }}>INVERSIÓN TOTAL</div><div style={{ color: C.text, fontWeight: 800, fontSize: 22 }}>{fmt(INVERSION)}</div></div>
+              <div><div style={{ color: C.textMid, fontSize: 11, fontWeight: 700, marginBottom: 4 }}>TOTAL RECUPERADO</div><div style={{ color: roiCol, fontWeight: 800, fontSize: 22 }}>{fmt(recuperado)}</div></div>
+              <div><div style={{ color: C.textMid, fontSize: 11, fontWeight: 700, marginBottom: 4 }}>GANANCIA NETA EST. / MES</div><div style={{ color: C.green, fontWeight: 800, fontSize: 18 }}>{fmt(gananciaMes)}</div><div style={{ color: C.textDim, fontSize: 10, marginTop: 4 }}>Aprox. operativa (55% ventas del mes)</div></div>
+              <div><div style={{ color: C.textMid, fontSize: 11, fontWeight: 700, marginBottom: 4 }}>PAYBACK RESTANTE</div><div style={{ color: restante <= 0 ? C.green : C.amber, fontWeight: 800, fontSize: 18 }}>{restante <= 0 ? "✅ Recuperada" : paybackMeses ? `~${paybackMeses} meses` : "Calculando…"}</div></div>
+            </div>
+            <div style={{ marginBottom: 8, display: "flex", justifyContent: "space-between" }}>
+              <div style={{ color: C.textMid, fontSize: 12 }}>Progreso de recuperación vs. inversión total</div>
+              <div style={{ color: roiCol, fontWeight: 800, fontSize: 18 }}>{pctRecuperado.toFixed(1)}%</div>
+            </div>
+            <div style={{ background: C.bg, borderRadius: 8, height: 20, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${pctRecuperado}%`, background: roiCol === C.green ? "linear-gradient(90deg,#00c46a,#00e87d)" : roiCol === C.amber ? "linear-gradient(90deg,#ffaa00,#ffd000)" : "linear-gradient(90deg,#ff3d5a,#ff6b7a)", borderRadius: 8, transition: "width 1s ease", display: "flex", alignItems: "center", justifyContent: "flex-end", paddingRight: 8 }}>
+                {pctRecuperado > 15 && <span style={{ color: "#fff", fontSize: 10, fontWeight: 800 }}>{fmt(recuperado)}</span>}
+              </div>
+            </div>
+            <div style={{ color: C.textDim, fontSize: 10, marginTop: 8, lineHeight: 1.45 }}>
+              Recuperado {fmt(recuperado)} de {fmt(INVERSION)} · Resta {fmt(Math.max(restante, 0))}. Los montos del desglose CAPEX se editan en el arreglo PROYECTO_CAPEX_LINEAS en DashboardModule.jsx.
+            </div>
+          </div>
+        </div>
+      )}
 
       {panelTab==="transacciones" && (
         <TransaccionesTab usuario={usuario} showConfirm={showConfirm} />
@@ -535,32 +663,6 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
               </div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}>
                 <Box style={{padding:20}}>
-                  <div style={{color:C.text,fontWeight:700,fontSize:14,marginBottom:16}}>📈 ROI — Retorno de inversión</div>
-                  <div style={{color:C.textDim,fontSize:10,letterSpacing:1,textTransform:"uppercase",marginBottom:12}}>Inversión total del proyecto</div>
-                  {[
-                    ["Construcción",464999,C.blue],
-                    ["Equipo farmacia",8899,C.teal],
-                    ["Equipo consultorio",21650,C.green],
-                    ["Inventario inicial",134000,C.amber],
-                    ["Trámites y legales",16300,C.purple],
-                    ["Imprevistos",64585,C.red],
-                  ].map(([l,v,col])=>(
-                    <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:`1px solid ${C.border}`}}>
-                      <span style={{color:C.textMid,fontSize:12}}>{l}</span>
-                      <span style={{color:col,fontSize:12,fontWeight:700}}>{$(v)}</span>
-                    </div>
-                  ))}
-                  <div style={{display:"flex",justifyContent:"space-between",padding:"10px 0",marginTop:4}}>
-                    <span style={{color:C.text,fontWeight:800,fontSize:14}}>TOTAL INVERTIDO</span>
-                    <span style={{color:C.red,fontWeight:900,fontSize:16}}>{$(INVERSION_TOTAL)}</span>
-                  </div>
-                  <div style={{background:C.greenDim,border:`1px solid ${C.green}30`,borderRadius:8,padding:"10px 12px",marginTop:4}}>
-                    <div style={{color:C.green,fontSize:12,fontWeight:700}}>
-                      Recuperado hasta hoy: {$(totalVentas)} ({((totalVentas/INVERSION_TOTAL)*100).toFixed(2)}%)
-                    </div>
-                  </div>
-                </Box>
-                <Box style={{padding:20}}>
                   <div style={{color:C.text,fontWeight:700,fontSize:14,marginBottom:16}}>📊 Ingresos por fuente</div>
                   {[
                     ["Farmacia física", totalVentas-totalOnline-ingresoConsultas, C.blue],
@@ -581,6 +683,15 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
                       </div>
                     );
                   })}
+                </Box>
+                <Box style={{padding:20}}>
+                  <div style={{color:C.text,fontWeight:700,fontSize:14,marginBottom:12}}>💼 Inversión del proyecto</div>
+                  <p style={{margin:0,color:C.textMid,fontSize:12,lineHeight:1.5}}>
+                    El desglose de obra, mobiliario, stock inicial y retorno frente a la inversión total está en la pestaña <strong style={{color:C.text}}>Proyecto Farma · inversión</strong>.
+                  </p>
+                  <button type="button" onClick={()=>setPanelTab("proyecto")} style={{marginTop:14,padding:"8px 14px",borderRadius:8,border:`1px solid ${BRAND.primary}`,background:BRAND.primary+"18",color:BRAND.primary,fontWeight:700,fontSize:12,cursor:"pointer"}}>
+                    Ir a Proyecto Farma →
+                  </button>
                 </Box>
               </div>
               <Box style={{padding:20}}>
@@ -699,40 +810,27 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
         />
       </div>
 
-      <div style={{color:C.textDim,fontSize:10,fontWeight:700,letterSpacing:1.5,marginBottom:12}}>RECETAS MÉDICAS · IMPACTO EN VENTAS</div>
+      <div style={{color:C.textDim,fontSize:10,fontWeight:700,letterSpacing:1.5,marginBottom:12}}>CONSULTORIO Y RECETAS — ESTE MES</div>
+      <p style={{margin:"0 0 14px",color:C.textMid,fontSize:11,lineHeight:1.5,maxWidth:720}}>
+        Una sola lectura: dinero capturado en POS por receta del consultorio, estimación cuando la receta se surte fuera, desglose de renglones prescritos y tiempo promedio de consulta (misma ventana: mes en curso).
+      </p>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:12,marginBottom:24}}>
-        <KpiCard label="Mes anterior"      value={fmtK(ventasMesAnt)} col={C.textMid} icon="📆" sub={crecimiento?`${crecimiento>0?"+":""}${crecimiento}% vs este mes`:"Sin datos"}/>
-        <KpiCard label="Ventas con receta Farmax" value={fmtK(ventasRecetaMedicoFarmaxMes||0)} col={C.purple} icon="📋" sub="POS · receta de médico del consultorio · mes"/>
-        <KpiCard label="Oportunidad perdida (est.)" value={fmtK(oportunidadPerdidaRecetaEst||0)} col={nRecetasExternasMes>0?C.amber:C.green} icon="📤" sub={`${nRecetasExternasMes||0} recetas surtidas fuera × ${fmt(estimadoRecetaExternaUnit||350)}`}/>
+        <KpiCard label="Ventas POS (receta consultorio)" value={fmtK(ventasRecetaMedicoFarmaxMes||0)} col={C.purple} icon="📋" sub="Pedidos receta_origen médico FarmaX"/>
+        <KpiCard label="Oportunidad fuera (est.)" value={fmtK(oportunidadPerdidaRecetaEst||0)} col={nRecetasExternasMes>0?C.amber:C.green} icon="📤" sub={`${nRecetasExternasMes||0} consultas surtidas fuera × ${fmt(estimadoRecetaExternaUnit||350)} c/u`}/>
+        <KpiCard
+          label="Renglones prescritos (total)"
+          value={(lineasRecetaFarmax ?? 0) + (lineasRecetaExterna ?? 0) + (lineasRecetaPendiente ?? 0)}
+          col={C.blue}
+          icon="💊"
+          sub={`Farmax ${lineasRecetaFarmax ?? 0} · fuera/pend. ${(lineasRecetaExterna ?? 0) + (lineasRecetaPendiente ?? 0)} · catálogo ${lineasRecetaConCatalogo ?? 0}`}
+        />
+        <KpiCard label="Tiempo prom. consulta" value={tiempoPromConsultaMin != null ? `${tiempoPromConsultaMin.toFixed(1)} min` : "—"} col={C.teal} icon="⏱" sub="Solo citas con duración registrada"/>
       </div>
 
-      <div style={{color:C.textDim,fontSize:10,fontWeight:700,letterSpacing:1.5,marginBottom:12}}>CONSULTORIO · RECETA (DETALLE) Y DURACIÓN</div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:12,marginBottom:24}}>
-        <KpiCard label="Ítems surtidos en Farmax" value={lineasRecetaFarmax ?? 0} col={C.green} icon="✓" sub="renglones marcados farmax · mes"/>
-        <KpiCard label="Ítems otra farmacia / pendiente" value={(lineasRecetaExterna ?? 0) + (lineasRecetaPendiente ?? 0)} col={C.amber} icon="⚠" sub={`${lineasRecetaExterna ?? 0} otra · ${lineasRecetaPendiente ?? 0} pend.`}/>
-        <KpiCard label="Renglones con catálogo" value={lineasRecetaConCatalogo ?? 0} col={C.blue} icon="🔗" sub="vinculados a producto · mes"/>
-        <KpiCard label="Tiempo prom. consulta" value={tiempoPromConsultaMin != null ? `${tiempoPromConsultaMin.toFixed(1)} min` : "—"} col={C.teal} icon="⏱" sub="inicio → terminar · mes"/>
-      </div>
-
-      <div style={{color:C.textDim,fontSize:10,fontWeight:700,letterSpacing:1.5,marginBottom:12}}>INVERSIÓN Y RETORNO</div>
-      <div style={{background:C.card,border:`1px solid ${roiCol}30`,borderRadius:14,padding:24,marginBottom:24}}>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:20,marginBottom:20}}>
-          <div><div style={{color:C.textMid,fontSize:11,fontWeight:700,marginBottom:4}}>INVERSIÓN TOTAL</div><div style={{color:C.text,fontWeight:800,fontSize:22}}>{fmt(INVERSION)}</div></div>
-          <div><div style={{color:C.textMid,fontSize:11,fontWeight:700,marginBottom:4}}>TOTAL RECUPERADO</div><div style={{color:roiCol,fontWeight:800,fontSize:22}}>{fmt(recuperado)}</div></div>
-          <div><div style={{color:C.textMid,fontSize:11,fontWeight:700,marginBottom:4}}>GANANCIA NETA EST./MES</div><div style={{color:C.green,fontWeight:800,fontSize:18}}>{fmt(gananciaMes)}</div></div>
-          <div><div style={{color:C.textMid,fontSize:11,fontWeight:700,marginBottom:4}}>PAYBACK RESTANTE</div><div style={{color:restante<=0?C.green:C.amber,fontWeight:800,fontSize:18}}>{restante<=0?"✅ Recuperada":paybackMeses?`~${paybackMeses} meses`:"Calculando…"}</div></div>
-        </div>
-        <div style={{marginBottom:8,display:"flex",justifyContent:"space-between"}}>
-          <div style={{color:C.textMid,fontSize:12}}>Progreso de recuperación</div>
-          <div style={{color:roiCol,fontWeight:800,fontSize:18}}>{pctRecuperado.toFixed(1)}%</div>
-        </div>
-        <div style={{background:C.bg,borderRadius:8,height:20,overflow:"hidden"}}>
-          <div style={{height:"100%",width:`${pctRecuperado}%`,background:roiCol===C.green?"linear-gradient(90deg,#00c46a,#00e87d)":roiCol===C.amber?"linear-gradient(90deg,#ffaa00,#ffd000)":"linear-gradient(90deg,#ff3d5a,#ff6b7a)",borderRadius:8,transition:"width 1s ease",display:"flex",alignItems:"center",justifyContent:"flex-end",paddingRight:8}}>
-            {pctRecuperado>15&&<span style={{color:"#fff",fontSize:10,fontWeight:800}}>{fmt(recuperado)}</span>}
-          </div>
-        </div>
-        <div style={{color:C.textDim,fontSize:10,marginTop:6}}>Recuperado {fmt(recuperado)} de {fmt(INVERSION)} · Resta {fmt(Math.max(restante,0))}</div>
-      </div>
+      <div style={{color:C.textDim,fontSize:10,fontWeight:700,letterSpacing:1.5,marginBottom:8}}>INVERSIÓN DEL PROYECTO (MACRO)</div>
+      <p style={{margin:"0 0 16px",color:C.textMid,fontSize:12,lineHeight:1.5}}>
+        CAPEX de apertura, payback y % recuperado están en <button type="button" onClick={()=>setPanelTab("proyecto")} style={{padding:0,border:"none",background:"none",color:BRAND.primary,fontWeight:800,cursor:"pointer",textDecoration:"underline"}}>Proyecto Farma · inversión</button>.
+      </p>
 
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20,marginBottom:24}}>
         <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:20}}>
