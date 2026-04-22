@@ -90,8 +90,18 @@ function AgregarCliente({ onSaved, onCancel }) {
   );
 }
 
+function adminSesionEsRolAdmin() {
+  try {
+    const u = JSON.parse(sessionStorage.getItem("farmax_admin_user") || "{}");
+    return u.rol === "admin";
+  } catch (_) {
+    return false;
+  }
+}
+
 function ClienteDetalle({ cliente, onReload }) {
   const C = C_LIGHT;
+  const esAdmin = adminSesionEsRolAdmin();
   const [tab,      setTab]     = useState("compras");
   const [pedidos,  setPedidos] = useState([]);
   const [citas,    setCitas]   = useState([]);
@@ -154,6 +164,26 @@ function ClienteDetalle({ cliente, onReload }) {
     setMsg("✅ Nota guardada"); setTimeout(()=>setMsg(""), 3000); onReload();
   };
 
+  const asignarPasswordTienda = async () => {
+    const nueva = window.prompt("Nueva contraseña para que el cliente entre a la tienda en línea (mínimo 6 caracteres):");
+    if (nueva == null) return;
+    if (String(nueva).length < 6) { setMsg("⚠ La contraseña debe tener al menos 6 caracteres"); return; }
+    setSaving(true);
+    const tok = sessionStorage.getItem("farmax_session_token");
+    const { data: resp, error } = await supabase.rpc("admin_asignar_password_cliente", {
+      p_session_token: tok,
+      p_cliente_id: cliente.id,
+      p_nueva_password: String(nueva),
+    });
+    setSaving(false);
+    if (error || !resp?.success) {
+      setMsg("Error: " + (resp?.error || error?.message || "No se pudo asignar la contraseña"));
+      return;
+    }
+    setMsg("✅ Contraseña de tienda asignada. El cliente ya puede iniciar sesión en la web.");
+    setTimeout(() => setMsg(""), 4000);
+  };
+
   return (
     <div style={{ flex:1, overflowY:"auto", display:"flex", flexDirection:"column" }}>
       <div style={{ padding:"20px 24px", borderBottom:`1px solid ${C.border}`, background:C.card }}>
@@ -189,6 +219,17 @@ function ClienteDetalle({ cliente, onReload }) {
                 </span>
               ))}
             </div>
+          </div>
+        )}
+        {esAdmin && (
+          <div style={{ marginTop:14, padding:"12px 14px", background:C.amberDim, border:`1px solid ${C.amber}44`, borderRadius:10 }}>
+            <div style={{ color:C.text, fontWeight:700, fontSize:12, marginBottom:6 }}>🌐 Tienda en línea</div>
+            <div style={{ color:C.textMid, fontSize:11, lineHeight:1.45, marginBottom:10 }}>
+              Si el cliente fue dado de alta en sucursal sin clave web, asigná una contraseña para que pueda entrar con correo o teléfono en la tienda.
+            </div>
+            <button type="button" onClick={asignarPasswordTienda} disabled={saving} style={{ ...mkBtnPrimary(C), opacity: saving ? 0.7 : 1 }}>
+              {saving ? "…" : "Asignar contraseña de tienda"}
+            </button>
           </div>
         )}
       </div>

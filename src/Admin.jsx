@@ -237,8 +237,7 @@ function LoginScreen({onLogin}){
                   try {
                     const { data:resp, error:err } = await supabase.rpc("solicitar_reset_password", {
                       p_identificador: contacto,
-                      p_mensaje: `Solicitud de reset desde login de admin.`,
-                      p_user_agent: navigator.userAgent,
+                      p_ip: null,
                     });
                     if (err || !resp?.success) throw new Error(resp?.error || err?.message || "Error");
                     alert("✅ Solicitud enviada. El administrador te contactará.");

@@ -1411,6 +1411,10 @@ function Login({setUser,setPage}){
   const [buscando,setBusc] = useState(false);
   const [error,   setError]= useState("");
   const [intentos,setInt]  = useState(0);
+  const [recMode, setRecMode] = useState(false);
+  const [recIdent, setRecIdent] = useState("");
+  const [recBusy, setRecBusy] = useState(false);
+  const [recMsg, setRecMsg] = useState(null);
 
   const entrar = async () => {
     const id = ident.trim();
@@ -1442,12 +1446,71 @@ function Login({setUser,setPage}){
     }catch(e){setError("Error de conexión. Intenta de nuevo.");}
     setBusc(false);
   };
+
+  const abrirRecuperar = () => {
+    setRecMode(true);
+    setRecMsg(null);
+    setRecIdent(ident.trim());
+  };
+
+  const enviarRecuperar = async () => {
+    const raw = recIdent.trim();
+    const identNorm = correoTiendaValido(raw) ? raw : (telefonoMxValido(raw) ? soloDigitosTel(raw) : "");
+    if (!identNorm) {
+      setRecMsg({ ok: false, txt: "Escribí un correo válido o un teléfono con al menos 10 dígitos." });
+      return;
+    }
+    setRecBusy(true);
+    setRecMsg(null);
+    try {
+      const { data: resp, error: err } = await supabase.rpc("solicitar_reset_password", {
+        p_identificador: identNorm,
+        p_ip: null,
+      });
+      if (err || resp?.success === false) throw err || new Error(resp?.error || "rpc");
+      setRecMsg({
+        ok: true,
+        txt: "Listo. Recibimos tu solicitud: el equipo de Farmax te contactará para activar tu contraseña de tienda. Si ya sos cliente de sucursal y no tenías clave web, también podés pedirla en mostrador.",
+      });
+    } catch (_) {
+      setRecMsg({ ok: false, txt: "No se pudo enviar la solicitud. Intentá de nuevo o escribinos a contacto@farmax.mx." });
+    }
+    setRecBusy(false);
+  };
+
   return(
     <div style={{maxWidth:420,margin:"80px auto",padding:"0 24px"}}>
       <div style={{background:C.white,borderRadius:20,border:`1px solid ${C.border}`,padding:40}}>
         <div style={{display:"flex",justifyContent:"center",marginBottom:20}}><Logo size={40}/></div>
         <h1 style={{color:C.dark,fontSize:24,fontWeight:800,marginBottom:6,textAlign:"center"}}>Iniciar sesión</h1>
         <p style={{color:C.mid,fontSize:14,marginBottom:28,textAlign:"center"}}>Accede a tus puntos, pedidos e historial</p>
+
+        {recMode ? (
+          <>
+            <p style={{color:C.textMid,fontSize:13,marginBottom:16,lineHeight:1.5}}>
+              Indicá el <strong>mismo correo o teléfono</strong> que usás en Farmax. Te avisaremos cuando tu cuenta tenga contraseña para la tienda.
+            </p>
+            <div style={{marginBottom:12}}>
+              <div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Correo o teléfono</div>
+              <input value={recIdent} onChange={e=>setRecIdent(e.target.value)}
+                onKeyDown={e=>e.key==="Enter"&&enviarRecuperar()} placeholder="tu@correo.com o 55XXXXXXXX" type="text"
+                style={{width:"100%",boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:C.white,color:C.dark,fontSize:15,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}/>
+            </div>
+            {recMsg && (
+              <div style={{
+                background: recMsg.ok ? "#ecfdf5" : C.red+"10",
+                border: `1px solid ${recMsg.ok ? "#6ee7b7" : C.red+"30"}`,
+                borderRadius: 8, padding: "10px 12px", marginBottom: 12,
+                color: recMsg.ok ? "#047857" : C.red, fontSize: 13, lineHeight: 1.45,
+              }}>{recMsg.txt}</div>
+            )}
+            <Btn onClick={enviarRecuperar} col={BRAND.primary} full disabled={recBusy || !recIdent.trim()}>{recBusy ? "Enviando…" : "Enviar solicitud"}</Btn>
+            <div style={{textAlign:"center",marginTop:14}}>
+              <button type="button" onClick={()=>{ setRecMode(false); setRecMsg(null); }} style={{background:"none",border:"none",color:C.mid,fontSize:13,cursor:"pointer",textDecoration:"underline"}}>Volver al inicio de sesión</button>
+            </div>
+          </>
+        ) : (
+          <>
         <div style={{marginBottom:12}}>
           <div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Correo o teléfono</div>
           <input name="username" autoComplete="username email" value={ident} onChange={e=>setIdent(e.target.value)}
@@ -1460,9 +1523,14 @@ function Login({setUser,setPage}){
             onKeyDown={e=>e.key==="Enter"&&entrar()} placeholder="••••••••" type="password"
             style={{width:"100%",boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:C.white,color:C.dark,fontSize:13,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}/>
         </div>
-        {error&&(<div style={{background:C.red+"10",border:`1px solid ${C.red}30`,borderRadius:8,padding:"10px 12px",marginBottom:12,color:C.red,fontSize:13}}>{error} <button onClick={()=>setPage("registro")} style={{background:"none",border:"none",color:BRAND.primary,fontWeight:700,fontSize:13,cursor:"pointer",textDecoration:"underline"}}>Crear cuenta</button></div>)}
+        {error&&(<div style={{background:C.red+"10",border:`1px solid ${C.red}30`,borderRadius:8,padding:"10px 12px",marginBottom:12,color:C.red,fontSize:13}}>{error} <button type="button" onClick={()=>setPage("registro")} style={{background:"none",border:"none",color:BRAND.primary,fontWeight:700,fontSize:13,cursor:"pointer",textDecoration:"underline"}}>Crear cuenta</button></div>)}
         <Btn onClick={entrar} col={BRAND.primary} full disabled={!ident.trim()||!pwd||buscando}>{buscando?"Buscando...":"Entrar →"}</Btn>
-        <div style={{textAlign:"center",marginTop:16}}><span style={{color:C.mid,fontSize:13}}>¿No tienes cuenta? </span><button onClick={()=>setPage("registro")} style={{background:"none",border:"none",color:BRAND.primary,fontWeight:700,fontSize:13,cursor:"pointer"}}>Regístrate aquí</button></div>
+        <div style={{textAlign:"center",marginTop:14}}>
+          <button type="button" onClick={abrirRecuperar} style={{background:"none",border:"none",color:BRAND.primary,fontWeight:700,fontSize:13,cursor:"pointer",textDecoration:"underline"}}>¿Olvidaste tu contraseña o no tenés clave para la tienda?</button>
+        </div>
+        <div style={{textAlign:"center",marginTop:16}}><span style={{color:C.mid,fontSize:13}}>¿No tienes cuenta? </span><button type="button" onClick={()=>setPage("registro")} style={{background:"none",border:"none",color:BRAND.primary,fontWeight:700,fontSize:13,cursor:"pointer"}}>Regístrate aquí</button></div>
+          </>
+        )}
       </div>
     </div>
   );
