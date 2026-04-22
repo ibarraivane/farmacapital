@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { normalizeSupabaseProjectUrl } from './utils/supabaseProjectUrl';
 
 const runtimeEnv =
   typeof window !== "undefined" && window.__FARMAX_ENV ? window.__FARMAX_ENV : {};
@@ -45,9 +46,13 @@ if (!isProd && (!supabaseUrl || !supabaseAnonKey)) {
   supabaseAnonKey = DEV_CLIENT_BOOTSTRAP_KEY;
 }
 
+const supabaseProjectUrl = normalizeSupabaseProjectUrl(supabaseUrl) || supabaseUrl;
+
 /** Solo desarrollo: cliente “bootstrap” interno (sin proyecto real). */
 export const isSupabaseDevPlaceholder =
-  !isProd && supabaseUrl === DEV_CLIENT_BOOTSTRAP_URL && supabaseAnonKey === DEV_CLIENT_BOOTSTRAP_KEY;
+  !isProd &&
+  supabaseProjectUrl === DEV_CLIENT_BOOTSTRAP_URL &&
+  supabaseAnonKey === DEV_CLIENT_BOOTSTRAP_KEY;
 
 /**
  * Desarrollo: falta configuración usable para auth (URL/key placeholder, anon sin pegar desde Supabase, etc.).
@@ -56,8 +61,8 @@ export const isSupabaseDevPlaceholder =
 export const isSupabaseLocalMisconfigured =
   !isProd &&
   (isSupabaseDevPlaceholder ||
-    !supabaseUrl ||
+    !supabaseProjectUrl ||
     !supabaseAnonKey ||
     /replace_me/i.test(supabaseAnonKey));
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseProjectUrl, supabaseAnonKey);

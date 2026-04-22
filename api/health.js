@@ -22,8 +22,19 @@
 
 'use strict';
 
+function normalizeSupabaseProjectUrl(url) {
+  if (url == null || typeof url !== 'string') return url;
+  let u = url.trim().replace(/\/+$/g, '');
+  while (/\/rest\/v1$/i.test(u)) {
+    u = u.replace(/\/rest\/v1$/i, '').replace(/\/+$/g, '');
+  }
+  return u;
+}
+
 const SUPABASE_URL =
-  process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL;
+  normalizeSupabaseProjectUrl(
+    process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL
+  );
 const SUPABASE_ANON_KEY =
   process.env.SUPABASE_ANON_KEY || process.env.REACT_APP_SUPABASE_ANON_KEY;
 

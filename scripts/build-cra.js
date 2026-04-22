@@ -15,10 +15,21 @@ function nonEmpty(v) {
   return v != null && String(v).trim() !== "";
 }
 
+function normalizeSupabaseProjectUrl(url) {
+  if (url == null || typeof url !== "string") return url;
+  let u = url.trim().replace(/\/+$/g, "");
+  while (/\/rest\/v1$/i.test(u)) {
+    u = u.replace(/\/rest\/v1$/i, "").replace(/\/+$/g, "");
+  }
+  return u;
+}
+
 const env = { ...process.env };
 
 if (!nonEmpty(env.REACT_APP_SUPABASE_URL) && nonEmpty(env.SUPABASE_URL)) {
-  env.REACT_APP_SUPABASE_URL = env.SUPABASE_URL;
+  env.REACT_APP_SUPABASE_URL = normalizeSupabaseProjectUrl(env.SUPABASE_URL);
+} else if (nonEmpty(env.REACT_APP_SUPABASE_URL)) {
+  env.REACT_APP_SUPABASE_URL = normalizeSupabaseProjectUrl(env.REACT_APP_SUPABASE_URL);
 }
 if (!nonEmpty(env.REACT_APP_SUPABASE_ANON_KEY) && nonEmpty(env.SUPABASE_ANON_KEY)) {
   env.REACT_APP_SUPABASE_ANON_KEY = env.SUPABASE_ANON_KEY;
