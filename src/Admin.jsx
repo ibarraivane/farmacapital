@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, lazy, Suspense } from "react";
 import { useMediaQuery } from "./hooks/useMediaQuery";
 import useSidebarBadges from "./hooks/useSidebarBadges";
-import { supabase } from "./supabase";
+import { supabase, isSupabaseLocalMisconfigured } from "./supabase";
 import { C as _C, C_LIGHT, BRAND, NEG, NAV_ADMIN, NAV_VENDEDOR, NAV_DOCTORA, NAV_ITEMS } from "./constants";
 import { $, dC, cC, abc, aCol, nCol, hashPwd, hashPwdLegacy, generateSalt, logMovimiento, primerNombre, saludoUsuario, normalizarSesionLoginResp } from "./utils";
 import { Logo, Box, Tag, Btn, Inp, KPI, Modal, NotificacionesToast, showToast, ToastProvider, ConfirmDialog, SkeletonTable, SkeletonKPIs, SkeletonCard, Paginador, GlobalHoverStyles } from "./ui";
@@ -136,8 +136,12 @@ function LoginScreen({onLogin}){
         const tech = rpcErr.message || String(rpcErr);
         const low = tech.toLowerCase();
         let msg = "No pudimos conectar con el servidor de datos.";
-        if (low.includes("failed to fetch") || low.includes("network")) {
-          msg = "No hay conexión a internet o la dirección del servidor no coincide con tu proyecto en Supabase.";
+        if (isSupabaseLocalMisconfigured) {
+          msg =
+            "Supabase no está configurado para desarrollo: en la carpeta del proyecto (donde está package.json) editá el archivo .env y poné REACT_APP_SUPABASE_URL y REACT_APP_SUPABASE_ANON_KEY desde Supabase → Settings → API. Guardá, detené el servidor (Ctrl+C) y ejecutá npm start de nuevo.";
+        } else if (low.includes("failed to fetch") || low.includes("network")) {
+          msg =
+            "No se pudo llegar al servidor de Supabase. Revisá: (1) conexión a internet, (2) que REACT_APP_SUPABASE_URL en .env sea la Project URL correcta, (3) que el proyecto no esté pausado en Supabase.";
         } else if (rpcErr.code === "PGRST202" || low.includes("could not find the function")) {
           msg = "Falta actualizar la base de datos (función de inicio de sesión no encontrada).";
         } else if (rpcErr.code === "42501" || low.includes("permission denied")) {
@@ -190,7 +194,11 @@ function LoginScreen({onLogin}){
       localStorage.setItem("farmax_last_login_"+data.id, new Date().toLocaleString("es-MX"));
       onLogin(data);
     } catch(e) {
-      setError("No pudimos conectar. Revisa tu internet o vuelve a intentar en unos segundos.");
+      setError(
+        isSupabaseLocalMisconfigured
+          ? "Revisá el archivo .env en la raíz del proyecto: URL y anon key desde Supabase → Settings → API, guardá y volvé a ejecutar npm start."
+          : "No pudimos conectar. Revisa tu internet o vuelve a intentar en unos segundos."
+      );
       setErrorDetail(e?.message ? String(e.message) : "");
     }
     setLoad(false);
@@ -1270,6 +1278,36 @@ function GestionUsuarios(){
 // ══════════════════════════════════════════════════════════════
 // APP PRINCIPAL
 // ══════════════════════════════════════════════════════════════
+function DevSupabaseEnvBanner() {
+  if (!isSupabaseLocalMisconfigured) return null;
+  return (
+    <div
+      role="status"
+      style={{
+        background: "#fff7ed",
+        borderBottom: "1px solid #fdba74",
+        padding: "10px 16px",
+        fontSize: 13,
+        color: "#9a3412",
+        textAlign: "center",
+        lineHeight: 1.45,
+      }}
+    >
+      <strong>Desarrollo:</strong> falta configuración válida de Supabase en el archivo{" "}
+      <code style={{ background: "#ffedd5", padding: "1px 6px", borderRadius: 4 }}>.env</code>{" "}
+      (misma carpeta que <code style={{ background: "#ffedd5", padding: "1px 6px", borderRadius: 4 }}>package.json</code>):{" "}
+      <code style={{ background: "#ffedd5", padding: "1px 6px", borderRadius: 4 }}>REACT_APP_SUPABASE_URL</code> + anon key desde{" "}
+      <strong>Supabase → Settings → API</strong> (no uses <code style={{ background: "#ffedd5", padding: "1px 6px", borderRadius: 4 }}>replace_me</code>).{" "}
+      Tras guardar, <strong>detené el servidor (Ctrl+C) y volvé a ejecutar npm start</strong> para que React lea las variables.{" "}
+      Si ya están bien en <code style={{ background: "#ffedd5", padding: "1px 6px", borderRadius: 4 }}>.env</code> pero en la consola ves{" "}
+      <code style={{ background: "#ffedd5", padding: "1px 6px", borderRadius: 4 }}>dev-bootstrap.invalid</code>, la terminal puede tener{" "}
+      <code style={{ background: "#ffedd5", padding: "1px 6px", borderRadius: 4 }}>REACT_APP_SUPABASE_*</code> vacías exportadas (CRA no las pisa):{" "}
+      <code style={{ background: "#ffedd5", padding: "1px 6px", borderRadius: 4 }}>unset REACT_APP_SUPABASE_URL REACT_APP_SUPABASE_ANON_KEY</code> y volvé a{" "}
+      <code style={{ background: "#ffedd5", padding: "1px 6px", borderRadius: 4 }}>npm start</code>.
+    </div>
+  );
+}
+
 export default function FarmaxAdmin(){
   const C = C_LIGHT;
   const [usuario,setUsuario] = useState(()=>{
@@ -1594,7 +1632,14 @@ export default function FarmaxAdmin(){
     showToast("Sesión cerrada correctamente","info");
   };
 
-  if(!usuario) return <LoginScreen onLogin={u=>{ sessionStorage.setItem("farmax_admin_user",JSON.stringify(u)); setUsuario(u); }}/>;
+  if (!usuario) {
+    return (
+      <>
+        <DevSupabaseEnvBanner />
+        <LoginScreen onLogin={u=>{ sessionStorage.setItem("farmax_admin_user",JSON.stringify(u)); setUsuario(u); }}/>
+      </>
+    );
+  }
 
   const renderPage = () => {
     // Guard de permisos: bloquea acceso a módulos fuera del rol.
@@ -1662,6 +1707,7 @@ export default function FarmaxAdmin(){
     />
     <div style={{background:C.bg,minHeight:"100vh",fontFamily:"'Plus Jakarta Sans',sans-serif",transition:"background .3s,color .3s",color:C.text,overflowX:"hidden"}}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');*{box-sizing:border-box;margin:0;padding:0;}`}</style>
+      <DevSupabaseEnvBanner />
       {isMobileLayout && mobileNavOpen && (
         <div
           role="presentation"
