@@ -6,24 +6,16 @@
  * repository_dispatch de GitHub. El runner (ubuntu-latest) es
  * quien realmente ejecuta pg_dump y commitea al repo de backups.
  *
- * POR QUÉ NO corremos pg_dump aquí:
- *   - Vercel serverless no tiene pg_dump instalado.
- *   - Timeout máx 60s (Hobby) — insuficiente para DBs de >50MB.
- *   - /tmp limitado a 512MB.
- *   - Sin git binario ni SSH.
+ * Variables de entorno (Vercel → Production):
+ *   DISPATCH_GITHUB_REPO    owner/repo (ej. "ibarraivane/farmax") — sin https://github.com/
+ *   DISPATCH_GITHUB_TOKEN   PAT con permiso para disparar Actions en ese repo
+ *   CRON_SECRET             Vercel lo envía como Authorization: Bearer … en cada cron
  *
- * Variables de entorno (Vercel):
- *   DISPATCH_GITHUB_REPO    owner/repo donde vive el workflow (ej: "ibarra/farmax")
- *   DISPATCH_GITHUB_TOKEN   PAT con scope "repo" (fine-grained: Actions=write)
- *   CRON_SECRET             secreto compartido para autenticar invocaciones manuales
+ * Diagnóstico (misma auth que el cron):
+ *   curl -s "https://TU-DOMINIO/api/backup?ping=1" -H "Authorization: Bearer $CRON_SECRET"
  *
- * Vercel Cron añade automáticamente el header Authorization: Bearer <CRON_SECRET>
- * si lo definiste en el proyecto. Esto evita que cualquiera con la URL pública
- * dispare backups y consuma tu cuota de GitHub Actions.
- *
- * Uso manual (para testeo):
- *   curl -X POST https://tu-app.vercel.app/api/backup \
- *     -H "Authorization: Bearer $CRON_SECRET"
+ * Manual (dispara workflow):
+ *   curl -X POST https://TU-DOMINIO/api/backup -H "Authorization: Bearer $CRON_SECRET"
  */
 
 'use strict';
@@ -33,11 +25,30 @@ function sanitize(s) {
   return String(s).replace(/(ghp_|github_pat_|token=|bearer\s+)[^\s"']+/gi, '$1***');
 }
 
+/** owner/repo sin URL completa ni .git (errores típicos al pegar desde el navegador). */
+function normalizeDispatchRepo(raw) {
+  if (!raw || typeof raw !== 'string') return '';
+  let s = raw.trim();
+  if (!s) return '';
+  s = s.replace(/^https?:\/\/github\.com\//i, '');
+  s = s.replace(/\.git$/i, '');
+  s = s.replace(/^\/+|\/+$/g, '');
+  return s;
+}
+
+function isPingRequest(req) {
+  try {
+    const full = req.url || '';
+    const q = full.includes('?') ? full.split('?')[1] : '';
+    return new URLSearchParams(q).get('ping') === '1';
+  } catch {
+    return false;
+  }
+}
+
 function isAuthorized(req) {
-  const secret = process.env.CRON_SECRET;
+  const secret = (process.env.CRON_SECRET || '').trim();
   if (!secret) {
-    // Sin CRON_SECRET configurado en Vercel, cualquiera puede disparar.
-    // Lo bloqueamos por seguridad.
     return { ok: false, reason: 'cron_secret_not_configured' };
   }
   const authHeader = req.headers.authorization || req.headers.Authorization || '';
@@ -51,7 +62,6 @@ function isAuthorized(req) {
 module.exports = async function handler(req, res) {
   const startedAt = Date.now();
 
-  // Solo POST (o GET desde Vercel Cron que envía GET por default).
   if (req.method !== 'POST' && req.method !== 'GET') {
     res.status(405).json({ ok: false, error: 'method_not_allowed' });
     return;
@@ -59,18 +69,52 @@ module.exports = async function handler(req, res) {
 
   const auth = isAuthorized(req);
   if (!auth.ok) {
-    // No damos pistas sobre qué falla exactamente.
     console.warn('[api/backup] unauthorized request:', auth.reason);
-    res.status(401).json({ ok: false, error: 'unauthorized' });
+    const body = { ok: false, error: 'unauthorized' };
+    if (auth.reason === 'cron_secret_not_configured') {
+      body.hint =
+        'Agregá CRON_SECRET en Vercel (scope Production), redeploy, y confirmá que el cron use el deployment de producción.';
+    }
+    res.status(401).json(body);
     return;
   }
 
-  const repo = process.env.DISPATCH_GITHUB_REPO;
-  const token = process.env.DISPATCH_GITHUB_TOKEN;
+  const repo = normalizeDispatchRepo(process.env.DISPATCH_GITHUB_REPO || '');
+  const token = (process.env.DISPATCH_GITHUB_TOKEN || '').trim();
+
+  if (isPingRequest(req)) {
+    res.status(200).json({
+      ok: true,
+      ping: true,
+      dispatch_repo: repo || null,
+      has_dispatch_repo: !!repo,
+      has_dispatch_token: !!token,
+      repo_looks_valid: /^[^/]+\/[^/]+$/.test(repo),
+      ms: Date.now() - startedAt,
+      ts: new Date().toISOString(),
+    });
+    return;
+  }
 
   if (!repo || !token) {
     console.error('[api/backup] missing DISPATCH_GITHUB_REPO or DISPATCH_GITHUB_TOKEN');
-    res.status(500).json({ ok: false, error: 'not_configured' });
+    res.status(500).json({
+      ok: false,
+      error: 'not_configured',
+      hint:
+        'En Vercel (Production): DISPATCH_GITHUB_REPO=owner/repo del repo donde está .github/workflows/backup.yml (ej. ibarraivane/farmax) y DISPATCH_GITHUB_TOKEN con permiso de Actions en ese repo.',
+    });
+    return;
+  }
+
+  if (!/^[^/]+\/[^/]+$/.test(repo)) {
+    console.error('[api/backup] invalid DISPATCH_GITHUB_REPO shape:', sanitize(repo));
+    res.status(500).json({
+      ok: false,
+      error: 'invalid_repo',
+      hint:
+        'DISPATCH_GITHUB_REPO debe ser solo owner/repo (ej. ibarraivane/farmax), sin https:// ni .git',
+    });
     return;
   }
 
@@ -97,10 +141,20 @@ module.exports = async function handler(req, res) {
     if (ghResp.status !== 204) {
       const text = await ghResp.text().catch(() => '');
       console.error('[api/backup] github dispatch failed:', ghResp.status, sanitize(text).slice(0, 200));
+      let hint;
+      try {
+        const j = JSON.parse(text);
+        if (j.message) hint = sanitize(String(j.message)).slice(0, 240);
+      } catch (_) {
+        hint = sanitize(text).slice(0, 240);
+      }
       res.status(502).json({
         ok: false,
         error: 'github_dispatch_failed',
         status: ghResp.status,
+        hint:
+          hint ||
+          'Revisá que DISPATCH_GITHUB_TOKEN tenga acceso al repo y permiso Actions (fine-grained: Actions read/write). 404 = owner/repo incorrecto.',
       });
       return;
     }
@@ -111,7 +165,7 @@ module.exports = async function handler(req, res) {
       dispatched: true,
       ms: Date.now() - startedAt,
       ts: new Date().toISOString(),
-      message: 'Workflow disparado. Revisa GitHub Actions para el resultado.',
+      message: 'Workflow disparado. En GitHub → Actions → FARMAX DB Backup debe aparecer una corrida.',
     });
   } catch (err) {
     const msg = sanitize((err && err.message) || String(err));
