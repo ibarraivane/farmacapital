@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "./supabase";
 import { useTheme } from "./themeContext";
 import { useMediaQuery } from "./hooks/useMediaQuery";
-import { saludoUsuario, primerNombre, $, normalizarSesionLoginResp, nombreCompletoPacienteValido, telefonoMxValido } from "./utils";
+import { saludoUsuario, primerNombre, $, normalizarSesionLoginResp, nombreCompletoPacienteValido, telefonoMxValido, soloDigitosTel } from "./utils";
 import { CONSULTA_PRECIO_DEFAULT } from "./utils/consultaConstants";
 import { fetchPrecioConsultaConfig } from "./utils/consumiblesConsultorio";
 
@@ -1310,6 +1310,12 @@ function TerminosPuntos({setPage}){
   );
 }
 
+function correoTiendaValido(s) {
+  const t = String(s || "").trim();
+  if (!t) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t);
+}
+
 // ── REGISTRO ──────────────────────────────────────────────────
 function Registro({setUser,setPage}){
   const C = useTheme();
@@ -1322,22 +1328,24 @@ function Registro({setUser,setPage}){
   const [error,   setError]  = useState("");
   const [acepto,  setAcepto] = useState(false);
 
-  const hashPwd = async p => {
-    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(p));
-    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
-  };
+  const contactoOk = telefonoMxValido(tel) || correoTiendaValido(email);
 
   const registrar = async () => {
-    if(!nombre||!tel||!pwd) return;
+    if(!nombre||!pwd) return;
+    if(!contactoOk) {
+      setError("Indicá un teléfono válido (10 dígitos) o un correo electrónico válido (podés poner ambos).");
+      return;
+    }
     if(pwd.length < 6) { setError("La contraseña debe tener al menos 6 caracteres."); return; }
     if(pwd !== pwd2) { setError("Las contraseñas no coinciden."); return; }
     setC(true); setError("");
     try{
+      const telDigits = soloDigitosTel(tel);
       const { data: raw, error: err } = await supabase.rpc("registrar_cliente", {
         p_nombre:   nombre.trim(),
-        p_telefono: tel.trim(),
+        p_telefono: telefonoMxValido(tel) ? telDigits : "",
         p_password: pwd,
-        p_email:    email?.trim() || null,
+        p_email:    correoTiendaValido(email) ? email.trim() : null,
         p_user_agent: navigator.userAgent || null,
       });
       if (err) throw err;
@@ -1360,9 +1368,10 @@ function Registro({setUser,setPage}){
         <div style={{display:"flex",justifyContent:"center",marginBottom:20}}><Logo size={40}/></div>
         <h1 style={{color:C.dark,fontSize:24,fontWeight:800,marginBottom:6,textAlign:"center"}}>Crear cuenta Farmax</h1>
         <p style={{color:C.mid,fontSize:14,marginBottom:28,textAlign:"center"}}>Regístrate y gana <strong style={{color:BRAND.accent}}>10 puntos de bienvenida ⭐</strong></p>
+        <p style={{color:C.textMid,fontSize:12,marginBottom:20,textAlign:"center",lineHeight:1.5}}>Usá <strong>correo</strong>, <strong>teléfono</strong> o <strong>ambos</strong> para tu cuenta (necesitamos al menos uno).</p>
         <div style={{marginBottom:14}}><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Nombre completo *</div><Inp value={nombre} onChange={e=>setNombre(e.target.value)} placeholder="Tu nombre" style={{width:"100%",boxSizing:"border-box"}}/></div>
-        <div style={{marginBottom:14}}><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Teléfono *</div><Inp value={tel} onChange={e=>setTel(e.target.value)} placeholder="55XXXXXXXX" type="tel" style={{width:"100%",boxSizing:"border-box"}}/></div>
-        <div style={{marginBottom:14}}><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Correo electrónico (opcional)</div><Inp value={email} onChange={e=>setEmail(e.target.value)} placeholder="tu@correo.com" type="email" style={{width:"100%",boxSizing:"border-box"}}/></div>
+        <div style={{marginBottom:14}}><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Teléfono {correoTiendaValido(email)?"(opcional)":"(o completá correo abajo)"}</div><Inp value={tel} onChange={e=>setTel(e.target.value)} placeholder="55XXXXXXXX — 10 dígitos" type="tel" style={{width:"100%",boxSizing:"border-box"}}/></div>
+        <div style={{marginBottom:14}}><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Correo electrónico {telefonoMxValido(tel)?"(opcional)":"(o completá teléfono arriba)"}</div><Inp value={email} onChange={e=>setEmail(e.target.value)} placeholder="tu@correo.com" type="email" style={{width:"100%",boxSizing:"border-box"}}/></div>
         <div style={{marginBottom:14}}>
           <div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Contraseña * <span style={{color:C.dim,fontWeight:400}}>(mínimo 6 caracteres)</span></div>
           <input name="password" autoComplete="new-password" value={pwd} onChange={e=>setPwd(e.target.value)} placeholder="••••••••" type="password"
@@ -1387,7 +1396,7 @@ function Registro({setUser,setPage}){
             {" "}de Farmax. Autorizo el uso de mis datos para gestionar mi cuenta y programa de puntos. <span style={{color:"#ef4444",fontWeight:700}}>*</span>
           </label>
         </div>
-        <Btn onClick={registrar} col={BRAND.primary} full disabled={!nombre||!tel||!pwd||!pwd2||pwd!==pwd2||pwd.length<6||creando||!acepto}>{creando?"Creando cuenta...":"Crear mi cuenta →"}</Btn>
+        <Btn onClick={registrar} col={BRAND.primary} full disabled={!nombre||!contactoOk||!pwd||!pwd2||pwd!==pwd2||pwd.length<6||creando||!acepto}>{creando?"Creando cuenta...":"Crear mi cuenta →"}</Btn>
         <div style={{textAlign:"center",marginTop:16}}><span style={{color:C.mid,fontSize:13}}>¿Ya tienes cuenta? </span><button onClick={()=>setPage("login")} style={{background:"none",border:"none",color:BRAND.primary,fontWeight:700,fontSize:13,cursor:"pointer"}}>Iniciar sesión</button></div>
       </div>
     </div>
@@ -1397,24 +1406,20 @@ function Registro({setUser,setPage}){
 // ── LOGIN ─────────────────────────────────────────────────────
 function Login({setUser,setPage}){
   const C = useTheme();
-  const [tel,     setTel]  = useState("");
+  const [ident,     setIdent]  = useState("");
   const [pwd,     setPwd]  = useState("");
   const [buscando,setBusc] = useState(false);
   const [error,   setError]= useState("");
   const [intentos,setInt]  = useState(0);
 
-  const hashPwd = async p => {
-    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(p));
-    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
-  };
-
   const entrar = async () => {
-    if(!tel||!pwd) return;
+    const id = ident.trim();
+    if(!id||!pwd) return;
     if(intentos>=5){ setError("Demasiados intentos. Espera unos minutos."); return; }
     setBusc(true); setError("");
     try{
       const { data: raw, error: err } = await supabase.rpc("login_cliente", {
-        p_telefono: tel.trim(),
+        p_telefono: correoTiendaValido(id) ? id : soloDigitosTel(id),
         p_password: pwd,
         p_user_agent: navigator.userAgent || null,
       });
@@ -1444,9 +1449,9 @@ function Login({setUser,setPage}){
         <h1 style={{color:C.dark,fontSize:24,fontWeight:800,marginBottom:6,textAlign:"center"}}>Iniciar sesión</h1>
         <p style={{color:C.mid,fontSize:14,marginBottom:28,textAlign:"center"}}>Accede a tus puntos, pedidos e historial</p>
         <div style={{marginBottom:12}}>
-          <div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Teléfono registrado</div>
-          <input name="username" autoComplete="username" value={tel} onChange={e=>setTel(e.target.value)}
-            onKeyDown={e=>e.key==="Enter"&&entrar()} placeholder="📱 55XXXXXXXX" type="tel"
+          <div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Correo o teléfono</div>
+          <input name="username" autoComplete="username email" value={ident} onChange={e=>setIdent(e.target.value)}
+            onKeyDown={e=>e.key==="Enter"&&entrar()} placeholder="tu@correo.com o 55XXXXXXXX" type="text"
             style={{width:"100%",boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:C.white,color:C.dark,fontSize:15,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}/>
         </div>
         <div style={{marginBottom:20}}>
@@ -1456,7 +1461,7 @@ function Login({setUser,setPage}){
             style={{width:"100%",boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:C.white,color:C.dark,fontSize:13,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}/>
         </div>
         {error&&(<div style={{background:C.red+"10",border:`1px solid ${C.red}30`,borderRadius:8,padding:"10px 12px",marginBottom:12,color:C.red,fontSize:13}}>{error} <button onClick={()=>setPage("registro")} style={{background:"none",border:"none",color:BRAND.primary,fontWeight:700,fontSize:13,cursor:"pointer",textDecoration:"underline"}}>Crear cuenta</button></div>)}
-        <Btn onClick={entrar} col={BRAND.primary} full disabled={!tel||!pwd||buscando}>{buscando?"Buscando...":"Entrar →"}</Btn>
+        <Btn onClick={entrar} col={BRAND.primary} full disabled={!ident.trim()||!pwd||buscando}>{buscando?"Buscando...":"Entrar →"}</Btn>
         <div style={{textAlign:"center",marginTop:16}}><span style={{color:C.mid,fontSize:13}}>¿No tienes cuenta? </span><button onClick={()=>setPage("registro")} style={{background:"none",border:"none",color:BRAND.primary,fontWeight:700,fontSize:13,cursor:"pointer"}}>Regístrate aquí</button></div>
       </div>
     </div>
