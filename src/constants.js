@@ -10,6 +10,8 @@ export const C_LIGHT = {
   teal:"#0891b2",   tealDim:"#cffafe",
   text:"#0f172a",   textMid:"#475569",  textDim:"#94a3b8",
   white:"#ffffff",  mid:"#475569",      dim:"#94a3b8",
+  /** Fondo oscuro (footer tienda, bloques hero). useTheme() expone C_LIGHT; sin esto C.dark queda undefined. */
+  dark:"#0f172a",
 };
 
 // C se exporta dinámico — se sobreescribe en runtime desde Admin.jsx

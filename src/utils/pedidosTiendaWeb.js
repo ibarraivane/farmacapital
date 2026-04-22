@@ -13,26 +13,24 @@ export function esPedidoTiendaWebPendiente(p) {
 }
 
 /**
- * Tres consultas simples en lugar de un .or(and(...)) que PostgREST a veces
- * rechaza con 400 (failed to parse logic tree).
+ * Dos consultas + filtro en cliente para legacy `tipo` vacío.
+ * La tercera rama `.eq("tipo", "")` provocaba 400 en PostgREST si `tipo` es enum
+ * u otro tipo que no acepta string vacío en el filtro.
  */
-function queriesPendientesTiendaTriple(supabase, selectSpec, extra = {}) {
+function queriesPendientesTiendaDual(supabase, selectSpec, extra = {}) {
   const { order, limit } = extra;
   const base = () => {
     let q1 = supabase.from("pedidos").select(selectSpec).eq("estado", "pendiente").eq("tipo", "online");
     let q2 = supabase.from("pedidos").select(selectSpec).eq("estado", "pendiente").is("tipo", null).in("metodo_pago", METODOS_PAGO_TIENDA_WEB);
-    let q3 = supabase.from("pedidos").select(selectSpec).eq("estado", "pendiente").eq("tipo", "").in("metodo_pago", METODOS_PAGO_TIENDA_WEB);
     if (order) {
       q1 = q1.order("created_at", order);
       q2 = q2.order("created_at", order);
-      q3 = q3.order("created_at", order);
     }
     if (limit != null) {
       q1 = q1.limit(limit);
       q2 = q2.limit(limit);
-      q3 = q3.limit(limit);
     }
-    return [q1, q2, q3];
+    return [q1, q2];
   };
   return base();
 }
@@ -42,7 +40,6 @@ export async function countPedidosTiendaPendientesHead(supabase) {
   const qs = [
     supabase.from("pedidos").select("id", { count: "exact", head: true }).eq("estado", "pendiente").eq("tipo", "online"),
     supabase.from("pedidos").select("id", { count: "exact", head: true }).eq("estado", "pendiente").is("tipo", null).in("metodo_pago", METODOS_PAGO_TIENDA_WEB),
-    supabase.from("pedidos").select("id", { count: "exact", head: true }).eq("estado", "pendiente").eq("tipo", "").in("metodo_pago", METODOS_PAGO_TIENDA_WEB),
   ];
   const results = await Promise.all(qs);
   let total = 0;
@@ -64,7 +61,7 @@ export async function countPedidosTiendaPendientesHead(supabase) {
 export async function fetchPedidosTiendaPendientesMerged(supabase, selectSpec, opts = {}) {
   const perBranchLimit = opts.perBranchLimit ?? 120;
   const maxRows = opts.maxRows ?? 250;
-  const qs = queriesPendientesTiendaTriple(supabase, selectSpec, {
+  const qs = queriesPendientesTiendaDual(supabase, selectSpec, {
     order: { ascending: false },
     limit: perBranchLimit,
   });
