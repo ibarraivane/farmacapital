@@ -310,6 +310,7 @@ const NAV_LINKS = [["home","Inicio"],["catalogo","Catálogo"],["promo","Promocio
 function Header({page,setPage,cart,user,setUser}){
   const C = useTheme();
   const narrow = useMediaQuery("(max-width: 900px)");
+  const compactNav = useMediaQuery("(max-width: 420px)");
   const [mobileMenu, setMobileMenu] = useState(false);
   const n=cart.reduce((a,c)=>a+c.qty,0);
 
@@ -326,21 +327,35 @@ function Header({page,setPage,cart,user,setUser}){
   );
 
   return(
-    <div>
-      <div style={{background:BRAND.primary,padding:"8px 16px",textAlign:"center"}}>
+    <div
+      style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 200,
+        background: C.white,
+        boxShadow: "0 2px 14px rgba(15,23,42,.08)",
+      }}
+    >
+      <div style={{
+        background: BRAND.primary,
+        padding: "6px 12px 8px",
+        paddingTop: "max(6px, env(safe-area-inset-top, 0px))",
+        textAlign: "center",
+      }}>
         <div style={{
           maxWidth:1200,margin:"0 auto",display:"flex",justifyContent:"center",alignItems:"center",
-          flexWrap:"wrap",gap:"6px 14px",fontSize:"clamp(10px, 2.6vw, 12px)",lineHeight:1.4,
+          flexWrap:"wrap",gap:"6px 10px",fontSize:"clamp(10px, 2.6vw, 12px)",lineHeight:1.35,
         }}>
           <span style={{color:"rgba(255,255,255,.85)"}}>📍 Radiodifusora 100, Iztapalapa, CDMX</span>
           <span style={{color:"rgba(255,255,255,.85)"}}>🕐 Lun–Vie 8:00–22:00 · Sáb 8:00–20:00 · Dom 9:00–18:00</span>
           <span style={{color:"rgba(255,255,255,.75)"}}>📧 contacto@farmax.mx</span>
         </div>
       </div>
-      <header style={{background:C.white,borderBottom:`1px solid ${C.border}`,position:"sticky",top:0,zIndex:100,boxShadow:"0 1px 12px #0001"}}>
+      <header style={{background:C.white,borderBottom:`1px solid ${C.border}`}}>
         <div style={{
-          maxWidth:1200,margin:"0 auto",padding:"10px 16px",display:"flex",alignItems:"center",
-          justifyContent:"space-between",gap:12,flexWrap:"wrap",minHeight:56,
+          maxWidth:1200,margin:"0 auto",padding:"8px 12px 10px",paddingLeft:"max(12px, env(safe-area-inset-left, 0px))",paddingRight:"max(12px, env(safe-area-inset-right, 0px))",
+          display:"flex",alignItems:"center",
+          justifyContent:"space-between",gap:8,flexWrap:"wrap",minHeight:52,
         }}>
           <div style={{display:"flex",alignItems:"center",gap:10,flex:"1 1 auto",minWidth:0}}>
             <div onClick={()=>setPage("home")} style={{cursor:"pointer"}}><Logo size={narrow?28:32}/></div>
@@ -371,9 +386,9 @@ function Header({page,setPage,cart,user,setUser}){
                 </button>
               </div>
             ):(
-              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                <Btn onClick={()=>setPage("registro")} col={BRAND.accent} sm>Crear cuenta</Btn>
-                <Btn onClick={()=>setPage("login")} outline col={BRAND.primary} sm>Iniciar sesión</Btn>
+              <div style={{display:"flex",gap:compactNav?6:8,flexWrap:"wrap",alignItems:"center"}}>
+                <Btn onClick={()=>setPage("registro")} col={BRAND.accent} sm style={compactNav?{padding:"6px 10px",fontSize:12}:undefined}>{compactNav?"Registro":"Crear cuenta"}</Btn>
+                <Btn onClick={()=>setPage("login")} outline col={BRAND.primary} sm style={compactNav?{padding:"6px 10px",fontSize:12}:undefined}>{compactNav?"Entrar":"Iniciar sesión"}</Btn>
               </div>
             )}
             <button type="button" onClick={()=>setPage("carrito")} style={{position:"relative",background:"none",border:"none",cursor:"pointer",padding:8}}>
@@ -801,7 +816,7 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero}){
         </div>
       </div>
       <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"180px 1fr",gap:20,alignItems:"start"}}>
-        <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:16,height:"fit-content",position:stack?"relative":"sticky",top:80}}>
+        <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:16,height:"fit-content",position:stack?"relative":"sticky",top:"calc(env(safe-area-inset-top, 0px) + 100px)"}}>
           <div style={{color:C.dark,fontWeight:700,fontSize:13,marginBottom:12}}>Categorías</div>
           {cats.map(c=>(
             <button key={c} type="button" onClick={()=>setCat(c)} style={{width:"100%",textAlign:"left",padding:"8px 10px",borderRadius:8,border:"none",background:cat===c?BRAND.primary+"18":"transparent",color:cat===c?BRAND.primary:C.mid,fontSize:13,fontWeight:cat===c?700:400,cursor:"pointer",marginBottom:2}}>{c}</button>
@@ -822,6 +837,7 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
   const [entrega,setEntrega]=useState("pickup");
   useEffect(()=>{ setEntregaGlobal?.(entrega); },[entrega,setEntregaGlobal]);
   const sub=cart.reduce((a,c)=>a+c.precio*c.qty,0);
+  const qtyTouch = stack ? 44 : 28;
   const upd=(id,d)=>setCart(p=>p.map(c=>{
     if(c.id!==id) return c;
     const next = Math.max(1,c.qty+d);
@@ -841,9 +857,9 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
               <div style={{flex:1}}><div style={{color:C.dark,fontWeight:700,fontSize:15}}>{item.nombre}</div><div style={{color:C.dim,fontSize:11,marginTop:4}}>+{labelPts(ptsGana(item.precio*item.qty))}</div></div>
               <div style={{display:"flex",alignItems:"center",gap:10,flexShrink:0,flexWrap:"wrap",marginLeft:"auto"}}>
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
-                  <button type="button" onClick={()=>upd(item.id,-1)} style={{width:28,height:28,borderRadius:8,border:`1px solid ${C.border}`,background:C.white,cursor:"pointer",fontSize:16}}>−</button>
+                  <button type="button" aria-label="Disminuir cantidad" onClick={()=>upd(item.id,-1)} style={{width:qtyTouch,height:qtyTouch,borderRadius:8,border:`1px solid ${C.border}`,background:C.white,cursor:"pointer",fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>−</button>
                   <span style={{color:C.dark,fontWeight:700,fontSize:15,minWidth:24,textAlign:"center"}}>{item.qty}</span>
-                  <button type="button" onClick={()=>upd(item.id,1)} style={{width:28,height:28,borderRadius:8,border:`1px solid ${C.border}`,background:C.white,cursor:"pointer",fontSize:16}}>+</button>
+                  <button type="button" aria-label="Aumentar cantidad" onClick={()=>upd(item.id,1)} style={{width:qtyTouch,height:qtyTouch,borderRadius:8,border:`1px solid ${C.border}`,background:C.white,cursor:"pointer",fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>+</button>
                 </div>
                 <div style={{color:BRAND.primary,fontWeight:800,fontSize:18,minWidth:60,textAlign:"right"}}>{$(item.precio*item.qty)}</div>
                 <button type="button" onClick={()=>rm(item.id)} style={{background:"none",border:"none",color:C.dim,cursor:"pointer",fontSize:18}}>🗑️</button>
@@ -852,7 +868,7 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
           ))}
           <Btn onClick={()=>setPage("catalogo")} outline col={BRAND.primary} sm>← Seguir comprando</Btn>
         </div>
-        <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:24,position:stack?"relative":"sticky",top:80}}>
+        <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:24,position:stack?"relative":"sticky",top:"calc(env(safe-area-inset-top, 0px) + 100px)"}}>
           <div style={{color:C.dark,fontWeight:800,fontSize:16,marginBottom:14}}>Tipo de entrega</div>
           {[["pickup","🏪 Pick-up en Farmax","Gratis · Mismo día"],["cdmx","🛵 Reparto CDMX","Rappi/Uber · Costo del servicio"],["foraneo","📦 Envío foráneo","$89 · 2-5 días · Skydropx"]].map(([v,l,s])=>(
             <div key={v} onClick={()=>setEntrega(v)} style={{padding:"12px 14px",borderRadius:10,border:`2px solid ${entrega===v?BRAND.primary:C.border}`,background:entrega===v?BRAND.primary+"18":C.white,cursor:"pointer",marginBottom:8}}>
@@ -1010,11 +1026,11 @@ function Checkout({cart,setCart,setPage,user,entrega="pickup"}){
       <h1 style={{color:C.dark,fontSize:"clamp(22px,5vw,26px)",fontWeight:800,marginBottom:24,lineHeight:1.2}}>Finalizar compra</h1>
       <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr min(300px,100%)",gap:24,alignItems:"start"}}>
         <div style={{minWidth:0}}>
-          {step===1&&(<div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}><div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:20}}>📋 Datos de contacto</div><div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:14}}>{[["Nombre completo","nombre"],["Teléfono","tel"],["Correo electrónico","email"],["Calle y número","calle"],["Colonia","colonia"],["Código postal","cp"]].map(([l,k])=>(<div key={k} style={{gridColumn:!stack&&(k==="email"||k==="calle")?"1/-1":undefined}}><div style={{color:C.mid,fontSize:12,marginBottom:6,fontWeight:600}}>{l}</div><Inp value={datos[k]} onChange={e=>setDatos(p=>({...p,[k]:e.target.value}))} placeholder={l} style={{width:"100%",boxSizing:"border-box"}}/></div>))}</div><Btn onClick={()=>setStep(2)} col={BRAND.primary} style={{marginTop:20,width:stack?"100%":undefined}} disabled={!datos.nombre||!datos.tel}>Continuar al pago →</Btn></div>)}
+          {step===1&&(<div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}><div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:20}}>📋 Datos de contacto</div><div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:14}}>{[["Nombre completo","nombre"],["Teléfono","tel"],["Correo electrónico","email"],["Calle y número","calle"],["Colonia","colonia"],["Código postal","cp"]].map(([l,k])=>(<div key={k} style={{gridColumn:!stack&&(k==="email"||k==="calle")?"1/-1":undefined}}><div style={{color:C.mid,fontSize:12,marginBottom:6,fontWeight:600}}>{l}</div><Inp value={datos[k]} onChange={e=>setDatos(p=>({...p,[k]:e.target.value}))} placeholder={l} style={{width:"100%",boxSizing:"border-box",...(stack?{fontSize:16}:{})}}/></div>))}</div><Btn onClick={()=>setStep(2)} col={BRAND.primary} style={{marginTop:20,width:stack?"100%":undefined}} disabled={!datos.nombre||!datos.tel}>Continuar al pago →</Btn></div>)}
           {step===2&&(<div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}><div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:20}}>💳 Método de pago</div>{[["tarjeta","💳 Tarjeta de crédito/débito","Visa, Mastercard, Amex"],["mercadopago","🔵 Mercado Pago","Wallet · Cuotas sin intereses"]].map(([v,l,s])=>(<div key={v} onClick={()=>setMetodo(v)} style={{padding:"14px 16px",borderRadius:10,border:`2px solid ${metodo===v?BRAND.primary:C.border}`,background:metodo===v?BRAND.primary+"18":C.white,cursor:"pointer",marginBottom:10}}><div style={{color:metodo===v?BRAND.primary:C.dark,fontWeight:700,fontSize:"clamp(13px,3.2vw,14px)"}}>{l}</div><div style={{color:C.dim,fontSize:12,marginTop:2}}>{s}</div></div>))}<div style={{display:"flex",gap:10,marginTop:8,flexWrap:"wrap"}}><Btn onClick={()=>setStep(1)} outline col={C.mid} sm>← Atrás</Btn><Btn onClick={()=>setStep(3)} col={BRAND.primary} style={{flex:stack?1:undefined,minWidth:stack?0:undefined}}>Revisar pedido →</Btn></div></div>)}
           {step===3&&(<div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}><div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:16}}>✅ Confirmar pedido</div>{cart.map(item=>(<div key={item.id} style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,padding:"8px 0",borderBottom:`1px solid ${C.border}`}}><span style={{color:C.dark,fontSize:13,fontWeight:600,flex:1,minWidth:0,wordBreak:"break-word"}}>{item.nombre} ×{item.qty}</span><span style={{color:BRAND.primary,fontWeight:700,flexShrink:0}}>{$(item.precio*item.qty)}</span></div>))}<div style={{display:"flex",gap:10,marginTop:16,flexWrap:"wrap"}}><Btn onClick={()=>setStep(2)} outline col={C.mid} sm>← Atrás</Btn><Btn onClick={confirmar} col={BRAND.primary} disabled={guardando} style={{flex:stack?1:undefined,minWidth:0}}>{guardando?"Guardando...":"✅ Confirmar "+$(sub)}</Btn></div></div>)}
         </div>
-        <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:20,position:stack?"relative":"sticky",top:80}}>
+        <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:20,position:stack?"relative":"sticky",top:"calc(env(safe-area-inset-top, 0px) + 100px)"}}>
           <div style={{color:C.dark,fontWeight:700,fontSize:15,marginBottom:14}}>Tu pedido</div>
           {cart.map(item=>(<div key={item.id} style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><span style={{color:C.mid,fontSize:13}}>{item.nombre} ×{item.qty}</span><span style={{color:C.dark,fontSize:13,fontWeight:600}}>{$(item.precio*item.qty)}</span></div>))}
           <div style={{borderTop:`1px solid ${C.border}`,marginTop:12,paddingTop:12}}><div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:C.dark,fontWeight:800}}>Total</span><span style={{color:BRAND.primary,fontWeight:900,fontSize:20}}>{$(sub)}</span></div></div>
@@ -1153,10 +1169,10 @@ function AgendarCita({setPage,user}){
         <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:16,marginBottom:16}}>
           <div><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Nombre completo <span style={{color:"#ef4444"}}>*</span></div><Inp value={nombre} onChange={e=>setNombre(e.target.value)} placeholder="Nombre y apellido" style={{width:"100%",boxSizing:"border-box"}}/></div>
           <div><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Teléfono <span style={{color:"#ef4444"}}>*</span></div><Inp value={tel} onChange={e=>setTel(e.target.value)} placeholder="10+ dígitos" type="tel" style={{width:"100%",boxSizing:"border-box"}}/></div>
-          <div><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Fecha</div><input type="date" value={fecha} onChange={e=>setFecha(e.target.value)} min={new Date().toLocaleDateString("sv-SE")} style={{width:"100%",boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:C.white,color:C.dark,fontSize:13,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}/></div>
+          <div><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Fecha</div><input type="date" value={fecha} onChange={e=>setFecha(e.target.value)} min={new Date().toLocaleDateString("sv-SE")} style={{width:"100%",boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:C.white,color:C.dark,fontSize:stack?16:13,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}/></div>
           <div>
             <div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Horario {fecha&&horarios.length===0?"— Sin disponibilidad hoy":""}</div>
-            <select value={hora} onChange={e=>setHora(e.target.value)} style={{width:"100%",padding:"11px 14px",borderRadius:10,border:`2px solid ${C.border}`,color:hora?C.dark:C.dim,fontSize:14,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
+            <select value={hora} onChange={e=>setHora(e.target.value)} style={{width:"100%",padding:"11px 14px",borderRadius:10,border:`2px solid ${C.border}`,color:hora?C.dark:C.dim,fontSize:stack?16:14,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
               <option value="">Seleccionar horario</option>
               {horariosLibres.length===0&&fecha?<option value="">Sin disponibilidad este día</option>:horariosLibres.map(h=><option key={h} value={h}>{h} hrs{horasOcupadas.includes(h)?" (ocupado)":""}</option>)}
             </select>
@@ -1860,13 +1876,14 @@ export default function TiendaFarmax(){
   const sinFooter=["home"];
 
   return(
-    <div style={{overflowX:"hidden",width:"100%",minHeight:"min(100vh,100dvh)"}}>
+    <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
         *{box-sizing:border-box;margin:0;padding:0;}
+        html{-webkit-text-size-adjust:100%;}
         body{background:${C.bg};font-family:'Plus Jakarta Sans',sans-serif;color:${C.dark};}
-        /* 100% evita overflow por scrollbar (100vw incluye ancho de barra en algunos navegadores). */
-        main{overflow-x:hidden;width:100%;max-width:100%;}
+        /* Header sticky: debe quedar FUERA de un padre con overflow-x:hidden (rompe sticky en móvil). */
+        main{overflow-x:hidden;width:100%;max-width:100%;padding-bottom:env(safe-area-inset-bottom, 0px);}
         img,svg,video,canvas{max-width:100%;height:auto;}
         ::-webkit-scrollbar{width:6px;}::-webkit-scrollbar-track{background:${C.bg};}::-webkit-scrollbar-thumb{background:${C.border};border-radius:4px;}
         button,select{font-family:'Plus Jakarta Sans',sans-serif;}
@@ -1877,12 +1894,12 @@ export default function TiendaFarmax(){
 
       <Header page={page} setPage={setPage} cart={cart} user={user} setUser={setUser}/>
 
-      <main style={{minHeight:"min(100vh, 100dvh)",background:C.bg}}>
-        {pages[page]||pages.home}
-      </main>
-
-      {/* Footer en páginas que no son home (home ya lo tiene incluido) */}
-      {!sinFooter.includes(page)&&<Footer setPage={setPage}/>}
-    </div>
+      <div style={{overflowX:"hidden",width:"100%",minHeight:"min(100vh,100dvh)"}}>
+        <main style={{minHeight:"min(100vh, 100dvh)",background:C.bg}}>
+          {pages[page]||pages.home}
+        </main>
+        {!sinFooter.includes(page)&&<Footer setPage={setPage}/>}
+      </div>
+    </>
   );
 }

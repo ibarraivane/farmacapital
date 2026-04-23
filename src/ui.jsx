@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef, useState, useLayoutEffect, useCallback } from "react";
 // FARMAX — Componentes UI base
 import { C_LIGHT, BRAND } from "./constants";
 
@@ -206,6 +206,102 @@ export function SkeletonCard({ height=80, style={} }) {
   return (
     <div style={{borderRadius:12,background:"linear-gradient(90deg,#f0f4f9 25%,#e2e8f0 50%,#f0f4f9 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite",height,...style}}>
       <style>{`@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
+    </div>
+  );
+}
+
+/**
+ * Contenedor con scroll horizontal sincronizado: barra arriba y abajo (misma posición).
+ */
+export function HorizontalScrollSync({ children, style = {}, topBarHeight = 12, ...rest }) {
+  const C = C_LIGHT;
+  const topRef = useRef(null);
+  const bottomRef = useRef(null);
+  const innerRef = useRef(null);
+  const [trackW, setTrackW] = useState(0);
+  const syncing = useRef(false);
+
+  const measure = useCallback(() => {
+    const bottom = bottomRef.current;
+    const inner = innerRef.current;
+    if (!bottom) return;
+    const w = inner ? Math.max(inner.scrollWidth, inner.offsetWidth) : bottom.scrollWidth;
+    setTrackW(w);
+  }, []);
+
+  useLayoutEffect(() => {
+    measure();
+    const t = requestAnimationFrame(measure);
+    return () => cancelAnimationFrame(t);
+  }, [measure, children]);
+
+  useLayoutEffect(() => {
+    const inner = innerRef.current;
+    if (!inner || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => measure());
+    ro.observe(inner);
+    return () => ro.disconnect();
+  }, [measure]);
+
+  useLayoutEffect(() => {
+    const onResize = () => measure();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [measure]);
+
+  const onTopScroll = (e) => {
+    if (syncing.current) return;
+    syncing.current = true;
+    const left = e.target.scrollLeft;
+    if (bottomRef.current) bottomRef.current.scrollLeft = left;
+    requestAnimationFrame(() => {
+      syncing.current = false;
+    });
+  };
+  const onBottomScroll = (e) => {
+    if (syncing.current) return;
+    syncing.current = true;
+    const left = e.target.scrollLeft;
+    if (topRef.current) topRef.current.scrollLeft = left;
+    requestAnimationFrame(() => {
+      syncing.current = false;
+    });
+  };
+
+  return (
+    <div {...rest} style={{ borderRadius: 12, border: `1px solid ${C.border}`, overflow: "hidden", ...style }}>
+      <div
+        ref={topRef}
+        onScroll={onTopScroll}
+        title="Desplazar tabla horizontalmente"
+        style={{
+          overflowX: "auto",
+          overflowY: "hidden",
+          height: topBarHeight + 6,
+          maxHeight: topBarHeight + 6,
+          flexShrink: 0,
+          borderBottom: `1px solid ${C.border}`,
+          background: C.cardDark,
+          WebkitOverflowScrolling: "touch",
+          scrollbarWidth: "thin",
+        }}
+      >
+        <div style={{ width: trackW > 0 ? trackW : "100%", height: 1, pointerEvents: "none" }} aria-hidden />
+      </div>
+      <div
+        ref={bottomRef}
+        onScroll={onBottomScroll}
+        style={{
+          overflowX: "auto",
+          overflowY: "hidden",
+          WebkitOverflowScrolling: "touch",
+          scrollbarWidth: "thin",
+        }}
+      >
+        <div ref={innerRef} style={{ minWidth: "min-content" }}>
+          {children}
+        </div>
+      </div>
     </div>
   );
 }

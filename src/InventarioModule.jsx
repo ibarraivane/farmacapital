@@ -3,7 +3,7 @@ import { useMediaQuery } from "./hooks/useMediaQuery";
 import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
 import { logAudit } from "./utils";
-import { SkeletonTable, Paginador, SearchDropdown } from "./ui";
+import { SkeletonTable, Paginador, SearchDropdown, HorizontalScrollSync } from "./ui";
 import { showToast } from "./ui";
 import OnboardingTour from "./components/OnboardingTour";
 import { idEmpleadoUsuarios } from "./utils/usuarioId";
@@ -670,8 +670,8 @@ export default function InventarioModule() {
       {loading ? (
         <SkeletonTable rows={8} cols={7}/>
       ) : (
-        <div data-tour="inv-tabla" style={{overflowX:"auto",borderRadius:12,border:`1px solid ${C.border}`}}>
-          <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+        <HorizontalScrollSync data-tour="inv-tabla">
+          <table style={{width:"100%",minWidth:1100,borderCollapse:"collapse",fontSize:12}}>
             <thead>
               <tr style={{background:C.card}}>
                 {["SKU","Nombre","Categoría","Tipo","Stock","Mín","Precio","Costo","Margen%","Cad. (días)","Agot. (días)","Desc%","Estado","Acciones"].map(h=>(
@@ -760,7 +760,7 @@ export default function InventarioModule() {
               })}
             </tbody>
           </table>
-        </div>
+        </HorizontalScrollSync>
       )}
 
       {modal!==null&&(

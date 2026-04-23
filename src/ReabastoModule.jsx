@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
-import { showToast } from "./ui";
+import { showToast, HorizontalScrollSync } from "./ui";
 
 const BRAND = { primary:"#0052cc", gradient:"linear-gradient(135deg,#0052cc,#0099e6)" };
 const fmt = n => `$${parseFloat(n||0).toLocaleString("es-MX",{minimumFractionDigits:2})}`;
@@ -168,8 +168,8 @@ export default function ReabastoModule() {
               <div style={{color:C.textMid,fontSize:12,marginBottom:12}}>
                 Selecciona los productos que quieres pedir y ajusta la cantidad. Luego haz clic en "Generar orden de compra".
               </div>
-              <div style={{overflowX:"auto",borderRadius:12,border:`1px solid ${C.border}`}}>
-                <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+              <HorizontalScrollSync>
+                <table style={{width:"100%",minWidth:900,borderCollapse:"collapse",fontSize:12}}>
                   <thead>
                     <tr style={{background:C.cardDark}}>
                       <th style={{padding:"9px 12px",textAlign:"left",color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>
@@ -213,7 +213,7 @@ export default function ReabastoModule() {
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </HorizontalScrollSync>
             </div>
           )
         )
@@ -246,7 +246,8 @@ export default function ReabastoModule() {
                     </button>
                   </div>
                 </div>
-                <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                <HorizontalScrollSync>
+                  <table style={{width:"100%",minWidth:640,borderCollapse:"collapse",fontSize:12}}>
                   <thead><tr style={{background:C.cardDark}}>{["Producto","SKU","Stock actual","Cantidad pedida","Costo est."].map(h=><th key={h} style={{padding:"8px 12px",textAlign:"left",color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{h}</th>)}</tr></thead>
                   <tbody>
                     {orden.productos.map((p,j)=>(
@@ -260,6 +261,7 @@ export default function ReabastoModule() {
                     ))}
                   </tbody>
                 </table>
+                </HorizontalScrollSync>
               </div>
             ))}
           </div>

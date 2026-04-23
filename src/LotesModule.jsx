@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
-import { showToast } from "./ui";
+import { showToast, HorizontalScrollSync } from "./ui";
 
 const BRAND = { primary:"#0052cc", gradient:"linear-gradient(135deg,#0052cc,#0099e6)" };
 const fmt = n => `$${parseFloat(n||0).toFixed(2)}`;
@@ -150,8 +150,8 @@ export default function LotesModule() {
 
       {/* Tabla */}
       {loading?<div style={{color:C.textMid,textAlign:"center",padding:40}}>Cargando…</div>:(
-        <div style={{overflowX:"auto",borderRadius:12,border:`1px solid ${C.border}`}}>
-          <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+        <HorizontalScrollSync>
+          <table style={{width:"100%",minWidth:980,borderCollapse:"collapse",fontSize:12}}>
             <thead>
               <tr style={{background:C.cardDark}}>
                 {["Producto","SKU","Lote","Caducidad","Días","Stock actual","Costo","Proveedor","Acciones"].map(h=>(
@@ -186,7 +186,7 @@ export default function LotesModule() {
               })}
             </tbody>
           </table>
-        </div>
+        </HorizontalScrollSync>
       )}
 
       {/* Modal nuevo lote */}
