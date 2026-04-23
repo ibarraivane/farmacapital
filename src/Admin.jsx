@@ -1712,7 +1712,8 @@ export default function FarmaxAdmin(){
     <div className="farmax-admin-root" style={{background:C.bg,fontFamily:"'Plus Jakarta Sans',sans-serif",transition:"background .3s,color .3s",color:C.text,overflowX:"hidden"}}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
-html,body,#root{height:100%;-webkit-text-size-adjust:100%}
+html,body,#root{height:100%;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{touch-action:manipulation}
 .farmax-admin-root{min-height:100vh;min-height:100dvh}
 .farmax-admin-main{
   min-height:100vh;min-height:100dvh;box-sizing:border-box;

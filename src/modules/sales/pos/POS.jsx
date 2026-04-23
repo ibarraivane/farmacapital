@@ -1131,7 +1131,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                 zIndex: 8,
                 display: "flex",
                 alignItems: "center",
-                gap: 6,
+                gap: 8,
                 padding: "6px 0 8px",
                 marginBottom: 8,
                 background: C.card,
@@ -1143,14 +1143,16 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                 type="button"
                 data-tour="pos-toolbar-carrito"
                 onClick={() => setCartOpen(true)}
+                aria-expanded={cartOpen}
+                aria-label="Abrir carrito y cobrar"
                 style={{
                   flex: 1,
                   minWidth: 0,
                   display: "flex",
                   alignItems: "center",
-                  gap: 8,
-                  padding: "6px 10px",
-                  borderRadius: 9,
+                  gap: 10,
+                  padding: "8px 10px",
+                  borderRadius: 10,
                   border: `1px solid ${cart.length ? BRAND.primary : C.border}`,
                   background: cart.length ? BRAND.primary + "12" : C.bg,
                   cursor: "pointer",
@@ -1158,24 +1160,62 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                   textAlign: "left",
                 }}
               >
-                <span style={{ fontWeight: 800, fontSize: 12, color: C.text }}>
-                  Carrito
-                </span>
-                {cart.length > 0 && (
-                  <span style={{ fontSize: 11, fontWeight: 600, color: C.textDim }}>
-                    ({cart.length})
-                  </span>
-                )}
                 <span
                   style={{
+                    fontSize: 22,
+                    lineHeight: 1,
+                    flexShrink: 0,
+                  }}
+                  aria-hidden
+                >
+                  🛒
+                </span>
+                <div style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0 }}>
+                  <span style={{ fontWeight: 800, fontSize: 12, color: C.text }}>
+                    Carrito
+                    {cart.length > 0 ? (
+                      <span style={{ fontWeight: 700, color: C.textDim }}>
+                        {" "}
+                        · {cart.length} {cart.length === 1 ? "ítem" : "ítems"}
+                      </span>
+                    ) : null}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 700,
+                      color: C.textDim,
+                      letterSpacing: 0.3,
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    Total
+                  </span>
+                </div>
+                <div
+                  style={{
                     marginLeft: "auto",
-                    fontWeight: 900,
-                    fontSize: 14,
-                    color: C.blue,
+                    flex: "1 1 120px",
+                    minWidth: 96,
+                    maxWidth: "48%",
+                    padding: "6px 10px",
+                    borderRadius: 10,
+                    background: C.blueDim,
+                    border: `1px solid ${C.blue}35`,
+                    textAlign: "center",
                   }}
                 >
-                  {$(total)}
-                </span>
+                  <span
+                    style={{
+                      fontWeight: 900,
+                      fontSize: 16,
+                      color: C.blue,
+                      fontVariantNumeric: "tabular-nums",
+                    }}
+                  >
+                    {$(total)}
+                  </span>
+                </div>
               </button>
               <button
                 type="button"
@@ -1217,12 +1257,14 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                 }}
                 placeholder="🔍 Buscar por nombre o SKU · Enter para agregar"
                 style={{flex:1,minWidth:0,boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:C.bg,color:C.text,fontSize:13,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}/>
+              {!isMobilePos && (
               <button onClick={()=>setCartOpen(p=>!p)} style={{
                 padding:"9px 14px",borderRadius:8,border:`1px solid ${C.border}`,
                 background:cart.length?BRAND.primary+"18":"transparent",
                 color:cart.length?BRAND.primary:C.textMid,
                 fontWeight:700,fontSize:12,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,
               }}>🛒{cart.length>0?` (${cart.length})`:""} {cartOpen?"▶":"◀"}</button>
+              )}
             </div>
             {favs.length>0&&(
               <div data-tour="pos-favoritos" style={{marginBottom:12}}>
@@ -1328,24 +1370,127 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
           </div>
           ) : null}
         </div>
-        {isMobilePos && (
-          <Modal
-            open={cartOpen}
-            onClose={() => setCartOpen(false)}
-            title="Carrito"
+        {isMobilePos && cartOpen && (
+          <div
+            className="farmax-pos-cart-sheet-root"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Carrito de venta"
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 1100,
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "flex-end",
+              pointerEvents: "auto",
+            }}
           >
-            <div
-              id="farmax-pos-cart"
-              data-tour="pos-carrito"
+            <button
+              type="button"
+              aria-label="Cerrar carrito"
+              onClick={() => setCartOpen(false)}
               style={{
-                maxHeight: "min(78dvh, 640px)",
-                overflowY: "auto",
-                WebkitOverflowScrolling: "touch",
+                position: "absolute",
+                inset: 0,
+                border: "none",
+                padding: 0,
+                margin: 0,
+                background: "rgba(15,23,42,.48)",
+                cursor: "pointer",
               }}
+            />
+            <div
+              className="farmax-pos-cart-sheet-panel"
+              style={{
+                position: "relative",
+                zIndex: 1,
+                display: "flex",
+                flexDirection: "column",
+                maxHeight: "96dvh",
+                height: "96dvh",
+                background: C.card,
+                borderTopLeftRadius: 18,
+                borderTopRightRadius: 18,
+                boxShadow: "0 -16px 48px rgba(15,23,42,.28)",
+                paddingBottom: "max(12px, env(safe-area-inset-bottom, 0px))",
+                overflow: "hidden",
+              }}
+              onClick={(e) => e.stopPropagation()}
             >
-              {renderPosCarritoVentaInner()}
+              <div
+                style={{
+                  flexShrink: 0,
+                  padding: "8px 12px 10px",
+                  borderBottom: `1px solid ${C.border}`,
+                }}
+              >
+                <div
+                  style={{
+                    width: 36,
+                    height: 4,
+                    borderRadius: 2,
+                    background: C.border,
+                    margin: "0 auto 10px",
+                  }}
+                  aria-hidden
+                />
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
+                >
+                  <div style={{ width: 40, flexShrink: 0 }} aria-hidden />
+                  <span
+                    style={{
+                      fontWeight: 900,
+                      fontSize: 16,
+                      color: C.text,
+                      flex: 1,
+                      textAlign: "center",
+                    }}
+                  >
+                    Carrito · {$(total)}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setCartOpen(false)}
+                    aria-label="Cerrar"
+                    style={{
+                      flexShrink: 0,
+                      width: 40,
+                      height: 40,
+                      borderRadius: 10,
+                      border: `1px solid ${C.border}`,
+                      background: C.bg,
+                      color: C.textMid,
+                      fontSize: 18,
+                      lineHeight: 1,
+                      cursor: "pointer",
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+              <div
+                id="farmax-pos-cart"
+                data-tour="pos-carrito"
+                style={{
+                  flex: 1,
+                  minHeight: 0,
+                  overflowY: "auto",
+                  WebkitOverflowScrolling: "touch",
+                  padding: "8px 14px 4px",
+                  overscrollBehavior: "contain",
+                }}
+              >
+                {renderPosCarritoVentaInner()}
+              </div>
             </div>
-          </Modal>
+          </div>
         )}
         </>
       )}

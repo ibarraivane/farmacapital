@@ -2,7 +2,8 @@
 <html lang="es">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <!-- minimum-scale evita que iOS/Safari “re-encuadre” la página al cargar; maximum-scale conserva zoom manual (accesibilidad). -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=5, viewport-fit=cover" />
 
     <!-- PWA / Theme -->
     <meta name="theme-color" content="#0052cc" />
@@ -49,11 +50,18 @@
     <!-- Estilos base -->
     <style>
       * { box-sizing: border-box; margin: 0; padding: 0; }
-      html { -webkit-text-size-adjust: 100%; }
+      html {
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+      }
       body {
         font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+        /* Evita zoom por doble toque y reduce saltos visuales al cargar en móvil. */
+        touch-action: manipulation;
         overscroll-behavior: none;
       }
       /* Splash screen mientras carga */
