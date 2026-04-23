@@ -17,8 +17,10 @@ import { TOURS } from "../../../utils/tours";
 
 export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const C = C_LIGHT;
-  /** Vista estrecha: coincide con CSS .farmax-pos-venta-grid (max-width 1100px). */
+  /** Vista estrecha (tablet / ventana angosta): tipografía, grillas, cabecera. */
   const isNarrow = useMediaQuery("(max-width: 1100px)");
+  /** Solo celular / pantalla muy estrecha: carrito en modal + barra Carrito/total/? (no afecta escritorio). */
+  const isMobilePos = useMediaQuery("(max-width: 768px)");
   const [tab,setTab]         = useState(initialTab); // venta | online | consultas
   const [productos,setProds] = useState([]);
   const [cart,setCart]       = useState([]);
@@ -58,7 +60,10 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const [ocupacionPorHora, setOcupacionPorHora] = useState({});
   const [loading,setLoad]    = useState(false);
   const [guardando,setGuard] = useState(false);
-  const [cartOpen,setCartOpen]   = useState(true);
+  const [cartOpen, setCartOpen] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return !window.matchMedia("(max-width: 768px)").matches;
+  });
   const [mpModal,setMpModal]     = useState(false);
   const [mpFolio,setMpFolio]     = useState("");
   /** Tras elegir origen de receta, cobro con tarjeta (Point) usa este valor al confirmar el pago. */
@@ -732,6 +737,158 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     setGuard(false);
   };
 
+  const renderPosCarritoVentaInner = () => (
+    <>
+      <Box style={{padding:16,marginBottom:12}}>
+        <div style={{color:C.text,fontWeight:700,fontSize:13,marginBottom:12}}>🛒 Carrito</div>
+        <div data-tour="pos-cliente">
+        <SearchDropdown
+          value={tel}
+          onChange={t=>buscarCli(t)}
+          onSelect={c=>{ setTel(c.telefono||""); setCli(c); }}
+          placeholder="📱 Teléfono o nombre del cliente"
+          items={[]}
+          labelKey="nombre"
+          subKey="telefono"
+          badgeKey="puntos"
+          badgeCol="#7c3aed"
+          style={{marginBottom:8}}
+          emptyMsg="Escribe el teléfono completo (10 dígitos)"
+        />
+        </div>
+        {cli&&<div style={{background:C.purpleDim,border:`1px solid ${C.purple}30`,borderRadius:8,padding:"8px 10px",marginBottom:10}}>
+          <div style={{color:C.purple,fontWeight:700,fontSize:12}}>{cli.nombre}</div>
+          <div style={{color:C.textMid,fontSize:10}}>⭐ {cli.puntos||0} puntos Farmax</div>
+        </div>}
+        {!cart.length?<div style={{color:C.textMid,fontSize:12,textAlign:"center",padding:"20px 0"}}>Agrega productos</div>:
+         cart.map(item=>(
+          <div key={item.id} style={{marginBottom:10,paddingBottom:10,borderBottom:`1px solid ${C.border}`}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:6,marginBottom:6}}>
+              <div style={{color:C.text,fontSize:11,fontWeight:700,flex:1}}>{item.nombre}</div>
+              <button onClick={()=>setCart(p=>p.filter(c=>c.id!==item.id))} style={{background:"none",border:"none",color:C.red,cursor:"pointer",fontSize:14}}>×</button>
+            </div>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{display:"flex",alignItems:"center",gap:6}}>
+                <button onClick={()=>setCart(p=>p.map(c=>c.id===item.id?{...c,qty:Math.max(1,c.qty-1)}:c))} style={{width:22,height:22,borderRadius:4,border:`1px solid ${C.border}`,background:"none",color:C.text,cursor:"pointer",fontSize:13}}>−</button>
+                <span style={{color:C.text,fontSize:12,fontWeight:700}}>{item.qty}</span>
+            <button onClick={()=>setCart(p=>p.map(c=>c.id===item.id?((c.esUnidad&&c.qty>=(item.stock_unidades||0))?(showToast(`Máx unidades: ${item.stock_unidades||0}`,"warning"),c):(!c.esUnidad&&c.qty>=(item.stock||99)?(showToast(`Máx: ${item.stock}`,"warning"),c):{...c,qty:c.qty+1})):c))} style={{width:22,height:22,borderRadius:4,border:`1px solid ${C.border}`,background:"none",color:C.text,cursor:"pointer",fontSize:13}}>+</button>
+              </div>
+              <span style={{color:C.blue,fontWeight:700,fontSize:13}}>{$(item.precio*item.qty)}</span>
+            </div>
+          </div>
+        ))}
+      </Box>
+      {/* Sugerencias */}
+      {cart.length>0&&(()=>{
+        const cats = [...new Set(cart.map(i=>i.categoria).filter(Boolean))];
+        const idsEnCart = new Set(cart.map(i=>typeof i.id==="string"?i.id:String(i.id)));
+        const sugs = productos.filter(p=>
+          cats.includes(p.categoria) &&
+          !idsEnCart.has(String(p.id)) &&
+          p.activo && p.stock>0
+        ).slice(0,4);
+        if(!sugs.length) return null;
+        return (
+          <Box style={{padding:12,marginBottom:12}}>
+            <div style={{color:C.textMid,fontSize:10,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>💡 Sugeridos</div>
+            <div style={{display:"flex",flexDirection:"column",gap:6}}>
+              {sugs.map(p=>(
+                <div key={p.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 8px",borderRadius:7,background:C.bg,cursor:"pointer"}}
+                  onClick={()=>add(p,false)}
+                  onMouseEnter={e=>e.currentTarget.style.background=C.blueDim}
+                  onMouseLeave={e=>e.currentTarget.style.background=C.bg}>
+                  <div style={{flex:1}}>
+                    <div style={{color:C.text,fontSize:11,fontWeight:600,lineHeight:1.3}}>{p.nombre}</div>
+                    <div style={{color:C.textDim,fontSize:9}}>{p.categoria}</div>
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+                    <span style={{color:C.blue,fontWeight:700,fontSize:11}}>{$(p.precio||p.precio||0)}</span>
+                    <span style={{color:C.green,fontSize:14,fontWeight:700}}>+</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Box>
+        );
+      })()}
+
+      {/* Método pago */}
+      <Box style={{padding:14,marginBottom:12}}>
+        <div style={{color:C.textDim,fontSize:10,letterSpacing:1.5,textTransform:"uppercase",marginBottom:8}}>Método de pago</div>
+        <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+          {[["efectivo","Efectivo"],["tarjeta","Tarjeta (Point)"]].map(([v,l])=>(
+            <button key={v} type="button" onClick={()=>{ setPay(v); if(v!=="efectivo") setMontoRecibido(""); }} style={{padding:"4px 10px",borderRadius:20,border:`1px solid ${pay===v?C.blue:C.border}`,background:pay===v?C.blueDim:"transparent",color:pay===v?C.blue:C.textMid,fontSize:10,fontWeight:700,cursor:"pointer"}}>{l}</button>
+          ))}
+        </div>
+      </Box>
+      {pay==="efectivo"&&cart.length>0&&(
+        <Box style={{padding:14,marginBottom:12,background:C.greenDim,border:`1px solid ${C.green}25`}}>
+          <div style={{color:C.textDim,fontSize:10,letterSpacing:1.2,textTransform:"uppercase",marginBottom:8}}>Efectivo</div>
+          <div style={{color:C.textMid,fontSize:11,marginBottom:8}}>¿Cuánto te entregó el cliente?</div>
+          <Inp
+            value={montoRecibido}
+            onChange={(e)=>setMontoRecibido(e.target.value)}
+            placeholder={`Mínimo ${$(total)}`}
+            inputMode="decimal"
+            style={{width:"100%",boxSizing:"border-box",marginBottom:8,fontSize:16,fontWeight:700}}
+          />
+          <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
+            <button type="button" onClick={()=>setMontoRecibido(String(total))} style={{padding:"4px 10px",borderRadius:8,border:`1px solid ${C.green}`,background:"#fff",color:C.green,fontSize:10,fontWeight:700,cursor:"pointer"}}>Exacto {$(total)}</button>
+            {sugerenciasPagoCliente(total).map(({billete,cambio})=>(
+              <button key={billete} type="button" onClick={()=>setMontoRecibido(String(billete))} style={{padding:"4px 10px",borderRadius:8,border:`1px solid ${C.border}`,background:C.card,fontSize:10,fontWeight:600,cursor:"pointer",color:C.text}}>
+                ${billete} → cambio {$(cambio)}
+              </button>
+            ))}
+          </div>
+          {Number.isFinite(recibidoNum)&&recibidoNum>=total&&(
+            <div style={{marginBottom:8}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
+                <span style={{color:C.textMid,fontSize:12}}>Cambio a entregar</span>
+                <span style={{color:C.green,fontWeight:900,fontSize:22}}>{$(cambioNum)}</span>
+              </div>
+              {cambioNum>0&&desgloseCambioMN(cambioNum)&&(
+                <div style={{color:C.textMid,fontSize:10,marginTop:4,lineHeight:1.4}}>
+                  <strong style={{color:C.text}}>Sugerido:</strong> {desgloseCambioMN(cambioNum)}
+                </div>
+              )}
+            </div>
+          )}
+          {Number.isFinite(recibidoNum)&&recibidoNum>0&&recibidoNum<total&&(
+            <div style={{color:C.red,fontSize:11,fontWeight:700}}>Falta ${(total-recibidoNum).toFixed(2)}</div>
+          )}
+          <div style={{color:C.textDim,fontSize:9,marginTop:6,lineHeight:1.35}}>
+            Consejo caja: si te quedas sin billetes chicos, pide al cliente pagar con el monto exacto o con billetes que dejen un cambio “redondo” (usa los botones de arriba). Para control fino por denominación usa el corte de caja al cerrar turno.
+          </div>
+        </Box>
+      )}
+      {/* Total */}
+      <div data-tour="pos-cobrar">
+      <Box style={{padding:16}}>
+        <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+          <span style={{color:C.textMid,fontSize:13}}>Total</span>
+          <span style={{color:C.blue,fontWeight:900,fontSize:20}}>{$(total)}</span>
+        </div>
+        {cli&&<div style={{color:C.purple,fontSize:11,fontWeight:700,marginBottom:10}}>+{ptsG} puntos → {cli.nombre}</div>}
+        {pay==="efectivo" ? (
+          <Btn onClick={cobrar} full col={C.green} dis={!cart.length||guardando||(!Number.isFinite(recibidoNum)||recibidoNum<total)}
+            onKeyDown={e=>e.key==="Enter"&&!guardando&&cart.length&&Number.isFinite(recibidoNum)&&recibidoNum>=total&&cobrar()}
+          >{guardando?"Procesando...":"✅ Cobrar "+$(total)}</Btn>
+        ) : (
+          <div>
+            <Btn onClick={()=>abrirModalRecetaVenta("tarjeta")}
+              full col="#009ee3" dis={!cart.length||guardando}
+            >💳 Cobrar con tarjeta (terminal Point)</Btn>
+            <div style={{color:C.textDim,fontSize:10,marginTop:10,lineHeight:1.45}}>
+              La app <strong>espera</strong> a que el Point Smart 2 confirme el pago con tarjeta. Recién entonces se registra la venta y se envía el ticket a la impresora Epson (mismo flujo que al cobrar en efectivo).
+            </div>
+          </div>
+        )}
+      </Box>
+      </div>
+
+    </>
+  );
+
   return(
     <div className="farmax-pos-root" style={{
       width:"100%",
@@ -744,7 +901,9 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       <style>{`
         @media (max-width: 1100px) {
           .farmax-pos-root { overflow-x: hidden; max-width: 100%; }
-          /* Vista móvil venta: productos con scroll propio + carrito siempre visible abajo en el mismo marco. */
+        }
+        /* Solo ≤768px: marco alto fijo + scroll de productos (carrito en modal por JS). */
+        @media (max-width: 768px) {
           .farmax-pos-venta-grid.farmax-pos-venta-narrow {
             display: flex !important;
             flex-direction: column !important;
@@ -764,27 +923,6 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
             overflow-y: auto !important;
             -webkit-overflow-scrolling: touch !important;
             padding-bottom: 10px !important;
-          }
-          .farmax-pos-venta-grid.farmax-pos-venta-narrow .farmax-pos-cart-col {
-            position: static !important;
-            top: auto !important;
-            flex: 0 0 auto !important;
-            max-height: min(46vh, 400px) !important;
-            overflow-x: hidden !important;
-            overflow-y: auto !important;
-            -webkit-overflow-scrolling: touch !important;
-            width: 100% !important;
-            max-width: 100% !important;
-            box-sizing: border-box !important;
-          }
-          .farmax-pos-venta-grid.farmax-pos-venta-narrow .farmax-pos-cart-collapsed {
-            flex: 0 0 auto !important;
-          }
-          /* Si no hay clase narrow (p. ej. desincronía), seguir en una columna tipo lista. */
-          .farmax-pos-venta-grid:not(.farmax-pos-venta-narrow) {
-            grid-template-columns: 1fr !important;
-            width: 100% !important;
-            max-width: 100% !important;
           }
         }
       `}</style>
@@ -967,22 +1105,24 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
 
       {/* TAB: VENTA NORMAL */}
       {tab==="venta"&&(
+        <>
         <div
-          className={`farmax-pos-venta-grid${isNarrow ? " farmax-pos-venta-narrow" : ""}`}
+          className={`farmax-pos-venta-grid${isMobilePos ? " farmax-pos-venta-narrow" : ""}`}
           style={{
-          display: isNarrow ? "flex" : "grid",
-          flexDirection: isNarrow ? "column" : undefined,
-          gridTemplateColumns: isNarrow
+          display: isMobilePos ? "flex" : "grid",
+          flexDirection: isMobilePos ? "column" : undefined,
+          gridTemplateColumns: isMobilePos
             ? undefined
             : (cartOpen ? "1fr minmax(260px, 320px)" : "1fr"),
-          gap: isNarrow ? 0 : 16,
-          alignItems: isNarrow ? "stretch" : "start",
+          gap: isMobilePos ? 0 : 16,
+          alignItems: isMobilePos ? "stretch" : "start",
           position:"relative",
           minWidth:0,
           width:"100%",
           maxWidth:"100%",
         }}>
           <div className="farmax-pos-products-col" style={{ minWidth: 0 }}>
+            {isMobilePos && (
             <div
               className="farmax-pos-venta-toolbar"
               style={{
@@ -991,52 +1131,46 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                 zIndex: 8,
                 display: "flex",
                 alignItems: "center",
-                gap: 8,
-                padding: "8px 0 10px",
-                marginBottom: 10,
+                gap: 6,
+                padding: "6px 0 8px",
+                marginBottom: 8,
                 background: C.card,
                 borderBottom: `1px solid ${C.border}`,
-                boxShadow: "0 4px 14px rgba(15,50,70,.06)",
+                boxShadow: "0 2px 10px rgba(15,50,70,.05)",
               }}
             >
               <button
                 type="button"
                 data-tour="pos-toolbar-carrito"
-                onClick={() => {
-                  setCartOpen(true);
-                  requestAnimationFrame(() => {
-                    requestAnimationFrame(() => {
-                      document
-                        .getElementById("farmax-pos-cart")
-                        ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-                    });
-                  });
-                }}
+                onClick={() => setCartOpen(true)}
                 style={{
                   flex: 1,
                   minWidth: 0,
                   display: "flex",
                   alignItems: "center",
-                  gap: 10,
-                  padding: "8px 12px",
-                  borderRadius: 10,
+                  gap: 8,
+                  padding: "6px 10px",
+                  borderRadius: 9,
                   border: `1px solid ${cart.length ? BRAND.primary : C.border}`,
-                  background: cart.length ? BRAND.primary + "16" : C.bg,
+                  background: cart.length ? BRAND.primary + "12" : C.bg,
                   cursor: "pointer",
                   fontFamily: "inherit",
                   textAlign: "left",
                 }}
               >
-                <span style={{ fontSize: 17, lineHeight: 1 }} aria-hidden>🛒</span>
                 <span style={{ fontWeight: 800, fontSize: 12, color: C.text }}>
-                  {cart.length}{" "}
-                  {cart.length === 1 ? "ítem" : "ítems"}
+                  Carrito
                 </span>
+                {cart.length > 0 && (
+                  <span style={{ fontSize: 11, fontWeight: 600, color: C.textDim }}>
+                    ({cart.length})
+                  </span>
+                )}
                 <span
                   style={{
                     marginLeft: "auto",
                     fontWeight: 900,
-                    fontSize: isNarrow ? 14 : 15,
+                    fontSize: 14,
                     color: C.blue,
                   }}
                 >
@@ -1049,23 +1183,24 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                 aria-label={TOURS.pos?.label || "Tour del Punto de Venta"}
                 title={TOURS.pos?.label || "Tour del Punto de Venta"}
                 style={{
-                  width: 42,
-                  height: 42,
-                  borderRadius: 21,
+                  width: 36,
+                  height: 36,
+                  borderRadius: 18,
                   flexShrink: 0,
                   border: "none",
                   background: "linear-gradient(135deg,#0052CC,#0099e6)",
                   color: "#fff",
                   fontWeight: 800,
-                  fontSize: 18,
+                  fontSize: 16,
                   lineHeight: 1,
                   cursor: "pointer",
-                  boxShadow: "0 6px 16px rgba(0, 82, 204, 0.3)",
+                  boxShadow: "0 4px 12px rgba(0, 82, 204, 0.28)",
                 }}
               >
                 ?
               </button>
             </div>
+            )}
             <div style={{display:"flex",gap:8,marginBottom:12,alignItems:"center",flexWrap: isNarrow ? "wrap" : "nowrap"}}>
               <input ref={srchRef} value={srch} onChange={e=>setSrch(e.target.value)}
                 data-tour="pos-buscador"
@@ -1173,204 +1308,46 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
               })}
             </div>
           </div>
-          {/* Carrito: en móvil queda en panel inferior con scroll propio; productos arriba con scroll aparte. */}
-          {isNarrow && !cartOpen ? (
-            <button
-              type="button"
-              className="farmax-pos-cart-col farmax-pos-cart-collapsed"
-              onClick={() => setCartOpen(true)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 10,
-                padding: "12px 14px calc(12px + env(safe-area-inset-bottom, 0px))",
-                background: C.card,
-                border: "none",
-                borderTop: `2px solid ${BRAND.primary}`,
-                cursor: "pointer",
-                fontFamily: "inherit",
-                width: "100%",
-                boxSizing: "border-box",
-                textAlign: "left",
-                boxShadow: "0 -6px 20px rgba(15,50,70,.08)",
-              }}
-            >
-              <span style={{ fontWeight: 800, fontSize: 13, color: C.text }}>
-                🛒 Mostrar carrito
-                {cart.length > 0
-                  ? ` · ${cart.length} ${cart.length === 1 ? "ítem" : "ítems"} · ${$(total)}`
-                  : ""}
-              </span>
-              <span style={{ fontSize: 16, color: BRAND.primary }}>▲</span>
-            </button>
-          ) : cartOpen ? (
+          {/* Carrito: escritorio = columna; móvil = modal (barra compacta arriba). */}
+          {!isMobilePos && cartOpen ? (
           <div
             id="farmax-pos-cart"
             className="farmax-pos-cart-col"
             data-tour="pos-carrito"
             style={{
-            position: isNarrow ? "static" : "sticky",
-            top: isNarrow ? undefined : 12,
+            position: "sticky",
+            top: 12,
             alignSelf: "start",
             minWidth: 0,
             maxWidth: "100%",
-            maxHeight: isNarrow ? undefined : "calc(100dvh - 120px)",
-            overflowY: isNarrow ? undefined : "auto",
+            maxHeight: "calc(100dvh - 120px)",
+            overflowY: "auto",
             WebkitOverflowScrolling: "touch",
-            boxShadow: isNarrow ? "0 -6px 20px rgba(15,50,70,.08)" : undefined,
-            borderTop: isNarrow ? `1px solid ${C.border}` : undefined,
-            paddingBottom: isNarrow ? "env(safe-area-inset-bottom, 0px)" : undefined,
           }}>
-            <Box style={{padding:16,marginBottom:12}}>
-              <div style={{color:C.text,fontWeight:700,fontSize:13,marginBottom:12}}>🛒 Carrito</div>
-              <div data-tour="pos-cliente">
-              <SearchDropdown
-                value={tel}
-                onChange={t=>buscarCli(t)}
-                onSelect={c=>{ setTel(c.telefono||""); setCli(c); }}
-                placeholder="📱 Teléfono o nombre del cliente"
-                items={[]}
-                labelKey="nombre"
-                subKey="telefono"
-                badgeKey="puntos"
-                badgeCol="#7c3aed"
-                style={{marginBottom:8}}
-                emptyMsg="Escribe el teléfono completo (10 dígitos)"
-              />
-              </div>
-              {cli&&<div style={{background:C.purpleDim,border:`1px solid ${C.purple}30`,borderRadius:8,padding:"8px 10px",marginBottom:10}}>
-                <div style={{color:C.purple,fontWeight:700,fontSize:12}}>{cli.nombre}</div>
-                <div style={{color:C.textMid,fontSize:10}}>⭐ {cli.puntos||0} puntos Farmax</div>
-              </div>}
-              {!cart.length?<div style={{color:C.textMid,fontSize:12,textAlign:"center",padding:"20px 0"}}>Agrega productos</div>:
-               cart.map(item=>(
-                <div key={item.id} style={{marginBottom:10,paddingBottom:10,borderBottom:`1px solid ${C.border}`}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:6,marginBottom:6}}>
-                    <div style={{color:C.text,fontSize:11,fontWeight:700,flex:1}}>{item.nombre}</div>
-                    <button onClick={()=>setCart(p=>p.filter(c=>c.id!==item.id))} style={{background:"none",border:"none",color:C.red,cursor:"pointer",fontSize:14}}>×</button>
-                  </div>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                    <div style={{display:"flex",alignItems:"center",gap:6}}>
-                      <button onClick={()=>setCart(p=>p.map(c=>c.id===item.id?{...c,qty:Math.max(1,c.qty-1)}:c))} style={{width:22,height:22,borderRadius:4,border:`1px solid ${C.border}`,background:"none",color:C.text,cursor:"pointer",fontSize:13}}>−</button>
-                      <span style={{color:C.text,fontSize:12,fontWeight:700}}>{item.qty}</span>
-                  <button onClick={()=>setCart(p=>p.map(c=>c.id===item.id?((c.esUnidad&&c.qty>=(item.stock_unidades||0))?(showToast(`Máx unidades: ${item.stock_unidades||0}`,"warning"),c):(!c.esUnidad&&c.qty>=(item.stock||99)?(showToast(`Máx: ${item.stock}`,"warning"),c):{...c,qty:c.qty+1})):c))} style={{width:22,height:22,borderRadius:4,border:`1px solid ${C.border}`,background:"none",color:C.text,cursor:"pointer",fontSize:13}}>+</button>
-                    </div>
-                    <span style={{color:C.blue,fontWeight:700,fontSize:13}}>{$(item.precio*item.qty)}</span>
-                  </div>
-                </div>
-              ))}
-            </Box>
-            {/* Sugerencias */}
-            {cart.length>0&&(()=>{
-              const cats = [...new Set(cart.map(i=>i.categoria).filter(Boolean))];
-              const idsEnCart = new Set(cart.map(i=>typeof i.id==="string"?i.id:String(i.id)));
-              const sugs = productos.filter(p=>
-                cats.includes(p.categoria) &&
-                !idsEnCart.has(String(p.id)) &&
-                p.activo && p.stock>0
-              ).slice(0,4);
-              if(!sugs.length) return null;
-              return (
-                <Box style={{padding:12,marginBottom:12}}>
-                  <div style={{color:C.textMid,fontSize:10,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>💡 Sugeridos</div>
-                  <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                    {sugs.map(p=>(
-                      <div key={p.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 8px",borderRadius:7,background:C.bg,cursor:"pointer"}}
-                        onClick={()=>add(p,false)}
-                        onMouseEnter={e=>e.currentTarget.style.background=C.blueDim}
-                        onMouseLeave={e=>e.currentTarget.style.background=C.bg}>
-                        <div style={{flex:1}}>
-                          <div style={{color:C.text,fontSize:11,fontWeight:600,lineHeight:1.3}}>{p.nombre}</div>
-                          <div style={{color:C.textDim,fontSize:9}}>{p.categoria}</div>
-                        </div>
-                        <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
-                          <span style={{color:C.blue,fontWeight:700,fontSize:11}}>{$(p.precio||p.precio||0)}</span>
-                          <span style={{color:C.green,fontSize:14,fontWeight:700}}>+</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </Box>
-              );
-            })()}
-
-            {/* Método pago */}
-            <Box style={{padding:14,marginBottom:12}}>
-              <div style={{color:C.textDim,fontSize:10,letterSpacing:1.5,textTransform:"uppercase",marginBottom:8}}>Método de pago</div>
-              <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-                {[["efectivo","Efectivo"],["tarjeta","Tarjeta (Point)"]].map(([v,l])=>(
-                  <button key={v} type="button" onClick={()=>{ setPay(v); if(v!=="efectivo") setMontoRecibido(""); }} style={{padding:"4px 10px",borderRadius:20,border:`1px solid ${pay===v?C.blue:C.border}`,background:pay===v?C.blueDim:"transparent",color:pay===v?C.blue:C.textMid,fontSize:10,fontWeight:700,cursor:"pointer"}}>{l}</button>
-                ))}
-              </div>
-            </Box>
-            {pay==="efectivo"&&cart.length>0&&(
-              <Box style={{padding:14,marginBottom:12,background:C.greenDim,border:`1px solid ${C.green}25`}}>
-                <div style={{color:C.textDim,fontSize:10,letterSpacing:1.2,textTransform:"uppercase",marginBottom:8}}>Efectivo</div>
-                <div style={{color:C.textMid,fontSize:11,marginBottom:8}}>¿Cuánto te entregó el cliente?</div>
-                <Inp
-                  value={montoRecibido}
-                  onChange={(e)=>setMontoRecibido(e.target.value)}
-                  placeholder={`Mínimo ${$(total)}`}
-                  inputMode="decimal"
-                  style={{width:"100%",boxSizing:"border-box",marginBottom:8,fontSize:16,fontWeight:700}}
-                />
-                <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
-                  <button type="button" onClick={()=>setMontoRecibido(String(total))} style={{padding:"4px 10px",borderRadius:8,border:`1px solid ${C.green}`,background:"#fff",color:C.green,fontSize:10,fontWeight:700,cursor:"pointer"}}>Exacto {$(total)}</button>
-                  {sugerenciasPagoCliente(total).map(({billete,cambio})=>(
-                    <button key={billete} type="button" onClick={()=>setMontoRecibido(String(billete))} style={{padding:"4px 10px",borderRadius:8,border:`1px solid ${C.border}`,background:C.card,fontSize:10,fontWeight:600,cursor:"pointer",color:C.text}}>
-                      ${billete} → cambio {$(cambio)}
-                    </button>
-                  ))}
-                </div>
-                {Number.isFinite(recibidoNum)&&recibidoNum>=total&&(
-                  <div style={{marginBottom:8}}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
-                      <span style={{color:C.textMid,fontSize:12}}>Cambio a entregar</span>
-                      <span style={{color:C.green,fontWeight:900,fontSize:22}}>{$(cambioNum)}</span>
-                    </div>
-                    {cambioNum>0&&desgloseCambioMN(cambioNum)&&(
-                      <div style={{color:C.textMid,fontSize:10,marginTop:4,lineHeight:1.4}}>
-                        <strong style={{color:C.text}}>Sugerido:</strong> {desgloseCambioMN(cambioNum)}
-                      </div>
-                    )}
-                  </div>
-                )}
-                {Number.isFinite(recibidoNum)&&recibidoNum>0&&recibidoNum<total&&(
-                  <div style={{color:C.red,fontSize:11,fontWeight:700}}>Falta ${(total-recibidoNum).toFixed(2)}</div>
-                )}
-                <div style={{color:C.textDim,fontSize:9,marginTop:6,lineHeight:1.35}}>
-                  Consejo caja: si te quedas sin billetes chicos, pide al cliente pagar con el monto exacto o con billetes que dejen un cambio “redondo” (usa los botones de arriba). Para control fino por denominación usa el corte de caja al cerrar turno.
-                </div>
-              </Box>
-            )}
-            {/* Total */}
-            <div data-tour="pos-cobrar">
-            <Box style={{padding:16}}>
-              <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-                <span style={{color:C.textMid,fontSize:13}}>Total</span>
-                <span style={{color:C.blue,fontWeight:900,fontSize:20}}>{$(total)}</span>
-              </div>
-              {cli&&<div style={{color:C.purple,fontSize:11,fontWeight:700,marginBottom:10}}>+{ptsG} puntos → {cli.nombre}</div>}
-              {pay==="efectivo" ? (
-                <Btn onClick={cobrar} full col={C.green} dis={!cart.length||guardando||(!Number.isFinite(recibidoNum)||recibidoNum<total)}
-                  onKeyDown={e=>e.key==="Enter"&&!guardando&&cart.length&&Number.isFinite(recibidoNum)&&recibidoNum>=total&&cobrar()}
-                >{guardando?"Procesando...":"✅ Cobrar "+$(total)}</Btn>
-              ) : (
-                <div>
-                  <Btn onClick={()=>abrirModalRecetaVenta("tarjeta")}
-                    full col="#009ee3" dis={!cart.length||guardando}
-                  >💳 Cobrar con tarjeta (terminal Point)</Btn>
-                  <div style={{color:C.textDim,fontSize:10,marginTop:10,lineHeight:1.45}}>
-                    La app <strong>espera</strong> a que el Point Smart 2 confirme el pago con tarjeta. Recién entonces se registra la venta y se envía el ticket a la impresora Epson (mismo flujo que al cobrar en efectivo).
-                  </div>
-                </div>
-              )}
-            </Box>
-            </div>
+            {renderPosCarritoVentaInner()}
           </div>
           ) : null}
         </div>
+        {isMobilePos && (
+          <Modal
+            open={cartOpen}
+            onClose={() => setCartOpen(false)}
+            title="Carrito"
+          >
+            <div
+              id="farmax-pos-cart"
+              data-tour="pos-carrito"
+              style={{
+                maxHeight: "min(78dvh, 640px)",
+                overflowY: "auto",
+                WebkitOverflowScrolling: "touch",
+              }}
+            >
+              {renderPosCarritoVentaInner()}
+            </div>
+          </Modal>
+        )}
+        </>
       )}
 
       {/* TAB: PEDIDOS ONLINE */}
@@ -1603,7 +1580,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
           })}
         </div>
       )}
-      <OnboardingTour ref={posTourRef} tourId="pos" usuario={usuario} showFab={false} />
+      <OnboardingTour ref={posTourRef} tourId="pos" usuario={usuario} showFab={!isMobilePos} />
     </div>
   );
 }
