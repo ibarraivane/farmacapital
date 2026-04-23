@@ -1,0 +1,10 @@
+sku,nombre,categoria,subcategoria,notas_importacion,precio_sugerido_mxn,activo,visible_tienda,requiere_receta,controlado,delivery_allowed,sell_web,sell_pickup,sell_rappi,sell_uber
+,VIT_C_500MG_TBL,,Vitaminas,Completar SKU y presentación según proveedor,,true,true,false,false,true,true,true,false,false
+,VIT_D3_2000UI,,Vitaminas,,,true,true,false,false,true,true,true,false,false
+,COMPLEJO_B_TBL,,Vitaminas,,,true,true,false,false,true,true,true,false,false
+,MULTIVIT_ADULTO,,Vitaminas,,,true,true,false,false,true,true,true,false,false
+,MULTIVIT_PEDIATRICO,,Vitaminas,,,true,true,false,false,true,true,true,false,false
+,PRENATAL_ACIDO_FOLICO,,Vitaminas,,,true,true,false,false,true,true,true,false,false
+,SUERO_ORAL_SOBRES,,Hidratación / electrolitos,,,true,true,false,false,true,true,true,false,false
+,ELECTROLITOS_PEDIATRICO,,Hidratación / electrolitos,,,true,true,false,false,true,true,true,false,false
+,ELECTROLITOS_SIN_AZUCAR,,Hidratación / electrolitos,,,true,true,false,false,true,true,true,false,false

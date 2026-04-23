@@ -4,7 +4,7 @@ import { C_LIGHT, BRAND } from "./constants";
 import { showToast, SkeletonTable, Paginador } from "./ui";
 import TicketVenta from "./components/tickets/TicketVenta";
 import { printTicket } from "./utils/printTicket";
-import { idEmpleadoUsuarios } from "./utils/usuarioId";
+import { labelTipoEntregaPedido } from "./utils/orderChannels";
 
 /** Listado de pedidos con filtros — antes dentro de Admin/Reportes; requiere showConfirm del padre. */
 export default function TransaccionesTab({ usuario, showConfirm }) {
@@ -209,12 +209,20 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                   <td style={{ padding: "8px 12px", color: C.text, fontWeight: 600, borderBottom: `1px solid ${C.border}` }}>{p.clientes?.nombre || "—"}</td>
                   <td style={{ padding: "8px 12px", color: C.green, fontWeight: 700, borderBottom: `1px solid ${C.border}` }}>{fmtM(p.total)}</td>
                   <td style={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}` }}>{p.metodo_pago || "—"}</td>
-                  <td style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}` }}>
+                  <td style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, verticalAlign: "top" }}>
                     <span style={{ padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 700,
                       background: p.tipo === "online" ? "#ede9fe" : p.tipo === "consulta" ? "#dcfce7" : "#eff6ff",
                       color: p.tipo === "online" ? C.purple : p.tipo === "consulta" ? C.green : C.blue }}>
                       {p.tipo || "física"}
                     </span>
+                    {p.tipo_entrega && (
+                      <div style={{ fontSize: 10, color: C.textMid, marginTop: 4, lineHeight: 1.3, maxWidth: 140 }}>
+                        {labelTipoEntregaPedido(p.tipo_entrega)}
+                        {p.tipo_entrega === "envio" && p.direccion && (
+                          <span title={p.direccion} style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.direccion}</span>
+                        )}
+                      </div>
+                    )}
                   </td>
                   <td style={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}` }}>{p.usuarios?.nombre || "—"}</td>
                   <td style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}` }}>
@@ -267,6 +275,12 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
               <div><span style={{ color: C.textMid }}>Método: </span><strong style={{ color: C.text }}>{modalDetalle.metodo_pago || "—"}</strong></div>
               <div><span style={{ color: C.textMid }}>Estado: </span><strong style={{ color: estCol(modalDetalle.estado) }}>{modalDetalle.estado}</strong></div>
               <div><span style={{ color: C.textMid }}>Tipo: </span><strong style={{ color: C.text }}>{modalDetalle.tipo || "física"}</strong></div>
+              {modalDetalle.tipo_entrega && (
+                <div><span style={{ color: C.textMid }}>Entrega: </span><strong style={{ color: C.text }}>{labelTipoEntregaPedido(modalDetalle.tipo_entrega)}</strong></div>
+              )}
+              {modalDetalle.tipo_entrega === "envio" && modalDetalle.direccion && (
+                <div style={{ gridColumn: "1 / -1" }}><span style={{ color: C.textMid }}>Dirección: </span><strong style={{ color: C.text }}>{modalDetalle.direccion}</strong></div>
+              )}
             </div>
             {modalDetalle.notas && <div style={{ background: C.cardDark, borderRadius: 8, padding: "8px 12px", marginBottom: 14, color: C.textMid, fontSize: 12 }}>📝 {modalDetalle.notas}</div>}
             <div style={{ fontWeight: 700, color: C.text, fontSize: 13, marginBottom: 10 }}>Productos:</div>

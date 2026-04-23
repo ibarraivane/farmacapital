@@ -5,6 +5,11 @@ import { useMediaQuery } from "./hooks/useMediaQuery";
 import { saludoUsuario, primerNombre, $, normalizarSesionLoginResp, nombreCompletoPacienteValido, telefonoMxValido, soloDigitosTel } from "./utils";
 import { CONSULTA_PRECIO_DEFAULT } from "./utils/consultaConstants";
 import { fetchPrecioConsultaConfig } from "./utils/consumiblesConsultorio";
+import {
+  mapUiEntregaToRpc,
+  productoPermitidoEnTiendaWeb,
+  validarCarritoParaEntrega,
+} from "./utils/orderChannels";
 
 // ═══════════════════════════════════════════════════════════════
 // FARMAX — Tienda en Línea v4
@@ -436,7 +441,7 @@ function ProductCard({prod,addToCart,onClick}){
         <div style={{color:C.dim,fontSize:10,marginBottom:10}}>⭐ +{labelPts(ptsGana(prod.precio||prod.precio||0))}</div>
         <div style={{display:"flex",gap:8}}>
           <Btn onClick={onClick} outline col={BRAND.primary} sm style={{flex:1}}>Ver detalle</Btn>
-          <Btn onClick={e=>{e.stopPropagation();if(prod.stock===0)return;addToCart(prod);setAdded(true);setTimeout(()=>setAdded(false),1500);}} col={prod.stock===0?"#94a3b8":added?BRAND.secondary:BRAND.primary} sm style={{flex:1,opacity:prod.stock===0?.6:1,cursor:prod.stock===0?"not-allowed":"pointer"}}>{prod.stock===0?"Agotado":added?"✓ Listo":"+ Carrito"}</Btn>
+          <Btn onClick={e=>{e.stopPropagation();if(prod.stock===0)return;if(!productoPermitidoEnTiendaWeb(prod)){alert("Este producto no está disponible para compra en línea (receta, controlado o no publicado en tienda).");return;}addToCart(prod);setAdded(true);setTimeout(()=>setAdded(false),1500);}} col={prod.stock===0||!productoPermitidoEnTiendaWeb(prod)?"#94a3b8":added?BRAND.secondary:BRAND.primary} sm style={{flex:1,opacity:(prod.stock===0||!productoPermitidoEnTiendaWeb(prod))?0.6:1,cursor:prod.stock===0||!productoPermitidoEnTiendaWeb(prod)?"not-allowed":"pointer"}}>{prod.stock===0?"Agotado":!productoPermitidoEnTiendaWeb(prod)?"Solo en mostrador":added?"✓ Listo":"+ Carrito"}</Btn>
         </div>
       </div>
     </div>
@@ -856,6 +861,13 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
             </div>
           ))}
           {entrega==="cdmx"&&(<div style={{background:"#fef3c7",border:"1px solid #f59e0b30",borderRadius:8,padding:"10px 12px",marginBottom:8}}><div style={{color:"#92400e",fontSize:12}}>🛵 El repartidor irá a Farmax y entregará en tu domicilio al costo que muestre la app de Rappi o Uber.</div></div>)}
+          {(entrega==="cdmx"||entrega==="foraneo")&&(
+            <div style={{background:"#eff6ff",border:`1px solid ${BRAND.secondary}35`,borderRadius:8,padding:"10px 12px",marginBottom:8}}>
+              <div style={{color:BRAND.primary,fontSize:11,lineHeight:1.45}}>
+                Algunos productos no se envían (controlados, con receta u omitidos para delivery). Si el checkout los rechaza, quítalos o elige <strong>pick-up en tienda</strong>.
+              </div>
+            </div>
+          )}
           <div style={{borderTop:`1px solid ${C.border}`,paddingTop:14,marginTop:8,marginBottom:14}}>
             <div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:C.dark,fontWeight:800,fontSize:16}}>Total</span><span style={{color:BRAND.primary,fontWeight:900,fontSize:22}}>{$(sub)}</span></div>
             <div style={{color:"#92400e",fontSize:12,fontWeight:700,marginTop:6}}>⭐ +{labelPts(Math.floor(sub/10))}</div>
@@ -876,6 +888,7 @@ function Checkout({cart,setCart,setPage,user,entrega="pickup"}){
   const [datos,setDatos]=useState({nombre:user?.nombre||"",tel:user?.telefono||"",email:user?.email||"",calle:"",colonia:"",cp:""});
   const [metodo,setMetodo]=useState("tarjeta");
   const [conf,setConf]=useState(false);
+  const [lastOrder,setLastOrder]=useState(null);
   const [guardando,setG]=useState(false);
   const sub=cart.reduce((a,c)=>a+(Number(c.precio)||0)*(Number(c.qty)||0),0);
   const ptsG=Math.floor(sub/10);
@@ -891,7 +904,7 @@ function Checkout({cart,setCart,setPage,user,entrega="pickup"}){
       const productIds = cart.map(c=>c.id);
       const { data: stockRows } = await supabase
         .from("productos")
-        .select("id,stock,precio,activo")
+        .select("id,stock,precio,activo,requiere_receta,controlado,visible_tienda,delivery_allowed")
         .in("id", productIds);
       const stockMap = new Map((stockRows||[]).map(p=>[p.id,p]));
       const outOfStock = cart.find(c => {
@@ -904,35 +917,65 @@ function Checkout({cart,setCart,setPage,user,entrega="pickup"}){
         return;
       }
 
+      const { ok, bloqueados } = validarCarritoParaEntrega(cart, entrega, stockMap);
+      if (!ok) {
+        alert(`Hay productos no permitidos para esta entrega:\n${bloqueados.map(b=>`• ${b.nombre}: ${b.razon}`).join("\n")}`);
+        setG(false);
+        return;
+      }
+
+      const { tipo_entrega, order_channel, fulfillment_type, ui_entrega } = mapUiEntregaToRpc(entrega);
+      const direccionStr = [datos.calle, datos.colonia, datos.cp].filter(Boolean).join(", ").trim() || null;
+      if (tipo_entrega === "envio" && (!direccionStr || direccionStr.length < 8)) {
+        alert("Para envío a domicilio completa calle, colonia y código postal.");
+        setG(false);
+        return;
+      }
+
       const tokCli = sessionStorage.getItem("farmax_cliente_token");
       if (!tokCli) {
         alert("Inicia sesión para confirmar tu pedido.");
         setG(false); return;
       }
 
-      const payloadItems = cart.map(c => {
-        const dbp = stockMap.get(c.id);
-        return {
-          producto_id:     c.id,
-          cantidad:        Number(c.qty),
-          precio_unitario: Number(dbp?.precio ?? c.precio),
-        };
-      });
+      const p_cart = cart.map(c => ({
+        producto_id: c.id,
+        cantidad:    Number(c.qty),
+      }));
 
       const { data: resp, error: rpcErr } = await supabase.rpc("cliente_crear_pedido_online", {
         p_session_token: tokCli,
-        p_items:         payloadItems,
-        p_tipo_entrega:  entrega,
-        p_metodo_pago:   metodo,
-        p_direccion:     [datos.calle, datos.colonia, datos.cp].filter(Boolean).join(", ") || null,
-        p_notas:         null,
+        p_cart,
+        p_metodo_pago: metodo,
+        p_tipo_entrega: tipo_entrega,
+        p_direccion: tipo_entrega === "envio" ? direccionStr : null,
+        p_guest_nombre: null,
+        p_guest_telefono: null,
+        p_guest_email: null,
+        p_reservation_session_id: null,
       });
       if (rpcErr) throw rpcErr;
       if (!resp?.success) {
         alert(resp?.error || "No se pudo crear el pedido");
         setG(false); return;
       }
-      setG(false);setConf(true);setCart([]);
+
+      const subSnap = cart.reduce((a,c)=>a+(Number(c.precio)||0)*(Number(c.qty)||0),0);
+      setLastOrder({
+        sub: subSnap,
+        ptsG: Math.floor(subSnap/10),
+        lines: cart.map(c=>({ nombre:c.nombre, qty:c.qty, precio:c.precio })),
+        entregaUi: entrega,
+        tipo_entrega,
+        order_channel,
+        fulfillment_type,
+        ui_entrega: ui_entrega || null,
+        datosTel: datos.tel,
+        pedidoId: resp.pedido_id,
+      });
+      setG(false);
+      setConf(true);
+      setCart([]);
       return;
     }catch(e){
       console.warn(e);
@@ -940,16 +983,23 @@ function Checkout({cart,setCart,setPage,user,entrega="pickup"}){
     }
     setG(false);
   };
-  if(conf) return(<div style={{maxWidth:600,margin:"clamp(40px,12vw,80px) auto",padding:"0 16px",textAlign:"center"}}><div style={{fontSize:"clamp(48px,15vw,72px)",marginBottom:16}}>✅</div><h1 style={{color:C.dark,fontSize:"clamp(22px,5vw,28px)",fontWeight:800,marginBottom:8,lineHeight:1.2}}>¡Pedido confirmado!</h1><p style={{color:C.mid,fontSize:"clamp(14px,3.5vw,16px)",marginBottom:24,lineHeight:1.5}}>Te avisamos por WhatsApp cuando esté listo.</p><div style={{background:"#fef3c7",border:"1px solid #f59e0b30",borderRadius:12,padding:16,marginBottom:24}}><div style={{color:"#92400e",fontWeight:700,fontSize:"clamp(13px,3.2vw,15px)"}}>⭐ +{labelPts(ptsG)} agregados a tu cuenta</div></div><div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap"}}>
+  if(conf&&lastOrder) return(<div style={{maxWidth:600,margin:"clamp(40px,12vw,80px) auto",padding:"0 16px",textAlign:"center"}}><div style={{fontSize:"clamp(48px,15vw,72px)",marginBottom:16}}>✅</div><h1 style={{color:C.dark,fontSize:"clamp(22px,5vw,28px)",fontWeight:800,marginBottom:8,lineHeight:1.2}}>¡Pedido confirmado!</h1><p style={{color:C.mid,fontSize:"clamp(14px,3.5vw,16px)",marginBottom:24,lineHeight:1.5}}>
+        {lastOrder.tipo_entrega==="recoger"
+          ? "Te avisamos por WhatsApp cuando esté listo para recoger en farmacia."
+          : "Te contactamos para coordinar el envío. Próximamente podrás enlazar Uber Direct / paquetería desde tu panel."}
+      </p>
+      {lastOrder.pedido_id!=null&&<p style={{color:C.dim,fontSize:12,marginBottom:16}}>Pedido #{lastOrder.pedido_id}</p>}
+      <div style={{background:"#fef3c7",border:"1px solid #f59e0b30",borderRadius:12,padding:16,marginBottom:24}}><div style={{color:"#92400e",fontWeight:700,fontSize:"clamp(13px,3.2vw,15px)"}}>⭐ +{labelPts(lastOrder.ptsG)} agregados a tu cuenta</div></div><div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap"}}>
           <Btn onClick={()=>setPage("home")} col={BRAND.primary}>Ir al inicio</Btn>
           <Btn onClick={()=>setPage("cuenta")} outline col={BRAND.primary}>Ver mis pedidos</Btn>
         </div>
-        {datos?.tel&&(
+        {lastOrder.datosTel&&(
           <div style={{marginTop:16}}>
             <button type="button" onClick={()=>{
-              const items=cart.map(i=>`• ${i.nombre} ×${i.qty} = $${(i.precio*i.qty).toFixed(2)}`).join("\n");
-              const msg=`🏥 *Farmax Farmacia*\nChinampac de Juárez, CDMX\n\n✅ *Pedido confirmado*\n\n${items}\n\n💰 *Total: $${sub.toFixed(2)}*\n\n📍 Pasa a recogerlo a la farmacia. Te avisamos cuando esté listo.\n\n¡Gracias por tu preferencia! 💊`;
-              window.open("https://wa.me/52"+datos.tel.replace(/\D/g,"")+"?text="+encodeURIComponent(msg),"_blank");
+              const items=lastOrder.lines.map(i=>`• ${i.nombre} ×${i.qty} = $${(Number(i.precio)*Number(i.qty)).toFixed(2)}`).join("\n");
+              const entregaTxt = lastOrder.tipo_entrega==="recoger" ? "Pick-up en Farmax" : `Envío (${lastOrder.entregaUi||"domicilio"})`;
+              const msg=`🏥 *Farmax Farmacia*\nChinampac de Juárez, CDMX\n\n✅ *Pedido confirmado*\n\n${items}\n\n💰 *Total: $${lastOrder.sub.toFixed(2)}*\n📦 *Entrega:* ${entregaTxt}\n\n¡Gracias por tu preferencia! 💊`;
+              window.open("https://wa.me/52"+String(lastOrder.datosTel).replace(/\D/g,"")+"?text="+encodeURIComponent(msg),"_blank");
             }} style={{display:"flex",alignItems:"center",gap:8,margin:"0 auto",padding:"10px 24px",borderRadius:10,border:"none",background:"#25D366",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer"}}>
               📱 Enviar confirmación por WhatsApp
             </button>
@@ -1718,6 +1768,10 @@ export default function TiendaFarmax(){
 
   const addToCart=prod=>{
     if (!prod || !prod.activo || Number(prod.stock||0) <= 0) return;
+    if (!productoPermitidoEnTiendaWeb(prod)) {
+      alert("Este producto no está disponible para compra en línea (receta, controlado o no publicado en tienda). Pásate por la farmacia.");
+      return;
+    }
     setCart(p=>{
       const ex=p.find(c=>c.id===prod.id);
       if (ex) {

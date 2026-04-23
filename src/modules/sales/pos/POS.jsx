@@ -6,7 +6,7 @@ import { printTicket } from "../../../utils/printTicket";
 import { supabase } from "../../../supabase";
 import { C_LIGHT, BRAND } from "../../../constants";
 import { $, logAudit, soloDigitosTel } from "../../../utils";
-import { Box, Tag, Btn, Inp, Modal, showToast, SearchDropdown } from "../../../ui";
+import { Box, Tag, Btn, Inp, Modal, showToast, SearchDropdown, SkeletonTable } from "../../../ui";
 import { CONSULTA_PRECIO_DEFAULT, citaPagoPendiente, citaEstaPagada, labelCanal } from "../../../utils/consultaConstants";
 import { puedeCancelarCitaNoShow, addDaysSv, formatFechaAgendaLargaEs } from "../../../utils/citasAgenda";
 import { esPedidoTiendaWebPendiente, fetchPedidosTiendaPendientesMerged } from "../../../utils/pedidosTiendaWeb";
@@ -14,9 +14,10 @@ import { desgloseCambioMN, sugerenciasPagoCliente } from "../../../utils/cambioC
 import { marcarMedicamentosRecetaFarmaxSurtidos } from "../../../utils/recetaCitaSync";
 import OnboardingTour from "../../../components/OnboardingTour";
 import { TOURS } from "../../../utils/tours";
+import { labelTipoEntregaPedido, resumenLogisticsMeta } from "../../../utils/orderChannels";
 
 const PEDIDOS_TIENDA_SELECT_POS = `
-            id,total,created_at,tipo,metodo_pago,estado,
+            id,total,created_at,tipo,metodo_pago,estado,tipo_entrega,direccion,
             clientes(nombre,telefono),
             pedido_items(cantidad,precio_unitario,productos(nombre,sku))
           `;
@@ -1486,6 +1487,9 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       {/* TAB: PEDIDOS ONLINE */}
       {tab==="online"&&(
         <div>
+          <div style={{background:C.blueDim,border:`1px solid ${C.blue}30`,borderRadius:10,padding:"10px 14px",marginBottom:14,fontSize:12,color:C.blue,lineHeight:1.45}}>
+            <strong>Operación:</strong> surte y marca listo (pick-up o envío según etiqueta). Pedidos marketplace / Uber Direct usarán <code style={{fontSize:11}}>logistics_meta</code> cuando apliques el patch SQL — ver <strong style={{color:C.text}}>docs/DELIVERY_MARKETPLACE_PREP.md</strong>.
+          </div>
           {loading?<SkeletonTable rows={3} cols={4}/>:
            !pedOnline.length?<div style={{color:C.textMid,padding:40,textAlign:"center"}}>✓ Sin pedidos online pendientes</div>:
            pedOnline.map(p=>(
@@ -1493,7 +1497,16 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12,flexWrap:"wrap",gap:10}}>
                 <div>
                   <div style={{color:C.text,fontWeight:800,fontSize:15}}>Pedido #{p.id} — Online</div>
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:6}}>
+                    <Tag col={p.tipo_entrega==="envio"?C.teal:C.green} sm>{labelTipoEntregaPedido(p.tipo_entrega)}</Tag>
+                    {resumenLogisticsMeta(p.logistics_meta) && (
+                      <Tag col={C.purple} sm title={JSON.stringify(p.logistics_meta)}>{resumenLogisticsMeta(p.logistics_meta)}</Tag>
+                    )}
+                  </div>
                   <div style={{color:C.textMid,fontSize:12,marginTop:3}}>{p.clientes?.nombre} · {p.clientes?.telefono}</div>
+                  {p.tipo_entrega==="envio"&&p.direccion&&(
+                    <div style={{color:C.textDim,fontSize:11,marginTop:4,maxWidth:480,lineHeight:1.35}}>📍 {p.direccion}</div>
+                  )}
                   <div style={{color:C.textDim,fontSize:11,marginTop:2}}>{new Date(p.created_at).toLocaleString("es-MX")}</div>
                 </div>
                 <div style={{textAlign:"right"}}>
