@@ -23,8 +23,6 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const [cart,setCart]       = useState([]);
   const [srch,setSrch]       = useState("");
   const srchRef = useRef(null);
-  /** Ancla para scroll al carrito en móvil (barra fija inferior). */
-  const cartAnchorRef = useRef(null);
   useEffect(()=>{ if(tab==="venta" && srchRef.current) srchRef.current.focus(); },[tab]);
   const [favs,setFavs]       = useState(()=>{ try{ return JSON.parse(localStorage.getItem("farmax_pos_favs")||"[]"); }catch{ return []; } });
   const toggleFav = id => {
@@ -379,16 +377,6 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const sub   = calcularTotalConPromos();
   const ptsG  = Math.floor(sub/10);
   const total = sub;
-
-  const showMobileCartDock =
-    isNarrow && tab === "venta" && cart.length > 0;
-  const mobileDockCobrarDisabled =
-    pay === "efectivo"
-      ? !cart.length ||
-        guardando ||
-        !Number.isFinite(recibidoNum) ||
-        recibidoNum < total
-      : !cart.length || guardando;
 
   const parseMontoEfectivo = (s) => {
     const x = String(s ?? "").replace(/,/g, "").trim().replace(/^\$/, "");
@@ -751,29 +739,49 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       paddingBottom:"max(8px, env(safe-area-inset-bottom, 0px))",
     }}>
       <style>{`
-        /* Forzar 1 columna en móvil/tablet aunque JS o “sitio de escritorio” fallen; gana sobre inline. */
         @media (max-width: 1100px) {
           .farmax-pos-root { overflow-x: hidden; max-width: 100%; }
-          .farmax-pos-venta-grid {
+          /* Vista móvil venta: productos con scroll propio + carrito siempre visible abajo en el mismo marco. */
+          .farmax-pos-venta-grid.farmax-pos-venta-narrow {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 0 !important;
+            height: calc(100dvh - 200px) !important;
+            min-height: 260px !important;
+            max-height: calc(100dvh - 130px) !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+          }
+          .farmax-pos-venta-grid.farmax-pos-venta-narrow .farmax-pos-products-col {
+            flex: 1 1 auto !important;
+            min-height: 0 !important;
+            overflow-x: hidden !important;
+            overflow-y: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+            padding-bottom: 10px !important;
+          }
+          .farmax-pos-venta-grid.farmax-pos-venta-narrow .farmax-pos-cart-col {
+            position: static !important;
+            top: auto !important;
+            flex: 0 0 auto !important;
+            max-height: min(46vh, 400px) !important;
+            overflow-x: hidden !important;
+            overflow-y: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+          }
+          .farmax-pos-venta-grid.farmax-pos-venta-narrow .farmax-pos-cart-collapsed {
+            flex: 0 0 auto !important;
+          }
+          /* Si no hay clase narrow (p. ej. desincronía), seguir en una columna tipo lista. */
+          .farmax-pos-venta-grid:not(.farmax-pos-venta-narrow) {
             grid-template-columns: 1fr !important;
             width: 100% !important;
             max-width: 100% !important;
-          }
-          .farmax-pos-cart-col {
-            position: static !important;
-            top: auto !important;
-            max-height: none !important;
-            overflow-y: visible !important;
-            width: 100% !important;
-            max-width: 100% !important;
-          }
-          .farmax-pos-mobile-cart-dock {
-            position: fixed;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            z-index: 1001;
-            box-sizing: border-box;
           }
         }
       `}</style>
@@ -956,24 +964,22 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
 
       {/* TAB: VENTA NORMAL */}
       {tab==="venta"&&(
-        <div className="farmax-pos-venta-grid" style={{
-          display:"grid",
+        <div
+          className={`farmax-pos-venta-grid${isNarrow ? " farmax-pos-venta-narrow" : ""}`}
+          style={{
+          display: isNarrow ? "flex" : "grid",
+          flexDirection: isNarrow ? "column" : undefined,
           gridTemplateColumns: isNarrow
-            ? "1fr"
+            ? undefined
             : (cartOpen ? "1fr minmax(260px, 320px)" : "1fr"),
-          gap: isNarrow ? 12 : 16,
-          alignItems:"start",
+          gap: isNarrow ? 0 : 16,
+          alignItems: isNarrow ? "stretch" : "start",
           position:"relative",
           minWidth:0,
           width:"100%",
           maxWidth:"100%",
         }}>
-          <div style={{
-            minWidth: 0,
-            paddingBottom: showMobileCartDock
-              ? "calc(76px + env(safe-area-inset-bottom, 0px))"
-              : undefined,
-          }}>
+          <div className="farmax-pos-products-col" style={{ minWidth: 0 }}>
             <div style={{display:"flex",gap:8,marginBottom:12,alignItems:"center",flexWrap: isNarrow ? "wrap" : "nowrap"}}>
               <input ref={srchRef} value={srch} onChange={e=>setSrch(e.target.value)}
                 data-tour="pos-buscador"
@@ -1081,10 +1087,40 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
               })}
             </div>
           </div>
-          {/* Carrito */}
-          {cartOpen&&<div
+          {/* Carrito: en móvil queda en panel inferior con scroll propio; productos arriba con scroll aparte. */}
+          {isNarrow && !cartOpen ? (
+            <button
+              type="button"
+              className="farmax-pos-cart-col farmax-pos-cart-collapsed"
+              onClick={() => setCartOpen(true)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 10,
+                padding: "12px 14px calc(12px + env(safe-area-inset-bottom, 0px))",
+                background: C.card,
+                border: "none",
+                borderTop: `2px solid ${BRAND.primary}`,
+                cursor: "pointer",
+                fontFamily: "inherit",
+                width: "100%",
+                boxSizing: "border-box",
+                textAlign: "left",
+                boxShadow: "0 -6px 20px rgba(15,50,70,.08)",
+              }}
+            >
+              <span style={{ fontWeight: 800, fontSize: 13, color: C.text }}>
+                🛒 Mostrar carrito
+                {cart.length > 0
+                  ? ` · ${cart.length} ${cart.length === 1 ? "ítem" : "ítems"} · ${$(total)}`
+                  : ""}
+              </span>
+              <span style={{ fontSize: 16, color: BRAND.primary }}>▲</span>
+            </button>
+          ) : cartOpen ? (
+          <div
             id="farmax-pos-cart"
-            ref={cartAnchorRef}
             className="farmax-pos-cart-col"
             data-tour="pos-carrito"
             style={{
@@ -1093,12 +1129,12 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
             alignSelf: "start",
             minWidth: 0,
             maxWidth: "100%",
-            maxHeight: isNarrow ? "none" : "calc(100dvh - 120px)",
-            overflowY: isNarrow ? "visible" : "auto",
+            maxHeight: isNarrow ? undefined : "calc(100dvh - 120px)",
+            overflowY: isNarrow ? undefined : "auto",
             WebkitOverflowScrolling: "touch",
-            paddingBottom: showMobileCartDock
-              ? "calc(76px + env(safe-area-inset-bottom, 0px))"
-              : undefined,
+            boxShadow: isNarrow ? "0 -6px 20px rgba(15,50,70,.08)" : undefined,
+            borderTop: isNarrow ? `1px solid ${C.border}` : undefined,
+            paddingBottom: isNarrow ? "env(safe-area-inset-bottom, 0px)" : undefined,
           }}>
             <Box style={{padding:16,marginBottom:12}}>
               <div style={{color:C.text,fontWeight:700,fontSize:13,marginBottom:12}}>🛒 Carrito</div>
@@ -1246,141 +1282,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
               )}
             </Box>
             </div>
-          </div>}
-        </div>
-      )}
-
-      {showMobileCartDock && (
-        <div
-          className="farmax-pos-mobile-cart-dock"
-          role="region"
-          aria-label="Resumen del carrito"
-          style={{
-            padding: "10px 12px calc(10px + env(safe-area-inset-bottom, 0px))",
-            background: C.card,
-            borderTop: `1px solid ${C.border}`,
-            boxShadow: "0 -8px 28px rgba(15,50,70,.14)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 10,
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => {
-              if (!cartOpen) setCartOpen(true);
-              requestAnimationFrame(() =>
-                cartAnchorRef.current?.scrollIntoView({
-                  behavior: "smooth",
-                  block: "start",
-                })
-              );
-            }}
-            style={{
-              flex: 1,
-              minWidth: 0,
-              textAlign: "left",
-              background: "transparent",
-              border: "none",
-              padding: "4px 2px",
-              cursor: "pointer",
-              fontFamily: "inherit",
-            }}
-          >
-            <div
-              style={{
-                color: C.textDim,
-                fontSize: 11,
-                fontWeight: 700,
-                marginBottom: 2,
-              }}
-            >
-              🛒 Carrito · {cart.length}{" "}
-              {cart.length === 1 ? "producto" : "productos"}
-            </div>
-            <div
-              style={{ color: C.blue, fontWeight: 900, fontSize: 18, lineHeight: 1.1 }}
-            >
-              {$(total)}
-            </div>
-          </button>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0 }}>
-            {!cartOpen ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setCartOpen(true);
-                  requestAnimationFrame(() =>
-                    cartAnchorRef.current?.scrollIntoView({
-                      behavior: "smooth",
-                      block: "start",
-                    })
-                  );
-                }}
-                style={{
-                  padding: "10px 14px",
-                  borderRadius: 10,
-                  border: `1px solid ${BRAND.primary}`,
-                  background: BRAND.primary + "20",
-                  color: BRAND.secondary,
-                  fontWeight: 800,
-                  fontSize: 12,
-                  cursor: "pointer",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                Mostrar carrito
-              </button>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  onClick={() =>
-                    cartAnchorRef.current?.scrollIntoView({
-                      behavior: "smooth",
-                      block: "start",
-                    })
-                  }
-                  style={{
-                    padding: "6px 12px",
-                    borderRadius: 8,
-                    border: `1px solid ${C.border}`,
-                    background: C.bg,
-                    color: C.textMid,
-                    fontWeight: 700,
-                    fontSize: 11,
-                    cursor: "pointer",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  Ir al detalle
-                </button>
-                <button
-                  type="button"
-                  disabled={mobileDockCobrarDisabled}
-                  onClick={() =>
-                    pay === "efectivo"
-                      ? cobrar()
-                      : abrirModalRecetaVenta("tarjeta")
-                  }
-                  style={{
-                    padding: "10px 14px",
-                    borderRadius: 10,
-                    border: "none",
-                    background: mobileDockCobrarDisabled ? C.border : C.green,
-                    color: mobileDockCobrarDisabled ? C.textDim : "#fff",
-                    fontWeight: 800,
-                    fontSize: 12,
-                    cursor: mobileDockCobrarDisabled ? "not-allowed" : "pointer",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {guardando ? "…" : pay === "efectivo" ? "Cobrar" : "Cobrar (Point)"}
-                </button>
-              </>
-            )}
           </div>
+          ) : null}
         </div>
       )}
 
