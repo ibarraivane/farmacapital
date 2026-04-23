@@ -23,6 +23,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const [cart,setCart]       = useState([]);
   const [srch,setSrch]       = useState("");
   const srchRef = useRef(null);
+  /** Ancla para scroll al carrito en móvil (barra fija inferior). */
+  const cartAnchorRef = useRef(null);
   useEffect(()=>{ if(tab==="venta" && srchRef.current) srchRef.current.focus(); },[tab]);
   const [favs,setFavs]       = useState(()=>{ try{ return JSON.parse(localStorage.getItem("farmax_pos_favs")||"[]"); }catch{ return []; } });
   const toggleFav = id => {
@@ -377,6 +379,16 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const sub   = calcularTotalConPromos();
   const ptsG  = Math.floor(sub/10);
   const total = sub;
+
+  const showMobileCartDock =
+    isNarrow && tab === "venta" && cart.length > 0;
+  const mobileDockCobrarDisabled =
+    pay === "efectivo"
+      ? !cart.length ||
+        guardando ||
+        !Number.isFinite(recibidoNum) ||
+        recibidoNum < total
+      : !cart.length || guardando;
 
   const parseMontoEfectivo = (s) => {
     const x = String(s ?? "").replace(/,/g, "").trim().replace(/^\$/, "");
@@ -755,6 +767,14 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
             width: 100% !important;
             max-width: 100% !important;
           }
+          .farmax-pos-mobile-cart-dock {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 1001;
+            box-sizing: border-box;
+          }
         }
       `}</style>
       <div style={{ marginBottom: isNarrow ? 12 : 20 }}>
@@ -948,7 +968,12 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
           width:"100%",
           maxWidth:"100%",
         }}>
-          <div style={{ minWidth: 0 }}>
+          <div style={{
+            minWidth: 0,
+            paddingBottom: showMobileCartDock
+              ? "calc(76px + env(safe-area-inset-bottom, 0px))"
+              : undefined,
+          }}>
             <div style={{display:"flex",gap:8,marginBottom:12,alignItems:"center",flexWrap: isNarrow ? "wrap" : "nowrap"}}>
               <input ref={srchRef} value={srch} onChange={e=>setSrch(e.target.value)}
                 data-tour="pos-buscador"
@@ -1057,7 +1082,12 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
             </div>
           </div>
           {/* Carrito */}
-          {cartOpen&&<div className="farmax-pos-cart-col" data-tour="pos-carrito" style={{
+          {cartOpen&&<div
+            id="farmax-pos-cart"
+            ref={cartAnchorRef}
+            className="farmax-pos-cart-col"
+            data-tour="pos-carrito"
+            style={{
             position: isNarrow ? "static" : "sticky",
             top: isNarrow ? undefined : 12,
             alignSelf: "start",
@@ -1066,6 +1096,9 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
             maxHeight: isNarrow ? "none" : "calc(100dvh - 120px)",
             overflowY: isNarrow ? "visible" : "auto",
             WebkitOverflowScrolling: "touch",
+            paddingBottom: showMobileCartDock
+              ? "calc(76px + env(safe-area-inset-bottom, 0px))"
+              : undefined,
           }}>
             <Box style={{padding:16,marginBottom:12}}>
               <div style={{color:C.text,fontWeight:700,fontSize:13,marginBottom:12}}>🛒 Carrito</div>
@@ -1214,6 +1247,140 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
             </Box>
             </div>
           </div>}
+        </div>
+      )}
+
+      {showMobileCartDock && (
+        <div
+          className="farmax-pos-mobile-cart-dock"
+          role="region"
+          aria-label="Resumen del carrito"
+          style={{
+            padding: "10px 12px calc(10px + env(safe-area-inset-bottom, 0px))",
+            background: C.card,
+            borderTop: `1px solid ${C.border}`,
+            boxShadow: "0 -8px 28px rgba(15,50,70,.14)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 10,
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => {
+              if (!cartOpen) setCartOpen(true);
+              requestAnimationFrame(() =>
+                cartAnchorRef.current?.scrollIntoView({
+                  behavior: "smooth",
+                  block: "start",
+                })
+              );
+            }}
+            style={{
+              flex: 1,
+              minWidth: 0,
+              textAlign: "left",
+              background: "transparent",
+              border: "none",
+              padding: "4px 2px",
+              cursor: "pointer",
+              fontFamily: "inherit",
+            }}
+          >
+            <div
+              style={{
+                color: C.textDim,
+                fontSize: 11,
+                fontWeight: 700,
+                marginBottom: 2,
+              }}
+            >
+              🛒 Carrito · {cart.length}{" "}
+              {cart.length === 1 ? "producto" : "productos"}
+            </div>
+            <div
+              style={{ color: C.blue, fontWeight: 900, fontSize: 18, lineHeight: 1.1 }}
+            >
+              {$(total)}
+            </div>
+          </button>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0 }}>
+            {!cartOpen ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setCartOpen(true);
+                  requestAnimationFrame(() =>
+                    cartAnchorRef.current?.scrollIntoView({
+                      behavior: "smooth",
+                      block: "start",
+                    })
+                  );
+                }}
+                style={{
+                  padding: "10px 14px",
+                  borderRadius: 10,
+                  border: `1px solid ${BRAND.primary}`,
+                  background: BRAND.primary + "20",
+                  color: BRAND.secondary,
+                  fontWeight: 800,
+                  fontSize: 12,
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                Mostrar carrito
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() =>
+                    cartAnchorRef.current?.scrollIntoView({
+                      behavior: "smooth",
+                      block: "start",
+                    })
+                  }
+                  style={{
+                    padding: "6px 12px",
+                    borderRadius: 8,
+                    border: `1px solid ${C.border}`,
+                    background: C.bg,
+                    color: C.textMid,
+                    fontWeight: 700,
+                    fontSize: 11,
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  Ir al detalle
+                </button>
+                <button
+                  type="button"
+                  disabled={mobileDockCobrarDisabled}
+                  onClick={() =>
+                    pay === "efectivo"
+                      ? cobrar()
+                      : abrirModalRecetaVenta("tarjeta")
+                  }
+                  style={{
+                    padding: "10px 14px",
+                    borderRadius: 10,
+                    border: "none",
+                    background: mobileDockCobrarDisabled ? C.border : C.green,
+                    color: mobileDockCobrarDisabled ? C.textDim : "#fff",
+                    fontWeight: 800,
+                    fontSize: 12,
+                    cursor: mobileDockCobrarDisabled ? "not-allowed" : "pointer",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {guardando ? "…" : pay === "efectivo" ? "Cobrar" : "Cobrar (Point)"}
+                </button>
+              </>
+            )}
+          </div>
         </div>
       )}
 
