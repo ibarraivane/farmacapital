@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useMediaQuery } from "../../../hooks/useMediaQuery";
 import TicketPreviewModal from "../../../components/tickets/TicketPreviewModal";
 import MercadoPagoModal from "../../../components/MercadoPagoModal";
 import { printTicket } from "../../../utils/printTicket";
@@ -15,6 +16,8 @@ import OnboardingTour from "../../../components/OnboardingTour";
 
 export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const C = C_LIGHT;
+  /** Vista estrecha: celular o ventana de escritorio angosta (mismo criterio que el admin). */
+  const isNarrow = useMediaQuery("(max-width: 920px)");
   const [tab,setTab]         = useState(initialTab); // venta | online | consultas
   const [productos,setProds] = useState([]);
   const [cart,setCart]       = useState([]);
@@ -727,76 +730,93 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   };
 
   return(
-    <div>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+    <div style={{
+      width:"100%",
+      maxWidth:"100%",
+      minWidth:0,
+      boxSizing:"border-box",
+      overflowX:"hidden",
+      paddingBottom:"max(8px, env(safe-area-inset-bottom, 0px))",
+    }}>
+      <div style={{ marginBottom: isNarrow ? 12 : 20 }}>
         {loadErr && (
         <div style={{
           background:"#ff000022",
           border:"1px solid #ff4444",
           borderRadius:8,
           padding:"10px 16px",
-          marginBottom:16,
+          marginBottom:12,
           color:"#ff6666",
           fontSize:12,
           fontWeight:600,
           display:"flex",
           justifyContent:"space-between",
-          alignItems:"center"
+          alignItems:"center",
+          gap:8,
         }}>
-          <span>⚠️ {loadErr}</span>
-          <button onClick={()=>setLoadErr("")} style={{background:"transparent",border:"none",color:"#ff6666",cursor:"pointer",fontSize:14}}>✕</button>
+          <span style={{wordBreak:"break-word"}}>⚠️ {loadErr}</span>
+          <button type="button" onClick={()=>setLoadErr("")} style={{background:"transparent",border:"none",color:"#ff6666",cursor:"pointer",fontSize:14,flexShrink:0}}>✕</button>
         </div>
       )}
-      <div style={{display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
-        <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
-          <h1 style={{color:C.text,fontSize:20,fontWeight:800,margin:0}}>
-            ⊡ Punto de Venta
-            {initialTab==="consultas"&&(
-              <span style={{fontWeight:700,fontSize:14,color:C.purple}}> · Cobro de consultas</span>
+      <div style={{
+        display:"flex",
+        flexDirection: isNarrow ? "column" : "row",
+        alignItems: isNarrow ? "stretch" : "flex-start",
+        justifyContent:"space-between",
+        gap: 12,
+        flexWrap:"wrap",
+      }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, minWidth: 0, flex: isNarrow ? "none" : "1 1 280px" }}>
+          <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+            <h1 style={{color:C.text,fontSize: isNarrow ? "clamp(16px, 4.5vw, 20px)" : 20,fontWeight:800,margin:0,lineHeight:1.2}}>
+              ⊡ Punto de Venta
+              {initialTab==="consultas"&&(
+                <span style={{fontWeight:700,fontSize: isNarrow ? 12 : 14,color:C.purple}}> · Cobro de consultas</span>
+              )}
+            </h1>
+            {folioActual!=="VTA-00000000"&&(
+              <span style={{padding:"3px 10px",borderRadius:20,fontSize:10,fontWeight:700,background:C.blueDim,color:C.blue}}>
+                Último folio: {folioActual}
+              </span>
             )}
-          </h1>
-          {folioActual!=="VTA-00000000"&&(
-            <span style={{padding:"3px 10px",borderRadius:20,fontSize:10,fontWeight:700,background:C.blueDim,color:C.blue}}>
-              Último folio: {folioActual}
-            </span>
+          </div>
+          {ventasDia.count>0&&(
+            <div style={{display:"flex",gap:12,alignItems:"center",background:C.greenDim,border:`1px solid ${C.green}30`,borderRadius:10,padding:"6px 14px",flexWrap:"wrap"}}>
+              <div style={{textAlign:"center"}}>
+                <div style={{color:C.textDim,fontSize:9,fontWeight:700,textTransform:"uppercase"}}>Mi día</div>
+                <div style={{color:C.green,fontWeight:900,fontSize:16}}>{$(ventasDia.total)}</div>
+              </div>
+              <div style={{width:1,height:28,background:C.border}}/>
+              <div style={{textAlign:"center"}}>
+                <div style={{color:C.textDim,fontSize:9,fontWeight:700,textTransform:"uppercase"}}>Ventas</div>
+                <div style={{color:C.green,fontWeight:900,fontSize:16}}>{ventasDia.count}</div>
+              </div>
+              <div style={{width:1,height:28,background:C.border}}/>
+              <div style={{textAlign:"center"}}>
+                <div style={{color:C.textDim,fontSize:9,fontWeight:700,textTransform:"uppercase"}}>Ticket prom.</div>
+                <div style={{color:C.blue,fontWeight:900,fontSize:16}}>{$(ventasDia.count?ventasDia.total/ventasDia.count:0)}</div>
+              </div>
+              <div style={{width:1,height:28,background:C.border}}/>
+              <div style={{textAlign:"center"}}>
+                <div style={{color:C.textDim,fontSize:9,fontWeight:700,textTransform:"uppercase"}}>En carrito</div>
+                <div style={{color:C.amber,fontWeight:900,fontSize:16}}>{cart.length}</div>
+              </div>
+            </div>
           )}
         </div>
-        {ventasDia.count>0&&(
-          <div style={{display:"flex",gap:12,alignItems:"center",background:C.greenDim,border:`1px solid ${C.green}30`,borderRadius:10,padding:"6px 14px",flexWrap:"wrap"}}>
-            <div style={{textAlign:"center"}}>
-              <div style={{color:C.textDim,fontSize:9,fontWeight:700,textTransform:"uppercase"}}>Mi día</div>
-              <div style={{color:C.green,fontWeight:900,fontSize:16}}>{$(ventasDia.total)}</div>
-            </div>
-            <div style={{width:1,height:28,background:C.border}}/>
-            <div style={{textAlign:"center"}}>
-              <div style={{color:C.textDim,fontSize:9,fontWeight:700,textTransform:"uppercase"}}>Ventas</div>
-              <div style={{color:C.green,fontWeight:900,fontSize:16}}>{ventasDia.count}</div>
-            </div>
-            <div style={{width:1,height:28,background:C.border}}/>
-            <div style={{textAlign:"center"}}>
-              <div style={{color:C.textDim,fontSize:9,fontWeight:700,textTransform:"uppercase"}}>Ticket prom.</div>
-              <div style={{color:C.blue,fontWeight:900,fontSize:16}}>{$(ventasDia.count?ventasDia.total/ventasDia.count:0)}</div>
-            </div>
-            <div style={{width:1,height:28,background:C.border}}/>
-            <div style={{textAlign:"center"}}>
-              <div style={{color:C.textDim,fontSize:9,fontWeight:700,textTransform:"uppercase"}}>En carrito</div>
-              <div style={{color:C.amber,fontWeight:900,fontSize:16}}>{cart.length}</div>
-            </div>
-          </div>
-        )}
-      </div>
-        <div style={{display:"flex",gap:6,alignItems:"center"}}>
+        <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",flexShrink:0}}>
           {[["venta","Venta normal"],["online",`Online (${pedOnline.length})`],["consultas",`Consultas (${citasAgenda.length})`]].map(([v,l])=>(
-            <button key={v} onClick={()=>setTab(v)} style={{padding:"6px 14px",borderRadius:8,border:`1px solid ${tab===v?BRAND.primary:C.border}`,background:tab===v?BRAND.primary+"18":"transparent",color:tab===v?BRAND.secondary:C.textMid,fontSize:12,fontWeight:700,cursor:"pointer"}}>
+            <button key={v} type="button" onClick={()=>setTab(v)} style={{padding:"6px 12px",borderRadius:8,border:`1px solid ${tab===v?BRAND.primary:C.border}`,background:tab===v?BRAND.primary+"18":"transparent",color:tab===v?BRAND.secondary:C.textMid,fontSize: isNarrow ? 11 : 12,fontWeight:700,cursor:"pointer"}}>
               {l}
             </button>
           ))}
           <button type="button" onClick={()=>onNavigate?.("caja")} style={{
-            padding:"6px 14px",borderRadius:8,border:`1px solid ${C.amber}`,
-            background:C.amberDim,color:C.amber,fontSize:12,fontWeight:700,
-            cursor:"pointer",marginLeft:8,
+            padding:"6px 12px",borderRadius:8,border:`1px solid ${C.amber}`,
+            background:C.amberDim,color:C.amber,fontSize: isNarrow ? 11 : 12,fontWeight:700,
+            cursor:"pointer",
           }}>⊞ Cerrar turno</button>
         </div>
+      </div>
       </div>
 
       {/* Modal RX */}
@@ -897,9 +917,18 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
 
       {/* TAB: VENTA NORMAL */}
       {tab==="venta"&&(
-        <div style={{display:"grid",gridTemplateColumns:cartOpen?"1fr 320px":"1fr",gap:16,alignItems:"start",position:"relative"}}>
-          <div>
-            <div style={{display:"flex",gap:8,marginBottom:12,alignItems:"center"}}>
+        <div style={{
+          display:"grid",
+          gridTemplateColumns: isNarrow
+            ? "1fr"
+            : (cartOpen ? "1fr minmax(260px, 320px)" : "1fr"),
+          gap: isNarrow ? 12 : 16,
+          alignItems:"start",
+          position:"relative",
+          minWidth:0,
+        }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{display:"flex",gap:8,marginBottom:12,alignItems:"center",flexWrap: isNarrow ? "wrap" : "nowrap"}}>
               <input ref={srchRef} value={srch} onChange={e=>setSrch(e.target.value)}
                 data-tour="pos-buscador"
                 onKeyDown={e=>{
@@ -914,7 +943,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                   }
                 }}
                 placeholder="🔍 Buscar por nombre o SKU · Enter para agregar"
-                style={{flex:1,boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:C.bg,color:C.text,fontSize:13,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}/>
+                style={{flex:1,minWidth:0,boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:C.bg,color:C.text,fontSize:13,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}/>
               <button onClick={()=>setCartOpen(p=>!p)} style={{
                 padding:"9px 14px",borderRadius:8,border:`1px solid ${C.border}`,
                 background:cart.length?BRAND.primary+"18":"transparent",
@@ -935,7 +964,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                 </div>
               </div>
             )}
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))",gap:8}}>
+            <div style={{display:"grid",gridTemplateColumns:`repeat(auto-fill,minmax(${isNarrow ? "min(100%, 132px)" : "140px"},1fr))`,gap:8}}>
               {fil.map(item=>{
                 const posCardClick = (e)=>{
                   if(e.target.closest("button")) return;
@@ -1007,7 +1036,15 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
             </div>
           </div>
           {/* Carrito */}
-          {cartOpen&&<div data-tour="pos-carrito" style={{position:"sticky",top:20}}>
+          {cartOpen&&<div data-tour="pos-carrito" style={{
+            position: isNarrow ? "static" : "sticky",
+            top: isNarrow ? undefined : 12,
+            alignSelf: "start",
+            minWidth: 0,
+            maxHeight: isNarrow ? "none" : "calc(100dvh - 120px)",
+            overflowY: isNarrow ? "visible" : "auto",
+            WebkitOverflowScrolling: "touch",
+          }}>
             <Box style={{padding:16,marginBottom:12}}>
               <div style={{color:C.text,fontWeight:700,fontSize:13,marginBottom:12}}>🛒 Carrito</div>
               <div data-tour="pos-cliente">
@@ -1164,8 +1201,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
           {loading?<SkeletonTable rows={3} cols={4}/>:
            !pedOnline.length?<div style={{color:C.textMid,padding:40,textAlign:"center"}}>✓ Sin pedidos online pendientes</div>:
            pedOnline.map(p=>(
-            <Box key={p.id} style={{padding:20,marginBottom:12}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
+            <Box key={p.id} style={{padding: isNarrow ? 14 : 20,marginBottom:12,minWidth:0}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12,flexWrap:"wrap",gap:10}}>
                 <div>
                   <div style={{color:C.text,fontWeight:800,fontSize:15}}>Pedido #{p.id} — Online</div>
                   <div style={{color:C.textMid,fontSize:12,marginTop:3}}>{p.clientes?.nombre} · {p.clientes?.telefono}</div>
@@ -1185,7 +1222,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                   </div>
                 ))}
               </div>
-              <div style={{display:"flex",gap:8}}>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                 <Btn onClick={()=>surtirOnline(p)} col={C.green} dis={guardando}>✓ Surtir y marcar listo</Btn>
                 <Btn ol col={C.red} sm onClick={async()=>{
                   const tok = sessionStorage.getItem("farmax_session_token");
@@ -1267,7 +1304,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                   return String(a.hora||"").localeCompare(String(b.hora||""));
                 }).map((c)=>(
                   <div key={c.id} style={{display:"flex",flexWrap:"wrap",alignItems:"center",gap:10,justifyContent:"space-between",padding:"10px 12px",background:C.bg,borderRadius:8,border:`1px solid ${C.border}`}}>
-                    <div style={{minWidth:200}}>
+                    <div style={{minWidth:0,flex:"1 1 200px"}}>
                       {rangoAgendaPOS==="semana"&&c.fecha&&(
                         <div style={{color:C.textDim,fontSize:10,marginBottom:2}}>{c.fecha}</div>
                       )}
@@ -1295,7 +1332,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
           {/* Nueva cita mostrador */}
           <Box style={{padding:18,marginBottom:16}}>
             <div style={{color:C.text,fontWeight:800,fontSize:14,marginBottom:12}}>➕ Nueva cita (mostrador)</div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:12}}>
+            <div style={{display:"grid",gridTemplateColumns:`repeat(auto-fill,minmax(${isNarrow ? "min(100%, 160px)" : "200px"},1fr))`,gap:12}}>
               <div><div style={{color:C.textMid,fontSize:11,marginBottom:4}}>Nombre completo <span style={{color:C.red}}>*</span></div><Inp value={nuevaCita.nombre} onChange={e=>setNuevaCita(p=>({...p,nombre:e.target.value}))} placeholder="Nombre y apellido" style={{width:"100%"}}/></div>
               <div><div style={{color:C.textMid,fontSize:11,marginBottom:4}}>Teléfono <span style={{color:C.red}}>*</span></div><Inp value={nuevaCita.telefono} onChange={e=>setNuevaCita(p=>({...p,telefono:e.target.value}))} placeholder="10+ dígitos" type="tel" style={{width:"100%"}}/></div>
               <div><div style={{color:C.textMid,fontSize:11,marginBottom:4}}>Fecha</div><input type="date" value={nuevaCita.fecha} onChange={e=>setNuevaCita(p=>({...p,fecha:e.target.value}))} min={new Date().toLocaleDateString("sv-SE")} style={{width:"100%",padding:"9px 11px",borderRadius:8,border:`1px solid ${C.border}`,fontSize:13}}/></div>
@@ -1325,8 +1362,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
             const totalCons=consumibles.reduce((a,c)=>a+c.precio*c.cantidad,0);
             const totalCobro = (yaPagoConsulta ? 0 : precioBase) + totalCons;
             return(
-              <Box key={cita.id} style={{padding:20,marginBottom:12}}>
-                <div style={{display:"flex",justifyContent:"space-between",marginBottom:12}}>
+              <Box key={cita.id} style={{padding: isNarrow ? 14 : 20,marginBottom:12,minWidth:0}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:12,flexWrap:"wrap",gap:10}}>
                   <div>
                     <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
                       <div style={{color:C.text,fontWeight:800,fontSize:15}}>Consulta — {cita.nombre}</div>
@@ -1335,7 +1372,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                     </div>
                     <div style={{color:C.textMid,fontSize:12,marginTop:2}}>{cita.hora} hrs · {cita.motivo||"Consulta general"}</div>
                   </div>
-                  <div style={{textAlign:"right"}}>
+                  <div style={{textAlign: isNarrow ? "left" : "right",minWidth:0,flex:"1 1 140px"}}>
                     <div style={{color:C.green,fontWeight:900,fontSize:18}}>{$(totalCobro)}</div>
                     <div style={{color:C.textDim,fontSize:10}}>
                       {yaPagoConsulta ? `Solo consumibles · ` : `Consulta ${$(precioBase)} + consumibles · `}
@@ -1365,7 +1402,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                   {pay==="efectivo" ? (
                     <Btn onClick={()=>cobrarConsulta(cita)} col={C.green} dis={guardando} style={{flex:"1 1 200px"}}>✅ Cobrar {$(totalCobro)}</Btn>
                   ) : (
-                    <div style={{flex:1,minWidth:220}}>
+                    <div style={{flex:"1 1 200px",minWidth:0}}>
                       <Btn
                         onClick={()=>{
                           setPay("tarjeta");
