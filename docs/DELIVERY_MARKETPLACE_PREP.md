@@ -85,6 +85,7 @@ Flujo futuro típico: webhook o job → crear/actualizar `pedidos` + rellenar `l
 | `src/utils/orderChannels.js` | **Nuevo** — constantes y helpers |
 | `src/services/marketplace/adapters.js` | **Nuevo** — placeholders |
 | `sql/patch_pedidos_logistics_meta.sql` | **Nuevo** — columna opcional |
+| `sql/patch_pedidos_tipo_entrega_direccion.sql` | **Nuevo** — alinea tabla `pedidos` con RPC tienda (envío / recoger) |
 | `docs/catalogo_propuesta_vitaminas_electrolitos.csv` | **Nuevo** |
 | `docs/DELIVERY_MARKETPLACE_PREP.md` | Este documento |
 | `src/modules/sales/pos/POS.jsx` | Online: `tipo_entrega`, dirección, doc link (select sin `logistics_meta` hasta patch) |
@@ -92,6 +93,7 @@ Flujo futuro típico: webhook o job → crear/actualizar `pedidos` + rellenar `l
 
 ## 5. Pendiente (credenciales / migraciones)
 
+- **Obligatorio para tienda web + POS Online:** si PostgREST devuelve `column pedidos.direccion does not exist` (o falta `tipo_entrega`), ejecuta en Supabase **`sql/patch_pedidos_tipo_entrega_direccion.sql`**. Sin esas columnas, el `select` del POS y el RPC de checkout no coinciden con el esquema esperado en `refactor_fase6b_rpcs_tienda.sql`.
 - Ejecutar en Supabase `patch_pedidos_logistics_meta.sql` cuando se quiera persistir metadatos.
 - Extender `cliente_crear_pedido_online` para aceptar `p_logistics_meta` o columnas dedicadas (opcional).
 - Validación server-side de `controlado` en el mismo RPC que `requiere_receta`.
@@ -115,6 +117,7 @@ Flujo futuro típico: webhook o job → crear/actualizar `pedidos` + rellenar `l
 | **Documentación** | Este archivo + `docs/CURSOR_DELIVERY_MARKETPLACE_PREP_PROMPT.md` |
 | **Build** | `npm run build` — OK (2026-04-20) |
 | **Plantilla SKUs** | `docs/catalogo_propuesta_vitaminas_electrolitos.csv` |
+| **Esquema pedidos (entrega)** | `sql/patch_pedidos_tipo_entrega_direccion.sql` si la BD aún no tiene `tipo_entrega` / `direccion` |
 
 **Archivos modificados o nuevos (lista consolidada):**
 
@@ -124,6 +127,7 @@ Flujo futuro típico: webhook o job → crear/actualizar `pedidos` + rellenar `l
 - `src/modules/sales/pos/POS.jsx` — pestaña Online: `tipo_entrega`, `direccion`, enlace a esta guía (sin `logistics_meta` en el select hasta aplicar el patch SQL, para no romper PostgREST)
 - `src/TransaccionesTab.jsx` — línea de entrega y dirección en listado/detalle de pedidos online
 - `sql/patch_pedidos_logistics_meta.sql` — columna opcional `logistics_meta`
+- `sql/patch_pedidos_tipo_entrega_direccion.sql` — columnas `tipo_entrega` / `direccion` si faltan en producción
 - `docs/catalogo_propuesta_vitaminas_electrolitos.csv`, `docs/DELIVERY_MARKETPLACE_PREP.md`
 
 **Listo vs pendiente:** lo operativo en tienda web + modelo documentado + UI admin (POS online, transacciones) está listo. Pendiente: ejecutar patch si quieres tracking en BD, ampliar RPCs, e integraciones marketplace/última milla reales (§5).

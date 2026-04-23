@@ -7,8 +7,8 @@ import { supabase } from "../../../supabase";
 import { C_LIGHT, BRAND } from "../../../constants";
 import { $, logAudit, soloDigitosTel } from "../../../utils";
 import { Box, Tag, Btn, Inp, Modal, showToast, SearchDropdown, SkeletonTable } from "../../../ui";
-import { CONSULTA_PRECIO_DEFAULT, citaPagoPendiente, citaEstaPagada, labelCanal } from "../../../utils/consultaConstants";
-import { puedeCancelarCitaNoShow, addDaysSv, formatFechaAgendaLargaEs } from "../../../utils/citasAgenda";
+import { CONSULTA_PRECIO_DEFAULT, citaPagoPendiente, labelCanal } from "../../../utils/consultaConstants";
+import { puedeCancelarCitaNoShow } from "../../../utils/citasAgenda";
 import { esPedidoTiendaWebPendiente, fetchPedidosTiendaPendientesMerged } from "../../../utils/pedidosTiendaWeb";
 import { desgloseCambioMN, sugerenciasPagoCliente } from "../../../utils/cambioCaja";
 import { marcarMedicamentosRecetaFarmaxSurtidos } from "../../../utils/recetaCitaSync";
@@ -59,13 +59,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const [rxM,setRxM]         = useState(null);
   const [rx,setRx]           = useState({receta:"",medico:"",cedula:"",paciente:"",indicaciones:""});
   const [pedOnline,setPedOn] = useState([]);
+  /** Citas con consulta o consumibles pendientes de cobro en caja (agendadas en línea o en Agenda de consultas). */
   const [consxCobrar,setConsCobrar] = useState([]);
-  const [citasAgenda,setCitasAgenda] = useState([]);
-  /** Vista de agenda en pestaña Consultas: hoy | un día elegido (calendario) | semana (lun–dom). Una sola doctora → un cupo por horario. */
-  const [rangoAgendaPOS, setRangoAgendaPOS] = useState("hoy");
-  const [fechaAgendaElegida, setFechaAgendaElegida] = useState(() =>
-    addDaysSv(new Date().toLocaleDateString("sv-SE"), 1)
-  );
   const [cliSearchItems, setCliSearchItems] = useState([]);
   const [loading,setLoad]    = useState(false);
   const [guardando,setGuard] = useState(false);
@@ -119,31 +114,16 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     });
   }, []);
 
-  const fechasAgendaPOS = useCallback(() => {
+  const refrescarCitasPOS = useCallback(async () => {
     const hoy = new Date();
-    const y = hoy.getFullYear();
-    const m = hoy.getMonth();
-    const d = hoy.getDate();
     const pad = (n) => String(n).padStart(2, "0");
     const toSv = (dt) => `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`;
-    if (rangoAgendaPOS === "hoy") {
-      const x = new Date(y, m, d);
-      return { desde: toSv(x), hasta: toSv(x) };
-    }
-    if (rangoAgendaPOS === "dia") {
-      const f = fechaAgendaElegida || new Date().toLocaleDateString("sv-SE");
-      return { desde: f, hasta: f };
-    }
-    const day = hoy.getDay();
-    const diffToMon = day === 0 ? -6 : 1 - day;
-    const mon = new Date(y, m, d + diffToMon);
-    const sun = new Date(mon);
-    sun.setDate(mon.getDate() + 6);
-    return { desde: toSv(mon), hasta: toSv(sun) };
-  }, [rangoAgendaPOS, fechaAgendaElegida]);
-
-  const refrescarCitasPOS = useCallback(async () => {
-    const { desde, hasta } = fechasAgendaPOS();
+    const desdeDt = new Date(hoy);
+    desdeDt.setDate(desdeDt.getDate() - 21);
+    const hastaDt = new Date(hoy);
+    hastaDt.setDate(hastaDt.getDate() + 45);
+    const desde = toSv(desdeDt);
+    const hasta = toSv(hastaDt);
     const { data, error } = await supabase
       .from("citas")
       .select(`
@@ -155,12 +135,10 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       .not("estado", "eq", "cancelada");
     if (error) {
       console.error("[POS] Citas:", error);
-      setCitasAgenda([]);
       setConsCobrar([]);
       return;
     }
     const citas = data || [];
-    setCitasAgenda(citas);
     setConsCobrar(
       citas.filter((c) => {
         const pendientePago = citaPagoPendiente(c);
@@ -168,7 +146,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         return pendientePago || consumiblesPend;
       })
     );
-  }, [fechasAgendaPOS]);
+  }, []);
 
   const recargarPedidosOnline = useCallback(async () => {
     try {
@@ -261,7 +239,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       } catch (e) {
         console.error("[POS] Excepción cargando datos:", e);
         if (typeof setLoadErr === "function") setLoadErr("Error inesperado cargando datos. Revisa consola.");
-        setProds([]); setPedOn([]); setConsCobrar([]); setCitasAgenda([]);
+        setProds([]); setPedOn([]); setConsCobrar([]);
       } finally {
         setLoad(false);
       }
@@ -963,7 +941,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
           marginRight: isMobilePos ? -4 : 0,
           width: isMobilePos ? "100%" : undefined,
         }}>
-          {[["venta","Venta"],["online",`Online (${pedOnline.length})`],["consultas",`Consultas (${citasAgenda.length})`]].map(([v,l])=>(
+          {[["venta","Venta"],["online",`Online (${pedOnline.length})`],["consultas",`Consultas (${consxCobrar.length})`]].map(([v,l])=>(
             <button key={v} type="button" onClick={()=>setTab(v)} style={{
               padding:isMobilePos ? "8px 12px" : "6px 12px",
               borderRadius:8,
@@ -1544,7 +1522,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         <div>
           <div style={{background:C.blueDim,border:`1px solid ${C.blue}30`,borderRadius:10,padding:"12px 16px",marginBottom:16}}>
             <div style={{color:C.blue,fontSize:13,fontWeight:700,lineHeight:1.45}}>
-              ℹ Agenda del día: citas en línea y en mostrador. Las citas hechas <strong>en la tienda en línea</strong> quedan <strong>pendientes de pago</strong> hasta que el paciente pague en caja. Cobrar aquí para que la doctora vea el nombre y <strong>Pagado</strong>. Consulta {$(parseFloat(config?.precio_consulta)||CONSULTA_PRECIO_DEFAULT)}.
+              ℹ <strong>Solo cobro en caja.</strong> Las citas se crean en <strong>Agenda de consultas</strong> o en la <strong>tienda en línea</strong>. Las reservas web quedan <strong>pendientes de pago</strong> hasta cobrar aquí; al pagar, la doctora ve <strong>Pagado</strong>. Consulta {$(parseFloat(config?.precio_consulta)||CONSULTA_PRECIO_DEFAULT)}.
               {usuario?.rol==="admin" && (
                 <span style={{display:"block",marginTop:8,fontSize:11,color:C.textMid,fontWeight:600}}>
                   Reparto interno (solo admin): 70% médico / 30% farmacia sobre el monto de la consulta.
@@ -1555,90 +1533,13 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
 
           <div style={{background:C.bg,border:`1px solid ${C.border}`,borderRadius:10,padding:"12px 14px",marginBottom:16,display:"flex",flexWrap:"wrap",alignItems:"center",gap:10,justifyContent:"space-between"}}>
             <div style={{color:C.textMid,fontSize:12,lineHeight:1.45,maxWidth:560}}>
-              Las <strong style={{color:C.text}}>nuevas citas</strong> se registran en <strong style={{color:C.text}}>Agenda de consultas</strong> (una sola fuente). Aquí solo cobras y ves el calendario operativo.
+              Para <strong style={{color:C.text}}>agendar</strong> o ver el calendario completo usa <strong style={{color:C.text}}>Agenda de consultas</strong>. En esta pestaña no se dan de alta citas nuevas.
             </div>
             <Btn sm col={BRAND.primary} onClick={()=>onNavigate?.("agenda")}>Ir a agenda →</Btn>
           </div>
 
-          {/* Agenda de hoy (todas las citas activas) */}
-          <Box style={{padding:18,marginBottom:16}}>
-            <div style={{display:"flex",flexWrap:"wrap",alignItems:"center",gap:10,marginBottom:10}}>
-              <div style={{color:C.text,fontWeight:800,fontSize:14}}>📅 Agenda</div>
-              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                {[
-                  ["hoy","Hoy"],
-                  ["dia","Elegir día"],
-                  ["semana","Esta semana"],
-                ].map(([v,l])=>(
-                  <button key={v} type="button" onClick={()=>setRangoAgendaPOS(v)} style={{
-                    padding:"5px 12px",borderRadius:20,border:`1px solid ${rangoAgendaPOS===v?BRAND.primary:C.border}`,
-                    background:rangoAgendaPOS===v?BRAND.primary+"18":"transparent",color:rangoAgendaPOS===v?BRAND.secondary:C.textMid,
-                    fontSize:11,fontWeight:700,cursor:"pointer",
-                  }}>{l}</button>
-                ))}
-              </div>
-            </div>
-            {rangoAgendaPOS==="dia"&&(
-              <div style={{marginBottom:12,padding:"10px 12px",background:C.bg,borderRadius:10,border:`1px solid ${C.border}`}}>
-                <div style={{color:C.textDim,fontSize:10,fontWeight:700,letterSpacing:.5,marginBottom:8}}>VER OTRO DÍA</div>
-                <div style={{display:"flex",flexWrap:"wrap",alignItems:"center",gap:8}}>
-                  <button type="button" onClick={()=>setFechaAgendaElegida((p)=>addDaysSv(p,-1))} title="Día anterior"
-                    style={{padding:"6px 10px",borderRadius:8,border:`1px solid ${C.border}`,background:C.card,cursor:"pointer",fontWeight:800}}>◀</button>
-                  <input type="date" value={fechaAgendaElegida} onChange={(e)=>setFechaAgendaElegida(e.target.value)}
-                    style={{padding:"6px 10px",borderRadius:8,border:`1px solid ${C.border}`,fontSize:isMobilePos?16:13,fontWeight:600,color:C.text,boxSizing:"border-box",maxWidth:"100%"}} />
-                  <button type="button" onClick={()=>setFechaAgendaElegida((p)=>addDaysSv(p,1))} title="Día siguiente"
-                    style={{padding:"6px 10px",borderRadius:8,border:`1px solid ${C.border}`,background:C.card,cursor:"pointer",fontWeight:800}}>▶</button>
-                  <button type="button" onClick={()=>setFechaAgendaElegida(new Date().toLocaleDateString("sv-SE"))} style={{padding:"6px 10px",borderRadius:8,border:`1px solid ${C.blue}40`,background:C.blueDim,color:C.blue,cursor:"pointer",fontSize:11,fontWeight:700}}>Ir a hoy</button>
-                  <button type="button" onClick={()=>setFechaAgendaElegida(addDaysSv(new Date().toLocaleDateString("sv-SE"),1))} style={{padding:"6px 10px",borderRadius:8,border:`1px solid ${C.green}40`,background:C.greenDim,color:C.greenDark,cursor:"pointer",fontSize:11,fontWeight:700}}>Mañana</button>
-                </div>
-                <div style={{color:C.textMid,fontSize:12,marginTop:8,textTransform:"capitalize"}}>{formatFechaAgendaLargaEs(fechaAgendaElegida)}</div>
-                <div style={{color:C.textDim,fontSize:10,marginTop:6,lineHeight:1.4}}>El campo de fecha abre el calendario del sistema (móvil o escritorio). Las flechas cambian un día.</div>
-              </div>
-            )}
-            <div style={{color:C.textMid,fontSize:11,marginBottom:12}}>
-              {citasAgenda.length} cita{citasAgenda.length!==1?"s":""} en el período. Un solo cupo por horario (una doctora). Tras hora + 10 min sin pago, puedes cancelar y liberar el espacio.
-            </div>
-            {!citasAgenda.length ? (
-              <div style={{color:C.textDim,fontSize:13}}>
-                {rangoAgendaPOS==="hoy"&&"Sin citas para hoy."}
-                {rangoAgendaPOS==="dia"&&"Sin citas para el día seleccionado."}
-                {rangoAgendaPOS==="semana"&&"Sin citas en esta semana (lun–dom)."}
-              </div>
-            ) : (
-              <div style={{display:"grid",gap:8}}>
-                {[...citasAgenda].sort((a,b)=>{
-                  const df = String(a.fecha||"").localeCompare(String(b.fecha||""));
-                  if (df !== 0) return df;
-                  return String(a.hora||"").localeCompare(String(b.hora||""));
-                }).map((c)=>(
-                  <div key={c.id} style={{display:"flex",flexWrap:"wrap",alignItems:"center",gap:10,justifyContent:"space-between",padding:"10px 12px",background:C.bg,borderRadius:8,border:`1px solid ${C.border}`}}>
-                    <div style={{minWidth:0,flex:"1 1 200px"}}>
-                      {rangoAgendaPOS==="semana"&&c.fecha&&(
-                        <div style={{color:C.textDim,fontSize:10,marginBottom:2}}>{c.fecha}</div>
-                      )}
-                      <span style={{color:C.blue,fontWeight:800,fontSize:13}}>{c.hora}</span>
-                      <span style={{color:C.text,fontWeight:700,marginLeft:10}}>{c.nombre}</span>
-                      <div style={{color:C.textMid,fontSize:11,marginTop:2}}>{c.telefono||"—"} · {c.motivo||"Consulta"}</div>
-                      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:6}}>
-                        {citaPagoPendiente(c) && <Tag col={C.amber} sm>Pendiente de pago</Tag>}
-                        {citaEstaPagada(c) && <Tag col={C.green} sm>Pagada</Tag>}
-                        {c.canal && <Tag col={C.teal} sm>{labelCanal(c)}</Tag>}
-                        <Tag col={C.textDim} sm>{c.estado}</Tag>
-                      </div>
-                    </div>
-                    <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                      {puedeCancelarCitaNoShow(c) && (
-                        <Btn sm ol col={C.red} onClick={()=>cancelarCitaPorNoShow(c)} dis={guardando}>Cancelar (no asistió)</Btn>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Box>
-
           <div style={{color:C.text,fontWeight:800,fontSize:14,marginBottom:10}}>💳 Cobrar en caja</div>
-          <div style={{color:C.textMid,fontSize:12,marginBottom:14}}>Solo aparecen citas con consulta o consumibles pendientes de cobro.</div>
+          <div style={{color:C.textMid,fontSize:12,marginBottom:14}}>Citas con consulta o consumibles pendientes de cobro (ventana de fechas cercana). Si pasaron 10 min del inicio sin pago, puedes usar <em>Cancelar (no asistió)</em> en la tarjeta.</div>
 
           {!consxCobrar.length?<div style={{color:C.textMid,padding:24,textAlign:"center"}}>✓ Nada pendiente de cobro en caja</div>:
            consxCobrar.map(cita=>{
@@ -1657,7 +1558,9 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                       {citaPagoPendiente(cita) && <Tag col={C.amber} sm>Pendiente de pago</Tag>}
                       {cita.canal && <Tag col={C.blue} sm>{labelCanal(cita)}</Tag>}
                     </div>
-                    <div style={{color:C.textMid,fontSize:12,marginTop:2}}>{cita.hora} hrs · {cita.motivo||"Consulta general"}</div>
+                    <div style={{color:C.textMid,fontSize:12,marginTop:2}}>
+                      {cita.fecha ? `${cita.fecha} · ` : ""}{cita.hora} hrs · {cita.motivo||"Consulta general"}
+                    </div>
                   </div>
                   <div style={{textAlign: isNarrow ? "left" : "right",minWidth:0,flex:"1 1 140px"}}>
                     <div style={{color:C.green,fontWeight:900,fontSize:18}}>{$(totalCobro)}</div>
@@ -1717,6 +1620,11 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                         Mismo flujo que en venta: se espera la aprobación en el Point; luego se marca pagada la consulta y se imprime el ticket.
                       </div>
                     </div>
+                  )}
+                  {puedeCancelarCitaNoShow(cita) && (
+                    <Btn sm ol col={C.red} onClick={()=>cancelarCitaPorNoShow(cita)} dis={guardando}>
+                      Cancelar (no asistió)
+                    </Btn>
                   )}
                 </div>
               </Box>

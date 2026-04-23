@@ -34,6 +34,7 @@ function monthRangeSv(year, month0) {
 }
 
 function buildMonthCells(year, month0) {
+  const hoy = hoySvLocal();
   const first = new Date(year, month0, 1);
   const mondayFirst = (first.getDay() + 6) % 7;
   const cells = [];
@@ -42,7 +43,14 @@ function buildMonthCells(year, month0) {
     const d = new Date(year, month0, i);
     const inMonth = d.getMonth() === month0;
     const sv = d.toLocaleDateString("sv-SE");
-    cells.push({ d, inMonth, sv, isToday: sv === new Date().toLocaleDateString("sv-SE") });
+    cells.push({
+      d,
+      inMonth,
+      sv,
+      isToday: sv === hoy,
+      /** Comparación YYYY-MM-DD (sv-SE): días de trabajo ya cerrados respecto a hoy. */
+      isPast: sv < hoy,
+    });
     i++;
   }
   return cells;
@@ -541,6 +549,25 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
               >
                 {cells.map((cell, idx) => {
                   const n = citasPorDia[cell.sv] || 0;
+                  const pasadoEnMes = cell.inMonth && cell.isPast && !cell.isToday;
+                  let borderSt = `1px solid ${cell.inMonth ? C.border : "transparent"}`;
+                  let bg = "transparent";
+                  let color = cell.inMonth ? C.text : C.textDim;
+                  let fw = 600;
+                  let countCol = BRAND.primary;
+                  if (cell.inMonth) {
+                    if (cell.isToday) {
+                      borderSt = `2px solid ${BRAND.primary}`;
+                      bg = n ? BRAND.primary + "1c" : C.card;
+                      fw = 800;
+                    } else if (pasadoEnMes) {
+                      bg = n ? "rgba(148,163,184,0.22)" : "#e8ecf1";
+                      color = C.textMid;
+                      countCol = C.textMid;
+                    } else {
+                      bg = n ? BRAND.primary + "14" : C.bg;
+                    }
+                  }
                   return (
                     <button
                       key={idx}
@@ -550,26 +577,29 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
                       style={{
                         minHeight: 52,
                         borderRadius: 8,
-                        border: cell.isToday ? `2px solid ${BRAND.primary}` : `1px solid ${cell.inMonth ? C.border : "transparent"}`,
-                        background: cell.inMonth ? (n ? BRAND.primary + "14" : C.bg) : "transparent",
-                        color: cell.inMonth ? C.text : C.textDim,
+                        border: borderSt,
+                        background: bg,
+                        color,
                         cursor: cell.inMonth ? "pointer" : "default",
                         fontSize: 13,
-                        fontWeight: cell.isToday ? 800 : 600,
+                        fontWeight: fw,
                         position: "relative",
                         opacity: cell.inMonth ? 1 : 0.35,
                       }}
                     >
                       <div>{cell.d.getDate()}</div>
                       {n > 0 && cell.inMonth && (
-                        <div style={{ fontSize: 9, fontWeight: 800, color: BRAND.primary, marginTop: 2 }}>{n} cita{n > 1 ? "s" : ""}</div>
+                        <div style={{ fontSize: 9, fontWeight: 800, color: countCol, marginTop: 2 }}>{n} cita{n > 1 ? "s" : ""}</div>
                       )}
                     </button>
                   );
                 })}
               </div>
-              <p style={{ fontSize: 11, color: C.textDim, marginTop: 12 }}>
-                Toca un día para ver la agenda por horas. Los días con citas aparecen resaltados.
+              <p style={{ fontSize: 11, color: C.textDim, marginTop: 12, lineHeight: 1.45 }}>
+                Toca un día para ver la agenda por horas.{" "}
+                <strong style={{ color: C.textMid }}>Hoy</strong> lleva borde azul;{" "}
+                <strong style={{ color: C.textMid }}>días pasados</strong> van en gris (historial); el resto es futuro próximo.
+                Los días con citas muestran el conteo.
               </p>
             </>
           )}
@@ -611,6 +641,22 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
               </Btn>
             </div>
           </div>
+          {diaSel < hoySvLocal() && (
+            <div
+              style={{
+                marginBottom: 12,
+                padding: "8px 12px",
+                borderRadius: 8,
+                background: "#e8ecf1",
+                border: `1px solid ${C.border}`,
+                fontSize: 12,
+                color: C.textMid,
+                fontWeight: 600,
+              }}
+            >
+              Día pasado — historial de consultas; no se pueden agendar citas nuevas.
+            </div>
+          )}
           <div style={{ display: "grid", gap: 8 }}>
             {TODOS_HORARIOS_CITA.map((hora) => {
               const ocupada = citaPorHora[hora];
