@@ -1,10 +1,25 @@
 import { supabase } from "../../supabase";
 import { buildSalesModel } from "./salesModel";
 
-export async function syncSalesModel() {
+/**
+ * Reconstruye `sales_read_model` borrando e insertando agregados por fecha.
+ *
+ * **No debe ejecutarse en el navegador en producción**: las políticas F6a suelen
+ * prohibir DELETE/INSERT directo; además el read model debe alimentarse con
+ * service_role, cron o RPC admin. Mantener este módulo solo para utilidades
+ * locales / scripts si se invoca con `__allowInBrowser: true` en desarrollo.
+ */
+export async function syncSalesModel(opts = {}) {
+  if (
+    typeof window !== "undefined" &&
+    process.env.NODE_ENV === "production" &&
+    !opts.__allowInBrowser
+  ) {
+    return;
+  }
+
   const model = await buildSalesModel();
 
-  // Borra todas las filas (válido con id uuid o numérico).
   const { error: delErr } = await supabase.from("sales_read_model").delete().not("id", "is", null);
   if (delErr) throw delErr;
 

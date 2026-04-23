@@ -1,6 +1,9 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
+import { initEventStore } from "./core/eventStore/initEventStore";
+
+initEventStore();
 
 const CHUNK_RETRY_KEY = "farmax_chunk_retries";
 

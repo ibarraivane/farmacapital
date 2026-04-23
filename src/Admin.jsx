@@ -3,7 +3,7 @@ import { useMediaQuery } from "./hooks/useMediaQuery";
 import useSidebarBadges from "./hooks/useSidebarBadges";
 import { supabase, isSupabaseLocalMisconfigured } from "./supabase";
 import { C as _C, C_LIGHT, BRAND, NEG, NAV_ADMIN, NAV_VENDEDOR, NAV_DOCTORA, NAV_ITEMS } from "./constants";
-import { $, dC, cC, abc, aCol, nCol, hashPwd, hashPwdLegacy, generateSalt, logMovimiento, primerNombre, saludoUsuario, normalizarSesionLoginResp } from "./utils";
+import { $, dC, cC, abc, aCol, nCol, hashPwd, hashPwdLegacy, generateSalt, primerNombre, saludoUsuario, normalizarSesionLoginResp } from "./utils";
 import { Logo, Box, Tag, Btn, Inp, KPI, Modal, NotificacionesToast, showToast, ToastProvider, ConfirmDialog, SkeletonTable, SkeletonKPIs, SkeletonCard, Paginador, GlobalHoverStyles } from "./ui";
 import { sincronizarVentasPendientes, contarVentasPendientes } from "./utils/offlineQueue";
 import { esPedidoTiendaWebPendiente, fetchPedidosTiendaPendientesMerged } from "./utils/pedidosTiendaWeb";
@@ -12,8 +12,6 @@ import ExpedientesDoctora from "./modules/clinical/patients/ExpedientesDoctora";
 import { loadAdminNavOrder, saveAdminNavOrder, reorderNavIds, mergeAdminNavOrder, clearAdminNavOrder } from "./utils/adminNavOrder";
 import { puedeVerModulo, modulosPermitidosParaRol } from "./utils/permissions";
 import { adminPathnameToPageId, pageIdToAdminPath } from "./shared/adminRoutes";
-import { initEventStore } from "./core/eventStore/initEventStore";
-import { syncAllModels } from "./core/jobs/syncAllModels";
 import { initBillingListeners } from "./modules/billing/core/initBillingListeners";
 import { canAccessRoute } from "./core/security/routeGuard";
 

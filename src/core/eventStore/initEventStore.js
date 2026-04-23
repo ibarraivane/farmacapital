@@ -1,9 +1,17 @@
-import { supabase } from "../../supabase";
 import { eventBus } from "../events/eventBus";
 import { validateEvent } from "../events/validation/validateEvent";
 
 let patched = false;
 
+/**
+ * Parchea eventBus.emit para validar eventos antes de propagarlos.
+ *
+ * La persistencia en `public.event_log` desde el navegador está **desactivada**:
+ * el cliente anon/authenticated no debe depender de INSERT directo; si se necesita
+ * telemetría persistente, debe hacerse con service_role / edge function / job.
+ *
+ * El bus en memoria (originalEmit) sigue funcionando para coordinación en UI.
+ */
 export function initEventStore() {
   if (patched) return;
   patched = true;
@@ -16,18 +24,6 @@ export function initEventStore() {
       return;
     }
 
-    try {
-      await supabase.from("event_log").insert({
-        type: event,
-        payload: data,
-        created_at: new Date().toISOString(),
-      });
-
-      return originalEmit(event, data);
-    } catch (err) {
-      console.error("Event store error:", err);
-
-      return originalEmit(event, data);
-    }
+    return originalEmit(event, data);
   };
 }

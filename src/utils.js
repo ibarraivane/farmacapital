@@ -110,37 +110,53 @@ export function normalizarSesionLoginResp(resp) {
   return { ...resp, session_token, user };
 }
 
-let auditLogDisabled = false;
-
-export const logAudit = async (usuario, accion, tabla="", registro_id="", detalle={}) => {
-  if (auditLogDisabled) return;
-  try {
-    const { error } = await supabase.from("audit_log").insert({
-      usuario_id: usuario?.id||null,
-      usuario_nombre: usuario?.nombre||"Sistema",
-      accion, tabla,
-      registro_id: String(registro_id),
-      detalle,
-    });
-    if (error) {
-      // If audit table/columns are missing in this environment, stop retrying.
-      auditLogDisabled = true;
-      console.warn("audit_log disabled:", error.message);
-    }
-  } catch(e) { console.warn("audit_log error:", e); }
+/**
+ * DEPRECATED (cliente): no inserta en audit_log.
+ * La auditoría en producción la escriben triggers / RPC SECURITY DEFINER en el servidor.
+ * Se mantiene la export para no romper imports; en desarrollo se avisa una sola vez.
+ */
+let logAuditLegacyWarned = false;
+export const logAudit = async (usuario, accion, tabla = "", registro_id = "", detalle = {}) => {
+  if (process.env.NODE_ENV === "development" && !logAuditLegacyWarned) {
+    logAuditLegacyWarned = true;
+    console.warn(
+      "[Farmax] logAudit() está neutralizado en el navegador. " +
+        "La fuente de verdad de auditoría es server-side (triggers, RPC, tablas protegidas por RLS)."
+    );
+  }
+  void usuario;
+  void accion;
+  void tabla;
+  void registro_id;
+  void detalle;
 };
 
-let movimientoLogDisabled = false;
-
-export const logMovimiento = async (producto_id, tipo, cantidad, stock_antes, stock_despues, motivo="", usuario_id=null) => {
-  if (movimientoLogDisabled) return;
-  try {
-    const { error } = await supabase.from("movimientos_inventario").insert({
-      producto_id, tipo, cantidad, stock_antes, stock_despues, motivo, usuario_id,
-    });
-    if (error) {
-      movimientoLogDisabled = true;
-      console.warn("movimientos_inventario disabled:", error.message);
-    }
-  } catch(e) { console.warn("movimientos_inventario error:", e); }
+/**
+ * DEPRECATED (cliente): no inserta en movimientos_inventario.
+ * Los movimientos se registran dentro de las transacciones RPC (p. ej. venta, ajustes *_secure).
+ */
+let logMovimientoLegacyWarned = false;
+export const logMovimiento = async (
+  producto_id,
+  tipo,
+  cantidad,
+  stock_antes,
+  stock_despues,
+  motivo = "",
+  usuario_id = null
+) => {
+  if (process.env.NODE_ENV === "development" && !logMovimientoLegacyWarned) {
+    logMovimientoLegacyWarned = true;
+    console.warn(
+      "[Farmax] logMovimiento() está neutralizado en el navegador. " +
+        "Los movimientos de inventario se generan en el servidor vía RPC."
+    );
+  }
+  void producto_id;
+  void tipo;
+  void cantidad;
+  void stock_antes;
+  void stock_despues;
+  void motivo;
+  void usuario_id;
 };
