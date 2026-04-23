@@ -100,3 +100,41 @@ Equivale a `build` + `PLAYWRIGHT_BROWSERS_PATH=0 playwright test e2e/mobile-resp
 | Cobertura E2E por pantalla (catálogo, POS, checkout…) | **Ámbar** (solo home + entrada admin) |
 
 **Experiencia móvil global: Ámbar con núcleo verde** — bases y shell público/admin verificados automáticamente; el resto de flujos sigue dependiendo de prueba manual o ampliar specs.
+
+---
+
+## 8. Segunda ronda (abril 2026) — fixes por hallazgos reales en móvil
+
+**Objetivo:** tabs/navegación secundaria, inventario, RRHH, consultorio, metas/precios, dashboard, asistente IA; sin refactors masivos; desktop preservado donde aplica.
+
+### Hallazgos atacados
+
+| Área | Cambio |
+|------|--------|
+| **Dashboard** | Pestañas en fila con scroll horizontal en ≤768px; etiquetas cortas; handles de arrastre y texto “Orden:” solo en desktop. |
+| **Inventario (hub)** | Tabs con scroll horizontal; “Lotes PEPS” → “Lotes” en móvil; iconos un poco mayores; subtítulo largo oculto en móvil. |
+| **Inventario (catálogo)** | Título y acciones separados en columna; grid 2 columnas; “Nuevo producto” ancho completo arriba; textos cortos (Recibir, Importar, Exportar). |
+| **Consultorio** | Tabs con scroll; etiquetas compactas (“Lista”, “Consulta”, “Procedim.”). |
+| **Metas y precios** (`ConfigConsultorioModule`) | Tabs con scroll; etiquetas cortas en móvil. |
+| **RRHH** | Empleados en tarjetas (sin tabla apretada); horario semanal en acordeón por empleado (sin scroll lateral); nómina percepciones/deducciones apiladas con filas que no desbordan. |
+| **Asistente IA** | Layout `100dvh` con área de mensajes flexible y composer fijo abajo + safe-area; input 16px en móvil (menos zoom iOS); **clave solo por `REACT_APP_GEMINI_API_KEY` / `REACT_APP_GEMINI_KEY`** (eliminada clave en código); pantalla de configuración si falta la variable; copy alineado a Gemini. |
+| **POS / consultas cobro** | (Ronda previa en esta sesión de trabajo) tabs + cerrar turno, zoom, tour “?” — ver historial de commit si aplica. |
+
+### Archivos tocados (esta ronda)
+
+`src/DashboardModule.jsx`, `src/InventarioHub.jsx`, `src/InventarioModule.jsx`, `src/modules/clinical/ConsultorioModule.jsx`, `src/modules/clinical/ConfigConsultorioModule.jsx`, `src/RRHHModule.jsx`, `src/AsistenteIA.jsx` (+ cambios POS previos en `src/modules/sales/pos/POS.jsx` si están en el mismo batch).
+
+### Validación (esta ronda)
+
+- `npm run build` — OK  
+- `CI=true npm test -- --watchAll=false` — OK (2 tests)  
+- `npm run test:e2e:mobile` — **12 passed** (tienda `/` + admin `/admin`, viewports existentes)
+
+### Pendiente manual
+
+- Probar en iPhone real: Dashboard scroll de tabs, RRHH acordeón de horario, Inventario acciones, Consultorio/Metas tabs, Asistente IA con `.env` y sin clave (mensaje de configuración).  
+- Asistente: las keys `REACT_APP_*` quedan en el bundle del cliente; para producción dura conviene proxy/backend si la política de Google no permite uso desde navegador.
+
+### Clasificación tras esta ronda
+
+Misma base **verde** en rutas E2E; módulos tocados pasan de “solo manual” a **mejoras aplicadas en código** — seguir en **ámbar** hasta QA sesión en dispositivo físico.

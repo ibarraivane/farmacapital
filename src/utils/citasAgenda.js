@@ -39,7 +39,8 @@ export const TODOS_HORARIOS_CITA = [
 export function horariosDisponiblesCita(fecha) {
   if (!fecha) return TODOS_HORARIOS_CITA;
   const hoy = new Date().toLocaleDateString("sv-SE");
-  if (fecha !== hoy) return TODOS_HORARIOS_CITA;
+  if (fecha < hoy) return [];
+  if (fecha > hoy) return TODOS_HORARIOS_CITA;
   const ahora = new Date();
   return TODOS_HORARIOS_CITA.filter((h) => {
     const [hh, mm] = h.split(":").map(Number);

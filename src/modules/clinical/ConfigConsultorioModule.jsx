@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { C_LIGHT, BRAND } from "../../constants";
 import { supabase } from "../../supabase";
 import { Box, Btn, showToast } from "../../ui";
@@ -211,6 +212,7 @@ function SectionTitle({ children, sub }) {
 // ═══════════════════════════════════════════════════════════════
 
 export default function ConfigConsultorioModule() {
+  const isMobileCfg = useMediaQuery("(max-width: 768px)");
   const [tab, setTab] = useState("servicios");
 
   // Estado unificado: mapa clave → string. Se inicializa con los defaults.
@@ -324,11 +326,35 @@ export default function ConfigConsultorioModule() {
         Centro de control de <strong>precios, metas y bonos</strong> de la farmacia. Cada tab se guarda por separado.
       </p>
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
-        <TabButton active={tab === "servicios"} onClick={() => setTab("servicios")}>💵 Precios de servicios</TabButton>
-        <TabButton active={tab === "ventas"}    onClick={() => setTab("ventas")}>📈 Metas de ventas</TabButton>
-        <TabButton active={tab === "bonos"}     onClick={() => setTab("bonos")}>🏆 Bonos por desempeño</TabButton>
-        <TabButton active={tab === "cons"}      onClick={() => setTab("cons")}>🩺 Metas del consultorio</TabButton>
+      <div style={{
+        display: "flex",
+        gap: 8,
+        marginBottom: 20,
+        flexWrap: isMobileCfg ? "nowrap" : "wrap",
+        overflowX: isMobileCfg ? "auto" : "visible",
+        WebkitOverflowScrolling: "touch",
+        scrollbarWidth: "thin",
+      }}>
+        <div style={{ flexShrink: 0 }}>
+          <TabButton active={tab === "servicios"} onClick={() => setTab("servicios")}>
+            {isMobileCfg ? "💵 Precios" : "💵 Precios de servicios"}
+          </TabButton>
+        </div>
+        <div style={{ flexShrink: 0 }}>
+          <TabButton active={tab === "ventas"} onClick={() => setTab("ventas")}>
+            {isMobileCfg ? "📈 Metas ventas" : "📈 Metas de ventas"}
+          </TabButton>
+        </div>
+        <div style={{ flexShrink: 0 }}>
+          <TabButton active={tab === "bonos"} onClick={() => setTab("bonos")}>
+            {isMobileCfg ? "🏆 Bonos" : "🏆 Bonos por desempeño"}
+          </TabButton>
+        </div>
+        <div style={{ flexShrink: 0 }}>
+          <TabButton active={tab === "cons"} onClick={() => setTab("cons")}>
+            {isMobileCfg ? "🩺 Metas cons." : "🩺 Metas del consultorio"}
+          </TabButton>
+        </div>
       </div>
 
       {/* ══════════════ TAB 1: PRECIOS DE SERVICIOS ══════════════ */}

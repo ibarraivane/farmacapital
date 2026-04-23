@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { C_LIGHT } from "../../constants";
 import { supabase } from "../../supabase";
 import { showToast } from "../../ui";
@@ -738,6 +739,7 @@ function Medicos() {
 
 export default function ConsultorioModule({ usuario }) {
   const C = C_LIGHT;
+  const isMobile = useMediaQuery("(max-width: 768px)");
   const inputStyle = mkInputStyle(C);
   const labelStyle = mkLabelStyle(C);
   const btnPrimary = mkBtnPrimary(C);
@@ -747,20 +749,39 @@ export default function ConsultorioModule({ usuario }) {
   const btnSmGreen = mkBtnSmGreen(C);
   const btnSmRed = mkBtnSmRed(C);
   const [tab, setTab] = useState("espera");
-  const TABS = [["espera","⏳ Lista de espera"],["consulta","🏥 En consulta"],["procedimientos","⚕ Procedimientos"],["medicos","👨‍⚕️ Médicos"]];
+  const TABS = isMobile
+    ? [["espera","⏳ Lista"],["consulta","🏥 Consulta"],["procedimientos","⚕ Procedim."],["medicos","👨‍⚕️ Médicos"]]
+    : [["espera","⏳ Lista de espera"],["consulta","🏥 En consulta"],["procedimientos","⚕ Procedimientos"],["medicos","👨‍⚕️ Médicos"]];
   return (
     <div style={{padding:24,background:C.bg,minHeight:"100vh",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
       <div style={{marginBottom:20}}>
         <h1 style={{margin:0,color:C.text,fontSize:20,fontWeight:800}}>♥ Consultorio</h1>
         <p style={{margin:"4px 0 0",color:C.textMid,fontSize:12}}>Gestión médica · Farmax</p>
       </div>
-      <div style={{display:"flex",gap:4,marginBottom:24,borderBottom:`1px solid ${C.border}`}}>
+      <div style={{
+        display:"flex",
+        gap:6,
+        marginBottom:24,
+        borderBottom:`1px solid ${C.border}`,
+        overflowX:isMobile?"auto":"visible",
+        WebkitOverflowScrolling:"touch",
+        flexWrap:"nowrap",
+        scrollbarWidth:"thin",
+      }}>
         {TABS.map(([id,label])=>(
           <button key={id} onClick={()=>setTab(id)} style={{
-            padding:"9px 18px",border:"none",cursor:"pointer",fontWeight:700,fontSize:12,
-            borderRadius:"8px 8px 0 0",background:tab===id?C.card:"transparent",
+            padding:isMobile?"10px 14px":"9px 18px",
+            border:"none",
+            cursor:"pointer",
+            fontWeight:700,
+            fontSize:isMobile?13:12,
+            borderRadius:"8px 8px 0 0",
+            background:tab===id?C.card:"transparent",
             color:tab===id?C.blue:C.textMid,
             borderBottom:tab===id?`2px solid ${C.blue}`:"2px solid transparent",
+            flexShrink:0,
+            whiteSpace:"nowrap",
+            lineHeight:1.2,
           }}>{label}</button>
         ))}
       </div>

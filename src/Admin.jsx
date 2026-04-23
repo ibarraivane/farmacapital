@@ -10,9 +10,9 @@ import { esPedidoTiendaWebPendiente, fetchPedidosTiendaPendientesMerged } from "
 import AgendaConsultasModule from "./modules/clinical/AgendaConsultasModule";
 import TransaccionesTab from "./TransaccionesTab";
 import ExpedientesDoctora from "./modules/clinical/patients/ExpedientesDoctora";
-import { loadAdminNavOrder, mergeAdminNavOrder, clearAdminNavOrder } from "./utils/adminNavOrder";
+import { loadAdminNavOrder } from "./utils/adminNavOrder";
 import { puedeVerModulo, modulosPermitidosParaRol } from "./utils/permissions";
-import { adminPathnameToPageId, pageIdToAdminPath } from "./shared/adminRoutes";
+import { adminPathnameToPageId, pageIdToAdminPath, pathnameSuggestsPosTab } from "./shared/adminRoutes";
 import { initBillingListeners } from "./modules/billing/core/initBillingListeners";
 import { canAccessRoute } from "./core/security/routeGuard";
 
@@ -437,28 +437,6 @@ function AdminNavSidebar({active,setActive,negocio,setNegocio,usuario,onLogout,a
                 </button>
               );
             })}
-            <button
-              type="button"
-              onClick={() => {
-                clearAdminNavOrder(usuario);
-                setAdminOrder(mergeAdminNavOrder(null));
-                showToast("Orden del menú restaurado (lista canónica por sección)", "info");
-              }}
-              style={{
-                width: "100%",
-                marginTop: 10,
-                padding: "6px 8px",
-                borderRadius: 8,
-                border: `1px dashed ${C.border}`,
-                background: "transparent",
-                color: C.textDim,
-                fontSize: 10,
-                fontWeight: 600,
-                cursor: "pointer",
-              }}
-            >
-              Restaurar lista de módulos
-            </button>
           </>
           : navItems.map((n) => {
             const rowActive = active === n.id;
@@ -1355,15 +1333,25 @@ export default function FarmaxAdmin(){
   // Migración: ids antiguos "rea" y "lotes" ahora son tabs dentro de "inv".
   // También migramos "rep" al dashboard (legacy).
   function migratePageId(p) {
-    if (!p || p === "rep") return { page: "dash", invTab: null };
-    if (p === "rea")   return { page: "inv",  invTab: "reabasto" };
-    if (p === "lotes") return { page: "inv",  invTab: "lotes" };
-    return { page: p, invTab: null };
+    if (!p || p === "rep") return { page: "dash", invTab: null, posTab: null };
+    if (p === "rea")   return { page: "inv",  invTab: "reabasto", posTab: null };
+    if (p === "lotes") return { page: "inv",  invTab: "lotes", posTab: null };
+    if (p === "cons_cobro") return { page: "pos", invTab: null, posTab: "consultas" };
+    return { page: p, invTab: null, posTab: null };
+  }
+  function applyPosTabHint(posTab) {
+    if (!posTab) return;
+    try {
+      sessionStorage.setItem("farmax_pos_initial_tab", posTab);
+    } catch (_) { /* noop */ }
   }
   const [page, setPage] = useState(() => {
     const fromUrl = adminPathnameToPageId(window.location.pathname);
     const raw0 = fromUrl || sessionStorage.getItem("farmax_active_page") || "dash";
-    const { page: p, invTab } = migratePageId(raw0);
+    const { page: p, invTab, posTab } = migratePageId(raw0);
+    applyPosTabHint(posTab);
+    const pathHint = pathnameSuggestsPosTab(window.location.pathname);
+    if (pathHint) applyPosTabHint(pathHint);
     if (invTab) {
       try {
         sessionStorage.setItem("farmax_inv_tab", invTab);
@@ -1418,6 +1406,9 @@ export default function FarmaxAdmin(){
       const id = adminPathnameToPageId(window.location.pathname);
       if (!id) return;
       const migrated = migratePageId(id);
+      applyPosTabHint(migrated.posTab);
+      const pathHint = pathnameSuggestsPosTab(window.location.pathname);
+      if (pathHint) applyPosTabHint(pathHint);
       try {
         sessionStorage.setItem("farmax_active_page", migrated.page);
       } catch (_) { /* noop */ }
@@ -1633,6 +1624,9 @@ export default function FarmaxAdmin(){
       const migrated = migratePageId(fromUrl);
       let next = migrated.page;
       if (usuario.rol === "admin" && next === "cons_dr") next = "agenda";
+      applyPosTabHint(migrated.posTab);
+      const pathHint = pathnameSuggestsPosTab(window.location.pathname);
+      if (pathHint) applyPosTabHint(pathHint);
       try {
         sessionStorage.setItem("farmax_active_page", next);
         if (next === "inv" && migrated.invTab) {

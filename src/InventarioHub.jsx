@@ -2,6 +2,7 @@
 // Los módulos internos se mantienen intactos; solo cambia la forma de entrar.
 // Cada tab carga lazy para no inflar el bundle inicial.
 import React, { lazy, Suspense, useState, useEffect } from "react";
+import { useMediaQuery } from "./hooks/useMediaQuery";
 import { C_LIGHT, BRAND } from "./constants";
 import { Package, Truck, Tags } from "lucide-react";
 
@@ -19,6 +20,7 @@ const STORAGE_KEY = "farmax_inv_tab";
 
 export default function InventarioHub({ initialTab }) {
   const C = C_LIGHT;
+  const isMobile = useMediaQuery("(max-width: 768px)");
   const [tab, setTab] = useState(() => {
     const fromProp = initialTab && TABS.some((t) => t.id === initialTab) ? initialTab : null;
     if (fromProp) return fromProp;
@@ -52,14 +54,26 @@ export default function InventarioHub({ initialTab }) {
         background: C.card,
         position: "sticky", top: 0, zIndex: 10,
       }}>
-        <div style={{display: "flex", alignItems: "center", gap: 10, marginBottom: 12}}>
+        <div style={{display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap"}}>
           <h1 style={{margin: 0, color: C.text, fontSize: 20, fontWeight: 800}}>◆ Inventario</h1>
-          <span style={{color: C.textDim, fontSize: 12}}>Catálogo · reabasto · lotes PEPS</span>
+          {!isMobile && (
+            <span style={{color: C.textDim, fontSize: 12}}>Catálogo · reabasto · lotes PEPS</span>
+          )}
         </div>
-        <div style={{display: "flex", gap: 6, flexWrap: "wrap"}}>
+        <div style={{
+          display: "flex",
+          gap: 6,
+          flexWrap: isMobile ? "nowrap" : "wrap",
+          overflowX: isMobile ? "auto" : "visible",
+          WebkitOverflowScrolling: "touch",
+          marginBottom: -1,
+          scrollbarWidth: "thin",
+        }}>
           {TABS.map((t) => {
             const active = tab === t.id;
             const Icon = t.icon;
+            const label = isMobile && t.id === "lotes" ? "Lotes" : t.label;
+            const iconSz = isMobile ? 18 : 15;
             return (
               <button
                 key={t.id}
@@ -73,12 +87,14 @@ export default function InventarioHub({ initialTab }) {
                   color: active ? BRAND.primary : C.textMid,
                   fontWeight: 700, fontSize: 13, cursor: "pointer",
                   transition: "color .15s, border-color .15s",
+                  flexShrink: 0,
+                  whiteSpace: "nowrap",
                 }}
                 onMouseEnter={(e) => { if (!active) e.currentTarget.style.color = C.text; }}
                 onMouseLeave={(e) => { if (!active) e.currentTarget.style.color = C.textMid; }}
               >
-                <Icon size={15} strokeWidth={2.1} />
-                {t.label}
+                <Icon size={iconSz} strokeWidth={2.1} />
+                {label}
               </button>
             );
           })}

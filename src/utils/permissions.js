@@ -26,12 +26,11 @@ export const MODULOS_BLOQUEADOS_VENDEDOR = [
 ];
 
 // Módulos disponibles para vendedor (por default o por custom).
-// El vendedor siempre arranca con NAV_VENDEDOR (midia, pos, cons_cobro).
+// El vendedor siempre arranca con NAV_VENDEDOR (midia, pos; cobro consulta en POS).
 // Estos son los ADICIONALES que un admin le puede habilitar.
 export const MODULOS_DISPONIBLES_VENDEDOR = [
   "midia",      // Su pantalla de inicio (default del rol)
-  "pos",        // POS principal (default del rol)
-  "cons_cobro", // Cobrar consultas (default del rol)
+  "pos",        // POS principal + pestaña Consultas para cobrar citas
   "agenda",     // Calendario / consultas del día (operativo; sin ficha clínica completa)
   "trans",      // Listado de transacciones / pedidos
   "inv",        // Inventario (consulta, catálogo, lotes)

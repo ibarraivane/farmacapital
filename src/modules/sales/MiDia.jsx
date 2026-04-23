@@ -446,7 +446,7 @@ export default function MiDia({ usuario, setPage }) {
           icon={ClipboardList}
           titulo="LISTA DE ESPERA"
           sub={data.citasEnEspera > 0 ? `${data.citasEnEspera} paciente${data.citasEnEspera !== 1 ? "s" : ""} aguardando` : "Sin pacientes en espera"}
-          onClick={() => setPage && setPage("cons_cobro")}
+          onClick={() => setPage && setPage("pos", { posTab: "consultas" })}
         />
       </div>
 

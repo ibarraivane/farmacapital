@@ -3,6 +3,7 @@ import FarmaxAdmin from "./Admin";
 import Tienda from "./Tienda";
 import AdminDashboard from "./AdminDashboard";
 import { adminPathnameToPageId } from "./shared/adminRoutes";
+import { attachPwaManifestHistorySync } from "./syncPwaManifest";
 
 class AdminRouteBoundary extends React.Component {
   constructor(props) {
@@ -42,6 +43,9 @@ export default function App() {
       }
     } catch (_) { /* noop */ }
   }, []);
+
+  /** Manifest PWA: Tienda (/) vs Admin (/admin…); el panel usa pushState sin re-render de App. */
+  useEffect(() => attachPwaManifestHistorySync(), []);
 
   const path = window.location.pathname;
   const useAdminShell = path.startsWith("/admin") || adminPathnameToPageId(path) != null;

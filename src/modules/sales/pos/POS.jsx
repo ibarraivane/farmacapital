@@ -5,15 +5,21 @@ import MercadoPagoModal from "../../../components/MercadoPagoModal";
 import { printTicket } from "../../../utils/printTicket";
 import { supabase } from "../../../supabase";
 import { C_LIGHT, BRAND } from "../../../constants";
-import { $, logAudit, nombreCompletoPacienteValido, telefonoMxValido } from "../../../utils";
+import { $, logAudit, soloDigitosTel } from "../../../utils";
 import { Box, Tag, Btn, Inp, Modal, showToast, SearchDropdown } from "../../../ui";
 import { CONSULTA_PRECIO_DEFAULT, citaPagoPendiente, citaEstaPagada, labelCanal } from "../../../utils/consultaConstants";
-import { horariosDisponiblesCita, puedeCancelarCitaNoShow, addDaysSv, formatFechaAgendaLargaEs } from "../../../utils/citasAgenda";
+import { puedeCancelarCitaNoShow, addDaysSv, formatFechaAgendaLargaEs } from "../../../utils/citasAgenda";
 import { esPedidoTiendaWebPendiente, fetchPedidosTiendaPendientesMerged } from "../../../utils/pedidosTiendaWeb";
 import { desgloseCambioMN, sugerenciasPagoCliente } from "../../../utils/cambioCaja";
 import { marcarMedicamentosRecetaFarmaxSurtidos } from "../../../utils/recetaCitaSync";
 import OnboardingTour from "../../../components/OnboardingTour";
 import { TOURS } from "../../../utils/tours";
+
+const PEDIDOS_TIENDA_SELECT_POS = `
+            id,total,created_at,tipo,metodo_pago,estado,
+            clientes(nombre,telefono),
+            pedido_items(cantidad,precio_unitario,productos(nombre,sku))
+          `;
 
 export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const C = C_LIGHT;
@@ -28,7 +34,13 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const srchRef = useRef(null);
   /** Tour POS: botón "?" va en la barra de carrito (no FAB esquina). */
   const posTourRef = useRef(null);
-  useEffect(()=>{ if(tab==="venta" && srchRef.current) srchRef.current.focus(); },[tab]);
+  // iOS Safari hace zoom al enfocar inputs si el tamaño es <16px o si el foco llega al cargar.
+  // En ≤768px no autoenfocamos el buscador para que la vista entre completa sin pellizcar.
+  useEffect(() => {
+    if (tab !== "venta" || typeof window === "undefined") return;
+    if (window.matchMedia("(max-width: 768px)").matches) return;
+    srchRef.current?.focus();
+  }, [tab]);
   const [favs,setFavs]       = useState(()=>{ try{ return JSON.parse(localStorage.getItem("farmax_pos_favs")||"[]"); }catch{ return []; } });
   const toggleFav = id => {
     setFavs(p=>{
@@ -53,11 +65,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const [fechaAgendaElegida, setFechaAgendaElegida] = useState(() =>
     addDaysSv(new Date().toLocaleDateString("sv-SE"), 1)
   );
-  const [nuevaCita,setNuevaCita] = useState(()=>({
-    nombre:"",telefono:"",fecha:new Date().toLocaleDateString("sv-SE"),hora:"",motivo:"",
-  }));
-  /** Conteo de citas por hora para la fecha del formulario (máx. 1 por slot — una doctora). */
-  const [ocupacionPorHora, setOcupacionPorHora] = useState({});
+  const [cliSearchItems, setCliSearchItems] = useState([]);
   const [loading,setLoad]    = useState(false);
   const [guardando,setGuard] = useState(false);
   const [cartOpen, setCartOpen] = useState(() => {
@@ -79,7 +87,17 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const [loadErr,setLoadErr] = useState("");
   const [config,setConfig]   = useState({precio_consulta:CONSULTA_PRECIO_DEFAULT,nombre_doctor:"Dra. Lourdes Lucio Falcón",nombre_farmacia:"Farmax",telefono_farmacia:"",direccion_farmacia:"Chinampac de Juárez, Iztapalapa, CDMX"});
 
-  useEffect(()=>{ setTab(initialTab); },[initialTab]);
+  useEffect(() => {
+    try {
+      const t = sessionStorage.getItem("farmax_pos_initial_tab");
+      if (t === "consultas" || t === "online" || t === "venta") {
+        setTab(t);
+        sessionStorage.removeItem("farmax_pos_initial_tab");
+        return;
+      }
+    } catch (_) { /* noop */ }
+    setTab(initialTab);
+  }, [initialTab]);
 
   useEffect(()=>{
     supabase.from("configuracion").select("*").then(({ data: cfg }) => {
@@ -151,63 +169,75 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     );
   }, [fechasAgendaPOS]);
 
-  const hoyStrPOS = new Date().toLocaleDateString("sv-SE");
-  useEffect(() => {
-    if (!nuevaCita.fecha) {
-      setOcupacionPorHora({});
-      return;
-    }
-    if (nuevaCita.fecha === hoyStrPOS) {
-      const counts = {};
-      (citasAgenda || []).forEach((c) => {
-        if (c.fecha !== nuevaCita.fecha) return;
-        const k = c.hora;
-        if (!k) return;
-        counts[k] = (counts[k] || 0) + 1;
+  const recargarPedidosOnline = useCallback(async () => {
+    try {
+      const pedsRes = await fetchPedidosTiendaPendientesMerged(supabase, PEDIDOS_TIENDA_SELECT_POS, {
+        perBranchLimit: 100,
+        maxRows: 300,
       });
-      setOcupacionPorHora(counts);
-      return;
+      if (pedsRes?.error) {
+        console.warn("[POS] Pedidos online:", pedsRes.error.message);
+        return;
+      }
+      setPedOn((pedsRes?.data || []).filter(esPedidoTiendaWebPendiente));
+    } catch (e) {
+      console.warn("[POS] recargarPedidosOnline:", e);
     }
-    supabase
-      .from("citas")
-      .select("hora")
-      .eq("fecha", nuevaCita.fecha)
-      .not("estado", "eq", "cancelada")
-      .then(({ data }) => {
-        const counts = {};
-        (data || []).forEach((c) => {
-          const k = c.hora;
-          if (!k) return;
-          counts[k] = (counts[k] || 0) + 1;
-        });
-        setOcupacionPorHora(counts);
-      });
-  }, [nuevaCita.fecha, citasAgenda, hoyStrPOS]);
+  }, []);
 
   useEffect(() => {
-    const libres = horariosDisponiblesCita(nuevaCita.fecha).filter(
-      (h) => (ocupacionPorHora[h] || 0) < 1
-    );
-    if (nuevaCita.hora && !libres.includes(nuevaCita.hora)) {
-      setNuevaCita((p) => ({ ...p, hora: "" }));
+    if (tab !== "online") return;
+    recargarPedidosOnline();
+  }, [tab, recargarPedidosOnline]);
+
+  useEffect(() => {
+    const raw = (tel || "").trim();
+    if (!raw) {
+      setCliSearchItems([]);
+      setCli(null);
+      return;
     }
-  }, [nuevaCita.fecha, nuevaCita.hora, ocupacionPorHora]);
+    const tmr = setTimeout(async () => {
+      try {
+        const digits = soloDigitosTel(tel);
+        let q = supabase.from("clientes").select("id,nombre,telefono,puntos").limit(12);
+        if (digits.length >= 4) {
+          const safeName = raw.replace(/%/g, "");
+          q = q.or(`telefono.ilike.%${digits}%,nombre.ilike.%${safeName}%`);
+        } else if (raw.length >= 2) {
+          q = q.ilike("nombre", `%${raw}%`);
+        } else {
+          setCliSearchItems([]);
+          return;
+        }
+        const { data, error } = await q;
+        if (error) throw error;
+        const rows = data || [];
+        setCliSearchItems(rows);
+        if (digits.length >= 10) {
+          const exact = rows.find((r) => soloDigitosTel(r.telefono) === digits);
+          setCli(exact || null);
+        } else {
+          setCli(null);
+        }
+      } catch (e) {
+        console.error("[POS] Buscar clientes:", e);
+        setCliSearchItems([]);
+      }
+    }, 320);
+    return () => clearTimeout(tmr);
+  }, [tel]);
 
   useEffect(()=>{
     const cargar = async () => {
       setLoad(true);
       if (typeof setLoadErr === "function") setLoadErr("");
       try {
-        const pedidosTiendaSelectPos = `
-            id,total,created_at,tipo,metodo_pago,estado,
-            clientes(nombre,telefono),
-            pedido_items(cantidad,precio_unitario,productos(nombre,sku))
-          `;
         const [prodsRes, pedsRes] = await Promise.all([
           supabase.from("productos")
             .select("*, lotes(fecha_caducidad,cantidad_actual,activo)")
             .eq("activo",true).order("nombre"),
-          fetchPedidosTiendaPendientesMerged(supabase, pedidosTiendaSelectPos, { perBranchLimit: 100, maxRows: 300 }),
+          fetchPedidosTiendaPendientesMerged(supabase, PEDIDOS_TIENDA_SELECT_POS, { perBranchLimit: 100, maxRows: 300 }),
         ]);
 
         const errs = [];
@@ -241,26 +271,6 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   useEffect(() => {
     refrescarCitasPOS();
   }, [refrescarCitasPOS]);
-
-
-  const buscarCli = async (t) => {
-  setTel(t);
-  if (t.length < 10) { if(t.length===0) setCli(null); return; }
-
-  const { data, error } = await supabase
-    .from("clientes")
-    .select("*")
-    .eq("telefono", t)
-    .maybeSingle();
-
-  if (error) {
-    console.error("Error buscando cliente:", error);
-    setCli(null);
-    return;
-  }
-
-  setCli(data || null);
-};
 
 
   const fil = productos.filter(p=>
@@ -611,62 +621,6 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     setGuard(false);
   };
 
-  const guardarNuevaCitaMostrador = async () => {
-    if (!nuevaCita.nombre?.trim() || !nuevaCita.fecha || !nuevaCita.hora) {
-      showToast("Nombre completo, fecha y hora son obligatorios.", "warning");
-      return;
-    }
-    if (!nombreCompletoPacienteValido(nuevaCita.nombre)) {
-      showToast("Indica nombre y apellido del paciente (al menos dos palabras).", "warning");
-      return;
-    }
-    if (!telefonoMxValido(nuevaCita.telefono)) {
-      showToast("Teléfono obligatorio: al menos 10 dígitos (celular o contacto).", "warning");
-      return;
-    }
-    setGuard(true);
-    try {
-      const { data: ocupado } = await supabase
-        .from("citas")
-        .select("id")
-        .eq("fecha", nuevaCita.fecha)
-        .eq("hora", nuevaCita.hora)
-        .not("estado", "eq", "cancelada");
-      if (ocupado && ocupado.length >= 1) {
-        alert("Ese horario ya no está disponible. Elige otro.");
-        setGuard(false);
-        return;
-      }
-      const tok = sessionStorage.getItem("farmax_session_token");
-      if (!tok) throw new Error("Sesión expirada");
-      const { data: resp, error } = await supabase.rpc("crear_cita", {
-        p_session_token: tok,
-        p_nombre: nuevaCita.nombre.trim(),
-        p_telefono: nuevaCita.telefono.trim(),
-        p_fecha: nuevaCita.fecha,
-        p_hora: nuevaCita.hora,
-        p_motivo: nuevaCita.motivo.trim() || null,
-        p_canal: "mostrador",
-        p_paciente_id: cli?.id ?? null,
-      });
-      if (error) throw error;
-      if (!resp?.success) throw new Error(resp?.error || "No se pudo crear la cita");
-      showToast("Cita registrada. Cobrar la consulta abajo para que la doctora vea «Pagado».", "success");
-      setNuevaCita({
-        nombre: "",
-        telefono: "",
-        fecha: new Date().toLocaleDateString("sv-SE"),
-        hora: "",
-        motivo: "",
-      });
-      await refrescarCitasPOS();
-    } catch (e) {
-      console.error(e);
-      alert("No se pudo guardar la cita: " + (e?.message || e));
-    }
-    setGuard(false);
-  };
-
   const cancelarCitaPorNoShow = async (cita) => {
     if (!puedeCancelarCitaNoShow(cita)) return;
     if (!window.confirm(`¿Cancelar la cita de ${cita.nombre} (${cita.hora}) y liberar el horario? Solo aplica si pasaron 10 min del inicio sin pago en caja.`)) return;
@@ -744,16 +698,16 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         <div data-tour="pos-cliente">
         <SearchDropdown
           value={tel}
-          onChange={t=>buscarCli(t)}
-          onSelect={c=>{ setTel(c.telefono||""); setCli(c); }}
+          onChange={setTel}
+          onSelect={(c)=>{ setTel(c.telefono||""); setCli(c); }}
           placeholder="📱 Teléfono o nombre del cliente"
-          items={[]}
+          items={cliSearchItems}
           labelKey="nombre"
           subKey="telefono"
           badgeKey="puntos"
           badgeCol="#7c3aed"
           style={{marginBottom:8}}
-          emptyMsg="Escribe el teléfono completo (10 dígitos)"
+          emptyMsg="Sin coincidencias · prueba más dígitos del teléfono o el nombre"
         />
         </div>
         {cli&&<div style={{background:C.purpleDim,border:`1px solid ${C.purple}30`,borderRadius:8,padding:"8px 10px",marginBottom:10}}>
@@ -904,14 +858,18 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         }
         /* Solo ≤768px: marco alto fijo + scroll de productos (carrito en modal por JS). */
         @media (max-width: 768px) {
+          input.farmax-pos-srch {
+            font-size: 16px !important;
+          }
           .farmax-pos-venta-grid.farmax-pos-venta-narrow {
             display: flex !important;
             flex-direction: column !important;
             align-items: stretch !important;
             gap: 0 !important;
-            height: calc(100dvh - 200px) !important;
-            min-height: 260px !important;
-            max-height: calc(100dvh - 130px) !important;
+            /* Más alto útil para grilla de productos (menos “franja” vacía). */
+            height: calc(100dvh - 120px) !important;
+            min-height: 280px !important;
+            max-height: calc(100dvh - 88px) !important;
             width: 100% !important;
             max-width: 100% !important;
             box-sizing: border-box !important;
@@ -922,7 +880,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
             overflow-x: hidden !important;
             overflow-y: auto !important;
             -webkit-overflow-scrolling: touch !important;
-            padding-bottom: 10px !important;
+            padding-bottom: 4px !important;
           }
         }
       `}</style>
@@ -948,13 +906,13 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       )}
       <div style={{
         display:"flex",
-        flexDirection: isNarrow ? "column" : "row",
+        flexDirection: isMobilePos ? "column" : isNarrow ? "column" : "row",
         alignItems: isNarrow ? "stretch" : "flex-start",
         justifyContent:"space-between",
-        gap: 12,
+        gap: isMobilePos ? 8 : 12,
         flexWrap:"wrap",
       }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 10, minWidth: 0, flex: isNarrow ? "none" : "1 1 280px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: isMobilePos ? 6 : 10, minWidth: 0, flex: !isMobilePos && !isNarrow ? "1 1 280px" : "none" }}>
           <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
             <h1 style={{color:C.text,fontSize: isNarrow ? "clamp(16px, 4.5vw, 20px)" : 20,fontWeight:800,margin:0,lineHeight:1.2}}>
               ⊡ Punto de Venta
@@ -992,16 +950,44 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
             </div>
           )}
         </div>
-        <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",flexShrink:0}}>
-          {[["venta","Venta normal"],["online",`Online (${pedOnline.length})`],["consultas",`Consultas (${citasAgenda.length})`]].map(([v,l])=>(
-            <button key={v} type="button" onClick={()=>setTab(v)} style={{padding:"6px 12px",borderRadius:8,border:`1px solid ${tab===v?BRAND.primary:C.border}`,background:tab===v?BRAND.primary+"18":"transparent",color:tab===v?BRAND.secondary:C.textMid,fontSize: isNarrow ? 11 : 12,fontWeight:700,cursor:"pointer"}}>
+        <div style={{
+          display:"flex",
+          gap:6,
+          alignItems:"center",
+          flexWrap: isMobilePos ? "nowrap" : "wrap",
+          flexShrink:0,
+          overflowX: isMobilePos ? "auto" : "visible",
+          WebkitOverflowScrolling: isMobilePos ? "touch" : undefined,
+          paddingBottom: isMobilePos ? 2 : 0,
+          marginRight: isMobilePos ? -4 : 0,
+          width: isMobilePos ? "100%" : undefined,
+        }}>
+          {[["venta","Venta"],["online",`Online (${pedOnline.length})`],["consultas",`Consultas (${citasAgenda.length})`]].map(([v,l])=>(
+            <button key={v} type="button" onClick={()=>setTab(v)} style={{
+              padding:isMobilePos ? "8px 12px" : "6px 12px",
+              borderRadius:8,
+              border:`1px solid ${tab===v?BRAND.primary:C.border}`,
+              background:tab===v?BRAND.primary+"18":"transparent",
+              color:tab===v?BRAND.secondary:C.textMid,
+              fontSize: isMobilePos ? 12 : isNarrow ? 11 : 12,
+              fontWeight:700,
+              cursor:"pointer",
+              whiteSpace:"nowrap",
+              flexShrink:0,
+            }}>
               {l}
             </button>
           ))}
           <button type="button" onClick={()=>onNavigate?.("caja")} style={{
-            padding:"6px 12px",borderRadius:8,border:`1px solid ${C.amber}`,
-            background:C.amberDim,color:C.amber,fontSize: isNarrow ? 11 : 12,fontWeight:700,
+            padding:isMobilePos ? "8px 12px" : "6px 12px",
+            borderRadius:8,
+            border:`1px solid ${C.amber}`,
+            background:C.amberDim,color:C.amber,
+            fontSize: isMobilePos ? 12 : isNarrow ? 11 : 12,
+            fontWeight:700,
             cursor:"pointer",
+            whiteSpace:"nowrap",
+            flexShrink:0,
           }}>⊞ Cerrar turno</button>
         </div>
       </div>
@@ -1217,6 +1203,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                   </span>
                 </div>
               </button>
+              {!isMobilePos && (
               <button
                 type="button"
                 onClick={() => posTourRef.current?.startTour()}
@@ -1239,10 +1226,11 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
               >
                 ?
               </button>
+              )}
             </div>
             )}
             <div style={{display:"flex",gap:8,marginBottom:12,alignItems:"center",flexWrap: isNarrow ? "wrap" : "nowrap"}}>
-              <input ref={srchRef} value={srch} onChange={e=>setSrch(e.target.value)}
+              <input ref={srchRef} className="farmax-pos-srch" value={srch} onChange={e=>setSrch(e.target.value)}
                 data-tour="pos-buscador"
                 onKeyDown={e=>{
                   if(e.key==="Enter"){
@@ -1256,7 +1244,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                   }
                 }}
                 placeholder="🔍 Buscar por nombre o SKU · Enter para agregar"
-                style={{flex:1,minWidth:0,boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:C.bg,color:C.text,fontSize:13,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}/>
+                style={{flex:1,minWidth:0,boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:C.bg,color:C.text,fontSize:isMobilePos?16:13,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}/>
               {!isMobilePos && (
               <button onClick={()=>setCartOpen(p=>!p)} style={{
                 padding:"9px 14px",borderRadius:8,border:`1px solid ${C.border}`,
@@ -1552,6 +1540,13 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
             </div>
           </div>
 
+          <div style={{background:C.bg,border:`1px solid ${C.border}`,borderRadius:10,padding:"12px 14px",marginBottom:16,display:"flex",flexWrap:"wrap",alignItems:"center",gap:10,justifyContent:"space-between"}}>
+            <div style={{color:C.textMid,fontSize:12,lineHeight:1.45,maxWidth:560}}>
+              Las <strong style={{color:C.text}}>nuevas citas</strong> se registran en <strong style={{color:C.text}}>Agenda de consultas</strong> (una sola fuente). Aquí solo cobras y ves el calendario operativo.
+            </div>
+            <Btn sm col={BRAND.primary} onClick={()=>onNavigate?.("agenda")}>Ir a agenda →</Btn>
+          </div>
+
           {/* Agenda de hoy (todas las citas activas) */}
           <Box style={{padding:18,marginBottom:16}}>
             <div style={{display:"flex",flexWrap:"wrap",alignItems:"center",gap:10,marginBottom:10}}>
@@ -1577,7 +1572,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                   <button type="button" onClick={()=>setFechaAgendaElegida((p)=>addDaysSv(p,-1))} title="Día anterior"
                     style={{padding:"6px 10px",borderRadius:8,border:`1px solid ${C.border}`,background:C.card,cursor:"pointer",fontWeight:800}}>◀</button>
                   <input type="date" value={fechaAgendaElegida} onChange={(e)=>setFechaAgendaElegida(e.target.value)}
-                    style={{padding:"6px 10px",borderRadius:8,border:`1px solid ${C.border}`,fontSize:13,fontWeight:600,color:C.text}} />
+                    style={{padding:"6px 10px",borderRadius:8,border:`1px solid ${C.border}`,fontSize:isMobilePos?16:13,fontWeight:600,color:C.text,boxSizing:"border-box",maxWidth:"100%"}} />
                   <button type="button" onClick={()=>setFechaAgendaElegida((p)=>addDaysSv(p,1))} title="Día siguiente"
                     style={{padding:"6px 10px",borderRadius:8,border:`1px solid ${C.border}`,background:C.card,cursor:"pointer",fontWeight:800}}>▶</button>
                   <button type="button" onClick={()=>setFechaAgendaElegida(new Date().toLocaleDateString("sv-SE"))} style={{padding:"6px 10px",borderRadius:8,border:`1px solid ${C.blue}40`,background:C.blueDim,color:C.blue,cursor:"pointer",fontSize:11,fontWeight:700}}>Ir a hoy</button>
@@ -1629,27 +1624,6 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
             )}
           </Box>
 
-          {/* Nueva cita mostrador */}
-          <Box style={{padding:18,marginBottom:16}}>
-            <div style={{color:C.text,fontWeight:800,fontSize:14,marginBottom:12}}>➕ Nueva cita (mostrador)</div>
-            <div style={{display:"grid",gridTemplateColumns:`repeat(auto-fill,minmax(${isNarrow ? "min(100%, 160px)" : "200px"},1fr))`,gap:12}}>
-              <div><div style={{color:C.textMid,fontSize:11,marginBottom:4}}>Nombre completo <span style={{color:C.red}}>*</span></div><Inp value={nuevaCita.nombre} onChange={e=>setNuevaCita(p=>({...p,nombre:e.target.value}))} placeholder="Nombre y apellido" style={{width:"100%"}}/></div>
-              <div><div style={{color:C.textMid,fontSize:11,marginBottom:4}}>Teléfono <span style={{color:C.red}}>*</span></div><Inp value={nuevaCita.telefono} onChange={e=>setNuevaCita(p=>({...p,telefono:e.target.value}))} placeholder="10+ dígitos" type="tel" style={{width:"100%"}}/></div>
-              <div><div style={{color:C.textMid,fontSize:11,marginBottom:4}}>Fecha</div><input type="date" value={nuevaCita.fecha} onChange={e=>setNuevaCita(p=>({...p,fecha:e.target.value}))} min={new Date().toLocaleDateString("sv-SE")} style={{width:"100%",padding:"9px 11px",borderRadius:8,border:`1px solid ${C.border}`,fontSize:13}}/></div>
-              <div>
-                <div style={{color:C.textMid,fontSize:11,marginBottom:4}}>Hora</div>
-                <select value={nuevaCita.hora} onChange={e=>setNuevaCita(p=>({...p,hora:e.target.value}))} style={{width:"100%",padding:"9px 11px",borderRadius:8,border:`1px solid ${C.border}`,fontSize:13}}>
-                  <option value="">Seleccionar…</option>
-                  {horariosDisponiblesCita(nuevaCita.fecha).filter((h)=>(ocupacionPorHora[h]||0)<1).map((h)=>(
-                    <option key={h} value={h}>{h}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div style={{marginTop:12}}><div style={{color:C.textMid,fontSize:11,marginBottom:4}}>Motivo (opcional)</div><Inp value={nuevaCita.motivo} onChange={e=>setNuevaCita(p=>({...p,motivo:e.target.value}))} placeholder="Ej. control, dolor…" style={{width:"100%",maxWidth:480}}/></div>
-            <Btn col={BRAND.primary} style={{marginTop:14}} onClick={guardarNuevaCitaMostrador} dis={guardando}>Guardar cita</Btn>
-          </Box>
-
           <div style={{color:C.text,fontWeight:800,fontSize:14,marginBottom:10}}>💳 Cobrar en caja</div>
           <div style={{color:C.textMid,fontSize:12,marginBottom:14}}>Solo aparecen citas con consulta o consumibles pendientes de cobro.</div>
 
@@ -1691,7 +1665,19 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                     ))}
                   </div>
                 )}
-                <Inp value={tel} onChange={e=>buscarCli(e.target.value)} placeholder="📱 Teléfono cliente (puntos)" type="tel" style={{width:"100%",boxSizing:"border-box",marginBottom:8}}/>
+                <SearchDropdown
+                  value={tel}
+                  onChange={setTel}
+                  onSelect={(c)=>{ setTel(c.telefono||""); setCli(c); }}
+                  placeholder="📱 Teléfono o nombre del cliente"
+                  items={cliSearchItems}
+                  labelKey="nombre"
+                  subKey="telefono"
+                  badgeKey="puntos"
+                  badgeCol="#7c3aed"
+                  style={{width:"100%",boxSizing:"border-box",marginBottom:8}}
+                  emptyMsg="Sin coincidencias · prueba más dígitos o el nombre"
+                />
                 {cli&&<div style={{background:C.purpleDim,border:`1px solid ${C.purple}30`,borderRadius:6,padding:"6px 10px",marginBottom:8}}><span style={{color:C.purple,fontSize:11,fontWeight:700}}>{cli.nombre} · {cli.puntos||0} pts</span></div>}
                 <div style={{display:"flex",gap:6,marginBottom:10,flexWrap:"wrap"}}>
                   {[["efectivo","Efectivo"],["tarjeta","Tarjeta (Point)"]].map(([v,l])=>(

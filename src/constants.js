@@ -31,11 +31,11 @@ export const NEG = {
 // Admin: ver ADMIN_NAV_SECTIONS (sidebar con títulos de sección).
 // agenda = calendario de consultas (admin/vendedor); cons_dr = misma vista, id reservado a doctora.
 // trans = Transacciones (listado de pedidos); ped_online = POS pestaña pedidos web.
-// VENTAS: pos, cons_cobro, ped_online
+// VENTAS: pos (consultas en POS), ped_online
 // INVENTARIO: inv (hub catálogo / lotes / reabasto)
 // DOCTORA: cons_dr (agenda médica), exp_dr, cli, cons, pwa
 export const NAV_ADMIN = [
-  "dash", "pos", "cons_cobro", "trans", "cli", "caja", "ped_online",
+  "dash", "pos", "trans", "cli", "caja", "ped_online",
   "inv",
   "agenda", "cons", "exp_dr",
   "cof", "dev", "fact",
@@ -46,7 +46,7 @@ export const NAV_ADMIN = [
 
 /** Títulos del sidebar admin (sin mezclar “vistas por rol”; solo agrupa trabajo). */
 export const ADMIN_NAV_SECTIONS = [
-  { title: "Operación diaria", ids: ["dash", "pos", "cons_cobro", "trans", "cli", "caja", "ped_online"] },
+  { title: "Operación diaria", ids: ["dash", "pos", "trans", "cli", "caja", "ped_online"] },
   { title: "Inventario", ids: ["inv"] },
   { title: "Consultorio", ids: ["agenda", "cons", "exp_dr"] },
   { title: "Control y cumplimiento", ids: ["cof", "dev", "fact"] },
@@ -56,7 +56,7 @@ export const ADMIN_NAV_SECTIONS = [
 ];
 
 export const NAV_VENDEDOR = [
-  "midia", "pos", "cons_cobro", "agenda", "trans", "cli", "inv", "caja", "cof", "ped_online", "pwa",
+  "midia", "pos", "agenda", "trans", "cli", "inv", "caja", "cof", "ped_online", "pwa",
 ];
 export const NAV_DOCTORA = ["cons_dr", "exp_dr", "cli", "cons", "pwa"];
 
@@ -66,7 +66,7 @@ import {
   LayoutDashboard, ShoppingCart, Package,
   Wallet, Stethoscope, Users, UserCog, ShieldCheck,
   Target, Undo2, Receipt, Image as ImageIcon, Sparkles,
-  Download, UserPlus, CreditCard, HeartPulse,
+  Download, UserPlus, HeartPulse,
   SlidersHorizontal, Gauge, FolderOpen, CalendarDays, ListOrdered, Globe,
 } from "lucide-react";
 
@@ -97,7 +97,6 @@ export const NAV_ITEMS = [
   {id:"pwa",        icon: Download,        label:"Instalar app"},
   {id:"usuarios",   icon: UserPlus,        label:"Usuarios"},
   // ══ ROLES ESPECIALES (vendedor / doctora) ══
-  {id:"cons_cobro", icon: CreditCard,      label:"Cobrar consulta"},
   {id:"agenda",     icon: CalendarDays,    label:"Agenda de consultas"},
   {id:"cons_dr",    icon: HeartPulse,      label:"Agenda médica"},
   {id:"exp_dr",     icon: FolderOpen,      label:"Expedientes"},

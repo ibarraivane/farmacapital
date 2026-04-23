@@ -20,8 +20,12 @@ const SLUG_TO_PAGE = {
   trans: "trans",
   "pedidos-online": "ped_online",
   ped_online: "ped_online",
-  "cobrar-consulta": "cons_cobro",
-  cons_cobro: "cons_cobro",
+  /** Cobro de consultas vive en POS → pestaña Consultas (sin módulo aparte). */
+  "cobrar-consulta": "pos",
+  cons_cobro: "pos",
+  /** Slugs técnicos (manifest PWA, enlaces directos) */
+  inv: "inv",
+  caja: "caja",
 };
 
 /** Slug canónico en la barra de direcciones para cada módulo (solo los que pediste + cobrar consulta). */
@@ -34,7 +38,6 @@ const PAGE_TO_SLUG = {
   agenda: "agenda-consultas",
   trans: "transacciones",
   ped_online: "pedidos-online",
-  cons_cobro: "cobrar-consulta",
 };
 
 /**
@@ -67,4 +70,11 @@ export function pageIdToAdminPath(pageId) {
   const slug = PAGE_TO_SLUG[pageId];
   if (slug) return `/admin/${slug}`;
   return `/admin/${encodeURIComponent(pageId)}`;
+}
+
+/** Si la URL legible es “cobrar consulta”, abrir POS en pestaña Consultas. */
+export function pathnameSuggestsPosTab(pathname) {
+  const p = String(pathname || "").toLowerCase();
+  if (p.includes("cobrar-consulta")) return "consultas";
+  return null;
 }

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useMediaQuery } from "./hooks/useMediaQuery";
 import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
 import { logAudit } from "./utils";
@@ -453,6 +454,7 @@ export default function InventarioModule() {
   const btnOutline = mkBtnOutline(C);
   const btnGreen = mkBtnGreen(C);
   const btnSecondary = mkBtnSecondary(C);
+  const isMobileInv = useMediaQuery("(max-width: 768px)");
   const [productos,       setProductos]       = useState([]);
   const [loading,         setLoading]         = useState(true);
   const [busqueda,        setBusqueda]        = useState("");
@@ -585,17 +587,38 @@ export default function InventarioModule() {
   return (
     <div style={{padding:24,background:C.bg,minHeight:"100vh",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
 
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:12}}>
-        <div>
+      <div style={{
+        display:"flex",
+        flexDirection:isMobileInv?"column":"row",
+        justifyContent:"space-between",
+        alignItems:isMobileInv?"stretch":"center",
+        marginBottom:20,
+        flexWrap:isMobileInv?"nowrap":"wrap",
+        gap:12,
+      }}>
+        <div style={{ minWidth: 0 }}>
           <h1 style={{margin:0,color:C.text,fontSize:20,fontWeight:800}}>▤ Inventario</h1>
           <p style={{margin:"4px 0 0",color:C.textMid,fontSize:12}}>Gestión de productos · Farmax</p>
         </div>
-        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-          <button style={btnOutline} onClick={()=>setModalRecibir(true)}>📦 Recibir mercancía</button>
-          <button style={btnOutline} onClick={()=>setModalImportar(true)}>📥 Importar CSV</button>
+        <div style={isMobileInv ? {
+          display:"grid",
+          gridTemplateColumns:"1fr 1fr",
+          gap:8,
+          width:"100%",
+        } : { display:"flex", gap:8, flexWrap:"wrap" }}>
+          <button data-tour="inv-agregar" style={{...btnPrimary, ...(isMobileInv ? { gridColumn:"1 / -1", padding:"11px 16px", fontSize:13 } : {})}} onClick={()=>setModal(EMPTY)}>
+            ➕ Nuevo producto
+          </button>
+          <button style={btnOutline} onClick={()=>setModalRecibir(true)}>
+            {isMobileInv ? "📦 Recibir" : "📦 Recibir mercancía"}
+          </button>
+          <button style={btnOutline} onClick={()=>setModalImportar(true)}>
+            {isMobileInv ? "📥 Importar" : "📥 Importar CSV"}
+          </button>
           <button style={btnOutline} onClick={descargarPlantilla}>📋 Plantilla</button>
-          <button style={btnOutline} onClick={()=>exportarCSV(filtrados)}>⬇ Exportar CSV</button>
-          <button data-tour="inv-agregar" style={btnPrimary} onClick={()=>setModal(EMPTY)}>➕ Nuevo producto</button>
+          <button style={btnOutline} onClick={()=>exportarCSV(filtrados)}>
+            {isMobileInv ? "⬇ Exportar" : "⬇ Exportar CSV"}
+          </button>
         </div>
       </div>
 

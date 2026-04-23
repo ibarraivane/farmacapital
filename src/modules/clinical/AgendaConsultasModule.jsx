@@ -20,6 +20,8 @@ import {
   addDaysSv,
 } from "../../utils/citasAgenda";
 
+const hoySvLocal = () => new Date().toLocaleDateString("sv-SE");
+
 const C = C_LIGHT;
 
 const WEEKDAYS_MON = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
@@ -62,7 +64,7 @@ function etiquetaEstadoVisual(cita) {
 
 /**
  * Calendario mensual + agenda por horas + detalle.
- * @param {{ usuario: object, onNavigate?: (id: string) => void }} props
+ * @param {{ usuario: object, onNavigate?: (id: string, opts?: { posTab?: string }) => void }} props
  */
 export default function AgendaConsultasModule({ usuario, onNavigate }) {
   const mode = usuario?.rol === "doctora" ? "doctora" : usuario?.rol === "vendedor" ? "vendedor" : "admin";
@@ -124,16 +126,6 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
     }
     return map;
   }, [citasDelDia]);
-
-  useEffect(() => {
-    if (mode !== "vendedor") return;
-    setVista("dia");
-    const h = new Date().toLocaleDateString("sv-SE");
-    setDiaSel(h);
-    const d = new Date();
-    setY(d.getFullYear());
-    setM(d.getMonth());
-  }, [mode]);
 
   const cargarMes = useCallback(async () => {
     setLoadMes(true);
@@ -265,8 +257,17 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
   };
 
   const guardarNuevaCita = async () => {
+    const hoy = hoySvLocal();
+    if (diaSel < hoy) {
+      showToast("No se pueden agendar citas en fechas pasadas.", "warning");
+      return;
+    }
     if (!slotNuevo || !formNueva.nombre?.trim() || !formNueva.telefono?.trim()) {
       showToast("Nombre y teléfono son obligatorios.", "warning");
+      return;
+    }
+    if (diaSel === hoy && !horariosDisponiblesCita(diaSel).includes(slotNuevo)) {
+      showToast("Ese horario ya no está disponible (hora pasada).", "warning");
       return;
     }
     if (!nombreCompletoPacienteValido(formNueva.nombre)) {
@@ -330,14 +331,27 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
 
   return (
     <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap", marginBottom: 18 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          gap: 12,
+          flexWrap: "wrap",
+          marginBottom: 18,
+          padding: "14px 16px",
+          borderRadius: 12,
+          border: `1px solid ${C.border}`,
+          background: `linear-gradient(135deg, ${BRAND.primary}10, ${BRAND.secondary}08)`,
+        }}
+      >
         <div>
           <h1 style={{ color: C.text, fontSize: 22, fontWeight: 800, margin: 0 }}>{titulo}</h1>
           <p style={{ color: C.textMid, fontSize: 13, margin: "6px 0 0" }}>
             {mode === "vendedor"
               ? "Consultas del día y cobros en mostrador; sin detalle clínico completo."
               : mode === "doctora"
-                ? "Calendario y citas; el cobro lo realiza caja en POS / Cobrar consulta."
+                ? "Calendario y citas; el cobro lo realiza caja en POS (pestaña Consultas)."
                 : "Vista completa del consultorio: calendario, horarios y expediente."}
           </p>
         </div>
@@ -441,10 +455,10 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
                 col={BRAND.primary}
                 onClick={() => {
                   setDetalleSimple(null);
-                  onNavigate?.("cons_cobro");
+                  onNavigate?.("pos", { posTab: "consultas" });
                 }}
               >
-                Ir a cobrar consulta
+                Ir a POS (cobrar consulta)
               </Btn>
               <Btn ol col={C.textMid} onClick={() => setDetalleSimple(null)}>
                 Cerrar
@@ -602,6 +616,7 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
               const ocupada = citaPorHora[hora];
               const disponibles = horariosDisponiblesCita(diaSel);
               const libre = !ocupada && disponibles.includes(hora);
+              const esDiaPasado = diaSel < hoySvLocal();
               const ev = etiquetaEstadoVisual(ocupada);
               return (
                 <div
@@ -661,6 +676,8 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
                           </Btn>
                         )}
                       </div>
+                    ) : esDiaPasado ? (
+                      <span style={{ color: C.textDim, fontSize: 13 }}>Sin cita · día pasado (solo lectura)</span>
                     ) : (
                       <span style={{ color: C.textDim, fontSize: 13 }}>No disponible (horario pasado)</span>
                     )}

@@ -1,8 +1,10 @@
 {
-  "name": "Farmax — Farmacia & Salud",
-  "short_name": "Farmax",
-  "description": "Sistema de gestión Farmax: Farmacia, Minisuper y Consultorio. Chinampac de Juárez, CDMX.",
+  "id": "/",
+  "name": "Farmax — Tienda",
+  "short_name": "Farmax Tienda",
+  "description": "Tienda en línea Farmax: medicamentos, consultorio y envíos. Chinampac de Juárez, CDMX.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#f7f9fc",
   "theme_color": "#0052cc",
@@ -47,52 +49,11 @@
   ],
   "shortcuts": [
     {
-      "name": "Punto de Venta",
-      "short_name": "POS",
-      "description": "Abrir el punto de venta Farmax",
-      "url": "/?page=pos",
-      "icons": [
-        {
-          "src": "/icons/farmax-96.png",
-          "sizes": "96x96"
-        }
-      ]
-    },
-    {
-      "name": "Inventario",
-      "short_name": "Inventario",
-      "description": "Ver inventario Farmax",
-      "url": "/?page=inv",
-      "icons": [
-        {
-          "src": "/icons/farmax-96.png",
-          "sizes": "96x96"
-        }
-      ]
-    },
-    {
-      "name": "Corte de Caja",
-      "short_name": "Corte",
-      "description": "Realizar corte de caja",
-      "url": "/?page=caja",
-      "icons": [
-        {
-          "src": "/icons/farmax-96.png",
-          "sizes": "96x96"
-        }
-      ]
-    },
-    {
-      "name": "COFEPRIS",
-      "short_name": "COFEPRIS",
-      "description": "Bitácora y registros COFEPRIS Farmax",
-      "url": "/?page=cof",
-      "icons": [
-        {
-          "src": "/icons/farmax-96.png",
-          "sizes": "96x96"
-        }
-      ]
+      "name": "Inicio tienda",
+      "short_name": "Inicio",
+      "description": "Catálogo y compra en línea",
+      "url": "/",
+      "icons": [{ "src": "/icons/farmax-96.png", "sizes": "96x96" }]
     }
   ],
   "related_applications": [],

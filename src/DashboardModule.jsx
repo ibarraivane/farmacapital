@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useMediaQuery } from "./hooks/useMediaQuery";
 import { C_LIGHT, BRAND } from "./constants";
 import { supabase } from "./supabase";
 import { saludoUsuario, $ } from "./utils";
@@ -21,7 +22,15 @@ const PROYECTO_CAPEX_LINEAS = [
   { label: "Contingencia e imprevistos", nota: "Reserva del proyecto", monto: 64_585 },
 ];
 
-const DASHBOARD_TABS_DEFAULT = ["proyecto", "operacion", "resumen", "transacciones", "margen"];
+/** Pestañas operativas; «Proyecto / inversión» va aparte para no mezclar CAPEX con el día a día. */
+const DASHBOARD_TABS_DEFAULT = ["operacion", "resumen", "transacciones", "margen"];
+const DASHBOARD_TAB_LABELS_MOBILE = {
+  proyecto: "💼 Proyecto",
+  operacion: "📊 Operación",
+  resumen: "📈 Resumen",
+  transacciones: "🔄 Movimientos",
+  margen: "💹 Margen",
+};
 const DASHBOARD_TAB_LABELS = {
   proyecto: "💼 Proyecto Farma · inversión",
   operacion: "📊 Operación — farmacia",
@@ -36,7 +45,8 @@ function loadDashboardTabOrder() {
     if (!raw) return [...DASHBOARD_TABS_DEFAULT];
     const p = JSON.parse(raw);
     if (!Array.isArray(p)) return [...DASHBOARD_TABS_DEFAULT];
-    const ok = p.filter((id) => DASHBOARD_TABS_DEFAULT.includes(id));
+    const sinProyecto = p.filter((id) => id !== "proyecto");
+    const ok = sinProyecto.filter((id) => DASHBOARD_TABS_DEFAULT.includes(id));
     const miss = DASHBOARD_TABS_DEFAULT.filter((id) => !ok.includes(id));
     return [...ok, ...miss];
   } catch {
@@ -212,6 +222,7 @@ function TodoHoy({ items }) {
 
 export default function DashboardModule({ usuario, setPage, showConfirm }) {
   const C = C_LIGHT;
+  const isMobileDash = useMediaQuery("(max-width: 768px)");
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [panelTab, setPanelTab] = useState("operacion");
@@ -536,12 +547,43 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
         </div>
       </div>
 
-      <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:20,borderBottom:`1px solid ${C.border}`,paddingBottom:12}}>
-        <span style={{color:C.textDim,fontSize:11,marginRight:4}} title="Arrastra ⋮⋮ para cambiar el orden de las pestañas">Orden:</span>
+      <div style={{
+        display:"flex",
+        alignItems:"center",
+        gap:8,
+        flexWrap:isMobileDash?"nowrap":"wrap",
+        marginBottom:20,
+        borderBottom:`1px solid ${C.border}`,
+        paddingBottom:12,
+        overflowX:isMobileDash?"auto":"visible",
+        WebkitOverflowScrolling:"touch",
+        scrollbarWidth:"thin",
+      }}>
+        <button
+          type="button"
+          onClick={()=>setPanelTab("proyecto")}
+          style={{
+            padding:"8px 14px",
+            borderRadius:8,
+            border:`1px solid ${panelTab==="proyecto"?BRAND.primary:C.border}`,
+            background:panelTab==="proyecto"?BRAND.primary+"22":"transparent",
+            color:panelTab==="proyecto"?BRAND.primary:C.textMid,
+            fontWeight:700,
+            fontSize:12,
+            cursor:"pointer",
+            whiteSpace:"nowrap",
+            flexShrink:0,
+          }}
+        >
+          {(isMobileDash?DASHBOARD_TAB_LABELS_MOBILE:DASHBOARD_TAB_LABELS).proyecto}
+        </button>
+        {!isMobileDash && (
+          <span style={{color:C.textDim,fontSize:11,marginRight:4,flexShrink:0}} title="Arrastra ⋮⋮ para cambiar el orden de las pestañas">Orden:</span>
+        )}
         {tabOrder.map((id) => (
           <div
             key={id}
-            style={{display:"flex",alignItems:"center",gap:2}}
+            style={{display:"flex",alignItems:"center",gap:2,flexShrink:0}}
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => {
               e.preventDefault();
@@ -550,30 +592,32 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
               dragTabId.current = null;
             }}
           >
-            <span
-              draggable
-              onDragStart={(e) => {
-                dragTabId.current = id;
-                e.dataTransfer.setData("text/dashboard-tab", id);
-                e.dataTransfer.effectAllowed = "move";
-              }}
-              onDragEnd={() => { dragTabId.current = null; }}
-              title="Arrastrar para reordenar pestañas"
-              style={{
-                cursor: "grab",
-                color: C.textDim,
-                fontSize: 12,
-                padding: "6px 4px",
-                userSelect: "none",
-                lineHeight: 1,
-              }}
-              aria-hidden
-            >⋮⋮</span>
+            {!isMobileDash && (
+              <span
+                draggable
+                onDragStart={(e) => {
+                  dragTabId.current = id;
+                  e.dataTransfer.setData("text/dashboard-tab", id);
+                  e.dataTransfer.effectAllowed = "move";
+                }}
+                onDragEnd={() => { dragTabId.current = null; }}
+                title="Arrastrar para reordenar pestañas"
+                style={{
+                  cursor: "grab",
+                  color: C.textDim,
+                  fontSize: 12,
+                  padding: "6px 4px",
+                  userSelect: "none",
+                  lineHeight: 1,
+                }}
+                aria-hidden
+              >⋮⋮</span>
+            )}
             <button type="button" onClick={()=>setPanelTab(id)} style={{
               padding:"8px 14px",borderRadius:8,border:`1px solid ${panelTab===id?BRAND.primary:C.border}`,
               background:panelTab===id?BRAND.primary+"22":"transparent",color:panelTab===id?BRAND.primary:C.textMid,
-              fontWeight:700,fontSize:12,cursor:"pointer",
-            }}>{DASHBOARD_TAB_LABELS[id]}</button>
+              fontWeight:700,fontSize:12,cursor:"pointer",whiteSpace:"nowrap",
+            }}>{(isMobileDash?DASHBOARD_TAB_LABELS_MOBILE:DASHBOARD_TAB_LABELS)[id]}</button>
           </div>
         ))}
       </div>
@@ -664,39 +708,28 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
                 <KPI label="Ticket promedio" value={$(ticketPromedio)} col={C.green} icon="🧾"/>
                 <KPI label="Clientes nuevos" value={rep.clientes} col={C.amber} icon="👤"/>
               </div>
-              <div style={{display:"grid",gridTemplateColumns:GRID_RESP_2COL,gap:16,marginBottom:16}}>
-                <Box style={{padding:20,minWidth:0}}>
-                  <div style={{color:C.text,fontWeight:700,fontSize:14,marginBottom:16}}>📊 Ingresos por fuente</div>
-                  {[
-                    ["Farmacia física", totalVentas-totalOnline-ingresoConsultas, C.blue],
-                    ["Tienda en línea", totalOnline, C.teal],
-                    ["Consultorio", ingresoConsultas, C.purple],
-                  ].map(([l,v,col])=>{
-                    const pct = totalVentas>0?Math.round((v/totalVentas)*100):0;
-                    return(
-                      <div key={l} style={{marginBottom:12}}>
-                        <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-                          <span style={{color:C.textMid,fontSize:12}}>{l}</span>
-                          <span style={{color:col,fontWeight:700,fontSize:12}}>{$(v)}</span>
-                        </div>
-                        <div style={{background:C.border,borderRadius:4,height:8,overflow:"hidden"}}>
-                          <div style={{width:`${pct}%`,height:"100%",background:col,borderRadius:4}}/>
-                        </div>
-                        <div style={{color:C.textDim,fontSize:10,marginTop:2}}>{pct}% del total</div>
+              <Box style={{padding:20,minWidth:0,marginBottom:16}}>
+                <div style={{color:C.text,fontWeight:700,fontSize:14,marginBottom:16}}>📊 Ingresos por fuente</div>
+                {[
+                  ["Farmacia física", totalVentas-totalOnline-ingresoConsultas, C.blue],
+                  ["Tienda en línea", totalOnline, C.teal],
+                  ["Consultorio", ingresoConsultas, C.purple],
+                ].map(([l,v,col])=>{
+                  const pct = totalVentas>0?Math.round((v/totalVentas)*100):0;
+                  return(
+                    <div key={l} style={{marginBottom:12}}>
+                      <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                        <span style={{color:C.textMid,fontSize:12}}>{l}</span>
+                        <span style={{color:col,fontWeight:700,fontSize:12}}>{$(v)}</span>
                       </div>
-                    );
-                  })}
-                </Box>
-                <Box style={{padding:20,minWidth:0}}>
-                  <div style={{color:C.text,fontWeight:700,fontSize:14,marginBottom:12}}>💼 Inversión del proyecto</div>
-                  <p style={{margin:0,color:C.textMid,fontSize:12,lineHeight:1.5}}>
-                    El desglose de obra, mobiliario, stock inicial y retorno frente a la inversión total está en la pestaña <strong style={{color:C.text}}>Proyecto Farma · inversión</strong>.
-                  </p>
-                  <button type="button" onClick={()=>setPanelTab("proyecto")} style={{marginTop:14,padding:"8px 14px",borderRadius:8,border:`1px solid ${BRAND.primary}`,background:BRAND.primary+"18",color:BRAND.primary,fontWeight:700,fontSize:12,cursor:"pointer"}}>
-                    Ir a Proyecto Farma →
-                  </button>
-                </Box>
-              </div>
+                      <div style={{background:C.border,borderRadius:4,height:8,overflow:"hidden"}}>
+                        <div style={{width:`${pct}%`,height:"100%",background:col,borderRadius:4}}/>
+                      </div>
+                      <div style={{color:C.textDim,fontSize:10,marginTop:2}}>{pct}% del total</div>
+                    </div>
+                  );
+                })}
+              </Box>
               <Box style={{padding:20}}>
                 <div style={{color:C.text,fontWeight:700,fontSize:14,marginBottom:14}}>👥 Ventas por empleado</div>
                 {!Object.keys(porEmpleado).length?<div style={{color:C.textMid,fontSize:12}}>Sin datos en este periodo</div>:
@@ -829,11 +862,6 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
         />
         <KpiCard label="Tiempo prom. consulta" value={tiempoPromConsultaMin != null ? `${tiempoPromConsultaMin.toFixed(1)} min` : "—"} col={C.teal} icon="⏱" sub="Solo citas con duración registrada"/>
       </div>
-
-      <div style={{color:C.textDim,fontSize:10,fontWeight:700,letterSpacing:1.5,marginBottom:8}}>INVERSIÓN DEL PROYECTO (MACRO)</div>
-      <p style={{margin:"0 0 16px",color:C.textMid,fontSize:12,lineHeight:1.5}}>
-        CAPEX de apertura, payback y % recuperado están en <button type="button" onClick={()=>setPanelTab("proyecto")} style={{padding:0,border:"none",background:"none",color:BRAND.primary,fontWeight:800,cursor:"pointer",textDecoration:"underline"}}>Proyecto Farma · inversión</button>.
-      </p>
 
       <div style={{display:"grid",gridTemplateColumns:GRID_RESP_2COL,gap:20,marginBottom:24}}>
         <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:20,minWidth:0}}>

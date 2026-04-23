@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useMediaQuery } from './hooks/useMediaQuery';
 import { supabase } from './supabase';
 import { showToast } from './ui';
 import { C_LIGHT, BRAND } from "./constants";
@@ -47,6 +48,8 @@ export default function RRHHModule() {
   const C = C_LIGHT;
   const s = mkS(C);
   const S = mkS(C);
+  const isMobile = useMediaQuery("(max-width: 768px)");
+  const [horarioAbierto, setHorarioAbierto] = useState(null);
   const [empleados, setEmpleados] = useState([]);
   const [loading, setLoading]     = useState(true);
   const emptyForm = { nombre:'', telefono:'', rol:'vendedor', turno:'matutino', salario_quincenal:'' };
@@ -223,7 +226,96 @@ export default function RRHHModule() {
       <div style={S.section}>
         <div style={S.h2}>📋 Empleados registrados</div>
         {loading ? <p style={{ color:C.textMid }}>Cargando…</p> :
-         !empleados.length ? <p style={{ color:C.textMid }}>No hay empleados. Registra el primero abajo.</p> : (
+         !empleados.length ? <p style={{ color:C.textMid }}>No hay empleados. Registra el primero abajo.</p> : isMobile ? (
+          <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+            {empleados.map(emp => (
+              <div
+                key={emp.id}
+                style={{
+                  border:`1px solid ${C.border}`,
+                  borderRadius:12,
+                  padding:14,
+                  background:C.bg,
+                }}
+              >
+                <div style={{ fontWeight:800, fontSize:15, color:C.text, lineHeight:1.35, wordBreak:'break-word', marginBottom:10 }}>
+                  {emp.nombre}
+                </div>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, fontSize:12, marginBottom:10 }}>
+                  <div>
+                    <div style={{ ...S.label, marginBottom:2 }}>Teléfono</div>
+                    <div style={{ color:C.textMid, wordBreak:'break-all' }}>{emp.telefono || '—'}</div>
+                  </div>
+                  <div>
+                    <div style={{ ...S.label, marginBottom:2 }}>Rol</div>
+                    <span style={{ background:rolColor(emp.rol)+'22', color:rolColor(emp.rol), padding:'3px 10px', borderRadius:20, fontSize:11, fontWeight:700, textTransform:'capitalize', display:'inline-block' }}>{emp.rol}</span>
+                  </div>
+                  <div>
+                    <div style={{ ...S.label, marginBottom:2 }}>Turno</div>
+                    <div style={{ color:C.textMid, textTransform:'capitalize' }}>{emp.turno}</div>
+                  </div>
+                  <div>
+                    <div style={{ ...S.label, marginBottom:2 }}>Salario qna.</div>
+                    <div style={{ fontWeight:700, color:C.green }}>{fmt(emp.salario_quincenal)}</div>
+                  </div>
+                </div>
+                <div style={{ display:'flex', flexWrap:'wrap', alignItems:'center', justifyContent:'space-between', gap:8, paddingTop:10, borderTop:`1px solid ${C.border}` }}>
+                  <span style={{ background: emp.estado?'#00c46a22':'#e0525222', color:emp.estado?C.green:C.red, padding:'4px 10px', borderRadius:20, fontSize:11, fontWeight:700 }}>
+                    {emp.estado ? '● Activo' : '● Inactivo'}
+                  </span>
+                  <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+                    <button
+                      type="button"
+                      onClick={() => toggleEstado(emp)}
+                      title={emp.estado ? "Desactivar" : "Activar"}
+                      aria-label={emp.estado ? "Desactivar empleado" : "Activar empleado"}
+                      style={{
+                        ...actionBtnBase,
+                        marginLeft: 0,
+                        width:36,
+                        height:36,
+                        border: `1px solid ${emp.estado ? C.red : C.green}`,
+                        background: "transparent",
+                        color: emp.estado ? C.red : C.green,
+                      }}
+                    >
+                      {emp.estado ? (
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2"/>
+                          <path d="M8 8l8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                        </svg>
+                      ) : (
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2"/>
+                          <path d="M8 12l3 3 5-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => deleteEmp(emp.id)}
+                      title="Eliminar empleado"
+                      aria-label="Eliminar empleado"
+                      style={{
+                        ...actionBtnBase,
+                        width:36,
+                        height:36,
+                        border: `1px solid ${C.red}30`,
+                        background: C.redDim,
+                        color: C.red,
+                      }}
+                    >
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M3 6h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                        <path d="M8 6V4h8v2M7 6l1 14h8l1-14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
           <div style={{ overflowX:'auto' }}>
             <table style={{ width:'100%', borderCollapse:'collapse' }}>
               <thead><tr>
@@ -334,7 +426,74 @@ export default function RRHHModule() {
       {/* HORARIO SEMANAL */}
       <div style={S.section}>
         <div style={S.h2}>📅 Horario semanal</div>
-        {!empleados.length ? <p style={{ color:C.textMid }}>Registra empleados primero.</p> : (
+        {!empleados.length ? <p style={{ color:C.textMid }}>Registra empleados primero.</p> : isMobile ? (
+          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            {empleados.map(emp => {
+              const dias = schedule[emp.id] || Array(7).fill(false);
+              const total = dias.filter(Boolean).length;
+              const open = horarioAbierto === emp.id;
+              return (
+                <div key={emp.id} style={{ border:`1px solid ${C.border}`, borderRadius:12, overflow:'hidden', background:C.bg }}>
+                  <button
+                    type="button"
+                    onClick={() => setHorarioAbierto(open ? null : emp.id)}
+                    style={{
+                      width:'100%',
+                      display:'flex',
+                      alignItems:'center',
+                      justifyContent:'space-between',
+                      gap:12,
+                      padding:'12px 14px',
+                      border:'none',
+                      background:C.card,
+                      cursor:'pointer',
+                      textAlign:'left',
+                      fontFamily:"inherit",
+                    }}
+                  >
+                    <span style={{ fontWeight:700, color:C.text, fontSize:14, lineHeight:1.35, wordBreak:'break-word', flex:1, minWidth:0 }}>{emp.nombre}</span>
+                    <span style={{
+                      fontWeight:800,
+                      fontSize:12,
+                      color:total>=5?C.green:total>=3?C.amber:C.textMid,
+                      flexShrink:0,
+                    }}>{total} días {open ? '▲' : '▼'}</span>
+                  </button>
+                  {open && (
+                    <div style={{ padding:'12px 14px 14px', borderTop:`1px solid ${C.border}` }}>
+                      {DIAS.map((d, idx) => (
+                        <label
+                          key={d}
+                          style={{
+                            display:'flex',
+                            alignItems:'center',
+                            gap:12,
+                            padding:'8px 0',
+                            borderBottom: idx < DIAS.length - 1 ? `1px solid ${C.border}` : 'none',
+                            cursor:'pointer',
+                            fontSize:13,
+                            color:C.text,
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={dias[idx]}
+                            style={{ accentColor:C.green, width:18, height:18, cursor:'pointer', flexShrink:0 }}
+                            onChange={()=>{
+                              const updated=[...dias]; updated[idx]=!updated[idx];
+                              setSchedule(prev=>({ ...prev, [emp.id]:updated }));
+                            }}
+                          />
+                          <span style={{ fontWeight:600 }}>{d}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
           <div style={{ overflowX:'auto' }}>
             <table style={{ width:'100%', borderCollapse:'collapse' }}>
               <thead><tr>
@@ -391,35 +550,40 @@ export default function RRHHModule() {
         </div>
 
         <div style={{ background:C.bg, border:`1px solid ${C.border}`, borderRadius:10, padding:20, marginBottom:16 }}>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0 32px' }}>
-            <div>
+          <div style={{
+            display:isMobile ? 'flex' : 'grid',
+            flexDirection:isMobile ? 'column' : undefined,
+            gridTemplateColumns:isMobile ? undefined : '1fr 1fr',
+            gap:isMobile ? 20 : '0 32px',
+          }}>
+            <div style={{ minWidth:0 }}>
               <p style={{ fontSize:11, color:C.textMid, fontWeight:700, textTransform:'uppercase', marginBottom:12 }}>📈 Percepciones</p>
               {[['Salario base',fmt(calcBase)],[`Horas extra (${calcHE}h × $50)`,fmt(montoHE)],['Prima dominical',fmt(calcPD)],['Bono',fmt(calcBono)]].map(([lbl,val])=>(
-                <div key={lbl} style={{ display:'flex', justifyContent:'space-between', padding:'5px 0', borderBottom:`1px solid ${C.border}` }}>
-                  <span style={{ fontSize:12, color:C.textMid }}>{lbl}</span>
-                  <span style={{ fontSize:12, color:C.text, fontWeight:600 }}>{val}</span>
+                <div key={lbl} style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:10, padding:'5px 0', borderBottom:`1px solid ${C.border}` }}>
+                  <span style={{ fontSize:12, color:C.textMid, flex:'1 1 auto', minWidth:0, lineHeight:1.4 }}>{lbl}</span>
+                  <span style={{ fontSize:12, color:C.text, fontWeight:600, flexShrink:0, textAlign:'right' }}>{val}</span>
                 </div>
               ))}
-              <div style={{ display:'flex', justifyContent:'space-between', padding:'10px 0 0' }}>
+              <div style={{ display:'flex', justifyContent:'space-between', gap:10, padding:'10px 0 0', flexWrap:'wrap' }}>
                 <span style={{ fontWeight:700, color:C.green, fontSize:13 }}>Total percepciones</span>
                 <span style={{ fontWeight:800, color:C.green, fontSize:15 }}>{fmt(percepciones)}</span>
               </div>
             </div>
-            <div>
-              <p style={{ fontSize:11, color:C.textMid, fontWeight:700, textTransform:'uppercase', marginBottom:12 }}>📉 Deducciones</p>
+            <div style={{ minWidth:0, paddingTop:isMobile ? 4 : 0, borderTop:isMobile ? `1px solid ${C.border}` : 'none' }}>
+              <p style={{ fontSize:11, color:C.textMid, fontWeight:700, textTransform:'uppercase', marginBottom:12, marginTop:isMobile ? 4 : 0 }}>📉 Deducciones</p>
               {[['IMSS obrero (2.375%)',fmt(imss)],['ISR estimado (8%)',fmt(isr)]].map(([lbl,val])=>(
-                <div key={lbl} style={{ display:'flex', justifyContent:'space-between', padding:'5px 0', borderBottom:`1px solid ${C.border}` }}>
-                  <span style={{ fontSize:12, color:C.textMid }}>{lbl}</span>
-                  <span style={{ fontSize:12, color:C.red, fontWeight:600 }}>{val}</span>
+                <div key={lbl} style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:10, padding:'5px 0', borderBottom:`1px solid ${C.border}` }}>
+                  <span style={{ fontSize:12, color:C.textMid, flex:'1 1 auto', minWidth:0, lineHeight:1.4 }}>{lbl}</span>
+                  <span style={{ fontSize:12, color:C.red, fontWeight:600, flexShrink:0, textAlign:'right' }}>{val}</span>
                 </div>
               ))}
-              <div style={{ display:'flex', justifyContent:'space-between', padding:'8px 0', borderBottom:`1px solid ${C.border}` }}>
+              <div style={{ display:'flex', justifyContent:'space-between', gap:10, padding:'8px 0', borderBottom:`1px solid ${C.border}`, flexWrap:'wrap' }}>
                 <span style={{ fontWeight:700, color:C.red, fontSize:13 }}>Total deducciones</span>
                 <span style={{ fontWeight:800, color:C.red, fontSize:14 }}>{fmt(deducciones)}</span>
               </div>
-              <div style={{ display:'flex', justifyContent:'space-between', padding:'14px 0 0' }}>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', gap:10, padding:'14px 0 0', flexWrap:'wrap' }}>
                 <span style={{ fontWeight:800, fontSize:15, color:C.text }}>💵 Neto a pagar</span>
-                <span style={{ fontWeight:900, fontSize:20, color:C.green }}>{fmt(neto)}</span>
+                <span style={{ fontWeight:900, fontSize: isMobile ? 18 : 20, color:C.green, wordBreak:'break-word', textAlign:'right' }}>{fmt(neto)}</span>
               </div>
             </div>
           </div>

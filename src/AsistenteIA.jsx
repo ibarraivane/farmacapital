@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { C_LIGHT } from "./constants";
+import { useMediaQuery } from "./hooks/useMediaQuery";
 
 const BRAND = { primary:"#0052cc", secondary:"#0099e6", gradient:"linear-gradient(135deg,#0052cc,#0099e6)" };
 
@@ -13,9 +14,15 @@ const CHIPS = [
   "¿Cómo calculo el margen de ganancia?",
 ];
 
+function readGeminiKey() {
+  const k = (process.env.REACT_APP_GEMINI_API_KEY || process.env.REACT_APP_GEMINI_KEY || "").trim();
+  return k || null;
+}
+
 export default function AsistenteIA() {
   const C = C_LIGHT;
-  const apiKey = "AQ.Ab8RN6KcO6WdzbtmvVo07O23p1GmYKBo9_J6KX_n-AuqPH7NDg";
+  const isMobile = useMediaQuery("(max-width: 768px)");
+  const apiKey = readGeminiKey();
   const [messages, setMessages] = useState([]);
   const [input,    setInput]    = useState("");
   const [loading,  setLoading]  = useState(false);
@@ -27,12 +34,12 @@ export default function AsistenteIA() {
   const sendMessage = async (text) => {
     const msg = (text||input).trim();
     if (!msg||loading) return;
+    if (!apiKey) return;
     setInput("");
     const newMessages = [...messages, { role:"user", content:msg }];
     setMessages(newMessages);
     setLoading(true);
     try {
-      // Soportar tanto keys AIzaSy (legacy) como AQ. (nuevo formato OAuth)
       const isOAuth = apiKey.startsWith("AQ.") || apiKey.startsWith("ya29.");
       const url = isOAuth
         ? "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
@@ -60,7 +67,7 @@ export default function AsistenteIA() {
         const reply = data.error.code===429
           ? "⚠️ Límite de uso alcanzado. Intenta en unos minutos."
           : data.error.code===401
-          ? "⚠️ API key inválida. Verifica tu clave en AsistenteIA.jsx"
+          ? "⚠️ API key inválida o sin permiso. Revisa REACT_APP_GEMINI_API_KEY en .env y reinicia el build."
           : `Error: ${data.error.message}`;
         setMessages(m=>[...m,{role:"assistant",content:reply}]);
         setLoading(false); return;
@@ -76,37 +83,48 @@ export default function AsistenteIA() {
   const handleKey = (e) => { if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendMessage();} };
 
   if (!apiKey) return (
-    <div style={{padding:24,background:C.bg,minHeight:"100vh",fontFamily:"'Plus Jakarta Sans',sans-serif",display:"flex",alignItems:"center",justifyContent:"center"}}>
-      <div style={{background:C.card,border:`1px solid ${C.amber}40`,borderRadius:16,padding:32,maxWidth:460,textAlign:"center"}}>
+    <div style={{padding:24,background:C.bg,minHeight:"100dvh",fontFamily:"'Plus Jakarta Sans',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",boxSizing:"border-box"}}>
+      <div style={{background:C.card,border:`1px solid ${C.amber}40`,borderRadius:16,padding:32,maxWidth:460,textAlign:"center",width:"100%"}}>
         <div style={{fontSize:40,marginBottom:16}}>✦</div>
-        <h2 style={{margin:"0 0 12px",color:C.text,fontSize:18,fontWeight:800}}>Configura tu API Key</h2>
-        <p style={{color:C.textMid,fontSize:13,lineHeight:1.6,marginBottom:20}}>Para usar el Asistente IA necesitas una API key de Anthropic Claude.</p>
+        <h2 style={{margin:"0 0 12px",color:C.text,fontSize:18,fontWeight:800}}>Configura la API de Gemini</h2>
+        <p style={{color:C.textMid,fontSize:13,lineHeight:1.6,marginBottom:20}}>El asistente usa Google Gemini. No hay clave en el entorno de esta compilación.</p>
         <div style={{background:C.bg,borderRadius:10,padding:16,textAlign:"left",fontSize:12,color:C.textMid,lineHeight:1.8}}>
-          <div style={{color:C.amber,fontWeight:700,marginBottom:8}}>📝 Instrucciones:</div>
-          <div>1. Crea el archivo <code style={{color:C.blue}}>~/farmax/.env</code></div>
-          <div>2. Agrega la línea:</div>
-          <div style={{background:C.card,borderRadius:6,padding:"6px 10px",margin:"6px 0",color:C.green,fontFamily:"monospace"}}>GEMINI_KEY=AIza...</div>
-          <div>3. Obtén tu key en <span style={{color:C.blue}}>aistudio.google.com</span></div>
-          <div>4. Reinicia con <code style={{color:C.blue}}>npm start</code></div>
+          <div style={{color:C.amber,fontWeight:700,marginBottom:8}}>Instrucciones:</div>
+          <div>1. En la raíz del proyecto, edita <code style={{color:C.blue}}>.env</code></div>
+          <div>2. Agrega (sin commitear la clave):</div>
+          <div style={{background:C.card,borderRadius:6,padding:"6px 10px",margin:"6px 0",color:C.green,fontFamily:"monospace",wordBreak:"break-all"}}>REACT_APP_GEMINI_API_KEY=tu_clave</div>
+          <div>3. Obtén una key en <span style={{color:C.blue}}>aistudio.google.com</span></div>
+          <div>4. Reinicia con <code style={{color:C.blue}}>npm start</code> o vuelve a compilar para producción</div>
         </div>
       </div>
     </div>
   );
 
+  const inputFont = isMobile ? 16 : 13;
+
   return (
-    <div style={{display:"flex",flexDirection:"column",height:"100vh",background:C.bg,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
-      <div style={{padding:"16px 24px",borderBottom:`1px solid ${C.border}`,background:C.card,display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
-        <div>
+    <div style={{
+      display:"flex",
+      flexDirection:"column",
+      minHeight:"100dvh",
+      maxHeight:"100dvh",
+      height:"100dvh",
+      background:C.bg,
+      fontFamily:"'Plus Jakarta Sans',sans-serif",
+      boxSizing:"border-box",
+    }}>
+      <div style={{padding:"16px 24px",borderBottom:`1px solid ${C.border}`,background:C.card,display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0,gap:12}}>
+        <div style={{minWidth:0}}>
           <h1 style={{margin:0,color:C.text,fontSize:18,fontWeight:800}}>✦ Asistente Farmax</h1>
-          <p style={{margin:"2px 0 0",color:C.textMid,fontSize:11}}>Powered by Claude · Especialista en farmacia</p>
+          <p style={{margin:"2px 0 0",color:C.textMid,fontSize:11}}>Gemini · Especialista en farmacia</p>
         </div>
         {messages.length>0&&(
-          <button onClick={()=>setMessages([])} style={{padding:"6px 14px",borderRadius:8,border:`1px solid ${C.border}`,background:"transparent",color:C.textMid,cursor:"pointer",fontWeight:700,fontSize:11}}>
+          <button onClick={()=>setMessages([])} style={{padding:"6px 14px",borderRadius:8,border:`1px solid ${C.border}`,background:"transparent",color:C.textMid,cursor:"pointer",fontWeight:700,fontSize:11,flexShrink:0}}>
             🗑 Limpiar
           </button>
         )}
       </div>
-      <div style={{display:"flex",gap:8,padding:"10px 16px",overflowX:"auto",borderBottom:`1px solid ${C.border}`,flexShrink:0}}>
+      <div style={{display:"flex",gap:8,padding:"10px 16px",overflowX:"auto",borderBottom:`1px solid ${C.border}`,flexShrink:0,WebkitOverflowScrolling:"touch"}}>
         {CHIPS.map((chip,i)=>(
           <button key={i} onClick={()=>sendMessage(chip)} disabled={loading} style={{
             padding:"5px 14px",borderRadius:20,border:`1px solid ${C.blue}40`,
@@ -115,12 +133,12 @@ export default function AsistenteIA() {
           }}>{chip}</button>
         ))}
       </div>
-      <div style={{flex:1,overflowY:"auto",padding:"20px 24px",display:"flex",flexDirection:"column",gap:14}}>
+      <div style={{flex:1,minHeight:0,overflowY:"auto",padding:"20px 24px",display:"flex",flexDirection:"column",gap:14}}>
         {messages.length===0&&(
-          <div style={{textAlign:"center",margin:"auto",color:C.textMid}}>
+          <div style={{textAlign:"center",margin:"auto",color:C.textMid,padding:"8px 0"}}>
             <div style={{fontSize:40,marginBottom:12}}>✦</div>
             <div style={{fontSize:15,fontWeight:700,color:C.text,marginBottom:8}}>¿En qué te puedo ayudar?</div>
-            <div style={{fontSize:12}}>Usa los botones de arriba o escribe tu pregunta</div>
+            <div style={{fontSize:12}}>Usa los botones de arriba o escribe abajo</div>
           </div>
         )}
         {messages.map((m,i)=>(
@@ -129,7 +147,7 @@ export default function AsistenteIA() {
               <div style={{width:28,height:28,borderRadius:"50%",background:BRAND.gradient,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,marginRight:8,flexShrink:0,marginTop:2}}>✦</div>
             )}
             <div style={{
-              maxWidth:"72%",padding:"10px 14px",
+              maxWidth:isMobile?"88%":"72%",padding:"10px 14px",
               borderRadius:m.role==="user"?"14px 14px 4px 14px":"14px 14px 14px 4px",
               background:m.role==="user"?BRAND.gradient:C.card,
               color:m.role==="user"?"#fff":C.text, fontSize:13, lineHeight:1.6,
@@ -150,13 +168,19 @@ export default function AsistenteIA() {
         )}
         <div ref={bottomRef}/>
       </div>
-      <div style={{padding:"12px 20px",borderTop:`1px solid ${C.border}`,background:C.card,flexShrink:0}}>
+      <div style={{
+        padding:"12px 20px",
+        paddingBottom:"max(12px, env(safe-area-inset-bottom, 0px))",
+        borderTop:`1px solid ${C.border}`,
+        background:C.card,
+        flexShrink:0,
+      }}>
         <div style={{display:"flex",gap:10,alignItems:"flex-end"}}>
           <textarea ref={textareaRef} value={input} onChange={e=>setInput(e.target.value)} onKeyDown={handleKey}
             placeholder="Escribe tu pregunta… (Enter para enviar, Shift+Enter nueva línea)"
             rows={1} style={{
-              flex:1,padding:"10px 14px",borderRadius:10,border:`1px solid ${C.border}`,
-              background:C.bg,color:C.text,fontSize:13,outline:"none",
+              flex:1,minWidth:0,padding:"10px 14px",borderRadius:10,border:`1px solid ${C.border}`,
+              background:C.bg,color:C.text,fontSize:inputFont,outline:"none",
               resize:"none",lineHeight:1.5,fontFamily:"inherit",maxHeight:120,overflowY:"auto",
             }}/>
           <button onClick={()=>sendMessage()} disabled={!input.trim()||loading} style={{
