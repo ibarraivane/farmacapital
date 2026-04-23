@@ -30,7 +30,16 @@ class AdminRouteBoundary extends React.Component {
 export default function App() {
   useEffect(() => {
     try {
-      sessionStorage.removeItem("farmax_chunk_reload_once");
+      sessionStorage.removeItem("farmax_chunk_retries");
+    } catch (_) { /* noop */ }
+    try {
+      const u = new URL(window.location.href);
+      if (u.searchParams.has("_farmax_v")) {
+        u.searchParams.delete("_farmax_v");
+        const qs = u.searchParams.toString();
+        const next = u.pathname + (qs ? `?${qs}` : "") + u.hash;
+        window.history.replaceState(null, "", next);
+      }
     } catch (_) { /* noop */ }
   }, []);
 
