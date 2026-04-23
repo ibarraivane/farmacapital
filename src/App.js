@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import FarmaxAdmin from "./Admin";
 import Tienda from "./Tienda";
 import AdminDashboard from "./AdminDashboard";
@@ -28,6 +28,12 @@ class AdminRouteBoundary extends React.Component {
 }
 
 export default function App() {
+  useEffect(() => {
+    try {
+      sessionStorage.removeItem("farmax_chunk_reload_once");
+    } catch (_) { /* noop */ }
+  }, []);
+
   const path = window.location.pathname;
   const useAdminShell = path.startsWith("/admin") || adminPathnameToPageId(path) != null;
   if (useAdminShell) {

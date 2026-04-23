@@ -2,6 +2,26 @@
   "buildCommand": "CI=false DISABLE_ESLINT_PLUGIN=true npm run build",
   "outputDirectory": "build",
   "framework": "create-react-app",
+  "headers": [
+    {
+      "source": "/static/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/index.html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    }
+  ],
   "rewrites": [
     {
       "source": "/((?!api/|static/|icons/|manifest\\.json|service-worker\\.js|favicon\\.ico|asset-manifest\\.json|robots\\.txt).*)",
