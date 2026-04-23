@@ -186,7 +186,7 @@ function TodoHoy({ items }) {
           No hay tareas críticas en inventario, caja, pedidos en línea ni documentos COFEPRIS.
         </div>
       ) : (
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:10}}>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(100%,260px),1fr))",gap:10}}>
           {pendientes.map(i => (
             <div key={i.id} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 12px",background:i.col+"10",border:`1px solid ${i.col}30`,borderRadius:10}}>
               <div style={{fontSize:22,width:32,textAlign:"center"}}>{i.icon}</div>
@@ -620,7 +620,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
 
           <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, letterSpacing: 1.2, marginBottom: 10 }}>RETORNO Y RECUPERACIÓN (VS. VENTAS ACUMULADAS)</div>
           <div style={{ background: C.card, border: `1px solid ${roiCol}30`, borderRadius: 14, padding: 24, marginBottom: 16 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(180px,1fr))", gap: 20, marginBottom: 20 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,180px),1fr))", gap: 20, marginBottom: 20 }}>
               <div><div style={{ color: C.textMid, fontSize: 11, fontWeight: 700, marginBottom: 4 }}>INVERSIÓN TOTAL</div><div style={{ color: C.text, fontWeight: 800, fontSize: 22 }}>{fmt(INVERSION)}</div></div>
               <div><div style={{ color: C.textMid, fontSize: 11, fontWeight: 700, marginBottom: 4 }}>TOTAL RECUPERADO</div><div style={{ color: roiCol, fontWeight: 800, fontSize: 22 }}>{fmt(recuperado)}</div></div>
               <div><div style={{ color: C.textMid, fontSize: 11, fontWeight: 700, marginBottom: 4 }}>GANANCIA NETA EST. / MES</div><div style={{ color: C.green, fontWeight: 800, fontSize: 18 }}>{fmt(gananciaMes)}</div><div style={{ color: C.textDim, fontSize: 10, marginTop: 4 }}>Aprox. operativa (55% ventas del mes)</div></div>
@@ -770,7 +770,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
       <TodoHoy items={todoItems}/>
 
       <div style={{color:C.textDim,fontSize:10,fontWeight:700,letterSpacing:1.5,marginBottom:12}}>KPIS ACCIONABLES · VENTAS Y ACTIVIDAD</div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:12,marginBottom:16}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(100%,220px),1fr))",gap:12,marginBottom:16}}>
         <InsightCard
           label="Ventas hoy" icon="💵" col={C.green}
           value={ventasHoy} display={fmtK(ventasHoy)}
@@ -817,7 +817,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
       <p style={{margin:"0 0 14px",color:C.textMid,fontSize:11,lineHeight:1.5,maxWidth:720}}>
         Una sola lectura: dinero capturado en POS por receta del consultorio, estimación cuando la receta se surte fuera, desglose de renglones prescritos y tiempo promedio de consulta (misma ventana: mes en curso).
       </p>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:12,marginBottom:24}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(100%,200px),1fr))",gap:12,marginBottom:24}}>
         <KpiCard label="Ventas POS (receta consultorio)" value={fmtK(ventasRecetaMedicoFarmaxMes||0)} col={C.purple} icon="📋" sub="Pedidos receta_origen médico FarmaX"/>
         <KpiCard label="Oportunidad fuera (est.)" value={fmtK(oportunidadPerdidaRecetaEst||0)} col={nRecetasExternasMes>0?C.amber:C.green} icon="📤" sub={`${nRecetasExternasMes||0} consultas surtidas fuera × ${fmt(estimadoRecetaExternaUnit||350)} c/u`}/>
         <KpiCard

@@ -102,7 +102,7 @@ function AlertasLegales() {
   if (loading) return <div style={{color:C.textMid,textAlign:"center",padding:40}}>Cargando…</div>;
 
   return (
-    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))",gap:16}}>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(100%,300px),1fr))",gap:16}}>
       {alertas.map(a=>{
         const dias=diasRestantes(a.fecha_vencimiento);
         const col=semaforoCol(dias, C, C);

@@ -367,7 +367,7 @@ export default function MiDia({ usuario, setPage }) {
       </div>
 
       {/* ── SECCIÓN 3: KPIs DEL TURNO ─────────────────────── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 20 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 160px), 1fr))", gap: 12, marginBottom: 20 }}>
         <KpiCell icon="🎫" value={data.tickets}                       label="Tickets"        col={C.blue}/>
         <KpiCell icon="💊" value={prodPorTicket.toFixed(1)}            label="Prod/Ticket"    col={C.purple}/>
         <KpiCell icon="🤝" value={`${pctCruzada}%`}                    label="Venta cruzada"  col={C.teal}/>
@@ -427,14 +427,14 @@ export default function MiDia({ usuario, setPage }) {
           <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, marginBottom: 10 }}>
             🏆 TUS LOGROS
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 260px), 1fr))", gap: 10 }}>
             {logros.map((l, i) => <Logro key={i} {...l} />)}
           </div>
         </div>
       )}
 
       {/* ── SECCIÓN 6: BOTONES DE ACCIÓN ──────────────────── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))", gap: 14 }}>
         <BotonGrande
           icon={ShoppingCart}
           titulo="IR A VENDER"

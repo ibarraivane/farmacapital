@@ -199,22 +199,22 @@ function Promociones({ productos }) {
 
   return (
     <div>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-        <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:12}}>
+        <div style={{flex:"1 1 auto",minWidth:0}}>
           <div style={{color:C.textMid,fontSize:12}}>
             <span style={{color:C.green,fontWeight:700}}>{promos.filter(vigente).length}</span> activas ·{" "}
             <span style={{color:C.textMid}}>{promos.length} total</span>
           </div>
         </div>
-        <button style={btnPrimary} onClick={()=>setModal("new")}>➕ Nueva promoción</button>
+        <button type="button" style={{...btnPrimary,flexShrink:0}} onClick={()=>setModal("new")}>➕ Nueva promoción</button>
       </div>
 
       {loading ? <div style={{color:C.textMid,textAlign:"center",padding:40}}>Cargando…</div> : (
         <div style={{display:"grid",gap:12}}>
           {!promos.length && <div style={{color:C.textMid,textAlign:"center",padding:40,background:C.card,borderRadius:12,border:`1px solid ${C.border}`}}>Sin promociones. Crea la primera.</div>}
           {promos.map(p=>(
-            <div key={p.id} style={{background:C.card,border:`1px solid ${vigente(p)?C.green:C.border}`,borderRadius:12,padding:16,display:"flex",gap:16,alignItems:"center",flexWrap:"wrap"}}>
-              <div style={{flex:1,minWidth:200}}>
+              <div key={p.id} style={{background:C.card,border:`1px solid ${vigente(p)?C.green:C.border}`,borderRadius:12,padding:16,display:"flex",gap:16,alignItems:"center",flexWrap:"wrap"}}>
+              <div style={{flex:"1 1 200px",minWidth:0}}>
                 <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
                   <span style={{fontWeight:800,color:C.text,fontSize:14}}>{p.nombre}</span>
                   <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:tipoColor(p.tipo)+"18",color:tipoColor(p.tipo)}}>{tipoLabel(p.tipo)}</span>

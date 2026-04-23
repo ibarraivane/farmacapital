@@ -241,7 +241,7 @@ function HomeBannersStrip({setPage, items}){
             type="button"
             onClick={()=>setPage(b.pagina)}
             style={{
-              flex:"1 1 280px",maxWidth:420,minWidth:0,textAlign:"left",cursor:"pointer",border:"none",borderRadius:14,
+              flex:"1 1 min(100%,280px)",maxWidth:420,minWidth:0,width:"100%",textAlign:"left",cursor:"pointer",border:"none",borderRadius:14,
               background:b.bg,color:"#fff",padding:"16px 18px",boxShadow:"0 4px 20px rgba(0,82,204,.12)",
               display:"flex",alignItems:"center",gap:14,transition:"transform .15s, box-shadow .15s",
             }}
@@ -269,7 +269,7 @@ function HomeBannersTiles({setPage, items, stack}){
     <div style={{maxWidth:1200,margin:"0 auto",padding:"0 12px 20px"}}>
       <div style={{
         display:"grid",
-        gridTemplateColumns:stack?"repeat(2, 1fr)":"repeat(auto-fill, minmax(200px, 1fr))",
+        gridTemplateColumns:stack?"repeat(2, 1fr)":"repeat(auto-fill, minmax(min(100%, 200px), 1fr))",
         gap:12,
       }}>
         {items.map((b,i)=>(
@@ -346,10 +346,10 @@ function Header({page,setPage,cart,user,setUser}){
           <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0,flexWrap:"wrap",justifyContent:"flex-end"}}>
             {user?(
               <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
-                <div onClick={()=>setPage("cuenta")} style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",padding:"6px 10px",borderRadius:10,background:BRAND.primary+"18",maxWidth:narrow?200:undefined}}>
+                <div onClick={()=>setPage("cuenta")} style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",padding:"6px 10px",borderRadius:10,background:BRAND.primary+"18",maxWidth:narrow?"100%":undefined,minWidth:0,flex:"1 1 auto"}}>
                   <div style={{width:28,height:28,borderRadius:"50%",background:BRAND.gradient,display:"flex",alignItems:"center",justifyContent:"center",color:C.white,fontWeight:800,fontSize:13,flexShrink:0}}>{(primerNombre(user.nombre)||"C")[0].toUpperCase()}</div>
-                  <div style={{minWidth:0,overflow:"hidden"}}>
-                    <div style={{color:BRAND.primary,fontWeight:700,fontSize:12,lineHeight:1,whiteSpace:"nowrap",textOverflow:"ellipsis",overflow:"hidden",maxWidth:160}}>{saludoUsuario(user.nombre)}</div>
+                  <div style={{minWidth:0,overflow:"hidden",flex:1}}>
+                    <div style={{color:BRAND.primary,fontWeight:700,fontSize:12,lineHeight:1,whiteSpace:"nowrap",textOverflow:"ellipsis",overflow:"hidden",maxWidth:"100%"}}>{saludoUsuario(user.nombre)}</div>
                     <div style={{color:BRAND.secondary,fontSize:10}}>⭐ {user.puntos||0} pts</div>
                   </div>
                 </div>
@@ -491,15 +491,15 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle}){
             </div>
           )}
           <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
-            <Btn onClick={()=>{addToCart(prod);setAdded(true);setTimeout(()=>setAdded(false),1500);}} col={added?BRAND.secondary:BRAND.primary} style={{flex:"1 1 200px",minWidth:0}}>{added?"✓ Agregado":"Agregar al carrito"}</Btn>
-            <Btn onClick={()=>{addToCart(prod);setPage("carrito");}} outline col={BRAND.primary} style={{flex:"1 1 200px",minWidth:0}}>Comprar ahora</Btn>
+            <Btn onClick={()=>{addToCart(prod);setAdded(true);setTimeout(()=>setAdded(false),1500);}} col={added?BRAND.secondary:BRAND.primary} style={{flex:"1 1 min(100%,200px)",minWidth:0}}>{added?"✓ Agregado":"Agregar al carrito"}</Btn>
+            <Btn onClick={()=>{addToCart(prod);setPage("carrito");}} outline col={BRAND.primary} style={{flex:"1 1 min(100%,200px)",minWidth:0}}>Comprar ahora</Btn>
           </div>
         </div>
       </div>
       {similares.length>0&&(
         <div>
           <h2 style={{color:C.dark,fontSize:20,fontWeight:800,marginBottom:16}}>Productos similares</h2>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:14}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(100%,200px),1fr))",gap:14}}>
             {similares.map(p=><ProductCard key={p.id} prod={p} addToCart={addToCart} onClick={()=>{setProdDetalle(p);window.scrollTo({top:0,behavior:'smooth'});}}/>)}
           </div>
         </div>
@@ -607,8 +607,8 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
       <HeroCarousel setPage={setPage} items={bannerZones.hero} precioConsulta={precioConsulta}/>
 
       {/* Badges */}
-      <div style={{background:C.white,borderBottom:`1px solid ${C.border}`,padding:"14px 24px"}}>
-        <div style={{maxWidth:1200,margin:"0 auto",display:"flex",gap:24,justifyContent:"center",flexWrap:"wrap"}}>
+      <div style={{background:C.white,borderBottom:`1px solid ${C.border}`,padding:"14px clamp(12px,4vw,24px)"}}>
+        <div style={{maxWidth:1200,margin:"0 auto",display:"flex",gap:"clamp(10px,3vw,24px)",justifyContent:"center",flexWrap:"wrap"}}>
           {[["🚀","Pick-up gratis","Recoge hoy en Farmax"],["🛵","CDMX express","Rappi & Uber Connect"],["📦","Envío foráneo","$89 · Skydropx"],["⭐","Puntos Farmax","Acumula en cada compra"],["💳","Pago seguro","Tarjeta y Mercado Pago"]].map(([icon,t,s])=>(
             <div key={t} style={{display:"flex",alignItems:"center",gap:8}}>
               <div style={{fontSize:20}}>{icon}</div>
@@ -1754,7 +1754,7 @@ export default function TiendaFarmax(){
       </div>
       <div style={{background:C.white,borderRadius:16,border:`1px solid ${C.border}`,padding:28,marginBottom:20}}>
         <h2 style={{color:C.dark,fontSize:18,fontWeight:800,marginBottom:20}}>💰 ¿Cómo ganar puntos?</h2>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:14}}>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(100%,160px),1fr))",gap:14}}>
           {[{icon:"🛒",t:"Compras farmacia",d:"1 punto / $10"},{icon:"💻",t:"Compras en línea",d:"1.5 puntos / $10"},{icon:"🏥",t:"Consulta médica",d:"5 puntos"},{icon:"🎂",t:"Mes cumpleaños",d:"2× puntos"},{icon:"👋",t:"Registro nuevo",d:"10 pts bienvenida"}].map(r=>(
             <div key={r.t} style={{background:"#f8fafc",borderRadius:12,padding:16,textAlign:"center"}}>
               <div style={{fontSize:28,marginBottom:8}}>{r.icon}</div>
@@ -1806,12 +1806,13 @@ export default function TiendaFarmax(){
   const sinFooter=["home"];
 
   return(
-    <>
+    <div style={{overflowX:"hidden",width:"100%",minHeight:"min(100vh,100dvh)"}}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
         *{box-sizing:border-box;margin:0;padding:0;}
         body{background:${C.bg};font-family:'Plus Jakarta Sans',sans-serif;color:${C.dark};}
-        main{overflow-x:hidden;width:100%;max-width:100vw;}
+        /* 100% evita overflow por scrollbar (100vw incluye ancho de barra en algunos navegadores). */
+        main{overflow-x:hidden;width:100%;max-width:100%;}
         img,svg,video,canvas{max-width:100%;height:auto;}
         ::-webkit-scrollbar{width:6px;}::-webkit-scrollbar-track{background:${C.bg};}::-webkit-scrollbar-thumb{background:${C.border};border-radius:4px;}
         button,select{font-family:'Plus Jakarta Sans',sans-serif;}
@@ -1828,6 +1829,6 @@ export default function TiendaFarmax(){
 
       {/* Footer en páginas que no son home (home ya lo tiene incluido) */}
       {!sinFooter.includes(page)&&<Footer setPage={setPage}/>}
-    </>
+    </div>
   );
 }

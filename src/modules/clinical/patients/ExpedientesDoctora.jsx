@@ -60,13 +60,13 @@ export default function ExpedientesDoctora() {
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
-        <div>
+        <div style={{ flex: "1 1 240px", minWidth: 0 }}>
           <h1 style={{ color: C.text, fontSize: 20, fontWeight: 800, margin: 0 }}>📂 Expedientes</h1>
           <p style={{ color: C.textMid, fontSize: 12, margin: "6px 0 0", maxWidth: 560, lineHeight: 1.45 }}>
             Pacientes con al menos una cita (agrupados por teléfono). Abre el expediente clínico o revisa una consulta en solo lectura.
           </p>
         </div>
-        <Inp value={busq} onChange={(e) => setBusq(e.target.value)} placeholder="🔍 Buscar por nombre o teléfono…" style={{ minWidth: 220, maxWidth: 320 }} />
+        <Inp value={busq} onChange={(e) => setBusq(e.target.value)} placeholder="🔍 Buscar por nombre o teléfono…" style={{ flex: "1 1 200px", minWidth: 0, maxWidth: "100%", width: "100%" }} />
       </div>
 
       {loading ? (
@@ -78,8 +78,8 @@ export default function ExpedientesDoctora() {
             : "Ningún paciente coincide con la búsqueda."}
         </Box>
       ) : (
-        <Box>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <Box style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 520 }}>
             <thead>
               <tr>
                 {["Paciente", "Teléfono", "Consultas", "Primera visita", "Última visita", ""].map((h) => (

@@ -691,7 +691,7 @@ function BannersAdmin(){
           {banners.map(b=>(
             <div key={b.id} style={{background:C.card,borderRadius:12,border:`1px solid ${C.border}`,padding:16,display:"flex",gap:16,alignItems:"center",flexWrap:"wrap"}}>
               <div style={{width:48,height:48,borderRadius:10,background:b.bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0}}>{b.emoji}</div>
-              <div style={{flex:1,minWidth:200}}>
+              <div style={{flex:"1 1 200px",minWidth:0}}>
                 <div style={{fontWeight:800,color:C.text,fontSize:14}}>{b.titulo}</div>
                 <div style={{color:C.textMid,fontSize:12,marginTop:2}}>{b.subtitulo} · {b.descripcion?.slice(0,60)}{b.descripcion?.length>60?"…":""}</div>
                 <div style={{color:C.textDim,fontSize:11,marginTop:4}}>
@@ -708,7 +708,7 @@ function BannersAdmin(){
         </div>
       )}
       {modal&&(
-        <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,.45)",backdropFilter:"blur(4px)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:20}} onClick={e=>e.target===e.currentTarget&&setModal(null)}>
+        <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,.45)",backdropFilter:"blur(4px)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:"max(12px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px))",boxSizing:"border-box"}} onClick={e=>e.target===e.currentTarget&&setModal(null)}>
           <div style={{background:C.card,borderRadius:14,width:"min(520px,95vw)",maxHeight:"90vh",overflowY:"auto",padding:28,boxShadow:"0 20px 60px rgba(0,82,204,.15)"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
               <h3 style={{margin:0,color:C.text,fontSize:16,fontWeight:800}}>{modal==="new"?"➕ Nuevo":"✏️ Editar"} Banner</h3>
@@ -1146,7 +1146,7 @@ function GestionUsuarios(){
                 <div style={{color:C.textDim, fontSize:10, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", marginBottom:8}}>
                   Default del rol
                 </div>
-                <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(200px, 1fr))", gap:6}}>
+                <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(min(100%, 200px), 1fr))", gap:6}}>
                   {defaults.map((id) => {
                     const item = NAV_ITEMS.find((n) => n.id === id);
                     if (!item) return null;
@@ -1166,7 +1166,7 @@ function GestionUsuarios(){
                   <div style={{color:C.textDim, fontSize:10, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", marginBottom:8}}>
                     Módulos adicionales
                   </div>
-                  <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(200px, 1fr))", gap:6}}>
+                  <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(min(100%, 200px), 1fr))", gap:6}}>
                     {adicionales.map((id) => {
                       const item = NAV_ITEMS.find((n) => n.id === id);
                       if (!item) return null;
@@ -1623,7 +1623,7 @@ export default function FarmaxAdmin(){
   const logout = async () => {
     const tok = sessionStorage.getItem("farmax_session_token");
     if (tok) {
-      try { await supabase.rpc("logout_empleado", { p_session_token: tok }); } catch(e) {}
+      try { await supabase.rpc("logout_empleado", { p_token: tok }); } catch(e) {}
     }
     sessionStorage.removeItem("farmax_session_token");
     sessionStorage.removeItem("farmax_admin_user");

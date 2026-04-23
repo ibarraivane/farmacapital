@@ -50,7 +50,7 @@ export function Btn({children,onClick,col,sm,ol,dis,full,style}){
   const C = C_LIGHT;
   return(
 
-  <button onClick={onClick} disabled={dis} style={{padding:sm?"5px 12px":"9px 18px",borderRadius:8,border:`1px solid ${ol?(col||BRAND.primary):"transparent"}`,background:ol?"transparent":dis?C.border:(col||BRAND.primary),color:ol?(col||BRAND.primary):dis?C.textMid:C.card,fontWeight:700,fontSize:sm?11:13,cursor:dis?"not-allowed":"pointer",fontFamily:"'Plus Jakarta Sans',sans-serif",opacity:dis?.5:1,width:full?"100%":undefined,transition:"opacity .15s",...style}}>{children}</button>
+  <button onClick={onClick} disabled={dis} style={{padding:sm?"7px 14px":"10px 18px",borderRadius:8,border:`1px solid ${ol?(col||BRAND.primary):"transparent"}`,background:ol?"transparent":dis?C.border:(col||BRAND.primary),color:ol?(col||BRAND.primary):dis?C.textMid:C.card,fontWeight:700,fontSize:sm?12:14,cursor:dis?"not-allowed":"pointer",fontFamily:"'Plus Jakarta Sans',sans-serif",opacity:dis?.5:1,width:full?"100%":undefined,minHeight:sm?36:40,transition:"opacity .15s",...style}}>{children}</button>
 
   );
 };
@@ -60,7 +60,7 @@ export function Inp({value,onChange,placeholder,style,type,onKeyDown,disabled}){
   return(
 
   <input value={value} onChange={onChange} disabled={disabled} placeholder={placeholder} type={type||"text"} onKeyDown={onKeyDown}
-    style={{background:C.bg,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,padding:"9px 13px",fontSize:13,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif",opacity:disabled?0.6:1,cursor:disabled?"not-allowed":"text",...style}}
+    style={{background:C.bg,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,padding:"10px 14px",fontSize:16,lineHeight:1.25,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif",opacity:disabled?0.6:1,cursor:disabled?"not-allowed":"text",minHeight:44,boxSizing:"border-box",...style}}
     onFocus={e=>{e.target.style.borderColor=C.blue;e.target.style.boxShadow="0 0 0 3px "+C.blueDim;}} onBlur={e=>{e.target.style.borderColor=C.border;e.target.style.boxShadow="none;"}}/>
 
   );
@@ -70,7 +70,7 @@ export function KPI({label,value,sub,col,icon,trend}){
   const C = C_LIGHT;
   return(
 
-  <Box style={{padding:"18px 20px",flex:1,minWidth:140}}>
+  <Box style={{padding:"18px 20px",flex:"1 1 140px",minWidth:0}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
       <div style={{flex:1,minWidth:0}}>
         <div style={{color:C.textDim,fontSize:9,letterSpacing:1.5,textTransform:"uppercase",marginBottom:8}}>{label}</div>
@@ -89,8 +89,8 @@ export function Modal({open,onClose,title,children,ac,closeOnBackdrop=true}){
   const C = C_LIGHT;
   if(!open) return null;
   return(
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.45)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}} onClick={closeOnBackdrop ? onClose : undefined}>
-      <div style={{background:C.card,borderRadius:16,padding:28,minWidth:320,maxWidth:560,width:"100%",boxShadow:"0 8px 40px rgba(0,0,0,.18)",border:`1px solid ${C.border}`}} onClick={e=>e.stopPropagation()}>
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.45)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:"max(12px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px))",boxSizing:"border-box"}} onClick={closeOnBackdrop ? onClose : undefined}>
+      <div style={{background:C.card,borderRadius:16,padding:"clamp(18px, 4vw, 28px)",minWidth:0,maxWidth:560,width:"min(560px, 100%)",maxHeight:"min(90dvh, 92vh)",overflowY:"auto",WebkitOverflowScrolling:"touch",boxShadow:"0 8px 40px rgba(0,0,0,.18)",border:`1px solid ${C.border}`}} onClick={e=>e.stopPropagation()}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:18}}>
           <div style={{fontWeight:800,fontSize:16,color:C.text}}>{title}</div>
           {!ac&&<button onClick={onClose} style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:C.textMid}}>✕</button>}
@@ -105,9 +105,9 @@ export function NotificacionesToast({ notifs, onDismiss }) {
   const C = C_LIGHT;
   if(!notifs?.length) return null;
   return (
-    <div style={{position:"fixed",top:16,right:16,zIndex:9999,display:"flex",flexDirection:"column",gap:8,maxWidth:360}}>
+    <div style={{position:"fixed",top:"max(12px, env(safe-area-inset-top, 0px))",left:12,right:12,zIndex:9999,display:"flex",flexDirection:"column",gap:8,alignItems:"stretch",maxWidth:400,margin:"0 auto",pointerEvents:"none",boxSizing:"border-box"}}>
       {notifs.map(n=>(
-        <div key={n.id} style={{background:C.card,borderRadius:12,padding:"12px 16px",boxShadow:"0 8px 32px rgba(0,82,204,.18)",border:`2px solid ${n.col||"#0052cc"}`,display:"flex",alignItems:"flex-start",gap:10}}>
+        <div key={n.id} style={{background:C.card,borderRadius:12,padding:"12px 16px",boxShadow:"0 8px 32px rgba(0,82,204,.18)",border:`2px solid ${n.col||"#0052cc"}`,display:"flex",alignItems:"flex-start",gap:10,pointerEvents:"auto"}}>
           <span style={{fontSize:20,flexShrink:0}}>{n.icon||"🔔"}</span>
           <div style={{flex:1}}>
             <div style={{color:C.text,fontWeight:700,fontSize:13}}>{n.titulo}</div>
@@ -149,7 +149,7 @@ export function ToastProvider() {
   };
   if (!toasts.length) return null;
   return (
-    <div style={{position:"fixed",bottom:20,right:20,zIndex:9998,display:"flex",flexDirection:"column",gap:8,maxWidth:340}}>
+    <div style={{position:"fixed",bottom:"max(16px, env(safe-area-inset-bottom, 0px))",left:12,right:12,zIndex:9998,display:"flex",flexDirection:"column",gap:8,alignItems:"stretch",maxWidth:400,margin:"0 auto",pointerEvents:"none",boxSizing:"border-box"}}>
       {toasts.map(t=>(
         <div key={t.id} style={{
           background:C.card,borderRadius:12,padding:"12px 16px",
@@ -157,6 +157,7 @@ export function ToastProvider() {
           border:`2px solid ${cols[t.tipo]||C.blue}`,
           display:"flex",alignItems:"center",gap:10,
           animation:"slideUp .3s ease",
+          pointerEvents:"auto",
         }}>
           <span style={{fontSize:18,flexShrink:0}}>{icons[t.tipo]||"ℹ️"}</span>
           <span style={{color:C.text,fontSize:13,fontWeight:600,flex:1}}>{toastText(t.msg, t.tipo)}</span>
@@ -171,14 +172,14 @@ export function ConfirmDialog({open,titulo,mensaje,onConfirm,onCancel,danger=fal
   const C = C_LIGHT;
   if(!open) return null;
   return(
-    <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,.5)",backdropFilter:"blur(4px)",zIndex:9997,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-      <div style={{background:C.card,borderRadius:14,padding:28,width:"min(400px,95vw)",boxShadow:"0 20px 60px rgba(0,0,0,.2)"}}>
+    <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,.5)",backdropFilter:"blur(4px)",zIndex:9997,display:"flex",alignItems:"center",justifyContent:"center",padding:"max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px))",boxSizing:"border-box"}}>
+      <div style={{background:C.card,borderRadius:14,padding:"clamp(20px, 5vw, 28px)",width:"min(400px, 100%)",maxHeight:"min(90dvh, 92vh)",overflowY:"auto",boxShadow:"0 20px 60px rgba(0,0,0,.2)"}}>
         <div style={{fontSize:32,textAlign:"center",marginBottom:12}}>{danger?"⚠️":"❓"}</div>
         <div style={{color:C.text,fontWeight:800,fontSize:16,textAlign:"center",marginBottom:8}}>{titulo}</div>
         <div style={{color:C.textMid,fontSize:13,textAlign:"center",marginBottom:24,lineHeight:1.6}}>{mensaje}</div>
-        <div style={{display:"flex",gap:10,justifyContent:"center"}}>
-          <button onClick={onCancel} style={{padding:"9px 20px",borderRadius:8,border:`1px solid ${C.border}`,background:"transparent",color:C.textMid,fontWeight:700,fontSize:13,cursor:"pointer"}}>Cancelar</button>
-          <button onClick={onConfirm} style={{padding:"9px 20px",borderRadius:8,border:"none",background:danger?C.red:C.green,color:C.card,fontWeight:700,fontSize:13,cursor:"pointer"}}>{danger?"Eliminar":"Confirmar"}</button>
+        <div className="farmax-confirm-actions" style={{display:"flex",gap:10,justifyContent:"center",flexWrap:"wrap"}}>
+          <button type="button" onClick={onCancel} style={{padding:"10px 20px",borderRadius:8,border:`1px solid ${C.border}`,background:"transparent",color:C.textMid,fontWeight:700,fontSize:14,cursor:"pointer",minHeight:44,flex:"1 1 140px"}}>Cancelar</button>
+          <button type="button" onClick={onConfirm} style={{padding:"10px 20px",borderRadius:8,border:"none",background:danger?C.red:C.green,color:C.card,fontWeight:700,fontSize:14,cursor:"pointer",minHeight:44,flex:"1 1 140px"}}>{danger?"Eliminar":"Confirmar"}</button>
         </div>
       </div>
     </div>
@@ -236,7 +237,7 @@ export function SkeletonKPIs({ count=4 }) {
   return (
     <div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:20}}>
       {Array(count).fill(0).map((_,i)=>(
-        <div key={i} style={{flex:1,minWidth:140,borderRadius:14,border:"1px solid #e2e8f0",padding:"18px 20px",background:C.card}}>
+        <div key={i} style={{flex:"1 1 160px",minWidth:0,borderRadius:14,border:"1px solid #e2e8f0",padding:"18px 20px",background:C.card}}>
           <div style={{height:10,borderRadius:4,background:"linear-gradient(90deg,#f0f4f9 25%,#e2e8f0 50%,#f0f4f9 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite",width:"60%",marginBottom:12}}/>
           <div style={{height:24,borderRadius:4,background:"linear-gradient(90deg,#f0f4f9 25%,#e2e8f0 50%,#f0f4f9 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite",width:"80%"}}/>
           <style>{`@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
@@ -325,7 +326,7 @@ export function SearchDropdown({
         onFocus={()=>value&&setOpen(true)}
         onKeyDown={handleKey}
         placeholder={placeholder}
-        style={{width:"100%",boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:"1px solid #e2e8f0",background:"#f7f9fc",color:C.text,fontSize:13,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}
+        style={{width:"100%",boxSizing:"border-box",padding:"10px 14px",borderRadius:8,border:"1px solid #e2e8f0",background:"#f7f9fc",color:C.text,fontSize:16,lineHeight:1.25,minHeight:44,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}
         onBlur={e=>{ if(ref.current&&!ref.current.contains(e.relatedTarget)) setTimeout(()=>setOpen(false),150); }}
       />
       {open&&filtered.length>0&&(

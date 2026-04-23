@@ -5,6 +5,21 @@
 import '@testing-library/jest-dom';
 import { TextEncoder, TextDecoder } from 'util';
 
+/** matchMedia para Jest (Admin/Tienda usan useMediaQuery). */
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: (query) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener() {},
+    removeListener() {},
+    addEventListener() {},
+    removeEventListener() {},
+    dispatchEvent() { return false; },
+  }),
+});
+
 process.env.REACT_APP_SUPABASE_URL =
   process.env.REACT_APP_SUPABASE_URL || "https://test.supabase.co";
 process.env.REACT_APP_SUPABASE_ANON_KEY =

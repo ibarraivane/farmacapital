@@ -412,7 +412,7 @@ export default function ConsDoctora() {
               >
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 14, flexWrap: "wrap" }}>
                   <div style={{ color: C.blue, fontWeight: 800, fontSize: 18, width: 55, flexShrink: 0 }}>{c.hora}</div>
-                  <div style={{ flex: 1, minWidth: 200 }}>
+                  <div style={{ flex: "1 1 200px", minWidth: 0 }}>
                     <button
                       type="button"
                       onClick={() => setFichaCita(c)}

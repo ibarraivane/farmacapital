@@ -97,7 +97,7 @@ export default function InstalarPWA() {
       )}
 
       {/* Beneficios */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:12,marginBottom:24}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(100%,180px),1fr))",gap:12,marginBottom:24}}>
         {[
           {icon:"⚡",titulo:"Acceso rápido",desc:"Un toque y abre al instante, sin buscar el link"},
           {icon:"📶",titulo:"Funciona offline",desc:"Ver datos aunque no haya internet"},

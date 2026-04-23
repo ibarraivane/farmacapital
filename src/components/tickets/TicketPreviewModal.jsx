@@ -158,14 +158,17 @@ export default function TicketPreviewModal({
       background:"rgba(15,23,42,.6)",
       backdropFilter:"blur(4px)",
       display:"flex", alignItems:"center", justifyContent:"center",
-      padding:20,
+      padding:"max(12px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px))",
+      boxSizing:"border-box",
     }} onClick={e=>e.target===e.currentTarget&&onClose?.()}>
       <div style={{
         background:"#fff", borderRadius:16,
-        width:"min(420px,95vw)", maxHeight:"95vh",
+        width:"min(420px, 100%)", maxHeight:"min(92dvh, 95vh)",
         overflowY:"auto",
+        WebkitOverflowScrolling:"touch",
         boxShadow:"0 24px 80px rgba(0,82,204,.2)",
         display:"flex", flexDirection:"column",
+        minWidth:0,
       }}>
         {/* Header del modal */}
         <div style={{
@@ -279,21 +282,21 @@ export default function TicketPreviewModal({
             📱 Enviar por WhatsApp
           </button>
 
-          <div style={{display:"flex", gap:8}}>
+          <div style={{display:"flex", gap:8, flexWrap:"wrap"}}>
             {/* Reimprimir después */}
-            <button onClick={handlePrint} style={{
-              flex:1, padding:"9px", borderRadius:10,
+            <button type="button" onClick={handlePrint} style={{
+              flex:"1 1 120px", minHeight:44, padding:"10px", borderRadius:10,
               border:"1px solid #e2e8f0", background:"#f8fafc",
-              color:"#475569", fontWeight:700, fontSize:12, cursor:"pointer",
+              color:"#475569", fontWeight:700, fontSize:13, cursor:"pointer",
             }}>
               🔄 Reimprimir
             </button>
 
             {/* Nueva venta */}
-            <button onClick={onNuevaVenta||onClose} style={{
-              flex:2, padding:"9px", borderRadius:10, border:"none",
+            <button type="button" onClick={onNuevaVenta||onClose} style={{
+              flex:"2 1 160px", minHeight:44, padding:"10px", borderRadius:10, border:"none",
               background:"#00c46a", color:"#fff",
-              fontWeight:800, fontSize:13, cursor:"pointer",
+              fontWeight:800, fontSize:14, cursor:"pointer",
             }}>
               ✅ Nueva venta
             </button>

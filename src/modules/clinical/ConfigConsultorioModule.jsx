@@ -345,7 +345,7 @@ export default function ConfigConsultorioModule() {
             <SectionTitle sub="Precios que cobra la doctora/o por procedimiento. Afectan caja y dashboard.">
               PROCEDIMIENTOS MÉDICOS
             </SectionTitle>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))", gap: 14 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,220px),1fr))", gap: 14 }}>
               {keysInTab("servicios").filter((k) => FIELDS[k].grupo === "procedimientos").map((k) => (
                 <InputField key={k} clave={k} valor={valores[k]} onChange={setValor} compact />
               ))}
@@ -356,7 +356,7 @@ export default function ConfigConsultorioModule() {
             <SectionTitle sub="Límite de descuento que puede aplicar cada rol en el POS sin requerir aprobación.">
               DESCUENTO MÁXIMO POR ROL
             </SectionTitle>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(200px,1fr))", gap: 14 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,200px),1fr))", gap: 14 }}>
               {keysInTab("servicios").filter((k) => FIELDS[k].grupo === "descuentos").map((k) => (
                 <InputField key={k} clave={k} valor={valores[k]} onChange={setValor} />
               ))}
@@ -383,7 +383,7 @@ export default function ConfigConsultorioModule() {
             <SectionTitle sub="Objetivo de caja por turno. Los ajustes de abajo modifican estas metas según el día.">
               META POR TURNO
             </SectionTitle>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(210px,1fr))", gap: 14 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,210px),1fr))", gap: 14 }}>
               {keysInTab("ventas").filter((k) => FIELDS[k].grupo === "turnos").map((k) => (
                 <InputField key={k} clave={k} valor={valores[k]} onChange={setValor} compact />
               ))}
@@ -394,7 +394,7 @@ export default function ConfigConsultorioModule() {
             <SectionTitle sub="Los porcentajes ajustan la meta del turno ese día específico. Pueden ser negativos.">
               AJUSTES AUTOMÁTICOS POR FECHA
             </SectionTitle>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(200px,1fr))", gap: 14 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,200px),1fr))", gap: 14 }}>
               {keysInTab("ventas").filter((k) => FIELDS[k].grupo === "ajustes").map((k) => (
                 <InputField key={k} clave={k} valor={valores[k]} onChange={setValor} />
               ))}
@@ -408,7 +408,7 @@ export default function ConfigConsultorioModule() {
             <SectionTitle sub="Usadas por el Dashboard en los KPIs principales. No afectan el cálculo por turno.">
               METAS HISTÓRICAS DEL DASHBOARD
             </SectionTitle>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))", gap: 14 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,220px),1fr))", gap: 14 }}>
               {keysInTab("ventas").filter((k) => FIELDS[k].grupo === "legacy").map((k) => (
                 <InputField key={k} clave={k} valor={valores[k]} onChange={setValor} />
               ))}
@@ -428,7 +428,7 @@ export default function ConfigConsultorioModule() {
             <SectionTitle sub="Monto mensual según el % de meta cumplida. Menos de 70% = sin bono.">
               BONO POR CUMPLIMIENTO
             </SectionTitle>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))", gap: 14 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,220px),1fr))", gap: 14 }}>
               {keysInTab("bonos").filter((k) => FIELDS[k].grupo === "niveles").map((k) => (
                 <InputField key={k} clave={k} valor={valores[k]} onChange={setValor} />
               ))}
@@ -439,7 +439,7 @@ export default function ConfigConsultorioModule() {
             <SectionTitle sub="Se suman al bono por cumplimiento. Fidelización requiere registrar el mínimo de clientes abajo.">
               EXTRAS
             </SectionTitle>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))", gap: 14 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,220px),1fr))", gap: 14 }}>
               {keysInTab("bonos").filter((k) => FIELDS[k].grupo === "extras").map((k) => (
                 <InputField key={k} clave={k} valor={valores[k]} onChange={setValor} />
               ))}
@@ -473,7 +473,7 @@ export default function ConfigConsultorioModule() {
         <>
           <Box style={{ padding: 20, marginBottom: 16 }}>
             <SectionTitle>META DE CONSULTAS</SectionTitle>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(210px,1fr))", gap: 14 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,210px),1fr))", gap: 14 }}>
               {keysInTab("cons").filter((k) => FIELDS[k].grupo === "consultas").map((k) => (
                 <InputField key={k} clave={k} valor={valores[k]} onChange={setValor} />
               ))}
@@ -484,7 +484,7 @@ export default function ConfigConsultorioModule() {
             <SectionTitle sub="Procedimientos médicos realizados en el consultorio (PA, inyecciones, curaciones, etc.).">
               META DE PROCEDIMIENTOS
             </SectionTitle>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(210px,1fr))", gap: 14 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,210px),1fr))", gap: 14 }}>
               {keysInTab("cons").filter((k) => FIELDS[k].grupo === "procedimientos").map((k) => (
                 <InputField key={k} clave={k} valor={valores[k]} onChange={setValor} />
               ))}
@@ -504,7 +504,7 @@ export default function ConfigConsultorioModule() {
             <SectionTitle sub="Bono mensual de la doctora/o según % de meta mensual de consultas cumplida.">
               BONO DOCTORA
             </SectionTitle>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))", gap: 14 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,220px),1fr))", gap: 14 }}>
               {keysInTab("cons").filter((k) => FIELDS[k].grupo === "bono_doctora").map((k) => (
                 <InputField key={k} clave={k} valor={valores[k]} onChange={setValor} />
               ))}

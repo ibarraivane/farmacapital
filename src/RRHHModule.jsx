@@ -305,7 +305,7 @@ export default function RRHHModule() {
       <div style={S.section}>
         <div style={S.h2}>➕ Registrar nuevo empleado</div>
         <form onSubmit={handleFormSubmit}>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(170px, 1fr))', gap:14, marginBottom:14 }}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 170px), 1fr))', gap:14, marginBottom:14 }}>
             <div><label style={S.label}>Nombre completo *</label>
               <input style={S.input} value={form.nombre} onChange={e=>setForm({...form,nombre:e.target.value})} placeholder="Ana García López"/></div>
             <div><label style={S.label}>Teléfono</label>
@@ -374,7 +374,7 @@ export default function RRHHModule() {
       {/* CALCULADORA NÓMINA */}
       <div style={S.section}>
         <div style={S.h2}>💰 Calculadora nómina quincenal</div>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(160px, 1fr))', gap:14, marginBottom:20 }}>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 160px), 1fr))', gap:14, marginBottom:20 }}>
           <div><label style={S.label}>Empleado</label>
             <select style={S.select} value={selEmpId} onChange={e=>setSelEmpId(e.target.value)}>
               <option value="">— Seleccionar —</option>

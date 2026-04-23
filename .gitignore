@@ -30,3 +30,8 @@ yarn-error.log*
 *.sql.bak
 *.dump
 backups/
+
+# Playwright
+/test-results/
+/playwright-report/
+e2e/artifacts/screenshots/*.png
