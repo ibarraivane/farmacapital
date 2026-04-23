@@ -1,26 +1,64 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useMediaQuery } from "./hooks/useMediaQuery";
 import { C_LIGHT, BRAND } from "./constants";
 import { supabase } from "./supabase";
 import { saludoUsuario, $ } from "./utils";
-import { SkeletonKPIs, SkeletonTable, SkeletonCard, KPI, Box, Tag } from "./ui";
+import { SkeletonKPIs, SkeletonTable, SkeletonCard, KPI, Box, Tag, Btn } from "./ui";
 import { CONSULTA_PRECIO_DEFAULT } from "./utils/consultaConstants";
 import { resumenLineasReceta } from "./utils/recetaLineas";
 import TransaccionesTab from "./TransaccionesTab";
 import { countPedidosTiendaPendientesHead } from "./utils/pedidosTiendaWeb";
 
-const INVERSION = 710433;
-const INVERSION_TOTAL = 710433;
+const STORAGE_PROYECTO_CAPEX = "farmax_proyecto_capex_v1";
 
-/** CAPEX macro del proyecto (apertura). Actualiza montos aquí si cambian en la vida real. */
-const PROYECTO_CAPEX_LINEAS = [
-  { label: "Construcción y acondicionamiento del local", nota: "Obra civil, instalaciones y acabados", monto: 464_999 },
-  { label: "Mobiliario y equipamiento — área de venta", nota: "Mostrador, vitrinas, estantería, punto de venta", monto: 8_899 },
-  { label: "Equipamiento — consultorio médico", nota: "Mobiliario y equipo clínico", monto: 21_650 },
-  { label: "Inventario inicial de farmacia", nota: "Compra de stock de apertura", monto: 134_000 },
-  { label: "Trámites, licencias y gastos legales", nota: "Permisos, registros y asesoría", monto: 16_300 },
-  { label: "Contingencia e imprevistos", nota: "Reserva del proyecto", monto: 64_585 },
+/** Valores iniciales del CAPEX (se pueden editar en UI; persisten en localStorage del navegador). */
+const DEFAULT_PROYECTO_CAPEX_LINEAS = [
+  { id: "capex-obra", label: "Construcción y acondicionamiento del local", nota: "Obra civil, instalaciones y acabados", monto: 464_999 },
+  { id: "capex-mob-venta", label: "Mobiliario y equipamiento — área de venta", nota: "Mostrador, vitrinas, estantería, punto de venta", monto: 8_899 },
+  { id: "capex-cons", label: "Equipamiento — consultorio médico", nota: "Mobiliario y equipo clínico", monto: 21_650 },
+  { id: "capex-inv", label: "Inventario inicial de farmacia", nota: "Compra de stock de apertura", monto: 134_000 },
+  { id: "capex-tram", label: "Trámites, licencias y gastos legales", nota: "Permisos, registros y asesoría", monto: 16_300 },
+  { id: "capex-cont", label: "Contingencia e imprevistos", nota: "Reserva del proyecto", monto: 64_585 },
 ];
+
+function cloneDefaultCapex() {
+  return DEFAULT_PROYECTO_CAPEX_LINEAS.map((r) => ({ ...r }));
+}
+
+/** Normaliza filas guardadas (migración desde JSON sin `id`). */
+function normalizeCapexRows(raw) {
+  if (!Array.isArray(raw) || raw.length === 0) return cloneDefaultCapex();
+  return raw.map((r, i) => ({
+    id: String(r.id || `rubro-${i}-${(r.label || "").slice(0, 12)}`).replace(/\s+/g, "-"),
+    label: String(r.label || "Rubro").trim() || "Rubro",
+    nota: String(r.nota || "").trim(),
+    monto: Math.max(0, Math.round((parseFloat(r.monto) || 0) * 100) / 100),
+  }));
+}
+
+function loadCapexLineas() {
+  try {
+    const raw = localStorage.getItem(STORAGE_PROYECTO_CAPEX);
+    if (!raw) return cloneDefaultCapex();
+    const p = JSON.parse(raw);
+    const lineas = Array.isArray(p) ? p : p.lineas;
+    return normalizeCapexRows(lineas);
+  } catch {
+    return cloneDefaultCapex();
+  }
+}
+
+function saveCapexLineas(lineas) {
+  try {
+    localStorage.setItem(STORAGE_PROYECTO_CAPEX, JSON.stringify({ lineas: normalizeCapexRows(lineas) }));
+  } catch (e) {
+    console.warn("[Dashboard] No se pudo guardar CAPEX:", e);
+  }
+}
+
+function sumCapexMontos(lineas) {
+  return normalizeCapexRows(lineas).reduce((a, r) => a + r.monto, 0);
+}
 
 /** Pestañas operativas; «Proyecto / inversión» va aparte para no mezclar CAPEX con el día a día. */
 const DASHBOARD_TABS_DEFAULT = ["operacion", "resumen", "transacciones", "margen"];
@@ -231,6 +269,13 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
   const [periodo, setPeriodo] = useState("mes");
   const [rep, setRep] = useState(null);
   const [repLoading, setRepLoading] = useState(false);
+  const [capexLineas, setCapexLineas] = useState(loadCapexLineas);
+  const inversionTotal = useMemo(() => sumCapexMontos(capexLineas), [capexLineas]);
+  const puedeEditarCapex = usuario?.rol === "admin";
+
+  useEffect(() => {
+    saveCapexLineas(capexLineas);
+  }, [capexLineas]);
 
   useEffect(() => {
     localStorage.setItem("farmax_dashboard_tab_order", JSON.stringify(tabOrder));
@@ -327,13 +372,10 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
     const totalPedMes = (pedMes || []).length;
     const ticketProm = totalPedMes > 0 ? ventasMes / totalPedMes : 0;
     const recuperado = (pedTodos || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
-    const pctRecuperado = Math.min((recuperado / INVERSION) * 100, 100);
     const gananciaMes = ventasMes * 0.55;
     const ventasMesAnt = (pedMesAnt || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
     const ticketPromMesAnt = (pedMesAnt || []).length > 0 ? ventasMesAnt / (pedMesAnt || []).length : 0;
     const crecimiento = ventasMesAnt > 0 ? ((ventasMes - ventasMesAnt) / ventasMesAnt * 100).toFixed(1) : null;
-    const restante = INVERSION - recuperado;
-    const paybackMeses = gananciaMes > 0 ? Math.max(Math.ceil(restante / gananciaMes), 0) : null;
 
     const metas = {
       ventasDia:     parseMeta(cfgRows, "meta_ventas_dia", 3000),
@@ -391,7 +433,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
 
     setData({
       ventasHoy, ventasAyer, ventasSemana, ventasSemanaAnt, ventasMes, ventasMesAnt, crecimiento, ticketProm, consultasHoy, consultasAyer, onlinePend,
-      recuperado, pctRecuperado, gananciaMes, paybackMeses, restante,
+      recuperado, gananciaMes,
       metas, trends,
       fuentes: [{ label: "Farmacia física", value: fisica }, { label: "Tienda online", value: online2 }, { label: "Consultorio", value: consult }],
       empleados, topProductos,
@@ -509,7 +551,10 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
     </div>
   );
 
-  const {ventasHoy,ventasSemana,ventasMes,crecimiento,ticketProm,consultasHoy,onlinePend,recuperado,pctRecuperado,gananciaMes,paybackMeses,restante,fuentes,empleados,topProductos,alertas,ventasRecetaMedicoFarmaxMes,nRecetasExternasMes,oportunidadPerdidaRecetaEst,estimadoRecetaExternaUnit,lineasRecetaFarmax,lineasRecetaExterna,lineasRecetaPendiente,lineasRecetaConCatalogo,tiempoPromConsultaMin,metas,trends} = data;
+  const {ventasHoy,ventasSemana,ventasMes,crecimiento,ticketProm,consultasHoy,onlinePend,recuperado,gananciaMes,fuentes,empleados,topProductos,alertas,ventasRecetaMedicoFarmaxMes,nRecetasExternasMes,oportunidadPerdidaRecetaEst,estimadoRecetaExternaUnit,lineasRecetaFarmax,lineasRecetaExterna,lineasRecetaPendiente,lineasRecetaConCatalogo,tiempoPromConsultaMin,metas,trends} = data;
+  const pctRecuperado = inversionTotal > 0 ? Math.min((recuperado / inversionTotal) * 100, 100) : 0;
+  const restante = inversionTotal - recuperado;
+  const paybackMeses = gananciaMes > 0 ? Math.max(Math.ceil(restante / gananciaMes), 0) : null;
   const fracMes = fraccionMesTranscurrido();
   const metaVentasMesProrrateada = Math.round((metas?.ventasMes || 0) * fracMes);
   const metaConsultasMesProrrateada = Math.round((metas?.consultasMes || 0) * fracMes);
@@ -523,6 +568,29 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
   ];
   const roiCol = pctRecuperado>=75?C.green:pctRecuperado>=40?C.amber:C.red;
   const totalEmp = empleados.reduce((a,e)=>a+e[1],0);
+
+  const updateCapexRow = (id, patch) => {
+    setCapexLineas((rows) => normalizeCapexRows(rows.map((r) => (r.id === id ? { ...r, ...patch } : r))));
+  };
+  const removeCapexRow = (id) => {
+    setCapexLineas((rows) => {
+      const next = rows.filter((r) => r.id !== id);
+      return next.length ? normalizeCapexRows(next) : cloneDefaultCapex();
+    });
+  };
+  const addCapexRow = () => {
+    const id = `rubro-${Date.now()}`;
+    setCapexLineas((rows) => normalizeCapexRows([...rows, { id, label: "Nuevo rubro", nota: "", monto: 0 }]));
+  };
+  const resetCapexDefaults = () => {
+    const run = () => {
+      localStorage.removeItem(STORAGE_PROYECTO_CAPEX);
+      setCapexLineas(cloneDefaultCapex());
+    };
+    if (showConfirm) showConfirm("Restaurar inversión del proyecto", "Se restaurarán los rubros y montos iniciales. Se perderá la personalización guardada en este navegador.", run, true);
+    else if (window.confirm("¿Restaurar rubros y montos por defecto? Se borrará la versión guardada en este navegador.")) run();
+  };
+  const inpCapex = { width: "100%", maxWidth: "100%", padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 12, color: C.text, background: C.card, boxSizing: "border-box" };
 
   const totalVentas = rep ? (rep.ventas||[]).reduce((a,p)=>a+parseFloat(p.total||0),0) : 0;
   const totalOnline = rep ? rep.online : 0;
@@ -630,33 +698,95 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
           </p>
 
           <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, letterSpacing: 1.2, marginBottom: 10 }}>DESGLOSE DE INVERSIÓN (CAPEX APERTURA)</div>
-          <Box style={{ padding: 0, marginBottom: 20, overflow: "hidden" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+          {puedeEditarCapex ? (
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12, alignItems: "center" }}>
+              <Btn sm col={BRAND.primary} onClick={addCapexRow}>+ Agregar rubro</Btn>
+              <Btn sm ol col={C.textMid} onClick={resetCapexDefaults}>Restaurar valores por defecto</Btn>
+              <span style={{ fontSize: 11, color: C.textDim, lineHeight: 1.4 }}>
+                Los cambios se guardan en este navegador. La barra de recuperación y el payback usan la suma de la tabla.
+              </span>
+            </div>
+          ) : (
+            <p style={{ fontSize: 12, color: C.textMid, margin: "0 0 12px", lineHeight: 1.45 }}>
+              Solo <strong style={{ color: C.text }}>administradores</strong> pueden editar rubros y montos. Si necesitas un cambio, pide que un admin actualice esta pestaña o edita los valores por defecto en código (<code style={{ fontSize: 11 }}>DEFAULT_PROYECTO_CAPEX_LINEAS</code>).
+            </p>
+          )}
+          <Box style={{ padding: 0, marginBottom: 20, overflow: "auto" }}>
+            <table style={{ width: "100%", minWidth: puedeEditarCapex ? 520 : 0, borderCollapse: "collapse", fontSize: 12 }}>
               <thead>
                 <tr style={{ background: C.cardDark }}>
                   <th style={{ padding: "10px 14px", textAlign: "left", color: C.textMid, fontWeight: 700, borderBottom: `1px solid ${C.border}` }}>Concepto</th>
                   <th style={{ padding: "10px 14px", textAlign: "right", color: C.textMid, fontWeight: 700, borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap" }}>% del total</th>
                   <th style={{ padding: "10px 14px", textAlign: "right", color: C.textMid, fontWeight: 700, borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap" }}>Monto</th>
+                  {puedeEditarCapex && (
+                    <th style={{ padding: "10px 14px", textAlign: "center", color: C.textMid, fontWeight: 700, borderBottom: `1px solid ${C.border}`, width: 88 }}> </th>
+                  )}
                 </tr>
               </thead>
               <tbody>
-                {PROYECTO_CAPEX_LINEAS.map((row, i) => {
-                  const pct = INVERSION_TOTAL > 0 ? (row.monto / INVERSION_TOTAL) * 100 : 0;
+                {capexLineas.map((row, i) => {
+                  const pct = inversionTotal > 0 ? (row.monto / inversionTotal) * 100 : 0;
                   return (
-                    <tr key={row.label} style={{ background: i % 2 === 0 ? "transparent" : C.bg }}>
+                    <tr key={row.id} style={{ background: i % 2 === 0 ? "transparent" : C.bg }}>
                       <td style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, verticalAlign: "top" }}>
-                        <div style={{ color: C.text, fontWeight: 600 }}>{row.label}</div>
-                        <div style={{ color: C.textDim, fontSize: 11, marginTop: 4, lineHeight: 1.35 }}>{row.nota}</div>
+                        {puedeEditarCapex ? (
+                          <>
+                            <input value={row.label} onChange={(e) => updateCapexRow(row.id, { label: e.target.value })} style={{ ...inpCapex, fontWeight: 600, marginBottom: 6 }} />
+                            <input value={row.nota} onChange={(e) => updateCapexRow(row.id, { nota: e.target.value })} placeholder="Nota / detalle" style={{ ...inpCapex, color: C.textMid, fontSize: 11 }} />
+                          </>
+                        ) : (
+                          <>
+                            <div style={{ color: C.text, fontWeight: 600 }}>{row.label}</div>
+                            <div style={{ color: C.textDim, fontSize: 11, marginTop: 4, lineHeight: 1.35 }}>{row.nota}</div>
+                          </>
+                        )}
                       </td>
                       <td style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, textAlign: "right", color: C.textMid, fontWeight: 700 }}>{pct.toFixed(1)}%</td>
-                      <td style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, textAlign: "right", color: C.blue, fontWeight: 800 }}>{$(row.monto)}</td>
+                      <td style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, textAlign: "right", color: C.blue, fontWeight: 800, verticalAlign: "middle" }}>
+                        {puedeEditarCapex ? (
+                          <input
+                            type="number"
+                            min={0}
+                            step={1}
+                            value={Number.isFinite(row.monto) ? row.monto : 0}
+                            onChange={(e) => updateCapexRow(row.id, { monto: Math.max(0, parseFloat(e.target.value) || 0) })}
+                            style={{ ...inpCapex, textAlign: "right", fontWeight: 800, maxWidth: 140, marginLeft: "auto", display: "block" }}
+                          />
+                        ) : (
+                          $(row.monto)
+                        )}
+                      </td>
+                      {puedeEditarCapex && (
+                        <td style={{ padding: "10px 8px", borderBottom: `1px solid ${C.border}`, textAlign: "center", verticalAlign: "middle" }}>
+                          <button
+                            type="button"
+                            title="Quitar rubro"
+                            disabled={capexLineas.length <= 1}
+                            onClick={() => removeCapexRow(row.id)}
+                            style={{
+                              padding: "4px 8px",
+                              borderRadius: 6,
+                              border: `1px solid ${C.red}40`,
+                              background: C.redDim,
+                              color: C.red,
+                              fontSize: 10,
+                              fontWeight: 700,
+                              cursor: capexLineas.length <= 1 ? "not-allowed" : "pointer",
+                              opacity: capexLineas.length <= 1 ? 0.45 : 1,
+                            }}
+                          >
+                            Quitar
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   );
                 })}
                 <tr style={{ background: C.amberDim }}>
                   <td style={{ padding: "12px 14px", fontWeight: 800, color: C.text, fontSize: 13 }}>TOTAL INVERTIDO (PROYECTO)</td>
                   <td style={{ padding: "12px 14px", textAlign: "right", fontWeight: 800, color: C.text }}>100%</td>
-                  <td style={{ padding: "12px 14px", textAlign: "right", fontWeight: 900, color: C.red, fontSize: 15 }}>{$(INVERSION_TOTAL)}</td>
+                  <td style={{ padding: "12px 14px", textAlign: "right", fontWeight: 900, color: C.red, fontSize: 15 }}>{$(inversionTotal)}</td>
+                  {puedeEditarCapex && <td style={{ padding: "12px 8px", background: C.amberDim }} />}
                 </tr>
               </tbody>
             </table>
@@ -665,7 +795,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
           <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, letterSpacing: 1.2, marginBottom: 10 }}>RETORNO Y RECUPERACIÓN (VS. VENTAS ACUMULADAS)</div>
           <div style={{ background: C.card, border: `1px solid ${roiCol}30`, borderRadius: 14, padding: 24, marginBottom: 16 }}>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,180px),1fr))", gap: 20, marginBottom: 20 }}>
-              <div><div style={{ color: C.textMid, fontSize: 11, fontWeight: 700, marginBottom: 4 }}>INVERSIÓN TOTAL</div><div style={{ color: C.text, fontWeight: 800, fontSize: 22 }}>{fmt(INVERSION)}</div></div>
+              <div><div style={{ color: C.textMid, fontSize: 11, fontWeight: 700, marginBottom: 4 }}>INVERSIÓN TOTAL</div><div style={{ color: C.text, fontWeight: 800, fontSize: 22 }}>{fmt(inversionTotal)}</div></div>
               <div><div style={{ color: C.textMid, fontSize: 11, fontWeight: 700, marginBottom: 4 }}>TOTAL RECUPERADO</div><div style={{ color: roiCol, fontWeight: 800, fontSize: 22 }}>{fmt(recuperado)}</div></div>
               <div><div style={{ color: C.textMid, fontSize: 11, fontWeight: 700, marginBottom: 4 }}>GANANCIA NETA EST. / MES</div><div style={{ color: C.green, fontWeight: 800, fontSize: 18 }}>{fmt(gananciaMes)}</div><div style={{ color: C.textDim, fontSize: 10, marginTop: 4 }}>Aprox. operativa (55% ventas del mes)</div></div>
               <div><div style={{ color: C.textMid, fontSize: 11, fontWeight: 700, marginBottom: 4 }}>PAYBACK RESTANTE</div><div style={{ color: restante <= 0 ? C.green : C.amber, fontWeight: 800, fontSize: 18 }}>{restante <= 0 ? "✅ Recuperada" : paybackMeses ? `~${paybackMeses} meses` : "Calculando…"}</div></div>
@@ -680,7 +810,8 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
               </div>
             </div>
             <div style={{ color: C.textDim, fontSize: 10, marginTop: 8, lineHeight: 1.45 }}>
-              Recuperado {fmt(recuperado)} de {fmt(INVERSION)} · Resta {fmt(Math.max(restante, 0))}. Los montos del desglose CAPEX se editan en el arreglo PROYECTO_CAPEX_LINEAS en DashboardModule.jsx.
+              Recuperado {fmt(recuperado)} de {fmt(inversionTotal)} · Resta {fmt(Math.max(restante, 0))}.
+              {puedeEditarCapex ? " Edita el desglose arriba; se guarda en localStorage de este equipo." : " El total invertido lo define un admin en la tabla de arriba (o los valores por defecto del sistema)."}
             </div>
           </div>
         </div>
