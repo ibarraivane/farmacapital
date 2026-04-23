@@ -205,7 +205,9 @@ function LoginScreen({onLogin}){
   };
 
   return(
-    <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#f0f4ff 0%,#f7f9fc 50%,#e8f4fd 100%)",display:"flex",alignItems:"center",justifyContent:"center",padding:"clamp(12px,4vw,20px)",boxSizing:"border-box",overflowX:"hidden"}}>
+    <>
+    <style>{`.farmax-login-screen{min-height:100vh;min-height:100dvh}`}</style>
+    <div className="farmax-login-screen" style={{background:"linear-gradient(135deg,#f0f4ff 0%,#f7f9fc 50%,#e8f4fd 100%)",display:"flex",alignItems:"center",justifyContent:"center",padding:"max(clamp(12px,4vw,20px), env(safe-area-inset-top, 0px)) max(clamp(12px,4vw,20px), env(safe-area-inset-right, 0px)) max(clamp(12px,4vw,20px), env(safe-area-inset-bottom, 0px)) max(clamp(12px,4vw,20px), env(safe-area-inset-left, 0px))",boxSizing:"border-box",overflowX:"hidden"}}>
       <div style={{width:"100%",maxWidth:400,minWidth:0}}>
         <div style={{textAlign:"center",marginBottom:32}}>
           <div style={{display:"flex",justifyContent:"center",marginBottom:16}}><Logo size={48}/></div>
@@ -252,6 +254,7 @@ function LoginScreen({onLogin}){
         </Box>
       </div>
     </div>
+    </>
   );
 }
 
@@ -336,8 +339,10 @@ function AdminNavSidebar({active,setActive,negocio,setNegocio,usuario,onLogout,a
   };
 
   return(
-    <div style={{
-      width:220,height:"100vh",maxHeight:"100vh",flexShrink:0,background:C.card,borderRight:`1px solid ${C.border}`,
+    <div
+      className="farmax-admin-sidebar"
+      style={{
+      width:220,flexShrink:0,background:C.card,borderRight:`1px solid ${C.border}`,
       boxShadow: mobile?"4px 0 24px rgba(0,0,0,.12)":"2px 0 8px rgba(0,0,0,.06)",
       display:"flex",flexDirection:"column",position:"fixed",left:mobile?(navOpen?0:-220):0,top:0,
       zIndex:mobile?1001:100,overflow:"hidden",transition:"left .22s ease",
@@ -1704,8 +1709,19 @@ export default function FarmaxAdmin(){
       onConfirm={()=>{ confirmDlg.onConfirm?.(); setConfirmDlg(p=>({...p,open:false})); }}
       onCancel={()=>setConfirmDlg(p=>({...p,open:false}))}
     />
-    <div style={{background:C.bg,minHeight:"100vh",fontFamily:"'Plus Jakarta Sans',sans-serif",transition:"background .3s,color .3s",color:C.text,overflowX:"hidden"}}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');*{box-sizing:border-box;margin:0;padding:0;}`}</style>
+    <div className="farmax-admin-root" style={{background:C.bg,fontFamily:"'Plus Jakarta Sans',sans-serif",transition:"background .3s,color .3s",color:C.text,overflowX:"hidden"}}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+html,body,#root{height:100%;-webkit-text-size-adjust:100%}
+.farmax-admin-root{min-height:100vh;min-height:100dvh}
+.farmax-admin-main{
+  min-height:100vh;min-height:100dvh;box-sizing:border-box;
+  overflow-wrap:break-word;word-wrap:break-word;
+}
+.farmax-admin-sidebar{
+  height:100vh;height:100dvh;max-height:100vh;max-height:100dvh;box-sizing:border-box;
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}`}</style>
       <DevSupabaseEnvBanner />
       {isMobileLayout && mobileNavOpen && (
         <div
@@ -1724,7 +1740,10 @@ export default function FarmaxAdmin(){
           aria-expanded={mobileNavOpen}
           onClick={()=>setMobileNavOpen(o=>!o)}
           style={{
-            position:"fixed",top:12,left:12,zIndex:999,
+            position:"fixed",
+            top:"calc(12px + env(safe-area-inset-top, 0px))",
+            left:"calc(12px + env(safe-area-inset-left, 0px))",
+            zIndex:999,
             width:44,height:44,borderRadius:10,
             border:`1px solid ${C.border}`,background:C.card,
             boxShadow:"0 4px 20px rgba(0,0,0,.08)",cursor:"pointer",
@@ -1746,12 +1765,15 @@ export default function FarmaxAdmin(){
         badgeCounts={badgeCounts}
         badgeCritical={badgeCritical}
       />
-      <main style={{
+      <main className="farmax-admin-main" style={{
         marginLeft:isMobileLayout?0:220,
-        padding:isMobileLayout?"56px 16px 20px":28,
-        minHeight:"100vh",
-        maxWidth:isMobileLayout?"100%":"calc(100vw - 220px)",
-        width:"100%",
+        padding:isMobileLayout
+          ? "calc(56px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) calc(20px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px))"
+          : "clamp(16px, 3vw, 28px)",
+        /* En escritorio: NO usar width:100% con marginLeft (provoca overflow horizontal al redimensionar). */
+        ...(isMobileLayout
+          ? { width: "100%", maxWidth: "100%" }
+          : { width: "auto", maxWidth: "none", minWidth: 0 }),
         overflowX:"hidden",
         boxSizing:"border-box",
       }}>

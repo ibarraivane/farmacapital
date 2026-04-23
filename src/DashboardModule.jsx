@@ -48,6 +48,9 @@ const fmt     = (n) => `$${parseFloat(n||0).toLocaleString("es-MX",{minimumFract
 const fmtK    = (n) => n>=1000?`$${(n/1000).toFixed(1)}k`:fmt(n);
 const fmtDate = () => new Date().toLocaleDateString("es-MX",{weekday:"long",day:"2-digit",month:"long",year:"numeric"});
 
+/** Grilla 2 columnas que en ventanas estrechas pasa a 1 columna (Chrome / escritorio redimensionado). */
+const GRID_RESP_2COL = "repeat(auto-fit, minmax(min(100%, 280px), 1fr))";
+
 const rangeToday = () => { const d=new Date(),y=d.getFullYear(),m=d.getMonth(),dd=d.getDate(); return {start:new Date(y,m,dd,0,0,0).toISOString(),end:new Date(y,m,dd,23,59,59).toISOString()}; };
 const rangeWeek  = () => { const d=new Date(); d.setDate(d.getDate()-7); return {start:d.toISOString(),end:new Date().toISOString()}; };
 const rangeMonth = () => { const d=new Date(),y=d.getFullYear(),m=d.getMonth(); return {start:new Date(y,m,1).toISOString(),end:new Date().toISOString()}; };
@@ -100,15 +103,15 @@ function BarChart({ data, colorFn }) {
   return (
     <div style={{display:"flex",flexDirection:"column",gap:10}}>
       {data.map((d,i)=>(
-        <div key={i} style={{display:"flex",alignItems:"center",gap:12}}>
-          <div style={{width:110,color:C.textMid,fontSize:12,textAlign:"right",flexShrink:0}}>{d.label}</div>
-          <div style={{flex:1,background:C.bg,borderRadius:6,height:28,overflow:"hidden",position:"relative"}}>
+        <div key={i} style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+          <div style={{flex:"0 1 100px",minWidth:0,maxWidth:"100%",color:C.textMid,fontSize:12,textAlign:"right"}}>{d.label}</div>
+          <div style={{flex:"1 1 120px",minWidth:80,background:C.bg,borderRadius:6,height:28,overflow:"hidden",position:"relative"}}>
             <div style={{position:"absolute",left:0,top:0,bottom:0,width:`${Math.max((d.value/max)*100,1)}%`,background:colorFn?colorFn(i):BRAND.gradient,borderRadius:6,transition:"width .6s ease",display:"flex",alignItems:"center",paddingLeft:8}}>
               {d.value>max*0.15&&<span style={{color:"#fff",fontSize:11,fontWeight:700}}>{fmtK(d.value)}</span>}
             </div>
             {d.value<=max*0.15&&<span style={{position:"absolute",left:`${(d.value/max)*100+1}%`,top:"50%",transform:"translateY(-50%)",color:C.textMid,fontSize:11,fontWeight:700}}>{fmtK(d.value)}</span>}
           </div>
-          <div style={{width:80,color:C.text,fontSize:11,fontWeight:700,flexShrink:0}}>{fmt(d.value)}</div>
+          <div style={{flex:"0 1 auto",minWidth:0,color:C.text,fontSize:11,fontWeight:700}}>{fmt(d.value)}</div>
         </div>
       ))}
     </div>
@@ -485,9 +488,9 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
   }, [panelTab, periodo, fetchRep]);
 
   if (loading) return (
-    <div style={{padding:24}}>
+    <div style={{padding:"clamp(12px, 3vw, 24px)",overflowX:"hidden"}}>
       <SkeletonKPIs count={5}/>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}>
+      <div style={{display:"grid",gridTemplateColumns:GRID_RESP_2COL,gap:16,marginBottom:16}}>
         <SkeletonCard height={200}/>
         <SkeletonCard height={200}/>
       </div>
@@ -521,13 +524,13 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
   },{}) : {};
 
   return (
-    <div style={{padding:24,background:C.bg,minHeight:"100vh",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:12}}>
-        <div>
-          <h1 style={{margin:0,color:C.text,fontSize:20,fontWeight:800}}>◈ Dashboard y reportes</h1>
+    <div style={{padding:"clamp(12px, 3vw, 24px)",background:C.bg,minHeight:"100dvh",fontFamily:"'Plus Jakarta Sans',sans-serif",overflowX:"hidden",overflowWrap:"break-word"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16,flexWrap:"wrap",gap:12}}>
+        <div style={{minWidth:0,flex:"1 1 200px"}}>
+          <h1 style={{margin:0,color:C.text,fontSize:"clamp(17px, 2.5vw, 20px)",fontWeight:800,lineHeight:1.2}}>◈ Dashboard y reportes</h1>
           <p style={{margin:"4px 0 0",color:C.textMid,fontSize:12,textTransform:"capitalize"}}>{fmtDate()}</p>
         </div>
-        <div style={{display:"flex",gap:10,alignItems:"center"}}>
+        <div style={{display:"flex",gap:10,alignItems:"center",flexShrink:0,flexWrap:"wrap"}}>
           <div style={{color:C.textMid,fontSize:12}}><strong style={{color:C.text}}>{saludoUsuario(usuario?.nombre)}</strong> 👋</div>
           <button type="button" onClick={()=>{ fetchAll(); if(panelTab==="resumen"||panelTab==="margen") fetchRep(); }} style={{padding:"7px 14px",borderRadius:8,border:`1px solid ${C.border}`,background:"transparent",color:C.textMid,cursor:"pointer",fontWeight:700,fontSize:12}}>🔄 Actualizar</button>
         </div>
@@ -661,8 +664,8 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
                 <KPI label="Ticket promedio" value={$(ticketPromedio)} col={C.green} icon="🧾"/>
                 <KPI label="Clientes nuevos" value={rep.clientes} col={C.amber} icon="👤"/>
               </div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}>
-                <Box style={{padding:20}}>
+              <div style={{display:"grid",gridTemplateColumns:GRID_RESP_2COL,gap:16,marginBottom:16}}>
+                <Box style={{padding:20,minWidth:0}}>
                   <div style={{color:C.text,fontWeight:700,fontSize:14,marginBottom:16}}>📊 Ingresos por fuente</div>
                   {[
                     ["Farmacia física", totalVentas-totalOnline-ingresoConsultas, C.blue],
@@ -684,7 +687,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
                     );
                   })}
                 </Box>
-                <Box style={{padding:20}}>
+                <Box style={{padding:20,minWidth:0}}>
                   <div style={{color:C.text,fontWeight:700,fontSize:14,marginBottom:12}}>💼 Inversión del proyecto</div>
                   <p style={{margin:0,color:C.textMid,fontSize:12,lineHeight:1.5}}>
                     El desglose de obra, mobiliario, stock inicial y retorno frente a la inversión total está en la pestaña <strong style={{color:C.text}}>Proyecto Farma · inversión</strong>.
@@ -832,8 +835,8 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
         CAPEX de apertura, payback y % recuperado están en <button type="button" onClick={()=>setPanelTab("proyecto")} style={{padding:0,border:"none",background:"none",color:BRAND.primary,fontWeight:800,cursor:"pointer",textDecoration:"underline"}}>Proyecto Farma · inversión</button>.
       </p>
 
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20,marginBottom:24}}>
-        <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:20}}>
+      <div style={{display:"grid",gridTemplateColumns:GRID_RESP_2COL,gap:20,marginBottom:24}}>
+        <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:20,minWidth:0}}>
           <div style={{color:C.textDim,fontSize:10,fontWeight:700,letterSpacing:1.5,marginBottom:16}}>INGRESOS POR FUENTE — ESTE MES</div>
           <BarChart data={fuentes} colorFn={(i)=>[`linear-gradient(90deg,${C.blue},${C.blueDark})`,`linear-gradient(90deg,${C.purple},#b57aff)`,`linear-gradient(90deg,${C.green},#00e87d)`][i]}/>
           <div style={{marginTop:14,borderTop:`1px solid ${C.border}`,paddingTop:12,display:"flex",justifyContent:"space-between"}}>
@@ -841,7 +844,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
             <span style={{color:C.text,fontWeight:800,fontSize:13}}>{fmt(fuentes.reduce((a,f)=>a+f.value,0))}</span>
           </div>
         </div>
-        <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:20}}>
+        <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:20,minWidth:0}}>
           <div style={{color:C.textDim,fontSize:10,fontWeight:700,letterSpacing:1.5,marginBottom:16}}>VENTAS POR EMPLEADO — ESTE MES</div>
           {empleados.length===0
             ? <div style={{color:C.textMid,fontSize:12,textAlign:"center",padding:20}}>Sin datos este mes</div>
