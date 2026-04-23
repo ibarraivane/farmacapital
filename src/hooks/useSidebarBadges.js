@@ -54,8 +54,10 @@ export default function useSidebarBadges(currentPage) {
       // El badge de inv consolidó Reabasto y Lotes PEPS en tabs. Solo mostramos
       // el crítico (bajo stock) en el sidebar — por caducar sigue visible en la
       // tab Lotes y en "Lo que necesitas hacer hoy" del dashboard.
+      const pend = onlinePend ?? 0;
       const nextCounts = {
-        pos:  onlinePend ?? 0,
+        pos:  pend,
+        ped_online: pend,
         inv:  bajoStock ?? 0,
         caja: cortesDif ?? 0,
         cof:  cofeprisCount,

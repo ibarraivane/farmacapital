@@ -14,6 +14,12 @@ const SLUG_TO_PAGE = {
   exp_dr: "exp_dr",
   "mi-consultorio": "cons_dr",
   cons_dr: "cons_dr",
+  "agenda-consultas": "agenda",
+  agenda: "agenda",
+  transacciones: "trans",
+  trans: "trans",
+  "pedidos-online": "ped_online",
+  ped_online: "ped_online",
   "cobrar-consulta": "cons_cobro",
   cons_cobro: "cons_cobro",
 };
@@ -25,6 +31,9 @@ const PAGE_TO_SLUG = {
   dash: "ventas",
   exp_dr: "expedientes",
   cons_dr: "mi-consultorio",
+  agenda: "agenda-consultas",
+  trans: "transacciones",
+  ped_online: "pedidos-online",
   cons_cobro: "cobrar-consulta",
 };
 

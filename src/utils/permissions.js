@@ -32,10 +32,13 @@ export const MODULOS_DISPONIBLES_VENDEDOR = [
   "midia",      // Su pantalla de inicio (default del rol)
   "pos",        // POS principal (default del rol)
   "cons_cobro", // Cobrar consultas (default del rol)
+  "agenda",     // Calendario / consultas del día (operativo; sin ficha clínica completa)
+  "trans",      // Listado de transacciones / pedidos
   "inv",        // Inventario (consulta, catálogo, lotes)
   "cli",        // Clientes (ver / registrar)
   "cof",        // COFEPRIS (bitácora al vender controlados)
   "caja",       // Corte de caja (admin puede habilitarlo a un líder de turno)
+  "ped_online", // Atajo a pedidos web (mismo POS, pestaña online)
   "pwa",        // Instalar app
 ];
 

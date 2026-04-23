@@ -2,14 +2,15 @@ import React, { useState, useEffect, useRef, useCallback, lazy, Suspense } from 
 import { useMediaQuery } from "./hooks/useMediaQuery";
 import useSidebarBadges from "./hooks/useSidebarBadges";
 import { supabase, isSupabaseLocalMisconfigured } from "./supabase";
-import { C as _C, C_LIGHT, BRAND, NEG, NAV_ADMIN, NAV_VENDEDOR, NAV_DOCTORA, NAV_ITEMS } from "./constants";
+import { C as _C, C_LIGHT, BRAND, NEG, NAV_ADMIN, NAV_VENDEDOR, NAV_DOCTORA, NAV_ITEMS, ADMIN_NAV_SECTIONS } from "./constants";
 import { $, dC, cC, abc, aCol, nCol, hashPwd, hashPwdLegacy, generateSalt, primerNombre, saludoUsuario, normalizarSesionLoginResp } from "./utils";
 import { Logo, Box, Tag, Btn, Inp, KPI, Modal, NotificacionesToast, showToast, ToastProvider, ConfirmDialog, SkeletonTable, SkeletonKPIs, SkeletonCard, Paginador, GlobalHoverStyles } from "./ui";
 import { sincronizarVentasPendientes, contarVentasPendientes } from "./utils/offlineQueue";
 import { esPedidoTiendaWebPendiente, fetchPedidosTiendaPendientesMerged } from "./utils/pedidosTiendaWeb";
-import ConsDoctora from "./modules/clinical/ConsDoctora";
+import AgendaConsultasModule from "./modules/clinical/AgendaConsultasModule";
+import TransaccionesTab from "./TransaccionesTab";
 import ExpedientesDoctora from "./modules/clinical/patients/ExpedientesDoctora";
-import { loadAdminNavOrder, saveAdminNavOrder, reorderNavIds, mergeAdminNavOrder, clearAdminNavOrder } from "./utils/adminNavOrder";
+import { loadAdminNavOrder, mergeAdminNavOrder, clearAdminNavOrder } from "./utils/adminNavOrder";
 import { puedeVerModulo, modulosPermitidosParaRol } from "./utils/permissions";
 import { adminPathnameToPageId, pageIdToAdminPath } from "./shared/adminRoutes";
 import { initBillingListeners } from "./modules/billing/core/initBillingListeners";
@@ -259,6 +260,33 @@ function LoginScreen({onLogin}){
 // ══════════════════════════════════════════════════════════════
 // SIDEBAR
 // ══════════════════════════════════════════════════════════════
+/** Agrupa entradas del admin por área de trabajo (orden fijo por sección). */
+function groupAdminNavForRender(navIds) {
+  const used = new Set();
+  const out = [];
+  for (const sec of ADMIN_NAV_SECTIONS) {
+    const ids = navIds.filter((id) => sec.ids.includes(id));
+    ids.forEach((id) => used.add(id));
+    if (ids.length) {
+      out.push({ type: "section", title: sec.title });
+      ids.forEach((id) => out.push({ type: "item", id }));
+    }
+  }
+  const extra = navIds.filter((id) => !used.has(id));
+  if (extra.length) {
+    out.push({ type: "section", title: "Otros" });
+    extra.forEach((id) => out.push({ type: "item", id }));
+  }
+  return out;
+}
+
+function farmaxNavLabel(item, usuario) {
+  if (!item) return "";
+  if (item.id === "agenda" && usuario?.rol === "vendedor") return "Consultas del día";
+  if (item.id === "cons_dr" && usuario?.rol === "doctora") return "Agenda médica";
+  return item.label;
+}
+
 function SidebarBadge({count, critical}) {
   if (!count) return null;
   const C = C_LIGHT;
@@ -282,10 +310,6 @@ function AdminNavSidebar({active,setActive,negocio,setNegocio,usuario,onLogout,a
   const C = C_LIGHT;
   const isAdmin = usuario.rol==="admin";
   const [adminOrder, setAdminOrder] = useState(() => (isAdmin ? loadAdminNavOrder(usuario) : null));
-  const [draggingId, setDraggingId] = useState(null);
-  const [dragOverId, setDragOverId] = useState(null);
-  /** Evita que el clic después de arrastrar active la misma fila. */
-  const skipClickForIdRef = useRef(null);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -311,30 +335,16 @@ function AdminNavSidebar({active,setActive,negocio,setNegocio,usuario,onLogout,a
   const navItems = navIds.map((id) => NAV_ITEMS.find((n) => n.id === id)).filter(Boolean);
   const rolColor = usuario.rol==="admin"?C.purple:usuario.rol==="vendedor"?C.blue:C.green;
 
-  const onNavDrop = (e, targetId) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const fromId = (e.dataTransfer.getData("application/x-farmax-nav") || e.dataTransfer.getData("text/plain") || "").trim();
-    if (!fromId || fromId === targetId) {
-      setDraggingId(null);
-      setDragOverId(null);
-      return;
-    }
-    setAdminOrder((prev) => {
-      const base = prev ?? [...NAV_ADMIN];
-      const next = reorderNavIds(base, fromId, targetId);
-      saveAdminNavOrder(usuario, next);
-      return next;
-    });
-    setDraggingId(null);
-    setDragOverId(null);
-  };
-
-  const handleNavDragOver = (e, rowId) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-    setDragOverId(rowId);
-  };
+  const btnStyleBase = (rowActive) => ({
+    flex:1,minWidth:0,
+    display:"flex",alignItems:"center",gap:10,
+    padding:"8px 10px",borderRadius:8,border:"none",cursor:"pointer",
+    textAlign:"left",fontSize:12,fontWeight:600,fontFamily:"'Plus Jakarta Sans',sans-serif",
+    background:rowActive?BRAND.primary+"18":"transparent",
+    color:rowActive?BRAND.primary:C.textMid,
+    borderLeft:`3px solid ${rowActive?BRAND.primary:"transparent"}`,
+    transition:"all .15s",
+  });
 
   return(
     <div
@@ -370,105 +380,121 @@ function AdminNavSidebar({active,setActive,negocio,setNegocio,usuario,onLogout,a
       </div>
 
       <div style={{flex:1,padding:"8px 8px",overflowY:"auto",scrollbarWidth:"thin",scrollbarColor:`${BRAND.primary}30 transparent`}}>
-        {navItems.map((n) => {
-          const rowActive = active === n.id;
-          const rowDrop = isAdmin && dragOverId === n.id && draggingId && draggingId !== n.id;
-          const btnStyle = {
-            flex:1,minWidth:0,
-            display:"flex",alignItems:"center",gap:10,
-            padding:"8px 10px",borderRadius:8,border:"none",cursor:"pointer",
-            textAlign:"left",fontSize:12,fontWeight:600,fontFamily:"'Plus Jakarta Sans',sans-serif",
-            background:rowActive?BRAND.primary+"18":"transparent",
-            color:rowActive?BRAND.primary:C.textMid,
-            borderLeft:`3px solid ${rowActive?BRAND.primary:"transparent"}`,
-            transition:"all .15s",
-          };
-          if (!isAdmin) {
+        {isAdmin
+          ? <>
+            {groupAdminNavForRender(navIds).map((row, idx) => {
+              if (row.type === "section") {
+                return (
+                  <div
+                    key={`sec-${row.title}-${idx}`}
+                    style={{
+                      padding: "12px 10px 4px",
+                      color: C.textDim,
+                      fontSize: 10,
+                      fontWeight: 800,
+                      letterSpacing: 0.5,
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    {row.title}
+                  </div>
+                );
+              }
+              const n = NAV_ITEMS.find((x) => x.id === row.id);
+              if (!n) return null;
+              const rowActive = active === n.id;
+              const btnStyle = btnStyleBase(rowActive);
+              return (
+                <button
+                  key={n.id}
+                  type="button"
+                  onClick={() => setActive(n.id)}
+                  onMouseEnter={(e) => {
+                    if (!rowActive) {
+                      e.currentTarget.style.background = BRAND.primary + "10";
+                      e.currentTarget.style.color = BRAND.primary;
+                      e.currentTarget.style.borderLeftColor = BRAND.primary + "50";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!rowActive) {
+                      e.currentTarget.style.background = "transparent";
+                      e.currentTarget.style.color = C.textMid;
+                      e.currentTarget.style.borderLeftColor = "transparent";
+                    }
+                  }}
+                  style={{ ...btnStyle, width: "100%", marginBottom: 2 }}
+                >
+                  <span style={{ width: 18, height: 18, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    {typeof n.icon === "string" ? (
+                      <span style={{ fontSize: 12 }}>{n.icon}</span>
+                    ) : n.icon ? (
+                      <n.icon size={16} strokeWidth={2.1} />
+                    ) : null}
+                  </span>
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{farmaxNavLabel(n, usuario)}</span>
+                  <SidebarBadge count={badgeCounts[n.id]} critical={badgeCritical[n.id]} />
+                </button>
+              );
+            })}
+            <button
+              type="button"
+              onClick={() => {
+                clearAdminNavOrder(usuario);
+                setAdminOrder(mergeAdminNavOrder(null));
+                showToast("Orden del menú restaurado (lista canónica por sección)", "info");
+              }}
+              style={{
+                width: "100%",
+                marginTop: 10,
+                padding: "6px 8px",
+                borderRadius: 8,
+                border: `1px dashed ${C.border}`,
+                background: "transparent",
+                color: C.textDim,
+                fontSize: 10,
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              Restaurar lista de módulos
+            </button>
+          </>
+          : navItems.map((n) => {
+            const rowActive = active === n.id;
+            const btnStyle = btnStyleBase(rowActive);
             return (
-              <button key={n.id} onClick={()=>setActive(n.id)}
-                onMouseEnter={e=>{if(!rowActive){e.currentTarget.style.background=BRAND.primary+"10";e.currentTarget.style.color=BRAND.primary;e.currentTarget.style.borderLeftColor=BRAND.primary+"50";}}}
-                onMouseLeave={e=>{if(!rowActive){e.currentTarget.style.background="transparent";e.currentTarget.style.color=C.textMid;e.currentTarget.style.borderLeftColor="transparent";}}}
-                style={{...btnStyle,width:"100%",marginBottom:2}}>
-                <span style={{width:18,height:18,display:"inline-flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                  {typeof n.icon === "string"
-                    ? <span style={{fontSize:12}}>{n.icon}</span>
-                    : n.icon ? <n.icon size={16} strokeWidth={2.1} /> : null}
+              <button
+                key={n.id}
+                onClick={() => setActive(n.id)}
+                onMouseEnter={(e) => {
+                  if (!rowActive) {
+                    e.currentTarget.style.background = BRAND.primary + "10";
+                    e.currentTarget.style.color = BRAND.primary;
+                    e.currentTarget.style.borderLeftColor = BRAND.primary + "50";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!rowActive) {
+                    e.currentTarget.style.background = "transparent";
+                    e.currentTarget.style.color = C.textMid;
+                    e.currentTarget.style.borderLeftColor = "transparent";
+                  }
+                }}
+                style={{ ...btnStyle, width: "100%", marginBottom: 2 }}
+              >
+                <span style={{ width: 18, height: 18, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  {typeof n.icon === "string" ? (
+                    <span style={{ fontSize: 12 }}>{n.icon}</span>
+                  ) : n.icon ? (
+                    <n.icon size={16} strokeWidth={2.1} />
+                  ) : null}
                 </span>
-                <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>{n.label}</span>
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{farmaxNavLabel(n, usuario)}</span>
                 <SidebarBadge count={badgeCounts[n.id]} critical={badgeCritical[n.id]} />
               </button>
             );
-          }
-          return (
-            <div
-              key={n.id}
-              draggable
-              role="row"
-              aria-grabbed={draggingId===n.id}
-              onDragStart={(e)=>{
-                e.dataTransfer.setData("text/plain", n.id);
-                e.dataTransfer.setData("application/x-farmax-nav", n.id);
-                e.dataTransfer.effectAllowed = "move";
-                setDraggingId(n.id);
-              }}
-              onDragEnd={()=>{
-                skipClickForIdRef.current = n.id;
-                setDraggingId(null);
-                setDragOverId(null);
-                window.setTimeout(() => {
-                  if (skipClickForIdRef.current === n.id) skipClickForIdRef.current = null;
-                }, 400);
-              }}
-              onDragOver={(e)=>handleNavDragOver(e, n.id)}
-              onDragLeave={(e)=>{ if (!e.currentTarget.contains(e.relatedTarget)) setDragOverId((d)=>d===n.id?null:d); }}
-              onDrop={(e)=>onNavDrop(e, n.id)}
-              onClick={(e)=>{
-                if (skipClickForIdRef.current === n.id) {
-                  skipClickForIdRef.current = null;
-                  e.preventDefault();
-                  return;
-                }
-                setActive(n.id);
-              }}
-              style={{
-                display:"flex",alignItems:"stretch",gap:0,marginBottom:2,width:"100%",
-                borderRadius:8,
-                outline:rowDrop?`2px dashed ${BRAND.primary}`:"none",
-                outlineOffset:1,
-                opacity:draggingId===n.id?0.55:1,
-                cursor:draggingId===n.id?"grabbing":"grab",
-                userSelect:"none",
-              }}
-            >
-              <div style={{...btnStyle,width:"100%",margin:0}}>
-                <span style={{width:18,height:18,display:"inline-flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                  {typeof n.icon === "string"
-                    ? <span style={{fontSize:12}}>{n.icon}</span>
-                    : n.icon ? <n.icon size={16} strokeWidth={2.1} /> : null}
-                </span>
-                <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>{n.label}</span>
-                <SidebarBadge count={badgeCounts[n.id]} critical={badgeCritical[n.id]} />
-              </div>
-            </div>
-          );
-        })}
-        {isAdmin && (
-          <button
-            type="button"
-            onClick={()=>{
-              clearAdminNavOrder(usuario);
-              setAdminOrder(mergeAdminNavOrder(null));
-              showToast("Orden del menú restaurado", "info");
-            }}
-            style={{
-              width:"100%",marginTop:10,padding:"6px 8px",borderRadius:8,
-              border:`1px dashed ${C.border}`,background:"transparent",color:C.textDim,
-              fontSize:10,fontWeight:600,cursor:"pointer",
-            }}
-          >
-            Restaurar orden predeterminado
-          </button>
-        )}
+          })}
       </div>
 
       {/* Alertas y logout */}
@@ -1592,13 +1618,21 @@ export default function FarmaxAdmin(){
     return ()=>clearInterval(interval);
   },[usuario]);
 
+  // Admin ya no usa el id cons_dr en menú; deep links y sesiones viejas se redirigen a agenda.
+  useEffect(() => {
+    if (!usuario || usuario.rol !== "admin") return;
+    if (page !== "cons_dr") return;
+    setPageAndSave("agenda");
+  }, [usuario, page]);
+
   // Página inicial: deep link /admin/consultorio, etc. tiene prioridad; si no, default por rol.
   useEffect(() => {
     if (!usuario) return;
     const fromUrl = adminPathnameToPageId(window.location.pathname);
     if (fromUrl) {
       const migrated = migratePageId(fromUrl);
-      const next = migrated.page;
+      let next = migrated.page;
+      if (usuario.rol === "admin" && next === "cons_dr") next = "agenda";
       try {
         sessionStorage.setItem("farmax_active_page", next);
         if (next === "inv" && migrated.invTab) {
@@ -1676,8 +1710,13 @@ export default function FarmaxAdmin(){
       case "cons":      return <ConsultorioModule usuario={usuario}/>;
       case "config_cons": return <ConfigConsultorioModule />;
       case "cons_cobro":return <POS negocio={neg} usuario={usuario} initialTab="consultas" onNavigate={setPageAndSave}/>;
-      case "cons_dr":   return <ConsDoctora />;
+      case "agenda":
+      case "cons_dr":
+        return <AgendaConsultasModule usuario={usuario} onNavigate={setPageAndSave} />;
       case "exp_dr":    return <ExpedientesDoctora />;
+      case "trans":     return <TransaccionesTab usuario={usuario} showConfirm={showConfirm} />;
+      case "ped_online":
+        return <POS negocio={neg} usuario={usuario} initialTab="online" onNavigate={setPageAndSave} />;
       case "inv":  return <InventarioHub initialTab={invInitialTab}/>;
       case "rrhh": return <RRHHModule/>;
       case "caja":  return <CorteCajaModule usuario={usuario}/>;

@@ -28,27 +28,37 @@ export const NEG = {
 };
 
 // ── Navegación agrupada por área ────────────────────────────
-// VENTAS: pos, cons_cobro (mismo POS; cons_cobro abre pestaña Consultas)
-// DOCTORA (también admin): cons_dr, exp_dr
-// INVENTARIO: inv (hub con tabs catálogo/reabasto/lotes)
-// OPERACIONES: caja, cons (consultorio + procedimientos), cli
-// NEGOCIO: dash, promo, fact
-// COMPLIANCE: cof
-// EQUIPO: rrhh, usuarios
-// SISTEMA: banners, bot, pwa, dev
+// Admin: ver ADMIN_NAV_SECTIONS (sidebar con títulos de sección).
+// agenda = calendario de consultas (admin/vendedor); cons_dr = misma vista, id reservado a doctora.
+// trans = Transacciones (listado de pedidos); ped_online = POS pestaña pedidos web.
+// VENTAS: pos, cons_cobro, ped_online
+// INVENTARIO: inv (hub catálogo / lotes / reabasto)
+// DOCTORA: cons_dr (agenda médica), exp_dr, cli, cons, pwa
 export const NAV_ADMIN = [
-  "dash",
-  "pos","cons_cobro",
-  "cons_dr","exp_dr",
+  "dash", "pos", "cons_cobro", "trans", "cli", "caja", "ped_online",
   "inv",
-  "caja","cons","config_cons","cli",
-  "rrhh",
-  "cof",
-  "promo","dev","fact",
-  "banners","bot","pwa","usuarios"
+  "agenda", "cons", "exp_dr",
+  "cof", "dev", "fact",
+  "promo", "banners", "bot", "config_cons",
+  "usuarios", "rrhh",
+  "pwa",
 ];
-export const NAV_VENDEDOR = ["midia","pos","cons_cobro"];
-export const NAV_DOCTORA  = ["cons_dr","exp_dr"];
+
+/** Títulos del sidebar admin (sin mezclar “vistas por rol”; solo agrupa trabajo). */
+export const ADMIN_NAV_SECTIONS = [
+  { title: "Operación diaria", ids: ["dash", "pos", "cons_cobro", "trans", "cli", "caja", "ped_online"] },
+  { title: "Inventario", ids: ["inv"] },
+  { title: "Consultorio", ids: ["agenda", "cons", "exp_dr"] },
+  { title: "Control y cumplimiento", ids: ["cof", "dev", "fact"] },
+  { title: "Comercial y crecimiento", ids: ["promo", "banners", "bot", "config_cons"] },
+  { title: "Administración interna", ids: ["usuarios", "rrhh"] },
+  { title: "Sistema", ids: ["pwa"] },
+];
+
+export const NAV_VENDEDOR = [
+  "midia", "pos", "cons_cobro", "agenda", "trans", "cli", "inv", "caja", "cof", "ped_online", "pwa",
+];
+export const NAV_DOCTORA = ["cons_dr", "exp_dr", "cli", "cons", "pwa"];
 
 // Iconos: usamos lucide-react (componentes) en vez de emojis para look consistente.
 // El render del Sidebar acepta tanto componentes como strings (compatibilidad).
@@ -56,8 +66,8 @@ import {
   LayoutDashboard, ShoppingCart, Package,
   Wallet, Stethoscope, Users, UserCog, ShieldCheck,
   Target, Undo2, Receipt, Image as ImageIcon, Sparkles,
-  Download, UserPlus, Settings, CreditCard, HeartPulse,
-  SlidersHorizontal, Gauge, FolderOpen,
+  Download, UserPlus, CreditCard, HeartPulse,
+  SlidersHorizontal, Gauge, FolderOpen, CalendarDays, ListOrdered, Globe,
 } from "lucide-react";
 
 export const NAV_ITEMS = [
@@ -87,7 +97,10 @@ export const NAV_ITEMS = [
   {id:"pwa",        icon: Download,        label:"Instalar app"},
   {id:"usuarios",   icon: UserPlus,        label:"Usuarios"},
   // ══ ROLES ESPECIALES (vendedor / doctora) ══
-  {id:"cons_cobro", icon: CreditCard,      label:"Cobrar Consulta"},
-  {id:"cons_dr",    icon: HeartPulse,      label:"Mi Consultorio"},
+  {id:"cons_cobro", icon: CreditCard,      label:"Cobrar consulta"},
+  {id:"agenda",     icon: CalendarDays,    label:"Agenda de consultas"},
+  {id:"cons_dr",    icon: HeartPulse,      label:"Agenda médica"},
   {id:"exp_dr",     icon: FolderOpen,      label:"Expedientes"},
+  {id:"trans",      icon: ListOrdered,     label:"Transacciones"},
+  {id:"ped_online", icon: Globe,           label:"Pedidos online"},
 ];

@@ -1,12 +1,27 @@
 import { NAV_ADMIN } from "../constants";
 
+/** Normaliza ids legacy del menú admin (cons_dr → agenda en panel admin). */
+function normalizeSavedNavIds(saved) {
+  if (!Array.isArray(saved)) return [];
+  const out = [];
+  const seen = new Set();
+  for (let id of saved) {
+    if (id === "cons_dr") id = "agenda";
+    if (seen.has(id)) continue;
+    seen.add(id);
+    out.push(id);
+  }
+  return out;
+}
+
 /** Fusiona orden guardado con la lista canónica actual (nuevos módulos al final). */
 export function mergeAdminNavOrder(saved) {
   if (!Array.isArray(saved) || !saved.length) return [...NAV_ADMIN];
   const canon = new Set(NAV_ADMIN);
+  const normalized = normalizeSavedNavIds(saved);
   const out = [];
   const seen = new Set();
-  for (const id of saved) {
+  for (const id of normalized) {
     if (canon.has(id) && !seen.has(id)) {
       out.push(id);
       seen.add(id);
