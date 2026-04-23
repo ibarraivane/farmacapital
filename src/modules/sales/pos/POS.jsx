@@ -16,8 +16,8 @@ import OnboardingTour from "../../../components/OnboardingTour";
 
 export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const C = C_LIGHT;
-  /** Vista estrecha: celular o ventana de escritorio angosta (mismo criterio que el admin). */
-  const isNarrow = useMediaQuery("(max-width: 920px)");
+  /** Vista estrecha: coincide con CSS .farmax-pos-venta-grid (max-width 1100px). */
+  const isNarrow = useMediaQuery("(max-width: 1100px)");
   const [tab,setTab]         = useState(initialTab); // venta | online | consultas
   const [productos,setProds] = useState([]);
   const [cart,setCart]       = useState([]);
@@ -730,7 +730,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   };
 
   return(
-    <div style={{
+    <div className="farmax-pos-root" style={{
       width:"100%",
       maxWidth:"100%",
       minWidth:0,
@@ -738,6 +738,25 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       overflowX:"hidden",
       paddingBottom:"max(8px, env(safe-area-inset-bottom, 0px))",
     }}>
+      <style>{`
+        /* Forzar 1 columna en móvil/tablet aunque JS o “sitio de escritorio” fallen; gana sobre inline. */
+        @media (max-width: 1100px) {
+          .farmax-pos-root { overflow-x: hidden; max-width: 100%; }
+          .farmax-pos-venta-grid {
+            grid-template-columns: 1fr !important;
+            width: 100% !important;
+            max-width: 100% !important;
+          }
+          .farmax-pos-cart-col {
+            position: static !important;
+            top: auto !important;
+            max-height: none !important;
+            overflow-y: visible !important;
+            width: 100% !important;
+            max-width: 100% !important;
+          }
+        }
+      `}</style>
       <div style={{ marginBottom: isNarrow ? 12 : 20 }}>
         {loadErr && (
         <div style={{
@@ -917,7 +936,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
 
       {/* TAB: VENTA NORMAL */}
       {tab==="venta"&&(
-        <div style={{
+        <div className="farmax-pos-venta-grid" style={{
           display:"grid",
           gridTemplateColumns: isNarrow
             ? "1fr"
@@ -926,6 +945,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
           alignItems:"start",
           position:"relative",
           minWidth:0,
+          width:"100%",
+          maxWidth:"100%",
         }}>
           <div style={{ minWidth: 0 }}>
             <div style={{display:"flex",gap:8,marginBottom:12,alignItems:"center",flexWrap: isNarrow ? "wrap" : "nowrap"}}>
@@ -1036,11 +1057,12 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
             </div>
           </div>
           {/* Carrito */}
-          {cartOpen&&<div data-tour="pos-carrito" style={{
+          {cartOpen&&<div className="farmax-pos-cart-col" data-tour="pos-carrito" style={{
             position: isNarrow ? "static" : "sticky",
             top: isNarrow ? undefined : 12,
             alignSelf: "start",
             minWidth: 0,
+            maxWidth: "100%",
             maxHeight: isNarrow ? "none" : "calc(100dvh - 120px)",
             overflowY: isNarrow ? "visible" : "auto",
             WebkitOverflowScrolling: "touch",
