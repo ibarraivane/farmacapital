@@ -9,12 +9,21 @@
  *               Si no se pasa, cae a sessionStorage farmax_admin_user.
  *   - tourId:   "pos" | "inv" | "caja" | "cons"  (ver src/utils/tours.js)
  *   - autoStart: boolean  (default true; si false, solo se muestra FAB "?")
+ *   - showFab: boolean (default true). Si false, no se pinta el botón "?" fijo;
+ *               usa ref imperativo startTour() o un botón propio (p. ej. barra en POS).
  *
  * Uso:
  *   <OnboardingTour tourId="pos" usuario={usuario} />
  */
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useState,
+} from "react";
 import { Joyride, STATUS } from "react-joyride";
 import { TOURS, tourStorageKey } from "../utils/tours";
 
@@ -88,7 +97,10 @@ function filtrarPasosVivos(steps) {
   });
 }
 
-export default function OnboardingTour({ tourId, usuario, autoStart = true }) {
+const OnboardingTour = forwardRef(function OnboardingTour(
+  { tourId, usuario, autoStart = true, showFab = true },
+  ref
+) {
   const tour = TOURS[tourId];
   const user = usuario && usuario.id ? usuario : usuarioDeSesion();
   const storageKey = useMemo(
@@ -109,6 +121,14 @@ export default function OnboardingTour({ tourId, usuario, autoStart = true }) {
     setSteps(vivos);
     setRun(true);
   }, [tour, tourId]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      startTour: abrirTour,
+    }),
+    [abrirTour]
+  );
 
   // Auto-arranque si el usuario no lo ha visto.
   useEffect(() => {
@@ -158,30 +178,34 @@ export default function OnboardingTour({ tourId, usuario, autoStart = true }) {
         styles={JOYRIDE_STYLES}
         callback={handleCallback}
       />
-      <button
-        type="button"
-        onClick={abrirTour}
-        aria-label={tour.label}
-        title={tour.label}
-        style={{
-          position: "fixed",
-          right: 18,
-          bottom: 18,
-          width: 44,
-          height: 44,
-          borderRadius: 22,
-          border: "none",
-          background: "linear-gradient(135deg,#0052CC,#0099e6)",
-          color: "#fff",
-          fontWeight: 800,
-          fontSize: 20,
-          cursor: "pointer",
-          boxShadow: "0 8px 20px rgba(0, 82, 204, 0.35)",
-          zIndex: 9500,
-        }}
-      >
-        ?
-      </button>
+      {showFab ? (
+        <button
+          type="button"
+          onClick={abrirTour}
+          aria-label={tour.label}
+          title={tour.label}
+          style={{
+            position: "fixed",
+            right: 18,
+            bottom: 18,
+            width: 44,
+            height: 44,
+            borderRadius: 22,
+            border: "none",
+            background: "linear-gradient(135deg,#0052CC,#0099e6)",
+            color: "#fff",
+            fontWeight: 800,
+            fontSize: 20,
+            cursor: "pointer",
+            boxShadow: "0 8px 20px rgba(0, 82, 204, 0.35)",
+            zIndex: 9500,
+          }}
+        >
+          ?
+        </button>
+      ) : null}
     </>
   );
-}
+});
+
+export default OnboardingTour;

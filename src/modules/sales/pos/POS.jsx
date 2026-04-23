@@ -13,6 +13,7 @@ import { esPedidoTiendaWebPendiente, fetchPedidosTiendaPendientesMerged } from "
 import { desgloseCambioMN, sugerenciasPagoCliente } from "../../../utils/cambioCaja";
 import { marcarMedicamentosRecetaFarmaxSurtidos } from "../../../utils/recetaCitaSync";
 import OnboardingTour from "../../../components/OnboardingTour";
+import { TOURS } from "../../../utils/tours";
 
 export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const C = C_LIGHT;
@@ -23,6 +24,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const [cart,setCart]       = useState([]);
   const [srch,setSrch]       = useState("");
   const srchRef = useRef(null);
+  /** Tour POS: botón "?" va en la barra de carrito (no FAB esquina). */
+  const posTourRef = useRef(null);
   useEffect(()=>{ if(tab==="venta" && srchRef.current) srchRef.current.focus(); },[tab]);
   const [favs,setFavs]       = useState(()=>{ try{ return JSON.parse(localStorage.getItem("farmax_pos_favs")||"[]"); }catch{ return []; } });
   const toggleFav = id => {
@@ -980,6 +983,89 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
           maxWidth:"100%",
         }}>
           <div className="farmax-pos-products-col" style={{ minWidth: 0 }}>
+            <div
+              className="farmax-pos-venta-toolbar"
+              style={{
+                position: "sticky",
+                top: 0,
+                zIndex: 8,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "8px 0 10px",
+                marginBottom: 10,
+                background: C.card,
+                borderBottom: `1px solid ${C.border}`,
+                boxShadow: "0 4px 14px rgba(15,50,70,.06)",
+              }}
+            >
+              <button
+                type="button"
+                data-tour="pos-toolbar-carrito"
+                onClick={() => {
+                  setCartOpen(true);
+                  requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                      document
+                        .getElementById("farmax-pos-cart")
+                        ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                    });
+                  });
+                }}
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: "8px 12px",
+                  borderRadius: 10,
+                  border: `1px solid ${cart.length ? BRAND.primary : C.border}`,
+                  background: cart.length ? BRAND.primary + "16" : C.bg,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                  textAlign: "left",
+                }}
+              >
+                <span style={{ fontSize: 17, lineHeight: 1 }} aria-hidden>🛒</span>
+                <span style={{ fontWeight: 800, fontSize: 12, color: C.text }}>
+                  {cart.length}{" "}
+                  {cart.length === 1 ? "ítem" : "ítems"}
+                </span>
+                <span
+                  style={{
+                    marginLeft: "auto",
+                    fontWeight: 900,
+                    fontSize: isNarrow ? 14 : 15,
+                    color: C.blue,
+                  }}
+                >
+                  {$(total)}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => posTourRef.current?.startTour()}
+                aria-label={TOURS.pos?.label || "Tour del Punto de Venta"}
+                title={TOURS.pos?.label || "Tour del Punto de Venta"}
+                style={{
+                  width: 42,
+                  height: 42,
+                  borderRadius: 21,
+                  flexShrink: 0,
+                  border: "none",
+                  background: "linear-gradient(135deg,#0052CC,#0099e6)",
+                  color: "#fff",
+                  fontWeight: 800,
+                  fontSize: 18,
+                  lineHeight: 1,
+                  cursor: "pointer",
+                  boxShadow: "0 6px 16px rgba(0, 82, 204, 0.3)",
+                }}
+              >
+                ?
+              </button>
+            </div>
             <div style={{display:"flex",gap:8,marginBottom:12,alignItems:"center",flexWrap: isNarrow ? "wrap" : "nowrap"}}>
               <input ref={srchRef} value={srch} onChange={e=>setSrch(e.target.value)}
                 data-tour="pos-buscador"
@@ -1517,7 +1603,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
           })}
         </div>
       )}
-      <OnboardingTour tourId="pos" usuario={usuario} />
+      <OnboardingTour ref={posTourRef} tourId="pos" usuario={usuario} showFab={false} />
     </div>
   );
 }
