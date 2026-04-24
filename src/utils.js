@@ -25,6 +25,20 @@ export const nombreCompletoPacienteValido = (n) => {
   return parts.length >= 2;
 };
 
+/**
+ * Texto en minúsculas sin acentos ni marcas diacríticas (búsqueda tolerante).
+ * Ej.: "Paracetámol" y "paracetamol" comparten la misma forma normalizada.
+ */
+export const normalizeForSearch = (s) => {
+  if (s == null) return "";
+  const t = String(s).trim();
+  if (!t) return "";
+  return t
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase();
+};
+
 /** Primer nombre (primer token) para saludos en UI. */
 export const primerNombre = (nombre) => {
   const s = String(nombre ?? "").trim();

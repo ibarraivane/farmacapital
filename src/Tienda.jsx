@@ -93,6 +93,13 @@ function bannerVisualUrl(b, stack){
   return b.imagen_url || "";
 }
 
+/** Imagen de producto en catálogo / carrito: variante móvil si existe y viewport estrecho */
+function productImageUrl(prod, narrow){
+  if (!prod) return "";
+  if (narrow && prod.imagen_mobile_url) return prod.imagen_mobile_url;
+  return prod.imagen_url || "";
+}
+
 // ── FAQ ───────────────────────────────────────────────────────
 const FAQ_ITEMS = [
   { p:"¿Cómo hago un pedido en línea?", r:"Agrega los productos al carrito, selecciona tu tipo de entrega (pick-up o envío), ingresa tus datos y elige tu método de pago. Recibirás confirmación por WhatsApp." },
@@ -456,15 +463,17 @@ function Header({page,setPage,cart,user,setUser}){
 // ── PRODUCT CARD ──────────────────────────────────────────────
 function ProductCard({prod,addToCart,onClick}){
   const C = useTheme();
+  const narrow = useMediaQuery("(max-width: 768px)");
   const [added,setAdded]=useState(false);
   const d=prod.disponible||(prod.stock>0?"inmediato":"48hrs");
+  const imgSrc = productImageUrl(prod, narrow);
   return(
     <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,overflow:"hidden",display:"flex",flexDirection:"column",cursor:"pointer",transition:"box-shadow .2s"}}
       onMouseEnter={e=>(e.currentTarget.style.boxShadow="0 4px 20px #0002")}
       onMouseLeave={e=>(e.currentTarget.style.boxShadow="none")}>
       <div onClick={onClick} style={{background:C.cardDark,overflow:"hidden",minHeight:140}}>
-        {prod.imagen_url ? (
-          <img src={prod.imagen_url} alt="" style={{width:"100%",height:140,objectFit:"cover",display:"block"}}/>
+        {imgSrc ? (
+          <img src={imgSrc} alt="" style={{width:"100%",height:140,objectFit:"cover",display:"block"}}/>
         ) : (
           <div style={{padding:"24px",textAlign:"center",fontSize:48}}>💊</div>
         )}
@@ -508,13 +517,14 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle}){
   const similares=productos.filter(p=>p.categoria===prod.categoria&&p.id!==prod.id).slice(0,4);
   const d=prod.disponible||(prod.stock>0?"inmediato":"48hrs");
   const [added,setAdded]=useState(false);
+  const imgSrc = productImageUrl(prod, stack);
   return(
     <div style={{maxWidth:1100,margin:"0 auto",padding:"clamp(20px, 4vw, 32px) 16px"}}>
       <button type="button" onClick={()=>setProdDetalle(null)} style={{background:"none",border:"none",color:BRAND.primary,cursor:"pointer",fontSize:14,fontWeight:700,marginBottom:20,display:"flex",alignItems:"center",gap:6}}>← Volver al catálogo</button>
       <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:stack?24:32,marginBottom:48}}>
         <div style={{background:C.cardDark,borderRadius:20,overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",minHeight:stack?220:280}}>
-          {prod.imagen_url ? (
-            <img src={prod.imagen_url} alt="" style={{width:"100%",maxHeight:420,objectFit:"contain"}}/>
+          {imgSrc ? (
+            <img src={imgSrc} alt="" style={{width:"100%",maxHeight:420,objectFit:"contain"}}/>
           ) : (
             <span style={{fontSize:"clamp(64px, 22vw, 120px)",padding:stack?32:48}}>💊</span>
           )}
@@ -894,11 +904,13 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
       <h1 style={{color:C.dark,fontSize:"clamp(22px,5vw,26px)",fontWeight:800,marginBottom:24}}>🛒 Tu carrito</h1>
       <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr min(340px, 100%)",gap:24,alignItems:"start"}}>
         <div style={{minWidth:0}}>
-          {cart.map(item=>(
+          {cart.map(item=>{
+            const lineImg = productImageUrl(item, stack);
+            return (
             <div key={item.id} style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:16,marginBottom:12,display:"flex",gap:16,alignItems:"center",flexWrap:"wrap"}}>
               <div style={{background:C.cardDark,borderRadius:10,width:64,height:64,overflow:"hidden",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
-                {item.imagen_url ? (
-                  <img src={item.imagen_url} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                {lineImg ? (
+                  <img src={lineImg} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
                 ) : (
                   <span style={{fontSize:28}}>💊</span>
                 )}
@@ -914,7 +926,7 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
                 <button type="button" onClick={()=>rm(item.id)} style={{background:"none",border:"none",color:C.dim,cursor:"pointer",fontSize:18}}>🗑️</button>
               </div>
             </div>
-          ))}
+          );})}
           <Btn onClick={()=>setPage("catalogo")} outline col={BRAND.primary} sm>← Seguir comprando</Btn>
         </div>
         <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:24,position:stack?"relative":"sticky",top:"calc(env(safe-area-inset-top, 0px) + 100px)"}}>

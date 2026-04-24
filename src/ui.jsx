@@ -1,6 +1,7 @@
 import React, { useRef, useState, useLayoutEffect, useCallback } from "react";
 // FARMAX — Componentes UI base
 import { C_LIGHT, BRAND } from "./constants";
+import { normalizeForSearch } from "./utils";
 
 export function Logo({size=36,showText=true,light=false}){
   const C = C_LIGHT;
@@ -394,10 +395,11 @@ export function SearchDropdown({
   const ref = React.useRef(null);
 
   const filtered = !value ? [] : items.filter(item=>{
-    const label = (item[labelKey]||"").toLowerCase();
-    const sub   = subKey?(item[subKey]||"").toLowerCase():"";
-    const q     = value.toLowerCase();
-    return label.includes(q)||sub.includes(q);
+    const label = normalizeForSearch(item[labelKey]||"");
+    const sub   = subKey ? normalizeForSearch(item[subKey]||"") : "";
+    const q     = normalizeForSearch(value);
+    if (!q) return false;
+    return label.includes(q) || (sub && sub.includes(q));
   }).slice(0,maxResults);
 
   React.useEffect(()=>{
