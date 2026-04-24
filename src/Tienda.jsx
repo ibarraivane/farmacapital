@@ -83,7 +83,14 @@ function mapBannerFromRow(b){
     cta: b.cta||"Ver más",
     pagina: b.pagina||"catalogo",
     slot,
+    imagen_url: b.imagen_url || "",
+    imagen_mobile_url: b.imagen_mobile_url || "",
   };
+}
+
+function bannerVisualUrl(b, stack){
+  if (stack && b.imagen_mobile_url) return b.imagen_mobile_url;
+  return b.imagen_url || "";
 }
 
 // ── FAQ ───────────────────────────────────────────────────────
@@ -183,7 +190,7 @@ function PopupBienvenida({onClose,setPage,precioConsulta}){
 }
 
 // ── CARRUSEL PRINCIPAL (zona hero) ────────────────────────────
-function HeroCarousel({setPage, items, precioConsulta}){
+function HeroCarousel({setPage, items, precioConsulta, stack}){
   const C = useTheme();
   const [idx,setIdx]=useState(0);
   const banners = items.length
@@ -203,11 +210,20 @@ function HeroCarousel({setPage, items, precioConsulta}){
     return ()=>clearInterval(t);
   },[banners.length]);
   const b=banners[idx]||BANNERS[0];
+  const heroImg = bannerVisualUrl(b, stack);
+  const heroHasImg = !!heroImg;
   return(
     <div style={{position:"relative",overflow:"hidden"}}>
-      <div style={{background:b.bg,padding:"clamp(28px,8vw,48px) 16px",textAlign:"center",transition:"background .5s"}}>
+      <div style={{
+        ...(heroHasImg ? {
+          backgroundImage:`linear-gradient(rgba(0,24,48,.58),rgba(0,24,48,.72)), url(${heroImg})`,
+          backgroundSize:"cover",
+          backgroundPosition:"center",
+        }:{ background:b.bg }),
+        padding:"clamp(28px,8vw,48px) 16px",textAlign:"center",transition:"background .5s, background-image .5s",
+      }}>
         <div style={{maxWidth:700,margin:"0 auto"}}>
-          <div style={{fontSize:"clamp(40px, 12vw, 52px)",marginBottom:12}}>{b.emoji}</div>
+          {!heroHasImg&&<div style={{fontSize:"clamp(40px, 12vw, 52px)",marginBottom:12}}>{b.emoji}</div>}
           <div style={{color:"rgba(255,255,255,.8)",fontSize:"clamp(11px, 3vw, 13px)",letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>{b.subtitulo}</div>
           <h2 style={{color:C.white,fontSize:"clamp(22px, 6vw, 32px)",fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif",marginBottom:12,lineHeight:1.2}}>{b.titulo}</h2>
           <p style={{color:"rgba(255,255,255,.85)",fontSize:"clamp(14px, 3.5vw, 15px)",marginBottom:24,lineHeight:1.6}}>{b.descripcion}</p>
@@ -236,31 +252,39 @@ function HeroCarousel({setPage, items, precioConsulta}){
 // ── FRANJA: tarjetas anchas (zona strip) ─────────────────────
 function HomeBannersStrip({setPage, items}){
   const C = useTheme();
+  const stack = useMediaQuery("(max-width: 768px)");
   if(!items?.length) return null;
   return(
     <div style={{background:"linear-gradient(180deg,#f0f7ff,#f7f9fc)",borderBottom:`1px solid ${C.border}`,padding:"16px 12px"}}>
       <div style={{maxWidth:1200,margin:"0 auto",display:"flex",gap:12,flexWrap:"wrap",justifyContent:"center"}}>
-        {items.map((b,i)=>(
+        {items.map((b,i)=>{
+          const u = bannerVisualUrl(b, stack);
+          return(
           <button
             key={`${b.titulo}-${i}`}
             type="button"
             onClick={()=>setPage(b.pagina)}
             style={{
               flex:"1 1 min(100%,280px)",maxWidth:420,minWidth:0,width:"100%",textAlign:"left",cursor:"pointer",border:"none",borderRadius:14,
-              background:b.bg,color:"#fff",padding:"16px 18px",boxShadow:"0 4px 20px rgba(0,82,204,.12)",
+              ...(u ? {
+                backgroundImage:`linear-gradient(90deg,rgba(0,0,0,.45),rgba(0,0,0,.25)), url(${u})`,
+                backgroundSize:"cover",
+                backgroundPosition:"center",
+              }:{ background:b.bg }),
+              color:"#fff",padding:"16px 18px",boxShadow:"0 4px 20px rgba(0,82,204,.12)",
               display:"flex",alignItems:"center",gap:14,transition:"transform .15s, box-shadow .15s",
             }}
             onMouseEnter={e=>{ e.currentTarget.style.transform="translateY(-2px)"; e.currentTarget.style.boxShadow="0 8px 28px rgba(0,82,204,.2)"; }}
             onMouseLeave={e=>{ e.currentTarget.style.transform="none"; e.currentTarget.style.boxShadow="0 4px 20px rgba(0,82,204,.12)"; }}
           >
-            <span style={{fontSize:36,flexShrink:0}}>{b.emoji}</span>
+            {!u&&<span style={{fontSize:36,flexShrink:0}}>{b.emoji}</span>}
             <div style={{flex:1,minWidth:0}}>
               <div style={{fontWeight:800,fontSize:"clamp(14px,3.5vw,16px)",lineHeight:1.25,marginBottom:4}}>{b.titulo}</div>
               <div style={{fontSize:12,opacity:.9,lineHeight:1.35}}>{b.subtitulo||b.descripcion?.slice(0,80)}{(b.descripcion?.length>80?"…":"")}</div>
               <div style={{fontSize:11,fontWeight:700,marginTop:8,opacity:.95}}>{b.cta} →</div>
             </div>
           </button>
-        ))}
+        );})}
       </div>
     </div>
   );
@@ -277,28 +301,35 @@ function HomeBannersTiles({setPage, items, stack}){
         gridTemplateColumns:stack?"repeat(2, 1fr)":"repeat(auto-fill, minmax(min(100%, 200px), 1fr))",
         gap:12,
       }}>
-        {items.map((b,i)=>(
+        {items.map((b,i)=>{
+          const u = bannerVisualUrl(b, stack);
+          return(
           <button
             key={`${b.titulo}-${i}`}
             type="button"
             onClick={()=>setPage(b.pagina)}
             style={{
               textAlign:"left",cursor:"pointer",border:`1px solid ${C.border}`,borderRadius:14,
-              background:b.bg,color:"#fff",padding:16,minHeight:120,
+              ...(u ? {
+                backgroundImage:`linear-gradient(180deg,rgba(0,0,0,.5),rgba(0,0,0,.35)), url(${u})`,
+                backgroundSize:"cover",
+                backgroundPosition:"center",
+              }:{ background:b.bg }),
+              color:"#fff",padding:16,minHeight:120,
               display:"flex",flexDirection:"column",justifyContent:"space-between",gap:8,
               boxShadow:"0 2px 12px rgba(0,0,0,.06)",transition:"transform .15s",
             }}
             onMouseEnter={e=>{ e.currentTarget.style.transform="translateY(-2px)"; }}
             onMouseLeave={e=>{ e.currentTarget.style.transform="none"; }}
           >
-            <span style={{fontSize:28}}>{b.emoji}</span>
+            {!u&&<span style={{fontSize:28}}>{b.emoji}</span>}
             <div>
               <div style={{fontWeight:800,fontSize:14,lineHeight:1.25}}>{b.titulo}</div>
               {b.subtitulo&&<div style={{fontSize:11,opacity:.9,marginTop:4,lineHeight:1.3}}>{b.subtitulo}</div>}
             </div>
             <div style={{fontSize:11,fontWeight:700}}>{b.cta} →</div>
           </button>
-        ))}
+        );})}
       </div>
     </div>
   );
@@ -431,7 +462,13 @@ function ProductCard({prod,addToCart,onClick}){
     <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,overflow:"hidden",display:"flex",flexDirection:"column",cursor:"pointer",transition:"box-shadow .2s"}}
       onMouseEnter={e=>(e.currentTarget.style.boxShadow="0 4px 20px #0002")}
       onMouseLeave={e=>(e.currentTarget.style.boxShadow="none")}>
-      <div onClick={onClick} style={{background:C.cardDark,padding:"24px",textAlign:"center",fontSize:48}}>💊</div>
+      <div onClick={onClick} style={{background:C.cardDark,overflow:"hidden",minHeight:140}}>
+        {prod.imagen_url ? (
+          <img src={prod.imagen_url} alt="" style={{width:"100%",height:140,objectFit:"cover",display:"block"}}/>
+        ) : (
+          <div style={{padding:"24px",textAlign:"center",fontSize:48}}>💊</div>
+        )}
+      </div>
       <div style={{padding:"14px",flex:1,display:"flex",flexDirection:"column"}}>
         <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:8}}>
           {prod.stock===0
@@ -475,7 +512,13 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle}){
     <div style={{maxWidth:1100,margin:"0 auto",padding:"clamp(20px, 4vw, 32px) 16px"}}>
       <button type="button" onClick={()=>setProdDetalle(null)} style={{background:"none",border:"none",color:BRAND.primary,cursor:"pointer",fontSize:14,fontWeight:700,marginBottom:20,display:"flex",alignItems:"center",gap:6}}>← Volver al catálogo</button>
       <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:stack?24:32,marginBottom:48}}>
-        <div style={{background:C.cardDark,borderRadius:20,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"clamp(64px, 22vw, 120px)",padding:stack?32:48}}>💊</div>
+        <div style={{background:C.cardDark,borderRadius:20,overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",minHeight:stack?220:280}}>
+          {prod.imagen_url ? (
+            <img src={prod.imagen_url} alt="" style={{width:"100%",maxHeight:420,objectFit:"contain"}}/>
+          ) : (
+            <span style={{fontSize:"clamp(64px, 22vw, 120px)",padding:stack?32:48}}>💊</span>
+          )}
+        </div>
         <div>
           <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
             <Tag col={d==="inmediato"?BRAND.accent:"#f59e0b"}>{d==="inmediato"?"✓ Disponible hoy":"📦 24-48 hrs"}</Tag>
@@ -624,7 +667,7 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
 
   return(
     <div>
-      <HeroCarousel setPage={setPage} items={bannerZones.hero} precioConsulta={precioConsulta}/>
+      <HeroCarousel setPage={setPage} items={bannerZones.hero} precioConsulta={precioConsulta} stack={stack}/>
 
       {/* Badges */}
       <div style={{background:C.white,borderBottom:`1px solid ${C.border}`,padding:"14px clamp(12px,4vw,24px)"}}>
@@ -853,7 +896,13 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
         <div style={{minWidth:0}}>
           {cart.map(item=>(
             <div key={item.id} style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:16,marginBottom:12,display:"flex",gap:16,alignItems:"center",flexWrap:"wrap"}}>
-              <div style={{fontSize:40,background:C.cardDark,borderRadius:10,width:64,height:64,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>💊</div>
+              <div style={{background:C.cardDark,borderRadius:10,width:64,height:64,overflow:"hidden",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                {item.imagen_url ? (
+                  <img src={item.imagen_url} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                ) : (
+                  <span style={{fontSize:28}}>💊</span>
+                )}
+              </div>
               <div style={{flex:1}}><div style={{color:C.dark,fontWeight:700,fontSize:15}}>{item.nombre}</div><div style={{color:C.dim,fontSize:11,marginTop:4}}>+{labelPts(ptsGana(item.precio*item.qty))}</div></div>
               <div style={{display:"flex",alignItems:"center",gap:10,flexShrink:0,flexWrap:"wrap",marginLeft:"auto"}}>
                 <div style={{display:"flex",alignItems:"center",gap:8}}>

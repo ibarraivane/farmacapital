@@ -7,6 +7,7 @@ import { SkeletonTable, Paginador, SearchDropdown, HorizontalScrollSync } from "
 import { showToast } from "./ui";
 import OnboardingTour from "./components/OnboardingTour";
 import { idEmpleadoUsuarios } from "./utils/usuarioId";
+import { uploadProductImage, deleteProductImageStorageFolder } from "./utils/storageFarmax";
 
 const leerSesion = () => {
   try {
@@ -25,7 +26,7 @@ const CATEGORIAS = [
 const EMPTY = {
   nombre:"", sku:"", codigo_barras:"", categoria:"Otro", precio:"", costo:"", venta_unidad:false, unidades_por_caja:"", precio_unidad:"", stock_unidades:"",
   stock:"", stock_minimo:"", tipo:"generico", proveedor:"", lote:"",
-  fecha_caducidad:"", descuento_pct:"0", activo:true,
+  fecha_caducidad:"", descuento_pct:"0", activo:true, imagen_url:"",
 };
 
 // F4: campos lote/fecha_caducidad ya NO viven en productos; son del lote.
@@ -124,10 +125,19 @@ function ProductoModal({initial, onClose, onSaved }) {
   const btnPrimary = mkBtnPrimary(C);
   const btnOutline = mkBtnOutline(C);
   const btnGreen = mkBtnGreen(C);
-  const [form, setForm]     = useState(initial || EMPTY);
+  const [form, setForm]     = useState({ ...(initial || EMPTY), imagen_url: (initial || EMPTY).imagen_url || "" });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
+  const [imgFile, setImgFile] = useState(null);
+  const [imgPreview, setImgPreview] = useState("");
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  useEffect(() => {
+    if (!imgFile) { setImgPreview(""); return undefined; }
+    const u = URL.createObjectURL(imgFile);
+    setImgPreview(u);
+    return () => URL.revokeObjectURL(u);
+  }, [imgFile]);
   const validate = () => {
     const e = {};
     if (!form.nombre.trim())                           e.nombre       = "Requerido";
@@ -173,11 +183,12 @@ function ProductoModal({initial, onClose, onSaved }) {
 
     let err;
     if (form.id) {
-      // F6b: admin_editar_producto (whitelist server-side, no permite tocar stock)
+      const patch = { ...productoFields, costo: costoNum };
+      if (!imgFile) patch.imagen_url = (form.imagen_url || "").trim();
       const { error: editErr } = await supabase.rpc("admin_editar_producto", {
         p_session_token: tok,
         p_producto_id: form.id,
-        p_patch: { ...productoFields, costo: costoNum },
+        p_patch: patch,
       });
       err = editErr;
       if (!err) {
@@ -189,14 +200,25 @@ function ProductoModal({initial, onClose, onSaved }) {
         });
         if (adjErr) err = adjErr;
       }
+      if (!err && imgFile) {
+        try {
+          const { publicUrl } = await uploadProductImage(supabase, form.id, imgFile);
+          const { error: imgErr } = await supabase.rpc("admin_editar_producto", {
+            p_session_token: tok,
+            p_producto_id: form.id,
+            p_patch: { imagen_url: publicUrl },
+          });
+          if (imgErr) throw imgErr;
+        } catch (e) {
+          err = e;
+        }
+      }
     } else {
-      // F6b: create_producto_secure valida rol admin/gerente
-      const { error: rpcErr } = await supabase.rpc("create_producto_secure", {
+      const pdata = { ...productoFields, costo: costoNum };
+      if ((form.imagen_url || "").trim() && !imgFile) pdata.imagen_url = (form.imagen_url || "").trim();
+      const { data: created, error: rpcErr } = await supabase.rpc("create_producto_secure", {
         p_session_token: tok,
-        p_producto_data: {
-          ...productoFields,
-          costo: costoNum,
-        },
+        p_producto_data: pdata,
         p_cantidad_inicial: stockInt,
         p_numero_lote: form.lote.trim() || null,
         p_fecha_caducidad: form.fecha_caducidad || null,
@@ -204,9 +226,23 @@ function ProductoModal({initial, onClose, onSaved }) {
         p_user_id: empleadoId,
       });
       err = rpcErr;
+      const newId = created?.[0]?.producto_id;
+      if (!err && imgFile && newId) {
+        try {
+          const { publicUrl } = await uploadProductImage(supabase, newId, imgFile);
+          const { error: imgErr } = await supabase.rpc("admin_editar_producto", {
+            p_session_token: tok,
+            p_producto_id: newId,
+            p_patch: { imagen_url: publicUrl },
+          });
+          if (imgErr) throw imgErr;
+        } catch (e) {
+          showToast("Producto creado; error al subir imagen: " + (e.message || String(e)), "warning");
+        }
+      }
     }
     setSaving(false);
-    if (err) { showToast("Error al guardar: " + err.message, "error"); return; }
+    if (err) { showToast("Error al guardar: " + (err.message || String(err)), "error"); return; }
     // Fix 3: Audit log en cambios de precio/producto (sesion ya viene de leerSesion() arriba)
     if(form.id) {
       logAudit(sesion, "EDITAR_PRODUCTO", "productos", form.id, {
@@ -272,6 +308,43 @@ function ProductoModal({initial, onClose, onSaved }) {
               <input type="checkbox" id="activo_chk" checked={form.activo}
                 onChange={e=>set("activo",e.target.checked)} style={{width:16,height:16,cursor:"pointer"}}/>
               <label htmlFor="activo_chk" style={{...labelStyle,margin:0,cursor:"pointer"}}>Producto activo</label>
+            </div>
+          </div>
+        </div>
+
+        <div style={{marginTop:16,padding:16,borderRadius:10,border:`1px solid ${C.border}`,background:C.cardDark}}>
+          <label style={{...labelStyle,fontSize:13,fontWeight:700}}>Foto del producto (tienda online)</label>
+          <div style={{display:"flex",flexWrap:"wrap",gap:16,alignItems:"flex-start",marginTop:10}}>
+            <div style={{width:120,height:120,borderRadius:10,border:`1px solid ${C.border}`,background:C.bg,overflow:"hidden",flexShrink:0}}>
+              {(imgPreview || form.imagen_url)
+                ? <img alt="" src={imgPreview || form.imagen_url} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                : <div style={{height:"100%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:40,color:C.textMid}}>💊</div>}
+            </div>
+            <div style={{flex:1,minWidth:200}}>
+              <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" style={{fontSize:11,width:"100%",marginBottom:8}}
+                onChange={e=>setImgFile(e.target.files?.[0]||null)}/>
+              <div style={{marginBottom:8}}>
+                <label style={{...labelStyle,fontSize:10}}>O URL de imagen</label>
+                <input type="url" value={form.imagen_url||""} onChange={e=>set("imagen_url",e.target.value)}
+                  placeholder="https://..." style={{...inputStyle,fontSize:11}} disabled={!!imgFile}/>
+              </div>
+              <button type="button" style={{...btnOutline,padding:"6px 12px",fontSize:11}}
+                onClick={async()=>{
+                  setImgFile(null);
+                  set("imagen_url","");
+                  if(form.id){
+                    const t=sessionStorage.getItem("farmax_session_token");
+                    if(!t)return;
+                    try{
+                      await deleteProductImageStorageFolder(supabase,form.id);
+                      await supabase.rpc("admin_editar_producto",{p_session_token:t,p_producto_id:form.id,p_patch:{imagen_url:""}});
+                      showToast("Imagen eliminada","info");
+                    }catch(ex){showToast(ex.message||"Error","error");}
+                  }
+                }}>Quitar imagen</button>
+              <div style={{color:C.textDim,fontSize:9,marginTop:8,lineHeight:1.4}}>
+                Bucket <code>farmax-productos</code> en Supabase (ver <code>sql/storage_farmax_tienda.sql</code>).
+              </div>
             </div>
           </div>
         </div>
@@ -764,7 +837,7 @@ export default function InventarioModule() {
       )}
 
       {modal!==null&&(
-        <ProductoModal initial={modal} onClose={()=>setModal(null)}
+        <ProductoModal key={modal.id ?? "nuevo"} initial={modal} onClose={()=>setModal(null)}
           onSaved={()=>{setModal(null);fetchProductos();}}/>
       )}
       {modalLotes&&(

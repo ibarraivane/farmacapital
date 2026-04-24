@@ -15,6 +15,11 @@ import { puedeVerModulo, modulosPermitidosParaRol } from "./utils/permissions";
 import { adminPathnameToPageId, pageIdToAdminPath, pathnameSuggestsPosTab } from "./shared/adminRoutes";
 import { initBillingListeners } from "./modules/billing/core/initBillingListeners";
 import { canAccessRoute } from "./core/security/routeGuard";
+import {
+  uploadBannerImage,
+  deleteBannerStorageFolder,
+  deleteBannerVariantFiles,
+} from "./utils/storageFarmax";
 
 // Fallback estático para estilos fuera de componentes (evita undefined en import).
 const C = C_LIGHT;
@@ -637,28 +642,73 @@ function BannersAdmin(){
   const [banners,setBanners] = useState([]);
   const [loading,setLoad]   = useState(true);
   const [modal,setModal]    = useState(null);
-  const [form,setForm]      = useState({titulo:"",subtitulo:"",descripcion:"",emoji:"💊",bg:"linear-gradient(135deg,#0052cc,#0099e6)",cta:"Ver más →",pagina:"catalogo",orden:0,activo:true,slot:"hero"});
+  const [form,setForm]      = useState({titulo:"",subtitulo:"",descripcion:"",emoji:"💊",bg:"linear-gradient(135deg,#0052cc,#0099e6)",cta:"Ver más →",pagina:"catalogo",orden:0,activo:true,slot:"hero",imagen_url:"",imagen_mobile_url:""});
   const [saving,setSaving]  = useState(false);
+  const [fileDesk,setFileDesk] = useState(null);
+  const [fileMob,setFileMob]   = useState(null);
+  const [previewDesk,setPreviewDesk] = useState("");
+  const [previewMob,setPreviewMob]   = useState("");
 
   const fetch = async()=>{ setLoad(true); const{data}=await supabase.from("banners").select("*").order("orden"); setBanners(data||[]); setLoad(false); };
   useEffect(()=>{ fetch(); },[]);
+  useEffect(()=>{
+    if(!fileDesk){ setPreviewDesk(""); return undefined; }
+    const u = URL.createObjectURL(fileDesk);
+    setPreviewDesk(u);
+    return ()=>URL.revokeObjectURL(u);
+  },[fileDesk]);
+  useEffect(()=>{
+    if(!fileMob){ setPreviewMob(""); return undefined; }
+    const u = URL.createObjectURL(fileMob);
+    setPreviewMob(u);
+    return ()=>URL.revokeObjectURL(u);
+  },[fileMob]);
 
   const guardar = async()=>{
     setSaving(true);
     const tok = sessionStorage.getItem("farmax_session_token");
-    const { error } = await supabase.rpc("admin_upsert_banner", {
+    const payload = { ...form };
+    const { data: resp, error } = await supabase.rpc("admin_upsert_banner", {
       p_session_token: tok,
       p_id:            modal === "new" ? null : modal.id,
-      p_payload:       form,
+      p_payload:       payload,
     });
+    if (error) {
+      setSaving(false);
+      showToast("Error: "+error.message, "error");
+      return;
+    }
+    const bannerId = resp?.banner_id ?? (modal !== "new" ? modal.id : null);
+    try {
+      if (bannerId && fileDesk) {
+        const { publicUrl } = await uploadBannerImage(supabase, bannerId, fileDesk, "desktop");
+        const { error: e2 } = await supabase.rpc("admin_upsert_banner", {
+          p_session_token: tok, p_id: bannerId, p_payload: { imagen_url: publicUrl },
+        });
+        if (e2) throw e2;
+      }
+      if (bannerId && fileMob) {
+        const { publicUrl } = await uploadBannerImage(supabase, bannerId, fileMob, "mobile");
+        const { error: e3 } = await supabase.rpc("admin_upsert_banner", {
+          p_session_token: tok, p_id: bannerId, p_payload: { imagen_mobile_url: publicUrl },
+        });
+        if (e3) throw e3;
+      }
+    } catch (e) {
+      setSaving(false);
+      showToast("Banner guardado; error al subir imagen: "+(e.message||String(e)), "warning");
+      setFileDesk(null); setFileMob(null); setModal(null); fetch();
+      return;
+    }
     setSaving(false);
-    if (error) { showToast("Error: "+error.message, "error"); return; }
+    setFileDesk(null); setFileMob(null);
     setModal(null); fetch();
     showToast("Banner guardado correctamente","success");
   };
 
   const eliminar = async(id)=>{
     if(!window.confirm("¿Eliminar este banner?")) return;
+    try { await deleteBannerStorageFolder(supabase, id); } catch (_) { /* ignore */ }
     const tok = sessionStorage.getItem("farmax_session_token");
     const { error } = await supabase.rpc("admin_eliminar_banner", {
       p_session_token: tok, p_id: id,
@@ -682,7 +732,7 @@ function BannersAdmin(){
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
         <h1 style={{color:C.text,fontSize:20,fontWeight:800,margin:0}}>🖼️ Banners de la tienda</h1>
-        <Btn col={BRAND.primary} onClick={()=>{setForm({titulo:"",subtitulo:"",descripcion:"",emoji:"💊",bg:BRAND.gradient,cta:"Ver más →",pagina:"promo",orden:banners.length+1,activo:true,slot:"hero"});setModal("new");}}>+ Nuevo banner</Btn>
+        <Btn col={BRAND.primary} onClick={()=>{setFileDesk(null);setFileMob(null);setForm({titulo:"",subtitulo:"",descripcion:"",emoji:"💊",bg:BRAND.gradient,cta:"Ver más →",pagina:"promo",orden:banners.length+1,activo:true,slot:"hero",imagen_url:"",imagen_mobile_url:""});setModal("new");}}>+ Nuevo banner</Btn>
       </div>
       <div style={{background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:10,padding:"10px 16px",marginBottom:16,fontSize:12,color:"#1d4ed8",lineHeight:1.55}}>
         💡 <strong>Zona:</strong> <em>Carrusel</em> (arriba, rotación automática) · <em>Franja</em> (tarjetas anchas bajo la barra de servicios) · <em>Mosaico</em> (rejilla bajo la búsqueda). Ordená con <strong>Orden</strong>.
@@ -694,7 +744,11 @@ function BannersAdmin(){
           {!banners.length&&<div style={{color:C.textMid,textAlign:"center",padding:40,background:C.card,borderRadius:12,border:`1px solid ${C.border}`}}>Sin banners. Crea el primero.</div>}
           {banners.map(b=>(
             <div key={b.id} style={{background:C.card,borderRadius:12,border:`1px solid ${C.border}`,padding:16,display:"flex",gap:16,alignItems:"center",flexWrap:"wrap"}}>
-              <div style={{width:48,height:48,borderRadius:10,background:b.bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0}}>{b.emoji}</div>
+              <div style={{width:88,height:52,borderRadius:10,background:b.bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0,overflow:"hidden"}}>
+                {b.imagen_url
+                  ? <img src={b.imagen_url} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                  : <span>{b.emoji}</span>}
+              </div>
               <div style={{flex:"1 1 200px",minWidth:0}}>
                 <div style={{fontWeight:800,color:C.text,fontSize:14}}>{b.titulo}</div>
                 <div style={{color:C.textMid,fontSize:12,marginTop:2}}>{b.subtitulo} · {b.descripcion?.slice(0,60)}{b.descripcion?.length>60?"…":""}</div>
@@ -704,7 +758,7 @@ function BannersAdmin(){
               </div>
               <div style={{display:"flex",gap:8,flexShrink:0}}>
                 <button onClick={()=>toggleActivo(b)} style={{padding:"5px 10px",borderRadius:6,border:`1px solid ${b.activo?C.green:C.border}`,background:b.activo?C.greenDim:"transparent",color:b.activo?C.green:C.textMid,fontSize:11,fontWeight:700,cursor:"pointer"}}>{b.activo?"✓ Activo":"○ Inactivo"}</button>
-                <button onClick={()=>{setForm({...b});setModal(b);}} style={{padding:"5px 10px",borderRadius:6,border:`1px solid ${C.amber}`,background:C.amberDim,color:C.amber,fontSize:11,fontWeight:700,cursor:"pointer"}}>✏️ Editar</button>
+                <button onClick={()=>{setFileDesk(null);setFileMob(null);setForm({...b,imagen_url:b.imagen_url||"",imagen_mobile_url:b.imagen_mobile_url||""});setModal(b);}} style={{padding:"5px 10px",borderRadius:6,border:`1px solid ${C.amber}`,background:C.amberDim,color:C.amber,fontSize:11,fontWeight:700,cursor:"pointer"}}>✏️ Editar</button>
                 <button onClick={()=>eliminar(b.id)} style={{padding:"5px 10px",borderRadius:6,border:`1px solid ${C.red}`,background:C.redDim,color:C.red,fontSize:11,fontWeight:700,cursor:"pointer"}}>🗑️</button>
               </div>
             </div>
@@ -718,7 +772,57 @@ function BannersAdmin(){
               <h3 style={{margin:0,color:C.text,fontSize:16,fontWeight:800}}>{modal==="new"?"➕ Nuevo":"✏️ Editar"} Banner</h3>
               <button onClick={()=>setModal(null)} style={{background:"none",border:"none",color:C.textMid,fontSize:22,cursor:"pointer"}}>✕</button>
             </div>
-            {[["Título *","titulo"],["Subtítulo","subtitulo"],["Descripción","descripcion"],["Emoji","emoji"],["Texto del botón","cta"],["Página destino","pagina"]].map(([l,k])=>(
+            <div style={{marginBottom:16,padding:14,background:"#f0fdf4",borderRadius:10,border:"1px solid #86efac"}}>
+              <div style={{color:C.text,fontWeight:800,fontSize:13,marginBottom:10}}>📷 Imagen del banner (subí acá; opcional móvil)</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                <div>
+                  <label style={{color:C.textMid,fontSize:11,fontWeight:700,display:"block",marginBottom:4}}>Escritorio</label>
+                  <div style={{borderRadius:8,overflow:"hidden",border:`1px solid ${C.border}`,background:"#fff",minHeight:72,marginBottom:8}}>
+                    {(previewDesk||form.imagen_url)
+                      ? <img alt="" src={previewDesk||form.imagen_url} style={{width:"100%",height:72,objectFit:"cover",display:"block"}}/>
+                      : <div style={{height:72,display:"flex",alignItems:"center",justifyContent:"center",color:C.textMid,fontSize:11}}>Sin imagen</div>}
+                  </div>
+                  <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" style={{fontSize:11,width:"100%"}} onChange={e=>setFileDesk(e.target.files?.[0]||null)}/>
+                  <div style={{display:"flex",gap:6,marginTop:6,flexWrap:"wrap"}}>
+                    <button type="button" onClick={async()=>{
+                      setFileDesk(null);
+                      setForm(p=>({...p,imagen_url:""}));
+                      if(modal&&modal!=="new"&&modal.id){
+                        const tok=sessionStorage.getItem("farmax_session_token");
+                        try{
+                          await deleteBannerVariantFiles(supabase,modal.id,"desktop");
+                          await supabase.rpc("admin_upsert_banner",{p_session_token:tok,p_id:modal.id,p_payload:{imagen_url:""}});
+                          showToast("Imagen escritorio eliminada","info");fetch();
+                        }catch(err){showToast(err.message||"Error al eliminar","error");}
+                      }
+                    }} style={{padding:"4px 10px",fontSize:11,borderRadius:6,border:`1px solid ${C.border}`,background:C.card,cursor:"pointer"}}>Quitar escritorio</button>
+                  </div>
+                </div>
+                <div>
+                  <label style={{color:C.textMid,fontSize:11,fontWeight:700,display:"block",marginBottom:4}}>Móvil (opcional)</label>
+                  <div style={{borderRadius:8,overflow:"hidden",border:`1px solid ${C.border}`,background:"#fff",minHeight:72,marginBottom:8}}>
+                    {(previewMob||form.imagen_mobile_url)
+                      ? <img alt="" src={previewMob||form.imagen_mobile_url} style={{width:"100%",height:72,objectFit:"cover",display:"block"}}/>
+                      : <div style={{height:72,display:"flex",alignItems:"center",justifyContent:"center",color:C.textMid,fontSize:11}}>Misma que escritorio</div>}
+                  </div>
+                  <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" style={{fontSize:11,width:"100%"}} onChange={e=>setFileMob(e.target.files?.[0]||null)}/>
+                  <button type="button" onClick={async()=>{
+                    setFileMob(null);
+                    setForm(p=>({...p,imagen_mobile_url:""}));
+                    if(modal&&modal!=="new"&&modal.id){
+                      const tok=sessionStorage.getItem("farmax_session_token");
+                      try{
+                        await deleteBannerVariantFiles(supabase,modal.id,"mobile");
+                        await supabase.rpc("admin_upsert_banner",{p_session_token:tok,p_id:modal.id,p_payload:{imagen_mobile_url:""}});
+                        showToast("Imagen móvil eliminada","info");fetch();
+                      }catch(err){showToast(err.message||"Error al eliminar","error");}
+                    }
+                  }} style={{marginTop:6,padding:"4px 10px",fontSize:11,borderRadius:6,border:`1px solid ${C.border}`,background:C.card,cursor:"pointer"}}>Quitar móvil</button>
+                </div>
+              </div>
+              <div style={{color:C.textDim,fontSize:10,marginTop:8,lineHeight:1.45}}>Subí JPG/PNG/WebP (máx. ~5 MB según bucket). Ejecutá <code style={{background:"#fff",padding:"1px 4px",borderRadius:3}}>sql/storage_farmax_tienda.sql</code> y <code style={{background:"#fff",padding:"1px 4px",borderRadius:3}}>sql/patch_tienda_imagenes_banners_productos.sql</code> en Supabase si aún no.</div>
+            </div>
+            {[["Título *","titulo"],["Subtítulo","subtitulo"],["Descripción","descripcion"],["Emoji (si no hay imagen)","emoji"],["Texto del botón","cta"],["Página destino","pagina"]].map(([l,k])=>(
               <div key={k}><label style={{color:C.textMid,fontSize:11,fontWeight:700,display:"block",marginBottom:3}}>{l.toUpperCase()}</label><input style={inpS} value={form[k]||""} onChange={e=>setForm(p=>({...p,[k]:e.target.value}))} placeholder={l}/></div>
             ))}
             <div>
