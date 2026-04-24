@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
 import { showToast } from "./ui";
+import { inventarioProductMatchesBusqueda } from "./utils/fuzzySearch";
 
 const BRAND = { primary:"#0052cc", secondary:"#0099e6", accent:"#00c46a", gradient:"linear-gradient(135deg,#0052cc,#0099e6)" };
 
@@ -258,7 +259,7 @@ function CompetidoresPrecios({ productos, onReload }) {
   const [saving,  setSaving]  = useState(false);
   const [busq,    setBusq]    = useState("");
 
-  const fil = productos.filter(p=>p.nombre.toLowerCase().includes(busq.toLowerCase()));
+  const fil = productos.filter(p => inventarioProductMatchesBusqueda(p, busq));
 
   const abrirEditar = p => {
     setEditId(p.id);

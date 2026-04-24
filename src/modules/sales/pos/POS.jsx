@@ -5,7 +5,8 @@ import MercadoPagoModal from "../../../components/MercadoPagoModal";
 import { printTicket } from "../../../utils/printTicket";
 import { supabase } from "../../../supabase";
 import { C_LIGHT, BRAND } from "../../../constants";
-import { $, logAudit, soloDigitosTel } from "../../../utils";
+import { $, logAudit, soloDigitosTel, normalizeForSearch } from "../../../utils";
+import { inventarioProductMatchesBusqueda } from "../../../utils/fuzzySearch";
 import { Box, Tag, Btn, Inp, Modal, showToast, SearchDropdown, SkeletonTable } from "../../../ui";
 import { CONSULTA_PRECIO_DEFAULT, citaPagoPendiente, labelCanal } from "../../../utils/consultaConstants";
 import { puedeCancelarCitaNoShow } from "../../../utils/citasAgenda";
@@ -254,9 +255,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
 
   const fil = productos.filter(p=>
     (negocio==="farmacia"?["Analgésico","Antiinflamatorio","Gastro","Antibiótico","Diabetes","Hipertensión","Alergia","Vitaminas","Hidratación","Cardiovascular","Respiratorio","Botiquín"].includes(p.categoria):true)&&
-    (p.nombre.toLowerCase().includes(srch.toLowerCase())||
-     p.sku?.toLowerCase().includes(srch.toLowerCase())||
-     p.codigo_barras?.includes(srch.trim())) // P2.1: filtro por código de barras
+    inventarioProductMatchesBusqueda(p, srch)
   );
 
   const paymentLabel = (method) => ({
@@ -1213,11 +1212,11 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                 data-tour="pos-buscador"
                 onKeyDown={e=>{
                   if(e.key==="Enter"){
-                    const q = srch.toLowerCase().trim();
-                    // P2.1: Buscar por codigo_barras primero, luego SKU
+                    const raw = srch.trim();
+                    const qN = normalizeForSearch(raw);
                     const exact = productos.find(p=>
-                      (p.codigo_barras&&p.codigo_barras===srch.trim()) ||
-                      (p.sku&&p.sku.toLowerCase()===q)
+                      (p.codigo_barras && String(p.codigo_barras).trim() === raw) ||
+                      (p.sku && normalizeForSearch(p.sku) === qN)
                     );
                     if(exact){add(exact,false);setSrch("");e.preventDefault();}
                   }

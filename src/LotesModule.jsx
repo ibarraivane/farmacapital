@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
 import { showToast, HorizontalScrollSync } from "./ui";
+import { productMatchesSearchQuery } from "./utils/fuzzySearch";
 
 const BRAND = { primary:"#0052cc", gradient:"linear-gradient(135deg,#0052cc,#0099e6)" };
 const fmt = n => `$${parseFloat(n||0).toFixed(2)}`;
@@ -46,7 +47,7 @@ export default function LotesModule() {
   const txtCad = d => d===null?"Sin fecha":d<0?"VENCIDO":d===0?"HOY":d<=30?`${d} días`:`${d} días`;
 
   const lotesFiltrados = lotes.filter(l=>{
-    const matchP = !filtroP || l.productos?.nombre?.toLowerCase().includes(filtroP.toLowerCase()) || l.productos?.sku?.toLowerCase().includes(filtroP.toLowerCase());
+    const matchP = !filtroP || productMatchesSearchQuery(l.productos || {}, filtroP, [(x) => x.nombre, (x) => x.sku]);
     const dias   = diasRestantes(l.fecha_caducidad);
     const matchV =
       filtroVenc==="todos"    ? true :

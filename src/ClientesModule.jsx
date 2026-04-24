@@ -3,7 +3,8 @@ import { useMediaQuery } from "./hooks/useMediaQuery";
 import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
 import { SkeletonTable, Paginador, SearchDropdown, showToast } from "./ui";
-import { nombreCompletoPacienteValido, telefonoMxValido } from "./utils";
+import { nombreCompletoPacienteValido, telefonoMxValido, soloDigitosTel } from "./utils";
+import { productMatchesSearchQuery } from "./utils/fuzzySearch";
 
 const BRAND = { primary:"#0052cc", secondary:"#0099e6", gradient:"linear-gradient(135deg,#0052cc,#0099e6)" };
 
@@ -400,8 +401,11 @@ export default function ClientesModule() {
   };
 
   const filtrados = clientes.filter(c => {
-    const q = busqueda.toLowerCase();
-    return c.nombre?.toLowerCase().includes(q) || c.telefono?.includes(q);
+    const q = busqueda.trim();
+    if (!q) return true;
+    const dig = soloDigitosTel(q);
+    if (dig.length >= 3 && c.telefono && soloDigitosTel(c.telefono).includes(dig)) return true;
+    return productMatchesSearchQuery(c, busqueda, [(x) => x.nombre]);
   });
 
   return (

@@ -4,6 +4,7 @@ import { supabase } from "../../../supabase";
 import { Box, Tag, Inp, Modal, SkeletonTable } from "../../../ui";
 import { CitaFichaModal } from "../CitaFichaDoctora";
 import { ExpedientePaciente } from "./ExpedientePaciente";
+import { productMatchesSearchQuery } from "../../../utils/fuzzySearch";
 
 const C = C_LIGHT;
 
@@ -52,9 +53,11 @@ export default function ExpedientesDoctora() {
   }, []);
 
   const filtrados = pacientes.filter((r) => {
-    const s = busq.trim().toLowerCase();
+    const s = busq.trim();
     if (!s) return true;
-    return r.telefono.replace(/\D/g, "").includes(s.replace(/\D/g, "")) || (r.nombre || "").toLowerCase().includes(s);
+    const dig = s.replace(/\D/g, "");
+    if (dig.length >= 3 && r.telefono.replace(/\D/g, "").includes(dig)) return true;
+    return productMatchesSearchQuery(r, busq, [(x) => x.nombre]);
   });
 
   return (

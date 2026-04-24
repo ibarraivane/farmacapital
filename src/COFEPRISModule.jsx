@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
+import { productMatchesSearchQuery } from "./utils/fuzzySearch";
 
 const BRAND = { primary:"#0052cc", secondary:"#0099e6", gradient:"linear-gradient(135deg,#0052cc,#0099e6)" };
 
@@ -160,10 +161,9 @@ function BitacoraAntibioticos() {
 
   useEffect(() => { fetchRegistros(); }, [fetchRegistros]);
 
-  const filtrados = registros.filter(r => {
-    const q=busqueda.toLowerCase();
-    return !q || r.medicamento?.toLowerCase().includes(q) || r.paciente?.toLowerCase().includes(q);
-  });
+  const filtrados = registros.filter(r =>
+    !busqueda.trim() || productMatchesSearchQuery(r, busqueda, [(x) => x.medicamento, (x) => x.paciente])
+  );
 
   const cols = [
     {key:"fecha_str",label:"Fecha"},{key:"medicamento",label:"Medicamento"},

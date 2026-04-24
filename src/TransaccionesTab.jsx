@@ -5,6 +5,7 @@ import { showToast, SkeletonTable, Paginador } from "./ui";
 import TicketVenta from "./components/tickets/TicketVenta";
 import { printTicket } from "./utils/printTicket";
 import { labelTipoEntregaPedido } from "./utils/orderChannels";
+import { productMatchesSearchQuery } from "./utils/fuzzySearch";
 
 /** Listado de pedidos con filtros — antes dentro de Admin/Reportes; requiere showConfirm del padre. */
 export default function TransaccionesTab({ usuario, showConfirm }) {
@@ -65,8 +66,8 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
   };
 
   const filtradosTodos = pedidos.filter((p) => {
-    const q = busqueda.toLowerCase();
-    const matchB = !q || p.id?.toString().includes(q) || p.clientes?.nombre?.toLowerCase().includes(q);
+    const q = busqueda.trim();
+    const matchB = !q || p.id?.toString().includes(q) || (p.clientes && productMatchesSearchQuery(p.clientes, busqueda, [(x) => x.nombre]));
     const matchT = filtroTipo === "todos" || p.tipo === filtroTipo || (!p.tipo && filtroTipo === "fisica");
     const matchE = filtroEstado === "todos" || p.estado === filtroEstado;
     return matchB && matchT && matchE;

@@ -136,7 +136,13 @@ function ProductoModal({initial, onClose, onSaved }) {
   const btnPrimary = mkBtnPrimary(C);
   const btnOutline = mkBtnOutline(C);
   const btnGreen = mkBtnGreen(C);
-  const [form, setForm]     = useState({ ...(initial || EMPTY), imagen_url: (initial || EMPTY).imagen_url || "" });
+  const [form, setForm]     = useState(() => {
+    const base = { ...(initial || EMPTY), imagen_url: (initial || EMPTY).imagen_url || "" };
+    for (const k of ["nombre", "sku", "codigo_barras", "proveedor", "lote"]) {
+      if (base[k] == null) base[k] = "";
+    }
+    return base;
+  });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [imgFile, setImgFile] = useState(null);
@@ -151,7 +157,7 @@ function ProductoModal({initial, onClose, onSaved }) {
   }, [imgFile]);
   const validate = () => {
     const e = {};
-    if (!form.nombre.trim())                           e.nombre       = "Requerido";
+    if (!(form.nombre ?? "").trim())                           e.nombre       = "Requerido";
     if (!form.precio||parseFloat(form.precio)<=0) e.precio = "Debe ser mayor a $0";
     if (!form.costo||parseFloat(form.costo)<0)         e.costo        = "Debe ser 0 o mayor";
     if (form.stock === "" || form.stock === null)       e.stock        = "Requerido";
@@ -167,14 +173,14 @@ function ProductoModal({initial, onClose, onSaved }) {
 
       // Campos del producto (sin stock/costo que viajan al lote en el alta)
       const productoFields = {
-        nombre: form.nombre.trim(),
-        sku: form.sku.trim() || null,
+        nombre: (form.nombre ?? "").trim(),
+        sku: (form.sku ?? "").trim() || null,
         codigo_barras: form.codigo_barras?.trim() || null,
         categoria: form.categoria,
         precio: parseFloat(form.precio),
         stock_minimo: form.stock_minimo !== "" ? parseInt(form.stock_minimo) : 0,
         tipo: form.tipo,
-        proveedor: form.proveedor.trim() || null,
+        proveedor: (form.proveedor ?? "").trim() || null,
         descuento_pct: parseFloat(form.descuento_pct) || 0,
         activo: form.activo,
         venta_unidad: form.venta_unidad || false,
@@ -237,7 +243,7 @@ function ProductoModal({initial, onClose, onSaved }) {
           p_session_token: tok,
           p_producto_data: pdata,
           p_cantidad_inicial: stockInt,
-          p_numero_lote: form.lote.trim() || null,
+          p_numero_lote: (form.lote ?? "").trim() || null,
           p_fecha_caducidad: form.fecha_caducidad || null,
           p_costo_unitario: costoNum || null,
         });
@@ -441,8 +447,7 @@ function RecibirModal({ productos, onClose, onSaved }) {
   const [saving,   setSaving]  = useState(false);
   const [error,    setError]   = useState("");
 
-  const qRec = normalizeForSearch(busq);
-  const prodsFilt = productos.filter(p => p.activo && (!qRec || normalizeForSearch(p.nombre).includes(qRec)));
+  const prodsFilt = productos.filter(p => p.activo && inventarioProductMatchesBusqueda(p, busq));
   const selProd   = productos.find(p => p.id === parseInt(selId));
 
   const handleRecibir = async () => {

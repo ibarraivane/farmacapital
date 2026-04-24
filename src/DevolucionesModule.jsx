@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
 import { idEmpleadoUsuarios } from "./utils/usuarioId";
+import { productMatchesSearchQuery } from "./utils/fuzzySearch";
 
 const BRAND = { primary:"#0052cc", secondary:"#0099e6", gradient:"linear-gradient(135deg,#0052cc,#0099e6)" };
 const fmt = n => `$${parseFloat(n||0).toLocaleString("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2})}`;
@@ -243,7 +244,7 @@ export default function DevolucionesModule({ usuario }) {
 
   const fil = devoluciones.filter(d=>{
     const matchF = filtro==="todos" || d.estado===filtro;
-    const matchB = !busq || d.id?.toString().includes(busq) || d.clientes?.nombre?.toLowerCase().includes(busq.toLowerCase());
+    const matchB = !busq.trim() || d.id?.toString().includes(busq.trim()) || (d.clientes && productMatchesSearchQuery(d.clientes, busq, [(x) => x.nombre]));
     return matchF && matchB;
   });
 
