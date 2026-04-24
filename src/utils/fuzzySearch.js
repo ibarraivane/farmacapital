@@ -54,7 +54,7 @@ function maxTypoForLength(len) {
  */
 export function normalizedTextFuzzyMatch(queryNorm, textNorm) {
   if (!queryNorm || queryNorm.length < 2 || !textNorm) return false;
-  if (textNorm.includes(queryNorm)) return true;
+  if (tokenMatchesInNormalizedHaystack(queryNorm, textNorm)) return true;
   const dist = minEditDistanceQueryToText(queryNorm, textNorm);
   const maxLen = Math.max(queryNorm.length, textNorm.length);
   const ratio = maxLen ? dist / maxLen : 1;
@@ -111,6 +111,45 @@ const INVENTARIO_GETTERS = [
 
 export function tiendaProductMatchesBusqueda(product, queryRaw) {
   return productMatchesSearchQuery(product, queryRaw, TIENDA_GETTERS);
+}
+
+/**
+ * Sugerencias para el buscador de la tienda (nombre, SKU, código de barras).
+ * Orden: coincidencia exacta/prefijo en SKU y código, luego resto que pase el matcher.
+ */
+export function tiendaCatalogSearchSuggestions(products, queryRaw, { limit = 8 } = {}) {
+  const q = String(queryRaw ?? "").trim();
+  if (q.length < 2 || !products?.length) return [];
+  const qn = normalizeForSearch(q);
+  if (!qn) return [];
+  const out = [];
+  for (const p of products) {
+    if (!p || p.activo === false) continue;
+    const sku = p.sku != null && String(p.sku).trim() !== "" ? normalizeForSearch(String(p.sku)) : "";
+    const cb =
+      p.codigo_barras != null && String(p.codigo_barras).trim() !== ""
+        ? normalizeForSearch(String(p.codigo_barras))
+        : "";
+    let rank = 100;
+    if (sku && sku === qn) rank = 0;
+    else if (cb && cb === qn) rank = 0;
+    else if (sku && sku.startsWith(qn)) rank = 1;
+    else if (cb && cb.startsWith(qn)) rank = 1;
+    else if (sku && sku.includes(qn)) rank = 3;
+    else if (cb && cb.includes(qn)) rank = 3;
+    else if (tiendaProductMatchesBusqueda(p, q)) rank = 6;
+    else continue;
+    out.push({
+      id: p.id,
+      nombre: p.nombre || "",
+      sku: p.sku != null ? String(p.sku) : "",
+      codigo_barras: p.codigo_barras != null ? String(p.codigo_barras) : "",
+      stock: p.stock,
+      rank,
+    });
+  }
+  out.sort((a, b) => a.rank - b.rank || String(a.nombre).localeCompare(String(b.nombre), "es"));
+  return out.slice(0, limit);
 }
 
 export function inventarioProductMatchesBusqueda(product, queryRaw) {

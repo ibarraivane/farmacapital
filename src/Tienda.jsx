@@ -3,7 +3,7 @@ import { supabase } from "./supabase";
 import { useTheme } from "./themeContext";
 import { useMediaQuery } from "./hooks/useMediaQuery";
 import { saludoUsuario, primerNombre, $, normalizarSesionLoginResp, nombreCompletoPacienteValido, telefonoMxValido, soloDigitosTel } from "./utils";
-import { tiendaProductMatchesBusqueda, spellSuggestFromProducts } from "./utils/fuzzySearch";
+import { tiendaProductMatchesBusqueda, spellSuggestFromProducts, tiendaCatalogSearchSuggestions } from "./utils/fuzzySearch";
 import { CONSULTA_PRECIO_DEFAULT } from "./utils/consultaConstants";
 import { fetchPrecioConsultaConfig } from "./utils/consumiblesConsultorio";
 import {
@@ -160,10 +160,10 @@ const Btn=({children,onClick,col,outline,sm,full,disabled,style})=>(
 const Tag=({children,col,sm})=>(
   <span style={{background:col+"18",color:col,border:`1px solid ${col}30`,borderRadius:20,padding:sm?"2px 8px":"4px 12px",fontSize:sm?10:12,fontWeight:700,whiteSpace:"nowrap",display:"inline-block"}}>{children}</span>
 );
-const Inp=({value,onChange,placeholder,type,style,onKeyDown})=>(
+const Inp=({value,onChange,placeholder,type,style,onKeyDown,onFocus,onBlur})=>(
   <input value={value} onChange={onChange} placeholder={placeholder} type={type||"text"} onKeyDown={onKeyDown}
     style={{background:C.white,border:`2px solid ${C.border}`,borderRadius:10,color:C.dark,padding:"11px 14px",fontSize:14,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif",transition:"border-color .2s",...style}}
-    onFocus={e=>(e.target.style.borderColor=BRAND.primary)} onBlur={e=>(e.target.style.borderColor=C.border)}/>
+    onFocus={e=>{onFocus?.(e);e.target.style.borderColor=BRAND.primary}} onBlur={e=>{onBlur?.(e);e.target.style.borderColor=C.border}}/>
 );
 
 // ── POPUP BIENVENIDA ──────────────────────────────────────────
@@ -704,7 +704,7 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
                 setPage("catalogo");
               }
             }}
-            placeholder="🔍 Busca tu medicamento por nombre o principio activo..."
+            placeholder="🔍 Nombre, principio activo, SKU o código de barras…"
             style={{width:"100%",boxSizing:"border-box",padding:"16px 56px 16px 20px",borderRadius:30,border:`2px solid ${BRAND.primary}30`,fontSize:15,fontFamily:"'Plus Jakarta Sans',sans-serif",outline:"none",background:C.white,boxShadow:"0 4px 20px rgba(0,82,204,.1)"}}/>
           <button type="button" onClick={()=>busqHero.trim()&&setPage("catalogo")}
             style={{position:"absolute",right:6,top:"50%",transform:"translateY(-50%)",background:BRAND.gradient,border:"none",borderRadius:24,width:44,height:44,cursor:"pointer",color:C.white,fontSize:18,display:"flex",alignItems:"center",justifyContent:"center"}}>→</button>
@@ -832,11 +832,17 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero}){
   const [precioMax,setPrecioMax]=useState("");
   const [precioMin,setPrecioMin]=useState("");
   const [verAgotados,setVerAgotados]=useState(false);
+  const [busqFocus,setBusqFocus]=useState(false);
   useEffect(()=>{ sessionStorage.setItem("farmax_cat",cat); },[cat]);
   useEffect(()=>{ sessionStorage.setItem("farmax_busq",busq); },[busq]);
   useEffect(()=>{ sessionStorage.setItem("farmax_tipo",tipo); },[tipo]);
   useEffect(()=>{
-    if (busqHero != null && String(busqHero).trim()) setBusq(busqHero);
+    const t = busqHero != null && String(busqHero).trim();
+    if (t) {
+      setBusq(busqHero);
+      setTipo("todos");
+      setCat("Todos");
+    }
   },[busqHero]);
   const cats=["Todos",...new Set(productos.map(p=>p.categoria).filter(Boolean))];
   const basePool = useMemo(()=>productos
@@ -850,16 +856,83 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero}){
     ()=>basePool.filter(p=>tiendaProductMatchesBusqueda(p,busq)),
     [basePool,busq]
   );
-  const spellHints = useMemo(
-    ()=>(busq.trim().length>=3&&fil.length===0?spellSuggestFromProducts(basePool,busq):[]),
-    [basePool,busq,fil.length]
+  const poolSoloStock = useMemo(
+    ()=>productos.filter(p=>p.activo!==false&&(verAgotados||Number(p.stock)>0)),
+    [productos,verAgotados]
   );
+  const suggestions = useMemo(
+    ()=>(busqFocus&&busq.trim().length>=2?tiendaCatalogSearchSuggestions(poolSoloStock,busq,{limit:8}):[]),
+    [poolSoloStock,busq,busqFocus]
+  );
+  const hayCoincidenciasSinFiltrosLaterales = useMemo(()=>{
+    if (!busq.trim()) return false;
+    const limpio = productos.filter(p=>p.activo!==false&&(verAgotados||Number(p.stock)>0));
+    return limpio.some(p=>tiendaProductMatchesBusqueda(p,busq));
+  },[productos,verAgotados,busq]);
+  const filtrosLateralesActivos = cat!=="Todos"||tipo!=="todos"||!!String(precioMin).trim()||!!String(precioMax).trim();
+  const spellHints = useMemo(
+    ()=>(busq.trim().length>=3&&fil.length===0?spellSuggestFromProducts(poolSoloStock,busq):[]),
+    [poolSoloStock,busq,fil.length]
+  );
+  const limpiarFiltrosLaterales = ()=>{
+    setCat("Todos"); setTipo("todos"); setPrecioMin(""); setPrecioMax("");
+  };
   return(
     <div style={{maxWidth:1200,margin:"0 auto",padding:"clamp(20px,4vw,32px) 16px"}}>
       <h1 style={{color:C.dark,fontSize:"clamp(22px,5vw,28px)",fontWeight:800,marginBottom:6}}>Catálogo Farmax</h1>
       <div style={{color:C.dim,fontSize:14,marginBottom:24}}>{fil.length} productos disponibles</div>
       <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:20,marginBottom:20}}>
-        <Inp value={busq} onChange={e=>setBusq(e.target.value)} placeholder="🔍 Buscar por nombre o marca..." style={{width:"100%",boxSizing:"border-box",fontSize:15,marginBottom:16}}/>
+        <div style={{position:"relative",marginBottom:16,zIndex:5}}>
+        <Inp
+          value={busq}
+          onChange={e=>setBusq(e.target.value)}
+          onFocus={()=>setBusqFocus(true)}
+          onBlur={()=>setTimeout(()=>setBusqFocus(false),200)}
+          placeholder="🔍 Nombre, marca, SKU o código de barras…"
+          style={{width:"100%",boxSizing:"border-box",fontSize:15,marginBottom:0}}
+        />
+        {suggestions.length>0&&(
+          <div role="listbox" aria-label="Sugerencias de búsqueda" style={{
+            position:"absolute",left:0,right:0,top:"calc(100% + 4px)",
+            background:C.white,border:`1px solid ${C.border}`,borderRadius:10,
+            boxShadow:"0 16px 48px rgba(15,23,42,.12)",maxHeight:stack?260:320,overflowY:"auto",
+          }}>
+            {suggestions.map((s)=>(
+              <button
+                key={s.id}
+                type="button"
+                role="option"
+                onMouseDown={(e)=>e.preventDefault()}
+                onClick={()=>{
+                  const row = productos.find((x)=>x.id===s.id);
+                  if (row){ setProdDetalle(row); setPage("detalle"); }
+                  setBusqFocus(false);
+                }}
+                style={{
+                  display:"block",width:"100%",textAlign:"left",padding:"10px 14px",border:"none",
+                  borderBottom:`1px solid ${C.border}`,background:"transparent",cursor:"pointer",
+                  fontFamily:"'Plus Jakarta Sans',sans-serif",
+                }}
+              >
+                <div style={{color:C.dark,fontWeight:700,fontSize:13,lineHeight:1.35}}>{s.nombre}</div>
+                <div style={{color:C.dim,fontSize:11,marginTop:3,display:"flex",flexWrap:"wrap",gap:8}}>
+                  {s.sku?<span>SKU <strong style={{color:BRAND.primary}}>{s.sku}</strong></span>:null}
+                  {s.codigo_barras?<span>Cód. {s.codigo_barras}</span>:null}
+                  {Number(s.stock)<=0?<span style={{color:C.red}}>Agotado</span>:null}
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+        </div>
+        {fil.length===0&&busq.trim()&&hayCoincidenciasSinFiltrosLaterales&&filtrosLateralesActivos&&(
+          <div style={{marginBottom:14,padding:"10px 12px",borderRadius:10,background:"#fef3c7",border:"1px solid #f59e0b40",fontSize:13,color:"#92400e",lineHeight:1.5}}>
+            Hay resultados para tu búsqueda pero los filtros de categoría, tipo o precio los ocultan.{" "}
+            <button type="button" onClick={limpiarFiltrosLaterales} style={{background:"none",border:"none",padding:0,cursor:"pointer",color:BRAND.primary,fontWeight:800,textDecoration:"underline",fontSize:"inherit"}}>
+              Quitar filtros y mostrar coincidencias
+            </button>
+          </div>
+        )}
         {spellHints.length>0&&(
           <div style={{marginBottom:14,padding:"10px 12px",borderRadius:10,background:BRAND.primary+"12",border:`1px solid ${BRAND.primary}35`,fontSize:13,color:C.dark,lineHeight:1.5}}>
             <span style={{fontWeight:700,color:BRAND.primary}}>¿Quisiste decir? </span>
