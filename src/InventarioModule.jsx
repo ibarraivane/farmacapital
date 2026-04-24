@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useMediaQuery } from "./hooks/useMediaQuery";
 import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
 import { logAudit, normalizeForSearch } from "./utils";
+import { inventarioProductMatchesBusqueda, spellSuggestFromProducts } from "./utils/fuzzySearch";
 import { SkeletonTable, Paginador, SearchDropdown, HorizontalScrollSync } from "./ui";
 import { showToast } from "./ui";
 import OnboardingTour from "./components/OnboardingTour";
@@ -28,6 +29,16 @@ const EMPTY = {
   stock:"", stock_minimo:"", tipo:"generico", proveedor:"", lote:"",
   fecha_caducidad:"", descuento_pct:"0", activo:true, imagen_url:"",
 };
+
+/** PostgREST puede devolver una fila como array o como objeto según versión/cliente */
+function productoIdDesdeCreateRpc(data) {
+  if (data == null) return null;
+  const row = Array.isArray(data) ? data[0] : data;
+  const raw = row?.producto_id;
+  if (raw == null || raw === "") return null;
+  const n = typeof raw === "number" ? raw : parseInt(String(raw), 10);
+  return Number.isFinite(n) ? n : null;
+}
 
 // F4: campos lote/fecha_caducidad ya NO viven en productos; son del lote.
 // Para productos ya existentes derivamos min_caducidad desde lotes activos.
@@ -189,6 +200,17 @@ function ProductoModal({initial, onClose, onSaved }) {
         if (!imgFile) {
           patch.imagen_url = urlNow;
           if (urlNow !== urlIni) patch.imagen_mobile_url = urlNow;
+        } else {
+          try {
+            const urls = await uploadAutoProductImages(supabase, form.id, imgFile);
+            patch.imagen_url = urls.imagen_url;
+            patch.imagen_mobile_url = urls.imagen_mobile_url;
+          } catch (e) {
+            showToast(
+              "No se pudo subir la imagen: " + (e?.message || String(e)) + ". Se guardarán el resto de los datos sin cambiar la foto.",
+              "warning"
+            );
+          }
         }
         const { error: editErr } = await supabase.rpc("admin_editar_producto", {
           p_session_token: tok,
@@ -205,19 +227,6 @@ function ProductoModal({initial, onClose, onSaved }) {
           });
           if (adjErr) err = adjErr;
         }
-        if (!err && imgFile) {
-          try {
-            const urls = await uploadAutoProductImages(supabase, form.id, imgFile);
-            const { error: imgErr } = await supabase.rpc("admin_editar_producto", {
-              p_session_token: tok,
-              p_producto_id: form.id,
-              p_patch: { imagen_url: urls.imagen_url, imagen_mobile_url: urls.imagen_mobile_url },
-            });
-            if (imgErr) throw imgErr;
-          } catch (e) {
-            err = e;
-          }
-        }
       } else {
         const pdata = { ...productoFields, costo: costoNum };
         if (urlNow && !imgFile) {
@@ -233,7 +242,13 @@ function ProductoModal({initial, onClose, onSaved }) {
           p_costo_unitario: costoNum || null,
         });
         err = rpcErr;
-        const newId = created?.[0]?.producto_id;
+        const newId = productoIdDesdeCreateRpc(created);
+        if (!err && imgFile && !newId) {
+          showToast(
+            "Producto creado, pero no se recibió el ID desde el servidor para subir la imagen. Editá el producto y cargá la foto de nuevo.",
+            "warning"
+          );
+        }
         if (!err && imgFile && newId) {
           try {
             const urls = await uploadAutoProductImages(supabase, newId, imgFile);
@@ -636,17 +651,27 @@ export default function InventarioModule() {
 
   useEffect(() => { fetchProductos(); }, [fetchProductos]);
 
-  const filtradosTodosInv = productos.filter(p => {
-    const q   = normalizeForSearch(busqueda);
-    const txt = !q || normalizeForSearch(p.nombre).includes(q) || normalizeForSearch(p.sku).includes(q);
+  const poolSinBusqueda = useMemo(() => productos.filter(p => {
     const cat = filtroCategoria === "todas" || p.categoria === filtroCategoria;
     const dias = diasParaCaducar(p.min_caducidad_lotes);
     const alerta =
       filtroAlerta === "todos"       ? true :
       filtroAlerta === "bajo_stock"  ? (p.stock <= (p.stock_minimo??0)) :
       filtroAlerta === "por_caducar" ? (dias !== null && dias <= 30 && dias >= 0) : true;
-    return txt && cat && alerta;
-  });
+    return cat && alerta;
+  }), [productos, filtroCategoria, filtroAlerta]);
+
+  const filtradosTodosInv = useMemo(
+    () => poolSinBusqueda.filter(p => inventarioProductMatchesBusqueda(p, busqueda)),
+    [poolSinBusqueda, busqueda]
+  );
+
+  const spellHintsInv = useMemo(
+    () => (busqueda.trim().length >= 3 && filtradosTodosInv.length === 0
+      ? spellSuggestFromProducts(poolSinBusqueda, busqueda)
+      : []),
+    [poolSinBusqueda, busqueda, filtradosTodosInv.length]
+  );
   const filtrados = filtradosTodosInv.slice((paginaInv-1)*INV_POR_PAG, paginaInv*INV_POR_PAG);
 
   const activos    = productos.filter(p => p.activo).length;
@@ -729,7 +754,7 @@ export default function InventarioModule() {
       </div>
 
       <div data-tour="inv-buscar" style={{display:"flex",gap:10,marginBottom:16,flexWrap:"wrap",alignItems:"center"}}>
-        <SearchDropdown value={busqueda} onChange={setBusqueda} onSelect={p=>setBusqueda(p.nombre)} placeholder="🔍 Nombre o SKU…" items={productos} labelKey="nombre" subKey="sku" badgeKey="stock" badgeCol="#0099e6" style={{flex:1}} emptyMsg="Sin productos"/>
+        <SearchDropdown value={busqueda} onChange={setBusqueda} onSelect={p=>setBusqueda(p.nombre)} placeholder="🔍 Nombre o SKU…" items={productos} labelKey="nombre" subKey="sku" extraSearchKeys={["codigo_barras","categoria"]} badgeKey="stock" badgeCol="#0099e6" style={{flex:1}} emptyMsg="Sin productos"/>
         <select value={filtroCategoria} onChange={e=>setFiltroCategoria(e.target.value)} style={{...inputStyle,maxWidth:180}}>
           <option value="todas">Todas las categorías</option>
           {CATEGORIAS.map(c=><option key={c} value={c}>{c}</option>)}
@@ -754,6 +779,24 @@ export default function InventarioModule() {
           {filtrados.length} producto{filtrados.length!==1?"s":""}
         </span>
       </div>
+      {spellHintsInv.length > 0 && (
+        <div style={{
+          marginBottom:14,padding:"10px 12px",borderRadius:10,
+          background:"rgba(0,82,204,.08)",border:"1px solid rgba(0,82,204,.25)",
+          fontSize:12,color:C.text,lineHeight:1.5,
+        }}>
+          <span style={{fontWeight:800,color:BRAND.primary}}>¿Quisiste decir? </span>
+          {spellHintsInv.map((h, i) => (
+            <span key={h.label}>
+              {i > 0 && " · "}
+              <button type="button" onClick={() => setBusqueda(h.label)} style={{
+                background:"none",border:"none",padding:0,cursor:"pointer",
+                color:BRAND.primary,fontWeight:700,textDecoration:"underline",fontSize:"inherit",
+              }}>{h.label}</button>
+            </span>
+          ))}
+        </div>
+      )}
 
       {loading ? (
         <SkeletonTable rows={8} cols={7}/>

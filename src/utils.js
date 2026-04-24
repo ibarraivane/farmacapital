@@ -33,10 +33,28 @@ export const normalizeForSearch = (s) => {
   if (s == null) return "";
   const t = String(s).trim();
   if (!t) return "";
-  return t
-    .normalize("NFD")
-    .replace(/\p{M}/gu, "")
-    .toLowerCase();
+  let d = t;
+  try {
+    if (typeof d.normalize === "function") d = d.normalize("NFD");
+  } catch {
+    /* IE / entornos raros */
+  }
+  try {
+    d = d.replace(/\p{M}/gu, "");
+  } catch {
+    d = d.replace(/[\u0300-\u036f]/g, "");
+  }
+  return d.toLowerCase().replace(/ñ/g, "n");
+};
+
+/** True si la consulta (sin acentos) aparece en alguno de los campos. */
+export const someFieldIncludesNormalizedQuery = (fields, queryRaw) => {
+  const q = normalizeForSearch(queryRaw);
+  if (!q) return true;
+  for (const f of fields) {
+    if (normalizeForSearch(f).includes(q)) return true;
+  }
+  return false;
 };
 
 /** Primer nombre (primer token) para saludos en UI. */

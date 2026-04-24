@@ -22,13 +22,19 @@ export function guessImageExt(file) {
 async function removePrefixFiles(supabaseClient, bucket, folder, namePrefix) {
   const folderStr = String(folder);
   const { data: files, error: listErr } = await supabaseClient.storage.from(bucket).list(folderStr);
-  if (listErr) throw listErr;
+  if (listErr) {
+    // No bloquear la subida: carpetas nuevas, políticas de list distintas o bucket recién creado.
+    console.warn("[farmax storage] list omitido:", bucket, folderStr, listErr.message || listErr);
+    return;
+  }
   const paths = (files || [])
     .filter((f) => f.name && f.name.startsWith(namePrefix))
     .map((f) => `${folderStr}/${f.name}`);
   if (paths.length) {
     const { error: rmErr } = await supabaseClient.storage.from(bucket).remove(paths);
-    if (rmErr) throw rmErr;
+    if (rmErr) {
+      console.warn("[farmax storage] remove parcial:", bucket, rmErr.message || rmErr);
+    }
   }
 }
 

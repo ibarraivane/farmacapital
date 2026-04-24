@@ -1,7 +1,7 @@
 import React, { useRef, useState, useLayoutEffect, useCallback } from "react";
 // FARMAX — Componentes UI base
 import { C_LIGHT, BRAND } from "./constants";
-import { normalizeForSearch } from "./utils";
+import { productMatchesSearchQuery } from "./utils/fuzzySearch";
 
 export function Logo({size=36,showText=true,light=false}){
   const C = C_LIGHT;
@@ -387,6 +387,7 @@ export function Paginador({ total, porPagina=50, pagina, setPagina }) {
 export function SearchDropdown({
   value, onChange, onSelect, placeholder="🔍 Buscar...",
   items=[], labelKey="nombre", subKey=null, badgeKey=null, badgeCol=null,
+  extraSearchKeys=[],
   style={}, maxResults=8, emptyMsg="Sin resultados"
 }) {
   const C = C_LIGHT;
@@ -394,13 +395,14 @@ export function SearchDropdown({
   const [idx,  setIdx]  = React.useState(-1);
   const ref = React.useRef(null);
 
-  const filtered = !value ? [] : items.filter(item=>{
-    const label = normalizeForSearch(item[labelKey]||"");
-    const sub   = subKey ? normalizeForSearch(item[subKey]||"") : "";
-    const q     = normalizeForSearch(value);
-    if (!q) return false;
-    return label.includes(q) || (sub && sub.includes(q));
-  }).slice(0,maxResults);
+  const searchGetters = React.useMemo(() => {
+    const extra = (extraSearchKeys || []).map((k) => (it) => it[k]);
+    return [(it) => it[labelKey], ...(subKey ? [(it) => it[subKey]] : []), ...extra];
+  }, [labelKey, subKey, (extraSearchKeys || []).join("\0")]);
+
+  const filtered = !value?.trim() ? [] : items.filter((item) =>
+    productMatchesSearchQuery(item, value, searchGetters)
+  ).slice(0, maxResults);
 
   React.useEffect(()=>{
     const handler = e => { if(ref.current&&!ref.current.contains(e.target)) setOpen(false); };

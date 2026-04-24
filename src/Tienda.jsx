@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "./supabase";
 import { useTheme } from "./themeContext";
 import { useMediaQuery } from "./hooks/useMediaQuery";
 import { saludoUsuario, primerNombre, $, normalizarSesionLoginResp, nombreCompletoPacienteValido, telefonoMxValido, soloDigitosTel } from "./utils";
+import { tiendaProductMatchesBusqueda, spellSuggestFromProducts } from "./utils/fuzzySearch";
 import { CONSULTA_PRECIO_DEFAULT } from "./utils/consultaConstants";
 import { fetchPrecioConsultaConfig } from "./utils/consumiblesConsultorio";
 import {
@@ -835,19 +836,38 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero}){
   useEffect(()=>{ sessionStorage.setItem("farmax_busq",busq); },[busq]);
   useEffect(()=>{ sessionStorage.setItem("farmax_tipo",tipo); },[tipo]);
   const cats=["Todos",...new Set(productos.map(p=>p.categoria).filter(Boolean))];
-  const fil=productos
+  const basePool = useMemo(()=>productos
     .filter(p=>verAgotados?true:p.stock>0)
     .filter(p=>cat==="Todos"||p.categoria===cat)
-    .filter(p=>!busq||p.nombre.toLowerCase().includes(busq.toLowerCase())||(p.marca||"").toLowerCase().includes(busq.toLowerCase()))
     .filter(p=>tipo==="todos"||p.tipo===tipo)
     .filter(p=>!precioMin||parseFloat(p.precio)>=parseFloat(precioMin))
-    .filter(p=>!precioMax||parseFloat(p.precio)<=parseFloat(precioMax));
+    .filter(p=>!precioMax||parseFloat(p.precio)<=parseFloat(precioMax)),
+  [productos,verAgotados,cat,tipo,precioMin,precioMax]);
+  const fil = useMemo(
+    ()=>basePool.filter(p=>tiendaProductMatchesBusqueda(p,busq)),
+    [basePool,busq]
+  );
+  const spellHints = useMemo(
+    ()=>(busq.trim().length>=3&&fil.length===0?spellSuggestFromProducts(basePool,busq):[]),
+    [basePool,busq,fil.length]
+  );
   return(
     <div style={{maxWidth:1200,margin:"0 auto",padding:"clamp(20px,4vw,32px) 16px"}}>
       <h1 style={{color:C.dark,fontSize:"clamp(22px,5vw,28px)",fontWeight:800,marginBottom:6}}>Catálogo Farmax</h1>
       <div style={{color:C.dim,fontSize:14,marginBottom:24}}>{fil.length} productos disponibles</div>
       <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:20,marginBottom:20}}>
         <Inp value={busq} onChange={e=>setBusq(e.target.value)} placeholder="🔍 Buscar por nombre o marca..." style={{width:"100%",boxSizing:"border-box",fontSize:15,marginBottom:16}}/>
+        {spellHints.length>0&&(
+          <div style={{marginBottom:14,padding:"10px 12px",borderRadius:10,background:BRAND.primary+"12",border:`1px solid ${BRAND.primary}35`,fontSize:13,color:C.dark,lineHeight:1.5}}>
+            <span style={{fontWeight:700,color:BRAND.primary}}>¿Quisiste decir? </span>
+            {spellHints.map((h,i)=>(
+              <span key={h.label}>
+                {i>0&&" · "}
+                <button type="button" onClick={()=>setBusq(h.label)} style={{background:"none",border:"none",padding:0,cursor:"pointer",color:BRAND.primary,fontWeight:700,textDecoration:"underline",fontSize:"inherit"}}>{h.label}</button>
+              </span>
+            ))}
+          </div>
+        )}
         <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
           {[["todos","Todos"],["generico","💊 Genérico"],["marca","® Marca"]].map(([v,l])=>(
             <button key={v} onClick={()=>setTipo(v)} style={{padding:"5px 12px",borderRadius:20,border:`1px solid ${tipo===v?BRAND.primary:C.border}`,background:tipo===v?BRAND.primary+"18":"transparent",color:tipo===v?BRAND.primary:C.mid,fontSize:12,cursor:"pointer",fontWeight:600}}>{l}</button>
