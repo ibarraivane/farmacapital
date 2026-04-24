@@ -29,9 +29,36 @@ export const nombreCompletoPacienteValido = (n) => {
  * Texto en minúsculas sin acentos ni marcas diacríticas (búsqueda tolerante).
  * Ej.: "Paracetámol" y "paracetamol" comparten la misma forma normalizada.
  */
+/** Quita ZWSP/BOM/etc. que dejan tokens “rotos” en búsqueda. */
+const stripInvisibleSearchChars = (s) =>
+  String(s).replace(/[\u200B-\u200D\uFEFF\u2060]/g, "");
+
+/** Token ya normalizado: dosis (5mg, 12.5ml, …) para no confundir con 15mg / 150mg / 250mg. */
+export const isNormalizedDoseUnitToken = (tok) =>
+  /^(\d+)(\.\d+)?(mg|mcg|ug|g|ml|iu)$/i.test(String(tok || ""));
+
+/**
+ * Subcadena en texto ya normalizado; para dosis exige límites numéricos (no "5mg" dentro de "15mg").
+ */
+export const tokenMatchesInNormalizedHaystack = (needle, haystack) => {
+  if (needle == null || haystack == null) return false;
+  const n = String(needle);
+  const h = String(haystack);
+  if (!n || !h.includes(n)) return false;
+  if (!isNormalizedDoseUnitToken(n)) return true;
+  let i = 0;
+  while ((i = h.indexOf(n, i)) !== -1) {
+    const before = i === 0 ? "" : h[i - 1];
+    const after = i + n.length >= h.length ? "" : h[i + n.length];
+    if (!/\d/.test(before) && !/\d/.test(after)) return true;
+    i += 1;
+  }
+  return false;
+};
+
 export const normalizeForSearch = (s) => {
   if (s == null) return "";
-  const t = String(s).trim();
+  const t = stripInvisibleSearchChars(String(s)).trim();
   if (!t) return "";
   let d = t;
   try {
@@ -57,7 +84,9 @@ export const someFieldIncludesNormalizedQuery = (fields, queryRaw) => {
   const tokens = q.split(/\s+/).filter(Boolean);
   if (!tokens.length) return true;
   const normalizedFields = fields.map((f) => normalizeForSearch(f));
-  return tokens.every((tok) => normalizedFields.some((nf) => nf.includes(tok)));
+  return tokens.every((tok) =>
+    normalizedFields.some((nf) => tokenMatchesInNormalizedHaystack(tok, nf))
+  );
 };
 
 /** Primer nombre (primer token) para saludos en UI. */

@@ -2,7 +2,12 @@
  * Búsqueda tolerante a errores de escritura (distancia de edición) + sugerencias.
  */
 
-import { normalizeForSearch, someFieldIncludesNormalizedQuery } from "../utils";
+import {
+  normalizeForSearch,
+  someFieldIncludesNormalizedQuery,
+  isNormalizedDoseUnitToken,
+  tokenMatchesInNormalizedHaystack,
+} from "../utils";
 
 /** Distancia de Levenshtein (iterativa, O(nm)). */
 export function levenshtein(a, b) {
@@ -72,6 +77,9 @@ export function productMatchesSearchQuery(product, queryRaw, valueGetters) {
   return tokens.every((tok) => {
     if (tok.length <= 1) {
       return normalizedValues.some((nv) => nv.includes(tok));
+    }
+    if (isNormalizedDoseUnitToken(tok)) {
+      return normalizedValues.some((nv) => tokenMatchesInNormalizedHaystack(tok, nv));
     }
     if (tok.length < 3) {
       return normalizedValues.some((nv) => nv.includes(tok) || normalizedTextFuzzyMatch(tok, nv));

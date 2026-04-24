@@ -835,6 +835,9 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero}){
   useEffect(()=>{ sessionStorage.setItem("farmax_cat",cat); },[cat]);
   useEffect(()=>{ sessionStorage.setItem("farmax_busq",busq); },[busq]);
   useEffect(()=>{ sessionStorage.setItem("farmax_tipo",tipo); },[tipo]);
+  useEffect(()=>{
+    if (busqHero != null && String(busqHero).trim()) setBusq(busqHero);
+  },[busqHero]);
   const cats=["Todos",...new Set(productos.map(p=>p.categoria).filter(Boolean))];
   const basePool = useMemo(()=>productos
     .filter(p=>verAgotados?true:p.stock>0)
@@ -1849,7 +1852,11 @@ export default function TiendaFarmax(){
   // Cargar productos
   useEffect(()=>{
     supabase.from("productos").select("*").eq("activo",true).order("id")
-      .then(({data})=>{if(data&&data.length>0)setProductos(data);setCargando(false);});
+      .then(({data,error})=>{
+        if (error) console.error("[Tienda] productos:", error);
+        if (data?.length) setProductos(data);
+        setCargando(false);
+      });
   },[]);
 
   // Mostrar popup 1 vez por sesión si no está logueado

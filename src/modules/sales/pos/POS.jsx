@@ -1261,10 +1261,22 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                     add(item,false);
                   }
                 };
+                const thumb = item.imagen_url || item.imagen_mobile_url || "";
                 return(
                 <Box key={item.id} className="farmax-product-card"
                   onClick={posCardClick}
                   style={{padding:12,opacity:item.stock===0&&(!item.venta_unidad||item.stock_unidades===0)?.5:1}}>
+                  {thumb ? (
+                    <div style={{width:"100%",height:52,borderRadius:8,overflow:"hidden",marginBottom:8,background:C.cardDark,flexShrink:0}}>
+                      <img
+                        alt=""
+                        src={thumb}
+                        loading="lazy"
+                        onError={(e)=>{ e.currentTarget.parentElement.style.display="none"; }}
+                        style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}
+                      />
+                    </div>
+                  ) : null}
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
                     <div style={{color:C.textDim,fontSize:9,letterSpacing:1}}>{item.sku}</div>
                     <button type="button" onClick={e=>{e.stopPropagation();toggleFav(item.id);}} style={{background:"none",border:"none",cursor:"pointer",fontSize:12,padding:0,lineHeight:1}} title="Favorito">
