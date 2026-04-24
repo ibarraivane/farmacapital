@@ -35,6 +35,11 @@ if (!nonEmpty(env.REACT_APP_SUPABASE_ANON_KEY) && nonEmpty(env.SUPABASE_ANON_KEY
   env.REACT_APP_SUPABASE_ANON_KEY = env.SUPABASE_ANON_KEY;
 }
 
+/** Visible en el navegador como window.__FARMAX_BUILD_ID__ para comprobar que el deploy es reciente. */
+if (!nonEmpty(env.REACT_APP_FARMAX_BUILD_ID)) {
+  env.REACT_APP_FARMAX_BUILD_ID = new Date().toISOString();
+}
+
 const buildScript = require.resolve("react-scripts/scripts/build.js");
 const result = spawnSync(process.execPath, [buildScript], {
   stdio: "inherit",

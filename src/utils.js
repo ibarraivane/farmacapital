@@ -47,14 +47,17 @@ export const normalizeForSearch = (s) => {
   return d.toLowerCase().replace(/ñ/g, "n");
 };
 
-/** True si la consulta (sin acentos) aparece en alguno de los campos. */
+/**
+ * Cada palabra de la consulta (sin acentos) debe aparecer en al menos un campo.
+ * Permite "500 paracetamol", "folico acido", segunda palabra sola, etc.
+ */
 export const someFieldIncludesNormalizedQuery = (fields, queryRaw) => {
   const q = normalizeForSearch(queryRaw);
   if (!q) return true;
-  for (const f of fields) {
-    if (normalizeForSearch(f).includes(q)) return true;
-  }
-  return false;
+  const tokens = q.split(/\s+/).filter(Boolean);
+  if (!tokens.length) return true;
+  const normalizedFields = fields.map((f) => normalizeForSearch(f));
+  return tokens.every((tok) => normalizedFields.some((nf) => nf.includes(tok)));
 };
 
 /** Primer nombre (primer token) para saludos en UI. */

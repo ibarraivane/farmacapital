@@ -5,6 +5,10 @@ import { initEventStore } from "./core/eventStore/initEventStore";
 
 initEventStore();
 
+if (typeof window !== "undefined" && process.env.REACT_APP_FARMAX_BUILD_ID) {
+  window.__FARMAX_BUILD_ID__ = process.env.REACT_APP_FARMAX_BUILD_ID;
+}
+
 const CHUNK_RETRY_KEY = "farmax_chunk_retries";
 
 /** Errores típicos al cargar código partido (deploy nuevo + HTML/JS viejos en caché). */

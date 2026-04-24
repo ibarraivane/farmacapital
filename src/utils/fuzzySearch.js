@@ -66,12 +66,18 @@ export function productMatchesSearchQuery(product, queryRaw, valueGetters) {
   const values = valueGetters.map((fn) => fn(product)).filter((v) => v != null && String(v).trim() !== "");
   if (someFieldIncludesNormalizedQuery(values, queryRaw)) return true;
   const q = normalizeForSearch(queryRaw);
-  if (q.length < 3) return false;
-  for (const v of values) {
-    const tn = normalizeForSearch(v);
-    if (normalizedTextFuzzyMatch(q, tn)) return true;
-  }
-  return false;
+  const tokens = q.split(/\s+/).filter(Boolean);
+  if (!tokens.length) return false;
+  const normalizedValues = values.map((v) => normalizeForSearch(v));
+  return tokens.every((tok) => {
+    if (tok.length <= 1) {
+      return normalizedValues.some((nv) => nv.includes(tok));
+    }
+    if (tok.length < 3) {
+      return normalizedValues.some((nv) => nv.includes(tok) || normalizedTextFuzzyMatch(tok, nv));
+    }
+    return normalizedValues.some((nv) => normalizedTextFuzzyMatch(tok, nv));
+  });
 }
 
 const TIENDA_GETTERS = [
@@ -116,7 +122,8 @@ export function spellSuggestFromProducts(products, queryRaw, { limit = 4, minQue
     const name = p.nombre;
     if (!name || !String(name).trim()) continue;
     const nn = normalizeForSearch(name);
-    if (nn.includes(q)) continue;
+    const qTokens = q.split(/\s+/).filter(Boolean);
+    if (qTokens.length && qTokens.every((t) => nn.includes(t))) continue;
     const dist = minEditDistanceQueryToText(q, nn);
     const maxLen = Math.max(q.length, nn.length);
     const ratio = maxLen ? dist / maxLen : 1;
