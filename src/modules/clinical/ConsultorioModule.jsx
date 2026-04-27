@@ -4,6 +4,7 @@ import { C_LIGHT } from "../../constants";
 import { supabase } from "../../supabase";
 import { showToast } from "../../ui";
 import { fetchProductosConsumiblesConsultorio } from "../../utils/consumiblesConsultorio";
+import { citaPagoOk, citaEstaPagada } from "../../utils/consultaConstants";
 import OnboardingTour from "../../components/OnboardingTour";
 import { Paciente } from "./Paciente";
 import { Historial } from "./Historial";
@@ -165,18 +166,35 @@ function ListaEspera() {
 
   const fetchCitas = useCallback(async () => {
     const hoy = todaySvLocal();
-    const { data, error } = await supabase.from("citas").select("*")
-      .in("estado",["confirmada","en_consulta","completada","pagada"])
-      .eq("fecha", hoy).order("hora");
-    if (!error) {
-      setCitas(data||[]);
+    // crear_cita / tienda guardan estado "agendada"; al cobrar en POS solo cambia pago_estado (no a "confirmada").
+    // Sin incluir "agendada" las citas pagadas desaparecían de esta lista.
+    const { data, error } = await supabase
+      .from("citas")
+      .select("*")
+      .eq("fecha", hoy)
+      .in("estado", ["agendada", "confirmada", "en_consulta", "completada", "pagada"])
+      .order("hora");
+    if (error) {
+      console.error("[Consultorio] citas hoy:", error);
+      setCitas([]);
+    } else {
+      const list = (data || []).filter((c) => (c.estado === "agendada" ? citaPagoOk(c) : true));
+      setCitas(list);
       // L1: Cargar historial de cada paciente
-      const tels = [...new Set((data||[]).map(c=>c.telefono).filter(Boolean))];
+      const tels = [...new Set(list.map((c) => c.telefono).filter(Boolean))];
       const map = {};
-      await Promise.all(tels.map(async tel=>{
-        const {data:hist} = await supabase.from("citas").select("fecha,diagnostico").eq("telefono",tel).eq("estado","completada").order("fecha",{ascending:false}).limit(5);
-        if(hist&&hist.length) map[tel] = { count:hist.length, ultima:hist[0].fecha, dx:hist[0].diagnostico };
-      }));
+      await Promise.all(
+        tels.map(async (tel) => {
+          const { data: hist } = await supabase
+            .from("citas")
+            .select("fecha,diagnostico")
+            .eq("telefono", tel)
+            .eq("estado", "completada")
+            .order("fecha", { ascending: false })
+            .limit(5);
+          if (hist && hist.length) map[tel] = { count: hist.length, ultima: hist[0].fecha, dx: hist[0].diagnostico };
+        })
+      );
       setHistorialMap(map);
     }
     setLoading(false);
@@ -198,21 +216,27 @@ function ListaEspera() {
     fetchCitas();
   };
 
-  const esperando   = citas.filter(c=>c.estado==="confirmada").length;
+  const esperando =
+    citas.filter((c) => c.estado === "confirmada" || (c.estado === "agendada" && citaPagoOk(c))).length;
   const enConsulta  = citas.filter(c=>c.estado==="en_consulta").length;
   const completadas = citas.filter(c=>c.estado==="completada").length;
 
-  const estadoInfo = (e) => ({
-    confirmada:  { bg:C.amberDim,  col:C.amber,  txt:"⏳ Esperando" },
-    en_consulta: { bg:C.blueDim,   col:C.blue,   txt:"🩺 En consulta" },
-    completada:  { bg:C.greenDim,  col:C.green,  txt:"✅ Completada" },
-    pagada:      { bg:"#dcfce7",   col:"#16a34a", txt:"💰 Pagada" },
-  }[e] || { bg:C.border, col:C.textMid, txt:e });
+  const badgeListaEspera = (c) => {
+    if (c.estado === "en_consulta") return { bg:C.blueDim, col:C.blue, txt:"🩺 En consulta" };
+    if (c.estado === "completada") return { bg:C.greenDim, col:C.green, txt:"✅ Completada" };
+    if (c.estado === "pagada") return { bg:"#dcfce7", col:"#16a34a", txt:"💰 Pagada" };
+    if (c.estado === "confirmada")
+      return { bg:C.amberDim, col:C.amber, txt: citaPagoOk(c) ? "⏳ Esperando" : "⏳ Sin pago" };
+    if (c.estado === "agendada" && citaPagoOk(c)) return { bg:C.amberDim, col:C.amber, txt:"⏳ Listo (pagó en caja)" };
+    if (c.estado === "agendada")
+      return { bg:C.card, col:C.textMid, txt:"Agendada" };
+    return { bg:C.border, col:C.textMid, txt:c.estado || "—" };
+  };
 
   return (
     <div>
       <div data-tour="cons-kpis" style={{display:"flex",gap:12,marginBottom:20,flexWrap:"wrap"}}>
-        {[["⏳ Esperando",esperando,C.amber],["🩺 En consulta",enConsulta,C.blue],["✅ Completadas",completadas,C.green],["💰 Pagadas",citas.filter(c=>c.estado==="pagada").length,"#16a34a"]].map(([lbl,val,col])=>(
+        {[["⏳ Esperando",esperando,C.amber],["🩺 En consulta",enConsulta,C.blue],["✅ Completadas",completadas,C.green],["💰 Pagadas (cobro)",citas.filter((c) => citaEstaPagada(c)).length,"#16a34a"]].map(([lbl,val,col])=>(
           <div key={lbl} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"10px 18px",minWidth:130}}>
             <div style={{color:col,fontWeight:800,fontSize:22}}>{val}</div>
             <div style={{color:C.textMid,fontSize:11}}>{lbl}</div>
@@ -233,7 +257,7 @@ function ListaEspera() {
             <tbody>
               {citas.length===0&&<tr><td colSpan={6} style={{textAlign:"center",padding:40,color:C.textMid}}>Sin citas para hoy</td></tr>}
               {citas.map((c,i)=>{
-                const s = estadoInfo(c.estado);
+                const s = badgeListaEspera(c);
                 return (
                   <tr key={c.id||i} style={{background:i%2===0?"transparent":C.card+"60"}}>
                     <td style={{padding:"10px 14px",color:C.text,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{horaVista(c.hora)}</td>
@@ -247,7 +271,7 @@ function ListaEspera() {
                       <span style={{padding:"3px 10px",borderRadius:20,fontSize:10,fontWeight:700,background:s.bg,color:s.col}}>{s.txt}</span>
                     </td>
                     <td style={{padding:"10px 14px",borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>
-                      {c.estado==="confirmada"&&(
+                      {(c.estado === "confirmada" || (c.estado === "agendada" && citaPagoOk(c))) && (
                         <button onClick={()=>{
                           const resumen = historialMap[c.telefono];
                           if(resumen) {
