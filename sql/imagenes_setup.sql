@@ -2,13 +2,14 @@
 -- Ejecutar en Supabase SQL Editor DESPUÉS de refactor_fase6d (fn_require_admin).
 -- Idempotente: IF NOT EXISTS / CREATE OR REPLACE.
 --
--- Nota: El proyecto ya puede tener imagen_url / imagen_mobile_url en productos y banners.
--- Estas funciones sincronizan ambas columnas de producto cuando se actualiza la URL principal.
+-- Nota: banners y productos usan imagen_url + imagen_mobile_url (tienda / Admin).
+-- Las RPCs admin_upsert_banner y admin_actualizar_imagen_banner escriben ambas en banners.
 
 begin;
 
 -- 1. Columnas (por si faltan en proyectos viejos)
 alter table public.banners add column if not exists imagen_url text;
+alter table public.banners add column if not exists imagen_mobile_url text;
 alter table public.productos add column if not exists imagen_url text;
 alter table public.productos add column if not exists imagen_mobile_url text;
 
