@@ -12,6 +12,10 @@ on:
     - cron: "30 6 * * *" # 06:30 UTC (30 min después del trigger de Vercel)
   workflow_dispatch:
 
+env:
+  # Adelanta migración de acciones JavaScript a Node 24 (GitHub deprecó Node 20).
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 concurrency:
   group: farmax-backup
   cancel-in-progress: false
@@ -27,12 +31,10 @@ jobs:
     env:
       # Debe ser >= la versión de Postgres de Supabase. Ajustar si cambia.
       PG_MAJOR: "17"
-      # Silencia el warning de Node.js 20 en acciones de JavaScript (GitHub Actions).
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       - name: Checkout repo principal (código del script)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           persist-credentials: false
 
@@ -49,11 +51,31 @@ jobs:
           pg_dump --version
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: "20.x"
+          node-version: "24.x"
+
+      - name: Validar secretos requeridos
+        env:
+          SUPABASE_DB_URL:     ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_GITHUB_REPO:  ${{ secrets.BACKUP_GITHUB_REPO }}
+          BACKUP_GITHUB_TOKEN: ${{ secrets.BACKUP_GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          miss=0
+          for v in SUPABASE_DB_URL BACKUP_GITHUB_REPO BACKUP_GITHUB_TOKEN; do
+            if [ -z "${!v:-}" ]; then
+              echo "::error::Falta secreto requerido: $v"
+              miss=1
+            fi
+          done
+          if [ "$miss" -ne 0 ]; then
+            echo "Configura los secrets faltantes en GitHub Actions y reintenta."
+            exit 1
+          fi
 
       - name: Ejecutar backup end-to-end
+        id: run_backup
         env:
           SUPABASE_DB_URL:     ${{ secrets.SUPABASE_DB_URL }}
           BACKUP_GITHUB_REPO:  ${{ secrets.BACKUP_GITHUB_REPO }}
@@ -64,14 +86,32 @@ jobs:
           BACKUP_TIMEOUT_SEC:  "900"
           BACKUP_SUBDIR:       "backups"
           BACKUP_RETENTION_DAYS: "30"
-        run: node scripts/backup-db.js | tee backup.log
+        run: |
+          set -euo pipefail
+          node scripts/backup-db.js | tee backup.log
+          if [ ! -f backup.log ]; then
+            echo "backup.log no existe tras ejecutar backup-db.js"
+            exit 1
+          fi
+          BACKUP_PATH=$(node -e "const fs=require('fs');const s=fs.readFileSync('backup.log','utf8');const m=[...s.matchAll(/::backup-path::([^\r\n]+)/g)];if(!m.length)process.exit(2);process.stdout.write(m.at(-1)[1].trim());")
+          BACKUP_FILENAME=$(node -e "const fs=require('fs');const s=fs.readFileSync('backup.log','utf8');const m=[...s.matchAll(/::backup-filename::([^\r\n]+)/g)];if(!m.length)process.exit(2);process.stdout.write(m.at(-1)[1].trim());")
+          BACKUP_SIZE_BYTES=$(node -e "const fs=require('fs');const s=fs.readFileSync('backup.log','utf8');const m=[...s.matchAll(/::backup-size-bytes::([^\r\n]+)/g)];if(!m.length)process.exit(2);process.stdout.write(m.at(-1)[1].trim());")
+          if [ -z "$BACKUP_PATH" ] || [ ! -f "$BACKUP_PATH" ]; then
+            echo "No se encontró ruta de backup válida en backup.log: '$BACKUP_PATH'"
+            exit 1
+          fi
+          {
+            echo "backup_path=$BACKUP_PATH"
+            echo "backup_filename=$BACKUP_FILENAME"
+            echo "backup_size_bytes=$BACKUP_SIZE_BYTES"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Validar integridad del dump
         if: success()
         run: |
-          BACKUP_PATH=$(grep '::backup-path::' backup.log | tail -1 | sed 's/.*::backup-path:://')
+          BACKUP_PATH="${{ steps.run_backup.outputs.backup_path }}"
           if [ -z "$BACKUP_PATH" ] || [ ! -f "$BACKUP_PATH" ]; then
-            echo "No se encontró ruta de backup en backup.log o el archivo no existe."
+            echo "No se encontró ruta de backup o el archivo no existe."
             exit 1
           fi
           pg_restore --list "$BACKUP_PATH" > /dev/null
@@ -83,7 +123,7 @@ jobs:
           echo "## Backup FARMAX" >> "$GITHUB_STEP_SUMMARY"
           echo "- Trigger: ${{ github.event_name }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- Destino: ${{ secrets.BACKUP_GITHUB_REPO }}" >> "$GITHUB_STEP_SUMMARY"
-          if grep -q '::backup-filename::' backup.log 2>/dev/null; then
-            echo "- Archivo: $(grep '::backup-filename::' backup.log | tail -1 | sed 's/.*::backup-filename:://')" >> "$GITHUB_STEP_SUMMARY"
-            echo "- Tamaño: $(grep '::backup-size-bytes::' backup.log | tail -1 | sed 's/.*::backup-size-bytes:://') bytes" >> "$GITHUB_STEP_SUMMARY"
+          if [ -n "${{ steps.run_backup.outputs.backup_filename }}" ]; then
+            echo "- Archivo: ${{ steps.run_backup.outputs.backup_filename }}" >> "$GITHUB_STEP_SUMMARY"
+            echo "- Tamaño: ${{ steps.run_backup.outputs.backup_size_bytes }} bytes" >> "$GITHUB_STEP_SUMMARY"
           fi
