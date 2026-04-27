@@ -1,15 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { C_LIGHT, BRAND } from "../../constants";
 import { supabase } from "../../supabase";
-import { $, nombreCompletoPacienteValido, telefonoMxValido } from "../../utils";
+import { nombreCompletoPacienteValido, telefonoMxValido } from "../../utils";
 import { Box, Tag, Btn, KPI, Modal, showToast, SkeletonKPIs, SkeletonTable, Inp } from "../../ui";
-import {
-  CONSULTA_PRECIO_DEFAULT,
-  CONSULTA_PARTE_DOCTOR,
-  citaPagoPendiente,
-  citaPagoOk,
-  labelCanal,
-} from "../../utils/consultaConstants";
+import { citaPagoPendiente, citaPagoOk, labelCanal } from "../../utils/consultaConstants";
 import { fetchProductosConsumiblesConsultorio } from "../../utils/consumiblesConsultorio";
 import { CitaFichaModal } from "./CitaFichaDoctora";
 import {
@@ -67,12 +61,17 @@ function buildMonthCells(year, month0) {
 /** Etiqueta UX sobre estados reales en BD (citas.estado, pago_estado, pedido_consulta_id). */
 function etiquetaEstadoVisual(cita) {
   if (!cita || cita.estado === "cancelada") return { key: "cancelada", label: "Cancelada", col: C.red };
+  if (cita.estado === "no_asistio") return { key: "no_asistio", label: "No asistió", col: C.textDim };
   if (cita.estado === "pagada" || cita.pago_estado === "pagada") return { key: "pagada", label: "Pagada", col: C.purple };
   if (cita.estado === "completada" && citaPagoPendiente(cita)) {
     return { key: "pendiente_cobro", label: "Pendiente de cobro", col: C.amber };
   }
   if (cita.estado === "completada") return { key: "atendida", label: "Atendida", col: C.green };
   if (cita.estado === "en_consulta") return { key: "en_sala", label: "En consulta", col: C.amber };
+  if (cita.estado === "agendada") {
+    if (citaPagoOk(cita)) return { key: "lista_pagada", label: "Pagada (lista)", col: C.green };
+    return { key: "espera_pago", label: "Pendiente de pago", col: C.amber };
+  }
   if (cita.estado === "confirmada" && citaPagoOk(cita)) return { key: "confirmada", label: "Confirmada · pagada", col: C.blue };
   if (cita.estado === "confirmada") return { key: "agendada", label: "Agendada (sin pago)", col: C.textMid };
   return { key: "otro", label: cita.estado || "—", col: C.textDim };
@@ -84,7 +83,7 @@ function etiquetaEstadoVisual(cita) {
  */
 export default function AgendaConsultasModule({ usuario, onNavigate }) {
   const mode = usuario?.rol === "doctora" ? "doctora" : usuario?.rol === "vendedor" ? "vendedor" : "admin";
-  const titulo = mode === "doctora" ? "Consultas e ingresos" : "Agenda de consultas";
+  const titulo = mode === "doctora" ? "Agenda médica" : "Agenda de consultas";
 
   const now = new Date();
   const [y, setY] = useState(now.getFullYear());
@@ -94,6 +93,8 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
   const [citasMes, setCitasMes] = useState([]);
   const [loadMes, setLoadMes] = useState(true);
   const [fichaCita, setFichaCita] = useState(null);
+  const [fichaSoloLectura, setFichaSoloLectura] = useState(false);
+  const [iniciandoCitaId, setIniciandoCitaId] = useState(null);
   const [detalleSimple, setDetalleSimple] = useState(null);
   const [prodList, setProdList] = useState([]);
   const [procsList, setProcsList] = useState([]);
@@ -209,11 +210,6 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
         if (cancel) return;
         const rows = data || [];
         const completadas = rows.filter((c) => c.estado === "completada" || c.estado === "pagada");
-        const ingresoDoctorSum = completadas.reduce((a, c) => {
-          const v = parseFloat(c.ingreso_doctor);
-          if (Number.isFinite(v)) return a + v;
-          return a + CONSULTA_PRECIO_DEFAULT * CONSULTA_PARTE_DOCTOR;
-        }, 0);
         const procedimientosCount = completadas.reduce((a, c) => {
           try {
             const procs = c.procedimientos_realizados;
@@ -235,7 +231,6 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
           ...prev,
           kpiPeriodoSub: periodoSub,
           completadas: completadas.length,
-          ingresoDoctorSum,
           procedimientosCount,
           tiempoPromMin,
         }));
@@ -268,13 +263,76 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
       setDetalleSimple(cita);
       return;
     }
+    if (mode === "doctora") {
+      // La doctora abre ficha solo con los botones (iniciar / continuar / resumen).
+      return;
+    }
+    setFichaSoloLectura(false);
     setFichaCita(cita);
-    if (mode === "doctora") prepararFicha();
+  };
+
+  const cerrarFicha = () => {
+    setFichaCita(null);
+    setFichaSoloLectura(false);
+  };
+
+  const continuarConsultaDoctora = (cita) => {
+    setFichaSoloLectura(false);
+    setFichaCita(cita);
+    prepararFicha();
+  };
+
+  const verResumenConsultaDoctora = (cita) => {
+    setFichaSoloLectura(true);
+    setFichaCita(cita);
+    prepararFicha();
+  };
+
+  const iniciarConsultaDoctora = async (cita) => {
+    if (!citaPagoOk(cita)) {
+      showToast("La consulta debe estar pagada en caja antes de iniciar la atención.", "warning");
+      return;
+    }
+    if (cita.estado === "completada" || cita.estado === "cancelada" || cita.estado === "no_asistio" || cita.estado === "en_consulta") {
+      return;
+    }
+    setIniciandoCitaId(cita.id);
+    try {
+      const tok = sessionStorage.getItem("farmax_session_token");
+      if (!tok) throw new Error("Sesión expirada");
+      const { error: rpcErr } = await supabase.rpc("actualizar_estado_cita", {
+        p_session_token: tok,
+        p_cita_id: cita.id,
+        p_estado: "en_consulta",
+      });
+      if (rpcErr) throw rpcErr;
+      const { error: upErr } = await supabase
+        .from("citas")
+        .update({ confirmada_inicio_at: new Date().toISOString() })
+        .eq("id", cita.id)
+        .is("confirmada_inicio_at", null);
+      if (upErr) console.warn("[Agenda] confirmada_inicio_at:", upErr);
+      await cargarMes();
+      const { data: fresh } = await supabase
+        .from("citas")
+        .select(
+          "id,nombre,telefono,hora,fecha,motivo,estado,pago_estado,cliente_id,canal,diagnostico,observaciones,pedido_consulta_id,confirmada_inicio_at"
+        )
+        .eq("id", cita.id)
+        .single();
+      setFichaSoloLectura(false);
+      setFichaCita(fresh || { ...cita, estado: "en_consulta" });
+      prepararFicha();
+    } catch (e) {
+      showToast(String(e.message || e), "error");
+    } finally {
+      setIniciandoCitaId(null);
+    }
   };
 
   const guardarNuevaCita = async () => {
     if (mode === "doctora") {
-      showToast("Quien agenda citas es mostrador o administración. Vos atendés en Consultorio.", "info");
+      showToast("Quien agenda citas es mostrador o administración. Vos atendés desde la agenda (Iniciar consulta) y expediente.", "info");
       return;
     }
     const hoy = hoySvLocal();
@@ -371,7 +429,7 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
             {mode === "vendedor"
               ? "Consultas del día y cobros en mostrador; sin detalle clínico completo."
               : mode === "doctora"
-                ? "Solo consulta: citas las agenda mostrador o admin. Vos atendés en menú «Consultorio» (Llamar → En consulta). El cobro lo hace caja en POS."
+                ? "Citas las agenda mostrador, tienda o admin. Iniciá la consulta solo si ya está pagada; el cobro es en caja o tienda, no en esta pantalla."
                 : "Vista completa del consultorio: calendario, horarios y expediente."}
           </p>
         </div>
@@ -433,13 +491,6 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
                 icon="🏥"
                 sub={kpi.kpiPeriodoSub || "—"}
               />
-              <KPI
-                label="Tu ingreso (≈70%)"
-                value={$(kpi.ingresoDoctorSum)}
-                col={C.purple}
-                icon="💰"
-                sub="Solo tu parte; lo registra caja al cobrar"
-              />
               <KPI label="Procedimientos" value={kpi.procedimientosCount} col={C.blue} icon="🩺" sub="en consultas cerradas" />
               <KPI
                 label="Tiempo prom."
@@ -456,11 +507,11 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
       <CitaFichaModal
         cita={fichaCita}
         open={!!fichaCita}
-        onClose={() => setFichaCita(null)}
+        onClose={cerrarFicha}
         prodList={prodList}
         procsList={procsList}
         onSaved={cargarMes}
-        readOnly={false}
+        readOnly={fichaSoloLectura}
       />
 
       <Modal open={!!detalleSimple} onClose={() => setDetalleSimple(null)} title="Consulta" ac={C.blue}>
@@ -712,24 +763,28 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
                   <div>
                     {ocupada ? (
                       <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", alignItems: "flex-start" }}>
-                        <div style={{ minWidth: 0 }}>
-                          <button
-                            type="button"
-                            onClick={() => abrirCita(ocupada)}
-                            style={{
-                              background: "none",
-                              border: "none",
-                              padding: 0,
-                              cursor: "pointer",
-                              color: BRAND.primary,
-                              fontWeight: 700,
-                              fontSize: 15,
-                              textDecoration: "underline",
-                              textAlign: "left",
-                            }}
-                          >
-                            {ocupada.nombre}
-                          </button>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          {mode === "doctora" ? (
+                            <div style={{ color: BRAND.primary, fontWeight: 700, fontSize: 15 }}>{ocupada.nombre}</div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => abrirCita(ocupada)}
+                              style={{
+                                background: "none",
+                                border: "none",
+                                padding: 0,
+                                cursor: "pointer",
+                                color: BRAND.primary,
+                                fontWeight: 700,
+                                fontSize: 15,
+                                textDecoration: "underline",
+                                textAlign: "left",
+                              }}
+                            >
+                              {ocupada.nombre}
+                            </button>
+                          )}
                           <div style={{ fontSize: 12, color: C.textMid, marginTop: 4 }}>{ocupada.motivo || "Consulta"}</div>
                           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
                             <Tag col={ev.col} sm>
@@ -741,6 +796,37 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
                               </Tag>
                             )}
                           </div>
+                          {mode === "doctora" && (
+                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12, alignItems: "center" }}>
+                              {citaPagoOk(ocupada) &&
+                                ocupada.estado !== "completada" &&
+                                ocupada.estado !== "cancelada" &&
+                                ocupada.estado !== "no_asistio" &&
+                                ocupada.estado !== "en_consulta" && (
+                                  <Btn
+                                    sm
+                                    col={BRAND.primary}
+                                    dis={iniciandoCitaId === ocupada.id}
+                                    onClick={() => iniciarConsultaDoctora(ocupada)}
+                                  >
+                                    {iniciandoCitaId === ocupada.id ? "Abriendo…" : "Iniciar consulta"}
+                                  </Btn>
+                                )}
+                              {ocupada.estado === "en_consulta" && (
+                                <Btn sm col={BRAND.primary} onClick={() => continuarConsultaDoctora(ocupada)}>
+                                  Continuar
+                                </Btn>
+                              )}
+                              {(ocupada.estado === "completada" || ocupada.estado === "no_asistio") && (
+                                <Btn sm ol col={C.textMid} onClick={() => verResumenConsultaDoctora(ocupada)}>
+                                  Ver resumen
+                                </Btn>
+                              )}
+                              {!citaPagoOk(ocupada) && ocupada.estado !== "completada" && ocupada.estado !== "cancelada" && (
+                                <span style={{ fontSize: 12, color: C.amber, fontWeight: 600 }}>Pendiente de pago en caja</span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     ) : libre ? (

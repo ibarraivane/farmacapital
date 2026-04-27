@@ -11,7 +11,6 @@ export const flows = {
   doctora: [
     "clinical",
     "patients",
-    "consultorio",
   ],
 
   vendedor: [

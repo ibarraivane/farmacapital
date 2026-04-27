@@ -4,7 +4,7 @@ import { useTheme } from "./themeContext";
 import { useMediaQuery } from "./hooks/useMediaQuery";
 import { saludoUsuario, primerNombre, $, normalizarSesionLoginResp, nombreCompletoPacienteValido, telefonoMxValido, soloDigitosTel } from "./utils";
 import { tiendaProductMatchesBusqueda, spellSuggestFromProducts, tiendaCatalogSearchSuggestions, tiendaSearchRelevanceRank } from "./utils/fuzzySearch";
-import { CONSULTA_PRECIO_DEFAULT } from "./utils/consultaConstants";
+import { CONSULTA_PRECIO_DEFAULT, citaPagoOk } from "./utils/consultaConstants";
 import { fetchPrecioConsultaConfig } from "./utils/consumiblesConsultorio";
 import {
   mapUiEntregaToRpc,
@@ -2426,6 +2426,77 @@ function CambiarPwdCliente({user}) {
   );
 }
 
+function parseJsonObjectTienda(raw) {
+  if (raw && typeof raw === "object") return raw;
+  if (typeof raw === "string" && raw.trim()) {
+    try {
+      const p = JSON.parse(raw);
+      return typeof p === "object" && p !== null ? p : {};
+    } catch {
+      return {};
+    }
+  }
+  return {};
+}
+
+function lineasMedicamentosCita(c) {
+  const mp = c?.medicamentos_prescritos;
+  if (mp == null) return [];
+  if (Array.isArray(mp)) {
+    return mp
+      .map((m) => {
+        const nom = String(m.medicamento || m.nombre || "").trim();
+        if (!nom) return null;
+        const bits = [nom];
+        if (m.dosis) bits.push(String(m.dosis));
+        if (m.indicaciones) bits.push(String(m.indicaciones));
+        return bits.join(" · ");
+      })
+      .filter(Boolean);
+  }
+  if (typeof mp === "string" && mp.trim().startsWith("[")) {
+    try {
+      const a = JSON.parse(mp);
+      if (Array.isArray(a)) return lineasMedicamentosCita({ medicamentos_prescritos: a });
+    } catch { /* ignore */ }
+  }
+  if (typeof mp === "string")
+    return mp
+      .split("\n")
+      .map((s) => s.trim())
+      .filter(Boolean);
+  return [];
+}
+
+function lineasVitalsCita(c) {
+  const o = parseJsonObjectTienda(c?.signos_vitales);
+  const order = [
+    ["ta", "TA"],
+    ["fc", "FC"],
+    ["temp", "Temp."],
+    ["sat", "SatO2"],
+    ["peso", "Peso"],
+    ["talla", "Talla"],
+  ];
+  return order
+    .map(([k, lab]) => {
+      const v = o[k];
+      if (v == null || String(v).trim() === "") return null;
+      return `${lab} ${v}`;
+    })
+    .filter(Boolean);
+}
+
+function etiquetaEstadoCitaCliente(c) {
+  if (!c) return { label: "—", col: C.mid };
+  if (c.estado === "cancelada") return { label: "Cancelada", col: C.red };
+  if (c.estado === "no_asistio") return { label: "No asistió", col: C.dim };
+  if (c.estado === "completada") return { label: "Atendida", col: BRAND.primary };
+  if (c.estado === "en_consulta") return { label: "En consulta", col: "#d97706" };
+  if (citaPagoOk(c)) return { label: "Confirmada", col: BRAND.accent };
+  return { label: "Pendiente de pago", col: "#d97706" };
+}
+
 function Cuenta({user,setPage,setUser}){
   const C = useTheme();
   const [tab,setTab]=useState("pedidos");
@@ -2478,6 +2549,12 @@ function Cuenta({user,setPage,setUser}){
   };
   if(!user) return(<div style={{maxWidth:500,margin:"80px auto",padding:"0 24px",textAlign:"center"}}><div style={{fontSize:48,marginBottom:16}}>👤</div><h2 style={{color:C.dark,fontSize:22,fontWeight:800,marginBottom:16}}>Inicia sesión para ver tu cuenta</h2><div style={{display:"flex",gap:12,justifyContent:"center"}}><Btn onClick={()=>setPage("login")} col={BRAND.primary}>Iniciar sesión</Btn><Btn onClick={()=>setPage("registro")} outline col={BRAND.primary}>Crear cuenta</Btn></div></div>);
   const eCol=e=>({pendiente:"#f59e0b",confirmado:BRAND.accent,entregado:BRAND.primary,cancelado:C.red}[e]||C.mid);
+  const citaPuedeGestionar = (c) =>
+    c &&
+    c.estado !== "cancelada" &&
+    c.estado !== "completada" &&
+    c.estado !== "no_asistio" &&
+    c.estado !== "en_consulta";
   return(
     <div style={{maxWidth:900,margin:"0 auto",padding:"32px 24px"}}>
       <div style={{background:BRAND.gradient,borderRadius:16,padding:28,marginBottom:24,display:"flex",alignItems:"center",gap:20}}>
@@ -2506,14 +2583,45 @@ function Cuenta({user,setPage,setUser}){
       )))}
       {tab==="citas"&&(cargando?<div style={{textAlign:"center",padding:40,color:C.mid}}>Cargando citas...</div>:!citas.length?(
         <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:40,textAlign:"center"}}><div style={{fontSize:40,marginBottom:12}}>📅</div><div style={{color:C.mid,fontSize:15}}>No tienes citas agendadas</div><Btn onClick={()=>setPage("cita")} col={BRAND.primary} sm style={{marginTop:16}}>Agendar consulta médica</Btn></div>
-      ):citas.map(c=>(
+      ):citas.map(c=>{
+        const ev = etiquetaEstadoCitaCliente(c);
+        const meds = lineasMedicamentosCita(c);
+        const vit = lineasVitalsCita(c);
+        const mostrarResumen = c.estado === "completada" || c.estado === "no_asistio";
+        return (
         <div key={c.id} style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:20,marginBottom:12}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
             <div><div style={{color:C.dark,fontWeight:700,fontSize:15}}>📅 Consulta médica</div><div style={{color:BRAND.primary,fontWeight:700,fontSize:14,marginTop:4}}>{c.fecha} · {c.hora} hrs</div></div>
-            <Tag col={eCol(c.estado)} sm>{c.estado||"confirmada"}</Tag>
+            <Tag col={ev.col} sm>{ev.label}</Tag>
           </div>
           {c.motivo&&<div style={{background:C.cardDark,borderRadius:8,padding:"8px 12px",color:C.mid,fontSize:13}}>Motivo: {c.motivo}</div>}
-          {(c.estado!=="cancelada")&&(
+          {mostrarResumen && (
+            <div style={{ marginTop: 12, padding: "12px 14px", borderRadius: 10, background: C.cardDark, fontSize: 13, color: C.dark, lineHeight: 1.5 }}>
+              <div style={{ fontWeight: 800, fontSize: 11, color: C.mid, marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.5 }}>Resumen de tu visita</div>
+              {c.diagnostico ? <div style={{ marginBottom: 8 }}><strong style={{ color: C.mid }}>Diagnóstico</strong> · {c.diagnostico}</div> : null}
+              {meds.length > 0 ? (
+                <div style={{ marginBottom: 8 }}>
+                  <div style={{ fontWeight: 700, color: C.mid, fontSize: 12, marginBottom: 4 }}>Medicación indicada</div>
+                  <ul style={{ margin: 0, paddingLeft: 18 }}>
+                    {meds.map((line, i) => (
+                      <li key={i} style={{ marginBottom: 2 }}>{line}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+              {c.notas_medico ? <div style={{ marginBottom: 8 }}><strong style={{ color: C.mid }}>Indicaciones</strong> · {c.notas_medico}</div> : null}
+              {vit.length > 0 ? (
+                <div>
+                  <div style={{ fontWeight: 700, color: C.mid, fontSize: 12, marginBottom: 4 }}>Signos vitales</div>
+                  <div>{vit.join(" · ")}</div>
+                </div>
+              ) : null}
+              {!c.diagnostico && meds.length === 0 && !c.notas_medico && vit.length === 0 && (
+                <div style={{ color: C.dim, fontSize: 12 }}>Tu médico aún no registró notas de esta consulta o no aplican a tu resumen.</div>
+              )}
+            </div>
+          )}
+          {citaPuedeGestionar(c)&&(
             <div style={{display:"flex",gap:8,marginTop:12,flexWrap:"wrap"}}>
               <Btn sm outline col={BRAND.primary} onClick={()=>reagendarCita(c)}>Reagendar</Btn>
               <Btn sm outline col={C.red} onClick={()=>cancelarCita(c)} disabled={busyCitaId===c.id}>
@@ -2522,7 +2630,8 @@ function Cuenta({user,setPage,setUser}){
             </div>
           )}
         </div>
-      )))}
+        );
+      }))}
       {tab==="canjear"&&(
         <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:24}}>
           <div style={{color:C.dark,fontWeight:700,fontSize:16,marginBottom:16}}>Tienes {user.puntos||0} puntos = ${((user.puntos||0)*0.5).toFixed(0)} en valor</div>
