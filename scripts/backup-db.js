@@ -73,6 +73,7 @@
 'use strict';
 
 const { spawn, spawnSync, execSync } = require('node:child_process');
+const dns = require('node:dns').promises;
 const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
@@ -176,7 +177,7 @@ function rmrf(dir) {
 // pg_dump
 // ============================================================
 
-function runPgDump({ dbUrl, outPath, timeoutSec }) {
+function runPgDumpOnce({ dbUrl, outPath, timeoutSec, extraEnv = {} }) {
   return new Promise((resolve, reject) => {
     const args = [
       '--format=c',
@@ -191,7 +192,7 @@ function runPgDump({ dbUrl, outPath, timeoutSec }) {
 
     const child = spawn('pg_dump', args, {
       stdio: ['ignore', 'pipe', 'pipe'],
-      env: { ...process.env, PGCLIENTENCODING: 'UTF8' },
+      env: { ...process.env, PGCLIENTENCODING: 'UTF8', ...extraEnv },
     });
 
     let stderrTail = '';
@@ -223,6 +224,46 @@ function runPgDump({ dbUrl, outPath, timeoutSec }) {
       resolve();
     });
   });
+}
+
+async function tryResolveIPv4FromDbUrl(dbUrl) {
+  try {
+    const u = new URL(String(dbUrl));
+    const host = String(u.hostname || '').trim();
+    if (!host) return null;
+    const addrs = await dns.resolve4(host);
+    if (!addrs || !addrs.length) return null;
+    return addrs[0];
+  } catch {
+    return null;
+  }
+}
+
+async function runPgDump({ dbUrl, outPath, timeoutSec }) {
+  try {
+    await runPgDumpOnce({ dbUrl, outPath, timeoutSec });
+    return;
+  } catch (err) {
+    const forceIPv4 = String(process.env.BACKUP_FORCE_IPV4 || 'true').toLowerCase() !== 'false';
+    const msg = String(err && err.message ? err.message : err || '');
+    const looksNetworkIssue =
+      msg.includes('Network is unreachable') ||
+      msg.includes('could not translate host name') ||
+      msg.includes('Name or service not known');
+    if (!forceIPv4 || !looksNetworkIssue) throw err;
+
+    const hostaddr = await tryResolveIPv4FromDbUrl(dbUrl);
+    if (!hostaddr) throw err;
+
+    log(`Reintentando pg_dump forzando IPv4 (PGHOSTADDR=${hostaddr})`);
+    try { if (fs.existsSync(outPath)) fs.unlinkSync(outPath); } catch {}
+    await runPgDumpOnce({
+      dbUrl,
+      outPath,
+      timeoutSec,
+      extraEnv: { PGHOSTADDR: hostaddr },
+    });
+  }
 }
 
 function validateDump({ outPath, minKB, maxMB }) {
