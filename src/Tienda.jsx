@@ -169,7 +169,7 @@ const Tag=({children,col,sm})=>(
 );
 const Inp=({value,onChange,placeholder,type,style,onKeyDown,onFocus,onBlur})=>(
   <input value={value} onChange={onChange} placeholder={placeholder} type={type||"text"} onKeyDown={onKeyDown}
-    style={{background:C.white,border:`2px solid ${C.border}`,borderRadius:10,color:C.dark,padding:"11px 14px",fontSize:14,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif",transition:"border-color .2s",...style}}
+    style={{background:C.white,border:`2px solid ${C.border}`,borderRadius:10,color:C.dark,padding:"11px 14px",fontSize:16,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif",transition:"border-color .2s",...style}}
     onFocus={e=>{onFocus?.(e);e.target.style.borderColor=BRAND.primary}} onBlur={e=>{onBlur?.(e);e.target.style.borderColor=C.border}}/>
 );
 
@@ -516,18 +516,38 @@ function Header({page,setPage,cart,user,setUser}){
       <header style={{background:C.white,borderBottom:`1px solid ${C.border}`}}>
         <div style={{
           maxWidth:1200,margin:"0 auto",padding:"8px 12px 10px",paddingLeft:"max(12px, env(safe-area-inset-left, 0px))",paddingRight:"max(12px, env(safe-area-inset-right, 0px))",
-          display:"flex",alignItems:"center",
-          justifyContent:"space-between",gap:8,flexWrap:"wrap",minHeight:52,
+          display:"flex",flexDirection:narrow?"column":"row",alignItems:narrow?"stretch":"center",
+          justifyContent:"space-between",gap:narrow?10:8,flexWrap:narrow?"nowrap":"wrap",minHeight:52,
         }}>
-          <div style={{display:"flex",alignItems:"center",gap:10,flex:"1 1 auto",minWidth:0}}>
-            <div onClick={()=>setPage("home")} style={{cursor:"pointer"}}><Logo size={narrow?28:32}/></div>
-            {!narrow && (
-              <nav style={{display:"flex",gap:4,flexWrap:"wrap"}}>{NAV_LINKS.map(([id,l])=>navBtn(id,l))}</nav>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,width:narrow?"100%":"auto",minWidth:0}}>
+            <div style={{display:"flex",alignItems:"center",gap:10,flex:"1 1 auto",minWidth:0}}>
+              <div onClick={()=>setPage("home")} style={{cursor:"pointer",flexShrink:0}}><Logo size={narrow?28:32}/></div>
+              {!narrow && (
+                <nav style={{display:"flex",gap:4,flexWrap:"wrap"}}>{NAV_LINKS.map(([id,l])=>navBtn(id,l))}</nav>
+              )}
+            </div>
+            {narrow && (
+              <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+                <button type="button" aria-label="Ir al carrito" onClick={()=>setPage("carrito")} style={{position:"relative",background:"none",border:"none",cursor:"pointer",padding:8}}>
+                  <span style={{fontSize:22}}>🛒</span>
+                  {n>0&&<span style={{position:"absolute",top:2,right:2,background:C.red,color:C.white,borderRadius:"50%",width:18,height:18,fontSize:10,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{n}</span>}
+                </button>
+                <button
+                  type="button"
+                  aria-label={mobileMenu?"Cerrar menú":"Abrir menú"}
+                  aria-expanded={mobileMenu}
+                  onClick={()=>setMobileMenu(m=>!m)}
+                  style={{
+                    width:44,height:40,borderRadius:10,border:`1px solid ${C.border}`,background:C.card,
+                    cursor:"pointer",fontSize:18,color:C.dark,flexShrink:0,
+                  }}
+                >☰</button>
+              </div>
             )}
           </div>
-          <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0,flexWrap:"wrap",justifyContent:"flex-end"}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0,flexWrap:"wrap",justifyContent:narrow?"stretch":"flex-end",width:narrow?"100%":"auto"}}>
             {user?(
-              <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+              <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",width:narrow?"100%":"auto"}}>
                 <div onClick={()=>setPage("cuenta")} style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",padding:"6px 10px",borderRadius:10,background:BRAND.primary+"18",maxWidth:narrow?"100%":undefined,minWidth:0,flex:"1 1 auto"}}>
                   <div style={{width:28,height:28,borderRadius:"50%",background:BRAND.gradient,display:"flex",alignItems:"center",justifyContent:"center",color:C.white,fontWeight:800,fontSize:13,flexShrink:0}}>{(primerNombre(user.nombre)||"C")[0].toUpperCase()}</div>
                   <div style={{minWidth:0,overflow:"hidden",flex:1}}>
@@ -546,28 +566,38 @@ function Header({page,setPage,cart,user,setUser}){
                   style={{padding:"6px 10px",borderRadius:8,border:`1px solid ${C.border}`,background:"transparent",color:C.mid,fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>
                   ⎋ <span style={{fontSize:11}}>Salir</span>
                 </button>
+                {!narrow && (
+                  <>
+                    <button type="button" aria-label="Ir al carrito" onClick={()=>setPage("carrito")} style={{position:"relative",background:"none",border:"none",cursor:"pointer",padding:8}}>
+                      <span style={{fontSize:22}}>🛒</span>
+                      {n>0&&<span style={{position:"absolute",top:2,right:2,background:C.red,color:C.white,borderRadius:"50%",width:18,height:18,fontSize:10,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{n}</span>}
+                    </button>
+                  </>
+                )}
               </div>
             ):(
-              <div style={{display:"flex",gap:compactNav?6:8,flexWrap:"wrap",alignItems:"center"}}>
-                <Btn onClick={()=>setPage("registro")} col={BRAND.accent} sm style={compactNav?{padding:"6px 10px",fontSize:12}:undefined}>{compactNav?"Registro":"Crear cuenta"}</Btn>
-                <Btn onClick={()=>setPage("login")} outline col={BRAND.primary} sm style={compactNav?{padding:"6px 10px",fontSize:12}:undefined}>{compactNav?"Entrar":"Iniciar sesión"}</Btn>
+              <div style={{
+                display:"flex",
+                gap:compactNav?6:8,
+                flexWrap:narrow?"nowrap":"wrap",
+                alignItems:"center",
+                width:narrow?"100%":"auto",
+              }}>
+                <Btn onClick={()=>setPage("registro")} col={BRAND.accent} sm style={{
+                  ...(compactNav?{padding:"6px 10px",fontSize:12}:{}),
+                  ...(narrow?{flex:1,minWidth:0}:{}),
+                }}>{compactNav?"Registro":"Crear cuenta"}</Btn>
+                <Btn onClick={()=>setPage("login")} outline col={BRAND.primary} sm style={{
+                  ...(compactNav?{padding:"6px 10px",fontSize:12}:{}),
+                  ...(narrow?{flex:1,minWidth:0}:{}),
+                }}>{compactNav?"Entrar":"Iniciar sesión"}</Btn>
               </div>
             )}
-            <button type="button" onClick={()=>setPage("carrito")} style={{position:"relative",background:"none",border:"none",cursor:"pointer",padding:8}}>
-              <span style={{fontSize:22}}>🛒</span>
-              {n>0&&<span style={{position:"absolute",top:2,right:2,background:C.red,color:C.white,borderRadius:"50%",width:18,height:18,fontSize:10,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{n}</span>}
-            </button>
-            {narrow && (
-              <button
-                type="button"
-                aria-label={mobileMenu?"Cerrar menú":"Abrir menú"}
-                aria-expanded={mobileMenu}
-                onClick={()=>setMobileMenu(m=>!m)}
-                style={{
-                  width:44,height:40,borderRadius:10,border:`1px solid ${C.border}`,background:C.card,
-                  cursor:"pointer",fontSize:18,color:C.dark,
-                }}
-              >☰</button>
+            {!narrow && !user && (
+              <button type="button" aria-label="Ir al carrito" onClick={()=>setPage("carrito")} style={{position:"relative",background:"none",border:"none",cursor:"pointer",padding:8}}>
+                <span style={{fontSize:22}}>🛒</span>
+                {n>0&&<span style={{position:"absolute",top:2,right:2,background:C.red,color:C.white,borderRadius:"50%",width:18,height:18,fontSize:10,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{n}</span>}
+              </button>
             )}
           </div>
         </div>
@@ -700,7 +730,7 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
             onFocus={()=>setBusqFocus(true)}
             onBlur={()=>setTimeout(()=>setBusqFocus(false),280)}
             placeholder="🔍 Buscar otro producto (nombre, principio activo, SKU…)"
-            style={{width:"100%",boxSizing:"border-box",fontSize:15,marginBottom:0}}
+            style={{width:"100%",boxSizing:"border-box",fontSize:16,marginBottom:0}}
           />
           {suggestions.length>0&&(
             <div role="listbox" aria-label="Sugerencias de búsqueda" style={{
@@ -975,7 +1005,7 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
             }}
             placeholder="🔍 Nombre, principio activo, SKU o código de barras…"
             autoComplete="off"
-            style={{width:"100%",boxSizing:"border-box",padding:"16px 56px 16px 20px",borderRadius:30,border:`2px solid ${BRAND.primary}30`,fontSize:15,fontFamily:"'Plus Jakarta Sans',sans-serif",outline:"none",background:C.white,boxShadow:"0 4px 20px rgba(0,82,204,.1)"}}
+            style={{width:"100%",boxSizing:"border-box",padding:"16px 56px 16px 20px",borderRadius:30,border:`2px solid ${BRAND.primary}30`,fontSize:16,fontFamily:"'Plus Jakarta Sans',sans-serif",outline:"none",background:C.white,boxShadow:"0 4px 20px rgba(0,82,204,.1)"}}
           />
           <button
             type="button"
@@ -1197,10 +1227,15 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
   const limpiarFiltrosLaterales = ()=>{
     setCat("Todos"); setTipo("todos"); setPrecioMin(""); setPrecioMax("");
   };
+  const busqActiva = busq.trim().length > 0;
   return(
     <div style={{maxWidth:1200,margin:"0 auto",padding:"clamp(20px,4vw,32px) 16px"}}>
       <h1 style={{color:C.dark,fontSize:"clamp(22px,5vw,28px)",fontWeight:800,marginBottom:6}}>Catálogo Farmax</h1>
-      <div style={{color:C.dim,fontSize:14,marginBottom:24}}>{fil.length} productos disponibles</div>
+      <div style={{color:C.dim,fontSize:14,marginBottom:24}}>
+        {busqActiva
+          ? `${fil.length} resultado${fil.length === 1 ? "" : "s"} · refiná con filtros o escribí más palabras (ej. «ácido fólico»)`
+          : `${fil.length} productos disponibles`}
+      </div>
       <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:20,marginBottom:20}}>
         <div style={{position:"relative",marginBottom:16,zIndex:25}}>
         <Inp
@@ -1231,7 +1266,7 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
           onFocus={()=>setBusqFocus(true)}
           onBlur={()=>setTimeout(()=>setBusqFocus(false),280)}
           placeholder="🔍 Nombre, principio activo, marca, SKU o código…"
-          style={{width:"100%",boxSizing:"border-box",fontSize:15,marginBottom:0}}
+          style={{width:"100%",boxSizing:"border-box",fontSize:16,marginBottom:0}}
         />
         {suggestions.length>0&&(
           <div role="listbox" aria-label="Sugerencias de búsqueda" style={{
@@ -1293,10 +1328,10 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
           <div style={{display:"flex",alignItems:"center",gap:6,marginLeft:"auto",flexWrap:"wrap"}}>
             <span style={{color:C.mid,fontSize:12}}>Precio:</span>
             <input type="number" placeholder="Min $" value={precioMin} onChange={e=>setPrecioMin(e.target.value)}
-              style={{width:70,padding:"4px 8px",borderRadius:8,border:`1px solid ${C.border}`,fontSize:12,outline:"none"}}/>
+              style={{width:70,padding:"4px 8px",borderRadius:8,border:`1px solid ${C.border}`,fontSize:16,outline:"none"}}/>
             <span style={{color:C.dim,fontSize:12}}>—</span>
             <input type="number" placeholder="Max $" value={precioMax} onChange={e=>setPrecioMax(e.target.value)}
-              style={{width:70,padding:"4px 8px",borderRadius:8,border:`1px solid ${C.border}`,fontSize:12,outline:"none"}}/>
+              style={{width:70,padding:"4px 8px",borderRadius:8,border:`1px solid ${C.border}`,fontSize:16,outline:"none"}}/>
             <button onClick={()=>setVerAgotados(p=>!p)} style={{
               padding:"4px 12px",borderRadius:20,fontSize:11,fontWeight:700,cursor:"pointer",
               border:`1px solid ${verAgotados?C.red:C.border}`,
@@ -1306,19 +1341,77 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
           </div>
         </div>
       </div>
-      <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"180px 1fr",gap:20,alignItems:"start"}}>
-        <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:16,height:"fit-content",position:stack?"relative":"sticky",top:"calc(env(safe-area-inset-top, 0px) + 100px)"}}>
-          <div style={{color:C.dark,fontWeight:700,fontSize:13,marginBottom:12}}>Categorías</div>
-          {cats.map(c=>(
-            <button key={c} type="button" onClick={()=>setCat(c)} style={{width:"100%",textAlign:"left",padding:"8px 10px",borderRadius:8,border:"none",background:cat===c?BRAND.primary+"18":"transparent",color:cat===c?BRAND.primary:C.mid,fontSize:13,fontWeight:cat===c?700:400,cursor:"pointer",marginBottom:2}}>{c}</button>
-          ))}
-        </div>
+      <div style={{
+        display: "grid",
+        gap: 20,
+        alignItems: "start",
+        gridTemplateColumns: stack ? "1fr" : "180px 1fr",
+        gridTemplateAreas: stack ? '"resultados" "categorias"' : '"categorias resultados"',
+      }}>
         <div
           id="farmax-catalogo-resultados"
-          style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(100%, 200px), 1fr))",gap:14,minWidth:0,scrollMarginTop:16}}
+          style={{
+            gridArea: "resultados",
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill,minmax(min(100%, 200px), 1fr))",
+            gap: 14,
+            minWidth: 0,
+            scrollMarginTop: 16,
+          }}
         >
           {fil.length===0?(<div style={{padding:40,textAlign:"center",color:C.mid,gridColumn:"1/-1"}}>Sin resultados para "{busq}"</div>):fil.map(p=><ProductCard key={p.id} prod={p} addToCart={addToCart} onClick={()=>{setProdDetalle(p);setPage("detalle");}}/>)}
         </div>
+        {stack && busqActiva ? (
+          <details
+            style={{
+              gridArea: "categorias",
+              width: "100%",
+              background: C.white,
+              borderRadius: 14,
+              border: `1px solid ${C.border}`,
+              padding: "8px 12px 12px",
+              boxSizing: "border-box",
+            }}
+          >
+            <summary style={{
+              cursor: "pointer",
+              color: C.dark,
+              fontWeight: 700,
+              fontSize: 14,
+              padding: "8px 4px",
+              listStyle: "none",
+            }}>
+              Categorías {cat !== "Todos" ? `· ${cat}` : ""} <span style={{ color: C.dim, fontWeight: 600, fontSize: 12 }}>(tocá para filtrar)</span>
+            </summary>
+            <div style={{ marginTop: 8, maxHeight: "min(50vh, 320px)", overflowY: "auto" }}>
+              {cats.map((c) => (
+                <button key={c} type="button" onClick={() => setCat(c)} style={{
+                  width: "100%", textAlign: "left", padding: "8px 10px", borderRadius: 8, border: "none",
+                  background: cat === c ? BRAND.primary + "18" : "transparent", color: cat === c ? BRAND.primary : C.mid, fontSize: 13, fontWeight: cat === c ? 700 : 400, cursor: "pointer", marginBottom: 2,
+                }}>{c}</button>
+              ))}
+            </div>
+          </details>
+        ) : (
+          <div style={{
+            gridArea: "categorias",
+            background: C.white,
+            borderRadius: 14,
+            border: `1px solid ${C.border}`,
+            padding: 16,
+            height: "fit-content",
+            position: stack ? "relative" : "sticky",
+            top: "calc(env(safe-area-inset-top, 0px) + 100px)",
+          }}>
+            <div style={{ color: C.dark, fontWeight: 700, fontSize: 13, marginBottom: 12 }}>Categorías</div>
+            {cats.map((c) => (
+              <button key={c} type="button" onClick={() => setCat(c)} style={{
+                width: "100%", textAlign: "left", padding: "8px 10px", borderRadius: 8, border: "none",
+                background: cat === c ? BRAND.primary + "18" : "transparent", color: cat === c ? BRAND.primary : C.mid, fontSize: 13, fontWeight: cat === c ? 700 : 400, cursor: "pointer", marginBottom: 2,
+              }}>{c}</button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1532,7 +1625,7 @@ function Checkout({cart,setCart,setPage,user,entrega="pickup"}){
       <h1 style={{color:C.dark,fontSize:"clamp(22px,5vw,26px)",fontWeight:800,marginBottom:24,lineHeight:1.2}}>Finalizar compra</h1>
       <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr min(300px,100%)",gap:24,alignItems:"start"}}>
         <div style={{minWidth:0}}>
-          {step===1&&(<div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}><div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:20}}>📋 Datos de contacto</div><div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:14}}>{[["Nombre completo","nombre"],["Teléfono","tel"],["Correo electrónico","email"],["Calle y número","calle"],["Colonia","colonia"],["Código postal","cp"]].map(([l,k])=>(<div key={k} style={{gridColumn:!stack&&(k==="email"||k==="calle")?"1/-1":undefined}}><div style={{color:C.mid,fontSize:12,marginBottom:6,fontWeight:600}}>{l}</div><Inp value={datos[k]} onChange={e=>setDatos(p=>({...p,[k]:e.target.value}))} placeholder={l} style={{width:"100%",boxSizing:"border-box",...(stack?{fontSize:16}:{})}}/></div>))}</div><Btn onClick={()=>setStep(2)} col={BRAND.primary} style={{marginTop:20,width:stack?"100%":undefined}} disabled={!datos.nombre||!datos.tel}>Continuar al pago →</Btn></div>)}
+          {step===1&&(<div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}><div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:20}}>📋 Datos de contacto</div><div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:14}}>{[["Nombre completo","nombre"],["Teléfono","tel"],["Correo electrónico","email"],["Calle y número","calle"],["Colonia","colonia"],["Código postal","cp"]].map(([l,k])=>(<div key={k} style={{gridColumn:!stack&&(k==="email"||k==="calle")?"1/-1":undefined}}><div style={{color:C.mid,fontSize:12,marginBottom:6,fontWeight:600}}>{l}</div><Inp value={datos[k]} onChange={e=>setDatos(p=>({...p,[k]:e.target.value}))} placeholder={l} style={{width:"100%",boxSizing:"border-box",fontSize:16}}/></div>))}</div><Btn onClick={()=>setStep(2)} col={BRAND.primary} style={{marginTop:20,width:stack?"100%":undefined}} disabled={!datos.nombre||!datos.tel}>Continuar al pago →</Btn></div>)}
           {step===2&&(<div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}><div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:20}}>💳 Método de pago</div>{[["tarjeta","💳 Tarjeta de crédito/débito","Visa, Mastercard, Amex"],["mercadopago","🔵 Mercado Pago","Wallet · Cuotas sin intereses"]].map(([v,l,s])=>(<div key={v} onClick={()=>setMetodo(v)} style={{padding:"14px 16px",borderRadius:10,border:`2px solid ${metodo===v?BRAND.primary:C.border}`,background:metodo===v?BRAND.primary+"18":C.white,cursor:"pointer",marginBottom:10}}><div style={{color:metodo===v?BRAND.primary:C.dark,fontWeight:700,fontSize:"clamp(13px,3.2vw,14px)"}}>{l}</div><div style={{color:C.dim,fontSize:12,marginTop:2}}>{s}</div></div>))}<div style={{display:"flex",gap:10,marginTop:8,flexWrap:"wrap"}}><Btn onClick={()=>setStep(1)} outline col={C.mid} sm>← Atrás</Btn><Btn onClick={()=>setStep(3)} col={BRAND.primary} style={{flex:stack?1:undefined,minWidth:stack?0:undefined}}>Revisar pedido →</Btn></div></div>)}
           {step===3&&(<div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}><div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:16}}>✅ Confirmar pedido</div>{cart.map(item=>(<div key={item.id} style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,padding:"8px 0",borderBottom:`1px solid ${C.border}`}}><span style={{color:C.dark,fontSize:13,fontWeight:600,flex:1,minWidth:0,wordBreak:"break-word"}}>{item.nombre} ×{item.qty}</span><span style={{color:BRAND.primary,fontWeight:700,flexShrink:0}}>{$(item.precio*item.qty)}</span></div>))}<div style={{display:"flex",gap:10,marginTop:16,flexWrap:"wrap"}}><Btn onClick={()=>setStep(2)} outline col={C.mid} sm>← Atrás</Btn><Btn onClick={confirmar} col={BRAND.primary} disabled={guardando} style={{flex:stack?1:undefined,minWidth:0}}>{guardando?"Guardando...":"✅ Confirmar "+$(sub)}</Btn></div></div>)}
         </div>
@@ -1675,10 +1768,10 @@ function AgendarCita({setPage,user}){
         <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:16,marginBottom:16}}>
           <div><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Nombre completo <span style={{color:"#ef4444"}}>*</span></div><Inp value={nombre} onChange={e=>setNombre(e.target.value)} placeholder="Nombre y apellido" style={{width:"100%",boxSizing:"border-box"}}/></div>
           <div><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Teléfono <span style={{color:"#ef4444"}}>*</span></div><Inp value={tel} onChange={e=>setTel(e.target.value)} placeholder="10+ dígitos" type="tel" style={{width:"100%",boxSizing:"border-box"}}/></div>
-          <div><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Fecha</div><input type="date" value={fecha} onChange={e=>setFecha(e.target.value)} min={new Date().toLocaleDateString("sv-SE")} style={{width:"100%",boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:C.white,color:C.dark,fontSize:stack?16:13,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}/></div>
+          <div><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Fecha</div><input type="date" value={fecha} onChange={e=>setFecha(e.target.value)} min={new Date().toLocaleDateString("sv-SE")} style={{width:"100%",boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:C.white,color:C.dark,fontSize:16,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}/></div>
           <div>
             <div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Horario {fecha&&horarios.length===0?"— Sin disponibilidad hoy":""}</div>
-            <select value={hora} onChange={e=>setHora(e.target.value)} style={{width:"100%",padding:"11px 14px",borderRadius:10,border:`2px solid ${C.border}`,color:hora?C.dark:C.dim,fontSize:stack?16:14,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
+            <select value={hora} onChange={e=>setHora(e.target.value)} style={{width:"100%",padding:"11px 14px",borderRadius:10,border:`2px solid ${C.border}`,color:hora?C.dark:C.dim,fontSize:16,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
               <option value="">Seleccionar horario</option>
               {horariosLibres.length===0&&fecha?<option value="">Sin disponibilidad este día</option>:horariosLibres.map(h=><option key={h} value={h}>{h} hrs{horasOcupadas.includes(h)?" (ocupado)":""}</option>)}
             </select>
@@ -1947,13 +2040,13 @@ function Registro({setUser,setPage}){
         <div style={{marginBottom:14}}>
           <div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Contraseña * <span style={{color:C.dim,fontWeight:400}}>(mínimo 6 caracteres)</span></div>
           <input name="password" autoComplete="new-password" value={pwd} onChange={e=>setPwd(e.target.value)} placeholder="••••••••" type="password"
-            style={{width:"100%",boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:`1px solid ${pwd.length>0&&pwd.length<6?C.red:C.border}`,background:C.white,color:C.dark,fontSize:13,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}/>
+            style={{width:"100%",boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:`1px solid ${pwd.length>0&&pwd.length<6?C.red:C.border}`,background:C.white,color:C.dark,fontSize:16,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}/>
           {pwd.length>0&&pwd.length<6&&<div style={{color:C.red,fontSize:11,marginTop:4}}>Mínimo 6 caracteres</div>}
         </div>
         <div style={{marginBottom:20}}>
           <div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Confirmar contraseña *</div>
           <input name="password" autoComplete="new-password" value={pwd2} onChange={e=>setPwd2(e.target.value)} placeholder="••••••••" type="password"
-            style={{width:"100%",boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:`1px solid ${pwd2.length>0&&pwd!==pwd2?C.red:C.border}`,background:C.white,color:C.dark,fontSize:13,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}/>
+            style={{width:"100%",boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:`1px solid ${pwd2.length>0&&pwd!==pwd2?C.red:C.border}`,background:C.white,color:C.dark,fontSize:16,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}/>
           {pwd2.length>0&&pwd!==pwd2&&<div style={{color:C.red,fontSize:11,marginTop:4}}>Las contraseñas no coinciden</div>}
         </div>
         {error&&<div style={{background:C.red+"10",border:`1px solid ${C.red}30`,borderRadius:8,padding:"10px 12px",marginBottom:14,color:C.red,fontSize:13}}>{error}</div>}
@@ -2066,7 +2159,7 @@ function Login({setUser,setPage}){
               <div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Correo o teléfono</div>
               <input value={recIdent} onChange={e=>setRecIdent(e.target.value)}
                 onKeyDown={e=>e.key==="Enter"&&enviarRecuperar()} placeholder="tu@correo.com o 55XXXXXXXX" type="text"
-                style={{width:"100%",boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:C.white,color:C.dark,fontSize:15,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}/>
+                style={{width:"100%",boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:C.white,color:C.dark,fontSize:16,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}/>
             </div>
             {recMsg && (
               <div style={{
@@ -2087,13 +2180,13 @@ function Login({setUser,setPage}){
           <div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Correo o teléfono</div>
           <input name="username" autoComplete="username email" value={ident} onChange={e=>setIdent(e.target.value)}
             onKeyDown={e=>e.key==="Enter"&&entrar()} placeholder="tu@correo.com o 55XXXXXXXX" type="text"
-            style={{width:"100%",boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:C.white,color:C.dark,fontSize:15,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}/>
+            style={{width:"100%",boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:C.white,color:C.dark,fontSize:16,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}/>
         </div>
         <div style={{marginBottom:20}}>
           <div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Contraseña</div>
           <input name="password" autoComplete="current-password" value={pwd} onChange={e=>setPwd(e.target.value)}
             onKeyDown={e=>e.key==="Enter"&&entrar()} placeholder="••••••••" type="password"
-            style={{width:"100%",boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:C.white,color:C.dark,fontSize:13,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}/>
+            style={{width:"100%",boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:C.white,color:C.dark,fontSize:16,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}/>
         </div>
         {error&&(<div style={{background:C.red+"10",border:`1px solid ${C.red}30`,borderRadius:8,padding:"10px 12px",marginBottom:12,color:C.red,fontSize:13}}>{error} <button type="button" onClick={()=>setPage("registro")} style={{background:"none",border:"none",color:BRAND.primary,fontWeight:700,fontSize:13,cursor:"pointer",textDecoration:"underline"}}>Crear cuenta</button></div>)}
         <Btn onClick={entrar} col={BRAND.primary} full disabled={!ident.trim()||!pwd||buscando}>{buscando?"Buscando...":"Entrar →"}</Btn>
@@ -2143,7 +2236,7 @@ function CambiarPwdCliente({user}) {
     setCarg(false);
   };
 
-  const inpS = {width:"100%",boxSizing:"border-box",padding:"8px 12px",borderRadius:8,border:`1px solid ${C.border}`,background:C.white,color:C.dark,fontSize:13,outline:"none",marginBottom:8};
+  const inpS = {width:"100%",boxSizing:"border-box",padding:"8px 12px",borderRadius:8,border:`1px solid ${C.border}`,background:C.white,color:C.dark,fontSize:16,outline:"none",marginBottom:8};
 
   return(
     <div>
@@ -2251,6 +2344,15 @@ export default function TiendaFarmax(){
     window.history.replaceState({page:"home"},"",window.location.pathname);
     return ()=>window.removeEventListener("popstate",h);
   },[]);
+  useEffect(()=>{
+    try {
+      if ("scrollRestoration" in window.history) window.history.scrollRestoration = "manual";
+    } catch (_) { /* noop */ }
+  },[]);
+  useEffect(()=>{
+    const id = window.requestAnimationFrame(()=>{ window.scrollTo(0, 0); });
+    return ()=>window.cancelAnimationFrame(id);
+  },[page]);
   const [cart,setCart]           = useState([]);
   const [user,setUser]           = useState(()=>{ try{ const u=sessionStorage.getItem("farmax_user"); return u?JSON.parse(u):null; }catch{ return null; } });
   const [productos,setProductos] = useState([]);
@@ -2437,7 +2539,7 @@ export default function TiendaFarmax(){
 
       <Header page={page} setPage={setPage} cart={cart} user={user} setUser={setUser}/>
 
-      <div style={{overflowX:"hidden",width:"100%",minHeight:"min(100vh,100dvh)"}}>
+      <div style={{width:"100%",minHeight:"min(100vh,100dvh)"}}>
         <main style={{minHeight:"min(100vh, 100dvh)",background:C.bg}}>
           {pages[page]||pages.home}
         </main>

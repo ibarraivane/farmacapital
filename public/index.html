@@ -60,9 +60,9 @@
         -moz-osx-font-smoothing: grayscale;
         -webkit-text-size-adjust: 100%;
         text-size-adjust: 100%;
-        /* Evita zoom por doble toque y reduce saltos visuales al cargar en móvil. */
+        /* Evita zoom por doble toque; overscroll auto evita scroll “pegajoso” en iOS. */
         touch-action: manipulation;
-        overscroll-behavior: none;
+        overscroll-behavior: auto;
       }
       /* Splash screen mientras carga */
       #splash {

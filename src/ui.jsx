@@ -394,6 +394,8 @@ export function SearchDropdown({
   const [open, setOpen] = React.useState(false);
   const [idx,  setIdx]  = React.useState(-1);
   const ref = React.useRef(null);
+  const inputRef = React.useRef(null);
+  const [panelW, setPanelW] = React.useState(0);
 
   const searchGetters = React.useMemo(() => {
     const extra = (extraSearchKeys || []).map((k) => (it) => it[k]);
@@ -403,6 +405,19 @@ export function SearchDropdown({
   const filtered = !value?.trim() ? [] : items.filter((item) =>
     productMatchesSearchQuery(item, value, searchGetters)
   ).slice(0, maxResults);
+
+  const measurePanel = React.useCallback(() => {
+    const el = inputRef.current;
+    if (el) setPanelW(Math.max(el.offsetWidth, 240));
+  }, []);
+
+  React.useLayoutEffect(() => {
+    if (!open) return;
+    measurePanel();
+    const onResize = () => measurePanel();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [open, value, filtered.length, measurePanel]);
 
   React.useEffect(()=>{
     const handler = e => { if(ref.current&&!ref.current.contains(e.target)) setOpen(false); };
@@ -418,19 +433,38 @@ export function SearchDropdown({
     if(e.key==="Escape"){ setOpen(false); setIdx(-1); }
   };
 
+  const panelStyle = {
+    position: "absolute",
+    top: "calc(100% + 4px)",
+    left: 0,
+    zIndex: 6000,
+    width: panelW > 0 ? panelW : "100%",
+    minWidth: panelW > 0 ? panelW : "min(100%, 100vw - 32px)",
+    maxWidth: "min(100vw - 24px, 560px)",
+    boxSizing: "border-box",
+    background: C.card,
+    borderRadius: 10,
+    border: "1px solid #e2e8f0",
+    boxShadow: "0 8px 32px rgba(0,82,204,.12)",
+    overflow: "hidden",
+    maxHeight: 320,
+    overflowY: "auto",
+  };
+
   return (
-    <div ref={ref} style={{position:"relative",...style}}>
+    <div ref={ref} style={{position:"relative",minWidth:0,...style}}>
       <input
+        ref={inputRef}
         value={value}
         onChange={e=>{ onChange(e.target.value); setOpen(true); setIdx(-1); }}
-        onFocus={()=>value&&setOpen(true)}
+        onFocus={()=>{ setOpen(!!value?.trim()); measurePanel(); }}
         onKeyDown={handleKey}
         placeholder={placeholder}
         style={{width:"100%",boxSizing:"border-box",padding:"10px 14px",borderRadius:8,border:"1px solid #e2e8f0",background:"#f7f9fc",color:C.text,fontSize:16,lineHeight:1.25,minHeight:44,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}
         onBlur={e=>{ if(ref.current&&!ref.current.contains(e.relatedTarget)) setTimeout(()=>setOpen(false),150); }}
       />
       {open&&filtered.length>0&&(
-        <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,right:0,zIndex:500,background:C.card,borderRadius:10,border:"1px solid #e2e8f0",boxShadow:"0 8px 32px rgba(0,82,204,.12)",overflow:"hidden",maxHeight:320,overflowY:"auto"}}>
+        <div style={panelStyle}>
           {filtered.map((item,i)=>(
             <div key={i} onMouseDown={()=>{ onSelect(item); setOpen(false); setIdx(-1); }}
               style={{padding:"10px 14px",cursor:"pointer",background:i===idx?"#eff6ff":C.card,borderBottom:"1px solid #f0f4f9",display:"flex",alignItems:"center",gap:10,transition:"background .1s"}}
@@ -449,7 +483,7 @@ export function SearchDropdown({
         </div>
       )}
       {open&&value&&filtered.length===0&&(
-        <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,right:0,zIndex:500,background:C.card,borderRadius:10,border:"1px solid #e2e8f0",boxShadow:"0 8px 32px rgba(0,82,204,.12)",padding:"16px 14px",textAlign:"center",color:"#94a3b8",fontSize:12}}>
+        <div style={{...panelStyle,padding:"16px 14px",textAlign:"center",color:"#94a3b8",fontSize:12,maxHeight:"none",overflowY:"visible"}}>
           {emptyMsg}
         </div>
       )}

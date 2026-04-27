@@ -88,14 +88,17 @@ export function productMatchesSearchQuery(product, queryRaw, valueGetters) {
   });
 }
 
+/**
+ * Catálogo tienda: sin descripción — textos largos suelen contener "ácido", "sodio", etc.
+ * y hacen que consultas cortas (ej. "ácido") devuelvan casi todo el inventario.
+ */
 const TIENDA_GETTERS = [
   (x) => x.nombre,
+  (x) => x.principio_activo,
   (x) => x.marca,
-  (x) => x.descripcion,
   (x) => x.categoria,
   (x) => x.sku,
   (x) => x.codigo_barras,
-  (x) => x.principio_activo,
 ];
 
 const INVENTARIO_GETTERS = [

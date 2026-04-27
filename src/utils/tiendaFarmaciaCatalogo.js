@@ -9,6 +9,7 @@ export const CATEGORIAS_MINISUPER_EXCLUIDAS_TIENDA_FARMACIA = Object.freeze([
   "Bebidas",
   "Básicos",
   "Abarrotes",
+  "Minisuper",
 ]);
 
 /** Normaliza categoría para comparar (tilde, mayúsculas, espacios). */

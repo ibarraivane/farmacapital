@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useMediaQuery } from "./hooks/useMediaQuery";
 import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
@@ -23,7 +23,7 @@ const BRAND = { primary:"#0052cc", secondary:"#0099e6", gradient:"linear-gradien
 const CATEGORIAS = [
   "Analgésico","Antiinflamatorio","Antibiótico","Gastro","Diabetes",
   "Hipertensión","Alergia","Vitaminas","Hidratación","Cardiovascular",
-  "Respiratorio","Botiquín","Higiene","Bebidas","Básicos","Abarrotes","Cuidado personal","Otro",
+  "Respiratorio","Botiquín","Higiene","Bebidas","Básicos","Abarrotes","Minisuper","Cuidado personal","Otro",
 ];
 const EMPTY = {
   nombre:"", sku:"", codigo_barras:"", categoria:"Otro", precio:"", costo:"", venta_unidad:false, unidades_por_caja:"", precio_unidad:"", stock_unidades:"",
@@ -803,6 +803,140 @@ function BulkImagesModal({ open, onClose, productos, onComplete }) {
   );
 }
 
+/** Modal: aplicar los mismos campos a varios productos vía admin_editar_producto */
+function BulkEditProductosModal({ count, onClose, onApplied }) {
+  const C = C_LIGHT;
+  const inputStyle = mkInputStyle(C);
+  const labelStyle = mkLabelStyle(C);
+  const btnPrimary = mkBtnPrimary(C);
+  const btnSecondary = mkBtnSecondary(C);
+  const [categoria, setCategoria] = useState("");
+  const [tipo, setTipo] = useState("");
+  const [descuento, setDescuento] = useState("");
+  const [stockMin, setStockMin] = useState("");
+  const [activo, setActivo] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const aplicar = async () => {
+    const patch = {};
+    if (categoria) patch.categoria = categoria;
+    if (tipo) patch.tipo = tipo;
+    if (descuento.trim() !== "") {
+      const d = parseFloat(descuento);
+      if (Number.isNaN(d) || d < 0 || d > 100) {
+        showToast("Descuento debe ser un % entre 0 y 100.", "error");
+        return;
+      }
+      patch.descuento_pct = d;
+    }
+    if (stockMin.trim() !== "") {
+      const s = parseInt(stockMin, 10);
+      if (Number.isNaN(s) || s < 0) {
+        showToast("Stock mínimo inválido.", "error");
+        return;
+      }
+      patch.stock_minimo = s;
+    }
+    if (activo === "si") patch.activo = true;
+    if (activo === "no") patch.activo = false;
+
+    if (Object.keys(patch).length === 0) {
+      showToast("Elegí al menos un campo para actualizar.", "warning");
+      return;
+    }
+    setBusy(true);
+    try {
+      await onApplied(patch);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(15,23,42,.45)",
+        backdropFilter: "blur(4px)",
+        zIndex: 1000,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 20,
+      }}
+      onClick={(e) => e.target === e.currentTarget && !busy && onClose()}
+    >
+      <div
+        style={{
+          background: C.card,
+          borderRadius: 14,
+          width: "min(480px, 95vw)",
+          maxHeight: "90vh",
+          overflowY: "auto",
+          padding: 24,
+          boxShadow: "0 20px 60px rgba(0,82,204,.15)",
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <h3 style={{ margin: 0, color: C.text, fontSize: 16, fontWeight: 800 }}>✏️ Edición en lote</h3>
+          <button type="button" disabled={busy} onClick={onClose} style={{ background: "none", border: "none", color: C.textMid, fontSize: 20, cursor: busy ? "default" : "pointer" }}>
+            ✕
+          </button>
+        </div>
+        <p style={{ margin: "0 0 16px", color: C.textMid, fontSize: 12, lineHeight: 1.5 }}>
+          Se aplicará a <strong style={{ color: C.text }}>{count}</strong> producto(s). Solo completa los campos que quieras cambiar; el resto se mantiene igual en cada producto.
+        </p>
+        <div style={{ display: "grid", gap: 12 }}>
+          <div>
+            <label style={labelStyle}>Categoría</label>
+            <select value={categoria} onChange={(e) => setCategoria(e.target.value)} style={inputStyle}>
+              <option value="">— Sin cambiar —</option>
+              {CATEGORIAS.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label style={labelStyle}>Tipo</label>
+            <select value={tipo} onChange={(e) => setTipo(e.target.value)} style={inputStyle}>
+              <option value="">— Sin cambiar —</option>
+              <option value="generico">Genérico</option>
+              <option value="marca">Marca</option>
+            </select>
+          </div>
+          <div>
+            <label style={labelStyle}>Descuento % (sobre precio de lista)</label>
+            <input value={descuento} onChange={(e) => setDescuento(e.target.value)} placeholder="Ej. 15 (vacío = no cambiar)" style={inputStyle} inputMode="decimal" />
+          </div>
+          <div>
+            <label style={labelStyle}>Stock mínimo</label>
+            <input value={stockMin} onChange={(e) => setStockMin(e.target.value)} placeholder="Vacío = no cambiar" style={inputStyle} inputMode="numeric" />
+          </div>
+          <div>
+            <label style={labelStyle}>Estado en catálogo</label>
+            <select value={activo} onChange={(e) => setActivo(e.target.value)} style={inputStyle}>
+              <option value="">— Sin cambiar —</option>
+              <option value="si">Activar</option>
+              <option value="no">Desactivar (ocultar)</option>
+            </select>
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 10, marginTop: 20, flexWrap: "wrap" }}>
+          <button type="button" disabled={busy} onClick={onClose} style={{ ...btnSecondary, flex: 1, minWidth: 120 }}>
+            Cancelar
+          </button>
+          <button type="button" disabled={busy} onClick={aplicar} style={{ ...btnPrimary, flex: 1, minWidth: 120, opacity: busy ? 0.7 : 1 }}>
+            {busy ? "Aplicando…" : `Aplicar a ${count}`}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function InventarioModule() {
   const C = C_LIGHT;
   const inputStyle = mkInputStyle(C);
@@ -826,8 +960,19 @@ export default function InventarioModule() {
   const [paginaInv, setPaginaInv] = useState(1);
   const [modalLotes, setModalLotes] = useState(null);
   const [modalBulkImages, setModalBulkImages] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [modalBulkEdit, setModalBulkEdit] = useState(false);
+  const headerSelectAllRef = useRef(null);
+  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+
+  const clearSelection = useCallback(() => setSelectedIds([]), []);
+  const toggleSelectId = useCallback((id) => {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  }, []);
+
   // N8: Resetear página al cambiar filtros
   useEffect(()=>{ setPaginaInv(1); },[filtroCategoria,filtroAlerta,busqueda]);
+  useEffect(()=>{ clearSelection(); },[filtroCategoria,filtroAlerta,busqueda,verInactivos,clearSelection]);
   const INV_POR_PAG = 50;
 
   const procesarArchivo = (file) => {
@@ -882,7 +1027,9 @@ export default function InventarioModule() {
       p_patch: { descuento_pct: parseFloat(pct) },
     });
     if (error) { showToast("Error al liquidar: "+error.message, "error"); return; }
-    showToast(`✅ ${prod.nombre} liquidado con ${pct}% descuento. Nuevo precio: $${nuevoPrecio}`, "success");
+    const precioBase = parseFloat(prod.precio) || 0;
+    const conDto = Math.max(0, precioBase * (1 - parseFloat(pct) / 100));
+    showToast(`✅ ${prod.nombre} liquidado con ${pct}% desc. · Precio ref. ~$${conDto.toFixed(2)}`, "success");
     fetchProductos();
   };
 
@@ -929,6 +1076,33 @@ export default function InventarioModule() {
   );
   const filtrados = filtradosTodosInv.slice((paginaInv-1)*INV_POR_PAG, paginaInv*INV_POR_PAG);
 
+  useEffect(() => {
+    const el = headerSelectAllRef.current;
+    if (!el) return;
+    if (filtrados.length === 0) {
+      el.indeterminate = false;
+      return;
+    }
+    const all = filtrados.every((p) => selectedSet.has(p.id));
+    const some = filtrados.some((p) => selectedSet.has(p.id));
+    el.indeterminate = some && !all;
+  }, [filtrados, selectedSet]);
+
+  const toggleSelectAllOnPage = () => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      const pageIds = filtrados.map((p) => p.id);
+      const allIn = pageIds.length > 0 && pageIds.every((id) => next.has(id));
+      if (allIn) pageIds.forEach((id) => next.delete(id));
+      else pageIds.forEach((id) => next.add(id));
+      return [...next];
+    });
+  };
+
+  const selectAllFiltered = () => {
+    setSelectedIds(filtradosTodosInv.map((p) => p.id));
+  };
+
   const activos    = productos.filter(p => p.activo).length;
   const bajoStock  = productos.filter(p => p.activo && p.stock<=(p.stock_minimo??0)).length;
   const porCaducar = productos.filter(p => { const d=diasParaCaducar(p.min_caducidad_lotes); return d!==null&&d<=30&&d>=0; }).length;
@@ -950,6 +1124,143 @@ export default function InventarioModule() {
     });
     if (error) showToast("Error: "+error.message, "error");
     fetchProductos();
+  };
+
+  const aplicarEdicionLote = async (patch) => {
+    const tok = sessionStorage.getItem("farmax_session_token");
+    if (!tok) {
+      showToast("Sesión expirada.", "error");
+      return;
+    }
+    const ids = [...selectedIds];
+    let ok = 0;
+    let err = 0;
+    for (const id of ids) {
+      const { error } = await supabase.rpc("admin_editar_producto", {
+        p_session_token: tok,
+        p_producto_id: id,
+        p_patch: patch,
+      });
+      if (error) err++;
+      else ok++;
+    }
+    setModalBulkEdit(false);
+    clearSelection();
+    fetchProductos();
+    if (err) {
+      showToast(`Actualizados ${ok} de ${ids.length}. ${err} error(es).`, err === ids.length ? "error" : "warning");
+    } else {
+      showToast(`✅ ${ok} producto(s) actualizado(s)`, "success");
+    }
+  };
+
+  const bulkDesactivar = async () => {
+    const tok = sessionStorage.getItem("farmax_session_token");
+    if (!tok) {
+      showToast("Sesión expirada.", "error");
+      return;
+    }
+    const ids = [...selectedIds];
+    const targets = productos.filter((p) => ids.includes(p.id) && p.activo);
+    if (!targets.length) {
+      showToast("Ninguno de los seleccionados está activo.", "info");
+      return;
+    }
+    if (!window.confirm(`¿Desactivar ${targets.length} producto(s)?`)) return;
+    let ok = 0;
+    let err = 0;
+    for (const p of targets) {
+      const { error } = await supabase.rpc("admin_toggle_producto", {
+        p_session_token: tok,
+        p_producto_id: p.id,
+        p_activo: false,
+      });
+      if (error) err++;
+      else ok++;
+    }
+    clearSelection();
+    fetchProductos();
+    if (err) {
+      showToast(`Desactivados ${ok}. ${err} error(es).`, "warning");
+    } else {
+      showToast(`✅ ${ok} producto(s) desactivado(s)`, "success");
+    }
+  };
+
+  const bulkReactivar = async () => {
+    const tok = sessionStorage.getItem("farmax_session_token");
+    if (!tok) {
+      showToast("Sesión expirada.", "error");
+      return;
+    }
+    const ids = [...selectedIds];
+    const targets = productos.filter((p) => ids.includes(p.id) && !p.activo);
+    if (!targets.length) {
+      showToast("Ninguno de los seleccionados está inactivo.", "info");
+      return;
+    }
+    if (!window.confirm(`¿Reactivar ${targets.length} producto(s)?`)) return;
+    let ok = 0;
+    let err = 0;
+    for (const p of targets) {
+      const { error } = await supabase.rpc("admin_toggle_producto", {
+        p_session_token: tok,
+        p_producto_id: p.id,
+        p_activo: true,
+      });
+      if (error) err++;
+      else ok++;
+    }
+    clearSelection();
+    fetchProductos();
+    if (err) {
+      showToast(`Reactivados ${ok}. ${err} error(es).`, "warning");
+    } else {
+      showToast(`✅ ${ok} producto(s) reactivado(s)`, "success");
+    }
+  };
+
+  const bulkEliminar = async () => {
+    const tok = sessionStorage.getItem("farmax_session_token");
+    if (!tok) {
+      showToast("Sesión expirada.", "error");
+      return;
+    }
+    const ids = [...selectedIds];
+    if (!ids.length) return;
+    if (
+      !window.confirm(
+        `¿Eliminar ${ids.length} producto(s)? Los que ya tuvieron ventas en el historial solo se desactivarán (no se borran del sistema).`
+      )
+    ) {
+      return;
+    }
+    let ok = 0;
+    let err = 0;
+    for (const id of ids) {
+      const { data: resp, error } = await supabase.rpc("admin_eliminar_producto", {
+        p_session_token: tok,
+        p_producto_id: id,
+      });
+      if (error || !resp?.success) err++;
+      else ok++;
+    }
+    clearSelection();
+    fetchProductos();
+    if (err) {
+      showToast(`Procesados ${ok} de ${ids.length}. ${err} error(es).`, err === ids.length ? "error" : "warning");
+    } else {
+      showToast(`✅ ${ok} producto(s) eliminado(s) o desactivado(s) según historial`, "success");
+    }
+  };
+
+  const abrirLotesSeleccion = () => {
+    if (selectedIds.length !== 1) {
+      showToast("Seleccioná un solo producto para ver sus lotes.", "warning");
+      return;
+    }
+    const p = productos.find((x) => x.id === selectedIds[0]);
+    if (p) setModalLotes(p);
   };
 
   return (
@@ -1014,8 +1325,9 @@ export default function InventarioModule() {
         ))}
       </div>
 
-      <div data-tour="inv-buscar" style={{display:"flex",gap:10,marginBottom:16,flexWrap:"wrap",alignItems:"center"}}>
-        <SearchDropdown value={busqueda} onChange={setBusqueda} onSelect={p=>setBusqueda(p.nombre)} placeholder="🔍 Nombre o SKU…" items={productos} labelKey="nombre" subKey="sku" extraSearchKeys={["codigo_barras","categoria"]} badgeKey="stock" badgeCol="#0099e6" style={{flex:1}} emptyMsg="Sin productos"/>
+      <div data-tour="inv-buscar" style={{display:"flex",flexDirection:"column",gap:10,marginBottom:16}}>
+        <SearchDropdown value={busqueda} onChange={setBusqueda} onSelect={p=>setBusqueda(p.nombre)} placeholder="🔍 Nombre o SKU…" items={productos} labelKey="nombre" subKey="sku" extraSearchKeys={["codigo_barras","categoria"]} badgeKey="stock" badgeCol="#0099e6" style={{width:"100%",maxWidth:"100%"}} emptyMsg="Sin productos"/>
+        <div style={{display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
         <select value={filtroCategoria} onChange={e=>setFiltroCategoria(e.target.value)} style={{...inputStyle,maxWidth:180}}>
           <option value="todas">Todas las categorías</option>
           {CATEGORIAS.map(c=><option key={c} value={c}>{c}</option>)}
@@ -1036,9 +1348,27 @@ export default function InventarioModule() {
           <button onClick={()=>{setFiltroCategoria("todas");setFiltroAlerta("todos");setBusqueda("");}}
             style={{...btnSecondary,padding:"7px 12px",fontSize:11}}>✕ Limpiar filtros</button>
         )}
+        {filtrados.length > 0 && (
+          <>
+            <button type="button" onClick={toggleSelectAllOnPage} style={{ ...btnSecondary, padding: "7px 10px", fontSize: 11 }}>
+              ☑ Esta página
+            </button>
+            {filtradosTodosInv.length > filtrados.length && (
+              <button type="button" onClick={selectAllFiltered} style={{ ...btnOutline, padding: "7px 10px", fontSize: 11 }}>
+                ☑ Todos los filtrados ({filtradosTodosInv.length})
+              </button>
+            )}
+            {selectedIds.length > 0 && (
+              <button type="button" onClick={clearSelection} style={{ ...btnSecondary, padding: "7px 10px", fontSize: 11 }}>
+                Quitar selección ({selectedIds.length})
+              </button>
+            )}
+          </>
+        )}
         <span style={{color:C.textMid,fontSize:11,marginLeft:"auto"}}>
-          {filtrados.length} producto{filtrados.length!==1?"s":""}
+          {filtrados.length} en página · {filtradosTodosInv.length} filtrado{filtradosTodosInv.length !== 1 ? "s" : ""}
         </span>
+        </div>
       </div>
       {spellHintsInv.length > 0 && (
         <div style={{
@@ -1059,13 +1389,83 @@ export default function InventarioModule() {
         </div>
       )}
 
+      {selectedIds.length > 0 && (
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 8,
+            alignItems: "center",
+            marginBottom: 16,
+            padding: "12px 14px",
+            background: C.card,
+            border: `1px solid rgba(0, 82, 204, 0.35)`,
+            borderRadius: 10,
+            position: "sticky",
+            top: 0,
+            zIndex: 6,
+            boxShadow: "0 4px 20px rgba(15,23,42,.06)",
+          }}
+        >
+          <span style={{ fontWeight: 800, color: C.text, marginRight: 4 }}>{selectedIds.length} seleccionados</span>
+          <button type="button" style={{ ...btnOutline, padding: "8px 12px", fontSize: 12 }} onClick={() => setModalBulkEdit(true)}>
+            ✏️ Editar en lote
+          </button>
+          <button type="button" style={{ ...btnOutline, padding: "8px 12px", fontSize: 12 }} onClick={abrirLotesSeleccion}>
+            📦 Lotes
+          </button>
+          <button
+            type="button"
+            style={{ ...btnOutline, padding: "8px 12px", fontSize: 12, color: C.amber, borderColor: C.amber }}
+            onClick={() => {
+              const pct = window.prompt(`% de descuento a aplicar a ${selectedIds.length} producto(s) (0–99)`, "15");
+              if (pct == null || pct === "") return;
+              const n = parseFloat(pct);
+              if (Number.isNaN(n) || n <= 0 || n >= 100) {
+                showToast("Porcentaje inválido.", "error");
+                return;
+              }
+              aplicarEdicionLote({ descuento_pct: n });
+            }}
+          >
+            🏷️ Descuento %
+          </button>
+          <button type="button" style={{ ...btnOutline, padding: "8px 12px", fontSize: 12, color: C.red, borderColor: C.red }} onClick={bulkDesactivar}>
+            🔴 Desactivar
+          </button>
+          <button type="button" style={{ ...btnOutline, padding: "8px 12px", fontSize: 12, color: C.green, borderColor: C.green }} onClick={bulkReactivar}>
+            ✅ Reactivar
+          </button>
+          <button
+            type="button"
+            style={{ ...btnSecondary, padding: "8px 12px", fontSize: 12, color: C.red, borderColor: C.red, background: C.redDim }}
+            onClick={bulkEliminar}
+          >
+            🗑️ Eliminar
+          </button>
+          <button type="button" style={{ ...btnSecondary, padding: "8px 10px", fontSize: 11 }} onClick={clearSelection} title="Quitar selección">
+            ✕
+          </button>
+        </div>
+      )}
+
       {loading ? (
         <SkeletonTable rows={8} cols={7}/>
       ) : (
         <HorizontalScrollSync data-tour="inv-tabla">
-          <table style={{width:"100%",minWidth:1180,borderCollapse:"collapse",fontSize:12}}>
+          <table style={{width:"100%",minWidth:1220,borderCollapse:"collapse",fontSize:12}}>
             <thead>
               <tr style={{background:C.card}}>
+                <th style={{ padding: "10px 8px", textAlign: "center", color: C.textMid, fontWeight: 700, borderBottom: `1px solid ${C.border}`, width: 36 }}>
+                  <input
+                    ref={headerSelectAllRef}
+                    type="checkbox"
+                    checked={filtrados.length > 0 && filtrados.every((p) => selectedSet.has(p.id))}
+                    onChange={toggleSelectAllOnPage}
+                    aria-label="Seleccionar todos en esta página"
+                    style={{ width: 16, height: 16, cursor: "pointer", accentColor: BRAND.primary }}
+                  />
+                </th>
                 {["Foto","SKU","Nombre","Categoría","Tipo","Stock","Mín","Precio","Costo","Margen%","Cad. (días)","Agot. (días)","Desc%","Estado","Acciones"].map(h=>(
                   <th key={h} style={{padding:"10px 12px",textAlign:"left",color:C.textMid,fontWeight:700,
                     borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>{h}</th>
@@ -1074,7 +1474,7 @@ export default function InventarioModule() {
             </thead>
             <tbody>
               {filtrados.length===0&&(
-                <tr><td colSpan={15} style={{textAlign:"center",padding:32,color:C.textMid}}>
+                <tr><td colSpan={16} style={{textAlign:"center",padding:32,color:C.textMid}}>
                   Sin productos{busqueda?` para "${busqueda}"`:""}. Agrega el primero con ➕
                 </td></tr>
               )}
@@ -1088,6 +1488,15 @@ export default function InventarioModule() {
                 const mgnCol  = isNaN(mgnNum)?C.textMid:mgnNum>=30?C.green:mgnNum>=15?C.amber:C.red;
                 return (
                   <tr key={p.id} className="farmax-table-row" style={{opacity:inact?0.45:1,background:bajo?C.amberDim:nearCad?C.redDim:"transparent"}}>
+                    <td style={{ padding: "6px 8px", borderBottom: `1px solid ${C.border}`, textAlign: "center", verticalAlign: "middle" }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedSet.has(p.id)}
+                        onChange={() => toggleSelectId(p.id)}
+                        aria-label={`Seleccionar ${p.nombre}`}
+                        style={{ width: 16, height: 16, cursor: "pointer", accentColor: BRAND.primary }}
+                      />
+                    </td>
                     <td style={{padding:"6px 10px",borderBottom:`1px solid ${C.border}`}}>
                       <div style={{
                         width:40,height:40,borderRadius:6,
@@ -1173,6 +1582,13 @@ export default function InventarioModule() {
           onClose={()=>setModalBulkImages(false)}
           productos={productos}
           onComplete={fetchProductos}
+        />
+      )}
+      {modalBulkEdit && selectedIds.length > 0 && (
+        <BulkEditProductosModal
+          count={selectedIds.length}
+          onClose={() => setModalBulkEdit(false)}
+          onApplied={aplicarEdicionLote}
         />
       )}
       {modalLotes&&(
