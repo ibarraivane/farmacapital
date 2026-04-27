@@ -113,7 +113,43 @@ const INVENTARIO_GETTERS = [
 ];
 
 export function tiendaProductMatchesBusqueda(product, queryRaw) {
-  return productMatchesSearchQuery(product, queryRaw, TIENDA_GETTERS);
+  const raw = String(queryRaw || "").trim();
+  if (!raw) return true;
+
+  const q = normalizeForSearch(raw);
+  const tokens = q.split(/\s+/).filter(Boolean);
+  if (!tokens.length) return true;
+
+  const nombre = normalizeForSearch(product?.nombre || "");
+  const principio = normalizeForSearch(product?.principio_activo || "");
+  const marca = normalizeForSearch(product?.marca || "");
+  const categoria = normalizeForSearch(product?.categoria || "");
+  const sku = normalizeForSearch(product?.sku || "");
+  const cb = normalizeForSearch(product?.codigo_barras || "");
+  const primaryFields = [nombre, principio, marca, categoria, sku, cb];
+
+  // Primero, coincidencia directa clásica (la más esperada por usuario).
+  if (someFieldIncludesNormalizedQuery(
+    [product?.nombre, product?.principio_activo, product?.marca, product?.categoria, product?.sku, product?.codigo_barras],
+    raw
+  )) return true;
+
+  // Búsqueda corta (ej: "agua"): NO usar fuzzy amplio para evitar "todo el catálogo".
+  if (tokens.length === 1) {
+    const tok = tokens[0];
+    if (tok.length <= 4) {
+      return primaryFields.some((f) => tokenMatchesInNormalizedHaystack(tok, f));
+    }
+  }
+
+  // Búsqueda multi-término: exigir que cada token aparezca en campos principales;
+  // solo permitir fuzzy para tokens largos (>=5) y en nombre/principio/marca.
+  return tokens.every((tok) => {
+    if (tok.length <= 1) return false;
+    if (primaryFields.some((f) => tokenMatchesInNormalizedHaystack(tok, f))) return true;
+    if (tok.length < 5) return false;
+    return [nombre, principio, marca].some((f) => normalizedTextFuzzyMatch(tok, f));
+  });
 }
 
 /**

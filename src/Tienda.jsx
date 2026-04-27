@@ -1618,30 +1618,54 @@ function Checkout({cart,setCart,setPage,user,entrega="pickup",catalogoProductos=
       ]);
       const sumLotes = tiendaSumLotesByProduct(lotesRows);
       const stockMap = new Map((stockRows||[]).map(p=>[tiendaNormProductId(p.id), p]));
-      const outBad = cart.find(c => {
+      // Reconciliación automática de carrito contra inventario vivo:
+      // evita bloquear al usuario por productos obsoletos.
+      const reconciled = [];
+      const cambios = [];
+      for (const c of cart) {
         const id = tiendaNormProductId(c.id);
         const dbp = stockMap.get(id);
-        if (!dbp) return true;
-        if (!dbp.activo) return true;
-        const eff = tiendaEffectiveStockFromDb(dbp, sumLotes);
-        return eff < Number(c.qty||0);
-      });
-      if (outBad) {
-        const id = tiendaNormProductId(outBad.id);
-        const dbp = stockMap.get(id);
         if (!dbp) {
-          alert(`No encontramos "${outBad.nombre}" en inventario. Quitalo del carrito y actualizá la página.`);
-        } else if (!dbp.activo) {
-          alert(`"${outBad.nombre}" ya no está disponible. Quitalo del carrito.`);
-        } else {
-          const disp = tiendaEffectiveStockFromDb(dbp, sumLotes);
-          alert(`Stock insuficiente para "${outBad.nombre}". Disponible: ${disp}, en tu carrito: ${outBad.qty}. Ajustá la cantidad o quitá el producto.`);
+          cambios.push(`• ${c.nombre}: ya no disponible`);
+          continue;
         }
+        if (!dbp.activo) {
+          cambios.push(`• ${c.nombre}: producto inactivo`);
+          continue;
+        }
+        const eff = tiendaEffectiveStockFromDb(dbp, sumLotes);
+        const qtyReq = Number(c.qty || 0);
+        if (eff <= 0) {
+          cambios.push(`• ${c.nombre}: sin stock`);
+          continue;
+        }
+        if (eff < qtyReq) {
+          cambios.push(`• ${c.nombre}: ${qtyReq} → ${eff}`);
+        }
+        reconciled.push({
+          ...c,
+          id,
+          qty: Math.min(qtyReq, eff),
+          stock: eff,
+          precio: Number(dbp.precio ?? c.precio ?? 0),
+          activo: dbp.activo,
+        });
+      }
+      if (cambios.length) {
+        setCart(reconciled);
+        const detalle = cambios.slice(0, 4).join("\n");
+        alert(`Actualizamos tu carrito con inventario real:\n${detalle}${cambios.length > 4 ? "\n…" : ""}\n\nRevisa y confirma de nuevo.`);
+        setG(false);
+        return;
+      }
+      if (!reconciled.length) {
+        setCart([]);
+        alert("Tu carrito quedó sin productos disponibles. Vuelve al catálogo para agregar nuevos.");
         setG(false);
         return;
       }
 
-      const { ok, bloqueados } = validarCarritoParaEntrega(cart, entrega, stockMap, {
+      const { ok, bloqueados } = validarCarritoParaEntrega(reconciled, entrega, stockMap, {
         permiteEnTiendaWeb: productoPermitidoEnTiendaFarmaciaWeb,
         razonNoPermitidoTienda: razonBloqueoProductoTiendaFarmacia,
       });
@@ -1665,7 +1689,7 @@ function Checkout({cart,setCart,setPage,user,entrega="pickup",catalogoProductos=
         setG(false); return;
       }
 
-      const p_cart = cart.map(c => ({
+      const p_cart = reconciled.map(c => ({
         producto_id: tiendaNormProductId(c.id),
         cantidad:    Number(c.qty),
       }));
@@ -1687,11 +1711,11 @@ function Checkout({cart,setCart,setPage,user,entrega="pickup",catalogoProductos=
         setG(false); return;
       }
 
-      const subSnap = cart.reduce((a,c)=>a+(Number(c.precio)||0)*(Number(c.qty)||0),0);
+      const subSnap = reconciled.reduce((a,c)=>a+(Number(c.precio)||0)*(Number(c.qty)||0),0);
       setLastOrder({
         sub: subSnap,
         ptsG: Math.floor(subSnap/10),
-        lines: cart.map(c=>({ nombre:c.nombre, qty:c.qty, precio:c.precio })),
+        lines: reconciled.map(c=>({ nombre:c.nombre, qty:c.qty, precio:c.precio })),
         entregaUi: entrega,
         tipo_entrega,
         order_channel,
