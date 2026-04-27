@@ -8,7 +8,7 @@ import { C_LIGHT, BRAND } from "../../../constants";
 import { $, logAudit, soloDigitosTel, normalizeForSearch } from "../../../utils";
 import { inventarioProductMatchesBusqueda } from "../../../utils/fuzzySearch";
 import { Box, Tag, Btn, Inp, Modal, showToast, SearchDropdown, SkeletonTable } from "../../../ui";
-import { CONSULTA_PRECIO_DEFAULT, citaPagoPendiente, labelCanal } from "../../../utils/consultaConstants";
+import { CONSULTA_PRECIO_DEFAULT, CONSULTA_PARTE_DOCTOR, citaPagoPendiente, labelCanal } from "../../../utils/consultaConstants";
 import { puedeCancelarCitaNoShow } from "../../../utils/citasAgenda";
 import { esPedidoTiendaWebPendiente, fetchPedidosTiendaPendientesMerged } from "../../../utils/pedidosTiendaWeb";
 import { desgloseCambioMN, sugerenciasPagoCliente } from "../../../utils/cambioCaja";
@@ -62,6 +62,9 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const [pedOnline,setPedOn] = useState([]);
   /** Citas con consulta o consumibles pendientes de cobro en caja (agendadas en línea o en Agenda de consultas). */
   const [consxCobrar,setConsCobrar] = useState([]);
+  const [consultaTelById, setConsultaTelById] = useState({});
+  const [consultaCliById, setConsultaCliById] = useState({});
+  const [consultaPayById, setConsultaPayById] = useState({});
   const [cliSearchItems, setCliSearchItems] = useState([]);
   const [loading,setLoad]    = useState(false);
   const [guardando,setGuard] = useState(false);
@@ -251,6 +254,37 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   useEffect(() => {
     refrescarCitasPOS();
   }, [refrescarCitasPOS]);
+
+  useEffect(() => {
+    const ids = new Set((consxCobrar || []).map((c) => String(c.id)));
+    setConsultaTelById((prev) => {
+      const next = {};
+      let changed = false;
+      for (const [k, v] of Object.entries(prev || {})) {
+        if (ids.has(String(k))) next[k] = v;
+        else changed = true;
+      }
+      return changed ? next : prev;
+    });
+    setConsultaCliById((prev) => {
+      const next = {};
+      let changed = false;
+      for (const [k, v] of Object.entries(prev || {})) {
+        if (ids.has(String(k))) next[k] = v;
+        else changed = true;
+      }
+      return changed ? next : prev;
+    });
+    setConsultaPayById((prev) => {
+      const next = {};
+      let changed = false;
+      for (const [k, v] of Object.entries(prev || {})) {
+        if (ids.has(String(k))) next[k] = v;
+        else changed = true;
+      }
+      return changed ? next : prev;
+    });
+  }, [consxCobrar]);
 
 
   const fil = productos.filter(p=>
@@ -619,26 +653,32 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     setGuard(false);
   };
 
-  const cobrarConsulta = async (cita) => {
+  const cobrarConsulta = async (cita, opts = {}) => {
     setGuard(true);
     try {
       const tok = sessionStorage.getItem("farmax_session_token");
       if (!tok) throw new Error("Sesión expirada");
-      const { data: resp, error } = await supabase.rpc("cobrar_consulta", {
-        p_session_token: tok,
-        p_cita_id:       cita.id,
-        p_cliente_id:    cli?.id || null,
-        p_metodo_pago:   pay,
-      });
-      if (error) throw error;
-      if (!resp?.success) throw new Error(resp?.error || "No se pudo cobrar");
-
+      const metodoPago = opts.metodoPago || "efectivo";
+      const clienteSel = opts.clienteSel || null;
       const precioBase = parseFloat(config?.precio_consulta) || CONSULTA_PRECIO_DEFAULT;
       const yaPagoConsulta =
         cita.pago_estado === "pagada" || cita.estado === "pagada" || !!cita.pedido_consulta_id;
+      const parteDoctor = Number(((yaPagoConsulta ? 0 : precioBase) * CONSULTA_PARTE_DOCTOR).toFixed(2));
+      const parteFarmacia = Number(((yaPagoConsulta ? 0 : precioBase) - parteDoctor).toFixed(2));
+      const { data: resp, error } = await supabase.rpc("cobrar_consulta", {
+        p_session_token: tok,
+        p_cita_id:       cita.id,
+        p_metodo_pago:   metodoPago,
+        p_precio_consulta: precioBase,
+        p_ya_pago_consulta: yaPagoConsulta,
+        p_parte_doctor: parteDoctor,
+        p_parte_farmacia: parteFarmacia,
+      });
+      if (error) throw error;
+      if (!resp?.success) throw new Error(resp?.error || "No se pudo cobrar");
       const consumibles = (cita.consumibles_consulta || []).filter((c) => !c.cobrado);
       const baseCobrar = yaPagoConsulta ? 0 : precioBase;
-      const totalFinal = resp.total || 0;
+      const totalFinal = Number(resp.total_final ?? resp.total ?? 0);
 
       await refrescarCitasPOS();
       const itemsConsulta =
@@ -657,8 +697,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         ],
         sub: totalFinal,
         total: totalFinal,
-        pay: paymentLabel(pay),
-        cli,
+        pay: paymentLabel(metodoPago),
+        cli: clienteSel,
         ptsG: Math.floor(totalFinal / 10),
       });
       setTimeout(() => printTicket("farmax-ticket"), 500);
@@ -1044,7 +1084,13 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
           setMpModal(false);
           const citaMp = mpCitaRef.current;
           mpCitaRef.current = null;
-          if (citaMp) await cobrarConsulta(citaMp);
+          if (citaMp) {
+            const citaKey = String(citaMp.id);
+            await cobrarConsulta(citaMp, {
+              metodoPago: "tarjeta",
+              clienteSel: consultaCliById[citaKey] || null,
+            });
+          }
           else {
             const ro = recetaOrigenPendienteRef.current || "no_aplica";
             recetaOrigenPendienteRef.current = "no_aplica";
@@ -1554,12 +1600,16 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
 
           {!consxCobrar.length?<div style={{color:C.textMid,padding:24,textAlign:"center"}}>✓ Nada pendiente de cobro en caja</div>:
            consxCobrar.map(cita=>{
+            const citaKey = String(cita.id);
             const precioBase = parseFloat(config?.precio_consulta) || CONSULTA_PRECIO_DEFAULT;
             const yaPagoConsulta =
               cita.pago_estado === "pagada" || cita.estado === "pagada" || !!cita.pedido_consulta_id;
             const consumibles=(cita.consumibles_consulta||[]).filter(c=>!c.cobrado);
             const totalCons=consumibles.reduce((a,c)=>a+c.precio*c.cantidad,0);
             const totalCobro = (yaPagoConsulta ? 0 : precioBase) + totalCons;
+            const telConsulta = consultaTelById[citaKey] ?? "";
+            const cliConsulta = consultaCliById[citaKey] ?? null;
+            const payConsulta = consultaPayById[citaKey] ?? "efectivo";
             return(
               <Box key={cita.id} style={{padding: isNarrow ? 14 : 20,marginBottom:12,minWidth:0}}>
                 <div style={{display:"flex",justifyContent:"space-between",marginBottom:12,flexWrap:"wrap",gap:10}}>
@@ -1593,9 +1643,12 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                   </div>
                 )}
                 <SearchDropdown
-                  value={tel}
-                  onChange={setTel}
-                  onSelect={(c)=>{ setTel(c.telefono||""); setCli(c); }}
+                  value={telConsulta}
+                  onChange={(v)=>setConsultaTelById((prev)=>({ ...prev, [citaKey]: v }))}
+                  onSelect={(c)=>{
+                    setConsultaTelById((prev)=>({ ...prev, [citaKey]: c.telefono || "" }));
+                    setConsultaCliById((prev)=>({ ...prev, [citaKey]: c }));
+                  }}
                   placeholder="📱 Teléfono o nombre del cliente"
                   items={cliSearchItems}
                   labelKey="nombre"
@@ -1605,20 +1658,20 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                   style={{width:"100%",boxSizing:"border-box",marginBottom:8}}
                   emptyMsg="Sin coincidencias · prueba más dígitos o el nombre"
                 />
-                {cli&&<div style={{background:C.purpleDim,border:`1px solid ${C.purple}30`,borderRadius:6,padding:"6px 10px",marginBottom:8}}><span style={{color:C.purple,fontSize:11,fontWeight:700}}>{cli.nombre} · {cli.puntos||0} pts</span></div>}
+                {cliConsulta&&<div style={{background:C.purpleDim,border:`1px solid ${C.purple}30`,borderRadius:6,padding:"6px 10px",marginBottom:8}}><span style={{color:C.purple,fontSize:11,fontWeight:700}}>{cliConsulta.nombre} · {cliConsulta.puntos||0} pts</span></div>}
                 <div style={{display:"flex",gap:6,marginBottom:10,flexWrap:"wrap"}}>
                   {[["efectivo","Efectivo"],["tarjeta","Tarjeta (Point)"]].map(([v,l])=>(
-                    <button key={v} type="button" onClick={()=>setPay(v)} style={{padding:"4px 10px",borderRadius:20,border:`1px solid ${pay===v?C.green:C.border}`,background:pay===v?C.greenDim:"transparent",color:pay===v?C.green:C.textMid,fontSize:10,fontWeight:700,cursor:"pointer"}}>{l}</button>
+                    <button key={v} type="button" onClick={()=>setConsultaPayById((prev)=>({ ...prev, [citaKey]: v }))} style={{padding:"4px 10px",borderRadius:20,border:`1px solid ${payConsulta===v?C.green:C.border}`,background:payConsulta===v?C.greenDim:"transparent",color:payConsulta===v?C.green:C.textMid,fontSize:10,fontWeight:700,cursor:"pointer"}}>{l}</button>
                   ))}
                 </div>
                 <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
-                  {pay==="efectivo" ? (
-                    <Btn onClick={()=>cobrarConsulta(cita)} col={C.green} dis={guardando} style={{flex:"1 1 200px"}}>✅ Cobrar {$(totalCobro)}</Btn>
+                  {payConsulta==="efectivo" ? (
+                    <Btn onClick={()=>cobrarConsulta(cita, { metodoPago: payConsulta, clienteSel: cliConsulta })} col={C.green} dis={guardando} style={{flex:"1 1 200px"}}>✅ Cobrar {$(totalCobro)}</Btn>
                   ) : (
                     <div style={{flex:"1 1 200px",minWidth:0}}>
                       <Btn
                         onClick={()=>{
-                          setPay("tarjeta");
+                          setConsultaPayById((prev)=>({ ...prev, [citaKey]: "tarjeta" }));
                           mpCitaRef.current = cita;
                           setMpFolio(`CONS-${cita.id}`);
                           setMpModal(true);
