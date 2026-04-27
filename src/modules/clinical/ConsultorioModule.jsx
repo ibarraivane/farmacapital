@@ -19,10 +19,7 @@ const horaVista = (h) => {
   if (!m) return s;
   return `${String(parseInt(m[1], 10)).padStart(2, "0")}:${m[2]}`;
 };
-const todayRange = () => {
-  const d=new Date(); const y=d.getFullYear(),m=d.getMonth(),dd=d.getDate();
-  return { start:new Date(y,m,dd,0,0,0).toISOString(), end:new Date(y,m,dd,23,59,59).toISOString() };
-};
+const todaySvLocal = () => new Date().toLocaleDateString("sv-SE");
 
 const mkInputStyle = (C) => ({ width:"100%", padding:"8px 11px", borderRadius:7, border:`1px solid ${C.border}`, background:C.bg, color:C.text, fontSize:12, outline:"none", boxSizing:"border-box" });
 const mkLabelStyle = (C) => ({ color:C.textMid, fontSize:10, fontWeight:700, marginBottom:3, display:"block", letterSpacing:.4 });
@@ -167,10 +164,10 @@ function ListaEspera() {
   const [historialMap, setHistorialMap] = useState({});
 
   const fetchCitas = useCallback(async () => {
-    const { start, end } = todayRange();
+    const hoy = todaySvLocal();
     const { data, error } = await supabase.from("citas").select("*")
       .in("estado",["confirmada","en_consulta","completada","pagada"])
-      .gte("fecha",start).lte("fecha",end).order("hora");
+      .eq("fecha", hoy).order("hora");
     if (!error) {
       setCitas(data||[]);
       // L1: Cargar historial de cada paciente
@@ -299,8 +296,8 @@ function EnConsulta() {
 
   const fetchActual = useCallback(async () => {
     setLoading(true);
-    const { start, end } = todayRange();
-    const { data } = await supabase.from("citas").select("*").eq("estado","en_consulta").gte("fecha",start).lte("fecha",end).limit(1);
+    const hoy = todaySvLocal();
+    const { data } = await supabase.from("citas").select("*").eq("estado","en_consulta").eq("fecha", hoy).limit(1);
     const cita = data?.[0]||null;
     setCitaActual(cita);
     if (cita) {
