@@ -26,6 +26,15 @@ const C = C_LIGHT;
 
 const WEEKDAYS_MON = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
+/** Normaliza hora DB/UI a HH:MM (ej. 09:00:00 -> 09:00). */
+function horaKey(h) {
+  const s = String(h ?? "").trim();
+  if (!s) return "";
+  const m = s.match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return s;
+  return `${String(parseInt(m[1], 10)).padStart(2, "0")}:${m[2]}`;
+}
+
 function monthRangeSv(year, month0) {
   const first = `${year}-${String(month0 + 1).padStart(2, "0")}-01`;
   const lastD = new Date(year, month0 + 1, 0).getDate();
@@ -130,7 +139,8 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
   const citaPorHora = useMemo(() => {
     const map = {};
     for (const c of citasDelDia) {
-      if (c.hora) map[c.hora] = c;
+      const hk = horaKey(c.hora);
+      if (hk) map[hk] = c;
     }
     return map;
   }, [citasDelDia]);
@@ -738,10 +748,10 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
               <div style={{ display: "grid", gap: 8 }}>
                 {citasDelDia
                   .slice()
-                  .sort((a, b) => String(a.hora).localeCompare(String(b.hora)))
+                  .sort((a, b) => horaKey(a.hora).localeCompare(horaKey(b.hora)))
                   .map((c) => (
                     <div key={c.id} style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
-                      <span style={{ fontWeight: 700 }}>{c.hora}</span>
+                      <span style={{ fontWeight: 700 }}>{horaKey(c.hora) || "—"}</span>
                       <span style={{ flex: 1, minWidth: 120 }}>{c.nombre}</span>
                       <Tag col={etiquetaEstadoVisual(c).col} sm>
                         {etiquetaEstadoVisual(c).label}

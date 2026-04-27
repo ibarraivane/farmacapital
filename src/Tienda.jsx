@@ -873,6 +873,14 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
 function Footer({setPage}){
   const C = useTheme();
   const stack = useMediaQuery("(max-width: 768px)");
+  const goSurtirReceta = () => {
+    try {
+      sessionStorage.removeItem("farmax_cat");
+      sessionStorage.removeItem("farmax_busq");
+      sessionStorage.removeItem("farmax_tipo");
+    } catch (_) { /* noop */ }
+    setPage("catalogo");
+  };
   return(
     <footer style={{background:C.dark,marginTop:48}}>
       {/* Links principales */}
@@ -903,7 +911,7 @@ function Footer({setPage}){
         <div>
           <div style={{color:C.white,fontWeight:700,fontSize:14,marginBottom:16,textTransform:"uppercase",letterSpacing:1}}>Mi consultorio</div>
           {[["📅 Agendar cita","cita"],["📋 Preguntas frecuentes","faq"],["💊 Surtir receta","catalogo"],["⭐ Mis puntos Farmax","puntos"],["👤 Mi cuenta","cuenta"]].map(([l,pg])=>(
-            <button key={l} onClick={()=>setPage(pg)} style={{display:"block",background:"none",border:"none",color:"rgba(255,255,255,.6)",fontSize:13,cursor:"pointer",marginBottom:8,textAlign:"left",padding:0,fontFamily:"'Plus Jakarta Sans',sans-serif"}}
+            <button key={l} onClick={()=> l==="💊 Surtir receta" ? goSurtirReceta() : setPage(pg)} style={{display:"block",background:"none",border:"none",color:"rgba(255,255,255,.6)",fontSize:13,cursor:"pointer",marginBottom:8,textAlign:"left",padding:0,fontFamily:"'Plus Jakarta Sans',sans-serif"}}
               onMouseEnter={e=>(e.currentTarget.style.color="rgba(255,255,255,.9)")}
               onMouseLeave={e=>(e.currentTarget.style.color="rgba(255,255,255,.6)")}>{l}</button>
           ))}
@@ -911,7 +919,7 @@ function Footer({setPage}){
         {/* Políticas */}
         <div>
           <div style={{color:C.white,fontWeight:700,fontSize:14,marginBottom:16,textTransform:"uppercase",letterSpacing:1}}>Información legal</div>
-          {[["📄 Aviso de privacidad","privacidad"],["📋 Términos y condiciones","terminos"],["📦 Política de envíos","envios"],["⭐ Programa Puntos Farmax","terminos-puntos"],["❓ Preguntas frecuentes","faq"]].map(([l,pg])=>(
+          {[["📄 Aviso de privacidad","privacidad"],["📋 Términos y condiciones","terminos"],["📦 Política de envíos","envios"],["⭐ Programa Puntos Farmax","terminos-puntos"]].map(([l,pg])=>(
             <button key={l} onClick={()=>setPage(pg)} style={{display:"block",background:"none",border:"none",color:"rgba(255,255,255,.6)",fontSize:13,cursor:"pointer",marginBottom:8,textAlign:"left",padding:0,fontFamily:"'Plus Jakarta Sans',sans-serif"}}
               onMouseEnter={e=>(e.currentTarget.style.color="rgba(255,255,255,.9)")}
               onMouseLeave={e=>(e.currentTarget.style.color="rgba(255,255,255,.6)")}>{l}</button>
@@ -1799,8 +1807,24 @@ function AgendarCita({setPage,user}){
   const [conf,setConf]=useState(false);
   const [guardando,setG]=useState(false);
   const [horasOcupadas,setHorasOcupadas]=useState([]);
+  const [draftMsg, setDraftMsg] = useState("");
   const horarios=horariosDisponibles(fecha);
   const horariosLibres=horarios.filter(h=>!horasOcupadas.includes(h));
+
+  useEffect(()=>{
+    try {
+      const raw = sessionStorage.getItem("farmax_cita_draft");
+      if (!raw) return;
+      const d = JSON.parse(raw);
+      if (d?.nombre) setNombre(String(d.nombre));
+      if (d?.tel) setTel(String(d.tel));
+      if (d?.fecha) setFecha(String(d.fecha));
+      if (d?.hora) setHora(String(d.hora));
+      if (d?.motivo) setMotivo(String(d.motivo));
+      setDraftMsg("Estamos precargando tu cita para reagendarla. Puedes ajustar fecha/hora y confirmar.");
+      sessionStorage.removeItem("farmax_cita_draft");
+    } catch (_) { /* noop */ }
+  },[]);
 
   // J5: Cargar horarios ya ocupados para la fecha seleccionada
   useEffect(()=>{
@@ -1912,6 +1936,11 @@ function AgendarCita({setPage,user}){
       {/* Formulario */}
       <div style={{background:C.white,borderRadius:16,border:`1px solid ${C.border}`,padding:"clamp(20px,4vw,32px)"}}>
         <div style={{color:C.dark,fontWeight:700,fontSize:"clamp(15px,3.8vw,16px)",marginBottom:16}}>Agendar mi cita</div>
+        {draftMsg&&(
+          <div style={{background:"#fff7ed",border:"1px solid #fdba74",borderRadius:8,padding:"10px 12px",marginBottom:12,color:"#9a3412",fontSize:12}}>
+            {draftMsg}
+          </div>
+        )}
         {user&&(<div style={{background:BRAND.primary+"10",border:`1px solid ${BRAND.primary}30`,borderRadius:8,padding:"10px 12px",marginBottom:16}}><div style={{color:BRAND.primary,fontSize:13}}>✓ Datos precargados de tu cuenta. Puedes editarlos si la cita es para otra persona.</div></div>)}
         <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:16,marginBottom:16}}>
           <div><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Nombre completo <span style={{color:"#ef4444"}}>*</span></div><Inp value={nombre} onChange={e=>setNombre(e.target.value)} placeholder="Nombre y apellido" style={{width:"100%",boxSizing:"border-box"}}/></div>
@@ -2403,6 +2432,7 @@ function Cuenta({user,setPage,setUser}){
   const [pedidos,setPeds]=useState([]);
   const [citas,setCitas]=useState([]);
   const [cargando,setC]=useState(true);
+  const [busyCitaId,setBusyCitaId]=useState(null);
   useEffect(()=>{
     if(!user?.id){setC(false);return;}
     Promise.all([
@@ -2410,6 +2440,42 @@ function Cuenta({user,setPage,setUser}){
       supabase.from("citas").select("*").eq("cliente_id",user.id).order("fecha",{ascending:false}),
     ]).then(([{data:peds},{data:cts}])=>{setPeds(peds||[]);setCitas(cts||[]);setC(false);});
   },[user]);
+  const refreshCitas = async ()=>{
+    if(!user?.id) return;
+    const { data } = await supabase.from("citas").select("*").eq("cliente_id",user.id).order("fecha",{ascending:false});
+    setCitas(data||[]);
+  };
+  const cancelarCita = async (cita)=>{
+    const tok = sessionStorage.getItem("farmax_cliente_token");
+    if (!tok) { alert("Tu sesión expiró. Inicia sesión de nuevo."); return; }
+    if (!window.confirm(`¿Cancelar la cita del ${cita.fecha} a las ${cita.hora}?`)) return;
+    setBusyCitaId(cita.id);
+    try {
+      const { data: resp, error } = await supabase.rpc("cliente_cancelar_cita", {
+        p_session_token: tok,
+        p_cita_id: cita.id,
+      });
+      if (error || !resp?.success) throw error || new Error(resp?.error || "No se pudo cancelar");
+      await refreshCitas();
+      alert("Cita cancelada.");
+    } catch (e) {
+      alert("No se pudo cancelar la cita.");
+    }
+    setBusyCitaId(null);
+  };
+  const reagendarCita = (cita)=>{
+    try {
+      sessionStorage.setItem("farmax_cita_draft", JSON.stringify({
+        id: cita.id,
+        fecha: cita.fecha || "",
+        hora: cita.hora || "",
+        motivo: cita.motivo || "",
+        nombre: user?.nombre || "",
+        tel: user?.telefono || "",
+      }));
+    } catch (_) { /* noop */ }
+    setPage("cita");
+  };
   if(!user) return(<div style={{maxWidth:500,margin:"80px auto",padding:"0 24px",textAlign:"center"}}><div style={{fontSize:48,marginBottom:16}}>👤</div><h2 style={{color:C.dark,fontSize:22,fontWeight:800,marginBottom:16}}>Inicia sesión para ver tu cuenta</h2><div style={{display:"flex",gap:12,justifyContent:"center"}}><Btn onClick={()=>setPage("login")} col={BRAND.primary}>Iniciar sesión</Btn><Btn onClick={()=>setPage("registro")} outline col={BRAND.primary}>Crear cuenta</Btn></div></div>);
   const eCol=e=>({pendiente:"#f59e0b",confirmado:BRAND.accent,entregado:BRAND.primary,cancelado:C.red}[e]||C.mid);
   return(
@@ -2447,6 +2513,14 @@ function Cuenta({user,setPage,setUser}){
             <Tag col={eCol(c.estado)} sm>{c.estado||"confirmada"}</Tag>
           </div>
           {c.motivo&&<div style={{background:C.cardDark,borderRadius:8,padding:"8px 12px",color:C.mid,fontSize:13}}>Motivo: {c.motivo}</div>}
+          {(c.estado!=="cancelada")&&(
+            <div style={{display:"flex",gap:8,marginTop:12,flexWrap:"wrap"}}>
+              <Btn sm outline col={BRAND.primary} onClick={()=>reagendarCita(c)}>Reagendar</Btn>
+              <Btn sm outline col={C.red} onClick={()=>cancelarCita(c)} disabled={busyCitaId===c.id}>
+                {busyCitaId===c.id?"Cancelando...":"Cancelar cita"}
+              </Btn>
+            </div>
+          )}
         </div>
       )))}
       {tab==="canjear"&&(

@@ -12,6 +12,13 @@ const BRAND = { primary:"#0052cc", secondary:"#0099e6", gradient:"linear-gradien
 
 const fmt     = (n) => `$${parseFloat(n||0).toFixed(2)}`;
 const fmtDate = (s) => s ? new Date(s).toLocaleDateString("es-MX",{day:"2-digit",month:"short",year:"numeric"}) : "—";
+const horaVista = (h) => {
+  const s = String(h ?? "").trim();
+  if (!s) return "—";
+  const m = s.match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return s;
+  return `${String(parseInt(m[1], 10)).padStart(2, "0")}:${m[2]}`;
+};
 const todayRange = () => {
   const d=new Date(); const y=d.getFullYear(),m=d.getMonth(),dd=d.getDate();
   return { start:new Date(y,m,dd,0,0,0).toISOString(), end:new Date(y,m,dd,23,59,59).toISOString() };
@@ -232,7 +239,7 @@ function ListaEspera() {
                 const s = estadoInfo(c.estado);
                 return (
                   <tr key={c.id||i} style={{background:i%2===0?"transparent":C.card+"60"}}>
-                    <td style={{padding:"10px 14px",color:C.text,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{c.hora||"—"}</td>
+                    <td style={{padding:"10px 14px",color:C.text,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{horaVista(c.hora)}</td>
                     <td style={{padding:"10px 14px",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>
                       {c.nombre||c.paciente||"—"}
                       {historialMap[c.telefono]&&<span style={{marginLeft:6,fontSize:9,background:C.blueDim,color:C.blue,borderRadius:4,padding:"1px 5px",fontWeight:700}}>{historialMap[c.telefono].count} visita{historialMap[c.telefono].count>1?"s":""}</span>}
@@ -390,7 +397,7 @@ function EnConsulta() {
     <div class="field"><label>Paciente</label><p>${citaActual.nombre||"—"}</p></div>
     <div class="field"><label>Teléfono</label><p>${citaActual.telefono||"—"}</p></div>
     <div class="field"><label>Fecha consulta</label><p>${citaActual.fecha||new Date().toLocaleDateString("es-MX")}</p></div>
-    <div class="field"><label>Hora</label><p>${citaActual.hora||"—"}</p></div>
+    <div class="field"><label>Hora</label><p>${horaVista(citaActual.hora)}</p></div>
     <div class="field" style="grid-column:1/-1"><label>Motivo de consulta</label><p>${citaActual.motivo||"Consulta general"}</p></div>
   </div>
 
