@@ -9,6 +9,7 @@ import { showToast } from "./ui";
 import OnboardingTour from "./components/OnboardingTour";
 import { idEmpleadoUsuarios } from "./utils/usuarioId";
 import ImageUploader from "./components/ImageUploader";
+import { productoEsCategoriaMinisuperTienda } from "./utils/tiendaFarmaciaCatalogo";
 
 const leerSesion = () => {
   try {
@@ -22,7 +23,7 @@ const BRAND = { primary:"#0052cc", secondary:"#0099e6", gradient:"linear-gradien
 const CATEGORIAS = [
   "Analgésico","Antiinflamatorio","Antibiótico","Gastro","Diabetes",
   "Hipertensión","Alergia","Vitaminas","Hidratación","Cardiovascular",
-  "Respiratorio","Botiquín","Higiene","Bebidas","Básicos","Cuidado personal","Otro",
+  "Respiratorio","Botiquín","Higiene","Bebidas","Básicos","Abarrotes","Cuidado personal","Otro",
 ];
 const EMPTY = {
   nombre:"", sku:"", codigo_barras:"", categoria:"Otro", precio:"", costo:"", venta_unidad:false, unidades_por_caja:"", precio_unidad:"", stock_unidades:"",
@@ -112,7 +113,11 @@ const parsearCSV = (texto) => {
   return {ok:rows.length>0, msg:errores.length?`${errores.length} filas con error: ${errores.slice(0,3).join(", ")}`:null, rows};
 };
 
-const exportarCSV = (productos) => {
+const exportarCSV = (productos, slugSuffix) => {
+  if (!productos?.length) {
+    showToast("No hay filas para exportar con los filtros actuales.", "info");
+    return;
+  }
   const headers = ["SKU","Nombre","Categoría","Tipo","Stock","Stock Mín","Precio Venta","Costo","Margen%","Caducidad","Proveedor","Descuento%","Estado"];
   const rows = productos.map(p => [
     p.sku||"", p.nombre, p.categoria, p.tipo, p.stock, p.stock_minimo??0,
@@ -124,7 +129,8 @@ const exportarCSV = (productos) => {
   const blob = new Blob([csv], { type:"text/csv;charset=utf-8;" });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement("a");
-  a.href = url; a.download = `inventario_farmax_${new Date().toISOString().slice(0,10)}.csv`;
+  const mid = slugSuffix ? `_${slugSuffix}` : "";
+  a.href = url; a.download = `inventario_farmax${mid}_${new Date().toISOString().slice(0,10)}.csv`;
   a.click(); URL.revokeObjectURL(url);
 };
 
@@ -981,8 +987,11 @@ export default function InventarioModule() {
             {isMobileInv ? "🖼️ Masivo" : "🖼️ Cargar fotos masivo"}
           </button>
           <button style={btnOutline} onClick={descargarPlantilla}>📋 Plantilla</button>
-          <button style={btnOutline} onClick={()=>exportarCSV(filtrados)}>
-            {isMobileInv ? "⬇ Exportar" : "⬇ Exportar CSV"}
+          <button style={btnOutline} onClick={()=>exportarCSV(filtradosTodosInv)}>
+            {isMobileInv ? "⬇ CSV todo" : "⬇ Exportar CSV (todo)"}
+          </button>
+          <button style={btnOutline} onClick={()=>exportarCSV(filtradosTodosInv.filter((p)=>!productoEsCategoriaMinisuperTienda(p)), "farmacia")}>
+            {isMobileInv ? "⬇ CSV farmacia" : "⬇ Exportar CSV solo farmacia"}
           </button>
         </div>
       </div>

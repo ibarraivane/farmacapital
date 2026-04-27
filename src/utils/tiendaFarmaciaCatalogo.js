@@ -8,14 +8,25 @@ import { productoPermitidoEnTiendaWeb } from "./orderChannels";
 export const CATEGORIAS_MINISUPER_EXCLUIDAS_TIENDA_FARMACIA = Object.freeze([
   "Bebidas",
   "Básicos",
+  "Abarrotes",
 ]);
 
-const SET_MINISUPER = new Set(CATEGORIAS_MINISUPER_EXCLUIDAS_TIENDA_FARMACIA);
+/** Normaliza categoría para comparar (tilde, mayúsculas, espacios). */
+function normalizeCategoriaKey(s) {
+  return String(s ?? "")
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+const SET_MINISUPER_NORM = new Set(
+  CATEGORIAS_MINISUPER_EXCLUIDAS_TIENDA_FARMACIA.map(normalizeCategoriaKey)
+);
 
 /** True si el producto se considera línea minisuper y se oculta en la tienda farmacia. */
 export function productoEsCategoriaMinisuperTienda(p) {
-  const c = String(p?.categoria ?? "").trim();
-  return SET_MINISUPER.has(c);
+  return SET_MINISUPER_NORM.has(normalizeCategoriaKey(p?.categoria));
 }
 
 /** Misma regla que tienda web, pero sin artículos de categoría minisuper (hasta app dedicada). */
