@@ -114,6 +114,42 @@ export function tiendaProductMatchesBusqueda(product, queryRaw) {
 }
 
 /**
+ * Relevancia para ordenar resultados del catálogo (menor = mejor).
+ * Prioriza nombre y principio activo sobre descripción o coincidencia solo difusa.
+ */
+export function tiendaSearchRelevanceRank(product, queryRaw) {
+  const raw = String(queryRaw ?? "").trim();
+  if (!raw) return 0;
+  const values = TIENDA_GETTERS.map((fn) => fn(product)).filter((v) => v != null && String(v).trim() !== "");
+  const bySubstring = someFieldIncludesNormalizedQuery(values, raw);
+  const qn = normalizeForSearch(raw);
+  if (!qn) return 40;
+  const tokens = qn.split(/\s+/).filter(Boolean);
+  const n = normalizeForSearch(product.nombre || "");
+  const pa = normalizeForSearch(product.principio_activo || "");
+  const d = normalizeForSearch(product.descripcion || "");
+  const sku = normalizeForSearch(String(product.sku ?? ""));
+  const cb = normalizeForSearch(String(product.codigo_barras ?? ""));
+  const marca = normalizeForSearch(String(product.marca ?? ""));
+  const cat = normalizeForSearch(product.categoria || "");
+  const everyIn = (hay) => tokens.length > 0 && tokens.every((t) => hay.includes(t));
+
+  if (n.includes(qn)) return 0;
+  if (everyIn(n)) return 2;
+  if (pa.includes(qn)) return 1;
+  if (everyIn(pa)) return 3;
+  if (sku === qn || cb === qn) return 0;
+  if (qn.length >= 2 && (sku.startsWith(qn) || cb.startsWith(qn))) return 4;
+  if (bySubstring) {
+    if (everyIn(d)) return 12;
+    if (everyIn(marca)) return 14;
+    if (everyIn(cat)) return 16;
+    return 20;
+  }
+  return 60;
+}
+
+/**
  * Sugerencias para el buscador de la tienda (nombre, SKU, código de barras).
  * Orden: coincidencia exacta/prefijo en SKU y código, luego resto que pase el matcher.
  */
@@ -122,6 +158,7 @@ export function tiendaCatalogSearchSuggestions(products, queryRaw, { limit = 8 }
   if (q.length < 2 || !products?.length) return [];
   const qn = normalizeForSearch(q);
   if (!qn) return [];
+  const qTokens = qn.split(/\s+/).filter(Boolean);
   const out = [];
   for (const p of products) {
     if (!p || p.activo === false) continue;
@@ -137,8 +174,16 @@ export function tiendaCatalogSearchSuggestions(products, queryRaw, { limit = 8 }
     else if (cb && cb.startsWith(qn)) rank = 1;
     else if (sku && sku.includes(qn)) rank = 3;
     else if (cb && cb.includes(qn)) rank = 3;
-    else if (tiendaProductMatchesBusqueda(p, q)) rank = 6;
-    else continue;
+    const nn = normalizeForSearch(p.nombre || "");
+    const ptn = normalizeForSearch(p.principio_activo || "");
+    if (nn.includes(qn)) rank = Math.min(rank, 2);
+    if (qTokens.length && qTokens.every((t) => nn.includes(t))) rank = Math.min(rank, 5);
+    if (ptn.includes(qn)) rank = Math.min(rank, 4);
+    if (qTokens.length && qTokens.every((t) => ptn.includes(t))) rank = Math.min(rank, 6);
+    if (rank === 100) {
+      if (!tiendaProductMatchesBusqueda(p, q)) continue;
+      rank = 8;
+    }
     out.push({
       id: p.id,
       nombre: p.nombre || "",

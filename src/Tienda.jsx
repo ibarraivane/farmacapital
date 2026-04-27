@@ -3,7 +3,7 @@ import { supabase } from "./supabase";
 import { useTheme } from "./themeContext";
 import { useMediaQuery } from "./hooks/useMediaQuery";
 import { saludoUsuario, primerNombre, $, normalizarSesionLoginResp, nombreCompletoPacienteValido, telefonoMxValido, soloDigitosTel } from "./utils";
-import { tiendaProductMatchesBusqueda, spellSuggestFromProducts, tiendaCatalogSearchSuggestions } from "./utils/fuzzySearch";
+import { tiendaProductMatchesBusqueda, spellSuggestFromProducts, tiendaCatalogSearchSuggestions, tiendaSearchRelevanceRank } from "./utils/fuzzySearch";
 import { CONSULTA_PRECIO_DEFAULT } from "./utils/consultaConstants";
 import { fetchPrecioConsultaConfig } from "./utils/consumiblesConsultorio";
 import {
@@ -205,6 +205,7 @@ function PopupBienvenida({onClose,setPage,precioConsulta}){
 function HeroCarousel({setPage, items, precioConsulta, stack, useStaticPlaceholder=true}){
   const C = useTheme();
   const [idx,setIdx]=useState(0);
+  const [pauseAuto,setPauseAuto]=useState(false);
   const banners = items.length
     ? items
     : useStaticPlaceholder
@@ -219,41 +220,86 @@ function HeroCarousel({setPage, items, precioConsulta, stack, useStaticPlacehold
     : [];
   useEffect(()=>{ setIdx(0); },[banners.length]);
   useEffect(()=>{
-    if(banners.length<=1) return undefined;
+    if(banners.length<=1||pauseAuto) return undefined;
     const t=setInterval(()=>setIdx(i=>(i+1)%banners.length),4000);
     return ()=>clearInterval(t);
-  },[banners.length]);
+  },[banners.length,pauseAuto]);
   if (banners.length===0) return null;
   const b=banners[idx]||BANNERS[0];
   const heroImg = bannerVisualUrl(b, stack);
   const heroHasImg = !!heroImg;
+  /** Altura mínima del carrusel con foto: sin esto el bloque solo crece con el texto y cover recorta mal. */
+  const heroMinH = heroHasImg ? "clamp(240px, 44vw, 480px)" : undefined;
   return(
     <div style={{position:"relative",overflow:"hidden"}}>
+      {heroHasImg && (
+        <>
+          <img
+            src={heroImg}
+            alt=""
+            decoding="async"
+            style={{
+              position:"absolute",
+              inset:0,
+              width:"100%",
+              height:"100%",
+              objectFit:"cover",
+              objectPosition:"center center",
+            }}
+          />
+          <div
+            aria-hidden
+            style={{
+              position:"absolute",
+              inset:0,
+              background:"linear-gradient(rgba(0,24,48,.55),rgba(0,24,48,.72))",
+            }}
+          />
+        </>
+      )}
       <div style={{
-        ...(heroHasImg ? {
-          backgroundImage:`linear-gradient(rgba(0,24,48,.58),rgba(0,24,48,.72)), url(${heroImg})`,
-          backgroundSize:"cover",
-          backgroundPosition:"center",
-        }:{ background:b.bg }),
-        padding:"clamp(28px,8vw,48px) 16px",textAlign:"center",transition:"background .5s, background-image .5s",
+        position:"relative",
+        zIndex:1,
+        padding:"clamp(28px,8vw,48px) 16px",
+        textAlign:"center",
+        minHeight:heroMinH,
+        display:heroHasImg?"flex":"block",
+        alignItems:heroHasImg?"center":undefined,
+        justifyContent:heroHasImg?"center":undefined,
+        background:heroHasImg?"transparent":b.bg,
+        transition:"background .35s",
       }}>
-        <div style={{maxWidth:700,margin:"0 auto"}}>
+        <div style={{maxWidth:700,margin:"0 auto",width:"100%"}}>
           {!heroHasImg&&!!(b.emoji&&String(b.emoji).trim())&&<div style={{fontSize:"clamp(40px, 12vw, 52px)",marginBottom:12}}>{b.emoji}</div>}
           <div style={{color:"rgba(255,255,255,.8)",fontSize:"clamp(11px, 3vw, 13px)",letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>{b.subtitulo}</div>
           <h2 style={{color:C.white,fontSize:"clamp(22px, 6vw, 32px)",fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif",marginBottom:12,lineHeight:1.2}}>{b.titulo}</h2>
           <p style={{color:"rgba(255,255,255,.85)",fontSize:"clamp(14px, 3.5vw, 15px)",marginBottom:24,lineHeight:1.6}}>{b.descripcion}</p>
-          <Btn onClick={()=>setPage(b.pagina)} style={{background:C.white,color:BRAND.primary,border:"none"}}>{b.cta}</Btn>
+          <span
+            onMouseEnter={()=>setPauseAuto(true)}
+            onMouseLeave={()=>setPauseAuto(false)}
+            style={{display:"inline-block"}}
+          >
+            <Btn onClick={()=>setPage(b.pagina)} style={{background:C.white,color:BRAND.primary,border:"none"}}>{b.cta}</Btn>
+          </span>
         </div>
       </div>
       {banners.length>1&&(
       <>
-      <div style={{position:"absolute",bottom:12,left:"50%",transform:"translateX(-50%)",display:"flex",gap:6}}>
+      <div
+        onMouseEnter={()=>setPauseAuto(true)}
+        onMouseLeave={()=>setPauseAuto(false)}
+        style={{position:"absolute",bottom:12,left:"50%",transform:"translateX(-50%)",display:"flex",gap:6}}
+      >
         {banners.map((_,i)=>(
           <button key={i} type="button" aria-label={`Banner ${i+1}`} onClick={()=>setIdx(i)} style={{width:i===idx?24:8,height:8,borderRadius:4,border:"none",background:i===idx?"rgba(255,255,255,.9)":"rgba(255,255,255,.4)",cursor:"pointer",transition:"all .3s",padding:0}}/>
         ))}
       </div>
       {[[-1,"←"],[1,"→"]].map(([d,icon])=>(
         <button key={d} type="button" onClick={()=>setIdx(i=>(i+d+banners.length)%banners.length)}
+          onMouseEnter={()=>setPauseAuto(true)}
+          onMouseLeave={()=>setPauseAuto(false)}
+          onFocus={()=>setPauseAuto(true)}
+          onBlur={()=>setPauseAuto(false)}
           style={{position:"absolute",top:"50%",transform:"translateY(-50%)",...( d===-1?{left:16}:{right:16}),background:"rgba(255,255,255,.2)",border:"none",color:C.white,width:36,height:36,borderRadius:"50%",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center"}}>
           {icon}
         </button>
@@ -280,20 +326,25 @@ function HomeBannersStrip({setPage, items}){
             type="button"
             onClick={()=>setPage(b.pagina)}
             style={{
+              position:"relative",
+              overflow:"hidden",
               flex:"1 1 min(100%,280px)",maxWidth:420,minWidth:0,width:"100%",textAlign:"left",cursor:"pointer",border:"none",borderRadius:14,
-              ...(u ? {
-                backgroundImage:`linear-gradient(90deg,rgba(0,0,0,.45),rgba(0,0,0,.25)), url(${u})`,
-                backgroundSize:"cover",
-                backgroundPosition:"center",
-              }:{ background:b.bg }),
+              minHeight:u?118:undefined,
+              background:u?"#0f172a":b.bg,
               color:"#fff",padding:"16px 18px",boxShadow:"0 4px 20px rgba(0,82,204,.12)",
               display:"flex",alignItems:"center",gap:14,transition:"transform .15s, box-shadow .15s",
             }}
             onMouseEnter={e=>{ e.currentTarget.style.transform="translateY(-2px)"; e.currentTarget.style.boxShadow="0 8px 28px rgba(0,82,204,.2)"; }}
             onMouseLeave={e=>{ e.currentTarget.style.transform="none"; e.currentTarget.style.boxShadow="0 4px 20px rgba(0,82,204,.12)"; }}
           >
+            {u&&(
+              <>
+                <img src={u} alt="" decoding="async" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",objectPosition:"center center"}} />
+                <div aria-hidden style={{position:"absolute",inset:0,background:"linear-gradient(90deg,rgba(0,0,0,.5),rgba(0,0,0,.22))"}} />
+              </>
+            )}
             {!u&&!!(b.emoji&&String(b.emoji).trim())&&<span style={{fontSize:36,flexShrink:0}}>{b.emoji}</span>}
-            <div style={{flex:1,minWidth:0}}>
+            <div style={{flex:1,minWidth:0,position:"relative",zIndex:1}}>
               <div style={{fontWeight:800,fontSize:"clamp(14px,3.5vw,16px)",lineHeight:1.25,marginBottom:4}}>{b.titulo}</div>
               <div style={{fontSize:12,opacity:.9,lineHeight:1.35}}>{b.subtitulo||b.descripcion?.slice(0,80)}{(b.descripcion?.length>80?"…":"")}</div>
               <div style={{fontSize:11,fontWeight:700,marginTop:8,opacity:.95}}>{b.cta} →</div>
@@ -324,25 +375,30 @@ function HomeBannersTiles({setPage, items, stack}){
             type="button"
             onClick={()=>setPage(b.pagina)}
             style={{
+              position:"relative",
+              overflow:"hidden",
               textAlign:"left",cursor:"pointer",border:`1px solid ${C.border}`,borderRadius:14,
-              ...(u ? {
-                backgroundImage:`linear-gradient(180deg,rgba(0,0,0,.5),rgba(0,0,0,.35)), url(${u})`,
-                backgroundSize:"cover",
-                backgroundPosition:"center",
-              }:{ background:b.bg }),
-              color:"#fff",padding:16,minHeight:120,
+              background:u?"#0f172a":b.bg,
+              color:"#fff",padding:16,minHeight:u?148:120,
+              aspectRatio:u?"4 / 3":undefined,
               display:"flex",flexDirection:"column",justifyContent:"space-between",gap:8,
               boxShadow:"0 2px 12px rgba(0,0,0,.06)",transition:"transform .15s",
             }}
             onMouseEnter={e=>{ e.currentTarget.style.transform="translateY(-2px)"; }}
             onMouseLeave={e=>{ e.currentTarget.style.transform="none"; }}
           >
-            {!u&&!!(b.emoji&&String(b.emoji).trim())&&<span style={{fontSize:28}}>{b.emoji}</span>}
-            <div>
+            {u&&(
+              <>
+                <img src={u} alt="" decoding="async" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",objectPosition:"center center"}} />
+                <div aria-hidden style={{position:"absolute",inset:0,background:"linear-gradient(180deg,rgba(0,0,0,.52),rgba(0,0,0,.32))"}} />
+              </>
+            )}
+            {!u&&!!(b.emoji&&String(b.emoji).trim())&&<span style={{fontSize:28,position:"relative",zIndex:1}}>{b.emoji}</span>}
+            <div style={{position:"relative",zIndex:1}}>
               <div style={{fontWeight:800,fontSize:14,lineHeight:1.25}}>{b.titulo}</div>
               {b.subtitulo&&<div style={{fontSize:11,opacity:.9,marginTop:4,lineHeight:1.3}}>{b.subtitulo}</div>}
             </div>
-            <div style={{fontSize:11,fontWeight:700}}>{b.cta} →</div>
+            <div style={{fontSize:11,fontWeight:700,position:"relative",zIndex:1}}>{b.cta} →</div>
           </button>
         );})}
       </div>
@@ -666,6 +722,18 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
   const [promos, setPromos] = useState([]);
   const [bannerZones, setBannerZones] = useState({hero:[], strip:[], tile:[]});
   const [bannerMeta, setBannerMeta] = useState({ status: "loading", total: 0 });
+  const [heroBusqFocus, setHeroBusqFocus] = useState(false);
+  const poolHeroStock = useMemo(
+    () => productos.filter((p) => p.activo !== false),
+    [productos]
+  );
+  const heroSuggestions = useMemo(
+    () =>
+      heroBusqFocus && busqHero.trim().length >= 2
+        ? tiendaCatalogSearchSuggestions(poolHeroStock, busqHero, { limit: 8 })
+        : [],
+    [poolHeroStock, busqHero, heroBusqFocus]
+  );
 
   useEffect(()=>{
     const hoy = new Date().toISOString().split("T")[0];
@@ -730,18 +798,71 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
 
       {/* Barra búsqueda */}
       <div style={{background:`linear-gradient(180deg,${BRAND.primary}10,transparent)`,padding:"24px 16px"}}>
-        <div style={{maxWidth:600,margin:"0 auto",position:"relative"}}>
-          <input value={busqHero} onChange={e=>setBusqHero(e.target.value)}
-            onKeyDown={e=>{
+        <div style={{maxWidth:600,margin:"0 auto",position:"relative",zIndex:30}}>
+          <input
+            value={busqHero}
+            onChange={(e)=>setBusqHero(e.target.value)}
+            onFocus={()=>setHeroBusqFocus(true)}
+            onBlur={()=>setTimeout(()=>setHeroBusqFocus(false),280)}
+            onKeyDown={(e)=>{
               if(e.key==="Enter"&&busqHero.trim()){
-                try{ const p=JSON.parse(localStorage.getItem("farmax_busqs")||"[]"); localStorage.setItem("farmax_busqs",JSON.stringify([busqHero.trim(),...p.filter(b=>b!==busqHero.trim())].slice(0,5))); }catch(e){}
+                try{
+                  const t=busqHero.trim();
+                  sessionStorage.setItem("farmax_busq",t);
+                  const p=JSON.parse(localStorage.getItem("farmax_busqs")||"[]");
+                  localStorage.setItem("farmax_busqs",JSON.stringify([t,...p.filter(b=>b!==t)].slice(0,5)));
+                }catch(err){}
                 setPage("catalogo");
               }
             }}
             placeholder="🔍 Nombre, principio activo, SKU o código de barras…"
-            style={{width:"100%",boxSizing:"border-box",padding:"16px 56px 16px 20px",borderRadius:30,border:`2px solid ${BRAND.primary}30`,fontSize:15,fontFamily:"'Plus Jakarta Sans',sans-serif",outline:"none",background:C.white,boxShadow:"0 4px 20px rgba(0,82,204,.1)"}}/>
-          <button type="button" onClick={()=>busqHero.trim()&&setPage("catalogo")}
-            style={{position:"absolute",right:6,top:"50%",transform:"translateY(-50%)",background:BRAND.gradient,border:"none",borderRadius:24,width:44,height:44,cursor:"pointer",color:C.white,fontSize:18,display:"flex",alignItems:"center",justifyContent:"center"}}>→</button>
+            autoComplete="off"
+            style={{width:"100%",boxSizing:"border-box",padding:"16px 56px 16px 20px",borderRadius:30,border:`2px solid ${BRAND.primary}30`,fontSize:15,fontFamily:"'Plus Jakarta Sans',sans-serif",outline:"none",background:C.white,boxShadow:"0 4px 20px rgba(0,82,204,.1)"}}
+          />
+          <button
+            type="button"
+            onClick={()=>{
+              const t=busqHero.trim();
+              if(!t)return;
+              try{sessionStorage.setItem("farmax_busq",t);}catch(e){}
+              setPage("catalogo");
+            }}
+            style={{position:"absolute",right:6,top:"50%",transform:"translateY(-50%)",background:BRAND.gradient,border:"none",borderRadius:24,width:44,height:44,cursor:"pointer",color:C.white,fontSize:18,display:"flex",alignItems:"center",justifyContent:"center"}}
+          >→</button>
+          {heroSuggestions.length>0&&(
+            <div role="listbox" aria-label="Sugerencias de búsqueda" style={{
+              position:"absolute",left:0,right:0,top:"calc(100% + 6px)",
+              background:C.white,border:`1px solid ${C.border}`,borderRadius:14,
+              boxShadow:"0 16px 48px rgba(15,23,42,.14)",maxHeight:stack?260:300,overflowY:"auto",
+            }}>
+              {heroSuggestions.map((s)=>{
+                const row=productos.find((x)=>x.id===s.id);
+                return(
+                  <button
+                    key={s.id}
+                    type="button"
+                    role="option"
+                    onMouseDown={(e)=>e.preventDefault()}
+                    onClick={()=>{
+                      if(row){ setProdDetalle(row); setPage("detalle"); }
+                      setHeroBusqFocus(false);
+                    }}
+                    style={{
+                      display:"block",width:"100%",textAlign:"left",padding:"10px 14px",border:"none",
+                      borderBottom:`1px solid ${C.border}`,background:"transparent",cursor:"pointer",
+                      fontFamily:"'Plus Jakarta Sans',sans-serif",
+                    }}
+                  >
+                    <div style={{color:C.dark,fontWeight:700,fontSize:13,lineHeight:1.35}}>{s.nombre}</div>
+                    <div style={{color:C.dim,fontSize:11,marginTop:3,display:"flex",flexWrap:"wrap",gap:8}}>
+                      {s.sku?<span>SKU <strong style={{color:BRAND.primary}}>{s.sku}</strong></span>:null}
+                      {Number(s.stock)<=0?<span style={{color:C.red}}>Agotado</span>:null}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
@@ -857,7 +978,7 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
 }
 
 // ── CATÁLOGO ──────────────────────────────────────────────────
-function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero}){
+function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHero}){
   const C = useTheme();
   const stack = useMediaQuery("(max-width: 768px)");
   const [cat,setCat]=useState(()=>sessionStorage.getItem("farmax_cat")||"Todos");
@@ -886,10 +1007,17 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero}){
     .filter(p=>!precioMin||parseFloat(p.precio)>=parseFloat(precioMin))
     .filter(p=>!precioMax||parseFloat(p.precio)<=parseFloat(precioMax)),
   [productos,verAgotados,cat,tipo,precioMin,precioMax]);
-  const fil = useMemo(
-    ()=>basePool.filter(p=>tiendaProductMatchesBusqueda(p,busq)),
-    [basePool,busq]
-  );
+  const fil = useMemo(()=>{
+    const q = busq.trim();
+    const arr = basePool.filter((p)=>tiendaProductMatchesBusqueda(p, busq));
+    if (!q) return arr;
+    return [...arr].sort((a, b)=>{
+      const ra = tiendaSearchRelevanceRank(a, busq);
+      const rb = tiendaSearchRelevanceRank(b, busq);
+      if (ra !== rb) return ra - rb;
+      return String(a.nombre || "").localeCompare(String(b.nombre || ""), "es", { sensitivity: "base" });
+    });
+  }, [basePool, busq]);
   const poolSoloStock = useMemo(
     ()=>productos.filter(p=>p.activo!==false&&(verAgotados||Number(p.stock)>0)),
     [productos,verAgotados]
@@ -916,13 +1044,20 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero}){
       <h1 style={{color:C.dark,fontSize:"clamp(22px,5vw,28px)",fontWeight:800,marginBottom:6}}>Catálogo Farmax</h1>
       <div style={{color:C.dim,fontSize:14,marginBottom:24}}>{fil.length} productos disponibles</div>
       <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:20,marginBottom:20}}>
-        <div style={{position:"relative",marginBottom:16,zIndex:5}}>
+        <div style={{position:"relative",marginBottom:16,zIndex:25}}>
         <Inp
           value={busq}
-          onChange={e=>setBusq(e.target.value)}
+          onChange={(e)=>{
+            const v = e.target.value;
+            setBusq(v);
+            setBusqHero?.(v);
+            try {
+              if (v.trim()) sessionStorage.setItem("farmax_busq", v);
+            } catch (err) { /* ignore */ }
+          }}
           onFocus={()=>setBusqFocus(true)}
-          onBlur={()=>setTimeout(()=>setBusqFocus(false),200)}
-          placeholder="🔍 Nombre, marca, SKU o código de barras…"
+          onBlur={()=>setTimeout(()=>setBusqFocus(false),280)}
+          placeholder="🔍 Nombre, principio activo, marca, SKU o código…"
           style={{width:"100%",boxSizing:"border-box",fontSize:15,marginBottom:0}}
         />
         {suggestions.length>0&&(
@@ -2074,7 +2209,7 @@ export default function TiendaFarmax(){
 
   const pages={
     home:          <Home setPage={setPage} addToCart={addToCart} productos={productos} setProdDetalle={setProdD} busqHero={busqHero} setBusqHero={setBusqHero} precioConsulta={precioConsultaCfg}/>,
-    catalogo:      <Catalogo addToCart={addToCart} productos={productos} setProdDetalle={setProdD} setPage={setPage} busqHero={busqHero}/>,
+    catalogo:      <Catalogo addToCart={addToCart} productos={productos} setProdDetalle={setProdD} setPage={setPage} busqHero={busqHero} setBusqHero={setBusqHero}/>,
     promo:         <PromocionesPage setPage={setPage}/>,
     detalle:       <DetalleProducto prod={prodDetalle} productos={productos} addToCart={addToCart} setPage={setPage} setProdDetalle={setProdD}/>,
     carrito:       <Carrito cart={cart} setCart={setCart} setPage={setPage} setEntregaGlobal={setEntregaCheckout}/>,
