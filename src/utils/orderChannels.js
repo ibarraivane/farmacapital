@@ -115,7 +115,14 @@ export function validarCarritoParaEntrega(cart, entregaUi, productRowById, optio
       ? options.razonNoPermitidoTienda
       : () => "No disponible en tienda en línea (receta, controlado u oculto).";
   const bloqueados = [];
-  const map = productRowById instanceof Map ? (id) => productRowById.get(id) : (id) => productRowById?.[id];
+  const normId = (id) => {
+    const n = typeof id === "number" && Number.isFinite(id) ? id : parseInt(String(id), 10);
+    return Number.isFinite(n) ? n : id;
+  };
+  const map =
+    productRowById instanceof Map
+      ? (id) => productRowById.get(normId(id))
+      : (id) => productRowById?.[normId(id)];
   for (const item of cart || []) {
     const row = map?.(item.id);
     if (!row) continue;

@@ -15,6 +15,7 @@ import {
   razonBloqueoProductoTiendaFarmacia,
   productoEsCategoriaMinisuperTienda,
 } from "./utils/tiendaFarmaciaCatalogo";
+import { showToast } from "./ui";
 
 // ═══════════════════════════════════════════════════════════════
 // FARMAX — Tienda en Línea v4
@@ -30,6 +31,32 @@ const C = {
   border:"#e2e8f0", dark:"#0f172a", mid:"#475569",
   dim:"#94a3b8", white:"#ffffff", red:"#ef4444",
 };
+
+/** Id estable para Maps y RPC (PostgREST a veces mezcla string/bigint). */
+function tiendaNormProductId(id) {
+  const n = typeof id === "number" && Number.isFinite(id) ? id : parseInt(String(id), 10);
+  return Number.isFinite(n) ? n : id;
+}
+
+/** Suma cantidad_actual de lotes activos por producto_id. */
+function tiendaSumLotesByProduct(lotesRows) {
+  const m = new Map();
+  for (const row of lotesRows || []) {
+    if (row?.activo === false) continue;
+    const pid = tiendaNormProductId(row.producto_id);
+    const add = Number(row.cantidad_actual) || 0;
+    if (add <= 0) continue;
+    m.set(pid, (m.get(pid) || 0) + add);
+  }
+  return m;
+}
+
+/** Stock vendible: max(columna productos.stock, suma lotes) por si el trigger no sincronizó. */
+function tiendaEffectiveStockFromDb(dbp, sumLotesMap) {
+  const col = Number(dbp?.stock) || 0;
+  const fromLotes = sumLotesMap.get(tiendaNormProductId(dbp.id)) || 0;
+  return Math.max(col, fromLotes);
+}
 
 // ── CONTACTO (descomentar cuando tengas número) ───────────────
 const CONTACTO = {
@@ -1493,7 +1520,7 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
 }
 
 // ── CHECKOUT ──────────────────────────────────────────────────
-function Checkout({cart,setCart,setPage,user,entrega="pickup"}){
+function Checkout({cart,setCart,setPage,user,entrega="pickup",catalogoProductos=[]}){
   const C = useTheme();
   const stack = useMediaQuery("(max-width: 768px)");
   const [step,setStep]=useState(1);
@@ -1504,6 +1531,71 @@ function Checkout({cart,setCart,setPage,user,entrega="pickup"}){
   const [guardando,setG]=useState(false);
   const sub=cart.reduce((a,c)=>a+(Number(c.precio)||0)*(Number(c.qty)||0),0);
   const ptsG=Math.floor(sub/10);
+
+  const catalogoById = useMemo(() => {
+    const m = new Map();
+    for (const p of catalogoProductos || []) {
+      m.set(tiendaNormProductId(p.id), p);
+    }
+    return m;
+  }, [catalogoProductos]);
+
+  useEffect(() => {
+    if (!catalogoById.size || !cart.length) return;
+    setCart((prev) => {
+      const next = [];
+      const msgs = [];
+      let changed = false;
+      for (const line of prev) {
+        const id = tiendaNormProductId(line.id);
+        const live = catalogoById.get(id);
+        if (!live) {
+          msgs.push(`"${line.nombre}" ya no está en catálogo.`);
+          changed = true;
+          continue;
+        }
+        if (!live.activo) {
+          msgs.push(`"${line.nombre}" ya no está disponible.`);
+          changed = true;
+          continue;
+        }
+        const stCol = Number(live.stock) || 0;
+        const want = Number(line.qty) || 0;
+        let qty = want;
+        if (stCol > 0) {
+          qty = Math.min(want, stCol);
+          if (qty <= 0) {
+            changed = true;
+            continue;
+          }
+          if (qty < want) {
+            msgs.push(`"${line.nombre}": cantidad ${want} → ${qty}.`);
+            changed = true;
+          }
+        } else if (want <= 0) {
+          changed = true;
+          continue;
+        }
+        const precio = Number(live.precio) || Number(line.precio) || 0;
+        if (precio !== Number(line.precio)) changed = true;
+        next.push({
+          ...line,
+          id,
+          qty,
+          stock: stCol > 0 ? stCol : Number(line.stock) || 0,
+          precio,
+          activo: live.activo,
+        });
+      }
+      if (!changed) return prev;
+      if (msgs.length) showToast(msgs.slice(0, 4).join(" ") + (msgs.length > 4 ? "…" : ""), "warning");
+      if (next.length === 0 && prev.length > 0) {
+        showToast("Tu carrito quedó vacío. Volvé al catálogo.", "info");
+      }
+      return next;
+    });
+  }, [catalogoById, setCart, cart.length]);
+
   const confirmar=async()=>{
     if (!cart.length) return;
     const invalidItems = cart.filter(c => !Number.isFinite(Number(c.precio)) || Number(c.precio) <= 0 || !Number.isFinite(Number(c.qty)) || Number(c.qty) <= 0);
@@ -1513,18 +1605,38 @@ function Checkout({cart,setCart,setPage,user,entrega="pickup"}){
     }
     setG(true);
     try{
-      const productIds = cart.map(c=>c.id);
-      const { data: stockRows } = await supabase
-        .from("productos")
-        .select("id,stock,precio,activo,requiere_receta,controlado,visible_tienda,delivery_allowed,categoria")
-        .in("id", productIds);
-      const stockMap = new Map((stockRows||[]).map(p=>[p.id,p]));
-      const outOfStock = cart.find(c => {
-        const dbp = stockMap.get(c.id);
-        return !dbp || !dbp.activo || Number(dbp.stock||0) < Number(c.qty||0);
+      const productIds = [...new Set(cart.map(c => tiendaNormProductId(c.id)))];
+      const [{ data: stockRows }, { data: lotesRows }] = await Promise.all([
+        supabase
+          .from("productos")
+          .select("id,stock,precio,activo,requiere_receta,controlado,visible_tienda,delivery_allowed,categoria")
+          .in("id", productIds),
+        supabase
+          .from("lotes")
+          .select("producto_id,cantidad_actual,activo")
+          .in("producto_id", productIds),
+      ]);
+      const sumLotes = tiendaSumLotesByProduct(lotesRows);
+      const stockMap = new Map((stockRows||[]).map(p=>[tiendaNormProductId(p.id), p]));
+      const outBad = cart.find(c => {
+        const id = tiendaNormProductId(c.id);
+        const dbp = stockMap.get(id);
+        if (!dbp) return true;
+        if (!dbp.activo) return true;
+        const eff = tiendaEffectiveStockFromDb(dbp, sumLotes);
+        return eff < Number(c.qty||0);
       });
-      if (outOfStock) {
-        alert(`Stock insuficiente para "${outOfStock.nombre}". Ajusta tu carrito.`);
+      if (outBad) {
+        const id = tiendaNormProductId(outBad.id);
+        const dbp = stockMap.get(id);
+        if (!dbp) {
+          alert(`No encontramos "${outBad.nombre}" en inventario. Quitalo del carrito y actualizá la página.`);
+        } else if (!dbp.activo) {
+          alert(`"${outBad.nombre}" ya no está disponible. Quitalo del carrito.`);
+        } else {
+          const disp = tiendaEffectiveStockFromDb(dbp, sumLotes);
+          alert(`Stock insuficiente para "${outBad.nombre}". Disponible: ${disp}, en tu carrito: ${outBad.qty}. Ajustá la cantidad o quitá el producto.`);
+        }
         setG(false);
         return;
       }
@@ -1554,7 +1666,7 @@ function Checkout({cart,setCart,setPage,user,entrega="pickup"}){
       }
 
       const p_cart = cart.map(c => ({
-        producto_id: c.id,
+        producto_id: tiendaNormProductId(c.id),
         cantidad:    Number(c.qty),
       }));
 
@@ -1594,7 +1706,12 @@ function Checkout({cart,setCart,setPage,user,entrega="pickup"}){
       return;
     }catch(e){
       console.warn(e);
-      alert("No se pudo confirmar el pedido. Intenta nuevamente.");
+      const msg = e?.message || e?.error_description || (typeof e === "string" ? e : "");
+      if (msg && (msg.includes("Stock insuficiente") || msg.includes("stock insuficiente"))) {
+        alert(msg);
+      } else {
+        alert(msg ? `No se pudo confirmar: ${msg}` : "No se pudo confirmar el pedido. Intenta nuevamente.");
+      }
     }
     setG(false);
   };
@@ -2504,7 +2621,7 @@ export default function TiendaFarmax(){
     promo:         <PromocionesPage setPage={setPage}/>,
     detalle:       <DetalleProducto prod={prodDetalle} productos={productosVistaTiendaFarmacia} addToCart={addToCart} setPage={setPage} setProdDetalle={setProdD} busqHero={busqHero} setBusqHero={setBusqHero}/>,
     carrito:       <Carrito cart={cart} setCart={setCart} setPage={setPage} setEntregaGlobal={setEntregaCheckout}/>,
-    checkout:      <Checkout cart={cart} setCart={setCart} setPage={setPage} user={user} entrega={entregaCheckout}/>,
+    checkout:      <Checkout cart={cart} setCart={setCart} setPage={setPage} user={user} entrega={entregaCheckout} catalogoProductos={productosVistaTiendaFarmacia}/>,
     cita:          <AgendarCita setPage={setPage} user={user}/>,
     login:         <Login setUser={setUser} setPage={setPage}/>,
     registro:      <Registro setUser={setUser} setPage={setPage}/>,

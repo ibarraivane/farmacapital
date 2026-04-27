@@ -9,7 +9,6 @@ import { showToast } from "./ui";
 import OnboardingTour from "./components/OnboardingTour";
 import { idEmpleadoUsuarios } from "./utils/usuarioId";
 import ImageUploader from "./components/ImageUploader";
-import { productoEsCategoriaMinisuperTienda } from "./utils/tiendaFarmaciaCatalogo";
 
 const leerSesion = () => {
   try {
@@ -526,6 +525,15 @@ function BulkImagesModal({ open, onClose, productos, onComplete }) {
 
   if (!open) return null;
 
+  const normToken = (s) =>
+    String(s || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .trim();
+
   const handleFiles = (e) => {
     const selected = Array.from(e.target.files || []);
     setFiles(selected);
@@ -542,20 +550,60 @@ function BulkImagesModal({ open, onClose, productos, onComplete }) {
     setUploading(true);
     setProgress({ current: 0, total: files.length });
     const res = [];
+    const bySku = new Map();
+    const byNombre = new Map();
+    for (const p of productos || []) {
+      const skuKey = normToken(p?.sku);
+      if (skuKey && !bySku.has(skuKey)) bySku.set(skuKey, p);
+      const nombreKey = normToken(p?.nombre);
+      if (!nombreKey) continue;
+      const arr = byNombre.get(nombreKey) || [];
+      arr.push(p);
+      byNombre.set(nombreKey, arr);
+    }
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       setProgress({ current: i + 1, total: files.length });
 
       const nombreArchivo = file.name.replace(/\.[^/.]+$/, "");
-      const skuLimpio = nombreArchivo.toLowerCase().trim();
-
-      const producto = productos.find(
-        (p) => p.sku && String(p.sku).toLowerCase().trim() === skuLimpio
-      );
+      const token = normToken(nombreArchivo);
+      let producto = bySku.get(token) || null;
+      let ambiguous = false;
+      let matchBy = producto ? "sku" : "";
 
       if (!producto) {
-        res.push({ archivo: file.name, status: "no_match", mensaje: "SKU no encontrado" });
+        const exactByName = byNombre.get(token) || [];
+        if (exactByName.length === 1) {
+          producto = exactByName[0];
+          matchBy = "nombre";
+        } else if (exactByName.length > 1) {
+          ambiguous = true;
+        }
+      }
+
+      if (!producto && !ambiguous) {
+        const candidates = (productos || []).filter((p) => {
+          const skuKey = normToken(p?.sku);
+          const nombreKey = normToken(p?.nombre);
+          return (skuKey && token.includes(skuKey)) || (nombreKey && token.includes(nombreKey));
+        });
+        if (candidates.length === 1) {
+          producto = candidates[0];
+          matchBy = "aprox";
+        } else if (candidates.length > 1) {
+          ambiguous = true;
+        }
+      }
+
+      if (!producto) {
+        res.push({
+          archivo: file.name,
+          status: "no_match",
+          mensaje: ambiguous
+            ? "Coincidencia ambigua (varios productos). Renombra con SKU exacto."
+            : "Sin coincidencia por SKU o nombre",
+        });
         setResults([...res]);
         continue;
       }
@@ -587,6 +635,7 @@ function BulkImagesModal({ open, onClose, productos, onComplete }) {
           status: "ok",
           producto: producto.nombre,
           sku: producto.sku,
+          matchBy,
         });
       } catch (e) {
         res.push({
@@ -656,13 +705,15 @@ function BulkImagesModal({ open, onClose, productos, onComplete }) {
         >
           📋 <strong>Cómo funciona:</strong>
           <br />
-          1. Nombra cada archivo con el SKU del producto (ej: <code>par-500.jpg</code>, <code>ome-20.png</code>)
+          1. Mejor práctica: nombra cada archivo con el SKU (ej: <code>par-500.jpg</code>, <code>ome-20.png</code>)
           <br />
           2. Selecciona todas las imágenes a la vez
           <br />
-          3. El sistema asigna cada foto al producto correcto (sin importar mayúsculas)
+          3. También intenta por nombre del producto si no encuentra SKU (sin mayúsculas/acentos)
           <br />
-          4. Se usa el bucket Storage <code>productos</code> y se actualiza vía RPC <code>admin_editar_producto</code>
+          4. Si hay varias coincidencias, te pedirá renombrar con SKU exacto
+          <br />
+          5. Se usa Storage <code>productos</code> y RPC <code>admin_editar_producto</code>
         </div>
 
         <input
@@ -1299,10 +1350,7 @@ export default function InventarioModule() {
           </button>
           <button style={btnOutline} onClick={descargarPlantilla}>📋 Plantilla</button>
           <button style={btnOutline} onClick={()=>exportarCSV(filtradosTodosInv)}>
-            {isMobileInv ? "⬇ CSV todo" : "⬇ Exportar CSV (todo)"}
-          </button>
-          <button style={btnOutline} onClick={()=>exportarCSV(filtradosTodosInv.filter((p)=>!productoEsCategoriaMinisuperTienda(p)), "farmacia")}>
-            {isMobileInv ? "⬇ CSV farmacia" : "⬇ Exportar CSV solo farmacia"}
+            ⬇ Exportar CSV
           </button>
         </div>
       </div>
