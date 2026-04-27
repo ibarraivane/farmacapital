@@ -75,11 +75,12 @@ const BANNERS = [
 function mapBannerFromRow(b){
   const s = String(b.slot||"hero").toLowerCase();
   const slot = s==="strip"||s==="tile" ? s : "hero";
+  const em = b.emoji != null ? String(b.emoji).trim() : "";
   return {
     titulo: b.titulo,
     subtitulo: b.subtitulo||"",
     descripcion: b.descripcion||"",
-    emoji: b.emoji||"💊",
+    emoji: em,
     bg: b.bg||BRAND.gradient,
     cta: b.cta||"Ver más",
     pagina: b.pagina||"catalogo",
@@ -200,25 +201,29 @@ function PopupBienvenida({onClose,setPage,precioConsulta}){
 }
 
 // ── CARRUSEL PRINCIPAL (zona hero) ────────────────────────────
-function HeroCarousel({setPage, items, precioConsulta, stack}){
+/** useStaticPlaceholder: solo si aún no hay datos de BD o no hay banners activos (evita ocultar cambios del admin). */
+function HeroCarousel({setPage, items, precioConsulta, stack, useStaticPlaceholder=true}){
   const C = useTheme();
   const [idx,setIdx]=useState(0);
   const banners = items.length
     ? items
-    : BANNERS.map((b) =>
+    : useStaticPlaceholder
+    ? BANNERS.map((b) =>
         b.id === 2 && precioConsulta
           ? {
               ...b,
               subtitulo: `$${Math.round(Number(precioConsulta) || CONSULTA_PRECIO_DEFAULT)} por consulta`,
             }
           : b
-      );
+      )
+    : [];
   useEffect(()=>{ setIdx(0); },[banners.length]);
   useEffect(()=>{
     if(banners.length<=1) return undefined;
     const t=setInterval(()=>setIdx(i=>(i+1)%banners.length),4000);
     return ()=>clearInterval(t);
   },[banners.length]);
+  if (banners.length===0) return null;
   const b=banners[idx]||BANNERS[0];
   const heroImg = bannerVisualUrl(b, stack);
   const heroHasImg = !!heroImg;
@@ -233,7 +238,7 @@ function HeroCarousel({setPage, items, precioConsulta, stack}){
         padding:"clamp(28px,8vw,48px) 16px",textAlign:"center",transition:"background .5s, background-image .5s",
       }}>
         <div style={{maxWidth:700,margin:"0 auto"}}>
-          {!heroHasImg&&<div style={{fontSize:"clamp(40px, 12vw, 52px)",marginBottom:12}}>{b.emoji}</div>}
+          {!heroHasImg&&!!(b.emoji&&String(b.emoji).trim())&&<div style={{fontSize:"clamp(40px, 12vw, 52px)",marginBottom:12}}>{b.emoji}</div>}
           <div style={{color:"rgba(255,255,255,.8)",fontSize:"clamp(11px, 3vw, 13px)",letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>{b.subtitulo}</div>
           <h2 style={{color:C.white,fontSize:"clamp(22px, 6vw, 32px)",fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif",marginBottom:12,lineHeight:1.2}}>{b.titulo}</h2>
           <p style={{color:"rgba(255,255,255,.85)",fontSize:"clamp(14px, 3.5vw, 15px)",marginBottom:24,lineHeight:1.6}}>{b.descripcion}</p>
@@ -287,7 +292,7 @@ function HomeBannersStrip({setPage, items}){
             onMouseEnter={e=>{ e.currentTarget.style.transform="translateY(-2px)"; e.currentTarget.style.boxShadow="0 8px 28px rgba(0,82,204,.2)"; }}
             onMouseLeave={e=>{ e.currentTarget.style.transform="none"; e.currentTarget.style.boxShadow="0 4px 20px rgba(0,82,204,.12)"; }}
           >
-            {!u&&<span style={{fontSize:36,flexShrink:0}}>{b.emoji}</span>}
+            {!u&&!!(b.emoji&&String(b.emoji).trim())&&<span style={{fontSize:36,flexShrink:0}}>{b.emoji}</span>}
             <div style={{flex:1,minWidth:0}}>
               <div style={{fontWeight:800,fontSize:"clamp(14px,3.5vw,16px)",lineHeight:1.25,marginBottom:4}}>{b.titulo}</div>
               <div style={{fontSize:12,opacity:.9,lineHeight:1.35}}>{b.subtitulo||b.descripcion?.slice(0,80)}{(b.descripcion?.length>80?"…":"")}</div>
@@ -332,7 +337,7 @@ function HomeBannersTiles({setPage, items, stack}){
             onMouseEnter={e=>{ e.currentTarget.style.transform="translateY(-2px)"; }}
             onMouseLeave={e=>{ e.currentTarget.style.transform="none"; }}
           >
-            {!u&&<span style={{fontSize:28}}>{b.emoji}</span>}
+            {!u&&!!(b.emoji&&String(b.emoji).trim())&&<span style={{fontSize:28}}>{b.emoji}</span>}
             <div>
               <div style={{fontWeight:800,fontSize:14,lineHeight:1.25}}>{b.titulo}</div>
               {b.subtitulo&&<div style={{fontSize:11,opacity:.9,marginTop:4,lineHeight:1.3}}>{b.subtitulo}</div>}
@@ -660,6 +665,7 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
   const stack = useMediaQuery("(max-width: 768px)");
   const [promos, setPromos] = useState([]);
   const [bannerZones, setBannerZones] = useState({hero:[], strip:[], tile:[]});
+  const [bannerMeta, setBannerMeta] = useState({ status: "loading", total: 0 });
 
   useEffect(()=>{
     const hoy = new Date().toISOString().split("T")[0];
@@ -676,9 +682,12 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
         if (cancelled) return;
         if (error) {
           console.warn("[Tienda] banners:", error.message);
+          setBannerMeta({ status: "error", total: 0 });
+          setBannerZones({hero:[], strip:[], tile:[]});
           return;
         }
         const rows = (data||[]).map(mapBannerFromRow);
+        setBannerMeta({ status: "ok", total: rows.length });
         setBannerZones({
           hero: rows.filter(r=>r.slot==="hero"),
           strip: rows.filter(r=>r.slot==="strip"),
@@ -692,9 +701,18 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
     return ()=>{ cancelled = true; document.removeEventListener("visibilitychange", onVis); };
   },[]);
 
+  const useStaticHero =
+    bannerMeta.status !== "ok" || bannerMeta.total === 0;
+
   return(
     <div>
-      <HeroCarousel setPage={setPage} items={bannerZones.hero} precioConsulta={precioConsulta} stack={stack}/>
+      <HeroCarousel
+        setPage={setPage}
+        items={bannerZones.hero}
+        precioConsulta={precioConsulta}
+        stack={stack}
+        useStaticPlaceholder={useStaticHero}
+      />
 
       {/* Badges */}
       <div style={{background:C.white,borderBottom:`1px solid ${C.border}`,padding:"14px clamp(12px,4vw,24px)"}}>
