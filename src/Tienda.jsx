@@ -154,12 +154,19 @@ const HORARIOS_DOCTORA = [
 ];
 const TODOS_HORARIOS = ["09:00","09:30","10:00","10:30","11:00","11:30","16:00","16:30","17:00","17:30","18:00","18:30"];
 
+function localISODate(d = new Date()) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 const ptsGana = p => Math.floor(p/10);
 const labelPts = n => `${n} ${n===1?"punto":"puntos"} Farmax`;
 
 function horariosDisponibles(fecha){
   if(!fecha) return TODOS_HORARIOS;
-  const hoy=new Date().toISOString().split("T")[0];
+  const hoy = localISODate();
   if(fecha!==hoy) return TODOS_HORARIOS;
   const ahora=new Date();
   return TODOS_HORARIOS.filter(h=>{
@@ -1909,7 +1916,7 @@ function AgendarCita({setPage,user}){
         <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:16,marginBottom:16}}>
           <div><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Nombre completo <span style={{color:"#ef4444"}}>*</span></div><Inp value={nombre} onChange={e=>setNombre(e.target.value)} placeholder="Nombre y apellido" style={{width:"100%",boxSizing:"border-box"}}/></div>
           <div><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Teléfono <span style={{color:"#ef4444"}}>*</span></div><Inp value={tel} onChange={e=>setTel(e.target.value)} placeholder="10+ dígitos" type="tel" style={{width:"100%",boxSizing:"border-box"}}/></div>
-          <div><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Fecha</div><input type="date" value={fecha} onChange={e=>setFecha(e.target.value)} min={new Date().toLocaleDateString("sv-SE")} style={{width:"100%",boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:C.white,color:C.dark,fontSize:16,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}/></div>
+          <div><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Fecha</div><input type="date" value={fecha} onChange={e=>setFecha(e.target.value)} min={localISODate()} style={{width:"100%",boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:C.white,color:C.dark,fontSize:16,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}/></div>
           <div>
             <div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Horario {fecha&&horarios.length===0?"— Sin disponibilidad hoy":""}</div>
             <select value={hora} onChange={e=>setHora(e.target.value)} style={{width:"100%",padding:"11px 14px",borderRadius:10,border:`2px solid ${C.border}`,color:hora?C.dark:C.dim,fontSize:16,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
