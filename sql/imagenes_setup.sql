@@ -4,12 +4,16 @@
 --
 -- Nota: banners y productos usan imagen_url + imagen_mobile_url (tienda / Admin).
 -- Las RPCs admin_upsert_banner y admin_actualizar_imagen_banner escriben ambas en banners.
+-- admin_upsert_banner también usa slot (Zona en el home: hero | strip | tile). Ver sql/banners_slot.sql.
 
 begin;
 
 -- 1. Columnas (por si faltan en proyectos viejos)
 alter table public.banners add column if not exists imagen_url text;
 alter table public.banners add column if not exists imagen_mobile_url text;
+alter table public.banners add column if not exists slot text default 'hero';
+
+comment on column public.banners.slot is 'hero=carrusel superior | strip=franja horizontal | tile=rejilla';
 alter table public.productos add column if not exists imagen_url text;
 alter table public.productos add column if not exists imagen_mobile_url text;
 
