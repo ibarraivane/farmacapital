@@ -95,8 +95,9 @@ export function productoPermitidoEnTiendaWeb(p) {
  * Aptitud envío a domicilio (CDMX / foráneo). Sin columna `delivery_allowed` → true si pasa tienda web.
  * @param {object} p - fila productos
  */
-export function productoPermitidoEnvioDomicilio(p) {
-  if (!productoPermitidoEnTiendaWeb(p)) return false;
+export function productoPermitidoEnvioDomicilio(p, options = {}) {
+  const permiteTienda = options.permiteEnTiendaWeb ?? productoPermitidoEnTiendaWeb;
+  if (!permiteTienda(p)) return false;
   if (p.delivery_allowed === false) return false;
   return true;
 }
@@ -107,21 +108,26 @@ export function productoPermitidoEnvioDomicilio(p) {
  * @param {Map|object} productRowById - mapa id → fila productos (opcional; si falta no valida SKUs)
  * @returns {{ ok: boolean, bloqueados: { id: any, nombre: string, razon: string }[] }}
  */
-export function validarCarritoParaEntrega(cart, entregaUi, productRowById) {
+export function validarCarritoParaEntrega(cart, entregaUi, productRowById, options = {}) {
+  const permiteEnTienda = options.permiteEnTiendaWeb ?? productoPermitidoEnTiendaWeb;
+  const razonNoTienda =
+    typeof options.razonNoPermitidoTienda === "function"
+      ? options.razonNoPermitidoTienda
+      : () => "No disponible en tienda en línea (receta, controlado u oculto).";
   const bloqueados = [];
   const map = productRowById instanceof Map ? (id) => productRowById.get(id) : (id) => productRowById?.[id];
   for (const item of cart || []) {
     const row = map?.(item.id);
     if (!row) continue;
-    if (!productoPermitidoEnTiendaWeb(row)) {
+    if (!permiteEnTienda(row)) {
       bloqueados.push({
         id: item.id,
         nombre: item.nombre || row.nombre,
-        razon: "No disponible en tienda en línea (receta, controlado u oculto).",
+        razon: razonNoTienda(row),
       });
       continue;
     }
-    if (entregaUi !== "pickup" && !productoPermitidoEnvioDomicilio(row)) {
+    if (entregaUi !== "pickup" && !productoPermitidoEnvioDomicilio(row, { permiteEnTiendaWeb: permiteEnTienda })) {
       bloqueados.push({
         id: item.id,
         nombre: item.nombre || row.nombre,

@@ -750,8 +750,9 @@ function BannersAdmin(){
                 filenamePrefix={form.titulo||"banner"}
                 size="medium"
               />
-              <div style={{fontSize:11,color:C.textDim,marginTop:8,lineHeight:1.4}}>
-                💡 Si no subes imagen, se usará el color de fondo + emoji. Bucket <code style={{background:C.card,padding:"1px 4px",borderRadius:4}}>banners</code> · <code style={{background:C.card,padding:"1px 4px",borderRadius:4}}>sql/storage_buckets.sql</code>
+              <div style={{fontSize:11,color:C.textDim,marginTop:8,lineHeight:1.45}}>
+                💡 <strong>Tamaño recomendado (carrusel):</strong> imagen horizontal tipo <strong>1920×640 px</strong> o <strong>2000×700 px</strong> (~3:1), mensaje importante al centro. Mínimo ~1600×600. La tienda recorta con <em>cover</em> a una franja ancha.
+                {" "}Si no subes imagen, se usa fondo + emoji. Bucket <code style={{background:C.card,padding:"1px 4px",borderRadius:4}}>banners</code>.
               </div>
             </div>
             {[["Título *","titulo"],["Subtítulo","subtitulo"],["Descripción","descripcion"],["Emoji (si no hay imagen)","emoji"],["Texto del botón","cta"],["Página destino","pagina"]].map(([l,k])=>(

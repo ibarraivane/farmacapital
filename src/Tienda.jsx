@@ -8,9 +8,13 @@ import { CONSULTA_PRECIO_DEFAULT } from "./utils/consultaConstants";
 import { fetchPrecioConsultaConfig } from "./utils/consumiblesConsultorio";
 import {
   mapUiEntregaToRpc,
-  productoPermitidoEnTiendaWeb,
   validarCarritoParaEntrega,
 } from "./utils/orderChannels";
+import {
+  productoPermitidoEnTiendaFarmaciaWeb,
+  razonBloqueoProductoTiendaFarmacia,
+  productoEsCategoriaMinisuperTienda,
+} from "./utils/tiendaFarmaciaCatalogo";
 
 // ═══════════════════════════════════════════════════════════════
 // FARMAX — Tienda en Línea v4
@@ -201,6 +205,12 @@ function PopupBienvenida({onClose,setPage,precioConsulta}){
 }
 
 // ── CARRUSEL PRINCIPAL (zona hero) ────────────────────────────
+/**
+ * Fotos recomendadas (rellenan la franja horizontal con object-fit: cover):
+ * - Escritorio (imagen_url): 1920×640 px o 2000×700 px (~3:1). Texto e imagen importantes centrados.
+ * - Móvil (imagen_mobile_url, opcional): 1080×900 o 900×800 (~5:4 / 4:3), también centrado.
+ * Mínimo útil: 1600×600. Más resolución = menos borroso en pantallas grandes.
+ */
 /** useStaticPlaceholder: solo si aún no hay datos de BD o no hay banners activos (evita ocultar cambios del admin). */
 function HeroCarousel({setPage, items, precioConsulta, stack, useStaticPlaceholder=true}){
   const C = useTheme();
@@ -228,16 +238,15 @@ function HeroCarousel({setPage, items, precioConsulta, stack, useStaticPlacehold
   const b=banners[idx]||BANNERS[0];
   const heroImg = bannerVisualUrl(b, stack);
   const heroHasImg = !!heroImg;
-  /** Altura acotada: antes 44vw–480px ocupaba casi toda la pantalla en móvil. */
-  const heroMinH = heroHasImg
-    ? stack
-      ? "clamp(168px, 34vw, 228px)"
-      : "clamp(200px, 22vw, 300px)"
-    : undefined;
+  /** Franja ancha fija: la imagen cubre todo el ancho (cover), misma forma en todo el hero. */
+  const heroStripH = stack
+    ? "clamp(220px, 42vw, 340px)"
+    : "clamp(300px, 20vw, 460px)";
+  const textPad = heroHasImg ? "clamp(16px,3.5vw,28px) 16px" : "clamp(28px,8vw,48px) 16px";
   return(
-    <div style={{position:"relative",overflow:"hidden",background:heroHasImg?"#070f1a":undefined}}>
-      {heroHasImg && (
-        <>
+    <div style={{position:"relative",width:"100%",overflow:"hidden"}}>
+      {heroHasImg ? (
+        <div style={{position:"relative",width:"100%",height:heroStripH,background:"#070f1a"}}>
           <img
             src={heroImg}
             alt=""
@@ -247,7 +256,7 @@ function HeroCarousel({setPage, items, precioConsulta, stack, useStaticPlacehold
               inset:0,
               width:"100%",
               height:"100%",
-              objectFit:"contain",
+              objectFit:"cover",
               objectPosition:"center center",
             }}
           />
@@ -256,59 +265,106 @@ function HeroCarousel({setPage, items, precioConsulta, stack, useStaticPlacehold
             style={{
               position:"absolute",
               inset:0,
-              background:"linear-gradient(rgba(0,24,48,.5),rgba(0,24,48,.68))",
+              zIndex:1,
+              background:"linear-gradient(rgba(0,24,48,.48),rgba(0,24,48,.66))",
             }}
           />
-        </>
-      )}
-      <div style={{
-        position:"relative",
-        zIndex:1,
-        padding:heroHasImg?"clamp(18px,4vw,32px) 16px":"clamp(28px,8vw,48px) 16px",
-        textAlign:"center",
-        minHeight:heroMinH,
-        display:heroHasImg?"flex":"block",
-        alignItems:heroHasImg?"center":undefined,
-        justifyContent:heroHasImg?"center":undefined,
-        background:heroHasImg?"transparent":b.bg,
-        transition:"background .35s",
-      }}>
-        <div style={{maxWidth:700,margin:"0 auto",width:"100%"}}>
-          {!heroHasImg&&!!(b.emoji&&String(b.emoji).trim())&&<div style={{fontSize:"clamp(40px, 12vw, 52px)",marginBottom:12}}>{b.emoji}</div>}
-          <div style={{color:"rgba(255,255,255,.8)",fontSize:"clamp(11px, 3vw, 13px)",letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>{b.subtitulo}</div>
-          <h2 style={{color:C.white,fontSize:"clamp(22px, 6vw, 32px)",fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif",marginBottom:12,lineHeight:1.2}}>{b.titulo}</h2>
-          <p style={{color:"rgba(255,255,255,.85)",fontSize:"clamp(14px, 3.5vw, 15px)",marginBottom:24,lineHeight:1.6}}>{b.descripcion}</p>
-          <span
+          <div style={{
+            position:"absolute",
+            inset:0,
+            zIndex:2,
+            display:"flex",
+            alignItems:"center",
+            justifyContent:"center",
+            padding:textPad,
+            textAlign:"center",
+            pointerEvents:"none",
+          }}>
+            <div style={{maxWidth:700,margin:"0 auto",width:"100%",pointerEvents:"auto"}}>
+              <div style={{color:"rgba(255,255,255,.8)",fontSize:"clamp(11px, 3vw, 13px)",letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>{b.subtitulo}</div>
+              <h2 style={{color:C.white,fontSize:"clamp(20px, 5.5vw, 30px)",fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif",marginBottom:10,lineHeight:1.2}}>{b.titulo}</h2>
+              <p style={{color:"rgba(255,255,255,.85)",fontSize:"clamp(13px, 3.2vw, 15px)",marginBottom:18,lineHeight:1.55}}>{b.descripcion}</p>
+              <span
+                onMouseEnter={()=>setPauseAuto(true)}
+                onMouseLeave={()=>setPauseAuto(false)}
+                style={{display:"inline-block"}}
+              >
+                <Btn onClick={()=>setPage(b.pagina)} style={{background:C.white,color:BRAND.primary,border:"none"}}>{b.cta}</Btn>
+              </span>
+            </div>
+          </div>
+          {banners.length>1&&(
+          <>
+          <div
             onMouseEnter={()=>setPauseAuto(true)}
             onMouseLeave={()=>setPauseAuto(false)}
-            style={{display:"inline-block"}}
+            style={{position:"absolute",bottom:12,left:"50%",transform:"translateX(-50%)",display:"flex",gap:6,zIndex:3}}
           >
-            <Btn onClick={()=>setPage(b.pagina)} style={{background:C.white,color:BRAND.primary,border:"none"}}>{b.cta}</Btn>
-          </span>
+            {banners.map((_,i)=>(
+              <button key={i} type="button" aria-label={`Banner ${i+1}`} onClick={()=>setIdx(i)} style={{width:i===idx?24:8,height:8,borderRadius:4,border:"none",background:i===idx?"rgba(255,255,255,.9)":"rgba(255,255,255,.4)",cursor:"pointer",transition:"all .3s",padding:0}}/>
+            ))}
+          </div>
+          {[[-1,"←"],[1,"→"]].map(([d,icon])=>(
+            <button key={d} type="button" onClick={()=>setIdx(i=>(i+d+banners.length)%banners.length)}
+              onMouseEnter={()=>setPauseAuto(true)}
+              onMouseLeave={()=>setPauseAuto(false)}
+              onFocus={()=>setPauseAuto(true)}
+              onBlur={()=>setPauseAuto(false)}
+              style={{position:"absolute",top:"50%",transform:"translateY(-50%)",zIndex:3,...( d===-1?{left:12}:{right:12}),background:"rgba(255,255,255,.22)",border:"none",color:C.white,width:36,height:36,borderRadius:"50%",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center"}}>
+              {icon}
+            </button>
+          ))}
+          </>
+          )}
         </div>
-      </div>
-      {banners.length>1&&(
-      <>
-      <div
-        onMouseEnter={()=>setPauseAuto(true)}
-        onMouseLeave={()=>setPauseAuto(false)}
-        style={{position:"absolute",bottom:12,left:"50%",transform:"translateX(-50%)",display:"flex",gap:6}}
-      >
-        {banners.map((_,i)=>(
-          <button key={i} type="button" aria-label={`Banner ${i+1}`} onClick={()=>setIdx(i)} style={{width:i===idx?24:8,height:8,borderRadius:4,border:"none",background:i===idx?"rgba(255,255,255,.9)":"rgba(255,255,255,.4)",cursor:"pointer",transition:"all .3s",padding:0}}/>
-        ))}
-      </div>
-      {[[-1,"←"],[1,"→"]].map(([d,icon])=>(
-        <button key={d} type="button" onClick={()=>setIdx(i=>(i+d+banners.length)%banners.length)}
+      ) : (
+        <>
+        <div style={{
+          position:"relative",
+          zIndex:1,
+          padding:textPad,
+          textAlign:"center",
+          background:b.bg,
+          transition:"background .35s",
+        }}>
+          <div style={{maxWidth:700,margin:"0 auto",width:"100%"}}>
+            {!!(b.emoji&&String(b.emoji).trim())&&<div style={{fontSize:"clamp(40px, 12vw, 52px)",marginBottom:12}}>{b.emoji}</div>}
+            <div style={{color:"rgba(255,255,255,.8)",fontSize:"clamp(11px, 3vw, 13px)",letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>{b.subtitulo}</div>
+            <h2 style={{color:C.white,fontSize:"clamp(22px, 6vw, 32px)",fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif",marginBottom:12,lineHeight:1.2}}>{b.titulo}</h2>
+            <p style={{color:"rgba(255,255,255,.85)",fontSize:"clamp(14px, 3.5vw, 15px)",marginBottom:24,lineHeight:1.6}}>{b.descripcion}</p>
+            <span
+              onMouseEnter={()=>setPauseAuto(true)}
+              onMouseLeave={()=>setPauseAuto(false)}
+              style={{display:"inline-block"}}
+            >
+              <Btn onClick={()=>setPage(b.pagina)} style={{background:C.white,color:BRAND.primary,border:"none"}}>{b.cta}</Btn>
+            </span>
+          </div>
+        </div>
+        {banners.length>1&&(
+        <>
+        <div
           onMouseEnter={()=>setPauseAuto(true)}
           onMouseLeave={()=>setPauseAuto(false)}
-          onFocus={()=>setPauseAuto(true)}
-          onBlur={()=>setPauseAuto(false)}
-          style={{position:"absolute",top:"50%",transform:"translateY(-50%)",...( d===-1?{left:16}:{right:16}),background:"rgba(255,255,255,.2)",border:"none",color:C.white,width:36,height:36,borderRadius:"50%",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center"}}>
-          {icon}
-        </button>
-      ))}
-      </>
+          style={{position:"absolute",bottom:12,left:"50%",transform:"translateX(-50%)",display:"flex",gap:6}}
+        >
+          {banners.map((_,i)=>(
+            <button key={i} type="button" aria-label={`Banner ${i+1}`} onClick={()=>setIdx(i)} style={{width:i===idx?24:8,height:8,borderRadius:4,border:"none",background:i===idx?"rgba(255,255,255,.9)":"rgba(255,255,255,.4)",cursor:"pointer",transition:"all .3s",padding:0}}/>
+          ))}
+        </div>
+        {[[-1,"←"],[1,"→"]].map(([d,icon])=>(
+          <button key={d} type="button" onClick={()=>setIdx(i=>(i+d+banners.length)%banners.length)}
+            onMouseEnter={()=>setPauseAuto(true)}
+            onMouseLeave={()=>setPauseAuto(false)}
+            onFocus={()=>setPauseAuto(true)}
+            onBlur={()=>setPauseAuto(false)}
+            style={{position:"absolute",top:"50%",transform:"translateY(-50%)",...( d===-1?{left:16}:{right:16}),background:"rgba(255,255,255,.2)",border:"none",color:C.white,width:36,height:36,borderRadius:"50%",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center"}}>
+            {icon}
+          </button>
+        ))}
+        </>
+        )}
+        </>
       )}
     </div>
   );
@@ -587,7 +643,7 @@ function ProductCard({prod,addToCart,onClick}){
         <div style={{color:C.dim,fontSize:10,marginBottom:10}}>⭐ +{labelPts(ptsGana(prod.precio||prod.precio||0))}</div>
         <div style={{display:"flex",gap:8}}>
           <Btn onClick={onClick} outline col={BRAND.primary} sm style={{flex:1}}>Ver detalle</Btn>
-          <Btn onClick={e=>{e.stopPropagation();if(prod.stock===0)return;if(!productoPermitidoEnTiendaWeb(prod)){alert("Este producto no está disponible para compra en línea (receta, controlado o no publicado en tienda).");return;}addToCart(prod);setAdded(true);setTimeout(()=>setAdded(false),1500);}} col={prod.stock===0||!productoPermitidoEnTiendaWeb(prod)?"#94a3b8":added?BRAND.secondary:BRAND.primary} sm style={{flex:1,opacity:(prod.stock===0||!productoPermitidoEnTiendaWeb(prod))?0.6:1,cursor:prod.stock===0||!productoPermitidoEnTiendaWeb(prod)?"not-allowed":"pointer"}}>{prod.stock===0?"Agotado":!productoPermitidoEnTiendaWeb(prod)?"Solo en mostrador":added?"✓ Listo":"+ Carrito"}</Btn>
+          <Btn onClick={e=>{e.stopPropagation();if(prod.stock===0)return;if(!productoPermitidoEnTiendaFarmaciaWeb(prod)){alert(productoEsCategoriaMinisuperTienda(prod)?"Artículo de minisuper: no está en la tienda farmacia en línea. Disponible en sucursal.":"Este producto no está disponible para compra en línea (receta, controlado o no publicado en tienda).");return;}addToCart(prod);setAdded(true);setTimeout(()=>setAdded(false),1500);}} col={prod.stock===0||!productoPermitidoEnTiendaFarmaciaWeb(prod)?"#94a3b8":added?BRAND.secondary:BRAND.primary} sm style={{flex:1,opacity:(prod.stock===0||!productoPermitidoEnTiendaFarmaciaWeb(prod))?0.6:1,cursor:prod.stock===0||!productoPermitidoEnTiendaFarmaciaWeb(prod)?"not-allowed":"pointer"}}>{prod.stock===0?"Agotado":!productoPermitidoEnTiendaFarmaciaWeb(prod)?(productoEsCategoriaMinisuperTienda(prod)?"Solo minisuper":"Solo en mostrador"):added?"✓ Listo":"+ Carrito"}</Btn>
         </div>
       </div>
     </div>
@@ -595,18 +651,100 @@ function ProductCard({prod,addToCart,onClick}){
 }
 
 // ── DETALLE PRODUCTO ──────────────────────────────────────────
-function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle}){
+function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHero,setBusqHero}){
   const C = useTheme();
   const stack = useMediaQuery("(max-width: 700px)");
+  const narrowSuggest = useMediaQuery("(max-width: 768px)");
+  const [busqFocus,setBusqFocus]=useState(false);
+  const [added,setAdded]=useState(false);
+  const placeholderUrl = useContext(TiendaPlaceholderCtx);
+  const poolSoloStock = useMemo(
+    ()=>productos.filter(p=>p.activo!==false&&Number(p.stock)>0),
+    [productos]
+  );
+  const suggestions = useMemo(
+    ()=>(busqFocus&&String(busqHero||"").trim().length>=2?tiendaCatalogSearchSuggestions(poolSoloStock,busqHero,{limit:8}):[]),
+    [poolSoloStock,busqHero,busqFocus]
+  );
+  const irACatalogoBusqueda = ()=>{
+    const q = String(busqHero||"").trim();
+    setBusqFocus(false);
+    try { if (q) sessionStorage.setItem("farmax_busq", q); } catch (err) { /* ignore */ }
+    setPage("catalogo");
+    requestAnimationFrame(()=>{
+      document.getElementById("farmax-catalogo-resultados")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
   if(!prod) return null;
   const similares=productos.filter(p=>p.categoria===prod.categoria&&p.id!==prod.id).slice(0,4);
   const d=prod.disponible||(prod.stock>0?"inmediato":"48hrs");
-  const [added,setAdded]=useState(false);
-  const placeholderUrl = useContext(TiendaPlaceholderCtx);
   const imgSrc = productImageUrl(prod, stack, placeholderUrl);
   return(
     <div style={{maxWidth:1100,margin:"0 auto",padding:"clamp(20px, 4vw, 32px) 16px"}}>
-      <button type="button" onClick={()=>setProdDetalle(null)} style={{background:"none",border:"none",color:BRAND.primary,cursor:"pointer",fontSize:14,fontWeight:700,marginBottom:20,display:"flex",alignItems:"center",gap:6}}>← Volver al catálogo</button>
+      <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:16,marginBottom:20}}>
+        <div style={{position:"relative",zIndex:25}}>
+          <Inp
+            value={busqHero||""}
+            onChange={(e)=>{
+              const v = e.target.value;
+              setBusqHero?.(v);
+              try { if (v.trim()) sessionStorage.setItem("farmax_busq", v); } catch (err) { /* ignore */ }
+            }}
+            onKeyDown={(e)=>{
+              if (e.key === "Enter") {
+                e.preventDefault();
+                irACatalogoBusqueda();
+              }
+              if (e.key === "Escape") setBusqFocus(false);
+            }}
+            onFocus={()=>setBusqFocus(true)}
+            onBlur={()=>setTimeout(()=>setBusqFocus(false),280)}
+            placeholder="🔍 Buscar otro producto (nombre, principio activo, SKU…)"
+            style={{width:"100%",boxSizing:"border-box",fontSize:15,marginBottom:0}}
+          />
+          {suggestions.length>0&&(
+            <div role="listbox" aria-label="Sugerencias de búsqueda" style={{
+              position:"absolute",left:0,right:0,top:"calc(100% + 4px)",
+              background:C.white,border:`1px solid ${C.border}`,borderRadius:10,
+              boxShadow:"0 16px 48px rgba(15,23,42,.12)",maxHeight:narrowSuggest?260:320,overflowY:"auto",
+            }}>
+              {suggestions.map((s)=>(
+                <button
+                  key={s.id}
+                  type="button"
+                  role="option"
+                  onMouseDown={(e)=>e.preventDefault()}
+                  onClick={()=>{
+                    const row = productos.find((x)=>x.id===s.id);
+                    if (row){
+                      setProdDetalle(row);
+                      setBusqFocus(false);
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }
+                  }}
+                  style={{
+                    display:"block",width:"100%",textAlign:"left",padding:"10px 14px",border:"none",
+                    borderBottom:`1px solid ${C.border}`,background:"transparent",cursor:"pointer",
+                    fontFamily:"'Plus Jakarta Sans',sans-serif",
+                  }}
+                >
+                  <div style={{color:C.dark,fontWeight:700,fontSize:13,lineHeight:1.35}}>{s.nombre}</div>
+                  <div style={{color:C.dim,fontSize:11,marginTop:3,display:"flex",flexWrap:"wrap",gap:8}}>
+                    {s.sku?<span>SKU <strong style={{color:BRAND.primary}}>{s.sku}</strong></span>:null}
+                    {s.codigo_barras?<span>Cód. {s.codigo_barras}</span>:null}
+                    {Number(s.stock)<=0?<span style={{color:C.red}}>Agotado</span>:null}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        <div style={{display:"flex",flexWrap:"wrap",gap:10,alignItems:"center",marginTop:12}}>
+          <Btn sm col={BRAND.primary} onClick={irACatalogoBusqueda}>Ver resultados en catálogo</Btn>
+          <span style={{color:C.dim,fontSize:12}}>Enter también abre el catálogo filtrado</span>
+        </div>
+      </div>
+      <button type="button" onClick={()=>{ setProdDetalle(null); setPage("catalogo"); }} style={{background:"none",border:"none",color:BRAND.primary,cursor:"pointer",fontSize:14,fontWeight:700,marginBottom:20,display:"flex",alignItems:"center",gap:6}}>← Volver al catálogo</button>
       <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:stack?24:32,marginBottom:48}}>
         <div style={{background:C.cardDark,borderRadius:20,overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",minHeight:stack?220:280,padding:stack?16:20}}>
           {imgSrc ? (
@@ -1285,7 +1423,7 @@ function Checkout({cart,setCart,setPage,user,entrega="pickup"}){
       const productIds = cart.map(c=>c.id);
       const { data: stockRows } = await supabase
         .from("productos")
-        .select("id,stock,precio,activo,requiere_receta,controlado,visible_tienda,delivery_allowed")
+        .select("id,stock,precio,activo,requiere_receta,controlado,visible_tienda,delivery_allowed,categoria")
         .in("id", productIds);
       const stockMap = new Map((stockRows||[]).map(p=>[p.id,p]));
       const outOfStock = cart.find(c => {
@@ -1298,7 +1436,10 @@ function Checkout({cart,setCart,setPage,user,entrega="pickup"}){
         return;
       }
 
-      const { ok, bloqueados } = validarCarritoParaEntrega(cart, entrega, stockMap);
+      const { ok, bloqueados } = validarCarritoParaEntrega(cart, entrega, stockMap, {
+        permiteEnTiendaWeb: productoPermitidoEnTiendaFarmaciaWeb,
+        razonNoPermitidoTienda: razonBloqueoProductoTiendaFarmacia,
+      });
       if (!ok) {
         alert(`Hay productos no permitidos para esta entrega:\n${bloqueados.map(b=>`• ${b.nombre}: ${b.razon}`).join("\n")}`);
         setG(false);
@@ -2175,8 +2316,12 @@ export default function TiendaFarmax(){
 
   const addToCart=prod=>{
     if (!prod || !prod.activo || Number(prod.stock||0) <= 0) return;
-    if (!productoPermitidoEnTiendaWeb(prod)) {
-      alert("Este producto no está disponible para compra en línea (receta, controlado o no publicado en tienda). Pásate por la farmacia.");
+    if (!productoPermitidoEnTiendaFarmaciaWeb(prod)) {
+      alert(
+        productoEsCategoriaMinisuperTienda(prod)
+          ? "Artículo de minisuper: no está en la tienda farmacia en línea. Disponible en sucursal."
+          : "Este producto no está disponible para compra en línea (receta, controlado o no publicado en tienda). Pásate por la farmacia."
+      );
       return;
     }
     setCart(p=>{
@@ -2189,6 +2334,12 @@ export default function TiendaFarmax(){
       return [...p,{...prod,qty:1,precio:Number(prod.precio ?? prod.precio ?? 0)}];
     });
   };
+
+  /** Catálogo visible en la tienda web de farmacia (sin líneas minisuper; ver `tiendaFarmaciaCatalogo.js`). */
+  const productosVistaTiendaFarmacia = useMemo(
+    () => productos.filter((p) => !productoEsCategoriaMinisuperTienda(p)),
+    [productos]
+  );
 
   if(cargando) return(<div style={{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100vh",background:C.bg,flexDirection:"column",gap:16}}><Logo size={48}/><div style={{color:C.mid,fontSize:15}}>Cargando Farmax...</div></div>);
 
@@ -2246,10 +2397,10 @@ export default function TiendaFarmax(){
   );
 
   const pages={
-    home:          <Home setPage={setPage} addToCart={addToCart} productos={productos} setProdDetalle={setProdD} busqHero={busqHero} setBusqHero={setBusqHero} precioConsulta={precioConsultaCfg}/>,
-    catalogo:      <Catalogo addToCart={addToCart} productos={productos} setProdDetalle={setProdD} setPage={setPage} busqHero={busqHero} setBusqHero={setBusqHero}/>,
+    home:          <Home setPage={setPage} addToCart={addToCart} productos={productosVistaTiendaFarmacia} setProdDetalle={setProdD} busqHero={busqHero} setBusqHero={setBusqHero} precioConsulta={precioConsultaCfg}/>,
+    catalogo:      <Catalogo addToCart={addToCart} productos={productosVistaTiendaFarmacia} setProdDetalle={setProdD} setPage={setPage} busqHero={busqHero} setBusqHero={setBusqHero}/>,
     promo:         <PromocionesPage setPage={setPage}/>,
-    detalle:       <DetalleProducto prod={prodDetalle} productos={productos} addToCart={addToCart} setPage={setPage} setProdDetalle={setProdD}/>,
+    detalle:       <DetalleProducto prod={prodDetalle} productos={productosVistaTiendaFarmacia} addToCart={addToCart} setPage={setPage} setProdDetalle={setProdD} busqHero={busqHero} setBusqHero={setBusqHero}/>,
     carrito:       <Carrito cart={cart} setCart={setCart} setPage={setPage} setEntregaGlobal={setEntregaCheckout}/>,
     checkout:      <Checkout cart={cart} setCart={setCart} setPage={setPage} user={user} entrega={entregaCheckout}/>,
     cita:          <AgendarCita setPage={setPage} user={user}/>,
