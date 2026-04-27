@@ -670,14 +670,26 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
   },[]);
 
   useEffect(()=>{
-    supabase.from("banners").select("*").eq("activo",true).order("orden").then(({data})=>{
-      const rows = (data||[]).map(mapBannerFromRow);
-      setBannerZones({
-        hero: rows.filter(r=>r.slot==="hero"),
-        strip: rows.filter(r=>r.slot==="strip"),
-        tile: rows.filter(r=>r.slot==="tile"),
+    let cancelled = false;
+    const loadBanners = ()=>{
+      supabase.from("banners").select("*").eq("activo",true).order("orden").then(({data, error})=>{
+        if (cancelled) return;
+        if (error) {
+          console.warn("[Tienda] banners:", error.message);
+          return;
+        }
+        const rows = (data||[]).map(mapBannerFromRow);
+        setBannerZones({
+          hero: rows.filter(r=>r.slot==="hero"),
+          strip: rows.filter(r=>r.slot==="strip"),
+          tile: rows.filter(r=>r.slot==="tile"),
+        });
       });
-    });
+    };
+    loadBanners();
+    const onVis = ()=>{ if (document.visibilityState==="visible") loadBanners(); };
+    document.addEventListener("visibilitychange", onVis);
+    return ()=>{ cancelled = true; document.removeEventListener("visibilitychange", onVis); };
   },[]);
 
   return(
@@ -1940,14 +1952,23 @@ export default function TiendaFarmax(){
     else sessionStorage.removeItem("farmax_user");
   },[user]);
 
-  // Cargar productos
+  // Cargar productos (mismas filas/columnas que inventario: imagen_url, imagen_mobile_url)
   useEffect(()=>{
-    supabase.from("productos").select("*").eq("activo",true).order("id")
-      .then(({data,error})=>{
-        if (error) console.error("[Tienda] productos:", error);
-        if (data?.length) setProductos(data);
-        setCargando(false);
-      });
+    let cancelled = false;
+    const loadProductos = ()=>{
+      supabase.from("productos").select("*").eq("activo",true).order("id")
+        .then(({data,error})=>{
+          if (cancelled) return;
+          if (error) console.error("[Tienda] productos:", error);
+          if (data?.length) setProductos(data);
+          else if (data && data.length === 0) setProductos([]);
+          setCargando(false);
+        });
+    };
+    loadProductos();
+    const onVis = ()=>{ if (document.visibilityState==="visible") loadProductos(); };
+    document.addEventListener("visibilitychange", onVis);
+    return ()=>{ cancelled = true; document.removeEventListener("visibilitychange", onVis); };
   },[]);
 
   // Mostrar popup 1 vez por sesión si no está logueado
