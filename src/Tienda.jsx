@@ -228,10 +228,14 @@ function HeroCarousel({setPage, items, precioConsulta, stack, useStaticPlacehold
   const b=banners[idx]||BANNERS[0];
   const heroImg = bannerVisualUrl(b, stack);
   const heroHasImg = !!heroImg;
-  /** Altura mínima del carrusel con foto: sin esto el bloque solo crece con el texto y cover recorta mal. */
-  const heroMinH = heroHasImg ? "clamp(240px, 44vw, 480px)" : undefined;
+  /** Altura acotada: antes 44vw–480px ocupaba casi toda la pantalla en móvil. */
+  const heroMinH = heroHasImg
+    ? stack
+      ? "clamp(168px, 34vw, 228px)"
+      : "clamp(200px, 22vw, 300px)"
+    : undefined;
   return(
-    <div style={{position:"relative",overflow:"hidden"}}>
+    <div style={{position:"relative",overflow:"hidden",background:heroHasImg?"#070f1a":undefined}}>
       {heroHasImg && (
         <>
           <img
@@ -243,7 +247,7 @@ function HeroCarousel({setPage, items, precioConsulta, stack, useStaticPlacehold
               inset:0,
               width:"100%",
               height:"100%",
-              objectFit:"cover",
+              objectFit:"contain",
               objectPosition:"center center",
             }}
           />
@@ -252,7 +256,7 @@ function HeroCarousel({setPage, items, precioConsulta, stack, useStaticPlacehold
             style={{
               position:"absolute",
               inset:0,
-              background:"linear-gradient(rgba(0,24,48,.55),rgba(0,24,48,.72))",
+              background:"linear-gradient(rgba(0,24,48,.5),rgba(0,24,48,.68))",
             }}
           />
         </>
@@ -260,7 +264,7 @@ function HeroCarousel({setPage, items, precioConsulta, stack, useStaticPlacehold
       <div style={{
         position:"relative",
         zIndex:1,
-        padding:"clamp(28px,8vw,48px) 16px",
+        padding:heroHasImg?"clamp(18px,4vw,32px) 16px":"clamp(28px,8vw,48px) 16px",
         textAlign:"center",
         minHeight:heroMinH,
         display:heroHasImg?"flex":"block",
@@ -536,9 +540,25 @@ function ProductCard({prod,addToCart,onClick}){
     <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,overflow:"hidden",display:"flex",flexDirection:"column",cursor:"pointer",transition:"box-shadow .2s"}}
       onMouseEnter={e=>(e.currentTarget.style.boxShadow="0 4px 20px #0002")}
       onMouseLeave={e=>(e.currentTarget.style.boxShadow="none")}>
-      <div onClick={onClick} style={{background:C.cardDark,overflow:"hidden",minHeight:140}}>
+      <div
+        onClick={onClick}
+        style={{
+          background:C.cardDark,
+          overflow:"hidden",
+          minHeight:152,
+          height:152,
+          display:"flex",
+          alignItems:"center",
+          justifyContent:"center",
+          padding:"10px 12px",
+        }}
+      >
         {imgSrc ? (
-          <img src={imgSrc} alt="" style={{width:"100%",height:140,objectFit:"cover",display:"block"}}/>
+          <img
+            src={imgSrc}
+            alt=""
+            style={{maxWidth:"100%",maxHeight:"100%",width:"auto",height:"auto",objectFit:"contain",display:"block"}}
+          />
         ) : (
           <div style={{padding:"24px",textAlign:"center",fontSize:48}}>💊</div>
         )}
@@ -588,9 +608,9 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle}){
     <div style={{maxWidth:1100,margin:"0 auto",padding:"clamp(20px, 4vw, 32px) 16px"}}>
       <button type="button" onClick={()=>setProdDetalle(null)} style={{background:"none",border:"none",color:BRAND.primary,cursor:"pointer",fontSize:14,fontWeight:700,marginBottom:20,display:"flex",alignItems:"center",gap:6}}>← Volver al catálogo</button>
       <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:stack?24:32,marginBottom:48}}>
-        <div style={{background:C.cardDark,borderRadius:20,overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",minHeight:stack?220:280}}>
+        <div style={{background:C.cardDark,borderRadius:20,overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",minHeight:stack?220:280,padding:stack?16:20}}>
           {imgSrc ? (
-            <img src={imgSrc} alt="" style={{width:"100%",maxHeight:420,objectFit:"contain"}}/>
+            <img src={imgSrc} alt="" style={{maxWidth:"100%",maxHeight:stack?360:420,width:"auto",height:"auto",objectFit:"contain",display:"block"}}/>
           ) : (
             <span style={{fontSize:"clamp(64px, 22vw, 120px)",padding:stack?32:48}}>💊</span>
           )}
@@ -1055,6 +1075,21 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
               if (v.trim()) sessionStorage.setItem("farmax_busq", v);
             } catch (err) { /* ignore */ }
           }}
+          onKeyDown={(e)=>{
+            if (e.key === "Enter") {
+              e.preventDefault();
+              const q = busq.trim();
+              setBusqFocus(false);
+              try {
+                if (q) sessionStorage.setItem("farmax_busq", q);
+              } catch (err) { /* ignore */ }
+              setBusqHero?.(busq);
+              requestAnimationFrame(()=>{
+                document.getElementById("farmax-catalogo-resultados")?.scrollIntoView({ behavior: "smooth", block: "start" });
+              });
+            }
+            if (e.key === "Escape") setBusqFocus(false);
+          }}
           onFocus={()=>setBusqFocus(true)}
           onBlur={()=>setTimeout(()=>setBusqFocus(false),280)}
           placeholder="🔍 Nombre, principio activo, marca, SKU o código…"
@@ -1140,7 +1175,10 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
             <button key={c} type="button" onClick={()=>setCat(c)} style={{width:"100%",textAlign:"left",padding:"8px 10px",borderRadius:8,border:"none",background:cat===c?BRAND.primary+"18":"transparent",color:cat===c?BRAND.primary:C.mid,fontSize:13,fontWeight:cat===c?700:400,cursor:"pointer",marginBottom:2}}>{c}</button>
           ))}
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(100%, 200px), 1fr))",gap:14,minWidth:0}}>
+        <div
+          id="farmax-catalogo-resultados"
+          style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(100%, 200px), 1fr))",gap:14,minWidth:0,scrollMarginTop:16}}
+        >
           {fil.length===0?(<div style={{padding:40,textAlign:"center",color:C.mid,gridColumn:"1/-1"}}>Sin resultados para "{busq}"</div>):fil.map(p=><ProductCard key={p.id} prod={p} addToCart={addToCart} onClick={()=>{setProdDetalle(p);setPage("detalle");}}/>)}
         </div>
       </div>
