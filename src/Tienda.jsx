@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, createContext, useContext } from "react";
 import { supabase } from "./supabase";
 import { useTheme } from "./themeContext";
 import { useMediaQuery } from "./hooks/useMediaQuery";
@@ -94,11 +94,13 @@ function bannerVisualUrl(b, stack){
   return b.imagen_url || "";
 }
 
+const TiendaPlaceholderCtx = createContext("");
+
 /** Imagen de producto en catálogo / carrito: variante móvil si existe y viewport estrecho */
-function productImageUrl(prod, narrow){
-  if (!prod) return "";
+function productImageUrl(prod, narrow, placeholderFallback = ""){
+  if (!prod) return placeholderFallback || "";
   if (narrow && prod.imagen_mobile_url) return prod.imagen_mobile_url;
-  return prod.imagen_url || "";
+  return prod.imagen_url || placeholderFallback || "";
 }
 
 // ── FAQ ───────────────────────────────────────────────────────
@@ -467,7 +469,8 @@ function ProductCard({prod,addToCart,onClick}){
   const narrow = useMediaQuery("(max-width: 768px)");
   const [added,setAdded]=useState(false);
   const d=prod.disponible||(prod.stock>0?"inmediato":"48hrs");
-  const imgSrc = productImageUrl(prod, narrow);
+  const placeholderUrl = useContext(TiendaPlaceholderCtx);
+  const imgSrc = productImageUrl(prod, narrow, placeholderUrl);
   return(
     <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,overflow:"hidden",display:"flex",flexDirection:"column",cursor:"pointer",transition:"box-shadow .2s"}}
       onMouseEnter={e=>(e.currentTarget.style.boxShadow="0 4px 20px #0002")}
@@ -518,7 +521,8 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle}){
   const similares=productos.filter(p=>p.categoria===prod.categoria&&p.id!==prod.id).slice(0,4);
   const d=prod.disponible||(prod.stock>0?"inmediato":"48hrs");
   const [added,setAdded]=useState(false);
-  const imgSrc = productImageUrl(prod, stack);
+  const placeholderUrl = useContext(TiendaPlaceholderCtx);
+  const imgSrc = productImageUrl(prod, stack, placeholderUrl);
   return(
     <div style={{maxWidth:1100,margin:"0 auto",padding:"clamp(20px, 4vw, 32px) 16px"}}>
       <button type="button" onClick={()=>setProdDetalle(null)} style={{background:"none",border:"none",color:BRAND.primary,cursor:"pointer",fontSize:14,fontWeight:700,marginBottom:20,display:"flex",alignItems:"center",gap:6}}>← Volver al catálogo</button>
@@ -983,6 +987,7 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero}){
 function Carrito({cart,setCart,setPage,setEntregaGlobal}){
   const C = useTheme();
   const stack = useMediaQuery("(max-width: 768px)");
+  const placeholderUrl = useContext(TiendaPlaceholderCtx);
   const [entrega,setEntrega]=useState("pickup");
   useEffect(()=>{ setEntregaGlobal?.(entrega); },[entrega,setEntregaGlobal]);
   const sub=cart.reduce((a,c)=>a+c.precio*c.qty,0);
@@ -1001,7 +1006,7 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
       <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr min(340px, 100%)",gap:24,alignItems:"start"}}>
         <div style={{minWidth:0}}>
           {cart.map(item=>{
-            const lineImg = productImageUrl(item, stack);
+            const lineImg = productImageUrl(item, stack, placeholderUrl);
             return (
             <div key={item.id} style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:16,marginBottom:12,display:"flex",gap:16,alignItems:"center",flexWrap:"wrap"}}>
               <div style={{background:C.cardDark,borderRadius:10,width:64,height:64,overflow:"hidden",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
@@ -1911,9 +1916,22 @@ export default function TiendaFarmax(){
   const [showPopup,setShowPopup] = useState(false);
   const [entregaCheckout,setEntregaCheckout] = useState("pickup");
   const [precioConsultaCfg,setPrecioConsultaCfg] = useState(CONSULTA_PRECIO_DEFAULT);
+  const [placeholderProductoUrl, setPlaceholderProductoUrl] = useState("");
 
   useEffect(() => {
     fetchPrecioConsultaConfig(supabase).then(setPrecioConsultaCfg);
+  }, []);
+
+  useEffect(() => {
+    supabase
+      .from("configuracion")
+      .select("valor")
+      .eq("clave", "placeholder_producto_url")
+      .maybeSingle()
+      .then(({ data }) => {
+        const v = data?.valor != null ? String(data.valor).trim() : "";
+        if (v) setPlaceholderProductoUrl(v);
+      });
   }, []);
 
   // Sesión persistente
@@ -2037,6 +2055,7 @@ export default function TiendaFarmax(){
   const sinFooter=["home"];
 
   return(
+    <TiendaPlaceholderCtx.Provider value={placeholderProductoUrl}>
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
@@ -2062,5 +2081,6 @@ export default function TiendaFarmax(){
         {!sinFooter.includes(page)&&<Footer setPage={setPage}/>}
       </div>
     </>
+    </TiendaPlaceholderCtx.Provider>
   );
 }

@@ -8,7 +8,7 @@ import { SkeletonTable, Paginador, SearchDropdown, HorizontalScrollSync } from "
 import { showToast } from "./ui";
 import OnboardingTour from "./components/OnboardingTour";
 import { idEmpleadoUsuarios } from "./utils/usuarioId";
-import { uploadAutoProductImages, deleteProductImageStorageFolder } from "./utils/storageFarmax";
+import ImageUploader from "./components/ImageUploader";
 
 const leerSesion = () => {
   try {
@@ -27,7 +27,7 @@ const CATEGORIAS = [
 const EMPTY = {
   nombre:"", sku:"", codigo_barras:"", categoria:"Otro", precio:"", costo:"", venta_unidad:false, unidades_por_caja:"", precio_unidad:"", stock_unidades:"",
   stock:"", stock_minimo:"", tipo:"generico", proveedor:"", lote:"",
-  fecha_caducidad:"", descuento_pct:"0", activo:true, imagen_url:"",
+  fecha_caducidad:"", descuento_pct:"0", activo:true, imagen_url:"", imagen_mobile_url:"",
 };
 
 /** PostgREST puede devolver una fila como array o como objeto según versión/cliente */
@@ -137,7 +137,11 @@ function ProductoModal({initial, onClose, onSaved }) {
   const btnOutline = mkBtnOutline(C);
   const btnGreen = mkBtnGreen(C);
   const [form, setForm]     = useState(() => {
-    const base = { ...(initial || EMPTY), imagen_url: (initial || EMPTY).imagen_url || "" };
+    const base = {
+      ...(initial || EMPTY),
+      imagen_url: (initial || EMPTY).imagen_url || "",
+      imagen_mobile_url: (initial || EMPTY).imagen_mobile_url || "",
+    };
     for (const k of ["nombre", "sku", "codigo_barras", "proveedor", "lote"]) {
       if (base[k] == null) base[k] = "";
     }
@@ -145,16 +149,7 @@ function ProductoModal({initial, onClose, onSaved }) {
   });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
-  const [imgFile, setImgFile] = useState(null);
-  const [imgPreview, setImgPreview] = useState("");
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
-
-  useEffect(() => {
-    if (!imgFile) { setImgPreview(""); return undefined; }
-    const u = URL.createObjectURL(imgFile);
-    setImgPreview(u);
-    return () => URL.revokeObjectURL(u);
-  }, [imgFile]);
   const validate = () => {
     const e = {};
     if (!(form.nombre ?? "").trim())                           e.nombre       = "Requerido";
@@ -200,24 +195,13 @@ function ProductoModal({initial, onClose, onSaved }) {
 
       let err;
       const urlNow = (form.imagen_url || "").trim();
-      const urlIni = ((initial || EMPTY).imagen_url || "").trim();
       if (form.id) {
-        const patch = { ...productoFields, costo: costoNum };
-        if (!imgFile) {
-          patch.imagen_url = urlNow;
-          if (urlNow !== urlIni) patch.imagen_mobile_url = urlNow;
-        } else {
-          try {
-            const urls = await uploadAutoProductImages(supabase, form.id, imgFile);
-            patch.imagen_url = urls.imagen_url;
-            patch.imagen_mobile_url = urls.imagen_mobile_url;
-          } catch (e) {
-            showToast(
-              "No se pudo subir la imagen: " + (e?.message || String(e)) + ". Se guardarán el resto de los datos sin cambiar la foto.",
-              "warning"
-            );
-          }
-        }
+        const patch = {
+          ...productoFields,
+          costo: costoNum,
+          imagen_url: urlNow || null,
+          imagen_mobile_url: urlNow || null,
+        };
         const { error: editErr } = await supabase.rpc("admin_editar_producto", {
           p_session_token: tok,
           p_producto_id: form.id,
@@ -234,11 +218,11 @@ function ProductoModal({initial, onClose, onSaved }) {
           if (adjErr) err = adjErr;
         }
       } else {
-        const pdata = { ...productoFields, costo: costoNum };
-        if (urlNow && !imgFile) {
-          pdata.imagen_url = urlNow;
-          pdata.imagen_mobile_url = urlNow;
-        }
+        const pdata = {
+          ...productoFields,
+          costo: costoNum,
+          ...(urlNow ? { imagen_url: urlNow, imagen_mobile_url: urlNow } : {}),
+        };
         const { data: created, error: rpcErr } = await supabase.rpc("create_producto_secure", {
           p_session_token: tok,
           p_producto_data: pdata,
@@ -248,26 +232,6 @@ function ProductoModal({initial, onClose, onSaved }) {
           p_costo_unitario: costoNum || null,
         });
         err = rpcErr;
-        const newId = productoIdDesdeCreateRpc(created);
-        if (!err && imgFile && !newId) {
-          showToast(
-            "Producto creado, pero no se recibió el ID desde el servidor para subir la imagen. Editá el producto y cargá la foto de nuevo.",
-            "warning"
-          );
-        }
-        if (!err && imgFile && newId) {
-          try {
-            const urls = await uploadAutoProductImages(supabase, newId, imgFile);
-            const { error: imgErr } = await supabase.rpc("admin_editar_producto", {
-              p_session_token: tok,
-              p_producto_id: newId,
-              p_patch: { imagen_url: urls.imagen_url, imagen_mobile_url: urls.imagen_mobile_url },
-            });
-            if (imgErr) throw imgErr;
-          } catch (e) {
-            showToast("Producto creado; error al subir imagen: " + (e.message || String(e)), "warning");
-          }
-        }
       }
       if (err) {
         showToast("Error al guardar: " + (err.message || String(err)), "error");
@@ -304,6 +268,30 @@ function ProductoModal({initial, onClose, onSaved }) {
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
           <h2 style={{margin:0,color:C.text,fontSize:16,fontWeight:800}}>{form.id?"✏️ Editar producto":"➕ Nuevo producto"}</h2>
           <button onClick={onClose} style={{background:"none",border:"none",color:C.textMid,fontSize:20,cursor:"pointer"}}>✕</button>
+        </div>
+        <div style={{marginBottom:16,padding:14,background:C.bg,borderRadius:10,border:`1px solid ${C.border}`}}>
+          <label style={{color:C.textMid,fontSize:11,fontWeight:700,display:"block",marginBottom:8}}>📷 FOTO DEL PRODUCTO</label>
+          <ImageUploader
+            bucket="productos"
+            currentUrl={form.imagen_url}
+            onUploaded={(url)=>setForm((f)=>({...f,imagen_url:url,imagen_mobile_url:url}))}
+            onRemoved={()=>{
+              setForm((f)=>({...f,imagen_url:"",imagen_mobile_url:""}));
+              if(form.id){
+                const t=sessionStorage.getItem("farmax_session_token");
+                if(t){
+                  supabase.rpc("admin_editar_producto",{p_session_token:t,p_producto_id:form.id,p_patch:{imagen_url:"",imagen_mobile_url:""}})
+                    .then(({error})=>{ if(error)showToast(error.message,"error"); else showToast("Imagen quitada en servidor","info"); });
+                }
+              }
+            }}
+            aspectRatio="1:1"
+            filenamePrefix={(form.sku||form.nombre||"prod").toString()}
+            size="medium"
+          />
+          <div style={{fontSize:11,color:C.textDim,marginTop:8,lineHeight:1.4}}>
+            💡 También podés pegar URL abajo si preferís. Bucket <code style={{background:C.card,padding:"1px 4px",borderRadius:4}}>productos</code> · <code style={{background:C.card,padding:"1px 4px",borderRadius:4}}>sql/storage_buckets.sql</code>
+          </div>
         </div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 18px"}}>
           <div>
@@ -348,42 +336,11 @@ function ProductoModal({initial, onClose, onSaved }) {
         </div>
 
         <div style={{marginTop:16,padding:16,borderRadius:10,border:`1px solid ${C.border}`,background:C.cardDark}}>
-          <label style={{...labelStyle,fontSize:13,fontWeight:700}}>Foto del producto (tienda online)</label>
-          <div style={{display:"flex",flexWrap:"wrap",gap:16,alignItems:"flex-start",marginTop:10}}>
-            <div style={{width:120,height:120,borderRadius:10,border:`1px solid ${C.border}`,background:C.bg,overflow:"hidden",flexShrink:0}}>
-              {(imgPreview || form.imagen_url)
-                ? <img alt="" src={imgPreview || form.imagen_url} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
-                : <div style={{height:"100%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:40,color:C.textMid}}>💊</div>}
-            </div>
-            <div style={{flex:1,minWidth:200}}>
-              <input type="file" accept="image/*" style={{fontSize:11,width:"100%",marginBottom:8}}
-                onChange={e=>setImgFile(e.target.files?.[0]||null)}/>
-              <div style={{marginBottom:8}}>
-                <label style={{...labelStyle,fontSize:10}}>O URL de imagen</label>
-                <input type="url" value={form.imagen_url||""} onChange={e=>set("imagen_url",e.target.value)}
-                  placeholder="https://..." style={{...inputStyle,fontSize:11}} disabled={!!imgFile}/>
-              </div>
-              <button type="button" style={{...btnOutline,padding:"6px 12px",fontSize:11}}
-                onClick={async()=>{
-                  setImgFile(null);
-                  set("imagen_url","");
-                  if(form.id){
-                    const t=sessionStorage.getItem("farmax_session_token");
-                    if(!t)return;
-                    try{
-                      await deleteProductImageStorageFolder(supabase,form.id);
-                      await supabase.rpc("admin_editar_producto",{p_session_token:t,p_producto_id:form.id,p_patch:{imagen_url:"",imagen_mobile_url:""}});
-                      showToast("Imagen eliminada","info");
-                    }catch(ex){showToast(ex.message||"Error","error");}
-                  }
-                }}>Quitar imagen</button>
-              <div style={{color:C.textDim,fontSize:9,marginTop:8,lineHeight:1.4}}>
-                Formatos de imagen habituales (JPEG, PNG, WebP, etc.). Al guardar se generan variantes <strong>escritorio y móvil</strong> (tamaño y compresión automáticos). GIF y SVG se suben sin re-encodear. Bucket <code>farmax-productos</code>. SQL: <code>sql/storage_farmax_tienda.sql</code> y <code>sql/patch_productos_imagen_mobile_url.sql</code>.
-              </div>
-            </div>
-          </div>
+          <label style={{...labelStyle,fontSize:12,fontWeight:700}}>O URL de imagen (opcional)</label>
+          <input type="url" value={form.imagen_url||""} onChange={e=>setForm(f=>({...f,imagen_url:e.target.value,imagen_mobile_url:e.target.value}))}
+            placeholder="https://..." style={{...inputStyle,fontSize:12}}/>
         </div>
-        
+
         {/* ── Venta por unidad suelta ── */}
         <div style={{marginTop:16,padding:16,borderRadius:10,border:`1px solid ${C.border}`,background:C.cardDark}}>
           <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:form.venta_unidad?14:0}}>
@@ -554,6 +511,292 @@ function RecibirModal({ productos, onClose, onSaved }) {
   );
 }
 
+function BulkImagesModal({ open, onClose, productos, onComplete }) {
+  const C = C_LIGHT;
+  const [files, setFiles] = useState([]);
+  const [results, setResults] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState({ current: 0, total: 0 });
+
+  if (!open) return null;
+
+  const handleFiles = (e) => {
+    const selected = Array.from(e.target.files || []);
+    setFiles(selected);
+    setResults([]);
+  };
+
+  const procesarTodas = async () => {
+    if (!files.length) return;
+    const tok = sessionStorage.getItem("farmax_session_token");
+    if (!tok) {
+      showToast("Sesión expirada.", "error");
+      return;
+    }
+    setUploading(true);
+    setProgress({ current: 0, total: files.length });
+    const res = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      setProgress({ current: i + 1, total: files.length });
+
+      const nombreArchivo = file.name.replace(/\.[^/.]+$/, "");
+      const skuLimpio = nombreArchivo.toLowerCase().trim();
+
+      const producto = productos.find(
+        (p) => p.sku && String(p.sku).toLowerCase().trim() === skuLimpio
+      );
+
+      if (!producto) {
+        res.push({ archivo: file.name, status: "no_match", mensaje: "SKU no encontrado" });
+        setResults([...res]);
+        continue;
+      }
+
+      try {
+        const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+        const safeSku = String(producto.sku).toLowerCase().replace(/[^a-z0-9-]/g, "-");
+        const fileName = `${safeSku}-${Date.now()}-${i}.${ext}`;
+
+        const { error: upErr } = await supabase.storage
+          .from("productos")
+          .upload(fileName, file, { upsert: false, cacheControl: "3600" });
+
+        if (upErr) throw upErr;
+
+        const { data: pub } = supabase.storage.from("productos").getPublicUrl(fileName);
+        const publicUrl = pub.publicUrl;
+
+        const { error: updErr } = await supabase.rpc("admin_editar_producto", {
+          p_session_token: tok,
+          p_producto_id: producto.id,
+          p_patch: { imagen_url: publicUrl, imagen_mobile_url: publicUrl },
+        });
+
+        if (updErr) throw updErr;
+
+        res.push({
+          archivo: file.name,
+          status: "ok",
+          producto: producto.nombre,
+          sku: producto.sku,
+        });
+      } catch (e) {
+        res.push({
+          archivo: file.name,
+          status: "error",
+          mensaje: e.message || String(e),
+        });
+      }
+      setResults([...res]);
+    }
+
+    setUploading(false);
+    onComplete?.();
+  };
+
+  const exitosas = results.filter((r) => r.status === "ok").length;
+  const sinMatch = results.filter((r) => r.status === "no_match").length;
+  const errores = results.filter((r) => r.status === "error").length;
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(15,23,42,.5)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 1100,
+        padding: 20,
+      }}
+    >
+      <div
+        style={{
+          background: C.card,
+          borderRadius: 14,
+          width: "min(700px, 95vw)",
+          maxHeight: "90vh",
+          overflowY: "auto",
+          padding: 28,
+          boxSizing: "border-box",
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
+          <h3 style={{ margin: 0, color: C.text, fontSize: 18, fontWeight: 800 }}>🖼️ Carga masiva de fotos</h3>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={uploading}
+            style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", color: C.textMid }}
+          >
+            ✕
+          </button>
+        </div>
+
+        <div
+          style={{
+            background: C.blueDim,
+            border: `1px solid ${C.blue}30`,
+            borderRadius: 10,
+            padding: "12px 16px",
+            marginBottom: 16,
+            fontSize: 12,
+            color: C.blue,
+            lineHeight: 1.6,
+          }}
+        >
+          📋 <strong>Cómo funciona:</strong>
+          <br />
+          1. Nombra cada archivo con el SKU del producto (ej: <code>par-500.jpg</code>, <code>ome-20.png</code>)
+          <br />
+          2. Selecciona todas las imágenes a la vez
+          <br />
+          3. El sistema asigna cada foto al producto correcto (sin importar mayúsculas)
+          <br />
+          4. Se usa el bucket Storage <code>productos</code> y se actualiza vía RPC <code>admin_editar_producto</code>
+        </div>
+
+        <input
+          type="file"
+          multiple
+          accept="image/jpeg,image/png,image/webp"
+          onChange={handleFiles}
+          disabled={uploading}
+          style={{
+            width: "100%",
+            padding: 16,
+            border: `2px dashed ${C.border}`,
+            borderRadius: 10,
+            background: C.bg,
+            cursor: "pointer",
+            marginBottom: 16,
+            boxSizing: "border-box",
+          }}
+        />
+
+        {files.length > 0 && !uploading && results.length === 0 && (
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ color: C.text, fontWeight: 700, marginBottom: 8 }}>📁 {files.length} archivo(s) seleccionado(s)</div>
+            <button
+              type="button"
+              onClick={procesarTodas}
+              style={{
+                width: "100%",
+                padding: 14,
+                borderRadius: 10,
+                border: "none",
+                background: BRAND.primary,
+                color: "#fff",
+                fontWeight: 700,
+                fontSize: 14,
+                cursor: "pointer",
+              }}
+            >
+              🚀 Procesar todas las fotos
+            </button>
+          </div>
+        )}
+
+        {uploading && (
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ color: C.text, marginBottom: 8 }}>
+              Procesando {progress.current} de {progress.total}...
+            </div>
+            <div style={{ background: C.border, borderRadius: 6, height: 12, overflow: "hidden" }}>
+              <div
+                style={{
+                  width: `${progress.total ? (progress.current / progress.total) * 100 : 0}%`,
+                  height: "100%",
+                  background: BRAND.primary,
+                  transition: "width 0.3s",
+                }}
+              />
+            </div>
+          </div>
+        )}
+
+        {results.length > 0 && (
+          <div>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(3, 1fr)",
+                gap: 8,
+                marginBottom: 16,
+              }}
+            >
+              <div style={{ background: C.greenDim, padding: "10px 12px", borderRadius: 8, textAlign: "center" }}>
+                <div style={{ color: C.green, fontSize: 22, fontWeight: 800 }}>{exitosas}</div>
+                <div style={{ color: C.green, fontSize: 11 }}>✅ Subidas OK</div>
+              </div>
+              <div style={{ background: C.amberDim, padding: "10px 12px", borderRadius: 8, textAlign: "center" }}>
+                <div style={{ color: C.amber, fontSize: 22, fontWeight: 800 }}>{sinMatch}</div>
+                <div style={{ color: C.amber, fontSize: 11 }}>⚠️ Sin SKU</div>
+              </div>
+              <div style={{ background: C.redDim, padding: "10px 12px", borderRadius: 8, textAlign: "center" }}>
+                <div style={{ color: C.red, fontSize: 22, fontWeight: 800 }}>{errores}</div>
+                <div style={{ color: C.red, fontSize: 11 }}>❌ Errores</div>
+              </div>
+            </div>
+
+            <div style={{ maxHeight: 300, overflowY: "auto", border: `1px solid ${C.border}`, borderRadius: 8 }}>
+              {results.map((r, i) => (
+                <div
+                  key={`${r.archivo}-${i}`}
+                  style={{
+                    padding: "8px 12px",
+                    borderBottom: i < results.length - 1 ? `1px solid ${C.border}` : "none",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    fontSize: 12,
+                  }}
+                >
+                  <span style={{ fontSize: 16 }}>{r.status === "ok" ? "✅" : r.status === "no_match" ? "⚠️" : "❌"}</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ color: C.text, fontWeight: 600 }}>{r.archivo}</div>
+                    {r.producto && (
+                      <div style={{ color: C.green, fontSize: 11 }}>
+                        → {r.producto} ({r.sku})
+                      </div>
+                    )}
+                    {r.mensaje && (
+                      <div style={{ color: r.status === "no_match" ? C.amber : C.red, fontSize: 11 }}>{r.mensaje}</div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {!uploading && (
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              marginTop: 16,
+              width: "100%",
+              padding: 12,
+              borderRadius: 8,
+              border: `1px solid ${C.border}`,
+              background: "transparent",
+              color: C.textMid,
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            Cerrar
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function InventarioModule() {
   const C = C_LIGHT;
   const inputStyle = mkInputStyle(C);
@@ -576,6 +819,7 @@ export default function InventarioModule() {
   const [importResult,    setImportResult]    = useState(null);
   const [paginaInv, setPaginaInv] = useState(1);
   const [modalLotes, setModalLotes] = useState(null);
+  const [modalBulkImages, setModalBulkImages] = useState(false);
   // N8: Resetear página al cambiar filtros
   useEffect(()=>{ setPaginaInv(1); },[filtroCategoria,filtroAlerta,busqueda]);
   const INV_POR_PAG = 50;
@@ -733,6 +977,9 @@ export default function InventarioModule() {
           <button style={btnOutline} onClick={()=>setModalImportar(true)}>
             {isMobileInv ? "📥 Importar" : "📥 Importar CSV"}
           </button>
+          <button style={btnOutline} onClick={()=>setModalBulkImages(true)}>
+            {isMobileInv ? "🖼️ Masivo" : "🖼️ Cargar fotos masivo"}
+          </button>
           <button style={btnOutline} onClick={descargarPlantilla}>📋 Plantilla</button>
           <button style={btnOutline} onClick={()=>exportarCSV(filtrados)}>
             {isMobileInv ? "⬇ Exportar" : "⬇ Exportar CSV"}
@@ -807,10 +1054,10 @@ export default function InventarioModule() {
         <SkeletonTable rows={8} cols={7}/>
       ) : (
         <HorizontalScrollSync data-tour="inv-tabla">
-          <table style={{width:"100%",minWidth:1100,borderCollapse:"collapse",fontSize:12}}>
+          <table style={{width:"100%",minWidth:1180,borderCollapse:"collapse",fontSize:12}}>
             <thead>
               <tr style={{background:C.card}}>
-                {["SKU","Nombre","Categoría","Tipo","Stock","Mín","Precio","Costo","Margen%","Cad. (días)","Agot. (días)","Desc%","Estado","Acciones"].map(h=>(
+                {["Foto","SKU","Nombre","Categoría","Tipo","Stock","Mín","Precio","Costo","Margen%","Cad. (días)","Agot. (días)","Desc%","Estado","Acciones"].map(h=>(
                   <th key={h} style={{padding:"10px 12px",textAlign:"left",color:C.textMid,fontWeight:700,
                     borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>{h}</th>
                 ))}
@@ -818,7 +1065,7 @@ export default function InventarioModule() {
             </thead>
             <tbody>
               {filtrados.length===0&&(
-                <tr><td colSpan={13} style={{textAlign:"center",padding:32,color:C.textMid}}>
+                <tr><td colSpan={15} style={{textAlign:"center",padding:32,color:C.textMid}}>
                   Sin productos{busqueda?` para "${busqueda}"`:""}. Agrega el primero con ➕
                 </td></tr>
               )}
@@ -832,6 +1079,14 @@ export default function InventarioModule() {
                 const mgnCol  = isNaN(mgnNum)?C.textMid:mgnNum>=30?C.green:mgnNum>=15?C.amber:C.red;
                 return (
                   <tr key={p.id} className="farmax-table-row" style={{opacity:inact?0.45:1,background:bajo?C.amberDim:nearCad?C.redDim:"transparent"}}>
+                    <td style={{padding:"6px 10px",borderBottom:`1px solid ${C.border}`}}>
+                      <div style={{
+                        width:40,height:40,borderRadius:6,
+                        background:p.imagen_url?`url(${p.imagen_url}) center/cover`:C.bg,
+                        border:`1px solid ${C.border}`,
+                        display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,
+                      }}>{!p.imagen_url?"📷":null}</div>
+                    </td>
                     <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{p.sku||"—"}</td>
                     <td style={{padding:"8px 12px",color:inact?C.textDim:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>{p.nombre}</td>
                     <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{p.categoria}</td>
@@ -902,6 +1157,14 @@ export default function InventarioModule() {
       {modal!==null&&(
         <ProductoModal key={modal.id ?? "nuevo"} initial={modal} onClose={()=>setModal(null)}
           onSaved={()=>{setModal(null);fetchProductos();}}/>
+      )}
+      {modalBulkImages && (
+        <BulkImagesModal
+          open={modalBulkImages}
+          onClose={()=>setModalBulkImages(false)}
+          productos={productos}
+          onComplete={fetchProductos}
+        />
       )}
       {modalLotes&&(
         <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,.45)",backdropFilter:"blur(4px)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}

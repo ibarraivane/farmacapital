@@ -15,10 +15,7 @@ import { puedeVerModulo, modulosPermitidosParaRol } from "./utils/permissions";
 import { adminPathnameToPageId, pageIdToAdminPath, pathnameSuggestsPosTab } from "./shared/adminRoutes";
 import { initBillingListeners } from "./modules/billing/core/initBillingListeners";
 import { canAccessRoute } from "./core/security/routeGuard";
-import {
-  uploadAutoBannerImages,
-  deleteBannerStorageFolder,
-} from "./utils/storageFarmax";
+import ImageUploader from "./components/ImageUploader";
 
 // Fallback estático para estilos fuera de componentes (evita undefined en import).
 const C = C_LIGHT;
@@ -643,23 +640,15 @@ function BannersAdmin(){
   const [modal,setModal]    = useState(null);
   const [form,setForm]      = useState({titulo:"",subtitulo:"",descripcion:"",emoji:"💊",bg:"linear-gradient(135deg,#0052cc,#0099e6)",cta:"Ver más →",pagina:"catalogo",orden:0,activo:true,slot:"hero",imagen_url:"",imagen_mobile_url:""});
   const [saving,setSaving]  = useState(false);
-  const [bannerImageFile,setBannerImageFile] = useState(null);
-  const [bannerImagePreview,setBannerImagePreview] = useState("");
 
   const fetch = async()=>{ setLoad(true); const{data}=await supabase.from("banners").select("*").order("orden"); setBanners(data||[]); setLoad(false); };
   useEffect(()=>{ fetch(); },[]);
-  useEffect(()=>{
-    if(!bannerImageFile){ setBannerImagePreview(""); return undefined; }
-    const u = URL.createObjectURL(bannerImageFile);
-    setBannerImagePreview(u);
-    return ()=>URL.revokeObjectURL(u);
-  },[bannerImageFile]);
 
   const guardar = async()=>{
     setSaving(true);
     const tok = sessionStorage.getItem("farmax_session_token");
     const payload = { ...form };
-    const { data: resp, error } = await supabase.rpc("admin_upsert_banner", {
+    const { error } = await supabase.rpc("admin_upsert_banner", {
       p_session_token: tok,
       p_id:            modal === "new" ? null : modal.id,
       p_payload:       payload,
@@ -669,32 +658,13 @@ function BannersAdmin(){
       showToast("Error: "+error.message, "error");
       return;
     }
-    const bannerId = resp?.banner_id ?? (modal !== "new" ? modal.id : null);
-    try {
-      if (bannerId && bannerImageFile) {
-        const urls = await uploadAutoBannerImages(supabase, bannerId, bannerImageFile);
-        const { error: e2 } = await supabase.rpc("admin_upsert_banner", {
-          p_session_token: tok,
-          p_id: bannerId,
-          p_payload: { imagen_url: urls.imagen_url, imagen_mobile_url: urls.imagen_mobile_url },
-        });
-        if (e2) throw e2;
-      }
-    } catch (e) {
-      setSaving(false);
-      showToast("Banner guardado; error al subir imagen: "+(e.message||String(e)), "warning");
-      setBannerImageFile(null); setModal(null); fetch();
-      return;
-    }
     setSaving(false);
-    setBannerImageFile(null);
     setModal(null); fetch();
     showToast("Banner guardado correctamente","success");
   };
 
   const eliminar = async(id)=>{
     if(!window.confirm("¿Eliminar este banner?")) return;
-    try { await deleteBannerStorageFolder(supabase, id); } catch (_) { /* ignore */ }
     const tok = sessionStorage.getItem("farmax_session_token");
     const { error } = await supabase.rpc("admin_eliminar_banner", {
       p_session_token: tok, p_id: id,
@@ -718,7 +688,7 @@ function BannersAdmin(){
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
         <h1 style={{color:C.text,fontSize:20,fontWeight:800,margin:0}}>🖼️ Banners de la tienda</h1>
-        <Btn col={BRAND.primary} onClick={()=>{setBannerImageFile(null);setForm({titulo:"",subtitulo:"",descripcion:"",emoji:"💊",bg:BRAND.gradient,cta:"Ver más →",pagina:"promo",orden:banners.length+1,activo:true,slot:"hero",imagen_url:"",imagen_mobile_url:""});setModal("new");}}>+ Nuevo banner</Btn>
+        <Btn col={BRAND.primary} onClick={()=>{setForm({titulo:"",subtitulo:"",descripcion:"",emoji:"💊",bg:BRAND.gradient,cta:"Ver más →",pagina:"promo",orden:banners.length+1,activo:true,slot:"hero",imagen_url:"",imagen_mobile_url:""});setModal("new");}}>+ Nuevo banner</Btn>
       </div>
       <div style={{background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:10,padding:"10px 16px",marginBottom:16,fontSize:12,color:"#1d4ed8",lineHeight:1.55}}>
         💡 <strong>Zona:</strong> <em>Carrusel</em> (arriba, rotación automática) · <em>Franja</em> (tarjetas anchas bajo la barra de servicios) · <em>Mosaico</em> (rejilla bajo la búsqueda). Ordená con <strong>Orden</strong>.
@@ -730,10 +700,12 @@ function BannersAdmin(){
           {!banners.length&&<div style={{color:C.textMid,textAlign:"center",padding:40,background:C.card,borderRadius:12,border:`1px solid ${C.border}`}}>Sin banners. Crea el primero.</div>}
           {banners.map(b=>(
             <div key={b.id} style={{background:C.card,borderRadius:12,border:`1px solid ${C.border}`,padding:16,display:"flex",gap:16,alignItems:"center",flexWrap:"wrap"}}>
-              <div style={{width:88,height:52,borderRadius:10,background:b.bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0,overflow:"hidden"}}>
-                {b.imagen_url
-                  ? <img src={b.imagen_url} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
-                  : <span>{b.emoji}</span>}
+              <div style={{
+                width:80,height:45,borderRadius:10,
+                background:b.imagen_url?`url(${b.imagen_url}) center/cover`:b.bg,
+                display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0,overflow:"hidden",
+              }}>
+                {!b.imagen_url&&b.emoji}
               </div>
               <div style={{flex:"1 1 200px",minWidth:0}}>
                 <div style={{fontWeight:800,color:C.text,fontSize:14}}>{b.titulo}</div>
@@ -744,7 +716,7 @@ function BannersAdmin(){
               </div>
               <div style={{display:"flex",gap:8,flexShrink:0}}>
                 <button onClick={()=>toggleActivo(b)} style={{padding:"5px 10px",borderRadius:6,border:`1px solid ${b.activo?C.green:C.border}`,background:b.activo?C.greenDim:"transparent",color:b.activo?C.green:C.textMid,fontSize:11,fontWeight:700,cursor:"pointer"}}>{b.activo?"✓ Activo":"○ Inactivo"}</button>
-                <button onClick={()=>{setBannerImageFile(null);setForm({...b,imagen_url:b.imagen_url||"",imagen_mobile_url:b.imagen_mobile_url||""});setModal(b);}} style={{padding:"5px 10px",borderRadius:6,border:`1px solid ${C.amber}`,background:C.amberDim,color:C.amber,fontSize:11,fontWeight:700,cursor:"pointer"}}>✏️ Editar</button>
+                <button onClick={()=>{setForm({...b,imagen_url:b.imagen_url||"",imagen_mobile_url:b.imagen_mobile_url||""});setModal(b);}} style={{padding:"5px 10px",borderRadius:6,border:`1px solid ${C.amber}`,background:C.amberDim,color:C.amber,fontSize:11,fontWeight:700,cursor:"pointer"}}>✏️ Editar</button>
                 <button onClick={()=>eliminar(b.id)} style={{padding:"5px 10px",borderRadius:6,border:`1px solid ${C.red}`,background:C.redDim,color:C.red,fontSize:11,fontWeight:700,cursor:"pointer"}}>🗑️</button>
               </div>
             </div>
@@ -758,28 +730,29 @@ function BannersAdmin(){
               <h3 style={{margin:0,color:C.text,fontSize:16,fontWeight:800}}>{modal==="new"?"➕ Nuevo":"✏️ Editar"} Banner</h3>
               <button onClick={()=>setModal(null)} style={{background:"none",border:"none",color:C.textMid,fontSize:22,cursor:"pointer"}}>✕</button>
             </div>
-            <div style={{marginBottom:16,padding:14,background:"#f0fdf4",borderRadius:10,border:"1px solid #86efac"}}>
-              <div style={{color:C.text,fontWeight:800,fontSize:13,marginBottom:10}}>📷 Imagen del banner</div>
-              <div style={{borderRadius:8,overflow:"hidden",border:`1px solid ${C.border}`,background:"#fff",minHeight:100,marginBottom:8}}>
-                {(bannerImagePreview||form.imagen_url)
-                  ? <img alt="" src={bannerImagePreview||form.imagen_url} style={{width:"100%",height:100,objectFit:"cover",display:"block"}}/>
-                  : <div style={{height:100,display:"flex",alignItems:"center",justifyContent:"center",color:C.textMid,fontSize:11}}>Sin imagen · JPG PNG WebP GIF SVG BMP…</div>}
+            <div style={{marginBottom:16,padding:14,background:C.bg,borderRadius:10,border:`1px solid ${C.border}`}}>
+              <label style={{color:C.textMid,fontSize:11,fontWeight:700,display:"block",marginBottom:8}}>🖼️ IMAGEN DEL BANNER</label>
+              <ImageUploader
+                bucket="banners"
+                currentUrl={form.imagen_url}
+                onUploaded={(url)=>setForm((p)=>({...p,imagen_url:url,imagen_mobile_url:url}))}
+                onRemoved={()=>{
+                  setForm((p)=>({...p,imagen_url:"",imagen_mobile_url:""}));
+                  if(modal&&modal!=="new"&&modal?.id){
+                    const tok=sessionStorage.getItem("farmax_session_token");
+                    if(tok){
+                      supabase.rpc("admin_upsert_banner",{p_session_token:tok,p_id:modal.id,p_payload:{imagen_url:"",imagen_mobile_url:""}})
+                        .then(({error})=>{ if(error)showToast(error.message,"error"); else { showToast("Imagen quitada en servidor","info"); fetch(); }});
+                    }
+                  }
+                }}
+                aspectRatio="16:9"
+                filenamePrefix={form.titulo||"banner"}
+                size="medium"
+              />
+              <div style={{fontSize:11,color:C.textDim,marginTop:8,lineHeight:1.4}}>
+                💡 Si no subes imagen, se usará el color de fondo + emoji. Bucket <code style={{background:C.card,padding:"1px 4px",borderRadius:4}}>banners</code> · <code style={{background:C.card,padding:"1px 4px",borderRadius:4}}>sql/storage_buckets.sql</code>
               </div>
-              <input type="file" accept="image/*" style={{fontSize:11,width:"100%"}} onChange={e=>setBannerImageFile(e.target.files?.[0]||null)}/>
-              <div style={{color:C.textMid,fontSize:10,marginTop:6,lineHeight:1.45}}>Al <strong>Guardar</strong> se crean <strong>dos versiones</strong>: escritorio (hasta 2000×720) y móvil (hasta 900×1600), manteniendo el formato cuando el navegador lo permite (PNG/WebP/JPEG). GIF y SVG se suben una sola vez y se usan en ambos.</div>
-              <button type="button" onClick={async()=>{
-                setBannerImageFile(null);
-                setForm(p=>({...p,imagen_url:"",imagen_mobile_url:""}));
-                if(modal&&modal!=="new"&&modal.id){
-                  const tok=sessionStorage.getItem("farmax_session_token");
-                  try{
-                    await deleteBannerStorageFolder(supabase,modal.id);
-                    await supabase.rpc("admin_upsert_banner",{p_session_token:tok,p_id:modal.id,p_payload:{imagen_url:"",imagen_mobile_url:""}});
-                    showToast("Imágenes eliminadas","info");fetch();
-                  }catch(err){showToast(err.message||"Error al eliminar","error");}
-                }
-              }} style={{marginTop:8,padding:"4px 10px",fontSize:11,borderRadius:6,border:`1px solid ${C.border}`,background:C.card,cursor:"pointer"}}>Quitar todas las imágenes</button>
-              <div style={{color:C.textDim,fontSize:10,marginTop:8,lineHeight:1.45}}>Supabase: <code style={{background:"#fff",padding:"1px 4px",borderRadius:3}}>storage_farmax_tienda.sql</code> + <code style={{background:"#fff",padding:"1px 4px",borderRadius:3}}>patch_tienda_imagenes…</code>.</div>
             </div>
             {[["Título *","titulo"],["Subtítulo","subtitulo"],["Descripción","descripcion"],["Emoji (si no hay imagen)","emoji"],["Texto del botón","cta"],["Página destino","pagina"]].map(([l,k])=>(
               <div key={k}><label style={{color:C.textMid,fontSize:11,fontWeight:700,display:"block",marginBottom:3}}>{l.toUpperCase()}</label><input style={inpS} value={form[k]||""} onChange={e=>setForm(p=>({...p,[k]:e.target.value}))} placeholder={l}/></div>
