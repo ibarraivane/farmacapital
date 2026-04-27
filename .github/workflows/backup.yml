@@ -40,6 +40,7 @@ jobs:
 
       - name: Instalar postgresql-client-${{ env.PG_MAJOR }}
         run: |
+          set -e
           sudo apt-get update -qq
           sudo apt-get install -y -qq curl ca-certificates gnupg lsb-release
           curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
@@ -48,7 +49,11 @@ jobs:
             | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
           sudo apt-get update -qq
           sudo apt-get install -y -qq "postgresql-client-${PG_MAJOR}"
-          pg_dump --version
+          # Forzar v17 al inicio del PATH (Ubuntu default es v16)
+          echo "/usr/lib/postgresql/${PG_MAJOR}/bin" >> $GITHUB_PATH
+          # Verificar versión correcta
+          /usr/lib/postgresql/${PG_MAJOR}/bin/pg_dump --version
+          which pg_dump
 
       - name: Setup Node
         uses: actions/setup-node@v5
@@ -77,6 +82,7 @@ jobs:
       - name: Ejecutar backup end-to-end
         id: run_backup
         env:
+          PATH:                /usr/lib/postgresql/17/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
           SUPABASE_DB_URL:     ${{ secrets.SUPABASE_DB_URL }}
           BACKUP_GITHUB_REPO:  ${{ secrets.BACKUP_GITHUB_REPO }}
           BACKUP_GITHUB_TOKEN: ${{ secrets.BACKUP_GITHUB_TOKEN }}
