@@ -41,13 +41,12 @@ export const MODULOS_DISPONIBLES_VENDEDOR = [
   "pwa",        // Instalar app
 ];
 
-// Módulos para doctora.
+// Módulos para doctora (sin clientes/puntos; sin agendar — eso es mostrador/admin).
 export const MODULOS_DISPONIBLES_DOCTORA = [
-  "cons_dr",    // Consultas (agenda + ficha + indicadores del período)
-  "exp_dr",     // Lista de pacientes / expedientes clínicos
-  "cons",       // Consultorio (vista completa si admin lo habilita)
-  "cli",        // Clientes
-  "pwa",        // Instalar app
+  "cons",      // Consultorio: lista de espera, en consulta, procedimientos (catálogo)
+  "cons_dr",   // Calendario lectura + indicadores (tu 70% día/semana/mes)
+  "exp_dr",    // Expedientes
+  "pwa",
 ];
 
 // Retorna la lista de ids permitidos para un rol. 'admin' devuelve "all".

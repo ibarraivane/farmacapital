@@ -153,7 +153,7 @@ function MedicoModal({ initial, onClose, onSaved }) {
   );
 }
 
-function ListaEspera() {
+function ListaEspera({ onLlamoPaciente }) {
   const C = C_LIGHT;
   const btnSecondary = mkBtnSecondary(C);
   const btnPrimary = mkBtnPrimary(C);
@@ -212,7 +212,11 @@ function ListaEspera() {
     const { error } = await supabase.rpc("actualizar_estado_cita", {
       p_session_token: tok, p_cita_id: id, p_estado: nuevoEstado,
     });
-    if (error) alert("Error: "+error.message);
+    if (error) {
+      alert("Error: "+error.message);
+      return;
+    }
+    if (nuevoEstado === "en_consulta") onLlamoPaciente?.();
     fetchCitas();
   };
 
@@ -494,8 +498,10 @@ function EnConsulta() {
   if (!citaActual) return (
     <div style={{textAlign:"center",padding:60}}>
       <div style={{fontSize:48,marginBottom:16}}>🏥</div>
-      <div style={{color:C.text,fontWeight:700,fontSize:16,marginBottom:8}}>No hay paciente en consulta</div>
-      <div style={{color:C.textMid,fontSize:13}}>Llama al siguiente paciente desde la Lista de espera</div>
+      <div style={{color:C.text,fontWeight:700,fontSize:16,marginBottom:8}}>Nadie en sala todavía</div>
+      <div style={{color:C.textMid,fontSize:13,maxWidth:420,margin:"0 auto",lineHeight:1.5}}>
+        En <strong>Lista de espera</strong> pulsa <strong>📞 Llamar</strong> en un paciente pagado; entonces se abre su ficha aquí. Ahí documentás diagnóstico, receta, procedimientos y material usado, y con <strong>Guardar consulta</strong> cerrás.
+      </div>
       <button onClick={fetchActual} style={{...btnSecondary,marginTop:16}}>🔄 Actualizar</button>
     </div>
   );
@@ -611,7 +617,7 @@ function EnConsulta() {
   );
 }
 
-function Procedimientos() {
+function Procedimientos({ readOnly }) {
   const C = C_LIGHT;
   const btnSecondary = mkBtnSecondary(C);
   const btnPrimary = mkBtnPrimary(C);
@@ -625,20 +631,24 @@ function Procedimientos() {
     setLoading(true);
     const { data, error } = await supabase.from("procedimientos_medicos").select("*").order("nombre");
     if (!error) {
-      if ((data||[]).length===0) {
-        const tok = sessionStorage.getItem("farmax_session_token");
-        if (tok) {
-          await supabase.rpc("admin_seed_procedimientos_medicos", {
-            p_session_token: tok,
-            p_items:         DEFAULT_PROCEDIMIENTOS,
-          });
+      if ((data || []).length === 0) {
+        if (readOnly) {
+          setProcs([]);
+        } else {
+          const tok = sessionStorage.getItem("farmax_session_token");
+          if (tok) {
+            await supabase.rpc("admin_seed_procedimientos_medicos", {
+              p_session_token: tok,
+              p_items:         DEFAULT_PROCEDIMIENTOS,
+            });
+          }
+          const { data: d2 } = await supabase.from("procedimientos_medicos").select("*").order("nombre");
+          setProcs(d2 || []);
         }
-        const { data:d2 } = await supabase.from("procedimientos_medicos").select("*").order("nombre");
-        setProcs(d2||[]);
-      } else setProcs(data||[]);
+      } else setProcs(data || []);
     }
     setLoading(false);
-  }, []);
+  }, [readOnly]);
 
   useEffect(() => { fetchProcs(); }, [fetchProcs]);
 
@@ -654,15 +664,18 @@ function Procedimientos() {
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
         <div style={{color:C.textMid,fontSize:12}}>{procs.length} procedimientos</div>
-        <button style={btnPrimary} onClick={()=>setModal({})}>➕ Nuevo procedimiento</button>
+        {!readOnly && <button style={btnPrimary} onClick={()=>setModal({})}>➕ Nuevo procedimiento</button>}
       </div>
       {loading ? <div style={{color:C.textMid,textAlign:"center",padding:40}}>Cargando…</div> : (
         <div style={{overflowX:"auto",borderRadius:12,border:`1px solid ${C.border}`}}>
           <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
             <thead>
               <tr style={{background:C.card}}>
-                {["Nombre","Precio","Descripción","Estado","Acciones"].map(h=>(
-                  <th key={h} style={{padding:"10px 14px",textAlign:"left",color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{h}</th>
+                {(readOnly
+                  ? ["Nombre", "Precio", "Descripción", "Estado"]
+                  : ["Nombre", "Precio", "Descripción", "Estado", "Acciones"]
+                ).map((h) => (
+                  <th key={h} style={{ padding: "10px 14px", textAlign: "left", color: C.textMid, fontWeight: 700, borderBottom: `1px solid ${C.border}` }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -675,10 +688,12 @@ function Procedimientos() {
                   <td style={{padding:"9px 14px",borderBottom:`1px solid ${C.border}`}}>
                     <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:p.activo?C.greenDim:C.redDim,color:p.activo?C.green:C.red}}>{p.activo?"Activo":"Inactivo"}</span>
                   </td>
+                  {!readOnly && (
                   <td style={{padding:"9px 14px",borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>
                     <button onClick={()=>setModal(p)} style={{...mkBtnSmBlue(C),marginRight:6}}>✏️ Editar</button>
                     <button onClick={()=>toggleActivo(p)} style={p.activo?mkBtnSmRed(C):mkBtnSmGreen(C)}>{p.activo?"Desactivar":"Reactivar"}</button>
                   </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -768,6 +783,7 @@ function Medicos() {
 export default function ConsultorioModule({ usuario }) {
   const C = C_LIGHT;
   const isMobile = useMediaQuery("(max-width: 768px)");
+  const isDoctora = usuario?.rol === "doctora";
   const inputStyle = mkInputStyle(C);
   const labelStyle = mkLabelStyle(C);
   const btnPrimary = mkBtnPrimary(C);
@@ -777,14 +793,37 @@ export default function ConsultorioModule({ usuario }) {
   const btnSmGreen = mkBtnSmGreen(C);
   const btnSmRed = mkBtnSmRed(C);
   const [tab, setTab] = useState("espera");
-  const TABS = isMobile
+  const TABS_ALL = isMobile
     ? [["espera","⏳ Lista"],["consulta","🏥 Consulta"],["procedimientos","⚕ Procedim."],["medicos","👨‍⚕️ Médicos"]]
     : [["espera","⏳ Lista de espera"],["consulta","🏥 En consulta"],["procedimientos","⚕ Procedimientos"],["medicos","👨‍⚕️ Médicos"]];
+  const TABS = isDoctora ? TABS_ALL.filter(([id]) => id !== "medicos") : TABS_ALL;
+  useEffect(() => {
+    if (isDoctora && tab === "medicos") setTab("espera");
+  }, [isDoctora, tab]);
   return (
     <div style={{padding:24,background:C.bg,minHeight:"100vh",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
       <div style={{marginBottom:20}}>
         <h1 style={{margin:0,color:C.text,fontSize:20,fontWeight:800}}>♥ Consultorio</h1>
         <p style={{margin:"4px 0 0",color:C.textMid,fontSize:12}}>Gestión médica · Farmax</p>
+        {isDoctora && (
+          <div
+            style={{
+              marginTop: 12,
+              padding: "12px 14px",
+              borderRadius: 10,
+              border: `1px solid ${C.blue}35`,
+              background: C.blueDim,
+              color: C.text,
+              fontSize: 12,
+              lineHeight: 1.45,
+            }}
+          >
+            <strong>Atender un paciente:</strong> en <em>Lista de espera</em> elige a quien ya pagó caja y pulsa{" "}
+            <strong>📞 Llamar</strong> (pasa a <em>en consulta</em> y se abre la pestaña <strong>En consulta</strong>). Ahí ves la
+            ficha, diagnóstico, medicamentos, procedimientos y <strong>Guardar consulta</strong>. Tu 70% de ingresos: menú{" "}
+            <strong>Consultas e ingresos</strong>.
+          </div>
+        )}
       </div>
       <div style={{
         display:"flex",
@@ -813,10 +852,10 @@ export default function ConsultorioModule({ usuario }) {
           }}>{label}</button>
         ))}
       </div>
-      {tab==="espera"         && <ListaEspera/>}
-      {tab==="consulta"       && <EnConsulta/>}
-      {tab==="procedimientos" && <Procedimientos/>}
-      {tab==="medicos"        && <Medicos/>}
+      {tab === "espera" && <ListaEspera onLlamoPaciente={() => setTab("consulta")} />}
+      {tab === "consulta" && <EnConsulta />}
+      {tab === "procedimientos" && <Procedimientos readOnly={isDoctora} />}
+      {tab === "medicos" && !isDoctora && <Medicos />}
       <OnboardingTour tourId="cons" usuario={usuario} />
     </div>
   );

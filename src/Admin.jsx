@@ -284,7 +284,7 @@ function groupAdminNavForRender(navIds) {
 function farmaxNavLabel(item, usuario) {
   if (!item) return "";
   if (item.id === "agenda" && usuario?.rol === "vendedor") return "Consultas del día";
-  if (item.id === "cons_dr" && usuario?.rol === "doctora") return "Agenda médica";
+  if (item.id === "cons_dr" && usuario?.rol === "doctora") return "Consultas e ingresos";
   return item.label;
 }
 
@@ -1681,7 +1681,7 @@ export default function FarmaxAdmin(){
       return;
     }
     if (usuario.rol === "vendedor") setPage("midia");
-    else if (usuario.rol === "doctora") setPage("cons_dr");
+    else if (usuario.rol === "doctora") setPage("cons");
     else setPage("dash");
   }, [usuario]);
 
@@ -1721,7 +1721,7 @@ export default function FarmaxAdmin(){
           </p>
           <button
             type="button"
-            onClick={()=>setPageAndSave(usuario.rol==="vendedor"?"midia":usuario.rol==="doctora"?"cons_dr":"dash")}
+            onClick={()=>setPageAndSave(usuario.rol==="vendedor"?"midia":usuario.rol==="doctora"?"cons":"dash")}
             style={{padding:"10px 20px", background:BRAND.primary, color:"#fff", border:"none", borderRadius:8, fontSize:13, fontWeight:700, cursor:"pointer"}}
           >
             ← Volver al inicio

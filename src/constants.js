@@ -33,7 +33,7 @@ export const NEG = {
 // trans = Transacciones (listado de pedidos); ped_online = POS pestaña pedidos web.
 // VENTAS: pos (consultas en POS), ped_online
 // INVENTARIO: inv (hub catálogo / lotes / reabasto)
-// DOCTORA: cons_dr (agenda médica), exp_dr, cli, cons, pwa
+// DOCTORA: cons, cons_dr, exp_dr, pwa (sin clientes; sin agendar)
 export const NAV_ADMIN = [
   "dash", "pos", "trans", "cli", "caja", "ped_online",
   "inv",
@@ -58,7 +58,7 @@ export const ADMIN_NAV_SECTIONS = [
 export const NAV_VENDEDOR = [
   "midia", "pos", "agenda", "trans", "cli", "inv", "caja", "cof", "ped_online", "pwa",
 ];
-export const NAV_DOCTORA = ["cons_dr", "exp_dr", "cli", "cons", "pwa"];
+export const NAV_DOCTORA = ["cons", "cons_dr", "exp_dr", "pwa"];
 
 // Iconos: usamos lucide-react (componentes) en vez de emojis para look consistente.
 // El render del Sidebar acepta tanto componentes como strings (compatibilidad).

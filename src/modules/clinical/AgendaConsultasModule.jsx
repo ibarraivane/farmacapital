@@ -10,7 +10,6 @@ import {
   citaPagoOk,
   labelCanal,
 } from "../../utils/consultaConstants";
-import { resumenLineasReceta } from "../../utils/recetaLineas";
 import { fetchProductosConsumiblesConsultorio } from "../../utils/consumiblesConsultorio";
 import { CitaFichaModal } from "./CitaFichaDoctora";
 import {
@@ -85,7 +84,7 @@ function etiquetaEstadoVisual(cita) {
  */
 export default function AgendaConsultasModule({ usuario, onNavigate }) {
   const mode = usuario?.rol === "doctora" ? "doctora" : usuario?.rol === "vendedor" ? "vendedor" : "admin";
-  const titulo = mode === "doctora" ? "Agenda médica" : "Agenda de consultas";
+  const titulo = mode === "doctora" ? "Consultas e ingresos" : "Agenda de consultas";
 
   const now = new Date();
   const [y, setY] = useState(now.getFullYear());
@@ -109,6 +108,7 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
   const [kpiPer, setKpiPer] = useState("semana");
   const [kpiLoad, setKpiLoad] = useState(true);
   const [kpi, setKpi] = useState({
+    kpiPeriodoSub: "hoy (fecha local)",
     completadas: 0,
     ingresoDoctorSum: 0,
     procedimientosCount: 0,
@@ -175,33 +175,39 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
     let cancel = false;
     (async () => {
       setKpiLoad(true);
-      const dias = kpiPer === "dia" ? 1 : kpiPer === "semana" ? 7 : 30;
-      const desdeFecha = new Date(Date.now() - dias * 86400000).toISOString().split("T")[0];
-      const desdeIso = new Date(Date.now() - dias * 86400000).toISOString();
+      const hoy = new Date().toLocaleDateString("sv-SE");
+      const nowD = new Date();
+      let desdeFecha;
+      let hastaFecha;
+      let periodoSub;
+      if (kpiPer === "dia") {
+        desdeFecha = hoy;
+        hastaFecha = hoy;
+        periodoSub = "hoy (fecha local)";
+      } else if (kpiPer === "semana") {
+        const d = new Date();
+        d.setDate(d.getDate() - 6);
+        desdeFecha = d.toLocaleDateString("sv-SE");
+        hastaFecha = hoy;
+        periodoSub = "últimos 7 días";
+      } else {
+        const y = nowD.getFullYear();
+        const m0 = nowD.getMonth();
+        const lastD = new Date(y, m0 + 1, 0).getDate();
+        desdeFecha = `${y}-${String(m0 + 1).padStart(2, "0")}-01`;
+        hastaFecha = `${y}-${String(m0 + 1).padStart(2, "0")}-${String(lastD).padStart(2, "0")}`;
+        periodoSub = "mes en curso";
+      }
       try {
-        const [citasRes, cfgRes, extRes, pedRec] = await Promise.all([
-          supabase
-            .from("citas")
-            .select("id,estado,ingreso_doctor,duracion_consulta_segundos,procedimientos_realizados,medicamentos_prescritos")
-            .gte("fecha", desdeFecha)
-            .neq("estado", "cancelada"),
-          supabase.from("configuracion").select("valor").eq("clave", "estimado_receta_externa").maybeSingle(),
-          supabase
-            .from("citas")
-            .select("id", { count: "exact", head: true })
-            .gte("fecha", desdeFecha)
-            .eq("receta_surtido_en", "externa")
-            .neq("estado", "cancelada")
-            .or("estado.eq.completada,estado.eq.pagada,pago_estado.eq.pagada"),
-          supabase
-            .from("pedidos")
-            .select("total")
-            .gte("created_at", desdeIso)
-            .eq("estado", "completado")
-            .eq("receta_origen", "medico_farmax"),
-        ]);
+        const { data, error } = await supabase
+          .from("citas")
+          .select("id,estado,ingreso_doctor,duracion_consulta_segundos,procedimientos_realizados,medicamentos_prescritos,fecha")
+          .gte("fecha", desdeFecha)
+          .lte("fecha", hastaFecha)
+          .neq("estado", "cancelada");
+        if (error) throw error;
         if (cancel) return;
-        const rows = citasRes.data || [];
+        const rows = data || [];
         const completadas = rows.filter((c) => c.estado === "completada" || c.estado === "pagada");
         const ingresoDoctorSum = completadas.reduce((a, c) => {
           const v = parseFloat(c.ingreso_doctor);
@@ -225,24 +231,16 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
         const tiempoPromMin = tiemposValidos.length
           ? tiemposValidos.reduce((a, b) => a + b, 0) / tiemposValidos.length / 60
           : null;
-        const lineas = resumenLineasReceta(rows);
-        const estRaw = parseFloat(cfgRes.data?.valor);
-        const estimadoUnit = Number.isFinite(estRaw) && estRaw >= 0 ? estRaw : 350;
-        const nRecetasExternas = extRes.count ?? 0;
-        const ventasRecetaFarmax = (pedRec.data || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
-        setKpi({
+        setKpi((prev) => ({
+          ...prev,
+          kpiPeriodoSub: periodoSub,
           completadas: completadas.length,
           ingresoDoctorSum,
           procedimientosCount,
           tiempoPromMin,
-          ventasRecetaFarmax,
-          nRecetasExternas,
-          oportunidadEst: nRecetasExternas * estimadoUnit,
-          estimadoUnit,
-          lineas,
-        });
+        }));
       } catch (e) {
-        console.error("[Agenda] kpi:", e);
+        console.error("[Agenda] kpi doctora:", e);
       } finally {
         if (!cancel) setKpiLoad(false);
       }
@@ -275,6 +273,10 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
   };
 
   const guardarNuevaCita = async () => {
+    if (mode === "doctora") {
+      showToast("Quien agenda citas es mostrador o administración. Vos atendés en Consultorio.", "info");
+      return;
+    }
     const hoy = hoySvLocal();
     if (diaSel < hoy) {
       showToast("No se pueden agendar citas en fechas pasadas.", "warning");
@@ -369,7 +371,7 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
             {mode === "vendedor"
               ? "Consultas del día y cobros en mostrador; sin detalle clínico completo."
               : mode === "doctora"
-                ? "Calendario y citas; el cobro lo realiza caja en POS (pestaña Consultas)."
+                ? "Solo consulta: citas las agenda mostrador o admin. Vos atendés en menú «Consultorio» (Llamar → En consulta). El cobro lo hace caja en POS."
                 : "Vista completa del consultorio: calendario, horarios y expediente."}
           </p>
         </div>
@@ -424,10 +426,28 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
             <SkeletonKPIs count={4} />
           ) : (
             <div style={{ display: "flex", gap: 12, marginBottom: 18, flexWrap: "wrap" }}>
-              <KPI label="Consultas cerradas" value={kpi.completadas} col={C.green} icon="🏥" sub={kpiPer === "dia" ? "hoy" : kpiPer === "semana" ? "7 días" : "30 días"} />
-              <KPI label="Ingresos (consulta)" value={$(kpi.ingresoDoctorSum)} col={C.purple} icon="💰" sub="parte médico" />
-              <KPI label="Procedimientos" value={kpi.procedimientosCount} col={C.blue} icon="🩺" />
-              <KPI label="Tiempo prom." value={kpi.tiempoPromMin != null ? `${kpi.tiempoPromMin.toFixed(1)} min` : "—"} col={C.amber} icon="⏱️" />
+              <KPI
+                label="Consultas cerradas"
+                value={kpi.completadas}
+                col={C.green}
+                icon="🏥"
+                sub={kpi.kpiPeriodoSub || "—"}
+              />
+              <KPI
+                label="Tu ingreso (≈70%)"
+                value={$(kpi.ingresoDoctorSum)}
+                col={C.purple}
+                icon="💰"
+                sub="Solo tu parte; lo registra caja al cobrar"
+              />
+              <KPI label="Procedimientos" value={kpi.procedimientosCount} col={C.blue} icon="🩺" sub="en consultas cerradas" />
+              <KPI
+                label="Tiempo prom."
+                value={kpi.tiempoPromMin != null ? `${kpi.tiempoPromMin.toFixed(1)} min` : "—"}
+                col={C.amber}
+                icon="⏱️"
+                sub={kpi.kpiPeriodoSub || "—"}
+              />
             </div>
           )}
         </>
@@ -726,7 +746,7 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
                     ) : libre ? (
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                         <span style={{ color: C.green, fontWeight: 700, fontSize: 13 }}>Disponible</span>
-                        {(mode === "doctora" || mode === "admin" || mode === "vendedor") && (
+                        {(mode === "admin" || mode === "vendedor") && (
                           <Btn sm col={BRAND.primary} onClick={() => setSlotNuevo(hora)}>
                             Agendar
                           </Btn>
