@@ -18,17 +18,33 @@ module.exports = async function handler(req, res) {
 
   // MP puede llamar por GET o POST dependiendo del tipo de notificación.
   const topic = String(req.query?.topic || req.query?.type || req.body?.type || '').toLowerCase();
+  const action = String(req.body?.action || '').toLowerCase();
   const dataId = String(req.query?.id || req.query?.['data.id'] || req.body?.data?.id || '').trim();
   if (!dataId) return res.status(200).json({ ok: true, ignored: true, reason: 'missing_data_id' });
 
   try {
-    if (topic && topic !== 'payment') return res.status(200).json({ ok: true, ignored: true, reason: `topic_${topic}` });
+    const looksLikePaymentTopic = topic === 'payment' || action.startsWith('payment.');
+    if (!looksLikePaymentTopic) {
+      return res.status(200).json({ ok: true, ignored: true, reason: `topic_${topic || action || 'unknown'}` });
+    }
+
+    // Simulaciones de MP a veces envían data.id = "payment" (no es un id real).
+    if (!/^\d+$/.test(dataId)) {
+      return res.status(200).json({ ok: true, ignored: true, reason: 'non_numeric_payment_id', dataId });
+    }
 
     const mpResp = await fetch(`https://api.mercadopago.com/v1/payments/${encodeURIComponent(dataId)}`, {
       headers: { Authorization: `Bearer ${MP_ACCESS_TOKEN}` },
     });
     const payment = await mpResp.json();
-    if (!mpResp.ok) return res.status(502).json({ ok: false, error: 'mp_payment_fetch_failed' });
+    if (!mpResp.ok) {
+      return res.status(200).json({
+        ok: true,
+        ignored: true,
+        reason: 'mp_payment_not_accessible',
+        status: mpResp.status,
+      });
+    }
 
     const externalRef = String(payment?.external_reference || '');
     const m = externalRef.match(/FARMAX-PED-(\d+)/);
