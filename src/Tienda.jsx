@@ -51,6 +51,13 @@ function tiendaSumLotesByProduct(lotesRows) {
   return m;
 }
 
+function checkoutAddressStorageKey(user) {
+  const id = user?.id != null ? String(user.id) : "";
+  const tel = user?.telefono ? String(user.telefono).replace(/\D/g, "") : "";
+  const suffix = id || tel || "guest";
+  return `farmax_checkout_address_${suffix}`;
+}
+
 /** Stock vendible: max(columna productos.stock, suma lotes) por si el trigger no sincronizó. */
 function tiendaEffectiveStockFromDb(dbp, sumLotesMap) {
   const col = Number(dbp?.stock) || 0;
@@ -1535,15 +1542,23 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
 }
 
 // ── CHECKOUT ──────────────────────────────────────────────────
-function Checkout({cart,setCart,setPage,user,entrega="pickup",catalogoProductos=[]}){
+function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoProductos=[]}){
   const C = useTheme();
   const stack = useMediaQuery("(max-width: 768px)");
   const [step,setStep]=useState(1);
-  const [datos,setDatos]=useState({nombre:user?.nombre||"",tel:user?.telefono||"",email:user?.email||"",calle:"",colonia:"",cp:""});
+  const [datos,setDatos]=useState(()=>({
+    nombre:user?.nombre||"",
+    tel:user?.telefono||"",
+    email:user?.email||"",
+    calle:user?.calle||"",
+    colonia:user?.colonia||"",
+    cp:user?.cp||"",
+  }));
   const [metodo,setMetodo]=useState("tarjeta");
   const [conf,setConf]=useState(false);
   const [lastOrder,setLastOrder]=useState(null);
   const [guardando,setG]=useState(false);
+  const [checkoutMsg,setCheckoutMsg]=useState(null);
   const sub=cart.reduce((a,c)=>a+(Number(c.precio)||0)*(Number(c.qty)||0),0);
   const ptsG=Math.floor(sub/10);
 
@@ -1612,9 +1627,45 @@ function Checkout({cart,setCart,setPage,user,entrega="pickup",catalogoProductos=
   }, [catalogoById, setCart, cart.length]);
 
   const notifyCheckout = (msg, type = "warning") => {
+    setCheckoutMsg({ text: String(msg || ""), type });
     showToast(msg, type);
-    try { window.alert(msg); } catch (_) { /* noop */ }
   };
+
+  useEffect(() => {
+    const fallback = {
+      nombre: user?.nombre || "",
+      tel: user?.telefono || "",
+      email: user?.email || "",
+      calle: user?.calle || "",
+      colonia: user?.colonia || "",
+      cp: user?.cp || "",
+    };
+    let merged = { ...fallback };
+    try {
+      const raw = localStorage.getItem(checkoutAddressStorageKey(user));
+      if (raw) {
+        const saved = JSON.parse(raw);
+        merged = {
+          ...merged,
+          calle: String(saved?.calle || merged.calle || ""),
+          colonia: String(saved?.colonia || merged.colonia || ""),
+          cp: String(saved?.cp || merged.cp || ""),
+        };
+      }
+    } catch (_) { /* noop */ }
+    setDatos((prev) => ({ ...prev, ...merged }));
+  }, [user?.id, user?.telefono, user?.nombre, user?.email, user?.calle, user?.colonia, user?.cp]);
+
+  useEffect(() => {
+    const payload = {
+      calle: String(datos.calle || "").trim(),
+      colonia: String(datos.colonia || "").trim(),
+      cp: String(datos.cp || "").trim(),
+    };
+    try {
+      localStorage.setItem(checkoutAddressStorageKey(user), JSON.stringify(payload));
+    } catch (_) { /* noop */ }
+  }, [datos.calle, datos.colonia, datos.cp, user?.id, user?.telefono]);
 
   const confirmar=async()=>{
     if (!cart.length) return;
@@ -1710,6 +1761,32 @@ function Checkout({cart,setCart,setPage,user,entrega="pickup",catalogoProductos=
         setG(false); return;
       }
 
+      // Persistir datos de contacto/dirección al perfil del cliente para no reescribir cada compra.
+      try {
+        await supabase.rpc("cliente_actualizar_perfil", {
+          p_session_token: tokCli,
+          p_nombre: String(datos.nombre || "").trim() || null,
+          p_email: String(datos.email || "").trim() || null,
+          p_calle: String(datos.calle || "").trim() || null,
+          p_colonia: String(datos.colonia || "").trim() || null,
+          p_cp: String(datos.cp || "").trim() || null,
+          p_rfc: null,
+          p_razon_social: null,
+        });
+        if (typeof setUser === "function") {
+          setUser((prev) => ({
+            ...(prev || {}),
+            nombre: String(datos.nombre || "").trim() || prev?.nombre || "",
+            email: String(datos.email || "").trim() || prev?.email || "",
+            calle: String(datos.calle || "").trim() || prev?.calle || "",
+            colonia: String(datos.colonia || "").trim() || prev?.colonia || "",
+            cp: String(datos.cp || "").trim() || prev?.cp || "",
+          }));
+        }
+      } catch (e) {
+        console.warn("[Checkout] cliente_actualizar_perfil:", e);
+      }
+
       const p_cart = reconciled.map(c => ({
         producto_id: tiendaNormProductId(c.id),
         cantidad:    Number(c.qty),
@@ -1785,9 +1862,26 @@ function Checkout({cart,setCart,setPage,user,entrega="pickup",catalogoProductos=
   return(
     <div style={{maxWidth:900,margin:"0 auto",padding:"clamp(20px,4vw,32px) 16px"}}>
       <h1 style={{color:C.dark,fontSize:"clamp(22px,5vw,26px)",fontWeight:800,marginBottom:24,lineHeight:1.2}}>Finalizar compra</h1>
+      {checkoutMsg?.text && (
+        <div
+          style={{
+            marginBottom: 14,
+            padding: "10px 12px",
+            borderRadius: 10,
+            border: `1px solid ${checkoutMsg.type === "error" ? C.red + "50" : "#f59e0b55"}`,
+            background: checkoutMsg.type === "error" ? C.redDim : "#fef3c7",
+            color: checkoutMsg.type === "error" ? C.red : "#92400e",
+            fontSize: 13,
+            whiteSpace: "pre-line",
+            lineHeight: 1.45,
+          }}
+        >
+          {checkoutMsg.text}
+        </div>
+      )}
       <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr min(300px,100%)",gap:24,alignItems:"start"}}>
         <div style={{minWidth:0}}>
-          {step===1&&(<div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}><div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:20}}>📋 Datos de contacto</div><div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:14}}>{[["Nombre completo","nombre"],["Teléfono","tel"],["Correo electrónico","email"],["Calle y número","calle"],["Colonia","colonia"],["Código postal","cp"]].map(([l,k])=>(<div key={k} style={{gridColumn:!stack&&(k==="email"||k==="calle")?"1/-1":undefined}}><div style={{color:C.mid,fontSize:12,marginBottom:6,fontWeight:600}}>{l}</div><Inp value={datos[k]} onChange={e=>setDatos(p=>({...p,[k]:e.target.value}))} placeholder={l} style={{width:"100%",boxSizing:"border-box",fontSize:16}}/></div>))}</div><Btn onClick={()=>setStep(2)} col={BRAND.primary} style={{marginTop:20,width:stack?"100%":undefined}} disabled={!datos.nombre||!datos.tel}>Continuar al pago →</Btn></div>)}
+          {step===1&&(<div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}><div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:20}}>📋 Datos de contacto</div><div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:14}}>{[["Nombre completo","nombre"],["Teléfono","tel"],["Correo electrónico","email"],["Calle y número","calle"],["Colonia","colonia"],["Código postal","cp"]].map(([l,k])=>(<div key={k} style={{gridColumn:!stack&&(k==="email"||k==="calle")?"1/-1":undefined}}><div style={{color:C.mid,fontSize:12,marginBottom:6,fontWeight:600}}>{l}</div><Inp value={datos[k]} onChange={e=>setDatos(p=>({...p,[k]:e.target.value}))} placeholder={l} style={{width:"100%",boxSizing:"border-box",fontSize:16}}/></div>))}</div><div style={{marginTop:10,fontSize:12,color:C.textMid,lineHeight:1.45}}>La dirección se guarda para tu próxima compra y se sincroniza con tu perfil.</div><Btn onClick={()=>setStep(2)} col={BRAND.primary} style={{marginTop:20,width:stack?"100%":undefined}} disabled={!datos.nombre||!datos.tel}>Continuar al pago →</Btn></div>)}
           {step===2&&(<div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}><div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:20}}>💳 Método de pago</div>{[["tarjeta","💳 Tarjeta de crédito/débito","Visa, Mastercard, Amex"],["mercadopago","🔵 Mercado Pago","Wallet · Cuotas sin intereses"]].map(([v,l,s])=>(<div key={v} onClick={()=>setMetodo(v)} style={{padding:"14px 16px",borderRadius:10,border:`2px solid ${metodo===v?BRAND.primary:C.border}`,background:metodo===v?BRAND.primary+"18":C.white,cursor:"pointer",marginBottom:10}}><div style={{color:metodo===v?BRAND.primary:C.dark,fontWeight:700,fontSize:"clamp(13px,3.2vw,14px)"}}>{l}</div><div style={{color:C.dim,fontSize:12,marginTop:2}}>{s}</div></div>))}<div style={{display:"flex",gap:10,marginTop:8,flexWrap:"wrap"}}><Btn onClick={()=>setStep(1)} outline col={C.mid} sm>← Atrás</Btn><Btn onClick={()=>setStep(3)} col={BRAND.primary} style={{flex:stack?1:undefined,minWidth:stack?0:undefined}}>Revisar pedido →</Btn></div></div>)}
           {step===3&&(<div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}><div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:16}}>✅ Confirmar pedido</div>{cart.map(item=>(<div key={item.id} style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,padding:"8px 0",borderBottom:`1px solid ${C.border}`}}><span style={{color:C.dark,fontSize:13,fontWeight:600,flex:1,minWidth:0,wordBreak:"break-word"}}>{item.nombre} ×{item.qty}</span><span style={{color:BRAND.primary,fontWeight:700,flexShrink:0}}>{$(item.precio*item.qty)}</span></div>))}<div style={{display:"flex",gap:10,marginTop:16,flexWrap:"wrap"}}><Btn onClick={()=>setStep(2)} outline col={C.mid} sm>← Atrás</Btn><Btn onClick={confirmar} col={BRAND.primary} disabled={guardando} style={{flex:stack?1:undefined,minWidth:0}}>{guardando?"Procesando pago...":"💳 Pagar y confirmar "+$(sub)}</Btn></div></div>)}
         </div>
@@ -2841,7 +2935,7 @@ export default function TiendaFarmax(){
     promo:         <PromocionesPage setPage={setPage}/>,
     detalle:       <DetalleProducto prod={prodDetalle} productos={productosVistaTiendaFarmacia} addToCart={addToCart} setPage={setPage} setProdDetalle={setProdD} busqHero={busqHero} setBusqHero={setBusqHero}/>,
     carrito:       <Carrito cart={cart} setCart={setCart} setPage={setPage} setEntregaGlobal={setEntregaCheckout}/>,
-    checkout:      <Checkout cart={cart} setCart={setCart} setPage={setPage} user={user} entrega={entregaCheckout} catalogoProductos={productosVistaTiendaFarmacia}/>,
+    checkout:      <Checkout cart={cart} setCart={setCart} setPage={setPage} user={user} setUser={setUser} entrega={entregaCheckout} catalogoProductos={productosVistaTiendaFarmacia}/>,
     cita:          <AgendarCita setPage={setPage} user={user}/>,
     login:         <Login setUser={setUser} setPage={setPage}/>,
     registro:      <Registro setUser={setUser} setPage={setPage}/>,
