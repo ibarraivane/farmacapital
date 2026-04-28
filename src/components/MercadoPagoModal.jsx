@@ -105,8 +105,9 @@ export default function MercadoPagoModal({ open, total, folio, hint, onSuccess, 
         {/* No configurado */}
         {!isMPConfigured()&&(
           <div style={{background:"#fef3c7",border:"1px solid #f59e0b30",borderRadius:8,padding:"10px 14px",marginBottom:16,fontSize:11,color:"#92400e"}}>
-            ⚠️ Mercado Pago no configurado.<br/>
-            Agrega <strong>REACT_APP_MP_PUBLIC_KEY</strong>, <strong>REACT_APP_MP_ACCESS_TOKEN</strong> y <strong>REACT_APP_MP_DEVICE_ID</strong> en tu archivo <code>.env</code>.
+            ⚠️ Mercado Pago no configurado en modo seguro.<br/>
+            Configura <strong>REACT_APP_MP_PUBLIC_KEY</strong>, <strong>REACT_APP_MP_DEVICE_ID</strong> y <strong>REACT_APP_MP_PROXY_URL</strong>.<br/>
+            No expongas <strong>REACT_APP_MP_ACCESS_TOKEN</strong> en frontend de producción.
           </div>
         )}
 

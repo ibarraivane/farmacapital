@@ -1022,7 +1022,7 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
       {/* Badges */}
       <div style={{background:C.white,borderBottom:`1px solid ${C.border}`,padding:"14px clamp(12px,4vw,24px)"}}>
         <div style={{maxWidth:1200,margin:"0 auto",display:"flex",gap:"clamp(10px,3vw,24px)",justifyContent:"center",flexWrap:"wrap"}}>
-          {[["🚀","Pick-up gratis","Recoge hoy en Farmax"],["🛵","CDMX express","Rappi & Uber Connect"],["📦","Envío foráneo","$89 · Skydropx"],["⭐","Puntos Farmax","Acumula en cada compra"],["💳","Pago seguro","Tarjeta y Mercado Pago"]].map(([icon,t,s])=>(
+          {[["🚀","Pick-up gratis","Recoge hoy en Farmax"],["🛵","CDMX express","Rappi & Uber Connect"],["📦","Envío foráneo","$89 · Skydropx"],["⭐","Puntos Farmax","Acumula en cada compra"],["💳","Pago online","Tarjeta y Mercado Pago (pasarela externa)"]].map(([icon,t,s])=>(
             <div key={t} style={{display:"flex",alignItems:"center",gap:8}}>
               <div style={{fontSize:20}}>{icon}</div>
               <div><div style={{color:C.dark,fontWeight:700,fontSize:12}}>{t}</div><div style={{color:C.dim,fontSize:11}}>{s}</div></div>
@@ -1810,6 +1810,58 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
       }
 
       const subSnap = reconciled.reduce((a,c)=>a+(Number(c.precio)||0)*(Number(c.qty)||0),0);
+
+      if (metodo === "mercadopago") {
+        const baseUrl = window.location.origin;
+        const mpResp = await fetch("/api/payments/mp/create-preference", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${tokCli}`,
+          },
+          body: JSON.stringify({
+            pedidoId: resp.pedido_id,
+            amount: subSnap,
+            baseUrl,
+            payer: {
+              name: String(datos.nombre || "").trim() || null,
+              email: String(datos.email || "").trim() || null,
+            },
+            items: reconciled.map((c) => ({
+              title: c.nombre || "Producto",
+              quantity: Number(c.qty) || 1,
+              unit_price: Number(c.precio) || 0,
+            })),
+          }),
+        });
+        const mpData = await mpResp.json().catch(() => ({}));
+        if (!mpResp.ok || !mpData?.ok || !(mpData.initPoint || mpData.sandboxInitPoint)) {
+          notifyCheckout(
+            "Pedido creado, pero no se pudo iniciar Mercado Pago. Puedes reintentar desde Mis pedidos.",
+            "warning"
+          );
+          setLastOrder({
+            sub: subSnap,
+            ptsG: Math.floor(subSnap/10),
+            lines: reconciled.map(c=>({ nombre:c.nombre, qty:c.qty, precio:c.precio })),
+            entregaUi: entrega,
+            tipo_entrega,
+            order_channel,
+            fulfillment_type,
+            ui_entrega: ui_entrega || null,
+            datosTel: datos.tel,
+            pedidoId: resp.pedido_id,
+          });
+          setConf(true);
+          setCart([]);
+          setG(false);
+          return;
+        }
+        setCart([]);
+        window.location.href = mpData.initPoint || mpData.sandboxInitPoint;
+        return;
+      }
+
       setLastOrder({
         sub: subSnap,
         ptsG: Math.floor(subSnap/10),
@@ -1882,7 +1934,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
       <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr min(300px,100%)",gap:24,alignItems:"start"}}>
         <div style={{minWidth:0}}>
           {step===1&&(<div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}><div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:20}}>📋 Datos de contacto</div><div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:14}}>{[["Nombre completo","nombre"],["Teléfono","tel"],["Correo electrónico","email"],["Calle y número","calle"],["Colonia","colonia"],["Código postal","cp"]].map(([l,k])=>(<div key={k} style={{gridColumn:!stack&&(k==="email"||k==="calle")?"1/-1":undefined}}><div style={{color:C.mid,fontSize:12,marginBottom:6,fontWeight:600}}>{l}</div><Inp value={datos[k]} onChange={e=>setDatos(p=>({...p,[k]:e.target.value}))} placeholder={l} style={{width:"100%",boxSizing:"border-box",fontSize:16}}/></div>))}</div><div style={{marginTop:10,fontSize:12,color:C.textMid,lineHeight:1.45}}>La dirección se guarda para tu próxima compra y se sincroniza con tu perfil.</div><Btn onClick={()=>setStep(2)} col={BRAND.primary} style={{marginTop:20,width:stack?"100%":undefined}} disabled={!datos.nombre||!datos.tel}>Continuar al pago →</Btn></div>)}
-          {step===2&&(<div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}><div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:20}}>💳 Método de pago</div>{[["tarjeta","💳 Tarjeta de crédito/débito","Visa, Mastercard, Amex"],["mercadopago","🔵 Mercado Pago","Wallet · Cuotas sin intereses"]].map(([v,l,s])=>(<div key={v} onClick={()=>setMetodo(v)} style={{padding:"14px 16px",borderRadius:10,border:`2px solid ${metodo===v?BRAND.primary:C.border}`,background:metodo===v?BRAND.primary+"18":C.white,cursor:"pointer",marginBottom:10}}><div style={{color:metodo===v?BRAND.primary:C.dark,fontWeight:700,fontSize:"clamp(13px,3.2vw,14px)"}}>{l}</div><div style={{color:C.dim,fontSize:12,marginTop:2}}>{s}</div></div>))}<div style={{display:"flex",gap:10,marginTop:8,flexWrap:"wrap"}}><Btn onClick={()=>setStep(1)} outline col={C.mid} sm>← Atrás</Btn><Btn onClick={()=>setStep(3)} col={BRAND.primary} style={{flex:stack?1:undefined,minWidth:stack?0:undefined}}>Revisar pedido →</Btn></div></div>)}
+          {step===2&&(<div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}><div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:20}}>💳 Método de pago</div>{[["tarjeta","💳 Tarjeta de crédito/débito","Pasarela externa segura (sin capturar tarjeta en Farmax)"],["mercadopago","🔵 Mercado Pago","Checkout de Mercado Pago / wallet"]].map(([v,l,s])=>(<div key={v} onClick={()=>setMetodo(v)} style={{padding:"14px 16px",borderRadius:10,border:`2px solid ${metodo===v?BRAND.primary:C.border}`,background:metodo===v?BRAND.primary+"18":C.white,cursor:"pointer",marginBottom:10}}><div style={{color:metodo===v?BRAND.primary:C.dark,fontWeight:700,fontSize:"clamp(13px,3.2vw,14px)"}}>{l}</div><div style={{color:C.dim,fontSize:12,marginTop:2}}>{s}</div></div>))}<div style={{color:C.textDim,fontSize:11,lineHeight:1.45,marginBottom:10}}>Nunca ingreses tarjetas en formularios no certificados. El cobro debe procesarse en pasarela autorizada.</div><div style={{display:"flex",gap:10,marginTop:8,flexWrap:"wrap"}}><Btn onClick={()=>setStep(1)} outline col={C.mid} sm>← Atrás</Btn><Btn onClick={()=>setStep(3)} col={BRAND.primary} style={{flex:stack?1:undefined,minWidth:stack?0:undefined}}>Revisar pedido →</Btn></div></div>)}
           {step===3&&(<div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}><div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:16}}>✅ Confirmar pedido</div>{cart.map(item=>(<div key={item.id} style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,padding:"8px 0",borderBottom:`1px solid ${C.border}`}}><span style={{color:C.dark,fontSize:13,fontWeight:600,flex:1,minWidth:0,wordBreak:"break-word"}}>{item.nombre} ×{item.qty}</span><span style={{color:BRAND.primary,fontWeight:700,flexShrink:0}}>{$(item.precio*item.qty)}</span></div>))}<div style={{display:"flex",gap:10,marginTop:16,flexWrap:"wrap"}}><Btn onClick={()=>setStep(2)} outline col={C.mid} sm>← Atrás</Btn><Btn onClick={confirmar} col={BRAND.primary} disabled={guardando} style={{flex:stack?1:undefined,minWidth:0}}>{guardando?"Procesando pago...":"💳 Pagar y confirmar "+$(sub)}</Btn></div></div>)}
         </div>
         <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:20,position:stack?"relative":"sticky",top:"calc(env(safe-area-inset-top, 0px) + 100px)"}}>

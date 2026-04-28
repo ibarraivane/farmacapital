@@ -5,22 +5,43 @@
 // ═══════════════════════════════════════════════════════════
 
 // ── Configuración ────────────────────────────────────────
-// IMPORTANTE: Estas keys van en variables de entorno (.env)
-// REACT_APP_MP_PUBLIC_KEY=TEST-xxxx (sandbox)
-// REACT_APP_MP_ACCESS_TOKEN=TEST-xxxx (sandbox)
-// Para producción: usar keys reales de MP
+// IMPORTANTE:
+// - REACT_APP_MP_PUBLIC_KEY puede vivir en frontend.
+// - REACT_APP_MP_ACCESS_TOKEN NO debe exponerse en frontend en producción.
+//   Se permite solo para desarrollo local temporal.
+// - Producción segura: usar backend/proxy con token privado.
 
 const MP_PUBLIC_KEY   = process.env.REACT_APP_MP_PUBLIC_KEY   || null;
 const MP_ACCESS_TOKEN = process.env.REACT_APP_MP_ACCESS_TOKEN || null;
 const MP_DEVICE_ID    = process.env.REACT_APP_MP_DEVICE_ID    || null; // ID del Point Smart 2
+const MP_PROXY_URL    = process.env.REACT_APP_MP_PROXY_URL    || null; // endpoint backend seguro
 const MP_BASE_URL     = "https://api.mercadopago.com";
 const SANDBOX_MODE    = !MP_ACCESS_TOKEN?.startsWith("APP_USR");
+const HOSTNAME        = globalThis?.location?.hostname || "";
+const IS_LOCAL_DEV    = HOSTNAME === "localhost" || HOSTNAME === "127.0.0.1";
+
+function isFrontendTokenModeAllowed() {
+  return IS_LOCAL_DEV;
+}
+
+function assertSecureModeOrThrow() {
+  if (MP_PROXY_URL) return;
+  if (MP_ACCESS_TOKEN && !isFrontendTokenModeAllowed()) {
+    throw new Error(
+      "Configuración insegura: REACT_APP_MP_ACCESS_TOKEN no debe exponerse en frontend en producción. Usa REACT_APP_MP_PROXY_URL con backend seguro."
+    );
+  }
+}
 
 /**
  * Verifica si Mercado Pago está configurado
  */
 export function isMPConfigured() {
-  return !!(MP_PUBLIC_KEY && MP_ACCESS_TOKEN);
+  // Modo seguro preferente: proxy/backend
+  if (MP_PUBLIC_KEY && MP_PROXY_URL) return true;
+  // Modo legacy directo SOLO local/dev
+  if (MP_PUBLIC_KEY && MP_ACCESS_TOKEN && isFrontendTokenModeAllowed()) return true;
+  return false;
 }
 
 /**
@@ -33,11 +54,12 @@ export function isMPConfigured() {
  */
 export async function crearIntenciónDePago({ amount, description, externalReference }) {
   if(!isMPConfigured()) {
-    throw new Error("Mercado Pago no está configurado. Agrega las keys en .env");
+    throw new Error("Mercado Pago no está configurado en modo seguro. Configura REACT_APP_MP_PUBLIC_KEY + REACT_APP_MP_PROXY_URL.");
   }
   if(!MP_DEVICE_ID) {
     throw new Error("ID del dispositivo Point Smart 2 no configurado (REACT_APP_MP_DEVICE_ID)");
   }
+  assertSecureModeOrThrow();
 
   const payload = {
     amount,
@@ -53,18 +75,24 @@ export async function crearIntenciónDePago({ amount, description, externalRefer
     },
   };
 
-  const response = await fetch(
-    `${MP_BASE_URL}/point/integration-api/devices/${MP_DEVICE_ID}/payment-intents`,
-    {
-      method:  "POST",
-      headers: {
-        "Authorization": `Bearer ${MP_ACCESS_TOKEN}`,
-        "Content-Type":  "application/json",
-        "X-Sandbox":     SANDBOX_MODE ? "true" : "false",
-      },
-      body: JSON.stringify(payload),
-    }
-  );
+  const response = MP_PROXY_URL
+    ? await fetch(`${MP_PROXY_URL.replace(/\/$/, "")}/point/payment-intents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ deviceId: MP_DEVICE_ID, sandbox: SANDBOX_MODE, payload }),
+      })
+    : await fetch(
+        `${MP_BASE_URL}/point/integration-api/devices/${MP_DEVICE_ID}/payment-intents`,
+        {
+          method:  "POST",
+          headers: {
+            "Authorization": `Bearer ${MP_ACCESS_TOKEN}`,
+            "Content-Type":  "application/json",
+            "X-Sandbox":     SANDBOX_MODE ? "true" : "false",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
 
   if(!response.ok) {
     const err = await response.json();
@@ -79,12 +107,15 @@ export async function crearIntenciónDePago({ amount, description, externalRefer
  * @param {string} paymentIntentId
  */
 export async function consultarEstadoPago(paymentIntentId) {
-  const response = await fetch(
-    `${MP_BASE_URL}/point/integration-api/payment-intents/${paymentIntentId}`,
-    {
-      headers: { "Authorization": `Bearer ${MP_ACCESS_TOKEN}` }
-    }
-  );
+  assertSecureModeOrThrow();
+  const response = MP_PROXY_URL
+    ? await fetch(`${MP_PROXY_URL.replace(/\/$/, "")}/point/payment-intents/${encodeURIComponent(paymentIntentId)}`)
+    : await fetch(
+        `${MP_BASE_URL}/point/integration-api/payment-intents/${paymentIntentId}`,
+        {
+          headers: { "Authorization": `Bearer ${MP_ACCESS_TOKEN}` }
+        }
+      );
   return response.json();
 }
 
@@ -93,13 +124,18 @@ export async function consultarEstadoPago(paymentIntentId) {
  * @param {string} paymentIntentId
  */
 export async function cancelarPago(paymentIntentId) {
-  const response = await fetch(
-    `${MP_BASE_URL}/point/integration-api/devices/${MP_DEVICE_ID}/payment-intents/${paymentIntentId}`,
-    {
-      method:  "DELETE",
-      headers: { "Authorization": `Bearer ${MP_ACCESS_TOKEN}` }
-    }
-  );
+  assertSecureModeOrThrow();
+  const response = MP_PROXY_URL
+    ? await fetch(`${MP_PROXY_URL.replace(/\/$/, "")}/point/payment-intents/${encodeURIComponent(paymentIntentId)}`, {
+        method: "DELETE",
+      })
+    : await fetch(
+        `${MP_BASE_URL}/point/integration-api/devices/${MP_DEVICE_ID}/payment-intents/${paymentIntentId}`,
+        {
+          method:  "DELETE",
+          headers: { "Authorization": `Bearer ${MP_ACCESS_TOKEN}` }
+        }
+      );
   return response.ok;
 }
 
@@ -107,12 +143,15 @@ export async function cancelarPago(paymentIntentId) {
  * Lista los dispositivos Point disponibles
  */
 export async function listarDispositivos() {
-  const response = await fetch(
-    `${MP_BASE_URL}/point/integration-api/devices`,
-    {
-      headers: { "Authorization": `Bearer ${MP_ACCESS_TOKEN}` }
-    }
-  );
+  assertSecureModeOrThrow();
+  const response = MP_PROXY_URL
+    ? await fetch(`${MP_PROXY_URL.replace(/\/$/, "")}/point/devices`)
+    : await fetch(
+        `${MP_BASE_URL}/point/integration-api/devices`,
+        {
+          headers: { "Authorization": `Bearer ${MP_ACCESS_TOKEN}` }
+        }
+      );
   return response.json();
 }
 
