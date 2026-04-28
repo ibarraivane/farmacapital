@@ -1,4 +1,5 @@
 'use strict';
+const { sendOrderNotifications } = require('../../_lib/orderNotifications');
 
 function normalizeSupabaseProjectUrl(url) {
   if (url == null || typeof url !== 'string') return url;
@@ -51,6 +52,18 @@ module.exports = async function handler(req, res) {
     const pedidoId = m ? Number(m[1]) : null;
     if (!pedidoId) return res.status(200).json({ ok: true, ignored: true, reason: 'no_pedido_reference' });
 
+    const pedidoResp = await fetch(
+      `${SUPABASE_URL}/rest/v1/pedidos?id=eq.${pedidoId}&select=id,cliente_id,total,tipo_entrega,payment_status&limit=1`,
+      {
+        headers: {
+          apikey: SUPABASE_SERVICE_ROLE_KEY,
+          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        },
+      }
+    );
+    const pedidoRows = await pedidoResp.json().catch(() => []);
+    const pedidoBefore = Array.isArray(pedidoRows) ? pedidoRows[0] : null;
+
     const status = String(payment?.status || '').toLowerCase();
     const approved = status === 'approved';
     const patch = {
@@ -67,15 +80,47 @@ module.exports = async function handler(req, res) {
       },
     };
 
-    await fetch(`${SUPABASE_URL}/rest/v1/pedidos?id=eq.${pedidoId}`, {
+    const patchResp = await fetch(`${SUPABASE_URL}/rest/v1/pedidos?id=eq.${pedidoId}`, {
       method: 'PATCH',
       headers: {
         apikey: SUPABASE_SERVICE_ROLE_KEY,
         Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
         'Content-Type': 'application/json',
+        Prefer: 'return=representation',
       },
       body: JSON.stringify(patch),
     });
+    if (!patchResp.ok) {
+      let detail = null;
+      try { detail = await patchResp.json(); } catch { detail = await patchResp.text(); }
+      return res.status(502).json({ ok: false, error: 'supabase_update_failed', detail });
+    }
+
+    if (pedidoBefore && pedidoBefore.payment_status !== status) {
+      try {
+        const cliResp = await fetch(
+          `${SUPABASE_URL}/rest/v1/clientes?id=eq.${pedidoBefore.cliente_id}&select=id,nombre,telefono,email&limit=1`,
+          {
+            headers: {
+              apikey: SUPABASE_SERVICE_ROLE_KEY,
+              Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+            },
+          }
+        );
+        const cliRows = await cliResp.json().catch(() => []);
+        const cliente = Array.isArray(cliRows) ? cliRows[0] : null;
+        const event = status === 'approved'
+          ? 'payment_approved'
+          : (status === 'pending' || status === 'in_process' ? 'payment_pending' : 'payment_rejected');
+        await sendOrderNotifications({
+          event,
+          pedido: { ...pedidoBefore, id: pedidoId },
+          cliente: cliente || {},
+        });
+      } catch (_) {
+        // Notificaciones no bloquean webhook.
+      }
+    }
 
     return res.status(200).json({ ok: true, pedidoId, status });
   } catch (e) {

@@ -1,4 +1,5 @@
 'use strict';
+const { sendOrderNotifications } = require('../../_lib/orderNotifications');
 
 function normalizeSupabaseProjectUrl(url) {
   if (url == null || typeof url !== 'string') return url;
@@ -57,7 +58,7 @@ module.exports = async function handler(req, res) {
     if (!validTokResp.ok || !clienteId) return res.status(401).json({ ok: false, error: 'invalid_cliente_token' });
 
     const pedidoResp = await fetch(
-      `${SUPABASE_URL}/rest/v1/pedidos?id=eq.${pedidoId}&select=id,cliente_id,total,estado,tipo,metodo_pago`,
+      `${SUPABASE_URL}/rest/v1/pedidos?id=eq.${pedidoId}&select=id,cliente_id,total,estado,tipo,metodo_pago,tipo_entrega`,
       {
         headers: {
           apikey: SUPABASE_SERVICE_ROLE_KEY,
@@ -117,12 +118,13 @@ module.exports = async function handler(req, res) {
     const mpData = await mpResp.json();
     if (!mpResp.ok) return res.status(502).json({ ok: false, error: 'mp_preference_failed', detail: mpData?.message || null });
 
-    await fetch(`${SUPABASE_URL}/rest/v1/pedidos?id=eq.${pedidoId}`, {
+    const patchResp = await fetch(`${SUPABASE_URL}/rest/v1/pedidos?id=eq.${pedidoId}`, {
       method: 'PATCH',
       headers: {
         apikey: SUPABASE_SERVICE_ROLE_KEY,
         Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
         'Content-Type': 'application/json',
+        Prefer: 'return=representation',
       },
       body: JSON.stringify({
         payment_provider: 'mercadopago',
@@ -130,6 +132,40 @@ module.exports = async function handler(req, res) {
         payment_payload: { preference_id: mpData?.id || null },
       }),
     });
+    if (!patchResp.ok) {
+      let patchErr = null;
+      try {
+        patchErr = await patchResp.json();
+      } catch {
+        patchErr = await patchResp.text();
+      }
+      return res.status(502).json({
+        ok: false,
+        error: 'supabase_payment_tracking_update_failed',
+        detail: patchErr || null,
+      });
+    }
+
+    try {
+      const clienteResp = await fetch(
+        `${SUPABASE_URL}/rest/v1/clientes?id=eq.${clienteId}&select=id,nombre,telefono,email&limit=1`,
+        {
+          headers: {
+            apikey: SUPABASE_SERVICE_ROLE_KEY,
+            Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          },
+        }
+      );
+      const cliRows = await clienteResp.json().catch(() => []);
+      const cliente = Array.isArray(cliRows) ? cliRows[0] : null;
+      await sendOrderNotifications({
+        event: 'order_created',
+        pedido: { ...pedido, id: pedidoId },
+        cliente: cliente || {},
+      });
+    } catch (_) {
+      // Notificaciones no bloquean checkout.
+    }
 
     return res.status(200).json({
       ok: true,

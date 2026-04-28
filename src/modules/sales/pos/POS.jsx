@@ -621,6 +621,12 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       });
       if (rpcErr) throw rpcErr;
       if (!resp?.success) throw new Error(resp?.error || "No se pudo surtir");
+      if (pedido?.tipo_entrega === "recoger") {
+        await supabase
+          .from("pedidos")
+          .update({ delivery_provider: "pickup", delivery_status: "ready_for_pickup" })
+          .eq("id", pedido.id);
+      }
       setPedOn(p=>p.filter(x=>x.id!==pedido.id));
       // L4: Notificar al cliente por WhatsApp cuando pedido está listo
       const telCli = pedido.clientes?.telefono;

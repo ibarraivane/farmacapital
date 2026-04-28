@@ -1667,11 +1667,31 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
     } catch (_) { /* noop */ }
   }, [datos.calle, datos.colonia, datos.cp, user?.id, user?.telefono]);
 
+  const nombreOk = String(datos.nombre || "").trim().length >= 3;
+  const telOk = soloDigitosTel(datos.tel || "").length >= 10;
+  const emailOk = correoTiendaValido(datos.email || "");
+  const tipoEntregaRpc = mapUiEntregaToRpc(entrega).tipo_entrega;
+  const direccionOk = tipoEntregaRpc !== "envio" || (
+    String(datos.calle || "").trim().length >= 5 &&
+    String(datos.colonia || "").trim().length >= 3 &&
+    String(datos.cp || "").trim().length >= 5
+  );
+  const datosCheckoutCompletos = nombreOk && telOk && emailOk && direccionOk;
+
   const confirmar=async()=>{
     if (!cart.length) return;
     const invalidItems = cart.filter(c => !Number.isFinite(Number(c.precio)) || Number(c.precio) <= 0 || !Number.isFinite(Number(c.qty)) || Number(c.qty) <= 0);
     if (invalidItems.length) {
       notifyCheckout("Hay productos con precio o cantidad inválidos. Revisa tu carrito.", "warning");
+      return;
+    }
+    if (!datosCheckoutCompletos) {
+      notifyCheckout(
+        tipoEntregaRpc === "envio"
+          ? "Completa nombre, telefono, correo y direccion (calle, colonia y CP) antes de confirmar."
+          : "Completa nombre, telefono y correo antes de confirmar.",
+        "warning"
+      );
       return;
     }
     setG(true);
@@ -1935,9 +1955,9 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
       )}
       <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr min(300px,100%)",gap:24,alignItems:"start"}}>
         <div style={{minWidth:0}}>
-          {step===1&&(<div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}><div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:20}}>📋 Datos de contacto</div><div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:14}}>{[["Nombre completo","nombre"],["Teléfono","tel"],["Correo electrónico","email"],["Calle y número","calle"],["Colonia","colonia"],["Código postal","cp"]].map(([l,k])=>(<div key={k} style={{gridColumn:!stack&&(k==="email"||k==="calle")?"1/-1":undefined}}><div style={{color:C.mid,fontSize:12,marginBottom:6,fontWeight:600}}>{l}</div><Inp value={datos[k]} onChange={e=>setDatos(p=>({...p,[k]:e.target.value}))} placeholder={l} style={{width:"100%",boxSizing:"border-box",fontSize:16}}/></div>))}</div><div style={{marginTop:10,fontSize:12,color:C.textMid,lineHeight:1.45}}>La dirección se guarda para tu próxima compra y se sincroniza con tu perfil.</div><Btn onClick={()=>setStep(2)} col={BRAND.primary} style={{marginTop:20,width:stack?"100%":undefined}} disabled={!datos.nombre||!datos.tel}>Continuar al pago →</Btn></div>)}
-          {step===2&&(<div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}><div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:20}}>💳 Método de pago</div>{[["mercadopago","🔵 Mercado Pago","Checkout seguro de Mercado Pago"]].map(([v,l,s])=>(<div key={v} onClick={()=>setMetodo(v)} style={{padding:"14px 16px",borderRadius:10,border:`2px solid ${metodo===v?BRAND.primary:C.border}`,background:metodo===v?BRAND.primary+"18":C.white,cursor:"pointer",marginBottom:10}}><div style={{color:metodo===v?BRAND.primary:C.dark,fontWeight:700,fontSize:"clamp(13px,3.2vw,14px)"}}>{l}</div><div style={{color:C.dim,fontSize:12,marginTop:2}}>{s}</div></div>))}<div style={{color:C.textDim,fontSize:11,lineHeight:1.45,marginBottom:10}}>El cobro online se procesa en Mercado Pago. Farmax no captura datos de tarjeta directamente.</div><div style={{display:"flex",gap:10,marginTop:8,flexWrap:"wrap"}}><Btn onClick={()=>setStep(1)} outline col={C.mid} sm>← Atrás</Btn><Btn onClick={()=>setStep(3)} col={BRAND.primary} style={{flex:stack?1:undefined,minWidth:stack?0:undefined}}>Revisar pedido →</Btn></div></div>)}
-          {step===3&&(<div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}><div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:16}}>✅ Confirmar pedido</div>{cart.map(item=>(<div key={item.id} style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,padding:"8px 0",borderBottom:`1px solid ${C.border}`}}><span style={{color:C.dark,fontSize:13,fontWeight:600,flex:1,minWidth:0,wordBreak:"break-word"}}>{item.nombre} ×{item.qty}</span><span style={{color:BRAND.primary,fontWeight:700,flexShrink:0}}>{$(item.precio*item.qty)}</span></div>))}{!cart.length&&(<div style={{fontSize:12,color:C.textMid,padding:"6px 0 2px"}}>Tu carrito quedó vacío. Regresa al catálogo para continuar.</div>)}<div style={{display:"flex",gap:10,marginTop:16,flexWrap:"wrap"}}><Btn onClick={()=>setStep(2)} outline col={C.mid} sm>← Atrás</Btn><Btn onClick={confirmar} col={BRAND.primary} disabled={guardando||!cart.length||sub<=0} style={{flex:stack?1:undefined,minWidth:0}}>{guardando?"Procesando pago...":"💳 Pagar y confirmar "+$(sub)}</Btn></div></div>)}
+          {step===1&&(<div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}><div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:20}}>📋 Datos de contacto</div><div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:14}}>{[["Nombre completo","nombre"],["Teléfono","tel"],["Correo electrónico","email"],["Calle y número","calle"],["Colonia","colonia"],["Código postal","cp"]].map(([l,k])=>(<div key={k} style={{gridColumn:!stack&&(k==="email"||k==="calle")?"1/-1":undefined}}><div style={{color:C.mid,fontSize:12,marginBottom:6,fontWeight:600}}>{l}</div><Inp value={datos[k]} onChange={e=>setDatos(p=>({...p,[k]:e.target.value}))} placeholder={l} style={{width:"100%",boxSizing:"border-box",fontSize:16}}/></div>))}</div><div style={{marginTop:10,fontSize:12,color:C.textMid,lineHeight:1.45}}>La dirección se guarda para tu próxima compra y se sincroniza con tu perfil.</div><Btn onClick={()=>setStep(2)} col={BRAND.primary} style={{marginTop:20,width:stack?"100%":undefined}} disabled={!datosCheckoutCompletos}>Continuar al pago →</Btn></div>)}
+          {step===2&&(<div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}><div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:20}}>💳 Método de pago</div>{[["mercadopago","🔵 Mercado Pago","Checkout seguro de Mercado Pago"]].map(([v,l,s])=>(<div key={v} onClick={()=>setMetodo(v)} style={{padding:"14px 16px",borderRadius:10,border:`2px solid ${metodo===v?BRAND.primary:C.border}`,background:metodo===v?BRAND.primary+"18":C.white,cursor:"pointer",marginBottom:10}}><div style={{color:metodo===v?BRAND.primary:C.dark,fontWeight:700,fontSize:"clamp(13px,3.2vw,14px)"}}>{l}</div><div style={{color:C.dim,fontSize:12,marginTop:2}}>{s}</div></div>))}<div style={{color:C.textDim,fontSize:11,lineHeight:1.45,marginBottom:10}}>El cobro online se procesa en Mercado Pago. Farmax no captura datos de tarjeta directamente.</div><div style={{display:"flex",gap:10,marginTop:8,flexWrap:"wrap"}}><Btn onClick={()=>setStep(1)} outline col={C.mid} sm>← Atrás</Btn><Btn onClick={()=>setStep(3)} col={BRAND.primary} style={{flex:stack?1:undefined,minWidth:stack?0:undefined}} disabled={!datosCheckoutCompletos}>Revisar pedido →</Btn></div></div>)}
+          {step===3&&(<div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}><div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:16}}>✅ Confirmar pedido</div>{cart.map(item=>(<div key={item.id} style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,padding:"8px 0",borderBottom:`1px solid ${C.border}`}}><span style={{color:C.dark,fontSize:13,fontWeight:600,flex:1,minWidth:0,wordBreak:"break-word"}}>{item.nombre} ×{item.qty}</span><span style={{color:BRAND.primary,fontWeight:700,flexShrink:0}}>{$(item.precio*item.qty)}</span></div>))}{!cart.length&&(<div style={{fontSize:12,color:C.textMid,padding:"6px 0 2px"}}>Tu carrito quedó vacío. Regresa al catálogo para continuar.</div>)}<div style={{display:"flex",gap:10,marginTop:16,flexWrap:"wrap"}}><Btn onClick={()=>setStep(2)} outline col={C.mid} sm>← Atrás</Btn><Btn onClick={confirmar} col={BRAND.primary} disabled={guardando||!cart.length||sub<=0||!datosCheckoutCompletos} style={{flex:stack?1:undefined,minWidth:0}}>{guardando?"Procesando pago...":"💳 Pagar y confirmar "+$(sub)}</Btn></div></div>)}
         </div>
         <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:20,position:stack?"relative":"sticky",top:"calc(env(safe-area-inset-top, 0px) + 100px)"}}>
           <div style={{color:C.dark,fontWeight:700,fontSize:15,marginBottom:14}}>Tu pedido</div>
@@ -2651,6 +2671,33 @@ function etiquetaEstadoCitaCliente(c) {
   return { label: "Pendiente de pago", col: "#d97706" };
 }
 
+function etiquetaEstadoPagoPedido(p) {
+  const muted = "#64748b";
+  const s = String(p?.payment_status || "").toLowerCase();
+  if (s === "approved") return { label: "Pago aprobado", col: BRAND.accent };
+  if (["pending", "in_process", "initiated"].includes(s)) return { label: "Pago pendiente", col: "#d97706" };
+  if (s) return { label: `Pago ${s}`, col: muted };
+  if (String(p?.metodo_pago || "").toLowerCase() === "mercadopago") return { label: "Pago por confirmar", col: "#d97706" };
+  return { label: "Sin pago online", col: muted };
+}
+
+function etiquetaLogisticaPedido(p) {
+  const danger = "#ef4444";
+  const ds = String(p?.delivery_status || "").toLowerCase();
+  if (ds === "ready_for_pickup") return { label: "Listo para recoger", col: BRAND.accent };
+  if (ds === "in_route") return { label: "En ruta", col: "#0ea5e9" };
+  if (ds === "delivered") return { label: "Entregado", col: BRAND.primary };
+  if (ds === "cancelled") return { label: "Entrega cancelada", col: danger };
+  if (p?.tipo_entrega === "envio") {
+    if (p?.estado === "listo") return { label: "Listo para envio", col: BRAND.accent };
+    if (p?.estado === "completado") return { label: "Entregado", col: BRAND.primary };
+    return { label: "Preparando envio", col: "#d97706" };
+  }
+  if (p?.estado === "listo") return { label: "Listo para recoger", col: BRAND.accent };
+  if (p?.estado === "completado") return { label: "Entregado", col: BRAND.primary };
+  return { label: "En preparacion", col: "#d97706" };
+}
+
 function Cuenta({user,setPage,setUser}){
   const C = useTheme();
   const [tab,setTab]=useState("pedidos");
@@ -2658,10 +2705,11 @@ function Cuenta({user,setPage,setUser}){
   const [citas,setCitas]=useState([]);
   const [cargando,setC]=useState(true);
   const [busyCitaId,setBusyCitaId]=useState(null);
+  const [busyPayPedidoId,setBusyPayPedidoId]=useState(null);
   useEffect(()=>{
     if(!user?.id){setC(false);return;}
     Promise.all([
-      supabase.from("pedidos").select(`id,total,estado,created_at,pedido_items(cantidad,precio_unitario,productos(nombre))`).eq("cliente_id",user.id).order("created_at",{ascending:false}),
+      supabase.from("pedidos").select(`id,total,estado,tipo,metodo_pago,tipo_entrega,direccion,created_at,payment_provider,payment_status,payment_id,paid_at,delivery_provider,delivery_status,delivery_tracking_url,pedido_items(cantidad,precio_unitario,productos(nombre))`).eq("cliente_id",user.id).order("created_at",{ascending:false}),
       supabase.from("citas").select("*").eq("cliente_id",user.id).order("fecha",{ascending:false}),
     ]).then(([{data:peds},{data:cts}])=>{setPeds(peds||[]);setCitas(cts||[]);setC(false);});
   },[user]);
@@ -2701,6 +2749,45 @@ function Cuenta({user,setPage,setUser}){
     } catch (_) { /* noop */ }
     setPage("cita");
   };
+  const pagarPedidoMercadoPago = async (p) => {
+    const tokCli = sessionStorage.getItem("farmax_cliente_token");
+    if (!tokCli) { alert("Tu sesion expiro. Inicia sesion nuevamente."); setPage("login"); return; }
+    setBusyPayPedidoId(p.id);
+    try {
+      const mpResp = await fetch("/api/payments/mp/create-preference", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${tokCli}`,
+        },
+        body: JSON.stringify({
+          pedidoId: p.id,
+          amount: Number(p.total || 0),
+          baseUrl: window.location.origin,
+          payer: {
+            name: String(user?.nombre || "").trim() || null,
+            email: String(user?.email || "").trim() || null,
+          },
+          items: (p.pedido_items || []).map((it) => ({
+            title: it?.productos?.nombre || "Producto",
+            quantity: Number(it?.cantidad) || 1,
+            unit_price: Number(it?.precio_unitario) || 0,
+          })),
+        }),
+      });
+      const mpData = await mpResp.json().catch(() => ({}));
+      if (!mpResp.ok || !mpData?.ok || !(mpData.initPoint || mpData.sandboxInitPoint)) {
+        const msg = mpData?.error || "No se pudo iniciar Mercado Pago.";
+        alert(msg);
+        setBusyPayPedidoId(null);
+        return;
+      }
+      window.location.href = mpData.initPoint || mpData.sandboxInitPoint;
+    } catch (e) {
+      alert("No se pudo iniciar Mercado Pago.");
+      setBusyPayPedidoId(null);
+    }
+  };
   if(!user) return(<div style={{maxWidth:500,margin:"80px auto",padding:"0 24px",textAlign:"center"}}><div style={{fontSize:48,marginBottom:16}}>👤</div><h2 style={{color:C.dark,fontSize:22,fontWeight:800,marginBottom:16}}>Inicia sesión para ver tu cuenta</h2><div style={{display:"flex",gap:12,justifyContent:"center"}}><Btn onClick={()=>setPage("login")} col={BRAND.primary}>Iniciar sesión</Btn><Btn onClick={()=>setPage("registro")} outline col={BRAND.primary}>Crear cuenta</Btn></div></div>);
   const eCol=e=>({pendiente:"#f59e0b",confirmado:BRAND.accent,entregado:BRAND.primary,cancelado:C.red}[e]||C.mid);
   const citaPuedeGestionar = (c) =>
@@ -2729,6 +2816,23 @@ function Cuenta({user,setPage,setUser}){
             <div><div style={{color:C.dark,fontWeight:700,fontSize:15}}>Pedido #{p.id}</div><div style={{color:C.dim,fontSize:12,marginTop:2}}>{new Date(p.created_at).toLocaleDateString("es-MX",{year:"numeric",month:"long",day:"numeric"})}</div></div>
             <div style={{textAlign:"right"}}><div style={{color:BRAND.primary,fontWeight:800,fontSize:16}}>{$(p.total)}</div><Tag col={eCol(p.estado)} sm>{p.estado}</Tag></div>
           </div>
+          <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:10}}>
+            {(()=>{ const ep = etiquetaEstadoPagoPedido(p); return <Tag col={ep.col} sm>{ep.label}</Tag>; })()}
+            {(()=>{ const el = etiquetaLogisticaPedido(p); return <Tag col={el.col} sm>{el.label}</Tag>; })()}
+            {p.delivery_provider ? <Tag col={C.blue} sm>{String(p.delivery_provider).toUpperCase()}</Tag> : null}
+          </div>
+          {p.delivery_tracking_url ? (
+            <div style={{fontSize:12,color:C.textMid,marginBottom:10}}>
+              Tracking: <a href={p.delivery_tracking_url} target="_blank" rel="noreferrer" style={{color:BRAND.primary,fontWeight:700}}>Ver seguimiento</a>
+            </div>
+          ) : null}
+          {String(p.metodo_pago || "").toLowerCase() === "mercadopago" && String(p.payment_status || "").toLowerCase() !== "approved" ? (
+            <div style={{marginBottom:10}}>
+              <Btn onClick={()=>pagarPedidoMercadoPago(p)} col={BRAND.primary} sm disabled={busyPayPedidoId===p.id}>
+                {busyPayPedidoId===p.id ? "Abriendo pago..." : "Pagar ahora"}
+              </Btn>
+            </div>
+          ) : null}
           <div style={{background:C.cardDark,borderRadius:10,padding:"10px 14px"}}>
             <div style={{color:C.mid,fontSize:11,fontWeight:700,marginBottom:8,textTransform:"uppercase",letterSpacing:1}}>Productos</div>
             {(p.pedido_items||[]).map((item,i)=>(<div key={i} style={{display:"flex",justifyContent:"space-between",marginBottom:4}}><span style={{color:C.dark,fontSize:13}}>{item.productos?.nombre||"Producto"} ×{item.cantidad}</span><span style={{color:BRAND.primary,fontSize:13,fontWeight:600}}>{$(item.precio_unitario*item.cantidad)}</span></div>))}
