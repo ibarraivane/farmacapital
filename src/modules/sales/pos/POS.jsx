@@ -20,8 +20,13 @@ import { labelTipoEntregaPedido, resumenLogisticsMeta } from "../../../utils/ord
 const PEDIDOS_TIENDA_SELECT_POS = `
             id,total,created_at,tipo,metodo_pago,estado,tipo_entrega,direccion,
             clientes(nombre,telefono),
-            pedido_items(cantidad,precio_unitario,productos(nombre,sku))
+            pedido_items(cantidad,precio_unitario,productos(nombre,sku,ubicacion_texto))
           `;
+
+function ubicacionPedidoItem(item) {
+  const raw = item?.productos?.ubicacion_texto;
+  return String(raw || "").trim() || "Sin ubicación";
+}
 
 export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const C = C_LIGHT;
@@ -60,6 +65,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const [rxM,setRxM]         = useState(null);
   const [rx,setRx]           = useState({receta:"",medico:"",cedula:"",paciente:"",indicaciones:""});
   const [pedOnline,setPedOn] = useState([]);
+  const [pedOnlineHist,setPedOnHist] = useState([]);
   /** Citas con consulta o consumibles pendientes de cobro en caja (agendadas en línea o en Agenda de consultas). */
   const [consxCobrar,setConsCobrar] = useState([]);
   const [consultaTelById, setConsultaTelById] = useState({});
@@ -154,15 +160,29 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
 
   const recargarPedidosOnline = useCallback(async () => {
     try {
-      const pedsRes = await fetchPedidosTiendaPendientesMerged(supabase, PEDIDOS_TIENDA_SELECT_POS, {
-        perBranchLimit: 100,
-        maxRows: 300,
-      });
+      const [pedsRes, histRes] = await Promise.all([
+        fetchPedidosTiendaPendientesMerged(supabase, PEDIDOS_TIENDA_SELECT_POS, {
+          perBranchLimit: 100,
+          maxRows: 300,
+        }),
+        supabase
+          .from("pedidos")
+          .select(PEDIDOS_TIENDA_SELECT_POS)
+          .eq("tipo", "online")
+          .in("estado", ["listo", "completado"])
+          .order("created_at", { ascending: false })
+          .limit(20),
+      ]);
       if (pedsRes?.error) {
         console.warn("[POS] Pedidos online:", pedsRes.error.message);
-        return;
+      } else {
+        setPedOn((pedsRes?.data || []).filter(esPedidoTiendaWebPendiente));
       }
-      setPedOn((pedsRes?.data || []).filter(esPedidoTiendaWebPendiente));
+      if (histRes?.error) {
+        console.warn("[POS] Historial online:", histRes.error.message);
+      } else {
+        setPedOnHist(histRes?.data || []);
+      }
     } catch (e) {
       console.warn("[POS] recargarPedidosOnline:", e);
     }
@@ -216,16 +236,24 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       setLoad(true);
       if (typeof setLoadErr === "function") setLoadErr("");
       try {
-        const [prodsRes, pedsRes] = await Promise.all([
+        const [prodsRes, pedsRes, histRes] = await Promise.all([
           supabase.from("productos")
             .select("*, lotes(fecha_caducidad,cantidad_actual,activo)")
             .eq("activo",true).order("nombre"),
           fetchPedidosTiendaPendientesMerged(supabase, PEDIDOS_TIENDA_SELECT_POS, { perBranchLimit: 100, maxRows: 300 }),
+          supabase
+            .from("pedidos")
+            .select(PEDIDOS_TIENDA_SELECT_POS)
+            .eq("tipo", "online")
+            .in("estado", ["listo", "completado"])
+            .order("created_at", { ascending: false })
+            .limit(20),
         ]);
 
         const errs = [];
         if (prodsRes?.error) errs.push(`Productos (${prodsRes.status||"?"}): ${prodsRes.error.message}`);
         if (pedsRes?.error)  errs.push(`Pedidos online (${pedsRes.status||"?"}): ${pedsRes.error.message}`);
+        if (histRes?.error)  errs.push(`Historial online (${histRes.status||"?"}): ${histRes.error.message}`);
 
         if (errs.length) {
           console.error("[POS] Errores de carga:", { prodsRes, pedsRes });
@@ -239,11 +267,12 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         });
         setProds(prodsConCad);
         setPedOn((pedsRes?.data || []).filter(esPedidoTiendaWebPendiente));
+        setPedOnHist(histRes?.data || []);
 
       } catch (e) {
         console.error("[POS] Excepción cargando datos:", e);
         if (typeof setLoadErr === "function") setLoadErr("Error inesperado cargando datos. Revisa consola.");
-        setProds([]); setPedOn([]); setConsCobrar([]);
+        setProds([]); setPedOn([]); setPedOnHist([]); setConsCobrar([]);
       } finally {
         setLoad(false);
       }
@@ -628,6 +657,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
           .eq("id", pedido.id);
       }
       setPedOn(p=>p.filter(x=>x.id!==pedido.id));
+      setPedOnHist((prev) => [{ ...pedido, estado: "listo" }, ...prev.filter((x) => x.id !== pedido.id)].slice(0, 20));
       // L4: Notificar al cliente por WhatsApp cuando pedido está listo
       const telCli = pedido.clientes?.telefono;
       if(telCli) {
@@ -1570,9 +1600,14 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
               <div style={{background:C.bg,borderRadius:8,padding:"10px 14px",marginBottom:12}}>
                 <div style={{color:C.textDim,fontSize:10,letterSpacing:1,textTransform:"uppercase",marginBottom:6}}>Productos</div>
                 {(p.pedido_items||[]).map((item,i)=>(
-                  <div key={i} style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-                    <span style={{color:C.text,fontSize:12}}>{item.productos?.nombre} ×{item.cantidad}</span>
-                    <span style={{color:C.blue,fontSize:12,fontWeight:700}}>{$(item.precio_unitario*item.cantidad)}</span>
+                  <div key={i} style={{display:"flex",justifyContent:"space-between",gap:10,marginBottom:6}}>
+                    <div style={{minWidth:0}}>
+                      <div style={{color:C.text,fontSize:12}}>{item.productos?.nombre} ×{item.cantidad}</div>
+                      <div style={{color:ubicacionPedidoItem(item)==="Sin ubicación"?C.textDim:C.blue,fontSize:11,fontWeight:700}}>
+                        📍 {ubicacionPedidoItem(item)}
+                      </div>
+                    </div>
+                    <span style={{color:C.blue,fontSize:12,fontWeight:700,flexShrink:0}}>{$(item.precio_unitario*item.cantidad)}</span>
                   </div>
                 ))}
               </div>
@@ -1589,6 +1624,25 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
               </div>
             </Box>
           ))}
+          {pedOnlineHist.length>0&&(
+            <div style={{marginTop:18}}>
+              <div style={{color:C.text,fontWeight:800,fontSize:13,marginBottom:8}}>Historial reciente (surtidos)</div>
+              {pedOnlineHist.map((p)=>(
+                <Box key={`hist-${p.id}`} style={{padding:12,marginBottom:10,minWidth:0,opacity:.95}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8,flexWrap:"wrap"}}>
+                    <div>
+                      <div style={{color:C.text,fontWeight:700,fontSize:13}}>Pedido #{p.id}</div>
+                      <div style={{color:C.textMid,fontSize:11,marginTop:2}}>{p.clientes?.nombre} · {new Date(p.created_at).toLocaleString("es-MX")}</div>
+                    </div>
+                    <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                      <Tag col={p.estado==="completado"?C.green:BRAND.accent} sm>{p.estado==="completado"?"Entregado":"Listo"}</Tag>
+                      <span style={{color:C.blue,fontWeight:800,fontSize:13}}>{$(p.total)}</span>
+                    </div>
+                  </div>
+                </Box>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
