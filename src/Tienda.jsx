@@ -1611,11 +1611,16 @@ function Checkout({cart,setCart,setPage,user,entrega="pickup",catalogoProductos=
     });
   }, [catalogoById, setCart, cart.length]);
 
+  const notifyCheckout = (msg, type = "warning") => {
+    showToast(msg, type);
+    try { window.alert(msg); } catch (_) { /* noop */ }
+  };
+
   const confirmar=async()=>{
     if (!cart.length) return;
     const invalidItems = cart.filter(c => !Number.isFinite(Number(c.precio)) || Number(c.precio) <= 0 || !Number.isFinite(Number(c.qty)) || Number(c.qty) <= 0);
     if (invalidItems.length) {
-      alert("Hay productos con precio o cantidad inválidos. Revisa tu carrito.");
+      notifyCheckout("Hay productos con precio o cantidad inválidos. Revisa tu carrito.", "warning");
       return;
     }
     setG(true);
@@ -1669,13 +1674,13 @@ function Checkout({cart,setCart,setPage,user,entrega="pickup",catalogoProductos=
       if (cambios.length) {
         setCart(reconciled);
         const detalle = cambios.slice(0, 4).join("\n");
-        alert(`Actualizamos tu carrito con inventario real:\n${detalle}${cambios.length > 4 ? "\n…" : ""}\n\nRevisa y confirma de nuevo.`);
+        notifyCheckout(`Actualizamos tu carrito con inventario real:\n${detalle}${cambios.length > 4 ? "\n…" : ""}\n\nRevisa y confirma de nuevo.`, "warning");
         setG(false);
         return;
       }
       if (!reconciled.length) {
         setCart([]);
-        alert("Tu carrito quedó sin productos disponibles. Vuelve al catálogo para agregar nuevos.");
+        notifyCheckout("Tu carrito quedó sin productos disponibles. Vuelve al catálogo para agregar nuevos.", "warning");
         setG(false);
         return;
       }
@@ -1685,7 +1690,7 @@ function Checkout({cart,setCart,setPage,user,entrega="pickup",catalogoProductos=
         razonNoPermitidoTienda: razonBloqueoProductoTiendaFarmacia,
       });
       if (!ok) {
-        alert(`Hay productos no permitidos para esta entrega:\n${bloqueados.map(b=>`• ${b.nombre}: ${b.razon}`).join("\n")}`);
+        notifyCheckout(`Hay productos no permitidos para esta entrega:\n${bloqueados.map(b=>`• ${b.nombre}: ${b.razon}`).join("\n")}`, "warning");
         setG(false);
         return;
       }
@@ -1693,14 +1698,15 @@ function Checkout({cart,setCart,setPage,user,entrega="pickup",catalogoProductos=
       const { tipo_entrega, order_channel, fulfillment_type, ui_entrega } = mapUiEntregaToRpc(entrega);
       const direccionStr = [datos.calle, datos.colonia, datos.cp].filter(Boolean).join(", ").trim() || null;
       if (tipo_entrega === "envio" && (!direccionStr || direccionStr.length < 8)) {
-        alert("Para envío a domicilio completa calle, colonia y código postal.");
+        notifyCheckout("Para envío a domicilio completa calle, colonia y código postal.", "warning");
         setG(false);
         return;
       }
 
       const tokCli = sessionStorage.getItem("farmax_cliente_token");
       if (!tokCli) {
-        alert("Inicia sesión para confirmar tu pedido.");
+        notifyCheckout("Inicia sesión para confirmar tu pedido.", "warning");
+        setPage("login");
         setG(false); return;
       }
 
@@ -1722,7 +1728,7 @@ function Checkout({cart,setCart,setPage,user,entrega="pickup",catalogoProductos=
       });
       if (rpcErr) throw rpcErr;
       if (!resp?.success) {
-        alert(resp?.error || "No se pudo crear el pedido");
+        notifyCheckout(resp?.error || "No se pudo crear el pedido", "error");
         setG(false); return;
       }
 
@@ -1747,9 +1753,9 @@ function Checkout({cart,setCart,setPage,user,entrega="pickup",catalogoProductos=
       console.warn(e);
       const msg = e?.message || e?.error_description || (typeof e === "string" ? e : "");
       if (msg && (msg.includes("Stock insuficiente") || msg.includes("stock insuficiente"))) {
-        alert(msg);
+        notifyCheckout(msg, "warning");
       } else {
-        alert(msg ? `No se pudo confirmar: ${msg}` : "No se pudo confirmar el pedido. Intenta nuevamente.");
+        notifyCheckout(msg ? `No se pudo confirmar: ${msg}` : "No se pudo confirmar el pedido. Intenta nuevamente.", "error");
       }
     }
     setG(false);
@@ -1783,7 +1789,7 @@ function Checkout({cart,setCart,setPage,user,entrega="pickup",catalogoProductos=
         <div style={{minWidth:0}}>
           {step===1&&(<div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}><div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:20}}>📋 Datos de contacto</div><div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:14}}>{[["Nombre completo","nombre"],["Teléfono","tel"],["Correo electrónico","email"],["Calle y número","calle"],["Colonia","colonia"],["Código postal","cp"]].map(([l,k])=>(<div key={k} style={{gridColumn:!stack&&(k==="email"||k==="calle")?"1/-1":undefined}}><div style={{color:C.mid,fontSize:12,marginBottom:6,fontWeight:600}}>{l}</div><Inp value={datos[k]} onChange={e=>setDatos(p=>({...p,[k]:e.target.value}))} placeholder={l} style={{width:"100%",boxSizing:"border-box",fontSize:16}}/></div>))}</div><Btn onClick={()=>setStep(2)} col={BRAND.primary} style={{marginTop:20,width:stack?"100%":undefined}} disabled={!datos.nombre||!datos.tel}>Continuar al pago →</Btn></div>)}
           {step===2&&(<div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}><div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:20}}>💳 Método de pago</div>{[["tarjeta","💳 Tarjeta de crédito/débito","Visa, Mastercard, Amex"],["mercadopago","🔵 Mercado Pago","Wallet · Cuotas sin intereses"]].map(([v,l,s])=>(<div key={v} onClick={()=>setMetodo(v)} style={{padding:"14px 16px",borderRadius:10,border:`2px solid ${metodo===v?BRAND.primary:C.border}`,background:metodo===v?BRAND.primary+"18":C.white,cursor:"pointer",marginBottom:10}}><div style={{color:metodo===v?BRAND.primary:C.dark,fontWeight:700,fontSize:"clamp(13px,3.2vw,14px)"}}>{l}</div><div style={{color:C.dim,fontSize:12,marginTop:2}}>{s}</div></div>))}<div style={{display:"flex",gap:10,marginTop:8,flexWrap:"wrap"}}><Btn onClick={()=>setStep(1)} outline col={C.mid} sm>← Atrás</Btn><Btn onClick={()=>setStep(3)} col={BRAND.primary} style={{flex:stack?1:undefined,minWidth:stack?0:undefined}}>Revisar pedido →</Btn></div></div>)}
-          {step===3&&(<div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}><div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:16}}>✅ Confirmar pedido</div>{cart.map(item=>(<div key={item.id} style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,padding:"8px 0",borderBottom:`1px solid ${C.border}`}}><span style={{color:C.dark,fontSize:13,fontWeight:600,flex:1,minWidth:0,wordBreak:"break-word"}}>{item.nombre} ×{item.qty}</span><span style={{color:BRAND.primary,fontWeight:700,flexShrink:0}}>{$(item.precio*item.qty)}</span></div>))}<div style={{display:"flex",gap:10,marginTop:16,flexWrap:"wrap"}}><Btn onClick={()=>setStep(2)} outline col={C.mid} sm>← Atrás</Btn><Btn onClick={confirmar} col={BRAND.primary} disabled={guardando} style={{flex:stack?1:undefined,minWidth:0}}>{guardando?"Guardando...":"✅ Confirmar "+$(sub)}</Btn></div></div>)}
+          {step===3&&(<div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}><div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:16}}>✅ Confirmar pedido</div>{cart.map(item=>(<div key={item.id} style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,padding:"8px 0",borderBottom:`1px solid ${C.border}`}}><span style={{color:C.dark,fontSize:13,fontWeight:600,flex:1,minWidth:0,wordBreak:"break-word"}}>{item.nombre} ×{item.qty}</span><span style={{color:BRAND.primary,fontWeight:700,flexShrink:0}}>{$(item.precio*item.qty)}</span></div>))}<div style={{display:"flex",gap:10,marginTop:16,flexWrap:"wrap"}}><Btn onClick={()=>setStep(2)} outline col={C.mid} sm>← Atrás</Btn><Btn onClick={confirmar} col={BRAND.primary} disabled={guardando} style={{flex:stack?1:undefined,minWidth:0}}>{guardando?"Procesando pago...":"💳 Pagar y confirmar "+$(sub)}</Btn></div></div>)}
         </div>
         <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:20,position:stack?"relative":"sticky",top:"calc(env(safe-area-inset-top, 0px) + 100px)"}}>
           <div style={{color:C.dark,fontWeight:700,fontSize:15,marginBottom:14}}>Tu pedido</div>

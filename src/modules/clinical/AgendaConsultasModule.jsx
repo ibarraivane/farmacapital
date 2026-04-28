@@ -69,8 +69,8 @@ function etiquetaEstadoVisual(cita) {
   if (cita.estado === "completada") return { key: "atendida", label: "Atendida", col: C.green };
   if (cita.estado === "en_consulta") return { key: "en_sala", label: "En consulta", col: C.amber };
   if (cita.estado === "agendada") {
-    if (citaPagoOk(cita)) return { key: "lista_pagada", label: "Pagada (lista)", col: C.green };
-    return { key: "espera_pago", label: "Pendiente de pago", col: C.amber };
+    if (citaPagoOk(cita)) return { key: "lista_pagada", label: "Pagada (lista de espera)", col: C.green };
+    return { key: "espera_pago", label: "En espera de pago", col: C.amber };
   }
   if (cita.estado === "confirmada" && citaPagoOk(cita)) return { key: "confirmada", label: "Confirmada · pagada", col: C.blue };
   if (cita.estado === "confirmada") return { key: "agendada", label: "Agendada (sin pago)", col: C.textMid };
@@ -88,7 +88,7 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
   const now = new Date();
   const [y, setY] = useState(now.getFullYear());
   const [m, setM] = useState(now.getMonth());
-  const [vista, setVista] = useState("mes"); // mes | dia
+  const [vista, setVista] = useState(() => (usuario?.rol === "doctora" ? "dia" : "mes")); // mes | dia
   const [diaSel, setDiaSel] = useState(() => new Date().toLocaleDateString("sv-SE"));
   const [citasMes, setCitasMes] = useState([]);
   const [loadMes, setLoadMes] = useState(true);
@@ -136,6 +136,46 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
   const citasDelDia = useMemo(() => {
     return citasMes.filter((c) => c.fecha === diaSel && c.estado !== "cancelada");
   }, [citasMes, diaSel]);
+
+  /** Citas del día en orden de hora (flujo clínico). */
+  const citasDiaOrdenadas = useMemo(() => {
+    return [...citasDelDia].sort(
+      (a, b) => horaKey(a.hora).localeCompare(horaKey(b.hora)) || Number(a.id) - Number(b.id)
+    );
+  }, [citasDelDia]);
+
+  /**
+   * Próxima acción lógica: consulta en curso → continuar; si no, primera pagada lista;
+   * si toca turno sin pago, mostrar bloqueo; si nada operativo, mensaje informativo.
+   */
+  const accionPrincipalDoctora = useMemo(() => {
+    if (mode !== "doctora") return null;
+    const list = citasDiaOrdenadas;
+    const enCurso = list.find((c) => c.estado === "en_consulta");
+    if (enCurso) return { tipo: "continuar", cita: enCurso };
+
+    const entradas = list.filter(
+      (c) =>
+        citaPagoOk(c) &&
+        c.estado !== "completada" &&
+        c.estado !== "no_asistio" &&
+        c.estado !== "en_consulta"
+    );
+    if (entradas.length) return { tipo: "entrar", cita: entradas[0] };
+
+    const sinPago = list.find(
+      (c) =>
+        !citaPagoOk(c) &&
+        c.estado !== "completada" &&
+        c.estado !== "cancelada" &&
+        c.estado !== "no_asistio" &&
+        c.estado !== "en_consulta"
+    );
+    if (sinPago) return { tipo: "pago", cita: sinPago };
+
+    if (list.length) return { tipo: "todo_ok", cita: null };
+    return { tipo: "vacio", cita: null };
+  }, [mode, citasDiaOrdenadas]);
 
   const citaPorHora = useMemo(() => {
     const map = {};
@@ -332,7 +372,7 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
 
   const guardarNuevaCita = async () => {
     if (mode === "doctora") {
-      showToast("Quien agenda citas es mostrador o administración. Vos atendés desde la agenda (Iniciar consulta) y expediente.", "info");
+      showToast("Quien agenda citas es mostrador o administración. Vos atendés desde «Entrar a consulta» y expediente.", "info");
       return;
     }
     const hoy = hoySvLocal();
@@ -429,14 +469,54 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
             {mode === "vendedor"
               ? "Consultas del día y cobros en mostrador; sin detalle clínico completo."
               : mode === "doctora"
-                ? "Citas las agenda mostrador, tienda o admin. Iniciá la consulta solo si ya está pagada; el cobro es en caja o tienda, no en esta pantalla."
+                ? vista === "mes"
+                  ? "Citas las agenda el equipo. Para atender, usá «Ver mi día (hoy)» o elegí un día con citas. Sin cobro ni POS desde acá: solo cita paga, ficha y expediente."
+                  : "Hoy: consultas ordenadas por hora, próxima acción arriba. Entrás a la ficha con «Entrar a consulta»; sin pago, bloqueo claro."
                 : "Vista completa del consultorio: calendario, horarios y expediente."}
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {mode === "doctora" && diaSel !== hoySvLocal() && (
+            <button
+              type="button"
+              onClick={() => {
+                const h = hoySvLocal();
+                setDiaSel(h);
+                const d = new Date();
+                setY(d.getFullYear());
+                setM(d.getMonth());
+                setVista("dia");
+              }}
+              style={{
+                padding: "8px 14px",
+                borderRadius: 8,
+                border: `1px solid ${BRAND.primary}`,
+                background: BRAND.primary + "14",
+                color: BRAND.secondary,
+                fontWeight: 800,
+                fontSize: 12,
+                cursor: "pointer",
+              }}
+            >
+              Ir a hoy
+            </button>
+          )}
           <button
             type="button"
-            onClick={() => setVista(vista === "mes" ? "dia" : "mes")}
+            onClick={() => {
+              if (vista === "mes") {
+                if (mode === "doctora") {
+                  const h = hoySvLocal();
+                  setDiaSel(h);
+                  const d = new Date();
+                  setY(d.getFullYear());
+                  setM(d.getMonth());
+                }
+                setVista("dia");
+              } else {
+                setVista("mes");
+              }
+            }}
             style={{
               padding: "8px 14px",
               borderRadius: 8,
@@ -447,10 +527,113 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
               cursor: "pointer",
             }}
           >
-            {vista === "mes" ? "Ver día seleccionado" : "Ver mes"}
+            {vista === "mes" ? (mode === "doctora" ? "Ver mi día (hoy)" : "Ver día seleccionado") : "Ver calendario (mes)"}
           </button>
         </div>
       </div>
+
+      {mode === "doctora" && vista === "dia" && (
+        <Box
+          style={{
+            marginBottom: 18,
+            padding: 18,
+            border: `2px solid ${BRAND.primary}50`,
+            background: `linear-gradient(180deg, ${BRAND.primary}16, ${C.card} 100%)`,
+            borderRadius: 12,
+            boxShadow: "0 8px 24px rgba(0,82,204,0.08)",
+          }}
+        >
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 800,
+              color: C.textDim,
+              textTransform: "uppercase",
+              letterSpacing: 0.6,
+              marginBottom: 10,
+            }}
+          >
+            {diaSel === hoySvLocal() ? "Próxima acción" : "Acción (día que estás viendo)"}
+          </div>
+          {loadMes && <div style={{ color: C.textMid, fontSize: 13 }}>Cargando citas del día…</div>}
+          {!loadMes && accionPrincipalDoctora?.tipo === "vacio" && (
+            <p style={{ color: C.textMid, fontSize: 14, margin: 0 }}>No hay citas este día. Elegí otro en el calendario o en «Día anterior / siguiente».</p>
+          )}
+          {!loadMes && accionPrincipalDoctora?.tipo === "todo_ok" && (
+            <p style={{ color: C.green, fontSize: 14, fontWeight: 700, margin: 0 }}>
+              No quedan consultas por atender este día. Podés pasar a otro día o revisar expedientes.
+            </p>
+          )}
+          {!loadMes && accionPrincipalDoctora?.tipo === "continuar" && accionPrincipalDoctora.cita && (
+            <div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", marginBottom: 6 }}>
+                <span style={{ fontSize: 18, fontWeight: 800, color: C.text }}>Consulta en curso</span>
+                <Tag col={C.amber} sm>
+                  En consulta
+                </Tag>
+              </div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: BRAND.primary, marginBottom: 4 }}>{accionPrincipalDoctora.cita.nombre}</div>
+              <div style={{ fontSize: 13, color: C.textMid, marginBottom: 12 }}>
+                {horaKey(accionPrincipalDoctora.cita.hora)} · {accionPrincipalDoctora.cita.motivo || "Consulta general"}
+              </div>
+              <Btn col={BRAND.primary} onClick={() => continuarConsultaDoctora(accionPrincipalDoctora.cita)}>
+                Continuar consulta
+              </Btn>
+            </div>
+          )}
+          {!loadMes && accionPrincipalDoctora?.tipo === "entrar" && accionPrincipalDoctora.cita && (
+            <div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: C.text, marginBottom: 6 }}>Próxima consulta a atender</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: BRAND.primary, marginBottom: 4 }}>{accionPrincipalDoctora.cita.nombre}</div>
+              <div style={{ fontSize: 13, color: C.textMid, marginBottom: 8 }}>
+                {horaKey(accionPrincipalDoctora.cita.hora)} · {accionPrincipalDoctora.cita.motivo || "Consulta general"}
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", marginBottom: 12 }}>
+                <Tag col={etiquetaEstadoVisual(accionPrincipalDoctora.cita).col} sm>
+                  {etiquetaEstadoVisual(accionPrincipalDoctora.cita).label}
+                </Tag>
+                {accionPrincipalDoctora.cita.canal && (
+                  <Tag col={C.blue} sm>
+                    {labelCanal(accionPrincipalDoctora.cita)}
+                  </Tag>
+                )}
+              </div>
+              <Btn
+                col={BRAND.primary}
+                dis={iniciandoCitaId === accionPrincipalDoctora.cita.id}
+                onClick={() => iniciarConsultaDoctora(accionPrincipalDoctora.cita)}
+              >
+                {iniciandoCitaId === accionPrincipalDoctora.cita.id ? "Abriendo ficha…" : "Entrar a consulta"}
+              </Btn>
+              <p style={{ fontSize: 12, color: C.textDim, marginTop: 10, marginBottom: 0, lineHeight: 1.4 }}>
+                Se abre la ficha con motivo, signos vitales, diagnóstico, receta y notas. Abajo seguís el mismo turno con el mismo horario.
+              </p>
+            </div>
+          )}
+          {!loadMes && accionPrincipalDoctora?.tipo === "pago" && accionPrincipalDoctora.cita && (
+            <div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: C.text, marginBottom: 6 }}>Siguiente en agenda (hoy)</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: BRAND.primary, marginBottom: 4 }}>{accionPrincipalDoctora.cita.nombre}</div>
+              <div style={{ fontSize: 13, color: C.textMid, marginBottom: 10 }}>
+                {horaKey(accionPrincipalDoctora.cita.hora)} · {accionPrincipalDoctora.cita.motivo || "Consulta"}
+              </div>
+              <div
+                style={{
+                  padding: 12,
+                  background: C.amberDim,
+                  borderRadius: 8,
+                  border: `1px solid ${C.amber}55`,
+                }}
+              >
+                <div style={{ fontWeight: 800, color: C.amber, fontSize: 13 }}>Pendiente de pago en caja o tienda</div>
+                <p style={{ fontSize: 12, color: C.textMid, margin: "6px 0 0", lineHeight: 1.45 }}>
+                  No se puede avanzar a la ficha clínica hasta que la consulta esté pagada. Si hay otras horas con pago, podés atender esas abajo. El cobro no lo hacés desde esta pantalla.
+                </p>
+              </div>
+            </div>
+          )}
+        </Box>
+      )}
 
       {mode === "doctora" && (
         <>
@@ -481,7 +664,7 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
             ))}
           </div>
           {kpiLoad ? (
-            <SkeletonKPIs count={4} />
+            <SkeletonKPIs count={3} />
           ) : (
             <div style={{ display: "flex", gap: 12, marginBottom: 18, flexWrap: "wrap" }}>
               <KPI
@@ -745,6 +928,11 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
               const libre = !ocupada && disponibles.includes(hora);
               const esDiaPasado = diaSel < hoySvLocal();
               const ev = etiquetaEstadoVisual(ocupada);
+              const focoAccion =
+                mode === "doctora" &&
+                ocupada &&
+                accionPrincipalDoctora?.cita?.id != null &&
+                Number(accionPrincipalDoctora.cita.id) === Number(ocupada.id);
               return (
                 <div
                   key={hora}
@@ -755,8 +943,11 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
                     alignItems: "stretch",
                     padding: 10,
                     borderRadius: 10,
-                    border: `1px solid ${ocupada ? ev.col + "55" : C.border}`,
+                    border: focoAccion
+                      ? `2px solid ${BRAND.primary}`
+                      : `1px solid ${ocupada ? ev.col + "55" : C.border}`,
                     background: ocupada ? C.card : libre ? C.greenDim : C.bg,
+                    boxShadow: focoAccion ? "0 0 0 3px " + BRAND.primary + "22" : undefined,
                   }}
                 >
                   <div style={{ fontWeight: 800, color: BRAND.primary, fontSize: 15 }}>{hora}</div>
@@ -809,12 +1000,12 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
                                     dis={iniciandoCitaId === ocupada.id}
                                     onClick={() => iniciarConsultaDoctora(ocupada)}
                                   >
-                                    {iniciandoCitaId === ocupada.id ? "Abriendo…" : "Iniciar consulta"}
+                                    {iniciandoCitaId === ocupada.id ? "Abriendo…" : "Entrar a consulta"}
                                   </Btn>
                                 )}
                               {ocupada.estado === "en_consulta" && (
                                 <Btn sm col={BRAND.primary} onClick={() => continuarConsultaDoctora(ocupada)}>
-                                  Continuar
+                                  Continuar consulta
                                 </Btn>
                               )}
                               {(ocupada.estado === "completada" || ocupada.estado === "no_asistio") && (
@@ -850,7 +1041,10 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
           </div>
           {!!citasDelDia.length && (
             <Box style={{ marginTop: 16, padding: 12, background: C.bg }}>
-              <div style={{ fontSize: 11, fontWeight: 800, color: C.textDim, marginBottom: 8 }}>LISTA DEL DÍA</div>
+              <div style={{ fontSize: 11, fontWeight: 800, color: C.textDim, marginBottom: 4 }}>LISTA DEL DÍA</div>
+              {mode === "doctora" && (
+                <div style={{ fontSize: 10, color: C.textDim, marginBottom: 8 }}>Orden por hora · estado en cada turno</div>
+              )}
               <div style={{ display: "grid", gap: 8 }}>
                 {citasDelDia
                   .slice()
