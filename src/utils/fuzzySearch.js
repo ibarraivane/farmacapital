@@ -95,7 +95,12 @@ export function productMatchesSearchQuery(product, queryRaw, valueGetters) {
 const TIENDA_GETTERS = [
   (x) => x.nombre,
   (x) => x.principio_activo,
+  (x) => x.denominacion_generica,
+  (x) => x.denominacion_distintiva,
   (x) => x.marca,
+  (x) => x.concentracion,
+  (x) => x.presentacion,
+  (x) => x.forma_farmaceutica,
   (x) => x.categoria,
   (x) => x.sku,
   (x) => x.codigo_barras,
@@ -103,13 +108,23 @@ const TIENDA_GETTERS = [
 
 const INVENTARIO_GETTERS = [
   (x) => x.nombre,
+  (x) => x.principio_activo,
+  (x) => x.denominacion_generica,
+  (x) => x.denominacion_distintiva,
+  (x) => x.marca,
+  (x) => x.concentracion,
+  (x) => x.presentacion,
+  (x) => x.forma_farmaceutica,
+  (x) => x.ubicacion_texto,
+  (x) => x.ubicacion,
+  (x) => x.zona,
+  (x) => x.anaquel,
+  (x) => x.cajon,
   (x) => x.sku,
   (x) => x.codigo_barras,
   (x) => x.categoria,
   (x) => x.descripcion,
   (x) => x.proveedor,
-  (x) => x.marca,
-  (x) => x.principio_activo,
 ];
 
 export function tiendaProductMatchesBusqueda(product, queryRaw) {
@@ -122,15 +137,32 @@ export function tiendaProductMatchesBusqueda(product, queryRaw) {
 
   const nombre = normalizeForSearch(product?.nombre || "");
   const principio = normalizeForSearch(product?.principio_activo || "");
+  const generica = normalizeForSearch(product?.denominacion_generica || "");
+  const distintiva = normalizeForSearch(product?.denominacion_distintiva || "");
   const marca = normalizeForSearch(product?.marca || "");
+  const concentracion = normalizeForSearch(product?.concentracion || "");
+  const presentacion = normalizeForSearch(product?.presentacion || "");
+  const forma = normalizeForSearch(product?.forma_farmaceutica || "");
   const categoria = normalizeForSearch(product?.categoria || "");
   const sku = normalizeForSearch(product?.sku || "");
   const cb = normalizeForSearch(product?.codigo_barras || "");
-  const primaryFields = [nombre, principio, marca, categoria, sku, cb];
+  const primaryFields = [nombre, principio, generica, distintiva, marca, concentracion, presentacion, forma, categoria, sku, cb];
 
   // Primero, coincidencia directa clásica (la más esperada por usuario).
   if (someFieldIncludesNormalizedQuery(
-    [product?.nombre, product?.principio_activo, product?.marca, product?.categoria, product?.sku, product?.codigo_barras],
+    [
+      product?.nombre,
+      product?.principio_activo,
+      product?.denominacion_generica,
+      product?.denominacion_distintiva,
+      product?.marca,
+      product?.concentracion,
+      product?.presentacion,
+      product?.forma_farmaceutica,
+      product?.categoria,
+      product?.sku,
+      product?.codigo_barras,
+    ],
     raw
   )) return true;
 
@@ -148,7 +180,7 @@ export function tiendaProductMatchesBusqueda(product, queryRaw) {
     if (tok.length <= 1) return false;
     if (primaryFields.some((f) => tokenMatchesInNormalizedHaystack(tok, f))) return true;
     if (tok.length < 5) return false;
-    return [nombre, principio, marca].some((f) => normalizedTextFuzzyMatch(tok, f));
+    return [nombre, principio, generica, distintiva, marca, concentracion, presentacion, forma].some((f) => normalizedTextFuzzyMatch(tok, f));
   });
 }
 
@@ -166,6 +198,11 @@ export function tiendaSearchRelevanceRank(product, queryRaw) {
   const tokens = qn.split(/\s+/).filter(Boolean);
   const n = normalizeForSearch(product.nombre || "");
   const pa = normalizeForSearch(product.principio_activo || "");
+  const dg = normalizeForSearch(product.denominacion_generica || "");
+  const dd = normalizeForSearch(product.denominacion_distintiva || "");
+  const conc = normalizeForSearch(product.concentracion || "");
+  const pres = normalizeForSearch(product.presentacion || "");
+  const forma = normalizeForSearch(product.forma_farmaceutica || "");
   const d = normalizeForSearch(product.descripcion || "");
   const sku = normalizeForSearch(String(product.sku ?? ""));
   const cb = normalizeForSearch(String(product.codigo_barras ?? ""));
@@ -176,12 +213,18 @@ export function tiendaSearchRelevanceRank(product, queryRaw) {
   if (n.includes(qn)) return 0;
   if (everyIn(n)) return 2;
   if (pa.includes(qn)) return 1;
+  if (dg.includes(qn)) return 1;
+  if (dd.includes(qn)) return 2;
   if (everyIn(pa)) return 3;
+  if (everyIn(dg)) return 3;
+  if (everyIn(dd)) return 4;
+  if (conc.includes(qn) || pres.includes(qn) || forma.includes(qn)) return 5;
   if (sku === qn || cb === qn) return 0;
   if (qn.length >= 2 && (sku.startsWith(qn) || cb.startsWith(qn))) return 4;
   if (bySubstring) {
     if (everyIn(d)) return 12;
     if (everyIn(marca)) return 14;
+    if (everyIn(conc) || everyIn(pres) || everyIn(forma)) return 15;
     if (everyIn(cat)) return 16;
     return 20;
   }
@@ -215,10 +258,19 @@ export function tiendaCatalogSearchSuggestions(products, queryRaw, { limit = 8 }
     else if (cb && cb.includes(qn)) rank = 3;
     const nn = normalizeForSearch(p.nombre || "");
     const ptn = normalizeForSearch(p.principio_activo || "");
+    const dgn = normalizeForSearch(p.denominacion_generica || "");
+    const ddn = normalizeForSearch(p.denominacion_distintiva || "");
+    const conc = normalizeForSearch(p.concentracion || "");
+    const pres = normalizeForSearch(p.presentacion || "");
+    const forma = normalizeForSearch(p.forma_farmaceutica || "");
     if (nn.includes(qn)) rank = Math.min(rank, 2);
     if (qTokens.length && qTokens.every((t) => nn.includes(t))) rank = Math.min(rank, 5);
     if (ptn.includes(qn)) rank = Math.min(rank, 4);
     if (qTokens.length && qTokens.every((t) => ptn.includes(t))) rank = Math.min(rank, 6);
+    if (dgn.includes(qn)) rank = Math.min(rank, 4);
+    if (qTokens.length && qTokens.every((t) => dgn.includes(t))) rank = Math.min(rank, 6);
+    if (ddn.includes(qn)) rank = Math.min(rank, 5);
+    if (conc.includes(qn) || pres.includes(qn) || forma.includes(qn)) rank = Math.min(rank, 7);
     if (rank === 100) {
       if (!tiendaProductMatchesBusqueda(p, q)) continue;
       rank = 8;

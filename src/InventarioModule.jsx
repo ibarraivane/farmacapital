@@ -28,6 +28,9 @@ const EMPTY = {
   nombre:"", sku:"", codigo_barras:"", categoria:"Otro", precio:"", costo:"", venta_unidad:false, unidades_por_caja:"", precio_unidad:"", stock_unidades:"",
   stock:"", stock_minimo:"", tipo:"generico", proveedor:"", lote:"",
   fecha_caducidad:"", descuento_pct:"0", activo:true, imagen_url:"", imagen_mobile_url:"",
+  principio_activo:"", denominacion_generica:"", denominacion_distintiva:"",
+  concentracion:"", presentacion:"", forma_farmaceutica:"",
+  ubicacion_texto:"",
 };
 
 /** PostgREST puede devolver una fila como array o como objeto según versión/cliente */
@@ -182,6 +185,13 @@ function ProductoModal({initial, onClose, onSaved }) {
         tipo: form.tipo,
         proveedor: (form.proveedor ?? "").trim() || null,
         descuento_pct: parseFloat(form.descuento_pct) || 0,
+        principio_activo: (form.principio_activo ?? "").trim() || null,
+        denominacion_generica: (form.denominacion_generica ?? "").trim() || null,
+        denominacion_distintiva: (form.denominacion_distintiva ?? "").trim() || null,
+        concentracion: (form.concentracion ?? "").trim() || null,
+        presentacion: (form.presentacion ?? "").trim() || null,
+        forma_farmaceutica: (form.forma_farmaceutica ?? "").trim() || null,
+        ubicacion_texto: (form.ubicacion_texto ?? "").trim() || null,
         activo: form.activo,
         venta_unidad: form.venta_unidad || false,
         unidades_por_caja: form.venta_unidad ? parseInt(form.unidades_por_caja) || 0 : 0,
@@ -317,6 +327,9 @@ function ProductoModal({initial, onClose, onSaved }) {
               </select>
             </div>
             {field("Proveedor","proveedor")}
+            {field("Principio activo","principio_activo")}
+            {field("Denominación genérica","denominacion_generica")}
+            {field("Denominación distintiva / marca clínica","denominacion_distintiva")}
             {!form.id && field("Lote inicial","lote")}
             {!form.id && field("Fecha de caducidad (lote inicial)","fecha_caducidad","date")}
             {form.id && (
@@ -332,6 +345,10 @@ function ProductoModal({initial, onClose, onSaved }) {
             {field("Stock actual","stock","number",true)}
             {field("Stock mínimo","stock_minimo","number")}
             {field("Descuento %","descuento_pct","number")}
+            {field("Concentración","concentracion")}
+            {field("Presentación","presentacion")}
+            {field("Forma farmacéutica","forma_farmaceutica")}
+            {field("Ubicación física (anaquel/cajón/zona)","ubicacion_texto")}
             <div style={{marginBottom:12,display:"flex",alignItems:"center",gap:10}}>
               <input type="checkbox" id="activo_chk" checked={form.activo}
                 onChange={e=>set("activo",e.target.checked)} style={{width:16,height:16,cursor:"pointer"}}/>
@@ -1374,7 +1391,7 @@ export default function InventarioModule() {
       </div>
 
       <div data-tour="inv-buscar" style={{display:"flex",flexDirection:"column",gap:10,marginBottom:16}}>
-        <SearchDropdown value={busqueda} onChange={setBusqueda} onSelect={p=>setBusqueda(p.nombre)} placeholder="🔍 Nombre o SKU…" items={productos} labelKey="nombre" subKey="sku" extraSearchKeys={["codigo_barras","categoria"]} badgeKey="stock" badgeCol="#0099e6" style={{width:"100%",maxWidth:"100%"}} emptyMsg="Sin productos"/>
+        <SearchDropdown value={busqueda} onChange={setBusqueda} onSelect={p=>setBusqueda(p.nombre)} placeholder="🔍 Nombre, activo, genérico, marca, presentación, SKU…" items={productos} labelKey="nombre" subKey="sku" extraSearchKeys={["codigo_barras","categoria","principio_activo","denominacion_generica","denominacion_distintiva","marca","concentracion","presentacion","forma_farmaceutica","ubicacion_texto"]} badgeKey="stock" badgeCol="#0099e6" style={{width:"100%",maxWidth:"100%"}} emptyMsg="Sin productos"/>
         <div style={{display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
         <select value={filtroCategoria} onChange={e=>setFiltroCategoria(e.target.value)} style={{...inputStyle,maxWidth:180}}>
           <option value="todas">Todas las categorías</option>
@@ -1501,7 +1518,7 @@ export default function InventarioModule() {
         <SkeletonTable rows={8} cols={7}/>
       ) : (
         <HorizontalScrollSync data-tour="inv-tabla">
-          <table style={{width:"100%",minWidth:1220,borderCollapse:"collapse",fontSize:12}}>
+          <table style={{width:"100%",minWidth:1320,borderCollapse:"collapse",fontSize:12}}>
             <thead>
               <tr style={{background:C.card}}>
                 <th style={{ padding: "10px 8px", textAlign: "center", color: C.textMid, fontWeight: 700, borderBottom: `1px solid ${C.border}`, width: 36 }}>
@@ -1514,7 +1531,7 @@ export default function InventarioModule() {
                     style={{ width: 16, height: 16, cursor: "pointer", accentColor: BRAND.primary }}
                   />
                 </th>
-                {["Foto","SKU","Nombre","Categoría","Tipo","Stock","Mín","Precio","Costo","Margen%","Cad. (días)","Agot. (días)","Desc%","Estado","Acciones"].map(h=>(
+                {["Foto","SKU","Nombre","Farmacia","Ubicación","Categoría","Tipo","Stock","Mín","Precio","Costo","Margen%","Cad. (días)","Agot. (días)","Desc%","Estado","Acciones"].map(h=>(
                   <th key={h} style={{padding:"10px 12px",textAlign:"left",color:C.textMid,fontWeight:700,
                     borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>{h}</th>
                 ))}
@@ -1522,7 +1539,7 @@ export default function InventarioModule() {
             </thead>
             <tbody>
               {filtrados.length===0&&(
-                <tr><td colSpan={16} style={{textAlign:"center",padding:32,color:C.textMid}}>
+                <tr><td colSpan={18} style={{textAlign:"center",padding:32,color:C.textMid}}>
                   Sin productos{busqueda?` para "${busqueda}"`:""}. Agrega el primero con ➕
                 </td></tr>
               )}
@@ -1555,6 +1572,18 @@ export default function InventarioModule() {
                     </td>
                     <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{p.sku||"—"}</td>
                     <td style={{padding:"8px 12px",color:inact?C.textDim:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>{p.nombre}</td>
+                    <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,maxWidth:230}}>
+                      <div style={{fontSize:11,lineHeight:1.3}}>
+                        {[p.principio_activo, p.denominacion_generica || p.marca, p.concentracion, p.presentacion]
+                          .filter(Boolean)
+                          .join(" · ") || "—"}
+                      </div>
+                    </td>
+                    <td style={{padding:"8px 12px",color:C.text,borderBottom:`1px solid ${C.border}`,maxWidth:180}}>
+                      <span style={{fontSize:11,fontWeight:700,color:p.ubicacion_texto ? C.blue : C.textDim}}>
+                        {p.ubicacion_texto || "Sin ubicación"}
+                      </span>
+                    </td>
                     <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{p.categoria}</td>
                     <td style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`}}>
                       <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,

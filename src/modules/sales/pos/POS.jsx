@@ -1267,7 +1267,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                     if(exact){add(exact,false);setSrch("");e.preventDefault();}
                   }
                 }}
-                placeholder="🔍 Buscar por nombre o SKU · Enter para agregar"
+                placeholder="🔍 Buscar por nombre, activo, genérico, marca o SKU · Enter agrega"
                 style={{flex:1,minWidth:0,boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:C.bg,color:C.text,fontSize:isMobilePos?16:13,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}/>
               {!isMobilePos && (
               <button onClick={()=>setCartOpen(p=>!p)} style={{
@@ -1330,9 +1330,21 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                     </button>
                   </div>
                   <div style={{color:C.text,fontSize:11,fontWeight:700,lineHeight:1.3,marginBottom:6,minHeight:28}}>{item.nombre}</div>
+                  <div style={{color:C.textDim,fontSize:10,lineHeight:1.25,marginBottom:6,minHeight:24}}>
+                    {[item.principio_activo, item.denominacion_generica || item.marca, item.concentracion, item.presentacion]
+                      .filter(Boolean)
+                      .join(" · ") || "Sin ficha farmacéutica"}
+                  </div>
+                  <div style={{marginBottom:6}}>
+                    <span style={{fontSize:10,fontWeight:800,color:item.ubicacion_texto ? C.blue : C.textDim}}>
+                      📍 {item.ubicacion_texto || "Sin ubicación"}
+                    </span>
+                  </div>
                   <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:6}}>
                     {item.requiere_receta&&<span style={{background:C.amber,color:"#fff",fontSize:9,fontWeight:800,borderRadius:4,padding:"2px 6px"}}>⚕ RX</span>}
                     {item.tipo==="generico"&&<Tag col={C.teal} sm>Gen</Tag>}
+                    {item.controlado&&<Tag col={C.red} sm>Controlado</Tag>}
+                    {!item.requiere_receta && !item.controlado && <Tag col={C.blue} sm>OTC</Tag>}
                   </div>
                   {item.venta_unidad?(
                     <div style={{display:"flex",flexDirection:"column",gap:4}}>
