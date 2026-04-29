@@ -784,7 +784,11 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
                   key={s.id}
                   type="button"
                   role="option"
-                  onMouseDown={(e)=>e.preventDefault()}
+                  onPointerDown={(e)=>{
+                    // Mantener foco en desktop para permitir click de sugerencia,
+                    // sin bloquear gestos táctiles de scroll en móvil.
+                    if (e.pointerType === "mouse") e.preventDefault();
+                  }}
                   onClick={()=>{
                     const row = productos.find((x)=>x.id===s.id);
                     if (row){
@@ -1079,7 +1083,9 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
                     key={s.id}
                     type="button"
                     role="option"
-                    onMouseDown={(e)=>e.preventDefault()}
+                    onPointerDown={(e)=>{
+                      if (e.pointerType === "mouse") e.preventDefault();
+                    }}
                     onClick={()=>{
                       if(row){ setProdDetalle(row); setPage("detalle"); }
                       setHeroBusqFocus(false);
@@ -1328,7 +1334,9 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
                 key={s.id}
                 type="button"
                 role="option"
-                onMouseDown={(e)=>e.preventDefault()}
+                onPointerDown={(e)=>{
+                  if (e.pointerType === "mouse") e.preventDefault();
+                }}
                 onClick={()=>{
                   const row = productos.find((x)=>x.id===s.id);
                   if (row){ setProdDetalle(row); setPage("detalle"); }
