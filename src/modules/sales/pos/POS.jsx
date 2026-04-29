@@ -461,6 +461,30 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
 
   const ejecutarCobrar = async (recetaOrigen = "no_aplica") => {
     if(!cart.length) return;
+    // Prevalidación rápida para evitar mandar una venta imposible al RPC.
+    const faltantes = cart
+      .map((c) => {
+        const pid = c.producto_id ?? c.id;
+        const p = productos.find((x) => String(x.id) === String(pid));
+        const requested = Number(c.qty) || 0;
+        const available = c.esUnidad ? (Number(p?.stock_unidades) || 0) : (Number(p?.stock) || 0);
+        if (!p || requested <= available) return null;
+        return {
+          nombre: p.nombre || c.nombre || `Producto ${pid}`,
+          requested,
+          available,
+          unidad: c.esUnidad ? "unidad(es)" : "caja(s)",
+        };
+      })
+      .filter(Boolean);
+    if (faltantes.length) {
+      const top = faltantes
+        .slice(0, 3)
+        .map((f) => `• ${f.nombre}: solicitadas ${f.requested} ${f.unidad}, disponibles ${f.available}`)
+        .join("\n");
+      alert(`Stock insuficiente para completar la venta:\n\n${top}`);
+      return;
+    }
     if (pay === "efectivo") {
       const rec = parseMontoEfectivo(montoRecibido);
       if (!Number.isFinite(rec) || rec < total) {
@@ -614,7 +638,23 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       const msg = e?.message || e?.details || String(e);
       const lower = msg.toLowerCase();
       if (lower.includes("stock") || lower.includes("insuficiente")) {
-        alert("Stock insuficiente o no se pudo completar el descuento de inventario.");
+        alert(`Stock insuficiente o no se pudo completar el descuento de inventario.\n\nDetalle: ${msg}`);
+        // Sincroniza existencias visibles con BD tras un rechazo por stock.
+        try {
+          const { data } = await supabase
+            .from("productos")
+            .select("*, lotes(fecha_caducidad,cantidad_actual,activo)")
+            .eq("activo", true)
+            .order("nombre");
+          const prodsConCad = (data || []).map((p) => {
+            const activos = (p.lotes || []).filter((l) => l.activo !== false && (l.cantidad_actual || 0) > 0 && l.fecha_caducidad);
+            const minCad = activos.reduce((m, l) => (!m || l.fecha_caducidad < m) ? l.fecha_caducidad : m, null);
+            return { ...p, min_caducidad_lotes: minCad };
+          });
+          setProds(prodsConCad);
+        } catch (_) {
+          // noop: no bloquear el flujo por un refresh fallido
+        }
       } else {
         alert(`No se pudo completar la venta.\n\n${msg}`);
       }
