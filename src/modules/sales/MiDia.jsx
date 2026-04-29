@@ -322,7 +322,7 @@ export default function MiDia({ usuario, setPage }) {
   const turnoLabel = turno === "matutino" ? "turno matutino" : "turno vespertino";
 
   return (
-    <div style={{ padding: 24, maxWidth: 1100, margin: "0 auto", background: C.bg, minHeight: "100vh", fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
+    <div style={{ padding: 24, maxWidth: 1100, margin: "0 auto", background: C.bg, minHeight: "100dvh", fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
 
       {/* ── SECCIÓN 1: SALUDO ─────────────────────────────── */}
       <div style={{ marginBottom: 20 }}>

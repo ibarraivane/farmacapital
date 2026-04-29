@@ -150,7 +150,7 @@ export default function CorteCajaModule({usuario }) {
   const sumTot = cortes.reduce((a,c)=>a+parseFloat(c.total_general||0),0);
 
   return (
-    <div style={{padding:24,background:C.bg,minHeight:"100vh",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
+    <div style={{padding:24,background:C.bg,minHeight:"100dvh",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
 
       <div style={{marginBottom:24}}>
         <h1 style={{margin:0,color:C.text,fontSize:20,fontWeight:800}}>⊞ Corte de Caja</h1>

@@ -78,6 +78,14 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     if (typeof window === "undefined") return true;
     return !window.matchMedia("(max-width: 768px)").matches;
   });
+  useEffect(() => {
+    if (!(isMobilePos && cartOpen)) return undefined;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev || "auto";
+    };
+  }, [isMobilePos, cartOpen]);
   const [mpModal,setMpModal]     = useState(false);
   const [mpFolio,setMpFolio]     = useState("");
   /** Tras elegir origen de receta, cobro con tarjeta (Point) usa este valor al confirmar el pago. */
@@ -1497,6 +1505,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
               flexDirection: "column",
               justifyContent: "flex-end",
               pointerEvents: "auto",
+              overscrollBehavior: "contain",
             }}
           >
             <button

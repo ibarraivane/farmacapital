@@ -310,7 +310,7 @@ export default function COFEPRISModule() {
   const [tab, setTab] = useState("alertas");
   const TABS = [["alertas","🚦 Alertas legales"],["bitacora","📋 Bitácora antibióticos"],["controlados","💊 Controlados"]];
   return (
-    <div style={{padding:24,background:C.bg,minHeight:"100vh",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
+    <div style={{padding:24,background:C.bg,minHeight:"100dvh",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
       <div style={{marginBottom:20}}>
         <h1 style={{margin:0,color:C.text,fontSize:20,fontWeight:800}}>⚕ COFEPRIS</h1>
         <p style={{margin:"4px 0 0",color:C.textMid,fontSize:12}}>Cumplimiento regulatorio · Farmax</p>

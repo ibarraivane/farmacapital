@@ -134,6 +134,14 @@ export default function TicketPreviewModal({
 }) {
   const ticketRef = useRef(null);
   const [showFactura, setShowFactura] = React.useState(false);
+  useEffect(() => {
+    if (!open) return undefined;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev || "auto";
+    };
+  }, [open]);
 
   // Auto-imprimir al abrir (opcional — comentar si no se quiere)
   // useEffect(() => { if(open) setTimeout(()=>printTicket("farmax-ticket"), 1000); }, [open]);

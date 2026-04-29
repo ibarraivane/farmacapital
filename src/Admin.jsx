@@ -380,7 +380,7 @@ function AdminNavSidebar({active,setActive,negocio,setNegocio,usuario,onLogout,a
         </div>
       </div>
 
-      <div style={{flex:1,padding:"8px 8px",overflowY:"auto",scrollbarWidth:"thin",scrollbarColor:`${BRAND.primary}30 transparent`}}>
+      <div style={{flex:1,padding:"8px 8px",overflowY:"auto",WebkitOverflowScrolling:"touch",overscrollBehaviorY:"contain",scrollbarWidth:"thin",scrollbarColor:`${BRAND.primary}30 transparent`}}>
         {isAdmin
           ? <>
             {groupAdminNavForRender(navIds).map((row, idx) => {
@@ -1788,8 +1788,10 @@ export default function FarmaxAdmin(){
 *{box-sizing:border-box;margin:0;padding:0}
 html,body,#root{height:100%;-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{
+  overflow-x:hidden;
+  overflow-y:auto;
   touch-action:pan-y;
-  overscroll-behavior-y:auto;
+  overscroll-behavior-y:none;
 }
 .farmax-admin-root{min-height:100vh;min-height:100dvh}
 .farmax-admin-main{

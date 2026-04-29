@@ -666,6 +666,7 @@ function ProductCard({prod,addToCart,onClick}){
   const placeholderUrl = useContext(TiendaPlaceholderCtx);
   const imgSrc = productImageUrl(prod, narrow, placeholderUrl);
   const handlePointerDown = (e) => {
+    if (narrow) return;
     if (e.pointerType !== "touch") return;
     touchDragRef.current = { active: true, moved: false, x: e.clientX, y: e.clientY };
     // Sin captura, los pointermove pueden no llegar al root cuando el dedo cruza texto/nodos hijos,
@@ -696,8 +697,8 @@ function ProductCard({prod,addToCart,onClick}){
     touchDragRef.current.active = false;
   };
   const handleDetailClick = (e) => {
-    // Si hubo arrastre táctil, no navegar; deja que el gesto sea scroll.
-    if (touchDragRef.current.moved) {
+    // En móvil modo seguro solo hay clic en botones; en escritorio evitar tap accidental tras scroll táctil.
+    if (!narrow && touchDragRef.current.moved) {
       e.preventDefault();
       e.stopPropagation();
       touchDragRef.current.moved = false;
@@ -706,7 +707,7 @@ function ProductCard({prod,addToCart,onClick}){
     onClick?.();
   };
   const handleAddClick = (e) => {
-    if (touchDragRef.current.moved) {
+    if (!narrow && touchDragRef.current.moved) {
       e.preventDefault();
       e.stopPropagation();
       touchDragRef.current.moved = false;
@@ -722,20 +723,33 @@ function ProductCard({prod,addToCart,onClick}){
     setAdded(true);
     setTimeout(()=>setAdded(false),1500);
   };
-  const pointerGestureProps = {
-    onPointerDown: handlePointerDown,
-    onPointerMove: handlePointerMove,
-    onPointerUp: handlePointerEnd,
-    onPointerCancel: handlePointerEnd,
-  };
+  /** Solo escritorio: zonas grandes clickeables + guard táctil; en móvil el scroll va fluido sin taps en superficie. */
+  const pointerGestureProps = narrow
+    ? null
+    : {
+        onPointerDown: handlePointerDown,
+        onPointerMove: handlePointerMove,
+        onPointerUp: handlePointerEnd,
+        onPointerCancel: handlePointerEnd,
+      };
   return(
-    <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,overflow:"hidden",display:"flex",flexDirection:"column",cursor:"pointer",transition:"box-shadow .2s",touchAction:"pan-y"}}
+    <div style={{
+      background:C.white,
+      borderRadius:14,
+      border:`1px solid ${C.border}`,
+      overflow:"hidden",
+      display:"flex",
+      flexDirection:"column",
+      cursor:narrow?"default":"pointer",
+      transition:"box-shadow .2s",
+      touchAction:"pan-y",
+    }}
       onMouseEnter={e=>(e.currentTarget.style.boxShadow="0 4px 20px #0002")}
       onMouseLeave={e=>(e.currentTarget.style.boxShadow="none")}
     >
       <div
-        {...pointerGestureProps}
-        onClick={handleDetailClick}
+        {...(pointerGestureProps || {})}
+        {...(!narrow ? { onClick: handleDetailClick } : {})}
         style={{
           background:C.cardDark,
           overflow:"hidden",
@@ -760,7 +774,7 @@ function ProductCard({prod,addToCart,onClick}){
         )}
       </div>
       <div
-        {...pointerGestureProps}
+        {...(pointerGestureProps || {})}
         style={{
           padding:"14px",
           flex:1,
@@ -784,7 +798,7 @@ function ProductCard({prod,addToCart,onClick}){
           {prod.requiere_receta&&<Tag col={C.red} sm>Rx</Tag>}
           {prod.descuento_pct>0&&<span style={{background:C.red,color:"#fff",fontSize:9,fontWeight:800,borderRadius:4,padding:"2px 6px"}}>-{prod.descuento_pct}% OFF</span>}
         </div>
-        <div onClick={handleDetailClick} style={{color:C.dark,fontWeight:700,fontSize:14,marginBottom:4,lineHeight:1.3}}>{prod.nombre}</div>
+        <div {...(!narrow ? { onClick: handleDetailClick } : {})} style={{color:C.dark,fontWeight:700,fontSize:14,marginBottom:4,lineHeight:1.3}}>{prod.nombre}</div>
         <div style={{color:C.dim,fontSize:11,marginBottom:8,flex:1}}>{prod.descripcion}</div>
         <div style={{marginBottom:10}}>
           <div style={{display:"flex",alignItems:"baseline",gap:8}}>
@@ -3122,7 +3136,7 @@ export default function TiendaFarmax(){
     [productos]
   );
 
-  if(cargando) return(<div style={{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100vh",background:C.bg,flexDirection:"column",gap:16}}><Logo size={48}/><div style={{color:C.mid,fontSize:15}}>Cargando Farmax...</div></div>);
+  if(cargando) return(<div style={{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100dvh",background:C.bg,flexDirection:"column",gap:16}}><Logo size={48}/><div style={{color:C.mid,fontSize:15}}>Cargando Farmax...</div></div>);
 
   const puntosPage=(
     <div style={{maxWidth:700,margin:"0 auto",padding:"40px 24px"}}>
@@ -3209,8 +3223,10 @@ export default function TiendaFarmax(){
           background:${C.bg};
           font-family:'Plus Jakarta Sans',sans-serif;
           color:${C.dark};
+          overflow-x:hidden;
+          overflow-y:auto;
           touch-action:pan-y;
-          overscroll-behavior-y:auto;
+          overscroll-behavior-y:none;
         }
         /* Header sticky: debe quedar FUERA de un padre con overflow-x:hidden (rompe sticky en móvil). */
         main{

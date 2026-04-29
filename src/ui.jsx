@@ -88,10 +88,16 @@ export function KPI({label,value,sub,col,icon,trend}){
 
 export function Modal({open,onClose,title,children,ac,closeOnBackdrop=true}){
   const C = C_LIGHT;
+  React.useEffect(()=>{
+    if(!open) return undefined;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return ()=>{ document.body.style.overflow = prev || "auto"; };
+  },[open]);
   if(!open) return null;
   return(
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.45)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:"max(12px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px))",boxSizing:"border-box"}} onClick={closeOnBackdrop ? onClose : undefined}>
-      <div style={{background:C.card,borderRadius:16,padding:"clamp(18px, 4vw, 28px)",minWidth:0,maxWidth:560,width:"min(560px, 100%)",maxHeight:"min(90dvh, 92vh)",overflowY:"auto",WebkitOverflowScrolling:"touch",boxShadow:"0 8px 40px rgba(0,0,0,.18)",border:`1px solid ${C.border}`}} onClick={e=>e.stopPropagation()}>
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.45)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:"max(12px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px))",boxSizing:"border-box",overscrollBehavior:"contain"}} onClick={closeOnBackdrop ? onClose : undefined}>
+      <div style={{background:C.card,borderRadius:16,padding:"clamp(18px, 4vw, 28px)",minWidth:0,maxWidth:560,width:"min(560px, 100%)",maxHeight:"min(90dvh, 92vh)",overflowY:"auto",WebkitOverflowScrolling:"touch",overscrollBehaviorY:"contain",boxShadow:"0 8px 40px rgba(0,0,0,.18)",border:`1px solid ${C.border}`}} onClick={e=>e.stopPropagation()}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:18}}>
           <div style={{fontWeight:800,fontSize:16,color:C.text}}>{title}</div>
           {!ac&&<button onClick={onClose} style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:C.textMid}}>✕</button>}
@@ -171,10 +177,16 @@ export function ToastProvider() {
 // ── Confirm dialog elegante ───────────────────────────────────
 export function ConfirmDialog({open,titulo,mensaje,onConfirm,onCancel,danger=false}){
   const C = C_LIGHT;
+  React.useEffect(()=>{
+    if(!open) return undefined;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return ()=>{ document.body.style.overflow = prev || "auto"; };
+  },[open]);
   if(!open) return null;
   return(
-    <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,.5)",backdropFilter:"blur(4px)",zIndex:9997,display:"flex",alignItems:"center",justifyContent:"center",padding:"max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px))",boxSizing:"border-box"}}>
-      <div style={{background:C.card,borderRadius:14,padding:"clamp(20px, 5vw, 28px)",width:"min(400px, 100%)",maxHeight:"min(90dvh, 92vh)",overflowY:"auto",boxShadow:"0 20px 60px rgba(0,0,0,.2)"}}>
+    <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,.5)",backdropFilter:"blur(4px)",zIndex:9997,display:"flex",alignItems:"center",justifyContent:"center",padding:"max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px))",boxSizing:"border-box",overscrollBehavior:"contain"}}>
+      <div style={{background:C.card,borderRadius:14,padding:"clamp(20px, 5vw, 28px)",width:"min(400px, 100%)",maxHeight:"min(90dvh, 92vh)",overflowY:"auto",WebkitOverflowScrolling:"touch",overscrollBehaviorY:"contain",boxShadow:"0 20px 60px rgba(0,0,0,.2)"}}>
         <div style={{fontSize:32,textAlign:"center",marginBottom:12}}>{danger?"⚠️":"❓"}</div>
         <div style={{color:C.text,fontWeight:800,fontSize:16,textAlign:"center",marginBottom:8}}>{titulo}</div>
         <div style={{color:C.textMid,fontSize:13,textAlign:"center",marginBottom:24,lineHeight:1.6}}>{mensaje}</div>

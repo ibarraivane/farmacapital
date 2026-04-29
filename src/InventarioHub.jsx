@@ -47,7 +47,7 @@ export default function InventarioHub({ initialTab }) {
   }, [initialTab]);
 
   return (
-    <div style={{background: C.bg, minHeight: "100vh", fontFamily: "'Plus Jakarta Sans',sans-serif"}}>
+    <div style={{background: C.bg, minHeight: "100dvh", fontFamily: "'Plus Jakarta Sans',sans-serif"}}>
       <div style={{
         padding: "18px 24px 0 24px",
         borderBottom: `1px solid ${C.border}`,

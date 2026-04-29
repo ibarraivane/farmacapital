@@ -13,6 +13,14 @@ export default function MercadoPagoModal({ open, total, folio, hint, onSuccess, 
   useEffect(() => {
     if(!open) { setEstado("idle"); setMensaje(""); setIntentId(null); setProgreso(0); }
   }, [open]);
+  useEffect(() => {
+    if (!open) return undefined;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev || "auto";
+    };
+  }, [open]);
 
   const iniciarPago = async () => {
     setEstado("iniciando");

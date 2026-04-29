@@ -1805,7 +1805,7 @@ export default function InventarioModule() {
   };
 
   return (
-    <div style={{padding:24,background:C.bg,minHeight:"100vh",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
+    <div style={{padding:24,background:C.bg,minHeight:"100dvh",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
 
       <div style={{
         display:"flex",

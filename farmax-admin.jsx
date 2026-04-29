@@ -224,7 +224,7 @@ function Sidebar({active,setActive,negocio,setNegocio}){
   const bajo=INV_F.filter(i=>i.stock<i.min).length;
   const cad=INV_F.filter(i=>dC(i.cad)<30).length;
   return(
-    <div style={{width:224,minHeight:"100vh",background:C.card,borderRight:`1px solid ${C.border}`,display:"flex",flexDirection:"column",position:"fixed",left:0,top:0,zIndex:100}}>
+    <div style={{width:224,minHeight:"100dvh",background:C.card,borderRight:`1px solid ${C.border}`,display:"flex",flexDirection:"column",position:"fixed",left:0,top:0,zIndex:100}}>
       {/* Logo Farmax */}
       <div style={{padding:"22px 16px 16px",borderBottom:`1px solid ${C.border}`}}>
         <LogoFarmax size={34} showText={true}/>
@@ -1127,7 +1127,7 @@ export default function App(){
         button{font-family:'Plus Jakarta Sans',sans-serif;}
       `}</style>
       <Sidebar active={page} setActive={setPage} negocio={neg} setNegocio={setNeg}/>
-      <main style={{marginLeft:224,padding:"28px 28px",minHeight:"100vh",background:C.bg}}>
+      <main style={{marginLeft:224,padding:"28px 28px",minHeight:"100dvh",background:C.bg}}>
         <Page negocio={neg}/>
       </main>
     </>
