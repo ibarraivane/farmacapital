@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, createContext, useContext } from "react";
+import { useState, useEffect, useMemo, createContext, useContext, useRef } from "react";
 import { supabase } from "./supabase";
 import { useTheme } from "./themeContext";
 import { useMediaQuery } from "./hooks/useMediaQuery";
@@ -660,15 +660,61 @@ function ProductCard({prod,addToCart,onClick}){
   const C = useTheme();
   const narrow = useMediaQuery("(max-width: 768px)");
   const [added,setAdded]=useState(false);
+  const touchDragRef = useRef({ active: false, moved: false, x: 0, y: 0 });
   const d=prod.disponible||(prod.stock>0?"inmediato":"48hrs");
   const placeholderUrl = useContext(TiendaPlaceholderCtx);
   const imgSrc = productImageUrl(prod, narrow, placeholderUrl);
+  const handlePointerDown = (e) => {
+    if (e.pointerType !== "touch") return;
+    touchDragRef.current = { active: true, moved: false, x: e.clientX, y: e.clientY };
+  };
+  const handlePointerMove = (e) => {
+    const s = touchDragRef.current;
+    if (!s.active) return;
+    if (Math.abs(e.clientX - s.x) > 8 || Math.abs(e.clientY - s.y) > 8) {
+      s.moved = true;
+    }
+  };
+  const handlePointerEnd = () => {
+    touchDragRef.current.active = false;
+  };
+  const handleDetailClick = (e) => {
+    // Si hubo arrastre táctil, no navegar; deja que el gesto sea scroll.
+    if (touchDragRef.current.moved) {
+      e.preventDefault();
+      e.stopPropagation();
+      touchDragRef.current.moved = false;
+      return;
+    }
+    onClick?.();
+  };
+  const handleAddClick = (e) => {
+    if (touchDragRef.current.moved) {
+      e.preventDefault();
+      e.stopPropagation();
+      touchDragRef.current.moved = false;
+      return;
+    }
+    e.stopPropagation();
+    if(prod.stock===0)return;
+    if(!productoPermitidoEnTiendaFarmaciaWeb(prod)){
+      alert(productoEsCategoriaMinisuperTienda(prod)?"Artículo de minisuper: no está en la tienda farmacia en línea. Disponible en sucursal.":"Este producto no está disponible para compra en línea (receta, controlado o no publicado en tienda).");
+      return;
+    }
+    addToCart(prod);
+    setAdded(true);
+    setTimeout(()=>setAdded(false),1500);
+  };
   return(
-    <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,overflow:"hidden",display:"flex",flexDirection:"column",cursor:"pointer",transition:"box-shadow .2s"}}
+    <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,overflow:"hidden",display:"flex",flexDirection:"column",cursor:"pointer",transition:"box-shadow .2s",touchAction:"pan-y"}}
       onMouseEnter={e=>(e.currentTarget.style.boxShadow="0 4px 20px #0002")}
-      onMouseLeave={e=>(e.currentTarget.style.boxShadow="none")}>
+      onMouseLeave={e=>(e.currentTarget.style.boxShadow="none")}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerEnd}
+      onPointerCancel={handlePointerEnd}>
       <div
-        onClick={onClick}
+        onClick={handleDetailClick}
         style={{
           background:C.cardDark,
           overflow:"hidden",
@@ -702,7 +748,7 @@ function ProductCard({prod,addToCart,onClick}){
           {prod.requiere_receta&&<Tag col={C.red} sm>Rx</Tag>}
           {prod.descuento_pct>0&&<span style={{background:C.red,color:"#fff",fontSize:9,fontWeight:800,borderRadius:4,padding:"2px 6px"}}>-{prod.descuento_pct}% OFF</span>}
         </div>
-        <div onClick={onClick} style={{color:C.dark,fontWeight:700,fontSize:14,marginBottom:4,lineHeight:1.3}}>{prod.nombre}</div>
+        <div onClick={handleDetailClick} style={{color:C.dark,fontWeight:700,fontSize:14,marginBottom:4,lineHeight:1.3}}>{prod.nombre}</div>
         <div style={{color:C.dim,fontSize:11,marginBottom:8,flex:1}}>{prod.descripcion}</div>
         <div style={{marginBottom:10}}>
           <div style={{display:"flex",alignItems:"baseline",gap:8}}>
@@ -713,8 +759,8 @@ function ProductCard({prod,addToCart,onClick}){
         </div>
         <div style={{color:C.dim,fontSize:10,marginBottom:10}}>⭐ +{labelPts(ptsGana(prod.precio||prod.precio||0))}</div>
         <div style={{display:"flex",gap:8}}>
-          <Btn onClick={onClick} outline col={BRAND.primary} sm style={{flex:1}}>Ver detalle</Btn>
-          <Btn onClick={e=>{e.stopPropagation();if(prod.stock===0)return;if(!productoPermitidoEnTiendaFarmaciaWeb(prod)){alert(productoEsCategoriaMinisuperTienda(prod)?"Artículo de minisuper: no está en la tienda farmacia en línea. Disponible en sucursal.":"Este producto no está disponible para compra en línea (receta, controlado o no publicado en tienda).");return;}addToCart(prod);setAdded(true);setTimeout(()=>setAdded(false),1500);}} col={prod.stock===0||!productoPermitidoEnTiendaFarmaciaWeb(prod)?"#94a3b8":added?BRAND.secondary:BRAND.primary} sm style={{flex:1,opacity:(prod.stock===0||!productoPermitidoEnTiendaFarmaciaWeb(prod))?0.6:1,cursor:prod.stock===0||!productoPermitidoEnTiendaFarmaciaWeb(prod)?"not-allowed":"pointer"}}>{prod.stock===0?"Agotado":!productoPermitidoEnTiendaFarmaciaWeb(prod)?(productoEsCategoriaMinisuperTienda(prod)?"Solo minisuper":"Solo en mostrador"):added?"✓ Listo":"+ Carrito"}</Btn>
+          <Btn onClick={handleDetailClick} outline col={BRAND.primary} sm style={{flex:1}}>Ver detalle</Btn>
+          <Btn onClick={handleAddClick} col={prod.stock===0||!productoPermitidoEnTiendaFarmaciaWeb(prod)?"#94a3b8":added?BRAND.secondary:BRAND.primary} sm style={{flex:1,opacity:(prod.stock===0||!productoPermitidoEnTiendaFarmaciaWeb(prod))?0.6:1,cursor:prod.stock===0||!productoPermitidoEnTiendaFarmaciaWeb(prod)?"not-allowed":"pointer"}}>{prod.stock===0?"Agotado":!productoPermitidoEnTiendaFarmaciaWeb(prod)?(productoEsCategoriaMinisuperTienda(prod)?"Solo minisuper":"Solo en mostrador"):added?"✓ Listo":"+ Carrito"}</Btn>
         </div>
       </div>
     </div>
