@@ -3,7 +3,11 @@ import { useMediaQuery } from "./hooks/useMediaQuery";
 import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
 import { logAudit, normalizeForSearch } from "./utils";
-import { inventarioProductMatchesBusqueda, spellSuggestFromProducts } from "./utils/fuzzySearch";
+import {
+  inventarioProductMatchesBusqueda,
+  inventarioSearchRelevanceRank,
+  spellSuggestFromProducts,
+} from "./utils/fuzzySearch";
 import { SkeletonTable, Paginador, SearchDropdown, HorizontalScrollSync } from "./ui";
 import { showToast } from "./ui";
 import OnboardingTour from "./components/OnboardingTour";
@@ -69,6 +73,32 @@ const diasParaCaducar = (fecha) => {
   return Math.ceil(diff);
 };
 
+/** SKU del proveedor/lista mayorista (columna A Excel), desde `notas` del import FARMACOS. */
+function skuListaMayoristaDesdeNotas(notas) {
+  const m = String(notas ?? "").match(/Lista SKU origen:\s*([^·]+)/);
+  return m ? m[1].trim() : "";
+}
+
+/** Jerarquía · línea general guardadas en import — útil para categorizar recompra (equiv. Excel G/I). */
+function rubroComprasDesdeNotas(notas) {
+  const s = String(notas ?? "");
+  const mj = s.match(/Jerarquía:\s*([^·]+)/);
+  let j = mj ? mj[1].trim() : "";
+  const ml = s.match(/Línea:\s*(.+)$/);
+  let ln = ml ? ml[1].trim() : "";
+  if (j === "—") j = "";
+  if (ln === "—") ln = "";
+  const parts = [j, ln].filter(Boolean);
+  return parts.length ? parts.join(" · ") : "";
+}
+
+const tdEllipsisStyle = {
+  display: "block",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+};
+
 const descargarPlantilla = () => {
   const headers = ["SKU","Nombre","Categoria","Tipo","Stock","Stock_Minimo","Precio_Venta","Costo","Proveedor","Lote","Fecha_Caducidad","Descuento_Porcentaje"];
   const ejemplo = [
@@ -120,12 +150,28 @@ const exportarCSV = (productos, slugSuffix) => {
     showToast("No hay filas para exportar con los filtros actuales.", "info");
     return;
   }
-  const headers = ["SKU","Nombre","Categoría","Tipo","Stock","Stock Mín","Precio Venta","Costo","Margen%","Caducidad","Proveedor","Descuento%","Estado"];
-  const rows = productos.map(p => [
-    p.sku||"", p.nombre, p.categoria, p.tipo, p.stock, p.stock_minimo??0,
-    parseFloat(p.precio||0).toFixed(2), parseFloat(p.costo||0).toFixed(2),
-    margen(p.precio, p.costo), p.min_caducidad_lotes||"", p.proveedor||"",
-    p.descuento_pct||0, p.activo?"Activo":"Inactivo",
+  const headers = [
+    "SKU","SKU lista mayorista","Nombre","Marca","Presentación","Rubro","Categoría","Tipo",
+    "Stock","Stock Mín","Precio Venta","Costo","Margen%","Caducidad","Proveedor","Descuento%","Estado",
+  ];
+  const rows = productos.map((p) => [
+    p.sku || "",
+    skuListaMayoristaDesdeNotas(p.notas),
+    p.nombre,
+    p.marca || "",
+    p.presentacion || "",
+    rubroComprasDesdeNotas(p.notas),
+    p.categoria,
+    p.tipo,
+    p.stock,
+    p.stock_minimo ?? 0,
+    parseFloat(p.precio || 0).toFixed(2),
+    parseFloat(p.costo || 0).toFixed(2),
+    margen(p.precio, p.costo),
+    p.min_caducidad_lotes || "",
+    p.proveedor || "",
+    p.descuento_pct || 0,
+    p.activo ? "Activo" : "Inactivo",
   ]);
   const csv = [headers, ...rows].map(r => r.map(v => `"${v}"`).join(",")).join("\n");
   const blob = new Blob([csv], { type:"text/csv;charset=utf-8;" });
@@ -1026,6 +1072,8 @@ export default function InventarioModule() {
   const [importando,      setImportando]      = useState(false);
   /** Progreso durante confirmarImport (RPC en lotes). */
   const [importProgress,  setImportProgress]  = useState(null);
+  /** Si true: solo `create`; filas con SKU ya en catálogo se omiten (no actualiza). */
+  const [importCsvSoloNuevos, setImportCsvSoloNuevos] = useState(false);
   const [importResult,    setImportResult]    = useState(null);
   const [paginaInv, setPaginaInv] = useState(1);
   const [modalLotes, setModalLotes] = useState(null);
@@ -1062,6 +1110,7 @@ export default function InventarioModule() {
 
   /** Varias RPC en paralelo; secuencial era ~550× RTT y parecía “colgado”. */
   const IMPORT_RPC_CONCURRENCY = 8;
+  const IMPORT_SKU_LOOKUP_CHUNK = 120;
 
   const confirmarImport = async () => {
     if (!importResult?.rows?.length) return;
@@ -1076,11 +1125,85 @@ export default function InventarioModule() {
       showToast("Sesión expirada.", "error");
       return;
     }
-    let ok = 0;
+
+    /** SKU → id para filas que ya existen (reimportar export no debe duplicar). */
+    const skuList = [...new Set(rows.map((r) => (r.sku || "").trim()).filter(Boolean))];
+    const skuToId = new Map();
+    try {
+      for (let s = 0; s < skuList.length; s += IMPORT_SKU_LOOKUP_CHUNK) {
+        const chunk = skuList.slice(s, s + IMPORT_SKU_LOOKUP_CHUNK);
+        const { data, error: qErr } = await supabase
+          .from("productos")
+          .select("id, sku")
+          .in("sku", chunk);
+        if (qErr) {
+          console.error("Import: lookup SKU", qErr);
+          showToast(`No se pudo consultar productos existentes: ${qErr.message}`, "error");
+          setImportando(false);
+          setImportProgress(null);
+          return;
+        }
+        for (const p of data || []) {
+          if (p.sku) skuToId.set(String(p.sku).trim(), p.id);
+        }
+      }
+    } catch (e) {
+      console.error(e);
+      showToast("Error al preparar importación.", "error");
+      setImportando(false);
+      setImportProgress(null);
+      return;
+    }
+
+    let created = 0;
+    let updated = 0;
+    let skipped = 0;
     let err = 0;
     try {
       const runRow = async (row) => {
         const { stock, lote, fecha_caducidad, costo, ...resto } = row;
+        const skuKey = (resto.sku || "").trim();
+        const existingId = skuKey ? skuToId.get(skuKey) : null;
+
+        if (existingId && importCsvSoloNuevos) {
+          return "skip";
+        }
+
+        if (existingId) {
+          const patch = {
+            nombre: resto.nombre,
+            categoria: resto.categoria,
+            tipo: resto.tipo,
+            precio: resto.precio,
+            costo: costo != null && costo !== "" ? Number(costo) : null,
+            stock_minimo: resto.stock_minimo,
+            proveedor: resto.proveedor || null,
+            descuento_pct: resto.descuento_pct,
+            activo: resto.activo !== false,
+          };
+          const { error: edErr } = await supabase.rpc("admin_editar_producto", {
+            p_session_token: tok,
+            p_producto_id: existingId,
+            p_patch: patch,
+          });
+          if (edErr) {
+            console.error("Import actualizar:", edErr);
+            return "err";
+          }
+          const stockNum = parseInt(stock, 10) || 0;
+          const { error: adjErr } = await supabase.rpc("adjust_stock_secure", {
+            p_session_token: tok,
+            p_producto_id: existingId,
+            p_nuevo_stock: stockNum,
+            p_motivo: "Import CSV — sincronizar stock",
+          });
+          if (adjErr) {
+            console.error("Import ajuste stock:", adjErr);
+            return "err";
+          }
+          return "upd";
+        }
+
         const { error: rpcErr } = await supabase.rpc("create_producto_secure", {
           p_session_token: tok,
           p_producto_data: { ...resto, costo: costo ?? null },
@@ -1090,17 +1213,19 @@ export default function InventarioModule() {
           p_costo_unitario: costo ?? null,
         });
         if (rpcErr) {
-          console.error("Import error:", rpcErr);
-          return false;
+          console.error("Import alta:", rpcErr);
+          return "err";
         }
-        return true;
+        return "new";
       };
 
       for (let i = 0; i < rows.length; i += IMPORT_RPC_CONCURRENCY) {
         const slice = rows.slice(i, i + IMPORT_RPC_CONCURRENCY);
         const outcomes = await Promise.all(slice.map((row) => runRow(row)));
-        for (const hit of outcomes) {
-          if (hit) ok++;
+        for (const o of outcomes) {
+          if (o === "new") created++;
+          else if (o === "upd") updated++;
+          else if (o === "skip") skipped++;
           else err++;
         }
         const cur = Math.min(i + slice.length, total);
@@ -1112,8 +1237,24 @@ export default function InventarioModule() {
       setModalImportar(false);
       setImportResult(null);
       await fetchProductos();
-      if (err > 0) showToast(`Importados ${ok} productos. ${err} con error (revisa consola).`, "warning");
-      else showToast(`✅ ${ok} productos importados correctamente`, "success");
+      if (err > 0) {
+        const tail = importCsvSoloNuevos ? ` · ${skipped} omitidos` : "";
+        showToast(
+          `Listo: ${created} nuevos${importCsvSoloNuevos ? "" : `, ${updated} actualizados`}.${tail} · ${err} error(es). Revisa la consola.`,
+          "warning"
+        );
+      } else if (importCsvSoloNuevos) {
+        showToast(
+          `✅ ${created} producto(s) nuevo(s). ${skipped} fila(s) con SKU ya en catálogo (omitidas).`,
+          created > 0 ? "success" : "info"
+        );
+      } else if (updated > 0 && created === 0) {
+        showToast(`✅ ${updated} productos actualizados desde CSV (ya existían por SKU)`, "success");
+      } else if (created > 0 && updated === 0) {
+        showToast(`✅ ${created} productos dados de alta`, "success");
+      } else {
+        showToast(`✅ ${created} nuevos · ${updated} actualizados`, "success");
+      }
     }
   };
 
@@ -1163,10 +1304,18 @@ export default function InventarioModule() {
     return cat && alerta;
   }), [productos, filtroCategoria, filtroAlerta]);
 
-  const filtradosTodosInv = useMemo(
-    () => poolSinBusqueda.filter(p => inventarioProductMatchesBusqueda(p, busqueda)),
-    [poolSinBusqueda, busqueda]
-  );
+  const filtradosTodosInv = useMemo(() => {
+    const q = busqueda.trim();
+    let list = poolSinBusqueda.filter((p) => inventarioProductMatchesBusqueda(p, busqueda));
+    if (q.length >= 2) {
+      list = [...list].sort(
+        (a, b) =>
+          inventarioSearchRelevanceRank(a, busqueda) - inventarioSearchRelevanceRank(b, busqueda) ||
+          String(a.nombre || "").localeCompare(String(b.nombre || ""), "es", { sensitivity: "base" })
+      );
+    }
+    return list;
+  }, [poolSinBusqueda, busqueda]);
 
   const spellHintsInv = useMemo(
     () => (busqueda.trim().length >= 3 && filtradosTodosInv.length === 0
@@ -1391,7 +1540,7 @@ export default function InventarioModule() {
           <button style={btnOutline} onClick={()=>setModalRecibir(true)}>
             {isMobileInv ? "📦 Recibir" : "📦 Recibir mercancía"}
           </button>
-          <button style={btnOutline} onClick={()=>setModalImportar(true)}>
+          <button style={btnOutline} onClick={()=>{ setImportResult(null); setImportCsvSoloNuevos(false); setModalImportar(true); }}>
             {isMobileInv ? "📥 Importar" : "📥 Importar CSV"}
           </button>
           <button style={btnOutline} onClick={()=>setModalBulkImages(true)}>
@@ -1547,10 +1696,10 @@ export default function InventarioModule() {
       )}
 
       {loading ? (
-        <SkeletonTable rows={8} cols={7}/>
+        <SkeletonTable rows={8} cols={12}/>
       ) : (
         <HorizontalScrollSync data-tour="inv-tabla">
-          <table style={{width:"100%",minWidth:1320,borderCollapse:"collapse",fontSize:12}}>
+          <table style={{width:"100%",minWidth:1780,borderCollapse:"collapse",fontSize:12}}>
             <thead>
               <tr style={{background:C.card}}>
                 <th style={{ padding: "10px 8px", textAlign: "center", color: C.textMid, fontWeight: 700, borderBottom: `1px solid ${C.border}`, width: 36 }}>
@@ -1563,7 +1712,9 @@ export default function InventarioModule() {
                     style={{ width: 16, height: 16, cursor: "pointer", accentColor: BRAND.primary }}
                   />
                 </th>
-                {["Foto","SKU","Nombre","Farmacia","Ubicación","Categoría","Tipo","Stock","Mín","Precio","Costo","Margen%","Cad. (días)","Agot. (días)","Desc%","Estado","Acciones"].map(h=>(
+                {[
+                  "Foto","SKU","SKU lista","Nombre","Marca","Presentación","Principio activo","Ubicación","Categoría","Tipo","Rubro","Proveedor","Stock","Mín","Precio","Costo","Margen%","Cad. (días)","Agot. (días)","Desc%","Estado","Acciones",
+                ].map((h) => (
                   <th key={h} style={{padding:"10px 12px",textAlign:"left",color:C.textMid,fontWeight:700,
                     borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>{h}</th>
                 ))}
@@ -1571,7 +1722,7 @@ export default function InventarioModule() {
             </thead>
             <tbody>
               {filtrados.length===0&&(
-                <tr><td colSpan={18} style={{textAlign:"center",padding:32,color:C.textMid}}>
+                <tr><td colSpan={23} style={{textAlign:"center",padding:32,color:C.textMid}}>
                   Sin productos{busqueda?` para "${busqueda}"`:""}. Agrega el primero con ➕
                 </td></tr>
               )}
@@ -1583,6 +1734,12 @@ export default function InventarioModule() {
                 const mgn     = margen(p.precio, p.costo);
                 const mgnNum  = parseFloat(mgn);
                 const mgnCol  = isNaN(mgnNum)?C.textMid:mgnNum>=30?C.green:mgnNum>=15?C.amber:C.red;
+                const skuListaProv = skuListaMayoristaDesdeNotas(p.notas);
+                const rubroCompras = rubroComprasDesdeNotas(p.notas);
+                const marcaDisp = (p.marca || "").trim();
+                const presDisp = (p.presentacion || "").trim();
+                const provDisp = (p.proveedor || "").trim();
+                const principioDisp = [p.principio_activo, p.denominacion_generica, p.concentracion].filter(Boolean).join(" · ");
                 return (
                   <tr key={p.id} className="farmax-table-row" style={{opacity:inact?0.45:1,background:bajo?C.amberDim:nearCad?C.redDim:"transparent"}}>
                     <td style={{ padding: "6px 8px", borderBottom: `1px solid ${C.border}`, textAlign: "center", verticalAlign: "middle" }}>
@@ -1602,14 +1759,21 @@ export default function InventarioModule() {
                         display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,
                       }}>{!p.imagen_url?"📷":null}</div>
                     </td>
-                    <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{p.sku||"—"}</td>
-                    <td style={{padding:"8px 12px",color:inact?C.textDim:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>{p.nombre}</td>
-                    <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,maxWidth:230}}>
-                      <div style={{fontSize:11,lineHeight:1.3}}>
-                        {[p.principio_activo, p.denominacion_generica || p.marca, p.concentracion, p.presentacion]
-                          .filter(Boolean)
-                          .join(" · ") || "—"}
-                      </div>
+                    <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,fontFamily:"ui-monospace,Menlo,monospace",fontSize:11}}>{p.sku||"—"}</td>
+                    <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,fontFamily:"ui-monospace,Menlo,monospace",fontSize:11,maxWidth:72}} title={skuListaProv || undefined}>
+                      <span style={tdEllipsisStyle}>{skuListaProv || "—"}</span>
+                    </td>
+                    <td style={{padding:"8px 12px",color:inact?C.textDim:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`,maxWidth:240}} title={p.nombre}>
+                      <span style={{...tdEllipsisStyle,whiteSpace:"normal",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{p.nombre}</span>
+                    </td>
+                    <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,maxWidth:130}} title={marcaDisp || undefined}>
+                      <span style={tdEllipsisStyle}>{marcaDisp || "—"}</span>
+                    </td>
+                    <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,maxWidth:160}} title={presDisp || undefined}>
+                      <span style={tdEllipsisStyle}>{presDisp || "—"}</span>
+                    </td>
+                    <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,maxWidth:200}} title={principioDisp || undefined}>
+                      <span style={tdEllipsisStyle}>{principioDisp || "—"}</span>
                     </td>
                     <td style={{padding:"8px 12px",color:C.text,borderBottom:`1px solid ${C.border}`,maxWidth:180}}>
                       <span style={{fontSize:11,fontWeight:700,color:p.ubicacion_texto ? C.blue : C.textDim}}>
@@ -1620,6 +1784,12 @@ export default function InventarioModule() {
                     <td style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`}}>
                       <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,
                         background:p.tipo==="marca"?"#9d6fff18":C.blueDim,color:p.tipo==="marca"?"#9d6fff":C.blue}}>{p.tipo}</span>
+                    </td>
+                    <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,maxWidth:180}} title={rubroCompras || undefined}>
+                      <span style={tdEllipsisStyle}>{rubroCompras || "—"}</span>
+                    </td>
+                    <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,maxWidth:140}} title={provDisp || undefined}>
+                      <span style={tdEllipsisStyle}>{provDisp || "—"}</span>
                     </td>
                     <td style={{padding:"8px 12px",fontWeight:700,borderBottom:`1px solid ${C.border}`,color:bajo?C.amber:C.green}}>{p.stock}</td>
                     <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{p.stock_minimo??0}</td>
@@ -1766,12 +1936,12 @@ export default function InventarioModule() {
         <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,.45)",backdropFilter:"blur(4px)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}
           onClick={(e)=>{
             if (importando) return;
-            if (e.target===e.currentTarget) { setModalImportar(false); setImportResult(null); setImportProgress(null); }
+            if (e.target===e.currentTarget) { setModalImportar(false); setImportResult(null); setImportProgress(null); setImportCsvSoloNuevos(false); }
           }}>
           <div style={{background:C.card,borderRadius:14,width:"min(580px,95vw)",maxHeight:"90vh",overflowY:"auto",padding:28,boxShadow:"0 20px 60px rgba(0,82,204,.15)"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
               <h2 style={{margin:0,color:C.text,fontSize:16,fontWeight:800}}>📥 Importar productos desde CSV</h2>
-              <button onClick={()=>{setModalImportar(false);setImportResult(null);setImportProgress(null);}} style={{background:"none",border:"none",color:C.textMid,fontSize:22,cursor:"pointer"}}>✕</button>
+              <button onClick={()=>{setModalImportar(false);setImportResult(null);setImportProgress(null);setImportCsvSoloNuevos(false);}} style={{background:"none",border:"none",color:C.textMid,fontSize:22,cursor:"pointer"}}>✕</button>
             </div>
             <div style={{background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:10,padding:14,marginBottom:16}}>
               <div style={{color:"#1d4ed8",fontWeight:700,fontSize:13,marginBottom:8}}>📋 Instrucciones</div>
@@ -1781,6 +1951,7 @@ export default function InventarioModule() {
                 <li>Agrega tus productos (una fila por producto)</li>
                 <li>Guarda como CSV (separado por comas)</li>
                 <li>Sube el archivo aquí</li>
+                <li style={{marginTop:6}}><strong>SKU</strong>: para fusionar o “solo nuevos”, cada fila debe traer el mismo SKU que en Farmax</li>
               </ol>
             </div>
             <button onClick={descargarPlantilla} style={{width:"100%",padding:"10px",borderRadius:8,border:"1px solid #0052cc",background:"#eff6ff",color:"#0052cc",fontWeight:700,fontSize:13,cursor:"pointer",marginBottom:16,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
@@ -1827,6 +1998,15 @@ export default function InventarioModule() {
                         </tbody>
                       </table>
                     </div>
+                    <label style={{display:"flex",alignItems:"flex-start",gap:10,marginBottom:14,cursor:"pointer",fontSize:12,color:C.text,lineHeight:1.45}}>
+                      <input type="checkbox" checked={importCsvSoloNuevos} onChange={(e)=>setImportCsvSoloNuevos(e.target.checked)} style={{marginTop:3}} />
+                      <span>
+                        <strong>Solo productos nuevos</strong> — solo dan de alta filas cuyo SKU <em>aún no</em> está en el catálogo. Las que ya existen se omiten (no cambian precio ni stock).
+                        <span style={{display:"block",color:C.textMid,fontSize:11,marginTop:4}}>
+                          Desmarcado: fusionar lista — crea nuevos y actualiza precio/stock de los que ya tenían ese SKU.
+                        </span>
+                      </span>
+                    </label>
                     <button onClick={confirmarImport} disabled={importando}
                       style={{width:"100%",padding:"12px",borderRadius:8,border:"none",background:"linear-gradient(135deg,#0052cc,#0099e6)",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer",opacity: importando ? 0.85 : 1}}>
                       {importando && importProgress

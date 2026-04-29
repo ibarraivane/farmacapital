@@ -69,11 +69,16 @@ export function normalizedTextFuzzyMatch(queryNorm, textNorm) {
 export function productMatchesSearchQuery(product, queryRaw, valueGetters) {
   if (!String(queryRaw || "").trim()) return true;
   const values = valueGetters.map((fn) => fn(product)).filter((v) => v != null && String(v).trim() !== "");
-  if (someFieldIncludesNormalizedQuery(values, queryRaw)) return true;
-  const q = normalizeForSearch(queryRaw);
-  const tokens = q.split(/\s+/).filter(Boolean);
-  if (!tokens.length) return false;
   const normalizedValues = values.map((v) => normalizeForSearch(v));
+  const qPhrase = normalizeForSearch(queryRaw);
+  /** Prioriza la frase tal cual (ej. "ac nalidixico") antes de partir por tokens.
+   * Sin esto, "AC" coincide con miles de "ácido/acido…" y la segunda palabra cruza campos mal. */
+  if (qPhrase.length >= 2) {
+    if (normalizedValues.some((nv) => nv.includes(qPhrase))) return true;
+  }
+  if (someFieldIncludesNormalizedQuery(values, queryRaw)) return true;
+  const tokens = qPhrase.split(/\s+/).filter(Boolean);
+  if (!tokens.length) return false;
   return tokens.every((tok) => {
     if (tok.length <= 1) {
       return normalizedValues.some((nv) => nv.includes(tok));
@@ -290,6 +295,27 @@ export function tiendaCatalogSearchSuggestions(products, queryRaw, { limit = 8 }
 
 export function inventarioProductMatchesBusqueda(product, queryRaw) {
   return productMatchesSearchQuery(product, queryRaw, INVENTARIO_GETTERS);
+}
+
+/**
+ * Para ordenar resultados del inventario al buscar: menor = mejor coincidencia.
+ */
+export function inventarioSearchRelevanceRank(product, queryRaw) {
+  const raw = String(queryRaw ?? "").trim();
+  if (!raw) return 0;
+  const qn = normalizeForSearch(raw);
+  if (!qn) return 40;
+  const vals = INVENTARIO_GETTERS.map((fn) => fn(product)).filter((v) => v != null && String(v).trim() !== "");
+  const nv = vals.map((v) => normalizeForSearch(v));
+  const nombre = normalizeForSearch(product?.nombre || "");
+  if (nombre.includes(qn)) return 0;
+  if (nv.some((v) => v.includes(qn))) return 2;
+  const sku = normalizeForSearch(String(product?.sku ?? ""));
+  const cb = normalizeForSearch(String(product?.codigo_barras ?? ""));
+  if (sku && sku === qn) return 1;
+  if (cb && cb === qn) return 1;
+  if (qn.length >= 2 && sku && sku.startsWith(qn)) return 5;
+  return 18;
 }
 
 /**
