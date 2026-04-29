@@ -638,7 +638,7 @@ function BannersAdmin(){
   const [banners,setBanners] = useState([]);
   const [loading,setLoad]   = useState(true);
   const [modal,setModal]    = useState(null);
-  const [form,setForm]      = useState({titulo:"",subtitulo:"",descripcion:"",emoji:"💊",bg:"linear-gradient(135deg,#0052cc,#0099e6)",cta:"Ver más →",pagina:"catalogo",orden:0,activo:true,slot:"hero",imagen_url:"",imagen_mobile_url:"",modo_visualizacion:"imagen_fondo"});
+  const [form,setForm]      = useState({titulo:"",subtitulo:"",descripcion:"",emoji:"💊",bg:"linear-gradient(135deg,#0052cc,#0099e6)",cta:"Ver más →",pagina:"catalogo",orden:0,activo:true,slot:"hero",imagen_url:"",imagen_mobile_url:"",video_url:"",modo_visualizacion:"imagen_fondo"});
   const [saving,setSaving]  = useState(false);
 
   const fetch = async()=>{ setLoad(true); const{data}=await supabase.from("banners").select("*").order("orden"); setBanners(data||[]); setLoad(false); };
@@ -688,7 +688,7 @@ function BannersAdmin(){
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
         <h1 style={{color:C.text,fontSize:20,fontWeight:800,margin:0}}>🖼️ Banners de la tienda</h1>
-        <Btn col={BRAND.primary} onClick={()=>{setForm({titulo:"",subtitulo:"",descripcion:"",emoji:"💊",bg:BRAND.gradient,cta:"Ver más →",pagina:"promo",orden:banners.length+1,activo:true,slot:"hero",imagen_url:"",imagen_mobile_url:"",modo_visualizacion:"imagen_fondo"});setModal("new");}}>+ Nuevo banner</Btn>
+        <Btn col={BRAND.primary} onClick={()=>{setForm({titulo:"",subtitulo:"",descripcion:"",emoji:"💊",bg:BRAND.gradient,cta:"Ver más →",pagina:"promo",orden:banners.length+1,activo:true,slot:"hero",imagen_url:"",imagen_mobile_url:"",video_url:"",modo_visualizacion:"imagen_fondo"});setModal("new");}}>+ Nuevo banner</Btn>
       </div>
       <div style={{background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:10,padding:"10px 16px",marginBottom:16,fontSize:12,color:"#1d4ed8",lineHeight:1.55}}>
         💡 <strong>Zona:</strong> <em>Carrusel</em> (arriba, rotación automática) · <em>Franja</em> (tarjetas anchas bajo la barra de servicios) · <em>Mosaico</em> (rejilla bajo la búsqueda). Ordená con <strong>Orden</strong>.
@@ -711,12 +711,12 @@ function BannersAdmin(){
                 <div style={{fontWeight:800,color:C.text,fontSize:14}}>{b.titulo}</div>
                 <div style={{color:C.textMid,fontSize:12,marginTop:2}}>{b.subtitulo} · {b.descripcion?.slice(0,60)}{b.descripcion?.length>60?"…":""}</div>
                 <div style={{color:C.textDim,fontSize:11,marginTop:4}}>
-                  {(b.slot==="strip"?"▤ Franja":b.slot==="tile"?"▦ Mosaico":"▶ Carrusel")} · Orden: {b.orden} · {b.pagina} · {b.cta}
+                  {(b.slot==="strip"?"▤ Franja":b.slot==="tile"?"▦ Mosaico":"▶ Carrusel")} · Orden: {b.orden} · {b.pagina} · {b.cta}{b.video_url?" · ▶ Video":""}
                 </div>
               </div>
               <div style={{display:"flex",gap:8,flexShrink:0}}>
                 <button onClick={()=>toggleActivo(b)} style={{padding:"5px 10px",borderRadius:6,border:`1px solid ${b.activo?C.green:C.border}`,background:b.activo?C.greenDim:"transparent",color:b.activo?C.green:C.textMid,fontSize:11,fontWeight:700,cursor:"pointer"}}>{b.activo?"✓ Activo":"○ Inactivo"}</button>
-                <button onClick={()=>{setForm({...b,imagen_url:b.imagen_url||"",imagen_mobile_url:b.imagen_mobile_url||"",modo_visualizacion:b.modo_visualizacion||"imagen_fondo"});setModal(b);}} style={{padding:"5px 10px",borderRadius:6,border:`1px solid ${C.amber}`,background:C.amberDim,color:C.amber,fontSize:11,fontWeight:700,cursor:"pointer"}}>✏️ Editar</button>
+                <button onClick={()=>{setForm({...b,imagen_url:b.imagen_url||"",imagen_mobile_url:b.imagen_mobile_url||"",video_url:b.video_url||"",modo_visualizacion:b.modo_visualizacion||"imagen_fondo"});setModal(b);}} style={{padding:"5px 10px",borderRadius:6,border:`1px solid ${C.amber}`,background:C.amberDim,color:C.amber,fontSize:11,fontWeight:700,cursor:"pointer"}}>✏️ Editar</button>
                 <button onClick={()=>eliminar(b.id)} style={{padding:"5px 10px",borderRadius:6,border:`1px solid ${C.red}`,background:C.redDim,color:C.red,fontSize:11,fontWeight:700,cursor:"pointer"}}>🗑️</button>
               </div>
             </div>
@@ -751,8 +751,26 @@ function BannersAdmin(){
                 size="medium"
               />
               <div style={{fontSize:11,color:C.textDim,marginTop:8,lineHeight:1.45}}>
-                💡 <strong>Tamaño recomendado (carrusel):</strong> imagen horizontal tipo <strong>1920×640 px</strong> o <strong>2000×700 px</strong> (~3:1), mensaje importante al centro. Mínimo ~1600×600. La tienda recorta con <em>cover</em> a una franja ancha.
-                {" "}Si no subes imagen, se usa fondo + emoji. Bucket <code style={{background:C.card,padding:"1px 4px",borderRadius:4}}>banners</code>.
+                💡 <strong>Tamaño recomendado (carrusel):</strong> imagen horizontal tipo <strong>1920×640 px</strong> (~3:1). Si no hay imagen, se usa fondo + emoji. Bucket <code style={{background:C.card,padding:"1px 4px",borderRadius:4}}>banners</code>.
+              </div>
+            </div>
+            <div style={{marginBottom:16,padding:14,background:C.bg,borderRadius:10,border:`1px solid ${C.border}`}}>
+              <label style={{color:C.textMid,fontSize:11,fontWeight:700,display:"block",marginBottom:8}}>
+                ▶ VIDEO CORTO (OPCIONAL)
+              </label>
+              <input
+                style={inpS}
+                type="url"
+                inputMode="url"
+                placeholder="https://…tu-archivo.mp4"
+                value={form.video_url || ""}
+                onChange={(e)=>setForm((p)=>({...p,video_url:e.target.value}))}
+              />
+              <div style={{fontSize:11,color:C.textDim,marginTop:8,lineHeight:1.45}}>
+                💡 URL pública <strong>MP4</strong> o <strong>WebM</strong> (idealmente sin audio o silenciado en el archivo). Podés subir el archivo al bucket{" "}
+                <code style={{background:C.card,padding:"1px 4px",borderRadius:4}}>banners</code>{" "}
+                en Storage y pegar el enlace. Si hay video, la tienda lo muestra en lugar de la imagen; la imagen puede servir de <strong>poster</strong> mientras carga.
+                {" "}GIF animados o WebP animados seguís usándolos como imagen normal (sin este campo).
               </div>
             </div>
             <div style={{marginBottom:14,padding:14,background:C.bg,borderRadius:10,border:`1px solid ${C.border}`}}>

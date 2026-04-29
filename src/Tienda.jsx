@@ -127,6 +127,7 @@ function mapBannerFromRow(b){
     slot,
     imagen_url: b.imagen_url || "",
     imagen_mobile_url: b.imagen_mobile_url || "",
+    video_url: (b.video_url != null && String(b.video_url).trim()) ? String(b.video_url).trim() : "",
     modo_visualizacion,
   };
 }
@@ -134,6 +135,29 @@ function mapBannerFromRow(b){
 function bannerVisualUrl(b, stack){
   if (stack && b.imagen_mobile_url) return b.imagen_mobile_url;
   return b.imagen_url || "";
+}
+
+/** URL de video corto (MP4/WebM). Si existe, la tienda prioriza video sobre la imagen. */
+function bannerVideoUrl(b){
+  const v = b?.video_url;
+  return v != null && String(v).trim() !== "" ? String(v).trim() : "";
+}
+
+/** Video sin sonido + loop para autoplay en carrusel/banners (políticas del navegador). */
+function BannerLoopVideo({ src, poster, style, "aria-label": ariaLabel }){
+  return (
+    <video
+      src={src}
+      poster={poster || undefined}
+      muted
+      playsInline
+      loop
+      autoPlay
+      preload="metadata"
+      aria-label={ariaLabel || "Banner en video"}
+      style={style}
+    />
+  );
 }
 
 const TiendaPlaceholderCtx = createContext("");
@@ -250,10 +274,9 @@ function PopupBienvenida({onClose,setPage,precioConsulta}){
 
 // ── CARRUSEL PRINCIPAL (zona hero) ────────────────────────────
 /**
- * Fotos recomendadas (rellenan la franja horizontal con object-fit: cover):
- * - Escritorio (imagen_url): 1920×640 px o 2000×700 px (~3:1). Texto e imagen importantes centrados.
- * - Móvil (imagen_mobile_url, opcional): 1080×900 o 900×800 (~5:4 / 4:3), también centrado.
- * Mínimo útil: 1600×600. Más resolución = menos borroso en pantallas grandes.
+ * Modo texto sobre imagen: la foto escala ancho completo con altura natural (contain + tope),
+ * sin recortar el arte — overlay oscuro + texto encima.
+ * Modo solo imagen: mismo patrón sin overlays.
  */
 /** useStaticPlaceholder: solo si aún no hay datos de BD o no hay banners activos (evita ocultar cambios del admin). */
 function HeroCarousel({setPage, items, precioConsulta, stack, useStaticPlaceholder=true}){
@@ -280,15 +303,14 @@ function HeroCarousel({setPage, items, precioConsulta, stack, useStaticPlacehold
   },[banners.length,pauseAuto]);
   if (banners.length===0) return null;
   const b=banners[idx]||BANNERS[0];
+  const vid = bannerVideoUrl(b);
   const heroImg = bannerVisualUrl(b, stack);
-  const heroHasImg = !!heroImg;
+  const heroHasVisual = !!(vid || heroImg);
   const modo = b.modo_visualizacion === "imagen_completa" ? "imagen_completa" : "imagen_fondo";
-  const imagenCompleta = heroHasImg && modo === "imagen_completa";
-  /** Franja ancha fija: la imagen cubre todo el ancho (cover), misma forma en todo el hero. */
-  const heroStripH = stack
-    ? "clamp(220px, 42vw, 340px)"
-    : "clamp(300px, 20vw, 460px)";
-  const textPad = heroHasImg ? "clamp(16px,3.5vw,28px) 16px" : "clamp(28px,8vw,48px) 16px";
+  const imagenCompleta = heroHasVisual && modo === "imagen_completa";
+  /** Carrusel con texto sobre imagen: imagen fluida (sin cover en caja fija) para no recortar el arte. */
+  const heroImgMaxH = stack ? "min(88vh, 560px)" : "min(85vh, 640px)";
+  const textPad = heroHasVisual ? "clamp(16px,3.5vw,28px) 16px" : "clamp(28px,8vw,48px) 16px";
 
   const carouselControls = banners.length > 1 && (
     <>
@@ -378,36 +400,68 @@ function HeroCarousel({setPage, items, precioConsulta, stack, useStaticPlacehold
               background:"#070f1a",
             }}
           >
+            {vid ? (
+              <BannerLoopVideo
+                src={vid}
+                poster={heroImg || undefined}
+                aria-label={b.titulo || "Banner"}
+                style={{
+                  width:"100%",
+                  height:"auto",
+                  display:"block",
+                  verticalAlign:"top",
+                  maxHeight:"600px",
+                  objectFit:"contain",
+                }}
+              />
+            ) : (
+              <img
+                src={heroImg}
+                alt={b.titulo || "Banner"}
+                decoding="async"
+                style={{
+                  width:"100%",
+                  height:"auto",
+                  display:"block",
+                  maxHeight:"600px",
+                  objectFit:"contain",
+                }}
+              />
+            )}
+          </button>
+          {carouselControls}
+        </>
+      ) : heroHasVisual ? (
+        <div style={{position:"relative",width:"100%",background:"#070f1a",lineHeight:0}}>
+          {vid ? (
+            <BannerLoopVideo
+              src={vid}
+              poster={heroImg || undefined}
+              aria-label={b.titulo || "Banner"}
+              style={{
+                width:"100%",
+                height:"auto",
+                display:"block",
+                verticalAlign:"top",
+                objectFit:"contain",
+                maxHeight:heroImgMaxH,
+              }}
+            />
+          ) : (
             <img
               src={heroImg}
-              alt={b.titulo || "Banner"}
+              alt=""
               decoding="async"
               style={{
                 width:"100%",
                 height:"auto",
                 display:"block",
-                maxHeight:"600px",
+                verticalAlign:"top",
                 objectFit:"contain",
+                maxHeight:heroImgMaxH,
               }}
             />
-          </button>
-          {carouselControls}
-        </>
-      ) : heroHasImg ? (
-        <div style={{position:"relative",width:"100%",height:heroStripH,background:"#070f1a"}}>
-          <img
-            src={heroImg}
-            alt=""
-            decoding="async"
-            style={{
-              position:"absolute",
-              inset:0,
-              width:"100%",
-              height:"100%",
-              objectFit:"cover",
-              objectPosition:"center center",
-            }}
-          />
+          )}
           <div
             aria-hidden
             style={{
@@ -415,6 +469,7 @@ function HeroCarousel({setPage, items, precioConsulta, stack, useStaticPlacehold
               inset:0,
               zIndex:1,
               background:"linear-gradient(rgba(0,24,48,.48),rgba(0,24,48,.66))",
+              pointerEvents:"none",
             }}
           />
           <div style={{
@@ -483,9 +538,10 @@ function HomeBannersStrip({setPage, items}){
     <div style={{background:"linear-gradient(180deg,#f0f7ff,#f7f9fc)",borderBottom:`1px solid ${C.border}`,padding:"16px 12px"}}>
       <div style={{maxWidth:1200,margin:"0 auto",display:"flex",gap:12,flexWrap:"wrap",justifyContent:"center"}}>
         {items.map((b,i)=>{
+          const vid = bannerVideoUrl(b);
           const u = bannerVisualUrl(b, stack);
           const modo = b.modo_visualizacion === "imagen_completa" ? "imagen_completa" : "imagen_fondo";
-          const soloImg = u && modo === "imagen_completa";
+          const soloImg = modo === "imagen_completa" && (!!vid || !!u);
           if (soloImg) {
             return (
               <button
@@ -510,18 +566,33 @@ function HomeBannersStrip({setPage, items}){
                 onMouseEnter={e=>{ e.currentTarget.style.transform="translateY(-2px)"; e.currentTarget.style.boxShadow="0 8px 28px rgba(0,82,204,.2)"; }}
                 onMouseLeave={e=>{ e.currentTarget.style.transform="none"; e.currentTarget.style.boxShadow="0 4px 20px rgba(0,82,204,.12)"; }}
               >
-                <img
-                  src={u}
-                  alt={b.titulo || ""}
-                  decoding="async"
-                  style={{
-                    width:"100%",
-                    height:"auto",
-                    display:"block",
-                    maxHeight:220,
-                    objectFit:"contain",
-                  }}
-                />
+                {vid ? (
+                  <BannerLoopVideo
+                    src={vid}
+                    poster={u || undefined}
+                    aria-label={b.titulo || "Banner"}
+                    style={{
+                      width:"100%",
+                      height:"auto",
+                      display:"block",
+                      maxHeight:220,
+                      objectFit:"contain",
+                    }}
+                  />
+                ) : (
+                  <img
+                    src={u}
+                    alt={b.titulo || ""}
+                    decoding="async"
+                    style={{
+                      width:"100%",
+                      height:"auto",
+                      display:"block",
+                      maxHeight:220,
+                      objectFit:"contain",
+                    }}
+                  />
+                )}
               </button>
             );
           }
@@ -534,26 +605,78 @@ function HomeBannersStrip({setPage, items}){
               position:"relative",
               overflow:"hidden",
               flex:"1 1 min(100%,280px)",maxWidth:420,minWidth:0,width:"100%",textAlign:"left",cursor:"pointer",border:"none",borderRadius:14,
-              minHeight:u?118:undefined,
-              background:u?"#0f172a":b.bg,
-              color:"#fff",padding:"16px 18px",boxShadow:"0 4px 20px rgba(0,82,204,.12)",
-              display:"flex",alignItems:"center",gap:14,transition:"transform .15s, box-shadow .15s",
+              background:(vid||u)?"#0f172a":b.bg,
+              color:"#fff",padding:(vid||u)?0:"16px 18px",boxShadow:"0 4px 20px rgba(0,82,204,.12)",
+              display:"flex",alignItems:(vid||u)?"stretch":"center",gap:(vid||u)?0:14,
+              transition:"transform .15s, box-shadow .15s",
             }}
             onMouseEnter={e=>{ e.currentTarget.style.transform="translateY(-2px)"; e.currentTarget.style.boxShadow="0 8px 28px rgba(0,82,204,.2)"; }}
             onMouseLeave={e=>{ e.currentTarget.style.transform="none"; e.currentTarget.style.boxShadow="0 4px 20px rgba(0,82,204,.12)"; }}
           >
-            {u&&(
+            {(vid||u) ? (
               <>
-                <img src={u} alt="" decoding="async" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",objectPosition:"center center"}} />
-                <div aria-hidden style={{position:"absolute",inset:0,background:"linear-gradient(90deg,rgba(0,0,0,.5),rgba(0,0,0,.22))"}} />
+                <div style={{
+                  width:stack?"36%":"40%",
+                  maxWidth:176,
+                  flexShrink:0,
+                  background:"#0f172a",
+                  display:"flex",
+                  alignItems:"center",
+                  justifyContent:"center",
+                  padding:"10px 8px",
+                }}>
+                  {vid ? (
+                    <BannerLoopVideo
+                      src={vid}
+                      poster={u || undefined}
+                      aria-label={b.titulo || ""}
+                      style={{
+                        width:"100%",
+                        height:"auto",
+                        display:"block",
+                        objectFit:"contain",
+                        maxHeight:124,
+                      }}
+                    />
+                  ) : (
+                    <img
+                      src={u}
+                      alt=""
+                      decoding="async"
+                      style={{
+                        width:"100%",
+                        height:"auto",
+                        display:"block",
+                        objectFit:"contain",
+                        maxHeight:124,
+                      }}
+                    />
+                  )}
+                </div>
+                <div style={{
+                  flex:1,
+                  minWidth:0,
+                  padding:"14px 16px",
+                  display:"flex",
+                  flexDirection:"column",
+                  justifyContent:"center",
+                  background:"linear-gradient(90deg,rgba(15,23,42,.95),rgba(30,58,138,.82))",
+                }}>
+                  <div style={{fontWeight:800,fontSize:"clamp(14px,3.5vw,16px)",lineHeight:1.25,marginBottom:4}}>{b.titulo}</div>
+                  <div style={{fontSize:12,opacity:.92,lineHeight:1.35}}>{b.subtitulo||b.descripcion?.slice(0,80)}{(b.descripcion?.length>80?"…":"")}</div>
+                  <div style={{fontSize:11,fontWeight:700,marginTop:8,opacity:.95}}>{b.cta} →</div>
+                </div>
+              </>
+            ) : (
+              <>
+                {!!(b.emoji&&String(b.emoji).trim())&&<span style={{fontSize:36,flexShrink:0}}>{b.emoji}</span>}
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontWeight:800,fontSize:"clamp(14px,3.5vw,16px)",lineHeight:1.25,marginBottom:4}}>{b.titulo}</div>
+                  <div style={{fontSize:12,opacity:.9,lineHeight:1.35}}>{b.subtitulo||b.descripcion?.slice(0,80)}{(b.descripcion?.length>80?"…":"")}</div>
+                  <div style={{fontSize:11,fontWeight:700,marginTop:8,opacity:.95}}>{b.cta} →</div>
+                </div>
               </>
             )}
-            {!u&&!!(b.emoji&&String(b.emoji).trim())&&<span style={{fontSize:36,flexShrink:0}}>{b.emoji}</span>}
-            <div style={{flex:1,minWidth:0,position:"relative",zIndex:1}}>
-              <div style={{fontWeight:800,fontSize:"clamp(14px,3.5vw,16px)",lineHeight:1.25,marginBottom:4}}>{b.titulo}</div>
-              <div style={{fontSize:12,opacity:.9,lineHeight:1.35}}>{b.subtitulo||b.descripcion?.slice(0,80)}{(b.descripcion?.length>80?"…":"")}</div>
-              <div style={{fontSize:11,fontWeight:700,marginTop:8,opacity:.95}}>{b.cta} →</div>
-            </div>
           </button>
         );})}
       </div>
@@ -573,9 +696,10 @@ function HomeBannersTiles({setPage, items, stack}){
         gap:12,
       }}>
         {items.map((b,i)=>{
+          const vid = bannerVideoUrl(b);
           const u = bannerVisualUrl(b, stack);
           const modo = b.modo_visualizacion === "imagen_completa" ? "imagen_completa" : "imagen_fondo";
-          const soloImg = u && modo === "imagen_completa";
+          const soloImg = modo === "imagen_completa" && (!!vid || !!u);
           if (soloImg) {
             return (
               <button
@@ -602,18 +726,33 @@ function HomeBannersTiles({setPage, items, stack}){
                 onMouseEnter={e=>{ e.currentTarget.style.transform="translateY(-2px)"; }}
                 onMouseLeave={e=>{ e.currentTarget.style.transform="none"; }}
               >
-                <img
-                  src={u}
-                  alt={b.titulo || ""}
-                  decoding="async"
-                  style={{
-                    width:"100%",
-                    height:"auto",
-                    display:"block",
-                    maxHeight:200,
-                    objectFit:"contain",
-                  }}
-                />
+                {vid ? (
+                  <BannerLoopVideo
+                    src={vid}
+                    poster={u || undefined}
+                    aria-label={b.titulo || ""}
+                    style={{
+                      width:"100%",
+                      height:"auto",
+                      display:"block",
+                      maxHeight:200,
+                      objectFit:"contain",
+                    }}
+                  />
+                ) : (
+                  <img
+                    src={u}
+                    alt={b.titulo || ""}
+                    decoding="async"
+                    style={{
+                      width:"100%",
+                      height:"auto",
+                      display:"block",
+                      maxHeight:200,
+                      objectFit:"contain",
+                    }}
+                  />
+                )}
               </button>
             );
           }
@@ -626,27 +765,77 @@ function HomeBannersTiles({setPage, items, stack}){
               position:"relative",
               overflow:"hidden",
               textAlign:"left",cursor:"pointer",border:`1px solid ${C.border}`,borderRadius:14,
-              background:u?"#0f172a":b.bg,
-              color:"#fff",padding:16,minHeight:u?148:120,
-              aspectRatio:u?"4 / 3":undefined,
-              display:"flex",flexDirection:"column",justifyContent:"space-between",gap:8,
+              background:(vid||u)?"#0f172a":b.bg,
+              color:"#fff",padding:(vid||u)?0:16,minHeight:(vid||u)?undefined:120,
+              display:"flex",flexDirection:"column",justifyContent:(vid||u)?"flex-start":"space-between",gap:(vid||u)?0:8,
               boxShadow:"0 2px 12px rgba(0,0,0,.06)",transition:"transform .15s",
             }}
             onMouseEnter={e=>{ e.currentTarget.style.transform="translateY(-2px)"; }}
             onMouseLeave={e=>{ e.currentTarget.style.transform="none"; }}
           >
-            {u&&(
+            {(vid||u) ? (
+              <div style={{position:"relative",width:"100%",background:"#0f172a"}}>
+                {vid ? (
+                  <BannerLoopVideo
+                    src={vid}
+                    poster={u || undefined}
+                    aria-label={b.titulo || ""}
+                    style={{
+                      width:"100%",
+                      height:"auto",
+                      display:"block",
+                      verticalAlign:"top",
+                      objectFit:"contain",
+                      maxHeight:stack?200:260,
+                    }}
+                  />
+                ) : (
+                  <img
+                    src={u}
+                    alt=""
+                    decoding="async"
+                    style={{
+                      width:"100%",
+                      height:"auto",
+                      display:"block",
+                      verticalAlign:"top",
+                      objectFit:"contain",
+                      maxHeight:stack?200:260,
+                    }}
+                  />
+                )}
+                <div aria-hidden style={{
+                  position:"absolute",
+                  inset:0,
+                  background:"linear-gradient(180deg,rgba(0,0,0,.12),rgba(0,0,0,.78))",
+                  pointerEvents:"none",
+                }} />
+                <div style={{
+                  position:"absolute",
+                  left:0,
+                  right:0,
+                  bottom:0,
+                  padding:"12px 14px",
+                  zIndex:1,
+                  display:"flex",
+                  flexDirection:"column",
+                  gap:5,
+                }}>
+                  <div style={{fontWeight:800,fontSize:14,lineHeight:1.25}}>{b.titulo}</div>
+                  {b.subtitulo?<div style={{fontSize:11,opacity:.95,lineHeight:1.3}}>{b.subtitulo}</div>:null}
+                  <div style={{fontSize:11,fontWeight:700}}>{b.cta} →</div>
+                </div>
+              </div>
+            ) : (
               <>
-                <img src={u} alt="" decoding="async" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",objectPosition:"center center"}} />
-                <div aria-hidden style={{position:"absolute",inset:0,background:"linear-gradient(180deg,rgba(0,0,0,.52),rgba(0,0,0,.32))"}} />
+                {!!(b.emoji&&String(b.emoji).trim())&&<span style={{fontSize:28}}>{b.emoji}</span>}
+                <div>
+                  <div style={{fontWeight:800,fontSize:14,lineHeight:1.25}}>{b.titulo}</div>
+                  {b.subtitulo&&<div style={{fontSize:11,opacity:.9,marginTop:4,lineHeight:1.3}}>{b.subtitulo}</div>}
+                </div>
+                <div style={{fontSize:11,fontWeight:700}}>{b.cta} →</div>
               </>
             )}
-            {!u&&!!(b.emoji&&String(b.emoji).trim())&&<span style={{fontSize:28,position:"relative",zIndex:1}}>{b.emoji}</span>}
-            <div style={{position:"relative",zIndex:1}}>
-              <div style={{fontWeight:800,fontSize:14,lineHeight:1.25}}>{b.titulo}</div>
-              {b.subtitulo&&<div style={{fontSize:11,opacity:.9,marginTop:4,lineHeight:1.3}}>{b.subtitulo}</div>}
-            </div>
-            <div style={{fontSize:11,fontWeight:700,position:"relative",zIndex:1}}>{b.cta} →</div>
           </button>
         );})}
       </div>
