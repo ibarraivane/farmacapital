@@ -689,11 +689,11 @@ function ProductCard({prod,addToCart,onClick}){
       transition:"box-shadow .2s",
       touchAction:"pan-y",
     }}
+      {...(!narrow ? { onClick: handleDetailClick } : {})}
       onMouseEnter={e=>(e.currentTarget.style.boxShadow="0 4px 20px #0002")}
       onMouseLeave={e=>(e.currentTarget.style.boxShadow="none")}
     >
       <div
-        {...(!narrow ? { onClick: handleDetailClick } : {})}
         style={{
           background:C.cardDark,
           overflow:"hidden",
@@ -742,7 +742,7 @@ function ProductCard({prod,addToCart,onClick}){
           {prod.requiere_receta&&<Tag col={C.red} sm>Rx</Tag>}
           {prod.descuento_pct>0&&<span style={{background:C.red,color:"#fff",fontSize:9,fontWeight:800,borderRadius:4,padding:"2px 6px"}}>-{prod.descuento_pct}% OFF</span>}
         </div>
-        <div {...(!narrow ? { onClick: handleDetailClick } : {})} style={{color:C.dark,fontWeight:700,fontSize:14,marginBottom:4,lineHeight:1.3}}>{prod.nombre}</div>
+        <div style={{color:C.dark,fontWeight:700,fontSize:14,marginBottom:4,lineHeight:1.3,pointerEvents:"none"}}>{prod.nombre}</div>
         <div style={{color:C.dim,fontSize:11,marginBottom:8,flex:1}}>{prod.descripcion}</div>
         <div style={{marginBottom:10}}>
           <div style={{display:"flex",alignItems:"baseline",gap:8}}>
@@ -1325,7 +1325,7 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
   };
   const busqActiva = busq.trim().length > 0;
   return(
-    <div style={{maxWidth:1200,margin:"0 auto",padding:"clamp(20px,4vw,32px) 16px",width:"100%",overflowX:"hidden"}}>
+    <div style={{maxWidth:1200,margin:"0 auto",padding:"clamp(20px,4vw,32px) 16px",width:"100%",overflowX:"hidden",overscrollBehavior:"contain",touchAction:"pan-y"}}>
       <h1 style={{color:C.dark,fontSize:"clamp(22px,5vw,28px)",fontWeight:800,marginBottom:6}}>Catálogo Farmax</h1>
       <div style={{color:C.dim,fontSize:14,marginBottom:24}}>
         {busqActiva
