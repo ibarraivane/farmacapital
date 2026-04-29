@@ -354,7 +354,7 @@ function AdminNavSidebar({active,setActive,negocio,setNegocio,usuario,onLogout,a
       width:220,flexShrink:0,background:C.card,borderRight:`1px solid ${C.border}`,
       boxShadow: mobile?"4px 0 24px rgba(0,0,0,.12)":"2px 0 8px rgba(0,0,0,.06)",
       display:"flex",flexDirection:"column",position:"fixed",left:mobile?(navOpen?0:-220):0,top:0,
-      zIndex:mobile?1001:100,overflow:"hidden",transition:"left .22s ease",
+      zIndex:mobile?1001:100,overflow:"visible",transition:"left .22s ease",
     }}>
       <div style={{padding:"18px 14px 14px",borderBottom:`1px solid ${C.border}`}}>
         <Logo size={32} showText={true}/>
@@ -1791,7 +1791,7 @@ body{
   overflow-x:hidden;
   overflow-y:auto;
   touch-action:pan-y;
-  overscroll-behavior-y:none;
+  overscroll-behavior-y:auto;
 }
 .farmax-admin-root{min-height:100vh;min-height:100dvh}
 .farmax-admin-main{

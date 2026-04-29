@@ -1325,7 +1325,7 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
   };
   const busqActiva = busq.trim().length > 0;
   return(
-    <div style={{maxWidth:1200,margin:"0 auto",padding:"clamp(20px,4vw,32px) 16px",width:"100%",minHeight:"100vh",overflowX:"hidden"}}>
+    <div style={{maxWidth:1200,margin:"0 auto",padding:"clamp(20px,4vw,32px) 16px",width:"100%",minHeight:"100dvh",overflowX:"hidden"}}>
       <h1 style={{color:C.dark,fontSize:"clamp(22px,5vw,28px)",fontWeight:800,marginBottom:6}}>Catálogo Farmax</h1>
       <div style={{color:C.dim,fontSize:14,marginBottom:24}}>
         {busqActiva
@@ -1453,6 +1453,7 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
             width: "100%",
             height: "auto",
             overflow: "visible",
+            position: "relative",
           }}
         >
           {fil.length===0?(<div style={{padding:40,textAlign:"center",color:C.mid,gridColumn:"1/-1"}}>Sin resultados para "{busq}"</div>):fil.map(p=><ProductCard key={p.id} prod={p} addToCart={addToCart} onClick={()=>{setProdDetalle(p);setPage("detalle");}}/>)}
@@ -3178,7 +3179,7 @@ export default function TiendaFarmax(){
           overflow-x:hidden;
           overflow-y:auto;
           touch-action:pan-y;
-          overscroll-behavior-y:none;
+          overscroll-behavior-y:auto;
         }
         /* Header sticky: debe quedar FUERA de un padre con overflow-x:hidden (rompe sticky en móvil). */
         main{

@@ -1,8 +1,10 @@
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-  height: 100%;
-  overscroll-behavior-y: none;
+  height: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 body {
@@ -12,10 +14,11 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  height: 100%;
+  height: auto;
   overflow-x: hidden;
   overflow-y: auto;
-  overscroll-behavior-y: none;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: auto;
   max-width: 100%;
 }
 
@@ -26,6 +29,12 @@ body {
 #root {
   overflow-x: clip;
   max-width: 100%;
+}
+
+.main,
+.content,
+.page {
+  overflow: visible;
 }
 
 code {
