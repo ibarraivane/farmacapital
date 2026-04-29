@@ -114,6 +114,8 @@ function mapBannerFromRow(b){
   const s = String(b.slot||"hero").toLowerCase();
   const slot = s==="strip"||s==="tile" ? s : "hero";
   const em = b.emoji != null ? String(b.emoji).trim() : "";
+  const modoRaw = String(b.modo_visualizacion || "").trim().toLowerCase();
+  const modo_visualizacion = modoRaw === "imagen_completa" ? "imagen_completa" : "imagen_fondo";
   return {
     titulo: b.titulo,
     subtitulo: b.subtitulo||"",
@@ -125,6 +127,7 @@ function mapBannerFromRow(b){
     slot,
     imagen_url: b.imagen_url || "",
     imagen_mobile_url: b.imagen_mobile_url || "",
+    modo_visualizacion,
   };
 }
 
@@ -279,14 +282,118 @@ function HeroCarousel({setPage, items, precioConsulta, stack, useStaticPlacehold
   const b=banners[idx]||BANNERS[0];
   const heroImg = bannerVisualUrl(b, stack);
   const heroHasImg = !!heroImg;
+  const modo = b.modo_visualizacion === "imagen_completa" ? "imagen_completa" : "imagen_fondo";
+  const imagenCompleta = heroHasImg && modo === "imagen_completa";
   /** Franja ancha fija: la imagen cubre todo el ancho (cover), misma forma en todo el hero. */
   const heroStripH = stack
     ? "clamp(220px, 42vw, 340px)"
     : "clamp(300px, 20vw, 460px)";
   const textPad = heroHasImg ? "clamp(16px,3.5vw,28px) 16px" : "clamp(28px,8vw,48px) 16px";
+
+  const carouselControls = banners.length > 1 && (
+    <>
+      <div
+        onMouseEnter={()=>setPauseAuto(true)}
+        onMouseLeave={()=>setPauseAuto(false)}
+        style={{
+          position:"absolute",
+          bottom:12,
+          left:"50%",
+          transform:"translateX(-50%)",
+          display:"flex",
+          gap:6,
+          zIndex:5,
+        }}
+      >
+        {banners.map((_,i)=>(
+          <button
+            key={i}
+            type="button"
+            aria-label={`Banner ${i+1}`}
+            onClick={()=>setIdx(i)}
+            style={{
+              width:i===idx?24:8,
+              height:8,
+              borderRadius:4,
+              border:"none",
+              background:i===idx?"rgba(255,255,255,.95)":"rgba(255,255,255,.5)",
+              cursor:"pointer",
+              transition:"all .3s",
+              padding:0,
+              boxShadow:"0 1px 3px rgba(0,0,0,.3)",
+            }}
+          />
+        ))}
+      </div>
+      {[[-1,"←"],[1,"→"]].map(([d,icon])=>(
+        <button
+          key={d}
+          type="button"
+          onClick={()=>setIdx(i=>(i+d+banners.length)%banners.length)}
+          onMouseEnter={()=>setPauseAuto(true)}
+          onMouseLeave={()=>setPauseAuto(false)}
+          onFocus={()=>setPauseAuto(true)}
+          onBlur={()=>setPauseAuto(false)}
+          style={{
+            position:"absolute",
+            top:"50%",
+            transform:"translateY(-50%)",
+            ...(d===-1?{left:16}:{right:16}),
+            background:"rgba(0,0,0,.4)",
+            border:"none",
+            color:C.white,
+            width:40,
+            height:40,
+            borderRadius:"50%",
+            cursor:"pointer",
+            fontSize:18,
+            display:"flex",
+            alignItems:"center",
+            justifyContent:"center",
+            zIndex:5,
+          }}
+        >
+          {icon}
+        </button>
+      ))}
+    </>
+  );
+
   return(
     <div style={{position:"relative",width:"100%",overflow:"hidden"}}>
-      {heroHasImg ? (
+      {imagenCompleta ? (
+        <>
+          <button
+            type="button"
+            onClick={()=>setPage(b.pagina)}
+            onMouseEnter={()=>setPauseAuto(true)}
+            onMouseLeave={()=>setPauseAuto(false)}
+            style={{
+              display:"block",
+              width:"100%",
+              border:"none",
+              padding:0,
+              margin:0,
+              cursor:"pointer",
+              background:"#070f1a",
+            }}
+          >
+            <img
+              src={heroImg}
+              alt={b.titulo || "Banner"}
+              decoding="async"
+              style={{
+                width:"100%",
+                height:"auto",
+                display:"block",
+                maxHeight:"600px",
+                objectFit:"contain",
+              }}
+            />
+          </button>
+          {carouselControls}
+        </>
+      ) : heroHasImg ? (
         <div style={{position:"relative",width:"100%",height:heroStripH,background:"#070f1a"}}>
           <img
             src={heroImg}
@@ -334,29 +441,7 @@ function HeroCarousel({setPage, items, precioConsulta, stack, useStaticPlacehold
               </span>
             </div>
           </div>
-          {banners.length>1&&(
-          <>
-          <div
-            onMouseEnter={()=>setPauseAuto(true)}
-            onMouseLeave={()=>setPauseAuto(false)}
-            style={{position:"absolute",bottom:12,left:"50%",transform:"translateX(-50%)",display:"flex",gap:6,zIndex:3}}
-          >
-            {banners.map((_,i)=>(
-              <button key={i} type="button" aria-label={`Banner ${i+1}`} onClick={()=>setIdx(i)} style={{width:i===idx?24:8,height:8,borderRadius:4,border:"none",background:i===idx?"rgba(255,255,255,.9)":"rgba(255,255,255,.4)",cursor:"pointer",transition:"all .3s",padding:0}}/>
-            ))}
-          </div>
-          {[[-1,"←"],[1,"→"]].map(([d,icon])=>(
-            <button key={d} type="button" onClick={()=>setIdx(i=>(i+d+banners.length)%banners.length)}
-              onMouseEnter={()=>setPauseAuto(true)}
-              onMouseLeave={()=>setPauseAuto(false)}
-              onFocus={()=>setPauseAuto(true)}
-              onBlur={()=>setPauseAuto(false)}
-              style={{position:"absolute",top:"50%",transform:"translateY(-50%)",zIndex:3,...( d===-1?{left:12}:{right:12}),background:"rgba(255,255,255,.22)",border:"none",color:C.white,width:36,height:36,borderRadius:"50%",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center"}}>
-              {icon}
-            </button>
-          ))}
-          </>
-          )}
+          {carouselControls}
         </div>
       ) : (
         <>
@@ -382,29 +467,7 @@ function HeroCarousel({setPage, items, precioConsulta, stack, useStaticPlacehold
             </span>
           </div>
         </div>
-        {banners.length>1&&(
-        <>
-        <div
-          onMouseEnter={()=>setPauseAuto(true)}
-          onMouseLeave={()=>setPauseAuto(false)}
-          style={{position:"absolute",bottom:12,left:"50%",transform:"translateX(-50%)",display:"flex",gap:6,zIndex:3}}
-        >
-          {banners.map((_,i)=>(
-            <button key={i} type="button" aria-label={`Banner ${i+1}`} onClick={()=>setIdx(i)} style={{width:i===idx?24:8,height:8,borderRadius:4,border:"none",background:i===idx?"rgba(255,255,255,.9)":"rgba(255,255,255,.4)",cursor:"pointer",transition:"all .3s",padding:0}}/>
-          ))}
-        </div>
-        {[[-1,"←"],[1,"→"]].map(([d,icon])=>(
-          <button key={d} type="button" onClick={()=>setIdx(i=>(i+d+banners.length)%banners.length)}
-            onMouseEnter={()=>setPauseAuto(true)}
-            onMouseLeave={()=>setPauseAuto(false)}
-            onFocus={()=>setPauseAuto(true)}
-            onBlur={()=>setPauseAuto(false)}
-            style={{position:"absolute",top:"50%",transform:"translateY(-50%)",zIndex:3,...( d===-1?{left:16}:{right:16}),background:"rgba(255,255,255,.2)",border:"none",color:C.white,width:36,height:36,borderRadius:"50%",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center"}}>
-            {icon}
-          </button>
-        ))}
-        </>
-        )}
+        {carouselControls}
         </>
       )}
     </div>
@@ -421,6 +484,47 @@ function HomeBannersStrip({setPage, items}){
       <div style={{maxWidth:1200,margin:"0 auto",display:"flex",gap:12,flexWrap:"wrap",justifyContent:"center"}}>
         {items.map((b,i)=>{
           const u = bannerVisualUrl(b, stack);
+          const modo = b.modo_visualizacion === "imagen_completa" ? "imagen_completa" : "imagen_fondo";
+          const soloImg = u && modo === "imagen_completa";
+          if (soloImg) {
+            return (
+              <button
+                key={`${b.titulo}-${i}`}
+                type="button"
+                onClick={()=>setPage(b.pagina)}
+                style={{
+                  flex:"1 1 min(100%,280px)",
+                  maxWidth:420,
+                  minWidth:0,
+                  width:"100%",
+                  padding:0,
+                  border:"none",
+                  borderRadius:14,
+                  overflow:"hidden",
+                  cursor:"pointer",
+                  background:"#0f172a",
+                  boxShadow:"0 4px 20px rgba(0,82,204,.12)",
+                  transition:"transform .15s, box-shadow .15s",
+                  display:"block",
+                }}
+                onMouseEnter={e=>{ e.currentTarget.style.transform="translateY(-2px)"; e.currentTarget.style.boxShadow="0 8px 28px rgba(0,82,204,.2)"; }}
+                onMouseLeave={e=>{ e.currentTarget.style.transform="none"; e.currentTarget.style.boxShadow="0 4px 20px rgba(0,82,204,.12)"; }}
+              >
+                <img
+                  src={u}
+                  alt={b.titulo || ""}
+                  decoding="async"
+                  style={{
+                    width:"100%",
+                    height:"auto",
+                    display:"block",
+                    maxHeight:220,
+                    objectFit:"contain",
+                  }}
+                />
+              </button>
+            );
+          }
           return(
           <button
             key={`${b.titulo}-${i}`}
@@ -470,6 +574,49 @@ function HomeBannersTiles({setPage, items, stack}){
       }}>
         {items.map((b,i)=>{
           const u = bannerVisualUrl(b, stack);
+          const modo = b.modo_visualizacion === "imagen_completa" ? "imagen_completa" : "imagen_fondo";
+          const soloImg = u && modo === "imagen_completa";
+          if (soloImg) {
+            return (
+              <button
+                key={`${b.titulo}-${i}`}
+                type="button"
+                onClick={()=>setPage(b.pagina)}
+                style={{
+                  position:"relative",
+                  overflow:"hidden",
+                  textAlign:"center",
+                  cursor:"pointer",
+                  border:`1px solid ${C.border}`,
+                  borderRadius:14,
+                  background:"#0f172a",
+                  color:"#fff",
+                  padding:0,
+                  minHeight:120,
+                  display:"flex",
+                  alignItems:"center",
+                  justifyContent:"center",
+                  boxShadow:"0 2px 12px rgba(0,0,0,.06)",
+                  transition:"transform .15s",
+                }}
+                onMouseEnter={e=>{ e.currentTarget.style.transform="translateY(-2px)"; }}
+                onMouseLeave={e=>{ e.currentTarget.style.transform="none"; }}
+              >
+                <img
+                  src={u}
+                  alt={b.titulo || ""}
+                  decoding="async"
+                  style={{
+                    width:"100%",
+                    height:"auto",
+                    display:"block",
+                    maxHeight:200,
+                    objectFit:"contain",
+                  }}
+                />
+              </button>
+            );
+          }
           return(
           <button
             key={`${b.titulo}-${i}`}

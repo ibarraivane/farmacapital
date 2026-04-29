@@ -354,9 +354,9 @@ function AdminNavSidebar({active,setActive,negocio,setNegocio,usuario,onLogout,a
       width:220,flexShrink:0,background:C.card,borderRight:`1px solid ${C.border}`,
       boxShadow: mobile?"4px 0 24px rgba(0,0,0,.12)":"2px 0 8px rgba(0,0,0,.06)",
       display:"flex",flexDirection:"column",position:"fixed",left:mobile?(navOpen?0:-220):0,top:0,
-      zIndex:mobile?1001:100,overflow:"visible",transition:"left .22s ease",
+      height:"100vh",maxHeight:"100dvh",zIndex:mobile?1001:100,overflow:"hidden",transition:"left .22s ease",
     }}>
-      <div style={{padding:"18px 14px 14px",borderBottom:`1px solid ${C.border}`}}>
+      <div style={{flexShrink:0,padding:"18px 14px 14px",borderBottom:`1px solid ${C.border}`}}>
         <Logo size={32} showText={true}/>
       {usuario.rol==="admin"&&(
           <div style={{display:"flex",gap:4,marginTop:12}}>
@@ -370,7 +370,7 @@ function AdminNavSidebar({active,setActive,negocio,setNegocio,usuario,onLogout,a
       </div>
 
       {/* Usuario actual */}
-      <div style={{padding:"10px 14px",borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:10}}>
+      <div style={{flexShrink:0,padding:"10px 14px",borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:10}}>
         <div style={{width:32,height:32,borderRadius:"50%",background:rolColor+"30",border:`1px solid ${rolColor}40`,display:"flex",alignItems:"center",justifyContent:"center",color:rolColor,fontWeight:800,fontSize:13,flexShrink:0}}>
           {(primerNombre(usuario.nombre)||"U")[0].toUpperCase()}
         </div>
@@ -380,7 +380,7 @@ function AdminNavSidebar({active,setActive,negocio,setNegocio,usuario,onLogout,a
         </div>
       </div>
 
-      <div style={{flex:1,padding:"8px 8px",overflowY:"auto",WebkitOverflowScrolling:"touch",overscrollBehaviorY:"contain",scrollbarWidth:"thin",scrollbarColor:`${BRAND.primary}30 transparent`}}>
+      <div style={{flex:1,minHeight:0,padding:"8px 8px",overflowY:"auto",WebkitOverflowScrolling:"touch",overscrollBehaviorY:"contain",scrollbarWidth:"thin",scrollbarColor:`${BRAND.primary}30 transparent`}}>
         {isAdmin
           ? <>
             {groupAdminNavForRender(navIds).map((row, idx) => {
@@ -477,7 +477,7 @@ function AdminNavSidebar({active,setActive,negocio,setNegocio,usuario,onLogout,a
       </div>
 
       {/* Alertas y logout */}
-      <div style={{padding:"0 8px 16px"}}>
+      <div style={{flexShrink:0,padding:"0 8px 16px"}}>
         {/* "bajo stock" ahora se muestra como badge junto a Inventario en el sidebar. */}
         {alertas.pedidos>0&&<div style={{background:C.blueDim,border:`1px solid ${C.blue}20`,borderRadius:8,padding:"8px 12px",marginBottom:6}}><div style={{color:C.blue,fontSize:11,fontWeight:700}}>🌐 {alertas.pedidos} pedidos online</div></div>}
         {alertas.citas>0&&<div style={{background:C.greenDim,border:`1px solid ${C.green}20`,borderRadius:8,padding:"8px 12px",marginBottom:6}}><div style={{color:C.green,fontSize:11,fontWeight:700}}>📅 {alertas.citas} citas nuevas</div></div>}
@@ -638,7 +638,7 @@ function BannersAdmin(){
   const [banners,setBanners] = useState([]);
   const [loading,setLoad]   = useState(true);
   const [modal,setModal]    = useState(null);
-  const [form,setForm]      = useState({titulo:"",subtitulo:"",descripcion:"",emoji:"💊",bg:"linear-gradient(135deg,#0052cc,#0099e6)",cta:"Ver más →",pagina:"catalogo",orden:0,activo:true,slot:"hero",imagen_url:"",imagen_mobile_url:""});
+  const [form,setForm]      = useState({titulo:"",subtitulo:"",descripcion:"",emoji:"💊",bg:"linear-gradient(135deg,#0052cc,#0099e6)",cta:"Ver más →",pagina:"catalogo",orden:0,activo:true,slot:"hero",imagen_url:"",imagen_mobile_url:"",modo_visualizacion:"imagen_fondo"});
   const [saving,setSaving]  = useState(false);
 
   const fetch = async()=>{ setLoad(true); const{data}=await supabase.from("banners").select("*").order("orden"); setBanners(data||[]); setLoad(false); };
@@ -688,7 +688,7 @@ function BannersAdmin(){
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
         <h1 style={{color:C.text,fontSize:20,fontWeight:800,margin:0}}>🖼️ Banners de la tienda</h1>
-        <Btn col={BRAND.primary} onClick={()=>{setForm({titulo:"",subtitulo:"",descripcion:"",emoji:"💊",bg:BRAND.gradient,cta:"Ver más →",pagina:"promo",orden:banners.length+1,activo:true,slot:"hero",imagen_url:"",imagen_mobile_url:""});setModal("new");}}>+ Nuevo banner</Btn>
+        <Btn col={BRAND.primary} onClick={()=>{setForm({titulo:"",subtitulo:"",descripcion:"",emoji:"💊",bg:BRAND.gradient,cta:"Ver más →",pagina:"promo",orden:banners.length+1,activo:true,slot:"hero",imagen_url:"",imagen_mobile_url:"",modo_visualizacion:"imagen_fondo"});setModal("new");}}>+ Nuevo banner</Btn>
       </div>
       <div style={{background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:10,padding:"10px 16px",marginBottom:16,fontSize:12,color:"#1d4ed8",lineHeight:1.55}}>
         💡 <strong>Zona:</strong> <em>Carrusel</em> (arriba, rotación automática) · <em>Franja</em> (tarjetas anchas bajo la barra de servicios) · <em>Mosaico</em> (rejilla bajo la búsqueda). Ordená con <strong>Orden</strong>.
@@ -716,7 +716,7 @@ function BannersAdmin(){
               </div>
               <div style={{display:"flex",gap:8,flexShrink:0}}>
                 <button onClick={()=>toggleActivo(b)} style={{padding:"5px 10px",borderRadius:6,border:`1px solid ${b.activo?C.green:C.border}`,background:b.activo?C.greenDim:"transparent",color:b.activo?C.green:C.textMid,fontSize:11,fontWeight:700,cursor:"pointer"}}>{b.activo?"✓ Activo":"○ Inactivo"}</button>
-                <button onClick={()=>{setForm({...b,imagen_url:b.imagen_url||"",imagen_mobile_url:b.imagen_mobile_url||""});setModal(b);}} style={{padding:"5px 10px",borderRadius:6,border:`1px solid ${C.amber}`,background:C.amberDim,color:C.amber,fontSize:11,fontWeight:700,cursor:"pointer"}}>✏️ Editar</button>
+                <button onClick={()=>{setForm({...b,imagen_url:b.imagen_url||"",imagen_mobile_url:b.imagen_mobile_url||"",modo_visualizacion:b.modo_visualizacion||"imagen_fondo"});setModal(b);}} style={{padding:"5px 10px",borderRadius:6,border:`1px solid ${C.amber}`,background:C.amberDim,color:C.amber,fontSize:11,fontWeight:700,cursor:"pointer"}}>✏️ Editar</button>
                 <button onClick={()=>eliminar(b.id)} style={{padding:"5px 10px",borderRadius:6,border:`1px solid ${C.red}`,background:C.redDim,color:C.red,fontSize:11,fontWeight:700,cursor:"pointer"}}>🗑️</button>
               </div>
             </div>
@@ -753,6 +753,24 @@ function BannersAdmin(){
               <div style={{fontSize:11,color:C.textDim,marginTop:8,lineHeight:1.45}}>
                 💡 <strong>Tamaño recomendado (carrusel):</strong> imagen horizontal tipo <strong>1920×640 px</strong> o <strong>2000×700 px</strong> (~3:1), mensaje importante al centro. Mínimo ~1600×600. La tienda recorta con <em>cover</em> a una franja ancha.
                 {" "}Si no subes imagen, se usa fondo + emoji. Bucket <code style={{background:C.card,padding:"1px 4px",borderRadius:4}}>banners</code>.
+              </div>
+            </div>
+            <div style={{marginBottom:14,padding:14,background:C.bg,borderRadius:10,border:`1px solid ${C.border}`}}>
+              <label style={{color:C.textMid,fontSize:11,fontWeight:700,display:"block",marginBottom:8}}>
+                🎨 MODO DE VISUALIZACIÓN
+              </label>
+              <select
+                style={inpS}
+                value={form.modo_visualizacion || "imagen_fondo"}
+                onChange={(e)=>setForm((p)=>({...p,modo_visualizacion:e.target.value}))}
+              >
+                <option value="imagen_fondo">🖼️ Imagen como fondo + texto editable encima</option>
+                <option value="imagen_completa">📷 Solo imagen (sin texto encima)</option>
+              </select>
+              <div style={{fontSize:11,color:C.textDim,marginTop:6,lineHeight:1.4}}>
+                💡 <strong>Imagen completa:</strong> usa cuando ya diseñaste el banner con texto incluido (ej. en Canva o Nano Banana).
+                <br/>
+                💡 <strong>Imagen de fondo:</strong> usa cuando quieres cambiar el texto sin re-generar la imagen.
               </div>
             </div>
             {[["Título *","titulo"],["Subtítulo","subtitulo"],["Descripción","descripcion"],["Emoji (si no hay imagen)","emoji"],["Texto del botón","cta"],["Página destino","pagina"]].map(([l,k])=>(
@@ -1801,7 +1819,10 @@ body{
   -webkit-overflow-scrolling:touch;
 }
 .farmax-admin-sidebar{
-  min-height:100vh;min-height:100dvh;box-sizing:border-box;
+  box-sizing:border-box;
+  height:100vh;
+  max-height:100dvh;
+  overflow:hidden;
   padding-bottom:env(safe-area-inset-bottom,0px);
   touch-action:pan-y;
 }
