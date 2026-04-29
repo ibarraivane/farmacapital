@@ -3115,9 +3115,22 @@ export default function TiendaFarmax(){
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
         *{box-sizing:border-box;margin:0;padding:0;}
         html{-webkit-text-size-adjust:100%;}
-        body{background:${C.bg};font-family:'Plus Jakarta Sans',sans-serif;color:${C.dark};}
+        body{
+          background:${C.bg};
+          font-family:'Plus Jakarta Sans',sans-serif;
+          color:${C.dark};
+          touch-action:pan-y;
+          overscroll-behavior-y:auto;
+        }
         /* Header sticky: debe quedar FUERA de un padre con overflow-x:hidden (rompe sticky en móvil). */
-        main{overflow-x:hidden;width:100%;max-width:100%;padding-bottom:env(safe-area-inset-bottom, 0px);}
+        main{
+          overflow-x:hidden;
+          width:100%;
+          max-width:100%;
+          padding-bottom:env(safe-area-inset-bottom, 0px);
+          touch-action:pan-y;
+          -webkit-overflow-scrolling:touch;
+        }
         img,svg,video,canvas{max-width:100%;height:auto;}
         ::-webkit-scrollbar{width:6px;}::-webkit-scrollbar-track{background:${C.bg};}::-webkit-scrollbar-thumb{background:${C.border};border-radius:4px;}
         button,select{font-family:'Plus Jakarta Sans',sans-serif;}
@@ -3128,8 +3141,8 @@ export default function TiendaFarmax(){
 
       <Header page={page} setPage={setPage} cart={cart} user={user} setUser={setUser}/>
 
-      <div style={{width:"100%",minHeight:"min(100vh,100dvh)"}}>
-        <main style={{minHeight:"min(100vh, 100dvh)",background:C.bg}}>
+      <div style={{width:"100%",minHeight:"100dvh"}}>
+        <main style={{minHeight:"100dvh",background:C.bg}}>
           {pages[page]||pages.home}
         </main>
         {!sinFooter.includes(page)&&<Footer setPage={setPage}/>}
