@@ -220,7 +220,7 @@ function PopupBienvenida({onClose,setPage,precioConsulta}){
   const stack = useMediaQuery("(max-width: 480px)");
   const pc = Math.round(Number(precioConsulta) || CONSULTA_PRECIO_DEFAULT);
   return(
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.55)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+    <div style={{position:"relative",inset:0,background:"rgba(0,0,0,.55)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
       <div style={{background:C.white,borderRadius:20,maxWidth:420,width:"100%",overflow:"hidden",boxShadow:"0 20px 60px rgba(0,0,0,.3)"}}>
         <div style={{background:BRAND.gradient,padding:"28px 20px",textAlign:"center",position:"relative"}}>
           <button type="button" onClick={onClose} style={{position:"absolute",top:12,right:16,background:"rgba(255,255,255,.2)",border:"none",color:C.white,width:28,height:28,borderRadius:"50%",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
@@ -532,8 +532,7 @@ function Header({page,setPage,cart,user,setUser}){
   return(
     <div
       style={{
-        position: "sticky",
-        top: 0,
+        position: "relative",
         zIndex: 200,
         background: C.white,
         boxShadow: "0 2px 14px rgba(15,23,42,.08)",
@@ -683,6 +682,9 @@ function ProductCard({prod,addToCart,onClick}){
       overflow:"hidden",
       display:"flex",
       flexDirection:"column",
+      width:"100%",
+      maxWidth:"100%",
+      minWidth:0,
       cursor:narrow?"default":"pointer",
       transition:"box-shadow .2s",
       touchAction:"pan-y",
@@ -811,7 +813,7 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
             placeholder="🔍 Buscar otro producto (nombre, principio activo, SKU…)"
             style={{width:"100%",boxSizing:"border-box",fontSize:16,marginBottom:0}}
           />
-          {suggestions.length>0&&(
+          {false&&(
             <div role="listbox" aria-label="Sugerencias de búsqueda" style={{
               position:"absolute",left:0,right:0,top:"calc(100% + 4px)",
               background:C.white,border:`1px solid ${C.border}`,borderRadius:10,
@@ -1108,7 +1110,7 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
             }}
             style={{position:"absolute",right:6,top:"50%",transform:"translateY(-50%)",background:BRAND.gradient,border:"none",borderRadius:24,width:44,height:44,cursor:"pointer",color:C.white,fontSize:18,display:"flex",alignItems:"center",justifyContent:"center"}}
           >→</button>
-          {heroSuggestions.length>0&&(
+          {false&&(
             <div role="listbox" aria-label="Sugerencias de búsqueda" style={{
               position:"absolute",left:0,right:0,top:"calc(100% + 6px)",
               background:C.white,border:`1px solid ${C.border}`,borderRadius:14,
@@ -1268,6 +1270,7 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
   const [precioMax,setPrecioMax]=useState("");
   const [precioMin,setPrecioMin]=useState("");
   const [verAgotados,setVerAgotados]=useState(false);
+  const [openCategorias, setOpenCategorias] = useState(false);
   const [busqFocus,setBusqFocus]=useState(false);
   useEffect(()=>{ sessionStorage.setItem("farmax_cat",cat); },[cat]);
   useEffect(()=>{ sessionStorage.setItem("farmax_busq",busq); },[busq]);
@@ -1322,7 +1325,7 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
   };
   const busqActiva = busq.trim().length > 0;
   return(
-    <div style={{maxWidth:1200,margin:"0 auto",padding:"clamp(20px,4vw,32px) 16px"}}>
+    <div style={{maxWidth:1200,margin:"0 auto",padding:"clamp(20px,4vw,32px) 16px",width:"100%",overflowX:"hidden"}}>
       <h1 style={{color:C.dark,fontSize:"clamp(22px,5vw,28px)",fontWeight:800,marginBottom:6}}>Catálogo Farmax</h1>
       <div style={{color:C.dim,fontSize:14,marginBottom:24}}>
         {busqActiva
@@ -1361,7 +1364,7 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
           placeholder="🔍 Nombre, principio activo, marca, SKU o código…"
           style={{width:"100%",boxSizing:"border-box",fontSize:16,marginBottom:0}}
         />
-        {suggestions.length>0&&(
+        {false&&(
           <div role="listbox" aria-label="Sugerencias de búsqueda" style={{
             position:"absolute",left:0,right:0,top:"calc(100% + 4px)",
             background:C.white,border:`1px solid ${C.border}`,borderRadius:10,
@@ -1457,7 +1460,7 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
           {fil.length===0?(<div style={{padding:40,textAlign:"center",color:C.mid,gridColumn:"1/-1"}}>Sin resultados para "{busq}"</div>):fil.map(p=><ProductCard key={p.id} prod={p} addToCart={addToCart} onClick={()=>{setProdDetalle(p);setPage("detalle");}}/>)}
         </div>
         {stack && busqActiva ? (
-          <details
+          <div
             style={{
               gridArea: "categorias",
               width: "100%",
@@ -1468,25 +1471,34 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
               boxSizing: "border-box",
             }}
           >
-            <summary style={{
-              cursor: "pointer",
-              color: C.dark,
-              fontWeight: 700,
-              fontSize: 14,
-              padding: "8px 4px",
-              listStyle: "none",
-            }}>
+            <button
+              type="button"
+              onClick={() => setOpenCategorias(v => !v)}
+              style={{
+                width: "100%",
+                cursor: "pointer",
+                color: C.dark,
+                fontWeight: 700,
+                fontSize: 14,
+                padding: "8px 4px",
+                border: "none",
+                background: "transparent",
+                textAlign: "left",
+              }}
+            >
               Categorías {cat !== "Todos" ? `· ${cat}` : ""} <span style={{ color: C.dim, fontWeight: 600, fontSize: 12 }}>(tocá para filtrar)</span>
-            </summary>
-            <div style={{ marginTop: 8, maxHeight: "min(50vh, 320px)", overflowY: "visible" }}>
-              {cats.map((c) => (
-                <button key={c} type="button" onClick={() => setCat(c)} style={{
-                  width: "100%", textAlign: "left", padding: "8px 10px", borderRadius: 8, border: "none",
-                  background: cat === c ? BRAND.primary + "18" : "transparent", color: cat === c ? BRAND.primary : C.mid, fontSize: 13, fontWeight: cat === c ? 700 : 400, cursor: "pointer", marginBottom: 2,
-                }}>{c}</button>
-              ))}
-            </div>
-          </details>
+            </button>
+            {openCategorias && (
+              <div style={{ marginTop: 8, maxHeight: "min(50vh, 320px)", overflowY: "visible" }}>
+                {cats.map((c) => (
+                  <button key={c} type="button" onClick={() => setCat(c)} style={{
+                    width: "100%", textAlign: "left", padding: "8px 10px", borderRadius: 8, border: "none",
+                    background: cat === c ? BRAND.primary + "18" : "transparent", color: cat === c ? BRAND.primary : C.mid, fontSize: 13, fontWeight: cat === c ? 700 : 400, cursor: "pointer", marginBottom: 2,
+                  }}>{c}</button>
+                ))}
+              </div>
+            )}
+          </div>
         ) : (
           <div style={{
             gridArea: "categorias",
