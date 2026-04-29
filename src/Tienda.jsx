@@ -1325,7 +1325,7 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
   };
   const busqActiva = busq.trim().length > 0;
   return(
-    <div style={{maxWidth:1200,margin:"0 auto",padding:"clamp(20px,4vw,32px) 16px",width:"100%",overflowX:"hidden"}}>
+    <div style={{maxWidth:1200,margin:"0 auto",padding:"clamp(20px,4vw,32px) 16px",width:"100%",minHeight:"100vh",overflowX:"hidden"}}>
       <h1 style={{color:C.dark,fontSize:"clamp(22px,5vw,28px)",fontWeight:800,marginBottom:6}}>Catálogo Farmax</h1>
       <div style={{color:C.dim,fontSize:14,marginBottom:24}}>
         {busqActiva
@@ -1445,19 +1445,14 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
         alignItems: "start",
         gridTemplateColumns: stack ? "1fr" : "180px 1fr",
         gridTemplateAreas: stack ? '"resultados" "categorias"' : '"categorias resultados"',
+        width: "100%",
       }}>
         <div
           id="farmax-catalogo-resultados"
           style={{
-            position: "relative",
-            zIndex: 1,
+            width: "100%",
+            height: "auto",
             overflow: "visible",
-            gridArea: "resultados",
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill,minmax(min(100%, 200px), 1fr))",
-            gap: 14,
-            minWidth: 0,
-            scrollMarginTop: 16,
           }}
         >
           {fil.length===0?(<div style={{padding:40,textAlign:"center",color:C.mid,gridColumn:"1/-1"}}>Sin resultados para "{busq}"</div>):fil.map(p=><ProductCard key={p.id} prod={p} addToCart={addToCart} onClick={()=>{setProdDetalle(p);setPage("detalle");}}/>)}
