@@ -316,7 +316,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
               <div style={{ color: "#fff", fontWeight: 800, fontSize: 15 }}>🖨️ Reimprimir Ticket #{ticketReprint.venta.id}</div>
               <button type="button" onClick={() => setTicketReprint(null)} style={{ background: "rgba(255,255,255,.2)", border: "none", color: "#fff", width: 28, height: 28, borderRadius: "50%", cursor: "pointer", fontSize: 16 }}>✕</button>
             </div>
-            <div style={{ padding: 16, background: "#f8fafc", display: "flex", justifyContent: "center", borderBottom: "1px solid #e2e8f0", maxHeight: "60vh", overflowY: "auto" }}>
+            <div style={{ padding: 16, background: "#f8fafc", display: "flex", justifyContent: "center", borderBottom: "1px solid #e2e8f0", maxHeight: "60vh", overflowY: "visible" }}>
               <div style={{ background: C.card, boxShadow: "0 2px 12px rgba(0,0,0,.1)", borderRadius: 4, padding: 4 }}>
                 <TicketVenta
                   venta={ticketReprint.venta}

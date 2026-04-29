@@ -203,7 +203,7 @@ export default function TicketPreviewModal({
           background:"#f8fafc",
           display:"flex", justifyContent:"center",
           borderBottom:"1px solid #e2e8f0",
-          overflowY:"auto",
+          overflowY:"visible",
           maxHeight:"55vh",
         }}>
           <div style={{

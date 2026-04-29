@@ -2334,7 +2334,7 @@ export default function InventarioModule() {
                       <div style={{color:"#16a34a",fontWeight:700,fontSize:13}}>✅ {importResult.rows.length} productos listos para importar</div>
                       {importResult.msg&&<div style={{color:"#16a34a",fontSize:11,marginTop:4}}>⚠️ {importResult.msg}</div>}
                     </div>
-                    <div style={{maxHeight:200,overflowY:"auto",border:`1px solid ${C.border}`,borderRadius:8,marginBottom:16}}>
+                    <div style={{maxHeight:200,overflowY:"visible",border:`1px solid ${C.border}`,borderRadius:8,marginBottom:16}}>
                       <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
                         <thead><tr style={{background:C.cardDark}}>
                           {["Nombre","SKU Farmax","Categoría","Stock","Precio","Caducidad"].map(h=><th key={h} style={{padding:"6px 10px",textAlign:"left",color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{h}</th>)}

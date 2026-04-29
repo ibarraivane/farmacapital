@@ -130,7 +130,7 @@ function PromoModal({initial, productos, onClose, onSaved }) {
 
         <div style={{marginBottom:16}}>
           <label style={labelS}>PRODUCTOS APLICABLES ({selProds.length} seleccionados)</label>
-          <div style={{maxHeight:180,overflowY:"auto",border:`1px solid ${C.border}`,borderRadius:8,padding:8,display:"flex",flexWrap:"wrap",gap:6}}>
+          <div style={{maxHeight:180,overflowY:"visible",border:`1px solid ${C.border}`,borderRadius:8,padding:8,display:"flex",flexWrap:"wrap",gap:6}}>
             {productos.map(p=>(
               <div key={p.id} onClick={()=>toggleProd(p.id)}
                 style={{padding:"4px 10px",borderRadius:20,fontSize:11,fontWeight:600,cursor:"pointer",
