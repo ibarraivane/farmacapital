@@ -103,6 +103,7 @@ function adminSesionEsRolAdmin() {
 
 function ClienteDetalle({ cliente, onReload }) {
   const C = C_LIGHT;
+  const isMobile = useMediaQuery("(max-width: 768px)");
   const esAdmin = adminSesionEsRolAdmin();
   const [tab,      setTab]     = useState("compras");
   const [pedidos,  setPedidos] = useState([]);
@@ -187,7 +188,7 @@ function ClienteDetalle({ cliente, onReload }) {
   };
 
   return (
-    <div style={{ flex:1, overflowY:"auto", display:"flex", flexDirection:"column" }}>
+    <div style={{ flex:1, overflowY:isMobile?"visible":"auto", display:"flex", flexDirection:"column" }}>
       <div style={{ padding:"20px 24px", borderBottom:`1px solid ${C.border}`, background:C.card }}>
         <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:14 }}>
           <Avatar nombre={cliente.nombre} puntos={cliente.puntos} size={48}/>
@@ -246,7 +247,7 @@ function ClienteDetalle({ cliente, onReload }) {
         ))}
       </div>
 
-      <div style={{ flex:1, overflowY:"auto", padding:20 }}>
+      <div style={{ flex:1, overflowY:isMobile?"visible":"auto", padding:20 }}>
         {loading && <SkeletonTable rows={5} cols={5}/>}
 
         {!loading && tab==="compras" && (

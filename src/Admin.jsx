@@ -1783,7 +1783,7 @@ export default function FarmaxAdmin(){
       onConfirm={()=>{ confirmDlg.onConfirm?.(); setConfirmDlg(p=>({...p,open:false})); }}
       onCancel={()=>setConfirmDlg(p=>({...p,open:false}))}
     />
-    <div className="farmax-admin-root" style={{background:C.bg,fontFamily:"'Plus Jakarta Sans',sans-serif",transition:"background .3s,color .3s",color:C.text,overflowX:"hidden"}}>
+    <div className="farmax-admin-root" style={{background:C.bg,fontFamily:"'Plus Jakarta Sans',sans-serif",transition:"background .3s,color .3s",color:C.text,overflowX:"hidden",touchAction:"pan-y"}}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
 html,body,#root{height:100%;-webkit-text-size-adjust:100%;text-size-adjust:100%}
@@ -1802,6 +1802,15 @@ body{
   min-height:100vh;min-height:100dvh;box-sizing:border-box;
   padding-bottom:env(safe-area-inset-bottom,0px);
   touch-action:pan-y;
+}
+@media (max-width: 1100px){
+  /* Fase 3: evitar shell rígido en móvil (viewport manda). */
+  .farmax-admin-root,
+  .farmax-admin-main{
+    height:auto !important;
+    max-height:none !important;
+    overflow-y:visible !important;
+  }
 }`}</style>
       <DevSupabaseEnvBanner />
       {isMobileLayout && mobileNavOpen && (
@@ -1856,6 +1865,7 @@ body{
           ? { width: "100%", maxWidth: "100%" }
           : { width: "auto", maxWidth: "none", minWidth: 0 }),
         overflowX:"hidden",
+        touchAction:"pan-y",
         boxSizing:"border-box",
       }}>
         <ModuleErrorBoundary>

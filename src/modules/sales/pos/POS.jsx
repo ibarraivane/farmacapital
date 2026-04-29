@@ -945,6 +945,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       boxSizing:"border-box",
       overflowX:"hidden",
       paddingBottom:"max(8px, env(safe-area-inset-bottom, 0px))",
+      touchAction:"pan-y",
     }}>
       <style>{`
         @media (max-width: 1100px) {
@@ -1207,7 +1208,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
           width:"100%",
           maxWidth:"100%",
         }}>
-          <div className="farmax-pos-products-col" style={{ minWidth: 0 }}>
+          <div className="farmax-pos-products-col" style={{ minWidth: 0, touchAction: "pan-y" }}>
             {isMobilePos && (
             <div
               className="farmax-pos-venta-toolbar"
