@@ -1449,6 +1449,9 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
         <div
           id="farmax-catalogo-resultados"
           style={{
+            position: "relative",
+            zIndex: 1,
+            overflow: "visible",
             gridArea: "resultados",
             display: "grid",
             gridTemplateColumns: "repeat(auto-fill,minmax(min(100%, 200px), 1fr))",
