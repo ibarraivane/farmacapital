@@ -22,9 +22,7 @@ body {
   max-width: 100%;
 }
 
-* {
-  touch-action: pan-y;
-}
+/* Evitar touch-action global en todos los nodos: en iOS puede interferir con el scroll natural. */
 
 #root {
   overflow-x: clip;

@@ -95,6 +95,89 @@ function rubroComprasDesdeNotas(notas) {
   return parts.length ? parts.join(" · ") : "";
 }
 
+/** Texto que parece solo concentración/dosis (mal colocado a veces en principio_activo en CSV viejos). */
+function esSoloConcentracionTexto(s) {
+  const t = String(s ?? "").trim();
+  if (!t) return false;
+  return /^(\d+(?:[.,]\d+)?\s*(?:mg|g|gr|gm|mcg|µg|ug|ml|mcl|%|iu|ui|meq)\b|\d+(?:[.,]\d+)?\s*-\s*\d+(?:[.,]\d+)?\s*(?:mg|g)?)$/i.test(t);
+}
+
+/**
+ * Presentación empotrada al final del nombre en listas mayoristas (ej. "... Ad 30Comp", "... 20 Tab").
+ * Solo usamos inferencia si la columna Presentación viene vacía en BD/import.
+ */
+function inferPresentacionDesdeNombre(nombre) {
+  const s = String(nombre ?? "").trim();
+  if (!s) return { nombreCorto: "", presentacion: "" };
+  const patterns = [
+    /\s+Ad\s+\d+\s*[Cc](?:omp|aps?)\b/i,
+    /\s+\d+\s*[Cc](?:omp|aps?|aja)\b/i,
+    /\s+\d+\s*[Tt]ab(?:letas)?\b/i,
+    /\s+\d+\s*[Cc]aps?\b/i,
+    /\s+\d+\s*(?:COMP|TAB)\b/,
+  ];
+  for (const re of patterns) {
+    const m = s.match(new RegExp(`^(.+?)(${re.source})$`, "i"));
+    if (m && m[1].trim().length >= 2) {
+      return { nombreCorto: m[1].trim(), presentacion: m[2].trim() };
+    }
+  }
+  return { nombreCorto: s, presentacion: "" };
+}
+
+/** Parte nombre/presentación y mueve dosis suelta de principio → concentración al importar CSV. */
+function normalizarCamposFarmaceuticosImport(row) {
+  const out = { ...row };
+  let pa = String(out.principio_activo ?? "").trim();
+  let conc = String(out.concentracion ?? "").trim();
+
+  if (pa && esSoloConcentracionTexto(pa)) {
+    if (!conc) out.concentracion = pa;
+    out.principio_activo = null;
+    pa = "";
+  }
+
+  const presStored = String(out.presentacion ?? "").trim();
+  const nombre = String(out.nombre ?? "").trim();
+  if (!presStored && nombre) {
+    const inf = inferPresentacionDesdeNombre(nombre);
+    if (inf.presentacion) {
+      out.presentacion = inf.presentacion;
+      out.nombre = inf.nombreCorto;
+    }
+  }
+  return out;
+}
+
+function lineaPrincipioQuimicoTabla(p) {
+  const dg = String(p.denominacion_generica ?? "").trim();
+  const pa = String(p.principio_activo ?? "").trim();
+  if (dg) return dg;
+  if (pa && !esSoloConcentracionTexto(pa)) return pa;
+  return "";
+}
+
+/** Dosis para segunda línea bajo principio (concentración o PA mal cargado como dosis). */
+function lineaDosisTabla(p) {
+  const c = String(p.concentracion ?? "").trim();
+  const pa = String(p.principio_activo ?? "").trim();
+  if (c) return c;
+  if (pa && esSoloConcentracionTexto(pa)) return pa;
+  return "";
+}
+
+function nombreYPresentacionTabla(p) {
+  const presStored = String(p.presentacion ?? "").trim();
+  const inf = inferPresentacionDesdeNombre(p.nombre);
+  if (presStored) {
+    return { nombre: p.nombre, presentacion: presStored };
+  }
+  if (inf.presentacion) {
+    return { nombre: inf.nombreCorto, presentacion: inf.presentacion };
+  }
+  return { nombre: p.nombre, presentacion: "" };
+}
+
 const tdEllipsisStyle = {
   display: "block",
   overflow: "hidden",
@@ -103,28 +186,38 @@ const tdEllipsisStyle = {
 };
 
 /** Columnas fijas al hacer scroll horizontal: ☑ · foto · SKU · ref lista · nombre */
-const INV_STICKY_COL_WIDTH = [52, 62, 120, 128, 272];
-const INV_STICKY_LEFT = INV_STICKY_COL_WIDTH.reduce((acc, w, i) => {
-  if (i === 0) acc.push(0);
-  else acc.push(acc[i - 1] + INV_STICKY_COL_WIDTH[i - 1]);
-  return acc;
-}, []);
+const INV_STICKY_COL_DEFAULT_WIDTH = [52, 62, 120, 82, 272];
 
-function inventarioStickyCell(colIdx, { header, bg }) {
+function inventarioStickyCell(colIdx, { header, bg, stickyWidths }) {
+  const widths = Array.isArray(stickyWidths) && stickyWidths.length === INV_STICKY_COL_DEFAULT_WIDTH.length
+    ? stickyWidths
+    : INV_STICKY_COL_DEFAULT_WIDTH;
+  const left = widths.slice(0, colIdx).reduce((acc, n) => acc + n, 0);
   const edgeShadow =
     colIdx === 4 ? "6px 0 18px -10px rgba(15, 23, 42, 0.22)" : undefined;
   return {
     position: "sticky",
-    left: INV_STICKY_LEFT[colIdx],
-    width: INV_STICKY_COL_WIDTH[colIdx],
-    minWidth: INV_STICKY_COL_WIDTH[colIdx],
-    maxWidth: colIdx === 4 ? INV_STICKY_COL_WIDTH[colIdx] : undefined,
+    left,
+    width: widths[colIdx],
+    minWidth: widths[colIdx],
+    maxWidth: colIdx === 4 ? widths[colIdx] : undefined,
     boxSizing: "border-box",
     zIndex: header ? 35 + colIdx : 15 + colIdx,
     background: bg,
     boxShadow: edgeShadow,
   };
 }
+
+const INV_COL_WIDTHS_DEFAULT = {
+  refLista: 82,
+  nombre: 272,
+  marca: 130,
+  presentacion: 160,
+  principio: 200,
+  ubicacion: 180,
+  categoria: 120,
+  proveedor: 140,
+};
 
 /** Cabeceras tabla inventario + tooltip para distinguir SKU Farmax vs ref. lista mayorista. */
 const INV_COLUMN_HEADERS = [
@@ -146,7 +239,6 @@ const INV_COLUMN_HEADERS = [
   { id: "ubicacion", label: "Ubicación", hint: "" },
   { id: "categoria", label: "Categoría", hint: "" },
   { id: "tipo", label: "Tipo", hint: "" },
-  { id: "rubro", label: "Rubro", hint: "" },
   { id: "proveedor", label: "Proveedor", hint: "" },
   { id: "stock", label: "Stock", hint: "" },
   { id: "min", label: "Mín", hint: "" },
@@ -370,7 +462,7 @@ const parsearCSV = (texto) => {
     headers.forEach((h,j)=>{ row[h] = (vals[j]||"").trim(); });
     if(!row.nombre) { errores.push(`Fila ${i+1}: Nombre requerido`); continue; }
 
-    rows.push({
+    const raw = {
       sku:           row.sku || null,
       nombre:        row.nombre,
       categoria:     row.categoria || "Otro",
@@ -396,7 +488,8 @@ const parsearCSV = (texto) => {
       sku_casa_saba:       row.sku_casa_saba || null,
       stock_maximo:        parseInt(row.stock_maximo) || null,
       notas:               row.notas || null,
-    });
+    };
+    rows.push(normalizarCamposFarmaceuticosImport(raw));
   }
   return {ok:rows.length>0, msg:errores.length?`${errores.length} errores`:null, rows};
 };
@@ -1328,6 +1421,53 @@ export default function InventarioModule() {
   const [modalBulkImages, setModalBulkImages] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
   const [modalBulkEdit, setModalBulkEdit] = useState(false);
+  const [showColumnSizer, setShowColumnSizer] = useState(false);
+  const [colWidths, setColWidths] = useState(() => {
+    try {
+      const raw = JSON.parse(localStorage.getItem("farmax_inv_col_widths") || "{}");
+      return { ...INV_COL_WIDTHS_DEFAULT, ...raw };
+    } catch {
+      return { ...INV_COL_WIDTHS_DEFAULT };
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("farmax_inv_col_widths", JSON.stringify(colWidths));
+    } catch {
+      /* noop */
+    }
+  }, [colWidths]);
+
+  const stickyWidths = useMemo(
+    () => [
+      INV_STICKY_COL_DEFAULT_WIDTH[0],
+      INV_STICKY_COL_DEFAULT_WIDTH[1],
+      INV_STICKY_COL_DEFAULT_WIDTH[2],
+      Math.max(70, Number(colWidths.refLista) || INV_COL_WIDTHS_DEFAULT.refLista),
+      Math.max(200, Number(colWidths.nombre) || INV_COL_WIDTHS_DEFAULT.nombre),
+    ],
+    [colWidths.refLista, colWidths.nombre]
+  );
+
+  const invColWidthStyle = useCallback(
+    (id) => {
+      const map = {
+        refLista: Math.max(70, Number(colWidths.refLista) || INV_COL_WIDTHS_DEFAULT.refLista),
+        nombre: Math.max(200, Number(colWidths.nombre) || INV_COL_WIDTHS_DEFAULT.nombre),
+        marca: Math.max(90, Number(colWidths.marca) || INV_COL_WIDTHS_DEFAULT.marca),
+        presentacion: Math.max(110, Number(colWidths.presentacion) || INV_COL_WIDTHS_DEFAULT.presentacion),
+        principio: Math.max(130, Number(colWidths.principio) || INV_COL_WIDTHS_DEFAULT.principio),
+        ubicacion: Math.max(120, Number(colWidths.ubicacion) || INV_COL_WIDTHS_DEFAULT.ubicacion),
+        categoria: Math.max(100, Number(colWidths.categoria) || INV_COL_WIDTHS_DEFAULT.categoria),
+        proveedor: Math.max(100, Number(colWidths.proveedor) || INV_COL_WIDTHS_DEFAULT.proveedor),
+      };
+      const w = map[id];
+      if (!w) return {};
+      return { width: w, minWidth: w, maxWidth: w };
+    },
+    [colWidths]
+  );
   const headerSelectAllRef = useRef(null);
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
 
@@ -1907,6 +2047,61 @@ export default function InventarioModule() {
           {filtrados.length} en página · {filtradosTodosInv.length} filtrado{filtradosTodosInv.length !== 1 ? "s" : ""}
         </span>
         </div>
+        <div style={{display:"flex",gap:8,alignItems:"center",marginTop:8}}>
+          <button
+            type="button"
+            onClick={() => setShowColumnSizer((v) => !v)}
+            style={{ ...btnSecondary, padding:"6px 10px", fontSize:11 }}
+          >
+            ↔ Ajustar columnas
+          </button>
+          <button
+            type="button"
+            onClick={() => setColWidths({ ...INV_COL_WIDTHS_DEFAULT })}
+            style={{ ...btnSecondary, padding:"6px 10px", fontSize:11 }}
+          >
+            Restablecer anchos
+          </button>
+        </div>
+        {showColumnSizer && (
+          <div style={{
+            marginTop: 8,
+            background: C.card,
+            border: `1px solid ${C.border}`,
+            borderRadius: 10,
+            padding: "10px 12px",
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
+            gap: 10,
+          }}>
+            {[
+              ["refLista", "Ref. mayorista", 70, 140],
+              ["nombre", "Nombre", 200, 420],
+              ["marca", "Marca", 90, 240],
+              ["presentacion", "Presentación", 110, 260],
+              ["principio", "Principio activo", 130, 320],
+              ["ubicacion", "Ubicación", 120, 280],
+              ["categoria", "Categoría", 100, 220],
+              ["proveedor", "Proveedor", 100, 240],
+            ].map(([key, label, min, max]) => (
+              <label key={key} style={{display:"block",fontSize:11,color:C.textMid}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                  <span>{label}</span>
+                  <strong style={{color:C.text}}>{colWidths[key]}px</strong>
+                </div>
+                <input
+                  type="range"
+                  min={min}
+                  max={max}
+                  step="2"
+                  value={colWidths[key]}
+                  onChange={(e)=>setColWidths((p)=>({...p,[key]: Number(e.target.value)}))}
+                  style={{width:"100%"}}
+                />
+              </label>
+            ))}
+          </div>
+        )}
       </div>
       {spellHintsInv.length > 0 && (
         <div style={{
@@ -1992,7 +2187,7 @@ export default function InventarioModule() {
       ) : (
         <>
         <HorizontalScrollSync data-tour="inv-tabla">
-          <table style={{width:"100%",minWidth:1780,borderCollapse:"collapse",fontSize:12}}>
+          <table style={{width:"100%",minWidth:1640,borderCollapse:"collapse",fontSize:12}}>
             <thead>
               <tr style={{background:C.card}}>
                 <th style={{
@@ -2002,7 +2197,7 @@ export default function InventarioModule() {
                   fontWeight: 700,
                   borderBottom: `1px solid ${C.border}`,
                   verticalAlign: "middle",
-                  ...inventarioStickyCell(0, { header: true, bg: C.card }),
+                  ...inventarioStickyCell(0, { header: true, bg: C.card, stickyWidths }),
                 }}>
                   <input
                     ref={headerSelectAllRef}
@@ -2026,7 +2221,8 @@ export default function InventarioModule() {
                       whiteSpace: "nowrap",
                       cursor: col.hint ? "help" : undefined,
                       verticalAlign: "middle",
-                      ...(colIdx <= 3 ? inventarioStickyCell(colIdx + 1, { header: true, bg: C.card }) : {}),
+                      ...(colIdx <= 3 ? inventarioStickyCell(colIdx + 1, { header: true, bg: C.card, stickyWidths }) : {}),
+                      ...invColWidthStyle(col.id),
                     }}
                   >
                     {col.label}
@@ -2036,7 +2232,7 @@ export default function InventarioModule() {
             </thead>
             <tbody>
               {filtrados.length===0&&(
-                <tr><td colSpan={23} style={{textAlign:"center",padding:32,color:C.textMid}}>
+                <tr><td colSpan={22} style={{textAlign:"center",padding:32,color:C.textMid}}>
                   Sin productos{busqueda?` para "${busqueda}"`:""}. Agrega el primero con ➕
                 </td></tr>
               )}
@@ -2049,11 +2245,12 @@ export default function InventarioModule() {
                 const mgnNum  = parseFloat(mgn);
                 const mgnCol  = isNaN(mgnNum)?C.textMid:mgnNum>=30?C.green:mgnNum>=15?C.amber:C.red;
                 const refListaProv = refListaMayoristaDesdeNotas(p.notas);
-                const rubroCompras = rubroComprasDesdeNotas(p.notas);
                 const marcaDisp = (p.marca || "").trim();
-                const presDisp = (p.presentacion || "").trim();
+                const { nombre: nombreTabla, presentacion: presInferida } = nombreYPresentacionTabla(p);
+                const presDisp = presInferida || "—";
                 const provDisp = (p.proveedor || "").trim();
-                const principioDisp = [p.principio_activo, p.denominacion_generica, p.concentracion].filter(Boolean).join(" · ");
+                const principioLine = lineaPrincipioQuimicoTabla(p);
+                const dosisLine = lineaDosisTabla(p);
                 const stickyRowBg = bajo ? C.amberDim : nearCad ? C.redDim : C.bg;
                 return (
                   <tr key={p.id} className="farmax-table-row" style={{opacity:inact?0.45:1,background:bajo?C.amberDim:nearCad?C.redDim:"transparent"}}>
@@ -2062,7 +2259,7 @@ export default function InventarioModule() {
                       borderBottom: `1px solid ${C.border}`,
                       textAlign: "center",
                       verticalAlign: "middle",
-                      ...inventarioStickyCell(0, { header: false, bg: stickyRowBg }),
+                      ...inventarioStickyCell(0, { header: false, bg: stickyRowBg, stickyWidths }),
                     }}>
                       <input
                         type="checkbox"
@@ -2076,7 +2273,7 @@ export default function InventarioModule() {
                       padding: "6px 10px",
                       borderBottom: `1px solid ${C.border}`,
                       verticalAlign: "middle",
-                      ...inventarioStickyCell(1, { header: false, bg: stickyRowBg }),
+                      ...inventarioStickyCell(1, { header: false, bg: stickyRowBg, stickyWidths }),
                     }}>
                       <div style={{
                         width:40,height:40,borderRadius:6,
@@ -2092,7 +2289,7 @@ export default function InventarioModule() {
                       fontFamily: "ui-monospace,Menlo,monospace",
                       fontSize: 11,
                       verticalAlign: "middle",
-                      ...inventarioStickyCell(2, { header: false, bg: stickyRowBg }),
+                      ...inventarioStickyCell(2, { header: false, bg: stickyRowBg, stickyWidths }),
                     }}>{p.sku||"—"}</td>
                     <td style={{
                       padding: "8px 12px",
@@ -2101,7 +2298,8 @@ export default function InventarioModule() {
                       fontFamily: "ui-monospace,Menlo,monospace",
                       fontSize: 11,
                       verticalAlign: "middle",
-                      ...inventarioStickyCell(3, { header: false, bg: stickyRowBg }),
+                      ...inventarioStickyCell(3, { header: false, bg: stickyRowBg, stickyWidths }),
+                      ...invColWidthStyle("refLista"),
                     }} title={refListaProv || undefined}>
                       <span style={tdEllipsisStyle}>{refListaProv || "—"}</span>
                     </td>
@@ -2111,33 +2309,34 @@ export default function InventarioModule() {
                       fontWeight: 600,
                       borderBottom: `1px solid ${C.border}`,
                       verticalAlign: "middle",
-                      ...inventarioStickyCell(4, { header: false, bg: stickyRowBg }),
-                    }} title={p.nombre}>
-                      <span style={{...tdEllipsisStyle,whiteSpace:"normal",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{p.nombre}</span>
+                      ...inventarioStickyCell(4, { header: false, bg: stickyRowBg, stickyWidths }),
+                      ...invColWidthStyle("nombre"),
+                    }} title={nombreTabla}>
+                      <span style={{...tdEllipsisStyle,whiteSpace:"normal",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{nombreTabla}</span>
                     </td>
-                    <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,maxWidth:130}} title={marcaDisp || undefined}>
+                    <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,...invColWidthStyle("marca")}} title={marcaDisp || undefined}>
                       <span style={tdEllipsisStyle}>{marcaDisp || "—"}</span>
                     </td>
-                    <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,maxWidth:160}} title={presDisp || undefined}>
-                      <span style={tdEllipsisStyle}>{presDisp || "—"}</span>
+                    <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,...invColWidthStyle("presentacion")}} title={presInferida || undefined}>
+                      <span style={tdEllipsisStyle}>{presDisp}</span>
                     </td>
-                    <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,maxWidth:200}} title={principioDisp || undefined}>
-                      <span style={tdEllipsisStyle}>{principioDisp || "—"}</span>
+                    <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,...invColWidthStyle("principio")}} title={[principioLine, dosisLine].filter(Boolean).join(" · ") || undefined}>
+                      <span style={{...tdEllipsisStyle,display:"block"}}>{principioLine || "—"}</span>
+                      {dosisLine ? (
+                        <span style={{display:"block",fontSize:10,color:C.textDim,marginTop:2}}>{dosisLine}</span>
+                      ) : null}
                     </td>
-                    <td style={{padding:"8px 12px",color:C.text,borderBottom:`1px solid ${C.border}`,maxWidth:180}}>
+                    <td style={{padding:"8px 12px",color:C.text,borderBottom:`1px solid ${C.border}`,...invColWidthStyle("ubicacion")}}>
                       <span style={{fontSize:11,fontWeight:700,color:p.ubicacion_texto ? C.blue : C.textDim}}>
                         {p.ubicacion_texto || "Sin ubicación"}
                       </span>
                     </td>
-                    <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{p.categoria}</td>
+                    <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,...invColWidthStyle("categoria")}}>{p.categoria}</td>
                     <td style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`}}>
                       <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,
                         background:p.tipo==="marca"?"#9d6fff18":C.blueDim,color:p.tipo==="marca"?"#9d6fff":C.blue}}>{p.tipo}</span>
                     </td>
-                    <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,maxWidth:180}} title={rubroCompras || undefined}>
-                      <span style={tdEllipsisStyle}>{rubroCompras || "—"}</span>
-                    </td>
-                    <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,maxWidth:140}} title={provDisp || undefined}>
+                    <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,...invColWidthStyle("proveedor")}} title={provDisp || undefined}>
                       <span style={tdEllipsisStyle}>{provDisp || "—"}</span>
                     </td>
                     <td style={{padding:"8px 12px",fontWeight:700,borderBottom:`1px solid ${C.border}`,color:bajo?C.amber:C.green}}>{p.stock}</td>
