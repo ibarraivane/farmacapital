@@ -73,8 +73,11 @@ const diasParaCaducar = (fecha) => {
   return Math.ceil(diff);
 };
 
-/** SKU del proveedor/lista mayorista (columna A Excel), desde `notas` del import FARMACOS. */
-function skuListaMayoristaDesdeNotas(notas) {
+/**
+ * Referencia del Excel mayorista (columna A del libro), guardada en `notas` como "Lista SKU origen".
+ * No es el SKU Farmax (`productos.sku`): es solo la ref. del distribuidor para pedidos / cruce con lista.
+ */
+function refListaMayoristaDesdeNotas(notas) {
   const m = String(notas ?? "").match(/Lista SKU origen:\s*([^·]+)/);
   return m ? m[1].trim() : "";
 }
@@ -99,8 +102,42 @@ const tdEllipsisStyle = {
   whiteSpace: "nowrap",
 };
 
+/** Cabeceras tabla inventario + tooltip para distinguir SKU Farmax vs ref. lista mayorista. */
+const INV_COLUMN_HEADERS = [
+  { id: "foto", label: "Foto", hint: "" },
+  {
+    id: "skuFarmax",
+    label: "SKU Farmax",
+    hint: "Identificador único en Farmax — campo productos.sku (POS, ticket, código interno).",
+  },
+  {
+    id: "refLista",
+    label: "Ref. lista mayorista",
+    hint: "Número/código del Excel del distribuidor (pedidos). No repetir como segundo «SKU»: es solo referencia de lista.",
+  },
+  { id: "nombre", label: "Nombre", hint: "" },
+  { id: "marca", label: "Marca", hint: "" },
+  { id: "presentacion", label: "Presentación", hint: "" },
+  { id: "principio", label: "Principio activo", hint: "" },
+  { id: "ubicacion", label: "Ubicación", hint: "" },
+  { id: "categoria", label: "Categoría", hint: "" },
+  { id: "tipo", label: "Tipo", hint: "" },
+  { id: "rubro", label: "Rubro", hint: "" },
+  { id: "proveedor", label: "Proveedor", hint: "" },
+  { id: "stock", label: "Stock", hint: "" },
+  { id: "min", label: "Mín", hint: "" },
+  { id: "precio", label: "Precio", hint: "" },
+  { id: "costo", label: "Costo", hint: "" },
+  { id: "margen", label: "Margen%", hint: "" },
+  { id: "cad", label: "Cad. (días)", hint: "" },
+  { id: "agot", label: "Agot. (días)", hint: "" },
+  { id: "desc", label: "Desc%", hint: "" },
+  { id: "estado", label: "Estado", hint: "" },
+  { id: "acciones", label: "Acciones", hint: "" },
+];
+
 const descargarPlantilla = () => {
-  const headers = ["SKU","Nombre","Categoria","Tipo","Stock","Stock_Minimo","Precio_Venta","Costo","Proveedor","Lote","Fecha_Caducidad","Descuento_Porcentaje"];
+  const headers = ["SKU_Farmax","Nombre","Categoria","Tipo","Stock","Stock_Minimo","Precio_Venta","Costo","Proveedor","Lote","Fecha_Caducidad","Descuento_Porcentaje"];
   const ejemplo = [
     ["FAR001","Paracetamol 500mg c/20","Analgésico","generico","50","10","45.00","22.00","Nadro","L2024-01","2026-12-31","0"],
     ["FAR002","Omeprazol 20mg c/14","Gastro","generico","30","5","89.00","40.00","Marzam","L2024-02","2026-06-30","0"],
@@ -114,35 +151,97 @@ const descargarPlantilla = () => {
   a.click(); URL.revokeObjectURL(url);
 };
 
+/** RFC4180 simplificado: respeta comas dentro de `"..."`. */
+function splitCsvLine(line) {
+  const result = [];
+  let cur = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (inQuotes) {
+      if (c === '"') {
+        if (line[i + 1] === '"') {
+          cur += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        cur += c;
+      }
+    } else if (c === '"') {
+      inQuotes = true;
+    } else if (c === ",") {
+      result.push(cur.trim());
+      cur = "";
+    } else {
+      cur += c;
+    }
+  }
+  result.push(cur.trim());
+  return result;
+}
+
 const parsearCSV = (texto) => {
-  const lineas = texto.trim().split("\n").map(l=>l.trim()).filter(Boolean);
-  if(lineas.length<2) return {ok:false,msg:"El archivo está vacío o tiene solo encabezados",rows:[]};
-  const headers = lineas[0].split(",").map(h=>h.replace(/"/g,"").trim().toLowerCase().replace(/ /g,"_"));
+  const lineas = texto.trim().split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  if (lineas.length < 2) return { ok: false, msg: "El archivo está vacío o tiene solo encabezados", rows: [] };
+  const headers = splitCsvLine(lineas[0]).map((h) =>
+    h.replace(/"/g, "").trim().toLowerCase().replace(/ /g, "_")
+  );
   const rows = [];
   const errores = [];
-  for(let i=1;i<lineas.length;i++){
-    const vals = lineas[i].split(",").map(v=>v.replace(/"/g,"").trim());
+  for (let i = 1; i < lineas.length; i++) {
+    let vals = splitCsvLine(lineas[i]);
+    if (vals.length < headers.length) {
+      while (vals.length < headers.length) vals.push("");
+    }
+    if (vals.length > headers.length) {
+      errores.push(`Fila ${i + 1}: columnas extra truncadas (${vals.length}→${headers.length})`);
+      vals = vals.slice(0, headers.length);
+    }
     const row = {};
-    headers.forEach((h,j)=>{ row[h]=vals[j]||""; });
-    // Validar campos requeridos
-    if(!row.nombre&&!row["nombre"]) { errores.push(`Fila ${i+1}: Nombre es requerido`); continue; }
+    headers.forEach((h, j) => {
+      row[h] = vals[j] ?? "";
+    });
+    if (!row.nombre && !row["nombre"]) {
+      errores.push(`Fila ${i + 1}: Nombre es requerido`);
+      continue;
+    }
+    const precioRaw =
+      row.precio ||
+      row.precio_venta ||
+      row["precio_venta"] ||
+      row["precio"] ||
+      "0";
+    const stockMinRaw =
+      row.stock_minimo ||
+      row.stock_mín ||
+      row["stock_mín"] ||
+      row["stock_minimo"] ||
+      row["stock_mínimo"] ||
+      "0";
+    const descRaw = row.descuento_pct || row["descuento%"] || "0";
     rows.push({
-      sku:           row.sku||row["sku"]||null,
-      nombre:        row.nombre||row["nombre"]||"",
-      categoria:     row.categoria||row["categoría"]||row["categoria"]||"Otro",
-      tipo:          row.tipo||"generico",
-      stock:         parseInt(row.stock||row["stock"])||0,
-      stock_minimo:  parseInt(row.stock_minimo||row["stock_mínimo"]||row["stock_minimo"])||0,
-      precio:  parseFloat(row.precio||row["precio"])||0,
-      costo:         parseFloat(row.costo||"0")||0,
-      proveedor:     row.proveedor||null,
-      lote:          row.lote||null,
-      fecha_caducidad: row.fecha_caducidad||row["fecha_caducidad"]||null,
-      descuento_pct: parseFloat(row.descuento_pct||"0")||0,
-      activo: true,
+      sku: row.sku || row["sku"] || row.sku_farmax || row["sku_farmax"] || null,
+      nombre: row.nombre || row["nombre"] || "",
+      categoria: row.categoria || row["categoría"] || row["categoria"] || "Otro",
+      tipo: row.tipo || "generico",
+      stock: parseInt(String(row.stock || row["stock"] || "0").replace(/,/g, ""), 10) || 0,
+      stock_minimo: parseInt(String(stockMinRaw).replace(/,/g, ""), 10) || 0,
+      precio: parseFloat(String(precioRaw).replace(/,/g, "")) || 0,
+      costo: parseFloat(String(row.costo || "0").replace(/,/g, "")) || 0,
+      proveedor: row.proveedor || null,
+      lote: row.lote || null,
+      fecha_caducidad: row.fecha_caducidad || row["fecha_caducidad"] || null,
+      descuento_pct: parseFloat(String(descRaw).replace(/,/g, "")) || 0,
+      activo: !/^inactivo$/i.test(String(row.estado || "").trim()),
     });
   }
-  return {ok:rows.length>0, msg:errores.length?`${errores.length} filas con error: ${errores.slice(0,3).join(", ")}`:null, rows};
+  return {
+    ok: rows.length > 0,
+    msg: errores.length ? `${errores.length} avisos (ej.: ${errores.slice(0, 3).join("; ")})` : null,
+    rows,
+  };
 };
 
 const exportarCSV = (productos, slugSuffix) => {
@@ -151,12 +250,27 @@ const exportarCSV = (productos, slugSuffix) => {
     return;
   }
   const headers = [
-    "SKU","SKU lista mayorista","Nombre","Marca","Presentación","Rubro","Categoría","Tipo",
-    "Stock","Stock Mín","Precio Venta","Costo","Margen%","Caducidad","Proveedor","Descuento%","Estado",
+    "SKU Farmax",
+    "Ref. lista mayorista",
+    "Nombre",
+    "Marca",
+    "Presentación",
+    "Rubro",
+    "Categoría",
+    "Tipo",
+    "Stock",
+    "Stock Mín",
+    "Precio Venta",
+    "Costo",
+    "Margen%",
+    "Caducidad",
+    "Proveedor",
+    "Descuento%",
+    "Estado",
   ];
   const rows = productos.map((p) => [
     p.sku || "",
-    skuListaMayoristaDesdeNotas(p.notas),
+    refListaMayoristaDesdeNotas(p.notas),
     p.nombre,
     p.marca || "",
     p.presentacion || "",
@@ -357,7 +471,7 @@ function ProductoModal({initial, onClose, onSaved }) {
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 18px"}}>
           <div>
             {field("Nombre","nombre","text",true)}
-            {field("SKU","sku")}
+            {field("SKU Farmax","sku")}
             {field("Código de barras","codigo_barras")}
             <div style={{marginBottom:12}}>
               <label style={labelStyle}>Categoría</label>
@@ -1245,11 +1359,11 @@ export default function InventarioModule() {
         );
       } else if (importCsvSoloNuevos) {
         showToast(
-          `✅ ${created} producto(s) nuevo(s). ${skipped} fila(s) con SKU ya en catálogo (omitidas).`,
+          `✅ ${created} producto(s) nuevo(s). ${skipped} fila(s) con SKU Farmax ya en catálogo (omitidas).`,
           created > 0 ? "success" : "info"
         );
       } else if (updated > 0 && created === 0) {
-        showToast(`✅ ${updated} productos actualizados desde CSV (ya existían por SKU)`, "success");
+        showToast(`✅ ${updated} productos actualizados desde CSV (ya existían por SKU Farmax)`, "success");
       } else if (created > 0 && updated === 0) {
         showToast(`✅ ${created} productos dados de alta`, "success");
       } else {
@@ -1572,7 +1686,7 @@ export default function InventarioModule() {
       </div>
 
       <div data-tour="inv-buscar" style={{display:"flex",flexDirection:"column",gap:10,marginBottom:16}}>
-        <SearchDropdown value={busqueda} onChange={setBusqueda} onSelect={p=>setBusqueda(p.nombre)} placeholder="🔍 Nombre, activo, genérico, marca, presentación, SKU…" items={productos} labelKey="nombre" subKey="sku" extraSearchKeys={["codigo_barras","categoria","principio_activo","denominacion_generica","denominacion_distintiva","marca","concentracion","presentacion","forma_farmaceutica","ubicacion_texto"]} badgeKey="stock" badgeCol="#0099e6" style={{width:"100%",maxWidth:"100%"}} emptyMsg="Sin productos"/>
+        <SearchDropdown value={busqueda} onChange={setBusqueda} onSelect={p=>setBusqueda(p.nombre)} placeholder="🔍 Nombre, SKU Farmax, marca, principio, presentación…" items={productos} labelKey="nombre" subKey="sku" extraSearchKeys={["codigo_barras","categoria","principio_activo","denominacion_generica","denominacion_distintiva","marca","concentracion","presentacion","forma_farmaceutica","ubicacion_texto"]} badgeKey="stock" badgeCol="#0099e6" style={{width:"100%",maxWidth:"100%"}} emptyMsg="Sin productos"/>
         <div style={{display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
         <select value={filtroCategoria} onChange={e=>setFiltroCategoria(e.target.value)} style={{...inputStyle,maxWidth:180}}>
           <option value="todas">Todas las categorías</option>
@@ -1713,11 +1827,22 @@ export default function InventarioModule() {
                     style={{ width: 16, height: 16, cursor: "pointer", accentColor: BRAND.primary }}
                   />
                 </th>
-                {[
-                  "Foto","SKU","SKU lista","Nombre","Marca","Presentación","Principio activo","Ubicación","Categoría","Tipo","Rubro","Proveedor","Stock","Mín","Precio","Costo","Margen%","Cad. (días)","Agot. (días)","Desc%","Estado","Acciones",
-                ].map((h) => (
-                  <th key={h} style={{padding:"10px 12px",textAlign:"left",color:C.textMid,fontWeight:700,
-                    borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>{h}</th>
+                {INV_COLUMN_HEADERS.map((col) => (
+                  <th
+                    key={col.id}
+                    title={col.hint || undefined}
+                    style={{
+                      padding: "10px 12px",
+                      textAlign: "left",
+                      color: C.textMid,
+                      fontWeight: 700,
+                      borderBottom: `1px solid ${C.border}`,
+                      whiteSpace: "nowrap",
+                      cursor: col.hint ? "help" : undefined,
+                    }}
+                  >
+                    {col.label}
+                  </th>
                 ))}
               </tr>
             </thead>
@@ -1735,7 +1860,7 @@ export default function InventarioModule() {
                 const mgn     = margen(p.precio, p.costo);
                 const mgnNum  = parseFloat(mgn);
                 const mgnCol  = isNaN(mgnNum)?C.textMid:mgnNum>=30?C.green:mgnNum>=15?C.amber:C.red;
-                const skuListaProv = skuListaMayoristaDesdeNotas(p.notas);
+                const refListaProv = refListaMayoristaDesdeNotas(p.notas);
                 const rubroCompras = rubroComprasDesdeNotas(p.notas);
                 const marcaDisp = (p.marca || "").trim();
                 const presDisp = (p.presentacion || "").trim();
@@ -1761,8 +1886,8 @@ export default function InventarioModule() {
                       }}>{!p.imagen_url?"📷":null}</div>
                     </td>
                     <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,fontFamily:"ui-monospace,Menlo,monospace",fontSize:11}}>{p.sku||"—"}</td>
-                    <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,fontFamily:"ui-monospace,Menlo,monospace",fontSize:11,maxWidth:72}} title={skuListaProv || undefined}>
-                      <span style={tdEllipsisStyle}>{skuListaProv || "—"}</span>
+                    <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,fontFamily:"ui-monospace,Menlo,monospace",fontSize:11,maxWidth:96}} title={refListaProv || undefined}>
+                      <span style={tdEllipsisStyle}>{refListaProv || "—"}</span>
                     </td>
                     <td style={{padding:"8px 12px",color:inact?C.textDim:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`,maxWidth:240}} title={p.nombre}>
                       <span style={{...tdEllipsisStyle,whiteSpace:"normal",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{p.nombre}</span>
@@ -1959,7 +2084,7 @@ export default function InventarioModule() {
                 <li>Agrega tus productos (una fila por producto)</li>
                 <li>Guarda como CSV (separado por comas)</li>
                 <li>Sube el archivo aquí</li>
-                <li style={{marginTop:6}}><strong>SKU</strong>: para fusionar o “solo nuevos”, cada fila debe traer el mismo SKU que en Farmax</li>
+                <li style={{marginTop:6}}><strong>SKU Farmax</strong> (columna «SKU» del CSV): debe coincidir con <code>productos.sku</code> para fusionar o omitir duplicados en “solo nuevos”.</li>
               </ol>
             </div>
             <button onClick={descargarPlantilla} style={{width:"100%",padding:"10px",borderRadius:8,border:"1px solid #0052cc",background:"#eff6ff",color:"#0052cc",fontWeight:700,fontSize:13,cursor:"pointer",marginBottom:16,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
@@ -1989,7 +2114,7 @@ export default function InventarioModule() {
                     <div style={{maxHeight:200,overflowY:"auto",border:`1px solid ${C.border}`,borderRadius:8,marginBottom:16}}>
                       <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
                         <thead><tr style={{background:C.cardDark}}>
-                          {["Nombre","SKU","Categoría","Stock","Precio","Caducidad"].map(h=><th key={h} style={{padding:"6px 10px",textAlign:"left",color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{h}</th>)}
+                          {["Nombre","SKU Farmax","Categoría","Stock","Precio","Caducidad"].map(h=><th key={h} style={{padding:"6px 10px",textAlign:"left",color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{h}</th>)}
                         </tr></thead>
                         <tbody>
                           {importResult.rows.slice(0,20).map((r,i)=>(
@@ -2009,9 +2134,9 @@ export default function InventarioModule() {
                     <label style={{display:"flex",alignItems:"flex-start",gap:10,marginBottom:14,cursor:"pointer",fontSize:12,color:C.text,lineHeight:1.45}}>
                       <input type="checkbox" checked={importCsvSoloNuevos} onChange={(e)=>setImportCsvSoloNuevos(e.target.checked)} style={{marginTop:3}} />
                       <span>
-                        <strong>Solo productos nuevos</strong> — solo dan de alta filas cuyo SKU <em>aún no</em> está en el catálogo. Las que ya existen se omiten (no cambian precio ni stock).
+                        <strong>Solo productos nuevos</strong> — solo dan de alta filas cuyo <strong>SKU Farmax</strong> <em>aún no</em> está en el catálogo. Las que ya existen se omiten (no cambian precio ni stock).
                         <span style={{display:"block",color:C.textMid,fontSize:11,marginTop:4}}>
-                          Desmarcado: fusionar lista — crea nuevos y actualiza precio/stock de los que ya tenían ese SKU.
+                          Desmarcado: fusionar lista — crea nuevos y actualiza precio/stock de los que ya tenían ese SKU Farmax.
                         </span>
                       </span>
                     </label>
