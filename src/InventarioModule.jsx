@@ -182,12 +182,123 @@ function splitCsvLine(line) {
   return result;
 }
 
+/**
+ * Cabecera CSV → clave estable sin tildes ni puntuación extra (ej. Excel "Presentación" → presentacion).
+ * Sin esto, headerSet.has("presentacion") falla si el archivo trae "presentación".
+ */
+function normCsvHeader(h) {
+  let s = String(h ?? "")
+    .replace(/"/g, "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  s = s.replace(/\./g, " ");
+  s = s.replace(/[^a-z0-9]+/g, " ");
+  s = s.trim().replace(/\s+/g, "_");
+  return s;
+}
+
+/** Cabeceras CSV que no deben pasarse como JSON plano a create_producto_secure (van en metaPatch). */
+const CSV_META_HEADER_KEYS = new Set([
+  "marca",
+  "marca_comercial",
+  "presentacion",
+  "presentacion_completada",
+  "principio_activo",
+  "principio_activo_completado",
+  "ubicacion",
+  "ubicacion_texto",
+  "notas",
+  "jerarquia",
+  "grupo_articulos",
+  "rubro",
+  "linea_general",
+  "linea",
+  "ref_lista_mayorista",
+  "lista_sku_origen",
+  "sku_lista",
+  "ref_lista",
+]);
+
+const CSV_FIELD_ALIASES = {
+  marca: ["marca", "marca_comercial"],
+  presentacion: ["presentacion", "presentacion_completada"],
+  principio_activo: ["principio_activo", "principio_activo_completado"],
+  ubicacion_texto: ["ubicacion", "ubicacion_texto"],
+};
+
+function csvPick(row, ...aliases) {
+  for (const a of aliases) {
+    const key = normCsvHeader(a);
+    const raw = row[key];
+    if (raw == null) continue;
+    const s = String(raw).trim();
+    if (s !== "") return s;
+  }
+  return "";
+}
+
+const CSV_REF_LISTA_ALIASES = ["ref_lista_mayorista", "lista_sku_origen", "sku_lista", "ref_lista"];
+
+/** Construye parche JSON para admin_editar_producto según columnas presentes en el CSV. */
+function csvMetaPatchFromHeaders(row, headerSet) {
+  const patch = {};
+  if (!headerSet || headerSet.size === 0) return patch;
+
+  for (const [field, aliases] of Object.entries(CSV_FIELD_ALIASES)) {
+    const present = aliases.some((a) => headerSet.has(normCsvHeader(a)));
+    if (!present) continue;
+    const val = csvPick(row, ...aliases);
+    patch[field] = val === "" ? null : val;
+  }
+
+  const refAliasesNorm = CSV_REF_LISTA_ALIASES.map((a) => normCsvHeader(a));
+  const hasRefCol = refAliasesNorm.some((k) => headerSet.has(k));
+  const refVal = csvPick(row, ...CSV_REF_LISTA_ALIASES);
+
+  const rubKeysNorm = ["jerarquia", "grupo_articulos", "rubro", "linea_general", "linea"];
+  const hasRubCols = rubKeysNorm.some((k) => headerSet.has(k));
+
+  const notasPieces = [];
+  if (hasRefCol && refVal) notasPieces.push(`Lista SKU origen: ${refVal}`);
+
+  if (headerSet.has("notas")) {
+    const raw = csvPick(row, "notas");
+    if (raw) notasPieces.push(raw);
+  } else if (hasRubCols) {
+    const jer = csvPick(row, "jerarquia", "grupo_articulos", "rubro");
+    const lin = csvPick(row, "linea_general", "linea");
+    if (jer) notasPieces.push(`Jerarquía: ${jer}`);
+    if (lin) notasPieces.push(`Línea: ${lin}`);
+  }
+
+  const wantNotasPatch =
+    headerSet.has("notas") ||
+    hasRefCol ||
+    hasRubCols;
+
+  if (wantNotasPatch) {
+    patch.notas = notasPieces.length ? notasPieces.join(" · ") : null;
+  }
+
+  return patch;
+}
+
+function rowSinMetaCsv(row) {
+  const o = { ...row };
+  for (const k of CSV_META_HEADER_KEYS) {
+    delete o[k];
+  }
+  return o;
+}
+
 const parsearCSV = (texto) => {
   const lineas = texto.trim().split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-  if (lineas.length < 2) return { ok: false, msg: "El archivo está vacío o tiene solo encabezados", rows: [] };
-  const headers = splitCsvLine(lineas[0]).map((h) =>
-    h.replace(/"/g, "").trim().toLowerCase().replace(/ /g, "_")
-  );
+  if (lineas.length < 2)
+    return { ok: false, msg: "El archivo está vacío o tiene solo encabezados", rows: [], headerSet: new Set() };
+  const headers = splitCsvLine(lineas[0]).map((h) => normCsvHeader(h));
+  const headerSet = new Set(headers);
   const rows = [];
   const errores = [];
   for (let i = 1; i < lineas.length; i++) {
@@ -203,44 +314,44 @@ const parsearCSV = (texto) => {
     headers.forEach((h, j) => {
       row[h] = vals[j] ?? "";
     });
-    if (!row.nombre && !row["nombre"]) {
+    if (!csvPick(row, "nombre")) {
       errores.push(`Fila ${i + 1}: Nombre es requerido`);
       continue;
     }
     const precioRaw =
+      csvPick(row, "precio", "precio_venta") ||
       row.precio ||
       row.precio_venta ||
-      row["precio_venta"] ||
-      row["precio"] ||
       "0";
     const stockMinRaw =
+      csvPick(row, "stock_minimo", "stock_min") ||
       row.stock_minimo ||
-      row.stock_mín ||
-      row["stock_mín"] ||
-      row["stock_minimo"] ||
-      row["stock_mínimo"] ||
       "0";
-    const descRaw = row.descuento_pct || row["descuento%"] || "0";
+    const descRaw =
+      csvPick(row, "descuento_pct", "descuento_porcentaje", "descuento") ||
+      row.descuento_pct ||
+      "0";
     rows.push({
-      sku: row.sku || row["sku"] || row.sku_farmax || row["sku_farmax"] || null,
-      nombre: row.nombre || row["nombre"] || "",
-      categoria: row.categoria || row["categoría"] || row["categoria"] || "Otro",
-      tipo: row.tipo || "generico",
-      stock: parseInt(String(row.stock || row["stock"] || "0").replace(/,/g, ""), 10) || 0,
+      sku: csvPick(row, "sku", "sku_farmax") || null,
+      nombre: csvPick(row, "nombre") || "",
+      categoria: csvPick(row, "categoria") || "Otro",
+      tipo: csvPick(row, "tipo") || "generico",
+      stock: parseInt(String(csvPick(row, "stock") || "0").replace(/,/g, ""), 10) || 0,
       stock_minimo: parseInt(String(stockMinRaw).replace(/,/g, ""), 10) || 0,
       precio: parseFloat(String(precioRaw).replace(/,/g, "")) || 0,
-      costo: parseFloat(String(row.costo || "0").replace(/,/g, "")) || 0,
-      proveedor: row.proveedor || null,
-      lote: row.lote || null,
-      fecha_caducidad: row.fecha_caducidad || row["fecha_caducidad"] || null,
+      costo: parseFloat(String(csvPick(row, "costo") || "0").replace(/,/g, "")) || 0,
+      proveedor: csvPick(row, "proveedor") || null,
+      lote: csvPick(row, "lote") || null,
+      fecha_caducidad: csvPick(row, "fecha_caducidad") || null,
       descuento_pct: parseFloat(String(descRaw).replace(/,/g, "")) || 0,
-      activo: !/^inactivo$/i.test(String(row.estado || "").trim()),
+      activo: !/^inactivo$/i.test(String(csvPick(row, "estado") || "").trim()),
     });
   }
   return {
     ok: rows.length > 0,
     msg: errores.length ? `${errores.length} avisos (ej.: ${errores.slice(0, 3).join("; ")})` : null,
     rows,
+    headerSet,
   };
 };
 
@@ -1274,8 +1385,11 @@ export default function InventarioModule() {
     let skipped = 0;
     let err = 0;
     try {
+      const headerSetImp = importResult.headerSet instanceof Set ? importResult.headerSet : new Set();
       const runRow = async (row) => {
-        const { stock, lote, fecha_caducidad, costo, ...resto } = row;
+        const metaPatch = csvMetaPatchFromHeaders(row, headerSetImp);
+        const rowCore = rowSinMetaCsv(row);
+        const { stock, lote, fecha_caducidad, costo, ...resto } = rowCore;
         const skuKey = (resto.sku || "").trim();
         const existingId = skuKey ? skuToId.get(skuKey) : null;
 
@@ -1294,6 +1408,7 @@ export default function InventarioModule() {
             proveedor: resto.proveedor || null,
             descuento_pct: resto.descuento_pct,
             activo: resto.activo !== false,
+            ...metaPatch,
           };
           const { error: edErr } = await supabase.rpc("admin_editar_producto", {
             p_session_token: tok,
@@ -1318,7 +1433,7 @@ export default function InventarioModule() {
           return "upd";
         }
 
-        const { error: rpcErr } = await supabase.rpc("create_producto_secure", {
+        const { data: respCreacion, error: rpcErr } = await supabase.rpc("create_producto_secure", {
           p_session_token: tok,
           p_producto_data: { ...resto, costo: costo ?? null },
           p_cantidad_inicial: stock || 0,
@@ -1329,6 +1444,18 @@ export default function InventarioModule() {
         if (rpcErr) {
           console.error("Import alta:", rpcErr);
           return "err";
+        }
+        const newId = productoIdDesdeCreateRpc(respCreacion);
+        if (newId != null && Object.keys(metaPatch).length > 0) {
+          const { error: metaErr } = await supabase.rpc("admin_editar_producto", {
+            p_session_token: tok,
+            p_producto_id: newId,
+            p_patch: metaPatch,
+          });
+          if (metaErr) {
+            console.error("Import alta (campos extendidos):", metaErr);
+            return "err";
+          }
         }
         return "new";
       };
