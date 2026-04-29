@@ -1089,7 +1089,7 @@ export default function InventarioModule() {
   }, []);
 
   // N8: Resetear página al cambiar filtros
-  useEffect(()=>{ setPaginaInv(1); },[filtroCategoria,filtroAlerta,busqueda]);
+  useEffect(()=>{ setPaginaInv(1); },[filtroCategoria,filtroAlerta,busqueda,verInactivos]);
   useEffect(()=>{ clearSelection(); },[filtroCategoria,filtroAlerta,busqueda,verInactivos,clearSelection]);
   const INV_POR_PAG = 50;
 
@@ -1698,6 +1698,7 @@ export default function InventarioModule() {
       {loading ? (
         <SkeletonTable rows={8} cols={12}/>
       ) : (
+        <>
         <HorizontalScrollSync data-tour="inv-tabla">
           <table style={{width:"100%",minWidth:1780,borderCollapse:"collapse",fontSize:12}}>
             <thead>
@@ -1849,6 +1850,13 @@ export default function InventarioModule() {
             </tbody>
           </table>
         </HorizontalScrollSync>
+        <Paginador
+          total={filtradosTodosInv.length}
+          porPagina={INV_POR_PAG}
+          pagina={paginaInv}
+          setPagina={setPaginaInv}
+        />
+        </>
       )}
 
       {modal!==null&&(
