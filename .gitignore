@@ -31,6 +31,9 @@ yarn-error.log*
 *.dump
 backups/
 
+# Catálogo masivo regenerado localmente (ver scripts/import-farmac-os-xlsx.js)
+sql/generated/*.sql
+
 # Playwright
 /test-results/
 /playwright-report/

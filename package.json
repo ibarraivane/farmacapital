@@ -28,11 +28,15 @@
     "test:e2e:mobile": "npm run build && PLAYWRIGHT_BROWSERS_PATH=0 playwright test e2e/mobile-responsive.spec.js",
     "test:e2e:routes": "npm run build && PLAYWRIGHT_BROWSERS_PATH=0 playwright test e2e/tienda-scroll-routes.spec.js",
     "test:e2e": "npm run build && PLAYWRIGHT_BROWSERS_PATH=0 playwright test e2e/",
+    "import:farmac-os": "node scripts/import-farmac-os-xlsx.js",
+    "import:farmac-os:supabase": "node scripts/run-farmac-os-via-pg.js",
     "eject": "react-scripts eject"
   },
   "devDependencies": {
     "@playwright/test": "^1.51.0",
-    "serve": "^14.2.4"
+    "pg": "^8.13.1",
+    "serve": "^14.2.4",
+    "xlsx": "^0.18.5"
   },
   "engines": {
     "node": "20.x"

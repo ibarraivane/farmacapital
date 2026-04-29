@@ -1024,6 +1024,8 @@ export default function InventarioModule() {
   const [modalRecibir,    setModalRecibir]    = useState(false);
   const [modalImportar,   setModalImportar]   = useState(false);
   const [importando,      setImportando]      = useState(false);
+  /** Progreso durante confirmarImport (RPC en lotes). */
+  const [importProgress,  setImportProgress]  = useState(null);
   const [importResult,    setImportResult]    = useState(null);
   const [paginaInv, setPaginaInv] = useState(1);
   const [modalLotes, setModalLotes] = useState(null);
@@ -1058,31 +1060,61 @@ export default function InventarioModule() {
     reader.readAsText(file, "UTF-8");
   };
 
+  /** Varias RPC en paralelo; secuencial era ~550× RTT y parecía “colgado”. */
+  const IMPORT_RPC_CONCURRENCY = 8;
+
   const confirmarImport = async () => {
-    if(!importResult?.rows?.length) return;
+    if (!importResult?.rows?.length) return;
+    const rows = importResult.rows;
+    const total = rows.length;
     setImportando(true);
+    setImportProgress({ cur: 0, total });
     const tok = sessionStorage.getItem("farmax_session_token");
-    if (!tok) { setImportando(false); showToast("Sesión expirada.", "error"); return; }
-    let ok = 0, err = 0;
-    for (const row of importResult.rows) {
-      const { stock, lote, fecha_caducidad, costo, ...resto } = row;
-      const { error: rpcErr } = await supabase.rpc("create_producto_secure", {
-        p_session_token: tok,
-        p_producto_data: { ...resto, costo: costo ?? null },
-        p_cantidad_inicial: stock || 0,
-        p_numero_lote: lote || null,
-        p_fecha_caducidad: fecha_caducidad || null,
-        p_costo_unitario: costo ?? null,
-      });
-      if (rpcErr) { err++; console.error("Import error:", rpcErr); }
-      else ok++;
+    if (!tok) {
+      setImportando(false);
+      setImportProgress(null);
+      showToast("Sesión expirada.", "error");
+      return;
     }
-    setImportando(false);
-    setModalImportar(false);
-    setImportResult(null);
-    fetchProductos();
-    if (err > 0) showToast(`Importados ${ok} productos. ${err} con error.`, "warning");
-    else showToast(`✅ ${ok} productos importados correctamente`, "success");
+    let ok = 0;
+    let err = 0;
+    try {
+      const runRow = async (row) => {
+        const { stock, lote, fecha_caducidad, costo, ...resto } = row;
+        const { error: rpcErr } = await supabase.rpc("create_producto_secure", {
+          p_session_token: tok,
+          p_producto_data: { ...resto, costo: costo ?? null },
+          p_cantidad_inicial: stock || 0,
+          p_numero_lote: lote || null,
+          p_fecha_caducidad: fecha_caducidad || null,
+          p_costo_unitario: costo ?? null,
+        });
+        if (rpcErr) {
+          console.error("Import error:", rpcErr);
+          return false;
+        }
+        return true;
+      };
+
+      for (let i = 0; i < rows.length; i += IMPORT_RPC_CONCURRENCY) {
+        const slice = rows.slice(i, i + IMPORT_RPC_CONCURRENCY);
+        const outcomes = await Promise.all(slice.map((row) => runRow(row)));
+        for (const hit of outcomes) {
+          if (hit) ok++;
+          else err++;
+        }
+        const cur = Math.min(i + slice.length, total);
+        setImportProgress({ cur, total });
+      }
+    } finally {
+      setImportando(false);
+      setImportProgress(null);
+      setModalImportar(false);
+      setImportResult(null);
+      await fetchProductos();
+      if (err > 0) showToast(`Importados ${ok} productos. ${err} con error (revisa consola).`, "warning");
+      else showToast(`✅ ${ok} productos importados correctamente`, "success");
+    }
   };
 
   const liquidar = async (prod) => {
@@ -1732,11 +1764,14 @@ export default function InventarioModule() {
       {/* Modal Importar CSV */}
       {modalImportar&&(
         <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,.45)",backdropFilter:"blur(4px)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}
-          onClick={e=>e.target===e.currentTarget&&setModalImportar(false)}>
+          onClick={(e)=>{
+            if (importando) return;
+            if (e.target===e.currentTarget) { setModalImportar(false); setImportResult(null); setImportProgress(null); }
+          }}>
           <div style={{background:C.card,borderRadius:14,width:"min(580px,95vw)",maxHeight:"90vh",overflowY:"auto",padding:28,boxShadow:"0 20px 60px rgba(0,82,204,.15)"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
               <h2 style={{margin:0,color:C.text,fontSize:16,fontWeight:800}}>📥 Importar productos desde CSV</h2>
-              <button onClick={()=>{setModalImportar(false);setImportResult(null);}} style={{background:"none",border:"none",color:C.textMid,fontSize:22,cursor:"pointer"}}>✕</button>
+              <button onClick={()=>{setModalImportar(false);setImportResult(null);setImportProgress(null);}} style={{background:"none",border:"none",color:C.textMid,fontSize:22,cursor:"pointer"}}>✕</button>
             </div>
             <div style={{background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:10,padding:14,marginBottom:16}}>
               <div style={{color:"#1d4ed8",fontWeight:700,fontSize:13,marginBottom:8}}>📋 Instrucciones</div>
@@ -1793,8 +1828,12 @@ export default function InventarioModule() {
                       </table>
                     </div>
                     <button onClick={confirmarImport} disabled={importando}
-                      style={{width:"100%",padding:"12px",borderRadius:8,border:"none",background:"linear-gradient(135deg,#0052cc,#0099e6)",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer",opacity:importando?.6:1}}>
-                      {importando?`Importando... (${importResult.rows.length} productos)`:"✅ Confirmar importación"}
+                      style={{width:"100%",padding:"12px",borderRadius:8,border:"none",background:"linear-gradient(135deg,#0052cc,#0099e6)",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer",opacity: importando ? 0.85 : 1}}>
+                      {importando && importProgress
+                        ? `Importando… ${importProgress.cur}/${importProgress.total}`
+                        : importando
+                          ? `Importando… (${importResult.rows.length} productos)`
+                          : "✅ Confirmar importación"}
                     </button>
                   </div>
                 )}

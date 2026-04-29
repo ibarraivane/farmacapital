@@ -1,0 +1,14 @@
+stamp: 20260429T024209
+metaTag: IMPORT_FARMACOS_20260429T024209
+archivos_sql: 6
+
+import_farmac_os_20260429T024209_part0001.sql
+import_farmac_os_20260429T024209_part0002.sql
+import_farmac_os_20260429T024209_part0003.sql
+import_farmac_os_20260429T024209_part0004.sql
+import_farmac_os_20260429T024209_part0005.sql
+import_farmac_os_20260429T024209_part0006.sql
+
+Opción A — SQL Editor de Supabase: abrir cada archivo arriba en orden y ejecutar.
+Opción B — sin editor (requiere DATABASE_URL de Postgres):
+  DATABASE_URL='postgresql://...' bash scripts/run-farmac-os-sql-parts.sh 20260429T024209
