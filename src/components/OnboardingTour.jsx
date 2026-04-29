@@ -199,11 +199,11 @@ const OnboardingTour = forwardRef(function OnboardingTour(
           title={tour.label}
           style={{
             position: "fixed",
-            right: 18,
-            bottom: 18,
-            width: 44,
-            height: 44,
-            borderRadius: 22,
+            right: 16,
+            bottom: 24,
+            width: 48,
+            height: 48,
+            borderRadius: 24,
             border: "none",
             background: "linear-gradient(135deg,#0052CC,#0099e6)",
             color: "#fff",
@@ -211,7 +211,9 @@ const OnboardingTour = forwardRef(function OnboardingTour(
             fontSize: 20,
             cursor: "pointer",
             boxShadow: "0 8px 20px rgba(0, 82, 204, 0.35)",
-            zIndex: 9500,
+            zIndex: 20,
+            pointerEvents: "auto",
+            touchAction: "manipulation",
           }}
         >
           ?

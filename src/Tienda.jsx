@@ -220,8 +220,8 @@ function PopupBienvenida({onClose,setPage,precioConsulta}){
   const stack = useMediaQuery("(max-width: 480px)");
   const pc = Math.round(Number(precioConsulta) || CONSULTA_PRECIO_DEFAULT);
   return(
-    <div style={{position:"relative",inset:0,background:"rgba(0,0,0,.55)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
-      <div style={{background:C.white,borderRadius:20,maxWidth:420,width:"100%",overflow:"hidden",boxShadow:"0 20px 60px rgba(0,0,0,.3)"}}>
+    <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,.55)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:16,overflowY:"auto",WebkitOverflowScrolling:"touch",pointerEvents:"auto"}}>
+      <div style={{background:C.white,borderRadius:16,maxWidth:420,width:"100%",maxHeight:"90vh",overflowY:"auto",boxShadow:"0 20px 60px rgba(0,0,0,.3)"}}>
         <div style={{background:BRAND.gradient,padding:"28px 20px",textAlign:"center",position:"relative"}}>
           <button type="button" onClick={onClose} style={{position:"relative",top:12,right:16,background:"rgba(255,255,255,.2)",border:"none",color:C.white,width:28,height:28,borderRadius:"50%",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
           <div style={{fontSize:48,marginBottom:12}}>⭐</div>

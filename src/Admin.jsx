@@ -1835,12 +1835,14 @@ body{
             position:"fixed",
             top:"calc(12px + env(safe-area-inset-top, 0px))",
             left:"calc(12px + env(safe-area-inset-left, 0px))",
-            zIndex:999,
-            width:44,height:44,borderRadius:10,
+            zIndex:10,
+            width:48,height:48,borderRadius:12,
             border:`1px solid ${C.border}`,background:C.card,
             boxShadow:"0 4px 20px rgba(0,0,0,.08)",cursor:"pointer",
             fontSize:20,lineHeight:1,display:"flex",alignItems:"center",justifyContent:"center",
             color:C.text,
+            pointerEvents:"auto",
+            touchAction:"manipulation",
           }}
         >
           ☰

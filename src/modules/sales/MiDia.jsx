@@ -451,7 +451,7 @@ export default function MiDia({ usuario, setPage }) {
       </div>
 
       {loading && (
-        <div style={{ position: "fixed", right: 16, bottom: 16, padding: "6px 12px", background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 11, color: C.textMid }}>
+        <div style={{ position: "fixed", right: 16, bottom: 16, padding: "6px 12px", background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 11, color: C.textMid, pointerEvents: "none", touchAction: "manipulation" }}>
           <Gauge size={12} style={{ verticalAlign: "middle", marginRight: 6 }} /> Cargando datos…
         </div>
       )}
