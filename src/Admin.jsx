@@ -1799,8 +1799,9 @@ body{
   -webkit-overflow-scrolling:touch;
 }
 .farmax-admin-sidebar{
-  height:100vh;height:100dvh;max-height:100vh;max-height:100dvh;box-sizing:border-box;
+  min-height:100vh;min-height:100dvh;box-sizing:border-box;
   padding-bottom:env(safe-area-inset-bottom,0px);
+  touch-action:pan-y;
 }`}</style>
       <DevSupabaseEnvBanner />
       {isMobileLayout && mobileNavOpen && (

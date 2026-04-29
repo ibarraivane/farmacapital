@@ -960,19 +960,19 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
             flex-direction: column !important;
             align-items: stretch !important;
             gap: 0 !important;
-            /* Más alto útil para grilla de productos (menos “franja” vacía). */
-            height: calc(100dvh - 120px) !important;
+            /* Evitar viewport fijo + scroll anidado en móvil. */
+            height: auto !important;
             min-height: 280px !important;
-            max-height: calc(100dvh - 88px) !important;
+            max-height: none !important;
             width: 100% !important;
             max-width: 100% !important;
             box-sizing: border-box !important;
           }
           .farmax-pos-venta-grid.farmax-pos-venta-narrow .farmax-pos-products-col {
             flex: 1 1 auto !important;
-            min-height: 0 !important;
+            min-height: auto !important;
             overflow-x: hidden !important;
-            overflow-y: auto !important;
+            overflow-y: visible !important;
             -webkit-overflow-scrolling: touch !important;
             padding-bottom: 4px !important;
           }

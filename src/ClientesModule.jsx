@@ -414,31 +414,31 @@ export default function ClientesModule() {
       flexDirection: isMobile ? "column" : "row",
       minHeight: isMobile ? "100dvh" : "100vh",
       height: isMobile ? "auto" : "100vh",
-      maxHeight: isMobile ? "none" : "100vh",
+      maxHeight: "none",
       background:C.bg,
       fontFamily:"'Plus Jakarta Sans',sans-serif",
-      overflow: isMobile ? "auto" : "hidden",
+      overflow: isMobile ? "visible" : "hidden",
     }}>
 
       {/* Panel izquierdo */}
       <div style={{
         width: isMobile ? "100%" : 360,
         minWidth: isMobile ? 0 : 280,
-        maxHeight: isMobile ? (clienteSel || mode === "agregar" ? "44vh" : "none") : "none",
+        maxHeight: "none",
         flexShrink: 0,
         borderRight: isMobile ? "none" : `1px solid ${C.border}`,
         borderBottom: isMobile ? `1px solid ${C.border}` : "none",
         display:"flex",
         flexDirection:"column",
         background:C.card,
-        overflow: isMobile ? "hidden" : "visible",
+        overflow: "visible",
       }}>
         <div style={{ padding:"18px 16px 12px", borderBottom:`1px solid ${C.border}` }}>
           <h1 style={{ margin:"0 0 10px", color:C.text, fontSize:17, fontWeight:800 }}>◉ Clientes</h1>
           <SearchDropdown value={busqueda} onChange={setBusqueda} onSelect={c=>{setBusqueda(c.nombre);setClienteSel(c);}} placeholder="🔍 Buscar por nombre o teléfono…" items={clientes} labelKey="nombre" subKey="telefono" badgeKey="puntos" badgeCol="#7c3aed" style={{flex:1}} emptyMsg="Sin clientes con ese nombre/teléfono"/>
           <div style={{ color:C.textDim, fontSize:10, marginTop:6 }}>{filtrados.length} cliente{filtrados.length!==1?"s":""}</div>
         </div>
-        <div style={{ flex:1, overflowY:"auto", minHeight: isMobile ? 120 : undefined, WebkitOverflowScrolling:"touch" }}>
+        <div style={{ flex:1, overflowY: isMobile ? "visible" : "auto", minHeight: isMobile ? 120 : undefined, WebkitOverflowScrolling:"touch" }}>
           {loading&&<SkeletonTable rows={5} cols={5}/>}
           {!loading&&filtrados.length===0&&(
             <div style={{ color:C.textMid, textAlign:"center", padding:32 }}>
@@ -475,7 +475,7 @@ export default function ClientesModule() {
       </div>
 
       {/* Panel derecho */}
-      <div style={{ flex:1, minHeight: isMobile ? "min(52vh, 520px)" : 0, minWidth: 0, overflow:"hidden", display:"flex", flexDirection:"column" }}>
+      <div style={{ flex:1, minHeight: isMobile ? "auto" : 0, minWidth: 0, overflow: isMobile ? "visible" : "hidden", display:"flex", flexDirection:"column" }}>
         {mode==="agregar"&&(
           <AgregarCliente onCancel={()=>setMode("idle")}
             onSaved={async (nuevo)=>{ await fetchClientes(); setClienteSel(nuevo); setMode("idle"); }}/>

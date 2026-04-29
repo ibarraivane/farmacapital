@@ -107,8 +107,6 @@ export default function AsistenteIA() {
       display:"flex",
       flexDirection:"column",
       minHeight:"100dvh",
-      maxHeight:"100dvh",
-      height:"100dvh",
       background:C.bg,
       fontFamily:"'Plus Jakarta Sans',sans-serif",
       boxSizing:"border-box",
@@ -133,7 +131,7 @@ export default function AsistenteIA() {
           }}>{chip}</button>
         ))}
       </div>
-      <div style={{flex:1,minHeight:0,overflowY:"auto",padding:"20px 24px",display:"flex",flexDirection:"column",gap:14}}>
+      <div style={{flex:1,minHeight:0,overflowY:"visible",padding:"20px 24px",display:"flex",flexDirection:"column",gap:14}}>
         {messages.length===0&&(
           <div style={{textAlign:"center",margin:"auto",color:C.textMid,padding:"8px 0"}}>
             <div style={{fontSize:40,marginBottom:12}}>✦</div>
@@ -174,6 +172,9 @@ export default function AsistenteIA() {
         borderTop:`1px solid ${C.border}`,
         background:C.card,
         flexShrink:0,
+        position:"sticky",
+        bottom:0,
+        zIndex:3,
       }}>
         <div style={{display:"flex",gap:10,alignItems:"flex-end"}}>
           <textarea ref={textareaRef} value={input} onChange={e=>setInput(e.target.value)} onKeyDown={handleKey}
