@@ -660,59 +660,11 @@ function ProductCard({prod,addToCart,onClick}){
   const C = useTheme();
   const narrow = useMediaQuery("(max-width: 768px)");
   const [added,setAdded]=useState(false);
-  const touchDragRef = useRef({ active: false, moved: false, x: 0, y: 0 });
-  const CARD_DRAG_THRESHOLD = 10;
   const d=prod.disponible||(prod.stock>0?"inmediato":"48hrs");
   const placeholderUrl = useContext(TiendaPlaceholderCtx);
   const imgSrc = productImageUrl(prod, narrow, placeholderUrl);
-  const handlePointerDown = (e) => {
-    if (narrow) return;
-    if (e.pointerType !== "touch") return;
-    touchDragRef.current = { active: true, moved: false, x: e.clientX, y: e.clientY };
-    // Sin captura, los pointermove pueden no llegar al root cuando el dedo cruza texto/nodos hijos,
-    // y el click sintético después del scroll interpreta mal el gesto (rebote).
-    try {
-      e.currentTarget.setPointerCapture(e.pointerId);
-    } catch (_) {
-      /* ignore */
-    }
-  };
-  const handlePointerMove = (e) => {
-    const s = touchDragRef.current;
-    if (!s.active) return;
-    const dx = Math.abs(e.clientX - s.x);
-    const dy = Math.abs(e.clientY - s.y);
-    if (dx > CARD_DRAG_THRESHOLD || dy > CARD_DRAG_THRESHOLD) {
-      s.moved = true;
-    }
-  };
-  const handlePointerEnd = (e) => {
-    try {
-      if (typeof e.currentTarget.releasePointerCapture === "function" && e.currentTarget.hasPointerCapture?.(e.pointerId)) {
-        e.currentTarget.releasePointerCapture(e.pointerId);
-      }
-    } catch (_) {
-      /* ignore */
-    }
-    touchDragRef.current.active = false;
-  };
-  const handleDetailClick = (e) => {
-    // En móvil modo seguro solo hay clic en botones; en escritorio evitar tap accidental tras scroll táctil.
-    if (!narrow && touchDragRef.current.moved) {
-      e.preventDefault();
-      e.stopPropagation();
-      touchDragRef.current.moved = false;
-      return;
-    }
-    onClick?.();
-  };
+  const handleDetailClick = () => { onClick?.(); };
   const handleAddClick = (e) => {
-    if (!narrow && touchDragRef.current.moved) {
-      e.preventDefault();
-      e.stopPropagation();
-      touchDragRef.current.moved = false;
-      return;
-    }
     e.stopPropagation();
     if(prod.stock===0)return;
     if(!productoPermitidoEnTiendaFarmaciaWeb(prod)){
@@ -723,15 +675,6 @@ function ProductCard({prod,addToCart,onClick}){
     setAdded(true);
     setTimeout(()=>setAdded(false),1500);
   };
-  /** Solo escritorio: zonas grandes clickeables + guard táctil; en móvil el scroll va fluido sin taps en superficie. */
-  const pointerGestureProps = narrow
-    ? null
-    : {
-        onPointerDown: handlePointerDown,
-        onPointerMove: handlePointerMove,
-        onPointerUp: handlePointerEnd,
-        onPointerCancel: handlePointerEnd,
-      };
   return(
     <div style={{
       background:C.white,
@@ -748,7 +691,6 @@ function ProductCard({prod,addToCart,onClick}){
       onMouseLeave={e=>(e.currentTarget.style.boxShadow="none")}
     >
       <div
-        {...(pointerGestureProps || {})}
         {...(!narrow ? { onClick: handleDetailClick } : {})}
         style={{
           background:C.cardDark,
@@ -767,6 +709,7 @@ function ProductCard({prod,addToCart,onClick}){
           <img
             src={imgSrc}
             alt=""
+            draggable={false}
             style={{maxWidth:"100%",maxHeight:"100%",width:"auto",height:"auto",objectFit:"contain",display:"block"}}
           />
         ) : (
@@ -774,7 +717,6 @@ function ProductCard({prod,addToCart,onClick}){
         )}
       </div>
       <div
-        {...(pointerGestureProps || {})}
         style={{
           padding:"14px",
           flex:1,
@@ -873,7 +815,7 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
             <div role="listbox" aria-label="Sugerencias de búsqueda" style={{
               position:"absolute",left:0,right:0,top:"calc(100% + 4px)",
               background:C.white,border:`1px solid ${C.border}`,borderRadius:10,
-              boxShadow:"0 16px 48px rgba(15,23,42,.12)",maxHeight:narrowSuggest?260:320,overflowY:"auto",
+              boxShadow:"0 16px 48px rgba(15,23,42,.12)",maxHeight:narrowSuggest?260:320,overflowY:"visible",
             }}>
               {suggestions.map((s)=>(
                 <button
@@ -1170,7 +1112,7 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
             <div role="listbox" aria-label="Sugerencias de búsqueda" style={{
               position:"absolute",left:0,right:0,top:"calc(100% + 6px)",
               background:C.white,border:`1px solid ${C.border}`,borderRadius:14,
-              boxShadow:"0 16px 48px rgba(15,23,42,.14)",maxHeight:stack?260:300,overflowY:"auto",
+              boxShadow:"0 16px 48px rgba(15,23,42,.14)",maxHeight:stack?260:300,overflowY:"visible",
             }}>
               {heroSuggestions.map((s)=>{
                 const row=productos.find((x)=>x.id===s.id);
@@ -1423,7 +1365,7 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
           <div role="listbox" aria-label="Sugerencias de búsqueda" style={{
             position:"absolute",left:0,right:0,top:"calc(100% + 4px)",
             background:C.white,border:`1px solid ${C.border}`,borderRadius:10,
-            boxShadow:"0 16px 48px rgba(15,23,42,.12)",maxHeight:stack?260:320,overflowY:"auto",
+            boxShadow:"0 16px 48px rgba(15,23,42,.12)",maxHeight:stack?260:320,overflowY:"visible",
           }}>
             {suggestions.map((s)=>(
               <button
@@ -1536,7 +1478,7 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
             }}>
               Categorías {cat !== "Todos" ? `· ${cat}` : ""} <span style={{ color: C.dim, fontWeight: 600, fontSize: 12 }}>(tocá para filtrar)</span>
             </summary>
-            <div style={{ marginTop: 8, maxHeight: "min(50vh, 320px)", overflowY: "auto" }}>
+            <div style={{ marginTop: 8, maxHeight: "min(50vh, 320px)", overflowY: "visible" }}>
               {cats.map((c) => (
                 <button key={c} type="button" onClick={() => setCat(c)} style={{
                   width: "100%", textAlign: "left", padding: "8px 10px", borderRadius: 8, border: "none",
