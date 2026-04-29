@@ -22,6 +22,7 @@ import React, {
   useEffect,
   useImperativeHandle,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { Joyride, STATUS } from "react-joyride";
@@ -110,6 +111,7 @@ const OnboardingTour = forwardRef(function OnboardingTour(
 
   const [run, setRun] = useState(false);
   const [steps, setSteps] = useState([]);
+  const autoStartedRef = useRef(false);
 
   const abrirTour = useCallback(() => {
     if (!tour) return;
@@ -133,6 +135,7 @@ const OnboardingTour = forwardRef(function OnboardingTour(
   // Auto-arranque si el usuario no lo ha visto.
   useEffect(() => {
     if (!autoStart || !tour || !storageKey) return;
+    if (autoStartedRef.current) return;
     let done = null;
     try {
       done = localStorage.getItem(storageKey);
@@ -140,7 +143,17 @@ const OnboardingTour = forwardRef(function OnboardingTour(
       /* localStorage deshabilitado */
     }
     if (done === "done") return;
-    const t = setTimeout(abrirTour, 600); // dejar renderizar la página
+    const t = setTimeout(() => {
+      // Marcar en cuanto se muestra automáticamente para evitar re-disparos molestos.
+      // El botón "?" queda disponible para abrirlo manualmente cuando quieras.
+      autoStartedRef.current = true;
+      try {
+        localStorage.setItem(storageKey, "done");
+      } catch {
+        /* noop */
+      }
+      abrirTour();
+    }, 600); // dejar renderizar la página
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storageKey, autoStart]);

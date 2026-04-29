@@ -161,11 +161,19 @@ const INV_COLUMN_HEADERS = [
 ];
 
 const descargarPlantilla = () => {
-  const headers = ["SKU_Farmax","Nombre","Categoria","Tipo","Stock","Stock_Minimo","Precio_Venta","Costo","Proveedor","Lote","Fecha_Caducidad","Descuento_Porcentaje"];
+  const headers = [
+    "SKU", "Nombre", "Categoria", "Tipo", "Stock", "Stock_Minimo",
+    "Precio_Venta", "Costo", "Proveedor", "Lote", "Fecha_Caducidad",
+    "Descuento_Porcentaje",
+    "Marca_Comercial", "Principio_Activo", "Concentracion", "Presentacion",
+    "Contenido_Caja", "Linea_Comercial", "Grupo_Farmacologico", "Jerarquia",
+    "SKU_Casa_Saba", "Stock_Maximo", "Notas"
+  ];
   const ejemplo = [
-    ["FAR001","Paracetamol 500mg c/20","Analgésico","generico","50","10","45.00","22.00","Nadro","L2024-01","2026-12-31","0"],
-    ["FAR002","Omeprazol 20mg c/14","Gastro","generico","30","5","89.00","40.00","Marzam","L2024-02","2026-06-30","0"],
-    ["FAR003","Amoxicilina 500mg c/12","Antibiótico","generico","20","8","120.00","55.00","Casa Saba","L2024-03","2025-12-31","0"],
+    ["FAR001","Paracetamol 500mg","Analgésico","generico","50","10","12.00","6.00","Casa Saba","L2024-01","2026-12-31","0",
+     "ACETAFEN","Paracetamol","500MG","TABLETA","10 TABLETAS","ANALGESICOS","ANALGESICO/ANTIPIRETICO","MEDICAMENTOS","162","30",""],
+    ["FAR002","Omeprazol 20mg","Gastro","generico","30","5","20.00","10.00","Marzam","L2024-02","2026-06-30","0",
+     "OMEZOL","Omeprazol","20MG","CAPSULA","14 CAPSULAS","ESTOMACALES (GASTRO)","PROTECTOR GASTRICO","MEDICAMENTOS","523","15",""],
   ];
   const csv = [headers, ...ejemplo].map(r=>r.map(v=>`"${v}"`).join(",")).join("\n");
   const blob = new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8;"});
@@ -243,6 +251,9 @@ const CSV_META_HEADER_KEYS = new Set([
   "lista_sku_origen",
   "sku_lista",
   "ref_lista",
+  "sku_casa_saba",
+  "linea_comercial",
+  "concentracion",
 ]);
 
 const CSV_FIELD_ALIASES = {
@@ -250,6 +261,7 @@ const CSV_FIELD_ALIASES = {
   presentacion: ["presentacion", "presentacion_completada"],
   principio_activo: ["principio_activo", "principio_activo_completado"],
   ubicacion_texto: ["ubicacion", "ubicacion_texto"],
+  concentracion: ["concentracion"],
 };
 
 function csvPick(row, ...aliases) {
@@ -263,7 +275,13 @@ function csvPick(row, ...aliases) {
   return "";
 }
 
-const CSV_REF_LISTA_ALIASES = ["ref_lista_mayorista", "lista_sku_origen", "sku_lista", "ref_lista"];
+const CSV_REF_LISTA_ALIASES = [
+  "ref_lista_mayorista",
+  "lista_sku_origen",
+  "sku_lista",
+  "ref_lista",
+  "sku_casa_saba",
+];
 
 /** Construye parche JSON para admin_editar_producto según columnas presentes en el CSV. */
 function csvMetaPatchFromHeaders(row, headerSet) {
@@ -281,7 +299,7 @@ function csvMetaPatchFromHeaders(row, headerSet) {
   const hasRefCol = refAliasesNorm.some((k) => headerSet.has(k));
   const refVal = csvPick(row, ...CSV_REF_LISTA_ALIASES);
 
-  const rubKeysNorm = ["jerarquia", "grupo_articulos", "rubro", "linea_general", "linea"];
+  const rubKeysNorm = ["jerarquia", "grupo_articulos", "rubro", "linea_general", "linea", "linea_comercial"];
   const hasRubCols = rubKeysNorm.some((k) => headerSet.has(k));
 
   const notasPieces = [];
@@ -291,8 +309,8 @@ function csvMetaPatchFromHeaders(row, headerSet) {
     const raw = csvPick(row, "notas");
     if (raw) notasPieces.push(raw);
   } else if (hasRubCols) {
-    const jer = csvPick(row, "jerarquia", "grupo_articulos", "rubro");
-    const lin = csvPick(row, "linea_general", "linea");
+    const jer = csvPick(row, "rubro", "grupo_articulos", "jerarquia");
+    const lin = csvPick(row, "linea_general", "linea_comercial", "linea");
     if (jer) notasPieces.push(`Jerarquía: ${jer}`);
     if (lin) notasPieces.push(`Línea: ${lin}`);
   }
@@ -318,116 +336,97 @@ function rowSinMetaCsv(row) {
 }
 
 const parsearCSV = (texto) => {
-  const lineas = texto.trim().split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-  if (lineas.length < 2)
-    return { ok: false, msg: "El archivo está vacío o tiene solo encabezados", rows: [], headerSet: new Set() };
-  const headers = splitCsvLine(lineas[0]).map((h) => normCsvHeader(h));
-  const headerSet = new Set(headers);
+  const lineas = texto.trim().split("\n").map(l=>l.trim()).filter(Boolean);
+  if(lineas.length<2) return {ok:false,msg:"El archivo está vacío",rows:[]};
+  
+  const normalizar = (s) => s
+    .replace(/"/g, "").trim().toLowerCase().replace(/ /g, "_")
+    .replace(/[áàä]/g, "a").replace(/[éèë]/g, "e")
+    .replace(/[íìï]/g, "i").replace(/[óòö]/g, "o")
+    .replace(/[úùü]/g, "u").replace(/ñ/g, "n")
+    .replace(/%/g, "_porcentaje");
+  
+  const headers = lineas[0].split(",").map(normalizar);
+  
+  const parseLine = (line) => {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') inQuotes = !inQuotes;
+      else if (ch === ',' && !inQuotes) { result.push(current.trim()); current = ''; }
+      else current += ch;
+    }
+    result.push(current.trim());
+    return result.map(v => v.replace(/^"|"$/g, ""));
+  };
+  
   const rows = [];
   const errores = [];
-  for (let i = 1; i < lineas.length; i++) {
-    let vals = splitCsvLine(lineas[i]);
-    if (vals.length < headers.length) {
-      while (vals.length < headers.length) vals.push("");
-    }
-    if (vals.length > headers.length) {
-      errores.push(`Fila ${i + 1}: columnas extra truncadas (${vals.length}→${headers.length})`);
-      vals = vals.slice(0, headers.length);
-    }
+  for(let i=1; i<lineas.length; i++){
+    const vals = parseLine(lineas[i]);
     const row = {};
-    headers.forEach((h, j) => {
-      row[h] = vals[j] ?? "";
-    });
-    if (!csvPick(row, "nombre")) {
-      errores.push(`Fila ${i + 1}: Nombre es requerido`);
-      continue;
-    }
-    const precioRaw =
-      csvPick(row, "precio", "precio_venta") ||
-      row.precio ||
-      row.precio_venta ||
-      "0";
-    const stockMinRaw =
-      csvPick(row, "stock_minimo", "stock_min") ||
-      row.stock_minimo ||
-      "0";
-    const descRaw =
-      csvPick(row, "descuento_pct", "descuento_porcentaje", "descuento") ||
-      row.descuento_pct ||
-      "0";
+    headers.forEach((h,j)=>{ row[h] = (vals[j]||"").trim(); });
+    if(!row.nombre) { errores.push(`Fila ${i+1}: Nombre requerido`); continue; }
+
     rows.push({
-      sku: csvPick(row, "sku", "sku_farmax") || null,
-      nombre: csvPick(row, "nombre") || "",
-      categoria: csvPick(row, "categoria") || "Otro",
-      tipo: csvPick(row, "tipo") || "generico",
-      stock: parseInt(String(csvPick(row, "stock") || "0").replace(/,/g, ""), 10) || 0,
-      stock_minimo: parseInt(String(stockMinRaw).replace(/,/g, ""), 10) || 0,
-      precio: parseFloat(String(precioRaw).replace(/,/g, "")) || 0,
-      costo: parseFloat(String(csvPick(row, "costo") || "0").replace(/,/g, "")) || 0,
-      proveedor: csvPick(row, "proveedor") || null,
-      lote: csvPick(row, "lote") || null,
-      fecha_caducidad: csvPick(row, "fecha_caducidad") || null,
-      descuento_pct: parseFloat(String(descRaw).replace(/,/g, "")) || 0,
-      activo: !/^inactivo$/i.test(String(csvPick(row, "estado") || "").trim()),
+      sku:           row.sku || null,
+      nombre:        row.nombre,
+      categoria:     row.categoria || "Otro",
+      tipo:          row.tipo || "generico",
+      stock:         parseInt(row.stock) || 0,
+      stock_minimo:  parseInt(row.stock_minimo) || 0,
+      precio:        parseFloat(row.precio_venta || row.precio) || 0,
+      costo:         parseFloat(row.costo) || 0,
+      proveedor:     row.proveedor || null,
+      lote:          row.lote || null,
+      fecha_caducidad: row.fecha_caducidad || null,
+      descuento_pct: parseFloat(row.descuento_porcentaje || row.descuento_pct) || 0,
+      activo: true,
+      // Extras
+      marca_comercial:     row.marca_comercial || null,
+      principio_activo:    row.principio_activo || null,
+      concentracion:       row.concentracion || null,
+      presentacion:        row.presentacion || null,
+      contenido_caja:      row.contenido_caja || null,
+      linea_comercial:     row.linea_comercial || null,
+      grupo_farmacologico: row.grupo_farmacologico || null,
+      jerarquia:           row.jerarquia || null,
+      sku_casa_saba:       row.sku_casa_saba || null,
+      stock_maximo:        parseInt(row.stock_maximo) || null,
+      notas:               row.notas || null,
     });
   }
-  return {
-    ok: rows.length > 0,
-    msg: errores.length ? `${errores.length} avisos (ej.: ${errores.slice(0, 3).join("; ")})` : null,
-    rows,
-    headerSet,
-  };
+  return {ok:rows.length>0, msg:errores.length?`${errores.length} errores`:null, rows};
 };
 
-const exportarCSV = (productos, slugSuffix) => {
-  if (!productos?.length) {
-    showToast("No hay filas para exportar con los filtros actuales.", "info");
-    return;
-  }
+const exportarCSV = (productos) => {
   const headers = [
-    "SKU Farmax",
-    "Ref. lista mayorista",
-    "Nombre",
-    "Marca",
-    "Presentación",
-    "Rubro",
-    "Categoría",
-    "Tipo",
-    "Stock",
-    "Stock Mín",
-    "Precio Venta",
-    "Costo",
-    "Margen%",
-    "Caducidad",
-    "Proveedor",
-    "Descuento%",
-    "Estado",
+    "SKU", "Nombre", "Categoria", "Tipo", "Stock", "Stock_Minimo",
+    "Precio_Venta", "Costo", "Proveedor", "Lote", "Fecha_Caducidad",
+    "Descuento_Porcentaje",
+    "Marca_Comercial", "Principio_Activo", "Concentracion", "Presentacion",
+    "Contenido_Caja", "Linea_Comercial", "Grupo_Farmacologico", "Jerarquia",
+    "SKU_Casa_Saba", "Margen_Porcentaje", "Stock_Maximo", "Notas"
   ];
-  const rows = productos.map((p) => [
-    p.sku || "",
-    refListaMayoristaDesdeNotas(p.notas),
-    p.nombre,
-    p.marca || "",
-    p.presentacion || "",
-    rubroComprasDesdeNotas(p.notas),
-    p.categoria,
-    p.tipo,
-    p.stock,
-    p.stock_minimo ?? 0,
-    parseFloat(p.precio || 0).toFixed(2),
-    parseFloat(p.costo || 0).toFixed(2),
-    margen(p.precio, p.costo),
-    p.min_caducidad_lotes || "",
-    p.proveedor || "",
-    p.descuento_pct || 0,
-    p.activo ? "Activo" : "Inactivo",
+  const rows = productos.map(p => [
+    p.sku||"", p.nombre||"", p.categoria||"", p.tipo||"generico",
+    p.stock??0, p.stock_minimo??0,
+    parseFloat(p.precio||0).toFixed(2), parseFloat(p.costo||0).toFixed(2),
+    p.proveedor||"", p.lote||p.min_lote||"", p.fecha_caducidad||p.min_caducidad_lotes||"",
+    p.descuento_pct||0,
+    p.marca_comercial||"", p.principio_activo||"", p.concentracion||"",
+    p.presentacion||"", p.contenido_caja||"", p.linea_comercial||"",
+    p.grupo_farmacologico||"", p.jerarquia||"", p.sku_casa_saba||"",
+    margen(p.precio, p.costo), p.stock_maximo||"", p.notas||""
   ]);
   const csv = [headers, ...rows].map(r => r.map(v => `"${v}"`).join(",")).join("\n");
-  const blob = new Blob([csv], { type:"text/csv;charset=utf-8;" });
+  const blob = new Blob(["\uFEFF"+csv], { type:"text/csv;charset=utf-8;" });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement("a");
-  const mid = slugSuffix ? `_${slugSuffix}` : "";
-  a.href = url; a.download = `inventario_farmax${mid}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.href = url; 
+  a.download = `inventario_farmax_${new Date().toISOString().slice(0,10)}.csv`;
   a.click(); URL.revokeObjectURL(url);
 };
 
@@ -1409,13 +1408,41 @@ export default function InventarioModule() {
     let skipped = 0;
     let err = 0;
     try {
-      const headerSetImp = importResult.headerSet instanceof Set ? importResult.headerSet : new Set();
       const runRow = async (row) => {
-        const metaPatch = csvMetaPatchFromHeaders(row, headerSetImp);
-        const rowCore = rowSinMetaCsv(row);
-        const { stock, lote, fecha_caducidad, costo, ...resto } = rowCore;
+        const {
+          stock,
+          lote,
+          fecha_caducidad,
+          costo,
+          marca_comercial,
+          principio_activo,
+          concentracion,
+          presentacion,
+          contenido_caja,
+          linea_comercial,
+          grupo_farmacologico,
+          jerarquia,
+          sku_casa_saba,
+          stock_maximo,
+          notas,
+          ...resto
+        } = row;
         const skuKey = (resto.sku || "").trim();
         const existingId = skuKey ? skuToId.get(skuKey) : null;
+        const extrasPatch = {
+          marca_comercial: marca_comercial || null,
+          marca: marca_comercial || null,
+          principio_activo: principio_activo || null,
+          concentracion: concentracion || null,
+          presentacion: presentacion || null,
+          contenido_caja: contenido_caja || null,
+          linea_comercial: linea_comercial || null,
+          grupo_farmacologico: grupo_farmacologico || null,
+          jerarquia: jerarquia || null,
+          sku_casa_saba: sku_casa_saba || null,
+          stock_maximo: Number.isFinite(Number(stock_maximo)) ? Number(stock_maximo) : null,
+          notas: notas || null,
+        };
 
         if (existingId && importCsvSoloNuevos) {
           return "skip";
@@ -1432,7 +1459,7 @@ export default function InventarioModule() {
             proveedor: resto.proveedor || null,
             descuento_pct: resto.descuento_pct,
             activo: resto.activo !== false,
-            ...metaPatch,
+            ...extrasPatch,
           };
           const { error: edErr } = await supabase.rpc("admin_editar_producto", {
             p_session_token: tok,
@@ -1459,7 +1486,7 @@ export default function InventarioModule() {
 
         const { data: respCreacion, error: rpcErr } = await supabase.rpc("create_producto_secure", {
           p_session_token: tok,
-          p_producto_data: { ...resto, costo: costo ?? null },
+          p_producto_data: { ...resto, costo: costo ?? null, ...extrasPatch },
           p_cantidad_inicial: stock || 0,
           p_numero_lote: lote || null,
           p_fecha_caducidad: fecha_caducidad || null,
@@ -1470,11 +1497,11 @@ export default function InventarioModule() {
           return "err";
         }
         const newId = productoIdDesdeCreateRpc(respCreacion);
-        if (newId != null && Object.keys(metaPatch).length > 0) {
+        if (newId != null) {
           const { error: metaErr } = await supabase.rpc("admin_editar_producto", {
             p_session_token: tok,
             p_producto_id: newId,
-            p_patch: metaPatch,
+            p_patch: extrasPatch,
           });
           if (metaErr) {
             console.error("Import alta (campos extendidos):", metaErr);
