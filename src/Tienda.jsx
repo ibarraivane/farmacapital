@@ -223,7 +223,7 @@ function PopupBienvenida({onClose,setPage,precioConsulta}){
     <div style={{position:"relative",inset:0,background:"rgba(0,0,0,.55)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
       <div style={{background:C.white,borderRadius:20,maxWidth:420,width:"100%",overflow:"hidden",boxShadow:"0 20px 60px rgba(0,0,0,.3)"}}>
         <div style={{background:BRAND.gradient,padding:"28px 20px",textAlign:"center",position:"relative"}}>
-          <button type="button" onClick={onClose} style={{position:"absolute",top:12,right:16,background:"rgba(255,255,255,.2)",border:"none",color:C.white,width:28,height:28,borderRadius:"50%",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
+          <button type="button" onClick={onClose} style={{position:"relative",top:12,right:16,background:"rgba(255,255,255,.2)",border:"none",color:C.white,width:28,height:28,borderRadius:"50%",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
           <div style={{fontSize:48,marginBottom:12}}>⭐</div>
           <h2 style={{color:C.white,fontSize:"clamp(18px,4.5vw,22px)",fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif",marginBottom:8}}>¡Bienvenido a Farmax!</h2>
           <p style={{color:"rgba(255,255,255,.9)",fontSize:14,lineHeight:1.6}}>Regístrate hoy y gana <strong>10 puntos de bienvenida</strong> — equivalen a $5 de descuento en tu próxima compra.</p>
@@ -293,7 +293,7 @@ function HeroCarousel({setPage, items, precioConsulta, stack, useStaticPlacehold
             alt=""
             decoding="async"
             style={{
-              position:"absolute",
+              position:"relative",
               inset:0,
               width:"100%",
               height:"100%",
@@ -304,14 +304,14 @@ function HeroCarousel({setPage, items, precioConsulta, stack, useStaticPlacehold
           <div
             aria-hidden
             style={{
-              position:"absolute",
+              position:"relative",
               inset:0,
               zIndex:1,
               background:"linear-gradient(rgba(0,24,48,.48),rgba(0,24,48,.66))",
             }}
           />
           <div style={{
-            position:"absolute",
+            position:"relative",
             inset:0,
             zIndex:2,
             display:"flex",
@@ -339,7 +339,7 @@ function HeroCarousel({setPage, items, precioConsulta, stack, useStaticPlacehold
           <div
             onMouseEnter={()=>setPauseAuto(true)}
             onMouseLeave={()=>setPauseAuto(false)}
-            style={{position:"absolute",bottom:12,left:"50%",transform:"translateX(-50%)",display:"flex",gap:6,zIndex:3}}
+            style={{position:"relative",bottom:12,left:"50%",transform:"translateX(-50%)",display:"flex",gap:6,zIndex:3}}
           >
             {banners.map((_,i)=>(
               <button key={i} type="button" aria-label={`Banner ${i+1}`} onClick={()=>setIdx(i)} style={{width:i===idx?24:8,height:8,borderRadius:4,border:"none",background:i===idx?"rgba(255,255,255,.9)":"rgba(255,255,255,.4)",cursor:"pointer",transition:"all .3s",padding:0}}/>
@@ -351,7 +351,7 @@ function HeroCarousel({setPage, items, precioConsulta, stack, useStaticPlacehold
               onMouseLeave={()=>setPauseAuto(false)}
               onFocus={()=>setPauseAuto(true)}
               onBlur={()=>setPauseAuto(false)}
-              style={{position:"absolute",top:"50%",transform:"translateY(-50%)",zIndex:3,...( d===-1?{left:12}:{right:12}),background:"rgba(255,255,255,.22)",border:"none",color:C.white,width:36,height:36,borderRadius:"50%",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center"}}>
+              style={{position:"relative",top:"50%",transform:"translateY(-50%)",zIndex:3,...( d===-1?{left:12}:{right:12}),background:"rgba(255,255,255,.22)",border:"none",color:C.white,width:36,height:36,borderRadius:"50%",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center"}}>
               {icon}
             </button>
           ))}
@@ -387,7 +387,7 @@ function HeroCarousel({setPage, items, precioConsulta, stack, useStaticPlacehold
         <div
           onMouseEnter={()=>setPauseAuto(true)}
           onMouseLeave={()=>setPauseAuto(false)}
-          style={{position:"absolute",bottom:12,left:"50%",transform:"translateX(-50%)",display:"flex",gap:6}}
+          style={{position:"relative",bottom:12,left:"50%",transform:"translateX(-50%)",display:"flex",gap:6}}
         >
           {banners.map((_,i)=>(
             <button key={i} type="button" aria-label={`Banner ${i+1}`} onClick={()=>setIdx(i)} style={{width:i===idx?24:8,height:8,borderRadius:4,border:"none",background:i===idx?"rgba(255,255,255,.9)":"rgba(255,255,255,.4)",cursor:"pointer",transition:"all .3s",padding:0}}/>
@@ -399,7 +399,7 @@ function HeroCarousel({setPage, items, precioConsulta, stack, useStaticPlacehold
             onMouseLeave={()=>setPauseAuto(false)}
             onFocus={()=>setPauseAuto(true)}
             onBlur={()=>setPauseAuto(false)}
-            style={{position:"absolute",top:"50%",transform:"translateY(-50%)",...( d===-1?{left:16}:{right:16}),background:"rgba(255,255,255,.2)",border:"none",color:C.white,width:36,height:36,borderRadius:"50%",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center"}}>
+            style={{position:"relative",top:"50%",transform:"translateY(-50%)",...( d===-1?{left:16}:{right:16}),background:"rgba(255,255,255,.2)",border:"none",color:C.white,width:36,height:36,borderRadius:"50%",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center"}}>
             {icon}
           </button>
         ))}
@@ -440,8 +440,8 @@ function HomeBannersStrip({setPage, items}){
           >
             {u&&(
               <>
-                <img src={u} alt="" decoding="async" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",objectPosition:"center center"}} />
-                <div aria-hidden style={{position:"absolute",inset:0,background:"linear-gradient(90deg,rgba(0,0,0,.5),rgba(0,0,0,.22))"}} />
+                <img src={u} alt="" decoding="async" style={{position:"relative",inset:0,width:"100%",height:"100%",objectFit:"cover",objectPosition:"center center"}} />
+                <div aria-hidden style={{position:"relative",inset:0,background:"linear-gradient(90deg,rgba(0,0,0,.5),rgba(0,0,0,.22))"}} />
               </>
             )}
             {!u&&!!(b.emoji&&String(b.emoji).trim())&&<span style={{fontSize:36,flexShrink:0}}>{b.emoji}</span>}
@@ -490,8 +490,8 @@ function HomeBannersTiles({setPage, items, stack}){
           >
             {u&&(
               <>
-                <img src={u} alt="" decoding="async" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",objectPosition:"center center"}} />
-                <div aria-hidden style={{position:"absolute",inset:0,background:"linear-gradient(180deg,rgba(0,0,0,.52),rgba(0,0,0,.32))"}} />
+                <img src={u} alt="" decoding="async" style={{position:"relative",inset:0,width:"100%",height:"100%",objectFit:"cover",objectPosition:"center center"}} />
+                <div aria-hidden style={{position:"relative",inset:0,background:"linear-gradient(180deg,rgba(0,0,0,.52),rgba(0,0,0,.32))"}} />
               </>
             )}
             {!u&&!!(b.emoji&&String(b.emoji).trim())&&<span style={{fontSize:28,position:"relative",zIndex:1}}>{b.emoji}</span>}
@@ -570,7 +570,7 @@ function Header({page,setPage,cart,user,setUser}){
               <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
                 <button type="button" aria-label="Ir al carrito" onClick={()=>setPage("carrito")} style={{position:"relative",background:"none",border:"none",cursor:"pointer",padding:8}}>
                   <span style={{fontSize:22}}>🛒</span>
-                  {n>0&&<span style={{position:"absolute",top:2,right:2,background:C.red,color:C.white,borderRadius:"50%",width:18,height:18,fontSize:10,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{n}</span>}
+                  {n>0&&<span style={{position:"relative",top:2,right:2,background:C.red,color:C.white,borderRadius:"50%",width:18,height:18,fontSize:10,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{n}</span>}
                 </button>
                 <button
                   type="button"
@@ -610,7 +610,7 @@ function Header({page,setPage,cart,user,setUser}){
                   <>
                     <button type="button" aria-label="Ir al carrito" onClick={()=>setPage("carrito")} style={{position:"relative",background:"none",border:"none",cursor:"pointer",padding:8}}>
                       <span style={{fontSize:22}}>🛒</span>
-                      {n>0&&<span style={{position:"absolute",top:2,right:2,background:C.red,color:C.white,borderRadius:"50%",width:18,height:18,fontSize:10,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{n}</span>}
+                      {n>0&&<span style={{position:"relative",top:2,right:2,background:C.red,color:C.white,borderRadius:"50%",width:18,height:18,fontSize:10,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{n}</span>}
                     </button>
                   </>
                 )}
@@ -636,7 +636,7 @@ function Header({page,setPage,cart,user,setUser}){
             {!narrow && !user && (
               <button type="button" aria-label="Ir al carrito" onClick={()=>setPage("carrito")} style={{position:"relative",background:"none",border:"none",cursor:"pointer",padding:8}}>
                 <span style={{fontSize:22}}>🛒</span>
-                {n>0&&<span style={{position:"absolute",top:2,right:2,background:C.red,color:C.white,borderRadius:"50%",width:18,height:18,fontSize:10,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{n}</span>}
+                {n>0&&<span style={{position:"relative",top:2,right:2,background:C.red,color:C.white,borderRadius:"50%",width:18,height:18,fontSize:10,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{n}</span>}
               </button>
             )}
           </div>
@@ -815,7 +815,7 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
           />
           {false&&(
             <div role="listbox" aria-label="Sugerencias de búsqueda" style={{
-              position:"absolute",left:0,right:0,top:"calc(100% + 4px)",
+              position:"relative",left:0,right:0,top:"calc(100% + 4px)",
               background:C.white,border:`1px solid ${C.border}`,borderRadius:10,
               boxShadow:"0 16px 48px rgba(15,23,42,.12)",maxHeight:narrowSuggest?260:320,overflowY:"visible",
             }}>
@@ -1108,11 +1108,11 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
               try{sessionStorage.setItem("farmax_busq",t);}catch(e){}
               setPage("catalogo");
             }}
-            style={{position:"absolute",right:6,top:"50%",transform:"translateY(-50%)",background:BRAND.gradient,border:"none",borderRadius:24,width:44,height:44,cursor:"pointer",color:C.white,fontSize:18,display:"flex",alignItems:"center",justifyContent:"center"}}
+            style={{position:"relative",right:6,top:"50%",transform:"translateY(-50%)",background:BRAND.gradient,border:"none",borderRadius:24,width:44,height:44,cursor:"pointer",color:C.white,fontSize:18,display:"flex",alignItems:"center",justifyContent:"center"}}
           >→</button>
           {false&&(
             <div role="listbox" aria-label="Sugerencias de búsqueda" style={{
-              position:"absolute",left:0,right:0,top:"calc(100% + 6px)",
+              position:"relative",left:0,right:0,top:"calc(100% + 6px)",
               background:C.white,border:`1px solid ${C.border}`,borderRadius:14,
               boxShadow:"0 16px 48px rgba(15,23,42,.14)",maxHeight:stack?260:300,overflowY:"visible",
             }}>
@@ -1366,7 +1366,7 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
         />
         {false&&(
           <div role="listbox" aria-label="Sugerencias de búsqueda" style={{
-            position:"absolute",left:0,right:0,top:"calc(100% + 4px)",
+            position:"relative",left:0,right:0,top:"calc(100% + 4px)",
             background:C.white,border:`1px solid ${C.border}`,borderRadius:10,
             boxShadow:"0 16px 48px rgba(15,23,42,.12)",maxHeight:stack?260:320,overflowY:"visible",
           }}>
