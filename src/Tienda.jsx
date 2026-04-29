@@ -661,21 +661,38 @@ function ProductCard({prod,addToCart,onClick}){
   const narrow = useMediaQuery("(max-width: 768px)");
   const [added,setAdded]=useState(false);
   const touchDragRef = useRef({ active: false, moved: false, x: 0, y: 0 });
+  const CARD_DRAG_THRESHOLD = 10;
   const d=prod.disponible||(prod.stock>0?"inmediato":"48hrs");
   const placeholderUrl = useContext(TiendaPlaceholderCtx);
   const imgSrc = productImageUrl(prod, narrow, placeholderUrl);
   const handlePointerDown = (e) => {
     if (e.pointerType !== "touch") return;
     touchDragRef.current = { active: true, moved: false, x: e.clientX, y: e.clientY };
+    // Sin captura, los pointermove pueden no llegar al root cuando el dedo cruza texto/nodos hijos,
+    // y el click sintético después del scroll interpreta mal el gesto (rebote).
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch (_) {
+      /* ignore */
+    }
   };
   const handlePointerMove = (e) => {
     const s = touchDragRef.current;
     if (!s.active) return;
-    if (Math.abs(e.clientX - s.x) > 8 || Math.abs(e.clientY - s.y) > 8) {
+    const dx = Math.abs(e.clientX - s.x);
+    const dy = Math.abs(e.clientY - s.y);
+    if (dx > CARD_DRAG_THRESHOLD || dy > CARD_DRAG_THRESHOLD) {
       s.moved = true;
     }
   };
-  const handlePointerEnd = () => {
+  const handlePointerEnd = (e) => {
+    try {
+      if (typeof e.currentTarget.releasePointerCapture === "function" && e.currentTarget.hasPointerCapture?.(e.pointerId)) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      }
+    } catch (_) {
+      /* ignore */
+    }
     touchDragRef.current.active = false;
   };
   const handleDetailClick = (e) => {
@@ -705,15 +722,19 @@ function ProductCard({prod,addToCart,onClick}){
     setAdded(true);
     setTimeout(()=>setAdded(false),1500);
   };
+  const pointerGestureProps = {
+    onPointerDown: handlePointerDown,
+    onPointerMove: handlePointerMove,
+    onPointerUp: handlePointerEnd,
+    onPointerCancel: handlePointerEnd,
+  };
   return(
     <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,overflow:"hidden",display:"flex",flexDirection:"column",cursor:"pointer",transition:"box-shadow .2s",touchAction:"pan-y"}}
       onMouseEnter={e=>(e.currentTarget.style.boxShadow="0 4px 20px #0002")}
       onMouseLeave={e=>(e.currentTarget.style.boxShadow="none")}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerEnd}
-      onPointerCancel={handlePointerEnd}>
+    >
       <div
+        {...pointerGestureProps}
         onClick={handleDetailClick}
         style={{
           background:C.cardDark,
@@ -724,6 +745,8 @@ function ProductCard({prod,addToCart,onClick}){
           alignItems:"center",
           justifyContent:"center",
           padding:"10px 12px",
+          touchAction:"pan-y",
+          WebkitTapHighlightColor:"transparent",
         }}
       >
         {imgSrc ? (
@@ -736,7 +759,20 @@ function ProductCard({prod,addToCart,onClick}){
           <div style={{padding:"24px",textAlign:"center",fontSize:48}}>💊</div>
         )}
       </div>
-      <div style={{padding:"14px",flex:1,display:"flex",flexDirection:"column"}}>
+      <div
+        {...pointerGestureProps}
+        style={{
+          padding:"14px",
+          flex:1,
+          display:"flex",
+          flexDirection:"column",
+          touchAction:"pan-y",
+          WebkitTapHighlightColor:"transparent",
+          userSelect:"none",
+          WebkitUserSelect:"none",
+          overscrollBehaviorY:"auto",
+        }}
+      >
         <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:8}}>
           {prod.stock===0
             ? <Tag col={C.red} sm>⛔ Agotado</Tag>
