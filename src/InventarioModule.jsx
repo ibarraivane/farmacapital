@@ -102,6 +102,30 @@ const tdEllipsisStyle = {
   whiteSpace: "nowrap",
 };
 
+/** Columnas fijas al hacer scroll horizontal: ☑ · foto · SKU · ref lista · nombre */
+const INV_STICKY_COL_WIDTH = [52, 62, 120, 128, 272];
+const INV_STICKY_LEFT = INV_STICKY_COL_WIDTH.reduce((acc, w, i) => {
+  if (i === 0) acc.push(0);
+  else acc.push(acc[i - 1] + INV_STICKY_COL_WIDTH[i - 1]);
+  return acc;
+}, []);
+
+function inventarioStickyCell(colIdx, { header, bg }) {
+  const edgeShadow =
+    colIdx === 4 ? "6px 0 18px -10px rgba(15, 23, 42, 0.22)" : undefined;
+  return {
+    position: "sticky",
+    left: INV_STICKY_LEFT[colIdx],
+    width: INV_STICKY_COL_WIDTH[colIdx],
+    minWidth: INV_STICKY_COL_WIDTH[colIdx],
+    maxWidth: colIdx === 4 ? INV_STICKY_COL_WIDTH[colIdx] : undefined,
+    boxSizing: "border-box",
+    zIndex: header ? 35 + colIdx : 15 + colIdx,
+    background: bg,
+    boxShadow: edgeShadow,
+  };
+}
+
 /** Cabeceras tabla inventario + tooltip para distinguir SKU Farmax vs ref. lista mayorista. */
 const INV_COLUMN_HEADERS = [
   { id: "foto", label: "Foto", hint: "" },
@@ -1944,7 +1968,15 @@ export default function InventarioModule() {
           <table style={{width:"100%",minWidth:1780,borderCollapse:"collapse",fontSize:12}}>
             <thead>
               <tr style={{background:C.card}}>
-                <th style={{ padding: "10px 8px", textAlign: "center", color: C.textMid, fontWeight: 700, borderBottom: `1px solid ${C.border}`, width: 36 }}>
+                <th style={{
+                  padding: "10px 8px",
+                  textAlign: "center",
+                  color: C.textMid,
+                  fontWeight: 700,
+                  borderBottom: `1px solid ${C.border}`,
+                  verticalAlign: "middle",
+                  ...inventarioStickyCell(0, { header: true, bg: C.card }),
+                }}>
                   <input
                     ref={headerSelectAllRef}
                     type="checkbox"
@@ -1954,7 +1986,7 @@ export default function InventarioModule() {
                     style={{ width: 16, height: 16, cursor: "pointer", accentColor: BRAND.primary }}
                   />
                 </th>
-                {INV_COLUMN_HEADERS.map((col) => (
+                {INV_COLUMN_HEADERS.map((col, colIdx) => (
                   <th
                     key={col.id}
                     title={col.hint || undefined}
@@ -1966,6 +1998,8 @@ export default function InventarioModule() {
                       borderBottom: `1px solid ${C.border}`,
                       whiteSpace: "nowrap",
                       cursor: col.hint ? "help" : undefined,
+                      verticalAlign: "middle",
+                      ...(colIdx <= 3 ? inventarioStickyCell(colIdx + 1, { header: true, bg: C.card }) : {}),
                     }}
                   >
                     {col.label}
@@ -1993,9 +2027,16 @@ export default function InventarioModule() {
                 const presDisp = (p.presentacion || "").trim();
                 const provDisp = (p.proveedor || "").trim();
                 const principioDisp = [p.principio_activo, p.denominacion_generica, p.concentracion].filter(Boolean).join(" · ");
+                const stickyRowBg = bajo ? C.amberDim : nearCad ? C.redDim : C.bg;
                 return (
                   <tr key={p.id} className="farmax-table-row" style={{opacity:inact?0.45:1,background:bajo?C.amberDim:nearCad?C.redDim:"transparent"}}>
-                    <td style={{ padding: "6px 8px", borderBottom: `1px solid ${C.border}`, textAlign: "center", verticalAlign: "middle" }}>
+                    <td style={{
+                      padding: "6px 8px",
+                      borderBottom: `1px solid ${C.border}`,
+                      textAlign: "center",
+                      verticalAlign: "middle",
+                      ...inventarioStickyCell(0, { header: false, bg: stickyRowBg }),
+                    }}>
                       <input
                         type="checkbox"
                         checked={selectedSet.has(p.id)}
@@ -2004,7 +2045,12 @@ export default function InventarioModule() {
                         style={{ width: 16, height: 16, cursor: "pointer", accentColor: BRAND.primary }}
                       />
                     </td>
-                    <td style={{padding:"6px 10px",borderBottom:`1px solid ${C.border}`}}>
+                    <td style={{
+                      padding: "6px 10px",
+                      borderBottom: `1px solid ${C.border}`,
+                      verticalAlign: "middle",
+                      ...inventarioStickyCell(1, { header: false, bg: stickyRowBg }),
+                    }}>
                       <div style={{
                         width:40,height:40,borderRadius:6,
                         background:p.imagen_url?`url(${p.imagen_url}) center/cover`:C.bg,
@@ -2012,11 +2058,34 @@ export default function InventarioModule() {
                         display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,
                       }}>{!p.imagen_url?"📷":null}</div>
                     </td>
-                    <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,fontFamily:"ui-monospace,Menlo,monospace",fontSize:11}}>{p.sku||"—"}</td>
-                    <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,fontFamily:"ui-monospace,Menlo,monospace",fontSize:11,maxWidth:96}} title={refListaProv || undefined}>
+                    <td style={{
+                      padding: "8px 12px",
+                      color: C.textMid,
+                      borderBottom: `1px solid ${C.border}`,
+                      fontFamily: "ui-monospace,Menlo,monospace",
+                      fontSize: 11,
+                      verticalAlign: "middle",
+                      ...inventarioStickyCell(2, { header: false, bg: stickyRowBg }),
+                    }}>{p.sku||"—"}</td>
+                    <td style={{
+                      padding: "8px 12px",
+                      color: C.textMid,
+                      borderBottom: `1px solid ${C.border}`,
+                      fontFamily: "ui-monospace,Menlo,monospace",
+                      fontSize: 11,
+                      verticalAlign: "middle",
+                      ...inventarioStickyCell(3, { header: false, bg: stickyRowBg }),
+                    }} title={refListaProv || undefined}>
                       <span style={tdEllipsisStyle}>{refListaProv || "—"}</span>
                     </td>
-                    <td style={{padding:"8px 12px",color:inact?C.textDim:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`,maxWidth:240}} title={p.nombre}>
+                    <td style={{
+                      padding: "8px 12px",
+                      color: inact ? C.textDim : C.text,
+                      fontWeight: 600,
+                      borderBottom: `1px solid ${C.border}`,
+                      verticalAlign: "middle",
+                      ...inventarioStickyCell(4, { header: false, bg: stickyRowBg }),
+                    }} title={p.nombre}>
                       <span style={{...tdEllipsisStyle,whiteSpace:"normal",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{p.nombre}</span>
                     </td>
                     <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,maxWidth:130}} title={marcaDisp || undefined}>
