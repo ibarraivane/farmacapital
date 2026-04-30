@@ -741,6 +741,7 @@ function BannersAdmin(){
                 </label>
                 <ImageUploader
                   bucket="banners"
+                  maxSizeMB={12}
                   currentUrl={form.imagen_url}
                   onUploaded={(url)=>setForm((p)=>({...p,imagen_url:url}))}
                   onRemoved={()=>{
@@ -767,6 +768,7 @@ function BannersAdmin(){
                 </label>
                 <ImageUploader
                   bucket="banners"
+                  maxSizeMB={12}
                   currentUrl={form.imagen_url_mobile}
                   onUploaded={(url)=>setForm((p)=>({...p,imagen_url_mobile:url}))}
                   onRemoved={()=>{

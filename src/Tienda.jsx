@@ -257,6 +257,7 @@ const Inp=({value,onChange,placeholder,type,style,onKeyDown,onFocus,onBlur})=>(
 function PopupBienvenida({onClose,setPage,precioConsulta,banner}){
   const C = useTheme();
   const stack = useMediaQuery("(max-width: 480px)");
+  const mobilePopup = useMediaQuery("(max-width: 767px)");
   const pc = Math.round(Number(precioConsulta) || CONSULTA_PRECIO_DEFAULT);
   const titulo = bannerTxt(banner?.titulo) || "¡Bienvenido a Farmax!";
   const subtitulo =
@@ -267,10 +268,12 @@ function PopupBienvenida({onClose,setPage,precioConsulta,banner}){
     "Equivalen a $5 de descuento en tu próxima compra.";
   const cta = bannerTxt(banner?.cta) || "Crear mi cuenta gratis";
   const ctaPage = bannerTxt(banner?.pagina) || "registro";
-  const imgUrl = bannerVisualUrl(banner || {}, stack);
+  const imgUrl = mobilePopup
+    ? (bannerTxt(banner?.imagen_url_mobile) || bannerTxt(banner?.imagen_mobile_url) || bannerTxt(banner?.imagen_url))
+    : (bannerTxt(banner?.imagen_url) || bannerTxt(banner?.imagen_url_mobile) || bannerTxt(banner?.imagen_mobile_url));
   return(
     <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,.55)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:16,overflowY:"auto",WebkitOverflowScrolling:"touch",pointerEvents:"auto"}}>
-      <div style={{background:C.white,borderRadius:16,maxWidth:420,width:"100%",maxHeight:"90vh",overflowY:"auto",boxShadow:"0 20px 60px rgba(0,0,0,.3)"}}>
+      <div style={{background:C.white,borderRadius:16,maxWidth:mobilePopup?420:640,width:"100%",maxHeight:"90vh",overflowY:"auto",boxShadow:"0 20px 60px rgba(0,0,0,.3)"}}>
         <div style={{background:BRAND.gradient,padding:"28px 20px",textAlign:"center",position:"relative",overflow:"hidden"}}>
           {imgUrl ? (
             <img
@@ -284,6 +287,15 @@ function PopupBienvenida({onClose,setPage,precioConsulta,banner}){
               position:"absolute",
               inset:0,
               background:imgUrl ? "linear-gradient(180deg, rgba(2,6,23,.45), rgba(2,6,23,.75))" : "transparent",
+              zIndex:1,
+            }}
+          />
+          <div
+            aria-hidden
+            style={{
+              position:"relative",
+              width:"100%",
+              aspectRatio: mobilePopup ? "1 / 1" : "16 / 9",
               zIndex:1,
             }}
           />
