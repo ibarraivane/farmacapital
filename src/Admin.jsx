@@ -708,7 +708,7 @@ function BannersAdmin(){
                 {!b.imagen_url&&b.emoji}
               </div>
               <div style={{flex:"1 1 200px",minWidth:0}}>
-                <div style={{fontWeight:800,color:C.text,fontSize:14}}>{b.titulo}</div>
+                <div style={{fontWeight:800,color:C.text,fontSize:14}}>{(b.titulo&&String(b.titulo).trim())?b.titulo:"(Sin título)"}</div>
                 <div style={{color:C.textMid,fontSize:12,marginTop:2}}>{b.subtitulo} · {b.descripcion?.slice(0,60)}{b.descripcion?.length>60?"…":""}</div>
                 <div style={{color:C.textDim,fontSize:11,marginTop:4}}>
                   {(b.slot==="strip"?"▤ Franja":b.slot==="tile"?"▦ Mosaico":"▶ Carrusel")} · Orden: {b.orden} · {b.pagina} · {b.cta}{b.video_url?" · ▶ Video":""}
@@ -791,7 +791,7 @@ function BannersAdmin(){
                 💡 <strong>Imagen de fondo:</strong> usa cuando quieres cambiar el texto sin re-generar la imagen.
               </div>
             </div>
-            {[["Título *","titulo"],["Subtítulo","subtitulo"],["Descripción","descripcion"],["Emoji (si no hay imagen)","emoji"],["Texto del botón","cta"],["Página destino","pagina"]].map(([l,k])=>(
+            {[["Título (opcional)","titulo"],["Subtítulo","subtitulo"],["Descripción","descripcion"],["Emoji (si no hay imagen)","emoji"],["Texto del botón","cta"],["Página destino","pagina"]].map(([l,k])=>(
               <div key={k}><label style={{color:C.textMid,fontSize:11,fontWeight:700,display:"block",marginBottom:3}}>{l.toUpperCase()}</label><input style={inpS} value={form[k]||""} onChange={e=>setForm(p=>({...p,[k]:e.target.value}))} placeholder={l}/></div>
             ))}
             <div>
@@ -806,7 +806,7 @@ function BannersAdmin(){
             <div><label style={{color:C.textMid,fontSize:11,fontWeight:700,display:"block",marginBottom:3}}>ORDEN</label><input type="number" style={inpS} value={form.orden||0} onChange={e=>setForm(p=>({...p,orden:parseInt(e.target.value)||0}))}/></div>
             <div style={{display:"flex",gap:10,justifyContent:"flex-end",marginTop:8}}>
               <button onClick={()=>setModal(null)} style={{padding:"9px 20px",borderRadius:8,border:`1px solid ${C.border}`,background:"transparent",color:C.textMid,fontWeight:700,cursor:"pointer"}}>Cancelar</button>
-              <button onClick={guardar} disabled={saving||!form.titulo} style={{padding:"9px 20px",borderRadius:8,border:"none",background:BRAND.gradient,color:"#fff",fontWeight:700,cursor:"pointer"}}>{saving?"Guardando…":"💾 Guardar"}</button>
+              <button onClick={guardar} disabled={saving} style={{padding:"9px 20px",borderRadius:8,border:"none",background:BRAND.gradient,color:"#fff",fontWeight:700,cursor:"pointer"}}>{saving?"Guardando…":"💾 Guardar"}</button>
             </div>
           </div>
         </div>
