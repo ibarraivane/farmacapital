@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, createContext, useContext, useRef } from "react";
 import { supabase } from "./supabase";
 import { useTheme } from "./themeContext";
-import { useMediaQuery } from "./hooks/useMediaQuery";
+import { useMediaQuery, useNarrowForBannerImage } from "./hooks/useMediaQuery";
 import { saludoUsuario, primerNombre, $, normalizarSesionLoginResp, nombreCompletoPacienteValido, telefonoMxValido, soloDigitosTel } from "./utils";
 import { tiendaProductMatchesBusqueda, spellSuggestFromProducts, tiendaCatalogSearchSuggestions, tiendaSearchRelevanceRank } from "./utils/fuzzySearch";
 import { CONSULTA_PRECIO_DEFAULT, citaPagoOk } from "./utils/consultaConstants";
@@ -324,12 +324,13 @@ function PopupBienvenida({onClose,setPage,precioConsulta,banner}){
 }
 
 // ── CARRUSEL PRINCIPAL (zona hero) ────────────────────────────
-/** Desktop: título arriba-izq y CTA abajo-der · Mobile: copy centrado abajo · imagen desktop vs imagen_url_mobile (<768px). */
+/** Desktop: título arriba-izq y CTA abajo-der · Mobile: copy centrado abajo · imagen móvil si existe (viewport estrecho o táctil ≤1024px). */
 function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true}){
   const C = useTheme();
   const [idx,setIdx]=useState(0);
   const [pauseAuto,setPauseAuto]=useState(false);
   const esMobile = useMediaQuery("(max-width: 767px)");
+  const narrowHeroImg = useNarrowForBannerImage();
 
   const banners = items.length
     ? items
@@ -352,7 +353,7 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
 
   const b=banners[idx]||BANNERS[0];
   const vid = bannerVideoUrl(b);
-  const imagenActual = bannerVisualUrl(b, esMobile);
+  const imagenActual = bannerVisualUrl(b, narrowHeroImg);
   const tieneImagen = !!(vid || bannerTxt(imagenActual));
 
   const modoCompleto =
@@ -671,7 +672,7 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
 function HomeBannersStrip({setPage, items}){
   const C = useTheme();
   const stack = useMediaQuery("(max-width: 768px)");
-  const narrowImg = useMediaQuery("(max-width: 767px)");
+  const narrowImg = useNarrowForBannerImage();
   if(!items?.length) return null;
   return(
     <div style={{background:"linear-gradient(180deg,#f0f7ff,#f7f9fc)",borderBottom:`1px solid ${C.border}`,padding:"16px 12px"}}>
@@ -858,7 +859,7 @@ function HomeBannersStrip({setPage, items}){
 // ── MOSAICO: rejilla compacta (zona tile) ─────────────────────
 function HomeBannersTiles({setPage, items, stack}){
   const C = useTheme();
-  const narrowImg = useMediaQuery("(max-width: 767px)");
+  const narrowImg = useNarrowForBannerImage();
   if(!items?.length) return null;
   return(
     <div style={{maxWidth:1200,margin:"0 auto",padding:"0 12px 20px"}}>
