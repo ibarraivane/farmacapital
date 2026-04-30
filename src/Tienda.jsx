@@ -282,7 +282,7 @@ function PopupBienvenida({onClose,setPage,precioConsulta}){
 
 // ── CARRUSEL PRINCIPAL (zona hero) ────────────────────────────
 /**
- * Modo imagen_fondo: media cover + texto al pie y gradiente solo abajo (imagen protagonista arriba).
+ * Modo imagen_fondo: media cover + copy anclado con position absolute al pie (gradiente solo abajo).
  * Modo imagen_completa: solo imagen/video a ancho completo, sin overlays.
  */
 /** useStaticPlaceholder: solo si aún no hay datos de BD o no hay banners activos (evita ocultar cambios del admin). */
@@ -320,6 +320,9 @@ function HeroCarousel({setPage, items, precioConsulta, stack, useStaticPlacehold
   const heroShowBottomCopy = !!(bannerTxt(b.subtitulo) || bannerTxt(b.titulo) || bannerTxt(b.cta));
   const carouselDotsBottom =
     banners.length <= 1 ? 12 : imagenCompleta ? 12 : heroHasVisual ? 56 : 12;
+  /** Contenido imagen_fondo: siempre anclado abajo (evita que parezca centrado verticalmente). */
+  const heroFondoCopyBottom =
+    banners.length > 1 ? carouselDotsBottom + 22 : 28;
 
   const carouselControls = banners.length > 1 && (
     <>
@@ -451,9 +454,6 @@ function HeroCarousel({setPage, items, precioConsulta, stack, useStaticPlacehold
           background:"#070f1a",
           lineHeight:0,
           minHeight:"clamp(280px, 45vh, 480px)",
-          display:"flex",
-          flexDirection:"column",
-          justifyContent:"flex-end",
         }}>
           <div style={{position:"absolute",inset:0,zIndex:0}}>
             {vid ? (
@@ -500,36 +500,39 @@ function HeroCarousel({setPage, items, precioConsulta, stack, useStaticPlacehold
                 }}
               />
               <div style={{
-                position:"relative",
+                position:"absolute",
+                left:0,
+                right:0,
+                bottom:heroFondoCopyBottom,
                 zIndex:2,
-                padding:"20px 16px clamp(40px, 8vw, 60px) 16px",
+                padding:"0 16px",
                 textAlign:"center",
                 pointerEvents:"none",
               }}>
                 <div style={{maxWidth:700,margin:"0 auto",width:"100%",pointerEvents:"auto"}}>
-                  {bannerTxt(b.subtitulo) ? (
-                    <div style={{
-                      color:"rgba(255,255,255,.9)",
-                      fontSize:"clamp(10px, 2vw, 12px)",
-                      letterSpacing:2,
-                      textTransform:"uppercase",
-                      marginBottom:6,
-                      fontWeight:600,
-                      textShadow:"0 1px 3px rgba(0,0,0,.6)",
-                      fontFamily:"'Plus Jakarta Sans',sans-serif",
-                    }}>{b.subtitulo}</div>
-                  ) : null}
                   {bannerTxt(b.titulo) ? (
                     <h2 style={{
                       color:"#fff",
                       fontSize:"clamp(20px, 4vw, 28px)",
                       fontWeight:800,
-                      marginBottom:16,
+                      marginBottom:6,
                       marginTop:0,
                       lineHeight:1.2,
                       textShadow:"0 2px 8px rgba(0,0,0,.7)",
                       fontFamily:"'Plus Jakarta Sans',sans-serif",
                     }}>{b.titulo}</h2>
+                  ) : null}
+                  {bannerTxt(b.subtitulo) ? (
+                    <div style={{
+                      color:"rgba(255,255,255,.85)",
+                      fontSize:"clamp(11px, 2vw, 13px)",
+                      letterSpacing:1.5,
+                      textTransform:"uppercase",
+                      marginBottom:16,
+                      fontWeight:600,
+                      textShadow:"0 1px 3px rgba(0,0,0,.6)",
+                      fontFamily:"'Plus Jakarta Sans',sans-serif",
+                    }}>{b.subtitulo}</div>
                   ) : null}
                   {bannerTxt(b.cta) && b.pagina ? (
                     <span
@@ -1536,11 +1539,11 @@ function Footer({setPage}){
 function HomeServices({setPage}){
   const C = useTheme();
   const servicios = [
-    { titulo:"Pick-up gratis", desc:"Recoge hoy en Farmax", color:BRAND.primary, action:()=>setPage("faq") },
-    { titulo:"CDMX express", desc:"Rappi & Uber Connect", color:BRAND.secondary, action:()=>setPage("faq") },
-    { titulo:"Envío foráneo", desc:"$89 · Skydropx", color:BRAND.accent, action:()=>setPage("faq") },
+    { titulo:"Pick-up gratis", desc:"Recoge hoy en Farmax", color:BRAND.primary, action:()=>setPage("envios") },
+    { titulo:"CDMX express", desc:"Rappi & Uber Connect", color:BRAND.secondary, action:()=>setPage("envios") },
+    { titulo:"Envío foráneo", desc:"$89 · Skydropx", color:BRAND.accent, action:()=>setPage("envios") },
     { titulo:"Puntos Farmax", desc:"Acumula en cada compra", color:"#ffaa00", action:()=>setPage("puntos") },
-    { titulo:"Pago online", desc:"Mercado Pago", color:"#8b5cf6", action:()=>setPage("faq") },
+    { titulo:"Pago online", desc:"Mercado Pago", color:"#8b5cf6", action:()=>setPage("catalogo") },
   ];
   return (
     <div style={{padding:16,background:C.bg,borderBottom:`1px solid ${C.border}`}}>
