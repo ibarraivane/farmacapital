@@ -488,7 +488,7 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
     width:"100%",
     height:"100%",
     display:"block",
-    objectFit: esMobile ? "cover" : "contain",
+    objectFit:"cover",
     objectPosition:"center center",
   };
 
@@ -529,7 +529,7 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
             inset:0,
             width:"100%",
             height:"100%",
-            objectFit: esMobile ? "cover" : "contain",
+            objectFit:"cover",
             objectPosition:"center center",
             zIndex:0,
             pointerEvents:"none",
