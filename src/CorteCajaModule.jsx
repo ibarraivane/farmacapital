@@ -70,12 +70,17 @@ export default function CorteCajaModule({usuario }) {
       if(!rpcErr && rpc?.efectivo_sistema !== undefined) {
         setEfSis(rpc.efectivo_sistema);
       } else {
-        // Fallback: query directa
+        const tok = sessionStorage.getItem("farmax_session_token");
         const { inicio, fin } = getRango(turno);
-        const { data, error } = await supabase.from("pedidos").select("total")
-          .in("metodo_pago",["efectivo","Efectivo"]).eq("estado","completado")
-          .gte("created_at", inicio).lte("created_at", fin);
-        if (!error && data) setEfSis(data.reduce((a,r)=>a+parseFloat(r.total||0),0));
+        const { data: ej } = tok
+          ? await supabase.rpc("empleado_sum_efectivo_pedidos_rango", {
+              p_session_token: tok,
+              p_desde: inicio,
+              p_hasta: fin,
+            })
+          : { data: null };
+        const sum = ej?.efectivo_sistema != null ? parseFloat(ej.efectivo_sistema) : 0;
+        if (Number.isFinite(sum)) setEfSis(sum);
       }
     } catch(e) { console.error("[CorteCaja]", e); }
     setLoadSis(false);
@@ -85,12 +90,20 @@ export default function CorteCajaModule({usuario }) {
 
   const fetchCortes = useCallback(async () => {
     setLoadingHist(true);
-    let q = supabase.from("cortes_caja").select("*").order("fecha",{ascending:false}).limit(30);
+    const tok = sessionStorage.getItem("farmax_session_token");
     const rango = getRangoFiltro(filtroFecha);
-    if (rango) q = q.gte("fecha",rango.desde).lte("fecha",rango.hasta);
-    if (filtroTurno !== "todos") q = q.eq("turno", filtroTurno);
-    const { data, error } = await q;
-    if (!error) setCortes(data||[]);
+    const fd = rango ? rango.desde.slice(0, 10) : null;
+    const fh = rango ? rango.hasta.slice(0, 10) : null;
+    const { data: rows, error } = tok
+      ? await supabase.rpc("empleado_listar_cortes_caja", {
+          p_session_token: tok,
+          p_limite: 30,
+          p_fecha_desde: fd,
+          p_fecha_hasta: fh,
+          p_turno: filtroTurno,
+        })
+      : { data: [], error: null };
+    if (!error) setCortes(Array.isArray(rows) ? rows : []);
     setLoadingHist(false);
   }, [filtroFecha, filtroTurno]);
 
@@ -99,22 +112,28 @@ export default function CorteCajaModule({usuario }) {
   // P3.4: Función para verificar si hay turno activo (usada desde POS)
   // Esta función se puede llamar externamente via ref o contexto
   const verificarTurnoActivo = async () => {
+    const tok = sessionStorage.getItem("farmax_session_token");
     const hoy = new Date().toLocaleDateString("sv-SE");
-    const { data } = await supabase.from("cortes_caja")
-      .select("id,turno,cajero")
-      .gte("created_at", hoy+"T00:00:00")
-      .eq("turno", turno)
-      .limit(1);
-    return data && data.length > 0;
+    const { data } = tok
+      ? await supabase.rpc("empleado_corte_turno_en_fecha", {
+          p_session_token: tok,
+          p_fecha: hoy,
+          p_turno: turno,
+        })
+      : { data: null };
+    return !!(data?.existe);
   };
 
   const guardarCorte = async () => {
     if (!efectivo_declarado) { alert("Ingresa el efectivo declarado"); return; }
     // J8: Validar turno duplicado
     const hoy = new Date().toLocaleDateString("sv-SE");
-    const { data: existente } = await supabase.from("cortes_caja")
-      .select("id").eq("turno", turno).gte("created_at", hoy).limit(1);
-    if (existente && existente.length > 0) {
+    const { data: exSnap } = await supabase.rpc("empleado_corte_turno_en_fecha", {
+      p_session_token: tok,
+      p_fecha: hoy,
+      p_turno: turno,
+    });
+    if (exSnap?.existe) {
       const ok = window.confirm(`Ya existe un corte del turno ${turno} de hoy. ¿Guardar otro de todas formas?`);
       if (!ok) return;
     }

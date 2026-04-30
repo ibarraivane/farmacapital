@@ -37,13 +37,15 @@ function NuevaDevolucionModal({usuario, onClose, onSaved }) {
 
   const buscarPedido = async () => {
     if (!busqPed) return;
-    const { data } = await supabase.from("pedidos")
-      .select("*, clientes(nombre,telefono), pedido_items(id,cantidad,precio_unitario,lote_id,productos(id,nombre,stock))")
-      .or(`id.eq.${isNaN(busqPed)?0:busqPed},clientes.telefono.eq.${busqPed}`)
-      .eq("estado","completado")
-      .order("created_at",{ascending:false})
-      .limit(10);
-    setPedidos(data||[]);
+    const tok = sessionStorage.getItem("farmax_session_token");
+    const { data } = tok
+      ? await supabase.rpc("empleado_buscar_pedidos_devolucion", {
+          p_session_token: tok,
+          p_busqueda: String(busqPed).trim(),
+          p_limite: 10,
+        })
+      : { data: [] };
+    setPedidos(Array.isArray(data) ? data : []);
   };
 
   const selPedido = (p) => {
@@ -232,11 +234,11 @@ export default function DevolucionesModule({ usuario }) {
 
   const fetch = useCallback(async () => {
     setLoad(true);
-    const { data } = await supabase.from("devoluciones")
-      .select("*, clientes(nombre,telefono), pedidos(id,total), devolucion_items(id,producto_nombre,cantidad,precio_unitario)")
-      .order("created_at",{ascending:false})
-      .limit(100);
-    setDev(data||[]);
+    const tok = sessionStorage.getItem("farmax_session_token");
+    const { data } = tok
+      ? await supabase.rpc("empleado_listar_devoluciones", { p_session_token: tok, p_limite: 100 })
+      : { data: [] };
+    setDev(Array.isArray(data) ? data : []);
     setLoad(false);
   },[]);
 

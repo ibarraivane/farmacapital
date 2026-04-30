@@ -519,36 +519,35 @@ function Dashboard({negocio,alertas,setPage}){
             clientes(nombre,telefono),
             pedido_items(cantidad,precio_unitario,productos(nombre,sku))
           `;
+        const adminTok = sessionStorage.getItem("farmax_session_token");
         const [
           pedsRes,
-          citasRes,
-          ventasHoyRes,
-          ventasSemanaRes,
-          ventasMesRes,
-          citasComplRes,
+          homeRes,
         ] = await Promise.all([
           fetchPedidosTiendaPendientesMerged(supabase, pedidosTiendaSelect, { perBranchLimit: 80, maxRows: 200 }),
-          supabase.from("citas").select(`
-            id,nombre,telefono,hora,fecha,motivo,estado,pago_estado,
-            consumibles_consulta(id,cantidad,precio,cobrado,nombre,producto_id)
-          `).eq("fecha", hoyLocal).in("estado",["confirmada","en_consulta","completada","pagada"]),
-          supabase.from("pedidos").select("total").eq("estado","completado").gte("created_at", t0.toISOString()).lte("created_at", t1.toISOString()),
-          supabase.from("pedidos").select("total").eq("estado","completado").gte("created_at", weekAgo.toISOString()),
-          supabase.from("pedidos").select("total").eq("estado","completado").gte("created_at", monthStart.toISOString()),
-          supabase.from("citas").select("id").eq("fecha", hoyLocal).neq("estado", "cancelada").or("estado.eq.completada,estado.eq.pagada,pago_estado.eq.pagada"),
+          adminTok
+            ? supabase.rpc("empleado_admin_home_snapshot", {
+                p_session_token: adminTok,
+                p_hoy_local: hoyLocal,
+                p_today_start: t0.toISOString(),
+                p_today_end: t1.toISOString(),
+                p_week_start: weekAgo.toISOString(),
+                p_month_start: monthStart.toISOString(),
+              })
+            : Promise.resolve({ data: null, error: null }),
         ]);
 
         if (pedsRes?.error) console.error("[Dashboard] Pedidos:", pedsRes.error);
-        if (citasRes?.error) console.error("[Dashboard] Citas:", citasRes.error);
-        if (citasComplRes?.error) console.warn("[Dashboard] Citas realizadas hoy:", citasComplRes.error);
+        if (homeRes?.error) console.error("[Dashboard] Home snapshot:", homeRes.error);
 
         setPedOn((pedsRes?.data || []).filter(esPedidoTiendaWebPendiente));
-        setCitasH(citasRes?.data || []);
+        const H = homeRes?.data || {};
+        setCitasH(H.citas_agenda_hoy || []);
 
-        const hoy = (ventasHoyRes?.data || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
-        const semana = (ventasSemanaRes?.data || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
-        const mes = (ventasMesRes?.data || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
-        const consultas = (citasComplRes?.data || []).length;
+        const hoy = (H.ventas_hoy || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
+        const semana = (H.ventas_semana || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
+        const mes = (H.ventas_mes || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
+        const consultas = (H.citas_completadas_hoy || []).length;
 
         setKpis({ hoy, semana, mes, consultas });
       } catch (e) {
@@ -1703,15 +1702,15 @@ export default function FarmaxAdmin(){
     if(!usuario) return;
     const cargar = async () => {
       const hoy = new Date().toISOString().split("T")[0];
-      const [{ data: prods }, { data: pendPedidos }, { data: cits }] = await Promise.all([
-        supabase.from("productos").select("id,stock,stock_minimo"),
-        supabase.from("pedidos").select("id,tipo,metodo_pago,estado").eq("estado", "pendiente"),
-        supabase.from("citas").select("id").eq("fecha",hoy).not("cliente_id","is",null),
-      ]);
+      const tok = sessionStorage.getItem("farmax_session_token");
+      const { data: snap } = tok
+        ? await supabase.rpc("empleado_admin_alertas_snapshot", { p_session_token: tok, p_hoy: hoy })
+        : { data: null };
+      const pendPedidos = snap?.pend_pedidos || [];
       setAlr({
-        stock: (prods||[]).filter(p=>p.stock<p.stock_minimo).length,
-        pedidos: (pendPedidos||[]).filter(esPedidoTiendaWebPendiente).length,
-        citas: (cits||[]).length,
+        stock: typeof snap?.stock_bajo === "number" ? snap.stock_bajo : 0,
+        pedidos: pendPedidos.filter(esPedidoTiendaWebPendiente).length,
+        citas: typeof snap?.citas_web_hoy === "number" ? snap.citas_web_hoy : 0,
       });
     };
     cargar();

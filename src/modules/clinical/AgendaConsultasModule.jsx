@@ -189,16 +189,18 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
   const cargarMes = useCallback(async () => {
     setLoadMes(true);
     try {
-      const { data, error } = await supabase
-        .from("citas")
-        .select(
-          "id,nombre,telefono,hora,fecha,motivo,estado,pago_estado,cliente_id,canal,diagnostico,observaciones,pedido_consulta_id,confirmada_inicio_at"
-        )
-        .gte("fecha", mesDesde)
-        .lte("fecha", mesHasta)
-        .neq("estado", "cancelada");
+      const tok = sessionStorage.getItem("farmax_session_token");
+      if (!tok) {
+        setCitasMes([]);
+        return;
+      }
+      const { data, error } = await supabase.rpc("empleado_agenda_listar_citas_rango_fecha", {
+        p_session_token: tok,
+        p_fecha_desde: mesDesde,
+        p_fecha_hasta: mesHasta,
+      });
       if (error) throw error;
-      setCitasMes(data || []);
+      setCitasMes(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error("[Agenda] mes:", e);
       setCitasMes([]);
@@ -240,15 +242,16 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
         periodoSub = "mes en curso";
       }
       try {
-        const { data, error } = await supabase
-          .from("citas")
-          .select("id,estado,ingreso_doctor,duracion_consulta_segundos,procedimientos_realizados,medicamentos_prescritos,fecha")
-          .gte("fecha", desdeFecha)
-          .lte("fecha", hastaFecha)
-          .neq("estado", "cancelada");
+        const tok = sessionStorage.getItem("farmax_session_token");
+        if (!tok) return;
+        const { data, error } = await supabase.rpc("empleado_agenda_kpi_citas_periodo", {
+          p_session_token: tok,
+          p_fecha_desde: desdeFecha,
+          p_fecha_hasta: hastaFecha,
+        });
         if (error) throw error;
         if (cancel) return;
-        const rows = data || [];
+        const rows = Array.isArray(data) ? data : [];
         const completadas = rows.filter((c) => c.estado === "completada" || c.estado === "pagada");
         const procedimientosCount = completadas.reduce((a, c) => {
           try {
@@ -286,12 +289,19 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
   }, [kpiPer, mode]);
 
   const prepararFicha = useCallback(async () => {
+    const tok = sessionStorage.getItem("farmax_session_token");
     const [consumibles, procRes] = await Promise.all([
       fetchProductosConsumiblesConsultorio(supabase),
-      supabase.from("procedimientos_medicos").select("*").eq("activo", true).order("nombre"),
+      tok
+        ? supabase.rpc("empleado_listar_procedimientos_medicos", {
+            p_session_token: tok,
+            p_solo_activos: true,
+          })
+        : Promise.resolve({ data: [] }),
     ]);
     setProdList(consumibles || []);
-    setProcsList(procRes?.data || []);
+    const pr = procRes?.data;
+    setProcsList(Array.isArray(pr) ? pr : []);
   }, []);
 
   useEffect(() => {
@@ -353,13 +363,10 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
         .is("confirmada_inicio_at", null);
       if (upErr) console.warn("[Agenda] confirmada_inicio_at:", upErr);
       await cargarMes();
-      const { data: fresh } = await supabase
-        .from("citas")
-        .select(
-          "id,nombre,telefono,hora,fecha,motivo,estado,pago_estado,cliente_id,canal,diagnostico,observaciones,pedido_consulta_id,confirmada_inicio_at"
-        )
-        .eq("id", cita.id)
-        .single();
+      const { data: fresh } = await supabase.rpc("empleado_obtener_cita_agenda_por_id", {
+        p_session_token: tok,
+        p_cita_id: cita.id,
+      });
       setFichaSoloLectura(false);
       setFichaCita(fresh || { ...cita, estado: "en_consulta" });
       prepararFicha();
@@ -398,13 +405,12 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
     }
     setGuard(true);
     try {
-      const { data: ocupado } = await supabase
-        .from("citas")
-        .select("id")
-        .eq("fecha", diaSel)
-        .eq("hora", slotNuevo)
-        .neq("estado", "cancelada");
-      if (ocupado?.length >= 1) {
+      const { data: ocupadoCount } = await supabase.rpc("empleado_agenda_contar_slot_ocupado", {
+        p_session_token: tok,
+        p_fecha: diaSel,
+        p_hora: slotNuevo,
+      });
+      if ((ocupadoCount ?? 0) >= 1) {
         showToast("Ese horario ya está ocupado.", "warning");
         setGuard(false);
         return;

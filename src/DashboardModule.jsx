@@ -311,55 +311,57 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
           p_hoy: new Date().toISOString().slice(0, 10),
         })
       : Promise.resolve({ data: null, error: { message: "sin sesión" } });
+    const bundleCtx = {
+      today_start: today.start,
+      today_end: today.end,
+      yesterday_start: yesterday.start,
+      yesterday_end: yesterday.end,
+      week_start: week.start,
+      week_prev_start: weekPrev.start,
+      week_prev_end: weekPrev.end,
+      month_start: month.start,
+      month_prev_start: new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toISOString(),
+      month_prev_end: new Date(new Date().getFullYear(), new Date().getMonth(), 0, 23, 59, 59).toISOString(),
+      hoy_local: hoyLocal,
+      ayer_local: ayerLocal,
+      inicio_mes_local: inicioMesLocal,
+    };
     const [
-      { data: pedHoy }, { data: pedAyer }, { data: pedSemana }, { data: pedSemanaAnt }, { data: pedMes }, { data: pedTodos }, { data: pedMesAnt },
-      { data: citasHoy, error: errCitasHoy },
-      { data: citasAyer, error: errCitasAyer },
+      bundleRes,
       { count: onlinePendCount, error: errOnlinePend },
-      { data: pedMesTipo },
-      { data: pedItems }, { data: bajoStock }, { data: porCaducar },
-      { data: cortesConDif },
-      { data: pedRecetaFarmax },
-      { count: citasRecetaExternaMes, error: errRecetaExt },
-      { data: cfgRows },
-      { data: citasKpiMes },
       { data: cofeprisRpcData, error: errAlertasCof },
     ] = await Promise.all([
-      supabase.from("pedidos").select("total").eq("estado", "completado").gte("created_at", today.start).lte("created_at", today.end),
-      supabase.from("pedidos").select("total").eq("estado", "completado").gte("created_at", yesterday.start).lte("created_at", yesterday.end),
-      supabase.from("pedidos").select("total").eq("estado", "completado").gte("created_at", week.start),
-      supabase.from("pedidos").select("total").eq("estado", "completado").gte("created_at", weekPrev.start).lte("created_at", weekPrev.end),
-      supabase.from("pedidos").select("total,atendido_por").eq("estado", "completado").gte("created_at", month.start),
-      supabase.from("pedidos").select("total").eq("estado", "completado"),
-      supabase.from("pedidos").select("total").eq("estado", "completado").gte("created_at", new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toISOString()).lte("created_at", new Date(new Date().getFullYear(), new Date().getMonth(), 0).toISOString()),
-      supabase.from("citas").select("id").eq("fecha", hoyLocal).neq("estado", "cancelada").or("estado.eq.completada,estado.eq.pagada,pago_estado.eq.pagada"),
-      supabase.from("citas").select("id").eq("fecha", ayerLocal).neq("estado", "cancelada").or("estado.eq.completada,estado.eq.pagada,pago_estado.eq.pagada"),
-      countPedidosTiendaPendientesHead(supabase, sessionStorage.getItem("farmax_session_token")),
-      supabase.from("pedidos").select("total,tipo").eq("estado", "completado").gte("created_at", month.start),
-      supabase.from("pedido_items").select("cantidad,precio_unitario,productos(nombre)").limit(1000),
-      supabase.from("productos").select("id,nombre,stock,stock_minimo").lte("stock", 0).eq("activo", true).limit(5),
-      supabase.from("lotes").select("producto_id").eq("activo", true).gt("cantidad_actual", 0).lte("fecha_caducidad", new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)).not("fecha_caducidad", "is", null),
-      supabase.from("cortes_caja").select("id,diferencia").neq("diferencia", 0).limit(10),
-      supabase.from("pedidos").select("total").eq("estado", "completado").eq("receta_origen", "medico_farmax").gte("created_at", month.start),
-      supabase
-        .from("citas")
-        .select("id", { count: "exact", head: true })
-        .eq("receta_surtido_en", "externa")
-        .gte("fecha", inicioMesLocal)
-        .neq("estado", "cancelada")
-        .or("estado.eq.completada,estado.eq.pagada,pago_estado.eq.pagada"),
-      supabase.from("configuracion").select("clave,valor").in("clave", [
-        "estimado_receta_externa",
-        "meta_ventas_dia", "meta_ventas_semana", "meta_ventas_mes",
-        "meta_ticket_prom", "meta_consultas_dia", "meta_consultas_mes",
-      ]),
-      supabase.from("citas").select("medicamentos_prescritos,duracion_consulta_segundos").gte("fecha", inicioMesLocal).neq("estado", "cancelada"),
+      adminTok
+        ? supabase.rpc("empleado_dashboard_operacion_bundle", {
+            p_session_token: adminTok,
+            p_ctx: bundleCtx,
+          })
+        : Promise.resolve({ data: null, error: null }),
+      countPedidosTiendaPendientesHead(supabase, adminTok),
       cofeprisRpc,
     ]);
-    if (errCitasHoy) console.warn("[Dashboard] citas hoy:", errCitasHoy.message);
-    if (errCitasAyer) console.warn("[Dashboard] citas ayer:", errCitasAyer.message);
+    const B = bundleRes.data || {};
+    const pedHoy = B.ped_hoy || [];
+    const pedAyer = B.ped_ayer || [];
+    const pedSemana = B.ped_semana || [];
+    const pedSemanaAnt = B.ped_semana_ant || [];
+    const pedMes = B.ped_mes || [];
+    const pedTodos = B.ped_todos || [];
+    const pedMesAnt = B.ped_mes_ant || [];
+    const citasHoy = B.citas_hoy || [];
+    const citasAyer = B.citas_ayer || [];
+    const pedMesTipo = B.ped_mes_tipo || [];
+    const pedItems = B.ped_items_top || [];
+    const bajoStock = B.bajo_stock || [];
+    const porCaducar = B.por_caducar || [];
+    const cortesConDif = B.cortes_con_dif || [];
+    const pedRecetaFarmax = B.ped_receta_farmax || [];
+    const citasRecetaExternaMes = B.citas_receta_ext_mes_count ?? 0;
+    const cfgRows = B.cfg_rows || [];
+    const citasKpiMes = B.citas_kpi_mes || [];
+    const bundleErr = bundleRes.error;
+    if (bundleErr) console.warn("[Dashboard] bundle operación:", bundleErr.message);
     if (errOnlinePend) console.warn("[Dashboard] online pendientes:", errOnlinePend.message);
-    if (errRecetaExt) console.warn("[Dashboard] citas receta externa (mes):", errRecetaExt.message);
     if (errAlertasCof) console.warn("[Dashboard] alertas legales cofepris:", errAlertasCof.message);
 
     const alertasCofepris = Array.isArray(cofeprisRpcData?.items) ? cofeprisRpcData.items : [];
@@ -467,30 +469,32 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
     const desdeFecha = new Date(Date.now() - dias * 86400000).toISOString().split("T")[0];
     const sessionTok = sessionStorage.getItem("farmax_session_token");
     const [
-      { data: peds }, { count: clientesNuevos }, { data: cons }, { data: ponl }, { data: devs }, { data: pedsCat },
-      { data: pedsRecetaFarmax },
-      { count: citasRecetaExternaPeriod },
+      repBundleRes,
+      { count: clientesNuevos },
     ] = await Promise.all([
-      supabase.from("pedidos").select("total,created_at,tipo,atendido_por,usuarios(nombre)").gte("created_at", desde).eq("estado", "completado"),
+      sessionTok
+        ? supabase.rpc("empleado_dashboard_reporte_bundle", {
+            p_session_token: sessionTok,
+            p_desde: desde,
+            p_desde_fecha: desdeFecha,
+          })
+        : Promise.resolve({ data: null }),
       sessionTok
         ? supabase.rpc("admin_contar_clientes_desde", { p_session_token: sessionTok, p_desde: desde }).then((r) => {
             if (r.error) console.warn("[Dashboard] admin_contar_clientes_desde:", r.error.message);
             return { count: r.error ? 0 : (r.data ?? 0) };
           })
         : Promise.resolve({ count: 0 }),
-      supabase.from("citas").select("id").gte("fecha", desdeFecha).neq("estado", "cancelada").or("estado.eq.completada,estado.eq.pagada,pago_estado.eq.pagada"),
-      supabase.from("pedidos").select("total").gte("created_at", desde).eq("tipo", "online").eq("estado", "completado"),
-      supabase.from("devoluciones").select("total_devuelto").gte("created_at", desde).eq("estado", "aprobada"),
-      supabase.from("pedidos").select("total,productos:pedido_items(precio_unitario,cantidad,productos(categoria,costo))").gte("created_at", desde).eq("estado", "completado"),
-      supabase.from("pedidos").select("total").gte("created_at", desde).eq("estado", "completado").eq("receta_origen", "medico_farmax"),
-      supabase
-        .from("citas")
-        .select("id", { count: "exact", head: true })
-        .gte("fecha", desdeFecha)
-        .eq("receta_surtido_en", "externa")
-        .neq("estado", "cancelada")
-        .or("estado.eq.completada,estado.eq.pagada,pago_estado.eq.pagada"),
     ]);
+    const RB = repBundleRes.data || {};
+    const peds = RB.peds || [];
+    const cons = RB.cons || [];
+    const ponl = RB.ponl || [];
+    const devs = RB.devs || [];
+    const pedsCat = RB.peds_cat || [];
+    const pedsRecetaFarmax = RB.peds_receta_farmax || [];
+    const citasRecetaExternaPeriod = RB.citas_receta_ext_period_count ?? 0;
+    if (repBundleRes.error) console.warn("[Dashboard] reporte bundle:", repBundleRes.error.message);
     const totalDevoluciones = (devs || []).reduce((a, d) => a + parseFloat(d.total_devuelto || 0), 0);
     const margenCat = {};
     (pedsCat || []).forEach((ped) => {

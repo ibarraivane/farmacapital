@@ -118,12 +118,19 @@ function ClienteDetalle({ cliente, onReload }) {
 
   const fetchDetalle = useCallback(async () => {
     setLoading(true);
-    const [{ data:ped }, { data:cit }] = await Promise.all([
-      supabase.from("pedidos").select("*, pedido_items(*, productos(*))").eq("cliente_id", cliente.id).order("created_at",{ascending:false}).limit(20),
-      supabase.from("citas").select("*").eq("telefono", cliente.telefono).order("created_at",{ascending:false}).limit(10),
-    ]);
-    setPedidos(ped||[]);
-    setCitas(cit||[]);
+    const tok = sessionStorage.getItem("farmax_session_token");
+    const tel = String(cliente.telefono || "").trim();
+    const { data: blob } = tok
+      ? await supabase.rpc("empleado_cliente_detalle_historial", {
+          p_session_token: tok,
+          p_cliente_id: cliente.id,
+          p_telefono: tel,
+          p_limite_pedidos: 20,
+          p_limite_citas: 10,
+        })
+      : { data: null };
+    setPedidos(blob?.pedidos || []);
+    setCitas(blob?.citas || []);
     setLoading(false);
   }, [cliente.id, cliente.telefono]);
 

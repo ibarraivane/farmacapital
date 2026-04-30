@@ -151,11 +151,17 @@ function BitacoraAntibioticos() {
 
   const fetchRegistros = useCallback(async () => {
     setLoading(true);
-    let q = supabase.from("bitacora_cofepris").select("*").order("created_at",{ascending:false});
+    const tok = sessionStorage.getItem("farmax_session_token");
     const rango = getRangoFecha(filtroFecha);
-    if (rango) q = q.gte("created_at",rango.desde).lte("created_at",rango.hasta);
-    const { data, error } = await q;
-    if (!error) setRegistros(data||[]);
+    const { data, error } = tok
+      ? await supabase.rpc("empleado_listar_bitacora_cofepris", {
+          p_session_token: tok,
+          p_limite: 800,
+          p_created_desde: rango?.desde ?? null,
+          p_created_hasta: rango?.hasta ?? null,
+        })
+      : { data: [], error: null };
+    if (!error) setRegistros(Array.isArray(data) ? data : []);
     setLoading(false);
   }, [filtroFecha]);
 
@@ -235,8 +241,16 @@ function Controlados() {
 
   const fetchControlados = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase.from("bitacora_cofepris").select("*").order("created_at",{ascending:false});
-    if (!error) setRegistros(data||[]);
+    const tok = sessionStorage.getItem("farmax_session_token");
+    const { data, error } = tok
+      ? await supabase.rpc("empleado_listar_bitacora_cofepris", {
+          p_session_token: tok,
+          p_limite: 800,
+          p_created_desde: null,
+          p_created_hasta: null,
+        })
+      : { data: [], error: null };
+    if (!error) setRegistros(Array.isArray(data) ? data : []);
     setLoading(false);
   }, []);
 

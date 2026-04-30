@@ -325,20 +325,35 @@ function EnConsulta() {
   const fetchActual = useCallback(async () => {
     setLoading(true);
     const hoy = todaySvLocal();
-    const { data } = await supabase.from("citas").select("*").eq("estado","en_consulta").eq("fecha", hoy).limit(1);
-    const cita = data?.[0]||null;
+    const tok = sessionStorage.getItem("farmax_session_token");
+    let cita = null;
+    if (tok) {
+      const { data: row } = await supabase.rpc("empleado_obtener_cita_en_consulta_hoy", {
+        p_session_token: tok,
+        p_fecha: hoy,
+      });
+      cita = row && typeof row === "object" ? row : null;
+    }
     setCitaActual(cita);
     if (cita) {
-      const tok = sessionStorage.getItem("farmax_session_token");
-      const [{ data:hist },{ data:procs },bot,{ data:cliente }] = await Promise.all([
-        supabase.from("citas").select("*").eq("telefono",cita.telefono).eq("estado","completada").order("fecha",{ascending:false}).limit(5),
-        supabase.from("procedimientos_medicos").select("*").eq("activo",true).order("nombre"),
+      const [{ data: hist }, { data: procs }, bot, { data: cliente }] = await Promise.all([
+        supabase.rpc("empleado_listar_citas_previas_completadas", {
+          p_session_token: tok,
+          p_telefono: cita.telefono,
+          p_limite: 5,
+        }),
+        supabase.rpc("empleado_listar_procedimientos_medicos", {
+          p_session_token: tok,
+          p_solo_activos: true,
+        }),
         fetchProductosConsumiblesConsultorio(supabase),
         supabase.rpc("admin_obtener_cliente_por_telefono", {
           p_session_token: tok, p_telefono: cita.telefono,
         }),
       ]);
-      setHistorial(hist||[]); setProcedimientos(procs||[]); setBotiquin(bot||[]);
+      setHistorial(Array.isArray(hist) ? hist : []);
+      setProcedimientos(Array.isArray(procs) ? procs : []);
+      setBotiquin(bot||[]);
       // J6: Cargar alergias y antecedentes previos del cliente
       if (cliente?.notas) {
         const notasTxt = cliente.notas;
@@ -629,23 +644,30 @@ function Procedimientos({ readOnly }) {
 
   const fetchProcs = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase.from("procedimientos_medicos").select("*").order("nombre");
+    const tok = sessionStorage.getItem("farmax_session_token");
+    const { data, error } = tok
+      ? await supabase.rpc("empleado_listar_procedimientos_medicos", {
+          p_session_token: tok,
+          p_solo_activos: false,
+        })
+      : { data: [], error: null };
+    const rows = Array.isArray(data) ? data : [];
     if (!error) {
-      if ((data || []).length === 0) {
+      if (rows.length === 0) {
         if (readOnly) {
           setProcs([]);
-        } else {
-          const tok = sessionStorage.getItem("farmax_session_token");
-          if (tok) {
-            await supabase.rpc("admin_seed_procedimientos_medicos", {
-              p_session_token: tok,
-              p_items:         DEFAULT_PROCEDIMIENTOS,
-            });
-          }
-          const { data: d2 } = await supabase.from("procedimientos_medicos").select("*").order("nombre");
-          setProcs(d2 || []);
-        }
-      } else setProcs(data || []);
+        } else if (tok) {
+          await supabase.rpc("admin_seed_procedimientos_medicos", {
+            p_session_token: tok,
+            p_items:         DEFAULT_PROCEDIMIENTOS,
+          });
+          const { data: d2 } = await supabase.rpc("empleado_listar_procedimientos_medicos", {
+            p_session_token: tok,
+            p_solo_activos: false,
+          });
+          setProcs(Array.isArray(d2) ? d2 : []);
+        } else setProcs([]);
+      } else setProcs(rows);
     }
     setLoading(false);
   }, [readOnly]);
@@ -717,8 +739,11 @@ function Medicos() {
 
   const fetchMedicos = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase.from("medicos").select("*").order("nombre");
-    if (!error) setMedicos(data||[]);
+    const tok = sessionStorage.getItem("farmax_session_token");
+    const { data, error } = tok
+      ? await supabase.rpc("empleado_listar_medicos_consultorio", { p_session_token: tok })
+      : { data: [], error: null };
+    if (!error) setMedicos(Array.isArray(data) ? data : []);
     setLoading(false);
   }, []);
 

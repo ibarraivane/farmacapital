@@ -194,11 +194,11 @@ export default function FacturacionModule() {
 
   const fetchFacturas = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase.from("facturas")
-      .select("*, clientes(nombre,telefono)")
-      .order("created_at",{ascending:false})
-      .limit(100);
-    setFacturas(data||[]);
+    const tok = sessionStorage.getItem("farmax_session_token");
+    const { data } = tok
+      ? await supabase.rpc("empleado_listar_facturas", { p_session_token: tok, p_limite: 100 })
+      : { data: [] };
+    setFacturas(Array.isArray(data) ? data : []);
     setLoading(false);
   },[]);
 
@@ -207,13 +207,15 @@ export default function FacturacionModule() {
   const buscarPedidos = async () => {
     if (!busqPed) return;
     setLoadPed(true);
-    const { data } = await supabase.from("pedidos")
-      .select("*, clientes(nombre,telefono,rfc,razon_social,email)")
-      .or(`id.eq.${isNaN(busqPed)?0:busqPed},clientes.telefono.eq.${busqPed}`)
-      .eq("estado","completado")
-      .order("created_at",{ascending:false})
-      .limit(10);
-    setPedidos(data||[]);
+    const tok = sessionStorage.getItem("farmax_session_token");
+    const { data } = tok
+      ? await supabase.rpc("empleado_buscar_pedidos_facturacion", {
+          p_session_token: tok,
+          p_busqueda: String(busqPed).trim(),
+          p_limite: 10,
+        })
+      : { data: [] };
+    setPedidos(Array.isArray(data) ? data : []);
     setLoadPed(false);
   };
 

@@ -27,12 +27,23 @@ export default function LotesModule() {
 
   const fetchData = useCallback(async()=>{
     setLoading(true);
-    const [{ data:ls },{ data:ps },{ data:pv }] = await Promise.all([
-      supabase.from("lotes").select("*, productos(nombre,sku,categoria), proveedores(id,nombre)").eq("activo",true).order("fecha_caducidad",{ascending:true}),
-      supabase.from("productos").select("id,nombre,sku").eq("activo",true).order("nombre"),
-      supabase.from("proveedores").select("id,nombre").order("nombre"),
-    ]);
-    setLotes(ls||[]); setProductos(ps||[]); setProveedores(pv||[]);
+    const tok = sessionStorage.getItem("farmax_session_token");
+    const [{ data: ls }, { data: ps }, { data: pv }] = tok
+      ? await Promise.all([
+          supabase.rpc("empleado_listar_lotes_inventario", { p_session_token: tok }),
+          supabase.rpc("empleado_listar_productos_min_activos", { p_session_token: tok }),
+          supabase.rpc("empleado_listar_proveedores_catalogo", { p_session_token: tok }),
+        ])
+      : [{ data: [] }, { data: [] }, { data: [] }];
+    const lotRows = Array.isArray(ls) ? ls : [];
+    lotRows.sort((a, b) => {
+      const fa = a.fecha_caducidad ? new Date(a.fecha_caducidad).getTime() : 0;
+      const fb = b.fecha_caducidad ? new Date(b.fecha_caducidad).getTime() : 0;
+      return fa - fb;
+    });
+    setLotes(lotRows);
+    setProductos(Array.isArray(ps) ? ps : []);
+    setProveedores(Array.isArray(pv) ? pv : []);
     setLoading(false);
   },[]);
 

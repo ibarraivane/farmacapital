@@ -131,34 +131,25 @@ export default function MiDia({ usuario, setPage }) {
       const finTurno = finDelTurno(hoy, turno).toISOString();
       const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString();
 
-      const [configMap, pedTurnoRes, pedMesRes, citasRes] = await Promise.all([
+      const tok = sessionStorage.getItem("farmax_session_token");
+      const [configMap, snapRes] = await Promise.all([
         cargarConfigMetas(),
-        // Pedidos del turno actual con items para cruzada / prod por ticket.
-        supabase
-          .from("pedidos")
-          .select("id, total, cliente_id, created_at, pedido_items(cantidad, productos(categoria))")
-          .eq("atendido_por", empleadoId)
-          .eq("estado", "completado")
-          .gte("created_at", inicioTurno)
-          .lte("created_at", finTurno),
-        // Pedidos del mes (resumen por día).
-        supabase
-          .from("pedidos")
-          .select("id, total, created_at")
-          .eq("atendido_por", empleadoId)
-          .eq("estado", "completado")
-          .gte("created_at", inicioMes),
-        // Citas en espera de hoy.
-        supabase
-          .from("citas")
-          .select("id", { count: "exact", head: true })
-          .eq("estado", "confirmada")
-          .eq("fecha", hoy.toISOString().slice(0, 10)),
+        tok
+          ? supabase.rpc("empleado_midia_snapshot", {
+              p_session_token: tok,
+              p_empleado_id: empleadoId,
+              p_turno_start: inicioTurno,
+              p_turno_end: finTurno,
+              p_mes_start: inicioMes,
+              p_fecha_citas: hoy.toISOString().slice(0, 10),
+            })
+          : Promise.resolve({ data: null, error: { message: "sin sesión" } }),
       ]);
 
-      const pedTurno = pedTurnoRes.data || [];
-      const pedMes = pedMesRes.data || [];
-      const citasEspera = citasRes.count ?? 0;
+      const snap = snapRes?.data || {};
+      const pedTurno = snap.ped_turno || [];
+      const pedMes = snap.ped_mes || [];
+      const citasEspera = typeof snap.citas_espera === "number" ? snap.citas_espera : 0;
 
       // ── Meta del turno con ajustes por fecha.
       const claveMeta = claveMetaTurno(hoy, turno);

@@ -71,11 +71,13 @@ export default function RRHHModule() {
     setLoadCom(true);
     const dias = periCom==="dia"?1:periCom==="semana"?7:30;
     const desde = new Date(Date.now()-dias*86400000).toISOString();
-    const { data } = await supabase
-      .from("pedidos")
-      .select("total, atendido_por, usuarios(nombre)")
-      .eq("estado","completado")
-      .gte("created_at", desde);
+    const tok = sessionStorage.getItem("farmax_session_token");
+    const { data } = tok
+      ? await supabase.rpc("empleado_rrhh_comisiones_pedidos", {
+          p_session_token: tok,
+          p_desde: desde,
+        })
+      : { data: [] };
     // Agrupar por empleado
     const map = {};
     (data||[]).forEach(p=>{
