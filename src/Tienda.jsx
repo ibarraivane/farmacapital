@@ -1535,70 +1535,368 @@ function Footer({setPage}){
   );
 }
 
-// ── HOME: SERVICIOS (carrusel móvil / grid escritorio) ────────
-function HomeServices({setPage}){
-  const C = useTheme();
-  const servicios = [
-    { titulo:"Pick-up gratis", desc:"Recoge hoy en Farmax", color:BRAND.primary, action:()=>setPage("envios") },
-    { titulo:"CDMX express", desc:"Rappi & Uber Connect", color:BRAND.secondary, action:()=>setPage("envios") },
-    { titulo:"Envío foráneo", desc:"$89 · Skydropx", color:BRAND.accent, action:()=>setPage("envios") },
-    { titulo:"Puntos Farmax", desc:"Acumula en cada compra", color:"#ffaa00", action:()=>setPage("puntos") },
-    { titulo:"Pago online", desc:"Mercado Pago", color:"#8b5cf6", action:()=>setPage("catalogo") },
-  ];
+// ── HOME: SERVICIOS — helpers de contenido modal ──────────────
+const sStrong = { color:"inherit", fontWeight:700 };
+const sH4 = (color)=>({
+  color,
+  fontSize:13,
+  fontWeight:800,
+  textTransform:"uppercase",
+  letterSpacing:1,
+  marginTop:18,
+  marginBottom:8,
+});
+const sList = { margin:"8px 0", paddingLeft:20 };
+const sListItem = { marginBottom:6 };
+
+function ContenidoPickup({ C, color }){
   return (
-    <div style={{padding:16,background:C.bg,borderBottom:`1px solid ${C.border}`}}>
-      <div className="farmax-home-services-scroll" style={{
+    <>
+      <p style={{margin:"0 0 12px"}}>
+        Pide en línea y recoge personalmente en Farmacia Ventura. Sin costo de envío y disponible el mismo día.
+      </p>
+      <h4 style={sH4(color)}>¿Cómo funciona?</h4>
+      <ol style={sList}>
+        <li style={sListItem}>Haz tu pedido en línea y elige &quot;Pick-up en farmacia&quot;</li>
+        <li style={sListItem}>Realiza el pago (efectivo al recoger, tarjeta o Mercado Pago)</li>
+        <li style={sListItem}>Recibe confirmación cuando tu pedido esté listo (15–30 minutos)</li>
+        <li style={sListItem}>Pasa por él en nuestro horario de atención</li>
+      </ol>
+      <h4 style={sH4(color)}>Dirección</h4>
+      <p style={{margin:"0 0 12px"}}>
+        Radiodifusora 100, Col. Chinampac de Juárez, Iztapalapa, CDMX
+      </p>
+      <h4 style={sH4(color)}>Horario</h4>
+      <ul style={sList}>
+        <li style={sListItem}>Lunes a Viernes: 8:00 – 22:00</li>
+        <li style={sListItem}>Sábado: 8:00 – 20:00</li>
+        <li style={sListItem}>Domingo: 9:00 – 18:00</li>
+      </ul>
+      <h4 style={sH4(color)}>Importante</h4>
+      <p style={{margin:0,color:C.textMid,fontSize:13}}>
+        Trae una identificación oficial y el número de pedido. Si pagas en efectivo al recoger, ten lista la cantidad exacta cuando sea posible.
+      </p>
+    </>
+  );
+}
+
+function ContenidoCDMX({ color }){
+  return (
+    <>
+      <p style={{margin:"0 0 12px"}}>
+        Recibe tu pedido en tu domicilio en menos de 60 minutos dentro de la Ciudad de México con nuestros aliados de mensajería.
+      </p>
+      <h4 style={sH4(color)}>¿Cómo funciona?</h4>
+      <ol style={sList}>
+        <li style={sListItem}>Haz tu pedido en línea y elige &quot;Entrega CDMX express&quot;</li>
+        <li style={sListItem}>El costo de envío se calcula según tu zona y peso (lo verás antes de pagar)</li>
+        <li style={sListItem}>Un repartidor de Rappi o Uber recoge tu pedido en la farmacia</li>
+        <li style={sListItem}>Llega a tu domicilio en 30–60 minutos</li>
+      </ol>
+      <h4 style={sH4(color)}>Cobertura</h4>
+      <p style={{margin:"0 0 12px"}}>
+        Toda la Ciudad de México y zonas metropolitanas cubiertas por Rappi y Uber Connect.
+      </p>
+      <h4 style={sH4(color)}>Costo</h4>
+      <p style={{margin:"0 0 12px"}}>
+        Variable según distancia. Lo calculamos automáticamente al confirmar tu pedido.
+      </p>
+      <h4 style={sH4(color)}>Horario de servicio</h4>
+      <p style={{margin:"0 0 12px"}}>
+        Disponible durante el horario de atención de la farmacia.
+      </p>
+      <h4 style={sH4(color)}>Recomendación</h4>
+      <p style={{margin:0,color:C.textMid,fontSize:13}}>
+        Para entregas de medicamentos refrigerados o productos frágiles, considera hacer tu pedido al inicio de nuestro horario para mayor frescura.
+      </p>
+    </>
+  );
+}
+
+function ContenidoForaneo({ C, color }){
+  return (
+    <>
+      <p style={{margin:"0 0 12px"}}>
+        ¿Estás fuera de CDMX? Te enviamos a cualquier estado de México a través de Skydropx.
+      </p>
+      <h4 style={sH4(color)}>¿Cómo funciona?</h4>
+      <ol style={sList}>
+        <li style={sListItem}>Haz tu pedido en línea y elige &quot;Envío foráneo&quot;</li>
+        <li style={sListItem}>Pagas el costo del producto + $89 MXN de envío base</li>
+        <li style={sListItem}>Empacamos tu pedido con cuidado el mismo día</li>
+        <li style={sListItem}>Skydropx lo entrega en 2–5 días hábiles</li>
+      </ol>
+      <h4 style={sH4(color)}>Costo</h4>
+      <p style={{margin:"0 0 12px"}}>
+        <span style={sStrong}>$89 MXN tarifa base.</span> Si tu pedido es muy grande o pesado, te avisamos antes de cobrarte de más.
+      </p>
+      <h4 style={sH4(color)}>Tiempo de entrega</h4>
+      <ul style={sList}>
+        <li style={sListItem}>Centro del país: 2–3 días hábiles</li>
+        <li style={sListItem}>Norte y sureste: 3–5 días hábiles</li>
+      </ul>
+      <h4 style={sH4(color)}>Importante</h4>
+      <ul style={{...sList,color:C.textMid,fontSize:13}}>
+        <li style={sListItem}>Necesitas dirección completa con código postal y teléfono.</li>
+        <li style={sListItem}>Algunos medicamentos controlados o refrigerados no se pueden enviar foráneo. Si es tu caso, te lo avisamos antes de cobrar.</li>
+        <li style={sListItem}>Te enviamos un código de rastreo para que sigas tu paquete.</li>
+      </ul>
+    </>
+  );
+}
+
+function ContenidoPago({ C, color }){
+  return (
+    <>
+      <p style={{margin:"0 0 12px"}}>
+        En Farmax aceptamos varias formas de pago para tu comodidad.
+      </p>
+      <h4 style={sH4(color)}>En línea (a través de Mercado Pago)</h4>
+      <ul style={sList}>
+        <li style={sListItem}>Tarjetas de crédito (Visa, Mastercard, American Express)</li>
+        <li style={sListItem}>Tarjetas de débito</li>
+        <li style={sListItem}>Transferencia bancaria SPEI</li>
+        <li style={sListItem}>OXXO Pay (paga en cualquier OXXO)</li>
+        <li style={sListItem}>Mercado Crédito (a meses sin intereses según tu cuenta)</li>
+      </ul>
+      <h4 style={sH4(color)}>En la farmacia (al recoger pick-up)</h4>
+      <ul style={sList}>
+        <li style={sListItem}>Efectivo</li>
+        <li style={sListItem}>Tarjetas de crédito y débito</li>
+        <li style={sListItem}>Transferencia bancaria SPEI</li>
+      </ul>
+      <h4 style={sH4(color)}>Seguridad</h4>
+      <p style={{margin:"0 0 12px",color:C.textMid,fontSize:13}}>
+        Mercado Pago es una pasarela externa certificada. Tus datos bancarios nunca se almacenan en Farmax. Todo el proceso de pago en línea es manejado directamente por Mercado Pago con cifrado de extremo a extremo.
+      </p>
+      <h4 style={sH4(color)}>Reembolsos</h4>
+      <p style={{margin:0,color:C.textMid,fontSize:13}}>
+        Si necesitas un reembolso, te lo procesamos por el mismo medio de pago que usaste, en un plazo de 3–7 días hábiles.
+      </p>
+    </>
+  );
+}
+
+function ServicioModal({ abierto, onClose, titulo, color, contenido: Contenido }){
+  const C = useTheme();
+  if (!abierto) return null;
+  return (
+    <div
+      role="presentation"
+      onClick={onClose}
+      style={{
+        position:"fixed",
+        inset:0,
+        background:"rgba(15,23,42,.6)",
         display:"flex",
-        gap:12,
-        overflowX:"auto",
-        scrollSnapType:"x mandatory",
-        paddingBottom:4,
-        scrollbarWidth:"none",
-        WebkitOverflowScrolling:"touch",
-      }}>
-        {servicios.map((s,i)=>(
+        alignItems:"center",
+        justifyContent:"center",
+        zIndex:1000,
+        padding:16,
+        backdropFilter:"blur(2px)",
+      }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="farmax-servicio-modal-titulo"
+        onClick={(e)=>e.stopPropagation()}
+        style={{
+          background:C.card,
+          borderRadius:16,
+          maxWidth:560,
+          width:"100%",
+          maxHeight:"85vh",
+          overflowY:"auto",
+          boxShadow:"0 20px 60px rgba(0,0,0,.3)",
+        }}
+      >
+        <div style={{
+          background:`linear-gradient(135deg, ${color}, ${color}dd)`,
+          padding:"20px 24px",
+          color:"#fff",
+          position:"relative",
+          borderRadius:"16px 16px 0 0",
+        }}>
           <button
-            key={i}
             type="button"
-            onClick={s.action}
+            aria-label="Cerrar"
+            onClick={onClose}
             style={{
-              flex:"0 0 auto",
-              width:"min(160px, 38vw)",
-              padding:"16px 14px",
-              borderRadius:12,
-              border:`1px solid ${C.border}`,
-              borderTop:`3px solid ${s.color}`,
-              background:C.card,
+              position:"absolute",
+              top:12,
+              right:12,
+              background:"rgba(255,255,255,.2)",
+              border:"none",
+              color:"#fff",
+              width:32,
+              height:32,
+              borderRadius:"50%",
               cursor:"pointer",
-              scrollSnapAlign:"start",
-              textAlign:"left",
+              fontSize:18,
               display:"flex",
-              flexDirection:"column",
-              gap:4,
+              alignItems:"center",
+              justifyContent:"center",
+            }}
+          >
+            ×
+          </button>
+          <h3 id="farmax-servicio-modal-titulo" style={{
+            margin:0,
+            fontSize:20,
+            fontWeight:800,
+            paddingRight:32,
+            lineHeight:1.3,
+            fontFamily:"'Plus Jakarta Sans',sans-serif",
+          }}>
+            {titulo}
+          </h3>
+        </div>
+        <div style={{
+          padding:24,
+          color:C.text,
+          fontSize:14,
+          lineHeight:1.7,
+          fontFamily:"'Plus Jakarta Sans',sans-serif",
+        }}>
+          <Contenido C={C} color={color}/>
+        </div>
+        <div style={{
+          padding:"16px 24px 24px",
+          borderTop:`1px solid ${C.border}`,
+        }}>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              width:"100%",
+              padding:12,
+              borderRadius:10,
+              border:"none",
+              background:color,
+              color:"#fff",
+              fontWeight:700,
+              fontSize:14,
+              cursor:"pointer",
               fontFamily:"'Plus Jakarta Sans',sans-serif",
             }}
           >
-            <div style={{color:C.text,fontSize:14,fontWeight:700,lineHeight:1.2}}>{s.titulo}</div>
-            <div style={{color:C.textMid,fontSize:12,lineHeight:1.3}}>{s.desc}</div>
+            Entendido
           </button>
-        ))}
+        </div>
       </div>
-      <style>{`
-        .farmax-home-services-scroll::-webkit-scrollbar { display: none; }
-        @media (min-width: 769px) {
-          .farmax-home-services-scroll {
-            display: grid !important;
-            grid-template-columns: repeat(5, minmax(0, 1fr));
-            overflow-x: visible !important;
-            scroll-snap-type: none;
-          }
-          .farmax-home-services-scroll > button {
-            width: auto !important;
-            min-width: 0;
-          }
-        }
-      `}</style>
     </div>
+  );
+}
+
+// ── HOME: SERVICIOS (carrusel móvil / grid escritorio) ────────
+function HomeServices({setPage}){
+  const C = useTheme();
+  const [modalAbierto,setModalAbierto]=useState(null);
+  const servicios = [
+    { key:"pickup", titulo:"Pick-up gratis", desc:"Recoge hoy en Farmax", color:BRAND.primary, tipo:"modal" },
+    { key:"cdmx", titulo:"CDMX express", desc:"Rappi & Uber Connect", color:BRAND.secondary, tipo:"modal" },
+    { key:"foraneo", titulo:"Envío foráneo", desc:"$89 · Skydropx", color:BRAND.accent, tipo:"modal" },
+    { key:"puntos", titulo:"Puntos Farmax", desc:"Acumula en cada compra", color:"#ffaa00", tipo:"page", destino:"puntos" },
+    { key:"pago", titulo:"Pago online", desc:"Mercado Pago", color:"#8b5cf6", tipo:"modal" },
+  ];
+  const handleClick = (s)=>{
+    if (s.tipo==="page") setPage(s.destino);
+    else setModalAbierto(s.key);
+  };
+  return (
+    <>
+      <div style={{padding:16,background:C.bg,borderBottom:`1px solid ${C.border}`}}>
+        <div className="farmax-home-services-scroll" style={{
+          display:"flex",
+          gap:12,
+          overflowX:"auto",
+          scrollSnapType:"x mandatory",
+          paddingBottom:4,
+          scrollbarWidth:"none",
+          WebkitOverflowScrolling:"touch",
+        }}>
+          {servicios.map((s)=>(
+            <button
+              key={s.key}
+              type="button"
+              onClick={()=>handleClick(s)}
+              style={{
+                flex:"0 0 auto",
+                width:"min(160px, 38vw)",
+                padding:"16px 14px",
+                borderRadius:12,
+                border:`1px solid ${C.border}`,
+                borderTop:`3px solid ${s.color}`,
+                background:C.card,
+                cursor:"pointer",
+                scrollSnapAlign:"start",
+                textAlign:"left",
+                display:"flex",
+                flexDirection:"column",
+                gap:4,
+                transition:"transform .15s, box-shadow .15s",
+                fontFamily:"'Plus Jakarta Sans',sans-serif",
+              }}
+              onMouseEnter={(e)=>{
+                e.currentTarget.style.transform="translateY(-2px)";
+                e.currentTarget.style.boxShadow="0 4px 12px rgba(0,0,0,.1)";
+              }}
+              onMouseLeave={(e)=>{
+                e.currentTarget.style.transform="translateY(0)";
+                e.currentTarget.style.boxShadow="none";
+              }}
+            >
+              <div style={{color:C.text,fontSize:14,fontWeight:700,lineHeight:1.2}}>{s.titulo}</div>
+              <div style={{color:C.textMid,fontSize:12,lineHeight:1.3}}>{s.desc}</div>
+            </button>
+          ))}
+        </div>
+        <style>{`
+          .farmax-home-services-scroll::-webkit-scrollbar { display: none; }
+          @media (min-width: 769px) {
+            .farmax-home-services-scroll {
+              display: grid !important;
+              grid-template-columns: repeat(5, minmax(0, 1fr));
+              overflow-x: visible !important;
+              scroll-snap-type: none;
+            }
+            .farmax-home-services-scroll > button {
+              width: auto !important;
+              min-width: 0;
+            }
+          }
+        `}</style>
+      </div>
+      <ServicioModal
+        abierto={modalAbierto==="pickup"}
+        onClose={()=>setModalAbierto(null)}
+        titulo="Recoge tu pedido en la farmacia"
+        color={BRAND.primary}
+        contenido={ContenidoPickup}
+      />
+      <ServicioModal
+        abierto={modalAbierto==="cdmx"}
+        onClose={()=>setModalAbierto(null)}
+        titulo="Entrega rápida en CDMX"
+        color={BRAND.secondary}
+        contenido={ContenidoCDMX}
+      />
+      <ServicioModal
+        abierto={modalAbierto==="foraneo"}
+        onClose={()=>setModalAbierto(null)}
+        titulo="Envío a toda la República"
+        color={BRAND.accent}
+        contenido={ContenidoForaneo}
+      />
+      <ServicioModal
+        abierto={modalAbierto==="pago"}
+        onClose={()=>setModalAbierto(null)}
+        titulo="Métodos de pago aceptados"
+        color="#8b5cf6"
+        contenido={ContenidoPago}
+      />
+    </>
   );
 }
 
