@@ -30,9 +30,21 @@ export default function ImageUploader({
   const [progress, setProgress] = useState(0);
   const fileInputRef = useRef(null);
 
+  const extToMime = {
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    png: "image/png",
+    webp: "image/webp",
+    gif: "image/gif",
+  };
+
   const handleFile = async (file) => {
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
+    const rawExt = (file.name.split(".").pop() || "").toLowerCase();
+    const ext = rawExt === "jfif" ? "jpg" : rawExt;
+    const fallbackMime = extToMime[ext] || "";
+    const fileMime = file.type && file.type.startsWith("image/") ? file.type : fallbackMime;
+    if (!fileMime) {
       showToast("Por favor selecciona una imagen válida", "error");
       return;
     }
@@ -46,18 +58,24 @@ export default function ImageUploader({
     setProgress(10);
 
     try {
-      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+      const finalExt =
+        fileMime === "image/jpeg" ? "jpg" :
+        fileMime === "image/png" ? "png" :
+        fileMime === "image/webp" ? "webp" :
+        fileMime === "image/gif" ? "gif" :
+        (ext || "jpg");
       const timestamp = Date.now();
       const cleanPrefix = filenamePrefix.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
       const fileName = cleanPrefix
-        ? `${cleanPrefix}-${timestamp}.${ext}`
-        : `${bucket}-${timestamp}.${ext}`;
+        ? `${cleanPrefix}-${timestamp}.${finalExt}`
+        : `${bucket}-${timestamp}.${finalExt}`;
 
       setProgress(30);
 
       const { error: uploadError } = await supabase.storage.from(bucket).upload(fileName, file, {
         cacheControl: "3600",
         upsert: false,
+        contentType: fileMime,
       });
 
       if (uploadError) throw uploadError;
