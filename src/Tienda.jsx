@@ -272,21 +272,21 @@ function PopupBienvenida({onClose,setPage,precioConsulta,banner}){
     ? (bannerTxt(banner?.imagen_url_mobile) || bannerTxt(banner?.imagen_mobile_url) || bannerTxt(banner?.imagen_url))
     : (bannerTxt(banner?.imagen_url) || bannerTxt(banner?.imagen_url_mobile) || bannerTxt(banner?.imagen_mobile_url));
   return(
-    <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,.55)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:16,overflowY:"auto",WebkitOverflowScrolling:"touch",pointerEvents:"auto"}}>
-      <div style={{background:C.white,borderRadius:16,maxWidth:mobilePopup?420:640,width:"100%",maxHeight:"90vh",overflowY:"auto",boxShadow:"0 20px 60px rgba(0,0,0,.3)"}}>
+    <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(2,6,23,.62)",backdropFilter:"blur(3px)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:16,overflowY:"auto",WebkitOverflowScrolling:"touch",pointerEvents:"auto"}}>
+      <div style={{background:C.white,borderRadius:16,maxWidth:mobilePopup?420:640,width:"100%",maxHeight:"90vh",overflowY:"auto",boxShadow:"0 24px 70px rgba(2,6,23,.48)",border:"1px solid rgba(255,255,255,.4)"}}>
         <div style={{background:BRAND.gradient,padding:"28px 20px",textAlign:"center",position:"relative",overflow:"hidden"}}>
           {imgUrl ? (
             <img
               src={imgUrl}
               alt={titulo || "Banner de bienvenida"}
-              style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",zIndex:0}}
+              style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",objectPosition:"center center",zIndex:0,filter:"saturate(1.08) contrast(1.05)"}}
             />
           ) : null}
           <div
             style={{
               position:"absolute",
               inset:0,
-              background:imgUrl ? "linear-gradient(180deg, rgba(2,6,23,.45), rgba(2,6,23,.75))" : "transparent",
+              background:imgUrl ? "linear-gradient(180deg, rgba(2,6,23,.12), rgba(2,6,23,.42))" : "transparent",
               zIndex:1,
             }}
           />
@@ -302,7 +302,7 @@ function PopupBienvenida({onClose,setPage,precioConsulta,banner}){
           <button type="button" onClick={onClose} style={{position:"absolute",top:12,right:16,background:"rgba(255,255,255,.2)",border:"none",color:C.white,width:28,height:28,borderRadius:"50%",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
           <div style={{position:"relative",zIndex:2}}>
             <h2 style={{color:C.white,fontSize:"clamp(18px,4.5vw,22px)",fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif",marginBottom:8}}>{titulo}</h2>
-            <p style={{color:"rgba(255,255,255,.92)",fontSize:14,lineHeight:1.6}}>
+            <p style={{color:"rgba(255,255,255,.98)",fontSize:14,lineHeight:1.6,textShadow:"0 1px 4px rgba(2,6,23,.7)"}}>
               <strong>{subtitulo}</strong>{descripcion ? ` - ${descripcion}` : ""}
             </p>
           </div>
