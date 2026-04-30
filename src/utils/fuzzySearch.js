@@ -9,6 +9,66 @@ import {
   tokenMatchesInNormalizedHaystack,
 } from "../utils";
 
+/**
+ * Consultas muy cortas tipo "para" coincidían con cualquier subcadena: preposición en
+ * "crema para pañal", texto genérico, etc. Solo tratamos tokens donde eso molesta en catálogo.
+ */
+const AMBIGUOUS_SHORT_SUBSTRING_TOKENS = new Set(["para"]);
+
+/**
+ * Coincidencia para tokens cortos ambiguos en texto ya normalizado (sin acentos).
+ * Permite prefijo (Paracetamol), segmentos tipo ".../Para..." y rechaza "palabra para palabra".
+ */
+export function matchesAmbiguousShortCatalogToken(tok, haystackNorm) {
+  const n = String(tok || "");
+  const h = String(haystackNorm || "");
+  if (!n || !h || !AMBIGUOUS_SHORT_SUBSTRING_TOKENS.has(n)) return false;
+  if (!h.includes(n)) return false;
+  if (h.startsWith(n)) return true;
+  if (h.includes(`/${n}`)) return true;
+  for (const seg of h.split("/")) {
+    if (seg.trimStart().startsWith(n)) return true;
+  }
+  let idx = 0;
+  while ((idx = h.indexOf(n, idx)) !== -1) {
+    const before = idx === 0 ? "" : h[idx - 1];
+    const afterPos = idx + n.length;
+    const after = afterPos >= h.length ? "" : h[afterPos];
+    const isolatedPrep = before === " " && after === " ";
+    if (!isolatedPrep) return true;
+    idx += n.length;
+  }
+  return false;
+}
+
+function shortCatalogTokenMatchesNormalizedField(tok, fieldNorm) {
+  if (!tok || !fieldNorm) return false;
+  if (AMBIGUOUS_SHORT_SUBSTRING_TOKENS.has(tok)) {
+    return matchesAmbiguousShortCatalogToken(tok, fieldNorm);
+  }
+  return tokenMatchesInNormalizedHaystack(tok, fieldNorm);
+}
+
+/** Igual que someFieldIncludesNormalizedQuery pero con reglas de catálogo tienda ("para", etc.). */
+function tiendaFieldsMatchNormalizedTokens(fieldsRaw, queryRaw) {
+  const q = normalizeForSearch(queryRaw);
+  if (!q) return true;
+  const tokens = q.split(/\s+/).filter(Boolean);
+  if (!tokens.length) return true;
+  const normalizedFields = fieldsRaw.map((f) => normalizeForSearch(f)).filter((nf) => nf !== "");
+  return tokens.every((tok) =>
+    normalizedFields.some((nf) => shortCatalogTokenMatchesNormalizedField(tok, nf))
+  );
+}
+
+/** Frase completa en un solo campo (multi-palabra) o token único con reglas ambiguas. */
+function normalizedHaystackMatchesPhrase(haystackNorm, qn, tokens) {
+  if (!haystackNorm || !qn) return false;
+  if (tokens.length >= 2) return haystackNorm.includes(qn);
+  const t = tokens[0];
+  return shortCatalogTokenMatchesNormalizedField(t, haystackNorm);
+}
+
 /** Distancia de Levenshtein (iterativa, O(nm)). */
 export function levenshtein(a, b) {
   const s = String(a);
@@ -154,7 +214,7 @@ export function tiendaProductMatchesBusqueda(product, queryRaw) {
   const primaryFields = [nombre, principio, generica, distintiva, marca, concentracion, presentacion, forma, categoria, sku, cb];
 
   // Primero, coincidencia directa clásica (la más esperada por usuario).
-  if (someFieldIncludesNormalizedQuery(
+  if (tiendaFieldsMatchNormalizedTokens(
     [
       product?.nombre,
       product?.principio_activo,
@@ -175,7 +235,7 @@ export function tiendaProductMatchesBusqueda(product, queryRaw) {
   if (tokens.length === 1) {
     const tok = tokens[0];
     if (tok.length <= 4) {
-      return primaryFields.some((f) => tokenMatchesInNormalizedHaystack(tok, f));
+      return primaryFields.some((f) => shortCatalogTokenMatchesNormalizedField(tok, f));
     }
   }
 
@@ -183,7 +243,7 @@ export function tiendaProductMatchesBusqueda(product, queryRaw) {
   // solo permitir fuzzy para tokens largos (>=5) y en nombre/principio/marca.
   return tokens.every((tok) => {
     if (tok.length <= 1) return false;
-    if (primaryFields.some((f) => tokenMatchesInNormalizedHaystack(tok, f))) return true;
+    if (primaryFields.some((f) => shortCatalogTokenMatchesNormalizedField(tok, f))) return true;
     if (tok.length < 5) return false;
     return [nombre, principio, generica, distintiva, marca, concentracion, presentacion, forma].some((f) => normalizedTextFuzzyMatch(tok, f));
   });
@@ -197,7 +257,7 @@ export function tiendaSearchRelevanceRank(product, queryRaw) {
   const raw = String(queryRaw ?? "").trim();
   if (!raw) return 0;
   const values = TIENDA_GETTERS.map((fn) => fn(product)).filter((v) => v != null && String(v).trim() !== "");
-  const bySubstring = someFieldIncludesNormalizedQuery(values, raw);
+  const bySubstring = tiendaFieldsMatchNormalizedTokens(values, raw);
   const qn = normalizeForSearch(raw);
   if (!qn) return 40;
   const tokens = qn.split(/\s+/).filter(Boolean);
@@ -213,13 +273,14 @@ export function tiendaSearchRelevanceRank(product, queryRaw) {
   const cb = normalizeForSearch(String(product.codigo_barras ?? ""));
   const marca = normalizeForSearch(String(product.marca ?? ""));
   const cat = normalizeForSearch(product.categoria || "");
-  const everyIn = (hay) => tokens.length > 0 && tokens.every((t) => hay.includes(t));
+  const everyIn = (hay) =>
+    tokens.length > 0 && tokens.every((t) => shortCatalogTokenMatchesNormalizedField(t, hay));
 
-  if (n.includes(qn)) return 0;
+  if (normalizedHaystackMatchesPhrase(n, qn, tokens)) return 0;
   if (everyIn(n)) return 2;
-  if (pa.includes(qn)) return 1;
-  if (dg.includes(qn)) return 1;
-  if (dd.includes(qn)) return 2;
+  if (normalizedHaystackMatchesPhrase(pa, qn, tokens)) return 1;
+  if (normalizedHaystackMatchesPhrase(dg, qn, tokens)) return 1;
+  if (normalizedHaystackMatchesPhrase(dd, qn, tokens)) return 2;
   if (everyIn(pa)) return 3;
   if (everyIn(dg)) return 3;
   if (everyIn(dd)) return 4;
@@ -268,13 +329,13 @@ export function tiendaCatalogSearchSuggestions(products, queryRaw, { limit = 8 }
     const conc = normalizeForSearch(p.concentracion || "");
     const pres = normalizeForSearch(p.presentacion || "");
     const forma = normalizeForSearch(p.forma_farmaceutica || "");
-    if (nn.includes(qn)) rank = Math.min(rank, 2);
-    if (qTokens.length && qTokens.every((t) => nn.includes(t))) rank = Math.min(rank, 5);
-    if (ptn.includes(qn)) rank = Math.min(rank, 4);
-    if (qTokens.length && qTokens.every((t) => ptn.includes(t))) rank = Math.min(rank, 6);
-    if (dgn.includes(qn)) rank = Math.min(rank, 4);
-    if (qTokens.length && qTokens.every((t) => dgn.includes(t))) rank = Math.min(rank, 6);
-    if (ddn.includes(qn)) rank = Math.min(rank, 5);
+    if (normalizedHaystackMatchesPhrase(nn, qn, qTokens)) rank = Math.min(rank, 2);
+    if (qTokens.length && qTokens.every((t) => shortCatalogTokenMatchesNormalizedField(t, nn))) rank = Math.min(rank, 5);
+    if (normalizedHaystackMatchesPhrase(ptn, qn, qTokens)) rank = Math.min(rank, 4);
+    if (qTokens.length && qTokens.every((t) => shortCatalogTokenMatchesNormalizedField(t, ptn))) rank = Math.min(rank, 6);
+    if (normalizedHaystackMatchesPhrase(dgn, qn, qTokens)) rank = Math.min(rank, 4);
+    if (qTokens.length && qTokens.every((t) => shortCatalogTokenMatchesNormalizedField(t, dgn))) rank = Math.min(rank, 6);
+    if (normalizedHaystackMatchesPhrase(ddn, qn, qTokens)) rank = Math.min(rank, 5);
     if (conc.includes(qn) || pres.includes(qn) || forma.includes(qn)) rank = Math.min(rank, 7);
     if (rank === 100) {
       if (!tiendaProductMatchesBusqueda(p, q)) continue;
