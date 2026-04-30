@@ -8,12 +8,12 @@ values (
   'banners',
   'banners',
   true,
-  5242880,
+  12582912,
   array['image/jpeg','image/png','image/webp','image/gif']::text[]
 )
 on conflict (id) do update set
   public = true,
-  file_size_limit = 5242880,
+  file_size_limit = 12582912,
   allowed_mime_types = array['image/jpeg','image/png','image/webp','image/gif']::text[];
 
 -- Bucket público para productos
@@ -22,12 +22,12 @@ values (
   'productos',
   'productos',
   true,
-  5242880,
+  12582912,
   array['image/jpeg','image/png','image/webp']::text[]
 )
 on conflict (id) do update set
   public = true,
-  file_size_limit = 5242880,
+  file_size_limit = 12582912,
   allowed_mime_types = array['image/jpeg','image/png','image/webp']::text[];
 
 drop policy if exists "Lectura pública de banners" on storage.objects;
