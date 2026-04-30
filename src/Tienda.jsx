@@ -1735,7 +1735,7 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
             placeholder="🔍 Buscar otro producto (nombre, principio activo, SKU…)"
             style={{width:"100%",boxSizing:"border-box",fontSize:16,marginBottom:0}}
           />
-          {false&&(
+          {suggestions.length>0&&(
             <div role="listbox" aria-label="Sugerencias de búsqueda" style={{
               position:"relative",left:0,right:0,top:"calc(100% + 4px)",
               background:C.white,border:`1px solid ${C.border}`,borderRadius:10,
@@ -2480,7 +2480,7 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
             autoComplete="off"
             style={{width:"100%",boxSizing:"border-box",padding:"16px 20px",borderRadius:30,border:`2px solid ${BRAND.primary}30`,fontSize:16,fontFamily:"'Plus Jakarta Sans',sans-serif",outline:"none",background:C.white,boxShadow:"0 4px 20px rgba(0,82,204,.1)"}}
           />
-          {false&&(
+          {heroSuggestions.length>0&&(
             <div role="listbox" aria-label="Sugerencias de búsqueda" style={{
               position:"relative",left:0,right:0,top:"calc(100% + 6px)",
               background:C.white,border:`1px solid ${C.border}`,borderRadius:14,
@@ -2685,7 +2685,7 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
           placeholder="🔍 Nombre, principio activo, marca, SKU o código…"
           style={{width:"100%",boxSizing:"border-box",fontSize:16,marginBottom:0}}
         />
-        {false&&(
+        {suggestions.length>0&&(
           <div role="listbox" aria-label="Sugerencias de búsqueda" style={{
             position:"relative",left:0,right:0,top:"calc(100% + 4px)",
             background:C.white,border:`1px solid ${C.border}`,borderRadius:10,
