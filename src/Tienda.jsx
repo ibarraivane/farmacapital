@@ -1737,9 +1737,9 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
           />
           {suggestions.length>0&&(
             <div role="listbox" aria-label="Sugerencias de búsqueda" style={{
-              position:"relative",left:0,right:0,top:"calc(100% + 4px)",
+              position:"absolute",left:0,right:0,top:"100%",marginTop:4,
               background:C.white,border:`1px solid ${C.border}`,borderRadius:10,
-              boxShadow:"0 16px 48px rgba(15,23,42,.12)",maxHeight:narrowSuggest?260:320,overflowY:"visible",
+              boxShadow:"0 16px 48px rgba(15,23,42,.12)",maxHeight:"min(45vh, 320px)",overflowY:"auto",WebkitOverflowScrolling:"touch",zIndex:50,
             }}>
               {suggestions.map((s)=>(
                 <button
@@ -2482,9 +2482,9 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
           />
           {heroSuggestions.length>0&&(
             <div role="listbox" aria-label="Sugerencias de búsqueda" style={{
-              position:"relative",left:0,right:0,top:"calc(100% + 6px)",
+              position:"absolute",left:0,right:0,top:"100%",marginTop:6,
               background:C.white,border:`1px solid ${C.border}`,borderRadius:14,
-              boxShadow:"0 16px 48px rgba(15,23,42,.14)",maxHeight:stack?260:300,overflowY:"visible",
+              boxShadow:"0 16px 48px rgba(15,23,42,.14)",maxHeight:"min(50vh, 300px)",overflowY:"auto",WebkitOverflowScrolling:"touch",zIndex:50,
             }}>
               {heroSuggestions.map((s)=>{
                 const row=productos.find((x)=>x.id===s.id);
@@ -2687,9 +2687,9 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
         />
         {suggestions.length>0&&(
           <div role="listbox" aria-label="Sugerencias de búsqueda" style={{
-            position:"relative",left:0,right:0,top:"calc(100% + 4px)",
+            position:"absolute",left:0,right:0,top:"100%",marginTop:4,
             background:C.white,border:`1px solid ${C.border}`,borderRadius:10,
-            boxShadow:"0 16px 48px rgba(15,23,42,.12)",maxHeight:stack?260:320,overflowY:"visible",
+            boxShadow:"0 16px 48px rgba(15,23,42,.12)",maxHeight:"min(45vh, 320px)",overflowY:"auto",WebkitOverflowScrolling:"touch",zIndex:50,
           }}>
             {suggestions.map((s)=>(
               <button
