@@ -115,10 +115,10 @@ function bannerTxt(v){
   return v != null ? String(v).trim() : "";
 }
 
-/** Normaliza fila Supabase → props de UI; slot: hero | strip | tile */
+/** Normaliza fila Supabase → props de UI; slot: hero | strip | tile | popup */
 function mapBannerFromRow(b){
   const s = String(b.slot||"hero").toLowerCase();
-  const slot = s==="strip"||s==="tile" ? s : "hero";
+  const slot = s==="strip"||s==="tile"||s==="popup" ? s : "hero";
   const em = b.emoji != null ? String(b.emoji).trim() : "";
   const modoRaw = String(b.modo_visualizacion || "").trim().toLowerCase();
   const modo_visualizacion = modoRaw === "imagen_fondo" ? "imagen_fondo" : "imagen_completa";
@@ -254,17 +254,46 @@ const Inp=({value,onChange,placeholder,type,style,onKeyDown,onFocus,onBlur})=>(
 );
 
 // ── POPUP BIENVENIDA ──────────────────────────────────────────
-function PopupBienvenida({onClose,setPage,precioConsulta}){
+function PopupBienvenida({onClose,setPage,precioConsulta,banner}){
   const C = useTheme();
   const stack = useMediaQuery("(max-width: 480px)");
   const pc = Math.round(Number(precioConsulta) || CONSULTA_PRECIO_DEFAULT);
+  const titulo = bannerTxt(banner?.titulo) || "¡Bienvenido a Farmax!";
+  const subtitulo =
+    bannerTxt(banner?.subtitulo) ||
+    "Regístrate hoy y gana 10 puntos de bienvenida.";
+  const descripcion =
+    bannerTxt(banner?.descripcion) ||
+    "Equivalen a $5 de descuento en tu próxima compra.";
+  const cta = bannerTxt(banner?.cta) || "Crear mi cuenta gratis";
+  const ctaPage = bannerTxt(banner?.pagina) || "registro";
+  const imgUrl = bannerVisualUrl(banner || {}, stack);
   return(
     <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,.55)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:16,overflowY:"auto",WebkitOverflowScrolling:"touch",pointerEvents:"auto"}}>
       <div style={{background:C.white,borderRadius:16,maxWidth:420,width:"100%",maxHeight:"90vh",overflowY:"auto",boxShadow:"0 20px 60px rgba(0,0,0,.3)"}}>
-        <div style={{background:BRAND.gradient,padding:"28px 20px",textAlign:"center",position:"relative"}}>
+        <div style={{background:BRAND.gradient,padding:"28px 20px",textAlign:"center",position:"relative",overflow:"hidden"}}>
+          {imgUrl ? (
+            <img
+              src={imgUrl}
+              alt={titulo || "Banner de bienvenida"}
+              style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",zIndex:0}}
+            />
+          ) : null}
+          <div
+            style={{
+              position:"absolute",
+              inset:0,
+              background:imgUrl ? "linear-gradient(180deg, rgba(2,6,23,.45), rgba(2,6,23,.75))" : "transparent",
+              zIndex:1,
+            }}
+          />
           <button type="button" onClick={onClose} style={{position:"absolute",top:12,right:16,background:"rgba(255,255,255,.2)",border:"none",color:C.white,width:28,height:28,borderRadius:"50%",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
-          <h2 style={{color:C.white,fontSize:"clamp(18px,4.5vw,22px)",fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif",marginBottom:8}}>¡Bienvenido a Farmax!</h2>
-          <p style={{color:"rgba(255,255,255,.9)",fontSize:14,lineHeight:1.6}}>Regístrate hoy y gana <strong>10 puntos de bienvenida</strong> — equivalen a $5 de descuento en tu próxima compra.</p>
+          <div style={{position:"relative",zIndex:2}}>
+            <h2 style={{color:C.white,fontSize:"clamp(18px,4.5vw,22px)",fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif",marginBottom:8}}>{titulo}</h2>
+            <p style={{color:"rgba(255,255,255,.92)",fontSize:14,lineHeight:1.6}}>
+              <strong>{subtitulo}</strong>{descripcion ? ` - ${descripcion}` : ""}
+            </p>
+          </div>
         </div>
         <div style={{padding:"20px 20px"}}>
           <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:10,marginBottom:20}}>
@@ -274,7 +303,7 @@ function PopupBienvenida({onClose,setPage,precioConsulta}){
               </div>
             ))}
           </div>
-          <Btn onClick={()=>{onClose();setPage("registro");}} col={BRAND.primary} full>Crear mi cuenta gratis →</Btn>
+          <Btn onClick={()=>{onClose();setPage(ctaPage);}} col={BRAND.primary} full>{cta} →</Btn>
           <button onClick={onClose} style={{width:"100%",background:"none",border:"none",color:C.dim,fontSize:13,cursor:"pointer",marginTop:10,padding:8}}>Seguir comprando sin cuenta</button>
         </div>
       </div>
@@ -3967,6 +3996,7 @@ export default function TiendaFarmax(){
   const [prodDetalle,setProdD]   = useState(null);
   const [busqHero,setBusqHero]   = useState("");
   const [showPopup,setShowPopup] = useState(false);
+  const [popupBanner,setPopupBanner] = useState(null);
   const [entregaCheckout,setEntregaCheckout] = useState("pickup");
   const [precioConsultaCfg,setPrecioConsultaCfg] = useState(CONSULTA_PRECIO_DEFAULT);
   const [placeholderProductoUrl, setPlaceholderProductoUrl] = useState("");
@@ -4022,6 +4052,33 @@ export default function TiendaFarmax(){
       }
     }
   },[cargando,user]);
+
+  useEffect(()=>{
+    let cancelled = false;
+    const loadPopupBanner = ()=>{
+      supabase
+        .from("banners")
+        .select("*")
+        .eq("activo", true)
+        .eq("slot", "popup")
+        .order("orden")
+        .limit(1)
+        .then(({data, error})=>{
+          if (cancelled) return;
+          if (error) {
+            console.warn("[Tienda] popup banner:", error.message);
+            setPopupBanner(null);
+            return;
+          }
+          const row = Array.isArray(data) && data.length ? mapBannerFromRow(data[0]) : null;
+          setPopupBanner(row);
+        });
+    };
+    loadPopupBanner();
+    const onVis = ()=>{ if (document.visibilityState==="visible") loadPopupBanner(); };
+    document.addEventListener("visibilitychange", onVis);
+    return ()=>{ cancelled = true; document.removeEventListener("visibilitychange", onVis); };
+  },[]);
 
   const addToCart=prod=>{
     if (!prod || !prod.activo || Number(prod.stock||0) <= 0) return;
@@ -4155,7 +4212,7 @@ export default function TiendaFarmax(){
       `}</style>
 
       {/* Popup bienvenida */}
-      {showPopup&&<PopupBienvenida onClose={()=>setShowPopup(false)} setPage={setPage} precioConsulta={precioConsultaCfg}/>}
+      {showPopup&&<PopupBienvenida onClose={()=>setShowPopup(false)} setPage={setPage} precioConsulta={precioConsultaCfg} banner={popupBanner}/>}
 
       <Header page={page} setPage={setPage} cart={cart} user={user} setUser={setUser}/>
 

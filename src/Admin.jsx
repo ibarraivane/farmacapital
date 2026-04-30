@@ -695,7 +695,7 @@ function BannersAdmin(){
         <Btn col={BRAND.primary} onClick={()=>{setForm({titulo:"",subtitulo:"",descripcion:"",emoji:"💊",bg:BRAND.gradient,cta:"Ver más →",pagina:"promo",orden:banners.length+1,activo:true,slot:"hero",imagen_url:"",imagen_url_mobile:"",video_url:"",modo_visualizacion:"imagen_fondo"});setModal("new");}}>+ Nuevo banner</Btn>
       </div>
       <div style={{background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:10,padding:"10px 16px",marginBottom:16,fontSize:12,color:"#1d4ed8",lineHeight:1.55}}>
-        💡 <strong>Zona:</strong> <em>Carrusel</em> (arriba, rotación automática) · <em>Franja</em> (tarjetas anchas bajo la barra de servicios) · <em>Mosaico</em> (rejilla bajo la búsqueda). Ordená con <strong>Orden</strong>.
+        💡 <strong>Zona:</strong> <em>Carrusel</em> (arriba, rotación automática) · <em>Franja</em> (tarjetas anchas bajo la barra de servicios) · <em>Mosaico</em> (rejilla bajo la búsqueda) · <em>Popup</em> (ventana de bienvenida al entrar).
         {" "}En <strong>Página destino</strong>: <code style={{background:"#fff",padding:"1px 6px",borderRadius:4}}>promo</code>, <code style={{background:"#fff",padding:"1px 6px",borderRadius:4}}>catalogo</code>, <code style={{background:"#fff",padding:"1px 6px",borderRadius:4}}>cita</code>…
         {" "}Si no ves el campo <strong>Zona</strong> en Supabase, ejecutá <code style={{background:"#fff",padding:"1px 6px",borderRadius:4}}>sql/banners_slot.sql</code>.
       </div>
@@ -715,7 +715,7 @@ function BannersAdmin(){
                 <div style={{fontWeight:800,color:C.text,fontSize:14}}>{(b.titulo&&String(b.titulo).trim())?b.titulo:"(Sin título)"}</div>
                 <div style={{color:C.textMid,fontSize:12,marginTop:2}}>{b.subtitulo} · {b.descripcion?.slice(0,60)}{b.descripcion?.length>60?"…":""}</div>
                 <div style={{color:C.textDim,fontSize:11,marginTop:4}}>
-                  {(b.slot==="strip"?"▤ Franja":b.slot==="tile"?"▦ Mosaico":"▶ Carrusel")} · Orden: {b.orden} · {b.pagina} · {b.cta}{b.video_url?" · ▶ Video":""}
+                  {(b.slot==="strip"?"▤ Franja":b.slot==="tile"?"▦ Mosaico":b.slot==="popup"?"◉ Popup":"▶ Carrusel")} · Orden: {b.orden} · {b.pagina} · {b.cta}{b.video_url?" · ▶ Video":""}
                 </div>
               </div>
               <div style={{display:"flex",gap:8,flexShrink:0}}>
@@ -834,6 +834,7 @@ function BannersAdmin(){
                 <option value="hero">▶ Carrusel principal (arriba)</option>
                 <option value="strip">▤ Franja (bajo iconos de servicio)</option>
                 <option value="tile">▦ Mosaico (bajo la barra de búsqueda)</option>
+                <option value="popup">◉ Popup de bienvenida (al entrar)</option>
               </select>
             </div>
             <div><label style={{color:C.textMid,fontSize:11,fontWeight:700,display:"block",marginBottom:3}}>COLOR DE FONDO (CSS gradient)</label><input style={inpS} value={form.bg||""} onChange={e=>setForm(p=>({...p,bg:e.target.value}))} placeholder="linear-gradient(...)"/></div>
