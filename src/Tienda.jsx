@@ -429,9 +429,9 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
 
   const imgHeroSx = {
     width:"100%",
-    height: esMobile ? "min(95vw, 480px)" : "clamp(320px, 45vh, 480px)",
+    height:"100%",
     display:"block",
-    objectFit:"cover",
+    objectFit: esMobile ? "cover" : "contain",
     objectPosition:"center center",
   };
 
@@ -445,7 +445,8 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
         overflow:"hidden",
         cursor:"pointer",
         backgroundColor: vid ? "#070f1a" : !tieneImagen && !vid ? undefined : "#0f172a",
-        minHeight: esMobile ? "min(95vw, 480px)" : "clamp(320px, 45vh, 480px)",
+        aspectRatio: esMobile ? "1 / 1" : "16 / 5",
+        minHeight: esMobile ? 280 : 320,
         display:"flex",
         flexDirection:"column",
         justifyContent: esMobile ? "space-between" : "flex-start",
@@ -471,7 +472,7 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
             inset:0,
             width:"100%",
             height:"100%",
-            objectFit:"cover",
+            objectFit: esMobile ? "cover" : "contain",
             objectPosition:"center center",
             zIndex:0,
             pointerEvents:"none",
@@ -4075,11 +4076,8 @@ export default function TiendaFarmax(){
   // Mostrar popup 1 vez por sesión si no está logueado
   useEffect(()=>{
     if(!cargando&&!user){
-      const visto=sessionStorage.getItem("farmax_popup_visto");
-      if(!visto){
-        const t=setTimeout(()=>{setShowPopup(true);sessionStorage.setItem("farmax_popup_visto","1");},2000);
-        return ()=>clearTimeout(t);
-      }
+      const t=setTimeout(()=>{setShowPopup(true);},2000);
+      return ()=>clearTimeout(t);
     }
   },[cargando,user]);
 
