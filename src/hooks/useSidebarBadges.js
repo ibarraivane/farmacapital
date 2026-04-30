@@ -40,7 +40,7 @@ export default function useSidebarBadges(currentPage) {
       ] = await Promise.all([
         supabase.from("productos").select("id", { count: "exact", head: true }).eq("activo", true).lte("stock", 0),
         supabase.from("cortes_caja").select("id", { count: "exact", head: true }).neq("diferencia", 0),
-        countPedidosTiendaPendientesHead(supabase),
+        countPedidosTiendaPendientesHead(supabase, tok),
         cofeprisRpc,
       ]);
       if (errBajo) console.warn("[Badges] bajo stock:", errBajo.message);

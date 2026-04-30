@@ -3070,16 +3070,15 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
     setG(true);
     try{
       const productIds = [...new Set(cart.map(c => tiendaNormProductId(c.id)))];
-      const [{ data: stockRows }, { data: lotesRows }] = await Promise.all([
+      const numericIds = productIds.filter((id) => Number.isFinite(Number(id))).map((id) => Number(id));
+      const [{ data: stockRows }, { data: lotesRowsRaw }] = await Promise.all([
         supabase
           .from("productos")
           .select("id,stock,precio,activo,requiere_receta,controlado,visible_tienda,delivery_allowed,categoria")
           .in("id", productIds),
-        supabase
-          .from("lotes")
-          .select("producto_id,cantidad_actual,activo")
-          .in("producto_id", productIds),
+        supabase.rpc("tienda_public_lotes_resumen_checkout", { p_producto_ids: numericIds }),
       ]);
+      const lotesRows = Array.isArray(lotesRowsRaw) ? lotesRowsRaw : [];
       const sumLotes = tiendaSumLotesByProduct(lotesRows);
       const stockMap = new Map((stockRows||[]).map(p=>[tiendaNormProductId(p.id), p]));
       // Reconciliación automática de carrito contra inventario vivo:
@@ -3373,11 +3372,14 @@ function AgendarCita({setPage,user}){
     } catch (_) { /* noop */ }
   },[]);
 
-  // J5: Cargar horarios ya ocupados para la fecha seleccionada
+  // J5: Cargar horarios ya ocupados para la fecha seleccionada (RPC público mínimo)
   useEffect(()=>{
     if(!fecha){ setHorasOcupadas([]); return; }
-    supabase.from("citas").select("hora").eq("fecha",fecha).not("estado","eq","cancelada")
-      .then(({data})=>{ setHorasOcupadas((data||[]).map(c=>c.hora)); });
+    supabase.rpc("public_listar_horas_ocupadas_citas", { p_fecha: fecha })
+      .then(({ data })=>{
+        const rows = Array.isArray(data) ? data : [];
+        setHorasOcupadas(rows.map((c)=> (c && typeof c === "object" && "hora" in c ? c.hora : String(c))));
+      });
   },[fecha]);
 
   useEffect(()=>{if(hora&&!horariosLibres.includes(hora))setHora("");},[fecha,horariosLibres]);
@@ -3393,8 +3395,8 @@ function AgendarCita({setPage,user}){
       return;
     }
     // J5: Verificar disponibilidad en tiempo real antes de confirmar
-    const {data:ocupado}=await supabase.from("citas").select("id").eq("fecha",fecha).eq("hora",hora).not("estado","eq","cancelada");
-    if(ocupado&&ocupado.length>=1){
+    const { data: occ } = await supabase.rpc("public_cita_horario_ocupado", { p_fecha: fecha, p_hora: hora });
+    if (occ?.ocupado === true){
       alert("Lo sentimos, ese horario ya no está disponible. Por favor elige otro.");
       setHora(""); return;
     }
@@ -4081,15 +4083,23 @@ function Cuenta({user,setPage,setUser}){
   const [busyPayPedidoId,setBusyPayPedidoId]=useState(null);
   useEffect(()=>{
     if(!user?.id){setC(false);return;}
+    const tokCli = sessionStorage.getItem("farmax_cliente_token");
+    if (!tokCli) { setPeds([]); setCitas([]); setC(false); return; }
     Promise.all([
-      supabase.from("pedidos").select(`id,total,estado,tipo,metodo_pago,tipo_entrega,direccion,created_at,payment_provider,payment_status,payment_id,paid_at,delivery_provider,delivery_status,delivery_tracking_url,pedido_items(cantidad,precio_unitario,productos(nombre))`).eq("cliente_id",user.id).order("created_at",{ascending:false}),
-      supabase.from("citas").select("*").eq("cliente_id",user.id).order("fecha",{ascending:false}),
-    ]).then(([{data:peds},{data:cts}])=>{setPeds(peds||[]);setCitas(cts||[]);setC(false);});
+      supabase.rpc("cliente_listar_mis_pedidos", { p_session_token: tokCli, p_limite: 150 }),
+      supabase.rpc("cliente_listar_mis_citas", { p_session_token: tokCli }),
+    ]).then(([pRes, cRes])=>{
+      setPeds(Array.isArray(pRes.data) ? pRes.data : []);
+      setCitas(Array.isArray(cRes.data) ? cRes.data : []);
+      setC(false);
+    });
   },[user]);
   const refreshCitas = async ()=>{
     if(!user?.id) return;
-    const { data } = await supabase.from("citas").select("*").eq("cliente_id",user.id).order("fecha",{ascending:false});
-    setCitas(data||[]);
+    const tokCli = sessionStorage.getItem("farmax_cliente_token");
+    if (!tokCli) return;
+    const { data } = await supabase.rpc("cliente_listar_mis_citas", { p_session_token: tokCli });
+    setCitas(Array.isArray(data) ? data : []);
   };
   const cancelarCita = async (cita)=>{
     const tok = sessionStorage.getItem("farmax_cliente_token");

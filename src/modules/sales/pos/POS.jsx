@@ -133,6 +133,11 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   }, []);
 
   const refrescarCitasPOS = useCallback(async () => {
+    const tok = sessionStorage.getItem("farmax_session_token");
+    if (!tok) {
+      setConsCobrar([]);
+      return;
+    }
     const hoy = new Date();
     const pad = (n) => String(n).padStart(2, "0");
     const toSv = (dt) => `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`;
@@ -142,21 +147,17 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     hastaDt.setDate(hastaDt.getDate() + 45);
     const desde = toSv(desdeDt);
     const hasta = toSv(hastaDt);
-    const { data, error } = await supabase
-      .from("citas")
-      .select(`
-        id,nombre,telefono,hora,fecha,motivo,estado,canal,pago_estado,pedido_consulta_id,precio_consulta_cobrado,ingreso_doctor,ingreso_farmacia,
-        consumibles_consulta(id,cantidad,precio,cobrado,nombre,producto_id)
-      `)
-      .gte("fecha", desde)
-      .lte("fecha", hasta)
-      .not("estado", "eq", "cancelada");
+    const { data, error } = await supabase.rpc("empleado_listar_citas_ventana_pos", {
+      p_session_token: tok,
+      p_desde: desde,
+      p_hasta: hasta,
+    });
     if (error) {
       console.error("[POS] Citas:", error);
       setConsCobrar([]);
       return;
     }
-    const citas = data || [];
+    const citas = Array.isArray(data) ? data : [];
     setConsCobrar(
       citas.filter((c) => {
         const pendientePago = citaPagoPendiente(c);
@@ -168,18 +169,19 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
 
   const recargarPedidosOnline = useCallback(async () => {
     try {
+      const tok = sessionStorage.getItem("farmax_session_token");
       const [pedsRes, histRes] = await Promise.all([
         fetchPedidosTiendaPendientesMerged(supabase, PEDIDOS_TIENDA_SELECT_POS, {
           perBranchLimit: 100,
           maxRows: 300,
+          sessionToken: tok,
         }),
-        supabase
-          .from("pedidos")
-          .select(PEDIDOS_TIENDA_SELECT_POS)
-          .eq("tipo", "online")
-          .in("estado", ["listo", "completado"])
-          .order("created_at", { ascending: false })
-          .limit(20),
+        tok
+          ? supabase.rpc("empleado_listar_pedidos_online_historial", {
+              p_session_token: tok,
+              p_limite: 20,
+            })
+          : Promise.resolve({ data: [], error: null }),
       ]);
       if (pedsRes?.error) {
         console.warn("[POS] Pedidos online:", pedsRes.error.message);
@@ -189,7 +191,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       if (histRes?.error) {
         console.warn("[POS] Historial online:", histRes.error.message);
       } else {
-        setPedOnHist(histRes?.data || []);
+        setPedOnHist(Array.isArray(histRes?.data) ? histRes.data : []);
       }
     } catch (e) {
       console.warn("[POS] recargarPedidosOnline:", e);
@@ -210,20 +212,23 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     }
     const tmr = setTimeout(async () => {
       try {
-        const digits = soloDigitosTel(tel);
-        let q = supabase.from("clientes").select("id,nombre,telefono,puntos").limit(12);
-        if (digits.length >= 4) {
-          const safeName = raw.replace(/%/g, "");
-          q = q.or(`telefono.ilike.%${digits}%,nombre.ilike.%${safeName}%`);
-        } else if (raw.length >= 2) {
-          q = q.ilike("nombre", `%${raw}%`);
-        } else {
+        const tok = sessionStorage.getItem("farmax_session_token");
+        if (!tok) {
           setCliSearchItems([]);
           return;
         }
-        const { data, error } = await q;
+        const digits = soloDigitosTel(tel);
+        if (!(digits.length >= 4 || raw.length >= 2)) {
+          setCliSearchItems([]);
+          return;
+        }
+        const { data, error } = await supabase.rpc("empleado_buscar_clientes_pos", {
+          p_session_token: tok,
+          p_busqueda: raw,
+          p_limit: 12,
+        });
         if (error) throw error;
-        const rows = data || [];
+        const rows = Array.isArray(data) ? data : [];
         setCliSearchItems(rows);
         if (digits.length >= 10) {
           const exact = rows.find((r) => soloDigitosTel(r.telefono) === digits);
@@ -244,18 +249,22 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       setLoad(true);
       if (typeof setLoadErr === "function") setLoadErr("");
       try {
+        const tok = sessionStorage.getItem("farmax_session_token");
         const [prodsRes, pedsRes, histRes] = await Promise.all([
-          supabase.from("productos")
-            .select("*, lotes(fecha_caducidad,cantidad_actual,activo)")
-            .eq("activo",true).order("nombre"),
-          fetchPedidosTiendaPendientesMerged(supabase, PEDIDOS_TIENDA_SELECT_POS, { perBranchLimit: 100, maxRows: 300 }),
-          supabase
-            .from("pedidos")
-            .select(PEDIDOS_TIENDA_SELECT_POS)
-            .eq("tipo", "online")
-            .in("estado", ["listo", "completado"])
-            .order("created_at", { ascending: false })
-            .limit(20),
+          tok
+            ? supabase.rpc("empleado_listar_productos_con_lotes_pos", { p_session_token: tok })
+            : Promise.resolve({ data: [], error: { message: "Sin sesión" } }),
+          fetchPedidosTiendaPendientesMerged(supabase, PEDIDOS_TIENDA_SELECT_POS, {
+            perBranchLimit: 100,
+            maxRows: 300,
+            sessionToken: tok,
+          }),
+          tok
+            ? supabase.rpc("empleado_listar_pedidos_online_historial", {
+                p_session_token: tok,
+                p_limite: 20,
+              })
+            : Promise.resolve({ data: [], error: null }),
         ]);
 
         const errs = [];
@@ -268,14 +277,15 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
           if (typeof setLoadErr === "function") setLoadErr(errs.join(" | "));
         }
 
-        const prodsConCad = (prodsRes?.data || []).map(p => {
+        const prodsRaw = Array.isArray(prodsRes?.data) ? prodsRes.data : [];
+        const prodsConCad = prodsRaw.map(p => {
           const activos = (p.lotes || []).filter(l => l.activo !== false && (l.cantidad_actual || 0) > 0 && l.fecha_caducidad);
           const minCad = activos.reduce((m, l) => (!m || l.fecha_caducidad < m) ? l.fecha_caducidad : m, null);
           return { ...p, min_caducidad_lotes: minCad };
         });
         setProds(prodsConCad);
         setPedOn((pedsRes?.data || []).filter(esPedidoTiendaWebPendiente));
-        setPedOnHist(histRes?.data || []);
+        setPedOnHist(Array.isArray(histRes?.data) ? histRes.data : []);
 
       } catch (e) {
         console.error("[POS] Excepción cargando datos:", e);
@@ -563,12 +573,12 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
 
       setFolioActual(`VTA-${String(pedidoId).padStart(8,"0")}`);
 
-      const { data: pedidoItems, error: pedidoItemsError } = await supabase
-        .from("pedido_items")
-        .select("producto_id,cantidad,precio_unitario,lote_id,productos(nombre,sku),lotes(numero_lote,fecha_caducidad)")
-        .eq("pedido_id", pedidoId)
-        .order("id", { ascending: true });
+      const { data: pedidoItemsRaw, error: pedidoItemsError } = await supabase.rpc(
+        "empleado_obtener_pedido_items_ticket",
+        { p_session_token: tokRo, p_pedido_id: pedidoId }
+      );
       if (pedidoItemsError) throw pedidoItemsError;
+      const pedidoItems = Array.isArray(pedidoItemsRaw) ? pedidoItemsRaw : [];
 
       const rxItems = cart.filter(c=>c.rxI);
       if(rxItems.length) {
@@ -649,12 +659,12 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         alert(`Stock insuficiente o no se pudo completar el descuento de inventario.\n\nDetalle: ${msg}`);
         // Sincroniza existencias visibles con BD tras un rechazo por stock.
         try {
-          const { data } = await supabase
-            .from("productos")
-            .select("*, lotes(fecha_caducidad,cantidad_actual,activo)")
-            .eq("activo", true)
-            .order("nombre");
-          const prodsConCad = (data || []).map((p) => {
+          const tokRf = sessionStorage.getItem("farmax_session_token");
+          const { data } = tokRf
+            ? await supabase.rpc("empleado_listar_productos_con_lotes_pos", { p_session_token: tokRf })
+            : { data: [] };
+          const prodsArr = Array.isArray(data) ? data : [];
+          const prodsConCad = prodsArr.map((p) => {
             const activos = (p.lotes || []).filter((l) => l.activo !== false && (l.cantidad_actual || 0) > 0 && l.fecha_caducidad);
             const minCad = activos.reduce((m, l) => (!m || l.fecha_caducidad < m) ? l.fecha_caducidad : m, null);
             return { ...p, min_caducidad_lotes: minCad };
