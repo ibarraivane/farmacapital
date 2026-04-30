@@ -16,7 +16,11 @@ import {
   productoEsCategoriaMinisuperTienda,
 } from "./utils/tiendaFarmaciaCatalogo";
 import { showToast } from "./ui";
-import { ShoppingCart, Menu, X, Package } from "lucide-react";
+import {
+  X, ShoppingCart, Pill, Tag as TagIcon, Stethoscope, Star,
+  MapPin, Clock, Phone, Mail, HelpCircle, FileText,
+  LogIn, UserPlus, ChevronRight, Menu, Package
+} from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════
 // FARMAX — Tienda en Línea v4
@@ -1095,8 +1099,368 @@ function HomeBannersTiles({setPage, items, stack}){
   );
 }
 
+// ── MENU LATERAL TIENDA ───────────────────────────────────────
+function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
+  const C = useTheme();
+
+  if (!abierto) return null;
+
+  const ahora = new Date();
+  const dia = ahora.getDay();
+  const hora = ahora.getHours();
+
+  let estaAbierto = false;
+  let horaCierre = "";
+  let horarioHoy = "";
+
+  if (dia === 0) {
+    estaAbierto = hora >= 9 && hora < 18;
+    horaCierre = "18:00";
+    horarioHoy = "9:00 - 18:00";
+  } else if (dia === 6) {
+    estaAbierto = hora >= 8 && hora < 20;
+    horaCierre = "20:00";
+    horarioHoy = "8:00 - 20:00";
+  } else {
+    estaAbierto = hora >= 8 && hora < 22;
+    horaCierre = "22:00";
+    horarioHoy = "8:00 - 22:00";
+  }
+
+  const navItems = [
+    { icon: ShoppingCart, label: "Inicio", page: "home" },
+    { icon: Pill, label: "Catálogo", page: "catalogo" },
+    { icon: TagIcon, label: "Promociones", page: "promo" },
+    { icon: Stethoscope, label: "Consulta médica", page: "cita" },
+    { icon: Star, label: "Puntos Farmax", page: "puntos" },
+  ];
+
+  const ayudaItems = [
+    { icon: HelpCircle, label: "Preguntas frecuentes", page: "faq" },
+    { icon: FileText, label: "Política de privacidad", page: "privacidad" },
+    { icon: FileText, label: "Términos y condiciones", page: "terminos" },
+  ];
+
+  const WHATSAPP_NUMERO = "525537275035";
+  const WHATSAPP_LINK = `https://wa.me/${WHATSAPP_NUMERO}`;
+
+  const handleNav = (page) => {
+    setPage(page);
+    onClose();
+  };
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed", inset: 0,
+        background: "rgba(15,23,42,.5)",
+        zIndex: 1000,
+        display: "flex", justifyContent: "flex-end",
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: C.card,
+          width: "min(420px, 100vw)",
+          height: "100vh",
+          overflowY: "auto",
+          boxShadow: "-8px 0 32px rgba(0,0,0,.2)",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <div style={{
+          padding: "20px 24px 16px",
+          borderBottom: `1px solid ${C.border}`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 16,
+        }}>
+          <div>
+            <div style={{
+              fontSize: 18, fontWeight: 800, color: C.text,
+              marginBottom: 2,
+            }}>
+              {usuario ? `Hola, ${primerNombre(usuario.nombre || "Cliente")}` : "Hola, ¿qué buscas?"}
+            </div>
+            <div style={{
+              fontSize: 12, color: C.textMid,
+              display: "flex", alignItems: "center", gap: 6,
+            }}>
+              <span style={{
+                width: 8, height: 8, borderRadius: "50%",
+                background: estaAbierto ? "#00c46a" : "#ff3d5a",
+              }}/>
+              {estaAbierto ? `Abierto · cierra a las ${horaCierre}` : "Cerrado ahora"}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              background: C.bg, border: "none",
+              width: 36, height: 36, borderRadius: "50%",
+              cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}
+          >
+            <X size={20} color={C.textMid} />
+          </button>
+        </div>
+
+        {!usuario && (
+          <div style={{padding: "16px 24px", borderBottom: `1px solid ${C.border}`}}>
+            <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8}}>
+              <button
+                type="button"
+                onClick={() => handleNav("registro")}
+                style={{
+                  padding: "12px 8px",
+                  borderRadius: 10,
+                  border: "none",
+                  background: BRAND.accent,
+                  color: "#fff",
+                  fontWeight: 700, fontSize: 14,
+                  cursor: "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                }}
+              >
+                <UserPlus size={16}/>
+                Crear cuenta
+              </button>
+              <button
+                type="button"
+                onClick={() => handleNav("login")}
+                style={{
+                  padding: "12px 8px",
+                  borderRadius: 10,
+                  border: `1.5px solid ${BRAND.primary}`,
+                  background: "transparent",
+                  color: BRAND.primary,
+                  fontWeight: 700, fontSize: 14,
+                  cursor: "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                }}
+              >
+                <LogIn size={16}/>
+                Iniciar sesión
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div style={{padding: "16px 0"}}>
+          <div style={{
+            padding: "0 24px 8px",
+            fontSize: 11, fontWeight: 800, letterSpacing: 1.5,
+            color: C.textDim, textTransform: "uppercase",
+          }}>
+            Explora
+          </div>
+          {navItems.map((item) => (
+            <button
+              key={item.page}
+              type="button"
+              onClick={() => handleNav(item.page)}
+              style={{
+                width: "100%",
+                padding: "12px 24px",
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 14,
+                color: C.text,
+                fontSize: 15,
+                fontWeight: 600,
+                textAlign: "left",
+                transition: "background .15s",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = C.bg; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+            >
+              <item.icon size={20} color={BRAND.primary}/>
+              <span style={{flex: 1}}>{item.label}</span>
+              <ChevronRight size={16} color={C.textDim}/>
+            </button>
+          ))}
+        </div>
+
+        <div style={{
+          padding: "16px 24px",
+          borderTop: `1px solid ${C.border}`,
+          background: C.bg,
+        }}>
+          <div style={{
+            fontSize: 11, fontWeight: 800, letterSpacing: 1.5,
+            color: C.textDim, textTransform: "uppercase",
+            marginBottom: 12,
+          }}>
+            Información
+          </div>
+
+          <div style={{display: "flex", gap: 12, marginBottom: 14}}>
+            <MapPin size={18} color={BRAND.primary} style={{flexShrink: 0, marginTop: 2}}/>
+            <div>
+              <div style={{fontSize: 14, fontWeight: 700, color: C.text}}>
+                Iztapalapa, CDMX
+              </div>
+              <div style={{fontSize: 12, color: C.textMid, lineHeight: 1.4}}>
+                Radiodifusora 100, Col. Chinampac de Juárez
+              </div>
+            </div>
+          </div>
+
+          <div style={{display: "flex", gap: 12, marginBottom: 14}}>
+            <Clock size={18} color={BRAND.primary} style={{flexShrink: 0, marginTop: 2}}/>
+            <div>
+              <div style={{fontSize: 14, fontWeight: 700, color: C.text}}>
+                Hoy: {horarioHoy}
+              </div>
+              <div style={{fontSize: 12, color: C.textMid, lineHeight: 1.6}}>
+                Lun-Vie: 8:00 - 22:00<br/>
+                Sábado: 8:00 - 20:00<br/>
+                Domingo: 9:00 - 18:00
+              </div>
+            </div>
+          </div>
+
+          <a
+            href={WHATSAPP_LINK}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "flex", alignItems: "center", gap: 12,
+              padding: "10px 12px",
+              borderRadius: 8,
+              background: "#25D36612",
+              border: "1px solid #25D36630",
+              textDecoration: "none",
+              marginBottom: 8,
+            }}
+          >
+            <Phone size={18} color="#25D366"/>
+            <div style={{flex: 1}}>
+              <div style={{fontSize: 13, fontWeight: 700, color: "#25D366"}}>
+                WhatsApp
+              </div>
+              <div style={{fontSize: 12, color: C.textMid}}>
+                Hablar con nosotros
+              </div>
+            </div>
+            <ChevronRight size={16} color="#25D366"/>
+          </a>
+
+          <a
+            href="mailto:contacto@farmax.mx"
+            style={{
+              display: "flex", alignItems: "center", gap: 12,
+              padding: "10px 12px",
+              borderRadius: 8,
+              background: BRAND.primary + "10",
+              border: `1px solid ${BRAND.primary}30`,
+              textDecoration: "none",
+            }}
+          >
+            <Mail size={18} color={BRAND.primary}/>
+            <div style={{flex: 1}}>
+              <div style={{fontSize: 13, fontWeight: 700, color: BRAND.primary}}>
+                Email
+              </div>
+              <div style={{fontSize: 12, color: C.textMid}}>
+                contacto@farmax.mx
+              </div>
+            </div>
+            <ChevronRight size={16} color={BRAND.primary}/>
+          </a>
+        </div>
+
+        <div style={{padding: "16px 0"}}>
+          <div style={{
+            padding: "0 24px 8px",
+            fontSize: 11, fontWeight: 800, letterSpacing: 1.5,
+            color: C.textDim, textTransform: "uppercase",
+          }}>
+            Ayuda
+          </div>
+          {ayudaItems.map((item) => (
+            <button
+              key={item.page}
+              type="button"
+              onClick={() => handleNav(item.page)}
+              style={{
+                width: "100%",
+                padding: "10px 24px",
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 14,
+                color: C.textMid,
+                fontSize: 13,
+                textAlign: "left",
+                transition: "background .15s",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = C.bg; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+            >
+              <item.icon size={16} color={C.textDim}/>
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {usuario && (
+          <div style={{
+            padding: "16px 24px",
+            borderTop: `1px solid ${C.border}`,
+          }}>
+            <button
+              type="button"
+              onClick={() => { onLogout?.(); onClose(); }}
+              style={{
+                width: "100%", padding: 12,
+                borderRadius: 10,
+                border: `1px solid ${C.border}`,
+                background: "transparent",
+                color: "#ff3d5a",
+                fontWeight: 700, fontSize: 14,
+                cursor: "pointer",
+              }}
+            >
+              Cerrar sesión
+            </button>
+          </div>
+        )}
+
+        <div style={{
+          marginTop: "auto",
+          padding: "20px 24px",
+          background: C.bg,
+          borderTop: `1px solid ${C.border}`,
+        }}>
+          <div style={{display: "flex", alignItems: "center", gap: 8, marginBottom: 8}}>
+            <Logo size={24}/>
+            <span style={{fontSize: 11, color: C.textDim}}>
+              © 2026 Farmacia Ventura
+            </span>
+          </div>
+          <div style={{fontSize: 10, color: C.textDim, lineHeight: 1.4}}>
+            Todos los derechos reservados.<br/>
+            Aviso COFEPRIS: las imágenes de productos son referenciales.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── HEADER ────────────────────────────────────────────────────
-const NAV_LINKS = [["home","Inicio"],["catalogo","Catálogo"],["promo","Promociones"],["cita","Consulta médica"],["puntos","Puntos Farmax"],["faq","Ayuda"]];
 
 function Header({page,setPage,cart,user,setUser}){
   const C = useTheme();
@@ -1119,22 +1483,6 @@ function Header({page,setPage,cart,user,setUser}){
     setMenuOpen(false);
     setPage("home");
   };
-
-  const waDigits = CONTACTO.whatsapp ? String(CONTACTO.whatsapp).replace(/\D/g, "") : "";
-  const waHref = waDigits
-    ? `https://wa.me/${waDigits.startsWith("52") ? waDigits : `52${waDigits}`}`
-    : null;
-
-  const navBtnDrawer = (id,l)=>(
-    <button key={id} type="button" onClick={()=>go(id)} style={{
-      padding:"12px 14px",borderRadius:10,border:`1px solid ${C.border}`,
-      background:page===id?BRAND.primary+"12":"transparent",
-      color:page===id?BRAND.primary:C.text,
-      fontWeight:page===id?700:600,
-      fontSize:14,cursor:"pointer",fontFamily:"'Plus Jakarta Sans',sans-serif",
-      textAlign:"left",width:"100%",
-    }}>{l}</button>
-  );
 
   return(
     <>
@@ -1215,123 +1563,13 @@ function Header({page,setPage,cart,user,setUser}){
         </div>
       </header>
 
-      {menuOpen ? (
-        <div style={{position:"fixed",inset:0,zIndex:240,pointerEvents:"auto"}} role="dialog" aria-modal="true" aria-label="Menú">
-          <button
-            type="button"
-            aria-label="Cerrar menú"
-            onClick={()=>setMenuOpen(false)}
-            style={{
-              position:"absolute",inset:0,
-              background:"rgba(15,23,42,.45)",
-              border:"none",cursor:"pointer",
-            }}
-          />
-          <nav style={{
-            position:"absolute",
-            top:0,
-            right:0,
-            bottom:0,
-            width:"min(380px, 100vw)",
-            background:C.card,
-            boxShadow:"-8px 0 40px rgba(15,23,42,.18)",
-            overflowY:"auto",
-            WebkitOverflowScrolling:"touch",
-            padding:"16px 18px 28px",
-            display:"flex",
-            flexDirection:"column",
-            gap:14,
-          }}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12}}>
-              <strong style={{fontSize:16,color:C.text}}>Menú</strong>
-              <button
-                type="button"
-                aria-label="Cerrar"
-                onClick={()=>setMenuOpen(false)}
-                style={{
-                  background:C.cardDark,border:`1px solid ${C.border}`,borderRadius:8,
-                  width:40,height:40,cursor:"pointer",
-                  display:"flex",alignItems:"center",justifyContent:"center",
-                }}
-              >
-                <X size={20} color={C.textMid}/>
-              </button>
-            </div>
-
-            <div style={{
-              fontSize:13,color:C.text,lineHeight:1.55,
-              padding:"12px 0",
-              borderTop:`1px solid ${C.border}`,
-              borderBottom:`1px solid ${C.border}`,
-            }}>
-              <div style={{fontWeight:700,marginBottom:8,color:C.text}}>Ubicación y horarios</div>
-              <div style={{color:C.textMid,marginBottom:10}}>
-                Dirección: Radiodifusora 100, Chinampac de Juárez, Iztapalapa, CDMX
-              </div>
-              <div style={{color:C.textMid,marginBottom:4}}>Horarios</div>
-              <div style={{color:C.textMid}}>Lun-Vie: 8:00 - 22:00</div>
-              <div style={{color:C.textMid}}>Sáb: 8:00 - 20:00</div>
-              <div style={{color:C.textMid,marginBottom:10}}>Dom: 9:00 - 18:00</div>
-              <div style={{marginBottom:8}}>
-                <span style={{color:C.textMid}}>Correo: </span>
-                <a href={`mailto:${CONTACTO.email}`} style={{color:BRAND.primary,fontWeight:600,textDecoration:"none"}}>{CONTACTO.email}</a>
-              </div>
-              {waHref ? (
-                <div>
-                  <span style={{color:C.textMid}}>WhatsApp: </span>
-                  <a href={waHref} target="_blank" rel="noopener noreferrer" style={{color:BRAND.primary,fontWeight:600,textDecoration:"none"}}>
-                    {CONTACTO.whatsapp}
-                  </a>
-                </div>
-              ) : (
-                <div style={{color:C.textMid}}>WhatsApp: configurar número en CONTACTO</div>
-              )}
-            </div>
-
-            {!user ? (
-              <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
-                <Btn onClick={()=>go("registro")} col={BRAND.accent} sm style={{flex:"1 1 min(140px,100%)"}}>Crear cuenta</Btn>
-                <Btn onClick={()=>go("login")} outline col={BRAND.primary} sm style={{flex:"1 1 min(140px,100%)"}}>Iniciar sesión</Btn>
-              </div>
-            ) : (
-              <div style={{
-                padding:"12px 14px",
-                borderRadius:12,
-                border:`1px solid ${C.border}`,
-                background:C.cardDark,
-              }}>
-                <button
-                  type="button"
-                  onClick={()=>go("cuenta")}
-                  style={{
-                    background:"none",border:"none",padding:0,cursor:"pointer",
-                    textAlign:"left",width:"100%",
-                  }}
-                >
-                  <div style={{color:BRAND.primary,fontWeight:700,fontSize:14}}>{saludoUsuario(user.nombre)}</div>
-                  <div style={{color:C.textMid,fontSize:12,marginTop:4}}>{user.puntos||0} puntos Farmax</div>
-                </button>
-                <button
-                  type="button"
-                  onClick={logout}
-                  style={{
-                    marginTop:10,padding:"8px 12px",borderRadius:8,
-                    border:`1px solid ${C.border}`,background:C.card,
-                    color:C.textMid,fontWeight:700,fontSize:12,cursor:"pointer",width:"100%",
-                  }}
-                >
-                  Cerrar sesión
-                </button>
-              </div>
-            )}
-
-            <div style={{display:"flex",flexDirection:"column",gap:6}}>
-              <div style={{fontWeight:700,fontSize:12,color:C.textMid,textTransform:"uppercase",letterSpacing:1}}>Navegación</div>
-              {NAV_LINKS.map(([id,l])=>navBtnDrawer(id,l))}
-            </div>
-          </nav>
-        </div>
-      ) : null}
+      <MenuTienda
+        abierto={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        setPage={setPage}
+        usuario={user}
+        onLogout={logout}
+      />
 
       <style>{`
         @media (min-width: 768px) {
