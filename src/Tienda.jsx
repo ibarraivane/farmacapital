@@ -460,17 +460,22 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
         }}/>
       ) : null}
       {!vid && tieneImagen ? (
-        <div
+        <img
+          src={imagenActual}
+          alt=""
+          decoding="async"
+          draggable={false}
           aria-hidden
           style={{
             position:"absolute",
             inset:0,
+            width:"100%",
+            height:"100%",
+            objectFit:"cover",
+            objectPosition:"center center",
             zIndex:0,
-            backgroundColor:"#0f172a",
-            backgroundImage:`url(${imagenActual})`,
-            backgroundSize:"cover",
-            backgroundPosition:"center center",
-            backgroundRepeat:"no-repeat",
+            pointerEvents:"none",
+            userSelect:"none",
           }}
         />
       ) : null}
