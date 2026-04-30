@@ -333,6 +333,7 @@ function PopupBienvenida({onClose,setPage,precioConsulta,banner}){
               inset:0,
               background:overlayTone,
               zIndex:1,
+              pointerEvents:"none",
             }}
           />
           <div
@@ -342,9 +343,10 @@ function PopupBienvenida({onClose,setPage,precioConsulta,banner}){
               width:"100%",
               aspectRatio: mobilePopup ? "1 / 1" : "16 / 9",
               zIndex:1,
+              pointerEvents:"none",
             }}
           />
-          <button type="button" onClick={onClose} style={{position:"absolute",top:12,right:16,background:"rgba(255,255,255,.2)",border:"none",color:C.white,width:28,height:28,borderRadius:"50%",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
+          <button type="button" onClick={(e)=>{ e.stopPropagation(); onClose(); }} aria-label="Cerrar" style={{position:"absolute",top:12,right:16,zIndex:30,background:"rgba(255,255,255,.25)",border:"none",color:C.white,width:36,height:36,borderRadius:"50%",cursor:"pointer",fontSize:18,lineHeight:1,display:"flex",alignItems:"center",justifyContent:"center",padding:0,pointerEvents:"auto",WebkitTapHighlightColor:"transparent"}}>×</button>
           {showOverlayCopy ? (
             <div style={{position:"relative",zIndex:2}}>
               {titulo ? (
