@@ -429,10 +429,10 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
 
   const imgHeroSx = {
     width:"100%",
-    height:"auto",
+    height: esMobile ? "min(95vw, 480px)" : "clamp(320px, 45vh, 480px)",
     display:"block",
-    maxHeight: esMobile ? "min(85vw, 480px)" : "min(60vh, 600px)",
     objectFit:"cover",
+    objectPosition:"center center",
   };
 
   const fondoShell = (
@@ -444,10 +444,7 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
         width:"100%",
         overflow:"hidden",
         cursor:"pointer",
-        background: vid ? "#070f1a" : tieneImagen ? "#0f172a" : undefined,
-        backgroundImage: !vid && tieneImagen ? `url(${imagenActual})` : undefined,
-        backgroundSize:"cover",
-        backgroundPosition:"center",
+        backgroundColor: vid ? "#070f1a" : !tieneImagen && !vid ? undefined : "#0f172a",
         minHeight: esMobile ? "min(95vw, 480px)" : "clamp(320px, 45vh, 480px)",
         display:"flex",
         flexDirection:"column",
@@ -461,6 +458,21 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
           background:b.bg,
           zIndex:0,
         }}/>
+      ) : null}
+      {!vid && tieneImagen ? (
+        <div
+          aria-hidden
+          style={{
+            position:"absolute",
+            inset:0,
+            zIndex:0,
+            backgroundColor:"#0f172a",
+            backgroundImage:`url(${imagenActual})`,
+            backgroundSize:"cover",
+            backgroundPosition:"center center",
+            backgroundRepeat:"no-repeat",
+          }}
+        />
       ) : null}
       {vid ? (
         <div style={{position:"absolute",inset:0,zIndex:0}}>
