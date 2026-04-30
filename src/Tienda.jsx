@@ -259,18 +259,63 @@ function PopupBienvenida({onClose,setPage,precioConsulta,banner}){
   const stack = useMediaQuery("(max-width: 480px)");
   const mobilePopup = useMediaQuery("(max-width: 767px)");
   const pc = Math.round(Number(precioConsulta) || CONSULTA_PRECIO_DEFAULT);
-  const titulo = bannerTxt(banner?.titulo) || "¡Bienvenido a Farmax!";
-  const subtitulo =
-    bannerTxt(banner?.subtitulo) ||
-    "Regístrate hoy y gana 10 puntos de bienvenida.";
-  const descripcion =
-    bannerTxt(banner?.descripcion) ||
-    "Equivalen a $5 de descuento en tu próxima compra.";
-  const cta = bannerTxt(banner?.cta) || "Crear mi cuenta gratis";
-  const ctaPage = bannerTxt(banner?.pagina) || "registro";
+  const hasBannerRow = !!(banner && banner.id != null);
+  const modoCompletoPopup =
+    hasBannerRow &&
+    String(banner.modo_visualizacion || "").trim().toLowerCase() !== "imagen_fondo";
+
+  const tituloRaw = bannerTxt(banner?.titulo);
+  const subtituloRaw = bannerTxt(banner?.subtitulo);
+  const descripcionRaw = bannerTxt(banner?.descripcion);
+  const ctaRaw = bannerTxt(banner?.cta);
+  const paginaRaw = bannerTxt(banner?.pagina);
+
+  let titulo;
+  let subtitulo;
+  let descripcion;
+  let cta;
+  let ctaPage;
+  if (!hasBannerRow) {
+    titulo = tituloRaw || "¡Bienvenido a Farmax!";
+    subtitulo =
+      subtituloRaw ||
+      "Regístrate hoy y gana 10 puntos de bienvenida.";
+    descripcion =
+      descripcionRaw ||
+      "Equivalen a $5 de descuento en tu próxima compra.";
+    cta = ctaRaw || "Crear mi cuenta gratis";
+    ctaPage = paginaRaw || "registro";
+  } else {
+    titulo = tituloRaw;
+    subtitulo = subtituloRaw;
+    descripcion = descripcionRaw;
+    cta = ctaRaw;
+    ctaPage = paginaRaw || "home";
+  }
+
+  const showOverlayCopy =
+    !modoCompletoPopup &&
+    !!(titulo || subtitulo || descripcion);
+
+  const showBullets = !hasBannerRow || !modoCompletoPopup;
+
+  const showPrimaryBtn = !hasBannerRow ? true : !!(cta && paginaRaw);
+
   const imgUrl = mobilePopup
     ? (bannerTxt(banner?.imagen_url_mobile) || bannerTxt(banner?.imagen_mobile_url) || bannerTxt(banner?.imagen_url))
     : (bannerTxt(banner?.imagen_url) || bannerTxt(banner?.imagen_url_mobile) || bannerTxt(banner?.imagen_mobile_url));
+
+  const imgAlt =
+    modoCompletoPopup && !tituloRaw
+      ? "Farmax"
+      : titulo || "Farmax";
+
+  const overlayTone = modoCompletoPopup && imgUrl
+    ? "transparent"
+    : imgUrl
+      ? "linear-gradient(180deg, rgba(2,6,23,.12), rgba(2,6,23,.42))"
+      : "transparent";
+
   return(
     <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(2,6,23,.62)",backdropFilter:"blur(3px)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:16,overflowY:"auto",WebkitOverflowScrolling:"touch",pointerEvents:"auto"}}>
       <div style={{background:C.white,borderRadius:16,maxWidth:mobilePopup?420:640,width:"100%",maxHeight:"90vh",overflowY:"auto",boxShadow:"0 24px 70px rgba(2,6,23,.48)",border:"1px solid rgba(255,255,255,.4)"}}>
@@ -278,7 +323,7 @@ function PopupBienvenida({onClose,setPage,precioConsulta,banner}){
           {imgUrl ? (
             <img
               src={imgUrl}
-              alt={titulo || "Banner de bienvenida"}
+              alt={imgAlt}
               style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",objectPosition:"center center",zIndex:0,filter:"saturate(1.08) contrast(1.05)"}}
             />
           ) : null}
@@ -286,7 +331,7 @@ function PopupBienvenida({onClose,setPage,precioConsulta,banner}){
             style={{
               position:"absolute",
               inset:0,
-              background:imgUrl ? "linear-gradient(180deg, rgba(2,6,23,.12), rgba(2,6,23,.42))" : "transparent",
+              background:overlayTone,
               zIndex:1,
             }}
           />
@@ -300,23 +345,33 @@ function PopupBienvenida({onClose,setPage,precioConsulta,banner}){
             }}
           />
           <button type="button" onClick={onClose} style={{position:"absolute",top:12,right:16,background:"rgba(255,255,255,.2)",border:"none",color:C.white,width:28,height:28,borderRadius:"50%",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
-          <div style={{position:"relative",zIndex:2}}>
-            <h2 style={{color:C.white,fontSize:"clamp(18px,4.5vw,22px)",fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif",marginBottom:8}}>{titulo}</h2>
-            <p style={{color:"rgba(255,255,255,.98)",fontSize:14,lineHeight:1.6,textShadow:"0 1px 4px rgba(2,6,23,.7)"}}>
-              <strong>{subtitulo}</strong>{descripcion ? ` - ${descripcion}` : ""}
-            </p>
-          </div>
+          {showOverlayCopy ? (
+            <div style={{position:"relative",zIndex:2}}>
+              {titulo ? (
+                <h2 style={{color:C.white,fontSize:"clamp(18px,4.5vw,22px)",fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif",marginBottom:8}}>{titulo}</h2>
+              ) : null}
+              {(subtitulo || descripcion) ? (
+                <p style={{color:"rgba(255,255,255,.98)",fontSize:14,lineHeight:1.6,textShadow:"0 1px 4px rgba(2,6,23,.7)"}}>
+                  {subtitulo ? <strong>{subtitulo}</strong> : null}{subtitulo && descripcion ? " — " : ""}{descripcion || ""}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
         </div>
         <div style={{padding:"20px 20px"}}>
-          <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:10,marginBottom:20}}>
-            {[["Genéricos desde $10"],["Envío a domicilio"],[`Consulta médica $${pc}`],["Acumula puntos"]].map(([t])=>(
-              <div key={t} style={{display:"flex",alignItems:"center",gap:8}}>
-                <span style={{color:C.mid,fontSize:12}}>{t}</span>
-              </div>
-            ))}
-          </div>
-          <Btn onClick={()=>{onClose();setPage(ctaPage);}} col={BRAND.primary} full>{cta} →</Btn>
-          <button onClick={onClose} style={{width:"100%",background:"none",border:"none",color:C.dim,fontSize:13,cursor:"pointer",marginTop:10,padding:8}}>Seguir comprando sin cuenta</button>
+          {showBullets ? (
+            <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:10,marginBottom:20}}>
+              {[["Genéricos desde $10"],["Envío a domicilio"],[`Consulta médica $${pc}`],["Acumula puntos"]].map(([t])=>(
+                <div key={t} style={{display:"flex",alignItems:"center",gap:8}}>
+                  <span style={{color:C.mid,fontSize:12}}>{t}</span>
+                </div>
+              ))}
+            </div>
+          ) : null}
+          {showPrimaryBtn ? (
+            <Btn onClick={()=>{onClose();setPage(ctaPage);}} col={BRAND.primary} full>{cta} →</Btn>
+          ) : null}
+          <button onClick={onClose} style={{width:"100%",background:"none",border:"none",color:C.dim,fontSize:13,cursor:"pointer",marginTop:showPrimaryBtn?10:0,padding:8}}>Seguir comprando sin cuenta</button>
         </div>
       </div>
     </div>
