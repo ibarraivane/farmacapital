@@ -638,7 +638,7 @@ function BannersAdmin(){
   const [banners,setBanners] = useState([]);
   const [loading,setLoad]   = useState(true);
   const [modal,setModal]    = useState(null);
-  const [form,setForm]      = useState({titulo:"",subtitulo:"",descripcion:"",emoji:"💊",bg:"linear-gradient(135deg,#0052cc,#0099e6)",cta:"Ver más →",pagina:"catalogo",orden:0,activo:true,slot:"hero",imagen_url:"",imagen_mobile_url:"",video_url:"",modo_visualizacion:"imagen_fondo"});
+  const [form,setForm]      = useState({titulo:"",subtitulo:"",descripcion:"",emoji:"💊",bg:"linear-gradient(135deg,#0052cc,#0099e6)",cta:"Ver más →",pagina:"catalogo",orden:0,activo:true,slot:"hero",imagen_url:"",imagen_url_mobile:"",video_url:"",modo_visualizacion:"imagen_fondo"});
   const [saving,setSaving]  = useState(false);
 
   const fetch = async()=>{ setLoad(true); const{data}=await supabase.from("banners").select("*").order("orden"); setBanners(data||[]); setLoad(false); };
@@ -647,7 +647,11 @@ function BannersAdmin(){
   const guardar = async()=>{
     setSaving(true);
     const tok = sessionStorage.getItem("farmax_session_token");
-    const payload = { ...form };
+    const payload = {
+      ...form,
+      imagen_mobile_url: form.imagen_url_mobile || "",
+      imagen_url_mobile: form.imagen_url_mobile || "",
+    };
     const { error } = await supabase.rpc("admin_upsert_banner", {
       p_session_token: tok,
       p_id:            modal === "new" ? null : modal.id,
@@ -688,7 +692,7 @@ function BannersAdmin(){
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
         <h1 style={{color:C.text,fontSize:20,fontWeight:800,margin:0}}>🖼️ Banners de la tienda</h1>
-        <Btn col={BRAND.primary} onClick={()=>{setForm({titulo:"",subtitulo:"",descripcion:"",emoji:"💊",bg:BRAND.gradient,cta:"Ver más →",pagina:"promo",orden:banners.length+1,activo:true,slot:"hero",imagen_url:"",imagen_mobile_url:"",video_url:"",modo_visualizacion:"imagen_fondo"});setModal("new");}}>+ Nuevo banner</Btn>
+        <Btn col={BRAND.primary} onClick={()=>{setForm({titulo:"",subtitulo:"",descripcion:"",emoji:"💊",bg:BRAND.gradient,cta:"Ver más →",pagina:"promo",orden:banners.length+1,activo:true,slot:"hero",imagen_url:"",imagen_url_mobile:"",video_url:"",modo_visualizacion:"imagen_fondo"});setModal("new");}}>+ Nuevo banner</Btn>
       </div>
       <div style={{background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:10,padding:"10px 16px",marginBottom:16,fontSize:12,color:"#1d4ed8",lineHeight:1.55}}>
         💡 <strong>Zona:</strong> <em>Carrusel</em> (arriba, rotación automática) · <em>Franja</em> (tarjetas anchas bajo la barra de servicios) · <em>Mosaico</em> (rejilla bajo la búsqueda). Ordená con <strong>Orden</strong>.
@@ -716,7 +720,7 @@ function BannersAdmin(){
               </div>
               <div style={{display:"flex",gap:8,flexShrink:0}}>
                 <button onClick={()=>toggleActivo(b)} style={{padding:"5px 10px",borderRadius:6,border:`1px solid ${b.activo?C.green:C.border}`,background:b.activo?C.greenDim:"transparent",color:b.activo?C.green:C.textMid,fontSize:11,fontWeight:700,cursor:"pointer"}}>{b.activo?"✓ Activo":"○ Inactivo"}</button>
-                <button onClick={()=>{setForm({...b,imagen_url:b.imagen_url||"",imagen_mobile_url:b.imagen_mobile_url||"",video_url:b.video_url||"",modo_visualizacion:b.modo_visualizacion||"imagen_fondo"});setModal(b);}} style={{padding:"5px 10px",borderRadius:6,border:`1px solid ${C.amber}`,background:C.amberDim,color:C.amber,fontSize:11,fontWeight:700,cursor:"pointer"}}>✏️ Editar</button>
+                <button onClick={()=>{setForm({...b,imagen_url:b.imagen_url||"",imagen_url_mobile:(b.imagen_url_mobile||b.imagen_mobile_url)||"",video_url:b.video_url||"",modo_visualizacion:b.modo_visualizacion||"imagen_fondo"});setModal(b);}} style={{padding:"5px 10px",borderRadius:6,border:`1px solid ${C.amber}`,background:C.amberDim,color:C.amber,fontSize:11,fontWeight:700,cursor:"pointer"}}>✏️ Editar</button>
                 <button onClick={()=>eliminar(b.id)} style={{padding:"5px 10px",borderRadius:6,border:`1px solid ${C.red}`,background:C.redDim,color:C.red,fontSize:11,fontWeight:700,cursor:"pointer"}}>🗑️</button>
               </div>
             </div>
@@ -730,28 +734,58 @@ function BannersAdmin(){
               <h3 style={{margin:0,color:C.text,fontSize:16,fontWeight:800}}>{modal==="new"?"➕ Nuevo":"✏️ Editar"} Banner</h3>
               <button onClick={()=>setModal(null)} style={{background:"none",border:"none",color:C.textMid,fontSize:22,cursor:"pointer"}}>✕</button>
             </div>
-            <div style={{marginBottom:16,padding:14,background:C.bg,borderRadius:10,border:`1px solid ${C.border}`}}>
-              <label style={{color:C.textMid,fontSize:11,fontWeight:700,display:"block",marginBottom:8}}>🖼️ IMAGEN DEL BANNER</label>
-              <ImageUploader
-                bucket="banners"
-                currentUrl={form.imagen_url}
-                onUploaded={(url)=>setForm((p)=>({...p,imagen_url:url,imagen_mobile_url:url}))}
-                onRemoved={()=>{
-                  setForm((p)=>({...p,imagen_url:"",imagen_mobile_url:""}));
-                  if(modal&&modal!=="new"&&modal?.id){
-                    const tok=sessionStorage.getItem("farmax_session_token");
-                    if(tok){
-                      supabase.rpc("admin_upsert_banner",{p_session_token:tok,p_id:modal.id,p_payload:{imagen_url:"",imagen_mobile_url:""}})
-                        .then(({error})=>{ if(error)showToast(error.message,"error"); else { showToast("Imagen quitada en servidor","info"); fetch(); }});
+            <div style={{display:"grid",gridTemplateColumns:"1fr",gap:12,marginBottom:16}}>
+              <div style={{padding:14,background:C.bg,borderRadius:10,border:`1px solid ${C.border}`}}>
+                <label style={{color:C.textMid,fontSize:11,fontWeight:700,display:"block",marginBottom:8}}>
+                  IMAGEN DESKTOP (1920×600px · ratio ~16:5)
+                </label>
+                <ImageUploader
+                  bucket="banners"
+                  currentUrl={form.imagen_url}
+                  onUploaded={(url)=>setForm((p)=>({...p,imagen_url:url}))}
+                  onRemoved={()=>{
+                    setForm((p)=>({...p,imagen_url:""}));
+                    if(modal&&modal!=="new"&&modal?.id){
+                      const tok=sessionStorage.getItem("farmax_session_token");
+                      if(tok){
+                        supabase.rpc("admin_upsert_banner",{p_session_token:tok,p_id:modal.id,p_payload:{imagen_url:""}})
+                          .then(({error})=>{ if(error)showToast(error.message,"error"); else { showToast("Imagen desktop quitada","info"); fetch(); }});
+                      }
                     }
-                  }
-                }}
-                aspectRatio="16:9"
-                filenamePrefix={form.titulo||"banner"}
-                size="medium"
-              />
-              <div style={{fontSize:11,color:C.textDim,marginTop:8,lineHeight:1.45}}>
-                💡 <strong>Tamaño recomendado (carrusel):</strong> imagen horizontal tipo <strong>1920×640 px</strong> (~3:1). Si no hay imagen, se usa fondo + emoji. Bucket <code style={{background:C.card,padding:"1px 4px",borderRadius:4}}>banners</code>.
+                  }}
+                  aspectRatio="16:9"
+                  filenamePrefix={`${(form.titulo||"banner").toLowerCase().replace(/\s/g,"-")}-desktop`}
+                  size="medium"
+                />
+                <div style={{fontSize:11,color:C.textDim,marginTop:6,lineHeight:1.4}}>
+                  Imagen rectangular ancha para laptop/tablet. Bucket <code style={{background:C.card,padding:"1px 4px",borderRadius:4}}>banners</code>.
+                </div>
+              </div>
+              <div style={{padding:14,background:C.bg,borderRadius:10,border:`1px solid ${C.border}`}}>
+                <label style={{color:C.textMid,fontSize:11,fontWeight:700,display:"block",marginBottom:8}}>
+                  IMAGEN MOBILE (1080×1080px · 1:1)
+                </label>
+                <ImageUploader
+                  bucket="banners"
+                  currentUrl={form.imagen_url_mobile}
+                  onUploaded={(url)=>setForm((p)=>({...p,imagen_url_mobile:url}))}
+                  onRemoved={()=>{
+                    setForm((p)=>({...p,imagen_url_mobile:""}));
+                    if(modal&&modal!=="new"&&modal?.id){
+                      const tok=sessionStorage.getItem("farmax_session_token");
+                      if(tok){
+                        supabase.rpc("admin_upsert_banner",{p_session_token:tok,p_id:modal.id,p_payload:{imagen_url_mobile:"",imagen_mobile_url:""}})
+                          .then(({error})=>{ if(error)showToast(error.message,"error"); else { showToast("Imagen mobile quitada","info"); fetch(); }});
+                      }
+                    }
+                  }}
+                  aspectRatio="1:1"
+                  filenamePrefix={`${(form.titulo||"banner").toLowerCase().replace(/\s/g,"-")}-mobile`}
+                  size="medium"
+                />
+                <div style={{fontSize:11,color:C.textDim,marginTop:6,lineHeight:1.4}}>
+                  Cuadrada para celular. Si no subís una, la tienda usa la desktop.
+                </div>
               </div>
             </div>
             <div style={{marginBottom:16,padding:14,background:C.bg,borderRadius:10,border:`1px solid ${C.border}`}}>

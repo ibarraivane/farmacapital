@@ -136,15 +136,17 @@ function mapBannerFromRow(b){
     pagina: b.pagina||"catalogo",
     slot,
     imagen_url: b.imagen_url || "",
+    imagen_url_mobile: bannerTxt(b.imagen_url_mobile) || bannerTxt(b.imagen_mobile_url),
     imagen_mobile_url: b.imagen_mobile_url || "",
     video_url: (b.video_url != null && String(b.video_url).trim()) ? String(b.video_url).trim() : "",
     modo_visualizacion,
   };
 }
 
-function bannerVisualUrl(b, stack){
-  if (stack && b.imagen_mobile_url) return b.imagen_mobile_url;
-  return b.imagen_url || "";
+/** Vista estrecha (<768px): prioriza imagen_url_mobile (mapeada desde BD nueva + legado imagen_mobile_url). */
+function bannerVisualUrl(b, narrow){
+  if (narrow && bannerTxt(b.imagen_url_mobile)) return bannerTxt(b.imagen_url_mobile);
+  return bannerTxt(b.imagen_url) || "";
 }
 
 /** URL de video corto (MP4/WebM). Si existe, la tienda prioriza video sobre la imagen. */
@@ -281,48 +283,39 @@ function PopupBienvenida({onClose,setPage,precioConsulta}){
 }
 
 // ── CARRUSEL PRINCIPAL (zona hero) ────────────────────────────
-/**
- * Modo imagen_fondo: media cover + copy anclado con position absolute al pie (gradiente solo abajo).
- * Modo imagen_completa: solo imagen/video a ancho completo, sin overlays.
- */
-/** useStaticPlaceholder: solo si aún no hay datos de BD o no hay banners activos (evita ocultar cambios del admin). */
-function HeroCarousel({setPage, items, precioConsulta, stack, useStaticPlaceholder=true}){
+/** Desktop: título arriba-izq y CTA abajo-der · Mobile: copy centrado abajo · imagen desktop vs imagen_url_mobile (<768px). */
+function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true}){
   const C = useTheme();
   const [idx,setIdx]=useState(0);
   const [pauseAuto,setPauseAuto]=useState(false);
+  const esMobile = useMediaQuery("(max-width: 767px)");
+
   const banners = items.length
     ? items
     : useStaticPlaceholder
     ? BANNERS.map((b) =>
         b.id === 2 && precioConsulta
-          ? {
-              ...b,
-              subtitulo: `$${Math.round(Number(precioConsulta) || CONSULTA_PRECIO_DEFAULT)} por consulta`,
-            }
+          ? {...b, subtitulo:`$${Math.round(Number(precioConsulta)||CONSULTA_PRECIO_DEFAULT)} por consulta`}
           : b
       )
     : [];
+
   useEffect(()=>{ setIdx(0); },[banners.length]);
   useEffect(()=>{
     if(banners.length<=1||pauseAuto) return undefined;
     const t=setInterval(()=>setIdx(i=>(i+1)%banners.length),4000);
     return ()=>clearInterval(t);
   },[banners.length,pauseAuto]);
-  if (banners.length===0) return null;
+
+  if(banners.length===0) return null;
+
   const b=banners[idx]||BANNERS[0];
   const vid = bannerVideoUrl(b);
-  const heroImg = bannerVisualUrl(b, stack);
-  const heroHasVisual = !!(vid || heroImg);
-  const modo = b.modo_visualizacion === "imagen_fondo" ? "imagen_fondo" : "imagen_completa";
-  const imagenCompleta = heroHasVisual && modo === "imagen_completa";
-  const textPad = heroHasVisual ? "clamp(16px,3.5vw,28px) 16px" : "clamp(28px,8vw,48px) 16px";
-  /** Modo imagen_fondo: texto al pie; no mostramos descripción (redundante). */
-  const heroShowBottomCopy = !!(bannerTxt(b.subtitulo) || bannerTxt(b.titulo) || bannerTxt(b.cta));
-  const carouselDotsBottom =
-    banners.length <= 1 ? 12 : imagenCompleta ? 12 : heroHasVisual ? 56 : 12;
-  /** Contenido imagen_fondo: siempre anclado abajo (evita que parezca centrado verticalmente). */
-  const heroFondoCopyBottom =
-    banners.length > 1 ? carouselDotsBottom + 22 : 28;
+  const imagenActual = bannerVisualUrl(b, esMobile);
+  const tieneImagen = !!(vid || bannerTxt(imagenActual));
+
+  const modoCompleto =
+    (bannerTxt(b.modo_visualizacion)||"imagen_completa")==="imagen_completa" && tieneImagen;
 
   const carouselControls = banners.length > 1 && (
     <>
@@ -331,7 +324,7 @@ function HeroCarousel({setPage, items, precioConsulta, stack, useStaticPlacehold
         onMouseLeave={()=>setPauseAuto(false)}
         style={{
           position:"absolute",
-          bottom:carouselDotsBottom,
+          bottom:12,
           left:"50%",
           transform:"translateX(-50%)",
           display:"flex",
@@ -352,9 +345,8 @@ function HeroCarousel({setPage, items, precioConsulta, stack, useStaticPlacehold
               border:"none",
               background:i===idx?"rgba(255,255,255,.95)":"rgba(255,255,255,.5)",
               cursor:"pointer",
-              transition:"all .3s",
               padding:0,
-              boxShadow:"0 1px 3px rgba(0,0,0,.3)",
+              boxShadow:"0 1px 3px rgba(0,0,0,.4)",
             }}
           />
         ))}
@@ -366,21 +358,19 @@ function HeroCarousel({setPage, items, precioConsulta, stack, useStaticPlacehold
           onClick={(e)=>{ e.stopPropagation(); setIdx(i=>(i+d+banners.length)%banners.length); }}
           onMouseEnter={()=>setPauseAuto(true)}
           onMouseLeave={()=>setPauseAuto(false)}
-          onFocus={()=>setPauseAuto(true)}
-          onBlur={()=>setPauseAuto(false)}
           style={{
             position:"absolute",
             top:"50%",
             transform:"translateY(-50%)",
-            ...(d===-1?{left:16}:{right:16}),
+            ...(d===-1?{left:12}:{right:12}),
             background:"rgba(0,0,0,.4)",
             border:"none",
             color:C.white,
-            width:40,
-            height:40,
+            width:esMobile?32:40,
+            height:esMobile?32:40,
             borderRadius:"50%",
             cursor:"pointer",
-            fontSize:22,
+            fontSize:esMobile?20:24,
             fontWeight:600,
             display:"flex",
             alignItems:"center",
@@ -395,23 +385,203 @@ function HeroCarousel({setPage, items, precioConsulta, stack, useStaticPlacehold
     </>
   );
 
-  const heroFullBleedMediaSx = {
+  const imgHeroSx = {
     width:"100%",
     height:"auto",
     display:"block",
-    verticalAlign:"top",
-    maxHeight:"min(60vh, 600px)",
+    maxHeight: esMobile ? "min(85vw, 480px)" : "min(60vh, 600px)",
     objectFit:"cover",
   };
+
+  const fondoShell = (
+    <div
+      role="presentation"
+      onClick={()=>setPage(b.pagina)}
+      style={{
+        position:"relative",
+        width:"100%",
+        overflow:"hidden",
+        cursor:"pointer",
+        background: vid ? "#070f1a" : tieneImagen ? "#0f172a" : undefined,
+        backgroundImage: !vid && tieneImagen ? `url(${imagenActual})` : undefined,
+        backgroundSize:"cover",
+        backgroundPosition:"center",
+        minHeight: esMobile ? "min(95vw, 480px)" : "clamp(320px, 45vh, 480px)",
+        display:"flex",
+        flexDirection:"column",
+        justifyContent: esMobile ? "space-between" : "flex-start",
+      }}
+    >
+      {!vid && !tieneImagen ? (
+        <div aria-hidden style={{
+          position:"absolute",
+          inset:0,
+          background:b.bg,
+          zIndex:0,
+        }}/>
+      ) : null}
+      {vid ? (
+        <div style={{position:"absolute",inset:0,zIndex:0}}>
+          <BannerLoopVideo
+            src={vid}
+            poster={bannerTxt(imagenActual)||undefined}
+            aria-label={bannerTxt(b.titulo)||"Banner"}
+            style={{
+              width:"100%",
+              height:"100%",
+              display:"block",
+              objectFit:"cover",
+            }}
+          />
+        </div>
+      ) : null}
+
+      {tieneImagen ? (
+        <>
+          {!esMobile && (
+            <div aria-hidden style={{
+              position:"absolute",
+              top:0,
+              left:0,
+              right:0,
+              height:"55%",
+              background:"linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.25) 60%, transparent 100%)",
+              pointerEvents:"none",
+              zIndex:1,
+            }}/>
+          )}
+          <div aria-hidden style={{
+            position:"absolute",
+            bottom:0,
+            left:0,
+            right:0,
+            height: esMobile ? "55%" : "45%",
+            background:"linear-gradient(to top, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.3) 60%, transparent 100%)",
+            pointerEvents:"none",
+            zIndex:1,
+          }}/>
+        </>
+      ) : null}
+
+      {esMobile ? (
+        <>
+          <div style={{flex:1}}/>
+          <div style={{
+            position:"relative",
+            zIndex:2,
+            padding:"20px 16px 50px 16px",
+            textAlign:"center",
+          }}>
+            {bannerTxt(b.titulo) ? (
+              <h2 style={{
+                color:"#fff",
+                fontSize:"clamp(20px, 5vw, 26px)",
+                fontWeight:800,
+                marginBottom:6,
+                marginTop:0,
+                lineHeight:1.2,
+                textShadow:"0 2px 8px rgba(0,0,0,.7)",
+                fontFamily:"'Plus Jakarta Sans',sans-serif",
+              }}>{b.titulo}</h2>
+            ) : null}
+            {bannerTxt(b.subtitulo) ? (
+              <div style={{
+                color:"rgba(255,255,255,.9)",
+                fontSize:"clamp(10px, 2.5vw, 12px)",
+                letterSpacing:1.5,
+                textTransform:"uppercase",
+                marginBottom:16,
+                fontWeight:600,
+                textShadow:"0 1px 3px rgba(0,0,0,.6)",
+                fontFamily:"'Plus Jakarta Sans',sans-serif",
+              }}>{b.subtitulo}</div>
+            ) : null}
+            {bannerTxt(b.cta) && b.pagina ? (
+              <Btn
+                onClick={(e)=>{ e.stopPropagation(); setPage(b.pagina); }}
+                style={{
+                  background:"#fff",
+                  color:BRAND.primary,
+                  border:"none",
+                  fontWeight:700,
+                  boxShadow:"0 4px 12px rgba(0,0,0,.3)",
+                }}
+              >
+                {b.cta}
+              </Btn>
+            ) : null}
+          </div>
+        </>
+      ) : (
+        <>
+          <div style={{
+            position:"relative",
+            zIndex:2,
+            padding:"32px 48px 0 48px",
+            textAlign:"left",
+            maxWidth:"60%",
+          }}>
+            {bannerTxt(b.titulo) ? (
+              <h2 style={{
+                color:"#fff",
+                fontSize:"clamp(24px, 3.5vw, 36px)",
+                fontWeight:800,
+                marginBottom:8,
+                marginTop:0,
+                lineHeight:1.15,
+                textShadow:"0 2px 8px rgba(0,0,0,.7)",
+                fontFamily:"'Plus Jakarta Sans',sans-serif",
+              }}>{b.titulo}</h2>
+            ) : null}
+            {bannerTxt(b.subtitulo) ? (
+              <div style={{
+                color:"rgba(255,255,255,.9)",
+                fontSize:"clamp(11px, 1.4vw, 14px)",
+                letterSpacing:1.8,
+                textTransform:"uppercase",
+                fontWeight:600,
+                textShadow:"0 1px 3px rgba(0,0,0,.6)",
+                fontFamily:"'Plus Jakarta Sans',sans-serif",
+              }}>{b.subtitulo}</div>
+            ) : null}
+          </div>
+          <div style={{flex:1}}/>
+          {bannerTxt(b.cta) && b.pagina ? (
+            <div style={{
+              position:"relative",
+              zIndex:2,
+              padding:"0 48px 40px 48px",
+              textAlign:"right",
+            }}>
+              <Btn
+                onClick={(e)=>{ e.stopPropagation(); setPage(b.pagina); }}
+                style={{
+                  background:"#fff",
+                  color:BRAND.primary,
+                  border:"none",
+                  fontWeight:700,
+                  boxShadow:"0 4px 16px rgba(0,0,0,.4)",
+                  padding:"14px 28px",
+                  fontSize:15,
+                }}
+              >
+                {b.cta}
+              </Btn>
+            </div>
+          ) : null}
+        </>
+      )}
+    </div>
+  );
 
   return(
     <div style={{
       position:"relative",
       width:"100%",
       overflow:"hidden",
-      background:imagenCompleta?"#000":undefined,
+      background: modoCompleto && tieneImagen ? "#000" : undefined,
     }}>
-      {imagenCompleta ? (
+      {modoCompleto ? (
         <>
           <button
             type="button"
@@ -431,167 +601,25 @@ function HeroCarousel({setPage, items, precioConsulta, stack, useStaticPlacehold
             {vid ? (
               <BannerLoopVideo
                 src={vid}
-                poster={heroImg || undefined}
-                aria-label={bannerTxt(b.titulo) || "Banner"}
-                style={heroFullBleedMediaSx}
+                poster={bannerTxt(imagenActual)||undefined}
+                aria-label={bannerTxt(b.titulo)||"Banner"}
+                style={imgHeroSx}
               />
             ) : (
               <img
-                src={heroImg}
-                alt={bannerTxt(b.titulo) || "Banner"}
+                src={imagenActual}
+                alt={bannerTxt(b.titulo)||"Banner"}
                 decoding="async"
-                style={heroFullBleedMediaSx}
+                style={imgHeroSx}
               />
             )}
           </button>
           {carouselControls}
         </>
-      ) : heroHasVisual ? (
-        <div style={{
-          position:"relative",
-          width:"100%",
-          overflow:"hidden",
-          background:"#070f1a",
-          lineHeight:0,
-          minHeight:"clamp(280px, 45vh, 480px)",
-        }}>
-          <div style={{position:"absolute",inset:0,zIndex:0}}>
-            {vid ? (
-              <BannerLoopVideo
-                src={vid}
-                poster={heroImg || undefined}
-                aria-label={bannerTxt(b.titulo) || "Banner"}
-                style={{
-                  width:"100%",
-                  height:"100%",
-                  display:"block",
-                  objectFit:"cover",
-                  objectPosition:"center top",
-                }}
-              />
-            ) : (
-              <img
-                src={heroImg}
-                alt={bannerTxt(b.titulo) || ""}
-                decoding="async"
-                style={{
-                  width:"100%",
-                  height:"100%",
-                  display:"block",
-                  objectFit:"cover",
-                  objectPosition:"center top",
-                }}
-              />
-            )}
-          </div>
-          {heroShowBottomCopy ? (
-            <>
-              <div
-                aria-hidden
-                style={{
-                  position:"absolute",
-                  bottom:0,
-                  left:0,
-                  right:0,
-                  height:"55%",
-                  background:"linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0) 100%)",
-                  pointerEvents:"none",
-                  zIndex:1,
-                }}
-              />
-              <div style={{
-                position:"absolute",
-                left:0,
-                right:0,
-                bottom:heroFondoCopyBottom,
-                zIndex:2,
-                padding:"0 16px",
-                textAlign:"center",
-                pointerEvents:"none",
-              }}>
-                <div style={{maxWidth:700,margin:"0 auto",width:"100%",pointerEvents:"auto"}}>
-                  {bannerTxt(b.titulo) ? (
-                    <h2 style={{
-                      color:"#fff",
-                      fontSize:"clamp(20px, 4vw, 28px)",
-                      fontWeight:800,
-                      marginBottom:6,
-                      marginTop:0,
-                      lineHeight:1.2,
-                      textShadow:"0 2px 8px rgba(0,0,0,.7)",
-                      fontFamily:"'Plus Jakarta Sans',sans-serif",
-                    }}>{b.titulo}</h2>
-                  ) : null}
-                  {bannerTxt(b.subtitulo) ? (
-                    <div style={{
-                      color:"rgba(255,255,255,.85)",
-                      fontSize:"clamp(11px, 2vw, 13px)",
-                      letterSpacing:1.5,
-                      textTransform:"uppercase",
-                      marginBottom:16,
-                      fontWeight:600,
-                      textShadow:"0 1px 3px rgba(0,0,0,.6)",
-                      fontFamily:"'Plus Jakarta Sans',sans-serif",
-                    }}>{b.subtitulo}</div>
-                  ) : null}
-                  {bannerTxt(b.cta) && b.pagina ? (
-                    <span
-                      onMouseEnter={()=>setPauseAuto(true)}
-                      onMouseLeave={()=>setPauseAuto(false)}
-                      style={{display:"inline-block"}}
-                    >
-                      <Btn
-                        onClick={()=>setPage(b.pagina)}
-                        style={{
-                          background:"#fff",
-                          color:BRAND.primary,
-                          border:"none",
-                          boxShadow:"0 4px 12px rgba(0,0,0,.3)",
-                          fontWeight:700,
-                        }}
-                      >
-                        {b.cta}
-                      </Btn>
-                    </span>
-                  ) : null}
-                </div>
-              </div>
-            </>
-          ) : null}
-          {carouselControls}
-        </div>
       ) : (
         <>
-        <div style={{
-          position:"relative",
-          zIndex:1,
-          padding:textPad,
-          textAlign:"center",
-          background:b.bg,
-          transition:"background .35s",
-        }}>
-          <div style={{maxWidth:700,margin:"0 auto",width:"100%"}}>
-            {b.subtitulo ? (
-            <div style={{color:"rgba(255,255,255,.8)",fontSize:"clamp(11px, 3vw, 13px)",letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>{b.subtitulo}</div>
-            ) : null}
-            {b.titulo ? (
-            <h2 style={{color:C.white,fontSize:"clamp(22px, 6vw, 32px)",fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif",marginBottom:12,lineHeight:1.2}}>{b.titulo}</h2>
-            ) : null}
-            {b.descripcion ? (
-            <p style={{color:"rgba(255,255,255,.85)",fontSize:"clamp(14px, 3.5vw, 15px)",marginBottom:24,lineHeight:1.6}}>{b.descripcion}</p>
-            ) : null}
-            {b.cta ? (
-            <span
-              onMouseEnter={()=>setPauseAuto(true)}
-              onMouseLeave={()=>setPauseAuto(false)}
-              style={{display:"inline-block"}}
-            >
-              <Btn onClick={()=>setPage(b.pagina)} style={{background:C.white,color:BRAND.primary,border:"none"}}>{b.cta}</Btn>
-            </span>
-            ) : null}
-          </div>
-        </div>
-        {carouselControls}
+          {fondoShell}
+          {carouselControls}
         </>
       )}
     </div>
@@ -602,15 +630,16 @@ function HeroCarousel({setPage, items, precioConsulta, stack, useStaticPlacehold
 function HomeBannersStrip({setPage, items}){
   const C = useTheme();
   const stack = useMediaQuery("(max-width: 768px)");
+  const narrowImg = useMediaQuery("(max-width: 767px)");
   if(!items?.length) return null;
   return(
     <div style={{background:"linear-gradient(180deg,#f0f7ff,#f7f9fc)",borderBottom:`1px solid ${C.border}`,padding:"16px 12px"}}>
       <div style={{maxWidth:1200,margin:"0 auto",display:"flex",gap:12,flexWrap:"wrap",justifyContent:"center"}}>
         {items.map((b,i)=>{
           const vid = bannerVideoUrl(b);
-          const u = bannerVisualUrl(b, stack);
+          const imgUrl = bannerVisualUrl(b, narrowImg);
           const modo = b.modo_visualizacion === "imagen_fondo" ? "imagen_fondo" : "imagen_completa";
-          const soloImg = modo === "imagen_completa" && (!!vid || !!u);
+          const soloImg = modo === "imagen_completa" && (!!vid || !!imgUrl);
           const stripHasCopy = !!(b.titulo||b.subtitulo||b.descripcion||b.cta);
           if (soloImg) {
             return (
@@ -639,7 +668,7 @@ function HomeBannersStrip({setPage, items}){
                 {vid ? (
                   <BannerLoopVideo
                     src={vid}
-                    poster={u || undefined}
+                    poster={imgUrl || undefined}
                     aria-label={bannerTxt(b.titulo) || "Banner"}
                     style={{
                       width:"100%",
@@ -651,7 +680,7 @@ function HomeBannersStrip({setPage, items}){
                   />
                 ) : (
                   <img
-                    src={u}
+                    src={imgUrl}
                     alt={bannerTxt(b.titulo)||""}
                     decoding="async"
                     style={{
@@ -675,15 +704,15 @@ function HomeBannersStrip({setPage, items}){
               position:"relative",
               overflow:"hidden",
               flex:"1 1 min(100%,280px)",maxWidth:420,minWidth:0,width:"100%",textAlign:"left",cursor:"pointer",border:"none",borderRadius:14,
-              background:(vid||u)?"#0f172a":b.bg,
-              color:"#fff",padding:(vid||u)?0:"16px 18px",boxShadow:"0 4px 20px rgba(0,82,204,.12)",
-              display:"flex",alignItems:(vid||u)?"stretch":"center",gap:(vid||u)?0:14,
+              background:(vid||imgUrl)?"#0f172a":b.bg,
+              color:"#fff",padding:(vid||imgUrl)?0:"16px 18px",boxShadow:"0 4px 20px rgba(0,82,204,.12)",
+              display:"flex",alignItems:(vid||imgUrl)?"stretch":"center",gap:(vid||imgUrl)?0:14,
               transition:"transform .15s, box-shadow .15s",
             }}
             onMouseEnter={e=>{ e.currentTarget.style.transform="translateY(-2px)"; e.currentTarget.style.boxShadow="0 8px 28px rgba(0,82,204,.2)"; }}
             onMouseLeave={e=>{ e.currentTarget.style.transform="none"; e.currentTarget.style.boxShadow="0 4px 20px rgba(0,82,204,.12)"; }}
           >
-            {(vid||u) ? (
+            {(vid||imgUrl) ? (
               stripHasCopy ? (
               <>
                 <div style={{
@@ -699,7 +728,7 @@ function HomeBannersStrip({setPage, items}){
                   {vid ? (
                     <BannerLoopVideo
                       src={vid}
-                      poster={u || undefined}
+                      poster={imgUrl || undefined}
                       aria-label={bannerTxt(b.titulo)||""}
                       style={{
                         width:"100%",
@@ -711,7 +740,7 @@ function HomeBannersStrip({setPage, items}){
                     />
                   ) : (
                     <img
-                      src={u}
+                      src={imgUrl}
                       alt=""
                       decoding="async"
                       style={{
@@ -743,7 +772,7 @@ function HomeBannersStrip({setPage, items}){
                   {vid ? (
                     <BannerLoopVideo
                       src={vid}
-                      poster={u || undefined}
+                      poster={imgUrl || undefined}
                       aria-label={bannerTxt(b.titulo)||"Banner"}
                       style={{
                         width:"100%",
@@ -755,7 +784,7 @@ function HomeBannersStrip({setPage, items}){
                   />
                   ) : (
                     <img
-                      src={u}
+                      src={imgUrl}
                       alt=""
                       decoding="async"
                       style={{
@@ -788,6 +817,7 @@ function HomeBannersStrip({setPage, items}){
 // ── MOSAICO: rejilla compacta (zona tile) ─────────────────────
 function HomeBannersTiles({setPage, items, stack}){
   const C = useTheme();
+  const narrowImg = useMediaQuery("(max-width: 767px)");
   if(!items?.length) return null;
   return(
     <div style={{maxWidth:1200,margin:"0 auto",padding:"0 12px 20px"}}>
@@ -798,9 +828,9 @@ function HomeBannersTiles({setPage, items, stack}){
       }}>
         {items.map((b,i)=>{
           const vid = bannerVideoUrl(b);
-          const u = bannerVisualUrl(b, stack);
+          const imgUrl = bannerVisualUrl(b, narrowImg);
           const modo = b.modo_visualizacion === "imagen_fondo" ? "imagen_fondo" : "imagen_completa";
-          const soloImg = modo === "imagen_completa" && (!!vid || !!u);
+          const soloImg = modo === "imagen_completa" && (!!vid || !!imgUrl);
           const tileHasCopy = !!(b.titulo||b.subtitulo||b.cta);
           if (soloImg) {
             return (
@@ -831,7 +861,7 @@ function HomeBannersTiles({setPage, items, stack}){
                 {vid ? (
                   <BannerLoopVideo
                     src={vid}
-                    poster={u || undefined}
+                    poster={imgUrl || undefined}
                     aria-label={bannerTxt(b.titulo)||""}
                     style={{
                       width:"100%",
@@ -843,7 +873,7 @@ function HomeBannersTiles({setPage, items, stack}){
                   />
                 ) : (
                   <img
-                    src={u}
+                    src={imgUrl}
                     alt={bannerTxt(b.titulo)||""}
                     decoding="async"
                     style={{
@@ -867,20 +897,20 @@ function HomeBannersTiles({setPage, items, stack}){
               position:"relative",
               overflow:"hidden",
               textAlign:"left",cursor:"pointer",border:`1px solid ${C.border}`,borderRadius:14,
-              background:(vid||u)?"#0f172a":b.bg,
-              color:"#fff",padding:(vid||u)?0:16,minHeight:(vid||u)?undefined:120,
-              display:"flex",flexDirection:"column",justifyContent:(vid||u)?"flex-start":"space-between",gap:(vid||u)?0:8,
+              background:(vid||imgUrl)?"#0f172a":b.bg,
+              color:"#fff",padding:(vid||imgUrl)?0:16,minHeight:(vid||imgUrl)?undefined:120,
+              display:"flex",flexDirection:"column",justifyContent:(vid||imgUrl)?"flex-start":"space-between",gap:(vid||imgUrl)?0:8,
               boxShadow:"0 2px 12px rgba(0,0,0,.06)",transition:"transform .15s",
             }}
             onMouseEnter={e=>{ e.currentTarget.style.transform="translateY(-2px)"; }}
             onMouseLeave={e=>{ e.currentTarget.style.transform="none"; }}
           >
-            {(vid||u) ? (
+            {(vid||imgUrl) ? (
               <div style={{position:"relative",width:"100%",background:"#0f172a"}}>
                 {vid ? (
                   <BannerLoopVideo
                     src={vid}
-                    poster={u || undefined}
+                    poster={imgUrl || undefined}
                     aria-label={bannerTxt(b.titulo)||""}
                     style={{
                       width:"100%",
@@ -893,7 +923,7 @@ function HomeBannersTiles({setPage, items, stack}){
                   />
                 ) : (
                   <img
-                    src={u}
+                    src={imgUrl}
                     alt=""
                     decoding="async"
                     style={{
@@ -2065,7 +2095,6 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
         setPage={setPage}
         items={bannerZones.hero}
         precioConsulta={precioConsulta}
-        stack={stack}
         useStaticPlaceholder={useStaticHero}
       />
 
