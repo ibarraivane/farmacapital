@@ -37,4 +37,4 @@ sql/generated/*.sql
 # Playwright
 /test-results/
 /playwright-report/
-e2e/artifacts/screenshots/*.png
+e2e/artifacts/screenshots/*.png.env
