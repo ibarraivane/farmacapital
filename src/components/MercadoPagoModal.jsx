@@ -9,9 +9,18 @@ export default function MercadoPagoModal({ open, total, folio, hint, onSuccess, 
   const [mensaje,   setMensaje]   = useState("");
   const [intentId,  setIntentId]  = useState(null);
   const [progreso,  setProgreso]  = useState(0);
+  const pollingRef = React.useRef(null);
 
   useEffect(() => {
-    if(!open) { setEstado("idle"); setMensaje(""); setIntentId(null); setProgreso(0); }
+    if (!open) {
+      pollingRef.current?.cancelar?.();
+      pollingRef.current = null;
+      setEstado("idle"); setMensaje(""); setIntentId(null); setProgreso(0);
+    }
+    return () => {
+      pollingRef.current?.cancelar?.();
+      pollingRef.current = null;
+    };
   }, [open]);
   useEffect(() => {
     if (!open) return undefined;
@@ -36,10 +45,12 @@ export default function MercadoPagoModal({ open, total, folio, hint, onSuccess, 
       setMensaje("Esperando pago en terminal Point Smart 2...");
       setProgreso(10);
 
-      const result = await esperarConfirmacionPago(intent.id, (status) => {
+      const polling = esperarConfirmacionPago(intent.id, (status) => {
         setMensaje(`Estado: ${status}`);
         setProgreso(p => Math.min(p+5, 90));
       });
+      pollingRef.current = polling;
+      const result = await polling;
 
       setProgreso(100);
       setEstado("exito");

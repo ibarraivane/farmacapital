@@ -155,7 +155,7 @@ const TicketVenta = forwardRef(({
       <div className="footer">
         <div style={{fontWeight:"bold",fontSize:11,letterSpacing:1}}>Gracias por su compra</div>
         <div>¡Vuelva pronto!</div>
-        <div style={{marginTop:3,fontSize:8,color:"#555"}}>farmax-app.vercel.app</div>
+        <div style={{marginTop:3,fontSize:8,color:"#555"}}>far-max.mx</div>
         <div style={{marginTop:4,fontSize:8,color:"#ccc",letterSpacing:3}}>* * * * * * * * *</div>
       </div>
 

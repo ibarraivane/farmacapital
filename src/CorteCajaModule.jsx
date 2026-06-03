@@ -126,6 +126,8 @@ export default function CorteCajaModule({usuario }) {
 
   const guardarCorte = async () => {
     if (!efectivo_declarado) { alert("Ingresa el efectivo declarado"); return; }
+    const tok = sessionStorage.getItem("farmax_session_token");
+    if (!tok) { alert("Sesión expirada. Inicia sesión de nuevo."); return; }
     // J8: Validar turno duplicado
     const hoy = new Date().toLocaleDateString("sv-SE");
     const { data: exSnap } = await supabase.rpc("empleado_corte_turno_en_fecha", {
@@ -138,8 +140,6 @@ export default function CorteCajaModule({usuario }) {
       if (!ok) return;
     }
     setSaving(true);
-    const tok = sessionStorage.getItem("farmax_session_token");
-    if (!tok) { setSaving(false); alert("Sesión expirada. Inicia sesión de nuevo."); return; }
     const { error } = await supabase.rpc("registrar_corte_caja", {
       p_session_token: tok,
       p_turno: turno,

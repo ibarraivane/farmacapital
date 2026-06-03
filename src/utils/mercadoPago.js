@@ -160,34 +160,41 @@ export async function listarDispositivos() {
  * @param {string} intentId
  * @param {Function} onStatus - callback con estado actual
  */
-export async function esperarConfirmacionPago(intentId, onStatus) {
+export function esperarConfirmacionPago(intentId, onStatus) {
   const MAX_ATTEMPTS = 36; // 36 × 5s = 3 minutos
   let attempts = 0;
+  let interval = null;
 
-  return new Promise((resolve, reject) => {
-    const interval = setInterval(async () => {
+  const promise = new Promise((resolve, reject) => {
+    interval = setInterval(async () => {
       attempts++;
       try {
         const data = await consultarEstadoPago(intentId);
         const estado = data?.state || data?.status;
         onStatus?.(estado, data);
 
-        if(estado === "FINISHED" || estado === "approved") {
+        if (estado === "FINISHED" || estado === "approved") {
           clearInterval(interval);
-          resolve({ success:true, data });
-        } else if(estado === "CANCELED" || estado === "rejected" || estado === "error") {
+          resolve({ success: true, data });
+        } else if (estado === "CANCELED" || estado === "rejected" || estado === "error") {
           clearInterval(interval);
           reject(new Error(`Pago ${estado}: ${data?.message || "Terminal rechazó el pago"}`));
-        } else if(attempts >= MAX_ATTEMPTS) {
+        } else if (attempts >= MAX_ATTEMPTS) {
           clearInterval(interval);
           reject(new Error("Timeout: El terminal no respondió en 3 minutos"));
         }
-      } catch(e) {
-        if(attempts >= MAX_ATTEMPTS) {
+      } catch (e) {
+        if (attempts >= MAX_ATTEMPTS) {
           clearInterval(interval);
           reject(e);
         }
       }
-    }, 5000); // Consultar cada 5 segundos
+    }, 5000);
   });
+
+  promise.cancelar = () => {
+    if (interval) clearInterval(interval);
+  };
+
+  return promise;
 }

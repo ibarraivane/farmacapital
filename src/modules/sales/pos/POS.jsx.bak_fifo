@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useMediaQuery } from "../../../hooks/useMediaQuery";
 import TicketPreviewModal from "../../../components/tickets/TicketPreviewModal";
 import MercadoPagoModal from "../../../components/MercadoPagoModal";
-import BBVATerminalModal from "../../../components/BBVATerminalModal";
 import { printTicket } from "../../../utils/printTicket";
 import { supabase } from "../../../supabase";
 import { C_LIGHT, BRAND } from "../../../constants";
@@ -89,8 +88,6 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   }, [isMobilePos, cartOpen]);
   const [mpModal,setMpModal]     = useState(false);
   const [mpFolio,setMpFolio]     = useState("");
-  const [bbvaModal,setBbvaModal] = useState(false);
-  const [bbvaFolio,setBbvaFolio] = useState("");
   /** Tras elegir origen de receta, cobro con tarjeta (Point) usa este valor al confirmar el pago. */
   const recetaOrigenPendienteRef = useRef("no_aplica");
   const [modalRecetaVenta, setModalRecetaVenta] = useState(false);
@@ -343,11 +340,10 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   );
 
   const paymentLabel = (method) => ({
-    efectivo:       "Efectivo",
-    tarjeta:        "Tarjeta",
-    spei:           "SPEI",
-    mercadopago:    "Tarjeta MP",
-    bbva_terminal:  "Tarjeta BBVA",
+    efectivo: "Efectivo",
+    tarjeta: "Tarjeta",
+    spei: "SPEI",
+    mercadopago: "Tarjeta",
   }[method] || "Otro");
 
   const totalCobroConsulta = (cita) => {
@@ -386,120 +382,19 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
           : [...p,{...item,id:keyU,producto_id:item.id,qty:1,rxI:null,esUnidad:true,precio:Math.ceil(item.precio_unidad||0),nombre:item.nombre+" (unidad)"}];
       });
     } else {
-      if (!validarProductoParaCarrito(item, 1, false)) {
+      if ((item.stock || 0) <= 0) {
+        showToast("Producto agotado.", "warning");
         return;
       }
-
       setCart(p=>{
-        const disponibleFifo = getStockFifoDisponible(item);
         const ex=p.find(c=>c.id===item.id);
-        const qtyActual = Number(ex?.qty || 0);
-
-        if(qtyActual + 1 > disponibleFifo){
-          showToast(`Stock FIFO insuficiente. Disponible por lotes: ${disponibleFifo}, en carrito: ${qtyActual}.`, "warning");
-          return p;
-        }
-
         if(ex){
+          if(ex.qty>=(item.stock||99)){ showToast(`Stock máximo: ${item.stock} unidades`,"warning"); return p; }
           return p.map(c=>c.id===item.id?{...c,qty:c.qty+1}:c);
         }
-
         return [...p,{...item,producto_id:item.id,qty:1,rxI:null,esUnidad:false}];
       });
     }
-  };
-
-
-  const getLoteCantidadDisponible = (lote) => {
-    return Number(
-      lote?.cantidad_disponible ??
-      lote?.stock_disponible ??
-      lote?.cantidad_actual ??
-      lote?.existencia ??
-      lote?.stock ??
-      lote?.cantidad ??
-      0
-    ) || 0;
-  };
-
-  const getStockFifoDisponible = (producto) => {
-    if (!producto) return 0;
-
-    const directo = Number(
-      producto.stock_lotes_disponible ??
-      producto.stock_fifo_disponible ??
-      producto.stock_disponible_lotes ??
-      producto.stock_disponible ??
-      producto.disponible_fifo
-    );
-
-    if (Number.isFinite(directo)) {
-      return Math.max(0, directo);
-    }
-
-    const lotes = Array.isArray(producto.lotes) ? producto.lotes : [];
-
-    if (lotes.length > 0) {
-      return Math.max(
-        0,
-        lotes.reduce((sum, lote) => {
-          if (lote?.activo === false) return sum;
-          return sum + getLoteCantidadDisponible(lote);
-        }, 0)
-      );
-    }
-
-    // Importante:
-    // Si no hay lotes, no vender por POS FIFO aunque productos.stock diga otra cosa.
-    return 0;
-  };
-
-  const getCantidadEnCarrito = (cartActual, productoId, esUnidad = false) => {
-    return (cartActual || []).reduce((sum, item) => {
-      const itemId = String(item.producto_id ?? item.id ?? "");
-      const baseId = String(productoId ?? "");
-      if (item.esUnidad !== esUnidad) return sum;
-      return itemId === baseId ? sum + (Number(item.qty) || 0) : sum;
-    }, 0);
-  };
-
-  const validarProductoParaCarrito = (item, cantidadNueva = 1, esUnidad = false, cartActual = cart) => {
-    if (!item) {
-      showToast("Producto inválido.", "warning");
-      return false;
-    }
-
-    if (esUnidad) {
-      const disponibleUnidades = Number(item.stock_unidades || 0);
-      const enCarritoUnidades = getCantidadEnCarrito(cartActual, item.id, true);
-
-      if (disponibleUnidades <= 0) {
-        showToast("Sin unidades disponibles para venta suelta.", "warning");
-        return false;
-      }
-
-      if (enCarritoUnidades + cantidadNueva > disponibleUnidades) {
-        showToast(`Máx unidades sueltas: ${disponibleUnidades}`, "warning");
-        return false;
-      }
-
-      return true;
-    }
-
-    const disponibleFifo = getStockFifoDisponible(item);
-    const enCarrito = getCantidadEnCarrito(cartActual, item.id, false);
-
-    if (disponibleFifo <= 0) {
-      showToast("Este producto no tiene lotes disponibles para venta. Revisa inventario/lotes antes de venderlo.", "warning");
-      return false;
-    }
-
-    if (enCarrito + cantidadNueva > disponibleFifo) {
-      showToast(`Stock FIFO insuficiente. Disponible por lotes: ${disponibleFifo}, en carrito: ${enCarrito}.`, "warning");
-      return false;
-    }
-
-    return true;
   };
 
   const abrirCaja = async (item) => {
@@ -541,23 +436,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
 
   const confRx = () => {
     if(!rx.receta||!rx.medico||!rx.cedula||!rx.paciente) return;
-    if (!validarProductoParaCarrito(rxM, 1, false)) return;
-
-    setCart(p=>{
-      const disponibleFifo = getStockFifoDisponible(rxM);
-      const ex = p.find(c=>c.id===rxM.id);
-      const qtyActual = Number(ex?.qty || 0);
-
-      if (qtyActual + 1 > disponibleFifo) {
-        showToast(`Stock FIFO insuficiente. Disponible por lotes: ${disponibleFifo}, en carrito: ${qtyActual}.`, "warning");
-        return p;
-      }
-
-      return ex
-        ? p.map(c=>c.id===rxM.id?{...c,qty:c.qty+1,rxI:{...rx}}:c)
-        : [...p,{...rxM,producto_id:rxM.id,qty:1,rxI:{...rx},esUnidad:false}];
-    });
-
+    setCart(p=>[...p,{...rxM,qty:1,rxI:{...rx}}]);
     setRxM(null); setRx({receta:"",medico:"",cedula:"",paciente:"",indicaciones:""});
   };
 
@@ -598,7 +477,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     setModalRecetaVenta(true);
   };
 
-  const ejecutarCobrar = async (recetaOrigen = "no_aplica", metodoPagoOverride = null) => {
+  const ejecutarCobrar = async (recetaOrigen = "no_aplica") => {
     if(!cart.length) return;
     // Prevalidación rápida para evitar mandar una venta imposible al RPC.
     const faltantes = cart
@@ -606,7 +485,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         const pid = c.producto_id ?? c.id;
         const p = productos.find((x) => String(x.id) === String(pid));
         const requested = Number(c.qty) || 0;
-        const available = c.esUnidad ? (Number(p?.stock_unidades) || 0) : getStockFifoDisponible(p);
+        const available = c.esUnidad ? (Number(p?.stock_unidades) || 0) : (Number(p?.stock) || 0);
         if (!p || requested <= available) return null;
         return {
           nombre: p.nombre || c.nombre || `Producto ${pid}`,
@@ -624,8 +503,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       alert(`Stock insuficiente para completar la venta:\n\n${top}`);
       return;
     }
-    const metodoPagoFinal = metodoPagoOverride || pay;
-    if (metodoPagoFinal === "efectivo") {
+    if (pay === "efectivo") {
       const rec = parseMontoEfectivo(montoRecibido);
       if (!Number.isFinite(rec) || rec < total) {
         showToast(`Indica cuánto te entregó el cliente en efectivo (mínimo ${$(total)}).`, "warning");
@@ -650,7 +528,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
 
       const { data: rpcData, error: rpcError } = await supabase.rpc("create_sale_transaction_secure", {
         p_session_token: tok,
-        p_metodo_pago: metodoPagoFinal,
+        p_metodo_pago: pay,
         p_total: total,
         p_cart_items: cartItemsMapped,
         p_cliente_id: cli?.id ?? null,
@@ -746,9 +624,9 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       const ivaAmt = parseFloat((total * 0.16 / 1.16).toFixed(2));
       const netoAmt = parseFloat((total - ivaAmt).toFixed(2));
       const folioVenta = `VTA-${String(pedidoId).padStart(8,"0")}`;
-      const recEf = metodoPagoFinal === "efectivo" ? parseMontoEfectivo(montoRecibido) : null;
-      const cambioEf = metodoPagoFinal === "efectivo" && Number.isFinite(recEf) ? Math.round(Math.max(0, recEf - total) * 100) / 100 : null;
-      const desgloseEf = metodoPagoFinal === "efectivo" && cambioEf != null && cambioEf > 0 ? desgloseCambioMN(cambioEf) : "";
+      const recEf = pay === "efectivo" ? parseMontoEfectivo(montoRecibido) : null;
+      const cambioEf = pay === "efectivo" && Number.isFinite(recEf) ? Math.round(Math.max(0, recEf - total) * 100) / 100 : null;
+      const desgloseEf = pay === "efectivo" && cambioEf != null && cambioEf > 0 ? desgloseCambioMN(cambioEf) : "";
       setTicket({
         id:pedidoId,
         folio:folioVenta,
@@ -757,7 +635,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         total,
         neto:netoAmt,
         iva:ivaAmt,
-        pay:paymentLabel(metodoPagoFinal),
+        pay:paymentLabel(pay),
         cli,
         ptsG,
         ...(pay === "efectivo" && Number.isFinite(recEf)
@@ -766,8 +644,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       });
       setVentasDia(p=>({total:p.total+total, count:p.count+1}));
       logAudit(usuario, "VENTA", "pedidos", pedidoId, {
-        total, metodo_pago: metodoPagoFinal, items: cart.length,
-        ...(metodoPagoFinal === "efectivo" && Number.isFinite(recEf) ? { efectivo_recibido: recEf, cambio: cambioEf } : {}),
+        total, metodo_pago: pay, items: cart.length,
+        ...(pay === "efectivo" && Number.isFinite(recEf) ? { efectivo_recibido: recEf, cambio: cambioEf } : {}),
       });
       showToast("Venta registrada correctamente", "success");
       setCart([]); setTel(""); setCli(null);
@@ -814,10 +692,6 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       recetaOrigenPendienteRef.current = ro;
       setMpFolio(folioActual || "VTA-PENDIENTE");
       setMpModal(true);
-    } else if (modo === "bbva_terminal") {
-      recetaOrigenPendienteRef.current = ro;
-      setBbvaFolio(folioActual || "VTA-PENDIENTE");
-      setBbvaModal(true);
     } else if (modo === "efectivo") {
       ejecutarCobrar(ro);
     }
@@ -963,18 +837,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
               <div style={{display:"flex",alignItems:"center",gap:6}}>
                 <button onClick={()=>setCart(p=>p.map(c=>c.id===item.id?{...c,qty:Math.max(1,c.qty-1)}:c))} style={{width:22,height:22,borderRadius:4,border:`1px solid ${C.border}`,background:"none",color:C.text,cursor:"pointer",fontSize:13}}>−</button>
                 <span style={{color:C.text,fontSize:12,fontWeight:700}}>{item.qty}</span>
-            <button onClick={()=>setCart(p=>p.map(c=>{
-              if(c.id!==item.id) return c;
-              if(c.esUnidad){
-                const maxU = item.stock_unidades||0;
-                if(c.qty>=maxU){ showToast(`Máx unidades: ${maxU}`,"warning"); return c; }
-                return {...c,qty:c.qty+1};
-              }
-              const prod = productos.find(x=>String(x.id)===String(item.producto_id??item.id));
-              const maxF = prod ? getStockFifoDisponible(prod) : 0;
-              if(c.qty>=maxF){ showToast(`Stock FIFO insuficiente. Disponible: ${maxF}`,"warning"); return c; }
-              return {...c,qty:c.qty+1};
-            }))} style={{width:22,height:22,borderRadius:4,border:`1px solid ${C.border}`,background:"none",color:C.text,cursor:"pointer",fontSize:13}}>+</button>
+            <button onClick={()=>setCart(p=>p.map(c=>c.id===item.id?((c.esUnidad&&c.qty>=(item.stock_unidades||0))?(showToast(`Máx unidades: ${item.stock_unidades||0}`,"warning"),c):(!c.esUnidad&&c.qty>=(item.stock||99)?(showToast(`Máx: ${item.stock}`,"warning"),c):{...c,qty:c.qty+1})):c))} style={{width:22,height:22,borderRadius:4,border:`1px solid ${C.border}`,background:"none",color:C.text,cursor:"pointer",fontSize:13}}>+</button>
               </div>
               <span style={{color:C.blue,fontWeight:700,fontSize:13}}>{$(item.precio*item.qty)}</span>
             </div>
@@ -1019,11 +882,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       <Box style={{padding:14,marginBottom:12}}>
         <div style={{color:C.textDim,fontSize:10,letterSpacing:1.5,textTransform:"uppercase",marginBottom:8}}>Método de pago</div>
         <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-          {[
-            ["efectivo","💵 Efectivo"],
-            ["tarjeta","💳 Point MP"],
-            ["bbva_terminal","🏦 Terminal BBVA"],
-          ].map(([v,l])=>(
+          {[["efectivo","Efectivo"],["tarjeta","Tarjeta (Point)"]].map(([v,l])=>(
             <button key={v} type="button" onClick={()=>{ setPay(v); if(v!=="efectivo") setMontoRecibido(""); }} style={{padding:"4px 10px",borderRadius:20,border:`1px solid ${pay===v?C.blue:C.border}`,background:pay===v?C.blueDim:"transparent",color:pay===v?C.blue:C.textMid,fontSize:10,fontWeight:700,cursor:"pointer"}}>{l}</button>
           ))}
         </div>
@@ -1080,25 +939,16 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
           <Btn onClick={cobrar} full col={C.green} dis={!cart.length||guardando||(!Number.isFinite(recibidoNum)||recibidoNum<total)}
             onKeyDown={e=>e.key==="Enter"&&!guardando&&cart.length&&Number.isFinite(recibidoNum)&&recibidoNum>=total&&cobrar()}
           >{guardando?"Procesando...":"✅ Cobrar "+$(total)}</Btn>
-        ) : pay==="tarjeta" ? (
+        ) : (
           <div>
             <Btn onClick={()=>abrirModalRecetaVenta("tarjeta")}
               full col="#009ee3" dis={!cart.length||guardando}
-            >💳 Cobrar con Point MP</Btn>
+            >💳 Cobrar con tarjeta (terminal Point)</Btn>
             <div style={{color:C.textDim,fontSize:10,marginTop:10,lineHeight:1.45}}>
-              La app <strong>espera</strong> a que el Point Smart 2 confirme el pago. Recién entonces se registra la venta y se imprime el ticket.
+              La app <strong>espera</strong> a que el Point Smart 2 confirme el pago con tarjeta. Recién entonces se registra la venta y se envía el ticket a la impresora Epson (mismo flujo que al cobrar en efectivo).
             </div>
           </div>
-        ) : pay==="bbva_terminal" ? (
-          <div>
-            <Btn onClick={()=>abrirModalRecetaVenta("bbva_terminal")}
-              full col="#1a237e" dis={!cart.length||guardando}
-            >🏦 Cobrar con terminal BBVA</Btn>
-            <div style={{color:C.textDim,fontSize:10,marginTop:10,lineHeight:1.45}}>
-              Procesa el pago en la terminal física BBVA y confirma el resultado aquí. La venta se registra solo cuando indicas que fue <strong>aprobado</strong>.
-            </div>
-          </div>
-        ) : null}
+        )}
       </Box>
       </div>
 
@@ -1343,21 +1193,6 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
           }
         }}
         onCancel={()=>{ setMpModal(false); mpCitaRef.current = null; recetaOrigenPendienteRef.current = "no_aplica"; }}
-      />
-
-      {/* Terminal BBVA Modal */}
-      <BBVATerminalModal
-        open={bbvaModal}
-        total={total}
-        folio={bbvaFolio}
-        hint="Ingresa el monto en la terminal física BBVA, procesa la tarjeta del cliente y confirma aquí el resultado del voucher."
-        onSuccess={async () => {
-          setBbvaModal(false);
-          const ro = recetaOrigenPendienteRef.current || "no_aplica";
-          recetaOrigenPendienteRef.current = "no_aplica";
-          await ejecutarCobrar(ro, "bbva_terminal");
-        }}
-        onCancel={() => { setBbvaModal(false); recetaOrigenPendienteRef.current = "no_aplica"; }}
       />
 
       {ticket&&<TicketPreviewModal

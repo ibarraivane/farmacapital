@@ -12,15 +12,19 @@ const mkLabelS = (C) => ({ color:C.textMid, fontSize:11, fontWeight:700, display
 const mkBtnPrimary = (C) => ({ padding:"9px 20px", borderRadius:8, border:"none", background:BRAND.gradient, color:"#fff", fontWeight:700, fontSize:13, cursor:"pointer" });
 const mkBtnOutline = (C) => ({ padding:"9px 20px", borderRadius:8, border:`1px solid ${C.border}`, background:"transparent", color:C.textMid, fontWeight:700, fontSize:13, cursor:"pointer" });
 
-// ── Config PAC (activar cuando se contrate) ───────────────────
+// ── Config PAC — SW Sapien (pay-per-CFDI, sin mensualidad) ────
+// Variables de entorno en Vercel:
+//   SW_USER, SW_PASSWORD, SW_SANDBOX (true/false)
+//   RFC_EMISOR, NOMBRE_EMISOR, REGIMEN_EMISOR, CP_EXPEDICION
+//
+// Pasos para activar:
+//   1. Crea cuenta gratis en https://sw.com.mx (sandbox sin costo)
+//   2. Agrega las variables de entorno en Vercel → Settings → Env Vars
+//   3. Cambia modo a "sw_sapien" abajo
+//   4. Para producción: registra tu CSD (.cer/.key) en panel SW Sapien
 const PAC_CONFIG = {
-  // MODO: "simulado" = sin PAC real | "facturama" = PAC real
-  modo: "simulado",
-  // Cuando tengas Facturama:
-  // usuario: "TU_USUARIO_FACTURAMA",
-  // password: "TU_PASSWORD_FACTURAMA",
-  // url: "https://www.api.facturama.com.mx",
-  // url_sandbox: "https://apisandbox.facturama.com.mx",
+  modo: "sw_sapien", // "simulado" | "sw_sapien"
+  endpoint: "/api/cfdi/timbrar",
 };
 
 const USO_CFDI = [
@@ -53,9 +57,11 @@ function SolicitarFacturaModal({pedido, onClose, onSaved }) {
   const [usoCfdi,      setUso]    = useState("G03");
   const [regimen,      setReg]    = useState("616");
   const [email,        setEmail]  = useState(pedido?.clientes?.email||"");
+  const [cpReceptor,   setCp]     = useState("");
   const [saving,       setSaving] = useState(false);
   const [error,        setError]  = useState("");
   const [success,      setSuccess]= useState(false);
+  const [folioFiscal,  setFolioFiscal] = useState("");
 
   const validarRFC = (r) => /^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/i.test(r.trim());
 
@@ -66,49 +72,74 @@ function SolicitarFacturaModal({pedido, onClose, onSaved }) {
     setSaving(true); setError("");
 
     try {
+      const tok = sessionStorage.getItem("farmax_session_token");
+      if (!tok) throw new Error("Sesión expirada. Inicia sesión de nuevo.");
+
       if (PAC_CONFIG.modo === "simulado") {
-        await new Promise(r=>setTimeout(r,1500));
-        const folioSimulado = "SIM-"+Date.now();
-        const tok = sessionStorage.getItem("farmax_session_token");
-        if (!tok) throw new Error("Sesión expirada");
+        // ── Modo prueba local (sin PAC real) ─────────────────
+        await new Promise(r => setTimeout(r, 1200));
         const { data: resp, error: rpcErr } = await supabase.rpc("crear_factura", {
-          p_session_token: tok,
-          p_pedido_id:     pedido.id,
-          p_rfc:           rfc.trim().toUpperCase(),
-          p_razon_social:  razon.trim().toUpperCase(),
-          p_uso_cfdi:      usoCfdi,
+          p_session_token:  tok,
+          p_pedido_id:      pedido.id,
+          p_rfc:            rfc.trim().toUpperCase(),
+          p_razon_social:   razon.trim().toUpperCase(),
+          p_uso_cfdi:       usoCfdi,
           p_regimen_fiscal: regimen,
-          p_folio_fiscal:  folioSimulado,
-          p_pac_proveedor: "simulado",
-          p_email:         email || null,
+          p_folio_fiscal:   "SIM-" + Date.now(),
+          p_pac_proveedor:  "simulado",
+          p_email:          email || null,
         });
         if (rpcErr) throw rpcErr;
-        if (!resp?.success) throw new Error(resp?.error || "No se pudo timbrar");
+        if (!resp?.success) throw new Error(resp?.error || "No se pudo guardar la factura");
         setSuccess(true);
+
+      } else if (PAC_CONFIG.modo === "sw_sapien") {
+        // ── Modo real: timbrado vía SW Sapien ─────────────────
+        const res = await fetch(PAC_CONFIG.endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            session_token:    tok,
+            pedido_id:        pedido.id,
+            rfc_receptor:     rfc.trim().toUpperCase(),
+            nombre_receptor:  razon.trim().toUpperCase(),
+            uso_cfdi:         usoCfdi,
+            regimen_receptor: regimen,
+            cp_receptor:      cpReceptor || "",
+            email_receptor:   email || null,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data?.ok) {
+          throw new Error(data?.error || `Error del servidor (${res.status})`);
+        }
+        setFolioFiscal(data.uuid);
+        setSuccess(true);
+
       } else {
-        // ── Modo real con Facturama ──────────────────────────
-        // TODO: implementar cuando se tenga cuenta PAC
-        // const resp = await fetch(`${PAC_CONFIG.url}/api/3/cfdis`, {
-        //   method: "POST",
-        //   headers: { "Authorization": "Basic "+btoa(PAC_CONFIG.usuario+":"+PAC_CONFIG.password), "Content-Type": "application/json" },
-        //   body: JSON.stringify({ /* CFDI payload */ })
-        // });
-        setError("PAC no configurado. Activa el modo real en PAC_CONFIG.");
+        throw new Error("PAC_CONFIG.modo no reconocido: " + PAC_CONFIG.modo);
       }
-    } catch(e) { setError("Error al timbrar: "+e.message); }
+    } catch (e) {
+      setError("Error al timbrar: " + e.message);
+    }
     setSaving(false);
   };
 
   if (success) return (
     <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,.45)",backdropFilter:"blur(4px)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
       <div style={{background:C.card,borderRadius:14,width:"min(480px,95vw)",padding:32,textAlign:"center",boxShadow:"0 20px 60px rgba(0,82,204,.15)"}}>
-        <div style={{fontSize:56,marginBottom:16}}>✅</div>
+        <div style={{fontSize:56,marginBottom:16}}>{PAC_CONFIG.modo==="simulado"?"🧪":"✅"}</div>
         <h3 style={{color:C.text,fontSize:18,fontWeight:800,marginBottom:8}}>
-          {PAC_CONFIG.modo==="simulado"?"Factura registrada (modo prueba)":"¡Factura timbrada!"}
+          {PAC_CONFIG.modo==="simulado" ? "Factura registrada (modo prueba)" : "¡CFDI timbrado correctamente!"}
         </h3>
-        {PAC_CONFIG.modo==="simulado"&&(
+        {PAC_CONFIG.modo==="simulado" ? (
           <div style={{background:C.amberDim,border:`1px solid ${C.amber}30`,borderRadius:8,padding:"10px 14px",marginBottom:16,fontSize:12,color:"#92400e"}}>
-            ⚠️ Modo simulado activo. Cuando contrates un PAC (Facturama, SW Sapien, etc.), activa el modo real en <code>PAC_CONFIG</code>.
+            ⚠️ Modo simulado — el CFDI <strong>no es válido ante el SAT</strong>. Configura las variables SW_USER/SW_PASSWORD en Vercel para activar el timbrado real.
+          </div>
+        ) : (
+          <div style={{background:C.greenDim,border:`1px solid ${C.green}30`,borderRadius:8,padding:"10px 14px",marginBottom:16,fontSize:12,color:"#15803d",wordBreak:"break-all"}}>
+            <div style={{fontWeight:700,marginBottom:4}}>Folio Fiscal (UUID SAT):</div>
+            <div style={{fontFamily:"monospace",fontSize:11}}>{folioFiscal}</div>
           </div>
         )}
         <p style={{color:C.textMid,fontSize:14,marginBottom:24}}>RFC: <strong>{rfc.toUpperCase()}</strong> · Total: <strong>{fmt(pedido.total)}</strong></p>
@@ -126,9 +157,13 @@ function SolicitarFacturaModal({pedido, onClose, onSaved }) {
           <button onClick={onClose} style={{background:"none",border:"none",color:C.textMid,fontSize:22,cursor:"pointer"}}>✕</button>
         </div>
 
-        {PAC_CONFIG.modo==="simulado"&&(
+        {PAC_CONFIG.modo==="simulado" ? (
           <div style={{background:C.amberDim,border:`1px solid ${C.amber}30`,borderRadius:8,padding:"10px 14px",marginBottom:16,fontSize:12,color:"#92400e"}}>
-            ⚠️ <strong>Modo prueba:</strong> Las facturas se guardan en BD pero no se timbran con el SAT. Activa el PAC real cuando lo contrates.
+            ⚠️ <strong>Modo prueba:</strong> Las facturas no se timbran con el SAT. Configura <strong>SW_USER</strong> y <strong>SW_PASSWORD</strong> en Vercel para timbrado real.
+          </div>
+        ) : (
+          <div style={{background:C.greenDim,border:`1px solid ${C.green}30`,borderRadius:8,padding:"8px 12px",marginBottom:16,fontSize:11,color:"#15803d"}}>
+            ✅ <strong>Timbrado real activo (SW Sapien)</strong> — El CFDI se enviará al SAT.
           </div>
         )}
 
@@ -157,6 +192,11 @@ function SolicitarFacturaModal({pedido, onClose, onSaved }) {
             <select style={inpS} value={regimen} onChange={e=>setReg(e.target.value)}>
               {REGIMEN_FISCAL.map(r=><option key={r.val} value={r.val}>{r.label}</option>)}
             </select>
+          </div>
+          <div>
+            <label style={labelS}>C.P. RECEPTOR {PAC_CONFIG.modo==="sw_sapien"&&<span style={{color:"#ef4444"}}>*</span>}</label>
+            <input style={inpS} value={cpReceptor} onChange={e=>setCp(e.target.value.replace(/\D/g,"").slice(0,5))} placeholder="09208" maxLength={5} inputMode="numeric"/>
+            <div style={{color:C_LIGHT.textDim,fontSize:9,marginTop:2}}>C.P. del domicilio fiscal del receptor (requerido SAT)</div>
           </div>
           <div style={{gridColumn:"1/-1"}}>
             <label style={labelS}>EMAIL (para enviar factura)</label>
