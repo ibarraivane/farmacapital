@@ -4,19 +4,22 @@ import { C_LIGHT, BRAND } from "./constants";
 import { productMatchesSearchQuery } from "./utils/fuzzySearch";
 
 export function Logo({size=36,showText=true,light=false}){
-  const C = C_LIGHT;
-  const t=light?C.card:BRAND.primary, s=light?"rgba(255,255,255,.7)":BRAND.secondary;
+  const t = light ? "#ffffff" : BRAND.primary;
+  const s = light ? "rgba(255,255,255,0.75)" : BRAND.secondary;
+  const crossBg = light ? "rgba(255,255,255,0.18)" : BRAND.accent;
+  const iconSize = Math.round(size * 1.05);
+  const fs = Math.round(size * 0.52);
+  const fsSub = Math.round(size * 0.22);
   return(
-    <div style={{display:"flex",alignItems:"center",gap:10}}>
-      <div style={{width:size,height:size,borderRadius:Math.round(size*.25),background:BRAND.gradient,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-        <div style={{width:size*.38,height:size*.65,borderRadius:size*.19,overflow:"hidden",display:"flex",flexDirection:"column"}}>
-          <div style={{flex:1,background:"rgba(255,255,255,1)"}}/>
-          <div style={{flex:1,background:"rgba(255,255,255,.35)"}}/>
-        </div>
-      </div>
+    <div style={{display:"flex",alignItems:"center",gap:8}}>
+      <svg width={iconSize} height={iconSize} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" style={{flexShrink:0}}>
+        <rect width="40" height="40" rx="10" fill={crossBg}/>
+        <rect x="17" y="9" width="6" height="22" rx="3" fill="#ffffff"/>
+        <rect x="9" y="17" width="22" height="6" rx="3" fill="#ffffff"/>
+      </svg>
       {showText&&<div style={{display:"flex",flexDirection:"column",lineHeight:1}}>
-        <div style={{color:t,fontWeight:800,fontSize:size*.44,fontFamily:"'Plus Jakarta Sans',sans-serif",letterSpacing:"-0.5px"}}>Farma<span style={{color:s}}>Capital</span></div>
-        <div style={{color:s,fontSize:size*.22,letterSpacing:"2px",textTransform:"uppercase",marginTop:2,fontWeight:600}}>Sistema</div>
+        <div style={{color:t,fontWeight:800,fontSize:fs,fontFamily:"'Plus Jakarta Sans',sans-serif",letterSpacing:"-0.3px",whiteSpace:"nowrap"}}>Farma<span style={{color:s,fontWeight:700}}>Capital</span></div>
+        <div style={{color:s,fontSize:fsSub,letterSpacing:"2px",textTransform:"uppercase",marginTop:2,fontWeight:500}}>Sistema</div>
       </div>}
     </div>
   );
