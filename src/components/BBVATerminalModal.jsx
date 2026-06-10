@@ -28,7 +28,7 @@ export default function BBVATerminalModal({ open, total, folio, hint, onSuccess,
   const colores = {
     idle:      "#1a237e",
     esperando: "#1565c0",
-    exito:     "#00c46a",
+    exito:     "#16a34a",
     rechazado: "#ef4444",
   };
 

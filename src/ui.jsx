@@ -114,7 +114,7 @@ export function NotificacionesToast({ notifs, onDismiss }) {
   return (
     <div style={{position:"fixed",top:"max(12px, env(safe-area-inset-top, 0px))",left:12,right:12,zIndex:9999,display:"flex",flexDirection:"column",gap:8,alignItems:"stretch",maxWidth:400,margin:"0 auto",pointerEvents:"none",boxSizing:"border-box"}}>
       {notifs.map(n=>(
-        <div key={n.id} style={{background:C.card,borderRadius:12,padding:"12px 16px",boxShadow:"0 8px 32px rgba(0,82,204,.18)",border:`2px solid ${n.col||"#0052cc"}`,display:"flex",alignItems:"flex-start",gap:10,pointerEvents:"auto"}}>
+        <div key={n.id} style={{background:C.card,borderRadius:12,padding:"12px 16px",boxShadow:"0 8px 32px rgba(15,45,110,.18)",border:`2px solid ${n.col||"#0f2d6e"}`,display:"flex",alignItems:"flex-start",gap:10,pointerEvents:"auto"}}>
           <span style={{fontSize:20,flexShrink:0}}>{n.icon||"🔔"}</span>
           <div style={{flex:1}}>
             <div style={{color:C.text,fontWeight:700,fontSize:13}}>{n.titulo}</div>
@@ -381,7 +381,7 @@ export function Paginador({ total, porPagina=50, pagina, setPagina }) {
           else p=pagina-2+i;
           return(
             <button key={p} onClick={()=>setPagina(p)}
-              style={{padding:"4px 10px",borderRadius:6,border:`1px solid ${p===pagina?"#0052cc":"#e2e8f0"}`,background:p===pagina?"#0052cc":C.card,color:p===pagina?C.card:C.textMid,cursor:"pointer",fontSize:11,fontWeight:700,minWidth:32}}>
+              style={{padding:"4px 10px",borderRadius:6,border:`1px solid ${p===pagina?"#0f2d6e":"#e2e8f0"}`,background:p===pagina?"#0f2d6e":C.card,color:p===pagina?C.card:C.textMid,cursor:"pointer",fontSize:11,fontWeight:700,minWidth:32}}>
               {p}
             </button>
           );
@@ -457,7 +457,7 @@ export function SearchDropdown({
     background: C.card,
     borderRadius: 10,
     border: "1px solid #e2e8f0",
-    boxShadow: "0 8px 32px rgba(0,82,204,.12)",
+    boxShadow: "0 8px 32px rgba(15,45,110,.12)",
     overflow: "hidden",
     maxHeight: 320,
     overflowY: "auto",
@@ -486,7 +486,7 @@ export function SearchDropdown({
                 {subKey&&item[subKey]&&<div style={{color:"#94a3b8",fontSize:11,marginTop:1}}>{item[subKey]}</div>}
               </div>
               {badgeKey&&item[badgeKey]!==undefined&&(
-                <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:(badgeCol||"#0099e6")+"18",color:badgeCol||"#0099e6",flexShrink:0,whiteSpace:"nowrap"}}>
+                <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:(badgeCol||"#1a56db")+"18",color:badgeCol||"#1a56db",flexShrink:0,whiteSpace:"nowrap"}}>
                   {item[badgeKey]}
                 </span>
               )}
@@ -512,16 +512,16 @@ export const hoverStyles = `
   /* Cards KPI */
   .farmacapital-kpi-card { transition: border-color .15s, box-shadow .15s, transform .15s; }
   .farmacapital-kpi-card:hover {
-    border-color: #0052cc !important;
-    box-shadow: 0 4px 16px rgba(0,82,204,.12) !important;
+    border-color: #0f2d6e !important;
+    box-shadow: 0 4px 16px rgba(15,45,110,.12) !important;
     transform: translateY(-1px);
   }
 
   /* Cards de producto en POS (clic en toda la tarjeta) */
   .farmacapital-product-card { transition: border-color .15s, box-shadow .15s, transform .12s, background .12s; }
   .farmacapital-product-card:hover {
-    border-color: #0052cc !important;
-    box-shadow: 0 4px 16px rgba(0,82,204,.14) !important;
+    border-color: #0f2d6e !important;
+    box-shadow: 0 4px 16px rgba(15,45,110,.14) !important;
     transform: translateY(-1px);
     background: #fbfdff !important;
   }
@@ -530,14 +530,14 @@ export const hoverStyles = `
   .farmacapital-btn-secondary { transition: background .12s, color .12s, border-color .12s; }
   .farmacapital-btn-secondary:hover {
     background: #eff6ff !important;
-    color: #0052cc !important;
-    border-color: #0052cc !important;
+    color: #0f2d6e !important;
+    border-color: #0f2d6e !important;
   }
 
   /* Cards generales */
   .farmacapital-card-hover { transition: box-shadow .15s, border-color .15s; }
   .farmacapital-card-hover:hover {
-    box-shadow: 0 4px 20px rgba(0,82,204,.10) !important;
+    box-shadow: 0 4px 20px rgba(15,45,110,.10) !important;
     border-color: #bfdbfe !important;
   }
 
@@ -548,7 +548,7 @@ export const hoverStyles = `
   ::-webkit-scrollbar { width: 5px; height: 5px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: #bfdbfe; border-radius: 3px; }
-  ::-webkit-scrollbar-thumb:hover { background: #0099e6; }
+  ::-webkit-scrollbar-thumb:hover { background: #1a56db; }
 `;
 
 export function GlobalHoverStyles() {

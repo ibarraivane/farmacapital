@@ -262,7 +262,7 @@ export default function RRHHModule() {
                   </div>
                 </div>
                 <div style={{ display:'flex', flexWrap:'wrap', alignItems:'center', justifyContent:'space-between', gap:8, paddingTop:10, borderTop:`1px solid ${C.border}` }}>
-                  <span style={{ background: emp.estado?'#00c46a22':'#e0525222', color:emp.estado?C.green:C.red, padding:'4px 10px', borderRadius:20, fontSize:11, fontWeight:700 }}>
+                  <span style={{ background: emp.estado?'#16a34a22':'#e0525222', color:emp.estado?C.green:C.red, padding:'4px 10px', borderRadius:20, fontSize:11, fontWeight:700 }}>
                     {emp.estado ? '● Activo' : '● Inactivo'}
                   </span>
                   <div style={{ display:'flex', gap:6, alignItems:'center' }}>
@@ -337,7 +337,7 @@ export default function RRHHModule() {
                     <td style={{ ...S.td, color:C.textMid, fontSize:12, textTransform:'capitalize' }}>{emp.turno}</td>
                     <td style={{ ...S.td, fontWeight:700, color:C.green }}>{fmt(emp.salario_quincenal)}</td>
                     <td style={S.td}>
-                      <span style={{ background: emp.estado?'#00c46a22':'#e0525222', color:emp.estado?C.green:C.red, padding:'3px 10px', borderRadius:20, fontSize:11, fontWeight:700 }}>
+                      <span style={{ background: emp.estado?'#16a34a22':'#e0525222', color:emp.estado?C.green:C.red, padding:'3px 10px', borderRadius:20, fontSize:11, fontWeight:700 }}>
                         {emp.estado ? '● Activo' : '● Inactivo'}
                       </span>
                     </td>

@@ -2,10 +2,10 @@ import { useState, useEffect, useMemo } from "react";
 import { C_LIGHT } from "./constants";
 import { isAdminWebAppShell } from "./syncPwaManifest";
 
-const BRAND = { primary: "#0052cc", gradient: "linear-gradient(135deg,#0052cc,#0099e6)" };
+const BRAND = { primary: "#0f2d6e", secondary: "#1a56db", gradient: "linear-gradient(135deg,#0f2d6e,#1a56db)" };
 
 function qrSrc(url) {
-  return `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(url)}&bgcolor=ffffff&color=0052cc&margin=10`;
+  return `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(url)}&bgcolor=ffffff&color=0f2d6e&margin=10`;
 }
 
 export default function InstalarPWA() {

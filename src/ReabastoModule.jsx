@@ -3,7 +3,7 @@ import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
 import { showToast, HorizontalScrollSync } from "./ui";
 
-const BRAND = { primary:"#0052cc", gradient:"linear-gradient(135deg,#0052cc,#0099e6)" };
+const BRAND = { primary:"#0f2d6e", gradient:"linear-gradient(135deg,#0f2d6e,#1a56db)" };
 const fmt = n => `$${parseFloat(n||0).toLocaleString("es-MX",{minimumFractionDigits:2})}`;
 
 const PROVEEDORES_COMUNES = ["Nadro","Marzam","Casa Saba","Fármacos Nacionales","Proveedor local","Otro"];
@@ -95,15 +95,15 @@ export default function ReabastoModule() {
         <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0">${p.nombre}</td>
         <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:center">${p.sku||"—"}</td>
         <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:center">${p.stock}</td>
-        <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:center;font-weight:700;color:#0052cc">${p.cantidadPedida}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:center;font-weight:700;color:#0f2d6e">${p.cantidadPedida}</td>
         <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:right">$${((p.costo||0)*p.cantidadPedida).toFixed(2)}</td>
       </tr>`).join("");
     w.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Orden de Reabasto</title>
-      <style>body{font-family:Arial,sans-serif;font-size:13px;padding:24px;color:#0f172a}h2{color:#0052cc}table{width:100%;border-collapse:collapse}th{background:#f8fafc;padding:9px 12px;text-align:left;font-size:11px;color:#475569;border-bottom:2px solid #e2e8f0}.total{text-align:right;font-weight:800;font-size:16px;color:#00c46a;padding:12px 12px 0}</style>
+      <style>body{font-family:Arial,sans-serif;font-size:13px;padding:24px;color:#0f172a}h2{color:#0f2d6e}table{width:100%;border-collapse:collapse}th{background:#f8fafc;padding:9px 12px;text-align:left;font-size:11px;color:#475569;border-bottom:2px solid #e2e8f0}.total{text-align:right;font-weight:800;font-size:16px;color:#16a34a;padding:12px 12px 0}</style>
       </head><body>
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px">
         <div><h2>📦 Orden de Reabasto — FARMACAPITAL</h2><div style="color:#475569">Chinampac de Juárez, CDMX · ${orden.fecha}</div></div>
-        <div style="text-align:right"><div style="font-weight:700">Proveedor:</div><div style="color:#0052cc;font-weight:800;font-size:16px">${orden.proveedor}</div></div>
+        <div style="text-align:right"><div style="font-weight:700">Proveedor:</div><div style="color:#0f2d6e;font-weight:800;font-size:16px">${orden.proveedor}</div></div>
       </div>
       <table><thead><tr><th>Producto</th><th style="text-align:center">SKU</th><th style="text-align:center">Stock actual</th><th style="text-align:center">Cantidad a pedir</th><th style="text-align:right">Costo estimado</th></tr></thead>
       <tbody>${rows}</tbody></table>

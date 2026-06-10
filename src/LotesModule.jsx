@@ -4,7 +4,7 @@ import { supabase } from "./supabase";
 import { showToast, HorizontalScrollSync } from "./ui";
 import { productMatchesSearchQuery } from "./utils/fuzzySearch";
 
-const BRAND = { primary:"#0052cc", gradient:"linear-gradient(135deg,#0052cc,#0099e6)" };
+const BRAND = { primary:"#0f2d6e", secondary:"#1a56db", gradient:"linear-gradient(135deg,#0f2d6e,#1a56db)" };
 const fmt = n => `$${parseFloat(n||0).toFixed(2)}`;
 const mkInpS = (C) => ({width:"100%",boxSizing:"border-box",padding:"8px 12px",borderRadius:8,border:`1px solid ${C.border}`,background:C.card,color:C.text,fontSize:13,outline:"none"});
 
@@ -109,7 +109,7 @@ export default function LotesModule() {
         <h1 style={{color:C.text,fontSize:20,fontWeight:800,margin:0}}>📦 Lotes — PEPS</h1>
         <div style={{position:"relative",display:"inline-block"}} className="peps-tooltip-container">
           <span style={{
-            background:"#eff6ff",color:"#0052cc",
+            background:"#eff6ff",color:"#0f2d6e",
             border:"1px solid #bfdbfe",borderRadius:20,
             padding:"2px 10px",fontSize:11,fontWeight:700,cursor:"help"
           }}>ℹ️ ¿Qué es PEPS?</span>
@@ -205,7 +205,7 @@ export default function LotesModule() {
       {modal&&(
         <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,.45)",backdropFilter:"blur(4px)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}
           onClick={e=>e.target===e.currentTarget&&setModal(false)}>
-          <div style={{background:C.card,borderRadius:14,width:"min(520px,95vw)",maxHeight:"90vh",overflowY:"auto",padding:28,boxShadow:"0 20px 60px rgba(0,82,204,.15)"}}>
+          <div style={{background:C.card,borderRadius:14,width:"min(520px,95vw)",maxHeight:"90vh",overflowY:"auto",padding:28,boxShadow:"0 20px 60px rgba(15,45,110,.15)"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
               <h3 style={{margin:0,color:C.text,fontSize:16,fontWeight:800}}>📦 Registrar lote (FEFO)</h3>
               <button onClick={()=>setModal(false)} style={{background:"none",border:"none",color:C.textMid,fontSize:22,cursor:"pointer"}}>✕</button>

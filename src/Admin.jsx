@@ -49,7 +49,7 @@ class ModuleErrorBoundary extends React.Component {
         <div style={{color:"#0f172a",fontWeight:700,fontSize:16,marginBottom:8}}>Error al cargar este módulo</div>
         <div style={{color:"#475569",fontSize:12,marginBottom:20,maxWidth:400,margin:"0 auto 20px",fontFamily:"monospace",background:"#f8fafc",padding:"8px 12px",borderRadius:6}}>{this.state.error?.message}</div>
         <button onClick={()=>this.setState({hasError:false,error:null})}
-          style={{padding:"9px 20px",borderRadius:8,border:"none",background:"linear-gradient(135deg,#0052cc,#0099e6)",color:"#fff",fontWeight:700,cursor:"pointer"}}>
+          style={{padding:"9px 20px",borderRadius:8,border:"none",background:"linear-gradient(135deg,#0f2d6e,#1a56db)",color:"#fff",fontWeight:700,cursor:"pointer"}}>
           🔄 Reintentar
         </button>
       </div>
@@ -213,7 +213,7 @@ function LoginScreen({onLogin}){
           <div style={{display:"flex",justifyContent:"center",marginBottom:16}}><Logo size={48}/></div>
           <div style={{color:C.textMid,fontSize:14}}>Sistema de gestión · Acceso interno</div>
         </div>
-        <Box style={{padding:32,boxShadow:"0 4px 24px rgba(0,82,204,.10)"}}>
+        <Box style={{padding:32,boxShadow:"0 4px 24px rgba(15,45,110,.10)"}}>
           <div style={{color:C.text,fontWeight:800,fontSize:18,marginBottom:24}}>Iniciar sesión</div>
           <div style={{marginBottom:14}}>
             <div style={{color:C.textMid,fontSize:11,marginBottom:6,fontWeight:700}}>EMAIL</div>
@@ -637,7 +637,7 @@ function BannersAdmin(){
   const [banners,setBanners] = useState([]);
   const [loading,setLoad]   = useState(true);
   const [modal,setModal]    = useState(null);
-  const [form,setForm]      = useState({titulo:"",subtitulo:"",descripcion:"",emoji:"💊",bg:"linear-gradient(135deg,#0052cc,#0099e6)",cta:"Ver más →",pagina:"catalogo",orden:0,activo:true,slot:"hero",imagen_url:"",imagen_url_mobile:"",video_url:"",modo_visualizacion:"imagen_fondo"});
+  const [form,setForm]      = useState({titulo:"",subtitulo:"",descripcion:"",emoji:"💊",bg:"linear-gradient(135deg,#0f2d6e,#1a56db)",cta:"Ver más →",pagina:"catalogo",orden:0,activo:true,slot:"hero",imagen_url:"",imagen_url_mobile:"",video_url:"",modo_visualizacion:"imagen_fondo"});
   const [saving,setSaving]  = useState(false);
 
   const fetch = async()=>{ setLoad(true); const{data}=await supabase.from("banners").select("*").order("orden"); setBanners(data||[]); setLoad(false); };
@@ -728,7 +728,7 @@ function BannersAdmin(){
       )}
       {modal&&(
         <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,.45)",backdropFilter:"blur(4px)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:"max(12px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px))",boxSizing:"border-box"}} onClick={e=>e.target===e.currentTarget&&setModal(null)}>
-          <div style={{background:C.card,borderRadius:14,width:"min(520px,95vw)",maxHeight:"90vh",overflowY:"auto",padding:28,boxShadow:"0 20px 60px rgba(0,82,204,.15)"}}>
+          <div style={{background:C.card,borderRadius:14,width:"min(520px,95vw)",maxHeight:"90vh",overflowY:"auto",padding:28,boxShadow:"0 20px 60px rgba(15,45,110,.15)"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
               <h3 style={{margin:0,color:C.text,fontSize:16,fontWeight:800}}>{modal==="new"?"➕ Nuevo":"✏️ Editar"} Banner</h3>
               <button onClick={()=>setModal(null)} style={{background:"none",border:"none",color:C.textMid,fontSize:22,cursor:"pointer"}}>✕</button>
@@ -1612,13 +1612,13 @@ export default function FarmaCapitalAdmin(){
     const handleOnline = async () => {
       const pendientes = await contarVentasPendientes();
       if(pendientes > 0) {
-        addNotif(`📶 Conexión restaurada`,`Sincronizando ${pendientes} venta(s) pendiente(s)...`,"📶","#00c46a");
+        addNotif(`📶 Conexión restaurada`,`Sincronizando ${pendientes} venta(s) pendiente(s)...`,"📶","#16a34a");
         const result = await sincronizarVentasPendientes(supabase, usuario);
         setVentasOff(0);
         if(result.ok > 0) showToast(`✅ ${result.ok} venta(s) sincronizada(s)`, "success");
         if(result.err > 0) showToast(`⚠️ ${result.err} venta(s) con error`, "warning");
       } else {
-        addNotif("📶 Conexión restaurada","Sistema en línea","📶","#00c46a");
+        addNotif("📶 Conexión restaurada","Sistema en línea","📶","#16a34a");
       }
     };
     const handleOffline = () => {
@@ -1657,7 +1657,7 @@ export default function FarmaCapitalAdmin(){
   },[]);
   const notifId = useRef(0);
 
-  const addNotif = useCallback((titulo,mensaje,icon="🔔",col="#0052cc")=>{
+  const addNotif = useCallback((titulo,mensaje,icon="🔔",col="#0f2d6e")=>{
     const id=++notifId.current;
     const hora=new Date().toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"});
     setNotifs(p=>[{id,titulo,mensaje,icon,col,hora},...p].slice(0,5));
@@ -1683,14 +1683,14 @@ export default function FarmaCapitalAdmin(){
         pl=>{
           const row = pl.new;
           if (!row || row.estado !== "pendiente" || !esPedidoTiendaWebPendiente(row)) return;
-          addNotif("🛒 Nuevo pedido online",`Pedido #${row.id} · $${parseFloat(row.total||0).toFixed(2)}`,"🛒","#0052cc");
+          addNotif("🛒 Nuevo pedido online",`Pedido #${row.id} · $${parseFloat(row.total||0).toFixed(2)}`,"🛒","#0f2d6e");
           pushNotif("🛒 Nuevo pedido online",`Pedido #${row.id} · $${parseFloat(row.total||0).toFixed(2)} · Pendiente de surtir`,"/admin");
         })
       .on("postgres_changes",{event:"INSERT",schema:"public",table:"citas"},
         pl=>{ addNotif("📅 Nueva cita",`${pl.new?.nombre||"Paciente"} · ${pl.new?.fecha||""} ${pl.new?.hora||""}`,"📅","#7c3aed");
           pushNotif("📅 Nueva cita agendada",`${pl.new?.nombre||"Paciente"} · ${pl.new?.fecha||""} ${pl.new?.hora||""}`,"/admin"); })
       .on("postgres_changes",{event:"UPDATE",schema:"public",table:"pedidos"},
-        pl=>{ if(pl.new?.estado==="listo") addNotif("✅ Pedido listo",`Pedido #${pl.new.id} listo para entrega`,"✅","#00c46a"); })
+        pl=>{ if(pl.new?.estado==="listo") addNotif("✅ Pedido listo",`Pedido #${pl.new.id} listo para entrega`,"✅","#16a34a"); })
       .subscribe();
     return ()=>supabase.removeChannel(ch);
   },[usuario,addNotif]);

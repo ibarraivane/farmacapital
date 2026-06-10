@@ -116,7 +116,7 @@ function FacturaInlineForm({ venta, cliente, onClose }) {
       </div>
       <button onClick={solicitar} disabled={saving} style={{
         width:"100%",padding:"10px",borderRadius:8,border:"none",
-        background:"linear-gradient(135deg,#0052cc,#0099e6)",
+        background:"linear-gradient(135deg,#0f2d6e,#1a56db)",
         color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer",
         opacity:saving?0.6:1,
       }}>
@@ -174,7 +174,7 @@ export default function TicketPreviewModal({
         width:"min(420px, 100%)", maxHeight:"min(92dvh, 95vh)",
         overflowY:"auto",
         WebkitOverflowScrolling:"touch",
-        boxShadow:"0 24px 80px rgba(0,82,204,.2)",
+        boxShadow:"0 24px 80px rgba(15,45,110,.2)",
         display:"flex", flexDirection:"column",
         minWidth:0,
       }}>
@@ -183,7 +183,7 @@ export default function TicketPreviewModal({
           padding:"16px 20px",
           borderBottom:"1px solid #e2e8f0",
           display:"flex", justifyContent:"space-between", alignItems:"center",
-          background:"linear-gradient(135deg,#0052cc,#0099e6)",
+          background:"linear-gradient(135deg,#0f2d6e,#1a56db)",
           borderRadius:"16px 16px 0 0",
         }}>
           <div style={{color:"#fff", fontWeight:800, fontSize:16}}>
@@ -236,7 +236,7 @@ export default function TicketPreviewModal({
               }catch(e){ alert("Error ESC/POS: "+e.message); handlePrint(); }
             }} style={{
               padding:"12px", borderRadius:10, border:"none",
-              background:"linear-gradient(135deg,#0052cc,#0099e6)",
+              background:"linear-gradient(135deg,#0f2d6e,#1a56db)",
               color:"#fff", fontWeight:800, fontSize:15,
               cursor:"pointer", display:"flex",
               alignItems:"center", justifyContent:"center", gap:8,
@@ -246,7 +246,7 @@ export default function TicketPreviewModal({
           ) : (
             <button onClick={handlePrint} style={{
               padding:"12px", borderRadius:10, border:"none",
-              background:"linear-gradient(135deg,#0052cc,#0099e6)",
+              background:"linear-gradient(135deg,#0f2d6e,#1a56db)",
               color:"#fff", fontWeight:800, fontSize:15,
               cursor:"pointer", display:"flex",
               alignItems:"center", justifyContent:"center", gap:8,
@@ -258,8 +258,8 @@ export default function TicketPreviewModal({
           {/* Solicitar factura */}
           <button onClick={()=>setShowFactura(true)} style={{
             padding:"10px", borderRadius:10,
-            border:"1px solid #0052cc",
-            background:"#eff6ff", color:"#0052cc",
+            border:"1px solid #0f2d6e",
+            background:"#eff6ff", color:"#0f2d6e",
             fontWeight:700, fontSize:13, cursor:"pointer",
             display:"flex", alignItems:"center", justifyContent:"center", gap:8,
           }}>
@@ -303,7 +303,7 @@ export default function TicketPreviewModal({
             {/* Nueva venta */}
             <button type="button" onClick={onNuevaVenta||onClose} style={{
               flex:"2 1 160px", minHeight:44, padding:"10px", borderRadius:10, border:"none",
-              background:"#00c46a", color:"#fff",
+              background:"#16a34a", color:"#fff",
               fontWeight:800, fontSize:14, cursor:"pointer",
             }}>
               ✅ Nueva venta

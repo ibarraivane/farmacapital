@@ -4,7 +4,7 @@ import { supabase } from "./supabase";
 import { showToast } from "./ui";
 import { inventarioProductMatchesBusqueda } from "./utils/fuzzySearch";
 
-const BRAND = { primary:"#0052cc", secondary:"#0099e6", accent:"#00c46a", gradient:"linear-gradient(135deg,#0052cc,#0099e6)" };
+const BRAND = { primary:"#0f2d6e", secondary:"#1a56db", accent:"#16a34a", gradient:"linear-gradient(135deg,#0f2d6e,#1a56db)" };
 
 const fmt = n => `$${parseFloat(n||0).toLocaleString("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2})}`;
 const pct = (a,b) => b>0 ? (((a-b)/b)*100).toFixed(1) : null;
@@ -89,7 +89,7 @@ function PromoModal({initial, productos, onClose, onSaved }) {
   return (
     <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,.45)",backdropFilter:"blur(4px)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}
       onClick={e=>e.target===e.currentTarget&&onClose()}>
-      <div style={{background:C.card,borderRadius:14,width:"min(560px,95vw)",maxHeight:"90vh",overflowY:"auto",padding:28,boxShadow:"0 20px 60px rgba(0,82,204,.15)"}}>
+      <div style={{background:C.card,borderRadius:14,width:"min(560px,95vw)",maxHeight:"90vh",overflowY:"auto",padding:28,boxShadow:"0 20px 60px rgba(15,45,110,.15)"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
           <h3 style={{margin:0,color:C.text,fontSize:16,fontWeight:800}}>{initial?"✏️ Editar":"➕ Nueva"} Promoción</h3>
           <button onClick={onClose} style={{background:"none",border:"none",color:C.textMid,fontSize:22,cursor:"pointer"}}>✕</button>

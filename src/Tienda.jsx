@@ -19,7 +19,8 @@ import { showToast } from "./ui";
 import {
   X, ShoppingCart, Pill, Tag as TagIcon, Stethoscope, Star,
   MapPin, Clock, Phone, Mail, HelpCircle, FileText,
-  LogIn, UserPlus, ChevronRight, Menu, Package
+  LogIn, UserPlus, ChevronRight, Menu, Package,
+  Store, Bike, PackageCheck, Trophy, CreditCard
 } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════
@@ -28,8 +29,9 @@ import {
 // ═══════════════════════════════════════════════════════════════
 
 const BRAND = {
-  primary:"#0052cc", secondary:"#0099e6", accent:"#00c46a",
-  gradient:"linear-gradient(135deg,#0052cc,#0099e6)",
+  primary:"#0f2d6e", secondary:"#1a56db", accent:"#16a34a",
+  amber:"#f59e0b",
+  gradient:"linear-gradient(135deg,#0f2d6e,#1a56db)",
 };
 const C = {
   bg:"#f7f9fc", card:"#ffffff", cardDark:"#f0f4f9",
@@ -89,7 +91,7 @@ const BANNERS = [
     descripcion:"Misma fórmula, mejor precio. Certificados por COFEPRIS.",
     cta:"Ver genéricos",
     pagina:"catalogo",
-    bg:"linear-gradient(135deg,#0052cc,#0099e6)",
+    bg:"linear-gradient(135deg,#0f2d6e,#1a56db)",
     emoji:"💊",
   },
   {
@@ -99,7 +101,7 @@ const BANNERS = [
     descripcion:"O gratis con 160 puntos FarmaCapital. Médico general disponible.",
     cta:"Agendar cita",
     pagina:"cita",
-    bg:"linear-gradient(135deg,#009952,#00c46a)",
+    bg:"linear-gradient(135deg,#009952,#16a34a)",
     emoji:"🏥",
   },
   {
@@ -227,18 +229,29 @@ function horariosDisponibles(fecha){
 
 // ── LOGO ──────────────────────────────────────────────────────
 function Logo({size=32,light=false}){
-  const t=light?"#fff":BRAND.primary, s=light?"rgba(255,255,255,.8)":BRAND.secondary;
+  const bg = light ? "rgba(255,255,255,0.2)" : BRAND.primary;
+  const t  = light ? "#fff" : BRAND.primary;
+  const s  = light ? "rgba(255,255,255,0.8)" : BRAND.secondary;
+  const r  = Math.round(size * 0.25);
+  const bar = Math.round(size * 0.18);
+  const longBar = Math.round(size * 0.62);
+  const shortBar = Math.round(size * 0.38);
+  const offset = Math.round((size - longBar) / 2);
+  const crossOffset = Math.round((size - shortBar) / 2);
+  const barOffset = Math.round((size - bar) / 2);
   return(
-    <div style={{display:"flex",alignItems:"center",gap:9,cursor:"pointer"}}>
-      <div style={{width:size,height:size,borderRadius:Math.round(size*.25),background:BRAND.gradient,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-        <div style={{width:size*.38,height:size*.65,borderRadius:size*.19,overflow:"hidden",display:"flex",flexDirection:"column"}}>
-          <div style={{flex:1,background:"rgba(255,255,255,1)"}}/>
-          <div style={{flex:1,background:"rgba(255,255,255,.35)"}}/>
-        </div>
+    <div style={{display:"flex",alignItems:"center",gap:9,cursor:"pointer",flexShrink:0}}>
+      <div style={{width:size,height:size,borderRadius:r,background:bg,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,position:"relative"}}>
+        <div style={{position:"absolute",left:barOffset,top:offset,width:bar,height:longBar,borderRadius:bar,background:"#fff"}}/>
+        <div style={{position:"absolute",left:crossOffset,top:barOffset,width:shortBar,height:bar,borderRadius:bar,background:"#fff"}}/>
       </div>
       <div style={{display:"flex",flexDirection:"column",lineHeight:1}}>
-        <div style={{color:t,fontWeight:800,fontSize:size*.5,fontFamily:"'Plus Jakarta Sans',sans-serif",letterSpacing:"-0.5px"}}>FAR<span style={{color:s}}>MAX</span></div>
-        <div style={{color:s,fontSize:size*.22,letterSpacing:"1.5px",textTransform:"uppercase",marginTop:1,fontWeight:600}}>Farmacia</div>
+        <div style={{color:t,fontWeight:800,fontSize:Math.round(size*.5),fontFamily:"'Plus Jakarta Sans',sans-serif",letterSpacing:"-0.3px"}}>
+          Farma<span style={{color:s}}>Capital</span>
+        </div>
+        <div style={{color:light?"rgba(255,255,255,0.6)":BRAND.secondary,fontSize:Math.round(size*.22),letterSpacing:"1.5px",textTransform:"uppercase",marginTop:2,fontWeight:500}}>
+          Farmacia · Salud
+        </div>
       </div>
     </div>
   );
@@ -514,12 +527,18 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
       }}
     >
       {!vid && !tieneImagen ? (
-        <div aria-hidden style={{
-          position:"absolute",
-          inset:0,
-          background:b.bg,
-          zIndex:0,
-        }}/>
+        <div aria-hidden style={{position:"absolute",inset:0,background:b.bg,zIndex:0}}>
+          <svg style={{position:"absolute",inset:0,width:"100%",height:"100%",opacity:.07}} aria-hidden>
+            <defs>
+              <pattern id="fc-grid" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+                <circle cx="20" cy="20" r="1.5" fill="white"/>
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#fc-grid)"/>
+          </svg>
+          <div style={{position:"absolute",right:"-5%",top:"-20%",width:"55%",maxWidth:320,aspectRatio:"1",borderRadius:"50%",background:"rgba(255,255,255,.04)"}}/>
+          <div style={{position:"absolute",right:"15%",bottom:"-30%",width:"40%",maxWidth:220,aspectRatio:"1",borderRadius:"50%",background:"rgba(255,255,255,.03)"}}/>
+        </div>
       ) : null}
       {!vid && tieneImagen ? (
         <img
@@ -779,12 +798,12 @@ function HomeBannersStrip({setPage, items}){
                   overflow:"hidden",
                   cursor:"pointer",
                   background:"#0f172a",
-                  boxShadow:"0 4px 20px rgba(0,82,204,.12)",
+                  boxShadow:"0 4px 20px rgba(15,45,110,.12)",
                   transition:"transform .15s, box-shadow .15s",
                   display:"block",
                 }}
-                onMouseEnter={e=>{ e.currentTarget.style.transform="translateY(-2px)"; e.currentTarget.style.boxShadow="0 8px 28px rgba(0,82,204,.2)"; }}
-                onMouseLeave={e=>{ e.currentTarget.style.transform="none"; e.currentTarget.style.boxShadow="0 4px 20px rgba(0,82,204,.12)"; }}
+                onMouseEnter={e=>{ e.currentTarget.style.transform="translateY(-2px)"; e.currentTarget.style.boxShadow="0 8px 28px rgba(15,45,110,.2)"; }}
+                onMouseLeave={e=>{ e.currentTarget.style.transform="none"; e.currentTarget.style.boxShadow="0 4px 20px rgba(15,45,110,.12)"; }}
               >
                 {vid ? (
                   <BannerLoopVideo
@@ -826,12 +845,12 @@ function HomeBannersStrip({setPage, items}){
               overflow:"hidden",
               flex:"1 1 min(100%,280px)",maxWidth:420,minWidth:0,width:"100%",textAlign:"left",cursor:"pointer",border:"none",borderRadius:14,
               background:(vid||imgUrl)?"#0f172a":b.bg,
-              color:"#fff",padding:(vid||imgUrl)?0:"16px 18px",boxShadow:"0 4px 20px rgba(0,82,204,.12)",
+              color:"#fff",padding:(vid||imgUrl)?0:"16px 18px",boxShadow:"0 4px 20px rgba(15,45,110,.12)",
               display:"flex",alignItems:(vid||imgUrl)?"stretch":"center",gap:(vid||imgUrl)?0:14,
               transition:"transform .15s, box-shadow .15s",
             }}
-            onMouseEnter={e=>{ e.currentTarget.style.transform="translateY(-2px)"; e.currentTarget.style.boxShadow="0 8px 28px rgba(0,82,204,.2)"; }}
-            onMouseLeave={e=>{ e.currentTarget.style.transform="none"; e.currentTarget.style.boxShadow="0 4px 20px rgba(0,82,204,.12)"; }}
+            onMouseEnter={e=>{ e.currentTarget.style.transform="translateY(-2px)"; e.currentTarget.style.boxShadow="0 8px 28px rgba(15,45,110,.2)"; }}
+            onMouseLeave={e=>{ e.currentTarget.style.transform="none"; e.currentTarget.style.boxShadow="0 4px 20px rgba(15,45,110,.12)"; }}
           >
             {(vid||imgUrl) ? (
               stripHasCopy ? (
@@ -1192,7 +1211,7 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
             }}>
               <span style={{
                 width: 8, height: 8, borderRadius: "50%",
-                background: estaAbierto ? "#00c46a" : "#ff3d5a",
+                background: estaAbierto ? "#16a34a" : "#ff3d5a",
               }}/>
               {estaAbierto ? `Abierto · cierra a las ${horaCierre}` : "Cerrado ahora"}
             </div>
@@ -1447,7 +1466,7 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
           <div style={{display: "flex", alignItems: "center", gap: 8, marginBottom: 8}}>
             <Logo size={24}/>
             <span style={{fontSize: 11, color: C.textDim}}>
-              © 2026 Farmacia Ventura
+              © 2026 FarmaCapital
             </span>
           </div>
           <div style={{fontSize: 10, color: C.textDim, lineHeight: 1.4}}>
@@ -1487,8 +1506,8 @@ function Header({page,setPage,cart,user,setUser}){
   return(
     <>
       <header style={{
-        background:C.card,
-        borderBottom:`1px solid ${C.border}`,
+        background:BRAND.primary,
+        borderBottom:"none",
         padding:"10px 16px",
         paddingLeft:"max(16px, env(safe-area-inset-left, 0px))",
         paddingRight:"max(16px, env(safe-area-inset-right, 0px))",
@@ -1500,7 +1519,6 @@ function Header({page,setPage,cart,user,setUser}){
         position:"sticky",
         top:0,
         zIndex:50,
-        boxShadow:"0 1px 0 rgba(15,23,42,.06)",
       }}>
         <button
           type="button"
@@ -1511,12 +1529,12 @@ function Header({page,setPage,cart,user,setUser}){
           }}
           aria-label="Inicio FarmaCapital"
         >
-          <Logo size={36}/>
+          <Logo size={36} light/>
         </button>
 
         <div className="farmacapital-header-info-desktop" style={{
           display:"none",
-          alignItems:"center",gap:16,fontSize:12,color:C.textMid,flex:"1 1 auto",
+          alignItems:"center",gap:16,fontSize:12,color:"rgba(255,255,255,.7)",flex:"1 1 auto",
           justifyContent:"center",minWidth:0,
         }}>
           <span>Iztapalapa, CDMX</span>
@@ -1529,17 +1547,17 @@ function Header({page,setPage,cart,user,setUser}){
             aria-label="Ir al carrito"
             onClick={()=>setPage("carrito")}
             style={{
-              background:n>0?BRAND.primary+"18":"transparent",
+              background:n>0?"rgba(255,255,255,.15)":"transparent",
               border:"none",padding:8,borderRadius:8,
               cursor:"pointer",position:"relative",
               display:"flex",alignItems:"center",justifyContent:"center",
             }}
           >
-            <ShoppingCart size={22} color={n>0?BRAND.primary:C.textMid}/>
+            <ShoppingCart size={22} color="#fff"/>
             {n>0&&(
               <span style={{
                 position:"absolute",top:0,right:0,
-                background:BRAND.primary,color:"#fff",
+                background:BRAND.accent,color:"#fff",
                 fontSize:10,fontWeight:800,
                 minWidth:18,height:18,borderRadius:9,
                 display:"flex",alignItems:"center",justifyContent:"center",
@@ -1553,12 +1571,12 @@ function Header({page,setPage,cart,user,setUser}){
             aria-expanded={menuOpen}
             onClick={()=>setMenuOpen((o)=>!o)}
             style={{
-              background:"transparent",border:`1px solid ${C.border}`,
+              background:"rgba(255,255,255,.12)",border:"1px solid rgba(255,255,255,.2)",
               padding:8,borderRadius:8,cursor:"pointer",
               display:"flex",alignItems:"center",justifyContent:"center",
             }}
           >
-            <Menu size={22} color={C.textMid}/>
+            <Menu size={22} color="#fff"/>
           </button>
         </div>
       </header>
@@ -1603,7 +1621,7 @@ function ProductCard({prod,addToCart,onClick}){
   return(
     <div style={{
       background:C.white,
-      borderRadius:14,
+      borderRadius:12,
       border:`1px solid ${C.border}`,
       overflow:"hidden",
       display:"flex",
@@ -1612,11 +1630,11 @@ function ProductCard({prod,addToCart,onClick}){
       maxWidth:"100%",
       minWidth:0,
       cursor:narrow?"default":"pointer",
-      transition:"box-shadow .2s",
+      transition:"border-color .2s, transform .15s",
     }}
       {...(!narrow ? { onClick: handleDetailClick } : {})}
-      onMouseEnter={e=>(e.currentTarget.style.boxShadow="0 4px 20px #0002")}
-      onMouseLeave={e=>(e.currentTarget.style.boxShadow="none")}
+      onMouseEnter={e=>{ e.currentTarget.style.borderColor=BRAND.secondary; e.currentTarget.style.transform="translateY(-2px)"; }}
+      onMouseLeave={e=>{ e.currentTarget.style.borderColor=C.border; e.currentTarget.style.transform="translateY(0)"; }}
     >
       <div
         style={{
@@ -1938,7 +1956,7 @@ function ContenidoPickup({ C, color }){
   return (
     <>
       <p style={{margin:"0 0 12px"}}>
-        Pide en línea y recoge personalmente en Farmacia Ventura. Sin costo de envío y disponible el mismo día.
+        Pide en línea y recoge personalmente en FarmaCapital. Sin costo de envío y disponible el mismo día.
       </p>
       <h4 style={sH4(color)}>¿Cómo funciona?</h4>
       <ol style={sList}>
@@ -2179,11 +2197,11 @@ function HomeServices({setPage}){
   const C = useTheme();
   const [modalAbierto,setModalAbierto]=useState(null);
   const servicios = [
-    { key:"pickup", titulo:"Pick-up gratis", desc:"Recoge hoy en FarmaCapital", color:BRAND.primary, tipo:"modal" },
-    { key:"cdmx", titulo:"CDMX express", desc:"Rappi & Uber Connect", color:BRAND.secondary, tipo:"modal" },
-    { key:"foraneo", titulo:"Envío foráneo", desc:"$89 · Skydropx", color:BRAND.accent, tipo:"modal" },
-    { key:"puntos", titulo:"Puntos FarmaCapital", desc:"Acumula en cada compra", color:"#ffaa00", tipo:"page", destino:"puntos" },
-    { key:"pago", titulo:"Pago online", desc:"Mercado Pago", color:"#8b5cf6", tipo:"modal" },
+    { key:"pickup", titulo:"Pick-up gratis", desc:"Recoge hoy", color:BRAND.primary, tipo:"modal", icon:Store },
+    { key:"cdmx", titulo:"CDMX express", desc:"Rappi & Uber", color:BRAND.secondary, tipo:"modal", icon:Bike },
+    { key:"foraneo", titulo:"Envío foráneo", desc:"$89 · Skydropx", color:BRAND.accent, tipo:"modal", icon:PackageCheck },
+    { key:"puntos", titulo:"Tus puntos", desc:"Acumula y canjea", color:"#f59e0b", tipo:"page", destino:"puntos", icon:Trophy },
+    { key:"pago", titulo:"Pago online", desc:"Mercado Pago", color:"#8b5cf6", tipo:"modal", icon:CreditCard },
   ];
   const handleClick = (s)=>{
     if (s.tipo==="page") setPage(s.destino);
@@ -2209,31 +2227,33 @@ function HomeServices({setPage}){
               style={{
                 flex:"0 0 auto",
                 width:"min(160px, 38vw)",
-                padding:"16px 14px",
+                padding:"14px",
                 borderRadius:12,
-                border:`1px solid ${C.border}`,
-                borderTop:`3px solid ${s.color}`,
-                background:C.card,
+                border:"none",
+                background:s.color+"14",
                 cursor:"pointer",
                 scrollSnapAlign:"start",
                 textAlign:"left",
                 display:"flex",
                 flexDirection:"column",
-                gap:4,
-                transition:"transform .15s, box-shadow .15s",
+                gap:6,
+                transition:"transform .15s, background .15s",
                 fontFamily:"'Plus Jakarta Sans',sans-serif",
               }}
               onMouseEnter={(e)=>{
                 e.currentTarget.style.transform="translateY(-2px)";
-                e.currentTarget.style.boxShadow="0 4px 12px rgba(0,0,0,.1)";
+                e.currentTarget.style.background=s.color+"22";
               }}
               onMouseLeave={(e)=>{
                 e.currentTarget.style.transform="translateY(0)";
-                e.currentTarget.style.boxShadow="none";
+                e.currentTarget.style.background=s.color+"14";
               }}
             >
-              <div style={{color:C.text,fontSize:14,fontWeight:700,lineHeight:1.2}}>{s.titulo}</div>
-              <div style={{color:C.textMid,fontSize:12,lineHeight:1.3}}>{s.desc}</div>
+              <div style={{width:34,height:34,borderRadius:9,background:s.color+"22",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                {s.icon && <s.icon size={18} color={s.color} strokeWidth={2}/>}
+              </div>
+              <div style={{color:C.dark,fontSize:13,fontWeight:700,lineHeight:1.2}}>{s.titulo}</div>
+              <div style={{color:s.color,fontSize:11,fontWeight:600,lineHeight:1.3}}>{s.desc}</div>
             </button>
           ))}
         </div>
@@ -2478,7 +2498,7 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
             }}
             placeholder="🔍 Nombre, principio activo, SKU o código de barras…"
             autoComplete="off"
-            style={{width:"100%",boxSizing:"border-box",padding:"16px 20px",borderRadius:30,border:`2px solid ${BRAND.primary}30`,fontSize:16,fontFamily:"'Plus Jakarta Sans',sans-serif",outline:"none",background:C.white,boxShadow:"0 4px 20px rgba(0,82,204,.1)"}}
+            style={{width:"100%",boxSizing:"border-box",padding:"16px 20px",borderRadius:30,border:`2px solid ${BRAND.primary}30`,fontSize:16,fontFamily:"'Plus Jakarta Sans',sans-serif",outline:"none",background:C.white,boxShadow:"0 4px 20px rgba(15,45,110,.1)"}}
           />
           {heroSuggestions.length>0&&(
             <div role="listbox" aria-label="Sugerencias de búsqueda" style={{

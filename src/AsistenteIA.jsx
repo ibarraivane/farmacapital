@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { C_LIGHT } from "./constants";
 import { useMediaQuery } from "./hooks/useMediaQuery";
 
-const BRAND = { primary:"#0052cc", secondary:"#0099e6", gradient:"linear-gradient(135deg,#0052cc,#0099e6)" };
+const BRAND = { primary:"#0f2d6e", secondary:"#1a56db", gradient:"linear-gradient(135deg,#0f2d6e,#1a56db)" };
 
 const SYSTEM_PROMPT = "Eres el asistente de administración de FarmaCapital, una farmacia independiente en Chinampac de Juárez, Iztapalapa, CDMX. Tienes experiencia en: gestión de inventario farmacéutico, regulaciones COFEPRIS México, proveedores mayoristas mexicanos (Nadro, Marzam, Casa Saba, Fármacos Nacionales), precios de competidores (Farmacias Similares, Del Ahorro), y gestión de farmacias independientes. Puedes ayudar con: alertas de reabastecimiento, comparación de precios de mercado, sugerencias de productos para agregar al catálogo, dudas sobre COFEPRIS, redacción de indicaciones para medicamentos, y análisis del negocio. Responde siempre en español, de forma concisa y práctica.";
 

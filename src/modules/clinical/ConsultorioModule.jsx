@@ -9,7 +9,7 @@ import OnboardingTour from "../../components/OnboardingTour";
 import { Paciente } from "./Paciente";
 import { Historial } from "./Historial";
 
-const BRAND = { primary:"#0052cc", secondary:"#0099e6", gradient:"linear-gradient(135deg,#0052cc,#0099e6)" };
+const BRAND = { primary:"#0f2d6e", secondary:"#1a56db", gradient:"linear-gradient(135deg,#0f2d6e,#1a56db)" };
 
 const fmt     = (n) => `$${parseFloat(n||0).toFixed(2)}`;
 const fmtDate = (s) => s ? new Date(s).toLocaleDateString("es-MX",{day:"2-digit",month:"short",year:"numeric"}) : "—";
@@ -392,16 +392,16 @@ function EnConsulta() {
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
     body { font-family: Arial, sans-serif; font-size: 13px; color: #0f172a; padding: 32px; max-width: 700px; margin: 0 auto; }
-    .header { display:flex; justify-content:space-between; align-items:flex-start; border-bottom: 2px solid #0052cc; padding-bottom: 16px; margin-bottom: 20px; }
-    .logo { font-size: 22px; font-weight: 900; color: #0052cc; }
-    .logo span { color: #00c46a; }
+    .header { display:flex; justify-content:space-between; align-items:flex-start; border-bottom: 2px solid #0f2d6e; padding-bottom: 16px; margin-bottom: 20px; }
+    .logo { font-size: 22px; font-weight: 900; color: #0f2d6e; }
+    .logo span { color: #16a34a; }
     .clinic { text-align:right; font-size:11px; color:#475569; }
     .medico { background:#f0f4f9; border-radius:8px; padding:12px 16px; margin-bottom:20px; }
-    .medico h3 { color:#0052cc; font-size:14px; margin-bottom:6px; }
+    .medico h3 { color:#0f2d6e; font-size:14px; margin-bottom:6px; }
     .paciente { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px; padding:12px 16px; border:1px solid #e2e8f0; border-radius:8px; }
     .field label { font-size:10px; color:#94a3b8; font-weight:700; text-transform:uppercase; }
     .field p { font-size:13px; color:#0f172a; font-weight:600; margin-top:2px; }
-    h4 { color:#0052cc; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px; }
+    h4 { color:#0f2d6e; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px; }
     table { width:100%; border-collapse:collapse; margin-bottom:20px; }
     thead tr { background:#f8fafc; }
     th { padding:8px 12px; text-align:left; font-size:11px; color:#475569; font-weight:700; border-bottom:1px solid #e2e8f0; }
@@ -621,8 +621,8 @@ function EnConsulta() {
               ...btnGreen, padding:"13px", fontSize:14, flex:2, opacity:saving||!diagnostico.trim()?.6:1,
             }}>{saving?"Guardando…":"💾 Guardar consulta"}</button>
             <button onClick={imprimirReceta} disabled={!diagnostico.trim()} style={{
-              padding:"13px", fontSize:14, flex:1, borderRadius:8, border:"1px solid #0052cc",
-              background:"#eff6ff", color:"#0052cc", cursor:!diagnostico.trim()?"not-allowed":"pointer",
+              padding:"13px", fontSize:14, flex:1, borderRadius:8, border:"1px solid #0f2d6e",
+              background:"#eff6ff", color:"#0f2d6e", cursor:!diagnostico.trim()?"not-allowed":"pointer",
               fontWeight:700, opacity:!diagnostico.trim()?.5:1,
             }}>🖨️ Imprimir receta</button>
           </div>

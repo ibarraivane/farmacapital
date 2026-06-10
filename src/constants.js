@@ -18,8 +18,9 @@ export const C_LIGHT = {
 export let C = {...C_LIGHT};
 
 export const BRAND = {
-  primary:"#0052cc", secondary:"#0099e6", accent:"#00c46a",
-  gradient:"linear-gradient(135deg,#0052cc,#0099e6)",
+  primary:"#0f2d6e", secondary:"#1a56db", accent:"#16a34a",
+  amber:"#f59e0b",
+  gradient:"linear-gradient(135deg,#0f2d6e,#1a56db)",
 };
 
 export const NEG = {

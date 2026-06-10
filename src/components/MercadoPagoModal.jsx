@@ -74,10 +74,10 @@ export default function MercadoPagoModal({ open, total, folio, hint, onSuccess, 
   if(!open) return null;
 
   const colores = {
-    idle:       "#0052cc",
+    idle:       "#0f2d6e",
     iniciando:  "#f59e0b",
-    esperando:  "#0099e6",
-    exito:      "#00c46a",
+    esperando:  "#1a56db",
+    exito:      "#16a34a",
     error:      "#ef4444",
     cancelado:  "#94a3b8",
   };
@@ -89,7 +89,7 @@ export default function MercadoPagoModal({ open, total, folio, hint, onSuccess, 
 
   return (
     <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,.6)",backdropFilter:"blur(4px)",zIndex:9000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-      <div style={{background:"#fff",borderRadius:16,width:"min(400px,95vw)",padding:28,boxShadow:"0 24px 80px rgba(0,82,204,.2)"}}>
+      <div style={{background:"#fff",borderRadius:16,width:"min(400px,95vw)",padding:28,boxShadow:"0 24px 80px rgba(15,45,110,.2)"}}>
 
         {/* Header */}
         <div style={{textAlign:"center",marginBottom:24}}>
@@ -104,7 +104,7 @@ export default function MercadoPagoModal({ open, total, folio, hint, onSuccess, 
         {/* Monto */}
         <div style={{background:"#f8fafc",borderRadius:12,padding:16,textAlign:"center",marginBottom:20,border:"1px solid #e2e8f0"}}>
           <div style={{color:"#94a3b8",fontSize:11,fontWeight:700,marginBottom:4}}>TOTAL A COBRAR</div>
-          <div style={{color:"#0052cc",fontWeight:900,fontSize:32}}>${parseFloat(total||0).toFixed(2)}</div>
+          <div style={{color:"#0f2d6e",fontWeight:900,fontSize:32}}>${parseFloat(total||0).toFixed(2)}</div>
         </div>
 
         {/* Estado */}
@@ -115,7 +115,7 @@ export default function MercadoPagoModal({ open, total, folio, hint, onSuccess, 
             </div>
             {estado==="esperando"&&(
               <div style={{height:6,background:"#f1f5f9",borderRadius:3,overflow:"hidden"}}>
-                <div style={{height:"100%",width:`${progreso}%`,background:"#0099e6",borderRadius:3,transition:"width .5s"}}/>
+                <div style={{height:"100%",width:`${progreso}%`,background:"#1a56db",borderRadius:3,transition:"width .5s"}}/>
               </div>
             )}
           </div>

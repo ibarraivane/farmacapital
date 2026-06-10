@@ -1499,7 +1499,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                   borderRadius: 18,
                   flexShrink: 0,
                   border: "none",
-                  background: "linear-gradient(135deg,#0052CC,#0099e6)",
+                  background: "linear-gradient(135deg,#0052CC,#1a56db)",
                   color: "#fff",
                   fontWeight: 800,
                   fontSize: 16,
