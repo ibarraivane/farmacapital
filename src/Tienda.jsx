@@ -74,9 +74,9 @@ function tiendaEffectiveStockFromDb(dbp, sumLotesMap) {
 
 // ── CONTACTO (descomentar cuando tengas número) ───────────────
 const CONTACTO = {
-  telefono: null,           // "55 XXXX XXXX"
-  whatsapp: null,           // "5512345678"
-  email: "contacto@farmacapital.mx",
+  telefono: "55 1612 4562",
+  whatsapp: "5516124562",
+  email: "farmacapital@farmacapital.mx",
   direccion: "Radiodifusora 100, Chinampac de Juárez, Iztapalapa, CDMX, C.P. 09208",
   horario: "Lun–Vie 8:00–22:00 · Sáb 8:00–20:00 · Dom 9:00–18:00",
   maps_embed: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3763.5!2d-99.0518514!3d19.371062!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x85d1fd0b8b0fd10d%3A0x75316d7abacf16ae!2sRadiodifusora+100%2C+Iztapalapa!5e0!3m2!1ses!2smx!4v1",
@@ -229,29 +229,21 @@ function horariosDisponibles(fecha){
 
 // ── LOGO ──────────────────────────────────────────────────────
 function Logo({size=32,light=false}){
-  const bg = light ? "rgba(255,255,255,0.2)" : BRAND.primary;
-  const t  = light ? "#fff" : BRAND.primary;
-  const s  = light ? "rgba(255,255,255,0.8)" : BRAND.secondary;
-  const r  = Math.round(size * 0.25);
-  const bar = Math.round(size * 0.18);
-  const longBar = Math.round(size * 0.62);
-  const shortBar = Math.round(size * 0.38);
-  const offset = Math.round((size - longBar) / 2);
-  const crossOffset = Math.round((size - shortBar) / 2);
-  const barOffset = Math.round((size - bar) / 2);
+  const textColor = light ? "#ffffff" : BRAND.primary;
+  const accentColor = light ? "rgba(255,255,255,0.75)" : BRAND.secondary;
+  const crossColor = light ? "#ffffff" : "#ffffff";
+  const crossBg = light ? "rgba(255,255,255,0.18)" : BRAND.accent;
+  const fs = Math.round(size * 0.52);
+  const iconSize = Math.round(size * 1.05);
   return(
-    <div style={{display:"flex",alignItems:"center",gap:9,cursor:"pointer",flexShrink:0}}>
-      <div style={{width:size,height:size,borderRadius:r,background:bg,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,position:"relative"}}>
-        <div style={{position:"absolute",left:barOffset,top:offset,width:bar,height:longBar,borderRadius:bar,background:"#fff"}}/>
-        <div style={{position:"absolute",left:crossOffset,top:barOffset,width:shortBar,height:bar,borderRadius:bar,background:"#fff"}}/>
-      </div>
-      <div style={{display:"flex",flexDirection:"column",lineHeight:1}}>
-        <div style={{color:t,fontWeight:800,fontSize:Math.round(size*.5),fontFamily:"'Plus Jakarta Sans',sans-serif",letterSpacing:"-0.3px"}}>
-          Farma<span style={{color:s}}>Capital</span>
-        </div>
-        <div style={{color:light?"rgba(255,255,255,0.6)":BRAND.secondary,fontSize:Math.round(size*.22),letterSpacing:"1.5px",textTransform:"uppercase",marginTop:2,fontWeight:500}}>
-          Farmacia · Salud
-        </div>
+    <div style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",flexShrink:0}}>
+      <svg width={iconSize} height={iconSize} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" style={{flexShrink:0}}>
+        <rect width="40" height="40" rx="10" fill={crossBg}/>
+        <rect x="17" y="9" width="6" height="22" rx="3" fill={crossColor}/>
+        <rect x="9" y="17" width="22" height="6" rx="3" fill={crossColor}/>
+      </svg>
+      <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontWeight:800,fontSize:fs,letterSpacing:"-0.4px",color:textColor,lineHeight:1,whiteSpace:"nowrap"}}>
+        Farma<span style={{color:accentColor,fontWeight:700}}>Capital</span>
       </div>
     </div>
   );

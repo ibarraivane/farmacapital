@@ -15,7 +15,7 @@ export function Logo({size=36,showText=true,light=false}){
         </div>
       </div>
       {showText&&<div style={{display:"flex",flexDirection:"column",lineHeight:1}}>
-        <div style={{color:t,fontWeight:800,fontSize:size*.44,fontFamily:"'Plus Jakarta Sans',sans-serif",letterSpacing:"-0.5px"}}>FAR<span style={{color:s}}>MAX</span></div>
+        <div style={{color:t,fontWeight:800,fontSize:size*.44,fontFamily:"'Plus Jakarta Sans',sans-serif",letterSpacing:"-0.5px"}}>Farma<span style={{color:s}}>Capital</span></div>
         <div style={{color:s,fontSize:size*.22,letterSpacing:"2px",textTransform:"uppercase",marginTop:2,fontWeight:600}}>Sistema</div>
       </div>}
     </div>
