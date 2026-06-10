@@ -207,7 +207,7 @@
 |  ├── utils.js.BACKUP_20260416_111356
 |  └── utils.js.BACKUP_20260416_202254
 ├── estructura.txt
-├── farmax-admin.jsx
+├── farmacapital-admin.jsx
 ├── package-lock.json
 ├── package.json
 ├── public
