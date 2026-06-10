@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-// FARMAX — Generador de Facturas CFDI PDF (A4 Portrait)
+// FARMACAPITAL — Generador de Facturas CFDI PDF (A4 Portrait)
 // Formato oficial SAT México
 // Listo para integración con PAC (Facturama)
 // ═══════════════════════════════════════════════════════════
@@ -51,13 +51,13 @@ export function generateFacturaPDF({
   doc.setTextColor(...BLANCO);
   doc.setFont("helvetica","bold");
   doc.setFontSize(16);
-  doc.text("FARMAX", M+20, y+11, {align:"center"});
+  doc.text("FARMACAPITAL", M+20, y+11, {align:"center"});
 
   // Datos emisor
   doc.setTextColor(...NEGRO);
   doc.setFont("helvetica","bold");
   doc.setFontSize(11);
-  doc.text(config.nombre_farmacia||"Farmax Farmacia", M+44, y+5);
+  doc.text(config.nombre_farmacia||"FarmaCapital", M+44, y+5);
 
   doc.setFont("helvetica","normal");
   doc.setFontSize(8);
@@ -110,7 +110,7 @@ export function generateFacturaPDF({
   doc.setFont("helvetica","normal");
   doc.setTextColor(...NEGRO);
   doc.setFontSize(8);
-  doc.text(`Nombre: ${config.nombre_farmacia||"Farmax Farmacia"}`, col1X, y);
+  doc.text(`Nombre: ${config.nombre_farmacia||"FarmaCapital"}`, col1X, y);
   y += 4;
   doc.text(`RFC: ${config.rfc||"XAXX010101000"}`, col1X, y);
   y += 4;
@@ -293,7 +293,7 @@ export function generateFacturaPDF({
   doc.text("¡Gracias por su preferencia!", W/2, 281, {align:"center"});
   doc.setFont("helvetica","normal");
   doc.setFontSize(7.5);
-  doc.text(`${config.nombre_farmacia||"Farmax Farmacia"} — ${config.direccion_farmacia||"Chinampac de Juárez, CDMX"}`, W/2, 287, {align:"center"});
+  doc.text(`${config.nombre_farmacia||"FarmaCapital"} — ${config.direccion_farmacia||"Chinampac de Juárez, CDMX"}`, W/2, 287, {align:"center"});
   doc.text("Este documento es una representación impresa de un CFDI (pendiente de timbrado)", W/2, 292, {align:"center"});
 
   return doc;
@@ -302,7 +302,7 @@ export function generateFacturaPDF({
 export function downloadFacturaPDF(opts) {
   const doc = generateFacturaPDF(opts);
   const folio = String(opts.venta?.id||"0").padStart(8,"0");
-  doc.save(`Factura_CFDI_Farmax_${folio}_${new Date().toISOString().slice(0,10)}.pdf`);
+  doc.save(`Factura_CFDI_FarmaCapital_${folio}_${new Date().toISOString().slice(0,10)}.pdf`);
 }
 
 export function printFacturaPDF(opts) {

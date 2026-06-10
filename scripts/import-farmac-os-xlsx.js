@@ -179,7 +179,7 @@ function writeSqlParts(outDir, baseName, stamp, metaTag, stmts, summaryFooterLin
 
   function flushBucket() {
     if (!bucket.length) return;
-    let content = `-- FARMAX — Import catálogo (${stamp})\n`;
+    let content = `-- FARMACAPITAL — Import catálogo (${stamp})\n`;
     content += `-- Etiqueta notas: ${metaTag}\n`;
     content += `-- Archivo parte ${part}. Ejecutá todas las partes en orden numérico.\n\n`;
     content += `BEGIN;\n\n`;

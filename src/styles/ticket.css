@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════
-   FARMAX — Ticket Térmico Profesional 80mm
+   FARMACAPITAL — Ticket Térmico Profesional 80mm
    Compatible: Epson TM-T20III, Star TSP100
    ═══════════════════════════════════════════ */
 
@@ -7,7 +7,7 @@
 @media print {
   /* Ocultar todo excepto el ticket */
   body * { visibility: hidden !important; }
-  #farmax-ticket, #farmax-ticket * { visibility: visible !important; }
+  #farmacapital-ticket, #farmacapital-ticket * { visibility: visible !important; }
 
   /* Posición y dimensiones exactas para 80mm */
   body {
@@ -16,7 +16,7 @@
     background: #fff !important;
   }
 
-  #farmax-ticket {
+  #farmacapital-ticket {
     position: fixed !important;
     left: 0 !important;
     top: 0 !important;
@@ -34,7 +34,7 @@
   }
 
   /* Fuente monospace forzada */
-  #farmax-ticket * {
+  #farmacapital-ticket * {
     font-family: 'Courier New', Courier, monospace !important;
   }
 
@@ -46,15 +46,15 @@
   }
 
   /* Tabla de productos sin desbordamiento */
-  #farmax-ticket .ticket-table {
+  #farmacapital-ticket .ticket-table {
     width: 100% !important;
     table-layout: fixed !important;
     word-break: break-word !important;
   }
 
   /* QR visible en impresión */
-  #farmax-ticket .qr-placeholder,
-  #farmax-ticket svg {
+  #farmacapital-ticket .qr-placeholder,
+  #farmacapital-ticket svg {
     display: block !important;
     visibility: visible !important;
   }
@@ -64,7 +64,7 @@
 }
 
 /* ── Contenedor principal ── */
-#farmax-ticket {
+#farmacapital-ticket {
   font-family: 'Courier New', Courier, monospace;
   font-size: 11px;
   line-height: 1.45;
@@ -242,7 +242,7 @@
   margin-top: 3px;
 }
 
-/* ── Puntos Farmax ── */
+/* ── Puntos FarmaCapital ── */
 .ticket-puntos {
   background: #000;
   color: #fff;
@@ -344,38 +344,38 @@
    ══════════════════════════════════════════════ */
 
 /* Columnas de tabla con ancho fijo para 280px */
-#farmax-ticket .col-prod  { width: 115px !important; word-break: break-word; }
-#farmax-ticket .col-cant  { width: 28px  !important; text-align: center; }
-#farmax-ticket .col-precio{ width: 58px  !important; text-align: right; }
-#farmax-ticket .col-total { width: 60px  !important; text-align: right; font-weight: bold; }
+#farmacapital-ticket .col-prod  { width: 115px !important; word-break: break-word; }
+#farmacapital-ticket .col-cant  { width: 28px  !important; text-align: center; }
+#farmacapital-ticket .col-precio{ width: 58px  !important; text-align: right; }
+#farmacapital-ticket .col-total { width: 60px  !important; text-align: right; font-weight: bold; }
 
 /* Evitar que el QR se corte */
-#farmax-ticket svg {
+#farmacapital-ticket svg {
   max-width: 90px !important;
   height: auto !important;
 }
 
 /* Separadores optimizados para térmica */
-#farmax-ticket .separator,
-#farmax-ticket .separator-solid,
-#farmax-ticket .separator-double {
+#farmacapital-ticket .separator,
+#farmacapital-ticket .separator-solid,
+#farmacapital-ticket .separator-double {
   border-color: #000 !important;
   margin: 4px 0 !important;
 }
 
 /* Totales con tamaño correcto */
-#farmax-ticket .ticket-total-row.total-final {
+#farmacapital-ticket .ticket-total-row.total-final {
   font-size: 13px !important;
 }
 
 /* Footer compacto */
-#farmax-ticket .ticket-footer {
+#farmacapital-ticket .ticket-footer {
   font-size: 9px !important;
   line-height: 1.5 !important;
 }
 
-/* Puntos Farmax visible */
-#farmax-ticket .ticket-puntos {
+/* Puntos FarmaCapital visible */
+#farmacapital-ticket .ticket-puntos {
   font-size: 9px !important;
   padding: 3px !important;
 }

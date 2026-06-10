@@ -1,4 +1,4 @@
-Quiero que implementes en FARMAX una funcionalidad real de gestión de imágenes dentro del panel administrativo, específicamente para:
+Quiero que implementes en FARMACAPITAL una funcionalidad real de gestión de imágenes dentro del panel administrativo, específicamente para:
 
 1. banners de la tienda
 2. fotos de productos del catálogo

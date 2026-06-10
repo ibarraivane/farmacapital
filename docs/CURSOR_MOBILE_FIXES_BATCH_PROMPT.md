@@ -1,7 +1,7 @@
-Quiero que hagas una segunda ronda de correcciones UX/UI enfocada SOLO en la versión móvil/celular de FARMAX, basándote en problemas reales observados en capturas desde iPhone. No quiero observaciones generales: quiero que APLIQUES fixes seguros y de alta confianza en el repo.
+Quiero que hagas una segunda ronda de correcciones UX/UI enfocada SOLO en la versión móvil/celular de FARMACAPITAL, basándote en problemas reales observados en capturas desde iPhone. No quiero observaciones generales: quiero que APLIQUES fixes seguros y de alta confianza en el repo.
 
 CONTEXTO
-- Proyecto FARMAX con tienda pública + panel Admin/POS.
+- Proyecto FARMACAPITAL con tienda pública + panel Admin/POS.
 - Ya existe una auditoría móvil previa y ya hubo correcciones responsive generales.
 - Ya existe Playwright / e2e móvil en el repo.
 - Esta nueva ronda es específica para pantallas y problemas REALES reportados visualmente en móvil.
@@ -179,7 +179,7 @@ Revisa especialmente:
 - src/modules/clinical/patients/ExpedientesDoctora.jsx
 - cualquier archivo real implicado por las pantallas reportadas
 - e2e/mobile-responsive.spec.js
-- docs/MOBILE_UX_AUDIT_FARMAX.md
+- docs/MOBILE_UX_AUDIT_FARMACAPITAL.md
 
 ==================================================
 REGLAS IMPORTANTES

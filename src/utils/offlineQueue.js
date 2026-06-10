@@ -1,12 +1,12 @@
 import { idEmpleadoUsuarios, parseUsuariosBigintId } from "./usuarioId";
 
 // ═══════════════════════════════════════════════════════════
-// FARMAX — Offline Sale Queue
+// FARMACAPITAL — Offline Sale Queue
 // Guarda ventas en IndexedDB cuando no hay internet
 // Sincroniza automáticamente al reconectarse
 // ═══════════════════════════════════════════════════════════
 
-const DB_NAME    = "FarmaxDB";
+const DB_NAME    = "FarmaCapitalDB";
 const DB_VERSION = 1;
 const STORE_NAME = "ventas_pendientes";
 
@@ -44,10 +44,10 @@ export async function guardarVentaPendiente(ventaData) {
       req.onsuccess = () => res(id_local);
       req.onerror   = () => rej(req.error);
     });
-    console.log("[Farmax Offline] Venta guardada localmente:", id_local);
+    console.log("[FarmaCapital Offline] Venta guardada localmente:", id_local);
     return id_local;
   } catch(e) {
-    console.error("[Farmax Offline] Error guardando venta:", e);
+    console.error("[FarmaCapital Offline] Error guardando venta:", e);
     throw e;
   }
 }
@@ -63,7 +63,7 @@ export async function obtenerVentasPendientes() {
       req.onerror   = () => rej(req.error);
     });
   } catch(e) {
-    console.error("[Farmax Offline] Error leyendo pendientes:", e);
+    console.error("[FarmaCapital Offline] Error leyendo pendientes:", e);
     return [];
   }
 }
@@ -79,7 +79,7 @@ export async function eliminarVentaPendiente(id_local) {
       req.onerror   = () => rej(req.error);
     });
   } catch(e) {
-    console.error("[Farmax Offline] Error eliminando:", e);
+    console.error("[FarmaCapital Offline] Error eliminando:", e);
   }
 }
 
@@ -115,7 +115,7 @@ export async function sincronizarVentasPendientes(supabase, usuario) {
         throw new Error("Venta offline sin items");
       }
 
-      const tok = (typeof sessionStorage !== "undefined") ? sessionStorage.getItem("farmax_session_token") : null;
+      const tok = (typeof sessionStorage !== "undefined") ? sessionStorage.getItem("farmacapital_session_token") : null;
       if (!tok) {
         throw new Error("Sesión expirada: inicia sesión para sincronizar ventas offline");
       }

@@ -1,4 +1,4 @@
-Quiero continuar la remediación de lecturas directas a RPCs seguras en FARMAX, enfocándome ahora en la capa clínica / consultorio (P2).
+Quiero continuar la remediación de lecturas directas a RPCs seguras en FARMACAPITAL, enfocándome ahora en la capa clínica / consultorio (P2).
 
 CONTEXTO
 Ya se migró P0 y P1 de módulos más críticos de tienda, POS y admin.

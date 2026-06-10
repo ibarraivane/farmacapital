@@ -9,7 +9,7 @@ import { resumenLineasReceta } from "./utils/recetaLineas";
 import TransaccionesTab from "./TransaccionesTab";
 import { countPedidosTiendaPendientesHead } from "./utils/pedidosTiendaWeb";
 
-const STORAGE_PROYECTO_CAPEX = "farmax_proyecto_capex_v1";
+const STORAGE_PROYECTO_CAPEX = "farmacapital_proyecto_capex_v1";
 
 /** Valores iniciales del CAPEX (se pueden editar en UI; persisten en localStorage del navegador). */
 const DEFAULT_PROYECTO_CAPEX_LINEAS = [
@@ -79,7 +79,7 @@ const DASHBOARD_TAB_LABELS = {
 
 function loadDashboardTabOrder() {
   try {
-    const raw = localStorage.getItem("farmax_dashboard_tab_order");
+    const raw = localStorage.getItem("farmacapital_dashboard_tab_order");
     if (!raw) return [...DASHBOARD_TABS_DEFAULT];
     const p = JSON.parse(raw);
     if (!Array.isArray(p)) return [...DASHBOARD_TABS_DEFAULT];
@@ -278,7 +278,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
   }, [capexLineas]);
 
   useEffect(() => {
-    localStorage.setItem("farmax_dashboard_tab_order", JSON.stringify(tabOrder));
+    localStorage.setItem("farmacapital_dashboard_tab_order", JSON.stringify(tabOrder));
   }, [tabOrder]);
 
   const reorderTabs = (draggedId, targetId) => {
@@ -303,7 +303,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
     const ayerLocal = yesterdayLocal();
     const inicioMesLocal = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toLocaleDateString("sv-SE");
     const cofeprisLimite = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
-    const adminTok = sessionStorage.getItem("farmax_session_token");
+    const adminTok = sessionStorage.getItem("farmacapital_session_token");
     const cofeprisRpc = adminTok
       ? supabase.rpc("admin_alertas_cofepris_ventana", {
           p_session_token: adminTok,
@@ -355,7 +355,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
     const bajoStock = B.bajo_stock || [];
     const porCaducar = B.por_caducar || [];
     const cortesConDif = B.cortes_con_dif || [];
-    const pedRecetaFarmax = B.ped_receta_farmax || [];
+    const pedRecetaFarmaCapital = B.ped_receta_farmacapital || [];
     const citasRecetaExternaMes = B.citas_receta_ext_mes_count ?? 0;
     const cfgRows = B.cfg_rows || [];
     const citasKpiMes = B.citas_kpi_mes || [];
@@ -418,7 +418,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
     const onlinePend = onlinePendCount ?? 0;
     const sinAtender = onlinePend;
 
-    const ventasRecetaMedicoFarmaxMes = (pedRecetaFarmax || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
+    const ventasRecetaMedicoFarmaCapitalMes = (pedRecetaFarmaCapital || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
     const cfgEst = (cfgRows || []).find(r => r.clave === "estimado_receta_externa");
     const estCfg = parseFloat(cfgEst?.valor);
     const estimadoRecetaExterna = Number.isFinite(estCfg) && estCfg >= 0 ? estCfg : 350;
@@ -439,11 +439,11 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
       metas, trends,
       fuentes: [{ label: "Farmacia física", value: fisica }, { label: "Tienda online", value: online2 }, { label: "Consultorio", value: consult }],
       empleados, topProductos,
-      ventasRecetaMedicoFarmaxMes,
+      ventasRecetaMedicoFarmaCapitalMes,
       nRecetasExternasMes,
       oportunidadPerdidaRecetaEst,
       estimadoRecetaExternaUnit: estimadoRecetaExterna,
-      lineasRecetaFarmax: lineasRec.farmax,
+      lineasRecetaFarmaCapital: lineasRec.farmacapital,
       lineasRecetaExterna: lineasRec.externa,
       lineasRecetaPendiente: lineasRec.pend,
       lineasRecetaConCatalogo: lineasRec.conProductoId,
@@ -467,7 +467,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
     const dias = periodo === "dia" ? 1 : periodo === "semana" ? 7 : 30;
     const desde = new Date(Date.now() - dias * 86400000).toISOString();
     const desdeFecha = new Date(Date.now() - dias * 86400000).toISOString().split("T")[0];
-    const sessionTok = sessionStorage.getItem("farmax_session_token");
+    const sessionTok = sessionStorage.getItem("farmacapital_session_token");
     const [
       repBundleRes,
       { count: clientesNuevos },
@@ -492,7 +492,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
     const ponl = RB.ponl || [];
     const devs = RB.devs || [];
     const pedsCat = RB.peds_cat || [];
-    const pedsRecetaFarmax = RB.peds_receta_farmax || [];
+    const pedsRecetaFarmaCapital = RB.peds_receta_farmacapital || [];
     const citasRecetaExternaPeriod = RB.citas_receta_ext_period_count ?? 0;
     if (repBundleRes.error) console.warn("[Dashboard] reporte bundle:", repBundleRes.error.message);
     const totalDevoluciones = (devs || []).reduce((a, d) => a + parseFloat(d.total_devuelto || 0), 0);
@@ -525,13 +525,13 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
         if (Number.isFinite(ex) && ex >= 0) estimadoRecetaExternaCfg = ex;
       }
     });
-    const ventasRecetaFarmaxPeriod = (pedsRecetaFarmax || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
+    const ventasRecetaFarmaCapitalPeriod = (pedsRecetaFarmaCapital || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
     const nExt = citasRecetaExternaPeriod ?? 0;
     setRep({
       ventas: peds || [], clientes: clientesNuevos ?? 0,
       consultas: cons?.length || 0, online: (ponl || []).reduce((a, p) => a + parseFloat(p.total || 0), 0),
       totalDevoluciones, margenPorCat, precioConsulta,
-      ventasRecetaFarmaxPeriod,
+      ventasRecetaFarmaCapitalPeriod,
       nRecetasExternasPeriod: nExt,
       oportunidadPerdidaRecetaPeriod: nExt * estimadoRecetaExternaCfg,
       estimadoRecetaExternaUnit: estimadoRecetaExternaCfg,
@@ -555,7 +555,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
     </div>
   );
 
-  const {ventasHoy,ventasSemana,ventasMes,crecimiento,ticketProm,consultasHoy,onlinePend,recuperado,gananciaMes,fuentes,empleados,topProductos,alertas,ventasRecetaMedicoFarmaxMes,nRecetasExternasMes,oportunidadPerdidaRecetaEst,estimadoRecetaExternaUnit,lineasRecetaFarmax,lineasRecetaExterna,lineasRecetaPendiente,lineasRecetaConCatalogo,tiempoPromConsultaMin,metas,trends} = data;
+  const {ventasHoy,ventasSemana,ventasMes,crecimiento,ticketProm,consultasHoy,onlinePend,recuperado,gananciaMes,fuentes,empleados,topProductos,alertas,ventasRecetaMedicoFarmaCapitalMes,nRecetasExternasMes,oportunidadPerdidaRecetaEst,estimadoRecetaExternaUnit,lineasRecetaFarmaCapital,lineasRecetaExterna,lineasRecetaPendiente,lineasRecetaConCatalogo,tiempoPromConsultaMin,metas,trends} = data;
   const pctRecuperado = inversionTotal > 0 ? Math.min((recuperado / inversionTotal) * 100, 100) : 0;
   const restante = inversionTotal - recuperado;
   const paybackMeses = gananciaMes > 0 ? Math.max(Math.ceil(restante / gananciaMes), 0) : null;
@@ -838,7 +838,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
                 <KPI label="Ventas totales" value={$(totalVentas)} col={C.blue} icon="💵"/>
                 <KPI label="Ventas online" value={$(totalOnline)} col={C.teal} icon="🌐"/>
                 <KPI label="Consultas" value={$(ingresoConsultas)} col={C.purple} icon="🏥" sub={`${rep.consultas} citas`}/>
-                <KPI label="Ventas receta médico Farmax" value={$(rep.ventasRecetaFarmaxPeriod || 0)} col={C.purple} icon="📋" sub="POS en el período"/>
+                <KPI label="Ventas receta médico FarmaCapital" value={$(rep.ventasRecetaFarmaCapitalPeriod || 0)} col={C.purple} icon="📋" sub="POS en el período"/>
                 <KPI label="Oportunidad perdida (est.)" value={$(rep.oportunidadPerdidaRecetaPeriod || 0)} col={(rep.nRecetasExternasPeriod || 0) > 0 ? C.amber : C.green} icon="📤" sub={`${rep.nRecetasExternasPeriod || 0} recetas fuera × ${fmt(rep.estimadoRecetaExternaUnit || 350)}`}/>
                 <KPI label="Ticket promedio" value={$(ticketPromedio)} col={C.green} icon="🧾"/>
                 <KPI label="Clientes nuevos" value={rep.clientes} col={C.amber} icon="👤"/>
@@ -986,14 +986,14 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
         Una sola lectura: dinero capturado en POS por receta del consultorio, estimación cuando la receta se surte fuera, desglose de renglones prescritos y tiempo promedio de consulta (misma ventana: mes en curso).
       </p>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(100%,200px),1fr))",gap:12,marginBottom:24}}>
-        <KpiCard label="Ventas POS (receta consultorio)" value={fmtK(ventasRecetaMedicoFarmaxMes||0)} col={C.purple} icon="📋" sub="Pedidos receta_origen médico FarmaX"/>
+        <KpiCard label="Ventas POS (receta consultorio)" value={fmtK(ventasRecetaMedicoFarmaCapitalMes||0)} col={C.purple} icon="📋" sub="Pedidos receta_origen médico FarmaCapital"/>
         <KpiCard label="Oportunidad fuera (est.)" value={fmtK(oportunidadPerdidaRecetaEst||0)} col={nRecetasExternasMes>0?C.amber:C.green} icon="📤" sub={`${nRecetasExternasMes||0} consultas surtidas fuera × ${fmt(estimadoRecetaExternaUnit||350)} c/u`}/>
         <KpiCard
           label="Renglones prescritos (total)"
-          value={(lineasRecetaFarmax ?? 0) + (lineasRecetaExterna ?? 0) + (lineasRecetaPendiente ?? 0)}
+          value={(lineasRecetaFarmaCapital ?? 0) + (lineasRecetaExterna ?? 0) + (lineasRecetaPendiente ?? 0)}
           col={C.blue}
           icon="💊"
-          sub={`Farmax ${lineasRecetaFarmax ?? 0} · fuera/pend. ${(lineasRecetaExterna ?? 0) + (lineasRecetaPendiente ?? 0)} · catálogo ${lineasRecetaConCatalogo ?? 0}`}
+          sub={`FarmaCapital ${lineasRecetaFarmaCapital ?? 0} · fuera/pend. ${(lineasRecetaExterna ?? 0) + (lineasRecetaPendiente ?? 0)} · catálogo ${lineasRecetaConCatalogo ?? 0}`}
         />
         <KpiCard label="Tiempo prom. consulta" value={tiempoPromConsultaMin != null ? `${tiempoPromConsultaMin.toFixed(1)} min` : "—"} col={C.teal} icon="⏱" sub="Solo citas con duración registrada"/>
       </div>

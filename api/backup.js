@@ -1,5 +1,5 @@
 /**
- * FARMAX — Trigger de backup
+ * FARMACAPITAL — Trigger de backup
  *
  * Invocado por Vercel Cron (0 6 * * *). Dispara el workflow
  * .github/workflows/backup.yml en el repo principal vía la API
@@ -7,7 +7,7 @@
  * quien realmente ejecuta pg_dump y commitea al repo de backups.
  *
  * Variables de entorno (Vercel → Production):
- *   DISPATCH_GITHUB_REPO    owner/repo (ej. "ibarraivane/farmax") — sin https://github.com/
+ *   DISPATCH_GITHUB_REPO    owner/repo (ej. "ibarraivane/farmacapital") — sin https://github.com/
  *   DISPATCH_GITHUB_TOKEN   PAT con permiso para disparar Actions en ese repo
  *   CRON_SECRET             Vercel lo envía como Authorization: Bearer … en cada cron
  *
@@ -102,7 +102,7 @@ module.exports = async function handler(req, res) {
       ok: false,
       error: 'not_configured',
       hint:
-        'En Vercel (Production): DISPATCH_GITHUB_REPO=owner/repo del repo donde está .github/workflows/backup.yml (ej. ibarraivane/farmax) y DISPATCH_GITHUB_TOKEN con permiso de Actions en ese repo.',
+        'En Vercel (Production): DISPATCH_GITHUB_REPO=owner/repo del repo donde está .github/workflows/backup.yml (ej. ibarraivane/farmacapital) y DISPATCH_GITHUB_TOKEN con permiso de Actions en ese repo.',
     });
     return;
   }
@@ -113,7 +113,7 @@ module.exports = async function handler(req, res) {
       ok: false,
       error: 'invalid_repo',
       hint:
-        'DISPATCH_GITHUB_REPO debe ser solo owner/repo (ej. ibarraivane/farmax), sin https:// ni .git',
+        'DISPATCH_GITHUB_REPO debe ser solo owner/repo (ej. ibarraivane/farmacapital), sin https:// ni .git',
     });
     return;
   }
@@ -127,10 +127,10 @@ module.exports = async function handler(req, res) {
         Authorization: `Bearer ${token}`,
         'X-GitHub-Api-Version': '2022-11-28',
         'Content-Type': 'application/json',
-        'User-Agent': 'farmax-backup-trigger',
+        'User-Agent': 'farmacapital-backup-trigger',
       },
       body: JSON.stringify({
-        event_type: 'farmax-backup',
+        event_type: 'farmacapital-backup',
         client_payload: {
           source: 'vercel-cron',
           triggered_at: new Date().toISOString(),
@@ -159,13 +159,13 @@ module.exports = async function handler(req, res) {
       return;
     }
 
-    console.log('[api/backup] dispatch ok, event=farmax-backup');
+    console.log('[api/backup] dispatch ok, event=farmacapital-backup');
     res.status(202).json({
       ok: true,
       dispatched: true,
       ms: Date.now() - startedAt,
       ts: new Date().toISOString(),
-      message: 'Workflow disparado. En GitHub → Actions → FARMAX DB Backup debe aparecer una corrida.',
+      message: 'Workflow disparado. En GitHub → Actions → FARMACAPITAL DB Backup debe aparecer una corrida.',
     });
   } catch (err) {
     const msg = sanitize((err && err.message) || String(err));

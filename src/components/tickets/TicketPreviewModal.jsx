@@ -4,7 +4,7 @@ import { printTicket } from "../../utils/printTicket";
 import { downloadFacturaPDF } from "../../utils/generateFacturaPDF";
 
 /**
- * FARMAX — Modal de preview de ticket
+ * FARMACAPITAL — Modal de preview de ticket
  * Se muestra automáticamente después de una venta
  *
  * Props:
@@ -46,7 +46,7 @@ function FacturaInlineForm({ venta, cliente, onClose }) {
     if(!nombre.trim())      { setErr("El nombre/razón social es requerido"); return; }
     setSaving(true); setErr("");
     try {
-      const tok = sessionStorage.getItem("farmax_session_token");
+      const tok = sessionStorage.getItem("farmacapital_session_token");
       if (!tok) throw new Error("Sesión expirada");
       const { data: resp, error } = await supabase.rpc("crear_factura", {
         p_session_token:  tok,
@@ -144,11 +144,11 @@ export default function TicketPreviewModal({
   }, [open]);
 
   // Auto-imprimir al abrir (opcional — comentar si no se quiere)
-  // useEffect(() => { if(open) setTimeout(()=>printTicket("farmax-ticket"), 1000); }, [open]);
+  // useEffect(() => { if(open) setTimeout(()=>printTicket("farmacapital-ticket"), 1000); }, [open]);
 
   if (!open) return null;
 
-  const handlePrint = () => printTicket("farmax-ticket");
+  const handlePrint = () => printTicket("farmacapital-ticket");
 
   const handleWhatsApp = () => {
     const tel = cliente?.telefono || prompt("📱 Teléfono del cliente (10 dígitos):");
@@ -156,7 +156,7 @@ export default function TicketPreviewModal({
     const items = productos.map(p =>
       `• ${p.nombre} ×${p.qty||1} = $${(parseFloat(p.precio||0)*(p.qty||1)).toFixed(2)}`
     ).join("\n");
-    const msg = `🏥 *${config?.nombre_farmacia||"Farmax"}*\n${config?.direccion_farmacia||"Chinampac de Juárez, CDMX"}\n\n*Ticket #${venta.id}*\n\n${items}\n\n💰 *Total: $${parseFloat(venta.total||0).toFixed(2)}*\n💳 ${metodoPago}\n\n¡Gracias por su preferencia! 💊`;
+    const msg = `🏥 *${config?.nombre_farmacia||"FarmaCapital"}*\n${config?.direccion_farmacia||"Chinampac de Juárez, CDMX"}\n\n*Ticket #${venta.id}*\n\n${items}\n\n💰 *Total: $${parseFloat(venta.total||0).toFixed(2)}*\n💳 ${metodoPago}\n\n¡Gracias por su preferencia! 💊`;
     window.open("https://wa.me/52" + tel.replace(/\D/g,"") + "?text=" + encodeURIComponent(msg), "_blank");
   };
 

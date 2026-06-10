@@ -5,11 +5,11 @@ import { initEventStore } from "./core/eventStore/initEventStore";
 
 initEventStore();
 
-if (typeof window !== "undefined" && process.env.REACT_APP_FARMAX_BUILD_ID) {
-  window.__FARMAX_BUILD_ID__ = process.env.REACT_APP_FARMAX_BUILD_ID;
+if (typeof window !== "undefined" && process.env.REACT_APP_FARMACAPITAL_BUILD_ID) {
+  window.__FARMACAPITAL_BUILD_ID__ = process.env.REACT_APP_FARMACAPITAL_BUILD_ID;
 }
 
-const CHUNK_RETRY_KEY = "farmax_chunk_retries";
+const CHUNK_RETRY_KEY = "farmacapital_chunk_retries";
 
 /** Errores típicos al cargar código partido (deploy nuevo + HTML/JS viejos en caché). */
 function isChunkLoadFailure(reason) {
@@ -72,7 +72,7 @@ function scheduleChunkRecovery() {
     await clearSwAndCaches();
     try {
       const u = new URL(window.location.href);
-      u.searchParams.set("_farmax_v", String(Date.now()));
+      u.searchParams.set("_farmacapital_v", String(Date.now()));
       window.location.replace(u.toString());
     } catch (_) {
       window.location.reload();

@@ -23,7 +23,7 @@ export default function useSidebarBadges(currentPage) {
     const hoyISO = new Date().toISOString().slice(0, 10);
     const limite30 = addDaysISO(30);
     try {
-      const tok = sessionStorage.getItem("farmax_session_token");
+      const tok = sessionStorage.getItem("farmacapital_session_token");
       const cofeprisRpc = tok
         ? supabase.rpc("admin_alertas_cofepris_ventana", {
             p_session_token: tok,

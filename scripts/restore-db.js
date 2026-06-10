@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 /* eslint-disable */
 /**
- * FARMAX — Restauración segura desde backups en GitHub
+ * FARMACAPITAL — Restauración segura desde backups en GitHub
  *
  * Uso:
  *   node scripts/restore-db.js --list
  *   node scripts/restore-db.js
- *   node scripts/restore-db.js --file=farmax-backup-2026-04-15.backup
+ *   node scripts/restore-db.js --file=farmacapital-backup-2026-04-15.backup
  *   node scripts/restore-db.js --file=... --dry-run
  *   node scripts/restore-db.js --file=... --yes   # sin prompts (CI/automatización)
  *
@@ -116,7 +116,7 @@ function ensureBinary(cmd, hint) {
 }
 
 function parseBackupDate(name) {
-  const m = name.match(/^farmax-backup-(\d{4}-\d{2}-\d{2})\.backup$/i);
+  const m = name.match(/^farmacapital-backup-(\d{4}-\d{2}-\d{2})\.backup$/i);
   return m ? m[1] : null;
 }
 
@@ -136,7 +136,7 @@ async function githubFetchRaw(owner, repo, ref, filePath, token) {
       Accept: 'application/vnd.github.raw',
       Authorization: `Bearer ${token}`,
       'X-GitHub-Api-Version': '2022-11-28',
-      'User-Agent': 'farmax-restore-db',
+      'User-Agent': 'farmacapital-restore-db',
     },
   });
   if (!res.ok) {
@@ -154,7 +154,7 @@ async function githubListBackups(owner, repo, ref, token) {
       Accept: 'application/vnd.github+json',
       Authorization: `Bearer ${token}`,
       'X-GitHub-Api-Version': '2022-11-28',
-      'User-Agent': 'farmax-restore-db',
+      'User-Agent': 'farmacapital-restore-db',
     },
   });
   if (!res.ok) {
@@ -201,7 +201,7 @@ async function verifySha256IfPresent(localBackupPath, owner, repo, ref, token, l
         Accept: 'application/vnd.github.raw',
         Authorization: `Bearer ${token}`,
         'X-GitHub-Api-Version': '2022-11-28',
-        'User-Agent': 'farmax-restore-db',
+        'User-Agent': 'farmacapital-restore-db',
       },
     });
     if (!res.ok) {
@@ -462,9 +462,9 @@ async function main() {
       if (!Number.isNaN(n) && n >= 1 && n <= items.length) {
         filename = items[n - 1].name;
       } else if (/^\d{4}-\d{2}-\d{2}$/.test(choice)) {
-        const found = items.find((e) => e.name === `farmax-backup-${choice}.backup`);
+        const found = items.find((e) => e.name === `farmacapital-backup-${choice}.backup`);
         if (!found) {
-          log(`No existe farmax-backup-${choice}.backup`);
+          log(`No existe farmacapital-backup-${choice}.backup`);
           shutdown(1);
         }
         filename = found.name;
@@ -478,7 +478,7 @@ async function main() {
     const sizeStr = meta ? formatBytes(meta.size) : '(tamaño desconocido)';
     const dateStr = parseBackupDate(filename) || '—';
 
-    tmpRoot = await fsp.mkdtemp(path.join(os.tmpdir(), 'farmax-restore-'));
+    tmpRoot = await fsp.mkdtemp(path.join(os.tmpdir(), 'farmacapital-restore-'));
     const localPath = path.join(tmpRoot, filename);
     log(`Descargando ${filename}…`);
     const body = await githubFetchRaw(owner, repo, ref, `${BACKUP_SUBDIR}/${filename}`, token);

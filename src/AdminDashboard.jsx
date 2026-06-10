@@ -4,7 +4,7 @@ import { idEmpleadoUsuarios } from "./utils/usuarioId";
 
 const leerSesion = () => {
   try {
-    return JSON.parse(sessionStorage.getItem("farmax_admin_user") || "{}");
+    return JSON.parse(sessionStorage.getItem("farmacapital_admin_user") || "{}");
   } catch {
     return {};
   }
@@ -85,7 +85,7 @@ export default function AdminDashboard() {
       return;
     }
 
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) {
       setError("Sesión expirada. Inicia sesión de nuevo.");
       setSaving(false);
@@ -147,7 +147,7 @@ export default function AdminDashboard() {
     if (!window.confirm("¿Eliminar este producto?")) return;
     setError("");
     setOkMsg("");
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) { setError("Sesión expirada."); return; }
     const { data: resp, error: delError } = await supabase.rpc("admin_eliminar_producto", {
       p_session_token: tok, p_producto_id: id,

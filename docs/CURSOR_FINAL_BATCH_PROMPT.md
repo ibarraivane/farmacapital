@@ -1,4 +1,4 @@
-Quiero que hagas una ronda consolidada de mejoras funcionales, visuales y operativas en FARMAX, reuniendo TODOS los hallazgos acumulados hasta ahora. No quiero solo recomendaciones: quiero que analices el repo y apliques cambios seguros y de alta confianza donde sea claro, y documentes lo que no pueda cerrarse del todo sin datos/DB/entorno real.
+Quiero que hagas una ronda consolidada de mejoras funcionales, visuales y operativas en FARMACAPITAL, reuniendo TODOS los hallazgos acumulados hasta ahora. No quiero solo recomendaciones: quiero que analices el repo y apliques cambios seguros y de alta confianza donde sea claro, y documentes lo que no pueda cerrarse del todo sin datos/DB/entorno real.
 
 IMPORTANTE
 - No hagas refactors grandes de arquitectura.
@@ -363,8 +363,8 @@ Problema reportado:
 Quiero:
 1. Revisar manifest / start_url / instalación actual
 2. Implementar una solución clara para distinguir:
-   - Farmax Tienda
-   - Farmax Admin
+   - FarmaCapital Tienda
+   - FarmaCapital Admin
 3. En la UI de Instalar app mostrar ambas opciones
 4. Explicar brevemente cómo instalar cada una
 5. Si el navegador (especialmente Safari/iPhone) tiene limitaciones para dos PWAs desde el mismo dominio, documentarlo claramente

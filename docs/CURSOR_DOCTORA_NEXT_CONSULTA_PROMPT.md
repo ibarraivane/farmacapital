@@ -1,4 +1,4 @@
-Quiero corregir específicamente el flujo principal del perfil de la doctora en FARMAX porque hoy no está resuelto correctamente.
+Quiero corregir específicamente el flujo principal del perfil de la doctora en FARMACAPITAL porque hoy no está resuelto correctamente.
 
 PROBLEMA REAL
 En el perfil de la doctora no está bien resuelto cómo entrar a la consulta que sigue.

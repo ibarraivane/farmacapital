@@ -1,5 +1,5 @@
 /**
- * Definición de tours de onboarding Farmax.
+ * Definición de tours de onboarding FarmaCapital.
  *
  * Cada paso usa como `target` un selector CSS que normalmente es
  * `[data-tour="..."]`. Si el target no existe en el DOM cuando
@@ -11,7 +11,7 @@ export const TOURS = {
   // ────── POS (Punto de venta) ──────
   pos: {
     label: "Tour del Punto de Venta",
-    storageKey: "farmax_tour_pos_",
+    storageKey: "farmacapital_tour_pos_",
     steps: [
       {
         target: '[data-tour="pos-buscador"]',
@@ -39,7 +39,7 @@ export const TOURS = {
         target: '[data-tour="pos-cliente"]',
         title: "4. Cliente y receta",
         content:
-          "Captura teléfono del cliente para asociarle la venta (y sus recetas). Si la venta es con receta, podrás indicar si proviene de médico Farmax o externo al cerrar.",
+          "Captura teléfono del cliente para asociarle la venta (y sus recetas). Si la venta es con receta, podrás indicar si proviene de médico FarmaCapital o externo al cerrar.",
         placement: "top",
       },
       {
@@ -55,7 +55,7 @@ export const TOURS = {
   // ────── Inventario ──────
   inv: {
     label: "Tour del Inventario",
-    storageKey: "farmax_tour_inv_",
+    storageKey: "farmacapital_tour_inv_",
     steps: [
       {
         target: '[data-tour="inv-agregar"]',
@@ -85,13 +85,13 @@ export const TOURS = {
   // ────── Corte de caja ──────
   caja: {
     label: "Tour de Corte de Caja",
-    storageKey: "farmax_tour_caja_",
+    storageKey: "farmacapital_tour_caja_",
     steps: [
       {
         target: '[data-tour="caja-turno"]',
         title: "1. Elige el turno",
         content:
-          "Selecciona si es corte matutino (8:00–16:00) o vespertino (16:00–22:00). Farmax toma solo las ventas de ese rango para calcular el efectivo esperado.",
+          "Selecciona si es corte matutino (8:00–16:00) o vespertino (16:00–22:00). FarmaCapital toma solo las ventas de ese rango para calcular el efectivo esperado.",
         placement: "bottom",
         disableBeacon: true,
       },
@@ -106,7 +106,7 @@ export const TOURS = {
         target: '[data-tour="caja-diferencia"]',
         title: "3. Revisa la diferencia",
         content:
-          "Farmax compara lo declarado contra lo que registró el sistema. Verde = ok; rojo = faltante; amarillo = sobrante. Así detectas errores al momento.",
+          "FarmaCapital compara lo declarado contra lo que registró el sistema. Verde = ok; rojo = faltante; amarillo = sobrante. Así detectas errores al momento.",
         placement: "left",
       },
       {
@@ -122,7 +122,7 @@ export const TOURS = {
   // ────── Consultorio ──────
   cons: {
     label: "Tour de Consultorio",
-    storageKey: "farmax_tour_cons_",
+    storageKey: "farmacapital_tour_cons_",
     steps: [
       {
         target: '[data-tour="cons-kpis"]',
@@ -143,7 +143,7 @@ export const TOURS = {
         target: '[data-tour="cons-lista"]',
         title: "3. Cobro y recetas",
         content:
-          "El cobro de la consulta se hace en el POS → pestaña «Consultas». Si la doctora registró medicamentos en la receta y el paciente los compra en Farmax, el sistema los marca como surtidos automáticamente.",
+          "El cobro de la consulta se hace en el POS → pestaña «Consultas». Si la doctora registró medicamentos en la receta y el paciente los compra en FarmaCapital, el sistema los marca como surtidos automáticamente.",
         placement: "top",
       },
     ],

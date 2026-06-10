@@ -2,7 +2,7 @@
  * Pedidos creados desde la tienda en línea (checkout) que siguen pendientes de surtir.
  * Histórico: algunas filas no tenían `tipo`; se infiere por método de pago web.
  *
- * P0 (RLS): las lecturas pasan por RPC con sesión de empleado (`farmax_session_token`).
+ * P0 (RLS): las lecturas pasan por RPC con sesión de empleado (`farmacapital_session_token`).
  */
 export const METODOS_PAGO_TIENDA_WEB = ["tarjeta", "mercadopago"];
 
@@ -17,7 +17,7 @@ export function esPedidoTiendaWebPendiente(p) {
 function sessionTokenEmpleado(explicit) {
   return (
     explicit ??
-    (typeof sessionStorage !== "undefined" ? sessionStorage.getItem("farmax_session_token") : null)
+    (typeof sessionStorage !== "undefined" ? sessionStorage.getItem("farmacapital_session_token") : null)
   );
 }
 

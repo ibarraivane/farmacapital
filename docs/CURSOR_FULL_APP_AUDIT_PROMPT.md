@@ -1,4 +1,4 @@
-Quiero que hagas una auditoría integral, profunda y FULL STACK de toda la aplicación FARMAX.
+Quiero que hagas una auditoría integral, profunda y FULL STACK de toda la aplicación FARMACAPITAL.
 
 IMPORTANTE
 No quiero una revisión superficial.
@@ -27,7 +27,7 @@ Quiero una auditoría completa de:
 OBJETIVO GENERAL
 ==================================================
 
-Auditar FARMAX como sistema real FULL STACK, no solo como app visual.
+Auditar FARMACAPITAL como sistema real FULL STACK, no solo como app visual.
 
 Quiero revisar:
 - la experiencia visible
@@ -373,7 +373,7 @@ ENTREGABLES QUE QUIERO
 Quiero que me entregues una auditoría estructurada así:
 
 1. RESUMEN EJECUTIVO
-- nivel de madurez de FARMAX
+- nivel de madurez de FARMACAPITAL
 - fortalezas
 - debilidades
 - riesgos principales

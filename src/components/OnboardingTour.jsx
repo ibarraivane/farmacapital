@@ -6,7 +6,7 @@
  *
  * Props:
  *   - usuario:  objeto sesión (se usa usuario.id para clave localStorage).
- *               Si no se pasa, cae a sessionStorage farmax_admin_user.
+ *               Si no se pasa, cae a sessionStorage farmacapital_admin_user.
  *   - tourId:   "pos" | "inv" | "caja" | "cons"  (ver src/utils/tours.js)
  *   - autoStart: boolean  (default true; si false, solo se muestra FAB "?")
  *   - showFab: boolean (default true). Si false, no se pinta el botón "?" fijo;
@@ -75,7 +75,7 @@ const LOCALE = {
 
 function usuarioDeSesion() {
   try {
-    return JSON.parse(sessionStorage.getItem("farmax_admin_user") || "{}");
+    return JSON.parse(sessionStorage.getItem("farmacapital_admin_user") || "{}");
   } catch {
     return {};
   }

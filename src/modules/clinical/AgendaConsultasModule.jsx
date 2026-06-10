@@ -114,11 +114,11 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
     ingresoDoctorSum: 0,
     procedimientosCount: 0,
     tiempoPromMin: null,
-    ventasRecetaFarmax: 0,
+    ventasRecetaFarmaCapital: 0,
     nRecetasExternas: 0,
     oportunidadEst: 0,
     estimadoUnit: 350,
-    lineas: { farmax: 0, externa: 0, pend: 0, conProductoId: 0 },
+    lineas: { farmacapital: 0, externa: 0, pend: 0, conProductoId: 0 },
   });
 
   const { first: mesDesde, last: mesHasta } = useMemo(() => monthRangeSv(y, m), [y, m]);
@@ -189,7 +189,7 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
   const cargarMes = useCallback(async () => {
     setLoadMes(true);
     try {
-      const tok = sessionStorage.getItem("farmax_session_token");
+      const tok = sessionStorage.getItem("farmacapital_session_token");
       if (!tok) {
         setCitasMes([]);
         return;
@@ -242,7 +242,7 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
         periodoSub = "mes en curso";
       }
       try {
-        const tok = sessionStorage.getItem("farmax_session_token");
+        const tok = sessionStorage.getItem("farmacapital_session_token");
         if (!tok) return;
         const { data, error } = await supabase.rpc("empleado_agenda_kpi_citas_periodo", {
           p_session_token: tok,
@@ -289,7 +289,7 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
   }, [kpiPer, mode]);
 
   const prepararFicha = useCallback(async () => {
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     const [consumibles, procRes] = await Promise.all([
       fetchProductosConsumiblesConsultorio(supabase),
       tok
@@ -348,7 +348,7 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
     }
     setIniciandoCitaId(cita.id);
     try {
-      const tok = sessionStorage.getItem("farmax_session_token");
+      const tok = sessionStorage.getItem("farmacapital_session_token");
       if (!tok) throw new Error("Sesión expirada");
       const { error: rpcErr } = await supabase.rpc("actualizar_estado_cita", {
         p_session_token: tok,
@@ -415,7 +415,7 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
         setGuard(false);
         return;
       }
-      const tok = sessionStorage.getItem("farmax_session_token");
+      const tok = sessionStorage.getItem("farmacapital_session_token");
       if (!tok) throw new Error("Sesión expirada");
       const canal = "mostrador";
       const { data: resp, error } = await supabase.rpc("crear_cita", {

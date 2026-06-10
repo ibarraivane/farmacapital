@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import FarmaxAdmin from "./Admin";
+import FarmaCapitalAdmin from "./Admin";
 import Tienda from "./Tienda";
 import AdminDashboard from "./AdminDashboard";
 import { adminPathnameToPageId } from "./shared/adminRoutes";
@@ -17,7 +17,7 @@ class AdminRouteBoundary extends React.Component {
 
   componentDidCatch(error) {
     // eslint-disable-next-line no-console
-    console.error("[Farmax Admin] Runtime crash detected:", error);
+    console.error("[FarmaCapital Admin] Runtime crash detected:", error);
   }
 
   render() {
@@ -31,12 +31,12 @@ class AdminRouteBoundary extends React.Component {
 export default function App() {
   useEffect(() => {
     try {
-      sessionStorage.removeItem("farmax_chunk_retries");
+      sessionStorage.removeItem("farmacapital_chunk_retries");
     } catch (_) { /* noop */ }
     try {
       const u = new URL(window.location.href);
-      if (u.searchParams.has("_farmax_v")) {
-        u.searchParams.delete("_farmax_v");
+      if (u.searchParams.has("_farmacapital_v")) {
+        u.searchParams.delete("_farmacapital_v");
         const qs = u.searchParams.toString();
         const next = u.pathname + (qs ? `?${qs}` : "") + u.hash;
         window.history.replaceState(null, "", next);
@@ -52,7 +52,7 @@ export default function App() {
   if (useAdminShell) {
     return (
       <AdminRouteBoundary>
-        <FarmaxAdmin />
+        <FarmaCapitalAdmin />
       </AdminRouteBoundary>
     );
   }

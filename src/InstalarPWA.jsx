@@ -99,7 +99,7 @@ export default function InstalarPWA() {
   return (
     <div style={{ maxWidth: 900, margin: "0 auto" }}>
       <h1 style={{ color: C.text, fontSize: 22, fontWeight: 800, marginBottom: 8 }}>
-        Instalar Farmax como app
+        Instalar FarmaCapital como app
       </h1>
       <p style={{ color: C.textMid, fontSize: 14, marginBottom: 16, lineHeight: 1.6 }}>
         Hay <strong style={{ color: C.text }}>dos aplicaciones web</strong> en este mismo sitio: la{" "}
@@ -122,7 +122,7 @@ export default function InstalarPWA() {
       >
         <strong>Importante:</strong> El navegador instala la app asociada a la{" "}
         <strong>URL que tienes abierta</strong> y al manifest enlazado en esa vista. Desde esta pantalla
-        (panel) el manifest activo es <strong>Farmax Admin</strong>. Para instalar solo la tienda, abre la
+        (panel) el manifest activo es <strong>FarmaCapital Admin</strong>. Para instalar solo la tienda, abre la
         tienda en una pestaña nueva y usa instalar allí.
         <div style={{ marginTop: 10, fontSize: 12, color: C.textMid }}>
           <strong>iPhone/Safari:</strong> no usa el manifest como Chrome; el acceso directo abre la página que
@@ -173,7 +173,7 @@ export default function InstalarPWA() {
             <span style={{ fontSize: 28 }}>🔔</span>
             <div>
               <div style={{ color: BRAND.primary, fontWeight: 700, fontSize: 14 }}>
-                Instalación disponible ({enPanelAdmin ? "Farmax Admin" : "Farmax Tienda"})
+                Instalación disponible ({enPanelAdmin ? "FarmaCapital Admin" : "FarmaCapital Tienda"})
               </div>
               <div style={{ color: C.textMid, fontSize: 12, marginTop: 2 }}>
                 El navegador ofrece instalar la app que corresponde a esta URL y al manifest actual.
@@ -225,7 +225,7 @@ export default function InstalarPWA() {
       >
         <div style={{ ...cardBase }}>
           <div style={{ fontSize: 28, marginBottom: 8 }}>🛒</div>
-          <div style={{ color: C.text, fontWeight: 800, fontSize: 16, marginBottom: 6 }}>Farmax Tienda</div>
+          <div style={{ color: C.text, fontWeight: 800, fontSize: 16, marginBottom: 6 }}>FarmaCapital Tienda</div>
           <div style={{ color: C.textMid, fontSize: 12, lineHeight: 1.5, marginBottom: 12 }}>
             Acceso directo al catálogo y compra en línea. <strong>Start URL:</strong>{" "}
             <code style={{ fontSize: 11 }}>/</code>
@@ -251,7 +251,7 @@ export default function InstalarPWA() {
 
         <div style={{ ...cardBase, borderColor: BRAND.primary + "55", background: "#f8fafc" }}>
           <div style={{ fontSize: 28, marginBottom: 8 }}>⚙️</div>
-          <div style={{ color: C.text, fontWeight: 800, fontSize: 16, marginBottom: 6 }}>Farmax Admin</div>
+          <div style={{ color: C.text, fontWeight: 800, fontSize: 16, marginBottom: 6 }}>FarmaCapital Admin</div>
           <div style={{ color: C.textMid, fontSize: 12, lineHeight: 1.5, marginBottom: 12 }}>
             Panel interno (POS, inventario, consultorio). <strong>Start URL:</strong>{" "}
             <code style={{ fontSize: 11 }}>/admin</code>
@@ -367,7 +367,7 @@ export default function InstalarPWA() {
             <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 8, color: C.text }}>Tienda</div>
             <img
               src={qrSrc(urlTienda)}
-              alt="QR Tienda Farmax"
+              alt="QR Tienda FarmaCapital"
               style={{ width: 160, height: 160, borderRadius: 12, border: `1px solid ${C.border}` }}
             />
           </div>
@@ -375,7 +375,7 @@ export default function InstalarPWA() {
             <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 8, color: C.text }}>Admin</div>
             <img
               src={qrSrc(urlAdmin)}
-              alt="QR Admin Farmax"
+              alt="QR Admin FarmaCapital"
               style={{ width: 160, height: 160, borderRadius: 12, border: `1px solid ${C.border}` }}
             />
           </div>

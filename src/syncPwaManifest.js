@@ -33,7 +33,7 @@ export function syncPwaManifestLink() {
     link.setAttribute("href", href);
   }
 
-  const title = adminShell ? "Farmax Admin" : "Farmax Tienda";
+  const title = adminShell ? "FarmaCapital Admin" : "FarmaCapital Tienda";
   document.querySelector('meta[name="apple-mobile-web-app-title"]')?.setAttribute("content", title);
   document.querySelector('meta[name="application-name"]')?.setAttribute("content", title);
 }

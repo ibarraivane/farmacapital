@@ -102,14 +102,14 @@ export default function ReabastoModule() {
       <style>body{font-family:Arial,sans-serif;font-size:13px;padding:24px;color:#0f172a}h2{color:#0052cc}table{width:100%;border-collapse:collapse}th{background:#f8fafc;padding:9px 12px;text-align:left;font-size:11px;color:#475569;border-bottom:2px solid #e2e8f0}.total{text-align:right;font-weight:800;font-size:16px;color:#00c46a;padding:12px 12px 0}</style>
       </head><body>
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px">
-        <div><h2>📦 Orden de Reabasto — FARMAX</h2><div style="color:#475569">Chinampac de Juárez, CDMX · ${orden.fecha}</div></div>
+        <div><h2>📦 Orden de Reabasto — FARMACAPITAL</h2><div style="color:#475569">Chinampac de Juárez, CDMX · ${orden.fecha}</div></div>
         <div style="text-align:right"><div style="font-weight:700">Proveedor:</div><div style="color:#0052cc;font-weight:800;font-size:16px">${orden.proveedor}</div></div>
       </div>
       <table><thead><tr><th>Producto</th><th style="text-align:center">SKU</th><th style="text-align:center">Stock actual</th><th style="text-align:center">Cantidad a pedir</th><th style="text-align:right">Costo estimado</th></tr></thead>
       <tbody>${rows}</tbody></table>
       <div class="total">Total estimado: $${orden.total.toFixed(2)} MXN</div>
       <div style="margin-top:32px;border-top:1px solid #e2e8f0;padding-top:16px;color:#94a3b8;font-size:11px">
-        Generado automáticamente por Farmax · ${new Date().toLocaleString("es-MX")}
+        Generado automáticamente por FarmaCapital · ${new Date().toLocaleString("es-MX")}
       </div></body></html>`);
     w.document.close(); w.focus(); setTimeout(()=>w.print(),500);
   };
@@ -239,7 +239,7 @@ export default function ReabastoModule() {
                       🖨️ Imprimir orden
                     </button>
                     <button onClick={()=>{
-                      const msg = `📦 *Orden de reabasto FARMAX*\n\nProveedor: ${orden.proveedor}\nFecha: ${orden.fecha}\n\n${orden.productos.map(p=>`• ${p.nombre} × ${p.cantidadPedida}`).join("\n")}\n\nTotal estimado: $${orden.total.toFixed(2)} MXN\n\n_Generado por sistema Farmax_`;
+                      const msg = `📦 *Orden de reabasto FARMACAPITAL*\n\nProveedor: ${orden.proveedor}\nFecha: ${orden.fecha}\n\n${orden.productos.map(p=>`• ${p.nombre} × ${p.cantidadPedida}`).join("\n")}\n\nTotal estimado: $${orden.total.toFixed(2)} MXN\n\n_Generado por sistema FarmaCapital_`;
                       window.open("https://wa.me/?text="+encodeURIComponent(msg),"_blank");
                     }} style={{padding:"7px 14px",borderRadius:8,border:"1px solid #25D366",background:"#dcfce7",color:"#16a34a",fontWeight:700,fontSize:12,cursor:"pointer"}}>
                       📱 WhatsApp

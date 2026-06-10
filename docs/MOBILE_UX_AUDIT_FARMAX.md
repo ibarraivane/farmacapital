@@ -1,4 +1,4 @@
-# Auditoría UX móvil / responsive — FARMAX
+# Auditoría UX móvil / responsive — FARMACAPITAL
 
 **Fecha:** abril 2026.  
 **Método:** revisión de código + **Playwright** (`e2e/mobile-responsive.spec.js`) sobre build estático: viewports 360×800, 390×844, 412×915, 768×1024, 820×1180 y 320×568; rutas **`/`** (tienda home) y **`/admin`** (login o shell); comprobación de overflow horizontal en `document`/`#root` y capturas PNG. Correcciones de layout aplicadas en repo.
@@ -36,7 +36,7 @@ La app ya tenía piezas pensadas para móvil (`useMediaQuery`, sidebar admin des
 
 | Archivo | Cambio |
 |---------|--------|
-| `src/index.css` | `overflow-x: clip` + `max-width: 100%` en `body`/`#root`; `text-size-adjust`; media query para `.farmax-confirm-actions` en móvil. |
+| `src/index.css` | `overflow-x: clip` + `max-width: 100%` en `body`/`#root`; `text-size-adjust`; media query para `.farmacapital-confirm-actions` en móvil. |
 | `src/ui.jsx` | `Modal` sin `minWidth` forzado, `maxHeight` + scroll; safe-area en overlays; toasts centrados ancho completo; `ConfirmDialog` scroll + botones táctiles + `flexWrap`; `Btn`/`Inp`/`SearchDropdown`/`KPI`/`SkeletonKPIs` más aptos táctil y sin KPI overflow. |
 | `src/components/tickets/TicketPreviewModal.jsx` | Safe-area en overlay; `width`/`maxHeight` con `dvh`; botones inferiores con `flexWrap` y `minHeight` 44. |
 | `src/Tienda.jsx` | Grid similares responsive; CTAs detalle y header usuario con `minWidth: 0`; `main` sin `100vw`; **wrapper raíz** `overflow-x: hidden` + `width: 100%` para header+main en viewports estrechos. |

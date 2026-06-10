@@ -1,4 +1,4 @@
-# FARMAX — Preparación delivery, pickup y marketplaces
+# FARMACAPITAL — Preparación delivery, pickup y marketplaces
 
 Documento de diseño y de cambios aplicados en código (sin integraciones OAuth reales). Objetivo: operar **tienda propia + pickup**, dejar listo **envío / Uber Direct** y **pedidos marketplace** (Rappi / Uber Eats) con un modelo de datos claro.
 
@@ -31,7 +31,7 @@ Documento de diseño y de cambios aplicados en código (sin integraciones OAuth 
 |-------|-----|
 | `pickup_store` | Cliente recoge en farmacia |
 | `marketplace_courier` | Repartidor de la plataforma (Rappi / UE) |
-| `uber_direct` | Última milla contratada por Farmax (Uber Direct) |
+| `uber_direct` | Última milla contratada por FarmaCapital (Uber Direct) |
 | `own_delivery` | Reparto propio (reservado; hoy no operativo) |
 
 ### C. Estados deseados vs `pedidos.estado` actual

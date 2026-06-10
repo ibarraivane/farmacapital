@@ -1,4 +1,4 @@
-Quiero continuar la remediación real de FARMAX migrando la siguiente capa de lecturas directas a RPCs seguras.
+Quiero continuar la remediación real de FARMACAPITAL migrando la siguiente capa de lecturas directas a RPCs seguras.
 
 CONTEXTO
 Ya quedó una P0 migrada a RPCs para:

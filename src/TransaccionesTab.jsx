@@ -42,7 +42,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
 
   const fetchPedidos = useCallback(async () => {
     setLoading(true);
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     const rango = getRango();
     if (!tok) {
       setPedidos([]);
@@ -63,7 +63,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
   useEffect(() => { fetchPedidos(); }, [fetchPedidos]);
 
   const eliminarPedidoCompleto = async (p) => {
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) { showToast("Sesión expirada","error"); return; }
     const { error } = await supabase.rpc("admin_eliminar_pedido", {
       p_session_token: tok, p_pedido_id: p.id,
@@ -82,14 +82,14 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
 
   const reimprimir = async (p) => {
     setLoadingReprint(true);
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     const { data: items } = await supabase.rpc("empleado_listar_pedido_items_basico", {
       p_session_token: tok,
       p_pedido_id: p.id,
     });
     let cliente = null;
     if (p.cliente_id) {
-      const tok = sessionStorage.getItem("farmax_session_token");
+      const tok = sessionStorage.getItem("farmacapital_session_token");
       const { data: cli } = await supabase.rpc("admin_obtener_cliente", {
         p_session_token: tok, p_cliente_id: p.cliente_id,
       });
@@ -110,7 +110,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
 
   const abrirDetalle = async (p) => {
     setModalDet(p); setLoadDet(true); setDetItems([]);
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     const { data } = await supabase.rpc("empleado_listar_pedido_items_detalle_transacciones", {
       p_session_token: tok,
       p_pedido_id: p.id,
@@ -126,7 +126,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
 
   const guardarEditar = async () => {
     setSaving(true);
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     const { error } = await supabase.rpc("admin_editar_pedido", {
       p_session_token: tok,
       p_pedido_id: modalEditar.id,
@@ -145,7 +145,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
       return;
     }
     showConfirm("Cancelar pedido", `¿Cancelar el pedido #${p.id}? El estado cambiará a cancelado.`, async () => {
-      const tok = sessionStorage.getItem("farmax_session_token");
+      const tok = sessionStorage.getItem("farmacapital_session_token");
       const { error } = await supabase.rpc("admin_cancelar_pedido", {
         p_session_token: tok, p_pedido_id: p.id,
       });
@@ -218,7 +218,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
             <tbody>
               {filtrados.length === 0 && <tr><td colSpan={9} style={{ textAlign: "center", padding: 32, color: C.textMid }}>Sin transacciones en este período</td></tr>}
               {filtrados.map((p, i) => (
-                <tr className="farmax-table-row" key={p.id} style={{ background: p.estado === "cancelado" ? "#fff5f5" : i % 2 === 0 ? "transparent" : "#f8fafc" }}>
+                <tr className="farmacapital-table-row" key={p.id} style={{ background: p.estado === "cancelado" ? "#fff5f5" : i % 2 === 0 ? "transparent" : "#f8fafc" }}>
                   <td style={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}`, fontFamily: "monospace", fontSize: 11 }}>#{p.id}</td>
                   <td style={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap" }}>{fmtDT(p.created_at)}</td>
                   <td style={{ padding: "8px 12px", color: C.text, fontWeight: 600, borderBottom: `1px solid ${C.border}` }}>{p.clientes?.nombre || "—"}</td>
@@ -342,7 +342,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
               </div>
             </div>
             <div style={{ padding: 16, display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <button type="button" onClick={() => printTicket("farmax-ticket")} style={{ flex: "2 1 160px", minHeight: 44, padding: "11px", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#7c3aed,#9d6fff)", color: "#fff", fontWeight: 800, fontSize: 14, cursor: "pointer" }}>
+              <button type="button" onClick={() => printTicket("farmacapital-ticket")} style={{ flex: "2 1 160px", minHeight: 44, padding: "11px", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#7c3aed,#9d6fff)", color: "#fff", fontWeight: 800, fontSize: 14, cursor: "pointer" }}>
                 🖨️ Imprimir
               </button>
               <button type="button" onClick={() => setTicketReprint(null)} style={{ flex: "1 1 120px", minHeight: 44, padding: "11px", borderRadius: 10, border: "1px solid #e2e8f0", background: "transparent", color: "#475569", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>

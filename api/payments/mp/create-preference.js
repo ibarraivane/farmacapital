@@ -77,8 +77,8 @@ module.exports = async function handler(req, res) {
     if (!Number.isFinite(totalDb) || totalDb <= 0) return res.status(400).json({ ok: false, error: 'invalid_db_total' });
     if (Math.abs(totalDb - amount) > 0.01) return res.status(409).json({ ok: false, error: 'amount_mismatch' });
 
-    const safeBase = baseUrl || 'https://farmax-app.vercel.app';
-    const externalReference = `FARMAX-PED-${pedidoId}`;
+    const safeBase = baseUrl || 'https://farmacapital.mx';
+    const externalReference = `FARMACAPITAL-PED-${pedidoId}`;
     const mpPayload = {
       external_reference: externalReference,
       notification_url: `${safeBase.replace(/\/$/, '')}/api/payments/mp/webhook`,
@@ -88,14 +88,14 @@ module.exports = async function handler(req, res) {
         failure: `${safeBase.replace(/\/$/, '')}/?payment=failure&pedido=${pedidoId}`,
       },
       auto_return: 'approved',
-      statement_descriptor: 'FARMAX',
+      statement_descriptor: 'FARMACAPITAL',
       payer: {
         name: String(payer?.name || '').slice(0, 120) || undefined,
         email: String(payer?.email || '').slice(0, 120) || undefined,
       },
       items: items.length
         ? items.map((it) => ({
-            title: String(it?.title || 'Producto Farmax').slice(0, 256),
+            title: String(it?.title || 'Producto FarmaCapital').slice(0, 256),
             quantity: Math.max(1, Number(it?.quantity || 1)),
             currency_id: 'MXN',
             unit_price: Number(it?.unit_price || 0),

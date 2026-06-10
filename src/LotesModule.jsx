@@ -27,7 +27,7 @@ export default function LotesModule() {
 
   const fetchData = useCallback(async()=>{
     setLoading(true);
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     const [{ data: ls }, { data: ps }, { data: pv }] = tok
       ? await Promise.all([
           supabase.rpc("empleado_listar_lotes_inventario", { p_session_token: tok }),
@@ -72,7 +72,7 @@ export default function LotesModule() {
     if(!form.producto_id||!form.numero_lote||!form.cantidad_inicial){ showToast("Completa producto, lote y cantidad","warning"); return; }
     setSaving(true);
     const qty = parseInt(form.cantidad_inicial)||0;
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) { showToast("Sesión expirada","error"); setSaving(false); return; }
     const { error } = await supabase.rpc("admin_crear_lote", {
       p_session_token:  tok,
@@ -90,7 +90,7 @@ export default function LotesModule() {
 
   const desactivar = async(id)=>{
     if(!window.confirm("¿Desactivar este lote?")) return;
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     const { error } = await supabase.rpc("admin_desactivar_lote", {
       p_session_token: tok, p_lote_id: id, p_motivo: "Desactivación manual",
     });

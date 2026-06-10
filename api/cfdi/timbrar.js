@@ -1,7 +1,7 @@
 'use strict';
 
 // ═══════════════════════════════════════════════════════════════
-// FARMAX — Timbrado CFDI 4.0 vía SW Sapien
+// FARMACAPITAL — Timbrado CFDI 4.0 vía SW Sapien
 // Documentación SW: https://developers.sw.com.mx
 //
 // Variables de entorno requeridas (Vercel → Settings → Env Vars):
@@ -153,7 +153,7 @@ module.exports = async function handler(req, res) {
   const SANDBOX    = (process.env.SW_SANDBOX || "true").toLowerCase() !== "false";
 
   const RFC_EMISOR    = (process.env.RFC_EMISOR    || "").trim().toUpperCase();
-  const NOMBRE_EMISOR = (process.env.NOMBRE_EMISOR || "FARMAX FARMACIA").trim().toUpperCase();
+  const NOMBRE_EMISOR = (process.env.NOMBRE_EMISOR || "FARMACAPITAL").trim().toUpperCase();
   const REGIMEN_EMISOR= (process.env.REGIMEN_EMISOR|| "612").trim();
   const CP_EXPEDICION = (process.env.CP_EXPEDICION || "09208").trim();
 

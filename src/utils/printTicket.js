@@ -1,25 +1,25 @@
-// FARMAX — Utilidad de impresión de tickets
+// FARMACAPITAL — Utilidad de impresión de tickets
 
 /**
  * Imprime el contenido del ticket usando window.print()
  * Compatible con impresoras térmicas 80mm (Epson TM-T20III, etc.)
  * @param {string} ticketId - ID del elemento DOM del ticket
  */
-export function printTicket(ticketId = "farmax-ticket") {
+export function printTicket(ticketId = "farmacapital-ticket") {
   const ticket = document.getElementById(ticketId);
   if (!ticket) {
-    console.error("[Farmax] Ticket no encontrado:", ticketId);
+    console.error("[FarmaCapital] Ticket no encontrado:", ticketId);
     return;
   }
 
   // Guardar estado original
   const originalTitle = document.title;
-  document.title = `Ticket_Farmax_${new Date().toISOString().slice(0,10)}`;
+  document.title = `Ticket_FarmaCapital_${new Date().toISOString().slice(0,10)}`;
 
   // Configurar para Epson TM-T20III
   // Instrucciones al usuario si no tiene la impresora configurada
-  console.log("[Farmax] Imprimiendo ticket en Epson TM-T20III");
-  console.log("[Farmax] Configuración recomendada:");
+  console.log("[FarmaCapital] Imprimiendo ticket en Epson TM-T20III");
+  console.log("[FarmaCapital] Configuración recomendada:");
   console.log("  - Papel: 80mm (sin márgenes)");
   console.log("  - Orientación: Vertical");
   console.log("  - Escala: 100%");
@@ -61,7 +61,7 @@ export function generateTicketHTML(data) {
     <html lang="es">
     <head>
       <meta charset="UTF-8">
-      <title>Ticket Farmax</title>
+      <title>Ticket FarmaCapital</title>
       <style>
         body { font-family: 'Courier New', monospace; font-size: 11px; width: 280px; margin: 0; padding: 8px; }
         .center { text-align: center; }
@@ -77,7 +77,7 @@ export function generateTicketHTML(data) {
       </style>
     </head>
     <body>
-      <div class="center bold" style="font-size:16px">FARMAX</div>
+      <div class="center bold" style="font-size:16px">FARMACAPITAL</div>
       <div class="center">Farmacia & Salud</div>
       <div class="center" style="font-size:9px">Chinampac de Juárez, Iztapalapa, CDMX</div>
       <div class="center" style="font-size:9px">Tel: ${config?.telefono_farmacia||"—"}</div>
@@ -100,9 +100,9 @@ export function generateTicketHTML(data) {
       ${cliente?.puntos ? `<div class="center bold" style="background:#000;color:#fff;padding:4px;margin:4px 0">⭐ +${Math.floor(total/10)} puntos ganados</div>` : ""}
       <hr>
       <div class="center" style="font-size:9px">¡Gracias por su preferencia!</div>
-      <div class="center" style="font-size:9px">Vuelva pronto a Farmax</div>
+      <div class="center" style="font-size:9px">Vuelva pronto a FarmaCapital</div>
       <div style="width:80px;height:80px;border:1px dashed #999;margin:8px auto;display:flex;align-items:center;justify-content:center;font-size:8px;color:#999">QR Code</div>
-      <div class="center" style="font-size:8px">farmax-app.vercel.app</div>
+      <div class="center" style="font-size:8px">farmacapital.mx</div>
     </body>
     </html>
   `;

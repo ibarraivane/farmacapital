@@ -1,10 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import App from "./App";
 
-test("renders FARMAX loader", () => {
+test("renders FARMACAPITAL loader", () => {
   window.history.pushState({}, "", "/");
   render(<App />);
-  const title = screen.getByText(/farmax/i);
+  const title = screen.getByText(/farmacapital/i);
   expect(title).toBeInTheDocument();
 });
 

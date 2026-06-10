@@ -1,7 +1,7 @@
-Quiero que implementes una mejora funcional importante en FARMAX sobre la búsqueda de medicamentos/productos y la ubicación física en farmacia.
+Quiero que implementes una mejora funcional importante en FARMACAPITAL sobre la búsqueda de medicamentos/productos y la ubicación física en farmacia.
 
 CONTEXTO
-FARMAX es una farmacia. La lógica actual de búsqueda no es suficiente para la operación real.
+FARMACAPITAL es una farmacia. La lógica actual de búsqueda no es suficiente para la operación real.
 En una farmacia, un medicamento se debe poder encontrar por:
 - ingrediente activo / principio activo
 - denominación genérica

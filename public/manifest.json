@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "Farmax — Tienda",
-  "short_name": "Farmax Tienda",
-  "description": "Tienda en línea Farmax: medicamentos, consultorio y envíos. Chinampac de Juárez, CDMX.",
+  "name": "FarmaCapital — Tienda",
+  "short_name": "FarmaCapital Tienda",
+  "description": "Tienda en línea FarmaCapital: medicamentos, consultorio y envíos. Chinampac de Juárez, CDMX.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -17,31 +17,31 @@
   ],
   "icons": [
     {
-      "src": "/icons/farmax-72.png",
+      "src": "/icons/farmacapital-72.png",
       "sizes": "72x72",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/farmax-96.png",
+      "src": "/icons/farmacapital-96.png",
       "sizes": "96x96",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/farmax-128.png",
+      "src": "/icons/farmacapital-128.png",
       "sizes": "128x128",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/farmax-192.png",
+      "src": "/icons/farmacapital-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/icons/farmax-512.png",
+      "src": "/icons/farmacapital-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
@@ -53,7 +53,7 @@
       "short_name": "Inicio",
       "description": "Catálogo y compra en línea",
       "url": "/",
-      "icons": [{ "src": "/icons/farmax-96.png", "sizes": "96x96" }]
+      "icons": [{ "src": "/icons/farmacapital-96.png", "sizes": "96x96" }]
     }
   ],
   "related_applications": [],

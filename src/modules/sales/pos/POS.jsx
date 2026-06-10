@@ -13,7 +13,7 @@ import { CONSULTA_PRECIO_DEFAULT, CONSULTA_PARTE_DOCTOR, citaPagoPendiente, labe
 import { puedeCancelarCitaNoShow } from "../../../utils/citasAgenda";
 import { esPedidoTiendaWebPendiente, fetchPedidosTiendaPendientesMerged } from "../../../utils/pedidosTiendaWeb";
 import { desgloseCambioMN, sugerenciasPagoCliente } from "../../../utils/cambioCaja";
-import { marcarMedicamentosRecetaFarmaxSurtidos } from "../../../utils/recetaCitaSync";
+import { marcarMedicamentosRecetaFarmaCapitalSurtidos } from "../../../utils/recetaCitaSync";
 import OnboardingTour from "../../../components/OnboardingTour";
 import { TOURS } from "../../../utils/tours";
 import { labelTipoEntregaPedido, resumenLogisticsMeta } from "../../../utils/orderChannels";
@@ -49,11 +49,11 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     if (window.matchMedia("(max-width: 768px)").matches) return;
     srchRef.current?.focus();
   }, [tab]);
-  const [favs,setFavs]       = useState(()=>{ try{ return JSON.parse(localStorage.getItem("farmax_pos_favs")||"[]"); }catch{ return []; } });
+  const [favs,setFavs]       = useState(()=>{ try{ return JSON.parse(localStorage.getItem("farmacapital_pos_favs")||"[]"); }catch{ return []; } });
   const toggleFav = id => {
     setFavs(p=>{
       const n = p.includes(id)?p.filter(x=>x!==id):[...p,id].slice(0,8);
-      localStorage.setItem("farmax_pos_favs", JSON.stringify(n));
+      localStorage.setItem("farmacapital_pos_favs", JSON.stringify(n));
       return n;
     });
   };
@@ -102,14 +102,14 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const [folioActual,setFolioActual] = useState("VTA-00000000");
   const [promoTicket,setPromoTicket] = useState(null);
   const [loadErr,setLoadErr] = useState("");
-  const [config,setConfig]   = useState({precio_consulta:CONSULTA_PRECIO_DEFAULT,nombre_doctor:"Dra. Lourdes Lucio Falcón",nombre_farmacia:"Farmax",telefono_farmacia:"",direccion_farmacia:"Chinampac de Juárez, Iztapalapa, CDMX"});
+  const [config,setConfig]   = useState({precio_consulta:CONSULTA_PRECIO_DEFAULT,nombre_doctor:"Dra. Lourdes Lucio Falcón",nombre_farmacia:"FarmaCapital",telefono_farmacia:"",direccion_farmacia:"Chinampac de Juárez, Iztapalapa, CDMX"});
 
   useEffect(() => {
     try {
-      const t = sessionStorage.getItem("farmax_pos_initial_tab");
+      const t = sessionStorage.getItem("farmacapital_pos_initial_tab");
       if (t === "consultas" || t === "online" || t === "venta") {
         setTab(t);
-        sessionStorage.removeItem("farmax_pos_initial_tab");
+        sessionStorage.removeItem("farmacapital_pos_initial_tab");
         return;
       }
     } catch (_) { /* noop */ }
@@ -136,7 +136,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   }, []);
 
   const refrescarCitasPOS = useCallback(async () => {
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) {
       setConsCobrar([]);
       return;
@@ -172,7 +172,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
 
   const recargarPedidosOnline = useCallback(async () => {
     try {
-      const tok = sessionStorage.getItem("farmax_session_token");
+      const tok = sessionStorage.getItem("farmacapital_session_token");
       const [pedsRes, histRes] = await Promise.all([
         fetchPedidosTiendaPendientesMerged(supabase, PEDIDOS_TIENDA_SELECT_POS, {
           perBranchLimit: 100,
@@ -215,7 +215,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     }
     const tmr = setTimeout(async () => {
       try {
-        const tok = sessionStorage.getItem("farmax_session_token");
+        const tok = sessionStorage.getItem("farmacapital_session_token");
         if (!tok) {
           setCliSearchItems([]);
           return;
@@ -252,7 +252,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       setLoad(true);
       if (typeof setLoadErr === "function") setLoadErr("");
       try {
-        const tok = sessionStorage.getItem("farmax_session_token");
+        const tok = sessionStorage.getItem("farmacapital_session_token");
         const [prodsRes, pedsRes, histRes] = await Promise.all([
           tok
             ? supabase.rpc("empleado_listar_productos_con_lotes_pos", { p_session_token: tok })
@@ -504,7 +504,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
 
   const abrirCaja = async (item) => {
     if (item.stock <= 0) { showToast("Sin stock de cajas disponibles.", "warning"); return; }
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) { showToast("Sesión expirada.", "error"); return; }
     const { data, error } = await supabase.rpc("abrir_caja_secure", {
       p_session_token: tok,
@@ -634,7 +634,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     }
     setGuard(true);
     try {
-      const tok = sessionStorage.getItem("farmax_session_token");
+      const tok = sessionStorage.getItem("farmacapital_session_token");
       if (!tok) {
         alert("Sesión expirada. Inicia sesión de nuevo.");
         setGuard(false);
@@ -668,8 +668,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         throw new Error("RPC create_sale_transaction_secure devolvió una respuesta inválida");
       }
 
-      const ro = recetaOrigen === "medico_farmax" || recetaOrigen === "medico_externo" ? recetaOrigen : "no_aplica";
-      const tokRo = sessionStorage.getItem("farmax_session_token");
+      const ro = recetaOrigen === "medico_farmacapital" || recetaOrigen === "medico_externo" ? recetaOrigen : "no_aplica";
+      const tokRo = sessionStorage.getItem("farmacapital_session_token");
       if (tokRo) {
         const { error: uErr } = await supabase.rpc("admin_set_receta_origen_pedido", {
           p_session_token: tokRo, p_pedido_id: pedidoId, p_receta_origen: ro,
@@ -677,10 +677,10 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         if (uErr) console.warn("[POS] receta_origen:", uErr);
       }
 
-      if (ro === "medico_farmax") {
+      if (ro === "medico_farmacapital") {
         const fechaSv = new Date().toLocaleDateString("sv-SE");
         try {
-          await marcarMedicamentosRecetaFarmaxSurtidos(supabase, {
+          await marcarMedicamentosRecetaFarmaCapitalSurtidos(supabase, {
             p_session_token: tokRo,
             fechaCitaLocal: fechaSv,
             telefonoCliente: cli?.telefono,
@@ -713,7 +713,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
             });
           }
         });
-        const tokCof = sessionStorage.getItem("farmax_session_token");
+        const tokCof = sessionStorage.getItem("farmacapital_session_token");
         if (tokCof) {
           await supabase.rpc("admin_registrar_bitacora_cofepris", {
             p_session_token: tokCof,
@@ -772,7 +772,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       showToast("Venta registrada correctamente", "success");
       setCart([]); setTel(""); setCli(null);
       setMontoRecibido("");
-      setTimeout(() => printTicket("farmax-ticket"), 500);
+      setTimeout(() => printTicket("farmacapital-ticket"), 500);
     } catch(e) {
       console.error(e);
       const msg = e?.message || e?.details || String(e);
@@ -781,7 +781,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         alert(`Stock insuficiente o no se pudo completar el descuento de inventario.\n\nDetalle: ${msg}`);
         // Sincroniza existencias visibles con BD tras un rechazo por stock.
         try {
-          const tokRf = sessionStorage.getItem("farmax_session_token");
+          const tokRf = sessionStorage.getItem("farmacapital_session_token");
           const { data } = tokRf
             ? await supabase.rpc("empleado_listar_productos_con_lotes_pos", { p_session_token: tokRf })
             : { data: [] };
@@ -805,7 +805,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const cobrar = () => abrirModalRecetaVenta("efectivo");
 
   const confirmarRecetaVentaYContinuar = () => {
-    const ro = recetaOrigenSel === "medico_farmax" || recetaOrigenSel === "medico_externo" ? recetaOrigenSel : "no_aplica";
+    const ro = recetaOrigenSel === "medico_farmacapital" || recetaOrigenSel === "medico_externo" ? recetaOrigenSel : "no_aplica";
     setModalRecetaVenta(false);
     const modo = modalRecetaModo;
     setModalRecetaModo(null);
@@ -826,7 +826,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const surtirOnline = async (pedido) => {
     setGuard(true);
     try {
-      const tok = sessionStorage.getItem("farmax_session_token");
+      const tok = sessionStorage.getItem("farmacapital_session_token");
       if (!tok) { alert("Sesión expirada."); setGuard(false); return; }
       // F6b: marcar_pedido_listo ya descuenta stock FEFO internamente
       const { data: resp, error: rpcErr } = await supabase.rpc("marcar_pedido_listo", {
@@ -845,7 +845,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       // L4: Notificar al cliente por WhatsApp cuando pedido está listo
       const telCli = pedido.clientes?.telefono;
       if(telCli) {
-        const msg = `🏥 *Farmax Farmacia*\n\n✅ ¡Tu pedido #${pedido.id} está listo!\n\nPuedes pasar a recogerlo en:\n📍 Chinampac de Juárez, Iztapalapa, CDMX\n\n¡Te esperamos! 💊`;
+        const msg = `🏥 *FarmaCapital*\n\n✅ ¡Tu pedido #${pedido.id} está listo!\n\nPuedes pasar a recogerlo en:\n📍 Chinampac de Juárez, Iztapalapa, CDMX\n\n¡Te esperamos! 💊`;
         showToast(`Pedido listo. ${telCli?"Puedes notificar al cliente por WhatsApp":""}`, "success");
         // Botón manual para no abrir sin permiso
       }
@@ -858,7 +858,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     if (!window.confirm(`¿Cancelar la cita de ${cita.nombre} (${cita.hora}) y liberar el horario? Solo aplica si pasaron 10 min del inicio sin pago en caja.`)) return;
     setGuard(true);
     try {
-      const tok = sessionStorage.getItem("farmax_session_token");
+      const tok = sessionStorage.getItem("farmacapital_session_token");
       const { data: resp, error } = await supabase.rpc("actualizar_estado_cita", {
         p_session_token: tok, p_cita_id: cita.id, p_estado: "cancelada",
       });
@@ -876,7 +876,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const cobrarConsulta = async (cita, opts = {}) => {
     setGuard(true);
     try {
-      const tok = sessionStorage.getItem("farmax_session_token");
+      const tok = sessionStorage.getItem("farmacapital_session_token");
       if (!tok) throw new Error("Sesión expirada");
       const metodoPago = opts.metodoPago || "efectivo";
       const clienteSel = opts.clienteSel || null;
@@ -921,7 +921,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         cli: clienteSel,
         ptsG: Math.floor(totalFinal / 10),
       });
-      setTimeout(() => printTicket("farmax-ticket"), 500);
+      setTimeout(() => printTicket("farmacapital-ticket"), 500);
     } catch (e) {
       console.error(e);
       alert("No se pudo cobrar la consulta: " + (e?.message || e));
@@ -950,7 +950,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         </div>
         {cli&&<div style={{background:C.purpleDim,border:`1px solid ${C.purple}30`,borderRadius:8,padding:"8px 10px",marginBottom:10}}>
           <div style={{color:C.purple,fontWeight:700,fontSize:12}}>{cli.nombre}</div>
-          <div style={{color:C.textMid,fontSize:10}}>⭐ {cli.puntos||0} puntos Farmax</div>
+          <div style={{color:C.textMid,fontSize:10}}>⭐ {cli.puntos||0} puntos FarmaCapital</div>
         </div>}
         {!cart.length?<div style={{color:C.textMid,fontSize:12,textAlign:"center",padding:"20px 0"}}>Agrega productos</div>:
          cart.map(item=>(
@@ -1106,7 +1106,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   );
 
   return(
-    <div className="farmax-pos-root" style={{
+    <div className="farmacapital-pos-root" style={{
       width:"100%",
       maxWidth:"100%",
       minWidth:0,
@@ -1117,14 +1117,14 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     }}>
       <style>{`
         @media (max-width: 1100px) {
-          .farmax-pos-root { overflow-x: hidden; max-width: 100%; }
+          .farmacapital-pos-root { overflow-x: hidden; max-width: 100%; }
         }
         /* Solo ≤768px: marco alto fijo + scroll de productos (carrito en modal por JS). */
         @media (max-width: 768px) {
-          input.farmax-pos-srch {
+          input.farmacapital-pos-srch {
             font-size: 16px !important;
           }
-          .farmax-pos-venta-grid.farmax-pos-venta-narrow {
+          .farmacapital-pos-venta-grid.farmacapital-pos-venta-narrow {
             display: flex !important;
             flex-direction: column !important;
             align-items: stretch !important;
@@ -1137,7 +1137,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
             max-width: 100% !important;
             box-sizing: border-box !important;
           }
-          .farmax-pos-venta-grid.farmax-pos-venta-narrow .farmax-pos-products-col {
+          .farmacapital-pos-venta-grid.farmacapital-pos-venta-narrow .farmacapital-pos-products-col {
             flex: 1 1 auto !important;
             min-height: auto !important;
             overflow-x: hidden !important;
@@ -1294,16 +1294,16 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       <Modal
         open={modalRecetaVenta}
         onClose={()=>{ setModalRecetaVenta(false); setModalRecetaModo(null); }}
-        title="¿La receta es de un médico de Farmax?"
+        title="¿La receta es de un médico de FarmaCapital?"
         ac={C.blue}
       >
         <div style={{color:C.textMid,fontSize:13,marginBottom:14,lineHeight:1.45}}>
-          Indica si el medicamento surtido corresponde a receta prescrita por algún médico o médica que atiende en el consultorio Farmax. Así medimos ventas ligadas a consultas y estimamos oportunidad cuando el paciente surte fuera.
+          Indica si el medicamento surtido corresponde a receta prescrita por algún médico o médica que atiende en el consultorio FarmaCapital. Así medimos ventas ligadas a consultas y estimamos oportunidad cuando el paciente surte fuera.
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
           {[
             ["no_aplica", "No aplica / venta sin receta de consultorio"],
-            ["medico_farmax", "Sí — receta de doctor(a) de Farmax"],
+            ["medico_farmacapital", "Sí — receta de doctor(a) de FarmaCapital"],
             ["medico_externo", "Receta de otro médico (externo)"],
           ].map(([val, lab])=>(
             <label key={val} style={{display:"flex",alignItems:"flex-start",gap:10,cursor:"pointer",padding:"8px 10px",borderRadius:8,border:`1px solid ${recetaOrigenSel===val?C.blue:C.border}`,background:recetaOrigenSel===val?C.blueDim:C.card}}>
@@ -1377,7 +1377,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       {tab==="venta"&&(
         <>
         <div
-          className={`farmax-pos-venta-grid${isMobilePos ? " farmax-pos-venta-narrow" : ""}`}
+          className={`farmacapital-pos-venta-grid${isMobilePos ? " farmacapital-pos-venta-narrow" : ""}`}
           style={{
           display: isMobilePos ? "flex" : "grid",
           flexDirection: isMobilePos ? "column" : undefined,
@@ -1391,10 +1391,10 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
           width:"100%",
           maxWidth:"100%",
         }}>
-          <div className="farmax-pos-products-col" style={{ minWidth: 0, touchAction: "pan-y" }}>
+          <div className="farmacapital-pos-products-col" style={{ minWidth: 0, touchAction: "pan-y" }}>
             {isMobilePos && (
             <div
-              className="farmax-pos-venta-toolbar"
+              className="farmacapital-pos-venta-toolbar"
               style={{
                 position: "sticky",
                 top: 0,
@@ -1514,7 +1514,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
             </div>
             )}
             <div style={{display:"flex",gap:8,marginBottom:12,alignItems:"center",flexWrap: isNarrow ? "wrap" : "nowrap"}}>
-              <input ref={srchRef} className="farmax-pos-srch" value={srch} onChange={e=>setSrch(e.target.value)}
+              <input ref={srchRef} className="farmacapital-pos-srch" value={srch} onChange={e=>setSrch(e.target.value)}
                 data-tour="pos-buscador"
                 onKeyDown={e=>{
                   if(e.key==="Enter"){
@@ -1569,7 +1569,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                 };
                 const thumb = item.imagen_url || item.imagen_mobile_url || "";
                 return(
-                <Box key={item.id} className="farmax-product-card"
+                <Box key={item.id} className="farmacapital-product-card"
                   onClick={posCardClick}
                   style={{padding:12,opacity:item.stock===0&&(!item.venta_unidad||item.stock_unidades===0)?.5:1}}>
                   {thumb ? (
@@ -1649,8 +1649,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
           {/* Carrito: escritorio = columna; móvil = modal (barra compacta arriba). */}
           {!isMobilePos && cartOpen ? (
           <div
-            id="farmax-pos-cart"
-            className="farmax-pos-cart-col"
+            id="farmacapital-pos-cart"
+            className="farmacapital-pos-cart-col"
             data-tour="pos-carrito"
             style={{
             position: "sticky",
@@ -1668,7 +1668,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         </div>
         {isMobilePos && cartOpen && (
           <div
-            className="farmax-pos-cart-sheet-root"
+            className="farmacapital-pos-cart-sheet-root"
             role="dialog"
             aria-modal="true"
             aria-label="Carrito de venta"
@@ -1698,7 +1698,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
               }}
             />
             <div
-              className="farmax-pos-cart-sheet-panel"
+              className="farmacapital-pos-cart-sheet-panel"
               style={{
                 position: "relative",
                 zIndex: 1,
@@ -1773,7 +1773,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                 </div>
               </div>
               <div
-                id="farmax-pos-cart"
+                id="farmacapital-pos-cart"
                 data-tour="pos-carrito"
                 style={{
                   flex: 1,
@@ -1839,7 +1839,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
               <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                 <Btn onClick={()=>surtirOnline(p)} col={C.green} dis={guardando}>✓ Surtir y marcar listo</Btn>
                 <Btn ol col={C.red} sm onClick={async()=>{
-                  const tok = sessionStorage.getItem("farmax_session_token");
+                  const tok = sessionStorage.getItem("farmacapital_session_token");
                   const { error } = await supabase.rpc("admin_cancelar_pedido", {
                     p_session_token: tok, p_pedido_id: p.id,
                   });

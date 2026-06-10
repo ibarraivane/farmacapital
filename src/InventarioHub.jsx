@@ -16,7 +16,7 @@ const TABS = [
   { id: "lotes",    label: "Lotes PEPS", icon: Tags },
 ];
 
-const STORAGE_KEY = "farmax_inv_tab";
+const STORAGE_KEY = "farmacapital_inv_tab";
 
 export default function InventarioHub({ initialTab }) {
   const C = C_LIGHT;

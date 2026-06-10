@@ -70,7 +70,7 @@ export default function CorteCajaModule({usuario }) {
       if(!rpcErr && rpc?.efectivo_sistema !== undefined) {
         setEfSis(rpc.efectivo_sistema);
       } else {
-        const tok = sessionStorage.getItem("farmax_session_token");
+        const tok = sessionStorage.getItem("farmacapital_session_token");
         const { inicio, fin } = getRango(turno);
         const { data: ej } = tok
           ? await supabase.rpc("empleado_sum_efectivo_pedidos_rango", {
@@ -90,7 +90,7 @@ export default function CorteCajaModule({usuario }) {
 
   const fetchCortes = useCallback(async () => {
     setLoadingHist(true);
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     const rango = getRangoFiltro(filtroFecha);
     const fd = rango ? rango.desde.slice(0, 10) : null;
     const fh = rango ? rango.hasta.slice(0, 10) : null;
@@ -112,7 +112,7 @@ export default function CorteCajaModule({usuario }) {
   // P3.4: Función para verificar si hay turno activo (usada desde POS)
   // Esta función se puede llamar externamente via ref o contexto
   const verificarTurnoActivo = async () => {
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     const hoy = new Date().toLocaleDateString("sv-SE");
     const { data } = tok
       ? await supabase.rpc("empleado_corte_turno_en_fecha", {
@@ -126,7 +126,7 @@ export default function CorteCajaModule({usuario }) {
 
   const guardarCorte = async () => {
     if (!efectivo_declarado) { alert("Ingresa el efectivo declarado"); return; }
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) { alert("Sesión expirada. Inicia sesión de nuevo."); return; }
     // J8: Validar turno duplicado
     const hoy = new Date().toLocaleDateString("sv-SE");
@@ -173,7 +173,7 @@ export default function CorteCajaModule({usuario }) {
 
       <div style={{marginBottom:24}}>
         <h1 style={{margin:0,color:C.text,fontSize:20,fontWeight:800}}>⊞ Corte de Caja</h1>
-        <p style={{margin:"4px 0 0",color:C.textMid,fontSize:12}}>Control de turnos · Farmax</p>
+        <p style={{margin:"4px 0 0",color:C.textMid,fontSize:12}}>Control de turnos · FarmaCapital</p>
       </div>
 
       {/* Tabs */}

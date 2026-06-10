@@ -1,4 +1,4 @@
-Quiero pasar de diagnóstico a remediación real: migrar lecturas directas de tablas sensibles a RPCs en FARMAX.
+Quiero pasar de diagnóstico a remediación real: migrar lecturas directas de tablas sensibles a RPCs en FARMACAPITAL.
 
 CONTEXTO
 Ya se aplicaron políticas RLS estrictas en Supabase.

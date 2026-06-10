@@ -41,7 +41,7 @@ const InstalarPWA      = lazy(()=>import("./InstalarPWA"));
 class ModuleErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { hasError:false, error:null }; }
   static getDerivedStateFromError(error) { return { hasError:true, error }; }
-  componentDidCatch(error, info) { console.error("[Farmax] Error en módulo:", error, info); }
+  componentDidCatch(error, info) { console.error("[FarmaCapital] Error en módulo:", error, info); }
   render() {
     if(this.state.hasError) return(
       <div style={{padding:40,textAlign:"center"}}>
@@ -71,7 +71,7 @@ function ModuleSkeleton() {
   );
 }
 // ═══════════════════════════════════════════════════════════════
-// FARMAX — Sistema Admin v2
+// FARMACAPITAL — Sistema Admin v2
 // Login por perfil · Admin · Vendedor · Doctora
 // Conectado a Supabase + Tienda en línea
 // ═══════════════════════════════════════════════════════════════
@@ -115,8 +115,8 @@ function LoginScreen({onLogin}){
     if(pwd.length < 6) { setError("La contraseña debe tener al menos 6 caracteres."); return; }
     const idNorm = email.trim().toLowerCase();
 
-    const bloqueoKey  = "farmax_login_bloqueo_"+idNorm;
-    const intentosKey = "farmax_login_intentos_"+idNorm;
+    const bloqueoKey  = "farmacapital_login_bloqueo_"+idNorm;
+    const intentosKey = "farmacapital_login_intentos_"+idNorm;
     const bloqueoHasta = localStorage.getItem(bloqueoKey);
     if(bloqueoHasta && Date.now() < parseInt(bloqueoHasta)) {
       const mins = Math.ceil((parseInt(bloqueoHasta)-Date.now())/60000);
@@ -189,9 +189,9 @@ function LoginScreen({onLogin}){
         loginTimestamp: Date.now(),
       };
 
-      sessionStorage.setItem("farmax_session_token", String(resp.session_token));
-      sessionStorage.setItem("farmax_admin_user", JSON.stringify(data));
-      localStorage.setItem("farmax_last_login_"+data.id, new Date().toLocaleString("es-MX"));
+      sessionStorage.setItem("farmacapital_session_token", String(resp.session_token));
+      sessionStorage.setItem("farmacapital_admin_user", JSON.stringify(data));
+      localStorage.setItem("farmacapital_last_login_"+data.id, new Date().toLocaleString("es-MX"));
       onLogin(data);
     } catch(e) {
       setError(
@@ -206,8 +206,8 @@ function LoginScreen({onLogin}){
 
   return(
     <>
-    <style>{`.farmax-login-screen{min-height:100vh;min-height:100dvh}`}</style>
-    <div className="farmax-login-screen" style={{background:"linear-gradient(135deg,#f0f4ff 0%,#f7f9fc 50%,#e8f4fd 100%)",display:"flex",alignItems:"center",justifyContent:"center",padding:"max(clamp(12px,4vw,20px), env(safe-area-inset-top, 0px)) max(clamp(12px,4vw,20px), env(safe-area-inset-right, 0px)) max(clamp(12px,4vw,20px), env(safe-area-inset-bottom, 0px)) max(clamp(12px,4vw,20px), env(safe-area-inset-left, 0px))",boxSizing:"border-box",overflowX:"hidden"}}>
+    <style>{`.farmacapital-login-screen{min-height:100vh;min-height:100dvh}`}</style>
+    <div className="farmacapital-login-screen" style={{background:"linear-gradient(135deg,#f0f4ff 0%,#f7f9fc 50%,#e8f4fd 100%)",display:"flex",alignItems:"center",justifyContent:"center",padding:"max(clamp(12px,4vw,20px), env(safe-area-inset-top, 0px)) max(clamp(12px,4vw,20px), env(safe-area-inset-right, 0px)) max(clamp(12px,4vw,20px), env(safe-area-inset-bottom, 0px)) max(clamp(12px,4vw,20px), env(safe-area-inset-left, 0px))",boxSizing:"border-box",overflowX:"hidden"}}>
       <div style={{width:"100%",maxWidth:400,minWidth:0}}>
         <div style={{textAlign:"center",marginBottom:32}}>
           <div style={{display:"flex",justifyContent:"center",marginBottom:16}}><Logo size={48}/></div>
@@ -281,7 +281,7 @@ function groupAdminNavForRender(navIds) {
   return out;
 }
 
-function farmaxNavLabel(item, usuario) {
+function farmacapitalNavLabel(item, usuario) {
   if (!item) return "";
   if (item.id === "agenda" && usuario?.rol === "vendedor") return "Consultas del día";
   if (item.id === "cons_dr" && usuario?.rol === "doctora") return "Agenda médica";
@@ -349,7 +349,7 @@ function AdminNavSidebar({active,setActive,negocio,setNegocio,usuario,onLogout,a
 
   return(
     <div
-      className="farmax-admin-sidebar"
+      className="farmacapital-admin-sidebar"
       style={{
       width:220,flexShrink:0,background:C.card,borderRight:`1px solid ${C.border}`,
       boxShadow: mobile?"4px 0 24px rgba(0,0,0,.12)":"2px 0 8px rgba(0,0,0,.06)",
@@ -433,7 +433,7 @@ function AdminNavSidebar({active,setActive,negocio,setNegocio,usuario,onLogout,a
                       <n.icon size={16} strokeWidth={2.1} />
                     ) : null}
                   </span>
-                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{farmaxNavLabel(n, usuario)}</span>
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{farmacapitalNavLabel(n, usuario)}</span>
                   <SidebarBadge count={badgeCounts[n.id]} critical={badgeCritical[n.id]} />
                 </button>
               );
@@ -469,7 +469,7 @@ function AdminNavSidebar({active,setActive,negocio,setNegocio,usuario,onLogout,a
                     <n.icon size={16} strokeWidth={2.1} />
                   ) : null}
                 </span>
-                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{farmaxNavLabel(n, usuario)}</span>
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{farmacapitalNavLabel(n, usuario)}</span>
                 <SidebarBadge count={badgeCounts[n.id]} critical={badgeCritical[n.id]} />
               </button>
             );
@@ -519,7 +519,7 @@ function Dashboard({negocio,alertas,setPage}){
             clientes(nombre,telefono),
             pedido_items(cantidad,precio_unitario,productos(nombre,sku))
           `;
-        const adminTok = sessionStorage.getItem("farmax_session_token");
+        const adminTok = sessionStorage.getItem("farmacapital_session_token");
         const [
           pedsRes,
           homeRes,
@@ -645,7 +645,7 @@ function BannersAdmin(){
 
   const guardar = async()=>{
     setSaving(true);
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     const payload = {
       ...form,
       imagen_mobile_url: form.imagen_url_mobile || "",
@@ -668,7 +668,7 @@ function BannersAdmin(){
 
   const eliminar = async(id)=>{
     if(!window.confirm("¿Eliminar este banner?")) return;
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     const { error } = await supabase.rpc("admin_eliminar_banner", {
       p_session_token: tok, p_id: id,
     });
@@ -677,7 +677,7 @@ function BannersAdmin(){
   };
 
   const toggleActivo = async(b)=>{
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     const { error } = await supabase.rpc("admin_toggle_banner", {
       p_session_token: tok, p_id: b.id, p_activo: !b.activo,
     });
@@ -746,7 +746,7 @@ function BannersAdmin(){
                   onRemoved={()=>{
                     setForm((p)=>({...p,imagen_url:""}));
                     if(modal&&modal!=="new"&&modal?.id){
-                      const tok=sessionStorage.getItem("farmax_session_token");
+                      const tok=sessionStorage.getItem("farmacapital_session_token");
                       if(tok){
                         supabase.rpc("admin_upsert_banner",{p_session_token:tok,p_id:modal.id,p_payload:{imagen_url:""}})
                           .then(({error})=>{ if(error)showToast(error.message,"error"); else { showToast("Imagen desktop quitada","info"); fetch(); }});
@@ -773,7 +773,7 @@ function BannersAdmin(){
                   onRemoved={()=>{
                     setForm((p)=>({...p,imagen_url_mobile:""}));
                     if(modal&&modal!=="new"&&modal?.id){
-                      const tok=sessionStorage.getItem("farmax_session_token");
+                      const tok=sessionStorage.getItem("farmacapital_session_token");
                       if(tok){
                         supabase.rpc("admin_upsert_banner",{p_session_token:tok,p_id:modal.id,p_payload:{imagen_url_mobile:"",imagen_mobile_url:""}})
                           .then(({error})=>{ if(error)showToast(error.message,"error"); else { showToast("Imagen mobile quitada","info"); fetch(); }});
@@ -883,7 +883,7 @@ function GestionUsuarios(){
   const [guardandoModulos,setGuardandoModulos] = useState(false);
 
   useEffect(()=>{
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) { setLoad(false); return; }
     supabase.rpc("admin_listar_usuarios", { p_session_token: tok }).then(({ data, error })=>{
       if (error) console.warn("[GestionUsuarios] admin_listar_usuarios:", error.message);
@@ -907,7 +907,7 @@ function GestionUsuarios(){
     }
     setGuard(true); setError("");
     try {
-      const tok = sessionStorage.getItem("farmax_session_token");
+      const tok = sessionStorage.getItem("farmacapital_session_token");
       if (!tok) { setError("Sesión expirada."); setGuard(false); return; }
       const { data: resp, error: err } = await supabase.rpc("admin_crear_usuario", {
         p_session_token: tok,
@@ -928,14 +928,14 @@ function GestionUsuarios(){
       setForm({nombre:"",email:"",telefono:"",password:"",rol:"vendedor",notas:""});
       showToast(`✅ Usuario ${form.nombre} creado correctamente`, "success");
     } catch(e){
-      console.error("[Farmax] Error crear usuario:", e);
+      console.error("[FarmaCapital] Error crear usuario:", e);
       setError("Error al crear usuario: " + e.message);
     }
     setGuard(false);
   };
 
   const toggle = async (id,activo) => {
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     const { error } = await supabase.rpc("admin_toggle_usuario", {
       p_session_token: tok,
       p_target_id: id,
@@ -976,7 +976,7 @@ function GestionUsuarios(){
       const igualAlDefault = seleccionados.length === defaults.length
         && seleccionados.every((id) => defaults.includes(id));
       const payload = igualAlDefault ? null : { activos: seleccionados };
-      const tok = sessionStorage.getItem("farmax_session_token");
+      const tok = sessionStorage.getItem("farmacapital_session_token");
       const { data: modData, error: err } = await supabase.rpc("admin_set_usuario_modulos_custom", {
         p_session_token: tok,
         p_usuario_id: modulosModal.id,
@@ -1027,7 +1027,7 @@ function GestionUsuarios(){
       setGuardandoEdit(false);
       return;
     }
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     const { data, error: err } = await supabase.rpc("admin_actualizar_usuario_datos", {
       p_session_token: tok,
       p_usuario_id: editForm.id,
@@ -1071,7 +1071,7 @@ function GestionUsuarios(){
   };
 
   const cambiarMiPwd = async () => {
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) { showToast("Sesión expirada. Entra de nuevo.", "error"); return; }
     const actual = prompt("Contraseña actual:");
     if (!actual) return;
@@ -1095,7 +1095,7 @@ function GestionUsuarios(){
   const resetPwd = async (u) => {
     const nueva = prompt(`Nueva contraseña para ${u.nombre} (mínimo 6 caracteres):`);
     if (!nueva || nueva.length < 6) { showToast("Contraseña muy corta (mínimo 6 caracteres)","warning"); return; }
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     const { data: resp, error } = await supabase.rpc("admin_reset_password", {
       p_session_token: tok, p_usuario_id: u.id, p_nueva_password: nueva,
     });
@@ -1104,10 +1104,10 @@ function GestionUsuarios(){
   };
 
   const eliminar = async (id,nombre) => {
-    const sesion = JSON.parse(sessionStorage.getItem("farmax_admin_user")||"{}");
+    const sesion = JSON.parse(sessionStorage.getItem("farmacapital_admin_user")||"{}");
     if(sesion.id===id) { showToast("No puedes eliminar tu propio usuario.", "warning"); return; }
     showConfirm("Eliminar usuario",`¿Eliminar al usuario ${nombre}? Esta acción no se puede deshacer.`, async()=>{
-      const tok = sessionStorage.getItem("farmax_session_token");
+      const tok = sessionStorage.getItem("farmacapital_session_token");
       const { data: resp, error } = await supabase.rpc("admin_eliminar_usuario", {
         p_session_token: tok, p_usuario_id: id,
       });
@@ -1423,17 +1423,17 @@ function DevSupabaseEnvBanner() {
   );
 }
 
-export default function FarmaxAdmin(){
+export default function FarmaCapitalAdmin(){
   const C = C_LIGHT;
   const [usuario,setUsuario] = useState(()=>{
     try{
-      const u = sessionStorage.getItem("farmax_admin_user");
+      const u = sessionStorage.getItem("farmacapital_admin_user");
       if (!u) return null;
       const data = JSON.parse(u);
       // Verificar expiración (8 horas)
       if (data.loginTimestamp && Date.now() - data.loginTimestamp > 8*60*60*1000) {
-        sessionStorage.removeItem("farmax_admin_user");
-        sessionStorage.removeItem("farmax_session_token");
+        sessionStorage.removeItem("farmacapital_admin_user");
+        sessionStorage.removeItem("farmacapital_session_token");
         return null;
       }
       return data;
@@ -1451,26 +1451,26 @@ export default function FarmaxAdmin(){
   function applyPosTabHint(posTab) {
     if (!posTab) return;
     try {
-      sessionStorage.setItem("farmax_pos_initial_tab", posTab);
+      sessionStorage.setItem("farmacapital_pos_initial_tab", posTab);
     } catch (_) { /* noop */ }
   }
   const [page, setPage] = useState(() => {
     const fromUrl = adminPathnameToPageId(window.location.pathname);
-    const raw0 = fromUrl || sessionStorage.getItem("farmax_active_page") || "dash";
+    const raw0 = fromUrl || sessionStorage.getItem("farmacapital_active_page") || "dash";
     const { page: p, invTab, posTab } = migratePageId(raw0);
     applyPosTabHint(posTab);
     const pathHint = pathnameSuggestsPosTab(window.location.pathname);
     if (pathHint) applyPosTabHint(pathHint);
     if (invTab) {
       try {
-        sessionStorage.setItem("farmax_inv_tab", invTab);
-        sessionStorage.setItem("farmax_active_page", p);
+        sessionStorage.setItem("farmacapital_inv_tab", invTab);
+        sessionStorage.setItem("farmacapital_active_page", p);
       } catch (_) { /* noop */ }
     }
     return p;
   });
   const [invInitialTab, setInvInitialTab] = useState(() => {
-    try { return sessionStorage.getItem("farmax_inv_tab") || null; } catch { return null; }
+    try { return sessionStorage.getItem("farmacapital_inv_tab") || null; } catch { return null; }
   });
 
   const { counts: badgeCounts, critical: badgeCritical } = useSidebarBadges(usuario ? page : undefined);
@@ -1484,19 +1484,19 @@ export default function FarmaxAdmin(){
     const next = migrated.page;
     const tabHint = opts?.tab ?? migrated.invTab ?? null;
     try {
-      sessionStorage.setItem("farmax_active_page", next);
+      sessionStorage.setItem("farmacapital_active_page", next);
       if (next === "inv" && tabHint) {
-        sessionStorage.setItem("farmax_inv_tab", tabHint);
+        sessionStorage.setItem("farmacapital_inv_tab", tabHint);
         setInvInitialTab(tabHint);
       } else if (next !== "inv") {
-        // Al salir de inv, no borramos farmax_inv_tab — al volver recordará la última tab.
+        // Al salir de inv, no borramos farmacapital_inv_tab — al volver recordará la última tab.
       }
     } catch (_) { /* noop */ }
     setPage(next);
     try {
       const url = pageIdToAdminPath(next);
       if (window.location.pathname !== url) {
-        window.history.pushState({ farmaxPage: next }, "", url);
+        window.history.pushState({ farmacapitalPage: next }, "", url);
       }
     } catch (_) { /* noop */ }
     if (isMobileLayout) setMobileNavOpen(false);
@@ -1519,12 +1519,12 @@ export default function FarmaxAdmin(){
       const pathHint = pathnameSuggestsPosTab(window.location.pathname);
       if (pathHint) applyPosTabHint(pathHint);
       try {
-        sessionStorage.setItem("farmax_active_page", migrated.page);
+        sessionStorage.setItem("farmacapital_active_page", migrated.page);
       } catch (_) { /* noop */ }
       setPage(migrated.page);
       if (migrated.page === "inv" && migrated.invTab) {
         try {
-          sessionStorage.setItem("farmax_inv_tab", migrated.invTab);
+          sessionStorage.setItem("farmacapital_inv_tab", migrated.invTab);
         } catch (_) { /* noop */ }
         setInvInitialTab(migrated.invTab);
       }
@@ -1544,7 +1544,7 @@ export default function FarmaxAdmin(){
     if("serviceWorker" in navigator){
       navigator.serviceWorker.register("/service-worker.js")
         .then(reg=>{
-          console.log("[Farmax] SW registrado:", reg.scope);
+          console.log("[FarmaCapital] SW registrado:", reg.scope);
           // Solicitar permiso de notificaciones
           if("Notification" in window && Notification.permission==="default"){
             setTimeout(()=>{
@@ -1556,7 +1556,7 @@ export default function FarmaxAdmin(){
             }, 3000); // esperar 3s para no interrumpir el login
           }
         })
-        .catch(e=>console.warn("[Farmax] SW error:", e));
+        .catch(e=>console.warn("[FarmaCapital] SW error:", e));
     }
     // Escuchar mensajes del SW (sync complete)
     const handler = e=>{
@@ -1576,7 +1576,7 @@ export default function FarmaxAdmin(){
           type:"SHOW_NOTIFICATION", titulo, cuerpo, url
         });
       } else {
-        new Notification(titulo,{ body:cuerpo, icon:"/icons/farmax-192.png" });
+        new Notification(titulo,{ body:cuerpo, icon:"/icons/farmacapital-192.png" });
       }
     }
   };
@@ -1585,7 +1585,7 @@ export default function FarmaxAdmin(){
   useEffect(()=>{
     if(!usuario || usuario.rol !== "admin") return;
     const checkResets = async() => {
-      const tok = sessionStorage.getItem("farmax_session_token");
+      const tok = sessionStorage.getItem("farmacapital_session_token");
       const { data } = await supabase.rpc("admin_contar_password_resets_pendientes", {
         p_session_token: tok,
       });
@@ -1636,19 +1636,19 @@ export default function FarmaxAdmin(){
   // ── E5: Guard de sesión — verificar expiración cada minuto ──
   useEffect(()=>{
     const check = () => {
-      const u = sessionStorage.getItem("farmax_admin_user");
+      const u = sessionStorage.getItem("farmacapital_admin_user");
       if (!u) return;
       try {
         const data = JSON.parse(u);
         if (data.loginTimestamp && Date.now() - data.loginTimestamp > 8*60*60*1000) {
-          sessionStorage.removeItem("farmax_admin_user");
-          sessionStorage.removeItem("farmax_session_token");
+          sessionStorage.removeItem("farmacapital_admin_user");
+          sessionStorage.removeItem("farmacapital_session_token");
           setUsuario(null);
           showToast("Tu sesión expiró. Por favor inicia sesión de nuevo.", "warning");
         }
       } catch(e) {
-        sessionStorage.removeItem("farmax_admin_user");
-        sessionStorage.removeItem("farmax_session_token");
+        sessionStorage.removeItem("farmacapital_admin_user");
+        sessionStorage.removeItem("farmacapital_session_token");
         setUsuario(null);
       }
     };
@@ -1668,7 +1668,7 @@ export default function FarmaxAdmin(){
 
   useEffect(()=>{
     if(!usuario) return;
-    const ch=supabase.channel("farmax-rt")
+    const ch=supabase.channel("farmacapital-rt")
       .on("postgres_changes",{event:"INSERT",schema:"public",table:"password_reset_requests"},
         payload=>{
           const req = payload.new;
@@ -1702,7 +1702,7 @@ export default function FarmaxAdmin(){
     if(!usuario) return;
     const cargar = async () => {
       const hoy = new Date().toISOString().split("T")[0];
-      const tok = sessionStorage.getItem("farmax_session_token");
+      const tok = sessionStorage.getItem("farmacapital_session_token");
       const { data: snap } = tok
         ? await supabase.rpc("empleado_admin_alertas_snapshot", { p_session_token: tok, p_hoy: hoy })
         : { data: null };
@@ -1737,9 +1737,9 @@ export default function FarmaxAdmin(){
       const pathHint = pathnameSuggestsPosTab(window.location.pathname);
       if (pathHint) applyPosTabHint(pathHint);
       try {
-        sessionStorage.setItem("farmax_active_page", next);
+        sessionStorage.setItem("farmacapital_active_page", next);
         if (next === "inv" && migrated.invTab) {
-          sessionStorage.setItem("farmax_inv_tab", migrated.invTab);
+          sessionStorage.setItem("farmacapital_inv_tab", migrated.invTab);
           setInvInitialTab(migrated.invTab);
         }
       } catch (_) { /* noop */ }
@@ -1747,7 +1747,7 @@ export default function FarmaxAdmin(){
       try {
         const url = pageIdToAdminPath(next);
         if (window.location.pathname !== url) {
-          window.history.replaceState({ farmaxPage: next }, "", url);
+          window.history.replaceState({ farmacapitalPage: next }, "", url);
         }
       } catch (_) { /* noop */ }
       return;
@@ -1764,15 +1764,15 @@ export default function FarmaxAdmin(){
   }, [usuario, page]);
 
   const logout = async () => {
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     if (tok) {
       try { await supabase.rpc("logout_empleado", { p_token: tok }); } catch(e) {}
     }
-    sessionStorage.removeItem("farmax_session_token");
-    sessionStorage.removeItem("farmax_admin_user");
-    localStorage.removeItem("farmax_pos_favs");
-    localStorage.removeItem("farmax_busqs");
-    localStorage.removeItem("farmax_last_login_"+usuario?.id);
+    sessionStorage.removeItem("farmacapital_session_token");
+    sessionStorage.removeItem("farmacapital_admin_user");
+    localStorage.removeItem("farmacapital_pos_favs");
+    localStorage.removeItem("farmacapital_busqs");
+    localStorage.removeItem("farmacapital_last_login_"+usuario?.id);
     setUsuario(null);
     showToast("Sesión cerrada correctamente","info");
   };
@@ -1781,7 +1781,7 @@ export default function FarmaxAdmin(){
     return (
       <>
         <DevSupabaseEnvBanner />
-        <LoginScreen onLogin={u=>{ sessionStorage.setItem("farmax_admin_user",JSON.stringify(u)); setUsuario(u); }}/>
+        <LoginScreen onLogin={u=>{ sessionStorage.setItem("farmacapital_admin_user",JSON.stringify(u)); setUsuario(u); }}/>
       </>
     );
   }
@@ -1855,7 +1855,7 @@ export default function FarmaxAdmin(){
       onConfirm={()=>{ confirmDlg.onConfirm?.(); setConfirmDlg(p=>({...p,open:false})); }}
       onCancel={()=>setConfirmDlg(p=>({...p,open:false}))}
     />
-    <div className="farmax-admin-root" style={{background:C.bg,fontFamily:"'Plus Jakarta Sans',sans-serif",transition:"background .3s,color .3s",color:C.text,overflowX:"hidden",touchAction:"pan-y"}}>
+    <div className="farmacapital-admin-root" style={{background:C.bg,fontFamily:"'Plus Jakarta Sans',sans-serif",transition:"background .3s,color .3s",color:C.text,overflowX:"hidden",touchAction:"pan-y"}}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
 html,body,#root{height:100%;-webkit-text-size-adjust:100%;text-size-adjust:100%}
@@ -1865,14 +1865,14 @@ body{
   touch-action:pan-y;
   overscroll-behavior-y:auto;
 }
-.farmax-admin-root{min-height:100vh;min-height:100dvh}
-.farmax-admin-main{
+.farmacapital-admin-root{min-height:100vh;min-height:100dvh}
+.farmacapital-admin-main{
   min-height:100vh;min-height:100dvh;box-sizing:border-box;
   overflow-wrap:break-word;word-wrap:break-word;
   touch-action:pan-y;
   -webkit-overflow-scrolling:touch;
 }
-.farmax-admin-sidebar{
+.farmacapital-admin-sidebar{
   box-sizing:border-box;
   height:100vh;
   max-height:100dvh;
@@ -1882,8 +1882,8 @@ body{
 }
 @media (max-width: 1100px){
   /* Fase 3: evitar shell rígido en móvil (viewport manda). */
-  .farmax-admin-root,
-  .farmax-admin-main{
+  .farmacapital-admin-root,
+  .farmacapital-admin-main{
     height:auto !important;
     max-height:none !important;
     overflow-y:visible !important;
@@ -1934,7 +1934,7 @@ body{
         badgeCounts={badgeCounts}
         badgeCritical={badgeCritical}
       />
-      <main className="farmax-admin-main" style={{
+      <main className="farmacapital-admin-main" style={{
         marginLeft:isMobileLayout?0:220,
         padding:isMobileLayout
           ? "calc(56px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) calc(20px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px))"

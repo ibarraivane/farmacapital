@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-// FARMAX — Sistema de Folios Secuenciales
+// FARMACAPITAL — Sistema de Folios Secuenciales
 // Formato: VTA-00000001 (sin duplicados, atómico)
 // ═══════════════════════════════════════════════════════════
 import { supabase } from "../supabase";
@@ -19,7 +19,7 @@ export async function getSiguienteFolio(tipo = "ventas") {
     if (error) throw error;
     return data; // "VTA-00000001"
   } catch(e) {
-    console.error("[Farmax] Error generando folio:", e);
+    console.error("[FarmaCapital] Error generando folio:", e);
     // Fallback: usar timestamp si falla la DB
     return `VTA-${Date.now()}`;
   }

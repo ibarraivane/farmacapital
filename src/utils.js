@@ -1,4 +1,4 @@
-// FARMAX — Utilidades globales
+// FARMACAPITAL — Utilidades globales
 import { supabase } from "./supabase";
 import { C } from "./constants";
 
@@ -112,7 +112,7 @@ export const generateSalt = () => {
 // Hash con salt único por usuario (P1.4)
 export const hashPwd = async (pwd, salt=null) => {
   // Si no hay salt, usar el estático como fallback (compatibilidad)
-  const s = salt || "farmax_2026_salt";
+  const s = salt || "farmacapital_2026_salt";
   const salted = s + pwd + s.length;
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(salted));
   return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
@@ -130,13 +130,13 @@ export const hashPwdLegacy = async pwd => {
 
 /** Token de sesión de empleado (null si no hay sesión admin). */
 export const getSessionToken = () => {
-  try { return sessionStorage.getItem("farmax_session_token") || null; }
+  try { return sessionStorage.getItem("farmacapital_session_token") || null; }
   catch { return null; }
 };
 
 /** Token de sesión de cliente (tienda pública). */
 export const getClienteToken = () => {
-  try { return sessionStorage.getItem("farmax_cliente_token") || null; }
+  try { return sessionStorage.getItem("farmacapital_cliente_token") || null; }
   catch { return null; }
 };
 
@@ -184,7 +184,7 @@ export const logAudit = async (usuario, accion, tabla = "", registro_id = "", de
   if (process.env.NODE_ENV === "development" && !logAuditLegacyWarned) {
     logAuditLegacyWarned = true;
     console.warn(
-      "[Farmax] logAudit() está neutralizado en el navegador. " +
+      "[FarmaCapital] logAudit() está neutralizado en el navegador. " +
         "La fuente de verdad de auditoría es server-side (triggers, RPC, tablas protegidas por RLS)."
     );
   }
@@ -212,7 +212,7 @@ export const logMovimiento = async (
   if (process.env.NODE_ENV === "development" && !logMovimientoLegacyWarned) {
     logMovimientoLegacyWarned = true;
     console.warn(
-      "[Farmax] logMovimiento() está neutralizado en el navegador. " +
+      "[FarmaCapital] logMovimiento() está neutralizado en el navegador. " +
         "Los movimientos de inventario se generan en el servidor vía RPC."
     );
   }

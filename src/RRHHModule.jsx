@@ -71,7 +71,7 @@ export default function RRHHModule() {
     setLoadCom(true);
     const dias = periCom==="dia"?1:periCom==="semana"?7:30;
     const desde = new Date(Date.now()-dias*86400000).toISOString();
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     const { data } = tok
       ? await supabase.rpc("empleado_rrhh_comisiones_pedidos", {
           p_session_token: tok,
@@ -99,7 +99,7 @@ export default function RRHHModule() {
 
   const fetchEmpleados = async () => {
     setLoading(true);
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     const { data, error } = await supabase.rpc("admin_listar_empleados", { p_session_token: tok });
     if (!error && data) {
       setEmpleados(data);
@@ -115,7 +115,7 @@ export default function RRHHModule() {
   useEffect(() => { fetchEmpleados(); }, []);
 
   const toggleEstado = async (emp) => {
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     const { error } = await supabase.rpc("admin_toggle_empleado", {
       p_session_token: tok, p_empleado_id: emp.id, p_estado: !emp.estado,
     });
@@ -125,7 +125,7 @@ export default function RRHHModule() {
 
   const deleteEmp = async (id) => {
     if (!window.confirm('¿Eliminar este empleado? Esta acción no se puede deshacer.')) return;
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     const { error } = await supabase.rpc("admin_eliminar_empleado", {
       p_session_token: tok, p_empleado_id: id,
     });
@@ -136,7 +136,7 @@ export default function RRHHModule() {
   const handleFormSubmit = async (e) => {
     e.preventDefault(); setFormMsg(null);
     if (!form.nombre.trim()) { setFormMsg({ ok:false, text:'El nombre es obligatorio.' }); return; }
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) { setFormMsg({ ok:false, text:'Sesión expirada.' }); return; }
     const { error } = await supabase.rpc("admin_crear_empleado", {
       p_session_token: tok,
@@ -163,7 +163,7 @@ export default function RRHHModule() {
   const guardarNomina = async () => {
     if (!selEmp) { setNominaMsg({ ok:false, text:'Selecciona un empleado.' }); return; }
     const { inicio, fin } = getQuincena();
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) { setNominaMsg({ ok:false, text:'Sesión expirada.' }); return; }
     const { error } = await supabase.rpc("registrar_nomina", {
       p_session_token: tok,
@@ -190,7 +190,7 @@ export default function RRHHModule() {
     const L = '─'.repeat(44);
     const txt = [
       '╔══════════════════════════════════════════╗',
-      '║         FARMAX — NÓMINA QUINCENAL        ║',
+      '║         FARMACAPITAL — NÓMINA QUINCENAL        ║',
       '╚══════════════════════════════════════════╝',
       '', `Empleado : ${selEmp.nombre}`, `Rol      : ${selEmp.rol}`,
       `Turno    : ${selEmp.turno}`, `Periodo  : ${inicio}  →  ${fin}`, '',
@@ -206,7 +206,7 @@ export default function RRHHModule() {
       `  TOTAL DEDUCCIONES     : ${fmt(deducciones)}`, '',
       L, `  NETO A PAGAR          : ${fmt(neto)}`, L, '',
       `Generado: ${new Date().toLocaleString('es-MX')}`,
-      'Farmax Farmacia · Chinampac de Juárez · CDMX',
+      'FarmaCapital · Chinampac de Juárez · CDMX',
     ].join('\n');
     const blob = new Blob([txt], { type:'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -221,7 +221,7 @@ export default function RRHHModule() {
     <div style={S.wrap}>
       <div style={{ marginBottom:24 }}>
         <h1 style={{ fontSize:22, fontWeight:800, color:C.text, margin:0 }}>◑ Recursos Humanos</h1>
-        <p style={{ color:C.textMid, margin:'4px 0 0', fontSize:13 }}>Empleados · Horarios · Nómina quincenal — Farmax</p>
+        <p style={{ color:C.textMid, margin:'4px 0 0', fontSize:13 }}>Empleados · Horarios · Nómina quincenal — FarmaCapital</p>
       </div>
 
       {/* LISTA EMPLEADOS */}

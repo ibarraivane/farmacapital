@@ -124,7 +124,7 @@ if (lines.length === 0) {
 
 // eslint-disable-next-line no-console
 console.error(`
-[Farmax] Tenés REACT_APP_SUPABASE_* en el archivo .env pero el dev server no las está usando.
+[FarmaCapital] Tenés REACT_APP_SUPABASE_* en el archivo .env pero el dev server no las está usando.
 ${lines.join("\n")}
 
 En macOS/Linux, probá en la misma terminal:

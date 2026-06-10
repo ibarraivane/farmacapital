@@ -1,4 +1,4 @@
-Quiero que corrijas el problema de scroll móvil de FARMAX con base en hallazgos reales del repo. No quiero una revisión superficial. Quiero atacar el patrón técnico que está causando que el scroll se atore en varias pantallas.
+Quiero que corrijas el problema de scroll móvil de FARMACAPITAL con base en hallazgos reales del repo. No quiero una revisión superficial. Quiero atacar el patrón técnico que está causando que el scroll se atore en varias pantallas.
 
 HALLAZGOS REALES DEL REPO
 Se detectaron múltiples pantallas con este patrón problemático:
@@ -11,7 +11,7 @@ ARCHIVOS SOSPECHOSOS PRINCIPALES
 
 1. src/Admin.jsx
 Hallazgos:
-- .farmax-admin-root con min-height:100vh / 100dvh
+- .farmacapital-admin-root con min-height:100vh / 100dvh
 - layout con height:100vh / 100dvh y max-height
 - sidebar / zonas internas con overflowY:auto
 

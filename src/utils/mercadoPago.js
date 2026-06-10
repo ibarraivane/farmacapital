@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-// FARMAX — Mercado Pago Point Smart 2
+// FARMACAPITAL — Mercado Pago Point Smart 2
 // Integración con terminal de pago física
 // Documentación: https://www.mercadopago.com.mx/developers
 // ═══════════════════════════════════════════════════════════
@@ -63,7 +63,7 @@ export async function crearIntenciónDePago({ amount, description, externalRefer
 
   const payload = {
     amount,
-    description: description || "Venta Farmax",
+    description: description || "Venta FarmaCapital",
     payment: {
       installments:        1,
       installments_cost:   "seller",

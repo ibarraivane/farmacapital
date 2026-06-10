@@ -16,7 +16,7 @@ const ALERTAS_DEFAULT = [
   { nombre:"Aviso de funcionamiento COFEPRIS", descripcion:"Aviso de funcionamiento farmacia" },
   { nombre:"Licencia sanitaria", descripcion:"Licencia sanitaria del establecimiento" },
   { nombre:"ALFA médico - Dra. Lourdes Lucio Falcón", descripcion:"Certificación médica responsable sanitario" },
-  { nombre:"Registro de marca Farmax (IMPI)", descripcion:"IMPI - clase 44" },
+  { nombre:"Registro de marca FarmaCapital (IMPI)", descripcion:"IMPI - clase 44" },
   { nombre:"Alta SAT / RFC", descripcion:"Régimen fiscal activo" },
 ];
 
@@ -60,7 +60,7 @@ function AlertasLegales() {
 
   const fetchAlertas = useCallback(async () => {
     setLoading(true);
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) {
       setAlertas([]);
       setLoading(false);
@@ -91,7 +91,7 @@ function AlertasLegales() {
   const actualizarFecha = async (id) => {
     if (!editFecha) return;
     setSaving(true);
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     await supabase.rpc("admin_actualizar_alerta_legal", {
       p_session_token:     tok,
       p_id:                id,
@@ -151,7 +151,7 @@ function BitacoraAntibioticos() {
 
   const fetchRegistros = useCallback(async () => {
     setLoading(true);
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     const rango = getRangoFecha(filtroFecha);
     const { data, error } = tok
       ? await supabase.rpc("empleado_listar_bitacora_cofepris", {
@@ -241,7 +241,7 @@ function Controlados() {
 
   const fetchControlados = useCallback(async () => {
     setLoading(true);
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     const { data, error } = tok
       ? await supabase.rpc("empleado_listar_bitacora_cofepris", {
           p_session_token: tok,
@@ -327,7 +327,7 @@ export default function COFEPRISModule() {
     <div style={{padding:24,background:C.bg,minHeight:"100dvh",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
       <div style={{marginBottom:20}}>
         <h1 style={{margin:0,color:C.text,fontSize:20,fontWeight:800}}>⚕ COFEPRIS</h1>
-        <p style={{margin:"4px 0 0",color:C.textMid,fontSize:12}}>Cumplimiento regulatorio · Farmax</p>
+        <p style={{margin:"4px 0 0",color:C.textMid,fontSize:12}}>Cumplimiento regulatorio · FarmaCapital</p>
       </div>
       <div style={{display:"flex",gap:4,marginBottom:24,borderBottom:`1px solid ${C.border}`}}>
         {TABS.map(([id,label])=>(

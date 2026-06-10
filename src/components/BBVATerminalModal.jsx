@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 
 /**
- * FARMAX — Modal de pago con terminal BBVA (confirmación manual)
+ * FARMACAPITAL — Modal de pago con terminal BBVA (confirmación manual)
  *
  * Las terminales BBVA no exponen una API de integración pública,
  * por lo que el flujo es: el cajero procesa la tarjeta en el dispositivo

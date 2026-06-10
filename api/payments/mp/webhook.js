@@ -48,7 +48,7 @@ module.exports = async function handler(req, res) {
     }
 
     const externalRef = String(payment?.external_reference || '');
-    const m = externalRef.match(/FARMAX-PED-(\d+)/);
+    const m = externalRef.match(/FARMACAPITAL-PED-(\d+)/);
     const pedidoId = m ? Number(m[1]) : null;
     if (!pedidoId) return res.status(200).json({ ok: true, ignored: true, reason: 'no_pedido_reference' });
 

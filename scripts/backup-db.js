@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /* eslint-disable */
 /**
- * FARMAX — Backup end-to-end de PostgreSQL (Supabase)
+ * FARMACAPITAL — Backup end-to-end de PostgreSQL (Supabase)
  *
  * Flujo completo:
  *   1. Ejecuta pg_dump --format=custom de la base Supabase
@@ -28,7 +28,7 @@
  *
  *   BACKUP_GITHUB_REPO
  *       "owner/repo" del repo privado de backups.
- *       Ejemplo: "ibarra/farmax-backups"
+ *       Ejemplo: "ibarra/farmacapital-backups"
  *
  *   BACKUP_GITHUB_TOKEN
  *       PAT fine-grained con Contents: Read and write
@@ -41,12 +41,12 @@
  *   BACKUP_MAX_SIZE_MB      (default: 500)
  *   BACKUP_MIN_SIZE_KB      (default: 10)
  *   BACKUP_TIMEOUT_SEC      (default: 900)  timeout para pg_dump
- *   BACKUP_FILENAME         (default: farmax-backup-YYYY-MM-DD.backup)
+ *   BACKUP_FILENAME         (default: farmacapital-backup-YYYY-MM-DD.backup)
  *   BACKUP_SUBDIR           (default: backups)  carpeta dentro del repo
  *   BACKUP_RETENTION_DAYS   (default: 30)  borrar más viejos que esto; 0 desactiva
  *   BACKUP_SKIP_GIT         (default: false)  si true, solo hace el dump
- *   BACKUP_COMMIT_EMAIL     (default: backup-bot@farmax.local)
- *   BACKUP_COMMIT_NAME      (default: farmax-backup-bot)
+ *   BACKUP_COMMIT_EMAIL     (default: backup-bot@farmacapital.local)
+ *   BACKUP_COMMIT_NAME      (default: farmacapital-backup-bot)
  *
  * ============================================================
  * Exit codes:
@@ -158,7 +158,7 @@ function todayIso() {
 function resolveFilename() {
   const custom = process.env.BACKUP_FILENAME;
   if (custom && custom.trim()) return custom.trim();
-  return `farmax-backup-${todayIso()}.backup`;
+  return `farmacapital-backup-${todayIso()}.backup`;
 }
 
 function ensureDir(dir) {
@@ -321,8 +321,8 @@ function cloneBackupRepo({ repo, token, workdir }) {
   log(`Clonando ${repo} (shallow)…`);
 
   runGit(['clone', '--depth=1', '--quiet', remote, workdir]);
-  runGit(['config', 'user.email', process.env.BACKUP_COMMIT_EMAIL || 'backup-bot@farmax.local'], workdir);
-  runGit(['config', 'user.name', process.env.BACKUP_COMMIT_NAME || 'farmax-backup-bot'], workdir);
+  runGit(['config', 'user.email', process.env.BACKUP_COMMIT_EMAIL || 'backup-bot@farmacapital.local'], workdir);
+  runGit(['config', 'user.name', process.env.BACKUP_COMMIT_NAME || 'farmacapital-backup-bot'], workdir);
   // Nunca loguear credenciales en la salida de git
   runGit(['config', 'credential.helper', ''], workdir);
 }
@@ -358,7 +358,7 @@ function rotateOldBackups({ workdir, subdir, retentionDays }) {
 
   const now = Date.now();
   const cutoff = now - retentionDays * 86400 * 1000;
-  const files = fs.readdirSync(dir).filter((f) => /^farmax-backup-\d{4}-\d{2}-\d{2}\.backup$/.test(f));
+  const files = fs.readdirSync(dir).filter((f) => /^farmacapital-backup-\d{4}-\d{2}-\d{2}\.backup$/.test(f));
   const toDelete = [];
   for (const f of files) {
     const full = path.join(dir, f);
@@ -413,7 +413,7 @@ async function main() {
   ensureDir(outputDir);
   const outPath = path.join(outputDir, filename);
 
-  log('=== FARMAX DB BACKUP ===');
+  log('=== FARMACAPITAL DB BACKUP ===');
   log(`Archivo destino: ${outPath}`);
   log(`Formato: custom (pg_restore)`);
   log(`Timeout pg_dump: ${timeoutSec}s`);
@@ -446,7 +446,7 @@ async function main() {
 
   // -------- 3. Git clone + copy + commit + push --------
   log('--- Paso 3/3: git clone + commit + push ---');
-  const workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'farmax-backup-repo-'));
+  const workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'farmacapital-backup-repo-'));
   let committed = false;
   let rotated = 0;
   try {

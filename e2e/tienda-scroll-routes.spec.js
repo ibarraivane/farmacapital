@@ -28,7 +28,7 @@ test.describe("tienda — scroll al cambiar de página", () => {
     await page.waitForTimeout(200);
     top = await page.evaluate(() => window.scrollY);
     expect(top, "registro debe abrir con scroll arriba").toBeLessThan(120);
-    await expect(page.getByRole("heading", { name: /Crear cuenta Farmax/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Crear cuenta FarmaCapital/i })).toBeVisible();
   });
 
   test("escritorio: carrito deja la vista arriba", async ({ page }) => {

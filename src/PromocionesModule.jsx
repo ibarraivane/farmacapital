@@ -73,7 +73,7 @@ function PromoModal({initial, productos, onClose, onSaved }) {
         fecha_fin: form.fecha_fin||null,
         activa: form.activa,
       };
-      const tok = sessionStorage.getItem("farmax_session_token");
+      const tok = sessionStorage.getItem("farmacapital_session_token");
       const { error: rpcErr } = await supabase.rpc("admin_upsert_promocion", {
         p_session_token: tok,
         p_id:            initial?.id || null,
@@ -174,7 +174,7 @@ function Promociones({ productos }) {
   useEffect(() => { fetch(); }, [fetch]);
 
   const toggle = async (p) => {
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     const { error } = await supabase.rpc("admin_toggle_promocion", {
       p_session_token: tok, p_id: p.id, p_activa: !p.activa,
     });
@@ -184,7 +184,7 @@ function Promociones({ productos }) {
 
   const eliminar = async (p) => {
     if (!window.confirm(`¿Eliminar la promoción "${p.nombre}"?`)) return;
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     const { error } = await supabase.rpc("admin_eliminar_promocion", {
       p_session_token: tok, p_id: p.id,
     });
@@ -268,7 +268,7 @@ function CompetidoresPrecios({ productos, onReload }) {
 
   const guardar = async (id) => {
     setSaving(true);
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     const { error } = await supabase.rpc("admin_editar_producto", {
       p_session_token: tok,
       p_producto_id:   id,
@@ -288,9 +288,9 @@ function CompetidoresPrecios({ productos, onReload }) {
   const masCaro    = fil.filter(p=>(p.precio_similares&&p.precio>p.precio_similares)||(p.precio_del_ahorro&&p.precio>p.precio_del_ahorro)).length;
   const sinDatos   = fil.filter(p=>!p.precio_similares&&!p.precio_del_ahorro).length;
 
-  const diffColor = (farmax, comp) => {
+  const diffColor = (farmacapital, comp) => {
     if (!comp) return null;
-    return farmax < comp ? C.green : farmax > comp ? C.red : C.amber;
+    return farmacapital < comp ? C.green : farmacapital > comp ? C.red : C.amber;
   };
 
   return (
@@ -309,7 +309,7 @@ function CompetidoresPrecios({ productos, onReload }) {
         <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
           <thead>
             <tr style={{background:C.cardDark}}>
-              {["Producto","Precio Farmax","Similares","Dif. Similares","Del Ahorro","Dif. Del Ahorro","Actualizado","Acciones"].map(h=>(
+              {["Producto","Precio FarmaCapital","Similares","Dif. Similares","Del Ahorro","Dif. Del Ahorro","Actualizado","Acciones"].map(h=>(
                 <th key={h} style={{padding:"9px 12px",textAlign:"left",color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>{h}</th>
               ))}
             </tr>

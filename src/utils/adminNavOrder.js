@@ -36,7 +36,7 @@ export function mergeAdminNavOrder(saved) {
 export function loadAdminNavOrder(usuario) {
   if (!usuario?.id) return mergeAdminNavOrder(null);
   try {
-    const key = `farmax_admin_nav_order_${String(usuario.id)}`;
+    const key = `farmacapital_admin_nav_order_${String(usuario.id)}`;
     const raw = localStorage.getItem(key);
     if (!raw) return mergeAdminNavOrder(null);
     return mergeAdminNavOrder(JSON.parse(raw));
@@ -48,7 +48,7 @@ export function loadAdminNavOrder(usuario) {
 export function saveAdminNavOrder(usuario, order) {
   if (!usuario?.id || !Array.isArray(order)) return;
   try {
-    const key = `farmax_admin_nav_order_${String(usuario.id)}`;
+    const key = `farmacapital_admin_nav_order_${String(usuario.id)}`;
     localStorage.setItem(key, JSON.stringify(order));
   } catch (_) { /* quota / private mode */ }
 }
@@ -56,7 +56,7 @@ export function saveAdminNavOrder(usuario, order) {
 export function clearAdminNavOrder(usuario) {
   if (!usuario?.id) return;
   try {
-    localStorage.removeItem(`farmax_admin_nav_order_${String(usuario.id)}`);
+    localStorage.removeItem(`farmacapital_admin_nav_order_${String(usuario.id)}`);
   } catch (_) { /* noop */ }
 }
 

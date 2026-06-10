@@ -4,7 +4,7 @@ import { useMediaQuery } from "./hooks/useMediaQuery";
 
 const BRAND = { primary:"#0052cc", secondary:"#0099e6", gradient:"linear-gradient(135deg,#0052cc,#0099e6)" };
 
-const SYSTEM_PROMPT = "Eres el asistente de administración de Farmax, una farmacia independiente en Chinampac de Juárez, Iztapalapa, CDMX. Tienes experiencia en: gestión de inventario farmacéutico, regulaciones COFEPRIS México, proveedores mayoristas mexicanos (Nadro, Marzam, Casa Saba, Fármacos Nacionales), precios de competidores (Farmacias Similares, Del Ahorro), y gestión de farmacias independientes. Puedes ayudar con: alertas de reabastecimiento, comparación de precios de mercado, sugerencias de productos para agregar al catálogo, dudas sobre COFEPRIS, redacción de indicaciones para medicamentos, y análisis del negocio. Responde siempre en español, de forma concisa y práctica.";
+const SYSTEM_PROMPT = "Eres el asistente de administración de FarmaCapital, una farmacia independiente en Chinampac de Juárez, Iztapalapa, CDMX. Tienes experiencia en: gestión de inventario farmacéutico, regulaciones COFEPRIS México, proveedores mayoristas mexicanos (Nadro, Marzam, Casa Saba, Fármacos Nacionales), precios de competidores (Farmacias Similares, Del Ahorro), y gestión de farmacias independientes. Puedes ayudar con: alertas de reabastecimiento, comparación de precios de mercado, sugerencias de productos para agregar al catálogo, dudas sobre COFEPRIS, redacción de indicaciones para medicamentos, y análisis del negocio. Responde siempre en español, de forma concisa y práctica.";
 
 const CHIPS = [
   "¿Qué productos debo reordenar esta semana?",
@@ -63,7 +63,7 @@ export default function AsistenteIA() {
       );
       const data = await res.json();
       if(data?.error) {
-        console.error("[Farmax IA] Error Gemini:", data.error);
+        console.error("[FarmaCapital IA] Error Gemini:", data.error);
         const reply = data.error.code===429
           ? "⚠️ Límite de uso alcanzado. Intenta en unos minutos."
           : data.error.code===401
@@ -115,7 +115,7 @@ export default function AsistenteIA() {
     }}>
       <div style={{padding:"16px 24px",borderBottom:`1px solid ${C.border}`,background:C.card,display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0,gap:12}}>
         <div style={{minWidth:0}}>
-          <h1 style={{margin:0,color:C.text,fontSize:18,fontWeight:800}}>✦ Asistente Farmax</h1>
+          <h1 style={{margin:0,color:C.text,fontSize:18,fontWeight:800}}>✦ Asistente FarmaCapital</h1>
           <p style={{margin:"2px 0 0",color:C.textMid,fontSize:11}}>Gemini · Especialista en farmacia</p>
         </div>
         {messages.length>0&&(

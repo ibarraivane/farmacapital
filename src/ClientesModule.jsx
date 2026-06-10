@@ -48,7 +48,7 @@ function AgregarCliente({ onSaved, onCancel }) {
     else if (!telefonoMxValido(form.telefono)) e.telefono = "Mínimo 10 dígitos";
     if (Object.keys(e).length) { setErrors(e); return; }
     setSaving(true);
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) { setSaving(false); showToast("Sesión expirada.","error"); return; }
     const { data: resp, error } = await supabase.rpc("admin_crear_cliente_manual", {
       p_session_token: tok,
@@ -94,7 +94,7 @@ function AgregarCliente({ onSaved, onCancel }) {
 
 function adminSesionEsRolAdmin() {
   try {
-    const u = JSON.parse(sessionStorage.getItem("farmax_admin_user") || "{}");
+    const u = JSON.parse(sessionStorage.getItem("farmacapital_admin_user") || "{}");
     return u.rol === "admin";
   } catch (_) {
     return false;
@@ -118,7 +118,7 @@ function ClienteDetalle({ cliente, onReload }) {
 
   const fetchDetalle = useCallback(async () => {
     setLoading(true);
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     const tel = String(cliente.telefono || "").trim();
     const { data: blob } = tok
       ? await supabase.rpc("empleado_cliente_detalle_historial", {
@@ -148,7 +148,7 @@ function ClienteDetalle({ cliente, onReload }) {
   const aplicarAjuste = async () => {
     if (!ajuste || !motivo.trim()) { setMsg("⚠ Ingresa cantidad y motivo"); return; }
     setSaving(true);
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     const { data: resp, error } = await supabase.rpc("admin_ajustar_puntos", {
       p_session_token: tok,
       p_cliente_id:    cliente.id,
@@ -163,7 +163,7 @@ function ClienteDetalle({ cliente, onReload }) {
 
   const guardarNota = async () => {
     setSaving(true);
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     const { data: resp, error } = await supabase.rpc("admin_ajustar_nota_cliente", {
       p_session_token: tok,
       p_cliente_id:    cliente.id,
@@ -179,7 +179,7 @@ function ClienteDetalle({ cliente, onReload }) {
     if (nueva == null) return;
     if (String(nueva).length < 6) { setMsg("⚠ La contraseña debe tener al menos 6 caracteres"); return; }
     setSaving(true);
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     const { data: resp, error } = await supabase.rpc("admin_asignar_password_cliente", {
       p_session_token: tok,
       p_cliente_id: cliente.id,
@@ -376,7 +376,7 @@ export default function ClientesModule() {
 
   const fetchClientes = useCallback(async () => {
     setLoading(true);
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) {
       showToast("Sesión expirada. Entra de nuevo al admin para ver clientes.", "error");
       setClientes([]);
@@ -400,7 +400,7 @@ export default function ClientesModule() {
   const reloadSel = async () => {
     await fetchClientes();
     if (clienteSel) {
-      const tok = sessionStorage.getItem("farmax_session_token");
+      const tok = sessionStorage.getItem("farmacapital_session_token");
       const { data } = await supabase.rpc("admin_obtener_cliente", {
         p_session_token: tok, p_cliente_id: clienteSel.id,
       });

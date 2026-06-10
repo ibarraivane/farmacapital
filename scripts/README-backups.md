@@ -1,4 +1,4 @@
-# FARMAX — Backups automáticos + Health check
+# FARMACAPITAL — Backups automáticos + Health check
 
 Sistema de respaldo automático de la base de datos Supabase, con:
 
@@ -11,13 +11,13 @@ Sistema de respaldo automático de la base de datos Supabase, con:
 ```
 Vercel Cron (0 6 * * *)
    └─> /api/backup.js  (valida CRON_SECRET)
-         └─> POST https://api.github.com/repos/OWNER/farmax/dispatches
+         └─> POST https://api.github.com/repos/OWNER/farmacapital/dispatches
                └─> .github/workflows/backup.yml  (runner ubuntu-latest)
                      └─> node scripts/backup-db.js
                            ├─> pg_dump --format=custom (con timeout 15min)
                            ├─> validación tamaño (min 10KB, max 500MB)
-                           ├─> git clone farmax-backups (shallow, con token HTTPS)
-                           ├─> copy /tmp/backups/farmax-backup-YYYY-MM-DD.backup → backups/
+                           ├─> git clone farmacapital-backups (shallow, con token HTTPS)
+                           ├─> copy /tmp/backups/farmacapital-backup-YYYY-MM-DD.backup → backups/
                            ├─> git add + commit + push
                            ├─> rotación (borra > 30 días)
                            └─> (opcional) scripts/upload-r2.js  [stub]
@@ -56,7 +56,7 @@ Por eso `/api/backup.js` actúa como **trigger ligero** y el workflow como **eje
 | Variable | Valor | Cómo se usa |
 |---|---|---|
 | `CRON_SECRET` | Generar con `openssl rand -hex 32` | Autentica el dispatch contra `/api/backup` |
-| `DISPATCH_GITHUB_REPO` | `owner/repo` del repo principal (ej. `ibarra/farmax`) | Target del repository_dispatch |
+| `DISPATCH_GITHUB_REPO` | `owner/repo` del repo principal (ej. `ibarra/farmacapital`) | Target del repository_dispatch |
 | `DISPATCH_GITHUB_TOKEN` | PAT fine-grained con Actions: Read and write | Autorización para disparar el workflow |
 | `SUPABASE_URL` | URL del proyecto Supabase | Health check |
 | `SUPABASE_ANON_KEY` | anon key pública de Supabase | Health check |
@@ -68,7 +68,7 @@ Vercel Cron envía automáticamente `Authorization: Bearer $CRON_SECRET` al endp
 | Secret | Valor |
 |---|---|
 | `SUPABASE_DB_URL` | Connection string de Supabase (Settings → Database → URI, session mode port 5432) |
-| `BACKUP_GITHUB_REPO` | `owner/repo` del repo privado de backups (ej. `ibarra/farmax-backups`) |
+| `BACKUP_GITHUB_REPO` | `owner/repo` del repo privado de backups (ej. `ibarra/farmacapital-backups`) |
 | `BACKUP_GITHUB_TOKEN` | PAT fine-grained con Contents: Read and write sobre ese repo |
 
 ### Opcional — Cloudflare R2 (para activar en el futuro)
@@ -87,22 +87,22 @@ Ver `scripts/upload-r2.js` para los pasos de activación.
 
 ### 1. Crear repo privado de backups
 
-En GitHub, crea un nuevo repo **privado**, vacío, llamado por ejemplo `farmax-backups`.
+En GitHub, crea un nuevo repo **privado**, vacío, llamado por ejemplo `farmacapital-backups`.
 
 ### 2. Crear 2 PATs fine-grained
 
 **PAT A — para Vercel (disparar workflow):**
 1. GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new
-2. Name: `farmax-vercel-dispatch`
+2. Name: `farmacapital-vercel-dispatch`
 3. Expiration: 1 año
-4. Repository access: Only `owner/farmax`
+4. Repository access: Only `owner/farmacapital`
 5. Permissions → Actions: **Read and write**, Contents: Read
 6. Copia el token → va a Vercel como `DISPATCH_GITHUB_TOKEN`
 
 **PAT B — para el runner (pushear a backups):**
 1. Repetir flujo anterior
-2. Name: `farmax-backup-push`
-3. Repository access: Only `owner/farmax-backups`
+2. Name: `farmacapital-backup-push`
+3. Repository access: Only `owner/farmacapital-backups`
 4. Permissions → Contents: **Read and write**
 5. Copia el token → va a GitHub Secrets como `BACKUP_GITHUB_TOKEN`
 
@@ -151,9 +151,9 @@ curl -i -X POST https://TU_APP.vercel.app/api/backup \
 # Esperado: 202 {"ok":true,"dispatched":true,...}
 ```
 
-Luego ve a GitHub → `farmax` → **Actions** → debería aparecer "FARMAX DB Backup" corriendo.
+Luego ve a GitHub → `farmacapital` → **Actions** → debería aparecer "FARMACAPITAL DB Backup" corriendo.
 
-En 3-5 min aparecerá en `farmax-backups/backups/` el archivo `farmax-backup-YYYY-MM-DD.backup`.
+En 3-5 min aparecerá en `farmacapital-backups/backups/` el archivo `farmacapital-backup-YYYY-MM-DD.backup`.
 
 ### 8. Probar el script local (opcional)
 
@@ -161,7 +161,7 @@ Si tienes `pg_dump` instalado localmente (`brew install libpq` + añadir al PATH
 
 ```bash
 export SUPABASE_DB_URL="postgres://..."
-export BACKUP_GITHUB_REPO="owner/farmax-backups"
+export BACKUP_GITHUB_REPO="owner/farmacapital-backups"
 export BACKUP_GITHUB_TOKEN="ghp_..."
 export BACKUP_OUTPUT_DIR="./.local-backups"
 
@@ -195,13 +195,13 @@ node scripts/restore-db.js
 ### Restaurar un backup específico
 
 ```bash
-node scripts/restore-db.js --file=farmax-backup-2026-04-15.backup
+node scripts/restore-db.js --file=farmacapital-backup-2026-04-15.backup
 ```
 
 ### Verificar integridad sin restaurar
 
 ```bash
-node scripts/restore-db.js --file=farmax-backup-2026-04-15.backup --dry-run
+node scripts/restore-db.js --file=farmacapital-backup-2026-04-15.backup --dry-run
 ```
 
 ### Restaurar sin prompts (CI / automatización)
@@ -209,7 +209,7 @@ node scripts/restore-db.js --file=farmax-backup-2026-04-15.backup --dry-run
 Requiere `--file=…` y variables `RESTORE_DB_URL` o `SUPABASE_DB_URL`. **Destruye datos** en la base destino.
 
 ```bash
-node scripts/restore-db.js --file=farmax-backup-2026-04-15.backup --yes
+node scripts/restore-db.js --file=farmacapital-backup-2026-04-15.backup --yes
 ```
 
 ### Variables de entorno necesarias
@@ -237,7 +237,7 @@ pg_restore \
   --no-privileges \
   --verbose \
   --dbname="postgres://postgres:PASSWORD@HOST:5432/DB_DESTINO" \
-  ./farmax-backup-YYYY-MM-DD.backup
+  ./farmacapital-backup-YYYY-MM-DD.backup
 ```
 
 Flags:
@@ -248,24 +248,24 @@ Flags:
 ### Restauración solo-data (schema ya existe)
 
 ```bash
-pg_restore --data-only --dbname="$SUPABASE_DB_URL" farmax-backup-YYYY-MM-DD.backup
+pg_restore --data-only --dbname="$SUPABASE_DB_URL" farmacapital-backup-YYYY-MM-DD.backup
 ```
 
 ### Restauración parcial (una tabla)
 
 ```bash
 # Lista el contenido
-pg_restore --list farmax-backup-YYYY-MM-DD.backup > toc.txt
+pg_restore --list farmacapital-backup-YYYY-MM-DD.backup > toc.txt
 
 # Edita toc.txt para dejar solo las líneas de la tabla deseada
 # Restaura solo esas entradas
-pg_restore --use-list=toc.txt --dbname="$SUPABASE_DB_URL" farmax-backup-YYYY-MM-DD.backup
+pg_restore --use-list=toc.txt --dbname="$SUPABASE_DB_URL" farmacapital-backup-YYYY-MM-DD.backup
 ```
 
 ### Inspeccionar sin restaurar
 
 ```bash
-pg_restore --list farmax-backup-YYYY-MM-DD.backup | head -50
+pg_restore --list farmacapital-backup-YYYY-MM-DD.backup | head -50
 ```
 
 ## Recuperación ante desastre (DR)
@@ -286,12 +286,12 @@ Si pierdes el proyecto Supabase por completo:
    refactor_fase6d_*.sql
    refactor_fase6e_*.sql
    ```
-3. Clonar `farmax-backups`, tomar el último `.backup`.
+3. Clonar `farmacapital-backups`, tomar el último `.backup`.
 4. Restaurar solo data:
    ```bash
    pg_restore --data-only --no-owner --no-privileges \
      --dbname="$NEW_SUPABASE_DB_URL" \
-     backups/farmax-backup-YYYY-MM-DD.backup
+     backups/farmacapital-backup-YYYY-MM-DD.backup
    ```
 5. Actualizar `SUPABASE_URL` y claves en Vercel.
 6. Redeploy.
@@ -329,7 +329,7 @@ La versión de `pg_dump` en el runner debe ser **≥** la de Supabase. El workfl
 
 - Verifica en Vercel que `DISPATCH_GITHUB_REPO`, `DISPATCH_GITHUB_TOKEN`, `CRON_SECRET` estén bien.
 - Revisa los logs de `/api/backup` en Vercel (Logs tab).
-- Prueba manualmente: GitHub → Actions → "FARMAX DB Backup" → Run workflow.
+- Prueba manualmente: GitHub → Actions → "FARMACAPITAL DB Backup" → Run workflow.
 
 ### "fatal: could not read Username for 'https://github.com'"
 
@@ -359,14 +359,14 @@ Igual que lo anterior — el dump es idéntico al existente. Normal.
 
 ```bash
 # Ver los últimos 5 backups en el repo remoto
-gh api repos/OWNER/farmax-backups/contents/backups | jq '.[-5:] | .[].name'
+gh api repos/OWNER/farmacapital-backups/contents/backups | jq '.[-5:] | .[].name'
 
 # Descargar un backup específico
-gh api repos/OWNER/farmax-backups/contents/backups/farmax-backup-2026-04-20.backup \
-  --jq '.content' | base64 -d > farmax-backup-2026-04-20.backup
+gh api repos/OWNER/farmacapital-backups/contents/backups/farmacapital-backup-2026-04-20.backup \
+  --jq '.content' | base64 -d > farmacapital-backup-2026-04-20.backup
 
 # Disparar el backup manualmente desde CLI
-gh workflow run backup.yml -R OWNER/farmax
+gh workflow run backup.yml -R OWNER/farmacapital
 ```
 
 ## Retención

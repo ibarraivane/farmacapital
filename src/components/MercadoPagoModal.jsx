@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { crearIntenciónDePago, esperarConfirmacionPago, cancelarPago, isMPConfigured } from "../utils/mercadoPago";
 
 /**
- * FARMAX — Modal de pago con Mercado Pago Point Smart 2
+ * FARMACAPITAL — Modal de pago con Mercado Pago Point Smart 2
  */
 export default function MercadoPagoModal({ open, total, folio, hint, onSuccess, onCancel }) {
   const [estado,    setEstado]    = useState("idle"); // idle|iniciando|esperando|exito|error|cancelado
@@ -37,7 +37,7 @@ export default function MercadoPagoModal({ open, total, folio, hint, onSuccess, 
     try {
       const intent = await crearIntenciónDePago({
         amount:            total,
-        description:       `Venta Farmax ${folio}`,
+        description:       `Venta FarmaCapital ${folio}`,
         externalReference: folio,
       });
       setIntentId(intent.id);

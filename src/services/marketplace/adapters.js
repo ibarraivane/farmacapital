@@ -3,7 +3,7 @@
  *
  * - Rappi / Uber Eats: típicamente reciben pedidos vía API del marketplace o tablet;
  *   aquí solo definimos la forma esperada del payload y puntos de enganche.
- * - Uber Direct: última milla desde Farmax; crear entrega programmatically cuando exista token.
+ * - Uber Direct: última milla desde FarmaCapital; crear entrega programmatically cuando exista token.
  *
  * Ver: docs/DELIVERY_MARKETPLACE_PREP.md
  */
@@ -17,7 +17,7 @@
  */
 export function toMarketplaceOutboundSnapshot(pedido) {
   return {
-    farmax_pedido_id: pedido?.id,
+    farmacapital_pedido_id: pedido?.id,
     total: pedido?.total,
     estado: pedido?.estado,
     tipo_entrega: pedido?.tipo_entrega,

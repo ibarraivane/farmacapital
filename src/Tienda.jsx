@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════
-// FARMAX — Tienda en Línea v4
+// FARMACAPITAL — Tienda en Línea v4
 // Popup · Banners · Mapa · Footer legal · FAQ · Políticas
 // ═══════════════════════════════════════════════════════════════
 
@@ -60,7 +60,7 @@ function checkoutAddressStorageKey(user) {
   const id = user?.id != null ? String(user.id) : "";
   const tel = user?.telefono ? String(user.telefono).replace(/\D/g, "") : "";
   const suffix = id || tel || "guest";
-  return `farmax_checkout_address_${suffix}`;
+  return `farmacapital_checkout_address_${suffix}`;
 }
 
 /** Stock vendible: max(columna productos.stock, suma lotes) por si el trigger no sincronizó. */
@@ -74,7 +74,7 @@ function tiendaEffectiveStockFromDb(dbp, sumLotesMap) {
 const CONTACTO = {
   telefono: null,           // "55 XXXX XXXX"
   whatsapp: null,           // "5512345678"
-  email: "contacto@farmax.mx",
+  email: "contacto@farmacapital.mx",
   direccion: "Radiodifusora 100, Chinampac de Juárez, Iztapalapa, CDMX, C.P. 09208",
   horario: "Lun–Vie 8:00–22:00 · Sáb 8:00–20:00 · Dom 9:00–18:00",
   maps_embed: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3763.5!2d-99.0518514!3d19.371062!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x85d1fd0b8b0fd10d%3A0x75316d7abacf16ae!2sRadiodifusora+100%2C+Iztapalapa!5e0!3m2!1ses!2smx!4v1",
@@ -84,7 +84,7 @@ const CONTACTO = {
 const BANNERS = [
   {
     id:1,
-    titulo:"Genéricos Farmax",
+    titulo:"Genéricos FarmaCapital",
     subtitulo:"Medicamentos desde $10",
     descripcion:"Misma fórmula, mejor precio. Certificados por COFEPRIS.",
     cta:"Ver genéricos",
@@ -96,7 +96,7 @@ const BANNERS = [
     id:2,
     titulo:"Consulta médica",
     subtitulo:`$${CONSULTA_PRECIO_DEFAULT} por consulta`,
-    descripcion:"O gratis con 160 puntos Farmax. Médico general disponible.",
+    descripcion:"O gratis con 160 puntos FarmaCapital. Médico general disponible.",
     cta:"Agendar cita",
     pagina:"cita",
     bg:"linear-gradient(135deg,#009952,#00c46a)",
@@ -104,7 +104,7 @@ const BANNERS = [
   },
   {
     id:3,
-    titulo:"Puntos Farmax",
+    titulo:"Puntos FarmaCapital",
     subtitulo:"Acumula y canjea",
     descripcion:"Gana 1 punto por cada $10 en farmacia, minisuper y consultorio.",
     cta:"Conocer más",
@@ -190,9 +190,9 @@ const FAQ_ITEMS = [
   { p:"¿Cómo hago un pedido en línea?", r:"Agrega los productos al carrito, selecciona tu tipo de entrega (pick-up o envío), ingresa tus datos y elige tu método de pago. Recibirás confirmación por WhatsApp." },
   { p:"¿Cuánto tarda el envío?", r:"En CDMX puedes elegir entrega express vía Rappi o Uber (al costo del servicio). Para el resto de México, enviamos por Skydropx en 2-5 días hábiles por $89." },
   { p:"¿Puedo recoger mi pedido en la farmacia?", r:"Sí. El pick-up es gratis y el mismo día. Recibirás un mensaje cuando tu pedido esté listo." },
-  { p:"¿Cómo funcionan los Puntos Farmax?", r:"Ganas 1 punto por cada $10 de compra. 1 punto equivale a $0.50 de descuento. Puedes usarlos en farmacia, minisuper y consultorio." },
+  { p:"¿Cómo funcionan los Puntos FarmaCapital?", r:"Ganas 1 punto por cada $10 de compra. 1 punto equivale a $0.50 de descuento. Puedes usarlos en farmacia, minisuper y consultorio." },
   { p:"¿Qué hago si necesito un medicamento con receta?", r:"Agrégalo al carrito normalmente. Al recoger o recibir tu pedido, presenta tu receta médica original. Para antibióticos y controlados es obligatorio por COFEPRIS." },
-  { p:"¿Cómo puedo facturar mi compra?", r:"Solicita tu factura CFDI en el mostrador al momento de tu compra o escríbenos a contacto@farmax.mx dentro de las 24 horas siguientes." },
+  { p:"¿Cómo puedo facturar mi compra?", r:"Solicita tu factura CFDI en el mostrador al momento de tu compra o escríbenos a contacto@farmacapital.mx dentro de las 24 horas siguientes." },
   { p:"¿Cuál es la política de devoluciones?", r:"Aceptamos devoluciones dentro de 72 horas si el producto está en perfecto estado y sin abrir. Medicamentos controlados y con receta no tienen devolución. Consulta nuestra política completa." },
   { p:"¿Tienen medicamentos genéricos?", r:"Sí. Tenemos una amplia variedad de genéricos intercambiables certificados por COFEPRIS, con el mismo principio activo que las marcas de patente pero a menor precio." },
 ];
@@ -212,7 +212,7 @@ function localISODate(d = new Date()) {
 }
 
 const ptsGana = p => Math.floor(p/10);
-const labelPts = n => `${n} ${n===1?"punto":"puntos"} Farmax`;
+const labelPts = n => `${n} ${n===1?"punto":"puntos"} FarmaCapital`;
 
 function horariosDisponibles(fecha){
   if(!fecha) return TODOS_HORARIOS;
@@ -280,7 +280,7 @@ function PopupBienvenida({onClose,setPage,precioConsulta,banner}){
   let cta;
   let ctaPage;
   if (!hasBannerRow) {
-    titulo = tituloRaw || "¡Bienvenido a Farmax!";
+    titulo = tituloRaw || "¡Bienvenido a FarmaCapital!";
     subtitulo =
       subtituloRaw ||
       "Regístrate hoy y gana 10 puntos de bienvenida.";
@@ -311,8 +311,8 @@ function PopupBienvenida({onClose,setPage,precioConsulta,banner}){
 
   const imgAlt =
     modoCompletoPopup && !tituloRaw
-      ? "Farmax"
-      : titulo || "Farmax";
+      ? "FarmaCapital"
+      : titulo || "FarmaCapital";
 
   const overlayTone = modoCompletoPopup && imgUrl
     ? "transparent"
@@ -1132,7 +1132,7 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
     { icon: Pill, label: "Catálogo", page: "catalogo" },
     { icon: TagIcon, label: "Promociones", page: "promo" },
     { icon: Stethoscope, label: "Consulta médica", page: "cita" },
-    { icon: Star, label: "Puntos Farmax", page: "puntos" },
+    { icon: Star, label: "Puntos FarmaCapital", page: "puntos" },
   ];
 
   const ayudaItems = [
@@ -1356,7 +1356,7 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
           </a>
 
           <a
-            href="mailto:contacto@farmax.mx"
+            href="mailto:contacto@farmacapital.mx"
             style={{
               display: "flex", alignItems: "center", gap: 12,
               padding: "10px 12px",
@@ -1372,7 +1372,7 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
                 Email
               </div>
               <div style={{fontSize: 12, color: C.textMid}}>
-                contacto@farmax.mx
+                contacto@farmacapital.mx
               </div>
             </div>
             <ChevronRight size={16} color={BRAND.primary}/>
@@ -1475,10 +1475,10 @@ function Header({page,setPage,cart,user,setUser}){
   };
 
   const logout = async () => {
-    const tok = sessionStorage.getItem("farmax_cliente_token");
+    const tok = sessionStorage.getItem("farmacapital_cliente_token");
     if (tok) { try { await supabase.rpc("logout_cliente", { p_session_token: tok }); } catch(e){} }
-    sessionStorage.removeItem("farmax_cliente_token");
-    sessionStorage.removeItem("farmax_user");
+    sessionStorage.removeItem("farmacapital_cliente_token");
+    sessionStorage.removeItem("farmacapital_user");
     setUser(null);
     setMenuOpen(false);
     setPage("home");
@@ -1509,12 +1509,12 @@ function Header({page,setPage,cart,user,setUser}){
             background:"none",border:"none",padding:0,
             cursor:"pointer",display:"flex",alignItems:"center",gap:8,
           }}
-          aria-label="Inicio Farmax"
+          aria-label="Inicio FarmaCapital"
         >
           <Logo size={36}/>
         </button>
 
-        <div className="farmax-header-info-desktop" style={{
+        <div className="farmacapital-header-info-desktop" style={{
           display:"none",
           alignItems:"center",gap:16,fontSize:12,color:C.textMid,flex:"1 1 auto",
           justifyContent:"center",minWidth:0,
@@ -1573,7 +1573,7 @@ function Header({page,setPage,cart,user,setUser}){
 
       <style>{`
         @media (min-width: 768px) {
-          .farmax-header-info-desktop { display: flex !important; }
+          .farmacapital-header-info-desktop { display: flex !important; }
         }
       `}</style>
     </>
@@ -1702,10 +1702,10 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
   const irACatalogoBusqueda = ()=>{
     const q = String(busqHero||"").trim();
     setBusqFocus(false);
-    try { if (q) sessionStorage.setItem("farmax_busq", q); } catch (err) { /* ignore */ }
+    try { if (q) sessionStorage.setItem("farmacapital_busq", q); } catch (err) { /* ignore */ }
     setPage("catalogo");
     requestAnimationFrame(()=>{
-      document.getElementById("farmax-catalogo-resultados")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      document.getElementById("farmacapital-catalogo-resultados")?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   };
   if(!prod) return null;
@@ -1721,7 +1721,7 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
             onChange={(e)=>{
               const v = e.target.value;
               setBusqHero?.(v);
-              try { if (v.trim()) sessionStorage.setItem("farmax_busq", v); } catch (err) { /* ignore */ }
+              try { if (v.trim()) sessionStorage.setItem("farmacapital_busq", v); } catch (err) { /* ignore */ }
             }}
             onKeyDown={(e)=>{
               if (e.key === "Enter") {
@@ -1850,9 +1850,9 @@ function Footer({setPage}){
   const stack = useMediaQuery("(max-width: 768px)");
   const goSurtirReceta = () => {
     try {
-      sessionStorage.removeItem("farmax_cat");
-      sessionStorage.removeItem("farmax_busq");
-      sessionStorage.removeItem("farmax_tipo");
+      sessionStorage.removeItem("farmacapital_cat");
+      sessionStorage.removeItem("farmacapital_busq");
+      sessionStorage.removeItem("farmacapital_tipo");
     } catch (_) { /* noop */ }
     setPage("catalogo");
   };
@@ -1860,7 +1860,7 @@ function Footer({setPage}){
     <footer style={{background:C.dark,marginTop:48}}>
       {/* Links principales */}
       <div style={{maxWidth:1200,margin:"0 auto",padding:"48px 24px 32px",display:"grid",gridTemplateColumns:stack?"1fr":"repeat(4,1fr)",gap:stack?28:32}}>
-        {/* Farmax */}
+        {/* FarmaCapital */}
         <div>
           <div style={{marginBottom:16}}><Logo size={28} light/></div>
           <p style={{color:"rgba(255,255,255,.6)",fontSize:13,lineHeight:1.7,marginBottom:16}}>Tu farmacia de confianza en Chinampac de Juárez. Medicamentos genéricos y de marca certificados por COFEPRIS.</p>
@@ -1872,7 +1872,7 @@ function Footer({setPage}){
           {[
             // ["📞 Teléfono", "55 XXXX XXXX", null],        // Descomentar cuando tengas número
             // ["💬 WhatsApp", "55 XXXX XXXX", null],        // Descomentar cuando tengas WhatsApp
-            ["Correo", "contacto@farmax.mx", null],
+            ["Correo", "contacto@farmacapital.mx", null],
             ["Horario", CONTACTO.horario, null],
             ["Dirección", "Radiodifusora 100, Iztapalapa", ()=>setPage("cita")],
           ].map(([l,v,fn])=>(
@@ -1885,7 +1885,7 @@ function Footer({setPage}){
         {/* Mi consultorio */}
         <div>
           <div style={{color:C.white,fontWeight:700,fontSize:14,marginBottom:16,textTransform:"uppercase",letterSpacing:1}}>Mi consultorio</div>
-          {[["Agendar cita","cita"],["Preguntas frecuentes","faq"],["Surtir receta","catalogo"],["Mis puntos Farmax","puntos"],["Mi cuenta","cuenta"]].map(([l,pg])=>(
+          {[["Agendar cita","cita"],["Preguntas frecuentes","faq"],["Surtir receta","catalogo"],["Mis puntos FarmaCapital","puntos"],["Mi cuenta","cuenta"]].map(([l,pg])=>(
             <button key={l} onClick={()=> l==="Surtir receta" ? goSurtirReceta() : setPage(pg)} style={{display:"block",background:"none",border:"none",color:"rgba(255,255,255,.6)",fontSize:13,cursor:"pointer",marginBottom:8,textAlign:"left",padding:0,fontFamily:"'Plus Jakarta Sans',sans-serif"}}
               onMouseEnter={e=>(e.currentTarget.style.color="rgba(255,255,255,.9)")}
               onMouseLeave={e=>(e.currentTarget.style.color="rgba(255,255,255,.6)")}>{l}</button>
@@ -1894,7 +1894,7 @@ function Footer({setPage}){
         {/* Políticas */}
         <div>
           <div style={{color:C.white,fontWeight:700,fontSize:14,marginBottom:16,textTransform:"uppercase",letterSpacing:1}}>Información legal</div>
-          {[["Aviso de privacidad","privacidad"],["Términos y condiciones","terminos"],["Política de envíos","envios"],["Programa Puntos Farmax","terminos-puntos"]].map(([l,pg])=>(
+          {[["Aviso de privacidad","privacidad"],["Términos y condiciones","terminos"],["Política de envíos","envios"],["Programa Puntos FarmaCapital","terminos-puntos"]].map(([l,pg])=>(
             <button key={l} onClick={()=>setPage(pg)} style={{display:"block",background:"none",border:"none",color:"rgba(255,255,255,.6)",fontSize:13,cursor:"pointer",marginBottom:8,textAlign:"left",padding:0,fontFamily:"'Plus Jakarta Sans',sans-serif"}}
               onMouseEnter={e=>(e.currentTarget.style.color="rgba(255,255,255,.9)")}
               onMouseLeave={e=>(e.currentTarget.style.color="rgba(255,255,255,.6)")}>{l}</button>
@@ -1912,7 +1912,7 @@ function Footer({setPage}){
           </div>
           <div style={{color:"rgba(255,255,255,.3)",fontSize:11,textAlign:"right"}}>
             Responsable sanitario: Q.F.B. · COFEPRIS<br/>
-            © 2026 Farmax — Todos los derechos reservados
+            © 2026 FarmaCapital — Todos los derechos reservados
           </div>
         </div>
       </div>
@@ -2034,7 +2034,7 @@ function ContenidoPago({ C, color }){
   return (
     <>
       <p style={{margin:"0 0 12px"}}>
-        En Farmax aceptamos varias formas de pago para tu comodidad.
+        En FarmaCapital aceptamos varias formas de pago para tu comodidad.
       </p>
       <h4 style={sH4(color)}>En línea (a través de Mercado Pago)</h4>
       <ul style={sList}>
@@ -2052,7 +2052,7 @@ function ContenidoPago({ C, color }){
       </ul>
       <h4 style={sH4(color)}>Seguridad</h4>
       <p style={{margin:"0 0 12px",color:C.textMid,fontSize:13}}>
-        Mercado Pago es una pasarela externa certificada. Tus datos bancarios nunca se almacenan en Farmax. Todo el proceso de pago en línea es manejado directamente por Mercado Pago con cifrado de extremo a extremo.
+        Mercado Pago es una pasarela externa certificada. Tus datos bancarios nunca se almacenan en FarmaCapital. Todo el proceso de pago en línea es manejado directamente por Mercado Pago con cifrado de extremo a extremo.
       </p>
       <h4 style={sH4(color)}>Reembolsos</h4>
       <p style={{margin:0,color:C.textMid,fontSize:13}}>
@@ -2084,7 +2084,7 @@ function ServicioModal({ abierto, onClose, titulo, color, contenido: Contenido }
       <div
         role="dialog"
         aria-modal="true"
-        aria-labelledby="farmax-servicio-modal-titulo"
+        aria-labelledby="farmacapital-servicio-modal-titulo"
         onClick={(e)=>e.stopPropagation()}
         style={{
           background:C.card,
@@ -2126,7 +2126,7 @@ function ServicioModal({ abierto, onClose, titulo, color, contenido: Contenido }
           >
             ×
           </button>
-          <h3 id="farmax-servicio-modal-titulo" style={{
+          <h3 id="farmacapital-servicio-modal-titulo" style={{
             margin:0,
             fontSize:20,
             fontWeight:800,
@@ -2179,10 +2179,10 @@ function HomeServices({setPage}){
   const C = useTheme();
   const [modalAbierto,setModalAbierto]=useState(null);
   const servicios = [
-    { key:"pickup", titulo:"Pick-up gratis", desc:"Recoge hoy en Farmax", color:BRAND.primary, tipo:"modal" },
+    { key:"pickup", titulo:"Pick-up gratis", desc:"Recoge hoy en FarmaCapital", color:BRAND.primary, tipo:"modal" },
     { key:"cdmx", titulo:"CDMX express", desc:"Rappi & Uber Connect", color:BRAND.secondary, tipo:"modal" },
     { key:"foraneo", titulo:"Envío foráneo", desc:"$89 · Skydropx", color:BRAND.accent, tipo:"modal" },
-    { key:"puntos", titulo:"Puntos Farmax", desc:"Acumula en cada compra", color:"#ffaa00", tipo:"page", destino:"puntos" },
+    { key:"puntos", titulo:"Puntos FarmaCapital", desc:"Acumula en cada compra", color:"#ffaa00", tipo:"page", destino:"puntos" },
     { key:"pago", titulo:"Pago online", desc:"Mercado Pago", color:"#8b5cf6", tipo:"modal" },
   ];
   const handleClick = (s)=>{
@@ -2192,7 +2192,7 @@ function HomeServices({setPage}){
   return (
     <>
       <div style={{padding:16,background:C.bg,borderBottom:`1px solid ${C.border}`}}>
-        <div className="farmax-home-services-scroll" style={{
+        <div className="farmacapital-home-services-scroll" style={{
           display:"flex",
           gap:12,
           overflowX:"auto",
@@ -2238,15 +2238,15 @@ function HomeServices({setPage}){
           ))}
         </div>
         <style>{`
-          .farmax-home-services-scroll::-webkit-scrollbar { display: none; }
+          .farmacapital-home-services-scroll::-webkit-scrollbar { display: none; }
           @media (min-width: 769px) {
-            .farmax-home-services-scroll {
+            .farmacapital-home-services-scroll {
               display: grid !important;
               grid-template-columns: repeat(5, minmax(0, 1fr));
               overflow-x: visible !important;
               scroll-snap-type: none;
             }
-            .farmax-home-services-scroll > button {
+            .farmacapital-home-services-scroll > button {
               width: auto !important;
               min-width: 0;
             }
@@ -2308,7 +2308,7 @@ function HomePromociones({promos,setPage}){
         </h3>
         <Btn onClick={()=>setPage("promo")} outline col={BRAND.primary} sm>Ver todas</Btn>
       </div>
-      <div className="farmax-home-promos-scroll" style={{
+      <div className="farmacapital-home-promos-scroll" style={{
         display:"flex",
         gap:12,
         overflowX:"auto",
@@ -2381,7 +2381,7 @@ function HomePromociones({promos,setPage}){
         })}
       </div>
       <style>{`
-        .farmax-home-promos-scroll::-webkit-scrollbar { display: none; }
+        .farmacapital-home-promos-scroll::-webkit-scrollbar { display: none; }
       `}</style>
     </div>
   );
@@ -2469,9 +2469,9 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
               if(e.key==="Enter"&&busqHero.trim()){
                 try{
                   const t=busqHero.trim();
-                  sessionStorage.setItem("farmax_busq",t);
-                  const p=JSON.parse(localStorage.getItem("farmax_busqs")||"[]");
-                  localStorage.setItem("farmax_busqs",JSON.stringify([t,...p.filter(b=>b!==t)].slice(0,5)));
+                  sessionStorage.setItem("farmacapital_busq",t);
+                  const p=JSON.parse(localStorage.getItem("farmacapital_busqs")||"[]");
+                  localStorage.setItem("farmacapital_busqs",JSON.stringify([t,...p.filter(b=>b!==t)].slice(0,5)));
                 }catch(err){}
                 setPage("catalogo");
               }
@@ -2526,7 +2526,7 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
       {/* Más vendidos */}
       <div style={{maxWidth:1200,margin:"0 auto",padding:"0 16px 48px"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24,flexWrap:"wrap",gap:12}}>
-          <h2 style={{color:C.dark,fontSize:"clamp(20px,4.5vw,24px)",fontWeight:800,margin:0}}>Más vendidos en Farmax</h2>
+          <h2 style={{color:C.dark,fontSize:"clamp(20px,4.5vw,24px)",fontWeight:800,margin:0}}>Más vendidos en FarmaCapital</h2>
           <Btn onClick={()=>setPage("catalogo")} outline col={BRAND.primary} sm>Ver catálogo →</Btn>
         </div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(100%,220px),1fr))",gap:16}}>
@@ -2537,23 +2537,23 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
       {/* Consultorio */}
       <div style={{background:BRAND.primary+"12",padding:"48px 24px"}}>
         <div style={{maxWidth:800,margin:"0 auto",textAlign:"center"}}>
-          <h2 style={{color:C.dark,fontSize:28,fontWeight:800,marginBottom:12}}>Consultorio médico Farmax</h2>
-          <p style={{color:C.mid,fontSize:16,lineHeight:1.7,marginBottom:28}}>Atención médica general · <strong>{$(precioConsulta ?? CONSULTA_PRECIO_DEFAULT)} por consulta</strong> · O gratis con <strong style={{color:BRAND.primary}}>160 puntos Farmax</strong>. Al terminar tu consulta, surte tu receta con <strong>10% de descuento</strong>.</p>
+          <h2 style={{color:C.dark,fontSize:28,fontWeight:800,marginBottom:12}}>Consultorio médico FarmaCapital</h2>
+          <p style={{color:C.mid,fontSize:16,lineHeight:1.7,marginBottom:28}}>Atención médica general · <strong>{$(precioConsulta ?? CONSULTA_PRECIO_DEFAULT)} por consulta</strong> · O gratis con <strong style={{color:BRAND.primary}}>160 puntos FarmaCapital</strong>. Al terminar tu consulta, surte tu receta con <strong>10% de descuento</strong>.</p>
           <Btn onClick={()=>setPage("cita")} col={BRAND.primary}>Agendar cita online</Btn>
         </div>
       </div>
 
-      {/* Puntos Farmax */}
+      {/* Puntos FarmaCapital */}
       <div style={{maxWidth:1200,margin:"48px auto",padding:"0 16px"}}>
         <div style={{background:C.dark,borderRadius:20,padding:stack?"28px 20px":"40px",display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:stack?28:40,alignItems:"center"}}>
           <div>
             <div style={{color:BRAND.secondary,fontWeight:700,fontSize:13,letterSpacing:2,textTransform:"uppercase",marginBottom:12}}>Programa de lealtad</div>
-            <h2 style={{color:C.white,fontSize:"clamp(22px,5vw,28px)",fontWeight:800,marginBottom:16}}>Puntos Farmax</h2>
+            <h2 style={{color:C.white,fontSize:"clamp(22px,5vw,28px)",fontWeight:800,marginBottom:16}}>Puntos FarmaCapital</h2>
             <p style={{color:"rgba(255,255,255,.75)",fontSize:15,lineHeight:1.7,marginBottom:24}}>Acumula puntos en farmacia, minisuper y consultorio. Canjéalos por descuentos o consultas gratis.</p>
             <Btn onClick={()=>setPage("puntos")} style={{background:BRAND.accent,color:C.white,border:"none"}}>Ver programa de puntos</Btn>
           </div>
           <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:12}}>
-            {[["$10 en Farmax","1 punto",BRAND.secondary],["1 consulta","5 puntos",BRAND.accent],["160 puntos","Consulta gratis","#ffaa00"],["100 puntos","$50 descuento","#9d6fff"]].map(([a,b,col])=>(
+            {[["$10 en FarmaCapital","1 punto",BRAND.secondary],["1 consulta","5 puntos",BRAND.accent],["160 puntos","Consulta gratis","#ffaa00"],["100 puntos","$50 descuento","#9d6fff"]].map(([a,b,col])=>(
               <div key={a} style={{background:"rgba(255,255,255,.08)",borderRadius:12,padding:16,border:"1px solid rgba(255,255,255,.1)"}}>
                 <div style={{color:col,fontWeight:700,fontSize:13,marginBottom:4}}>{b}</div>
                 <div style={{color:"rgba(255,255,255,.6)",fontSize:12}}>{a}</div>
@@ -2590,14 +2590,14 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
   const stack = useMediaQuery("(max-width: 768px)");
   /** Safari iOS: sticky lateral + scroll del documento suele causar rebote/“lock”; solo usar sticky en escritorio ancho. */
   const categoriasStickyDesktop = useMediaQuery("(min-width: 1025px)");
-  const [cat,setCat]=useState(()=>sessionStorage.getItem("farmax_cat")||"Todos");
-  const [busq,setBusq]=useState(busqHero||sessionStorage.getItem("farmax_busq")||"");
-  const [tipo,setTipo]=useState(()=>sessionStorage.getItem("farmax_tipo")||"todos");
+  const [cat,setCat]=useState(()=>sessionStorage.getItem("farmacapital_cat")||"Todos");
+  const [busq,setBusq]=useState(busqHero||sessionStorage.getItem("farmacapital_busq")||"");
+  const [tipo,setTipo]=useState(()=>sessionStorage.getItem("farmacapital_tipo")||"todos");
   const [openCategorias, setOpenCategorias] = useState(false);
   const [busqFocus,setBusqFocus]=useState(false);
-  useEffect(()=>{ sessionStorage.setItem("farmax_cat",cat); },[cat]);
-  useEffect(()=>{ sessionStorage.setItem("farmax_busq",busq); },[busq]);
-  useEffect(()=>{ sessionStorage.setItem("farmax_tipo",tipo); },[tipo]);
+  useEffect(()=>{ sessionStorage.setItem("farmacapital_cat",cat); },[cat]);
+  useEffect(()=>{ sessionStorage.setItem("farmacapital_busq",busq); },[busq]);
+  useEffect(()=>{ sessionStorage.setItem("farmacapital_tipo",tipo); },[tipo]);
   useEffect(()=>{
     const t = busqHero != null && String(busqHero).trim();
     if (t) {
@@ -2647,7 +2647,7 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
   const busqActiva = busq.trim().length > 0;
   return(
     <div style={{maxWidth:1200,margin:"0 auto",padding:"clamp(20px,4vw,32px) 16px",width:"100%",minHeight:"100dvh",overflowX:"hidden"}}>
-      <h1 style={{color:C.dark,fontSize:"clamp(22px,5vw,28px)",fontWeight:800,marginBottom:6}}>Catálogo Farmax</h1>
+      <h1 style={{color:C.dark,fontSize:"clamp(22px,5vw,28px)",fontWeight:800,marginBottom:6}}>Catálogo FarmaCapital</h1>
       <div style={{color:C.dim,fontSize:14,marginBottom:24}}>
         {busqActiva
           ? `${fil.length} resultado${fil.length === 1 ? "" : "s"} · refiná con filtros o escribí más palabras (ej. «ácido fólico»)`
@@ -2662,7 +2662,7 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
             setBusq(v);
             setBusqHero?.(v);
             try {
-              if (v.trim()) sessionStorage.setItem("farmax_busq", v);
+              if (v.trim()) sessionStorage.setItem("farmacapital_busq", v);
             } catch (err) { /* ignore */ }
           }}
           onKeyDown={(e)=>{
@@ -2671,11 +2671,11 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
               const q = busq.trim();
               setBusqFocus(false);
               try {
-                if (q) sessionStorage.setItem("farmax_busq", q);
+                if (q) sessionStorage.setItem("farmacapital_busq", q);
               } catch (err) { /* ignore */ }
               setBusqHero?.(busq);
               requestAnimationFrame(()=>{
-                document.getElementById("farmax-catalogo-resultados")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                document.getElementById("farmacapital-catalogo-resultados")?.scrollIntoView({ behavior: "smooth", block: "start" });
               });
             }
             if (e.key === "Escape") setBusqFocus(false);
@@ -2755,7 +2755,7 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
         width: "100%",
       }}>
         <div
-          id="farmax-catalogo-resultados"
+          id="farmacapital-catalogo-resultados"
           style={{
             width: "100%",
             height: "auto",
@@ -2888,13 +2888,13 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
         </div>
         <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:24,position:stack?"relative":"sticky",top:"calc(env(safe-area-inset-top, 0px) + 100px)"}}>
           <div style={{color:C.dark,fontWeight:800,fontSize:16,marginBottom:14}}>Tipo de entrega</div>
-          {[["pickup","🏪 Pick-up en Farmax","Gratis · Mismo día"],["cdmx","🛵 Reparto CDMX","Rappi/Uber · Costo del servicio"],["foraneo","📦 Envío foráneo","$89 · 2-5 días · Skydropx"]].map(([v,l,s])=>(
+          {[["pickup","🏪 Pick-up en FarmaCapital","Gratis · Mismo día"],["cdmx","🛵 Reparto CDMX","Rappi/Uber · Costo del servicio"],["foraneo","📦 Envío foráneo","$89 · 2-5 días · Skydropx"]].map(([v,l,s])=>(
             <div key={v} onClick={()=>setEntrega(v)} style={{padding:"12px 14px",borderRadius:10,border:`2px solid ${entrega===v?BRAND.primary:C.border}`,background:entrega===v?BRAND.primary+"18":C.white,cursor:"pointer",marginBottom:8}}>
               <div style={{color:entrega===v?BRAND.primary:C.dark,fontWeight:700,fontSize:14}}>{l}</div>
               <div style={{color:C.dim,fontSize:12,marginTop:2}}>{s}</div>
             </div>
           ))}
-          {entrega==="cdmx"&&(<div style={{background:"#fef3c7",border:"1px solid #f59e0b30",borderRadius:8,padding:"10px 12px",marginBottom:8}}><div style={{color:"#92400e",fontSize:12}}>🛵 El repartidor irá a Farmax y entregará en tu domicilio al costo que muestre la app de Rappi o Uber.</div></div>)}
+          {entrega==="cdmx"&&(<div style={{background:"#fef3c7",border:"1px solid #f59e0b30",borderRadius:8,padding:"10px 12px",marginBottom:8}}><div style={{color:"#92400e",fontSize:12}}>🛵 El repartidor irá a FarmaCapital y entregará en tu domicilio al costo que muestre la app de Rappi o Uber.</div></div>)}
           {(entrega==="cdmx"||entrega==="foraneo")&&(
             <div style={{background:"#eff6ff",border:`1px solid ${BRAND.secondary}35`,borderRadius:8,padding:"10px 12px",marginBottom:8}}>
               <div style={{color:BRAND.primary,fontSize:11,lineHeight:1.45}}>
@@ -3148,7 +3148,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
         return;
       }
 
-      const tokCli = sessionStorage.getItem("farmax_cliente_token");
+      const tokCli = sessionStorage.getItem("farmacapital_cliente_token");
       if (!tokCli) {
         notifyCheckout("Inicia sesión para confirmar tu pedido.", "warning");
         setPage("login");
@@ -3297,8 +3297,8 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
           <div style={{marginTop:16}}>
             <button type="button" onClick={()=>{
               const items=lastOrder.lines.map(i=>`• ${i.nombre} ×${i.qty} = $${(Number(i.precio)*Number(i.qty)).toFixed(2)}`).join("\n");
-              const entregaTxt = lastOrder.tipo_entrega==="recoger" ? "Pick-up en Farmax" : `Envío (${lastOrder.entregaUi||"domicilio"})`;
-              const msg=`🏥 *Farmax Farmacia*\nChinampac de Juárez, CDMX\n\n✅ *Pedido confirmado*\n\n${items}\n\n💰 *Total: $${lastOrder.sub.toFixed(2)}*\n📦 *Entrega:* ${entregaTxt}\n\n¡Gracias por tu preferencia! 💊`;
+              const entregaTxt = lastOrder.tipo_entrega==="recoger" ? "Pick-up en FarmaCapital" : `Envío (${lastOrder.entregaUi||"domicilio"})`;
+              const msg=`🏥 *FarmaCapital*\nChinampac de Juárez, CDMX\n\n✅ *Pedido confirmado*\n\n${items}\n\n💰 *Total: $${lastOrder.sub.toFixed(2)}*\n📦 *Entrega:* ${entregaTxt}\n\n¡Gracias por tu preferencia! 💊`;
               window.open("https://wa.me/52"+String(lastOrder.datosTel).replace(/\D/g,"")+"?text="+encodeURIComponent(msg),"_blank");
             }} style={{display:"flex",alignItems:"center",gap:8,margin:"0 auto",padding:"10px 24px",borderRadius:10,border:"none",background:"#25D366",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer"}}>
               📱 Enviar confirmación por WhatsApp
@@ -3328,7 +3328,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
       <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr min(300px,100%)",gap:24,alignItems:"start"}}>
         <div style={{minWidth:0}}>
           {step===1&&(<div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}><div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:20}}>📋 Datos de contacto</div><div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:14}}>{[["Nombre completo","nombre"],["Teléfono","tel"],["Correo electrónico","email"],["Calle y número","calle"],["Colonia","colonia"],["Código postal","cp"]].map(([l,k])=>(<div key={k} style={{gridColumn:!stack&&(k==="email"||k==="calle")?"1/-1":undefined}}><div style={{color:C.mid,fontSize:12,marginBottom:6,fontWeight:600}}>{l}</div><Inp value={datos[k]} onChange={e=>setDatos(p=>({...p,[k]:e.target.value}))} placeholder={l} style={{width:"100%",boxSizing:"border-box",fontSize:16}}/></div>))}</div><div style={{marginTop:10,fontSize:12,color:C.textMid,lineHeight:1.45}}>La dirección se guarda para tu próxima compra y se sincroniza con tu perfil.</div><Btn onClick={()=>setStep(2)} col={BRAND.primary} style={{marginTop:20,width:stack?"100%":undefined}} disabled={!datosCheckoutCompletos}>Continuar al pago →</Btn></div>)}
-          {step===2&&(<div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}><div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:20}}>💳 Método de pago</div>{[["mercadopago","🔵 Mercado Pago","Checkout seguro de Mercado Pago"]].map(([v,l,s])=>(<div key={v} onClick={()=>setMetodo(v)} style={{padding:"14px 16px",borderRadius:10,border:`2px solid ${metodo===v?BRAND.primary:C.border}`,background:metodo===v?BRAND.primary+"18":C.white,cursor:"pointer",marginBottom:10}}><div style={{color:metodo===v?BRAND.primary:C.dark,fontWeight:700,fontSize:"clamp(13px,3.2vw,14px)"}}>{l}</div><div style={{color:C.dim,fontSize:12,marginTop:2}}>{s}</div></div>))}<div style={{color:C.textDim,fontSize:11,lineHeight:1.45,marginBottom:10}}>El cobro online se procesa en Mercado Pago. Farmax no captura datos de tarjeta directamente.</div><div style={{display:"flex",gap:10,marginTop:8,flexWrap:"wrap"}}><Btn onClick={()=>setStep(1)} outline col={C.mid} sm>← Atrás</Btn><Btn onClick={()=>setStep(3)} col={BRAND.primary} style={{flex:stack?1:undefined,minWidth:stack?0:undefined}} disabled={!datosCheckoutCompletos}>Revisar pedido →</Btn></div></div>)}
+          {step===2&&(<div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}><div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:20}}>💳 Método de pago</div>{[["mercadopago","🔵 Mercado Pago","Checkout seguro de Mercado Pago"]].map(([v,l,s])=>(<div key={v} onClick={()=>setMetodo(v)} style={{padding:"14px 16px",borderRadius:10,border:`2px solid ${metodo===v?BRAND.primary:C.border}`,background:metodo===v?BRAND.primary+"18":C.white,cursor:"pointer",marginBottom:10}}><div style={{color:metodo===v?BRAND.primary:C.dark,fontWeight:700,fontSize:"clamp(13px,3.2vw,14px)"}}>{l}</div><div style={{color:C.dim,fontSize:12,marginTop:2}}>{s}</div></div>))}<div style={{color:C.textDim,fontSize:11,lineHeight:1.45,marginBottom:10}}>El cobro online se procesa en Mercado Pago. FarmaCapital no captura datos de tarjeta directamente.</div><div style={{display:"flex",gap:10,marginTop:8,flexWrap:"wrap"}}><Btn onClick={()=>setStep(1)} outline col={C.mid} sm>← Atrás</Btn><Btn onClick={()=>setStep(3)} col={BRAND.primary} style={{flex:stack?1:undefined,minWidth:stack?0:undefined}} disabled={!datosCheckoutCompletos}>Revisar pedido →</Btn></div></div>)}
           {step===3&&(<div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}><div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:16}}>✅ Confirmar pedido</div>{cart.map(item=>(<div key={item.id} style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,padding:"8px 0",borderBottom:`1px solid ${C.border}`}}><span style={{color:C.dark,fontSize:13,fontWeight:600,flex:1,minWidth:0,wordBreak:"break-word"}}>{item.nombre} ×{item.qty}</span><span style={{color:BRAND.primary,fontWeight:700,flexShrink:0}}>{$(item.precio*item.qty)}</span></div>))}{!cart.length&&(<div style={{fontSize:12,color:C.textMid,padding:"6px 0 2px"}}>Tu carrito quedó vacío. Regresa al catálogo para continuar.</div>)}<div style={{display:"flex",gap:10,marginTop:16,flexWrap:"wrap"}}><Btn onClick={()=>setStep(2)} outline col={C.mid} sm>← Atrás</Btn><Btn onClick={confirmar} col={BRAND.primary} disabled={guardando||!cart.length||sub<=0||!datosCheckoutCompletos} style={{flex:stack?1:undefined,minWidth:0}}>{guardando?"Procesando pago...":"💳 Pagar y confirmar "+$(sub)}</Btn></div></div>)}
         </div>
         <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:20,position:stack?"relative":"sticky",top:"calc(env(safe-area-inset-top, 0px) + 100px)"}}>
@@ -3359,7 +3359,7 @@ function AgendarCita({setPage,user}){
 
   useEffect(()=>{
     try {
-      const raw = sessionStorage.getItem("farmax_cita_draft");
+      const raw = sessionStorage.getItem("farmacapital_cita_draft");
       if (!raw) return;
       const d = JSON.parse(raw);
       if (d?.nombre) setNombre(String(d.nombre));
@@ -3368,7 +3368,7 @@ function AgendarCita({setPage,user}){
       if (d?.hora) setHora(String(d.hora));
       if (d?.motivo) setMotivo(String(d.motivo));
       setDraftMsg("Estamos precargando tu cita para reagendarla. Puedes ajustar fecha/hora y confirmar.");
-      sessionStorage.removeItem("farmax_cita_draft");
+      sessionStorage.removeItem("farmacapital_cita_draft");
     } catch (_) { /* noop */ }
   },[]);
 
@@ -3402,7 +3402,7 @@ function AgendarCita({setPage,user}){
     }
     setG(true);
     try{
-      const tokCli = sessionStorage.getItem("farmax_cliente_token");
+      const tokCli = sessionStorage.getItem("farmacapital_cliente_token");
       if (!tokCli) { alert("Inicia sesión para agendar tu cita."); setG(false); return; }
       const { data: resp, error } = await supabase.rpc("cliente_agendar_cita", {
         p_session_token: tokCli,
@@ -3429,7 +3429,7 @@ function AgendarCita({setPage,user}){
       {(tel||user?.telefono)&&(
         <button type="button" onClick={()=>{
           const t = tel||user?.telefono||"";
-          const msg = `📅 *Cita confirmada en Farmax*\n\nHola${nombre?" "+nombre:""}! Tu cita médica ha sido registrada.\n\n🗓 Fecha: ${fecha}\n🕐 Hora: ${hora}\n👩‍⚕️ Médico general\n📍 Chinampac de Juárez, Iztapalapa, CDMX\n\n${motivo?"Motivo: "+motivo+"\n\n":""}💊 Al terminar tu consulta, surte tu receta en Farmax con 10% de descuento.\n\n¡Te esperamos! 🏥`;
+          const msg = `📅 *Cita confirmada en FarmaCapital*\n\nHola${nombre?" "+nombre:""}! Tu cita médica ha sido registrada.\n\n🗓 Fecha: ${fecha}\n🕐 Hora: ${hora}\n👩‍⚕️ Médico general\n📍 Chinampac de Juárez, Iztapalapa, CDMX\n\n${motivo?"Motivo: "+motivo+"\n\n":""}💊 Al terminar tu consulta, surte tu receta en FarmaCapital con 10% de descuento.\n\n¡Te esperamos! 🏥`;
           window.open("https://wa.me/52"+t.replace(/\D/g,"")+"?text="+encodeURIComponent(msg),"_blank");
         }} style={{display:"flex",alignItems:"center",gap:8,margin:"0 auto",padding:"10px 24px",borderRadius:10,border:"none",background:"#25D366",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer"}}>
           📱 Enviar confirmación por WhatsApp
@@ -3441,15 +3441,15 @@ function AgendarCita({setPage,user}){
     <div style={{maxWidth:900,margin:"0 auto",padding:"clamp(24px,5vw,40px) 16px"}}>
       <div style={{textAlign:"center",marginBottom:32}}>
         <div style={{fontSize:"clamp(40px,11vw,48px)",marginBottom:12}}>🏥</div>
-        <h1 style={{color:C.dark,fontSize:"clamp(22px,5vw,28px)",fontWeight:800,marginBottom:8,lineHeight:1.2}}>Consultorio Farmax</h1>
-        <p style={{color:C.mid,fontSize:"clamp(14px,3.5vw,15px)",lineHeight:1.5}}>Médico general · $80 por consulta (pago en farmacia el día de la cita) · O gratis con 160 puntos Farmax</p>
+        <h1 style={{color:C.dark,fontSize:"clamp(22px,5vw,28px)",fontWeight:800,marginBottom:8,lineHeight:1.2}}>Consultorio FarmaCapital</h1>
+        <p style={{color:C.mid,fontSize:"clamp(14px,3.5vw,15px)",lineHeight:1.5}}>Médico general · $80 por consulta (pago en farmacia el día de la cita) · O gratis con 160 puntos FarmaCapital</p>
       </div>
       <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:24,marginBottom:24}}>
         {/* Info doctora */}
         <div style={{background:C.white,borderRadius:16,border:`1px solid ${C.border}`,padding:24}}>
           <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:16}}>
             <div style={{width:56,height:56,borderRadius:"50%",background:BRAND.gradient,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28}}>👩‍⚕️</div>
-            <div><div style={{color:C.dark,fontWeight:800,fontSize:16}}>Médico general en turno</div><div style={{color:C.mid,fontSize:13,marginTop:2}}>Consultorio adyacente a Farmax</div></div>
+            <div><div style={{color:C.dark,fontWeight:800,fontSize:16}}>Médico general en turno</div><div style={{color:C.mid,fontSize:13,marginTop:2}}>Consultorio adyacente a FarmaCapital</div></div>
           </div>
           <div style={{display:"grid",gap:10,marginBottom:16}}>
             {HORARIOS_DOCTORA.map(h=>(
@@ -3460,7 +3460,7 @@ function AgendarCita({setPage,user}){
             ))}
           </div>
           <div style={{background:"#fef3c7",border:"1px solid #f59e0b30",borderRadius:8,padding:"10px 12px"}}>
-            <div style={{color:"#92400e",fontSize:12}}>💊 Surte tu receta en Farmax con <strong>10% de descuento especial</strong> tras tu consulta.</div>
+            <div style={{color:"#92400e",fontSize:12}}>💊 Surte tu receta en FarmaCapital con <strong>10% de descuento especial</strong> tras tu consulta.</div>
           </div>
         </div>
         {/* Mapa */}
@@ -3470,7 +3470,7 @@ function AgendarCita({setPage,user}){
             <div style={{color:C.mid,fontSize:12,marginTop:4}}>Radiodifusora 100, Chinampac de Juárez, Iztapalapa, CDMX</div>
           </div>
           <iframe
-            title="Ubicación Farmax"
+            title="Ubicación FarmaCapital"
             src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3763.5!2d-99.05669!3d19.37106!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x85d1fd0b8b0fd10d%3A0x75316d7abacf16ae!2sRadiodifusora+100%2C+Chinampac+de+Ju%C3%A1rez%2C+09208+Ciudad+de+M%C3%A9xico%2C+CDMX!5e0!3m2!1ses-419!2smx!4v1713000000000!5m2!1ses-419!2smx"
             width="100%" height="280" style={{border:"none",display:"block"}}
             allowFullScreen loading="lazy"/>
@@ -3530,7 +3530,7 @@ function PromocionesPage({setPage}){
       <div style={{marginBottom:28}}>
         <h1 style={{color:C.dark,fontSize:"clamp(24px,5.5vw,30px)",fontWeight:800,marginBottom:8,lineHeight:1.2}}>Promociones vigentes</h1>
         <p style={{color:C.mid,fontSize:"clamp(14px,3.5vw,15px)",lineHeight:1.6,maxWidth:640}}>
-          Ofertas y campañas activas en Farmax. Los banners del inicio pueden enlazar aquí: en administración, en el campo <strong>Página destino</strong> escribe <code style={{background:C.cardDark,padding:"2px 6px",borderRadius:4}}>promo</code>.
+          Ofertas y campañas activas en FarmaCapital. Los banners del inicio pueden enlazar aquí: en administración, en el campo <strong>Página destino</strong> escribe <code style={{background:C.cardDark,padding:"2px 6px",borderRadius:4}}>promo</code>.
         </p>
       </div>
       {load ? (
@@ -3571,7 +3571,7 @@ function FAQPage({setPage}){
       <div style={{textAlign:"center",marginBottom:32}}>
         <div style={{fontSize:"clamp(40px,12vw,48px)",marginBottom:12}}>❓</div>
         <h1 style={{color:C.dark,fontSize:"clamp(22px,5vw,28px)",fontWeight:800,marginBottom:8,lineHeight:1.2}}>Preguntas frecuentes</h1>
-        <p style={{color:C.mid,fontSize:"clamp(14px,3.5vw,15px)",lineHeight:1.5}}>Todo lo que necesitas saber sobre Farmax</p>
+        <p style={{color:C.mid,fontSize:"clamp(14px,3.5vw,15px)",lineHeight:1.5}}>Todo lo que necesitas saber sobre FarmaCapital</p>
       </div>
       <div style={{display:"grid",gap:10,marginBottom:32}}>
         {FAQ_ITEMS.map((f,i)=>(
@@ -3592,7 +3592,7 @@ function FAQPage({setPage}){
         <div style={{color:C.dark,fontWeight:700,fontSize:"clamp(15px,3.8vw,16px)",marginBottom:8}}>¿No encontraste tu respuesta?</div>
         <div style={{color:C.mid,fontSize:"clamp(13px,3.2vw,14px)",marginBottom:16,lineHeight:1.5}}>Escríbenos y te respondemos a la brevedad.</div>
         <div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap"}}>
-          <a href="mailto:contacto@farmax.mx" style={{color:BRAND.primary,fontWeight:700,fontSize:14,textDecoration:"none"}}>📧 contacto@farmax.mx</a>
+          <a href="mailto:contacto@farmacapital.mx" style={{color:BRAND.primary,fontWeight:700,fontSize:14,textDecoration:"none"}}>📧 contacto@farmacapital.mx</a>
           {/* Descomentar cuando tengas WhatsApp:
           <a href="https://wa.me/52XXXXXXXXXX" style={{color:BRAND.accent,fontWeight:700,fontSize:14,textDecoration:"none"}}>💬 WhatsApp</a>
           */}
@@ -3609,7 +3609,7 @@ function PaginaLegal({titulo,children,setPage}){
     <div style={{maxWidth:800,margin:"0 auto",padding:"clamp(24px,5vw,40px) 16px"}}>
       <button type="button" onClick={()=>setPage("home")} style={{background:"none",border:"none",color:BRAND.primary,cursor:"pointer",fontSize:14,fontWeight:700,marginBottom:20,display:"flex",alignItems:"center",gap:6}}>← Volver al inicio</button>
       <h1 style={{color:C.dark,fontSize:"clamp(20px,4.8vw,26px)",fontWeight:800,marginBottom:8,lineHeight:1.2,wordBreak:"break-word"}}>{titulo}</h1>
-      <div style={{color:C.dim,fontSize:"clamp(12px,3vw,13px)",marginBottom:24,lineHeight:1.5}}>Última actualización: Abril 2026 · Farmax Farmacia · Iztapalapa, CDMX</div>
+      <div style={{color:C.dim,fontSize:"clamp(12px,3vw,13px)",marginBottom:24,lineHeight:1.5}}>Última actualización: Abril 2026 · FarmaCapital · Iztapalapa, CDMX</div>
       <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:"clamp(20px,4vw,32px)",lineHeight:1.8,color:C.mid,fontSize:"clamp(13px,3.2vw,14px)",wordBreak:"break-word",overflowWrap:"break-word"}}>
         {children}
       </div>
@@ -3621,14 +3621,14 @@ function AvisoPrivacidad({setPage}){
   const C = useTheme();
   return(
     <PaginaLegal titulo="📄 Aviso de Privacidad" setPage={setPage}>
-      <p style={{color:C.dark,fontWeight:700,marginBottom:16}}>De conformidad con la Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP) y su Reglamento, Farmax Farmacia pone a su disposición el presente Aviso de Privacidad.</p>
+      <p style={{color:C.dark,fontWeight:700,marginBottom:16}}>De conformidad con la Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP) y su Reglamento, FarmaCapital pone a su disposición el presente Aviso de Privacidad.</p>
       {[
-        ["1. Responsable del tratamiento de sus datos","Farmax Farmacia, con domicilio en Radiodifusora 100, Chinampac de Juárez, Iztapalapa, Ciudad de México, C.P. 09208, es responsable del uso y protección de sus datos personales."],
+        ["1. Responsable del tratamiento de sus datos","FarmaCapital, con domicilio en Radiodifusora 100, Chinampac de Juárez, Iztapalapa, Ciudad de México, C.P. 09208, es responsable del uso y protección de sus datos personales."],
         ["2. Datos personales que recabamos","Recabamos los siguientes datos personales: nombre completo, número de teléfono, correo electrónico, domicilio de entrega, e historial de compras y citas médicas. No recabamos datos sensibles salvo los necesarios para la atención médica en nuestro consultorio, los cuales se tratan con el máximo nivel de confidencialidad."],
-        ["3. Finalidades del tratamiento","Sus datos se utilizan para: procesar sus pedidos y entregas, gestionar su cuenta y programa de puntos Farmax, agendar y dar seguimiento a consultas médicas, enviarle comunicaciones relacionadas con sus pedidos, y cumplir con obligaciones legales ante COFEPRIS."],
+        ["3. Finalidades del tratamiento","Sus datos se utilizan para: procesar sus pedidos y entregas, gestionar su cuenta y programa de puntos FarmaCapital, agendar y dar seguimiento a consultas médicas, enviarle comunicaciones relacionadas con sus pedidos, y cumplir con obligaciones legales ante COFEPRIS."],
         ["4. Transferencia de datos","Sus datos no serán transferidos a terceros sin su consentimiento, salvo en los casos previstos por la ley o cuando sea necesario para el cumplimiento del servicio contratado (ej. empresas de mensajería)."],
-        ["5. Derechos ARCO","Usted tiene derecho a Acceder, Rectificar, Cancelar u Oponerse al tratamiento de sus datos (derechos ARCO). Para ejercerlos, envíe un correo a contacto@farmax.mx indicando su nombre, el derecho que desea ejercer y los datos a los que se refiere. Responderemos en un plazo máximo de 20 días hábiles."],
-        ["6. Cambios al aviso de privacidad","Farmax se reserva el derecho de modificar el presente aviso. Cualquier cambio será notificado a través de nuestro sitio web farmax.com.mx."],
+        ["5. Derechos ARCO","Usted tiene derecho a Acceder, Rectificar, Cancelar u Oponerse al tratamiento de sus datos (derechos ARCO). Para ejercerlos, envíe un correo a contacto@farmacapital.mx indicando su nombre, el derecho que desea ejercer y los datos a los que se refiere. Responderemos en un plazo máximo de 20 días hábiles."],
+        ["6. Cambios al aviso de privacidad","FarmaCapital se reserva el derecho de modificar el presente aviso. Cualquier cambio será notificado a través de nuestro sitio web farmacapital.com.mx."],
       ].map(([t,c])=>(
         <div key={t} style={{marginBottom:20}}>
           <div style={{color:C.dark,fontWeight:700,marginBottom:6}}>{t}</div>
@@ -3644,12 +3644,12 @@ function TerminosCondiciones({setPage}){
   return(
     <PaginaLegal titulo="📋 Términos y Condiciones" setPage={setPage}>
       {[
-        ["1. Aceptación","Al utilizar la plataforma de Farmax Farmacia, el usuario acepta los presentes Términos y Condiciones. Si no está de acuerdo, le pedimos que no utilice nuestros servicios."],
-        ["2. Productos y precios","Los precios mostrados en la plataforma incluyen IVA y están sujetos a disponibilidad. Farmax se reserva el derecho de modificar precios sin previo aviso, respetando siempre el precio vigente al momento de confirmar el pedido."],
+        ["1. Aceptación","Al utilizar la plataforma de FarmaCapital, el usuario acepta los presentes Términos y Condiciones. Si no está de acuerdo, le pedimos que no utilice nuestros servicios."],
+        ["2. Productos y precios","Los precios mostrados en la plataforma incluyen IVA y están sujetos a disponibilidad. FarmaCapital se reserva el derecho de modificar precios sin previo aviso, respetando siempre el precio vigente al momento de confirmar el pedido."],
         ["3. Disponibilidad de productos","Indicamos claramente si un producto está disponible de forma inmediata o en 24-48 horas. En caso de no poder surtir un pedido, notificaremos al cliente y realizaremos el reembolso correspondiente en un plazo no mayor a 5 días hábiles."],
-        ["4. Medicamentos con receta","Los medicamentos que requieren receta médica serán entregados únicamente al presentar la receta original vigente. Farmax se reserva el derecho de cancelar pedidos de medicamentos controlados que no cumplan con los requisitos de COFEPRIS."],
-        ["5. Responsabilidad","Farmax no se hace responsable del uso incorrecto de los medicamentos. Se recomienda siempre consultar a un profesional de la salud. La información en nuestra plataforma es de carácter informativo y no sustituye la opinión médica."],
-        ["6. Propiedad intelectual","El contenido de la plataforma de Farmax, incluyendo textos, imágenes y logotipos, es propiedad de Farmax Farmacia y está protegido por las leyes de propiedad intelectual vigentes en México."],
+        ["4. Medicamentos con receta","Los medicamentos que requieren receta médica serán entregados únicamente al presentar la receta original vigente. FarmaCapital se reserva el derecho de cancelar pedidos de medicamentos controlados que no cumplan con los requisitos de COFEPRIS."],
+        ["5. Responsabilidad","FarmaCapital no se hace responsable del uso incorrecto de los medicamentos. Se recomienda siempre consultar a un profesional de la salud. La información en nuestra plataforma es de carácter informativo y no sustituye la opinión médica."],
+        ["6. Propiedad intelectual","El contenido de la plataforma de FarmaCapital, incluyendo textos, imágenes y logotipos, es propiedad de FarmaCapital y está protegido por las leyes de propiedad intelectual vigentes en México."],
         ["7. Jurisdicción","Para cualquier controversia derivada del uso de esta plataforma, las partes se someten a la jurisdicción de los tribunales competentes de la Ciudad de México."],
       ].map(([t,c])=>(
         <div key={t} style={{marginBottom:20}}>
@@ -3666,9 +3666,9 @@ function PoliticaEnvios({setPage}){
   return(
     <PaginaLegal titulo="📦 Política de Envíos y Devoluciones" setPage={setPage}>
       {[
-        ["Tipos de entrega disponibles","• Pick-up en Farmax: Gratis. Disponible el mismo día. Te avisamos cuando tu pedido esté listo.\n• Reparto express CDMX: Mediante Rappi o Uber Connect. El costo es el que muestre la aplicación al momento del servicio.\n• Envío foráneo: $89 a través de Skydropx. Tiempo estimado: 2-5 días hábiles."],
+        ["Tipos de entrega disponibles","• Pick-up en FarmaCapital: Gratis. Disponible el mismo día. Te avisamos cuando tu pedido esté listo.\n• Reparto express CDMX: Mediante Rappi o Uber Connect. El costo es el que muestre la aplicación al momento del servicio.\n• Envío foráneo: $89 a través de Skydropx. Tiempo estimado: 2-5 días hábiles."],
         ["Política de devoluciones","Aceptamos devoluciones dentro de las 72 horas siguientes a la entrega, siempre que el producto esté en perfecto estado, sin abrir y con su empaque original. No se aceptan devoluciones de: medicamentos controlados, productos refrigerados, ni artículos de uso personal."],
-        ["Proceso de devolución","Para iniciar una devolución, contáctanos a contacto@farmax.mx dentro del plazo indicado. Una vez aprobada la devolución, el reembolso se realizará en un plazo máximo de 5 días hábiles al mismo método de pago utilizado."],
+        ["Proceso de devolución","Para iniciar una devolución, contáctanos a contacto@farmacapital.mx dentro del plazo indicado. Una vez aprobada la devolución, el reembolso se realizará en un plazo máximo de 5 días hábiles al mismo método de pago utilizado."],
         ["Productos dañados o incorrectos","Si recibes un producto dañado o diferente al solicitado, contáctanos de inmediato. Haremos el reemplazo o reembolso sin costo adicional para ti."],
         ["Medicamentos con receta","Los medicamentos que requieren receta médica no tienen devolución una vez entregados, en cumplimiento con la normativa COFEPRIS."],
       ].map(([t,c])=>(
@@ -3684,13 +3684,13 @@ function PoliticaEnvios({setPage}){
 function TerminosPuntos({setPage}){
   const C = useTheme();
   return(
-    <PaginaLegal titulo="⭐ Términos del Programa Puntos Farmax" setPage={setPage}>
+    <PaginaLegal titulo="⭐ Términos del Programa Puntos FarmaCapital" setPage={setPage}>
       {[
-        ["¿Qué son los Puntos Farmax?","Los Puntos Farmax son un beneficio exclusivo para clientes registrados en la plataforma de Farmax Farmacia. No tienen valor monetario en efectivo y solo pueden canjearse bajo los términos aquí descritos."],
+        ["¿Qué son los Puntos FarmaCapital?","Los Puntos FarmaCapital son un beneficio exclusivo para clientes registrados en la plataforma de FarmaCapital. No tienen valor monetario en efectivo y solo pueden canjearse bajo los términos aquí descritos."],
         ["Acumulación de puntos","Se otorga 1 punto por cada $10 de compra en precio normal (no aplica en productos con descuento previo). Las consultas médicas otorgan 5 puntos. El registro nuevo otorga 10 puntos de bienvenida. Las compras en línea otorgan 1.5× puntos. En el mes de cumpleaños se otorga 2× puntos."],
-        ["Canje de puntos","20 puntos = $10 de descuento en Farmax. 50 puntos = envío gratis en compra en línea. 100 puntos = $50 de descuento. 160 puntos = consulta médica gratis. 200 puntos = producto gratis (sujeto a catálogo disponible). 1 punto equivale a $0.50 de valor de descuento."],
-        ["Vigencia","Los puntos vencen a los 12 meses de inactividad en la cuenta. Farmax se reserva el derecho de modificar las condiciones del programa con previo aviso de 30 días."],
-        ["Restricciones","Los puntos no son transferibles entre cuentas, no se pueden convertir en efectivo, y no aplican en combinación con otras promociones salvo indicación expresa. Farmax se reserva el derecho de cancelar cuentas o puntos obtenidos de forma fraudulenta."],
+        ["Canje de puntos","20 puntos = $10 de descuento en FarmaCapital. 50 puntos = envío gratis en compra en línea. 100 puntos = $50 de descuento. 160 puntos = consulta médica gratis. 200 puntos = producto gratis (sujeto a catálogo disponible). 1 punto equivale a $0.50 de valor de descuento."],
+        ["Vigencia","Los puntos vencen a los 12 meses de inactividad en la cuenta. FarmaCapital se reserva el derecho de modificar las condiciones del programa con previo aviso de 30 días."],
+        ["Restricciones","Los puntos no son transferibles entre cuentas, no se pueden convertir en efectivo, y no aplican en combinación con otras promociones salvo indicación expresa. FarmaCapital se reserva el derecho de cancelar cuentas o puntos obtenidos de forma fraudulenta."],
       ].map(([t,c])=>(
         <div key={t} style={{marginBottom:20}}>
           <div style={{color:C.dark,fontWeight:700,marginBottom:6}}>{t}</div>
@@ -3746,8 +3746,8 @@ function Registro({setUser,setPage}){
         setC(false); return;
       }
       const nuevo = resp.user || {};
-      sessionStorage.setItem("farmax_cliente_token", String(resp.session_token));
-      sessionStorage.setItem("farmax_user", JSON.stringify(nuevo));
+      sessionStorage.setItem("farmacapital_cliente_token", String(resp.session_token));
+      sessionStorage.setItem("farmacapital_user", JSON.stringify(nuevo));
       setUser(nuevo);
       setPage("cuenta");
     }catch(e){setError("Error al crear cuenta. Intenta de nuevo.");}
@@ -3757,7 +3757,7 @@ function Registro({setUser,setPage}){
     <div style={{maxWidth:440,margin:"80px auto",padding:"0 24px"}}>
       <div style={{background:C.white,borderRadius:20,border:`1px solid ${C.border}`,padding:40}}>
         <div style={{display:"flex",justifyContent:"center",marginBottom:20}}><Logo size={40}/></div>
-        <h1 style={{color:C.dark,fontSize:24,fontWeight:800,marginBottom:6,textAlign:"center"}}>Crear cuenta Farmax</h1>
+        <h1 style={{color:C.dark,fontSize:24,fontWeight:800,marginBottom:6,textAlign:"center"}}>Crear cuenta FarmaCapital</h1>
         <p style={{color:C.mid,fontSize:14,marginBottom:28,textAlign:"center"}}>Regístrate y gana <strong style={{color:BRAND.accent}}>10 puntos de bienvenida ⭐</strong></p>
         <p style={{color:C.textMid,fontSize:12,marginBottom:20,textAlign:"center",lineHeight:1.5}}>Usá <strong>correo</strong>, <strong>teléfono</strong> o <strong>ambos</strong> para tu cuenta (necesitamos al menos uno).</p>
         <div style={{marginBottom:14}}><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Nombre completo *</div><Inp value={nombre} onChange={e=>setNombre(e.target.value)} placeholder="Tu nombre" style={{width:"100%",boxSizing:"border-box"}}/></div>
@@ -3784,7 +3784,7 @@ function Registro({setUser,setPage}){
             <button onClick={()=>setPage("privacidad")} style={{background:"none",border:"none",color:BRAND.primary,fontWeight:700,fontSize:12,cursor:"pointer",padding:0,textDecoration:"underline"}}>
               Aviso de Privacidad
             </button>
-            {" "}de Farmax. Autorizo el uso de mis datos para gestionar mi cuenta y programa de puntos. <span style={{color:"#ef4444",fontWeight:700}}>*</span>
+            {" "}de FarmaCapital. Autorizo el uso de mis datos para gestionar mi cuenta y programa de puntos. <span style={{color:"#ef4444",fontWeight:700}}>*</span>
           </label>
         </div>
         <Btn onClick={registrar} col={BRAND.primary} full disabled={!nombre||!contactoOk||!pwd||!pwd2||pwd!==pwd2||pwd.length<6||creando||!acepto}>{creando?"Creando cuenta...":"Crear mi cuenta →"}</Btn>
@@ -3830,8 +3830,8 @@ function Login({setUser,setPage}){
       }
       const cliente = resp.user || {};
       setInt(0);
-      sessionStorage.setItem("farmax_cliente_token", String(resp.session_token));
-      sessionStorage.setItem("farmax_user", JSON.stringify(cliente));
+      sessionStorage.setItem("farmacapital_cliente_token", String(resp.session_token));
+      sessionStorage.setItem("farmacapital_user", JSON.stringify(cliente));
       setUser(cliente);
       setPage("cuenta");
     }catch(e){setError("Error de conexión. Intenta de nuevo.");}
@@ -3861,10 +3861,10 @@ function Login({setUser,setPage}){
       if (err || resp?.success === false) throw err || new Error(resp?.error || "rpc");
       setRecMsg({
         ok: true,
-        txt: "Listo. Recibimos tu solicitud: el equipo de Farmax te contactará para activar tu contraseña de tienda. Si ya sos cliente de sucursal y no tenías clave web, también podés pedirla en mostrador.",
+        txt: "Listo. Recibimos tu solicitud: el equipo de FarmaCapital te contactará para activar tu contraseña de tienda. Si ya sos cliente de sucursal y no tenías clave web, también podés pedirla en mostrador.",
       });
     } catch (_) {
-      setRecMsg({ ok: false, txt: "No se pudo enviar la solicitud. Intentá de nuevo o escribinos a contacto@farmax.mx." });
+      setRecMsg({ ok: false, txt: "No se pudo enviar la solicitud. Intentá de nuevo o escribinos a contacto@farmacapital.mx." });
     }
     setRecBusy(false);
   };
@@ -3879,7 +3879,7 @@ function Login({setUser,setPage}){
         {recMode ? (
           <>
             <p style={{color:C.textMid,fontSize:13,marginBottom:16,lineHeight:1.5}}>
-              Indicá el <strong>mismo correo o teléfono</strong> que usás en Farmax. Te avisaremos cuando tu cuenta tenga contraseña para la tienda.
+              Indicá el <strong>mismo correo o teléfono</strong> que usás en FarmaCapital. Te avisaremos cuando tu cuenta tenga contraseña para la tienda.
             </p>
             <div style={{marginBottom:12}}>
               <div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Correo o teléfono</div>
@@ -3947,7 +3947,7 @@ function CambiarPwdCliente({user}) {
     if(pwdN!==pwdN2) { setMsg({ok:false,txt:"Las contraseñas no coinciden"}); return; }
     setCarg(true); setMsg(null);
     try {
-      const tok = sessionStorage.getItem("farmax_cliente_token");
+      const tok = sessionStorage.getItem("farmacapital_cliente_token");
       if (!tok) { setMsg({ok:false,txt:"Sesión expirada. Inicia sesión de nuevo."}); setCarg(false); return; }
       const { data:resp, error:err } = await supabase.rpc("cliente_cambiar_password", {
         p_session_token: tok,
@@ -4083,7 +4083,7 @@ function Cuenta({user,setPage,setUser}){
   const [busyPayPedidoId,setBusyPayPedidoId]=useState(null);
   useEffect(()=>{
     if(!user?.id){setC(false);return;}
-    const tokCli = sessionStorage.getItem("farmax_cliente_token");
+    const tokCli = sessionStorage.getItem("farmacapital_cliente_token");
     if (!tokCli) { setPeds([]); setCitas([]); setC(false); return; }
     Promise.all([
       supabase.rpc("cliente_listar_mis_pedidos", { p_session_token: tokCli, p_limite: 150 }),
@@ -4096,13 +4096,13 @@ function Cuenta({user,setPage,setUser}){
   },[user]);
   const refreshCitas = async ()=>{
     if(!user?.id) return;
-    const tokCli = sessionStorage.getItem("farmax_cliente_token");
+    const tokCli = sessionStorage.getItem("farmacapital_cliente_token");
     if (!tokCli) return;
     const { data } = await supabase.rpc("cliente_listar_mis_citas", { p_session_token: tokCli });
     setCitas(Array.isArray(data) ? data : []);
   };
   const cancelarCita = async (cita)=>{
-    const tok = sessionStorage.getItem("farmax_cliente_token");
+    const tok = sessionStorage.getItem("farmacapital_cliente_token");
     if (!tok) { alert("Tu sesión expiró. Inicia sesión de nuevo."); return; }
     if (!window.confirm(`¿Cancelar la cita del ${cita.fecha} a las ${cita.hora}?`)) return;
     setBusyCitaId(cita.id);
@@ -4121,7 +4121,7 @@ function Cuenta({user,setPage,setUser}){
   };
   const reagendarCita = (cita)=>{
     try {
-      sessionStorage.setItem("farmax_cita_draft", JSON.stringify({
+      sessionStorage.setItem("farmacapital_cita_draft", JSON.stringify({
         id: cita.id,
         fecha: cita.fecha || "",
         hora: cita.hora || "",
@@ -4133,7 +4133,7 @@ function Cuenta({user,setPage,setUser}){
     setPage("cita");
   };
   const pagarPedidoMercadoPago = async (p) => {
-    const tokCli = sessionStorage.getItem("farmax_cliente_token");
+    const tokCli = sessionStorage.getItem("farmacapital_cliente_token");
     if (!tokCli) { alert("Tu sesion expiro. Inicia sesion nuevamente."); setPage("login"); return; }
     setBusyPayPedidoId(p.id);
     try {
@@ -4184,7 +4184,7 @@ function Cuenta({user,setPage,setUser}){
       <div style={{background:BRAND.gradient,borderRadius:16,padding:28,marginBottom:24,display:"flex",alignItems:"center",gap:20}}>
         <div style={{width:64,height:64,borderRadius:"50%",background:"rgba(255,255,255,.25)",display:"flex",alignItems:"center",justifyContent:"center",color:C.white,fontWeight:900,fontSize:26}}>{(primerNombre(user.nombre)||"C")[0].toUpperCase()}</div>
         <div style={{flex:1}}><div style={{color:C.white,fontWeight:800,fontSize:22}}>{saludoUsuario(user.nombre)}</div><div style={{color:"rgba(255,255,255,.8)",fontSize:14,marginTop:2}}>{user.telefono}</div></div>
-        <div style={{textAlign:"center"}}><div style={{color:"#ffaa00",fontWeight:900,fontSize:36}}>{user.puntos||0}</div><div style={{color:"rgba(255,255,255,.8)",fontSize:13}}>puntos Farmax</div><div style={{color:"rgba(255,255,255,.6)",fontSize:11}}>= ${((user.puntos||0)*0.5).toFixed(0)} en descuentos</div></div>
+        <div style={{textAlign:"center"}}><div style={{color:"#ffaa00",fontWeight:900,fontSize:36}}>{user.puntos||0}</div><div style={{color:"rgba(255,255,255,.8)",fontSize:13}}>puntos FarmaCapital</div><div style={{color:"rgba(255,255,255,.6)",fontSize:11}}>= ${((user.puntos||0)*0.5).toFixed(0)} en descuentos</div></div>
       </div>
       <div style={{display:"flex",gap:6,marginBottom:20,background:C.white,borderRadius:12,padding:6,border:`1px solid ${C.border}`}}>
         {[["pedidos","📦 Mis pedidos"],["citas","📅 Mis citas"],["canjear","⭐ Canjear"],["datos","👤 Mis datos"]].map(([v,l])=>(
@@ -4192,7 +4192,7 @@ function Cuenta({user,setPage,setUser}){
         ))}
       </div>
       {tab==="pedidos"&&(cargando?<div style={{textAlign:"center",padding:40,color:C.mid}}>Cargando pedidos...</div>:!pedidos.length?(
-        <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:40,textAlign:"center"}}><div style={{fontSize:40,marginBottom:12}}>📦</div><div style={{color:C.mid,fontSize:15}}>Aún no tienes pedidos en Farmax</div><Btn onClick={()=>setPage("catalogo")} col={BRAND.primary} sm style={{marginTop:16}}>Hacer mi primer pedido</Btn></div>
+        <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:40,textAlign:"center"}}><div style={{fontSize:40,marginBottom:12}}>📦</div><div style={{color:C.mid,fontSize:15}}>Aún no tienes pedidos en FarmaCapital</div><Btn onClick={()=>setPage("catalogo")} col={BRAND.primary} sm style={{marginTop:16}}>Hacer mi primer pedido</Btn></div>
       ):pedidos.map(p=>(
         <div key={p.id} style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:20,marginBottom:12}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
@@ -4276,7 +4276,7 @@ function Cuenta({user,setPage,setUser}){
       {tab==="canjear"&&(
         <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:24}}>
           <div style={{color:C.dark,fontWeight:700,fontSize:16,marginBottom:16}}>Tienes {user.puntos||0} puntos = ${((user.puntos||0)*0.5).toFixed(0)} en valor</div>
-          {[{pts:20,ben:"$10 descuento en Farmax",col:BRAND.accent,icon:"💊"},{pts:50,ben:"Envío gratis",col:BRAND.secondary,icon:"📦"},{pts:100,ben:"$50 descuento",col:BRAND.primary,icon:"🎁"},{pts:160,ben:"Consulta médica gratis",col:"#f59e0b",icon:"🏥"},{pts:200,ben:"Producto gratis",col:C.red,icon:"⭐"}].map(r=>(
+          {[{pts:20,ben:"$10 descuento en FarmaCapital",col:BRAND.accent,icon:"💊"},{pts:50,ben:"Envío gratis",col:BRAND.secondary,icon:"📦"},{pts:100,ben:"$50 descuento",col:BRAND.primary,icon:"🎁"},{pts:160,ben:"Consulta médica gratis",col:"#f59e0b",icon:"🏥"},{pts:200,ben:"Producto gratis",col:C.red,icon:"⭐"}].map(r=>(
             <div key={r.pts} style={{display:"flex",alignItems:"center",gap:14,padding:16,borderRadius:12,border:`1px solid ${(user.puntos||0)>=r.pts?r.col+"40":C.border}`,background:(user.puntos||0)>=r.pts?r.col+"08":C.cardDark,marginBottom:10}}>
               <div style={{fontSize:28}}>{r.icon}</div>
               <div style={{flex:1}}><div style={{color:C.dark,fontWeight:700,fontSize:14}}>{r.ben}</div><div style={{color:r.col,fontSize:12,fontWeight:700,marginTop:2}}>{r.pts} puntos</div></div>
@@ -4287,16 +4287,16 @@ function Cuenta({user,setPage,setUser}){
       )}
       {tab==="datos"&&(
         <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:24}}>
-          {[["Nombre",user.nombre],["Teléfono",user.telefono],["Correo",user.email||"No registrado"],["Puntos",`${user.puntos||0} pts Farmax`]].map(([l,v])=>(<div key={l} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 0",borderBottom:`1px solid ${C.border}`}}><span style={{color:C.mid,fontSize:13}}>{l}</span><span style={{color:C.dark,fontSize:14,fontWeight:700}}>{v}</span></div>))}
+          {[["Nombre",user.nombre],["Teléfono",user.telefono],["Correo",user.email||"No registrado"],["Puntos",`${user.puntos||0} pts FarmaCapital`]].map(([l,v])=>(<div key={l} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 0",borderBottom:`1px solid ${C.border}`}}><span style={{color:C.mid,fontSize:13}}>{l}</span><span style={{color:C.dark,fontSize:14,fontWeight:700}}>{v}</span></div>))}
           <div style={{marginTop:16,padding:16,background:"#f8fafc",borderRadius:10,border:`1px solid ${C.border}`}}>
             <div style={{color:C.dark,fontWeight:700,fontSize:13,marginBottom:12}}>🔑 Cambiar contraseña</div>
             <CambiarPwdCliente user={user}/>
           </div>
           <div style={{marginTop:16}}><Btn sm col={C.red} outline onClick={async()=>{
-            const tok = sessionStorage.getItem("farmax_cliente_token");
+            const tok = sessionStorage.getItem("farmacapital_cliente_token");
             if (tok) { try { await supabase.rpc("logout_cliente", { p_session_token: tok }); } catch(e){} }
-            sessionStorage.removeItem("farmax_cliente_token");
-            sessionStorage.removeItem("farmax_user");
+            sessionStorage.removeItem("farmacapital_cliente_token");
+            sessionStorage.removeItem("farmacapital_user");
             setUser(null); setPage("home");
           }}>⎋ Cerrar sesión</Btn></div>
         </div>
@@ -4306,7 +4306,7 @@ function Cuenta({user,setPage,setUser}){
 }
 
 // ── APP PRINCIPAL ─────────────────────────────────────────────
-export default function TiendaFarmax(){
+export default function TiendaFarmaCapital(){
   const C = useTheme();
   const [page,setPageRaw] = useState("home");
   const setPage = (p) => { window.history.pushState({page:p},"",window.location.pathname); setPageRaw(p); };
@@ -4326,7 +4326,7 @@ export default function TiendaFarmax(){
     return ()=>window.cancelAnimationFrame(id);
   },[page]);
   const [cart,setCart]           = useState([]);
-  const [user,setUser]           = useState(()=>{ try{ const u=sessionStorage.getItem("farmax_user"); return u?JSON.parse(u):null; }catch{ return null; } });
+  const [user,setUser]           = useState(()=>{ try{ const u=sessionStorage.getItem("farmacapital_user"); return u?JSON.parse(u):null; }catch{ return null; } });
   const [productos,setProductos] = useState([]);
   const [cargando,setCargando]   = useState(true);
   const [prodDetalle,setProdD]   = useState(null);
@@ -4355,8 +4355,8 @@ export default function TiendaFarmax(){
 
   // Sesión persistente
   useEffect(()=>{
-    if(user) sessionStorage.setItem("farmax_user",JSON.stringify(user));
-    else sessionStorage.removeItem("farmax_user");
+    if(user) sessionStorage.setItem("farmacapital_user",JSON.stringify(user));
+    else sessionStorage.removeItem("farmacapital_user");
   },[user]);
 
   // Cargar productos (mismas filas/columnas que inventario: imagen_url, imagen_mobile_url)
@@ -4440,13 +4440,13 @@ export default function TiendaFarmax(){
     [productos]
   );
 
-  if(cargando) return(<div style={{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100dvh",background:C.bg,flexDirection:"column",gap:16}}><Logo size={48}/><div style={{color:C.mid,fontSize:15}}>Cargando Farmax...</div></div>);
+  if(cargando) return(<div style={{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100dvh",background:C.bg,flexDirection:"column",gap:16}}><Logo size={48}/><div style={{color:C.mid,fontSize:15}}>Cargando FarmaCapital...</div></div>);
 
   const puntosPage=(
     <div style={{maxWidth:700,margin:"0 auto",padding:"40px 24px"}}>
       <div style={{textAlign:"center",marginBottom:40}}>
         <div style={{fontSize:56,marginBottom:12}}>⭐</div>
-        <h1 style={{color:C.dark,fontSize:32,fontWeight:800,marginBottom:12}}>Programa Puntos Farmax</h1>
+        <h1 style={{color:C.dark,fontSize:32,fontWeight:800,marginBottom:12}}>Programa Puntos FarmaCapital</h1>
         <p style={{color:C.mid,fontSize:16,lineHeight:1.7,maxWidth:500,margin:"0 auto 24px"}}>Gana puntos en cada compra y canjéalos por descuentos, envíos gratis o consultas médicas.</p>
         {user?(
           <div style={{background:BRAND.gradient,borderRadius:16,padding:24,display:"inline-flex",alignItems:"center",gap:20,marginBottom:8}}>
@@ -4549,7 +4549,7 @@ export default function TiendaFarmax(){
 
       <Header page={page} setPage={setPage} cart={cart} user={user} setUser={setUser}/>
 
-      <div className="farmax-tienda-shell" style={{width:"100%",minHeight:"min-content"}}>
+      <div className="farmacapital-tienda-shell" style={{width:"100%",minHeight:"min-content"}}>
         <main style={{background:C.bg}}>
           {pages[page]||pages.home}
         </main>

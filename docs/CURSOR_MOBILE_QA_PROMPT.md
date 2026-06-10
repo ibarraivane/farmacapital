@@ -1,7 +1,7 @@
-Quiero que hagas una auditoría visual y funcional de la versión móvil/responsive de FARMAX y que APLIQUES correcciones seguras y de alta confianza directamente en el repo si detectas problemas claros de layout, overflow, jerarquía visual o usabilidad móvil.
+Quiero que hagas una auditoría visual y funcional de la versión móvil/responsive de FARMACAPITAL y que APLIQUES correcciones seguras y de alta confianza directamente en el repo si detectas problemas claros de layout, overflow, jerarquía visual o usabilidad móvil.
 
 CONTEXTO
-- Proyecto React + Supabase + SQL para FARMAX.
+- Proyecto React + Supabase + SQL para FARMACAPITAL.
 - Hay tienda pública + panel Admin/POS.
 - El sistema ya pasó una auditoría de seguridad pre-go-live y ya se endurecieron funciones críticas.
 - Ya existe trabajo previo de hardening y no quiero refactors grandes de arquitectura.

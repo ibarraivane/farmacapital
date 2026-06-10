@@ -1,4 +1,4 @@
-Quiero que corrijas el importador de CSV del inventario/productos de FARMAX porque, aunque el archivo ya trae datos para marca, presentación, principio activo, ubicación y rubro, después de importar esos campos siguen apareciendo vacíos en la tabla del sistema.
+Quiero que corrijas el importador de CSV del inventario/productos de FARMACAPITAL porque, aunque el archivo ya trae datos para marca, presentación, principio activo, ubicación y rubro, después de importar esos campos siguen apareciendo vacíos en la tabla del sistema.
 
 PROBLEMA REAL
 - Ya se generaron CSVs enriquecidos correctamente.

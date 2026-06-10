@@ -1,8 +1,8 @@
 {
   "id": "/admin",
-  "name": "Farmax — Admin",
-  "short_name": "Farmax Admin",
-  "description": "Panel administrativo Farmax: punto de venta, inventario, consultorio y reportes.",
+  "name": "FarmaCapital — Admin",
+  "short_name": "FarmaCapital Admin",
+  "description": "Panel administrativo FarmaCapital: punto de venta, inventario, consultorio y reportes.",
   "start_url": "/admin",
   "scope": "/admin",
   "display": "standalone",
@@ -13,31 +13,31 @@
   "categories": ["business", "medical", "health"],
   "icons": [
     {
-      "src": "/icons/farmax-72.png",
+      "src": "/icons/farmacapital-72.png",
       "sizes": "72x72",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/farmax-96.png",
+      "src": "/icons/farmacapital-96.png",
       "sizes": "96x96",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/farmax-128.png",
+      "src": "/icons/farmacapital-128.png",
       "sizes": "128x128",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/farmax-192.png",
+      "src": "/icons/farmacapital-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/icons/farmax-512.png",
+      "src": "/icons/farmacapital-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
@@ -49,28 +49,28 @@
       "short_name": "POS",
       "description": "Abrir POS",
       "url": "/admin/punto-de-venta",
-      "icons": [{ "src": "/icons/farmax-96.png", "sizes": "96x96" }]
+      "icons": [{ "src": "/icons/farmacapital-96.png", "sizes": "96x96" }]
     },
     {
       "name": "Inventario",
       "short_name": "Inventario",
       "description": "Catálogo e inventario",
       "url": "/admin/inv",
-      "icons": [{ "src": "/icons/farmax-96.png", "sizes": "96x96" }]
+      "icons": [{ "src": "/icons/farmacapital-96.png", "sizes": "96x96" }]
     },
     {
       "name": "Ventas (dashboard)",
       "short_name": "Ventas",
       "description": "Dashboard y reportes",
       "url": "/admin/ventas",
-      "icons": [{ "src": "/icons/farmax-96.png", "sizes": "96x96" }]
+      "icons": [{ "src": "/icons/farmacapital-96.png", "sizes": "96x96" }]
     },
     {
       "name": "Corte de caja",
       "short_name": "Caja",
       "description": "Corte de caja",
       "url": "/admin/caja",
-      "icons": [{ "src": "/icons/farmax-96.png", "sizes": "96x96" }]
+      "icons": [{ "src": "/icons/farmacapital-96.png", "sizes": "96x96" }]
     }
   ],
   "related_applications": [],

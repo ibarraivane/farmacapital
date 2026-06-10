@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /* eslint-disable */
 /**
- * FARMAX — Upload a Cloudflare R2 (STUB)
+ * FARMACAPITAL — Upload a Cloudflare R2 (STUB)
  *
  * Status: NO ACTIVADO. Este archivo queda preparado para el día que
  * quieras añadir un segundo destino de backup en R2.
@@ -24,7 +24,7 @@
  *          run: node scripts/upload-r2.js "$BACKUP_PATH"
  *
  * Uso (cuando esté activo):
- *   node scripts/upload-r2.js /tmp/backups/farmax-backup-YYYY-MM-DD.backup
+ *   node scripts/upload-r2.js /tmp/backups/farmacapital-backup-YYYY-MM-DD.backup
  *
  * Exit codes:
  *   0  → subida correcta (o stub deshabilitado)

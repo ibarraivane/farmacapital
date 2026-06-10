@@ -1,4 +1,4 @@
-Quiero una tercera ronda quirúrgica para el problema de scroll móvil en FARMAX, basada en los diffs reales de la fase anterior.
+Quiero una tercera ronda quirúrgica para el problema de scroll móvil en FARMACAPITAL, basada en los diffs reales de la fase anterior.
 
 CONTEXTO REAL
 Ya hubo una segunda ronda, pero el resultado quedó incompleto.
@@ -33,7 +33,7 @@ QUÉ QUIERO QUE HAGAS
 A. Admin.jsx
 1. Revisa el shell móvil completo.
 2. No basta con touchAction:"pan-y".
-3. Evalúa si farmax-admin-root / farmax-admin-main / sidebar siguen atrapando el scroll por:
+3. Evalúa si farmacapital-admin-root / farmacapital-admin-main / sidebar siguen atrapando el scroll por:
    - min-height 100vh / 100dvh
    - height / max-height
    - overflow en capas internas

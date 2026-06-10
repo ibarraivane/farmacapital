@@ -72,7 +72,7 @@ function SolicitarFacturaModal({pedido, onClose, onSaved }) {
     setSaving(true); setError("");
 
     try {
-      const tok = sessionStorage.getItem("farmax_session_token");
+      const tok = sessionStorage.getItem("farmacapital_session_token");
       if (!tok) throw new Error("Sesión expirada. Inicia sesión de nuevo.");
 
       if (PAC_CONFIG.modo === "simulado") {
@@ -234,7 +234,7 @@ export default function FacturacionModule() {
 
   const fetchFacturas = useCallback(async () => {
     setLoading(true);
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     const { data } = tok
       ? await supabase.rpc("empleado_listar_facturas", { p_session_token: tok, p_limite: 100 })
       : { data: [] };
@@ -247,7 +247,7 @@ export default function FacturacionModule() {
   const buscarPedidos = async () => {
     if (!busqPed) return;
     setLoadPed(true);
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     const { data } = tok
       ? await supabase.rpc("empleado_buscar_pedidos_facturacion", {
           p_session_token: tok,

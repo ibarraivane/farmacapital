@@ -1,4 +1,4 @@
-// FARMAX — Constantes globales
+// FARMACAPITAL — Constantes globales
 export const C_LIGHT = {
   bg:"#f7f9fc",     card:"#ffffff",     cardDark:"#f0f4f9",
   border:"#e2e8f0", borderHi:"#bfdbfe",
@@ -23,7 +23,7 @@ export const BRAND = {
 };
 
 export const NEG = {
-  farmacia:  { label:"Farmax Farmacia",   icon:"💊", color:C.blue,  owner:"Luis Ventura QFB" },
+  farmacia:  { label:"FarmaCapital",   icon:"💊", color:C.blue,  owner:"Luis Ventura QFB" },
   minisuper: { label:"Minisuper Yolanda", icon:"🛒", color:C.green, owner:"Yolanda Ventura"  },
 };
 

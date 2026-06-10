@@ -57,7 +57,7 @@ function ProcedimientoModal({initial, onClose, onSaved }) {
     if (!form.nombre.trim()||!form.precio) { showToast("Nombre y precio son requeridos.", "warning"); return; }
     setSaving(true);
     const payload = { nombre:form.nombre.trim(), precio:parseFloat(form.precio), descripcion:form.descripcion.trim()||null, activo:form.activo };
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     const { error: err } = await supabase.rpc("admin_upsert_procedimiento_medico", {
       p_session_token: tok,
       p_id:            form.id || null,
@@ -104,7 +104,7 @@ function MedicoModal({ initial, onClose, onSaved }) {
     if (!form.nombre.trim()) { showToast("El nombre del médico es requerido.", "warning"); return; }
     setSaving(true);
     const payload = { nombre:form.nombre.trim(), especialidad:form.especialidad||"Medicina General", cedula:form.cedula.trim()||null, turno:form.turno.trim()||null, modelo_pago:form.modelo_pago, monto_fijo:parseFloat(form.monto_fijo)||0, porcentaje:parseFloat(form.porcentaje)||70, activo:form.activo };
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     const { error: err } = await supabase.rpc("admin_upsert_medico", {
       p_session_token: tok,
       p_id:            form.id || null,
@@ -207,7 +207,7 @@ function ListaEspera({ onLlamoPaciente }) {
   }, [fetchCitas]);
 
   const cambiarEstado = async (id, nuevoEstado) => {
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) { alert("Sesión expirada."); return; }
     const { error } = await supabase.rpc("actualizar_estado_cita", {
       p_session_token: tok, p_cita_id: id, p_estado: nuevoEstado,
@@ -325,7 +325,7 @@ function EnConsulta() {
   const fetchActual = useCallback(async () => {
     setLoading(true);
     const hoy = todaySvLocal();
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     let cita = null;
     if (tok) {
       const { data: row } = await supabase.rpc("empleado_obtener_cita_en_consulta_hoy", {
@@ -388,7 +388,7 @@ function EnConsulta() {
 <html lang="es">
 <head>
   <meta charset="UTF-8"/>
-  <title>Receta Médica — Farmax</title>
+  <title>Receta Médica — FarmaCapital</title>
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
     body { font-family: Arial, sans-serif; font-size: 13px; color: #0f172a; padding: 32px; max-width: 700px; margin: 0 auto; }
@@ -461,12 +461,12 @@ function EnConsulta() {
 
   <div class="firma">
     <div class="firma-box">Firma del médico<br/><strong>Dra. Lourdes Lucio Falcón</strong></div>
-    <div class="firma-box">Sello del consultorio<br/><strong>Farmax · Consultorio Médico</strong></div>
+    <div class="firma-box">Sello del consultorio<br/><strong>FarmaCapital · Consultorio Médico</strong></div>
   </div>
 
   <div class="footer">
-    Este documento es una receta médica oficial. Válida para surtir en Farmax Farmacia.<br/>
-    Chinampac de Juárez, Iztapalapa, CDMX · farmax.mx
+    Este documento es una receta médica oficial. Válida para surtir en FarmaCapital.<br/>
+    Chinampac de Juárez, Iztapalapa, CDMX · farmacapital.mx
   </div>
 </body>
 </html>`;
@@ -480,7 +480,7 @@ function EnConsulta() {
   const guardarConsulta = async () => {
     if (!diagnostico.trim()) { showToast("El diagnóstico es requerido para guardar.", "warning"); return; }
     setSaving(true);
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) { showToast("Sesión expirada.", "error"); setSaving(false); return; }
 
     const { data: resp, error } = await supabase.rpc("doctora_completar_consulta", {
@@ -644,7 +644,7 @@ function Procedimientos({ readOnly }) {
 
   const fetchProcs = useCallback(async () => {
     setLoading(true);
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     const { data, error } = tok
       ? await supabase.rpc("empleado_listar_procedimientos_medicos", {
           p_session_token: tok,
@@ -675,7 +675,7 @@ function Procedimientos({ readOnly }) {
   useEffect(() => { fetchProcs(); }, [fetchProcs]);
 
   const toggleActivo = async (p) => {
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     await supabase.rpc("admin_toggle_procedimiento_medico", {
       p_session_token: tok, p_id: p.id, p_activo: !p.activo,
     });
@@ -739,7 +739,7 @@ function Medicos() {
 
   const fetchMedicos = useCallback(async () => {
     setLoading(true);
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     const { data, error } = tok
       ? await supabase.rpc("empleado_listar_medicos_consultorio", { p_session_token: tok })
       : { data: [], error: null };
@@ -750,7 +750,7 @@ function Medicos() {
   useEffect(() => { fetchMedicos(); }, [fetchMedicos]);
 
   const toggleActivo = async (m) => {
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     await supabase.rpc("admin_toggle_medico", {
       p_session_token: tok, p_id: m.id, p_activo: !m.activo,
     });
@@ -829,7 +829,7 @@ export default function ConsultorioModule({ usuario }) {
     <div style={{padding:24,background:C.bg,minHeight:"100dvh",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
       <div style={{marginBottom:20}}>
         <h1 style={{margin:0,color:C.text,fontSize:20,fontWeight:800}}>♥ Consultorio</h1>
-        <p style={{margin:"4px 0 0",color:C.textMid,fontSize:12}}>Gestión médica · Farmax</p>
+        <p style={{margin:"4px 0 0",color:C.textMid,fontSize:12}}>Gestión médica · FarmaCapital</p>
         {isDoctora && (
           <div
             style={{

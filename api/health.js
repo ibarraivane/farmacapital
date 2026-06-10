@@ -1,5 +1,5 @@
 /**
- * FARMAX — Health check
+ * FARMACAPITAL — Health check
  *
  * Invocado por Vercel Cron diariamente para mantener vivo el proyecto de
  * Supabase Free (se pausa tras 7 días sin queries) y para monitoreo básico.

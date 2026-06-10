@@ -131,7 +131,7 @@ export default function MiDia({ usuario, setPage }) {
       const finTurno = finDelTurno(hoy, turno).toISOString();
       const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString();
 
-      const tok = sessionStorage.getItem("farmax_session_token");
+      const tok = sessionStorage.getItem("farmacapital_session_token");
       const [configMap, snapRes] = await Promise.all([
         cargarConfigMetas(),
         tok

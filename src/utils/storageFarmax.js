@@ -1,6 +1,6 @@
 /**
  * Subida de imágenes públicas para tienda (banners y productos).
- * Buckets: farmax-banners, farmax-productos — crear en Supabase y aplicar sql/storage_farmax_tienda.sql
+ * Buckets: farmacapital-banners, farmacapital-productos — crear en Supabase y aplicar sql/storage_farmacapital_tienda.sql
  */
 
 import {
@@ -10,9 +10,9 @@ import {
   extFromContentType,
 } from "./imageUploadResize";
 
-export const FARMAX_STORAGE = {
-  banners: "farmax-banners",
-  productos: "farmax-productos",
+export const FARMACAPITAL_STORAGE = {
+  banners: "farmacapital-banners",
+  productos: "farmacapital-productos",
 };
 
 export function guessImageExt(file) {
@@ -24,7 +24,7 @@ async function removePrefixFiles(supabaseClient, bucket, folder, namePrefix) {
   const { data: files, error: listErr } = await supabaseClient.storage.from(bucket).list(folderStr);
   if (listErr) {
     // No bloquear la subida: carpetas nuevas, políticas de list distintas o bucket recién creado.
-    console.warn("[farmax storage] list omitido:", bucket, folderStr, listErr.message || listErr);
+    console.warn("[farmacapital storage] list omitido:", bucket, folderStr, listErr.message || listErr);
     return;
   }
   const paths = (files || [])
@@ -33,22 +33,22 @@ async function removePrefixFiles(supabaseClient, bucket, folder, namePrefix) {
   if (paths.length) {
     const { error: rmErr } = await supabaseClient.storage.from(bucket).remove(paths);
     if (rmErr) {
-      console.warn("[farmax storage] remove parcial:", bucket, rmErr.message || rmErr);
+      console.warn("[farmacapital storage] remove parcial:", bucket, rmErr.message || rmErr);
     }
   }
 }
 
 async function clearBannerImageSlots(supabaseClient, bannerId) {
   const id = String(bannerId);
-  await removePrefixFiles(supabaseClient, FARMAX_STORAGE.banners, id, "desktop");
-  await removePrefixFiles(supabaseClient, FARMAX_STORAGE.banners, id, "mobile");
+  await removePrefixFiles(supabaseClient, FARMACAPITAL_STORAGE.banners, id, "desktop");
+  await removePrefixFiles(supabaseClient, FARMACAPITAL_STORAGE.banners, id, "mobile");
 }
 
 async function clearProductImageSlots(supabaseClient, productId) {
   const id = String(productId);
-  await removePrefixFiles(supabaseClient, FARMAX_STORAGE.productos, id, "principal");
-  await removePrefixFiles(supabaseClient, FARMAX_STORAGE.productos, id, "desktop");
-  await removePrefixFiles(supabaseClient, FARMAX_STORAGE.productos, id, "mobile");
+  await removePrefixFiles(supabaseClient, FARMACAPITAL_STORAGE.productos, id, "principal");
+  await removePrefixFiles(supabaseClient, FARMACAPITAL_STORAGE.productos, id, "desktop");
+  await removePrefixFiles(supabaseClient, FARMACAPITAL_STORAGE.productos, id, "mobile");
 }
 
 /**
@@ -59,7 +59,7 @@ export async function uploadAutoBannerImages(supabaseClient, bannerId, file) {
   const id = String(bannerId);
   const prep = await prepareBannerDualForUpload(file);
   await clearBannerImageSlots(supabaseClient, id);
-  const bucket = FARMAX_STORAGE.banners;
+  const bucket = FARMACAPITAL_STORAGE.banners;
 
   if (prep.mode === "single") {
     const ext = extFromContentType(prep.contentType);
@@ -103,7 +103,7 @@ export async function uploadAutoProductImages(supabaseClient, productId, file) {
   const id = String(productId);
   const prep = await prepareProductDualForUpload(file);
   await clearProductImageSlots(supabaseClient, id);
-  const bucket = FARMAX_STORAGE.productos;
+  const bucket = FARMACAPITAL_STORAGE.productos;
 
   if (prep.mode === "single") {
     const ext = extFromContentType(prep.contentType);
@@ -149,15 +149,15 @@ export async function uploadBannerImage(supabaseClient, bannerId, file, variant)
   const { file: uploadFile, contentType } = await prepareImageForUpload(file, preset);
   const ext = extFromContentType(contentType);
   const prefix = variant === "mobile" ? "mobile" : "desktop";
-  await removePrefixFiles(supabaseClient, FARMAX_STORAGE.banners, id, prefix);
+  await removePrefixFiles(supabaseClient, FARMACAPITAL_STORAGE.banners, id, prefix);
   const path = `${id}/${prefix}.${ext}`;
-  const { error: upErr } = await supabaseClient.storage.from(FARMAX_STORAGE.banners).upload(path, uploadFile, {
+  const { error: upErr } = await supabaseClient.storage.from(FARMACAPITAL_STORAGE.banners).upload(path, uploadFile, {
     upsert: true,
     cacheControl: "3600",
     contentType,
   });
   if (upErr) throw upErr;
-  const { data } = supabaseClient.storage.from(FARMAX_STORAGE.banners).getPublicUrl(path);
+  const { data } = supabaseClient.storage.from(FARMACAPITAL_STORAGE.banners).getPublicUrl(path);
   return { path, publicUrl: data.publicUrl };
 }
 
@@ -168,34 +168,34 @@ export async function uploadProductImage(supabaseClient, productId, file) {
   await clearProductImageSlots(supabaseClient, id);
   const ext = extFromContentType(contentType);
   const path = `${id}/desktop.${ext}`;
-  const { error: upErr } = await supabaseClient.storage.from(FARMAX_STORAGE.productos).upload(path, uploadFile, {
+  const { error: upErr } = await supabaseClient.storage.from(FARMACAPITAL_STORAGE.productos).upload(path, uploadFile, {
     upsert: true,
     cacheControl: "3600",
     contentType,
   });
   if (upErr) throw upErr;
-  const { data } = supabaseClient.storage.from(FARMAX_STORAGE.productos).getPublicUrl(path);
+  const { data } = supabaseClient.storage.from(FARMACAPITAL_STORAGE.productos).getPublicUrl(path);
   return { path, publicUrl: data.publicUrl };
 }
 
 export async function deleteBannerVariantFiles(supabaseClient, bannerId, variant) {
   const id = String(bannerId);
   const prefix = variant === "mobile" ? "mobile" : "desktop";
-  await removePrefixFiles(supabaseClient, FARMAX_STORAGE.banners, id, prefix);
+  await removePrefixFiles(supabaseClient, FARMACAPITAL_STORAGE.banners, id, prefix);
 }
 
 export async function deleteBannerStorageFolder(supabaseClient, bannerId) {
   const id = String(bannerId);
-  const { data: files, error: listErr } = await supabaseClient.storage.from(FARMAX_STORAGE.banners).list(id);
+  const { data: files, error: listErr } = await supabaseClient.storage.from(FARMACAPITAL_STORAGE.banners).list(id);
   if (listErr) return;
   const paths = (files || []).map((f) => `${id}/${f.name}`);
-  if (paths.length) await supabaseClient.storage.from(FARMAX_STORAGE.banners).remove(paths);
+  if (paths.length) await supabaseClient.storage.from(FARMACAPITAL_STORAGE.banners).remove(paths);
 }
 
 export async function deleteProductImageStorageFolder(supabaseClient, productId) {
   const id = String(productId);
-  const { data: files, error: listErr } = await supabaseClient.storage.from(FARMAX_STORAGE.productos).list(id);
+  const { data: files, error: listErr } = await supabaseClient.storage.from(FARMACAPITAL_STORAGE.productos).list(id);
   if (listErr) return;
   const paths = (files || []).map((f) => `${id}/${f.name}`);
-  if (paths.length) await supabaseClient.storage.from(FARMAX_STORAGE.productos).remove(paths);
+  if (paths.length) await supabaseClient.storage.from(FARMACAPITAL_STORAGE.productos).remove(paths);
 }

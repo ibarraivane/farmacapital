@@ -1,6 +1,6 @@
 /** Cuenta renglones en medicamentos_prescritos (JSON) por campo surtido. */
 export function resumenLineasReceta(citasRows) {
-  let farmax = 0;
+  let farmacapital = 0;
   let externa = 0;
   let pend = 0;
   let conProductoId = 0;
@@ -9,10 +9,10 @@ export function resumenLineasReceta(citasRows) {
     for (const m of arr) {
       if (m.producto_id != null) conProductoId++;
       const s = m.surtido || "pendiente";
-      if (s === "farmax") farmax++;
+      if (s === "farmacapital") farmacapital++;
       else if (s === "externa") externa++;
       else pend++;
     }
   }
-  return { farmax, externa, pend, conProductoId };
+  return { farmacapital, externa, pend, conProductoId };
 }

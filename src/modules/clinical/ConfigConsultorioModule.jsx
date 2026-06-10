@@ -10,7 +10,7 @@ const C = C_LIGHT;
 
 // F6: sin INSERT/UPDATE directo; usa RPC SECURITY DEFINER.
 async function upsertConfig(clave, valor) {
-  const tok = sessionStorage.getItem("farmax_session_token");
+  const tok = sessionStorage.getItem("farmacapital_session_token");
   if (!tok) {
     const err = { message: "Sesión no iniciada" };
     console.error(`[ConfigCons] upsert ${clave}:`, err);
@@ -518,7 +518,7 @@ export default function ConfigConsultorioModule() {
           </Box>
 
           <Box style={{ padding: 20, marginBottom: 16 }}>
-            <SectionTitle sub="Recetas cuyos medicamentos fueron efectivamente surtidos en Farmax.">
+            <SectionTitle sub="Recetas cuyos medicamentos fueron efectivamente surtidos en FarmaCapital.">
               META DE RECETAS
             </SectionTitle>
             <div style={{ maxWidth: 220 }}>
@@ -538,7 +538,7 @@ export default function ConfigConsultorioModule() {
           </Box>
 
           <Box style={{ padding: 20, marginBottom: 16 }}>
-            <SectionTitle sub="Cuando la receta de la consulta se surtió fuera de Farmax, el dashboard multiplica el nº de esas citas por este monto para estimar la oportunidad perdida.">
+            <SectionTitle sub="Cuando la receta de la consulta se surtió fuera de FarmaCapital, el dashboard multiplica el nº de esas citas por este monto para estimar la oportunidad perdida.">
               AJUSTES AVANZADOS
             </SectionTitle>
             <div style={{ maxWidth: 260, marginBottom: 14 }}>

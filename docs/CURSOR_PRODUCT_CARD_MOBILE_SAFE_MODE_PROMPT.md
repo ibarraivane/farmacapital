@@ -1,4 +1,4 @@
-Quiero aplicar un cambio quirúrgico en el catálogo móvil de FARMAX porque el scroll todavía se atora al intentar subir o bajar sobre las product cards.
+Quiero aplicar un cambio quirúrgico en el catálogo móvil de FARMACAPITAL porque el scroll todavía se atora al intentar subir o bajar sobre las product cards.
 
 SÍNTOMA REAL
 En la vista catálogo móvil, al poner el dedo sobre la card del producto (especialmente en la parte blanca con el nombre), el scroll sigue atorándose o rebotando.

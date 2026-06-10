@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-// FARMAX — ESC/POS Direct Printing via QZ Tray
+// FARMACAPITAL — ESC/POS Direct Printing via QZ Tray
 // Requisito: QZ Tray instalado en la computadora del mostrador
 // Descarga: https://qz.io/download/
 // ═══════════════════════════════════════════════════════════
@@ -87,7 +87,7 @@ export function generarESCPOS(ticketData) {
   data.push(CMD.ALIGN_CENTER);
   data.push(CMD.FONT_LARGE);
   data.push(CMD.BOLD_ON);
-  data.push("  FARMAX  \n");
+  data.push("  FARMACAPITAL  \n");
   data.push(CMD.FONT_NORMAL);
   data.push(CMD.BOLD_OFF);
   data.push("Tu salud primero\n");
@@ -143,7 +143,7 @@ export function generarESCPOS(ticketData) {
   if(pts>0) {
     data.push(CMD.ALIGN_CENTER);
     data.push(CMD.BOLD_ON);
-    data.push(`*** +${pts} PUNTOS FARMAX ***\n`);
+    data.push(`*** +${pts} PUNTOS FARMACAPITAL ***\n`);
     data.push(CMD.BOLD_OFF);
   }
 
@@ -152,7 +152,7 @@ export function generarESCPOS(ticketData) {
   data.push(CMD.ALIGN_CENTER);
   data.push("Gracias por su compra\n");
   data.push("!Vuelva pronto!\n");
-  data.push("far-max.mx\n");
+  data.push("farmacapital.mx\n");
 
   // CORTE
   data.push(CMD.FEED_LINES(3));
@@ -175,10 +175,10 @@ export async function imprimirESCPOS(ticketData, nombreImpresora=null) {
 
     const data = generarESCPOS(ticketData);
     await window.qz.print(config, [{ type:"raw", format:"plain", data:data.join("") }]);
-    console.log("[Farmax ESC/POS] Ticket impreso en:", impresora);
+    console.log("[FarmaCapital ESC/POS] Ticket impreso en:", impresora);
     return { success:true, impresora };
   } catch(e) {
-    console.error("[Farmax ESC/POS] Error:", e);
+    console.error("[FarmaCapital ESC/POS] Error:", e);
     throw e;
   }
 }

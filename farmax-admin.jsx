@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 
 // ═══════════════════════════════════════════════════════════════
-// ECOSISTEMA FARMAX — Sistema de Gestión Multi-negocio
-// Farmacia Farmax · Minisuper Yolanda · Consultorio
+// ECOSISTEMA FARMACAPITAL — Sistema de Gestión Multi-negocio
+// Farmacia FarmaCapital · Minisuper Yolanda · Consultorio
 // Identidad: Cápsula bicolor · Azul #0052cc → #0099e6 · Verde #00c46a
 // ═══════════════════════════════════════════════════════════════
 
@@ -17,7 +17,7 @@ const C = {
   text:"#e4eef8",   textMid:"#6a8eaa",   textDim:"#2d4560",
 };
 
-// Paleta de marca Farmax
+// Paleta de marca FarmaCapital
 const BRAND = {
   primary:   "#0052cc",
   secondary: "#0099e6",
@@ -27,12 +27,12 @@ const BRAND = {
 };
 
 const NEG = {
-  farmacia:  { label:"Farmax Farmacia",    icon:"💊", color:C.blue,  owner:"Luis Ventura QFB" },
+  farmacia:  { label:"FarmaCapital",    icon:"💊", color:C.blue,  owner:"Luis Ventura QFB" },
   minisuper: { label:"Minisuper Yolanda",  icon:"🛒", color:C.green, owner:"Yolanda Ventura"  },
 };
 
-// ── LOGO FARMAX (cápsula bicolor) ─────────────────────────────
-function LogoFarmax({ size = 36, showText = true, light = false }) {
+// ── LOGO FARMACAPITAL (cápsula bicolor) ─────────────────────────────
+function LogoFarmaCapital({ size = 36, showText = true, light = false }) {
   const textColor = light ? "#ffffff" : BRAND.primary;
   const subColor  = light ? "rgba(255,255,255,.7)" : BRAND.secondary;
   return (
@@ -225,13 +225,13 @@ function Sidebar({active,setActive,negocio,setNegocio}){
   const cad=INV_F.filter(i=>dC(i.cad)<30).length;
   return(
     <div style={{width:224,minHeight:"100dvh",background:C.card,borderRight:`1px solid ${C.border}`,display:"flex",flexDirection:"column",position:"fixed",left:0,top:0,zIndex:100}}>
-      {/* Logo Farmax */}
+      {/* Logo FarmaCapital */}
       <div style={{padding:"22px 16px 16px",borderBottom:`1px solid ${C.border}`}}>
-        <LogoFarmax size={34} showText={true}/>
+        <LogoFarmaCapital size={34} showText={true}/>
         <div style={{display:"flex",gap:4,marginTop:14}}>
           {Object.entries(NEG).map(([k,n])=>(
             <button key={k} onClick={()=>setNegocio(k)} style={{flex:1,padding:"5px 2px",borderRadius:6,border:`1px solid ${negocio===k?n.color:C.border}`,background:negocio===k?n.color+"22":"transparent",color:negocio===k?n.color:C.textDim,fontSize:9,fontWeight:700,cursor:"pointer",textTransform:"uppercase",letterSpacing:.5,transition:"all .15s"}}>
-              {n.icon} {k==="farmacia"?"Farmax":"Mini"}
+              {n.icon} {k==="farmacia"?"FarmaCapital":"Mini"}
             </button>
           ))}
         </div>
@@ -245,7 +245,7 @@ function Sidebar({active,setActive,negocio,setNegocio}){
       </div>
       <div style={{padding:"0 8px 16px"}}>
         <Box style={{padding:"12px 14px"}}>
-          <div style={{color:C.textDim,fontSize:9,letterSpacing:1.5,textTransform:"uppercase",marginBottom:8}}>Alertas Farmax</div>
+          <div style={{color:C.textDim,fontSize:9,letterSpacing:1.5,textTransform:"uppercase",marginBottom:8}}>Alertas FarmaCapital</div>
           {bajo>0&&<div style={{color:C.red,fontSize:12,fontWeight:700,marginBottom:4}}>⚠ {bajo} bajo stock</div>}
           {cad>0&&<div style={{color:C.amber,fontSize:12,fontWeight:700,marginBottom:4}}>⏱ {cad} por caducar</div>}
           <div style={{color:C.green,fontSize:12,fontWeight:700}}>💰 2 ofertas mayoreo</div>
@@ -275,7 +275,7 @@ function Dashboard({negocio}){
         <KPI label="Esta semana" value={$(VSEM.reduce((a,d)=>a+(negocio==="farmacia"?d.f:d.m),0))} col={C.teal} icon="📈"/>
         <KPI label="Bajo stock" value={bajo} col={bajo>0?C.red:C.green} icon="⚠️"/>
         {negocio==="farmacia"&&<KPI label="Por caducar" value={INV_F.filter(i=>dC(i.cad)<30).length} col={C.amber} icon="⏱" sub="30 días"/>}
-        <KPI label="Puntos Farmax" value="4,820" col={C.purple} icon="⭐" sub="38 clientes"/>
+        <KPI label="Puntos FarmaCapital" value="4,820" col={C.purple} icon="⭐" sub="38 clientes"/>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}>
         <Box style={{padding:20}}>
@@ -454,11 +454,11 @@ function POS({negocio}){
           <Box style={{padding:18}}>
             <div style={{color:C.text,fontWeight:800,fontSize:15,marginBottom:14,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>🛒 Carrito</div>
             <div style={{marginBottom:12}}>
-              <Inp value={tel} onChange={e=>buscar(e.target.value)} placeholder="📱 Teléfono — puntos Farmax" style={{width:"100%",boxSizing:"border-box",fontSize:12}}/>
+              <Inp value={tel} onChange={e=>buscar(e.target.value)} placeholder="📱 Teléfono — puntos FarmaCapital" style={{width:"100%",boxSizing:"border-box",fontSize:12}}/>
               {cli&&(
                 <div style={{background:C.purpleDim,border:`1px solid ${C.purple}30`,borderRadius:8,padding:"8px 10px",marginTop:6}}>
                   <div style={{color:C.purple,fontWeight:700,fontSize:12}}>⭐ {cli.nombre}</div>
-                  <div style={{color:C.textMid,fontSize:11}}>{cli.puntos} puntos Farmax · {cli.nivel}</div>
+                  <div style={{color:C.textMid,fontSize:11}}>{cli.puntos} puntos FarmaCapital · {cli.nivel}</div>
                   {cli.cronica&&<div style={{color:C.amber,fontSize:10,marginTop:2}}>💊 {cli.cronica}</div>}
                 </div>
               )}
@@ -488,7 +488,7 @@ function POS({negocio}){
                 ))}
                 {cli&&cli.puntos>0&&(
                   <div style={{background:C.purpleDim,border:`1px solid ${C.purple}30`,borderRadius:8,padding:"10px 12px",marginBottom:12}}>
-                    <div style={{color:C.purple,fontSize:12,fontWeight:700,marginBottom:6}}>⭐ Canjear puntos Farmax</div>
+                    <div style={{color:C.purple,fontSize:12,fontWeight:700,marginBottom:6}}>⭐ Canjear puntos FarmaCapital</div>
                     <div style={{display:"flex",gap:6,alignItems:"center"}}>
                       <Inp value={ptsC} onChange={e=>setPtsC(Math.min(Number(e.target.value),cli.puntos))} type="number" style={{width:70,fontSize:12,padding:"6px 10px"}}/>
                       <span style={{color:C.textMid,fontSize:12}}>= {$(ptsC*0.5)} desc.</span>
@@ -502,7 +502,7 @@ function POS({negocio}){
                     <span style={{color:C.textMid,fontSize:14}}>Total</span>
                     <span style={{color:ac,fontWeight:900,fontSize:22,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{$(total)}</span>
                   </div>
-                  {cli&&<div style={{color:C.purple,fontSize:11,fontWeight:700,marginTop:4}}>+{ptsG} puntos Farmax al pagar</div>}
+                  {cli&&<div style={{color:C.purple,fontSize:11,fontWeight:700,marginTop:4}}>+{ptsG} puntos FarmaCapital al pagar</div>}
                 </div>
                 <div style={{display:"flex",gap:5,marginBottom:12}}>
                   {["Efectivo","Tarjeta","OXXO"].map(p=>(
@@ -526,10 +526,10 @@ function POS({negocio}){
                 {ticket.dPts>0&&<div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:C.purple,marginBottom:4}}><span>Desc. puntos</span><span>−{$(ticket.dPts)}</span></div>}
                 <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><span style={{color:C.textMid,fontSize:13}}>TOTAL</span><span style={{color:C.green,fontWeight:900,fontSize:16}}>{$(ticket.total)}</span></div>
                 <div style={{color:C.textMid,fontSize:11}}>Pago: {ticket.pay}</div>
-                {ticket.cli&&<div style={{color:C.purple,fontSize:11,fontWeight:700,marginTop:4}}>⭐ +{ticket.ptsG} puntos Farmax → {ticket.cli.nombre}</div>}
+                {ticket.cli&&<div style={{color:C.purple,fontSize:11,fontWeight:700,marginTop:4}}>⭐ +{ticket.ptsG} puntos FarmaCapital → {ticket.cli.nombre}</div>}
               </div>
               <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${C.border}`,textAlign:"center"}}>
-                <div style={{color:C.textDim,fontSize:10}}>Farmax Farmacia · Chinampac de Juárez · CDMX</div>
+                <div style={{color:C.textDim,fontSize:10}}>FarmaCapital · Chinampac de Juárez · CDMX</div>
                 <div style={{color:C.textDim,fontSize:10}}>Luis Ventura QFB · COFEPRIS</div>
               </div>
             </Box>
@@ -630,14 +630,14 @@ function COFEPRIS(){
   const [nv,setNv]=useState({med:"",lote:"",qty:1,receta:"",medico:"",paciente:"",tel:""});
   return(
     <div>
-      <H2 sub="Responsable sanitario: Luis Ventura QFB · Farmax Farmacia" action={<Btn sm col={C.amber} onClick={()=>setModal(true)}>+ Nuevo registro</Btn>}>⚕ Panel COFEPRIS</H2>
+      <H2 sub="Responsable sanitario: Luis Ventura QFB · FarmaCapital" action={<Btn sm col={C.amber} onClick={()=>setModal(true)}>+ Nuevo registro</Btn>}>⚕ Panel COFEPRIS</H2>
       <div style={{display:"flex",gap:12,marginBottom:20,flexWrap:"wrap"}}>
         <KPI label="Registros hoy" value={BITACORA_D.filter(b=>b.fecha==="2026-04-12").length} icon="📋" col={C.blue}/>
         <KPI label="Antibióticos"  value={INV_F.filter(i=>i.cat==="Antibiótico").length}       icon="⚕"  col={C.amber}/>
         <KPI label="Controlados"   value={INV_F.filter(i=>i.ctrl).length}                      icon="🔒" col={C.purple}/>
         <KPI label="SICAD"         value="Activo"                                              icon="✅"  col={C.green}/>
       </div>
-      <Modal open={modal} onClose={()=>setModal(false)} title="➕ Nuevo registro COFEPRIS — Farmax" ac={C.amber}>
+      <Modal open={modal} onClose={()=>setModal(false)} title="➕ Nuevo registro COFEPRIS — FarmaCapital" ac={C.amber}>
         {[["Medicamento","med","Nombre"],["Lote","lote","L24-XX"],["Receta","receta","RX-XXX"],["Médico","medico","Dr. Nombre"],["Paciente","paciente","Nombre completo"],["Teléfono","tel","55XXXXXXXX"]].map(([l,k,ph])=>(
           <div key={k} style={{marginBottom:12}}><div style={{color:C.textMid,fontSize:11,marginBottom:4}}>{l}</div><Inp value={nv[k]} onChange={e=>setNv(p=>({...p,[k]:e.target.value}))} placeholder={ph} style={{width:"100%",boxSizing:"border-box"}}/></div>
         ))}
@@ -652,7 +652,7 @@ function COFEPRIS(){
       {tab==="bitacora"&&(
         <Box style={{overflow:"hidden"}}>
           <div style={{padding:"14px 18px",borderBottom:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <div style={{color:C.text,fontWeight:700,fontSize:13}}>Bitácora SICAD — Antibióticos y controlados · Farmax</div>
+            <div style={{color:C.text,fontWeight:700,fontSize:13}}>Bitácora SICAD — Antibióticos y controlados · FarmaCapital</div>
             <Btn sm ol col={BRAND.primary}>Exportar PDF</Btn>
           </div>
           <div style={{overflowX:"auto"}}>
@@ -702,7 +702,7 @@ function COFEPRIS(){
             {t:"error",title:"Paracetamol 500mg — Bajo stock",desc:"8 uds. Mínimo 20. Pedir a Nadro."},
             {t:"warning",title:"Loratadina 10mg — Caducidad próxima",desc:"Lote L24-07 caduca 31 Dic 2025. Rotar FIFO."},
             {t:"ok",title:"Bitácora SICAD al día",desc:"Todos los antibióticos dispensados están registrados correctamente."},
-            {t:"ok",title:"Licencia sanitaria Farmax vigente",desc:"Sin observaciones. Responsable: Luis Ventura QFB."},
+            {t:"ok",title:"Licencia sanitaria FarmaCapital vigente",desc:"Sin observaciones. Responsable: Luis Ventura QFB."},
           ].map((a,i)=>{
             const col=a.t==="error"?C.red:a.t==="warning"?C.amber:C.green;
             return(<Box key={i} ac={col} style={{padding:"16px 20px"}}><div style={{display:"flex",gap:12,alignItems:"flex-start"}}><div style={{fontSize:20}}>{a.t==="error"?"🚨":a.t==="warning"?"⚠️":"✅"}</div><div><div style={{color:C.text,fontWeight:700,fontSize:13}}>{a.title}</div><div style={{color:C.textMid,fontSize:12,marginTop:4}}>{a.desc}</div></div></div></Box>);
@@ -773,7 +773,7 @@ function ConsDoctora({usuario}){
   const eCol={confirmada:C.green,pendiente:C.amber,libre:C.textDim,completada:BRAND.secondary};
   return(
     <div>
-      <H2 sub="Doctora · Consultorio Farmax · Chinampac de Juárez" action={<Btn sm col={BRAND.primary}>+ Nueva cita</Btn>}>♥ Consultorio</H2>
+      <H2 sub="Doctora · Consultorio FarmaCapital · Chinampac de Juárez" action={<Btn sm col={BRAND.primary}>+ Nueva cita</Btn>}>♥ Consultorio</H2>
       <div style={{display:"flex",gap:12,marginBottom:20,flexWrap:"wrap"}}>
         <KPI label="Citas hoy"   value={AGENDA_D.filter(a=>a.estado!=="libre").length} icon="📅" col={BRAND.primary}/>
         <KPI label="Completadas" value={AGENDA_D.filter(a=>a.estado==="completada").length} icon="✅" col={C.green}/>
@@ -836,7 +836,7 @@ function ClientesPuntos(){
   const totPts=CLIENTES_D.reduce((a,c)=>a+c.puntos,0);
   return(
     <div>
-      <H2 sub="Programa de lealtad válido en Farmax, Minisuper y Consultorio" action={<Btn sm col={C.purple}>+ Nuevo cliente</Btn>}>⭐ Clientes & Puntos Farmax</H2>
+      <H2 sub="Programa de lealtad válido en FarmaCapital, Minisuper y Consultorio" action={<Btn sm col={C.purple}>+ Nuevo cliente</Btn>}>⭐ Clientes & Puntos FarmaCapital</H2>
       <div style={{display:"flex",gap:12,marginBottom:20,flexWrap:"wrap"}}>
         <KPI label="Clientes"       value={CLIENTES_D.length}   icon="👥" col={C.purple}/>
         <KPI label="Ptos. activos"  value={totPts.toLocaleString()} icon="⭐" col={C.amber} sub={`= ${$(totPts*0.5)} valor`}/>
@@ -844,17 +844,17 @@ function ClientesPuntos(){
         <KPI label="Crónicos"       value={CLIENTES_D.filter(c=>c.cronica).length} icon="💊" col={BRAND.secondary} sub="WhatsApp auto"/>
       </div>
       <Box style={{padding:"14px 18px",marginBottom:20}}>
-        <div style={{color:C.text,fontWeight:700,fontSize:13,marginBottom:12}}>⭐ Reglas Puntos Farmax</div>
+        <div style={{color:C.text,fontWeight:700,fontSize:13,marginBottom:12}}>⭐ Reglas Puntos FarmaCapital</div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
           <div>
             <div style={{color:C.textMid,fontSize:10,fontWeight:700,marginBottom:8,textTransform:"uppercase",letterSpacing:1}}>Acumulas</div>
-            {[["$10 en Farmax (precio normal)","1 pto"],["$10 en minisuper","1 pto"],["Consulta médica","5 ptos"],["Registro nuevo","10 ptos"],["Compra en línea","1.5× ptos"],["Cumpleaños","2× ese mes"],["❌ Prod. con descuento","0 ptos"]].map(([a,b])=>(
+            {[["$10 en FarmaCapital (precio normal)","1 pto"],["$10 en minisuper","1 pto"],["Consulta médica","5 ptos"],["Registro nuevo","10 ptos"],["Compra en línea","1.5× ptos"],["Cumpleaños","2× ese mes"],["❌ Prod. con descuento","0 ptos"]].map(([a,b])=>(
               <div key={a} style={{display:"flex",justifyContent:"space-between",marginBottom:4}}><span style={{color:C.textMid,fontSize:11}}>{a}</span><span style={{color:a.startsWith("❌")?C.red:C.amber,fontWeight:700,fontSize:11}}>{b}</span></div>
             ))}
           </div>
           <div>
             <div style={{color:C.textMid,fontSize:10,fontWeight:700,marginBottom:8,textTransform:"uppercase",letterSpacing:1}}>Canjeas</div>
-            {[["20 ptos","$10 desc. Farmax"],["50 ptos","Envío gratis online"],["100 ptos","$50 descuento"],["160 ptos","Consulta gratis"],["200 ptos","Producto gratis"]].map(([p,b])=>(
+            {[["20 ptos","$10 desc. FarmaCapital"],["50 ptos","Envío gratis online"],["100 ptos","$50 descuento"],["160 ptos","Consulta gratis"],["200 ptos","Producto gratis"]].map(([p,b])=>(
               <div key={p} style={{display:"flex",justifyContent:"space-between",marginBottom:4}}><Tag col={C.purple} sm>{p}</Tag><span style={{color:C.textMid,fontSize:11}}>{b}</span></div>
             ))}
             <div style={{color:C.textDim,fontSize:10,marginTop:6}}>1 pto = $0.50 · Vencen a 12 meses</div>
@@ -898,9 +898,9 @@ function ClientesPuntos(){
             </Box>
           ))}
           <Box style={{padding:16}}>
-            <div style={{color:C.text,fontWeight:700,fontSize:13,marginBottom:10}}>🔔 Plantilla automática Farmax</div>
+            <div style={{color:C.text,fontWeight:700,fontSize:13,marginBottom:10}}>🔔 Plantilla automática FarmaCapital</div>
             <div style={{background:C.bg,borderRadius:8,padding:"12px 14px",color:C.textMid,fontSize:12,lineHeight:1.7}}>
-              Hola [Nombre] 👋 Te recordamos de parte de <strong style={{color:C.text}}>Farmax Farmacia</strong> que tu [Medicamento] podría estar terminándose. Pásate o pídelo en línea en farmax.com.mx 💊 Tienes [X] puntos Farmax. ¡Te esperamos! 🌟
+              Hola [Nombre] 👋 Te recordamos de parte de <strong style={{color:C.text}}>FarmaCapital</strong> que tu [Medicamento] podría estar terminándose. Pásate o pídelo en línea en farmacapital.com.mx 💊 Tienes [X] puntos FarmaCapital. ¡Te esperamos! 🌟
             </div>
           </Box>
         </div>
@@ -1034,9 +1034,9 @@ function Reportes({negocio}){
         </Box>
       </div>
       <Box style={{padding:20}}>
-        <div style={{color:C.text,fontWeight:700,fontSize:13,marginBottom:14}}>Consolidado Ecosistema Farmax</div>
+        <div style={{color:C.text,fontWeight:700,fontSize:13,marginBottom:14}}>Consolidado Ecosistema FarmaCapital</div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
-          {[["Farmax Farmacia",$(VSEM.reduce((a,d)=>a+d.f,0)),BRAND.secondary],["Minisuper Yolanda",$(VSEM.reduce((a,d)=>a+d.m,0)),C.green],["Consultorio","$8,400",C.teal]].map(([n,v,col])=>(
+          {[["FarmaCapital",$(VSEM.reduce((a,d)=>a+d.f,0)),BRAND.secondary],["Minisuper Yolanda",$(VSEM.reduce((a,d)=>a+d.m,0)),C.green],["Consultorio","$8,400",C.teal]].map(([n,v,col])=>(
             <div key={n} style={{background:C.bg,borderRadius:10,padding:"14px 16px",textAlign:"center"}}>
               <div style={{color:C.textMid,fontSize:11,marginBottom:6}}>{n}</div>
               <div style={{color:col,fontWeight:900,fontSize:20,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{v}</div>
@@ -1057,9 +1057,9 @@ function ChatbotIA({negocio}){
   const [input,setInput]=useState("");const [load,setLoad]=useState(false);
   const endRef=useRef(null);
   useEffect(()=>endRef.current?.scrollIntoView({behavior:"smooth"}),[msgs]);
-  const sys=`Eres el asistente inteligente de ${NEG[negocio].label}, parte del Ecosistema Farmax en Chinampac de Juárez, Iztapalapa, CDMX.
+  const sys=`Eres el asistente inteligente de ${NEG[negocio].label}, parte del Ecosistema FarmaCapital en Chinampac de Juárez, Iztapalapa, CDMX.
 Administrador general: Ivan. Dueño farmacia: Luis Ventura QFB. Dueña minisuper: Yolanda Ventura.
-La farmacia se llama FARMAX (antes Ventura, cambio de nombre reciente).
+La farmacia se llama FARMACAPITAL (antes Ventura, cambio de nombre reciente).
 
 INVENTARIO: ${JSON.stringify(inv)}
 CLIENTES: ${JSON.stringify(CLIENTES_D)}
@@ -1067,7 +1067,7 @@ VENTAS SEMANA: ${JSON.stringify(VSEM)}
 BITÁCORA COFEPRIS: ${JSON.stringify(BITACORA_D)}
 CORTES: ${JSON.stringify(CORTES_D)}
 
-Responde SIEMPRE en español. Sé conciso y orientado a acción. Usa emojis. Analiza stock, caducidades, ofertas mayoreo, precios vs Similares/Del Ahorro, tendencias de ventas, alertas operativas, puntos Farmax.`;
+Responde SIEMPRE en español. Sé conciso y orientado a acción. Usa emojis. Analiza stock, caducidades, ofertas mayoreo, precios vs Similares/Del Ahorro, tendencias de ventas, alertas operativas, puntos FarmaCapital.`;
   const send=async()=>{
     if(!input.trim()||load)return;
     const msg=input.trim();setInput("");
@@ -1083,7 +1083,7 @@ Responde SIEMPRE en español. Sé conciso y orientado a acción. Usa emojis. Ana
   const sugs=negocio==="farmacia"?["¿Qué debo reordenar urgente?","¿Hay productos por caducar?","¿Cómo van las ventas?","¿Qué ofertas mayoreo convienen?"]:["¿Qué productos se agotan?","¿Cómo van las ventas hoy?","¿Qué tengo bajo stock?","¿Cuál es mi mejor categoría?"];
   return(
     <div style={{display:"flex",flexDirection:"column",height:"calc(100vh - 100px)"}}>
-      <H2 sub="Analiza inventario, ventas y mercado · Requiere internet">✦ Asistente IA Farmax</H2>
+      <H2 sub="Analiza inventario, ventas y mercado · Requiere internet">✦ Asistente IA FarmaCapital</H2>
       <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>
         {sugs.map(s=>(<button key={s} onClick={()=>setInput(s)} style={{padding:"5px 10px",borderRadius:20,border:`1px solid ${C.border}`,background:"transparent",color:C.textMid,cursor:"pointer",fontSize:11,fontWeight:600,transition:"all .2s"}} onMouseEnter={e=>{e.currentTarget.style.borderColor=BRAND.secondary;e.currentTarget.style.color=BRAND.secondary;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=C.border;e.currentTarget.style.color=C.textMid;}}>{s}</button>))}
       </div>
@@ -1091,7 +1091,7 @@ Responde SIEMPRE en español. Sé conciso y orientado a acción. Usa emojis. Ana
         {msgs.map((m,i)=>(
           <div key={i} style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start",marginBottom:14}}>
             <div style={{maxWidth:"80%",padding:"12px 16px",borderRadius:m.role==="user"?"18px 18px 4px 18px":"18px 18px 18px 4px",background:m.role==="user"?BRAND.gradient:C.bg,color:C.text,fontSize:13,lineHeight:1.6,border:m.role==="assistant"?`1px solid ${C.border}`:"none",whiteSpace:"pre-wrap"}}>
-              {m.role==="assistant"&&<div style={{color:BRAND.secondary,fontSize:10,fontWeight:700,marginBottom:4}}>✦ Asistente Farmax IA</div>}
+              {m.role==="assistant"&&<div style={{color:BRAND.secondary,fontSize:10,fontWeight:700,marginBottom:4}}>✦ Asistente FarmaCapital IA</div>}
               {m.content}
             </div>
           </div>

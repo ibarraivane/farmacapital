@@ -1,7 +1,7 @@
-Quiero corregir el flujo de instalación PWA de FARMAX porque actualmente la app instalada abre la Tienda (/) y no el panel Admin (/admin), que es lo que necesito en este momento.
+Quiero corregir el flujo de instalación PWA de FARMACAPITAL porque actualmente la app instalada abre la Tienda (/) y no el panel Admin (/admin), que es lo que necesito en este momento.
 
 OBJETIVO
-Implementa una solución clara y segura para que FARMAX pueda ofrecer instalación de:
+Implementa una solución clara y segura para que FARMACAPITAL pueda ofrecer instalación de:
 1. Tienda
 2. Admin
 
@@ -12,8 +12,8 @@ PROBLEMA ACTUAL
 QUIERO
 1. Revisar cómo está configurado hoy el manifest / start_url / instalación PWA.
 2. Implementar una solución para distinguir claramente:
-   - Farmax Tienda
-   - Farmax Admin
+   - FarmaCapital Tienda
+   - FarmaCapital Admin
 3. En la UI de “Instalar app” mostrar ambas opciones de forma clara:
    - Instalar Tienda
    - Instalar Admin

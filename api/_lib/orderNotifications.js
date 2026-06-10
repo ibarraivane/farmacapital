@@ -14,20 +14,20 @@ function buildMessage({ event, pedido }) {
   const total = formatMoneyMx(pedido?.total);
   const entrega = pedido?.tipo_entrega === 'envio' ? 'envio a domicilio' : 'pick-up en tienda';
   if (event === 'payment_approved') {
-    return `Farmax: pago aprobado para pedido #${pedidoId}. Total $${total}. Te avisaremos cuando este listo.`;
+    return `FarmaCapital: pago aprobado para pedido #${pedidoId}. Total $${total}. Te avisaremos cuando este listo.`;
   }
   if (event === 'payment_pending') {
-    return `Farmax: pago en revision para pedido #${pedidoId}. Te notificaremos cuando cambie el estado.`;
+    return `FarmaCapital: pago en revision para pedido #${pedidoId}. Te notificaremos cuando cambie el estado.`;
   }
   if (event === 'payment_rejected') {
-    return `Farmax: pago rechazado para pedido #${pedidoId}. Puedes reintentar desde Mis pedidos.`;
+    return `FarmaCapital: pago rechazado para pedido #${pedidoId}. Puedes reintentar desde Mis pedidos.`;
   }
-  return `Farmax: pedido #${pedidoId} recibido (${entrega}). Total $${total}.`;
+  return `FarmaCapital: pedido #${pedidoId} recibido (${entrega}). Total $${total}.`;
 }
 
 async function sendEmail({ to, subject, text }) {
   const RESEND_API_KEY = String(process.env.RESEND_API_KEY || '').trim();
-  const from = String(process.env.NOTIFY_FROM_EMAIL || 'Farmax <no-reply@farmax.mx>').trim();
+  const from = String(process.env.NOTIFY_FROM_EMAIL || 'FarmaCapital <no-reply@farmacapital.mx>').trim();
   if (!RESEND_API_KEY || !to) return { sent: false, reason: 'email_not_configured' };
   const resp = await fetch('https://api.resend.com/emails', {
     method: 'POST',

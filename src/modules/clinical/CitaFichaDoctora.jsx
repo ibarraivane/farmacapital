@@ -23,7 +23,7 @@ function parseMedsPrescritos(mp) {
         cantidad: Math.max(1, Number(m.cantidad) || 1),
         dosis: m.dosis != null ? String(m.dosis) : "",
         indicaciones: m.indicaciones != null ? String(m.indicaciones) : "",
-        surtido: m.surtido === "farmax" || m.surtido === "externa" ? m.surtido : "pendiente",
+        surtido: m.surtido === "farmacapital" || m.surtido === "externa" ? m.surtido : "pendiente",
       }))
       .filter((m) => m.medicamento || m.producto_id);
   }
@@ -54,7 +54,7 @@ function serializeMeds(rows) {
       cantidad: Math.max(1, Number(rest.cantidad) || 1),
       dosis: rest.dosis != null ? String(rest.dosis) : "",
       indicaciones: rest.indicaciones != null ? String(rest.indicaciones) : "",
-      surtido: rest.surtido === "farmax" || rest.surtido === "externa" ? rest.surtido : "pendiente",
+      surtido: rest.surtido === "farmacapital" || rest.surtido === "externa" ? rest.surtido : "pendiente",
     }))
     .filter((m) => m.medicamento || m.producto_id);
 }
@@ -200,7 +200,7 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
   const agregarConsumible = async (prod, qty) => {
     if (!citaLocal?.id) return;
     try {
-      const tok = sessionStorage.getItem("farmax_session_token");
+      const tok = sessionStorage.getItem("farmacapital_session_token");
       if (!tok) throw new Error("Sesión expirada");
       const { data: resp, error } = await supabase.rpc("agregar_consumible_cita", {
         p_session_token: tok,
@@ -220,7 +220,7 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
   const aplicarPlantillaProc = async (proc) => {
     const tpl = getPlantilla(proc);
     if (!citaLocal?.id || !tpl.length) return;
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) return;
     for (const row of tpl) {
       const pid = row.producto_id;
@@ -271,7 +271,7 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
     if (readOnly || !citaLocal?.id) return;
     setGuard(true);
     try {
-      const tok = sessionStorage.getItem("farmax_session_token");
+      const tok = sessionStorage.getItem("farmacapital_session_token");
       if (!tok) throw new Error("Sesión expirada");
       const medsArr = serializeMeds(medsRows);
 
@@ -321,7 +321,7 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
     }
     setGuard(true);
     try {
-      const tok = sessionStorage.getItem("farmax_session_token");
+      const tok = sessionStorage.getItem("farmacapital_session_token");
       if (!tok) throw new Error("Sesión expirada");
       const medsArr = serializeMeds(medsRows);
 
@@ -450,10 +450,10 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
         </Box>
 
         <Box style={{ padding: 14, marginBottom: 12 }}>
-          <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, marginBottom: 6 }}>MEDICAMENTOS (catálogo Farmax + texto libre)</div>
+          <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, marginBottom: 6 }}>MEDICAMENTOS (catálogo FarmaCapital + texto libre)</div>
           {!readOnly && (
             <div style={{ color: C.textMid, fontSize: 10, marginBottom: 10, lineHeight: 1.45 }}>
-              Agrega productos del <strong>inventario</strong> para vincular con caja: cuando el paciente pague en mostrador con «receta de médico Farmax», el sistema marcará esas líneas como surtidas aquí. Puedes añadir líneas solo con nombre si la receta es externa o a mano.
+              Agrega productos del <strong>inventario</strong> para vincular con caja: cuando el paciente pague en mostrador con «receta de médico FarmaCapital», el sistema marcará esas líneas como surtidas aquí. Puedes añadir líneas solo con nombre si la receta es externa o a mano.
             </div>
           )}
           {puedeEditar && (
@@ -522,9 +522,9 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
                         style={{ flex: 1, minWidth: 160 }}
                       />
                     )}
-                    {!readOnly && row.surtido === "farmax" && (
+                    {!readOnly && row.surtido === "farmacapital" && (
                       <Tag col={C.green} sm>
-                        Surtido Farmax
+                        Surtido FarmaCapital
                       </Tag>
                     )}
                     {!readOnly && row.surtido === "externa" && (
@@ -563,7 +563,7 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
                           style={{ width: "100%", padding: "6px 8px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 11 }}
                         >
                           <option value="pendiente">Pendiente</option>
-                          <option value="farmax">Farmax</option>
+                          <option value="farmacapital">FarmaCapital</option>
                           <option value="externa">Otra farmacia</option>
                         </select>
                       </div>

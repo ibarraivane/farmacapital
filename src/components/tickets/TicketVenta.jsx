@@ -3,7 +3,7 @@ import { QRCodeSVG } from "qrcode.react";
 import "../../styles/ticket.css";
 
 /**
- * FARMAX — TicketVenta (Componente oficial)
+ * FARMACAPITAL — TicketVenta (Componente oficial)
  * Ticket térmico 80mm compatible Epson TM-T20III
  *
  * Props:
@@ -39,15 +39,15 @@ const TicketVenta = forwardRef(({
   const ptsG     = Math.floor(total / 10);
   const fmt      = n => `$${parseFloat(n||0).toFixed(2)}`;
 
-  // ── QR data: FARMAX|folio|total|fecha ──────────────────
-  const qrData = `FARMAX|${folio}|${total.toFixed(2)}|${fechaStr}`;
+  // ── QR data: FARMACAPITAL|folio|total|fecha ──────────────────
+  const qrData = `FARMACAPITAL|${folio}|${total.toFixed(2)}|${fechaStr}`;
 
   return (
-    <div id="farmax-ticket" ref={ref} className="ticket">
+    <div id="farmacapital-ticket" ref={ref} className="ticket">
 
       {/* ══ HEADER ══ */}
       <div className="center">
-        <h3 style={{margin:"2px 0",fontSize:16,letterSpacing:3}}>★ FARMAX ★</h3>
+        <h3 style={{margin:"2px 0",fontSize:16,letterSpacing:3}}>★ FARMACAPITAL ★</h3>
         <div style={{fontSize:9}}>"Tu salud primero"</div>
       </div>
 
@@ -55,7 +55,7 @@ const TicketVenta = forwardRef(({
 
       {/* ══ DATOS FARMACIA ══ */}
       <div style={{fontSize:9,lineHeight:1.6}}>
-        <div>Sucursal: {config.nombre_farmacia||"Farmax Farmacia"}</div>
+        <div>Sucursal: {config.nombre_farmacia||"FarmaCapital"}</div>
         <div>Dirección: {config.direccion_farmacia||"Chinampac de Juárez, Iztapalapa, CDMX"}</div>
         {config.rfc&&<div>RFC: {config.rfc}</div>}
         {config.telefono_farmacia&&<div>Tel: {config.telefono_farmacia}</div>}
@@ -125,10 +125,10 @@ const TicketVenta = forwardRef(({
         </div>
       )}
 
-      {/* ══ PUNTOS FARMAX ══ */}
+      {/* ══ PUNTOS FARMACAPITAL ══ */}
       {ptsG > 0 && (
         <div style={{background:"#000",color:"#fff",textAlign:"center",padding:"4px 2px",margin:"5px 0",fontSize:10,fontWeight:"bold"}}>
-          ⭐ +{ptsG} PUNTOS FARMAX GANADOS
+          ⭐ +{ptsG} PUNTOS FARMACAPITAL GANADOS
           {cliente&&<div style={{fontSize:9}}>Saldo: {(cliente.puntos||0)+ptsG} pts = ${(((cliente.puntos||0)+ptsG)*0.5).toFixed(0)}</div>}
         </div>
       )}
@@ -155,7 +155,7 @@ const TicketVenta = forwardRef(({
       <div className="footer">
         <div style={{fontWeight:"bold",fontSize:11,letterSpacing:1}}>Gracias por su compra</div>
         <div>¡Vuelva pronto!</div>
-        <div style={{marginTop:3,fontSize:8,color:"#555"}}>far-max.mx</div>
+        <div style={{marginTop:3,fontSize:8,color:"#555"}}>farmacapital.mx</div>
         <div style={{marginTop:4,fontSize:8,color:"#ccc",letterSpacing:3}}>* * * * * * * * *</div>
       </div>
 

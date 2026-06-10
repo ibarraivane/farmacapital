@@ -16,7 +16,7 @@ import ImageUploader from "./components/ImageUploader";
 
 const leerSesion = () => {
   try {
-    return JSON.parse(sessionStorage.getItem("farmax_admin_user") || "{}");
+    return JSON.parse(sessionStorage.getItem("farmacapital_admin_user") || "{}");
   } catch {
     return {};
   }
@@ -75,7 +75,7 @@ const diasParaCaducar = (fecha) => {
 
 /**
  * Referencia del Excel mayorista (columna A del libro), guardada en `notas` como "Lista SKU origen".
- * No es el SKU Farmax (`productos.sku`): es solo la ref. del distribuidor para pedidos / cruce con lista.
+ * No es el SKU FarmaCapital (`productos.sku`): es solo la ref. del distribuidor para pedidos / cruce con lista.
  */
 function refListaMayoristaDesdeNotas(notas) {
   const m = String(notas ?? "").match(/Lista SKU origen:\s*([^·]+)/);
@@ -219,13 +219,13 @@ const INV_COL_WIDTHS_DEFAULT = {
   proveedor: 140,
 };
 
-/** Cabeceras tabla inventario + tooltip para distinguir SKU Farmax vs ref. lista mayorista. */
+/** Cabeceras tabla inventario + tooltip para distinguir SKU FarmaCapital vs ref. lista mayorista. */
 const INV_COLUMN_HEADERS = [
   { id: "foto", label: "Foto", hint: "" },
   {
-    id: "skuFarmax",
-    label: "SKU Farmax",
-    hint: "Identificador único en Farmax — campo productos.sku (POS, ticket, código interno).",
+    id: "skuFarmaCapital",
+    label: "SKU FarmaCapital",
+    hint: "Identificador único en FarmaCapital — campo productos.sku (POS, ticket, código interno).",
   },
   {
     id: "refLista",
@@ -271,7 +271,7 @@ const descargarPlantilla = () => {
   const blob = new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8;"});
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
-  a.href=url; a.download="plantilla_inventario_farmax.csv";
+  a.href=url; a.download="plantilla_inventario_farmacapital.csv";
   a.click(); URL.revokeObjectURL(url);
 };
 
@@ -519,7 +519,7 @@ const exportarCSV = (productos) => {
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement("a");
   a.href = url; 
-  a.download = `inventario_farmax_${new Date().toISOString().slice(0,10)}.csv`;
+  a.download = `inventario_farmacapital_${new Date().toISOString().slice(0,10)}.csv`;
   a.click(); URL.revokeObjectURL(url);
 };
 
@@ -589,7 +589,7 @@ function ProductoModal({initial, onClose, onSaved }) {
       const sesion = leerSesion();
       await idEmpleadoUsuarios(sesion);
 
-      const tok = sessionStorage.getItem("farmax_session_token");
+      const tok = sessionStorage.getItem("farmacapital_session_token");
       if (!tok) {
         showToast("Sesión expirada. Inicia sesión de nuevo.", "error");
         return;
@@ -680,7 +680,7 @@ function ProductoModal({initial, onClose, onSaved }) {
             onRemoved={()=>{
               setForm((f)=>({...f,imagen_url:"",imagen_mobile_url:""}));
               if(form.id){
-                const t=sessionStorage.getItem("farmax_session_token");
+                const t=sessionStorage.getItem("farmacapital_session_token");
                 if(t){
                   supabase.rpc("admin_editar_producto",{p_session_token:t,p_producto_id:form.id,p_patch:{imagen_url:"",imagen_mobile_url:""}})
                     .then(({error})=>{ if(error)showToast(error.message,"error"); else showToast("Imagen quitada en servidor","info"); });
@@ -698,7 +698,7 @@ function ProductoModal({initial, onClose, onSaved }) {
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 18px"}}>
           <div>
             {field("Nombre","nombre","text",true)}
-            {field("SKU Farmax","sku")}
+            {field("SKU FarmaCapital","sku")}
             {field("Código de barras","codigo_barras")}
             <div style={{marginBottom:12}}>
               <label style={labelStyle}>Categoría</label>
@@ -820,7 +820,7 @@ function RecibirModal({ productos, onClose, onSaved }) {
     if (!selId) { setError("Selecciona un producto"); return; }
     if (!cantidad || parseInt(cantidad) <= 0) { setError("Cantidad inválida"); return; }
     setSaving(true); setError("");
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) { setSaving(false); setError("Sesión expirada."); return; }
     const { error: err } = await supabase.rpc("receive_merchandise_secure", {
       p_session_token: tok,
@@ -946,7 +946,7 @@ function BulkImagesModal({ open, onClose, productos, onComplete }) {
 
   const procesarTodas = async () => {
     if (!files.length) return;
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) {
       showToast("Sesión expirada.", "error");
       return;
@@ -1424,7 +1424,7 @@ export default function InventarioModule() {
   const [showColumnSizer, setShowColumnSizer] = useState(false);
   const [colWidths, setColWidths] = useState(() => {
     try {
-      const raw = JSON.parse(localStorage.getItem("farmax_inv_col_widths") || "{}");
+      const raw = JSON.parse(localStorage.getItem("farmacapital_inv_col_widths") || "{}");
       return { ...INV_COL_WIDTHS_DEFAULT, ...raw };
     } catch {
       return { ...INV_COL_WIDTHS_DEFAULT };
@@ -1433,7 +1433,7 @@ export default function InventarioModule() {
 
   useEffect(() => {
     try {
-      localStorage.setItem("farmax_inv_col_widths", JSON.stringify(colWidths));
+      localStorage.setItem("farmacapital_inv_col_widths", JSON.stringify(colWidths));
     } catch {
       /* noop */
     }
@@ -1506,7 +1506,7 @@ export default function InventarioModule() {
     const total = rows.length;
     setImportando(true);
     setImportProgress({ cur: 0, total });
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) {
       setImportando(false);
       setImportProgress(null);
@@ -1677,11 +1677,11 @@ export default function InventarioModule() {
         );
       } else if (importCsvSoloNuevos) {
         showToast(
-          `✅ ${created} producto(s) nuevo(s). ${skipped} fila(s) con SKU Farmax ya en catálogo (omitidas).`,
+          `✅ ${created} producto(s) nuevo(s). ${skipped} fila(s) con SKU FarmaCapital ya en catálogo (omitidas).`,
           created > 0 ? "success" : "info"
         );
       } else if (updated > 0 && created === 0) {
-        showToast(`✅ ${updated} productos actualizados desde CSV (ya existían por SKU Farmax)`, "success");
+        showToast(`✅ ${updated} productos actualizados desde CSV (ya existían por SKU FarmaCapital)`, "success");
       } else if (created > 0 && updated === 0) {
         showToast(`✅ ${created} productos dados de alta`, "success");
       } else {
@@ -1693,7 +1693,7 @@ export default function InventarioModule() {
   const liquidar = async (prod) => {
     const pct = window.prompt(`¿Qué % de descuento aplicar para liquidar "${prod.nombre}"?\nPrecio actual: $${prod.precio}`, "30");
     if (!pct || isNaN(pct) || parseFloat(pct)<=0 || parseFloat(pct)>=100) return;
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     const { error } = await supabase.rpc("admin_editar_producto", {
       p_session_token: tok,
       p_producto_id: prod.id,
@@ -1791,7 +1791,7 @@ export default function InventarioModule() {
 
   const desactivar = async (id) => {
     if (!window.confirm("¿Desactivar este producto?")) return;
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     const { error } = await supabase.rpc("admin_toggle_producto", {
       p_session_token: tok, p_producto_id: id, p_activo: false,
     });
@@ -1799,7 +1799,7 @@ export default function InventarioModule() {
     fetchProductos();
   };
   const reactivar = async (id) => {
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     const { error } = await supabase.rpc("admin_toggle_producto", {
       p_session_token: tok, p_producto_id: id, p_activo: true,
     });
@@ -1808,7 +1808,7 @@ export default function InventarioModule() {
   };
 
   const aplicarEdicionLote = async (patch) => {
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) {
       showToast("Sesión expirada.", "error");
       return;
@@ -1836,7 +1836,7 @@ export default function InventarioModule() {
   };
 
   const bulkDesactivar = async () => {
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) {
       showToast("Sesión expirada.", "error");
       return;
@@ -1869,7 +1869,7 @@ export default function InventarioModule() {
   };
 
   const bulkReactivar = async () => {
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) {
       showToast("Sesión expirada.", "error");
       return;
@@ -1902,7 +1902,7 @@ export default function InventarioModule() {
   };
 
   const bulkEliminar = async () => {
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) {
       showToast("Sesión expirada.", "error");
       return;
@@ -1958,7 +1958,7 @@ export default function InventarioModule() {
       }}>
         <div style={{ minWidth: 0 }}>
           <h1 style={{margin:0,color:C.text,fontSize:20,fontWeight:800}}>▤ Inventario</h1>
-          <p style={{margin:"4px 0 0",color:C.textMid,fontSize:12}}>Gestión de productos · Farmax</p>
+          <p style={{margin:"4px 0 0",color:C.textMid,fontSize:12}}>Gestión de productos · FarmaCapital</p>
         </div>
         <div style={isMobileInv ? {
           display:"grid",
@@ -2004,7 +2004,7 @@ export default function InventarioModule() {
       </div>
 
       <div data-tour="inv-buscar" style={{display:"flex",flexDirection:"column",gap:10,marginBottom:16}}>
-        <SearchDropdown value={busqueda} onChange={setBusqueda} onSelect={p=>setBusqueda(p.nombre)} placeholder="🔍 Nombre, SKU Farmax, marca, principio, presentación…" items={productos} labelKey="nombre" subKey="sku" extraSearchKeys={["codigo_barras","categoria","principio_activo","denominacion_generica","denominacion_distintiva","marca","concentracion","presentacion","forma_farmaceutica","ubicacion_texto"]} badgeKey="stock" badgeCol="#0099e6" style={{width:"100%",maxWidth:"100%"}} emptyMsg="Sin productos"/>
+        <SearchDropdown value={busqueda} onChange={setBusqueda} onSelect={p=>setBusqueda(p.nombre)} placeholder="🔍 Nombre, SKU FarmaCapital, marca, principio, presentación…" items={productos} labelKey="nombre" subKey="sku" extraSearchKeys={["codigo_barras","categoria","principio_activo","denominacion_generica","denominacion_distintiva","marca","concentracion","presentacion","forma_farmaceutica","ubicacion_texto"]} badgeKey="stock" badgeCol="#0099e6" style={{width:"100%",maxWidth:"100%"}} emptyMsg="Sin productos"/>
         <div style={{display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
         <select value={filtroCategoria} onChange={e=>setFiltroCategoria(e.target.value)} style={{...inputStyle,maxWidth:180}}>
           <option value="todas">Todas las categorías</option>
@@ -2253,7 +2253,7 @@ export default function InventarioModule() {
                 const dosisLine = lineaDosisTabla(p);
                 const stickyRowBg = bajo ? C.amberDim : nearCad ? C.redDim : C.bg;
                 return (
-                  <tr key={p.id} className="farmax-table-row" style={{opacity:inact?0.45:1,background:bajo?C.amberDim:nearCad?C.redDim:"transparent"}}>
+                  <tr key={p.id} className="farmacapital-table-row" style={{opacity:inact?0.45:1,background:bajo?C.amberDim:nearCad?C.redDim:"transparent"}}>
                     <td style={{
                       padding: "6px 8px",
                       borderBottom: `1px solid ${C.border}`,
@@ -2506,7 +2506,7 @@ export default function InventarioModule() {
                 <li>Agrega tus productos (una fila por producto)</li>
                 <li>Guarda como CSV (separado por comas)</li>
                 <li>Sube el archivo aquí</li>
-                <li style={{marginTop:6}}><strong>SKU Farmax</strong> (columna «SKU» del CSV): debe coincidir con <code>productos.sku</code> para fusionar o omitir duplicados en “solo nuevos”.</li>
+                <li style={{marginTop:6}}><strong>SKU FarmaCapital</strong> (columna «SKU» del CSV): debe coincidir con <code>productos.sku</code> para fusionar o omitir duplicados en “solo nuevos”.</li>
               </ol>
             </div>
             <button onClick={descargarPlantilla} style={{width:"100%",padding:"10px",borderRadius:8,border:"1px solid #0052cc",background:"#eff6ff",color:"#0052cc",fontWeight:700,fontSize:13,cursor:"pointer",marginBottom:16,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
@@ -2536,7 +2536,7 @@ export default function InventarioModule() {
                     <div style={{maxHeight:200,overflowY:"visible",border:`1px solid ${C.border}`,borderRadius:8,marginBottom:16}}>
                       <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
                         <thead><tr style={{background:C.cardDark}}>
-                          {["Nombre","SKU Farmax","Categoría","Stock","Precio","Caducidad"].map(h=><th key={h} style={{padding:"6px 10px",textAlign:"left",color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{h}</th>)}
+                          {["Nombre","SKU FarmaCapital","Categoría","Stock","Precio","Caducidad"].map(h=><th key={h} style={{padding:"6px 10px",textAlign:"left",color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{h}</th>)}
                         </tr></thead>
                         <tbody>
                           {importResult.rows.slice(0,20).map((r,i)=>(
@@ -2556,9 +2556,9 @@ export default function InventarioModule() {
                     <label style={{display:"flex",alignItems:"flex-start",gap:10,marginBottom:14,cursor:"pointer",fontSize:12,color:C.text,lineHeight:1.45}}>
                       <input type="checkbox" checked={importCsvSoloNuevos} onChange={(e)=>setImportCsvSoloNuevos(e.target.checked)} style={{marginTop:3}} />
                       <span>
-                        <strong>Solo productos nuevos</strong> — solo dan de alta filas cuyo <strong>SKU Farmax</strong> <em>aún no</em> está en el catálogo. Las que ya existen se omiten (no cambian precio ni stock).
+                        <strong>Solo productos nuevos</strong> — solo dan de alta filas cuyo <strong>SKU FarmaCapital</strong> <em>aún no</em> está en el catálogo. Las que ya existen se omiten (no cambian precio ni stock).
                         <span style={{display:"block",color:C.textMid,fontSize:11,marginTop:4}}>
-                          Desmarcado: fusionar lista — crea nuevos y actualiza precio/stock de los que ya tenían ese SKU Farmax.
+                          Desmarcado: fusionar lista — crea nuevos y actualiza precio/stock de los que ya tenían ese SKU FarmaCapital.
                         </span>
                       </span>
                     </label>

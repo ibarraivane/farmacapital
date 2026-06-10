@@ -2,7 +2,7 @@
  * Tras venta POS con receta de médico del consultorio, marca en la cita del día
  * los renglones de medicamentos_prescritos que tienen producto_id y coinciden con el carrito.
  */
-export async function marcarMedicamentosRecetaFarmaxSurtidos(supabase, {
+export async function marcarMedicamentosRecetaFarmaCapitalSurtidos(supabase, {
   p_session_token,
   fechaCitaLocal,
   telefonoCliente,
@@ -58,7 +58,7 @@ export async function marcarMedicamentosRecetaFarmaxSurtidos(supabase, {
     changed = true;
     return {
       ...row,
-      surtido: "farmax",
+      surtido: "farmacapital",
       pedido_surtido_id: pedidoId,
       cantidad_surtida_caja: qtyByPid.get(pid),
     };

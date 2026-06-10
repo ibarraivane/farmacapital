@@ -37,7 +37,7 @@ function NuevaDevolucionModal({usuario, onClose, onSaved }) {
 
   const buscarPedido = async () => {
     if (!busqPed) return;
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     const { data } = tok
       ? await supabase.rpc("empleado_buscar_pedidos_devolucion", {
           p_session_token: tok,
@@ -74,7 +74,7 @@ function NuevaDevolucionModal({usuario, onClose, onSaved }) {
     if (!motivo) { setError("Indica el motivo de la devolución."); return; }
     setSaving(true); setError("");
     try {
-      const tok = sessionStorage.getItem("farmax_session_token");
+      const tok = sessionStorage.getItem("farmacapital_session_token");
       if (!tok) { setError("Sesión expirada. Inicia sesión de nuevo."); setSaving(false); return; }
 
       const payloadItems = itemsSel.map(i => ({
@@ -190,7 +190,7 @@ function NuevaDevolucionModal({usuario, onClose, onSaved }) {
               <select style={inpS} value={metodo} onChange={e=>setMetodo(e.target.value)}>
                 <option value="efectivo">Efectivo</option>
                 <option value="tarjeta">Tarjeta (reverso)</option>
-                <option value="puntos">Puntos Farmax</option>
+                <option value="puntos">Puntos FarmaCapital</option>
                 <option value="credito">Crédito en farmacia</option>
               </select>
             </div>
@@ -234,7 +234,7 @@ export default function DevolucionesModule({ usuario }) {
 
   const fetch = useCallback(async () => {
     setLoad(true);
-    const tok = sessionStorage.getItem("farmax_session_token");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
     const { data } = tok
       ? await supabase.rpc("empleado_listar_devoluciones", { p_session_token: tok, p_limite: 100 })
       : { data: [] };

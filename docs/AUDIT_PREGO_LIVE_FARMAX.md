@@ -1,4 +1,4 @@
-# Auditoría pre go-live — FARMAX (React + Supabase)
+# Auditoría pre go-live — FARMACAPITAL (React + Supabase)
 
 Fecha de referencia: abril 2026.
 

@@ -1,4 +1,4 @@
-Quiero que corrijas el perfil de la DOCTORA en FARMAX porque hoy la lógica no está alineada con la operación real del consultorio.
+Quiero que corrijas el perfil de la DOCTORA en FARMACAPITAL porque hoy la lógica no está alineada con la operación real del consultorio.
 
 IMPORTANTE
 - No quiero refactors grandes de arquitectura.

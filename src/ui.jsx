@@ -1,5 +1,5 @@
 import React, { useRef, useState, useLayoutEffect, useCallback } from "react";
-// FARMAX — Componentes UI base
+// FARMACAPITAL — Componentes UI base
 import { C_LIGHT, BRAND } from "./constants";
 import { productMatchesSearchQuery } from "./utils/fuzzySearch";
 
@@ -24,7 +24,7 @@ export function Logo({size=36,showText=true,light=false}){
 
 export function Box({children,style,onClick,ac,className}){
   const C = C_LIGHT;
-  const useCssHover = className && String(className).includes("farmax-product-card");
+  const useCssHover = className && String(className).includes("farmacapital-product-card");
   return(
   <div
     className={className||undefined}
@@ -190,7 +190,7 @@ export function ConfirmDialog({open,titulo,mensaje,onConfirm,onCancel,danger=fal
         <div style={{fontSize:32,textAlign:"center",marginBottom:12}}>{danger?"⚠️":"❓"}</div>
         <div style={{color:C.text,fontWeight:800,fontSize:16,textAlign:"center",marginBottom:8}}>{titulo}</div>
         <div style={{color:C.textMid,fontSize:13,textAlign:"center",marginBottom:24,lineHeight:1.6}}>{mensaje}</div>
-        <div className="farmax-confirm-actions" style={{display:"flex",gap:10,justifyContent:"center",flexWrap:"wrap"}}>
+        <div className="farmacapital-confirm-actions" style={{display:"flex",gap:10,justifyContent:"center",flexWrap:"wrap"}}>
           <button type="button" onClick={onCancel} style={{padding:"10px 20px",borderRadius:8,border:`1px solid ${C.border}`,background:"transparent",color:C.textMid,fontWeight:700,fontSize:14,cursor:"pointer",minHeight:44,flex:"1 1 140px"}}>Cancelar</button>
           <button type="button" onClick={onConfirm} style={{padding:"10px 20px",borderRadius:8,border:"none",background:danger?C.red:C.green,color:C.card,fontWeight:700,fontSize:14,cursor:"pointer",minHeight:44,flex:"1 1 140px"}}>{danger?"Eliminar":"Confirmar"}</button>
         </div>
@@ -506,20 +506,20 @@ export function SearchDropdown({
 // ── Estilos globales de hover ─────────────────────────────────
 export const hoverStyles = `
   /* Filas de tabla */
-  .farmax-table-row { transition: background .12s, box-shadow .12s; }
-  .farmax-table-row:hover { background: #eff6ff !important; }
+  .farmacapital-table-row { transition: background .12s, box-shadow .12s; }
+  .farmacapital-table-row:hover { background: #eff6ff !important; }
 
   /* Cards KPI */
-  .farmax-kpi-card { transition: border-color .15s, box-shadow .15s, transform .15s; }
-  .farmax-kpi-card:hover {
+  .farmacapital-kpi-card { transition: border-color .15s, box-shadow .15s, transform .15s; }
+  .farmacapital-kpi-card:hover {
     border-color: #0052cc !important;
     box-shadow: 0 4px 16px rgba(0,82,204,.12) !important;
     transform: translateY(-1px);
   }
 
   /* Cards de producto en POS (clic en toda la tarjeta) */
-  .farmax-product-card { transition: border-color .15s, box-shadow .15s, transform .12s, background .12s; }
-  .farmax-product-card:hover {
+  .farmacapital-product-card { transition: border-color .15s, box-shadow .15s, transform .12s, background .12s; }
+  .farmacapital-product-card:hover {
     border-color: #0052cc !important;
     box-shadow: 0 4px 16px rgba(0,82,204,.14) !important;
     transform: translateY(-1px);
@@ -527,16 +527,16 @@ export const hoverStyles = `
   }
 
   /* Botones secundarios */
-  .farmax-btn-secondary { transition: background .12s, color .12s, border-color .12s; }
-  .farmax-btn-secondary:hover {
+  .farmacapital-btn-secondary { transition: background .12s, color .12s, border-color .12s; }
+  .farmacapital-btn-secondary:hover {
     background: #eff6ff !important;
     color: #0052cc !important;
     border-color: #0052cc !important;
   }
 
   /* Cards generales */
-  .farmax-card-hover { transition: box-shadow .15s, border-color .15s; }
-  .farmax-card-hover:hover {
+  .farmacapital-card-hover { transition: box-shadow .15s, border-color .15s; }
+  .farmacapital-card-hover:hover {
     box-shadow: 0 4px 20px rgba(0,82,204,.10) !important;
     border-color: #bfdbfe !important;
   }
