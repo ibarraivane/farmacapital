@@ -143,8 +143,8 @@ export default function TicketPreviewModal({
     };
   }, [open]);
 
-  // Auto-imprimir al abrir (opcional — comentar si no se quiere)
-  // useEffect(() => { if(open) setTimeout(()=>printTicket("farmacapital-ticket"), 1000); }, [open]);
+  // Auto-imprimir al abrir
+  React.useEffect(() => { if(open) setTimeout(()=>printTicket("farmacapital-ticket"), 800); }, [open]);
 
   if (!open) return null;
 

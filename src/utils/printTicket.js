@@ -12,24 +12,71 @@ export function printTicket(ticketId = "farmacapital-ticket") {
     return;
   }
 
-  // Guardar estado original
-  const originalTitle = document.title;
-  document.title = `Ticket_FarmaCapital_${new Date().toISOString().slice(0,10)}`;
+  // Clonar el ticket para capturar SVG del QR renderizado
+  const clone = ticket.cloneNode(true);
 
-  // Configurar para Epson TM-T20III
-  // Instrucciones al usuario si no tiene la impresora configurada
-  console.log("[FarmaCapital] Imprimiendo ticket en Epson TM-T20III");
-  console.log("[FarmaCapital] Configuración recomendada:");
-  console.log("  - Papel: 80mm (sin márgenes)");
-  console.log("  - Orientación: Vertical");
-  console.log("  - Escala: 100%");
+  // Copiar SVG inline (canvas/SVG del QR no se clona bien con solo innerHTML)
+  const srcSvgs = ticket.querySelectorAll("svg");
+  const dstSvgs = clone.querySelectorAll("svg");
+  srcSvgs.forEach((src, i) => {
+    if (dstSvgs[i]) dstSvgs[i].outerHTML = src.outerHTML;
+  });
 
-  // Pequeño delay para asegurar que el QR SVG esté renderizado
+  // Obtener las hojas de estilo del documento actual para incluirlas en el popup
+  const styles = Array.from(document.styleSheets)
+    .map(sheet => {
+      try {
+        return Array.from(sheet.cssRules || []).map(r => r.cssText).join("\n");
+      } catch { return ""; }
+    })
+    .join("\n");
+
+  const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Ticket FarmaCapital</title>
+  <style>
+    * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    html, body { margin: 0; padding: 0; background: #fff; }
+    body { font-family: 'Courier New', Courier, monospace; }
+    @page { size: 80mm auto; margin: 2mm 1mm; }
+    ${styles}
+    /* Asegurar negro puro en impresión térmica */
+    #farmacapital-ticket { background: #fff !important; color: #000 !important; }
+    .ticket-puntos { background: #000 !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  </style>
+</head>
+<body>
+  ${clone.outerHTML}
+</body>
+</html>`;
+
+  const win = window.open("", "_blank", "width=340,height=700,toolbar=0,menubar=0,scrollbars=1");
+  if (!win) {
+    // Popup bloqueado — fallback a window.print() con aviso
+    alert("Permite ventanas emergentes para imprimir tickets.\nEn Chrome: icono 🚫 en la barra de dirección → Permitir.");
+    return;
+  }
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+  // Esperar a que carguen imágenes y SVG, luego imprimir
+  win.addEventListener("load", () => {
+    setTimeout(() => {
+      win.focus();
+      win.print();
+      setTimeout(() => win.close(), 1200);
+    }, 350);
+  });
+  // Fallback si load no dispara (Chrome a veces no lo hace en popups)
   setTimeout(() => {
-    window.print();
-    // Restaurar título
-    setTimeout(() => { document.title = originalTitle; }, 1000);
-  }, 300);
+    if (!win.closed) {
+      win.focus();
+      win.print();
+      setTimeout(() => win.close(), 1200);
+    }
+  }, 900);
 }
 
 /**
