@@ -936,7 +936,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const renderPosCarritoVentaInner = () => (
     <>
       <Box style={{padding:16,marginBottom:12}}>
-        <div style={{color:C.text,fontWeight:700,fontSize:13,marginBottom:12}}>🛒 Carrito</div>
+        <div style={{color:C.text,fontWeight:800,fontSize:16,marginBottom:12}}>🛒 Carrito {cart.length>0&&<span style={{color:BRAND.primary,fontWeight:700,fontSize:13}}>({cart.length})</span>}</div>
         <div data-tour="pos-cliente">
         <SearchDropdown
           value={tel}
@@ -956,17 +956,17 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
           <div style={{color:C.purple,fontWeight:700,fontSize:12}}>{cli.nombre}</div>
           <div style={{color:C.textMid,fontSize:10}}>⭐ {cli.puntos||0} puntos FarmaCapital</div>
         </div>}
-        {!cart.length?<div style={{color:C.textMid,fontSize:12,textAlign:"center",padding:"20px 0"}}>Agrega productos</div>:
+        {!cart.length?<div style={{color:C.textMid,fontSize:13,textAlign:"center",padding:"24px 0"}}>Agrega productos</div>:
          cart.map(item=>(
-          <div key={item.id} style={{marginBottom:10,paddingBottom:10,borderBottom:`1px solid ${C.border}`}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:6,marginBottom:6}}>
-              <div style={{color:C.text,fontSize:11,fontWeight:700,flex:1}}>{item.nombre}</div>
-              <button onClick={()=>setCart(p=>p.filter(c=>c.id!==item.id))} style={{background:"none",border:"none",color:C.red,cursor:"pointer",fontSize:14}}>×</button>
+          <div key={item.id} style={{marginBottom:12,paddingBottom:12,borderBottom:`1px solid ${C.border}`}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:6,marginBottom:8}}>
+              <div style={{color:C.text,fontSize:14,fontWeight:700,flex:1,lineHeight:1.3}}>{item.nombre}</div>
+              <button onClick={()=>setCart(p=>p.filter(c=>c.id!==item.id))} style={{background:"none",border:"none",color:C.red,cursor:"pointer",fontSize:18,lineHeight:1,padding:"0 2px",flexShrink:0}}>×</button>
             </div>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div style={{display:"flex",alignItems:"center",gap:6}}>
-                <button onClick={()=>setCart(p=>p.map(c=>c.id===item.id?{...c,qty:Math.max(1,c.qty-1)}:c))} style={{width:22,height:22,borderRadius:4,border:`1px solid ${C.border}`,background:"none",color:C.text,cursor:"pointer",fontSize:13}}>−</button>
-                <span style={{color:C.text,fontSize:12,fontWeight:700}}>{item.qty}</span>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <button onClick={()=>setCart(p=>p.map(c=>c.id===item.id?{...c,qty:Math.max(1,c.qty-1)}:c))} style={{width:28,height:28,borderRadius:6,border:`1px solid ${C.border}`,background:"none",color:C.text,cursor:"pointer",fontSize:16,fontWeight:700}}>−</button>
+                <span style={{color:C.text,fontSize:15,fontWeight:800,minWidth:20,textAlign:"center"}}>{item.qty}</span>
             <button onClick={()=>setCart(p=>p.map(c=>{
               if(c.id!==item.id) return c;
               if(c.esUnidad){
@@ -978,9 +978,9 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
               const maxF = prod ? getStockFifoDisponible(prod) : 0;
               if(c.qty>=maxF){ showToast(`Stock FIFO insuficiente. Disponible: ${maxF}`,"warning"); return c; }
               return {...c,qty:c.qty+1};
-            }))} style={{width:22,height:22,borderRadius:4,border:`1px solid ${C.border}`,background:"none",color:C.text,cursor:"pointer",fontSize:13}}>+</button>
+            }))} style={{width:28,height:28,borderRadius:6,border:`1px solid ${C.border}`,background:"none",color:C.text,cursor:"pointer",fontSize:16,fontWeight:700}}>+</button>
               </div>
-              <span style={{color:C.blue,fontWeight:700,fontSize:13}}>{$(item.precio*item.qty)}</span>
+              <span style={{color:C.blue,fontWeight:800,fontSize:16}}>{$(item.precio*item.qty)}</span>
             </div>
           </div>
         ))}
@@ -1544,7 +1544,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                   {srchSuggestions.map((s,i)=>{
                     const row=productos.find(x=>x.id===s.id);
                     return(
-                      <div key={s.id} onMouseDown={e=>{e.preventDefault();if(row){add(row,false);}setSrch("");setSrchFocus(false);}}
+                      <div key={s.id} onMouseDown={e=>{e.preventDefault();if(row){add(row,false);}setSrchFocus(false);}}
                         style={{padding:"9px 13px",cursor:"pointer",borderBottom:"1px solid #f0f4f9",background:"#fff",display:"flex",alignItems:"center",gap:10}}
                         onMouseEnter={e=>e.currentTarget.style.background="#eff6ff"}
                         onMouseLeave={e=>e.currentTarget.style.background="#fff"}>
