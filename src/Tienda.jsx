@@ -3161,36 +3161,34 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
       }
 
       const tokCli = sessionStorage.getItem("farmacapital_cliente_token");
-      if (!tokCli) {
-        notifyCheckout("Inicia sesión para confirmar tu pedido.", "warning");
-        setPage("login");
-        setG(false); return;
-      }
+      const esInvitado = !tokCli;
 
-      // Persistir datos de contacto/dirección al perfil del cliente para no reescribir cada compra.
-      try {
-        await supabase.rpc("cliente_actualizar_perfil", {
-          p_session_token: tokCli,
-          p_nombre: String(datos.nombre || "").trim() || null,
-          p_email: String(datos.email || "").trim() || null,
-          p_calle: String(datos.calle || "").trim() || null,
-          p_colonia: String(datos.colonia || "").trim() || null,
-          p_cp: String(datos.cp || "").trim() || null,
-          p_rfc: null,
-          p_razon_social: null,
-        });
-        if (typeof setUser === "function") {
-          setUser((prev) => ({
-            ...(prev || {}),
-            nombre: String(datos.nombre || "").trim() || prev?.nombre || "",
-            email: String(datos.email || "").trim() || prev?.email || "",
-            calle: String(datos.calle || "").trim() || prev?.calle || "",
-            colonia: String(datos.colonia || "").trim() || prev?.colonia || "",
-            cp: String(datos.cp || "").trim() || prev?.cp || "",
-          }));
+      // Si tiene sesión, persistir datos al perfil para no reescribir en próximas compras
+      if (!esInvitado) {
+        try {
+          await supabase.rpc("cliente_actualizar_perfil", {
+            p_session_token: tokCli,
+            p_nombre: String(datos.nombre || "").trim() || null,
+            p_email: String(datos.email || "").trim() || null,
+            p_calle: String(datos.calle || "").trim() || null,
+            p_colonia: String(datos.colonia || "").trim() || null,
+            p_cp: String(datos.cp || "").trim() || null,
+            p_rfc: null,
+            p_razon_social: null,
+          });
+          if (typeof setUser === "function") {
+            setUser((prev) => ({
+              ...(prev || {}),
+              nombre: String(datos.nombre || "").trim() || prev?.nombre || "",
+              email: String(datos.email || "").trim() || prev?.email || "",
+              calle: String(datos.calle || "").trim() || prev?.calle || "",
+              colonia: String(datos.colonia || "").trim() || prev?.colonia || "",
+              cp: String(datos.cp || "").trim() || prev?.cp || "",
+            }));
+          }
+        } catch (e) {
+          console.warn("[Checkout] cliente_actualizar_perfil:", e);
         }
-      } catch (e) {
-        console.warn("[Checkout] cliente_actualizar_perfil:", e);
       }
 
       const p_cart = reconciled.map(c => ({
@@ -3199,14 +3197,14 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
       }));
 
       const { data: resp, error: rpcErr } = await supabase.rpc("cliente_crear_pedido_online", {
-        p_session_token: tokCli,
+        p_session_token: esInvitado ? null : tokCli,
         p_cart,
         p_metodo_pago: metodo,
         p_tipo_entrega: tipo_entrega,
         p_direccion: tipo_entrega === "envio" ? direccionStr : null,
-        p_guest_nombre: null,
-        p_guest_telefono: null,
-        p_guest_email: null,
+        p_guest_nombre: esInvitado ? String(datos.nombre || "").trim() || null : null,
+        p_guest_telefono: esInvitado ? String(datos.tel || "").trim() || null : null,
+        p_guest_email: esInvitado ? String(datos.email || "").trim() || null : null,
         p_reservation_session_id: null,
       });
       if (rpcErr) throw rpcErr;
@@ -3223,12 +3221,13 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${tokCli}`,
+            ...(tokCli ? { Authorization: `Bearer ${tokCli}` } : {}),
           },
           body: JSON.stringify({
             pedidoId: resp.pedido_id,
             amount: subSnap,
             baseUrl,
+            guest: esInvitado,
             payer: {
               name: String(datos.nombre || "").trim() || null,
               email: String(datos.email || "").trim() || null,

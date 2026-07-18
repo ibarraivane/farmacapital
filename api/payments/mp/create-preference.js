@@ -39,23 +39,29 @@ module.exports = async function handler(req, res) {
   const auth = req.headers.authorization || req.headers.Authorization || '';
   const clienteToken = auth.replace(/^Bearer\s+/i, '').trim();
 
+  const isGuest = body?.guest === true;
+
   if (!pedidoId || !Number.isFinite(pedidoId)) return res.status(400).json({ ok: false, error: 'invalid_pedido_id' });
   if (!Number.isFinite(amount) || amount <= 0) return res.status(400).json({ ok: false, error: 'invalid_amount' });
-  if (!clienteToken) return res.status(401).json({ ok: false, error: 'missing_cliente_token' });
+  if (!clienteToken && !isGuest) return res.status(401).json({ ok: false, error: 'missing_cliente_token' });
 
   try {
-    // Verifica sesión cliente y ownership del pedido.
-    const validTokResp = await fetch(`${SUPABASE_URL}/rest/v1/rpc/fn_validar_token_cliente`, {
-      method: 'POST',
-      headers: {
-        apikey: SUPABASE_SERVICE_ROLE_KEY,
-        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ p_token: clienteToken }),
-    });
-    const clienteId = Number(await validTokResp.json());
-    if (!validTokResp.ok || !clienteId) return res.status(401).json({ ok: false, error: 'invalid_cliente_token' });
+    let clienteId = null;
+
+    if (!isGuest) {
+      // Verifica sesión cliente y ownership del pedido.
+      const validTokResp = await fetch(`${SUPABASE_URL}/rest/v1/rpc/fn_validar_token_cliente`, {
+        method: 'POST',
+        headers: {
+          apikey: SUPABASE_SERVICE_ROLE_KEY,
+          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ p_token: clienteToken }),
+      });
+      clienteId = Number(await validTokResp.json());
+      if (!validTokResp.ok || !clienteId) return res.status(401).json({ ok: false, error: 'invalid_cliente_token' });
+    }
 
     const pedidoResp = await fetch(
       `${SUPABASE_URL}/rest/v1/pedidos?id=eq.${pedidoId}&select=id,cliente_id,total,estado,tipo,metodo_pago,tipo_entrega`,
@@ -69,7 +75,8 @@ module.exports = async function handler(req, res) {
     const pedidoRows = await pedidoResp.json();
     const pedido = Array.isArray(pedidoRows) ? pedidoRows[0] : null;
     if (!pedidoResp.ok || !pedido) return res.status(404).json({ ok: false, error: 'pedido_not_found' });
-    if (Number(pedido.cliente_id) !== clienteId) return res.status(403).json({ ok: false, error: 'pedido_not_owned' });
+    if (!isGuest && Number(pedido.cliente_id) !== clienteId) return res.status(403).json({ ok: false, error: 'pedido_not_owned' });
+    if (!clienteId) clienteId = Number(pedido.cliente_id);
     if (pedido.tipo !== 'online') return res.status(400).json({ ok: false, error: 'pedido_not_online' });
     if (pedido.estado !== 'pendiente') return res.status(409).json({ ok: false, error: 'pedido_not_pending' });
 
