@@ -2939,7 +2939,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
     colonia:user?.colonia||"",
     cp:user?.cp||"",
   }));
-  const [metodo,setMetodo]=useState("tarjeta");
+  const [metodo,setMetodo]=useState("mercadopago");
   const [conf,setConf]=useState(false);
   const [lastOrder,setLastOrder]=useState(null);
   const [guardando,setG]=useState(false);
@@ -3295,7 +3295,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
     setG(false);
   };
   if(conf&&lastOrder){
-    const folio = lastOrder.pedido_id!=null ? `#FC-${String(lastOrder.pedido_id).padStart(4,"0")}` : null;
+    const folio = lastOrder.pedidoId!=null ? `#FC-${String(lastOrder.pedidoId).padStart(4,"0")}` : null;
     const esPickup = lastOrder.tipo_entrega==="recoger";
     const esCdmx = lastOrder.entregaUi==="cdmx";
     const instruccionEntrega = esPickup
@@ -3343,17 +3343,9 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
           <Btn onClick={()=>setPage("home")} col={BRAND.primary}>Ir al inicio</Btn>
           {user&&<Btn onClick={()=>setPage("cuenta")} outline col={BRAND.primary}>Ver mis pedidos</Btn>}
         </div>
-        {lastOrder.datosTel&&(
-          <button type="button" onClick={()=>{
-            const items=lastOrder.lines.map(i=>`• ${i.nombre} ×${i.qty} = $${(Number(i.precio)*Number(i.qty)).toFixed(2)}`).join("\n");
-            const entregaTxt = esPickup?"Pick-up en FarmaCapital":esCdmx?"Reparto CDMX":"Envío foráneo";
-            const folioTxt = folio ? `\n🔖 *Folio:* ${folio}` : "";
-            const msg=`🏥 *FarmaCapital*\nChinampac de Juárez, CDMX\n\n✅ *Pedido confirmado*\n\n${items}\n\n💰 *Total: $${Number(lastOrder.sub).toFixed(2)}*\n📦 *Entrega:* ${entregaTxt}${folioTxt}\n\n¡Gracias por tu preferencia! 💊`;
-            window.open("https://wa.me/52"+String(lastOrder.datosTel).replace(/\D/g,"")+"?text="+encodeURIComponent(msg),"_blank");
-          }} style={{display:"flex",alignItems:"center",gap:8,margin:"0 auto",padding:"10px 20px",borderRadius:10,border:"none",background:"#25D366",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer"}}>
-            📱 Enviar confirmación a mi WhatsApp
-          </button>
-        )}
+        <div style={{background:"#f0fdf4",border:"1px solid #86efac",borderRadius:10,padding:"12px 16px",fontSize:13,color:"#166534",lineHeight:1.6}}>
+          📱 <strong>Te contactaremos por WhatsApp</strong> al número <strong>{lastOrder.datosTel}</strong> para confirmar tu pedido y coordinar la entrega.
+        </div>
       </div>
     );
   }
@@ -3434,16 +3426,19 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
           {step===2&&(
             <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}>
               <div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:20}}>💳 Método de pago</div>
-              <div onClick={()=>setMetodo("mercadopago")} style={{padding:"14px 16px",borderRadius:10,border:`2px solid ${BRAND.primary}`,background:BRAND.primary+"12",cursor:"pointer",marginBottom:10}}>
-                <div style={{color:BRAND.primary,fontWeight:700,fontSize:"clamp(13px,3.2vw,14px)"}}>🔵 Mercado Pago</div>
-                <div style={{color:C.dim,fontSize:12,marginTop:2}}>Tarjeta, transferencia o efectivo · Checkout seguro</div>
+              <div style={{padding:"14px 16px",borderRadius:10,border:`2px solid ${BRAND.primary}`,background:BRAND.primary+"12",marginBottom:10,display:"flex",alignItems:"center",gap:12}}>
+                <div style={{flex:1}}>
+                  <div style={{color:BRAND.primary,fontWeight:700,fontSize:"clamp(13px,3.2vw,14px)"}}>🔵 Mercado Pago</div>
+                  <div style={{color:C.mid,fontSize:12,marginTop:2}}>Tarjeta, transferencia o efectivo · Checkout seguro</div>
+                </div>
+                <span style={{background:BRAND.primary,color:"#fff",fontWeight:800,fontSize:11,padding:"3px 10px",borderRadius:20}}>✓ Seleccionado</span>
               </div>
               <div style={{color:C.textDim,fontSize:11,lineHeight:1.5,marginBottom:10}}>
                 FarmaCapital no captura datos de tarjeta. El pago se procesa directamente en Mercado Pago con cifrado SSL.
               </div>
               <div style={{display:"flex",gap:10,marginTop:12,flexWrap:"wrap"}}>
                 <Btn onClick={()=>setStep(1)} outline col={C.mid} sm>← Atrás</Btn>
-                <Btn onClick={()=>setStep(3)} col={BRAND.primary} style={{flex:stack?1:undefined}}>Revisar pedido →</Btn>
+                <Btn onClick={()=>{setMetodo("mercadopago");setStep(3);}} col={BRAND.primary} style={{flex:stack?1:undefined}}>Revisar pedido →</Btn>
               </div>
             </div>
           )}

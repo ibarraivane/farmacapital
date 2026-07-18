@@ -20,6 +20,7 @@ import { labelTipoEntregaPedido, resumenLogisticsMeta } from "../../../utils/ord
 
 const PEDIDOS_TIENDA_SELECT_POS = `
             id,total,created_at,tipo,metodo_pago,estado,tipo_entrega,direccion,
+            guest_nombre,guest_telefono,guest_email,
             clientes(nombre,telefono),
             pedido_items(cantidad,precio_unitario,productos(nombre,sku,ubicacion_texto))
           `;
@@ -1830,18 +1831,34 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
           </div>
           {loading?<SkeletonTable rows={3} cols={4}/>:
            !pedOnline.length?<div style={{color:C.textMid,padding:40,textAlign:"center"}}>✓ Sin pedidos online pendientes</div>:
-           pedOnline.map(p=>(
+           pedOnline.map(p=>{
+            const clienteNombre = p.clientes?.nombre || p.guest_nombre || "—";
+            const clienteTel    = p.clientes?.telefono || p.guest_telefono || "";
+            const folioPOS      = `#FC-${String(p.id).padStart(4,"0")}`;
+            const enviarWhatsApp = ()=>{
+              if(!clienteTel){ showToast("Este pedido no tiene teléfono registrado","warning"); return; }
+              const items=(p.pedido_items||[]).map(i=>`• ${i.productos?.nombre} ×${i.cantidad} = $${(i.precio_unitario*i.cantidad).toFixed(2)}`).join("\n");
+              const entregaTxt=p.tipo_entrega==="recoger"?"Pick-up en FarmaCapital":"Envío a domicilio";
+              const msg=`🏥 *FarmaCapital*\nChinampac de Juárez, CDMX\n\n✅ *Pedido confirmado*\n🔖 *Folio:* ${folioPOS}\n\n${items}\n\n💰 *Total: $${Number(p.total).toFixed(2)}*\n📦 *Entrega:* ${entregaTxt}${p.tipo_entrega==="recoger"?`\n\n🏪 Muestra tu folio *${folioPOS}* o menciona tu teléfono al llegar.`:"\n\n📞 Te contactamos para coordinar tu entrega."}\n\n¡Gracias por tu preferencia! 💊`;
+              window.open("https://wa.me/52"+String(clienteTel).replace(/\D/g,"")+"?text="+encodeURIComponent(msg),"_blank");
+            };
+            return(
             <Box key={p.id} style={{padding: isNarrow ? 14 : 20,marginBottom:12,minWidth:0}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12,flexWrap:"wrap",gap:10}}>
                 <div>
-                  <div style={{color:C.text,fontWeight:800,fontSize:15}}>Pedido #{p.id} — Online</div>
+                  <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+                    <div style={{color:C.text,fontWeight:800,fontSize:15}}>Pedido #{p.id}</div>
+                    <div style={{background:BRAND.primary,color:"#fff",fontWeight:900,fontSize:13,padding:"2px 10px",borderRadius:20}}>{folioPOS}</div>
+                  </div>
                   <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:6}}>
                     <Tag col={p.tipo_entrega==="envio"?C.teal:C.green} sm>{labelTipoEntregaPedido(p.tipo_entrega)}</Tag>
                     {resumenLogisticsMeta(p.logistics_meta) && (
                       <Tag col={C.purple} sm title={JSON.stringify(p.logistics_meta)}>{resumenLogisticsMeta(p.logistics_meta)}</Tag>
                     )}
+                    {(p.guest_nombre||p.guest_telefono)&&<Tag col={C.amber} sm>Invitado</Tag>}
                   </div>
-                  <div style={{color:C.textMid,fontSize:12,marginTop:3}}>{p.clientes?.nombre} · {p.clientes?.telefono}</div>
+                  <div style={{color:C.text,fontSize:13,fontWeight:700,marginTop:6}}>{clienteNombre}</div>
+                  {clienteTel&&<div style={{color:C.textMid,fontSize:12,marginTop:1}}>📱 {clienteTel}</div>}
                   {p.tipo_entrega==="envio"&&p.direccion&&(
                     <div style={{color:C.textDim,fontSize:11,marginTop:4,maxWidth:480,lineHeight:1.35}}>📍 {p.direccion}</div>
                   )}
@@ -1868,6 +1885,9 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
               </div>
               <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                 <Btn onClick={()=>surtirOnline(p)} col={C.green} dis={guardando}>✓ Surtir y marcar listo</Btn>
+                <button onClick={enviarWhatsApp} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",borderRadius:8,border:"none",background:"#25D366",color:"#fff",fontWeight:700,fontSize:12,cursor:"pointer"}}>
+                  💬 WhatsApp cliente
+                </button>
                 <Btn ol col={C.red} sm onClick={async()=>{
                   const tok = sessionStorage.getItem("farmacapital_session_token");
                   const { error } = await supabase.rpc("admin_cancelar_pedido", {
@@ -1878,7 +1898,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                 }}>Cancelar</Btn>
               </div>
             </Box>
-          ))}
+          );})
           {pedOnlineHist.length>0&&(
             <div style={{marginTop:18}}>
               <div style={{color:C.text,fontWeight:800,fontSize:13,marginBottom:8}}>Historial reciente (surtidos)</div>
