@@ -3294,28 +3294,69 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
     }
     setG(false);
   };
-  if(conf&&lastOrder) return(<div style={{maxWidth:600,margin:"clamp(40px,12vw,80px) auto",padding:"0 16px",textAlign:"center"}}><div style={{fontSize:"clamp(48px,15vw,72px)",marginBottom:16}}>✅</div><h1 style={{color:C.dark,fontSize:"clamp(22px,5vw,28px)",fontWeight:800,marginBottom:8,lineHeight:1.2}}>¡Pedido confirmado!</h1><p style={{color:C.mid,fontSize:"clamp(14px,3.5vw,16px)",marginBottom:24,lineHeight:1.5}}>
-        {lastOrder.tipo_entrega==="recoger"
-          ? "Te avisamos por WhatsApp cuando esté listo para recoger en farmacia."
-          : "Te contactamos para coordinar el envío. Próximamente podrás enlazar Uber Direct / paquetería desde tu panel."}
-      </p>
-      {lastOrder.pedido_id!=null&&<p style={{color:C.dim,fontSize:12,marginBottom:16}}>Pedido #{lastOrder.pedido_id}</p>}
-      <div style={{background:"#fef3c7",border:"1px solid #f59e0b30",borderRadius:12,padding:16,marginBottom:24}}><div style={{color:"#92400e",fontWeight:700,fontSize:"clamp(13px,3.2vw,15px)"}}>⭐ +{labelPts(lastOrder.ptsG)} agregados a tu cuenta</div></div><div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap"}}>
+  if(conf&&lastOrder){
+    const folio = lastOrder.pedido_id!=null ? `#FC-${String(lastOrder.pedido_id).padStart(4,"0")}` : null;
+    const esPickup = lastOrder.tipo_entrega==="recoger";
+    const esCdmx = lastOrder.entregaUi==="cdmx";
+    const instruccionEntrega = esPickup
+      ? `Muestra este folio en farmacia o menciona tu teléfono. Prepararemos tu pedido y te avisamos cuando esté listo.`
+      : esCdmx
+        ? "Coordinaremos el reparto con Rappi o Uber. Te contactamos por WhatsApp para confirmar hora y dirección."
+        : "Generaremos tu guía de Skydropx y te enviamos el número de rastreo por WhatsApp en las próximas horas.";
+    const iconoEntrega = esPickup ? "🏪" : esCdmx ? "🛵" : "📦";
+    return(
+      <div style={{maxWidth:560,margin:"clamp(32px,10vw,72px) auto",padding:"0 16px",textAlign:"center"}}>
+        <div style={{fontSize:"clamp(48px,14vw,68px)",marginBottom:12}}>✅</div>
+        <h1 style={{color:C.dark,fontSize:"clamp(20px,5vw,26px)",fontWeight:800,marginBottom:8,lineHeight:1.2}}>¡Pedido confirmado!</h1>
+        {folio&&(
+          <div style={{background:BRAND.primary,borderRadius:14,padding:"18px 24px",margin:"18px 0",display:"inline-block",minWidth:200}}>
+            <div style={{color:"rgba(255,255,255,0.75)",fontSize:11,fontWeight:600,letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>Tu folio</div>
+            <div style={{color:"#fff",fontSize:"clamp(24px,7vw,34px)",fontWeight:900,letterSpacing:1}}>{folio}</div>
+          </div>
+        )}
+        <div style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:12,padding:"16px 20px",marginBottom:16,textAlign:"left"}}>
+          <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
+            <span style={{fontSize:24,flexShrink:0}}>{iconoEntrega}</span>
+            <div>
+              <div style={{color:C.dark,fontWeight:700,fontSize:14,marginBottom:4}}>
+                {esPickup?"Pick-up en FarmaCapital":esCdmx?"Reparto CDMX (Rappi/Uber)":"Envío foráneo (Skydropx)"}
+              </div>
+              <div style={{color:C.mid,fontSize:13,lineHeight:1.5}}>{instruccionEntrega}</div>
+            </div>
+          </div>
+        </div>
+        {lastOrder.lines?.length>0&&(
+          <div style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:12,padding:"12px 16px",marginBottom:16,textAlign:"left"}}>
+            {lastOrder.lines.map((i,idx)=>(
+              <div key={idx} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:idx<lastOrder.lines.length-1?`1px solid ${C.border}`:"none"}}>
+                <span style={{color:C.dark,fontSize:13}}>{i.nombre} ×{i.qty}</span>
+                <span style={{color:BRAND.primary,fontWeight:700,fontSize:13}}>${(Number(i.precio)*Number(i.qty)).toFixed(2)}</span>
+              </div>
+            ))}
+            <div style={{display:"flex",justifyContent:"space-between",paddingTop:8,marginTop:4,borderTop:`1px solid ${C.border}`}}>
+              <span style={{color:C.dark,fontWeight:800}}>Total pagado</span>
+              <span style={{color:BRAND.primary,fontWeight:900}}>${Number(lastOrder.sub).toFixed(2)}</span>
+            </div>
+          </div>
+        )}
+        <div style={{display:"flex",gap:10,justifyContent:"center",flexWrap:"wrap",marginBottom:16}}>
           <Btn onClick={()=>setPage("home")} col={BRAND.primary}>Ir al inicio</Btn>
-          <Btn onClick={()=>setPage("cuenta")} outline col={BRAND.primary}>Ver mis pedidos</Btn>
+          {user&&<Btn onClick={()=>setPage("cuenta")} outline col={BRAND.primary}>Ver mis pedidos</Btn>}
         </div>
         {lastOrder.datosTel&&(
-          <div style={{marginTop:16}}>
-            <button type="button" onClick={()=>{
-              const items=lastOrder.lines.map(i=>`• ${i.nombre} ×${i.qty} = $${(Number(i.precio)*Number(i.qty)).toFixed(2)}`).join("\n");
-              const entregaTxt = lastOrder.tipo_entrega==="recoger" ? "Pick-up en FarmaCapital" : `Envío (${lastOrder.entregaUi||"domicilio"})`;
-              const msg=`🏥 *FarmaCapital*\nChinampac de Juárez, CDMX\n\n✅ *Pedido confirmado*\n\n${items}\n\n💰 *Total: $${lastOrder.sub.toFixed(2)}*\n📦 *Entrega:* ${entregaTxt}\n\n¡Gracias por tu preferencia! 💊`;
-              window.open("https://wa.me/52"+String(lastOrder.datosTel).replace(/\D/g,"")+"?text="+encodeURIComponent(msg),"_blank");
-            }} style={{display:"flex",alignItems:"center",gap:8,margin:"0 auto",padding:"10px 24px",borderRadius:10,border:"none",background:"#25D366",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer"}}>
-              📱 Enviar confirmación por WhatsApp
-            </button>
-          </div>
-        )}</div>);
+          <button type="button" onClick={()=>{
+            const items=lastOrder.lines.map(i=>`• ${i.nombre} ×${i.qty} = $${(Number(i.precio)*Number(i.qty)).toFixed(2)}`).join("\n");
+            const entregaTxt = esPickup?"Pick-up en FarmaCapital":esCdmx?"Reparto CDMX":"Envío foráneo";
+            const folioTxt = folio ? `\n🔖 *Folio:* ${folio}` : "";
+            const msg=`🏥 *FarmaCapital*\nChinampac de Juárez, CDMX\n\n✅ *Pedido confirmado*\n\n${items}\n\n💰 *Total: $${Number(lastOrder.sub).toFixed(2)}*\n📦 *Entrega:* ${entregaTxt}${folioTxt}\n\n¡Gracias por tu preferencia! 💊`;
+            window.open("https://wa.me/52"+String(lastOrder.datosTel).replace(/\D/g,"")+"?text="+encodeURIComponent(msg),"_blank");
+          }} style={{display:"flex",alignItems:"center",gap:8,margin:"0 auto",padding:"10px 20px",borderRadius:10,border:"none",background:"#25D366",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer"}}>
+            📱 Enviar confirmación a mi WhatsApp
+          </button>
+        )}
+      </div>
+    );
+  }
   return(
     <div style={{maxWidth:900,margin:"0 auto",padding:"clamp(20px,4vw,32px) 16px"}}>
       <h1 style={{color:C.dark,fontSize:"clamp(22px,5vw,26px)",fontWeight:800,marginBottom:24,lineHeight:1.2}}>Finalizar compra</h1>
@@ -3338,9 +3379,103 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
       )}
       <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr min(300px,100%)",gap:24,alignItems:"start"}}>
         <div style={{minWidth:0}}>
-          {step===1&&(<div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}><div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:20}}>📋 Datos de contacto</div><div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:14}}>{[["Nombre completo","nombre"],["Teléfono","tel"],["Correo electrónico","email"],["Calle y número","calle"],["Colonia","colonia"],["Código postal","cp"]].map(([l,k])=>(<div key={k} style={{gridColumn:!stack&&(k==="email"||k==="calle")?"1/-1":undefined}}><div style={{color:C.mid,fontSize:12,marginBottom:6,fontWeight:600}}>{l}</div><Inp value={datos[k]} onChange={e=>setDatos(p=>({...p,[k]:e.target.value}))} placeholder={l} style={{width:"100%",boxSizing:"border-box",fontSize:16}}/></div>))}</div><div style={{marginTop:10,fontSize:12,color:C.textMid,lineHeight:1.45}}>La dirección se guarda para tu próxima compra y se sincroniza con tu perfil.</div><Btn onClick={()=>setStep(2)} col={BRAND.primary} style={{marginTop:20,width:stack?"100%":undefined}} disabled={!datosCheckoutCompletos}>Continuar al pago →</Btn></div>)}
-          {step===2&&(<div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}><div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:20}}>💳 Método de pago</div>{[["mercadopago","🔵 Mercado Pago","Checkout seguro de Mercado Pago"]].map(([v,l,s])=>(<div key={v} onClick={()=>setMetodo(v)} style={{padding:"14px 16px",borderRadius:10,border:`2px solid ${metodo===v?BRAND.primary:C.border}`,background:metodo===v?BRAND.primary+"18":C.white,cursor:"pointer",marginBottom:10}}><div style={{color:metodo===v?BRAND.primary:C.dark,fontWeight:700,fontSize:"clamp(13px,3.2vw,14px)"}}>{l}</div><div style={{color:C.dim,fontSize:12,marginTop:2}}>{s}</div></div>))}<div style={{color:C.textDim,fontSize:11,lineHeight:1.45,marginBottom:10}}>El cobro online se procesa en Mercado Pago. FarmaCapital no captura datos de tarjeta directamente.</div><div style={{display:"flex",gap:10,marginTop:8,flexWrap:"wrap"}}><Btn onClick={()=>setStep(1)} outline col={C.mid} sm>← Atrás</Btn><Btn onClick={()=>setStep(3)} col={BRAND.primary} style={{flex:stack?1:undefined,minWidth:stack?0:undefined}} disabled={!datosCheckoutCompletos}>Revisar pedido →</Btn></div></div>)}
-          {step===3&&(<div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}><div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:16}}>✅ Confirmar pedido</div>{cart.map(item=>(<div key={item.id} style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,padding:"8px 0",borderBottom:`1px solid ${C.border}`}}><span style={{color:C.dark,fontSize:13,fontWeight:600,flex:1,minWidth:0,wordBreak:"break-word"}}>{item.nombre} ×{item.qty}</span><span style={{color:BRAND.primary,fontWeight:700,flexShrink:0}}>{$(item.precio*item.qty)}</span></div>))}{!cart.length&&(<div style={{fontSize:12,color:C.textMid,padding:"6px 0 2px"}}>Tu carrito quedó vacío. Regresa al catálogo para continuar.</div>)}<div style={{display:"flex",gap:10,marginTop:16,flexWrap:"wrap"}}><Btn onClick={()=>setStep(2)} outline col={C.mid} sm>← Atrás</Btn><Btn onClick={confirmar} col={BRAND.primary} disabled={guardando||!cart.length||sub<=0||!datosCheckoutCompletos} style={{flex:stack?1:undefined,minWidth:0}}>{guardando?"Procesando pago...":"💳 Pagar y confirmar "+$(sub)}</Btn></div></div>)}
+          {step===1&&(()=>{
+            const necesitaDireccion = entrega !== "pickup";
+            const camposContacto = [["Nombre completo","nombre"],["Teléfono","tel"],["Correo electrónico","email"]];
+            const camposDireccion = [["Calle y número","calle"],["Colonia","colonia"],["Código postal","cp"]];
+            const esInvitadoUI = !sessionStorage.getItem("farmacapital_cliente_token");
+            return(
+              <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}>
+                {esInvitadoUI&&(
+                  <div style={{background:"#f0fdf4",border:"1px solid #86efac",borderRadius:10,padding:"10px 14px",marginBottom:18,display:"flex",alignItems:"center",gap:10}}>
+                    <span style={{fontSize:18}}>👤</span>
+                    <div>
+                      <div style={{color:"#166534",fontWeight:700,fontSize:13}}>Comprando como invitado</div>
+                      <div style={{color:"#166534",fontSize:12,marginTop:2,opacity:0.85}}>No necesitas cuenta. Solo llena tus datos y paga.</div>
+                    </div>
+                  </div>
+                )}
+                <div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:18}}>📋 Datos de contacto</div>
+                <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:14,marginBottom:14}}>
+                  {camposContacto.map(([l,k])=>(
+                    <div key={k} style={{gridColumn:!stack&&k==="email"?"1/-1":undefined}}>
+                      <div style={{color:C.mid,fontSize:12,marginBottom:6,fontWeight:600}}>{l} <span style={{color:C.red}}>*</span></div>
+                      <Inp value={datos[k]} onChange={e=>setDatos(p=>({...p,[k]:e.target.value}))} placeholder={l} style={{width:"100%",boxSizing:"border-box",fontSize:16}}/>
+                    </div>
+                  ))}
+                </div>
+                {necesitaDireccion&&(
+                  <>
+                    <div style={{color:C.dark,fontWeight:700,fontSize:15,margin:"4px 0 14px",paddingTop:14,borderTop:`1px solid ${C.border}`}}>
+                      📍 Dirección de entrega
+                    </div>
+                    <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:14}}>
+                      {camposDireccion.map(([l,k])=>(
+                        <div key={k} style={{gridColumn:!stack&&k==="calle"?"1/-1":undefined}}>
+                          <div style={{color:C.mid,fontSize:12,marginBottom:6,fontWeight:600}}>{l} <span style={{color:C.red}}>*</span></div>
+                          <Inp value={datos[k]} onChange={e=>setDatos(p=>({...p,[k]:e.target.value}))} placeholder={l} style={{width:"100%",boxSizing:"border-box",fontSize:16}}/>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{marginTop:8,fontSize:11,color:C.textMid}}>Tu dirección se guarda localmente para tu próxima compra.</div>
+                  </>
+                )}
+                {!necesitaDireccion&&(
+                  <div style={{background:"#eff6ff",border:`1px solid ${BRAND.secondary}30`,borderRadius:8,padding:"9px 12px",fontSize:12,color:BRAND.primary,lineHeight:1.5}}>
+                    🏪 <strong>Pick-up en farmacia:</strong> Al confirmar el pago recibirás un folio. Preséntalo en farmacia para recoger tu pedido.
+                  </div>
+                )}
+                <Btn onClick={()=>setStep(2)} col={BRAND.primary} style={{marginTop:20,width:stack?"100%":undefined}} disabled={!datosCheckoutCompletos}>
+                  Continuar al pago →
+                </Btn>
+              </div>
+            );
+          })()}
+          {step===2&&(
+            <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}>
+              <div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:20}}>💳 Método de pago</div>
+              <div onClick={()=>setMetodo("mercadopago")} style={{padding:"14px 16px",borderRadius:10,border:`2px solid ${BRAND.primary}`,background:BRAND.primary+"12",cursor:"pointer",marginBottom:10}}>
+                <div style={{color:BRAND.primary,fontWeight:700,fontSize:"clamp(13px,3.2vw,14px)"}}>🔵 Mercado Pago</div>
+                <div style={{color:C.dim,fontSize:12,marginTop:2}}>Tarjeta, transferencia o efectivo · Checkout seguro</div>
+              </div>
+              <div style={{color:C.textDim,fontSize:11,lineHeight:1.5,marginBottom:10}}>
+                FarmaCapital no captura datos de tarjeta. El pago se procesa directamente en Mercado Pago con cifrado SSL.
+              </div>
+              <div style={{display:"flex",gap:10,marginTop:12,flexWrap:"wrap"}}>
+                <Btn onClick={()=>setStep(1)} outline col={C.mid} sm>← Atrás</Btn>
+                <Btn onClick={()=>setStep(3)} col={BRAND.primary} style={{flex:stack?1:undefined}}>Revisar pedido →</Btn>
+              </div>
+            </div>
+          )}
+          {step===3&&(
+            <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}>
+              <div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:16}}>✅ Confirmar pedido</div>
+              <div style={{background:C.bg,borderRadius:10,padding:"10px 14px",marginBottom:14,fontSize:12,color:C.mid}}>
+                <div><strong style={{color:C.dark}}>{datos.nombre}</strong> · {datos.tel} · {datos.email}</div>
+                {entrega!=="pickup"&&datos.calle&&<div style={{marginTop:3}}>{datos.calle}, {datos.colonia}, CP {datos.cp}</div>}
+                <div style={{marginTop:3}}>
+                  {entrega==="pickup"?"🏪 Pick-up en FarmaCapital":entrega==="cdmx"?"🛵 Reparto CDMX":"📦 Envío foráneo"}
+                </div>
+              </div>
+              {cart.map(item=>(
+                <div key={item.id} style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,padding:"8px 0",borderBottom:`1px solid ${C.border}`}}>
+                  <span style={{color:C.dark,fontSize:13,fontWeight:600,flex:1,minWidth:0,wordBreak:"break-word"}}>{item.nombre} ×{item.qty}</span>
+                  <span style={{color:BRAND.primary,fontWeight:700,flexShrink:0}}>{$(item.precio*item.qty)}</span>
+                </div>
+              ))}
+              {!cart.length&&<div style={{fontSize:12,color:C.textMid,padding:"6px 0"}}>Tu carrito está vacío.</div>}
+              <div style={{display:"flex",justifyContent:"space-between",marginTop:12,paddingTop:10,borderTop:`1px solid ${C.border}`}}>
+                <span style={{color:C.dark,fontWeight:800}}>Total</span>
+                <span style={{color:BRAND.primary,fontWeight:900,fontSize:18}}>{$(sub)}</span>
+              </div>
+              <div style={{display:"flex",gap:10,marginTop:16,flexWrap:"wrap"}}>
+                <Btn onClick={()=>setStep(2)} outline col={C.mid} sm>← Atrás</Btn>
+                <Btn onClick={confirmar} col={BRAND.primary} disabled={guardando||!cart.length||sub<=0||!datosCheckoutCompletos} style={{flex:stack?1:undefined,minWidth:0}}>
+                  {guardando?"Procesando pago...":"💳 Pagar y confirmar "+$(sub)}
+                </Btn>
+              </div>
+            </div>
+          )}
         </div>
         <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:20,position:stack?"relative":"sticky",top:"calc(env(safe-area-inset-top, 0px) + 100px)"}}>
           <div style={{color:C.dark,fontWeight:700,fontSize:15,marginBottom:14}}>Tu pedido</div>
