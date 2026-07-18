@@ -1533,8 +1533,16 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                       (p.codigo_barras && String(p.codigo_barras).trim() === raw) ||
                       (p.sku && normalizeForSearch(p.sku) === qN)
                     );
-                    if(exact){add(exact,false);setSrch("");setSrchFocus(false);e.preventDefault();}
-                    else if(srchSuggestions.length>0){const hit=productos.find(x=>x.id===srchSuggestions[0].id);if(hit){add(hit,false);setSrch("");setSrchFocus(false);e.preventDefault();}}
+                    if(exact){add(exact,false);setSrchFocus(false);e.preventDefault();}
+                    else if(srchSuggestions.length>0){
+                      const hit=productos.find(x=>x.id===srchSuggestions[0].id);
+                      if(hit){
+                        const fifo=getStockFifoDisponible(hit);
+                        if(!hit.venta_unidad&&fifo<=0){showToast(`"${hit.nombre}" no tiene lotes registrados. Ve a Inventario → Lotes para agregarlo.`,"warning");}
+                        else{add(hit,false);setSrchFocus(false);}
+                        e.preventDefault();
+                      }
+                    }
                   }
                   if(e.key==="Escape"){setSrchFocus(false);}
                 }}
@@ -1544,17 +1552,28 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                 <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,right:0,zIndex:7000,background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,boxShadow:"0 8px 32px rgba(15,45,110,.14)",overflow:"hidden",maxHeight:280,overflowY:"auto"}}>
                   {srchSuggestions.map((s,i)=>{
                     const row=productos.find(x=>x.id===s.id);
+                    const rowFifo = row ? getStockFifoDisponible(row) : 0;
+                    const rowSinLotes = row && !row.venta_unidad && rowFifo <= 0;
                     return(
-                      <div key={s.id} onMouseDown={e=>{e.preventDefault();if(row){add(row,false);}setSrchFocus(false);}}
-                        style={{padding:"9px 13px",cursor:"pointer",borderBottom:"1px solid #f0f4f9",background:"#fff",display:"flex",alignItems:"center",gap:10}}
-                        onMouseEnter={e=>e.currentTarget.style.background="#eff6ff"}
-                        onMouseLeave={e=>e.currentTarget.style.background="#fff"}>
-                        <div style={{flex:1,minWidth:0}}>
-                          <div style={{color:"#1e293b",fontWeight:600,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.nombre}</div>
-                          <div style={{color:"#94a3b8",fontSize:11,marginTop:1}}>{s.sku?`SKU ${s.sku}`:""}{Number(s.stock)<=0?" · Agotado":""}</div>
+                        <div key={s.id} onMouseDown={e=>{
+                            e.preventDefault();
+                            if(row){
+                              if(rowSinLotes){showToast(`"${row.nombre}" no tiene lotes. Ve a Inventario → Lotes.`,"warning");}
+                              else{add(row,false);}
+                            }
+                            setSrchFocus(false);
+                          }}
+                          style={{padding:"9px 13px",cursor:"pointer",borderBottom:"1px solid #f0f4f9",background:rowSinLotes?"#fef2f2":"#fff",display:"flex",alignItems:"center",gap:10,opacity:rowSinLotes?0.75:1}}
+                          onMouseEnter={e=>e.currentTarget.style.background=rowSinLotes?"#fee2e2":"#eff6ff"}
+                          onMouseLeave={e=>e.currentTarget.style.background=rowSinLotes?"#fef2f2":"#fff"}>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{color:"#1e293b",fontWeight:600,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.nombre}</div>
+                            <div style={{color:rowSinLotes?"#ef4444":"#94a3b8",fontSize:11,marginTop:1,fontWeight:rowSinLotes?700:400}}>
+                              {rowSinLotes?"⚠ Sin lotes disponibles":(s.sku?`SKU ${s.sku}`:""+(Number(s.stock)<=0?" · Agotado":""))}
+                            </div>
+                          </div>
+                          <span style={{fontSize:11,fontWeight:700,color:rowSinLotes?"#ef4444":BRAND.accent,flexShrink:0}}>{row?.precio!=null?`$${Number(row.precio).toFixed(0)}`:""}</span>
                         </div>
-                        <span style={{fontSize:11,fontWeight:700,color:BRAND.accent,flexShrink:0}}>{row?.precio!=null?`$${Number(row.precio).toFixed(0)}`:""}</span>
-                      </div>
                     );
                   })}
                 </div>
@@ -1599,10 +1618,22 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                   }
                 };
                 const thumb = item.imagen_url || item.imagen_mobile_url || "";
+                const fifoDisp = getStockFifoDisponible(item);
+                const sinLotes = !item.venta_unidad && fifoDisp <= 0;
+                const agotado  = item.stock === 0 && (!item.venta_unidad || item.stock_unidades === 0);
+                const noDisp   = sinLotes || agotado;
+                const cardOpacity = noDisp ? 0.42 : 1;
+                const handleCardClick = noDisp
+                  ? (e) => {
+                      e.stopPropagation();
+                      if (sinLotes) showToast("Sin lotes registrados para este producto. Ve a Inventario → Lotes y registra un lote antes de venderlo.", "warning");
+                      else showToast("Sin stock disponible.", "warning");
+                    }
+                  : posCardClick;
                 return(
                 <Box key={item.id} className="farmacapital-product-card"
-                  onClick={posCardClick}
-                  style={{padding:12,opacity:item.stock===0&&(!item.venta_unidad||item.stock_unidades===0)?.5:1}}>
+                  onClick={handleCardClick}
+                  style={{padding:12,opacity:cardOpacity,cursor:noDisp?"not-allowed":"pointer",position:"relative"}}>
                   {thumb ? (
                     <div style={{width:"100%",height:52,borderRadius:8,overflow:"hidden",marginBottom:8,background:C.cardDark,flexShrink:0}}>
                       <img
@@ -1669,7 +1700,10 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                           <span style={{color:C.blue,fontWeight:800,fontSize:15}}>{$(item.precio)}</span>
                         )}
                       </div>
-                      <Tag col={item.stock===0?C.red:item.stock<item.stock_minimo?C.amber:C.green} sm>{item.stock===0?"Agotado":item.stock}</Tag>
+                      {sinLotes
+                        ? <span style={{background:"#ef4444",color:"#fff",fontSize:9,fontWeight:800,borderRadius:5,padding:"2px 7px"}}>Sin lotes</span>
+                        : <Tag col={agotado?C.red:item.stock<item.stock_minimo?C.amber:C.green} sm>{agotado?"Agotado":fifoDisp}</Tag>
+                      }
                     </div>
                   )}
                 </Box>
@@ -1898,8 +1932,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                 }}>Cancelar</Btn>
               </div>
             </Box>
-          );})
-          {pedOnlineHist.length>0&&(
+          );})}
             <div style={{marginTop:18}}>
               <div style={{color:C.text,fontWeight:800,fontSize:13,marginBottom:8}}>Historial reciente (surtidos)</div>
               {pedOnlineHist.map((p)=>(
