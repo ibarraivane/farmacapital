@@ -74,8 +74,8 @@ function tiendaEffectiveStockFromDb(dbp, sumLotesMap) {
 
 // ── CONTACTO (descomentar cuando tengas número) ───────────────
 const CONTACTO = {
-  telefono: "55 1612 4562",
-  whatsapp: "5516124562",
+  telefono: "55 6253 0631",
+  whatsapp: "5562530631",
   email: "farmacapital@farmacapital.mx",
   direccion: "Radiodifusora 100, Chinampac de Juárez, Iztapalapa, CDMX, C.P. 09208",
   horario: "Lun–Vie 8:00–22:00 · Sáb 8:00–20:00 · Dom 9:00–18:00",
