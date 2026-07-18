@@ -634,7 +634,11 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       alert(`Stock insuficiente para completar la venta:\n\n${top}`);
       return;
     }
-    const metodoPagoFinal = metodoPagoOverride || pay;
+    const metodoPagoInterno = metodoPagoOverride || pay;
+    // El DB solo acepta los valores clásicos del constraint chk_metodo_pago.
+    // bbva_terminal y mercadopago (Point MP) se registran como "tarjeta".
+    const DB_METODO_MAP = { bbva_terminal: "tarjeta", mercadopago_point: "tarjeta" };
+    const metodoPagoFinal = DB_METODO_MAP[metodoPagoInterno] ?? metodoPagoInterno;
     if (metodoPagoFinal === "efectivo") {
       const rec = parseMontoEfectivo(montoRecibido);
       if (!Number.isFinite(rec) || rec < total) {

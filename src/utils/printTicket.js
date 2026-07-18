@@ -1,8 +1,45 @@
 // FARMACAPITAL — Utilidad de impresión de tickets
 
+const TICKET_CSS = `
+* { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+html, body { margin: 0; padding: 0; background: #fff; }
+@page { size: 80mm auto; margin: 0; }
+
+#farmacapital-ticket {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 11px;
+  line-height: 1.45;
+  width: 280px;
+  max-width: 280px;
+  background: #ffffff;
+  color: #000000;
+  padding: 10px 8px;
+  margin: 0;
+  box-sizing: border-box;
+}
+#farmacapital-ticket * {
+  font-family: 'Courier New', Courier, monospace;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+}
+.ticket { width: 280px; font-family: 'Courier New', Courier, monospace; font-size: 11px; line-height: 1.4; background: #fff; color: #000; padding: 8px 6px; }
+.center { text-align: center; }
+.left   { text-align: left; }
+.right  { text-align: right; }
+.separator { border: none; border-top: 1px dashed #000; margin: 5px 0; display: block; }
+.separator-solid { border: none; border-top: 2px solid #000; margin: 5px 0; display: block; }
+.product-row { display: flex; justify-content: space-between; font-size: 10px; padding: 2px 0; }
+.product-name  { width: 60%; word-break: break-word; }
+.product-total { width: 40%; text-align: right; font-weight: bold; }
+.total-line { display: flex; justify-content: space-between; font-weight: bold; font-size: 11px; padding: 2px 0; }
+.qr-section { text-align: center; margin-top: 10px; }
+.footer { text-align: center; margin-top: 8px; font-size: 9px; color: #333; }
+.ticket-puntos { background: #000 !important; color: #fff !important; text-align: center; padding: 5px 4px; font-size: 10px; font-weight: 900; margin: 6px 0; letter-spacing: 1px; }
+`;
+
 /**
- * Imprime el contenido del ticket usando window.print()
- * Compatible con impresoras térmicas 80mm (Epson TM-T20III, etc.)
+ * Abre una ventana popup con el ticket y lanza el diálogo de impresión.
+ * Compatible con impresoras térmicas Epson TM-T20III/IV.
  * @param {string} ticketId - ID del elemento DOM del ticket
  */
 export function printTicket(ticketId = "farmacapital-ticket") {
@@ -12,159 +49,150 @@ export function printTicket(ticketId = "farmacapital-ticket") {
     return;
   }
 
-  // Clonar el ticket para capturar SVG del QR renderizado
+  // Clonar el nodo para capturar SVG y estilos inline actuales
   const clone = ticket.cloneNode(true);
 
-  // Copiar SVG inline (canvas/SVG del QR no se clona bien con solo innerHTML)
+  // Copiar el SVG del QR inline (canvas/SVG no sobreviven cloneNode solo)
   const srcSvgs = ticket.querySelectorAll("svg");
   const dstSvgs = clone.querySelectorAll("svg");
   srcSvgs.forEach((src, i) => {
-    if (dstSvgs[i]) dstSvgs[i].outerHTML = src.outerHTML;
+    if (dstSvgs[i]) {
+      const fresh = src.cloneNode(true);
+      dstSvgs[i].replaceWith(fresh);
+    }
   });
-
-  // Obtener las hojas de estilo del documento actual para incluirlas en el popup
-  const styles = Array.from(document.styleSheets)
-    .map(sheet => {
-      try {
-        return Array.from(sheet.cssRules || []).map(r => r.cssText).join("\n");
-      } catch { return ""; }
-    })
-    .join("\n");
 
   const html = `<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Ticket FarmaCapital</title>
-  <style>
-    * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    html, body { margin: 0; padding: 0; background: #fff; }
-    body { font-family: 'Courier New', Courier, monospace; }
-    @page { size: 80mm auto; margin: 2mm 1mm; }
-    ${styles}
-    /* Asegurar negro puro en impresión térmica */
-    #farmacapital-ticket { background: #fff !important; color: #000 !important; }
-    .ticket-puntos { background: #000 !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  </style>
+  <style>${TICKET_CSS}</style>
 </head>
 <body>
-  ${clone.outerHTML}
+${clone.outerHTML}
 </body>
 </html>`;
 
-  const win = window.open("", "_blank", "width=340,height=700,toolbar=0,menubar=0,scrollbars=1");
+  const win = window.open("", "_blank", "width=320,height=700,toolbar=0,menubar=0,scrollbars=1,resizable=1");
   if (!win) {
-    // Popup bloqueado — fallback a window.print() con aviso
-    alert("Permite ventanas emergentes para imprimir tickets.\nEn Chrome: icono 🚫 en la barra de dirección → Permitir.");
+    alert(
+      "🖨️ Permite ventanas emergentes para imprimir el ticket.\n" +
+      "En Chrome: ícono 🚫 en la barra de dirección → Permitir ventanas emergentes."
+    );
     return;
   }
+
   win.document.open();
   win.document.write(html);
   win.document.close();
-  // Esperar a que carguen imágenes y SVG, luego imprimir
-  win.addEventListener("load", () => {
-    setTimeout(() => {
+
+  // Imprimir después de que el DOM termine de renderizar
+  const tryPrint = () => {
+    try {
       win.focus();
       win.print();
-      setTimeout(() => win.close(), 1200);
-    }, 350);
-  });
-  // Fallback si load no dispara (Chrome a veces no lo hace en popups)
-  setTimeout(() => {
-    if (!win.closed) {
-      win.focus();
-      win.print();
-      setTimeout(() => win.close(), 1200);
+      // Cerrar después de que el usuario confirme/cancele la impresión
+      setTimeout(() => { if (!win.closed) win.close(); }, 3000);
+    } catch (e) {
+      console.error("[FarmaCapital] Error al imprimir:", e);
     }
-  }, 900);
+  };
+
+  // Esperar carga completa, o usar fallback a los 800ms
+  let printed = false;
+  win.addEventListener("load", () => {
+    if (printed) return;
+    printed = true;
+    setTimeout(tryPrint, 300);
+  });
+  setTimeout(() => {
+    if (!printed && !win.closed) {
+      printed = true;
+      tryPrint();
+    }
+  }, 800);
 }
 
 /**
- * Genera el HTML del ticket para impresión directa
- * Compatible con futura implementación ESC/POS
- * @param {Object} data - Datos de la venta
+ * Genera HTML completo del ticket a partir de datos estructurados.
+ * Útil para impresión sin componente React montado.
  */
 export function generateTicketHTML(data) {
   const { venta, productos, cliente, metodoPago, config } = data;
   const fecha = new Date(venta.created_at || Date.now());
   const fechaStr = fecha.toLocaleDateString("es-MX", { day:"2-digit", month:"2-digit", year:"numeric" });
   const horaStr  = fecha.toLocaleTimeString("es-MX", { hour:"2-digit", minute:"2-digit" });
+  const folio = venta.folio || `VTA-${String(venta.id || "0").padStart(8, "0")}`;
+  const total = parseFloat(venta.total || 0);
+  const fmt = n => `$${parseFloat(n || 0).toFixed(2)}`;
 
-  const rows = productos.map(p => `
-    <tr>
-      <td class="col-prod">${p.nombre?.slice(0,20)||"Producto"}</td>
-      <td class="col-cant">${p.qty||p.cantidad||1}</td>
-      <td class="col-precio">$${parseFloat(p.precio||p.precio_unitario||0).toFixed(2)}</td>
-      <td class="col-total">$${(parseFloat(p.precio||p.precio_unitario||0)*(p.qty||p.cantidad||1)).toFixed(2)}</td>
-    </tr>
-  `).join("");
+  const rows = (productos || []).map(p => `
+    <div style="margin-bottom:3px">
+      <div style="font-size:10px;font-weight:bold">${(p.nombre||"Producto").slice(0,22)}</div>
+      <div style="display:flex;justify-content:space-between;font-size:10px">
+        <span>${p.qty||p.cantidad||1} x ${fmt(p.precio||p.precio_unitario||0)}</span>
+        <span style="font-weight:bold">${fmt((p.precio||p.precio_unitario||0)*(p.qty||p.cantidad||1))}</span>
+      </div>
+    </div>`).join("");
 
-  const subtotal = parseFloat(venta.total||0);
-  const iva = subtotal * 0.16;
-  const total = subtotal;
-
-  return `
-    <!DOCTYPE html>
-    <html lang="es">
-    <head>
-      <meta charset="UTF-8">
-      <title>Ticket FarmaCapital</title>
-      <style>
-        body { font-family: 'Courier New', monospace; font-size: 11px; width: 280px; margin: 0; padding: 8px; }
-        .center { text-align: center; }
-        .right { text-align: right; }
-        .bold { font-weight: bold; }
-        .big { font-size: 14px; }
-        hr { border: none; border-top: 1px dashed #000; margin: 6px 0; }
-        table { width: 100%; font-size: 10px; border-collapse: collapse; }
-        th { font-size: 9px; text-transform: uppercase; border-bottom: 1px dashed #000; }
-        .total-row { display: flex; justify-content: space-between; }
-        .total-final { font-size: 14px; font-weight: 900; }
-        @page { size: 80mm auto; margin: 0; }
-      </style>
-    </head>
-    <body>
-      <div class="center bold" style="font-size:16px">FARMACAPITAL</div>
-      <div class="center">Farmacia & Salud</div>
-      <div class="center" style="font-size:9px">Chinampac de Juárez, Iztapalapa, CDMX</div>
-      <div class="center" style="font-size:9px">Tel: ${config?.telefono_farmacia||"—"}</div>
-      <hr>
-      <div>Fecha: ${fechaStr}  Hora: ${horaStr}</div>
-      <div>Folio: #${venta.id||"—"}</div>
-      ${cliente ? `<div>Cliente: ${cliente.nombre||"—"}</div>` : ""}
-      <hr>
-      <table>
-        <thead><tr><th>Producto</th><th>Cant</th><th>Precio</th><th>Total</th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-      <hr>
-      <div class="total-row"><span>Subtotal:</span><span>$${subtotal.toFixed(2)}</span></div>
-      <div class="total-row"><span>IVA (16%):</span><span>$${iva.toFixed(2)}</span></div>
-      <hr>
-      <div class="total-row total-final"><span>TOTAL:</span><span>$${total.toFixed(2)}</span></div>
-      <hr>
-      <div>Método de pago: ${metodoPago||"Efectivo"}</div>
-      ${cliente?.puntos ? `<div class="center bold" style="background:#000;color:#fff;padding:4px;margin:4px 0">⭐ +${Math.floor(total/10)} puntos ganados</div>` : ""}
-      <hr>
-      <div class="center" style="font-size:9px">¡Gracias por su preferencia!</div>
-      <div class="center" style="font-size:9px">Vuelva pronto a FarmaCapital</div>
-      <div style="width:80px;height:80px;border:1px dashed #999;margin:8px auto;display:flex;align-items:center;justify-content:center;font-size:8px;color:#999">QR Code</div>
-      <div class="center" style="font-size:8px">farmacapital.mx</div>
-    </body>
-    </html>
-  `;
+  return `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Ticket FarmaCapital</title>
+  <style>${TICKET_CSS}</style>
+</head>
+<body>
+<div id="farmacapital-ticket" class="ticket">
+  <div class="center">
+    <h3 style="margin:2px 0;font-size:16px;letter-spacing:3px">★ FARMACAPITAL ★</h3>
+    <div style="font-size:9px">"Tu salud primero"</div>
+  </div>
+  <hr class="separator">
+  <div style="font-size:9px;line-height:1.6">
+    <div>Sucursal: ${config?.nombre_farmacia||"FarmaCapital"}</div>
+    <div>Dirección: ${config?.direccion_farmacia||"Chinampac de Juárez, Iztapalapa, CDMX"}</div>
+    ${config?.telefono_farmacia?`<div>Tel: ${config.telefono_farmacia}</div>`:""}
+  </div>
+  <hr class="separator">
+  <div style="font-size:9px;line-height:1.7">
+    <div>Fecha:  ${fechaStr}</div>
+    <div>Hora:   ${horaStr}</div>
+    <div>Folio:  #${folio}</div>
+    ${cliente?`<div>Cliente: ${cliente.nombre||"—"}</div>`:""}
+  </div>
+  <hr class="separator">
+  ${rows}
+  <hr class="separator">
+  <div style="display:flex;justify-content:space-between;font-size:10px;padding:1px 0">
+    <span>Subtotal:</span><span>${fmt(total)}</span>
+  </div>
+  <hr class="separator">
+  <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:900;padding:3px 0">
+    <span>TOTAL:</span><span>${fmt(total)}</span>
+  </div>
+  <hr class="separator">
+  <div style="font-size:10px">Método: ${metodoPago||"Efectivo"}</div>
+  <hr class="separator">
+  <div class="footer">
+    <div style="font-weight:bold;font-size:11px;letter-spacing:1px">Gracias por su compra</div>
+    <div>¡Vuelva pronto!</div>
+    <div style="margin-top:3px;font-size:8px;color:#555">farmacapital.mx</div>
+  </div>
+</div>
+</body>
+</html>`;
 }
 
-/**
- * Abre ventana de impresión con el ticket generado
- * @param {Object} data - Datos de la venta
- */
+/** Abre ventana popup e imprime HTML generado programáticamente. */
 export function printTicketWindow(data) {
   const html = generateTicketHTML(data);
   const win = window.open("", "_blank", "width=320,height=600,toolbar=0,menubar=0");
   if (!win) { alert("Por favor permite las ventanas emergentes para imprimir."); return; }
+  win.document.open();
   win.document.write(html);
   win.document.close();
-  win.focus();
-  setTimeout(() => { win.print(); }, 800);
+  setTimeout(() => { win.focus(); win.print(); }, 800);
 }
