@@ -76,10 +76,10 @@ export async function crearIntenciónDePago({ amount, description, externalRefer
   };
 
   const response = MP_PROXY_URL
-    ? await fetch(`${MP_PROXY_URL.replace(/\/$/, "")}/point/payment-intents`, {
+    ? await fetch(`${MP_PROXY_URL.replace(/\/$/, "")}?action=create-intent&deviceId=${encodeURIComponent(MP_DEVICE_ID)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ deviceId: MP_DEVICE_ID, sandbox: SANDBOX_MODE, payload }),
+        body: JSON.stringify({ amount, description, externalReference }),
       })
     : await fetch(
         `${MP_BASE_URL}/point/integration-api/devices/${MP_DEVICE_ID}/payment-intents`,
@@ -109,7 +109,7 @@ export async function crearIntenciónDePago({ amount, description, externalRefer
 export async function consultarEstadoPago(paymentIntentId) {
   assertSecureModeOrThrow();
   const response = MP_PROXY_URL
-    ? await fetch(`${MP_PROXY_URL.replace(/\/$/, "")}/point/payment-intents/${encodeURIComponent(paymentIntentId)}`)
+    ? await fetch(`${MP_PROXY_URL.replace(/\/$/, "")}?action=get-intent&intentId=${encodeURIComponent(paymentIntentId)}`)
     : await fetch(
         `${MP_BASE_URL}/point/integration-api/payment-intents/${paymentIntentId}`,
         {
@@ -126,7 +126,7 @@ export async function consultarEstadoPago(paymentIntentId) {
 export async function cancelarPago(paymentIntentId) {
   assertSecureModeOrThrow();
   const response = MP_PROXY_URL
-    ? await fetch(`${MP_PROXY_URL.replace(/\/$/, "")}/point/payment-intents/${encodeURIComponent(paymentIntentId)}`, {
+    ? await fetch(`${MP_PROXY_URL.replace(/\/$/, "")}?action=cancel-intent&deviceId=${encodeURIComponent(MP_DEVICE_ID)}&intentId=${encodeURIComponent(paymentIntentId)}`, {
         method: "DELETE",
       })
     : await fetch(
@@ -145,7 +145,7 @@ export async function cancelarPago(paymentIntentId) {
 export async function listarDispositivos() {
   assertSecureModeOrThrow();
   const response = MP_PROXY_URL
-    ? await fetch(`${MP_PROXY_URL.replace(/\/$/, "")}/point/devices`)
+    ? await fetch(`${MP_PROXY_URL.replace(/\/$/, "")}?action=devices`)
     : await fetch(
         `${MP_BASE_URL}/point/integration-api/devices`,
         {

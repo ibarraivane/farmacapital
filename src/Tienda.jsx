@@ -3086,7 +3086,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
       const [{ data: stockRows }, { data: lotesRowsRaw }] = await Promise.all([
         supabase
           .from("productos")
-          .select("id,stock,precio,activo,requiere_receta,visible_tienda,categoria")
+          .select("id,stock,precio,activo,requiere_receta,categoria")
           .in("id", productIds),
         supabase.rpc("tienda_public_lotes_resumen_checkout", { p_producto_ids: numericIds }),
       ]);
