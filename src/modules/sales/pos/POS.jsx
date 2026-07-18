@@ -7,7 +7,7 @@ import { printTicket } from "../../../utils/printTicket";
 import { supabase } from "../../../supabase";
 import { C_LIGHT, BRAND } from "../../../constants";
 import { $, logAudit, soloDigitosTel, normalizeForSearch } from "../../../utils";
-import { inventarioProductMatchesBusqueda } from "../../../utils/fuzzySearch";
+import { tiendaProductMatchesBusqueda, tiendaCatalogSearchSuggestions } from "../../../utils/fuzzySearch";
 import { Box, Tag, Btn, Inp, Modal, showToast, SearchDropdown, SkeletonTable } from "../../../ui";
 import { CONSULTA_PRECIO_DEFAULT, CONSULTA_PARTE_DOCTOR, citaPagoPendiente, labelCanal } from "../../../utils/consultaConstants";
 import { puedeCancelarCitaNoShow } from "../../../utils/citasAgenda";
@@ -39,7 +39,9 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const [productos,setProds] = useState([]);
   const [cart,setCart]       = useState([]);
   const [srch,setSrch]       = useState("");
+  const [srchFocus,setSrchFocus] = useState(false);
   const srchRef = useRef(null);
+  const srchWrapRef = useRef(null);
   /** Tour POS: botón "?" va en la barra de carrito (no FAB esquina). */
   const posTourRef = useRef(null);
   // iOS Safari hace zoom al enfocar inputs si el tamaño es <16px o si el foco llega al cargar.
@@ -337,9 +339,11 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   }, [consxCobrar]);
 
 
-  const fil = productos.filter(p=>
-    (negocio==="farmacia"?["Analgésico","Antiinflamatorio","Gastro","Antibiótico","Diabetes","Hipertensión","Alergia","Vitaminas","Hidratación","Cardiovascular","Respiratorio","Botiquín"].includes(p.categoria):true)&&
-    inventarioProductMatchesBusqueda(p, srch)
+  const fil = productos.filter(p=>tiendaProductMatchesBusqueda(p, srch));
+
+  const srchSuggestions = React.useMemo(
+    ()=>(srchFocus&&srch.trim().length>=2?tiendaCatalogSearchSuggestions(productos.filter(p=>p.activo!==false),srch,{limit:7}):[]),
+    [productos,srch,srchFocus]
   );
 
   const paymentLabel = (method) => ({
@@ -1514,8 +1518,12 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
             </div>
             )}
             <div style={{display:"flex",gap:8,marginBottom:12,alignItems:"center",flexWrap: isNarrow ? "wrap" : "nowrap"}}>
-              <input ref={srchRef} className="farmacapital-pos-srch" value={srch} onChange={e=>setSrch(e.target.value)}
+              <div ref={srchWrapRef} style={{flex:1,minWidth:0,position:"relative"}}>
+              <input ref={srchRef} className="farmacapital-pos-srch" value={srch}
                 data-tour="pos-buscador"
+                onChange={e=>{setSrch(e.target.value);setSrchFocus(true);}}
+                onFocus={()=>setSrchFocus(true)}
+                onBlur={()=>setTimeout(()=>setSrchFocus(false),200)}
                 onKeyDown={e=>{
                   if(e.key==="Enter"){
                     const raw = srch.trim();
@@ -1524,11 +1532,33 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                       (p.codigo_barras && String(p.codigo_barras).trim() === raw) ||
                       (p.sku && normalizeForSearch(p.sku) === qN)
                     );
-                    if(exact){add(exact,false);setSrch("");e.preventDefault();}
+                    if(exact){add(exact,false);setSrch("");setSrchFocus(false);e.preventDefault();}
+                    else if(srchSuggestions.length>0){const hit=productos.find(x=>x.id===srchSuggestions[0].id);if(hit){add(hit,false);setSrch("");setSrchFocus(false);e.preventDefault();}}
                   }
+                  if(e.key==="Escape"){setSrchFocus(false);}
                 }}
                 placeholder="🔍 Buscar por nombre, activo, genérico, marca o SKU · Enter agrega"
-                style={{flex:1,minWidth:0,boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:C.bg,color:C.text,fontSize:isMobilePos?16:13,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}/>
+                style={{width:"100%",boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:C.bg,color:C.text,fontSize:isMobilePos?16:13,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}/>
+              {srchSuggestions.length>0&&srchFocus&&(
+                <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,right:0,zIndex:7000,background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,boxShadow:"0 8px 32px rgba(15,45,110,.14)",overflow:"hidden",maxHeight:280,overflowY:"auto"}}>
+                  {srchSuggestions.map((s,i)=>{
+                    const row=productos.find(x=>x.id===s.id);
+                    return(
+                      <div key={s.id} onMouseDown={e=>{e.preventDefault();if(row){add(row,false);}setSrch("");setSrchFocus(false);}}
+                        style={{padding:"9px 13px",cursor:"pointer",borderBottom:"1px solid #f0f4f9",background:"#fff",display:"flex",alignItems:"center",gap:10}}
+                        onMouseEnter={e=>e.currentTarget.style.background="#eff6ff"}
+                        onMouseLeave={e=>e.currentTarget.style.background="#fff"}>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{color:"#1e293b",fontWeight:600,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.nombre}</div>
+                          <div style={{color:"#94a3b8",fontSize:11,marginTop:1}}>{s.sku?`SKU ${s.sku}`:""}{Number(s.stock)<=0?" · Agotado":""}</div>
+                        </div>
+                        <span style={{fontSize:11,fontWeight:700,color:BRAND.accent,flexShrink:0}}>{row?.precio!=null?`$${Number(row.precio).toFixed(0)}`:""}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              </div>
               {!isMobilePos && (
               <button onClick={()=>setCartOpen(p=>!p)} style={{
                 padding:"9px 14px",borderRadius:8,border:`1px solid ${C.border}`,
