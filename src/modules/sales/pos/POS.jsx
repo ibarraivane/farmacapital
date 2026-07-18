@@ -7,7 +7,7 @@ import { printTicket } from "../../../utils/printTicket";
 import { supabase } from "../../../supabase";
 import { C_LIGHT, BRAND } from "../../../constants";
 import { $, logAudit, soloDigitosTel, normalizeForSearch } from "../../../utils";
-import { tiendaProductMatchesBusqueda, tiendaCatalogSearchSuggestions } from "../../../utils/fuzzySearch";
+import { tiendaProductMatchesBusqueda, tiendaCatalogSearchSuggestions, tiendaSearchRelevanceRank } from "../../../utils/fuzzySearch";
 import { Box, Tag, Btn, Inp, Modal, showToast, SearchDropdown, SkeletonTable } from "../../../ui";
 import { CONSULTA_PRECIO_DEFAULT, CONSULTA_PARTE_DOCTOR, citaPagoPendiente, labelCanal } from "../../../utils/consultaConstants";
 import { puedeCancelarCitaNoShow } from "../../../utils/citasAgenda";
@@ -340,7 +340,12 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   }, [consxCobrar]);
 
 
-  const fil = productos.filter(p=>tiendaProductMatchesBusqueda(p, srch));
+  const fil = React.useMemo(() => {
+    const s = srch.trim();
+    const matched = productos.filter(p => tiendaProductMatchesBusqueda(p, s));
+    if (!s) return matched;
+    return matched.sort((a, b) => tiendaSearchRelevanceRank(a, s) - tiendaSearchRelevanceRank(b, s));
+  }, [productos, srch]);
 
   const srchSuggestions = React.useMemo(
     ()=>(srchFocus&&srch.trim().length>=2?tiendaCatalogSearchSuggestions(productos.filter(p=>p.activo!==false),srch,{limit:7}):[]),
@@ -1599,6 +1604,22 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                     </button>
                   ))}
                 </div>
+              </div>
+            )}
+            {srch.trim() && (
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4,padding:"2px 0"}}>
+                <span style={{fontSize:11,color:C.textDim}}>
+                  {fil.length === 0
+                    ? "Sin resultados para esta búsqueda"
+                    : `${fil.length} resultado${fil.length!==1?"s":""} · mejores primero`}
+                </span>
+                <button type="button" onClick={()=>setSrch("")} style={{fontSize:11,color:C.textDim,background:"none",border:"none",cursor:"pointer",padding:"0 4px",lineHeight:1}}>✕ Limpiar</button>
+              </div>
+            )}
+            {srch.trim() && fil.length === 0 && (
+              <div style={{textAlign:"center",padding:"32px 16px",color:C.textDim,fontSize:13}}>
+                No se encontró ningún producto con "<strong style={{color:C.text}}>{srch}</strong>".<br/>
+                <span style={{fontSize:11}}>Intenta con otro nombre, SKU o código de barras.</span>
               </div>
             )}
             <div style={{display:"grid",gridTemplateColumns:`repeat(auto-fill,minmax(${isNarrow ? "min(100%, 132px)" : "140px"},1fr))`,gap:8}}>
