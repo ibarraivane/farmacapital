@@ -88,15 +88,9 @@
       #splash.hide { opacity: 0; pointer-events: none; }
       .splash-logo {
         width: 64px; height: 64px; border-radius: 16px;
-        background: rgba(255,255,255,0.2);
+        background: #22C55E;
         display: flex; align-items: center; justify-content: center;
       }
-      .splash-capsule {
-        width: 24px; height: 40px; border-radius: 12px;
-        overflow: hidden; display: flex; flex-direction: column;
-      }
-      .splash-ct { flex: 1; background: #fff; }
-      .splash-cb { flex: 1; background: rgba(255,255,255,0.4); }
       .splash-text { color: #fff; font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
       .splash-sub { color: rgba(255,255,255,0.7); font-size: 12px; letter-spacing: 2px; text-transform: uppercase; }
       .splash-loader {
@@ -120,10 +114,11 @@
     <!-- Splash screen -->
     <div id="splash">
       <div class="splash-logo">
-        <div class="splash-capsule">
-          <div class="splash-ct"></div>
-          <div class="splash-cb"></div>
-        </div>
+        <!-- Cruz FarmaCapital — isotipo oficial -->
+        <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="14" y="4" width="8" height="28" rx="4" fill="white"/>
+          <rect x="4" y="14" width="28" height="8" rx="4" fill="white"/>
+        </svg>
       </div>
       <div class="splash-text">FARMACAPITAL</div>
       <div class="splash-sub">Farmacia & Salud</div>

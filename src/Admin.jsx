@@ -109,6 +109,7 @@ function LoginScreen({onLogin}){
   const [error,setError] = useState("");
   const [errorDetail,setErrorDetail] = useState("");
   const [loading,setLoad]= useState(false);
+  const [retryMsg,setRetryMsg] = useState("");
 
   const entrar = async () => {
     if(!email||!pwd) return;
@@ -124,32 +125,42 @@ function LoginScreen({onLogin}){
       return;
     }
 
-    setLoad(true); setError(""); setErrorDetail("");
+    setLoad(true); setError(""); setErrorDetail(""); setRetryMsg("");
 
-    // Intenta el RPC con reintentos automáticos si Supabase responde con timeout
+    // Reintenta hasta 4 veces (60 s total) para sobrevivir el cold start de Supabase Postgres
+    const MAX = 4;
     const tryRpc = async (attempt = 1) => {
+      if (attempt > 1) setRetryMsg(`Conectando con el servidor… (intento ${attempt} de ${MAX})`);
       const rpcPromise = supabase.rpc("login_empleado", {
         p_identificador: idNorm,
         p_password:      pwd,
         p_user_agent:    navigator.userAgent || null,
       });
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("timeout")), 12000)
+        setTimeout(() => reject(new Error("timeout")), 18000)
       );
-      return Promise.race([rpcPromise, timeoutPromise]).then(async (result) => {
+      try {
+        const result = await Promise.race([rpcPromise, timeoutPromise]);
         const { error: rpcErr } = result;
         const isDbTimeout = rpcErr && (rpcErr.message || "").toLowerCase().includes("upstream request timeout");
-        if (isDbTimeout && attempt < 3) {
-          // Reintento automático — Supabase Postgres estaba lento
+        if (isDbTimeout && attempt < MAX) {
           await new Promise(r => setTimeout(r, 1500));
           return tryRpc(attempt + 1);
         }
         return result;
-      });
+      } catch(e) {
+        // Nuestro timer de 18 s disparó antes que Supabase — Postgres aún despertando
+        if (e?.message === "timeout" && attempt < MAX) {
+          await new Promise(r => setTimeout(r, 1000));
+          return tryRpc(attempt + 1);
+        }
+        throw e;
+      }
     };
 
     try {
       const { data: raw, error: rpcErr } = await tryRpc();
+      setRetryMsg("");
 
       if (rpcErr) {
         const tech = rpcErr.message || String(rpcErr);
@@ -217,12 +228,13 @@ function LoginScreen({onLogin}){
       const isTimeout = e?.message === "timeout";
       setError(
         isTimeout
-          ? "El servidor tardó demasiado en responder. Espera unos segundos y vuelve a intentar."
+          ? "El servidor tardó demasiado en responder. Espera 30 s y vuelve a intentar."
           : isSupabaseLocalMisconfigured
             ? "Revisá el archivo .env en la raíz del proyecto: URL y anon key desde Supabase → Settings → API, guardá y volvé a ejecutar npm start."
             : "No pudimos conectar. Revisa tu internet o vuelve a intentar en unos segundos."
       );
       setErrorDetail(!isTimeout && e?.message ? String(e.message) : "");
+      setRetryMsg("");
     }
     setLoad(false);
   };
@@ -250,7 +262,8 @@ function LoginScreen({onLogin}){
             <div>{error}</div>
             {errorDetail ? <div style={{marginTop:8,fontSize:11,opacity:0.9,wordBreak:"break-word"}}>{errorDetail}</div> : null}
           </div>}
-          <Btn onClick={entrar} full col={BRAND.primary} dis={!email||!pwd||loading}>{loading?"Verificando...":"Entrar →"}</Btn>
+          <Btn onClick={entrar} full col={BRAND.primary} dis={!email||!pwd||loading}>{loading ? (retryMsg ? "Conectando…" : "Verificando…") : "Entrar →"}</Btn>
+          {retryMsg && <div style={{marginTop:8,textAlign:"center",fontSize:12,color:C.textDim}}>{retryMsg}</div>}
           <div style={{marginTop:16,textAlign:"center"}}>
             <div style={{fontSize:11,color:C.textDim,textAlign:"center"}}>
               ¿Olvidaste tu contraseña?{" "}

@@ -60,23 +60,24 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    // Usamos fetch a PostgREST con una query trivial. No creamos el cliente
-    // supabase-js para no cargar toda la lib en cada cron.
-    // "select=id&limit=0" contra una vista pública no expone nada sensible.
-    // Si prefieres mayor aislamiento, crea una RPC `public.health_ping()`
-    // que haga `select 1` y devuelva 'ok'; aquí usamos el endpoint REST raíz.
-    const url = `${SUPABASE_URL.replace(/\/$/, '')}/rest/v1/`;
+    // Hacemos una query real a Postgres (no solo la raíz de PostgREST que
+    // sirve desde caché y nunca toca la base de datos).
+    // "select=id&limit=1" despierta Postgres si estaba en cold start.
+    // Si RLS bloquea el acceso anon, el error 401/403 sigue siendo útil:
+    // significa que Postgres ya respondió y ya está despierto.
+    const url = `${SUPABASE_URL.replace(/\/$/, '')}/rest/v1/productos?select=id&limit=1`;
     const resp = await fetch(url, {
       method: 'GET',
       headers: {
         apikey: SUPABASE_ANON_KEY,
         Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        Accept: 'application/json',
       },
     });
 
-    if (!resp.ok && resp.status !== 200 && resp.status !== 404) {
-      // 404 en la raíz es normal (PostgREST responde OpenAPI). Cualquier
-      // otro código no-2xx lo tratamos como down.
+    // Cualquier respuesta de Postgres (200, 401, 406…) significa que Postgres despertó.
+    // Solo 503/504 o error de red significan que no respondió.
+    if (resp.status === 503 || resp.status === 504) {
       res.status(503).json({
         ok: false,
         db: 'down',
@@ -90,6 +91,7 @@ module.exports = async function handler(req, res) {
     res.status(200).json({
       ok: true,
       db: 'up',
+      status: resp.status,
       ms: Date.now() - startedAt,
       ts: new Date().toISOString(),
     });
