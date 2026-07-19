@@ -4468,8 +4468,20 @@ export default function TiendaFarmaCapital(){
   },[page]);
   const [cart,setCart]           = useState([]);
   const [user,setUser]           = useState(()=>{ try{ const u=sessionStorage.getItem("farmacapital_user"); return u?JSON.parse(u):null; }catch{ return null; } });
-  const [productos,setProductos] = useState([]);
-  const [cargando,setCargando]   = useState(true);
+  const [productos,setProductos] = useState(()=>{
+    try {
+      const cached = localStorage.getItem("farmacapital_productos_cache");
+      if (cached) { const p = JSON.parse(cached); if (Array.isArray(p) && p.length) return p; }
+    } catch(_) {}
+    return [];
+  });
+  const [cargando,setCargando]   = useState(()=>{
+    try {
+      const cached = localStorage.getItem("farmacapital_productos_cache");
+      if (cached) { const p = JSON.parse(cached); if (Array.isArray(p) && p.length) return false; }
+    } catch(_) {}
+    return true;
+  });
   const [prodDetalle,setProdD]   = useState(null);
   const [busqHero,setBusqHero]   = useState("");
   const [showPopup,setShowPopup] = useState(false);
@@ -4504,12 +4516,20 @@ export default function TiendaFarmaCapital(){
   useEffect(()=>{
     let cancelled = false;
     const loadProductos = ()=>{
+      // Timeout de seguridad: si Supabase tarda >8s, mostrar la app igual
+      const safetyTimer = setTimeout(()=>{ if (!cancelled) setCargando(false); }, 8000);
       supabase.from("productos").select("*").eq("activo",true).order("id")
         .then(({data,error})=>{
+          clearTimeout(safetyTimer);
           if (cancelled) return;
           if (error) console.error("[Tienda] productos:", error);
-          if (data?.length) setProductos(data);
-          else if (data && data.length === 0) setProductos([]);
+          if (data?.length) {
+            setProductos(data);
+            try { localStorage.setItem("farmacapital_productos_cache", JSON.stringify(data)); } catch(_) {}
+          } else if (data && data.length === 0) {
+            setProductos([]);
+            try { localStorage.removeItem("farmacapital_productos_cache"); } catch(_) {}
+          }
           setCargando(false);
         });
     };
