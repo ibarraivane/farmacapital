@@ -232,7 +232,7 @@ function Logo({size=32,light=false}){
   // Ficha Técnica v1.0: "Farma" = Azul Oscuro #0D1B2A, "Capital" = Azul Corporativo #1E3ABA
   const farmaColor   = light ? "#ffffff"                : BRAND.dark;
   const capitalColor = light ? "rgba(255,255,255,0.85)" : BRAND.primary;
-  const crossBg      = light ? "rgba(255,255,255,0.18)" : BRAND.accent;
+  const crossBg      = "#22C55E"; // Verde Salud siempre — identidad isotipo
   const fs       = Math.round(size * 0.52);
   const iconSize = Math.round(size * 1.05);
   return(
@@ -2602,7 +2602,7 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
 }
 
 // ── CATÁLOGO ──────────────────────────────────────────────────
-function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHero}){
+function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHero,loadingProductos}){
   const C = useTheme();
   const stack = useMediaQuery("(max-width: 768px)");
   /** Safari iOS: sticky lateral + scroll del documento suele causar rebote/“lock”; solo usar sticky en escritorio ancho. */
@@ -2787,9 +2787,14 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
             alignItems: "stretch",
           }}
         >
-          {fil.length===0?(
-            <div style={{padding:40,textAlign:"center",color:C.mid,gridColumn:"1/-1"}}>Sin resultados para "{busq}"</div>
-          ):fil.map(p=><ProductCard key={p.id} prod={p} addToCart={addToCart} onClick={()=>{setProdDetalle(p);setPage("detalle");}}/>)}
+          {loadingProductos && productos.length===0
+            ? Array.from({length:8}).map((_,i)=>(
+                <div key={i} style={{borderRadius:12,background:"#f0f4f9",height:260,animation:"pulse 1.4s ease-in-out infinite",opacity:0.7}}/>
+              ))
+            : fil.length===0
+              ? <div style={{padding:40,textAlign:"center",color:C.mid,gridColumn:"1/-1"}}>{busq ? `Sin resultados para "${busq}"` : "No hay productos disponibles por el momento."}</div>
+              : fil.map(p=><ProductCard key={p.id} prod={p} addToCart={addToCart} onClick={()=>{setProdDetalle(p);setPage("detalle");}}/>)
+          }
         </div>
         {stack && busqActiva ? (
           <div
@@ -4512,24 +4517,36 @@ export default function TiendaFarmaCapital(){
     else sessionStorage.removeItem("farmacapital_user");
   },[user]);
 
-  // Cargar productos (mismas filas/columnas que inventario: imagen_url, imagen_mobile_url)
+  // Cargar productos con timeout y reintentos para sobrevivir cold start de Supabase
   useEffect(()=>{
     let cancelled = false;
-    const loadProductos = ()=>{
-      supabase.from("productos").select("*").eq("activo",true).order("id")
-        .then(({data,error})=>{
-          if (cancelled) return;
-          if (error) console.error("[Tienda] productos:", error);
-          if (data?.length) {
-            setProductos(data);
-            try { localStorage.setItem("farmacapital_productos_cache", JSON.stringify(data)); } catch(_) {}
-          } else if (data && data.length === 0) {
-            setProductos([]);
-            try { localStorage.removeItem("farmacapital_productos_cache"); } catch(_) {}
-          }
-          // Solo quitar skeleton cuando Supabase realmente responde (con datos o error)
+    const MAX_INTENTOS = 4;
+    const loadProductos = async (intento = 1)=>{
+      try {
+        const queryPromise = supabase.from("productos").select("*").eq("activo",true).order("id");
+        const timeoutPromise = new Promise((_,r)=>setTimeout(()=>r(new Error("timeout")),20000));
+        const {data,error} = await Promise.race([queryPromise,timeoutPromise]);
+        if (cancelled) return;
+        if (error) {
+          const isTimeout = (error.message||"").toLowerCase().includes("upstream request timeout");
+          if (isTimeout && intento < MAX_INTENTOS) { await new Promise(r=>setTimeout(r,1500)); return loadProductos(intento+1); }
+          console.error("[Tienda] productos:", error);
           setLoadingProductos(false);
-        });
+          return;
+        }
+        if (data?.length) {
+          setProductos(data);
+          try { localStorage.setItem("farmacapital_productos_cache", JSON.stringify(data)); } catch(_) {}
+        } else if (data && data.length === 0) {
+          setProductos([]);
+          try { localStorage.removeItem("farmacapital_productos_cache"); } catch(_) {}
+        }
+        setLoadingProductos(false);
+      } catch(e) {
+        if (cancelled) return;
+        if (e?.message === "timeout" && intento < MAX_INTENTOS) { await new Promise(r=>setTimeout(r,1500)); return loadProductos(intento+1); }
+        setLoadingProductos(false);
+      }
     };
     loadProductos();
     const onVis = ()=>{ if (document.visibilityState==="visible") loadProductos(); };
@@ -4656,7 +4673,7 @@ export default function TiendaFarmaCapital(){
 
   const pages={
     home:          <Home setPage={setPage} addToCart={addToCart} productos={productosVistaTiendaFarmacia} setProdDetalle={setProdD} busqHero={busqHero} setBusqHero={setBusqHero} precioConsulta={precioConsultaCfg} loadingProductos={loadingProductos}/>,
-    catalogo:      <Catalogo addToCart={addToCart} productos={productosVistaTiendaFarmacia} setProdDetalle={setProdD} setPage={setPage} busqHero={busqHero} setBusqHero={setBusqHero}/>,
+    catalogo:      <Catalogo addToCart={addToCart} productos={productosVistaTiendaFarmacia} setProdDetalle={setProdD} setPage={setPage} busqHero={busqHero} setBusqHero={setBusqHero} loadingProductos={loadingProductos}/>,
     promo:         <PromocionesPage setPage={setPage}/>,
     detalle:       <DetalleProducto prod={prodDetalle} productos={productosVistaTiendaFarmacia} addToCart={addToCart} setPage={setPage} setProdDetalle={setProdD} busqHero={busqHero} setBusqHero={setBusqHero}/>,
     carrito:       <Carrito cart={cart} setCart={setCart} setPage={setPage} setEntregaGlobal={setEntregaCheckout}/>,
