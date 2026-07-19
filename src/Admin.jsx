@@ -125,7 +125,9 @@ function LoginScreen({onLogin}){
     }
 
     setLoad(true); setError(""); setErrorDetail("");
-    try {
+
+    // Intenta el RPC con reintentos automáticos si Supabase responde con timeout
+    const tryRpc = async (attempt = 1) => {
       const rpcPromise = supabase.rpc("login_empleado", {
         p_identificador: idNorm,
         p_password:      pwd,
@@ -134,7 +136,20 @@ function LoginScreen({onLogin}){
       const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error("timeout")), 12000)
       );
-      const { data: raw, error: rpcErr } = await Promise.race([rpcPromise, timeoutPromise]);
+      return Promise.race([rpcPromise, timeoutPromise]).then(async (result) => {
+        const { error: rpcErr } = result;
+        const isDbTimeout = rpcErr && (rpcErr.message || "").toLowerCase().includes("upstream request timeout");
+        if (isDbTimeout && attempt < 3) {
+          // Reintento automático — Supabase Postgres estaba lento
+          await new Promise(r => setTimeout(r, 1500));
+          return tryRpc(attempt + 1);
+        }
+        return result;
+      });
+    };
+
+    try {
+      const { data: raw, error: rpcErr } = await tryRpc();
 
       if (rpcErr) {
         const tech = rpcErr.message || String(rpcErr);
@@ -144,12 +159,13 @@ function LoginScreen({onLogin}){
           msg =
             "Supabase no está configurado para desarrollo: en la carpeta del proyecto (donde está package.json) editá el archivo .env y poné REACT_APP_SUPABASE_URL y REACT_APP_SUPABASE_ANON_KEY desde Supabase → Settings → API. Guardá, detené el servidor (Ctrl+C) y ejecutá npm start de nuevo.";
         } else if (low.includes("failed to fetch") || low.includes("network")) {
-          msg =
-            "No se pudo llegar al servidor de Supabase. Revisá: (1) conexión a internet, (2) que REACT_APP_SUPABASE_URL en .env sea la Project URL correcta, (3) que el proyecto no esté pausado en Supabase.";
+          msg = "No se pudo llegar al servidor. Revisa tu conexión a internet.";
         } else if (rpcErr.code === "PGRST202" || low.includes("could not find the function")) {
           msg = "Falta actualizar la base de datos (función de inicio de sesión no encontrada).";
         } else if (rpcErr.code === "42501" || low.includes("permission denied")) {
-          msg = "El servidor rechazó el inicio de sesión por permisos. Hay que reaplicar los permisos de la función login en Supabase.";
+          msg = "El servidor rechazó el inicio de sesión por permisos.";
+        } else if (low.includes("upstream request timeout")) {
+          msg = "El servidor está ocupado. Espera unos segundos y vuelve a intentar.";
         }
         setError(msg);
         setErrorDetail(tech.length > 120 ? tech.slice(0, 120) + "…" : tech);
@@ -217,7 +233,7 @@ function LoginScreen({onLogin}){
     <div className="farmacapital-login-screen" style={{background:"linear-gradient(135deg,#f0f4ff 0%,#f7f9fc 50%,#e8f4fd 100%)",display:"flex",alignItems:"center",justifyContent:"center",padding:"max(clamp(12px,4vw,20px), env(safe-area-inset-top, 0px)) max(clamp(12px,4vw,20px), env(safe-area-inset-right, 0px)) max(clamp(12px,4vw,20px), env(safe-area-inset-bottom, 0px)) max(clamp(12px,4vw,20px), env(safe-area-inset-left, 0px))",boxSizing:"border-box",overflowX:"hidden"}}>
       <div style={{width:"100%",maxWidth:400,minWidth:0}}>
         <div style={{textAlign:"center",marginBottom:32}}>
-          <div style={{display:"flex",justifyContent:"center",marginBottom:16}}><Logo size={48}/></div>
+          <div style={{display:"flex",justifyContent:"center",marginBottom:16}}><Logo size={48} sub="Sistema"/></div>
           <div style={{color:C.textMid,fontSize:14}}>Sistema de gestión · Acceso interno</div>
         </div>
         <Box style={{padding:32,boxShadow:"0 4px 24px rgba(15,45,110,.10)"}}>

@@ -229,21 +229,21 @@ function horariosDisponibles(fecha){
 
 // ── LOGO ──────────────────────────────────────────────────────
 function Logo({size=32,light=false}){
-  const textColor = light ? "#ffffff" : BRAND.primary;
-  const accentColor = light ? "rgba(255,255,255,0.75)" : BRAND.secondary;
-  const crossColor = light ? "#ffffff" : "#ffffff";
-  const crossBg = light ? "rgba(255,255,255,0.18)" : BRAND.accent;
-  const fs = Math.round(size * 0.52);
+  // Ficha Técnica v1.0: "Farma" = Azul Oscuro #0D1B2A, "Capital" = Azul Corporativo #1E3ABA
+  const farmaColor   = light ? "#ffffff"                : BRAND.dark;
+  const capitalColor = light ? "rgba(255,255,255,0.85)" : BRAND.primary;
+  const crossBg      = light ? "rgba(255,255,255,0.18)" : BRAND.accent;
+  const fs       = Math.round(size * 0.52);
   const iconSize = Math.round(size * 1.05);
   return(
     <div style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",flexShrink:0}}>
       <svg width={iconSize} height={iconSize} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" style={{flexShrink:0}}>
         <rect width="40" height="40" rx="10" fill={crossBg}/>
-        <rect x="17" y="9" width="6" height="22" rx="3" fill={crossColor}/>
-        <rect x="9" y="17" width="22" height="6" rx="3" fill={crossColor}/>
+        <rect x="17" y="9" width="6" height="22" rx="3" fill="#ffffff"/>
+        <rect x="9" y="17" width="22" height="6" rx="3" fill="#ffffff"/>
       </svg>
-      <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontWeight:800,fontSize:fs,letterSpacing:"-0.4px",color:textColor,lineHeight:1,whiteSpace:"nowrap"}}>
-        Farma<span style={{color:accentColor,fontWeight:700}}>Capital</span>
+      <div style={{fontFamily:"'Poppins',sans-serif",fontWeight:800,fontSize:fs,letterSpacing:"-0.3px",lineHeight:1,whiteSpace:"nowrap"}}>
+        <span style={{color:farmaColor}}>Farma</span><span style={{color:capitalColor,fontWeight:700}}>Capital</span>
       </div>
     </div>
   );

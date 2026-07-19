@@ -3,12 +3,14 @@ import React, { useRef, useState, useLayoutEffect, useCallback } from "react";
 import { C_LIGHT, BRAND } from "./constants";
 import { productMatchesSearchQuery } from "./utils/fuzzySearch";
 
-export function Logo({size=36,showText=true,light=false}){
-  const t = light ? "#ffffff" : BRAND.primary;
-  const s = light ? "rgba(255,255,255,0.75)" : BRAND.secondary;
-  const crossBg = light ? "rgba(255,255,255,0.18)" : BRAND.accent;
+export function Logo({size=36,showText=true,light=false,sub=""}){
+  // Ficha Técnica v1.0: "Farma" = Azul Oscuro #0D1B2A, "Capital" = Azul Corporativo #1E3ABA
+  const farmaColor   = light ? "#ffffff"                  : BRAND.dark;
+  const capitalColor = light ? "rgba(255,255,255,0.85)"   : BRAND.primary;
+  const subColor     = light ? "rgba(255,255,255,0.65)"   : BRAND.primary;
+  const crossBg      = light ? "rgba(255,255,255,0.18)"   : BRAND.accent;
   const iconSize = Math.round(size * 1.05);
-  const fs = Math.round(size * 0.52);
+  const fs    = Math.round(size * 0.52);
   const fsSub = Math.round(size * 0.22);
   return(
     <div style={{display:"flex",alignItems:"center",gap:8}}>
@@ -18,8 +20,10 @@ export function Logo({size=36,showText=true,light=false}){
         <rect x="9" y="17" width="22" height="6" rx="3" fill="#ffffff"/>
       </svg>
       {showText&&<div style={{display:"flex",flexDirection:"column",lineHeight:1}}>
-        <div style={{color:t,fontWeight:800,fontSize:fs,fontFamily:"'Plus Jakarta Sans',sans-serif",letterSpacing:"-0.3px",whiteSpace:"nowrap"}}>Farma<span style={{color:s,fontWeight:700}}>Capital</span></div>
-        <div style={{color:s,fontSize:fsSub,letterSpacing:"2px",textTransform:"uppercase",marginTop:2,fontWeight:500}}>Sistema</div>
+        <div style={{fontWeight:800,fontSize:fs,fontFamily:"'Poppins',sans-serif",letterSpacing:"-0.3px",whiteSpace:"nowrap"}}>
+          <span style={{color:farmaColor}}>Farma</span><span style={{color:capitalColor,fontWeight:700}}>Capital</span>
+        </div>
+        {sub&&<div style={{color:subColor,fontSize:fsSub,letterSpacing:"2px",textTransform:"uppercase",marginTop:2,fontWeight:500}}>{sub}</div>}
       </div>}
     </div>
   );
