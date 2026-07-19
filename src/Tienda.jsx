@@ -4516,10 +4516,8 @@ export default function TiendaFarmaCapital(){
   useEffect(()=>{
     let cancelled = false;
     const loadProductos = ()=>{
-      const safetyTimer = setTimeout(()=>{ if (!cancelled) { setCargando(false); setLoadingProductos(false); } }, 8000);
       supabase.from("productos").select("*").eq("activo",true).order("id")
         .then(({data,error})=>{
-          clearTimeout(safetyTimer);
           if (cancelled) return;
           if (error) console.error("[Tienda] productos:", error);
           if (data?.length) {
@@ -4529,7 +4527,7 @@ export default function TiendaFarmaCapital(){
             setProductos([]);
             try { localStorage.removeItem("farmacapital_productos_cache"); } catch(_) {}
           }
-          setCargando(false);
+          // Solo quitar skeleton cuando Supabase realmente responde (con datos o error)
           setLoadingProductos(false);
         });
     };
