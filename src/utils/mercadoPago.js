@@ -11,10 +11,12 @@
 //   Se permite solo para desarrollo local temporal.
 // - Producción segura: usar backend/proxy con token privado.
 
-const MP_PUBLIC_KEY   = process.env.REACT_APP_MP_PUBLIC_KEY   || null;
+// Valores por defecto para FarmaCapital (no son secretos — Public Key y Device ID son públicos).
+// El Access Token SÍ es secreto y vive solo en el servidor (MP_ACCESS_TOKEN en Vercel, sin REACT_APP_).
+const MP_PUBLIC_KEY   = process.env.REACT_APP_MP_PUBLIC_KEY   || "APP_USR-28b7f7b0-2e5d-44d4-a35a-1bef9cb11f44";
 const MP_ACCESS_TOKEN = process.env.REACT_APP_MP_ACCESS_TOKEN || null;
-const MP_DEVICE_ID    = process.env.REACT_APP_MP_DEVICE_ID    || null; // ID del Point Smart 2
-const MP_PROXY_URL    = process.env.REACT_APP_MP_PROXY_URL    || null; // endpoint backend seguro
+const MP_DEVICE_ID    = process.env.REACT_APP_MP_DEVICE_ID    || "NEWLAND_N950__N950NCCC05728001";
+const MP_PROXY_URL    = process.env.REACT_APP_MP_PROXY_URL    || "/api/payments/mp/point";
 const MP_BASE_URL     = "https://api.mercadopago.com";
 const SANDBOX_MODE    = !MP_ACCESS_TOKEN?.startsWith("APP_USR");
 const HOSTNAME        = globalThis?.location?.hostname || "";
