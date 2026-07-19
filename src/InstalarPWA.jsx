@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { C_LIGHT } from "./constants";
 import { isAdminWebAppShell } from "./syncPwaManifest";
 
-const BRAND = { primary: "#0f2d6e", secondary: "#1a56db", gradient: "linear-gradient(135deg,#0f2d6e,#1a56db)" };
+const BRAND = { primary: "#0D1B2A", secondary: "#1E3ABA", gradient: "linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
 
 function qrSrc(url) {
   return `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(url)}&bgcolor=ffffff&color=0f2d6e&margin=10`;

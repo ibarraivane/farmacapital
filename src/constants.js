@@ -1,9 +1,9 @@
 // FARMACAPITAL — Constantes globales
 export const C_LIGHT = {
   bg:"#f7f9fc",     card:"#ffffff",     cardDark:"#f0f4f9",
-  border:"#e2e8f0", borderHi:"#bfdbfe",
-  blue:"#0099e6",   blueDark:"#0052cc", blueDim:"#eff6ff",
-  green:"#00c46a",  greenDark:"#009952",greenDim:"#dcfce7",
+  border:"#e2e8f0", borderHi:"#c7d4f5",
+  blue:"#1E3ABA",   blueDark:"#0D1B2A", blueDim:"#eef1fb",
+  green:"#22C55E",  greenDark:"#16a34a",greenDim:"#dcfce7",
   amber:"#f59e0b",  amberDim:"#fef3c7",
   red:"#ef4444",    redDim:"#fee2e2",
   purple:"#7c3aed", purpleDim:"#ede9fe",
@@ -17,10 +17,15 @@ export const C_LIGHT = {
 // C se exporta dinámico — se sobreescribe en runtime desde Admin.jsx
 export let C = {...C_LIGHT};
 
+// Colores oficiales FarmaCapital — Ficha Técnica v1.0 (Mayo 2024)
 export const BRAND = {
-  primary:"#0f2d6e", secondary:"#1a56db", accent:"#16a34a",
-  amber:"#f59e0b",
-  gradient:"linear-gradient(135deg,#0f2d6e,#1a56db)",
+  dark:     "#0D1B2A",  // Azul Oscuro — PANTONE 2955 C
+  primary:  "#1E3ABA",  // Azul Corporativo — PANTONE 7687 C
+  accent:   "#22C55E",  // Verde Salud — PANTONE 7481 C
+  amber:    "#f59e0b",
+  gradient: "linear-gradient(135deg,#0D1B2A,#1E3ABA)",
+  // Alias para compatibilidad con código existente
+  secondary:"#1E3ABA",
 };
 
 export const NEG = {

@@ -3,7 +3,7 @@ import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
 import { downloadFacturaPDF } from "./utils/generateFacturaPDF";
 
-const BRAND = { primary:"#0f2d6e", secondary:"#1a56db", gradient:"linear-gradient(135deg,#0f2d6e,#1a56db)" };
+const BRAND = { primary:"#0D1B2A", secondary:"#1E3ABA", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
 const fmt = n => `$${parseFloat(n||0).toLocaleString("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2})}`;
 const fmtDT = s => { if(!s)return"—"; const d=new Date(s); return d.toLocaleDateString("es-MX",{day:"2-digit",month:"short",year:"numeric"}); };
 

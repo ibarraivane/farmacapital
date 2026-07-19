@@ -29,9 +29,9 @@ import {
 // ═══════════════════════════════════════════════════════════════
 
 const BRAND = {
-  primary:"#0f2d6e", secondary:"#1a56db", accent:"#16a34a",
+  primary:"#0D1B2A", secondary:"#1E3ABA", accent:"#16a34a",
   amber:"#f59e0b",
-  gradient:"linear-gradient(135deg,#0f2d6e,#1a56db)",
+  gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)",
 };
 const C = {
   bg:"#f7f9fc", card:"#ffffff", cardDark:"#f0f4f9",
@@ -91,7 +91,7 @@ const BANNERS = [
     descripcion:"Misma fórmula, mejor precio. Certificados por COFEPRIS.",
     cta:"Ver genéricos",
     pagina:"catalogo",
-    bg:"linear-gradient(135deg,#0f2d6e,#1a56db)",
+    bg:"linear-gradient(135deg,#0D1B2A,#1E3ABA)",
     emoji:"💊",
   },
   {

@@ -4,7 +4,7 @@ import { supabase } from "./supabase";
 import { showToast, HorizontalScrollSync } from "./ui";
 import { productMatchesSearchQuery } from "./utils/fuzzySearch";
 
-const BRAND = { primary:"#0f2d6e", secondary:"#1a56db", gradient:"linear-gradient(135deg,#0f2d6e,#1a56db)" };
+const BRAND = { primary:"#0D1B2A", secondary:"#1E3ABA", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
 const fmt = n => `$${parseFloat(n||0).toFixed(2)}`;
 const mkInpS = (C) => ({width:"100%",boxSizing:"border-box",padding:"8px 12px",borderRadius:8,border:`1px solid ${C.border}`,background:C.card,color:C.text,fontSize:13,outline:"none"});
 
@@ -109,7 +109,7 @@ export default function LotesModule() {
         <h1 style={{color:C.text,fontSize:20,fontWeight:800,margin:0}}>📦 Lotes — PEPS</h1>
         <div style={{position:"relative",display:"inline-block"}} className="peps-tooltip-container">
           <span style={{
-            background:"#eff6ff",color:"#0f2d6e",
+            background:"#eff6ff",color:"#0D1B2A",
             border:"1px solid #bfdbfe",borderRadius:20,
             padding:"2px 10px",fontSize:11,fontWeight:700,cursor:"help"
           }}>ℹ️ ¿Qué es PEPS?</span>

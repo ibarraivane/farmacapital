@@ -22,7 +22,7 @@ const leerSesion = () => {
   }
 };
 
-const BRAND = { primary:"#0f2d6e", secondary:"#1a56db", gradient:"linear-gradient(135deg,#0f2d6e,#1a56db)" };
+const BRAND = { primary:"#0D1B2A", secondary:"#1E3ABA", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
 const CATEGORIAS = [
   "Analgésico","Antiinflamatorio","Antibiótico","Gastro","Diabetes",
   "Hipertensión","Alergia","Vitaminas","Hidratación","Cardiovascular",
@@ -2004,7 +2004,7 @@ export default function InventarioModule() {
       </div>
 
       <div data-tour="inv-buscar" style={{display:"flex",flexDirection:"column",gap:10,marginBottom:16}}>
-        <SearchDropdown value={busqueda} onChange={setBusqueda} onSelect={p=>setBusqueda(p.nombre)} placeholder="🔍 Nombre, SKU FarmaCapital, marca, principio, presentación…" items={productos} labelKey="nombre" subKey="sku" extraSearchKeys={["codigo_barras","categoria","principio_activo","denominacion_generica","denominacion_distintiva","marca","concentracion","presentacion","forma_farmaceutica","ubicacion_texto"]} badgeKey="stock" badgeCol="#1a56db" style={{width:"100%",maxWidth:"100%"}} emptyMsg="Sin productos"/>
+        <SearchDropdown value={busqueda} onChange={setBusqueda} onSelect={p=>setBusqueda(p.nombre)} placeholder="🔍 Nombre, SKU FarmaCapital, marca, principio, presentación…" items={productos} labelKey="nombre" subKey="sku" extraSearchKeys={["codigo_barras","categoria","principio_activo","denominacion_generica","denominacion_distintiva","marca","concentracion","presentacion","forma_farmaceutica","ubicacion_texto"]} badgeKey="stock" badgeCol="#1E3ABA" style={{width:"100%",maxWidth:"100%"}} emptyMsg="Sin productos"/>
         <div style={{display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
         <select value={filtroCategoria} onChange={e=>setFiltroCategoria(e.target.value)} style={{...inputStyle,maxWidth:180}}>
           <option value="todas">Todas las categorías</option>
@@ -2509,12 +2509,12 @@ export default function InventarioModule() {
                 <li style={{marginTop:6}}><strong>SKU FarmaCapital</strong> (columna «SKU» del CSV): debe coincidir con <code>productos.sku</code> para fusionar o omitir duplicados en “solo nuevos”.</li>
               </ol>
             </div>
-            <button onClick={descargarPlantilla} style={{width:"100%",padding:"10px",borderRadius:8,border:"1px solid #0f2d6e",background:"#eff6ff",color:"#0f2d6e",fontWeight:700,fontSize:13,cursor:"pointer",marginBottom:16,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+            <button onClick={descargarPlantilla} style={{width:"100%",padding:"10px",borderRadius:8,border:"1px solid #0D1B2A",background:"#eff6ff",color:"#0D1B2A",fontWeight:700,fontSize:13,cursor:"pointer",marginBottom:16,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
               📋 Descargar plantilla Excel/CSV
             </button>
             <div style={{border:"2px dashed #e2e8f0",borderRadius:10,padding:24,textAlign:"center",marginBottom:16,cursor:"pointer",background:C.cardDark}}
               onClick={()=>document.getElementById("csv_input").click()}
-              onDragOver={e=>{e.preventDefault();e.currentTarget.style.borderColor="#0f2d6e";}}
+              onDragOver={e=>{e.preventDefault();e.currentTarget.style.borderColor="#0D1B2A";}}
               onDragLeave={e=>{e.currentTarget.style.borderColor="#e2e8f0";}}
               onDrop={e=>{e.preventDefault();e.currentTarget.style.borderColor="#e2e8f0";const f=e.dataTransfer.files[0];if(f)procesarArchivo(f);}}>
               <div style={{fontSize:36,marginBottom:8}}>📄</div>
@@ -2544,7 +2544,7 @@ export default function InventarioModule() {
                               <td style={{padding:"5px 10px",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>{r.nombre}</td>
                               <td style={{padding:"5px 10px",color:C.textMid,borderBottom:`1px solid ${C.border}`,fontFamily:"monospace"}}>{r.sku||"—"}</td>
                               <td style={{padding:"5px 10px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{r.categoria}</td>
-                              <td style={{padding:"5px 10px",color:"#1a56db",fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{r.stock}</td>
+                              <td style={{padding:"5px 10px",color:"#1E3ABA",fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{r.stock}</td>
                               <td style={{padding:"5px 10px",color:"#16a34a",fontWeight:700,borderBottom:`1px solid ${C.border}`}}>${r.precio}</td>
                               <td style={{padding:"5px 10px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{r.fecha_caducidad||"—"}</td>
                             </tr>
@@ -2563,7 +2563,7 @@ export default function InventarioModule() {
                       </span>
                     </label>
                     <button onClick={confirmarImport} disabled={importando}
-                      style={{width:"100%",padding:"12px",borderRadius:8,border:"none",background:"linear-gradient(135deg,#0f2d6e,#1a56db)",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer",opacity: importando ? 0.85 : 1}}>
+                      style={{width:"100%",padding:"12px",borderRadius:8,border:"none",background:"linear-gradient(135deg,#0D1B2A,#1E3ABA)",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer",opacity: importando ? 0.85 : 1}}>
                       {importando && importProgress
                         ? `Importando… ${importProgress.cur}/${importProgress.total}`
                         : importando

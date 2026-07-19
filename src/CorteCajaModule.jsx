@@ -4,7 +4,7 @@ import { supabase } from "./supabase";
 import { showToast } from "./ui";
 import OnboardingTour from "./components/OnboardingTour";
 
-const BRAND = { primary:"#0f2d6e", secondary:"#1a56db", gradient:"linear-gradient(135deg,#0f2d6e,#1a56db)" };
+const BRAND = { primary:"#0D1B2A", secondary:"#1E3ABA", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
 
 const fmt  = (n) => `$${parseFloat(n||0).toFixed(2)}`;
 

@@ -49,7 +49,7 @@ class ModuleErrorBoundary extends React.Component {
         <div style={{color:"#0f172a",fontWeight:700,fontSize:16,marginBottom:8}}>Error al cargar este módulo</div>
         <div style={{color:"#475569",fontSize:12,marginBottom:20,maxWidth:400,margin:"0 auto 20px",fontFamily:"monospace",background:"#f8fafc",padding:"8px 12px",borderRadius:6}}>{this.state.error?.message}</div>
         <button onClick={()=>this.setState({hasError:false,error:null})}
-          style={{padding:"9px 20px",borderRadius:8,border:"none",background:"linear-gradient(135deg,#0f2d6e,#1a56db)",color:"#fff",fontWeight:700,cursor:"pointer"}}>
+          style={{padding:"9px 20px",borderRadius:8,border:"none",background:"linear-gradient(135deg,#0D1B2A,#1E3ABA)",color:"#fff",fontWeight:700,cursor:"pointer"}}>
           🔄 Reintentar
         </button>
       </div>
@@ -126,11 +126,15 @@ function LoginScreen({onLogin}){
 
     setLoad(true); setError(""); setErrorDetail("");
     try {
-      const { data: raw, error: rpcErr } = await supabase.rpc("login_empleado", {
+      const rpcPromise = supabase.rpc("login_empleado", {
         p_identificador: idNorm,
         p_password:      pwd,
         p_user_agent:    navigator.userAgent || null,
       });
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("timeout")), 12000)
+      );
+      const { data: raw, error: rpcErr } = await Promise.race([rpcPromise, timeoutPromise]);
 
       if (rpcErr) {
         const tech = rpcErr.message || String(rpcErr);
@@ -194,12 +198,15 @@ function LoginScreen({onLogin}){
       localStorage.setItem("farmacapital_last_login_"+data.id, new Date().toLocaleString("es-MX"));
       onLogin(data);
     } catch(e) {
+      const isTimeout = e?.message === "timeout";
       setError(
-        isSupabaseLocalMisconfigured
-          ? "Revisá el archivo .env en la raíz del proyecto: URL y anon key desde Supabase → Settings → API, guardá y volvé a ejecutar npm start."
-          : "No pudimos conectar. Revisa tu internet o vuelve a intentar en unos segundos."
+        isTimeout
+          ? "El servidor tardó demasiado en responder. Espera unos segundos y vuelve a intentar."
+          : isSupabaseLocalMisconfigured
+            ? "Revisá el archivo .env en la raíz del proyecto: URL y anon key desde Supabase → Settings → API, guardá y volvé a ejecutar npm start."
+            : "No pudimos conectar. Revisa tu internet o vuelve a intentar en unos segundos."
       );
-      setErrorDetail(e?.message ? String(e.message) : "");
+      setErrorDetail(!isTimeout && e?.message ? String(e.message) : "");
     }
     setLoad(false);
   };
@@ -637,7 +644,7 @@ function BannersAdmin(){
   const [banners,setBanners] = useState([]);
   const [loading,setLoad]   = useState(true);
   const [modal,setModal]    = useState(null);
-  const [form,setForm]      = useState({titulo:"",subtitulo:"",descripcion:"",emoji:"💊",bg:"linear-gradient(135deg,#0f2d6e,#1a56db)",cta:"Ver más →",pagina:"catalogo",orden:0,activo:true,slot:"hero",imagen_url:"",imagen_url_mobile:"",video_url:"",modo_visualizacion:"imagen_fondo"});
+  const [form,setForm]      = useState({titulo:"",subtitulo:"",descripcion:"",emoji:"💊",bg:"linear-gradient(135deg,#0D1B2A,#1E3ABA)",cta:"Ver más →",pagina:"catalogo",orden:0,activo:true,slot:"hero",imagen_url:"",imagen_url_mobile:"",video_url:"",modo_visualizacion:"imagen_fondo"});
   const [saving,setSaving]  = useState(false);
 
   const fetch = async()=>{ setLoad(true); const{data}=await supabase.from("banners").select("*").order("orden"); setBanners(data||[]); setLoad(false); };
@@ -1657,7 +1664,7 @@ export default function FarmaCapitalAdmin(){
   },[]);
   const notifId = useRef(0);
 
-  const addNotif = useCallback((titulo,mensaje,icon="🔔",col="#0f2d6e")=>{
+  const addNotif = useCallback((titulo,mensaje,icon="🔔",col="#0D1B2A")=>{
     const id=++notifId.current;
     const hora=new Date().toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"});
     setNotifs(p=>[{id,titulo,mensaje,icon,col,hora},...p].slice(0,5));
@@ -1683,7 +1690,7 @@ export default function FarmaCapitalAdmin(){
         pl=>{
           const row = pl.new;
           if (!row || row.estado !== "pendiente" || !esPedidoTiendaWebPendiente(row)) return;
-          addNotif("🛒 Nuevo pedido online",`Pedido #${row.id} · $${parseFloat(row.total||0).toFixed(2)}`,"🛒","#0f2d6e");
+          addNotif("🛒 Nuevo pedido online",`Pedido #${row.id} · $${parseFloat(row.total||0).toFixed(2)}`,"🛒","#0D1B2A");
           pushNotif("🛒 Nuevo pedido online",`Pedido #${row.id} · $${parseFloat(row.total||0).toFixed(2)} · Pendiente de surtir`,"/admin");
         })
       .on("postgres_changes",{event:"INSERT",schema:"public",table:"citas"},

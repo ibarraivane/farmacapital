@@ -4,7 +4,7 @@ import { supabase } from "./supabase";
 import { showToast } from "./ui";
 import { inventarioProductMatchesBusqueda } from "./utils/fuzzySearch";
 
-const BRAND = { primary:"#0f2d6e", secondary:"#1a56db", accent:"#16a34a", gradient:"linear-gradient(135deg,#0f2d6e,#1a56db)" };
+const BRAND = { primary:"#0D1B2A", secondary:"#1E3ABA", accent:"#16a34a", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
 
 const fmt = n => `$${parseFloat(n||0).toLocaleString("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2})}`;
 const pct = (a,b) => b>0 ? (((a-b)/b)*100).toFixed(1) : null;

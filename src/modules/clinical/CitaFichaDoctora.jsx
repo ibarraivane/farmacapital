@@ -467,7 +467,7 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
                 labelKey="nombre"
                 subKey="sku"
                 badgeKey="stock"
-                badgeCol="#1a56db"
+                badgeCol="#1E3ABA"
                 maxResults={12}
                 style={{ width: "100%" }}
                 emptyMsg="Sin coincidencias"

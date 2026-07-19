@@ -1513,7 +1513,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                   borderRadius: 18,
                   flexShrink: 0,
                   border: "none",
-                  background: "linear-gradient(135deg,#0052CC,#1a56db)",
+                  background: "linear-gradient(135deg,#1E3ABA,#1E3ABA)",
                   color: "#fff",
                   fontWeight: 800,
                   fontSize: 16,

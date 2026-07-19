@@ -30,7 +30,7 @@ import { TOURS, tourStorageKey } from "../utils/tours";
 
 const JOYRIDE_STYLES = {
   options: {
-    primaryColor: "#0052CC",
+    primaryColor: "#1E3ABA",
     zIndex: 10000,
     arrowColor: "#ffffff",
     backgroundColor: "#ffffff",
@@ -46,7 +46,7 @@ const JOYRIDE_STYLES = {
   tooltipTitle: {
     fontSize: 15,
     fontWeight: 800,
-    color: "#0052CC",
+    color: "#1E3ABA",
   },
   buttonNext: {
     borderRadius: 8,
@@ -55,7 +55,7 @@ const JOYRIDE_STYLES = {
     padding: "8px 14px",
   },
   buttonBack: {
-    color: "#0052CC",
+    color: "#1E3ABA",
     fontSize: 12,
   },
   buttonSkip: {
@@ -205,7 +205,7 @@ const OnboardingTour = forwardRef(function OnboardingTour(
             height: 48,
             borderRadius: 24,
             border: "none",
-            background: "linear-gradient(135deg,#0052CC,#1a56db)",
+            background: "linear-gradient(135deg,#1E3ABA,#1E3ABA)",
             color: "#fff",
             fontWeight: 800,
             fontSize: 20,

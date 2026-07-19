@@ -74,9 +74,9 @@ export default function MercadoPagoModal({ open, total, folio, hint, onSuccess, 
   if(!open) return null;
 
   const colores = {
-    idle:       "#0f2d6e",
+    idle:       "#0D1B2A",
     iniciando:  "#f59e0b",
-    esperando:  "#1a56db",
+    esperando:  "#1E3ABA",
     exito:      "#16a34a",
     error:      "#ef4444",
     cancelado:  "#94a3b8",
@@ -104,7 +104,7 @@ export default function MercadoPagoModal({ open, total, folio, hint, onSuccess, 
         {/* Monto */}
         <div style={{background:"#f8fafc",borderRadius:12,padding:16,textAlign:"center",marginBottom:20,border:"1px solid #e2e8f0"}}>
           <div style={{color:"#94a3b8",fontSize:11,fontWeight:700,marginBottom:4}}>TOTAL A COBRAR</div>
-          <div style={{color:"#0f2d6e",fontWeight:900,fontSize:32}}>${parseFloat(total||0).toFixed(2)}</div>
+          <div style={{color:"#0D1B2A",fontWeight:900,fontSize:32}}>${parseFloat(total||0).toFixed(2)}</div>
         </div>
 
         {/* Estado */}
@@ -115,7 +115,7 @@ export default function MercadoPagoModal({ open, total, folio, hint, onSuccess, 
             </div>
             {estado==="esperando"&&(
               <div style={{height:6,background:"#f1f5f9",borderRadius:3,overflow:"hidden"}}>
-                <div style={{height:"100%",width:`${progreso}%`,background:"#1a56db",borderRadius:3,transition:"width .5s"}}/>
+                <div style={{height:"100%",width:`${progreso}%`,background:"#1E3ABA",borderRadius:3,transition:"width .5s"}}/>
               </div>
             )}
           </div>
