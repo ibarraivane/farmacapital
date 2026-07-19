@@ -2400,7 +2400,7 @@ function HomePromociones({promos,setPage}){
 }
 
 // ── HOME ──────────────────────────────────────────────────────
-function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,precioConsulta}){
+function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,precioConsulta,loadingProductos}){
   const C = useTheme();
   const stack = useMediaQuery("(max-width: 768px)");
   const [promos, setPromos] = useState([]);
@@ -2542,7 +2542,12 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
           <Btn onClick={()=>setPage("catalogo")} outline col={BRAND.primary} sm>Ver catálogo →</Btn>
         </div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(100%,220px),1fr))",gap:16}}>
-          {productos.slice(0,6).map(p=><ProductCard key={p.id} prod={p} addToCart={addToCart} onClick={()=>{setProdDetalle(p);setPage("detalle");}}/>)}
+          {loadingProductos && productos.length===0
+            ? Array.from({length:6}).map((_,i)=>(
+                <div key={i} style={{borderRadius:12,background:C.surface,height:260,animation:"pulse 1.4s ease-in-out infinite",opacity:0.7}}/>
+              ))
+            : productos.slice(0,6).map(p=><ProductCard key={p.id} prod={p} addToCart={addToCart} onClick={()=>{setProdDetalle(p);setPage("detalle");}}/>)
+          }
         </div>
       </div>
 
@@ -4476,6 +4481,7 @@ export default function TiendaFarmaCapital(){
     return [];
   });
   const [cargando,setCargando]   = useState(false);
+  const [loadingProductos,setLoadingProductos] = useState(productos.length === 0);
   const [prodDetalle,setProdD]   = useState(null);
   const [busqHero,setBusqHero]   = useState("");
   const [showPopup,setShowPopup] = useState(false);
@@ -4510,8 +4516,7 @@ export default function TiendaFarmaCapital(){
   useEffect(()=>{
     let cancelled = false;
     const loadProductos = ()=>{
-      // Timeout de seguridad: si Supabase tarda >8s, mostrar la app igual
-      const safetyTimer = setTimeout(()=>{ if (!cancelled) setCargando(false); }, 8000);
+      const safetyTimer = setTimeout(()=>{ if (!cancelled) { setCargando(false); setLoadingProductos(false); } }, 8000);
       supabase.from("productos").select("*").eq("activo",true).order("id")
         .then(({data,error})=>{
           clearTimeout(safetyTimer);
@@ -4525,6 +4530,7 @@ export default function TiendaFarmaCapital(){
             try { localStorage.removeItem("farmacapital_productos_cache"); } catch(_) {}
           }
           setCargando(false);
+          setLoadingProductos(false);
         });
     };
     loadProductos();
@@ -4651,7 +4657,7 @@ export default function TiendaFarmaCapital(){
   );
 
   const pages={
-    home:          <Home setPage={setPage} addToCart={addToCart} productos={productosVistaTiendaFarmacia} setProdDetalle={setProdD} busqHero={busqHero} setBusqHero={setBusqHero} precioConsulta={precioConsultaCfg}/>,
+    home:          <Home setPage={setPage} addToCart={addToCart} productos={productosVistaTiendaFarmacia} setProdDetalle={setProdD} busqHero={busqHero} setBusqHero={setBusqHero} precioConsulta={precioConsultaCfg} loadingProductos={loadingProductos}/>,
     catalogo:      <Catalogo addToCart={addToCart} productos={productosVistaTiendaFarmacia} setProdDetalle={setProdD} setPage={setPage} busqHero={busqHero} setBusqHero={setBusqHero}/>,
     promo:         <PromocionesPage setPage={setPage}/>,
     detalle:       <DetalleProducto prod={prodDetalle} productos={productosVistaTiendaFarmacia} addToCart={addToCart} setPage={setPage} setProdDetalle={setProdD} busqHero={busqHero} setBusqHero={setBusqHero}/>,
