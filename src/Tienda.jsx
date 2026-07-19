@@ -4475,13 +4475,7 @@ export default function TiendaFarmaCapital(){
     } catch(_) {}
     return [];
   });
-  const [cargando,setCargando]   = useState(()=>{
-    try {
-      const cached = localStorage.getItem("farmacapital_productos_cache");
-      if (cached) { const p = JSON.parse(cached); if (Array.isArray(p) && p.length) return false; }
-    } catch(_) {}
-    return true;
-  });
+  const [cargando,setCargando]   = useState(false);
   const [prodDetalle,setProdD]   = useState(null);
   const [busqHero,setBusqHero]   = useState("");
   const [showPopup,setShowPopup] = useState(false);
