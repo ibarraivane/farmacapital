@@ -87,8 +87,6 @@
       }
       #splash.hide { opacity: 0; pointer-events: none; }
       .splash-logo {
-        width: 64px; height: 64px; border-radius: 16px;
-        background: #22C55E;
         display: flex; align-items: center; justify-content: center;
       }
       .splash-text { color: #fff; font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
@@ -114,10 +112,11 @@
     <!-- Splash screen -->
     <div id="splash">
       <div class="splash-logo">
-        <!-- Cruz FarmaCapital — isotipo oficial -->
-        <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect x="14" y="4" width="8" height="28" rx="4" fill="white"/>
-          <rect x="4" y="14" width="28" height="8" rx="4" fill="white"/>
+        <!-- Isotipo FarmaCapital — cruz azul marino + arco verde -->
+        <svg width="64" height="64" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="21" y="4" width="14" height="48" rx="7" fill="white"/>
+          <rect x="4" y="21" width="48" height="14" rx="7" fill="white"/>
+          <path d="M42 14 A20 20 0 1 0 42 42" stroke="#22C55E" stroke-width="5.5" fill="none" stroke-linecap="round"/>
         </svg>
       </div>
       <div class="splash-text">FARMACAPITAL</div>

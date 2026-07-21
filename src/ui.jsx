@@ -4,20 +4,19 @@ import { C_LIGHT, BRAND } from "./constants";
 import { productMatchesSearchQuery } from "./utils/fuzzySearch";
 
 export function Logo({size=36,showText=true,light=false,sub=""}){
-  // Ficha Técnica v1.0: "Farma" = Azul Oscuro #0D1B2A, "Capital" = Azul Corporativo #1E3ABA
-  const farmaColor   = light ? "#ffffff"                  : BRAND.dark;
-  const capitalColor = light ? "rgba(255,255,255,0.85)"   : BRAND.primary;
-  const subColor     = light ? "rgba(255,255,255,0.65)"   : BRAND.primary;
-  const crossBg      = light ? "rgba(255,255,255,0.18)"   : BRAND.accent;
-  const iconSize = Math.round(size * 1.05);
+  const farmaColor   = light ? "#ffffff"                : BRAND.dark;
+  const capitalColor = light ? "rgba(255,255,255,0.85)" : BRAND.primary;
+  const subColor     = light ? "rgba(255,255,255,0.65)" : BRAND.primary;
+  const crossColor   = light ? "#ffffff"                : BRAND.dark;
+  const iconSize = Math.round(size * 1.15);
   const fs    = Math.round(size * 0.52);
   const fsSub = Math.round(size * 0.22);
   return(
     <div style={{display:"flex",alignItems:"center",gap:8}}>
-      <svg width={iconSize} height={iconSize} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" style={{flexShrink:0}}>
-        <rect width="40" height="40" rx="10" fill={crossBg}/>
-        <rect x="17" y="9" width="6" height="22" rx="3" fill="#ffffff"/>
-        <rect x="9" y="17" width="22" height="6" rx="3" fill="#ffffff"/>
+      <svg width={iconSize} height={iconSize} viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg" style={{flexShrink:0}}>
+        <rect x="21" y="4" width="14" height="48" rx="7" fill={crossColor}/>
+        <rect x="4" y="21" width="48" height="14" rx="7" fill={crossColor}/>
+        <path d="M42 14 A20 20 0 1 0 42 42" stroke="#22C55E" strokeWidth="5.5" fill="none" strokeLinecap="round"/>
       </svg>
       {showText&&<div style={{display:"flex",flexDirection:"column",lineHeight:1}}>
         <div style={{fontWeight:800,fontSize:fs,fontFamily:"'Poppins',sans-serif",letterSpacing:"-0.3px",whiteSpace:"nowrap"}}>
