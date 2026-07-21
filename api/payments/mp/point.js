@@ -71,17 +71,22 @@ async function listPendingPointOrders(token, terminalId) {
 }
 
 async function cancelPointOrder(token, orderId, status) {
-  const extra = { 'X-Idempotency-Key': newIdempotencyKey() };
-  if (String(status || '').toLowerCase() === 'at_terminal') {
-    extra['x-allow-cancelable-status'] = 'at_terminal';
+  const attempt = async (withAtTerminalHeader) => {
+    const extra = { 'X-Idempotency-Key': newIdempotencyKey() };
+    if (withAtTerminalHeader) extra['x-allow-cancelable-status'] = 'at_terminal';
+    const { resp } = await mpJson(`${MP_API}/v1/orders/${encodeURIComponent(orderId)}/cancel`, {
+      method: 'POST',
+      headers: authHeaders(token, extra),
+      body: '{}',
+    });
+    return resp;
+  };
+
+  let resp = await attempt(String(status || '').toLowerCase() === 'at_terminal');
+  if (resp.ok || resp.status === 409) return true;
+  if (resp.status === 403 || resp.status === 409) {
+    resp = await attempt(true);
   }
-
-  const { resp } = await mpJson(`${MP_API}/v1/orders/${encodeURIComponent(orderId)}/cancel`, {
-    method: 'POST',
-    headers: authHeaders(token, extra),
-    body: '{}',
-  });
-
   return resp.ok || resp.status === 409;
 }
 
