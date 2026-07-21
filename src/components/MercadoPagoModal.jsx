@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { crearIntenciónDePago, esperarConfirmacionPago, cancelarPago, isMPConfigured } from "../utils/mercadoPago";
+import { crearIntenciónDePago, esperarConfirmacionPago, cancelarPago, isMPConfigured, mensajeEstadoPoint } from "../utils/mercadoPago";
 
 /**
  * FARMACAPITAL — Modal de pago con Mercado Pago Point Smart 2
@@ -45,8 +45,9 @@ export default function MercadoPagoModal({ open, total, folio, hint, onSuccess, 
       setMensaje("Esperando pago en terminal Point Smart 2...");
       setProgreso(10);
 
-      const polling = esperarConfirmacionPago(intent.id, (status) => {
-        setMensaje(`Estado: ${status}`);
+      const polling = esperarConfirmacionPago(intent.id, (status, data) => {
+        const detail = data?.status_detail;
+        setMensaje(mensajeEstadoPoint(status, detail));
         setProgreso(p => Math.min(p+5, 90));
       });
       pollingRef.current = polling;
@@ -60,8 +61,10 @@ export default function MercadoPagoModal({ open, total, folio, hint, onSuccess, 
     } catch(e) {
       setEstado("error");
       const msg = e?.message || "Error desconocido";
-      if (/queued order/i.test(msg)) {
-        setMensaje("El terminal tenía un cobro pendiente. Cierra este modal e intenta de nuevo en unos segundos.");
+      if (/queued order|terminal_busy/i.test(msg)) {
+        setMensaje("Hay un cobro pendiente en el Point. Cancélalo en el terminal (X) o espera 1 minuto e intenta de nuevo.");
+      } else if (/Se canceló en el Point/i.test(msg)) {
+        setMensaje(msg);
       } else if (/STANDALONE|modo PDV|terminal_mode_switched|terminal_not_in_pdv/i.test(msg)) {
         setMensaje(msg);
       } else if (/Timeout/i.test(msg)) {
@@ -166,9 +169,9 @@ export default function MercadoPagoModal({ open, total, folio, hint, onSuccess, 
 
         {/* Instrucciones */}
         {estado==="esperando"&&(
-          <div style={{marginTop:14,fontSize:10,color:"#94a3b8",textAlign:"center",lineHeight:1.6}}>
-            El cliente debe presentar su tarjeta o celular en el terminal.<br/>
-            Esperando respuesta del Point Smart 2...
+          <div style={{marginTop:14,fontSize:10,color:"#64748b",textAlign:"center",lineHeight:1.6}}>
+            <strong>En el Point Smart 2:</strong> si no aparece el monto, abre el menú y toca <strong>Actualizar</strong> (↻).<br/>
+            Luego pasa tarjeta o NFC. No uses «Ingresar monto» manual.
           </div>
         )}
       </div>

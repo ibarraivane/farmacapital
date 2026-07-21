@@ -10,6 +10,18 @@ const MP_API = 'https://api.mercadopago.com';
 const MP_DEVICES_LEGACY = `${MP_API}/point/integration-api/devices`;
 
 const PENDING_ORDER_STATUSES = new Set(['created', 'at_terminal']);
+const STALE_CREATED_MS = 90 * 1000;
+
+function orderAgeMs(order) {
+  const raw = order?.created_date || order?.created_at;
+  if (!raw) return Infinity;
+  const t = Date.parse(raw);
+  return Number.isFinite(t) ? Date.now() - t : Infinity;
+}
+
+function isStaleCreatedOrder(order) {
+  return String(order?.status || '').toLowerCase() === 'created' && orderAgeMs(order) >= STALE_CREATED_MS;
+}
 
 function newIdempotencyKey() {
   return crypto.randomUUID();
@@ -90,14 +102,23 @@ async function cancelPointOrder(token, orderId, status) {
   return resp.ok || resp.status === 409;
 }
 
-async function clearTerminalQueue(token, terminalId) {
+async function clearTerminalQueue(token, terminalId, { onlyStaleCreated = true } = {}) {
   const pending = await listPendingPointOrders(token, terminalId);
+  const atTerminal = pending.filter((o) => String(o?.status || '').toLowerCase() === 'at_terminal');
+  if (atTerminal.length) {
+    return { cleared: 0, pending: pending.length, blocked: true, at_terminal: atTerminal.map((o) => o.id) };
+  }
+
+  const toCancel = onlyStaleCreated
+    ? pending.filter((o) => isStaleCreatedOrder(o))
+    : pending.filter((o) => String(o?.status || '').toLowerCase() === 'created');
+
   let cleared = 0;
-  for (const order of pending) {
+  for (const order of toCancel) {
     const ok = await cancelPointOrder(token, order.id, order.status);
     if (ok) cleared += 1;
   }
-  return { cleared, pending: pending.length };
+  return { cleared, pending: pending.length, blocked: false };
 }
 
 function buildCreateOrderBody(deviceId, amount, description, externalReference) {
@@ -237,13 +258,21 @@ module.exports = async function handler(req, res) {
 
       const orderBody = buildCreateOrderBody(deviceId, amount, description, externalReference);
 
-      // Limpia cobros abandonados (p. ej. modal cerrado sin pagar).
-      await clearTerminalQueue(MP_ACCESS_TOKEN, String(deviceId));
+      const queue = await clearTerminalQueue(MP_ACCESS_TOKEN, String(deviceId), { onlyStaleCreated: true });
+      if (queue.blocked) {
+        return res.status(409).json({
+          ok: false,
+          error: 'terminal_busy',
+          message:
+            'Hay un cobro activo en el Point. Complétalo en el terminal (tarjeta/NFC) o cancélalo ahí con X, y vuelve a intentar.',
+          at_terminal_orders: queue.at_terminal,
+        });
+      }
 
       let { resp, data } = await createPointOrder(MP_ACCESS_TOKEN, deviceId, orderBody);
 
       if (isQueuedTerminalConflict(resp.status, data)) {
-        await clearTerminalQueue(MP_ACCESS_TOKEN, String(deviceId));
+        await clearTerminalQueue(MP_ACCESS_TOKEN, String(deviceId), { onlyStaleCreated: false });
         ({ resp, data } = await createPointOrder(MP_ACCESS_TOKEN, deviceId, orderBody));
       }
 

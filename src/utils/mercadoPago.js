@@ -118,6 +118,33 @@ function normalizePointOrderStatus(data) {
   return { status, detail };
 }
 
+export function mensajeEstadoPoint(status, detail) {
+  const st = String(status || "").toLowerCase();
+  const det = String(detail || "").toLowerCase();
+  if (st === "created") {
+    return "Cobro enviado. En el Point toca Actualizar (↻) para que aparezca el monto.";
+  }
+  if (st === "at_terminal") {
+    return "Cobro en pantalla del Point — pasa tarjeta o NFC.";
+  }
+  if (st === "processed" || det === "accredited") return "¡Pago aprobado!";
+  if (st === "expired" || det === "expired") return "El cobro expiró. Intenta de nuevo.";
+  if (det === "canceled_on_terminal" || (st === "canceled" && det === "canceled")) {
+    return "Se canceló en el Point (botón X). Vuelve a cobrar.";
+  }
+  if (det === "canceled_by_api") return "Cobro cancelado desde el sistema.";
+  if (st === "failed") return "Pago rechazado en el terminal.";
+  return `Estado: ${st || "..."}${det ? ` (${det})` : ""}`;
+}
+
+function errorPagoPoint(estado, detail, data) {
+  const msg = mensajeEstadoPoint(estado, detail);
+  if (msg.startsWith("Se canceló") || msg.startsWith("Pago rechazado") || msg.startsWith("El cobro expiró")) {
+    return new Error(msg);
+  }
+  return new Error(`Pago ${estado}${detail ? ` (${detail})` : ""}: ${data?.message || msg}`);
+}
+
 export async function consultarEstadoPago(paymentIntentId) {
   assertSecureModeOrThrow();
   const response = MP_PROXY_URL
@@ -193,22 +220,23 @@ export function esperarConfirmacionPago(intentId, onStatus) {
           estado === "approved";
         const pagoFallo =
           estado === "failed" ||
-          estado === "canceled" ||
-          estado === "cancelled" ||
+          estado === "expired" ||
           estado === "rejected" ||
           estado === "error" ||
-          detail === "canceled_by_api" ||
-          detail === "canceled_on_terminal";
+          detail === "expired" ||
+          (estado === "canceled" || estado === "cancelled" || detail === "canceled_by_api" || detail === "canceled_on_terminal");
 
         if (pagoOk) {
           clearInterval(interval);
           resolve({ success: true, data });
         } else if (pagoFallo) {
           clearInterval(interval);
-          reject(new Error(`Pago ${estado}${detail ? ` (${detail})` : ""}: ${data?.message || "Terminal rechazó el pago"}`));
+          reject(errorPagoPoint(estado, detail, data));
         } else if (attempts >= MAX_ATTEMPTS) {
           clearInterval(interval);
-          reject(new Error("Timeout: El terminal no respondió en 3 minutos"));
+          reject(new Error(
+            "Timeout: el Point no confirmó el pago. En el terminal toca Actualizar (↻), verifica que aparezca el monto y pasa la tarjeta."
+          ));
         }
       } catch (e) {
         if (attempts >= MAX_ATTEMPTS) {
