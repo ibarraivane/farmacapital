@@ -59,13 +59,20 @@ export default function MercadoPagoModal({ open, total, folio, hint, onSuccess, 
 
     } catch(e) {
       setEstado("error");
-      setMensaje(e.message);
+      const msg = e?.message || "Error desconocido";
+      if (/queued order/i.test(msg)) {
+        setMensaje("El terminal tenía un cobro pendiente. Cierra este modal e intenta de nuevo en unos segundos.");
+      } else {
+        setMensaje(msg);
+      }
     }
   };
 
   const cancelar = async () => {
-    if(intentId) {
-      await cancelarPago(intentId).catch(()=>{});
+    pollingRef.current?.cancelar?.();
+    pollingRef.current = null;
+    if (intentId) {
+      await cancelarPago(intentId).catch(() => {});
     }
     setEstado("cancelado");
     onCancel?.();
