@@ -99,6 +99,9 @@ export async function crearIntenciónDePago({ amount, description, externalRefer
   const data = await response.json().catch(() => ({}));
   if (!response.ok || data?.ok === false) {
     const msg = data?.message || data?.error || JSON.stringify(data);
+    if (data?.error === 'terminal_mode_switched_to_pdv') {
+      throw new Error(String(msg));
+    }
     throw new Error(`MP Error ${response.status}: ${msg}`);
   }
 

@@ -62,6 +62,12 @@ export default function MercadoPagoModal({ open, total, folio, hint, onSuccess, 
       const msg = e?.message || "Error desconocido";
       if (/queued order/i.test(msg)) {
         setMensaje("El terminal tenía un cobro pendiente. Cierra este modal e intenta de nuevo en unos segundos.");
+      } else if (/STANDALONE|modo PDV|terminal_mode_switched|terminal_not_in_pdv/i.test(msg)) {
+        setMensaje(msg);
+      } else if (/Timeout/i.test(msg)) {
+        setMensaje(
+          "El cobro se envió a Mercado Pago pero el Point no respondió. Verifica que el terminal esté en modo PDV (integrado), con WiFi, y reiniciado. Si la pantalla sigue en «Ingresar monto», hay que activar integración API en Mercado Pago."
+        );
       } else {
         setMensaje(msg);
       }

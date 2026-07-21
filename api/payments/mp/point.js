@@ -129,6 +129,28 @@ async function createPointOrder(token, deviceId, body) {
   });
 }
 
+async function getDeviceOperatingMode(token, deviceId) {
+  const { resp, data } = await mpJson(MP_DEVICES_LEGACY, {
+    method: 'GET',
+    headers: authHeaders(token),
+  });
+  if (!resp.ok) return null;
+  const devices = Array.isArray(data?.devices) ? data.devices : [];
+  const match = devices.find((d) => d?.id === deviceId);
+  return match?.operating_mode || null;
+}
+
+async function setTerminalPdvMode(token, deviceId) {
+  const { resp, data } = await mpJson(`${MP_API}/terminals/v1/setup`, {
+    method: 'PATCH',
+    headers: authHeaders(token),
+    body: JSON.stringify({
+      terminals: [{ id: String(deviceId), operating_mode: 'PDV' }],
+    }),
+  });
+  return { ok: resp.ok, status: resp.status, data, message: mpErrorMessage(data, resp.status) };
+}
+
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS');
@@ -138,7 +160,7 @@ module.exports = async function handler(req, res) {
   const MP_ACCESS_TOKEN = (process.env.MP_ACCESS_TOKEN || process.env.MERCADOPAGO_ACCESS_TOKEN || '').trim();
   if (!MP_ACCESS_TOKEN) return res.status(500).json({ ok: false, error: 'missing_mp_access_token' });
 
-  // path: /api/payments/mp/point?action=devices|create-intent|get-intent|cancel-intent|clear-terminal
+  // path: /api/payments/mp/point?action=devices|create-intent|get-intent|cancel-intent|clear-terminal|set-pdv
   const { action, deviceId, intentId, orderId } = req.query;
   const body = req.method === 'POST' ? (typeof req.body === 'object' ? req.body : {}) : null;
 
@@ -160,11 +182,57 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ ok: true, ...result });
     }
 
+    if (action === 'set-pdv') {
+      if (!deviceId) return res.status(400).json({ ok: false, error: 'missing_deviceId' });
+      const before = await getDeviceOperatingMode(MP_ACCESS_TOKEN, String(deviceId));
+      const result = await setTerminalPdvMode(MP_ACCESS_TOKEN, String(deviceId));
+      const after = result.ok ? 'PDV' : before;
+      if (!result.ok) {
+        return res.status(result.status || 500).json({
+          ok: false,
+          message: result.message,
+          operating_mode_before: before,
+          ...result.data,
+        });
+      }
+      return res.status(200).json({
+        ok: true,
+        operating_mode_before: before,
+        operating_mode_after: after,
+        restart_terminal_required: true,
+        message: 'Terminal configurado en modo PDV (integración API). Reinicia el Point Smart 2 y vuelve a cobrar.',
+        ...result.data,
+      });
+    }
+
     if (action === 'create-intent') {
       if (!deviceId) return res.status(400).json({ ok: false, error: 'missing_deviceId' });
       const { amount, description, externalReference } = body || {};
       if (!amount || !Number.isFinite(Number(amount)) || Number(amount) <= 0) {
         return res.status(400).json({ ok: false, error: 'invalid_amount' });
+      }
+
+      const operatingMode = await getDeviceOperatingMode(MP_ACCESS_TOKEN, String(deviceId));
+      if (operatingMode && operatingMode !== 'PDV') {
+        const pdv = await setTerminalPdvMode(MP_ACCESS_TOKEN, String(deviceId));
+        if (pdv.ok) {
+          return res.status(409).json({
+            ok: false,
+            error: 'terminal_mode_switched_to_pdv',
+            message:
+              'El Point estaba en modo STANDALONE (no recibe cobros del sistema). Se cambió a modo PDV. Reinicia el terminal, espera que abra, e intenta cobrar de nuevo.',
+            operating_mode_before: operatingMode,
+            restart_terminal_required: true,
+          });
+        }
+        return res.status(409).json({
+          ok: false,
+          error: 'terminal_not_in_pdv_mode',
+          message:
+            'El Point Smart 2 está en modo STANDALONE y no puede recibir cobros desde FarmaCapital. En Mercado Pago activa modo PDV/integrado para este terminal.',
+          operating_mode: operatingMode,
+          mp_error: pdv.message,
+        });
       }
 
       const orderBody = buildCreateOrderBody(deviceId, amount, description, externalReference);
@@ -193,6 +261,7 @@ module.exports = async function handler(req, res) {
         order_id: data.id,
         status: data.status,
         status_detail: data.status_detail,
+        operating_mode: operatingMode || 'PDV',
         ...data,
       });
     }
