@@ -3,6 +3,7 @@
 // El Access Token nunca sale al frontend — se usa solo aquí en el servidor.
 //
 // Docs: https://www.mercadopago.com.mx/developers/en/docs/mp-point/migrate-payment-intent-to-orders
+// Deploy: Orders API (jul 2026) — reemplaza payment-intents legacy.
 
 const crypto = require('crypto');
 
