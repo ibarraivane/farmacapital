@@ -22,6 +22,11 @@ const SANDBOX_MODE    = !MP_ACCESS_TOKEN?.startsWith("APP_USR");
 const HOSTNAME        = globalThis?.location?.hostname || "";
 const IS_LOCAL_DEV    = HOSTNAME === "localhost" || HOSTNAME === "127.0.0.1";
 
+function newIdempotencyKey() {
+  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  return `fc-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
 function isFrontendTokenModeAllowed() {
   return IS_LOCAL_DEV;
 }
@@ -63,62 +68,63 @@ export async function crearIntenciónDePago({ amount, description, externalRefer
   }
   assertSecureModeOrThrow();
 
-  const payload = {
-    amount,
-    description: description || "Venta FarmaCapital",
-    payment: {
-      installments:        1,
-      installments_cost:   "seller",
-      type:                "credit_card",
-    },
-    additional_info: {
-      external_reference: externalReference,
-      print_on_terminal:  true, // Imprimir recibo en el terminal
-    },
-  };
-
   const response = MP_PROXY_URL
     ? await fetch(`${MP_PROXY_URL.replace(/\/$/, "")}?action=create-intent&deviceId=${encodeURIComponent(MP_DEVICE_ID)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ amount, description, externalReference }),
       })
-    : await fetch(
-        `${MP_BASE_URL}/point/integration-api/devices/${MP_DEVICE_ID}/payment-intents`,
-        {
-          method:  "POST",
-          headers: {
-            "Authorization": `Bearer ${MP_ACCESS_TOKEN}`,
-            "Content-Type":  "application/json",
-            "X-Sandbox":     SANDBOX_MODE ? "true" : "false",
+    : await fetch(`${MP_BASE_URL}/v1/orders`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${MP_ACCESS_TOKEN}`,
+          "Content-Type": "application/json",
+          "X-Idempotency-Key": newIdempotencyKey(),
+        },
+        body: JSON.stringify({
+          type: "point",
+          external_reference: String(externalReference || `FC-${Date.now()}`).slice(0, 64),
+          transactions: { payments: [{ amount: Number(amount).toFixed(2) }] },
+          config: {
+            point: {
+              terminal_id: MP_DEVICE_ID,
+              print_on_terminal: "seller_ticket",
+            },
+            payment_method: { default_type: "credit_card" },
           },
-          body: JSON.stringify(payload),
-        }
-      );
+          description: description || "Venta FarmaCapital",
+        }),
+      });
 
-  if(!response.ok) {
-    const err = await response.json();
-    throw new Error(`MP Error ${response.status}: ${err.message || JSON.stringify(err)}`);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || data?.ok === false) {
+    const msg = data?.message || data?.error || JSON.stringify(data);
+    throw new Error(`MP Error ${response.status}: ${msg}`);
   }
 
-  return response.json();
+  return { ...data, id: data.id || data.order_id };
 }
 
 /**
  * Consulta el estado de un pago
  * @param {string} paymentIntentId
  */
+function normalizePointOrderStatus(data) {
+  const status = String(data?.status || data?.state || "").toLowerCase();
+  const detail = String(data?.status_detail || "").toLowerCase();
+  return { status, detail };
+}
+
 export async function consultarEstadoPago(paymentIntentId) {
   assertSecureModeOrThrow();
   const response = MP_PROXY_URL
-    ? await fetch(`${MP_PROXY_URL.replace(/\/$/, "")}?action=get-intent&intentId=${encodeURIComponent(paymentIntentId)}`)
-    : await fetch(
-        `${MP_BASE_URL}/point/integration-api/payment-intents/${paymentIntentId}`,
-        {
-          headers: { "Authorization": `Bearer ${MP_ACCESS_TOKEN}` }
-        }
-      );
-  return response.json();
+    ? await fetch(`${MP_PROXY_URL.replace(/\/$/, "")}?action=get-intent&orderId=${encodeURIComponent(paymentIntentId)}`)
+    : await fetch(`${MP_BASE_URL}/v1/orders/${encodeURIComponent(paymentIntentId)}`, {
+        headers: { Authorization: `Bearer ${MP_ACCESS_TOKEN}` },
+      });
+  const data = await response.json().catch(() => ({}));
+  const { status, detail } = normalizePointOrderStatus(data);
+  return { ...data, status, state: status, status_detail: detail };
 }
 
 /**
@@ -128,16 +134,18 @@ export async function consultarEstadoPago(paymentIntentId) {
 export async function cancelarPago(paymentIntentId) {
   assertSecureModeOrThrow();
   const response = MP_PROXY_URL
-    ? await fetch(`${MP_PROXY_URL.replace(/\/$/, "")}?action=cancel-intent&deviceId=${encodeURIComponent(MP_DEVICE_ID)}&intentId=${encodeURIComponent(paymentIntentId)}`, {
-        method: "DELETE",
+    ? await fetch(`${MP_PROXY_URL.replace(/\/$/, "")}?action=cancel-intent&orderId=${encodeURIComponent(paymentIntentId)}`, {
+        method: "POST",
       })
-    : await fetch(
-        `${MP_BASE_URL}/point/integration-api/devices/${MP_DEVICE_ID}/payment-intents/${paymentIntentId}`,
-        {
-          method:  "DELETE",
-          headers: { "Authorization": `Bearer ${MP_ACCESS_TOKEN}` }
-        }
-      );
+    : await fetch(`${MP_BASE_URL}/v1/orders/${encodeURIComponent(paymentIntentId)}/cancel`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${MP_ACCESS_TOKEN}`,
+          "Content-Type": "application/json",
+          "X-Idempotency-Key": newIdempotencyKey(),
+        },
+        body: "{}",
+      });
   return response.ok;
 }
 
@@ -172,15 +180,29 @@ export function esperarConfirmacionPago(intentId, onStatus) {
       attempts++;
       try {
         const data = await consultarEstadoPago(intentId);
-        const estado = data?.state || data?.status;
+        const estado = String(data?.status || data?.state || "").toLowerCase();
+        const detail = String(data?.status_detail || "").toLowerCase();
         onStatus?.(estado, data);
 
-        if (estado === "FINISHED" || estado === "approved") {
+        const pagoOk =
+          estado === "processed" ||
+          (estado === "finished" && detail === "accredited") ||
+          estado === "approved";
+        const pagoFallo =
+          estado === "failed" ||
+          estado === "canceled" ||
+          estado === "cancelled" ||
+          estado === "rejected" ||
+          estado === "error" ||
+          detail === "canceled_by_api" ||
+          detail === "canceled_on_terminal";
+
+        if (pagoOk) {
           clearInterval(interval);
           resolve({ success: true, data });
-        } else if (estado === "CANCELED" || estado === "rejected" || estado === "error") {
+        } else if (pagoFallo) {
           clearInterval(interval);
-          reject(new Error(`Pago ${estado}: ${data?.message || "Terminal rechazó el pago"}`));
+          reject(new Error(`Pago ${estado}${detail ? ` (${detail})` : ""}: ${data?.message || "Terminal rechazó el pago"}`));
         } else if (attempts >= MAX_ATTEMPTS) {
           clearInterval(interval);
           reject(new Error("Timeout: El terminal no respondió en 3 minutos"));
