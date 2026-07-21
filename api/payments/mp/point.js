@@ -338,6 +338,39 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ ok: true, ...data });
     }
 
+    if (action === 'diagnose') {
+      if (!deviceId) return res.status(400).json({ ok: false, error: 'missing_deviceId' });
+      const mode = await getDeviceOperatingMode(MP_ACCESS_TOKEN, String(deviceId));
+      const testBody = buildCreateOrderBody(deviceId, 1, 'Diagnostico FC', `FC-DIAG-${Date.now()}`);
+      const { resp, data } = await createPointOrder(MP_ACCESS_TOKEN, deviceId, testBody);
+      let afterStatus = null;
+      if (resp.ok && data?.id) {
+        await new Promise((r) => setTimeout(r, 8000));
+        const { data: d2 } = await mpJson(`${MP_API}/v1/orders/${encodeURIComponent(data.id)}`, {
+          method: 'GET',
+          headers: authHeaders(MP_ACCESS_TOKEN),
+        });
+        afterStatus = d2?.status || null;
+        await cancelPointOrder(MP_ACCESS_TOKEN, data.id, d2?.status || 'created');
+      }
+      return res.status(200).json({
+        ok: true,
+        operating_mode: mode,
+        order_created: resp.ok,
+        order_id: data?.id || null,
+        order_status_after_8s: afterStatus,
+        user_id: data?.user_id || null,
+        application_id: data?.integration_data?.application_id || null,
+        pos_id: (await mpJson(MP_DEVICES_LEGACY, { method: 'GET', headers: authHeaders(MP_ACCESS_TOKEN) })).data?.devices?.find(d => d.id === deviceId)?.pos_id,
+        diagnosis:
+          mode !== 'PDV'
+            ? 'Terminal no está en PDV según API.'
+            : afterStatus === 'at_terminal'
+              ? 'OK: el Point recibe cobros.'
+              : 'El cobro queda en created: el Point físico no sincroniza. Revisa Modo de vinculación = PDV en el terminal y pulsa Actualizar.',
+      });
+    }
+
     return res.status(400).json({ ok: false, error: 'unknown_action' });
   } catch (e) {
     return res.status(500).json({ ok: false, error: 'proxy_error', message: e?.message || 'unknown' });

@@ -42,7 +42,11 @@ export default function MercadoPagoModal({ open, total, folio, hint, onSuccess, 
       });
       setIntentId(intent.id);
       setEstado("esperando");
-      setMensaje("Esperando pago en terminal Point Smart 2...");
+      setMensaje(
+        intent?.status === "at_terminal"
+          ? "Cobro en pantalla del Point — pasa tarjeta o NFC."
+          : "Cobro enviado. En el Point: menú → Actualizar (↻). Debe aparecer $" + parseFloat(total || 0).toFixed(2)
+      );
       setProgreso(10);
 
       const polling = esperarConfirmacionPago(intent.id, (status, data) => {
@@ -69,7 +73,7 @@ export default function MercadoPagoModal({ open, total, folio, hint, onSuccess, 
         setMensaje(msg);
       } else if (/Timeout/i.test(msg)) {
         setMensaje(
-          "El cobro se envió a Mercado Pago pero el Point no respondió. Verifica que el terminal esté en modo PDV (integrado), con WiFi, y reiniciado. Si la pantalla sigue en «Ingresar monto», hay que activar integración API en Mercado Pago."
+          "Mercado Pago recibió el cobro pero el Point no lo bajó. En el terminal ve a Más opciones → Configuración → Modo de vinculación: debe decir Punto de venta (PDV), no STANDALONE. Luego reinicia el Point, toca Actualizar (↻) y vuelve a cobrar."
         );
       } else {
         setMensaje(msg);
@@ -170,8 +174,9 @@ export default function MercadoPagoModal({ open, total, folio, hint, onSuccess, 
         {/* Instrucciones */}
         {estado==="esperando"&&(
           <div style={{marginTop:14,fontSize:10,color:"#64748b",textAlign:"center",lineHeight:1.6}}>
-            <strong>En el Point Smart 2:</strong> si no aparece el monto, abre el menú y toca <strong>Actualizar</strong> (↻).<br/>
-            Luego pasa tarjeta o NFC. No uses «Ingresar monto» manual.
+            <strong>1.</strong> En el Point: menú (≡) → <strong>Actualizar</strong> (↻).<br/>
+            <strong>2.</strong> Debe aparecer <strong>${parseFloat(total||0).toFixed(2)}</strong> — pasa tarjeta.<br/>
+            <strong>3.</strong> Si sigue la pantalla «Ingresar monto», el Point no está en modo PDV: Más opciones → Configuración → Modo de vinculación → debe decir <strong>Punto de venta (PDV)</strong>.
           </div>
         )}
       </div>
