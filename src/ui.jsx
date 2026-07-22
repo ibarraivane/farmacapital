@@ -1,7 +1,7 @@
 import React, { useRef, useState, useLayoutEffect, useCallback } from "react";
 // FARMACAPITAL — Componentes UI base
 import { C_LIGHT, BRAND } from "./constants";
-import { logoFullStyle, logoIconStyle, logoFullSrc } from "./brand";
+import { logoFullStyle, logoIconStyle, logoFullSrc, logoFullSrcSet, logoAspect } from "./brand";
 import { productMatchesSearchQuery } from "./utils/fuzzySearch";
 
 export function Logo({ size = 36, showText = true, light = false, sub = "", iconOnly = false, variant = "default" }) {
@@ -13,6 +13,8 @@ export function Logo({ size = 36, showText = true, light = false, sub = "", icon
   const img = (
     <img
       src={logoFullSrc({ iconOnly: useIcon, variant })}
+      srcSet={useIcon ? undefined : logoFullSrcSet({ variant })}
+      sizes={useIcon ? undefined : `${Math.round(size * logoAspect(variant))}px`}
       alt="FarmaCapital"
       decoding="async"
       draggable={false}
@@ -77,6 +79,8 @@ export function BrandSplash({ subtitle = "Farmacia & Salud", variant = "default"
       <div style={{ background: "#fff", borderRadius: 16, padding: "20px 28px", boxShadow: "0 4px 24px rgba(15,45,110,.08)" }}>
         <img
           src={logoFullSrc({ variant })}
+          srcSet={logoFullSrcSet({ variant })}
+          sizes={`${Math.round(size * logoAspect(variant))}px`}
           alt="FarmaCapital"
           decoding="async"
           draggable={false}

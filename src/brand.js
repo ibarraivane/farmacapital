@@ -1,11 +1,15 @@
-// Logotipo oficial FarmaCapital — un solo PNG por contexto, sin variantes rotas.
+// Logotipo oficial FarmaCapital — PNG maestro HD (1754×897)
 const BASE = process.env.PUBLIC_URL || "";
-const V = "3"; // cache-bust CDN tras regenerar assets
+const V = "4";
 
 export const BRAND_LOGO = {
+  /** Recorte HD ~1623×358 — escalar hacia abajo = nítido */
   full: `${BASE}/brand/farmacapital-logo-full.png?v=${V}`,
+  full1x: `${BASE}/brand/farmacapital-logo-full@1x.png?v=${V}`,
   admin: `${BASE}/brand/farmacapital-logo-admin.png?v=${V}`,
   icon: `${BASE}/brand/farmacapital-icon.png?v=${V}`,
+  aspect: 1623 / 358,
+  aspectAdmin: 1623 / 358,
 };
 
 export function logoFullSrc({ iconOnly = false, variant = "default" } = {}) {
@@ -13,16 +17,21 @@ export function logoFullSrc({ iconOnly = false, variant = "default" } = {}) {
   return variant === "admin" ? BRAND_LOGO.admin : BRAND_LOGO.full;
 }
 
+export function logoFullSrcSet({ iconOnly = false, variant = "default" } = {}) {
+  if (iconOnly) return `${BRAND_LOGO.icon} 512w`;
+  const main = variant === "admin" ? BRAND_LOGO.admin : BRAND_LOGO.full;
+  return `${BRAND_LOGO.full1x} 812w, ${main} 1623w`;
+}
+
 export function logoAspect(variant = "default") {
-  return variant === "admin" ? 471 / 89 : 471 / 50;
+  return variant === "admin" ? BRAND_LOGO.aspectAdmin : BRAND_LOGO.aspect;
 }
 
 export function logoFullStyle(height, { variant = "default" } = {}) {
-  const aspect = logoAspect(variant);
   return {
     height,
-    width: Math.round(height * aspect),
-    maxWidth: "min(100%, 320px)",
+    width: Math.round(height * logoAspect(variant)),
+    maxWidth: "min(100vw - 32px, 420px)",
     display: "block",
     objectFit: "contain",
     flexShrink: 0,
