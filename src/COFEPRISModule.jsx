@@ -72,7 +72,7 @@ function AlertasLegales() {
     });
     let rows = Array.isArray(data) ? data : [];
     if (!error) {
-      if (rows.some((r) => /\bfarmax\b/i.test(r.nombre || "") || /\bfarmax\b/i.test(r.notas || ""))) {
+      if (rows.some((r) => /\bfarmax\b/i.test(r.nombre || "") || /\bfarmax\b/i.test(r.tipo || ""))) {
         await supabase.rpc("admin_corregir_marca_alertas_legales", { p_session_token: tok });
         const { data: dFix } = await supabase.rpc("admin_listar_alertas_legales", { p_session_token: tok });
         rows = Array.isArray(dFix) ? dFix : rows;
