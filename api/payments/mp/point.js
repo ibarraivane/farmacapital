@@ -199,8 +199,11 @@ module.exports = async function handler(req, res) {
 
     if (action === 'clear-terminal') {
       if (!deviceId) return res.status(400).json({ ok: false, error: 'missing_deviceId' });
-      const result = await clearTerminalQueue(MP_ACCESS_TOKEN, String(deviceId));
-      return res.status(200).json({ ok: true, ...result });
+      const force = String(req.query.force || '').toLowerCase() === '1' || req.query.force === 'true';
+      const result = await clearTerminalQueue(MP_ACCESS_TOKEN, String(deviceId), {
+        onlyStaleCreated: !force,
+      });
+      return res.status(200).json({ ok: true, force, ...result });
     }
 
     if (action === 'set-pdv') {
@@ -340,7 +343,13 @@ module.exports = async function handler(req, res) {
 
     if (action === 'diagnose') {
       if (!deviceId) return res.status(400).json({ ok: false, error: 'missing_deviceId' });
+      const cleared = await clearTerminalQueue(MP_ACCESS_TOKEN, String(deviceId), { onlyStaleCreated: false });
       const mode = await getDeviceOperatingMode(MP_ACCESS_TOKEN, String(deviceId));
+      const { data: devData } = await mpJson(MP_DEVICES_LEGACY, {
+        method: 'GET',
+        headers: authHeaders(MP_ACCESS_TOKEN),
+      });
+      const device = (devData?.devices || []).find((d) => d.id === deviceId);
       const testBody = buildCreateOrderBody(deviceId, 1, 'Diagnostico FC', `FC-DIAG-${Date.now()}`);
       const { resp, data } = await createPointOrder(MP_ACCESS_TOKEN, deviceId, testBody);
       let afterStatus = null;
@@ -356,18 +365,24 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({
         ok: true,
         operating_mode: mode,
+        pending_cleared: cleared.cleared,
+        pending_remaining: cleared.pending,
         order_created: resp.ok,
+        order_create_error: resp.ok ? null : mpErrorMessage(data, resp.status),
         order_id: data?.id || null,
         order_status_after_8s: afterStatus,
         user_id: data?.user_id || null,
         application_id: data?.integration_data?.application_id || null,
-        pos_id: (await mpJson(MP_DEVICES_LEGACY, { method: 'GET', headers: authHeaders(MP_ACCESS_TOKEN) })).data?.devices?.find(d => d.id === deviceId)?.pos_id,
+        pos_id: device?.pos_id || null,
+        store_id: device?.store_id || null,
         diagnosis:
           mode !== 'PDV'
             ? 'Terminal no está en PDV según API.'
-            : afterStatus === 'at_terminal'
-              ? 'OK: el Point recibe cobros.'
-              : 'El cobro queda en created: el Point físico no sincroniza. Revisa Modo de vinculación = PDV en el terminal y pulsa Actualizar.',
+            : !resp.ok
+              ? `No se pudo crear cobro de prueba: ${mpErrorMessage(data, resp.status)}`
+              : afterStatus === 'at_terminal'
+                ? 'OK: el Point recibe cobros.'
+                : 'FarmaCapital y Mercado Pago OK; el Point físico no sincroniza. Desvincula y revincula el lector en la app MP.',
       });
     }
 

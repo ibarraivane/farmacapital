@@ -73,7 +73,7 @@ export default function MercadoPagoModal({ open, total, folio, hint, onSuccess, 
         setMensaje(msg);
       } else if (/Timeout/i.test(msg)) {
         setMensaje(
-          "Mercado Pago recibió el cobro pero el Point no lo bajó. En el terminal ve a Más opciones → Configuración → Modo de vinculación: debe decir Punto de venta (PDV), no STANDALONE. Luego reinicia el Point, toca Actualizar (↻) y vuelve a cobrar."
+          "Mercado Pago recibió el cobro pero el Point no lo bajó. Verifica Ajustes → Vincular frente de caja (ON). En la app MP: Tu negocio → Terminales → desvincular y revincular el lector. Reinicia el Point y vuelve a cobrar."
         );
       } else {
         setMensaje(msg);
@@ -174,9 +174,9 @@ export default function MercadoPagoModal({ open, total, folio, hint, onSuccess, 
         {/* Instrucciones */}
         {estado==="esperando"&&(
           <div style={{marginTop:14,fontSize:10,color:"#64748b",textAlign:"center",lineHeight:1.6}}>
-            <strong>1.</strong> En el Point: menú (≡) → <strong>Actualizar</strong> (↻).<br/>
-            <strong>2.</strong> Debe aparecer <strong>${parseFloat(total||0).toFixed(2)}</strong> — pasa tarjeta.<br/>
-            <strong>3.</strong> Si sigue la pantalla «Ingresar monto», el Point no está en modo PDV: Más opciones → Configuración → Modo de vinculación → debe decir <strong>Punto de venta (PDV)</strong>.
+            <strong>1.</strong> Ajustes → <strong>Vincular frente de caja</strong> debe estar ON.<br/>
+            <strong>2.</strong> Pantalla de cobro → botón <strong>Actualizar (↻)</strong> o verde.<br/>
+            <strong>3.</strong> Si no baja: app MP → Tu negocio → Terminales → <strong>desvincular y revincular</strong> el lector.
           </div>
         )}
       </div>
