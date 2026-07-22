@@ -12,6 +12,27 @@ function parseRgb(color) {
   };
 }
 
+function parseHex(hex) {
+  const h = hex.replace("#", "");
+  if (h.length === 3) {
+    return {
+      r: parseInt(h[0] + h[0], 16),
+      g: parseInt(h[1] + h[1], 16),
+      b: parseInt(h[2] + h[2], 16),
+      a: 1,
+    };
+  }
+  if (h.length >= 6) {
+    return {
+      r: parseInt(h.slice(0, 2), 16),
+      g: parseInt(h.slice(2, 4), 16),
+      b: parseInt(h.slice(4, 6), 16),
+      a: 1,
+    };
+  }
+  return null;
+}
+
 function relativeLuminance(r, g, b) {
   const lin = [r, g, b].map((c) => {
     const v = c / 255;
@@ -20,10 +41,26 @@ function relativeLuminance(r, g, b) {
   return 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2];
 }
 
-function isDarkBackground(color) {
-  const rgb = parseRgb(color);
+function isDarkRgb(rgb) {
   if (!rgb || rgb.a < 0.08) return null;
   return relativeLuminance(rgb.r, rgb.g, rgb.b) < 0.42;
+}
+
+function isDarkBackground(color) {
+  return isDarkRgb(parseRgb(color));
+}
+
+/** Gradients no exponen backgroundColor; tomamos el primer color del gradiente. */
+function isDarkGradient(backgroundImage) {
+  if (!backgroundImage || backgroundImage === "none") return null;
+
+  const rgbInGradient = backgroundImage.match(/rgba?\(\s*[\d.]+\s*[,\s]+[\d.]+\s*[,\s]+[\d.]+(?:\s*[,\s/]+\s*[\d.]+)?\s*\)/i);
+  if (rgbInGradient) return isDarkBackground(rgbInGradient[0]);
+
+  const hexInGradient = backgroundImage.match(/#([0-9a-fA-F]{3,8})\b/);
+  if (hexInGradient) return isDarkRgb(parseHex(hexInGradient[0]));
+
+  return null;
 }
 
 function detectOnDark(el) {
@@ -35,12 +72,18 @@ function detectOnDark(el) {
   let node = el.parentElement;
   while (node && node !== document.documentElement) {
     const style = window.getComputedStyle(node);
-    const dark = isDarkBackground(style.backgroundColor);
-    if (dark !== null) return dark;
+
+    const fromColor = isDarkBackground(style.backgroundColor);
+    if (fromColor !== null) return fromColor;
+
+    const fromGradient = isDarkGradient(style.backgroundImage);
+    if (fromGradient !== null) return fromGradient;
+
     node = node.parentElement;
   }
 
-  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+  // Fondo indeterminado → logo a color (no usar prefers-color-scheme: eso es solo para favicon)
+  return false;
 }
 
 /** Detecta si el logo debe usar variante light (fondos oscuros). */
@@ -61,14 +104,10 @@ export function useLogoOnDark(enabled = true) {
 
     const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(compute) : null;
     ro?.observe(el);
-
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    mq.addEventListener("change", compute);
     window.addEventListener("resize", compute);
 
     return () => {
       ro?.disconnect();
-      mq.removeEventListener("change", compute);
       window.removeEventListener("resize", compute);
     };
   }, [enabled, compute]);

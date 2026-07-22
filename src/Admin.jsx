@@ -242,7 +242,7 @@ function LoginScreen({onLogin}){
   return(
     <>
     <style>{`.farmacapital-login-screen{min-height:100vh;min-height:100dvh}`}</style>
-    <div className="farmacapital-login-screen" style={{background:"linear-gradient(135deg,#f0f4ff 0%,#f7f9fc 50%,#e8f4fd 100%)",display:"flex",alignItems:"center",justifyContent:"center",padding:"max(clamp(12px,4vw,20px), env(safe-area-inset-top, 0px)) max(clamp(12px,4vw,20px), env(safe-area-inset-right, 0px)) max(clamp(12px,4vw,20px), env(safe-area-inset-bottom, 0px)) max(clamp(12px,4vw,20px), env(safe-area-inset-left, 0px))",boxSizing:"border-box",overflowX:"hidden"}}>
+    <div className="farmacapital-login-screen" data-brand-surface="light" style={{background:"linear-gradient(135deg,#f0f4ff 0%,#f7f9fc 50%,#e8f4fd 100%)",display:"flex",alignItems:"center",justifyContent:"center",padding:"max(clamp(12px,4vw,20px), env(safe-area-inset-top, 0px)) max(clamp(12px,4vw,20px), env(safe-area-inset-right, 0px)) max(clamp(12px,4vw,20px), env(safe-area-inset-bottom, 0px)) max(clamp(12px,4vw,20px), env(safe-area-inset-left, 0px))",boxSizing:"border-box",overflowX:"hidden"}}>
       <div style={{width:"100%",maxWidth:400,minWidth:0}}>
         <div style={{textAlign:"center",marginBottom:32}}>
           <div style={{display:"flex",justifyContent:"center",marginBottom:16}}><Logo size={56} variant="admin"/></div>
