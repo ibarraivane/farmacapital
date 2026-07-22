@@ -1,28 +1,87 @@
 import React, { useRef, useState, useLayoutEffect, useCallback } from "react";
 // FARMACAPITAL — Componentes UI base
 import { C_LIGHT, BRAND } from "./constants";
-import { BRAND_LOGO, logoFullStyle, logoIconStyle, logoFullSrc } from "./brand";
+import { logoFullStyle, logoIconStyle, logoFullSrc, logoFullSrcSet } from "./brand";
 import { productMatchesSearchQuery } from "./utils/fuzzySearch";
 
-export function Logo({ size = 36, showText = true, light = false, sub = "", iconOnly = false }) {
+export function Logo({ size = 36, showText = true, light = false, sub = "", iconOnly = false, variant = "default" }) {
   const fsSub = Math.round(size * 0.22);
   const subColor = light ? "rgba(255,255,255,0.65)" : BRAND.primary;
   const useIcon = iconOnly || !showText;
+  const showSub = Boolean(sub) && variant !== "admin";
 
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-      <div style={{ display: "flex", flexDirection: "column", lineHeight: 1, minWidth: 0 }}>
+      <div style={{ display: "flex", flexDirection: "column", lineHeight: 1, minWidth: 0, alignItems: variant === "admin" ? "center" : undefined }}>
         <img
-          src={logoFullSrc({ light, iconOnly: useIcon })}
+          src={logoFullSrc({ light, iconOnly: useIcon, variant })}
+          srcSet={logoFullSrcSet({ light, iconOnly: useIcon, variant })}
           alt="FarmaCapital"
-          style={useIcon ? logoIconStyle(size, { light }) : logoFullStyle(size, { light })}
+          decoding="async"
+          style={useIcon ? logoIconStyle(size) : logoFullStyle(size, { variant })}
         />
-        {sub && (
+        {showSub && (
           <div style={{ color: subColor, fontSize: fsSub, letterSpacing: "2px", textTransform: "uppercase", marginTop: 4, fontWeight: 500 }}>
             {sub}
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+/** Pantalla de carga unificada (tienda, admin chunks) */
+export function BrandSplash({ light = false, subtitle = "Farmacia & Salud", variant = "default", size = 72 }) {
+  const bg = light
+    ? "linear-gradient(135deg, #0f2d6e, #1a56db)"
+    : "linear-gradient(135deg, #f0f4ff 0%, #f7f9fc 50%, #e8f4fd 100%)";
+  const subColor = light ? "rgba(255,255,255,0.72)" : "#64748b";
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        minHeight: "100dvh",
+        background: bg,
+        flexDirection: "column",
+        gap: 14,
+        padding: 24,
+      }}
+    >
+      <img
+        src={logoFullSrc({ light, variant })}
+        srcSet={logoFullSrcSet({ light, variant })}
+        alt="FarmaCapital"
+        decoding="async"
+        style={logoFullStyle(size, { variant })}
+      />
+      {subtitle ? (
+        <div style={{ color: subColor, fontSize: 12, letterSpacing: 2, textTransform: "uppercase", fontWeight: 600 }}>
+          {subtitle}
+        </div>
+      ) : null}
+      <div
+        style={{
+          width: 48,
+          height: 3,
+          background: light ? "rgba(255,255,255,0.25)" : "rgba(15,45,110,0.12)",
+          borderRadius: 2,
+          overflow: "hidden",
+          marginTop: 4,
+        }}
+      >
+        <div
+          style={{
+            height: "100%",
+            width: "40%",
+            background: light ? "#fff" : BRAND.primary,
+            borderRadius: 2,
+            animation: "farmacapital-splash-bar 1.2s ease-in-out infinite",
+          }}
+        />
+      </div>
+      <style>{`@keyframes farmacapital-splash-bar { 0%{transform:translateX(-120%)} 100%{transform:translateX(320%)} }`}</style>
     </div>
   );
 }

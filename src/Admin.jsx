@@ -245,8 +245,8 @@ function LoginScreen({onLogin}){
     <div className="farmacapital-login-screen" style={{background:"linear-gradient(135deg,#f0f4ff 0%,#f7f9fc 50%,#e8f4fd 100%)",display:"flex",alignItems:"center",justifyContent:"center",padding:"max(clamp(12px,4vw,20px), env(safe-area-inset-top, 0px)) max(clamp(12px,4vw,20px), env(safe-area-inset-right, 0px)) max(clamp(12px,4vw,20px), env(safe-area-inset-bottom, 0px)) max(clamp(12px,4vw,20px), env(safe-area-inset-left, 0px))",boxSizing:"border-box",overflowX:"hidden"}}>
       <div style={{width:"100%",maxWidth:400,minWidth:0}}>
         <div style={{textAlign:"center",marginBottom:32}}>
-          <div style={{display:"flex",justifyContent:"center",marginBottom:16}}><Logo size={48} sub="Sistema"/></div>
-          <div style={{color:C.textMid,fontSize:14}}>Sistema de gestión · Acceso interno</div>
+          <div style={{display:"flex",justifyContent:"center",marginBottom:16}}><Logo size={56} variant="admin"/></div>
+          <div style={{color:C.textMid,fontSize:14}}>Acceso interno · Gestión de farmacia</div>
         </div>
         <Box style={{padding:32,boxShadow:"0 4px 24px rgba(15,45,110,.10)"}}>
           <div style={{color:C.text,fontWeight:800,fontSize:18,marginBottom:24}}>Iniciar sesión</div>
@@ -899,6 +899,165 @@ function defaultIdsPorRol(rol) {
   if (rol === "vendedor") return NAV_VENDEDOR;
   if (rol === "doctora")  return NAV_DOCTORA;
   return [];
+}
+
+function PasswordResetSolicitudesModal({ open, onClose }) {
+  const C = C_LIGHT;
+  const [solicitudes, setSolicitudes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [guardando, setGuardando] = useState(null);
+  const [nuevaClave, setNuevaClave] = useState({});
+  const [error, setError] = useState("");
+
+  const cargar = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    const { data, error: err } = await supabase.rpc("admin_listar_password_resets_pendientes", {
+      p_session_token: tok,
+    });
+    if (err) {
+      setError(err.message);
+      setSolicitudes([]);
+    } else {
+      setSolicitudes((data || []).map((row) => (typeof row === "string" ? JSON.parse(row) : row)));
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (open) cargar();
+  }, [open, cargar]);
+
+  const marcarAtendido = async (id) => {
+    setGuardando(id);
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    const { data: resp, error: err } = await supabase.rpc("admin_atender_password_reset", {
+      p_session_token: tok,
+      p_request_id: id,
+    });
+    if (err || !resp?.success) {
+      showToast("Error: " + (resp?.error || err?.message || "No se pudo marcar"), "error");
+    } else {
+      setSolicitudes((p) => p.filter((s) => s.id !== id));
+      showToast("Solicitud marcada como atendida", "success");
+    }
+    setGuardando(null);
+  };
+
+  const asignarClaveCliente = async (req) => {
+    const clave = (nuevaClave[req.id] || "").trim();
+    if (clave.length < 6) {
+      showToast("La contraseña debe tener al menos 6 caracteres", "warning");
+      return;
+    }
+    const ident = String(req.email_o_telefono || "").trim();
+    const digits = ident.replace(/\D/g, "");
+    if (!digits || digits.length < 10) {
+      showToast("No se puede identificar cliente por teléfono en esta solicitud", "warning");
+      return;
+    }
+    setGuardando(req.id);
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    const { data: cliente, error: cliErr } = await supabase.rpc("admin_obtener_cliente_por_telefono", {
+      p_session_token: tok,
+      p_telefono: ident.includes("@") ? digits : (ident.trim() || digits),
+    });
+    let clienteResolved = cliente;
+    if ((cliErr || !clienteResolved?.id) && digits.length >= 10) {
+      const retry = await supabase.rpc("admin_obtener_cliente_por_telefono", {
+        p_session_token: tok,
+        p_telefono: digits,
+      });
+      clienteResolved = retry.data;
+    }
+    if (!clienteResolved?.id) {
+      showToast("No encontramos cuenta de tienda con ese teléfono. Contacta al cliente manualmente.", "warning");
+      setGuardando(null);
+      return;
+    }
+    const { data: resp, error: err } = await supabase.rpc("admin_asignar_password_cliente", {
+      p_session_token: tok,
+      p_cliente_id: clienteResolved.id,
+      p_nueva_password: clave,
+    });
+    if (err || !resp?.success) {
+      showToast("Error: " + (resp?.error || err?.message || "No se pudo asignar"), "error");
+      setGuardando(null);
+      return;
+    }
+    await marcarAtendido(req.id);
+    setNuevaClave((p) => ({ ...p, [req.id]: "" }));
+    showToast(`Contraseña asignada a ${clienteResolved.nombre || ident}`, "success");
+    setGuardando(null);
+  };
+
+  const contactarWhatsApp = (ident) => {
+    const digits = String(ident || "").replace(/\D/g, "");
+    if (digits.length < 10) {
+      showToast("Este identificador no parece un teléfono válido", "warning");
+      return;
+    }
+    const msg = "Hola, recibimos tu solicitud para restablecer tu contraseña en FarmaCapital. ¿En qué podemos ayudarte?";
+    window.open(`https://wa.me/52${digits}?text=${encodeURIComponent(msg)}`, "_blank", "noopener,noreferrer");
+  };
+
+  return (
+    <Modal open={open} onClose={onClose} title="Solicitudes de contraseña">
+      <div style={{ color: C.textMid, fontSize: 12, marginBottom: 12, lineHeight: 1.5 }}>
+        Clientes de la tienda en línea que pidieron restablecer su contraseña. Asigna una nueva clave o contáctalos y marca como atendido.
+      </div>
+      {error && (
+        <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: 10, marginBottom: 12, fontSize: 12, color: "#b91c1c" }}>
+          {error}
+        </div>
+      )}
+      {loading ? (
+        <SkeletonTable rows={2} cols={3} />
+      ) : solicitudes.length === 0 ? (
+        <div style={{ color: C.textMid, padding: 24, textAlign: "center" }}>✓ Sin solicitudes pendientes</div>
+      ) : (
+        solicitudes.map((req) => (
+          <Box key={req.id} style={{ padding: 14, marginBottom: 10 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
+              <div>
+                <div style={{ color: C.text, fontWeight: 800, fontSize: 14 }}>{req.email_o_telefono || "—"}</div>
+                <div style={{ color: C.textDim, fontSize: 11, marginTop: 4 }}>
+                  {req.created_at ? new Date(req.created_at).toLocaleString("es-MX") : ""}
+                </div>
+              </div>
+              <Tag col={C.amber} sm>Pendiente</Tag>
+            </div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+              <button
+                type="button"
+                onClick={() => contactarWhatsApp(req.email_o_telefono)}
+                style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 8, border: "none", background: "#25D366", color: "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer" }}
+              >
+                💬 WhatsApp
+              </button>
+              <Inp
+                type="password"
+                placeholder="Nueva contraseña (6+)"
+                value={nuevaClave[req.id] || ""}
+                onChange={(e) => setNuevaClave((p) => ({ ...p, [req.id]: e.target.value }))}
+                style={{ flex: "1 1 160px", minWidth: 140 }}
+              />
+              <Btn sm col={C.blue} dis={guardando === req.id} onClick={() => asignarClaveCliente(req)}>
+                Asignar clave
+              </Btn>
+              <Btn sm ol col={C.green} dis={guardando === req.id} onClick={() => marcarAtendido(req.id)}>
+                Marcar atendido
+              </Btn>
+            </div>
+          </Box>
+        ))
+      )}
+      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
+        <Btn ol onClick={onClose}>Cerrar</Btn>
+      </div>
+    </Modal>
+  );
 }
 
 function GestionUsuarios(){
@@ -1569,6 +1728,7 @@ export default function FarmaCapitalAdmin(){
     return () => window.removeEventListener("popstate", onPop);
   }, []);
   const [notifs,setNotifs]         = useState([]);
+  const [passwordResetOpen,setPasswordResetOpen] = useState(false);
   const [ventasOffline,setVentasOff] = useState(0);
   const [confirmDlg, setConfirmDlg] = useState({open:false,titulo:"",mensaje:"",onConfirm:null,danger:false});
   const showConfirm = (titulo,mensaje,onConfirm,danger=false) => setConfirmDlg({open:true,titulo,mensaje,onConfirm,danger});
@@ -1629,8 +1789,9 @@ export default function FarmaCapitalAdmin(){
       if(count > 0) {
         addNotif(
           `🔑 ${count} solicitud${count>1?"es":""} de contraseña pendiente${count>1?"s":""}`,
-          "Ve a Supabase para ver los detalles y contactar al usuario",
-          "🔑","#f59e0b"
+          "Toca aquí para ver y atender la solicitud",
+          "🔑","#f59e0b",
+          "password_reset"
         );
       }
     };
@@ -1693,14 +1854,19 @@ export default function FarmaCapitalAdmin(){
   },[]);
   const notifId = useRef(0);
 
-  const addNotif = useCallback((titulo,mensaje,icon="🔔",col="#0D1B2A")=>{
+  const addNotif = useCallback((titulo,mensaje,icon="🔔",col="#0D1B2A",action=null)=>{
     const id=++notifId.current;
     const hora=new Date().toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"});
-    setNotifs(p=>[{id,titulo,mensaje,icon,col,hora},...p].slice(0,5));
+    setNotifs(p=>[{id,titulo,mensaje,icon,col,hora,action},...p].slice(0,5));
     setTimeout(()=>setNotifs(p=>p.filter(n=>n.id!==id)),8000);
   },[]);
 
   const dismissNotif = useCallback(id=>setNotifs(p=>p.filter(n=>n.id!==id)),[]);
+
+  const handleNotifAction = useCallback((n)=>{
+    if(n.action==="password_reset") setPasswordResetOpen(true);
+    setNotifs(p=>p.filter(x=>x.id!==n.id));
+  },[]);
 
   useEffect(()=>{
     if(!usuario) return;
@@ -1710,8 +1876,9 @@ export default function FarmaCapitalAdmin(){
           const req = payload.new;
           addNotif(
             "🔑 Solicitud de contraseña",
-            `Usuario: ${req.email_o_telefono} necesita reset de contraseña`,
-            "🔑","#f59e0b"
+            `Usuario: ${req.email_o_telefono} — toca para atender`,
+            "🔑","#f59e0b",
+            "password_reset"
           );
           showToast(`🔑 Solicitud de reset: ${req.email_o_telefono}`,"warning");
         })
@@ -1881,7 +2048,8 @@ export default function FarmaCapitalAdmin(){
   return(
     <>
     <GlobalHoverStyles/>
-    <NotificacionesToast notifs={notifs} onDismiss={dismissNotif}/>
+    <NotificacionesToast notifs={notifs} onDismiss={dismissNotif} onAction={handleNotifAction}/>
+    <PasswordResetSolicitudesModal open={passwordResetOpen} onClose={()=>setPasswordResetOpen(false)}/>
     <ToastProvider/>
     <ConfirmDialog
       open={confirmDlg.open}

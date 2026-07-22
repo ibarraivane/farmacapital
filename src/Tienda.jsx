@@ -15,7 +15,14 @@ import {
   razonBloqueoProductoTiendaFarmacia,
   productoEsCategoriaMinisuperTienda,
 } from "./utils/tiendaFarmaciaCatalogo";
-import { showToast } from "./ui";
+import { showToast, Logo, BrandSplash } from "./ui";
+import {
+  formatFolioOnline,
+  FARMACIA_WHATSAPP_DISPLAY,
+  notifyOnlineOrderReceipt,
+  openWhatsAppToFarmacia,
+  buildCustomerToFarmaciaMessage,
+} from "./utils/orderReceiptWhatsApp";
 import {
   X, ShoppingCart, Pill, Tag as TagIcon, Stethoscope, Star,
   MapPin, Clock, Phone, Mail, HelpCircle, FileText,
@@ -225,27 +232,6 @@ function horariosDisponibles(fecha){
     const [hh,mm]=h.split(":").map(Number);
     return hh>ahora.getHours()||(hh===ahora.getHours()&&mm>ahora.getMinutes());
   });
-}
-
-// ── LOGO ──────────────────────────────────────────────────────
-function Logo({size=32,light=false}){
-  const farmaColor   = light ? "#ffffff"                : BRAND.dark;
-  const capitalColor = light ? "rgba(255,255,255,0.85)" : BRAND.secondary;
-  const crossColor   = light ? "#ffffff"                : BRAND.primary;
-  const fs       = Math.round(size * 0.52);
-  const iconSize = Math.round(size * 1.15);
-  return(
-    <div style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",flexShrink:0}}>
-      <svg width={iconSize} height={iconSize} viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg" style={{flexShrink:0}}>
-        <rect x="21" y="4" width="14" height="48" rx="7" fill={crossColor}/>
-        <rect x="4" y="21" width="48" height="14" rx="7" fill={crossColor}/>
-        <path d="M42 14 A20 20 0 1 0 42 42" stroke="#22C55E" strokeWidth="5.5" fill="none" strokeLinecap="round"/>
-      </svg>
-      <div style={{fontFamily:"'Poppins',sans-serif",fontWeight:800,fontSize:fs,letterSpacing:"-0.3px",lineHeight:1,whiteSpace:"nowrap"}}>
-        <span style={{color:farmaColor}}>Farma</span><span style={{color:capitalColor,fontWeight:700}}>Capital</span>
-      </div>
-    </div>
-  );
 }
 
 // ── UI BASE ───────────────────────────────────────────────────
@@ -1520,7 +1506,7 @@ function Header({page,setPage,cart,user,setUser}){
           }}
           aria-label="Inicio FarmaCapital"
         >
-          <Logo size={36} light/>
+          <Logo size={40} light/>
         </button>
 
         <div className="farmacapital-header-info-desktop" style={{
@@ -3287,7 +3273,16 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
         ui_entrega: ui_entrega || null,
         datosTel: datos.tel,
         pedidoId: resp.pedido_id,
+        metodoPago: metodo,
       });
+      notifyOnlineOrderReceipt({
+        pedidoId: resp.pedido_id,
+        telefono: datos.tel,
+        items: reconciled.map(c=>({ nombre:c.nombre, qty:c.qty, precio:c.precio })),
+        total: subSnap,
+        tipoEntrega: tipo_entrega,
+        metodoPago: metodo,
+      }).catch((e) => console.warn("[Checkout] WhatsApp recibo:", e));
       setG(false);
       setConf(true);
       setCart([]);
@@ -3304,9 +3299,16 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
     setG(false);
   };
   if(conf&&lastOrder){
-    const folio = lastOrder.pedidoId!=null ? `#FC-${String(lastOrder.pedidoId).padStart(4,"0")}` : null;
+    const folio = formatFolioOnline(lastOrder.pedidoId);
     const esPickup = lastOrder.tipo_entrega==="recoger";
     const esCdmx = lastOrder.entregaUi==="cdmx";
+    const reenviarReciboWhatsApp = () => {
+      openWhatsAppToFarmacia(buildCustomerToFarmaciaMessage({
+        pedidoId: lastOrder.pedidoId,
+        total: lastOrder.sub,
+        customerTel: lastOrder.datosTel,
+      }));
+    };
     const instruccionEntrega = esPickup
       ? `Muestra este folio en farmacia o menciona tu teléfono. Prepararemos tu pedido y te avisamos cuando esté listo.`
       : esCdmx
@@ -3351,9 +3353,13 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
         <div style={{display:"flex",gap:10,justifyContent:"center",flexWrap:"wrap",marginBottom:16}}>
           <Btn onClick={()=>setPage("home")} col={BRAND.primary}>Ir al inicio</Btn>
           {user&&<Btn onClick={()=>setPage("cuenta")} outline col={BRAND.primary}>Ver mis pedidos</Btn>}
+          {lastOrder.datosTel && (
+            <Btn onClick={reenviarReciboWhatsApp} outline col="#25D366">💬 Contactar por WhatsApp</Btn>
+          )}
         </div>
         <div style={{background:"#f0fdf4",border:"1px solid #86efac",borderRadius:10,padding:"12px 16px",fontSize:13,color:"#166534",lineHeight:1.6}}>
-          📱 <strong>Te contactaremos por WhatsApp</strong> al número <strong>{lastOrder.datosTel}</strong> para confirmar tu pedido y coordinar la entrega.
+          📱 Enviaremos el recibo a <strong>{lastOrder.datosTel}</strong> por WhatsApp desde la farmacia ({FARMACIA_WHATSAPP_DISPLAY}).
+          {" "}Si no lo recibes en unos minutos, usa el botón de arriba o escríbenos con tu folio {folio}.
         </div>
       </div>
     );
@@ -4615,7 +4621,7 @@ export default function TiendaFarmaCapital(){
     [productos]
   );
 
-  if(cargando) return(<div style={{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100dvh",background:C.bg,flexDirection:"column",gap:16}}><Logo size={48}/><div style={{color:C.mid,fontSize:15}}>Cargando FarmaCapital...</div></div>);
+  if(cargando) return <BrandSplash light={false} subtitle="Cargando tienda…" size={64} />;
 
   const puntosPage=(
     <div style={{maxWidth:700,margin:"0 auto",padding:"40px 24px"}}>

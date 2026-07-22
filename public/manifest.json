@@ -17,6 +17,12 @@
   ],
   "icons": [
     {
+      "src": "/icons/farmacapital-16.png",
+      "sizes": "16x16",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
       "src": "/icons/farmacapital-72.png",
       "sizes": "72x72",
       "type": "image/png",

@@ -40,6 +40,8 @@
     <meta name="twitter:image" content="%PUBLIC_URL%/icons/farmacapital-512.png" />
 
     <!-- Icons — logotipo oficial FarmaCapital -->
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="16x16" href="%PUBLIC_URL%/icons/farmacapital-16.png" />
     <link rel="icon" type="image/png" sizes="32x32" href="%PUBLIC_URL%/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="%PUBLIC_URL%/icons/farmacapital-192.png" />
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/apple-touch-icon.png" />
@@ -90,7 +92,12 @@
       .splash-logo {
         display: flex; align-items: center; justify-content: center;
       }
-      .splash-logo img { height: 56px; width: auto; filter: brightness(0) invert(1); }
+      .splash-logo img {
+        height: 72px;
+        width: auto;
+        display: block;
+        image-rendering: auto;
+      }
       .splash-text { color: #fff; font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
       .splash-sub { color: rgba(255,255,255,0.7); font-size: 12px; letter-spacing: 2px; text-transform: uppercase; }
       .splash-loader {
@@ -114,7 +121,12 @@
     <!-- Splash screen -->
     <div id="splash">
       <div class="splash-logo">
-        <img src="%PUBLIC_URL%/brand/farmacapital-logo-full.png" alt="FarmaCapital" />
+        <img
+          src="%PUBLIC_URL%/brand/farmacapital-logo-light.png"
+          srcset="%PUBLIC_URL%/brand/farmacapital-logo-light.png 1x, %PUBLIC_URL%/brand/farmacapital-logo-light@2x.png 2x"
+          alt="FarmaCapital"
+          decoding="async"
+        />
       </div>
       <div class="splash-sub">Farmacia & Salud</div>
       <div class="splash-loader"><div class="splash-loader-bar"></div></div>
