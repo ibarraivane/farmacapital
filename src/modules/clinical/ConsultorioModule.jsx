@@ -415,7 +415,7 @@ function EnConsulta() {
 <body>
   <div class="header">
     <div>
-      <div class="logo"><img src="/brand/farmacapital-logo-full.png" alt="FarmaCapital"/></div>
+      <div class="logo"><img src="/brand/farmacapital-logo-full.png?v=3" alt="FarmaCapital"/></div>
       <div style="font-size:11px;color:#475569;margin-top:4px">Farmacia · Consultorio Médico</div>
     </div>
     <div class="clinic">

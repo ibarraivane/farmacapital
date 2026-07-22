@@ -4621,7 +4621,7 @@ export default function TiendaFarmaCapital(){
     [productos]
   );
 
-  if(cargando) return <BrandSplash light={false} subtitle="Cargando tienda…" size={64} />;
+  if(cargando) return <BrandSplash subtitle="Cargando tienda…" size={52} />;
 
   const puntosPage=(
     <div style={{maxWidth:700,margin:"0 auto",padding:"40px 24px"}}>
