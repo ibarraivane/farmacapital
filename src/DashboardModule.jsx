@@ -8,6 +8,7 @@ import { CONSULTA_PRECIO_DEFAULT } from "./utils/consultaConstants";
 import { resumenLineasReceta } from "./utils/recetaLineas";
 import TransaccionesTab from "./TransaccionesTab";
 import { countPedidosTiendaPendientesHead } from "./utils/pedidosTiendaWeb";
+import { fixLegacyFarmaxBrand } from "./utils/brandText";
 
 const STORAGE_PROYECTO_CAPEX = "farmacapital_proyecto_capex_v1";
 

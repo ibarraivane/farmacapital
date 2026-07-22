@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
 import { productMatchesSearchQuery } from "./utils/fuzzySearch";
+import { fixLegacyFarmaxBrand } from "./utils/brandText";
 
 const BRAND = { primary:"#0D1B2A", secondary:"#1E3ABA", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
 
@@ -71,6 +72,11 @@ function AlertasLegales() {
     });
     let rows = Array.isArray(data) ? data : [];
     if (!error) {
+      if (rows.some((r) => /\bfarmax\b/i.test(r.nombre || "") || /\bfarmax\b/i.test(r.notas || ""))) {
+        await supabase.rpc("admin_corregir_marca_alertas_legales", { p_session_token: tok });
+        const { data: dFix } = await supabase.rpc("admin_listar_alertas_legales", { p_session_token: tok });
+        rows = Array.isArray(dFix) ? dFix : rows;
+      }
       if (rows.length === 0) {
         await supabase.rpc("admin_seed_alertas_legales", {
           p_session_token: tok,
@@ -111,8 +117,8 @@ function AlertasLegales() {
         return (
           <div key={a.id} style={{background:C.card,border:`1px solid ${dias!==null&&dias<30?col+"60":C.border}`,borderRadius:12,padding:20,position:"relative"}}>
             <div style={{position:"absolute",top:16,right:16,width:14,height:14,borderRadius:"50%",background:col,boxShadow:`0 0 8px ${col}80`}}/>
-            <div style={{color:C.text,fontWeight:800,fontSize:13,marginBottom:4,paddingRight:24}}>{a.nombre}</div>
-            {a.descripcion&&<div style={{color:C.textMid,fontSize:11,marginBottom:12}}>{a.descripcion}</div>}
+            <div style={{color:C.text,fontWeight:800,fontSize:13,marginBottom:4,paddingRight:24}}>{fixLegacyFarmaxBrand(a.nombre)}</div>
+            {a.descripcion&&<div style={{color:C.textMid,fontSize:11,marginBottom:12}}>{fixLegacyFarmaxBrand(a.descripcion)}</div>}
             <div style={{display:"flex",gap:16,marginBottom:12}}>
               <div>
                 <div style={{color:C.textDim,fontSize:10,fontWeight:700}}>VENCIMIENTO</div>
