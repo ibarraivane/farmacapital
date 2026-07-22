@@ -163,15 +163,19 @@ async function getDeviceOperatingMode(token, deviceId) {
   return match?.operating_mode || null;
 }
 
-async function setTerminalPdvMode(token, deviceId) {
+async function setTerminalOperatingMode(token, deviceId, mode) {
   const { resp, data } = await mpJson(`${MP_API}/terminals/v1/setup`, {
     method: 'PATCH',
     headers: authHeaders(token),
     body: JSON.stringify({
-      terminals: [{ id: String(deviceId), operating_mode: 'PDV' }],
+      terminals: [{ id: String(deviceId), operating_mode: mode }],
     }),
   });
   return { ok: resp.ok, status: resp.status, data, message: mpErrorMessage(data, resp.status) };
+}
+
+async function setTerminalPdvMode(token, deviceId) {
+  return setTerminalOperatingMode(token, deviceId, 'PDV');
 }
 
 module.exports = async function handler(req, res) {
@@ -197,6 +201,29 @@ module.exports = async function handler(req, res) {
         return res.status(resp.status).json({ ok: false, message: mpErrorMessage(data, resp.status), ...data });
       }
       return res.status(200).json({ ok: true, ...data });
+    }
+
+    if (action === 'reset-terminal') {
+      if (!deviceId) return res.status(400).json({ ok: false, error: 'missing_deviceId' });
+      const before = await getDeviceOperatingMode(MP_ACCESS_TOKEN, String(deviceId));
+      const cleared = await clearTerminalQueue(MP_ACCESS_TOKEN, String(deviceId), { onlyStaleCreated: false });
+      const standalone = await setTerminalOperatingMode(MP_ACCESS_TOKEN, String(deviceId), 'STANDALONE');
+      await new Promise((r) => setTimeout(r, 2000));
+      const pdv = await setTerminalPdvMode(MP_ACCESS_TOKEN, String(deviceId));
+      const pending = await listPendingPointOrders(MP_ACCESS_TOKEN, String(deviceId));
+      return res.status(200).json({
+        ok: pdv.ok,
+        operating_mode_before: before,
+        operating_mode_after: pdv.ok ? 'PDV' : before,
+        cleared: cleared.cleared,
+        pending_remaining: pending.length,
+        pending_orders: pending.map((o) => o.id),
+        restart_terminal_required: true,
+        message:
+          pending.length > 0
+            ? `Modo PDV reactivado pero quedan ${pending.length} cobros atascados en Mercado Pago. Desvincula el lector en la app MP y contacta soporte MP con esos IDs.`
+            : 'Terminal reseteada a PDV. Reinicia el Point Smart 2 y prueba un cobro.',
+      });
     }
 
     if (action === 'list-pending') {
