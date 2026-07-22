@@ -42,8 +42,8 @@ export function Logo({ size = 36, showText = true, light = false, sub = "", icon
   );
 }
 
-/** Pantalla de carga — logo oficial a color */
-export function BrandSplash({ subtitle = "Farmacia & Salud", variant = "default", size = 64 }) {
+/** Pantalla de carga — mismo tratamiento que header (azul + logo light) */
+export function BrandSplash({ subtitle = "Farmacia & Salud", variant = "default", size = 56 }) {
   return (
     <div
       style={{
@@ -51,34 +51,24 @@ export function BrandSplash({ subtitle = "Farmacia & Salud", variant = "default"
         alignItems: "center",
         justifyContent: "center",
         minHeight: "100dvh",
-        background: "linear-gradient(135deg, #f0f4ff 0%, #f7f9fc 50%, #e8f4fd 100%)",
+        background: BRAND.primary,
         flexDirection: "column",
-        gap: 16,
+        gap: 20,
         padding: 24,
       }}
     >
-      <div style={{ background: "#fff", borderRadius: 16, padding: "20px 28px", boxShadow: "0 4px 24px rgba(15,45,110,.08)" }}>
-        <img
-          src={logoFullSrc({ variant })}
-          srcSet={logoFullSrcSet({ variant })}
-          sizes={`${Math.round(size * logoAspect(variant))}px`}
-          alt="FarmaCapital"
-          decoding="async"
-          draggable={false}
-          style={logoFullStyle(size, { variant })}
-        />
-      </div>
+      <Logo size={size} light variant={variant} />
       {subtitle ? (
-        <div style={{ color: "#64748b", fontSize: 12, letterSpacing: 2, textTransform: "uppercase", fontWeight: 600 }}>
+        <div style={{ color: "rgba(255,255,255,0.72)", fontSize: 12, letterSpacing: 2, textTransform: "uppercase", fontWeight: 600 }}>
           {subtitle}
         </div>
       ) : null}
-      <div style={{ width: 48, height: 3, background: "rgba(15,45,110,.12)", borderRadius: 2, overflow: "hidden" }}>
+      <div style={{ width: 48, height: 3, background: "rgba(255,255,255,0.25)", borderRadius: 2, overflow: "hidden" }}>
         <div
           style={{
             height: "100%",
             width: "40%",
-            background: BRAND.primary,
+            background: "#ffffff",
             borderRadius: 2,
             animation: "farmacapital-splash-bar 1.2s ease-in-out infinite",
           }}

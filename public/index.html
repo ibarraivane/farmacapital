@@ -83,28 +83,44 @@
       /* Splash screen mientras carga */
       #splash {
         position: fixed; inset: 0; z-index: 9999;
-        background: linear-gradient(135deg, #f0f4ff, #f7f9fc);
+        background: #1E3ABA;
         display: flex; align-items: center; justify-content: center;
-        flex-direction: column; gap: 16px;
+        flex-direction: column; gap: 20px;
         transition: opacity 0.5s ease;
       }
       #splash.hide { opacity: 0; pointer-events: none; }
-      .splash-card {
-        background: #fff; border-radius: 16px; padding: 20px 28px;
-        box-shadow: 0 4px 24px rgba(15,45,110,.08);
+      .splash-logo img {
+        height: 56px;
+        width: auto;
+        max-width: min(calc(100vw - 48px), 320px);
+        display: block;
+        object-fit: contain;
       }
-      .splash-logo img { height: 52px; width: auto; display: block; }
-      .splash-text { color: #fff; font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
-      .splash-sub { color: rgba(255,255,255,0.7); font-size: 12px; letter-spacing: 2px; text-transform: uppercase; }
+      .splash-sub {
+        color: rgba(255,255,255,0.72);
+        font-size: 12px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        font-weight: 600;
+      }
       .splash-loader {
-        width: 40px; height: 3px; background: rgba(255,255,255,0.3);
-        border-radius: 2px; overflow: hidden; margin-top: 8px;
+        width: 48px;
+        height: 3px;
+        background: rgba(255,255,255,0.25);
+        border-radius: 2px;
+        overflow: hidden;
       }
       .splash-loader-bar {
-        height: 100%; width: 0; background: #fff; border-radius: 2px;
-        animation: load 1.5s ease forwards;
+        height: 100%;
+        width: 40%;
+        background: #ffffff;
+        border-radius: 2px;
+        animation: splash-bar 1.2s ease-in-out infinite;
       }
-      @keyframes load { to { width: 100%; } }
+      @keyframes splash-bar {
+        0% { transform: translateX(-120%); }
+        100% { transform: translateX(320%); }
+      }
       /* Ocultar scrollbar en móvil */
       ::-webkit-scrollbar { width: 4px; height: 4px; }
       ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 2px; }
@@ -116,10 +132,8 @@
   <body>
     <!-- Splash screen -->
     <div id="splash">
-      <div class="splash-card">
-        <div class="splash-logo">
-          <img src="%PUBLIC_URL%/brand/farmacapital-logo-full.png?v=4" srcset="%PUBLIC_URL%/brand/farmacapital-logo-full@1x.png?v=4 812w, %PUBLIC_URL%/brand/farmacapital-logo-full.png?v=4 1623w" sizes="280px" alt="FarmaCapital" decoding="async" />
-        </div>
+      <div class="splash-logo">
+        <img src="%PUBLIC_URL%/brand/farmacapital-logo-full-light.png?v=5" srcset="%PUBLIC_URL%/brand/farmacapital-logo-full-light@1x.png?v=5 812w, %PUBLIC_URL%/brand/farmacapital-logo-full-light.png?v=5 1623w" sizes="320px" alt="FarmaCapital" decoding="async" />
       </div>
       <div class="splash-sub">Farmacia & Salud</div>
       <div class="splash-loader"><div class="splash-loader-bar"></div></div>
