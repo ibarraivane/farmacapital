@@ -1,29 +1,28 @@
 import React, { useRef, useState, useLayoutEffect, useCallback } from "react";
 // FARMACAPITAL — Componentes UI base
 import { C_LIGHT, BRAND } from "./constants";
+import { BRAND_LOGO, logoFullStyle, logoIconStyle, logoFullSrc } from "./brand";
 import { productMatchesSearchQuery } from "./utils/fuzzySearch";
 
-export function Logo({size=36,showText=true,light=false,sub=""}){
-  const farmaColor   = light ? "#ffffff"                : BRAND.dark;
-  const capitalColor = light ? "rgba(255,255,255,0.85)" : BRAND.primary;
-  const subColor     = light ? "rgba(255,255,255,0.65)" : BRAND.primary;
-  const crossColor   = light ? "#ffffff"                : BRAND.dark;
-  const iconSize = Math.round(size * 1.15);
-  const fs    = Math.round(size * 0.52);
+export function Logo({ size = 36, showText = true, light = false, sub = "", iconOnly = false }) {
   const fsSub = Math.round(size * 0.22);
-  return(
-    <div style={{display:"flex",alignItems:"center",gap:8}}>
-      <svg width={iconSize} height={iconSize} viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg" style={{flexShrink:0}}>
-        <rect x="21" y="4" width="14" height="48" rx="7" fill={crossColor}/>
-        <rect x="4" y="21" width="48" height="14" rx="7" fill={crossColor}/>
-        <path d="M42 14 A20 20 0 1 0 42 42" stroke="#22C55E" strokeWidth="5.5" fill="none" strokeLinecap="round"/>
-      </svg>
-      {showText&&<div style={{display:"flex",flexDirection:"column",lineHeight:1}}>
-        <div style={{fontWeight:800,fontSize:fs,fontFamily:"'Poppins',sans-serif",letterSpacing:"-0.3px",whiteSpace:"nowrap"}}>
-          <span style={{color:farmaColor}}>Farma</span><span style={{color:capitalColor,fontWeight:700}}>Capital</span>
-        </div>
-        {sub&&<div style={{color:subColor,fontSize:fsSub,letterSpacing:"2px",textTransform:"uppercase",marginTop:2,fontWeight:500}}>{sub}</div>}
-      </div>}
+  const subColor = light ? "rgba(255,255,255,0.65)" : BRAND.primary;
+  const useIcon = iconOnly || !showText;
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+      <div style={{ display: "flex", flexDirection: "column", lineHeight: 1, minWidth: 0 }}>
+        <img
+          src={logoFullSrc({ light, iconOnly: useIcon })}
+          alt="FarmaCapital"
+          style={useIcon ? logoIconStyle(size, { light }) : logoFullStyle(size, { light })}
+        />
+        {sub && (
+          <div style={{ color: subColor, fontSize: fsSub, letterSpacing: "2px", textTransform: "uppercase", marginTop: 4, fontWeight: 500 }}>
+            {sub}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -114,20 +113,31 @@ export function Modal({open,onClose,title,children,ac,closeOnBackdrop=true}){
   );
 }
 
-export function NotificacionesToast({ notifs, onDismiss }) {
+export function NotificacionesToast({ notifs, onDismiss, onAction }) {
   const C = C_LIGHT;
   if(!notifs?.length) return null;
   return (
     <div style={{position:"fixed",top:"max(12px, env(safe-area-inset-top, 0px))",left:12,right:12,zIndex:9999,display:"flex",flexDirection:"column",gap:8,alignItems:"stretch",maxWidth:400,margin:"0 auto",pointerEvents:"none",boxSizing:"border-box"}}>
       {notifs.map(n=>(
-        <div key={n.id} style={{background:C.card,borderRadius:12,padding:"12px 16px",boxShadow:"0 8px 32px rgba(15,45,110,.18)",border:`2px solid ${n.col||"#0D1B2A"}`,display:"flex",alignItems:"flex-start",gap:10,pointerEvents:"auto"}}>
+        <div
+          key={n.id}
+          role={n.action ? "button" : undefined}
+          tabIndex={n.action ? 0 : undefined}
+          onClick={()=>{ if(n.action) onAction?.(n); }}
+          onKeyDown={(e)=>{ if(n.action && (e.key==="Enter"||e.key===" ")){ e.preventDefault(); onAction?.(n); } }}
+          style={{
+            background:C.card,borderRadius:12,padding:"12px 16px",boxShadow:"0 8px 32px rgba(15,45,110,.18)",
+            border:`2px solid ${n.col||"#0D1B2A"}`,display:"flex",alignItems:"flex-start",gap:10,
+            pointerEvents:"auto",cursor:n.action?"pointer":"default",
+          }}
+        >
           <span style={{fontSize:20,flexShrink:0}}>{n.icon||"🔔"}</span>
           <div style={{flex:1}}>
             <div style={{color:C.text,fontWeight:700,fontSize:13}}>{n.titulo}</div>
             <div style={{color:C.textMid,fontSize:12,marginTop:2}}>{n.mensaje}</div>
             <div style={{color:"#94a3b8",fontSize:10,marginTop:4}}>{n.hora}</div>
           </div>
-          <button onClick={()=>onDismiss(n.id)} style={{background:"none",border:"none",color:"#94a3b8",cursor:"pointer",fontSize:16,padding:0,flexShrink:0}}>✕</button>
+          <button onClick={(e)=>{ e.stopPropagation(); onDismiss(n.id); }} style={{background:"none",border:"none",color:"#94a3b8",cursor:"pointer",fontSize:16,padding:0,flexShrink:0}}>✕</button>
         </div>
       ))}
     </div>

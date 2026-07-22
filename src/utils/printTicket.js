@@ -147,7 +147,7 @@ export function generateTicketHTML(data) {
 <body>
 <div id="farmacapital-ticket" class="ticket">
   <div class="center">
-    <h3 style="margin:2px 0;font-size:16px;letter-spacing:3px">★ FARMACAPITAL ★</h3>
+    <img src="/brand/farmacapital-logo-full.png" alt="FarmaCapital" style="height:36px;width:auto;display:block;margin:0 auto 4px"/>
     <div style="font-size:9px">"Tu salud primero"</div>
   </div>
   <hr class="separator">

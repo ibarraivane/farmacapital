@@ -1,5 +1,6 @@
 import React, { forwardRef } from "react";
 import { QRCodeSVG } from "qrcode.react";
+import { BRAND_LOGO } from "../../brand";
 import "../../styles/ticket.css";
 
 /**
@@ -46,9 +47,9 @@ const TicketVenta = forwardRef(({
     <div id="farmacapital-ticket" ref={ref} className="ticket">
 
       {/* ══ HEADER ══ */}
-      <div className="center">
-        <h3 style={{margin:"2px 0",fontSize:16,letterSpacing:3}}>★ FARMACAPITAL ★</h3>
-        <div style={{fontSize:9}}>"Tu salud primero"</div>
+      <div className="center ticket-logo-wrap">
+        <img src={BRAND_LOGO.full} alt="FarmaCapital" className="ticket-logo-img" />
+        <div style={{ fontSize: 9, marginTop: 4 }}>"Tu salud primero"</div>
       </div>
 
       <div className="separator"/>

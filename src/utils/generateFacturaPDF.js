@@ -45,13 +45,13 @@ export function generateFacturaPDF({
   // HEADER — Logo + Datos Emisor
   // ══════════════════════════════════════════════════════════
 
-  // Logo
-  doc.setFillColor(...AZUL);
-  doc.roundedRect(M, y, 40, 18, 3, 3, "F");
-  doc.setTextColor(...BLANCO);
-  doc.setFont("helvetica","bold");
-  doc.setFontSize(16);
-  doc.text("FARMACAPITAL", M+20, y+11, {align:"center"});
+  // Logo (marca oficial)
+  doc.setFillColor(13, 27, 42);
+  doc.roundedRect(M, y, 52, 16, 2, 2, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.text("FarmaCapital", M + 26, y + 10, { align: "center" });
 
   // Datos emisor
   doc.setTextColor(...NEGRO);

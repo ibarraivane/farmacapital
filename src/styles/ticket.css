@@ -78,6 +78,15 @@
 }
 
 /* ── Logo / Marca ── */
+.ticket-logo-wrap { margin-bottom: 4px; }
+.ticket-logo-img {
+  height: 36px;
+  width: auto;
+  max-width: 100%;
+  display: block;
+  margin: 0 auto;
+  object-fit: contain;
+}
 .ticket-logo {
   text-align: center;
   font-size: 22px;

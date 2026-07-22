@@ -31,43 +31,25 @@ const NEG = {
   minisuper: { label:"Minisuper Yolanda",  icon:"🛒", color:C.green, owner:"Yolanda Ventura"  },
 };
 
-// ── LOGO FARMACAPITAL (cápsula bicolor) ─────────────────────────────
+// ── LOGO FARMACAPITAL (oficial) ─────────────────────────────────────
 function LogoFarmaCapital({ size = 36, showText = true, light = false }) {
-  const textColor = light ? "#ffffff" : BRAND.primary;
-  const subColor  = light ? "rgba(255,255,255,.7)" : BRAND.secondary;
+  const aspect = 472 / 112;
+  const src = showText ? "/brand/farmacapital-logo-full.png" : "/brand/farmacapital-icon.png";
+  const h = size;
+  const w = showText ? Math.round(size * aspect) : size;
   return (
-    <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-      {/* Ícono cápsula */}
-      <div style={{
-        width: size, height: size, borderRadius: Math.round(size * 0.25),
-        background: BRAND.gradient,
-        display:"flex", alignItems:"center", justifyContent:"center",
-        flexShrink: 0,
-      }}>
-        <div style={{
-          width: size * 0.38, height: size * 0.65,
-          borderRadius: size * 0.19,
-          overflow:"hidden", display:"flex", flexDirection:"column",
-        }}>
-          <div style={{ flex:1, background:"rgba(255,255,255,1)" }}/>
-          <div style={{ flex:1, background:"rgba(255,255,255,0.35)" }}/>
-        </div>
-      </div>
-      {showText && (
-        <div style={{ display:"flex", flexDirection:"column", lineHeight:1 }}>
-          <div style={{
-            color: textColor, fontWeight:800, fontSize: size * 0.44,
-            fontFamily:"'Plus Jakarta Sans',sans-serif", letterSpacing:"-0.5px",
-          }}>
-            FAR<span style={{ color: subColor }}>MAX</span>
-          </div>
-          <div style={{
-            color: subColor, fontSize: size * 0.22,
-            letterSpacing:"2px", textTransform:"uppercase",
-            marginTop: 2, fontWeight:600,
-          }}>Farmacia · Salud</div>
-        </div>
-      )}
+    <div style={{ display: "flex", alignItems: "center" }}>
+      <img
+        src={src}
+        alt="FarmaCapital"
+        style={{
+          height: h,
+          width: w,
+          objectFit: "contain",
+          display: "block",
+          filter: light ? "brightness(0) invert(1)" : "none",
+        }}
+      />
     </div>
   );
 }
