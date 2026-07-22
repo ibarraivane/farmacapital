@@ -1,5 +1,8 @@
 'use strict';
 
+const FARMACIA_WHATSAPP_DISPLAY = '55 6253 0631';
+const FARMACIA_DIRECCION = 'Radiodifusora 100, Chinampac de Juárez, Iztapalapa, CDMX';
+
 function digitsOnly(v) {
   return String(v || '').replace(/\D/g, '');
 }
@@ -9,20 +12,69 @@ function formatMoneyMx(value) {
   return Number.isFinite(n) ? n.toFixed(2) : '0.00';
 }
 
-function buildMessage({ event, pedido }) {
+function formatFolioOnline(pedidoId) {
+  if (pedidoId == null) return null;
+  return `#FC-${String(pedidoId).padStart(4, '0')}`;
+}
+
+function normalizeItems(items) {
+  if (!Array.isArray(items)) return [];
+  return items.map((i) => ({
+    nombre: i?.nombre || i?.productos?.nombre || 'Producto',
+    qty: Number(i?.qty ?? i?.cantidad ?? 1),
+    precio: Number(i?.precio ?? i?.precio_unitario ?? 0),
+  }));
+}
+
+function buildReceiptMessage({ event, pedido, items }) {
   const pedidoId = pedido?.id || '?';
+  const folio = formatFolioOnline(pedidoId) || `#FC-${pedidoId}`;
   const total = formatMoneyMx(pedido?.total);
-  const entrega = pedido?.tipo_entrega === 'envio' ? 'envio a domicilio' : 'pick-up en tienda';
+  const entrega = pedido?.tipo_entrega === 'envio' ? 'Envío a domicilio' : 'Pick-up en FarmaCapital';
+  const lineItems = normalizeItems(items);
+  const itemsTxt = lineItems.length
+    ? lineItems.map((i) => `• ${i.nombre} ×${i.qty} = $${(i.precio * i.qty).toFixed(2)}`).join('\n')
+    : null;
+
   if (event === 'payment_approved') {
-    return `FarmaCapital: pago aprobado para pedido #${pedidoId}. Total $${total}. Te avisaremos cuando este listo.`;
+    return (
+      `🏥 FarmaCapital\n${FARMACIA_DIRECCION}\n\n` +
+      `✅ Pago aprobado\n🔖 Folio: ${folio}\n` +
+      (itemsTxt ? `${itemsTxt}\n\n` : '') +
+      `💰 Total: $${total}\n📦 Entrega: ${entrega}\n\n` +
+      `Te avisaremos cuando esté listo.\n📱 WhatsApp farmacia: ${FARMACIA_WHATSAPP_DISPLAY}`
+    );
   }
   if (event === 'payment_pending') {
-    return `FarmaCapital: pago en revision para pedido #${pedidoId}. Te notificaremos cuando cambie el estado.`;
+    return (
+      `FarmaCapital: pago en revisión para pedido ${folio}. Total $${total}. ` +
+      `Te notificaremos cuando cambie el estado. WhatsApp: ${FARMACIA_WHATSAPP_DISPLAY}`
+    );
   }
   if (event === 'payment_rejected') {
-    return `FarmaCapital: pago rechazado para pedido #${pedidoId}. Puedes reintentar desde Mis pedidos.`;
+    return (
+      `FarmaCapital: pago rechazado para pedido ${folio}. ` +
+      `Puedes reintentar desde Mis pedidos. WhatsApp: ${FARMACIA_WHATSAPP_DISPLAY}`
+    );
   }
-  return `FarmaCapital: pedido #${pedidoId} recibido (${entrega}). Total $${total}.`;
+
+  const pickupNote =
+    pedido?.tipo_entrega === 'recoger'
+      ? `\n\nMuestra tu folio ${folio} o menciona tu teléfono al llegar.`
+      : '\n\nTe contactamos para coordinar tu entrega.';
+
+  return (
+    `🏥 FarmaCapital\n${FARMACIA_DIRECCION}\n\n` +
+    `✅ Pedido confirmado\n🔖 Folio: ${folio}\n` +
+    (itemsTxt ? `${itemsTxt}\n\n` : '') +
+    `💰 Total: $${total}\n📦 Entrega: ${entrega}` +
+    pickupNote +
+    `\n\n¡Gracias por tu preferencia!\n📱 WhatsApp farmacia: ${FARMACIA_WHATSAPP_DISPLAY}`
+  );
+}
+
+function buildMessage({ event, pedido, items }) {
+  return buildReceiptMessage({ event, pedido, items });
 }
 
 async function sendEmail({ to, subject, text }) {
@@ -48,7 +100,7 @@ async function sendEmail({ to, subject, text }) {
 async function sendTwilioWhatsapp({ to, text }) {
   const sid = String(process.env.TWILIO_ACCOUNT_SID || '').trim();
   const token = String(process.env.TWILIO_AUTH_TOKEN || '').trim();
-  const from = String(process.env.TWILIO_WHATSAPP_FROM || '').trim(); // e.g. whatsapp:+14155238886
+  const from = String(process.env.TWILIO_WHATSAPP_FROM || '').trim();
   if (!sid || !token || !from || !to) return { sent: false, reason: 'twilio_not_configured' };
   const toDigits = digitsOnly(to);
   if (!toDigits) return { sent: false, reason: 'invalid_phone' };
@@ -108,8 +160,8 @@ async function sendWhatsapp({ to, text }) {
   return sendTwilioWhatsapp({ to, text });
 }
 
-async function sendOrderNotifications({ event, pedido, cliente }) {
-  const msg = buildMessage({ event, pedido });
+async function sendOrderNotifications({ event, pedido, cliente, items }) {
+  const msg = buildReceiptMessage({ event, pedido, items });
   const subject = event === 'payment_approved'
     ? `Pago aprobado Pedido #${pedido?.id || ''}`
     : `Actualizacion de Pedido #${pedido?.id || ''}`;
@@ -120,4 +172,4 @@ async function sendOrderNotifications({ event, pedido, cliente }) {
   return { ok: true, email: emailRes, whatsapp: waRes };
 }
 
-module.exports = { sendOrderNotifications };
+module.exports = { sendOrderNotifications, sendWhatsapp, buildReceiptMessage, buildMessage };

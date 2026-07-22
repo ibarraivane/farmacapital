@@ -17,6 +17,7 @@ import { marcarMedicamentosRecetaFarmaCapitalSurtidos } from "../../../utils/rec
 import OnboardingTour from "../../../components/OnboardingTour";
 import { TOURS } from "../../../utils/tours";
 import { labelTipoEntregaPedido, resumenLogisticsMeta } from "../../../utils/orderChannels";
+import { buildOnlineOrderReceiptMessage, formatFolioOnline, openWhatsAppToCustomer } from "../../../utils/orderReceiptWhatsApp";
 
 const PEDIDOS_TIENDA_SELECT_POS = `
             id,total,created_at,tipo,metodo_pago,estado,tipo_entrega,direccion,
@@ -1888,18 +1889,30 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
           <div style={{background:C.blueDim,border:`1px solid ${C.blue}30`,borderRadius:10,padding:"10px 14px",marginBottom:14,fontSize:12,color:C.blue,lineHeight:1.45}}>
             <strong>Operación:</strong> surte y marca listo (pick-up o envío según etiqueta). Pedidos marketplace / Uber Direct usarán <code style={{fontSize:11}}>logistics_meta</code> cuando apliques el patch SQL — ver <strong style={{color:C.text}}>docs/DELIVERY_MARKETPLACE_PREP.md</strong>.
           </div>
-          {loading?<SkeletonTable rows={3} cols={4}/>:
-           !pedOnline.length?<div style={{color:C.textMid,padding:40,textAlign:"center"}}>✓ Sin pedidos online pendientes</div>:
-           pedOnline.map(p=>{
+          {loading ? <SkeletonTable rows={3} cols={4}/> : (
+            <>
+              {!pedOnline.length ? (
+                <div style={{color:C.textMid,padding:40,textAlign:"center"}}>✓ Sin pedidos online pendientes</div>
+              ) : pedOnline.map(p=>{
             const clienteNombre = p.clientes?.nombre || p.guest_nombre || "—";
             const clienteTel    = p.clientes?.telefono || p.guest_telefono || "";
-            const folioPOS      = `#FC-${String(p.id).padStart(4,"0")}`;
+            const folioPOS      = formatFolioOnline(p.id);
             const enviarWhatsApp = ()=>{
               if(!clienteTel){ showToast("Este pedido no tiene teléfono registrado","warning"); return; }
-              const items=(p.pedido_items||[]).map(i=>`• ${i.productos?.nombre} ×${i.cantidad} = $${(i.precio_unitario*i.cantidad).toFixed(2)}`).join("\n");
-              const entregaTxt=p.tipo_entrega==="recoger"?"Pick-up en FarmaCapital":"Envío a domicilio";
-              const msg=`🏥 *FarmaCapital*\nChinampac de Juárez, CDMX\n\n✅ *Pedido confirmado*\n🔖 *Folio:* ${folioPOS}\n\n${items}\n\n💰 *Total: $${Number(p.total).toFixed(2)}*\n📦 *Entrega:* ${entregaTxt}${p.tipo_entrega==="recoger"?`\n\n🏪 Muestra tu folio *${folioPOS}* o menciona tu teléfono al llegar.`:"\n\n📞 Te contactamos para coordinar tu entrega."}\n\n¡Gracias por tu preferencia! 💊`;
-              window.open("https://wa.me/52"+String(clienteTel).replace(/\D/g,"")+"?text="+encodeURIComponent(msg),"_blank");
+              const msg = buildOnlineOrderReceiptMessage({
+                pedidoId: p.id,
+                items: (p.pedido_items||[]).map(i=>({
+                  nombre: i.productos?.nombre,
+                  qty: i.cantidad,
+                  precio: i.precio_unitario,
+                })),
+                total: p.total,
+                tipoEntrega: p.tipo_entrega,
+                metodoPago: p.metodo_pago,
+              });
+              if (!openWhatsAppToCustomer(clienteTel, msg)) {
+                showToast("No se pudo abrir WhatsApp","warning");
+              }
             };
             return(
             <Box key={p.id} style={{padding: isNarrow ? 14 : 20,marginBottom:12,minWidth:0}}>
@@ -1958,23 +1971,26 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
               </div>
             </Box>
           );})}
-            <div style={{marginTop:18}}>
-              <div style={{color:C.text,fontWeight:800,fontSize:13,marginBottom:8}}>Historial reciente (surtidos)</div>
-              {pedOnlineHist.map((p)=>(
-                <Box key={`hist-${p.id}`} style={{padding:12,marginBottom:10,minWidth:0,opacity:.95}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8,flexWrap:"wrap"}}>
-                    <div>
-                      <div style={{color:C.text,fontWeight:700,fontSize:13}}>Pedido #{p.id}</div>
-                      <div style={{color:C.textMid,fontSize:11,marginTop:2}}>{p.clientes?.nombre} · {new Date(p.created_at).toLocaleString("es-MX")}</div>
+              <div style={{marginTop:18}}>
+                <div style={{color:C.text,fontWeight:800,fontSize:13,marginBottom:8}}>Historial reciente (surtidos)</div>
+                {pedOnlineHist.length === 0 ? (
+                  <div style={{color:C.textDim,fontSize:12,padding:"8px 0"}}>Sin pedidos surtidos recientes</div>
+                ) : pedOnlineHist.map((p)=>(
+                  <Box key={`hist-${p.id}`} style={{padding:12,marginBottom:10,minWidth:0,opacity:.95}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8,flexWrap:"wrap"}}>
+                      <div>
+                        <div style={{color:C.text,fontWeight:700,fontSize:13}}>Pedido #{p.id} · {formatFolioOnline(p.id)}</div>
+                        <div style={{color:C.textMid,fontSize:11,marginTop:2}}>{p.clientes?.nombre} · {new Date(p.created_at).toLocaleString("es-MX")}</div>
+                      </div>
+                      <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                        <Tag col={p.estado==="completado"?C.green:BRAND.accent} sm>{p.estado==="completado"?"Entregado":"Listo"}</Tag>
+                        <span style={{color:C.blue,fontWeight:800,fontSize:13}}>{$(p.total)}</span>
+                      </div>
                     </div>
-                    <div style={{display:"flex",gap:6,alignItems:"center"}}>
-                      <Tag col={p.estado==="completado"?C.green:BRAND.accent} sm>{p.estado==="completado"?"Entregado":"Listo"}</Tag>
-                      <span style={{color:C.blue,fontWeight:800,fontSize:13}}>{$(p.total)}</span>
-                    </div>
-                  </div>
-                </Box>
-              ))}
-            </div>
+                  </Box>
+                ))}
+              </div>
+            </>
           )}
         </div>
       )}

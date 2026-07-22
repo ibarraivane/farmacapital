@@ -32,15 +32,23 @@ def trim_content(im, tol=240):
     return im.crop((xs.min(), ys.min(), xs.max() + 1, ys.max() + 1))
 
 
-def to_white(im):
+def knock_out_white(im, tol=238):
     arr = rgba_arr(im)
-    a = arr[:, :, 3]
+    r, g, b, a = arr[:, :, 0], arr[:, :, 1], arr[:, :, 2], arr[:, :, 3]
+    white = (r >= tol) & (g >= tol) & (b >= tol)
+    arr[white, 3] = 0
+    return Image.fromarray(arr)
+
+
+def to_white(im):
+    arr = rgba_arr(knock_out_white(im))
+    r, g, b, a = arr[:, :, 0], arr[:, :, 1], arr[:, :, 2], arr[:, :, 3]
     out = np.zeros_like(arr)
     out[:, :, 3] = a
-    white = a > 0
-    out[white, 0] = 255
-    out[white, 1] = 255
-    out[white, 2] = 255
+    ink = a > 10
+    out[ink, 0] = 255
+    out[ink, 1] = 255
+    out[ink, 2] = 255
     return Image.fromarray(out)
 
 
@@ -82,7 +90,8 @@ def main():
         (logo_admin, "farmacapital-logo-admin@2x.png", 1888),
     ]
     for base, name, tw in pairs:
-        save_png(scale_to_width(base, tw), os.path.join(OUT_BRAND, name))
+        img = knock_out_white(scale_to_width(base, tw))
+        save_png(trim_content(img), os.path.join(OUT_BRAND, name))
 
     for name in (
         "farmacapital-logo-full.png",
@@ -91,7 +100,11 @@ def main():
         "farmacapital-logo-admin@2x.png",
     ):
         im = Image.open(os.path.join(OUT_BRAND, name))
-        light_name = name.replace(".png", "-light.png")
+        light_name = (
+            name.replace("@2x.png", "-light@2x.png")
+            if name.endswith("@2x.png")
+            else name.replace(".png", "-light.png")
+        )
         save_png(to_white(im), os.path.join(OUT_BRAND, light_name))
 
     # Alias tienda/header

@@ -5,10 +5,46 @@ import { logoFullStyle, logoIconStyle, logoFullSrc, logoFullSrcSet } from "./bra
 import { productMatchesSearchQuery } from "./utils/fuzzySearch";
 
 export function Logo({ size = 36, showText = true, light = false, sub = "", iconOnly = false, variant = "default" }) {
+  const fs = Math.round(size * 0.52);
   const fsSub = Math.round(size * 0.22);
   const subColor = light ? "rgba(255,255,255,0.65)" : BRAND.primary;
   const useIcon = iconOnly || !showText;
   const showSub = Boolean(sub) && variant !== "admin";
+
+  /** En fondos oscuros: icono PNG + texto HTML (nítido en cualquier pantalla). */
+  if (light && showText && !useIcon && variant === "default") {
+    const iconSz = Math.round(size * 1.08);
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+        <img
+          src={logoFullSrc({ light: true, iconOnly: true })}
+          alt=""
+          aria-hidden
+          decoding="async"
+          style={logoIconStyle(iconSz)}
+        />
+        <div style={{ display: "flex", flexDirection: "column", lineHeight: 1, minWidth: 0 }}>
+          <div
+            style={{
+              fontWeight: 800,
+              fontSize: fs,
+              fontFamily: "'Poppins', sans-serif",
+              letterSpacing: "-0.3px",
+              whiteSpace: "nowrap",
+            }}
+          >
+            <span style={{ color: "#ffffff" }}>Farma</span>
+            <span style={{ color: "rgba(255,255,255,0.88)", fontWeight: 700 }}>Capital</span>
+          </div>
+          {showSub && (
+            <div style={{ color: subColor, fontSize: fsSub, letterSpacing: "2px", textTransform: "uppercase", marginTop: 4, fontWeight: 500 }}>
+              {sub}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
@@ -36,6 +72,7 @@ export function BrandSplash({ light = false, subtitle = "Farmacia & Salud", vari
     ? "linear-gradient(135deg, #0f2d6e, #1a56db)"
     : "linear-gradient(135deg, #f0f4ff 0%, #f7f9fc 50%, #e8f4fd 100%)";
   const subColor = light ? "rgba(255,255,255,0.72)" : "#64748b";
+  const fs = Math.round(size * 0.48);
   return (
     <div
       style={{
@@ -49,13 +86,28 @@ export function BrandSplash({ light = false, subtitle = "Farmacia & Salud", vari
         padding: 24,
       }}
     >
-      <img
-        src={logoFullSrc({ light, variant })}
-        srcSet={logoFullSrcSet({ light, variant })}
-        alt="FarmaCapital"
-        decoding="async"
-        style={logoFullStyle(size, { variant })}
-      />
+      {light && variant === "default" ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <img
+            src={logoFullSrc({ light: true, iconOnly: true })}
+            alt=""
+            aria-hidden
+            decoding="async"
+            style={logoIconStyle(Math.round(size * 1.1))}
+          />
+          <div style={{ fontWeight: 800, fontSize: fs, fontFamily: "'Poppins', sans-serif", color: "#fff", letterSpacing: "-0.3px" }}>
+            Farma<span style={{ opacity: 0.88 }}>Capital</span>
+          </div>
+        </div>
+      ) : (
+        <img
+          src={logoFullSrc({ light, variant })}
+          srcSet={logoFullSrcSet({ light, variant })}
+          alt="FarmaCapital"
+          decoding="async"
+          style={logoFullStyle(size, { variant })}
+        />
+      )}
       {subtitle ? (
         <div style={{ color: subColor, fontSize: 12, letterSpacing: 2, textTransform: "uppercase", fontWeight: 600 }}>
           {subtitle}

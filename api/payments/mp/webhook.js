@@ -98,16 +98,28 @@ module.exports = async function handler(req, res) {
 
     if (pedidoBefore && pedidoBefore.payment_status !== status) {
       try {
-        const cliResp = await fetch(
-          `${SUPABASE_URL}/rest/v1/clientes?id=eq.${pedidoBefore.cliente_id}&select=id,nombre,telefono,email&limit=1`,
-          {
-            headers: {
-              apikey: SUPABASE_SERVICE_ROLE_KEY,
-              Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-            },
-          }
-        );
+        const [cliResp, itemsResp] = await Promise.all([
+          fetch(
+            `${SUPABASE_URL}/rest/v1/clientes?id=eq.${pedidoBefore.cliente_id}&select=id,nombre,telefono,email&limit=1`,
+            {
+              headers: {
+                apikey: SUPABASE_SERVICE_ROLE_KEY,
+                Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+              },
+            }
+          ),
+          fetch(
+            `${SUPABASE_URL}/rest/v1/pedido_items?pedido_id=eq.${pedidoId}&select=cantidad,precio_unitario,productos(nombre)`,
+            {
+              headers: {
+                apikey: SUPABASE_SERVICE_ROLE_KEY,
+                Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+              },
+            }
+          ),
+        ]);
         const cliRows = await cliResp.json().catch(() => []);
+        const itemRows = await itemsResp.json().catch(() => []);
         const cliente = Array.isArray(cliRows) ? cliRows[0] : null;
         const event = status === 'approved'
           ? 'payment_approved'
@@ -116,6 +128,7 @@ module.exports = async function handler(req, res) {
           event,
           pedido: { ...pedidoBefore, id: pedidoId },
           cliente: cliente || {},
+          items: Array.isArray(itemRows) ? itemRows : [],
         });
       } catch (_) {
         // Notificaciones no bloquean webhook.
