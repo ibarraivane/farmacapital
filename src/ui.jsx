@@ -2,18 +2,22 @@ import React, { useRef, useState, useLayoutEffect, useCallback } from "react";
 // FARMACAPITAL — Componentes UI base
 import { C_LIGHT, BRAND } from "./constants";
 import { logoFullStyle, logoIconStyle, logoFullSrc, logoFullSrcSet, logoAspect } from "./brand";
+import { useLogoOnDark } from "./hooks/useLogoOnDark";
 import { productMatchesSearchQuery } from "./utils/fuzzySearch";
 
-export function Logo({ size = 36, showText = true, light = false, sub = "", iconOnly = false, variant = "default" }) {
+export function Logo({ size = 36, showText = true, light, sub = "", iconOnly = false, variant = "default", auto = true }) {
+  const autoDetect = auto && light === undefined;
+  const { ref, onDark } = useLogoOnDark(autoDetect);
+  const useLight = light ?? (auto ? onDark : false);
   const fsSub = Math.round(size * 0.22);
-  const subColor = light ? "rgba(255,255,255,0.65)" : BRAND.primary;
+  const subColor = useLight ? "rgba(255,255,255,0.65)" : BRAND.primary;
   const useIcon = iconOnly || !showText;
   const showSub = Boolean(sub) && variant !== "admin";
 
   const img = (
     <img
-      src={logoFullSrc({ iconOnly: useIcon, variant, light })}
-      srcSet={useIcon ? undefined : logoFullSrcSet({ variant, light })}
+      src={logoFullSrc({ iconOnly: useIcon, variant, light: useLight })}
+      srcSet={useIcon ? undefined : logoFullSrcSet({ variant, light: useLight })}
       sizes={useIcon ? undefined : `${Math.round(size * logoAspect(variant))}px`}
       alt="FarmaCapital"
       decoding="async"
@@ -34,7 +38,7 @@ export function Logo({ size = 36, showText = true, light = false, sub = "", icon
   );
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+    <div ref={ref} style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
       <div style={{ display: "flex", flexDirection: "column", lineHeight: 1, minWidth: 0, alignItems: variant === "admin" ? "center" : undefined }}>
         {inner}
       </div>
@@ -46,6 +50,7 @@ export function Logo({ size = 36, showText = true, light = false, sub = "", icon
 export function BrandSplash({ subtitle = "Farmacia & Salud", variant = "default", size = 56 }) {
   return (
     <div
+      data-brand-surface="dark"
       style={{
         display: "flex",
         alignItems: "center",
@@ -57,7 +62,7 @@ export function BrandSplash({ subtitle = "Farmacia & Salud", variant = "default"
         padding: 24,
       }}
     >
-      <Logo size={size} light variant={variant} />
+      <Logo size={size} variant={variant} />
       {subtitle ? (
         <div style={{ color: "rgba(255,255,255,0.72)", fontSize: 12, letterSpacing: 2, textTransform: "uppercase", fontWeight: 600 }}>
           {subtitle}

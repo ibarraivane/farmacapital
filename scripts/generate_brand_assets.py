@@ -128,11 +128,17 @@ def main():
     icon_master = fit_square(icon_src, 512, pad=0.08)
     save_png(icon_master, os.path.join(OUT_BRAND, "farmacapital-icon.png"))
 
+    icon_light_src = make_light_variant(icon_src)
+    icon_light_master = fit_square(icon_light_src, 512, pad=0.08)
+    save_png(icon_light_master, os.path.join(OUT_BRAND, "farmacapital-icon-light.png"))
+
     for s in (16, 32, 48, 72, 96, 128, 192, 512):
         save_png(fit_square(icon_src, s, pad=0.08), os.path.join(OUT_ICONS, f"farmacapital-{s}.png"))
+        save_png(fit_square(icon_light_src, s, pad=0.08), os.path.join(OUT_ICONS, f"farmacapital-{s}-dark.png"))
 
     save_png(fit_square(icon_src, 180, pad=0.08), os.path.join(OUT_PUB, "apple-touch-icon.png"))
     save_png(fit_square(icon_src, 32, pad=0.08), os.path.join(OUT_PUB, "favicon-32.png"))
+    save_png(fit_square(icon_light_src, 32, pad=0.08), os.path.join(OUT_PUB, "favicon-32-dark.png"))
 
     ico = [fit_square(icon_src, s, pad=0.08).convert("RGBA") for s in (16, 32, 48)]
     ico[-1].save(os.path.join(OUT_PUB, "favicon.ico"), format="ICO", sizes=[(16, 16), (32, 32), (48, 48)])

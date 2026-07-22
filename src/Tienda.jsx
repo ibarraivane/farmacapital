@@ -1482,7 +1482,7 @@ function Header({page,setPage,cart,user,setUser}){
 
   return(
     <>
-      <header style={{
+      <header data-brand-surface="dark" style={{
         background:BRAND.primary,
         borderBottom:"none",
         padding:"10px 16px",
@@ -1506,7 +1506,7 @@ function Header({page,setPage,cart,user,setUser}){
           }}
           aria-label="Inicio FarmaCapital"
         >
-          <Logo size={40} light/>
+          <Logo size={40} />
         </button>
 
         <div className="farmacapital-header-info-desktop" style={{
@@ -1852,12 +1852,12 @@ function Footer({setPage}){
     setPage("catalogo");
   };
   return(
-    <footer style={{background:C.dark,marginTop:48}}>
+    <footer data-brand-surface="dark" style={{background:C.dark,marginTop:48}}>
       {/* Links principales */}
       <div style={{maxWidth:1200,margin:"0 auto",padding:"48px 24px 32px",display:"grid",gridTemplateColumns:stack?"1fr":"repeat(4,1fr)",gap:stack?28:32}}>
         {/* FarmaCapital */}
         <div>
-          <div style={{marginBottom:16}}><Logo size={28} light/></div>
+          <div style={{marginBottom:16}}><Logo size={28} /></div>
           <p style={{color:"rgba(255,255,255,.6)",fontSize:13,lineHeight:1.7,marginBottom:16}}>Tu farmacia de confianza en Chinampac de Juárez. Medicamentos genéricos y de marca certificados por COFEPRIS.</p>
           <div style={{color:"rgba(255,255,255,.5)",fontSize:12}}>{CONTACTO.direccion}</div>
         </div>
