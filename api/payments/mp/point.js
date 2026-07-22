@@ -114,11 +114,13 @@ async function clearTerminalQueue(token, terminalId, { onlyStaleCreated = true }
     : pending.filter((o) => String(o?.status || '').toLowerCase() === 'created');
 
   let cleared = 0;
+  const failures = [];
   for (const order of toCancel) {
     const ok = await cancelPointOrder(token, order.id, order.status);
     if (ok) cleared += 1;
+    else failures.push({ id: order.id, status: order.status, external_reference: order.external_reference });
   }
-  return { cleared, pending: pending.length, blocked: false };
+  return { cleared, pending: pending.length, blocked: false, failures };
 }
 
 function buildCreateOrderBody(deviceId, amount, description, externalReference) {
@@ -195,6 +197,22 @@ module.exports = async function handler(req, res) {
         return res.status(resp.status).json({ ok: false, message: mpErrorMessage(data, resp.status), ...data });
       }
       return res.status(200).json({ ok: true, ...data });
+    }
+
+    if (action === 'list-pending') {
+      if (!deviceId) return res.status(400).json({ ok: false, error: 'missing_deviceId' });
+      const pending = await listPendingPointOrders(MP_ACCESS_TOKEN, String(deviceId));
+      return res.status(200).json({
+        ok: true,
+        count: pending.length,
+        orders: pending.map((o) => ({
+          id: o.id,
+          status: o.status,
+          amount: o?.transactions?.payments?.[0]?.amount,
+          external_reference: o.external_reference,
+          created_date: o.created_date,
+        })),
+      });
     }
 
     if (action === 'clear-terminal') {
@@ -350,7 +368,7 @@ module.exports = async function handler(req, res) {
         headers: authHeaders(MP_ACCESS_TOKEN),
       });
       const device = (devData?.devices || []).find((d) => d.id === deviceId);
-      const testBody = buildCreateOrderBody(deviceId, 1, 'Diagnostico FC', `FC-DIAG-${Date.now()}`);
+      const testBody = buildCreateOrderBody(deviceId, 18, 'Diagnostico FC', `FC-DIAG-${Date.now()}`);
       const { resp, data } = await createPointOrder(MP_ACCESS_TOKEN, deviceId, testBody);
       let afterStatus = null;
       if (resp.ok && data?.id) {
