@@ -12,8 +12,8 @@ export function Logo({ size = 36, showText = true, light = false, sub = "", icon
 
   const img = (
     <img
-      src={logoFullSrc({ iconOnly: useIcon, variant })}
-      srcSet={useIcon ? undefined : logoFullSrcSet({ variant })}
+      src={logoFullSrc({ iconOnly: useIcon, variant, light })}
+      srcSet={useIcon ? undefined : logoFullSrcSet({ variant, light })}
       sizes={useIcon ? undefined : `${Math.round(size * logoAspect(variant))}px`}
       alt="FarmaCapital"
       decoding="async"
@@ -32,25 +32,6 @@ export function Logo({ size = 36, showText = true, light = false, sub = "", icon
       )}
     </>
   );
-
-  if (light && !useIcon) {
-    return (
-      <div
-        style={{
-          display: "inline-flex",
-          flexDirection: "column",
-          alignItems: "flex-start",
-          background: "#ffffff",
-          borderRadius: 10,
-          padding: `${Math.max(4, Math.round(size * 0.14))}px ${Math.max(8, Math.round(size * 0.32))}px`,
-          boxShadow: "0 1px 6px rgba(0,0,0,.12)",
-          lineHeight: 1,
-        }}
-      >
-        {inner}
-      </div>
-    );
-  }
 
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>

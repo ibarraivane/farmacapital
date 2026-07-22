@@ -86,6 +86,19 @@ def save_png(im, path):
     im.save(path, "PNG", optimize=True)
 
 
+def make_light_variant(im):
+    """Wordmark blanco + cruz blanca; conserva el verde de marca para fondos oscuros."""
+    arr = rgba_arr(im).copy()
+    r, g, b, a = arr[:, :, 0], arr[:, :, 1], arr[:, :, 2], arr[:, :, 3]
+    visible = a > 10
+    green = visible & (g > r + 35) & (g > b + 10) & (g > 100)
+    colored = visible & ~green
+    arr[colored, 0] = 255
+    arr[colored, 1] = 255
+    arr[colored, 2] = 255
+    return Image.fromarray(arr)
+
+
 def main():
     if not os.path.exists(MASTER):
         alt = os.path.expanduser("~/Downloads/Logo FarmaCapital.png")
@@ -102,9 +115,15 @@ def main():
     save_png(full, os.path.join(OUT_BRAND, "farmacapital-logo-full.png"))
     save_png(full, os.path.join(OUT_BRAND, "farmacapital-logo-admin.png"))
 
+    light = make_light_variant(full)
+    save_png(light, os.path.join(OUT_BRAND, "farmacapital-logo-full-light.png"))
+
     w, h = full.size
     save_png(full.resize((w // 2, max(1, h // 2)), Image.Resampling.LANCZOS),
              os.path.join(OUT_BRAND, "farmacapital-logo-full@1x.png"))
+    lw, lh = light.size
+    save_png(light.resize((lw // 2, max(1, lh // 2)), Image.Resampling.LANCZOS),
+             os.path.join(OUT_BRAND, "farmacapital-logo-full-light@1x.png"))
 
     icon_master = fit_square(icon_src, 512, pad=0.08)
     save_png(icon_master, os.path.join(OUT_BRAND, "farmacapital-icon.png"))

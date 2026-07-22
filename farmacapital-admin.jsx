@@ -34,7 +34,9 @@ const NEG = {
 // ── LOGO FARMACAPITAL (oficial) ─────────────────────────────────────
 function LogoFarmaCapital({ size = 36, showText = true, light = false }) {
   const aspect = 1623 / 358;
-  const src = showText ? "/brand/farmacapital-logo-full.png?v=4" : "/brand/farmacapital-icon.png?v=4";
+  const src = showText
+    ? (light ? "/brand/farmacapital-logo-full-light.png?v=5" : "/brand/farmacapital-logo-full.png?v=5")
+    : "/brand/farmacapital-icon.png?v=5";
   const h = size;
   const w = showText ? Math.round(size * aspect) : size;
   return (
@@ -47,7 +49,7 @@ function LogoFarmaCapital({ size = 36, showText = true, light = false }) {
           width: w,
           objectFit: "contain",
           display: "block",
-          filter: light ? "brightness(0) invert(1)" : "none",
+          filter: light ? "none" : "none",
         }}
       />
     </div>
