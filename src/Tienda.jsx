@@ -79,6 +79,28 @@ function tiendaEffectiveStockFromDb(dbp, sumLotesMap) {
   return Math.max(col, fromLotes);
 }
 
+const productoAgotadoTienda = (p) => Number(p?.stock) <= 0;
+
+/** Catálogo tienda: activos en línea (incluye agotados, como POS). */
+const poolCatalogoTienda = (productos) =>
+  (productos || []).filter((p) => p.activo !== false);
+
+/** Orden: disponibles primero, agotados al final; respeta rank de búsqueda si aplica. */
+function sortCatalogoTienda(arr, busq) {
+  const q = String(busq || "").trim();
+  return [...arr].sort((a, b) => {
+    const agA = productoAgotadoTienda(a) ? 1 : 0;
+    const agB = productoAgotadoTienda(b) ? 1 : 0;
+    if (agA !== agB) return agA - agB;
+    if (q) {
+      const ra = tiendaSearchRelevanceRank(a, busq);
+      const rb = tiendaSearchRelevanceRank(b, busq);
+      if (ra !== rb) return ra - rb;
+    }
+    return String(a.nombre || "").localeCompare(String(b.nombre || ""), "es", { sensitivity: "base" });
+  });
+}
+
 // ── CONTACTO (descomentar cuando tengas número) ───────────────
 const CONTACTO = {
   telefono: "55 6253 0631",
@@ -1580,13 +1602,14 @@ function ProductCard({prod,addToCart,onClick}){
   const C = useTheme();
   const narrow = useMediaQuery("(max-width: 768px)");
   const [added,setAdded]=useState(false);
+  const agotado = productoAgotadoTienda(prod);
   const d=prod.disponible||(prod.stock>0?"inmediato":"48hrs");
   const placeholderUrl = useContext(TiendaPlaceholderCtx);
   const imgSrc = productImageUrl(prod, narrow, placeholderUrl);
   const handleDetailClick = () => { onClick?.(); };
   const handleAddClick = (e) => {
     e.stopPropagation();
-    if(prod.stock===0)return;
+    if(agotado)return;
     if(!productoPermitidoEnTiendaFarmaciaWeb(prod)){
       alert(productoEsCategoriaMinisuperTienda(prod)?"Artículo de minisuper: no está en la tienda farmacia en línea. Disponible en sucursal.":"Este producto no está disponible para compra en línea (receta, controlado o no publicado en tienda).");
       return;
@@ -1599,7 +1622,7 @@ function ProductCard({prod,addToCart,onClick}){
     <div style={{
       background:C.white,
       borderRadius:12,
-      border:`1px solid ${C.border}`,
+      border:`1px solid ${agotado ? C.border : C.border}`,
       overflow:"hidden",
       display:"flex",
       flexDirection:"column",
@@ -1607,11 +1630,12 @@ function ProductCard({prod,addToCart,onClick}){
       maxWidth:"100%",
       minWidth:0,
       cursor:narrow?"default":"pointer",
-      transition:"border-color .2s, transform .15s",
+      opacity:agotado ? 0.42 : 1,
+      transition:"border-color .2s, transform .15s, opacity .15s",
     }}
       {...(!narrow ? { onClick: handleDetailClick } : {})}
-      onMouseEnter={e=>{ e.currentTarget.style.borderColor=BRAND.secondary; e.currentTarget.style.transform="translateY(-2px)"; }}
-      onMouseLeave={e=>{ e.currentTarget.style.borderColor=C.border; e.currentTarget.style.transform="translateY(0)"; }}
+      onMouseEnter={agotado ? undefined : (e=>{ e.currentTarget.style.borderColor=BRAND.secondary; e.currentTarget.style.transform="translateY(-2px)"; })}
+      onMouseLeave={agotado ? undefined : (e=>{ e.currentTarget.style.borderColor=C.border; e.currentTarget.style.transform="translateY(0)"; })}
     >
       <div
         style={{
@@ -1649,7 +1673,7 @@ function ProductCard({prod,addToCart,onClick}){
         }}
       >
         <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:8}}>
-          {prod.stock===0
+          {agotado
             ? <Tag col={C.red} sm>Agotado</Tag>
             : prod.stock<=3
               ? <Tag col="#f59e0b" sm>Últimas {prod.stock}</Tag>
@@ -1671,7 +1695,7 @@ function ProductCard({prod,addToCart,onClick}){
         <div style={{color:C.dim,fontSize:10,marginBottom:10}}>+{labelPts(ptsGana(prod.precio||prod.precio||0))}</div>
         <div style={{display:"flex",gap:8}}>
           <Btn onClick={handleDetailClick} outline col={BRAND.primary} sm style={{flex:1}}>Ver detalle</Btn>
-          <Btn onClick={handleAddClick} col={prod.stock===0||!productoPermitidoEnTiendaFarmaciaWeb(prod)?"#94a3b8":added?BRAND.secondary:BRAND.primary} sm style={{flex:1,opacity:(prod.stock===0||!productoPermitidoEnTiendaFarmaciaWeb(prod))?0.6:1,cursor:prod.stock===0||!productoPermitidoEnTiendaFarmaciaWeb(prod)?"not-allowed":"pointer"}}>{prod.stock===0?"Agotado":!productoPermitidoEnTiendaFarmaciaWeb(prod)?(productoEsCategoriaMinisuperTienda(prod)?"Solo minisuper":"Solo en mostrador"):added?"✓ Listo":"+ Carrito"}</Btn>
+          <Btn onClick={handleAddClick} col={agotado||!productoPermitidoEnTiendaFarmaciaWeb(prod)?"#94a3b8":added?BRAND.secondary:BRAND.primary} sm style={{flex:1,opacity:(agotado||!productoPermitidoEnTiendaFarmaciaWeb(prod))?0.6:1,cursor:agotado||!productoPermitidoEnTiendaFarmaciaWeb(prod)?"not-allowed":"pointer"}}>{agotado?"Agotado":!productoPermitidoEnTiendaFarmaciaWeb(prod)?(productoEsCategoriaMinisuperTienda(prod)?"Solo minisuper":"Solo en mostrador"):added?"✓ Listo":"+ Carrito"}</Btn>
         </div>
       </div>
     </div>
@@ -1686,13 +1710,13 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
   const [busqFocus,setBusqFocus]=useState(false);
   const [added,setAdded]=useState(false);
   const placeholderUrl = useContext(TiendaPlaceholderCtx);
-  const poolSoloStock = useMemo(
-    ()=>productos.filter(p=>p.activo!==false&&Number(p.stock)>0),
+  const poolCatalogo = useMemo(
+    ()=>poolCatalogoTienda(productos),
     [productos]
   );
   const suggestions = useMemo(
-    ()=>(busqFocus&&String(busqHero||"").trim().length>=2?tiendaCatalogSearchSuggestions(poolSoloStock,busqHero,{limit:8}):[]),
-    [poolSoloStock,busqHero,busqFocus]
+    ()=>(busqFocus&&String(busqHero||"").trim().length>=2?tiendaCatalogSearchSuggestions(poolCatalogo,busqHero,{limit:8}):[]),
+    [poolCatalogo,busqHero,busqFocus]
   );
   const irACatalogoBusqueda = ()=>{
     const q = String(busqHero||"").trim();
@@ -1704,6 +1728,7 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
     });
   };
   if(!prod) return null;
+  const agotado = productoAgotadoTienda(prod);
   const similares=productos.filter(p=>p.categoria===prod.categoria&&p.id!==prod.id).slice(0,4);
   const d=prod.disponible||(prod.stock>0?"inmediato":"48hrs");
   const imgSrc = productImageUrl(prod, stack, placeholderUrl);
@@ -1777,8 +1802,8 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
         </div>
       </div>
       <button type="button" onClick={()=>{ setProdDetalle(null); setPage("catalogo"); }} style={{background:"none",border:"none",color:BRAND.primary,cursor:"pointer",fontSize:14,fontWeight:700,marginBottom:20,display:"flex",alignItems:"center",gap:6}}>← Volver al catálogo</button>
-      <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:stack?24:32,marginBottom:48}}>
-        <div style={{background:C.cardDark,borderRadius:20,overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",minHeight:stack?220:280,padding:stack?16:20}}>
+      <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:stack?24:32,marginBottom:48,opacity:agotado?0.85:1}}>
+        <div style={{background:C.cardDark,borderRadius:20,overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",minHeight:stack?220:280,padding:stack?16:20,opacity:agotado?0.42:1}}>
           {imgSrc ? (
             <img src={imgSrc} alt="" style={{maxWidth:"100%",maxHeight:stack?360:420,width:"auto",height:"auto",objectFit:"contain",display:"block"}}/>
           ) : (
@@ -1789,7 +1814,10 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
         </div>
         <div>
           <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
-            <Tag col={d==="inmediato"?BRAND.accent:"#f59e0b"}>{d==="inmediato"?"✓ Disponible hoy":"📦 24-48 hrs"}</Tag>
+            {agotado
+              ? <Tag col={C.red}>Agotado</Tag>
+              : <Tag col={d==="inmediato"?BRAND.accent:"#f59e0b"}>{d==="inmediato"?"✓ Disponible hoy":"📦 24-48 hrs"}</Tag>
+            }
             {prod.tipo==="generico"&&<Tag col={BRAND.secondary}>Genérico</Tag>}
             {prod.requiere_receta&&<Tag col={C.red}>Requiere receta</Tag>}
             <Tag col={C.mid} sm>{prod.categoria}</Tag>
@@ -1821,9 +1849,14 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
               <div style={{color:C.red,fontWeight:700,fontSize:13}}>⚕ Requiere receta médica. Se solicitará al entregar.</div>
             </div>
           )}
+          {agotado&&(
+            <div style={{background:C.red+"10",border:`1px solid ${C.red}30`,borderRadius:10,padding:"10px 14px",marginBottom:16}}>
+              <div style={{color:C.red,fontWeight:700,fontSize:13}}>Producto agotado por el momento. Puedes ver la ficha; cuando haya stock podrás agregarlo al carrito.</div>
+            </div>
+          )}
           <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
-            <Btn onClick={()=>{addToCart(prod);setAdded(true);setTimeout(()=>setAdded(false),1500);}} col={added?BRAND.secondary:BRAND.primary} style={{flex:"1 1 min(100%,200px)",minWidth:0}}>{added?"✓ Agregado":"Agregar al carrito"}</Btn>
-            <Btn onClick={()=>{addToCart(prod);setPage("carrito");}} outline col={BRAND.primary} style={{flex:"1 1 min(100%,200px)",minWidth:0}}>Comprar ahora</Btn>
+            <Btn onClick={()=>{ if(agotado) return; addToCart(prod);setAdded(true);setTimeout(()=>setAdded(false),1500); }} dis={agotado} col={agotado?"#94a3b8":added?BRAND.secondary:BRAND.primary} style={{flex:"1 1 min(100%,200px)",minWidth:0}}>{agotado?"Agotado":added?"✓ Agregado":"Agregar al carrito"}</Btn>
+            <Btn onClick={()=>{ if(agotado) return; addToCart(prod);setPage("carrito"); }} dis={agotado} outline col={BRAND.primary} style={{flex:"1 1 min(100%,200px)",minWidth:0}}>Comprar ahora</Btn>
           </div>
         </div>
       </div>
@@ -2393,7 +2426,7 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
   const [bannerMeta, setBannerMeta] = useState({ status: "loading", total: 0 });
   const [heroBusqFocus, setHeroBusqFocus] = useState(false);
   const poolHeroStock = useMemo(
-    () => productos.filter((p) => p.activo !== false),
+    () => poolCatalogoTienda(productos),
     [productos]
   );
   const heroSuggestions = useMemo(
@@ -2531,7 +2564,9 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
             ? Array.from({length:6}).map((_,i)=>(
                 <div key={i} style={{borderRadius:12,background:C.surface,height:260,animation:"pulse 1.4s ease-in-out infinite",opacity:0.7}}/>
               ))
-            : productos.slice(0,6).map(p=><ProductCard key={p.id} prod={p} addToCart={addToCart} onClick={()=>{setProdDetalle(p);setPage("detalle");}}/>)
+            : sortCatalogoTienda(productos, "")
+                .slice(0, 6)
+                .map(p=><ProductCard key={p.id} prod={p} addToCart={addToCart} onClick={()=>{setProdDetalle(p);setPage("detalle");}}/>)
           }
         </div>
       </div>
@@ -2608,41 +2643,34 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
       setCat("Todos");
     }
   },[busqHero]);
-  const cats=["Todos",...new Set(productos.map(p=>p.categoria).filter(Boolean))];
-  const basePool = useMemo(()=>productos
-    .filter(p=>Number(p.stock)>0)
+  const cats=["Todos",...new Set(poolCatalogoTienda(productos).map(p=>p.categoria).filter(Boolean))];
+  const basePool = useMemo(()=>poolCatalogoTienda(productos)
     .filter(p=>cat==="Todos"||p.categoria===cat)
     .filter(p=>tipo==="todos"||p.tipo===tipo),
   [productos,cat,tipo]);
   const fil = useMemo(()=>{
-    const q = busq.trim();
     const arr = basePool.filter((p)=>tiendaProductMatchesBusqueda(p, busq));
-    if (!q) return arr;
-    return [...arr].sort((a, b)=>{
-      const ra = tiendaSearchRelevanceRank(a, busq);
-      const rb = tiendaSearchRelevanceRank(b, busq);
-      if (ra !== rb) return ra - rb;
-      return String(a.nombre || "").localeCompare(String(b.nombre || ""), "es", { sensitivity: "base" });
-    });
+    return sortCatalogoTienda(arr, busq);
   }, [basePool, busq]);
-  const poolSoloStock = useMemo(
-    ()=>productos.filter(p=>p.activo!==false&&Number(p.stock)>0),
+  const poolCatalogo = useMemo(
+    ()=>poolCatalogoTienda(productos),
     [productos]
   );
   const suggestions = useMemo(
-    ()=>(busqFocus&&busq.trim().length>=2?tiendaCatalogSearchSuggestions(poolSoloStock,busq,{limit:8}):[]),
-    [poolSoloStock,busq,busqFocus]
+    ()=>(busqFocus&&busq.trim().length>=2?tiendaCatalogSearchSuggestions(poolCatalogo,busq,{limit:8}):[]),
+    [poolCatalogo,busq,busqFocus]
   );
   const hayCoincidenciasSinFiltrosLaterales = useMemo(()=>{
     if (!busq.trim()) return false;
-    const limpio = productos.filter(p=>p.activo!==false&&Number(p.stock)>0);
-    return limpio.some(p=>tiendaProductMatchesBusqueda(p,busq));
+    return poolCatalogoTienda(productos).some(p=>tiendaProductMatchesBusqueda(p,busq));
   },[productos,busq]);
   const filtrosLateralesActivos = cat!=="Todos"||tipo!=="todos";
   const spellHints = useMemo(
-    ()=>(busq.trim().length>=3&&fil.length===0?spellSuggestFromProducts(poolSoloStock,busq):[]),
-    [poolSoloStock,busq,fil.length]
+    ()=>(busq.trim().length>=3&&fil.length===0?spellSuggestFromProducts(poolCatalogo,busq):[]),
+    [poolCatalogo,busq,fil.length]
   );
+  const disponiblesCount = useMemo(()=>fil.filter(p=>!productoAgotadoTienda(p)).length,[fil]);
+  const agotadosCount = fil.length - disponiblesCount;
   const limpiarFiltrosLaterales = ()=>{
     setCat("Todos"); setTipo("todos");
   };
@@ -2652,8 +2680,10 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
       <h1 style={{color:C.dark,fontSize:"clamp(22px,5vw,28px)",fontWeight:800,marginBottom:6}}>Catálogo FarmaCapital</h1>
       <div style={{color:C.dim,fontSize:14,marginBottom:24}}>
         {busqActiva
-          ? `${fil.length} resultado${fil.length === 1 ? "" : "s"} · refiná con filtros o escribí más palabras (ej. «ácido fólico»)`
-          : `${fil.length} productos disponibles`}
+          ? `${fil.length} resultado${fil.length === 1 ? "" : "s"}${agotadosCount > 0 ? ` · ${disponiblesCount} disponible${disponiblesCount === 1 ? "" : "s"}, ${agotadosCount} agotado${agotadosCount === 1 ? "" : "s"}` : ""} · refiná con filtros o escribí más palabras (ej. «ácido fólico»)`
+          : agotadosCount > 0
+            ? `${fil.length} productos · ${disponiblesCount} disponibles, ${agotadosCount} agotados`
+            : `${fil.length} productos disponibles`}
       </div>
       <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:20,marginBottom:20}}>
         <div style={{position:"relative",marginBottom:16,zIndex:25}}>
