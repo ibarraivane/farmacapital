@@ -7,6 +7,8 @@ from PIL import Image
 import numpy as np
 import os
 import shutil
+import base64
+from io import BytesIO
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MASTER = os.path.join(ROOT, "public/brand/farmacapital-logo-master.png")
@@ -86,6 +88,35 @@ def save_png(im, path):
     im.save(path, "PNG", optimize=True)
 
 
+def png_to_b64(im):
+    buf = BytesIO()
+    im.save(buf, format="PNG", optimize=True)
+    return base64.b64encode(buf.getvalue()).decode("ascii")
+
+
+def write_favicon_svg(icon_light_im, icon_dark_im, path):
+    """SVG con prefers-color-scheme — favicon adaptativo en navegadores modernos."""
+    b64_light = png_to_b64(icon_light_im)
+    b64_dark = png_to_b64(icon_dark_im)
+    svg = f"""<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 32 32">
+  <style>
+    #fc-icon-light {{ display: block; }}
+    #fc-icon-dark {{ display: none; }}
+    @media (prefers-color-scheme: dark) {{
+      #fc-icon-light {{ display: none; }}
+      #fc-icon-dark {{ display: block; }}
+    }}
+  </style>
+  <image id="fc-icon-light" width="32" height="32" xlink:href="data:image/png;base64,{b64_light}"/>
+  <image id="fc-icon-dark" width="32" height="32" xlink:href="data:image/png;base64,{b64_dark}"/>
+</svg>
+"""
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(svg)
+
+
 def make_light_variant(im):
     """Wordmark blanco + cruz blanca; conserva el verde de marca para fondos oscuros."""
     arr = rgba_arr(im).copy()
@@ -137,11 +168,17 @@ def main():
         save_png(fit_square(icon_light_src, s, pad=0.08), os.path.join(OUT_ICONS, f"farmacapital-{s}-dark.png"))
 
     save_png(fit_square(icon_src, 180, pad=0.08), os.path.join(OUT_PUB, "apple-touch-icon.png"))
-    save_png(fit_square(icon_src, 32, pad=0.08), os.path.join(OUT_PUB, "favicon-32.png"))
-    save_png(fit_square(icon_light_src, 32, pad=0.08), os.path.join(OUT_PUB, "favicon-32-dark.png"))
+    fav32 = fit_square(icon_src, 32, pad=0.08)
+    fav32_dark = fit_square(icon_light_src, 32, pad=0.08)
+    save_png(fav32, os.path.join(OUT_PUB, "favicon-32.png"))
+    save_png(fav32_dark, os.path.join(OUT_PUB, "favicon-32-dark.png"))
+    write_favicon_svg(fav32, fav32_dark, os.path.join(OUT_PUB, "favicon.svg"))
 
     ico = [fit_square(icon_src, s, pad=0.08).convert("RGBA") for s in (16, 32, 48)]
     ico[-1].save(os.path.join(OUT_PUB, "favicon.ico"), format="ICO", sizes=[(16, 16), (32, 32), (48, 48)])
+    # favicon-light.ico: fallback cuando el navegador pide /favicon.ico en pestaña oscura
+    ico_dark = [fit_square(icon_light_src, s, pad=0.08).convert("RGBA") for s in (16, 32, 48)]
+    ico_dark[-1].save(os.path.join(OUT_PUB, "favicon-light.ico"), format="ICO", sizes=[(16, 16), (32, 32), (48, 48)])
 
     print("OK master", Image.open(MASTER).size, "full", full.size, "icon_box", icon_src.size)
 

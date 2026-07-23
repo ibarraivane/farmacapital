@@ -6,7 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=5, viewport-fit=cover" />
 
     <!-- PWA / Theme -->
-    <meta name="theme-color" content="#1E3ABA" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#1E3ABA" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0D1B2A" media="(prefers-color-scheme: dark)" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -39,13 +41,38 @@
     <meta name="twitter:description" content="Medicamentos genéricos y de marca, consultorio médico y tienda en línea." />
     <meta name="twitter:image" content="%PUBLIC_URL%/icons/farmacapital-512.png" />
 
-    <!-- Icons — logotipo oficial FarmaCapital (claro/oscuro según sistema) -->
-    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" sizes="any" />
-    <link rel="icon" type="image/png" sizes="32x32" href="%PUBLIC_URL%/favicon-32.png?v=6" media="(prefers-color-scheme: light)" />
-    <link rel="icon" type="image/png" sizes="32x32" href="%PUBLIC_URL%/favicon-32-dark.png?v=6" media="(prefers-color-scheme: dark)" />
-    <link rel="icon" type="image/png" sizes="16x16" href="%PUBLIC_URL%/icons/farmacapital-16.png?v=6" media="(prefers-color-scheme: light)" />
-    <link rel="icon" type="image/png" sizes="16x16" href="%PUBLIC_URL%/icons/farmacapital-16-dark.png?v=6" media="(prefers-color-scheme: dark)" />
-    <link rel="icon" type="image/png" sizes="192x192" href="%PUBLIC_URL%/icons/farmacapital-192.png" />
+    <!-- Favicon adaptativo: a color en modo claro, blanco+verde en modo oscuro -->
+    <link rel="icon" type="image/svg+xml" href="%PUBLIC_URL%/favicon.svg?v=7" />
+    <link rel="icon" type="image/png" sizes="32x32" href="%PUBLIC_URL%/favicon-32.png?v=7" media="(prefers-color-scheme: light)" />
+    <link rel="icon" type="image/png" sizes="32x32" href="%PUBLIC_URL%/favicon-32-dark.png?v=7" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" type="image/png" sizes="16x16" href="%PUBLIC_URL%/icons/farmacapital-16.png?v=7" media="(prefers-color-scheme: light)" />
+    <link rel="icon" type="image/png" sizes="16x16" href="%PUBLIC_URL%/icons/farmacapital-16-dark.png?v=7" media="(prefers-color-scheme: dark)" />
+    <script>
+      (function () {
+        var v = "7";
+        var base = "%PUBLIC_URL%" || "";
+        function pickHref() {
+          var dark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+          return base + (dark ? "/favicon-32-dark.png?v=" + v : "/favicon-32.png?v=" + v);
+        }
+        function applyFavicon() {
+          var el = document.getElementById("fc-favicon-dynamic");
+          if (!el) {
+            el = document.createElement("link");
+            el.id = "fc-favicon-dynamic";
+            el.rel = "icon";
+            el.type = "image/png";
+            el.sizes = "32x32";
+            document.head.appendChild(el);
+          }
+          el.href = pickHref();
+        }
+        applyFavicon();
+        if (window.matchMedia) {
+          window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyFavicon);
+        }
+      })();
+    </script>
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/apple-touch-icon.png" />
     <link rel="apple-touch-icon" sizes="152x152" href="%PUBLIC_URL%/apple-touch-icon.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="%PUBLIC_URL%/apple-touch-icon.png" />
