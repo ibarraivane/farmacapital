@@ -4,6 +4,7 @@ const { FARMACIA_FISCAL } = require('./farmaciaFiscal');
 
 const FARMACIA_WHATSAPP_DISPLAY = FARMACIA_FISCAL.telefono_display;
 const FARMACIA_DIRECCION = FARMACIA_FISCAL.direccion_comercial;
+const FARMACIA_MAPS_URL = FARMACIA_FISCAL.maps_url;
 
 function digitsOnly(v) {
   return String(v || '').replace(/\D/g, '');
@@ -39,12 +40,17 @@ function buildReceiptMessage({ event, pedido, items }) {
     : null;
 
   if (event === 'payment_approved') {
+    const pickupNote =
+      pedido?.tipo_entrega === 'recoger'
+        ? `\n\nMuestra tu folio ${folio} al llegar.\n📍 ${FARMACIA_MAPS_URL}`
+        : '';
     return (
       `🏥 FarmaCapital\n${FARMACIA_DIRECCION}\n\n` +
       `✅ Pago aprobado\n🔖 Folio: ${folio}\n` +
       (itemsTxt ? `${itemsTxt}\n\n` : '') +
-      `💰 Total: $${total}\n📦 Entrega: ${entrega}\n\n` +
-      `Te avisaremos cuando esté listo.\n📱 WhatsApp farmacia: ${FARMACIA_WHATSAPP_DISPLAY}`
+      `💰 Total: $${total}\n📦 Entrega: ${entrega}` +
+      pickupNote +
+      `\n\nTe avisaremos cuando esté listo.\n📱 WhatsApp farmacia: ${FARMACIA_WHATSAPP_DISPLAY}`
     );
   }
   if (event === 'payment_pending') {
@@ -62,7 +68,7 @@ function buildReceiptMessage({ event, pedido, items }) {
 
   const pickupNote =
     pedido?.tipo_entrega === 'recoger'
-      ? `\n\nMuestra tu folio ${folio} o menciona tu teléfono al llegar.`
+      ? `\n\nMuestra tu folio ${folio} o menciona tu teléfono al llegar.\n📍 ${FARMACIA_MAPS_URL}`
       : '\n\nTe contactamos para coordinar tu entrega.';
 
   return (

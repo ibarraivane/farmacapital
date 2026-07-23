@@ -2,6 +2,7 @@ import React, { useRef, useEffect } from "react";
 import TicketVenta from "./TicketVenta";
 import { printTicket } from "../../utils/printTicket";
 import { downloadFacturaPDF } from "../../utils/generateFacturaPDF";
+import { FARMACIA_MAPS_URL } from "../../utils/orderReceiptWhatsApp";
 
 /**
  * FARMACAPITAL — Modal de preview de ticket
@@ -156,7 +157,7 @@ export default function TicketPreviewModal({
     const items = productos.map(p =>
       `• ${p.nombre} ×${p.qty||1} = $${(parseFloat(p.precio||0)*(p.qty||1)).toFixed(2)}`
     ).join("\n");
-    const msg = `🏥 *${config?.nombre_farmacia||"FarmaCapital"}*\n${config?.direccion_farmacia||"Chinampac de Juárez, CDMX"}\n\n*Ticket #${venta.id}*\n\n${items}\n\n💰 *Total: $${parseFloat(venta.total||0).toFixed(2)}*\n💳 ${metodoPago}\n\n¡Gracias por su preferencia! 💊`;
+    const msg = `🏥 *${config?.nombre_farmacia||"FarmaCapital"}*\n${config?.direccion_farmacia||"Chinampac de Juárez, CDMX"}\n🗺 ${FARMACIA_MAPS_URL}\n\n*Ticket #${venta.id}*\n\n${items}\n\n💰 *Total: $${parseFloat(venta.total||0).toFixed(2)}*\n💳 ${metodoPago}\n\n¡Gracias por su preferencia! 💊`;
     window.open("https://wa.me/52" + tel.replace(/\D/g,"") + "?text=" + encodeURIComponent(msg), "_blank");
   };
 

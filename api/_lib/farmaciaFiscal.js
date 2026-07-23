@@ -17,6 +17,9 @@ const FARMACIA_FISCAL = {
     'Radiodifusora 100, Col. Chinampac de Juárez, Iztapalapa, CDMX, C.P. 09208',
   telefono: '5562530631',
   telefono_display: '55 6253 0631',
+  maps_url: 'https://maps.app.goo.gl/qmSixa2qVSM5DD3QA',
+  maps_embed:
+    'https://www.google.com/maps?q=19.3714047,-99.0526916&hl=es&z=17&output=embed',
 };
 
 module.exports = { FARMACIA_FISCAL };

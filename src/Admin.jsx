@@ -4,6 +4,7 @@ import useSidebarBadges from "./hooks/useSidebarBadges";
 import { supabase, isSupabaseLocalMisconfigured } from "./supabase";
 import { C as _C, C_LIGHT, BRAND, NEG, NAV_ADMIN, NAV_VENDEDOR, NAV_DOCTORA, NAV_ITEMS, ADMIN_NAV_SECTIONS } from "./constants";
 import { $, dC, cC, abc, aCol, nCol, hashPwd, hashPwdLegacy, generateSalt, primerNombre, saludoUsuario, normalizarSesionLoginResp } from "./utils";
+import { validarPasswordTienda, PASSWORD_RULES_TEXT } from "./utils/passwordPolicy";
 import { Logo, Box, Tag, Btn, Inp, KPI, Modal, NotificacionesToast, showToast, ToastProvider, ConfirmDialog, SkeletonTable, SkeletonKPIs, SkeletonCard, Paginador, GlobalHoverStyles } from "./ui";
 import { sincronizarVentasPendientes, contarVentasPendientes } from "./utils/offlineQueue";
 import { esPedidoTiendaWebPendiente, fetchPedidosTiendaPendientesMerged } from "./utils/pedidosTiendaWeb";
@@ -947,38 +948,33 @@ function PasswordResetSolicitudesModal({ open, onClose }) {
 
   const asignarClaveCliente = async (req) => {
     const clave = (nuevaClave[req.id] || "").trim();
-    if (clave.length < 6) {
-      showToast("La contraseña debe tener al menos 6 caracteres", "warning");
+    const val = validarPasswordTienda(clave);
+    if (!val.ok) {
+      showToast(val.error, "warning");
       return;
     }
     const ident = String(req.email_o_telefono || "").trim();
-    const digits = ident.replace(/\D/g, "");
-    if (!digits || digits.length < 10) {
-      showToast("No se puede identificar cliente por teléfono en esta solicitud", "warning");
+    if (!ident) {
+      showToast("Solicitud sin teléfono ni correo", "warning");
       return;
     }
     setGuardando(req.id);
     const tok = sessionStorage.getItem("farmacapital_session_token");
-    const { data: cliente, error: cliErr } = await supabase.rpc("admin_obtener_cliente_por_telefono", {
+    const { data: cliente, error: cliErr } = await supabase.rpc("admin_resolver_cliente_por_identificador", {
       p_session_token: tok,
-      p_telefono: ident.includes("@") ? digits : (ident.trim() || digits),
+      p_identificador: ident,
     });
-    let clienteResolved = cliente;
-    if ((cliErr || !clienteResolved?.id) && digits.length >= 10) {
-      const retry = await supabase.rpc("admin_obtener_cliente_por_telefono", {
-        p_session_token: tok,
-        p_telefono: digits,
-      });
-      clienteResolved = retry.data;
-    }
-    if (!clienteResolved?.id) {
-      showToast("No encontramos cuenta de tienda con ese teléfono. Contacta al cliente manualmente.", "warning");
+    if (cliErr || !cliente?.id) {
+      showToast(
+        "No encontramos cuenta de tienda con ese teléfono o correo. Verifica el dato, crea la cuenta en Clientes o envía el enlace de reset.",
+        "warning"
+      );
       setGuardando(null);
       return;
     }
     const { data: resp, error: err } = await supabase.rpc("admin_asignar_password_cliente", {
       p_session_token: tok,
-      p_cliente_id: clienteResolved.id,
+      p_cliente_id: cliente.id,
       p_nueva_password: clave,
     });
     if (err || !resp?.success) {
@@ -988,7 +984,40 @@ function PasswordResetSolicitudesModal({ open, onClose }) {
     }
     await marcarAtendido(req.id);
     setNuevaClave((p) => ({ ...p, [req.id]: "" }));
-    showToast(`Contraseña asignada a ${clienteResolved.nombre || ident}`, "success");
+    showToast(`Contraseña asignada a ${cliente.nombre || ident}`, "success");
+    setGuardando(null);
+  };
+
+  const enviarLinkReset = async (req) => {
+    setGuardando(req.id);
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    const { data: resp, error: err } = await supabase.rpc("admin_generar_link_reset_password", {
+      p_session_token: tok,
+      p_request_id: req.id,
+    });
+    if (err || !resp?.success) {
+      showToast(resp?.error || err?.message || "No se pudo generar el enlace", "warning");
+      setGuardando(null);
+      return;
+    }
+    const origin = window.location.origin.replace(/\/$/, "");
+    const resetUrl = `${origin}/?reset=${resp.token}`;
+    const digits = String(resp.telefono || req.email_o_telefono || "").replace(/\D/g, "");
+    const msg =
+      `🔐 *FarmaCapital — Restablecer contraseña*\n\n` +
+      `Hola, usa este enlace (válido 2 horas) para crear tu nueva contraseña de la tienda en línea:\n${resetUrl}\n\n` +
+      `Si no lo pediste, ignora este mensaje.`;
+    if (digits.length >= 10) {
+      window.open(`https://wa.me/52${digits}?text=${encodeURIComponent(msg)}`, "_blank", "noopener,noreferrer");
+      showToast("WhatsApp abierto con el enlace de reset", "success");
+    } else {
+      try {
+        await navigator.clipboard.writeText(resetUrl);
+        showToast("Enlace copiado (la cuenta no tiene teléfono válido)", "success");
+      } catch {
+        showToast(`Enlace: ${resetUrl}`, "info");
+      }
+    }
     setGuardando(null);
   };
 
@@ -1005,7 +1034,8 @@ function PasswordResetSolicitudesModal({ open, onClose }) {
   return (
     <Modal open={open} onClose={onClose} title="Solicitudes de contraseña">
       <div style={{ color: C.textMid, fontSize: 12, marginBottom: 12, lineHeight: 1.5 }}>
-        Clientes de la tienda en línea que pidieron restablecer su contraseña. Asigna una nueva clave o contáctalos y marca como atendido.
+        Clientes que pidieron restablecer contraseña. Envía el enlace por WhatsApp (self-service), asigna una clave manualmente o marca como atendido.
+        <div style={{ marginTop: 6, color: C.textDim, fontSize: 11 }}>{PASSWORD_RULES_TEXT}</div>
       </div>
       {error && (
         <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: 10, marginBottom: 12, fontSize: 12, color: "#b91c1c" }}>
@@ -1031,6 +1061,14 @@ function PasswordResetSolicitudesModal({ open, onClose }) {
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
               <button
                 type="button"
+                onClick={() => enviarLinkReset(req)}
+                disabled={guardando === req.id}
+                style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 8, border: "none", background: BRAND.primary, color: "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer", opacity: guardando === req.id ? 0.6 : 1 }}
+              >
+                🔗 Enviar link reset
+              </button>
+              <button
+                type="button"
                 onClick={() => contactarWhatsApp(req.email_o_telefono)}
                 style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 8, border: "none", background: "#25D366", color: "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer" }}
               >
@@ -1038,7 +1076,7 @@ function PasswordResetSolicitudesModal({ open, onClose }) {
               </button>
               <Inp
                 type="password"
-                placeholder="Nueva contraseña (6+)"
+                placeholder={`Nueva contraseña (${PASSWORD_RULES_TEXT})`}
                 value={nuevaClave[req.id] || ""}
                 onChange={(e) => setNuevaClave((p) => ({ ...p, [req.id]: e.target.value }))}
                 style={{ flex: "1 1 160px", minWidth: 140 }}

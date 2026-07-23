@@ -38,6 +38,9 @@ async function sendViaProxy(messages) {
     return { configured: false };
   }
   if (!resp.ok) {
+    if (data?.error === "invalid_session") {
+      throw new Error("Sesión expirada. Cierra sesión en Admin e inicia de nuevo.");
+    }
     throw new Error(data?.message || data?.error || `Error ${resp.status}`);
   }
   return { configured: true, reply: data.reply };
@@ -100,6 +103,7 @@ export default function AsistenteIA() {
         const data = await resp.json().catch(() => ({}));
         if (!cancelled) {
           if (data?.configured && data?.session) setConfigState("ready");
+          else if (data?.configured && data?.session === false) setConfigState("session_expired");
           else if (data?.configured === false && readLegacyGeminiKey()) setConfigState("legacy");
           else if (data?.configured === false) setConfigState("needs_key");
           else setConfigState("ready");
@@ -150,6 +154,20 @@ export default function AsistenteIA() {
   };
 
   const handleKey = (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } };
+
+  if (configState === "session_expired") {
+    return (
+      <div style={{ padding: 24, background: C.bg, minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: 32, maxWidth: 420, textAlign: "center" }}>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>⏱</div>
+          <h2 style={{ margin: "0 0 8px", color: C.text, fontSize: 18 }}>Sesión expirada</h2>
+          <p style={{ color: C.textMid, fontSize: 13, lineHeight: 1.6, margin: 0 }}>
+            Vuelve a iniciar sesión en Admin y abre de nuevo el asistente IA.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (configState === "no_session") {
     return (

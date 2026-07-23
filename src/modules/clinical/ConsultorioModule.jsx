@@ -6,7 +6,7 @@ import { showToast } from "../../ui";
 import { fetchProductosConsumiblesConsultorio } from "../../utils/consumiblesConsultorio";
 import { citaPagoOk, citaEstaPagada } from "../../utils/consultaConstants";
 import OnboardingTour from "../../components/OnboardingTour";
-import { Paciente } from "./Paciente";
+import { FARMACIA_FISCAL } from "../../constants/farmaciaFiscal";
 import { Historial } from "./Historial";
 
 const BRAND = { primary:"#0D1B2A", secondary:"#1E3ABA", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
@@ -420,7 +420,7 @@ function EnConsulta() {
     </div>
     <div class="clinic">
       <div>Chinampac de Juárez, Iztapalapa</div>
-      <div>Ciudad de México</div>
+      <div>${FARMACIA_FISCAL.direccion_comercial}</div>
       <div style="margin-top:4px"><strong>Fecha:</strong> ${new Date().toLocaleDateString("es-MX",{year:"numeric",month:"long",day:"numeric"})}</div>
       <div><strong>Folio:</strong> RX-${citaActual.id||Date.now()}</div>
     </div>
@@ -465,7 +465,8 @@ function EnConsulta() {
 
   <div class="footer">
     Este documento es una receta médica oficial. Válida para surtir en FarmaCapital.<br/>
-    Chinampac de Juárez, Iztapalapa, CDMX · farmacapital.mx
+    ${FARMACIA_FISCAL.direccion_comercial}<br/>
+    farmacapital.mx · ${FARMACIA_FISCAL.maps_url}
   </div>
 </body>
 </html>`;

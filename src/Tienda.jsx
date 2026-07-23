@@ -23,11 +23,13 @@ import {
   openWhatsAppToFarmacia,
   buildCustomerToFarmaciaMessage,
 } from "./utils/orderReceiptWhatsApp";
+import { FARMACIA_FISCAL } from "./constants/farmaciaFiscal";
+import { validarPasswordTienda, PASSWORD_RULES_TEXT, PASSWORD_MIN_LENGTH } from "./utils/passwordPolicy";
 import {
   X, ShoppingCart, Pill, Tag as TagIcon, Stethoscope, Star,
   MapPin, Clock, Phone, Mail, HelpCircle, FileText,
   LogIn, UserPlus, ChevronRight, Menu, Package,
-  Store, Bike, PackageCheck, Trophy, CreditCard, Search
+  Store, Bike, PackageCheck, Trophy, CreditCard, Search, Calendar
 } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════
@@ -103,12 +105,13 @@ function sortCatalogoTienda(arr, busq) {
 
 // ── CONTACTO (descomentar cuando tengas número) ───────────────
 const CONTACTO = {
-  telefono: "55 6253 0631",
-  whatsapp: "5562530631",
-  email: "farmacapital@farmacapital.mx",
-  direccion: "Radiodifusora 100, Chinampac de Juárez, Iztapalapa, CDMX, C.P. 09208",
+  telefono: FARMACIA_FISCAL.telefono_display,
+  whatsapp: FARMACIA_FISCAL.telefono,
+  email: FARMACIA_FISCAL.email,
+  direccion: FARMACIA_FISCAL.direccion_comercial,
   horario: "Lun–Vie 8:00–22:00 · Sáb 8:00–20:00 · Dom 9:00–18:00",
-  maps_embed: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3763.5!2d-99.0518514!3d19.371062!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x85d1fd0b8b0fd10d%3A0x75316d7abacf16ae!2sRadiodifusora+100%2C+Iztapalapa!5e0!3m2!1ses!2smx!4v1",
+  maps_url: FARMACIA_FISCAL.maps_url,
+  maps_embed: FARMACIA_FISCAL.maps_embed,
 };
 
 // ── BANNERS ROTATIVOS ─────────────────────────────────────────
@@ -1323,14 +1326,19 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
 
           <div style={{display: "flex", gap: 12, marginBottom: 14}}>
             <MapPin size={18} color={BRAND.primary} style={{flexShrink: 0, marginTop: 2}}/>
-            <div>
+            <a
+              href={CONTACTO.maps_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ textDecoration: "none", color: "inherit" }}
+            >
               <div style={{fontSize: 14, fontWeight: 700, color: C.text}}>
                 Iztapalapa, CDMX
               </div>
-              <div style={{fontSize: 12, color: C.textMid, lineHeight: 1.4}}>
-                Radiodifusora 100, Col. Chinampac de Juárez
+              <div style={{fontSize: 12, color: BRAND.primary, lineHeight: 1.4, fontWeight: 600}}>
+                {CONTACTO.direccion} · Ver en Google Maps →
               </div>
-            </div>
+            </a>
           </div>
 
           <div style={{display: "flex", gap: 12, marginBottom: 14}}>
@@ -1861,7 +1869,10 @@ function Footer({setPage}){
         <div>
           <div style={{marginBottom:16}}><Logo size={28} /></div>
           <p style={{color:"rgba(255,255,255,.6)",fontSize:13,lineHeight:1.7,marginBottom:16}}>Tu farmacia de confianza en Chinampac de Juárez. Medicamentos genéricos y de marca certificados por COFEPRIS.</p>
-          <div style={{color:"rgba(255,255,255,.5)",fontSize:12}}>{CONTACTO.direccion}</div>
+          <div style={{color:"rgba(255,255,255,.5)",fontSize:12,marginBottom:8}}>{CONTACTO.direccion}</div>
+          <a href={CONTACTO.maps_url} target="_blank" rel="noopener noreferrer" style={{color:"rgba(255,255,255,.75)",fontSize:12,fontWeight:700,textDecoration:"none"}}>
+            📍 Ver en Google Maps →
+          </a>
         </div>
         {/* Atención a clientes */}
         <div>
@@ -1871,7 +1882,7 @@ function Footer({setPage}){
             // ["💬 WhatsApp", "55 XXXX XXXX", null],        // Descomentar cuando tengas WhatsApp
             ["Correo", "contacto@farmacapital.mx", null],
             ["Horario", CONTACTO.horario, null],
-            ["Dirección", "Radiodifusora 100, Iztapalapa", ()=>setPage("cita")],
+            ["Dirección", CONTACTO.direccion, () => window.open(CONTACTO.maps_url, "_blank", "noopener,noreferrer")],
           ].map(([l,v,fn])=>(
             <div key={l} style={{marginBottom:10}}>
               <div style={{color:"rgba(255,255,255,.5)",fontSize:11,marginBottom:2}}>{l}</div>
@@ -1946,7 +1957,10 @@ function ContenidoPickup({ C, color }){
       </ol>
       <h4 style={sH4(color)}>Dirección</h4>
       <p style={{margin:"0 0 12px"}}>
-        Radiodifusora 100, Col. Chinampac de Juárez, Iztapalapa, CDMX
+        {CONTACTO.direccion}{" "}
+        <a href={CONTACTO.maps_url} target="_blank" rel="noopener noreferrer" style={{color,fontWeight:700}}>
+          Ver en Google Maps →
+        </a>
       </p>
       <h4 style={sH4(color)}>Horario</h4>
       <ul style={sList}>
@@ -3439,6 +3453,11 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                 {esPickup?"Pick-up en FarmaCapital":esCdmx?"Reparto CDMX (Rappi/Uber)":"Envío foráneo (Skydropx)"}
               </div>
               <div style={{color:C.mid,fontSize:13,lineHeight:1.5}}>{instruccionEntrega}</div>
+              {esPickup && (
+                <a href={CONTACTO.maps_url} target="_blank" rel="noopener noreferrer" style={{display:"inline-block",marginTop:8,color:BRAND.primary,fontWeight:700,fontSize:13,textDecoration:"none"}}>
+                  📍 Cómo llegar (Google Maps) →
+                </a>
+              )}
             </div>
           </div>
         </div>
@@ -3536,6 +3555,9 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                 {!necesitaDireccion&&(
                   <div style={{background:"#eff6ff",border:`1px solid ${BRAND.secondary}30`,borderRadius:8,padding:"9px 12px",fontSize:12,color:BRAND.primary,lineHeight:1.5}}>
                     🏪 <strong>Pick-up en farmacia:</strong> Al confirmar el pago recibirás un folio. Preséntalo en farmacia para recoger tu pedido.
+                    <a href={CONTACTO.maps_url} target="_blank" rel="noopener noreferrer" style={{display:"block",marginTop:6,color:BRAND.primary,fontWeight:700,textDecoration:"none"}}>
+                      📍 {CONTACTO.direccion} · Ver en Google Maps →
+                    </a>
                   </div>
                 )}
                 <Btn onClick={()=>setStep(2)} col={BRAND.primary} style={{marginTop:20,width:stack?"100%":undefined}} disabled={!datosCheckoutCompletos}>
@@ -3616,8 +3638,21 @@ function AgendarCita({setPage,user}){
   const [guardando,setG]=useState(false);
   const [horasOcupadas,setHorasOcupadas]=useState([]);
   const [draftMsg, setDraftMsg] = useState("");
+  const fechaInputRef = useRef(null);
   const horarios=horariosDisponibles(fecha);
   const horariosLibres=horarios.filter(h=>!horasOcupadas.includes(h));
+
+  const abrirCalendarioFecha = () => {
+    const el = fechaInputRef.current;
+    if (!el) return;
+    try {
+      if (typeof el.showPicker === "function") {
+        el.showPicker();
+        return;
+      }
+    } catch (_) { /* requiere gesto del usuario en algunos navegadores */ }
+    el.focus();
+  };
 
   useEffect(()=>{
     try {
@@ -3691,7 +3726,7 @@ function AgendarCita({setPage,user}){
       {(tel||user?.telefono)&&(
         <button type="button" onClick={()=>{
           const t = tel||user?.telefono||"";
-          const msg = `📅 *Cita confirmada en FarmaCapital*\n\nHola${nombre?" "+nombre:""}! Tu cita médica ha sido registrada.\n\n🗓 Fecha: ${fecha}\n🕐 Hora: ${hora}\n👩‍⚕️ Médico general\n📍 Chinampac de Juárez, Iztapalapa, CDMX\n\n${motivo?"Motivo: "+motivo+"\n\n":""}💊 Al terminar tu consulta, surte tu receta en FarmaCapital con 10% de descuento.\n\n¡Te esperamos! 🏥`;
+          const msg = `📅 *Cita confirmada en FarmaCapital*\n\nHola${nombre?" "+nombre:""}! Tu cita médica ha sido registrada.\n\n🗓 Fecha: ${fecha}\n🕐 Hora: ${hora}\n👩‍⚕️ Médico general\n📍 ${CONTACTO.direccion}\n🗺 ${CONTACTO.maps_url}\n\n${motivo?"Motivo: "+motivo+"\n\n":""}💊 Al terminar tu consulta, surte tu receta en FarmaCapital con 10% de descuento.\n\n¡Te esperamos! 🏥`;
           window.open("https://wa.me/52"+t.replace(/\D/g,"")+"?text="+encodeURIComponent(msg),"_blank");
         }} style={{display:"flex",alignItems:"center",gap:8,margin:"0 auto",padding:"10px 24px",borderRadius:10,border:"none",background:"#25D366",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer"}}>
           📱 Enviar confirmación por WhatsApp
@@ -3729,15 +3764,15 @@ function AgendarCita({setPage,user}){
         <div style={{background:C.white,borderRadius:16,border:`1px solid ${C.border}`,overflow:"hidden"}}>
           <div style={{padding:"16px 20px",borderBottom:`1px solid ${C.border}`}}>
             <div style={{color:C.dark,fontWeight:700,fontSize:14}}>📍 Cómo llegar</div>
-            <div style={{color:C.mid,fontSize:12,marginTop:4}}>Radiodifusora 100, Chinampac de Juárez, Iztapalapa, CDMX</div>
+            <div style={{color:C.mid,fontSize:12,marginTop:4}}>{CONTACTO.direccion}</div>
           </div>
           <iframe
             title="Ubicación FarmaCapital"
-            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3763.5!2d-99.05669!3d19.37106!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x85d1fd0b8b0fd10d%3A0x75316d7abacf16ae!2sRadiodifusora+100%2C+Chinampac+de+Ju%C3%A1rez%2C+09208+Ciudad+de+M%C3%A9xico%2C+CDMX!5e0!3m2!1ses-419!2smx!4v1713000000000!5m2!1ses-419!2smx"
+            src={CONTACTO.maps_embed}
             width="100%" height="280" style={{border:"none",display:"block"}}
             allowFullScreen loading="lazy"/>
           <div style={{padding:"12px 16px"}}>
-            <a href="https://maps.app.goo.gl/Xyj2WV9UWdbVBctZ7" target="_blank" rel="noopener noreferrer"
+            <a href={CONTACTO.maps_url} target="_blank" rel="noopener noreferrer"
               style={{color:BRAND.primary,fontSize:13,fontWeight:700,textDecoration:"none"}}>
               📱 Abrir en Google Maps →
             </a>
@@ -3756,7 +3791,60 @@ function AgendarCita({setPage,user}){
         <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:16,marginBottom:16}}>
           <div><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Nombre completo <span style={{color:"#ef4444"}}>*</span></div><Inp value={nombre} onChange={e=>setNombre(e.target.value)} placeholder="Nombre y apellido" style={{width:"100%",boxSizing:"border-box"}}/></div>
           <div><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Teléfono <span style={{color:"#ef4444"}}>*</span></div><Inp value={tel} onChange={e=>setTel(e.target.value)} placeholder="10+ dígitos" type="tel" style={{width:"100%",boxSizing:"border-box"}}/></div>
-          <div><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Fecha</div><input type="date" value={fecha} onChange={e=>setFecha(e.target.value)} min={localISODate()} style={{width:"100%",boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:C.white,color:C.dark,fontSize:16,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}/></div>
+          <div>
+            <div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Fecha</div>
+            <div style={{position:"relative"}}>
+              <input
+                ref={fechaInputRef}
+                type="date"
+                lang="es-MX"
+                value={fecha}
+                onChange={e=>setFecha(e.target.value)}
+                onClick={abrirCalendarioFecha}
+                min={localISODate()}
+                aria-label="Fecha de la cita"
+                style={{
+                  width:"100%",
+                  boxSizing:"border-box",
+                  padding:"9px 44px 9px 13px",
+                  borderRadius:8,
+                  border:`1px solid ${C.border}`,
+                  background:C.white,
+                  color:C.dark,
+                  colorScheme:"light",
+                  fontSize:16,
+                  outline:"none",
+                  fontFamily:"'Plus Jakarta Sans',sans-serif",
+                  cursor:"pointer",
+                  WebkitAppearance:"none",
+                  appearance:"none",
+                }}
+              />
+              <button
+                type="button"
+                onClick={abrirCalendarioFecha}
+                aria-label="Abrir calendario"
+                style={{
+                  position:"absolute",
+                  right:4,
+                  top:"50%",
+                  transform:"translateY(-50%)",
+                  display:"flex",
+                  alignItems:"center",
+                  justifyContent:"center",
+                  width:36,
+                  height:36,
+                  border:"none",
+                  borderRadius:8,
+                  background:"transparent",
+                  color:BRAND.secondary,
+                  cursor:"pointer",
+                }}
+              >
+                <Calendar size={18} strokeWidth={2.25} aria-hidden="true"/>
+              </button>
+            </div>
+          </div>
           <div>
             <div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Horario {fecha&&horarios.length===0?"— Sin disponibilidad hoy":""}</div>
             <select value={hora} onChange={e=>setHora(e.target.value)} style={{width:"100%",padding:"11px 14px",borderRadius:10,border:`2px solid ${C.border}`,color:hora?C.dark:C.dim,fontSize:16,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
@@ -3989,7 +4077,9 @@ function Registro({setUser,setPage}){
       setError("Indicá un teléfono válido (10 dígitos) o un correo electrónico válido (podés poner ambos).");
       return;
     }
-    if(pwd.length < 6) { setError("La contraseña debe tener al menos 6 caracteres."); return; }
+    if(pwd.length < PASSWORD_MIN_LENGTH) { setError(`La contraseña debe tener al menos ${PASSWORD_MIN_LENGTH} caracteres.`); return; }
+    const valPwd = validarPasswordTienda(pwd);
+    if (!valPwd.ok) { setError(valPwd.error); return; }
     if(pwd !== pwd2) { setError("Las contraseñas no coinciden."); return; }
     setC(true); setError("");
     try{
@@ -4026,10 +4116,10 @@ function Registro({setUser,setPage}){
         <div style={{marginBottom:14}}><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Teléfono {correoTiendaValido(email)?"(opcional)":"(o completá correo abajo)"}</div><Inp value={tel} onChange={e=>setTel(e.target.value)} placeholder="55XXXXXXXX — 10 dígitos" type="tel" style={{width:"100%",boxSizing:"border-box"}}/></div>
         <div style={{marginBottom:14}}><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Correo electrónico {telefonoMxValido(tel)?"(opcional)":"(o completá teléfono arriba)"}</div><Inp value={email} onChange={e=>setEmail(e.target.value)} placeholder="tu@correo.com" type="email" style={{width:"100%",boxSizing:"border-box"}}/></div>
         <div style={{marginBottom:14}}>
-          <div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Contraseña * <span style={{color:C.dim,fontWeight:400}}>(mínimo 6 caracteres)</span></div>
+          <div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Contraseña * <span style={{color:C.dim,fontWeight:400}}>({PASSWORD_RULES_TEXT})</span></div>
           <input name="password" autoComplete="new-password" value={pwd} onChange={e=>setPwd(e.target.value)} placeholder="••••••••" type="password"
-            style={{width:"100%",boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:`1px solid ${pwd.length>0&&pwd.length<6?C.red:C.border}`,background:C.white,color:C.dark,fontSize:16,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}/>
-          {pwd.length>0&&pwd.length<6&&<div style={{color:C.red,fontSize:11,marginTop:4}}>Mínimo 6 caracteres</div>}
+            style={{width:"100%",boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:`1px solid ${pwd.length>0&&!validarPasswordTienda(pwd).ok?C.red:C.border}`,background:C.white,color:C.dark,fontSize:16,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}/>
+          {pwd.length>0&&!validarPasswordTienda(pwd).ok&&<div style={{color:C.red,fontSize:11,marginTop:4}}>{validarPasswordTienda(pwd).error}</div>}
         </div>
         <div style={{marginBottom:20}}>
           <div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Confirmar contraseña *</div>
@@ -4049,8 +4139,133 @@ function Registro({setUser,setPage}){
             {" "}de FarmaCapital. Autorizo el uso de mis datos para gestionar mi cuenta y programa de puntos. <span style={{color:"#ef4444",fontWeight:700}}>*</span>
           </label>
         </div>
-        <Btn onClick={registrar} col={BRAND.primary} full disabled={!nombre||!contactoOk||!pwd||!pwd2||pwd!==pwd2||pwd.length<6||creando||!acepto}>{creando?"Creando cuenta...":"Crear mi cuenta →"}</Btn>
+        <Btn onClick={registrar} col={BRAND.primary} full disabled={!nombre||!contactoOk||!pwd||!pwd2||pwd!==pwd2||!validarPasswordTienda(pwd).ok||creando||!acepto}>{creando?"Creando cuenta...":"Crear mi cuenta →"}</Btn>
         <div style={{textAlign:"center",marginTop:16}}><span style={{color:C.mid,fontSize:13}}>¿Ya tienes cuenta? </span><button onClick={()=>setPage("login")} style={{background:"none",border:"none",color:BRAND.primary,fontWeight:700,fontSize:13,cursor:"pointer"}}>Iniciar sesión</button></div>
+      </div>
+    </div>
+  );
+}
+
+// ── RESTABLECER CONTRASEÑA (enlace WhatsApp) ─────────────────
+function RestablecerPassword({ token, setPage }) {
+  const C = useTheme();
+  const [validando, setValidando] = useState(true);
+  const [valido, setValido] = useState(false);
+  const [nombre, setNombre] = useState("");
+  const [errorToken, setErrorToken] = useState("");
+  const [pwd, setPwd] = useState("");
+  const [pwd2, setPwd2] = useState("");
+  const [msg, setMsg] = useState(null);
+  const [guardando, setGuardando] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setValidando(true);
+      setErrorToken("");
+      try {
+        const { data, error } = await supabase.rpc("cliente_validar_reset_token", {
+          p_token: token,
+        });
+        if (cancelled) return;
+        if (error || !data?.valid) {
+          setValido(false);
+          setErrorToken(data?.error || error?.message || "Enlace no válido o expirado.");
+          return;
+        }
+        setValido(true);
+        setNombre(String(data.nombre || "Cliente"));
+      } catch (e) {
+        if (!cancelled) setErrorToken("No se pudo validar el enlace. Intenta solicitar uno nuevo.");
+      } finally {
+        if (!cancelled) setValidando(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [token]);
+
+  const guardar = async () => {
+    const val = validarPasswordTienda(pwd);
+    if (!val.ok) { setMsg({ ok: false, txt: val.error }); return; }
+    if (pwd !== pwd2) { setMsg({ ok: false, txt: "Las contraseñas no coinciden." }); return; }
+    setGuardando(true);
+    setMsg(null);
+    try {
+      const { data, error } = await supabase.rpc("cliente_completar_reset_password", {
+        p_token: token,
+        p_password: pwd,
+        p_confirm: pwd2,
+      });
+      if (error || !data?.success) {
+        setMsg({ ok: false, txt: data?.error || error?.message || "No se pudo guardar la contraseña." });
+        setGuardando(false);
+        return;
+      }
+      setMsg({ ok: true, txt: "✅ Contraseña actualizada. Ya puedes iniciar sesión." });
+      setTimeout(() => {
+        try {
+          const u = new URL(window.location.href);
+          u.searchParams.delete("reset");
+          window.history.replaceState({ page: "login" }, "", u.pathname + (u.search || ""));
+        } catch (_) { /* noop */ }
+        setPage("login");
+      }, 1200);
+    } catch (e) {
+      setMsg({ ok: false, txt: "Error de conexión. Intenta de nuevo." });
+    }
+    setGuardando(false);
+  };
+
+  const inp = {
+    width: "100%",
+    boxSizing: "border-box",
+    padding: "9px 13px",
+    borderRadius: 8,
+    border: `1px solid ${C.border}`,
+    background: C.white,
+    color: C.dark,
+    fontSize: 16,
+    outline: "none",
+    fontFamily: "'Plus Jakarta Sans',sans-serif",
+  };
+
+  return (
+    <div style={{ maxWidth: 440, margin: "80px auto", padding: "0 24px" }}>
+      <div style={{ background: C.white, borderRadius: 20, border: `1px solid ${C.border}`, padding: 40 }}>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}><Logo size={40}/></div>
+        <h1 style={{ color: C.dark, fontSize: 24, fontWeight: 800, marginBottom: 8, textAlign: "center" }}>Nueva contraseña</h1>
+        {validando ? (
+          <p style={{ color: C.mid, textAlign: "center" }}>Validando enlace…</p>
+        ) : !valido ? (
+          <>
+            <p style={{ color: C.red, fontSize: 14, textAlign: "center", lineHeight: 1.5, marginBottom: 20 }}>{errorToken}</p>
+            <Btn onClick={() => setPage("login")} col={BRAND.primary} full>Ir a iniciar sesión</Btn>
+          </>
+        ) : (
+          <>
+            <p style={{ color: C.mid, fontSize: 14, marginBottom: 20, textAlign: "center", lineHeight: 1.5 }}>
+              Hola{ nombre ? ` ${nombre}` : "" }, crea tu nueva contraseña para la tienda FarmaCapital.
+            </p>
+            <p style={{ color: C.textMid, fontSize: 12, marginBottom: 16, textAlign: "center" }}>{PASSWORD_RULES_TEXT}</p>
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ color: C.mid, fontSize: 12, fontWeight: 700, marginBottom: 6 }}>Nueva contraseña *</div>
+              <input type="password" value={pwd} onChange={(e) => setPwd(e.target.value)} autoComplete="new-password" style={inp}/>
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ color: C.mid, fontSize: 12, fontWeight: 700, marginBottom: 6 }}>Confirmar contraseña *</div>
+              <input type="password" value={pwd2} onChange={(e) => setPwd2(e.target.value)} autoComplete="new-password" style={inp}/>
+            </div>
+            {msg && (
+              <div style={{
+                background: msg.ok ? "#ecfdf5" : C.red + "10",
+                border: `1px solid ${msg.ok ? "#6ee7b7" : C.red + "30"}`,
+                borderRadius: 8, padding: "10px 12px", marginBottom: 12,
+                color: msg.ok ? "#047857" : C.red, fontSize: 13,
+              }}>{msg.txt}</div>
+            )}
+            <Btn onClick={guardar} col={BRAND.primary} full disabled={guardando || !pwd || !pwd2}>{guardando ? "Guardando…" : "Guardar contraseña"}</Btn>
+          </>
+        )}
       </div>
     </div>
   );
@@ -4108,7 +4323,7 @@ function Login({setUser,setPage}){
 
   const enviarRecuperar = async () => {
     const raw = recIdent.trim();
-    const identNorm = correoTiendaValido(raw) ? raw : (telefonoMxValido(raw) ? soloDigitosTel(raw) : "");
+    const identNorm = correoTiendaValido(raw) ? raw.toLowerCase() : (telefonoMxValido(raw) ? soloDigitosTel(raw) : "");
     if (!identNorm) {
       setRecMsg({ ok: false, txt: "Escribí un correo válido o un teléfono con al menos 10 dígitos." });
       return;
@@ -4116,14 +4331,17 @@ function Login({setUser,setPage}){
     setRecBusy(true);
     setRecMsg(null);
     try {
-      const { data: resp, error: err } = await supabase.rpc("solicitar_reset_password", {
-        p_identificador: identNorm,
-        p_ip: null,
+      const resp = await fetch("/api/auth/password-reset-request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identificador: identNorm }),
       });
-      if (err || resp?.success === false) throw err || new Error(resp?.error || "rpc");
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok || !data?.ok) throw new Error(data?.error || "request_failed");
       setRecMsg({
         ok: true,
-        txt: "Listo. Recibimos tu solicitud: el equipo de FarmaCapital te contactará para activar tu contraseña de tienda. Si ya sos cliente de sucursal y no tenías clave web, también podés pedirla en mostrador.",
+        txt: data.message ||
+          "Si tu correo o teléfono está registrado, recibirás un enlace por WhatsApp en unos minutos para crear tu nueva contraseña.",
       });
     } catch (_) {
       setRecMsg({ ok: false, txt: "No se pudo enviar la solicitud. Intentá de nuevo o escribinos a contacto@farmacapital.mx." });
@@ -4141,7 +4359,8 @@ function Login({setUser,setPage}){
         {recMode ? (
           <>
             <p style={{color:C.textMid,fontSize:13,marginBottom:16,lineHeight:1.5}}>
-              Indicá el <strong>mismo correo o teléfono</strong> que usás en FarmaCapital. Te avisaremos cuando tu cuenta tenga contraseña para la tienda.
+              Indicá el <strong>mismo correo o teléfono</strong> de tu cuenta FarmaCapital (incluido el celular que diste en mostrador).
+              Si está registrado, te enviaremos un <strong>enlace por WhatsApp</strong> para crear tu nueva contraseña.
             </p>
             <div style={{marginBottom:12}}>
               <div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Correo o teléfono</div>
@@ -4157,7 +4376,7 @@ function Login({setUser,setPage}){
                 color: recMsg.ok ? "#047857" : C.red, fontSize: 13, lineHeight: 1.45,
               }}>{recMsg.txt}</div>
             )}
-            <Btn onClick={enviarRecuperar} col={BRAND.primary} full disabled={recBusy || !recIdent.trim()}>{recBusy ? "Enviando…" : "Enviar solicitud"}</Btn>
+            <Btn onClick={enviarRecuperar} col={BRAND.primary} full disabled={recBusy || !recIdent.trim()}>{recBusy ? "Enviando…" : "Enviar enlace de recuperación"}</Btn>
             <div style={{textAlign:"center",marginTop:14}}>
               <button type="button" onClick={()=>{ setRecMode(false); setRecMsg(null); }} style={{background:"none",border:"none",color:C.mid,fontSize:13,cursor:"pointer",textDecoration:"underline"}}>Volver al inicio de sesión</button>
             </div>
@@ -4205,7 +4424,8 @@ function CambiarPwdCliente({user}) {
 
   const cambiar = async () => {
     if(!pwdA||!pwdN||!pwdN2) { setMsg({ok:false,txt:"Completa todos los campos"}); return; }
-    if(pwdN.length<6) { setMsg({ok:false,txt:"La nueva contraseña debe tener al menos 6 caracteres"}); return; }
+    const val = validarPasswordTienda(pwdN);
+    if (!val.ok) { setMsg({ok:false,txt:val.error}); return; }
     if(pwdN!==pwdN2) { setMsg({ok:false,txt:"Las contraseñas no coinciden"}); return; }
     setCarg(true); setMsg(null);
     try {
@@ -4213,8 +4433,8 @@ function CambiarPwdCliente({user}) {
       if (!tok) { setMsg({ok:false,txt:"Sesión expirada. Inicia sesión de nuevo."}); setCarg(false); return; }
       const { data:resp, error:err } = await supabase.rpc("cliente_cambiar_password", {
         p_session_token: tok,
-        p_password_actual: pwdA,
-        p_password_nueva:  pwdN,
+        p_actual: pwdA,
+        p_nueva: pwdN,
       });
       if (err) throw err;
       if (!resp?.success) { setMsg({ok:false,txt:resp?.error || "No se pudo cambiar"}); setCarg(false); return; }
@@ -4229,7 +4449,7 @@ function CambiarPwdCliente({user}) {
   return(
     <div>
       <input type="password" placeholder="Contraseña actual" value={pwdA} onChange={e=>setPwdA(e.target.value)} style={inpS} autoComplete="current-password"/>
-      <input type="password" placeholder="Nueva contraseña (mín. 6 chars)" value={pwdN} onChange={e=>setPwdN(e.target.value)} style={inpS} autoComplete="new-password"/>
+      <input type="password" placeholder={`Nueva contraseña (${PASSWORD_RULES_TEXT})`} value={pwdN} onChange={e=>setPwdN(e.target.value)} style={inpS} autoComplete="new-password"/>
       <input type="password" placeholder="Confirmar nueva contraseña" value={pwdN2} onChange={e=>setPwdN2(e.target.value)} style={{...inpS,marginBottom:10}} autoComplete="new-password"/>
       {msg&&<div style={{padding:"8px 12px",borderRadius:8,marginBottom:8,fontSize:12,fontWeight:600,background:msg.ok?"#dcfce7":"#fee2e2",color:msg.ok?"#16a34a":"#dc2626"}}>{msg.txt}</div>}
       <Btn onClick={cambiar} col={BRAND.primary} sm dis={carg}>{carg?"Cambiando...":"Cambiar contraseña"}</Btn>
@@ -4570,12 +4790,38 @@ function Cuenta({user,setPage,setUser}){
 // ── APP PRINCIPAL ─────────────────────────────────────────────
 export default function TiendaFarmaCapital(){
   const C = useTheme();
-  const [page,setPageRaw] = useState("home");
-  const setPage = (p) => { window.history.pushState({page:p},"",window.location.pathname); setPageRaw(p); };
+  const initialResetToken = (() => {
+    try { return new URLSearchParams(window.location.search).get("reset") || ""; } catch { return ""; }
+  })();
+  const [resetToken, setResetToken] = useState(initialResetToken);
+  const [page,setPageRaw] = useState(() => (initialResetToken ? "reset-password" : "home"));
+  const setPage = (p) => {
+    try {
+      const u = new URL(window.location.href);
+      if (p !== "reset-password") u.searchParams.delete("reset");
+      const qs = u.searchParams.toString();
+      window.history.pushState({ page: p }, "", u.pathname + (qs ? `?${qs}` : ""));
+    } catch {
+      window.history.pushState({ page: p }, "", window.location.pathname);
+    }
+    setPageRaw(p);
+  };
   useEffect(()=>{
     const h=(e)=>setPageRaw(e.state?.page||"home");
     window.addEventListener("popstate",h);
-    window.history.replaceState({page:"home"},"",window.location.pathname);
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const reset = params.get("reset");
+      if (reset) {
+        setResetToken(reset);
+        setPageRaw("reset-password");
+        window.history.replaceState({ page: "reset-password" }, "", `${window.location.pathname}?reset=${encodeURIComponent(reset)}`);
+      } else {
+        window.history.replaceState({ page: "home" }, "", window.location.pathname);
+      }
+    } catch {
+      window.history.replaceState({ page: "home" }, "", window.location.pathname);
+    }
     return ()=>window.removeEventListener("popstate",h);
   },[]);
   useEffect(()=>{
@@ -4792,6 +5038,7 @@ export default function TiendaFarmaCapital(){
     cita:          <AgendarCita setPage={setPage} user={user}/>,
     login:         <Login setUser={setUser} setPage={setPage}/>,
     registro:      <Registro setUser={setUser} setPage={setPage}/>,
+    "reset-password": <RestablecerPassword token={resetToken} setPage={setPage}/>,
     cuenta:        <Cuenta user={user} setPage={setPage} setUser={setUser}/>,
     puntos:        puntosPage,
     faq:           <FAQPage setPage={setPage}/>,

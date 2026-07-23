@@ -185,7 +185,7 @@ module.exports = async function handler(req, res) {
   };
 
   // Validar que el session_token pertenece a un empleado activo
-  const tokRes = await fetch(`${SUPABASE_URL}/rest/v1/rpc/fn_validar_session_token`, {
+  const tokRes = await fetch(`${SUPABASE_URL}/rest/v1/rpc/fn_validar_token_empleado`, {
     method: "POST",
     headers: supaHeaders,
     body: JSON.stringify({ p_token: session_token }),
@@ -194,7 +194,7 @@ module.exports = async function handler(req, res) {
     return res.status(401).json({ ok: false, error: "Sesión inválida o expirada" });
   }
   const tokData = await tokRes.json();
-  if (!tokData || tokData === null || tokData === false || tokData?.error) {
+  if (tokData == null || Number(tokData) <= 0) {
     return res.status(401).json({ ok: false, error: "Sesión inválida" });
   }
 

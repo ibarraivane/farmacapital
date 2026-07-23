@@ -18,7 +18,7 @@ import OnboardingTour from "../../../components/OnboardingTour";
 import { TOURS } from "../../../utils/tours";
 import { labelTipoEntregaPedido, resumenLogisticsMeta } from "../../../utils/orderChannels";
 import { buildOnlineOrderReceiptMessage, formatFolioOnline, openWhatsAppToCustomer } from "../../../utils/orderReceiptWhatsApp";
-import { configRowsToMap, mergeFarmaciaConfig } from "../../../constants/farmaciaFiscal";
+import { configRowsToMap, mergeFarmaciaConfig, FARMACIA_FISCAL } from "../../../constants/farmaciaFiscal";
 
 const PEDIDOS_TIENDA_SELECT_POS = `
             id,total,created_at,tipo,metodo_pago,estado,tipo_entrega,direccion,
@@ -858,7 +858,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       // L4: Notificar al cliente por WhatsApp cuando pedido está listo
       const telCli = pedido.clientes?.telefono;
       if(telCli) {
-        const msg = `🏥 *FarmaCapital*\n\n✅ ¡Tu pedido #${pedido.id} está listo!\n\nPuedes pasar a recogerlo en:\n📍 Chinampac de Juárez, Iztapalapa, CDMX\n\n¡Te esperamos! 💊`;
+        const msg = `🏥 *FarmaCapital*\n\n✅ ¡Tu pedido #${pedido.id} está listo!\n\nPuedes pasar a recogerlo en:\n📍 ${FARMACIA_FISCAL.direccion_comercial}\n🗺 ${FARMACIA_FISCAL.maps_url}\n\n¡Te esperamos! 💊`;
         showToast(`Pedido listo. ${telCli?"Puedes notificar al cliente por WhatsApp":""}`, "success");
         // Botón manual para no abrir sin permiso
       }

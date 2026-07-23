@@ -5,6 +5,7 @@ import { FARMACIA_FISCAL } from "../constants/farmaciaFiscal";
 export const FARMACIA_WHATSAPP = FARMACIA_FISCAL.telefono;
 export const FARMACIA_WHATSAPP_DISPLAY = FARMACIA_FISCAL.telefono_display;
 export const FARMACIA_DIRECCION = FARMACIA_FISCAL.direccion_comercial;
+export const FARMACIA_MAPS_URL = FARMACIA_FISCAL.maps_url;
 
 export function formatFolioOnline(pedidoId) {
   if (pedidoId == null) return null;
@@ -41,7 +42,7 @@ export function buildOnlineOrderReceiptMessage({
       : "Envío a domicilio";
   const pickupNote =
     tipoEntrega === "recoger"
-      ? `\n\n🏪 Muestra tu folio *${folio}* o menciona tu teléfono al llegar.`
+      ? `\n\n🏪 Muestra tu folio *${folio}* o menciona tu teléfono al llegar.\n📍 ${FARMACIA_MAPS_URL}`
       : "\n\n📞 Te contactamos para coordinar tu entrega.";
   const pagoTxt = metodoPago
     ? `\n💳 *Pago:* ${String(metodoPago).replace(/_/g, " ")}`

@@ -27,6 +27,10 @@ export const FARMACIA_FISCAL = {
   email: "contacto@farmacapital.mx",
   sitio_web: "farmacapital.mx",
   inicio_operaciones: "2016-05-18",
+  /** Listado oficial Google Maps — FarmaCapital */
+  maps_url: "https://maps.app.goo.gl/qmSixa2qVSM5DD3QA",
+  maps_embed:
+    "https://www.google.com/maps?q=19.3714047,-99.0526916&hl=es&z=17&output=embed",
 };
 
 /** Claves en tabla `configuracion` (Supabase) */

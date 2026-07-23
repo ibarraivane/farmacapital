@@ -43,11 +43,12 @@ async function rpc(supabaseUrl, serviceKey, fn, payload) {
 async function validateSession(supabaseUrl, serviceKey, sessionToken) {
   if (!sessionToken) return false;
   try {
-    const data = await rpc(supabaseUrl, serviceKey, 'fn_validar_session_token', {
+    const data = await rpc(supabaseUrl, serviceKey, 'fn_validar_token_empleado', {
       p_token: sessionToken,
     });
-    return Boolean(data && data !== false && !data?.error);
-  } catch {
+    return data != null && Number(data) > 0;
+  } catch (e) {
+    console.warn('[ai/chat] validateSession:', e?.message);
     return false;
   }
 }
