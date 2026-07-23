@@ -1,7 +1,9 @@
 'use strict';
 
-const FARMACIA_WHATSAPP_DISPLAY = '55 6253 0631';
-const FARMACIA_DIRECCION = 'Radiodifusora 100, Chinampac de Juárez, Iztapalapa, CDMX';
+const { FARMACIA_FISCAL } = require('./farmaciaFiscal');
+
+const FARMACIA_WHATSAPP_DISPLAY = FARMACIA_FISCAL.telefono_display;
+const FARMACIA_DIRECCION = FARMACIA_FISCAL.direccion_comercial;
 
 function digitsOnly(v) {
   return String(v || '').replace(/\D/g, '');

@@ -1,6 +1,7 @@
 import React, { forwardRef } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { BRAND_LOGO } from "../../brand";
+import { mergeFarmaciaConfig } from "../../constants/farmaciaFiscal";
 import "../../styles/ticket.css";
 
 /**
@@ -23,6 +24,7 @@ const TicketVenta = forwardRef(({
   config     = {},
   promoMsg   = null,
 }, ref) => {
+  const cfg = mergeFarmaciaConfig(config);
 
   // ── Datos calculados ────────────────────────────────────
   const fecha    = new Date(venta.created_at || Date.now());
@@ -48,18 +50,19 @@ const TicketVenta = forwardRef(({
 
       {/* ══ HEADER ══ */}
       <div className="center ticket-logo-wrap">
-        <img src={BRAND_LOGO.full} alt="FarmaCapital" className="ticket-logo-img" />
-        <div style={{ fontSize: 9, marginTop: 4 }}>"Tu salud primero"</div>
+        <img src={BRAND_LOGO.icon} alt="" className="ticket-logo-icon" aria-hidden="true" />
+        <div className="ticket-brand-name">FarmaCapital</div>
+        <div className="ticket-brand-slogan">"Tu salud primero"</div>
       </div>
 
       <div className="separator"/>
 
       {/* ══ DATOS FARMACIA ══ */}
       <div style={{fontSize:9,lineHeight:1.6}}>
-        <div>Sucursal: {config.nombre_farmacia||"FarmaCapital"}</div>
-        <div>Dirección: {config.direccion_farmacia||"Chinampac de Juárez, Iztapalapa, CDMX"}</div>
-        {config.rfc&&<div>RFC: {config.rfc}</div>}
-        {config.telefono_farmacia&&<div>Tel: {config.telefono_farmacia}</div>}
+        <div>Sucursal: {cfg.nombre_farmacia}</div>
+        <div>Dirección: {cfg.direccion_farmacia}</div>
+        <div>RFC: {cfg.rfc}</div>
+        {cfg.telefono_farmacia && <div>Tel: {cfg.telefono_farmacia_display || cfg.telefono_farmacia}</div>}
       </div>
 
       <div className="separator"/>

@@ -27,7 +27,7 @@ import {
   X, ShoppingCart, Pill, Tag as TagIcon, Stethoscope, Star,
   MapPin, Clock, Phone, Mail, HelpCircle, FileText,
   LogIn, UserPlus, ChevronRight, Menu, Package,
-  Store, Bike, PackageCheck, Trophy, CreditCard
+  Store, Bike, PackageCheck, Trophy, CreditCard, Search
 } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════
@@ -1735,67 +1735,36 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
   return(
     <div style={{maxWidth:1100,margin:"0 auto",padding:"clamp(20px, 4vw, 32px) 16px"}}>
       <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:16,marginBottom:20}}>
-        <div style={{position:"relative",zIndex:25}}>
-          <Inp
-            value={busqHero||""}
-            onChange={(e)=>{
-              const v = e.target.value;
-              setBusqHero?.(v);
-              try { if (v.trim()) sessionStorage.setItem("farmacapital_busq", v); } catch (err) { /* ignore */ }
-            }}
-            onKeyDown={(e)=>{
-              if (e.key === "Enter") {
-                e.preventDefault();
-                irACatalogoBusqueda();
-              }
-              if (e.key === "Escape") setBusqFocus(false);
-            }}
-            onFocus={()=>setBusqFocus(true)}
-            onBlur={()=>setTimeout(()=>setBusqFocus(false),280)}
-            placeholder="🔍 Buscar otro producto (nombre, principio activo, SKU…)"
-            style={{width:"100%",boxSizing:"border-box",fontSize:16,marginBottom:0}}
-          />
-          {suggestions.length>0&&(
-            <div role="listbox" aria-label="Sugerencias de búsqueda" style={{
-              position:"absolute",left:0,right:0,top:"100%",marginTop:4,
-              background:C.white,border:`1px solid ${C.border}`,borderRadius:10,
-              boxShadow:"0 16px 48px rgba(15,23,42,.12)",maxHeight:"min(45vh, 320px)",overflowY:"auto",WebkitOverflowScrolling:"touch",zIndex:50,
-            }}>
-              {suggestions.map((s)=>(
-                <button
-                  key={s.id}
-                  type="button"
-                  role="option"
-                  onPointerDown={(e)=>{
-                    // Mantener foco en desktop para permitir click de sugerencia,
-                    // sin bloquear gestos táctiles de scroll en móvil.
-                    if (e.pointerType === "mouse") e.preventDefault();
-                  }}
-                  onClick={()=>{
-                    const row = productos.find((x)=>x.id===s.id);
-                    if (row){
-                      setProdDetalle(row);
-                      setBusqFocus(false);
-                      window.scrollTo({ top: 0, behavior: "smooth" });
-                    }
-                  }}
-                  style={{
-                    display:"block",width:"100%",textAlign:"left",padding:"10px 14px",border:"none",
-                    borderBottom:`1px solid ${C.border}`,background:"transparent",cursor:"pointer",
-                    fontFamily:"'Plus Jakarta Sans',sans-serif",
-                  }}
-                >
-                  <div style={{color:C.dark,fontWeight:700,fontSize:13,lineHeight:1.35}}>{s.nombre}</div>
-                  <div style={{color:C.dim,fontSize:11,marginTop:3,display:"flex",flexWrap:"wrap",gap:8}}>
-                    {s.sku?<span>SKU <strong style={{color:BRAND.primary}}>{s.sku}</strong></span>:null}
-                    {s.codigo_barras?<span>Cód. {s.codigo_barras}</span>:null}
-                    {Number(s.stock)<=0?<span style={{color:C.red}}>Agotado</span>:null}
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        <TiendaBusquedaBar
+          compact
+          value={busqHero||""}
+          onChange={(e)=>{
+            const v = e.target.value;
+            setBusqHero?.(v);
+            try { if (v.trim()) sessionStorage.setItem("farmacapital_busq", v); } catch (err) { /* ignore */ }
+          }}
+          onKeyDown={(e)=>{
+            if (e.key === "Enter") {
+              e.preventDefault();
+              irACatalogoBusqueda();
+            }
+            if (e.key === "Escape") setBusqFocus(false);
+          }}
+          onFocus={()=>setBusqFocus(true)}
+          onBlur={()=>setTimeout(()=>setBusqFocus(false),280)}
+          placeholder="Buscar otro producto (nombre, principio activo, SKU…)"
+          suggestions={suggestions}
+          productos={productos}
+          onPickSuggestion={(row)=>{
+            if (row){
+              setProdDetalle(row);
+              setBusqFocus(false);
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }
+          }}
+          setPage={setPage}
+          stack={stack}
+        />
         <div style={{display:"flex",flexWrap:"wrap",gap:10,alignItems:"center",marginTop:12}}>
           <Btn sm col={BRAND.primary} onClick={irACatalogoBusqueda}>Ver resultados en catálogo</Btn>
           <span style={{color:C.dim,fontSize:12}}>Enter también abre el catálogo filtrado</span>
@@ -1855,8 +1824,8 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
             </div>
           )}
           <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
-            <Btn onClick={()=>{ if(agotado) return; addToCart(prod);setAdded(true);setTimeout(()=>setAdded(false),1500); }} dis={agotado} col={agotado?"#94a3b8":added?BRAND.secondary:BRAND.primary} style={{flex:"1 1 min(100%,200px)",minWidth:0}}>{agotado?"Agotado":added?"✓ Agregado":"Agregar al carrito"}</Btn>
-            <Btn onClick={()=>{ if(agotado) return; addToCart(prod);setPage("carrito"); }} dis={agotado} outline col={BRAND.primary} style={{flex:"1 1 min(100%,200px)",minWidth:0}}>Comprar ahora</Btn>
+            <Btn onClick={()=>{ if(agotado) return; addToCart(prod);setAdded(true);setTimeout(()=>setAdded(false),1500); }} disabled={agotado} col={agotado?"#94a3b8":added?BRAND.secondary:BRAND.primary} style={{flex:"1 1 min(100%,200px)",minWidth:0}}>{agotado?"Agotado":added?"✓ Agregado":"Agregar al carrito"}</Btn>
+            <Btn onClick={()=>{ if(agotado) return; addToCart(prod);setPage("carrito"); }} disabled={agotado} outline col={BRAND.primary} style={{flex:"1 1 min(100%,200px)",minWidth:0}}>Comprar ahora</Btn>
           </div>
         </div>
       </div>
@@ -2417,6 +2386,173 @@ function HomePromociones({promos,setPage}){
   );
 }
 
+function TiendaSearchSuggestions({ suggestions, productos, onPick, C }) {
+  if (!suggestions?.length) return null;
+  return (
+    <div
+      role="listbox"
+      aria-label="Sugerencias de búsqueda"
+      style={{
+        position: "absolute",
+        left: 0,
+        right: 0,
+        top: "100%",
+        marginTop: 6,
+        background: C.white,
+        border: `1px solid ${C.border}`,
+        borderRadius: 14,
+        boxShadow: "0 16px 48px rgba(15,23,42,.14)",
+        maxHeight: "min(50vh, 300px)",
+        overflowY: "auto",
+        WebkitOverflowScrolling: "touch",
+        zIndex: 50,
+      }}
+    >
+      {suggestions.map((s) => {
+        const row = productos.find((x) => x.id === s.id);
+        return (
+          <button
+            key={s.id}
+            type="button"
+            role="option"
+            onPointerDown={(e) => {
+              if (e.pointerType === "mouse") e.preventDefault();
+            }}
+            onClick={() => onPick(row, s)}
+            style={{
+              display: "block",
+              width: "100%",
+              textAlign: "left",
+              padding: "10px 14px",
+              border: "none",
+              borderBottom: `1px solid ${C.border}`,
+              background: "transparent",
+              cursor: "pointer",
+              fontFamily: "'Plus Jakarta Sans',sans-serif",
+            }}
+          >
+            <div style={{ color: C.dark, fontWeight: 700, fontSize: 13, lineHeight: 1.35 }}>{s.nombre}</div>
+            <div style={{ color: C.dim, fontSize: 11, marginTop: 3, display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {s.sku ? <span>SKU <strong style={{ color: BRAND.primary }}>{s.sku}</strong></span> : null}
+              {s.codigo_barras ? <span>Cód. {s.codigo_barras}</span> : null}
+              {Number(s.stock) <= 0 ? <span style={{ color: C.red }}>Agotado</span> : null}
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Buscador de catálogo + CTA consultorio (icono fijo, texto legible en dark mode OS). */
+function TiendaBusquedaBar({
+  value,
+  onChange,
+  onFocus,
+  onBlur,
+  onKeyDown,
+  placeholder = "Nombre, principio activo, SKU o código de barras…",
+  suggestions = [],
+  productos = [],
+  onPickSuggestion,
+  setPage,
+  stack,
+  compact = false,
+}) {
+  const C = useTheme();
+  const q = String(value || "").trim();
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: stack ? "column" : "row",
+        gap: stack ? 10 : 12,
+        alignItems: stack ? "stretch" : "center",
+        width: "100%",
+        marginBottom: compact ? 16 : 0,
+      }}
+    >
+      <div style={{ position: "relative", flex: 1, minWidth: 0, zIndex: 30 }}>
+        <Search
+          size={18}
+          strokeWidth={2.25}
+          aria-hidden
+          style={{
+            position: "absolute",
+            left: compact ? 12 : 16,
+            top: "50%",
+            transform: "translateY(-50%)",
+            color: q ? BRAND.primary : C.textDim,
+            pointerEvents: "none",
+            zIndex: 1,
+          }}
+        />
+        <input
+          type="search"
+          value={value}
+          onChange={onChange}
+          onFocus={onFocus}
+          onBlur={onBlur}
+          onKeyDown={onKeyDown}
+          placeholder={placeholder}
+          autoComplete="off"
+          enterKeyHint="search"
+          style={{
+            width: "100%",
+            boxSizing: "border-box",
+            padding: compact ? "12px 14px 12px 40px" : "16px 20px 16px 44px",
+            borderRadius: compact ? 10 : 30,
+            border: compact ? `1px solid ${C.border}` : `2px solid ${BRAND.primary}30`,
+            fontSize: 16,
+            lineHeight: 1.25,
+            fontFamily: "'Plus Jakarta Sans',sans-serif",
+            outline: "none",
+            background: C.white,
+            color: C.text,
+            WebkitTextFillColor: C.text,
+            caretColor: BRAND.primary,
+            colorScheme: "light",
+            boxShadow: compact ? "none" : "0 4px 20px rgba(15,45,110,.1)",
+          }}
+        />
+        <TiendaSearchSuggestions
+          suggestions={suggestions}
+          productos={productos}
+          onPick={onPickSuggestion}
+          C={C}
+        />
+      </div>
+      <button
+        type="button"
+        onClick={() => setPage("cita")}
+        style={{
+          flexShrink: 0,
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 8,
+          padding: stack ? "13px 18px" : "14px 20px",
+          borderRadius: compact ? 10 : 30,
+          border: "none",
+          background: BRAND.gradient,
+          color: "#fff",
+          fontWeight: 800,
+          fontSize: stack ? 14 : 15,
+          fontFamily: "'Plus Jakarta Sans',sans-serif",
+          cursor: "pointer",
+          boxShadow: "0 4px 16px rgba(30,58,186,.22)",
+          whiteSpace: "nowrap",
+          minHeight: compact ? 44 : 52,
+        }}
+      >
+        <Stethoscope size={18} strokeWidth={2.25} aria-hidden />
+        Agendar cita
+      </button>
+    </div>
+  );
+}
+
 // ── HOME ──────────────────────────────────────────────────────
 function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,precioConsulta,loadingProductos}){
   const C = useTheme();
@@ -2487,10 +2623,10 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
 
       <HomeBannersStrip setPage={setPage} items={bannerZones.strip}/>
 
-      {/* Barra búsqueda */}
+      {/* Barra búsqueda + cita */}
       <div style={{background:`linear-gradient(180deg,${BRAND.primary}10,transparent)`,padding:"24px 16px"}}>
-        <div style={{maxWidth:600,margin:"0 auto",position:"relative",zIndex:30}}>
-          <input
+        <div style={{maxWidth:920,margin:"0 auto"}}>
+          <TiendaBusquedaBar
             value={busqHero}
             onChange={(e)=>setBusqHero(e.target.value)}
             onFocus={()=>setHeroBusqFocus(true)}
@@ -2506,46 +2642,15 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
                 setPage("catalogo");
               }
             }}
-            placeholder="🔍 Nombre, principio activo, SKU o código de barras…"
-            autoComplete="off"
-            style={{width:"100%",boxSizing:"border-box",padding:"16px 20px",borderRadius:30,border:`2px solid ${BRAND.primary}30`,fontSize:16,fontFamily:"'Plus Jakarta Sans',sans-serif",outline:"none",background:C.white,boxShadow:"0 4px 20px rgba(15,45,110,.1)"}}
+            suggestions={heroSuggestions}
+            productos={productos}
+            onPickSuggestion={(row)=>{
+              if(row){ setProdDetalle(row); setPage("detalle"); }
+              setHeroBusqFocus(false);
+            }}
+            setPage={setPage}
+            stack={stack}
           />
-          {heroSuggestions.length>0&&(
-            <div role="listbox" aria-label="Sugerencias de búsqueda" style={{
-              position:"absolute",left:0,right:0,top:"100%",marginTop:6,
-              background:C.white,border:`1px solid ${C.border}`,borderRadius:14,
-              boxShadow:"0 16px 48px rgba(15,23,42,.14)",maxHeight:"min(50vh, 300px)",overflowY:"auto",WebkitOverflowScrolling:"touch",zIndex:50,
-            }}>
-              {heroSuggestions.map((s)=>{
-                const row=productos.find((x)=>x.id===s.id);
-                return(
-                  <button
-                    key={s.id}
-                    type="button"
-                    role="option"
-                    onPointerDown={(e)=>{
-                      if (e.pointerType === "mouse") e.preventDefault();
-                    }}
-                    onClick={()=>{
-                      if(row){ setProdDetalle(row); setPage("detalle"); }
-                      setHeroBusqFocus(false);
-                    }}
-                    style={{
-                      display:"block",width:"100%",textAlign:"left",padding:"10px 14px",border:"none",
-                      borderBottom:`1px solid ${C.border}`,background:"transparent",cursor:"pointer",
-                      fontFamily:"'Plus Jakarta Sans',sans-serif",
-                    }}
-                  >
-                    <div style={{color:C.dark,fontWeight:700,fontSize:13,lineHeight:1.35}}>{s.nombre}</div>
-                    <div style={{color:C.dim,fontSize:11,marginTop:3,display:"flex",flexWrap:"wrap",gap:8}}>
-                      {s.sku?<span>SKU <strong style={{color:BRAND.primary}}>{s.sku}</strong></span>:null}
-                      {Number(s.stock)<=0?<span style={{color:C.red}}>Agotado</span>:null}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
         </div>
       </div>
 
@@ -2686,8 +2791,8 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
             : `${fil.length} productos disponibles`}
       </div>
       <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:20,marginBottom:20}}>
-        <div style={{position:"relative",marginBottom:16,zIndex:25}}>
-        <Inp
+        <TiendaBusquedaBar
+          compact
           value={busq}
           onChange={(e)=>{
             const v = e.target.value;
@@ -2714,45 +2819,16 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
           }}
           onFocus={()=>setBusqFocus(true)}
           onBlur={()=>setTimeout(()=>setBusqFocus(false),280)}
-          placeholder="🔍 Nombre, principio activo, marca, SKU o código…"
-          style={{width:"100%",boxSizing:"border-box",fontSize:16,marginBottom:0}}
+          placeholder="Nombre, principio activo, marca, SKU o código…"
+          suggestions={suggestions}
+          productos={productos}
+          onPickSuggestion={(row)=>{
+            if (row){ setProdDetalle(row); setPage("detalle"); }
+            setBusqFocus(false);
+          }}
+          setPage={setPage}
+          stack={stack}
         />
-        {suggestions.length>0&&(
-          <div role="listbox" aria-label="Sugerencias de búsqueda" style={{
-            position:"absolute",left:0,right:0,top:"100%",marginTop:4,
-            background:C.white,border:`1px solid ${C.border}`,borderRadius:10,
-            boxShadow:"0 16px 48px rgba(15,23,42,.12)",maxHeight:"min(45vh, 320px)",overflowY:"auto",WebkitOverflowScrolling:"touch",zIndex:50,
-          }}>
-            {suggestions.map((s)=>(
-              <button
-                key={s.id}
-                type="button"
-                role="option"
-                onPointerDown={(e)=>{
-                  if (e.pointerType === "mouse") e.preventDefault();
-                }}
-                onClick={()=>{
-                  const row = productos.find((x)=>x.id===s.id);
-                  if (row){ setProdDetalle(row); setPage("detalle"); }
-                  setBusqFocus(false);
-                }}
-                style={{
-                  display:"block",width:"100%",textAlign:"left",padding:"10px 14px",border:"none",
-                  borderBottom:`1px solid ${C.border}`,background:"transparent",cursor:"pointer",
-                  fontFamily:"'Plus Jakarta Sans',sans-serif",
-                }}
-              >
-                <div style={{color:C.dark,fontWeight:700,fontSize:13,lineHeight:1.35}}>{s.nombre}</div>
-                <div style={{color:C.dim,fontSize:11,marginTop:3,display:"flex",flexWrap:"wrap",gap:8}}>
-                  {s.sku?<span>SKU <strong style={{color:BRAND.primary}}>{s.sku}</strong></span>:null}
-                  {s.codigo_barras?<span>Cód. {s.codigo_barras}</span>:null}
-                  {Number(s.stock)<=0?<span style={{color:C.red}}>Agotado</span>:null}
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
-        </div>
         {fil.length===0&&busq.trim()&&hayCoincidenciasSinFiltrosLaterales&&filtrosLateralesActivos&&(
           <div style={{marginBottom:14,padding:"10px 12px",borderRadius:10,background:"#fef3c7",border:"1px solid #f59e0b40",fontSize:13,color:"#92400e",lineHeight:1.5}}>
             Hay resultados para tu búsqueda pero los filtros de categoría o tipo los ocultan.{" "}
@@ -3809,7 +3885,7 @@ function AvisoPrivacidad({setPage}){
     <PaginaLegal titulo="📄 Aviso de Privacidad" setPage={setPage}>
       <p style={{color:C.dark,fontWeight:700,marginBottom:16}}>De conformidad con la Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP) y su Reglamento, FarmaCapital pone a su disposición el presente Aviso de Privacidad.</p>
       {[
-        ["1. Responsable del tratamiento de sus datos","FarmaCapital, con domicilio en Radiodifusora 100, Chinampac de Juárez, Iztapalapa, Ciudad de México, C.P. 09208, es responsable del uso y protección de sus datos personales."],
+        ["1. Responsable del tratamiento de sus datos","Luis Angel Palillero Ventura (RFC PAVL911030NC8), operando bajo el nombre comercial FarmaCapital, con domicilio en Radiodifusora 100, Chinampac de Juárez, Iztapalapa, Ciudad de México, C.P. 09208, es responsable del uso y protección de sus datos personales."],
         ["2. Datos personales que recabamos","Recabamos los siguientes datos personales: nombre completo, número de teléfono, correo electrónico, domicilio de entrega, e historial de compras y citas médicas. No recabamos datos sensibles salvo los necesarios para la atención médica en nuestro consultorio, los cuales se tratan con el máximo nivel de confidencialidad."],
         ["3. Finalidades del tratamiento","Sus datos se utilizan para: procesar sus pedidos y entregas, gestionar su cuenta y programa de puntos FarmaCapital, agendar y dar seguimiento a consultas médicas, enviarle comunicaciones relacionadas con sus pedidos, y cumplir con obligaciones legales ante COFEPRIS."],
         ["4. Transferencia de datos","Sus datos no serán transferidos a terceros sin su consentimiento, salvo en los casos previstos por la ley o cuando sea necesario para el cumplimiento del servicio contratado (ej. empresas de mensajería)."],

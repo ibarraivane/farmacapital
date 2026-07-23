@@ -1,5 +1,7 @@
 // FARMACAPITAL — Utilidad de impresión de tickets
 
+import { mergeFarmaciaConfig } from "../constants/farmaciaFiscal";
+
 const TICKET_CSS = `
 * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 html, body { margin: 0; padding: 0; background: #fff; }
@@ -35,6 +37,37 @@ html, body { margin: 0; padding: 0; background: #fff; }
 .qr-section { text-align: center; margin-top: 10px; }
 .footer { text-align: center; margin-top: 8px; font-size: 9px; color: #333; }
 .ticket-puntos { background: #000 !important; color: #fff !important; text-align: center; padding: 5px 4px; font-size: 10px; font-weight: 900; margin: 6px 0; letter-spacing: 1px; }
+.ticket-logo-wrap { text-align: center; margin-bottom: 4px; }
+.ticket-logo-icon {
+  height: 32px;
+  width: 32px;
+  max-width: 32px;
+  max-height: 32px;
+  display: block;
+  margin: 0 auto 4px;
+  object-fit: contain;
+}
+.ticket-logo-img {
+  height: 26px;
+  width: auto;
+  max-width: 200px;
+  max-height: 26px;
+  display: block;
+  margin: 0 auto 4px;
+  object-fit: contain;
+}
+.ticket-brand-name {
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+.ticket-brand-slogan {
+  font-size: 9px;
+  margin-top: 2px;
+  color: #333;
+}
 `;
 
 /**
@@ -128,6 +161,8 @@ export function generateTicketHTML(data) {
   const total = parseFloat(venta.total || 0);
   const fmt = n => `$${parseFloat(n || 0).toFixed(2)}`;
 
+  const cfg = mergeFarmaciaConfig(config || {});
+
   const rows = (productos || []).map(p => `
     <div style="margin-bottom:3px">
       <div style="font-size:10px;font-weight:bold">${(p.nombre||"Producto").slice(0,22)}</div>
@@ -136,6 +171,8 @@ export function generateTicketHTML(data) {
         <span style="font-weight:bold">${fmt((p.precio||p.precio_unitario||0)*(p.qty||p.cantidad||1))}</span>
       </div>
     </div>`).join("");
+
+  const iconSrc = `${process.env.PUBLIC_URL || ""}/brand/farmacapital-icon.png?v=6`;
 
   return `<!DOCTYPE html>
 <html lang="es">
@@ -146,15 +183,17 @@ export function generateTicketHTML(data) {
 </head>
 <body>
 <div id="farmacapital-ticket" class="ticket">
-  <div class="center">
-    <img src="/brand/farmacapital-logo-full.png?v=4" alt="FarmaCapital" style="height:36px;width:auto;display:block;margin:0 auto 4px"/>
-    <div style="font-size:9px">"Tu salud primero"</div>
+  <div class="center ticket-logo-wrap">
+    <img src="${iconSrc}" alt="" class="ticket-logo-icon" aria-hidden="true"/>
+    <div class="ticket-brand-name">FarmaCapital</div>
+    <div class="ticket-brand-slogan">"Tu salud primero"</div>
   </div>
   <hr class="separator">
   <div style="font-size:9px;line-height:1.6">
-    <div>Sucursal: ${config?.nombre_farmacia||"FarmaCapital"}</div>
-    <div>Dirección: ${config?.direccion_farmacia||"Chinampac de Juárez, Iztapalapa, CDMX"}</div>
-    ${config?.telefono_farmacia?`<div>Tel: ${config.telefono_farmacia}</div>`:""}
+    <div>Sucursal: ${cfg.nombre_farmacia}</div>
+    <div>Dirección: ${cfg.direccion_farmacia}</div>
+    <div>RFC: ${cfg.rfc}</div>
+    ${cfg.telefono_farmacia?`<div>Tel: ${cfg.telefono_farmacia_display||cfg.telefono_farmacia}</div>`:""}
   </div>
   <hr class="separator">
   <div style="font-size:9px;line-height:1.7">

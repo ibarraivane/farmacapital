@@ -4,6 +4,7 @@
 // Listo para integración con PAC (Facturama)
 // ═══════════════════════════════════════════════════════════
 import { jsPDF } from "jspdf";
+import { FARMACIA_FISCAL, mergeFarmaciaConfig } from "../constants/farmaciaFiscal";
 
 /**
  * Genera factura PDF formato CFDI oficial SAT México
@@ -12,6 +13,7 @@ export function generateFacturaPDF({
   venta = {}, productos = [], cliente = {},
   config = {}, metodoPago = "Efectivo"
 }) {
+  const cfg = mergeFarmaciaConfig(config);
   const doc = new jsPDF({ orientation:"portrait", unit:"mm", format:"a4" });
 
   const W  = 210;
@@ -57,14 +59,14 @@ export function generateFacturaPDF({
   doc.setTextColor(...NEGRO);
   doc.setFont("helvetica","bold");
   doc.setFontSize(11);
-  doc.text(config.nombre_farmacia||"FarmaCapital", M+44, y+5);
+  doc.text(cfg.razon_social, M+44, y+5);
 
   doc.setFont("helvetica","normal");
   doc.setFontSize(8);
   doc.setTextColor(...GRIS);
-  doc.text(`RFC: ${config.rfc||"XAXX010101000"}`, M+44, y+10);
-  doc.text(`Régimen: ${config.regimen_fiscal||"General de Ley Personas Morales"}`, M+44, y+15);
-  doc.text(config.direccion_farmacia||"Chinampac de Juárez, Iztapalapa, CDMX", M+44, y+20);
+  doc.text(`RFC: ${cfg.rfc}`, M+44, y+10);
+  doc.text(`Régimen: ${cfg.regimen_fiscal} — ${cfg.regimen_fiscal_texto}`, M+44, y+15);
+  doc.text(cfg.domicilio_fiscal, M+44, y+20);
 
   // FACTURA label (derecha)
   doc.setFillColor(...AZUL);
@@ -110,11 +112,11 @@ export function generateFacturaPDF({
   doc.setFont("helvetica","normal");
   doc.setTextColor(...NEGRO);
   doc.setFontSize(8);
-  doc.text(`Nombre: ${config.nombre_farmacia||"FarmaCapital"}`, col1X, y);
+  doc.text(`Nombre: ${cfg.razon_social}`, col1X, y);
   y += 4;
-  doc.text(`RFC: ${config.rfc||"XAXX010101000"}`, col1X, y);
+  doc.text(`RFC: ${cfg.rfc}`, col1X, y);
   y += 4;
-  doc.text(`Régimen: ${config.regimen_fiscal||"601"}`, col1X, y);
+  doc.text(`Régimen: ${cfg.regimen_fiscal}`, col1X, y);
 
   // Receptor
   const recY = y - 14;
@@ -293,7 +295,7 @@ export function generateFacturaPDF({
   doc.text("¡Gracias por su preferencia!", W/2, 281, {align:"center"});
   doc.setFont("helvetica","normal");
   doc.setFontSize(7.5);
-  doc.text(`${config.nombre_farmacia||"FarmaCapital"} — ${config.direccion_farmacia||"Chinampac de Juárez, CDMX"}`, W/2, 287, {align:"center"});
+  doc.text(`${cfg.nombre_farmacia} — ${cfg.domicilio_fiscal}`, W/2, 287, {align:"center"});
   doc.text("Este documento es una representación impresa de un CFDI (pendiente de timbrado)", W/2, 292, {align:"center"});
 
   return doc;

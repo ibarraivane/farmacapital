@@ -1,6 +1,6 @@
 'use strict';
 
-// ═══════════════════════════════════════════════════════════════
+const { FARMACIA_FISCAL } = require('../_lib/farmaciaFiscal');
 // FARMACAPITAL — Timbrado CFDI 4.0 vía SW Sapien
 // Documentación SW: https://developers.sw.com.mx
 //
@@ -8,10 +8,10 @@
 //   SW_USER                  tu usuario SW Sapien
 //   SW_PASSWORD              tu contraseña SW Sapien
 //   SW_SANDBOX               "true" para pruebas, "false" para producción
-//   RFC_EMISOR               RFC de la farmacia (ej: XAXX010101000)
-//   NOMBRE_EMISOR            Razón social de la farmacia
-//   REGIMEN_EMISOR           Clave régimen fiscal (ej: 612)
-//   CP_EXPEDICION            Código postal de la farmacia (ej: 09208)
+//   RFC_EMISOR               RFC del emisor (default: PAVL911030NC8)
+//   NOMBRE_EMISOR            Razón social (default: LUIS ANGEL PALILLERO VENTURA)
+//   REGIMEN_EMISOR           Clave régimen fiscal SAT (default: 605 — ver nota abajo)
+//   CP_EXPEDICION            Código postal fiscal (default: 09208)
 //   SUPABASE_URL             URL de Supabase
 //   SUPABASE_SERVICE_ROLE_KEY Service role key
 // ═══════════════════════════════════════════════════════════════
@@ -152,10 +152,10 @@ module.exports = async function handler(req, res) {
   const SW_PASSWORD= (process.env.SW_PASSWORD|| "").trim();
   const SANDBOX    = (process.env.SW_SANDBOX || "true").toLowerCase() !== "false";
 
-  const RFC_EMISOR    = (process.env.RFC_EMISOR    || "").trim().toUpperCase();
-  const NOMBRE_EMISOR = (process.env.NOMBRE_EMISOR || "FARMACAPITAL").trim().toUpperCase();
-  const REGIMEN_EMISOR= (process.env.REGIMEN_EMISOR|| "612").trim();
-  const CP_EXPEDICION = (process.env.CP_EXPEDICION || "09208").trim();
+  const RFC_EMISOR    = (process.env.RFC_EMISOR    || FARMACIA_FISCAL.rfc).trim().toUpperCase();
+  const NOMBRE_EMISOR = (process.env.NOMBRE_EMISOR || FARMACIA_FISCAL.razon_social).trim().toUpperCase();
+  const REGIMEN_EMISOR= (process.env.REGIMEN_EMISOR|| FARMACIA_FISCAL.regimen_fiscal).trim();
+  const CP_EXPEDICION = (process.env.CP_EXPEDICION || FARMACIA_FISCAL.codigo_postal).trim();
 
   const SUPABASE_URL  = normalizeUrl(process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL || "");
   const SERVICE_KEY   = (process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim();

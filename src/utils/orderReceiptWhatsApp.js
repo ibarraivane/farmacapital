@@ -1,8 +1,10 @@
 /** WhatsApp y folios para pedidos online — FarmaCapital */
 
-export const FARMACIA_WHATSAPP = "5562530631";
-export const FARMACIA_WHATSAPP_DISPLAY = "55 6253 0631";
-export const FARMACIA_DIRECCION = "Radiodifusora 100, Chinampac de Juárez, Iztapalapa, CDMX";
+import { FARMACIA_FISCAL } from "../constants/farmaciaFiscal";
+
+export const FARMACIA_WHATSAPP = FARMACIA_FISCAL.telefono;
+export const FARMACIA_WHATSAPP_DISPLAY = FARMACIA_FISCAL.telefono_display;
+export const FARMACIA_DIRECCION = FARMACIA_FISCAL.direccion_comercial;
 
 export function formatFolioOnline(pedidoId) {
   if (pedidoId == null) return null;

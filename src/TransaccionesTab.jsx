@@ -5,7 +5,7 @@ import { showToast, SkeletonTable, Paginador } from "./ui";
 import TicketVenta from "./components/tickets/TicketVenta";
 import { printTicket } from "./utils/printTicket";
 import { labelTipoEntregaPedido } from "./utils/orderChannels";
-import { productMatchesSearchQuery } from "./utils/fuzzySearch";
+import { configRowsToMap, mergeFarmaciaConfig } from "./constants/farmaciaFiscal";
 
 /** Listado de pedidos con filtros — antes dentro de Admin/Reportes; requiere showConfirm del padre. */
 export default function TransaccionesTab({ usuario, showConfirm }) {
@@ -23,7 +23,14 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
   const [pagina, setPagina] = useState(1);
   const POR_PAGINA = 50;
   const [ticketReprint, setTicketReprint] = useState(null);
+  const [farmaciaConfig, setFarmaciaConfig] = useState(() => mergeFarmaciaConfig({}));
   const [loadingReprint, setLoadingReprint] = useState(false);
+
+  useEffect(() => {
+    supabase.from("configuracion").select("clave,valor").then(({ data }) => {
+      if (data?.length) setFarmaciaConfig(mergeFarmaciaConfig(configRowsToMap(data)));
+    });
+  }, []);
   const [detItems, setDetItems] = useState([]);
   const [loadDet, setLoadDet] = useState(false);
   const [editForm, setEditForm] = useState({});
@@ -337,7 +344,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                   productos={ticketReprint.productos}
                   cliente={ticketReprint.cliente}
                   metodoPago={ticketReprint.metodoPago}
-                  config={{}}
+                  config={farmaciaConfig}
                 />
               </div>
             </div>

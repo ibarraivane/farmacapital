@@ -18,6 +18,7 @@ import OnboardingTour from "../../../components/OnboardingTour";
 import { TOURS } from "../../../utils/tours";
 import { labelTipoEntregaPedido, resumenLogisticsMeta } from "../../../utils/orderChannels";
 import { buildOnlineOrderReceiptMessage, formatFolioOnline, openWhatsAppToCustomer } from "../../../utils/orderReceiptWhatsApp";
+import { configRowsToMap, mergeFarmaciaConfig } from "../../../constants/farmaciaFiscal";
 
 const PEDIDOS_TIENDA_SELECT_POS = `
             id,total,created_at,tipo,metodo_pago,estado,tipo_entrega,direccion,
@@ -106,7 +107,10 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const [folioActual,setFolioActual] = useState("VTA-00000000");
   const [promoTicket,setPromoTicket] = useState(null);
   const [loadErr,setLoadErr] = useState("");
-  const [config,setConfig]   = useState({precio_consulta:CONSULTA_PRECIO_DEFAULT,nombre_doctor:"Dra. Lourdes Lucio Falcón",nombre_farmacia:"FarmaCapital",telefono_farmacia:"",direccion_farmacia:"Chinampac de Juárez, Iztapalapa, CDMX"});
+  const [config,setConfig]   = useState(mergeFarmaciaConfig({}, {
+    precio_consulta: CONSULTA_PRECIO_DEFAULT,
+    nombre_doctor: "Dra. Lourdes Lucio Falcón",
+  }));
 
   useEffect(() => {
     try {
@@ -123,17 +127,11 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   useEffect(()=>{
     supabase.from("configuracion").select("*").then(({ data: cfg }) => {
       if (cfg && cfg.length) {
-        const map = {};
-        cfg.forEach((r) => {
-          map[r.clave] = r.valor;
-        });
-        setConfig((p) => ({
+        const map = configRowsToMap(cfg);
+        setConfig((p) => mergeFarmaciaConfig(map, {
           ...p,
           precio_consulta: parseFloat(map.precio_consulta) || CONSULTA_PRECIO_DEFAULT,
           nombre_doctor: map.nombre_doctor || p.nombre_doctor,
-          nombre_farmacia: map.nombre_farmacia || p.nombre_farmacia,
-          telefono_farmacia: map.telefono_farmacia || "",
-          direccion_farmacia: map.direccion_farmacia || p.direccion_farmacia,
         }));
       }
     });

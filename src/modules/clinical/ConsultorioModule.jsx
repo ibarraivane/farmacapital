@@ -393,7 +393,7 @@ function EnConsulta() {
     * { margin:0; padding:0; box-sizing:border-box; }
     body { font-family: Arial, sans-serif; font-size: 13px; color: #0f172a; padding: 32px; max-width: 700px; margin: 0 auto; }
     .header { display:flex; justify-content:space-between; align-items:flex-start; border-bottom: 2px solid #0D1B2A; padding-bottom: 16px; margin-bottom: 20px; }
-    .logo img { height: 42px; width: auto; display: block; }
+    .logo img { height: 36px; width: 36px; max-width: 36px; max-height: 36px; display: block; object-fit: contain; }
     .clinic { text-align:right; font-size:11px; color:#475569; }
     .medico { background:#f0f4f9; border-radius:8px; padding:12px 16px; margin-bottom:20px; }
     .medico h3 { color:#0D1B2A; font-size:14px; margin-bottom:6px; }
@@ -415,7 +415,7 @@ function EnConsulta() {
 <body>
   <div class="header">
     <div>
-      <div class="logo"><img src="/brand/farmacapital-logo-full.png?v=4" alt="FarmaCapital"/></div>
+      <div class="logo"><img src="/brand/farmacapital-icon.png?v=6" alt="FarmaCapital"/></div>
       <div style="font-size:11px;color:#475569;margin-top:4px">Farmacia · Consultorio Médico</div>
     </div>
     <div class="clinic">

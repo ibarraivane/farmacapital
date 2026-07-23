@@ -398,7 +398,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
 
     const hoyISO = new Date().toISOString().slice(0,10);
     const cofeprisItems = (alertasCofepris || []).map(a => ({
-      id: a.id, nombre: a.nombre, fecha: a.fecha_vencimiento,
+      id: a.id, nombre: fixLegacyFarmaxBrand(a.nombre), fecha: a.fecha_vencimiento,
       vencida: a.fecha_vencimiento && a.fecha_vencimiento < hoyISO,
     }));
     const cofeprisVencidas = cofeprisItems.filter(c => c.vencida).length;

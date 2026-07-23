@@ -45,6 +45,22 @@
     padding: 0mm;
   }
 
+  /* Logo compacto en impresión térmica */
+  #farmacapital-ticket .ticket-logo-icon {
+    height: 32px !important;
+    width: 32px !important;
+    max-width: 32px !important;
+    max-height: 32px !important;
+  }
+  #farmacapital-ticket .ticket-logo-img {
+    height: 26px !important;
+    max-width: 200px !important;
+    max-height: 26px !important;
+  }
+  #farmacapital-ticket .ticket-brand-name {
+    font-size: 12px !important;
+  }
+
   /* Tabla de productos sin desbordamiento */
   #farmacapital-ticket .ticket-table {
     width: 100% !important;
@@ -77,15 +93,37 @@
   box-sizing: border-box;
 }
 
-/* ── Logo / Marca ── */
-.ticket-logo-wrap { margin-bottom: 4px; }
-.ticket-logo-img {
+/* ── Logo / Marca (80mm — icono compacto, no wordmark HD) ── */
+.ticket-logo-wrap { margin-bottom: 4px; text-align: center; }
+.ticket-logo-icon {
   height: 36px;
-  width: auto;
-  max-width: 100%;
+  width: 36px;
+  max-width: 36px;
+  max-height: 36px;
   display: block;
-  margin: 0 auto;
+  margin: 0 auto 4px;
   object-fit: contain;
+}
+.ticket-logo-img {
+  height: 28px;
+  width: auto;
+  max-width: 220px;
+  max-height: 28px;
+  display: block;
+  margin: 0 auto 4px;
+  object-fit: contain;
+}
+.ticket-brand-name {
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+.ticket-brand-slogan {
+  font-size: 9px;
+  margin-top: 2px;
+  color: #333;
 }
 .ticket-logo {
   text-align: center;
