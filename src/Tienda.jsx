@@ -193,12 +193,45 @@ function bannerVideoUrl(b){
   return v != null && String(v).trim() !== "" ? String(v).trim() : "";
 }
 
-/** true = diseño ya incluye textos; la tienda muestra la imagen completa sin recortar. */
+/** true = diseño ya incluye textos; sin overlay de Admin encima. */
 function bannerEsImagenCompleta(b) {
   return String(b?.modo_visualizacion || "imagen_completa").trim().toLowerCase() !== "imagen_fondo";
 }
 
-/** Imagen que encaja en el marco sin cortar bordes. */
+/** Marco fijo del carrusel / tarjetas: 16:5, altura acotada. */
+const BANNER_MARCO_HERO = { ratio: "16 / 5", maxH: { mobile: 220, desktop: 380 }, minH: { mobile: 140, desktop: 240 } };
+const BANNER_MARCO_STRIP = { ratio: "16 / 5", maxH: 120 };
+const BANNER_MARCO_TILE = { ratio: "16 / 5", maxH: { mobile: 120, desktop: 140 } };
+
+function bannerMarcoStyle({ ratio, maxH, minH, esMobile }) {
+  const maxHeight = typeof maxH === "object" ? (esMobile ? maxH.mobile : maxH.desktop) : maxH;
+  const minHeight = minH
+    ? (typeof minH === "object" ? (esMobile ? minH.mobile : minH.desktop) : minH)
+    : undefined;
+  return {
+    width: "100%",
+    aspectRatio: ratio,
+    maxHeight,
+    ...(minHeight != null ? { minHeight } : {}),
+    overflow: "hidden",
+    position: "relative",
+    background: "#0f172a",
+  };
+}
+
+function bannerCoverMediaSx() {
+  return {
+    position: "absolute",
+    inset: 0,
+    width: "100%",
+    height: "100%",
+    display: "block",
+    objectFit: "cover",
+    objectPosition: "center center",
+  };
+}
+
+/** Popup: imagen completa sin recortar dentro del modal. */
 function bannerImgEncajeStyle(maxHeight) {
   return {
     display: "block",
@@ -485,20 +518,6 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
   const imagenActual = bannerVisualUrl(b, narrowHeroImg);
   const tieneImagen = !!(vid || bannerTxt(imagenActual));
 
-  const modoCompleto =
-    bannerEsImagenCompleta(b) && tieneImagen;
-
-  const heroFrameStyle = {
-    width:"100%",
-    aspectRatio: esMobile ? "1 / 1" : "16 / 7",
-    maxHeight: esMobile ? 420 : 620,
-    background:"#0f172a",
-    display:"flex",
-    alignItems:"center",
-    justifyContent:"center",
-    overflow:"hidden",
-  };
-
   const carouselControls = banners.length > 1 && (
     <>
       <div
@@ -567,28 +586,16 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
     </>
   );
 
-  const imgHeroSx = {
-    width:"100%",
-    height:"100%",
-    display:"block",
-    objectFit:"cover",
-    objectPosition:"top center",
-  };
-
-  const imgHeroContainSx = bannerImgEncajeStyle("100%");
-
   const fondoShell = (
     <div
       role="presentation"
       onClick={()=>setPage(b.pagina)}
       style={{
-        position:"relative",
         width:"100%",
         overflow:"hidden",
         cursor:"pointer",
         backgroundColor: vid ? "#070f1a" : !tieneImagen && !vid ? undefined : "#0f172a",
-        aspectRatio: esMobile ? "1 / 1" : "16 / 7",
-        minHeight: esMobile ? 280 : 420,
+        ...bannerMarcoStyle({ ...BANNER_MARCO_HERO, esMobile }),
         display:"flex",
         flexDirection:"column",
         justifyContent: esMobile ? "space-between" : "flex-start",
@@ -784,55 +791,9 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
   );
 
   return(
-    <div style={{
-      position:"relative",
-      width:"100%",
-      overflow:"hidden",
-      background: modoCompleto && tieneImagen ? "#000" : undefined,
-    }}>
-      {modoCompleto ? (
-        <>
-          <button
-            type="button"
-            onClick={()=>setPage(b.pagina)}
-            onMouseEnter={()=>setPauseAuto(true)}
-            onMouseLeave={()=>setPauseAuto(false)}
-            style={{
-              display:"block",
-              width:"100%",
-              border:"none",
-              padding:0,
-              margin:0,
-              cursor:"pointer",
-              background:"transparent",
-            }}
-          >
-            <div style={heroFrameStyle}>
-              {vid ? (
-                <BannerLoopVideo
-                  src={vid}
-                  poster={bannerTxt(imagenActual)||undefined}
-                  aria-label={bannerTxt(b.titulo)||"Banner"}
-                  style={imgHeroContainSx}
-                />
-              ) : (
-                <img
-                  src={imagenActual}
-                  alt={bannerTxt(b.titulo)||"Banner"}
-                  decoding="async"
-                  style={imgHeroContainSx}
-                />
-              )}
-            </div>
-          </button>
-          {carouselControls}
-        </>
-      ) : (
-        <>
-          {fondoShell}
-          {carouselControls}
-        </>
-      )}
+    <div style={{position:"relative",width:"100%",overflow:"hidden"}}>
+      {fondoShell}
+      {carouselControls}
     </div>
   );
 }
@@ -859,10 +820,9 @@ function HomeBannersStrip({setPage, items}){
                 type="button"
                 onClick={()=>setPage(b.pagina)}
                 style={{
-                  flex:"1 1 min(100%,280px)",
+                  flex:"1 1 280px",
                   maxWidth:420,
                   minWidth:0,
-                  width:"100%",
                   padding:0,
                   border:"none",
                   borderRadius:14,
@@ -876,33 +836,23 @@ function HomeBannersStrip({setPage, items}){
                 onMouseEnter={e=>{ e.currentTarget.style.transform="translateY(-2px)"; e.currentTarget.style.boxShadow="0 8px 28px rgba(15,45,110,.2)"; }}
                 onMouseLeave={e=>{ e.currentTarget.style.transform="none"; e.currentTarget.style.boxShadow="0 4px 20px rgba(15,45,110,.12)"; }}
               >
-                {vid ? (
-                  <BannerLoopVideo
-                    src={vid}
-                    poster={imgUrl || undefined}
-                    aria-label={bannerTxt(b.titulo) || "Banner"}
-                    style={{
-                      width:"100%",
-                      height:"auto",
-                      display:"block",
-                      maxHeight:220,
-                      objectFit:"contain",
-                    }}
-                  />
-                ) : (
-                  <img
-                    src={imgUrl}
-                    alt={bannerTxt(b.titulo)||""}
-                    decoding="async"
-                    style={{
-                      width:"100%",
-                      height:"auto",
-                      display:"block",
-                      maxHeight:220,
-                      objectFit:"contain",
-                    }}
-                  />
-                )}
+                <div style={bannerMarcoStyle({ ...BANNER_MARCO_STRIP, esMobile: stack })}>
+                  {vid ? (
+                    <BannerLoopVideo
+                      src={vid}
+                      poster={imgUrl || undefined}
+                      aria-label={bannerTxt(b.titulo) || "Banner"}
+                      style={bannerCoverMediaSx()}
+                    />
+                  ) : (
+                    <img
+                      src={imgUrl}
+                      alt={bannerTxt(b.titulo)||""}
+                      decoding="async"
+                      style={bannerCoverMediaSx()}
+                    />
+                  )}
+                </div>
               </button>
             );
           }
@@ -979,32 +929,20 @@ function HomeBannersStrip({setPage, items}){
                 </div>
               </>
               ) : (
-                <div style={{width:"100%",background:"#0f172a",display:"flex",alignItems:"center",justifyContent:"center",padding:"10px 8px"}}>
+                <div style={bannerMarcoStyle({ ...BANNER_MARCO_STRIP, esMobile: stack })}>
                   {vid ? (
                     <BannerLoopVideo
                       src={vid}
                       poster={imgUrl || undefined}
                       aria-label={bannerTxt(b.titulo)||"Banner"}
-                      style={{
-                        width:"100%",
-                        height:"auto",
-                        display:"block",
-                        objectFit:"contain",
-                        maxHeight:140,
-                      }}
+                      style={bannerCoverMediaSx()}
                   />
                   ) : (
                     <img
                       src={imgUrl}
                       alt=""
                       decoding="async"
-                      style={{
-                        width:"100%",
-                        height:"auto",
-                        display:"block",
-                        objectFit:"contain",
-                        maxHeight:140,
-                      }}
+                      style={bannerCoverMediaSx()}
                     />
                   )}
                 </div>
@@ -1059,43 +997,30 @@ function HomeBannersTiles({setPage, items, stack}){
                   background:"#0f172a",
                   color:"#fff",
                   padding:0,
-                  minHeight:120,
-                  display:"flex",
-                  alignItems:"center",
-                  justifyContent:"center",
+                  display:"block",
                   boxShadow:"0 2px 12px rgba(0,0,0,.06)",
                   transition:"transform .15s",
                 }}
                 onMouseEnter={e=>{ e.currentTarget.style.transform="translateY(-2px)"; }}
                 onMouseLeave={e=>{ e.currentTarget.style.transform="none"; }}
               >
-                {vid ? (
-                  <BannerLoopVideo
-                    src={vid}
-                    poster={imgUrl || undefined}
-                    aria-label={bannerTxt(b.titulo)||""}
-                    style={{
-                      width:"100%",
-                      height:"auto",
-                      display:"block",
-                      maxHeight:200,
-                      objectFit:"contain",
-                    }}
-                  />
-                ) : (
-                  <img
-                    src={imgUrl}
-                    alt={bannerTxt(b.titulo)||""}
-                    decoding="async"
-                    style={{
-                      width:"100%",
-                      height:"auto",
-                      display:"block",
-                      maxHeight:200,
-                      objectFit:"contain",
-                    }}
-                  />
-                )}
+                <div style={bannerMarcoStyle({ ...BANNER_MARCO_TILE, esMobile: stack })}>
+                  {vid ? (
+                    <BannerLoopVideo
+                      src={vid}
+                      poster={imgUrl || undefined}
+                      aria-label={bannerTxt(b.titulo)||""}
+                      style={bannerCoverMediaSx()}
+                    />
+                  ) : (
+                    <img
+                      src={imgUrl}
+                      alt={bannerTxt(b.titulo)||""}
+                      decoding="async"
+                      style={bannerCoverMediaSx()}
+                    />
+                  )}
+                </div>
               </button>
             );
           }
@@ -1117,34 +1042,20 @@ function HomeBannersTiles({setPage, items, stack}){
             onMouseLeave={e=>{ e.currentTarget.style.transform="none"; }}
           >
             {(vid||imgUrl) ? (
-              <div style={{position:"relative",width:"100%",background:"#0f172a"}}>
+              <div style={bannerMarcoStyle({ ...BANNER_MARCO_TILE, esMobile: stack })}>
                 {vid ? (
                   <BannerLoopVideo
                     src={vid}
                     poster={imgUrl || undefined}
                     aria-label={bannerTxt(b.titulo)||""}
-                    style={{
-                      width:"100%",
-                      height:"auto",
-                      display:"block",
-                      verticalAlign:"top",
-                      objectFit:"contain",
-                      maxHeight:stack?200:260,
-                    }}
+                    style={bannerCoverMediaSx()}
                   />
                 ) : (
                   <img
                     src={imgUrl}
                     alt=""
                     decoding="async"
-                    style={{
-                      width:"100%",
-                      height:"auto",
-                      display:"block",
-                      verticalAlign:"top",
-                      objectFit:"contain",
-                      maxHeight:stack?200:260,
-                    }}
+                    style={bannerCoverMediaSx()}
                   />
                 )}
                 {tileHasCopy ? (

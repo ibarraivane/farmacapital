@@ -809,7 +809,7 @@ function BannersAdmin(){
                   size="medium"
                 />
               <div style={{fontSize:11,color:C.textDim,marginTop:6,lineHeight:1.4}}>
-                Imagen rectangular ancha para laptop/tablet. La tienda la ajusta automáticamente (recomendado 1600×900px o similar). Bucket <code style={{background:C.card,padding:"1px 4px",borderRadius:4}}>banners</code>.
+                Exportá en <strong>1920×600 px</strong> (ratio 16:5). El carrusel llena el marco con recorte suave en los bordes; dejá texto e íconos en el centro. Bucket <code style={{background:C.card,padding:"1px 4px",borderRadius:4}}>banners</code>.
               </div>
               </div>
               <div style={{padding:14,background:C.bg,borderRadius:10,border:`1px solid ${C.border}`}}>
@@ -836,7 +836,7 @@ function BannersAdmin(){
                   size="medium"
                 />
                 <div style={{fontSize:11,color:C.textDim,marginTop:6,lineHeight:1.4}}>
-                  Cuadrada para celular (recomendado 1080×1080). Si no subís una, la tienda usa la desktop. Se ajusta sola al marco.
+                  Cuadrada para celular: <strong>1080×1080 px</strong> (1:1). Si no subís una, la tienda usa la desktop.
                 </div>
               </div>
             </div>
@@ -872,11 +872,11 @@ function BannersAdmin(){
                 <option value="imagen_completa">📷 Solo imagen (sin texto encima)</option>
               </select>
               <div style={{fontSize:11,color:C.textDim,marginTop:6,lineHeight:1.4}}>
-                💡 <strong>Imagen completa:</strong> diseño con texto incluido (Canva, etc.). La tienda muestra la imagen entera sin recortar bordes.
+                💡 <strong>Imagen completa:</strong> diseño con texto incluido (Canva, etc.). Sin texto encima desde Admin.
                 <br/>
                 💡 <strong>Imagen de fondo:</strong> la imagen llena el marco y vos editás el texto encima desde Admin.
                 <br/>
-                Las medidas indicadas son recomendadas; cualquier proporción se adapta automáticamente.
+                Usá las medidas de arriba; el carrusel tiene marco fijo (desktop 16:5, móvil 1:1).
               </div>
             </div>
             {[["Título (opcional)","titulo"],["Subtítulo","subtitulo"],["Descripción","descripcion"],["Emoji (si no hay imagen)","emoji"],["Texto del botón","cta"],["Página destino","pagina"]].map(([l,k])=>(
