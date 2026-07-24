@@ -587,8 +587,8 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
         overflow:"hidden",
         cursor:"pointer",
         backgroundColor: vid ? "#070f1a" : !tieneImagen && !vid ? undefined : "#0f172a",
-        aspectRatio: esMobile ? "1 / 1" : "16 / 5",
-        minHeight: esMobile ? 280 : 320,
+        aspectRatio: esMobile ? "1 / 1" : "16 / 7",
+        minHeight: esMobile ? 280 : 420,
         display:"flex",
         flexDirection:"column",
         justifyContent: esMobile ? "space-between" : "flex-start",
@@ -681,7 +681,7 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
             padding:"20px 16px 50px 16px",
             textAlign:"center",
           }}>
-            {!modoCompleto && bannerTxt(b.titulo) ? (
+            {!tieneImagen && bannerTxt(b.titulo) ? (
               <h2 style={{
                 color:"#fff",
                 fontSize:"clamp(20px, 5vw, 26px)",
@@ -693,7 +693,7 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
                 fontFamily:"'Plus Jakarta Sans',sans-serif",
               }}>{b.titulo}</h2>
             ) : null}
-            {!modoCompleto && bannerTxt(b.subtitulo) ? (
+            {!tieneImagen && bannerTxt(b.subtitulo) ? (
               <div style={{
                 color:"rgba(255,255,255,.9)",
                 fontSize:"clamp(10px, 2.5vw, 12px)",
@@ -705,7 +705,7 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
                 fontFamily:"'Plus Jakarta Sans',sans-serif",
               }}>{b.subtitulo}</div>
             ) : null}
-            {!modoCompleto && bannerTxt(b.cta) && b.pagina ? (
+            {!tieneImagen && bannerTxt(b.cta) && b.pagina ? (
               <Btn
                 onClick={(e)=>{ e.stopPropagation(); setPage(b.pagina); }}
                 style={{
@@ -730,7 +730,7 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
             textAlign:"left",
             maxWidth:"60%",
           }}>
-            {!modoCompleto && bannerTxt(b.titulo) ? (
+            {!tieneImagen && bannerTxt(b.titulo) ? (
               <h2 style={{
                 color:"#fff",
                 fontSize:"clamp(24px, 3.5vw, 36px)",
@@ -742,7 +742,7 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
                 fontFamily:"'Plus Jakarta Sans',sans-serif",
               }}>{b.titulo}</h2>
             ) : null}
-            {!modoCompleto && bannerTxt(b.subtitulo) ? (
+            {!tieneImagen && bannerTxt(b.subtitulo) ? (
               <div style={{
                 color:"rgba(255,255,255,.9)",
                 fontSize:"clamp(11px, 1.4vw, 14px)",
@@ -755,7 +755,7 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
             ) : null}
           </div>
           <div style={{flex:1}}/>
-          {!modoCompleto && bannerTxt(b.cta) && b.pagina ? (
+          {!tieneImagen && bannerTxt(b.cta) && b.pagina ? (
             <div style={{
               position:"relative",
               zIndex:2,
