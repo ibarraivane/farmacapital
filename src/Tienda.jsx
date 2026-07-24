@@ -193,6 +193,25 @@ function bannerVideoUrl(b){
   return v != null && String(v).trim() !== "" ? String(v).trim() : "";
 }
 
+/** true = diseño ya incluye textos; la tienda muestra la imagen completa sin recortar. */
+function bannerEsImagenCompleta(b) {
+  return String(b?.modo_visualizacion || "imagen_completa").trim().toLowerCase() !== "imagen_fondo";
+}
+
+/** Imagen que encaja en el marco sin cortar bordes. */
+function bannerImgEncajeStyle(maxHeight) {
+  return {
+    display: "block",
+    maxWidth: "100%",
+    maxHeight: maxHeight || "100%",
+    width: "auto",
+    height: "auto",
+    objectFit: "contain",
+    objectPosition: "center center",
+    margin: "0 auto",
+  };
+}
+
 /** Video sin sonido + loop para autoplay en carrusel/banners (políticas del navegador). */
 function BannerLoopVideo({ src, poster, style, "aria-label": ariaLabel }){
   return (
@@ -279,9 +298,7 @@ function PopupBienvenida({onClose,setPage,precioConsulta,banner}){
   const mobilePopup = useMediaQuery("(max-width: 767px)");
   const pc = Math.round(Number(precioConsulta) || CONSULTA_PRECIO_DEFAULT);
   const hasBannerRow = !!(banner && banner.id != null);
-  const modoCompletoPopup =
-    hasBannerRow &&
-    String(banner.modo_visualizacion || "").trim().toLowerCase() !== "imagen_fondo";
+  const modoCompletoPopup = hasBannerRow && bannerEsImagenCompleta(banner);
 
   const tituloRaw = bannerTxt(banner?.titulo);
   const subtituloRaw = bannerTxt(banner?.subtitulo);
@@ -335,17 +352,59 @@ function PopupBienvenida({onClose,setPage,precioConsulta,banner}){
       ? "linear-gradient(180deg, rgba(2,6,23,.12), rgba(2,6,23,.42))"
       : "transparent";
 
+  const popupImgMaxH = mobilePopup ? "min(68vh, 460px)" : "min(52vh, 420px)";
+  const popupAspect = mobilePopup ? "4 / 5" : "16 / 10";
+
   return(
     <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(2,6,23,.62)",backdropFilter:"blur(3px)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:16,overflowY:"auto",WebkitOverflowScrolling:"touch",pointerEvents:"auto"}}>
       <div style={{background:C.white,borderRadius:16,maxWidth:mobilePopup?420:640,width:"100%",maxHeight:"90vh",overflowY:"auto",boxShadow:"0 24px 70px rgba(2,6,23,.48)",border:"1px solid rgba(255,255,255,.4)"}}>
-        <div style={{background:BRAND.gradient,padding:"28px 20px",textAlign:"center",position:"relative",overflow:"hidden"}}>
+        {modoCompletoPopup && imgUrl ? (
+          <div style={{position:"relative",background:"#eef2f7",borderRadius:"16px 16px 0 0",overflow:"hidden"}}>
+            <div
+              style={{
+                width:"100%",
+                aspectRatio:popupAspect,
+                maxHeight:popupImgMaxH,
+                display:"flex",
+                alignItems:"center",
+                justifyContent:"center",
+                padding: mobilePopup ? 8 : 12,
+                boxSizing:"border-box",
+              }}
+            >
+              <img
+                src={imgUrl}
+                alt={imgAlt}
+                decoding="async"
+                style={bannerImgEncajeStyle("100%")}
+              />
+            </div>
+            <button type="button" onClick={(e)=>{ e.stopPropagation(); onClose(); }} aria-label="Cerrar" style={{position:"absolute",top:10,right:10,zIndex:30,background:"rgba(15,23,42,.55)",border:"none",color:"#fff",width:36,height:36,borderRadius:"50%",cursor:"pointer",fontSize:18,lineHeight:1,display:"flex",alignItems:"center",justifyContent:"center",padding:0,pointerEvents:"auto",WebkitTapHighlightColor:"transparent"}}>×</button>
+          </div>
+        ) : (
+        <div style={{background:BRAND.gradient,padding: imgUrl ? 0 : "28px 20px",textAlign:"center",position:"relative",overflow:"hidden",borderRadius: imgUrl ? "16px 16px 0 0" : undefined}}>
           {imgUrl ? (
-            <img
-              src={imgUrl}
-              alt={imgAlt}
-              style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",objectPosition:"center center",zIndex:0,filter:"saturate(1.08) contrast(1.05)"}}
-            />
+            <div
+              style={{
+                width:"100%",
+                aspectRatio: mobilePopup ? "1 / 1" : "16 / 9",
+                maxHeight: popupImgMaxH,
+                position:"relative",
+                background:"#0f172a",
+                display:"flex",
+                alignItems:"center",
+                justifyContent:"center",
+              }}
+            >
+              <img
+                src={imgUrl}
+                alt={imgAlt}
+                decoding="async"
+                style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",objectPosition:"center center",zIndex:0}}
+              />
+            </div>
           ) : null}
+          {imgUrl && showOverlayCopy ? (
           <div
             style={{
               position:"absolute",
@@ -355,19 +414,9 @@ function PopupBienvenida({onClose,setPage,precioConsulta,banner}){
               pointerEvents:"none",
             }}
           />
-          <div
-            aria-hidden
-            style={{
-              position:"relative",
-              width:"100%",
-              aspectRatio: mobilePopup ? "1 / 1" : "16 / 9",
-              zIndex:1,
-              pointerEvents:"none",
-            }}
-          />
-          <button type="button" onClick={(e)=>{ e.stopPropagation(); onClose(); }} aria-label="Cerrar" style={{position:"absolute",top:12,right:16,zIndex:30,background:"rgba(255,255,255,.25)",border:"none",color:C.white,width:36,height:36,borderRadius:"50%",cursor:"pointer",fontSize:18,lineHeight:1,display:"flex",alignItems:"center",justifyContent:"center",padding:0,pointerEvents:"auto",WebkitTapHighlightColor:"transparent"}}>×</button>
+          ) : null}
           {showOverlayCopy ? (
-            <div style={{position:"relative",zIndex:2}}>
+            <div style={{position:"relative",zIndex:2,padding:"20px 16px"}}>
               {titulo ? (
                 <h2 style={{color:C.white,fontSize:"clamp(18px,4.5vw,22px)",fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif",marginBottom:8}}>{titulo}</h2>
               ) : null}
@@ -378,7 +427,9 @@ function PopupBienvenida({onClose,setPage,precioConsulta,banner}){
               ) : null}
             </div>
           ) : null}
+          <button type="button" onClick={(e)=>{ e.stopPropagation(); onClose(); }} aria-label="Cerrar" style={{position:"absolute",top:12,right:16,zIndex:30,background:"rgba(255,255,255,.25)",border:"none",color:C.white,width:36,height:36,borderRadius:"50%",cursor:"pointer",fontSize:18,lineHeight:1,display:"flex",alignItems:"center",justifyContent:"center",padding:0,pointerEvents:"auto",WebkitTapHighlightColor:"transparent"}}>×</button>
         </div>
+        )}
         <div style={{padding:"20px 20px"}}>
           {showBullets ? (
             <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:10,marginBottom:20}}>
@@ -390,7 +441,9 @@ function PopupBienvenida({onClose,setPage,precioConsulta,banner}){
             </div>
           ) : null}
           {showPrimaryBtn ? (
-            <Btn onClick={()=>{onClose();setPage(ctaPage);}} col={BRAND.primary} full>{cta} →</Btn>
+            <Btn onClick={()=>{onClose();setPage(ctaPage);}} col={BRAND.primary} full>
+              {String(cta || "").trim().endsWith("→") ? cta : `${cta} →`}
+            </Btn>
           ) : null}
           <button onClick={onClose} style={{width:"100%",background:"none",border:"none",color:C.dim,fontSize:13,cursor:"pointer",marginTop:showPrimaryBtn?10:0,padding:8}}>Seguir comprando sin cuenta</button>
         </div>
@@ -433,7 +486,18 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
   const tieneImagen = !!(vid || bannerTxt(imagenActual));
 
   const modoCompleto =
-    (bannerTxt(b.modo_visualizacion)||"imagen_completa")==="imagen_completa" && tieneImagen;
+    bannerEsImagenCompleta(b) && tieneImagen;
+
+  const heroFrameStyle = {
+    width:"100%",
+    aspectRatio: esMobile ? "1 / 1" : "16 / 5",
+    maxHeight: esMobile ? 420 : 480,
+    background:"#0f172a",
+    display:"flex",
+    alignItems:"center",
+    justifyContent:"center",
+    overflow:"hidden",
+  };
 
   const carouselControls = banners.length > 1 && (
     <>
@@ -510,6 +574,8 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
     objectFit:"cover",
     objectPosition:"center center",
   };
+
+  const imgHeroContainSx = bannerImgEncajeStyle("100%");
 
   const fondoShell = (
     <div
@@ -740,21 +806,23 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
               background:"transparent",
             }}
           >
-            {vid ? (
-              <BannerLoopVideo
-                src={vid}
-                poster={bannerTxt(imagenActual)||undefined}
-                aria-label={bannerTxt(b.titulo)||"Banner"}
-                style={imgHeroSx}
-              />
-            ) : (
-              <img
-                src={imagenActual}
-                alt={bannerTxt(b.titulo)||"Banner"}
-                decoding="async"
-                style={imgHeroSx}
-              />
-            )}
+            <div style={heroFrameStyle}>
+              {vid ? (
+                <BannerLoopVideo
+                  src={vid}
+                  poster={bannerTxt(imagenActual)||undefined}
+                  aria-label={bannerTxt(b.titulo)||"Banner"}
+                  style={imgHeroContainSx}
+                />
+              ) : (
+                <img
+                  src={imagenActual}
+                  alt={bannerTxt(b.titulo)||"Banner"}
+                  decoding="async"
+                  style={imgHeroContainSx}
+                />
+              )}
+            </div>
           </button>
           {carouselControls}
         </>
