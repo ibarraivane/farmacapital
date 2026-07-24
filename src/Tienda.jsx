@@ -644,7 +644,8 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
         </div>
       ) : null}
 
-      {tieneImagen ? (
+      {/* Gradiente solo si hay texto overlay — no oscurecer imágenes con diseño propio */}
+      {tieneImagen && (bannerTxt(b.titulo) || bannerTxt(b.subtitulo) || bannerTxt(b.cta)) ? (
         <>
           {!esMobile && (
             <div aria-hidden style={{
