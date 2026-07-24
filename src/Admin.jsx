@@ -808,9 +808,9 @@ function BannersAdmin(){
                   filenamePrefix={`${(form.titulo||"banner").toLowerCase().replace(/\s/g,"-")}-desktop`}
                   size="medium"
                 />
-              <div style={{fontSize:11,color:C.textDim,marginTop:6,lineHeight:1.4}}>
-                Exportá en <strong>1920×600 px</strong> (ratio 16:5). El carrusel llena el marco con recorte suave en los bordes; dejá texto e íconos en el centro. Bucket <code style={{background:C.card,padding:"1px 4px",borderRadius:4}}>banners</code>.
-              </div>
+                <div style={{fontSize:11,color:C.textDim,marginTop:6,lineHeight:1.4}}>
+                  Imagen rectangular ancha para laptop/tablet. Bucket <code style={{background:C.card,padding:"1px 4px",borderRadius:4}}>banners</code>.
+                </div>
               </div>
               <div style={{padding:14,background:C.bg,borderRadius:10,border:`1px solid ${C.border}`}}>
                 <label style={{color:C.textMid,fontSize:11,fontWeight:700,display:"block",marginBottom:8}}>
@@ -836,7 +836,7 @@ function BannersAdmin(){
                   size="medium"
                 />
                 <div style={{fontSize:11,color:C.textDim,marginTop:6,lineHeight:1.4}}>
-                  Cuadrada para celular: <strong>1080×1080 px</strong> (1:1). Si no subís una, la tienda usa la desktop.
+                  Cuadrada para celular. Si no subís una, la tienda usa la desktop.
                 </div>
               </div>
             </div>
@@ -872,11 +872,9 @@ function BannersAdmin(){
                 <option value="imagen_completa">📷 Solo imagen (sin texto encima)</option>
               </select>
               <div style={{fontSize:11,color:C.textDim,marginTop:6,lineHeight:1.4}}>
-                💡 <strong>Imagen completa:</strong> diseño con texto incluido (Canva, etc.). Sin texto encima desde Admin.
+                💡 <strong>Imagen completa:</strong> usa cuando ya diseñaste el banner con texto incluido (ej. en Canva o Nano Banana).
                 <br/>
-                💡 <strong>Imagen de fondo:</strong> la imagen llena el marco y vos editás el texto encima desde Admin.
-                <br/>
-                Usá las medidas de arriba; el carrusel tiene marco fijo (desktop 16:5, móvil 1:1).
+                💡 <strong>Imagen de fondo:</strong> usa cuando quieres cambiar el texto sin re-generar la imagen.
               </div>
             </div>
             {[["Título (opcional)","titulo"],["Subtítulo","subtitulo"],["Descripción","descripcion"],["Emoji (si no hay imagen)","emoji"],["Texto del botón","cta"],["Página destino","pagina"]].map(([l,k])=>(

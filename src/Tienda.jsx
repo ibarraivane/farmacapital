@@ -193,58 +193,6 @@ function bannerVideoUrl(b){
   return v != null && String(v).trim() !== "" ? String(v).trim() : "";
 }
 
-/** true = diseño ya incluye textos; sin overlay de Admin encima. */
-function bannerEsImagenCompleta(b) {
-  return String(b?.modo_visualizacion || "imagen_completa").trim().toLowerCase() !== "imagen_fondo";
-}
-
-/** Marco fijo del carrusel / tarjetas: 16:5, altura acotada. */
-const BANNER_MARCO_HERO = { ratio: "16 / 5", maxH: { mobile: 220, desktop: 380 }, minH: { mobile: 140, desktop: 240 } };
-const BANNER_MARCO_STRIP = { ratio: "16 / 5", maxH: 120 };
-const BANNER_MARCO_TILE = { ratio: "16 / 5", maxH: { mobile: 120, desktop: 140 } };
-
-function bannerMarcoStyle({ ratio, maxH, minH, esMobile }) {
-  const maxHeight = typeof maxH === "object" ? (esMobile ? maxH.mobile : maxH.desktop) : maxH;
-  const minHeight = minH
-    ? (typeof minH === "object" ? (esMobile ? minH.mobile : minH.desktop) : minH)
-    : undefined;
-  return {
-    width: "100%",
-    aspectRatio: ratio,
-    maxHeight,
-    ...(minHeight != null ? { minHeight } : {}),
-    overflow: "hidden",
-    position: "relative",
-    background: "#0f172a",
-  };
-}
-
-function bannerCoverMediaSx() {
-  return {
-    position: "absolute",
-    inset: 0,
-    width: "100%",
-    height: "100%",
-    display: "block",
-    objectFit: "cover",
-    objectPosition: "center center",
-  };
-}
-
-/** Popup: imagen completa sin recortar dentro del modal. */
-function bannerImgEncajeStyle(maxHeight) {
-  return {
-    display: "block",
-    maxWidth: "100%",
-    maxHeight: maxHeight || "100%",
-    width: "auto",
-    height: "auto",
-    objectFit: "contain",
-    objectPosition: "center center",
-    margin: "0 auto",
-  };
-}
-
 /** Video sin sonido + loop para autoplay en carrusel/banners (políticas del navegador). */
 function BannerLoopVideo({ src, poster, style, "aria-label": ariaLabel }){
   return (
@@ -331,7 +279,9 @@ function PopupBienvenida({onClose,setPage,precioConsulta,banner}){
   const mobilePopup = useMediaQuery("(max-width: 767px)");
   const pc = Math.round(Number(precioConsulta) || CONSULTA_PRECIO_DEFAULT);
   const hasBannerRow = !!(banner && banner.id != null);
-  const modoCompletoPopup = hasBannerRow && bannerEsImagenCompleta(banner);
+  const modoCompletoPopup =
+    hasBannerRow &&
+    String(banner.modo_visualizacion || "").trim().toLowerCase() !== "imagen_fondo";
 
   const tituloRaw = bannerTxt(banner?.titulo);
   const subtituloRaw = bannerTxt(banner?.subtitulo);
@@ -385,59 +335,17 @@ function PopupBienvenida({onClose,setPage,precioConsulta,banner}){
       ? "linear-gradient(180deg, rgba(2,6,23,.12), rgba(2,6,23,.42))"
       : "transparent";
 
-  const popupImgMaxH = mobilePopup ? "min(68vh, 460px)" : "min(52vh, 420px)";
-  const popupAspect = mobilePopup ? "4 / 5" : "16 / 10";
-
   return(
     <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(2,6,23,.62)",backdropFilter:"blur(3px)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:16,overflowY:"auto",WebkitOverflowScrolling:"touch",pointerEvents:"auto"}}>
       <div style={{background:C.white,borderRadius:16,maxWidth:mobilePopup?420:640,width:"100%",maxHeight:"90vh",overflowY:"auto",boxShadow:"0 24px 70px rgba(2,6,23,.48)",border:"1px solid rgba(255,255,255,.4)"}}>
-        {modoCompletoPopup && imgUrl ? (
-          <div style={{position:"relative",background:"#eef2f7",borderRadius:"16px 16px 0 0",overflow:"hidden"}}>
-            <div
-              style={{
-                width:"100%",
-                aspectRatio:popupAspect,
-                maxHeight:popupImgMaxH,
-                display:"flex",
-                alignItems:"center",
-                justifyContent:"center",
-                padding: mobilePopup ? 8 : 12,
-                boxSizing:"border-box",
-              }}
-            >
-              <img
-                src={imgUrl}
-                alt={imgAlt}
-                decoding="async"
-                style={bannerImgEncajeStyle("100%")}
-              />
-            </div>
-            <button type="button" onClick={(e)=>{ e.stopPropagation(); onClose(); }} aria-label="Cerrar" style={{position:"absolute",top:10,right:10,zIndex:30,background:"rgba(15,23,42,.55)",border:"none",color:"#fff",width:36,height:36,borderRadius:"50%",cursor:"pointer",fontSize:18,lineHeight:1,display:"flex",alignItems:"center",justifyContent:"center",padding:0,pointerEvents:"auto",WebkitTapHighlightColor:"transparent"}}>×</button>
-          </div>
-        ) : (
-        <div style={{background:BRAND.gradient,padding: imgUrl ? 0 : "28px 20px",textAlign:"center",position:"relative",overflow:"hidden",borderRadius: imgUrl ? "16px 16px 0 0" : undefined}}>
+        <div style={{background:BRAND.gradient,padding:"28px 20px",textAlign:"center",position:"relative",overflow:"hidden"}}>
           {imgUrl ? (
-            <div
-              style={{
-                width:"100%",
-                aspectRatio: mobilePopup ? "1 / 1" : "16 / 9",
-                maxHeight: popupImgMaxH,
-                position:"relative",
-                background:"#0f172a",
-                display:"flex",
-                alignItems:"center",
-                justifyContent:"center",
-              }}
-            >
-              <img
-                src={imgUrl}
-                alt={imgAlt}
-                decoding="async"
-                style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",objectPosition:"center center",zIndex:0}}
-              />
-            </div>
+            <img
+              src={imgUrl}
+              alt={imgAlt}
+              style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",objectPosition:"center center",zIndex:0,filter:"saturate(1.08) contrast(1.05)"}}
+            />
           ) : null}
-          {imgUrl && showOverlayCopy ? (
           <div
             style={{
               position:"absolute",
@@ -447,9 +355,19 @@ function PopupBienvenida({onClose,setPage,precioConsulta,banner}){
               pointerEvents:"none",
             }}
           />
-          ) : null}
+          <div
+            aria-hidden
+            style={{
+              position:"relative",
+              width:"100%",
+              aspectRatio: mobilePopup ? "1 / 1" : "16 / 9",
+              zIndex:1,
+              pointerEvents:"none",
+            }}
+          />
+          <button type="button" onClick={(e)=>{ e.stopPropagation(); onClose(); }} aria-label="Cerrar" style={{position:"absolute",top:12,right:16,zIndex:30,background:"rgba(255,255,255,.25)",border:"none",color:C.white,width:36,height:36,borderRadius:"50%",cursor:"pointer",fontSize:18,lineHeight:1,display:"flex",alignItems:"center",justifyContent:"center",padding:0,pointerEvents:"auto",WebkitTapHighlightColor:"transparent"}}>×</button>
           {showOverlayCopy ? (
-            <div style={{position:"relative",zIndex:2,padding:"20px 16px"}}>
+            <div style={{position:"relative",zIndex:2}}>
               {titulo ? (
                 <h2 style={{color:C.white,fontSize:"clamp(18px,4.5vw,22px)",fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif",marginBottom:8}}>{titulo}</h2>
               ) : null}
@@ -460,9 +378,7 @@ function PopupBienvenida({onClose,setPage,precioConsulta,banner}){
               ) : null}
             </div>
           ) : null}
-          <button type="button" onClick={(e)=>{ e.stopPropagation(); onClose(); }} aria-label="Cerrar" style={{position:"absolute",top:12,right:16,zIndex:30,background:"rgba(255,255,255,.25)",border:"none",color:C.white,width:36,height:36,borderRadius:"50%",cursor:"pointer",fontSize:18,lineHeight:1,display:"flex",alignItems:"center",justifyContent:"center",padding:0,pointerEvents:"auto",WebkitTapHighlightColor:"transparent"}}>×</button>
         </div>
-        )}
         <div style={{padding:"20px 20px"}}>
           {showBullets ? (
             <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:10,marginBottom:20}}>
@@ -474,9 +390,7 @@ function PopupBienvenida({onClose,setPage,precioConsulta,banner}){
             </div>
           ) : null}
           {showPrimaryBtn ? (
-            <Btn onClick={()=>{onClose();setPage(ctaPage);}} col={BRAND.primary} full>
-              {String(cta || "").trim().endsWith("→") ? cta : `${cta} →`}
-            </Btn>
+            <Btn onClick={()=>{onClose();setPage(ctaPage);}} col={BRAND.primary} full>{cta} →</Btn>
           ) : null}
           <button onClick={onClose} style={{width:"100%",background:"none",border:"none",color:C.dim,fontSize:13,cursor:"pointer",marginTop:showPrimaryBtn?10:0,padding:8}}>Seguir comprando sin cuenta</button>
         </div>
@@ -517,6 +431,9 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
   const vid = bannerVideoUrl(b);
   const imagenActual = bannerVisualUrl(b, narrowHeroImg);
   const tieneImagen = !!(vid || bannerTxt(imagenActual));
+
+  const modoCompleto =
+    (bannerTxt(b.modo_visualizacion)||"imagen_completa")==="imagen_completa" && tieneImagen;
 
   const carouselControls = banners.length > 1 && (
     <>
@@ -586,16 +503,26 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
     </>
   );
 
+  const imgHeroSx = {
+    width:"100%",
+    height:"100%",
+    display:"block",
+    objectFit:"cover",
+    objectPosition:"center center",
+  };
+
   const fondoShell = (
     <div
       role="presentation"
       onClick={()=>setPage(b.pagina)}
       style={{
+        position:"relative",
         width:"100%",
         overflow:"hidden",
         cursor:"pointer",
         backgroundColor: vid ? "#070f1a" : !tieneImagen && !vid ? undefined : "#0f172a",
-        ...bannerMarcoStyle({ ...BANNER_MARCO_HERO, esMobile }),
+        aspectRatio: esMobile ? "1 / 1" : "16 / 5",
+        minHeight: esMobile ? 280 : 320,
         display:"flex",
         flexDirection:"column",
         justifyContent: esMobile ? "space-between" : "flex-start",
@@ -651,8 +578,7 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
         </div>
       ) : null}
 
-      {/* Gradiente solo si hay texto overlay — no oscurecer imágenes con diseño propio */}
-      {tieneImagen && (bannerTxt(b.titulo) || bannerTxt(b.subtitulo) || bannerTxt(b.cta)) ? (
+      {tieneImagen ? (
         <>
           {!esMobile && (
             <div aria-hidden style={{
@@ -688,7 +614,7 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
             padding:"20px 16px 50px 16px",
             textAlign:"center",
           }}>
-            {!tieneImagen && bannerTxt(b.titulo) ? (
+            {bannerTxt(b.titulo) ? (
               <h2 style={{
                 color:"#fff",
                 fontSize:"clamp(20px, 5vw, 26px)",
@@ -700,7 +626,7 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
                 fontFamily:"'Plus Jakarta Sans',sans-serif",
               }}>{b.titulo}</h2>
             ) : null}
-            {!tieneImagen && bannerTxt(b.subtitulo) ? (
+            {bannerTxt(b.subtitulo) ? (
               <div style={{
                 color:"rgba(255,255,255,.9)",
                 fontSize:"clamp(10px, 2.5vw, 12px)",
@@ -712,7 +638,7 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
                 fontFamily:"'Plus Jakarta Sans',sans-serif",
               }}>{b.subtitulo}</div>
             ) : null}
-            {!tieneImagen && bannerTxt(b.cta) && b.pagina ? (
+            {bannerTxt(b.cta) && b.pagina ? (
               <Btn
                 onClick={(e)=>{ e.stopPropagation(); setPage(b.pagina); }}
                 style={{
@@ -737,7 +663,7 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
             textAlign:"left",
             maxWidth:"60%",
           }}>
-            {!tieneImagen && bannerTxt(b.titulo) ? (
+            {bannerTxt(b.titulo) ? (
               <h2 style={{
                 color:"#fff",
                 fontSize:"clamp(24px, 3.5vw, 36px)",
@@ -749,7 +675,7 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
                 fontFamily:"'Plus Jakarta Sans',sans-serif",
               }}>{b.titulo}</h2>
             ) : null}
-            {!tieneImagen && bannerTxt(b.subtitulo) ? (
+            {bannerTxt(b.subtitulo) ? (
               <div style={{
                 color:"rgba(255,255,255,.9)",
                 fontSize:"clamp(11px, 1.4vw, 14px)",
@@ -762,7 +688,7 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
             ) : null}
           </div>
           <div style={{flex:1}}/>
-          {!tieneImagen && bannerTxt(b.cta) && b.pagina ? (
+          {bannerTxt(b.cta) && b.pagina ? (
             <div style={{
               position:"relative",
               zIndex:2,
@@ -791,9 +717,53 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
   );
 
   return(
-    <div style={{position:"relative",width:"100%",overflow:"hidden"}}>
-      {fondoShell}
-      {carouselControls}
+    <div style={{
+      position:"relative",
+      width:"100%",
+      overflow:"hidden",
+      background: modoCompleto && tieneImagen ? "#000" : undefined,
+    }}>
+      {modoCompleto ? (
+        <>
+          <button
+            type="button"
+            onClick={()=>setPage(b.pagina)}
+            onMouseEnter={()=>setPauseAuto(true)}
+            onMouseLeave={()=>setPauseAuto(false)}
+            style={{
+              display:"block",
+              width:"100%",
+              border:"none",
+              padding:0,
+              margin:0,
+              cursor:"pointer",
+              background:"transparent",
+            }}
+          >
+            {vid ? (
+              <BannerLoopVideo
+                src={vid}
+                poster={bannerTxt(imagenActual)||undefined}
+                aria-label={bannerTxt(b.titulo)||"Banner"}
+                style={imgHeroSx}
+              />
+            ) : (
+              <img
+                src={imagenActual}
+                alt={bannerTxt(b.titulo)||"Banner"}
+                decoding="async"
+                style={imgHeroSx}
+              />
+            )}
+          </button>
+          {carouselControls}
+        </>
+      ) : (
+        <>
+          {fondoShell}
+          {carouselControls}
+        </>
+      )}
     </div>
   );
 }
@@ -820,9 +790,10 @@ function HomeBannersStrip({setPage, items}){
                 type="button"
                 onClick={()=>setPage(b.pagina)}
                 style={{
-                  flex:"1 1 280px",
+                  flex:"1 1 min(100%,280px)",
                   maxWidth:420,
                   minWidth:0,
+                  width:"100%",
                   padding:0,
                   border:"none",
                   borderRadius:14,
@@ -836,23 +807,33 @@ function HomeBannersStrip({setPage, items}){
                 onMouseEnter={e=>{ e.currentTarget.style.transform="translateY(-2px)"; e.currentTarget.style.boxShadow="0 8px 28px rgba(15,45,110,.2)"; }}
                 onMouseLeave={e=>{ e.currentTarget.style.transform="none"; e.currentTarget.style.boxShadow="0 4px 20px rgba(15,45,110,.12)"; }}
               >
-                <div style={bannerMarcoStyle({ ...BANNER_MARCO_STRIP, esMobile: stack })}>
-                  {vid ? (
-                    <BannerLoopVideo
-                      src={vid}
-                      poster={imgUrl || undefined}
-                      aria-label={bannerTxt(b.titulo) || "Banner"}
-                      style={bannerCoverMediaSx()}
-                    />
-                  ) : (
-                    <img
-                      src={imgUrl}
-                      alt={bannerTxt(b.titulo)||""}
-                      decoding="async"
-                      style={bannerCoverMediaSx()}
-                    />
-                  )}
-                </div>
+                {vid ? (
+                  <BannerLoopVideo
+                    src={vid}
+                    poster={imgUrl || undefined}
+                    aria-label={bannerTxt(b.titulo) || "Banner"}
+                    style={{
+                      width:"100%",
+                      height:"auto",
+                      display:"block",
+                      maxHeight:220,
+                      objectFit:"contain",
+                    }}
+                  />
+                ) : (
+                  <img
+                    src={imgUrl}
+                    alt={bannerTxt(b.titulo)||""}
+                    decoding="async"
+                    style={{
+                      width:"100%",
+                      height:"auto",
+                      display:"block",
+                      maxHeight:220,
+                      objectFit:"contain",
+                    }}
+                  />
+                )}
               </button>
             );
           }
@@ -929,20 +910,32 @@ function HomeBannersStrip({setPage, items}){
                 </div>
               </>
               ) : (
-                <div style={bannerMarcoStyle({ ...BANNER_MARCO_STRIP, esMobile: stack })}>
+                <div style={{width:"100%",background:"#0f172a",display:"flex",alignItems:"center",justifyContent:"center",padding:"10px 8px"}}>
                   {vid ? (
                     <BannerLoopVideo
                       src={vid}
                       poster={imgUrl || undefined}
                       aria-label={bannerTxt(b.titulo)||"Banner"}
-                      style={bannerCoverMediaSx()}
+                      style={{
+                        width:"100%",
+                        height:"auto",
+                        display:"block",
+                        objectFit:"contain",
+                        maxHeight:140,
+                      }}
                   />
                   ) : (
                     <img
                       src={imgUrl}
                       alt=""
                       decoding="async"
-                      style={bannerCoverMediaSx()}
+                      style={{
+                        width:"100%",
+                        height:"auto",
+                        display:"block",
+                        objectFit:"contain",
+                        maxHeight:140,
+                      }}
                     />
                   )}
                 </div>
@@ -997,30 +990,43 @@ function HomeBannersTiles({setPage, items, stack}){
                   background:"#0f172a",
                   color:"#fff",
                   padding:0,
-                  display:"block",
+                  minHeight:120,
+                  display:"flex",
+                  alignItems:"center",
+                  justifyContent:"center",
                   boxShadow:"0 2px 12px rgba(0,0,0,.06)",
                   transition:"transform .15s",
                 }}
                 onMouseEnter={e=>{ e.currentTarget.style.transform="translateY(-2px)"; }}
                 onMouseLeave={e=>{ e.currentTarget.style.transform="none"; }}
               >
-                <div style={bannerMarcoStyle({ ...BANNER_MARCO_TILE, esMobile: stack })}>
-                  {vid ? (
-                    <BannerLoopVideo
-                      src={vid}
-                      poster={imgUrl || undefined}
-                      aria-label={bannerTxt(b.titulo)||""}
-                      style={bannerCoverMediaSx()}
-                    />
-                  ) : (
-                    <img
-                      src={imgUrl}
-                      alt={bannerTxt(b.titulo)||""}
-                      decoding="async"
-                      style={bannerCoverMediaSx()}
-                    />
-                  )}
-                </div>
+                {vid ? (
+                  <BannerLoopVideo
+                    src={vid}
+                    poster={imgUrl || undefined}
+                    aria-label={bannerTxt(b.titulo)||""}
+                    style={{
+                      width:"100%",
+                      height:"auto",
+                      display:"block",
+                      maxHeight:200,
+                      objectFit:"contain",
+                    }}
+                  />
+                ) : (
+                  <img
+                    src={imgUrl}
+                    alt={bannerTxt(b.titulo)||""}
+                    decoding="async"
+                    style={{
+                      width:"100%",
+                      height:"auto",
+                      display:"block",
+                      maxHeight:200,
+                      objectFit:"contain",
+                    }}
+                  />
+                )}
               </button>
             );
           }
@@ -1042,20 +1048,34 @@ function HomeBannersTiles({setPage, items, stack}){
             onMouseLeave={e=>{ e.currentTarget.style.transform="none"; }}
           >
             {(vid||imgUrl) ? (
-              <div style={bannerMarcoStyle({ ...BANNER_MARCO_TILE, esMobile: stack })}>
+              <div style={{position:"relative",width:"100%",background:"#0f172a"}}>
                 {vid ? (
                   <BannerLoopVideo
                     src={vid}
                     poster={imgUrl || undefined}
                     aria-label={bannerTxt(b.titulo)||""}
-                    style={bannerCoverMediaSx()}
+                    style={{
+                      width:"100%",
+                      height:"auto",
+                      display:"block",
+                      verticalAlign:"top",
+                      objectFit:"contain",
+                      maxHeight:stack?200:260,
+                    }}
                   />
                 ) : (
                   <img
                     src={imgUrl}
                     alt=""
                     decoding="async"
-                    style={bannerCoverMediaSx()}
+                    style={{
+                      width:"100%",
+                      height:"auto",
+                      display:"block",
+                      verticalAlign:"top",
+                      objectFit:"contain",
+                      maxHeight:stack?200:260,
+                    }}
                   />
                 )}
                 {tileHasCopy ? (
