@@ -677,7 +677,21 @@ function BannersAdmin(){
   const [form,setForm]      = useState({titulo:"",subtitulo:"",descripcion:"",emoji:"💊",bg:"linear-gradient(135deg,#0D1B2A,#1E3ABA)",cta:"Ver más →",pagina:"catalogo",orden:0,activo:true,slot:"hero",imagen_url:"",imagen_url_mobile:"",video_url:"",modo_visualizacion:"imagen_fondo"});
   const [saving,setSaving]  = useState(false);
 
-  const fetch = async()=>{ setLoad(true); const{data}=await supabase.from("banners").select("*").order("orden"); setBanners(data||[]); setLoad(false); };
+  const fetch = async()=>{
+    setLoad(true);
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    const { data, error } = await supabase.rpc("admin_listar_banners", {
+      p_session_token: tok,
+    });
+    if (error) {
+      console.warn("[BannersAdmin] admin_listar_banners:", error.message);
+      const { data: fallback } = await supabase.from("banners").select("*").order("orden");
+      setBanners(fallback || []);
+    } else {
+      setBanners(data || []);
+    }
+    setLoad(false);
+  };
   useEffect(()=>{ fetch(); },[]);
 
   const guardar = async()=>{

@@ -72,18 +72,42 @@ export default function ImageUploader({
 
       setProgress(30);
 
-      const { error: uploadError } = await supabase.storage.from(bucket).upload(fileName, file, {
-        cacheControl: "3600",
-        upsert: false,
-        contentType: fileMime,
-      });
+      const sessionToken = (() => {
+        try { return sessionStorage.getItem("farmacapital_session_token") || ""; } catch { return ""; }
+      })();
+      const useServerUpload =
+        sessionToken && (bucket === "banners" || bucket === "productos");
 
-      if (uploadError) throw uploadError;
+      let publicUrl;
+
+      if (useServerUpload) {
+        const resp = await fetch("/api/admin/storage-upload", {
+          method: "POST",
+          headers: {
+            "Content-Type": fileMime,
+            "X-Session-Token": sessionToken,
+            "X-Bucket": bucket,
+            "X-File-Name": fileName,
+          },
+          body: file,
+        });
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok || !data?.ok) {
+          throw new Error(data?.message || data?.error || `Error ${resp.status}`);
+        }
+        publicUrl = data.publicUrl;
+      } else {
+        const { error: uploadError } = await supabase.storage.from(bucket).upload(fileName, file, {
+          cacheControl: "3600",
+          upsert: true,
+          contentType: fileMime,
+        });
+        if (uploadError) throw uploadError;
+        const { data } = supabase.storage.from(bucket).getPublicUrl(fileName);
+        publicUrl = data.publicUrl;
+      }
 
       setProgress(70);
-
-      const { data } = supabase.storage.from(bucket).getPublicUrl(fileName);
-      const publicUrl = data.publicUrl;
 
       setProgress(100);
       showToast("✅ Imagen subida correctamente", "success");
