@@ -248,22 +248,24 @@ function LoginScreen({onLogin}){
         <div style={{textAlign:"center",marginBottom:32}}>
           <div style={{display:"flex",justifyContent:"center",marginBottom:16}}><Logo size={56} variant="admin"/></div>
           <div style={{color:C.textMid,fontSize:14}}>Acceso interno · Gestión de farmacia</div>
+          <div style={{color:C.textDim,fontSize:12,marginTop:6}}>Panel en <strong>/admin</strong> · distinto a la tienda pública</div>
         </div>
         <Box style={{padding:32,boxShadow:"0 4px 24px rgba(15,45,110,.10)"}}>
           <div style={{color:C.text,fontWeight:800,fontSize:18,marginBottom:24}}>Iniciar sesión</div>
+          <form className="farmacapital-login-form" autoComplete="on" onSubmit={(e)=>{ e.preventDefault(); entrar(); }}>
           <div style={{marginBottom:14}}>
             <div style={{color:C.textMid,fontSize:11,marginBottom:6,fontWeight:700}}>EMAIL</div>
-            <Inp value={email} onChange={e=>setEmail(e.target.value)} placeholder="tu@email.com" type="email" style={{width:"100%",boxSizing:"border-box"}}/>
+            <Inp name="username" autoComplete="username email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="tu@email.com" type="email" style={{width:"100%",boxSizing:"border-box",background:"#fff",WebkitTextFillColor:C.text,colorScheme:"light"}}/>
           </div>
           <div style={{marginBottom:20}}>
             <div style={{color:C.textMid,fontSize:11,marginBottom:6,fontWeight:700}}>CONTRASEÑA</div>
-            <Inp value={pwd} onChange={e=>setPwd(e.target.value)} onKeyDown={e=>e.key==="Enter"&&entrar()} placeholder="••••••••" type="password" style={{width:"100%",boxSizing:"border-box"}}/>
+            <Inp name="password" autoComplete="current-password" value={pwd} onChange={e=>setPwd(e.target.value)} placeholder="••••••••" type="password" style={{width:"100%",boxSizing:"border-box",background:"#fff",WebkitTextFillColor:C.text,colorScheme:"light"}}/>
           </div>
           {error&&<div style={{background:C.redDim,border:`1px solid ${C.red}30`,borderRadius:8,padding:"10px 12px",marginBottom:16,color:C.red,fontSize:13}}>
             <div>{error}</div>
             {errorDetail ? <div style={{marginTop:8,fontSize:11,opacity:0.9,wordBreak:"break-word"}}>{errorDetail}</div> : null}
           </div>}
-          <Btn onClick={entrar} full col={BRAND.primary} dis={!email||!pwd||loading}>{loading ? (retryMsg ? "Conectando…" : "Verificando…") : "Entrar →"}</Btn>
+          <Btn type="submit" full col={BRAND.primary} dis={!email||!pwd||loading}>{loading ? (retryMsg ? "Conectando…" : "Verificando…") : "Entrar →"}</Btn>
           {retryMsg && <div style={{marginTop:8,textAlign:"center",fontSize:12,color:C.textDim}}>{retryMsg}</div>}
           <div style={{marginTop:16,textAlign:"center"}}>
             <div style={{fontSize:11,color:C.textDim,textAlign:"center"}}>
@@ -288,6 +290,7 @@ function LoginScreen({onLogin}){
               </span>
             </div>
           </div>
+          </form>
         </Box>
       </div>
     </div>

@@ -2,7 +2,16 @@ import { useState, useEffect, useMemo, createContext, useContext, useRef } from 
 import { supabase } from "./supabase";
 import { useTheme } from "./themeContext";
 import { useMediaQuery, useNarrowForBannerImage } from "./hooks/useMediaQuery";
-import { saludoUsuario, primerNombre, $, normalizarSesionLoginResp, nombreCompletoPacienteValido, telefonoMxValido, soloDigitosTel } from "./utils";
+import { saludoUsuario, primerNombre, $, normalizarSesionLoginResp, nombreCompletoPacienteValido, telefonoMxValido, soloDigitosTel, getClienteToken } from "./utils";
+import {
+  setClienteSession,
+  clearClienteSession,
+  getClienteUser,
+  setPostLoginPage,
+  getPostLoginPage,
+  consumePostLoginPage,
+  navigateToCita,
+} from "./utils/clienteSession";
 import { tiendaProductMatchesBusqueda, spellSuggestFromProducts, tiendaCatalogSearchSuggestions, tiendaSearchRelevanceRank } from "./utils/fuzzySearch";
 import { CONSULTA_PRECIO_DEFAULT, citaPagoOk } from "./utils/consultaConstants";
 import { fetchPrecioConsultaConfig } from "./utils/consumiblesConsultorio";
@@ -236,7 +245,11 @@ const HORARIOS_DOCTORA = [
   { dia:"Sábado",          horario:"09:00 – 14:00" },
   { dia:"Domingo",         horario:"Cerrado" },
 ];
-const TODOS_HORARIOS = ["09:00","09:30","10:00","10:30","11:00","11:30","16:00","16:30","17:00","17:30","18:00","18:30"];
+const TODOS_HORARIOS = [
+  "09:00","09:30","10:00","10:30","11:00","11:30",
+  "12:00","12:30","13:00","13:30","14:00",
+  "16:00","16:30","17:00","17:30","18:00","18:30",
+];
 
 function localISODate(d = new Date()) {
   const y = d.getFullYear();
@@ -260,8 +273,8 @@ function horariosDisponibles(fecha){
 }
 
 // ── UI BASE ───────────────────────────────────────────────────
-const Btn=({children,onClick,col,outline,sm,full,disabled,style})=>(
-  <button onClick={onClick} disabled={disabled} style={{padding:sm?"7px 16px":"12px 24px",borderRadius:10,border:`2px solid ${outline?(col||BRAND.primary):"transparent"}`,background:outline?"transparent":disabled?C.dim:(col||BRAND.primary),color:outline?(col||BRAND.primary):C.white,fontWeight:700,fontSize:sm?13:14,cursor:disabled?"not-allowed":"pointer",fontFamily:"'Plus Jakarta Sans',sans-serif",width:full?"100%":undefined,opacity:disabled?.6:1,transition:"all .15s",...style}}>{children}</button>
+const Btn=({children,onClick,col,outline,sm,full,disabled,style,type="button"})=>(
+  <button type={type} onClick={onClick} disabled={disabled} style={{padding:sm?"7px 16px":"12px 24px",borderRadius:10,border:`2px solid ${outline?(col||BRAND.primary):"transparent"}`,background:outline?"transparent":disabled?C.dim:(col||BRAND.primary),color:outline?(col||BRAND.primary):C.white,fontWeight:700,fontSize:sm?13:14,cursor:disabled?"not-allowed":"pointer",fontFamily:"'Plus Jakarta Sans',sans-serif",width:full?"100%":undefined,opacity:disabled?.6:1,transition:"all .15s",...style}}>{children}</button>
 );
 const Tag=({children,col,sm})=>(
   <span style={{background:col+"18",color:col,border:`1px solid ${col}30`,borderRadius:20,padding:sm?"2px 8px":"4px 12px",fontSize:sm?10:12,fontWeight:700,whiteSpace:"nowrap",display:"inline-block"}}>{children}</span>
@@ -1166,7 +1179,8 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
   const WHATSAPP_LINK = `https://wa.me/${WHATSAPP_NUMERO}`;
 
   const handleNav = (page) => {
-    setPage(page);
+    if (page === "cita") navigateToCita(setPage);
+    else setPage(page);
     onClose();
   };
 
@@ -1501,10 +1515,9 @@ function Header({page,setPage,cart,user,setUser}){
   };
 
   const logout = async () => {
-    const tok = sessionStorage.getItem("farmacapital_cliente_token");
+    const tok = getClienteToken();
     if (tok) { try { await supabase.rpc("logout_cliente", { p_session_token: tok }); } catch(e){} }
-    sessionStorage.removeItem("farmacapital_cliente_token");
-    sessionStorage.removeItem("farmacapital_user");
+    clearClienteSession();
     setUser(null);
     setMenuOpen(false);
     setPage("home");
@@ -1894,7 +1907,7 @@ function Footer({setPage}){
         <div>
           <div style={{color:C.white,fontWeight:700,fontSize:14,marginBottom:16,textTransform:"uppercase",letterSpacing:1}}>Mi consultorio</div>
           {[["Agendar cita","cita"],["Preguntas frecuentes","faq"],["Surtir receta","catalogo"],["Mis puntos FarmaCapital","puntos"],["Mi cuenta","cuenta"]].map(([l,pg])=>(
-            <button key={l} onClick={()=> l==="Surtir receta" ? goSurtirReceta() : setPage(pg)} style={{display:"block",background:"none",border:"none",color:"rgba(255,255,255,.6)",fontSize:13,cursor:"pointer",marginBottom:8,textAlign:"left",padding:0,fontFamily:"'Plus Jakarta Sans',sans-serif"}}
+            <button key={l} onClick={()=> l==="Surtir receta" ? goSurtirReceta() : l==="Agendar cita" ? navigateToCita(setPage) : setPage(pg)} style={{display:"block",background:"none",border:"none",color:"rgba(255,255,255,.6)",fontSize:13,cursor:"pointer",marginBottom:8,textAlign:"left",padding:0,fontFamily:"'Plus Jakarta Sans',sans-serif"}}
               onMouseEnter={e=>(e.currentTarget.style.color="rgba(255,255,255,.9)")}
               onMouseLeave={e=>(e.currentTarget.style.color="rgba(255,255,255,.6)")}>{l}</button>
           ))}
@@ -2539,7 +2552,7 @@ function TiendaBusquedaBar({
       </div>
       <button
         type="button"
-        onClick={() => setPage("cita")}
+        onClick={() => navigateToCita(setPage)}
         style={{
           flexShrink: 0,
           display: "inline-flex",
@@ -2695,7 +2708,7 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
         <div style={{maxWidth:800,margin:"0 auto",textAlign:"center"}}>
           <h2 style={{color:C.dark,fontSize:28,fontWeight:800,marginBottom:12}}>Consultorio médico FarmaCapital</h2>
           <p style={{color:C.mid,fontSize:16,lineHeight:1.7,marginBottom:28}}>Atención médica general · <strong>{$(precioConsulta ?? CONSULTA_PRECIO_DEFAULT)} por consulta</strong> · O gratis con <strong style={{color:BRAND.primary}}>160 puntos FarmaCapital</strong>. Al terminar tu consulta, surte tu receta con <strong>10% de descuento</strong>.</p>
-          <Btn onClick={()=>setPage("cita")} col={BRAND.primary}>Agendar cita online</Btn>
+          <Btn onClick={()=>navigateToCita(setPage)} col={BRAND.primary}>Agendar cita online</Btn>
         </div>
       </div>
 
@@ -3275,7 +3288,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
         return;
       }
 
-      const tokCli = sessionStorage.getItem("farmacapital_cliente_token");
+      const tokCli = getClienteToken();
       const esInvitado = !tokCli;
 
       // Si tiene sesión, persistir datos al perfil para no reescribir en próximas compras
@@ -3515,7 +3528,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
             const necesitaDireccion = entrega !== "pickup";
             const camposContacto = [["Nombre completo","nombre"],["Teléfono","tel"],["Correo electrónico","email"]];
             const camposDireccion = [["Calle y número","calle"],["Colonia","colonia"],["Código postal","cp"]];
-            const esInvitadoUI = !sessionStorage.getItem("farmacapital_cliente_token");
+            const esInvitadoUI = !getClienteToken();
             return(
               <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}>
                 {esInvitadoUI&&(
@@ -3642,6 +3655,18 @@ function AgendarCita({setPage,user}){
   const horarios=horariosDisponibles(fecha);
   const horariosLibres=horarios.filter(h=>!horasOcupadas.includes(h));
 
+  useEffect(() => {
+    if (!getClienteToken()) {
+      setPostLoginPage("cita");
+      setPage("login");
+    }
+  }, [setPage]);
+
+  useEffect(() => {
+    if (user?.nombre) setNombre(user.nombre);
+    if (user?.telefono) setTel(user.telefono);
+  }, [user?.nombre, user?.telefono]);
+
   const abrirCalendarioFecha = () => {
     const el = fechaInputRef.current;
     if (!el) return;
@@ -3699,8 +3724,8 @@ function AgendarCita({setPage,user}){
     }
     setG(true);
     try{
-      const tokCli = sessionStorage.getItem("farmacapital_cliente_token");
-      if (!tokCli) { alert("Inicia sesión para agendar tu cita."); setG(false); return; }
+      const tokCli = getClienteToken();
+      if (!tokCli) { setPostLoginPage("cita"); setPage("login"); setG(false); return; }
       const { data: resp, error } = await supabase.rpc("cliente_agendar_cita", {
         p_session_token: tokCli,
         p_nombre:        nombre,
@@ -3714,6 +3739,7 @@ function AgendarCita({setPage,user}){
     }catch(e){ alert("No se pudo agendar. Intenta de nuevo."); console.warn(e); }
     setG(false);setConf(true);
   };
+  if (!getClienteToken()) return null;
   if(conf) return(
     <div style={{maxWidth:500,margin:"clamp(40px,12vw,80px) auto",padding:"0 16px",textAlign:"center"}}>
       <div style={{fontSize:"clamp(48px,14vw,64px)",marginBottom:16}}>📅</div>
@@ -3847,7 +3873,26 @@ function AgendarCita({setPage,user}){
           </div>
           <div>
             <div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Horario {fecha&&horarios.length===0?"— Sin disponibilidad hoy":""}</div>
-            <select value={hora} onChange={e=>setHora(e.target.value)} style={{width:"100%",padding:"11px 14px",borderRadius:10,border:`2px solid ${C.border}`,color:hora?C.dark:C.dim,fontSize:16,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
+            <select
+              value={hora}
+              onChange={e=>setHora(e.target.value)}
+              style={{
+                width:"100%",
+                boxSizing:"border-box",
+                padding:"11px 14px",
+                borderRadius:10,
+                border:`2px solid ${C.border}`,
+                background:C.white,
+                color:hora?C.dark:C.dim,
+                colorScheme:"light",
+                fontSize:16,
+                outline:"none",
+                fontFamily:"'Plus Jakarta Sans',sans-serif",
+                WebkitAppearance:"none",
+                appearance:"none",
+                cursor:"pointer",
+              }}
+            >
               <option value="">Seleccionar horario</option>
               {horariosLibres.length===0&&fecha?<option value="">Sin disponibilidad este día</option>:horariosLibres.map(h=><option key={h} value={h}>{h} hrs{horasOcupadas.includes(h)?" (ocupado)":""}</option>)}
             </select>
@@ -4098,10 +4143,9 @@ function Registro({setUser,setPage}){
         setC(false); return;
       }
       const nuevo = resp.user || {};
-      sessionStorage.setItem("farmacapital_cliente_token", String(resp.session_token));
-      sessionStorage.setItem("farmacapital_user", JSON.stringify(nuevo));
+      setClienteSession(resp.session_token, nuevo);
       setUser(nuevo);
-      setPage("cuenta");
+      setPage(consumePostLoginPage() || "cuenta");
     }catch(e){setError("Error al crear cuenta. Intenta de nuevo.");}
     setC(false);
   };
@@ -4110,7 +4154,11 @@ function Registro({setUser,setPage}){
       <div style={{background:C.white,borderRadius:20,border:`1px solid ${C.border}`,padding:40}}>
         <div style={{display:"flex",justifyContent:"center",marginBottom:20}}><Logo size={40}/></div>
         <h1 style={{color:C.dark,fontSize:24,fontWeight:800,marginBottom:6,textAlign:"center"}}>Crear cuenta FarmaCapital</h1>
-        <p style={{color:C.mid,fontSize:14,marginBottom:28,textAlign:"center"}}>Regístrate y gana <strong style={{color:BRAND.accent}}>10 puntos de bienvenida ⭐</strong></p>
+        {getPostLoginPage() === "cita" ? (
+          <p style={{color:BRAND.primary,fontSize:14,marginBottom:20,textAlign:"center",lineHeight:1.5,fontWeight:600}}>Creá tu cuenta para agendar tu cita médica.</p>
+        ) : (
+          <p style={{color:C.mid,fontSize:14,marginBottom:28,textAlign:"center"}}>Regístrate y gana <strong style={{color:BRAND.accent}}>10 puntos de bienvenida ⭐</strong></p>
+        )}
         <p style={{color:C.textMid,fontSize:12,marginBottom:20,textAlign:"center",lineHeight:1.5}}>Usá <strong>correo</strong>, <strong>teléfono</strong> o <strong>ambos</strong> para tu cuenta (necesitamos al menos uno).</p>
         <div style={{marginBottom:14}}><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Nombre completo *</div><Inp value={nombre} onChange={e=>setNombre(e.target.value)} placeholder="Tu nombre" style={{width:"100%",boxSizing:"border-box"}}/></div>
         <div style={{marginBottom:14}}><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Teléfono {correoTiendaValido(email)?"(opcional)":"(o completá correo abajo)"}</div><Inp value={tel} onChange={e=>setTel(e.target.value)} placeholder="55XXXXXXXX — 10 dígitos" type="tel" style={{width:"100%",boxSizing:"border-box"}}/></div>
@@ -4307,10 +4355,9 @@ function Login({setUser,setPage}){
       }
       const cliente = resp.user || {};
       setInt(0);
-      sessionStorage.setItem("farmacapital_cliente_token", String(resp.session_token));
-      sessionStorage.setItem("farmacapital_user", JSON.stringify(cliente));
+      setClienteSession(resp.session_token, cliente);
       setUser(cliente);
-      setPage("cuenta");
+      setPage(consumePostLoginPage() || "cuenta");
     }catch(e){setError("Error de conexión. Intenta de nuevo.");}
     setBusc(false);
   };
@@ -4354,7 +4401,11 @@ function Login({setUser,setPage}){
       <div style={{background:C.white,borderRadius:20,border:`1px solid ${C.border}`,padding:40}}>
         <div style={{display:"flex",justifyContent:"center",marginBottom:20}}><Logo size={40}/></div>
         <h1 style={{color:C.dark,fontSize:24,fontWeight:800,marginBottom:6,textAlign:"center"}}>Iniciar sesión</h1>
-        <p style={{color:C.mid,fontSize:14,marginBottom:28,textAlign:"center"}}>Accede a tus puntos, pedidos e historial</p>
+        {getPostLoginPage() === "cita" ? (
+          <p style={{color:BRAND.primary,fontSize:14,marginBottom:28,textAlign:"center",lineHeight:1.5,fontWeight:600}}>Ingresá con tu correo o teléfono para agendar tu cita.</p>
+        ) : (
+          <p style={{color:C.mid,fontSize:14,marginBottom:28,textAlign:"center"}}>Accede a tus puntos, pedidos e historial</p>
+        )}
 
         {recMode ? (
           <>
@@ -4382,26 +4433,44 @@ function Login({setUser,setPage}){
             </div>
           </>
         ) : (
-          <>
+          <form className="farmacapital-login-form" autoComplete="on" onSubmit={(e)=>{ e.preventDefault(); entrar(); }}>
         <div style={{marginBottom:12}}>
           <div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Correo o teléfono</div>
           <input name="username" autoComplete="username email" value={ident} onChange={e=>setIdent(e.target.value)}
-            onKeyDown={e=>e.key==="Enter"&&entrar()} placeholder="tu@correo.com o 55XXXXXXXX" type="text"
-            style={{width:"100%",boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:C.white,color:C.dark,fontSize:16,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}/>
+            placeholder="tu@correo.com o 55XXXXXXXX" type="text"
+            style={{width:"100%",boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:C.white,color:C.dark,fontSize:16,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif",WebkitTextFillColor:C.dark,colorScheme:"light"}}/>
         </div>
         <div style={{marginBottom:20}}>
           <div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Contraseña</div>
           <input name="password" autoComplete="current-password" value={pwd} onChange={e=>setPwd(e.target.value)}
-            onKeyDown={e=>e.key==="Enter"&&entrar()} placeholder="••••••••" type="password"
-            style={{width:"100%",boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:C.white,color:C.dark,fontSize:16,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}/>
+            placeholder="••••••••" type="password"
+            style={{width:"100%",boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:C.white,color:C.dark,fontSize:16,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif",WebkitTextFillColor:C.dark,colorScheme:"light"}}/>
         </div>
-        {error&&(<div style={{background:C.red+"10",border:`1px solid ${C.red}30`,borderRadius:8,padding:"10px 12px",marginBottom:12,color:C.red,fontSize:13}}>{error} <button type="button" onClick={()=>setPage("registro")} style={{background:"none",border:"none",color:BRAND.primary,fontWeight:700,fontSize:13,cursor:"pointer",textDecoration:"underline"}}>Crear cuenta</button></div>)}
-        <Btn onClick={entrar} col={BRAND.primary} full disabled={!ident.trim()||!pwd||buscando}>{buscando?"Buscando...":"Entrar →"}</Btn>
+        {error&&(
+          <div style={{background:C.red+"10",border:`1px solid ${C.red}30`,borderRadius:8,padding:"10px 12px",marginBottom:12,color:C.red,fontSize:13,lineHeight:1.45}}>
+            <div>{error}</div>
+            {error.includes("necesita una contraseña") && (
+              <div style={{marginTop:10}}>
+                <p style={{margin:"0 0 8px",color:C.textMid,fontSize:12}}>
+                  Tu correo ya está registrado en FarmaCapital (por ejemplo desde mostrador), pero aún no tiene clave para la tienda web.
+                </p>
+                <button type="button" onClick={()=>{ setRecMode(true); setRecIdent(ident.trim()); setRecMsg(null); setError(""); }}
+                  style={{background:"none",border:"none",color:BRAND.primary,fontWeight:700,fontSize:13,cursor:"pointer",textDecoration:"underline",padding:0}}>
+                  Crear mi contraseña por WhatsApp →
+                </button>
+              </div>
+            )}
+            {!error.includes("necesita una contraseña") && (
+              <button type="button" onClick={()=>setPage("registro")} style={{background:"none",border:"none",color:BRAND.primary,fontWeight:700,fontSize:13,cursor:"pointer",textDecoration:"underline",marginTop:6,padding:0}}>Crear cuenta</button>
+            )}
+          </div>
+        )}
+        <Btn type="submit" col={BRAND.primary} full disabled={!ident.trim()||!pwd||buscando}>{buscando?"Buscando...":"Entrar →"}</Btn>
         <div style={{textAlign:"center",marginTop:14}}>
           <button type="button" onClick={abrirRecuperar} style={{background:"none",border:"none",color:BRAND.primary,fontWeight:700,fontSize:13,cursor:"pointer",textDecoration:"underline"}}>¿Olvidaste tu contraseña o no tenés clave para la tienda?</button>
         </div>
         <div style={{textAlign:"center",marginTop:16}}><span style={{color:C.mid,fontSize:13}}>¿No tienes cuenta? </span><button type="button" onClick={()=>setPage("registro")} style={{background:"none",border:"none",color:BRAND.primary,fontWeight:700,fontSize:13,cursor:"pointer"}}>Regístrate aquí</button></div>
-          </>
+          </form>
         )}
       </div>
     </div>
@@ -4429,7 +4498,7 @@ function CambiarPwdCliente({user}) {
     if(pwdN!==pwdN2) { setMsg({ok:false,txt:"Las contraseñas no coinciden"}); return; }
     setCarg(true); setMsg(null);
     try {
-      const tok = sessionStorage.getItem("farmacapital_cliente_token");
+      const tok = getClienteToken();
       if (!tok) { setMsg({ok:false,txt:"Sesión expirada. Inicia sesión de nuevo."}); setCarg(false); return; }
       const { data:resp, error:err } = await supabase.rpc("cliente_cambiar_password", {
         p_session_token: tok,
@@ -4565,7 +4634,7 @@ function Cuenta({user,setPage,setUser}){
   const [busyPayPedidoId,setBusyPayPedidoId]=useState(null);
   useEffect(()=>{
     if(!user?.id){setC(false);return;}
-    const tokCli = sessionStorage.getItem("farmacapital_cliente_token");
+    const tokCli = getClienteToken();
     if (!tokCli) { setPeds([]); setCitas([]); setC(false); return; }
     Promise.all([
       supabase.rpc("cliente_listar_mis_pedidos", { p_session_token: tokCli, p_limite: 150 }),
@@ -4578,13 +4647,13 @@ function Cuenta({user,setPage,setUser}){
   },[user]);
   const refreshCitas = async ()=>{
     if(!user?.id) return;
-    const tokCli = sessionStorage.getItem("farmacapital_cliente_token");
+    const tokCli = getClienteToken();
     if (!tokCli) return;
     const { data } = await supabase.rpc("cliente_listar_mis_citas", { p_session_token: tokCli });
     setCitas(Array.isArray(data) ? data : []);
   };
   const cancelarCita = async (cita)=>{
-    const tok = sessionStorage.getItem("farmacapital_cliente_token");
+    const tok = getClienteToken();
     if (!tok) { alert("Tu sesión expiró. Inicia sesión de nuevo."); return; }
     if (!window.confirm(`¿Cancelar la cita del ${cita.fecha} a las ${cita.hora}?`)) return;
     setBusyCitaId(cita.id);
@@ -4615,7 +4684,7 @@ function Cuenta({user,setPage,setUser}){
     setPage("cita");
   };
   const pagarPedidoMercadoPago = async (p) => {
-    const tokCli = sessionStorage.getItem("farmacapital_cliente_token");
+    const tokCli = getClienteToken();
     if (!tokCli) { alert("Tu sesion expiro. Inicia sesion nuevamente."); setPage("login"); return; }
     setBusyPayPedidoId(p.id);
     try {
@@ -4705,7 +4774,7 @@ function Cuenta({user,setPage,setUser}){
         </div>
       )))}
       {tab==="citas"&&(cargando?<div style={{textAlign:"center",padding:40,color:C.mid}}>Cargando citas...</div>:!citas.length?(
-        <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:40,textAlign:"center"}}><div style={{fontSize:40,marginBottom:12}}>📅</div><div style={{color:C.mid,fontSize:15}}>No tienes citas agendadas</div><Btn onClick={()=>setPage("cita")} col={BRAND.primary} sm style={{marginTop:16}}>Agendar consulta médica</Btn></div>
+        <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:40,textAlign:"center"}}><div style={{fontSize:40,marginBottom:12}}>📅</div><div style={{color:C.mid,fontSize:15}}>No tienes citas agendadas</div><Btn onClick={()=>navigateToCita(setPage)} col={BRAND.primary} sm style={{marginTop:16}}>Agendar consulta médica</Btn></div>
       ):citas.map(c=>{
         const ev = etiquetaEstadoCitaCliente(c);
         const meds = lineasMedicamentosCita(c);
@@ -4775,10 +4844,9 @@ function Cuenta({user,setPage,setUser}){
             <CambiarPwdCliente user={user}/>
           </div>
           <div style={{marginTop:16}}><Btn sm col={C.red} outline onClick={async()=>{
-            const tok = sessionStorage.getItem("farmacapital_cliente_token");
+            const tok = getClienteToken();
             if (tok) { try { await supabase.rpc("logout_cliente", { p_session_token: tok }); } catch(e){} }
-            sessionStorage.removeItem("farmacapital_cliente_token");
-            sessionStorage.removeItem("farmacapital_user");
+            clearClienteSession();
             setUser(null); setPage("home");
           }}>⎋ Cerrar sesión</Btn></div>
         </div>
@@ -4796,18 +4864,33 @@ export default function TiendaFarmaCapital(){
   const [resetToken, setResetToken] = useState(initialResetToken);
   const [page,setPageRaw] = useState(() => (initialResetToken ? "reset-password" : "home"));
   const setPage = (p) => {
+    let target = p;
+    if (p === "cita" && !getClienteToken()) {
+      setPostLoginPage("cita");
+      target = "login";
+    }
     try {
       const u = new URL(window.location.href);
-      if (p !== "reset-password") u.searchParams.delete("reset");
+      if (target !== "reset-password") u.searchParams.delete("reset");
       const qs = u.searchParams.toString();
-      window.history.pushState({ page: p }, "", u.pathname + (qs ? `?${qs}` : ""));
+      window.history.pushState({ page: target }, "", u.pathname + (qs ? `?${qs}` : ""));
     } catch {
-      window.history.pushState({ page: p }, "", window.location.pathname);
+      window.history.pushState({ page: target }, "", window.location.pathname);
     }
-    setPageRaw(p);
+    setPageRaw(target);
   };
   useEffect(()=>{
-    const h=(e)=>setPageRaw(e.state?.page||"home");
+    const h=(e)=>{
+      let p = e.state?.page||"home";
+      if (p === "cita" && !getClienteToken()) {
+        setPostLoginPage("cita");
+        p = "login";
+        try {
+          window.history.replaceState({ page: "login" }, "", window.location.pathname);
+        } catch (_) { /* noop */ }
+      }
+      setPageRaw(p);
+    };
     window.addEventListener("popstate",h);
     try {
       const params = new URLSearchParams(window.location.search);
@@ -4834,7 +4917,7 @@ export default function TiendaFarmaCapital(){
     return ()=>window.cancelAnimationFrame(id);
   },[page]);
   const [cart,setCart]           = useState([]);
-  const [user,setUser]           = useState(()=>{ try{ const u=sessionStorage.getItem("farmacapital_user"); return u?JSON.parse(u):null; }catch{ return null; } });
+  const [user,setUser]           = useState(()=> getClienteUser());
   const [productos,setProductos] = useState(()=>{
     try {
       const cached = localStorage.getItem("farmacapital_productos_cache");
@@ -4868,10 +4951,13 @@ export default function TiendaFarmaCapital(){
       });
   }, []);
 
-  // Sesión persistente
+  // Sesión persistente en localStorage
   useEffect(()=>{
-    if(user) sessionStorage.setItem("farmacapital_user",JSON.stringify(user));
-    else sessionStorage.removeItem("farmacapital_user");
+    if (user) {
+      try { localStorage.setItem("farmacapital_user", JSON.stringify(user)); } catch (_) { /* noop */ }
+    } else if (!getClienteToken()) {
+      try { localStorage.removeItem("farmacapital_user"); } catch (_) { /* noop */ }
+    }
   },[user]);
 
   // Cargar productos con timeout y reintentos para sobrevivir cold start de Supabase

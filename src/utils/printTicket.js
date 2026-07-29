@@ -6,6 +6,9 @@ const TICKET_CSS = `
 * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 html, body { margin: 0; padding: 0; background: #fff; }
 @page { size: 80mm auto; margin: 0; }
+@media print {
+  #farmacapital-ticket { padding: 3mm 2mm 13mm 2mm !important; }
+}
 
 #farmacapital-ticket {
   font-family: 'Courier New', Courier, monospace;
@@ -15,7 +18,7 @@ html, body { margin: 0; padding: 0; background: #fff; }
   max-width: 280px;
   background: #ffffff;
   color: #000000;
-  padding: 10px 8px;
+  padding: 10px 8px calc(10px + 10mm);
   margin: 0;
   box-sizing: border-box;
 }
@@ -24,7 +27,7 @@ html, body { margin: 0; padding: 0; background: #fff; }
   -webkit-print-color-adjust: exact !important;
   print-color-adjust: exact !important;
 }
-.ticket { width: 280px; font-family: 'Courier New', Courier, monospace; font-size: 11px; line-height: 1.4; background: #fff; color: #000; padding: 8px 6px; }
+.ticket { width: 280px; font-family: 'Courier New', Courier, monospace; font-size: 11px; line-height: 1.4; background: #fff; color: #000; padding: 8px 6px calc(8px + 10mm); }
 .center { text-align: center; }
 .left   { text-align: left; }
 .right  { text-align: right; }
@@ -34,8 +37,8 @@ html, body { margin: 0; padding: 0; background: #fff; }
 .product-name  { width: 60%; word-break: break-word; }
 .product-total { width: 40%; text-align: right; font-weight: bold; }
 .total-line { display: flex; justify-content: space-between; font-weight: bold; font-size: 11px; padding: 2px 0; }
-.qr-section { text-align: center; margin-top: 10px; }
-.footer { text-align: center; margin-top: 8px; font-size: 9px; color: #333; }
+.qr-section { text-align: center; margin-top: 10px; margin-bottom: 4mm; page-break-inside: avoid; }
+.footer { text-align: center; margin-top: 8px; margin-bottom: 2mm; font-size: 9px; color: #333; page-break-inside: avoid; }
 .ticket-puntos { background: #000 !important; color: #fff !important; text-align: center; padding: 5px 4px; font-size: 10px; font-weight: 900; margin: 6px 0; letter-spacing: 1px; }
 .ticket-logo-wrap { text-align: center; margin-bottom: 4px; }
 .ticket-logo-icon {

@@ -134,11 +134,8 @@ export const getSessionToken = () => {
   catch { return null; }
 };
 
-/** Token de sesión de cliente (tienda pública). */
-export const getClienteToken = () => {
-  try { return sessionStorage.getItem("farmacapital_cliente_token") || null; }
-  catch { return null; }
-};
+/** Token de sesión de cliente (tienda pública). Persiste en localStorage. */
+export { getClienteToken } from "./utils/clienteSession.js";
 
 /**
  * Llama una RPC con p_session_token automático. Si la RPC devuelve

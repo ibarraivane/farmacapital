@@ -109,20 +109,20 @@ export function Tag({col,children,sm}){
   );
 };
 
-export function Btn({children,onClick,col,sm,ol,dis,full,style}){
+export function Btn({children,onClick,col,sm,ol,dis,full,style,type="button"}){
   const C = C_LIGHT;
   return(
 
-  <button onClick={onClick} disabled={dis} style={{padding:sm?"7px 14px":"10px 18px",borderRadius:8,border:`1px solid ${ol?(col||BRAND.primary):"transparent"}`,background:ol?"transparent":dis?C.border:(col||BRAND.primary),color:ol?(col||BRAND.primary):dis?C.textMid:C.card,fontWeight:700,fontSize:sm?12:14,cursor:dis?"not-allowed":"pointer",fontFamily:"'Plus Jakarta Sans',sans-serif",opacity:dis?.5:1,width:full?"100%":undefined,minHeight:sm?36:40,transition:"opacity .15s",...style}}>{children}</button>
+  <button type={type} onClick={onClick} disabled={dis} style={{padding:sm?"7px 14px":"10px 18px",borderRadius:8,border:`1px solid ${ol?(col||BRAND.primary):"transparent"}`,background:ol?"transparent":dis?C.border:(col||BRAND.primary),color:ol?(col||BRAND.primary):dis?C.textMid:C.card,fontWeight:700,fontSize:sm?12:14,cursor:dis?"not-allowed":"pointer",fontFamily:"'Plus Jakarta Sans',sans-serif",opacity:dis?.5:1,width:full?"100%":undefined,minHeight:sm?36:40,transition:"opacity .15s",...style}}>{children}</button>
 
   );
 };
 
-export function Inp({value,onChange,placeholder,style,type,onKeyDown,disabled}){
+export function Inp({value,onChange,placeholder,style,type,onKeyDown,disabled,name,autoComplete}){
   const C = C_LIGHT;
   return(
 
-  <input value={value} onChange={onChange} disabled={disabled} placeholder={placeholder} type={type||"text"} onKeyDown={onKeyDown}
+  <input value={value} onChange={onChange} disabled={disabled} placeholder={placeholder} type={type||"text"} onKeyDown={onKeyDown} name={name} autoComplete={autoComplete}
     style={{background:C.bg,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,padding:"10px 14px",fontSize:16,lineHeight:1.25,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif",opacity:disabled?0.6:1,cursor:disabled?"not-allowed":"text",minHeight:44,boxSizing:"border-box",...style}}
     onFocus={e=>{e.target.style.borderColor=C.blue;e.target.style.boxShadow="0 0 0 3px "+C.blueDim;}} onBlur={e=>{e.target.style.borderColor=C.border;e.target.style.boxShadow="none;"}}/>
 
