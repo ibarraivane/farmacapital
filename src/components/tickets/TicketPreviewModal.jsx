@@ -143,7 +143,7 @@ async function acumularPuntosVenta(pedidoId, clienteId) {
 }
 
 function WhatsAppTicketPanel({
-  venta, productos, metodoPago, config, clienteInicial, pedidoId, onClienteActualizado, onSent,
+  venta, productos, metodoPago, config, clienteInicial, pedidoId, onClienteActualizado, onSent, onOmitir,
 }) {
   const [waTel, setWaTel] = useState(clienteInicial?.telefono || "");
   const [waNombre, setWaNombre] = useState("");
@@ -227,6 +227,20 @@ function WhatsAppTicketPanel({
     }
   };
 
+  const btnOmitir = (
+    <button
+      type="button"
+      onClick={onOmitir}
+      style={{
+        width:"100%", marginTop:4, padding:"8px", borderRadius:8, border:"none",
+        background:"transparent", color:"#64748b", fontWeight:600, fontSize:12,
+        cursor:"pointer", textDecoration:"underline", textUnderlineOffset:2,
+      }}
+    >
+      No, gracias — continuar como invitado
+    </button>
+  );
+
   if (clienteInicial?.telefono && !modoRegistro) {
     return (
       <div style={{display:"flex",flexDirection:"column",gap:8}}>
@@ -238,6 +252,7 @@ function WhatsAppTicketPanel({
           style={{padding:"12px",borderRadius:10,border:"none",background:"#25D366",color:"#fff",fontWeight:800,fontSize:14,cursor:"pointer",opacity:enviando?0.7:1}}>
           {enviando ? "Abriendo WhatsApp…" : "📱 Enviar ticket por WhatsApp"}
         </button>
+        {btnOmitir}
         {waErr ? <div style={{color:"#ef4444",fontSize:11}}>{waErr}</div> : null}
       </div>
     );
@@ -257,24 +272,22 @@ function WhatsAppTicketPanel({
             style={{width:"100%",padding:"11px",borderRadius:8,border:"none",background:"#25D366",color:"#fff",fontWeight:800,fontSize:13,cursor:"pointer",opacity:(buscando||enviando)?0.7:1}}>
             {buscando ? "Buscando…" : "Continuar →"}
           </button>
+          {btnOmitir}
         </>
       ) : (
         <>
           <div style={{fontSize:11,color:"#166534",marginBottom:8,lineHeight:1.5}}>
-            ¿Registrar al cliente en FarmaCapital para acumular puntos?
+            ¿Registrar al cliente para acumular puntos? (opcional)
           </div>
-          <input value={waNombre} onChange={(e) => setWaNombre(e.target.value)} placeholder="Nombre completo *"
+          <input value={waNombre} onChange={(e) => setWaNombre(e.target.value)} placeholder="Nombre completo"
             style={{width:"100%",boxSizing:"border-box",padding:"9px 12px",borderRadius:8,border:"1px solid #86efac",fontSize:14,marginBottom:8}}/>
           <div style={{display:"flex",gap:8}}>
-            <button type="button" onClick={() => { setModoRegistro(false); setWaErr(""); }}
-              style={{flex:1,padding:"10px",borderRadius:8,border:"1px solid #cbd5e1",background:"#fff",color:"#64748b",fontWeight:700,cursor:"pointer"}}>
-              Cancelar
-            </button>
-            <button type="button" onClick={registrarYEnviar} disabled={enviando}
-              style={{flex:2,padding:"10px",borderRadius:8,border:"none",background:"#25D366",color:"#fff",fontWeight:800,cursor:"pointer",opacity:enviando?0.7:1}}>
-              {enviando ? "Registrando…" : "✓ Registrar y enviar"}
+            <button type="button" onClick={registrarYEnviar} disabled={enviando || !waNombre.trim()}
+              style={{flex:1,padding:"10px",borderRadius:8,border:"none",background:"#25D366",color:"#fff",fontWeight:800,cursor:"pointer",opacity:(enviando||!waNombre.trim())?0.6:1}}>
+              {enviando ? "Registrando…" : "Registrar y enviar"}
             </button>
           </div>
+          {btnOmitir}
         </>
       )}
       {waErr ? <div style={{color:"#ef4444",fontSize:11,marginTop:8}}>{waErr}</div> : null}
@@ -311,6 +324,13 @@ export default function TicketPreviewModal({
   const handlePrint = () => printTicket("farmacapital-ticket");
   const esTienda = origen === "tienda" || origen === "consulta";
   const pedidoId = venta?.id;
+  const esInvitado = !clienteLocal?.id && !clienteLocal?.telefono;
+
+  const omitirWhatsApp = () => {
+    setMostrarWaPanel(false);
+    showToast("Venta registrada · cliente invitado", "info");
+  };
+
   const btnBase = {
     padding:"11px 12px", borderRadius:10, fontWeight:700, fontSize:13,
     cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:6,
@@ -344,7 +364,14 @@ export default function TicketPreviewModal({
 
         {esTienda && (
           <div style={{flexShrink:0,padding:"10px 16px",background:"#eff6ff",borderBottom:"1px solid #bfdbfe",fontSize:12,color:"#1e40af",lineHeight:1.45}}>
-            Pregunta al cliente: <strong>¿ticket impreso o por WhatsApp?</strong> No se imprime solo.
+            La venta <strong>ya quedó guardada</strong> en el sistema
+            {venta?.folio ? ` (${venta.folio})` : pedidoId ? ` (#${pedidoId})` : ""}.
+            Pregunta: <strong>¿ticket impreso o por WhatsApp?</strong> Si no quiere, continúa como <strong>invitado</strong>.
+          </div>
+        )}
+        {esTienda && esInvitado && !mostrarWaPanel && (
+          <div style={{flexShrink:0,padding:"8px 16px",background:"#f8fafc",borderBottom:"1px solid #e2e8f0",fontSize:11,color:"#64748b"}}>
+            👤 Cliente invitado — sin registro ni puntos. Puedes imprimir ticket abajo si lo pide.
           </div>
         )}
         {autoWhatsApp && (
@@ -371,17 +398,17 @@ export default function TicketPreviewModal({
           {(mostrarWaPanel || autoWhatsApp) ? (
             <WhatsAppTicketPanel venta={venta} productos={productos} metodoPago={metodoPago} config={config}
               clienteInicial={clienteLocal} pedidoId={pedidoId} onClienteActualizado={setClienteLocal}
-              onSent={() => setMostrarWaPanel(true)}/>
+              onSent={() => setMostrarWaPanel(true)} onOmitir={omitirWhatsApp}/>
           ) : (
             <button type="button" onClick={() => setMostrarWaPanel(true)}
               style={{...btnBase,border:"1px solid #25D366",background:"#dcfce7",color:"#15803d"}}>
-              📱 Enviar ticket por WhatsApp
+              📱 Enviar ticket por WhatsApp (opcional)
             </button>
           )}
 
           <button type="button" onClick={handlePrint}
             style={{...btnBase,border:"none",background:"linear-gradient(135deg,#0D1B2A,#1E3ABA)",color:"#fff",fontWeight:800}}>
-            🖨️ Imprimir ticket
+            🖨️ Imprimir ticket {esInvitado ? "(si el cliente lo pide)" : ""}
           </button>
 
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
