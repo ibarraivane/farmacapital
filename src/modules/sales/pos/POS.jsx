@@ -8,6 +8,7 @@ import { supabase } from "../../../supabase";
 import { C_LIGHT, BRAND } from "../../../constants";
 import { $, logAudit, soloDigitosTel, normalizeForSearch } from "../../../utils";
 import { tiendaProductMatchesBusqueda, tiendaCatalogSearchSuggestions, tiendaSearchRelevanceRank } from "../../../utils/fuzzySearch";
+import { findProductExactScan } from "../../../utils/barcodeProductLookup";
 import { Box, Tag, Btn, Inp, Modal, showToast, SearchDropdown, SkeletonTable } from "../../../ui";
 import {
   CONSULTA_PRECIO_DEFAULT,
@@ -1734,25 +1735,21 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                 onKeyDown={e=>{
                   if(e.key==="Enter"){
                     const raw = srch.trim();
-                    const qN = normalizeForSearch(raw);
-                    const exact = productos.find(p=>
-                      (p.codigo_barras && String(p.codigo_barras).trim() === raw) ||
-                      (p.sku && normalizeForSearch(p.sku) === qN)
-                    );
-                    if(exact){add(exact,false);setSrchFocus(false);e.preventDefault();}
+                    const exact = findProductExactScan(productos, raw);
+                    if(exact){add(exact,false);setSrch("");setSrchFocus(false);e.preventDefault();}
                     else if(srchSuggestions.length>0){
                       const hit=productos.find(x=>x.id===srchSuggestions[0].id);
                       if(hit){
                         const fifo=getStockFifoDisponible(hit);
                         if(!hit.venta_unidad&&fifo<=0){showToast(`"${hit.nombre}" no tiene lotes registrados. Ve a Inventario → Lotes para agregarlo.`,"warning");}
-                        else{add(hit,false);setSrchFocus(false);}
+                        else{add(hit,false);setSrch("");setSrchFocus(false);}
                         e.preventDefault();
                       }
                     }
                   }
                   if(e.key==="Escape"){setSrchFocus(false);}
                 }}
-                placeholder="🔍 Buscar por nombre, activo, genérico, marca o SKU · Enter agrega"
+                placeholder="🔫 Código de barras, SKU o nombre · Enter agrega al carrito"
                 style={{width:"100%",boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:C.bg,color:C.text,fontSize:isMobilePos?16:13,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}/>
               {srchSuggestions.length>0&&srchFocus&&(
                 <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,right:0,zIndex:7000,background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,boxShadow:"0 8px 32px rgba(15,45,110,.14)",overflow:"hidden",maxHeight:280,overflowY:"auto"}}>

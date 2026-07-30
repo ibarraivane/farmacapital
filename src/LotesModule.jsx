@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
 import { showToast, HorizontalScrollSync } from "./ui";
-import { productMatchesSearchQuery } from "./utils/fuzzySearch";
+import { inventarioProductMatchesBusqueda, inventarioSearchRelevanceRank, productMatchesSearchQuery } from "./utils/fuzzySearch";
+import { findProductExactScan } from "./utils/barcodeProductLookup";
 
 const BRAND = { primary:"#0D1B2A", secondary:"#1E3ABA", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
 const fmt = n => `$${parseFloat(n||0).toFixed(2)}`;
@@ -23,6 +24,11 @@ export default function LotesModule() {
     cantidad_inicial:"", costo_unitario:"", proveedor_id:"",
     fecha_recepcion: new Date().toLocaleDateString("sv-SE"),
   });
+  const [prodBusq, setProdBusq] = useState("");
+  const [scanErr, setScanErr] = useState("");
+  const prodBusqRef = useRef(null);
+  const cantidadRef = useRef(null);
+  const caducidadRef = useRef(null);
   const [saving, setSaving] = useState(false);
 
   const fetchData = useCallback(async()=>{
@@ -31,7 +37,7 @@ export default function LotesModule() {
     const [{ data: ls }, { data: ps }, { data: pv }] = tok
       ? await Promise.all([
           supabase.rpc("empleado_listar_lotes_inventario", { p_session_token: tok }),
-          supabase.rpc("empleado_listar_productos_min_activos", { p_session_token: tok }),
+          supabase.from("productos").select("id,nombre,sku,codigo_barras").eq("activo", true).order("nombre"),
           supabase.rpc("empleado_listar_proveedores_catalogo", { p_session_token: tok }),
         ])
       : [{ data: [] }, { data: [] }, { data: [] }];
@@ -58,7 +64,7 @@ export default function LotesModule() {
   const txtCad = d => d===null?"Sin fecha":d<0?"VENCIDO":d===0?"HOY":d<=30?`${d} días`:`${d} días`;
 
   const lotesFiltrados = lotes.filter(l=>{
-    const matchP = !filtroP || productMatchesSearchQuery(l.productos || {}, filtroP, [(x) => x.nombre, (x) => x.sku]);
+    const matchP = !filtroP || productMatchesSearchQuery(l.productos || {}, filtroP, [(x) => x.nombre, (x) => x.sku, (x) => x.codigo_barras]);
     const dias   = diasRestantes(l.fecha_caducidad);
     const matchV =
       filtroVenc==="todos"    ? true :
@@ -67,6 +73,55 @@ export default function LotesModule() {
       filtroVenc==="pronto"   ? (dias!==null&&dias>15&&dias<=30) : true;
     return matchP && matchV;
   });
+
+  const selProducto = productos.find((p) => String(p.id) === String(form.producto_id));
+
+  const prodsFiltModal = useMemo(
+    () =>
+      productos
+        .filter((p) => inventarioProductMatchesBusqueda(p, prodBusq))
+        .sort((a, b) => inventarioSearchRelevanceRank(a, prodBusq) - inventarioSearchRelevanceRank(b, prodBusq)),
+    [productos, prodBusq]
+  );
+
+  const selectProductoScan = (p) => {
+    if (!p) return;
+    setForm((prev) => ({ ...prev, producto_id: String(p.id) }));
+    setProdBusq(p.nombre);
+    setScanErr("");
+    setTimeout(() => cantidadRef.current?.focus(), 40);
+  };
+
+  const trySelectFromScan = (raw) => {
+    const trimmed = raw.trim();
+    if (!trimmed) return false;
+    const exact = findProductExactScan(productos, trimmed);
+    if (exact) {
+      selectProductoScan(exact);
+      return true;
+    }
+    if (prodsFiltModal.length === 1) {
+      selectProductoScan(prodsFiltModal[0]);
+      return true;
+    }
+    return false;
+  };
+
+  const openRegistrarModal = () => {
+    setForm({
+      producto_id: "",
+      numero_lote: "",
+      fecha_caducidad: "",
+      cantidad_inicial: "",
+      costo_unitario: "",
+      proveedor_id: "",
+      fecha_recepcion: new Date().toLocaleDateString("sv-SE"),
+    });
+    setProdBusq("");
+    setScanErr("");
+    setModal(true);
+    setTimeout(() => prodBusqRef.current?.focus(), 80);
+  };
 
   const guardar = async()=>{
     if(!form.producto_id||!form.numero_lote||!form.cantidad_inicial){ showToast("Completa producto, lote y cantidad","warning"); return; }
@@ -84,7 +139,22 @@ export default function LotesModule() {
       p_proveedor_id:   form.proveedor_id ? parseInt(form.proveedor_id) : null,
     });
     if(error){ showToast("Error: "+error.message,"error"); }
-    else { showToast("✅ Lote registrado","success"); setModal(false); fetchData(); }
+    else {
+      showToast("✅ Lote registrado","success");
+      setForm({
+        producto_id: "",
+        numero_lote: "",
+        fecha_caducidad: "",
+        cantidad_inicial: "",
+        costo_unitario: "",
+        proveedor_id: form.proveedor_id,
+        fecha_recepcion: new Date().toLocaleDateString("sv-SE"),
+      });
+      setProdBusq("");
+      setScanErr("");
+      fetchData();
+      setTimeout(() => prodBusqRef.current?.focus(), 80);
+    }
     setSaving(false);
   };
 
@@ -107,7 +177,7 @@ export default function LotesModule() {
       <div style={{background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:10,padding:"10px 14px",marginBottom:14,fontSize:12,color:"#1e3a8a",lineHeight:1.5}}>
         <strong>Stock en Lotes = existencia real (PEPS).</strong> El POS vende desde lotes activos.
         Los lotes <strong>REINTEGRO-*</strong> se crean solos al reingresar mercancía (devoluciones); conviene completar caducidad y costo.
-        Para entrada nueva de proveedor usa <strong>+ Registrar lote</strong> o <strong>Catálogo → Recibir mercancía</strong> (prefijo RX-*).
+        Para entrada nueva de proveedor usa <strong>Catálogo → 📦 Resurtir (escáner)</strong> o <strong>+ Registrar lote</strong> aquí (prefijo RX-* si omites número de lote).
       </div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:10}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
@@ -130,7 +200,7 @@ export default function LotesModule() {
           </div>
         </div>
       </div>
-        <button onClick={()=>setModal(true)} style={{padding:"9px 18px",borderRadius:8,border:"none",background:BRAND.gradient,color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer"}}>
+        <button onClick={openRegistrarModal} style={{padding:"9px 18px",borderRadius:8,border:"none",background:BRAND.gradient,color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer"}}>
           + Registrar lote
         </button>
       </div>
@@ -153,7 +223,7 @@ export default function LotesModule() {
 
       {/* Filtros */}
       <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap"}}>
-        <input placeholder="🔍 Producto o SKU..." value={filtroP} onChange={e=>setFiltroP(e.target.value)}
+        <input placeholder="🔍 Producto, SKU o código de barras…" value={filtroP} onChange={e=>setFiltroP(e.target.value)}
           style={{...inpS,maxWidth:220,width:"auto"}}/>
         {["todos","vencidos","criticos","pronto"].map(f=>(
           <button key={f} onClick={()=>setFiltroV(f)} style={{
@@ -217,11 +287,52 @@ export default function LotesModule() {
             </div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
               <div style={{gridColumn:"1/-1"}}>
-                <label style={{color:C.textMid,fontSize:11,fontWeight:700,display:"block",marginBottom:4}}>PRODUCTO *</label>
-                <select style={inpS} value={form.producto_id} onChange={e=>setForm(p=>({...p,producto_id:e.target.value}))}>
-                  <option value="">Seleccionar producto...</option>
-                  {productos.map(p=><option key={p.id} value={p.id}>{p.nombre} {p.sku?`(${p.sku})`:""}</option>)}
-                </select>
+                <label style={{color:C.textMid,fontSize:11,fontWeight:700,display:"block",marginBottom:4}}>PRODUCTO * — escanea o busca</label>
+                <input
+                  ref={prodBusqRef}
+                  style={inpS}
+                  value={prodBusq}
+                  onChange={(e) => {
+                    setProdBusq(e.target.value);
+                    setForm((p) => ({ ...p, producto_id: "" }));
+                    setScanErr("");
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key !== "Enter") return;
+                    e.preventDefault();
+                    if (trySelectFromScan(prodBusq)) return;
+                    if (prodsFiltModal.length > 1) {
+                      setScanErr("Varios resultados — elige uno o escanea el código exacto.");
+                      return;
+                    }
+                    setScanErr("Producto no encontrado. Regístralo en Catálogo con su código de barras.");
+                  }}
+                  placeholder="🔫 Código de barras, SKU o nombre…"
+                />
+                {scanErr ? <div style={{color:C.red,fontSize:11,marginTop:6}}>{scanErr}</div> : null}
+                {prodBusq && !selProducto && prodsFiltModal.length > 0 && (
+                  <div style={{marginTop:8,border:`1px solid ${C.border}`,borderRadius:8,maxHeight:120,overflowY:"auto"}}>
+                    {prodsFiltModal.slice(0, 6).map((p) => (
+                      <div
+                        key={p.id}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => selectProductoScan(p)}
+                        onKeyDown={(e) => { if (e.key === "Enter") selectProductoScan(p); }}
+                        style={{padding:"7px 10px",fontSize:11,cursor:"pointer",borderBottom:`1px solid ${C.border}`,color:C.text}}
+                      >
+                        <strong>{p.nombre}</strong>
+                        {p.codigo_barras ? <span style={{marginLeft:8,color:C.textMid,fontFamily:"monospace"}}>{p.codigo_barras}</span> : null}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {selProducto && (
+                  <div style={{marginTop:8,padding:"8px 10px",background:"#eff6ff",borderRadius:8,fontSize:11,color:"#1e40af"}}>
+                    ✓ {selProducto.nombre}
+                    {selProducto.codigo_barras ? ` · ${selProducto.codigo_barras}` : ""}
+                  </div>
+                )}
               </div>
               {[
                 ["NÚMERO DE LOTE *","numero_lote","text","Ej: L2024-001"],
@@ -232,7 +343,22 @@ export default function LotesModule() {
               ].map(([label,key,type,ph])=>(
                 <div key={key}>
                   <label style={{color:C.textMid,fontSize:11,fontWeight:700,display:"block",marginBottom:4}}>{label}</label>
-                  <input type={type} style={inpS} value={form[key]||""} onChange={e=>setForm(p=>({...p,[key]:e.target.value}))} placeholder={ph}/>
+                  <input
+                    ref={key === "cantidad_inicial" ? cantidadRef : key === "fecha_caducidad" ? caducidadRef : undefined}
+                    type={type}
+                    style={inpS}
+                    value={form[key]||""}
+                    onChange={e=>setForm(p=>({...p,[key]:e.target.value}))}
+                    onKeyDown={key === "cantidad_inicial" ? (e) => {
+                      if (e.key === "Enter") { e.preventDefault(); caducidadRef.current?.focus(); }
+                    } : key === "fecha_caducidad" ? (e) => {
+                      if (e.key === "Enter" && form.producto_id && form.numero_lote && form.cantidad_inicial) {
+                        e.preventDefault();
+                        guardar();
+                      }
+                    } : undefined}
+                    placeholder={ph}
+                  />
                 </div>
               ))}
               <div>

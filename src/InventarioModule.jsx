@@ -8,6 +8,7 @@ import {
   inventarioSearchRelevanceRank,
   spellSuggestFromProducts,
 } from "./utils/fuzzySearch";
+import { findProductExactScan } from "./utils/barcodeProductLookup";
 import { SkeletonTable, Paginador, SearchDropdown, HorizontalScrollSync } from "./ui";
 import { showToast } from "./ui";
 import OnboardingTour from "./components/OnboardingTour";
@@ -254,7 +255,7 @@ const INV_COLUMN_HEADERS = [
 
 const descargarPlantilla = () => {
   const headers = [
-    "SKU", "Nombre", "Categoria", "Tipo", "Stock", "Stock_Minimo",
+    "SKU", "Codigo_Barras", "Nombre", "Categoria", "Tipo", "Stock", "Stock_Minimo",
     "Precio_Venta", "Costo", "Proveedor", "Lote", "Fecha_Caducidad",
     "Descuento_Porcentaje",
     "Marca_Comercial", "Principio_Activo", "Concentracion", "Presentacion",
@@ -262,9 +263,9 @@ const descargarPlantilla = () => {
     "SKU_Casa_Saba", "Stock_Maximo", "Notas"
   ];
   const ejemplo = [
-    ["FAR001","Paracetamol 500mg","Analgésico","generico","50","10","12.00","6.00","Casa Saba","L2024-01","2026-12-31","0",
+    ["FAR001","7501234567890","Paracetamol 500mg","Analgésico","generico","50","10","12.00","6.00","Casa Saba","L2024-01","2026-12-31","0",
      "ACETAFEN","Paracetamol","500MG","TABLETA","10 TABLETAS","ANALGESICOS","ANALGESICO/ANTIPIRETICO","MEDICAMENTOS","162","30",""],
-    ["FAR002","Omeprazol 20mg","Gastro","generico","30","5","20.00","10.00","Marzam","L2024-02","2026-06-30","0",
+    ["FAR002","7509876543210","Omeprazol 20mg","Gastro","generico","30","5","20.00","10.00","Marzam","L2024-02","2026-06-30","0",
      "OMEZOL","Omeprazol","20MG","CAPSULA","14 CAPSULAS","ESTOMACALES (GASTRO)","PROTECTOR GASTRICO","MEDICAMENTOS","523","15",""],
   ];
   const csv = [headers, ...ejemplo].map(r=>r.map(v=>`"${v}"`).join(",")).join("\n");
@@ -464,6 +465,7 @@ const parsearCSV = (texto) => {
 
     const raw = {
       sku:           row.sku || null,
+      codigo_barras: row.codigo_barras || row.codigo_de_barras || null,
       nombre:        row.nombre,
       categoria:     row.categoria || "Otro",
       tipo:          row.tipo || "generico",
@@ -496,7 +498,7 @@ const parsearCSV = (texto) => {
 
 const exportarCSV = (productos) => {
   const headers = [
-    "SKU", "Nombre", "Categoria", "Tipo", "Stock", "Stock_Minimo",
+    "SKU", "Codigo_Barras", "Nombre", "Categoria", "Tipo", "Stock", "Stock_Minimo",
     "Precio_Venta", "Costo", "Proveedor", "Lote", "Fecha_Caducidad",
     "Descuento_Porcentaje",
     "Marca_Comercial", "Principio_Activo", "Concentracion", "Presentacion",
@@ -504,7 +506,7 @@ const exportarCSV = (productos) => {
     "SKU_Casa_Saba", "Margen_Porcentaje", "Stock_Maximo", "Notas"
   ];
   const rows = productos.map(p => [
-    p.sku||"", p.nombre||"", p.categoria||"", p.tipo||"generico",
+    p.sku||"", p.codigo_barras||"", p.nombre||"", p.categoria||"", p.tipo||"generico",
     p.stock??0, p.stock_minimo??0,
     parseFloat(p.precio||0).toFixed(2), parseFloat(p.costo||0).toFixed(2),
     p.proveedor||"", p.lote||p.min_lote||"", p.fecha_caducidad||p.min_caducidad_lotes||"",
@@ -700,6 +702,9 @@ function ProductoModal({initial, onClose, onSaved }) {
             {field("Nombre","nombre","text",true)}
             {field("SKU FarmaCapital","sku")}
             {field("Código de barras","codigo_barras")}
+            <div style={{fontSize:11,color:C.textDim,marginTop:-6,marginBottom:12,lineHeight:1.45}}>
+              Escanea el EAN/UPC de la caja con la pistola (POS, resurtido y recepción usan este número).
+            </div>
             <div style={{marginBottom:12}}>
               <label style={labelStyle}>Categoría</label>
               <select value={form.categoria} onChange={e=>set("categoria",e.target.value)} style={{...inputStyle}}>
@@ -797,7 +802,7 @@ function ProductoModal({initial, onClose, onSaved }) {
   );
 }
 
-function RecibirModal({ productos, onClose, onSaved }) {
+function RecibirModal({ productos, onClose, onReceived }) {
   const C = C_LIGHT;
   const inputStyle = mkInputStyle(C);
   const labelStyle = mkLabelStyle(C);
@@ -812,20 +817,68 @@ function RecibirModal({ productos, onClose, onSaved }) {
   const [proveedor,setProv]    = useState("");
   const [saving,   setSaving]  = useState(false);
   const [error,    setError]   = useState("");
+  const busqRef = useRef(null);
+  const cantidadRef = useRef(null);
+  const caducidadRef = useRef(null);
 
-  const prodsFilt = productos.filter(p => p.activo && inventarioProductMatchesBusqueda(p, busq));
-  const selProd   = productos.find(p => p.id === parseInt(selId));
+  useEffect(() => {
+    busqRef.current?.focus();
+  }, []);
+
+  const prodsFilt = useMemo(
+    () =>
+      productos
+        .filter((p) => p.activo && inventarioProductMatchesBusqueda(p, busq))
+        .sort((a, b) => inventarioSearchRelevanceRank(a, busq) - inventarioSearchRelevanceRank(b, busq)),
+    [productos, busq]
+  );
+  const selProd = productos.find((p) => p.id === parseInt(selId, 10));
+
+  const resetScanForm = () => {
+    setSelId("");
+    setBusq("");
+    setCantidad("");
+    setLote("");
+    setCaduc("");
+    setError("");
+    setTimeout(() => busqRef.current?.focus(), 40);
+  };
+
+  const selectProduct = (p) => {
+    if (!p) return;
+    setSelId(String(p.id));
+    setBusq(p.nombre);
+    setError("");
+    if (p.costo != null && p.costo !== "" && !costo) setCosto(String(p.costo));
+    setTimeout(() => cantidadRef.current?.focus(), 40);
+  };
+
+  const trySelectFromScan = (raw) => {
+    const trimmed = raw.trim();
+    if (!trimmed) return false;
+    const exact = findProductExactScan(productos, trimmed);
+    if (exact) {
+      selectProduct(exact);
+      return true;
+    }
+    if (prodsFilt.length === 1) {
+      selectProduct(prodsFilt[0]);
+      return true;
+    }
+    return false;
+  };
 
   const handleRecibir = async () => {
-    if (!selId) { setError("Selecciona un producto"); return; }
-    if (!cantidad || parseInt(cantidad) <= 0) { setError("Cantidad inválida"); return; }
-    setSaving(true); setError("");
+    if (!selId) { setError("Escanea o selecciona un producto"); return; }
+    if (!cantidad || parseInt(cantidad, 10) <= 0) { setError("Cantidad inválida"); return; }
+    setSaving(true);
+    setError("");
     const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) { setSaving(false); setError("Sesión expirada."); return; }
     const { error: err } = await supabase.rpc("receive_merchandise_secure", {
       p_session_token: tok,
       p_producto_id: selProd.id,
-      p_cantidad: parseInt(cantidad),
+      p_cantidad: parseInt(cantidad, 10),
       p_numero_lote: lote.trim() || null,
       p_fecha_caducidad: caducidad || null,
       p_costo_unitario: costo ? parseFloat(costo) : null,
@@ -833,41 +886,71 @@ function RecibirModal({ productos, onClose, onSaved }) {
     });
     setSaving(false);
     if (err) { setError("Error: " + err.message); return; }
-    onSaved();
+    showToast(`✅ +${cantidad} · ${selProd.nombre}`, "success");
+    resetScanForm();
+    onReceived?.();
   };
 
   return (
     <div style={{position:"fixed",inset:0,background:"#00000099",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}>
       <div style={{background:C.card,border:`1px solid ${C.borderHi}`,borderRadius:14,width:"min(520px,95vw)",maxHeight:"90vh",overflowY:"auto",padding:28,boxShadow:"0 24px 60px #00000088"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-          <h2 style={{margin:0,color:C.text,fontSize:16,fontWeight:800}}>📦 Recibir mercancía</h2>
-          <button onClick={onClose} style={{background:"none",border:"none",color:C.textMid,fontSize:20,cursor:"pointer"}}>✕</button>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+          <div>
+            <h2 style={{margin:0,color:C.text,fontSize:16,fontWeight:800}}>📦 Resurtir / Recibir</h2>
+            <div style={{color:C.textMid,fontSize:11,marginTop:4}}>Escanea código de barras → cantidad → caducidad → Enter</div>
+          </div>
+          <button type="button" onClick={onClose} aria-label="Cerrar" style={{background:"none",border:"none",color:C.textMid,fontSize:20,cursor:"pointer"}}>✕</button>
+        </div>
+        <div style={{background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:8,padding:"8px 12px",marginBottom:14,fontSize:11,color:"#1e40af",lineHeight:1.5}}>
+          La pistola USB escribe aquí como teclado. Si el producto no existe, regístralo en <strong>Nuevo producto</strong> con su código de barras.
         </div>
         <div style={{marginBottom:12}}>
-          <label style={labelStyle}>Buscar producto <span style={{color:C.red}}>*</span></label>
-          <input value={busq} onChange={e=>{setBusq(e.target.value);setSelId("");}}
-            placeholder="Escribe nombre del producto…" style={inputStyle}/>
+          <label style={labelStyle}>Escanear o buscar producto <span style={{color:C.red}}>*</span></label>
+          <input
+            ref={busqRef}
+            value={busq}
+            onChange={(e) => { setBusq(e.target.value); setSelId(""); setError(""); }}
+            onKeyDown={(e) => {
+              if (e.key !== "Enter") return;
+              e.preventDefault();
+              if (trySelectFromScan(busq)) return;
+              if (prodsFilt.length > 1) {
+                setError("Varios resultados — elige uno de la lista o escanea el código exacto de la caja.");
+                return;
+              }
+              setError("Producto no encontrado. Agrégalo al catálogo con su código de barras.");
+            }}
+            placeholder="🔫 Código de barras, SKU o nombre…"
+            style={inputStyle}
+          />
         </div>
-        {busq && !selProd && (
+        {busq && !selProd && prodsFilt.length > 0 && (
           <div style={{background:C.bg,border:`1px solid ${C.border}`,borderRadius:8,marginBottom:12,maxHeight:160,overflowY:"auto"}}>
-            {prodsFilt.length===0
-              ? <div style={{padding:12,color:C.textMid,fontSize:12}}>Sin resultados</div>
-              : prodsFilt.slice(0,8).map(p=>(
-                  <div key={p.id} onClick={()=>{setSelId(String(p.id));setBusq(p.nombre);}}
-                    style={{padding:"8px 12px",cursor:"pointer",color:C.text,fontSize:12,borderBottom:`1px solid ${C.border}`}}
-                    onMouseEnter={e=>e.currentTarget.style.background=C.blueDim}
-                    onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                    <strong>{p.nombre}</strong>
-                    <span style={{color:C.textMid,marginLeft:8}}>Stock: <strong style={{color:C.amber}}>{p.stock}</strong></span>
-                  </div>
-                ))
-            }
+            {prodsFilt.slice(0, 8).map((p) => (
+              <div
+                key={p.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => selectProduct(p)}
+                onKeyDown={(e) => { if (e.key === "Enter") selectProduct(p); }}
+                style={{padding:"8px 12px",cursor:"pointer",color:C.text,fontSize:12,borderBottom:`1px solid ${C.border}`}}
+                onMouseEnter={(e) => { e.currentTarget.style.background = C.blueDim; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+              >
+                <strong>{p.nombre}</strong>
+                {p.codigo_barras ? (
+                  <span style={{color:C.textMid,marginLeft:8,fontFamily:"monospace",fontSize:10}}>{p.codigo_barras}</span>
+                ) : null}
+                <span style={{color:C.textMid,marginLeft:8}}>Stock: <strong style={{color:C.amber}}>{p.stock}</strong></span>
+              </div>
+            ))}
           </div>
         )}
         {selProd && (
           <div style={{background:C.blueDim,border:`1px solid ${C.blue}30`,borderRadius:8,padding:"10px 14px",marginBottom:16}}>
             <div style={{color:C.blue,fontWeight:700,fontSize:13}}>{selProd.nombre}</div>
             <div style={{color:C.textMid,fontSize:11,marginTop:4}}>
+              {selProd.codigo_barras ? <>Cód. barras: <strong style={{fontFamily:"monospace"}}>{selProd.codigo_barras}</strong> · </> : null}
               Stock actual: <strong style={{color:C.amber}}>{selProd.stock}</strong>
               {selProd.stock_minimo ? ` · Mínimo: ${selProd.stock_minimo}` : ""}
               {selProd.min_caducidad_lotes ? ` · Próx. caduca: ${selProd.min_caducidad_lotes}` : ""}
@@ -878,31 +961,62 @@ function RecibirModal({ productos, onClose, onSaved }) {
           <div>
             <div style={{marginBottom:12}}>
               <label style={labelStyle}>Cantidad a recibir <span style={{color:C.red}}>*</span></label>
-              <input type="number" value={cantidad} onChange={e=>setCantidad(e.target.value)} min="1" placeholder="0" style={inputStyle}/>
+              <input
+                ref={cantidadRef}
+                type="number"
+                value={cantidad}
+                onChange={(e) => setCantidad(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    caducidadRef.current?.focus();
+                  }
+                }}
+                min="1"
+                placeholder="0"
+                style={inputStyle}
+              />
             </div>
             <div style={{marginBottom:12}}>
               <label style={labelStyle}>Nuevo lote</label>
-              <input value={lote} onChange={e=>setLote(e.target.value)} placeholder="Ej. L-20250101" style={inputStyle}/>
+              <input value={lote} onChange={(e) => setLote(e.target.value)} placeholder="Ej. L-20250101 (opcional)" style={inputStyle}/>
             </div>
             <div style={{marginBottom:12}}>
-              <label style={labelStyle}>Nueva fecha de caducidad</label>
-              <input type="date" value={caducidad} onChange={e=>setCaduc(e.target.value)} style={inputStyle}/>
+              <label style={labelStyle}>Fecha de caducidad</label>
+              <input
+                ref={caducidadRef}
+                type="date"
+                value={caducidad}
+                onChange={(e) => setCaduc(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && selId && cantidad) {
+                    e.preventDefault();
+                    handleRecibir();
+                  }
+                }}
+                style={inputStyle}
+              />
             </div>
           </div>
           <div>
             <div style={{marginBottom:12}}>
               <label style={labelStyle}>Nuevo costo unitario</label>
-              <input type="number" value={costo} onChange={e=>setCosto(e.target.value)}
-                placeholder={selProd?`Actual: $${selProd.costo}`:"$0.00"} style={inputStyle}/>
+              <input
+                type="number"
+                value={costo}
+                onChange={(e) => setCosto(e.target.value)}
+                placeholder={selProd ? `Actual: $${selProd.costo}` : "$0.00"}
+                style={inputStyle}
+              />
             </div>
             <div style={{marginBottom:12}}>
               <label style={labelStyle}>Proveedor</label>
-              <input value={proveedor} onChange={e=>setProv(e.target.value)} placeholder="Nadro, Marzam…" style={inputStyle}/>
+              <input value={proveedor} onChange={(e) => setProv(e.target.value)} placeholder="Nadro, Marzam…" style={inputStyle}/>
             </div>
-            {selProd && cantidad && parseInt(cantidad)>0 && (
+            {selProd && cantidad && parseInt(cantidad, 10) > 0 && (
               <div style={{background:C.greenDim,border:`1px solid ${C.green}30`,borderRadius:8,padding:"10px 14px",marginTop:4}}>
                 <div style={{color:C.textMid,fontSize:10,fontWeight:700}}>NUEVO STOCK</div>
-                <div style={{color:C.green,fontWeight:800,fontSize:22}}>{(selProd.stock||0)+parseInt(cantidad)}</div>
+                <div style={{color:C.green,fontWeight:800,fontSize:22}}>{(selProd.stock || 0) + parseInt(cantidad, 10)}</div>
                 <div style={{color:C.textMid,fontSize:10}}>({selProd.stock} + {cantidad})</div>
               </div>
             )}
@@ -910,9 +1024,9 @@ function RecibirModal({ productos, onClose, onSaved }) {
         </div>
         {error && <div style={{color:C.red,fontSize:12,marginBottom:8}}>{error}</div>}
         <div style={{display:"flex",justifyContent:"flex-end",gap:10,marginTop:12}}>
-          <button style={btnSecondary} onClick={onClose}>Cancelar</button>
-          <button style={btnGreen} onClick={handleRecibir} disabled={saving||!selId||!cantidad}>
-            {saving?"Guardando…":"📦 Recibir mercancía"}
+          <button type="button" style={btnSecondary} onClick={onClose}>Cerrar</button>
+          <button type="button" style={btnGreen} onClick={handleRecibir} disabled={saving || !selId || !cantidad}>
+            {saving ? "Guardando…" : "📦 Registrar entrada"}
           </button>
         </div>
       </div>
@@ -1514,9 +1628,11 @@ export default function InventarioModule() {
       return;
     }
 
-    /** SKU → id para filas que ya existen (reimportar export no debe duplicar). */
+    /** SKU / código de barras → id para filas que ya existen. */
     const skuList = [...new Set(rows.map((r) => (r.sku || "").trim()).filter(Boolean))];
+    const cbList = [...new Set(rows.map((r) => (r.codigo_barras || "").trim()).filter(Boolean))];
     const skuToId = new Map();
+    const cbToId = new Map();
     try {
       for (let s = 0; s < skuList.length; s += IMPORT_SKU_LOOKUP_CHUNK) {
         const chunk = skuList.slice(s, s + IMPORT_SKU_LOOKUP_CHUNK);
@@ -1533,6 +1649,23 @@ export default function InventarioModule() {
         }
         for (const p of data || []) {
           if (p.sku) skuToId.set(String(p.sku).trim(), p.id);
+        }
+      }
+      for (let s = 0; s < cbList.length; s += IMPORT_SKU_LOOKUP_CHUNK) {
+        const chunk = cbList.slice(s, s + IMPORT_SKU_LOOKUP_CHUNK);
+        const { data, error: qErr } = await supabase
+          .from("productos")
+          .select("id, codigo_barras")
+          .in("codigo_barras", chunk);
+        if (qErr) {
+          console.error("Import: lookup código de barras", qErr);
+          showToast(`No se pudo consultar códigos de barras: ${qErr.message}`, "error");
+          setImportando(false);
+          setImportProgress(null);
+          return;
+        }
+        for (const p of data || []) {
+          if (p.codigo_barras) cbToId.set(String(p.codigo_barras).trim(), p.id);
         }
       }
     } catch (e) {
@@ -1554,6 +1687,7 @@ export default function InventarioModule() {
           lote,
           fecha_caducidad,
           costo,
+          codigo_barras,
           marca_comercial,
           principio_activo,
           concentracion,
@@ -1568,7 +1702,9 @@ export default function InventarioModule() {
           ...resto
         } = row;
         const skuKey = (resto.sku || "").trim();
-        const existingId = skuKey ? skuToId.get(skuKey) : null;
+        const cbKey = (codigo_barras || "").trim();
+        const existingId = skuKey ? skuToId.get(skuKey) : (cbKey ? cbToId.get(cbKey) : null);
+        const cbNorm = cbKey || null;
         const extrasPatch = {
           marca_comercial: marca_comercial || null,
           marca: marca_comercial || null,
@@ -1591,6 +1727,8 @@ export default function InventarioModule() {
         if (existingId) {
           const patch = {
             nombre: resto.nombre,
+            sku: skuKey || null,
+            codigo_barras: cbNorm,
             categoria: resto.categoria,
             tipo: resto.tipo,
             precio: resto.precio,
@@ -1611,22 +1749,27 @@ export default function InventarioModule() {
             return "err";
           }
           const stockNum = parseInt(stock, 10) || 0;
-          const { error: adjErr } = await supabase.rpc("adjust_stock_secure", {
-            p_session_token: tok,
-            p_producto_id: existingId,
-            p_nuevo_stock: stockNum,
-            p_motivo: "Import CSV — sincronizar stock",
-          });
-          if (adjErr) {
-            console.error("Import ajuste stock:", adjErr);
-            return "err";
+          if (stockNum > 0) {
+            const { error: recvErr } = await supabase.rpc("receive_merchandise_secure", {
+              p_session_token: tok,
+              p_producto_id: existingId,
+              p_cantidad: stockNum,
+              p_numero_lote: lote || null,
+              p_fecha_caducidad: fecha_caducidad || null,
+              p_costo_unitario: costo != null && costo !== "" ? Number(costo) : null,
+              p_proveedor: resto.proveedor || null,
+            });
+            if (recvErr) {
+              console.error("Import recepción:", recvErr);
+              return "err";
+            }
           }
           return "upd";
         }
 
         const { data: respCreacion, error: rpcErr } = await supabase.rpc("create_producto_secure", {
           p_session_token: tok,
-          p_producto_data: { ...resto, costo: costo ?? null, ...extrasPatch },
+          p_producto_data: { ...resto, codigo_barras: cbNorm, costo: costo ?? null, ...extrasPatch },
           p_cantidad_inicial: stock || 0,
           p_numero_lote: lote || null,
           p_fecha_caducidad: fecha_caducidad || null,
@@ -1970,7 +2113,7 @@ export default function InventarioModule() {
             ➕ Nuevo producto
           </button>
           <button style={btnOutline} onClick={()=>setModalRecibir(true)}>
-            {isMobileInv ? "📦 Recibir" : "📦 Recibir mercancía"}
+            {isMobileInv ? "📦 Resurtir" : "📦 Resurtir (escáner)"}
           </button>
           <button style={btnOutline} onClick={()=>{ setImportResult(null); setImportCsvSoloNuevos(false); setModalImportar(true); }}>
             {isMobileInv ? "📥 Importar" : "📥 Importar CSV"}
@@ -2483,7 +2626,7 @@ export default function InventarioModule() {
       )}
       {modalRecibir&&(
         <RecibirModal productos={productos} onClose={()=>setModalRecibir(false)}
-          onSaved={()=>{setModalRecibir(false);fetchProductos();}}/>
+          onReceived={fetchProductos}/>
       )}
 
       {/* Modal Importar CSV */}
@@ -2503,10 +2646,11 @@ export default function InventarioModule() {
               <ol style={{color:"#1d4ed8",fontSize:12,paddingLeft:18,lineHeight:1.8,margin:0}}>
                 <li>Descarga la plantilla con el botón de abajo</li>
                 <li>Ábrela en Excel o Google Sheets</li>
-                <li>Agrega tus productos (una fila por producto)</li>
+                <li>Agrega tus productos (una fila por producto). Incluye <strong>Codigo_Barras</strong> (EAN de la caja) cuando lo tengas.</li>
                 <li>Guarda como CSV (separado por comas)</li>
                 <li>Sube el archivo aquí</li>
-                <li style={{marginTop:6}}><strong>SKU FarmaCapital</strong> (columna «SKU» del CSV): debe coincidir con <code>productos.sku</code> para fusionar o omitir duplicados en “solo nuevos”.</li>
+                <li style={{marginTop:6}}><strong>SKU FarmaCapital</strong> o <strong>Codigo_Barras</strong> identifican productos existentes para actualizar o recibir stock.</li>
+                <li>En productos ya registrados, la columna <strong>Stock</strong> es la <strong>cantidad a recibir</strong> (nuevo lote PEPS), no el total deseado.</li>
               </ol>
             </div>
             <button onClick={descargarPlantilla} style={{width:"100%",padding:"10px",borderRadius:8,border:"1px solid #0D1B2A",background:"#eff6ff",color:"#0D1B2A",fontWeight:700,fontSize:13,cursor:"pointer",marginBottom:16,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
@@ -2536,14 +2680,14 @@ export default function InventarioModule() {
                     <div style={{maxHeight:200,overflowY:"visible",border:`1px solid ${C.border}`,borderRadius:8,marginBottom:16}}>
                       <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
                         <thead><tr style={{background:C.cardDark}}>
-                          {["Nombre","SKU FarmaCapital","Categoría","Stock","Precio","Caducidad"].map(h=><th key={h} style={{padding:"6px 10px",textAlign:"left",color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{h}</th>)}
+                          {["Nombre","SKU","Cód. barras","Stock","Precio","Caducidad"].map(h=><th key={h} style={{padding:"6px 10px",textAlign:"left",color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{h}</th>)}
                         </tr></thead>
                         <tbody>
                           {importResult.rows.slice(0,20).map((r,i)=>(
                             <tr key={i} style={{background:i%2===0?"transparent":"#f8fafc"}}>
                               <td style={{padding:"5px 10px",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>{r.nombre}</td>
                               <td style={{padding:"5px 10px",color:C.textMid,borderBottom:`1px solid ${C.border}`,fontFamily:"monospace"}}>{r.sku||"—"}</td>
-                              <td style={{padding:"5px 10px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{r.categoria}</td>
+                              <td style={{padding:"5px 10px",color:C.textMid,borderBottom:`1px solid ${C.border}`,fontFamily:"monospace",fontSize:10}}>{r.codigo_barras||"—"}</td>
                               <td style={{padding:"5px 10px",color:"#1E3ABA",fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{r.stock}</td>
                               <td style={{padding:"5px 10px",color:"#16a34a",fontWeight:700,borderBottom:`1px solid ${C.border}`}}>${r.precio}</td>
                               <td style={{padding:"5px 10px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{r.fecha_caducidad||"—"}</td>
