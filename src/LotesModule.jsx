@@ -104,6 +104,11 @@ export default function LotesModule() {
 
   return(
     <div>
+      <div style={{background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:10,padding:"10px 14px",marginBottom:14,fontSize:12,color:"#1e3a8a",lineHeight:1.5}}>
+        <strong>Stock en Lotes = existencia real (PEPS).</strong> El POS vende desde lotes activos.
+        Los lotes <strong>REINTEGRO-*</strong> se crean solos al reingresar mercancía (devoluciones); conviene completar caducidad y costo.
+        Para entrada nueva de proveedor usa <strong>+ Registrar lote</strong> o <strong>Catálogo → Recibir mercancía</strong> (prefijo RX-*).
+      </div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:10}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
         <h1 style={{color:C.text,fontSize:20,fontWeight:800,margin:0}}>📦 Lotes — PEPS</h1>

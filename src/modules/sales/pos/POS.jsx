@@ -565,6 +565,31 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     return 0;
   };
 
+  /** ¿Hay filas de lote activas con existencia? (PEPS — fuente de verdad en POS) */
+  const productoTieneLotesActivos = (producto) => {
+    const lotes = Array.isArray(producto?.lotes) ? producto.lotes : [];
+    return lotes.some(
+      (l) => l?.activo !== false && getLoteCantidadDisponible(l) > 0
+    );
+  };
+
+  /**
+   * Stock vendible en caja alineado con Inventario → Lotes:
+   * - Con lotes: suma cantidad_actual de lotes activos
+   * - Sin lotes (legacy): productos.stock
+   */
+  const getStockCajasPOS = (producto) => {
+    const lotes = Array.isArray(producto?.lotes) ? producto.lotes : [];
+    if (lotes.length > 0) return getStockFifoDisponible(producto);
+    return Math.max(0, Number(producto?.stock || 0));
+  };
+
+  const productoSinLotesPEPS = (producto) => {
+    if (producto?.venta_unidad) return false;
+    const lotes = Array.isArray(producto?.lotes) ? producto.lotes : [];
+    return lotes.length === 0;
+  };
+
   const getCantidadEnCarrito = (cartActual, productoId, esUnidad = false) => {
     return (cartActual || []).reduce((sum, item) => {
       const itemId = String(item.producto_id ?? item.id ?? "");
@@ -1802,22 +1827,23 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
               {fil.map(item=>{
                 const posCardClick = (e)=>{
                   if(e.target.closest("button")) return;
-                  if(item.stock===0&&(!item.venta_unidad||item.stock_unidades===0)){
+                  const stockCajas = getStockCajasPOS(item);
+                  if(stockCajas<=0&&(!item.venta_unidad||item.stock_unidades===0)){
                     showToast("Sin stock disponible.","warning"); return;
                   }
                   if(item.venta_unidad){
-                    if(item.stock>0) add(item,false);
+                    if(stockCajas>0) add(item,false);
                     else if(item.stock_unidades>0) add(item,true);
-                    else if(item.stock>0) abrirCaja(item);
+                    else if(stockCajas>0) abrirCaja(item);
                     else showToast("Sin stock disponible.","warning");
-                  }else if(item.stock>0){
+                  }else if(stockCajas>0){
                     add(item,false);
                   }
                 };
                 const thumb = item.imagen_url || item.imagen_mobile_url || "";
-                const fifoDisp = getStockFifoDisponible(item);
-                const sinLotes = !item.venta_unidad && fifoDisp <= 0;
-                const agotado  = item.stock === 0 && (!item.venta_unidad || item.stock_unidades === 0);
+                const stockCajas = getStockCajasPOS(item);
+                const sinLotes = productoSinLotesPEPS(item);
+                const agotado  = stockCajas <= 0 && (!item.venta_unidad || item.stock_unidades === 0);
                 const noDisp   = sinLotes || agotado;
                 const cardOpacity = noDisp ? 0.42 : 1;
                 const handleCardClick = noDisp
@@ -1868,19 +1894,19 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                   {item.venta_unidad?(
                     <div style={{display:"flex",flexDirection:"column",gap:4}}>
                       <button type="button"
-                        disabled={item.stock===0}
+                        disabled={stockCajas<=0}
                         onClick={e=>{e.stopPropagation();add(item,false);}}
-                        style={{padding:"4px 6px",borderRadius:6,border:`1px solid ${C.blue}30`,background:"#eff6ff",color:C.blue,cursor:item.stock===0?"not-allowed":"pointer",fontSize:10,fontWeight:700,opacity:item.stock===0?.4:1}}>
-                        📦 Caja {$(item.precio||item.precio)} · {item.stock} cajas
+                        style={{padding:"4px 6px",borderRadius:6,border:`1px solid ${C.blue}30`,background:"#eff6ff",color:C.blue,cursor:stockCajas<=0?"not-allowed":"pointer",fontSize:10,fontWeight:700,opacity:stockCajas<=0?.4:1}}>
+                        📦 Caja {$(item.precio||item.precio)} · {stockCajas} cajas
                       </button>
                       <button type="button"
-                        disabled={item.stock_unidades===0&&item.stock===0}
+                        disabled={stockCajas<=0&&item.stock_unidades===0}
                         onClick={e=>{e.stopPropagation();
                           if(item.stock_unidades>0){ add(item,true); }
-                          else if(item.stock>0){ abrirCaja(item); }
+                          else if(stockCajas>0){ abrirCaja(item); }
                           else { showToast("Sin stock disponible.", "warning"); }
                         }}
-                        style={{padding:"4px 6px",borderRadius:6,border:`1px solid ${C.green}30`,background:C.greenDim,color:C.greenDark,cursor:(item.stock_unidades===0&&item.stock===0)?"not-allowed":"pointer",fontSize:10,fontWeight:700,opacity:(item.stock_unidades===0&&item.stock===0)?.4:1}}>
+                        style={{padding:"4px 6px",borderRadius:6,border:`1px solid ${C.green}30`,background:C.greenDim,color:C.greenDark,cursor:(stockCajas<=0&&item.stock_unidades===0)?"not-allowed":"pointer",fontSize:10,fontWeight:700,opacity:(stockCajas<=0&&item.stock_unidades===0)?.4:1}}>
                         💊 x1 {$(Math.ceil(item.precio_unidad||0))} · {item.stock_unidades} sueltas
                       </button>
                     </div>
@@ -1899,7 +1925,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                       </div>
                       {sinLotes
                         ? <span style={{background:"#ef4444",color:"#fff",fontSize:9,fontWeight:800,borderRadius:5,padding:"2px 7px"}}>Sin lotes</span>
-                        : <Tag col={agotado?C.red:item.stock<item.stock_minimo?C.amber:C.green} sm>{agotado?"Agotado":fifoDisp}</Tag>
+                        : <Tag col={agotado?C.red:stockCajas<item.stock_minimo?C.amber:C.green} sm>{agotado?"Agotado":stockCajas}</Tag>
                       }
                     </div>
                   )}
