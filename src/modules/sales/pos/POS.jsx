@@ -3,7 +3,6 @@ import { useMediaQuery } from "../../../hooks/useMediaQuery";
 import TicketPreviewModal from "../../../components/tickets/TicketPreviewModal";
 import MercadoPagoModal from "../../../components/MercadoPagoModal";
 import BBVATerminalModal from "../../../components/BBVATerminalModal";
-import { printTicket } from "../../../utils/printTicket";
 import { supabase } from "../../../supabase";
 import { C_LIGHT, BRAND } from "../../../constants";
 import { $, logAudit, soloDigitosTel, normalizeForSearch } from "../../../utils";
@@ -26,7 +25,7 @@ import { marcarMedicamentosRecetaFarmaCapitalSurtidos } from "../../../utils/rec
 import OnboardingTour from "../../../components/OnboardingTour";
 import { TOURS } from "../../../utils/tours";
 import { labelTipoEntregaPedido, resumenLogisticsMeta } from "../../../utils/orderChannels";
-import { buildOnlineOrderReceiptMessage, formatFolioOnline, openWhatsAppToCustomer } from "../../../utils/orderReceiptWhatsApp";
+import { buildOnlineOrderReceiptMessage, buildOnlineOrderReadyMessage, formatFolioOnline, openWhatsAppToCustomer } from "../../../utils/orderReceiptWhatsApp";
 import { formatTelefonoDisplay } from "../../../utils/citaWhatsApp";
 import { configRowsToMap, mergeFarmaciaConfig, FARMACIA_FISCAL } from "../../../constants/farmaciaFiscal";
 
@@ -901,6 +900,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         pay:paymentLabel(metodoPagoFinal),
         cli,
         ptsG,
+        origen: "tienda",
         ...(pay === "efectivo" && Number.isFinite(recEf)
           ? { recibido: recEf, cambio: cambioEf, cambioDesglose: desgloseEf }
           : {}),
@@ -913,7 +913,6 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       showToast("Venta registrada correctamente", "success");
       setCart([]); setTel(""); setCli(null);
       setMontoRecibido("");
-      setTimeout(() => printTicket("farmacapital-ticket"), 500);
     } catch(e) {
       console.error(e);
       const msg = e?.message || e?.details || String(e);
@@ -983,12 +982,27 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       }
       setPedOn(p=>p.filter(x=>x.id!==pedido.id));
       setPedOnHist((prev) => [{ ...pedido, estado: "listo" }, ...prev.filter((x) => x.id !== pedido.id)].slice(0, 20));
-      // L4: Notificar al cliente por WhatsApp cuando pedido está listo
-      const telCli = pedido.clientes?.telefono;
-      if(telCli) {
-        const msg = `🏥 *FarmaCapital*\n\n✅ ¡Tu pedido #${pedido.id} está listo!\n\nPuedes pasar a recogerlo en:\n📍 ${FARMACIA_FISCAL.direccion_comercial}\n🗺 ${FARMACIA_FISCAL.maps_url}\n\n¡Te esperamos! 💊`;
-        showToast(`Pedido listo. ${telCli?"Puedes notificar al cliente por WhatsApp":""}`, "success");
-        // Botón manual para no abrir sin permiso
+      // Notificar al cliente por WhatsApp al marcar listo (pagó en línea)
+      const telCli = pedido.clientes?.telefono || pedido.guest_telefono;
+      if (telCli) {
+        const msg = buildOnlineOrderReadyMessage({
+          pedidoId: pedido.id,
+          items: (pedido.pedido_items || []).map((i) => ({
+            nombre: i.productos?.nombre,
+            qty: i.cantidad,
+            precio: i.precio_unitario,
+          })),
+          total: pedido.total,
+          tipoEntrega: pedido.tipo_entrega,
+          metodoPago: pedido.metodo_pago,
+        });
+        if (openWhatsAppToCustomer(telCli, msg)) {
+          showToast("Pedido listo · WhatsApp abierto para el cliente", "success");
+        } else {
+          showToast("Pedido listo (revisa el teléfono del cliente)", "success");
+        }
+      } else {
+        showToast("Pedido marcado como listo", "success");
       }
     } catch(e) { console.error(e); }
     setGuard(false);
@@ -1081,6 +1095,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         pay: paymentLabel(metodoPagoRaw),
         cli: clienteSel,
         ptsG: Math.floor(totalFinal / 10),
+        origen: "consulta",
         ...(metodoPago === "efectivo" && Number.isFinite(recEf)
           ? { recibido: recEf, cambio: cambioEf, cambioDesglose: desgloseEf }
           : {}),
@@ -1091,7 +1106,6 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         return next;
       });
       showToast("Consulta cobrada correctamente", "success");
-      setTimeout(() => printTicket("farmacapital-ticket"), 500);
     } catch (e) {
       console.error(e);
       alert("No se pudo cobrar la consulta: " + (e?.message || e));
@@ -1522,7 +1536,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         open={mpModal}
         total={mpCitaRef.current ? totalCobroConsulta(mpCitaRef.current) : total}
         folio={mpCitaRef.current ? `CONS-${mpCitaRef.current.id}` : mpFolio}
-        hint="El terminal recibe el monto; el cajero confirma en el Point; al aprobarse el pago se registra la operación y se imprime el ticket."
+        hint="El terminal recibe el monto; al aprobarse se registra la venta y podrás imprimir o enviar el ticket por WhatsApp."
         onSuccess={async ()=>{
           setMpModal(false);
           const citaMp = mpCitaRef.current;
@@ -1574,12 +1588,14 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
 
       {ticket&&<TicketPreviewModal
         open={!!ticket}
-        venta={{id:ticket.id, folio:ticket.folio, total:ticket.total, created_at:new Date().toISOString(), metodo_pago:ticket.pay}}
+        venta={{id:ticket.id, folio:ticket.folio, total:ticket.total, created_at:new Date().toISOString(), metodo_pago:ticket.pay, neto:ticket.neto, iva:ticket.iva}}
         productos={ticket.items}
         cliente={ticket.cli}
         metodoPago={ticket.pay}
         config={config}
         promoMsg={promoTicket}
+        origen={ticket.origen || "tienda"}
+        autoWhatsApp={ticket.autoWhatsApp === true}
         onClose={()=>setTicket(null)}
         onNuevaVenta={()=>{ setTicket(null); setCart([]); setTel(""); setCli(null); }}
       />}

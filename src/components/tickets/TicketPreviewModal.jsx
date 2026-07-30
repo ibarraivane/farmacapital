@@ -1,27 +1,15 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState, useCallback } from "react";
 import TicketVenta from "./TicketVenta";
 import { printTicket } from "../../utils/printTicket";
 import { downloadFacturaPDF } from "../../utils/generateFacturaPDF";
-import { FARMACIA_MAPS_URL } from "../../utils/orderReceiptWhatsApp";
-
-/**
- * FARMACAPITAL — Modal de preview de ticket
- * Se muestra automáticamente después de una venta
- *
- * Props:
- * @param {boolean} open - Si el modal está abierto
- * @param {Object}  venta - Datos de la venta
- * @param {Array}   productos - Lista de productos vendidos
- * @param {Object}  cliente - Datos del cliente (opcional)
- * @param {string}  metodoPago - Método de pago usado
- * @param {Object}  config - Configuración de la farmacia
- * @param {Function} onClose - Callback al cerrar
- * @param {Function} onNuevaVenta - Callback para nueva venta
- */
-// ── Importar supabase ────────────────────────────────────────
+import {
+  buildPosTicketWhatsAppMessage,
+  openWhatsAppToCustomer,
+} from "../../utils/orderReceiptWhatsApp";
 import { supabase } from "../../supabase";
+import { showToast } from "../../ui";
+import { telefonoMxValido, soloDigitosTel } from "../../utils";
 
-// ── Formulario de solicitud de factura ───────────────────────
 function FacturaInlineForm({ venta, cliente, onClose }) {
   const [rfc,    setRfc]    = React.useState(cliente?.rfc||"");
   const [nombre, setNombre] = React.useState(cliente?.razon_social||cliente?.nombre||"");
@@ -80,13 +68,7 @@ function FacturaInlineForm({ venta, cliente, onClose }) {
     <div style={{background:"#dcfce7",borderRadius:10,padding:16,textAlign:"center",margin:"8px 0"}}>
       <div style={{fontSize:32,marginBottom:8}}>✅</div>
       <div style={{color:"#16a34a",fontWeight:800,fontSize:14}}>¡Solicitud guardada!</div>
-      <div style={{color:"#16a34a",fontSize:12,marginTop:4}}>RFC: <strong>{rfc.toUpperCase()}</strong></div>
-      <div style={{color:"#475569",fontSize:11,marginTop:6,lineHeight:1.5}}>
-        Tu solicitud de factura quedó registrada.<br/>
-        Estado: <strong>PENDIENTE</strong><br/>
-        Te contactaremos cuando esté lista.
-      </div>
-      <button onClick={onClose} style={{marginTop:12,padding:"7px 20px",borderRadius:8,border:"none",background:"#16a34a",color:"#fff",fontWeight:700,cursor:"pointer",fontSize:12}}>
+      <button type="button" onClick={onClose} style={{marginTop:12,padding:"7px 20px",borderRadius:8,border:"none",background:"#16a34a",color:"#fff",fontWeight:700,cursor:"pointer",fontSize:12}}>
         Cerrar
       </button>
     </div>
@@ -96,256 +78,329 @@ function FacturaInlineForm({ venta, cliente, onClose }) {
     <div style={{background:"#f8fafc",borderRadius:10,padding:14,border:"1px solid #e2e8f0",margin:"8px 0"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
         <div style={{color:"#0f172a",fontWeight:700,fontSize:13}}>🧾 Solicitar factura CFDI</div>
-        <button onClick={onClose} style={{background:"none",border:"none",color:"#94a3b8",cursor:"pointer",fontSize:18,lineHeight:1}}>✕</button>
+        <button type="button" onClick={onClose} aria-label="Cerrar factura" style={{background:"none",border:"none",color:"#94a3b8",cursor:"pointer",fontSize:18,lineHeight:1}}>✕</button>
       </div>
-      <div style={{color:"#64748b",fontSize:11,marginBottom:10,lineHeight:1.5}}>
-        Completa los datos fiscales para generar tu factura.<br/>
-        Estado inicial: <strong style={{color:"#f59e0b"}}>PENDIENTE</strong>
-      </div>
-      <input style={inpS} value={rfc} onChange={e=>setRfc(e.target.value.toUpperCase())}
-        placeholder="RFC * (ej: XAXX010101000 o PEJJ800101XXX)"/>
-      <input style={inpS} value={nombre} onChange={e=>setNombre(e.target.value)}
-        placeholder="Nombre o Razón Social *"/>
-      <input style={{...inpS}} type="email" value={email} onChange={e=>setEmail(e.target.value)}
-        placeholder="Correo electrónico"/>
+      <input style={inpS} value={rfc} onChange={e=>setRfc(e.target.value.toUpperCase())} placeholder="RFC *"/>
+      <input style={inpS} value={nombre} onChange={e=>setNombre(e.target.value)} placeholder="Nombre o Razón Social *"/>
+      <input style={{...inpS}} type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="Correo electrónico"/>
       <select style={inpS} value={uso} onChange={e=>setUso(e.target.value)}>
         {USO_CFDI.map(u=><option key={u.val} value={u.val}>{u.label}</option>)}
       </select>
       {err&&<div style={{color:"#ef4444",fontSize:11,marginBottom:8,padding:"4px 8px",background:"#fee2e2",borderRadius:6}}>{err}</div>}
-      <div style={{background:"#fef3c7",borderRadius:6,padding:"6px 10px",marginBottom:10,fontSize:10,color:"#92400e"}}>
-        ⚠️ Modo preparación — Se activará con PAC (Facturama) al lanzamiento oficial
-      </div>
-      <button onClick={solicitar} disabled={saving} style={{
+      <button type="button" onClick={solicitar} disabled={saving} style={{
         width:"100%",padding:"10px",borderRadius:8,border:"none",
         background:"linear-gradient(135deg,#0D1B2A,#1E3ABA)",
-        color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer",
-        opacity:saving?0.6:1,
+        color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer",opacity:saving?0.6:1,
       }}>
-        {saving?"Guardando…":"📤 Solicitar factura — Estado: PENDIENTE"}
+        {saving?"Guardando…":"📤 Solicitar factura"}
       </button>
     </div>
   );
 }
 
+async function buscarClientePorTelefono(telefono) {
+  const tok = sessionStorage.getItem("farmacapital_session_token");
+  if (!tok) return null;
+  const { data, error } = await supabase.rpc("empleado_buscar_clientes_pos", {
+    p_session_token: tok,
+    p_busqueda: soloDigitosTel(telefono),
+    p_limit: 5,
+  });
+  if (error) return null;
+  const rows = Array.isArray(data) ? data : [];
+  const digits = soloDigitosTel(telefono);
+  return rows.find((c) => soloDigitosTel(c.telefono).endsWith(digits.slice(-10))) || rows[0] || null;
+}
+
+async function crearClienteManual(nombre, telefono) {
+  const tok = sessionStorage.getItem("farmacapital_session_token");
+  if (!tok) throw new Error("Sesión expirada");
+  const { data: resp, error } = await supabase.rpc("admin_crear_cliente_manual", {
+    p_session_token: tok,
+    p_nombre: nombre.trim(),
+    p_telefono: soloDigitosTel(telefono),
+    p_email: null,
+    p_notas: "Alta desde ticket POS / WhatsApp",
+  });
+  if (error) throw error;
+  if (!resp?.success) throw new Error(resp?.error || "No se pudo registrar");
+  return resp.cliente || { id: resp.cliente_id, nombre, telefono: soloDigitosTel(telefono), puntos: 0 };
+}
+
+async function acumularPuntosVenta(pedidoId, clienteId) {
+  const tok = sessionStorage.getItem("farmacapital_session_token");
+  if (!tok || !pedidoId || !clienteId) return null;
+  const { data, error } = await supabase.rpc("empleado_acumular_puntos_venta_pos", {
+    p_session_token: tok,
+    p_pedido_id: pedidoId,
+    p_cliente_id: clienteId,
+  });
+  if (error) {
+    console.warn("[ticket] acumular puntos:", error);
+    return null;
+  }
+  return data;
+}
+
+function WhatsAppTicketPanel({
+  venta, productos, metodoPago, config, clienteInicial, pedidoId, onClienteActualizado, onSent,
+}) {
+  const [waTel, setWaTel] = useState(clienteInicial?.telefono || "");
+  const [waNombre, setWaNombre] = useState("");
+  const [modoRegistro, setModoRegistro] = useState(false);
+  const [buscando, setBuscando] = useState(false);
+  const [enviando, setEnviando] = useState(false);
+  const [waErr, setWaErr] = useState("");
+  const telRef = useRef(null);
+
+  useEffect(() => {
+    if (clienteInicial?.telefono) setWaTel(clienteInicial.telefono);
+  }, [clienteInicial]);
+
+  const enviarConCliente = useCallback(async (cli) => {
+    if (!cli?.telefono) return;
+    setEnviando(true);
+    setWaErr("");
+    let puntosGanados = Math.floor(Number(venta.total || 0) / 10);
+    let saldoPuntos = cli.puntos ?? null;
+    if (pedidoId && cli.id) {
+      const ptsResp = await acumularPuntosVenta(pedidoId, cli.id);
+      if (ptsResp?.success) {
+        puntosGanados = ptsResp.puntos_ganados ?? puntosGanados;
+        saldoPuntos = ptsResp.puntos_total ?? saldoPuntos;
+        onClienteActualizado?.({ ...cli, puntos: saldoPuntos });
+      }
+    }
+    const msg = buildPosTicketWhatsAppMessage({
+      venta, productos, metodoPago, config, puntosGanados, saldoPuntos,
+    });
+    const ok = openWhatsAppToCustomer(cli.telefono, msg);
+    setEnviando(false);
+    if (!ok) { setWaErr("Teléfono inválido (10 dígitos)."); return; }
+    showToast(
+      puntosGanados > 0 ? `WhatsApp listo · +${puntosGanados} pts` : "WhatsApp listo para enviar",
+      "success"
+    );
+    onSent?.();
+  }, [venta, productos, metodoPago, config, pedidoId, onClienteActualizado, onSent]);
+
+  const iniciarEnvio = async () => {
+    if (clienteInicial?.telefono && telefonoMxValido(clienteInicial.telefono)) {
+      await enviarConCliente(clienteInicial);
+      return;
+    }
+    if (!telefonoMxValido(waTel)) {
+      setWaErr("Ingresa un teléfono de 10 dígitos.");
+      telRef.current?.focus();
+      return;
+    }
+    setBuscando(true);
+    setWaErr("");
+    try {
+      const encontrado = await buscarClientePorTelefono(waTel);
+      if (encontrado) { await enviarConCliente(encontrado); return; }
+      setModoRegistro(true);
+    } catch (e) {
+      setWaErr(e.message || "Error al buscar cliente");
+    } finally {
+      setBuscando(false);
+    }
+  };
+
+  const registrarYEnviar = async () => {
+    if (!waNombre.trim()) { setWaErr("Escribe el nombre del cliente."); return; }
+    setEnviando(true);
+    setWaErr("");
+    try {
+      const nuevo = await crearClienteManual(waNombre, waTel);
+      onClienteActualizado?.(nuevo);
+      await enviarConCliente(nuevo);
+      setModoRegistro(false);
+    } catch (e) {
+      if (String(e.message || "").includes("Ya existe")) {
+        const existente = await buscarClientePorTelefono(waTel);
+        if (existente) { await enviarConCliente(existente); setModoRegistro(false); return; }
+      }
+      setWaErr(e.message || "No se pudo registrar");
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  if (clienteInicial?.telefono && !modoRegistro) {
+    return (
+      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+        <div style={{fontSize:11,color:"#475569"}}>
+          Cliente: <strong>{clienteInicial.nombre}</strong> · {clienteInicial.telefono}
+          {clienteInicial.puntos != null ? ` · ${clienteInicial.puntos} pts` : ""}
+        </div>
+        <button type="button" onClick={() => enviarConCliente(clienteInicial)} disabled={enviando}
+          style={{padding:"12px",borderRadius:10,border:"none",background:"#25D366",color:"#fff",fontWeight:800,fontSize:14,cursor:"pointer",opacity:enviando?0.7:1}}>
+          {enviando ? "Abriendo WhatsApp…" : "📱 Enviar ticket por WhatsApp"}
+        </button>
+        {waErr ? <div style={{color:"#ef4444",fontSize:11}}>{waErr}</div> : null}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:10,padding:12}}>
+      <div style={{fontWeight:700,fontSize:13,color:"#166534",marginBottom:8}}>📱 Enviar ticket por WhatsApp</div>
+      {!modoRegistro ? (
+        <>
+          <input ref={telRef} type="tel" inputMode="numeric" value={waTel}
+            onChange={(e) => { setWaTel(e.target.value); setWaErr(""); }}
+            onKeyDown={(e) => { if (e.key === "Enter") iniciarEnvio(); }}
+            placeholder="Teléfono (10 dígitos)"
+            style={{width:"100%",boxSizing:"border-box",padding:"10px 12px",borderRadius:8,border:"1px solid #86efac",fontSize:16,marginBottom:8}}/>
+          <button type="button" onClick={iniciarEnvio} disabled={buscando||enviando}
+            style={{width:"100%",padding:"11px",borderRadius:8,border:"none",background:"#25D366",color:"#fff",fontWeight:800,fontSize:13,cursor:"pointer",opacity:(buscando||enviando)?0.7:1}}>
+            {buscando ? "Buscando…" : "Continuar →"}
+          </button>
+        </>
+      ) : (
+        <>
+          <div style={{fontSize:11,color:"#166534",marginBottom:8,lineHeight:1.5}}>
+            ¿Registrar al cliente en FarmaCapital para acumular puntos?
+          </div>
+          <input value={waNombre} onChange={(e) => setWaNombre(e.target.value)} placeholder="Nombre completo *"
+            style={{width:"100%",boxSizing:"border-box",padding:"9px 12px",borderRadius:8,border:"1px solid #86efac",fontSize:14,marginBottom:8}}/>
+          <div style={{display:"flex",gap:8}}>
+            <button type="button" onClick={() => { setModoRegistro(false); setWaErr(""); }}
+              style={{flex:1,padding:"10px",borderRadius:8,border:"1px solid #cbd5e1",background:"#fff",color:"#64748b",fontWeight:700,cursor:"pointer"}}>
+              Cancelar
+            </button>
+            <button type="button" onClick={registrarYEnviar} disabled={enviando}
+              style={{flex:2,padding:"10px",borderRadius:8,border:"none",background:"#25D366",color:"#fff",fontWeight:800,cursor:"pointer",opacity:enviando?0.7:1}}>
+              {enviando ? "Registrando…" : "✓ Registrar y enviar"}
+            </button>
+          </div>
+        </>
+      )}
+      {waErr ? <div style={{color:"#ef4444",fontSize:11,marginTop:8}}>{waErr}</div> : null}
+    </div>
+  );
+}
+
 export default function TicketPreviewModal({
-  open, venta={}, productos=[], cliente=null,
-  metodoPago="Efectivo", config={},
-  promoMsg=null,
-  onClose, onNuevaVenta
+  open, venta={}, productos=[], cliente: clienteProp=null,
+  metodoPago="Efectivo", config={}, promoMsg=null,
+  origen="tienda", autoWhatsApp=false,
+  onClose, onNuevaVenta,
 }) {
   const ticketRef = useRef(null);
-  const [showFactura, setShowFactura] = React.useState(false);
+  const [showFactura, setShowFactura] = useState(false);
+  const [clienteLocal, setClienteLocal] = useState(clienteProp);
+  const [mostrarWaPanel, setMostrarWaPanel] = useState(false);
+
+  useEffect(() => { setClienteLocal(clienteProp); }, [clienteProp, open]);
+
   useEffect(() => {
-    if (!open) return undefined;
+    if (!open) { setShowFactura(false); setMostrarWaPanel(false); return undefined; }
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev || "auto";
-    };
+    return () => { document.body.style.overflow = prev || "auto"; };
   }, [open]);
 
-  // Auto-imprimir al abrir
-  React.useEffect(() => { if(open) setTimeout(()=>printTicket("farmacapital-ticket"), 800); }, [open]);
+  useEffect(() => {
+    if (open && autoWhatsApp) setMostrarWaPanel(true);
+  }, [open, autoWhatsApp]);
 
   if (!open) return null;
 
   const handlePrint = () => printTicket("farmacapital-ticket");
-
-  const handleWhatsApp = () => {
-    const tel = cliente?.telefono || prompt("📱 Teléfono del cliente (10 dígitos):");
-    if (!tel) return;
-    const items = productos.map(p =>
-      `• ${p.nombre} ×${p.qty||1} = $${(parseFloat(p.precio||0)*(p.qty||1)).toFixed(2)}`
-    ).join("\n");
-    const msg = `🏥 *${config?.nombre_farmacia||"FarmaCapital"}*\n${config?.direccion_farmacia||"Chinampac de Juárez, CDMX"}\n🗺 ${FARMACIA_MAPS_URL}\n\n*Ticket #${venta.id}*\n\n${items}\n\n💰 *Total: $${parseFloat(venta.total||0).toFixed(2)}*\n💳 ${metodoPago}\n\n¡Gracias por su preferencia! 💊`;
-    window.open("https://wa.me/52" + tel.replace(/\D/g,"") + "?text=" + encodeURIComponent(msg), "_blank");
+  const esTienda = origen === "tienda" || origen === "consulta";
+  const pedidoId = venta?.id;
+  const btnBase = {
+    padding:"11px 12px", borderRadius:10, fontWeight:700, fontSize:13,
+    cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:6,
+    width:"100%", boxSizing:"border-box",
   };
 
   return (
     <div style={{
-      position:"fixed", inset:0, zIndex:9000,
-      background:"rgba(15,23,42,.6)",
-      backdropFilter:"blur(4px)",
+      position:"fixed", inset:0, zIndex:9000, background:"rgba(15,23,42,.6)", backdropFilter:"blur(4px)",
       display:"flex", alignItems:"center", justifyContent:"center",
-      padding:"max(12px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px))",
+      padding:"max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left))",
       boxSizing:"border-box",
-    }} onClick={e=>e.target===e.currentTarget&&onClose?.()}>
+    }} onClick={(e) => e.target === e.currentTarget && onClose?.()}>
       <div style={{
-        background:"#fff", borderRadius:16,
-        width:"min(420px, 100%)", maxHeight:"min(92dvh, 95vh)",
-        overflowY:"auto",
-        WebkitOverflowScrolling:"touch",
-        boxShadow:"0 24px 80px rgba(15,45,110,.2)",
-        display:"flex", flexDirection:"column",
-        minWidth:0,
-      }}>
-        {/* Header del modal */}
+        background:"#fff", borderRadius:16, width:"min(440px, 100%)", maxHeight:"min(96dvh, 100vh)",
+        boxShadow:"0 24px 80px rgba(15,45,110,.2)", display:"flex", flexDirection:"column", minWidth:0, overflow:"hidden",
+      }} onClick={(e) => e.stopPropagation()}>
         <div style={{
-          padding:"16px 20px",
-          borderBottom:"1px solid #e2e8f0",
+          padding:"14px 18px", flexShrink:0, borderBottom:"1px solid #e2e8f0",
           display:"flex", justifyContent:"space-between", alignItems:"center",
-          background:"linear-gradient(135deg,#0D1B2A,#1E3ABA)",
-          borderRadius:"16px 16px 0 0",
+          background:"linear-gradient(135deg,#0D1B2A,#1E3ABA)", borderRadius:"16px 16px 0 0",
         }}>
-          <div style={{color:"#fff", fontWeight:800, fontSize:16}}>
-            ✅ Venta registrada — Ticket #{venta.id||"—"}
+          <div style={{color:"#fff", fontWeight:800, fontSize:15}}>
+            ✅ Venta registrada — Ticket #{venta.id || "—"}
           </div>
-          <button onClick={onClose} style={{
-            background:"rgba(255,255,255,.2)", border:"none",
-            color:"#fff", width:28, height:28, borderRadius:"50%",
-            cursor:"pointer", fontSize:16, display:"flex",
-            alignItems:"center", justifyContent:"center",
+          <button type="button" onClick={onClose} aria-label="Cerrar" style={{
+            background:"rgba(255,255,255,.2)", border:"none", color:"#fff",
+            width:32, height:32, borderRadius:"50%", cursor:"pointer", fontSize:18,
           }}>✕</button>
         </div>
 
-        {/* Preview del ticket */}
+        {esTienda && (
+          <div style={{flexShrink:0,padding:"10px 16px",background:"#eff6ff",borderBottom:"1px solid #bfdbfe",fontSize:12,color:"#1e40af",lineHeight:1.45}}>
+            Pregunta al cliente: <strong>¿ticket impreso o por WhatsApp?</strong> No se imprime solo.
+          </div>
+        )}
+        {autoWhatsApp && (
+          <div style={{flexShrink:0,padding:"10px 16px",background:"#f0fdf4",borderBottom:"1px solid #bbf7d0",fontSize:12,color:"#166534"}}>
+            Pedido en línea — confirma el envío del recibo por WhatsApp abajo.
+          </div>
+        )}
+
         <div style={{
-          padding:16,
-          background:"#f8fafc",
-          display:"flex", justifyContent:"center",
-          borderBottom:"1px solid #e2e8f0",
-          overflowY:"visible",
-          maxHeight:"55vh",
+          flex:"1 1 auto", minHeight:0, overflowY:"auto", WebkitOverflowScrolling:"touch",
+          padding:12, background:"#f8fafc", display:"flex", justifyContent:"center",
         }}>
-          <div style={{
-            background:"#fff",
-            boxShadow:"0 2px 12px rgba(0,0,0,.1)",
-            borderRadius:4,
-            padding:4,
-          }}>
-            <TicketVenta
-              ref={ticketRef}
-              venta={venta}
-              productos={productos}
-              cliente={cliente}
-              metodoPago={metodoPago}
-              config={config}
-              promoMsg={promoMsg}
-            />
+          <div style={{background:"#fff",boxShadow:"0 2px 12px rgba(0,0,0,.08)",borderRadius:4,padding:4}}>
+            <TicketVenta ref={ticketRef} venta={venta} productos={productos} cliente={clienteLocal}
+              metodoPago={metodoPago} config={config} promoMsg={promoMsg}/>
           </div>
         </div>
 
-        {/* Acciones */}
-        <div style={{padding:16, display:"flex", flexDirection:"column", gap:10}}>
-          {/* Imprimir */}
-          {/* Imprimir directo ESC/POS si QZ Tray está disponible */}
-          {typeof window.qz !== "undefined" ? (
-            <button onClick={async()=>{
-              try{
-                const{imprimirESCPOS}=await import("../../utils/escpos");
-                await imprimirESCPOS({venta,productos,cliente,metodoPago,config});
-              }catch(e){ alert("Error ESC/POS: "+e.message); handlePrint(); }
-            }} style={{
-              padding:"12px", borderRadius:10, border:"none",
-              background:"linear-gradient(135deg,#0D1B2A,#1E3ABA)",
-              color:"#fff", fontWeight:800, fontSize:15,
-              cursor:"pointer", display:"flex",
-              alignItems:"center", justifyContent:"center", gap:8,
-            }}>
-              ⚡ Imprimir directo (QZ Tray)
-            </button>
+        <div style={{
+          flexShrink:0, padding:"12px 14px 14px", borderTop:"1px solid #e2e8f0", background:"#fff",
+          display:"flex", flexDirection:"column", gap:8,
+          maxHeight:"min(52vh, 420px)", overflowY:"auto", WebkitOverflowScrolling:"touch",
+        }}>
+          {(mostrarWaPanel || autoWhatsApp) ? (
+            <WhatsAppTicketPanel venta={venta} productos={productos} metodoPago={metodoPago} config={config}
+              clienteInicial={clienteLocal} pedidoId={pedidoId} onClienteActualizado={setClienteLocal}
+              onSent={() => setMostrarWaPanel(true)}/>
           ) : (
-            <button onClick={handlePrint} style={{
-              padding:"12px", borderRadius:10, border:"none",
-              background:"linear-gradient(135deg,#0D1B2A,#1E3ABA)",
-              color:"#fff", fontWeight:800, fontSize:15,
-              cursor:"pointer", display:"flex",
-              alignItems:"center", justifyContent:"center", gap:8,
-            }}>
-              🖨️ Imprimir ticket (Epson TM-T20III)
+            <button type="button" onClick={() => setMostrarWaPanel(true)}
+              style={{...btnBase,border:"1px solid #25D366",background:"#dcfce7",color:"#15803d"}}>
+              📱 Enviar ticket por WhatsApp
             </button>
           )}
 
-          {/* Solicitar factura */}
-          <button onClick={()=>setShowFactura(true)} style={{
-            padding:"10px", borderRadius:10,
-            border:"1px solid #0D1B2A",
-            background:"#eff6ff", color:"#0D1B2A",
-            fontWeight:700, fontSize:13, cursor:"pointer",
-            display:"flex", alignItems:"center", justifyContent:"center", gap:8,
-          }}>
-            🧾 Solicitar factura CFDI
+          <button type="button" onClick={handlePrint}
+            style={{...btnBase,border:"none",background:"linear-gradient(135deg,#0D1B2A,#1E3ABA)",color:"#fff",fontWeight:800}}>
+            🖨️ Imprimir ticket
           </button>
 
-          {/* Descargar PDF */}
-          <button onClick={()=>downloadFacturaPDF({
-            venta, productos, cliente, config, metodoPago
-          })} style={{
-            padding:"10px", borderRadius:10,
-            border:"1px solid #7c3aed",
-            background:"#ede9fe", color:"#7c3aed",
-            fontWeight:700, fontSize:13, cursor:"pointer",
-            display:"flex", alignItems:"center", justifyContent:"center", gap:8,
-          }}>
-            📄 Descargar PDF
-          </button>
-
-          {/* WhatsApp */}
-          <button onClick={handleWhatsApp} style={{
-            padding:"10px", borderRadius:10,
-            border:"1px solid #25D366",
-            background:"#dcfce7", color:"#16a34a",
-            fontWeight:700, fontSize:13, cursor:"pointer",
-            display:"flex", alignItems:"center", justifyContent:"center", gap:8,
-          }}>
-            📱 Enviar por WhatsApp
-          </button>
-
-          <div style={{display:"flex", gap:8, flexWrap:"wrap"}}>
-            {/* Reimprimir después */}
-            <button type="button" onClick={handlePrint} style={{
-              flex:"1 1 120px", minHeight:44, padding:"10px", borderRadius:10,
-              border:"1px solid #e2e8f0", background:"#f8fafc",
-              color:"#475569", fontWeight:700, fontSize:13, cursor:"pointer",
-            }}>
-              🔄 Reimprimir
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+            <button type="button" onClick={() => setShowFactura((v) => !v)}
+              style={{...btnBase,border:"1px solid #0D1B2A",background:"#eff6ff",color:"#0D1B2A"}}>
+              🧾 Factura CFDI
             </button>
-
-            {/* Nueva venta */}
-            <button type="button" onClick={onNuevaVenta||onClose} style={{
-              flex:"2 1 160px", minHeight:44, padding:"10px", borderRadius:10, border:"none",
-              background:"#16a34a", color:"#fff",
-              fontWeight:800, fontSize:14, cursor:"pointer",
-            }}>
-              ✅ Nueva venta
+            <button type="button" onClick={() => downloadFacturaPDF({venta,productos,cliente:clienteLocal,config,metodoPago})}
+              style={{...btnBase,border:"1px solid #7c3aed",background:"#ede9fe",color:"#7c3aed"}}>
+              📄 PDF
             </button>
           </div>
 
-          {/* Mini form de factura */}
-          {showFactura&&(
-            <FacturaInlineForm
-              venta={venta}
-              cliente={cliente}
-              onClose={()=>setShowFactura(false)}
-            />
-          )}
+          {showFactura && <FacturaInlineForm venta={venta} cliente={clienteLocal} onClose={() => setShowFactura(false)}/>}
 
-          {/* Info impresora Epson TM-T20III */}
-          <details style={{marginTop:4}}>
-            <summary style={{
-              fontSize:11, color:"#1d4ed8", cursor:"pointer",
-              background:"#eff6ff", padding:"6px 10px",
-              borderRadius:8, listStyle:"none", userSelect:"none",
-            }}>
-              🖨️ Guía de configuración Epson TM-T20III
-            </summary>
-            <div style={{
-              background:"#f8fafc", border:"1px solid #e2e8f0",
-              borderRadius:"0 0 8px 8px", padding:"10px 12px",
-              fontSize:10, color:"#475569", lineHeight:1.7,
-            }}>
-              <div style={{fontWeight:700,color:"#0f172a",marginBottom:4}}>Pasos para imprimir correctamente:</div>
-              <div>1️⃣ Click en "Imprimir ticket"</div>
-              <div>2️⃣ En "Impresora" selecciona <strong>Epson TM-T20III</strong></div>
-              <div>3️⃣ En "Más configuraciones" → Tamaño de papel: <strong>Roll Paper 80x297mm</strong></div>
-              <div>4️⃣ Márgenes: <strong>Sin márgenes (None)</strong></div>
-              <div>5️⃣ Escala: <strong>100%</strong></div>
-              <div>6️⃣ Click en <strong>Imprimir</strong></div>
-              <div style={{marginTop:6,padding:"4px 8px",background:"#fef3c7",borderRadius:4,color:"#92400e"}}>
-                ⚠️ Si el ticket se ve cortado, reduce la escala a 90%
-              </div>
-            </div>
-          </details>
+          <button type="button" onClick={onNuevaVenta || onClose}
+            style={{...btnBase,border:"none",background:"#16a34a",color:"#fff",fontWeight:800,fontSize:14,minHeight:48}}>
+            ✅ Nueva venta
+          </button>
         </div>
       </div>
     </div>

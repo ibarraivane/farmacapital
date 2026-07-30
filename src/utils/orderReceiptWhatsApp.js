@@ -96,6 +96,61 @@ export function buildCustomerToFarmaciaMessage({ pedidoId, total, customerName, 
   );
 }
 
+export function buildPosTicketWhatsAppMessage({
+  venta = {},
+  productos = [],
+  metodoPago = "Efectivo",
+  config = {},
+  puntosGanados = null,
+  saldoPuntos = null,
+}) {
+  const cfgNombre = config?.nombre_farmacia || "FarmaCapital";
+  const direccion = config?.direccion_farmacia || FARMACIA_DIRECCION;
+  const folio = venta.folio || formatFolioPOS(venta.id) || `#${venta.id || "?"}`;
+  const lines = (productos || []).map((p) => {
+    const qty = Number(p.qty ?? p.cantidad ?? 1);
+    const precio = Number(p.precio ?? p.precio_unitario ?? 0);
+    const nombre = p.nombre || p.productos?.nombre || "Producto";
+    return `• ${nombre} ×${qty} = $${(precio * qty).toFixed(2)}`;
+  });
+  const total = Number(venta.total || 0);
+  let msg =
+    `🏥 *${cfgNombre}*\n${direccion}\n🗺 ${FARMACIA_MAPS_URL}\n\n` +
+    `🧾 *Ticket de compra*\n🔖 *Folio:* ${folio}\n\n` +
+    `${lines.join("\n") || "• (sin detalle)"}\n\n` +
+    `💰 *Total: $${total.toFixed(2)}*\n` +
+    `💳 *Pago:* ${String(metodoPago || "—").replace(/_/g, " ")}`;
+  if (puntosGanados != null && puntosGanados > 0) {
+    msg += `\n\n⭐ *+${puntosGanados} puntos FarmaCapital*`;
+    if (saldoPuntos != null) msg += `\nSaldo: *${saldoPuntos} pts*`;
+  }
+  msg += `\n\n¡Gracias por su preferencia! 💊`;
+  return msg;
+}
+
+export function buildOnlineOrderReadyMessage({
+  pedidoId,
+  items = [],
+  total = 0,
+  tipoEntrega = "recoger",
+  metodoPago = null,
+}) {
+  const folio = formatFolioOnline(pedidoId) || `#FC-${pedidoId || "?"}`;
+  const receipt = buildOnlineOrderReceiptMessage({
+    pedidoId,
+    items,
+    total,
+    tipoEntrega,
+    metodoPago,
+    includeFarmaciaContact: false,
+  });
+  const listo =
+    tipoEntrega === "recoger"
+      ? `\n\n✅ *¡Tu pedido está listo para recoger!*\n📍 ${FARMACIA_DIRECCION}\n🗺 ${FARMACIA_MAPS_URL}\nMuestra tu folio *${folio}* en mostrador.`
+      : `\n\n✅ *¡Tu pedido está listo!* Te contactamos para la entrega.`;
+  return receipt + listo;
+}
+
 export async function notifyOnlineOrderReceipt({ pedidoId, telefono, items, total, tipoEntrega, metodoPago }) {
   const msg = buildOnlineOrderReceiptMessage({
     pedidoId,
