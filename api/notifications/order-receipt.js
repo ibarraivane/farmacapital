@@ -1,13 +1,7 @@
 'use strict';
 
 const { sendWhatsapp, buildReceiptMessage } = require('../_lib/orderNotifications');
-
-function normalizeSupabaseProjectUrl(url) {
-  if (url == null || typeof url !== 'string') return url;
-  let u = url.trim().replace(/\/+$/g, '');
-  while (/\/rest\/v1$/i.test(u)) u = u.replace(/\/rest\/v1$/i, '').replace(/\/+$/g, '');
-  return u;
-}
+const { getSupabaseAdminConfig, validateEmployeeSession } = require('../_lib/supabaseAdmin');
 
 async function safeJson(req) {
   try {
@@ -19,70 +13,148 @@ async function safeJson(req) {
   }
 }
 
-module.exports = async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'method_not_allowed' });
+function digitsOnly(v) {
+  return String(v || '').replace(/\D/g, '');
+}
 
-  const SUPABASE_URL = normalizeSupabaseProjectUrl(process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL || '');
-  const SUPABASE_SERVICE_ROLE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
+async function fetchPedido(supabaseUrl, serviceKey, pedidoId) {
+  const resp = await fetch(
+    `${supabaseUrl}/rest/v1/pedidos?id=eq.${pedidoId}&select=id,total,tipo,tipo_entrega,metodo_pago,cliente_id,guest_telefono,created_at,pedido_items(cantidad,precio_unitario,productos(nombre))&limit=1`,
+    {
+      headers: {
+        apikey: serviceKey,
+        Authorization: `Bearer ${serviceKey}`,
+      },
+    }
+  );
+  const rows = await resp.json().catch(() => []);
+  return Array.isArray(rows) ? rows[0] : null;
+}
+
+async function fetchClienteTelefono(supabaseUrl, serviceKey, clienteId) {
+  if (!clienteId) return null;
+  const resp = await fetch(
+    `${supabaseUrl}/rest/v1/clientes?id=eq.${clienteId}&select=telefono&limit=1`,
+    {
+      headers: {
+        apikey: serviceKey,
+        Authorization: `Bearer ${serviceKey}`,
+      },
+    }
+  );
+  const rows = await resp.json().catch(() => []);
+  const cli = Array.isArray(rows) ? rows[0] : null;
+  return cli?.telefono ? String(cli.telefono) : null;
+}
+
+async function validateClienteToken(supabaseUrl, serviceKey, token) {
+  if (!token) return null;
+  try {
+    const resp = await fetch(`${supabaseUrl}/rest/v1/rpc/fn_validar_token_cliente`, {
+      method: 'POST',
+      headers: {
+        apikey: serviceKey,
+        Authorization: `Bearer ${serviceKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ p_token: token }),
+    });
+    const data = await resp.json().catch(() => null);
+    const id = typeof data === 'number' ? data : parseInt(String(data || ''), 10);
+    return Number.isFinite(id) && id > 0 ? id : null;
+  } catch {
+    return null;
+  }
+}
+
+function phoneTailMatches(storedPhone, verifyDigits) {
+  const stored = digitsOnly(storedPhone);
+  const verify = digitsOnly(verifyDigits);
+  if (!stored || verify.length < 4) return false;
+  return stored.endsWith(verify.slice(-4));
+}
+
+function pedidoReciente(createdAt, maxMinutes = 15) {
+  if (!createdAt) return false;
+  const ts = new Date(createdAt).getTime();
+  if (!Number.isFinite(ts)) return false;
+  return Date.now() - ts <= maxMinutes * 60 * 1000;
+}
+
+async function resolvePedidoTelefono(supabaseUrl, serviceKey, pedido) {
+  if (pedido?.guest_telefono) return String(pedido.guest_telefono);
+  if (pedido?.cliente_id) {
+    const tel = await fetchClienteTelefono(supabaseUrl, serviceKey, pedido.cliente_id);
+    if (tel) return tel;
+  }
+  return null;
+}
+
+module.exports = async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ ok: false, error: 'method_not_allowed' });
+  }
+
   const body = await safeJson(req);
   const pedidoId = Number(body?.pedidoId);
-  let telefono = String(body?.telefono || '').trim();
-  let message = String(body?.message || '').trim();
+  const sessionToken = String(body?.sessionToken || '').trim() || null;
+  const employeeToken = String(body?.employeeSessionToken || body?.sessionTokenEmpleado || '').trim() || null;
+  const phoneVerify = String(body?.phoneVerify || '').trim() || null;
+  const event = String(body?.event || 'order_created').trim();
 
   if (!pedidoId || !Number.isFinite(pedidoId)) {
     return res.status(400).json({ ok: false, error: 'invalid_pedido_id' });
   }
 
-  if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
-    try {
-      const pedidoResp = await fetch(
-        `${SUPABASE_URL}/rest/v1/pedidos?id=eq.${pedidoId}&select=id,total,tipo,tipo_entrega,metodo_pago,cliente_id,guest_telefono,pedido_items(cantidad,precio_unitario,productos(nombre))&limit=1`,
-        {
-          headers: {
-            apikey: SUPABASE_SERVICE_ROLE_KEY,
-            Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-          },
-        }
-      );
-      const pedidoRows = await pedidoResp.json().catch(() => []);
-      const pedido = Array.isArray(pedidoRows) ? pedidoRows[0] : null;
+  const { supabaseUrl, serviceKey } = getSupabaseAdminConfig();
+  if (!supabaseUrl || !serviceKey) {
+    return res.status(500).json({ ok: false, error: 'missing_server_env' });
+  }
 
-      if (pedido) {
-        if (!telefono && pedido.guest_telefono) telefono = String(pedido.guest_telefono);
-        if (!telefono && pedido.cliente_id) {
-          const cliResp = await fetch(
-            `${SUPABASE_URL}/rest/v1/clientes?id=eq.${pedido.cliente_id}&select=telefono&limit=1`,
-            {
-              headers: {
-                apikey: SUPABASE_SERVICE_ROLE_KEY,
-                Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-              },
-            }
-          );
-          const cliRows = await cliResp.json().catch(() => []);
-          const cli = Array.isArray(cliRows) ? cliRows[0] : null;
-          if (cli?.telefono) telefono = String(cli.telefono);
-        }
-        if (!message) {
-          message = buildReceiptMessage({
-            event: 'order_created',
-            pedido,
-            items: pedido.pedido_items || [],
-          });
-        }
+  let pedido = null;
+  try {
+    pedido = await fetchPedido(supabaseUrl, serviceKey, pedidoId);
+  } catch (e) {
+    console.warn('[order-receipt] fetch pedido:', e?.message);
+  }
+
+  if (!pedido) {
+    return res.status(404).json({ ok: false, error: 'pedido_not_found' });
+  }
+
+  let authorized = false;
+
+  if (employeeToken && (await validateEmployeeSession(supabaseUrl, serviceKey, employeeToken))) {
+    authorized = true;
+  } else if (sessionToken) {
+    const clienteId = await validateClienteToken(supabaseUrl, serviceKey, sessionToken);
+    if (clienteId != null) {
+      if (pedido.cliente_id == null || Number(pedido.cliente_id) === Number(clienteId)) {
+        authorized = true;
       }
-    } catch (e) {
-      console.warn('[order-receipt] fetch pedido:', e?.message);
+    }
+  } else if (phoneVerify && pedidoReciente(pedido.created_at)) {
+    const telPedido = await resolvePedidoTelefono(supabaseUrl, serviceKey, pedido);
+    if (phoneTailMatches(telPedido, phoneVerify)) {
+      authorized = true;
     }
   }
 
+  if (!authorized) {
+    return res.status(403).json({ ok: false, error: 'unauthorized' });
+  }
+
+  const telefono = await resolvePedidoTelefono(supabaseUrl, serviceKey, pedido);
   if (!telefono) {
     return res.status(200).json({ ok: true, whatsapp: { sent: false, reason: 'missing_phone' } });
   }
-  if (!message) {
-    return res.status(400).json({ ok: false, error: 'missing_message' });
-  }
+
+  const message = buildReceiptMessage({
+    event,
+    pedido,
+    items: pedido.pedido_items || [],
+  });
 
   const waRes = await sendWhatsapp({ to: telefono, text: message });
-  return res.status(200).json({ ok: true, whatsapp: waRes });
+  return res.status(200).json({ ok: true, whatsapp: waRes, pedidoId });
 };

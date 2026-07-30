@@ -921,7 +921,7 @@ function RecibirModal({ productos, onClose, onReceived }) {
               setError("Producto no encontrado. Agrégalo al catálogo con su código de barras.");
             }}
             placeholder="🔫 Código de barras, SKU o nombre…"
-            style={inputStyle}
+            style={{...inputStyle, fontSize:16}}
           />
         </div>
         {busq && !selProd && prodsFilt.length > 0 && (
@@ -974,7 +974,7 @@ function RecibirModal({ productos, onClose, onReceived }) {
                 }}
                 min="1"
                 placeholder="0"
-                style={inputStyle}
+                style={{...inputStyle, fontSize:16}}
               />
             </div>
             <div style={{marginBottom:12}}>

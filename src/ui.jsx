@@ -180,19 +180,47 @@ export function KPI({label,value,sub,col,icon,trend}){
 
 export function Modal({open,onClose,title,children,ac,closeOnBackdrop=true}){
   const C = C_LIGHT;
+  const panelRef = useRef(null);
+  const titleId = React.useId();
+
   React.useEffect(()=>{
     if(!open) return undefined;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return ()=>{ document.body.style.overflow = prev || "auto"; };
   },[open]);
+
+  React.useEffect(()=>{
+    if(!open) return undefined;
+    const onKey = (e)=>{
+      if(e.key==="Escape"){ e.preventDefault(); onClose?.(); }
+    };
+    document.addEventListener("keydown", onKey);
+    const t = setTimeout(()=>{
+      const closeBtn = panelRef.current?.querySelector("[data-modal-close]");
+      closeBtn?.focus?.();
+    }, 0);
+    return ()=>{ document.removeEventListener("keydown", onKey); clearTimeout(t); };
+  },[open, onClose]);
+
   if(!open) return null;
   return(
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.45)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:"max(12px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px))",boxSizing:"border-box",overscrollBehavior:"contain"}} onClick={closeOnBackdrop ? onClose : undefined}>
-      <div style={{background:C.card,borderRadius:16,padding:"clamp(18px, 4vw, 28px)",minWidth:0,maxWidth:560,width:"min(560px, 100%)",maxHeight:"min(90dvh, 92vh)",overflowY:"auto",WebkitOverflowScrolling:"touch",overscrollBehaviorY:"contain",boxShadow:"0 8px 40px rgba(0,0,0,.18)",border:`1px solid ${C.border}`}} onClick={e=>e.stopPropagation()}>
+    <div
+      role="presentation"
+      style={{position:"fixed",inset:0,background:"rgba(0,0,0,.45)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:"max(12px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px))",boxSizing:"border-box",overscrollBehavior:"contain"}}
+      onClick={closeOnBackdrop ? onClose : undefined}
+    >
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={title ? titleId : undefined}
+        style={{background:C.card,borderRadius:16,padding:"clamp(18px, 4vw, 28px)",minWidth:0,maxWidth:560,width:"min(560px, 100%)",maxHeight:"min(90dvh, 92vh)",overflowY:"auto",WebkitOverflowScrolling:"touch",overscrollBehaviorY:"contain",boxShadow:"0 8px 40px rgba(0,0,0,.18)",border:`1px solid ${C.border}`}}
+        onClick={e=>e.stopPropagation()}
+      >
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:18}}>
-          <div style={{fontWeight:800,fontSize:16,color:C.text}}>{title}</div>
-          {!ac&&<button onClick={onClose} style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:C.textMid}}>✕</button>}
+          <div id={titleId} style={{fontWeight:800,fontSize:16,color:C.text}}>{title}</div>
+          {!ac&&<button type="button" data-modal-close onClick={onClose} aria-label="Cerrar" style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:C.textMid}}>✕</button>}
         </div>
         {children}
       </div>

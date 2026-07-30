@@ -3,6 +3,7 @@
 // Cada tab carga lazy para no inflar el bundle inicial.
 import React, { lazy, Suspense, useState, useEffect } from "react";
 import { useMediaQuery } from "./hooks/useMediaQuery";
+import { SkeletonCard } from "./ui";
 import { C_LIGHT, BRAND } from "./constants";
 import { Package, Truck, Tags } from "lucide-react";
 
@@ -101,7 +102,13 @@ export default function InventarioHub({ initialTab }) {
         </div>
       </div>
 
-      <Suspense fallback={<div style={{padding: 24, color: C.textMid}}>Cargando...</div>}>
+      <Suspense fallback={
+        <div style={{padding: 24, display: "flex", flexDirection: "column", gap: 12}}>
+          <SkeletonCard height={48} />
+          <SkeletonCard height={120} />
+          <SkeletonCard height={120} />
+        </div>
+      }>
         {tab === "catalogo" && <InventarioModule/>}
         {tab === "reabasto" && <ReabastoModule/>}
         {tab === "lotes"    && <LotesModule/>}

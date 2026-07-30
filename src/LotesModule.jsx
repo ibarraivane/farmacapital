@@ -290,7 +290,6 @@ export default function LotesModule() {
                 <label style={{color:C.textMid,fontSize:11,fontWeight:700,display:"block",marginBottom:4}}>PRODUCTO * — escanea o busca</label>
                 <input
                   ref={prodBusqRef}
-                  style={inpS}
                   value={prodBusq}
                   onChange={(e) => {
                     setProdBusq(e.target.value);
@@ -308,6 +307,7 @@ export default function LotesModule() {
                     setScanErr("Producto no encontrado. Regístralo en Catálogo con su código de barras.");
                   }}
                   placeholder="🔫 Código de barras, SKU o nombre…"
+                  style={{...inpS, fontSize:16}}
                 />
                 {scanErr ? <div style={{color:C.red,fontSize:11,marginTop:6}}>{scanErr}</div> : null}
                 {prodBusq && !selProducto && prodsFiltModal.length > 0 && (

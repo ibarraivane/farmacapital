@@ -34,7 +34,7 @@ if (isProd && (!supabaseUrl || !supabaseAnonKey)) {
   // eslint-disable-next-line no-console
   console.error(
     "[FarmaCapital] Faltan credenciales de Supabase en el build. En Vercel: REACT_APP_SUPABASE_URL + REACT_APP_SUPABASE_ANON_KEY, " +
-      "o bien SUPABASE_URL + SUPABASE_ANON_KEY (el script de build las copia a REACT_APP_*). Volvé a desplegar tras guardar."
+      "o bien SUPABASE_URL + SUPABASE_ANON_KEY (el script de build las copia a REACT_APP_*). Vuelve a desplegar tras guardar."
   );
   supabaseUrl = DEV_CLIENT_BOOTSTRAP_URL;
   supabaseAnonKey = DEV_CLIENT_BOOTSTRAP_KEY;

@@ -1,5 +1,5 @@
--- Acreditar puntos y vincular cliente a pedido POS (empleado/cajero).
--- Ejecutar en Supabase SQL Editor una vez.
+-- Evita reasignar cliente_id en pedidos POS ya vinculados.
+-- Ejecutar en Supabase SQL Editor una vez (reemplaza la versión anterior).
 
 begin;
 
@@ -36,6 +36,7 @@ begin
     raise exception 'Cliente no encontrado';
   end if;
 
+  -- Solo vincular si el pedido aún no tiene cliente; nunca sobrescribir.
   if v_pedido.cliente_id is null then
     update public.pedidos set cliente_id = p_cliente_id where id = p_pedido_id;
   elsif v_pedido.cliente_id is distinct from p_cliente_id then
@@ -55,6 +56,19 @@ begin
   end if;
 
   select coalesce(puntos, 0) into v_total from public.clientes where id = p_cliente_id;
+
+  begin
+    insert into public.audit_log (usuario_id, usuario_nombre, accion, tabla, registro_id, detalle)
+    values (
+      v_actor,
+      (select nombre from public.usuarios where id = v_actor),
+      'acumular_puntos_pos',
+      'pedidos',
+      p_pedido_id::text,
+      jsonb_build_object('cliente_id', p_cliente_id, 'puntos', v_credito)
+    );
+  exception when others then null;
+  end;
 
   return jsonb_build_object(
     'success', true,

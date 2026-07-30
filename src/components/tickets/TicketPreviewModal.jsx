@@ -232,9 +232,9 @@ function WhatsAppTicketPanel({
       type="button"
       onClick={onOmitir}
       style={{
-        width:"100%", marginTop:4, padding:"8px", borderRadius:8, border:"none",
-        background:"transparent", color:"#64748b", fontWeight:600, fontSize:12,
-        cursor:"pointer", textDecoration:"underline", textUnderlineOffset:2,
+        width:"100%", marginTop:4, padding:"10px 12px", borderRadius:8,
+        border:"1px solid #cbd5e1", background:"#fff", color:"#475569",
+        fontWeight:700, fontSize:13, cursor:"pointer",
       }}
     >
       No, gracias — continuar como invitado
@@ -302,6 +302,7 @@ export default function TicketPreviewModal({
   onClose, onNuevaVenta,
 }) {
   const ticketRef = useRef(null);
+  const panelRef = useRef(null);
   const [showFactura, setShowFactura] = useState(false);
   const [clienteLocal, setClienteLocal] = useState(clienteProp);
   const [mostrarWaPanel, setMostrarWaPanel] = useState(false);
@@ -312,8 +313,17 @@ export default function TicketPreviewModal({
     if (!open) { setShowFactura(false); setMostrarWaPanel(false); return undefined; }
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = prev || "auto"; };
-  }, [open]);
+    const onKey = (e) => {
+      if (e.key === "Escape") { e.preventDefault(); onClose?.(); }
+    };
+    document.addEventListener("keydown", onKey);
+    const t = setTimeout(() => panelRef.current?.querySelector("[data-ticket-close]")?.focus?.(), 0);
+    return () => {
+      document.body.style.overflow = prev || "auto";
+      document.removeEventListener("keydown", onKey);
+      clearTimeout(t);
+    };
+  }, [open, onClose]);
 
   useEffect(() => {
     if (open && autoWhatsApp) setMostrarWaPanel(true);
@@ -338,13 +348,20 @@ export default function TicketPreviewModal({
   };
 
   return (
-    <div style={{
+    <div
+      role="presentation"
+      style={{
       position:"fixed", inset:0, zIndex:9000, background:"rgba(15,23,42,.6)", backdropFilter:"blur(4px)",
       display:"flex", alignItems:"center", justifyContent:"center",
       padding:"max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left))",
       boxSizing:"border-box",
     }} onClick={(e) => e.target === e.currentTarget && onClose?.()}>
-      <div style={{
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="ticket-preview-title"
+        style={{
         background:"#fff", borderRadius:16, width:"min(440px, 100%)", maxHeight:"min(96dvh, 100vh)",
         boxShadow:"0 24px 80px rgba(15,45,110,.2)", display:"flex", flexDirection:"column", minWidth:0, overflow:"hidden",
       }} onClick={(e) => e.stopPropagation()}>
@@ -353,10 +370,10 @@ export default function TicketPreviewModal({
           display:"flex", justifyContent:"space-between", alignItems:"center",
           background:"linear-gradient(135deg,#0D1B2A,#1E3ABA)", borderRadius:"16px 16px 0 0",
         }}>
-          <div style={{color:"#fff", fontWeight:800, fontSize:15}}>
+          <div id="ticket-preview-title" style={{color:"#fff", fontWeight:800, fontSize:15}}>
             ✅ Venta registrada — Ticket #{venta.id || "—"}
           </div>
-          <button type="button" onClick={onClose} aria-label="Cerrar" style={{
+          <button type="button" data-ticket-close onClick={onClose} aria-label="Cerrar" style={{
             background:"rgba(255,255,255,.2)", border:"none", color:"#fff",
             width:32, height:32, borderRadius:"50%", cursor:"pointer", fontSize:18,
           }}>✕</button>

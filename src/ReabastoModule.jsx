@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
-import { showToast, HorizontalScrollSync } from "./ui";
+import { showToast, HorizontalScrollSync, SkeletonTable } from "./ui";
 
 const BRAND = { primary:"#0D1B2A", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
 const fmt = n => `$${parseFloat(n||0).toLocaleString("es-MX",{minimumFractionDigits:2})}`;
@@ -156,7 +156,7 @@ export default function ReabastoModule() {
 
       {/* Tab alertas */}
       {tab==="alertas"&&(
-        loading?<div style={{color:C.textMid,textAlign:"center",padding:40}}>Cargando…</div>:(
+        loading?<SkeletonTable rows={6} cols={8} />:( 
           !alertas.length?(
             <div style={{background:C.card,borderRadius:12,border:`1px solid ${C.border}`,padding:40,textAlign:"center"}}>
               <div style={{fontSize:48,marginBottom:12}}>✅</div>

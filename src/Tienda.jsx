@@ -3057,12 +3057,21 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
         </div>
         <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:24,position:stack?"relative":"sticky",top:"calc(env(safe-area-inset-top, 0px) + 100px)"}}>
           <div style={{color:C.dark,fontWeight:800,fontSize:16,marginBottom:14}}>Tipo de entrega</div>
+          <div role="radiogroup" aria-label="Tipo de entrega">
           {[["pickup","🏪 Pick-up en FarmaCapital","Gratis · Mismo día"],["cdmx","🛵 Reparto CDMX","Rappi/Uber · Costo del servicio"],["foraneo","📦 Envío foráneo","$89 · 2-5 días · Skydropx"]].map(([v,l,s])=>(
-            <div key={v} onClick={()=>setEntrega(v)} style={{padding:"12px 14px",borderRadius:10,border:`2px solid ${entrega===v?BRAND.primary:C.border}`,background:entrega===v?BRAND.primary+"18":C.white,cursor:"pointer",marginBottom:8}}>
+            <button
+              key={v}
+              type="button"
+              role="radio"
+              aria-checked={entrega===v}
+              onClick={()=>setEntrega(v)}
+              style={{width:"100%",textAlign:"left",padding:"12px 14px",borderRadius:10,border:`2px solid ${entrega===v?BRAND.primary:C.border}`,background:entrega===v?BRAND.primary+"18":C.white,cursor:"pointer",marginBottom:8}}
+            >
               <div style={{color:entrega===v?BRAND.primary:C.dark,fontWeight:700,fontSize:14}}>{l}</div>
               <div style={{color:C.dim,fontSize:12,marginTop:2}}>{s}</div>
-            </div>
+            </button>
           ))}
+          </div>
           {entrega==="cdmx"&&(<div style={{background:"#fef3c7",border:"1px solid #f59e0b30",borderRadius:8,padding:"10px 12px",marginBottom:8}}><div style={{color:"#92400e",fontSize:12}}>🛵 El repartidor irá a FarmaCapital y entregará en tu domicilio al costo que muestre la app de Rappi o Uber.</div></div>)}
           {(entrega==="cdmx"||entrega==="foraneo")&&(
             <div style={{background:"#eff6ff",border:`1px solid ${BRAND.secondary}35`,borderRadius:8,padding:"10px 12px",marginBottom:8}}>
@@ -3162,7 +3171,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
       if (!changed) return prev;
       if (msgs.length) showToast(msgs.slice(0, 4).join(" ") + (msgs.length > 4 ? "…" : ""), "warning");
       if (next.length === 0 && prev.length > 0) {
-        showToast("Tu carrito quedó vacío. Volvé al catálogo.", "info");
+        showToast("Tu carrito quedó vacío. Vuelve al catálogo.", "info");
       }
       return next;
     });
@@ -3219,6 +3228,14 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
     String(datos.cp || "").trim().length >= 5
   );
   const datosCheckoutCompletos = nombreOk && telOk && emailOk && direccionOk;
+  const faltantesCheckout = useMemo(() => {
+    const f = [];
+    if (!nombreOk) f.push("nombre completo (mín. 3 letras)");
+    if (!telOk) f.push("teléfono de 10 dígitos");
+    if (!emailOk) f.push("correo válido");
+    if (!direccionOk && tipoEntregaRpc === "envio") f.push("dirección (calle, colonia y CP)");
+    return f;
+  }, [nombreOk, telOk, emailOk, direccionOk, tipoEntregaRpc]);
 
   const confirmar=async()=>{
     if (!cart.length) return;
@@ -3439,11 +3456,8 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
       });
       notifyOnlineOrderReceipt({
         pedidoId: resp.pedido_id,
-        telefono: datos.tel,
-        items: reconciled.map(c=>({ nombre:c.nombre, qty:c.qty, precio:c.precio })),
-        total: subSnap,
-        tipoEntrega: tipo_entrega,
-        metodoPago: metodo,
+        sessionToken: tokCli || null,
+        phoneVerify: tokCli ? null : soloDigitosTel(datos.tel).slice(-4),
       }).catch((e) => console.warn("[Checkout] WhatsApp recibo:", e));
       setG(false);
       setConf(true);
@@ -3602,32 +3616,22 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                     </a>
                   </div>
                 )}
-                <Btn onClick={()=>setStep(2)} col={BRAND.primary} style={{marginTop:20,width:stack?"100%":undefined}} disabled={!datosCheckoutCompletos}>
-                  Continuar al pago →
+                <div style={{background:C.bg,borderRadius:10,padding:"12px 14px",marginTop:16,fontSize:12,color:C.mid,lineHeight:1.5}}>
+                  <div style={{color:C.dark,fontWeight:700,marginBottom:4}}>💳 Pago con Mercado Pago</div>
+                  Tarjeta, transferencia o efectivo · Checkout seguro. FarmaCapital no captura datos de tarjeta.
+                </div>
+                {!datosCheckoutCompletos && faltantesCheckout.length > 0 && (
+                  <div style={{marginTop:12,padding:"10px 12px",background:"#fef3c7",border:"1px solid #fcd34d",borderRadius:8,fontSize:12,color:"#92400e",lineHeight:1.45}}>
+                    Para continuar completa: <strong>{faltantesCheckout.join(", ")}</strong>
+                  </div>
+                )}
+                <Btn onClick={()=>{ setMetodo("mercadopago"); setStep(2); }} col={BRAND.primary} style={{marginTop:20,width:stack?"100%":undefined}} disabled={!datosCheckoutCompletos}>
+                  Revisar y pagar →
                 </Btn>
               </div>
             );
           })()}
           {step===2&&(
-            <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}>
-              <div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:20}}>💳 Método de pago</div>
-              <div style={{padding:"14px 16px",borderRadius:10,border:`2px solid ${BRAND.primary}`,background:BRAND.primary+"12",marginBottom:10,display:"flex",alignItems:"center",gap:12}}>
-                <div style={{flex:1}}>
-                  <div style={{color:BRAND.primary,fontWeight:700,fontSize:"clamp(13px,3.2vw,14px)"}}>🔵 Mercado Pago</div>
-                  <div style={{color:C.mid,fontSize:12,marginTop:2}}>Tarjeta, transferencia o efectivo · Checkout seguro</div>
-                </div>
-                <span style={{background:BRAND.primary,color:"#fff",fontWeight:800,fontSize:11,padding:"3px 10px",borderRadius:20}}>✓ Seleccionado</span>
-              </div>
-              <div style={{color:C.textDim,fontSize:11,lineHeight:1.5,marginBottom:10}}>
-                FarmaCapital no captura datos de tarjeta. El pago se procesa directamente en Mercado Pago con cifrado SSL.
-              </div>
-              <div style={{display:"flex",gap:10,marginTop:12,flexWrap:"wrap"}}>
-                <Btn onClick={()=>setStep(1)} outline col={C.mid} sm>← Atrás</Btn>
-                <Btn onClick={()=>{setMetodo("mercadopago");setStep(3);}} col={BRAND.primary} style={{flex:stack?1:undefined}}>Revisar pedido →</Btn>
-              </div>
-            </div>
-          )}
-          {step===3&&(
             <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}>
               <div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:16}}>✅ Confirmar pedido</div>
               <div style={{background:C.bg,borderRadius:10,padding:"10px 14px",marginBottom:14,fontSize:12,color:C.mid}}>
@@ -3636,6 +3640,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                 <div style={{marginTop:3}}>
                   {entrega==="pickup"?"🏪 Pick-up en FarmaCapital":entrega==="cdmx"?"🛵 Reparto CDMX":"📦 Envío foráneo"}
                 </div>
+                <div style={{marginTop:6,color:BRAND.primary,fontWeight:600}}>💳 Mercado Pago (tarjeta, transferencia o efectivo)</div>
               </div>
               {cart.map(item=>(
                 <div key={item.id} style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,padding:"8px 0",borderBottom:`1px solid ${C.border}`}}>
@@ -3649,7 +3654,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                 <span style={{color:BRAND.primary,fontWeight:900,fontSize:18}}>{$(sub)}</span>
               </div>
               <div style={{display:"flex",gap:10,marginTop:16,flexWrap:"wrap"}}>
-                <Btn onClick={()=>setStep(2)} outline col={C.mid} sm>← Atrás</Btn>
+                <Btn onClick={()=>setStep(1)} outline col={C.mid} sm>← Atrás</Btn>
                 <Btn onClick={confirmar} col={BRAND.primary} disabled={guardando||!cart.length||sub<=0||!datosCheckoutCompletos} style={{flex:stack?1:undefined,minWidth:0}}>
                   {guardando?"Procesando pago...":"💳 Pagar y confirmar "+$(sub)}
                 </Btn>

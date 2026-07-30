@@ -24,7 +24,7 @@ import { desgloseCambioMN, sugerenciasPagoCliente } from "../../../utils/cambioC
 import { marcarMedicamentosRecetaFarmaCapitalSurtidos } from "../../../utils/recetaCitaSync";
 import OnboardingTour from "../../../components/OnboardingTour";
 import { TOURS } from "../../../utils/tours";
-import { labelTipoEntregaPedido, resumenLogisticsMeta } from "../../../utils/orderChannels";
+import { labelTipoEntregaPedido } from "../../../utils/orderChannels";
 import { buildOnlineOrderReceiptMessage, buildOnlineOrderReadyMessage, formatFolioOnline, openWhatsAppToCustomer } from "../../../utils/orderReceiptWhatsApp";
 import { formatTelefonoDisplay } from "../../../utils/citaWhatsApp";
 import { configRowsToMap, mergeFarmaciaConfig, FARMACIA_FISCAL } from "../../../constants/farmaciaFiscal";
@@ -757,7 +757,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         .slice(0, 3)
         .map((f) => `• ${f.nombre}: solicitadas ${f.requested} ${f.unidad}, disponibles ${f.available}`)
         .join("\n");
-      alert(`Stock insuficiente para completar la venta:\n\n${top}`);
+      showToast(`Stock insuficiente para completar la venta:\n${top}`, "warning");
       return;
     }
     const metodoPagoInterno = metodoPagoOverride || pay;
@@ -776,7 +776,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     try {
       const tok = sessionStorage.getItem("farmacapital_session_token");
       if (!tok) {
-        alert("Sesión expirada. Inicia sesión de nuevo.");
+        showToast("Sesión expirada. Inicia sesión de nuevo.", "error");
         setGuard(false);
         return;
       }
@@ -918,7 +918,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       const msg = e?.message || e?.details || String(e);
       const lower = msg.toLowerCase();
       if (lower.includes("stock") || lower.includes("insuficiente")) {
-        alert(`Stock insuficiente o no se pudo completar el descuento de inventario.\n\nDetalle: ${msg}`);
+        showToast(`Stock insuficiente o no se pudo completar el descuento de inventario.\n${msg}`, "error");
         // Sincroniza existencias visibles con BD tras un rechazo por stock.
         try {
           const tokRf = sessionStorage.getItem("farmacapital_session_token");
@@ -936,7 +936,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
           // noop: no bloquear el flujo por un refresh fallido
         }
       } else {
-        alert(`No se pudo completar la venta.\n\n${msg}`);
+        showToast(`No se pudo completar la venta.\n${msg}`, "error");
       }
     }
     setGuard(false);
@@ -967,19 +967,13 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     setGuard(true);
     try {
       const tok = sessionStorage.getItem("farmacapital_session_token");
-      if (!tok) { alert("Sesión expirada."); setGuard(false); return; }
+      if (!tok) { showToast("Sesión expirada.", "error"); setGuard(false); return; }
       // F6b: marcar_pedido_listo ya descuenta stock FEFO internamente
       const { data: resp, error: rpcErr } = await supabase.rpc("marcar_pedido_listo", {
         p_session_token: tok, p_pedido_id: pedido.id,
       });
       if (rpcErr) throw rpcErr;
       if (!resp?.success) throw new Error(resp?.error || "No se pudo surtir");
-      if (pedido?.tipo_entrega === "recoger") {
-        await supabase
-          .from("pedidos")
-          .update({ delivery_provider: "pickup", delivery_status: "ready_for_pickup" })
-          .eq("id", pedido.id);
-      }
       setPedOn(p=>p.filter(x=>x.id!==pedido.id));
       setPedOnHist((prev) => [{ ...pedido, estado: "listo" }, ...prev.filter((x) => x.id !== pedido.id)].slice(0, 20));
       // Notificar al cliente por WhatsApp al marcar listo (pagó en línea)
@@ -1023,7 +1017,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       await refrescarCitasPOS();
     } catch (e) {
       console.error(e);
-      alert("No se pudo cancelar: " + (e?.message || e));
+      showToast("No se pudo cancelar: " + (e?.message || e), "error");
     }
     setGuard(false);
   };
@@ -1108,7 +1102,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       showToast("Consulta cobrada correctamente", "success");
     } catch (e) {
       console.error(e);
-      alert("No se pudo cobrar la consulta: " + (e?.message || e));
+      showToast("No se pudo cobrar la consulta: " + (e?.message || e), "error");
     }
     setGuard(false);
   };
@@ -1236,7 +1230,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
             ["tarjeta","💳 Point MP"],
             ["bbva_terminal","🏦 Terminal BBVA"],
           ].map(([v,l])=>(
-            <button key={v} type="button" onClick={()=>{ setPay(v); if(v!=="efectivo") setMontoRecibido(""); }} style={{padding:"4px 10px",borderRadius:20,border:`1px solid ${pay===v?C.blue:C.border}`,background:pay===v?C.blueDim:"transparent",color:pay===v?C.blue:C.textMid,fontSize:10,fontWeight:700,cursor:"pointer"}}>{l}</button>
+            <button key={v} type="button" onClick={()=>{ setPay(v); if(v!=="efectivo") setMontoRecibido(""); }} style={{padding:isMobilePos?"8px 14px":"4px 10px",borderRadius:20,border:`1px solid ${pay===v?C.blue:C.border}`,background:pay===v?C.blueDim:"transparent",color:pay===v?C.blue:C.textMid,fontSize:isMobilePos?13:10,fontWeight:700,cursor:"pointer",minHeight:isMobilePos?40:undefined}}>{l}</button>
           ))}
         </div>
       </Box>
@@ -2134,9 +2128,6 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                   </div>
                   <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:6}}>
                     <Tag col={p.tipo_entrega==="envio"?C.teal:C.green} sm>{labelTipoEntregaPedido(p.tipo_entrega)}</Tag>
-                    {resumenLogisticsMeta(p.logistics_meta) && (
-                      <Tag col={C.purple} sm title={JSON.stringify(p.logistics_meta)}>{resumenLogisticsMeta(p.logistics_meta)}</Tag>
-                    )}
                     {(p.guest_nombre||p.guest_telefono)&&<Tag col={C.amber} sm>Invitado</Tag>}
                   </div>
                   <div style={{color:C.text,fontSize:13,fontWeight:700,marginTop:6}}>{clienteNombre}</div>

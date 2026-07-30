@@ -26,10 +26,18 @@ export default function MercadoPagoModal({ open, total, folio, hint, onSuccess, 
     if (!open) return undefined;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    const onKey = (e) => {
+      if (e.key === "Escape" && (estado === "idle" || estado === "error" || estado === "cancelado")) {
+        e.preventDefault();
+        onCancel?.();
+      }
+    };
+    document.addEventListener("keydown", onKey);
     return () => {
       document.body.style.overflow = prev || "auto";
+      document.removeEventListener("keydown", onKey);
     };
-  }, [open]);
+  }, [open, estado, onCancel]);
 
   const iniciarPago = async () => {
     setEstado("iniciando");
@@ -108,13 +116,23 @@ export default function MercadoPagoModal({ open, total, folio, hint, onSuccess, 
   };
 
   return (
-    <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,.6)",backdropFilter:"blur(4px)",zIndex:9000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-      <div style={{background:"#fff",borderRadius:16,width:"min(400px,95vw)",padding:28,boxShadow:"0 24px 80px rgba(15,45,110,.2)"}}>
+    <div
+      role="presentation"
+      style={{position:"fixed",inset:0,background:"rgba(15,23,42,.6)",backdropFilter:"blur(4px)",zIndex:9000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}
+      onClick={(e) => e.target === e.currentTarget && (estado === "idle" || estado === "error" || estado === "cancelado") && onCancel?.()}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="mp-modal-title"
+        style={{background:"#fff",borderRadius:16,width:"min(400px,95vw)",padding:28,boxShadow:"0 24px 80px rgba(15,45,110,.2)"}}
+        onClick={(e) => e.stopPropagation()}
+      >
 
         {/* Header */}
         <div style={{textAlign:"center",marginBottom:24}}>
           <div style={{fontSize:48,marginBottom:8}}>{iconos[estado]}</div>
-          <div style={{fontWeight:800,fontSize:18,color:"#0f172a"}}>Pago con tarjeta — Point Smart 2</div>
+          <div id="mp-modal-title" style={{fontWeight:800,fontSize:18,color:"#0f172a"}}>Pago con tarjeta — Point Smart 2</div>
           <div style={{color:"#475569",fontSize:13,marginTop:4}}>Folio: {folio}</div>
           {hint && (
             <div style={{color:"#64748b",fontSize:11,marginTop:10,lineHeight:1.45,maxWidth:340,marginLeft:"auto",marginRight:"auto"}}>{hint}</div>

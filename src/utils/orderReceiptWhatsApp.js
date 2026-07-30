@@ -151,26 +151,21 @@ export function buildOnlineOrderReadyMessage({
   return receipt + listo;
 }
 
-export async function notifyOnlineOrderReceipt({ pedidoId, telefono, items, total, tipoEntrega, metodoPago }) {
-  const msg = buildOnlineOrderReceiptMessage({
-    pedidoId,
-    items,
-    total,
-    tipoEntrega,
-    metodoPago,
-  });
+export async function notifyOnlineOrderReceipt({ pedidoId, sessionToken = null, phoneVerify = null, event = "order_created" }) {
+  if (!pedidoId) return { sent: false };
 
   try {
     const resp = await fetch("/api/notifications/order-receipt", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pedidoId, telefono, message: msg }),
+      body: JSON.stringify({ pedidoId, sessionToken, phoneVerify, event }),
     });
     const data = await resp.json().catch(() => ({}));
-    if (data?.whatsapp?.sent) return { sent: true, via: "server", message: msg };
+    if (data?.whatsapp?.sent) return { sent: true, via: "server" };
+    if (!resp.ok) console.warn("[orderReceiptWhatsApp] API:", data?.error || resp.status);
   } catch (e) {
     console.warn("[orderReceiptWhatsApp] API notify:", e);
   }
 
-  return { sent: false, message: msg };
+  return { sent: false };
 }

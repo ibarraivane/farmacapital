@@ -1,4 +1,5 @@
 'use strict';
+const crypto = require('crypto');
 const { sendOrderNotifications } = require('../../_lib/orderNotifications');
 
 function normalizeSupabaseProjectUrl(url) {
@@ -6,6 +7,33 @@ function normalizeSupabaseProjectUrl(url) {
   let u = url.trim().replace(/\/+$/g, '');
   while (/\/rest\/v1$/i.test(u)) u = u.replace(/\/rest\/v1$/i, '').replace(/\/+$/g, '');
   return u;
+}
+
+function verifyMpWebhookSignature(req, dataId) {
+  const secret = String(process.env.MP_WEBHOOK_SECRET || process.env.MERCADOPAGO_WEBHOOK_SECRET || '').trim();
+  if (!secret) return true;
+
+  const xSignature = String(req.headers['x-signature'] || req.headers['X-Signature'] || '');
+  const xRequestId = String(req.headers['x-request-id'] || req.headers['X-Request-Id'] || '');
+  if (!xSignature || !xRequestId) return false;
+
+  const parts = {};
+  for (const chunk of xSignature.split(',')) {
+    const eq = chunk.indexOf('=');
+    if (eq <= 0) continue;
+    parts[chunk.slice(0, eq).trim()] = chunk.slice(eq + 1).trim();
+  }
+  const ts = parts.ts;
+  const v1 = parts.v1;
+  if (!ts || !v1) return false;
+
+  const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
+  const expected = crypto.createHmac('sha256', secret).update(manifest).digest('hex');
+  try {
+    return crypto.timingSafeEqual(Buffer.from(v1, 'utf8'), Buffer.from(expected, 'utf8'));
+  } catch {
+    return false;
+  }
 }
 
 module.exports = async function handler(req, res) {
@@ -22,6 +50,10 @@ module.exports = async function handler(req, res) {
   const action = String(req.body?.action || '').toLowerCase();
   const dataId = String(req.query?.id || req.query?.['data.id'] || req.body?.data?.id || '').trim();
   if (!dataId) return res.status(200).json({ ok: true, ignored: true, reason: 'missing_data_id' });
+
+  if (!verifyMpWebhookSignature(req, dataId)) {
+    return res.status(401).json({ ok: false, error: 'invalid_signature' });
+  }
 
   try {
     const looksLikePaymentTopic = topic === 'payment' || action.startsWith('payment.');
