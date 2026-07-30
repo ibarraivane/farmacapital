@@ -13,7 +13,8 @@ import {
 } from "../utils/staffAlerts";
 
 const POLL_MS = 30 * 1000;
-const REPEAT_SOUND_MS = 15 * 1000;
+const REPEAT_SOUND_MS_PEDIDO = 20 * 1000;
+const REPEAT_SOUND_MS_CITA = 45 * 1000;
 
 function upsertAlert(list, alert) {
   const idx = list.findIndex((a) => a.key === alert.key);
@@ -49,7 +50,7 @@ export default function useStaffAlerts({
         pushNotif(
           `${alert.icon || "🔔"} ${alert.titulo}`,
           `${alert.subtitulo} — ${alert.detalle}`,
-          alert.type === "pedido" ? "/admin/pedidos-online" : "/admin/punto-de-venta"
+          alert.type === "pedido" ? "/admin/pedidos-online" : "/admin/agenda-consultas"
         );
       }
     },
@@ -94,6 +95,7 @@ export default function useStaffAlerts({
           const row = payload.new;
           if (!row) return;
           if (row.estado === "cancelada") return;
+          if (row.canal !== "web") return;
           enqueue(buildCitaAlert(row));
         }
       )
@@ -159,7 +161,7 @@ export default function useStaffAlerts({
     }
     repeatRef.current = setInterval(() => {
       playStaffAlertSound(activeAlert.type);
-    }, REPEAT_SOUND_MS);
+    }, activeAlert.type === "cita" ? REPEAT_SOUND_MS_CITA : REPEAT_SOUND_MS_PEDIDO);
     return () => {
       if (repeatRef.current) clearInterval(repeatRef.current);
     };

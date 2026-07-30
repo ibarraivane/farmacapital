@@ -1736,6 +1736,8 @@ export default function FarmaCapitalAdmin(){
     const migrated = migratePageId(p);
     const next = migrated.page;
     const tabHint = opts?.tab ?? migrated.invTab ?? null;
+    const posTab = opts?.posTab ?? migrated.posTab ?? null;
+    if (posTab) applyPosTabHint(posTab);
     try {
       sessionStorage.setItem("farmacapital_active_page", next);
       if (next === "inv" && tabHint) {
@@ -1947,7 +1949,6 @@ export default function FarmaCapitalAdmin(){
     alerts: staffAlerts,
     activeAlert: staffActiveAlert,
     attendAlert: staffAttendAlert,
-    snoozeAlert: staffSnoozeAlert,
     dismissAlert: staffDismissAlert,
   } = useStaffAlerts({
     enabled: !!usuario && page !== "turno",
@@ -1960,18 +1961,27 @@ export default function FarmaCapitalAdmin(){
       if (!alert?.key) return;
       staffAttendAlert(alert.key);
       if (alert.type === "pedido") {
-        try {
-          sessionStorage.setItem("farmacapital_pos_tab", "online");
-        } catch (_) { /* noop */ }
+        applyPosTabHint("online");
         setPageAndSave("ped_online");
-      } else {
-        try {
-          sessionStorage.setItem("farmacapital_pos_tab", "consultas");
-        } catch (_) { /* noop */ }
-        setPageAndSave("cons_cobro");
       }
     },
     [staffAttendAlert, setPageAndSave]
+  );
+
+  const handleStaffAlertSecondary = useCallback(
+    (alert) => {
+      if (!alert?.key || alert.type !== "cita") return;
+      staffAttendAlert(alert.key);
+      setPageAndSave("agenda");
+    },
+    [staffAttendAlert, setPageAndSave]
+  );
+
+  const handleStaffAlertDismiss = useCallback(
+    (alert) => {
+      if (alert?.key) staffDismissAlert(alert.key);
+    },
+    [staffDismissAlert]
   );
 
   useEffect(()=>{
@@ -2109,7 +2119,7 @@ export default function FarmaCapitalAdmin(){
 
     switch(page){
       case "midia":     return <MiDia usuario={usuario} setPage={setPageAndSave}/>;
-      case "turno":     return <TurnoScreen setPage={setPageAndSave} pushNotif={pushNotif}/>;
+      case "turno":     return <TurnoScreen setPage={setPageAndSave} pushNotif={pushNotif} applyPosTabHint={applyPosTabHint}/>;
       case "dash":      return <DashboardModule usuario={usuario} setPage={setPageAndSave} showConfirm={showConfirm}/>;
       case "pos":
         if (!canAccessRoute(usuario.rol, "/pos")) {
@@ -2149,9 +2159,9 @@ export default function FarmaCapitalAdmin(){
       <StaffAlertBanner
         alert={staffActiveAlert}
         queueCount={staffAlerts.length}
-        onAttend={handleAttendStaffAlert}
-        onSnooze={(a, m) => staffSnoozeAlert(a.key, m)}
-        onDismiss={() => staffDismissAlert(staffActiveAlert.key)}
+        onPrimary={handleAttendStaffAlert}
+        onSecondary={handleStaffAlertSecondary}
+        onDismiss={handleStaffAlertDismiss}
       />
     )}
     <NotificacionesToast notifs={notifs} onDismiss={dismissNotif} onAction={handleNotifAction}/>

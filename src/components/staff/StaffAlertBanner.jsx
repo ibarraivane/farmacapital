@@ -1,12 +1,13 @@
 import React from "react";
 import { C_LIGHT } from "../../constants";
-import { formatStaffAlertTime, isStaffAlertsMuted, setStaffAlertsMuted } from "../../utils/staffAlerts";
+import { isStaffAlertsMuted, setStaffAlertsMuted } from "../../utils/staffAlerts";
 
+/** Barra compacta arriba — aviso al vendedor, no modal invasivo. */
 export default function StaffAlertBanner({
   alert,
   queueCount = 0,
-  onAttend,
-  onSnooze,
+  onPrimary,
+  onSecondary,
   onDismiss,
   compact = false,
 }) {
@@ -15,157 +16,136 @@ export default function StaffAlertBanner({
 
   const col = alert.col || C.blue;
   const muted = isStaffAlertsMuted();
+  const primaryLabel = alert.primaryLabel || (alert.type === "pedido" ? "Surtir" : "Entendido");
+  const secondaryLabel = alert.secondaryLabel || null;
 
   return (
     <div
       role="alert"
-      aria-live="assertive"
+      aria-live="polite"
       style={{
         position: compact ? "relative" : "fixed",
-        top: compact ? undefined : "max(8px, env(safe-area-inset-top, 0px))",
-        left: compact ? undefined : 12,
-        right: compact ? undefined : 12,
+        top: compact ? undefined : "max(6px, env(safe-area-inset-top, 0px))",
+        left: compact ? undefined : 10,
+        right: compact ? undefined : 10,
         zIndex: compact ? 1 : 10050,
-        maxWidth: compact ? "100%" : 720,
-        margin: compact ? "0 0 12px" : "0 auto",
+        maxWidth: compact ? "100%" : 920,
+        margin: compact ? "0 0 10px" : "0 auto",
         boxSizing: "border-box",
-        animation: "fcStaffPulse .9s ease-in-out infinite alternate",
+        pointerEvents: "none",
       }}
     >
-      <style>{`
-        @keyframes fcStaffPulse {
-          from { box-shadow: 0 0 0 0 ${col}55, 0 12px 40px rgba(15,23,42,.18); }
-          to { box-shadow: 0 0 0 6px ${col}22, 0 16px 48px rgba(15,23,42,.22); }
-        }
-      `}</style>
       <div
         style={{
-          background: `linear-gradient(135deg, ${col} 0%, #0D1B2A 100%)`,
-          color: "#fff",
-          borderRadius: 14,
-          padding: compact ? "14px 16px" : "16px 18px",
-          border: "2px solid rgba(255,255,255,.25)",
+          pointerEvents: "auto",
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          padding: "8px 12px",
+          background: C.card,
+          border: `1px solid ${C.border}`,
+          borderLeft: `4px solid ${col}`,
+          borderRadius: 10,
+          boxShadow: "0 4px 18px rgba(15,23,42,.1)",
+          flexWrap: "wrap",
         }}
       >
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+        <span style={{ fontSize: 18, lineHeight: 1, flexShrink: 0 }} aria-hidden>
+          {alert.icon || "🔔"}
+        </span>
+
+        <div style={{ flex: 1, minWidth: 0 }}>
           <div
             style={{
-              fontSize: compact ? 28 : 34,
-              lineHeight: 1,
-              flexShrink: 0,
-              filter: "drop-shadow(0 2px 4px rgba(0,0,0,.25))",
+              display: "flex",
+              alignItems: "baseline",
+              gap: 8,
+              flexWrap: "wrap",
+              lineHeight: 1.35,
             }}
           >
-            {alert.icon || "🔔"}
+            <span style={{ fontWeight: 800, fontSize: 13, color: C.text }}>{alert.titulo}</span>
+            <span style={{ fontSize: 12, color: C.textMid, fontWeight: 600 }}>{alert.subtitulo}</span>
+            {alert.detalle ? (
+              <span style={{ fontSize: 11, color: C.textDim }}>· {alert.detalle}</span>
+            ) : null}
+            {queueCount > 1 ? (
+              <span style={{ fontSize: 10, color: col, fontWeight: 700 }}>+{queueCount - 1}</span>
+            ) : null}
           </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 800,
-                  letterSpacing: 1.2,
-                  textTransform: "uppercase",
-                  background: "rgba(255,255,255,.18)",
-                  padding: "3px 8px",
-                  borderRadius: 999,
-                }}
-              >
-                Atención en turno
-              </span>
-              {queueCount > 1 && (
-                <span style={{ fontSize: 11, opacity: 0.85 }}>+{queueCount - 1} en cola</span>
-              )}
-            </div>
-            <div style={{ fontWeight: 900, fontSize: compact ? 17 : 20, marginTop: 6, lineHeight: 1.2 }}>
-              {alert.titulo}
-            </div>
-            <div style={{ fontSize: 14, fontWeight: 700, marginTop: 4, opacity: 0.95 }}>
-              {alert.subtitulo}
-            </div>
-            <div style={{ fontSize: 12, marginTop: 4, opacity: 0.85 }}>{alert.detalle}</div>
-          </div>
+          {alert.nota ? (
+            <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>{alert.nota}</div>
+          ) : null}
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+          {secondaryLabel && onSecondary ? (
+            <button
+              type="button"
+              onClick={() => onSecondary(alert)}
+              style={{
+                padding: "6px 10px",
+                borderRadius: 8,
+                border: `1px solid ${C.border}`,
+                background: C.bg,
+                color: C.textMid,
+                fontWeight: 700,
+                fontSize: 11,
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {secondaryLabel}
+            </button>
+          ) : null}
           <button
             type="button"
-            onClick={onDismiss}
-            aria-label="Cerrar alerta"
+            onClick={() => onPrimary?.(alert)}
             style={{
-              background: "rgba(255,255,255,.12)",
-              border: "none",
-              color: "#fff",
+              padding: "6px 12px",
               borderRadius: 8,
-              width: 32,
-              height: 32,
+              border: "none",
+              background: col,
+              color: "#fff",
+              fontWeight: 800,
+              fontSize: 11,
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {primaryLabel}
+          </button>
+          <button
+            type="button"
+            onClick={() => onDismiss?.(alert)}
+            aria-label="Cerrar aviso"
+            style={{
+              background: "none",
+              border: "none",
+              color: C.textDim,
               cursor: "pointer",
               fontSize: 16,
-              flexShrink: 0,
+              lineHeight: 1,
+              padding: "2px 4px",
             }}
           >
             ✕
           </button>
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: 8,
-            marginTop: 14,
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => onAttend?.(alert)}
-            style={{
-              flex: "1 1 160px",
-              padding: "12px 16px",
-              borderRadius: 10,
-              border: "none",
-              background: "#fff",
-              color: col,
-              fontWeight: 900,
-              fontSize: 14,
-              cursor: "pointer",
-            }}
-          >
-            {alert.type === "pedido" ? "Ir a surtir →" : "Cobrar en POS →"}
-          </button>
-          <button
-            type="button"
-            onClick={() => onSnooze?.(alert, 2)}
-            style={{
-              padding: "12px 14px",
-              borderRadius: 10,
-              border: "1px solid rgba(255,255,255,.35)",
-              background: "transparent",
-              color: "#fff",
-              fontWeight: 700,
-              fontSize: 13,
-              cursor: "pointer",
-            }}
-          >
-            Posponer 2 min
-          </button>
           <button
             type="button"
             onClick={() => setStaffAlertsMuted(!muted)}
+            title={muted ? "Activar sonido" : "Silenciar avisos"}
             style={{
-              padding: "12px 14px",
-              borderRadius: 10,
-              border: "1px solid rgba(255,255,255,.25)",
-              background: "transparent",
-              color: "#fff",
-              fontWeight: 600,
-              fontSize: 12,
+              background: "none",
+              border: "none",
               cursor: "pointer",
-              opacity: muted ? 0.7 : 1,
+              fontSize: 14,
+              opacity: muted ? 0.45 : 1,
+              padding: 2,
             }}
           >
-            {muted ? "🔇 Sonido off" : "🔊 Silenciar"}
+            {muted ? "🔇" : "🔊"}
           </button>
-        </div>
-        <div style={{ fontSize: 10, opacity: 0.65, marginTop: 8 }}>
-          {formatStaffAlertTime(alert.receivedAt || alert.createdAt)}
         </div>
       </div>
     </div>

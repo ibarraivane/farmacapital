@@ -4,7 +4,7 @@ import useStaffAlerts from "../../hooks/useStaffAlerts";
 import StaffAlertBanner from "../../components/staff/StaffAlertBanner";
 import { isStaffAlertsMuted, setStaffAlertsMuted } from "../../utils/staffAlerts";
 
-export default function TurnoScreen({ setPage, pushNotif }) {
+export default function TurnoScreen({ setPage, pushNotif, applyPosTabHint }) {
   const C = C_LIGHT;
 
   const push = useCallback(
@@ -14,24 +14,29 @@ export default function TurnoScreen({ setPage, pushNotif }) {
     [pushNotif]
   );
 
-  const { alerts, activeAlert, attendAlert, snoozeAlert, dismissAlert } = useStaffAlerts({
+  const { alerts, activeAlert, attendAlert, dismissAlert } = useStaffAlerts({
     enabled: true,
     pushNotif: push,
   });
 
-  const handleAttend = (alert) => {
+  const goPage = useCallback(
+    (pageId, posTab) => {
+      if (posTab && applyPosTabHint) applyPosTabHint(posTab);
+      setPage?.(pageId);
+    },
+    [setPage, applyPosTabHint]
+  );
+
+  const handlePrimary = (alert) => {
     attendAlert(alert.key);
     if (alert.type === "pedido") {
-      try {
-        sessionStorage.setItem("farmacapital_pos_tab", "online");
-      } catch (_) { /* noop */ }
-      setPage?.("ped_online");
-    } else {
-      try {
-        sessionStorage.setItem("farmacapital_pos_tab", "consultas");
-      } catch (_) { /* noop */ }
-      setPage?.("cons_cobro");
+      goPage("ped_online", "online");
     }
+  };
+
+  const handleSecondary = (alert) => {
+    attendAlert(alert.key);
+    if (alert.type === "cita") goPage("agenda");
   };
 
   const muted = isStaffAlertsMuted();
@@ -46,16 +51,16 @@ export default function TurnoScreen({ setPage, pushNotif }) {
       }}
     >
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
           <div>
             <div style={{ fontSize: 12, fontWeight: 800, color: BRAND.secondary, letterSpacing: 1, textTransform: "uppercase" }}>
               Pantalla de turno
             </div>
-            <h1 style={{ margin: "6px 0 4px", fontSize: 28, fontWeight: 900, color: C.text }}>
-              Mostrador FarmaCapital
+            <h1 style={{ margin: "6px 0 4px", fontSize: 24, fontWeight: 900, color: C.text }}>
+              Avisos al mostrador
             </h1>
-            <p style={{ margin: 0, color: C.textMid, fontSize: 14, lineHeight: 1.5 }}>
-              Avisos con sonido cuando entra un pedido online o una cita agendada. Deja esta pantalla abierta en la tablet del mostrador.
+            <p style={{ margin: 0, color: C.textMid, fontSize: 13, lineHeight: 1.5 }}>
+              Pedidos online = surtir cuando corresponda. Citas en línea = solo aviso (el paciente paga el día de la consulta).
             </p>
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -63,30 +68,32 @@ export default function TurnoScreen({ setPage, pushNotif }) {
               type="button"
               onClick={() => setStaffAlertsMuted(!muted)}
               style={{
-                padding: "10px 14px",
-                borderRadius: 10,
+                padding: "8px 12px",
+                borderRadius: 8,
                 border: `1px solid ${C.border}`,
                 background: C.card,
                 fontWeight: 700,
+                fontSize: 12,
                 cursor: "pointer",
               }}
             >
-              {muted ? "🔇 Activar sonido" : "🔊 Silenciar sonido"}
+              {muted ? "🔇 Sonido off" : "🔊 Sonido on"}
             </button>
             <button
               type="button"
               onClick={() => setPage?.("dash")}
               style={{
-                padding: "10px 14px",
-                borderRadius: 10,
+                padding: "8px 12px",
+                borderRadius: 8,
                 border: "none",
                 background: BRAND.primary,
                 color: "#fff",
                 fontWeight: 700,
+                fontSize: 12,
                 cursor: "pointer",
               }}
             >
-              ← Panel admin
+              ← Panel
             </button>
           </div>
         </div>
@@ -94,8 +101,8 @@ export default function TurnoScreen({ setPage, pushNotif }) {
         <StaffAlertBanner
           alert={activeAlert}
           queueCount={alerts.length}
-          onAttend={handleAttend}
-          onSnooze={(a, m) => snoozeAlert(a.key, m)}
+          onPrimary={handlePrimary}
+          onSecondary={handleSecondary}
           onDismiss={(a) => dismissAlert(a?.key || activeAlert?.key)}
           compact
         />
@@ -104,69 +111,62 @@ export default function TurnoScreen({ setPage, pushNotif }) {
           <div
             style={{
               background: C.card,
-              border: `2px dashed ${C.border}`,
-              borderRadius: 16,
-              padding: "48px 24px",
+              border: `1px dashed ${C.border}`,
+              borderRadius: 12,
+              padding: "36px 20px",
               textAlign: "center",
-              marginBottom: 20,
+              marginBottom: 16,
             }}
           >
-            <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
-            <div style={{ fontWeight: 800, fontSize: 18, color: C.text }}>Sin turnos pendientes</div>
-            <div style={{ color: C.textMid, fontSize: 14, marginTop: 8 }}>
-              Cuando alguien compre en línea o agende cita, aparecerá aquí con sonido.
-            </div>
+            <div style={{ fontSize: 40, marginBottom: 8 }}>✅</div>
+            <div style={{ fontWeight: 800, fontSize: 16, color: C.text }}>Sin avisos pendientes</div>
           </div>
         )}
 
         {alerts.length > 0 && (
-          <div style={{ background: C.card, borderRadius: 14, border: `1px solid ${C.border}`, overflow: "hidden" }}>
-            <div style={{ padding: "12px 16px", borderBottom: `1px solid ${C.border}`, fontWeight: 800, fontSize: 13 }}>
-              Cola de avisos ({alerts.length})
+          <div style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, overflow: "hidden" }}>
+            <div style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, fontWeight: 800, fontSize: 12 }}>
+              Cola ({alerts.length})
             </div>
             {alerts.map((a) => (
               <div
                 key={a.key}
                 style={{
-                  padding: "12px 16px",
+                  padding: "10px 14px",
                   borderBottom: `1px solid ${C.border}`,
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  gap: 12,
+                  gap: 10,
                   flexWrap: "wrap",
                 }}
               >
-                <div>
-                  <div style={{ fontWeight: 800, fontSize: 14 }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontWeight: 800, fontSize: 13 }}>
                     {a.icon} {a.titulo}
                   </div>
-                  <div style={{ fontSize: 12, color: C.textMid }}>{a.subtitulo}</div>
+                  <div style={{ fontSize: 11, color: C.textMid }}>{a.subtitulo}</div>
                 </div>
                 <button
                   type="button"
-                  onClick={() => handleAttend(a)}
+                  onClick={() => (a.type === "pedido" ? handlePrimary(a) : handleSecondary(a))}
                   style={{
-                    padding: "8px 14px",
+                    padding: "6px 12px",
                     borderRadius: 8,
                     border: "none",
                     background: a.col || BRAND.secondary,
                     color: "#fff",
                     fontWeight: 700,
-                    fontSize: 12,
+                    fontSize: 11,
                     cursor: "pointer",
                   }}
                 >
-                  Atender
+                  {a.type === "pedido" ? "Surtir" : "Agenda"}
                 </button>
               </div>
             ))}
           </div>
         )}
-
-        <div style={{ marginTop: 20, color: C.textDim, fontSize: 11, lineHeight: 1.5 }}>
-          Actualización automática cada 30 segundos + aviso instantáneo por Realtime. El sonido se repite cada 15 s hasta que atiendas o pospongas.
-        </div>
       </div>
     </div>
   );

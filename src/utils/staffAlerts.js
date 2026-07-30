@@ -143,9 +143,12 @@ export function buildPedidoAlert(row) {
     type: "pedido",
     id: row.id,
     key: staffAlertKey("pedido", row.id),
-    titulo: "Nuevo pedido online",
+    titulo: "Pedido online",
     subtitulo: `#${row.id} · ${cliente}${tel ? ` · ${tel}` : ""}`,
-    detalle: `$${total.toFixed(2)} · ${row.tipo_entrega === "envio" ? "Envío" : "Pick-up en farmacia"}`,
+    detalle: `$${total.toFixed(2)} · ${row.tipo_entrega === "envio" ? "Envío" : "Pick-up"}`,
+    nota: "Surtir cuando el cliente venga o preparen el pedido.",
+    primaryLabel: "Surtir →",
+    secondaryLabel: null,
     col: "#1E3ABA",
     icon: "🛒",
     row,
@@ -158,14 +161,19 @@ export function buildCitaAlert(row) {
   const tel = row?.telefono || "";
   const fecha = row?.fecha || "";
   const hora = row?.hora || "";
-  const canal = row?.canal === "web" ? "En línea" : row?.canal || "";
+  const esWeb = row?.canal === "web";
   return {
     type: "cita",
     id: row.id,
     key: staffAlertKey("cita", row.id),
-    titulo: "Nueva cita agendada",
+    titulo: esWeb ? "Cita en línea agendada" : "Nueva cita",
     subtitulo: `${nombre}${tel ? ` · ${tel}` : ""}`,
-    detalle: `${fecha ? `${fecha} · ` : ""}${hora} hrs${canal ? ` · ${canal}` : ""}`,
+    detalle: `${fecha ? `${fecha} · ` : ""}${hora || "—"} hrs`,
+    nota: esWeb
+      ? "Aviso al mostrador: el paciente paga el día de la consulta en caja (no implica que ya esté en farmacia)."
+      : "Cita registrada en el sistema.",
+    primaryLabel: "Entendido",
+    secondaryLabel: "Ver agenda",
     col: "#7c3aed",
     icon: "📅",
     row,
