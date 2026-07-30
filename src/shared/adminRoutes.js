@@ -20,6 +20,8 @@ const SLUG_TO_PAGE = {
   trans: "trans",
   "pedidos-online": "ped_online",
   ped_online: "ped_online",
+  turno: "turno",
+  "pantalla-turno": "turno",
   /** Cobro de consultas vive en POS → pestaña Consultas (sin módulo aparte). */
   "cobrar-consulta": "pos",
   cons_cobro: "pos",
@@ -38,6 +40,7 @@ const PAGE_TO_SLUG = {
   agenda: "agenda-consultas",
   trans: "transacciones",
   ped_online: "pedidos-online",
+  turno: "pantalla-turno",
 };
 
 /**

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, createContext, useContext, useRef } from "react";
-import { supabase } from "./supabase";
+import { supabase, isSupabaseProductionMisconfigured, isSupabaseLocalMisconfigured } from "./supabase";
 import { useTheme } from "./themeContext";
 import { useMediaQuery, useNarrowForBannerImage } from "./hooks/useMediaQuery";
 import { saludoUsuario, primerNombre, $, normalizarSesionLoginResp, nombreCompletoPacienteValido, telefonoMxValido, soloDigitosTel, getClienteToken } from "./utils";
@@ -13,7 +13,7 @@ import {
   navigateToCita,
 } from "./utils/clienteSession";
 import { tiendaProductMatchesBusqueda, spellSuggestFromProducts, tiendaCatalogSearchSuggestions, tiendaSearchRelevanceRank } from "./utils/fuzzySearch";
-import { CONSULTA_PRECIO_DEFAULT, citaPagoOk } from "./utils/consultaConstants";
+import { CONSULTA_PRECIO_DEFAULT, citaPagoOk, labelEstadoPagoCita } from "./utils/consultaConstants";
 import { fetchPrecioConsultaConfig } from "./utils/consumiblesConsultorio";
 import {
   mapUiEntregaToRpc,
@@ -32,6 +32,7 @@ import {
   openWhatsAppToFarmacia,
   buildCustomerToFarmaciaMessage,
 } from "./utils/orderReceiptWhatsApp";
+import { notifyCitaConfirmacion, formatTelefonoDisplay, formatCitaFecha } from "./utils/citaWhatsApp";
 import { FARMACIA_FISCAL } from "./constants/farmaciaFiscal";
 import { validarPasswordTienda, PASSWORD_RULES_TEXT, PASSWORD_MIN_LENGTH } from "./utils/passwordPolicy";
 import {
@@ -53,8 +54,9 @@ const BRAND = {
 };
 const C = {
   bg:"#f7f9fc", card:"#ffffff", cardDark:"#f0f4f9",
-  border:"#e2e8f0", dark:"#0f172a", mid:"#475569",
-  dim:"#94a3b8", white:"#ffffff", red:"#ef4444",
+  border:"#e2e8f0", borderHi:"#c7d4f5", dark:"#0f172a", mid:"#475569",
+  dim:"#94a3b8", white:"#ffffff", red:"#ef4444", redDim:"#fee2e2",
+  text:"#0f172a", textMid:"#475569", textDim:"#94a3b8", blueDim:"#eef1fb",
 };
 
 /** Id estable para Maps y RPC (PostgREST a veces mezcla string/bigint). */
@@ -279,10 +281,37 @@ const Btn=({children,onClick,col,outline,sm,full,disabled,style,type="button"})=
 const Tag=({children,col,sm})=>(
   <span style={{background:col+"18",color:col,border:`1px solid ${col}30`,borderRadius:20,padding:sm?"2px 8px":"4px 12px",fontSize:sm?10:12,fontWeight:700,whiteSpace:"nowrap",display:"inline-block"}}>{children}</span>
 );
-const Inp=({value,onChange,placeholder,type,style,onKeyDown,onFocus,onBlur})=>(
-  <input value={value} onChange={onChange} placeholder={placeholder} type={type||"text"} onKeyDown={onKeyDown}
-    style={{background:C.white,border:`2px solid ${C.border}`,borderRadius:10,color:C.dark,padding:"11px 14px",fontSize:16,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif",transition:"border-color .2s",...style}}
-    onFocus={e=>{onFocus?.(e);e.target.style.borderColor=BRAND.primary}} onBlur={e=>{onBlur?.(e);e.target.style.borderColor=C.border}}/>
+const tiendaFieldStyle=(overrides={},invalid=false)=>({
+  background:C.white,
+  border:`1px solid ${invalid?C.red:C.border}`,
+  borderRadius:10,
+  color:C.text,
+  WebkitTextFillColor:C.text,
+  caretColor:C.text,
+  colorScheme:"light",
+  padding:"11px 14px",
+  fontSize:16,
+  outline:"none",
+  fontFamily:"'Plus Jakarta Sans',sans-serif",
+  transition:"border-color .2s",
+  width:"100%",
+  boxSizing:"border-box",
+  ...overrides,
+});
+const Inp=({value,onChange,placeholder,type,style,onKeyDown,onFocus,onBlur,name,autoComplete,className="",invalid=false})=>(
+  <input
+    className={`farmacapital-field-input ${className}`.trim()}
+    name={name}
+    autoComplete={autoComplete}
+    value={value}
+    onChange={onChange}
+    placeholder={placeholder}
+    type={type||"text"}
+    onKeyDown={onKeyDown}
+    style={tiendaFieldStyle(style,invalid)}
+    onFocus={e=>{onFocus?.(e);e.target.style.borderColor=invalid?C.red:BRAND.primary}}
+    onBlur={e=>{onBlur?.(e);e.target.style.borderColor=invalid?C.red:C.border}}
+  />
 );
 
 // ── POPUP BIENVENIDA ──────────────────────────────────────────
@@ -3648,6 +3677,8 @@ function AgendarCita({setPage,user}){
   const [hora,setHora]=useState("");
   const [motivo,setMotivo]=useState("");
   const [conf,setConf]=useState(false);
+  const [citaId,setCitaId]=useState(null);
+  const [waStatus,setWaStatus]=useState(null);
   const [guardando,setG]=useState(false);
   const [horasOcupadas,setHorasOcupadas]=useState([]);
   const [draftMsg, setDraftMsg] = useState("");
@@ -3736,27 +3767,74 @@ function AgendarCita({setPage,user}){
       });
       if (error) throw error;
       if (!resp?.success) { alert(resp?.error || "No se pudo agendar"); setG(false); return; }
+      const newCitaId = resp.cita_id ?? resp.citaId ?? null;
+      setCitaId(newCitaId);
+      setG(false);
+      setConf(true);
+      setWaStatus("sending");
+      notifyCitaConfirmacion({
+        citaId: newCitaId,
+        telefono: tel,
+        nombre,
+        fecha,
+        hora,
+        motivo,
+        sessionToken: tokCli,
+      }).then((r) => {
+        if (r.sent) setWaStatus("sent");
+        else if (r.notConfigured) setWaStatus("not_configured");
+        else setWaStatus("failed");
+      }).catch(() => setWaStatus("failed"));
+      return;
     }catch(e){ alert("No se pudo agendar. Intenta de nuevo."); console.warn(e); }
-    setG(false);setConf(true);
+    setG(false);
   };
   if (!getClienteToken()) return null;
   if(conf) return(
     <div style={{maxWidth:500,margin:"clamp(40px,12vw,80px) auto",padding:"0 16px",textAlign:"center"}}>
       <div style={{fontSize:"clamp(48px,14vw,64px)",marginBottom:16}}>📅</div>
       <h1 style={{color:C.dark,fontSize:"clamp(22px,5vw,26px)",fontWeight:800,marginBottom:16,lineHeight:1.2}}>¡Cita confirmada!</h1>
-      <p style={{color:C.mid,marginBottom:24,fontSize:"clamp(14px,3.5vw,16px)",lineHeight:1.5}}>📲 Te enviamos recordatorio por WhatsApp 24 hrs antes.</p>
+      {waStatus === "sending" && (
+        <p style={{color:C.mid,marginBottom:24,fontSize:"clamp(14px,3.5vw,16px)",lineHeight:1.5}}>
+          📲 Enviando confirmación a tu WhatsApp…
+        </p>
+      )}
+      {waStatus === "sent" && (
+        <p style={{color:C.mid,marginBottom:24,fontSize:"clamp(14px,3.5vw,16px)",lineHeight:1.5}}>
+          ✅ Confirmación enviada a <strong style={{color:C.text}}>{formatTelefonoDisplay(tel || user?.telefono)}</strong> por WhatsApp.
+          <br />
+          <span style={{fontSize:14,color:C.textMid}}>Te recordaremos 24 hrs antes de tu cita.</span>
+        </p>
+      )}
+      {(waStatus === "not_configured" || waStatus === "failed" || waStatus == null) && waStatus !== "sending" && (
+        <p style={{color:C.mid,marginBottom:24,fontSize:"clamp(14px,3.5vw,16px)",lineHeight:1.5}}>
+          {waStatus === "failed"
+            ? "Tu cita quedó registrada, pero no pudimos enviar el WhatsApp automático."
+            : "Tu cita quedó registrada. Te contactaremos por WhatsApp desde la farmacia."}
+          <br />
+          <span style={{fontSize:14,color:C.textMid}}>
+            🗓 {formatCitaFecha(fecha) || fecha} · 🕐 {hora}
+            {citaId ? ` · #CITA-${String(citaId).padStart(4, "0")}` : ""}
+          </span>
+        </p>
+      )}
       <div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap",marginBottom:16}}>
         <Btn onClick={()=>setPage("cuenta")} col={BRAND.primary}>Ver mis citas</Btn>
         <Btn onClick={()=>setPage("catalogo")} outline col={BRAND.primary}>Ver catálogo</Btn>
       </div>
-      {(tel||user?.telefono)&&(
-        <button type="button" onClick={()=>{
-          const t = tel||user?.telefono||"";
-          const msg = `📅 *Cita confirmada en FarmaCapital*\n\nHola${nombre?" "+nombre:""}! Tu cita médica ha sido registrada.\n\n🗓 Fecha: ${fecha}\n🕐 Hora: ${hora}\n👩‍⚕️ Médico general\n📍 ${CONTACTO.direccion}\n🗺 ${CONTACTO.maps_url}\n\n${motivo?"Motivo: "+motivo+"\n\n":""}💊 Al terminar tu consulta, surte tu receta en FarmaCapital con 10% de descuento.\n\n¡Te esperamos! 🏥`;
-          window.open("https://wa.me/52"+t.replace(/\D/g,"")+"?text="+encodeURIComponent(msg),"_blank");
-        }} style={{display:"flex",alignItems:"center",gap:8,margin:"0 auto",padding:"10px 24px",borderRadius:10,border:"none",background:"#25D366",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer"}}>
-          📱 Enviar confirmación por WhatsApp
-        </button>
+      {waStatus === "failed" && (
+        <Btn
+          onClick={()=>{
+            openWhatsAppToFarmacia(
+              `Hola, acabo de agendar cita${citaId ? ` #CITA-${String(citaId).padStart(4,"0")}` : ""} ` +
+              `(${fecha} ${hora}). Mi teléfono: ${tel || user?.telefono || ""}. ¿Me confirman por favor?`
+            );
+          }}
+          col="#25D366"
+          sm
+        >
+          💬 Escribir a la farmacia
+        </Btn>
       )}
     </div>
   );
@@ -3822,6 +3900,7 @@ function AgendarCita({setPage,user}){
             <div style={{position:"relative"}}>
               <input
                 ref={fechaInputRef}
+                className="farmacapital-field-input"
                 type="date"
                 lang="es-MX"
                 value={fecha}
@@ -3829,22 +3908,12 @@ function AgendarCita({setPage,user}){
                 onClick={abrirCalendarioFecha}
                 min={localISODate()}
                 aria-label="Fecha de la cita"
-                style={{
-                  width:"100%",
-                  boxSizing:"border-box",
+                style={tiendaFieldStyle({
                   padding:"9px 44px 9px 13px",
-                  borderRadius:8,
-                  border:`1px solid ${C.border}`,
-                  background:C.white,
-                  color:C.dark,
-                  colorScheme:"light",
-                  fontSize:16,
-                  outline:"none",
-                  fontFamily:"'Plus Jakarta Sans',sans-serif",
                   cursor:"pointer",
                   WebkitAppearance:"none",
                   appearance:"none",
-                }}
+                })}
               />
               <button
                 type="button"
@@ -3874,24 +3943,15 @@ function AgendarCita({setPage,user}){
           <div>
             <div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Horario {fecha&&horarios.length===0?"— Sin disponibilidad hoy":""}</div>
             <select
+              className="farmacapital-field-input farmacapital-field-select"
               value={hora}
               onChange={e=>setHora(e.target.value)}
-              style={{
-                width:"100%",
-                boxSizing:"border-box",
-                padding:"11px 14px",
-                borderRadius:10,
-                border:`2px solid ${C.border}`,
-                background:C.white,
-                color:hora?C.dark:C.dim,
-                colorScheme:"light",
-                fontSize:16,
-                outline:"none",
-                fontFamily:"'Plus Jakarta Sans',sans-serif",
+              style={tiendaFieldStyle({
+                color:hora?C.text:C.dim,
                 WebkitAppearance:"none",
                 appearance:"none",
                 cursor:"pointer",
-              }}
+              })}
             >
               <option value="">Seleccionar horario</option>
               {horariosLibres.length===0&&fecha?<option value="">Sin disponibilidad este día</option>:horariosLibres.map(h=><option key={h} value={h}>{h} hrs{horasOcupadas.includes(h)?" (ocupado)":""}</option>)}
@@ -4155,39 +4215,41 @@ function Registro({setUser,setPage}){
         <div style={{display:"flex",justifyContent:"center",marginBottom:20}}><Logo size={40}/></div>
         <h1 style={{color:C.dark,fontSize:24,fontWeight:800,marginBottom:6,textAlign:"center"}}>Crear cuenta FarmaCapital</h1>
         {getPostLoginPage() === "cita" ? (
-          <p style={{color:BRAND.primary,fontSize:14,marginBottom:20,textAlign:"center",lineHeight:1.5,fontWeight:600}}>Creá tu cuenta para agendar tu cita médica.</p>
+          <p style={{color:C.textMid,fontSize:14,marginBottom:20,textAlign:"center",lineHeight:1.5}}>
+            Creá tu cuenta para <strong style={{color:BRAND.primary}}>agendar tu cita médica</strong>.
+          </p>
         ) : (
           <p style={{color:C.mid,fontSize:14,marginBottom:28,textAlign:"center"}}>Regístrate y gana <strong style={{color:BRAND.accent}}>10 puntos de bienvenida ⭐</strong></p>
         )}
-        <p style={{color:C.textMid,fontSize:12,marginBottom:20,textAlign:"center",lineHeight:1.5}}>Usá <strong>correo</strong>, <strong>teléfono</strong> o <strong>ambos</strong> para tu cuenta (necesitamos al menos uno).</p>
-        <div style={{marginBottom:14}}><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Nombre completo *</div><Inp value={nombre} onChange={e=>setNombre(e.target.value)} placeholder="Tu nombre" style={{width:"100%",boxSizing:"border-box"}}/></div>
-        <div style={{marginBottom:14}}><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Teléfono {correoTiendaValido(email)?"(opcional)":"(o completá correo abajo)"}</div><Inp value={tel} onChange={e=>setTel(e.target.value)} placeholder="55XXXXXXXX — 10 dígitos" type="tel" style={{width:"100%",boxSizing:"border-box"}}/></div>
-        <div style={{marginBottom:14}}><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Correo electrónico {telefonoMxValido(tel)?"(opcional)":"(o completá teléfono arriba)"}</div><Inp value={email} onChange={e=>setEmail(e.target.value)} placeholder="tu@correo.com" type="email" style={{width:"100%",boxSizing:"border-box"}}/></div>
+        <p style={{color:C.textMid,fontSize:12,marginBottom:20,textAlign:"center",lineHeight:1.5}}>Usá <strong style={{color:C.text}}>correo</strong>, <strong style={{color:C.text}}>teléfono</strong> o <strong style={{color:C.text}}>ambos</strong> para tu cuenta (necesitamos al menos uno).</p>
+        <form className="farmacapital-login-form" autoComplete="on" onSubmit={(e)=>{ e.preventDefault(); registrar(); }}>
+        <div style={{marginBottom:14}}><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Nombre completo <span style={{color:C.red}}>*</span></div><Inp name="name" autoComplete="name" value={nombre} onChange={e=>setNombre(e.target.value)} placeholder="Tu nombre"/></div>
+        <div style={{marginBottom:14}}><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Teléfono {correoTiendaValido(email)?"(opcional)":"(o completá correo abajo)"}</div><Inp name="tel" autoComplete="tel" value={tel} onChange={e=>setTel(e.target.value)} placeholder="55XXXXXXXX — 10 dígitos" type="tel"/></div>
+        <div style={{marginBottom:14}}><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Correo electrónico {telefonoMxValido(tel)?"(opcional)":"(o completá teléfono arriba)"}</div><Inp name="email" autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="tu@correo.com" type="email"/></div>
         <div style={{marginBottom:14}}>
-          <div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Contraseña * <span style={{color:C.dim,fontWeight:400}}>({PASSWORD_RULES_TEXT})</span></div>
-          <input name="password" autoComplete="new-password" value={pwd} onChange={e=>setPwd(e.target.value)} placeholder="••••••••" type="password"
-            style={{width:"100%",boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:`1px solid ${pwd.length>0&&!validarPasswordTienda(pwd).ok?C.red:C.border}`,background:C.white,color:C.dark,fontSize:16,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}/>
+          <div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Contraseña <span style={{color:C.red}}>*</span> <span style={{color:C.dim,fontWeight:400}}>({PASSWORD_RULES_TEXT})</span></div>
+          <Inp name="password" autoComplete="new-password" value={pwd} onChange={e=>setPwd(e.target.value)} placeholder="••••••••" type="password" invalid={pwd.length>0&&!validarPasswordTienda(pwd).ok}/>
           {pwd.length>0&&!validarPasswordTienda(pwd).ok&&<div style={{color:C.red,fontSize:11,marginTop:4}}>{validarPasswordTienda(pwd).error}</div>}
         </div>
         <div style={{marginBottom:20}}>
-          <div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Confirmar contraseña *</div>
-          <input name="password" autoComplete="new-password" value={pwd2} onChange={e=>setPwd2(e.target.value)} placeholder="••••••••" type="password"
-            style={{width:"100%",boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:`1px solid ${pwd2.length>0&&pwd!==pwd2?C.red:C.border}`,background:C.white,color:C.dark,fontSize:16,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}/>
+          <div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Confirmar contraseña <span style={{color:C.red}}>*</span></div>
+          <Inp name="password-confirm" autoComplete="new-password" value={pwd2} onChange={e=>setPwd2(e.target.value)} placeholder="••••••••" type="password" invalid={pwd2.length>0&&pwd!==pwd2}/>
           {pwd2.length>0&&pwd!==pwd2&&<div style={{color:C.red,fontSize:11,marginTop:4}}>Las contraseñas no coinciden</div>}
         </div>
-        {error&&<div style={{background:C.red+"10",border:`1px solid ${C.red}30`,borderRadius:8,padding:"10px 12px",marginBottom:14,color:C.red,fontSize:13}}>{error}</div>}
-        <div style={{display:"flex",alignItems:"flex-start",gap:10,marginBottom:16,padding:"12px 14px",background:"#eff6ff",borderRadius:10,border:"1px solid #bfdbfe"}}>
+        {error&&<div style={{background:C.redDim,border:`1px solid ${C.red}30`,borderRadius:8,padding:"10px 12px",marginBottom:14,color:C.red,fontSize:13}}>{error}</div>}
+        <div style={{display:"flex",alignItems:"flex-start",gap:10,marginBottom:16,padding:"12px 14px",background:C.blueDim,borderRadius:10,border:`1px solid ${C.borderHi}`}}>
           <input type="checkbox" id="acepto_privacidad" checked={acepto} onChange={e=>setAcepto(e.target.checked)}
             style={{width:16,height:16,marginTop:2,cursor:"pointer",flexShrink:0,accentColor:BRAND.primary}}/>
-          <label htmlFor="acepto_privacidad" style={{color:"#1d4ed8",fontSize:12,lineHeight:1.5,cursor:"pointer"}}>
+          <label htmlFor="acepto_privacidad" style={{color:C.textMid,fontSize:12,lineHeight:1.5,cursor:"pointer"}}>
             He leído y acepto el{" "}
-            <button onClick={()=>setPage("privacidad")} style={{background:"none",border:"none",color:BRAND.primary,fontWeight:700,fontSize:12,cursor:"pointer",padding:0,textDecoration:"underline"}}>
+            <button type="button" onClick={()=>setPage("privacidad")} style={{background:"none",border:"none",color:BRAND.primary,fontWeight:700,fontSize:12,cursor:"pointer",padding:0,textDecoration:"underline"}}>
               Aviso de Privacidad
             </button>
-            {" "}de FarmaCapital. Autorizo el uso de mis datos para gestionar mi cuenta y programa de puntos. <span style={{color:"#ef4444",fontWeight:700}}>*</span>
+            {" "}de FarmaCapital. Autorizo el uso de mis datos para gestionar mi cuenta y programa de puntos. <span style={{color:C.red,fontWeight:700}}>*</span>
           </label>
         </div>
-        <Btn onClick={registrar} col={BRAND.primary} full disabled={!nombre||!contactoOk||!pwd||!pwd2||pwd!==pwd2||!validarPasswordTienda(pwd).ok||creando||!acepto}>{creando?"Creando cuenta...":"Crear mi cuenta →"}</Btn>
+        <Btn type="submit" col={BRAND.primary} full disabled={!nombre||!contactoOk||!pwd||!pwd2||pwd!==pwd2||!validarPasswordTienda(pwd).ok||creando||!acepto}>{creando?"Creando cuenta...":"Crear mi cuenta →"}</Btn>
+        </form>
         <div style={{textAlign:"center",marginTop:16}}><span style={{color:C.mid,fontSize:13}}>¿Ya tienes cuenta? </span><button onClick={()=>setPage("login")} style={{background:"none",border:"none",color:BRAND.primary,fontWeight:700,fontSize:13,cursor:"pointer"}}>Iniciar sesión</button></div>
       </div>
     </div>
@@ -4264,18 +4326,7 @@ function RestablecerPassword({ token, setPage }) {
     setGuardando(false);
   };
 
-  const inp = {
-    width: "100%",
-    boxSizing: "border-box",
-    padding: "9px 13px",
-    borderRadius: 8,
-    border: `1px solid ${C.border}`,
-    background: C.white,
-    color: C.dark,
-    fontSize: 16,
-    outline: "none",
-    fontFamily: "'Plus Jakarta Sans',sans-serif",
-  };
+  const inp = tiendaFieldStyle();
 
   return (
     <div style={{ maxWidth: 440, margin: "80px auto", padding: "0 24px" }}>
@@ -4297,11 +4348,11 @@ function RestablecerPassword({ token, setPage }) {
             <p style={{ color: C.textMid, fontSize: 12, marginBottom: 16, textAlign: "center" }}>{PASSWORD_RULES_TEXT}</p>
             <div style={{ marginBottom: 14 }}>
               <div style={{ color: C.mid, fontSize: 12, fontWeight: 700, marginBottom: 6 }}>Nueva contraseña *</div>
-              <input type="password" value={pwd} onChange={(e) => setPwd(e.target.value)} autoComplete="new-password" style={inp}/>
+              <input type="password" className="farmacapital-field-input" value={pwd} onChange={(e) => setPwd(e.target.value)} autoComplete="new-password" style={inp}/>
             </div>
             <div style={{ marginBottom: 16 }}>
               <div style={{ color: C.mid, fontSize: 12, fontWeight: 700, marginBottom: 6 }}>Confirmar contraseña *</div>
-              <input type="password" value={pwd2} onChange={(e) => setPwd2(e.target.value)} autoComplete="new-password" style={inp}/>
+              <input type="password" className="farmacapital-field-input" value={pwd2} onChange={(e) => setPwd2(e.target.value)} autoComplete="new-password" style={inp}/>
             </div>
             {msg && (
               <div style={{
@@ -4402,7 +4453,9 @@ function Login({setUser,setPage}){
         <div style={{display:"flex",justifyContent:"center",marginBottom:20}}><Logo size={40}/></div>
         <h1 style={{color:C.dark,fontSize:24,fontWeight:800,marginBottom:6,textAlign:"center"}}>Iniciar sesión</h1>
         {getPostLoginPage() === "cita" ? (
-          <p style={{color:BRAND.primary,fontSize:14,marginBottom:28,textAlign:"center",lineHeight:1.5,fontWeight:600}}>Ingresá con tu correo o teléfono para agendar tu cita.</p>
+          <p style={{color:C.textMid,fontSize:14,marginBottom:28,textAlign:"center",lineHeight:1.5}}>
+            Ingresá con tu correo o teléfono para <strong style={{color:BRAND.primary}}>agendar tu cita</strong>.
+          </p>
         ) : (
           <p style={{color:C.mid,fontSize:14,marginBottom:28,textAlign:"center"}}>Accede a tus puntos, pedidos e historial</p>
         )}
@@ -4415,9 +4468,9 @@ function Login({setUser,setPage}){
             </p>
             <div style={{marginBottom:12}}>
               <div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Correo o teléfono</div>
-              <input value={recIdent} onChange={e=>setRecIdent(e.target.value)}
+              <input className="farmacapital-field-input" value={recIdent} onChange={e=>setRecIdent(e.target.value)}
                 onKeyDown={e=>e.key==="Enter"&&enviarRecuperar()} placeholder="tu@correo.com o 55XXXXXXXX" type="text"
-                style={{width:"100%",boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:C.white,color:C.dark,fontSize:16,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}/>
+                style={tiendaFieldStyle()}/>
             </div>
             {recMsg && (
               <div style={{
@@ -4436,15 +4489,15 @@ function Login({setUser,setPage}){
           <form className="farmacapital-login-form" autoComplete="on" onSubmit={(e)=>{ e.preventDefault(); entrar(); }}>
         <div style={{marginBottom:12}}>
           <div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Correo o teléfono</div>
-          <input name="username" autoComplete="username email" value={ident} onChange={e=>setIdent(e.target.value)}
+          <input className="farmacapital-field-input" name="username" autoComplete="username email" value={ident} onChange={e=>setIdent(e.target.value)}
             placeholder="tu@correo.com o 55XXXXXXXX" type="text"
-            style={{width:"100%",boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:C.white,color:C.dark,fontSize:16,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif",WebkitTextFillColor:C.dark,colorScheme:"light"}}/>
+            style={tiendaFieldStyle()}/>
         </div>
         <div style={{marginBottom:20}}>
           <div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Contraseña</div>
-          <input name="password" autoComplete="current-password" value={pwd} onChange={e=>setPwd(e.target.value)}
+          <input className="farmacapital-field-input" name="password" autoComplete="current-password" value={pwd} onChange={e=>setPwd(e.target.value)}
             placeholder="••••••••" type="password"
-            style={{width:"100%",boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:C.white,color:C.dark,fontSize:16,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif",WebkitTextFillColor:C.dark,colorScheme:"light"}}/>
+            style={tiendaFieldStyle()}/>
         </div>
         {error&&(
           <div style={{background:C.red+"10",border:`1px solid ${C.red}30`,borderRadius:8,padding:"10px 12px",marginBottom:12,color:C.red,fontSize:13,lineHeight:1.45}}>
@@ -4513,13 +4566,13 @@ function CambiarPwdCliente({user}) {
     setCarg(false);
   };
 
-  const inpS = {width:"100%",boxSizing:"border-box",padding:"8px 12px",borderRadius:8,border:`1px solid ${C.border}`,background:C.white,color:C.dark,fontSize:16,outline:"none",marginBottom:8};
+  const inpS = tiendaFieldStyle({ marginBottom: 8 });
 
   return(
     <div>
-      <input type="password" placeholder="Contraseña actual" value={pwdA} onChange={e=>setPwdA(e.target.value)} style={inpS} autoComplete="current-password"/>
-      <input type="password" placeholder={`Nueva contraseña (${PASSWORD_RULES_TEXT})`} value={pwdN} onChange={e=>setPwdN(e.target.value)} style={inpS} autoComplete="new-password"/>
-      <input type="password" placeholder="Confirmar nueva contraseña" value={pwdN2} onChange={e=>setPwdN2(e.target.value)} style={{...inpS,marginBottom:10}} autoComplete="new-password"/>
+      <input type="password" className="farmacapital-field-input" placeholder="Contraseña actual" value={pwdA} onChange={e=>setPwdA(e.target.value)} style={inpS} autoComplete="current-password"/>
+      <input type="password" className="farmacapital-field-input" placeholder={`Nueva contraseña (${PASSWORD_RULES_TEXT})`} value={pwdN} onChange={e=>setPwdN(e.target.value)} style={inpS} autoComplete="new-password"/>
+      <input type="password" className="farmacapital-field-input" placeholder="Confirmar nueva contraseña" value={pwdN2} onChange={e=>setPwdN2(e.target.value)} style={{...inpS,marginBottom:10}} autoComplete="new-password"/>
       {msg&&<div style={{padding:"8px 12px",borderRadius:8,marginBottom:8,fontSize:12,fontWeight:600,background:msg.ok?"#dcfce7":"#fee2e2",color:msg.ok?"#16a34a":"#dc2626"}}>{msg.txt}</div>}
       <Btn onClick={cambiar} col={BRAND.primary} sm dis={carg}>{carg?"Cambiando...":"Cambiar contraseña"}</Btn>
     </div>
@@ -4777,6 +4830,7 @@ function Cuenta({user,setPage,setUser}){
         <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:40,textAlign:"center"}}><div style={{fontSize:40,marginBottom:12}}>📅</div><div style={{color:C.mid,fontSize:15}}>No tienes citas agendadas</div><Btn onClick={()=>navigateToCita(setPage)} col={BRAND.primary} sm style={{marginTop:16}}>Agendar consulta médica</Btn></div>
       ):citas.map(c=>{
         const ev = etiquetaEstadoCitaCliente(c);
+        const pagoEv = labelEstadoPagoCita(c);
         const meds = lineasMedicamentosCita(c);
         const vit = lineasVitalsCita(c);
         const mostrarResumen = c.estado === "completada" || c.estado === "no_asistio";
@@ -4784,7 +4838,12 @@ function Cuenta({user,setPage,setUser}){
         <div key={c.id} style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:20,marginBottom:12}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
             <div><div style={{color:C.dark,fontWeight:700,fontSize:15}}>📅 Consulta médica</div><div style={{color:BRAND.primary,fontWeight:700,fontSize:14,marginTop:4}}>{c.fecha} · {c.hora} hrs</div></div>
-            <Tag col={ev.col} sm>{ev.label}</Tag>
+            <div style={{display:"flex",flexDirection:"column",gap:6,alignItems:"flex-end"}}>
+              <Tag col={ev.col} sm>{ev.label}</Tag>
+              {c.estado !== "completada" && c.estado !== "cancelada" && c.estado !== "no_asistio" && (
+                <Tag col={pagoEv.col} sm>{pagoEv.label}</Tag>
+              )}
+            </div>
           </div>
           {c.motivo&&<div style={{background:C.cardDark,borderRadius:8,padding:"8px 12px",color:C.mid,fontSize:13}}>Motivo: {c.motivo}</div>}
           {mostrarResumen && (
@@ -5168,6 +5227,22 @@ export default function TiendaFarmaCapital(){
       {showPopup&&<PopupBienvenida onClose={()=>setShowPopup(false)} setPage={setPage} precioConsulta={precioConsultaCfg} banner={popupBanner}/>}
 
       <Header page={page} setPage={setPage} cart={cart} user={user} setUser={setUser}/>
+
+      {(isSupabaseProductionMisconfigured || isSupabaseLocalMisconfigured) && (
+        <div style={{
+          background: "#fef3c7",
+          borderBottom: "1px solid #f59e0b",
+          color: "#92400e",
+          padding: "10px 16px",
+          fontSize: 13,
+          lineHeight: 1.45,
+          textAlign: "center",
+        }}>
+          {isSupabaseProductionMisconfigured
+            ? "La tienda no puede conectar con la base de datos (configuración del servidor). Avísale al administrador para revisar las variables de Supabase en Vercel."
+            : "Modo desarrollo sin Supabase configurado: la tienda se ve, pero catálogo y login no cargarán hasta poner REACT_APP_SUPABASE_* en .env."}
+        </div>
+      )}
 
       <div className="farmacapital-tienda-shell" style={{width:"100%",minHeight:"min-content"}}>
         <main style={{background:C.bg}}>

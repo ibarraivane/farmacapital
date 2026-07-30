@@ -14,6 +14,9 @@ import ExpedientesDoctora from "./modules/clinical/patients/ExpedientesDoctora";
 import { loadAdminNavOrder } from "./utils/adminNavOrder";
 import { puedeVerModulo, modulosPermitidosParaRol } from "./utils/permissions";
 import { adminPathnameToPageId, pageIdToAdminPath, pathnameSuggestsPosTab } from "./shared/adminRoutes";
+import useStaffAlerts from "./hooks/useStaffAlerts";
+import StaffAlertBanner from "./components/staff/StaffAlertBanner";
+import TurnoScreen from "./modules/staff/TurnoScreen";
 import { initBillingListeners } from "./modules/billing/core/initBillingListeners";
 import { canAccessRoute } from "./core/security/routeGuard";
 import ImageUploader from "./components/ImageUploader";
@@ -1814,23 +1817,33 @@ export default function FarmaCapitalAdmin(){
       if(e.data?.type==="SYNC_COMPLETE"){
         showToast(`✅ ${e.data.count} registros sincronizados (${e.data.entity})`,"success");
       }
+      if (e.data?.type === "FC_NOTIFICATION_CLICK" && e.data.url) {
+        try {
+          const path = String(e.data.url).replace(/^https?:\/\/[^/]+/i, "") || "/admin";
+          const pageId = adminPathnameToPageId(path);
+          if (pageId) setPageAndSave(pageId);
+        } catch (_) { /* noop */ }
+      }
     };
     navigator.serviceWorker?.addEventListener("message", handler);
     return ()=>navigator.serviceWorker?.removeEventListener("message", handler);
   },[usuario]);
 
   // ── M4: Función para mostrar notificación push manual ──────
-  const pushNotif = (titulo, cuerpo, url="/admin") => {
-    if("Notification" in window && Notification.permission==="granted"){
-      if(navigator.serviceWorker.controller){
+  const pushNotif = useCallback((titulo, cuerpo, url = "/admin") => {
+    if ("Notification" in window && Notification.permission === "granted") {
+      if (navigator.serviceWorker.controller) {
         navigator.serviceWorker.controller.postMessage({
-          type:"SHOW_NOTIFICATION", titulo, cuerpo, url
+          type: "SHOW_NOTIFICATION",
+          titulo,
+          cuerpo,
+          url,
         });
       } else {
-        new Notification(titulo,{ body:cuerpo, icon:"/icons/farmacapital-192.png" });
+        new Notification(titulo, { body: cuerpo, icon: "/icons/farmacapital-192.png" });
       }
     }
-  };
+  }, []);
 
   // ── Verificar solicitudes de reset pendientes ──────────────
   useEffect(()=>{
@@ -1923,6 +1936,44 @@ export default function FarmaCapitalAdmin(){
     setNotifs(p=>p.filter(x=>x.id!==n.id));
   },[]);
 
+  const onStaffAlertNew = useCallback(
+    (alert) => {
+      addNotif(alert.titulo, `${alert.subtitulo} · ${alert.detalle}`, alert.icon, alert.col);
+    },
+    [addNotif]
+  );
+
+  const {
+    alerts: staffAlerts,
+    activeAlert: staffActiveAlert,
+    attendAlert: staffAttendAlert,
+    snoozeAlert: staffSnoozeAlert,
+    dismissAlert: staffDismissAlert,
+  } = useStaffAlerts({
+    enabled: !!usuario && page !== "turno",
+    pushNotif,
+    onNewAlert: onStaffAlertNew,
+  });
+
+  const handleAttendStaffAlert = useCallback(
+    (alert) => {
+      if (!alert?.key) return;
+      staffAttendAlert(alert.key);
+      if (alert.type === "pedido") {
+        try {
+          sessionStorage.setItem("farmacapital_pos_tab", "online");
+        } catch (_) { /* noop */ }
+        setPageAndSave("ped_online");
+      } else {
+        try {
+          sessionStorage.setItem("farmacapital_pos_tab", "consultas");
+        } catch (_) { /* noop */ }
+        setPageAndSave("cons_cobro");
+      }
+    },
+    [staffAttendAlert, setPageAndSave]
+  );
+
   useEffect(()=>{
     if(!usuario) return;
     const ch=supabase.channel("farmacapital-rt")
@@ -1937,21 +1988,11 @@ export default function FarmaCapitalAdmin(){
           );
           showToast(`🔑 Solicitud de reset: ${req.email_o_telefono}`,"warning");
         })
-      .on("postgres_changes",{event:"INSERT",schema:"public",table:"pedidos"},
-        pl=>{
-          const row = pl.new;
-          if (!row || row.estado !== "pendiente" || !esPedidoTiendaWebPendiente(row)) return;
-          addNotif("🛒 Nuevo pedido online",`Pedido #${row.id} · $${parseFloat(row.total||0).toFixed(2)}`,"🛒","#0D1B2A");
-          pushNotif("🛒 Nuevo pedido online",`Pedido #${row.id} · $${parseFloat(row.total||0).toFixed(2)} · Pendiente de surtir`,"/admin");
-        })
-      .on("postgres_changes",{event:"INSERT",schema:"public",table:"citas"},
-        pl=>{ addNotif("📅 Nueva cita",`${pl.new?.nombre||"Paciente"} · ${pl.new?.fecha||""} ${pl.new?.hora||""}`,"📅","#7c3aed");
-          pushNotif("📅 Nueva cita agendada",`${pl.new?.nombre||"Paciente"} · ${pl.new?.fecha||""} ${pl.new?.hora||""}`,"/admin"); })
       .on("postgres_changes",{event:"UPDATE",schema:"public",table:"pedidos"},
         pl=>{ if(pl.new?.estado==="listo") addNotif("✅ Pedido listo",`Pedido #${pl.new.id} listo para entrega`,"✅","#16a34a"); })
       .subscribe();
     return ()=>supabase.removeChannel(ch);
-  },[usuario,addNotif]);
+  },[usuario,addNotif, pushNotif]);
   const [neg,setNeg]     = useState("farmacia");
   const [alertas,setAlr] = useState({stock:0,pedidos:0,citas:0});
 
@@ -2068,6 +2109,7 @@ export default function FarmaCapitalAdmin(){
 
     switch(page){
       case "midia":     return <MiDia usuario={usuario} setPage={setPageAndSave}/>;
+      case "turno":     return <TurnoScreen setPage={setPageAndSave} pushNotif={pushNotif}/>;
       case "dash":      return <DashboardModule usuario={usuario} setPage={setPageAndSave} showConfirm={showConfirm}/>;
       case "pos":
         if (!canAccessRoute(usuario.rol, "/pos")) {
@@ -2103,6 +2145,15 @@ export default function FarmaCapitalAdmin(){
   return(
     <>
     <GlobalHoverStyles/>
+    {usuario && page !== "turno" && staffActiveAlert && (
+      <StaffAlertBanner
+        alert={staffActiveAlert}
+        queueCount={staffAlerts.length}
+        onAttend={handleAttendStaffAlert}
+        onSnooze={(a, m) => staffSnoozeAlert(a.key, m)}
+        onDismiss={() => staffDismissAlert(staffActiveAlert.key)}
+      />
+    )}
     <NotificacionesToast notifs={notifs} onDismiss={dismissNotif} onAction={handleNotifAction}/>
     <PasswordResetSolicitudesModal open={passwordResetOpen} onClose={()=>setPasswordResetOpen(false)}/>
     <ToastProvider/>

@@ -1,20 +1,4 @@
-/* Chrome/Safari autofill: evita la franja gris/amarilla al guardar credenciales */
-input:-webkit-autofill,
-input:-webkit-autofill:hover,
-input:-webkit-autofill:focus,
-textarea:-webkit-autofill,
-textarea:-webkit-autofill:hover,
-textarea:-webkit-autofill:focus,
-select:-webkit-autofill,
-select:-webkit-autofill:hover,
-select:-webkit-autofill:focus {
-  -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
-  box-shadow: 0 0 0 1000px #ffffff inset !important;
-  -webkit-text-fill-color: #0f172a !important;
-  caret-color: #0f172a;
-  transition: background-color 99999s ease-out 0s;
-}
-
+@keyframes pulse {
   0%, 100% { opacity: 0.5; }
   50% { opacity: 1; }
 }
@@ -42,8 +26,6 @@ body {
   max-width: 100%;
 }
 
-/* Evitar touch-action global en todos los nodos: en iOS puede interferir con el scroll natural. */
-
 #root {
   overflow-x: clip;
   max-width: 100%;
@@ -60,7 +42,32 @@ code {
     monospace;
 }
 
-/* ConfirmDialog: apilar acciones en móvil estrecho */
+/* Inputs tienda/admin: fondo blanco y texto oscuro (incl. autofill Chrome/Safari) */
+.farmacapital-field-input {
+  color-scheme: light;
+}
+
+.farmacapital-field-input,
+.farmacapital-field-select,
+textarea.farmacapital-field-input {
+  color-scheme: light;
+}
+
+.farmacapital-field-input:-webkit-autofill,
+.farmacapital-field-input:-webkit-autofill:hover,
+.farmacapital-field-input:-webkit-autofill:focus,
+.farmacapital-field-input:-webkit-autofill:active,
+.farmacapital-field-select:-webkit-autofill,
+.farmacapital-field-select:-webkit-autofill:hover,
+.farmacapital-field-select:-webkit-autofill:focus,
+.farmacapital-field-select:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+  box-shadow: 0 0 0 1000px #ffffff inset !important;
+  -webkit-text-fill-color: #0f172a !important;
+  caret-color: #0f172a;
+  transition: background-color 99999s ease-out 0s;
+}
+
 @media (max-width: 420px) {
   .farmacapital-confirm-actions {
     flex-direction: column;

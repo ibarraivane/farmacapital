@@ -42,20 +42,36 @@ export function ExpedientePaciente({ telefono, nombre, onVerCita }) {
         setLoading(false);
         return;
       }
-      const { data } = await supabase
-        .from("citas")
-        .select(`
-          id, nombre, telefono, fecha, hora, motivo, estado,
-          diagnostico, notas_medico, medicamentos_prescritos,
-          signos_vitales, expediente_json, procedimientos_realizados,
-          duracion_consulta_segundos, confirmada_inicio_at, consulta_fin_at,
-          ingreso_doctor, precio_consulta_cobrado,
-          consumibles_consulta(precio, cantidad, cobrado, nombre, producto_id)
-        `)
-        .eq("telefono", telefono)
-        .order("fecha", { ascending: false })
-        .order("hora", { ascending: false });
-      setCitas(data || []);
+      const tok = sessionStorage.getItem("farmacapital_session_token");
+      if (!tok) {
+        setCitas([]);
+        setLoading(false);
+        return;
+      }
+      const { data, error } = await supabase.rpc("empleado_listar_citas_expediente_paciente", {
+        p_session_token: tok,
+        p_telefono: telefono,
+      });
+      if (error) {
+        console.error("[ExpedientePaciente]", error);
+        const { data: fb } = await supabase
+          .from("citas")
+          .select(`
+            id, nombre, telefono, fecha, hora, motivo, estado, pago_estado,
+            diagnostico, notas_medico, medicamentos_prescritos,
+            signos_vitales, expediente_json, procedimientos_realizados,
+            duracion_consulta_segundos, confirmada_inicio_at, consulta_fin_at,
+            ingreso_doctor, precio_consulta_cobrado,
+            consumibles_consulta(precio, cantidad, cobrado, nombre, producto_id)
+          `)
+          .eq("telefono", telefono)
+          .neq("estado", "cancelada")
+          .order("fecha", { ascending: false })
+          .order("hora", { ascending: false });
+        setCitas(fb || []);
+      } else {
+        setCitas(Array.isArray(data) ? data : []);
+      }
       setLoading(false);
     })();
   }, [telefono]);

@@ -3,7 +3,7 @@ import { C_LIGHT, BRAND } from "../../constants";
 import { supabase } from "../../supabase";
 import { nombreCompletoPacienteValido, telefonoMxValido } from "../../utils";
 import { Box, Tag, Btn, KPI, Modal, showToast, SkeletonKPIs, SkeletonTable, Inp } from "../../ui";
-import { citaPagoPendiente, citaPagoOk, labelCanal } from "../../utils/consultaConstants";
+import { citaPagoPendiente, citaPagoOk, labelCanal, labelEstadoPagoCita, franjaAgendaStyle } from "../../utils/consultaConstants";
 import { fetchProductosConsumiblesConsultorio } from "../../utils/consumiblesConsultorio";
 import { CitaFichaModal } from "./CitaFichaDoctora";
 import {
@@ -62,18 +62,16 @@ function buildMonthCells(year, month0) {
 function etiquetaEstadoVisual(cita) {
   if (!cita || cita.estado === "cancelada") return { key: "cancelada", label: "Cancelada", col: C.red };
   if (cita.estado === "no_asistio") return { key: "no_asistio", label: "No asistió", col: C.textDim };
-  if (cita.estado === "pagada" || cita.pago_estado === "pagada") return { key: "pagada", label: "Pagada", col: C.purple };
   if (cita.estado === "completada" && citaPagoPendiente(cita)) {
     return { key: "pendiente_cobro", label: "Pendiente de cobro", col: C.amber };
   }
   if (cita.estado === "completada") return { key: "atendida", label: "Atendida", col: C.green };
   if (cita.estado === "en_consulta") return { key: "en_sala", label: "En consulta", col: C.amber };
   if (cita.estado === "agendada") {
-    if (citaPagoOk(cita)) return { key: "lista_pagada", label: "Pagada (lista de espera)", col: C.green };
-    return { key: "espera_pago", label: "En espera de pago", col: C.amber };
+    return { key: "agendada", label: "Agendada", col: C.blue };
   }
-  if (cita.estado === "confirmada" && citaPagoOk(cita)) return { key: "confirmada", label: "Confirmada · pagada", col: C.blue };
-  if (cita.estado === "confirmada") return { key: "agendada", label: "Agendada (sin pago)", col: C.textMid };
+  if (cita.estado === "confirmada") return { key: "confirmada", label: "Confirmada", col: C.blue };
+  if (cita.estado === "pagada") return { key: "pagada_legacy", label: "Pagada", col: C.green };
   return { key: "otro", label: cita.estado || "—", col: C.textDim };
 }
 
@@ -717,6 +715,10 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
               <Tag col={etiquetaEstadoVisual(detalleSimple).col} sm>
                 {etiquetaEstadoVisual(detalleSimple).label}
               </Tag>
+              {(() => {
+                const ep = labelEstadoPagoCita(detalleSimple);
+                return <Tag col={ep.col} sm>{ep.label}</Tag>;
+              })()}
               {detalleSimple.canal && (
                 <Tag col={C.blue} sm>
                   {labelCanal(detalleSimple)}
@@ -939,6 +941,7 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
                 ocupada &&
                 accionPrincipalDoctora?.cita?.id != null &&
                 Number(accionPrincipalDoctora.cita.id) === Number(ocupada.id);
+              const franja = franjaAgendaStyle(ocupada, { libre, focoAccion, C, BRAND });
               return (
                 <div
                   key={hora}
@@ -949,11 +952,9 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
                     alignItems: "stretch",
                     padding: 10,
                     borderRadius: 10,
-                    border: focoAccion
-                      ? `2px solid ${BRAND.primary}`
-                      : `1px solid ${ocupada ? ev.col + "55" : C.border}`,
-                    background: ocupada ? C.card : libre ? C.greenDim : C.bg,
-                    boxShadow: focoAccion ? "0 0 0 3px " + BRAND.primary + "22" : undefined,
+                    background: franja.background,
+                    border: franja.border,
+                    boxShadow: franja.boxShadow,
                   }}
                 >
                   <div style={{ fontWeight: 800, color: BRAND.primary, fontSize: 15 }}>{hora}</div>
@@ -987,6 +988,10 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
                             <Tag col={ev.col} sm>
                               {ev.label}
                             </Tag>
+                            {(() => {
+                              const ep = labelEstadoPagoCita(ocupada);
+                              return <Tag col={ep.col} sm>{ep.label}</Tag>;
+                            })()}
                             {ocupada.canal && (
                               <Tag col={C.blue} sm>
                                 {labelCanal(ocupada)}

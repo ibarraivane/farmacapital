@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useMediaQuery } from "../../../hooks/useMediaQuery";
 import TicketPreviewModal from "../../../components/tickets/TicketPreviewModal";
 import MercadoPagoModal from "../../../components/MercadoPagoModal";
@@ -9,7 +9,15 @@ import { C_LIGHT, BRAND } from "../../../constants";
 import { $, logAudit, soloDigitosTel, normalizeForSearch } from "../../../utils";
 import { tiendaProductMatchesBusqueda, tiendaCatalogSearchSuggestions, tiendaSearchRelevanceRank } from "../../../utils/fuzzySearch";
 import { Box, Tag, Btn, Inp, Modal, showToast, SearchDropdown, SkeletonTable } from "../../../ui";
-import { CONSULTA_PRECIO_DEFAULT, CONSULTA_PARTE_DOCTOR, citaPagoPendiente, labelCanal } from "../../../utils/consultaConstants";
+import {
+  CONSULTA_PRECIO_DEFAULT,
+  CONSULTA_PARTE_DOCTOR,
+  citaPagoPendiente,
+  citaEstaPagada,
+  labelCanal,
+  labelEstadoPagoCita,
+  citaRelevanteParaResumenPOS,
+} from "../../../utils/consultaConstants";
 import { puedeCancelarCitaNoShow } from "../../../utils/citasAgenda";
 import { esPedidoTiendaWebPendiente, fetchPedidosTiendaPendientesMerged } from "../../../utils/pedidosTiendaWeb";
 import { desgloseCambioMN, sugerenciasPagoCliente } from "../../../utils/cambioCaja";
@@ -18,6 +26,7 @@ import OnboardingTour from "../../../components/OnboardingTour";
 import { TOURS } from "../../../utils/tours";
 import { labelTipoEntregaPedido, resumenLogisticsMeta } from "../../../utils/orderChannels";
 import { buildOnlineOrderReceiptMessage, formatFolioOnline, openWhatsAppToCustomer } from "../../../utils/orderReceiptWhatsApp";
+import { formatTelefonoDisplay } from "../../../utils/citaWhatsApp";
 import { configRowsToMap, mergeFarmaciaConfig, FARMACIA_FISCAL } from "../../../constants/farmaciaFiscal";
 
 const PEDIDOS_TIENDA_SELECT_POS = `
@@ -72,11 +81,14 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const [rx,setRx]           = useState({receta:"",medico:"",cedula:"",paciente:"",indicaciones:""});
   const [pedOnline,setPedOn] = useState([]);
   const [pedOnlineHist,setPedOnHist] = useState([]);
+  /** Todas las citas en ventana (para resumen de estado de pago). */
+  const [citasVentana, setCitasVentana] = useState([]);
   /** Citas con consulta o consumibles pendientes de cobro en caja (agendadas en línea o en Agenda de consultas). */
   const [consxCobrar,setConsCobrar] = useState([]);
   const [consultaTelById, setConsultaTelById] = useState({});
   const [consultaCliById, setConsultaCliById] = useState({});
   const [consultaPayById, setConsultaPayById] = useState({});
+  const [consultaMontoById, setConsultaMontoById] = useState({});
   const [cliSearchItems, setCliSearchItems] = useState([]);
   const [loading,setLoad]    = useState(false);
   const [guardando,setGuard] = useState(false);
@@ -103,6 +115,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const [recetaOrigenSel, setRecetaOrigenSel] = useState("no_aplica");
   /** Si no es null, el modal MP cobra esa cita (no venta de carrito). */
   const mpCitaRef = useRef(null);
+  const bbvaCitaRef = useRef(null);
   const [ventasDia,setVentasDia] = useState({total:0,count:0});
   const [folioActual,setFolioActual] = useState("VTA-00000000");
   const [promoTicket,setPromoTicket] = useState(null);
@@ -140,6 +153,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const refrescarCitasPOS = useCallback(async () => {
     const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) {
+      setCitasVentana([]);
       setConsCobrar([]);
       return;
     }
@@ -159,10 +173,12 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     });
     if (error) {
       console.error("[POS] Citas:", error);
+      setCitasVentana([]);
       setConsCobrar([]);
       return;
     }
     const citas = Array.isArray(data) ? data : [];
+    setCitasVentana(citas);
     setConsCobrar(
       citas.filter((c) => {
         const pendientePago = citaPagoPendiente(c);
@@ -171,6 +187,26 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       })
     );
   }, []);
+
+  const hoySvPos = useMemo(
+    () => new Date().toLocaleDateString("sv-SE"),
+    []
+  );
+
+  const citasResumenPos = useMemo(
+    () =>
+      (citasVentana || [])
+        .filter((c) => citaRelevanteParaResumenPOS(c, { hoySv: hoySvPos }))
+        .sort((a, b) => {
+          const fa = `${a.fecha || ""} ${a.hora || ""}`;
+          const fb = `${b.fecha || ""} ${b.hora || ""}`;
+          return fa.localeCompare(fb);
+        }),
+    [citasVentana, hoySvPos]
+  );
+
+  const consPendientesCount = consxCobrar.length;
+  const consPagadasCount = citasResumenPos.filter((c) => citaEstaPagada(c)).length;
 
   const recargarPedidosOnline = useCallback(async () => {
     try {
@@ -207,6 +243,63 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     if (tab !== "online") return;
     recargarPedidosOnline();
   }, [tab, recargarPedidosOnline]);
+
+  /** Actualización automática: citas siempre; pedidos online en su pestaña (cada 30 s). */
+  useEffect(() => {
+    const tick = () => {
+      refrescarCitasPOS();
+      if (tab === "online") recargarPedidosOnline();
+    };
+    tick();
+    const iv = setInterval(tick, 30000);
+    const onVis = () => {
+      if (document.visibilityState === "visible") tick();
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      clearInterval(iv);
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, [tab, refrescarCitasPOS, recargarPedidosOnline]);
+
+  /** Citas en línea ya traen teléfono: vincular cliente automáticamente para puntos/ticket. */
+  useEffect(() => {
+    const pendientes = (consxCobrar || []).filter((c) => String(c.telefono || "").trim());
+    if (!pendientes.length) return;
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    if (!tok) return;
+    let cancelled = false;
+    pendientes.forEach((cita) => {
+      const key = String(cita.id);
+      if (consultaCliById[key]) return;
+      void (async () => {
+        try {
+          const { data, error } = await supabase.rpc("empleado_buscar_clientes_pos", {
+            p_session_token: tok,
+            p_busqueda: cita.telefono,
+            p_limit: 5,
+          });
+          if (cancelled || error) return;
+          const rows = Array.isArray(data) ? data : [];
+          const match =
+            rows.find((r) => soloDigitosTel(r.telefono) === soloDigitosTel(cita.telefono)) ||
+            rows[0] ||
+            null;
+          if (match) {
+            setConsultaCliById((prev) => ({ ...prev, [key]: match }));
+            setConsultaTelById((prev) => ({ ...prev, [key]: match.telefono || cita.telefono }));
+          } else {
+            setConsultaTelById((prev) => ({ ...prev, [key]: cita.telefono }));
+          }
+        } catch (e) {
+          console.warn("[POS] cliente cita:", e);
+        }
+      })();
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [consxCobrar, consultaCliById]);
 
   useEffect(() => {
     const raw = (tel || "").trim();
@@ -295,7 +388,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       } catch (e) {
         console.error("[POS] Excepción cargando datos:", e);
         if (typeof setLoadErr === "function") setLoadErr("Error inesperado cargando datos. Revisa consola.");
-        setProds([]); setPedOn([]); setPedOnHist([]); setConsCobrar([]);
+        setProds([]); setPedOn([]); setPedOnHist([]); setCitasVentana([]); setConsCobrar([]);
       } finally {
         setLoad(false);
       }
@@ -328,6 +421,15 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       return changed ? next : prev;
     });
     setConsultaPayById((prev) => {
+      const next = {};
+      let changed = false;
+      for (const [k, v] of Object.entries(prev || {})) {
+        if (ids.has(String(k))) next[k] = v;
+        else changed = true;
+      }
+      return changed ? next : prev;
+    });
+    setConsultaMontoById((prev) => {
       const next = {};
       let changed = false;
       for (const [k, v] of Object.entries(prev || {})) {
@@ -886,12 +988,18 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     setGuard(false);
   };
 
+  const mapMetodoPagoConsulta = (raw) => {
+    const DB_METODO_MAP = { bbva_terminal: "tarjeta", mercadopago_point: "tarjeta" };
+    return DB_METODO_MAP[raw] ?? raw ?? "efectivo";
+  };
+
   const cobrarConsulta = async (cita, opts = {}) => {
     setGuard(true);
     try {
       const tok = sessionStorage.getItem("farmacapital_session_token");
       if (!tok) throw new Error("Sesión expirada");
-      const metodoPago = opts.metodoPago || "efectivo";
+      const metodoPagoRaw = opts.metodoPago || "efectivo";
+      const metodoPago = mapMetodoPagoConsulta(metodoPagoRaw);
       const clienteSel = opts.clienteSel || null;
       const precioBase = parseFloat(config?.precio_consulta) || CONSULTA_PRECIO_DEFAULT;
       const yaPagoConsulta =
@@ -912,14 +1020,28 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       const consumibles = (cita.consumibles_consulta || []).filter((c) => !c.cobrado);
       const baseCobrar = yaPagoConsulta ? 0 : precioBase;
       const totalFinal = Number(resp.total_final ?? resp.total ?? 0);
+      const recEf =
+        metodoPago === "efectivo" && opts.montoRecibido != null
+          ? parseFloat(opts.montoRecibido)
+          : null;
+      const cambioEf =
+        metodoPago === "efectivo" && Number.isFinite(recEf)
+          ? Math.round(Math.max(0, recEf - totalFinal) * 100) / 100
+          : null;
+      const desgloseEf =
+        metodoPago === "efectivo" && cambioEf != null && cambioEf > 0
+          ? desgloseCambioMN(cambioEf)
+          : "";
 
       await refrescarCitasPOS();
       const itemsConsulta =
         baseCobrar > 0
           ? [{ nombre: "Consulta médica", qty: 1, precio: precioBase }]
           : [];
+      const pedidoId = resp.pedido_id || Date.now();
       setTicket({
-        id: resp.pedido_id || Date.now(),
+        id: pedidoId,
+        folio: `VTA-${String(pedidoId).padStart(8, "0")}`,
         items: [
           ...itemsConsulta,
           ...consumibles.map((c) => ({
@@ -930,16 +1052,53 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         ],
         sub: totalFinal,
         total: totalFinal,
-        pay: paymentLabel(metodoPago),
+        pay: paymentLabel(metodoPagoRaw),
         cli: clienteSel,
         ptsG: Math.floor(totalFinal / 10),
+        ...(metodoPago === "efectivo" && Number.isFinite(recEf)
+          ? { recibido: recEf, cambio: cambioEf, cambioDesglose: desgloseEf }
+          : {}),
       });
+      setConsultaMontoById((prev) => {
+        const next = { ...prev };
+        delete next[String(cita.id)];
+        return next;
+      });
+      showToast("Consulta cobrada correctamente", "success");
       setTimeout(() => printTicket("farmacapital-ticket"), 500);
     } catch (e) {
       console.error(e);
       alert("No se pudo cobrar la consulta: " + (e?.message || e));
     }
     setGuard(false);
+  };
+
+  const iniciarCobroConsulta = (cita, payConsulta, cliConsulta, totalCobro) => {
+    const citaKey = String(cita.id);
+    if (payConsulta === "efectivo") {
+      const rec = parseMontoEfectivo(consultaMontoById[citaKey] || "");
+      if (!Number.isFinite(rec) || rec < totalCobro) {
+        showToast(`Indica cuánto te entregó el cliente en efectivo (mínimo ${$(totalCobro)}).`, "warning");
+        return;
+      }
+      cobrarConsulta(cita, {
+        metodoPago: payConsulta,
+        clienteSel: cliConsulta,
+        montoRecibido: rec,
+      });
+      return;
+    }
+    if (payConsulta === "tarjeta") {
+      mpCitaRef.current = cita;
+      setMpFolio(`CONS-${cita.id}`);
+      setMpModal(true);
+      return;
+    }
+    if (payConsulta === "bbva_terminal") {
+      bbvaCitaRef.current = cita;
+      setBbvaFolio(`CONS-${cita.id}`);
+      setBbvaModal(true);
+    }
   };
 
   const renderPosCarritoVentaInner = () => (
@@ -1238,7 +1397,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
           marginRight: isMobilePos ? -4 : 0,
           width: isMobilePos ? "100%" : undefined,
         }}>
-          {[["venta","Venta"],["online",`Online (${pedOnline.length})`],["consultas",`Consultas (${consxCobrar.length})`]].map(([v,l])=>(
+          {[["venta","Venta"],["online",`Online (${pedOnline.length})`],["consultas",`Consultas${consPendientesCount ? ` (${consPendientesCount})` : ""}`]].map(([v,l])=>(
             <button key={v} type="button" onClick={()=>setTab(v)} style={{
               padding:isMobilePos ? "8px 12px" : "6px 12px",
               borderRadius:8,
@@ -1361,16 +1520,30 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       {/* Terminal BBVA Modal */}
       <BBVATerminalModal
         open={bbvaModal}
-        total={total}
-        folio={bbvaFolio}
+        total={bbvaCitaRef.current ? totalCobroConsulta(bbvaCitaRef.current) : total}
+        folio={bbvaCitaRef.current ? `CONS-${bbvaCitaRef.current.id}` : bbvaFolio}
         hint="Ingresa el monto en la terminal física BBVA, procesa la tarjeta del cliente y confirma aquí el resultado del voucher."
         onSuccess={async () => {
           setBbvaModal(false);
-          const ro = recetaOrigenPendienteRef.current || "no_aplica";
-          recetaOrigenPendienteRef.current = "no_aplica";
-          await ejecutarCobrar(ro, "bbva_terminal");
+          const citaBbva = bbvaCitaRef.current;
+          bbvaCitaRef.current = null;
+          if (citaBbva) {
+            const citaKey = String(citaBbva.id);
+            await cobrarConsulta(citaBbva, {
+              metodoPago: "bbva_terminal",
+              clienteSel: consultaCliById[citaKey] || null,
+            });
+          } else {
+            const ro = recetaOrigenPendienteRef.current || "no_aplica";
+            recetaOrigenPendienteRef.current = "no_aplica";
+            await ejecutarCobrar(ro, "bbva_terminal");
+          }
         }}
-        onCancel={() => { setBbvaModal(false); recetaOrigenPendienteRef.current = "no_aplica"; }}
+        onCancel={() => {
+          setBbvaModal(false);
+          bbvaCitaRef.current = null;
+          recetaOrigenPendienteRef.current = "no_aplica";
+        }}
       />
 
       {ticket&&<TicketPreviewModal
@@ -2014,10 +2187,19 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
             <Btn sm col={BRAND.primary} onClick={()=>onNavigate?.("agenda")}>Ir a agenda →</Btn>
           </div>
 
-          <div style={{color:C.text,fontWeight:800,fontSize:14,marginBottom:10}}>💳 Cobrar en caja</div>
-          <div style={{color:C.textMid,fontSize:12,marginBottom:14}}>Citas con consulta o consumibles pendientes de cobro (ventana de fechas cercana). Si pasaron 10 min del inicio sin pago, puedes usar <em>Cancelar (no asistió)</em> en la tarjeta.</div>
+          <div style={{display:"flex",gap:10,marginBottom:16,flexWrap:"wrap"}}>
+            {[["⏳ Por cobrar", consPendientesCount, C.amber], ["✅ Pagadas (ventana)", consPagadasCount, C.green]].map(([lbl, val, col]) => (
+              <div key={lbl} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"10px 16px",minWidth:120}}>
+                <div style={{color:col,fontWeight:900,fontSize:22}}>{val}</div>
+                <div style={{color:C.textMid,fontSize:11}}>{lbl}</div>
+              </div>
+            ))}
+          </div>
 
-          {!consxCobrar.length?<div style={{color:C.textMid,padding:24,textAlign:"center"}}>✓ Nada pendiente de cobro en caja</div>:
+          <div style={{color:C.text,fontWeight:800,fontSize:14,marginBottom:10}}>💳 Cobrar en caja</div>
+          <div style={{color:C.textMid,fontSize:12,marginBottom:14}}>Citas con consulta o consumibles pendientes de cobro. Al pagar, el estado cambia a <strong style={{color:C.green}}>Pagada</strong> en la lista de abajo. Si pasaron 10 min del inicio sin pago, puedes usar <em>Cancelar (no asistió)</em>.</div>
+
+          {!consxCobrar.length?<div style={{color:C.textMid,padding:24,textAlign:"center",background:C.bg,borderRadius:10,border:`1px solid ${C.border}`,marginBottom:20}}>✓ Nada pendiente de cobro en caja</div>:
            consxCobrar.map(cita=>{
             const citaKey = String(cita.id);
             const precioBase = parseFloat(config?.precio_consulta) || CONSULTA_PRECIO_DEFAULT;
@@ -2029,13 +2211,20 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
             const telConsulta = consultaTelById[citaKey] ?? "";
             const cliConsulta = consultaCliById[citaKey] ?? null;
             const payConsulta = consultaPayById[citaKey] ?? "efectivo";
+            const montoConsulta = consultaMontoById[citaKey] ?? "";
+            const recConsultaNum = parseMontoEfectivo(montoConsulta);
+            const cambioConsultaNum =
+              payConsulta === "efectivo" && Number.isFinite(recConsultaNum)
+                ? Math.round(Math.max(0, recConsultaNum - totalCobro) * 100) / 100
+                : null;
+            const pagoTag = labelEstadoPagoCita(cita);
             return(
               <Box key={cita.id} style={{padding: isNarrow ? 14 : 20,marginBottom:12,minWidth:0}}>
                 <div style={{display:"flex",justifyContent:"space-between",marginBottom:12,flexWrap:"wrap",gap:10}}>
                   <div>
                     <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
                       <div style={{color:C.text,fontWeight:800,fontSize:15}}>Consulta — {cita.nombre}</div>
-                      {citaPagoPendiente(cita) && <Tag col={C.amber} sm>Pendiente de pago</Tag>}
+                      <Tag col={pagoTag.col} sm>{pagoTag.label}</Tag>
                       {cita.canal && <Tag col={C.blue} sm>{labelCanal(cita)}</Tag>}
                     </div>
                     <div style={{color:C.textMid,fontSize:12,marginTop:2}}>
@@ -2061,46 +2250,148 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                     ))}
                   </div>
                 )}
-                <SearchDropdown
-                  value={telConsulta}
-                  onChange={(v)=>setConsultaTelById((prev)=>({ ...prev, [citaKey]: v }))}
-                  onSelect={(c)=>{
-                    setConsultaTelById((prev)=>({ ...prev, [citaKey]: c.telefono || "" }));
-                    setConsultaCliById((prev)=>({ ...prev, [citaKey]: c }));
-                  }}
-                  placeholder="📱 Teléfono o nombre del cliente"
-                  items={cliSearchItems}
-                  labelKey="nombre"
-                  subKey="telefono"
-                  badgeKey="puntos"
-                  badgeCol="#7c3aed"
-                  style={{width:"100%",boxSizing:"border-box",marginBottom:8}}
-                  emptyMsg="Sin coincidencias · prueba más dígitos o el nombre"
-                />
-                {cliConsulta&&<div style={{background:C.purpleDim,border:`1px solid ${C.purple}30`,borderRadius:6,padding:"6px 10px",marginBottom:8}}><span style={{color:C.purple,fontSize:11,fontWeight:700}}>{cliConsulta.nombre} · {cliConsulta.puntos||0} pts</span></div>}
-                <div style={{display:"flex",gap:6,marginBottom:10,flexWrap:"wrap"}}>
-                  {[["efectivo","Efectivo"],["tarjeta","Tarjeta (Point)"]].map(([v,l])=>(
-                    <button key={v} type="button" onClick={()=>setConsultaPayById((prev)=>({ ...prev, [citaKey]: v }))} style={{padding:"4px 10px",borderRadius:20,border:`1px solid ${payConsulta===v?C.green:C.border}`,background:payConsulta===v?C.greenDim:"transparent",color:payConsulta===v?C.green:C.textMid,fontSize:10,fontWeight:700,cursor:"pointer"}}>{l}</button>
-                  ))}
-                </div>
+                {String(cita.telefono || "").trim() ? (
+                  <div
+                    style={{
+                      background: C.blueDim,
+                      border: `1px solid ${C.blue}25`,
+                      borderRadius: 8,
+                      padding: "10px 12px",
+                      marginBottom: 8,
+                    }}
+                  >
+                    <div style={{ color: C.textDim, fontSize: 10, letterSpacing: 1, marginBottom: 4 }}>
+                      PACIENTE (CITA EN LÍNEA)
+                    </div>
+                    <div style={{ color: C.text, fontWeight: 800, fontSize: 14 }}>{cita.nombre}</div>
+                    <div style={{ color: C.blue, fontWeight: 700, fontSize: 13, marginTop: 4 }}>
+                      📱 {formatTelefonoDisplay(cita.telefono)}
+                    </div>
+                    {cliConsulta ? (
+                      <div style={{ color: C.purple, fontSize: 11, fontWeight: 700, marginTop: 6 }}>
+                        ⭐ {cliConsulta.puntos || 0} puntos FarmaCapital
+                      </div>
+                    ) : (
+                      <div style={{ color: C.textMid, fontSize: 11, marginTop: 6 }}>
+                        Cliente registrado en la cita — no hace falta buscar teléfono.
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    <SearchDropdown
+                      value={telConsulta}
+                      onChange={(v)=>setConsultaTelById((prev)=>({ ...prev, [citaKey]: v }))}
+                      onSelect={(c)=>{
+                        setConsultaTelById((prev)=>({ ...prev, [citaKey]: c.telefono || "" }));
+                        setConsultaCliById((prev)=>({ ...prev, [citaKey]: c }));
+                      }}
+                      placeholder="Teléfono o nombre (solo citas de mostrador sin teléfono)"
+                      items={cliSearchItems}
+                      labelKey="nombre"
+                      subKey="telefono"
+                      badgeKey="puntos"
+                      badgeCol="#7c3aed"
+                      style={{width:"100%",boxSizing:"border-box",marginBottom:8}}
+                      emptyMsg="Sin coincidencias · prueba más dígitos o el nombre"
+                    />
+                    {cliConsulta&&<div style={{background:C.purpleDim,border:`1px solid ${C.purple}30`,borderRadius:6,padding:"6px 10px",marginBottom:8}}><span style={{color:C.purple,fontSize:11,fontWeight:700}}>{cliConsulta.nombre} · {cliConsulta.puntos||0} pts</span></div>}
+                  </>
+                )}
+                <Box style={{padding:14,marginBottom:12}}>
+                  <div style={{color:C.textDim,fontSize:10,letterSpacing:1.5,textTransform:"uppercase",marginBottom:8}}>Método de pago</div>
+                  <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:payConsulta==="efectivo"?12:0}}>
+                    {[
+                      ["efectivo","💵 Efectivo"],
+                      ["tarjeta","💳 Point MP"],
+                      ["bbva_terminal","🏦 Terminal BBVA"],
+                    ].map(([v,l])=>(
+                      <button
+                        key={v}
+                        type="button"
+                        onClick={()=>{
+                          setConsultaPayById((prev)=>({ ...prev, [citaKey]: v }));
+                          if (v !== "efectivo") {
+                            setConsultaMontoById((prev)=>({ ...prev, [citaKey]: "" }));
+                          }
+                        }}
+                        style={{
+                          padding:"4px 10px",borderRadius:20,
+                          border:`1px solid ${payConsulta===v?C.blue:C.border}`,
+                          background:payConsulta===v?C.blueDim:"transparent",
+                          color:payConsulta===v?C.blue:C.textMid,
+                          fontSize:10,fontWeight:700,cursor:"pointer",
+                        }}
+                      >{l}</button>
+                    ))}
+                  </div>
+                  {payConsulta==="efectivo"&&(
+                    <>
+                      <div style={{color:C.textMid,fontSize:11,marginBottom:8}}>¿Cuánto te entregó el cliente?</div>
+                      <Inp
+                        value={montoConsulta}
+                        onChange={(e)=>setConsultaMontoById((prev)=>({ ...prev, [citaKey]: e.target.value }))}
+                        placeholder={`Mínimo ${$(totalCobro)}`}
+                        inputMode="decimal"
+                        style={{width:"100%",boxSizing:"border-box",marginBottom:8,fontSize:16,fontWeight:700}}
+                      />
+                      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
+                        <button type="button" onClick={()=>setConsultaMontoById((prev)=>({ ...prev, [citaKey]: String(totalCobro) }))} style={{padding:"4px 10px",borderRadius:8,border:`1px solid ${C.green}`,background:"#fff",color:C.green,fontSize:10,fontWeight:700,cursor:"pointer"}}>Exacto {$(totalCobro)}</button>
+                        {sugerenciasPagoCliente(totalCobro).map(({billete,cambio})=>(
+                          <button key={billete} type="button" onClick={()=>setConsultaMontoById((prev)=>({ ...prev, [citaKey]: String(billete) }))} style={{padding:"4px 10px",borderRadius:8,border:`1px solid ${C.border}`,background:C.card,fontSize:10,fontWeight:600,cursor:"pointer",color:C.text}}>
+                            ${billete} → cambio {$(cambio)}
+                          </button>
+                        ))}
+                      </div>
+                      {Number.isFinite(recConsultaNum)&&recConsultaNum>=totalCobro&&(
+                        <div style={{marginBottom:4}}>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
+                            <span style={{color:C.textMid,fontSize:12}}>Cambio a entregar</span>
+                            <span style={{color:C.green,fontWeight:900,fontSize:20}}>{$(cambioConsultaNum)}</span>
+                          </div>
+                          {cambioConsultaNum>0&&desgloseCambioMN(cambioConsultaNum)&&(
+                            <div style={{color:C.textMid,fontSize:10,marginTop:4,lineHeight:1.4}}>
+                              <strong style={{color:C.text}}>Sugerido:</strong> {desgloseCambioMN(cambioConsultaNum)}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      {Number.isFinite(recConsultaNum)&&recConsultaNum>0&&recConsultaNum<totalCobro&&(
+                        <div style={{color:C.red,fontSize:11,fontWeight:700}}>Falta ${(totalCobro-recConsultaNum).toFixed(2)}</div>
+                      )}
+                    </>
+                  )}
+                </Box>
                 <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
                   {payConsulta==="efectivo" ? (
-                    <Btn onClick={()=>cobrarConsulta(cita, { metodoPago: payConsulta, clienteSel: cliConsulta })} col={C.green} dis={guardando} style={{flex:"1 1 200px"}}>✅ Cobrar {$(totalCobro)}</Btn>
-                  ) : (
+                    <Btn
+                      onClick={()=>iniciarCobroConsulta(cita, payConsulta, cliConsulta, totalCobro)}
+                      col={C.green}
+                      dis={guardando||!Number.isFinite(recConsultaNum)||recConsultaNum<totalCobro}
+                      style={{flex:"1 1 200px"}}
+                    >{guardando?"Procesando…":`✅ Cobrar ${$(totalCobro)}`}</Btn>
+                  ) : payConsulta==="tarjeta" ? (
                     <div style={{flex:"1 1 200px",minWidth:0}}>
                       <Btn
-                        onClick={()=>{
-                          setConsultaPayById((prev)=>({ ...prev, [citaKey]: "tarjeta" }));
-                          mpCitaRef.current = cita;
-                          setMpFolio(`CONS-${cita.id}`);
-                          setMpModal(true);
-                        }}
+                        onClick={()=>iniciarCobroConsulta(cita, payConsulta, cliConsulta, totalCobro)}
                         col="#009ee3"
                         dis={guardando||totalCobro<=0}
                         full
-                      >💳 Cobrar con tarjeta (terminal Point)</Btn>
+                      >💳 Cobrar con Point MP</Btn>
                       <div style={{color:C.textDim,fontSize:10,marginTop:8,lineHeight:1.4}}>
-                        Mismo flujo que en venta: se espera la aprobación en el Point; luego se marca pagada la consulta y se imprime el ticket.
+                        La app espera la aprobación en el Point Smart 2; al confirmarse se registra el cobro y se imprime el ticket.
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{flex:"1 1 200px",minWidth:0}}>
+                      <Btn
+                        onClick={()=>iniciarCobroConsulta(cita, payConsulta, cliConsulta, totalCobro)}
+                        col="#1a237e"
+                        dis={guardando||totalCobro<=0}
+                        full
+                      >🏦 Cobrar con terminal BBVA</Btn>
+                      <div style={{color:C.textDim,fontSize:10,marginTop:8,lineHeight:1.4}}>
+                        Procesa el pago en la terminal física BBVA y confirma aquí. El ticket se imprime solo cuando indicas que fue aprobado.
                       </div>
                     </div>
                   )}
@@ -2113,6 +2404,54 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
               </Box>
             );
           })}
+
+          <div style={{color:C.text,fontWeight:800,fontSize:14,margin:"28px 0 10px"}}>📋 Estado de consultas</div>
+          <div style={{color:C.textMid,fontSize:12,marginBottom:12}}>Todas las citas cercanas con su estado de pago. Las <strong style={{color:"#d97706"}}>pendientes</strong> aparecen arriba para cobrar; al pagar pasan a <strong style={{color:C.green}}>Pagada</strong>.</div>
+          {!citasResumenPos.length ? (
+            <div style={{color:C.textMid,padding:20,textAlign:"center",background:C.bg,borderRadius:10,border:`1px solid ${C.border}`}}>Sin consultas en la ventana de fechas</div>
+          ) : (
+            <div style={{borderRadius:12,border:`1px solid ${C.border}`,overflow:"hidden"}}>
+              {citasResumenPos.map((cita, i) => {
+                const pagoTag = labelEstadoPagoCita(cita);
+                const enCobro = consxCobrar.some((x) => String(x.id) === String(cita.id));
+                const estadoTxt = {
+                  agendada: "Agendada",
+                  confirmada: "Confirmada",
+                  en_consulta: "En consulta",
+                  completada: "Atendida",
+                  pagada: "Pagada",
+                  no_asistio: "No asistió",
+                }[cita.estado] || cita.estado || "—";
+                return (
+                  <div
+                    key={cita.id}
+                    style={{
+                      display:"flex",
+                      alignItems:"center",
+                      justifyContent:"space-between",
+                      gap:10,
+                      flexWrap:"wrap",
+                      padding:"12px 16px",
+                      background: i % 2 === 0 ? C.card : C.bg,
+                      borderBottom: i < citasResumenPos.length - 1 ? `1px solid ${C.border}` : "none",
+                    }}
+                  >
+                    <div style={{minWidth:0,flex:"1 1 200px"}}>
+                      <div style={{color:C.text,fontWeight:700,fontSize:13}}>{cita.nombre}</div>
+                      <div style={{color:C.textMid,fontSize:11,marginTop:2}}>
+                        {cita.fecha} · {cita.hora} hrs · {estadoTxt}
+                        {enCobro ? " · en cola de cobro" : ""}
+                      </div>
+                    </div>
+                    <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
+                      {cita.canal && <Tag col={C.blue} sm>{labelCanal(cita)}</Tag>}
+                      <Tag col={pagoTag.col} sm>{pagoTag.label}</Tag>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
       <OnboardingTour ref={posTourRef} tourId="pos" usuario={usuario} showFab={!isMobilePos} />

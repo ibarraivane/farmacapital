@@ -35,3 +35,70 @@ export function labelCanal(c) {
   if (k === "pos") return "POS";
   return k;
 }
+
+/** Badge de cobro en caja (POS / agenda / consultorio). */
+export function labelEstadoPagoCita(c) {
+  if (!c) return { key: "unknown", label: "—", col: "#64748b" };
+  const consumiblesPend = (c.consumibles_consulta || []).some((x) => !x.cobrado);
+  const consultaPagada = citaEstaPagada(c);
+  if (consultaPagada && !consumiblesPend) {
+    return { key: "pagada", label: "Pagada", col: "#16a34a" };
+  }
+  if (consultaPagada && consumiblesPend) {
+    return { key: "consumibles", label: "Pagada · consumibles pendientes", col: "#d97706" };
+  }
+  if (consumiblesPend && !consultaPagada) {
+    return { key: "pendiente_mix", label: "Pendiente de pago", col: "#d97706" };
+  }
+  return { key: "pendiente", label: "Pendiente de pago", col: "#d97706" };
+}
+
+/** Colores de franja horaria en agenda (estado de visita + pago). */
+export function franjaAgendaStyle(cita, { libre = false, focoAccion = false, C, BRAND }) {
+  if (!cita) {
+    return {
+      background: libre ? C.greenDim : C.bg,
+      border: `1px solid ${C.border}`,
+      boxShadow: undefined,
+    };
+  }
+  let background = C.card;
+  let borderColor = C.border;
+  if (cita.estado === "en_consulta") {
+    background = C.blueDim;
+    borderColor = C.blue;
+  } else if (cita.estado === "completada") {
+    background = citaPagoPendiente(cita) ? C.amberDim : C.greenDim;
+    borderColor = citaPagoPendiente(cita) ? C.amber : C.green;
+  } else if (citaPagoPendiente(cita)) {
+    background = C.amberDim;
+    borderColor = C.amber;
+  } else if (citaEstaPagada(cita)) {
+    background = C.greenDim;
+    borderColor = C.green;
+  }
+  if (focoAccion) {
+    return {
+      background,
+      border: `2px solid ${BRAND.primary}`,
+      boxShadow: `0 0 0 3px ${BRAND.primary}22`,
+    };
+  }
+  return {
+    background,
+    border: `1px solid ${borderColor}55`,
+    boxShadow: undefined,
+  };
+}
+
+/** Citas visibles en POS con su estado de cobro (hoy ± ventana cercana). */
+export function citaRelevanteParaResumenPOS(c, { hoySv, diasAtras = 7, diasAdelante = 14 } = {}) {
+  if (!c || c.estado === "cancelada") return false;
+  const f = String(c.fecha || "").slice(0, 10);
+  if (!f || !hoySv) return citaPagoPendiente(c) || (c.consumibles_consulta || []).some((x) => !x.cobrado);
+  const tHoy = new Date(`${hoySv}T12:00:00`).getTime();
+  const tCita = new Date(`${f}T12:00:00`).getTime();
+  const diffDias = Math.round((tCita - tHoy) / 86400000);
+  if (diffDias >= -diasAtras && diffDias <= diasAdelante) return true;
+  return citaPagoPendiente(c) || (c.consumibles_consulta || []).some((x) => !x.cobrado);
+}

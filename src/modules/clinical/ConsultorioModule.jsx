@@ -4,7 +4,7 @@ import { C_LIGHT } from "../../constants";
 import { supabase } from "../../supabase";
 import { showToast } from "../../ui";
 import { fetchProductosConsumiblesConsultorio } from "../../utils/consumiblesConsultorio";
-import { citaPagoOk, citaEstaPagada } from "../../utils/consultaConstants";
+import { citaPagoOk, citaEstaPagada, labelEstadoPagoCita } from "../../utils/consultaConstants";
 import OnboardingTour from "../../components/OnboardingTour";
 import { FARMACIA_FISCAL } from "../../constants/farmaciaFiscal";
 import { Historial } from "./Historial";
@@ -178,7 +178,7 @@ function ListaEspera({ onLlamoPaciente }) {
       console.error("[Consultorio] citas hoy:", error);
       setCitas([]);
     } else {
-      const list = (data || []).filter((c) => (c.estado === "agendada" ? citaPagoOk(c) : true));
+      const list = data || [];
       setCitas(list);
       // L1: Cargar historial de cada paciente
       const tels = [...new Set(list.map((c) => c.telefono).filter(Boolean))];
@@ -222,25 +222,28 @@ function ListaEspera({ onLlamoPaciente }) {
 
   const esperando =
     citas.filter((c) => c.estado === "confirmada" || (c.estado === "agendada" && citaPagoOk(c))).length;
+  const sinPago =
+    citas.filter((c) => (c.estado === "agendada" || c.estado === "confirmada") && !citaPagoOk(c)).length;
   const enConsulta  = citas.filter(c=>c.estado==="en_consulta").length;
   const completadas = citas.filter(c=>c.estado==="completada").length;
 
   const badgeListaEspera = (c) => {
-    if (c.estado === "en_consulta") return { bg:C.blueDim, col:C.blue, txt:"🩺 En consulta" };
-    if (c.estado === "completada") return { bg:C.greenDim, col:C.green, txt:"✅ Completada" };
-    if (c.estado === "pagada") return { bg:"#dcfce7", col:"#16a34a", txt:"💰 Pagada" };
+    const pago = labelEstadoPagoCita(c);
+    if (c.estado === "en_consulta") return { bg:C.blueDim, col:C.blue, txt:"🩺 En consulta", pago };
+    if (c.estado === "completada") return { bg:C.greenDim, col:C.green, txt:"✅ Completada", pago };
+    if (c.estado === "pagada") return { bg:"#dcfce7", col:"#16a34a", txt:"💰 Pagada", pago };
     if (c.estado === "confirmada")
-      return { bg:C.amberDim, col:C.amber, txt: citaPagoOk(c) ? "⏳ Esperando" : "⏳ Sin pago" };
-    if (c.estado === "agendada" && citaPagoOk(c)) return { bg:C.amberDim, col:C.amber, txt:"⏳ Listo (pagó en caja)" };
+      return { bg:C.amberDim, col:C.amber, txt: citaPagoOk(c) ? "⏳ Esperando" : "⏳ Sin pago", pago };
+    if (c.estado === "agendada" && citaPagoOk(c)) return { bg:C.amberDim, col:C.amber, txt:"⏳ Listo (pagó en caja)", pago };
     if (c.estado === "agendada")
-      return { bg:C.card, col:C.textMid, txt:"Agendada" };
-    return { bg:C.border, col:C.textMid, txt:c.estado || "—" };
+      return { bg:C.amberDim, col:C.amber, txt:"📅 Agendada", pago };
+    return { bg:C.border, col:C.textMid, txt:c.estado || "—", pago };
   };
 
   return (
     <div>
       <div data-tour="cons-kpis" style={{display:"flex",gap:12,marginBottom:20,flexWrap:"wrap"}}>
-        {[["⏳ Esperando",esperando,C.amber],["🩺 En consulta",enConsulta,C.blue],["✅ Completadas",completadas,C.green],["💰 Pagadas (cobro)",citas.filter((c) => citaEstaPagada(c)).length,"#16a34a"]].map(([lbl,val,col])=>(
+        {[["⏳ Esperando (pagadas)",esperando,C.amber],["💳 Pendiente de pago",sinPago,"#d97706"],["🩺 En consulta",enConsulta,C.blue],["✅ Completadas",completadas,C.green],["💰 Pagadas (cobro)",citas.filter((c) => citaEstaPagada(c)).length,"#16a34a"]].map(([lbl,val,col])=>(
           <div key={lbl} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"10px 18px",minWidth:130}}>
             <div style={{color:col,fontWeight:800,fontSize:22}}>{val}</div>
             <div style={{color:C.textMid,fontSize:11}}>{lbl}</div>
@@ -253,13 +256,13 @@ function ListaEspera({ onLlamoPaciente }) {
           <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
             <thead>
               <tr style={{background:C.card}}>
-                {["Hora","Nombre","Teléfono","Motivo","Estado","Acciones"].map(h=>(
+                {["Hora","Nombre","Teléfono","Motivo","Estado","Pago","Acciones"].map(h=>(
                   <th key={h} style={{padding:"10px 14px",textAlign:"left",color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {citas.length===0&&<tr><td colSpan={6} style={{textAlign:"center",padding:40,color:C.textMid}}>Sin citas para hoy</td></tr>}
+              {citas.length===0&&<tr><td colSpan={7} style={{textAlign:"center",padding:40,color:C.textMid}}>Sin citas para hoy</td></tr>}
               {citas.map((c,i)=>{
                 const s = badgeListaEspera(c);
                 return (
@@ -273,6 +276,9 @@ function ListaEspera({ onLlamoPaciente }) {
                     <td style={{padding:"10px 14px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{c.motivo||"—"}</td>
                     <td style={{padding:"10px 14px",borderBottom:`1px solid ${C.border}`}}>
                       <span style={{padding:"3px 10px",borderRadius:20,fontSize:10,fontWeight:700,background:s.bg,color:s.col}}>{s.txt}</span>
+                    </td>
+                    <td style={{padding:"10px 14px",borderBottom:`1px solid ${C.border}`}}>
+                      <span style={{padding:"3px 10px",borderRadius:20,fontSize:10,fontWeight:700,background:`${s.pago.col}18`,color:s.pago.col}}>{s.pago.label}</span>
                     </td>
                     <td style={{padding:"10px 14px",borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>
                       {(c.estado === "confirmada" || (c.estado === "agendada" && citaPagoOk(c))) && (

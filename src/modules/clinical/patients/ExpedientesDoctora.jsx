@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { C_LIGHT, BRAND } from "../../../constants";
 import { supabase } from "../../../supabase";
 import { Box, Tag, Inp, Modal, SkeletonTable } from "../../../ui";
@@ -8,49 +8,100 @@ import { productMatchesSearchQuery } from "../../../utils/fuzzySearch";
 
 const C = C_LIGHT;
 
+function agruparPacientesDesdeCitas(data) {
+  const byPhone = new Map();
+  for (const c of data || []) {
+    const t = String(c.telefono || "").trim();
+    if (!t) continue;
+    const completada =
+      c.estado === "completada" ||
+      c.estado === "en_consulta" ||
+      (c.diagnostico && String(c.diagnostico).trim()) ||
+      c.consulta_fin_at;
+    if (!completada) continue;
+    const cur = byPhone.get(t);
+    if (!cur) {
+      byPhone.set(t, {
+        telefono: t,
+        nombre: (c.nombre || "").trim() || "—",
+        ultima: c.fecha,
+        primera: c.fecha,
+        n: 1,
+        n_completadas: 1,
+      });
+    } else {
+      cur.n += 1;
+      cur.n_completadas += 1;
+      if (c.fecha < cur.primera) cur.primera = c.fecha;
+      if (c.fecha > cur.ultima) {
+        cur.ultima = c.fecha;
+        if ((c.nombre || "").trim()) cur.nombre = c.nombre.trim();
+      }
+    }
+  }
+  return Array.from(byPhone.values()).sort((a, b) => b.ultima.localeCompare(a.ultima));
+}
+
 /** Lista de pacientes por teléfono + expediente / ficha en solo lectura. */
 export default function ExpedientesDoctora() {
   const [pacientes, setPacientes] = useState([]);
   const [loading, setLoad] = useState(true);
+  const [loadErr, setLoadErr] = useState("");
   const [busq, setBusq] = useState("");
   const [pacienteModal, setPacienteModal] = useState(null);
   const [citaVerModal, setCitaVerModal] = useState(null);
 
-  useEffect(() => {
-    (async () => {
-      const { data, error } = await supabase
-        .from("citas")
-        .select("nombre,telefono,fecha,estado")
-        .neq("estado", "cancelada")
-        .order("fecha", { ascending: false })
-        .limit(3000);
-      if (error) console.error("[ExpedientesDoctora]", error);
-      const byPhone = new Map();
-      for (const c of data || []) {
-        const t = String(c.telefono || "").trim();
-        if (!t) continue;
-        const cur = byPhone.get(t);
-        if (!cur) {
-          byPhone.set(t, {
-            telefono: t,
-            nombre: (c.nombre || "").trim() || "—",
-            ultima: c.fecha,
-            primera: c.fecha,
-            n: 1,
-          });
+  const cargarPacientes = useCallback(async () => {
+    setLoad(true);
+    setLoadErr("");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    if (!tok) {
+      setPacientes([]);
+      setLoadErr("Sesión expirada. Vuelve a iniciar sesión en el admin.");
+      setLoad(false);
+      return;
+    }
+
+    const { data, error } = await supabase.rpc("empleado_listar_pacientes_expedientes", {
+      p_session_token: tok,
+      p_limite: 500,
+    });
+
+    if (error) {
+      console.error("[ExpedientesDoctora] RPC:", error);
+      const desde = new Date();
+      desde.setFullYear(desde.getFullYear() - 3);
+      const hasta = new Date();
+      hasta.setFullYear(hasta.getFullYear() + 1);
+      const pad = (n) => String(n).padStart(2, "0");
+      const toSv = (dt) => `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`;
+      const { data: fallback, error: fbErr } = await supabase.rpc("empleado_agenda_listar_citas_rango_fecha", {
+        p_session_token: tok,
+        p_fecha_desde: toSv(desde),
+        p_fecha_hasta: toSv(hasta),
+      });
+      if (fbErr) {
+        setLoadErr(fbErr.message || "No se pudieron cargar los expedientes.");
+        setPacientes([]);
+      } else {
+        const rows = Array.isArray(fallback) ? fallback : [];
+        setPacientes(agruparPacientesDesdeCitas(rows));
+        if (!rows.length) {
+          setLoadErr("");
         } else {
-          cur.n += 1;
-          if (c.fecha < cur.primera) cur.primera = c.fecha;
-          if (c.fecha > cur.ultima) {
-            cur.ultima = c.fecha;
-            if ((c.nombre || "").trim()) cur.nombre = c.nombre.trim();
-          }
+          setLoadErr("Usando respaldo local. Ejecuta sql/rpc_expedientes_pacientes.sql en Supabase para el listado optimizado.");
         }
       }
-      setPacientes(Array.from(byPhone.values()).sort((a, b) => b.ultima.localeCompare(a.ultima)));
-      setLoad(false);
-    })();
+    } else {
+      const rows = Array.isArray(data) ? data : [];
+      setPacientes(rows);
+    }
+    setLoad(false);
   }, []);
+
+  useEffect(() => {
+    cargarPacientes();
+  }, [cargarPacientes]);
 
   const filtrados = pacientes.filter((r) => {
     const s = busq.trim();
@@ -66,18 +117,24 @@ export default function ExpedientesDoctora() {
         <div style={{ flex: "1 1 240px", minWidth: 0 }}>
           <h1 style={{ color: C.text, fontSize: 20, fontWeight: 800, margin: 0 }}>📂 Expedientes</h1>
           <p style={{ color: C.textMid, fontSize: 12, margin: "6px 0 0", maxWidth: 560, lineHeight: 1.45 }}>
-            Pacientes con al menos una cita (agrupados por teléfono). Abre el expediente clínico o revisa una consulta en solo lectura.
+            Pacientes que ya tuvieron consulta (completada, en curso o con diagnóstico), agrupados por teléfono.
           </p>
         </div>
         <Inp value={busq} onChange={(e) => setBusq(e.target.value)} placeholder="🔍 Buscar por nombre o teléfono…" style={{ flex: "1 1 200px", minWidth: 0, maxWidth: "100%", width: "100%" }} />
       </div>
+
+      {loadErr && (
+        <div style={{ background: C.amberDim, border: `1px solid ${C.amber}40`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, color: C.amber, fontSize: 12, lineHeight: 1.45 }}>
+          {loadErr}
+        </div>
+      )}
 
       {loading ? (
         <SkeletonTable rows={6} cols={5} />
       ) : !filtrados.length ? (
         <Box style={{ padding: 28, textAlign: "center", color: C.textMid }}>
           {pacientes.length === 0
-            ? "Aún no hay citas con teléfono registrado. Las citas deben incluir teléfono para aparecer aquí."
+            ? "Aún no hay pacientes con consulta registrada. Aparecen aquí cuando la doctora termina una consulta o guarda diagnóstico en la ficha clínica."
             : "Ningún paciente coincide con la búsqueda."}
         </Box>
       ) : (
@@ -98,7 +155,7 @@ export default function ExpedientesDoctora() {
                   <td style={{ padding: "10px 14px", color: C.text, fontWeight: 700, fontSize: 13 }}>{r.nombre}</td>
                   <td style={{ padding: "10px 14px", color: C.textMid, fontSize: 12 }}>{r.telefono}</td>
                   <td style={{ padding: "10px 14px" }}>
-                    <Tag col={C.blue} sm>{r.n}</Tag>
+                    <Tag col={C.blue} sm>{r.n_completadas ?? r.n}</Tag>
                   </td>
                   <td style={{ padding: "10px 14px", color: C.textMid, fontSize: 12 }}>{r.primera}</td>
                   <td style={{ padding: "10px 14px", color: C.blue, fontWeight: 700, fontSize: 12 }}>{r.ultima}</td>

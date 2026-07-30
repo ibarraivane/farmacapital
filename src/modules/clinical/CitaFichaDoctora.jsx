@@ -7,6 +7,22 @@ import { citaPagoOk } from "../../utils/consultaConstants";
 
 const C = C_LIGHT;
 
+const fieldTextareaStyle = {
+  width: "100%",
+  boxSizing: "border-box",
+  borderRadius: 8,
+  border: `1px solid ${C.border}`,
+  padding: "8px 10px",
+  fontSize: 12,
+  resize: "vertical",
+  background: "#ffffff",
+  color: C.text,
+  WebkitTextFillColor: C.text,
+  colorScheme: "light",
+  fontFamily: "'Plus Jakarta Sans', sans-serif",
+  lineHeight: 1.45,
+};
+
 function uid() {
   return globalThis.crypto?.randomUUID?.() || `m_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 }
@@ -418,21 +434,23 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
           <div style={{ marginBottom: 8 }}>
             <div style={{ color: C.red, fontSize: 10, fontWeight: 700 }}>Alergias</div>
             <textarea
+              className="farmacapital-field-input"
               value={exp.alergias}
               onChange={(e) => setExp((x) => ({ ...x, alergias: e.target.value }))}
               disabled={!puedeEditar}
               rows={2}
-              style={{ width: "100%", borderRadius: 8, border: `1px solid ${C.border}`, padding: 8, fontSize: 12, resize: "vertical" }}
+              style={fieldTextareaStyle}
             />
           </div>
           <div>
             <div style={{ color: C.amber, fontSize: 10, fontWeight: 700 }}>Antecedentes</div>
             <textarea
+              className="farmacapital-field-input"
               value={exp.antecedentes}
               onChange={(e) => setExp((x) => ({ ...x, antecedentes: e.target.value }))}
               disabled={!puedeEditar}
               rows={2}
-              style={{ width: "100%", borderRadius: 8, border: `1px solid ${C.border}`, padding: 8, fontSize: 12, resize: "vertical" }}
+              style={fieldTextareaStyle}
             />
           </div>
         </Box>
@@ -440,12 +458,13 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
         <Box style={{ padding: 14, marginBottom: 12 }}>
           <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, marginBottom: 6 }}>DIAGNÓSTICO</div>
           <textarea
+            className="farmacapital-field-input"
             value={diagnostico}
             onChange={(e) => setDx(e.target.value)}
             disabled={!puedeEditar}
             rows={2}
             placeholder="Diagnóstico o impresión clínica"
-            style={{ width: "100%", borderRadius: 8, border: `1px solid ${C.border}`, padding: 8, fontSize: 12 }}
+            style={fieldTextareaStyle}
           />
         </Box>
 
@@ -583,11 +602,12 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
         <Box style={{ padding: 14, marginBottom: 12 }}>
           <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, marginBottom: 8 }}>NOTAS DE CONSULTA</div>
           <textarea
+            className="farmacapital-field-input"
             value={notas}
             onChange={(e) => setNotas(e.target.value)}
             disabled={!puedeEditar}
             rows={3}
-            style={{ width: "100%", borderRadius: 8, border: `1px solid ${C.border}`, padding: 8, fontSize: 12 }}
+            style={fieldTextareaStyle}
           />
         </Box>
 

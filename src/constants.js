@@ -41,7 +41,7 @@ export const NEG = {
 // INVENTARIO: inv (hub catálogo / lotes / reabasto)
 // DOCTORA: agenda (cons_dr) + expedientes; sin PWA ni consultorio duplicado
 export const NAV_ADMIN = [
-  "dash", "pos", "trans", "cli", "caja", "ped_online",
+  "dash", "turno", "pos", "trans", "cli", "caja", "ped_online",
   "inv",
   "agenda", "cons", "exp_dr",
   "cof", "dev", "fact",
@@ -52,7 +52,7 @@ export const NAV_ADMIN = [
 
 /** Títulos del sidebar admin (sin mezclar “vistas por rol”; solo agrupa trabajo). */
 export const ADMIN_NAV_SECTIONS = [
-  { title: "Operación diaria", ids: ["dash", "pos", "trans", "cli", "caja", "ped_online"] },
+  { title: "Operación diaria", ids: ["dash", "turno", "pos", "trans", "cli", "caja", "ped_online"] },
   { title: "Inventario", ids: ["inv"] },
   { title: "Consultorio", ids: ["agenda", "cons", "exp_dr"] },
   { title: "Control y cumplimiento", ids: ["cof", "dev", "fact"] },
@@ -62,7 +62,7 @@ export const ADMIN_NAV_SECTIONS = [
 ];
 
 export const NAV_VENDEDOR = [
-  "midia", "pos", "agenda", "trans", "cli", "inv", "caja", "cof", "ped_online", "pwa",
+  "midia", "turno", "pos", "agenda", "trans", "cli", "inv", "caja", "cof", "ped_online", "pwa",
 ];
 export const NAV_DOCTORA = ["cons_dr", "exp_dr"];
 
@@ -74,6 +74,7 @@ import {
   Target, Undo2, Receipt, Image as ImageIcon, Sparkles,
   Download, UserPlus, HeartPulse,
   SlidersHorizontal, Gauge, FolderOpen, CalendarDays, ListOrdered, Globe,
+  BellRing,
 } from "lucide-react";
 
 export const NAV_ITEMS = [
@@ -94,6 +95,7 @@ export const NAV_ITEMS = [
   {id:"cof",        icon: ShieldCheck,     label:"COFEPRIS"},
   // ══ NEGOCIO ═══════════════════════════════
   {id:"dash",       icon: LayoutDashboard, label:"Dashboard"},
+  {id:"turno",      icon: BellRing,        label:"Pantalla turno"},
   {id:"promo",      icon: Target,          label:"Promociones"},
   {id:"dev",        icon: Undo2,           label:"Devoluciones"},
   {id:"fact",       icon: Receipt,         label:"Facturación"},

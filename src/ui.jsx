@@ -118,13 +118,43 @@ export function Btn({children,onClick,col,sm,ol,dis,full,style,type="button"}){
   );
 };
 
-export function Inp({value,onChange,placeholder,style,type,onKeyDown,disabled,name,autoComplete}){
+export function Inp({value,onChange,placeholder,style,type,onKeyDown,disabled,name,autoComplete,className="",invalid=false}){
   const C = C_LIGHT;
   return(
 
-  <input value={value} onChange={onChange} disabled={disabled} placeholder={placeholder} type={type||"text"} onKeyDown={onKeyDown} name={name} autoComplete={autoComplete}
-    style={{background:C.bg,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,padding:"10px 14px",fontSize:16,lineHeight:1.25,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif",opacity:disabled?0.6:1,cursor:disabled?"not-allowed":"text",minHeight:44,boxSizing:"border-box",...style}}
-    onFocus={e=>{e.target.style.borderColor=C.blue;e.target.style.boxShadow="0 0 0 3px "+C.blueDim;}} onBlur={e=>{e.target.style.borderColor=C.border;e.target.style.boxShadow="none;"}}/>
+  <input
+    className={`farmacapital-field-input ${className}`.trim()}
+    value={value}
+    onChange={onChange}
+    disabled={disabled}
+    placeholder={placeholder}
+    type={type||"text"}
+    onKeyDown={onKeyDown}
+    name={name}
+    autoComplete={autoComplete}
+    style={{
+      background:"#ffffff",
+      border:`1px solid ${invalid?C.red:C.border}`,
+      borderRadius:8,
+      color:C.text,
+      WebkitTextFillColor:C.text,
+      caretColor:C.text,
+      colorScheme:"light",
+      padding:"10px 14px",
+      fontSize:16,
+      lineHeight:1.25,
+      outline:"none",
+      fontFamily:"'Plus Jakarta Sans',sans-serif",
+      opacity:disabled?0.6:1,
+      cursor:disabled?"not-allowed":"text",
+      minHeight:44,
+      boxSizing:"border-box",
+      width:"100%",
+      ...style,
+    }}
+    onFocus={e=>{e.target.style.borderColor=invalid?C.red:C.blue;e.target.style.boxShadow="0 0 0 3px "+C.blueDim;}}
+    onBlur={e=>{e.target.style.borderColor=invalid?C.red:C.border;e.target.style.boxShadow="none";}}
+  />
 
   );
 };

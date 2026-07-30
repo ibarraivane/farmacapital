@@ -30,10 +30,14 @@ let supabaseAnonKey =
   "";
 
 if (isProd && (!supabaseUrl || !supabaseAnonKey)) {
-  throw new Error(
+  // No tumbar toda la UI: mostrar tienda con banner de error en lugar de pantalla en blanco.
+  // eslint-disable-next-line no-console
+  console.error(
     "[FarmaCapital] Faltan credenciales de Supabase en el build. En Vercel: REACT_APP_SUPABASE_URL + REACT_APP_SUPABASE_ANON_KEY, " +
       "o bien SUPABASE_URL + SUPABASE_ANON_KEY (el script de build las copia a REACT_APP_*). Volvé a desplegar tras guardar."
   );
+  supabaseUrl = DEV_CLIENT_BOOTSTRAP_URL;
+  supabaseAnonKey = DEV_CLIENT_BOOTSTRAP_KEY;
 }
 
 if (!isProd && (!supabaseUrl || !supabaseAnonKey)) {
@@ -64,5 +68,13 @@ export const isSupabaseLocalMisconfigured =
     !supabaseProjectUrl ||
     !supabaseAnonKey ||
     /replace_me/i.test(supabaseAnonKey));
+
+/** Producción: el bundle se generó sin credenciales reales de Supabase. */
+export const isSupabaseProductionMisconfigured =
+  isProd &&
+  (supabaseProjectUrl === DEV_CLIENT_BOOTSTRAP_URL ||
+    supabaseAnonKey === DEV_CLIENT_BOOTSTRAP_KEY ||
+    !supabaseProjectUrl ||
+    !supabaseAnonKey);
 
 export const supabase = createClient(supabaseProjectUrl, supabaseAnonKey);

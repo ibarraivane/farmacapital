@@ -81,6 +81,40 @@ function buildReceiptMessage({ event, pedido, items }) {
   );
 }
 
+function formatCitaFecha(fecha) {
+  if (!fecha) return '';
+  try {
+    const [y, m, d] = String(fecha).slice(0, 10).split('-').map(Number);
+    if (!y || !m || !d) return String(fecha);
+    const dt = new Date(y, m - 1, d);
+    return dt.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  } catch {
+    return String(fecha);
+  }
+}
+
+function buildCitaConfirmacionMessage({ nombre, fecha, hora, motivo, citaId }) {
+  const folio = citaId != null ? `#CITA-${String(citaId).padStart(4, '0')}` : '';
+  const fechaTxt = formatCitaFecha(fecha);
+  const motivoLine = motivo && String(motivo).trim() ? `Motivo: ${String(motivo).trim()}\n\n` : '';
+  const saludo = nombre && String(nombre).trim() ? ` ${String(nombre).trim()}` : '';
+  return (
+    `📅 *Cita confirmada en FarmaCapital*\n\n` +
+    `Hola${saludo}! Tu cita médica ha sido registrada.\n\n` +
+    (folio ? `🔖 Folio: ${folio}\n` : '') +
+    `🗓 Fecha: ${fechaTxt || fecha}\n` +
+    `🕐 Hora: ${hora}\n` +
+    `👩‍⚕️ Médico general\n` +
+    `📍 ${FARMACIA_DIRECCION}\n` +
+    `🗺 ${FARMACIA_MAPS_URL}\n\n` +
+    motivoLine +
+    `💊 Al terminar tu consulta, surte tu receta en FarmaCapital con 10% de descuento.\n\n` +
+    `Te enviaremos un recordatorio 24 hrs antes.\n` +
+    `📱 Dudas: ${FARMACIA_WHATSAPP_DISPLAY}\n\n` +
+    `¡Te esperamos! 🏥`
+  );
+}
+
 function buildMessage({ event, pedido, items }) {
   return buildReceiptMessage({ event, pedido, items });
 }
@@ -180,4 +214,10 @@ async function sendOrderNotifications({ event, pedido, cliente, items }) {
   return { ok: true, email: emailRes, whatsapp: waRes };
 }
 
-module.exports = { sendOrderNotifications, sendWhatsapp, buildReceiptMessage, buildMessage };
+module.exports = {
+  sendOrderNotifications,
+  sendWhatsapp,
+  buildReceiptMessage,
+  buildMessage,
+  buildCitaConfirmacionMessage,
+};
