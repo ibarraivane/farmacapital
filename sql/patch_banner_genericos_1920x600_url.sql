@@ -3,18 +3,18 @@
 -- (nombre distinto, ej. farmacapital-genericos-desktop-1920x600-<timestamp>.png).
 --
 -- 1) Revisa qué hay hoy:
---    select id, titulo, imagen_url, imagen_url_mobile, modo_visualizacion from public.banners where slot = 'hero';
+--    select id, titulo, imagen_url, imagen_mobile_url, modo_visualizacion
+--      from public.banners where slot = 'hero';
 --
--- 2) Si ya subiste el PNG 1920×600, pega la URL pública completa abajo y descomenta el UPDATE manual.
--- 3) El bloque automático solo corrige filas que aún contienen "1920x840" en la URL.
+-- 2) Si ya subiste el PNG 1920×600, pega la URL pública completa en el UPDATE manual (abajo).
+-- 3) Este patch usa imagen_mobile_url (columna estándar). Si también tienes imagen_url_mobile,
+--    ejecuta antes sql/banners_imagen_url_mobile.sql o el bloque opcional al final.
 
 begin;
 
 -- Opcional: URL exacta del archivo nuevo (Storage → copiar enlace público)
--- \set nueva_url_desktop 'https://TU-PROYECTO.supabase.co/storage/v1/object/public/banners/farmacapital-genericos-desktop-1920x600-XXXXXXXX.png?v=...'
-
 -- update public.banners
---    set imagen_url = :'nueva_url_desktop',
+--    set imagen_url = 'https://TU-PROYECTO.supabase.co/storage/v1/object/public/banners/farmacapital-genericos-desktop-1920x600-XXXXXXXX.png?v=...',
 --        titulo = '',
 --        subtitulo = '',
 --        descripcion = '',
@@ -31,8 +31,8 @@ update public.banners
  where imagen_url ilike '%farmacapital-genericos-desktop-1920x840%';
 
 update public.banners
-   set imagen_url_mobile = replace(coalesce(imagen_url_mobile, ''), '1920x840', '1920x600')
- where coalesce(imagen_url_mobile, '') ilike '%1920x840%';
+   set imagen_mobile_url = replace(coalesce(imagen_mobile_url, ''), '1920x840', '1920x600')
+ where coalesce(imagen_mobile_url, '') ilike '%1920x840%';
 
 -- Sin copy superpuesto cuando el arte ya trae texto
 update public.banners
