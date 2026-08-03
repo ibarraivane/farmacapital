@@ -62,7 +62,7 @@ async function handler(req, res) {
         apikey: serviceKey,
         Authorization: `Bearer ${serviceKey}`,
         'Content-Type': contentType,
-        'x-upsert': 'true',
+        'x-upsert': 'false',
       },
       body,
     });
@@ -77,7 +77,7 @@ async function handler(req, res) {
       });
     }
 
-    const publicUrl = `${supabaseUrl}/storage/v1/object/public/${bucket}/${fileName}`;
+    const publicUrl = `${supabaseUrl}/storage/v1/object/public/${bucket}/${fileName}?v=${Date.now()}`;
     return res.status(200).json({ ok: true, publicUrl, path: fileName });
   } catch (e) {
     console.error('[storage-upload]', e);

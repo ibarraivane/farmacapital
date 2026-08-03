@@ -810,8 +810,8 @@ function BannersAdmin(){
                       }
                     }
                   }}
-                  aspectRatio="16:9"
-                  filenamePrefix={`${(form.titulo||"banner").toLowerCase().replace(/\s/g,"-")}-desktop`}
+                  aspectRatio="16:5"
+                  filenamePrefix={`farmacapital-${(form.titulo||"banner").toLowerCase().replace(/\s/g,"-")}-desktop`}
                   size="medium"
                 />
                 <div style={{fontSize:11,color:C.textDim,marginTop:6,lineHeight:1.4}}>
@@ -838,7 +838,7 @@ function BannersAdmin(){
                     }
                   }}
                   aspectRatio="1:1"
-                  filenamePrefix={`${(form.titulo||"banner").toLowerCase().replace(/\s/g,"-")}-mobile`}
+                  filenamePrefix={`farmacapital-${(form.titulo||"banner").toLowerCase().replace(/\s/g,"-")}-mobile`}
                   size="medium"
                 />
                 <div style={{fontSize:11,color:C.textDim,marginTop:6,lineHeight:1.4}}>

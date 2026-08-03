@@ -4,8 +4,8 @@
  */
 
 const PRESETS = {
-  bannerDesktop: { maxWidth: 2000, maxHeight: 720 },
-  bannerMobile: { maxWidth: 900, maxHeight: 1600 },
+  bannerDesktop: { maxWidth: 1920, maxHeight: 600 },
+  bannerMobile: { maxWidth: 1080, maxHeight: 1080 },
   productDesktop: { maxWidth: 1200, maxHeight: 1200 },
   productMobile: { maxWidth: 900, maxHeight: 900 },
 };
@@ -37,7 +37,7 @@ export function extFromContentType(ct) {
   return "png";
 }
 
-/** MIME de salida al re-encodear raster (respeta PNG/WebP/JPEG; resto â†’ PNG) */
+/** MIME de salida al re-encodear raster (respeta PNG/WebP/JPEG; resto âÿÿ PNG) */
 function outputMimeFromInput(inputMime) {
   const m = String(inputMime || "").toLowerCase();
   if (m === "image/png") return "image/png";

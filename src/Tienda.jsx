@@ -194,8 +194,21 @@ function mapBannerFromRow(b){
 
 /** Vista estrecha (<768px): prioriza imagen_url_mobile (mapeada desde BD nueva + legado imagen_mobile_url). */
 function bannerVisualUrl(b, narrow){
-  if (narrow && bannerTxt(b.imagen_url_mobile)) return bannerTxt(b.imagen_url_mobile);
-  return bannerTxt(b.imagen_url) || "";
+  const raw = narrow && bannerTxt(b.imagen_url_mobile)
+    ? bannerTxt(b.imagen_url_mobile)
+    : (bannerTxt(b.imagen_url) || "");
+  return bannerPublicUrl(raw);
+}
+
+/** Rompe caché CDN/navegador cuando la URL en Storage no cambió de nombre. */
+function bannerPublicUrl(url) {
+  const base = bannerTxt(url);
+  if (!base) return "";
+  if (/[?&](?:v|cb)=/.test(base)) return base;
+  const file = base.split("/").pop()?.split("?")[0] || "";
+  const stamp = file.match(/-(\d{10,13})\./)?.[1];
+  if (stamp) return `${base}${base.includes("?") ? "&" : "?"}cb=${stamp}`;
+  return base;
 }
 
 /** URL de video corto (MP4/WebM). Si existe, la tienda prioriza video sobre la imagen. */
@@ -206,8 +219,8 @@ function bannerVideoUrl(b){
 
 /** Desktop 16:5 · móvil 1:1 — `<picture>` evita mostrar la imagen cuadrada en laptop o la panorámica en teléfono. */
 function HeroBannerPicture({ banner, alt = "", style }) {
-  const desktopUrl = bannerTxt(banner?.imagen_url);
-  const mobileUrl = bannerTxt(banner?.imagen_url_mobile);
+  const desktopUrl = bannerPublicUrl(banner?.imagen_url);
+  const mobileUrl = bannerPublicUrl(banner?.imagen_url_mobile);
   const fallback = desktopUrl || mobileUrl;
   if (!fallback) return null;
   return (
@@ -219,6 +232,16 @@ function HeroBannerPicture({ banner, alt = "", style }) {
         decoding="async"
         draggable={false}
         style={style}
+        onLoad={(e) => {
+          const img = e.currentTarget;
+          if (process.env.NODE_ENV === "development") {
+            console.info("[HeroBanner]", alt || "banner", {
+              naturalWidth: img.naturalWidth,
+              naturalHeight: img.naturalHeight,
+              src: img.currentSrc || img.src,
+            });
+          }
+        }}
       />
     </picture>
   );
@@ -490,8 +513,8 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
 
   const b=banners[idx]||BANNERS[0];
   const vid = bannerVideoUrl(b);
-  const desktopImg = bannerTxt(b.imagen_url);
-  const mobileImg = bannerTxt(b.imagen_url_mobile);
+  const desktopImg = bannerPublicUrl(b.imagen_url);
+  const mobileImg = bannerPublicUrl(b.imagen_url_mobile);
   const imagenFallback = desktopImg || mobileImg;
   const tieneImagen = !!(vid || imagenFallback);
 

@@ -12,7 +12,7 @@ import { C_LIGHT, BRAND } from "../constants";
  * @param {() => void} [onRemoved]
  * @param {number} [maxSizeMB]
  * @param {string} [filenamePrefix]
- * @param {"1:1"|"16:9"} [aspectRatio]
+ * @param {"1:1"|"16:9"|"16:5"} [aspectRatio]
  * @param {"small"|"medium"|"large"} [size]
  */
 export default function ImageUploader({
@@ -37,6 +37,25 @@ export default function ImageUploader({
     webp: "image/webp",
     gif: "image/gif",
   };
+
+  const readImageDimensions = (file) =>
+    new Promise((resolve) => {
+      if (!file?.type?.startsWith("image/") || file.type === "image/svg+xml") {
+        resolve(null);
+        return;
+      }
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        resolve({ width: img.naturalWidth || img.width, height: img.naturalHeight || img.height });
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        resolve(null);
+      };
+      img.src = url;
+    });
 
   const handleFile = async (file) => {
     if (!file) return;
@@ -65,10 +84,12 @@ export default function ImageUploader({
         fileMime === "image/gif" ? "gif" :
         (ext || "jpg");
       const timestamp = Date.now();
+      const dims = await readImageDimensions(file);
+      const dimTag = dims?.width && dims?.height ? `${dims.width}x${dims.height}` : "img";
       const cleanPrefix = filenamePrefix.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
       const fileName = cleanPrefix
-        ? `${cleanPrefix}-${timestamp}.${finalExt}`
-        : `${bucket}-${timestamp}.${finalExt}`;
+        ? `${cleanPrefix}-${dimTag}-${timestamp}.${finalExt}`
+        : `${bucket}-${dimTag}-${timestamp}.${finalExt}`;
 
       setProgress(30);
 
@@ -104,7 +125,7 @@ export default function ImageUploader({
         });
         if (uploadError) throw uploadError;
         const { data } = supabase.storage.from(bucket).getPublicUrl(fileName);
-        publicUrl = data.publicUrl;
+        publicUrl = `${data.publicUrl}?v=${timestamp}`;
       }
 
       setProgress(70);
@@ -132,7 +153,9 @@ export default function ImageUploader({
   const aspectStyle =
     aspectRatio === "16:9"
       ? { width: Math.round(previewSize * 1.78), height: previewSize }
-      : { width: previewSize, height: previewSize };
+      : aspectRatio === "16:5"
+        ? { width: Math.round(previewSize * 3.2), height: previewSize }
+        : { width: previewSize, height: previewSize };
 
   return (
     <div style={{ display: "flex", gap: 12, alignItems: "flex-start", flexWrap: "wrap" }}>
@@ -241,7 +264,7 @@ export default function ImageUploader({
         )}
 
         <div style={{ fontSize: 11, color: C.textDim, lineHeight: 1.4 }}>
-          📐 {aspectRatio === "16:9" ? "Recomendado: 1600×900px" : "Recomendado: 1000×1000px"}
+          📐 {aspectRatio === "16:5" ? "Recomendado: 1920×600px (16:5)" : aspectRatio === "16:9" ? "Recomendado: 1600×900px" : "Recomendado: 1080×1080px"}
           <br />
           📦 Máximo: {maxSizeMB}MB · JPG, PNG, WEBP{bucket === "banners" ? ", GIF" : ""}
           <br />
