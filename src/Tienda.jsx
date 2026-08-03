@@ -204,6 +204,26 @@ function bannerVideoUrl(b){
   return v != null && String(v).trim() !== "" ? String(v).trim() : "";
 }
 
+/** Desktop 16:5 · móvil 1:1 — `<picture>` evita mostrar la imagen cuadrada en laptop o la panorámica en teléfono. */
+function HeroBannerPicture({ banner, alt = "", style }) {
+  const desktopUrl = bannerTxt(banner?.imagen_url);
+  const mobileUrl = bannerTxt(banner?.imagen_url_mobile);
+  const fallback = desktopUrl || mobileUrl;
+  if (!fallback) return null;
+  return (
+    <picture style={{ display: "block", width: "100%", height: "100%" }}>
+      {mobileUrl ? <source media="(max-width: 767px)" srcSet={mobileUrl} /> : null}
+      <img
+        src={desktopUrl || mobileUrl}
+        alt={alt}
+        decoding="async"
+        draggable={false}
+        style={style}
+      />
+    </picture>
+  );
+}
+
 /** Video sin sonido + loop para autoplay en carrusel/banners (políticas del navegador). */
 function BannerLoopVideo({ src, poster, style, "aria-label": ariaLabel }){
   return (
@@ -442,13 +462,12 @@ function PopupBienvenida({onClose,setPage,precioConsulta,banner}){
 }
 
 // ── CARRUSEL PRINCIPAL (zona hero) ────────────────────────────
-/** Desktop: título arriba-izq y CTA abajo-der · Mobile: copy centrado abajo · imagen móvil si existe (viewport estrecho o táctil ≤1024px). */
+/** Desktop 16:5 (1920×600) · móvil 1:1 (1080×1080). En imagen_completa no superpone título ni oscurece el arte. */
 function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true}){
   const C = useTheme();
   const [idx,setIdx]=useState(0);
   const [pauseAuto,setPauseAuto]=useState(false);
   const esMobile = useMediaQuery("(max-width: 767px)");
-  const narrowHeroImg = useNarrowForBannerImage();
 
   const banners = items.length
     ? items
@@ -471,42 +490,92 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
 
   const b=banners[idx]||BANNERS[0];
   const vid = bannerVideoUrl(b);
-  const imagenActual = bannerVisualUrl(b, narrowHeroImg);
-  const tieneImagen = !!(vid || bannerTxt(imagenActual));
+  const desktopImg = bannerTxt(b.imagen_url);
+  const mobileImg = bannerTxt(b.imagen_url_mobile);
+  const imagenFallback = desktopImg || mobileImg;
+  const tieneImagen = !!(vid || imagenFallback);
 
   const modoCompleto =
     (bannerTxt(b.modo_visualizacion)||"imagen_completa")==="imagen_completa" && tieneImagen;
 
+  const heroShellSx = {
+    position: "relative",
+    width: "100%",
+    aspectRatio: esMobile ? "1 / 1" : "16 / 5",
+    height: "auto",
+    overflow: "hidden",
+    background: "#0f172a",
+  };
+
+  const heroMediaSx = {
+    width: "100%",
+    height: "100%",
+    display: "block",
+    objectFit: "cover",
+    objectPosition: "center center",
+  };
+
+  const heroOverlayCopySx = {
+    position: "absolute",
+    inset: 0,
+    background: esMobile
+      ? "linear-gradient(to top, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.18) 45%, transparent 70%)"
+      : "linear-gradient(90deg, rgba(13,27,42,0.45) 0%, rgba(13,27,42,0.12) 55%, transparent 100%)",
+    pointerEvents: "none",
+    zIndex: 1,
+  };
+
+  const heroCtaDesktopSx = {
+    position: "absolute",
+    right: "clamp(24px, 5vw, 80px)",
+    bottom: "clamp(28px, 7%, 55px)",
+    zIndex: 3,
+  };
+
+  const heroCtaMobileSx = {
+    position: "absolute",
+    left: "50%",
+    transform: "translateX(-50%)",
+    bottom: "clamp(20px, 5%, 36px)",
+    zIndex: 3,
+    width: "max-content",
+    maxWidth: "calc(100% - 32px)",
+  };
+
   const carouselControls = banners.length > 1 && (
     <>
       <div
+        role="tablist"
+        aria-label="Banners del carrusel"
         onMouseEnter={()=>setPauseAuto(true)}
         onMouseLeave={()=>setPauseAuto(false)}
         style={{
           position:"absolute",
-          bottom:12,
-          left:"50%",
-          transform:"translateX(-50%)",
+          bottom: esMobile ? 10 : 14,
+          left: esMobile ? "50%" : "clamp(16px, 4vw, 48px)",
+          transform: esMobile ? "translateX(-50%)" : undefined,
           display:"flex",
           gap:6,
-          zIndex:5,
+          zIndex:4,
         }}
       >
         {banners.map((_,i)=>(
           <button
             key={i}
             type="button"
+            role="tab"
+            aria-selected={i===idx}
             aria-label={`Banner ${i+1}`}
             onClick={(e)=>{ e.stopPropagation(); setIdx(i); }}
             style={{
-              width:i===idx?24:8,
+              width:i===idx?22:8,
               height:8,
               borderRadius:4,
               border:"none",
-              background:i===idx?"rgba(255,255,255,.95)":"rgba(255,255,255,.5)",
+              background:i===idx?"rgba(255,255,255,.92)":"rgba(255,255,255,.45)",
               cursor:"pointer",
               padding:0,
-              boxShadow:"0 1px 3px rgba(0,0,0,.4)",
+              boxShadow:"0 1px 2px rgba(0,0,0,.25)",
             }}
           />
         ))}
@@ -515,6 +584,7 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
         <button
           key={d}
           type="button"
+          aria-label={d===-1?"Banner anterior":"Banner siguiente"}
           onClick={(e)=>{ e.stopPropagation(); setIdx(i=>(i+d+banners.length)%banners.length); }}
           onMouseEnter={()=>setPauseAuto(true)}
           onMouseLeave={()=>setPauseAuto(false)}
@@ -522,21 +592,23 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
             position:"absolute",
             top:"50%",
             transform:"translateY(-50%)",
-            ...(d===-1?{left:12}:{right:12}),
-            background:"rgba(0,0,0,.4)",
-            border:"none",
+            ...(d===-1
+              ? { left: esMobile ? 8 : 12 }
+              : { right: esMobile ? 8 : "clamp(24px, 5vw, 80px)", top: esMobile ? "42%" : "38%" }),
+            background:"rgba(13,27,42,0.35)",
+            border:"1px solid rgba(255,255,255,0.25)",
             color:C.white,
-            width:esMobile?32:40,
-            height:esMobile?32:40,
+            width:esMobile?30:36,
+            height:esMobile?30:36,
             borderRadius:"50%",
             cursor:"pointer",
-            fontSize:esMobile?20:24,
+            fontSize:esMobile?18:22,
             fontWeight:600,
             display:"flex",
             alignItems:"center",
             justifyContent:"center",
-            zIndex:5,
-            paddingBottom:3,
+            zIndex:4,
+            paddingBottom:2,
           }}
         >
           {icon}
@@ -545,267 +617,160 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
     </>
   );
 
-  const imgHeroSx = {
-    width:"100%",
-    height:"100%",
-    display:"block",
-    objectFit:"cover",
-    objectPosition:"center center",
-  };
-
-  const fondoShell = (
-    <div
-      role="presentation"
-      onClick={()=>setPage(b.pagina)}
+  const heroCtaBtn = bannerTxt(b.cta) && b.pagina ? (
+    <Btn
+      onClick={(e)=>{ e.stopPropagation(); setPage(b.pagina); }}
       style={{
-        position:"relative",
-        width:"100%",
-        overflow:"hidden",
-        cursor:"pointer",
-        backgroundColor: vid ? "#070f1a" : !tieneImagen && !vid ? undefined : "#0f172a",
-        aspectRatio: esMobile ? "1 / 1" : "16 / 5",
-        minHeight: esMobile ? 280 : 320,
-        display:"flex",
-        flexDirection:"column",
-        justifyContent: esMobile ? "space-between" : "flex-start",
+        background:"#fff",
+        color:BRAND.primary,
+        border:"none",
+        fontWeight:700,
+        boxShadow:"0 4px 14px rgba(0,0,0,.22)",
+        padding: esMobile ? "11px 20px" : "13px 26px",
+        fontSize: esMobile ? 14 : 15,
       }}
     >
-      {!vid && !tieneImagen ? (
-        <div aria-hidden style={{position:"absolute",inset:0,background:b.bg,zIndex:0}}>
-          <svg style={{position:"absolute",inset:0,width:"100%",height:"100%",opacity:.07}} aria-hidden>
-            <defs>
-              <pattern id="fc-grid" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
-                <circle cx="20" cy="20" r="1.5" fill="white"/>
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#fc-grid)"/>
-          </svg>
-          <div style={{position:"absolute",right:"-5%",top:"-20%",width:"55%",maxWidth:320,aspectRatio:"1",borderRadius:"50%",background:"rgba(255,255,255,.04)"}}/>
-          <div style={{position:"absolute",right:"15%",bottom:"-30%",width:"40%",maxWidth:220,aspectRatio:"1",borderRadius:"50%",background:"rgba(255,255,255,.03)"}}/>
-        </div>
-      ) : null}
-      {!vid && tieneImagen ? (
-        <img
-          src={imagenActual}
-          alt=""
-          decoding="async"
-          draggable={false}
-          aria-hidden
-          style={{
-            position:"absolute",
-            inset:0,
-            width:"100%",
-            height:"100%",
-            objectFit:"cover",
-            objectPosition:"center center",
-            zIndex:0,
-            pointerEvents:"none",
-            userSelect:"none",
-          }}
-        />
-      ) : null}
-      {vid ? (
-        <div style={{position:"absolute",inset:0,zIndex:0}}>
-          <BannerLoopVideo
-            src={vid}
-            poster={bannerTxt(imagenActual)||undefined}
-            aria-label={bannerTxt(b.titulo)||"Banner"}
-            style={{
-              width:"100%",
-              height:"100%",
-              display:"block",
-              objectFit:"cover",
-            }}
-          />
-        </div>
-      ) : null}
+      {b.cta}
+    </Btn>
+  ) : null;
 
-      {tieneImagen ? (
-        <>
-          {!esMobile && (
-            <div aria-hidden style={{
-              position:"absolute",
-              top:0,
-              left:0,
-              right:0,
-              height:"55%",
-              background:"linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.25) 60%, transparent 100%)",
-              pointerEvents:"none",
-              zIndex:1,
-            }}/>
-          )}
-          <div aria-hidden style={{
-            position:"absolute",
-            bottom:0,
-            left:0,
-            right:0,
-            height: esMobile ? "55%" : "45%",
-            background:"linear-gradient(to top, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.3) 60%, transparent 100%)",
-            pointerEvents:"none",
-            zIndex:1,
-          }}/>
-        </>
-      ) : null}
-
-      {esMobile ? (
-        <>
-          <div style={{flex:1}}/>
-          <div style={{
-            position:"relative",
-            zIndex:2,
-            padding:"20px 16px 50px 16px",
-            textAlign:"center",
-          }}>
-            {bannerTxt(b.titulo) ? (
-              <h2 style={{
-                color:"#fff",
-                fontSize:"clamp(20px, 5vw, 26px)",
-                fontWeight:800,
-                marginBottom:6,
-                marginTop:0,
-                lineHeight:1.2,
-                textShadow:"0 2px 8px rgba(0,0,0,.7)",
-                fontFamily:"'Plus Jakarta Sans',sans-serif",
-              }}>{b.titulo}</h2>
-            ) : null}
-            {bannerTxt(b.subtitulo) ? (
-              <div style={{
-                color:"rgba(255,255,255,.9)",
-                fontSize:"clamp(10px, 2.5vw, 12px)",
-                letterSpacing:1.5,
-                textTransform:"uppercase",
-                marginBottom:16,
-                fontWeight:600,
-                textShadow:"0 1px 3px rgba(0,0,0,.6)",
-                fontFamily:"'Plus Jakarta Sans',sans-serif",
-              }}>{b.subtitulo}</div>
-            ) : null}
-            {bannerTxt(b.cta) && b.pagina ? (
-              <Btn
-                onClick={(e)=>{ e.stopPropagation(); setPage(b.pagina); }}
-                style={{
-                  background:"#fff",
-                  color:BRAND.primary,
-                  border:"none",
-                  fontWeight:700,
-                  boxShadow:"0 4px 12px rgba(0,0,0,.3)",
-                }}
-              >
-                {b.cta}
-              </Btn>
-            ) : null}
-          </div>
-        </>
-      ) : (
-        <>
-          <div style={{
-            position:"relative",
-            zIndex:2,
-            padding:"32px 48px 0 48px",
-            textAlign:"left",
-            maxWidth:"60%",
-          }}>
-            {bannerTxt(b.titulo) ? (
-              <h2 style={{
-                color:"#fff",
-                fontSize:"clamp(24px, 3.5vw, 36px)",
-                fontWeight:800,
-                marginBottom:8,
-                marginTop:0,
-                lineHeight:1.15,
-                textShadow:"0 2px 8px rgba(0,0,0,.7)",
-                fontFamily:"'Plus Jakarta Sans',sans-serif",
-              }}>{b.titulo}</h2>
-            ) : null}
-            {bannerTxt(b.subtitulo) ? (
-              <div style={{
-                color:"rgba(255,255,255,.9)",
-                fontSize:"clamp(11px, 1.4vw, 14px)",
-                letterSpacing:1.8,
-                textTransform:"uppercase",
-                fontWeight:600,
-                textShadow:"0 1px 3px rgba(0,0,0,.6)",
-                fontFamily:"'Plus Jakarta Sans',sans-serif",
-              }}>{b.subtitulo}</div>
-            ) : null}
-          </div>
-          <div style={{flex:1}}/>
-          {bannerTxt(b.cta) && b.pagina ? (
-            <div style={{
-              position:"relative",
-              zIndex:2,
-              padding:"0 48px 40px 48px",
-              textAlign:"right",
-            }}>
-              <Btn
-                onClick={(e)=>{ e.stopPropagation(); setPage(b.pagina); }}
-                style={{
-                  background:"#fff",
-                  color:BRAND.primary,
-                  border:"none",
-                  fontWeight:700,
-                  boxShadow:"0 4px 16px rgba(0,0,0,.4)",
-                  padding:"14px 28px",
-                  fontSize:15,
-                }}
-              >
-                {b.cta}
-              </Btn>
-            </div>
-          ) : null}
-        </>
-      )}
-    </div>
-  );
-
-  return(
-    <div style={{
-      position:"relative",
-      width:"100%",
-      overflow:"hidden",
-      background: modoCompleto && tieneImagen ? "#000" : undefined,
-    }}>
-      {modoCompleto ? (
-        <>
+  // ── imagen_completa: arte ya incluye copy; solo CTA opcional en zona segura ──
+  if (modoCompleto) {
+    return (
+      <div className="hero-carousel" style={{ position:"relative", width:"100%", overflow:"hidden" }}>
+        <div
+          className="hero-carousel__frame"
+          style={heroShellSx}
+          onMouseEnter={()=>setPauseAuto(true)}
+          onMouseLeave={()=>setPauseAuto(false)}
+        >
           <button
             type="button"
-            onClick={()=>setPage(b.pagina)}
-            onMouseEnter={()=>setPauseAuto(true)}
-            onMouseLeave={()=>setPauseAuto(false)}
+            onClick={()=> b.pagina && setPage(b.pagina)}
+            aria-label={bannerTxt(b.titulo) || "Ver banner"}
             style={{
               display:"block",
               width:"100%",
+              height:"100%",
               border:"none",
               padding:0,
               margin:0,
-              cursor:"pointer",
+              cursor: b.pagina ? "pointer" : "default",
               background:"transparent",
+              position:"relative",
             }}
           >
             {vid ? (
               <BannerLoopVideo
                 src={vid}
-                poster={bannerTxt(imagenActual)||undefined}
+                poster={imagenFallback||undefined}
                 aria-label={bannerTxt(b.titulo)||"Banner"}
-                style={imgHeroSx}
+                style={heroMediaSx}
               />
             ) : (
-              <img
-                src={imagenActual}
-                alt={bannerTxt(b.titulo)||"Banner"}
-                decoding="async"
-                style={imgHeroSx}
+              <HeroBannerPicture
+                banner={b}
+                alt={bannerTxt(b.titulo)||"Banner FarmaCapital"}
+                style={heroMediaSx}
               />
             )}
           </button>
+          {heroCtaBtn ? (
+            <div className="hero-cta" style={esMobile ? heroCtaMobileSx : heroCtaDesktopSx}>
+              {heroCtaBtn}
+            </div>
+          ) : null}
           {carouselControls}
-        </>
-      ) : (
-        <>
-          {fondoShell}
-          {carouselControls}
-        </>
-      )}
+        </div>
+      </div>
+    );
+  }
+
+  // ── imagen_fondo / gradiente: copy superpuesto con overlay moderado ──
+  return (
+    <div className="hero-carousel" style={{ position:"relative", width:"100%", overflow:"hidden" }}>
+      <div
+        role="presentation"
+        onClick={()=> b.pagina && setPage(b.pagina)}
+        style={{
+          ...heroShellSx,
+          cursor: b.pagina ? "pointer" : "default",
+          display:"flex",
+          flexDirection:"column",
+          justifyContent: esMobile ? "flex-end" : "flex-start",
+        }}
+      >
+        {!vid && !tieneImagen ? (
+          <div aria-hidden style={{position:"absolute",inset:0,background:b.bg,zIndex:0}}>
+            <svg style={{position:"absolute",inset:0,width:"100%",height:"100%",opacity:.07}} aria-hidden>
+              <defs>
+                <pattern id="fc-grid" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+                  <circle cx="20" cy="20" r="1.5" fill="white"/>
+                </pattern>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#fc-grid)"/>
+            </svg>
+          </div>
+        ) : null}
+        {!vid && tieneImagen ? (
+          <div style={{ position:"absolute", inset:0, zIndex:0 }}>
+            <HeroBannerPicture banner={b} alt="" style={{ ...heroMediaSx, pointerEvents:"none" }} />
+          </div>
+        ) : null}
+        {vid ? (
+          <div style={{position:"absolute",inset:0,zIndex:0}}>
+            <BannerLoopVideo
+              src={vid}
+              poster={imagenFallback||undefined}
+              aria-label={bannerTxt(b.titulo)||"Banner"}
+              style={heroMediaSx}
+            />
+          </div>
+        ) : null}
+
+        {tieneImagen ? <div aria-hidden style={heroOverlayCopySx} /> : null}
+
+        {esMobile ? (
+          <div style={{ position:"relative", zIndex:2, padding:"16px 16px 52px", textAlign:"center" }}>
+            {bannerTxt(b.titulo) ? (
+              <h2 style={{
+                color:"#fff", fontSize:"clamp(20px, 5vw, 26px)", fontWeight:800,
+                margin:"0 0 6px", lineHeight:1.2, textShadow:"0 2px 8px rgba(0,0,0,.55)",
+              }}>{b.titulo}</h2>
+            ) : null}
+            {bannerTxt(b.subtitulo) ? (
+              <div style={{
+                color:"rgba(255,255,255,.9)", fontSize:"clamp(10px, 2.5vw, 12px)",
+                letterSpacing:1.5, textTransform:"uppercase", marginBottom:14, fontWeight:600,
+                textShadow:"0 1px 3px rgba(0,0,0,.45)",
+              }}>{b.subtitulo}</div>
+            ) : null}
+            {heroCtaBtn}
+          </div>
+        ) : (
+          <>
+            <div style={{ position:"relative", zIndex:2, padding:"clamp(20px, 4vw, 32px) clamp(16px, 4vw, 48px) 0", maxWidth:"58%" }}>
+              {bannerTxt(b.titulo) ? (
+                <h2 style={{
+                  color:"#fff", fontSize:"clamp(24px, 3.5vw, 36px)", fontWeight:800,
+                  margin:"0 0 8px", lineHeight:1.15, textShadow:"0 2px 8px rgba(0,0,0,.55)",
+                }}>{b.titulo}</h2>
+              ) : null}
+              {bannerTxt(b.subtitulo) ? (
+                <div style={{
+                  color:"rgba(255,255,255,.9)", fontSize:"clamp(11px, 1.4vw, 14px)",
+                  letterSpacing:1.8, textTransform:"uppercase", fontWeight:600,
+                  textShadow:"0 1px 3px rgba(0,0,0,.45)",
+                }}>{b.subtitulo}</div>
+              ) : null}
+            </div>
+            {heroCtaBtn ? (
+              <div style={heroCtaDesktopSx}>{heroCtaBtn}</div>
+            ) : null}
+          </>
+        )}
+        {carouselControls}
+      </div>
     </div>
   );
 }
