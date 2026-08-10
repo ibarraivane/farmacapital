@@ -30,7 +30,6 @@ export const MODULOS_BLOQUEADOS_VENDEDOR = [
 // Estos son los ADICIONALES que un admin le puede habilitar.
 export const MODULOS_DISPONIBLES_VENDEDOR = [
   "midia",      // Su pantalla de inicio (default del rol)
-  "turno",      // Pantalla de avisos con sonido (mostrador)
   "pos",        // POS principal + pestaña Consultas para cobrar citas
   "agenda",     // Calendario / consultas del día (operativo; sin ficha clínica completa)
   "trans",      // Listado de transacciones / pedidos

@@ -14,9 +14,6 @@ import ExpedientesDoctora from "./modules/clinical/patients/ExpedientesDoctora";
 import { loadAdminNavOrder } from "./utils/adminNavOrder";
 import { puedeVerModulo, modulosPermitidosParaRol } from "./utils/permissions";
 import { adminPathnameToPageId, pageIdToAdminPath, pathnameSuggestsPosTab } from "./shared/adminRoutes";
-import useStaffAlerts from "./hooks/useStaffAlerts";
-import StaffAlertBanner from "./components/staff/StaffAlertBanner";
-import TurnoScreen from "./modules/staff/TurnoScreen";
 import { initBillingListeners } from "./modules/billing/core/initBillingListeners";
 import { canAccessRoute } from "./core/security/routeGuard";
 import ImageUploader from "./components/ImageUploader";
@@ -1699,6 +1696,7 @@ export default function FarmaCapitalAdmin(){
     if (p === "rea")   return { page: "inv",  invTab: "reabasto", posTab: null };
     if (p === "lotes") return { page: "inv",  invTab: "lotes", posTab: null };
     if (p === "cons_cobro") return { page: "pos", invTab: null, posTab: "consultas" };
+    if (p === "turno" || p === "pantalla-turno") return { page: "dash", invTab: null, posTab: null };
     return { page: p, invTab: null, posTab: null };
   }
   function applyPosTabHint(posTab) {
@@ -1938,52 +1936,6 @@ export default function FarmaCapitalAdmin(){
     setNotifs(p=>p.filter(x=>x.id!==n.id));
   },[]);
 
-  const onStaffAlertNew = useCallback(
-    (alert) => {
-      addNotif(alert.titulo, `${alert.subtitulo} · ${alert.detalle}`, alert.icon, alert.col);
-    },
-    [addNotif]
-  );
-
-  const {
-    alerts: staffAlerts,
-    activeAlert: staffActiveAlert,
-    attendAlert: staffAttendAlert,
-    dismissAlert: staffDismissAlert,
-  } = useStaffAlerts({
-    enabled: !!usuario && page !== "turno",
-    pushNotif,
-    onNewAlert: onStaffAlertNew,
-  });
-
-  const handleAttendStaffAlert = useCallback(
-    (alert) => {
-      if (!alert?.key) return;
-      staffAttendAlert(alert.key);
-      if (alert.type === "pedido") {
-        applyPosTabHint("online");
-        setPageAndSave("ped_online");
-      }
-    },
-    [staffAttendAlert, setPageAndSave]
-  );
-
-  const handleStaffAlertSecondary = useCallback(
-    (alert) => {
-      if (!alert?.key || alert.type !== "cita") return;
-      staffAttendAlert(alert.key);
-      setPageAndSave("agenda");
-    },
-    [staffAttendAlert, setPageAndSave]
-  );
-
-  const handleStaffAlertDismiss = useCallback(
-    (alert) => {
-      if (alert?.key) staffDismissAlert(alert.key);
-    },
-    [staffDismissAlert]
-  );
-
   useEffect(()=>{
     if(!usuario) return;
     const ch=supabase.channel("farmacapital-rt")
@@ -2119,7 +2071,6 @@ export default function FarmaCapitalAdmin(){
 
     switch(page){
       case "midia":     return <MiDia usuario={usuario} setPage={setPageAndSave}/>;
-      case "turno":     return <TurnoScreen setPage={setPageAndSave} pushNotif={pushNotif} applyPosTabHint={applyPosTabHint}/>;
       case "dash":      return <DashboardModule usuario={usuario} setPage={setPageAndSave} showConfirm={showConfirm}/>;
       case "pos":
         if (!canAccessRoute(usuario.rol, "/pos")) {
@@ -2155,15 +2106,6 @@ export default function FarmaCapitalAdmin(){
   return(
     <>
     <GlobalHoverStyles/>
-    {usuario && page !== "turno" && staffActiveAlert && (
-      <StaffAlertBanner
-        alert={staffActiveAlert}
-        queueCount={staffAlerts.length}
-        onPrimary={handleAttendStaffAlert}
-        onSecondary={handleStaffAlertSecondary}
-        onDismiss={handleStaffAlertDismiss}
-      />
-    )}
     <NotificacionesToast notifs={notifs} onDismiss={dismissNotif} onAction={handleNotifAction}/>
     <PasswordResetSolicitudesModal open={passwordResetOpen} onClose={()=>setPasswordResetOpen(false)}/>
     <ToastProvider/>

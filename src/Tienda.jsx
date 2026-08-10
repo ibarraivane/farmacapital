@@ -2039,38 +2039,6 @@ function ContenidoCDMX({ color }){
   );
 }
 
-function ContenidoForaneo({ C, color }){
-  return (
-    <>
-      <p style={{margin:"0 0 12px"}}>
-        ¿Estás fuera de CDMX? Te enviamos a cualquier estado de México a través de Skydropx.
-      </p>
-      <h4 style={sH4(color)}>¿Cómo funciona?</h4>
-      <ol style={sList}>
-        <li style={sListItem}>Haz tu pedido en línea y elige &quot;Envío foráneo&quot;</li>
-        <li style={sListItem}>Pagas el costo del producto + $89 MXN de envío base</li>
-        <li style={sListItem}>Empacamos tu pedido con cuidado el mismo día</li>
-        <li style={sListItem}>Skydropx lo entrega en 2–5 días hábiles</li>
-      </ol>
-      <h4 style={sH4(color)}>Costo</h4>
-      <p style={{margin:"0 0 12px"}}>
-        <span style={sStrong}>$89 MXN tarifa base.</span> Si tu pedido es muy grande o pesado, te avisamos antes de cobrarte de más.
-      </p>
-      <h4 style={sH4(color)}>Tiempo de entrega</h4>
-      <ul style={sList}>
-        <li style={sListItem}>Centro del país: 2–3 días hábiles</li>
-        <li style={sListItem}>Norte y sureste: 3–5 días hábiles</li>
-      </ul>
-      <h4 style={sH4(color)}>Importante</h4>
-      <ul style={{...sList,color:C.textMid,fontSize:13}}>
-        <li style={sListItem}>Necesitas dirección completa con código postal y teléfono.</li>
-        <li style={sListItem}>Algunos medicamentos controlados o refrigerados no se pueden enviar foráneo. Si es tu caso, te lo avisamos antes de cobrar.</li>
-        <li style={sListItem}>Te enviamos un código de rastreo para que sigas tu paquete.</li>
-      </ul>
-    </>
-  );
-}
-
 function ContenidoPago({ C, color }){
   return (
     <>
@@ -3458,7 +3426,6 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
   if(conf&&lastOrder){
     const folio = formatFolioOnline(lastOrder.pedidoId);
     const esPickup = lastOrder.tipo_entrega==="recoger";
-    const esCdmx = lastOrder.entregaUi==="cdmx";
     const reenviarReciboWhatsApp = () => {
       openWhatsAppToFarmacia(buildCustomerToFarmaciaMessage({
         pedidoId: lastOrder.pedidoId,
@@ -3468,10 +3435,8 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
     };
     const instruccionEntrega = esPickup
       ? `Muestra este folio en farmacia o menciona tu teléfono. Prepararemos tu pedido y te avisamos cuando esté listo.`
-      : esCdmx
-        ? "Coordinaremos el reparto con Rappi o Uber. Te contactamos por WhatsApp para confirmar hora y dirección."
-        : "Generaremos tu guía de Skydropx y te enviamos el número de rastreo por WhatsApp en las próximas horas.";
-    const iconoEntrega = esPickup ? "🏪" : esCdmx ? "🛵" : "📦";
+      : "Coordinaremos el reparto con Rappi o Uber. Te contactamos por WhatsApp para confirmar hora y dirección.";
+    const iconoEntrega = esPickup ? "🏪" : "🛵";
     return(
       <div style={{maxWidth:560,margin:"clamp(32px,10vw,72px) auto",padding:"0 16px",textAlign:"center"}}>
         <div style={{fontSize:"clamp(48px,14vw,68px)",marginBottom:12}}>✅</div>

@@ -41,6 +41,273 @@ function ubicacionPedidoItem(item) {
   return String(raw || "").trim() || "Sin ubicación";
 }
 
+function posVariantesDeProducto(productos, item) {
+  if (!item) return [];
+  const pa = String(item.principio_activo || "").trim().toLowerCase();
+  const dg = String(item.denominacion_generica || "").trim().toLowerCase();
+  if (!pa && !dg) return [item];
+  const matches = productos.filter((p) => {
+    if (p.activo === false) return false;
+    if (pa && String(p.principio_activo || "").trim().toLowerCase() === pa) return true;
+    if (dg && String(p.denominacion_generica || "").trim().toLowerCase() === dg) return true;
+    return false;
+  });
+  const list = matches.length > 1 ? matches : [item];
+  return [...list].sort((a, b) =>
+    String(a.concentracion || "").localeCompare(String(b.concentracion || ""), "es")
+  );
+}
+
+function posFichaLinea(item) {
+  return [item.concentracion, item.presentacion, item.forma_farmaceutica].filter(Boolean).join(" · ");
+}
+
+function posUsoTerapeutico(item) {
+  const d = String(item?.descripcion || "").trim();
+  if (d) return d;
+  const pa = String(item?.principio_activo || "").trim();
+  if (pa) return `Principio activo: ${pa}. Agrega una descripción en Inventario para indicar el uso habitual.`;
+  return "Sin indicación de uso registrada. Completa la descripción en Inventario.";
+}
+
+function posEtiquetaForma(item) {
+  const f = String(item?.forma_farmaceutica || "").trim();
+  if (f) return f;
+  const n = String(item?.nombre || "").toLowerCase();
+  if (/\bcaps?\b|cápsula|capsula|\bcap\b/.test(n)) return "Cápsula";
+  if (/\bcomp\b|comprimido|tablet/.test(n)) return "Comprimido";
+  if (/jarabe|suspensi[oó]n|\bsusp\b/.test(n)) return "Jarabe / suspensión";
+  if (/crema|gel|ung[uü]ento|loci[oó]n/.test(n)) return "Uso tópico";
+  if (/soluci[oó]n|spray|gotas/.test(n)) return "Solución / gotas";
+  return null;
+}
+
+function PosProductoFichaPanel({
+  item,
+  productos,
+  onSelectVariante,
+  onAddCaja,
+  onAddUnidad,
+  onAbrirCaja,
+  getStockCajasPOS,
+  productoSinLotesPEPS,
+  C,
+  isMobilePos,
+  isNarrow,
+  sticky = false,
+}) {
+  const panelShell = {
+    marginBottom: 14,
+    borderRadius: 16,
+    border: `1px solid ${item ? C.blue + "35" : C.border}`,
+    background: C.card,
+    overflow: "hidden",
+    boxShadow: item ? "0 8px 28px rgba(30,58,186,.08)" : "none",
+    minHeight: isMobilePos ? 200 : 260,
+    ...(sticky ? { position: "sticky", top: 0, zIndex: 25 } : {}),
+  };
+
+  if (!item) {
+    return (
+      <div style={{ ...panelShell, display: "flex", alignItems: "center", justifyContent: "center", padding: "28px 20px" }}>
+        <div style={{ textAlign: "center", maxWidth: 420 }}>
+          <div style={{ fontSize: isMobilePos ? 40 : 52, marginBottom: 10, lineHeight: 1 }} aria-hidden>💊</div>
+          <div style={{ fontWeight: 900, fontSize: isMobilePos ? 16 : 18, color: C.text, marginBottom: 6 }}>
+            Busca o escanea un producto
+          </div>
+          <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55, color: C.textMid }}>
+            La ficha aparece aquí: foto grande, presentación, forma farmacéutica y para qué se usa normalmente.
+            Enter en el buscador agrega al carrito.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const thumb = item.imagen_url || item.imagen_mobile_url || "";
+  const variantes = posVariantesDeProducto(productos, item);
+  const stockCajas = getStockCajasPOS(item);
+  const sinLotes = productoSinLotesPEPS(item);
+  const agotado = stockCajas <= 0 && (!item.venta_unidad || item.stock_unidades === 0);
+  const uso = posUsoTerapeutico(item);
+  const forma = posEtiquetaForma(item);
+  const stack = isMobilePos || isNarrow;
+
+  const metaCell = (label, value) => (
+    <div style={{ background: C.bg, borderRadius: 10, padding: "10px 12px", minWidth: 0 }}>
+      <div style={{ fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: 0.4, marginBottom: 4, textTransform: "uppercase" }}>
+        {label}
+      </div>
+      <div style={{ fontSize: 13, fontWeight: 700, color: value ? C.text : C.textDim, lineHeight: 1.35 }}>
+        {value || "—"}
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={panelShell} data-tour="pos-ficha-producto">
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: stack ? "1fr" : "minmax(200px, 34%) 1fr",
+          gap: stack ? 14 : 20,
+          padding: stack ? 14 : "18px 20px",
+          alignItems: stack ? "stretch" : "start",
+        }}
+      >
+        <div
+          style={{
+            borderRadius: 14,
+            overflow: "hidden",
+            background: C.cardDark,
+            minHeight: stack ? 180 : 240,
+            maxHeight: stack ? 220 : 280,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          {thumb ? (
+            <img
+              src={thumb}
+              alt=""
+              style={{ width: "100%", height: "100%", minHeight: stack ? 180 : 240, objectFit: "contain", display: "block" }}
+            />
+          ) : (
+            <span style={{ fontSize: 72, opacity: 0.35 }} aria-hidden>💊</span>
+          )}
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
+          <div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", marginBottom: 6 }}>
+              <span style={{ color: C.textDim, fontSize: 10, fontWeight: 800, letterSpacing: 1 }}>{item.sku}</span>
+              {item.requiere_receta && <Tag col={C.amber} sm>⚕ Receta</Tag>}
+              {item.controlado && <Tag col={C.red} sm>Controlado</Tag>}
+              {item.tipo === "generico" && <Tag col={C.teal} sm>Genérico</Tag>}
+              {!item.requiere_receta && !item.controlado && <Tag col={C.blue} sm>Venta libre</Tag>}
+              {sinLotes ? <Tag col={C.red} sm>Sin lotes</Tag> : agotado ? <Tag col={C.red} sm>Agotado</Tag> : <Tag col={C.green} sm>{stockCajas} en stock</Tag>}
+            </div>
+            <h2 style={{ margin: 0, fontSize: stack ? 17 : 20, fontWeight: 900, color: C.text, lineHeight: 1.25 }}>
+              {item.nombre}
+            </h2>
+            {[item.principio_activo, item.marca || item.denominacion_distintiva].filter(Boolean).length > 0 && (
+              <div style={{ fontSize: 12, color: C.textMid, marginTop: 6, lineHeight: 1.4 }}>
+                {[item.principio_activo, item.marca || item.denominacion_distintiva].filter(Boolean).join(" · ")}
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: stack ? "1fr 1fr" : "repeat(3, minmax(0, 1fr))", gap: 8 }}>
+            {metaCell("Gramaje / dosis", item.concentracion || null)}
+            {metaCell("Presentación", item.presentacion || null)}
+            {metaCell("Forma", forma)}
+          </div>
+
+          <div style={{ background: C.blueDim, borderRadius: 12, padding: "12px 14px" }}>
+            <div style={{ fontSize: 10, fontWeight: 800, color: C.blue, letterSpacing: 0.5, marginBottom: 6, textTransform: "uppercase" }}>
+              Para qué se usa normalmente
+            </div>
+            <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55, color: C.textMid }}>{uso}</p>
+          </div>
+
+          {variantes.length > 1 && (
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: 0.5, marginBottom: 8 }}>
+                Otras presentaciones (mismo principio)
+              </div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {variantes.map((v) => {
+                  const sel = v.id === item.id;
+                  const label = posFichaLinea(v) || v.nombre;
+                  return (
+                    <button
+                      key={v.id}
+                      type="button"
+                      onClick={() => onSelectVariante(v)}
+                      style={{
+                        padding: "8px 12px",
+                        borderRadius: 8,
+                        border: `2px solid ${sel ? C.blue : C.border}`,
+                        background: sel ? C.blueDim : C.bg,
+                        cursor: "pointer",
+                        fontSize: 12,
+                        fontWeight: sel ? 800 : 600,
+                        color: sel ? C.blue : C.text,
+                        textAlign: "left",
+                      }}
+                    >
+                      <div>{label}</div>
+                      <div style={{ fontSize: 11, color: C.textDim, marginTop: 2 }}>{$(v.precio)}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, justifyContent: "space-between" }}>
+            <div>
+              <div style={{ fontSize: 11, color: C.textDim, marginBottom: 2 }}>Precio</div>
+              <div style={{ fontSize: stack ? 22 : 26, fontWeight: 900, color: C.blue, lineHeight: 1 }}>
+                {item.descuento_pct > 0 ? (
+                  <>
+                    <span style={{ fontSize: 14, color: C.textDim, textDecoration: "line-through", marginRight: 8 }}>{$(item.precio)}</span>
+                    {$(Math.round((item.precio || 0) * (1 - item.descuento_pct / 100)))}
+                  </>
+                ) : (
+                  $(item.precio)
+                )}
+              </div>
+            </div>
+            <span style={{ fontSize: 12, fontWeight: 700, color: item.ubicacion_texto ? C.blue : C.textDim }}>
+              📍 {item.ubicacion_texto || "Sin ubicación"}
+            </span>
+          </div>
+
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, paddingTop: 4 }}>
+            {item.venta_unidad ? (
+              <>
+                <Btn col={C.blue} disabled={stockCajas <= 0} onClick={() => onAddCaja(item)} style={{ flex: "1 1 160px" }}>
+                  📦 Caja · {$(item.precio)}
+                </Btn>
+                <Btn
+                  outline
+                  col={C.green}
+                  disabled={stockCajas <= 0 && item.stock_unidades === 0}
+                  onClick={() => {
+                    if (item.stock_unidades > 0) onAddUnidad(item);
+                    else if (stockCajas > 0) onAbrirCaja(item);
+                    else showToast("Sin stock disponible.", "warning");
+                  }}
+                  style={{ flex: "1 1 160px" }}
+                >
+                  💊 1 unidad · {$(Math.ceil(item.precio_unidad || 0))}
+                </Btn>
+              </>
+            ) : (
+              <Btn
+                col={C.blue}
+                full
+                disabled={sinLotes || stockCajas <= 0}
+                onClick={() => {
+                  if (sinLotes) {
+                    showToast("Sin lotes registrados. Ve a Inventario → Lotes.", "warning");
+                    return;
+                  }
+                  onAddCaja(item);
+                }}
+              >
+                Agregar al carrito · {$(item.precio)}
+              </Btn>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const C = C_LIGHT;
   /** Vista estrecha (tablet / ventana angosta): tipografía, grillas, cabecera. */
@@ -118,6 +385,12 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const bbvaCitaRef = useRef(null);
   const [ventasDia,setVentasDia] = useState({total:0,count:0});
   const [folioActual,setFolioActual] = useState("VTA-00000000");
+  const [fichaProd, setFichaProd] = useState(null);
+  const [iaOpen, setIaOpen] = useState(false);
+  const [iaSintoma, setIaSintoma] = useState("");
+  const [iaLoading, setIaLoading] = useState(false);
+  const [iaSugerencias, setIaSugerencias] = useState([]);
+  const [iaNota, setIaNota] = useState("");
   const [promoTicket,setPromoTicket] = useState(null);
   const [loadErr,setLoadErr] = useState("");
   const [config,setConfig]   = useState(mergeFarmaciaConfig({}, {
@@ -443,10 +716,18 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
 
   const fil = React.useMemo(() => {
     const s = srch.trim();
+    if (!s) return [];
     const matched = productos.filter(p => tiendaProductMatchesBusqueda(p, s));
-    if (!s) return matched;
     return matched.sort((a, b) => tiendaSearchRelevanceRank(a, s) - tiendaSearchRelevanceRank(b, s));
   }, [productos, srch]);
+
+  useEffect(() => {
+    if (tab !== "venta") return;
+    const s = srch.trim();
+    if (!s) return;
+    if (fil.length === 0) return;
+    setFichaProd((prev) => (prev && fil.some((p) => p.id === prev.id) ? prev : fil[0]));
+  }, [srch, fil, tab]);
 
   const srchSuggestions = React.useMemo(
     ()=>(srchFocus&&srch.trim().length>=2?tiendaCatalogSearchSuggestions(productos.filter(p=>p.activo!==false),srch,{limit:7}):[]),
@@ -654,6 +935,48 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       data?.[0]?.stock_unidades_nuevo ??
       ((item.stock_unidades || 0) + (item.unidades_por_caja || 0));
     showToast(`Caja abierta. Unidades disponibles: ${nuevasUnidades}`, "success");
+  };
+
+  const consultarIaSintoma = async () => {
+    const q = iaSintoma.trim();
+    if (!q) {
+      showToast("Escribe qué busca o qué síntoma tiene el paciente.", "warning");
+      return;
+    }
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    if (!tok) {
+      showToast("Sesión expirada.", "error");
+      return;
+    }
+    setIaLoading(true);
+    setIaSugerencias([]);
+    setIaNota("");
+    try {
+      const resp = await fetch("/api/ai/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session_token: tok, mode: "pos_sintoma", sintoma: q }),
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (resp.status === 503 && data?.error === "gemini_not_configured") {
+        showToast("Asistente IA no configurado (GEMINI_API_KEY en Vercel).", "warning");
+        return;
+      }
+      if (!resp.ok) {
+        showToast(data?.message || data?.error || "No se pudo consultar la IA.", "error");
+        return;
+      }
+      const sugs = Array.isArray(data.sugerencias) ? data.sugerencias : [];
+      setIaSugerencias(sugs);
+      setIaNota(data.nota || "");
+      if (!sugs.length) {
+        showToast(data.reply || "Sin sugerencias con stock OTC.", "warning");
+      }
+    } catch (e) {
+      showToast(e?.message || "Error de red al consultar IA.", "error");
+    } finally {
+      setIaLoading(false);
+    }
   };
 
   const RX_IND_PRESETS = ["Cada 8 hrs con alimentos","Cada 12 hrs, completar tratamiento","En ayunas, 30 min antes de desayuno","Solo por la noche antes de dormir","No exceder dosis indicada por médico"];
@@ -1746,20 +2069,31 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                   if(e.key==="Enter"){
                     const raw = srch.trim();
                     const exact = findProductExactScan(productos, raw);
-                    if(exact){add(exact,false);setSrch("");setSrchFocus(false);e.preventDefault();}
+                    if(exact){
+                      setFichaProd(exact);
+                      add(exact,false);
+                      setSrch("");
+                      setSrchFocus(false);
+                      e.preventDefault();
+                    }
                     else if(srchSuggestions.length>0){
                       const hit=productos.find(x=>x.id===srchSuggestions[0].id);
                       if(hit){
+                        setFichaProd(hit);
                         const fifo=getStockFifoDisponible(hit);
                         if(!hit.venta_unidad&&fifo<=0){showToast(`"${hit.nombre}" no tiene lotes registrados. Ve a Inventario → Lotes para agregarlo.`,"warning");}
                         else{add(hit,false);setSrch("");setSrchFocus(false);}
                         e.preventDefault();
                       }
                     }
+                    else if(fil.length>0){
+                      setFichaProd(fil[0]);
+                      e.preventDefault();
+                    }
                   }
                   if(e.key==="Escape"){setSrchFocus(false);}
                 }}
-                placeholder="🔫 Código de barras, SKU o nombre · Enter agrega al carrito"
+                placeholder="🔫 Código de barras, SKU o nombre · Enter agrega · flechas en resultados"
                 style={{width:"100%",boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:C.bg,color:C.text,fontSize:isMobilePos?16:13,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}/>
               {srchSuggestions.length>0&&srchFocus&&(
                 <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,right:0,zIndex:7000,background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,boxShadow:"0 8px 32px rgba(15,45,110,.14)",overflow:"hidden",maxHeight:280,overflowY:"auto"}}>
@@ -1771,8 +2105,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                         <div key={s.id} onMouseDown={e=>{
                             e.preventDefault();
                             if(row){
+                              setFichaProd(row);
                               if(rowSinLotes){showToast(`"${row.nombre}" no tiene lotes. Ve a Inventario → Lotes.`,"warning");}
-                              else{add(row,false);}
                             }
                             setSrchFocus(false);
                           }}
@@ -1801,12 +2135,105 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
               }}>🛒{cart.length>0?` (${cart.length})`:""} {cartOpen?"▶":"◀"}</button>
               )}
             </div>
+            <PosProductoFichaPanel
+              item={fichaProd}
+              productos={productos}
+              onSelectVariante={setFichaProd}
+              onAddCaja={(it) => add(it, false)}
+              onAddUnidad={(it) => add(it, true)}
+              onAbrirCaja={abrirCaja}
+              getStockCajasPOS={getStockCajasPOS}
+              productoSinLotesPEPS={productoSinLotesPEPS}
+              C={C}
+              isMobilePos={isMobilePos}
+              isNarrow={isNarrow}
+              sticky={!!srch.trim()}
+            />
+            <div style={{ marginBottom: 12 }}>
+              <button
+                type="button"
+                onClick={() => setIaOpen((v) => !v)}
+                style={{
+                  width: "100%",
+                  textAlign: "left",
+                  padding: "10px 12px",
+                  borderRadius: 10,
+                  border: `1px solid ${iaOpen ? C.blue + "55" : C.border}`,
+                  background: iaOpen ? C.blueDim : C.card,
+                  cursor: "pointer",
+                  fontWeight: 700,
+                  fontSize: 12,
+                  color: iaOpen ? C.blue : C.textMid,
+                }}
+              >
+                ✨ Asistente venta (síntoma → producto en inventario) {iaOpen ? "▲" : "▼"}
+              </button>
+              {iaOpen && (
+                <div style={{ marginTop: 8, padding: 12, borderRadius: 10, border: `1px solid ${C.border}`, background: C.card }}>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+                    <input
+                      value={iaSintoma}
+                      onChange={(e) => setIaSintoma(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") consultarIaSintoma(); }}
+                      placeholder='Ej. dolor de cabeza, fiebre, tos seca…'
+                      style={{
+                        flex: "1 1 180px",
+                        minWidth: 0,
+                        padding: "9px 12px",
+                        borderRadius: 8,
+                        border: `1px solid ${C.border}`,
+                        fontSize: isMobilePos ? 16 : 13,
+                        fontFamily: "'Plus Jakarta Sans',sans-serif",
+                      }}
+                    />
+                    <Btn col={C.blue} sm disabled={iaLoading} onClick={consultarIaSintoma}>
+                      {iaLoading ? "Consultando…" : "Sugerir"}
+                    </Btn>
+                  </div>
+                  <div style={{ fontSize: 11, color: C.textDim, lineHeight: 1.45, marginBottom: iaSugerencias.length ? 10 : 0 }}>
+                    Solo sugiere productos OTC con stock en inventario. No sustituye criterio del químico farmacéutico.
+                  </div>
+                  {iaNota && (
+                    <div style={{ fontSize: 12, color: C.amber, marginBottom: 8, lineHeight: 1.45 }}>{iaNota}</div>
+                  )}
+                  {iaSugerencias.length > 0 && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {iaSugerencias.map((s) => {
+                        const prod = productos.find((p) => p.id === s.producto_id || String(p.id) === String(s.producto_id));
+                        if (!prod) return null;
+                        return (
+                          <button
+                            key={`${s.producto_id}-${s.razon}`}
+                            type="button"
+                            onClick={() => setFichaProd(prod)}
+                            style={{
+                              textAlign: "left",
+                              padding: "10px 12px",
+                              borderRadius: 8,
+                              border: `1px solid ${C.border}`,
+                              background: "#fff",
+                              cursor: "pointer",
+                            }}
+                          >
+                            <div style={{ fontWeight: 700, fontSize: 13, color: C.text }}>{prod.nombre}</div>
+                            <div style={{ fontSize: 11, color: C.textMid, marginTop: 4 }}>{s.razon}</div>
+                            <div style={{ fontSize: 11, color: C.blue, marginTop: 4, fontWeight: 700 }}>
+                              {posFichaLinea(prod) || prod.sku} · {$(prod.precio)}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
             {favs.length>0&&(
               <div data-tour="pos-favoritos" style={{marginBottom:12}}>
                 <div style={{color:C.textDim,fontSize:10,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:6}}>⭐ Favoritos</div>
                 <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
                   {productos.filter(p=>favs.includes(p.id)&&p.activo).map(p=>(
-                    <button key={p.id} onClick={()=>add(p,false)}
+                    <button key={p.id} onClick={()=>setFichaProd(p)}
                       style={{padding:"5px 10px",borderRadius:8,border:`1px solid ${C.amber}`,background:C.amberDim,color:"#92400e",fontSize:11,fontWeight:700,cursor:"pointer",maxWidth:130,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                       ⭐ {p.nombre.split(" ").slice(0,3).join(" ")}
                     </button>
@@ -1830,116 +2257,64 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                 <span style={{fontSize:11}}>Intenta con otro nombre, SKU o código de barras.</span>
               </div>
             )}
-            <div style={{display:"grid",gridTemplateColumns:`repeat(auto-fill,minmax(${isNarrow ? "min(100%, 132px)" : "140px"},1fr))`,gap:8}}>
-              {fil.map(item=>{
-                const posCardClick = (e)=>{
-                  if(e.target.closest("button")) return;
+            {srch.trim() && fil.length > 0 && (
+              <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden", background: C.card, maxHeight: 320, overflowY: "auto" }}>
+                <div style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: 0.5, textTransform: "uppercase", position: "sticky", top: 0, background: C.card, zIndex: 1 }}>
+                  Resultados ({Math.min(fil.length, 60)}{fil.length > 60 ? "+" : ""})
+                </div>
+                {fil.slice(0, 60).map((item) => {
+                  const sel = fichaProd?.id === item.id;
+                  const thumb = item.imagen_url || item.imagen_mobile_url || "";
                   const stockCajas = getStockCajasPOS(item);
-                  if(stockCajas<=0&&(!item.venta_unidad||item.stock_unidades===0)){
-                    showToast("Sin stock disponible.","warning"); return;
-                  }
-                  if(item.venta_unidad){
-                    if(stockCajas>0) add(item,false);
-                    else if(item.stock_unidades>0) add(item,true);
-                    else if(stockCajas>0) abrirCaja(item);
-                    else showToast("Sin stock disponible.","warning");
-                  }else if(stockCajas>0){
-                    add(item,false);
-                  }
-                };
-                const thumb = item.imagen_url || item.imagen_mobile_url || "";
-                const stockCajas = getStockCajasPOS(item);
-                const sinLotes = productoSinLotesPEPS(item);
-                const agotado  = stockCajas <= 0 && (!item.venta_unidad || item.stock_unidades === 0);
-                const noDisp   = sinLotes || agotado;
-                const cardOpacity = noDisp ? 0.42 : 1;
-                const handleCardClick = noDisp
-                  ? (e) => {
-                      e.stopPropagation();
-                      if (sinLotes) showToast("Sin lotes registrados para este producto. Ve a Inventario → Lotes y registra un lote antes de venderlo.", "warning");
-                      else showToast("Sin stock disponible.", "warning");
-                    }
-                  : posCardClick;
-                return(
-                <Box key={item.id} className="farmacapital-product-card"
-                  onClick={handleCardClick}
-                  style={{padding:12,opacity:cardOpacity,cursor:noDisp?"not-allowed":"pointer",position:"relative"}}>
-                  {thumb ? (
-                    <div style={{width:"100%",height:52,borderRadius:8,overflow:"hidden",marginBottom:8,background:C.cardDark,flexShrink:0}}>
-                      <img
-                        alt=""
-                        src={thumb}
-                        loading="lazy"
-                        onError={(e)=>{ e.currentTarget.parentElement.style.display="none"; }}
-                        style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}
-                      />
-                    </div>
-                  ) : null}
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
-                    <div style={{color:C.textDim,fontSize:9,letterSpacing:1}}>{item.sku}</div>
-                    <button type="button" onClick={e=>{e.stopPropagation();toggleFav(item.id);}} style={{background:"none",border:"none",cursor:"pointer",fontSize:12,padding:0,lineHeight:1}} title="Favorito">
-                      {favs.includes(item.id)?"⭐":"☆"}
-                    </button>
-                  </div>
-                  <div style={{color:C.text,fontSize:11,fontWeight:700,lineHeight:1.3,marginBottom:6,minHeight:28}}>{item.nombre}</div>
-                  <div style={{color:C.textDim,fontSize:10,lineHeight:1.25,marginBottom:6,minHeight:24}}>
-                    {[item.principio_activo, item.denominacion_generica || item.marca, item.concentracion, item.presentacion]
-                      .filter(Boolean)
-                      .join(" · ") || "Sin ficha farmacéutica"}
-                  </div>
-                  <div style={{marginBottom:6}}>
-                    <span style={{fontSize:10,fontWeight:800,color:item.ubicacion_texto ? C.blue : C.textDim}}>
-                      📍 {item.ubicacion_texto || "Sin ubicación"}
-                    </span>
-                  </div>
-                  <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:6}}>
-                    {item.requiere_receta&&<span style={{background:C.amber,color:"#fff",fontSize:9,fontWeight:800,borderRadius:4,padding:"2px 6px"}}>⚕ RX</span>}
-                    {item.tipo==="generico"&&<Tag col={C.teal} sm>Gen</Tag>}
-                    {item.controlado&&<Tag col={C.red} sm>Controlado</Tag>}
-                    {!item.requiere_receta && !item.controlado && <Tag col={C.blue} sm>OTC</Tag>}
-                  </div>
-                  {item.venta_unidad?(
-                    <div style={{display:"flex",flexDirection:"column",gap:4}}>
-                      <button type="button"
-                        disabled={stockCajas<=0}
-                        onClick={e=>{e.stopPropagation();add(item,false);}}
-                        style={{padding:"4px 6px",borderRadius:6,border:`1px solid ${C.blue}30`,background:"#eff6ff",color:C.blue,cursor:stockCajas<=0?"not-allowed":"pointer",fontSize:10,fontWeight:700,opacity:stockCajas<=0?.4:1}}>
-                        📦 Caja {$(item.precio||item.precio)} · {stockCajas} cajas
-                      </button>
-                      <button type="button"
-                        disabled={stockCajas<=0&&item.stock_unidades===0}
-                        onClick={e=>{e.stopPropagation();
-                          if(item.stock_unidades>0){ add(item,true); }
-                          else if(stockCajas>0){ abrirCaja(item); }
-                          else { showToast("Sin stock disponible.", "warning"); }
-                        }}
-                        style={{padding:"4px 6px",borderRadius:6,border:`1px solid ${C.green}30`,background:C.greenDim,color:C.greenDark,cursor:(stockCajas<=0&&item.stock_unidades===0)?"not-allowed":"pointer",fontSize:10,fontWeight:700,opacity:(stockCajas<=0&&item.stock_unidades===0)?.4:1}}>
-                        💊 x1 {$(Math.ceil(item.precio_unidad||0))} · {item.stock_unidades} sueltas
-                      </button>
-                    </div>
-                  ):(
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",pointerEvents:"none"}}>
-                      <div>
-                        {item.descuento_pct>0?(
-                          <>
-                            <span style={{color:C.textDim,fontSize:10,textDecoration:"line-through",display:"block"}}>{$(item.precio||item.precio)}</span>
-                            <span style={{color:C.red,fontWeight:900,fontSize:15}}>{$(Math.round((item.precio||item.precio)*(1-item.descuento_pct/100)))}</span>
-                            <span style={{background:C.red,color:"#fff",fontSize:8,fontWeight:700,borderRadius:4,padding:"1px 4px",marginLeft:4}}>-{item.descuento_pct}%</span>
-                          </>
-                        ):(
-                          <span style={{color:C.blue,fontWeight:800,fontSize:15}}>{$(item.precio)}</span>
+                  const sinLotes = productoSinLotesPEPS(item);
+                  const agotado = stockCajas <= 0 && (!item.venta_unidad || item.stock_unidades === 0);
+                  const noDisp = sinLotes || agotado;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setFichaProd(item)}
+                      style={{
+                        width: "100%",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 12,
+                        padding: "10px 12px",
+                        border: "none",
+                        borderBottom: `1px solid ${C.border}`,
+                        background: sel ? C.blueDim : C.card,
+                        cursor: "pointer",
+                        textAlign: "left",
+                        opacity: noDisp ? 0.72 : 1,
+                      }}
+                    >
+                      <div style={{ width: 44, height: 44, borderRadius: 8, overflow: "hidden", background: C.cardDark, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        {thumb ? (
+                          <img src={thumb} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        ) : (
+                          <span style={{ fontSize: 20 }}>💊</span>
                         )}
                       </div>
-                      {sinLotes
-                        ? <span style={{background:"#ef4444",color:"#fff",fontSize:9,fontWeight:800,borderRadius:5,padding:"2px 7px"}}>Sin lotes</span>
-                        : <Tag col={agotado?C.red:stockCajas<item.stock_minimo?C.amber:C.green} sm>{agotado?"Agotado":stockCajas}</Tag>
-                      }
-                    </div>
-                  )}
-                </Box>
-                );
-              })}
-            </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: sel ? 800 : 600, fontSize: 13, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {item.nombre}
+                        </div>
+                        <div style={{ fontSize: 11, color: C.textDim, marginTop: 2 }}>
+                          {posFichaLinea(item) || item.sku}
+                          {sinLotes ? " · Sin lotes" : agotado ? " · Agotado" : ` · ${stockCajas} disp.`}
+                        </div>
+                      </div>
+                      <div style={{ fontWeight: 800, fontSize: 14, color: C.blue, flexShrink: 0 }}>{$(item.precio)}</div>
+                    </button>
+                  );
+                })}
+                {fil.length > 60 && (
+                  <div style={{ padding: "10px 12px", fontSize: 11, color: C.textDim, textAlign: "center" }}>
+                    Hay {fil.length - 60} resultados más — afina la búsqueda
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           {/* Carrito: escritorio = columna; móvil = modal (barra compacta arriba). */}
           {!isMobilePos && cartOpen ? (

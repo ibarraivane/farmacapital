@@ -150,6 +150,115 @@ async function callGemini(apiKey, systemText, messages) {
   return data?.candidates?.[0]?.content?.parts?.[0]?.text || 'No pude obtener respuesta.';
 }
 
+const POS_SINTOMA_SYSTEM = `Eres asistente de mostrador en FarmaCapital (farmacia CDMX).
+El paciente describe un síntoma o necesidad. Solo puedes recomendar productos del CATÁLOGO (IDs exactos).
+Reglas:
+- Solo productos OTC del catálogo con stock
+- No diagnosticar; sugiere venta libre con cautela
+- Si requiere médico o receta, dilo en "nota"
+- Responde SOLO JSON válido sin markdown:
+{"sugerencias":[{"producto_id":number,"razon":"string breve en español"}],"nota":"opcional"}
+- Máximo 4 sugerencias
+- producto_id debe existir en el catálogo`;
+
+function posStockFromProduct(p) {
+  const lotes = Array.isArray(p?.lotes) ? p.lotes : [];
+  if (lotes.length) {
+    return lotes
+      .filter((l) => l?.activo !== false)
+      .reduce((s, l) => s + Math.max(0, Number(l.cantidad_actual || 0)), 0);
+  }
+  return Math.max(0, Number(p?.stock || 0));
+}
+
+function posEsOtcConStock(p) {
+  if (!p || p.activo === false) return false;
+  if (p.requiere_receta || p.controlado) return false;
+  return posStockFromProduct(p) > 0;
+}
+
+async function fetchPosCatalog(supabaseUrl, serviceKey, sessionToken) {
+  const raw = await rpc(supabaseUrl, serviceKey, 'empleado_listar_productos_con_lotes_pos', {
+    p_session_token: sessionToken,
+  });
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === 'string') {
+    try { return JSON.parse(raw); } catch { return []; }
+  }
+  return [];
+}
+
+function prefilterPosBySintoma(products, sintoma) {
+  const words = String(sintoma || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .split(/\s+/)
+    .filter((w) => w.length > 2);
+  if (!words.length) return products.slice(0, 50);
+  const scored = products.map((p) => {
+    const hay = `${p.nombre} ${p.principio_activo || ''} ${p.descripcion || ''} ${p.categoria || ''} ${p.concentracion || ''}`
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+    let score = 0;
+    words.forEach((w) => { if (hay.includes(w)) score += 1; });
+    return { p, score };
+  });
+  const hits = scored.filter((x) => x.score > 0).sort((a, b) => b.score - a.score);
+  const list = (hits.length ? hits : scored).slice(0, 45).map((x) => x.p);
+  return list;
+}
+
+function catalogLinesForPos(products) {
+  return products.map((p) => {
+    const stock = posStockFromProduct(p);
+    const pres = [p.concentracion, p.presentacion, p.forma_farmaceutica].filter(Boolean).join(' ');
+    return `ID:${p.id} | ${p.nombre} | ${p.principio_activo || '-'} | ${pres || '-'} | $${Number(p.precio || 0).toFixed(0)} | stock:${stock}`;
+  }).join('\n');
+}
+
+function parsePosSintomaJson(text) {
+  const raw = String(text || '').trim();
+  try {
+    return JSON.parse(raw);
+  } catch {
+    const m = raw.match(/\{[\s\S]*\}/);
+    if (m) {
+      try { return JSON.parse(m[0]); } catch { /* noop */ }
+    }
+  }
+  return null;
+}
+
+async function suggestPosProducts(apiKey, sintoma, catalogProducts) {
+  const catalog = catalogLinesForPos(catalogProducts);
+  const userPrompt = `Síntoma o necesidad del paciente: "${sintoma}"
+
+CATÁLOGO (solo puedes elegir de aquí):
+${catalog}
+
+Elige hasta 4 productos del catálogo que ayuden. JSON únicamente.`;
+
+  const text = await callGemini(apiKey, POS_SINTOMA_SYSTEM, [
+    { role: 'user', content: userPrompt },
+  ]);
+  const parsed = parsePosSintomaJson(text);
+  const allowed = new Set(catalogProducts.map((p) => Number(p.id)));
+  const sugerencias = (Array.isArray(parsed?.sugerencias) ? parsed.sugerencias : [])
+    .map((s) => ({
+      producto_id: Number(s.producto_id),
+      razon: String(s.razon || '').trim(),
+    }))
+    .filter((s) => allowed.has(s.producto_id) && s.razon)
+    .slice(0, 4);
+  return {
+    sugerencias,
+    nota: String(parsed?.nota || '').trim(),
+    reply: text,
+  };
+}
+
 module.exports = async function handler(req, res) {
   const apiKey = String(process.env.GEMINI_API_KEY || '').trim();
 
@@ -184,14 +293,12 @@ module.exports = async function handler(req, res) {
 
   const body = await safeJson(req);
   const sessionToken = String(body?.session_token || '').trim();
+  const mode = String(body?.mode || '').trim();
   const messages = Array.isArray(body?.messages) ? body.messages : [];
   const includeContext = body?.include_context !== false;
 
   if (!sessionToken) {
     return res.status(401).json({ ok: false, error: 'missing_session' });
-  }
-  if (!messages.length) {
-    return res.status(400).json({ ok: false, error: 'missing_messages' });
   }
   if (!supabaseUrl || !serviceKey) {
     return res.status(500).json({ ok: false, error: 'supabase_not_configured' });
@@ -200,6 +307,38 @@ module.exports = async function handler(req, res) {
   const valid = await validateSession(supabaseUrl, serviceKey, sessionToken);
   if (!valid) {
     return res.status(401).json({ ok: false, error: 'invalid_session' });
+  }
+
+  if (mode === 'pos_sintoma') {
+    const sintoma = String(body?.sintoma || '').trim();
+    if (!sintoma) {
+      return res.status(400).json({ ok: false, error: 'missing_sintoma' });
+    }
+    try {
+      const all = await fetchPosCatalog(supabaseUrl, serviceKey, sessionToken);
+      const otc = all.filter(posEsOtcConStock);
+      const candidatos = prefilterPosBySintoma(otc, sintoma);
+      if (!candidatos.length) {
+        return res.status(200).json({
+          ok: true,
+          sugerencias: [],
+          nota: 'No hay productos OTC con stock que coincidan.',
+          reply: 'Sin productos OTC con stock para este síntoma.',
+        });
+      }
+      const { sugerencias, nota, reply } = await suggestPosProducts(apiKey, sintoma, candidatos);
+      return res.status(200).json({ ok: true, sugerencias, nota, reply });
+    } catch (e) {
+      if (e.code === 429) {
+        return res.status(429).json({ ok: false, error: 'rate_limit', message: 'Límite de uso alcanzado. Intenta en unos minutos.' });
+      }
+      console.error('[ai/chat] pos_sintoma:', e);
+      return res.status(502).json({ ok: false, error: 'gemini_error', message: e.message });
+    }
+  }
+
+  if (!messages.length) {
+    return res.status(400).json({ ok: false, error: 'missing_messages' });
   }
 
   let systemText = SYSTEM_PROMPT;

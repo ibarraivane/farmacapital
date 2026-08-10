@@ -4,6 +4,9 @@
  * `pedidos.logistics_meta` cuando apliques sql/patch_pedidos_logistics_meta.sql.
  */
 
+/** Envío foráneo (Skydropx) desactivado hasta nuevo aviso. Pick-up y CDMX siguen activos. */
+export const ENABLE_FORANEO = false;
+
 /** Origen comercial del pedido (nivel “canal”). */
 export const ORDER_CHANNEL = {
   WEB_PICKUP: "web_pickup",
@@ -67,6 +70,9 @@ export const WORKFLOW_TO_DB_ESTADO = {
  */
 export function mapUiEntregaToRpc(entregaUi) {
   const u = String(entregaUi || "pickup").toLowerCase();
+  if (u === "foraneo" && !ENABLE_FORANEO) {
+    throw new Error("Envío foráneo no disponible");
+  }
   if (u === "pickup") {
     return {
       tipo_entrega: "recoger",
