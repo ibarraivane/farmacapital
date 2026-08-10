@@ -385,16 +385,8 @@ async function extraerConClaude(apiKey, pdfBase64) {
   return productosFromParsedJson(parsed);
 }
 
-async function extraerTextoPdf(pdfBuffer) {
-  try {
-    const pdfParse = require('pdf-parse/lib/pdf-parse.js');
-    if (typeof pdfParse === 'function') {
-      const result = await pdfParse(pdfBuffer);
-      return String(result?.text || '');
-    }
-  } catch {
-    // pdf-parse opcional; en Vercel puede no estar disponible en el bundle.
-  }
+async function extraerTextoPdf(_pdfBuffer) {
+  // Sin pdf-parse en el bundle (rompe deploy Vercel). Fallback texto deshabilitado.
   return '';
 }
 
