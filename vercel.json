@@ -33,6 +33,14 @@
   ],
   "rewrites": [
     {
+      "source": "/api/notifications/cita-confirmacion",
+      "destination": "/api/notifications/send?type=cita"
+    },
+    {
+      "source": "/api/notifications/order-receipt",
+      "destination": "/api/notifications/send?type=order"
+    },
+    {
       "source": "/((?!api/|static/|icons/|manifest\\.json|service-worker\\.js|favicon\\.ico|asset-manifest\\.json|robots\\.txt).*)",
       "destination": "/index.html"
     }
