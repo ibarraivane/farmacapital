@@ -936,7 +936,13 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     setSrch("");
     setSrchFocus(false);
     srchRef.current?.focus();
-  }, []);
+    if (lastAutoScanRef.current === key) return;
+    lastAutoScanRef.current = key;
+    add(exact, false);
+    window.setTimeout(() => {
+      if (lastAutoScanRef.current === key) lastAutoScanRef.current = "";
+    }, 500);
+  }, [add]);
 
   useEffect(() => {
     if (tab !== "venta") return;
@@ -946,9 +952,15 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
 
     scanAddTimerRef.current = setTimeout(() => {
       const exact = findProductExactScan(productos, raw);
-      if (!exact) return;
+      if (!exact) {
+        if (raw.length >= 12) {
+          showToast("Código de barras no encontrado en inventario.", "warning");
+          setSrch("");
+        }
+        return;
+      }
       finalizarEscaneoExitoso(exact, raw);
-    }, 150);
+    }, 180);
 
     return () => clearTimeout(scanAddTimerRef.current);
   }, [srch, productos, tab, finalizarEscaneoExitoso]);

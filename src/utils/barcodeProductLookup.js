@@ -106,7 +106,8 @@ export function shouldReplaceScanInput(prevRaw, lastKeyTs, now = Date.now()) {
   const current = normalizeBarcodeRaw(prevRaw);
   if (!current) return false;
   const gap = now - (lastKeyTs || 0);
-  if (gap <= 120) return false;
-  if (current.length >= 8) return true;
+  // Pistola: dígitos <50ms entre sí; pausa larga solo tras código completo
+  if (gap <= 200) return false;
+  if ([8, 12, 13, 14].includes(current.length)) return true;
   return false;
 }
