@@ -3,7 +3,7 @@
 const {
   getSupabaseAdminConfig,
   validateEmployeeSession,
-} = require('../_lib/supabaseAdmin');
+} = require('./supabaseAdmin');
 const {
   productosFromParsedJson,
   extraerProductosDeTexto,
@@ -11,7 +11,7 @@ const {
   extraerConClaude,
   extraerTextoPdf,
   isAnthropicCreditError,
-} = require('../_lib/inventarioProductos');
+} = require('./inventarioProductos');
 
 async function safeJson(req) {
   try {
@@ -73,7 +73,7 @@ async function extraerProductosDelPdf(pdfBuffer, proveedor) {
   return { productos, metodo: 'texto', avisos };
 }
 
-module.exports = async function handler(req, res) {
+async function inventarioProcesarPdfHandler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -162,4 +162,6 @@ module.exports = async function handler(req, res) {
       detalle: error?.message || String(error),
     });
   }
-};
+}
+
+module.exports = { inventarioProcesarPdfHandler };

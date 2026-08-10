@@ -33,6 +33,14 @@
   ],
   "rewrites": [
     {
+      "source": "/api/inventario/procesar-pdf",
+      "destination": "/api/inventario-procesar-pdf"
+    },
+    {
+      "source": "/api/inventario/cargar-productos",
+      "destination": "/api/inventario-cargar-productos"
+    },
+    {
       "source": "/((?!api/|static/|icons/|manifest\\.json|service-worker\\.js|favicon\\.ico|asset-manifest\\.json|robots\\.txt).*)",
       "destination": "/index.html"
     }

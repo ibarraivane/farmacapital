@@ -1,11 +1,6 @@
 'use strict';
 
-/**
- * POST /api/inventario/cargar-productos
- * Carga productos ya extraídos (JSON) sin usar Claude Vision.
- * Misma inserción atómica vía create_producto_con_oferta().
- */
-const procesarPdfHandler = require('./procesar-pdf');
+const { inventarioProcesarPdfHandler } = require('./_lib/inventarioProcesarPdfHandler');
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -28,11 +23,6 @@ module.exports = async function handler(req, res) {
     });
   }
 
-  // Reutiliza el handler principal (modo JSON, sin PDF).
-  req.body = {
-    ...body,
-    archivo_base64: undefined,
-  };
-
-  return procesarPdfHandler(req, res);
+  req.body = { ...body, archivo_base64: undefined };
+  return inventarioProcesarPdfHandler(req, res);
 };
