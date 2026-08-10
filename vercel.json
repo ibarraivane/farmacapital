@@ -49,12 +49,10 @@
   ],
   "functions": {
     "api/inventario/procesar-pdf.js": {
-      "maxDuration": 60,
-      "memory": 1024
+      "maxDuration": 10
     },
     "api/inventario/cargar-productos.js": {
-      "maxDuration": 60,
-      "memory": 1024
+      "maxDuration": 10
     }
   }
 }
