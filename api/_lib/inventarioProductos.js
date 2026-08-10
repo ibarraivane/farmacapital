@@ -386,7 +386,15 @@ async function extraerConClaude(apiKey, pdfBase64) {
 }
 
 async function extraerTextoPdf(pdfBuffer) {
-  const pdfParse = require('pdf-parse');
+  let pdfParse;
+  try {
+    pdfParse = require('pdf-parse');
+  } catch (e) {
+    throw new Error(`pdf_text_parser_unavailable:${e.message}`);
+  }
+  if (typeof pdfParse !== 'function') {
+    throw new Error('pdf_text_parser_invalid');
+  }
   const result = await pdfParse(pdfBuffer);
   return String(result?.text || '');
 }

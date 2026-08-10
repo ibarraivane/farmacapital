@@ -46,5 +46,15 @@
       "path": "/api/health",
       "schedule": "0 12 * * *"
     }
-  ]
+  ],
+  "functions": {
+    "api/inventario/procesar-pdf.js": {
+      "maxDuration": 60,
+      "memory": 1024
+    },
+    "api/inventario/cargar-productos.js": {
+      "maxDuration": 60,
+      "memory": 1024
+    }
+  }
 }
