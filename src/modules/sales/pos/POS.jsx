@@ -811,31 +811,6 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   }, [srch, fil, tab, productos, srchEsEscaneo]);
 
   useEffect(() => {
-    if (tab !== "venta") return;
-    clearTimeout(scanAddTimerRef.current);
-    const raw = normalizeBarcodeRaw(srch);
-    if (!raw || !looksLikeBarcodeInput(raw)) return;
-
-    scanAddTimerRef.current = setTimeout(() => {
-      const exact = findProductExactScan(productos, raw);
-      if (!exact) return;
-      const key = scanDedupeKey(raw, exact);
-      if (lastAutoScanRef.current === key) return;
-      lastAutoScanRef.current = key;
-      addRef.current?.(exact, false);
-      setSrch("");
-      setFichaProd(null);
-      setSrchFocus(false);
-      srchRef.current?.focus();
-      window.setTimeout(() => {
-        if (lastAutoScanRef.current === key) lastAutoScanRef.current = "";
-      }, 500);
-    }, 150);
-
-    return () => clearTimeout(scanAddTimerRef.current);
-  }, [srch, productos, tab]);
-
-  useEffect(() => {
     if (tab !== "venta" || !fichaProd?.id) return;
     const id = fichaProd.id;
     if (posDescripcionEsUsoValido(fichaProd)) {
@@ -965,6 +940,35 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     }
   };
   addRef.current = add;
+
+  const finalizarEscaneoExitoso = useCallback((exact, raw) => {
+    const key = scanDedupeKey(raw, exact);
+    setFichaProd(exact);
+    setSrch("");
+    setSrchFocus(false);
+    srchRef.current?.focus();
+    if (lastAutoScanRef.current === key) return;
+    lastAutoScanRef.current = key;
+    add(exact, false);
+    window.setTimeout(() => {
+      if (lastAutoScanRef.current === key) lastAutoScanRef.current = "";
+    }, 500);
+  }, [add]);
+
+  useEffect(() => {
+    if (tab !== "venta") return;
+    clearTimeout(scanAddTimerRef.current);
+    const raw = normalizeBarcodeRaw(srch);
+    if (!raw || !looksLikeBarcodeInput(raw)) return;
+
+    scanAddTimerRef.current = setTimeout(() => {
+      const exact = findProductExactScan(productos, raw);
+      if (!exact) return;
+      finalizarEscaneoExitoso(exact, raw);
+    }, 150);
+
+    return () => clearTimeout(scanAddTimerRef.current);
+  }, [srch, productos, tab, finalizarEscaneoExitoso]);
 
 
   const getLoteCantidadDisponible = (lote) => {
@@ -2325,23 +2329,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                     const raw = normalizeBarcodeRaw(srch) || srch.trim();
                     const exact = findProductExactScan(productos, raw);
                     if(exact){
-                      const key = scanDedupeKey(raw, exact);
-                      if (lastAutoScanRef.current === key) {
-                        setSrch("");
-                        setFichaProd(null);
-                        setSrchFocus(false);
-                        e.preventDefault();
-                        return;
-                      }
-                      lastAutoScanRef.current = key;
-                      setFichaProd(exact);
-                      add(exact,false);
-                      setSrch("");
-                      setFichaProd(null);
-                      setSrchFocus(false);
-                      window.setTimeout(() => {
-                        if (lastAutoScanRef.current === key) lastAutoScanRef.current = "";
-                      }, 500);
+                      finalizarEscaneoExitoso(exact, raw);
                       e.preventDefault();
                     }
                     else if(looksLikeBarcodeInput(raw)){
@@ -2451,7 +2439,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
               C={C}
               isMobilePos={isMobilePos}
               isNarrow={isNarrow}
-              sticky={!!srch.trim()}
+              sticky={!!srch.trim() || !!fichaProd}
             />
             <div style={{ marginBottom: 12 }}>
               <button
