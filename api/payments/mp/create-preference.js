@@ -1,5 +1,4 @@
 'use strict';
-const { sendOrderNotifications } = require('../../_lib/orderNotifications');
 
 function normalizeSupabaseProjectUrl(url) {
   if (url == null || typeof url !== 'string') return url;

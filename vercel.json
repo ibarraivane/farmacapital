@@ -1,5 +1,5 @@
 {
-  "buildCommand": "CI=false DISABLE_ESLINT_PLUGIN=true npm run build",
+  "buildCommand": "CI=false DISABLE_ESLINT_PLUGIN=true GENERATE_SOURCEMAP=false npm run build",
   "outputDirectory": "build",
   "framework": "create-react-app",
   "headers": [
@@ -32,14 +32,6 @@
     }
   ],
   "rewrites": [
-    {
-      "source": "/api/inventario/procesar-pdf",
-      "destination": "/api/inventario-procesar-pdf"
-    },
-    {
-      "source": "/api/inventario/cargar-productos",
-      "destination": "/api/inventario-cargar-productos"
-    },
     {
       "source": "/((?!api/|static/|icons/|manifest\\.json|service-worker\\.js|favicon\\.ico|asset-manifest\\.json|robots\\.txt).*)",
       "destination": "/index.html"

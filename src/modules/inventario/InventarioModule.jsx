@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './inventario.css';
-import { crearNuevoProducto, buscarProducto, actualizarStock, procesarPDF, fileToBase64 } from './inventarioService';
+import { crearNuevoProducto, buscarProducto, actualizarStock as actualizarStockProducto, procesarPDF, fileToBase64 } from './inventarioService';
 
 export default function InventarioModule() {
   const [activeTab, setActiveTab] = useState('escaneo');
@@ -100,7 +100,7 @@ export default function InventarioModule() {
   const handleActualizarProductoStock = async () => {
     try {
       setLoading(true);
-      const result = await actualizarStock({
+      const result = await actualizarStockProducto({
         codigo_barras: productoExistente.codigo_barras,
         ...actualizarStock
       });
