@@ -1,0 +1,6 @@
+-- ====================================================
+-- SQL: Insertar TODOS los productos REALES de tickets
+-- Total: 0 productos
+-- Fecha de carga: 2026-08-10
+-- ====================================================
+-- EJECUTA ESTO EN SUPABASE SQL EDITOR

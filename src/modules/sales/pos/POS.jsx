@@ -28,6 +28,7 @@ import { labelTipoEntregaPedido } from "../../../utils/orderChannels";
 import { buildOnlineOrderReceiptMessage, buildOnlineOrderReadyMessage, formatFolioOnline, openWhatsAppToCustomer } from "../../../utils/orderReceiptWhatsApp";
 import { formatTelefonoDisplay } from "../../../utils/citaWhatsApp";
 import { configRowsToMap, mergeFarmaciaConfig, FARMACIA_FISCAL } from "../../../constants/farmaciaFiscal";
+import { procesarImagenReceta, fileToBase64 } from "../../../services/recetaVisionService";
 
 const PEDIDOS_TIENDA_SELECT_POS = `
             id,total,created_at,tipo,metodo_pago,estado,tipo_entrega,direccion,
@@ -387,6 +388,11 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const [folioActual,setFolioActual] = useState("VTA-00000000");
   const [fichaProd, setFichaProd] = useState(null);
   const [iaOpen, setIaOpen] = useState(false);
+  // ── Funcionalidad de carga de imagen de receta
+  const [modalCargarReceta, setModalCargarReceta] = useState(false);
+  const [recetaImagen, setRecetaImagen] = useState(null);
+  const [procesandoReceta, setProcesandoReceta] = useState(false);
+  const [medicamentosExtraidos, setMedicamentosExtraidos] = useState([]);
   const [iaSintoma, setIaSintoma] = useState("");
   const [iaLoading, setIaLoading] = useState(false);
   const [iaSugerencias, setIaSugerencias] = useState([]);
@@ -997,6 +1003,42 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       .map((s) => s.trim())
       .filter(Boolean)
       .includes(t);
+
+  // ── FUNCIÓN: Procesar imagen de receta con Claude Vision
+  const procesarImagenRecetaMedicamentos = async () => {
+    if (!recetaImagen) {
+      showToast("Selecciona una imagen de receta.", "warning");
+      return;
+    }
+
+    setProcesandoReceta(true);
+    setMedicamentosExtraidos([]);
+
+    try {
+      const base64 = await fileToBase64(recetaImagen);
+      const resultado = await procesarImagenReceta(base64);
+
+      if (resultado.success) {
+        setMedicamentosExtraidos(resultado.medicamentos || []);
+
+        // Llenar campos de receta
+        if (resultado.diagnostico) {
+          setRx(p => ({ ...p, indicaciones: resultado.diagnostico }));
+        }
+        if (resultado.medico) {
+          setRx(p => ({ ...p, medico: resultado.medico }));
+        }
+
+        showToast(`Extraídos ${resultado.medicamentos?.length || 0} medicamentos de la receta.`, "success");
+      } else {
+        showToast(`Error: ${resultado.error}`, "error");
+      }
+    } catch (error) {
+      showToast(`Error al procesar imagen: ${error.message}`, "error");
+    } finally {
+      setProcesandoReceta(false);
+    }
+  };
 
   const confRx = () => {
     if(!rx.receta||!rx.medico||!rx.cedula||!rx.paciente) return;
@@ -2159,7 +2201,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                   padding: "10px 12px",
                   borderRadius: 10,
                   border: `1px solid ${iaOpen ? C.blue + "55" : C.border}`,
-                  background: iaOpen ? C.blueDim : C.card,
+                  background: iaOpen ? C.blueDim : C.bg,
                   cursor: "pointer",
                   fontWeight: 700,
                   fontSize: 12,
@@ -2169,7 +2211,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                 ✨ Asistente venta (síntoma → producto en inventario) {iaOpen ? "▲" : "▼"}
               </button>
               {iaOpen && (
-                <div style={{ marginTop: 8, padding: 12, borderRadius: 10, border: `1px solid ${C.border}`, background: C.card }}>
+                <div style={{ marginTop: 8, padding: 12, borderRadius: 10, border: `1px solid ${C.border}`, background: C.bg }}>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
                     <input
                       value={iaSintoma}
@@ -2228,6 +2270,29 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                 </div>
               )}
             </div>
+
+            {/* ── BOTÓN: Cargar imagen de receta */}
+            <div style={{ marginBottom: 12 }}>
+              <button
+                type="button"
+                onClick={() => setModalCargarReceta(true)}
+                style={{
+                  width: "100%",
+                  textAlign: "left",
+                  padding: "10px 12px",
+                  borderRadius: 10,
+                  border: `1px solid ${C.border}`,
+                  background: C.bg,
+                  cursor: "pointer",
+                  fontWeight: 700,
+                  fontSize: 12,
+                  color: C.textMid,
+                }}
+              >
+                📷 Cargar receta médica (imagen) {modalCargarReceta ? "▲" : "▼"}
+              </button>
+            </div>
+
             {favs.length>0&&(
               <div data-tour="pos-favoritos" style={{marginBottom:12}}>
                 <div style={{color:C.textDim,fontSize:10,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:6}}>⭐ Favoritos</div>
@@ -2466,7 +2531,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       {tab==="online"&&(
         <div>
           <div style={{background:C.blueDim,border:`1px solid ${C.blue}30`,borderRadius:10,padding:"10px 14px",marginBottom:14,fontSize:12,color:C.blue,lineHeight:1.45}}>
-            <strong>Operación:</strong> surte y marca listo (pick-up o envío según etiqueta). Pedidos marketplace / Uber Direct usarán <code style={{fontSize:11}}>logistics_meta</code> cuando apliques el patch SQL — ver <strong style={{color:C.text}}>docs/DELIVERY_MARKETPLACE_PREP.md</strong>.
+            <strong>Operación:</strong> aquí solo aparecen pedidos con <strong>pago aprobado</strong> en Mercado Pago. Surtir y marcar listo cuando el producto esté preparado.
           </div>
           {loading ? <SkeletonTable rows={3} cols={4}/> : (
             <>
@@ -2514,7 +2579,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                 </div>
                 <div style={{textAlign:"right"}}>
                   <div style={{color:C.blue,fontWeight:900,fontSize:18}}>{$(p.total)}</div>
-                  <Tag col={C.amber} sm>Pendiente</Tag>
+                  <Tag col={C.green} sm>Pago aprobado</Tag>
                 </div>
               </div>
               <div style={{background:C.bg,borderRadius:8,padding:"10px 14px",marginBottom:12}}>
@@ -2860,6 +2925,123 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         </div>
       )}
       <OnboardingTour ref={posTourRef} tourId="pos" usuario={usuario} showFab={!isMobilePos} />
+
+      {/* ── MODAL: Cargar imagen de receta */}
+      <Modal
+        open={modalCargarReceta}
+        onClose={() => {
+          setModalCargarReceta(false);
+          setRecetaImagen(null);
+          setMedicamentosExtraidos([]);
+        }}
+        title="📷 Cargar imagen de receta"
+        ac={C.blue}
+      >
+        <div style={{ color: C.textMid, fontSize: 12, marginBottom: 14, lineHeight: 1.45 }}>
+          Sube una foto o imagen de la receta médica. Claude Vision la leerá y extraerá automáticamente los medicamentos.
+        </div>
+
+        {/* Input para cargar imagen */}
+        <div style={{ marginBottom: 16 }}>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) setRecetaImagen(file);
+            }}
+            style={{
+              display: "block",
+              width: "100%",
+              padding: "10px",
+              border: `2px dashed ${C.border}`,
+              borderRadius: 8,
+              cursor: "pointer",
+              fontSize: 12,
+            }}
+          />
+          {recetaImagen && (
+            <div style={{ marginTop: 8, fontSize: 12, color: C.blue, fontWeight: 600 }}>
+              ✓ {recetaImagen.name}
+            </div>
+          )}
+        </div>
+
+        {/* Botones */}
+        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+          <button
+            onClick={() => {
+              setModalCargarReceta(false);
+              setRecetaImagen(null);
+              setMedicamentosExtraidos([]);
+            }}
+            style={{
+              padding: "8px 16px",
+              borderRadius: 6,
+              border: `1px solid ${C.border}`,
+              background: C.bg,
+              color: C.text,
+              cursor: "pointer",
+              fontWeight: 600,
+              fontSize: 12,
+            }}
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={procesarImagenRecetaMedicamentos}
+            disabled={!recetaImagen || procesandoReceta}
+            style={{
+              padding: "8px 16px",
+              borderRadius: 6,
+              border: "none",
+              background: C.blue,
+              color: "#fff",
+              cursor: procesandoReceta ? "not-allowed" : "pointer",
+              fontWeight: 600,
+              fontSize: 12,
+              opacity: procesandoReceta ? 0.6 : 1,
+            }}
+          >
+            {procesandoReceta ? "Leyendo receta..." : "Leer receta"}
+          </button>
+        </div>
+
+        {/* Preview de medicamentos extraídos */}
+        {medicamentosExtraidos.length > 0 && (
+          <div style={{ marginTop: 16, borderTop: `1px solid ${C.border}`, paddingTop: 16 }}>
+            <div style={{ fontWeight: 700, marginBottom: 10, color: C.text }}>
+              Medicamentos detectados: {medicamentosExtraidos.length}
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {medicamentosExtraidos.map((med, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    padding: "10px",
+                    borderRadius: 6,
+                    background: C.bg,
+                    border: `1px solid ${C.border}`,
+                    fontSize: 12,
+                  }}
+                >
+                  <div style={{ fontWeight: 600, color: C.text }}>{med.nombre}</div>
+                  {med.dosis && (
+                    <div style={{ color: C.textMid, fontSize: 11, marginTop: 2 }}>
+                      Dosis: {med.dosis}
+                    </div>
+                  )}
+                  {med.frecuencia && (
+                    <div style={{ color: C.textMid, fontSize: 11 }}>
+                      Frecuencia: {med.frecuencia}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
