@@ -388,7 +388,8 @@ async function extraerConClaude(apiKey, pdfBase64) {
 async function extraerTextoPdf(pdfBuffer) {
   let pdfParse;
   try {
-    pdfParse = require('pdf-parse');
+    // Evita index.js de pdf-parse (modo debug rompe el bundle en Vercel).
+    pdfParse = require('pdf-parse/lib/pdf-parse.js');
   } catch (e) {
     throw new Error(`pdf_text_parser_unavailable:${e.message}`);
   }
