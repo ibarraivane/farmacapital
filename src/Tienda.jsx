@@ -276,7 +276,7 @@ function productImageUrl(prod, narrow, placeholderFallback = ""){
 // ── FAQ ───────────────────────────────────────────────────────
 const FAQ_ITEMS = [
   { p:"¿Cómo hago un pedido en línea?", r:"Agrega los productos al carrito, selecciona tu tipo de entrega (pick-up o envío), ingresa tus datos y elige tu método de pago. Recibirás confirmación por WhatsApp." },
-  { p:"¿Cuánto tarda el envío?", r:"En CDMX puedes elegir entrega express vía Rappi o Uber (al costo del servicio). Para el resto de México, enviamos por Skydropx en 2-5 días hábiles por $89." },
+  { p:"¿Cuánto tarda el envío?", r:"En CDMX puedes elegir entrega express vía Rappi o Uber (al costo del servicio). Por el momento solo hacemos entregas dentro de CDMX." },
   { p:"¿Puedo recoger mi pedido en la farmacia?", r:"Sí. El pick-up es gratis y el mismo día. Recibirás un mensaje cuando tu pedido esté listo." },
   { p:"¿Cómo funcionan los Puntos FarmaCapital?", r:"Ganas 1 punto por cada $10 de compra. 1 punto equivale a $0.50 de descuento. Puedes usarlos en farmacia, minisuper y consultorio." },
   { p:"¿Qué hago si necesito un medicamento con receta?", r:"Agrégalo al carrito normalmente. Al recoger o recibir tu pedido, presenta tu receta médica original. Para antibióticos y controlados es obligatorio por COFEPRIS." },
@@ -2222,7 +2222,7 @@ function HomeServices({setPage}){
   const servicios = [
     { key:"pickup", titulo:"Pick-up gratis", desc:"Recoge hoy", color:BRAND.primary, tipo:"modal", icon:Store },
     { key:"cdmx", titulo:"CDMX express", desc:"Rappi & Uber", color:BRAND.secondary, tipo:"modal", icon:Bike },
-    { key:"foraneo", titulo:"Envío foráneo", desc:"$89 · Skydropx", color:BRAND.accent, tipo:"modal", icon:PackageCheck },
+
     { key:"puntos", titulo:"Tus puntos", desc:"Acumula y canjea", color:"#f59e0b", tipo:"page", destino:"puntos", icon:Trophy },
     { key:"pago", titulo:"Pago online", desc:"Mercado Pago", color:"#8b5cf6", tipo:"modal", icon:CreditCard },
   ];
@@ -2309,13 +2309,6 @@ function HomeServices({setPage}){
         titulo="Entrega rápida en CDMX"
         color={BRAND.secondary}
         contenido={ContenidoCDMX}
-      />
-      <ServicioModal
-        abierto={modalAbierto==="foraneo"}
-        onClose={()=>setModalAbierto(null)}
-        titulo="Envío a toda la República"
-        color={BRAND.accent}
-        contenido={ContenidoForaneo}
       />
       <ServicioModal
         abierto={modalAbierto==="pago"}
@@ -3046,7 +3039,7 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
         <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:24,position:stack?"relative":"sticky",top:"calc(env(safe-area-inset-top, 0px) + 100px)"}}>
           <div style={{color:C.dark,fontWeight:800,fontSize:16,marginBottom:14}}>Tipo de entrega</div>
           <div role="radiogroup" aria-label="Tipo de entrega">
-          {[["pickup","🏪 Pick-up en FarmaCapital","Gratis · Mismo día"],["cdmx","🛵 Reparto CDMX","Rappi/Uber · Costo del servicio"],["foraneo","📦 Envío foráneo","$89 · 2-5 días · Skydropx"]].map(([v,l,s])=>(
+          {[["pickup","🏪 Pick-up en FarmaCapital","Gratis · Mismo día"],["cdmx","🛵 Reparto CDMX","Rappi/Uber · Costo del servicio"]].map(([v,l,s])=>(
             <button
               key={v}
               type="button"
@@ -3061,7 +3054,7 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
           ))}
           </div>
           {entrega==="cdmx"&&(<div style={{background:"#fef3c7",border:"1px solid #f59e0b30",borderRadius:8,padding:"10px 12px",marginBottom:8}}><div style={{color:"#92400e",fontSize:12}}>🛵 El repartidor irá a FarmaCapital y entregará en tu domicilio al costo que muestre la app de Rappi o Uber.</div></div>)}
-          {(entrega==="cdmx"||entrega==="foraneo")&&(
+          {entrega==="cdmx"&&(
             <div style={{background:"#eff6ff",border:`1px solid ${BRAND.secondary}35`,borderRadius:8,padding:"10px 12px",marginBottom:8}}>
               <div style={{color:BRAND.primary,fontSize:11,lineHeight:1.45}}>
                 Algunos productos no se envían (controlados, con receta u omitidos para delivery). Si el checkout los rechaza, quítalos o elige <strong>pick-up en tienda</strong>.
@@ -3494,7 +3487,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
             <span style={{fontSize:24,flexShrink:0}}>{iconoEntrega}</span>
             <div>
               <div style={{color:C.dark,fontWeight:700,fontSize:14,marginBottom:4}}>
-                {esPickup?"Pick-up en FarmaCapital":esCdmx?"Reparto CDMX (Rappi/Uber)":"Envío foráneo (Skydropx)"}
+                {esPickup?"Pick-up en FarmaCapital":"Reparto CDMX (Rappi/Uber)"}
               </div>
               <div style={{color:C.mid,fontSize:13,lineHeight:1.5}}>{instruccionEntrega}</div>
               {esPickup && (
@@ -3626,7 +3619,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                 <div><strong style={{color:C.dark}}>{datos.nombre}</strong> · {datos.tel} · {datos.email}</div>
                 {entrega!=="pickup"&&datos.calle&&<div style={{marginTop:3}}>{datos.calle}, {datos.colonia}, CP {datos.cp}</div>}
                 <div style={{marginTop:3}}>
-                  {entrega==="pickup"?"🏪 Pick-up en FarmaCapital":entrega==="cdmx"?"🛵 Reparto CDMX":"📦 Envío foráneo"}
+                  {entrega==="pickup"?"🏪 Pick-up en FarmaCapital":"🛵 Reparto CDMX"}
                 </div>
                 <div style={{marginTop:6,color:BRAND.primary,fontWeight:600}}>💳 Mercado Pago (tarjeta, transferencia o efectivo)</div>
               </div>
@@ -4114,7 +4107,7 @@ function PoliticaEnvios({setPage}){
   return(
     <PaginaLegal titulo="📦 Política de Envíos y Devoluciones" setPage={setPage}>
       {[
-        ["Tipos de entrega disponibles","• Pick-up en FarmaCapital: Gratis. Disponible el mismo día. Te avisamos cuando tu pedido esté listo.\n• Reparto express CDMX: Mediante Rappi o Uber Connect. El costo es el que muestre la aplicación al momento del servicio.\n• Envío foráneo: $89 a través de Skydropx. Tiempo estimado: 2-5 días hábiles."],
+        ["Tipos de entrega disponibles","• Pick-up en FarmaCapital: Gratis. Disponible el mismo día. Te avisamos cuando tu pedido esté listo.\n• Reparto express CDMX: Mediante Rappi o Uber Connect. El costo es el que muestre la aplicación al momento del servicio."],
         ["Política de devoluciones","Aceptamos devoluciones dentro de las 72 horas siguientes a la entrega, siempre que el producto esté en perfecto estado, sin abrir y con su empaque original. No se aceptan devoluciones de: medicamentos controlados, productos refrigerados, ni artículos de uso personal."],
         ["Proceso de devolución","Para iniciar una devolución, contáctanos a contacto@farmacapital.mx dentro del plazo indicado. Una vez aprobada la devolución, el reembolso se realizará en un plazo máximo de 5 días hábiles al mismo método de pago utilizado."],
         ["Productos dañados o incorrectos","Si recibes un producto dañado o diferente al solicitado, contáctanos de inmediato. Haremos el reemplazo o reembolso sin costo adicional para ti."],
