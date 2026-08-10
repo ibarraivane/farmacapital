@@ -38,3 +38,6 @@ sql/generated/*.sql
 /test-results/
 /playwright-report/
 e2e/artifacts/screenshots/*.png.env
+
+# Cursor / Claude local (no subir a producción)
+.claude/

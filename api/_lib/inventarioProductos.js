@@ -386,18 +386,16 @@ async function extraerConClaude(apiKey, pdfBase64) {
 }
 
 async function extraerTextoPdf(pdfBuffer) {
-  let pdfParse;
   try {
-    // Evita index.js de pdf-parse (modo debug rompe el bundle en Vercel).
-    pdfParse = require('pdf-parse/lib/pdf-parse.js');
-  } catch (e) {
-    throw new Error(`pdf_text_parser_unavailable:${e.message}`);
+    const pdfParse = require('pdf-parse/lib/pdf-parse.js');
+    if (typeof pdfParse === 'function') {
+      const result = await pdfParse(pdfBuffer);
+      return String(result?.text || '');
+    }
+  } catch {
+    // pdf-parse opcional; en Vercel puede no estar disponible en el bundle.
   }
-  if (typeof pdfParse !== 'function') {
-    throw new Error('pdf_text_parser_invalid');
-  }
-  const result = await pdfParse(pdfBuffer);
-  return String(result?.text || '');
+  return '';
 }
 
 module.exports = {
