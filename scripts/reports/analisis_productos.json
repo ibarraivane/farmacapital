@@ -1,0 +1,14 @@
+{
+  "fecha": "2026-08-10",
+  "total_procesados": 0,
+  "warnings_encontrados": 0,
+  "productos": [],
+  "warnings": [],
+  "margenes_aplicados": {
+    "GENERICO": 0.6,
+    "PATENTE": 0.3,
+    "OTC": 0.4,
+    "SUPLEMENTO": 0.5,
+    "DEFAULT": 0.4
+  }
+}

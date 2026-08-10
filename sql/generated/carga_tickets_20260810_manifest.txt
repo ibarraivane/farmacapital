@@ -1,0 +1,22 @@
+stamp: 20260810
+filas: 627
+excel: /Users/ibarra/Library/CloudStorage/Dropbox/FarmaCapital/Tickets/FarmaCapital_inventario_homologado_completo.xlsx
+
+carga_tickets_20260810_part0001.sql
+carga_tickets_20260810_part0002.sql
+carga_tickets_20260810_part0003.sql
+carga_tickets_20260810_part0004.sql
+carga_tickets_20260810_part0005.sql
+carga_tickets_20260810_part0006.sql
+carga_tickets_20260810_part0007.sql
+carga_tickets_20260810_part0008.sql
+carga_tickets_20260810_part0009.sql
+carga_tickets_20260810_part0010.sql
+carga_tickets_20260810_part0011.sql
+carga_tickets_20260810_part0012.sql
+carga_tickets_20260810_part0013.sql
+carga_tickets_20260810_part0014.sql
+carga_tickets_20260810_part0015.sql
+
+Ejecutar cada part000N.sql en orden en Supabase SQL Editor.
+Luego: sql/patch_resync_productos_stock_from_lotes.sql

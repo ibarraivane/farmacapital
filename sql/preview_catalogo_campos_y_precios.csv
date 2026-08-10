@@ -1,0 +1,559 @@
+sku,nombre_original,nombre,marca,presentacion,principio_activo,tipo,margen_pct,costo,precio_nuevo
+FC-F967863B,TERFICHO 40 CAPS 100 MG,Terficho,Terficho,40 CAPSULAS,,marca,30,46.05,59.87
+FC-C721E8D7,LEVOFLOXACINO 7 TAB 500 MG,Levofloxacino,,7 TABLETAS,LEVOFLOXACINO,generico,60,18.77,30.04
+FC-B25B4654,CINA 7 TAB 750 MG,Cina,Cina,7 TABLETAS,,marca,30,28.87,37.54
+FC-ACA2A2F6,ALOPURINOL 20 TAB 300 MG,Alopurinol,,20 TABLETAS,ALOPURINOL,generico,60,21.46,34.34
+FC-174824A0,VERNISEN 6 TAB 200 MG,Vernisen,Vernisen,6 TABLETAS,,marca,30,12.38,16.1
+FC-D5AC44CA,AMIFARIN 20 CAPS 500 MG,Amifarin,Amifarin,20 CAPSULAS,,marca,30,45.78,59.52
+FC-9A4E4C31,CLINDAMICINA FA 600MG/4ML,Clindamicina,,FRASCO AMPULA,CLINDAMICINA,generico,60,88.42,141.48
+FC-40CE757D,CEFALVER 12 TAB 1 G,Cefalver,Cefalver,12 TABLETAS,,marca,30,62.48,81.23
+FC-B18E386A,CEFAROXIL 15 TAB 500/30 MG,Cefaroxil,Cefaroxil,15 TABLETAS,,marca,30,44.44,57.78
+FC-1DA570E3,CLOXAN 20 COMP 30 MG,Cloxan,Cloxan,20 COMPRIMIDOS,,marca,30,9.75,12.68
+FC-A455EE80,CEFAGEN 1 SUSP 250MG/5/50 ML,Cefagen,Cefagen,1 SUSPENSION,CEFALEXINA,marca,30,74.58,96.96
+FC-E374F23E,CEFAGEN 1 SUSP 125MG/5/50 ML,Cefagen,Cefagen,1 SUSPENSION,CEFALEXINA,marca,30,48.48,63.03
+FC-8FB65B79,KLARIX 1 SUSP 250MG/5ML 60 ML,Klarix,Klarix,1 SUSPENSION,CLARITROMICINA,marca,30,81.67,106.18
+FC-2EDC6E3B,CEFAGEN 10 TAB 250 MG,Cefagen,Cefagen,10 TABLETAS,CEFALEXINA,marca,30,82.09,106.72
+FC-C101D5B1,BISOPROLOL 30 TAB 2.5 MG,Bisoprolol,,30 TABLETAS,BISOPROLOL,generico,60,97.51,156.02
+FC-7AF7ACB5,CHARLYN 3 TAB 500 MG,Charlyn,Charlyn,3 TABLETAS,CIPROFLOXACINO,marca,30,24.98,32.48
+FC-CF18C740,CLINDAMICINA 16 CAP 300 MG,Clindamicina,,16 CAPSULAS,CLINDAMICINA,generico,60,30.54,48.87
+FC-E4EFC4C2,FASICLOR 15 CAPS 500 MG,Fasiclor,Fasiclor,15 CAPSULAS,CEFACLOR,marca,30,137.92,179.3
+FC-6EAD98A9,CEPOBROM 12 CAPS 500/0.782 MG,Cepobrom,Cepobrom,12 CAPSULAS,CEFADROXIL,marca,30,47.97,62.37
+FC-CF719C07,DICLOFEN 12 CAPS 500 MG,Diclofen,Diclofen,12 CAPSULAS,DICLOFENACO,marca,30,26.82,34.87
+FC-60F627D5,GENTAMICINA 5 AMP 160MG/2ML,Gentamicina,,5 AMPOLLETA,GENTAMICINA,generico,60,52.57,84.12
+FC-48F732CF,EPICIN 20 CAPS 500 MG,Epicin,Epicin,20 CAPSULAS,ERITROMICINA,marca,30,29.56,38.43
+FC-72C28BC1,KNORICIN 1 SUSP 125MG/5/60 ML,Knoricin,Knoricin,1 SUSPENSION,NITROFURANTOINA,marca,30,45.41,59.04
+FC-443C330E,CEFAGEN 10 TAB 500 MG,Cefagen,Cefagen,10 TABLETAS,CEFALEXINA,marca,30,144.13,187.37
+FC-492D652F,CEFALVER 20 CAPS 500 MG,Cefalver,Cefalver,20 CAPSULAS,,marca,30,43.35,56.36
+FC-86A95D07,TROPHARMA 20 TAB 500 MG,Tropharma,Tropharma,20 TABLETAS,,marca,30,44.53,57.89
+FC-697EEAD0,KURTOSIL 1 CMA 20/1 MG,Kurtosil,Kurtosil,1 CREMA,,marca,30,62.48,81.23
+FC-830BF3FB,DIVILTAC 1 FA 150/10MG/1 ML,Diviltac,Diviltac,1 FRASCO AMPULA,,marca,30,34.45,44.79
+FC-F3E734A0,FASICLOR 1 SUSP 375MG/5/50 ML,Fasiclor,Fasiclor,1 SUSPENSION,CEFACLOR,marca,30,63.44,82.48
+FC-74A5ABEE,CIPROFLOXACINO 12 TAB 250 MG,Ciprofloxacino,,12 TABLETAS,CIPROFLOXACINO,generico,60,13.69,21.91
+FC-AEA8C8DA,NAMIFEN 20 TAB 500 MG,Namifen,Namifen,20 TABLETAS,,marca,30,24.28,31.57
+FC-2005DD57,CEFALEXINA 20 CAPS 500 MG,Cefalexina,,20 CAPSULAS,CEFALEXINA,generico,60,39.84,63.75
+FC-B4477A00,PENTIBROXIL 16 CAPS 500/30 MG,Pentibroxil,Pentibroxil,16 CAPSULAS,,marca,30,30.04,39.06
+FC-85BDBD3D,ACROXIL-C 1 SUSP 250MG/5/60 ML,Acroxil-C,Acroxil-C,1 SUSPENSION,,marca,30,25.42,33.05
+FC-7AA38F97,PENTIVER 1 SUSP 500MG/5/60 ML,Pentiver,Pentiver,1 SUSPENSION,,marca,30,31.2,40.56
+FC-9538F7D6,FASICLOR 1 SUSP 250MG/5/75 ML,Fasiclor,Fasiclor,1 SUSPENSION,CEFACLOR,marca,30,81.18,105.54
+FC-01B2F362,FASICLOR 1 SUSP 125MG/5/75 ML,Fasiclor,Fasiclor,1 SUSPENSION,CEFACLOR,marca,30,49.85,64.81
+FC-50587FA6,MEXAPIN 1 SUSP 125MG/5/60 ML,Mexapin,Mexapin,1 SUSPENSION,,marca,30,13.93,18.11
+FC-B72A6420,PENTIVER 1 SUSP 250MG/5/90 ML,Pentiver,Pentiver,1 SUSPENSION,,marca,30,27.06,35.18
+FC-D9391288,AZITROMICINA 1 SUSP 200MG/5/15 ML,Azitromicina,,1 SUSPENSION,AZITROMICINA,generico,60,68.5,109.6
+FC-41339950,CLARITROMICINA 10 TAB 500 MG,Claritromicina,,10 TABLETAS,CLARITROMICINA,generico,60,59.45,95.12
+FC-E6112F15,NALIXONE 20 TAB 500/50 MG,Nalixone,,20 TABLETAS,NALIXONE,generico,60,63.32,101.32
+FC-F183C6E9,"PENIPOT 1 FA 800,000 UI",Penipot,Penipot,1 FRASCO AMPULA,,marca,30,19.44,25.28
+FC-A0D320D1,AMOXICILINA 12 CAPS 500 MG,Amoxicilina,,12 CAPSULAS,AMOXICILINA,generico,60,18.37,29.4
+FC-95779436,ACIDO ACETILSALICILICO EF 20 TAB 300 MG,Acetilsalicilico Ef,Acido,20 TABLETAS,,marca,30,19.07,24.8
+FC-4C621D07,VANMOXOL 1 SUSP 250/15MG/5/90 ML,Vanmoxol,,1 SUSPENSION,VANMOXOL,generico,60,18.03,28.85
+FC-022543CD,VALCLAN 10 TAB 500/125 MG,Valclan,Valclan,10 TABLETAS,AMOXICILINA/AC. CLAVULANICO,marca,30,37.22,48.39
+FC-64EB83AA,"BENCIL/BENZ COMPL 1 FA 1,2 U 3 ML",Compl,Bencil/Benz,1 FRASCO AMPULA,,marca,30,18.07,23.5
+FC-D210172A,AMPICILINA 1 FA 1G/5 ML,Ampicilina,,1 FRASCO AMPULA,AMPICILINA,generico,60,25.48,40.77
+FC-7F90064A,AMPICILINA 1 FA 500MG/2 ML,Ampicilina,,1 FRASCO AMPULA,AMPICILINA,generico,60,20.37,32.6
+FC-F82A6E4B,AMPICILINA 10 TAB 1 G,Ampicilina,,10 TABLETAS,AMPICILINA,generico,60,27.05,43.28
+FC-5F30F9D4,CLAMOXIN 10 TAB 500/125 MG,Clamoxin,Clamoxin,10 TABLETAS,AMOXICILINA/AC. CLAVULANICO,marca,30,48.48,63.03
+FC-7D1D9857,ACIDO ACETILSALICILICO 30 TAB 100MG,Acetilsalicilico,Acido,30 TABLETAS,,marca,30,14.85,19.31
+FC-516C2E89,CLAMOXIN 12H JR 1 SUSP 400/57MG/5/50 ML,12H Jr,Clamoxin,1 SUSPENSION,AMOXICILINA/AC. CLAVULANICO,marca,30,36.79,47.83
+FC-05965071,ACROXIL-C 12 CAPS 500/8 MG,Acroxil-C,Acroxil-C,12 CAPSULAS,,marca,30,24.05,31.27
+FC-930E0B1B,VANDIL 1 SUSP 250MG/5/75 ML,Vandil,Vandil,1 SUSPENSION,,marca,30,20.58,26.76
+FC-405A75E3,ACIDO URSODESOXICOLICO 50 CAP 250 MG,Ursodesoxicolico,Acido,50 CAPSULAS,,marca,30,217.23,282.4
+FC-D06E54FE,VALCLAN 10 TAB 875/125 MG,Valclan,Valclan,10 TABLETAS,AMOXICILINA/AC. CLAVULANICO,marca,30,51.18,66.54
+FC-3A4583F3,"PENIPOT 1 FA 400,000 UI",Penipot,Penipot,1 FRASCO AMPULA,,marca,30,14.07,18.3
+FC-F22C72BE,CLAMOXIN 12H 10 TAB 875/125 MG,12H,Clamoxin,10 TABLETAS,AMOXICILINA/AC. CLAVULANICO,marca,30,55.03,71.54
+FC-F48FF7EF,CLAMOXIN 1 SUSP 250/62.5MG/5/60 ML,Clamoxin,Clamoxin,1 SUSPENSION,AMOXICILINA/AC. CLAVULANICO,marca,30,35.62,46.31
+FC-4BD80686,BENEVENTOL 3 CAPS 400 MG,Beneventol,,3 CAPSULAS,BENEVENTOL,generico,60,88.17,141.08
+FC-974EE5FD,GIMALXINA 1 SUSP 250MG/5/75 ML,Gimalxina,,1 SUSPENSION,GIMALXINA,generico,60,27.09,43.35
+FC-0E0A9E42,CLAMOXIN S 1 SUSP 600/42.9MG/50 ML,S,Clamoxin,1 SUSPENSION,AMOXICILINA/AC. CLAVULANICO,marca,30,47.99,62.39
+FC-6519183A,CLAMOXIN 1 SUSP 125/31.25MG/5/60 ML,Clamoxin,Clamoxin,1 SUSPENSION,AMOXICILINA/AC. CLAVULANICO,marca,30,27.89,36.26
+FC-DDFBABDF,CLAMOXIN 12H PED 1 SUSP 200/28.5MG/40 ML,12H Ped,Clamoxin,1 SUSPENSION,AMOXICILINA/AC. CLAVULANICO,marca,30,25.94,33.73
+FC-C9F4ACCC,ACEMETACINA 14 CAPS 90 MG,Acemetacina,,14 CAPSULAS,ACEMETACINA,generico,60,39.44,63.11
+FC-17376CAE,ASPITAK-P 30 COMP 100 MG,Aspitak-P,Aspitak-P,30 COMPRIMIDOS,,marca,30,19.72,25.64
+FC-369D1689,BENEVENTOL 6 CAPS 400 MG,Beneventol,,6 CAPSULAS,BENEVENTOL,generico,60,51.43,82.29
+FC-B69FCBF4,LESACLOR (MACLOV) 35 TAB 400 MG,(Maclov),Lesaclor,35 TABLETAS,,marca,30,146.11,189.95
+FC-F4E9C71F,AMOXICILINA 1 SUSP 500MG/5/75 ML,Amoxicilina,,1 SUSPENSION,AMOXICILINA,generico,60,72.03,115.25
+FC-428A228F,GIMALXINA 12 CAPS 500 MG,Gimalxina,,12 CAPSULAS,GIMALXINA,generico,60,23.57,37.72
+FC-FD845E68,ACICLOVIR 35 TAB 400 MG,Aciclovir,Aciclovir,35 TABLETAS,,marca,30,23.68,30.79
+FC-B2123139,OXIVAG 4 TAB 70 MG,Oxivag,Oxivag,4 TABLETAS,,marca,30,64.09,83.32
+FC-11294615,AMIKACINA 2 AMP 500MG/2 ML,Amikacina,,2 AMPOLLETA,AMIKACINA,generico,60,31.94,51.11
+FC-1FEA2FB7,AMIKACINA 1 AMP 500MG/2 ML,Amikacina,,1 AMPOLLETA,AMIKACINA,generico,60,29.21,46.74
+FC-AA905BF7,PERLUDIL 1 FA 150/10 MG,Perludil,Perludil,1 FRASCO AMPULA,,marca,30,16.11,20.95
+FC-AE5EEDF7,BACTIVER 20 TAB 400/80 MG,Bactiver,Bactiver,20 TABLETAS,,marca,30,48.65,63.25
+FC-F8691496,BACTIVER F 16 TAB 160/800 MG,F,Bactiver,16 TABLETAS,,marca,30,16.89,21.96
+FC-6074BB64,REDALIP 30 TAB 200 MG,Redalip,Redalip,30 TABLETAS,,marca,30,21.01,27.32
+FC-E826D304,LINCOMICINA 600MG/2ML 6 AMPOLLETAS,Lincomicina /2Ml 6 Ampolletas,Lincomicina,600 MG,,marca,30,47.85,62.21
+FC-4F737E93,CLOXAN 1 SOL 300MG/120ML,Cloxan,Cloxan,1 SOLUCION,,marca,30,44.04,57.26
+FC-DB3B2584,CELESBITAN 1 FA C/BER 6MG/2 ML,Celesbitan,Celesbitan,1 FRASCO AMPULA,,marca,30,16.91,21.99
+FC-22B18244,CEFOTAXIMA I.M. 1 FA 1G/4 ML,I.M,Cefotaxima,1 FRASCO AMPULA,,marca,30,31.06,40.38
+FC-4A0245DA,AMLODIPINO 100 TAB 5 MG,Amlodipino,Amlodipino,100 TABLETAS,,marca,30,32.52,42.28
+FC-29670370,DEGORTZIN 1 SOL 100 MG/50 ML,Degortzin,Degortzin,1 SOLUCION,,marca,30,35.71,46.43
+FC-69A3C416,WEXPEC 1 SOL 7.5/2MG/5/120 ML,Wexpec,Wexpec,1 SOLUCION,,marca,30,16.65,21.65
+FC-F817BC3A,SIBICOS 1 CMA 1/100/20 G,Sibicos,Sibicos,1 CREMA,,marca,30,33.65,43.75
+FC-447B30F9,BUDESONIDA 5 AMP 0.250MG/2ML,Budesonida,Budesonida,5 AMPOLLETA,,marca,30,131.38,170.8
+FC-1CF27DC9,DISON DEX 1 FA 5/2 MG,Dex,Dison,1 FRASCO AMPULA,,marca,30,36.86,47.92
+FC-3CAA7C5C,CINARIZINA 60 TAB 75 MG,Cinarizina,,60 TABLETAS,CINARIZINA,generico,60,35.05,56.08
+FC-E6B50AC3,CELECOXIB 10 CAPS 200MG,Celecoxib,Celecoxib,10 CAPSULAS,,marca,30,34.82,45.27
+FC-6B2ADEE9,PRCTAISOL 1 SUSP/AER 200 DOSIS 12.80 G,Prctaisol 1 Susp/Aer 200 Dosis,,12.80 G,,marca,30,96.21,125.08
+FC-DB4A39AE,CALCIO EFE 12 COMP 500 MG,Efe,Calcio,12 COMPRIMIDOS,,marca,30,39.07,50.8
+FC-FA3D96E6,BECATRIM N CALCITRIOL 30 CAPS 0.25 MCG,N Calcitriol,Becatrim,30 CAPSULAS,,marca,30,47.13,61.27
+FC-63975795,GENTAMICINA 25 COMP 1 MG,Gentamicina,,25 COMPRIMIDOS,GENTAMICINA,generico,60,17.58,28.13
+FC-C6C20517,BUDIMIN 20 TAB 1 MG,Budimin,Budimin,20 TABLETAS,,marca,30,31.31,40.71
+FC-58DB24C4,BITENVER 30 TAB 24 MG,Bitenver,Bitenver,30 TABLETAS,,marca,30,62.78,81.62
+FC-1FFBB505,SUPRATEX DAC 1 SOL 300/600 MG 120 ML,Dac,Supratex,1 SOLUCION,,marca,30,42.14,54.79
+FC-A909ABC0,ODIVITOR 10 TAB 20 MG,Odivitor,Odivitor,10 TABLETAS,,marca,30,13.77,17.91
+FC-82F88FED,CAPTOPRIL 30 TAB 25 MG,Captopril,,30 TABLETAS,CAPTOPRIL,generico,60,7.95,12.72
+FC-6C2878CF,BUDENOVA SUSP 125 MG/ML 5 AMP 2ML,Susp 125 Mg/Ml,Budenova,5 AMPOLLETA,,marca,30,130.24,169.32
+FC-3B001F9B,AMLODIPINO 30 TAB 5 MG,Amlodipino,Amlodipino,30 TABLETAS,,marca,30,9.04,11.76
+FC-B25094C4,LESACLOR 1 SUSP 200MG/5/125 ML,Lesaclor,Lesaclor,1 SUSPENSION,,marca,30,44.43,57.76
+FC-26EA40A4,RAMCINET 10 TAB 10 MG,Ramcinet,Ramcinet,10 TABLETAS,,marca,30,19.65,25.55
+FC-885F2723,CARBAMAZEPINA 20 TAB 200 MG,Carbamazepina,,20 TABLETAS,CARBAMAZEPINA,generico,60,18.11,28.98
+FC-DF8ADDAB,ERISPAN 1 FA 4MG/3 ML,Erispan,Erispan,1 FRASCO AMPULA,,marca,30,22.15,28.8
+FC-50AC2C82,ERISPAN 1 FA 8MG/2 ML,Erispan,Erispan,1 FRASCO AMPULA,,marca,30,24.45,31.79
+FC-281E0F22,BUDESONIDA 1 SUSP NEB AMP 0.500MG,Budesonida,Budesonida,1 SUSPENSION,,marca,30,153.72,199.84
+FC-9F67BB73,AMIFARIN 1 SUSP 250MG 60 ML,Amifarin,Amifarin,1 SUSPENSION,,marca,30,27.0,35.1
+FC-4FD413D2,HASPEN 3 AMP 20 MG/1 ML,Haspen,Haspen,3 AMPOLLETA,,marca,30,23.53,30.59
+FC-0BDE9283,CLOPHIVEN 200 DOSIS 50 MCG/15 G,Clophiven 200 Dosis 50 Mcg,Clophiven,15 G,,marca,30,56.51,73.47
+FC-97BEFA1A,AMLODIPINO 100 TAB 5 MG,Amlodipino,Amlodipino,100 TABLETAS,,marca,30,32.52,42.28
+FC-DEAF33B0,BACTIVER 1 SUSP 40/200/5/120 ML,Bactiver,Bactiver,1 SUSPENSION,,marca,30,21.28,27.67
+FC-77FE5C83,SONBLEFAM S 1 CMA 100 G/40 G,S,Sonblefam,1 CREMA,,marca,30,32.41,42.14
+FC-C636D8EA,CEFTRIAXONA I.M. 1 FA 1G/3.5 ML,I.M,Ceftriaxona,1 FRASCO AMPULA,,marca,30,9.8,12.75
+FC-44B6751A,LAUR AQUITO 500/100/30/4 MG 3 AMP,Aquito 500/100/30/4 Mg,Laur,3 AMPOLLETA,,marca,30,59.63,77.52
+FC-9B93AC4C,BENEVENTOL 1 SUSP 100MG/5ML/50 ML,Beneventol,,1 SUSPENSION,BENEVENTOL,generico,60,97.6,156.16
+FC-2001A890,AMPIGRIN AD 3 AMP 500/500/100/30MG/3 ML,Ad,Ampigrin,3 AMPOLLETA,,marca,30,81.71,106.23
+FC-DE106642,AMPIGRIN INF 3 AMP 250/200/100/30MG/3 ML,Inf,Ampigrin,3 AMPOLLETA,,marca,30,73.57,95.65
+FC-BE76D409,AMCEF I.M. 1 FA 1G/3.5 ML,I.M,Amcef,1 FRASCO AMPULA,,marca,30,19.72,25.64
+FC-07F04F88,AMCEF I.M. 1 FA 500MG/2 ML,I.M,Amcef,1 FRASCO AMPULA,,marca,30,19.43,25.26
+FC-357D4A17,CEFTAZIDIMA 1 FA 1G/3 ML,Ceftazidima,Ceftazidima,1 FRASCO AMPULA,,marca,30,45.42,59.05
+FC-5D9DFA3D,NORQUINOL 20 TAB 400 MG,Norquinol,,20 TABLETAS,NORQUINOL,generico,60,48.87,78.2
+FC-E9C38DC4,CIPROFLOXACINO G.I. 14 TAB 500 MG,Ciprofloxacino G.I,,14 TABLETAS,CIPROFLOXACINO G.I,generico,60,22.92,36.68
+FC-347A49C7,AMIKACINA 1 AMP 100 MG/2 ML,Amikacina,,1 AMPOLLETA,AMIKACINA,generico,60,19.46,31.14
+FC-E4BE37BE,ATORVASTATINA 10 TAB 40 MG,Atorvastatina,,10 TABLETAS,ATORVASTATINA,generico,60,26.35,42.16
+FC-1751468C,FLOSPET 8 TAB 400 MG,Flospet,Flospet,8 TABLETAS,,marca,30,27.33,35.53
+FC-6898B64F,BIOERTER 1 SUSP 250 MG/100 ML,Bioerter,Bioerter,1 SUSPENSION,,marca,30,47.7,62.02
+FC-CD261CD5,DOLIPROFEN 10 TAB 800 MG,Doliprofen,Doliprofen,10 TABLETAS,,marca,30,22.41,29.14
+FC-5C8C9C11,GELUBRIN 10 CAPS 600 MG,Gelubrin,Gelubrin,10 CAPSULAS,,marca,30,21.95,28.54
+FC-A23F290E,ZITRIASOL 15 CAP 100 MG,Zitriasol,,15 CAPSULAS,ZITRIASOL,generico,60,34.61,55.38
+FC-5885E577,PABESORAG 28 TAB 150/12.5 MG,Pabesorag,Pabesorag,28 TABLETAS,,marca,30,60.47,78.62
+FC-3D0F54B7,IBUPRO-CAFE 10 CAPS 400 MG/100 MG,Ibupro-Cafe,Ibupro-Cafe,10 CAPSULAS,,marca,30,30.06,39.08
+FC-F7A2CACF,INDARZONA 30 CAPS 25/0.5 MG,Indarzona,Indarzona,30 CAPSULAS,,marca,30,56.3,73.19
+FC-50D044FF,WERMY 15 CAPS 300 MG,Wermy,Wermy,15 CAPSULAS,,marca,30,24.51,31.87
+FC-E535DE28,DIURMESSEL 20 TAB 40 MG,Diurmessel,Diurmessel,20 TABLETAS,,marca,30,9.31,12.11
+FC-1321B34F,HIDROXON 30 TAB 10 MG,Hidroxon,Hidroxon,30 TABLETAS,,marca,30,34.6,44.98
+FC-1AE9D7E6,COLLUCORT 1 CMA 1% 60 G,Collucort,Collucort,1 CREMA,,marca,30,47.85,62.21
+FC-3E863E37,TRATIDRI 1 GEL 500/50 MG 60 G,Tratidri,Tratidri,1 GEL,,marca,30,47.47,61.72
+FC-9ABFB996,ELAPHTERON 20 TAB 100 MG,Elaphteron,Elaphteron,20 TABLETAS,,marca,30,30.77,40.01
+FC-9A37D44A,AMDORYL 14 CAPS 30 MG,Amdoryl,Amdoryl,14 CAPSULAS,,marca,30,26.11,33.95
+FC-1BF03D35,ACETONIDO DE FLUOCINOLONA CMA,Acetonido De Fluocinolona Cma,Acetonido,,,marca,30,18.44,23.98
+FC-5BC5F234,FLUCONAZOL 1 CAPS 150 MG,Fluconazol,,1 CAPSULAS,FLUCONAZOL,generico,60,12.92,20.68
+FC-A2B284E0,HIALURONATO DE SODIO 4MG 10 ML,Hialuronato De Sodio 4Mg,Hialuronato,10 ML,,marca,30,113.89,148.06
+FC-2E79C2D8,HIERRO DEX 3 AMP 100 MG/2 ML,Dex,Hierro,3 AMPOLLETA,,marca,30,61.33,79.73
+FC-28A424E5,DIZIVER 20 TAB 25 MG,Diziver,Diziver,20 TABLETAS,,marca,30,8.15,10.6
+FC-52D2A43A,ZUKEDIB 30 TAB 2 MG,Zukedib,Zukedib,30 TABLETAS,,marca,30,29.08,37.81
+FC-3D0ED22B,ZUKEDIB 30 TAB 4 MG,Zukedib,Zukedib,30 TABLETAS,,marca,30,27.98,36.38
+FC-04D83B46,PRALEX 28 TAB 10 MG,Pralex,Pralex,28 TABLETAS,,marca,30,42.85,55.71
+FC-D11D586A,VALGAB 3 IBE 50MG/6ML,Valgab 3 Ibe /6Ml,Valgab,50 MG,,marca,30,19.41,25.24
+FC-53506FA4,ENALAPRIL 30 TAB 10 MG,Enalapril,,30 TABLETAS,ENALAPRIL,generico,60,8.09,12.95
+FC-F7DB080D,OVISEN 28 TAB 20 MG,Ovisen,Ovisen,28 TABLETAS,,marca,30,20.33,26.43
+FC-FD92D114,OVISEN 14 TAB 20 MG,Ovisen,Ovisen,14 TABLETAS,,marca,30,10.19,13.25
+FC-57925EF3,REGLUSAN 50 TAB 5 MG,Reglusan,Reglusan,50 TABLETAS,,marca,30,8.88,11.55
+FC-AA7B0686,DROSQUIM AD 1 IBE 300/160/200 ML,Drosquim Ad 1 Ibe 300/160,Drosquim,200 ML,,marca,30,70.74,91.97
+FC-B3B8F9BB,DESROTAN 10 TAB 180 MG,Desrotan,Desrotan,10 TABLETAS,,marca,30,47.31,61.51
+FC-EADF1484,DIOSMINA HESPERIDINA 20 TAB 450/50 MG,Diosmina Hesperidina,,20 TABLETAS,DIOSMINA HESPERIDINA,generico,60,39.41,63.06
+FC-262F2A30,IRBESARTAN 14 TAB 150 MG,Irbesartan,,14 TABLETAS,IRBESARTAN,generico,60,43.98,70.37
+FC-1DAD5EF1,TUSILEN AD 1 IBE 240/30/50MG/100/118 ML,Tusilen Ad 1 Ibe 240/30/50Mg/100,Tusilen,118 ML,,marca,30,24.22,31.49
+FC-BDB2E087,IRBESARTAN 14 TAB 300 MG,Irbesartan,,14 TABLETAS,IRBESARTAN,generico,60,70.49,112.79
+FC-759A5EF9,WERMY 30 CAPS 300 MG,Wermy,Wermy,30 CAPSULAS,,marca,30,24.89,32.36
+FC-52844825,Desod Obao R-Nat Coco R-On 65G,Obao R-Nat Coco,Obao,R-ON 65 G,,marca,60,29.55,47.28
+FC-52933307,Desod Obao Game 48Hr R-On 65G N,Obao Game 48Hr N,Obao,R-ON 65 G,,marca,60,24.71,39.54
+FC-27250612,Desod Obad P/Del R-On 65G,Obao P/Del,Obao,R-ON 65 G,,marca,60,24.71,39.54
+FC-27286017,Desod Obao Clas R-On 65G,Obao Clas,Obao,R-ON 65 G,,marca,60,45.83,73.33
+FC-52876406,Desod Obao Men Tatto Aqua R-On 65G,Obao Men Tatto Aqua,Obao,R-ON 65 G,,marca,60,45.83,73.33
+FC-30622622,Desod Axe Men Young Spy 150Ml,Axe Men Young,Axe,SPRAY 150 ML,,marca,60,45.83,73.33
+FC-06213906,Desod Axe Icechi E-Frio Spy 150Ml,Axe Icechi E-Frio,Axe,SPRAY 150 ML,,marca,60,25.83,41.33
+FC-93037806,Desod Rexona Men Marine Spy 150Ml,Rexona Men Marine,Rexona,SPRAY 150 ML,,marca,60,62.83,100.53
+FC-55280956,Desod Obao Men Tato Rebel R-On65,Obao Men Tato Rebel,Obao,R-ON 65 G,,marca,60,54.68,87.49
+FC-93025919,Desod Axe Excite Seco Spy 152Ml,Axe Excite Seco,Axe,SPRAY 152 ML,,marca,60,45.83,73.33
+FC-93022567,Desod Rexona Men V8 Tun Spy 90G,Rexona Men V8 Tun Spy,Rexona,90 G,,marca,60,51.5,82.4
+FC-06244795,Desod Axe Intense 48H Spy 150Ml,Axe Intense 48H,Axe,SPRAY 150 ML,,marca,60,54.68,87.49
+FC-75076009,Desod Rexona 48H Happy-M Stick 45G,Rexona 48H Happy-M,Rexona,STICK 45 G,,marca,60,53.5,85.6
+FC-93025797,Desod Axe Men Dark Temp Spy150Ml,Axe Men Dark Temp,Axe,SPRAY 150 ML,,marca,60,53.5,85.6
+FC-93038223,Desod Rexona Men Sport Spy 150Ml,Rexona Men Sport,Rexona,SPRAY 150 ML,,marca,60,45.83,73.33
+FC-75062897,Desod Rexona Bamboo 48H Stick 45G,Rexona Bamboo 48H,Rexona,STICK 45 G,,marca,60,45.83,73.33
+FC-06245686,Desod Axe Men Epic-F 48H Spy 150Ml,Axe Men Epic-F 48H,Axe,SPRAY 150 ML,,marca,60,45.83,73.33
+FC-93025865,Desod Axe Men Gold Temp,Axe Men Gold Temp,Axe,,,marca,60,45.83,73.33
+FC-22105207,Jbn Grisi Neutro 150 G,Grisi Neutro,Grisi,150 G,,marca,60,20.14,32.23
+FC-38891190,Jbn Dove Barra Blanca,Dove Barra Blanca,Dove,,,marca,60,60.54,96.87
+FC-75062927,Desod Rexona Pom-Dry48H Stick45G,Rexona Pom-Dry 48 H,Rexona,STICK 45 G,,marca,60,30.21,48.34
+FC-40036965,Jbn Asepxia Bicarbon Sod 100G,Asepxia Bicarbon Sod,Asepxia,100 G,,marca,60,14.45,23.12
+FC-40004643,Jbn Asexia Exfol 100G,Asepxia Exfol,Asepxia,100 G,,marca,60,38.66,61.86
+FC-22150801,Jbn Grisi Avena 125G,Grisi Avena,Grisi,125 G,,marca,60,15.02,24.04
+FC-25605514,Jbn Escudo Antibact 110Gr,Escudo Antibact,Escudo,110 G,,marca,60,26.75,42.8
+FC-14119032,Azufre Jabon C Miel 80,Jabon C Miel 80,,,,marca,60,30.21,48.34
+FC-06230507,Jbn Dove Barra Karite Vainill 135G,Dove Barra Karite Vainill,Dove,135 G,,marca,60,30.21,48.34
+FC-22150092,Jbn Grisi Leche De Burra 125G,Grisi Leche De Burra,Grisi,125 G,,marca,60,42.82,68.52
+FC-22111352,Jbn Grisi Corp Diabecare 125 G,Grisi Corp Diabecare,Grisi,125 G,,marca,60,35.61,56.98
+FC-75069223,Desod Rex Mot-Sen Sport Stick,Rexona Mot-Sen Sport Stick,Rexona,,,marca,60,16.7,26.72
+FC-46059556,Jbn Liq Palmol N-Bal Dermol 221Mln,Palmolive N-Bal Dermol,Palmolive,221 ML,,marca,60,52.29,83.67
+FC-67905186,Jbn Liq Blumen Coconut Para 221Ml,Blumen Coconut Para,Blumen,221 ML,,marca,60,128.57,205.72
+FC-46683133,Jbn Palmol N-Bal Dermo Limp 120G,Palmolive N-Bal Dermo Limp,Palmolive,120 G,,marca,60,8.96,14.34
+FC-06241206,Desod Dove Dermac Sk-C 48H Spy150Ml,Dove Dermac Sk-C 48H,Dove,SPRAY 150 ML,,marca,60,54.12,86.6
+FC-43489004,Jbn Escudo Rosa Prot Y Cuid 110G,Escudo Rosa Prot Y Cuid,Escudo,110 G,,marca,60,40.73,65.17
+FC-42326414,Agua Mic Garnier De Rosas 400 Ml,Garnier De Rosas,Garnier,400 ML,,marca,60,27.75,44.41
+FC-76000284,Agua Mic Vitacilina Ros-Sab 500Mln,Vitacilina Ros-Sab,Vitacilina,500 ML,,marca,60,21.08,33.73
+FC-82790504,Desmaq Bifasico Oil Nuvel 125Ml,Nuvel Bifasico Oil,Nuvel,125 ML,,marca,60,16.7,26.72
+FC-45722547,Agua Mice Natural-G Bifasic 120Ml,Natural-G Bifasic,,120 ML,,marca,60,37.72,60.36
+FC-67905131,Jbn Liq Blumen Cherry Bloss 221Ml,Blumen Cherry Bloss,Blumen,221 ML,,marca,60,17.78,28.45
+FC-21012303,Tas Hum Claris Desmaq Aloe C/40,Claris Desmaq Aloe,Claris,C/40,,marca,60,14.78,23.65
+FC-14121782,Jabon De Proteina De Arroz Y Concha Nacar 8,De Proteina De Arroz Y Concha Nacar 8,,,,marca,60,167.69,268.31
+FC-25652716,Jbn Escudo Azul Rey 135G,Escudo Azul Rey,Escudo,135 G,,marca,60,73.65,117.85
+FC-06248052,Deo Aero Dove Tono Uniforme 150Ml 3Pack,Dove Aero Tono Uniforme 3Pack,Dove,150 ML,,marca,60,147.3,235.69
+FC-06248045,Deo Dove Spy Invisible Dry 150Ml C3,Dove Spy Invisible Dry C3,Dove,150 ML,,marca,60,129.46,207.14
+FC-35911208,Jbn Liq Palmol Aquarium 221Ml,Palmolive Aquarium,Palmolive,221 ML,,marca,60,45.83,73.33
+FC-08837311,Desod Nivea Pearlb Mspy150Ml,Nivea Pearlb Mspy,Nivea,150 ML,,marca,60,12.54,20.07
+FC-06209862,Deo Axe Spy 150Ml 48H Anarchy Fresh Love Fo,Axe 48H Anarchy Fresh Love Fo,Axe,SPRAY 150 ML,,marca,60,16.87,27.0
+FC-43489165,Jbn Liq Escudo Blanco Neut 225Ml,Escudo Blanco Neut,Escudo,225 ML,,marca,60,45.83,73.33
+FC-84900280,Jaloma Agua De Rosas 130Ml Spray,Jaloma Spray,Jaloma,130 ML,,marca,60,23.79,38.07
+FC-06226852,Desod Axe Wom Anarchy Spy 150Ml,Axe Wom Anarchy,Axe,SPRAY 150 ML,,marca,60,88.8,142.09
+FC-46657035,Jbn Lio Palmol Flor Czo-Rsa 221Ml,Lio Flor Czo-Rsa,Lio,221 ML,,marca,60,45.83,73.33
+FC-56330378,Loc Limp Ponds Bio-Hydra Dual 200Ml,Ponds Bio-Hydra Dual,Ponds,200 ML,,marca,60,28.1,44.97
+FC-76040436,Deo Mexsana P/Pies Spy 150Ml,Mexsana P/Pies,Mexsana,SPRAY 150 ML,,marca,60,49.29,78.87
+FC-61113000,Tco Desod Odolex,Odolex Desod,Odolex,,,marca,60,31.77,50.84
+FC-61123009,Odolex Naturals 300Gr Talco Desodorante,Odolex Naturals Talco Desodorante,Odolex,300 G,,marca,60,23.99,38.39
+FC-41500096,Tiraleche De Cristal 1 Pza,De Cristal,,1 PZA,,marca,60,80.46,128.74
+FC-20500201,Sh Pert Plus Ac-Oliva 400Ml,Pert Plus Ac-Oliva,Pert,400 ML,,marca,60,64.12,102.6
+FC-72300171,Ting Polvo 85G,Polvo,,85 G,,marca,60,43.58,69.73
+FC-06217461,Ico Desod Rexona Effi Fresh 200G,Rexona Effi Fresh,Rexona,200 G,,marca,60,43.58,69.73
+FC-82740011,Quita Esm Nuvel Humec 125Ml,Nuvel Humec,Nuvel,125 ML,,marca,60,43.58,69.73
+FC-52910971,Cra Fructis Pei B-Dano Quim 300Ml,Fructis Pei B-Dano Quim,Fructis,300 ML,,marca,60,78.22,125.16
+FC-52816297,Cra Fructis Pei Oil-R L-Coco 300Ml,Fructis Pei Oil-R L-Coco,Fructis,300 ML,,marca,60,63.05,100.88
+FC-40025839,Sh Int Lomecan V 200Ml,Lomecan V,Lomecan,200 ML,,marca,60,17.2,27.52
+FC-40030338,Sh Int Lomecan V Aclar 200Ml,Lomecan V Aclar,Lomecan,200 ML,,marca,60,41.84,66.95
+FC-45720550,Silkhair Quita Esmalte Mora Azul 100Ml,Quita Esmalte Mora Azul,,100 ML,,marca,60,41.84,66.95
+FC-92511261,Cra Nutribela1O Bio Colageno 300Gn,Nutribela Bio Colageno,Nutribela,300 G,,marca,60,29.31,46.9
+FC-92509213,Cra Nutribela Nutrice Tarro 300G,Nutribela Nutrice Tarro,Nutribela,300 G,,marca,60,40.24,64.39
+FC-06257597,Rexona 1O0Gr Tco Pies Efficient Orig,Rexona 1O0 G Tco Pies Efficient Orig,Rexona,,,marca,60,75.7,121.12
+FC-46073156,Sh Caprice Nat Mzna 380 Ml,Caprice Nat Mzna,Caprice,380 ML,,marca,60,75.7,121.12
+FC-20500171,Cra Pert Oliv+Ac Agu P/Pein 100 Ml,Pert Oliv+Ac Agu P/Pein,Pert,100 ML,,marca,60,25.04,40.07
+FC-35155922,Ac Pantene Bambu 400Ml,Pantene Bambu,Pantene,400 ML,,marca,60,15.7,25.12
+FC-07457826,Acono Pant Brillo Extremo 40Cml,Pantene Brillo Extremo,Pantene,40 ML,,marca,60,75.7,121.12
+FC-56340131,Cra Sedal Rizos Obedie 300Ml,Sedal Rizos Obedie,Sedal,300 ML,,marca,60,19.11,30.58
+FC-01165321,Acond Pant Rizos Definid 400Ml,Pantene Acond Rizos Definid,Pantene,400 ML,,marca,60,71.8,114.88
+FC-06249783,Sh Sedal Rizos Def Inf-Act 180Ml,Sedal Rizos Def Inf-Act,Sedal,180 ML,,marca,60,50.07,80.12
+FC-56360429,Tco Desod Eficc Pies 200 G,Desod Eficc Pies,,200 G,,marca,60,36.33,58.13
+FC-56340025,Cra Sedal Sos Recon-Estru 300Ml,Sedal Sos Recon-Estru,Sedal,300 ML,,marca,60,18.88,30.21
+FC-56342227,Cra Sedal Rizos Obedientes 135Ml,Sedal Rizos Obedientes,Sedal,135 ML,,marca,60,8.24,13.19
+FC-06249776,Sh Sedal Ceramidas Inf-Act 180Ml,Sedal Ceramidas Inf-Act,Sedal,180 ML,,marca,60,75.7,121.12
+FC-01303454,Sh Pant Ctrcaida A/Pv 400Ml,Pantene Ctrcaida A/Pv,Pantene,400 ML,,marca,60,40.66,65.06
+FC-07457796,Sh Pant Brillo Extremo,Pantene Brillo Extremo,Pantene,,,marca,60,75.7,121.12
+FC-35155847,Sh Pant Bambu Ctrl Caida 400 Ml,Pantene Bambu Ctrl Caida,Pantene,400 ML,,marca,60,40.66,65.06
+FC-06249240,Sh Savile Ker-Sab Fza Repar 700Ml,Savile Ker-Sab Fza Repar,Savile,700 ML,,marca,60,44.76,71.62
+FC-06249226,Sh Savile Bio-Sab Creci Res 700Ml,Savile Bio-Sab Creci Res,Savile,700 ML,,marca,60,50.07,80.12
+FC-24511629,Silica Shine Sil 3/1 Uva 120 Mi,Silica Shine Sil 3/1 Uva 120 Mi,Silica Shine,,,marca,60,18.17,29.08
+FC-06234062,Cra Sedal Anti Nudos 300 Ml,Sedal Anti Nudos,Sedal,300 ML,,marca,60,17.77,28.44
+FC-56342258,Cra Sedal Recons Estructur 135Ml,Sedal Recons Estructur,Sedal,135 ML,,marca,60,17.77,28.44
+FC-61111501,Tco Desdo Odolex 150 G,Odolex Desdo,Odolex,150 G,,marca,60,50.07,80.12
+FC-61124013,Tco Odolex Fresh 150G,Odolex Fresh,Odolex,150 G,,marca,60,73.76,118.02
+FC-56340124,Cra Sedal Sos Ceramida 300Ml,Sedal Sos Ceramida,Sedal,300 ML,,marca,60,57.9,92.64
+FC-35020008,Sh Hbs Limp Renoy 375Ml,Herbal Essences Limp Renoy,Herbal Essences,375 ML,,marca,60,57.9,92.64
+FC-35169035,Mousse Herbal Ess Rizo 200G,Herbal Essences Rizo,Herbal Essences,200 G,,marca,60,73.76,118.02
+FC-35168991,Sh Hash Anti Comezon 375Ml,Hask Anti Comezon,Hask,375 ML,,marca,60,32.34,51.75
+FC-35231237,Sh Hash Anti Comezon 375Ml,Hask Anti Comezon,Hask,375 ML,,marca,60,36.73,58.77
+FC-92504539,Cera Mod Ego Met 25 G,Ego Mod Met,Ego,25 G,,marca,60,36.73,58.77
+FC-38312374,Cera Gel Moco De Gorila Citr 100G,Moco de Gorila Gel Citr,Moco de Gorila,100 G,,marca,60,24.91,39.86
+FC-35231244,Sh H&S Anti Comezon 180 Ml,Head & Shoulders Anti Comezon,Head & Shoulders,180 ML,,marca,60,18.39,29.43
+FC-35020077,Sh Hbs Alivio Instant,Herbal Essences Alivio Instant,Herbal Essences,,,marca,60,45.23,72.37
+FC-92503558,Gel Ego Magnetic Fij-Alta 200 Ml,Ego Magnetic Fij-Alta,Ego,200 ML,,marca,60,56.61,90.58
+FC-99425580,Gel X-Extreme Titan 250G,X-Treme Titan,X-Treme,250 G,,marca,60,7.37,11.8
+FC-99428024,Gel Moco De Gorila Punk 80 G,Moco de Gorila Punk,Moco de Gorila,80 G,,marca,60,7.37,11.8
+FC-46073040,Sh Caprice Sp Biotina Fza 200Ml,Caprice Sp Biotina Fza,Caprice,200 ML,,marca,60,45.26,72.42
+FC-46073033,Sh Caprice Sp Acti Ceramida 200Ml,Caprice Sp Acti Ceramida,Caprice,200 ML,,marca,60,45.26,72.42
+FC-54073302,Silica Shine Sily Oleo Argan 120Ml,Silica Shine Sily Oleo Argan,Silica Shine,120 ML,,marca,60,44.76,71.62
+FC-24511711,Silica Shine Sily 3/1 Mora 120Ml,Silica Shine Sily 3/1 Mora,Silica Shine,120 ML,,marca,60,45.64,73.03
+FC-24511636,Silica Shine Sily 3/1 Naran 12Cml,Silica Shine Sily 3/1 Naran,Silica Shine,12 ML,,marca,60,50.51,80.82
+FC-75001865,Brill Palmol Lio 115M,Lio 115M,Lio,,,marca,60,17.54,28.07
+FC-46655055,Mousse Caprice Volum-Cirl 200 G,Caprice Volum-Cirl,Caprice,200 G,,marca,60,20.02,32.04
+FC-06247468,Gel Ego Fresh C-Cas Fij-Alt 200Ml,Ego Fresh C-Cas Fij-Alt,Ego,200 ML,,marca,60,62.04,99.27
+FC-92506601,Gel Ego For Men Attraction 200 Ml,Ego For Men Attraction,Ego,200 ML,,marca,60,17.98,28.77
+FC-86494262,Cep Dent Oral-B Indicat35Sve,Oral-B Indicat35Sve,Oral-B,,,marca,60,8.6,13.76
+FC-92506045,Cera Ego Firme Matte 25 G,Ego Firme Matte,Ego,25 G,,marca,60,17.2,27.52
+FC-84431050,Acetona Jaloma 60 Ml,Jaloma,Jaloma,60 ML,,marca,60,19.77,31.64
+FC-45720567,Silkhair Quita Esmalte Coco 100 Ml,Quita Esmalte Coco,,100 ML,,marca,60,2.75,4.41
+FC-84437151,Acetona Jaloma 120 Ml,Jaloma,Jaloma,120 ML,,marca,60,2.75,4.41
+FC-48640775,Protec Tocmx2.75M 1 Pza Venda De Yeso C12,Tocmx2.75M Venda De Yeso C12,,1 PZA,,marca,60,2.75,4.41
+FC-48640799,Protec 15Cmx2.75M 1 Pza Venda De Yeso C12,15Cmx2.75M Venda De Yeso C12,,1 PZA,,marca,60,2.75,4.41
+FC-46640629,Protec 20Cmx2.75M 1 Pza Venda De Yeso,20Cmx2.75M Venda De Yeso,,1 PZA,,marca,60,61.02,97.64
+FC-48640751,Protec 5Cmx2.75M 1 Pza Venda De Yeso C12 Pz,5Cmx2.75M Venda De Yeso C12 Pz,,1 PZA,,marca,60,147.15,235.45
+FC-26462078,Ternura Flor-Balon 18 Pzs Chupon Con Miel,Ternura Flor-Balon 18 Pzs Chupon Con Miel,Ternura,,,marca,60,47.79,76.47
+FC-54500216,Cra Nivea Sdatarr Giga 400Ml,Nivea Sdatarr Giga,Nivea,400 ML,,marca,60,42.25,67.61
+FC-75064938,Desod Ego Force 24H R-On 45Ml Dic26,Ego Force 24H R-On Dic26,Ego,45 ML,,marca,60,42.24,67.59
+FC-20501673,Cra Hinds Liq Agave Azul 400Ml,Hinds Liq Agave Azul,Hinds,400 ML,,marca,60,59.81,95.7
+FC-08802838,Cra Nivea B Sofmilk Sec400Ml,Nivea B Sofmilk Sec400 Ml,Nivea,,,marca,60,43.63,69.81
+FC-36040450,Cra Grisi Conchnac P/Manos 80 Ml,Grisi Conchnac P/Manos,Grisi,80 ML,,marca,60,86.77,138.84
+FC-56330309,Cra Clarant B3 Nml/Gsa 100G,Clariant B3 Nml/Gsa,Clariant,100 G,,marca,60,105.35,168.56
+FC-42270027,Cra Nivea Cuidada Clar-Nat 200Ml,Nivea Cuidada Clar-Nat,Nivea,200 ML,,marca,60,85.87,137.4
+FC-00942760,Gel Niv Fac Ref Hidra Hyalu 200Ml,Niv Fac Ref Hidra Hyalu,,200 ML,,marca,60,62.25,99.6
+FC-54558682,Cra Corp Niveamilk 400Ml+Cra100Ml,Corp Niveamilk +Cra100 Ml,,400 ML,,marca,60,22.3,35.68
+FC-40030963,Cra Teatrical Cel-Ma Nutrit 400Ml,Teatrical Cel-Ma Nutrit,Teatrical,400 ML,,marca,60,34.41,55.06
+FC-26462061,Chupon Ternura Ortodontic Miel C3,Ternura Ortodontic Miel C3,Ternura,,,marca,60,74.31,118.9
+FC-35469151,Cra Lubriderm Uv Fps15 120Ml,Lubriderm Uv Fps15,Lubriderm,120 ML,,marca,60,15.51,24.82
+FC-36032776,Sh Grisi Ricitos Oro Biopure 250Ml,Ricitos de Oro Oro Biopure,Ricitos de Oro,250 ML,,marca,60,29.96,47.94
+FC-07502441,Jbn Johnson'S Baby Antes/Dor 75 G,Johnson S Baby Antes/Dor,Johnson,75 G,,marca,60,20.65,33.04
+FC-46655079,Jbn Palmol N-Bal Corp Baby0% 90G,Palmolive N-Bal Corp Baby0%,Palmolive,90 G,,marca,60,19.95,31.92
+FC-82790016,Tco Nuvel Protec Pura Para Bebe200G,Nuvel Pura Para Bebe200 G,Nuvel,,,marca,60,39.9,63.84
+FC-36041402,Cra Hinds Hidr-Extr Almendras 500Ml,Hinds Hidr-Extr Almendras,Hinds,500 ML,,marca,60,31.59,50.55
+FC-07528939,Cra Lubriderm Thint Psec120Ml,Lubriderm Thint Psec120 Ml,Lubriderm,,,marca,60,49.97,79.96
+FC-31244486,Cra Lubriderm P/Normal 120Ml,Lubriderm P/Normal,Lubriderm,120 ML,,marca,60,43.59,69.75
+FC-46074504,Sh Mennen Zero% Sve 400Ml,Mennen Zero% Sve,Mennen,400 ML,,marca,60,66.93,107.09
+FC-36033735,Sh Ricitos Oro Agua De Coco 250Ml,Ricitos de Oro Oro Agua De Coco,Ricitos de Oro,250 ML,,marca,60,66.93,107.09
+FC-46650708,Sh Mennen Lavan-Extrac Aven 200Ml,Mennen Lavan-Extrac Aven,Mennen,200 ML,,marca,60,53.99,86.39
+FC-22133286,Sh Grisi Rici Oro Miel 250Ml,Grisi Rici Oro Miel,Grisi,250 ML,,marca,60,70.91,113.46
+FC-86472048,Cep Dent Accion Mayo Alcan Somed,Alcanforada Mayo Somed,Alcanforada,,,marca,60,35.45,56.73
+FC-09498091,Sensodyne Protec Complet + Acc Lim Efec 90G,Sensodyne Complet + Acc Lim Efec,Sensodyne,90 G,,marca,60,48.58,77.73
+FC-95129166,Cep Dent Oral-B 3Dw Advant Med2X1,Oral-B 3Dw Advant Med2X1,Oral-B,,,marca,60,70.91,113.46
+FC-42417644,Cra Nivea Cuidado Int P/Mano 75Ml,Nivea Cuidado Int P/Mano,Nivea,75 ML,,marca,60,30.36,48.58
+FC-09419324,Cd Sensodyne Original,Sensodyne Original,Sensodyne,,,marca,60,26.38,42.21
+FC-40013898,Cra Teatrical Lanol/Ros 52Gr,Teatrical Lanol/Ros,Teatrical,52 G,,marca,60,26.3,42.09
+FC-54549819,Cra Corp Niv Soft M P/Seca 100Ml,Corp Niv Soft M P/Seca,,100 ML,,marca,60,26.3,42.09
+FC-17360604,Tas San Kotex Ant Flujo Abundante S/A 10Pz,Kotex Ant Flujo Abundante S/A 10Pz,Kotex,,,marca,60,10.4,16.64
+FC-46072050,Sh Mennen Miel-Mza Sve 200Ml,Mennen Miel-Mza Sve,Mennen,200 ML,,marca,60,20.8,33.28
+FC-22150221,Jbn Ricitos D Oro Neutro 90 G,Ricitos de Oro Neutro,Ricitos de Oro,90 G,,marca,60,59.36,94.98
+FC-20501765,Cra Grisi Aloe Vera P/Manos 80 Mln,Grisi Aloe Vera P/Manos,Grisi,80 ML,,marca,60,26.48,42.37
+FC-56326142,Cra S Ponds Humectante 100G,Ponds S Humectante,Ponds,100 G,,marca,60,26.48,42.37
+FC-48691005,Protec Tensolastic Plus 10Cmx5M Venda Elast,Tensolastic Plus Venda Elast,,10 CM x 5 M,,marca,60,20.02,32.04
+FC-31976394,Enj Buc List Anticari-Al 250Ml,Listerine Anticari-Al,Listerine,250 ML,,marca,60,30.02,48.04
+FC-43427754,Tas Sanit Kotex Nat Flex Noct C/5,Kotex Nat Flex Noct,Kotex,C/5,,marca,60,31.77,50.84
+FC-31887928,Enj Buc List Care Zero Mta 250Ml,Listerine Care Zero Mta,Listerine,250 ML,,marca,60,26.2,41.92
+FC-54503095,Cra Nivea Sda Tarro 100 Ml,Nivea Sda Tarro,Nivea,100 ML,,marca,60,96.63,154.61
+FC-85800198,Tas Hum Th Bebin Super C/80,Huggies Super,Huggies,C/80,,marca,60,36.3,58.08
+FC-72629012,Cep Dent Clinic Adulto Med 40 C12,Colgate Adulto Med 40 C12,Colgate,,,marca,60,36.3,58.08
+FC-10974329,Enj Buc List Zero Mta Sve 250Ml,Listerine Zero Mta Sve,Listerine,250 ML,,marca,60,12.97,20.76
+FC-00701992,Nivea 75Ml Cra P/Manos 3En1 Ant-Arrugas,Nivea Manos 3En1 Ant-Arrugas,Nivea,75 ML,,marca,60,12.97,20.76
+FC-46655727,Jbn Mennen Baby Magic Lavan 90 G,Mennen Baby Magic Lavan,Mennen,90 G,,marca,60,38.31,61.3
+FC-35908130,Tco Mennen Azul 200G,Mennen Azul,Mennen,200 G,,marca,60,69.19,110.71
+FC-48691104,Protec Tensolastic Plus 15Cmx5M Venda Elast,Tensolastic Plus Venda Elast,,15 CM x 5 M,,marca,60,40.68,65.09
+FC-35908147,Tco Mennen Rosa 200G,Mennen Rosa,Mennen,200 G,,marca,60,13.32,21.32
+FC-19006371,Tas Sanit Saba Inv Alas C/10,Saba Inv Alas,Saba,C/10,,marca,60,7.21,11.54
+FC-85103015,Bebin Super 4Opzs Toallitas Humedas,Huggies Super Toallitas Humedas,Huggies,4 PZA,,marca,60,106.44,170.31
+FC-48690800,Protec Tensolastic Plus 5Cmx5M Venda Elasti,Tensolastic Plus Venda Elasti,,5 CM x 5 M,,marca,60,21.14,33.83
+FC-40171550,C D Sensodyne Rapido Alivio 100G,Sensodyne Rapido Alivio,Sensodyne,100 G,,marca,60,405.32,648.52
+FC-48690909,Protec Tensolastic Plus 7Cmx5M Venda Elasti,Tensolastic Plus Venda Elasti,,7 CM x 5 M,,marca,60,405.32,648.52
+FC-68900264,DIBAR ALCOHOL 125ML ROJO,Dibar Rojo,Dibar,125 ML,,marca,60,8.1,12.96
+FC-68960257,DIBAR ALCOHOL ILT ROJO,Dibar Ilt Rojo,Dibar,,,marca,60,638.45,1021.53
+FC-68900226,ADIBAR ALCOHOL 250ML. ROJO,Dibar Rojo,Dibar,250 ML,,marca,60,15.68,25.09
+FC-68990023,DIBAR ALCOHOL 500ML. ROJO,Dibar Rojo,Dibar,500 ML,,marca,60,676.85,1082.96
+FC-77620056,AGUA DESTILADA LA FLOR 1 LT,La Flor Agua Destilada,La Flor,1 L,,marca,60,19.0,30.4
+FC-00003920,ARNICA MERCURIO,Mercurio Arnica,Mercurio,,,marca,60,15.0,24.0
+FC-76000260,CREMA AMARILLA VITACILINA ACLARADORA,Vitacilina Amarilla Aclaradora,Vitacilina,,,marca,60,80.0,128.0
+FC-76000253,CREMA ROJA VITACILINA ANTIARRUGAS 100GR,Vitacilina Roja Antiarrugas,Vitacilina,100 G,,marca,60,80.0,128.0
+FC-16800803,DIAPRO CONFORT MED C/10,Diapro Confort Med,Diapro,C/10,,marca,60,170.0,272.0
+FC-86901100,DABAN ALCOHOL AZUL 125ML.,Dibar Azul,Dibar,125 ML,,marca,60,37.0,59.2
+FC-68901131,ALCOHOL AZUL 1LT,Azul,,1 L,,marca,60,205.0,328.0
+FC-68901117,DIBAR ALCOHOL AZUL 250ML,Dibar Azul,Dibar,250 ML,,marca,60,56.5,90.4
+FC-68901124,ALCOHOL AZUL 500ML,Azul,,500 ML,,marca,60,120.0,192.0
+FC-98223704,BOLO EUROBION TAB C/20,Eurobion Bolo Tab,Eurobion,C/20,,marca,30,269.28,350.07
+FC-33950100,LIO 236ML CHTE,Lio Chte,Lio,236 ML,,marca,60,42.0,67.2
+FC-33950063,BASUYE LIQ 236ML FSA,Basuye Liq Fsa,Basuye,236 ML,,marca,60,84.0,134.4
+FC-33950070,ENSURE LIQ 236ML VNLLA,Ensure Liq Vnlla,Ensure,236 ML,,marca,60,42.0,67.2
+FC-33956133,LUCERNA LIQ 237ML,Lucerna Liq,Lucerna,237 ML,,marca,60,95.0,152.0
+FC-33956140,GLUCERNA SR LIQ 237ML FRESA,Glucerna Sr Liq Fresa,Glucerna,237 ML,,marca,60,95.0,152.0
+FC-07521317,GOTERO CRISTAL,Cristal,,,,marca,60,119.99,191.99
+FC-01157296,NATURELLA FLUJO MOD C/ALAS C/8,Naturella Flujo Mod C/Alas,Naturella,C/8,,marca,60,85.0,136.0
+FC-01405335,NATURELLA NOCHE CON ALAS C/8,Naturella Noche Con Alas,Naturella,C/8,,marca,60,18.5,29.6
+FC-33951008,EDIASURE LIQ 236ML CHTE,Pediasure Liq Chte,Pediasure,236 ML,,marca,60,44.0,70.41
+FC-33954245,PEDIASURE LIQ 236ML FSA,Pediasure Liq Fsa,Pediasure,236 ML,,marca,60,44.0,70.41
+FC-33950209,PEDIASURE LIQ 236ML VNLLA,Pediasure Liq Vnlla,Pediasure,236 ML,,marca,60,88.0,140.81
+FC-19006623,SABA BUENAS NOCHES,Saba Buenas Noches,Saba,,,marca,60,99.0,158.4
+FC-65054135,TB 3 SURT,Tb 3 Surt,,,,marca,60,37.48,59.97
+FC-56323066,FASELINE PURO 42G,FaseLine Puro,FaseLine,42 G,,marca,60,15.5,24.8
+FC-56323059,VASELINE PURO 85G,Vaseline Puro,Vaseline,85 G,,marca,60,45.5,72.8
+FC-01246730,VAPORUB POM 12G C12 LATAS,Vaporub Pom C12 Latas,Vaporub,12 G,,marca,60,255.0,408.0
+FC-02012475,VICK NAPORUB UNG 100G,Vick Ung,Vick,100 G,,marca,60,113.2,181.12
+FC-02012468,VICK VAPORUB UNG 50G,Vaporub Ung,Vaporub,50 G,,marca,60,82.41,131.86
+FC-1FBF5206,POMADA REOMATOLUM DEL VIEJITO 60G,Del Viejito Reomatolum,Del Viejito,60 G,,marca,60,20.0,32.0
+FC-2E5B7248,POMADA REOMATOLUM DEL VIEJITO 60G VARFAM LAVA OJOS VIDRIO ABR56 81606,Del Viejito Reomatolum Varfam Lava Ojos Vidrio Abr56 81606,Del Viejito,60 G,,marca,60,11.0,17.61
+FC-62034164,MERCURIO ESPIRITUS UNTAR C/25 1770823,Mercurio Espiritus Untar 1770823,Mercurio,C/25,,marca,60,6.0,9.61
+FC-3676D5DC,MERCURIO ESPIRITUS TOMAR C/25 1760823,Mercurio Espiritus Tomar 1760823,Mercurio,C/25,,marca,60,6.0,9.61
+FC-5A697CC2,MERCURIO ACEITE OLIVO C/25 1000625 83825,Mercurio Aceite Olivo 1000625 83825,Mercurio,C/25,,marca,60,8.0,12.8
+FC-39036C88,MERCURIO GLICERINA C/25 1230723 83125,Mercurio Glicerina 1230723 83125,Mercurio,C/25,,marca,60,12.0,19.21
+FC-DFF99C3F,MERCURIO JARABE DE GRANADA. C/25 1750823,Mercurio,Mercurio,JARABE,,marca,30,7.0,9.1
+FC-931B4809,MERCURIO ACEITE COCO C/25 800523 83064,Mercurio Aceite Coco 800523 83064,Mercurio,C/25,,marca,60,8.0,12.8
+FC-D4AC123B,MERCURIO ACEITE ALMENDRAS C/25 790523,Mercurio Aceite Almendras 790523,Mercurio,C/25,,marca,60,8.0,12.8
+FC-38CAFE6B,MERCURIO ACEITE ROMERO C/25 1910923,Mercurio Aceite Romero 1910923,Mercurio,C/25,,marca,60,8.0,12.8
+FC-926099D3,KOHN MERTIOLATE ROJO C/25 012023 82912,Mertiolate Kohn Rojo 012023 82912,Mertiolate,C/25,,marca,60,9.0,14.4
+FC-E69F2E63,MADRID ACEITE EUCALIPTO C/25 2712017 83401,Madrid Aceite Eucalipto 2712017 83401,Madrid,C/25,,marca,60,11.0,17.61
+FC-25E452B6,MERCURIO ARNICA UNTAR C/25 1790823 83156,Mercurio Arnica Untar 1790823 83156,Mercurio,C/25,,marca,60,7.5,12.0
+FC-127F5753,MERCURIO ARNICA TOMAR C/25 1780823 83156,Mercurio Arnica Tomar 1780823 83156,Mercurio,C/25,,marca,60,7.5,12.0
+FC-D3D28E20,MERCURIO YODO UNTAR C/25 1810623 83156,Mercurio Yodo Untar 1810623 83156,Mercurio,C/25,,marca,60,11.5,18.41
+FC-69387811,MERCURIO ACEITE GOMENOLADO C/25 1160623,Mercurio Aceite Gomenolado 1160623,Mercurio,C/25,,marca,60,8.0,12.8
+FC-A680F97E,MERCURIO YODO TOMAR C/25 1800823 83156,Mercurio Yodo Tomar 1800823 83156,Mercurio,C/25,,marca,60,11.0,17.61
+FC-C4530823,MERCURIO OXIDO DE ZINC C/50 1620824 83521,Mercurio Oxido De Zinc 1620824 83521,Mercurio,C/50,,marca,60,54.0,86.4
+FC-D037156B,MERCURIO BISMUTO SUBNITRATO C/50 1390724,Mercurio Bismuto Subnitrato 1390724,Mercurio,C/50,,marca,60,73.5,117.6
+FC-B8D7C997,MERCURIO BICARBONATO SOBRES C/50,Bicarbonato Sobres,Bicarbonato,C/50,,marca,60,48.0,76.81
+FC-CB5C11ED,MERCURIO MAGNESIA ANISADA C/50 1560824,Mercurio Magnesia Anisada 1560824,Mercurio,C/50,,marca,60,51.5,82.4
+FC-578F060C,MERCURIO BORAX POLVO C/50 140072483490,Mercurio Borax Polvo 140072483490,Mercurio,C/50,,marca,60,53.0,84.81
+FC-FBD776D2,MERCURIO PERLAS DE ETER C/50 1630824,Mercurio Perlas De Eter 1630824,Mercurio,C/50,,marca,60,170.0,272.0
+FC-5EF90195,MERCURIO FLOR DE ARNICA C/50 1430724,Mercurio Flor De Arnica 1430724,Mercurio,C/50,,marca,60,55.0,88.0
+FC-9A1C64E7,EDIGAR PERILLA N O CAJA,Perilla Edigar N O Caja,Perilla,,,marca,60,14.5,23.21
+FC-47AAF23B,MERCURIO SULFATIAZOL POLVO C/50 1710824,Mercurio Sulfatiazol Polvo 1710824,Mercurio,C/50,,marca,60,69.0,110.4
+FC-FFC25DD1,EDIGAR PERILLA N 4 CAJA 1439 81608,Perilla Edigar N 4 Caja 1439 81608,Perilla,,,marca,60,19.5,31.21
+FC-614E4F82,EDGAR PERILLA N 3 C A 1334 81608,Perilla Edgar N 3 C A 1334 81608,Perilla,,,marca,60,18.5,29.6
+FC-C22EBFE6,EDIGAR PERILLA N 2 CAJA 1145 81608,Perilla Edigar N 2 Caja 1145 81608,Perilla,,,marca,60,16.0,25.6
+FC-BCF59548,EDIGAR PERILLA N 1 CAJA 1113 81608,Perilla Edigar N 1 Caja 1113 81608,Perilla,,,marca,60,15.5,24.8
+FC-9507CD66,MERCURIO HABA ALCANFORADA C/50 1510724,Mercurio Haba Alcanforada 1510724,Mercurio,C/50,,marca,60,65.0,104.0
+FC-FEAECBF1,MERCURIO POMADA TEPEZCOHUITE C/25,Mercurio Tepezcohuite,Mercurio,C/25,,marca,60,9.5,15.2
+FC-9827438F,MERCURIO POMADA VENENO DE ABEJA C/25,Mercurio Veneno De Abeja,Mercurio,C/25,,marca,60,9.5,15.2
+FC-EFB599B5,MERCURIO POMADA PAN PUERCO C/25 25401233,Mercurio Pan Puerco 25401233,Mercurio,C/25,,marca,60,9.5,15.2
+FC-08DB70CB,VELAZQUEZ BICARBONATO GRANDE 200G C/10,Bicarbonato Velazquez Grande 200G,Bicarbonato,C/10,,marca,60,11.5,18.41
+FC-89F00320,MERCURIO POMADA ARNICA C/25 2550123,Mercurio Arnica 2550123,Mercurio,C/25,,marca,60,10.5,16.8
+FC-FD718DF3,MERCURIO POMADA SULFATIAZOL C/25 2600223,Mercurio Sulfatiazol 2600223,Mercurio,C/25,,marca,60,11.5,18.41
+FC-0ACC5B6A,MERCURIO POMADA OXIDO DE ZINC C/25,Mercurio Oxido De Zinc,Mercurio,C/25,,marca,60,9.0,14.4
+FC-5D59ED54,MERCURIO CLORURO DE MAGNESIO C/10 CAJITA,Mercurio Cloruro De Magnesio Cajita,Mercurio,C/10,,marca,60,34.0,54.41
+FC-66055303,MEDITEST PRUEBA EMBARAZO C/1,Meditest Prueba Embarazo,Meditest,C/1,,marca,30,15.18,19.74
+FC-D751525D,ANIMALIN GOTAS C/30 ML,Animalin,Animalin,GOTAS,,marca,30,22.65,29.45
+FC-4F05124E,GELCAVIT-9M CAPSULAS C/30,Gelcavit-9M Capsulas,Gelcavit-9M,C/30,,marca,30,66.3,86.19
+FC-1812D26D,HUCIUS CAPSULAS C/30,Hucius Capsulas,Hucius,C/30,,marca,30,78.16,101.61
+FC-00E8A9C7,FOTOSUN-UV100 CREMA C/125 ML S0-FP$,Fotosun-Uv100,Fotosun-Uv100,CREMA,,marca,30,74.27,96.56
+FC-DA34D88D,ERBITRAX TABLETAS 250 MG C/7,Erbitrax,Erbitrax,C/7,,marca,30,5.54,7.21
+FC-BE2ACF63,VALNAIT CAPSULAS C/30,Valnait Capsulas,Valnait,C/30,,marca,30,4.56,5.93
+FC-DF39BB27,ALEVARIN CAPSULAS C/45,Alevarin Capsulas,Alevarin,C/45,,marca,30,68.88,89.55
+FC-C8B741F6,FC 01711/2030,Fc 01711/2030,Fc,,,marca,30,10.45,13.59
+FC-BE0A0E46,CATETER/INTRAVENOSO-SUMITEX PU 22 G X 25 MM C/1 AZUL,Sumitex Intravenoso- Pu X 25 Mm C/1 Azul,Sumitex,22 G,,marca,30,9.26,12.04
+FC-76040610,Desenfriolito Tab C/24 2 Pack Bayer Otc $ 93.80 Desenfriolito Tab C/24 2 Pack,Desenfriol ito,Desenfriol,2 PACK · C/24,,marca,30,46.9,60.97
+FC-60101231,"Noche Tab C/12 Descto: 6.0K Tempra , Xt Noche Tab C/12 Tempra","Tempra ,",Tempra,C/12,,marca,30,59.69,77.6
+FC-87154871,Graneodin E Naranja Tab C/16 Rb Health 135.10 Graneodin E Naranja Tab C/16,Graneodin,Graneodin,C/16,,marca,30,132.4,172.12
+FC-60101521,Lubricante Soft Lub Pleasüre 56.7 Gr Health 1 $ 100.80 Soft Lub Pleasüre Er 222503430721 Vitacilina 28 | Ksk,Vitacilina,Vitacilina,56.7 G,,marca,60,100.8,161.28
+FC-06134531,Dtc (Rojo) 20 Descto: 2.0% Afrin Spray (Rojo) Afrin Spray Ml | Bayer,Afrin Dtc (Rojo) 20,Afrin,,,marca,60,75.46,120.74
+FC-08427330,Pomada 100 Gr Descto: 2.0% Bepanthen Pomada Bepanthen,Bepanthen,Bepanthen,100 G,,marca,60,131.81,210.9
+FC-58792792,Tempra 24 Hrs Cab C/12 Rb Health $ Tempra 24 Hrs Cab C/12 1354312225027] Derman Crema 50,Tempra,Tempra,C/12,,marca,60,45.6,72.97
+FC-50002301,Eomelubrina Tab C/10 | Opella $ 73.70 Descto: 2.0% $ 72.23 Eomelubrina Tab C/10 | Opella,Eomelubrina,Eomelubrina,C/10,,marca,30,72.23,93.9
+FC-28979502,Histiacil Ne Jar Adto 150 Mi | Opella $ 124.40 $ 124.40 Descto: 2.0% $ 121.91 $ 121.91 Jar Adto 150 Mi | Opella,Ne,Histiacil,JARABE,,marca,30,124.4,161.72
+FC-89794961,Histiacil Ne Jar Ine 150 Ml | Opella 1 $ 125.80 $ 125.80 Descto: 2.0% G 123.28 Jar Ine 150 Ml | Opella G 123.28,Ne,Histiacil,JARABE,,marca,30,125.8,163.54
+FC-79071241,Bisolvon Jbe Ine 120 Ml | Lăb Hormona $ 147.90 Descto: 2.0% $ 144.94 $ 147.90 Ine 120 Ml | Lăb Hormona,Bisolvon,Bisolvon,120 ML,,marca,60,147.9,236.64
+FC-47624171,Nailex Desenterrador Unas 12 Ml Nailex Desenterrador Unas,Nailex Desenterrador Unas Desenterrador Unas,Nailex,12 ML,,marca,60,54.49,87.19
+FC-80950139,"""Lasico Enz C/. Dwightnd Descto: 15.0% ""Lasico Dwightnd Cond Tro Jan","Lásico Enz C/. "" Cond Tro Jan",Lásico,,,marca,60,42.5,68.0
+FC-88947797,Tribedoce Tab /30 Nvo Bruluart 5 $ 18.00 Tribedoce Tab /30 Nvo Bruluart,Tribedoce,Tribedoce,C/30,,marca,30,18.0,23.4
+FC-50959781,Performance Tab Descto: 2.0% Centrum C/30 Pg Pere Performance Tab Centrum C/30,Centrum C/30,Centrum,C/30,,marca,30,164.0,213.2
+FC-80953017,È Tre & Ice C/3 Dwightnd Descto: 15.0% Cond Trojan È Tre & Ice C/3 Dwightnd,Trojan,Trojan,C/3,,marca,60,49.0,78.41
+FC-54521161,Tempra 500 Mg Lab C/10 Rb Health $ 48.80 Descto: 6.0% Tempra 500 Mg {8 022503405381 Vitacilina Ung I Ksk,Tempra,Tempra,500 MG · C/10,,marca,60,48.8,78.08
+FC-95201021,Hipoglos Pac Turo 45 Gr | Andromaco 1 $ 71.00 Descto: 2.0% $ 69.58 Turo 45 Gr | Andromaco,Hipoglos Turo,Hipoglos,45 G,,marca,60,71.0,113.6
+FC-08485316,Tabcin Eferv Tab C/12 | Bayer Ot C Descto: 2.0% 38.50 $ 37.73 Tab C/12 | Bayer Ot C,Tabcin Eferv,Tabcin,50 TABLETAS · C/12,,marca,30,37.73,49.05
+FC-65095947,Centrum Silver Tab C/30 Pg Pere 1 Centrum Silver Tab C/30 Pere,Centrum Tab 1 Tab,Centrum,C/30,,marca,30,178.46,232.0
+FC-79400556,Sanfer Descto: 8.04 Syncol Tab $ 107.40 $ 107.40 8 98.81 Sanfer Syncol Tab 871210734092301 Syncol Max Tab,Sanfer Syncol,Sanfer,871210734092301 TABLETAS,,marca,30,107.4,139.62
+FC-58793249,Lubricante Sico Sens Calor 50 Ml | Rb Health 1 $ 101.90 Lubricante Sico Sens Calor 50 Ml | Rb,Lubricante Sico Sens Calor 50 Ml 1 Lubricante Sico Sens Calor 50 Ml,,50 ML,,marca,60,101.9,163.05
+FC-95467264,Sal De Uvas Ixh C/50 | Rb Healti 1 $ 163.50 Descto: 2.0% $ 160.23 Sal De Uvas Ixh C/50 | Rb Healti,Sal de Uvas Ixh C/50,Sal de Uvas,C/50,,marca,60,163.5,261.61
+FC-87932321,Lubricante Ico Cereza 50 Ml Rb Health 1 $ 101.90 Ico Cereza 50 Microdacyn,Microdacyn Lubricante Ico Cereza 50 Ml 1 Ico Cereza 50,Microdacyn,50 ML,,marca,60,101.9,163.05
+FC-08443026,Tab C/100 Descto: 2.0% Alka-Seltzer Bayer C/100 Alka-Seltzer Ğel Rojo,Alka-Seltzer,Alka-Seltzer,C/100,,marca,30,262.0,340.6
+FC-75354321,Tylenol Tab Kenvue 1 $ 50.00 Descto: 2.0% $ 49.00 $ Kenvue,Tylenol,Tylenol,TABLETAS,,marca,30,50.0,65.0
+FC-08491074,Aspirina Tab 80 2 Paci Bayer Onc 1 $ 124.80 Aspirina Tab 80 2 Paci [7360852785071 Manzaniila,Aspirina,Aspirina,80 TABLETAS,,marca,30,122.3,158.99
+FC-70612368,(A) Treda Tab €/20 Sanfer 2 $ 152.00 $ 304.00 Descto: 8.0% Sanfer Brunadol Tab Desato: 2.0%,Treda,Treda,TABLETAS,,marca,30,76.0,98.8
+FC-88508929,Anara Tab C/20 Chinoin 1 $ 162.60 Descto: 2.0% $ 159.35 Chinoin,Anara,Anara,C/20,,marca,30,162.6,211.38
+FC-84335531,Forte Tab C/24 Descto: 2.0% Caf Iaspirina Forte C/24 Caf Iaspirina,Aspirina Forte C/24 Caf Iaspirina,Aspirina,C/24,,marca,30,71.79,93.33
+FC-23001331,Sr I Lab Ting Crema 28 Hormona $ 73.60 Sr I Ting Crema 28 Hormona,Sr I Ting,Sr,,,marca,60,73.6,117.76
+FC-85592111,Scabisan Crema Er I Chinoin 1 $ 194.60 Descto: 2.0% $ 190.71 Scabisan Crema Er I Chinoin,Scabisan,Scabisan,,,marca,60,194.6,311.36
+FC-84999001,Boost Tar C/50 Descto: 2.0% Alka-Seltzer Bayer Boost Tar C/50 Alka-Seltzer,Alka-Seltzer,Alka-Seltzer,C/50,,marca,60,174.0,278.41
+FC-08498798,Bepanthen Multiusos Pomada Otc 30 Bepanthen Multiusos Pomada,Bepanthen Multiusos Pomada 30 Multiusos Pomada,Bepanthen,,,marca,60,63.25,101.2
+FC-08491096,Cafiaspirina Tar C/100 2 Pace Bayer Otc 221.90 Descto: 2.0% Cafiaspirina Tar C/100 2 Pace Corega Ultra,Cafiaspirina Tar C/100,Cafiaspirina,C/100,,marca,60,217.46,347.94
+FC-50003151,Iv Neomelubrina Jbe 100 Ml I Opella 121.00 Neomelubrina Jbe 100 Ml I Opella,Opella Neomelubrina Jbe I 121.00 Neomelubrina Jbe I,Opella,100 ML,,marca,60,118.58,189.73
+FC-24227339,(A) Loxcel Adto Tab C/1 | Lab Hormona 2 $ 78.00 Descto: 6.0% $ 73.32 Adto Tab C/1 | Lab Hormona 2,Loxcel Adto,Loxcel,C/1,,marca,30,78.0,101.4
+FC-98100381,Herklin Shai 20 Ml Armstroni 1 $ 128.80 Descto: 2.0% $ 126.22 $ 128.80 20 Ml Armstroni 265024 Genomma Alli-Triple,Armstrong Herklin Shai 20 Ml 1 20 Ml 265024 Genomma Alli-Triple,Armstrong,20 ML,,marca,60,128.8,206.09
+FC-14704156,Supos Adto C/10 Otc Descto: 7.0% Senosiain Senosiain Supos Adto C/10 Senosiain Senosiain,Senosiain Supos Adto C/10,Senosiain,C/10,,marca,60,58.96,94.34
+FC-14704163,Supos Ine C/10 Descto: 7.0% Senosiain Supos C/10 Senosiain,Senosiain Supos Ine C/10,Senosiain,C/10,,marca,60,58.96,94.34
+FC-08344488,Lactopram 430 Mg Cap C/20 Progela 29.30 Descto: Lactopram 430 Mg Cap C/20 Progela,Lactopram,Lactopram,430 MG · C/20,,marca,60,28.71,45.94
+FC-01015141,Soft Lub Lubricante Original 56.7 Soft Lubricante Original,Softlub Lubricante Original 56.7 Soft Lubricante Original,Softlub,,,marca,60,78.49,125.59
+FC-08496701,Aspirina Eferv Tab C/12 Bayer Otc Aspirina Eferv C/12,Aspirina Eferv,Aspirina,C/12,,marca,30,35.18,45.74
+FC-88915491,Tarmin 2 Mg /12 Tab Bruluagsa Descto: 2.05 6. Tarmin 2 Mg /12 Tab Bruluagsa,Tarmin 2 Mg /12,Tarmin,12 TABLETAS,,marca,30,80.9,105.18
+FC-08344747,Descto: 2.0% Afrodit 400 Ui 46.00 $ $ 45.08 Afrodit 400 Ui,Afrodit $ 400 Ui,Afrodit,400 UI,,marca,60,45.08,72.13
+FC-08895196,Ky6 Tab C/10 Bruluart 5 $ 9.50 $ 9.31 $ 47.50 Bruluart E74011 Bayer 67 Aspirina Tab,Aspirina,Aspirina,C/10,,marca,30,1.9,2.47
+FC-89810021,Herklin Ne Sham 60 Ml | Armstrong 1 $ 81.00 Herklin Ne Sham 60 Ml | Armstrong,Armstrong Herklin Ne Sham 60 Ml,Armstrong,60 ML,,marca,60,79.38,127.01
+FC-60101378,Lubricante Piel Con Piel 50 Mi Health 1 $ 102.50 Lubricante Piel Con Piel 50 Mi Lotrimin Uno,Lubricante Piel Con Piel 50 Mi 1,,,,marca,60,96.35,154.16
+FC-60403681,Desenfriol D Dab C/30 | Bayer Otc $ 63.00 Descto: 2.0% Desenfriol D Dab C/30 | Bayer 5022274264491 Nesajar Cap,Desenfriol,Desenfriol,C/30,,marca,60,63.0,100.81
+FC-88923551,Iv Cilocid 5 Mg Tab C/20 | Bruluari 7.40 Descto: 2.0% $ 7.25 Iv Cilocid 5 Mg Tab C/20 | Bruluari Senosiain,Cilocid Iv,Cilocid,C/20,,marca,30,7.25,9.43
+FC-25116810,Ab Pis. Descto: 2.0% Agrifen Tab 5. $ 19.50 Ab Pis. Agrifen Tab,Agrifen Ab Pis,Agrifen,TABLETAS,,marca,30,19.5,25.35
+FC-35246309,Vick Drops Tengibre Pastillas C/20 Vick Drops Tengibre,Vick Drops Tengibre Pastillas Drops Tengibre,Vick,C/20,,marca,60,37.53,60.05
+FC-47640531,Ecuperador Una Lab Pisa Descto: 2.0% Aile Marilla 15 M Ecuperador Una Aile Marilla 15 M,Pisa Ecuperador Una Aile Marilla 15 M Ecuperador Una Aile Marilla 15 M,Pisa,,,marca,60,55.6,88.96
+FC-84095411,Saridon Tab 120 Bayer Oto $ 64.75 Saridon Tab,Saridon,Saridon,120 TABLETAS,,marca,30,64.75,84.18
+FC-85097661,Jr. Jbe Ine 60 Mant Chinotes Chinoin Jr. Jbe Mant Chinotes Chinoin,Chinoin Jr. Jbe Ine 60 Mant Jr. Jbe Mant,Chinoin,,,marca,60,127.9,204.64
+FC-06247327,Afrin Spray No Drip Extra Humectante Afrin Spray Drip Extra,Afrin Spray No Drip Extra Humectante Spray Drip Extra,Afrin,,,marca,60,109.76,175.62
+FC-84973401,Flanax 550 Mc Tab C/12 | Bayér Otc 203.00 Descto: 10.0% $ 182.70 Tab C/12 | Chinoin,Flanax,Flanax,00 TABLETAS · C/12,,marca,30,182.7,237.51
+FC-08426944,Gr 5.58 Bayer Descto: 2.0% Flanax Gel 40 Otc Gr 5.58 Flanax Gel 40,Flanax,Flanax,40 G,,marca,60,117.11,187.38
+FC-82176351,Iv Sot.O-Neurobion Dc Ete Jga Sot.O-Neurobion Prell C/1 | Pg Health9.20,Neurobion Sot.O- Dc Ete Jga Sot.O- Prell Health9.20,Neurobion,C/1,,marca,60,819.71,1311.54
+FC-30133021,Iri Amp 50.000 Mexico Descto: Mexico Iv Bedoyecta Bausch,Iri,Iri,,,marca,60,273.42,437.48
+FC-98217659,Iv Dolo-Neurobion Dc Jga Preli C/3 3 Ml | Pg Health 23.25 Descto: 17.0% Dolo-Neurobion Dc Jga Preli C/3 3 Ml | Pg Health,Neurobion Iv Dolo- Dc Jga Preli C/3 3 Ml 23.25 Dolo- Dc Jga Preli C/3 3 Ml,Neurobion,3 ML · C/3,,marca,60,434.3,694.89
+FC-66888171,Crema Dent Colgate Max Clean 120 Ml Colgate Palmolive $ 25.50 Descto: 2.0% $ 24.99 Crema Dent Colgate Max Clean 120 Ml C,Colgate Max Clean,Colgate,120 ML,,marca,60,25.5,40.81
+FC-66873531,90 Crema Dent Aot.Cate Me P Crema Dent Aot.Cate,Aot.Cate Me P Crema Dent Aot.Cate,,,,marca,60,32.44,51.91
+FC-86708021,Sigital Protec Desato: 2.0% Termometro Degasa 42.10 Sigital Protec Desato: 2.0% Termometro,Protec Sigital Termometro 42.10 Sigital Termometro,Protec,,,marca,60,41.26,66.02
+FC-03406600,Tela Adhesiva Quirmex 2.5Cmxsm | Quirmex Descto: 2.0% 29.90 29.30 $ 89.70 Quirmex 2.5Cmxsm | Quirmex,Quirmex,Quirmex,,,marca,60,89.7,143.53
+FC-03406501,Tela Adhesiva Quirmex 1.25Cmx5M | Quirmex 19.00 Descto: 2.0% $ 18.62 $ Quirmex 1.25Cmx5M | Quirmex,Quirmex,Quirmex,25 CM x 5 M,,marca,60,18.62,29.8
+FC-34063651,Tela Adhesiva Quirmex 2.5Cmxi̇m | Quirmex 5 $ 11.70 Descto: 2.0% $ 11.47 | Tela Adhesiva Quirmex 2.5Cmxi̇m | Quirmex,Quirmex,Quirmex,,,marca,60,2.34,3.75
+FC-34062421,Tela Adhesiva Quirmex 1.25Cmx1M | Quirmex 5 5.40 $ Tela Adhesiva Quirmex 1.25Cmx1M | Quirmex,Quirmex 1. 5 5.40 $ Tela Adhesiva 1,Quirmex,25 CM x 1 M,,marca,60,5.29,8.47
+FC-60689091,Crema Deni Colgate Trip Xtra B 50 Ml 1 Colgate Paimolive 14.00 Descto: 2.04 Colgate Trip Xtra B 50 Ml,Colgate Trip Xtra,Colgate,50 ML,,marca,60,13.72,21.96
+FC-73629981,Panuelos Kleenex Pack C/8 1 Kimberly Clark $ 33.30 Descto: 2.04 Panuelos Kleenex Pack C/8 1 Kimberly Clark,Kleenex Panuelos Pack C/8 1,Kleenex,C/8,,marca,60,33.3,53.28
+FC-56131681,Panuelos Leenex C/90 | Kimberly Clark 25. $ Descto: 2.0% Leenex C/90 | Kimberly Clark Bib Evenelo,Evenflo,Evenflo,C/90,,marca,60,24.89,39.83
+FC-60009851,Cremi Dent Colgate Triple Acc 75 Ml Colgate Paimolive $ 19.20 Descto: 2.0K $ 18.82 Dent Colgate Triple Acc 75 Ml Colgate,Colgate Triple Acc,Colgate,75 ML,,marca,60,19.2,30.72
+FC-23273451,Jeringa Sens Imedicai Insul 0.5 Ml C/100 | Jayor 1 $ 217.20 Jeringa Sens Imedicai Insul 0.5 Ml,Jayor Jeringa Sens Imedicai Insul 0.5 Ml C/100 1 Jeringa Sens Imedicai Insul 0.5 Ml,Jayor,0.5 ML · C/100,,marca,30,217.2,282.36
+FC-75163051,Bib Evenelo Ensueno Azul 802 | Kimberly Clark 1 $ 15.80 Descto: 2.0K Bib Evenelo Ensueno Azul 802 | Kimberly Clark,Evenflo Ensueno Azul,Evenflo,,,marca,60,15.8,25.28
+FC-27512574,Bib Evenelo Colors 8 02 | Kimberly Clark $ 15.80 Descto: 2.0% $ 15.48 $ 47.40 Colors 8 02 | Kimberly Clark,Evenflo Colors,Evenflo,,,marca,60,15.8,25.28
+FC-75125811,Bib Evenelo Colors 4 02 Kimberly Clark $ 13.40 Descto: 2.0* $ 13.13 40.20 Colors 4 02 Kimberly Clark Cepillo 17702010631,Evenflo Colors,Evenflo,,,marca,60,13.4,21.44
+FC-34067851,Algodon Quirmex Quirmex Descto: 2.0% Torunda De 76 Algodon Quirmex Quirmex Torunda De,Quirmex,Quirmex,,,marca,60,17.54,28.07
+FC-48623006,Pads Facial Protec Redondos C/100 | Degasa 2 $ 21.70 Pads Facial Protec Redondos C/100 | Degasa,Protec Pads Facial Redondos C/100,Protec,C/100,,marca,60,21.7,34.72
+FC-23272151,Jeringa Sensimedical Insul 0.3 Ml C/100 | Jayor 1 $ Jeringa Sensimedical Insul 0.3 Ml,Jayor Sensimedical Insul C/100 1 $ Jeringa Sensimedical Insul,Jayor,0.3 ML,,marca,30,212.86,276.72
+FC-68910041,Algodon Dibar 5 Gr Dibar 12 $ 6.90 Descto: 2.0% $ 6.76 $ 82.80 5 Gr Dibar,Algodon 5 12 5,,5 G,,marca,60,0.58,0.93
+FC-89100101,Algodon Dibar 200 Gr Dibak 2 $ 35.30 Descto: 2.0% $ 34.59 70.60 200 Gr Dibak,Algodon 200 Dibak 2 70.60 200 Dibak,,200 G,,marca,60,17.65,28.24
+FC-34067301,Venda Quirmex 7.5 Cm | Quirmex 12 $ 6.80 Descto: 2.0% $ 6.66 7.5 Cm | Quirmex 5 50300340R7231 Venda Quirmex Cm | Quirmex,Quirmex,Quirmex,5 CM,,marca,60,0.57,0.92
+FC-34067471,Venda Quirme) Lo Cm Quirmex 8.90 Descto: 2.0% $ 8.72 Lo Cm Quirmex,Quirmex,Quirmex,,,marca,60,8.72,13.96
+FC-34067781,Venda Quirmex 30 Cm | Quirmex 24.20 Descto: 2.0% $ 23.72 96.80 30 Cm | Quirmex Dibar Algodon Dibar,Quirmex,Quirmex,30 CM,,marca,60,23.72,37.96
+FC-68910034,60 Gr | Dibar Descto: 2.0% Algodon Dibar $ 10.10 60 Gr | Dibar Algodon Dibar,Dibar Gr Algodon Algodon,Dibar,60 G,,marca,60,10.1,16.16
+FC-66534951,Crema Dent Colgate Total Colgate Palmolive $ Colgate Total Colgate,Colgate Total $ Total,Colgate,,,marca,60,22.93,36.69
+FC-83510531,Gel Antibacterial Protec 250 Ml Degasa 22.40 Antibacterial Protec 250 Ml Degasa,Protec Antibacterial 22.40 Antibacterial,Protec,250 ML,,marca,60,123.58,197.73
+FC-68900127,Gasa Dibar 10X10 Paq 10 Cajitas/10 126.10 Dibar Gasa Dibar 10X10 Paq 10 Cajitas/10,Dibar 10X10 Paq 10 Cajitas/10 126.10 Gasa 10X10 Paq 10 Cajitas/10,Dibar,,,marca,60,123.58,197.73
+FC-68900134,Lox10 Exh C/100 Descto: 2.0% Gasa Dibar Dibar 111.10 Lox10 Exh C/100 Gasa Dibar Dibar,Lox10 Exh C/100 Gasa,,C/100,,marca,60,108.88,174.21
+FC-50882017,Espuma 120 Mi Descto: 2.0% Dermodine Degasa Espuma 120 Mi Dermodine,Dermodine Espuma 120 Mi,Dermodine,,,marca,60,75.2,120.32
+FC-08820243,0 Dermod Ine M 1 Degasa 37.60 Dermod Ine Degasa,Dermodine Ine M 1 37.60 Ine,Dermodine,,,marca,60,36.85,58.97
+FC-76000277,Cre Vitacilina Humectante 100 Gr Vitacilina Humectante,Vitacilina Cre Humectante Humectante,Vitacilina,100 G,,marca,60,77.03,123.25
+FC-51444145,0 Stick Tripack Des Old Spice Gr Pg Pere Descto: 2.0% Stick Tripack Des Old Spice Pg Pere,Old Spice,Old Spice,,,marca,60,135.73,217.17
+FC-83351691,Jermocleen Agua Oxigenada 230Ml Degasa Jermocleen Agua Oxigenada,Degasa Agua Oxigenada,Degasa,230 ML,,marca,60,10.19,16.31
+FC-83351381,Dermocleen Agua Oxigenada 100Ml | Degasa $ Dermocleen Agua Oxigenada 100Ml,Degasa $ Agua Oxigenada,Degasa,100 ML,,marca,60,7.64,12.23
+FC-33956775,Pedialyte Sr60 Uva 500 Mi Abbott $ 24.30 Pedialyte Sr60 Uva 500 Mi,Pedialyte Sr60 Uva,Pedialyte,,,marca,60,24.3,38.89
+FC-33961373,Fresa 500 Pedialyte Sr60 Ml Abbott $ Fresa 500 Pedialyte Sr60 Abbott,Abbott Fresa 500 Sr60 Ml $ Fresa 500 Sr60,Abbott,,,marca,60,23.81,38.1
+FC-48335305,Agua Oxigenada Dermocleen 480Ml | Degasa 15.00 Agua Oxigenada Dermocleen 480Ml,Degasa 15.00 Agua Oxigenada,Degasa,480 ML,,marca,60,14.7,23.52
+FC-33954740,Manzana 500 Ml Descto: 2.0% Pedialyte Manzana 500 Ml Pedialyte,Pedialyte,Pedialyte,500 ML,,marca,60,23.81,38.1
+FC-59225411,Inder 360 Gf Descto: 2.0% Leche Nido Marcas Nestle Inder 360 Gf Leche Nido Marcas,Nido,Nido,,,marca,60,74.19,118.71
+FC-51067711,360 Gr | Marcas Descto: 2.0% Leche Nidal 1 Nestle $ 112.70 360 Gr | Marcas Leche Nidal 1 Nestle,Nido,Nido,,,marca,60,112.7,180.33
+FC-86167151,Nestum Probioticos Marcas Nestle Avena 270 Nestum Probioticos Marcas Nestle,Nestum Probioticos Avena 270 Probioticos,Nestum,,,marca,60,52.43,83.89
+FC-92821171,Nutri Rindes Leche Nido Marcas Nestle Bolsa 240 Gr Nutri Rindes Leche Nido Marcas Nestle,Nido Nido Nestle Bolsa Nestle,Nido,240 G,,marca,60,30.67,49.08
+FC-58611420,Nutri Rindes Leche Nido Marcas Nestle Bolsa Nutri Rindes Leche Nido,Nido Nido Nestle Bolsa,Nido,,,marca,60,53.7,85.93
+FC-51078461,Öpt Imal Leche Nan 1 Marcas Pro Öpt Imal Leche Nan 1,Nan 1 Pro 1,Nan,,,marca,60,129.4,207.05
+FC-51078531,Öptimal Marcas Nestle Bolsa Leche Nan 2 Gr Öptimal Marcas Nestle Bolsa,Nan Nestle Bolsa Nestle Bolsa,Nan,2 G,,marca,60,58.7,93.93
+FC-29003221,Vaso Recolector I Quirmex Quirmex Descto: 2.0% $ 3.70 Recolector I Quirmex Quirmex,Quirmex,Quirmex,,,marca,60,3.7,5.93
+FC-51448511,"525 Ml | Lab Pisa Electrolit Uva $ 20,50 Descto: 2.0% $ 20.09 525 Ml | Lab Pisa Electrolit Uva",Electrolit Uva,Electrolit,,,marca,60,20.5,32.81
+FC-25104411,Electrolit Coco 625 Ml Lab Pisa 20.50 Descto: 2.0% Electrolit Coco 625 Ml Pisa,Electrolit Coco,Electrolit,625 ML,,marca,60,20.09,32.15
+FC-25149221,Electrolit Eresa-Kiwi 625 Ml | Lab Pisa 2 20.50 Electrolit Eresa-Kiwi 625 Ml | Lab Pisa,Electrolit Eresa-Kiwi,Electrolit,625 ML,,marca,60,20.09,32.15
+FC-25104268,Electrolit Èresa 625 Mi | Lab Pisa $ 20.50 Descto: 2.0K $ 20.09 [75011251747971 Electrolid Èresa 625 Mi | Lab Pisa,Electrolit Fresa,Electrolit,,,marca,60,20.5,32.81
+FC-51747971,Electrolid Mora Azul 625 Ml | Lab Pisa 2 $ 20.50 Descto: 2.0K $ 20.09 Mora Azul 625 Ml | Lab Pisa,Electrolit Mora Azul,Electrolit,625 ML,,marca,60,20.5,32.81
+FC-43471900,Absorsec C/120 Clark Descto: 2.0% Toa Hum Kimberly Absorsec C/120 Clark Toa Hum,Absorsec C/120 Toa Hum,,C/120,,marca,60,21.46,34.34
+FC-34064021,Cotonetes Quirmex Tarro C/100 1 Quirmex 2 12.00 Cotonetes Quirmex Tarro C/100 1 Quirmex,Quirmex Tarro 1 2 12.00 Cotonetes Tarro 1,Quirmex,C/100,,marca,60,11.76,18.82
+FC-14983153,Lubricante Prudence Grosella 75 Ml | Dkt Mexico $ 68.20 Lubricante Prudence Grosella 75 Ml | Dkt,Prudence Grosella,Prudence,75 ML,,marca,60,68.2,109.12
+FC-43454811,Toa -Hum Huggies Cuidado Puro C/80 | Kimberly Clark $ 39.60 Descto: 2.0K 9 Huggies Cuidado Puro C/80 | Kimberly Clark,Huggies Toa -Hum Cuidado Puro C/80 K 9 Cuidado Puro C/80,Huggies,C/80,,marca,60,39.6,63.37
+FC-49824391,Retardante C/3 Descto: 9.0% [7502214985348] Cond Prudence 'Ull Retardante C/3,Prudence 'Ull Retardante C/3,Prudence,C/3,,marca,60,48.6,77.77
+FC-14985348,Cond Prudence 'Ull Sensitive C/3 Dkt Cond Prudence 'Ull Sensitive,Prudence Ull Sensitive Cond 'Ull Sensitive,Prudence,C/3,,marca,60,41.31,66.1
+FC-49853867,Cond Prudence Extra Pleasure C/3 Dkt Cond Prudence Extra Pleasure,Softlub Extra Cond Extra,Softlub,C/3,,marca,60,41.31,66.1
+FC-49824911,Cond Prudence Iva C/3 Dki Mexico S Cond Prudence Iva C/3 Mexico,Prudence Iva Dki Mexico S Cond Iva Mexico,Prudence,C/3,,marca,60,31.03,49.65
+FC-14985805,Cond Prudence Chicle C/E Idkt Cond Prudence Chicle,Prudence Chicle C/E Idkt Cond Chicle,Prudence,,,marca,60,44.23,70.77
+FC-14983726,Lubricante Prudence Natural 75 Ml Lubricante Prudence Natural,Prudence Natural Lubricante Natural,Prudence,75 ML,,marca,60,62.06,99.3
+FC-49824771,Fresa C/3 I Dkt Descto: 9.0% Cond Prudence Fresa I Dkt Cond Prudence,Prudence Fresa,Prudence,C/3,,marca,60,31.03,49.65
+FC-58203691,0.9 Mt Hilo Dental Ğum Expanding Sunstar Americasi $ 18.90 Descto: 2.0% Hilo Dental Ğum Expanding Sunstar Americasi,Sunstar 0.9 Mt Hilo Dental Ğum Expanding Hilo Dental Ğum Expanding,Sunstar,,,marca,60,18.9,30.24
+FC-14982514,Chocolate C/3 Descto: 9.0% Cond Prudence Dkt Mexico $ 34.10 Chocolate C/3 Cond Prudence Dkt Mexico,Prudence,Prudence,C/3,,marca,60,34.1,54.56
+FC-45079011,Eresa Pomada Labello Bde Merico $ 56.50 Descto: 2.0% Eresa Pomada Labello Bde Merico,Labello,Labello,,,marca,60,56.5,90.4
+FC-14980596,Mora C/3 Dkt Cond Prudence Mexico 34.10 Mora C/3 Cond Prudence Mexico,Prudence Mora Cond Mexico 34.10 Mora Cond Mexico,Prudence,C/3,,marca,60,31.03,49.65
+FC-49800151,Cond Prudence Clasico C/3 I Dkt Mexico 32.20 Descto: 9.0% Cond Prudence Clasico C/3 I Dkt Mexico,Prudence Clasico C/3,Prudence,C/3,,marca,60,29.3,46.88
+FC-62746605,Jarabe 250 Ml 1 Nat Descto: 2.0% Ajolotius Bioal Imentos Jarabe 250 Ml 1 Ajolotius Bioal Imentos,Jarabe 250 Ml 1 Nat Ajolotius Bioal Imentos,Jarabe,JARABE,,marca,30,28.0,36.4
+FC-45045281,Pomada Labello Hydro-C I Bde Mexico $ 56.50 Descto: 2.0% $ 55.37 Pomada Labello Hydro-C I Bde Mexico,Labello Hydro-C,Labello,,,marca,60,56.5,90.4
+FC-54504870,Pomada I.Abeili.C Lasico | Rde Mexic( 56.50 Descto: 2.0% $ 55.37 56.50 Lasico | Rde Mexic(,Lásico Pomada I.Abeili.C 56.50 56.50,Lásico,,,marca,60,55.37,88.6
+FC-52400212,Ajolotius Jengibre Tab C/10 Bioalimentos Nati Jengibre C/10 Bioalimentos,Ajolotius Jengibre Tab Nati Jengibre,Ajolotius,C/10,,marca,30,20.5,26.65
+FC-24004581,Ajolotius Pastillas Elderberry Past Bioalimentos Nat $ 21.00 Descto: 2.0% Ajolotius Pastillas Elderberry Past,Ajolotius Pastillas Elderberry Past,Ajolotius,,,marca,60,21.0,33.6
+FC-56034041,Toa Hum Escudo Intbacterial C/50 $ Besbfrzy Clark 15.60 Toa Hum Escudo Intbacterial C/50 Besbfrzy Clark,Escudo Intbacterial $ Besbfrzy Clark 15.60 Toa Hum Intbacterial Besbfrzy Clark,Escudo,C/50,,marca,60,15.29,24.47
+FC-21042481,1083 Oro Manzanilla Ml Hnos 31.40 Descto: 2.0% Oro Manzanilla Hnos,Manzanilla Ml Hnos 31.40 Hnos,Manzanilla,,,marca,60,30.77,49.24
+FC-52400267,", Ajolotius Jbe Elderberry 2501 Bioalimentos Nati 74.70 $ $ 73.21 Elderberry 2501 Bioalimentos Nati",Ajolotius,Ajolotius,,,marca,60,73.21,117.14
+FC-62746612,Ajolotius Jarabe S/Azucar 250 Ml. I Bioalimentos Nati $ 89.20 $ 87.42 Ajolotius Jarabe S/Azucar 250 Ml. I Bioalimentos N,Ajolotius,Ajolotius,JARABE,,marca,30,89.2,115.96
+FC-52400038,Ajolotius Menta Eucal S/Azucar Past Ajolotius Menta Eucal,Ajolotius Menta Eucal S/Azucar Past Menta Eucal,Ajolotius,,,marca,60,21.36,34.18
+FC-62746698,Ajolotius Jarabe Reforzado 250 Ml Bioalimentos Nat: Ajolotius Jarabe Reforzado,Ajolotius,Ajolotius,JARABE,,marca,30,7.45,9.69
+FC-45307181,Poroso Arnica Parche Leon Bde Poroso Arnica Parche,Arnica Bde Parche,Arnica,,,marca,60,149.35,238.96
+FC-62746643,Ajolotius Menta Fucal C/10 Bioalimentos Ajolotius Menta Fucal,Ajolotius Menta Fucal Menta Fucal,Ajolotius,C/10,,marca,60,19.5,31.21
