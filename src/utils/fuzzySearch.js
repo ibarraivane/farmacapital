@@ -49,6 +49,36 @@ function shortCatalogTokenMatchesNormalizedField(tok, fieldNorm) {
   return tokenMatchesInNormalizedHaystack(tok, fieldNorm);
 }
 
+/** Menor = mejor. null = no coincide. Prefijo de palabra gana sobre subcadena interna (elec → Electrolit, no Celecoxib). */
+function catalogTokenMatchRank(tok, fieldNorm) {
+  if (!tok || !fieldNorm) return null;
+  if (fieldNorm === tok) return 0;
+  if (fieldNorm.startsWith(tok)) return 1;
+  for (const word of fieldNorm.split(/\s+/)) {
+    if (word.startsWith(tok)) return 2;
+  }
+  if (fieldNorm.includes(` ${tok}`)) return 3;
+  if (shortCatalogTokenMatchesNormalizedField(tok, fieldNorm)) return 6;
+  return null;
+}
+
+function catalogPhraseMatchRank(qn, tokens, ...fields) {
+  let best = null;
+  for (const f of fields) {
+    const nf = normalizeForSearch(f);
+    if (!nf) continue;
+    if (tokens.length >= 2 && nf.includes(qn)) {
+      best = best == null ? 2 : Math.min(best, 2);
+      continue;
+    }
+    for (const t of tokens) {
+      const r = catalogTokenMatchRank(t, nf);
+      if (r != null) best = best == null ? r : Math.min(best, r);
+    }
+  }
+  return best;
+}
+
 /** Igual que someFieldIncludesNormalizedQuery pero con reglas de catálogo tienda ("para", etc.). */
 function tiendaFieldsMatchNormalizedTokens(fieldsRaw, queryRaw) {
   const q = normalizeForSearch(queryRaw);
@@ -276,8 +306,14 @@ export function tiendaSearchRelevanceRank(product, queryRaw) {
   const everyIn = (hay) =>
     tokens.length > 0 && tokens.every((t) => shortCatalogTokenMatchesNormalizedField(t, hay));
 
-  if (normalizedHaystackMatchesPhrase(n, qn, tokens)) return 0;
-  if (everyIn(n)) return 2;
+  if (normalizedHaystackMatchesPhrase(n, qn, tokens)) {
+    const pr = catalogPhraseMatchRank(qn, tokens, product.nombre);
+    return pr != null ? pr : 0;
+  }
+  if (everyIn(n)) {
+    const pr = catalogPhraseMatchRank(qn, tokens, product.nombre);
+    return pr != null ? pr + 1 : 2;
+  }
   if (normalizedHaystackMatchesPhrase(pa, qn, tokens)) return 1;
   if (normalizedHaystackMatchesPhrase(dg, qn, tokens)) return 1;
   if (normalizedHaystackMatchesPhrase(dd, qn, tokens)) return 2;
@@ -329,13 +365,16 @@ export function tiendaCatalogSearchSuggestions(products, queryRaw, { limit = 8 }
     const conc = normalizeForSearch(p.concentracion || "");
     const pres = normalizeForSearch(p.presentacion || "");
     const forma = normalizeForSearch(p.forma_farmaceutica || "");
-    if (normalizedHaystackMatchesPhrase(nn, qn, qTokens)) rank = Math.min(rank, 2);
-    if (qTokens.length && qTokens.every((t) => shortCatalogTokenMatchesNormalizedField(t, nn))) rank = Math.min(rank, 5);
+    const nameRank = catalogPhraseMatchRank(qn, qTokens, p.nombre, p.marca, p.principio_activo, p.denominacion_generica, p.denominacion_distintiva, p.forma_farmaceutica);
+    if (nameRank != null) rank = Math.min(rank, nameRank);
+    if (normalizedHaystackMatchesPhrase(nn, qn, qTokens)) rank = Math.min(rank, (nameRank ?? 2) + 1);
+    if (qTokens.length && qTokens.every((t) => shortCatalogTokenMatchesNormalizedField(t, nn))) rank = Math.min(rank, (nameRank ?? 5) + 1);
     if (normalizedHaystackMatchesPhrase(ptn, qn, qTokens)) rank = Math.min(rank, 4);
     if (qTokens.length && qTokens.every((t) => shortCatalogTokenMatchesNormalizedField(t, ptn))) rank = Math.min(rank, 6);
     if (normalizedHaystackMatchesPhrase(dgn, qn, qTokens)) rank = Math.min(rank, 4);
     if (qTokens.length && qTokens.every((t) => shortCatalogTokenMatchesNormalizedField(t, dgn))) rank = Math.min(rank, 6);
     if (normalizedHaystackMatchesPhrase(ddn, qn, qTokens)) rank = Math.min(rank, 5);
+    if (mrn && catalogPhraseMatchRank(qn, qTokens, p.marca) != null) rank = Math.min(rank, catalogPhraseMatchRank(qn, qTokens, p.marca));
     if (conc.includes(qn) || pres.includes(qn) || forma.includes(qn)) rank = Math.min(rank, 7);
     if (rank === 100) {
       if (!tiendaProductMatchesBusqueda(p, q)) continue;

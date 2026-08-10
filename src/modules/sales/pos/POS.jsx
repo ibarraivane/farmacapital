@@ -785,10 +785,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   useEffect(() => {
     if (tab !== "venta") return;
     const s = normalizeBarcodeRaw(srch) || srch.trim();
-    if (!s) {
-      setFichaProd(null);
-      return;
-    }
+    if (!s) return;
     const exact = findProductExactScan(productos, s);
     if (exact) {
       setFichaProd(exact);
