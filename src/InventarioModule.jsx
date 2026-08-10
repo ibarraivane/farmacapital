@@ -35,6 +35,7 @@ const EMPTY = {
   fecha_caducidad:"", descuento_pct:"0", activo:true, imagen_url:"", imagen_mobile_url:"",
   principio_activo:"", denominacion_generica:"", denominacion_distintiva:"",
   concentracion:"", presentacion:"", forma_farmaceutica:"",
+  marca:"", precio_similares:"", precio_del_ahorro:"",
   ubicacion_texto:"",
 };
 
@@ -67,6 +68,14 @@ const margen = (pv, co) => {
   if (!c || c === 0) return "—";
   return ((p - c) / c * 100).toFixed(1) + "%";
 };
+
+/** Diferencia % vs precio de referencia (negativo = más barato que competencia). */
+function diffPctVsComp(precio, ref) {
+  const p = parseFloat(precio);
+  const r = parseFloat(ref);
+  if (!Number.isFinite(p) || !Number.isFinite(r) || r <= 0) return null;
+  return (((p - r) / r) * 100).toFixed(1);
+}
 
 const diasParaCaducar = (fecha) => {
   if (!fecha) return null;
@@ -246,6 +255,8 @@ const INV_COLUMN_HEADERS = [
   { id: "precio", label: "Precio", hint: "" },
   { id: "costo", label: "Costo", hint: "" },
   { id: "margen", label: "Margen%", hint: "" },
+  { id: "similares", label: "Similares", hint: "Precio de referencia en Farmacias Similares (captura manual)." },
+  { id: "ahorro", label: "Del Ahorro", hint: "Precio de referencia en Farmacias del Ahorro (captura manual)." },
   { id: "cad", label: "Cad. (días)", hint: "" },
   { id: "agot", label: "Agot. (días)", hint: "" },
   { id: "desc", label: "Desc%", hint: "" },
@@ -580,6 +591,11 @@ function ProductoModal({initial, onClose, onSaved }) {
         concentracion: (form.concentracion ?? "").trim() || null,
         presentacion: (form.presentacion ?? "").trim() || null,
         forma_farmaceutica: (form.forma_farmaceutica ?? "").trim() || null,
+        marca: (form.marca ?? "").trim() || null,
+        precio_similares: form.precio_similares !== "" && form.precio_similares != null
+          ? parseFloat(form.precio_similares) : null,
+        precio_del_ahorro: form.precio_del_ahorro !== "" && form.precio_del_ahorro != null
+          ? parseFloat(form.precio_del_ahorro) : null,
         ubicacion_texto: (form.ubicacion_texto ?? "").trim() || null,
         activo: form.activo,
         venta_unidad: form.venta_unidad || false,
@@ -720,6 +736,7 @@ function ProductoModal({initial, onClose, onSaved }) {
             </div>
             {field("Proveedor","proveedor")}
             {field("Principio activo","principio_activo")}
+            {field("Marca comercial","marca")}
             {field("Denominación genérica","denominacion_generica")}
             {field("Denominación distintiva / marca clínica","denominacion_distintiva")}
             {!form.id && field("Lote inicial","lote")}
@@ -734,6 +751,14 @@ function ProductoModal({initial, onClose, onSaved }) {
           <div>
             {field("Precio de venta","precio","number",true)}
             {field("Costo","costo","number",true)}
+            <div style={{marginBottom:12,padding:"8px 10px",background:C.blueDim,borderRadius:8,fontSize:11,color:C.blue,lineHeight:1.45}}>
+              Margen sugerido: <strong>genérico / OTC +60%</strong> sobre costo · <strong>patente +30%</strong>.
+              {form.costo ? (
+                <> Ej.: costo ${parseFloat(form.costo).toFixed(2)} → ${Math.ceil(parseFloat(form.costo)*1.6*100)/100} (60%) o ${Math.ceil(parseFloat(form.costo)*1.3*100)/100} (30%).</>
+              ) : null}
+            </div>
+            {field("Precio Similares (ref.)","precio_similares","number")}
+            {field("Precio Del Ahorro (ref.)","precio_del_ahorro","number")}
             {field("Stock actual","stock","number",true)}
             {field("Stock mínimo","stock_minimo","number")}
             {field("Descuento %","descuento_pct","number")}
@@ -2146,6 +2171,23 @@ export default function InventarioModule() {
         ))}
       </div>
 
+      <div style={{
+        display:"flex", flexWrap:"wrap", gap:10, marginBottom:14, fontSize:11, color:C.textMid,
+      }}>
+        <span style={{padding:"4px 10px",borderRadius:8,background:C.amberDim,color:C.amber,fontWeight:600}}>
+          🟡 Fondo ámbar = stock bajo (≤ mínimo)
+        </span>
+        <span style={{padding:"4px 10px",borderRadius:8,background:C.redDim,color:C.red,fontWeight:600}}>
+          🔴 Fondo rojo = caduca en ≤30 días
+        </span>
+        <span style={{padding:"4px 10px",borderRadius:8,background:C.bg,border:`1px solid ${C.border}`}}>
+          Sin color = normal · Tenue = inactivo
+        </span>
+        <span style={{padding:"4px 10px",borderRadius:8,background:"#eff6ff",color:C.blue}}>
+          📊 Precios competencia: Promociones → «Precios vs competencia»
+        </span>
+      </div>
+
       <div data-tour="inv-buscar" style={{display:"flex",flexDirection:"column",gap:10,marginBottom:16}}>
         <SearchDropdown value={busqueda} onChange={setBusqueda} onSelect={p=>setBusqueda(p.nombre)} placeholder="🔍 Nombre, SKU FarmaCapital, marca, principio, presentación…" items={productos} labelKey="nombre" subKey="sku" extraSearchKeys={["codigo_barras","categoria","principio_activo","denominacion_generica","denominacion_distintiva","marca","concentracion","presentacion","forma_farmaceutica","ubicacion_texto"]} badgeKey="stock" badgeCol="#1E3ABA" style={{width:"100%",maxWidth:"100%"}} emptyMsg="Sin productos"/>
         <div style={{display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
@@ -2375,7 +2417,7 @@ export default function InventarioModule() {
             </thead>
             <tbody>
               {filtrados.length===0&&(
-                <tr><td colSpan={22} style={{textAlign:"center",padding:32,color:C.textMid}}>
+                <tr><td colSpan={24} style={{textAlign:"center",padding:32,color:C.textMid}}>
                   Sin productos{busqueda?` para "${busqueda}"`:""}. Agrega el primero con ➕
                 </td></tr>
               )}
@@ -2386,7 +2428,11 @@ export default function InventarioModule() {
                 const nearCad = dias!==null && dias<=30 && dias>=0;
                 const mgn     = margen(p.precio, p.costo);
                 const mgnNum  = parseFloat(mgn);
-                const mgnCol  = isNaN(mgnNum)?C.textMid:mgnNum>=30?C.green:mgnNum>=15?C.amber:C.red;
+                const mgnCol  = isNaN(mgnNum)?C.textMid:mgnNum>=50?C.green:mgnNum>=25?C.amber:C.red;
+                const dSim = diffPctVsComp(p.precio, p.precio_similares);
+                const dAho = diffPctVsComp(p.precio, p.precio_del_ahorro);
+                const cSim = dSim != null ? (parseFloat(dSim) <= 0 ? C.green : C.red) : C.textMid;
+                const cAho = dAho != null ? (parseFloat(dAho) <= 0 ? C.green : C.red) : C.textMid;
                 const refListaProv = refListaMayoristaDesdeNotas(p.notas);
                 const marcaDisp = (p.marca || "").trim();
                 const { nombre: nombreTabla, presentacion: presInferida } = nombreYPresentacionTabla(p);
@@ -2487,6 +2533,16 @@ export default function InventarioModule() {
                     <td style={{padding:"8px 12px",color:C.text,borderBottom:`1px solid ${C.border}`}}>${parseFloat(p.precio||0).toFixed(2)}</td>
                     <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>${parseFloat(p.costo||0).toFixed(2)}</td>
                     <td style={{padding:"8px 12px",fontWeight:700,borderBottom:`1px solid ${C.border}`,color:mgnCol}}>{mgn}</td>
+                    <td style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`,color:cSim,fontSize:11}} title={p.precio_similares ? `Ref. $${parseFloat(p.precio_similares).toFixed(2)}` : undefined}>
+                      {p.precio_similares ? (
+                        <span>${parseFloat(p.precio_similares).toFixed(0)}{dSim != null ? ` (${parseFloat(dSim) <= 0 ? "" : "+"}${dSim}%)` : ""}</span>
+                      ) : "—"}
+                    </td>
+                    <td style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`,color:cAho,fontSize:11}} title={p.precio_del_ahorro ? `Ref. $${parseFloat(p.precio_del_ahorro).toFixed(2)}` : undefined}>
+                      {p.precio_del_ahorro ? (
+                        <span>${parseFloat(p.precio_del_ahorro).toFixed(0)}{dAho != null ? ` (${parseFloat(dAho) <= 0 ? "" : "+"}${dAho}%)` : ""}</span>
+                      ) : "—"}
+                    </td>
                     <td style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>
                       {dias===null?"—":(
                         <span style={{color:nearCad?C.red:dias<=60?C.amber:C.textMid,fontWeight:nearCad?700:400}}>

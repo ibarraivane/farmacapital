@@ -7,7 +7,13 @@ import { supabase } from "../../../supabase";
 import { C_LIGHT, BRAND } from "../../../constants";
 import { $, logAudit, soloDigitosTel, normalizeForSearch } from "../../../utils";
 import { tiendaProductMatchesBusqueda, tiendaCatalogSearchSuggestions, tiendaSearchRelevanceRank } from "../../../utils/fuzzySearch";
-import { findProductExactScan } from "../../../utils/barcodeProductLookup";
+import { findProductExactScan, looksLikeBarcodeInput } from "../../../utils/barcodeProductLookup";
+import {
+  suggestPosProductsLocal,
+  posEsOtcConStock,
+  describePosProductUseLocal,
+  describePosProductUseFallback,
+} from "../../../utils/posConocimientoFarmacia";
 import { Box, Tag, Btn, Inp, Modal, showToast, SearchDropdown, SkeletonTable } from "../../../ui";
 import {
   CONSULTA_PRECIO_DEFAULT,
@@ -63,12 +69,46 @@ function posFichaLinea(item) {
   return [item.concentracion, item.presentacion, item.forma_farmaceutica].filter(Boolean).join(" · ");
 }
 
-function posUsoTerapeutico(item) {
+const POS_USO_CACHE_KEY = "farmacapital_pos_uso_cache_v1";
+
+function posDescripcionPareceTicket(text) {
+  const d = String(text || "").trim();
+  if (!d) return false;
+  if (/\$|descto|ticket\s|lab\s+pisa|\|\s*lab|\d+\s*ml\s*\|/i.test(d)) return true;
+  if (/\d+[.,]\d{2}/.test(d) && d.length > 40) return true;
+  return false;
+}
+
+function posDescripcionEsUsoValido(item) {
   const d = String(item?.descripcion || "").trim();
-  if (d) return d;
-  const pa = String(item?.principio_activo || "").trim();
-  if (pa) return `Principio activo: ${pa}. Agrega una descripción en Inventario para indicar el uso habitual.`;
-  return "Sin indicación de uso registrada. Completa la descripción en Inventario.";
+  if (!d || posDescripcionPareceTicket(d)) return false;
+  const nom = String(item?.nombre || "").trim().toLowerCase();
+  if (nom && d.toLowerCase() === nom) return false;
+  return true;
+}
+
+function posUsoFallback(item) {
+  return describePosProductUseFallback(item);
+}
+
+function readPosUsoCache() {
+  try {
+    const raw = localStorage.getItem(POS_USO_CACHE_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writePosUsoCacheEntry(productId, texto) {
+  try {
+    const prev = readPosUsoCache();
+    prev[String(productId)] = texto;
+    localStorage.setItem(POS_USO_CACHE_KEY, JSON.stringify(prev));
+  } catch {
+    /* noop */
+  }
 }
 
 function posEtiquetaForma(item) {
@@ -92,6 +132,8 @@ function PosProductoFichaPanel({
   onAbrirCaja,
   getStockCajasPOS,
   productoSinLotesPEPS,
+  usoTexto,
+  usoLoading,
   C,
   isMobilePos,
   isNarrow,
@@ -130,7 +172,9 @@ function PosProductoFichaPanel({
   const stockCajas = getStockCajasPOS(item);
   const sinLotes = productoSinLotesPEPS(item);
   const agotado = stockCajas <= 0 && (!item.venta_unidad || item.stock_unidades === 0);
-  const uso = posUsoTerapeutico(item);
+  const uso = usoLoading
+    ? "Consultando uso con Claude…"
+    : (usoTexto || posUsoFallback(item));
   const forma = posEtiquetaForma(item);
   const stack = isMobilePos || isNarrow;
 
@@ -209,7 +253,9 @@ function PosProductoFichaPanel({
             <div style={{ fontSize: 10, fontWeight: 800, color: C.blue, letterSpacing: 0.5, marginBottom: 6, textTransform: "uppercase" }}>
               Para qué se usa normalmente
             </div>
-            <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55, color: C.textMid }}>{uso}</p>
+            <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55, color: usoLoading ? C.textDim : C.textMid, fontStyle: usoLoading ? "italic" : "normal" }}>
+              {uso}
+            </p>
           </div>
 
           {variantes.length > 1 && (
@@ -387,6 +433,9 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const [ventasDia,setVentasDia] = useState({total:0,count:0});
   const [folioActual,setFolioActual] = useState("VTA-00000000");
   const [fichaProd, setFichaProd] = useState(null);
+  const [usoByProdId, setUsoByProdId] = useState(() => readPosUsoCache());
+  const [usoLoadingId, setUsoLoadingId] = useState(null);
+  const usoFetchRef = useRef(0);
   const [iaOpen, setIaOpen] = useState(false);
   // ── Funcionalidad de carga de imagen de receta
   const [modalCargarReceta, setModalCargarReceta] = useState(false);
@@ -723,22 +772,99 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const fil = React.useMemo(() => {
     const s = srch.trim();
     if (!s) return [];
+    const exact = findProductExactScan(productos, s);
+    if (exact) return [exact];
+    if (looksLikeBarcodeInput(s)) return [];
     const matched = productos.filter(p => tiendaProductMatchesBusqueda(p, s));
     return matched.sort((a, b) => tiendaSearchRelevanceRank(a, s) - tiendaSearchRelevanceRank(b, s));
   }, [productos, srch]);
 
+  const clearPosSearch = useCallback(() => {
+    setSrch("");
+    setSrchFocus(false);
+    setFichaProd(null);
+    srchRef.current?.focus();
+  }, []);
+
   useEffect(() => {
     if (tab !== "venta") return;
     const s = srch.trim();
-    if (!s) return;
+    if (!s) {
+      setFichaProd(null);
+      return;
+    }
+    const exact = findProductExactScan(productos, s);
+    if (exact) {
+      setFichaProd(exact);
+      return;
+    }
+    if (looksLikeBarcodeInput(s)) return;
     if (fil.length === 0) return;
     setFichaProd((prev) => (prev && fil.some((p) => p.id === prev.id) ? prev : fil[0]));
-  }, [srch, fil, tab]);
+  }, [srch, fil, tab, productos]);
 
-  const srchSuggestions = React.useMemo(
-    ()=>(srchFocus&&srch.trim().length>=2?tiendaCatalogSearchSuggestions(productos.filter(p=>p.activo!==false),srch,{limit:7}):[]),
-    [productos,srch,srchFocus]
-  );
+  useEffect(() => {
+    if (tab !== "venta" || !fichaProd?.id) return;
+    const id = fichaProd.id;
+    if (posDescripcionEsUsoValido(fichaProd)) {
+      setUsoByProdId((prev) => (prev[id] === fichaProd.descripcion ? prev : { ...prev, [id]: fichaProd.descripcion }));
+      return;
+    }
+    const cached = usoByProdId[id];
+    if (cached && !posDescripcionPareceTicket(cached)) return;
+
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    const localPreview = describePosProductUseLocal(fichaProd) || posUsoFallback(fichaProd);
+    setUsoByProdId((prev) => (prev[id] === localPreview ? prev : { ...prev, [id]: localPreview }));
+
+    if (!tok) return;
+
+    const reqId = ++usoFetchRef.current;
+    setUsoLoadingId(id);
+    (async () => {
+      try {
+        const resp = await fetch("/api/ai/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            session_token: tok,
+            mode: "pos_uso",
+            product: {
+              nombre: fichaProd.nombre,
+              marca: fichaProd.marca,
+              principio_activo: fichaProd.principio_activo,
+              concentracion: fichaProd.concentracion,
+              presentacion: fichaProd.presentacion,
+              forma_farmaceutica: fichaProd.forma_farmaceutica,
+              categoria: fichaProd.categoria,
+              tipo: fichaProd.tipo,
+              requiere_receta: fichaProd.requiere_receta,
+              controlado: fichaProd.controlado,
+            },
+          }),
+        });
+        const data = await resp.json().catch(() => ({}));
+        if (reqId !== usoFetchRef.current) return;
+        if (resp.ok && data?.uso) {
+          const texto = String(data.uso).trim();
+          writePosUsoCacheEntry(id, texto);
+          setUsoByProdId((prev) => ({ ...prev, [id]: texto }));
+        }
+      } catch {
+        /* mantiene respaldo local */
+      } finally {
+        if (reqId === usoFetchRef.current) setUsoLoadingId(null);
+      }
+    })();
+  }, [fichaProd, tab, usoByProdId]);
+
+  const srchSuggestions = React.useMemo(() => {
+    const s = srch.trim();
+    if (!srchFocus || s.length < 2) return [];
+    if (looksLikeBarcodeInput(s)) return [];
+    if (findProductExactScan(productos, s)) return [];
+    return tiendaCatalogSearchSuggestions(productos.filter(p => p.activo !== false), s, { limit: 7 });
+  }, [productos, srch, srchFocus]);
 
   const paymentLabel = (method) => ({
     efectivo:       "Efectivo",
@@ -964,12 +1090,12 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         body: JSON.stringify({ session_token: tok, mode: "pos_sintoma", sintoma: q }),
       });
       const data = await resp.json().catch(() => ({}));
-      if (resp.status === 503 && data?.error === "gemini_not_configured") {
-        showToast("Asistente IA no configurado (GEMINI_API_KEY en Vercel).", "warning");
-        return;
-      }
       if (!resp.ok) {
-        showToast(data?.message || data?.error || "No se pudo consultar la IA.", "error");
+        const otc = productos.filter(posEsOtcConStock);
+        const local = suggestPosProductsLocal(q, otc);
+        setIaSugerencias(local.sugerencias);
+        setIaNota(local.nota || "");
+        showToast(data?.message || "Claude no disponible; sugerencias locales.", "warning");
         return;
       }
       const sugs = Array.isArray(data.sugerencias) ? data.sugerencias : [];
@@ -979,7 +1105,11 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         showToast(data.reply || "Sin sugerencias con stock OTC.", "warning");
       }
     } catch (e) {
-      showToast(e?.message || "Error de red al consultar IA.", "error");
+      const otc = productos.filter(posEsOtcConStock);
+      const local = suggestPosProductsLocal(q, otc);
+      setIaSugerencias(local.sugerencias);
+      setIaNota(local.nota || "");
+      showToast(e?.message || "Sin conexión; sugerencias locales.", "warning");
     } finally {
       setIaLoading(false);
     }
@@ -1687,6 +1817,25 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       touchAction:"pan-y",
     }}>
       <style>{`
+        .farmacapital-pos-root input.farmacapital-pos-srch,
+        .farmacapital-pos-root input.farmacapital-field-input {
+          color-scheme: light;
+          background: #ffffff !important;
+          color: #0f172a;
+          -webkit-text-fill-color: #0f172a;
+          caret-color: #0f172a;
+        }
+        .farmacapital-pos-root input.farmacapital-pos-srch::placeholder,
+        .farmacapital-pos-root input.farmacapital-field-input::placeholder {
+          color: #94a3b8;
+          opacity: 1;
+        }
+        .farmacapital-pos-root input.farmacapital-pos-srch:-webkit-autofill,
+        .farmacapital-pos-root input.farmacapital-field-input:-webkit-autofill {
+          -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+          box-shadow: 0 0 0 1000px #ffffff inset !important;
+          -webkit-text-fill-color: #0f172a !important;
+        }
         @media (max-width: 1100px) {
           .farmacapital-pos-root { overflow-x: hidden; max-width: 100%; }
         }
@@ -2102,10 +2251,27 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
             )}
             <div style={{display:"flex",gap:8,marginBottom:12,alignItems:"center",flexWrap: isNarrow ? "wrap" : "nowrap"}}>
               <div ref={srchWrapRef} style={{flex:1,minWidth:0,position:"relative"}}>
-              <input ref={srchRef} className="farmacapital-pos-srch" value={srch}
+              <input ref={srchRef} className="farmacapital-pos-srch farmacapital-field-input" value={srch}
                 data-tour="pos-buscador"
-                onChange={e=>{setSrch(e.target.value);setSrchFocus(true);}}
-                onFocus={()=>setSrchFocus(true)}
+                onChange={e=>{
+                  const v = e.target.value;
+                  setSrch(v);
+                  if (!v.trim()) {
+                    setFichaProd(null);
+                    setSrchFocus(false);
+                    return;
+                  }
+                  const exact = findProductExactScan(productos, v);
+                  if (exact) {
+                    setFichaProd(exact);
+                    setSrchFocus(!looksLikeBarcodeInput(v));
+                  } else {
+                    setSrchFocus(true);
+                  }
+                }}
+                onFocus={()=>{
+                  if (!looksLikeBarcodeInput(srch)) setSrchFocus(true);
+                }}
                 onBlur={()=>setTimeout(()=>setSrchFocus(false),200)}
                 onKeyDown={e=>{
                   if(e.key==="Enter"){
@@ -2115,7 +2281,12 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                       setFichaProd(exact);
                       add(exact,false);
                       setSrch("");
+                      setFichaProd(null);
                       setSrchFocus(false);
+                      e.preventDefault();
+                    }
+                    else if(looksLikeBarcodeInput(raw)){
+                      showToast("Código de barras no encontrado en inventario.","warning");
                       e.preventDefault();
                     }
                     else if(srchSuggestions.length>0){
@@ -2124,7 +2295,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                         setFichaProd(hit);
                         const fifo=getStockFifoDisponible(hit);
                         if(!hit.venta_unidad&&fifo<=0){showToast(`"${hit.nombre}" no tiene lotes registrados. Ve a Inventario → Lotes para agregarlo.`,"warning");}
-                        else{add(hit,false);setSrch("");setSrchFocus(false);}
+                        else{add(hit,false);setSrch("");setFichaProd(null);setSrchFocus(false);}
                         e.preventDefault();
                       }
                     }
@@ -2136,8 +2307,37 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                   if(e.key==="Escape"){setSrchFocus(false);}
                 }}
                 placeholder="🔫 Código de barras, SKU o nombre · Enter agrega · flechas en resultados"
-                style={{width:"100%",boxSizing:"border-box",padding:"9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:C.bg,color:C.text,fontSize:isMobilePos?16:13,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}/>
-              {srchSuggestions.length>0&&srchFocus&&(
+                style={{width:"100%",boxSizing:"border-box",padding: srch.trim() ? "9px 38px 9px 13px" : "9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:"#ffffff",color:C.text,WebkitTextFillColor:C.text,caretColor:C.text,colorScheme:"light",fontSize:isMobilePos?16:13,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}/>
+              {srch.trim() && (
+                <button
+                  type="button"
+                  onClick={clearPosSearch}
+                  aria-label="Borrar búsqueda"
+                  title="Borrar búsqueda"
+                  style={{
+                    position: "absolute",
+                    right: 8,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    width: 28,
+                    height: 28,
+                    borderRadius: 14,
+                    border: "none",
+                    background: "transparent",
+                    color: C.textDim,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 18,
+                    lineHeight: 1,
+                    padding: 0,
+                  }}
+                >
+                  ×
+                </button>
+              )}
+              {srchSuggestions.length>0&&srchFocus&&!looksLikeBarcodeInput(srch)&&(
                 <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,right:0,zIndex:7000,background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,boxShadow:"0 8px 32px rgba(15,45,110,.14)",overflow:"hidden",maxHeight:280,overflowY:"auto"}}>
                   {srchSuggestions.map((s,i)=>{
                     const row=productos.find(x=>x.id===s.id);
@@ -2180,6 +2380,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
             <PosProductoFichaPanel
               item={fichaProd}
               productos={productos}
+              usoTexto={fichaProd ? (usoByProdId[fichaProd.id] || (posDescripcionEsUsoValido(fichaProd) ? fichaProd.descripcion : null)) : null}
+              usoLoading={!!fichaProd && usoLoadingId === fichaProd.id}
               onSelectVariante={setFichaProd}
               onAddCaja={(it) => add(it, false)}
               onAddUnidad={(it) => add(it, true)}
@@ -2213,19 +2415,18 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
               {iaOpen && (
                 <div style={{ marginTop: 8, padding: 12, borderRadius: 10, border: `1px solid ${C.border}`, background: C.bg }}>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
-                    <input
+                    <Inp
                       value={iaSintoma}
                       onChange={(e) => setIaSintoma(e.target.value)}
                       onKeyDown={(e) => { if (e.key === "Enter") consultarIaSintoma(); }}
-                      placeholder='Ej. dolor de cabeza, fiebre, tos seca…'
+                      placeholder="Ej. dolor de cabeza, fiebre, tos seca…"
                       style={{
                         flex: "1 1 180px",
                         minWidth: 0,
+                        width: "auto",
                         padding: "9px 12px",
-                        borderRadius: 8,
-                        border: `1px solid ${C.border}`,
+                        minHeight: isMobilePos ? 44 : 40,
                         fontSize: isMobilePos ? 16 : 13,
-                        fontFamily: "'Plus Jakarta Sans',sans-serif",
                       }}
                     />
                     <Btn col={C.blue} sm disabled={iaLoading} onClick={consultarIaSintoma}>
@@ -2233,7 +2434,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                     </Btn>
                   </div>
                   <div style={{ fontSize: 11, color: C.textDim, lineHeight: 1.45, marginBottom: iaSugerencias.length ? 10 : 0 }}>
-                    Solo sugiere productos OTC con stock en inventario. No sustituye criterio del químico farmacéutico.
+                    Claude elige productos OTC con stock en tu inventario. Si falla, usa respaldo local. No sustituye criterio del químico farmacéutico.
                   </div>
                   {iaNota && (
                     <div style={{ fontSize: 12, color: C.amber, marginBottom: 8, lineHeight: 1.45 }}>{iaNota}</div>
@@ -2306,23 +2507,30 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                 </div>
               </div>
             )}
-            {srch.trim() && (
+            {srch.trim() && !looksLikeBarcodeInput(srch) && (
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4,padding:"2px 0"}}>
                 <span style={{fontSize:11,color:C.textDim}}>
                   {fil.length === 0
                     ? "Sin resultados para esta búsqueda"
                     : `${fil.length} resultado${fil.length!==1?"s":""} · mejores primero`}
                 </span>
-                <button type="button" onClick={()=>setSrch("")} style={{fontSize:11,color:C.textDim,background:"none",border:"none",cursor:"pointer",padding:"0 4px",lineHeight:1}}>✕ Limpiar</button>
+                <button type="button" onClick={clearPosSearch} style={{fontSize:11,color:C.textDim,background:"none",border:"none",cursor:"pointer",padding:"0 4px",lineHeight:1}}>✕ Limpiar</button>
               </div>
             )}
             {srch.trim() && fil.length === 0 && (
               <div style={{textAlign:"center",padding:"32px 16px",color:C.textDim,fontSize:13}}>
-                No se encontró ningún producto con "<strong style={{color:C.text}}>{srch}</strong>".<br/>
-                <span style={{fontSize:11}}>Intenta con otro nombre, SKU o código de barras.</span>
+                {looksLikeBarcodeInput(srch)
+                  ? <>Código de barras no registrado: <strong style={{color:C.text}}>{srch.trim()}</strong></>
+                  : <>No se encontró ningún producto con "<strong style={{color:C.text}}>{srch}</strong>".</>}
+                <br/>
+                <span style={{fontSize:11}}>
+                  {looksLikeBarcodeInput(srch)
+                    ? "Verifica el código o captúralo en Inventario."
+                    : "Intenta con otro nombre, SKU o código de barras."}
+                </span>
               </div>
             )}
-            {srch.trim() && fil.length > 0 && (
+            {srch.trim() && fil.length > 0 && !looksLikeBarcodeInput(srch) && (
               <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden", background: C.card, maxHeight: 320, overflowY: "auto" }}>
                 <div style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: 0.5, textTransform: "uppercase", position: "sticky", top: 0, background: C.card, zIndex: 1 }}>
                   Resultados ({Math.min(fil.length, 60)}{fil.length > 60 ? "+" : ""})

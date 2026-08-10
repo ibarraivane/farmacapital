@@ -4,6 +4,7 @@ import { supabase } from "./supabase";
 import { showToast, HorizontalScrollSync } from "./ui";
 import { inventarioProductMatchesBusqueda, inventarioSearchRelevanceRank, productMatchesSearchQuery } from "./utils/fuzzySearch";
 import { findProductExactScan } from "./utils/barcodeProductLookup";
+import { etiquetaProductoInventario } from "./utils/parseNombreProducto";
 
 const BRAND = { primary:"#0D1B2A", secondary:"#1E3ABA", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
 const fmt = n => `$${parseFloat(n||0).toFixed(2)}`;
@@ -37,7 +38,7 @@ export default function LotesModule() {
     const [{ data: ls }, { data: ps }, { data: pv }] = tok
       ? await Promise.all([
           supabase.rpc("empleado_listar_lotes_inventario", { p_session_token: tok }),
-          supabase.from("productos").select("id,nombre,sku,codigo_barras").eq("activo", true).order("nombre"),
+          supabase.from("productos").select("id,nombre,sku,codigo_barras,marca,presentacion,forma_farmaceutica,categoria").eq("activo", true).order("nombre"),
           supabase.rpc("empleado_listar_proveedores_catalogo", { p_session_token: tok }),
         ])
       : [{ data: [] }, { data: [] }, { data: [] }];
@@ -62,6 +63,11 @@ export default function LotesModule() {
 
   const colCad = d => d===null?"#94a3b8":d<0?C.red:d<=15?C.red:d<=30?C.amber:C.green;
   const txtCad = d => d===null?"Sin fecha":d<0?"VENCIDO":d===0?"HOY":d<=30?`${d} días`:`${d} días`;
+
+  const prodById = useMemo(
+    () => Object.fromEntries(productos.map((p) => [String(p.id), p])),
+    [productos]
+  );
 
   const lotesFiltrados = lotes.filter(l=>{
     const matchP = !filtroP || productMatchesSearchQuery(l.productos || {}, filtroP, [(x) => x.nombre, (x) => x.sku, (x) => x.codigo_barras]);
@@ -251,9 +257,18 @@ export default function LotesModule() {
               {lotesFiltrados.map((l,i)=>{
                 const dias = diasRestantes(l.fecha_caducidad);
                 const col  = colCad(dias);
+                const prod = prodById[String(l.producto_id)] || l.productos || {};
+                const etiqueta = etiquetaProductoInventario(prod);
                 return(
                   <tr key={l.id} style={{background:dias!==null&&dias<0?"#fff5f5":i%2===0?"transparent":"#f8fafc"}}>
-                    <td style={{padding:"8px 12px",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>{l.productos?.nombre||"—"}</td>
+                    <td style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`,maxWidth:280}}>
+                      <div style={{color:C.text,fontWeight:600,lineHeight:1.35}} title={prod.nombre}>{etiqueta || prod.nombre || "—"}</div>
+                      {(prod.marca || prod.presentacion || prod.forma_farmaceutica) && (
+                        <div style={{color:C.textMid,fontSize:10,marginTop:2}}>
+                          {[prod.forma_farmaceutica, prod.marca, prod.presentacion].filter(Boolean).join(" · ")}
+                        </div>
+                      )}
+                    </td>
                     <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,fontFamily:"monospace",fontSize:10}}>{l.productos?.sku||"—"}</td>
                     <td style={{padding:"8px 12px",color:C.text,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{l.numero_lote}</td>
                     <td style={{padding:"8px 12px",color:col,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{l.fecha_caducidad||"—"}</td>

@@ -569,11 +569,23 @@ export function SearchDropdown({
   },[]);
 
   const handleKey = e => {
-    if(!open||!filtered.length) return;
-    if(e.key==="ArrowDown"){ e.preventDefault(); setIdx(i=>Math.min(i+1,filtered.length-1)); }
-    if(e.key==="ArrowUp"){ e.preventDefault(); setIdx(i=>Math.max(i-1,0)); }
-    if(e.key==="Enter"&&idx>=0){ e.preventDefault(); onSelect(filtered[idx]); setOpen(false); setIdx(-1); }
-    if(e.key==="Escape"){ setOpen(false); setIdx(-1); }
+    if (e.key === "Escape") {
+      setOpen(false);
+      setIdx(-1);
+      return;
+    }
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (open && filtered.length > 0 && idx >= 0) {
+        onSelect(filtered[idx]);
+      }
+      setOpen(false);
+      setIdx(-1);
+      return;
+    }
+    if (!open || !filtered.length) return;
+    if (e.key === "ArrowDown") { e.preventDefault(); setIdx(i => Math.min(i + 1, filtered.length - 1)); }
+    if (e.key === "ArrowUp") { e.preventDefault(); setIdx(i => Math.max(i - 1, 0)); }
   };
 
   const panelStyle = {

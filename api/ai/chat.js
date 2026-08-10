@@ -1,5 +1,14 @@
 'use strict';
 
+const {
+  suggestPosProductsLocal,
+  describePosProductUseLocal,
+  describePosProductUseFallback,
+  posEsOtcConStock,
+  posStockFromProduct,
+} = require('../../src/utils/posConocimientoFarmacia.js');
+const { readAnthropicKey, callClaudeText, callClaudeChat } = require('../../lib/claudePosAssistant.js');
+
 const SYSTEM_PROMPT = `Eres el asistente de administración de FarmaCapital, farmacia independiente en Chinampac de Juárez, Iztapalapa, CDMX.
 Ayudas al equipo con:
 - Reportes y resúmenes de ventas, inventario y operación (usa los DATOS EN VIVO cuando estén disponibles; no inventes cifras).
@@ -161,21 +170,15 @@ Reglas:
 - Máximo 4 sugerencias
 - producto_id debe existir en el catálogo`;
 
-function posStockFromProduct(p) {
-  const lotes = Array.isArray(p?.lotes) ? p.lotes : [];
-  if (lotes.length) {
-    return lotes
-      .filter((l) => l?.activo !== false)
-      .reduce((s, l) => s + Math.max(0, Number(l.cantidad_actual || 0)), 0);
-  }
-  return Math.max(0, Number(p?.stock || 0));
-}
-
-function posEsOtcConStock(p) {
-  if (!p || p.activo === false) return false;
-  if (p.requiere_receta || p.controlado) return false;
-  return posStockFromProduct(p) > 0;
-}
+const POS_USO_SYSTEM = `Eres farmacéutico de mostrador en una farmacia de México.
+Explica en 1-3 oraciones claras, para personal de mostrador y pacientes, PARA QUÉ SE USA NORMALMENTE el producto.
+Reglas:
+- Español de México, tono informativo; no diagnosticar ni recetar
+- No menciones precios, descuentos, tickets ni datos de compra
+- Si es venta libre (OTC), describe el uso habitual del público
+- Si requiere receta, indica la indicación terapéutica general del principio activo
+- Máximo 280 caracteres
+- Solo texto plano, sin markdown ni listas`;
 
 async function fetchPosCatalog(supabaseUrl, serviceKey, sessionToken) {
   const raw = await rpc(supabaseUrl, serviceKey, 'empleado_listar_productos_con_lotes_pos', {
@@ -206,8 +209,7 @@ function prefilterPosBySintoma(products, sintoma) {
     return { p, score };
   });
   const hits = scored.filter((x) => x.score > 0).sort((a, b) => b.score - a.score);
-  const list = (hits.length ? hits : scored).slice(0, 45).map((x) => x.p);
-  return list;
+  return (hits.length ? hits : scored).slice(0, 45).map((x) => x.p);
 }
 
 function catalogLinesForPos(products) {
@@ -231,7 +233,35 @@ function parsePosSintomaJson(text) {
   return null;
 }
 
-async function suggestPosProducts(apiKey, sintoma, catalogProducts) {
+function trimPosUso(text) {
+  return String(text || '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 320);
+}
+
+async function describePosProductUseClaude(apiKey, product) {
+  const pres = [
+    product.marca,
+    product.principio_activo,
+    product.concentracion,
+    product.presentacion,
+    product.forma_farmaceutica,
+  ].filter(Boolean).join(' · ');
+  const flags = [
+    product.requiere_receta ? 'Requiere receta médica.' : 'Venta libre.',
+    product.controlado ? 'Medicamento controlado.' : null,
+  ].filter(Boolean).join(' ');
+  const userPrompt = `Producto: ${product.nombre || '—'}
+${pres ? `Datos: ${pres}` : ''}
+Categoría: ${product.categoria || '—'}
+${flags}`;
+
+  const text = await callClaudeText(apiKey, POS_USO_SYSTEM, userPrompt, { max_tokens: 400 });
+  return trimPosUso(text);
+}
+
+async function suggestPosProductsClaude(apiKey, sintoma, catalogProducts) {
   const catalog = catalogLinesForPos(catalogProducts);
   const userPrompt = `Síntoma o necesidad del paciente: "${sintoma}"
 
@@ -240,9 +270,7 @@ ${catalog}
 
 Elige hasta 4 productos del catálogo que ayuden. JSON únicamente.`;
 
-  const text = await callGemini(apiKey, POS_SINTOMA_SYSTEM, [
-    { role: 'user', content: userPrompt },
-  ]);
+  const text = await callClaudeText(apiKey, POS_SINTOMA_SYSTEM, userPrompt, { max_tokens: 900 });
   const parsed = parsePosSintomaJson(text);
   const allowed = new Set(catalogProducts.map((p) => Number(p.id)));
   const sugerencias = (Array.isArray(parsed?.sugerencias) ? parsed.sugerencias : [])
@@ -260,32 +288,31 @@ Elige hasta 4 productos del catálogo que ayuden. JSON únicamente.`;
 }
 
 module.exports = async function handler(req, res) {
-  const apiKey = String(process.env.GEMINI_API_KEY || '').trim();
+  const geminiKey = String(process.env.GEMINI_API_KEY || '').trim();
+  const anthropicKey = readAnthropicKey();
 
   if (req.method === 'GET') {
-    const configured = Boolean(apiKey);
     const sessionToken = String(req.query?.session_token || '').trim();
+    const configured = Boolean(anthropicKey || geminiKey);
+    const provider = anthropicKey ? 'claude' : (geminiKey ? 'gemini' : null);
+
     if (!configured) {
-      return res.status(200).json({ ok: true, configured: false });
+      return res.status(200).json({ ok: true, configured: false, provider: null });
     }
     if (!sessionToken) {
-      return res.status(200).json({ ok: true, configured: true, session: false });
+      return res.status(200).json({ ok: true, configured: true, provider, session: false });
     }
     const supabaseUrl = normalizeUrl(process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL || '');
     const serviceKey = String(process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
     if (!supabaseUrl || !serviceKey) {
-      return res.status(200).json({ ok: true, configured: true, session: false });
+      return res.status(200).json({ ok: true, configured: true, provider, session: false });
     }
     const valid = await validateSession(supabaseUrl, serviceKey, sessionToken);
-    return res.status(200).json({ ok: true, configured: true, session: valid });
+    return res.status(200).json({ ok: true, configured: true, provider, session: valid });
   }
 
   if (req.method !== 'POST') {
     return res.status(405).json({ ok: false, error: 'method_not_allowed' });
-  }
-
-  if (!apiKey) {
-    return res.status(503).json({ ok: false, error: 'gemini_not_configured' });
   }
 
   const supabaseUrl = normalizeUrl(process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL || '');
@@ -309,31 +336,82 @@ module.exports = async function handler(req, res) {
     return res.status(401).json({ ok: false, error: 'invalid_session' });
   }
 
+  if (mode === 'pos_uso') {
+    const product = body?.product && typeof body.product === 'object' ? body.product : null;
+    if (!product || !String(product.nombre || '').trim()) {
+      return res.status(400).json({ ok: false, error: 'missing_product' });
+    }
+
+    if (anthropicKey) {
+      try {
+        const uso = await describePosProductUseClaude(anthropicKey, product);
+        if (uso) {
+          return res.status(200).json({ ok: true, uso, source: 'claude' });
+        }
+      } catch (e) {
+        console.warn('[ai/chat] pos_uso claude:', e?.message);
+        if (e.creditError) {
+          const uso = describePosProductUseLocal(product) || describePosProductUseFallback(product);
+          return res.status(200).json({
+            ok: true,
+            uso,
+            source: 'catalogo',
+            nota: 'Claude sin créditos; respuesta local de respaldo.',
+          });
+        }
+      }
+    }
+
+    const uso = describePosProductUseLocal(product) || describePosProductUseFallback(product);
+    return res.status(200).json({
+      ok: true,
+      uso,
+      source: 'catalogo',
+      nota: anthropicKey ? undefined : 'Configura ANTHROPIC_API_KEY en Vercel para respuestas con Claude.',
+    });
+  }
+
   if (mode === 'pos_sintoma') {
     const sintoma = String(body?.sintoma || '').trim();
     if (!sintoma) {
       return res.status(400).json({ ok: false, error: 'missing_sintoma' });
     }
+
     try {
       const all = await fetchPosCatalog(supabaseUrl, serviceKey, sessionToken);
       const otc = all.filter(posEsOtcConStock);
       const candidatos = prefilterPosBySintoma(otc, sintoma);
-      if (!candidatos.length) {
-        return res.status(200).json({
-          ok: true,
-          sugerencias: [],
-          nota: 'No hay productos OTC con stock que coincidan.',
-          reply: 'Sin productos OTC con stock para este síntoma.',
-        });
+
+      if (anthropicKey && candidatos.length) {
+        try {
+          const { sugerencias, nota, reply } = await suggestPosProductsClaude(anthropicKey, sintoma, candidatos);
+          if (sugerencias.length) {
+            return res.status(200).json({ ok: true, sugerencias, nota, source: 'claude', reply });
+          }
+        } catch (e) {
+          console.warn('[ai/chat] pos_sintoma claude:', e?.message);
+          if (e.creditError) {
+            const local = suggestPosProductsLocal(sintoma, otc);
+            return res.status(200).json({
+              ...local,
+              ok: true,
+              reply: local.nota,
+              nota: 'Claude sin créditos; sugerencias locales de respaldo.',
+            });
+          }
+        }
       }
-      const { sugerencias, nota, reply } = await suggestPosProducts(apiKey, sintoma, candidatos);
-      return res.status(200).json({ ok: true, sugerencias, nota, reply });
+
+      const local = suggestPosProductsLocal(sintoma, otc);
+      return res.status(200).json({
+        ok: true,
+        ...local,
+        reply: local.nota,
+        nota: anthropicKey ? local.nota : `${local.nota} Configura ANTHROPIC_API_KEY en Vercel para Claude.`,
+      });
     } catch (e) {
-      if (e.code === 429) {
-        return res.status(429).json({ ok: false, error: 'rate_limit', message: 'Límite de uso alcanzado. Intenta en unos minutos.' });
-      }
       console.error('[ai/chat] pos_sintoma:', e);
-      return res.status(502).json({ ok: false, error: 'gemini_error', message: e.message });
+      return res.status(500).json({ ok: false, error: 'pos_sintoma_failed', message: e.message });
     }
   }
 
@@ -351,12 +429,38 @@ module.exports = async function handler(req, res) {
     }
   }
 
+  if (anthropicKey) {
+    try {
+      const reply = await callClaudeChat(anthropicKey, systemText, messages, { max_tokens: 2048 });
+      return res.status(200).json({ ok: true, reply, provider: 'claude' });
+    } catch (e) {
+      if (e.creditError) {
+        return res.status(402).json({
+          ok: false,
+          error: 'anthropic_credits',
+          message: 'Créditos insuficientes en Anthropic. Recarga en console.anthropic.com',
+        });
+      }
+      console.warn('[ai/chat] admin claude:', e?.message);
+    }
+  }
+
+  if (!geminiKey) {
+    return res.status(503).json({
+      ok: false,
+      error: anthropicKey ? 'claude_error' : 'ai_not_configured',
+      message: anthropicKey
+        ? 'No se pudo consultar Claude.'
+        : 'Configura ANTHROPIC_API_KEY (recomendado) o GEMINI_API_KEY en Vercel.',
+    });
+  }
+
   try {
-    const reply = await callGemini(apiKey, systemText, messages);
-    return res.status(200).json({ ok: true, reply });
+    const reply = await callGemini(geminiKey, systemText, messages);
+    return res.status(200).json({ ok: true, reply, provider: 'gemini' });
   } catch (e) {
     if (e.code === 429) {
-      return res.status(429).json({ ok: false, error: 'rate_limit', message: 'Límite de uso alcanzado. Intenta en unos minutos.' });
+      return res.status(429).json({ ok: false, error: 'rate_limit', message: 'Límite Gemini alcanzado. Usa ANTHROPIC_API_KEY para Claude.' });
     }
     if (e.code === 401 || e.code === 403) {
       return res.status(502).json({ ok: false, error: 'gemini_auth', message: 'Clave Gemini inválida en Vercel.' });

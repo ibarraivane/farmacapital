@@ -140,7 +140,7 @@ export default function AsistenteIA() {
       if (!result?.configured) {
         setMessages((m) => [...m, {
           role: "assistant",
-          content: "⚠️ Falta configurar GEMINI_API_KEY en Vercel (Production). Ver instrucciones abajo.",
+          content: "⚠️ Falta configurar ANTHROPIC_API_KEY en Vercel (Production). Es la misma clave que usas para inventario/recetas.",
         }]);
         setConfigState("needs_key");
         return;
@@ -186,21 +186,21 @@ export default function AsistenteIA() {
       <div style={{ padding: 24, background: C.bg, minHeight: "100dvh", fontFamily: "'Plus Jakarta Sans',sans-serif", display: "flex", alignItems: "center", justifyContent: "center", boxSizing: "border-box" }}>
         <div style={{ background: C.card, border: `1px solid ${C.amber}40`, borderRadius: 16, padding: 32, maxWidth: 520, width: "100%" }}>
           <div style={{ fontSize: 40, marginBottom: 16, textAlign: "center" }}>✦</div>
-          <h2 style={{ margin: "0 0 12px", color: C.text, fontSize: 18, fontWeight: 800, textAlign: "center" }}>Activa Gemini en Vercel</h2>
+          <h2 style={{ margin: "0 0 12px", color: C.text, fontSize: 18, fontWeight: 800, textAlign: "center" }}>Activa Claude en Vercel</h2>
           <p style={{ color: C.textMid, fontSize: 13, lineHeight: 1.6, marginBottom: 20 }}>
-            Recomendado: <strong>Google Gemini 2.0 Flash</strong> — capa gratuita generosa, excelente en español, ideal para reportes, inventario y redacción de correos a proveedores.
+            Recomendado: <strong>Claude (Anthropic)</strong> — la misma API que ya usas para tickets PDF y recetas. Ideal para POS, reportes y correos a proveedores.
           </p>
           <div style={{ background: C.bg, borderRadius: 10, padding: 16, fontSize: 12, color: C.textMid, lineHeight: 1.85 }}>
-            <div style={{ color: C.amber, fontWeight: 700, marginBottom: 8 }}>Pasos (5 min):</div>
-            <div>1. Entra a <strong>aistudio.google.com</strong> → Get API key (gratis)</div>
+            <div style={{ color: C.amber, fontWeight: 700, marginBottom: 8 }}>Pasos (3 min):</div>
+            <div>1. Entra a <strong>console.anthropic.com</strong> → API Keys</div>
             <div>2. Vercel → farmacapital → Settings → Environment Variables</div>
-            <div>3. Agrega <code style={{ color: C.blue }}>GEMINI_API_KEY</code> = tu clave (solo Production)</div>
+            <div>3. Agrega <code style={{ color: C.blue }}>ANTHROPIC_API_KEY</code> = tu clave (Production)</div>
             <div>4. Redeploy el último deployment</div>
             <div style={{ marginTop: 10, padding: "8px 10px", background: C.card, borderRadius: 6, fontFamily: "monospace", fontSize: 11, wordBreak: "break-all" }}>
-              GEMINI_API_KEY=AIza...
+              ANTHROPIC_API_KEY=sk-ant-...
             </div>
             <div style={{ marginTop: 10, color: C.textDim, fontSize: 11 }}>
-              La clave queda en el servidor (no se expone en el navegador). Para desarrollo local puedes usar <code>REACT_APP_GEMINI_API_KEY</code> en <code>.env</code>.
+              La clave queda en el servidor (no se expone en el navegador). Opcional: <code>GEMINI_API_KEY</code> como respaldo del asistente Admin.
             </div>
           </div>
         </div>
@@ -223,7 +223,7 @@ export default function AsistenteIA() {
         <div style={{ minWidth: 0 }}>
           <h1 style={{ margin: 0, color: C.text, fontSize: 18, fontWeight: 800 }}>✦ Asistente FarmaCapital</h1>
           <p style={{ margin: "2px 0 0", color: C.textMid, fontSize: 11 }}>
-            Gemini 2.0 Flash · Inventario, reportes y correos
+            Claude · POS, inventario, reportes y correos
             {configState === "legacy" ? " · modo dev local" : ""}
           </p>
         </div>

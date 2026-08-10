@@ -125,7 +125,7 @@ begin
         );
         raise notice 'secuencia reiniciada: %', t;
       exception when others then
-        raise notice 'secuencia no reiniciada (%): %', t, SQLERRM;
+        raise notice '%', format('secuencia no reiniciada (%s): %s', t, SQLERRM);
       end;
     end loop;
   end if;

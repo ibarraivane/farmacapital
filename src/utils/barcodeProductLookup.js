@@ -5,6 +5,12 @@ export function normalizeBarcodeRaw(raw) {
   return String(raw ?? "").trim();
 }
 
+/** Entrada típica de pistola (solo dígitos, EAN/UPC). */
+export function looksLikeBarcodeInput(raw) {
+  const t = normalizeBarcodeRaw(raw).replace(/\s/g, "");
+  return t.length >= 8 && /^\d+$/.test(t);
+}
+
 /**
  * Coincidencia exacta por código de barras (EAN/UPC) o SKU interno.
  * Usado en POS, recepción de mercancía y registro de lotes.
