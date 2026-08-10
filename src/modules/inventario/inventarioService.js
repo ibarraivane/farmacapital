@@ -172,7 +172,7 @@ export async function procesarPDF(base64Data, proveedor = 'EQUILIBRIO FARMACEÚT
     }
 
     // Llamar a API backend para procesar PDF
-    const response = await fetch("/api/inventario/procesar-pdf", {
+    const response = await fetch("/api/inventario-procesar-pdf", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
