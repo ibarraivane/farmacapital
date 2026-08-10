@@ -7,7 +7,7 @@ import { supabase } from "../../../supabase";
 import { C_LIGHT, BRAND } from "../../../constants";
 import { $, logAudit, soloDigitosTel, normalizeForSearch } from "../../../utils";
 import { tiendaProductMatchesBusqueda, tiendaCatalogSearchSuggestions, tiendaSearchRelevanceRank } from "../../../utils/fuzzySearch";
-import { findProductExactScan, looksLikeBarcodeInput, isAllDigitsInput, normalizeBarcodeRaw } from "../../../utils/barcodeProductLookup";
+import { findProductExactScan, looksLikeBarcodeInput, isAllDigitsInput, normalizeBarcodeRaw, shouldReplaceScanInput, scanDedupeKey } from "../../../utils/barcodeProductLookup";
 import { posTituloProducto, posSubtituloProducto } from "../../../utils/posProductDisplay";
 import {
   suggestPosProductsLocal,
@@ -439,6 +439,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const usoFetchRef = useRef(0);
   const scanAddTimerRef = useRef(null);
   const lastAutoScanRef = useRef("");
+  const scanLastKeyTsRef = useRef(0);
+  const addRef = useRef(null);
   const [iaOpen, setIaOpen] = useState(false);
   // ── Funcionalidad de carga de imagen de receta
   const [modalCargarReceta, setModalCargarReceta] = useState(false);
@@ -817,17 +819,18 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     scanAddTimerRef.current = setTimeout(() => {
       const exact = findProductExactScan(productos, raw);
       if (!exact) return;
-      if (lastAutoScanRef.current === raw) return;
-      lastAutoScanRef.current = raw;
-      add(exact, false);
+      const key = scanDedupeKey(raw, exact);
+      if (lastAutoScanRef.current === key) return;
+      lastAutoScanRef.current = key;
+      addRef.current?.(exact, false);
       setSrch("");
       setFichaProd(null);
       setSrchFocus(false);
       srchRef.current?.focus();
       window.setTimeout(() => {
-        if (lastAutoScanRef.current === raw) lastAutoScanRef.current = "";
-      }, 400);
-    }, 120);
+        if (lastAutoScanRef.current === key) lastAutoScanRef.current = "";
+      }, 500);
+    }, 150);
 
     return () => clearTimeout(scanAddTimerRef.current);
   }, [srch, productos, tab]);
@@ -961,6 +964,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       });
     }
   };
+  addRef.current = add;
 
 
   const getLoteCantidadDisponible = (lote) => {
@@ -2299,31 +2303,50 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                     setSrchFocus(!isAllDigitsInput(v));
                   }
                 }}
-                onFocus={()=>{
-                  if (!isAllDigitsInput(srch)) setSrchFocus(true);
+                onFocus={(e)=>{
+                  if (isAllDigitsInput(srch)) e.target.select();
+                  else if (!isAllDigitsInput(srch)) setSrchFocus(true);
                 }}
                 onBlur={()=>setTimeout(()=>setSrchFocus(false),200)}
                 onKeyDown={e=>{
+                  if (e.key.length === 1 && /\d/.test(e.key)) {
+                    const now = Date.now();
+                    if (shouldReplaceScanInput(srch, scanLastKeyTsRef.current, now)) {
+                      e.preventDefault();
+                      setSrch(e.key);
+                      setFichaProd(null);
+                      setSrchFocus(false);
+                      scanLastKeyTsRef.current = now;
+                      return;
+                    }
+                    scanLastKeyTsRef.current = now;
+                  }
                   if(e.key==="Enter"){
                     const raw = normalizeBarcodeRaw(srch) || srch.trim();
                     const exact = findProductExactScan(productos, raw);
                     if(exact){
-                      if (lastAutoScanRef.current === raw) {
+                      const key = scanDedupeKey(raw, exact);
+                      if (lastAutoScanRef.current === key) {
                         setSrch("");
                         setFichaProd(null);
                         setSrchFocus(false);
                         e.preventDefault();
                         return;
                       }
+                      lastAutoScanRef.current = key;
                       setFichaProd(exact);
                       add(exact,false);
                       setSrch("");
                       setFichaProd(null);
                       setSrchFocus(false);
+                      window.setTimeout(() => {
+                        if (lastAutoScanRef.current === key) lastAutoScanRef.current = "";
+                      }, 500);
                       e.preventDefault();
                     }
                     else if(looksLikeBarcodeInput(raw)){
                       showToast("Código de barras no encontrado en inventario.","warning");
+                      setSrch("");
                       e.preventDefault();
                     }
                     else if(srchSuggestions.length>0){
