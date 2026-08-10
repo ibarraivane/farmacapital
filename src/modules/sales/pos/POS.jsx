@@ -35,7 +35,6 @@ import { labelTipoEntregaPedido } from "../../../utils/orderChannels";
 import { buildOnlineOrderReceiptMessage, buildOnlineOrderReadyMessage, formatFolioOnline, openWhatsAppToCustomer } from "../../../utils/orderReceiptWhatsApp";
 import { formatTelefonoDisplay } from "../../../utils/citaWhatsApp";
 import { configRowsToMap, mergeFarmaciaConfig, FARMACIA_FISCAL } from "../../../constants/farmaciaFiscal";
-import { procesarImagenReceta, fileToBase64 } from "../../../services/recetaVisionService";
 
 const PEDIDOS_TIENDA_SELECT_POS = `
             id,total,created_at,tipo,metodo_pago,estado,tipo_entrega,direccion,
@@ -441,16 +440,6 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const lastAutoScanRef = useRef("");
   const scanLastKeyTsRef = useRef(0);
   const addRef = useRef(null);
-  const [iaOpen, setIaOpen] = useState(false);
-  // ── Funcionalidad de carga de imagen de receta
-  const [modalCargarReceta, setModalCargarReceta] = useState(false);
-  const [recetaImagen, setRecetaImagen] = useState(null);
-  const [procesandoReceta, setProcesandoReceta] = useState(false);
-  const [medicamentosExtraidos, setMedicamentosExtraidos] = useState([]);
-  const [iaSintoma, setIaSintoma] = useState("");
-  const [iaLoading, setIaLoading] = useState(false);
-  const [iaSugerencias, setIaSugerencias] = useState([]);
-  const [iaNota, setIaNota] = useState("");
   const [promoTicket,setPromoTicket] = useState(null);
   const [loadErr,setLoadErr] = useState("");
   const [config,setConfig]   = useState(mergeFarmaciaConfig({}, {
@@ -947,13 +936,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     setSrch("");
     setSrchFocus(false);
     srchRef.current?.focus();
-    if (lastAutoScanRef.current === key) return;
-    lastAutoScanRef.current = key;
-    add(exact, false);
-    window.setTimeout(() => {
-      if (lastAutoScanRef.current === key) lastAutoScanRef.current = "";
-    }, 500);
-  }, [add]);
+  }, []);
 
   useEffect(() => {
     if (tab !== "venta") return;
@@ -1106,52 +1089,6 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     showToast(`Caja abierta. Unidades disponibles: ${nuevasUnidades}`, "success");
   };
 
-  const consultarIaSintoma = async () => {
-    const q = iaSintoma.trim();
-    if (!q) {
-      showToast("Escribe qué busca o qué síntoma tiene el paciente.", "warning");
-      return;
-    }
-    const tok = sessionStorage.getItem("farmacapital_session_token");
-    if (!tok) {
-      showToast("Sesión expirada.", "error");
-      return;
-    }
-    setIaLoading(true);
-    setIaSugerencias([]);
-    setIaNota("");
-    try {
-      const resp = await fetch("/api/ai/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ session_token: tok, mode: "pos_sintoma", sintoma: q }),
-      });
-      const data = await resp.json().catch(() => ({}));
-      if (!resp.ok) {
-        const otc = productos.filter(posEsOtcConStock);
-        const local = suggestPosProductsLocal(q, otc);
-        setIaSugerencias(local.sugerencias);
-        setIaNota(local.nota || "");
-        showToast(data?.message || "Claude no disponible; sugerencias locales.", "warning");
-        return;
-      }
-      const sugs = Array.isArray(data.sugerencias) ? data.sugerencias : [];
-      setIaSugerencias(sugs);
-      setIaNota(data.nota || "");
-      if (!sugs.length) {
-        showToast(data.reply || "Sin sugerencias con stock OTC.", "warning");
-      }
-    } catch (e) {
-      const otc = productos.filter(posEsOtcConStock);
-      const local = suggestPosProductsLocal(q, otc);
-      setIaSugerencias(local.sugerencias);
-      setIaNota(local.nota || "");
-      showToast(e?.message || "Sin conexión; sugerencias locales.", "warning");
-    } finally {
-      setIaLoading(false);
-    }
-  };
-
   const RX_IND_PRESETS = ["Cada 8 hrs con alimentos","Cada 12 hrs, completar tratamiento","En ayunas, 30 min antes de desayuno","Solo por la noche antes de dormir","No exceder dosis indicada por médico"];
 
   const toggleRxIndicacion = (t) => {
@@ -1170,42 +1107,6 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       .map((s) => s.trim())
       .filter(Boolean)
       .includes(t);
-
-  // ── FUNCIÓN: Procesar imagen de receta con Claude Vision
-  const procesarImagenRecetaMedicamentos = async () => {
-    if (!recetaImagen) {
-      showToast("Selecciona una imagen de receta.", "warning");
-      return;
-    }
-
-    setProcesandoReceta(true);
-    setMedicamentosExtraidos([]);
-
-    try {
-      const base64 = await fileToBase64(recetaImagen);
-      const resultado = await procesarImagenReceta(base64);
-
-      if (resultado.success) {
-        setMedicamentosExtraidos(resultado.medicamentos || []);
-
-        // Llenar campos de receta
-        if (resultado.diagnostico) {
-          setRx(p => ({ ...p, indicaciones: resultado.diagnostico }));
-        }
-        if (resultado.medico) {
-          setRx(p => ({ ...p, medico: resultado.medico }));
-        }
-
-        showToast(`Extraídos ${resultado.medicamentos?.length || 0} medicamentos de la receta.`, "success");
-      } else {
-        showToast(`Error: ${resultado.error}`, "error");
-      }
-    } catch (error) {
-      showToast(`Error al procesar imagen: ${error.message}`, "error");
-    } finally {
-      setProcesandoReceta(false);
-    }
-  };
 
   const confRx = () => {
     if(!rx.receta||!rx.medico||!rx.cedula||!rx.paciente) return;
@@ -2441,106 +2342,6 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
               isNarrow={isNarrow}
               sticky={!!srch.trim() || !!fichaProd}
             />
-            <div style={{ marginBottom: 12 }}>
-              <button
-                type="button"
-                onClick={() => setIaOpen((v) => !v)}
-                style={{
-                  width: "100%",
-                  textAlign: "left",
-                  padding: "10px 12px",
-                  borderRadius: 10,
-                  border: `1px solid ${iaOpen ? C.blue + "55" : C.border}`,
-                  background: iaOpen ? C.blueDim : C.bg,
-                  cursor: "pointer",
-                  fontWeight: 700,
-                  fontSize: 12,
-                  color: iaOpen ? C.blue : C.textMid,
-                }}
-              >
-                ✨ Asistente venta (síntoma → producto en inventario) {iaOpen ? "▲" : "▼"}
-              </button>
-              {iaOpen && (
-                <div style={{ marginTop: 8, padding: 12, borderRadius: 10, border: `1px solid ${C.border}`, background: C.bg }}>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
-                    <Inp
-                      value={iaSintoma}
-                      onChange={(e) => setIaSintoma(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter") consultarIaSintoma(); }}
-                      placeholder="Ej. dolor de cabeza, fiebre, tos seca…"
-                      style={{
-                        flex: "1 1 180px",
-                        minWidth: 0,
-                        width: "auto",
-                        padding: "9px 12px",
-                        minHeight: isMobilePos ? 44 : 40,
-                        fontSize: isMobilePos ? 16 : 13,
-                      }}
-                    />
-                    <Btn col={C.blue} sm disabled={iaLoading} onClick={consultarIaSintoma}>
-                      {iaLoading ? "Consultando…" : "Sugerir"}
-                    </Btn>
-                  </div>
-                  <div style={{ fontSize: 11, color: C.textDim, lineHeight: 1.45, marginBottom: iaSugerencias.length ? 10 : 0 }}>
-                    Claude elige productos OTC con stock en tu inventario. Si falla, usa respaldo local. No sustituye criterio del químico farmacéutico.
-                  </div>
-                  {iaNota && (
-                    <div style={{ fontSize: 12, color: C.amber, marginBottom: 8, lineHeight: 1.45 }}>{iaNota}</div>
-                  )}
-                  {iaSugerencias.length > 0 && (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                      {iaSugerencias.map((s) => {
-                        const prod = productos.find((p) => p.id === s.producto_id || String(p.id) === String(s.producto_id));
-                        if (!prod) return null;
-                        return (
-                          <button
-                            key={`${s.producto_id}-${s.razon}`}
-                            type="button"
-                            onClick={() => setFichaProd(prod)}
-                            style={{
-                              textAlign: "left",
-                              padding: "10px 12px",
-                              borderRadius: 8,
-                              border: `1px solid ${C.border}`,
-                              background: "#fff",
-                              cursor: "pointer",
-                            }}
-                          >
-                            <div style={{ fontWeight: 700, fontSize: 13, color: C.text }}>{posTituloProducto(prod)}</div>
-                            <div style={{ fontSize: 11, color: C.textMid, marginTop: 4 }}>{s.razon}</div>
-                            <div style={{ fontSize: 11, color: C.blue, marginTop: 4, fontWeight: 700 }}>
-                              {posFichaLinea(prod) || prod.sku} · {$(prod.precio)}
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* ── BOTÓN: Cargar imagen de receta */}
-            <div style={{ marginBottom: 12 }}>
-              <button
-                type="button"
-                onClick={() => setModalCargarReceta(true)}
-                style={{
-                  width: "100%",
-                  textAlign: "left",
-                  padding: "10px 12px",
-                  borderRadius: 10,
-                  border: `1px solid ${C.border}`,
-                  background: C.bg,
-                  cursor: "pointer",
-                  fontWeight: 700,
-                  fontSize: 12,
-                  color: C.textMid,
-                }}
-              >
-                📷 Cargar receta médica (imagen) {modalCargarReceta ? "▲" : "▼"}
-              </button>
-            </div>
 
             {favs.length>0&&(
               <div data-tour="pos-favoritos" style={{marginBottom:12}}>
@@ -3181,123 +2982,6 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         </div>
       )}
       <OnboardingTour ref={posTourRef} tourId="pos" usuario={usuario} showFab={!isMobilePos} />
-
-      {/* ── MODAL: Cargar imagen de receta */}
-      <Modal
-        open={modalCargarReceta}
-        onClose={() => {
-          setModalCargarReceta(false);
-          setRecetaImagen(null);
-          setMedicamentosExtraidos([]);
-        }}
-        title="📷 Cargar imagen de receta"
-        ac={C.blue}
-      >
-        <div style={{ color: C.textMid, fontSize: 12, marginBottom: 14, lineHeight: 1.45 }}>
-          Sube una foto o imagen de la receta médica. Claude Vision la leerá y extraerá automáticamente los medicamentos.
-        </div>
-
-        {/* Input para cargar imagen */}
-        <div style={{ marginBottom: 16 }}>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) setRecetaImagen(file);
-            }}
-            style={{
-              display: "block",
-              width: "100%",
-              padding: "10px",
-              border: `2px dashed ${C.border}`,
-              borderRadius: 8,
-              cursor: "pointer",
-              fontSize: 12,
-            }}
-          />
-          {recetaImagen && (
-            <div style={{ marginTop: 8, fontSize: 12, color: C.blue, fontWeight: 600 }}>
-              ✓ {recetaImagen.name}
-            </div>
-          )}
-        </div>
-
-        {/* Botones */}
-        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-          <button
-            onClick={() => {
-              setModalCargarReceta(false);
-              setRecetaImagen(null);
-              setMedicamentosExtraidos([]);
-            }}
-            style={{
-              padding: "8px 16px",
-              borderRadius: 6,
-              border: `1px solid ${C.border}`,
-              background: C.bg,
-              color: C.text,
-              cursor: "pointer",
-              fontWeight: 600,
-              fontSize: 12,
-            }}
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={procesarImagenRecetaMedicamentos}
-            disabled={!recetaImagen || procesandoReceta}
-            style={{
-              padding: "8px 16px",
-              borderRadius: 6,
-              border: "none",
-              background: C.blue,
-              color: "#fff",
-              cursor: procesandoReceta ? "not-allowed" : "pointer",
-              fontWeight: 600,
-              fontSize: 12,
-              opacity: procesandoReceta ? 0.6 : 1,
-            }}
-          >
-            {procesandoReceta ? "Leyendo receta..." : "Leer receta"}
-          </button>
-        </div>
-
-        {/* Preview de medicamentos extraídos */}
-        {medicamentosExtraidos.length > 0 && (
-          <div style={{ marginTop: 16, borderTop: `1px solid ${C.border}`, paddingTop: 16 }}>
-            <div style={{ fontWeight: 700, marginBottom: 10, color: C.text }}>
-              Medicamentos detectados: {medicamentosExtraidos.length}
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {medicamentosExtraidos.map((med, idx) => (
-                <div
-                  key={idx}
-                  style={{
-                    padding: "10px",
-                    borderRadius: 6,
-                    background: C.bg,
-                    border: `1px solid ${C.border}`,
-                    fontSize: 12,
-                  }}
-                >
-                  <div style={{ fontWeight: 600, color: C.text }}>{med.nombre}</div>
-                  {med.dosis && (
-                    <div style={{ color: C.textMid, fontSize: 11, marginTop: 2 }}>
-                      Dosis: {med.dosis}
-                    </div>
-                  )}
-                  {med.frecuencia && (
-                    <div style={{ color: C.textMid, fontSize: 11 }}>
-                      Frecuencia: {med.frecuencia}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </Modal>
     </div>
   );
 }
