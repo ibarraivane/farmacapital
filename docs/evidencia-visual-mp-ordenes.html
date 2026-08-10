@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Evidencia visual — Órdenes MP no cargan en Point Smart 2</title>
+  <style>
+    @page { margin: 12mm; size: A4; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0; padding: 20px; color: #0f172a; background: #fff;
+      max-width: 1100px; margin-inline: auto;
+    }
+    h1 { font-size: 22px; margin: 0 0 6px; }
+    .sub { color: #64748b; font-size: 13px; margin-bottom: 20px; }
+    h2 { font-size: 16px; color: #1e3aba; margin: 28px 0 10px; border-bottom: 2px solid #dbeafe; padding-bottom: 6px; }
+    .flow {
+      display: grid; grid-template-columns: 1fr 40px 1fr 40px 1fr; gap: 8px; align-items: center;
+      background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin: 12px 0;
+    }
+    .step { text-align: center; padding: 12px; border-radius: 10px; font-size: 12px; }
+    .step.ok { background: #dcfce7; border: 1px solid #86efac; }
+    .step.fail { background: #fee2e2; border: 1px solid #fca5a5; }
+    .step.neutral { background: #fff; border: 1px solid #cbd5e1; }
+    .arrow { text-align: center; font-size: 22px; color: #94a3b8; }
+    table { width: 100%; border-collapse: collapse; font-size: 11px; margin: 10px 0; }
+    th, td { border: 1px solid #e2e8f0; padding: 8px; text-align: left; vertical-align: top; }
+    th { background: #f1f5f9; }
+    .mono { font-family: ui-monospace, Menlo, monospace; font-size: 10px; word-break: break-all; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 700; }
+    .badge-red { background: #fee2e2; color: #991b1b; }
+    .badge-green { background: #dcfce7; color: #166534; }
+    .badge-amber { background: #fef3c7; color: #92400e; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 12px 0; }
+    .grid2 img { width: 100%; border-radius: 10px; border: 1px solid #e2e8f0; }
+    .cap { font-size: 11px; color: #475569; margin-top: 6px; line-height: 1.4; }
+    .cap strong { color: #0f172a; }
+    .compare {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 16px 0;
+      border: 2px solid #fecaca; border-radius: 14px; padding: 16px; background: #fff7f7;
+    }
+    .compare h3 { margin: 0 0 8px; font-size: 14px; }
+    .timeline { margin: 12px 0; }
+    .tl-row { display: flex; align-items: center; gap: 10px; margin: 6px 0; font-size: 12px; }
+    .tl-time { width: 52px; color: #64748b; font-weight: 600; }
+    .tl-bar { flex: 1; height: 28px; border-radius: 6px; display: flex; align-items: center; padding: 0 10px; font-weight: 700; font-size: 11px; }
+    .tl-created { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+    .tl-expected { background: #dbeafe; color: #1e40af; border: 1px dashed #93c5fd; opacity: .55; }
+    .video-box {
+      background: #0f172a; color: #e2e8f0; border-radius: 14px; padding: 20px; margin: 16px 0;
+    }
+    .video-box .pulse { animation: pulse 2s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+    @media print { .video-box { break-inside: avoid; } .grid2, .compare { break-inside: avoid; } }
+    @media (max-width: 800px) { .grid2, .compare, .flow { grid-template-columns: 1fr; } .arrow { display: none; } }
+  </style>
+</head>
+<body>
+  <h1>Evidencia visual — Órdenes API no cargan en terminal Point</h1>
+  <p class="sub">
+    FarmaCapital · Point Smart 2 · Serial N950NCCC05728001 ·
+    Terminal ID NEWLAND_N950__N950NCCC05728001 · 22 jul 2026
+  </p>
+
+  <h2>1. Flujo esperado vs lo que ocurre</h2>
+  <div class="flow">
+    <div class="step ok"><strong>① FarmaCapital</strong><br/>POST /v1/orders<br/><span class="badge badge-green">OK</span></div>
+    <div class="arrow">→</div>
+    <div class="step ok"><strong>② Mercado Pago</strong><br/>Orden en <code>created</code><br/><span class="badge badge-green">OK</span></div>
+    <div class="arrow">→</div>
+    <div class="step fail"><strong>③ Point físico</strong><br/>Debería pasar a <code>at_terminal</code><br/><span class="badge badge-red">FALLA</span></div>
+  </div>
+
+  <h2>2. Comparación lado a lado (mismo momento)</h2>
+  <div class="compare">
+    <div>
+      <h3>🖥️ Sistema FarmaCapital — cobro enviado</h3>
+      <img src="evidencia-farmacapital-error.png" alt="Modal FarmaCapital: cobro enviado pero Point no respondió" />
+      <p class="cap"><strong>Qué muestra:</strong> FarmaCapital envió $18.00 a Mercado Pago. Tras esperar, error: el Point no respondió. La orden quedó en API sin bajar al terminal.</p>
+    </div>
+    <div>
+      <h3>📟 Terminal Point — sin cobro en pantalla</h3>
+      <img src="evidencia-terminal-pantalla.png" alt="Point en pantalla Ingresar monto sin cobro API" />
+      <p class="cap"><strong>Qué muestra:</strong> Al mismo tiempo, el Point sigue en pantalla principal («Ingresar monto» / «Elegir productos»). <strong>No aparece el monto de $18.00</strong> enviado por API.</p>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div>
+      <h3 style="margin-top:0">Panel / POS — terminal rechazó</h3>
+      <img src="evidencia-mp-panel.png" alt="Error terminal rechazó el pago" />
+      <p class="cap">Mensaje: <strong>«Terminal rechazó el pago»</strong> — confirma que hubo intento de sync fallido.</p>
+    </div>
+    <div>
+      <h3 style="margin-top:0">Ajustes — Vincular frente de caja ON</h3>
+      <img src="evidencia-terminal-ajustes.png" alt="Vincular frente de caja activado" />
+      <p class="cap">Modo integrado activo (<strong>Vincular frente de caja</strong> encendido). No es un problema de configuración visible en el dispositivo.</p>
+    </div>
+  </div>
+
+  <h2>3. Las 7 órdenes atascadas en cola (API)</h2>
+  <p style="font-size:12px;color:#475569">Todas permanecen en <code>created</code> horas después. El terminal nunca las recibió (<code>at_terminal</code>).</p>
+  <table>
+    <tr>
+      <th>#</th><th>order_id</th><th>Estado</th><th>Monto</th><th>Referencia</th><th>Creada (UTC)</th>
+    </tr>
+    <tr><td>1</td><td class="mono">ORD01KY3GES14Z7BA7M809856CE82</td><td><span class="badge badge-red">created</span></td><td>$18.00</td><td>VTA-00000000</td><td>2026-07-21 23:33:56</td></tr>
+    <tr><td>2</td><td class="mono">ORD01KY3GFCV4SZ4ZAXAVJNV7X6FD</td><td><span class="badge badge-red">created</span></td><td>$18.00</td><td>VTA-00000000</td><td>2026-07-21 23:34:16</td></tr>
+    <tr><td>3</td><td class="mono">ORD01KY3GHCWMB44C1869FWP0WQB1</td><td><span class="badge badge-red">created</span></td><td>$1.00</td><td>cleanup</td><td>2026-07-21 23:35:22</td></tr>
+    <tr><td>4</td><td class="mono">ORD01KY420PM94MPGX76N33S1SC9A</td><td><span class="badge badge-red">created</span></td><td>$1.00</td><td>FC-DIAG-*</td><td>2026-07-22 04:40:49</td></tr>
+    <tr><td>5</td><td class="mono">ORD01KY420WJ1YFRD45TA0RGQ1CZE</td><td><span class="badge badge-red">created</span></td><td>$1.00</td><td>FC-DIAG-*</td><td>2026-07-22 04:40:55</td></tr>
+    <tr><td>6</td><td class="mono">ORD01KY422VPC5JH6BQCCWS0X2QMG</td><td><span class="badge badge-red">created</span></td><td>$1.00</td><td>FC-DIAG-*</td><td>2026-07-22 04:42:00</td></tr>
+    <tr><td>7</td><td class="mono">ORD01KY428XMBB28SEVNNWXC5QHVD</td><td><span class="badge badge-red">created</span></td><td>$1.00</td><td>FC-DIAG-*</td><td>2026-07-22 04:45:18</td></tr>
+  </table>
+
+  <h2>4. Prueba en vivo — orden nueva (22 jul 2026, 04:54 UTC)</h2>
+  <table>
+    <tr><th>order_id</th><td class="mono">ORD01KY42TE8CS0G3JERSKSVRCGG6</td></tr>
+    <tr><th>Referencia</th><td>VTA-MP-SOPORTE-001 · $18.00 MXN</td></tr>
+    <tr><th>Resultado 60 seg</th><td><span class="badge badge-red">created → created</span> (nunca <code>at_terminal</code>)</td></tr>
+    <tr><th>Terminal</th><td>Sin cambio en pantalla</td></tr>
+  </table>
+
+  <h2>5. Timeline de polling (orden de prueba reciente)</h2>
+  <p style="font-size:12px;color:#475569">Orden <code>ORD01KY440HG7DF67EHT203V3GEF1</code> — consulta cada 5 segundos durante 30 s:</p>
+  <div class="timeline">
+    <div class="tl-row"><div class="tl-time">5 s</div><div class="tl-bar tl-created">status: created</div></div>
+    <div class="tl-row"><div class="tl-time">10 s</div><div class="tl-bar tl-created">status: created</div></div>
+    <div class="tl-row"><div class="tl-time">15 s</div><div class="tl-bar tl-created">status: created</div></div>
+    <div class="tl-row"><div class="tl-time">20 s</div><div class="tl-bar tl-created">status: created</div></div>
+    <div class="tl-row"><div class="tl-time">25 s</div><div class="tl-bar tl-created">status: created</div></div>
+    <div class="tl-row"><div class="tl-time">30 s</div><div class="tl-bar tl-created">status: created</div></div>
+    <div class="tl-row"><div class="tl-time">esperado</div><div class="tl-bar tl-expected">status: at_terminal ← nunca ocurre</div></div>
+  </div>
+
+  <div class="video-box">
+    <strong>Resumen para Sistemas:</strong> La API crea y consulta órdenes correctamente, pero el lector
+    <span class="mono">NEWLAND_N950__N950NCCC05728001</span> no sincroniza. Hay 7 órdenes en cola bloqueadas en
+    <code>created</code>. Se solicita limpieza de cola y revisión de sync backend ↔ dispositivo.
+  </div>
+
+  <p style="font-size:10px;color:#94a3b8;margin-top:24px">FarmaCapital — Evidencia visual para soporte Mercado Pago · Jul 2026</p>
+</body>
+</html>

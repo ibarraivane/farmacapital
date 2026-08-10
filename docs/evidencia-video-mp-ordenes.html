@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Video evidencia — Órdenes no cargan en Point</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%); color: #fff;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px;
+    }
+    h1 { font-size: 20px; margin: 0 0 4px; text-align: center; }
+    .sub { color: #94a3b8; font-size: 13px; margin-bottom: 24px; text-align: center; }
+    .stage { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 960px; width: 100%; }
+    .panel {
+      background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12);
+      border-radius: 16px; padding: 16px; min-height: 320px;
+    }
+    .panel h2 { font-size: 13px; margin: 0 0 12px; color: #93c5fd; text-transform: uppercase; letter-spacing: .05em; }
+    .api-log {
+      font-family: ui-monospace, Menlo, monospace; font-size: 11px; line-height: 1.6;
+      background: #020617; border-radius: 10px; padding: 12px; height: 240px; overflow: hidden;
+    }
+    .line { opacity: 0; animation: showLine .4s forwards; margin: 2px 0; }
+    .line.ok { color: #4ade80; }
+    .line.warn { color: #fbbf24; }
+    .line.err { color: #f87171; }
+    .line.dim { color: #64748b; }
+    @keyframes showLine { to { opacity: 1; } }
+    .terminal-mock {
+      background: #fef08a; color: #111; border-radius: 12px; padding: 16px; height: 240px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+    }
+    .terminal-mock .title { font-weight: 800; font-size: 14px; margin-bottom: 12px; }
+    .terminal-mock .btn {
+      background: #fff; border: 2px solid #111; border-radius: 10px; padding: 14px 24px;
+      font-weight: 700; font-size: 13px; margin: 6px; min-width: 180px;
+    }
+    .terminal-mock .waiting {
+      margin-top: 12px; font-size: 12px; color: #666; min-height: 40px;
+    }
+    .terminal-mock .amount {
+      display: none; background: #111; color: #fff; border-radius: 12px;
+      padding: 20px; font-size: 28px; font-weight: 800; animation: none;
+    }
+    .terminal-mock.show-amount .amount { display: block; animation: pop .5s; }
+    .terminal-mock.show-amount .btn { display: none; }
+    @keyframes pop { from { transform: scale(.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .status-bar {
+      margin-top: 20px; padding: 12px 20px; border-radius: 999px; font-size: 13px; font-weight: 700;
+      background: #450a0a; color: #fecaca; border: 1px solid #f87171;
+      animation: statusPulse 2s ease-in-out infinite;
+    }
+    @keyframes statusPulse { 0%,100%{ box-shadow: 0 0 0 0 rgba(248,113,113,.4); } 50%{ box-shadow: 0 0 0 8px rgba(248,113,113,0); } }
+    .hint { margin-top: 20px; font-size: 11px; color: #64748b; text-align: center; max-width: 600px; }
+    .counter { font-size: 11px; color: #64748b; margin-top: 8px; text-align: center; }
+  </style>
+</head>
+<body>
+  <h1>Evidencia: órdenes API no llegan al Point Smart 2</h1>
+  <p class="sub">FarmaCapital · N950NCCC05728001 · Graba esta pantalla con QuickTime (⌘+Shift+5)</p>
+
+  <div class="stage">
+    <div class="panel">
+      <h2>API Mercado Pago (servidor)</h2>
+      <div class="api-log" id="log"></div>
+    </div>
+    <div class="panel">
+      <h2>Terminal Point (físico)</h2>
+      <div class="terminal-mock" id="terminal">
+        <div class="title">Farmacapital Sucursal</div>
+        <div class="btn">Ingresar monto</div>
+        <div class="btn">Elegir productos</div>
+        <div class="waiting" id="termMsg">Esperando cobro desde API…</div>
+        <div class="amount" id="termAmount">$18.00</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="status-bar" id="statusBar">Estado API: — · Terminal: sin cobro</div>
+  <div class="counter" id="counter"></div>
+  <p class="hint">Esta animación reproduce lo observado en producción: la orden se crea en MP pero el terminal nunca muestra el monto.</p>
+
+  <script>
+    const log = document.getElementById('log');
+    const termMsg = document.getElementById('termMsg');
+    const statusBar = document.getElementById('statusBar');
+    const counter = document.getElementById('counter');
+    const terminal = document.getElementById('terminal');
+    const lines = [
+      { t: 0,   cls: 'dim',  text: '$ POST /v1/orders → terminal NEWLAND_N950__...' },
+      { t: 800, cls: 'ok',   text: '✓ 201 Created — ORD01KY42TE8CS0G3JERSKSVRCGG6' },
+      { t: 1400,cls: 'ok',   text: '  amount: $18.00 · ref: VTA-MP-SOPORTE-001' },
+      { t: 2000,cls: 'warn', text: '  status: created' },
+      { t: 3500,cls: 'dim',  text: '$ GET /v1/orders/ORD01KY42... (+5s)' },
+      { t: 4000,cls: 'warn', text: '  status: created  (esperado: at_terminal)' },
+      { t: 5500,cls: 'dim',  text: '$ GET /v1/orders/ORD01KY42... (+10s)' },
+      { t: 6000,cls: 'warn', text: '  status: created' },
+      { t: 7500,cls: 'dim',  text: '$ GET /v1/orders/ORD01KY42... (+15s)' },
+      { t: 8000,cls: 'warn', text: '  status: created' },
+      { t: 9500,cls: 'dim',  text: '$ GET /v1/orders/ORD01KY42... (+20s)' },
+      { t: 10000,cls: 'warn', text: '  status: created' },
+      { t: 11500,cls: 'dim', text: '$ GET /v1/orders/ORD01KY42... (+30s)' },
+      { t: 12000,cls: 'err',  text: '✗ status: created — NUNCA at_terminal' },
+      { t: 13000,cls: 'err',  text: '✗ Terminal físico: sin reacción en pantalla' },
+      { t: 14000,cls: 'dim',  text: 'Cola atascada: 7 órdenes en created' },
+    ];
+    let sec = 0;
+    const secTimer = setInterval(() => {
+      sec += 1;
+      counter.textContent = 'Tiempo transcurrido: ' + sec + ' s';
+    }, 1000);
+    lines.forEach(({ t, cls, text }) => {
+      setTimeout(() => {
+        const el = document.createElement('div');
+        el.className = 'line ' + cls;
+        el.textContent = text;
+        log.appendChild(el);
+        log.scrollTop = log.scrollHeight;
+        if (text.includes('created — NUNCA')) {
+          statusBar.textContent = 'Estado API: created (atascado) · Terminal: NO recibió $18.00';
+          termMsg.textContent = 'Sin cobro — pantalla sigue en «Ingresar monto»';
+          termMsg.style.color = '#dc2626';
+          termMsg.style.fontWeight = '700';
+        } else if (text.includes('status: created') && !text.includes('NUNCA')) {
+          statusBar.textContent = 'Estado API: created · Terminal: esperando sync…';
+        }
+      }, t);
+    });
+    setTimeout(() => { clearInterval(secTimer); }, 20000);
+    // Loop animation for continuous recording
+    setTimeout(() => location.reload(), 18000);
+  </script>
+</body>
+</html>

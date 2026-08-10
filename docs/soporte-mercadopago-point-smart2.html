@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Reporte técnico — Integración Point Smart 2 — FarmaCapital</title>
+  <style>
+    @page { margin: 18mm 16mm; size: A4; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 11pt;
+      line-height: 1.45;
+      color: #111827;
+      max-width: 210mm;
+      margin: 0 auto;
+      padding: 16mm;
+    }
+    h1 { font-size: 18pt; margin: 0 0 4px; color: #0f172a; }
+    h2 { font-size: 13pt; margin: 22px 0 8px; color: #1e3aba; border-bottom: 1px solid #dbeafe; padding-bottom: 4px; }
+    h3 { font-size: 11pt; margin: 14px 0 6px; color: #334155; }
+    .meta { color: #64748b; font-size: 10pt; margin-bottom: 18px; }
+    .summary {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin: 12px 0 18px;
+    }
+    .summary strong { color: #991b1b; }
+    table { width: 100%; border-collapse: collapse; margin: 8px 0 14px; font-size: 10pt; }
+    th, td { border: 1px solid #e2e8f0; padding: 7px 9px; text-align: left; vertical-align: top; }
+    th { background: #f8fafc; font-weight: 700; width: 34%; }
+    code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 9.5pt; word-break: break-all; }
+    ul { margin: 6px 0 10px; padding-left: 20px; }
+    li { margin: 4px 0; }
+    .orders { font-size: 9.5pt; }
+    .footer { margin-top: 24px; padding-top: 10px; border-top: 1px solid #e2e8f0; font-size: 9pt; color: #64748b; }
+    .request { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px 14px; }
+    @media print {
+      body { padding: 0; }
+      a { color: inherit; text-decoration: none; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Reporte técnico — Integración Mercado Pago Point Smart 2</h1>
+  <p class="meta">
+    <strong>Comercio:</strong> FarmaCapital &nbsp;|&nbsp;
+    <strong>Sitio:</strong> https://www.farmacapital.mx &nbsp;|&nbsp;
+    <strong>Fecha:</strong> 28 de julio de 2026 (actualizado) &nbsp;|&nbsp;
+    <strong>Ticket:</strong> WCS-43806 / ID 470711389 &nbsp;|&nbsp;
+    <strong>País:</strong> México (MEX)
+  </p>
+
+  <div class="summary">
+    <strong>Problema:</strong> La integración vía Orders API (<code>POST /v1/orders</code>) crea órdenes correctamente,
+    pero el terminal físico <strong>no las sincroniza</strong>. Las órdenes permanecen en estado
+    <code>created</code> y <strong>nunca pasan a <code>at_terminal</code></strong>. Existen además
+    <strong>7 órdenes atascadas</strong> en cola que no pueden cancelarse por API (<code>order_not_found</code>).
+  </div>
+
+  <h2>1. Datos del comercio y terminal</h2>
+  <table>
+    <tr><th>Cuenta Mercado Pago</th><td>farm***@outlook.com</td></tr>
+    <tr><th>user_id</th><td><code>3535233331</code></td></tr>
+    <tr><th>Dispositivo</th><td>Point Smart 2</td></tr>
+    <tr><th>Serial físico</th><td><code>N950NCCC05728001</code></td></tr>
+    <tr><th>terminal_id (API)</th><td><code>NEWLAND_N950__N950NCCC05728001</code></td></tr>
+    <tr><th>POS (caja)</th><td>Sucursal - QR #1 — <code>pos_id: 135063974</code></td></tr>
+    <tr><th>Sucursal (store)</th><td><code>store_id: 84680678</code></td></tr>
+    <tr><th>Modo operación (API)</th><td><code>PDV</code></td></tr>
+    <tr><th>Terminal — Ajustes</th><td>«Vincular frente de caja» = <strong>ACTIVO (ON)</strong></td></tr>
+    <tr><th>Conectividad</th><td>WiFi + chip AT&amp;T activo; terminal reportado online por soporte MP</td></tr>
+    <tr><th>Versión sistema Point</th><td>12.1.8 (según panel MP)</td></tr>
+    <tr><th>external_pos_id (API devices)</th><td><code>""</code> (vacío — posible vinculación incompleta)</td></tr>
+  </table>
+
+  <h2>2. Datos de la integración API</h2>
+  <table>
+    <tr><th>Sistema integrador</th><td>FarmaCapital — POS web administrativo</td></tr>
+    <tr><th>API utilizada</th><td>Orders API (migrado desde Payment Intent legacy)</td></tr>
+    <tr><th>Endpoint creación</th><td><code>POST https://api.mercadopago.com/v1/orders</code></td></tr>
+    <tr><th>Endpoint consulta</th><td><code>GET https://api.mercadopago.com/v1/orders/{order_id}</code></td></tr>
+    <tr><th>Endpoint cancelación</th><td><code>POST https://api.mercadopago.com/v1/orders/{order_id}/cancel</code></td></tr>
+    <tr><th>Modo PDV (setup)</th><td><code>PATCH https://api.mercadopago.com/terminals/v1/setup</code></td></tr>
+    <tr><th>application_id</th><td><code>2846341686224141</code></td></tr>
+    <tr><th>Access Token</th><td>Credencial de producción de la aplicación (servidor backend; no expuesto en frontend)</td></tr>
+    <tr><th>Proxy backend</th><td><code>https://www.farmacapital.mx/api/payments/mp/point</code></td></tr>
+  </table>
+
+  <h2>3. Pruebas recientes verificadas</h2>
+  <h3>3.1 Intento real — 27-jul-2026 (post-reinicio terminal)</h3>
+  <table>
+    <tr><th>order_id</th><td><code>ORD01KYJBGN99S8V1KKZ3XSC6T4EE</code></td></tr>
+    <tr><th>Monto</th><td>$18.00 MXN</td></tr>
+    <tr><th>external_reference</th><td><code>VTA-00000000</code></td></tr>
+    <tr><th>Fecha creación (UTC)</th><td>2026-07-27T17:56:11.869Z</td></tr>
+    <tr><th>Estado</th><td><code>created</code> — <strong>NO llega a <code>at_terminal</code></strong></td></tr>
+    <tr><th>Terminal físico</th><td>Sin cambio en pantalla; «Actualizar ↻» sin efecto</td></tr>
+    <tr><th>Cancelación vía API</th><td><code>canceled</code> / <code>canceled_by_api</code></td></tr>
+  </table>
+  <h3>3.2 Diagnóstico automático — 27-jul-2026</h3>
+  <table>
+    <tr><th>order_id prueba</th><td><code>ORD01KYJBKKXAY53TWRYVKA3V8CAK</code></td></tr>
+    <tr><th>operating_mode</th><td><code>PDV</code></td></tr>
+    <tr><th>Estado tras 8 s</th><td><code>created</code> (esperado: <code>at_terminal</code>)</td></tr>
+    <tr><th>Conclusión</th><td>API OK; Point físico no sincroniza</td></tr>
+  </table>
+  <h3>3.3 Prueba soporte — 22-jul-2026</h3>
+  <table>
+    <tr><th>order_id</th><td><code>ORD01KY42TE8CS0G3JERSKSVRCGG6</code></td></tr>
+    <tr><th>Monto</th><td>$18.00 MXN</td></tr>
+    <tr><th>external_reference</th><td><code>VTA-MP-SOPORTE-001</code></td></tr>
+    <tr><th>Fecha creación (UTC)</th><td>2026-07-22T04:54:53.044Z</td></tr>
+    <tr><th>Resultado</th><td><code>created</code> indefinido; terminal sin reacción</td></tr>
+  </table>
+  <p><em>Conclusión: la orden existe en Mercado Pago, es consultable y cancelable por API, pero el lector físico no la obtiene.</em></p>
+
+  <h2>4. Cola de órdenes atascadas (7 registros)</h2>
+  <p>Órdenes en estado <code>created</code> desde hace horas. Al intentar <code>POST .../cancel</code>, la API responde <code>order_not_found</code> en la mayoría, aunque <code>GET .../orders/{id}</code> sí las devuelve.</p>
+  <table class="orders">
+    <tr><th>order_id</th><th>Monto</th><th>external_reference</th><th>Notas</th></tr>
+    <tr><td><code>ORD01KY3GES14Z7BA7M809856CE82</code></td><td>$18.00</td><td>VTA-00000000</td><td>Cobro real desde POS FarmaCapital</td></tr>
+    <tr><td><code>ORD01KY3GFCV4SZ4ZAXAVJNV7X6FD</code></td><td>$18.00</td><td>VTA-00000000</td><td>Cobro real desde POS FarmaCapital</td></tr>
+    <tr><td><code>ORD01KY428XMBB28SEVNNWXC5QHVD</code></td><td>$1.00</td><td>FC-DIAG-*</td><td>Diagnóstico</td></tr>
+    <tr><td><code>ORD01KY422VPC5JH6BQCCWS0X2QMG</code></td><td>$1.00</td><td>FC-DIAG-*</td><td>Diagnóstico</td></tr>
+    <tr><td><code>ORD01KY420WJ1YFRD45TA0RGQ1CZE</code></td><td>$1.00</td><td>FC-DIAG-*</td><td>Diagnóstico</td></tr>
+    <tr><td><code>ORD01KY420PM94MPGX76N33S1SC9A</code></td><td>$1.00</td><td>FC-DIAG-*</td><td>Diagnóstico</td></tr>
+    <tr><td><code>ORD01KY3GHCWMB44C1869FWP0WQB1</code></td><td>$1.00</td><td>cleanup</td><td>Diagnóstico</td></tr>
+  </table>
+
+  <h2>5. Acciones ya realizadas (sin resolver el incidente)</h2>
+  <ul>
+    <li>Terminal configurado en modo <code>PDV</code> vía API (<code>PATCH /terminals/v1/setup</code>).</li>
+    <li>«Vincular frente de caja» activado en Ajustes del Point Smart 2.</li>
+    <li>Reinicios completos del terminal (apagar/encender).</li>
+    <li>Actualización de software del terminal verificada.</li>
+    <li>Reset de modo: STANDALONE → PDV vía API + reinicio.</li>
+    <li>Botón «Actualizar (↻)» en pantalla de cobro del Point al enviar orden — sin efecto.</li>
+    <li>Soporte MP (IA) confirmó terminal online, SIM activa y PDV reactivado — problema persiste.</li>
+    <li>Migración completada de Payment Intent legacy a Orders API (<code>POST /v1/orders</code>).</li>
+  </ul>
+
+  <h2>6. Evolución del incidente</h2>
+  <table>
+    <tr><th>Error inicial</th><td>HTTP 400 — payload Payment Intent obsoleto (<code>payment</code>, <code>description</code> no permitidos)</td></tr>
+    <tr><th>Tras migración a Orders API</th><td>Órdenes se crean correctamente (HTTP 200/201)</td></tr>
+    <tr><th>Error intermedio</th><td>HTTP 409 — <code>queued order on terminal</code> (órdenes de prueba abandonadas)</td></tr>
+    <tr><th>Estado actual</th><td>Órdenes en <code>created</code> indefinidamente; terminal no sincroniza; cola atascada</td></tr>
+  </table>
+
+  <h2>7. Solicitud a Sistemas / Nivel 2</h2>
+  <div class="request">
+    <ol>
+      <li>Revisar logs internos de sincronización backend ↔ terminal para <code>NEWLAND_N950__N950NCCC05728001</code>.</li>
+      <li><strong>Limpiar la cola</strong> de las 7 órdenes atascadas en estado <code>created</code>.</li>
+      <li>Investigar por qué <code>POST /cancel</code> devuelve <code>order_not_found</code> en órdenes que <code>GET</code> sí encuentra.</li>
+      <li>Confirmar que <code>application_id 2846341686224141</code> tiene habilitada integración Point/Orders en producción para <code>user_id 3535233331</code>.</li>
+      <li>Verificar asociación correcta terminal ↔ <code>pos_id 135063974</code> para cobros API (no solo QR estático).</li>
+      <li>Investigar por qué <code>external_pos_id</code> está vacío en <code>GET /point/integration-api/devices</code>.</li>
+      <li>Forzar re-sincronización del terminal o indicar procedimiento para desbloqueo definitivo.</li>
+    </ol>
+  </div>
+
+  <h2>8. Prueba en vivo (disponible)</h2>
+  <p>El comercio puede generar una orden de prueba desde FarmaCapital en el momento que Sistemas lo indique, con el Point encendido en pantalla de cobro y botón «Actualizar (↻)» listo para usar.</p>
+
+  <h2>9. Contacto</h2>
+  <table>
+    <tr><th>Comercio</th><td>FarmaCapital</td></tr>
+    <tr><th>Correo cuenta MP</th><td>farm***@outlook.com</td></tr>
+    <tr><th>Desarrollador / integración</th><td>Equipo FarmaCapital (farmacapital.mx)</td></tr>
+  </table>
+
+  <p class="footer">
+    Documento generado para soporte técnico Mercado Pago — Integración Point Smart 2 + Orders API.<br />
+    FarmaCapital © 2026
+  </p>
+</body>
+</html>

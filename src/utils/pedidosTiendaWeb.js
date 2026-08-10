@@ -6,8 +6,22 @@
  */
 export const METODOS_PAGO_TIENDA_WEB = ["tarjeta", "mercadopago"];
 
+/** Pago confirmado para surtir en POS (alineado a fn_pedido_online_pago_confirmado en Supabase). */
+export function pedidoOnlinePagoConfirmado(p) {
+  if (!p) return false;
+  const metodo = String(p.metodo_pago || "").toLowerCase().trim();
+  const status = String(p.payment_status || "").toLowerCase().trim();
+  const tipo = String(p.tipo || "").toLowerCase().trim();
+  if (tipo && tipo !== "online") return true;
+  if (metodo === "mercadopago" || metodo === "tarjeta") return status === "approved";
+  if (metodo === "efectivo") return true;
+  if (status) return status === "approved";
+  return false;
+}
+
 export function esPedidoTiendaWebPendiente(p) {
   if (!p || p.estado !== "pendiente") return false;
+  if (!pedidoOnlinePagoConfirmado(p)) return false;
   if (p.tipo === "online") return true;
   if (p.tipo != null && String(p.tipo).trim() !== "") return false;
   const m = String(p.metodo_pago || "");
