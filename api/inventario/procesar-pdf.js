@@ -1,102 +1,165 @@
-/**
- * Endpoint: POST /api/inventario/procesar-pdf
- * Procesa un PDF con Claude Vision y extrae productos
- */
+'use strict';
 
-import fetch from 'node-fetch';
+const {
+  getSupabaseAdminConfig,
+  validateEmployeeSession,
+} = require('../_lib/supabaseAdmin');
+const {
+  productosFromParsedJson,
+  extraerProductosDeTexto,
+  insertarProductos,
+  extraerConClaude,
+  extraerTextoPdf,
+  isAnthropicCreditError,
+} = require('../_lib/inventarioProductos');
 
-const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL || 'https://qyabhoftqfmqwpqcsdrb.supabase.co';
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
-
-async function validateSession(sessionToken) {
+async function safeJson(req) {
   try {
-    // Validar token de sesión
-    // Por ahora, simplemente retornamos true si existe el token
-    return !!sessionToken;
+    if (!req?.body) return {};
+    if (typeof req.body === 'object') return req.body;
+    return JSON.parse(req.body || '{}');
   } catch {
-    return false;
+    return {};
   }
 }
 
-async function insertProducts(productos, proveedor) {
-  /**
-   * Inserta productos en Supabase (tabla productos_v2 + ofertas_proveedor + lotes_v2)
-   * Usa RPC para transacción atómica
-   */
-
-  if (!Array.isArray(productos) || productos.length === 0) {
-    return { success: true, insertados: 0 };
-  }
-
+function decodeBase64Pdf(archivoBase64) {
+  let raw = String(archivoBase64 || '').trim();
+  if (!raw) return null;
+  const dataUrlMatch = raw.match(/^data:application\/pdf;base64,(.+)$/i);
+  if (dataUrlMatch) raw = dataUrlMatch[1];
+  raw = raw.replace(/\s/g, '');
   try {
-    // Implementar inserción en Supabase
-    // Por ahora retornamos éxito para prueba
-    console.log(`✓ Insertando ${productos.length} productos para ${proveedor}`);
-
-    return {
-      success: true,
-      insertados: productos.length,
-      mensaje: `${productos.length} productos cargados exitosamente`
-    };
-  } catch (error) {
-    console.error('Error insertando productos:', error.message);
-    return {
-      success: false,
-      error: error.message
-    };
+    const buf = Buffer.from(raw, 'base64');
+    if (!buf.length) return null;
+    if (buf.slice(0, 4).toString() !== '%PDF') {
+      return null;
+    }
+    return buf;
+  } catch {
+    return null;
   }
 }
 
-export default async function handler(req, res) {
+async function extraerProductosDelPdf(pdfBuffer, proveedor) {
+  const anthropicKey = String(process.env.ANTHROPIC_API_KEY || process.env.REACT_APP_ANTHROPIC_API_KEY || '').trim();
+  const pdfBase64 = pdfBuffer.toString('base64');
+  const avisos = [];
+
+  if (anthropicKey) {
+    try {
+      const productos = await extraerConClaude(anthropicKey, pdfBase64);
+      if (productos.length) {
+        return { productos, metodo: 'claude', avisos };
+      }
+      avisos.push('Claude no detectó productos; se intenta extracción por texto.');
+    } catch (e) {
+      if (e.creditError || isAnthropicCreditError(e.status, e.message)) {
+        avisos.push('Créditos insuficientes en Anthropic. Usando extracción por texto del PDF.');
+      } else {
+        avisos.push(`Claude falló (${e.message}). Usando extracción por texto.`);
+      }
+    }
+  } else {
+    avisos.push('ANTHROPIC_API_KEY no configurada. Usando extracción por texto del PDF.');
+  }
+
+  const texto = await extraerTextoPdf(pdfBuffer);
+  if (!texto.trim()) {
+    return { productos: [], metodo: 'texto', avisos: [...avisos, 'No se pudo leer texto del PDF.'] };
+  }
+
+  const productos = extraerProductosDeTexto(texto, proveedor);
+  return { productos, metodo: 'texto', avisos };
+}
+
+module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  const { supabaseUrl, serviceKey } = getSupabaseAdminConfig();
+  if (!supabaseUrl || !serviceKey) {
+    return res.status(500).json({ error: 'Supabase no configurado en el servidor' });
+  }
+
   try {
-    const { session_token, archivo_base64, proveedor = 'PROVEEDOR' } = req.body;
+    const body = await safeJson(req);
+    const sessionToken = String(body?.session_token || '').trim();
+    const proveedor = String(body?.proveedor || 'EQUILIBRIO FARMACEÚTICO').trim() || 'EQUILIBRIO FARMACEÚTICO';
 
-    // Validar sesión
-    if (!await validateSession(session_token)) {
-      return res.status(401).json({ error: 'Sesión no válida' });
+    const sessionOk = await validateEmployeeSession(supabaseUrl, serviceKey, sessionToken);
+    if (!sessionOk) {
+      return res.status(401).json({ error: 'Sesión no válida o expirada' });
     }
 
-    // Validar entrada
-    if (!archivo_base64) {
-      return res.status(400).json({ error: 'archivo_base64 requerido' });
-    }
+    let productosRaw = productosFromParsedJson(body?.productos != null ? { productos: body.productos } : null);
+    let metodoExtraccion = 'json';
+    const avisos = [];
 
-    // TODO: Procesar PDF con Claude Vision
-    // Por ahora retornamos ejemplo
-
-    const productosEjemplo = [
-      {
-        codigo: '7501090131234',
-        nombre: 'AMOXICILINA',
-        marca: 'FARMALAB',
-        presentacion: '40 CAPSULAS',
-        contenido: '500',
-        unidad: 'MG',
-        cantidad: 2,
-        precio: 85.50,
-        caducidad: '2025-12-15',
-        lote: 'A123456'
+    if (!productosRaw.length) {
+      const pdfBuffer = decodeBase64Pdf(body?.archivo_base64);
+      if (!pdfBuffer) {
+        return res.status(400).json({
+          error: 'archivo_base64 requerido (PDF válido en base64) o arreglo productos',
+        });
       }
-    ];
 
-    // Insertar en BD
-    const resultado = await insertProducts(productosEjemplo, proveedor);
+      const extracted = await extraerProductosDelPdf(pdfBuffer, proveedor);
+      productosRaw = extracted.productos;
+      metodoExtraccion = extracted.metodo;
+      avisos.push(...extracted.avisos);
+
+      if (!productosRaw.length) {
+        const creditMsg = avisos.some((a) => a.includes('Créditos insuficientes'));
+        return res.status(422).json({
+          error: creditMsg
+            ? 'Créditos insuficientes en Anthropic y el PDF no pudo parsearse por texto. Sube un JSON con productos o recarga créditos.'
+            : 'No se detectaron productos en el PDF. Verifica que sea un ticket legible o carga JSON manual.',
+          avisos,
+          extraccion: metodoExtraccion,
+        });
+      }
+    }
+
+    const { insertados, errores } = await insertarProductos(
+      supabaseUrl,
+      serviceKey,
+      productosRaw,
+      proveedor
+    );
+
+    if (!insertados.length && errores.length) {
+      const firstErr = errores[0]?.error || 'Error desconocido';
+      const rpcMissing = errores.every((e) => String(e.error || '').includes('create_producto_con_oferta'));
+      return res.status(502).json({
+        error: rpcMissing
+          ? 'RPC create_producto_con_oferta no existe en Supabase. Ejecuta sql/schema_inventario_v2_con_proveedores.sql'
+          : `No se insertó ningún producto: ${firstErr}`,
+        errores,
+        avisos,
+        extraccion: metodoExtraccion,
+      });
+    }
+
+    const mensaje = errores.length
+      ? `${insertados.length} productos cargados (${errores.length} con error)`
+      : `${insertados.length} productos cargados exitosamente`;
 
     return res.status(200).json({
-      success: resultado.success,
-      productos: productosEjemplo,
-      mensaje: resultado.mensaje
+      success: true,
+      productos: insertados,
+      insertados: insertados.length,
+      mensaje,
+      extraccion: metodoExtraccion,
+      avisos: avisos.length ? avisos : undefined,
+      errores: errores.length ? errores : undefined,
     });
-
   } catch (error) {
-    console.error('[procesar-pdf] Error:', error.message);
+    console.error('[procesar-pdf] Error:', error);
     return res.status(500).json({
       error: 'Error procesando PDF',
-      detalle: error.message
+      detalle: error?.message || String(error),
     });
   }
-}
+};
