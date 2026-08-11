@@ -52,15 +52,20 @@ function productoIdDesdeCreateRpc(data) {
 // F4: campos lote/fecha_caducidad ya NO viven en productos; son del lote.
 // Para productos ya existentes derivamos min_caducidad desde lotes activos.
 const minCaducidadLotes = (lotes) => {
-  const activos = (lotes || []).filter(l => l.activo !== false && (l.cantidad_actual || 0) > 0 && l.fecha_caducidad);
-  return activos.reduce((m, l) => (!m || l.fecha_caducidad < m) ? l.fecha_caducidad : m, null);
+  const conFecha = (lotes || []).filter((l) => l.activo !== false && l.fecha_caducidad);
+  if (!conFecha.length) return null;
+  const conStock = conFecha.filter((l) => (l.cantidad_actual || 0) > 0);
+  const pool = conStock.length ? conStock : conFecha;
+  return pool.reduce((m, l) => (!m || l.fecha_caducidad < m) ? l.fecha_caducidad : m, null);
 };
 
 /** Lote activo con caducidad más próxima (PEPS). */
 const loteCaducidadMasProxima = (lotes) => {
-  const activos = (lotes || []).filter((l) => l.activo !== false && (l.cantidad_actual || 0) > 0);
-  if (!activos.length) return null;
-  return activos
+  if (!lotes?.length) return null;
+  const activos = lotes.filter((l) => l.activo !== false && (l.cantidad_actual || 0) > 0);
+  const pool = activos.length ? activos : lotes.filter((l) => l.activo !== false);
+  if (!pool.length) return null;
+  return pool
     .slice()
     .sort((a, b) => {
       if (!a.fecha_caducidad) return 1;
@@ -82,6 +87,40 @@ const resolverLoteCaducidadProducto = (product) => {
   const sueltos = (product?.lotes || []).filter((l) => l.activo !== false);
   return loteCaducidadMasProxima(sueltos.length ? sueltos : null) || sueltos[0] || null;
 };
+
+async function fetchLotesPorProducto(sessionToken) {
+  if (!sessionToken) return {};
+  const { data: lotesRaw, error } = await supabase.rpc("empleado_listar_lotes_inventario", {
+    p_session_token: sessionToken,
+  });
+  if (error || !lotesRaw) return {};
+  const list = Array.isArray(lotesRaw) ? lotesRaw : [];
+  const byProducto = {};
+  for (const l of list) {
+    const pid = l.producto_id;
+    if (!pid) continue;
+    if (!byProducto[pid]) byProducto[pid] = [];
+    byProducto[pid].push({
+      id: l.id,
+      numero_lote: l.numero_lote,
+      fecha_caducidad: l.fecha_caducidad,
+      cantidad_actual: l.cantidad_actual,
+      costo_unitario: l.costo_unitario,
+      activo: l.activo,
+    });
+  }
+  return byProducto;
+}
+
+function enrichProductoConLotes(p, lotes) {
+  const lotesList = lotes || [];
+  return {
+    ...p,
+    lotes: lotesList,
+    min_caducidad_lotes: minCaducidadLotes(lotesList),
+    lotes_activos: lotesList.filter((l) => l.activo !== false && (l.cantidad_actual || 0) > 0),
+  };
+}
 
 async function refetchProductoLotes(productoId) {
   const { data, error } = await supabase
@@ -2837,17 +2876,15 @@ export default function InventarioModule() {
 
   const fetchProductos = useCallback(async () => {
     setLoading(true);
-    let q = supabase.from("productos")
-      .select("*, lotes(id,numero_lote,fecha_caducidad,cantidad_actual,costo_unitario,activo)")
-      .order("nombre");
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    let q = supabase.from("productos").select("*").order("nombre");
     if (!verInactivos) q = q.eq("activo", true);
-    const { data, error } = await q;
+    const [{ data, error }, lotesByProducto] = await Promise.all([
+      q,
+      fetchLotesPorProducto(tok),
+    ]);
     if (!error) {
-      const enriched = (data || []).map(p => ({
-        ...p,
-        min_caducidad_lotes: minCaducidadLotes(p.lotes),
-        lotes_activos: (p.lotes || []).filter(l => l.activo !== false && (l.cantidad_actual || 0) > 0),
-      }));
+      const enriched = (data || []).map((p) => enrichProductoConLotes(p, lotesByProducto[p.id]));
       setProductos(enriched);
       setLoading(false);
       return enriched;
@@ -3782,7 +3819,8 @@ export default function InventarioModule() {
               {filtrados.map((p,_rowIdx)=>{
                 const bajo    = p.activo && p.stock<=(p.stock_minimo??0);
                 const inact   = !p.activo;
-                const dias    = diasParaCaducar(p.min_caducidad_lotes);
+                const proxCad = p.min_caducidad_lotes || resolverLoteCaducidadProducto(p)?.fecha_caducidad;
+                const dias    = diasParaCaducar(proxCad);
                 const nearCad = dias!==null && dias<=30 && dias>=0;
                 const mgn     = margen(p.precio, p.costo);
                 const mgnNum  = parseFloat(mgn);
