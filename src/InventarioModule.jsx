@@ -171,6 +171,15 @@ const diasParaCaducar = (fecha) => {
   return Math.ceil(diff);
 };
 
+/** Mes/año para control de caducidad en tabla (ej. 11/2027). */
+function formatCaducidadMesAnio(fecha) {
+  if (!fecha) return null;
+  const s = String(fecha).slice(0, 10);
+  const m = /^(\d{4})-(\d{2})/.exec(s);
+  if (!m) return s;
+  return `${m[2]}/${m[1]}`;
+}
+
 /**
  * Referencia del Excel mayorista (columna A del libro), guardada en `notas` como "Lista SKU origen".
  * No es el SKU FarmaCapital (`productos.sku`): es solo la ref. del distribuidor para pedidos / cruce con lista.
@@ -445,7 +454,7 @@ const INV_COLUMN_DEFS = {
   margen: { label: "Margen%", hint: "" },
   similares: { label: "Similares", hint: "Precio de referencia en Farmacias Similares (captura manual)." },
   ahorro: { label: "Del Ahorro", hint: "Precio de referencia en Farmacias del Ahorro (captura manual)." },
-  cad: { label: "Cad. (días)", hint: "Clic para editar fecha del lote más próximo" },
+  cad: { label: "Cad.", hint: "Mes/año del lote más próximo — clic para editar" },
   agot: { label: "Agot. (días)", hint: "" },
   desc: { label: "Desc%", hint: "" },
   estado: { label: "Estado", hint: "" },
@@ -1135,9 +1144,11 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
                           fontWeight: caducidadLote ? 600 : 400,
                         }}
                       />
-                      {caducidadLote && diasProx !== null ? (
+                      {caducidadLote ? (
                         <div style={{ color: C.textMid, marginBottom: 8 }}>
-                          {diasProx < 0 ? "Vencido" : diasProx === 0 ? "Caduca hoy" : `Caduca en ${diasProx} días`}
+                          {diasProx !== null && diasProx < 0
+                            ? "Vencido"
+                            : `Caducidad: ${formatCaducidadMesAnio(caducidadLote) || caducidadLote}`}
                         </div>
                       ) : (
                         <div style={{ color: C.textMid, marginBottom: 8 }}>Sin fecha — elegí una arriba</div>
@@ -2021,6 +2032,7 @@ function renderInventarioColumnCell(colId, ctx) {
     dosisLine,
     cbDisp,
     sinCb,
+    proxCad,
     dias,
     nearCad,
   } = ctx;
@@ -2469,19 +2481,17 @@ function renderInventarioColumnCell(colId, ctx) {
             e.currentTarget.style.background = stickyRowBg;
           }}
         >
-          {dias === null ? (
-            loteRef ? (
+          {proxCad ? (
+            <span style={{ color: nearCad ? C.red : dias !== null && dias <= 60 ? C.amber : C.textMid, fontWeight: nearCad ? 700 : 500, fontSize: 11 }}>
+              {dias !== null && dias < 0 ? "Vencido" : formatCaducidadMesAnio(proxCad)}
+            </span>
+          ) : loteRef ? (
               <span style={{ color: C.amber, fontWeight: 600, fontSize: 11 }}>Sin fecha</span>
             ) : (p.stock ?? 0) > 0 ? (
               <span style={{ color: C.blue, fontWeight: 600, fontSize: 11 }}>+ Cad.</span>
             ) : (
               "—"
-            )
-          ) : (
-            <span style={{ color: nearCad ? C.red : dias <= 60 ? C.amber : C.textMid, fontWeight: nearCad ? 700 : 400 }}>
-              {dias < 0 ? "Vencido" : dias === 0 ? "Hoy" : `${dias} d`}
-            </span>
-          )}
+            )}
         </td>
       );
     }
@@ -3871,6 +3881,7 @@ export default function InventarioModule() {
                   dosisLine,
                   cbDisp,
                   sinCb,
+                  proxCad,
                   dias,
                   nearCad,
                 };
