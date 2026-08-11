@@ -69,6 +69,33 @@ const loteCaducidadMasProxima = (lotes) => {
     })[0];
 };
 
+const lotesActivosProducto = (product) => {
+  if (product?.lotes_activos?.length) return product.lotes_activos;
+  return (product?.lotes || []).filter((l) => l.activo !== false && (l.cantidad_actual || 0) > 0);
+};
+
+/** Lote editable para caducidad (activo con stock, o cualquier lote activo en BD). */
+const resolverLoteCaducidadProducto = (product) => {
+  const activos = lotesActivosProducto(product);
+  const ref = loteCaducidadMasProxima(activos);
+  if (ref) return ref;
+  const sueltos = (product?.lotes || []).filter((l) => l.activo !== false);
+  return loteCaducidadMasProxima(sueltos.length ? sueltos : null) || sueltos[0] || null;
+};
+
+async function refetchProductoLotes(productoId) {
+  const { data, error } = await supabase
+    .from("productos")
+    .select("id, stock, lotes(id, numero_lote, fecha_caducidad, cantidad_actual, costo_unitario, activo)")
+    .eq("id", productoId)
+    .single();
+  if (error || !data) return null;
+  return {
+    ...data,
+    lotes_activos: (data.lotes || []).filter((l) => l.activo !== false && (l.cantidad_actual || 0) > 0),
+  };
+}
+
 const mkInputStyle = (C) => ({ width:"100%", padding:"8px 10px", borderRadius:7, border:`1px solid ${C.border}`, background:C.bg, color:C.text, fontSize:12, outline:"none", boxSizing:"border-box" });
 const mkLabelStyle = (C) => ({ color:C.textMid, fontSize:11, fontWeight:600, marginBottom:3, display:"block" });
 const mkBtnPrimary = (C) => ({ padding:"9px 18px", borderRadius:8, border:"none", cursor:"pointer", background:BRAND.gradient, color:"#fff", fontWeight:700, fontSize:12 });
@@ -749,10 +776,7 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
   const btnGreen = mkBtnGreen(C);
   const loteCadRef = useMemo(() => {
     if (!initial?.id) return null;
-    const activos = initial?.lotes_activos
-      ?? (initial?.lotes || []).filter((l) => l.activo !== false && (l.cantidad_actual || 0) > 0);
-    const pool = activos.length ? activos : (initial?.lotes || []);
-    return loteCaducidadMasProxima(pool);
+    return resolverLoteCaducidadProducto(initial);
   }, [initial]);
   const [form, setForm]     = useState(() => {
     const base = {
@@ -810,6 +834,35 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
         if (!resp?.success) {
           showToast("No se pudo guardar la caducidad.", "error");
           setCaducidadLote(loteCadRef.fecha_caducidad || "");
+          return;
+        }
+        showToast("Caducidad actualizada", "success");
+        await onCaducidadSaved?.();
+      } finally {
+        setCadSaving(false);
+      }
+      return;
+    }
+    let loteId = resolverLoteCaducidadProducto(initial)?.id ?? null;
+    if (!loteId) {
+      const fresh = await refetchProductoLotes(initial.id);
+      loteId = fresh ? resolverLoteCaducidadProducto(fresh)?.id ?? null : null;
+    }
+    if (loteId) {
+      setCadSaving(true);
+      try {
+        const { data: resp, error } = await supabase.rpc("admin_editar_lote", {
+          p_session_token: tok,
+          p_lote_id: loteId,
+          p_fecha_caducidad: next,
+          p_numero_lote: null,
+        });
+        if (error) {
+          showToast(error.message, "error");
+          return;
+        }
+        if (!resp?.success) {
+          showToast("No se pudo guardar la caducidad.", "error");
           return;
         }
         showToast("Caducidad actualizada", "success");
@@ -2355,8 +2408,8 @@ function renderInventarioColumnCell(colId, ctx) {
         />
       );
     case "cad": {
-      const loteRef = loteCaducidadMasProxima(p.lotes_activos || p.lotes);
-      const puedeCad = loteRef || (p.stock ?? 0) > 0;
+      const loteRef = resolverLoteCaducidadProducto(p);
+      const puedeCad = Boolean(loteRef) || (p.stock ?? 0) > 0;
       const isEditingCad = inlineEdit?.productId === p.id && inlineEdit?.field === "cad";
       const tdCad = {
         padding: "8px 12px",
@@ -2963,21 +3016,22 @@ export default function InventarioModule() {
     const draft = String(rawDraft ?? "").trim();
 
     if (field === "cad") {
-      const loteId = meta?.loteId;
       const fecha = draft || null;
       if (!fecha) {
         showToast("Elegí una fecha de caducidad.", "warning");
         return false;
       }
+      let loteId = meta?.loteId ?? resolverLoteCaducidadProducto(product)?.id ?? null;
       if (!loteId) {
-        const stockNum = product.stock ?? 0;
-        if (stockNum <= 0) {
-          showToast("Sin lote ni stock — usá Recibir mercancía.", "warning");
-          return false;
-        }
-        const { data: resp, error } = await supabase.rpc("admin_crear_lote_stock_existente", {
+        const fresh = await refetchProductoLotes(product.id);
+        loteId = fresh ? resolverLoteCaducidadProducto(fresh)?.id ?? null : null;
+      }
+      if (loteId) {
+        const lote = (product.lotes || []).find((l) => l.id === loteId);
+        if ((lote?.fecha_caducidad || null) === fecha) return true;
+        const { data: resp, error } = await supabase.rpc("admin_editar_lote", {
           p_session_token: tok,
-          p_producto_id: product.id,
+          p_lote_id: loteId,
           p_fecha_caducidad: fecha,
           p_numero_lote: null,
         });
@@ -2986,18 +3040,21 @@ export default function InventarioModule() {
           return false;
         }
         if (!resp?.success) {
-          showToast("No se pudo registrar el lote.", "error");
+          showToast("No se pudo guardar la caducidad.", "error");
           return false;
         }
         await fetchProductos();
-        showToast(`Lote creado (${stockNum} pza.) con caducidad`, "success");
+        showToast("Caducidad actualizada", "success");
         return true;
       }
-      const lote = (product.lotes || []).find((l) => l.id === loteId);
-      if ((lote?.fecha_caducidad || null) === fecha) return true;
-      const { data: resp, error } = await supabase.rpc("admin_editar_lote", {
+      const stockNum = product.stock ?? 0;
+      if (stockNum <= 0) {
+        showToast("Sin lote ni stock — usá Recibir mercancía.", "warning");
+        return false;
+      }
+      const { data: resp, error } = await supabase.rpc("admin_crear_lote_stock_existente", {
         p_session_token: tok,
-        p_lote_id: loteId,
+        p_producto_id: product.id,
         p_fecha_caducidad: fecha,
         p_numero_lote: null,
       });
@@ -3006,11 +3063,11 @@ export default function InventarioModule() {
         return false;
       }
       if (!resp?.success) {
-        showToast("No se pudo guardar la caducidad.", "error");
+        showToast("No se pudo registrar el lote.", "error");
         return false;
       }
       await fetchProductos();
-      showToast("Caducidad actualizada", "success");
+      showToast(`Lote creado (${stockNum} pza.) con caducidad`, "success");
       return true;
     }
 
