@@ -1,0 +1,434 @@
+sku,nombre,categoria,tipo,costo,precio_actual,precio_propuesto,regla,recargo_pct,utilidad_pesos,margen_bruto_pct,variacion_pct,needs_review,manual_like,motivo_regla
+FC-76040436,Mexsana P/Pies,Higiene,marca,49.29,78.87,70,higiene,40.0,20.71,29.6,-11.2,False,False,higiene
+FC-F967863B,Terficho,Otro,marca,46.05,59.87,63,med_otc_marca,35.0,16.95,26.9,5.2,False,False,otc marca
+FC-B25B4654,Cina,Otro,marca,28.87,37.54,39,med_otc_marca,35.0,10.13,26.0,3.9,False,False,otc marca
+FC-174824A0,Vernisen,Otro,marca,12.38,16.1,18,med_otc_marca,35.0,5.62,31.2,11.8,False,False,otc marca
+FC-41500096,De Cristal,Botiquín,marca,80.46,128.74,121,material_curacion,50.0,40.54,33.5,-6.0,False,False,material_curacion
+FC-C721E8D7,Levofloxacino,Otro,generico,18.77,30.04,31,med_generico,60.0,12.23,39.5,3.2,False,False,generico+PA
+FC-33956775,Pedialyte Sr60 Uva,Higiene,marca,24.3,38.89,33,bebidas_sueros,30.0,8.7,26.4,-15.1,False,False,bebidas_sueros
+FC-83351691,Degasa Agua Oxigenada,Botiquín,marca,10.19,16.31,16,material_curacion,50.0,5.81,36.3,-1.9,False,False,material_curacion
+FC-9A4E4C31,Clindamicina,Otro,generico,88.42,141.48,120,sin_clasificar,35.0,31.58,26.3,-15.2,True,False,ambiguo
+FC-B18E386A,Cefaroxil,Otro,marca,44.44,57.78,60,med_otc_marca,35.0,15.56,25.9,3.8,False,False,otc marca
+FC-A455EE80,Cefagen,Otro,marca,74.58,96.96,101,med_otc_marca,35.0,26.42,26.2,4.2,False,False,otc marca
+FC-E374F23E,Cefagen,Otro,marca,48.48,63.03,66,med_otc_marca,35.0,17.52,26.5,4.7,False,False,otc marca
+FC-2EDC6E3B,Cefagen,Otro,marca,82.09,106.72,111,med_otc_marca,35.0,28.91,26.0,4.0,False,False,otc marca
+FC-D5AC44CA,Amifarin,Otro,marca,45.78,59.52,62,med_otc_marca,35.0,16.22,26.2,4.2,False,False,otc marca
+FC-ACA2A2F6,Alopurinol,Otro,generico,21.46,34.34,35,med_generico,60.0,13.54,38.7,1.9,False,False,generico+PA
+FC-20500201,Pert Plus Ac-Oliva,Higiene,marca,64.12,102.6,90,higiene,40.0,25.88,28.8,-12.3,False,False,higiene
+FC-06226852,Axe Wom Anarchy,Higiene,marca,88.8,142.09,125,higiene,40.0,36.2,29.0,-12.0,False,False,higiene
+FC-51444145,Old Spice,Higiene,marca,135.73,217.17,191,higiene,40.0,55.27,28.9,-12.1,False,False,higiene
+FC-40CE757D,Cefalver,Otro,marca,62.48,81.23,85,med_otc_marca,35.0,22.52,26.5,4.6,False,False,otc marca
+FC-1DA570E3,Cloxan,Otro,marca,9.75,12.68,15,med_otc_marca,35.0,5.25,35.0,18.3,False,True,otc marca
+FC-8FB65B79,Klarix,Otro,marca,81.67,106.18,111,med_otc_marca,35.0,29.33,26.4,4.5,False,False,otc marca
+FC-85BDBD3D,Acroxil-C,Otro,marca,25.42,33.05,35,med_otc_marca,35.0,9.58,27.4,5.9,False,False,otc marca
+FC-2005DD57,Cefalexina,Otro,generico,39.84,63.75,64,med_generico,60.0,24.16,37.7,0.4,False,False,generico+PA
+FC-CF719C07,Diclofen,Otro,marca,26.82,34.87,37,med_otc_marca,35.0,10.18,27.5,6.1,False,False,otc marca
+FC-AEA8C8DA,Namifen,Otro,marca,24.28,31.57,33,med_otc_marca,35.0,8.72,26.4,4.5,False,False,otc marca
+FC-830BF3FB,Diviltac,Otro,marca,34.45,44.79,47,sin_clasificar,35.0,12.55,26.7,4.9,True,False,ambiguo
+FC-516C2E89,12H Jr,Otro,marca,36.79,47.83,50,med_otc_marca,35.0,13.21,26.4,4.5,False,False,otc marca
+FC-7D1D9857,Acetilsalicilico,Otro,marca,14.85,19.31,21,med_otc_marca,35.0,6.15,29.3,8.8,False,False,otc marca
+FC-86A95D07,Tropharma,Otro,marca,44.53,57.89,61,med_otc_marca,35.0,16.47,27.0,5.4,False,False,otc marca
+FC-74A5ABEE,Ciprofloxacino,Otro,generico,13.69,21.91,22,med_generico,60.0,8.31,37.8,0.4,False,False,generico+PA
+FC-697EEAD0,Kurtosil,Otro,marca,62.48,81.23,85,sin_clasificar,35.0,22.52,26.5,4.6,True,False,ambiguo
+FC-F82A6E4B,Ampicilina,Otro,generico,27.05,43.28,44,med_generico,60.0,16.95,38.5,1.7,False,False,generico+PA
+FC-5F30F9D4,Clamoxin,Otro,marca,48.48,63.03,66,med_otc_marca,35.0,17.52,26.5,4.7,False,False,otc marca
+FC-60F627D5,Gentamicina,Otro,generico,52.57,84.12,71,sin_clasificar,35.0,18.43,26.0,-15.6,True,False,ambiguo
+FC-443C330E,Cefagen,Otro,marca,144.13,187.37,195,med_otc_marca,35.0,50.87,26.1,4.1,False,False,otc marca
+FC-9538F7D6,Fasiclor,Otro,marca,81.18,105.54,110,med_otc_marca,35.0,28.82,26.2,4.2,False,False,otc marca
+FC-01B2F362,Fasiclor,Otro,marca,49.85,64.81,68,med_otc_marca,35.0,18.15,26.7,4.9,False,False,otc marca
+FC-48F732CF,Epicin,Otro,marca,29.56,38.43,40,med_otc_marca,35.0,10.44,26.1,4.1,False,False,otc marca
+FC-72C28BC1,Knoricin,Otro,marca,45.41,59.04,62,med_otc_marca,35.0,16.59,26.8,5.0,False,False,otc marca
+FC-492D652F,Cefalver,Otro,marca,43.35,56.36,59,med_otc_marca,35.0,15.65,26.5,4.7,False,False,otc marca
+FC-F3E734A0,Fasiclor,Otro,marca,63.44,82.48,86,med_otc_marca,35.0,22.56,26.2,4.3,False,False,otc marca
+FC-B4477A00,Pentibroxil,Otro,marca,30.04,39.06,41,med_otc_marca,35.0,10.96,26.7,5.0,False,False,otc marca
+FC-72300171,Polvo,Cuidado personal,marca,43.58,69.73,62,higiene,40.0,18.42,29.7,-11.1,False,False,higiene
+FC-06217461,Rexona Effi Fresh,Higiene,marca,43.58,69.73,62,higiene,40.0,18.42,29.7,-11.1,False,False,higiene
+FC-82740011,Nuvel Humec,Cuidado personal,marca,43.58,69.73,62,higiene,40.0,18.42,29.7,-11.1,False,False,higiene
+FC-F4E9C71F,Amoxicilina,Otro,generico,72.03,115.25,116,med_generico,60.0,43.97,37.9,0.7,False,False,generico+PA
+FC-D9391288,Azitromicina,Otro,generico,68.5,109.6,110,med_generico,60.0,41.5,37.7,0.4,False,False,generico+PA
+FC-A0D320D1,Amoxicilina,Otro,generico,18.37,29.4,30,med_generico,60.0,11.63,38.8,2.0,False,False,generico+PA
+FC-428A228F,Gimalxina,Otro,generico,23.57,37.72,38,med_generico,60.0,14.43,38.0,0.7,False,False,generico+PA
+FC-52910971,Fructis Pei B-Dano Quim,Cuidado personal,marca,78.22,125.16,110,higiene,40.0,31.78,28.9,-12.1,False,False,higiene
+FC-52816297,Fructis Pei Oil-R L-Coco,Cuidado personal,marca,63.05,100.88,89,higiene,40.0,25.95,29.2,-11.8,False,False,higiene
+FC-369D1689,Beneventol,Otro,generico,51.43,82.29,83,med_generico,60.0,31.57,38.0,0.9,False,False,generico+PA
+FC-B69FCBF4,(Maclov),Otro,marca,146.11,189.95,198,med_otc_marca,35.0,51.89,26.2,4.2,False,False,otc marca
+FC-50587FA6,Mexapin,Otro,marca,13.93,18.11,19,med_otc_marca,35.0,5.07,26.7,4.9,False,False,otc marca
+FC-36032776,Ricitos de Oro Oro Biopure,Higiene,marca,29.96,47.94,42,higiene,40.0,12.04,28.7,-12.4,False,False,higiene
+FC-33954740,Pedialyte,Higiene,marca,23.81,38.1,32,bebidas_sueros,30.0,8.19,25.6,-16.0,False,False,bebidas_sueros
+FC-48335305,Degasa 15.00 Agua Oxigenada,Botiquín,marca,14.7,23.52,23,material_curacion,50.0,8.3,36.1,-2.2,False,False,material_curacion
+FC-05965071,Acroxil-C,Otro,marca,24.05,31.27,33,med_otc_marca,35.0,8.95,27.1,5.5,False,False,otc marca
+FC-41339950,Claritromicina,Otro,generico,59.45,95.12,96,med_generico,60.0,36.55,38.1,0.9,False,False,generico+PA
+FC-F183C6E9,Penipot,Otro,marca,19.44,25.28,27,sin_clasificar,35.0,7.56,28.0,6.8,True,False,ambiguo
+FC-4C621D07,Vanmoxol,Otro,generico,18.03,28.85,29,med_generico,60.0,10.97,37.8,0.5,False,False,generico+PA
+FC-022543CD,Valclan,Otro,marca,37.22,48.39,51,med_otc_marca,35.0,13.78,27.0,5.4,False,False,otc marca
+FC-17376CAE,Aspitak-P,Otro,marca,19.72,25.64,27,med_otc_marca,35.0,7.28,27.0,5.3,False,False,otc marca
+FC-E6112F15,Nalixone,Otro,generico,63.32,101.32,102,med_generico,60.0,38.68,37.9,0.7,False,False,generico+PA
+FC-B72A6420,Pentiver,Otro,marca,27.06,35.18,37,med_otc_marca,35.0,9.94,26.9,5.2,False,False,otc marca
+FC-95779436,Acetilsalicilico Ef,Otro,marca,19.07,24.8,26,med_otc_marca,35.0,6.93,26.7,4.8,False,False,otc marca
+FC-40025839,Lomecan V,Higiene,marca,17.2,27.52,25,higiene,40.0,7.8,31.2,-9.2,False,False,higiene
+FC-07502441,Johnson S Baby Antes/Dor,Higiene,marca,20.65,33.04,29,higiene,40.0,8.35,28.8,-12.2,False,False,higiene
+FC-59225411,Nido,Producto,marca,74.19,118.71,101,sin_clasificar,35.0,26.81,26.5,-14.9,True,False,ambiguo
+FC-51067711,Nido,Producto,marca,112.7,180.33,153,sin_clasificar,35.0,40.3,26.3,-15.2,True,False,ambiguo
+FC-D210172A,Ampicilina,Otro,generico,25.48,40.77,35,sin_clasificar,35.0,9.52,27.2,-14.2,True,False,ambiguo
+FC-7F90064A,Ampicilina,Otro,generico,20.37,32.6,29,sin_clasificar,35.0,8.63,29.8,-11.0,True,False,ambiguo
+FC-F48FF7EF,Clamoxin,Otro,marca,35.62,46.31,49,med_otc_marca,35.0,13.38,27.3,5.8,False,False,otc marca
+FC-3A4583F3,Penipot,Otro,marca,14.07,18.3,20,sin_clasificar,35.0,5.93,29.6,9.3,True,False,ambiguo
+FC-F22C72BE,12H,Otro,marca,55.03,71.54,75,med_otc_marca,35.0,19.97,26.6,4.8,False,False,otc marca
+FC-D06E54FE,Valclan,Otro,marca,51.18,66.54,70,med_otc_marca,35.0,18.82,26.9,5.2,False,False,otc marca
+FC-3CAA7C5C,Cinarizina,Otro,generico,35.05,56.08,57,med_generico,60.0,21.95,38.5,1.6,False,False,generico+PA
+FC-86167151,Nestum Probioticos Avena 270 Probioticos,Abarrotes,marca,52.43,83.89,74,impulso,40.0,21.57,29.1,-11.8,False,False,impulso
+FC-92821171,Nido Nido Nestle Bolsa Nestle,Abarrotes,marca,30.67,49.08,43,impulso,40.0,12.33,28.7,-12.4,False,False,impulso
+FC-64EB83AA,Compl,Otro,marca,18.07,23.5,25,sin_clasificar,35.0,6.93,27.7,6.4,True,False,ambiguo
+FC-FD845E68,Aciclovir,Otro,marca,23.68,30.79,32,med_otc_marca,35.0,8.32,26.0,3.9,False,False,otc marca
+FC-F817BC3A,Sibicos,Otro,marca,33.65,43.75,46,sin_clasificar,35.0,12.35,26.8,5.1,True,False,ambiguo
+FC-447B30F9,Budesonida,Otro,marca,131.38,170.8,178,sin_clasificar,35.0,46.62,26.2,4.2,True,False,ambiguo
+FC-1CF27DC9,Dex,Otro,marca,36.86,47.92,50,sin_clasificar,35.0,13.14,26.3,4.3,True,False,ambiguo
+FC-E6B50AC3,Celecoxib,Otro,marca,34.82,45.27,48,med_otc_marca,35.0,13.18,27.5,6.0,False,False,otc marca
+FC-0E0A9E42,S,Otro,marca,47.99,62.39,65,med_otc_marca,35.0,17.01,26.2,4.2,False,False,otc marca
+FC-281E0F22,Budesonida,Otro,marca,153.72,199.84,208,med_otc_marca,35.0,54.28,26.1,4.1,False,False,otc marca
+FC-5D9DFA3D,Norquinol,Otro,generico,48.87,78.2,79,med_generico,60.0,30.13,38.1,1.0,False,False,generico+PA
+FC-E4BE37BE,Atorvastatina,Otro,generico,26.35,42.16,43,med_generico,60.0,16.65,38.7,2.0,False,False,generico+PA
+FC-E9C38DC4,Ciprofloxacino G.I,Otro,generico,22.92,36.68,37,med_generico,60.0,14.08,38.1,0.9,False,False,generico+PA
+FC-6519183A,Clamoxin,Otro,marca,27.89,36.26,38,med_otc_marca,35.0,10.11,26.6,4.8,False,False,otc marca
+FC-9F67BB73,Amifarin,Otro,marca,27.0,35.1,37,med_otc_marca,35.0,10.0,27.0,5.4,False,False,otc marca
+FC-DDFBABDF,12H Ped,Otro,marca,25.94,33.73,36,med_otc_marca,35.0,10.06,27.9,6.7,False,False,otc marca
+FC-C9F4ACCC,Acemetacina,Otro,generico,39.44,63.11,64,med_generico,60.0,24.56,38.4,1.4,False,False,generico+PA
+FC-347A49C7,Amikacina,Otro,generico,19.46,31.14,27,sin_clasificar,35.0,7.54,27.9,-13.3,True,False,ambiguo
+FC-11294615,Amikacina,Otro,generico,31.94,51.11,44,sin_clasificar,35.0,12.06,27.4,-13.9,True,False,ambiguo
+FC-1FEA2FB7,Amikacina,Otro,generico,29.21,46.74,40,sin_clasificar,35.0,10.79,27.0,-14.4,True,False,ambiguo
+FC-974EE5FD,Gimalxina,Otro,generico,27.09,43.35,44,med_generico,60.0,16.91,38.4,1.5,False,False,generico+PA
+FC-DF8ADDAB,Erispan,Otro,marca,22.15,28.8,31,sin_clasificar,35.0,8.85,28.5,7.6,True,False,ambiguo
+FC-50AC2C82,Erispan,Otro,marca,24.45,31.79,34,sin_clasificar,35.0,9.55,28.1,7.0,True,False,ambiguo
+FC-930E0B1B,Vandil,Otro,marca,20.58,26.76,29,med_otc_marca,35.0,8.42,29.0,8.4,False,False,otc marca
+FC-405A75E3,Ursodesoxicolico,Otro,marca,217.23,282.4,294,med_otc_marca,35.0,76.77,26.1,4.1,False,False,otc marca
+FC-4BD80686,Beneventol,Otro,generico,88.17,141.08,142,med_generico,60.0,53.83,37.9,0.7,False,False,generico+PA
+FC-58611420,Nido Nido Nestle Bolsa,Abarrotes,marca,53.7,85.93,76,impulso,40.0,22.3,29.3,-11.6,False,False,impulso
+FC-F8691496,F,Otro,marca,16.89,21.96,23,med_otc_marca,35.0,6.11,26.6,4.7,False,False,otc marca
+FC-4F737E93,Cloxan,Otro,marca,44.04,57.26,60,med_otc_marca,35.0,15.96,26.6,4.8,False,False,otc marca
+FC-E826D304,Lincomicina /2Ml 6 Ampolletas,Producto,marca,47.85,62.21,65,sin_clasificar,35.0,17.15,26.4,4.5,True,False,ambiguo
+FC-51078461,Nan 1 Pro 1,GENERAL,marca,129.4,207.05,169,bebe,30.0,39.6,23.4,-18.4,False,False,bebe
+FC-51078531,Nan Nestle Bolsa Nestle Bolsa,GENERAL,marca,58.7,93.93,77,bebe,30.0,18.3,23.8,-18.0,False,False,bebe
+FC-29003221,Quirmex,Botiquín,marca,3.7,5.93,9,material_curacion,50.0,5.3,58.9,51.8,False,False,material_curacion
+FC-43427754,Kotex Nat Flex Noct,Higiene,marca,31.77,50.84,45,higiene,40.0,13.23,29.4,-11.5,False,False,higiene
+FC-1751468C,Flospet,Otro,marca,27.33,35.53,37,med_otc_marca,35.0,9.67,26.1,4.1,False,False,otc marca
+FC-B2123139,Oxivag,Otro,marca,64.09,83.32,87,med_otc_marca,35.0,22.91,26.3,4.4,False,False,otc marca
+FC-AA905BF7,Perludil,Otro,marca,16.11,20.95,22,sin_clasificar,35.0,5.89,26.8,5.0,True,False,ambiguo
+FC-AE5EEDF7,Bactiver,Otro,marca,48.65,63.25,66,med_otc_marca,35.0,17.35,26.3,4.3,False,False,otc marca
+FC-31887928,Listerine Care Zero Mta,Higiene,marca,26.2,41.92,37,higiene,40.0,10.8,29.2,-11.7,False,False,higiene
+FC-49824391,Prudence 'Ull Retardante C/3,Producto,marca,48.6,77.77,66,sin_clasificar,35.0,17.4,26.4,-15.1,True,False,ambiguo
+FC-14985348,Prudence Ull Sensitive Cond 'Ull Sensitive,Higiene,marca,41.31,66.1,58,higiene,40.0,16.69,28.8,-12.3,False,False,higiene
+FC-49853867,Softlub Extra Cond Extra,Higiene,marca,41.31,66.1,58,higiene,40.0,16.69,28.8,-12.3,False,False,higiene
+FC-DB4A39AE,Efe,Otro,marca,39.07,50.8,53,med_otc_marca,35.0,13.93,26.3,4.3,False,False,otc marca
+FC-FA3D96E6,N Calcitriol,Otro,marca,47.13,61.27,64,med_otc_marca,35.0,16.87,26.4,4.5,False,False,otc marca
+FC-62746605,Jarabe 250 Ml 1 Nat Ajolotius Bioal Imentos,Otro,marca,28.0,36.4,38,med_otc_marca,35.0,10.0,26.3,4.4,False,False,otc marca
+FC-63975795,Gentamicina,Otro,generico,17.58,28.13,29,med_generico,60.0,11.42,39.4,3.1,False,False,generico+PA
+FC-82F88FED,Captopril,Otro,generico,7.95,12.72,13,med_generico,60.0,5.05,38.8,2.2,False,False,generico+PA
+FC-49824911,Prudence Iva Dki Mexico S Cond Iva Mexico,Higiene,marca,31.03,49.65,44,higiene,40.0,12.97,29.5,-11.4,False,False,higiene
+FC-14985805,Prudence Chicle C/E Idkt Cond Chicle,Higiene,marca,44.23,70.77,62,higiene,40.0,17.77,28.7,-12.4,False,False,higiene
+FC-6074BB64,Redalip,Otro,marca,21.01,27.32,30,med_otc_marca,35.0,8.99,30.0,9.8,False,False,otc marca
+FC-DB3B2584,Celesbitan,Otro,marca,16.91,21.99,23,sin_clasificar,35.0,6.09,26.5,4.6,True,False,ambiguo
+FC-22B18244,I.M,Otro,marca,31.06,40.38,42,sin_clasificar,35.0,10.94,26.0,4.0,True,False,ambiguo
+FC-4A0245DA,Amlodipino,Otro,marca,32.52,42.28,44,med_otc_marca,35.0,11.48,26.1,4.1,False,False,otc marca
+FC-29670370,Degortzin,Otro,marca,35.71,46.43,49,med_otc_marca,35.0,13.29,27.1,5.5,False,False,otc marca
+FC-69A3C416,Wexpec,Otro,marca,16.65,21.65,23,med_otc_marca,35.0,6.35,27.6,6.2,False,False,otc marca
+FC-1BF03D35,Acetonido De Fluocinolona Cma,Producto,marca,18.44,23.98,25,sin_clasificar,35.0,6.56,26.2,4.3,True,False,ambiguo
+FC-5BC5F234,Fluconazol,Otro,generico,12.92,20.68,21,med_generico,60.0,8.08,38.5,1.5,False,False,generico+PA
+FC-C6C20517,Budimin,Otro,marca,31.31,40.71,43,med_otc_marca,35.0,11.69,27.2,5.6,False,False,otc marca
+FC-82790504,Nuvel Bifasico Oil,Cuidado personal,marca,16.7,26.72,24,higiene,40.0,7.3,30.4,-10.2,False,False,higiene
+FC-76000284,Vitacilina Ros-Sab,Cuidado personal,marca,21.08,33.73,30,higiene,40.0,8.92,29.7,-11.1,False,False,higiene
+FC-A2B284E0,Hialuronato De Sodio 4Mg,Producto,marca,113.89,148.06,154,sin_clasificar,35.0,40.11,26.0,4.0,True,False,ambiguo
+FC-2E79C2D8,Dex,Otro,marca,61.33,79.73,83,sin_clasificar,35.0,21.67,26.1,4.1,True,False,ambiguo
+FC-28A424E5,Diziver,Otro,marca,8.15,10.6,14,med_otc_marca,35.0,5.85,41.8,32.1,False,True,otc marca
+FC-759A5EF9,Wermy,Otro,marca,24.89,32.36,34,med_otc_marca,35.0,9.11,26.8,5.1,False,False,otc marca
+FC-52844825,Obao R-Nat Coco,Higiene,marca,29.55,47.28,42,higiene,40.0,12.45,29.6,-11.2,False,False,higiene
+FC-6B2ADEE9,Prctaisol 1 Susp/Aer 200 Dosis,GENERAL,marca,96.21,125.08,130,sin_clasificar,35.0,33.79,26.0,3.9,True,False,ambiguo
+FC-14983726,Prudence Natural Lubricante Natural,Higiene,marca,62.06,99.3,87,higiene,40.0,24.94,28.7,-12.4,False,False,higiene
+FC-49824771,Prudence Fresa,Producto,marca,31.03,49.65,42,sin_clasificar,35.0,10.97,26.1,-15.4,True,False,ambiguo
+FC-58203691,Sunstar 0.9 Mt Hilo Dental Ğum Expanding Hilo Dental Ğum Expanding,GENERAL,marca,18.9,30.24,26,sin_clasificar,35.0,7.1,27.3,-14.0,True,False,ambiguo
+FC-14982514,Prudence,Producto,marca,34.1,54.56,47,sin_clasificar,35.0,12.9,27.4,-13.9,True,False,ambiguo
+FC-45079011,Labello,Otro,marca,56.5,90.4,77,sin_clasificar,35.0,20.5,26.6,-14.8,True,False,ambiguo
+FC-14980596,Prudence Mora Cond Mexico 34.10 Mora Cond Mexico,GENERAL,marca,31.03,49.65,42,sin_clasificar,35.0,10.97,26.1,-15.4,True,False,ambiguo
+FC-49800151,Prudence Clasico C/3,Higiene,marca,29.3,46.88,42,higiene,40.0,12.7,30.2,-10.4,False,False,higiene
+FC-06257597,Rexona 1O0 G Tco Pies Efficient Orig,GENERAL,marca,75.7,121.12,103,sin_clasificar,35.0,27.3,26.5,-15.0,True,False,ambiguo
+FC-56330378,Ponds Bio-Hydra Dual,Cuidado personal,marca,28.1,44.97,40,higiene,40.0,11.9,29.8,-11.1,False,False,higiene
+FC-61123009,Odolex Naturals Talco Desodorante,GENERAL,marca,23.99,38.39,33,sin_clasificar,35.0,9.01,27.3,-14.0,True,False,ambiguo
+FC-36041402,Hinds Hidr-Extr Almendras,Cuidado personal,marca,31.59,50.55,45,higiene,40.0,13.41,29.8,-11.0,False,False,higiene
+FC-58DB24C4,Bitenver,Otro,marca,62.78,81.62,85,med_otc_marca,35.0,22.22,26.1,4.1,False,False,otc marca
+FC-1FFBB505,Dac,Otro,marca,42.14,54.79,57,med_otc_marca,35.0,14.86,26.1,4.0,False,False,otc marca
+FC-A909ABC0,Odivitor,Otro,marca,13.77,17.91,19,med_otc_marca,35.0,5.23,27.5,6.1,False,False,otc marca
+FC-6C2878CF,Susp 125 Mg/Ml,Otro,marca,130.24,169.32,176,sin_clasificar,35.0,45.76,26.0,3.9,True,False,ambiguo
+FC-3B001F9B,Amlodipino,Otro,marca,9.04,11.76,15,med_otc_marca,35.0,5.96,39.7,27.6,False,True,otc marca
+FC-B25094C4,Lesaclor,Otro,marca,44.43,57.76,60,med_otc_marca,35.0,15.57,25.9,3.9,False,False,otc marca
+FC-26EA40A4,Ramcinet,Otro,marca,19.65,25.55,27,med_otc_marca,35.0,7.35,27.2,5.7,False,False,otc marca
+FC-885F2723,Carbamazepina,Otro,generico,18.11,28.98,29,med_generico,60.0,10.89,37.6,0.1,False,False,generico+PA
+FC-52933307,Obao Game 48Hr N,Higiene,marca,24.71,39.54,35,higiene,40.0,10.29,29.4,-11.5,False,False,higiene
+FC-43489004,Escudo Rosa Prot Y Cuid,Higiene,marca,40.73,65.17,58,higiene,40.0,17.27,29.8,-11.0,False,False,higiene
+FC-42326414,Garnier De Rosas,Cuidado personal,marca,27.75,44.41,39,higiene,40.0,11.25,28.8,-12.2,False,False,higiene
+FC-46073156,Caprice Nat Mzna,Higiene,marca,75.7,121.12,106,higiene,40.0,30.3,28.6,-12.5,False,False,higiene
+FC-20500171,Pert Oliv+Ac Agu P/Pein,Cuidado personal,marca,25.04,40.07,36,higiene,40.0,10.96,30.4,-10.2,False,False,higiene
+FC-40030338,Lomecan V Aclar,Higiene,marca,41.84,66.95,59,higiene,40.0,17.16,29.1,-11.9,False,False,higiene
+FC-1321B34F,Hidroxon,Otro,marca,34.6,44.98,47,med_otc_marca,35.0,12.4,26.4,4.5,False,False,otc marca
+FC-48690800,Tensolastic Plus Venda Elasti,Botiquín,marca,21.14,33.83,32,material_curacion,50.0,10.86,33.9,-5.4,False,False,material_curacion
+FC-60009851,Colgate Triple Acc,Higiene,marca,19.2,30.72,27,higiene,40.0,7.8,28.9,-12.1,False,False,higiene
+FC-35155922,Pantene Bambu,Higiene,marca,15.7,25.12,22,higiene,40.0,6.3,28.6,-12.4,False,False,higiene
+FC-56360429,Desod Eficc Pies,Higiene,marca,36.33,58.13,51,higiene,40.0,14.67,28.8,-12.3,False,False,higiene
+FC-56340025,Sedal Sos Recon-Estru,Cuidado personal,marca,18.88,30.21,27,higiene,40.0,8.12,30.1,-10.6,False,False,higiene
+FC-56342227,Sedal Rizos Obedientes,Cuidado personal,marca,8.24,13.19,14,higiene,40.0,5.76,41.1,6.1,False,False,higiene
+FC-06249776,Sedal Ceramidas Inf-Act,Higiene,marca,75.7,121.12,106,higiene,40.0,30.3,28.6,-12.5,False,False,higiene
+FC-52400038,Ajolotius Menta Eucal S/Azucar Past Menta Eucal,GENERAL,marca,21.36,34.18,30,sin_clasificar,35.0,8.64,28.8,-12.2,True,False,ambiguo
+FC-45722547,Natural-G Bifasic,Cuidado personal,marca,37.72,60.36,53,higiene,40.0,15.28,28.8,-12.2,False,False,higiene
+FC-46657035,Lio Flor Czo-Rsa,Higiene,marca,45.83,73.33,65,higiene,40.0,19.17,29.5,-11.4,False,False,higiene
+FC-4FD413D2,Haspen,Otro,marca,23.53,30.59,32,sin_clasificar,35.0,8.47,26.5,4.6,True,False,ambiguo
+FC-0BDE9283,Clophiven 200 Dosis 50 Mcg,Producto,marca,56.51,73.47,77,sin_clasificar,35.0,20.49,26.6,4.8,True,False,ambiguo
+FC-97BEFA1A,Amlodipino,Otro,marca,32.52,42.28,44,med_otc_marca,35.0,11.48,26.1,4.1,False,False,otc marca
+FC-1AE9D7E6,Collucort,Otro,marca,47.85,62.21,65,sin_clasificar,35.0,17.15,26.4,4.5,True,False,ambiguo
+FC-262F2A30,Irbesartan,Otro,generico,43.98,70.37,71,med_generico,60.0,27.02,38.1,0.9,False,False,generico+PA
+FC-23273451,Jeringa insulina 0.5 ml C/100,Botiquín,marca,217.2,282.36,326,material_curacion,50.0,108.8,33.4,15.5,False,True,material_curacion
+FC-F7DB080D,Ovisen,Otro,marca,20.33,26.43,29,med_otc_marca,35.0,8.67,29.9,9.7,False,False,otc marca
+FC-BDB2E087,Irbesartan,Otro,generico,70.49,112.79,113,med_generico,60.0,42.51,37.6,0.2,False,False,generico+PA
+FC-DEAF33B0,Bactiver,Otro,marca,21.28,27.67,30,med_otc_marca,35.0,8.72,29.1,8.4,False,False,otc marca
+FC-77FE5C83,S,Otro,marca,32.41,42.14,44,sin_clasificar,35.0,11.59,26.3,4.4,True,False,ambiguo
+FC-C636D8EA,I.M,Otro,marca,9.8,12.75,15,sin_clasificar,35.0,5.2,34.7,17.6,True,True,ambiguo
+FC-44B6751A,Aquito 500/100/30/4 Mg,Otro,marca,59.63,77.52,81,sin_clasificar,35.0,21.37,26.4,4.5,True,False,ambiguo
+FC-9B93AC4C,Beneventol,Otro,generico,97.6,156.16,157,med_generico,60.0,59.4,37.8,0.5,False,False,generico+PA
+FC-2001A890,Ad,Otro,marca,81.71,106.23,111,sin_clasificar,35.0,29.29,26.4,4.5,True,False,ambiguo
+FC-DE106642,Inf,Otro,marca,73.57,95.65,100,sin_clasificar,35.0,26.43,26.4,4.5,True,False,ambiguo
+FC-BE76D409,I.M,Otro,marca,19.72,25.64,27,sin_clasificar,35.0,7.28,27.0,5.3,True,False,ambiguo
+FC-07F04F88,I.M,Otro,marca,19.43,25.26,27,sin_clasificar,35.0,7.57,28.0,6.9,True,False,ambiguo
+FC-357D4A17,Ceftazidima,Otro,marca,45.42,59.05,62,sin_clasificar,35.0,16.58,26.7,5.0,True,False,ambiguo
+FC-35231244,Head & Shoulders Anti Comezon,Higiene,marca,18.39,29.43,26,higiene,40.0,7.61,29.3,-11.7,False,False,higiene
+FC-35020077,Herbal Essences Alivio Instant,Higiene,marca,45.23,72.37,64,higiene,40.0,18.77,29.3,-11.6,False,False,higiene
+FC-46073033,Caprice Sp Acti Ceramida,Higiene,marca,45.26,72.42,64,higiene,40.0,18.74,29.3,-11.6,False,False,higiene
+FC-54073302,Silica Shine Sily Oleo Argan,Higiene,marca,44.76,71.62,63,higiene,40.0,18.24,29.0,-12.0,False,False,higiene
+FC-24511711,Silica Shine Sily 3/1 Mora,Higiene,marca,45.64,73.03,64,higiene,40.0,18.36,28.7,-12.4,False,False,higiene
+FC-24511636,Silica Shine Sily 3/1 Naran,Higiene,marca,50.51,80.82,71,higiene,40.0,20.49,28.9,-12.2,False,False,higiene
+FC-45720550,Quita Esmalte Mora Azul,Higiene,marca,41.84,66.95,59,higiene,40.0,17.16,29.1,-11.9,False,False,higiene
+FC-92511261,Nutribela Bio Colageno,Cuidado personal,marca,29.31,46.9,42,higiene,40.0,12.69,30.2,-10.4,False,False,higiene
+FC-92509213,Nutribela Nutrice Tarro,Cuidado personal,marca,40.24,64.39,57,higiene,40.0,16.76,29.4,-11.5,False,False,higiene
+FC-07457826,Pantene Brillo Extremo,Higiene,marca,75.7,121.12,106,higiene,40.0,30.3,28.6,-12.5,False,False,higiene
+FC-30622622,Axe Men Young,Higiene,marca,45.83,73.33,65,higiene,40.0,19.17,29.5,-11.4,False,False,higiene
+FC-23272151,Jeringa insulina 0.3 ml C/100,Botiquín,marca,212.86,276.72,320,material_curacion,50.0,107.14,33.5,15.6,False,True,material_curacion
+FC-93037806,Rexona Men Marine,Higiene,marca,62.83,100.53,88,higiene,40.0,25.17,28.6,-12.5,False,False,higiene
+FC-55280956,Obao Men Tato Rebel,Higiene,marca,54.68,87.49,77,higiene,40.0,22.32,29.0,-12.0,False,False,higiene
+FC-93022567,Rexona Men V8 Tun Spy,Higiene,marca,51.5,82.4,73,higiene,40.0,21.5,29.5,-11.4,False,False,higiene
+FC-75076009,Rexona 48H Happy-M,Higiene,marca,53.5,85.6,75,higiene,40.0,21.5,28.7,-12.4,False,False,higiene
+FC-06213906,Axe Icechi E-Frio,Higiene,marca,25.83,41.33,37,higiene,40.0,11.17,30.2,-10.5,False,False,higiene
+FC-93025919,Axe Excite Seco,Higiene,marca,45.83,73.33,65,higiene,40.0,19.17,29.5,-11.4,False,False,higiene
+FC-06244795,Axe Intense 48H,Higiene,marca,54.68,87.49,77,higiene,40.0,22.32,29.0,-12.0,False,False,higiene
+FC-93025797,Axe Men Dark Temp,Higiene,marca,53.5,85.6,75,higiene,40.0,21.5,28.7,-12.4,False,False,higiene
+FC-56340131,Sedal Rizos Obedie,Cuidado personal,marca,19.11,30.58,27,higiene,40.0,7.89,29.2,-11.7,False,False,higiene
+FC-6898B64F,Bioerter,Otro,marca,47.7,62.02,65,med_otc_marca,35.0,17.3,26.6,4.8,False,False,otc marca
+FC-CD261CD5,Doliprofen,Otro,marca,22.41,29.14,31,med_otc_marca,35.0,8.59,27.7,6.4,False,False,otc marca
+FC-5C8C9C11,Gelubrin,Otro,marca,21.95,28.54,30,med_otc_marca,35.0,8.05,26.8,5.1,False,False,otc marca
+FC-A23F290E,Zitriasol,Otro,generico,34.61,55.38,56,med_generico,60.0,21.39,38.2,1.1,False,False,generico+PA
+FC-5885E577,Pabesorag,Otro,marca,60.47,78.62,82,med_otc_marca,35.0,21.53,26.3,4.3,False,False,otc marca
+FC-3D0F54B7,Ibupro-Cafe,Otro,marca,30.06,39.08,41,med_otc_marca,35.0,10.94,26.7,4.9,False,False,otc marca
+FC-F7A2CACF,Indarzona,Otro,marca,56.3,73.19,77,med_otc_marca,35.0,20.7,26.9,5.2,False,False,otc marca
+FC-50D044FF,Wermy,Otro,marca,24.51,31.87,34,med_otc_marca,35.0,9.49,27.9,6.7,False,False,otc marca
+FC-E535DE28,Diurmessel,Otro,marca,9.31,12.11,15,med_otc_marca,35.0,5.69,37.9,23.9,False,True,otc marca
+FC-86494262,Oral-B Indicat35Sve,Higiene,marca,8.6,13.76,14,higiene,40.0,5.4,38.6,1.7,False,False,higiene
+FC-35469151,Lubriderm Uv Fps15,Cuidado personal,marca,15.51,24.82,22,higiene,40.0,6.49,29.5,-11.4,False,False,higiene
+FC-07528939,Lubriderm Thint Psec120 Ml,Cuidado personal,marca,49.97,79.96,70,higiene,40.0,20.03,28.6,-12.5,False,False,higiene
+FC-31244486,Lubriderm P/Normal,Cuidado personal,marca,43.59,69.75,62,higiene,40.0,18.41,29.7,-11.1,False,False,higiene
+FC-46074504,Mennen Zero% Sve,Higiene,marca,66.93,107.09,94,higiene,40.0,27.07,28.8,-12.2,False,False,higiene
+FC-3E863E37,Tratidri,Otro,marca,47.47,61.72,65,sin_clasificar,35.0,17.53,27.0,5.3,True,False,ambiguo
+FC-9ABFB996,Elaphteron,Otro,marca,30.77,40.01,42,med_otc_marca,35.0,11.23,26.7,5.0,False,False,otc marca
+FC-9A37D44A,Amdoryl,Otro,marca,26.11,33.95,36,med_otc_marca,35.0,9.89,27.5,6.0,False,False,otc marca
+FC-01165321,Pantene Acond Rizos Definid,GENERAL,marca,71.8,114.88,97,sin_clasificar,35.0,25.2,26.0,-15.6,True,False,ambiguo
+FC-06249783,Sedal Rizos Def Inf-Act,Higiene,marca,50.07,80.12,71,higiene,40.0,20.93,29.5,-11.4,False,False,higiene
+FC-84431050,Jaloma,Cuidado personal,marca,19.77,31.64,28,higiene,40.0,8.23,29.4,-11.5,False,False,higiene
+FC-33956140,Glucerna Sr Liq Fresa,Suplemento,marca,95.0,152.0,138,vitaminas,45.0,43.0,31.2,-9.2,False,False,vitaminas
+FC-56131681,Evenflo,Higiene,marca,24.89,39.83,35,higiene,40.0,10.11,28.9,-12.1,False,False,higiene
+FC-52D2A43A,Zukedib,Otro,marca,29.08,37.81,40,med_otc_marca,35.0,10.92,27.3,5.8,False,False,otc marca
+FC-3D0ED22B,Zukedib,Otro,marca,27.98,36.38,38,med_otc_marca,35.0,10.02,26.4,4.5,False,False,otc marca
+FC-04D83B46,Pralex,Otro,marca,42.85,55.71,58,med_otc_marca,35.0,15.15,26.1,4.1,False,False,otc marca
+FC-D11D586A,Valgab 3 Ibe /6Ml,Producto,marca,19.41,25.24,27,sin_clasificar,35.0,7.59,28.1,7.0,True,False,ambiguo
+FC-53506FA4,Enalapril,Otro,generico,8.09,12.95,14,med_generico,60.0,5.91,42.2,8.1,False,False,generico+PA
+FC-09498091,Sensodyne Complet + Acc Lim Efec,Botiquín,marca,48.58,77.73,73,material_curacion,50.0,24.42,33.5,-6.1,False,False,material_curacion
+FC-95129166,Oral-B 3Dw Advant Med2X1,Higiene,marca,70.91,113.46,100,higiene,40.0,29.09,29.1,-11.9,False,False,higiene
+FC-42417644,Nivea Cuidado Int P/Mano,Cuidado personal,marca,30.36,48.58,43,higiene,40.0,12.64,29.4,-11.5,False,False,higiene
+FC-46655727,Mennen Baby Magic Lavan,Higiene,marca,38.31,61.3,54,higiene,40.0,15.69,29.1,-11.9,False,False,higiene
+FC-35908147,Mennen Rosa,Higiene,marca,13.32,21.32,19,higiene,40.0,5.68,29.9,-10.9,False,False,higiene
+FC-19006371,Saba Inv Alas,Higiene,marca,7.21,11.54,13,higiene,40.0,5.79,44.5,12.7,False,False,higiene
+FC-85103015,Huggies Super Toallitas Humedas,GENERAL,marca,106.44,170.31,139,bebe,30.0,32.56,23.4,-18.4,False,False,bebe
+FC-68900264,Dibar Rojo,Botiquín,marca,8.1,12.96,14,material_curacion,50.0,5.9,42.1,8.0,False,False,material_curacion
+FC-FD92D114,Ovisen,Otro,marca,10.19,13.25,16,med_otc_marca,35.0,5.81,36.3,20.8,False,True,otc marca
+FC-57925EF3,Reglusan,Otro,marca,8.88,11.55,14,med_otc_marca,35.0,5.12,36.6,21.2,False,True,otc marca
+FC-AA7B0686,Drosquim Ad 1 Ibe 300/160,Producto,marca,70.74,91.97,96,sin_clasificar,35.0,25.26,26.3,4.4,True,False,ambiguo
+FC-B3B8F9BB,Desrotan,Otro,marca,47.31,61.51,64,med_otc_marca,35.0,16.69,26.1,4.0,False,False,otc marca
+FC-EADF1484,Diosmina Hesperidina,Otro,generico,39.41,63.06,64,med_generico,60.0,24.59,38.4,1.5,False,False,generico+PA
+FC-22150221,Ricitos de Oro Neutro,Higiene,marca,59.36,94.98,84,higiene,40.0,24.64,29.3,-11.6,False,False,higiene
+FC-68910034,Dibar Gr Algodon Algodon,GENERAL,marca,10.1,16.16,16,material_curacion,50.0,5.9,36.9,-1.0,False,False,material_curacion
+FC-66534951,Colgate Total Crema dental,Higiene,marca,22.93,36.69,33,higiene,40.0,10.07,30.5,-10.1,False,False,higiene
+FC-1DAD5EF1,Tusilen Ad 1 Ibe 240/30/50Mg/100,Producto,marca,24.22,31.49,33,sin_clasificar,35.0,8.78,26.6,4.8,True,False,ambiguo
+FC-75163051,Evenflo Ensueno Azul,Bebés,marca,15.8,25.28,21,bebe,30.0,5.2,24.8,-16.9,False,False,bebe
+FC-27512574,Evenflo Colors,Bebés,marca,15.8,25.28,21,bebe,30.0,5.2,24.8,-16.9,False,False,bebe
+FC-75125811,Evenflo Colors,Bebés,marca,13.4,21.44,19,bebe,30.0,5.6,29.5,-11.4,False,False,bebe
+FC-34067851,Quirmex,Botiquín,marca,17.54,28.07,27,material_curacion,50.0,9.46,35.0,-3.8,False,False,material_curacion
+FC-52876406,Obao Men Tatto Aqua,Higiene,marca,45.83,73.33,65,higiene,40.0,19.17,29.5,-11.4,False,False,higiene
+FC-93038223,Rexona Men Sport,Higiene,marca,45.83,73.33,65,higiene,40.0,19.17,29.5,-11.4,False,False,higiene
+FC-75062897,Rexona Bamboo 48H,Higiene,marca,45.83,73.33,65,higiene,40.0,19.17,29.5,-11.4,False,False,higiene
+FC-48623006,Protec Pads Facial Redondos C/100,Cuidado personal,marca,21.7,34.72,31,higiene,40.0,9.3,30.0,-10.7,False,False,higiene
+FC-68910041,Algodon 5 12 5,Botiquín,marca,0.58,0.93,6,sin_clasificar,35.0,5.42,90.3,545.2,True,False,costo < $2
+FC-89100101,Algodon 200 Dibak 2 70.60 200 Dibak,Botiquín,marca,17.65,28.24,27,material_curacion,50.0,9.35,34.6,-4.4,False,False,material_curacion
+FC-34067301,Quirmex,Botiquín,marca,0.57,0.92,6,sin_clasificar,35.0,5.43,90.5,552.2,True,False,costo < $2
+FC-34067471,Quirmex,Botiquín,marca,8.72,13.96,14,material_curacion,50.0,5.28,37.7,0.3,False,False,material_curacion
+FC-34067781,Quirmex,Botiquín,marca,23.72,37.96,36,material_curacion,50.0,12.28,34.1,-5.2,False,False,material_curacion
+FC-40036965,Asepxia Bicarbon Sod,Higiene,marca,14.45,23.12,21,higiene,40.0,6.55,31.2,-9.2,False,False,higiene
+FC-40004643,Asepxia Exfol,Higiene,marca,38.66,61.86,55,higiene,40.0,16.34,29.7,-11.1,False,False,higiene
+FC-22150801,Grisi Avena,Higiene,marca,15.02,24.04,22,higiene,40.0,6.98,31.7,-8.5,False,False,higiene
+FC-25605514,Escudo Antibact,Higiene,marca,26.75,42.8,38,higiene,40.0,11.25,29.6,-11.2,False,False,higiene
+FC-14119032,Jabon C Miel 80,Higiene,marca,30.21,48.34,43,higiene,40.0,12.79,29.7,-11.0,False,False,higiene
+FC-06230507,Dove Barra Karite Vainill,Higiene,marca,30.21,48.34,43,higiene,40.0,12.79,29.7,-11.0,False,False,higiene
+FC-22150092,Grisi Leche De Burra,Higiene,marca,42.82,68.52,60,higiene,40.0,17.18,28.6,-12.4,False,False,higiene
+FC-22111352,Grisi Corp Diabecare,Higiene,marca,35.61,56.98,50,higiene,40.0,14.39,28.8,-12.2,False,False,higiene
+FC-75069223,Rexona Mot-Sen Sport Stick,Higiene,marca,16.7,26.72,24,higiene,40.0,7.3,30.4,-10.2,False,False,higiene
+FC-46059556,Palmolive N-Bal Dermol,Higiene,marca,52.29,83.67,74,higiene,40.0,21.71,29.3,-11.6,False,False,higiene
+FC-67905186,Blumen Coconut Para,Higiene,marca,128.57,205.72,180,higiene,40.0,51.43,28.6,-12.5,False,False,higiene
+FC-46683133,Palmolive N-Bal Dermo Limp,Higiene,marca,8.96,14.34,14,higiene,40.0,5.04,36.0,-2.4,False,False,higiene
+FC-83510531,Protec Antibacterial 22.40 Antibacterial,Cuidado personal,marca,123.58,197.73,174,higiene,40.0,50.42,29.0,-12.0,False,False,higiene
+FC-68900127,Dibar 10X10 Paq 10 Cajitas/10 126.10 Gasa 10X10 Paq 10 Cajitas/10,Botiquín,marca,123.58,197.73,186,material_curacion,50.0,62.42,33.6,-5.9,False,False,material_curacion
+FC-68900134,Lox10 Exh C/100 Gasa,Producto,marca,108.88,174.21,164,material_curacion,50.0,55.12,33.6,-5.9,False,False,material_curacion
+FC-06209862,Axe 48H Anarchy Fresh Love Fo,Higiene,marca,16.87,27.0,24,higiene,40.0,7.13,29.7,-11.1,False,False,higiene
+FC-76000277,Vitacilina Cre Humectante Humectante,GENERAL,marca,77.03,123.25,104,sin_clasificar,35.0,26.97,25.9,-15.6,True,False,ambiguo
+FC-50882017,Dermodine Espuma 120 Mi,Botiquín,marca,75.2,120.32,113,material_curacion,50.0,37.8,33.5,-6.1,False,False,material_curacion
+FC-08820243,Dermodine Ine M 1 37.60 Ine,GENERAL,marca,36.85,58.97,50,sin_clasificar,35.0,13.15,26.3,-15.2,True,False,ambiguo
+FC-67905131,Blumen Cherry Bloss,Higiene,marca,17.78,28.45,25,higiene,40.0,7.22,28.9,-12.1,False,False,higiene
+FC-21012303,Claris Desmaq Aloe,Higiene,marca,14.78,23.65,21,higiene,40.0,6.22,29.6,-11.2,False,False,higiene
+FC-14121782,De Proteina De Arroz Y Concha Nacar 8,Higiene,marca,167.69,268.31,235,higiene,40.0,67.31,28.6,-12.4,False,False,higiene
+FC-25652716,Escudo Azul Rey,Higiene,marca,73.65,117.85,104,higiene,40.0,30.35,29.2,-11.8,False,False,higiene
+FC-06248052,Dove Aero Tono Uniforme 3Pack,Higiene,marca,147.3,235.69,207,higiene,40.0,59.7,28.8,-12.2,False,False,higiene
+FC-06248045,Dove Spy Invisible Dry C3,Higiene,marca,129.46,207.14,182,higiene,40.0,52.54,28.9,-12.1,False,False,higiene
+FC-35911208,Palmolive Aquarium,Higiene,marca,45.83,73.33,65,higiene,40.0,19.17,29.5,-11.4,False,False,higiene
+FC-08837311,Nivea Pearlb Mspy,Higiene,marca,12.54,20.07,18,higiene,40.0,5.46,30.3,-10.3,False,False,higiene
+FC-33961373,Pedialyte Fresa 500 ml,Higiene,marca,23.81,38.1,32,bebidas_sueros,30.0,8.19,25.6,-16.0,False,False,bebidas_sueros
+FC-83351381,Dermocleen Agua oxigenada 100 ml,Botiquín,marca,7.64,12.23,13,material_curacion,50.0,5.36,41.2,6.3,False,False,material_curacion
+FC-43489165,Escudo Blanco Neut,Higiene,marca,45.83,73.33,65,higiene,40.0,19.17,29.5,-11.4,False,False,higiene
+FC-51448511,Electrolit Uva,Higiene,marca,20.5,32.81,29,bebidas_sueros,30.0,8.5,29.3,-11.6,False,False,bebidas_sueros
+FC-84900280,Jaloma Spray,Cuidado personal,marca,23.79,38.07,34,higiene,40.0,10.21,30.0,-10.7,False,False,higiene
+FC-54503095,Nivea Sda Tarro,Cuidado personal,marca,96.63,154.61,136,higiene,40.0,39.37,28.9,-12.0,False,False,higiene
+FC-43471900,Absorsec C/120 Toa Hum,Higiene,marca,21.46,34.34,31,higiene,40.0,9.54,30.8,-9.7,False,False,higiene
+FC-34064021,Quirmex Tarro 1 2 12.00 Cotonetes Tarro 1,Higiene,marca,11.76,18.82,17,higiene,40.0,5.24,30.8,-9.7,False,False,higiene
+FC-14983153,Prudence Grosella,Higiene,marca,68.2,109.12,96,higiene,40.0,27.8,29.0,-12.0,False,False,higiene
+FC-25104411,Electrolit Coco,Higiene,marca,20.09,32.15,29,bebidas_sueros,30.0,8.91,30.7,-9.8,False,False,bebidas_sueros
+FC-43454811,Huggies Toa -Hum Cuidado Puro C/80 K 9 Cuidado Puro C/80,Higiene,marca,39.6,63.37,52,bebe,30.0,12.4,23.8,-17.9,False,False,bebe
+FC-25149221,Electrolit Eresa-Kiwi,Higiene,marca,20.09,32.15,29,bebidas_sueros,30.0,8.91,30.7,-9.8,False,False,bebidas_sueros
+FC-25104268,Electrolit Fresa,Higiene,marca,20.5,32.81,29,bebidas_sueros,30.0,8.5,29.3,-11.6,False,False,bebidas_sueros
+FC-51747971,Electrolit Mora Azul,Higiene,marca,20.5,32.81,29,bebidas_sueros,30.0,8.5,29.3,-11.6,False,False,bebidas_sueros
+FC-54504870,Lásico Pomada I.Abeili.C 56.50 56.50,Otro,marca,55.37,88.6,75,sin_clasificar,35.0,19.63,26.2,-15.3,True,False,ambiguo
+FC-56034041,Escudo Toallitas Antibacterial C/50,Higiene,marca,15.29,24.47,22,higiene,40.0,6.71,30.5,-10.1,False,False,higiene
+FC-45045281,Labello Hydro-C,Otro,marca,56.5,90.4,77,sin_clasificar,35.0,20.5,26.6,-14.8,True,False,ambiguo
+FC-52400212,Ajolotius Jengibre Tab Nati Jengibre,GENERAL,marca,20.5,26.65,29,sin_clasificar,35.0,8.5,29.3,8.8,True,False,ambiguo
+FC-24004581,Ajolotius Pastillas Elderberry Past,Producto,marca,21.0,33.6,29,sin_clasificar,35.0,8.0,27.6,-13.7,True,False,ambiguo
+FC-21042481,Manzanilla Ml Hnos 31.40 Hnos,Producto,marca,30.77,49.24,42,sin_clasificar,35.0,11.23,26.7,-14.7,True,False,ambiguo
+FC-52400267,Ajolotius,Otro,marca,73.21,117.14,99,med_otc_marca,35.0,25.79,26.1,-15.5,False,False,otc marca
+FC-62746612,Ajolotius,Otro,marca,89.2,115.96,121,med_otc_marca,35.0,31.8,26.3,4.3,False,False,otc marca
+FC-48690909,Tensolastic Plus Venda Elasti,Botiquín,marca,405.32,648.52,608,material_curacion,50.0,202.68,33.3,-6.2,False,False,material_curacion
+FC-40171550,Sensodyne Rapido Alivio,Higiene,marca,405.32,648.52,568,higiene,40.0,162.68,28.6,-12.4,False,False,higiene
+FC-36033735,Ricitos de Oro Oro Agua De Coco,Higiene,marca,66.93,107.09,94,higiene,40.0,27.07,28.8,-12.2,False,False,higiene
+FC-56330309,Clariant B3 Nml/Gsa,Cuidado personal,marca,105.35,168.56,148,higiene,40.0,42.65,28.8,-12.2,False,False,higiene
+FC-42270027,Nivea Cuidada Clar-Nat,Cuidado personal,marca,85.87,137.4,121,higiene,40.0,35.13,29.0,-11.9,False,False,higiene
+FC-00942760,Niv Fac Ref Hidra Hyalu,Cuidado personal,marca,62.25,99.6,88,higiene,40.0,25.75,29.3,-11.6,False,False,higiene
+FC-54558682,Corp Niveamilk +Cra100 Ml,Cuidado personal,marca,22.3,35.68,32,higiene,40.0,9.7,30.3,-10.3,False,False,higiene
+FC-40030963,Teatrical Cel-Ma Nutrit,Cuidado personal,marca,34.41,55.06,49,higiene,40.0,14.59,29.8,-11.0,False,False,higiene
+FC-26462061,Ternura Ortodontic Miel C3,Bebés,marca,74.31,118.9,97,bebe,30.0,22.69,23.4,-18.4,False,False,bebe
+FC-46655079,Palmolive N-Bal Corp Baby0%,Higiene,marca,19.95,31.92,28,higiene,40.0,8.05,28.8,-12.3,False,False,higiene
+FC-82790016,Nuvel Pura Para Bebe200 G,Higiene,marca,39.9,63.84,56,higiene,40.0,16.1,28.8,-12.3,False,False,higiene
+FC-46650708,Mennen Lavan-Extrac Aven,Higiene,marca,53.99,86.39,76,higiene,40.0,22.01,29.0,-12.0,False,False,higiene
+FC-22133286,Grisi Rici Oro Miel,Higiene,marca,70.91,113.46,100,higiene,40.0,29.09,29.1,-11.9,False,False,higiene
+FC-06245686,Axe Men Epic-F 48H,Higiene,marca,45.83,73.33,65,higiene,40.0,19.17,29.5,-11.4,False,False,higiene
+FC-93025865,Axe Men Gold Temp,Higiene,marca,45.83,73.33,65,higiene,40.0,19.17,29.5,-11.4,False,False,higiene
+FC-27250612,Obao P/Del,Higiene,marca,24.71,39.54,35,higiene,40.0,10.29,29.4,-11.5,False,False,higiene
+FC-27286017,Obao Clas,Higiene,marca,45.83,73.33,65,higiene,40.0,19.17,29.5,-11.4,False,False,higiene
+FC-22105207,Grisi Neutro,Higiene,marca,20.14,32.23,29,higiene,40.0,8.86,30.6,-10.0,False,False,higiene
+FC-38891190,Dove Barra Blanca,Higiene,marca,60.54,96.87,85,higiene,40.0,24.46,28.8,-12.3,False,False,higiene
+FC-75062927,Rexona Pom-Dry 48 H,Higiene,marca,30.21,48.34,43,higiene,40.0,12.79,29.7,-11.0,False,False,higiene
+FC-06241206,Dove Dermac Sk-C 48H,Higiene,marca,54.12,86.6,76,higiene,40.0,21.88,28.8,-12.2,False,False,higiene
+FC-61113000,Odolex Desod,Higiene,marca,31.77,50.84,45,higiene,40.0,13.23,29.4,-11.5,False,False,higiene
+FC-01303454,Pantene Ctrcaida A/Pv,Higiene,marca,40.66,65.06,57,higiene,40.0,16.34,28.7,-12.4,False,False,higiene
+FC-07457796,Pantene Brillo Extremo,Higiene,marca,75.7,121.12,106,higiene,40.0,30.3,28.6,-12.5,False,False,higiene
+FC-35155847,Pantene Bambu Ctrl Caida,Higiene,marca,40.66,65.06,57,higiene,40.0,16.34,28.7,-12.4,False,False,higiene
+FC-06249240,Savile Ker-Sab Fza Repar,Higiene,marca,44.76,71.62,63,higiene,40.0,18.24,29.0,-12.0,False,False,higiene
+FC-06249226,Savile Bio-Sab Creci Res,Higiene,marca,50.07,80.12,71,higiene,40.0,20.93,29.5,-11.4,False,False,higiene
+FC-24511629,Silica Shine Sil 3/1 Uva 120 Mi,Higiene,marca,18.17,29.08,26,higiene,40.0,7.83,30.1,-10.6,False,False,higiene
+FC-06234062,Sedal Anti Nudos,Cuidado personal,marca,17.77,28.44,25,higiene,40.0,7.23,28.9,-12.1,False,False,higiene
+FC-56342258,Sedal Recons Estructur,Cuidado personal,marca,17.77,28.44,25,higiene,40.0,7.23,28.9,-12.1,False,False,higiene
+FC-61111501,Odolex Desdo,Higiene,marca,50.07,80.12,71,higiene,40.0,20.93,29.5,-11.4,False,False,higiene
+FC-61124013,Odolex Fresh,Higiene,marca,73.76,118.02,104,higiene,40.0,30.24,29.1,-11.9,False,False,higiene
+FC-56340124,Sedal Sos Ceramida,Cuidado personal,marca,57.9,92.64,82,higiene,40.0,24.1,29.4,-11.5,False,False,higiene
+FC-35020008,Herbal Essences Limp Renoy,Higiene,marca,57.9,92.64,82,higiene,40.0,24.1,29.4,-11.5,False,False,higiene
+FC-35169035,Herbal Essences Rizo,Higiene,marca,73.76,118.02,104,higiene,40.0,30.24,29.1,-11.9,False,False,higiene
+FC-35168991,Hask Anti Comezon,Higiene,marca,32.34,51.75,46,higiene,40.0,13.66,29.7,-11.1,False,False,higiene
+FC-35231237,Hask Anti Comezon,Higiene,marca,36.73,58.77,52,higiene,40.0,15.27,29.4,-11.5,False,False,higiene
+FC-92504539,Ego Mod Met,Higiene,marca,36.73,58.77,52,higiene,40.0,15.27,29.4,-11.5,False,False,higiene
+FC-CF18C740,Clindamicina,Otro,generico,30.54,48.87,49,med_generico,60.0,18.46,37.7,0.3,False,False,generico+PA
+FC-E4EFC4C2,Fasiclor,Otro,marca,137.92,179.3,187,med_otc_marca,35.0,49.08,26.2,4.3,False,False,otc marca
+FC-C101D5B1,Bisoprolol,Otro,generico,97.51,156.02,157,med_generico,60.0,59.49,37.9,0.6,False,False,generico+PA
+FC-6EAD98A9,Cepobrom,Otro,marca,47.97,62.37,65,med_otc_marca,35.0,17.03,26.2,4.2,False,False,otc marca
+FC-7AA38F97,Pentiver,Otro,marca,31.2,40.56,43,med_otc_marca,35.0,11.8,27.4,6.0,False,False,otc marca
+FC-7AF7ACB5,Charlyn,Otro,marca,24.98,32.48,34,med_otc_marca,35.0,9.02,26.5,4.7,False,False,otc marca
+FC-38312374,Moco de Gorila Gel Citr,Higiene,marca,24.91,39.86,35,higiene,40.0,10.09,28.8,-12.2,False,False,higiene
+FC-92503558,Ego Magnetic Fij-Alta,Cuidado personal,marca,56.61,90.58,80,higiene,40.0,23.39,29.2,-11.7,False,False,higiene
+FC-99425580,X-Treme Titan,Cuidado personal,marca,7.37,11.8,13,higiene,40.0,5.63,43.3,10.2,False,False,higiene
+FC-99428024,Moco de Gorila Punk,Cuidado personal,marca,7.37,11.8,13,higiene,40.0,5.63,43.3,10.2,False,False,higiene
+FC-46073040,Caprice Sp Biotina Fza,Higiene,marca,45.26,72.42,64,higiene,40.0,18.74,29.3,-11.6,False,False,higiene
+FC-75001865,Lio 115M,Higiene,marca,17.54,28.07,25,higiene,40.0,7.46,29.8,-10.9,False,False,higiene
+FC-46655055,Caprice Volum-Cirl,Higiene,marca,20.02,32.04,29,higiene,40.0,8.98,31.0,-9.5,False,False,higiene
+FC-06247468,Ego Fresh C-Cas Fij-Alt,Cuidado personal,marca,62.04,99.27,87,higiene,40.0,24.96,28.7,-12.4,False,False,higiene
+FC-92506601,Ego For Men Attraction,Cuidado personal,marca,17.98,28.77,26,higiene,40.0,8.02,30.8,-9.6,False,False,higiene
+FC-92506045,Ego Firme Matte,Higiene,marca,17.2,27.52,25,higiene,40.0,7.8,31.2,-9.2,False,False,higiene
+FC-48640775,Tocmx2.75M Venda De Yeso C12,Botiquín,marca,2.75,4.41,8,material_curacion,50.0,5.25,65.6,81.4,False,False,material_curacion
+FC-48640799,15Cmx2.75M Venda De Yeso C12,Botiquín,marca,2.75,4.41,8,material_curacion,50.0,5.25,65.6,81.4,False,False,material_curacion
+FC-46640629,20Cmx2.75M Venda De Yeso,Botiquín,marca,61.02,97.64,92,material_curacion,50.0,30.98,33.7,-5.8,False,False,material_curacion
+FC-48640751,5Cmx2.75M Venda De Yeso C12 Pz,Botiquín,marca,147.15,235.45,221,material_curacion,50.0,73.85,33.4,-6.1,False,False,material_curacion
+FC-20501673,Hinds Liq Agave Azul,Cuidado personal,marca,59.81,95.7,84,higiene,40.0,24.19,28.8,-12.2,False,False,higiene
+FC-45720567,Quita Esmalte Coco,Higiene,marca,2.75,4.41,8,higiene,40.0,5.25,65.6,81.4,False,False,higiene
+FC-84437151,Jaloma,Cuidado personal,marca,2.75,4.41,8,higiene,40.0,5.25,65.6,81.4,False,False,higiene
+FC-26462078,Ternura Flor-Balon 18 Pzs Chupon Con Miel,GENERAL,marca,47.79,76.47,65,sin_clasificar,35.0,17.21,26.5,-15.0,True,False,ambiguo
+FC-54500216,Nivea Sdatarr Giga,Cuidado personal,marca,42.25,67.61,60,higiene,40.0,17.75,29.6,-11.3,False,False,higiene
+FC-75064938,Ego Force 24H R-On Dic26,Higiene,marca,42.24,67.59,60,higiene,40.0,17.76,29.6,-11.2,False,False,higiene
+FC-08802838,Nivea B Sofmilk Sec400 Ml,Cuidado personal,marca,43.63,69.81,62,higiene,40.0,18.37,29.6,-11.2,False,False,higiene
+FC-36040450,Grisi Conchnac P/Manos,Cuidado personal,marca,86.77,138.84,122,higiene,40.0,35.23,28.9,-12.1,False,False,higiene
+FC-48691005,Tensolastic Plus Venda Elast,Botiquín,marca,20.02,32.04,31,material_curacion,50.0,10.98,35.4,-3.2,False,False,material_curacion
+FC-48691104,Tensolastic Plus Venda Elast,Botiquín,marca,40.68,65.09,62,material_curacion,50.0,21.32,34.4,-4.7,False,False,material_curacion
+FC-72629012,Colgate Adulto Med 40 C12,Higiene,marca,36.3,58.08,51,higiene,40.0,14.7,28.8,-12.2,False,False,higiene
+FC-86472048,Alcanforada Mayo Somed,Higiene,marca,35.45,56.73,50,higiene,40.0,14.55,29.1,-11.9,False,False,higiene
+FC-09419324,Sensodyne Original,Higiene,marca,26.38,42.21,37,higiene,40.0,10.62,28.7,-12.3,False,False,higiene
+FC-40013898,Teatrical Lanol/Ros,Cuidado personal,marca,26.3,42.09,37,higiene,40.0,10.7,28.9,-12.1,False,False,higiene
+FC-54549819,Corp Niv Soft M P/Seca,Cuidado personal,marca,26.3,42.09,37,higiene,40.0,10.7,28.9,-12.1,False,False,higiene
+FC-17360604,Kotex Ant Flujo Abundante S/A 10Pz,Higiene,marca,10.4,16.64,16,higiene,40.0,5.6,35.0,-3.8,False,False,higiene
+FC-46072050,Mennen Miel-Mza Sve,Higiene,marca,20.8,33.28,30,higiene,40.0,9.2,30.7,-9.9,False,False,higiene
+FC-20501765,Grisi Aloe Vera P/Manos,Cuidado personal,marca,26.48,42.37,38,higiene,40.0,11.52,30.3,-10.3,False,False,higiene
+FC-56326142,Ponds S Humectante,Cuidado personal,marca,26.48,42.37,38,higiene,40.0,11.52,30.3,-10.3,False,False,higiene
+FC-31976394,Listerine Anticari-Al,Higiene,marca,30.02,48.04,43,higiene,40.0,12.98,30.2,-10.5,False,False,higiene
+FC-85800198,Huggies Super,Higiene,marca,36.3,58.08,48,bebe,30.0,11.7,24.4,-17.4,False,False,bebe
+FC-10974329,Listerine Zero Mta Sve,Higiene,marca,12.97,20.76,19,higiene,40.0,6.03,31.7,-8.5,False,False,higiene
+FC-00701992,Nivea Manos 3En1 Ant-Arrugas,Cuidado personal,marca,12.97,20.76,19,higiene,40.0,6.03,31.7,-8.5,False,False,higiene
+FC-35908130,Mennen Azul,Higiene,marca,69.19,110.71,97,higiene,40.0,27.81,28.7,-12.4,False,False,higiene
+FC-76000260,Vitacilina Amarilla Aclaradora,Cuidado personal,marca,80.0,128.0,112,higiene,40.0,32.0,28.6,-12.5,False,False,higiene
+FC-76000253,Vitacilina Roja Antiarrugas,Cuidado personal,marca,80.0,128.0,112,higiene,40.0,32.0,28.6,-12.5,False,False,higiene
+FC-68960257,Dibar Ilt Rojo,Botiquín,marca,638.45,1021.53,958,material_curacion,50.0,319.55,33.4,-6.2,False,False,material_curacion
+FC-68900226,Dibar Rojo,Botiquín,marca,15.68,25.09,24,material_curacion,50.0,8.32,34.7,-4.3,False,False,material_curacion
+FC-68990023,Dibar Rojo,Botiquín,marca,676.85,1082.96,1016,material_curacion,50.0,339.15,33.4,-6.2,False,False,material_curacion
+FC-77620056,La Flor Agua Destilada,Botiquín,marca,19.0,30.4,29,material_curacion,50.0,10.0,34.5,-4.6,False,False,material_curacion
+FC-00003920,Mercurio Arnica,Producto,marca,15.0,24.0,21,sin_clasificar,35.0,6.0,28.6,-12.5,True,False,ambiguo
+FC-16800803,Diapro Confort Med,Producto,marca,170.0,272.0,230,sin_clasificar,35.0,60.0,26.1,-15.4,True,False,ambiguo
+FC-86901100,Dibar Azul,Botiquín,marca,37.0,59.2,56,material_curacion,50.0,19.0,33.9,-5.4,False,False,material_curacion
+FC-68901131,Azul,Botiquín,marca,205.0,328.0,308,material_curacion,50.0,103.0,33.4,-6.1,False,False,material_curacion
+FC-68901117,Dibar Azul,Botiquín,marca,56.5,90.4,85,material_curacion,50.0,28.5,33.5,-6.0,False,False,material_curacion
+FC-68901124,Azul,Botiquín,marca,120.0,192.0,180,material_curacion,50.0,60.0,33.3,-6.2,False,False,material_curacion
+FC-98223704,Eurobion Bolo Tab,Otro,marca,269.28,350.07,364,med_otc_marca,35.0,94.72,26.0,4.0,False,False,otc marca
+FC-33950100,Lio Chte,Producto,marca,42.0,67.2,57,sin_clasificar,35.0,15.0,26.3,-15.2,True,False,ambiguo
+FC-33950063,Basuye Liq Fsa,Suplemento,marca,84.0,134.4,122,vitaminas,45.0,38.0,31.1,-9.2,False,False,vitaminas
+FC-33950070,Ensure Liq Vnlla,Suplemento,marca,42.0,67.2,61,vitaminas,45.0,19.0,31.1,-9.2,False,False,vitaminas
+FC-33956133,Lucerna Liq,Suplemento,marca,95.0,152.0,138,vitaminas,45.0,43.0,31.2,-9.2,False,False,vitaminas
+FC-07521317,Cristal,Botiquín,marca,119.99,191.99,180,material_curacion,50.0,60.01,33.3,-6.2,False,False,material_curacion
+FC-01157296,Naturella Flujo Mod C/Alas,Higiene,marca,85.0,136.0,119,higiene,40.0,34.0,28.6,-12.5,False,False,higiene
+FC-01405335,Naturella Noche Con Alas,Higiene,marca,18.5,29.6,26,higiene,40.0,7.5,28.8,-12.2,False,False,higiene
+FC-33951008,Pediasure Liq Chte,Suplemento,marca,44.0,70.41,64,vitaminas,45.0,20.0,31.2,-9.1,False,False,vitaminas
+FC-33954245,Pediasure Liq Fsa,Suplemento,marca,44.0,70.41,64,vitaminas,45.0,20.0,31.2,-9.1,False,False,vitaminas
+FC-33950209,Pediasure Liq Vnlla,Suplemento,marca,88.0,140.81,128,vitaminas,45.0,40.0,31.2,-9.1,False,False,vitaminas
+FC-19006623,Saba Buenas Noches,Higiene,marca,99.0,158.4,139,higiene,40.0,40.0,28.8,-12.2,False,False,higiene
+FC-62746698,Ajolotius,Otro,marca,7.45,9.69,13,med_otc_marca,35.0,5.55,42.7,34.2,False,True,otc marca
+FC-45307181,Arnica Bde Parche,GENERAL,marca,149.35,238.96,202,sin_clasificar,35.0,52.65,26.1,-15.5,True,False,ambiguo
+FC-62746643,Ajolotius Menta Fucal Menta Fucal,GENERAL,marca,19.5,31.21,27,sin_clasificar,35.0,7.5,27.8,-13.5,True,False,ambiguo

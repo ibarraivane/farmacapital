@@ -4345,8 +4345,8 @@ begin
       'categoria', 'GENERAL',
       'tipo', 'GENERICO',
       'descripcion', 'C D Sensodyne Rapido Alivio 100G — Ticket 77827',
-      'costo', 405.32,
-      'precio', 547.19,
+      'costo', 106.44,
+      'precio', 143.69,
       'stock_minimo', 5,
       'activo', true,
       'requiere_receta', false
@@ -4354,7 +4354,7 @@ begin
       1,
       'TK-77827-183',
       NULL,
-      405.32,
+      106.44,
       null
     ) f;
     insert into _fc_carga_map (codigo_barras, producto_id)
@@ -4362,7 +4362,7 @@ begin
     on conflict (codigo_barras) do update set producto_id = excluded.producto_id;
   else
     perform lote_id from receive_merchandise_lote(
-      v_pid, 1, 'TK-77827-183', NULL, 405.32, 'Bodega F-42 Ejidos del Moral', null
+      v_pid, 1, 'TK-77827-183', NULL, 106.44, 'Bodega F-42 Ejidos del Moral', null
     );
   end if;
 end $$;
@@ -4385,8 +4385,8 @@ begin
       'categoria', 'GENERAL',
       'tipo', 'GENERICO',
       'descripcion', 'Protec Tensolastic Plus 7Cmx5M Venda Elasti — Ticket 77827',
-      'costo', 405.32,
-      'precio', 547.19,
+      'costo', 21.14,
+      'precio', 28.54,
       'stock_minimo', 5,
       'activo', true,
       'requiere_receta', false
@@ -4394,7 +4394,7 @@ begin
       1,
       'TK-77827-184',
       NULL,
-      405.32,
+      21.14,
       null
     ) f;
     insert into _fc_carga_map (codigo_barras, producto_id)
@@ -4402,7 +4402,7 @@ begin
     on conflict (codigo_barras) do update set producto_id = excluded.producto_id;
   else
     perform lote_id from receive_merchandise_lote(
-      v_pid, 1, 'TK-77827-184', NULL, 405.32, 'Bodega F-42 Ejidos del Moral', null
+      v_pid, 1, 'TK-77827-184', NULL, 21.14, 'Bodega F-42 Ejidos del Moral', null
     );
   end if;
 end $$;

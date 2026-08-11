@@ -1,5 +1,6 @@
 /**
  * Búsqueda tolerante a errores de escritura (distancia de edición) + sugerencias.
+ * Un solo motor para tienda, POS, inventario y lotes.
  */
 
 import {
@@ -9,16 +10,184 @@ import {
   tokenMatchesInNormalizedHaystack,
 } from "../utils";
 
-/**
- * Consultas muy cortas tipo "para" coincidían con cualquier subcadena: preposición en
- * "crema para pañal", texto genérico, etc. Solo tratamos tokens donde eso molesta en catálogo.
- */
 const AMBIGUOUS_SHORT_SUBSTRING_TOKENS = new Set(["para"]);
 
-/**
- * Coincidencia para tokens cortos ambiguos en texto ya normalizado (sin acentos).
- * Permite prefijo (Paracetamol), segmentos tipo ".../Para..." y rechaza "palabra para palabra".
- */
+const CATALOG_UNIT_TOKENS = new Set([
+  "cm", "mm", "m", "ml", "mg", "mcg", "g", "kg", "l", "lt", "iu", "ui",
+  "tab", "tabs", "cap", "caps", "pza", "pieza",
+]);
+
+const CATALOG_NAME_LIKE_KINDS = new Set([
+  "nombre",
+  "marca",
+  "principio_activo",
+  "denominacion_generica",
+  "denominacion_distintiva",
+  "concentracion",
+  "presentacion",
+  "forma_farmaceutica",
+]);
+
+function isPureNumericSearchToken(tok) {
+  return /^\d+(\.\d+)?$/.test(String(tok || ""));
+}
+
+function isCatalogUnitToken(tok) {
+  return CATALOG_UNIT_TOKENS.has(String(tok || "").toLowerCase());
+}
+
+function catalogQueryAnchorToken(tokens) {
+  return tokens.find(
+    (t) =>
+      t.length >= 5 &&
+      /[a-z]/.test(t) &&
+      !/^fc-[0-9a-f-]+$/i.test(t) &&
+      !/^\d{8,}$/.test(t)
+  );
+}
+
+function unitTokenAdjacentToNumber(numTok, tokens) {
+  const idx = tokens.indexOf(numTok);
+  if (idx < 0) return null;
+  if (idx + 1 < tokens.length && isCatalogUnitToken(tokens[idx + 1])) return tokens[idx + 1];
+  if (idx > 0 && isCatalogUnitToken(tokens[idx - 1])) return tokens[idx - 1];
+  return null;
+}
+
+function catalogNumericTokenMatchesField(numTok, fieldNorm, unitTok) {
+  const n = String(numTok);
+  const f = String(fieldNorm || "");
+  if (!n || !f) return false;
+  if (unitTok) {
+    const u = String(unitTok).toLowerCase();
+    return new RegExp(`(^|[^\\d])${n}\\s*${u}(?=\\s|$|x)`, "i").test(` ${f} `);
+  }
+  let i = 0;
+  while ((i = f.indexOf(n, i)) !== -1) {
+    const before = i === 0 ? "" : f[i - 1];
+    const afterPos = i + n.length;
+    const after = afterPos >= f.length ? "" : f[afterPos];
+    if (/\d/.test(before) || /\d/.test(after)) {
+      i += 1;
+      continue;
+    }
+    const tail = f.slice(afterPos).trimStart();
+    for (const u of CATALOG_UNIT_TOKENS) {
+      if (tail.startsWith(u)) return true;
+    }
+    return true;
+  }
+  return false;
+}
+
+function catalogUnitTokenMatchesField(unitTok, fieldNorm) {
+  const u = String(unitTok || "").toLowerCase();
+  const f = String(fieldNorm || "");
+  if (!u || !f) return false;
+  return new RegExp(`(^|[^a-z])\\d+(?:\\.\\d+)?\\s*${u}(?=\\s|$|x)`, "i").test(` ${f} `);
+}
+
+function catalogSearchFieldEntries(product, { inventario = false } = {}) {
+  const pairs = [
+    ["nombre", product?.nombre],
+    ["principio_activo", product?.principio_activo],
+    ["denominacion_generica", product?.denominacion_generica],
+    ["denominacion_distintiva", product?.denominacion_distintiva],
+    ["marca", product?.marca],
+    ["concentracion", product?.concentracion],
+    ["presentacion", product?.presentacion],
+    ["forma_farmaceutica", product?.forma_farmaceutica],
+    ["sku", product?.sku],
+    ["codigo_barras", product?.codigo_barras],
+    ["categoria", product?.categoria],
+  ];
+  if (inventario) {
+    pairs.push(
+      ["ubicacion", product?.ubicacion_texto || product?.ubicacion],
+      ["zona", product?.zona],
+      ["anaquel", product?.anaquel],
+      ["cajon", product?.cajon],
+      ["proveedor", product?.proveedor]
+    );
+  }
+  return pairs
+    .map(([kind, raw]) => ({ kind, norm: normalizeForSearch(raw) }))
+    .filter((e) => e.norm);
+}
+
+function catalogTokenMatchesField(tok, kind, fieldNorm, { queryTokens = [] } = {}) {
+  if (!tok || !fieldNorm) return false;
+  const t = String(tok).toLowerCase();
+
+  if (isPureNumericSearchToken(t)) {
+    if (kind === "sku" || kind === "codigo_barras") {
+      return t.length >= 6 && fieldNorm.includes(t);
+    }
+    if (!CATALOG_NAME_LIKE_KINDS.has(kind)) return false;
+    return catalogNumericTokenMatchesField(t, fieldNorm, unitTokenAdjacentToNumber(t, queryTokens));
+  }
+
+  if (isCatalogUnitToken(t)) {
+    if (!CATALOG_NAME_LIKE_KINDS.has(kind)) return false;
+    return catalogUnitTokenMatchesField(t, fieldNorm);
+  }
+
+  if ((kind === "sku" || kind === "codigo_barras") && t.length <= 4) {
+    return false;
+  }
+
+  if (AMBIGUOUS_SHORT_SUBSTRING_TOKENS.has(t)) {
+    return matchesAmbiguousShortCatalogToken(t, fieldNorm);
+  }
+  if (tokenMatchesInNormalizedHaystack(t, fieldNorm)) return true;
+  if (t.length >= 5 && normalizedTextFuzzyMatch(t, fieldNorm)) return true;
+  return false;
+}
+
+function catalogFieldsMatchAllTokens(product, queryRaw, { inventario = false } = {}) {
+  const q = normalizeCatalogSearchQuery(queryRaw);
+  if (!q) return true;
+  const tokens = q.split(/\s+/).filter(Boolean);
+  if (!tokens.length) return true;
+
+  const entries = catalogSearchFieldEntries(product, { inventario });
+  const anchor = catalogQueryAnchorToken(tokens);
+  if (anchor) {
+    const nameEntries = entries.filter((e) => CATALOG_NAME_LIKE_KINDS.has(e.kind));
+    if (!nameEntries.some((e) => catalogTokenMatchesField(anchor, e.kind, e.norm, { queryTokens: tokens }))) {
+      return false;
+    }
+  }
+
+  return tokens.every((tok) =>
+    entries.some((e) => catalogTokenMatchesField(tok, e.kind, e.norm, { queryTokens: tokens }))
+  );
+}
+
+/** OCR / voz / plural → forma habitual en catálogo (solo consulta, no productos). */
+const CATALOG_QUERY_REPLACEMENTS = [
+  [/\belectrolitos?\b/g, "electrolit"],
+  [/\belectrolid\b/g, "electrolit"],
+  [/\bpedialytes?\b/g, "pedialyte"],
+  [/\bparacetamols?\b/g, "paracetamol"],
+  [/\bibuprofenos?\b/g, "ibuprofeno"],
+  [/\bomeprazols?\b/g, "omeprazol"],
+  [/\bantibioticos?\b/g, "antibiotico"],
+  [/\bvitaminas?\b/g, "vitamina"],
+  [/\bprotector\s+solars?\b/g, "protector solar"],
+  [/\btoallitas?\s+humedas?\b/g, "toallitas humedas"],
+  [/\btoa\s*hum\b/g, "toallitas humedas"],
+];
+
+export function normalizeCatalogSearchQuery(raw) {
+  let q = normalizeForSearch(raw);
+  if (!q) return q;
+  for (const [re, rep] of CATALOG_QUERY_REPLACEMENTS) {
+    q = q.replace(re, rep);
+  }
+  return q;
+}
+
 export function matchesAmbiguousShortCatalogToken(tok, haystackNorm) {
   const n = String(tok || "");
   const h = String(haystackNorm || "");
@@ -46,10 +215,11 @@ function shortCatalogTokenMatchesNormalizedField(tok, fieldNorm) {
   if (AMBIGUOUS_SHORT_SUBSTRING_TOKENS.has(tok)) {
     return matchesAmbiguousShortCatalogToken(tok, fieldNorm);
   }
-  return tokenMatchesInNormalizedHaystack(tok, fieldNorm);
+  if (tokenMatchesInNormalizedHaystack(tok, fieldNorm)) return true;
+  if (tok.length >= 5 && normalizedTextFuzzyMatch(tok, fieldNorm)) return true;
+  return false;
 }
 
-/** Menor = mejor. null = no coincide. Prefijo de palabra gana sobre subcadena interna (elec → Electrolit, no Celecoxib). */
 function catalogTokenMatchRank(tok, fieldNorm) {
   if (!tok || !fieldNorm) return null;
   if (fieldNorm === tok) return 0;
@@ -79,9 +249,8 @@ function catalogPhraseMatchRank(qn, tokens, ...fields) {
   return best;
 }
 
-/** Igual que someFieldIncludesNormalizedQuery pero con reglas de catálogo tienda ("para", etc.). */
 function tiendaFieldsMatchNormalizedTokens(fieldsRaw, queryRaw) {
-  const q = normalizeForSearch(queryRaw);
+  const q = normalizeCatalogSearchQuery(queryRaw);
   if (!q) return true;
   const tokens = q.split(/\s+/).filter(Boolean);
   if (!tokens.length) return true;
@@ -91,7 +260,15 @@ function tiendaFieldsMatchNormalizedTokens(fieldsRaw, queryRaw) {
   );
 }
 
-/** Frase completa en un solo campo (multi-palabra) o token único con reglas ambiguas. */
+function catalogTokensMatchNameLikeFields(tokens, product) {
+  const entries = catalogSearchFieldEntries(product, { inventario: false }).filter((e) =>
+    CATALOG_NAME_LIKE_KINDS.has(e.kind)
+  );
+  return tokens.every((tok) =>
+    entries.some((e) => catalogTokenMatchesField(tok, e.kind, e.norm, { queryTokens: tokens }))
+  );
+}
+
 function normalizedHaystackMatchesPhrase(haystackNorm, qn, tokens) {
   if (!haystackNorm || !qn) return false;
   if (tokens.length >= 2) return haystackNorm.includes(qn);
@@ -99,7 +276,6 @@ function normalizedHaystackMatchesPhrase(haystackNorm, qn, tokens) {
   return shortCatalogTokenMatchesNormalizedField(t, haystackNorm);
 }
 
-/** Distancia de Levenshtein (iterativa, O(nm)). */
 export function levenshtein(a, b) {
   const s = String(a);
   const t = String(b);
@@ -118,7 +294,6 @@ export function levenshtein(a, b) {
   return prev[t.length];
 }
 
-/** Mínima distancia entre la consulta y el texto completo o cada palabra (≥2 letras). */
 export function minEditDistanceQueryToText(queryNorm, textNorm) {
   if (!queryNorm || !textNorm) return Infinity;
   const full = levenshtein(queryNorm, textNorm);
@@ -138,10 +313,6 @@ function maxTypoForLength(len) {
   return Math.min(4, Math.floor(len * 0.35));
 }
 
-/**
- * Coincidencia aproximada sobre texto ya normalizado (sin acentos).
- * queryNorm debe tener al menos 2 caracteres.
- */
 export function normalizedTextFuzzyMatch(queryNorm, textNorm) {
   if (!queryNorm || queryNorm.length < 2 || !textNorm) return false;
   if (tokenMatchesInNormalizedHaystack(queryNorm, textNorm)) return true;
@@ -152,17 +323,178 @@ export function normalizedTextFuzzyMatch(queryNorm, textNorm) {
   return dist <= maxTypo || ratio <= 0.34;
 }
 
+function catalogPrimaryRawFields(product, { inventario = false } = {}) {
+  const fields = [
+    product?.nombre,
+    product?.principio_activo,
+    product?.denominacion_generica,
+    product?.denominacion_distintiva,
+    product?.marca,
+    product?.concentracion,
+    product?.presentacion,
+    product?.forma_farmaceutica,
+    product?.sku,
+    product?.codigo_barras,
+    product?.categoria,
+  ];
+  if (inventario) {
+    fields.push(
+      product?.ubicacion_texto,
+      product?.ubicacion,
+      product?.zona,
+      product?.anaquel,
+      product?.cajon,
+      product?.proveedor
+    );
+  }
+  return fields;
+}
+
+function catalogNameLikeNormFields(product) {
+  return [
+    normalizeForSearch(product?.nombre || ""),
+    normalizeForSearch(product?.principio_activo || ""),
+    normalizeForSearch(product?.denominacion_generica || ""),
+    normalizeForSearch(product?.denominacion_distintiva || ""),
+    normalizeForSearch(product?.marca || ""),
+    normalizeForSearch(product?.concentracion || ""),
+    normalizeForSearch(product?.presentacion || ""),
+    normalizeForSearch(product?.forma_farmaceutica || ""),
+  ].filter(Boolean);
+}
+
 /**
- * Incluye coincidencia por subcadena (acentos ignorados) o por similitud ortográfica.
- * valueGetters: funciones (product) => string | null
+ * Motor unificado: tienda, POS, inventario, lotes, promociones.
+ * @param {{ inventario?: boolean, allowDescripcion?: boolean }} options
+ */
+export function catalogProductMatchesBusqueda(product, queryRaw, options = {}) {
+  const { inventario = false, allowDescripcion = false } = options;
+  const raw = String(queryRaw || "").trim();
+  if (!raw) return true;
+
+  const q = normalizeCatalogSearchQuery(raw);
+  const tokens = q.split(/\s+/).filter(Boolean);
+  if (!tokens.length) return true;
+
+  if (catalogFieldsMatchAllTokens(product, raw, { inventario })) return true;
+
+  if (!allowDescripcion) return false;
+
+  const desc = normalizeForSearch(product?.descripcion || "");
+  if (desc && tokens.length >= 2 && desc.includes(q)) return true;
+  if (desc && q.length >= 8 && tokens.every((t) => t.length >= 5 && shortCatalogTokenMatchesNormalizedField(t, desc))) {
+    return true;
+  }
+
+  return false;
+}
+
+function catalogSearchRelevanceRank(product, queryRaw, { inventario = false } = {}) {
+  const raw = String(queryRaw ?? "").trim();
+  if (!raw) return 0;
+  const qn = normalizeCatalogSearchQuery(raw);
+  if (!qn) return 40;
+  const tokens = qn.split(/\s+/).filter(Boolean);
+  const n = normalizeForSearch(product?.nombre || "");
+  const pa = normalizeForSearch(product?.principio_activo || "");
+  const dg = normalizeForSearch(product?.denominacion_generica || "");
+  const dd = normalizeForSearch(product?.denominacion_distintiva || "");
+  const marca = normalizeForSearch(product?.marca || "");
+  const conc = normalizeForSearch(product?.concentracion || "");
+  const pres = normalizeForSearch(product?.presentacion || "");
+  const forma = normalizeForSearch(product?.forma_farmaceutica || "");
+  const sku = normalizeForSearch(String(product?.sku ?? ""));
+  const cb = normalizeForSearch(String(product?.codigo_barras ?? ""));
+  const cat = normalizeForSearch(product?.categoria || "");
+  const ubic = normalizeForSearch(product?.ubicacion_texto || product?.ubicacion || "");
+  const everyIn = (hay) =>
+    tokens.length > 0 && tokens.every((t) => shortCatalogTokenMatchesNormalizedField(t, hay));
+  const everyInNameLike = catalogTokensMatchNameLikeFields(tokens, product);
+
+  if (normalizedHaystackMatchesPhrase(n, qn, tokens)) {
+    const pr = catalogPhraseMatchRank(qn, tokens, product?.nombre);
+    return pr != null ? pr : 0;
+  }
+  if (everyIn(n)) {
+    const pr = catalogPhraseMatchRank(qn, tokens, product?.nombre);
+    return pr != null ? pr + 1 : 2;
+  }
+  if (normalizedHaystackMatchesPhrase(marca, qn, tokens)) return 1;
+  if (everyIn(marca)) return 2;
+  if (normalizedHaystackMatchesPhrase(pa, qn, tokens)) return 3;
+  if (normalizedHaystackMatchesPhrase(dg, qn, tokens)) return 3;
+  if (normalizedHaystackMatchesPhrase(dd, qn, tokens)) return 4;
+  if (everyIn(pa)) return 4;
+  if (everyIn(dg)) return 5;
+  if (everyIn(dd)) return 6;
+  if (sku === qn || cb === qn) return 0;
+  if (qn.length >= 2 && (sku.startsWith(qn) || cb.startsWith(qn))) return 5;
+  if (everyInNameLike) return 5;
+  if (conc.includes(qn) || pres.includes(qn) || forma.includes(qn)) return 6;
+  if (inventario && everyIn(ubic)) return 8;
+  if (everyIn(cat)) return 12;
+  if (catalogProductMatchesBusqueda(product, raw, { inventario, allowDescripcion: false })) return 20;
+  return 60;
+}
+
+export function catalogSearchSuggestions(products, queryRaw, { limit = 8, inventario = false } = {}) {
+  const q = String(queryRaw ?? "").trim();
+  if (q.length < 2 || !products?.length) return [];
+  const qn = normalizeCatalogSearchQuery(q);
+  if (!qn) return [];
+  const qTokens = qn.split(/\s+/).filter(Boolean);
+  const out = [];
+
+  for (const p of products) {
+    if (!p || p.activo === false) continue;
+    if (!catalogProductMatchesBusqueda(p, q, { inventario, allowDescripcion: inventario })) continue;
+
+    const sku = p.sku != null && String(p.sku).trim() !== "" ? normalizeForSearch(String(p.sku)) : "";
+    const cb =
+      p.codigo_barras != null && String(p.codigo_barras).trim() !== ""
+        ? normalizeForSearch(String(p.codigo_barras))
+        : "";
+    let rank = catalogSearchRelevanceRank(p, q, { inventario });
+
+    if (sku && sku === qn) rank = Math.min(rank, 0);
+    else if (cb && cb === qn) rank = Math.min(rank, 0);
+    else if (sku && sku.startsWith(qn)) rank = Math.min(rank, 1);
+    else if (cb && cb.startsWith(qn)) rank = Math.min(rank, 1);
+
+    const nameRank = catalogPhraseMatchRank(
+      qn,
+      qTokens,
+      p.nombre,
+      p.marca,
+      p.principio_activo,
+      p.denominacion_generica,
+      p.denominacion_distintiva,
+      p.forma_farmaceutica
+    );
+    if (nameRank != null) rank = Math.min(rank, nameRank);
+
+    out.push({
+      id: p.id,
+      nombre: p.nombre || "",
+      sku: p.sku != null ? String(p.sku) : "",
+      codigo_barras: p.codigo_barras != null ? String(p.codigo_barras) : "",
+      stock: p.stock,
+      rank,
+    });
+  }
+
+  out.sort((a, b) => a.rank - b.rank || String(a.nombre).localeCompare(String(b.nombre), "es"));
+  return out.slice(0, limit);
+}
+
+/**
+ * Búsqueda genérica (clientes, expedientes). Usa normalización de catálogo pero sin fuzzy amplio en textos largos.
  */
 export function productMatchesSearchQuery(product, queryRaw, valueGetters) {
   if (!String(queryRaw || "").trim()) return true;
   const values = valueGetters.map((fn) => fn(product)).filter((v) => v != null && String(v).trim() !== "");
   const normalizedValues = values.map((v) => normalizeForSearch(v));
-  const qPhrase = normalizeForSearch(queryRaw);
-  /** Prioriza la frase tal cual (ej. "ac nalidixico") antes de partir por tokens.
-   * Sin esto, "AC" coincide con miles de "ácido/acido…" y la segunda palabra cruza campos mal. */
+  const qPhrase = normalizeCatalogSearchQuery(queryRaw);
   if (qPhrase.length >= 2) {
     if (normalizedValues.some((nv) => nv.includes(qPhrase))) return true;
   }
@@ -179,252 +511,39 @@ export function productMatchesSearchQuery(product, queryRaw, valueGetters) {
     if (tok.length < 3) {
       return normalizedValues.some((nv) => nv.includes(tok) || normalizedTextFuzzyMatch(tok, nv));
     }
-    return normalizedValues.some((nv) => normalizedTextFuzzyMatch(tok, nv));
+    return normalizedValues.some((nv) => shortCatalogTokenMatchesNormalizedField(tok, nv));
   });
 }
 
-/**
- * Catálogo tienda: sin descripción — textos largos suelen contener "ácido", "sodio", etc.
- * y hacen que consultas cortas (ej. "ácido") devuelvan casi todo el inventario.
- */
-const TIENDA_GETTERS = [
-  (x) => x.nombre,
-  (x) => x.principio_activo,
-  (x) => x.denominacion_generica,
-  (x) => x.denominacion_distintiva,
-  (x) => x.marca,
-  (x) => x.concentracion,
-  (x) => x.presentacion,
-  (x) => x.forma_farmaceutica,
-  (x) => x.categoria,
-  (x) => x.sku,
-  (x) => x.codigo_barras,
-];
-
-const INVENTARIO_GETTERS = [
-  (x) => x.nombre,
-  (x) => x.principio_activo,
-  (x) => x.denominacion_generica,
-  (x) => x.denominacion_distintiva,
-  (x) => x.marca,
-  (x) => x.concentracion,
-  (x) => x.presentacion,
-  (x) => x.forma_farmaceutica,
-  (x) => x.ubicacion_texto,
-  (x) => x.ubicacion,
-  (x) => x.zona,
-  (x) => x.anaquel,
-  (x) => x.cajon,
-  (x) => x.sku,
-  (x) => x.codigo_barras,
-  (x) => x.categoria,
-  (x) => x.descripcion,
-  (x) => x.proveedor,
-];
-
+/** Producto de catálogo con campos estándar (tienda / POS). */
 export function tiendaProductMatchesBusqueda(product, queryRaw) {
-  const raw = String(queryRaw || "").trim();
-  if (!raw) return true;
-
-  const q = normalizeForSearch(raw);
-  const tokens = q.split(/\s+/).filter(Boolean);
-  if (!tokens.length) return true;
-
-  const nombre = normalizeForSearch(product?.nombre || "");
-  const principio = normalizeForSearch(product?.principio_activo || "");
-  const generica = normalizeForSearch(product?.denominacion_generica || "");
-  const distintiva = normalizeForSearch(product?.denominacion_distintiva || "");
-  const marca = normalizeForSearch(product?.marca || "");
-  const concentracion = normalizeForSearch(product?.concentracion || "");
-  const presentacion = normalizeForSearch(product?.presentacion || "");
-  const forma = normalizeForSearch(product?.forma_farmaceutica || "");
-  const categoria = normalizeForSearch(product?.categoria || "");
-  const sku = normalizeForSearch(product?.sku || "");
-  const cb = normalizeForSearch(product?.codigo_barras || "");
-  const primaryFields = [nombre, principio, generica, distintiva, marca, concentracion, presentacion, forma, categoria, sku, cb];
-
-  // Primero, coincidencia directa clásica (la más esperada por usuario).
-  if (tiendaFieldsMatchNormalizedTokens(
-    [
-      product?.nombre,
-      product?.principio_activo,
-      product?.denominacion_generica,
-      product?.denominacion_distintiva,
-      product?.marca,
-      product?.concentracion,
-      product?.presentacion,
-      product?.forma_farmaceutica,
-      product?.categoria,
-      product?.sku,
-      product?.codigo_barras,
-    ],
-    raw
-  )) return true;
-
-  // Búsqueda corta (ej: "agua"): NO usar fuzzy amplio para evitar "todo el catálogo".
-  if (tokens.length === 1) {
-    const tok = tokens[0];
-    if (tok.length <= 4) {
-      return primaryFields.some((f) => shortCatalogTokenMatchesNormalizedField(tok, f));
-    }
-  }
-
-  // Búsqueda multi-término: exigir que cada token aparezca en campos principales;
-  // solo permitir fuzzy para tokens largos (>=5) y en nombre/principio/marca.
-  return tokens.every((tok) => {
-    if (tok.length <= 1) return false;
-    if (primaryFields.some((f) => shortCatalogTokenMatchesNormalizedField(tok, f))) return true;
-    if (tok.length < 5) return false;
-    return [nombre, principio, generica, distintiva, marca, concentracion, presentacion, forma].some((f) => normalizedTextFuzzyMatch(tok, f));
-  });
+  return catalogProductMatchesBusqueda(product, queryRaw, { inventario: false, allowDescripcion: false });
 }
 
-/**
- * Relevancia para ordenar resultados del catálogo (menor = mejor).
- * Prioriza nombre y principio activo sobre descripción o coincidencia solo difusa.
- */
 export function tiendaSearchRelevanceRank(product, queryRaw) {
-  const raw = String(queryRaw ?? "").trim();
-  if (!raw) return 0;
-  const values = TIENDA_GETTERS.map((fn) => fn(product)).filter((v) => v != null && String(v).trim() !== "");
-  const bySubstring = tiendaFieldsMatchNormalizedTokens(values, raw);
-  const qn = normalizeForSearch(raw);
-  if (!qn) return 40;
-  const tokens = qn.split(/\s+/).filter(Boolean);
-  const n = normalizeForSearch(product.nombre || "");
-  const pa = normalizeForSearch(product.principio_activo || "");
-  const dg = normalizeForSearch(product.denominacion_generica || "");
-  const dd = normalizeForSearch(product.denominacion_distintiva || "");
-  const conc = normalizeForSearch(product.concentracion || "");
-  const pres = normalizeForSearch(product.presentacion || "");
-  const forma = normalizeForSearch(product.forma_farmaceutica || "");
-  const d = normalizeForSearch(product.descripcion || "");
-  const sku = normalizeForSearch(String(product.sku ?? ""));
-  const cb = normalizeForSearch(String(product.codigo_barras ?? ""));
-  const marca = normalizeForSearch(String(product.marca ?? ""));
-  const cat = normalizeForSearch(product.categoria || "");
-  const everyIn = (hay) =>
-    tokens.length > 0 && tokens.every((t) => shortCatalogTokenMatchesNormalizedField(t, hay));
-
-  if (normalizedHaystackMatchesPhrase(n, qn, tokens)) {
-    const pr = catalogPhraseMatchRank(qn, tokens, product.nombre);
-    return pr != null ? pr : 0;
-  }
-  if (everyIn(n)) {
-    const pr = catalogPhraseMatchRank(qn, tokens, product.nombre);
-    return pr != null ? pr + 1 : 2;
-  }
-  if (normalizedHaystackMatchesPhrase(pa, qn, tokens)) return 1;
-  if (normalizedHaystackMatchesPhrase(dg, qn, tokens)) return 1;
-  if (normalizedHaystackMatchesPhrase(dd, qn, tokens)) return 2;
-  if (everyIn(pa)) return 3;
-  if (everyIn(dg)) return 3;
-  if (everyIn(dd)) return 4;
-  if (conc.includes(qn) || pres.includes(qn) || forma.includes(qn)) return 5;
-  if (sku === qn || cb === qn) return 0;
-  if (qn.length >= 2 && (sku.startsWith(qn) || cb.startsWith(qn))) return 4;
-  if (bySubstring) {
-    if (everyIn(d)) return 12;
-    if (everyIn(marca)) return 14;
-    if (everyIn(conc) || everyIn(pres) || everyIn(forma)) return 15;
-    if (everyIn(cat)) return 16;
-    return 20;
-  }
-  return 60;
+  return catalogSearchRelevanceRank(product, queryRaw, { inventario: false });
 }
 
-/**
- * Sugerencias para el buscador de la tienda (nombre, SKU, código de barras).
- * Orden: coincidencia exacta/prefijo en SKU y código, luego resto que pase el matcher.
- */
 export function tiendaCatalogSearchSuggestions(products, queryRaw, { limit = 8 } = {}) {
-  const q = String(queryRaw ?? "").trim();
-  if (q.length < 2 || !products?.length) return [];
-  const qn = normalizeForSearch(q);
-  if (!qn) return [];
-  const qTokens = qn.split(/\s+/).filter(Boolean);
-  const out = [];
-  for (const p of products) {
-    if (!p || p.activo === false) continue;
-    const sku = p.sku != null && String(p.sku).trim() !== "" ? normalizeForSearch(String(p.sku)) : "";
-    const cb =
-      p.codigo_barras != null && String(p.codigo_barras).trim() !== ""
-        ? normalizeForSearch(String(p.codigo_barras))
-        : "";
-    let rank = 100;
-    if (sku && sku === qn) rank = 0;
-    else if (cb && cb === qn) rank = 0;
-    else if (sku && sku.startsWith(qn)) rank = 1;
-    else if (cb && cb.startsWith(qn)) rank = 1;
-    else if (sku && sku.includes(qn)) rank = 3;
-    else if (cb && cb.includes(qn)) rank = 3;
-    const nn = normalizeForSearch(p.nombre || "");
-    const ptn = normalizeForSearch(p.principio_activo || "");
-    const dgn = normalizeForSearch(p.denominacion_generica || "");
-    const ddn = normalizeForSearch(p.denominacion_distintiva || "");
-    const conc = normalizeForSearch(p.concentracion || "");
-    const pres = normalizeForSearch(p.presentacion || "");
-    const forma = normalizeForSearch(p.forma_farmaceutica || "");
-    const nameRank = catalogPhraseMatchRank(qn, qTokens, p.nombre, p.marca, p.principio_activo, p.denominacion_generica, p.denominacion_distintiva, p.forma_farmaceutica);
-    if (nameRank != null) rank = Math.min(rank, nameRank);
-    if (normalizedHaystackMatchesPhrase(nn, qn, qTokens)) rank = Math.min(rank, (nameRank ?? 2) + 1);
-    if (qTokens.length && qTokens.every((t) => shortCatalogTokenMatchesNormalizedField(t, nn))) rank = Math.min(rank, (nameRank ?? 5) + 1);
-    if (normalizedHaystackMatchesPhrase(ptn, qn, qTokens)) rank = Math.min(rank, 4);
-    if (qTokens.length && qTokens.every((t) => shortCatalogTokenMatchesNormalizedField(t, ptn))) rank = Math.min(rank, 6);
-    if (normalizedHaystackMatchesPhrase(dgn, qn, qTokens)) rank = Math.min(rank, 4);
-    if (qTokens.length && qTokens.every((t) => shortCatalogTokenMatchesNormalizedField(t, dgn))) rank = Math.min(rank, 6);
-    if (normalizedHaystackMatchesPhrase(ddn, qn, qTokens)) rank = Math.min(rank, 5);
-    if (mrn && catalogPhraseMatchRank(qn, qTokens, p.marca) != null) rank = Math.min(rank, catalogPhraseMatchRank(qn, qTokens, p.marca));
-    if (conc.includes(qn) || pres.includes(qn) || forma.includes(qn)) rank = Math.min(rank, 7);
-    if (rank === 100) {
-      if (!tiendaProductMatchesBusqueda(p, q)) continue;
-      rank = 8;
-    }
-    out.push({
-      id: p.id,
-      nombre: p.nombre || "",
-      sku: p.sku != null ? String(p.sku) : "",
-      codigo_barras: p.codigo_barras != null ? String(p.codigo_barras) : "",
-      stock: p.stock,
-      rank,
-    });
-  }
-  out.sort((a, b) => a.rank - b.rank || String(a.nombre).localeCompare(String(b.nombre), "es"));
-  return out.slice(0, limit);
+  return catalogSearchSuggestions(products, queryRaw, { limit, inventario: false });
 }
 
 export function inventarioProductMatchesBusqueda(product, queryRaw) {
-  return productMatchesSearchQuery(product, queryRaw, INVENTARIO_GETTERS);
+  return catalogProductMatchesBusqueda(product, queryRaw, { inventario: true, allowDescripcion: false });
 }
 
-/**
- * Para ordenar resultados del inventario al buscar: menor = mejor coincidencia.
- */
 export function inventarioSearchRelevanceRank(product, queryRaw) {
-  const raw = String(queryRaw ?? "").trim();
-  if (!raw) return 0;
-  const qn = normalizeForSearch(raw);
-  if (!qn) return 40;
-  const vals = INVENTARIO_GETTERS.map((fn) => fn(product)).filter((v) => v != null && String(v).trim() !== "");
-  const nv = vals.map((v) => normalizeForSearch(v));
-  const nombre = normalizeForSearch(product?.nombre || "");
-  if (nombre.includes(qn)) return 0;
-  if (nv.some((v) => v.includes(qn))) return 2;
-  const sku = normalizeForSearch(String(product?.sku ?? ""));
-  const cb = normalizeForSearch(String(product?.codigo_barras ?? ""));
-  if (sku && sku === qn) return 1;
-  if (cb && cb === qn) return 1;
-  if (qn.length >= 2 && sku && sku.startsWith(qn)) return 5;
-  return 18;
+  return catalogSearchRelevanceRank(product, queryRaw, { inventario: true });
 }
 
-/**
- * Sugerencias cuando no hay resultados: productos con nombre ortográficamente cercano.
- */
+export function inventarioCatalogSearchSuggestions(products, queryRaw, { limit = 8 } = {}) {
+  return catalogSearchSuggestions(products, queryRaw, { limit, inventario: true });
+}
+
 export function spellSuggestFromProducts(products, queryRaw, { limit = 4, minQueryLen = 3 } = {}) {
   const qRaw = String(queryRaw || "").trim();
   if (qRaw.length < minQueryLen || !products?.length) return [];
-  const q = normalizeForSearch(qRaw);
+  const q = normalizeCatalogSearchQuery(qRaw);
   if (!q || q.length < minQueryLen) return [];
   const scored = [];
   for (const p of products) {

@@ -1008,10 +1008,10 @@ update public.productos set nombre = 'Huggies Super Toallitas Humedas', marca = 
 update public.productos set nombre = 'Tensolastic Plus Venda Elasti', presentacion = '5 CM x 5 M', forma_farmaceutica = 'Material de curación', categoria = 'Botiquín', tipo = 'marca', costo = 21.14, precio = 33.83 where sku = 'FC-48690800';
 
 -- FC-40171550 | margen 60% | C D Sensodyne Rapido Alivio 100G
-update public.productos set nombre = 'Sensodyne Rapido Alivio', marca = 'Sensodyne', presentacion = '100 G', forma_farmaceutica = 'Crema dental', categoria = 'Higiene', tipo = 'marca', costo = 405.32, precio = 648.52 where sku = 'FC-40171550';
+update public.productos set nombre = 'Sensodyne Rapido Alivio', marca = 'Sensodyne', presentacion = '100 G', forma_farmaceutica = 'Crema dental', categoria = 'Higiene', tipo = 'marca', costo = 106.44, precio = 149.00 where sku = 'FC-40171550';
 
 -- FC-48690909 | margen 60% | Protec Tensolastic Plus 7Cmx5M Venda Elasti
-update public.productos set nombre = 'Tensolastic Plus Venda Elasti', presentacion = '7 CM x 5 M', forma_farmaceutica = 'Material de curación', categoria = 'Botiquín', tipo = 'marca', costo = 405.32, precio = 648.52 where sku = 'FC-48690909';
+update public.productos set nombre = 'Tensolastic Plus Venda Elasti', presentacion = '7 CM x 5 M', forma_farmaceutica = 'Material de curación', categoria = 'Botiquín', tipo = 'marca', costo = 21.14, precio = 32.00 where sku = 'FC-48690909';
 
 -- FC-68900264 | margen 60% | DIBAR ALCOHOL 125ML ROJO
 update public.productos set nombre = 'Dibar Rojo', marca = 'Dibar', presentacion = '125 ML', forma_farmaceutica = 'Alcohol', categoria = 'Botiquín', tipo = 'marca', costo = 8.1, precio = 12.96 where sku = 'FC-68900264';

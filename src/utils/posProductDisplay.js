@@ -61,7 +61,12 @@ export function posTituloProducto(p) {
 
   if (marca && !/gen[eé]rico/i.test(marca)) {
     const resto = limpio.replace(new RegExp(`^${marca}\\b`, "i"), "").trim();
-    if (!resto || resto.length < 4) return titleCase(marca);
+    if (!resto) return titleCase(marca);
+    // Sabores cortos: Electrolit Uva, Electrolit Coco, etc.
+    if (resto.length <= 24 && limpio.split(/\s+/).length <= 5) {
+      return titleCase(limpio);
+    }
+    if (resto.length < 4) return titleCase(marca);
     if (limpio.length > 48) return titleCase(marca);
   }
 

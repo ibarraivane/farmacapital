@@ -3,7 +3,7 @@ import React, { useRef, useState, useLayoutEffect, useCallback } from "react";
 import { C_LIGHT, BRAND } from "./constants";
 import { logoFullStyle, logoIconStyle, logoFullSrc, logoFullSrcSet, logoAspect } from "./brand";
 import { useLogoOnDark } from "./hooks/useLogoOnDark";
-import { productMatchesSearchQuery } from "./utils/fuzzySearch";
+import { productMatchesSearchQuery, tiendaProductMatchesBusqueda, tiendaSearchRelevanceRank, inventarioProductMatchesBusqueda, inventarioSearchRelevanceRank } from "./utils/fuzzySearch";
 
 export function Logo({ size = 36, showText = true, light, sub = "", iconOnly = false, variant = "default", auto = true }) {
   const autoDetect = auto && light === undefined;
@@ -531,6 +531,10 @@ export function SearchDropdown({
   value, onChange, onSelect, placeholder="🔍 Buscar...",
   items=[], labelKey="nombre", subKey=null, badgeKey=null, badgeCol=null,
   extraSearchKeys=[],
+  matchFn=null,
+  rankFn=null,
+  /** "catalog" = tienda/POS · "inventario" = catálogo admin · null = genérico */
+  searchMode=null,
   style={}, maxResults=8, emptyMsg="Sin resultados"
 }) {
   const C = C_LIGHT;
@@ -545,9 +549,23 @@ export function SearchDropdown({
     return [(it) => it[labelKey], ...(subKey ? [(it) => it[subKey]] : []), ...extra];
   }, [labelKey, subKey, (extraSearchKeys || []).join("\0")]);
 
-  const filtered = !value?.trim() ? [] : items.filter((item) =>
-    productMatchesSearchQuery(item, value, searchGetters)
-  ).slice(0, maxResults);
+  const resolvedMatchFn = matchFn
+    || (searchMode === "inventario" ? inventarioProductMatchesBusqueda : null)
+    || (searchMode === "catalog" ? tiendaProductMatchesBusqueda : null);
+  const resolvedRankFn = rankFn
+    || (searchMode === "inventario" ? inventarioSearchRelevanceRank : null)
+    || (searchMode === "catalog" ? tiendaSearchRelevanceRank : null);
+
+  const filtered = !value?.trim() ? [] : items
+    .filter((item) =>
+      resolvedMatchFn
+        ? resolvedMatchFn(item, value)
+        : productMatchesSearchQuery(item, value, searchGetters)
+    )
+    .sort((a, b) =>
+      resolvedRankFn ? resolvedRankFn(a, value) - resolvedRankFn(b, value) : 0
+    )
+    .slice(0, maxResults);
 
   const measurePanel = React.useCallback(() => {
     const el = inputRef.current;

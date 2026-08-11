@@ -1,26 +1,72 @@
 -- ============================================================
--- Fix: create_producto_with_lote / receive_merchandise_lote
--- Alineado a columnas REALES de public.productos (sin proveedor, receta, etc.)
+-- PASO 0 — Reparar RPCs de carga (ejecutar ANTES de cargar faltantes)
 --
--- Supersedido por sql/patch_cargar_faltantes_0_fix_rpcs.sql (incluye DROP de sobrecargas).
--- EJECUTAR PRIMERO, luego sql/carga_inventario_tickets_EJECUTAR_1..4.sql
+-- ACTUALIZACION_MASIVA_1 dejó receive_merchandise_lote insertando
+-- movimientos_inventario.lote_id, columna que NO existe en la BD.
+--
+-- También pueden coexistir 2 firmas de create_producto_with_lote
+-- (6 y 7 args) → error 42725 "function is not unique".
 -- ============================================================
 
 begin;
 
+-- Eliminar TODAS las sobrecargas previas (6-arg, 7-arg, legacy, etc.)
 do $$
 declare r record;
 begin
   for r in
-    select p.proname, pg_get_function_identity_arguments(p.oid) as args
+    select pg_get_function_identity_arguments(p.oid) as args
     from pg_proc p
     join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public'
-      and p.proname in ('create_producto_with_lote', 'receive_merchandise_lote')
+      and p.proname = 'create_producto_with_lote'
   loop
-    execute format('drop function if exists public.%I(%s)', r.proname, r.args);
+    execute format('drop function if exists public.create_producto_with_lote(%s)', r.args);
+  end loop;
+
+  for r in
+    select pg_get_function_identity_arguments(p.oid) as args
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and p.proname = 'receive_merchandise_lote'
+  loop
+    execute format('drop function if exists public.receive_merchandise_lote(%s)', r.args);
   end loop;
 end $$;
+
+create or replace function public.fc_resolver_proveedor_tienda(p_nombre text)
+returns bigint
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_id bigint;
+  v_nombre text;
+begin
+  v_nombre := nullif(btrim(p_nombre), '');
+  if v_nombre is null then
+    return null;
+  end if;
+
+  select p.id
+  into v_id
+  from public.proveedores p
+  where lower(btrim(p.nombre)) = lower(v_nombre)
+  limit 1;
+
+  if v_id is not null then
+    return v_id;
+  end if;
+
+  insert into public.proveedores (nombre, activo)
+  values (v_nombre, true)
+  returning id into v_id;
+
+  return v_id;
+end;
+$$;
 
 create or replace function public.create_producto_with_lote(
   p_producto_data jsonb,
@@ -28,7 +74,8 @@ create or replace function public.create_producto_with_lote(
   p_numero_lote text default null,
   p_fecha_caducidad date default null,
   p_costo_unitario numeric default null,
-  p_user_id bigint default null
+  p_user_id bigint default null,
+  p_proveedor_tienda text default null
 )
 returns table(producto_id bigint, lote_id bigint)
 language plpgsql
@@ -39,6 +86,8 @@ declare
   v_producto_id bigint;
   v_lote_id bigint := null;
   v_lote_numero text;
+  v_proveedor_id bigint;
+  v_proveedor_nombre text;
 begin
   if p_producto_data is null then
     raise exception 'producto_data requerido';
@@ -47,7 +96,12 @@ begin
     raise exception 'nombre requerido';
   end if;
 
-  -- Solo columnas confirmadas en productos (ver sql/seed_productos_prueba.sql)
+  v_proveedor_nombre := coalesce(
+    nullif(btrim(p_proveedor_tienda), ''),
+    nullif(btrim(p_producto_data->>'proveedor_tienda'), '')
+  );
+  v_proveedor_id := public.fc_resolver_proveedor_tienda(v_proveedor_nombre);
+
   insert into public.productos (
     nombre,
     sku,
@@ -86,13 +140,14 @@ begin
 
     insert into public.lotes (
       producto_id, numero_lote, cantidad_inicial, cantidad_actual,
-      fecha_caducidad, costo_unitario, activo
+      fecha_caducidad, costo_unitario, proveedor_id, activo
     ) values (
       v_producto_id,
       v_lote_numero,
       p_cantidad_inicial, p_cantidad_inicial,
       p_fecha_caducidad,
       coalesce(p_costo_unitario, nullif(p_producto_data->>'costo', '')::numeric),
+      v_proveedor_id,
       true
     ) returning id into v_lote_id;
 
@@ -126,6 +181,7 @@ as $$
 declare
   v_lote_id bigint;
   v_numero text;
+  v_proveedor_id bigint;
 begin
   if p_producto_id is null then raise exception 'producto_id requerido'; end if;
   if p_cantidad is null or p_cantidad <= 0 then raise exception 'cantidad invalida'; end if;
@@ -135,6 +191,8 @@ begin
     raise exception 'producto % no existe', p_producto_id;
   end if;
 
+  v_proveedor_id := public.fc_resolver_proveedor_tienda(p_proveedor);
+
   v_numero := coalesce(
     nullif(btrim(p_numero_lote), ''),
     'RX-' || to_char(now(), 'YYYYMMDD-HH24MISS')
@@ -142,10 +200,10 @@ begin
 
   insert into public.lotes (
     producto_id, numero_lote, cantidad_inicial, cantidad_actual,
-    fecha_caducidad, costo_unitario, activo
+    fecha_caducidad, costo_unitario, proveedor_id, activo
   ) values (
     p_producto_id, v_numero, p_cantidad, p_cantidad,
-    p_fecha_caducidad, p_costo_unitario, true
+    p_fecha_caducidad, p_costo_unitario, v_proveedor_id, true
   ) returning id into v_lote_id;
 
   update public.productos
@@ -167,18 +225,18 @@ begin
 end;
 $$;
 
+grant execute on function public.fc_resolver_proveedor_tienda(text) to anon, authenticated, service_role;
 grant execute on function public.create_producto_with_lote(
-  jsonb, integer, text, date, numeric, bigint
+  jsonb, integer, text, date, numeric, bigint, text
 ) to anon, authenticated, service_role;
-
 grant execute on function public.receive_merchandise_lote(
   bigint, integer, text, date, numeric, text, bigint
 ) to anon, authenticated, service_role;
 
-commit;
+-- Debe devolver exactamente 1 fila; si hay 2+, re-ejecutar este script.
+select count(*) as firmas_create_producto_with_lote
+from pg_proc p
+join pg_namespace n on n.oid = p.pronamespace
+where n.nspname = 'public' and p.proname = 'create_producto_with_lote';
 
--- Prueba rápida (opcional, ejecutar aparte):
--- select producto_id, lote_id from create_producto_with_lote(
---   '{"nombre":"PRUEBA CARGA","sku":"FC-TEST-1","categoria":"GENERAL","tipo":"GENERICO","descripcion":"test","costo":10,"precio":13.5,"activo":true}'::jsonb,
---   1, 'LOTE-TEST', '2028-01-01'::date, 10, null
--- );
+commit;

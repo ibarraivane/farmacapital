@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
 import { showToast, HorizontalScrollSync } from "./ui";
-import { inventarioProductMatchesBusqueda, inventarioSearchRelevanceRank, productMatchesSearchQuery } from "./utils/fuzzySearch";
+import { inventarioProductMatchesBusqueda, inventarioSearchRelevanceRank } from "./utils/fuzzySearch";
 import { findProductExactScan } from "./utils/barcodeProductLookup";
 import { etiquetaProductoInventario } from "./utils/parseNombreProducto";
 
@@ -70,7 +70,7 @@ export default function LotesModule() {
   );
 
   const lotesFiltrados = lotes.filter(l=>{
-    const matchP = !filtroP || productMatchesSearchQuery(l.productos || {}, filtroP, [(x) => x.nombre, (x) => x.sku, (x) => x.codigo_barras]);
+    const matchP = !filtroP || inventarioProductMatchesBusqueda(l.productos || {}, filtroP);
     const dias   = diasRestantes(l.fecha_caducidad);
     const matchV =
       filtroVenc==="todos"    ? true :

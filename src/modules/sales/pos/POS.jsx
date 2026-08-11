@@ -7,7 +7,7 @@ import { supabase } from "../../../supabase";
 import { C_LIGHT, BRAND } from "../../../constants";
 import { $, logAudit, soloDigitosTel, normalizeForSearch } from "../../../utils";
 import { tiendaProductMatchesBusqueda, tiendaCatalogSearchSuggestions, tiendaSearchRelevanceRank } from "../../../utils/fuzzySearch";
-import { findProductExactScan, looksLikeBarcodeInput, isAllDigitsInput, normalizeBarcodeRaw, shouldReplaceScanInput, scanDedupeKey } from "../../../utils/barcodeProductLookup";
+import { findProductExactScan, looksLikeBarcodeInput, isAllDigitsInput, normalizeBarcodeRaw, shouldReplaceScanInput } from "../../../utils/barcodeProductLookup";
 import { posTituloProducto, posSubtituloProducto } from "../../../utils/posProductDisplay";
 import {
   suggestPosProductsLocal,
@@ -437,7 +437,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const [usoLoadingId, setUsoLoadingId] = useState(null);
   const usoFetchRef = useRef(0);
   const scanAddTimerRef = useRef(null);
-  const lastAutoScanRef = useRef("");
+  const lastScanBurstRef = useRef({ raw: "", ts: 0 });
   const scanLastKeyTsRef = useRef(0);
   const addRef = useRef(null);
   const [promoTicket,setPromoTicket] = useState(null);
@@ -928,17 +928,17 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   addRef.current = add;
 
   const finalizarEscaneoExitoso = useCallback((exact, raw) => {
-    const key = scanDedupeKey(raw, exact);
+    const now = Date.now();
+    const prev = lastScanBurstRef.current;
+    // Evitar doble add solo cuando timer + Enter disparan el mismo escaneo
+    const mismoEscaneo = prev.raw === raw && now - prev.ts < 400;
     setFichaProd(exact);
     setSrch("");
     setSrchFocus(false);
     srchRef.current?.focus();
-    if (lastAutoScanRef.current === key) return;
-    lastAutoScanRef.current = key;
+    if (mismoEscaneo) return;
+    lastScanBurstRef.current = { raw, ts: now };
     add(exact, false);
-    window.setTimeout(() => {
-      if (lastAutoScanRef.current === key) lastAutoScanRef.current = "";
-    }, 500);
   }, [add]);
 
   useEffect(() => {

@@ -125,9 +125,9 @@ begin
     ) returning id into v_lote_id;
 
     insert into public.movimientos_inventario (
-      producto_id, lote_id, tipo, cantidad, motivo, usuario_id
+      producto_id, tipo, cantidad, motivo, usuario_id
     ) values (
-      v_producto_id, v_lote_id, 'entrada', p_cantidad_inicial,
+      v_producto_id, 'entrada', p_cantidad_inicial,
       'Alta de producto con stock inicial',
       p_user_id::integer
     );
@@ -184,9 +184,9 @@ begin
   where id = p_producto_id;
 
   insert into public.movimientos_inventario (
-    producto_id, lote_id, tipo, cantidad, motivo, usuario_id
+    producto_id, tipo, cantidad, motivo, usuario_id
   ) values (
-    p_producto_id, v_lote_id, 'entrada', p_cantidad,
+    p_producto_id, 'entrada', p_cantidad,
     format('Recepcion de mercancia (lote %s)', v_numero),
     p_user_id::integer
   );

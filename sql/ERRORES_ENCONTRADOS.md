@@ -15,7 +15,7 @@
 | **PROMEGA 3 CAPS C/30** | 1067 | 2 | 1 | ❌ INCORRECTO |
 | **TRIBEDOCE TAB C/30** | 215 | 5 | 1 | ❌ INCORRECTO |
 | **ALGODON DIBAR 200 GR** | 1605 | 2 | 1 | ❌ INCORRECTO |
-| **ALGODON DIBAR 60 GR** | 1657 | 2 | 1 | ❌ INCORRECTO |
+| **ALGODON DIBAR 60 GR** | 1657 | 3 | 1 | ❌ INCORRECTO (barcode `7501868910034`, no `7501868900127`) |
 | **JERINGA SENSIMEDICAL INSUL 0.3 ML C/100** | 1589 | 1 | 1 | ✅ CORRECTO |
 | **JERINGA SENSIMEDICAL INSUL 0.5 ML C/100** | 1518 | 1 | 1 | ✅ CORRECTO |
 
@@ -40,10 +40,12 @@
 
 ## 🎯 ACCIÓN INMEDIATA:
 
-1. **Ejecutar en Supabase SQL Editor:**
+1. **Ejecutar en Supabase SQL Editor (TODOS los tickets PDF):**
    ```sql
-   sql/corregir_stock_electrolit.sql
+   sql/patch_cantidades_tickets_completo.sql
    ```
+   Regenerar con: `python3 scripts/auditar_cantidades_vs_pdfs.py`  
+   Reporte: `sql/generated/auditoria_cantidades_todos_tickets.md`
 
 2. **Buscar estos productos en BD y actualizar:**
    - REPELENTE BIOCLAP
