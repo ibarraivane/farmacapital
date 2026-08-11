@@ -96,6 +96,15 @@ async function refetchProductoLotes(productoId) {
   };
 }
 
+async function rpcGuardarCaducidadProducto(sessionToken, productoId, fecha, loteId = null) {
+  return supabase.rpc("admin_guardar_caducidad_producto", {
+    p_session_token: sessionToken,
+    p_producto_id: productoId,
+    p_fecha_caducidad: fecha,
+    p_lote_id: loteId,
+  });
+}
+
 const mkInputStyle = (C) => ({ width:"100%", padding:"8px 10px", borderRadius:7, border:`1px solid ${C.border}`, background:C.bg, color:C.text, fontSize:12, outline:"none", boxSizing:"border-box" });
 const mkLabelStyle = (C) => ({ color:C.textMid, fontSize:11, fontWeight:600, marginBottom:3, display:"block" });
 const mkBtnPrimary = (C) => ({ padding:"9px 18px", borderRadius:8, border:"none", cursor:"pointer", background:BRAND.gradient, color:"#fff", fontWeight:700, fontSize:12 });
@@ -816,84 +825,25 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
       setCaducidadLote(loteCadRef?.fecha_caducidad || "");
       return;
     }
-    if (loteCadRef?.id) {
-      if ((loteCadRef.fecha_caducidad || null) === next) return;
-      setCadSaving(true);
-      try {
-        const { data: resp, error } = await supabase.rpc("admin_editar_lote", {
-          p_session_token: tok,
-          p_lote_id: loteCadRef.id,
-          p_fecha_caducidad: next,
-          p_numero_lote: null,
-        });
-        if (error) {
-          showToast(error.message, "error");
-          setCaducidadLote(loteCadRef.fecha_caducidad || "");
-          return;
-        }
-        if (!resp?.success) {
-          showToast("No se pudo guardar la caducidad.", "error");
-          setCaducidadLote(loteCadRef.fecha_caducidad || "");
-          return;
-        }
-        showToast("Caducidad actualizada", "success");
-        await onCaducidadSaved?.();
-      } finally {
-        setCadSaving(false);
-      }
-      return;
-    }
-    let loteId = resolverLoteCaducidadProducto(initial)?.id ?? null;
-    if (!loteId) {
-      const fresh = await refetchProductoLotes(initial.id);
-      loteId = fresh ? resolverLoteCaducidadProducto(fresh)?.id ?? null : null;
-    }
-    if (loteId) {
-      setCadSaving(true);
-      try {
-        const { data: resp, error } = await supabase.rpc("admin_editar_lote", {
-          p_session_token: tok,
-          p_lote_id: loteId,
-          p_fecha_caducidad: next,
-          p_numero_lote: null,
-        });
-        if (error) {
-          showToast(error.message, "error");
-          return;
-        }
-        if (!resp?.success) {
-          showToast("No se pudo guardar la caducidad.", "error");
-          return;
-        }
-        showToast("Caducidad actualizada", "success");
-        await onCaducidadSaved?.();
-      } finally {
-        setCadSaving(false);
-      }
-      return;
-    }
-    const stockNum = parseInt(form.stock, 10) || 0;
-    if (stockNum <= 0) {
-      showToast("Sin lote ni stock — usá Recibir mercancía.", "warning");
-      return;
-    }
+    if ((loteCadRef?.fecha_caducidad || null) === next) return;
     setCadSaving(true);
     try {
-      const { data: resp, error } = await supabase.rpc("admin_crear_lote_stock_existente", {
-        p_session_token: tok,
-        p_producto_id: initial.id,
-        p_fecha_caducidad: next,
-        p_numero_lote: null,
-      });
+      const loteId = loteCadRef?.id ?? resolverLoteCaducidadProducto(initial)?.id ?? null;
+      const { data: resp, error } = await rpcGuardarCaducidadProducto(tok, initial.id, next, loteId);
       if (error) {
         showToast(error.message, "error");
+        setCaducidadLote(loteCadRef?.fecha_caducidad || "");
         return;
       }
       if (!resp?.success) {
-        showToast("No se pudo registrar el lote.", "error");
+        showToast("No se pudo guardar la caducidad.", "error");
+        setCaducidadLote(loteCadRef?.fecha_caducidad || "");
         return;
       }
-      showToast(`Lote creado (${stockNum} pza.) con caducidad`, "success");
+      const msg = resp.accion === "crear"
+        ? `Lote creado (${resp.cantidad ?? form.stock} pza.) con caducidad`
+        : "Caducidad actualizada";
+      showToast(msg, "success");
       await onCaducidadSaved?.();
     } finally {
       setCadSaving(false);
@@ -3021,53 +2971,23 @@ export default function InventarioModule() {
         showToast("Elegí una fecha de caducidad.", "warning");
         return false;
       }
-      let loteId = meta?.loteId ?? resolverLoteCaducidadProducto(product)?.id ?? null;
-      if (!loteId) {
-        const fresh = await refetchProductoLotes(product.id);
-        loteId = fresh ? resolverLoteCaducidadProducto(fresh)?.id ?? null : null;
-      }
-      if (loteId) {
-        const lote = (product.lotes || []).find((l) => l.id === loteId);
-        if ((lote?.fecha_caducidad || null) === fecha) return true;
-        const { data: resp, error } = await supabase.rpc("admin_editar_lote", {
-          p_session_token: tok,
-          p_lote_id: loteId,
-          p_fecha_caducidad: fecha,
-          p_numero_lote: null,
-        });
-        if (error) {
-          showToast(error.message, "error");
-          return false;
-        }
-        if (!resp?.success) {
-          showToast("No se pudo guardar la caducidad.", "error");
-          return false;
-        }
-        await fetchProductos();
-        showToast("Caducidad actualizada", "success");
-        return true;
-      }
-      const stockNum = product.stock ?? 0;
-      if (stockNum <= 0) {
-        showToast("Sin lote ni stock — usá Recibir mercancía.", "warning");
-        return false;
-      }
-      const { data: resp, error } = await supabase.rpc("admin_crear_lote_stock_existente", {
-        p_session_token: tok,
-        p_producto_id: product.id,
-        p_fecha_caducidad: fecha,
-        p_numero_lote: null,
-      });
+      const loteId = meta?.loteId ?? resolverLoteCaducidadProducto(product)?.id ?? null;
+      const lote = loteId ? (product.lotes || []).find((l) => l.id === loteId) : null;
+      if ((lote?.fecha_caducidad || null) === fecha) return true;
+      const { data: resp, error } = await rpcGuardarCaducidadProducto(tok, product.id, fecha, loteId);
       if (error) {
         showToast(error.message, "error");
         return false;
       }
       if (!resp?.success) {
-        showToast("No se pudo registrar el lote.", "error");
+        showToast("No se pudo guardar la caducidad.", "error");
         return false;
       }
       await fetchProductos();
-      showToast(`Lote creado (${stockNum} pza.) con caducidad`, "success");
+      showToast(
+        resp.accion === "crear" ? `Lote creado (${resp.cantidad ?? product.stock} pza.) con caducidad` : "Caducidad actualizada",
+        "success"
+      );
       return true;
     }
 
