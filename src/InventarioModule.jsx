@@ -135,6 +135,14 @@ function inferPresentacionDesdeNombre(nombre) {
   return { nombreCorto: s, presentacion: "" };
 }
 
+function codigoBarrasLimpio(v) {
+  return String(v ?? "").replace(/\D/g, "").trim();
+}
+
+function productoSinCodigoBarras(p) {
+  return !codigoBarrasLimpio(p?.codigo_barras);
+}
+
 /** Parte nombre/presentación y mueve dosis suelta de principio → concentración al importar CSV. */
 function normalizarCamposFarmaceuticosImport(row) {
   const out = { ...row };
@@ -195,6 +203,14 @@ const tdEllipsisStyle = {
   whiteSpace: "nowrap",
 };
 
+const INV_STICKY_HEADER_IDS = ["foto", "skuFarmaCapital", "refLista", "nombre"];
+
+function inventarioStickyHeaderStyle(colId, { header, bg, stickyWidths }) {
+  const idx = INV_STICKY_HEADER_IDS.indexOf(colId);
+  if (idx < 0) return {};
+  return inventarioStickyCell(idx + 1, { header, bg, stickyWidths });
+}
+
 /** Columnas fijas al hacer scroll horizontal: ☑ · foto · SKU · ref lista · nombre */
 const INV_STICKY_COL_DEFAULT_WIDTH = [52, 62, 120, 82, 272];
 
@@ -220,6 +236,7 @@ function inventarioStickyCell(colIdx, { header, bg, stickyWidths }) {
 
 const INV_COL_WIDTHS_DEFAULT = {
   refLista: 82,
+  codigoBarras: 128,
   nombre: 272,
   marca: 130,
   presentacion: 160,
@@ -236,6 +253,11 @@ const INV_COLUMN_HEADERS = [
     id: "skuFarmaCapital",
     label: "SKU FarmaCapital",
     hint: "Identificador único en FarmaCapital — campo productos.sku (POS, ticket, código interno).",
+  },
+  {
+    id: "codigoBarras",
+    label: "Cód. barras",
+    hint: "EAN/UPC escaneable en POS y resurtido. Edita con ✏️ o escanea en el modal del producto.",
   },
   {
     id: "refLista",
@@ -549,6 +571,7 @@ function ProductoModal({initial, onClose, onSaved }) {
       ...(initial || EMPTY),
       imagen_url: (initial || EMPTY).imagen_url || "",
       imagen_mobile_url: (initial || EMPTY).imagen_mobile_url || "",
+      _focusBarcode: Boolean(initial?._focusBarcode),
     };
     for (const k of ["nombre", "sku", "codigo_barras", "proveedor", "lote"]) {
       if (base[k] == null) base[k] = "";
@@ -557,6 +580,12 @@ function ProductoModal({initial, onClose, onSaved }) {
   });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
+  const barcodeRef = useRef(null);
+  useEffect(() => {
+    if (form._focusBarcode) {
+      barcodeRef.current?.focus();
+    }
+  }, [form._focusBarcode, form.id]);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const validate = () => {
     const e = {};
@@ -564,6 +593,10 @@ function ProductoModal({initial, onClose, onSaved }) {
     if (!form.precio||parseFloat(form.precio)<=0) e.precio = "Debe ser mayor a $0";
     if (!form.costo||parseFloat(form.costo)<0)         e.costo        = "Debe ser 0 o mayor";
     if (form.stock === "" || form.stock === null)       e.stock        = "Requerido";
+    const cb = codigoBarrasLimpio(form.codigo_barras);
+    if (cb && (cb.length < 8 || cb.length > 14)) {
+      e.codigo_barras = "Usa 8–14 dígitos (EAN/UPC)";
+    }
     return e;
   };
   const handleSave = async () => {
@@ -578,7 +611,7 @@ function ProductoModal({initial, onClose, onSaved }) {
       const productoFields = {
         nombre: (form.nombre ?? "").trim(),
         sku: (form.sku ?? "").trim() || null,
-        codigo_barras: form.codigo_barras?.trim() || null,
+        codigo_barras: codigoBarrasLimpio(form.codigo_barras) || null,
         categoria: form.categoria,
         precio: parseFloat(form.precio),
         stock_minimo: form.stock_minimo !== "" ? parseInt(form.stock_minimo) : 0,
@@ -717,9 +750,39 @@ function ProductoModal({initial, onClose, onSaved }) {
           <div>
             {field("Nombre","nombre","text",true)}
             {field("SKU FarmaCapital","sku")}
-            {field("Código de barras","codigo_barras")}
-            <div style={{fontSize:11,color:C.textDim,marginTop:-6,marginBottom:12,lineHeight:1.45}}>
-              Escanea el EAN/UPC de la caja con la pistola (POS, resurtido y recepción usan este número).
+            <div style={{ marginBottom: 12 }}>
+              <label style={labelStyle}>Código de barras</label>
+              <input
+                ref={barcodeRef}
+                value={form.codigo_barras || ""}
+                onChange={(e) => set("codigo_barras", e.target.value.replace(/[^\d]/g, ""))}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleSave();
+                  }
+                }}
+                placeholder="Escanea o escribe EAN (750…)"
+                inputMode="numeric"
+                autoComplete="off"
+                style={{
+                  ...inputStyle,
+                  ...(errors.codigo_barras ? { borderColor: C.red } : {}),
+                  fontFamily: "ui-monospace,Menlo,monospace",
+                }}
+              />
+              {errors.codigo_barras ? (
+                <div style={{ color: C.red, fontSize: 11, marginTop: 4 }}>{errors.codigo_barras}</div>
+              ) : null}
+              {productoSinCodigoBarras(form) ? (
+                <div style={{ fontSize: 11, color: C.amber, marginTop: 6, fontWeight: 600 }}>
+                  Sin código de barras — no se puede escanear en POS hasta capturarlo.
+                </div>
+              ) : (
+                <div style={{ fontSize: 11, color: C.textDim, marginTop: 6, lineHeight: 1.45 }}>
+                  Escanea el EAN/UPC de la caja con la pistola (POS, resurtido y recepción usan este número).
+                </div>
+              )}
             </div>
             <div style={{marginBottom:12}}>
               <label style={labelStyle}>Categoría</label>
@@ -1593,6 +1656,7 @@ export default function InventarioModule() {
     (id) => {
       const map = {
         refLista: Math.max(70, Number(colWidths.refLista) || INV_COL_WIDTHS_DEFAULT.refLista),
+        codigoBarras: Math.max(100, Number(colWidths.codigoBarras) || INV_COL_WIDTHS_DEFAULT.codigoBarras),
         nombre: Math.max(200, Number(colWidths.nombre) || INV_COL_WIDTHS_DEFAULT.nombre),
         marca: Math.max(90, Number(colWidths.marca) || INV_COL_WIDTHS_DEFAULT.marca),
         presentacion: Math.max(110, Number(colWidths.presentacion) || INV_COL_WIDTHS_DEFAULT.presentacion),
@@ -1898,9 +1962,11 @@ export default function InventarioModule() {
     const cat = filtroCategoria === "todas" || p.categoria === filtroCategoria;
     const dias = diasParaCaducar(p.min_caducidad_lotes);
     const alerta =
-      filtroAlerta === "todos"       ? true :
-      filtroAlerta === "bajo_stock"  ? (p.stock <= (p.stock_minimo??0)) :
-      filtroAlerta === "por_caducar" ? (dias !== null && dias <= 30 && dias >= 0) : true;
+      filtroAlerta === "todos"            ? true :
+      filtroAlerta === "bajo_stock"       ? (p.stock <= (p.stock_minimo??0)) :
+      filtroAlerta === "por_caducar"      ? (dias !== null && dias <= 30 && dias >= 0) :
+      filtroAlerta === "sin_codigo_barras" ? productoSinCodigoBarras(p) :
+      true;
     return cat && alerta;
   }), [productos, filtroCategoria, filtroAlerta]);
 
@@ -1955,7 +2021,12 @@ export default function InventarioModule() {
   const activos    = productos.filter(p => p.activo).length;
   const bajoStock  = productos.filter(p => p.activo && p.stock<=(p.stock_minimo??0)).length;
   const porCaducar = productos.filter(p => { const d=diasParaCaducar(p.min_caducidad_lotes); return d!==null&&d<=30&&d>=0; }).length;
+  const sinCodigoBarras = productos.filter(p => p.activo && productoSinCodigoBarras(p)).length;
   const inactivos  = productos.filter(p => !p.activo).length;
+
+  const abrirEdicionProducto = useCallback((p, { focusBarcode = false } = {}) => {
+    setModal({ ...p, _focusBarcode: focusBarcode });
+  }, []);
 
   const desactivar = async (id) => {
     if (!window.confirm("¿Desactivar este producto?")) return;
@@ -2158,6 +2229,7 @@ export default function InventarioModule() {
           {label:"Activos",     val:activos,    col:C.blue},
           {label:"Bajo stock",  val:bajoStock,  col:C.amber, click:()=>setFiltroAlerta("bajo_stock")},
           {label:"Por caducar", val:porCaducar, col:C.red,   click:()=>setFiltroAlerta("por_caducar")},
+          {label:"Sin cód. barras", val:sinCodigoBarras, col:C.blue, click:()=>setFiltroAlerta("sin_codigo_barras")},
           {label:"Inactivos",   val:inactivos,  col:C.textMid},
         ].map(s=>(
           <div key={s.label} onClick={s.click} style={{
@@ -2199,6 +2271,7 @@ export default function InventarioModule() {
           <option value="todos">Todas las alertas</option>
           <option value="bajo_stock">⚠ Bajo stock</option>
           <option value="por_caducar">⏰ Por caducar (30d)</option>
+          <option value="sin_codigo_barras">🏷️ Sin código de barras</option>
         </select>
         <label style={{display:"flex",alignItems:"center",gap:7,cursor:"pointer",color:C.textMid,fontSize:12,fontWeight:600}}>
           <div onClick={()=>setVerInactivos(v=>!v)} style={{width:36,height:20,borderRadius:10,cursor:"pointer",
@@ -2261,6 +2334,7 @@ export default function InventarioModule() {
           }}>
             {[
               ["refLista", "Ref. mayorista", 70, 140],
+              ["codigoBarras", "Cód. barras", 100, 180],
               ["nombre", "Nombre", 200, 420],
               ["marca", "Marca", 90, 240],
               ["presentacion", "Presentación", 110, 260],
@@ -2406,7 +2480,7 @@ export default function InventarioModule() {
                       whiteSpace: "nowrap",
                       cursor: col.hint ? "help" : undefined,
                       verticalAlign: "middle",
-                      ...(colIdx <= 3 ? inventarioStickyCell(colIdx + 1, { header: true, bg: C.card, stickyWidths }) : {}),
+                      ...(inventarioStickyHeaderStyle(col.id, { header: true, bg: C.card, stickyWidths })),
                       ...invColWidthStyle(col.id),
                     }}
                   >
@@ -2417,7 +2491,7 @@ export default function InventarioModule() {
             </thead>
             <tbody>
               {filtrados.length===0&&(
-                <tr><td colSpan={24} style={{textAlign:"center",padding:32,color:C.textMid}}>
+                <tr><td colSpan={INV_COLUMN_HEADERS.length + 1} style={{textAlign:"center",padding:32,color:C.textMid}}>
                   Sin productos{busqueda?` para "${busqueda}"`:""}. Agrega el primero con ➕
                 </td></tr>
               )}
@@ -2440,6 +2514,8 @@ export default function InventarioModule() {
                 const provDisp = (p.proveedor || "").trim();
                 const principioLine = lineaPrincipioQuimicoTabla(p);
                 const dosisLine = lineaDosisTabla(p);
+                const cbDisp = codigoBarrasLimpio(p.codigo_barras);
+                const sinCb = !cbDisp;
                 const stickyRowBg = bajo ? C.amberDim : nearCad ? C.redDim : C.bg;
                 return (
                   <tr key={p.id} className="farmacapital-table-row" style={{opacity:inact?0.45:1,background:bajo?C.amberDim:nearCad?C.redDim:"transparent"}}>
@@ -2480,6 +2556,44 @@ export default function InventarioModule() {
                       verticalAlign: "middle",
                       ...inventarioStickyCell(2, { header: false, bg: stickyRowBg, stickyWidths }),
                     }}>{p.sku||"—"}</td>
+                    <td style={{
+                      padding: "8px 12px",
+                      borderBottom: `1px solid ${C.border}`,
+                      verticalAlign: "middle",
+                      ...invColWidthStyle("codigoBarras"),
+                    }}>
+                      {sinCb ? (
+                        <button
+                          type="button"
+                          onClick={() => abrirEdicionProducto(p, { focusBarcode: true })}
+                          style={{
+                            background: C.blueDim,
+                            border: `1px dashed ${C.blue}55`,
+                            color: C.blue,
+                            borderRadius: 6,
+                            padding: "4px 8px",
+                            cursor: "pointer",
+                            fontSize: 10,
+                            fontWeight: 700,
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          + Agregar
+                        </button>
+                      ) : (
+                        <span
+                          style={{
+                            fontFamily: "ui-monospace,Menlo,monospace",
+                            fontSize: 11,
+                            color: C.textMid,
+                            ...tdEllipsisStyle,
+                          }}
+                          title={cbDisp}
+                        >
+                          {cbDisp}
+                        </span>
+                      )}
+                    </td>
                     <td style={{
                       padding: "8px 12px",
                       color: C.textMid,
@@ -2568,7 +2682,7 @@ export default function InventarioModule() {
                         {p.activo?"Activo":"Inactivo"}</span>
                     </td>
                     <td style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>
-                      <button onClick={()=>setModal(p)} style={{background:C.blueDim,border:`1px solid ${C.blue}30`,
+                      <button onClick={()=>abrirEdicionProducto(p)} style={{background:C.blueDim,border:`1px solid ${C.blue}30`,
                         color:C.blue,borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:11,fontWeight:700,marginRight:6}}>
                         ✏️ Editar</button>
                       <button onClick={()=>setModalLotes(p)} style={{background:"#f1f5f9",border:`1px solid ${C.border}`,
