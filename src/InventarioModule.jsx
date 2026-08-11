@@ -56,6 +56,19 @@ const minCaducidadLotes = (lotes) => {
   return activos.reduce((m, l) => (!m || l.fecha_caducidad < m) ? l.fecha_caducidad : m, null);
 };
 
+/** Lote activo con caducidad más próxima (PEPS). */
+const loteCaducidadMasProxima = (lotes) => {
+  const activos = (lotes || []).filter((l) => l.activo !== false && (l.cantidad_actual || 0) > 0);
+  if (!activos.length) return null;
+  return activos
+    .slice()
+    .sort((a, b) => {
+      if (!a.fecha_caducidad) return 1;
+      if (!b.fecha_caducidad) return -1;
+      return a.fecha_caducidad.localeCompare(b.fecha_caducidad);
+    })[0];
+};
+
 const mkInputStyle = (C) => ({ width:"100%", padding:"8px 10px", borderRadius:7, border:`1px solid ${C.border}`, background:C.bg, color:C.text, fontSize:12, outline:"none", boxSizing:"border-box" });
 const mkLabelStyle = (C) => ({ color:C.textMid, fontSize:11, fontWeight:600, marginBottom:3, display:"block" });
 const mkBtnPrimary = (C) => ({ padding:"9px 18px", borderRadius:8, border:"none", cursor:"pointer", background:BRAND.gradient, color:"#fff", fontWeight:700, fontSize:12 });
@@ -242,6 +255,7 @@ function InventarioEditableCell({
   type = "text",
   options,
   mono = false,
+  selectionMode = false,
 }) {
   const isEditing = inlineEdit?.productId === productId && inlineEdit?.field === field;
   const rowBg = tdStyle?.background;
@@ -293,10 +307,14 @@ function InventarioEditableCell({
 
   return (
     <td
-      style={{ ...tdStyle, cursor: "pointer" }}
-      title="Clic para editar"
+      style={{ ...tdStyle, cursor: selectionMode ? "default" : "pointer" }}
+      title={selectionMode ? "Hay productos seleccionados — usa el menú azul arriba de la tabla" : "Clic para editar"}
+      onMouseDown={(e) => {
+        if (!selectionMode) e.preventDefault();
+      }}
       onClick={(e) => {
         e.stopPropagation();
+        if (selectionMode) return;
         onStart(productId, field, value);
       }}
       onMouseEnter={(e) => {
@@ -311,39 +329,11 @@ function InventarioEditableCell({
   );
 }
 
-const INV_STICKY_HEADER_IDS = ["foto", "skuFarmaCapital", "refLista", "nombre"];
-
-function inventarioStickyHeaderStyle(colId, { header, bg, stickyWidths }) {
-  const idx = INV_STICKY_HEADER_IDS.indexOf(colId);
-  if (idx < 0) return {};
-  return inventarioStickyCell(idx + 1, { header, bg, stickyWidths });
-}
-
-/** Columnas fijas al hacer scroll horizontal: ☑ · foto · SKU · ref lista · nombre */
-const INV_STICKY_COL_DEFAULT_WIDTH = [52, 62, 120, 82, 272];
-
-function inventarioStickyCell(colIdx, { header, bg, stickyWidths }) {
-  const widths = Array.isArray(stickyWidths) && stickyWidths.length === INV_STICKY_COL_DEFAULT_WIDTH.length
-    ? stickyWidths
-    : INV_STICKY_COL_DEFAULT_WIDTH;
-  const left = widths.slice(0, colIdx).reduce((acc, n) => acc + n, 0);
-  const edgeShadow =
-    colIdx === 4 ? "6px 0 18px -10px rgba(15, 23, 42, 0.22)" : undefined;
-  return {
-    position: "sticky",
-    left,
-    width: widths[colIdx],
-    minWidth: widths[colIdx],
-    maxWidth: colIdx === 4 ? widths[colIdx] : undefined,
-    boxSizing: "border-box",
-    zIndex: header ? 35 + colIdx : 15 + colIdx,
-    background: bg,
-    boxShadow: edgeShadow,
-  };
-}
+const INV_CHECKBOX_COL_WIDTH = 52;
+const INV_STICKY_COL_IDS = ["foto", "acciones", "skuFarmaCapital", "nombre"];
 
 const INV_COL_WIDTHS_DEFAULT = {
-  refLista: 82,
+  acciones: 200,
   codigoBarras: 128,
   nombre: 272,
   marca: 130,
@@ -354,45 +344,128 @@ const INV_COL_WIDTHS_DEFAULT = {
   proveedor: 140,
 };
 
-/** Cabeceras tabla inventario + tooltip para distinguir SKU FarmaCapital vs ref. lista mayorista. */
-const INV_COLUMN_HEADERS = [
-  { id: "foto", label: "Foto", hint: "" },
-  {
-    id: "skuFarmaCapital",
+const INV_COLUMN_DEFS = {
+  foto: { label: "Foto", hint: "" },
+  acciones: { label: "Acciones", hint: "Editar, lotes, activar/desactivar" },
+  skuFarmaCapital: {
     label: "SKU FarmaCapital",
     hint: "Identificador único en FarmaCapital — campo productos.sku (POS, ticket, código interno).",
   },
-  {
-    id: "codigoBarras",
+  codigoBarras: {
     label: "Cód. barras",
     hint: "EAN/UPC escaneable en POS y resurtido. Clic en la celda para editar.",
   },
-  {
-    id: "refLista",
-    label: "Ref. lista mayorista",
-    hint: "Número/código del Excel del distribuidor (pedidos). No repetir como segundo «SKU»: es solo referencia de lista.",
-  },
-  { id: "nombre", label: "Nombre", hint: "" },
-  { id: "marca", label: "Marca", hint: "" },
-  { id: "presentacion", label: "Presentación", hint: "" },
-  { id: "principio", label: "Principio activo", hint: "" },
-  { id: "ubicacion", label: "Ubicación", hint: "" },
-  { id: "categoria", label: "Categoría", hint: "" },
-  { id: "tipo", label: "Tipo", hint: "" },
-  { id: "proveedor", label: "Proveedor", hint: "" },
-  { id: "stock", label: "Stock", hint: "" },
-  { id: "min", label: "Mín", hint: "" },
-  { id: "precio", label: "Precio", hint: "" },
-  { id: "costo", label: "Costo", hint: "" },
-  { id: "margen", label: "Margen%", hint: "" },
-  { id: "similares", label: "Similares", hint: "Precio de referencia en Farmacias Similares (captura manual)." },
-  { id: "ahorro", label: "Del Ahorro", hint: "Precio de referencia en Farmacias del Ahorro (captura manual)." },
-  { id: "cad", label: "Cad. (días)", hint: "" },
-  { id: "agot", label: "Agot. (días)", hint: "" },
-  { id: "desc", label: "Desc%", hint: "" },
-  { id: "estado", label: "Estado", hint: "" },
-  { id: "acciones", label: "Acciones", hint: "" },
+  nombre: { label: "Nombre", hint: "" },
+  marca: { label: "Marca", hint: "" },
+  presentacion: { label: "Presentación", hint: "" },
+  principio: { label: "Principio activo", hint: "" },
+  ubicacion: { label: "Ubicación", hint: "" },
+  categoria: { label: "Categoría", hint: "" },
+  tipo: { label: "Tipo", hint: "" },
+  proveedor: { label: "Proveedor", hint: "" },
+  stock: { label: "Stock", hint: "" },
+  min: { label: "Mín", hint: "" },
+  precio: { label: "Precio", hint: "" },
+  costo: { label: "Costo", hint: "" },
+  margen: { label: "Margen%", hint: "" },
+  similares: { label: "Similares", hint: "Precio de referencia en Farmacias Similares (captura manual)." },
+  ahorro: { label: "Del Ahorro", hint: "Precio de referencia en Farmacias del Ahorro (captura manual)." },
+  cad: { label: "Cad. (días)", hint: "Clic para editar fecha del lote más próximo" },
+  agot: { label: "Agot. (días)", hint: "" },
+  desc: { label: "Desc%", hint: "" },
+  estado: { label: "Estado", hint: "" },
+};
+
+const INV_COLUMN_ORDER_DEFAULT = [
+  "foto",
+  "acciones",
+  "skuFarmaCapital",
+  "codigoBarras",
+  "nombre",
+  "marca",
+  "presentacion",
+  "principio",
+  "ubicacion",
+  "categoria",
+  "tipo",
+  "proveedor",
+  "stock",
+  "min",
+  "precio",
+  "costo",
+  "margen",
+  "similares",
+  "ahorro",
+  "cad",
+  "agot",
+  "desc",
+  "estado",
 ];
+
+function invColumnPixelWidth(colId, colWidths) {
+  const map = {
+    foto: 62,
+    acciones: Math.max(160, Number(colWidths?.acciones) || INV_COL_WIDTHS_DEFAULT.acciones),
+    skuFarmaCapital: 120,
+    codigoBarras: Math.max(100, Number(colWidths?.codigoBarras) || INV_COL_WIDTHS_DEFAULT.codigoBarras),
+    nombre: Math.max(200, Number(colWidths?.nombre) || INV_COL_WIDTHS_DEFAULT.nombre),
+    marca: Math.max(90, Number(colWidths?.marca) || INV_COL_WIDTHS_DEFAULT.marca),
+    presentacion: Math.max(110, Number(colWidths?.presentacion) || INV_COL_WIDTHS_DEFAULT.presentacion),
+    principio: Math.max(130, Number(colWidths?.principio) || INV_COL_WIDTHS_DEFAULT.principio),
+    ubicacion: Math.max(120, Number(colWidths?.ubicacion) || INV_COL_WIDTHS_DEFAULT.ubicacion),
+    categoria: Math.max(100, Number(colWidths?.categoria) || INV_COL_WIDTHS_DEFAULT.categoria),
+    proveedor: Math.max(100, Number(colWidths?.proveedor) || INV_COL_WIDTHS_DEFAULT.proveedor),
+  };
+  return map[colId] ?? 96;
+}
+
+function inventarioStickyStyle(colId, colOrder, colWidths, { header, bg }) {
+  if (!INV_STICKY_COL_IDS.includes(colId)) return {};
+  const myIndex = colOrder.indexOf(colId);
+  if (myIndex < 0) return {};
+  let left = INV_CHECKBOX_COL_WIDTH;
+  for (const id of colOrder) {
+    if (id === colId) break;
+    if (INV_STICKY_COL_IDS.includes(id)) left += invColumnPixelWidth(id, colWidths);
+  }
+  const w = invColumnPixelWidth(colId, colWidths);
+  const stickyRank = INV_STICKY_COL_IDS.indexOf(colId);
+  const hasStickyAfter = colOrder.slice(myIndex + 1).some((id) => INV_STICKY_COL_IDS.includes(id));
+  return {
+    position: "sticky",
+    left,
+    width: w,
+    minWidth: w,
+    maxWidth: colId === "nombre" ? w : undefined,
+    boxSizing: "border-box",
+    zIndex: header ? 35 + stickyRank : 15 + stickyRank,
+    background: bg,
+    boxShadow: !hasStickyAfter ? "6px 0 18px -10px rgba(15, 23, 42, 0.22)" : undefined,
+  };
+}
+
+function loadInvColumnOrder() {
+  try {
+    const saved = JSON.parse(localStorage.getItem("farmacapital_inv_col_order") || "null");
+    if (Array.isArray(saved) && saved.length) {
+      const cleaned = saved.filter((id) => INV_COLUMN_ORDER_DEFAULT.includes(id));
+      const missing = INV_COLUMN_ORDER_DEFAULT.filter((id) => !cleaned.includes(id));
+      return [...cleaned, ...missing];
+    }
+  } catch {
+    /* noop */
+  }
+  return [...INV_COLUMN_ORDER_DEFAULT];
+}
+
+function reorderInvColumnOrder(order, fromId, toId) {
+  if (fromId === toId) return order;
+  const next = order.filter((id) => id !== fromId);
+  const toIdx = next.indexOf(toId);
+  if (toIdx < 0) return order;
+  next.splice(toIdx, 0, fromId);
+  return next;
+}
 
 const descargarPlantilla = () => {
   const headers = [
@@ -666,7 +739,7 @@ const exportarCSV = (productos) => {
   a.click(); URL.revokeObjectURL(url);
 };
 
-function ProductoModal({initial, onClose, onSaved }) {
+function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibirMercancia, onCaducidadSaved }) {
   const C = C_LIGHT;
   const inputStyle = mkInputStyle(C);
   const labelStyle = mkLabelStyle(C);
@@ -674,6 +747,13 @@ function ProductoModal({initial, onClose, onSaved }) {
   const btnPrimary = mkBtnPrimary(C);
   const btnOutline = mkBtnOutline(C);
   const btnGreen = mkBtnGreen(C);
+  const loteCadRef = useMemo(() => {
+    if (!initial?.id) return null;
+    const activos = initial?.lotes_activos
+      ?? (initial?.lotes || []).filter((l) => l.activo !== false && (l.cantidad_actual || 0) > 0);
+    const pool = activos.length ? activos : (initial?.lotes || []);
+    return loteCaducidadMasProxima(pool);
+  }, [initial]);
   const [form, setForm]     = useState(() => {
     const base = {
       ...(initial || EMPTY),
@@ -688,12 +768,85 @@ function ProductoModal({initial, onClose, onSaved }) {
   });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
+  const [caducidadLote, setCaducidadLote] = useState(() => loteCadRef?.fecha_caducidad || "");
+  const [cadSaving, setCadSaving] = useState(false);
   const barcodeRef = useRef(null);
+  useEffect(() => {
+    setCaducidadLote(loteCadRef?.fecha_caducidad || "");
+  }, [loteCadRef?.id, loteCadRef?.fecha_caducidad]);
   useEffect(() => {
     if (form._focusBarcode) {
       barcodeRef.current?.focus();
     }
   }, [form._focusBarcode, form.id]);
+
+  const guardarCaducidadLote = async (fecha) => {
+    const next = fecha || null;
+    if (!next) {
+      showToast("Elegí una fecha de caducidad.", "warning");
+      return;
+    }
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    if (!tok) {
+      showToast("Sesión expirada.", "error");
+      setCaducidadLote(loteCadRef?.fecha_caducidad || "");
+      return;
+    }
+    if (loteCadRef?.id) {
+      if ((loteCadRef.fecha_caducidad || null) === next) return;
+      setCadSaving(true);
+      try {
+        const { data: resp, error } = await supabase.rpc("admin_editar_lote", {
+          p_session_token: tok,
+          p_lote_id: loteCadRef.id,
+          p_fecha_caducidad: next,
+          p_numero_lote: null,
+        });
+        if (error) {
+          showToast(error.message, "error");
+          setCaducidadLote(loteCadRef.fecha_caducidad || "");
+          return;
+        }
+        if (!resp?.success) {
+          showToast("No se pudo guardar la caducidad.", "error");
+          setCaducidadLote(loteCadRef.fecha_caducidad || "");
+          return;
+        }
+        showToast("Caducidad actualizada", "success");
+        await onCaducidadSaved?.();
+      } finally {
+        setCadSaving(false);
+      }
+      return;
+    }
+    const stockNum = parseInt(form.stock, 10) || 0;
+    if (stockNum <= 0) {
+      showToast("Sin lote ni stock — usá Recibir mercancía.", "warning");
+      return;
+    }
+    setCadSaving(true);
+    try {
+      const { data: resp, error } = await supabase.rpc("admin_crear_lote_stock_existente", {
+        p_session_token: tok,
+        p_producto_id: initial.id,
+        p_fecha_caducidad: next,
+        p_numero_lote: null,
+      });
+      if (error) {
+        showToast(error.message, "error");
+        return;
+      }
+      if (!resp?.success) {
+        showToast("No se pudo registrar el lote.", "error");
+        return;
+      }
+      showToast(`Lote creado (${stockNum} pza.) con caducidad`, "success");
+      await onCaducidadSaved?.();
+    } finally {
+      setCadSaving(false);
+    }
+  };
+
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const validate = () => {
     const e = {};
@@ -912,12 +1065,97 @@ function ProductoModal({initial, onClose, onSaved }) {
             {field("Denominación distintiva / marca clínica","denominacion_distintiva")}
             {!form.id && field("Lote inicial","lote")}
             {!form.id && field("Fecha de caducidad (lote inicial)","fecha_caducidad","date")}
-            {form.id && (
-              <div style={{marginBottom:12,padding:"10px 12px",background:C.blueDim,borderRadius:8,fontSize:11,color:C.blue,lineHeight:1.5}}>
-                💡 Lote y caducidad ahora viven en la tabla <strong>lotes</strong>.
-                Para agregar un nuevo lote a este producto usa <strong>📦 Recibir mercancía</strong>.
-              </div>
-            )}
+            {form.id && (() => {
+              const activos = initial?.lotes_activos
+                ?? (initial?.lotes || []).filter((l) => l.activo !== false && (l.cantidad_actual || 0) > 0);
+              const diasProx = diasParaCaducar(caducidadLote || loteCadRef?.fecha_caducidad);
+              const multiLotes = activos.length > 1;
+              return (
+                <div style={{ marginBottom: 12, padding: "12px 14px", background: C.blueDim, borderRadius: 8, fontSize: 11, color: C.blue, lineHeight: 1.5 }}>
+                  <label style={{ ...labelStyle, color: C.blue, marginBottom: 6 }}>
+                    Fecha de caducidad
+                    {loteCadRef?.numero_lote ? (
+                      <span style={{ fontWeight: 400, color: C.textMid }}> · Lote {loteCadRef.numero_lote}</span>
+                    ) : null}
+                  </label>
+                  {loteCadRef ? (
+                    <>
+                      <input
+                        type="date"
+                        value={caducidadLote}
+                        disabled={cadSaving}
+                        onChange={(e) => setCaducidadLote(e.target.value)}
+                        onBlur={(e) => guardarCaducidadLote(e.target.value || null)}
+                        style={{
+                          ...inputStyle,
+                          marginBottom: 8,
+                          color: diasProx !== null && diasProx <= 30 ? C.red : C.text,
+                          fontWeight: caducidadLote ? 600 : 400,
+                        }}
+                      />
+                      {caducidadLote && diasProx !== null ? (
+                        <div style={{ color: C.textMid, marginBottom: 8 }}>
+                          {diasProx < 0 ? "Vencido" : diasProx === 0 ? "Caduca hoy" : `Caduca en ${diasProx} días`}
+                        </div>
+                      ) : (
+                        <div style={{ color: C.textMid, marginBottom: 8 }}>Sin fecha — elegí una arriba</div>
+                      )}
+                      {multiLotes && onEditarCaducidad ? (
+                        <button
+                          type="button"
+                          style={{ ...btnOutline, padding: "5px 10px", fontSize: 11, marginBottom: 8 }}
+                          onClick={() => onEditarCaducidad(initial)}
+                        >
+                          Ver {activos.length} lotes
+                        </button>
+                      ) : null}
+                    </>
+                  ) : (parseInt(form.stock, 10) || 0) > 0 ? (
+                    <>
+                      <div style={{ color: C.textMid, marginBottom: 8 }}>
+                        Hay {form.stock} pza. en stock pero sin lote PEPS. Al elegir fecha se crea el lote <strong>sin cambiar cantidad ni precio</strong>.
+                      </div>
+                      <input
+                        type="date"
+                        value={caducidadLote}
+                        disabled={cadSaving}
+                        onChange={(e) => setCaducidadLote(e.target.value)}
+                        onBlur={(e) => guardarCaducidadLote(e.target.value || null)}
+                        style={{
+                          ...inputStyle,
+                          marginBottom: 8,
+                          fontWeight: caducidadLote ? 600 : 400,
+                        }}
+                      />
+                    </>
+                  ) : (
+                    <div style={{ color: C.textMid, marginBottom: 10 }}>
+                      Sin stock ni lote. Usá <strong>Recibir mercancía</strong> para entrar unidades con caducidad.
+                    </div>
+                  )}
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    {loteCadRef && onEditarCaducidad && !multiLotes ? (
+                      <button
+                        type="button"
+                        style={{ ...btnOutline, padding: "6px 12px", fontSize: 11 }}
+                        onClick={() => onEditarCaducidad(initial)}
+                      >
+                        📅 Más lotes
+                      </button>
+                    ) : null}
+                    {onRecibirMercancia && (
+                      <button
+                        type="button"
+                        style={{ ...btnGreen, padding: "6px 12px", fontSize: 11 }}
+                        onClick={() => onRecibirMercancia(initial)}
+                      >
+                        📦 Recibir mercancía
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
           <div>
             {field("Precio de venta","precio","number",true)}
@@ -998,14 +1236,14 @@ function ProductoModal({initial, onClose, onSaved }) {
   );
 }
 
-function RecibirModal({ productos, onClose, onReceived }) {
+function RecibirModal({ productos, onClose, onReceived, initialProductId = null }) {
   const C = C_LIGHT;
   const inputStyle = mkInputStyle(C);
   const labelStyle = mkLabelStyle(C);
   const btnSecondary = mkBtnSecondary(C);
   const btnGreen = mkBtnGreen(C);
   const [busq,     setBusq]    = useState("");
-  const [selId,    setSelId]   = useState("");
+  const [selId,    setSelId]   = useState(initialProductId ? String(initialProductId) : "");
   const [cantidad, setCantidad]= useState("");
   const [lote,     setLote]    = useState("");
   const [caducidad,setCaduc]   = useState("");
@@ -1018,8 +1256,13 @@ function RecibirModal({ productos, onClose, onReceived }) {
   const caducidadRef = useRef(null);
 
   useEffect(() => {
-    busqRef.current?.focus();
-  }, []);
+    if (initialProductId) {
+      setSelId(String(initialProductId));
+      cantidadRef.current?.focus();
+    } else {
+      busqRef.current?.focus();
+    }
+  }, [initialProductId]);
 
   const prodsFilt = useMemo(
     () =>
@@ -1702,6 +1945,542 @@ function BulkEditProductosModal({ count, onClose, onApplied }) {
   );
 }
 
+function renderInventarioColumnCell(colId, ctx) {
+  const {
+    C,
+    BRAND: BR,
+    CATEGORIAS: cats,
+    p,
+    stickyRowBg,
+    inlineCellProps,
+    invColWidthStyle,
+    inventarioStickyStyleFor,
+    abrirEdicionProducto,
+    setModalLotes,
+    liquidar,
+    desactivar,
+    reactivar,
+    eliminarUno,
+    btnSecondary,
+    bajo,
+    inact,
+    mgn,
+    mgnCol,
+    dSim,
+    dAho,
+    cSim,
+    cAho,
+    marcaDisp,
+    nombreTabla,
+    presDisp,
+    presInferida,
+    provDisp,
+    principioLine,
+    dosisLine,
+    cbDisp,
+    sinCb,
+    dias,
+    nearCad,
+  } = ctx;
+
+  const sticky = (extra = {}) => inventarioStickyStyleFor(colId, { header: false, bg: stickyRowBg, ...extra });
+  const w = (id) => invColWidthStyle(id);
+  const {
+    inlineEdit,
+    inlineSaving,
+    selectionMode,
+    inputStyle,
+    onStart,
+    onDraft,
+    onCommit,
+    onCancel,
+  } = inlineCellProps;
+
+  switch (colId) {
+    case "foto":
+      return (
+        <td
+          key={colId}
+          style={{
+            padding: "6px 10px",
+            borderBottom: `1px solid ${C.border}`,
+            verticalAlign: "middle",
+            cursor: "pointer",
+            ...sticky(),
+          }}
+          title="Clic para editar foto y más campos"
+          onClick={() => abrirEdicionProducto(p)}
+        >
+          <div
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 6,
+              background: p.imagen_url ? `url(${p.imagen_url}) center/cover` : C.bg,
+              border: `1px solid ${C.border}`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 16,
+            }}
+          >
+            {!p.imagen_url ? "📷" : null}
+          </div>
+        </td>
+      );
+    case "acciones":
+      return (
+        <td
+          key={colId}
+          style={{
+            padding: "8px 10px",
+            borderBottom: `1px solid ${C.border}`,
+            whiteSpace: "nowrap",
+            verticalAlign: "middle",
+            background: stickyRowBg,
+            ...sticky(),
+            ...w("acciones"),
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => abrirEdicionProducto(p)}
+            style={{
+              background: C.blueDim,
+              border: `1px solid ${C.blue}30`,
+              color: C.blue,
+              borderRadius: 6,
+              padding: "4px 8px",
+              cursor: "pointer",
+              fontSize: 10,
+              fontWeight: 700,
+              marginRight: 4,
+            }}
+          >
+            ✏️
+          </button>
+          <button
+            type="button"
+            onClick={() => setModalLotes(p)}
+            style={{
+              background: "#f1f5f9",
+              border: `1px solid ${C.border}`,
+              color: C.textMid,
+              borderRadius: 6,
+              padding: "4px 8px",
+              cursor: "pointer",
+              fontSize: 10,
+              fontWeight: 700,
+              marginRight: 4,
+            }}
+          >
+            📦 {(p.lotes_activos || []).length}
+          </button>
+          {p.min_caducidad_lotes && diasParaCaducar(p.min_caducidad_lotes) <= 30 && diasParaCaducar(p.min_caducidad_lotes) >= 0 && (
+            <button
+              type="button"
+              onClick={() => liquidar(p)}
+              style={{ ...btnSecondary, padding: "4px 8px", fontSize: 10, color: C.red, borderColor: C.red, background: C.redDim, marginRight: 4 }}
+            >
+              🏷️
+            </button>
+          )}
+          {p.activo ? (
+            <>
+              <button
+                type="button"
+                onClick={() => desactivar(p.id)}
+                title="Desactivar (ocultar)"
+                style={{ background: C.redDim, border: `1px solid ${C.red}30`, color: C.red, borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontSize: 10, fontWeight: 700, marginRight: 4 }}
+              >
+                🔴
+              </button>
+              <button
+                type="button"
+                onClick={() => eliminarUno(p)}
+                title="Eliminar del catálogo"
+                style={{ background: C.redDim, border: `1px solid ${C.red}50`, color: C.red, borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontSize: 10, fontWeight: 700 }}
+              >
+                🗑️
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={() => reactivar(p.id)}
+              style={{ background: C.greenDim, border: `1px solid ${C.green}30`, color: C.green, borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontSize: 10, fontWeight: 700 }}
+            >
+              ✅
+            </button>
+          )}
+        </td>
+      );
+    case "skuFarmaCapital":
+      return (
+        <InventarioEditableCell
+          key={colId}
+          {...inlineCellProps}
+          productId={p.id}
+          field="sku"
+          value={p.sku || ""}
+          mono
+          display={<span style={tdEllipsisStyle}>{p.sku || "—"}</span>}
+          tdStyle={{
+            padding: "8px 12px",
+            color: C.textMid,
+            borderBottom: `1px solid ${C.border}`,
+            fontFamily: "ui-monospace,Menlo,monospace",
+            fontSize: 11,
+            verticalAlign: "middle",
+            background: stickyRowBg,
+            ...sticky(),
+          }}
+        />
+      );
+    case "codigoBarras":
+      return (
+        <InventarioEditableCell
+          key={colId}
+          {...inlineCellProps}
+          productId={p.id}
+          field="codigo_barras"
+          value={p.codigo_barras || ""}
+          mono
+          display={
+            sinCb ? (
+              <span style={{ color: C.blue, fontWeight: 700, fontSize: 10 }}>+ Agregar código</span>
+            ) : (
+              <span style={{ fontFamily: "ui-monospace,Menlo,monospace", fontSize: 11, color: C.textMid, ...tdEllipsisStyle }} title={cbDisp}>
+                {cbDisp}
+              </span>
+            )
+          }
+          tdStyle={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, verticalAlign: "middle", background: stickyRowBg, ...w("codigoBarras") }}
+        />
+      );
+    case "nombre":
+      return (
+        <InventarioEditableCell
+          key={colId}
+          {...inlineCellProps}
+          productId={p.id}
+          field="nombre"
+          value={p.nombre || ""}
+          display={
+            <span
+              style={{ ...tdEllipsisStyle, whiteSpace: "normal", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", fontWeight: 600, color: inact ? C.textDim : C.text }}
+              title={nombreTabla}
+            >
+              {nombreTabla}
+            </span>
+          }
+          tdStyle={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, verticalAlign: "middle", background: stickyRowBg, ...sticky(), ...w("nombre") }}
+        />
+      );
+    case "marca":
+      return (
+        <InventarioEditableCell
+          key={colId}
+          {...inlineCellProps}
+          productId={p.id}
+          field="marca"
+          value={p.marca || ""}
+          display={<span style={tdEllipsisStyle}>{marcaDisp || "—"}</span>}
+          tdStyle={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}`, background: stickyRowBg, ...w("marca") }}
+        />
+      );
+    case "presentacion":
+      return (
+        <InventarioEditableCell
+          key={colId}
+          {...inlineCellProps}
+          productId={p.id}
+          field="presentacion"
+          value={p.presentacion || presInferida || ""}
+          display={<span style={tdEllipsisStyle}>{presDisp}</span>}
+          tdStyle={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}`, background: stickyRowBg, ...w("presentacion") }}
+        />
+      );
+    case "principio":
+      return (
+        <InventarioEditableCell
+          key={colId}
+          {...inlineCellProps}
+          productId={p.id}
+          field="principio"
+          value={p.principio_activo || lineaPrincipioQuimicoTabla(p) || ""}
+          display={
+            <>
+              <span style={{ ...tdEllipsisStyle, display: "block" }}>{principioLine || "—"}</span>
+              {dosisLine ? <span style={{ display: "block", fontSize: 10, color: C.textDim, marginTop: 2 }}>{dosisLine}</span> : null}
+            </>
+          }
+          tdStyle={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}`, background: stickyRowBg, ...w("principio") }}
+        />
+      );
+    case "ubicacion":
+      return (
+        <InventarioEditableCell
+          key={colId}
+          {...inlineCellProps}
+          productId={p.id}
+          field="ubicacion"
+          value={p.ubicacion_texto || ""}
+          display={<span style={{ fontSize: 11, fontWeight: 700, color: p.ubicacion_texto ? C.blue : C.textDim }}>{p.ubicacion_texto || "Sin ubicación"}</span>}
+          tdStyle={{ padding: "8px 12px", color: C.text, borderBottom: `1px solid ${C.border}`, background: stickyRowBg, ...w("ubicacion") }}
+        />
+      );
+    case "categoria":
+      return (
+        <InventarioEditableCell
+          key={colId}
+          {...inlineCellProps}
+          productId={p.id}
+          field="categoria"
+          value={p.categoria || "Otro"}
+          type="select"
+          options={cats}
+          display={p.categoria}
+          tdStyle={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}`, background: stickyRowBg, ...w("categoria") }}
+        />
+      );
+    case "tipo":
+      return (
+        <InventarioEditableCell
+          key={colId}
+          {...inlineCellProps}
+          productId={p.id}
+          field="tipo"
+          value={p.tipo || "generico"}
+          type="select"
+          options={["generico", "marca"]}
+          display={
+            <span style={{ padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 700, background: p.tipo === "marca" ? "#9d6fff18" : C.blueDim, color: p.tipo === "marca" ? "#9d6fff" : C.blue }}>
+              {p.tipo}
+            </span>
+          }
+          tdStyle={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, background: stickyRowBg }}
+        />
+      );
+    case "proveedor":
+      return (
+        <InventarioEditableCell
+          key={colId}
+          {...inlineCellProps}
+          productId={p.id}
+          field="proveedor"
+          value={p.proveedor || ""}
+          display={<span style={tdEllipsisStyle}>{provDisp || "—"}</span>}
+          tdStyle={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}`, background: stickyRowBg, ...w("proveedor") }}
+        />
+      );
+    case "stock":
+      return (
+        <InventarioEditableCell
+          key={colId}
+          {...inlineCellProps}
+          productId={p.id}
+          field="stock"
+          value={String(p.stock ?? 0)}
+          type="number"
+          display={<span style={{ fontWeight: 700, color: bajo ? C.amber : C.green }}>{p.stock}</span>}
+          tdStyle={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, background: stickyRowBg }}
+        />
+      );
+    case "min":
+      return (
+        <InventarioEditableCell
+          key={colId}
+          {...inlineCellProps}
+          productId={p.id}
+          field="min"
+          value={String(p.stock_minimo ?? 0)}
+          type="number"
+          display={p.stock_minimo ?? 0}
+          tdStyle={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}`, background: stickyRowBg }}
+        />
+      );
+    case "precio":
+      return (
+        <InventarioEditableCell
+          key={colId}
+          {...inlineCellProps}
+          productId={p.id}
+          field="precio"
+          value={String(parseFloat(p.precio || 0))}
+          type="number"
+          display={`$${parseFloat(p.precio || 0).toFixed(2)}`}
+          tdStyle={{ padding: "8px 12px", color: C.text, borderBottom: `1px solid ${C.border}`, background: stickyRowBg }}
+        />
+      );
+    case "costo":
+      return (
+        <InventarioEditableCell
+          key={colId}
+          {...inlineCellProps}
+          productId={p.id}
+          field="costo"
+          value={String(parseFloat(p.costo || 0))}
+          type="number"
+          display={`$${parseFloat(p.costo || 0).toFixed(2)}`}
+          tdStyle={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}`, background: stickyRowBg }}
+        />
+      );
+    case "margen":
+      return <td key={colId} style={{ padding: "8px 12px", fontWeight: 700, borderBottom: `1px solid ${C.border}`, color: mgnCol, background: stickyRowBg }}>{mgn}</td>;
+    case "similares":
+      return (
+        <InventarioEditableCell
+          key={colId}
+          {...inlineCellProps}
+          productId={p.id}
+          field="similares"
+          value={p.precio_similares != null ? String(p.precio_similares) : ""}
+          type="number"
+          display={p.precio_similares ? <span>${parseFloat(p.precio_similares).toFixed(0)}{dSim != null ? ` (${parseFloat(dSim) <= 0 ? "" : "+"}${dSim}%)` : ""}</span> : "—"}
+          tdStyle={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, color: cSim, fontSize: 11, background: stickyRowBg }}
+        />
+      );
+    case "ahorro":
+      return (
+        <InventarioEditableCell
+          key={colId}
+          {...inlineCellProps}
+          productId={p.id}
+          field="ahorro"
+          value={p.precio_del_ahorro != null ? String(p.precio_del_ahorro) : ""}
+          type="number"
+          display={p.precio_del_ahorro ? <span>${parseFloat(p.precio_del_ahorro).toFixed(0)}{dAho != null ? ` (${parseFloat(dAho) <= 0 ? "" : "+"}${dAho}%)` : ""}</span> : "—"}
+          tdStyle={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, color: cAho, fontSize: 11, background: stickyRowBg }}
+        />
+      );
+    case "cad": {
+      const loteRef = loteCaducidadMasProxima(p.lotes_activos || p.lotes);
+      const puedeCad = loteRef || (p.stock ?? 0) > 0;
+      const isEditingCad = inlineEdit?.productId === p.id && inlineEdit?.field === "cad";
+      const tdCad = {
+        padding: "8px 12px",
+        borderBottom: `1px solid ${C.border}`,
+        whiteSpace: "nowrap",
+        background: stickyRowBg,
+        ...w("cad"),
+      };
+      if (isEditingCad) {
+        return (
+          <td style={tdCad}>
+            <input
+              type="date"
+              autoFocus
+              disabled={inlineSaving}
+              value={inlineEdit.draft}
+              onChange={(e) => onDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  onCommit();
+                }
+                if (e.key === "Escape") {
+                  e.preventDefault();
+                  onCancel();
+                }
+              }}
+              onBlur={() => {
+                if (!inlineSaving) onCommit();
+              }}
+              style={{
+                ...inputStyle,
+                width: "100%",
+                padding: "4px 6px",
+                fontSize: 11,
+                boxSizing: "border-box",
+              }}
+            />
+          </td>
+        );
+      }
+      const multiLotes = (p.lotes_activos || []).length > 1;
+      return (
+        <td
+          key={colId}
+          style={{
+            ...tdCad,
+            cursor: selectionMode || !puedeCad ? "default" : "pointer",
+          }}
+          title={
+            !puedeCad
+              ? "Sin stock ni lote — Recibir mercancía"
+              : !loteRef
+                ? `Stock ${p.stock} sin lote PEPS — clic para asignar caducidad (crea lote sin sumar unidades)`
+                : `${loteRef.fecha_caducidad || "Sin fecha"} · Lote ${loteRef.numero_lote || "—"}${
+                  multiLotes ? " (más próximo; otros en 📦 Lotes)" : ""
+                } · Clic para editar`
+          }
+          onClick={(e) => {
+            e.stopPropagation();
+            if (selectionMode || !puedeCad) return;
+            onStart(p.id, "cad", loteRef?.fecha_caducidad || "", { loteId: loteRef?.id ?? null });
+          }}
+          onMouseEnter={(e) => {
+            if (!selectionMode && puedeCad) e.currentTarget.style.background = "#eff6ff";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = stickyRowBg;
+          }}
+        >
+          {dias === null ? (
+            loteRef ? (
+              <span style={{ color: C.amber, fontWeight: 600, fontSize: 11 }}>Sin fecha</span>
+            ) : (p.stock ?? 0) > 0 ? (
+              <span style={{ color: C.blue, fontWeight: 600, fontSize: 11 }}>+ Cad.</span>
+            ) : (
+              "—"
+            )
+          ) : (
+            <span style={{ color: nearCad ? C.red : dias <= 60 ? C.amber : C.textMid, fontWeight: nearCad ? 700 : 400 }}>
+              {dias < 0 ? "Vencido" : dias === 0 ? "Hoy" : `${dias} d`}
+            </span>
+          )}
+        </td>
+      );
+    }
+    case "agot":
+      return (
+        <td key={colId} style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, background: stickyRowBg }}>
+          {(() => {
+            if (!p.stock || !p.stock_minimo) return "—";
+            const ventaDiaria = Math.max(p.stock_minimo * 0.15, 0.5);
+            const diasAgot = Math.floor(p.stock / ventaDiaria);
+            const col = diasAgot < 7 ? C.red : diasAgot < 15 ? C.amber : C.green;
+            return <span style={{ color: col, fontWeight: 700, fontSize: 11 }}>~{diasAgot}d</span>;
+          })()}
+        </td>
+      );
+    case "desc":
+      return (
+        <InventarioEditableCell
+          key={colId}
+          {...inlineCellProps}
+          productId={p.id}
+          field="desc"
+          value={String(p.descuento_pct ?? 0)}
+          type="number"
+          display={p.descuento_pct > 0 ? <span style={{ color: C.amber, fontWeight: 700 }}>{p.descuento_pct}%</span> : "—"}
+          tdStyle={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, background: stickyRowBg }}
+        />
+      );
+    case "estado":
+      return (
+        <td key={colId} style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, background: stickyRowBg }}>
+          <span style={{ padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 700, background: p.activo ? C.greenDim : C.redDim, color: p.activo ? C.green : C.red }}>
+            {p.activo ? "Activo" : "Inactivo"}
+          </span>
+        </td>
+      );
+    default:
+      return null;
+  }
+}
+
 export default function InventarioModule() {
   const C = C_LIGHT;
   const inputStyle = mkInputStyle(C);
@@ -1719,6 +2498,7 @@ export default function InventarioModule() {
   const [filtroAlerta,    setFiltroAlerta]    = useState("todos");
   const [modal,           setModal]           = useState(null);
   const [modalRecibir,    setModalRecibir]    = useState(false);
+  const [recibirPresetId, setRecibirPresetId] = useState(null);
   const [modalImportar,   setModalImportar]   = useState(false);
   const [importando,      setImportando]      = useState(false);
   /** Progreso durante confirmarImport (RPC en lotes). */
@@ -1728,10 +2508,13 @@ export default function InventarioModule() {
   const [importResult,    setImportResult]    = useState(null);
   const [paginaInv, setPaginaInv] = useState(1);
   const [modalLotes, setModalLotes] = useState(null);
+  const [loteCadSaving, setLoteCadSaving] = useState(null);
   const [modalBulkImages, setModalBulkImages] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
   const [modalBulkEdit, setModalBulkEdit] = useState(false);
   const [showColumnSizer, setShowColumnSizer] = useState(false);
+  const [colOrder, setColOrder] = useState(loadInvColumnOrder);
+  const [colDragId, setColDragId] = useState(null);
   const [colWidths, setColWidths] = useState(() => {
     try {
       const raw = JSON.parse(localStorage.getItem("farmacapital_inv_col_widths") || "{}");
@@ -1749,21 +2532,23 @@ export default function InventarioModule() {
     }
   }, [colWidths]);
 
-  const stickyWidths = useMemo(
-    () => [
-      INV_STICKY_COL_DEFAULT_WIDTH[0],
-      INV_STICKY_COL_DEFAULT_WIDTH[1],
-      INV_STICKY_COL_DEFAULT_WIDTH[2],
-      Math.max(70, Number(colWidths.refLista) || INV_COL_WIDTHS_DEFAULT.refLista),
-      Math.max(200, Number(colWidths.nombre) || INV_COL_WIDTHS_DEFAULT.nombre),
-    ],
-    [colWidths.refLista, colWidths.nombre]
+  useEffect(() => {
+    try {
+      localStorage.setItem("farmacapital_inv_col_order", JSON.stringify(colOrder));
+    } catch {
+      /* noop */
+    }
+  }, [colOrder]);
+
+  const inventarioStickyStyleFor = useCallback(
+    (colId, opts) => inventarioStickyStyle(colId, colOrder, colWidths, opts),
+    [colOrder, colWidths]
   );
 
   const invColWidthStyle = useCallback(
     (id) => {
       const map = {
-        refLista: Math.max(70, Number(colWidths.refLista) || INV_COL_WIDTHS_DEFAULT.refLista),
+        acciones: Math.max(160, Number(colWidths.acciones) || INV_COL_WIDTHS_DEFAULT.acciones),
         codigoBarras: Math.max(100, Number(colWidths.codigoBarras) || INV_COL_WIDTHS_DEFAULT.codigoBarras),
         nombre: Math.max(200, Number(colWidths.nombre) || INV_COL_WIDTHS_DEFAULT.nombre),
         marca: Math.max(90, Number(colWidths.marca) || INV_COL_WIDTHS_DEFAULT.marca),
@@ -1784,6 +2569,7 @@ export default function InventarioModule() {
 
   const clearSelection = useCallback(() => setSelectedIds([]), []);
   const toggleSelectId = useCallback((id) => {
+    setInlineEdit(null);
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   }, []);
 
@@ -2060,8 +2846,11 @@ export default function InventarioModule() {
         lotes_activos: (p.lotes || []).filter(l => l.activo !== false && (l.cantidad_actual || 0) > 0),
       }));
       setProductos(enriched);
+      setLoading(false);
+      return enriched;
     }
     setLoading(false);
+    return null;
   }, [verInactivos]);
 
   useEffect(() => { fetchProductos(); }, [fetchProductos]);
@@ -2136,6 +2925,28 @@ export default function InventarioModule() {
     setModal({ ...p, _focusBarcode: focusBarcode });
   }, []);
 
+  const abrirLotesDesdeEdicion = useCallback((p) => {
+    if (!p?.id) return;
+    setModal(null);
+    const fresh = productos.find((x) => x.id === p.id) || p;
+    setModalLotes(fresh);
+  }, [productos]);
+
+  const abrirRecibirDesdeEdicion = useCallback((p) => {
+    if (!p?.id) return;
+    setModal(null);
+    setRecibirPresetId(p.id);
+    setModalRecibir(true);
+  }, []);
+
+  const refrescarProductoEnEdicion = useCallback(async () => {
+    const enriched = await fetchProductos();
+    if (!modal?.id || !enriched) return enriched;
+    const fresh = enriched.find((x) => x.id === modal.id);
+    if (fresh) setModal((m) => (m?.id === fresh.id ? { ...fresh, _focusBarcode: m._focusBarcode } : m));
+    return enriched;
+  }, [fetchProductos, modal?.id]);
+
   const [inlineEdit, setInlineEdit] = useState(null);
   const [inlineSaving, setInlineSaving] = useState(false);
 
@@ -2143,13 +2954,65 @@ export default function InventarioModule() {
     setInlineEdit(null);
   }, []);
 
-  const guardarCampoInline = useCallback(async (product, field, rawDraft) => {
+  const guardarCampoInline = useCallback(async (product, field, rawDraft, meta = null) => {
     const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) {
       showToast("Sesión expirada.", "error");
       return false;
     }
     const draft = String(rawDraft ?? "").trim();
+
+    if (field === "cad") {
+      const loteId = meta?.loteId;
+      const fecha = draft || null;
+      if (!fecha) {
+        showToast("Elegí una fecha de caducidad.", "warning");
+        return false;
+      }
+      if (!loteId) {
+        const stockNum = product.stock ?? 0;
+        if (stockNum <= 0) {
+          showToast("Sin lote ni stock — usá Recibir mercancía.", "warning");
+          return false;
+        }
+        const { data: resp, error } = await supabase.rpc("admin_crear_lote_stock_existente", {
+          p_session_token: tok,
+          p_producto_id: product.id,
+          p_fecha_caducidad: fecha,
+          p_numero_lote: null,
+        });
+        if (error) {
+          showToast(error.message, "error");
+          return false;
+        }
+        if (!resp?.success) {
+          showToast("No se pudo registrar el lote.", "error");
+          return false;
+        }
+        await fetchProductos();
+        showToast(`Lote creado (${stockNum} pza.) con caducidad`, "success");
+        return true;
+      }
+      const lote = (product.lotes || []).find((l) => l.id === loteId);
+      if ((lote?.fecha_caducidad || null) === fecha) return true;
+      const { data: resp, error } = await supabase.rpc("admin_editar_lote", {
+        p_session_token: tok,
+        p_lote_id: loteId,
+        p_fecha_caducidad: fecha,
+        p_numero_lote: null,
+      });
+      if (error) {
+        showToast(error.message, "error");
+        return false;
+      }
+      if (!resp?.success) {
+        showToast("No se pudo guardar la caducidad.", "error");
+        return false;
+      }
+      await fetchProductos();
+      showToast("Caducidad actualizada", "success");
+      return true;
+    }
 
     if (field === "stock") {
       const n = parseInt(draft, 10);
@@ -2252,39 +3115,97 @@ export default function InventarioModule() {
     }
     setInlineSaving(true);
     try {
-      const ok = await guardarCampoInline(product, inlineEdit.field, inlineEdit.draft);
+      const ok = await guardarCampoInline(product, inlineEdit.field, inlineEdit.draft, inlineEdit.meta);
       if (ok) cancelInlineEdit();
     } finally {
       setInlineSaving(false);
     }
   }, [inlineEdit, inlineSaving, productos, guardarCampoInline, cancelInlineEdit]);
 
-  const startInlineEdit = useCallback((productId, field, rawValue) => {
+  const startInlineEdit = useCallback((productId, field, rawValue, meta = null) => {
     setInlineEdit({
       productId,
       field,
       draft: rawValue == null || rawValue === "" ? "" : String(rawValue),
+      meta,
     });
   }, []);
+
+  const selectionMode = selectedIds.length > 0;
 
   const inlineCellProps = {
     C,
     inputStyle,
     inlineEdit,
     inlineSaving,
+    selectionMode,
     onStart: startInlineEdit,
     onDraft: (v) => setInlineEdit((prev) => (prev ? { ...prev, draft: v } : prev)),
     onCommit: commitInlineEdit,
     onCancel: cancelInlineEdit,
   };
 
-  const desactivar = async (id) => {
-    if (!window.confirm("¿Desactivar este producto?")) return;
+  const eliminarProducto = async (id, { confirmMsg } = {}) => {
     const tok = sessionStorage.getItem("farmacapital_session_token");
-    const { error } = await supabase.rpc("admin_toggle_producto", {
+    if (!tok) {
+      showToast("Sesión expirada.", "error");
+      return { ok: false };
+    }
+    if (
+      confirmMsg != null &&
+      !window.confirm(
+        confirmMsg ||
+          "¿Eliminar este producto? Si tiene historial de ventas o compras solo se ocultará (desactivará)."
+      )
+    ) {
+      return { ok: false, cancelled: true };
+    }
+    const { data: resp, error } = await supabase.rpc("admin_eliminar_producto", {
+      p_session_token: tok,
+      p_producto_id: id,
+    });
+    if (error) {
+      showToast(`Error al eliminar: ${error.message}`, "error");
+      return { ok: false, error: error.message };
+    }
+    if (!resp?.success) {
+      showToast("No se pudo eliminar el producto.", "error");
+      return { ok: false };
+    }
+    return { ok: true, softDeleted: !!resp.soft_deleted, motivo: resp.motivo || null };
+  };
+
+  const desactivar = async (id) => {
+    if (!window.confirm("¿Desactivar este producto? (se oculta del catálogo activo)")) return;
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    if (!tok) {
+      showToast("Sesión expirada.", "error");
+      return;
+    }
+    const { data: resp, error } = await supabase.rpc("admin_toggle_producto", {
       p_session_token: tok, p_producto_id: id, p_activo: false,
     });
-    if (error) showToast("Error: "+error.message, "error");
+    if (error) {
+      showToast(`Error: ${error.message}`, "error");
+      return;
+    }
+    if (!resp?.success) {
+      showToast("No se pudo desactivar el producto.", "error");
+      return;
+    }
+    showToast("Producto desactivado. Activa «Ver inactivos» para verlo.", "success");
+    fetchProductos();
+  };
+  const eliminarUno = async (p) => {
+    const result = await eliminarProducto(p.id, {
+      confirmMsg: `¿Eliminar «${p.nombre || "producto"}»? Si tiene ventas o compras registradas solo se ocultará.`,
+    });
+    if (!result.ok) return;
+    if (result.softDeleted) {
+      showToast("Producto ocultado (tiene historial). Activa «Ver inactivos» para verlo.", "success");
+    } else {
+      showToast("✅ Producto eliminado", "success");
+    }
     fetchProductos();
   };
   const reactivar = async (id) => {
@@ -2391,36 +3312,46 @@ export default function InventarioModule() {
   };
 
   const bulkEliminar = async () => {
-    const tok = sessionStorage.getItem("farmacapital_session_token");
-    if (!tok) {
-      showToast("Sesión expirada.", "error");
-      return;
-    }
     const ids = [...selectedIds];
     if (!ids.length) return;
     if (
       !window.confirm(
-        `¿Eliminar ${ids.length} producto(s)? Los que ya tuvieron ventas en el historial solo se desactivarán (no se borran del sistema).`
+        `¿Eliminar ${ids.length} producto(s)? Los que tienen ventas o compras registradas solo se ocultarán (desactivarán).`
       )
     ) {
       return;
     }
     let ok = 0;
+    let soft = 0;
     let err = 0;
+    let lastError = "";
     for (const id of ids) {
-      const { data: resp, error } = await supabase.rpc("admin_eliminar_producto", {
-        p_session_token: tok,
-        p_producto_id: id,
-      });
-      if (error || !resp?.success) err++;
-      else ok++;
+      const result = await eliminarProducto(id);
+      if (result.cancelled) return;
+      if (result.ok) {
+        ok++;
+        if (result.softDeleted) soft++;
+      } else {
+        err++;
+        if (result.error) lastError = result.error;
+      }
     }
     clearSelection();
     fetchProductos();
     if (err) {
-      showToast(`Procesados ${ok} de ${ids.length}. ${err} error(es).`, err === ids.length ? "error" : "warning");
+      showToast(
+        `Procesados ${ok} de ${ids.length}. ${err} error(es).${lastError ? ` ${lastError}` : ""}`,
+        err === ids.length ? "error" : "warning"
+      );
+    } else if (soft > 0 && soft === ok) {
+      showToast(
+        `✅ ${ok} producto(s) ocultado(s) (tenían historial). Activa «Ver inactivos» si necesitas verlos.`,
+        "success"
+      );
+    } else if (soft > 0) {
+      showToast(`✅ ${ok - soft} eliminado(s), ${soft} ocultado(s) por historial`, "success");
     } else {
-      showToast(`✅ ${ok} producto(s) eliminado(s) o desactivado(s) según historial`, "success");
+      showToast(`✅ ${ok} producto(s) eliminado(s)`, "success");
     }
   };
 
@@ -2431,6 +3362,46 @@ export default function InventarioModule() {
     }
     const p = productos.find((x) => x.id === selectedIds[0]);
     if (p) setModalLotes(p);
+  };
+
+  const actualizarCaducidadLote = useCallback(async (loteId, fecha, productoId) => {
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    if (!tok) {
+      showToast("Sesión expirada.", "error");
+      return;
+    }
+    setLoteCadSaving(loteId);
+    try {
+      const { data: resp, error } = await supabase.rpc("admin_editar_lote", {
+        p_session_token: tok,
+        p_lote_id: loteId,
+        p_fecha_caducidad: fecha || null,
+        p_numero_lote: null,
+      });
+      if (error) {
+        showToast(error.message, "error");
+        return;
+      }
+      if (!resp?.success) {
+        showToast("No se pudo guardar la caducidad.", "error");
+        return;
+      }
+      const refreshed = await fetchProductos();
+      const p = refreshed?.find((x) => x.id === productoId);
+      if (p) setModalLotes(p);
+      showToast("Caducidad actualizada", "success");
+    } finally {
+      setLoteCadSaving(null);
+    }
+  }, [fetchProductos]);
+
+  const abrirEdicionSeleccion = () => {
+    if (selectedIds.length === 1) {
+      const p = productos.find((x) => x.id === selectedIds[0]);
+      if (p) abrirEdicionProducto(p);
+      return;
+    }
+    setModalBulkEdit(true);
   };
 
   return (
@@ -2448,6 +3419,73 @@ export default function InventarioModule() {
           boxShadow: "0 6px 20px rgba(15,23,42,.06)",
         }}
       >
+      {selectionMode && (
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 8,
+            alignItems: "center",
+            marginBottom: 12,
+            padding: "12px 14px",
+            background: C.card,
+            border: `1px solid rgba(0, 82, 204, 0.35)`,
+            borderRadius: 10,
+            boxShadow: "0 4px 14px rgba(15, 45, 110, 0.06)",
+          }}
+        >
+          <span style={{ fontWeight: 800, color: C.text, marginRight: 4 }}>
+            {selectedIds.length} seleccionado{selectedIds.length !== 1 ? "s" : ""}
+          </span>
+          <span style={{ fontSize: 11, color: C.textMid, marginRight: 8 }}>
+            Editá desde aquí · quita la selección (✕) para editar celdas sueltas
+          </span>
+          <button
+            type="button"
+            style={{ ...btnPrimary, padding: "8px 14px", fontSize: 12 }}
+            onClick={abrirEdicionSeleccion}
+          >
+            {selectedIds.length === 1 ? "✏️ Editar producto" : "✏️ Editar en lote"}
+          </button>
+          {selectedIds.length === 1 && (
+            <button type="button" style={{ ...btnOutline, padding: "8px 12px", fontSize: 12 }} onClick={abrirLotesSeleccion}>
+              📦 Lotes
+            </button>
+          )}
+          <button
+            type="button"
+            style={{ ...btnOutline, padding: "8px 12px", fontSize: 12, color: C.amber, borderColor: C.amber }}
+            onClick={() => {
+              const pct = window.prompt(`% de descuento a aplicar a ${selectedIds.length} producto(s) (0–99)`, "15");
+              if (pct == null || pct === "") return;
+              const n = parseFloat(pct);
+              if (Number.isNaN(n) || n <= 0 || n >= 100) {
+                showToast("Porcentaje inválido.", "error");
+                return;
+              }
+              aplicarEdicionLote({ descuento_pct: n });
+            }}
+          >
+            🏷️ Descuento %
+          </button>
+          <button type="button" style={{ ...btnOutline, padding: "8px 12px", fontSize: 12, color: C.red, borderColor: C.red }} onClick={bulkDesactivar}>
+            🔴 Desactivar
+          </button>
+          <button type="button" style={{ ...btnOutline, padding: "8px 12px", fontSize: 12, color: C.green, borderColor: C.green }} onClick={bulkReactivar}>
+            ✅ Reactivar
+          </button>
+          <button
+            type="button"
+            style={{ ...btnSecondary, padding: "8px 12px", fontSize: 12, color: C.red, borderColor: C.red, background: C.redDim }}
+            onClick={bulkEliminar}
+          >
+            🗑️ Eliminar
+          </button>
+          <button type="button" style={{ ...btnSecondary, padding: "8px 10px", fontSize: 11, marginLeft: "auto" }} onClick={clearSelection} title="Quitar selección">
+            ✕ Quitar selección
+          </button>
+        </div>
+      )}
       <div style={{
         display:"flex",
         flexDirection:isMobileInv?"column":"row",
@@ -2461,7 +3499,7 @@ export default function InventarioModule() {
         <div style={{ minWidth: 0 }}>
           <h1 style={{margin:0,color:C.text,fontSize:20,fontWeight:800}}>▤ Inventario</h1>
           <p style={{margin:"4px 0 0",color:C.textMid,fontSize:12}}>
-            Gestión de productos · clic en cualquier celda para editar
+            Clic en cualquier celda para editar · ↔ Columnas para ordenar y ajustar anchos
           </p>
         </div>
         <div style={isMobileInv ? {
@@ -2570,13 +3608,13 @@ export default function InventarioModule() {
           {filtrados.length} en página · {filtradosTodosInv.length} filtrado{filtradosTodosInv.length !== 1 ? "s" : ""}
         </span>
         </div>
-        <div style={{display:"flex",gap:8,alignItems:"center",marginTop:8}}>
+        <div style={{display:"flex",gap:8,alignItems:"center",marginTop:8,flexWrap:"wrap"}}>
           <button
             type="button"
             onClick={() => setShowColumnSizer((v) => !v)}
             style={{ ...btnSecondary, padding:"6px 10px", fontSize:11 }}
           >
-            ↔ Ajustar columnas
+            ↔ Columnas
           </button>
           <button
             type="button"
@@ -2584,6 +3622,13 @@ export default function InventarioModule() {
             style={{ ...btnSecondary, padding:"6px 10px", fontSize:11 }}
           >
             Restablecer anchos
+          </button>
+          <button
+            type="button"
+            onClick={() => setColOrder([...INV_COLUMN_ORDER_DEFAULT])}
+            style={{ ...btnSecondary, padding:"6px 10px", fontSize:11 }}
+          >
+            Restablecer orden
           </button>
         </div>
         {showColumnSizer && (
@@ -2593,12 +3638,55 @@ export default function InventarioModule() {
             border: `1px solid ${C.border}`,
             borderRadius: 10,
             padding: "10px 12px",
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
-            gap: 10,
           }}>
+            <div style={{ fontSize: 11, color: C.textMid, marginBottom: 10 }}>
+              Arrastra las filas para ordenar columnas. Los cambios se guardan en este navegador.
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
+              {colOrder.map((colId) => {
+                const def = INV_COLUMN_DEFS[colId];
+                if (!def) return null;
+                const dragging = colDragId === colId;
+                return (
+                  <div
+                    key={colId}
+                    draggable
+                    onDragStart={() => setColDragId(colId)}
+                    onDragEnd={() => setColDragId(null)}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      if (colDragId && colDragId !== colId) {
+                        setColOrder((prev) => reorderInvColumnOrder(prev, colDragId, colId));
+                      }
+                      setColDragId(null);
+                    }}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      padding: "8px 10px",
+                      borderRadius: 8,
+                      border: `1px solid ${dragging ? BRAND.secondary : C.border}`,
+                      background: dragging ? "rgba(30, 58, 138, 0.06)" : C.bg,
+                      cursor: "grab",
+                      userSelect: "none",
+                    }}
+                  >
+                    <span style={{ color: C.textDim, fontSize: 14, lineHeight: 1 }} aria-hidden>⠿</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: C.text, flex: 1 }}>{def.label}</span>
+                    <span style={{ fontSize: 10, color: C.textDim }}>{INV_STICKY_COL_IDS.includes(colId) ? "Fija al scroll" : ""}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
+              gap: 10,
+            }}>
             {[
-              ["refLista", "Ref. mayorista", 70, 140],
+              ["acciones", "Acciones", 160, 320],
               ["codigoBarras", "Cód. barras", 100, 180],
               ["nombre", "Nombre", 200, 420],
               ["marca", "Marca", 90, 240],
@@ -2624,65 +3712,11 @@ export default function InventarioModule() {
                 />
               </label>
             ))}
+            </div>
           </div>
         )}
       </div>
 
-      {selectedIds.length > 0 && (
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: 8,
-            alignItems: "center",
-            marginTop: 12,
-            padding: "10px 12px",
-            background: C.card,
-            border: `1px solid rgba(0, 82, 204, 0.35)`,
-            borderRadius: 10,
-          }}
-        >
-          <span style={{ fontWeight: 800, color: C.text, marginRight: 4 }}>{selectedIds.length} seleccionados</span>
-          <button type="button" style={{ ...btnOutline, padding: "8px 12px", fontSize: 12 }} onClick={() => setModalBulkEdit(true)}>
-            ✏️ Editar en lote
-          </button>
-          <button type="button" style={{ ...btnOutline, padding: "8px 12px", fontSize: 12 }} onClick={abrirLotesSeleccion}>
-            📦 Lotes
-          </button>
-          <button
-            type="button"
-            style={{ ...btnOutline, padding: "8px 12px", fontSize: 12, color: C.amber, borderColor: C.amber }}
-            onClick={() => {
-              const pct = window.prompt(`% de descuento a aplicar a ${selectedIds.length} producto(s) (0–99)`, "15");
-              if (pct == null || pct === "") return;
-              const n = parseFloat(pct);
-              if (Number.isNaN(n) || n <= 0 || n >= 100) {
-                showToast("Porcentaje inválido.", "error");
-                return;
-              }
-              aplicarEdicionLote({ descuento_pct: n });
-            }}
-          >
-            🏷️ Descuento %
-          </button>
-          <button type="button" style={{ ...btnOutline, padding: "8px 12px", fontSize: 12, color: C.red, borderColor: C.red }} onClick={bulkDesactivar}>
-            🔴 Desactivar
-          </button>
-          <button type="button" style={{ ...btnOutline, padding: "8px 12px", fontSize: 12, color: C.green, borderColor: C.green }} onClick={bulkReactivar}>
-            ✅ Reactivar
-          </button>
-          <button
-            type="button"
-            style={{ ...btnSecondary, padding: "8px 12px", fontSize: 12, color: C.red, borderColor: C.red, background: C.redDim }}
-            onClick={bulkEliminar}
-          >
-            🗑️ Eliminar
-          </button>
-          <button type="button" style={{ ...btnSecondary, padding: "8px 10px", fontSize: 11 }} onClick={clearSelection} title="Quitar selección">
-            ✕
-          </button>
-        </div>
-      )}
       </div>
 
       {spellHintsInv.length > 0 && (
@@ -2719,7 +3753,13 @@ export default function InventarioModule() {
                   fontWeight: 700,
                   borderBottom: `1px solid ${C.border}`,
                   verticalAlign: "middle",
-                  ...inventarioStickyCell(0, { header: true, bg: C.card, stickyWidths }),
+                  position: "sticky",
+                  left: 0,
+                  width: INV_CHECKBOX_COL_WIDTH,
+                  minWidth: INV_CHECKBOX_COL_WIDTH,
+                  boxSizing: "border-box",
+                  zIndex: 40,
+                  background: C.card,
                 }}>
                   <input
                     ref={headerSelectAllRef}
@@ -2730,9 +3770,12 @@ export default function InventarioModule() {
                     style={{ width: 16, height: 16, cursor: "pointer", accentColor: BRAND.primary }}
                   />
                 </th>
-                {INV_COLUMN_HEADERS.map((col, colIdx) => (
+                {colOrder.map((colId) => {
+                  const col = INV_COLUMN_DEFS[colId];
+                  if (!col) return null;
+                  return (
                   <th
-                    key={col.id}
+                    key={colId}
                     title={col.hint || undefined}
                     style={{
                       padding: "10px 12px",
@@ -2743,18 +3786,19 @@ export default function InventarioModule() {
                       whiteSpace: "nowrap",
                       cursor: col.hint ? "help" : undefined,
                       verticalAlign: "middle",
-                      ...(inventarioStickyHeaderStyle(col.id, { header: true, bg: C.card, stickyWidths })),
-                      ...invColWidthStyle(col.id),
+                      ...inventarioStickyStyleFor(colId, { header: true, bg: C.card }),
+                      ...invColWidthStyle(colId),
                     }}
                   >
                     {col.label}
                   </th>
-                ))}
+                  );
+                })}
               </tr>
             </thead>
             <tbody>
               {filtrados.length===0&&(
-                <tr><td colSpan={INV_COLUMN_HEADERS.length + 1} style={{textAlign:"center",padding:32,color:C.textMid}}>
+                <tr><td colSpan={colOrder.length + 1} style={{textAlign:"center",padding:32,color:C.textMid}}>
                   Sin productos{busqueda?` para "${busqueda}"`:""}. Agrega el primero con ➕
                 </td></tr>
               )}
@@ -2770,7 +3814,6 @@ export default function InventarioModule() {
                 const dAho = diffPctVsComp(p.precio, p.precio_del_ahorro);
                 const cSim = dSim != null ? (parseFloat(dSim) <= 0 ? C.green : C.red) : C.textMid;
                 const cAho = dAho != null ? (parseFloat(dAho) <= 0 ? C.green : C.red) : C.textMid;
-                const refListaProv = refListaMayoristaDesdeNotas(p.notas);
                 const marcaDisp = (p.marca || "").trim();
                 const { nombre: nombreTabla, presentacion: presInferida } = nombreYPresentacionTabla(p);
                 const presDisp = presInferida || "—";
@@ -2780,6 +3823,42 @@ export default function InventarioModule() {
                 const cbDisp = codigoBarrasLimpio(p.codigo_barras);
                 const sinCb = !cbDisp;
                 const stickyRowBg = bajo ? C.amberDim : nearCad ? C.redDim : C.bg;
+                const rowCtx = {
+                  C,
+                  BRAND,
+                  CATEGORIAS,
+                  p,
+                  stickyRowBg,
+                  inlineCellProps,
+                  invColWidthStyle,
+                  inventarioStickyStyleFor,
+                  abrirEdicionProducto,
+                  setModalLotes,
+                  liquidar,
+                  desactivar,
+                  reactivar,
+                  eliminarUno,
+                  btnSecondary,
+                  bajo,
+                  inact,
+                  mgn,
+                  mgnCol,
+                  dSim,
+                  dAho,
+                  cSim,
+                  cAho,
+                  marcaDisp,
+                  nombreTabla,
+                  presDisp,
+                  presInferida,
+                  provDisp,
+                  principioLine,
+                  dosisLine,
+                  cbDisp,
+                  sinCb,
+                  dias,
+                  nearCad,
+                };
                 return (
                   <tr key={p.id} className="farmacapital-table-row" style={{opacity:inact?0.45:1,background:bajo?C.amberDim:nearCad?C.redDim:"transparent"}}>
                     <td style={{
@@ -2787,7 +3866,13 @@ export default function InventarioModule() {
                       borderBottom: `1px solid ${C.border}`,
                       textAlign: "center",
                       verticalAlign: "middle",
-                      ...inventarioStickyCell(0, { header: false, bg: stickyRowBg, stickyWidths }),
+                      position: "sticky",
+                      left: 0,
+                      width: INV_CHECKBOX_COL_WIDTH,
+                      minWidth: INV_CHECKBOX_COL_WIDTH,
+                      boxSizing: "border-box",
+                      zIndex: 20,
+                      background: stickyRowBg,
                     }}>
                       <input
                         type="checkbox"
@@ -2797,286 +3882,7 @@ export default function InventarioModule() {
                         style={{ width: 16, height: 16, cursor: "pointer", accentColor: BRAND.primary }}
                       />
                     </td>
-                    <td
-                      style={{
-                        padding: "6px 10px",
-                        borderBottom: `1px solid ${C.border}`,
-                        verticalAlign: "middle",
-                        cursor: "pointer",
-                        ...inventarioStickyCell(1, { header: false, bg: stickyRowBg, stickyWidths }),
-                      }}
-                      title="Clic para editar foto y más campos"
-                      onClick={() => abrirEdicionProducto(p)}
-                    >
-                      <div style={{
-                        width:40,height:40,borderRadius:6,
-                        background:p.imagen_url?`url(${p.imagen_url}) center/cover`:C.bg,
-                        border:`1px solid ${C.border}`,
-                        display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,
-                      }}>{!p.imagen_url?"📷":null}</div>
-                    </td>
-                    <InventarioEditableCell
-                      {...inlineCellProps}
-                      productId={p.id}
-                      field="sku"
-                      value={p.sku || ""}
-                      mono
-                      display={<span style={tdEllipsisStyle}>{p.sku || "—"}</span>}
-                      tdStyle={{
-                        padding: "8px 12px",
-                        color: C.textMid,
-                        borderBottom: `1px solid ${C.border}`,
-                        fontFamily: "ui-monospace,Menlo,monospace",
-                        fontSize: 11,
-                        verticalAlign: "middle",
-                        background: stickyRowBg,
-                        ...inventarioStickyCell(2, { header: false, bg: stickyRowBg, stickyWidths }),
-                      }}
-                    />
-                    <InventarioEditableCell
-                      {...inlineCellProps}
-                      productId={p.id}
-                      field="codigo_barras"
-                      value={p.codigo_barras || ""}
-                      mono
-                      display={
-                        sinCb ? (
-                          <span style={{ color: C.blue, fontWeight: 700, fontSize: 10 }}>+ Agregar código</span>
-                        ) : (
-                          <span style={{ fontFamily: "ui-monospace,Menlo,monospace", fontSize: 11, color: C.textMid, ...tdEllipsisStyle }} title={cbDisp}>
-                            {cbDisp}
-                          </span>
-                        )
-                      }
-                      tdStyle={{
-                        padding: "8px 12px",
-                        borderBottom: `1px solid ${C.border}`,
-                        verticalAlign: "middle",
-                        background: stickyRowBg,
-                        ...invColWidthStyle("codigoBarras"),
-                      }}
-                    />
-                    <td style={{
-                      padding: "8px 12px",
-                      color: C.textMid,
-                      borderBottom: `1px solid ${C.border}`,
-                      fontFamily: "ui-monospace,Menlo,monospace",
-                      fontSize: 11,
-                      verticalAlign: "middle",
-                      ...inventarioStickyCell(3, { header: false, bg: stickyRowBg, stickyWidths }),
-                      ...invColWidthStyle("refLista"),
-                    }} title={refListaProv || "Referencia lista mayorista (solo lectura)"}>
-                      <span style={tdEllipsisStyle}>{refListaProv || "—"}</span>
-                    </td>
-                    <InventarioEditableCell
-                      {...inlineCellProps}
-                      productId={p.id}
-                      field="nombre"
-                      value={p.nombre || ""}
-                      display={
-                        <span style={{...tdEllipsisStyle,whiteSpace:"normal",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden",fontWeight:600,color:inact?C.textDim:C.text}} title={nombreTabla}>
-                          {nombreTabla}
-                        </span>
-                      }
-                      tdStyle={{
-                        padding: "8px 12px",
-                        borderBottom: `1px solid ${C.border}`,
-                        verticalAlign: "middle",
-                        background: stickyRowBg,
-                        ...inventarioStickyCell(4, { header: false, bg: stickyRowBg, stickyWidths }),
-                        ...invColWidthStyle("nombre"),
-                      }}
-                    />
-                    <InventarioEditableCell
-                      {...inlineCellProps}
-                      productId={p.id}
-                      field="marca"
-                      value={p.marca || ""}
-                      display={<span style={tdEllipsisStyle}>{marcaDisp || "—"}</span>}
-                      tdStyle={{ padding:"8px 12px", color:C.textMid, borderBottom:`1px solid ${C.border}`, background: stickyRowBg, ...invColWidthStyle("marca") }}
-                    />
-                    <InventarioEditableCell
-                      {...inlineCellProps}
-                      productId={p.id}
-                      field="presentacion"
-                      value={p.presentacion || presInferida || ""}
-                      display={<span style={tdEllipsisStyle}>{presDisp}</span>}
-                      tdStyle={{ padding:"8px 12px", color:C.textMid, borderBottom:`1px solid ${C.border}`, background: stickyRowBg, ...invColWidthStyle("presentacion") }}
-                    />
-                    <InventarioEditableCell
-                      {...inlineCellProps}
-                      productId={p.id}
-                      field="principio"
-                      value={p.principio_activo || lineaPrincipioQuimicoTabla(p) || ""}
-                      display={
-                        <>
-                          <span style={{...tdEllipsisStyle,display:"block"}}>{principioLine || "—"}</span>
-                          {dosisLine ? (
-                            <span style={{display:"block",fontSize:10,color:C.textDim,marginTop:2}}>{dosisLine}</span>
-                          ) : null}
-                        </>
-                      }
-                      tdStyle={{ padding:"8px 12px", color:C.textMid, borderBottom:`1px solid ${C.border}`, background: stickyRowBg, ...invColWidthStyle("principio") }}
-                    />
-                    <InventarioEditableCell
-                      {...inlineCellProps}
-                      productId={p.id}
-                      field="ubicacion"
-                      value={p.ubicacion_texto || ""}
-                      display={
-                        <span style={{fontSize:11,fontWeight:700,color:p.ubicacion_texto ? C.blue : C.textDim}}>
-                          {p.ubicacion_texto || "Sin ubicación"}
-                        </span>
-                      }
-                      tdStyle={{ padding:"8px 12px", color:C.text, borderBottom:`1px solid ${C.border}`, background: stickyRowBg, ...invColWidthStyle("ubicacion") }}
-                    />
-                    <InventarioEditableCell
-                      {...inlineCellProps}
-                      productId={p.id}
-                      field="categoria"
-                      value={p.categoria || "Otro"}
-                      type="select"
-                      options={CATEGORIAS}
-                      display={p.categoria}
-                      tdStyle={{ padding:"8px 12px", color:C.textMid, borderBottom:`1px solid ${C.border}`, background: stickyRowBg, ...invColWidthStyle("categoria") }}
-                    />
-                    <InventarioEditableCell
-                      {...inlineCellProps}
-                      productId={p.id}
-                      field="tipo"
-                      value={p.tipo || "generico"}
-                      type="select"
-                      options={["generico", "marca"]}
-                      display={
-                        <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,
-                          background:p.tipo==="marca"?"#9d6fff18":C.blueDim,color:p.tipo==="marca"?"#9d6fff":C.blue}}>{p.tipo}</span>
-                      }
-                      tdStyle={{ padding:"8px 12px", borderBottom:`1px solid ${C.border}`, background: stickyRowBg }}
-                    />
-                    <InventarioEditableCell
-                      {...inlineCellProps}
-                      productId={p.id}
-                      field="proveedor"
-                      value={p.proveedor || ""}
-                      display={<span style={tdEllipsisStyle}>{provDisp || "—"}</span>}
-                      tdStyle={{ padding:"8px 12px", color:C.textMid, borderBottom:`1px solid ${C.border}`, background: stickyRowBg, ...invColWidthStyle("proveedor") }}
-                    />
-                    <InventarioEditableCell
-                      {...inlineCellProps}
-                      productId={p.id}
-                      field="stock"
-                      value={String(p.stock ?? 0)}
-                      type="number"
-                      display={<span style={{ fontWeight: 700, color: bajo ? C.amber : C.green }}>{p.stock}</span>}
-                      tdStyle={{ padding:"8px 12px", borderBottom:`1px solid ${C.border}`, background: stickyRowBg }}
-                    />
-                    <InventarioEditableCell
-                      {...inlineCellProps}
-                      productId={p.id}
-                      field="min"
-                      value={String(p.stock_minimo ?? 0)}
-                      type="number"
-                      display={p.stock_minimo ?? 0}
-                      tdStyle={{ padding:"8px 12px", color:C.textMid, borderBottom:`1px solid ${C.border}`, background: stickyRowBg }}
-                    />
-                    <InventarioEditableCell
-                      {...inlineCellProps}
-                      productId={p.id}
-                      field="precio"
-                      value={String(parseFloat(p.precio || 0))}
-                      type="number"
-                      display={`$${parseFloat(p.precio||0).toFixed(2)}`}
-                      tdStyle={{ padding:"8px 12px", color:C.text, borderBottom:`1px solid ${C.border}`, background: stickyRowBg }}
-                    />
-                    <InventarioEditableCell
-                      {...inlineCellProps}
-                      productId={p.id}
-                      field="costo"
-                      value={String(parseFloat(p.costo || 0))}
-                      type="number"
-                      display={`$${parseFloat(p.costo||0).toFixed(2)}`}
-                      tdStyle={{ padding:"8px 12px", color:C.textMid, borderBottom:`1px solid ${C.border}`, background: stickyRowBg }}
-                    />
-                    <td style={{padding:"8px 12px",fontWeight:700,borderBottom:`1px solid ${C.border}`,color:mgnCol,background:stickyRowBg}}>{mgn}</td>
-                    <InventarioEditableCell
-                      {...inlineCellProps}
-                      productId={p.id}
-                      field="similares"
-                      value={p.precio_similares != null ? String(p.precio_similares) : ""}
-                      type="number"
-                      display={
-                        p.precio_similares ? (
-                          <span>${parseFloat(p.precio_similares).toFixed(0)}{dSim != null ? ` (${parseFloat(dSim) <= 0 ? "" : "+"}${dSim}%)` : ""}</span>
-                        ) : "—"
-                      }
-                      tdStyle={{ padding:"8px 12px", borderBottom:`1px solid ${C.border}`, color:cSim, fontSize:11, background: stickyRowBg }}
-                    />
-                    <InventarioEditableCell
-                      {...inlineCellProps}
-                      productId={p.id}
-                      field="ahorro"
-                      value={p.precio_del_ahorro != null ? String(p.precio_del_ahorro) : ""}
-                      type="number"
-                      display={
-                        p.precio_del_ahorro ? (
-                          <span>${parseFloat(p.precio_del_ahorro).toFixed(0)}{dAho != null ? ` (${parseFloat(dAho) <= 0 ? "" : "+"}${dAho}%)` : ""}</span>
-                        ) : "—"
-                      }
-                      tdStyle={{ padding:"8px 12px", borderBottom:`1px solid ${C.border}`, color:cAho, fontSize:11, background: stickyRowBg }}
-                    />
-                    <td style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap",background:stickyRowBg}}>
-                      {dias===null?"—":(
-                        <span style={{color:nearCad?C.red:dias<=60?C.amber:C.textMid,fontWeight:nearCad?700:400}}>
-                          {dias<0?"Vencido":dias===0?"Hoy":dias+" d"}
-                        </span>
-                      )}
-                    </td>
-                    <td style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`,background:stickyRowBg}}>
-                      {(()=>{
-                        if(!p.stock||!p.stock_minimo) return "—";
-                        const ventaDiaria = Math.max(p.stock_minimo*0.15,0.5);
-                        const diasAgot = Math.floor(p.stock/ventaDiaria);
-                        const col = diasAgot<7?C.red:diasAgot<15?C.amber:C.green;
-                        return <span style={{color:col,fontWeight:700,fontSize:11}}>~{diasAgot}d</span>;
-                      })()}
-                    </td>
-                    <InventarioEditableCell
-                      {...inlineCellProps}
-                      productId={p.id}
-                      field="desc"
-                      value={String(p.descuento_pct ?? 0)}
-                      type="number"
-                      display={p.descuento_pct>0?<span style={{color:C.amber,fontWeight:700}}>{p.descuento_pct}%</span>:"—"}
-                      tdStyle={{ padding:"8px 12px", borderBottom:`1px solid ${C.border}`, background: stickyRowBg }}
-                    />
-                    <td style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`}}>
-                      <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,
-                        background:p.activo?C.greenDim:C.redDim,color:p.activo?C.green:C.red}}>
-                        {p.activo?"Activo":"Inactivo"}</span>
-                    </td>
-                    <td style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>
-                      <button onClick={()=>abrirEdicionProducto(p)} style={{background:C.blueDim,border:`1px solid ${C.blue}30`,
-                        color:C.blue,borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:11,fontWeight:700,marginRight:6}}>
-                        ✏️ Editar</button>
-                      <button onClick={()=>setModalLotes(p)} style={{background:"#f1f5f9",border:`1px solid ${C.border}`,
-                        color:C.textMid,borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:11,fontWeight:700,marginRight:6}}>
-                        📦 Lotes ({(p.lotes_activos||[]).length})</button>
-                      {p.min_caducidad_lotes && diasParaCaducar(p.min_caducidad_lotes)<=30 && diasParaCaducar(p.min_caducidad_lotes)>=0 && (
-                        <button onClick={()=>liquidar(p)}
-                          style={{...btnSecondary,padding:"5px 10px",fontSize:10,color:C.red,borderColor:C.red,background:C.redDim,marginLeft:4}}>
-                          🏷️ Liquidar
-                        </button>
-                      )}
-                      {p.activo?(
-                        <button onClick={()=>desactivar(p.id)} style={{background:C.redDim,border:`1px solid ${C.red}30`,
-                          color:C.red,borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:11,fontWeight:700}}>
-                          🔴 Desactivar</button>
-                      ):(
-                        <button onClick={()=>reactivar(p.id)} style={{background:C.greenDim,border:`1px solid ${C.green}30`,
-                          color:C.green,borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:11,fontWeight:700}}>
-                          ✅ Reactivar</button>
-                      )}
-                    </td>
+                    {colOrder.map((colId) => renderInventarioColumnCell(colId, rowCtx))}
                   </tr>
                 );
               })}
@@ -3093,8 +3899,15 @@ export default function InventarioModule() {
       )}
 
       {modal!==null&&(
-        <ProductoModal key={modal.id ?? "nuevo"} initial={modal} onClose={()=>setModal(null)}
-          onSaved={()=>{setModal(null);fetchProductos();}}/>
+        <ProductoModal
+          key={modal.id ?? "nuevo"}
+          initial={modal}
+          onClose={() => setModal(null)}
+          onSaved={() => { setModal(null); fetchProductos(); }}
+          onEditarCaducidad={modal.id ? abrirLotesDesdeEdicion : undefined}
+          onRecibirMercancia={modal.id ? abrirRecibirDesdeEdicion : undefined}
+          onCaducidadSaved={modal.id ? refrescarProductoEnEdicion : undefined}
+        />
       )}
       {modalBulkImages && (
         <BulkImagesModal
@@ -3130,6 +3943,10 @@ export default function InventarioModule() {
                 Este producto no tiene lotes activos. Usa <strong>📦 Recibir mercancía</strong> para agregar uno.
               </div>
             ) : (
+              <>
+              <p style={{ margin: "0 0 10px", fontSize: 11, color: C.textMid }}>
+                Editá la fecha de caducidad de cada lote. Los cambios se guardan al salir del campo.
+              </p>
               <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                 <thead>
                   <tr style={{background:C.cardDark}}>
@@ -3149,10 +3966,31 @@ export default function InventarioModule() {
                     .map((l,i)=>{
                       const dias = diasParaCaducar(l.fecha_caducidad);
                       const col  = dias===null?C.textMid:dias<0?C.red:dias<=15?C.red:dias<=30?C.amber:C.green;
+                      const saving = loteCadSaving === l.id;
                       return (
                         <tr key={l.id} style={{background:i%2===0?"transparent":"#f8fafc"}}>
                           <td style={{padding:"8px 12px",color:C.text,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{l.numero_lote||"—"}</td>
-                          <td style={{padding:"8px 12px",color:col,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>{l.fecha_caducidad||"—"}</td>
+                          <td style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`}}>
+                            <input
+                              key={`${l.id}-${l.fecha_caducidad || "none"}`}
+                              type="date"
+                              defaultValue={l.fecha_caducidad || ""}
+                              disabled={saving}
+                              onBlur={(e) => {
+                                const next = e.target.value || null;
+                                if ((l.fecha_caducidad || null) === next) return;
+                                actualizarCaducidadLote(l.id, next, modalLotes.id);
+                              }}
+                              style={{
+                                ...inputStyle,
+                                padding: "4px 8px",
+                                fontSize: 11,
+                                color: col,
+                                fontWeight: 600,
+                                minWidth: 130,
+                              }}
+                            />
+                          </td>
                           <td style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`}}>
                             {dias===null?"—":<span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:col+"20",color:col}}>{dias<0?"Vencido":dias===0?"Hoy":`${dias}d`}</span>}
                           </td>
@@ -3163,13 +4001,18 @@ export default function InventarioModule() {
                     })}
                 </tbody>
               </table>
+              </>
             )}
           </div>
         </div>
       )}
       {modalRecibir&&(
-        <RecibirModal productos={productos} onClose={()=>setModalRecibir(false)}
-          onReceived={fetchProductos}/>
+        <RecibirModal
+          productos={productos}
+          initialProductId={recibirPresetId}
+          onClose={() => { setModalRecibir(false); setRecibirPresetId(null); }}
+          onReceived={() => { fetchProductos(); setRecibirPresetId(null); }}
+        />
       )}
 
       {/* Modal Importar CSV */}

@@ -63,4 +63,27 @@ describe("catalog search dimensions", () => {
     expect(inventarioProductMatchesBusqueda(tensolastic7, "FC-48690909")).toBe(true);
     expect(inventarioProductMatchesBusqueda(tensolastic7, "7501048690909")).toBe(true);
   });
+
+  test("pañal no matchea lubricante íntimo por marca piel con piel", () => {
+    const lubricante = {
+      id: 99,
+      activo: true,
+      nombre: "Lubricante íntimo",
+      marca: "Piel con Piel",
+      categoria: "Higiene",
+      sku: "FC-60101378",
+      codigo_barras: "7506460101378",
+    };
+    const panal = {
+      id: 100,
+      activo: true,
+      nombre: "Pañal Diapro Grande",
+      categoria: "Higiene",
+      sku: "FC-43475816",
+      codigo_barras: "7501943475014",
+    };
+    expect(inventarioProductMatchesBusqueda(lubricante, "pañal")).toBe(false);
+    expect(inventarioProductMatchesBusqueda(panal, "pañal")).toBe(true);
+    expect(inventarioSearchRelevanceRank(panal, "pañal")).toBeLessThan(20);
+  });
 });

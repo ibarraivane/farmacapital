@@ -313,12 +313,28 @@ function maxTypoForLength(len) {
   return Math.min(4, Math.floor(len * 0.35));
 }
 
+function fuzzyMatchRatio(queryNorm, textNorm) {
+  const dist = minEditDistanceQueryToText(queryNorm, textNorm);
+  if (!queryNorm || !textNorm) return { dist, ratio: 1 };
+  const words = textNorm.split(/\s+/).filter((word) => word.length >= 2);
+  if (!words.length) {
+    const denom = Math.max(queryNorm.length, textNorm.length);
+    return { dist, ratio: denom ? dist / denom : 1 };
+  }
+  let bestRatio = 1;
+  for (const w of words) {
+    if (Math.abs(w.length - queryNorm.length) > 6) continue;
+    const d = levenshtein(queryNorm, w);
+    const denom = Math.max(queryNorm.length, w.length);
+    if (denom) bestRatio = Math.min(bestRatio, d / denom);
+  }
+  return { dist, ratio: bestRatio };
+}
+
 export function normalizedTextFuzzyMatch(queryNorm, textNorm) {
   if (!queryNorm || queryNorm.length < 2 || !textNorm) return false;
   if (tokenMatchesInNormalizedHaystack(queryNorm, textNorm)) return true;
-  const dist = minEditDistanceQueryToText(queryNorm, textNorm);
-  const maxLen = Math.max(queryNorm.length, textNorm.length);
-  const ratio = maxLen ? dist / maxLen : 1;
+  const { dist, ratio } = fuzzyMatchRatio(queryNorm, textNorm);
   const maxTypo = maxTypoForLength(queryNorm.length);
   return dist <= maxTypo || ratio <= 0.34;
 }

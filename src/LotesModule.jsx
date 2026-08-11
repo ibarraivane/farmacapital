@@ -2,13 +2,41 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
 import { showToast, HorizontalScrollSync } from "./ui";
-import { inventarioProductMatchesBusqueda, inventarioSearchRelevanceRank } from "./utils/fuzzySearch";
+import { inventarioProductMatchesBusqueda, inventarioSearchRelevanceRank, normalizeCatalogSearchQuery } from "./utils/fuzzySearch";
+import { normalizeForSearch } from "./utils";
 import { findProductExactScan } from "./utils/barcodeProductLookup";
 import { etiquetaProductoInventario } from "./utils/parseNombreProducto";
 
 const BRAND = { primary:"#0D1B2A", secondary:"#1E3ABA", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
 const fmt = n => `$${parseFloat(n||0).toFixed(2)}`;
 const mkInpS = (C) => ({width:"100%",boxSizing:"border-box",padding:"8px 12px",borderRadius:8,border:`1px solid ${C.border}`,background:C.card,color:C.text,fontSize:13,outline:"none"});
+
+/** Producto enriquecido para búsqueda / etiqueta en fila de lote. */
+function loteRowProducto(lote, prodById) {
+  const fromCatalog = prodById[String(lote.producto_id)] || {};
+  const fromRpc = lote.productos || {};
+  return { ...fromRpc, ...fromCatalog };
+}
+
+function loteRowMatchesBusqueda(lote, product, queryRaw) {
+  const q = String(queryRaw || "").trim();
+  if (!q) return true;
+  if (product && inventarioProductMatchesBusqueda(product, q)) return true;
+  const qn = normalizeCatalogSearchQuery(q);
+  if (!qn) return true;
+  const hay = [
+    product?.nombre,
+    product?.marca,
+    product?.sku,
+    product?.codigo_barras,
+    product?.categoria,
+    product?.presentacion,
+    lote?.numero_lote,
+  ]
+    .map((v) => normalizeForSearch(v))
+    .filter(Boolean);
+  return hay.some((h) => h.includes(qn));
+}
 
 export default function LotesModule() {
   const C = C_LIGHT;
@@ -69,16 +97,26 @@ export default function LotesModule() {
     [productos]
   );
 
-  const lotesFiltrados = lotes.filter(l=>{
-    const matchP = !filtroP || inventarioProductMatchesBusqueda(l.productos || {}, filtroP);
-    const dias   = diasRestantes(l.fecha_caducidad);
-    const matchV =
-      filtroVenc==="todos"    ? true :
-      filtroVenc==="vencidos" ? (dias!==null&&dias<0) :
-      filtroVenc==="criticos" ? (dias!==null&&dias>=0&&dias<=15) :
-      filtroVenc==="pronto"   ? (dias!==null&&dias>15&&dias<=30) : true;
-    return matchP && matchV;
-  });
+  const lotesFiltrados = useMemo(() => {
+    const q = filtroP.trim();
+    const list = lotes.filter((l) => {
+      const prod = loteRowProducto(l, prodById);
+      const matchP = loteRowMatchesBusqueda(l, prod, q);
+      const dias = diasRestantes(l.fecha_caducidad);
+      const matchV =
+        filtroVenc === "todos" ? true :
+        filtroVenc === "vencidos" ? (dias !== null && dias < 0) :
+        filtroVenc === "criticos" ? (dias !== null && dias >= 0 && dias <= 15) :
+        filtroVenc === "pronto" ? (dias !== null && dias > 15 && dias <= 30) : true;
+      return matchP && matchV;
+    });
+    if (!q) return list;
+    return list.sort(
+      (a, b) =>
+        inventarioSearchRelevanceRank(loteRowProducto(a, prodById), q)
+        - inventarioSearchRelevanceRank(loteRowProducto(b, prodById), q)
+    );
+  }, [lotes, filtroP, filtroVenc, prodById]);
 
   const selProducto = productos.find((p) => String(p.id) === String(form.producto_id));
 
@@ -231,6 +269,11 @@ export default function LotesModule() {
       <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap"}}>
         <input placeholder="🔍 Producto, SKU o código de barras…" value={filtroP} onChange={e=>setFiltroP(e.target.value)}
           style={{...inpS,maxWidth:220,width:"auto"}}/>
+        {filtroP.trim() && (
+          <span style={{ fontSize: 11, color: C.textMid, alignSelf: "center" }}>
+            {lotesFiltrados.length} de {lotes.length} lote{lotes.length !== 1 ? "s" : ""}
+          </span>
+        )}
         {["todos","vencidos","criticos","pronto"].map(f=>(
           <button key={f} onClick={()=>setFiltroV(f)} style={{
             padding:"6px 14px",borderRadius:20,fontSize:11,fontWeight:700,cursor:"pointer",
@@ -253,11 +296,27 @@ export default function LotesModule() {
               </tr>
             </thead>
             <tbody>
-              {!lotesFiltrados.length&&<tr><td colSpan={9} style={{textAlign:"center",padding:32,color:C.textMid}}>Sin lotes</td></tr>}
+              {!lotesFiltrados.length && (
+                <tr>
+                  <td colSpan={9} style={{ textAlign: "center", padding: 32, color: C.textMid, lineHeight: 1.55 }}>
+                    {filtroP.trim() ? (
+                      <>
+                        Sin lotes para «{filtroP.trim()}».
+                        <br />
+                        <span style={{ fontSize: 11 }}>
+                          Si el producto está en <strong>Catálogo</strong> pero no aparece aquí, aún no tiene lote PEPS — usa <strong>+ Registrar lote</strong> o <strong>Catálogo → Resurtir</strong>.
+                        </span>
+                      </>
+                    ) : (
+                      "Sin lotes"
+                    )}
+                  </td>
+                </tr>
+              )}
               {lotesFiltrados.map((l,i)=>{
                 const dias = diasRestantes(l.fecha_caducidad);
                 const col  = colCad(dias);
-                const prod = prodById[String(l.producto_id)] || l.productos || {};
+                const prod = loteRowProducto(l, prodById);
                 const etiqueta = etiquetaProductoInventario(prod);
                 return(
                   <tr key={l.id} style={{background:dias!==null&&dias<0?"#fff5f5":i%2===0?"transparent":"#f8fafc"}}>
@@ -269,7 +328,7 @@ export default function LotesModule() {
                         </div>
                       )}
                     </td>
-                    <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,fontFamily:"monospace",fontSize:10}}>{l.productos?.sku||"—"}</td>
+                    <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,fontFamily:"monospace",fontSize:10}}>{prod.sku||"—"}</td>
                     <td style={{padding:"8px 12px",color:C.text,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{l.numero_lote}</td>
                     <td style={{padding:"8px 12px",color:col,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{l.fecha_caducidad||"—"}</td>
                     <td style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`}}>
