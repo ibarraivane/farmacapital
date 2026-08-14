@@ -200,14 +200,14 @@ export function calcPrecioSugeridoVenta(producto, refsMap) {
 
   if (costo > 0 && sugerido < costo) {
     alerta = "debajo_costo";
-    nota = `A ${fmtPrecioRef(sugerido)} no cubres tu costo (${fmtPrecioRef(costo)}). Revisa costo o decide margen.`;
+    nota = `A ${fmtMoney(sugerido)} no cubres tu costo (${fmtMoney(costo)}). Revisa costo o decide margen.`;
   } else if (piso > 0 && sugerido < piso) {
     alerta = "debajo_piso";
-    nota = `Competitivo (${fmtPrecioRef(sugerido)}) queda bajo tu piso habitual (${fmtPrecioRef(piso)}). Puedes aplicarlo si priorizas share.`;
+    nota = `Competitivo (${fmtMoney(sugerido)}) queda bajo tu piso habitual (${fmtMoney(piso)}). Puedes aplicarlo si priorizas share.`;
   } else if (precioActual > 0 && Math.abs(precioActual - sugerido) < 0.01) {
     nota = "Tu precio ya está al nivel competitivo";
   } else if (precioActual > refMin) {
-    nota = `Competencia desde ${fmtPrecioRef(refMin)} — bajar a ${fmtPrecioRef(sugerido)}`;
+    nota = `Competencia desde ${fmtMoney(refMin)} — bajar a ${fmtMoney(sugerido)}`;
   }
 
   return { sugerido, refMin, piso, nota, alerta };
