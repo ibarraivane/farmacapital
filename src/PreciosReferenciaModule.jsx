@@ -14,6 +14,7 @@ import {
   calcPrecioSugeridoVenta,
   colorDiffCompra,
   colorDiffVenta,
+  labelDiffCompra,
   fmtPrecioRef,
 } from "./lib/preciosReferencia";
 import { inventarioProductMatchesBusqueda } from "./utils/fuzzySearch";
@@ -22,26 +23,55 @@ import ImportReferenciaPrecios from "./components/ImportReferenciaPrecios";
 const BRAND = { primary: "#0D1B2A", gradient: "linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
 
 const COL_DEFAULTS_COMPRA = {
-  producto: 220,
-  sku: 108,
-  costo: 88,
-  exprezo: 96,
-  marzam: 96,
-  nadro: 96,
-  levic: 96,
-  mejor: 150,
+  producto: 160,
+  sku: 72,
+  costo: 64,
+  exprezo: 68,
+  marzam: 68,
+  nadro: 68,
+  levic: 68,
+  mejor: 100,
 };
 
 const COL_DEFAULTS_VENTA = {
-  producto: 220,
-  tuVenta: 92,
-  fahorro: 96,
-  similares: 96,
-  refMin: 88,
-  sugerido: 92,
-  nota: 150,
-  accion: 88,
+  producto: 160,
+  tuVenta: 68,
+  fahorro: 72,
+  similares: 72,
+  refMin: 64,
+  sugerido: 68,
+  nota: 110,
+  accion: 58,
 };
+
+const COL_STORAGE_V = "v2";
+
+function productoPresentacion(p) {
+  const parts = [];
+  if (p.concentracion?.trim()) parts.push(p.concentracion.trim());
+  if (p.presentacion?.trim()) parts.push(p.presentacion.trim());
+  else if (p.forma_farmaceutica?.trim()) parts.push(p.forma_farmaceutica.trim());
+  const pa = (p.principio_activo || "").trim();
+  const nom = (p.nombre || "").trim().toLowerCase();
+  if (pa && pa.toLowerCase() !== nom && !nom.includes(pa.toLowerCase())) {
+    parts.push(pa);
+  }
+  return parts.join(" · ");
+}
+
+function ProductoCell({ p, tdStyle, C }) {
+  const det = productoPresentacion(p);
+  return (
+    <td style={tdStyle}>
+      <div style={{ fontWeight: 600, lineHeight: 1.25, wordBreak: "break-word" }}>{p.nombre}</div>
+      {det ? (
+        <div style={{ fontSize: 10, color: C.textMid, marginTop: 3, lineHeight: 1.3, wordBreak: "break-word" }}>
+          {det}
+        </div>
+      ) : null}
+    </td>
+  );
+}
 
 const COL_LABELS_COMPRA = {
   producto: "Producto",
@@ -51,7 +81,7 @@ const COL_LABELS_COMPRA = {
   marzam: "Marzam",
   nadro: "Nadro",
   levic: "Levic",
-  mejor: "Mejor proveedor",
+  mejor: "Mejor opción",
 };
 
 const COL_LABELS_VENTA = {
@@ -68,7 +98,9 @@ const COL_LABELS_VENTA = {
 function loadColWidths(tab) {
   const defaults = tab === "compra" ? COL_DEFAULTS_COMPRA : COL_DEFAULTS_VENTA;
   try {
-    const raw = JSON.parse(localStorage.getItem(`farmacapital_precios_ref_cols_${tab}`) || "{}");
+    const raw = JSON.parse(
+      localStorage.getItem(`farmacapital_precios_ref_cols_${COL_STORAGE_V}_${tab}`) || "{}"
+    );
     return { ...defaults, ...raw };
   } catch {
     return { ...defaults };
@@ -76,23 +108,40 @@ function loadColWidths(tab) {
 }
 
 function colStyle(colWidths, colId) {
-  const w = Math.max(60, Number(colWidths[colId]) || 80);
+  const w = Math.max(48, Number(colWidths[colId]) || 64);
   return { width: w, minWidth: w, maxWidth: w };
 }
 
 function DiffBadge({ pct, mode, C }) {
   if (pct == null) return <span style={{ color: C.textDim }}>—</span>;
-  const tone = mode === "compra" ? colorDiffCompra(pct) : colorDiffVenta(pct);
+
+  if (mode === "compra") {
+    const tone = colorDiffCompra(pct);
+    const label = labelDiffCompra(pct);
+    const col =
+      tone === "tu_costo_mejor" ? C.green :
+      tone === "proveedor_mas_barato" ? C.blue : C.textMid;
+    const bg =
+      tone === "tu_costo_mejor" ? C.greenDim :
+      tone === "proveedor_mas_barato" ? "#dbeafe" : C.cardDark;
+    return (
+      <span style={{ padding: "2px 6px", borderRadius: 20, fontSize: 9, fontWeight: 700, color: col, background: bg }}>
+        {label}
+      </span>
+    );
+  }
+
+  const tone = colorDiffVenta(pct);
   const col =
-    tone === "oportunidad" || tone === "ok" ? C.green :
+    tone === "ok" ? C.green :
     tone === "caro" ? C.red : C.textMid;
   const bg =
-    tone === "oportunidad" || tone === "ok" ? C.greenDim :
+    tone === "ok" ? C.greenDim :
     tone === "caro" ? C.redDim : C.cardDark;
   const prefix = parseFloat(pct) > 0 ? "+" : "";
   return (
-    <span style={{ padding: "2px 7px", borderRadius: 20, fontSize: 10, fontWeight: 700, color: col, background: bg }}>
-      {prefix}{pct}%
+    <span style={{ padding: "2px 6px", borderRadius: 20, fontSize: 9, fontWeight: 700, color: col, background: bg }}>
+      {prefix}{pct}% vs ref.
     </span>
   );
 }
@@ -165,21 +214,21 @@ function ColumnSizer({ tab, colWidths, setColWidths, C }) {
   const labels = tab === "compra" ? COL_LABELS_COMPRA : COL_LABELS_VENTA;
   const defaults = tab === "compra" ? COL_DEFAULTS_COMPRA : COL_DEFAULTS_VENTA;
   const ranges = {
-    producto: [140, 420],
-    sku: [80, 180],
-    costo: [70, 140],
-    tuVenta: [70, 140],
-    exprezo: [70, 160],
-    marzam: [70, 160],
-    nadro: [70, 160],
-    levic: [70, 160],
-    fahorro: [70, 160],
-    similares: [70, 160],
-    refMin: [70, 140],
-    sugerido: [70, 140],
-    nota: [100, 280],
-    accion: [70, 140],
-    mejor: [100, 260],
+    producto: [120, 320],
+    sku: [56, 140],
+    costo: [52, 100],
+    tuVenta: [52, 100],
+    exprezo: [52, 120],
+    marzam: [52, 120],
+    nadro: [52, 120],
+    levic: [52, 120],
+    fahorro: [52, 120],
+    similares: [52, 120],
+    refMin: [52, 100],
+    sugerido: [52, 100],
+    nota: [80, 220],
+    accion: [52, 100],
+    mejor: [80, 180],
   };
 
   return (
@@ -247,7 +296,7 @@ function TablaCompra({
                 {FUENTE_META[id]?.label}
               </th>
             ))}
-            <th style={thS("mejor")}>Mejor proveedor</th>
+            <th style={thS("mejor")}>Mejor opción</th>
           </tr>
         </thead>
         <tbody>
@@ -261,7 +310,7 @@ function TablaCompra({
 
             return (
               <tr key={p.id} style={{ background: rowBg }}>
-                <td style={{ ...tdS("producto"), background: rowBg }}>{p.nombre}</td>
+                <ProductoCell p={p} tdStyle={{ ...tdS("producto"), background: rowBg }} C={C} />
                 <td style={{ ...tdS("sku", { fontFamily: "monospace", fontSize: 10, color: C.textMid, background: rowBg }) }}>{p.sku || "—"}</td>
                 <EditablePrecioCell
                   C={C}
@@ -282,8 +331,8 @@ function TablaCompra({
                   const pct = diffPctCompra(p.costo, precio);
                   const tone = colorDiffCompra(pct);
                   const col =
-                    tone === "oportunidad" ? C.blue :
-                    tone === "caro" ? C.red : C.textMid;
+                    tone === "tu_costo_mejor" ? C.green :
+                    tone === "proveedor_mas_barato" ? C.blue : C.textMid;
                   return (
                     <EditablePrecioCell
                       key={id}
@@ -309,12 +358,18 @@ function TablaCompra({
                 })}
                 <td style={{ ...tdS("mejor", { background: rowBg }) }}>
                   {mejor ? (
-                    <span style={{ fontWeight: 700, color: mejor.masBaratoQueTuCosto ? C.blue : C.text }}>
+                    <span style={{
+                      fontWeight: 700,
+                      color: mejor.esTuCosto ? C.green : C.blue,
+                    }}>
                       {mejor.label}
-                      {mejor.masBaratoQueTuCosto && mejor.ahorro != null ? (
-                        <span style={{ fontSize: 10, color: C.blue, marginLeft: 4 }}>
-                          (−{fmtPrecioRef(mejor.ahorro)})
+                      {!mejor.esTuCosto && mejor.ahorroVsTuCosto != null && mejor.ahorroVsTuCosto > 0.01 ? (
+                        <span style={{ fontSize: 10, marginLeft: 4 }}>
+                          (−{fmtPrecioRef(mejor.ahorroVsTuCosto)})
                         </span>
+                      ) : null}
+                      {mejor.esTuCosto ? (
+                        <span style={{ fontSize: 10, marginLeft: 4, color: C.green }}>✓</span>
                       ) : null}
                     </span>
                   ) : (
@@ -364,13 +419,17 @@ function TablaVenta({
             const sim = refs.similares?.precio;
             const dAho = diffPctVenta(p.precio, fah);
             const dSim = diffPctVenta(p.precio, sim);
-            const { sugerido, refMin, nota } = calcPrecioSugeridoVenta(p, refs);
+            const { sugerido, refMin, nota, alerta } = calcPrecioSugeridoVenta(p, refs);
             const puedeAplicar = sugerido != null && Math.abs((parseFloat(p.precio) || 0) - sugerido) >= 0.01;
+            const sugeridoCol =
+              alerta === "debajo_costo" ? C.red :
+              alerta === "debajo_piso" ? C.amber :
+              C.green;
             const rowBg = i % 2 ? "#f8fafc" : "transparent";
 
             return (
               <tr key={p.id} style={{ background: rowBg }}>
-                <td style={{ ...tdS("producto", { background: rowBg }) }}>{p.nombre}</td>
+                <ProductoCell p={p} tdStyle={{ ...tdS("producto", { background: rowBg }) }} C={C} />
                 <EditablePrecioCell
                   C={C}
                   cellKey={`${p.id}:precio`}
@@ -426,7 +485,7 @@ function TablaVenta({
                 <td style={{ ...tdS("refMin", { textAlign: "right", color: C.textMid, background: rowBg }) }}>
                   {refMin != null ? fmtPrecioRef(refMin) : "—"}
                 </td>
-                <td style={{ ...tdS("sugerido", { textAlign: "right", fontWeight: 800, color: sugerido != null ? C.green : C.textDim, background: rowBg }) }}>
+                <td style={{ ...tdS("sugerido", { textAlign: "right", fontWeight: 800, color: sugerido != null ? sugeridoCol : C.textDim, background: rowBg }) }}>
                   {sugerido != null ? fmtPrecioRef(sugerido) : "—"}
                 </td>
                 <td style={{ ...tdS("nota", { fontSize: 10, color: C.textMid, background: rowBg }) }}>{nota}</td>
@@ -496,13 +555,13 @@ export default function PreciosReferenciaModule() {
 
   useEffect(() => {
     try {
-      localStorage.setItem("farmacapital_precios_ref_cols_compra", JSON.stringify(colWidthsCompra));
+      localStorage.setItem(`farmacapital_precios_ref_cols_${COL_STORAGE_V}_compra`, JSON.stringify(colWidthsCompra));
     } catch { /* noop */ }
   }, [colWidthsCompra]);
 
   useEffect(() => {
     try {
-      localStorage.setItem("farmacapital_precios_ref_cols_venta", JSON.stringify(colWidthsVenta));
+      localStorage.setItem(`farmacapital_precios_ref_cols_${COL_STORAGE_V}_venta`, JSON.stringify(colWidthsVenta));
     } catch { /* noop */ }
   }, [colWidthsVenta]);
 
@@ -510,7 +569,7 @@ export default function PreciosReferenciaModule() {
     setLoading(true);
     const prodRes = await supabase
       .from("productos")
-      .select("id,sku,nombre,categoria,tipo,costo,precio,principio_activo,forma_farmaceutica,requiere_receta,marca")
+      .select("id,sku,nombre,categoria,tipo,costo,precio,principio_activo,concentracion,presentacion,forma_farmaceutica,requiere_receta,marca")
       .eq("activo", true)
       .order("nombre");
 
@@ -729,7 +788,7 @@ export default function PreciosReferenciaModule() {
 
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
         <span style={{ padding: "4px 12px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: "#dbeafe", color: C.blue }}>
-          Compra más barata disponible: {stats.compraOportunidad}
+          Proveedor más barato que abastos: {stats.compraOportunidad}
         </span>
         <span style={{ padding: "4px 12px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: C.redDim, color: C.red }}>
           Venta más cara que ref.: {stats.ventaCaro}
@@ -775,7 +834,14 @@ export default function PreciosReferenciaModule() {
 
       {tab === "compra" && (
         <p style={{ fontSize: 11, color: C.textDim, marginBottom: 10 }}>
-          Azul = proveedor más barato que tu costo · Rojo = más caro · Clic en celda de precio para editar.
+          Compara tu costo de abastos vs proveedores. <strong style={{ color: C.green }}>Verde</strong> = ref. más cara que tu costo (vas bien).
+          <strong style={{ color: C.blue }}> Azul</strong> = ref. más barata (podrías comprar ahí). Columna «Mejor opción» = precio mínimo de todos.
+        </p>
+      )}
+
+      {tab === "venta" && (
+        <p style={{ fontSize: 11, color: C.textDim, marginBottom: 10 }}>
+          Sugerido = 2% bajo la competencia más barata (FDA / Similares). Si sale en ámbar o rojo, revisa margen o costo antes de aplicar.
         </p>
       )}
 

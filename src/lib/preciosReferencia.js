@@ -83,21 +83,48 @@ export function refsVentaDeProducto(refsMap) {
   return out;
 }
 
-/** Mejor proveedor de compra (precio mínimo entre refs disponibles) */
+/**
+ * Mejor opción de compra: mínimo entre tu costo (abastos) y refs de proveedor.
+ * El precio más bajo gana.
+ */
 export function calcMejorCompra(costo, refsMap) {
-  const precios = refsCompraDeProducto(refsMap);
-  const entries = Object.entries(precios).filter(([, v]) => Number.isFinite(v) && v > 0);
-  if (!entries.length) return null;
-  entries.sort((a, b) => a[1] - b[1]);
-  const [fuente, precio] = entries[0];
   const c = parseFloat(costo);
-  const ahorro = Number.isFinite(c) && c > 0 ? c - precio : null;
+  const options = [];
+
+  if (Number.isFinite(c) && c > 0) {
+    options.push({
+      fuente: "_tu_costo",
+      label: "Tu costo (abastos)",
+      precio: c,
+      esTuCosto: true,
+    });
+  }
+
+  for (const [id, precio] of Object.entries(refsCompraDeProducto(refsMap))) {
+    if (!Number.isFinite(precio) || precio <= 0) continue;
+    options.push({
+      fuente: id,
+      label: FUENTE_META[id]?.label || id,
+      precio,
+      esTuCosto: false,
+    });
+  }
+
+  if (!options.length) return null;
+  options.sort((a, b) => a.precio - b.precio);
+  const best = options[0];
+  const ahorroVsTuCosto =
+    Number.isFinite(c) && c > 0 && !best.esTuCosto ? c - best.precio : null;
+
   return {
-    fuente,
-    label: FUENTE_META[fuente]?.label || fuente,
-    precio,
-    ahorro,
-    masBaratoQueTuCosto: ahorro != null && ahorro > 0.01,
+    fuente: best.fuente,
+    label: best.label,
+    precio: best.precio,
+    esTuCosto: best.esTuCosto,
+    ahorroVsTuCosto,
+    /** Compat: proveedor más barato que tu costo abastos */
+    ahorro: ahorroVsTuCosto,
+    masBaratoQueTuCosto: ahorroVsTuCosto != null && ahorroVsTuCosto > 0.01,
   };
 }
 
@@ -151,43 +178,59 @@ export function classifyProductoMargen(p) {
 }
 
 /**
- * Precio de venta sugerido: min(FDA, Similares) con tope competitivo (×0.98)
- * y piso de margen bruto mínimo según tipo de producto.
+ * Precio de venta sugerido: competir con min(FDA, Similares) −2%.
+ * No sube el precio por piso de margen; solo avisa si quedarías bajo costo o piso habitual.
  */
 export function calcPrecioSugeridoVenta(producto, refsMap) {
   const refs = refsVentaDeProducto(refsMap);
   const vals = Object.values(refs).filter((v) => Number.isFinite(v) && v > 0);
-  if (!vals.length) return { sugerido: null, refMin: null, nota: "Sin referencias de venta" };
+  if (!vals.length) {
+    return { sugerido: null, refMin: null, piso: null, nota: "Sin referencias de venta", alerta: null };
+  }
 
   const refMin = Math.min(...vals);
   const costo = parseFloat(producto.costo) || 0;
   const precioActual = parseFloat(producto.precio) || 0;
   const { markup } = classifyProductoMargen(producto);
   const piso = costo > 0 ? calcPriceFloor(costo, markup) : 0;
+  const sugerido = Math.ceil(refMin * 0.98 * 100) / 100;
 
-  let objetivo = refMin * 0.98;
-  if (precioActual > 0) objetivo = Math.min(precioActual, objetivo);
-  if (piso > 0) objetivo = Math.max(objetivo, piso);
+  let nota = "Competir: 2% bajo la ref. más barata (FDA / Similares)";
+  let alerta = null;
 
-  const sugerido = Math.ceil(objetivo * 100) / 100;
-  let nota = "Basado en min(FDA, Similares) −2%";
-  if (piso > 0 && sugerido >= piso && sugerido > refMin * 0.98) {
-    nota = `Margen mínimo (${Math.round(markup * 100)}%) limita bajar más`;
+  if (costo > 0 && sugerido < costo) {
+    alerta = "debajo_costo";
+    nota = `A ${fmtPrecioRef(sugerido)} no cubres tu costo (${fmtPrecioRef(costo)}). Revisa costo o decide margen.`;
+  } else if (piso > 0 && sugerido < piso) {
+    alerta = "debajo_piso";
+    nota = `Competitivo (${fmtPrecioRef(sugerido)}) queda bajo tu piso habitual (${fmtPrecioRef(piso)}). Puedes aplicarlo si priorizas share.`;
+  } else if (precioActual > 0 && Math.abs(precioActual - sugerido) < 0.01) {
+    nota = "Tu precio ya está al nivel competitivo";
+  } else if (precioActual > refMin) {
+    nota = `Competencia desde ${fmtPrecioRef(refMin)} — bajar a ${fmtPrecioRef(sugerido)}`;
   }
-  if (precioActual > 0 && Math.abs(sugerido - precioActual) < 0.01) {
-    nota = "Tu precio ya es competitivo";
-  }
 
-  return { sugerido, refMin, piso, nota };
+  return { sugerido, refMin, piso, nota, alerta };
 }
 
+/** Compra: ref vs tu costo abastos — positivo = ref más caro (tu costo gana) */
 export function colorDiffCompra(pctStr) {
   if (pctStr == null) return null;
   const n = parseFloat(pctStr);
   if (Number.isNaN(n)) return null;
-  if (n < -0.5) return "oportunidad"; // proveedor más barato
-  if (n > 0.5) return "caro";
+  if (n > 0.5) return "tu_costo_mejor";
+  if (n < -0.5) return "proveedor_mas_barato";
   return "neutral";
+}
+
+/** Texto corto para badge en columna compra */
+export function labelDiffCompra(pctStr) {
+  if (pctStr == null) return null;
+  const n = parseFloat(pctStr);
+  if (Number.isNaN(n)) return null;
+  if (n > 0.5) return `+${pctStr}% vs tu costo`;
+  if (n < -0.5) return `${pctStr}% más barato`;
+  return "≈ igual";
 }
 
 export function colorDiffVenta(pctStr) {
