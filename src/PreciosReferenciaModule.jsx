@@ -36,6 +36,7 @@ const COL_DEFAULTS_COMPRA = {
   marzam: 68,
   nadro: 68,
   levic: 68,
+  otros_compra: 68,
   mejor: 100,
 };
 
@@ -45,6 +46,7 @@ const COL_DEFAULTS_VENTA = {
   margen: 54,
   fahorro: 68,
   similares: 68,
+  otros_venta: 68,
   refMin: 58,
   sugerido: 62,
   margenEst: 54,
@@ -52,7 +54,7 @@ const COL_DEFAULTS_VENTA = {
   accion: 68,
 };
 
-const COL_STORAGE_V = "v4";
+const COL_STORAGE_V = "v5";
 const SUGERIDO_OVERRIDES_KEY = "farmacapital_precios_sugerido_overrides";
 
 function loadSugeridoOverrides() {
@@ -98,6 +100,7 @@ const COL_LABELS_COMPRA = {
   marzam: "Marzam",
   nadro: "Nadro",
   levic: "Levic",
+  otros_compra: "Otros",
   mejor: "Mejor opción",
 };
 
@@ -107,6 +110,7 @@ const COL_LABELS_VENTA = {
   margen: "Margen %",
   fahorro: "Del Ahorro",
   similares: "Similares",
+  otros_venta: "Otros",
   refMin: "Ref. mín.",
   sugerido: "Sugerido",
   margenEst: "Marg. est.",
@@ -359,8 +363,10 @@ function ColumnSizer({ tab, colWidths, setColWidths, C }) {
     marzam: [52, 120],
     nadro: [52, 120],
     levic: [52, 120],
+    otros_compra: [52, 120],
     fahorro: [52, 120],
     similares: [52, 120],
+    otros_venta: [52, 120],
     refMin: [52, 100],
     sugerido: [52, 100],
     nota: [80, 220],
@@ -429,7 +435,14 @@ function TablaCompra({
             <th style={thS("sku")}>SKU</th>
             <th style={{ ...thS("costo"), textAlign: "right" }}>Tu costo</th>
             {FUENTES_COMPRA.map((id) => (
-              <th key={id} style={{ ...thS(id), textAlign: "right" }} title={FUENTE_META[id]?.listaDistribuidor ? "Precio lista distribuidor" : ""}>
+              <th
+                key={id}
+                style={{ ...thS(id), textAlign: "right" }}
+                title={
+                  FUENTE_META[id]?.hint
+                  || (FUENTE_META[id]?.listaDistribuidor ? "Precio lista distribuidor" : "")
+                }
+              >
                 {FUENTE_META[id]?.label}
               </th>
             ))}
@@ -531,7 +544,7 @@ function TablaVenta({
   const fil = productos.filter((p) => inventarioProductMatchesBusqueda(p, busq));
   const thS = (colId) => ({ ...th(C), ...colStyle(colWidths, colId) });
   const tdS = (colId, extra = {}) => ({ ...td(C), ...colStyle(colWidths, colId), ...extra });
-  const colSpan = 10;
+  const colSpan = 11;
 
   return (
     <HorizontalScrollSync>
@@ -543,6 +556,12 @@ function TablaVenta({
             <th style={{ ...thS("margen"), textAlign: "right" }}>Margen %</th>
             <th style={{ ...thS("fahorro"), textAlign: "right" }}>Del Ahorro</th>
             <th style={{ ...thS("similares"), textAlign: "right" }}>Similares</th>
+            <th
+              style={{ ...thS("otros_venta"), textAlign: "right" }}
+              title={FUENTE_META.otros_venta?.hint}
+            >
+              Otros
+            </th>
             <th style={{ ...thS("refMin"), textAlign: "right" }}>Ref. mín.</th>
             <th style={{ ...thS("sugerido"), textAlign: "right" }}>Sugerido</th>
             <th style={{ ...thS("margenEst"), textAlign: "right" }} title="Margen estimado del sugerido">Marg. est.</th>
@@ -558,8 +577,10 @@ function TablaVenta({
             const refs = refsByProduct[p.id] || {};
             const fah = refs.fahorro?.precio;
             const sim = refs.similares?.precio;
+            const otr = refs.otros_venta?.precio;
             const dAho = diffPctVenta(p.precio, fah);
             const dSim = diffPctVenta(p.precio, sim);
+            const dOtr = diffPctVenta(p.precio, otr);
             const {
               sugerido, refMin, nota, alerta, margenActual, margenSugerido, esAjusteManual,
             } = resolveSugeridoFila(p, refs, sugeridoOverrides);
@@ -638,6 +659,26 @@ function TablaVenta({
                     <>
                       <div>{fmtPrecioRef(sim)}</div>
                       <DiffBadge pct={dSim} mode="venta" C={C} />
+                    </>
+                  ) : "—"}
+                />
+                <EditablePrecioCell
+                  C={C}
+                  cellKey={`${p.id}:ref:otros_venta`}
+                  value={otr != null ? String(otr) : ""}
+                  align="right"
+                  inlineEdit={inlineEdit}
+                  saving={savingKey === `${p.id}:ref:otros_venta`}
+                  onStart={onStartEdit}
+                  onDraft={onDraft}
+                  onCommit={onCommit}
+                  onCancel={onCancel}
+                  editTitle="Promedio de mercado o consulta manual. Vacío = quitar."
+                  tdStyle={{ ...tdS("otros_venta", { background: rowBg }) }}
+                  display={otr != null ? (
+                    <>
+                      <div>{fmtPrecioRef(otr)}</div>
+                      <DiffBadge pct={dOtr} mode="venta" C={C} />
                     </>
                   ) : "—"}
                 />
@@ -1007,7 +1048,12 @@ export default function PreciosReferenciaModule() {
         showToast(`Referencia ${meta.label} guardada`, "success");
       }
     } catch (e) {
-      showToast(e.message || "Error al guardar", "error");
+      const msg = e.message || "Error al guardar";
+      if (/fuentes_precio|foreign key/i.test(msg) && /^otros_/.test(parts[2] || "")) {
+        showToast("Falta SQL: ejecuta sql/patch_fuentes_otros_precio.sql en Supabase", "error");
+      } else {
+        showToast(msg, "error");
+      }
     } finally {
       setSavingKey(null);
       cancelEdit();
@@ -1147,16 +1193,17 @@ export default function PreciosReferenciaModule() {
 
       {tab === "compra" && (
         <p style={{ fontSize: 11, color: C.textDim, marginBottom: 10 }}>
-          Compara tu costo de abastos vs proveedores. <strong style={{ color: C.green }}>Verde</strong> = ref. más cara que tu costo (vas bien).
-          <strong style={{ color: C.blue }}> Azul</strong> = ref. más barata (podrías comprar ahí). Columna «Mejor opción» = precio mínimo de todos.
+          Compara tu costo de abastos vs proveedores. Columna <strong>Otros</strong>: promedio o precio que consultes (Claude, Google, etc.).
+          <strong style={{ color: C.green }}> Verde</strong> = ref. más cara que tu costo.
+          <strong style={{ color: C.blue }}> Azul</strong> = ref. más barata. «Mejor opción» = mínimo de todos.
         </p>
       )}
 
       {tab === "venta" && (
         <p style={{ fontSize: 11, color: C.textDim, marginBottom: 10 }}>
-          Precios en <strong>pesos enteros</strong>. Sugerido arranca ~2% bajo competencia; clic en sugerido o marg. est. para ajustar.
-          Clic en <strong>Margen %</strong> recalcula tu venta. <strong>↺ Competir</strong> restaura el sugerido de mercado.
-          Colores margen: <strong style={{ color: C.green }}>verde</strong> ok,
+          Precios en <strong>pesos enteros</strong>. <strong>Otros</strong> = promedio de mercado manual (Claude, Google…).
+          Sugerido usa la ref. más barata (FDA, Similares u Otros). Edita margen % o sugerido; <strong>↺ Competir</strong> restaura mercado.
+          Margen: <strong style={{ color: C.green }}>verde</strong> ok,
           <strong style={{ color: C.amber }}> ámbar</strong> bajo piso,
           <strong style={{ color: C.red }}> rojo</strong> bajo costo.
         </p>

@@ -3,8 +3,8 @@
  * Espejo simplificado de scripts/pricing_preview.py (classify + piso de margen).
  */
 
-export const FUENTES_COMPRA = ["exprezo", "marzam", "nadro", "levic"];
-export const FUENTES_VENTA = ["fahorro", "similares"];
+export const FUENTES_COMPRA = ["exprezo", "marzam", "nadro", "levic", "otros_compra"];
+export const FUENTES_VENTA = ["fahorro", "similares", "otros_venta"];
 
 /** Fila tombstone al borrar una referencia manualmente (precio NOT NULL en BD). */
 export const REFERENCIA_ANULADA_NOTA = "__anulado__";
@@ -24,8 +24,20 @@ export const FUENTE_META = {
   marzam: { label: "Marzam", tipo: "compra", listaDistribuidor: true },
   nadro: { label: "Nadro", tipo: "compra", listaDistribuidor: true },
   levic: { label: "Levic", tipo: "compra", listaDistribuidor: false },
+  otros_compra: {
+    label: "Otros",
+    tipo: "compra",
+    listaDistribuidor: false,
+    hint: "Promedio o consulta manual (Claude, Google, etc.)",
+  },
   similares: { label: "Similares", tipo: "venta", listaDistribuidor: false },
   fahorro: { label: "Del Ahorro", tipo: "venta", listaDistribuidor: false },
+  otros_venta: {
+    label: "Otros",
+    tipo: "venta",
+    listaDistribuidor: false,
+    hint: "Promedio de mercado o consulta manual (Claude, Google, etc.)",
+  },
 };
 
 export const fmtPrecioRef = (n) =>

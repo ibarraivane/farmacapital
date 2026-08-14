@@ -22,7 +22,9 @@ INSERT INTO public.fuentes_precio (id, nombre, tipo, metodo, notas) VALUES
   ('nadro',     'Nadro',                        'compra', 'import_archivo', 'Precio lista distribuidor (no benchmark de mercado libre)'),
   ('levic',     'Levic',                        'compra', 'import_archivo', 'Medicamentos — entrega a domicilio'),
   ('similares', 'Farmacias Similares',          'venta',  'job_api',        'Job VTEX semanal'),
-  ('fahorro',   'Farmacias del Ahorro',         'venta',  'manual',         'Captura manual / CSV hasta confirmar API')
+  ('fahorro',   'Farmacias del Ahorro',         'venta',  'manual',         'Captura manual / CSV hasta confirmar API'),
+  ('otros_compra', 'Otros (compra)',            'compra', 'manual',         'Promedio de mercado o consulta manual (Claude, Google, etc.)'),
+  ('otros_venta',  'Otros (venta)',             'venta',  'manual',         'Promedio de mercado o consulta manual (Claude, Google, etc.)')
 ON CONFLICT (id) DO UPDATE SET
   nombre = EXCLUDED.nombre,
   tipo = EXCLUDED.tipo,
