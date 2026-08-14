@@ -12,6 +12,9 @@ import {
   diffPctVenta,
   calcMejorCompra,
   calcPrecioSugeridoVenta,
+  calcMargenVenta,
+  precioDesdeMargen,
+  margenToneColors,
   colorDiffCompra,
   colorDiffVenta,
   labelDiffCompra,
@@ -36,17 +39,28 @@ const COL_DEFAULTS_COMPRA = {
 };
 
 const COL_DEFAULTS_VENTA = {
-  producto: 160,
-  tuVenta: 78,
-  fahorro: 72,
-  similares: 72,
-  refMin: 64,
-  sugerido: 78,
-  nota: 110,
-  accion: 58,
+  producto: 150,
+  tuVenta: 62,
+  margen: 54,
+  fahorro: 68,
+  similares: 68,
+  refMin: 58,
+  sugerido: 62,
+  margenEst: 54,
+  nota: 92,
+  accion: 68,
 };
 
-const COL_STORAGE_V = "v3";
+const COL_STORAGE_V = "v4";
+const SUGERIDO_OVERRIDES_KEY = "farmacapital_precios_sugerido_overrides";
+
+function loadSugeridoOverrides() {
+  try {
+    return JSON.parse(sessionStorage.getItem(SUGERIDO_OVERRIDES_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
 
 function productoPresentacion(p) {
   const parts = [];
@@ -89,13 +103,48 @@ const COL_LABELS_COMPRA = {
 const COL_LABELS_VENTA = {
   producto: "Producto",
   tuVenta: "Tu venta",
+  margen: "Margen %",
   fahorro: "Del Ahorro",
   similares: "Similares",
   refMin: "Ref. mín.",
   sugerido: "Sugerido",
+  margenEst: "Marg. est.",
   nota: "Nota",
   accion: "Acción",
 };
+
+function resolveSugeridoFila(producto, refs, overrides) {
+  const base = calcPrecioSugeridoVenta(producto, refs);
+  const ov = overrides[producto.id];
+  const sugerido = ov?.precio ?? base.sugeridoCompetitivo ?? base.sugerido;
+  const esAjusteManual = ov != null && sugerido != null;
+  const margenSugerido = sugerido != null
+    ? calcMargenVenta(sugerido, producto)
+    : base.margenSugerido;
+
+  let alerta = null;
+  if (margenSugerido.tone === "debajo_costo") alerta = "debajo_costo";
+  else if (margenSugerido.tone === "debajo_piso") alerta = "debajo_piso";
+
+  let nota = base.nota;
+  if (esAjusteManual) {
+    nota = `Ajuste manual · competir: ${base.sugeridoCompetitivo != null ? fmtPrecioVenta(base.sugeridoCompetitivo) : "—"}`;
+    if (alerta === "debajo_costo") {
+      nota = `Manual ${fmtPrecioVenta(sugerido)} no cubre costo. Competir: ${fmtPrecioVenta(base.sugeridoCompetitivo)}`;
+    } else if (alerta === "debajo_piso") {
+      nota = `Manual bajo piso habitual. Competir: ${fmtPrecioVenta(base.sugeridoCompetitivo)}`;
+    }
+  }
+
+  return {
+    ...base,
+    sugerido,
+    margenSugerido,
+    alerta,
+    nota,
+    esAjusteManual,
+  };
+}
 
 function loadColWidths(tab) {
   const defaults = tab === "compra" ? COL_DEFAULTS_COMPRA : COL_DEFAULTS_VENTA;
@@ -114,27 +163,85 @@ function colStyle(colWidths, colId) {
   return { width: w, minWidth: w, maxWidth: w };
 }
 
-function MargenVentaHint({ margen, C, prefix = "margen" }) {
-  if (margen?.pct == null) return null;
-  const col =
-    margen.tone === "debajo_costo" ? C.red :
-    margen.tone === "debajo_piso" ? C.amber : C.green;
-  const bg =
-    margen.tone === "debajo_costo" ? C.redDim :
-    margen.tone === "debajo_piso" ? C.amberDim : C.greenDim;
-  const util = margen.utilidad != null && margen.utilidad !== 0
-    ? ` (+$${Math.round(margen.utilidad).toLocaleString("es-MX")})`
-    : "";
+function EditableMargenCell({
+  C,
+  cellKey,
+  margen,
+  inlineEdit,
+  saving,
+  onStart,
+  onDraft,
+  onCommit,
+  onCancel,
+  tdStyle,
+  disabled = false,
+}) {
+  const isEditing = inlineEdit?.key === cellKey;
+  const rowBg = tdStyle?.background;
+  const toneStyle = margen?.pct != null ? margenToneColors(margen.tone, C) : null;
+
+  if (disabled || margen?.pct == null) {
+    return (
+      <td style={{ ...tdStyle, textAlign: "right", color: C.textDim, fontSize: 11 }}>
+        —
+      </td>
+    );
+  }
+
+  if (isEditing) {
+    return (
+      <td style={{ ...tdStyle, textAlign: "right" }}>
+        <input
+          type="number"
+          step="0.1"
+          min="0"
+          max="99.9"
+          autoFocus
+          disabled={saving}
+          value={inlineEdit.draft}
+          onChange={(e) => onDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") { e.preventDefault(); onCommit(); }
+            if (e.key === "Escape") { e.preventDefault(); onCancel(); }
+          }}
+          onBlur={() => { if (!saving) onCommit(); }}
+          style={{
+            width: "100%",
+            padding: "4px 6px",
+            fontSize: 11,
+            boxSizing: "border-box",
+            border: `1px solid ${C.blue}`,
+            borderRadius: 4,
+            textAlign: "right",
+          }}
+        />
+      </td>
+    );
+  }
 
   return (
-    <div style={{ marginTop: 3, lineHeight: 1.2 }}>
+    <td
+      style={{ ...tdStyle, textAlign: "right", cursor: "pointer" }}
+      title="Clic para editar margen %"
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={(e) => {
+        e.stopPropagation();
+        onStart(cellKey, String(margen.pct));
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(30, 58, 138, 0.07)"; }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = rowBg || ""; }}
+    >
       <span style={{
-        padding: "1px 5px", borderRadius: 10, fontSize: 9, fontWeight: 700,
-        color: col, background: bg,
+        padding: "2px 6px",
+        borderRadius: 10,
+        fontSize: 10,
+        fontWeight: 700,
+        color: toneStyle.color,
+        background: toneStyle.bg,
       }}>
-        {prefix} {margen.pct}%{util}
+        {margen.pct}%
       </span>
-    </div>
+    </td>
   );
 }
 
@@ -244,6 +351,8 @@ function ColumnSizer({ tab, colWidths, setColWidths, C }) {
     sku: [56, 140],
     costo: [52, 100],
     tuVenta: [52, 100],
+    margen: [48, 90],
+    margenEst: [48, 90],
     exprezo: [52, 120],
     marzam: [52, 120],
     nadro: [52, 120],
@@ -263,7 +372,7 @@ function ColumnSizer({ tab, colWidths, setColWidths, C }) {
       background: C.card, border: `1px solid ${C.border}`,
     }}>
       <div style={{ fontSize: 11, color: C.textMid, marginBottom: 10 }}>
-        Ancho de columnas (se guarda en este navegador). Clic en un precio de la tabla para editarlo.
+        Ancho de columnas (se guarda en este navegador). Clic en precio o margen % para editar.
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10 }}>
         {Object.keys(defaults).map((key) => {
@@ -414,11 +523,12 @@ function TablaCompra({
 function TablaVenta({
   productos, refsByProduct, C, busq, colWidths,
   inlineEdit, savingKey, onStartEdit, onDraft, onCommit, onCancel,
-  onAplicar, applyingId,
+  onAplicar, applyingId, sugeridoOverrides, onResetCompetir,
 }) {
   const fil = productos.filter((p) => inventarioProductMatchesBusqueda(p, busq));
   const thS = (colId) => ({ ...th(C), ...colStyle(colWidths, colId) });
   const tdS = (colId, extra = {}) => ({ ...td(C), ...colStyle(colWidths, colId), ...extra });
+  const colSpan = 10;
 
   return (
     <HorizontalScrollSync>
@@ -427,17 +537,19 @@ function TablaVenta({
           <tr style={{ background: C.cardDark }}>
             <th style={thS("producto")}>Producto</th>
             <th style={{ ...thS("tuVenta"), textAlign: "right" }}>Tu venta</th>
+            <th style={{ ...thS("margen"), textAlign: "right" }}>Margen %</th>
             <th style={{ ...thS("fahorro"), textAlign: "right" }}>Del Ahorro</th>
             <th style={{ ...thS("similares"), textAlign: "right" }}>Similares</th>
             <th style={{ ...thS("refMin"), textAlign: "right" }}>Ref. mín.</th>
             <th style={{ ...thS("sugerido"), textAlign: "right" }}>Sugerido</th>
+            <th style={{ ...thS("margenEst"), textAlign: "right" }} title="Margen estimado del sugerido">Marg. est.</th>
             <th style={thS("nota")}>Nota</th>
             <th style={thS("accion")}>Acción</th>
           </tr>
         </thead>
         <tbody>
           {!fil.length && (
-            <tr><td colSpan={8} style={{ textAlign: "center", padding: 32, color: C.textMid }}>Sin productos</td></tr>
+            <tr><td colSpan={colSpan} style={{ textAlign: "center", padding: 32, color: C.textMid }}>Sin productos</td></tr>
           )}
           {fil.map((p, i) => {
             const refs = refsByProduct[p.id] || {};
@@ -445,13 +557,16 @@ function TablaVenta({
             const sim = refs.similares?.precio;
             const dAho = diffPctVenta(p.precio, fah);
             const dSim = diffPctVenta(p.precio, sim);
-            const { sugerido, refMin, nota, alerta, margenActual, margenSugerido } = calcPrecioSugeridoVenta(p, refs);
+            const {
+              sugerido, refMin, nota, alerta, margenActual, margenSugerido, esAjusteManual,
+            } = resolveSugeridoFila(p, refs, sugeridoOverrides);
             const puedeAplicar = sugerido != null && roundPrecioVenta(p.precio) !== sugerido;
             const sugeridoCol =
               alerta === "debajo_costo" ? C.red :
               alerta === "debajo_piso" ? C.amber :
-              C.green;
+              esAjusteManual ? C.blue : C.green;
             const rowBg = i % 2 ? "#f8fafc" : "transparent";
+            const sinCosto = !(parseFloat(p.costo) > 0);
 
             return (
               <tr key={p.id} style={{ background: rowBg }}>
@@ -468,12 +583,20 @@ function TablaVenta({
                   onCommit={onCommit}
                   onCancel={onCancel}
                   tdStyle={{ ...tdS("tuVenta", { fontWeight: 700, color: BRAND.primary, background: rowBg }) }}
-                  display={(
-                    <>
-                      <div>{fmtPrecioVenta(p.precio)}</div>
-                      <MargenVentaHint margen={margenActual} C={C} prefix="margen" />
-                    </>
-                  )}
+                  display={fmtPrecioVenta(p.precio)}
+                />
+                <EditableMargenCell
+                  C={C}
+                  cellKey={`${p.id}:margen`}
+                  margen={margenActual}
+                  disabled={sinCosto}
+                  inlineEdit={inlineEdit}
+                  saving={savingKey === `${p.id}:margen`}
+                  onStart={onStartEdit}
+                  onDraft={onDraft}
+                  onCommit={onCommit}
+                  onCancel={onCancel}
+                  tdStyle={{ ...tdS("margen", { background: rowBg }) }}
                 />
                 <EditablePrecioCell
                   C={C}
@@ -516,32 +639,74 @@ function TablaVenta({
                 <td style={{ ...tdS("refMin", { textAlign: "right", color: C.textMid, background: rowBg }) }}>
                   {refMin != null ? fmtPrecioRef(refMin) : "—"}
                 </td>
-                <td style={{ ...tdS("sugerido", { textAlign: "right", fontWeight: 800, color: sugerido != null ? sugeridoCol : C.textDim, background: rowBg }) }}>
-                  {sugerido != null ? (
-                    <>
-                      <div>{fmtPrecioVenta(sugerido)}</div>
-                      <MargenVentaHint margen={margenSugerido} C={C} prefix="est." />
-                    </>
-                  ) : "—"}
-                </td>
+                <EditablePrecioCell
+                  C={C}
+                  cellKey={`${p.id}:sugerido:precio`}
+                  value={sugerido != null ? String(sugerido) : ""}
+                  align="right"
+                  inlineEdit={inlineEdit}
+                  saving={savingKey === `${p.id}:sugerido:precio`}
+                  onStart={onStartEdit}
+                  onDraft={onDraft}
+                  onCommit={onCommit}
+                  onCancel={onCancel}
+                  tdStyle={{
+                    ...tdS("sugerido", {
+                      textAlign: "right",
+                      fontWeight: 800,
+                      color: sugerido != null ? sugeridoCol : C.textDim,
+                      background: rowBg,
+                    }),
+                  }}
+                  display={sugerido != null ? fmtPrecioVenta(sugerido) : "—"}
+                />
+                <EditableMargenCell
+                  C={C}
+                  cellKey={`${p.id}:sugerido:margen`}
+                  margen={margenSugerido}
+                  disabled={sinCosto || sugerido == null}
+                  inlineEdit={inlineEdit}
+                  saving={savingKey === `${p.id}:sugerido:margen`}
+                  onStart={onStartEdit}
+                  onDraft={onDraft}
+                  onCommit={onCommit}
+                  onCancel={onCancel}
+                  tdStyle={{ ...tdS("margenEst", { background: rowBg }) }}
+                />
                 <td style={{ ...tdS("nota", { fontSize: 10, color: C.textMid, background: rowBg }) }}>{nota}</td>
                 <td style={{ ...tdS("accion", { background: rowBg }) }}>
-                  {puedeAplicar ? (
-                    <button
-                      type="button"
-                      disabled={applyingId === p.id}
-                      onClick={() => onAplicar(p, sugerido)}
-                      style={{
-                        padding: "4px 10px", borderRadius: 6, border: "none",
-                        background: BRAND.gradient, color: "#fff", cursor: "pointer",
-                        fontSize: 11, fontWeight: 700, opacity: applyingId === p.id ? 0.6 : 1,
-                      }}
-                    >
-                      {applyingId === p.id ? "…" : "Aplicar"}
-                    </button>
-                  ) : (
-                    <span style={{ color: C.textDim, fontSize: 10 }}>—</span>
-                  )}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-start" }}>
+                    {puedeAplicar ? (
+                      <button
+                        type="button"
+                        disabled={applyingId === p.id}
+                        onClick={() => onAplicar(p, sugerido)}
+                        style={{
+                          padding: "4px 10px", borderRadius: 6, border: "none",
+                          background: BRAND.gradient, color: "#fff", cursor: "pointer",
+                          fontSize: 11, fontWeight: 700, opacity: applyingId === p.id ? 0.6 : 1,
+                        }}
+                      >
+                        {applyingId === p.id ? "…" : "Aplicar"}
+                      </button>
+                    ) : (
+                      <span style={{ color: C.textDim, fontSize: 10 }}>—</span>
+                    )}
+                    {esAjusteManual && sugerido != null ? (
+                      <button
+                        type="button"
+                        onClick={() => onResetCompetir(p.id)}
+                        title="Volver al precio competitivo de mercado"
+                        style={{
+                          padding: "2px 6px", borderRadius: 5, border: `1px solid ${C.border}`,
+                          background: C.card, color: C.blue, cursor: "pointer",
+                          fontSize: 9, fontWeight: 700,
+                        }}
+                      >
+                        ↺ Competir
+                      </button>
+                    ) : null}
+                  </div>
                 </td>
               </tr>
             );
@@ -585,9 +750,16 @@ export default function PreciosReferenciaModule() {
   const [colWidthsVenta, setColWidthsVenta] = useState(() => loadColWidths("venta"));
   const [inlineEdit, setInlineEdit] = useState(null);
   const [savingKey, setSavingKey] = useState(null);
+  const [sugeridoOverrides, setSugeridoOverrides] = useState(() => loadSugeridoOverrides());
 
   const colWidths = tab === "compra" ? colWidthsCompra : colWidthsVenta;
   const setColWidths = tab === "compra" ? setColWidthsCompra : setColWidthsVenta;
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(SUGERIDO_OVERRIDES_KEY, JSON.stringify(sugeridoOverrides));
+    } catch { /* noop */ }
+  }, [sugeridoOverrides]);
 
   useEffect(() => {
     try {
@@ -668,6 +840,23 @@ export default function PreciosReferenciaModule() {
 
   const cancelEdit = useCallback(() => setInlineEdit(null), []);
 
+  const setSugeridoOverride = useCallback((productoId, precio) => {
+    setSugeridoOverrides((prev) => ({
+      ...prev,
+      [productoId]: { precio },
+    }));
+  }, []);
+
+  const resetSugeridoCompetir = useCallback((productoId) => {
+    setSugeridoOverrides((prev) => {
+      if (!prev[productoId]) return prev;
+      const next = { ...prev };
+      delete next[productoId];
+      return next;
+    });
+    showToast("Sugerido restaurado a precio competitivo", "success");
+  }, []);
+
   const commitEdit = useCallback(async () => {
     if (!inlineEdit?.key) return;
     const { key, draft } = inlineEdit;
@@ -682,6 +871,38 @@ export default function PreciosReferenciaModule() {
     const trimmed = String(draft ?? "").trim();
     const isEmpty = trimmed === "";
     const num = isEmpty ? null : parseFloat(trimmed);
+
+    // Ajustes locales del sugerido (no persisten hasta Aplicar)
+    if (parts[1] === "sugerido") {
+      if (parts[2] === "margen") {
+        if (isEmpty || !Number.isFinite(num) || num < 0 || num >= 100) {
+          showToast("Margen inválido (0–99.9%)", "error");
+          cancelEdit();
+          return;
+        }
+        const precioVenta = precioDesdeMargen(producto.costo, num);
+        if (!precioVenta) {
+          showToast("Necesitas costo para calcular precio desde margen", "error");
+          cancelEdit();
+          return;
+        }
+        setSugeridoOverride(productoId, precioVenta);
+        cancelEdit();
+        return;
+      }
+      if (parts[2] === "precio") {
+        if (isEmpty || !Number.isFinite(num) || num < 0) {
+          showToast("Precio sugerido inválido", "error");
+          cancelEdit();
+          return;
+        }
+        const precioVenta = roundPrecioVenta(num);
+        setSugeridoOverride(productoId, precioVenta);
+        cancelEdit();
+        return;
+      }
+    }
+
     if (!isEmpty && (!Number.isFinite(num) || num < 0)) {
       showToast("Precio inválido", "error");
       return;
@@ -711,6 +932,24 @@ export default function PreciosReferenciaModule() {
         if (error) throw error;
         setProductos((prev) => prev.map((x) => (x.id === productoId ? { ...x, precio: precioVenta } : x)));
         showToast("Precio de venta actualizado", "success");
+      } else if (parts[1] === "margen") {
+        if (isEmpty || !Number.isFinite(num) || num < 0 || num >= 100) {
+          showToast("Margen inválido (0–99.9%)", "error");
+          return;
+        }
+        const precioVenta = precioDesdeMargen(producto.costo, num);
+        if (!precioVenta) {
+          showToast("Necesitas costo para calcular precio desde margen", "error");
+          return;
+        }
+        const { error } = await supabase.rpc("admin_editar_producto", {
+          p_session_token: tok,
+          p_producto_id: productoId,
+          p_patch: { precio: precioVenta },
+        });
+        if (error) throw error;
+        setProductos((prev) => prev.map((x) => (x.id === productoId ? { ...x, precio: precioVenta } : x)));
+        showToast(`Precio ${fmtPrecioVenta(precioVenta)} (${num}% margen)`, "success");
       } else if (parts[1] === "ref") {
         const fuente = parts[2];
         const meta = FUENTE_META[fuente];
@@ -744,11 +983,13 @@ export default function PreciosReferenciaModule() {
       setSavingKey(null);
       cancelEdit();
     }
-  }, [inlineEdit, productos, cancelEdit]);
+  }, [inlineEdit, productos, cancelEdit, setSugeridoOverride]);
 
   const aplicarPrecio = async (producto, sugerido) => {
+    const margen = calcMargenVenta(sugerido, producto);
+    const margenTxt = margen.pct != null ? ` · margen ${margen.pct}%` : "";
     const ok = window.confirm(
-      `¿Aplicar precio sugerido ${fmtPrecioVenta(sugerido)} a «${producto.nombre}»?\n\nTu precio actual: ${fmtPrecioVenta(producto.precio)}`
+      `¿Aplicar precio sugerido ${fmtPrecioVenta(sugerido)}${margenTxt} a «${producto.nombre}»?\n\nTu precio actual: ${fmtPrecioVenta(producto.precio)}`
     );
     if (!ok) return;
 
@@ -769,6 +1010,12 @@ export default function PreciosReferenciaModule() {
     setProductos((prev) =>
       prev.map((x) => (x.id === producto.id ? { ...x, precio: sugerido } : x))
     );
+    setSugeridoOverrides((prev) => {
+      if (!prev[producto.id]) return prev;
+      const next = { ...prev };
+      delete next[producto.id];
+      return next;
+    });
   };
 
   const inpS = {
@@ -878,9 +1125,10 @@ export default function PreciosReferenciaModule() {
 
       {tab === "venta" && (
         <p style={{ fontSize: 11, color: C.textDim, marginBottom: 10 }}>
-          Venta y sugerido en <strong>pesos enteros</strong> (sin centavos). Sugerido ≈ 2% bajo la competencia más barata.
-          Margen bajo tu venta / est. bajo sugerido: <strong style={{ color: C.green }}>verde</strong> ok,
-          <strong style={{ color: C.amber }}> ámbar</strong> bajo piso habitual,
+          Precios en <strong>pesos enteros</strong>. Sugerido arranca ~2% bajo competencia; clic en sugerido o marg. est. para ajustar.
+          Clic en <strong>Margen %</strong> recalcula tu venta. <strong>↺ Competir</strong> restaura el sugerido de mercado.
+          Colores margen: <strong style={{ color: C.green }}>verde</strong> ok,
+          <strong style={{ color: C.amber }}> ámbar</strong> bajo piso,
           <strong style={{ color: C.red }}> rojo</strong> bajo costo.
         </p>
       )}
@@ -916,6 +1164,8 @@ export default function PreciosReferenciaModule() {
           onCancel={cancelEdit}
           onAplicar={aplicarPrecio}
           applyingId={applyingId}
+          sugeridoOverrides={sugeridoOverrides}
+          onResetCompetir={resetSugeridoCompetir}
         />
       )}
     </div>

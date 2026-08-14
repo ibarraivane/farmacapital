@@ -60,6 +60,29 @@ export function calcMargenVenta(precio, producto) {
   };
 }
 
+/** Precio de venta desde margen bruto % sobre venta, redondeado arriba. */
+export function precioDesdeMargen(costo, margenPct) {
+  const c = parseFloat(costo);
+  const m = parseFloat(margenPct);
+  if (!Number.isFinite(c) || c <= 0) return null;
+  if (!Number.isFinite(m) || m < 0 || m >= 100) return null;
+  return roundPrecioVenta(c / (1 - m / 100));
+}
+
+/** Sugerido competitivo: ~2% bajo ref. mínima, peso entero. */
+export function calcPrecioCompetitivo(refMin) {
+  const r = parseFloat(refMin);
+  if (!Number.isFinite(r) || r <= 0) return null;
+  return roundPrecioVenta(r * 0.98);
+}
+
+export function margenToneColors(tone, C) {
+  if (tone === "debajo_costo") return { color: C.red, bg: C.redDim };
+  if (tone === "debajo_piso") return { color: C.amber, bg: C.amberDim };
+  if (tone === "ok") return { color: C.green, bg: C.greenDim };
+  return { color: C.textMid, bg: C.cardDark };
+}
+
 /** Mapa producto_id → { fuente → fila ref } desde filas de producto_precios_referencia_actual */
 export function buildReferenciasPorProducto(rows) {
   const byProduct = {};
@@ -230,9 +253,14 @@ export function calcPrecioSugeridoVenta(producto, refsMap) {
   const vals = Object.values(refs).filter((v) => Number.isFinite(v) && v > 0);
   if (!vals.length) {
     return {
-      sugerido: null, refMin: null, piso: null,
-      nota: "Sin referencias de venta", alerta: null,
-      margenActual, margenSugerido: margenSugeridoEmpty,
+      sugerido: null,
+      sugeridoCompetitivo: null,
+      refMin: null,
+      piso: null,
+      nota: "Sin referencias de venta",
+      alerta: null,
+      margenActual,
+      margenSugerido: margenSugeridoEmpty,
     };
   }
 
@@ -240,7 +268,8 @@ export function calcPrecioSugeridoVenta(producto, refsMap) {
   const costo = parseFloat(producto.costo) || 0;
   const { markup } = classifyProductoMargen(producto);
   const piso = costo > 0 ? calcPriceFloor(costo, markup) : 0;
-  const sugerido = roundPrecioVenta(refMin * 0.98);
+  const sugeridoCompetitivo = calcPrecioCompetitivo(refMin);
+  const sugerido = sugeridoCompetitivo;
   const margenSugerido = sugerido != null ? calcMargenVenta(sugerido, producto) : margenSugeridoEmpty;
 
   let nota = "Competir: ~2% bajo la ref. más barata, redondeado a peso entero";
@@ -258,7 +287,16 @@ export function calcPrecioSugeridoVenta(producto, refsMap) {
     nota = `Competencia desde ${fmtPrecioRef(refMin)} — bajar a ${fmtPrecioVenta(sugerido)}`;
   }
 
-  return { sugerido, refMin, piso, nota, alerta, margenActual, margenSugerido };
+  return {
+    sugerido,
+    sugeridoCompetitivo,
+    refMin,
+    piso,
+    nota,
+    alerta,
+    margenActual,
+    margenSugerido,
+  };
 }
 
 /** Compra: ref vs tu costo abastos — positivo = ref más caro (tu costo gana) */
