@@ -22,6 +22,7 @@ import {
   fmtPrecioRef,
   fmtPrecioVenta,
   roundPrecioVenta,
+  productoSubtituloReferencia,
 } from "./lib/preciosReferencia";
 import { inventarioProductMatchesBusqueda } from "./utils/fuzzySearch";
 import ImportReferenciaPrecios from "./components/ImportReferenciaPrecios";
@@ -65,27 +66,26 @@ function loadSugeridoOverrides() {
   }
 }
 
-function productoPresentacion(p) {
-  const parts = [];
-  if (p.concentracion?.trim()) parts.push(p.concentracion.trim());
-  if (p.presentacion?.trim()) parts.push(p.presentacion.trim());
-  else if (p.forma_farmaceutica?.trim()) parts.push(p.forma_farmaceutica.trim());
-  const pa = (p.principio_activo || "").trim();
-  const nom = (p.nombre || "").trim().toLowerCase();
-  if (pa && pa.toLowerCase() !== nom && !nom.includes(pa.toLowerCase())) {
-    parts.push(pa);
-  }
-  return parts.join(" · ");
-}
-
 function ProductoCell({ p, tdStyle, C }) {
-  const det = productoPresentacion(p);
+  const { principioActivo, detalle } = productoSubtituloReferencia(p);
   return (
     <td style={tdStyle}>
       <div style={{ fontWeight: 600, lineHeight: 1.25, wordBreak: "break-word" }}>{p.nombre}</div>
-      {det ? (
-        <div style={{ fontSize: 10, color: C.textMid, marginTop: 3, lineHeight: 1.3, wordBreak: "break-word" }}>
-          {det}
+      {principioActivo ? (
+        <div style={{
+          fontSize: 10,
+          color: C.blue,
+          fontWeight: 700,
+          marginTop: 3,
+          lineHeight: 1.3,
+          wordBreak: "break-word",
+        }}>
+          PA: {principioActivo}
+        </div>
+      ) : null}
+      {detalle ? (
+        <div style={{ fontSize: 10, color: C.textMid, marginTop: principioActivo ? 2 : 3, lineHeight: 1.3, wordBreak: "break-word" }}>
+          {detalle}
         </div>
       ) : null}
     </td>
@@ -823,7 +823,7 @@ export default function PreciosReferenciaModule() {
     setLoading(true);
     const prodRes = await supabase
       .from("productos")
-      .select("id,sku,nombre,categoria,tipo,costo,precio,principio_activo,concentracion,presentacion,forma_farmaceutica,requiere_receta,marca")
+      .select("id,sku,nombre,categoria,tipo,costo,precio,principio_activo,concentracion,presentacion,forma_farmaceutica,requiere_receta,marca,denominacion_generica,denominacion_distintiva")
       .eq("activo", true)
       .order("nombre");
 
@@ -1180,7 +1180,7 @@ export default function PreciosReferenciaModule() {
 
       <div style={{ marginBottom: 12, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
         <input
-          placeholder="🔍 Buscar producto…"
+          placeholder="🔍 Buscar nombre, PA, SKU…"
           value={busq}
           onChange={(e) => setBusq(e.target.value)}
           style={{ ...inpS, maxWidth: 280 }}

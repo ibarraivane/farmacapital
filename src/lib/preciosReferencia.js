@@ -19,6 +19,63 @@ export function esReferenciaVigente(row) {
   return Number.isFinite(precio) && precio > 0;
 }
 
+function normTextoProducto(s) {
+  return String(s || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** ¿Parece medicamento (no abarrotes/superficie)? */
+export function esMedicamentoReferencia(p) {
+  const pa = (p?.principio_activo || "").trim();
+  if (pa) return true;
+  const tipo = (p?.tipo || "").toLowerCase();
+  if (tipo === "generico" || tipo === "genérico" || tipo === "marca") return true;
+  if ((p?.forma_farmaceutica || "").trim()) return true;
+  const cat = (p?.categoria || "").toLowerCase();
+  return /medic|fármaco|farmaco|antib|analge|vitamin|suplement|dermat|oftalm|gastro|cardio|diabetes|pedic/.test(cat);
+}
+
+/** El nombre comercial ya es (o contiene) el principio activo — no duplicar. */
+export function nombreCoincideConPrincipioActivo(nombre, principioActivo) {
+  const nom = normTextoProducto(nombre);
+  const pa = normTextoProducto(principioActivo);
+  if (!nom || !pa) return false;
+  if (nom === pa) return true;
+  if (nom.length >= 5 && pa.length >= 5 && (nom.includes(pa) || pa.includes(nom))) return true;
+
+  const paTokens = pa.split(" ").filter((t) => t.length >= 4);
+  if (paTokens.length && paTokens.every((t) => nom.includes(t))) return true;
+
+  const nomTokens = nom.split(" ").filter((t) => t.length >= 4);
+  if (nomTokens.length === 1 && paTokens.length === 1 && nomTokens[0] === paTokens[0]) return true;
+
+  return false;
+}
+
+/**
+ * Subtítulo bajo el nombre en tablas Compra/Venta.
+ * Muestra PA cuando el nombre comercial no es el principio activo.
+ */
+export function productoSubtituloReferencia(p) {
+  const pa = (p?.principio_activo || "").trim();
+  const detParts = [];
+  if (p?.concentracion?.trim()) detParts.push(p.concentracion.trim());
+  if (p?.presentacion?.trim()) detParts.push(p.presentacion.trim());
+  else if (p?.forma_farmaceutica?.trim()) detParts.push(p.forma_farmaceutica.trim());
+
+  const mostrarPa =
+    esMedicamentoReferencia(p) && pa && !nombreCoincideConPrincipioActivo(p?.nombre, pa);
+
+  return {
+    principioActivo: mostrarPa ? pa : null,
+    detalle: detParts.join(" · "),
+  };
+}
+
 export const FUENTE_META = {
   exprezo: { label: "Exprezo", tipo: "compra", listaDistribuidor: false },
   marzam: { label: "Marzam", tipo: "compra", listaDistribuidor: true },
