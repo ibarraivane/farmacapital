@@ -16,6 +16,8 @@ import {
   colorDiffVenta,
   labelDiffCompra,
   fmtPrecioRef,
+  fmtPrecioVenta,
+  roundPrecioVenta,
 } from "./lib/preciosReferencia";
 import { inventarioProductMatchesBusqueda } from "./utils/fuzzySearch";
 import ImportReferenciaPrecios from "./components/ImportReferenciaPrecios";
@@ -35,16 +37,16 @@ const COL_DEFAULTS_COMPRA = {
 
 const COL_DEFAULTS_VENTA = {
   producto: 160,
-  tuVenta: 68,
+  tuVenta: 78,
   fahorro: 72,
   similares: 72,
   refMin: 64,
-  sugerido: 68,
+  sugerido: 78,
   nota: 110,
   accion: 58,
 };
 
-const COL_STORAGE_V = "v2";
+const COL_STORAGE_V = "v3";
 
 function productoPresentacion(p) {
   const parts = [];
@@ -110,6 +112,30 @@ function loadColWidths(tab) {
 function colStyle(colWidths, colId) {
   const w = Math.max(48, Number(colWidths[colId]) || 64);
   return { width: w, minWidth: w, maxWidth: w };
+}
+
+function MargenVentaHint({ margen, C, prefix = "margen" }) {
+  if (margen?.pct == null) return null;
+  const col =
+    margen.tone === "debajo_costo" ? C.red :
+    margen.tone === "debajo_piso" ? C.amber : C.green;
+  const bg =
+    margen.tone === "debajo_costo" ? C.redDim :
+    margen.tone === "debajo_piso" ? C.amberDim : C.greenDim;
+  const util = margen.utilidad != null && margen.utilidad !== 0
+    ? ` (+$${Math.round(margen.utilidad).toLocaleString("es-MX")})`
+    : "";
+
+  return (
+    <div style={{ marginTop: 3, lineHeight: 1.2 }}>
+      <span style={{
+        padding: "1px 5px", borderRadius: 10, fontSize: 9, fontWeight: 700,
+        color: col, background: bg,
+      }}>
+        {prefix} {margen.pct}%{util}
+      </span>
+    </div>
+  );
 }
 
 function DiffBadge({ pct, mode, C }) {
@@ -419,8 +445,8 @@ function TablaVenta({
             const sim = refs.similares?.precio;
             const dAho = diffPctVenta(p.precio, fah);
             const dSim = diffPctVenta(p.precio, sim);
-            const { sugerido, refMin, nota, alerta } = calcPrecioSugeridoVenta(p, refs);
-            const puedeAplicar = sugerido != null && Math.abs((parseFloat(p.precio) || 0) - sugerido) >= 0.01;
+            const { sugerido, refMin, nota, alerta, margenActual, margenSugerido } = calcPrecioSugeridoVenta(p, refs);
+            const puedeAplicar = sugerido != null && roundPrecioVenta(p.precio) !== sugerido;
             const sugeridoCol =
               alerta === "debajo_costo" ? C.red :
               alerta === "debajo_piso" ? C.amber :
@@ -442,7 +468,12 @@ function TablaVenta({
                   onCommit={onCommit}
                   onCancel={onCancel}
                   tdStyle={{ ...tdS("tuVenta", { fontWeight: 700, color: BRAND.primary, background: rowBg }) }}
-                  display={fmtPrecioRef(p.precio)}
+                  display={(
+                    <>
+                      <div>{fmtPrecioVenta(p.precio)}</div>
+                      <MargenVentaHint margen={margenActual} C={C} prefix="margen" />
+                    </>
+                  )}
                 />
                 <EditablePrecioCell
                   C={C}
@@ -486,7 +517,12 @@ function TablaVenta({
                   {refMin != null ? fmtPrecioRef(refMin) : "—"}
                 </td>
                 <td style={{ ...tdS("sugerido", { textAlign: "right", fontWeight: 800, color: sugerido != null ? sugeridoCol : C.textDim, background: rowBg }) }}>
-                  {sugerido != null ? fmtPrecioRef(sugerido) : "—"}
+                  {sugerido != null ? (
+                    <>
+                      <div>{fmtPrecioVenta(sugerido)}</div>
+                      <MargenVentaHint margen={margenSugerido} C={C} prefix="est." />
+                    </>
+                  ) : "—"}
                 </td>
                 <td style={{ ...tdS("nota", { fontSize: 10, color: C.textMid, background: rowBg }) }}>{nota}</td>
                 <td style={{ ...tdS("accion", { background: rowBg }) }}>
@@ -666,13 +702,14 @@ export default function PreciosReferenciaModule() {
         setProductos((prev) => prev.map((x) => (x.id === productoId ? { ...x, costo: num } : x)));
         showToast("Costo actualizado", "success");
       } else if (parts[1] === "precio") {
+        const precioVenta = num != null ? roundPrecioVenta(num) : null;
         const { error } = await supabase.rpc("admin_editar_producto", {
           p_session_token: tok,
           p_producto_id: productoId,
-          p_patch: { precio: num },
+          p_patch: { precio: precioVenta },
         });
         if (error) throw error;
-        setProductos((prev) => prev.map((x) => (x.id === productoId ? { ...x, precio: num } : x)));
+        setProductos((prev) => prev.map((x) => (x.id === productoId ? { ...x, precio: precioVenta } : x)));
         showToast("Precio de venta actualizado", "success");
       } else if (parts[1] === "ref") {
         const fuente = parts[2];
@@ -711,7 +748,7 @@ export default function PreciosReferenciaModule() {
 
   const aplicarPrecio = async (producto, sugerido) => {
     const ok = window.confirm(
-      `¿Aplicar precio sugerido ${fmtPrecioRef(sugerido)} a «${producto.nombre}»?\n\nTu precio actual: ${fmtPrecioRef(producto.precio)}`
+      `¿Aplicar precio sugerido ${fmtPrecioVenta(sugerido)} a «${producto.nombre}»?\n\nTu precio actual: ${fmtPrecioVenta(producto.precio)}`
     );
     if (!ok) return;
 
@@ -841,7 +878,10 @@ export default function PreciosReferenciaModule() {
 
       {tab === "venta" && (
         <p style={{ fontSize: 11, color: C.textDim, marginBottom: 10 }}>
-          Sugerido = 2% bajo la competencia más barata (FDA / Similares). Si sale en ámbar o rojo, revisa margen o costo antes de aplicar.
+          Venta y sugerido en <strong>pesos enteros</strong> (sin centavos). Sugerido ≈ 2% bajo la competencia más barata.
+          Margen bajo tu venta / est. bajo sugerido: <strong style={{ color: C.green }}>verde</strong> ok,
+          <strong style={{ color: C.amber }}> ámbar</strong> bajo piso habitual,
+          <strong style={{ color: C.red }}> rojo</strong> bajo costo.
         </p>
       )}
 

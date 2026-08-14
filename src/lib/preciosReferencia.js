@@ -18,6 +18,48 @@ export const FUENTE_META = {
 export const fmtPrecioRef = (n) =>
   `$${parseFloat(n || 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+/** Precio al público: peso entero hacia arriba (sin centavos). */
+export function roundPrecioVenta(precio) {
+  const p = parseFloat(precio);
+  if (!Number.isFinite(p) || p <= 0) return null;
+  return Math.ceil(p);
+}
+
+/** Formato venta al público — sin centavos. */
+export function fmtPrecioVenta(n) {
+  const p = roundPrecioVenta(n);
+  if (p == null) return "—";
+  return `$${p.toLocaleString("es-MX", { maximumFractionDigits: 0 })}`;
+}
+
+/**
+ * Margen bruto sobre venta: (precio − costo) / precio.
+ * tone: ok | debajo_piso | debajo_costo
+ */
+export function calcMargenVenta(precio, producto) {
+  const costo = parseFloat(producto?.costo) || 0;
+  const p = parseFloat(precio);
+  if (!Number.isFinite(p) || p <= 0 || costo <= 0) {
+    return { pct: null, utilidad: null, tone: null };
+  }
+
+  const utilidad = p - costo;
+  const pct = (utilidad / p) * 100;
+  const { markup } = classifyProductoMargen(producto);
+  const piso = calcPriceFloor(costo, markup);
+
+  let tone = "ok";
+  if (p < costo) tone = "debajo_costo";
+  else if (p < piso) tone = "debajo_piso";
+
+  return {
+    pct: Math.round(pct * 10) / 10,
+    utilidad: Math.round(utilidad * 100) / 100,
+    tone,
+    piso,
+  };
+}
+
 /** Mapa producto_id → { fuente → fila ref } desde filas de producto_precios_referencia_actual */
 export function buildReferenciasPorProducto(rows) {
   const byProduct = {};
@@ -180,35 +222,43 @@ export function classifyProductoMargen(p) {
  * No sube el precio por piso de margen; solo avisa si quedarías bajo costo o piso habitual.
  */
 export function calcPrecioSugeridoVenta(producto, refsMap) {
+  const precioActual = parseFloat(producto.precio) || 0;
+  const margenActual = calcMargenVenta(precioActual, producto);
+  const margenSugeridoEmpty = { pct: null, utilidad: null, tone: null };
+
   const refs = refsVentaDeProducto(refsMap);
   const vals = Object.values(refs).filter((v) => Number.isFinite(v) && v > 0);
   if (!vals.length) {
-    return { sugerido: null, refMin: null, piso: null, nota: "Sin referencias de venta", alerta: null };
+    return {
+      sugerido: null, refMin: null, piso: null,
+      nota: "Sin referencias de venta", alerta: null,
+      margenActual, margenSugerido: margenSugeridoEmpty,
+    };
   }
 
   const refMin = Math.min(...vals);
   const costo = parseFloat(producto.costo) || 0;
-  const precioActual = parseFloat(producto.precio) || 0;
   const { markup } = classifyProductoMargen(producto);
   const piso = costo > 0 ? calcPriceFloor(costo, markup) : 0;
-  const sugerido = Math.ceil(refMin * 0.98 * 100) / 100;
+  const sugerido = roundPrecioVenta(refMin * 0.98);
+  const margenSugerido = sugerido != null ? calcMargenVenta(sugerido, producto) : margenSugeridoEmpty;
 
-  let nota = "Competir: 2% bajo la ref. más barata (FDA / Similares)";
-  let alerta = null;
+  let nota = "Competir: ~2% bajo la ref. más barata, redondeado a peso entero";
+  let alerta = margenSugerido.tone === "debajo_costo" ? "debajo_costo"
+    : margenSugerido.tone === "debajo_piso" ? "debajo_piso"
+    : null;
 
-  if (costo > 0 && sugerido < costo) {
-    alerta = "debajo_costo";
-    nota = `A ${fmtPrecioRef(sugerido)} no cubres tu costo (${fmtPrecioRef(costo)}). Revisa costo o decide margen.`;
-  } else if (piso > 0 && sugerido < piso) {
-    alerta = "debajo_piso";
-    nota = `Competitivo (${fmtPrecioRef(sugerido)}) queda bajo tu piso habitual (${fmtPrecioRef(piso)}). Puedes aplicarlo si priorizas share.`;
-  } else if (precioActual > 0 && Math.abs(precioActual - sugerido) < 0.01) {
+  if (alerta === "debajo_costo") {
+    nota = `A ${fmtPrecioVenta(sugerido)} no cubres tu costo (${fmtPrecioRef(costo)}). Revisa costo o decide margen.`;
+  } else if (alerta === "debajo_piso") {
+    nota = `Competitivo (${fmtPrecioVenta(sugerido)}) queda bajo tu piso habitual (${fmtPrecioVenta(piso)}). Puedes aplicarlo si priorizas share.`;
+  } else if (precioActual > 0 && roundPrecioVenta(precioActual) === sugerido) {
     nota = "Tu precio ya está al nivel competitivo";
   } else if (precioActual > refMin) {
-    nota = `Competencia desde ${fmtPrecioRef(refMin)} — bajar a ${fmtPrecioRef(sugerido)}`;
+    nota = `Competencia desde ${fmtPrecioRef(refMin)} — bajar a ${fmtPrecioVenta(sugerido)}`;
   }
 
-  return { sugerido, refMin, piso, nota, alerta };
+  return { sugerido, refMin, piso, nota, alerta, margenActual, margenSugerido };
 }
 
 /** Compra: ref vs tu costo abastos — positivo = ref más caro (tu costo gana) */
