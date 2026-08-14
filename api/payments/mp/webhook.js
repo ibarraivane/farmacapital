@@ -85,7 +85,7 @@ module.exports = async function handler(req, res) {
     if (!pedidoId) return res.status(200).json({ ok: true, ignored: true, reason: 'no_pedido_reference' });
 
     const pedidoResp = await fetch(
-      `${SUPABASE_URL}/rest/v1/pedidos?id=eq.${pedidoId}&select=id,cliente_id,total,tipo_entrega,payment_status&limit=1`,
+      `${SUPABASE_URL}/rest/v1/pedidos?id=eq.${pedidoId}&select=id,cliente_id,total,tipo_entrega,payment_status,whatsapp_recibo,logistics_meta&limit=1`,
       {
         headers: {
           apikey: SUPABASE_SERVICE_ROLE_KEY,

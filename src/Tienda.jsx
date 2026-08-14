@@ -118,6 +118,8 @@ function sortCatalogoTienda(arr, busq) {
 const CONTACTO = {
   telefono: FARMACIA_FISCAL.telefono_display,
   whatsapp: FARMACIA_FISCAL.telefono,
+  whatsapp_display: FARMACIA_FISCAL.telefono_display,
+  whatsapp_link: `https://wa.me/52${FARMACIA_FISCAL.telefono}`,
   email: FARMACIA_FISCAL.email,
   direccion: FARMACIA_FISCAL.direccion_comercial,
   horario: "Lun–Vie 8:00–22:00 · Sáb 8:00–20:00 · Dom 9:00–18:00",
@@ -1192,9 +1194,6 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
     { icon: FileText, label: "Términos y condiciones", page: "terminos" },
   ];
 
-  const WHATSAPP_NUMERO = "525537275035";
-  const WHATSAPP_LINK = `https://wa.me/${WHATSAPP_NUMERO}`;
-
   const handleNav = (page) => {
     if (page === "cita") navigateToCita(setPage);
     else setPage(page);
@@ -1387,7 +1386,7 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
           </div>
 
           <a
-            href={WHATSAPP_LINK}
+            href={CONTACTO.whatsapp_link}
             target="_blank"
             rel="noopener noreferrer"
             style={{
@@ -1406,7 +1405,7 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
                 WhatsApp
               </div>
               <div style={{fontSize: 12, color: C.textMid}}>
-                Hablar con nosotros
+                {CONTACTO.whatsapp_display} · Hablar con nosotros
               </div>
             </div>
             <ChevronRight size={16} color="#25D366"/>
@@ -1908,9 +1907,8 @@ function Footer({setPage}){
         <div>
           <div style={{color:C.white,fontWeight:700,fontSize:14,marginBottom:16,textTransform:"uppercase",letterSpacing:1}}>Atención a clientes</div>
           {[
-            // ["📞 Teléfono", "55 XXXX XXXX", null],        // Descomentar cuando tengas número
-            // ["💬 WhatsApp", "55 XXXX XXXX", null],        // Descomentar cuando tengas WhatsApp
-            ["Correo", "contacto@farmacapital.mx", null],
+            ["Teléfono / WhatsApp", CONTACTO.whatsapp_display, () => window.open(CONTACTO.whatsapp_link, "_blank", "noopener,noreferrer")],
+            ["Correo", CONTACTO.email, () => { window.location.href = `mailto:${CONTACTO.email}`; }],
             ["Horario", CONTACTO.horario, null],
             ["Dirección", CONTACTO.direccion, () => window.open(CONTACTO.maps_url, "_blank", "noopener,noreferrer")],
           ].map(([l,v,fn])=>(
@@ -3059,6 +3057,14 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
   const [lastOrder,setLastOrder]=useState(null);
   const [guardando,setG]=useState(false);
   const [checkoutMsg,setCheckoutMsg]=useState(null);
+  const [enviarReciboWhatsApp,setEnviarReciboWhatsApp]=useState(()=>{
+    try {
+      const saved = localStorage.getItem("farmacapital_whatsapp_recibo_optin");
+      return saved == null ? true : saved === "1";
+    } catch {
+      return true;
+    }
+  });
   const sub=cart.reduce((a,c)=>a+(Number(c.precio)||0)*(Number(c.qty)||0),0);
   const ptsG=Math.floor(sub/10);
 
@@ -3166,6 +3172,12 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
       localStorage.setItem(checkoutAddressStorageKey(user), JSON.stringify(payload));
     } catch (_) { /* noop */ }
   }, [datos.calle, datos.colonia, datos.cp, user?.id, user?.telefono]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("farmacapital_whatsapp_recibo_optin", enviarReciboWhatsApp ? "1" : "0");
+    } catch (_) { /* noop */ }
+  }, [enviarReciboWhatsApp]);
 
   const nombreOk = String(datos.nombre || "").trim().length >= 3;
   const telOk = soloDigitosTel(datos.tel || "").length >= 10;
@@ -3329,6 +3341,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
         p_guest_telefono: esInvitado ? String(datos.tel || "").trim() || null : null,
         p_guest_email: esInvitado ? String(datos.email || "").trim() || null : null,
         p_reservation_session_id: null,
+        p_whatsapp_recibo: Boolean(enviarReciboWhatsApp),
       });
       if (rpcErr) throw rpcErr;
       if (!resp?.success) {
@@ -3379,12 +3392,16 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
             ui_entrega: ui_entrega || null,
             datosTel: datos.tel,
             pedidoId: resp.pedido_id,
+            whatsappRecibo: enviarReciboWhatsApp,
           });
           setConf(true);
           setCart([]);
           setG(false);
           return;
         }
+        try {
+          sessionStorage.setItem(`fc_wa_recibo_${resp.pedido_id}`, enviarReciboWhatsApp ? "1" : "0");
+        } catch (_) { /* noop */ }
         setCart([]);
         window.location.href = mpData.initPoint || mpData.sandboxInitPoint;
         return;
@@ -3402,12 +3419,15 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
         datosTel: datos.tel,
         pedidoId: resp.pedido_id,
         metodoPago: metodo,
+        whatsappRecibo: enviarReciboWhatsApp,
       });
-      notifyOnlineOrderReceipt({
-        pedidoId: resp.pedido_id,
-        sessionToken: tokCli || null,
-        phoneVerify: tokCli ? null : soloDigitosTel(datos.tel).slice(-4),
-      }).catch((e) => console.warn("[Checkout] WhatsApp recibo:", e));
+      if (enviarReciboWhatsApp) {
+        notifyOnlineOrderReceipt({
+          pedidoId: resp.pedido_id,
+          sessionToken: tokCli || null,
+          phoneVerify: tokCli ? null : soloDigitosTel(datos.tel).slice(-4),
+        }).catch((e) => console.warn("[Checkout] WhatsApp recibo:", e));
+      }
       setG(false);
       setConf(true);
       setCart([]);
@@ -3485,8 +3505,17 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
           )}
         </div>
         <div style={{background:"#f0fdf4",border:"1px solid #86efac",borderRadius:10,padding:"12px 16px",fontSize:13,color:"#166534",lineHeight:1.6}}>
-          📱 Enviaremos el recibo a <strong>{lastOrder.datosTel}</strong> por WhatsApp desde la farmacia ({FARMACIA_WHATSAPP_DISPLAY}).
-          {" "}Si no lo recibes en unos minutos, usa el botón de arriba o escríbenos con tu folio {folio}.
+          {lastOrder.whatsappRecibo !== false ? (
+            <>
+              📱 Enviaremos el recibo a <strong>{lastOrder.datosTel}</strong> por WhatsApp desde la farmacia ({FARMACIA_WHATSAPP_DISPLAY}).
+              {" "}Si no lo recibes en unos minutos, usa el botón de arriba o escríbenos con tu folio {folio}.
+            </>
+          ) : (
+            <>
+              Tu pedido quedó registrado con folio <strong>{folio}</strong>.
+              {" "}Si prefieres el recibo por WhatsApp, usa el botón de arriba para escribirnos.
+            </>
+          )}
         </div>
       </div>
     );
@@ -3566,6 +3595,35 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                   <div style={{color:C.dark,fontWeight:700,marginBottom:4}}>💳 Pago con Mercado Pago</div>
                   Tarjeta, transferencia o efectivo · Checkout seguro. FarmaCapital no captura datos de tarjeta.
                 </div>
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 10,
+                    marginTop: 16,
+                    padding: "12px 14px",
+                    borderRadius: 10,
+                    border: `1px solid ${enviarReciboWhatsApp ? "#86efac" : C.border}`,
+                    background: enviarReciboWhatsApp ? "#f0fdf4" : C.bg,
+                    cursor: "pointer",
+                    fontSize: 13,
+                    lineHeight: 1.5,
+                    color: C.dark,
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={enviarReciboWhatsApp}
+                    onChange={(e) => setEnviarReciboWhatsApp(e.target.checked)}
+                    style={{ marginTop: 3, accentColor: "#25D366", width: 16, height: 16, flexShrink: 0 }}
+                  />
+                  <span>
+                    <strong style={{ color: "#166534" }}>📱 Enviar recibo por WhatsApp</strong>
+                    <span style={{ display: "block", color: C.mid, fontSize: 12, marginTop: 2 }}>
+                      Al número {datos.tel || "que indiques"} · Confirmación y folio de tu pedido ({FARMACIA_WHATSAPP_DISPLAY})
+                    </span>
+                  </span>
+                </label>
                 {!datosCheckoutCompletos && faltantesCheckout.length > 0 && (
                   <div style={{marginTop:12,padding:"10px 12px",background:"#fef3c7",border:"1px solid #fcd34d",borderRadius:8,fontSize:12,color:"#92400e",lineHeight:1.45}}>
                     Para continuar completa: <strong>{faltantesCheckout.join(", ")}</strong>
@@ -3587,6 +3645,9 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                   {entrega==="pickup"?"🏪 Pick-up en FarmaCapital":"🛵 Reparto CDMX"}
                 </div>
                 <div style={{marginTop:6,color:BRAND.primary,fontWeight:600}}>💳 Mercado Pago (tarjeta, transferencia o efectivo)</div>
+                {enviarReciboWhatsApp && (
+                  <div style={{marginTop:4,color:"#166534",fontWeight:600}}>📱 Recibo por WhatsApp a {datos.tel}</div>
+                )}
               </div>
               {cart.map(item=>(
                 <div key={item.id} style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,padding:"8px 0",borderBottom:`1px solid ${C.border}`}}>
@@ -3999,9 +4060,7 @@ function FAQPage({setPage}){
         <div style={{color:C.mid,fontSize:"clamp(13px,3.2vw,14px)",marginBottom:16,lineHeight:1.5}}>Escríbenos y te respondemos a la brevedad.</div>
         <div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap"}}>
           <a href="mailto:contacto@farmacapital.mx" style={{color:BRAND.primary,fontWeight:700,fontSize:14,textDecoration:"none"}}>📧 contacto@farmacapital.mx</a>
-          {/* Descomentar cuando tengas WhatsApp:
-          <a href="https://wa.me/52XXXXXXXXXX" style={{color:BRAND.accent,fontWeight:700,fontSize:14,textDecoration:"none"}}>💬 WhatsApp</a>
-          */}
+          <a href={CONTACTO.whatsapp_link} target="_blank" rel="noopener noreferrer" style={{color:"#25D366",fontWeight:700,fontSize:14,textDecoration:"none"}}>💬 WhatsApp {CONTACTO.whatsapp_display}</a>
         </div>
       </div>
     </div>
@@ -4478,6 +4537,54 @@ function Login({setUser,setPage}){
         )}
       </div>
     </div>
+  );
+}
+
+// ── BOTÓN FLOTANTE WHATSAPP ────────────────────────────────────
+const WHATSAPP_FLOAT_MSG = "Hola FarmaCapital, tengo una consulta sobre ";
+
+function WhatsAppFloatingButton() {
+  const abrir = () => {
+    openWhatsAppToFarmacia(WHATSAPP_FLOAT_MSG);
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={abrir}
+      aria-label={`Escribir por WhatsApp a FarmaCapital (${CONTACTO.whatsapp_display})`}
+      title={`WhatsApp ${CONTACTO.whatsapp_display}`}
+      style={{
+        position: "fixed",
+        right: "max(16px, env(safe-area-inset-right, 0px))",
+        bottom: "max(20px, env(safe-area-inset-bottom, 0px))",
+        zIndex: 950,
+        width: 56,
+        height: 56,
+        borderRadius: "50%",
+        border: "none",
+        cursor: "pointer",
+        background: "#25D366",
+        color: "#fff",
+        boxShadow: "0 4px 20px rgba(37, 211, 102, 0.45)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        transition: "transform 0.2s ease, box-shadow 0.2s ease",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = "scale(1.06)";
+        e.currentTarget.style.boxShadow = "0 6px 24px rgba(37, 211, 102, 0.55)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = "scale(1)";
+        e.currentTarget.style.boxShadow = "0 4px 20px rgba(37, 211, 102, 0.45)";
+      }}
+    >
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.435 9.884-9.884 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+      </svg>
+    </button>
   );
 }
 
@@ -5201,6 +5308,7 @@ export default function TiendaFarmaCapital(){
         </main>
         {!sinFooter.includes(page)&&<Footer setPage={setPage}/>}
       </div>
+      <WhatsAppFloatingButton />
     </>
     </TiendaPlaceholderCtx.Provider>
   );

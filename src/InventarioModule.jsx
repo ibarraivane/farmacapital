@@ -35,8 +35,7 @@ const EMPTY = {
   fecha_caducidad:"", descuento_pct:"0", activo:true, imagen_url:"", imagen_mobile_url:"",
   principio_activo:"", denominacion_generica:"", denominacion_distintiva:"",
   concentracion:"", presentacion:"", forma_farmaceutica:"",
-  marca:"", precio_similares:"", precio_del_ahorro:"",
-  ubicacion_texto:"",
+  marca:"", ubicacion_texto:"",
 };
 
 /** PostgREST puede devolver una fila como array o como objeto según versión/cliente */
@@ -156,14 +155,6 @@ const margen = (pv, co) => {
   if (!c || c === 0) return "—";
   return ((p - c) / c * 100).toFixed(1) + "%";
 };
-
-/** Diferencia % vs precio de referencia (negativo = más barato que competencia). */
-function diffPctVsComp(precio, ref) {
-  const p = parseFloat(precio);
-  const r = parseFloat(ref);
-  if (!Number.isFinite(p) || !Number.isFinite(r) || r <= 0) return null;
-  return (((p - r) / r) * 100).toFixed(1);
-}
 
 const diasParaCaducar = (fecha) => {
   if (!fecha) return null;
@@ -318,8 +309,6 @@ const INV_INLINE_FIELD_PATCH = {
   precio: "precio",
   costo: "costo",
   desc: "descuento_pct",
-  similares: "precio_similares",
-  ahorro: "precio_del_ahorro",
 };
 
 function InventarioEditableCell({
@@ -452,8 +441,6 @@ const INV_COLUMN_DEFS = {
   precio: { label: "Precio", hint: "" },
   costo: { label: "Costo", hint: "" },
   margen: { label: "Margen%", hint: "" },
-  similares: { label: "Similares", hint: "Precio de referencia en Farmacias Similares (captura manual)." },
-  ahorro: { label: "Del Ahorro", hint: "Precio de referencia en Farmacias del Ahorro (captura manual)." },
   cad: { label: "Cad.", hint: "Mes/año del lote más próximo — clic para editar" },
   agot: { label: "Agot. (días)", hint: "" },
   desc: { label: "Desc%", hint: "" },
@@ -478,8 +465,6 @@ const INV_COLUMN_ORDER_DEFAULT = [
   "precio",
   "costo",
   "margen",
-  "similares",
-  "ahorro",
   "cad",
   "agot",
   "desc",
@@ -937,10 +922,6 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
         presentacion: (form.presentacion ?? "").trim() || null,
         forma_farmaceutica: (form.forma_farmaceutica ?? "").trim() || null,
         marca: (form.marca ?? "").trim() || null,
-        precio_similares: form.precio_similares !== "" && form.precio_similares != null
-          ? parseFloat(form.precio_similares) : null,
-        precio_del_ahorro: form.precio_del_ahorro !== "" && form.precio_del_ahorro != null
-          ? parseFloat(form.precio_del_ahorro) : null,
         ubicacion_texto: (form.ubicacion_texto ?? "").trim() || null,
         activo: form.activo,
         venta_unidad: form.venta_unidad || false,
@@ -1219,8 +1200,6 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
                 <> Ej.: costo ${parseFloat(form.costo).toFixed(2)} → ${Math.ceil(parseFloat(form.costo)*1.6*100)/100} (60%) o ${Math.ceil(parseFloat(form.costo)*1.3*100)/100} (30%).</>
               ) : null}
             </div>
-            {field("Precio Similares (ref.)","precio_similares","number")}
-            {field("Precio Del Ahorro (ref.)","precio_del_ahorro","number")}
             {field("Stock actual","stock","number",true)}
             {field("Stock mínimo","stock_minimo","number")}
             {field("Descuento %","descuento_pct","number")}
@@ -2019,10 +1998,6 @@ function renderInventarioColumnCell(colId, ctx) {
     inact,
     mgn,
     mgnCol,
-    dSim,
-    dAho,
-    cSim,
-    cAho,
     marcaDisp,
     nombreTabla,
     presDisp,
@@ -2382,32 +2357,6 @@ function renderInventarioColumnCell(colId, ctx) {
       );
     case "margen":
       return <td key={colId} style={{ padding: "8px 12px", fontWeight: 700, borderBottom: `1px solid ${C.border}`, color: mgnCol, background: stickyRowBg }}>{mgn}</td>;
-    case "similares":
-      return (
-        <InventarioEditableCell
-          key={colId}
-          {...inlineCellProps}
-          productId={p.id}
-          field="similares"
-          value={p.precio_similares != null ? String(p.precio_similares) : ""}
-          type="number"
-          display={p.precio_similares ? <span>${parseFloat(p.precio_similares).toFixed(0)}{dSim != null ? ` (${parseFloat(dSim) <= 0 ? "" : "+"}${dSim}%)` : ""}</span> : "—"}
-          tdStyle={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, color: cSim, fontSize: 11, background: stickyRowBg }}
-        />
-      );
-    case "ahorro":
-      return (
-        <InventarioEditableCell
-          key={colId}
-          {...inlineCellProps}
-          productId={p.id}
-          field="ahorro"
-          value={p.precio_del_ahorro != null ? String(p.precio_del_ahorro) : ""}
-          type="number"
-          display={p.precio_del_ahorro ? <span>${parseFloat(p.precio_del_ahorro).toFixed(0)}{dAho != null ? ` (${parseFloat(dAho) <= 0 ? "" : "+"}${dAho}%)` : ""}</span> : "—"}
-          tdStyle={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, color: cAho, fontSize: 11, background: stickyRowBg }}
-        />
-      );
     case "cad": {
       const loteRef = resolverLoteCaducidadProducto(p);
       const puedeCad = Boolean(loteRef) || (p.stock ?? 0) > 0;
@@ -3087,16 +3036,6 @@ export default function InventarioModule() {
         return false;
       }
       patchValue = n;
-    } else if (field === "similares" || field === "ahorro") {
-      if (!draft) patchValue = null;
-      else {
-        const n = parseFloat(draft);
-        if (Number.isNaN(n) || n < 0) {
-          showToast("Precio de referencia inválido.", "error");
-          return false;
-        }
-        patchValue = n;
-      }
     } else if (field === "nombre") {
       if (!draft) {
         showToast("El nombre no puede quedar vacío.", "error");
@@ -3583,7 +3522,7 @@ export default function InventarioModule() {
           Sin color = normal · Tenue = inactivo
         </span>
         <span style={{padding:"4px 10px",borderRadius:8,background:"#eff6ff",color:C.blue}}>
-          📊 Precios competencia: Promociones → «Precios vs competencia»
+          📊 Referencias de mercado: Inventario → «Referencias de precio»
         </span>
       </div>
 
@@ -3835,10 +3774,6 @@ export default function InventarioModule() {
                 const mgn     = margen(p.precio, p.costo);
                 const mgnNum  = parseFloat(mgn);
                 const mgnCol  = isNaN(mgnNum)?C.textMid:mgnNum>=50?C.green:mgnNum>=25?C.amber:C.red;
-                const dSim = diffPctVsComp(p.precio, p.precio_similares);
-                const dAho = diffPctVsComp(p.precio, p.precio_del_ahorro);
-                const cSim = dSim != null ? (parseFloat(dSim) <= 0 ? C.green : C.red) : C.textMid;
-                const cAho = dAho != null ? (parseFloat(dAho) <= 0 ? C.green : C.red) : C.textMid;
                 const marcaDisp = (p.marca || "").trim();
                 const { nombre: nombreTabla, presentacion: presInferida } = nombreYPresentacionTabla(p);
                 const presDisp = presInferida || "—";
@@ -3868,10 +3803,6 @@ export default function InventarioModule() {
                   inact,
                   mgn,
                   mgnCol,
-                  dSim,
-                  dAho,
-                  cSim,
-                  cAho,
                   marcaDisp,
                   nombreTabla,
                   presDisp,

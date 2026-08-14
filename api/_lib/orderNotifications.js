@@ -202,14 +202,26 @@ async function sendWhatsapp({ to, text }) {
   return sendTwilioWhatsapp({ to, text });
 }
 
+function pedidoQuiereWhatsAppRecibo(pedido) {
+  if (pedido?.whatsapp_recibo === false) return false;
+  const meta = pedido?.logistics_meta;
+  if (meta && typeof meta === 'object' && meta.whatsapp_recibo === false) return false;
+  // Pedidos anteriores a la migración: mantener envío si no hay bandera explícita en false
+  if (pedido?.whatsapp_recibo == null && (!meta || meta.whatsapp_recibo == null)) return true;
+  return Boolean(pedido?.whatsapp_recibo || meta?.whatsapp_recibo);
+}
+
 async function sendOrderNotifications({ event, pedido, cliente, items }) {
   const msg = buildReceiptMessage({ event, pedido, items });
   const subject = event === 'payment_approved'
     ? `Pago aprobado Pedido #${pedido?.id || ''}`
     : `Actualizacion de Pedido #${pedido?.id || ''}`;
+  const waPromise = pedidoQuiereWhatsAppRecibo(pedido)
+    ? sendWhatsapp({ to: cliente?.telefono || null, text: msg })
+    : Promise.resolve({ sent: false, reason: 'whatsapp_opt_out' });
   const [emailRes, waRes] = await Promise.all([
     sendEmail({ to: cliente?.email || null, subject, text: msg }),
-    sendWhatsapp({ to: cliente?.telefono || null, text: msg }),
+    waPromise,
   ]);
   return { ok: true, email: emailRes, whatsapp: waRes };
 }
@@ -220,4 +232,5 @@ module.exports = {
   buildReceiptMessage,
   buildMessage,
   buildCitaConfirmacionMessage,
+  pedidoQuiereWhatsAppRecibo,
 };

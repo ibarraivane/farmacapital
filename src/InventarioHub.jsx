@@ -1,20 +1,22 @@
-// InventarioHub: shell con 3 tabs que agrupa Catálogo, Reabasto y Lotes PEPS.
+// InventarioHub: shell con tabs — Catálogo, Reabasto, Lotes PEPS, Referencias de precio.
 // Los módulos internos se mantienen intactos; solo cambia la forma de entrar.
 // Cada tab carga lazy para no inflar el bundle inicial.
 import React, { lazy, Suspense, useState, useEffect } from "react";
 import { useMediaQuery } from "./hooks/useMediaQuery";
 import { SkeletonCard } from "./ui";
 import { C_LIGHT, BRAND } from "./constants";
-import { Package, Truck, Tags } from "lucide-react";
+import { Package, Truck, Tags, TrendingUp } from "lucide-react";
 
 const InventarioModule = lazy(() => import("./InventarioModule"));
 const ReabastoModule   = lazy(() => import("./ReabastoModule"));
 const LotesModule      = lazy(() => import("./LotesModule"));
+const PreciosReferenciaModule = lazy(() => import("./PreciosReferenciaModule"));
 
 const TABS = [
   { id: "catalogo", label: "Catálogo",   icon: Package },
   { id: "reabasto", label: "Reabasto",   icon: Truck },
   { id: "lotes",    label: "Lotes PEPS", icon: Tags },
+  { id: "precios",  label: "Referencias de precio", icon: TrendingUp, labelMobile: "Precios" },
 ];
 
 const STORAGE_KEY = "farmacapital_inv_tab";
@@ -58,7 +60,7 @@ export default function InventarioHub({ initialTab }) {
         <div style={{display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap"}}>
           <h1 style={{margin: 0, color: C.text, fontSize: 20, fontWeight: 800}}>◆ Inventario</h1>
           {!isMobile && (
-            <span style={{color: C.textDim, fontSize: 12}}>Catálogo · reabasto · lotes PEPS</span>
+            <span style={{color: C.textDim, fontSize: 12}}>Catálogo · reabasto · lotes · referencias de precio</span>
           )}
         </div>
         <div style={{
@@ -73,7 +75,7 @@ export default function InventarioHub({ initialTab }) {
           {TABS.map((t) => {
             const active = tab === t.id;
             const Icon = t.icon;
-            const label = isMobile && t.id === "lotes" ? "Lotes" : t.label;
+            const label = isMobile && t.labelMobile ? t.labelMobile : t.label;
             const iconSz = isMobile ? 18 : 15;
             return (
               <button
@@ -112,6 +114,7 @@ export default function InventarioHub({ initialTab }) {
         {tab === "catalogo" && <InventarioModule/>}
         {tab === "reabasto" && <ReabastoModule/>}
         {tab === "lotes"    && <LotesModule/>}
+        {tab === "precios"  && <PreciosReferenciaModule/>}
       </Suspense>
     </div>
   );

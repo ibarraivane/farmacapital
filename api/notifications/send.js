@@ -1,6 +1,6 @@
 'use strict';
 
-const { sendWhatsapp, buildReceiptMessage, buildCitaConfirmacionMessage } = require('../_lib/orderNotifications');
+const { sendWhatsapp, buildReceiptMessage, buildCitaConfirmacionMessage, pedidoQuiereWhatsAppRecibo } = require('../_lib/orderNotifications');
 const { getSupabaseAdminConfig, validateEmployeeSession } = require('../_lib/supabaseAdmin');
 
 async function safeJson(req) {
@@ -112,7 +112,7 @@ function digitsOnly(v) {
 
 async function fetchPedido(supabaseUrl, serviceKey, pedidoId) {
   const resp = await fetch(
-    `${supabaseUrl}/rest/v1/pedidos?id=eq.${pedidoId}&select=id,total,tipo,tipo_entrega,metodo_pago,cliente_id,guest_telefono,created_at,pedido_items(cantidad,precio_unitario,productos(nombre))&limit=1`,
+    `${supabaseUrl}/rest/v1/pedidos?id=eq.${pedidoId}&select=id,total,tipo,tipo_entrega,metodo_pago,cliente_id,guest_telefono,whatsapp_recibo,logistics_meta,created_at,pedido_items(cantidad,precio_unitario,productos(nombre))&limit=1`,
     {
       headers: {
         apikey: serviceKey,
@@ -215,6 +215,10 @@ async function handleOrderReceipt(req, res, body) {
   const telefono = await resolvePedidoTelefono(supabaseUrl, serviceKey, pedido);
   if (!telefono) {
     return res.status(200).json({ ok: true, whatsapp: { sent: false, reason: 'missing_phone' } });
+  }
+
+  if (!pedidoQuiereWhatsAppRecibo(pedido)) {
+    return res.status(200).json({ ok: true, whatsapp: { sent: false, reason: 'whatsapp_opt_out' }, pedidoId });
   }
 
   const message = buildReceiptMessage({

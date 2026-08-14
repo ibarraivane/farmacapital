@@ -31,6 +31,10 @@ yarn-error.log*
 *.dump
 backups/
 
+# Excel locales (inventario/pricing) — no versionar
+*.xlsx
+~$*.xlsx
+
 # Catálogo masivo regenerado localmente (ver scripts/import-farmac-os-xlsx.js)
 sql/generated/*.sql
 

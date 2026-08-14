@@ -1,0 +1,2251 @@
+{
+  "errores": [
+    {
+      "sku": "FC-68990023",
+      "nombre": "Alcohol Etilico Rojo 96°",
+      "costo": 28.2,
+      "precio": 1082.96,
+      "margen": 97.4,
+      "flags": [
+        "ERROR: precio venta desproporcionado ($1082.96 vs costo $28.20)",
+        "ERROR/SOSPECHA: margen 97.4% (revisar typo)"
+      ]
+    },
+    {
+      "sku": "FC-07521317",
+      "nombre": "Gotero cristal",
+      "costo": 1.2,
+      "precio": 7,
+      "margen": 82.9,
+      "flags": [
+        "ERROR/SOSPECHA: margen 82.9% (revisar typo)"
+      ]
+    },
+    {
+      "sku": "FC-F22C72BE",
+      "nombre": "12H",
+      "costo": 55.03,
+      "precio": 71.54,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-516C2E89",
+      "nombre": "12H Jr",
+      "costo": 36.79,
+      "precio": 47.83,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-DDFBABDF",
+      "nombre": "12H Ped",
+      "costo": 25.94,
+      "precio": 33.73,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-C9F4ACCC",
+      "nombre": "Acemetacina",
+      "costo": 39.44,
+      "precio": 63.11,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-7D1D9857",
+      "nombre": "Acetilsalicilico",
+      "costo": 14.85,
+      "precio": 19.31,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-95779436",
+      "nombre": "Acetilsalicilico Ef",
+      "costo": 19.07,
+      "precio": 24.8,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-1BF03D35",
+      "nombre": "Acetonido De Fluocinolona Cma",
+      "costo": 18.44,
+      "precio": 23.98,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-FD845E68",
+      "nombre": "Aciclovir",
+      "costo": 23.68,
+      "precio": 30.79,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-05965071",
+      "nombre": "Acroxil-C",
+      "costo": 24.05,
+      "precio": 31.27,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-85BDBD3D",
+      "nombre": "Acroxil-C",
+      "costo": 25.42,
+      "precio": 33.05,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-2001A890",
+      "nombre": "Ad",
+      "costo": 81.71,
+      "precio": 106.23,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-DF39BB27",
+      "nombre": "Alevarin Capsulas",
+      "costo": 68.88,
+      "precio": 89.55,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-ACA2A2F6",
+      "nombre": "Alopurinol",
+      "costo": 21.46,
+      "precio": 34.34,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-9A37D44A",
+      "nombre": "Amdoryl",
+      "costo": 26.11,
+      "precio": 33.95,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-9F67BB73",
+      "nombre": "Amifarin",
+      "costo": 27.0,
+      "precio": 35.1,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-D5AC44CA",
+      "nombre": "Amifarin",
+      "costo": 45.78,
+      "precio": 59.52,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-347A49C7",
+      "nombre": "Amikacina",
+      "costo": 19.46,
+      "precio": 31.14,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-11294615",
+      "nombre": "Amikacina",
+      "costo": 31.94,
+      "precio": 51.11,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-1FEA2FB7",
+      "nombre": "Amikacina",
+      "costo": 29.21,
+      "precio": 46.74,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-97BEFA1A",
+      "nombre": "Amlodipino",
+      "costo": 32.52,
+      "precio": 42.28,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-4A0245DA",
+      "nombre": "Amlodipino",
+      "costo": 32.52,
+      "precio": 42.28,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-3B001F9B",
+      "nombre": "Amlodipino",
+      "costo": 9.04,
+      "precio": 11.76,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-F4E9C71F",
+      "nombre": "Amoxicilina",
+      "costo": 72.03,
+      "precio": 115.25,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-A0D320D1",
+      "nombre": "Amoxicilina",
+      "costo": 18.37,
+      "precio": 29.4,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-D210172A",
+      "nombre": "Ampicilina",
+      "costo": 25.48,
+      "precio": 40.77,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-F82A6E4B",
+      "nombre": "Ampicilina",
+      "costo": 27.05,
+      "precio": 43.28,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-7F90064A",
+      "nombre": "Ampicilina",
+      "costo": 20.37,
+      "precio": 32.6,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-D751525D",
+      "nombre": "Animalin",
+      "costo": 22.65,
+      "precio": 29.45,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-44B6751A",
+      "nombre": "Aquito 500/100/30/4 Mg",
+      "costo": 59.63,
+      "precio": 77.52,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-17376CAE",
+      "nombre": "Aspitak-P",
+      "costo": 19.72,
+      "precio": 25.64,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-E4BE37BE",
+      "nombre": "Atorvastatina",
+      "costo": 26.35,
+      "precio": 42.16,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-D9391288",
+      "nombre": "Azitromicina",
+      "costo": 68.5,
+      "precio": 109.6,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-AE5EEDF7",
+      "nombre": "Bactiver",
+      "costo": 48.65,
+      "precio": 63.25,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-DEAF33B0",
+      "nombre": "Bactiver",
+      "costo": 21.28,
+      "precio": 27.67,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-4BD80686",
+      "nombre": "Beneventol",
+      "costo": 88.17,
+      "precio": 141.08,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-369D1689",
+      "nombre": "Beneventol",
+      "costo": 51.43,
+      "precio": 82.29,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-9B93AC4C",
+      "nombre": "Beneventol",
+      "costo": 97.6,
+      "precio": 156.16,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-B8D7C997",
+      "nombre": "Bicarbonato Sobres",
+      "costo": 48.0,
+      "precio": 76.81,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-08DB70CB",
+      "nombre": "Bicarbonato Velazquez Grande 200G",
+      "costo": 11.5,
+      "precio": 18.41,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-6898B64F",
+      "nombre": "Bioerter",
+      "costo": 47.7,
+      "precio": 62.02,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-C101D5B1",
+      "nombre": "Bisoprolol",
+      "costo": 97.51,
+      "precio": 156.02,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-58DB24C4",
+      "nombre": "Bitenver",
+      "costo": 62.78,
+      "precio": 81.62,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-281E0F22",
+      "nombre": "Budesonida",
+      "costo": 153.72,
+      "precio": 199.84,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-447B30F9",
+      "nombre": "Budesonida",
+      "costo": 131.38,
+      "precio": 170.8,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-C6C20517",
+      "nombre": "Budimin",
+      "costo": 31.31,
+      "precio": 40.71,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-82F88FED",
+      "nombre": "Captopril",
+      "costo": 7.95,
+      "precio": 12.72,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-885F2723",
+      "nombre": "Carbamazepina",
+      "costo": 18.11,
+      "precio": 28.98,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-2EDC6E3B",
+      "nombre": "Cefagen",
+      "costo": 82.09,
+      "precio": 106.72,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-443C330E",
+      "nombre": "Cefagen",
+      "costo": 144.13,
+      "precio": 187.37,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-E374F23E",
+      "nombre": "Cefagen",
+      "costo": 48.48,
+      "precio": 63.03,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-A455EE80",
+      "nombre": "Cefagen",
+      "costo": 74.58,
+      "precio": 96.96,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-2005DD57",
+      "nombre": "Cefalexina",
+      "costo": 39.84,
+      "precio": 63.75,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-40CE757D",
+      "nombre": "Cefalver",
+      "costo": 62.48,
+      "precio": 81.23,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-492D652F",
+      "nombre": "Cefalver",
+      "costo": 43.35,
+      "precio": 56.36,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-B18E386A",
+      "nombre": "Cefaroxil",
+      "costo": 44.44,
+      "precio": 57.78,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-357D4A17",
+      "nombre": "Ceftazidima",
+      "costo": 45.42,
+      "precio": 59.05,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-E6B50AC3",
+      "nombre": "Celecoxib",
+      "costo": 34.82,
+      "precio": 45.27,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-DB3B2584",
+      "nombre": "Celesbitan",
+      "costo": 16.91,
+      "precio": 21.99,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-6EAD98A9",
+      "nombre": "Cepobrom",
+      "costo": 47.97,
+      "precio": 62.37,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-7AF7ACB5",
+      "nombre": "Charlyn",
+      "costo": 24.98,
+      "precio": 32.48,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-B25B4654",
+      "nombre": "Cina",
+      "costo": 28.87,
+      "precio": 37.54,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-3CAA7C5C",
+      "nombre": "Cinarizina",
+      "costo": 35.05,
+      "precio": 56.08,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-74A5ABEE",
+      "nombre": "Ciprofloxacino",
+      "costo": 13.69,
+      "precio": 21.91,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-E9C38DC4",
+      "nombre": "Ciprofloxacino G.I",
+      "costo": 22.92,
+      "precio": 36.68,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-5F30F9D4",
+      "nombre": "Clamoxin",
+      "costo": 48.48,
+      "precio": 63.03,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-6519183A",
+      "nombre": "Clamoxin",
+      "costo": 27.89,
+      "precio": 36.26,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-F48FF7EF",
+      "nombre": "Clamoxin",
+      "costo": 35.62,
+      "precio": 46.31,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-41339950",
+      "nombre": "Claritromicina",
+      "costo": 59.45,
+      "precio": 95.12,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-9A4E4C31",
+      "nombre": "Clindamicina",
+      "costo": 88.42,
+      "precio": 141.48,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-CF18C740",
+      "nombre": "Clindamicina",
+      "costo": 30.54,
+      "precio": 48.87,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-0BDE9283",
+      "nombre": "Clophiven 200 Dosis 50 Mcg",
+      "costo": 56.51,
+      "precio": 73.47,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-4F737E93",
+      "nombre": "Cloxan",
+      "costo": 44.04,
+      "precio": 57.26,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-1DA570E3",
+      "nombre": "Cloxan",
+      "costo": 9.75,
+      "precio": 12.68,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-1AE9D7E6",
+      "nombre": "Collucort",
+      "costo": 47.85,
+      "precio": 62.21,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-64EB83AA",
+      "nombre": "Compl",
+      "costo": 18.07,
+      "precio": 23.5,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-1FFBB505",
+      "nombre": "Dac",
+      "costo": 42.14,
+      "precio": 54.79,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-29670370",
+      "nombre": "Degortzin",
+      "costo": 35.71,
+      "precio": 46.43,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-1FBF5206",
+      "nombre": "Del Viejito Reomatolum",
+      "costo": 20.0,
+      "precio": 32.0,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-B3B8F9BB",
+      "nombre": "Desrotan",
+      "costo": 47.31,
+      "precio": 61.51,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-2E79C2D8",
+      "nombre": "Dex",
+      "costo": 61.33,
+      "precio": 79.73,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-1CF27DC9",
+      "nombre": "Dex",
+      "costo": 36.86,
+      "precio": 47.92,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-CF719C07",
+      "nombre": "Diclofen",
+      "costo": 26.82,
+      "precio": 34.87,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-EADF1484",
+      "nombre": "Diosmina Hesperidina",
+      "costo": 39.41,
+      "precio": 63.06,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-E535DE28",
+      "nombre": "Diurmessel",
+      "costo": 9.31,
+      "precio": 12.11,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-830BF3FB",
+      "nombre": "Diviltac",
+      "costo": 34.45,
+      "precio": 44.79,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-28A424E5",
+      "nombre": "Diziver",
+      "costo": 8.15,
+      "precio": 10.6,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-CD261CD5",
+      "nombre": "Doliprofen",
+      "costo": 22.41,
+      "precio": 29.14,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-AA7B0686",
+      "nombre": "Drosquim Ad 1 Ibe 300/160",
+      "costo": 70.74,
+      "precio": 91.97,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-DB4A39AE",
+      "nombre": "Efe",
+      "costo": 39.07,
+      "precio": 50.8,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-9ABFB996",
+      "nombre": "Elaphteron",
+      "costo": 30.77,
+      "precio": 40.01,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-53506FA4",
+      "nombre": "Enalapril",
+      "costo": 8.09,
+      "precio": 12.95,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-48F732CF",
+      "nombre": "Epicin",
+      "costo": 29.56,
+      "precio": 38.43,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-DA34D88D",
+      "nombre": "Erbitrax",
+      "costo": 5.54,
+      "precio": 7.21,
+      "margen": 23.2,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-DF8ADDAB",
+      "nombre": "Erispan",
+      "costo": 22.15,
+      "precio": 28.8,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-50AC2C82",
+      "nombre": "Erispan",
+      "costo": 24.45,
+      "precio": 31.79,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-F8691496",
+      "nombre": "F",
+      "costo": 16.89,
+      "precio": 21.96,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-9538F7D6",
+      "nombre": "Fasiclor",
+      "costo": 81.18,
+      "precio": 105.54,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-01B2F362",
+      "nombre": "Fasiclor",
+      "costo": 49.85,
+      "precio": 64.81,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-E4EFC4C2",
+      "nombre": "Fasiclor",
+      "costo": 137.92,
+      "precio": 179.3,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-F3E734A0",
+      "nombre": "Fasiclor",
+      "costo": 63.44,
+      "precio": 82.48,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-C8B741F6",
+      "nombre": "Fc 01711/2030",
+      "costo": 10.45,
+      "precio": 13.59,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-1751468C",
+      "nombre": "Flospet",
+      "costo": 27.33,
+      "precio": 35.53,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-5BC5F234",
+      "nombre": "Fluconazol",
+      "costo": 12.92,
+      "precio": 20.68,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-00E8A9C7",
+      "nombre": "Fotosun UV100",
+      "costo": 74.27,
+      "precio": 96.56,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-4F05124E",
+      "nombre": "Gelcavit-9M Capsulas",
+      "costo": 66.3,
+      "precio": 86.19,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-5C8C9C11",
+      "nombre": "Gelubrin",
+      "costo": 21.95,
+      "precio": 28.54,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-63975795",
+      "nombre": "Gentamicina",
+      "costo": 17.58,
+      "precio": 28.13,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-60F627D5",
+      "nombre": "Gentamicina",
+      "costo": 52.57,
+      "precio": 84.12,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-428A228F",
+      "nombre": "Gimalxina",
+      "costo": 23.57,
+      "precio": 37.72,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-974EE5FD",
+      "nombre": "Gimalxina",
+      "costo": 27.09,
+      "precio": 43.35,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-4FD413D2",
+      "nombre": "Haspen",
+      "costo": 23.53,
+      "precio": 30.59,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-A2B284E0",
+      "nombre": "Hialuronato De Sodio 4Mg",
+      "costo": 113.89,
+      "precio": 148.06,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-1321B34F",
+      "nombre": "Hidroxon",
+      "costo": 34.6,
+      "precio": 44.98,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-1812D26D",
+      "nombre": "Hucius Capsulas",
+      "costo": 78.16,
+      "precio": 101.61,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-BE76D409",
+      "nombre": "I.M",
+      "costo": 19.72,
+      "precio": 25.64,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-07F04F88",
+      "nombre": "I.M",
+      "costo": 19.43,
+      "precio": 25.26,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-22B18244",
+      "nombre": "I.M",
+      "costo": 31.06,
+      "precio": 40.38,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-C636D8EA",
+      "nombre": "I.M",
+      "costo": 9.8,
+      "precio": 12.75,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-3D0F54B7",
+      "nombre": "Ibupro-Cafe",
+      "costo": 30.06,
+      "precio": 39.08,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-F7A2CACF",
+      "nombre": "Indarzona",
+      "costo": 56.3,
+      "precio": 73.19,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-DE106642",
+      "nombre": "Inf",
+      "costo": 73.57,
+      "precio": 95.65,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-BDB2E087",
+      "nombre": "Irbesartan",
+      "costo": 70.49,
+      "precio": 112.79,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-262F2A30",
+      "nombre": "Irbesartan",
+      "costo": 43.98,
+      "precio": 70.37,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-8FB65B79",
+      "nombre": "Klarix",
+      "costo": 81.67,
+      "precio": 106.18,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-72C28BC1",
+      "nombre": "Knoricin",
+      "costo": 45.41,
+      "precio": 59.04,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-697EEAD0",
+      "nombre": "Kurtosil",
+      "costo": 62.48,
+      "precio": 81.23,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-B69FCBF4",
+      "nombre": "Lesaclor",
+      "costo": 146.11,
+      "precio": 189.95,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-B25094C4",
+      "nombre": "Lesaclor",
+      "costo": 44.43,
+      "precio": 57.76,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-C721E8D7",
+      "nombre": "Levofloxacino",
+      "costo": 18.77,
+      "precio": 30.04,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-E826D304",
+      "nombre": "Lincomicina /2Ml 6 Ampolletas",
+      "costo": 47.85,
+      "precio": 62.21,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-E69F2E63",
+      "nombre": "Madrid Aceite Eucalipto 2712017 83401",
+      "costo": 11.0,
+      "precio": 17.61,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-66055303",
+      "nombre": "Meditest Prueba Embarazo",
+      "costo": 15.18,
+      "precio": 19.74,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-DFF99C3F",
+      "nombre": "Mercurio",
+      "costo": 7.0,
+      "precio": 9.1,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-D4AC123B",
+      "nombre": "Mercurio Aceite Almendras 790523",
+      "costo": 8.0,
+      "precio": 12.8,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-931B4809",
+      "nombre": "Mercurio Aceite Coco 800523 83064",
+      "costo": 8.0,
+      "precio": 12.8,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-69387811",
+      "nombre": "Mercurio Aceite Gomenolado 1160623",
+      "costo": 8.0,
+      "precio": 12.8,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-5A697CC2",
+      "nombre": "Mercurio Aceite Olivo 1000625 83825",
+      "costo": 8.0,
+      "precio": 12.8,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-38CAFE6B",
+      "nombre": "Mercurio Aceite Romero 1910923",
+      "costo": 8.0,
+      "precio": 12.8,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-89F00320",
+      "nombre": "Mercurio Arnica 2550123",
+      "costo": 10.5,
+      "precio": 16.8,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-127F5753",
+      "nombre": "Mercurio Arnica Tomar 1780823 83156",
+      "costo": 7.5,
+      "precio": 12.0,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-25E452B6",
+      "nombre": "Mercurio Arnica Untar 1790823 83156",
+      "costo": 7.5,
+      "precio": 12.0,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-D037156B",
+      "nombre": "Mercurio Bismuto Subnitrato 1390724",
+      "costo": 73.5,
+      "precio": 117.6,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-578F060C",
+      "nombre": "Mercurio Borax Polvo 140072483490",
+      "costo": 53.0,
+      "precio": 84.81,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-5D59ED54",
+      "nombre": "Mercurio Cloruro De Magnesio Cajita",
+      "costo": 34.0,
+      "precio": 54.41,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-3676D5DC",
+      "nombre": "Mercurio Espiritus Tomar 1760823",
+      "costo": 6.0,
+      "precio": 9.61,
+      "margen": 37.6,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-62034164",
+      "nombre": "Mercurio Espiritus Untar 1770823",
+      "costo": 6.0,
+      "precio": 9.61,
+      "margen": 37.6,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-5EF90195",
+      "nombre": "Mercurio Flor De Arnica 1430724",
+      "costo": 55.0,
+      "precio": 88.0,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-39036C88",
+      "nombre": "Mercurio Glicerina 1230723 83125",
+      "costo": 12.0,
+      "precio": 19.21,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-9507CD66",
+      "nombre": "Mercurio Haba Alcanforada 1510724",
+      "costo": 65.0,
+      "precio": 104.0,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-CB5C11ED",
+      "nombre": "Mercurio Magnesia Anisada 1560824",
+      "costo": 51.5,
+      "precio": 82.4,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-0ACC5B6A",
+      "nombre": "Mercurio Oxido De Zinc",
+      "costo": 9.0,
+      "precio": 14.4,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-C4530823",
+      "nombre": "Mercurio Oxido De Zinc 1620824 83521",
+      "costo": 54.0,
+      "precio": 86.4,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-EFB599B5",
+      "nombre": "Mercurio Pan Puerco 25401233",
+      "costo": 9.5,
+      "precio": 15.2,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-FBD776D2",
+      "nombre": "Mercurio Perlas De Eter 1630824",
+      "costo": 170.0,
+      "precio": 272.0,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-FD718DF3",
+      "nombre": "Mercurio Sulfatiazol 2600223",
+      "costo": 11.5,
+      "precio": 18.41,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-47AAF23B",
+      "nombre": "Mercurio Sulfatiazol Polvo 1710824",
+      "costo": 69.0,
+      "precio": 110.4,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-FEAECBF1",
+      "nombre": "Mercurio Tepezcohuite",
+      "costo": 9.5,
+      "precio": 15.2,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-9827438F",
+      "nombre": "Mercurio Veneno De Abeja",
+      "costo": 9.5,
+      "precio": 15.2,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-A680F97E",
+      "nombre": "Mercurio Yodo Tomar 1800823 83156",
+      "costo": 11.0,
+      "precio": 17.61,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-D3D28E20",
+      "nombre": "Mercurio Yodo Untar 1810623 83156",
+      "costo": 11.5,
+      "precio": 18.41,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-926099D3",
+      "nombre": "Mertiolate Kohn Rojo 012023 82912",
+      "costo": 9.0,
+      "precio": 14.4,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-50587FA6",
+      "nombre": "Mexapin",
+      "costo": 13.93,
+      "precio": 18.11,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-FA3D96E6",
+      "nombre": "N Calcitriol",
+      "costo": 47.13,
+      "precio": 61.27,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-E6112F15",
+      "nombre": "Nalixone",
+      "costo": 63.32,
+      "precio": 101.32,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-AEA8C8DA",
+      "nombre": "Namifen",
+      "costo": 24.28,
+      "precio": 31.57,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-5D9DFA3D",
+      "nombre": "Norquinol",
+      "costo": 48.87,
+      "precio": 78.2,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-A909ABC0",
+      "nombre": "Odivitor",
+      "costo": 13.77,
+      "precio": 17.91,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-F7DB080D",
+      "nombre": "Ovisen",
+      "costo": 20.33,
+      "precio": 26.43,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-FD92D114",
+      "nombre": "Ovisen",
+      "costo": 10.19,
+      "precio": 13.25,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-B2123139",
+      "nombre": "Oxivag",
+      "costo": 64.09,
+      "precio": 83.32,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-5885E577",
+      "nombre": "Pabesorag",
+      "costo": 60.47,
+      "precio": 78.62,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-3A4583F3",
+      "nombre": "Penipot",
+      "costo": 14.07,
+      "precio": 18.3,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-F183C6E9",
+      "nombre": "Penipot",
+      "costo": 19.44,
+      "precio": 25.28,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-B4477A00",
+      "nombre": "Pentibroxil",
+      "costo": 30.04,
+      "precio": 39.06,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-B72A6420",
+      "nombre": "Pentiver",
+      "costo": 27.06,
+      "precio": 35.18,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-7AA38F97",
+      "nombre": "Pentiver",
+      "costo": 31.2,
+      "precio": 40.56,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-9A1C64E7",
+      "nombre": "Perilla Edigar N O Caja",
+      "costo": 14.5,
+      "precio": 23.21,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-BCF59548",
+      "nombre": "Perilla N1",
+      "costo": 15.5,
+      "precio": 24.8,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-C22EBFE6",
+      "nombre": "Perilla N2",
+      "costo": 16.0,
+      "precio": 25.6,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-614E4F82",
+      "nombre": "Perilla N3",
+      "costo": 18.5,
+      "precio": 29.6,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-FFC25DD1",
+      "nombre": "Perilla N4",
+      "costo": 19.5,
+      "precio": 31.21,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-A871D831",
+      "nombre": "Perilla N6",
+      "costo": 22.5,
+      "precio": 30.38,
+      "margen": 25.9,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-AA905BF7",
+      "nombre": "Perludil",
+      "costo": 16.11,
+      "precio": 20.95,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-04D83B46",
+      "nombre": "Pralex",
+      "costo": 42.85,
+      "precio": 55.71,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-6B2ADEE9",
+      "nombre": "Protect aerosol 200 dosis",
+      "costo": 96.21,
+      "precio": 125.08,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-26EA40A4",
+      "nombre": "Ramcinet",
+      "costo": 19.65,
+      "precio": 25.55,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-6074BB64",
+      "nombre": "Redalip",
+      "costo": 21.01,
+      "precio": 27.32,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-57925EF3",
+      "nombre": "Reglusan",
+      "costo": 8.88,
+      "precio": 11.55,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-2E5B7248",
+      "nombre": "Reumatol",
+      "costo": 11.0,
+      "precio": 17.61,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-77FE5C83",
+      "nombre": "S",
+      "costo": 32.41,
+      "precio": 42.14,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-0E0A9E42",
+      "nombre": "S",
+      "costo": 47.99,
+      "precio": 62.39,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-F817BC3A",
+      "nombre": "Sibicos",
+      "costo": 33.65,
+      "precio": 43.75,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-BE0A0E46",
+      "nombre": "Sumitex Intravenoso- Pu X 25 Mm C/1 Azul",
+      "costo": 9.26,
+      "precio": 12.04,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-6C2878CF",
+      "nombre": "Susp 125 Mg/Ml",
+      "costo": 130.24,
+      "precio": 169.32,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-F967863B",
+      "nombre": "Terficho",
+      "costo": 46.05,
+      "precio": 59.87,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-3E863E37",
+      "nombre": "Tratidri",
+      "costo": 47.47,
+      "precio": 61.72,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-86A95D07",
+      "nombre": "Tropharma",
+      "costo": 44.53,
+      "precio": 57.89,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-1DAD5EF1",
+      "nombre": "Tusilen Ad 1 Ibe 240/30/50Mg/100",
+      "costo": 24.22,
+      "precio": 31.49,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-405A75E3",
+      "nombre": "Ursodesoxicolico",
+      "costo": 217.23,
+      "precio": 282.4,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-022543CD",
+      "nombre": "Valclan",
+      "costo": 37.22,
+      "precio": 48.39,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-D06E54FE",
+      "nombre": "Valclan",
+      "costo": 51.18,
+      "precio": 66.54,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-D11D586A",
+      "nombre": "Valgab 3 Ibe /6Ml",
+      "costo": 19.41,
+      "precio": 25.24,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-BE2ACF63",
+      "nombre": "Valnait Capsulas",
+      "costo": 4.56,
+      "precio": 5.93,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-930E0B1B",
+      "nombre": "Vandil",
+      "costo": 20.58,
+      "precio": 26.76,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-4C621D07",
+      "nombre": "Vanmoxol",
+      "costo": 18.03,
+      "precio": 28.85,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-174824A0",
+      "nombre": "Vernisen",
+      "costo": 12.38,
+      "precio": 16.1,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-759A5EF9",
+      "nombre": "Wermy",
+      "costo": 24.89,
+      "precio": 32.36,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-50D044FF",
+      "nombre": "Wermy",
+      "costo": 24.51,
+      "precio": 31.87,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-69A3C416",
+      "nombre": "Wexpec",
+      "costo": 16.65,
+      "precio": 21.65,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-A23F290E",
+      "nombre": "Zitriasol",
+      "costo": 34.61,
+      "precio": 55.38,
+      "margen": 37.5,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-3D0ED22B",
+      "nombre": "Zukedib",
+      "costo": 27.98,
+      "precio": 36.38,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    },
+    {
+      "sku": "FC-52D2A43A",
+      "nombre": "Zukedib",
+      "costo": 29.08,
+      "precio": 37.81,
+      "margen": 23.1,
+      "flags": [
+        "AVISO: sin código de barras"
+      ]
+    }
+  ],
+  "fuera_mercado": [],
+  "caro_teorico": [
+    {
+      "sku": "FC-68990023",
+      "nombre": "Alcohol Etilico Rojo 96°",
+      "categoria": "Botiquín",
+      "costo": 28.2,
+      "precio": 1082.96,
+      "teorico": 45.12,
+      "dif_teo_pct": 2300.2
+    },
+    {
+      "sku": "FC-07521317",
+      "nombre": "Gotero cristal",
+      "categoria": "Botiquín",
+      "costo": 1.2,
+      "precio": 7,
+      "teorico": 1.92,
+      "dif_teo_pct": 264.6
+    },
+    {
+      "sku": "FC-55280956",
+      "nombre": "Desodorante Obao Men Tattoo Rebel (Hombre)",
+      "categoria": "Higiene",
+      "costo": 25.83,
+      "precio": 87.49,
+      "teorico": 41.33,
+      "dif_teo_pct": 111.7
+    },
+    {
+      "sku": "FC-98217659",
+      "nombre": "Dolo-Neurobión",
+      "categoria": "Analgésico",
+      "costo": 269.28,
+      "precio": 694.89,
+      "teorico": 430.85,
+      "dif_teo_pct": 61.3
+    },
+    {
+      "sku": "FC-01246730",
+      "nombre": "Vicks Vaporub pomada 12 g",
+      "categoria": "Botiquín",
+      "costo": 21.25,
+      "precio": 42,
+      "teorico": 34.0,
+      "dif_teo_pct": 23.5
+    }
+  ],
+  "barato_teorico": [
+    {
+      "sku": "FC-56371159",
+      "nombre": "Jabon Dove Exfoliacion",
+      "categoria": "Otro",
+      "costo": 30.54,
+      "precio": 35,
+      "teorico": 48.86,
+      "dif_teo_pct": -28.4
+    },
+    {
+      "sku": "FC-38891190",
+      "nombre": "Jabon Dove Original",
+      "categoria": "Higiene",
+      "costo": 30.205,
+      "precio": 37,
+      "teorico": 48.33,
+      "dif_teo_pct": -23.4
+    }
+  ],
+  "margen_bajo": [
+    {
+      "sku": "FC-56371159",
+      "nombre": "Jabon Dove Exfoliacion",
+      "categoria": "Otro",
+      "costo": 30.54,
+      "precio": 35,
+      "margen": 12.7,
+      "motivo": "Margen 12.7% bajo (esperado ~25%+)"
+    },
+    {
+      "sku": "FC-38891190",
+      "nombre": "Jabon Dove Original",
+      "categoria": "Higiene",
+      "costo": 30.205,
+      "precio": 37,
+      "margen": 18.4,
+      "motivo": "Margen 18.4% bajo (esperado ~28%+)"
+    },
+    {
+      "sku": "FC-A871D831",
+      "nombre": "Perilla N6",
+      "categoria": "Botiquín",
+      "costo": 22.5,
+      "precio": 30.38,
+      "margen": 25.9,
+      "motivo": "Margen 25.9% bajo (esperado ~35%+)"
+    },
+    {
+      "sku": "FC-95451096",
+      "nombre": "Sal de uvas",
+      "categoria": "Otro",
+      "costo": 37.9,
+      "precio": 51.17,
+      "margen": 25.9,
+      "motivo": "Margen 25.9% bajo (esperado ~35%+)"
+    }
+  ]
+}

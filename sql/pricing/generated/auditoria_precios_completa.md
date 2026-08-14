@@ -1,0 +1,284 @@
+# Auditoría precios — 563 productos activos
+## Referencia de mercado (Similares / Del Ahorro / Exprezo)
+- Con precio Similares: 0
+- Con precio Del Ahorro: 0
+- **Sin datos de mercado cargados** → la comparativa 'vs mercado' usa reglas internas (costo×1.6 y margen esperado).
+
+## Errores y sospechas fuertes (214)
+- **Alcohol Etilico Rojo 96°** (`FC-68990023`) — compra $28.20 · venta $1082.96 · ERROR: precio venta desproporcionado ($1082.96 vs costo $28.20) · ERROR/SOSPECHA: margen 97.4% (revisar typo)
+- **Gotero cristal** (`FC-07521317`) — compra $1.20 · venta $7.00 · ERROR/SOSPECHA: margen 82.9% (revisar typo)
+- **12H** (`FC-F22C72BE`) — compra $55.03 · venta $71.54 · AVISO: sin código de barras
+- **12H Jr** (`FC-516C2E89`) — compra $36.79 · venta $47.83 · AVISO: sin código de barras
+- **12H Ped** (`FC-DDFBABDF`) — compra $25.94 · venta $33.73 · AVISO: sin código de barras
+- **Acemetacina** (`FC-C9F4ACCC`) — compra $39.44 · venta $63.11 · AVISO: sin código de barras
+- **Acetilsalicilico** (`FC-7D1D9857`) — compra $14.85 · venta $19.31 · AVISO: sin código de barras
+- **Acetilsalicilico Ef** (`FC-95779436`) — compra $19.07 · venta $24.80 · AVISO: sin código de barras
+- **Acetonido De Fluocinolona Cma** (`FC-1BF03D35`) — compra $18.44 · venta $23.98 · AVISO: sin código de barras
+- **Aciclovir** (`FC-FD845E68`) — compra $23.68 · venta $30.79 · AVISO: sin código de barras
+- **Acroxil-C** (`FC-05965071`) — compra $24.05 · venta $31.27 · AVISO: sin código de barras
+- **Acroxil-C** (`FC-85BDBD3D`) — compra $25.42 · venta $33.05 · AVISO: sin código de barras
+- **Ad** (`FC-2001A890`) — compra $81.71 · venta $106.23 · AVISO: sin código de barras
+- **Alevarin Capsulas** (`FC-DF39BB27`) — compra $68.88 · venta $89.55 · AVISO: sin código de barras
+- **Alopurinol** (`FC-ACA2A2F6`) — compra $21.46 · venta $34.34 · AVISO: sin código de barras
+- **Amdoryl** (`FC-9A37D44A`) — compra $26.11 · venta $33.95 · AVISO: sin código de barras
+- **Amifarin** (`FC-9F67BB73`) — compra $27.00 · venta $35.10 · AVISO: sin código de barras
+- **Amifarin** (`FC-D5AC44CA`) — compra $45.78 · venta $59.52 · AVISO: sin código de barras
+- **Amikacina** (`FC-347A49C7`) — compra $19.46 · venta $31.14 · AVISO: sin código de barras
+- **Amikacina** (`FC-11294615`) — compra $31.94 · venta $51.11 · AVISO: sin código de barras
+- **Amikacina** (`FC-1FEA2FB7`) — compra $29.21 · venta $46.74 · AVISO: sin código de barras
+- **Amlodipino** (`FC-97BEFA1A`) — compra $32.52 · venta $42.28 · AVISO: sin código de barras
+- **Amlodipino** (`FC-4A0245DA`) — compra $32.52 · venta $42.28 · AVISO: sin código de barras
+- **Amlodipino** (`FC-3B001F9B`) — compra $9.04 · venta $11.76 · AVISO: sin código de barras
+- **Amoxicilina** (`FC-F4E9C71F`) — compra $72.03 · venta $115.25 · AVISO: sin código de barras
+- **Amoxicilina** (`FC-A0D320D1`) — compra $18.37 · venta $29.40 · AVISO: sin código de barras
+- **Ampicilina** (`FC-D210172A`) — compra $25.48 · venta $40.77 · AVISO: sin código de barras
+- **Ampicilina** (`FC-F82A6E4B`) — compra $27.05 · venta $43.28 · AVISO: sin código de barras
+- **Ampicilina** (`FC-7F90064A`) — compra $20.37 · venta $32.60 · AVISO: sin código de barras
+- **Animalin** (`FC-D751525D`) — compra $22.65 · venta $29.45 · AVISO: sin código de barras
+- **Aquito 500/100/30/4 Mg** (`FC-44B6751A`) — compra $59.63 · venta $77.52 · AVISO: sin código de barras
+- **Aspitak-P** (`FC-17376CAE`) — compra $19.72 · venta $25.64 · AVISO: sin código de barras
+- **Atorvastatina** (`FC-E4BE37BE`) — compra $26.35 · venta $42.16 · AVISO: sin código de barras
+- **Azitromicina** (`FC-D9391288`) — compra $68.50 · venta $109.60 · AVISO: sin código de barras
+- **Bactiver** (`FC-AE5EEDF7`) — compra $48.65 · venta $63.25 · AVISO: sin código de barras
+- **Bactiver** (`FC-DEAF33B0`) — compra $21.28 · venta $27.67 · AVISO: sin código de barras
+- **Beneventol** (`FC-4BD80686`) — compra $88.17 · venta $141.08 · AVISO: sin código de barras
+- **Beneventol** (`FC-369D1689`) — compra $51.43 · venta $82.29 · AVISO: sin código de barras
+- **Beneventol** (`FC-9B93AC4C`) — compra $97.60 · venta $156.16 · AVISO: sin código de barras
+- **Bicarbonato Sobres** (`FC-B8D7C997`) — compra $48.00 · venta $76.81 · AVISO: sin código de barras
+- **Bicarbonato Velazquez Grande 200G** (`FC-08DB70CB`) — compra $11.50 · venta $18.41 · AVISO: sin código de barras
+- **Bioerter** (`FC-6898B64F`) — compra $47.70 · venta $62.02 · AVISO: sin código de barras
+- **Bisoprolol** (`FC-C101D5B1`) — compra $97.51 · venta $156.02 · AVISO: sin código de barras
+- **Bitenver** (`FC-58DB24C4`) — compra $62.78 · venta $81.62 · AVISO: sin código de barras
+- **Budesonida** (`FC-281E0F22`) — compra $153.72 · venta $199.84 · AVISO: sin código de barras
+- **Budesonida** (`FC-447B30F9`) — compra $131.38 · venta $170.80 · AVISO: sin código de barras
+- **Budimin** (`FC-C6C20517`) — compra $31.31 · venta $40.71 · AVISO: sin código de barras
+- **Captopril** (`FC-82F88FED`) — compra $7.95 · venta $12.72 · AVISO: sin código de barras
+- **Carbamazepina** (`FC-885F2723`) — compra $18.11 · venta $28.98 · AVISO: sin código de barras
+- **Cefagen** (`FC-2EDC6E3B`) — compra $82.09 · venta $106.72 · AVISO: sin código de barras
+- **Cefagen** (`FC-443C330E`) — compra $144.13 · venta $187.37 · AVISO: sin código de barras
+- **Cefagen** (`FC-E374F23E`) — compra $48.48 · venta $63.03 · AVISO: sin código de barras
+- **Cefagen** (`FC-A455EE80`) — compra $74.58 · venta $96.96 · AVISO: sin código de barras
+- **Cefalexina** (`FC-2005DD57`) — compra $39.84 · venta $63.75 · AVISO: sin código de barras
+- **Cefalver** (`FC-40CE757D`) — compra $62.48 · venta $81.23 · AVISO: sin código de barras
+- **Cefalver** (`FC-492D652F`) — compra $43.35 · venta $56.36 · AVISO: sin código de barras
+- **Cefaroxil** (`FC-B18E386A`) — compra $44.44 · venta $57.78 · AVISO: sin código de barras
+- **Ceftazidima** (`FC-357D4A17`) — compra $45.42 · venta $59.05 · AVISO: sin código de barras
+- **Celecoxib** (`FC-E6B50AC3`) — compra $34.82 · venta $45.27 · AVISO: sin código de barras
+- **Celesbitan** (`FC-DB3B2584`) — compra $16.91 · venta $21.99 · AVISO: sin código de barras
+- **Cepobrom** (`FC-6EAD98A9`) — compra $47.97 · venta $62.37 · AVISO: sin código de barras
+- **Charlyn** (`FC-7AF7ACB5`) — compra $24.98 · venta $32.48 · AVISO: sin código de barras
+- **Cina** (`FC-B25B4654`) — compra $28.87 · venta $37.54 · AVISO: sin código de barras
+- **Cinarizina** (`FC-3CAA7C5C`) — compra $35.05 · venta $56.08 · AVISO: sin código de barras
+- **Ciprofloxacino** (`FC-74A5ABEE`) — compra $13.69 · venta $21.91 · AVISO: sin código de barras
+- **Ciprofloxacino G.I** (`FC-E9C38DC4`) — compra $22.92 · venta $36.68 · AVISO: sin código de barras
+- **Clamoxin** (`FC-5F30F9D4`) — compra $48.48 · venta $63.03 · AVISO: sin código de barras
+- **Clamoxin** (`FC-6519183A`) — compra $27.89 · venta $36.26 · AVISO: sin código de barras
+- **Clamoxin** (`FC-F48FF7EF`) — compra $35.62 · venta $46.31 · AVISO: sin código de barras
+- **Claritromicina** (`FC-41339950`) — compra $59.45 · venta $95.12 · AVISO: sin código de barras
+- **Clindamicina** (`FC-9A4E4C31`) — compra $88.42 · venta $141.48 · AVISO: sin código de barras
+- **Clindamicina** (`FC-CF18C740`) — compra $30.54 · venta $48.87 · AVISO: sin código de barras
+- **Clophiven 200 Dosis 50 Mcg** (`FC-0BDE9283`) — compra $56.51 · venta $73.47 · AVISO: sin código de barras
+- **Cloxan** (`FC-4F737E93`) — compra $44.04 · venta $57.26 · AVISO: sin código de barras
+- **Cloxan** (`FC-1DA570E3`) — compra $9.75 · venta $12.68 · AVISO: sin código de barras
+- **Collucort** (`FC-1AE9D7E6`) — compra $47.85 · venta $62.21 · AVISO: sin código de barras
+- **Compl** (`FC-64EB83AA`) — compra $18.07 · venta $23.50 · AVISO: sin código de barras
+- **Dac** (`FC-1FFBB505`) — compra $42.14 · venta $54.79 · AVISO: sin código de barras
+- **Degortzin** (`FC-29670370`) — compra $35.71 · venta $46.43 · AVISO: sin código de barras
+- **Del Viejito Reomatolum** (`FC-1FBF5206`) — compra $20.00 · venta $32.00 · AVISO: sin código de barras
+- **Desrotan** (`FC-B3B8F9BB`) — compra $47.31 · venta $61.51 · AVISO: sin código de barras
+- **Dex** (`FC-2E79C2D8`) — compra $61.33 · venta $79.73 · AVISO: sin código de barras
+- **Dex** (`FC-1CF27DC9`) — compra $36.86 · venta $47.92 · AVISO: sin código de barras
+- **Diclofen** (`FC-CF719C07`) — compra $26.82 · venta $34.87 · AVISO: sin código de barras
+- **Diosmina Hesperidina** (`FC-EADF1484`) — compra $39.41 · venta $63.06 · AVISO: sin código de barras
+- **Diurmessel** (`FC-E535DE28`) — compra $9.31 · venta $12.11 · AVISO: sin código de barras
+- **Diviltac** (`FC-830BF3FB`) — compra $34.45 · venta $44.79 · AVISO: sin código de barras
+- **Diziver** (`FC-28A424E5`) — compra $8.15 · venta $10.60 · AVISO: sin código de barras
+- **Doliprofen** (`FC-CD261CD5`) — compra $22.41 · venta $29.14 · AVISO: sin código de barras
+- **Drosquim Ad 1 Ibe 300/160** (`FC-AA7B0686`) — compra $70.74 · venta $91.97 · AVISO: sin código de barras
+- **Efe** (`FC-DB4A39AE`) — compra $39.07 · venta $50.80 · AVISO: sin código de barras
+- **Elaphteron** (`FC-9ABFB996`) — compra $30.77 · venta $40.01 · AVISO: sin código de barras
+- **Enalapril** (`FC-53506FA4`) — compra $8.09 · venta $12.95 · AVISO: sin código de barras
+- **Epicin** (`FC-48F732CF`) — compra $29.56 · venta $38.43 · AVISO: sin código de barras
+- **Erbitrax** (`FC-DA34D88D`) — compra $5.54 · venta $7.21 · AVISO: sin código de barras
+- **Erispan** (`FC-DF8ADDAB`) — compra $22.15 · venta $28.80 · AVISO: sin código de barras
+- **Erispan** (`FC-50AC2C82`) — compra $24.45 · venta $31.79 · AVISO: sin código de barras
+- **F** (`FC-F8691496`) — compra $16.89 · venta $21.96 · AVISO: sin código de barras
+- **Fasiclor** (`FC-9538F7D6`) — compra $81.18 · venta $105.54 · AVISO: sin código de barras
+- **Fasiclor** (`FC-01B2F362`) — compra $49.85 · venta $64.81 · AVISO: sin código de barras
+- **Fasiclor** (`FC-E4EFC4C2`) — compra $137.92 · venta $179.30 · AVISO: sin código de barras
+- **Fasiclor** (`FC-F3E734A0`) — compra $63.44 · venta $82.48 · AVISO: sin código de barras
+- **Fc 01711/2030** (`FC-C8B741F6`) — compra $10.45 · venta $13.59 · AVISO: sin código de barras
+- **Flospet** (`FC-1751468C`) — compra $27.33 · venta $35.53 · AVISO: sin código de barras
+- **Fluconazol** (`FC-5BC5F234`) — compra $12.92 · venta $20.68 · AVISO: sin código de barras
+- **Fotosun UV100** (`FC-00E8A9C7`) — compra $74.27 · venta $96.56 · AVISO: sin código de barras
+- **Gelcavit-9M Capsulas** (`FC-4F05124E`) — compra $66.30 · venta $86.19 · AVISO: sin código de barras
+- **Gelubrin** (`FC-5C8C9C11`) — compra $21.95 · venta $28.54 · AVISO: sin código de barras
+- **Gentamicina** (`FC-63975795`) — compra $17.58 · venta $28.13 · AVISO: sin código de barras
+- **Gentamicina** (`FC-60F627D5`) — compra $52.57 · venta $84.12 · AVISO: sin código de barras
+- **Gimalxina** (`FC-428A228F`) — compra $23.57 · venta $37.72 · AVISO: sin código de barras
+- **Gimalxina** (`FC-974EE5FD`) — compra $27.09 · venta $43.35 · AVISO: sin código de barras
+- **Haspen** (`FC-4FD413D2`) — compra $23.53 · venta $30.59 · AVISO: sin código de barras
+- **Hialuronato De Sodio 4Mg** (`FC-A2B284E0`) — compra $113.89 · venta $148.06 · AVISO: sin código de barras
+- **Hidroxon** (`FC-1321B34F`) — compra $34.60 · venta $44.98 · AVISO: sin código de barras
+- **Hucius Capsulas** (`FC-1812D26D`) — compra $78.16 · venta $101.61 · AVISO: sin código de barras
+- **I.M** (`FC-BE76D409`) — compra $19.72 · venta $25.64 · AVISO: sin código de barras
+- **I.M** (`FC-07F04F88`) — compra $19.43 · venta $25.26 · AVISO: sin código de barras
+- **I.M** (`FC-22B18244`) — compra $31.06 · venta $40.38 · AVISO: sin código de barras
+- **I.M** (`FC-C636D8EA`) — compra $9.80 · venta $12.75 · AVISO: sin código de barras
+- **Ibupro-Cafe** (`FC-3D0F54B7`) — compra $30.06 · venta $39.08 · AVISO: sin código de barras
+- **Indarzona** (`FC-F7A2CACF`) — compra $56.30 · venta $73.19 · AVISO: sin código de barras
+- **Inf** (`FC-DE106642`) — compra $73.57 · venta $95.65 · AVISO: sin código de barras
+- **Irbesartan** (`FC-BDB2E087`) — compra $70.49 · venta $112.79 · AVISO: sin código de barras
+- **Irbesartan** (`FC-262F2A30`) — compra $43.98 · venta $70.37 · AVISO: sin código de barras
+- **Klarix** (`FC-8FB65B79`) — compra $81.67 · venta $106.18 · AVISO: sin código de barras
+- **Knoricin** (`FC-72C28BC1`) — compra $45.41 · venta $59.04 · AVISO: sin código de barras
+- **Kurtosil** (`FC-697EEAD0`) — compra $62.48 · venta $81.23 · AVISO: sin código de barras
+- **Lesaclor** (`FC-B69FCBF4`) — compra $146.11 · venta $189.95 · AVISO: sin código de barras
+- **Lesaclor** (`FC-B25094C4`) — compra $44.43 · venta $57.76 · AVISO: sin código de barras
+- **Levofloxacino** (`FC-C721E8D7`) — compra $18.77 · venta $30.04 · AVISO: sin código de barras
+- **Lincomicina /2Ml 6 Ampolletas** (`FC-E826D304`) — compra $47.85 · venta $62.21 · AVISO: sin código de barras
+- **Madrid Aceite Eucalipto 2712017 83401** (`FC-E69F2E63`) — compra $11.00 · venta $17.61 · AVISO: sin código de barras
+- **Meditest Prueba Embarazo** (`FC-66055303`) — compra $15.18 · venta $19.74 · AVISO: sin código de barras
+- **Mercurio** (`FC-DFF99C3F`) — compra $7.00 · venta $9.10 · AVISO: sin código de barras
+- **Mercurio Aceite Almendras 790523** (`FC-D4AC123B`) — compra $8.00 · venta $12.80 · AVISO: sin código de barras
+- **Mercurio Aceite Coco 800523 83064** (`FC-931B4809`) — compra $8.00 · venta $12.80 · AVISO: sin código de barras
+- **Mercurio Aceite Gomenolado 1160623** (`FC-69387811`) — compra $8.00 · venta $12.80 · AVISO: sin código de barras
+- **Mercurio Aceite Olivo 1000625 83825** (`FC-5A697CC2`) — compra $8.00 · venta $12.80 · AVISO: sin código de barras
+- **Mercurio Aceite Romero 1910923** (`FC-38CAFE6B`) — compra $8.00 · venta $12.80 · AVISO: sin código de barras
+- **Mercurio Arnica 2550123** (`FC-89F00320`) — compra $10.50 · venta $16.80 · AVISO: sin código de barras
+- **Mercurio Arnica Tomar 1780823 83156** (`FC-127F5753`) — compra $7.50 · venta $12.00 · AVISO: sin código de barras
+- **Mercurio Arnica Untar 1790823 83156** (`FC-25E452B6`) — compra $7.50 · venta $12.00 · AVISO: sin código de barras
+- **Mercurio Bismuto Subnitrato 1390724** (`FC-D037156B`) — compra $73.50 · venta $117.60 · AVISO: sin código de barras
+- **Mercurio Borax Polvo 140072483490** (`FC-578F060C`) — compra $53.00 · venta $84.81 · AVISO: sin código de barras
+- **Mercurio Cloruro De Magnesio Cajita** (`FC-5D59ED54`) — compra $34.00 · venta $54.41 · AVISO: sin código de barras
+- **Mercurio Espiritus Tomar 1760823** (`FC-3676D5DC`) — compra $6.00 · venta $9.61 · AVISO: sin código de barras
+- **Mercurio Espiritus Untar 1770823** (`FC-62034164`) — compra $6.00 · venta $9.61 · AVISO: sin código de barras
+- **Mercurio Flor De Arnica 1430724** (`FC-5EF90195`) — compra $55.00 · venta $88.00 · AVISO: sin código de barras
+- **Mercurio Glicerina 1230723 83125** (`FC-39036C88`) — compra $12.00 · venta $19.21 · AVISO: sin código de barras
+- **Mercurio Haba Alcanforada 1510724** (`FC-9507CD66`) — compra $65.00 · venta $104.00 · AVISO: sin código de barras
+- **Mercurio Magnesia Anisada 1560824** (`FC-CB5C11ED`) — compra $51.50 · venta $82.40 · AVISO: sin código de barras
+- **Mercurio Oxido De Zinc** (`FC-0ACC5B6A`) — compra $9.00 · venta $14.40 · AVISO: sin código de barras
+- **Mercurio Oxido De Zinc 1620824 83521** (`FC-C4530823`) — compra $54.00 · venta $86.40 · AVISO: sin código de barras
+- **Mercurio Pan Puerco 25401233** (`FC-EFB599B5`) — compra $9.50 · venta $15.20 · AVISO: sin código de barras
+- **Mercurio Perlas De Eter 1630824** (`FC-FBD776D2`) — compra $170.00 · venta $272.00 · AVISO: sin código de barras
+- **Mercurio Sulfatiazol 2600223** (`FC-FD718DF3`) — compra $11.50 · venta $18.41 · AVISO: sin código de barras
+- **Mercurio Sulfatiazol Polvo 1710824** (`FC-47AAF23B`) — compra $69.00 · venta $110.40 · AVISO: sin código de barras
+- **Mercurio Tepezcohuite** (`FC-FEAECBF1`) — compra $9.50 · venta $15.20 · AVISO: sin código de barras
+- **Mercurio Veneno De Abeja** (`FC-9827438F`) — compra $9.50 · venta $15.20 · AVISO: sin código de barras
+- **Mercurio Yodo Tomar 1800823 83156** (`FC-A680F97E`) — compra $11.00 · venta $17.61 · AVISO: sin código de barras
+- **Mercurio Yodo Untar 1810623 83156** (`FC-D3D28E20`) — compra $11.50 · venta $18.41 · AVISO: sin código de barras
+- **Mertiolate Kohn Rojo 012023 82912** (`FC-926099D3`) — compra $9.00 · venta $14.40 · AVISO: sin código de barras
+- **Mexapin** (`FC-50587FA6`) — compra $13.93 · venta $18.11 · AVISO: sin código de barras
+- **N Calcitriol** (`FC-FA3D96E6`) — compra $47.13 · venta $61.27 · AVISO: sin código de barras
+- **Nalixone** (`FC-E6112F15`) — compra $63.32 · venta $101.32 · AVISO: sin código de barras
+- **Namifen** (`FC-AEA8C8DA`) — compra $24.28 · venta $31.57 · AVISO: sin código de barras
+- **Norquinol** (`FC-5D9DFA3D`) — compra $48.87 · venta $78.20 · AVISO: sin código de barras
+- **Odivitor** (`FC-A909ABC0`) — compra $13.77 · venta $17.91 · AVISO: sin código de barras
+- **Ovisen** (`FC-F7DB080D`) — compra $20.33 · venta $26.43 · AVISO: sin código de barras
+- **Ovisen** (`FC-FD92D114`) — compra $10.19 · venta $13.25 · AVISO: sin código de barras
+- **Oxivag** (`FC-B2123139`) — compra $64.09 · venta $83.32 · AVISO: sin código de barras
+- **Pabesorag** (`FC-5885E577`) — compra $60.47 · venta $78.62 · AVISO: sin código de barras
+- **Penipot** (`FC-3A4583F3`) — compra $14.07 · venta $18.30 · AVISO: sin código de barras
+- **Penipot** (`FC-F183C6E9`) — compra $19.44 · venta $25.28 · AVISO: sin código de barras
+- **Pentibroxil** (`FC-B4477A00`) — compra $30.04 · venta $39.06 · AVISO: sin código de barras
+- **Pentiver** (`FC-B72A6420`) — compra $27.06 · venta $35.18 · AVISO: sin código de barras
+- **Pentiver** (`FC-7AA38F97`) — compra $31.20 · venta $40.56 · AVISO: sin código de barras
+- **Perilla Edigar N O Caja** (`FC-9A1C64E7`) — compra $14.50 · venta $23.21 · AVISO: sin código de barras
+- **Perilla N1** (`FC-BCF59548`) — compra $15.50 · venta $24.80 · AVISO: sin código de barras
+- **Perilla N2** (`FC-C22EBFE6`) — compra $16.00 · venta $25.60 · AVISO: sin código de barras
+- **Perilla N3** (`FC-614E4F82`) — compra $18.50 · venta $29.60 · AVISO: sin código de barras
+- **Perilla N4** (`FC-FFC25DD1`) — compra $19.50 · venta $31.21 · AVISO: sin código de barras
+- **Perilla N6** (`FC-A871D831`) — compra $22.50 · venta $30.38 · AVISO: sin código de barras
+- **Perludil** (`FC-AA905BF7`) — compra $16.11 · venta $20.95 · AVISO: sin código de barras
+- **Pralex** (`FC-04D83B46`) — compra $42.85 · venta $55.71 · AVISO: sin código de barras
+- **Protect aerosol 200 dosis** (`FC-6B2ADEE9`) — compra $96.21 · venta $125.08 · AVISO: sin código de barras
+- **Ramcinet** (`FC-26EA40A4`) — compra $19.65 · venta $25.55 · AVISO: sin código de barras
+- **Redalip** (`FC-6074BB64`) — compra $21.01 · venta $27.32 · AVISO: sin código de barras
+- **Reglusan** (`FC-57925EF3`) — compra $8.88 · venta $11.55 · AVISO: sin código de barras
+- **Reumatol** (`FC-2E5B7248`) — compra $11.00 · venta $17.61 · AVISO: sin código de barras
+- **S** (`FC-77FE5C83`) — compra $32.41 · venta $42.14 · AVISO: sin código de barras
+- **S** (`FC-0E0A9E42`) — compra $47.99 · venta $62.39 · AVISO: sin código de barras
+- **Sibicos** (`FC-F817BC3A`) — compra $33.65 · venta $43.75 · AVISO: sin código de barras
+- **Sumitex Intravenoso- Pu X 25 Mm C/1 Azul** (`FC-BE0A0E46`) — compra $9.26 · venta $12.04 · AVISO: sin código de barras
+- **Susp 125 Mg/Ml** (`FC-6C2878CF`) — compra $130.24 · venta $169.32 · AVISO: sin código de barras
+- **Terficho** (`FC-F967863B`) — compra $46.05 · venta $59.87 · AVISO: sin código de barras
+- **Tratidri** (`FC-3E863E37`) — compra $47.47 · venta $61.72 · AVISO: sin código de barras
+- **Tropharma** (`FC-86A95D07`) — compra $44.53 · venta $57.89 · AVISO: sin código de barras
+- **Tusilen Ad 1 Ibe 240/30/50Mg/100** (`FC-1DAD5EF1`) — compra $24.22 · venta $31.49 · AVISO: sin código de barras
+- **Ursodesoxicolico** (`FC-405A75E3`) — compra $217.23 · venta $282.40 · AVISO: sin código de barras
+- **Valclan** (`FC-022543CD`) — compra $37.22 · venta $48.39 · AVISO: sin código de barras
+- **Valclan** (`FC-D06E54FE`) — compra $51.18 · venta $66.54 · AVISO: sin código de barras
+- **Valgab 3 Ibe /6Ml** (`FC-D11D586A`) — compra $19.41 · venta $25.24 · AVISO: sin código de barras
+- **Valnait Capsulas** (`FC-BE2ACF63`) — compra $4.56 · venta $5.93 · AVISO: sin código de barras
+- **Vandil** (`FC-930E0B1B`) — compra $20.58 · venta $26.76 · AVISO: sin código de barras
+- **Vanmoxol** (`FC-4C621D07`) — compra $18.03 · venta $28.85 · AVISO: sin código de barras
+- **Vernisen** (`FC-174824A0`) — compra $12.38 · venta $16.10 · AVISO: sin código de barras
+- **Wermy** (`FC-759A5EF9`) — compra $24.89 · venta $32.36 · AVISO: sin código de barras
+- **Wermy** (`FC-50D044FF`) — compra $24.51 · venta $31.87 · AVISO: sin código de barras
+- **Wexpec** (`FC-69A3C416`) — compra $16.65 · venta $21.65 · AVISO: sin código de barras
+- **Zitriasol** (`FC-A23F290E`) — compra $34.61 · venta $55.38 · AVISO: sin código de barras
+- **Zukedib** (`FC-3D0ED22B`) — compra $27.98 · venta $36.38 · AVISO: sin código de barras
+- **Zukedib** (`FC-52D2A43A`) — compra $29.08 · venta $37.81 · AVISO: sin código de barras
+
+## Fuera de mercado (vs Similares/Del Ahorro) (0)
+_Ninguno_
+
+## Desvío vs precio teórico (costo×1.6) — sin mercado externo
+### Más caros que teórico (+20% o más) — 5
+- **Alcohol Etilico Rojo 96°** (`FC-68990023`) | Botiquín | costo $28.20 · venta $1082.96 · teórico $45.12 · **+2300.2%**
+- **Gotero cristal** (`FC-07521317`) | Botiquín | costo $1.20 · venta $7.00 · teórico $1.92 · **+264.6%**
+- **Desodorante Obao Men Tattoo Rebel (Hombre)** (`FC-55280956`) | Higiene | costo $25.83 · venta $87.49 · teórico $41.33 · **+111.7%**
+- **Dolo-Neurobión** (`FC-98217659`) | Analgésico | costo $269.28 · venta $694.89 · teórico $430.85 · **+61.3%**
+- **Vicks Vaporub pomada 12 g** (`FC-01246730`) | Botiquín | costo $21.25 · venta $42.00 · teórico $34.00 · **+23.5%**
+
+### Más baratos que teórico (−20% o más) — 2
+- **Jabon Dove Exfoliacion** (`FC-56371159`) | Otro | costo $30.54 · venta $35.00 · teórico $48.86 · **-28.4%**
+- **Jabon Dove Original** (`FC-38891190`) | Higiene | costo $30.20 · venta $37.00 · teórico $48.33 · **-23.4%**
+
+## Margen bajo vs expectativa por categoría (4)
+- **Jabon Dove Exfoliacion** (`FC-56371159`) | Otro | costo $30.54 · venta $35.00 · Margen 12.7% bajo (esperado ~25%+)
+- **Jabon Dove Original** (`FC-38891190`) | Higiene | costo $30.20 · venta $37.00 · Margen 18.4% bajo (esperado ~28%+)
+- **Perilla N6** (`FC-A871D831`) | Botiquín | costo $22.50 · venta $30.38 · Margen 25.9% bajo (esperado ~35%+)
+- **Sal de uvas** (`FC-95451096`) | Otro | costo $37.90 · venta $51.17 · Margen 25.9% bajo (esperado ~35%+)
+
+## Nombres duplicados con precio/costo distinto (42)
+- **Quirmex** — `FC-03406501` compra=18.62 venta=29.80 · `FC-03406600` compra=89.70 venta=143.53 · `FC-34067471` compra=8.72 venta=13.96 · `FC-34067781` compra=23.72 venta=37.96 · `FC-34067851` compra=17.54 venta=28.07 · `FC-34063651` compra=11.70 venta=19.00 · `FC-34067301` compra=6.80 venta=10.00 · `FC-29003221` compra=3.70 venta=5.93
+- **Alcohol Etilico Azul 71.6** — `FC-68901131` compra=41.00 venta=62.00 · `FC-86901100` compra=7.40 venta=13.00 · `FC-68901124` compra=120.00 venta=180.00 · `FC-68901117` compra=11.30 venta=17.00
+- **Alcohol Etilico Rojo 96°** — `FC-68960257` compra=53.20 venta=80.00 · `FC-68900226` compra=15.68 venta=24.00 · `FC-68990023` compra=28.20 venta=1082.96 · `FC-68900264` compra=8.10 venta=14.00
+- **Cefagen** — `FC-2EDC6E3B` compra=82.09 venta=106.72 · `FC-443C330E` compra=144.13 venta=187.37 · `FC-E374F23E` compra=48.48 venta=63.03 · `FC-A455EE80` compra=74.58 venta=96.96
+- **Fasiclor** — `FC-9538F7D6` compra=81.18 venta=105.54 · `FC-01B2F362` compra=49.85 venta=64.81 · `FC-E4EFC4C2` compra=137.92 venta=179.30 · `FC-F3E734A0` compra=63.44 venta=82.48
+- **I.M** — `FC-BE76D409` compra=19.72 venta=25.64 · `FC-07F04F88` compra=19.43 venta=25.26 · `FC-22B18244` compra=31.06 venta=40.38 · `FC-C636D8EA` compra=9.80 venta=12.75
+- **Ajolotius** — `FC-52400267` compra=73.21 venta=117.14 · `FC-62746698` compra=58.90 venta=80.00 · `FC-62746612` compra=89.20 venta=115.96
+- **Amikacina** — `FC-347A49C7` compra=19.46 venta=31.14 · `FC-11294615` compra=31.94 venta=51.11 · `FC-1FEA2FB7` compra=29.21 venta=46.74
+- **Amlodipino** — `FC-97BEFA1A` compra=32.52 venta=42.28 · `FC-4A0245DA` compra=32.52 venta=42.28 · `FC-3B001F9B` compra=9.04 venta=11.76
+- **Ampicilina** — `FC-D210172A` compra=25.48 venta=40.77 · `FC-F82A6E4B` compra=27.05 venta=43.28 · `FC-7F90064A` compra=20.37 venta=32.60
+- **Beneventol** — `FC-4BD80686` compra=88.17 venta=141.08 · `FC-369D1689` compra=51.43 venta=82.29 · `FC-9B93AC4C` compra=97.60 venta=156.16
+- **Clamoxin** — `FC-5F30F9D4` compra=48.48 venta=63.03 · `FC-6519183A` compra=27.89 venta=36.26 · `FC-F48FF7EF` compra=35.62 venta=46.31
+- **Acroxil-C** — `FC-05965071` compra=24.05 venta=31.27 · `FC-85BDBD3D` compra=25.42 venta=33.05
+- **Alka-Seltzer** — `FC-84999001` compra=174.00 venta=278.41 · `FC-08443026` compra=262.00 venta=340.60
+- **Amifarin** — `FC-9F67BB73` compra=27.00 venta=35.10 · `FC-D5AC44CA` compra=45.78 venta=59.52
+- **Amoxicilina** — `FC-F4E9C71F` compra=72.03 venta=115.25 · `FC-A0D320D1` compra=18.37 venta=29.40
+- **Aspirina** — `FC-08895196` compra=9.50 venta=13.00 · `FC-08491074` compra=124.80 venta=163.00
+- **Bactiver** — `FC-AE5EEDF7` compra=48.65 venta=63.25 · `FC-DEAF33B0` compra=21.28 venta=27.67
+- **Budesonida** — `FC-281E0F22` compra=153.72 venta=199.84 · `FC-447B30F9` compra=131.38 venta=170.80
+- **Cefalver** — `FC-40CE757D` compra=62.48 venta=81.23 · `FC-492D652F` compra=43.35 venta=56.36
+- **Clindamicina** — `FC-9A4E4C31` compra=88.42 venta=141.48 · `FC-CF18C740` compra=30.54 venta=48.87
+- **Cloxan** — `FC-4F737E93` compra=44.04 venta=57.26 · `FC-1DA570E3` compra=9.75 venta=12.68
+- **Dex** — `FC-2E79C2D8` compra=61.33 venta=79.73 · `FC-1CF27DC9` compra=36.86 venta=47.92
+- **Erispan** — `FC-DF8ADDAB` compra=22.15 venta=28.80 · `FC-50AC2C82` compra=24.45 venta=31.79
+- **Evenflo Colors** — `FC-75125811` compra=13.40 venta=21.44 · `FC-27512574` compra=15.80 venta=25.28
+- **Flanax** — `FC-08426944` compra=117.11 venta=187.38 · `FC-84973401` compra=182.70 venta=237.51
+- **Gentamicina** — `FC-63975795` compra=17.58 venta=28.13 · `FC-60F627D5` compra=52.57 venta=84.12
+- **Gimalxina** — `FC-428A228F` compra=23.57 venta=37.72 · `FC-974EE5FD` compra=27.09 venta=43.35
+- **Hask Anti Comezon** — `FC-35231237` compra=73.76 venta=104.00 · `FC-35168991` compra=67.00 venta=94.00
+- **Irbesartan** — `FC-BDB2E087` compra=70.49 venta=112.79 · `FC-262F2A30` compra=43.98 venta=70.37
+- **Jaloma** — `FC-84437151` compra=19.77 venta=28.00 · `FC-84431050` compra=11.53 venta=17.00
+- **Lesaclor** — `FC-B69FCBF4` compra=146.11 venta=189.95 · `FC-B25094C4` compra=44.43 venta=57.76
+- **Ne** — `FC-89794961` compra=125.80 venta=163.54 · `FC-28979502` compra=124.40 venta=161.72
+- **Nido** — `FC-51067711` compra=112.70 venta=180.33 · `FC-59225411` compra=74.19 venta=118.71
+- **Ovisen** — `FC-F7DB080D` compra=20.33 venta=26.43 · `FC-FD92D114` compra=10.19 venta=13.25
+- **Penipot** — `FC-3A4583F3` compra=14.07 venta=18.30 · `FC-F183C6E9` compra=19.44 venta=25.28
+- **Pentiver** — `FC-B72A6420` compra=27.06 venta=35.18 · `FC-7AA38F97` compra=31.20 venta=40.56
+- **S** — `FC-77FE5C83` compra=32.41 venta=42.14 · `FC-0E0A9E42` compra=47.99 venta=62.39
+- **Tempra** — `FC-58792792` compra=59.90 venta=96.00 · `FC-54521161` compra=48.80 venta=78.08
+- **Valclan** — `FC-022543CD` compra=37.22 venta=48.39 · `FC-D06E54FE` compra=51.18 venta=66.54

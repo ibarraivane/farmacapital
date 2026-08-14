@@ -2,12 +2,10 @@ import { useState, useEffect, useCallback } from "react";
 import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
 import { showToast } from "./ui";
-import { inventarioProductMatchesBusqueda } from "./utils/fuzzySearch";
 
 const BRAND = { primary:"#0D1B2A", secondary:"#1E3ABA", accent:"#16a34a", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
 
 const fmt = n => `$${parseFloat(n||0).toLocaleString("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2})}`;
-const pct = (a,b) => b>0 ? (((a-b)/b)*100).toFixed(1) : null;
 
 const TIPOS = [
   {val:"descuento_pct",  label:"Descuento %"},
@@ -251,126 +249,43 @@ function Promociones({ productos }) {
   );
 }
 
-// ── Sección 2: Comparación de precios ────────────────────────
-function CompetidoresPrecios({ productos, onReload }) {
+// ── Redirige a Inventario → Referencias de precio ─────────────
+function ReferenciasPrecioRedirect({ onNavigate }) {
   const C = C_LIGHT;
-  const [editId,  setEditId]  = useState(null);
-  const [editForm,setEditForm]= useState({precio_similares:"",precio_del_ahorro:""});
-  const [saving,  setSaving]  = useState(false);
-  const [busq,    setBusq]    = useState("");
-
-  const fil = productos.filter(p => inventarioProductMatchesBusqueda(p, busq));
-
-  const abrirEditar = p => {
-    setEditId(p.id);
-    setEditForm({ precio_similares:p.precio_similares||"", precio_del_ahorro:p.precio_del_ahorro||"" });
-  };
-
-  const guardar = async (id) => {
-    setSaving(true);
-    const tok = sessionStorage.getItem("farmacapital_session_token");
-    const { error } = await supabase.rpc("admin_editar_producto", {
-      p_session_token: tok,
-      p_producto_id:   id,
-      p_patch: {
-        precio_similares:            editForm.precio_similares ? parseFloat(editForm.precio_similares) : null,
-        precio_del_ahorro:           editForm.precio_del_ahorro ? parseFloat(editForm.precio_del_ahorro) : null,
-        fecha_actualizacion_precios: new Date().toISOString().split("T")[0],
-      },
-    });
-    setSaving(false);
-    if (error) { showToast("Error: "+error.message,"error"); return; }
-    setEditId(null);
-    onReload();
-  };
-
-  const masBarato  = fil.filter(p=>(p.precio_similares&&p.precio<p.precio_similares)||(p.precio_del_ahorro&&p.precio<p.precio_del_ahorro)).length;
-  const masCaro    = fil.filter(p=>(p.precio_similares&&p.precio>p.precio_similares)||(p.precio_del_ahorro&&p.precio>p.precio_del_ahorro)).length;
-  const sinDatos   = fil.filter(p=>!p.precio_similares&&!p.precio_del_ahorro).length;
-
-  const diffColor = (farmacapital, comp) => {
-    if (!comp) return null;
-    return farmacapital < comp ? C.green : farmacapital > comp ? C.red : C.amber;
+  const ir = () => {
+    if (onNavigate) {
+      onNavigate("inv", { tab: "precios" });
+      return;
+    }
+    try { sessionStorage.setItem("farmacapital_inv_tab", "precios"); } catch (_) { /* noop */ }
+    showToast("Abre Inventario → pestaña «Referencias de precio»", "info");
   };
 
   return (
-    <div>
-      <div style={{display:"flex",gap:12,marginBottom:16,flexWrap:"wrap",alignItems:"center"}}>
-        <input placeholder="🔍 Buscar producto…" value={busq} onChange={e=>setBusq(e.target.value)}
-          style={{...inpS,maxWidth:220,width:"auto"}}/>
-        <div style={{display:"flex",gap:8,marginLeft:"auto",flexWrap:"wrap"}}>
-          <span style={{padding:"4px 12px",borderRadius:20,fontSize:11,fontWeight:700,background:C.greenDim,color:C.green}}>✅ Más barato: {masBarato}</span>
-          <span style={{padding:"4px 12px",borderRadius:20,fontSize:11,fontWeight:700,background:C.redDim,color:C.red}}>⚠️ Más caro: {masCaro}</span>
-          <span style={{padding:"4px 12px",borderRadius:20,fontSize:11,fontWeight:700,background:C.cardDark,color:C.textMid}}>Sin datos: {sinDatos}</span>
-        </div>
+    <div style={{
+      background: C.card, borderRadius: 12, border: `1px solid ${C.border}`,
+      padding: 32, textAlign: "center", maxWidth: 480, margin: "0 auto",
+    }}>
+      <div style={{ fontSize: 40, marginBottom: 12 }}>📊</div>
+      <div style={{ color: C.text, fontWeight: 800, fontSize: 16, marginBottom: 8 }}>
+        Precios vs competencia se movieron
       </div>
-
-      <div style={{overflowX:"auto",borderRadius:12,border:`1px solid ${C.border}`}}>
-        <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-          <thead>
-            <tr style={{background:C.cardDark}}>
-              {["Producto","Precio FarmaCapital","Similares","Dif. Similares","Del Ahorro","Dif. Del Ahorro","Actualizado","Acciones"].map(h=>(
-                <th key={h} style={{padding:"9px 12px",textAlign:"left",color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {!fil.length && <tr><td colSpan={8} style={{textAlign:"center",padding:32,color:C.textMid}}>Sin productos</td></tr>}
-            {fil.map((p,i)=>{
-              const dSim = pct(p.precio, p.precio_similares);
-              const dAho = pct(p.precio, p.precio_del_ahorro);
-              const cSim = diffColor(p.precio, p.precio_similares);
-              const cAho = diffColor(p.precio, p.precio_del_ahorro);
-              return (
-                <tr key={p.id} style={{background:i%2===0?"transparent":"#f8fafc"}}>
-                  <td style={{padding:"8px 12px",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`,maxWidth:180}}>{p.nombre}</td>
-                  <td style={{padding:"8px 12px",color:C.blue,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{fmt(p.precio)}</td>
-                  {editId===p.id ? (
-                    <>
-                      <td style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`}}>
-                        <input type="number" value={editForm.precio_similares} onChange={e=>setEditForm(f=>({...f,precio_similares:e.target.value}))}
-                          style={{...inpS,width:90,padding:"5px 8px"}} placeholder="0.00"/>
-                      </td>
-                      <td style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`}}>—</td>
-                      <td style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`}}>
-                        <input type="number" value={editForm.precio_del_ahorro} onChange={e=>setEditForm(f=>({...f,precio_del_ahorro:e.target.value}))}
-                          style={{...inpS,width:90,padding:"5px 8px"}} placeholder="0.00"/>
-                      </td>
-                      <td style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`}}>—</td>
-                      <td style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`}}>—</td>
-                      <td style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>
-                        <button onClick={()=>guardar(p.id)} disabled={saving} style={{padding:"4px 10px",borderRadius:6,border:"none",background:BRAND.gradient,color:"#fff",cursor:"pointer",fontSize:11,fontWeight:700,marginRight:4}}>{saving?"…":"💾"}</button>
-                        <button onClick={()=>setEditId(null)} style={{padding:"4px 10px",borderRadius:6,border:`1px solid ${C.border}`,background:"transparent",color:C.textMid,cursor:"pointer",fontSize:11,fontWeight:700}}>✕</button>
-                      </td>
-                    </>
-                  ) : (
-                    <>
-                      <td style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`,color:cSim||C.textMid}}>{p.precio_similares?fmt(p.precio_similares):"—"}</td>
-                      <td style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`}}>
-                        {dSim ? <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:(cSim||C.textMid)+"18",color:cSim||C.textMid}}>{dSim>0?"+":""}{dSim}%</span> : "—"}
-                      </td>
-                      <td style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`,color:cAho||C.textMid}}>{p.precio_del_ahorro?fmt(p.precio_del_ahorro):"—"}</td>
-                      <td style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`}}>
-                        {dAho ? <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:(cAho||C.textMid)+"18",color:cAho||C.textMid}}>{dAho>0?"+":""}{dAho}%</span> : "—"}
-                      </td>
-                      <td style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`,color:C.textDim,fontSize:11}}>{p.fecha_actualizacion_precios||"—"}</td>
-                      <td style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`}}>
-                        <button onClick={()=>abrirEditar(p)} style={{padding:"4px 10px",borderRadius:6,border:`1px solid ${C.blue}30`,background:"#eff6ff",color:C.blue,cursor:"pointer",fontSize:11,fontWeight:700}}>✏️ Actualizar</button>
-                      </td>
-                    </>
-                  )}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      <p style={{ color: C.textMid, fontSize: 13, lineHeight: 1.5, margin: "0 0 20px" }}>
+        Compra (Exprezo, Marzam, Nadro, Levic) y venta (Del Ahorro, Similares) viven en{" "}
+        <strong>Inventario → Referencias de precio</strong>.
+      </p>
+      <button type="button" onClick={ir} style={{
+        padding: "10px 20px", borderRadius: 8, border: "none",
+        background: BRAND.gradient, color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer",
+      }}>
+        Ir a Referencias de precio
+      </button>
     </div>
   );
 }
 
 // ── Módulo principal ──────────────────────────────────────────
-export default function PromocionesModule() {
+export default function PromocionesModule({ onNavigate }) {
   const C = C_LIGHT;
   const inpS = mkInpS(C);
   const labelS = mkLabelS(C);
@@ -380,15 +295,16 @@ export default function PromocionesModule() {
   const [productos, setProductos]= useState([]);
 
   const fetchProds = useCallback(async () => {
-    const fullCols = "id,nombre,precio,precio_similares,precio_del_ahorro,fecha_actualizacion_precios";
-    const baseCols = "id,nombre,precio";
-    const first = await supabase.from("productos").select(fullCols).eq("activo",true).order("nombre");
-    if (first.error) {
-      const fallback = await supabase.from("productos").select(baseCols).eq("activo",true).order("nombre");
-      setProductos(fallback.data || []);
+    const { data, error } = await supabase
+      .from("productos")
+      .select("id,nombre,precio")
+      .eq("activo", true)
+      .order("nombre");
+    if (error) {
+      showToast("Error cargando productos: " + error.message, "error");
       return;
     }
-    setProductos(first.data || []);
+    setProductos(data || []);
   }, []);
 
   useEffect(() => { fetchProds(); }, [fetchProds]);
@@ -411,7 +327,7 @@ export default function PromocionesModule() {
       </div>
 
       {tab==="promos"  && <Promociones productos={productos}/>}
-      {tab==="precios" && <CompetidoresPrecios productos={productos} onReload={fetchProds}/>}
+      {tab==="precios" && <ReferenciasPrecioRedirect onNavigate={onNavigate}/>}
     </div>
   );
 }

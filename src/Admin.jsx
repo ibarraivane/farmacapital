@@ -2093,7 +2093,7 @@ export default function FarmaCapitalAdmin(){
       case "rrhh": return <RRHHModule/>;
       case "caja":  return <CorteCajaModule usuario={usuario}/>;
       case "cof":      return <COFEPRISModule/>;
-      case "promo":    return <PromocionesModule/>;
+      case "promo":    return <PromocionesModule onNavigate={setPageAndSave}/>;
       case "dev":      return <DevolucionesModule usuario={usuario}/>;
       case "fact":     return <FacturacionModule/>;
       case "banners": return <BannersAdmin/>;
