@@ -8,6 +8,7 @@ import {
   FUENTE_META,
   buildReferenciasPorProducto,
   dedupeReferenciasActuales,
+  REFERENCIA_ANULADA_NOTA,
   diffPctCompra,
   diffPctVenta,
   calcMejorCompra,
@@ -292,6 +293,7 @@ function EditablePrecioCell({
   onCommit,
   onCancel,
   tdStyle,
+  editTitle = "Clic para editar",
 }) {
   const isEditing = inlineEdit?.key === cellKey;
   const rowBg = tdStyle?.background;
@@ -329,7 +331,7 @@ function EditablePrecioCell({
   return (
     <td
       style={{ ...tdStyle, textAlign: align, cursor: "pointer" }}
-      title="Clic para editar"
+      title={editTitle}
       onMouseDown={(e) => e.preventDefault()}
       onClick={(e) => {
         e.stopPropagation();
@@ -481,6 +483,7 @@ function TablaCompra({
                       onDraft={onDraft}
                       onCommit={onCommit}
                       onCancel={onCancel}
+                      editTitle="Clic para editar. Deja vacío para quitar la referencia."
                       tdStyle={{ ...tdS(id, { background: rowBg }) }}
                       display={precio != null ? (
                         <div>
@@ -609,6 +612,7 @@ function TablaVenta({
                   onDraft={onDraft}
                   onCommit={onCommit}
                   onCancel={onCancel}
+                  editTitle="Clic para editar. Deja vacío para quitar la referencia."
                   tdStyle={{ ...tdS("fahorro", { background: rowBg }) }}
                   display={fah != null ? (
                     <>
@@ -628,6 +632,7 @@ function TablaVenta({
                   onDraft={onDraft}
                   onCommit={onCommit}
                   onCancel={onCancel}
+                  editTitle="Clic para editar. Deja vacío para quitar la referencia."
                   tdStyle={{ ...tdS("similares", { background: rowBg }) }}
                   display={sim != null ? (
                     <>
@@ -793,7 +798,7 @@ export default function PreciosReferenciaModule() {
     if (viewRes.error) {
       const rawRes = await supabase
         .from("producto_precios_referencia")
-        .select("producto_id,fuente,tipo,precio,fecha,origen,confianza,created_at,nombre_fuente")
+        .select("producto_id,fuente,tipo,precio,fecha,origen,confianza,created_at,nombre_fuente,notas")
         .order("fecha", { ascending: false })
         .limit(10000);
       if (rawRes.error) {
@@ -954,10 +959,34 @@ export default function PreciosReferenciaModule() {
         const fuente = parts[2];
         const meta = FUENTE_META[fuente];
         if (!meta) throw new Error("Fuente desconocida");
-        if (num == null) {
-          showToast("Indica un precio de referencia", "error");
+
+        // Vacío o 0 = quitar referencia (tombstone en historial)
+        if (isEmpty || num === 0) {
+          const { error } = await supabase.from("producto_precios_referencia").insert({
+            producto_id: productoId,
+            fuente,
+            tipo: meta.tipo,
+            precio: 0,
+            fecha,
+            origen: "manual",
+            confianza: 0,
+            notas: REFERENCIA_ANULADA_NOTA,
+          });
+          if (error) throw error;
+          setRefsByProduct((prev) => {
+            const next = { ...(prev[productoId] || {}) };
+            delete next[fuente];
+            return { ...prev, [productoId]: next };
+          });
+          showToast(`Referencia ${meta.label} eliminada`, "success");
           return;
         }
+
+        if (!Number.isFinite(num) || num <= 0) {
+          showToast("Precio de referencia inválido", "error");
+          return;
+        }
+
         const { error } = await supabase.from("producto_precios_referencia").insert({
           producto_id: productoId,
           fuente,

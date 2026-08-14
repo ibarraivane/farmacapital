@@ -6,6 +6,19 @@
 export const FUENTES_COMPRA = ["exprezo", "marzam", "nadro", "levic"];
 export const FUENTES_VENTA = ["fahorro", "similares"];
 
+/** Fila tombstone al borrar una referencia manualmente (precio NOT NULL en BD). */
+export const REFERENCIA_ANULADA_NOTA = "__anulado__";
+
+export function esReferenciaAnulada(row) {
+  return row?.notas === REFERENCIA_ANULADA_NOTA;
+}
+
+export function esReferenciaVigente(row) {
+  if (!row || esReferenciaAnulada(row)) return false;
+  const precio = parseFloat(row.precio);
+  return Number.isFinite(precio) && precio > 0;
+}
+
 export const FUENTE_META = {
   exprezo: { label: "Exprezo", tipo: "compra", listaDistribuidor: false },
   marzam: { label: "Marzam", tipo: "compra", listaDistribuidor: true },
@@ -87,6 +100,7 @@ export function margenToneColors(tone, C) {
 export function buildReferenciasPorProducto(rows) {
   const byProduct = {};
   for (const row of rows || []) {
+    if (!esReferenciaVigente(row)) continue;
     const pid = row.producto_id;
     if (!pid) continue;
     if (!byProduct[pid]) byProduct[pid] = {};
@@ -99,6 +113,7 @@ export function buildReferenciasPorProducto(rows) {
 export function dedupeReferenciasActuales(rows) {
   const best = new Map();
   for (const row of rows || []) {
+    if (!esReferenciaVigente(row)) continue;
     const key = `${row.producto_id}:${row.fuente}`;
     const prev = best.get(key);
     if (!prev) {
