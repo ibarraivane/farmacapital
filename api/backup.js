@@ -16,9 +16,29 @@
  *
  * Manual (dispara workflow):
  *   curl -X POST https://TU-DOMINIO/api/backup -H "Authorization: Bearer $CRON_SECRET"
+ *
+ * Carga inicial referencias de precio (87 SKUs Claude/Exprezo):
+ *   curl -X POST "https://TU-DOMINIO/api/backup?action=referencias&force=1" -H "Authorization: Bearer $CRON_SECRET"
  */
 
 'use strict';
+
+const { getSupabaseAdminConfig } = require('./_lib/supabaseAdmin');
+const { runBootstrapReferencias } = require('./_lib/bootstrapReferencias');
+
+function getQuery(req) {
+  try {
+    const full = req.url || '';
+    const q = full.includes('?') ? full.split('?')[1] : '';
+    return new URLSearchParams(q);
+  } catch {
+    return new URLSearchParams();
+  }
+}
+
+function isReferenciasBootstrap(req) {
+  return getQuery(req).get('action') === 'referencias';
+}
 
 function sanitize(s) {
   if (!s) return '';
@@ -93,6 +113,24 @@ module.exports = async function handler(req, res) {
       ms: Date.now() - startedAt,
       ts: new Date().toISOString(),
     });
+    return;
+  }
+
+  if (isReferenciasBootstrap(req)) {
+    const { supabaseUrl, serviceKey } = getSupabaseAdminConfig();
+    if (!supabaseUrl || !serviceKey) {
+      res.status(500).json({ ok: false, error: 'supabase_not_configured' });
+      return;
+    }
+    try {
+      const force = getQuery(req).get('force') === '1';
+      const result = await runBootstrapReferencias(supabaseUrl, serviceKey, { force });
+      res.status(200).json({ ...result, ms: Date.now() - startedAt, ts: new Date().toISOString() });
+    } catch (err) {
+      const msg = sanitize((err && err.message) || String(err));
+      console.error('[api/backup] referencias bootstrap failed:', msg.slice(0, 200));
+      res.status(500).json({ ok: false, error: msg.slice(0, 300) });
+    }
     return;
   }
 

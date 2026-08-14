@@ -29,7 +29,7 @@ async function main() {
     process.exit(1);
   }
   const base = process.env.BOOTSTRAP_URL || 'https://www.farmacapital.mx';
-  const r = await fetch(`${base}/api/admin/bootstrap-referencias?force=1`, {
+  const r = await fetch(`${base}/api/backup?action=referencias&force=1`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${secret}` },
   });
