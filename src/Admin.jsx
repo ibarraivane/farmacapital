@@ -24,7 +24,6 @@ const C = C_LIGHT;
 // ── Lazy loading — módulos se cargan solo cuando se necesitan ──
 const RRHHModule       = lazy(()=>import("./RRHHModule"));
 const InventarioHub    = lazy(()=>import("./InventarioHub"));
-const InventarioModule = lazy(()=>import("./modules/inventario/InventarioModule"));
 const MiDia            = lazy(()=>import("./modules/sales/MiDia"));
 const POS              = lazy(()=>import("./modules/sales/pos/POS"));
 const CorteCajaModule  = lazy(()=>import("./CorteCajaModule"));
@@ -2088,8 +2087,9 @@ export default function FarmaCapitalAdmin(){
       case "trans":     return <TransaccionesTab usuario={usuario} showConfirm={showConfirm} />;
       case "ped_online":
         return <POS negocio={neg} usuario={usuario} initialTab="online" onNavigate={setPageAndSave} />;
-      case "inventario": return <InventarioModule />;
-      case "inv":  return <InventarioHub initialTab={invInitialTab}/>;
+      case "inventario":
+      case "inv":
+        return <InventarioHub initialTab={invInitialTab}/>;
       case "rrhh": return <RRHHModule/>;
       case "caja":  return <CorteCajaModule usuario={usuario}/>;
       case "cof":      return <COFEPRISModule/>;
