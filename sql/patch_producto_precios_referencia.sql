@@ -124,4 +124,8 @@ GRANT SELECT, INSERT ON public.producto_precios_referencia TO anon, authenticate
 GRANT SELECT, INSERT ON public.importaciones_referencia TO anon, authenticated;
 GRANT SELECT ON public.fuentes_precio TO anon, authenticated;
 
+-- Secuencias BIGSERIAL (sin esto falla INSERT vía REST/UI con anon key: 42501)
+GRANT USAGE, SELECT ON SEQUENCE public.importaciones_referencia_id_seq TO anon, authenticated;
+GRANT USAGE, SELECT ON SEQUENCE public.producto_precios_referencia_id_seq TO anon, authenticated;
+
 COMMIT;
