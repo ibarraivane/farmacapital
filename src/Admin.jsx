@@ -49,9 +49,17 @@ class ModuleErrorBoundary extends React.Component {
         <div style={{fontSize:48,marginBottom:16}}>⚠️</div>
         <div style={{color:"#0f172a",fontWeight:700,fontSize:16,marginBottom:8}}>Error al cargar este módulo</div>
         <div style={{color:"#475569",fontSize:12,marginBottom:20,maxWidth:400,margin:"0 auto 20px",fontFamily:"monospace",background:"#f8fafc",padding:"8px 12px",borderRadius:6}}>{this.state.error?.message}</div>
-        <button onClick={()=>this.setState({hasError:false,error:null})}
+        <button onClick={()=>{
+          try {
+            const u = new URL(window.location.href);
+            u.searchParams.set("_fc_reload", String(Date.now()));
+            window.location.replace(u.toString());
+          } catch (_) {
+            window.location.reload();
+          }
+        }}
           style={{padding:"9px 20px",borderRadius:8,border:"none",background:"linear-gradient(135deg,#0D1B2A,#1E3ABA)",color:"#fff",fontWeight:700,cursor:"pointer"}}>
-          🔄 Reintentar
+          🔄 Recargar página
         </button>
       </div>
     );
