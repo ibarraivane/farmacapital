@@ -22,6 +22,8 @@
 
 'use strict';
 
+const whatsappWebhook = require('./webhooks/whatsapp');
+
 function normalizeSupabaseProjectUrl(url) {
   if (url == null || typeof url !== 'string') return url;
   let u = url.trim().replace(/\/+$/g, '');
@@ -47,6 +49,14 @@ function sanitizeError(err) {
 }
 
 module.exports = async function handler(req, res) {
+  const hubMode = req.query?.['hub.mode'];
+  const hasMetaSignature =
+    req.headers['x-hub-signature-256'] || req.headers['X-Hub-Signature-256'];
+
+  if (hubMode || (req.method === 'POST' && hasMetaSignature)) {
+    return whatsappWebhook(req, res);
+  }
+
   const startedAt = Date.now();
 
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
@@ -104,4 +114,8 @@ module.exports = async function handler(req, res) {
       ts: new Date().toISOString(),
     });
   }
+};
+
+module.exports.config = {
+  api: { bodyParser: false },
 };

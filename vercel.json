@@ -34,7 +34,7 @@
   "rewrites": [
     {
       "source": "/api/webhooks/whatsapp",
-      "destination": "/api/webhook-whatsapp"
+      "destination": "/api/health"
     },
     {
       "source": "/api/whatsapp/send",
