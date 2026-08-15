@@ -10,7 +10,9 @@ Número temporal Meta (API de prueba): Phone Number ID `1338650695990173` (+1 55
 |------|--------|-----|
 | `/api/webhooks/whatsapp` | GET | Verificación Meta (`hub.verify_token` + `hub.challenge`) |
 | `/api/webhooks/whatsapp` | POST | Eventos entrantes y estados (requiere firma `X-Hub-Signature-256`) |
-| `/api/whatsapp/send` | POST | Envío manual protegido (Bearer `WHATSAPP_INTERNAL_SECRET`) |
+| `/api/whatsapp/send` | POST | Envío manual → rewrite a `/api/notifications/send?type=whatsapp` |
+
+**Límite Vercel Hobby:** máx. 12 funciones serverless. La lógica WhatsApp vive en `api/_lib/` (no cuenta); webhook y send usan rewrites a funciones existentes.
 
 URL pública del webhook: **https://www.farmacapital.mx/api/webhooks/whatsapp**
 

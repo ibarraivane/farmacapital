@@ -5,18 +5,8 @@ const {
   normalizePhoneE164,
   authorizeInternalSend,
   getWhatsAppCloudConfig,
-} = require('../_lib/whatsappCloud');
-const { getSupabaseAdminConfig, validateEmployeeSession } = require('../_lib/supabaseAdmin');
-
-async function safeJson(req) {
-  try {
-    if (!req?.body) return {};
-    if (typeof req.body === 'object') return req.body;
-    return JSON.parse(req.body || '{}');
-  } catch {
-    return {};
-  }
-}
+} = require('./whatsappCloud');
+const { getSupabaseAdminConfig, validateEmployeeSession } = require('./supabaseAdmin');
 
 async function authorizeSend(req, body) {
   const internal = authorizeInternalSend(req, body);
@@ -40,12 +30,7 @@ async function authorizeSend(req, body) {
   return { ok: false, reason: 'unauthorized' };
 }
 
-module.exports = async function handler(req, res) {
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
-    return res.status(405).json({ ok: false, error: 'method_not_allowed' });
-  }
-
+async function handleWhatsAppManualSend(req, res, body) {
   const cfg = getWhatsAppCloudConfig();
   if (!cfg.isConfigured) {
     return res.status(503).json({ ok: false, error: 'whatsapp_cloud_not_configured' });
@@ -59,7 +44,6 @@ module.exports = async function handler(req, res) {
     });
   }
 
-  const body = await safeJson(req);
   const auth = await authorizeSend(req, body);
   if (!auth.ok) {
     return res.status(401).json({ ok: false, error: auth.reason || 'unauthorized' });
@@ -104,4 +88,6 @@ module.exports = async function handler(req, res) {
     to: result.to,
     via: auth.via,
   });
-};
+}
+
+module.exports = { handleWhatsAppManualSend };

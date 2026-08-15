@@ -1,28 +1,10 @@
 /**
- * FARMACAPITAL — Health check
- *
- * Invocado por Vercel Cron diariamente para mantener vivo el proyecto de
- * Supabase Free (se pausa tras 7 días sin queries) y para monitoreo básico.
- *
- * También disponible manualmente: GET /api/health
- *
- * Respuesta esperada:
- *   200 { ok: true, db: "up", ts: "..." }
- *   503 { ok: false, db: "down", error: "..." }  ← sanitizado
- *
- * Variables de entorno esperadas (Vercel):
- *   SUPABASE_URL                o  REACT_APP_SUPABASE_URL
- *   SUPABASE_ANON_KEY           o  REACT_APP_SUPABASE_ANON_KEY
- *
- * Seguridad:
- *   - No requiere secret porque solo ejecuta "select 1" (no lee datos).
- *   - No loguea las credenciales.
- *   - Respuesta siempre cabe en <1KB.
+ * FARMACAPITAL — Health check + puente webhook WhatsApp (rewrite /api/webhooks/whatsapp)
  */
 
 'use strict';
 
-const whatsappWebhook = require('./webhooks/whatsapp');
+const { whatsappWebhookHandler } = require('./_lib/whatsappWebhookHandler');
 
 function normalizeSupabaseProjectUrl(url) {
   if (url == null || typeof url !== 'string') return url;
@@ -48,13 +30,13 @@ function sanitizeError(err) {
     .slice(0, 300);
 }
 
-module.exports = async function handler(req, res) {
+async function handler(req, res) {
   const hubMode = req.query?.['hub.mode'];
   const hasMetaSignature =
     req.headers['x-hub-signature-256'] || req.headers['X-Hub-Signature-256'];
 
   if (hubMode || (req.method === 'POST' && hasMetaSignature)) {
-    return whatsappWebhook(req, res);
+    return whatsappWebhookHandler(req, res);
   }
 
   const startedAt = Date.now();
@@ -70,11 +52,6 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    // Hacemos una query real a Postgres (no solo la raíz de PostgREST que
-    // sirve desde caché y nunca toca la base de datos).
-    // "select=id&limit=1" despierta Postgres si estaba en cold start.
-    // Si RLS bloquea el acceso anon, el error 401/403 sigue siendo útil:
-    // significa que Postgres ya respondió y ya está despierto.
     const url = `${SUPABASE_URL.replace(/\/$/, '')}/rest/v1/productos?select=id&limit=1`;
     const resp = await fetch(url, {
       method: 'GET',
@@ -85,8 +62,6 @@ module.exports = async function handler(req, res) {
       },
     });
 
-    // Cualquier respuesta de Postgres (200, 401, 406…) significa que Postgres despertó.
-    // Solo 503/504 o error de red significan que no respondió.
     if (resp.status === 503 || resp.status === 504) {
       res.status(503).json({
         ok: false,
@@ -114,8 +89,10 @@ module.exports = async function handler(req, res) {
       ts: new Date().toISOString(),
     });
   }
-};
+}
 
-module.exports.config = {
+handler.config = {
   api: { bodyParser: false },
 };
+
+module.exports = handler;

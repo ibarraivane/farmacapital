@@ -2,6 +2,7 @@
 
 const { sendWhatsapp, buildReceiptMessage, buildCitaConfirmacionMessage, pedidoQuiereWhatsAppRecibo } = require('../_lib/orderNotifications');
 const { getSupabaseAdminConfig, validateEmployeeSession } = require('../_lib/supabaseAdmin');
+const { handleWhatsAppManualSend } = require('../_lib/whatsappSendHandler');
 
 async function safeJson(req) {
   try {
@@ -17,9 +18,11 @@ function resolveNotificationType(req, body) {
   const q = String(req.query?.type || '').trim().toLowerCase();
   if (q === 'cita' || q === 'cita-confirmacion') return 'cita';
   if (q === 'order' || q === 'order-receipt') return 'order';
+  if (q === 'whatsapp' || q === 'whatsapp-send') return 'whatsapp';
   const b = String(body?.type || body?.notificationType || '').trim().toLowerCase();
   if (b === 'cita' || b === 'cita-confirmacion') return 'cita';
   if (b === 'order' || b === 'order-receipt') return 'order';
+  if (b === 'whatsapp' || b === 'whatsapp-send') return 'whatsapp';
   if (body?.citaId != null && body?.pedidoId == null) return 'cita';
   if (body?.pedidoId != null && body?.citaId == null) return 'order';
   return '';
@@ -244,6 +247,9 @@ module.exports = async function handler(req, res) {
   }
   if (type === 'order') {
     return handleOrderReceipt(req, res, body);
+  }
+  if (type === 'whatsapp') {
+    return handleWhatsAppManualSend(req, res, body);
   }
 
   return res.status(400).json({ ok: false, error: 'invalid_notification_type' });

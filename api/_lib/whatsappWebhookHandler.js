@@ -6,8 +6,8 @@ const {
   verifyMetaSignature,
   parseWebhookPayload,
   logWebhookEvents,
-} = require('../_lib/whatsappCloud');
-const { readRawBody } = require('../_lib/supabaseAdmin');
+} = require('./whatsappCloud');
+const { readRawBody } = require('./supabaseAdmin');
 
 function safeJsonBuffer(raw) {
   try {
@@ -17,7 +17,7 @@ function safeJsonBuffer(raw) {
   }
 }
 
-async function handler(req, res) {
+async function whatsappWebhookHandler(req, res) {
   const cfg = getWhatsAppCloudConfig();
 
   if (req.method === 'GET') {
@@ -69,8 +69,4 @@ async function handler(req, res) {
   return res.status(405).json({ ok: false, error: 'method_not_allowed' });
 }
 
-handler.config = {
-  api: { bodyParser: false },
-};
-
-module.exports = handler;
+module.exports = { whatsappWebhookHandler };

@@ -38,7 +38,7 @@
     },
     {
       "source": "/api/whatsapp/send",
-      "destination": "/api/whatsapp-send"
+      "destination": "/api/notifications/send?type=whatsapp"
     },
     {
       "source": "/api/notifications/cita-confirmacion",
