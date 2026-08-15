@@ -33,6 +33,14 @@
   ],
   "rewrites": [
     {
+      "source": "/api/webhooks/whatsapp",
+      "destination": "/api/webhook-whatsapp"
+    },
+    {
+      "source": "/api/whatsapp/send",
+      "destination": "/api/whatsapp-send"
+    },
+    {
       "source": "/api/notifications/cita-confirmacion",
       "destination": "/api/notifications/send?type=cita"
     },

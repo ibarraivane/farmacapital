@@ -12,7 +12,9 @@ Número temporal Meta (API de prueba): Phone Number ID `1338650695990173` (+1 55
 | `/api/webhooks/whatsapp` | POST | Eventos entrantes y estados (requiere firma `X-Hub-Signature-256`) |
 | `/api/whatsapp/send` | POST | Envío manual protegido (Bearer `WHATSAPP_INTERNAL_SECRET`) |
 
-URL pública del webhook: **https://farmacapital.mx/api/webhooks/whatsapp**
+URL pública del webhook: **https://www.farmacapital.mx/api/webhooks/whatsapp**
+
+> **Importante:** usa siempre el subdominio `www`. La URL sin `www` (`farmacapital.mx`) responde **308 Redirect** y Meta **no valida** webhooks con redirect — verás el error *"No se pudo validar la URL de devolución de llamada"*.
 
 ## Variables en Vercel (Sensitive — Production y Preview)
 
