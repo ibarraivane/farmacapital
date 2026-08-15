@@ -313,6 +313,21 @@ ALTAS_MANUALES: list[ProductoCanonico] = [
         subcategoria="Antidiarreico",
         notas="Chinoin; ticket OCR c71010885796151; lote 8FB077 cad feb 2028; PMP $251.40",
     ),
+    ProductoCanonico(
+        barcode="7501537103521",
+        nombre="Brunadol C/10",
+        marca="Brunadol",
+        presentacion="C/10 tabletas",
+        principio_activo="Paracetamol 300 mg + Naproxeno 275 mg",
+        forma_farmaceutica="Tabletas",
+        categoria="Medicamentos",
+        tipo="generico",
+        stock=4,
+        costo=19.31,
+        precio=72.00,
+        subcategoria="Analgesico / antipiretico / antinflamatorio",
+        notas="Bruluart; ticket $19.31/caja x4; lote 604188 cad abr 2028; PMP $72",
+    ),
 ]
 
 # Mapa OCR/ticket erróneo → EAN canónico (para patch masivo OCR)

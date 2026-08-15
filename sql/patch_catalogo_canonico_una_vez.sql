@@ -704,6 +704,48 @@ BEGIN
   END IF;
 END $$;
 
+-- INSERT FC-37103521 · 7501537103521 · Brunadol C/10
+DO $$
+DECLARE v_pid bigint; v_lid bigint;
+BEGIN
+  SELECT id INTO v_pid FROM public.productos
+  WHERE sku = 'FC-37103521' OR codigo_barras = '7501537103521' LIMIT 1;
+  IF v_pid IS NULL THEN
+    SELECT f.producto_id, f.lote_id INTO v_pid, v_lid
+    FROM public.create_producto_with_lote(
+      jsonb_build_object(
+        'nombre', 'Brunadol C/10',
+        'sku', 'FC-37103521',
+        'codigo_barras', '7501537103521',
+        'categoria', 'Medicamentos',
+        'tipo', 'generico',
+        'descripcion', 'Brunadol C/10 — alta canonica EAN 7501537103521',
+        'costo', 19.31,
+        'precio', 72.00,
+        'stock_minimo', 3,
+        'activo', true,
+        'requiere_receta', false
+      ),
+      4, NULL, NULL, 19.31, NULL
+    ) f;
+    UPDATE public.productos SET
+      marca = 'Brunadol',
+      presentacion = 'C/10 tabletas',
+      principio_activo = 'Paracetamol 300 mg + Naproxeno 275 mg',
+      forma_farmaceutica = 'Tabletas',
+      subcategoria = 'Analgesico / antipiretico / antinflamatorio',
+      stock = 4,
+      stock_unidades = 4
+    WHERE id = v_pid;
+  ELSE
+    UPDATE public.productos SET
+      codigo_barras = '7501537103521',
+      nombre = 'Brunadol C/10',
+      activo = true
+    WHERE id = v_pid;
+  END IF;
+END $$;
+
 -- Verificación
 SELECT sku, nombre, codigo_barras, stock, precio
 FROM public.productos
