@@ -1,84 +1,96 @@
-# WhatsApp — FarmaCapital
+# WhatsApp — FarmaCapital (Meta Cloud API)
 
-Número oficial: **55 6253 0631** (`5562530631`).
+Número comercial (app celular): **+52 55 6253 0631** — no migrar vía Meta hasta resolver coexistencia.
 
-## Qué hace hoy
+Número temporal Meta (API de prueba): Phone Number ID `1338650695990173` (+1 555-342-4819).
 
-| Canal | Comportamiento |
-|-------|----------------|
-| **Tienda web** | Botón flotante + footer/FAQ → abre chat con la farmacia |
-| **Checkout online** | Checkbox opt-in: envía recibo por WhatsApp tras pago MP (webhook) |
-| **POS mostrador** | Opcional: abre WhatsApp al cliente con ticket prellenado (manual) |
-| **Citas** | Confirmación automática vía API |
-| **Reset contraseña** | Enlace por WhatsApp vía API |
+## Endpoints (solo servidor Vercel)
 
-## Variables en Vercel (Production)
+| Ruta | Método | Uso |
+|------|--------|-----|
+| `/api/webhooks/whatsapp` | GET | Verificación Meta (`hub.verify_token` + `hub.challenge`) |
+| `/api/webhooks/whatsapp` | POST | Eventos entrantes y estados (requiere firma `X-Hub-Signature-256`) |
+| `/api/whatsapp/send` | POST | Envío manual protegido (Bearer `WHATSAPP_INTERNAL_SECRET`) |
 
-Ir a **Vercel → farmacapital → Settings → Environment Variables**:
+URL pública del webhook: **https://farmacapital.mx/api/webhooks/whatsapp**
 
-### Opción A — Twilio (recomendado México)
+## Variables en Vercel (Sensitive — Production y Preview)
 
-```
-WHATSAPP_PROVIDER=twilio
-TWILIO_ACCOUNT_SID=ACxxxxxxxx
-TWILIO_AUTH_TOKEN=xxxxxxxx
-TWILIO_WHATSAPP_FROM=whatsapp:+14155238886
-```
-
-En Twilio Console:
-1. Activar **WhatsApp Sandbox** (pruebas) o **WhatsApp Sender** aprobado (producción).
-2. El número `TWILIO_WHATSAPP_FROM` debe ser el remitente autorizado en Twilio.
-3. Para sandbox, cada cliente debe enviar el código de join al número sandbox antes de recibir mensajes.
-
-### Opción B — Meta Cloud API
-
-```
-WHATSAPP_PROVIDER=meta
-META_WHATSAPP_TOKEN=xxxxxxxx
-META_WHATSAPP_PHONE_ID=xxxxxxxx
+```env
+WHATSAPP_ACCESS_TOKEN=...
+WHATSAPP_PHONE_NUMBER_ID=1338650695990173
+WHATSAPP_BUSINESS_ACCOUNT_ID=2277703916307084
+WHATSAPP_VERIFY_TOKEN=...          # tú lo eliges; mismo valor en Meta webhook
+WHATSAPP_APP_SECRET=...            # Meta → App → Configuración → Básica → Clave secreta
+WHATSAPP_INTERNAL_SECRET=...       # tú lo generas; protege /api/whatsapp/send
+WHATSAPP_PROVIDER=meta             # opcional; auto-detecta si hay ACCESS_TOKEN
+WHATSAPP_GRAPH_VERSION=v21.0       # opcional
 ```
 
-### También necesarias (servidor)
+Compatibilidad legacy (opcional): `META_WHATSAPP_TOKEN`, `META_WHATSAPP_PHONE_ID`, `META_APP_SECRET`.
 
-```
-SUPABASE_URL=https://qyabhoftqfmqwpqcsdrb.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=...
-MP_ACCESS_TOKEN=...
-MP_WEBHOOK_SECRET=...   (opcional pero recomendado)
-```
+**No uses** prefijo `REACT_APP_` ni `NEXT_PUBLIC_` para secretos.
 
-## Migración Supabase (opt-in checkout)
+### Crear WHATSAPP_APP_SECRET en Vercel
 
-Ejecutar en SQL Editor:
+1. [developers.facebook.com](https://developers.facebook.com) → App **FarmaCapital** → **Configuración de la app** → **Básica**
+2. Copia **Clave secreta de la app** (App Secret)
+3. Vercel → **Settings → Environment Variables** → Add → Name: `WHATSAPP_APP_SECRET`, Value: (pegar), Sensitive: ON
+4. Redeploy
 
-```
-sql/patch_pedidos_whatsapp_recibo.sql
-```
+### Crear WHATSAPP_INTERNAL_SECRET
 
-Agrega columna `pedidos.whatsapp_recibo` y extiende `cliente_crear_pedido_online` con `p_whatsapp_recibo`.
+Genera una cadena aleatoria larga (32+ caracteres). En Vercel: `WHATSAPP_INTERNAL_SECRET` (Sensitive).  
+Usar en pruebas: `Authorization: Bearer <valor>` al llamar `/api/whatsapp/send`.
 
-## Cómo verificar que Twilio está activo
+## Configurar webhook en Meta (paso a paso)
 
-1. **Vercel → Deployments → último deploy → Functions → Logs**
-2. Hacer un pedido de prueba con checkbox WhatsApp activado.
-3. Completar pago en MP (sandbox si aplica).
-4. Buscar en logs del webhook `/api/payments/mp/webhook`:
-   - `whatsapp: { sent: true }` → OK
-   - `whatsapp: { sent: false, reason: 'twilio_not_configured' }` → faltan variables
-   - `twilio_provider_error` → credenciales incorrectas o número no autorizado
+### Pantalla 1 — WhatsApp → Configuración → Webhook
 
-También puedes probar manualmente:
+1. Meta for Developers → App **FarmaCapital** → **WhatsApp** → **Configuración**
+2. Sección **Webhook** → **Editar**
+3. **URL de devolución de llamada:** `https://farmacapital.mx/api/webhooks/whatsapp`
+4. **Token de verificación:** el mismo valor que `WHATSAPP_VERIFY_TOKEN` en Vercel
+5. Clic **Verificar y guardar**
+
+Si falla: revisa Vercel Logs de la función; errores comunes `invalid_verify_token`, `missing_verify_token_env`.
+
+### Pantalla 2 — Suscribir campos
+
+1. En la misma sección, **Administrar** suscripciones del webhook
+2. Suscríbete al WABA **FarmaCapital** (`2277703916307084`)
+3. Activa el campo **`messages`** (incluye mensajes entrantes y estados de entrega)
+
+### Pantalla 3 — Prueba entrante
+
+1. Desde un número registrado como tester en Meta, envía un WhatsApp al **+1 555-342-4819**
+2. Vercel → Deployments → Functions → `/api/webhooks/whatsapp` → Logs
+3. Debes ver líneas `[whatsapp-webhook]` con `kind: "message"` o `kind: "status"`
+
+## Envío manual de prueba (Fase 1)
 
 ```bash
-curl -X POST https://www.farmacapital.mx/api/notifications/order-receipt \
+curl -sS -X POST "https://farmacapital.mx/api/whatsapp/send" \
   -H "Content-Type: application/json" \
-  -d '{"pedidoId":123,"phoneVerify":"0631","event":"order_created"}'
+  -H "Authorization: Bearer TU_WHATSAPP_INTERNAL_SECRET" \
+  -d '{"to":"52XXXXXXXXXX","text":"Prueba FarmaCapital API"}'
 ```
 
-(Usa un `pedidoId` real reciente y los últimos 4 dígitos del teléfono del pedido.)
+Sustituye el teléfono por un número autorizado en Meta (modo desarrollo).
 
-## Pendientes futuros (no implementados)
+## Notificaciones existentes (pedidos / citas)
 
-- Recordatorio de cita 24 h antes (cron)
-- WhatsApp automático pacientes crónicos (solo UI demo en admin)
-- Opt-in persistente en perfil de cliente (hoy es por pedido)
+Siguen usando `api/_lib/orderNotifications.js` → `sendWhatsAppText()` cuando `WHATSAPP_PROVIDER=meta` o hay `WHATSAPP_ACCESS_TOKEN`.
+
+Opt-in checkout: columna `pedidos.whatsapp_recibo` (`sql/patch_pedidos_whatsapp_recibo.sql`).
+
+## Fases posteriores (no implementadas aún)
+
+- **Fase 2:** pedidos, citas, recibos con enlace seguro
+- **Fase 3:** plantillas Utility/Marketing, idempotencia, auditoría en Supabase
+
+## Reglas de negocio
+
+- No migrar +52 55 6253 0631 hasta Embedded Signup / coexistencia
+- Utility: confirmaciones de pedido/cita; Marketing: promociones
+- Sin datos médicos sensibles en mensajes automáticos

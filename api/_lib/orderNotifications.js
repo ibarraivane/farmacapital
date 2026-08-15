@@ -1,14 +1,15 @@
 'use strict';
 
 const { FARMACIA_FISCAL } = require('./farmaciaFiscal');
+const {
+  sendWhatsAppText,
+  resolveWhatsAppProvider,
+  digitsOnly,
+} = require('./whatsappCloud');
 
 const FARMACIA_WHATSAPP_DISPLAY = FARMACIA_FISCAL.telefono_display;
 const FARMACIA_DIRECCION = FARMACIA_FISCAL.direccion_comercial;
 const FARMACIA_MAPS_URL = FARMACIA_FISCAL.maps_url;
-
-function digitsOnly(v) {
-  return String(v || '').replace(/\D/g, '');
-}
 
 function formatMoneyMx(value) {
   const n = Number(value || 0);
@@ -169,36 +170,13 @@ async function sendTwilioWhatsapp({ to, text }) {
 }
 
 async function sendMetaWhatsapp({ to, text }) {
-  const token = String(process.env.META_WHATSAPP_TOKEN || '').trim();
-  const phoneId = String(process.env.META_WHATSAPP_PHONE_ID || '').trim();
-  if (!token || !phoneId || !to) return { sent: false, reason: 'meta_not_configured' };
-  const toDigits = digitsOnly(to);
-  if (!toDigits) return { sent: false, reason: 'invalid_phone' };
-
-  const resp = await fetch(`https://graph.facebook.com/v20.0/${encodeURIComponent(phoneId)}/messages`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      messaging_product: 'whatsapp',
-      to: `52${toDigits}`,
-      type: 'text',
-      text: { body: text },
-    }),
-  });
-  if (!resp.ok) {
-    let detail = null;
-    try { detail = await resp.json(); } catch { detail = await resp.text(); }
-    return { sent: false, reason: 'meta_provider_error', detail };
-  }
-  return { sent: true };
+  if (!to) return { sent: false, reason: 'invalid_phone' };
+  return sendWhatsAppText({ to, text });
 }
 
 async function sendWhatsapp({ to, text }) {
-  const pref = String(process.env.WHATSAPP_PROVIDER || 'twilio').trim().toLowerCase();
-  if (pref === 'meta') return sendMetaWhatsapp({ to, text });
+  const provider = resolveWhatsAppProvider();
+  if (provider === 'meta') return sendMetaWhatsapp({ to, text });
   return sendTwilioWhatsapp({ to, text });
 }
 
