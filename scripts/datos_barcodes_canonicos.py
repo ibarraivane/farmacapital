@@ -298,6 +298,21 @@ ALTAS_MANUALES: list[ProductoCanonico] = [
         subcategoria="Antiseptico / curacion de heridas",
         notas="Ticket FL-080826 MICRODACYN 60 sin barcode OCR; distinto lubricante Sico FC-87932321",
     ),
+    ProductoCanonico(
+        barcode="7501088579615",
+        nombre="Topron C/16 400 mg",
+        marca="Topron",
+        presentacion="C/16 capsulas 400 mg",
+        principio_activo="Nifuroxazida 400 mg",
+        forma_farmaceutica="Capsulas",
+        categoria="Medicamentos",
+        tipo="marca",
+        stock=1,
+        costo=153.47,
+        precio=251.40,
+        subcategoria="Antidiarreico",
+        notas="Chinoin; ticket OCR c71010885796151; lote 8FB077 cad feb 2028; PMP $251.40",
+    ),
 ]
 
 # Mapa OCR/ticket erróneo → EAN canónico (para patch masivo OCR)
@@ -316,6 +331,9 @@ MAPA_OCR_A_CANONICO: dict[str, str] = {
     "7360852785071": "0736085278507",
     "73010084430331": "7501008443033",
     "75010084430331": "7501008443033",
+    "75010885796151": "7501088579615",
+    "71010885796151": "7501088579615",
+    "c71010885796151": "7501088579615",
 }
 
 

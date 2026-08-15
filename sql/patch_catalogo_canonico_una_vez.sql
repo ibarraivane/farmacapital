@@ -662,6 +662,48 @@ BEGIN
   END IF;
 END $$;
 
+-- INSERT FC-88579615 · 7501088579615 · Topron C/16 400 mg
+DO $$
+DECLARE v_pid bigint; v_lid bigint;
+BEGIN
+  SELECT id INTO v_pid FROM public.productos
+  WHERE sku = 'FC-88579615' OR codigo_barras = '7501088579615' LIMIT 1;
+  IF v_pid IS NULL THEN
+    SELECT f.producto_id, f.lote_id INTO v_pid, v_lid
+    FROM public.create_producto_with_lote(
+      jsonb_build_object(
+        'nombre', 'Topron C/16 400 mg',
+        'sku', 'FC-88579615',
+        'codigo_barras', '7501088579615',
+        'categoria', 'Medicamentos',
+        'tipo', 'marca',
+        'descripcion', 'Topron C/16 400 mg — alta canonica EAN 7501088579615',
+        'costo', 153.47,
+        'precio', 251.40,
+        'stock_minimo', 3,
+        'activo', true,
+        'requiere_receta', false
+      ),
+      1, NULL, NULL, 153.47, NULL
+    ) f;
+    UPDATE public.productos SET
+      marca = 'Topron',
+      presentacion = 'C/16 capsulas 400 mg',
+      principio_activo = 'Nifuroxazida 400 mg',
+      forma_farmaceutica = 'Capsulas',
+      subcategoria = 'Antidiarreico',
+      stock = 1,
+      stock_unidades = 1
+    WHERE id = v_pid;
+  ELSE
+    UPDATE public.productos SET
+      codigo_barras = '7501088579615',
+      nombre = 'Topron C/16 400 mg',
+      activo = true
+    WHERE id = v_pid;
+  END IF;
+END $$;
+
 -- Verificación
 SELECT sku, nombre, codigo_barras, stock, precio
 FROM public.productos
