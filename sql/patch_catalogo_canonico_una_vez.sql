@@ -51,6 +51,21 @@ WHERE sku = 'FC-08485316'
     WHERE o.codigo_barras = '7501008485316' AND o.id <> public.productos.id
   );
 
+-- FIX FC-01508201 → 7501088509773 · Antiflu-Des C/24
+UPDATE public.productos SET
+  codigo_barras = '7501088509773',
+  nombre = 'Antiflu-Des C/24',
+  marca = 'Antiflu-Des',
+  presentacion = 'C/24 capsulas',
+  principio_activo = 'Amantadina + Clorfenamina + Paracetamol',
+  forma_farmaceutica = 'Capsulas',
+  descripcion = coalesce(nullif(btrim(descripcion), ''), 'OCR ticket 525301508201 / 7505253015021; EAN Chinoin 7501088509773')
+WHERE sku = 'FC-01508201'
+  AND NOT EXISTS (
+    SELECT 1 FROM public.productos o
+    WHERE o.codigo_barras = '7501088509773' AND o.id <> public.productos.id
+  );
+
 -- ═══ 2. Altas que nunca entraron por OCR ═══
 
 -- INSERT FC-69200016 · 7501369200016 · Estomaquil Polvo C/20

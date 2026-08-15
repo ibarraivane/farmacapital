@@ -40,7 +40,7 @@ Ticket OCR: `.tmp_ocr_vision/FarmaLive.txt` (#9861, 08/08/2026)
 | graneodin b frambuesa | `7501095409004` | ❌ Falta cargar | — | Graneodin B Frambuesa C/24 · $42.64 |
 | alka-seltzer boost 10 | `7501008497593` | ❌ Falta cargar | — | Alka-Seltzer Boost C/10 C/10 · $42.00 |
 | bepanthen | `7501008427330` | ✅ Registrado | FC-08427330 | Bepanthen Pomada Protectora Contra Rozaduras |
-| antifludes | `750525301508201` | ❌ Falta cargar | — | Antiflu-Des · $149.35 |
+| antifludes | `7501088509773` | ❌ Falta cargar | — | Antiflu-Des C/24 caps · $149.35 |
 | theraflu td | `7503050071598` | ✅ Registrado | FC-50071598 | Theraflu TD |
 | splash tears | `7509854054221` | ✅ Registrado | FC-54054221 | Splash Tears Sol oftálmica |
 | alka-seltzer boost tab | `75010084999001` | ❌ Falta cargar | — | Alka-Seltzer Boost C/50 · $170.52 |

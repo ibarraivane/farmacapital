@@ -809,24 +809,24 @@ begin
   end if;
 end $$;
 
--- FL-080826 · antifludes · 750525301508201
+-- FL-080826 · antifludes · 7501088509773
 do $$
 declare v_pid bigint; v_lid bigint;
 begin
-  select id into v_pid from public.productos where codigo_barras = '750525301508201' limit 1;
+  select id into v_pid from public.productos where codigo_barras = '7501088509773' limit 1;
   if v_pid is null then
-    select producto_id into v_pid from _fc_carga_map where codigo_barras = '750525301508201';
+    select producto_id into v_pid from _fc_carga_map where codigo_barras = '7501088509773';
   end if;
   if v_pid is null then
     select f.producto_id, f.lote_id into v_pid, v_lid
     from create_producto_with_lote(
       jsonb_build_object(
-      'nombre', 'Antiflu-Des',
-      'sku', 'FC-01508201',
-      'codigo_barras', '750525301508201',
-      'categoria', 'Otro',
+      'nombre', 'Antiflu-Des C/24 caps',
+      'sku', 'FC-88509773',
+      'codigo_barras', '7501088509773',
+      'categoria', 'GENERAL',
       'tipo', 'GENERICO',
-      'descripcion', 'Antiflu-Des — Ticket FL-080826',
+      'descripcion', 'Antiflu-Des C/24 caps — Ticket FL-080826',
       'costo', 149.35,
       'precio', 201.63,
       'stock_minimo', 5,
@@ -840,7 +840,7 @@ begin
       null::bigint,
       null::text) f;
     insert into _fc_carga_map (codigo_barras, producto_id)
-    values ('750525301508201', v_pid)
+    values ('7501088509773', v_pid)
     on conflict (codigo_barras) do update set producto_id = excluded.producto_id;
   end if;
 end $$;

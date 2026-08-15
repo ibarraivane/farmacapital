@@ -90,6 +90,22 @@ CORRECCIONES: list[ProductoCanonico] = [
         subcategoria="Antigripal",
         notas="EAN caja azul; distinto de Noche/500/Active",
     ),
+    ProductoCanonico(
+        barcode="7501088509773",
+        fix_sku="FC-01508201",
+        action="fix_barcode",
+        nombre="Antiflu-Des C/24",
+        marca="Antiflu-Des",
+        presentacion="C/24 capsulas",
+        principio_activo="Amantadina + Clorfenamina + Paracetamol",
+        forma_farmaceutica="Capsulas",
+        categoria="Medicamentos",
+        tipo="marca",
+        costo=149.35,
+        precio=201.63,
+        subcategoria="Antigripal",
+        notas="OCR ticket 525301508201 / 7505253015021; EAN Chinoin 7501088509773",
+    ),
 ]
 
 # ── Altas manuales (lista Farmalive / anaquel, no en ticket OCR) ──
@@ -367,6 +383,9 @@ MAPA_OCR_A_CANONICO: dict[str, str] = {
     "c71010885796151": "7501088579615",
     "75020027471": "7502209747366",
     "750220974736": "7502209747366",
+    "750525301508201": "7501088509773",
+    "7505253015021": "7501088509773",
+    "525301508201": "7501088509773",
 }
 
 

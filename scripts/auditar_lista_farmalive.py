@@ -61,7 +61,7 @@ PRODUCTOS = [
     {"q": "graneodin b frambuesa", "bc": "7501095409004", "nombre": "Graneodin B Frambuesa", "pres": "C/24", "costo": 42.64, "qty": 2},
     {"q": "alka-seltzer boost 10", "bc": "7501008497593", "nombre": "Alka-Seltzer Boost C/10", "pres": "C/10", "costo": 42.0, "qty": 2},
     {"q": "bepanthen", "bc": "7501008427330", "nombre": "Bepanthen", "pres": "100 G", "costo": 131.81, "qty": 1},
-    {"q": "antifludes", "bc": "750525301508201", "nombre": "Antiflu-Des", "pres": "", "costo": 149.35, "qty": 1},
+    {"q": "antifludes", "bc": "7501088509773", "nombre": "Antiflu-Des", "pres": "C/24 caps", "costo": 149.35, "qty": 1},
     {"q": "theraflu td", "bc": "7503050071598", "nombre": "Theraflu TD", "pres": "", "costo": 170.32, "qty": 2},
     {"q": "splash tears", "bc": "7509854054221", "nombre": "Splash Tears", "pres": "Sol oftálmica", "costo": 140.53, "qty": 1},
     {"q": "alka-seltzer boost tab", "bc": "75010084999001", "nombre": "Alka-Seltzer Boost", "pres": "C/50", "costo": 170.52, "qty": 1},
