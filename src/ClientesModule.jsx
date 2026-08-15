@@ -101,8 +101,13 @@ function adminSesionEsRolAdmin() {
   }
 }
 
-function ClienteDetalle({ cliente, onReload }) {
+function ClienteDetalle({ cliente, onReload, onDeleted }) {
   const C = C_LIGHT;
+  const inputStyle = mkInputStyle(C);
+  const labelStyle = mkLabelStyle(C);
+  const btnSecondary = mkBtnSecondary(C);
+  const btnPrimary = mkBtnPrimary(C);
+  const btnGreen = mkBtnGreen(C);
   const isMobile = useMediaQuery("(max-width: 768px)");
   const esAdmin = adminSesionEsRolAdmin();
   const [tab,      setTab]     = useState("compras");
@@ -194,6 +199,33 @@ function ClienteDetalle({ cliente, onReload }) {
     setTimeout(() => setMsg(""), 4000);
   };
 
+  const eliminarCliente = async () => {
+    const ok = window.confirm(
+      `¿Eliminar a ${cliente.nombre}?\n\n` +
+      "• Sin compras ni citas: se borra del sistema.\n" +
+      "• Con historial: se oculta del listado pero se conservan ventas/citas.\n\n" +
+      "Solo administradores pueden hacer esto."
+    );
+    if (!ok) return;
+    setSaving(true);
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    const { data: resp, error } = await supabase.rpc("admin_eliminar_cliente", {
+      p_session_token: tok,
+      p_cliente_id: cliente.id,
+    });
+    setSaving(false);
+    if (error || !resp?.success) {
+      showToast("No se pudo eliminar: " + (resp?.error || error?.message || "error"), "error");
+      return;
+    }
+    if (resp.modo === "soft") {
+      showToast(resp.mensaje || "Cliente eliminado (historial conservado)", "success");
+    } else {
+      showToast("Cliente eliminado", "success");
+    }
+    onDeleted?.();
+  };
+
   return (
     <div style={{ flex:1, overflowY:isMobile?"visible":"auto", display:"flex", flexDirection:"column" }}>
       <div style={{ padding:"20px 24px", borderBottom:`1px solid ${C.border}`, background:C.card }}>
@@ -239,6 +271,32 @@ function ClienteDetalle({ cliente, onReload }) {
             </div>
             <button type="button" onClick={asignarPasswordTienda} disabled={saving} style={{ ...mkBtnPrimary(C), opacity: saving ? 0.7 : 1 }}>
               {saving ? "…" : "Asignar contraseña de tienda"}
+            </button>
+          </div>
+        )}
+        {esAdmin && (
+          <div style={{ marginTop:14, padding:"12px 14px", background:"#fef2f2", border:`1px solid ${C.red}44`, borderRadius:10 }}>
+            <div style={{ color:C.text, fontWeight:700, fontSize:12, marginBottom:6 }}>Eliminar cliente</div>
+            <div style={{ color:C.textMid, fontSize:11, lineHeight:1.45, marginBottom:10 }}>
+              Para duplicados o altas por error. Si tiene compras o citas, el historial se conserva y el teléfono queda libre para registrar de nuevo.
+            </div>
+            <button
+              type="button"
+              onClick={eliminarCliente}
+              disabled={saving}
+              style={{
+                padding:"8px 14px",
+                borderRadius:8,
+                border:`1px solid ${C.red}`,
+                background:"#fff",
+                color:C.red,
+                fontWeight:700,
+                fontSize:12,
+                cursor: saving ? "not-allowed" : "pointer",
+                opacity: saving ? 0.7 : 1,
+              }}
+            >
+              {saving ? "…" : "Eliminar cliente"}
             </button>
           </div>
         )}
@@ -489,7 +547,15 @@ export default function ClientesModule() {
             onSaved={async (nuevo)=>{ await fetchClientes(); setClienteSel(nuevo); setMode("idle"); }}/>
         )}
         {mode==="idle"&&clienteSel&&(
-          <ClienteDetalle key={clienteSel.id} cliente={clienteSel} onReload={reloadSel}/>
+          <ClienteDetalle
+            key={clienteSel.id}
+            cliente={clienteSel}
+            onReload={reloadSel}
+            onDeleted={async () => {
+              setClienteSel(null);
+              await fetchClientes();
+            }}
+          />
         )}
         {mode==="idle"&&!clienteSel&&(
           <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", color:C.textMid }}>
