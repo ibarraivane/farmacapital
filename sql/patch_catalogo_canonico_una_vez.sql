@@ -845,6 +845,48 @@ BEGIN
   END IF;
 END $$;
 
+-- INSERT FC-00753067 · 020800753067 · Pepto-Bismol Suspension 118 ml
+DO $$
+DECLARE v_pid bigint; v_lid bigint;
+BEGIN
+  SELECT id INTO v_pid FROM public.productos
+  WHERE sku = 'FC-00753067' OR codigo_barras = '020800753067' LIMIT 1;
+  IF v_pid IS NULL THEN
+    SELECT f.producto_id, f.lote_id INTO v_pid, v_lid
+    FROM public.create_producto_with_lote(
+      jsonb_build_object(
+        'nombre', 'Pepto-Bismol Suspension 118 ml',
+        'sku', 'FC-00753067',
+        'codigo_barras', '020800753067',
+        'categoria', 'Digestivo',
+        'tipo', 'marca',
+        'descripcion', 'Pepto-Bismol Suspension 118 ml — alta canonica EAN 020800753067',
+        'costo', 96.73,
+        'precio', 150.00,
+        'stock_minimo', 3,
+        'activo', true,
+        'requiere_receta', false
+      ),
+      1, NULL, NULL, 96.73, NULL
+    ) f;
+    UPDATE public.productos SET
+      marca = 'Pepto-Bismol',
+      presentacion = 'Frasco 118 ml',
+      principio_activo = 'Subsalicilato de bismuto 1.75 g/100 ml',
+      forma_farmaceutica = 'Suspension oral',
+      subcategoria = 'Antiácido / antidiarreico',
+      stock = 1,
+      stock_unidades = 1
+    WHERE id = v_pid;
+  ELSE
+    UPDATE public.productos SET
+      codigo_barras = '020800753067',
+      nombre = 'Pepto-Bismol Suspension 118 ml',
+      activo = true
+    WHERE id = v_pid;
+  END IF;
+END $$;
+
 -- Verificación
 SELECT sku, nombre, codigo_barras, stock, precio
 FROM public.productos

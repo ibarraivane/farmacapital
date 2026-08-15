@@ -1,7 +1,4 @@
--- Bisolvon Solución Adulto 120 ml · Sanfer · 7501037907117
--- Distinto de Bisolvon Infantil FC-79071241 (7501037907124)
--- Costo $141.94 · cad feb 2028
--- Ejecutar en Supabase SQL Editor (Cmd+A)
+-- Bisolvon Adulto — ver sql/patch_altas_bisolvon_pepto_20260815.sql (incluye Pepto-Bismol)
 
 begin;
 

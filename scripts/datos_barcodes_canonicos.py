@@ -375,6 +375,21 @@ ALTAS_MANUALES: list[ProductoCanonico] = [
         subcategoria="Expectorante / antitusivo",
         notas="Sanfer; distinto de FC-79071241 infantil 7501037907124; cad feb 2028",
     ),
+    ProductoCanonico(
+        barcode="020800753067",
+        nombre="Pepto-Bismol Suspension 118 ml",
+        marca="Pepto-Bismol",
+        presentacion="Frasco 118 ml",
+        principio_activo="Subsalicilato de bismuto 1.75 g/100 ml",
+        forma_farmaceutica="Suspension oral",
+        categoria="Digestivo",
+        tipo="marca",
+        stock=1,
+        costo=96.73,
+        precio=150.00,
+        subcategoria="Antiácido / antidiarreico",
+        notas="P&G; ticket OCR 0208007530671; UPC 020800753067; cad jun 2027; PMP $150",
+    ),
 ]
 
 # Mapa OCR/ticket erróneo → EAN canónico (para patch masivo OCR)
@@ -401,6 +416,9 @@ MAPA_OCR_A_CANONICO: dict[str, str] = {
     "750525301508201": "7501088509773",
     "7505253015021": "7501088509773",
     "525301508201": "7501088509773",
+    "0208007530671": "020800753067",
+    "208007530671": "020800753067",
+    "20800753067": "020800753067",
 }
 
 
