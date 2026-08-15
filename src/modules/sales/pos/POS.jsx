@@ -34,7 +34,7 @@ import OnboardingTour from "../../../components/OnboardingTour";
 import { TOURS } from "../../../utils/tours";
 import { labelTipoEntregaPedido } from "../../../utils/orderChannels";
 import PagoServiciosPanel, { rpcRegistrarPagoServicio } from "./PagoServiciosPanel";
-import { buildOnlineOrderReceiptMessage, formatFolioOnline, notifyOrderReady, openWhatsAppToCustomer } from "../../../utils/orderReceiptWhatsApp";
+import { buildOnlineOrderReceiptMessage, buildOnlineOrderReadyMessage, formatFolioOnline, openWhatsAppToCustomer } from "../../../utils/orderReceiptWhatsApp";
 import { formatTelefonoDisplay } from "../../../utils/citaWhatsApp";
 import { configRowsToMap, mergeFarmaciaConfig, FARMACIA_FISCAL } from "../../../constants/farmaciaFiscal";
 
@@ -1426,11 +1426,21 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       // Notificar al cliente por WhatsApp al marcar listo (pagó en línea)
       const telCli = pedido.clientes?.telefono || pedido.guest_telefono;
       if (telCli) {
-        const notifyRes = await notifyOrderReady({ pedidoId: pedido.id });
-        if (notifyRes.sent) {
-          showToast("Pedido listo · cliente notificado por WhatsApp (PDF)", "success");
+        const msg = buildOnlineOrderReadyMessage({
+          pedidoId: pedido.id,
+          items: (pedido.pedido_items || []).map((i) => ({
+            nombre: i.productos?.nombre,
+            qty: i.cantidad,
+            precio: i.precio_unitario,
+          })),
+          total: pedido.total,
+          tipoEntrega: pedido.tipo_entrega,
+          metodoPago: pedido.metodo_pago,
+        });
+        if (openWhatsAppToCustomer(telCli, msg)) {
+          showToast("Pedido listo · WhatsApp abierto para el cliente", "success");
         } else {
-          showToast(`Pedido listo (${notifyRes.reason || "sin WhatsApp automático"})`, "success");
+          showToast("Pedido listo (revisa el teléfono del cliente)", "success");
         }
       } else {
         showToast("Pedido marcado como listo", "success");
