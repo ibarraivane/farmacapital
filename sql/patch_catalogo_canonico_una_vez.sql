@@ -887,6 +887,48 @@ BEGIN
   END IF;
 END $$;
 
+-- INSERT FC-09490651 · 7896009490651 · Corega Ultra Sin Sabor 40 g
+DO $$
+DECLARE v_pid bigint; v_lid bigint;
+BEGIN
+  SELECT id INTO v_pid FROM public.productos
+  WHERE sku = 'FC-09490651' OR codigo_barras = '7896009490651' LIMIT 1;
+  IF v_pid IS NULL THEN
+    SELECT f.producto_id, f.lote_id INTO v_pid, v_lid
+    FROM public.create_producto_with_lote(
+      jsonb_build_object(
+        'nombre', 'Corega Ultra Sin Sabor 40 g',
+        'sku', 'FC-09490651',
+        'codigo_barras', '7896009490651',
+        'categoria', 'Higiene',
+        'tipo', 'marca',
+        'descripcion', 'Corega Ultra Sin Sabor 40 g — alta canonica EAN 7896009490651',
+        'costo', 120.05,
+        'precio', 162.07,
+        'stock_minimo', 3,
+        'activo', true,
+        'requiere_receta', false
+      ),
+      1, NULL, NULL, 120.05, NULL
+    ) f;
+    UPDATE public.productos SET
+      marca = 'Corega',
+      presentacion = 'Tubo 40 g',
+      principio_activo = 'Crema adhesiva para protesis dentales',
+      forma_farmaceutica = 'Crema',
+      subcategoria = 'Protesis dental / adhesivo',
+      stock = 1,
+      stock_unidades = 1
+    WHERE id = v_pid;
+  ELSE
+    UPDATE public.productos SET
+      codigo_barras = '7896009490651',
+      nombre = 'Corega Ultra Sin Sabor 40 g',
+      activo = true
+    WHERE id = v_pid;
+  END IF;
+END $$;
+
 -- Verificación
 SELECT sku, nombre, codigo_barras, stock, precio
 FROM public.productos

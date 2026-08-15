@@ -390,6 +390,21 @@ ALTAS_MANUALES: list[ProductoCanonico] = [
         subcategoria="Antiácido / antidiarreico",
         notas="P&G; ticket OCR 0208007530671; UPC 020800753067; cad jun 2027; PMP $150",
     ),
+    ProductoCanonico(
+        barcode="7896009490651",
+        nombre="Corega Ultra Sin Sabor 40 g",
+        marca="Corega",
+        presentacion="Tubo 40 g",
+        principio_activo="Crema adhesiva para protesis dentales",
+        forma_farmaceutica="Crema",
+        categoria="Higiene",
+        tipo="marca",
+        stock=1,
+        costo=120.05,
+        precio=162.07,
+        subcategoria="Protesis dental / adhesivo",
+        notas="Haleon; ticket OCR 78960094906511 mezclado con Cafiaspirina; lote NK9S cad oct 2028",
+    ),
 ]
 
 # Mapa OCR/ticket erróneo → EAN canónico (para patch masivo OCR)
@@ -419,6 +434,8 @@ MAPA_OCR_A_CANONICO: dict[str, str] = {
     "0208007530671": "020800753067",
     "208007530671": "020800753067",
     "20800753067": "020800753067",
+    "78960094906511": "7896009490651",
+    "8960094906511": "7896009490651",
 }
 
 
