@@ -36,6 +36,21 @@ WHERE sku = 'FC-58715517'
     WHERE o.codigo_barras = '7501095409004' AND o.id <> public.productos.id
   );
 
+-- FIX FC-08485316 → 7501008485316 · Tabcin efervescente C/12
+UPDATE public.productos SET
+  codigo_barras = '7501008485316',
+  nombre = 'Tabcin efervescente C/12',
+  marca = 'Tabcin',
+  presentacion = 'C/12 tabletas efervescentes',
+  principio_activo = 'Acido acetilsalicilico + Fenilefrina + Clorfenamina',
+  forma_farmaceutica = 'Tabletas efervescentes',
+  descripcion = coalesce(nullif(btrim(descripcion), ''), 'EAN caja azul; distinto de Noche/500/Active')
+WHERE sku = 'FC-08485316'
+  AND NOT EXISTS (
+    SELECT 1 FROM public.productos o
+    WHERE o.codigo_barras = '7501008485316' AND o.id <> public.productos.id
+  );
+
 -- ═══ 2. Altas que nunca entraron por OCR ═══
 
 -- INSERT FC-69200016 · 7501369200016 · Estomaquil Polvo C/20
@@ -312,6 +327,86 @@ BEGIN
     UPDATE public.productos SET
       codigo_barras = '7501008499702',
       nombre = 'Tabcin Noche C/12',
+      activo = true
+    WHERE id = v_pid;
+  END IF;
+END $$;
+
+-- INSERT FC-08485408 · 7501008485408 · Tabcin 500 C/12
+DO $$
+DECLARE v_pid bigint; v_lid bigint;
+BEGIN
+  SELECT id INTO v_pid FROM public.productos
+  WHERE sku = 'FC-08485408' OR codigo_barras = '7501008485408' LIMIT 1;
+  IF v_pid IS NULL THEN
+    SELECT f.producto_id, f.lote_id INTO v_pid, v_lid
+    FROM public.create_producto_with_lote(
+      jsonb_build_object(
+        'nombre', 'Tabcin 500 C/12',
+        'sku', 'FC-08485408',
+        'codigo_barras', '7501008485408',
+        'categoria', 'Medicamentos',
+        'tipo', 'marca',
+        'descripcion', 'Tabcin 500 C/12 — alta canonica EAN 7501008485408',
+        'costo', 46.06,
+        'precio', 62.19,
+        'stock_minimo', 3,
+        'activo', true,
+        'requiere_receta', false
+      ),
+      0, NULL, NULL, 46.06, NULL
+    ) f;
+    UPDATE public.productos SET
+      marca = 'Tabcin',
+      presentacion = 'C/12 capsulas',
+      principio_activo = 'Paracetamol + Amantadina + Clorfenamina + Fenilefrina',
+      forma_farmaceutica = 'Capsulas',
+      subcategoria = 'Antigripal'
+    WHERE id = v_pid;
+  ELSE
+    UPDATE public.productos SET
+      codigo_barras = '7501008485408',
+      nombre = 'Tabcin 500 C/12',
+      activo = true
+    WHERE id = v_pid;
+  END IF;
+END $$;
+
+-- INSERT FC-08499689 · 7501008499689 · Tabcin Active C/12
+DO $$
+DECLARE v_pid bigint; v_lid bigint;
+BEGIN
+  SELECT id INTO v_pid FROM public.productos
+  WHERE sku = 'FC-08499689' OR codigo_barras = '7501008499689' LIMIT 1;
+  IF v_pid IS NULL THEN
+    SELECT f.producto_id, f.lote_id INTO v_pid, v_lid
+    FROM public.create_producto_with_lote(
+      jsonb_build_object(
+        'nombre', 'Tabcin Active C/12',
+        'sku', 'FC-08499689',
+        'codigo_barras', '7501008499689',
+        'categoria', 'Medicamentos',
+        'tipo', 'marca',
+        'descripcion', 'Tabcin Active C/12 — alta canonica EAN 7501008499689',
+        'costo', 70.60,
+        'precio', 95.31,
+        'stock_minimo', 3,
+        'activo', true,
+        'requiere_receta', false
+      ),
+      0, NULL, NULL, 70.60, NULL
+    ) f;
+    UPDATE public.productos SET
+      marca = 'Tabcin',
+      presentacion = 'C/12 capsulas',
+      principio_activo = 'Paracetamol + Fenilefrina + Dextrometorfano + Guaifenesina',
+      forma_farmaceutica = 'Capsulas',
+      subcategoria = 'Antigripal / tos'
+    WHERE id = v_pid;
+  ELSE
+    UPDATE public.productos SET
+      codigo_barras = '7501008499689',
+      nombre = 'Tabcin Active C/12',
       activo = true
     WHERE id = v_pid;
   END IF;
