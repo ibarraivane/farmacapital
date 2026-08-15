@@ -1029,6 +1029,21 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
       {errors[key]&&<span style={{color:C.red,fontSize:10}}>{errors[key]}</span>}
     </div>
   );
+
+  const upcVenta = parseInt(form.unidades_por_caja, 10) || 0;
+  const costoPieza = upcVenta > 0 && form.costo !== "" ? (parseFloat(form.costo) || 0) / upcVenta : 0;
+  const precioPieza = Math.ceil(parseFloat(form.precio_unidad) || 0);
+  const minPrecioPieza = upcVenta > 0
+    ? sugerirPrecioUnidad(form.precio, form.costo, upcVenta, form.categoria, form.tipo)
+    : 0;
+  const margenPiezaPct = precioPieza > 0 && costoPieza > 0 ? margenBrutoPct(precioPieza, costoPieza) : null;
+  const margenCajaPct = form.precio && form.costo ? margenBrutoPct(form.precio, form.costo) : null;
+  const margenPiezaColor = precioPieza > 0 && precioPieza < minPrecioPieza
+    ? C.amber
+    : margenPiezaPct != null && margenCajaPct != null && margenPiezaPct >= margenCajaPct
+      ? C.green
+      : C.textMid;
+
   return (
     <div style={{position:"fixed",inset:0,background:"#00000099",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}>
       <div style={{background:C.card,border:`1px solid ${C.borderHi}`,borderRadius:14,width:"min(680px,95vw)",maxHeight:"90vh",overflowY:"auto",padding:28,boxShadow:"0 24px 60px #00000088"}}>
@@ -1264,11 +1279,25 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
                   style={inputStyle} placeholder="20"/>
               </div>
               <div>
-                <label style={labelStyle}>Precio por unidad ($) <span style={{color:C.textDim,fontSize:9}}>AUTO↑</span></label>
+                <label style={labelStyle}>
+                  Precio por unidad ($)
+                  {margenPiezaPct != null ? (
+                    <span style={{ color: margenPiezaColor, fontSize: 10, fontWeight: 700, marginLeft: 6 }}>
+                      · margen {margenPiezaPct}%
+                    </span>
+                  ) : null}
+                </label>
                 <input type="number" min="0" step="0.01" value={form.precio_unidad}
                   onChange={e=>set("precio_unidad",Math.ceil(parseFloat(e.target.value)||0))}
                   style={inputStyle} placeholder="3"/>
-                <div style={{color:C.textDim,fontSize:9,marginTop:2}}>Se redondea hacia arriba (Math.ceil)</div>
+                <div style={{ color: C.textDim, fontSize: 9, marginTop: 2, lineHeight: 1.45 }}>
+                  {costoPieza > 0 ? <>Costo/pieza ${costoPieza.toFixed(2)}</> : "Indicá costo y unidades/caja"}
+                  {precioPieza > 0 && minPrecioPieza > 0 && precioPieza < minPrecioPieza
+                    ? <> · al guardar sube a <strong style={{ color: C.amber }}>${minPrecioPieza}</strong> (mín. regla)</>
+                    : margenCajaPct != null
+                      ? <> · margen caja {margenCajaPct}%</>
+                      : null}
+                </div>
               </div>
               <div>
                 <label style={labelStyle}>Stock unidades sueltas</label>
@@ -1277,13 +1306,10 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
                   style={inputStyle} placeholder="0"/>
               </div>
               <div style={{gridColumn:"1/-1",background:C.blueDim,borderRadius:8,padding:"8px 12px",fontSize:11,color:C.blue}}>
-                💡 SKU unidad: <strong>{(form.sku||"PROD")+"-UNIT"}</strong> · 
-                Precio mínimo (regla): <strong>${form.unidades_por_caja?sugerirPrecioUnidad(form.precio,form.costo,form.unidades_por_caja,form.categoria,form.tipo):"-"}</strong>/unidad
-                {form.unidades_por_caja && form.precio && form.costo ? (
-                  <> · margen caja {margenBrutoPct(form.precio, form.costo)}% → pieza {margenBrutoPct(
-                    sugerirPrecioUnidad(form.precio, form.costo, form.unidades_por_caja, form.categoria, form.tipo),
-                    (parseFloat(form.costo)||0) / (parseInt(form.unidades_por_caja,10)||1)
-                  )}%</>
+                💡 SKU unidad: <strong>{(form.sku||"PROD")+"-UNIT"}</strong> ·
+                Precio mínimo (regla): <strong>${upcVenta ? minPrecioPieza : "-"}</strong>/unidad
+                {margenPiezaPct != null && margenCajaPct != null ? (
+                  <> · margen pieza <strong style={{ color: margenPiezaColor }}>{margenPiezaPct}%</strong> vs caja {margenCajaPct}%</>
                 ) : null}
               </div>
             </div>
