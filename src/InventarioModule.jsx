@@ -864,10 +864,20 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
     }
   }, [form._focusBarcode, form.id]);
 
-  const guardarCaducidadLote = async (fecha) => {
-    const next = fecha || null;
-    if (!next) {
-      showToast("Elegí una fecha de caducidad.", "warning");
+  const guardarCaducidadLote = async (fecha, { quitar = false } = {}) => {
+    const prev = loteCadRef?.fecha_caducidad || null;
+    const next = quitar ? null : (fecha || null);
+    if (!quitar && !next) {
+      if (!prev) return;
+      if (!window.confirm("¿Quitar la fecha de caducidad de este lote?")) {
+        setCaducidadLote(prev);
+        return;
+      }
+      return guardarCaducidadLote(null, { quitar: true });
+    }
+    if (!quitar && prev === next) return;
+    if (quitar && !prev) {
+      setCaducidadLote("");
       return;
     }
     const tok = sessionStorage.getItem("farmacapital_session_token");
@@ -876,7 +886,7 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
       setCaducidadLote(loteCadRef?.fecha_caducidad || "");
       return;
     }
-    if ((loteCadRef?.fecha_caducidad || null) === next) return;
+    if (quitar && prev === null) return;
     setCadSaving(true);
     try {
       const loteId = loteCadRef?.id ?? resolverLoteCaducidadProducto(initial)?.id ?? null;
@@ -891,16 +901,25 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
         setCaducidadLote(loteCadRef?.fecha_caducidad || "");
         return;
       }
-      const msg = resp.accion === "crear_referencia"
-        ? "Caducidad guardada (lote de referencia, sin stock)"
-        : resp.accion === "crear"
-          ? `Lote creado (${resp.cantidad ?? form.stock} pza.) con caducidad`
-          : "Caducidad actualizada";
+      const msg = resp.accion === "quitar"
+        ? "Fecha de caducidad eliminada"
+        : resp.accion === "crear_referencia"
+          ? "Caducidad guardada (lote de referencia, sin stock)"
+          : resp.accion === "crear"
+            ? `Lote creado (${resp.cantidad ?? form.stock} pza.) con caducidad`
+            : "Caducidad actualizada";
       showToast(msg, "success");
+      if (quitar) setCaducidadLote("");
       await onCaducidadSaved?.();
     } finally {
       setCadSaving(false);
     }
+  };
+
+  const quitarCaducidadLote = async () => {
+    if (!caducidadLote && !loteCadRef?.fecha_caducidad) return;
+    if (!window.confirm("¿Quitar la fecha de caducidad de este lote?")) return;
+    await guardarCaducidadLote(null, { quitar: true });
   };
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -1168,8 +1187,18 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
                             : `Caducidad: ${formatCaducidadMesAnio(caducidadLote) || caducidadLote}`}
                         </div>
                       ) : (
-                        <div style={{ color: C.textMid, marginBottom: 8 }}>Sin fecha — elegí una arriba</div>
+                        <div style={{ color: C.textMid, marginBottom: 8 }}>Sin fecha de caducidad</div>
                       )}
+                      {(caducidadLote || loteCadRef?.fecha_caducidad) ? (
+                        <button
+                          type="button"
+                          disabled={cadSaving}
+                          style={{ ...btnOutline, padding: "5px 10px", fontSize: 11, marginBottom: 8, borderColor: C.red, color: C.red }}
+                          onClick={quitarCaducidadLote}
+                        >
+                          Quitar fecha
+                        </button>
+                      ) : null}
                       {multiLotes && onEditarCaducidad ? (
                         <button
                           type="button"
@@ -2080,6 +2109,7 @@ function renderInventarioColumnCell(colId, ctx) {
     onDraft,
     onCommit,
     onCancel,
+    onQuitarCad,
   } = inlineCellProps;
 
   switch (colId) {
@@ -2423,35 +2453,63 @@ function renderInventarioColumnCell(colId, ctx) {
         ...w("cad"),
       };
       if (isEditingCad) {
+        const cadMeta = inlineEdit.meta || {};
+        const puedeQuitar = Boolean(inlineEdit.draft || loteRef?.fecha_caducidad);
         return (
           <td style={tdCad}>
-            <input
-              type="date"
-              autoFocus
-              disabled={inlineSaving}
-              value={inlineEdit.draft}
-              onChange={(e) => onDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  onCommit();
-                }
-                if (e.key === "Escape") {
-                  e.preventDefault();
-                  onCancel();
-                }
-              }}
-              onBlur={() => {
-                if (!inlineSaving) onCommit();
-              }}
-              style={{
-                ...inputStyle,
-                width: "100%",
-                padding: "4px 6px",
-                fontSize: 11,
-                boxSizing: "border-box",
-              }}
-            />
+            <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "nowrap" }}>
+              <input
+                type="date"
+                autoFocus
+                disabled={inlineSaving}
+                value={inlineEdit.draft}
+                onChange={(e) => onDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    onCommit();
+                  }
+                  if (e.key === "Escape") {
+                    e.preventDefault();
+                    onCancel();
+                  }
+                }}
+                onBlur={() => {
+                  if (!inlineSaving) onCommit();
+                }}
+                style={{
+                  ...inputStyle,
+                  flex: 1,
+                  minWidth: 0,
+                  padding: "4px 6px",
+                  fontSize: 11,
+                  boxSizing: "border-box",
+                }}
+              />
+              {puedeQuitar ? (
+                <button
+                  type="button"
+                  title="Quitar fecha de caducidad"
+                  disabled={inlineSaving}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => onQuitarCad?.(p.id, cadMeta)}
+                  style={{
+                    padding: "2px 7px",
+                    borderRadius: 6,
+                    border: `1px solid ${C.red}`,
+                    background: "#fff",
+                    color: C.red,
+                    fontWeight: 700,
+                    fontSize: 12,
+                    lineHeight: 1.2,
+                    cursor: inlineSaving ? "not-allowed" : "pointer",
+                    flexShrink: 0,
+                  }}
+                >
+                  ×
+                </button>
+              ) : null}
+            </div>
           </td>
         );
       }
@@ -3016,14 +3074,28 @@ export default function InventarioModule() {
     const draft = String(rawDraft ?? "").trim();
 
     if (field === "cad") {
-      const fecha = draft || null;
-      if (!fecha) {
-        showToast("Elegí una fecha de caducidad.", "warning");
-        return false;
-      }
+      const quitar = Boolean(meta?.quitar);
+      const fecha = quitar ? null : (draft || null);
       const loteId = meta?.loteId ?? resolverLoteCaducidadProducto(product)?.id ?? null;
       const lote = loteId ? (product.lotes || []).find((l) => l.id === loteId) : null;
-      if ((lote?.fecha_caducidad || null) === fecha) return true;
+      const prev = lote?.fecha_caducidad || null;
+      if (!fecha) {
+        if (!prev) return true;
+        if (!quitar && !window.confirm("¿Quitar la fecha de caducidad de este lote?")) return false;
+        const { data: resp, error } = await rpcGuardarCaducidadProducto(tok, product.id, null, loteId);
+        if (error) {
+          showToast(error.message, "error");
+          return false;
+        }
+        if (!resp?.success) {
+          showToast("No se pudo quitar la caducidad.", "error");
+          return false;
+        }
+        await fetchProductos();
+        showToast("Fecha de caducidad eliminada", "success");
+        return true;
+      }
+      if (prev === fecha) return true;
       const { data: resp, error } = await rpcGuardarCaducidadProducto(tok, product.id, fecha, loteId);
       if (error) {
         showToast(error.message, "error");
@@ -3137,11 +3209,31 @@ export default function InventarioModule() {
     setInlineSaving(true);
     try {
       const ok = await guardarCampoInline(product, inlineEdit.field, inlineEdit.draft, inlineEdit.meta);
-      if (ok) cancelInlineEdit();
+      if (ok) {
+        cancelInlineEdit();
+      } else if (inlineEdit.field === "cad") {
+        const loteId = inlineEdit.meta?.loteId ?? resolverLoteCaducidadProducto(product)?.id ?? null;
+        const lote = loteId ? (product.lotes || []).find((l) => l.id === loteId) : null;
+        setInlineEdit((prev) => (prev ? { ...prev, draft: lote?.fecha_caducidad || "" } : prev));
+      }
     } finally {
       setInlineSaving(false);
     }
   }, [inlineEdit, inlineSaving, productos, guardarCampoInline, cancelInlineEdit]);
+
+  const quitarCaducidadInline = useCallback(async (productId, meta = null) => {
+    if (inlineSaving) return;
+    const product = productos.find((x) => x.id === productId);
+    if (!product) return;
+    if (!window.confirm("¿Quitar la fecha de caducidad de este lote?")) return;
+    setInlineSaving(true);
+    try {
+      const ok = await guardarCampoInline(product, "cad", "", { ...(meta || {}), quitar: true });
+      if (ok) cancelInlineEdit();
+    } finally {
+      setInlineSaving(false);
+    }
+  }, [inlineSaving, productos, guardarCampoInline, cancelInlineEdit]);
 
   const startInlineEdit = useCallback((productId, field, rawValue, meta = null) => {
     setInlineEdit({
@@ -3164,6 +3256,7 @@ export default function InventarioModule() {
     onDraft: (v) => setInlineEdit((prev) => (prev ? { ...prev, draft: v } : prev)),
     onCommit: commitInlineEdit,
     onCancel: cancelInlineEdit,
+    onQuitarCad: quitarCaducidadInline,
   };
 
   const eliminarProducto = async (id, { confirmMsg } = {}) => {
@@ -3391,6 +3484,7 @@ export default function InventarioModule() {
       showToast("Sesión expirada.", "error");
       return;
     }
+    const quitar = !fecha;
     setLoteCadSaving(loteId);
     try {
       const { data: resp, error } = await supabase.rpc("admin_editar_lote", {
@@ -3398,6 +3492,7 @@ export default function InventarioModule() {
         p_lote_id: loteId,
         p_fecha_caducidad: fecha || null,
         p_numero_lote: null,
+        p_quitar_caducidad: quitar,
       });
       if (error) {
         showToast(error.message, "error");
@@ -3410,7 +3505,7 @@ export default function InventarioModule() {
       const refreshed = await fetchProductos();
       const p = refreshed?.find((x) => x.id === productoId);
       if (p) setModalLotes(p);
-      showToast("Caducidad actualizada", "success");
+      showToast(quitar ? "Fecha de caducidad eliminada" : "Caducidad actualizada", "success");
     } finally {
       setLoteCadSaving(null);
     }
@@ -3996,6 +4091,12 @@ export default function InventarioModule() {
                               onBlur={(e) => {
                                 const next = e.target.value || null;
                                 if ((l.fecha_caducidad || null) === next) return;
+                                if (!next && l.fecha_caducidad) {
+                                  if (!window.confirm("¿Quitar la fecha de caducidad de este lote?")) {
+                                    e.target.value = l.fecha_caducidad || "";
+                                    return;
+                                  }
+                                }
                                 actualizarCaducidadLote(l.id, next, modalLotes.id);
                               }}
                               style={{
