@@ -14,9 +14,11 @@ Número temporal Meta (API de prueba): Phone Number ID `1338650695990173` (+1 55
 
 **Límite Vercel Hobby:** máx. 12 funciones serverless. La lógica WhatsApp vive en `api/_lib/` (no cuenta); webhook y send usan rewrites a funciones existentes.
 
-URL pública del webhook: **https://www.farmacapital.mx/api/webhooks/whatsapp**
+URL pública del webhook (Meta): **https://www.farmacapital.mx/api/health**
 
-> **Importante:** usa siempre el subdominio `www`. La URL sin `www` (`farmacapital.mx`) responde **308 Redirect** y Meta **no valida** webhooks con redirect — verás el error *"No se pudo validar la URL de devolución de llamada"*.
+> En Vercel Hobby, `/api/webhooks/whatsapp` devuelve 404 si no hay archivo serverless en esa ruta (el rewrite no siempre aplica). **`/api/health`** detecta `hub.mode` / firma Meta y delega al handler WhatsApp.
+>
+> Usa siempre **`www`**. Sin `www` hay redirect 308 y Meta falla la verificación.
 
 ## Variables en Vercel (Sensitive — Production y Preview)
 
