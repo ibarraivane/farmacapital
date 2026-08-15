@@ -746,6 +746,48 @@ BEGIN
   END IF;
 END $$;
 
+-- INSERT FC-09747366 · 7502209747366 · Veridex C/4 6 mg
+DO $$
+DECLARE v_pid bigint; v_lid bigint;
+BEGIN
+  SELECT id INTO v_pid FROM public.productos
+  WHERE sku = 'FC-09747366' OR codigo_barras = '7502209747366' LIMIT 1;
+  IF v_pid IS NULL THEN
+    SELECT f.producto_id, f.lote_id INTO v_pid, v_lid
+    FROM public.create_producto_with_lote(
+      jsonb_build_object(
+        'nombre', 'Veridex C/4 6 mg',
+        'sku', 'FC-09747366',
+        'codigo_barras', '7502209747366',
+        'categoria', 'Medicamentos',
+        'tipo', 'marca',
+        'descripcion', 'Veridex C/4 6 mg — alta canonica EAN 7502209747366',
+        'costo', 75.46,
+        'precio', 360.00,
+        'stock_minimo', 3,
+        'activo', true,
+        'requiere_receta', true
+      ),
+      1, NULL, NULL, 75.46, NULL
+    ) f;
+    UPDATE public.productos SET
+      marca = 'Veridex',
+      presentacion = 'C/4 tabletas 6 mg',
+      principio_activo = 'Ivermectina 6 mg',
+      forma_farmaceutica = 'Tabletas',
+      subcategoria = 'Antiparasitario',
+      stock = 1,
+      stock_unidades = 1
+    WHERE id = v_pid;
+  ELSE
+    UPDATE public.productos SET
+      codigo_barras = '7502209747366',
+      nombre = 'Veridex C/4 6 mg',
+      activo = true
+    WHERE id = v_pid;
+  END IF;
+END $$;
+
 -- Verificación
 SELECT sku, nombre, codigo_barras, stock, precio
 FROM public.productos

@@ -1,6 +1,5 @@
 -- Topron Nifuroxazida 400 mg C/16 · Chinoin · 7501088579615
--- Ticket Farmalive: $153.47 costo · lote 8FB077 · cad FEB 2028 · PMP $251.40
--- Ejecutar en Supabase SQL Editor (copiar archivo completo, Cmd+A)
+-- (Incluido también en sql/patch_altas_farmalive_anexos_20260815.sql junto con Brunadol y Veridex)
 
 begin;
 

@@ -1,7 +1,5 @@
 -- Brunadol Paracetamol + Naproxeno C/10 · Bruluart · 7501537103521
--- Frente: C/10 tab 300/275 mg · Lateral: lote 604188 cad 06-abr-2028 · PMP $72
--- Ticket Farmalive: $19.31/caja (4 cajas ≈ $77.22)
--- Ejecutar en Supabase SQL Editor (copiar archivo completo, Cmd+A)
+-- (Incluido también en sql/patch_altas_farmalive_anexos_20260815.sql junto con Topron y Veridex)
 
 begin;
 

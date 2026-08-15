@@ -328,6 +328,22 @@ ALTAS_MANUALES: list[ProductoCanonico] = [
         subcategoria="Analgesico / antipiretico / antinflamatorio",
         notas="Bruluart; ticket $19.31/caja x4; lote 604188 cad abr 2028; PMP $72",
     ),
+    ProductoCanonico(
+        barcode="7502209747366",
+        nombre="Veridex C/4 6 mg",
+        marca="Veridex",
+        presentacion="C/4 tabletas 6 mg",
+        principio_activo="Ivermectina 6 mg",
+        forma_farmaceutica="Tabletas",
+        categoria="Medicamentos",
+        tipo="marca",
+        stock=1,
+        costo=75.46,
+        precio=360.00,
+        requiere_receta=True,
+        subcategoria="Antiparasitario",
+        notas="Maver; ticket OCR 75020027471 truncado; lote 261181 cad feb 2028; PMP $360",
+    ),
 ]
 
 # Mapa OCR/ticket erróneo → EAN canónico (para patch masivo OCR)
@@ -349,6 +365,8 @@ MAPA_OCR_A_CANONICO: dict[str, str] = {
     "75010885796151": "7501088579615",
     "71010885796151": "7501088579615",
     "c71010885796151": "7501088579615",
+    "75020027471": "7502209747366",
+    "750220974736": "7502209747366",
 }
 
 
