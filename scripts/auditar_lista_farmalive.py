@@ -76,6 +76,9 @@ PRODUCTOS = [
     {"q": "tabcin noche", "bc": "7501008499702", "nombre": "Tabcin Noche", "pres": "C/12 caps", "costo": 71.21, "qty": 0, "en_ticket": False},
     {"q": "motrin infantil", "bc": "7501007535494", "nombre": "Motrin Infantil Susp 120 ml", "pres": "120 ml frutas", "costo": 186.40, "qty": 1, "en_ticket": True},
     {"q": "sedalmerck max", "bc": "7501298215099", "nombre": "Sedalmerck Max", "pres": "C/24 tab", "costo": 122.06, "qty": 2, "en_ticket": True},
+    {"q": "topron", "bc": "7501088579615", "nombre": "Topron C/16 400 mg", "pres": "C/16 caps", "costo": 153.47, "qty": 1, "en_ticket": True},
+    {"q": "brunadol", "bc": "7501537103521", "nombre": "Brunadol C/10", "pres": "C/10 tab", "costo": 19.31, "qty": 4, "en_ticket": True},
+    {"q": "veridex", "bc": "7502209747366", "nombre": "Veridex C/4 6 mg", "pres": "C/4 tab", "costo": 75.46, "qty": 1, "en_ticket": True},
 ]
 
 NO_EN_TICKET: set[str] = set()
@@ -239,13 +242,18 @@ Ticket OCR: `.tmp_ocr_vision/FarmaLive.txt` (#9861, 08/08/2026)
 - **Faltan cargar:** {faltantes}
 - **No encontrados en ticket OCR:** {no_ticket}
 
-## Causa raíz
-El parser FarmaLive solo reconocía barcodes `750…`/`354…`. Los productos **Genomma Lab** (`65024…`) y varios OCR truncados **nunca entraron** al SQL de carga; otros quedaron con nombres mezclados (ej. Vitacilina 28 dentro del lubricante).
+## Causa raíz (por qué faltaba en Supabase)
+1. El parser OCR de FarmaLive **truncaba barcodes** (`75020027471` → Veridex real `7502209747366`).
+2. Productos **Genomma** (`65024…`) **no entraban** al script original (solo buscaba `750…`).
+3. Líneas **sin `[EAN]`** se mezclaban (Brunadol pegado a Treda, Vitacilina al lubricante).
+4. El CSV local de preview **no refleja Supabase** tras tus patches — usa el SQL idempotente.
 
-## SQL generado
-Ejecutar en Supabase **después** de `sql/patch_cargar_faltantes_0_fix_rpcs.sql`:
+## SQL — ejecutar UNO solo
+**`sql/patch_farmalive_completo_20260815.sql`** (regenerar: `python3 scripts/generar_patch_farmalive_completo.py`)
 
-`{OUT_SQL.relative_to(ROOT)}` ({len(sql_blocks)} productos)
+Incluye ticket + Topron + Brunadol + Veridex + Tabcin + anaquel.
+
+Alternativa parcial: `{OUT_SQL.relative_to(ROOT)}` ({len(sql_blocks)} productos solo ticket)
 """
     OUT_MD.write_text(md, encoding="utf-8")
 

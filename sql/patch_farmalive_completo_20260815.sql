@@ -1,10 +1,71 @@
--- ============================================================================
--- CARGAR faltantes corregidos — FarmaLive FL-080826
--- 35 productos con barcode y nombre limpio (Genomma 65024…, etc.)
--- PASO 0 previo: sql/patch_cargar_faltantes_0_fix_rpcs.sql
--- ============================================================================
+-- ═══════════════════════════════════════════════════════════════════
+-- FARMA LIVE FL-080826 — CARGA COMPLETA (UN SOLO PEGADO EN SUPABASE)
+-- Idempotente: si el producto ya existe, no duplica.
+-- Generado: scripts/generar_patch_farmalive_completo.py
+-- ═══════════════════════════════════════════════════════════════════
 
 begin;
+
+create temp table if not exists _fc_carga_map (
+  codigo_barras text primary key,
+  producto_id bigint
+) on commit preserve rows;
+
+insert into _fc_carga_map (codigo_barras, producto_id)
+select codigo_barras, id from public.productos
+where codigo_barras is not null and btrim(codigo_barras) <> ''
+on conflict (codigo_barras) do nothing;
+
+-- ── 1) Corregir barcodes OCR en productos que ya existían ──
+
+-- FIX FC-00740024 → 650240007408 · Silka Medic Gel
+UPDATE public.productos SET
+  codigo_barras = '650240007408',
+  nombre = 'Silka Medic Gel',
+  marca = 'Silka',
+  presentacion = 'Tubo 15 g',
+  principio_activo = 'Terbinafina',
+  forma_farmaceutica = 'GEL',
+  descripcion = coalesce(nullif(btrim(descripcion), ''), 'OCR ticket: 65024000740024 → patch erróneo 6502400074024')
+WHERE sku = 'FC-00740024'
+  AND NOT EXISTS (
+    SELECT 1 FROM public.productos o
+    WHERE o.codigo_barras = '650240007408' AND o.id <> public.productos.id
+  );
+
+-- FIX FC-58715517 → 7501095409004 · Graneodin B Frambuesa
+UPDATE public.productos SET
+  codigo_barras = '7501095409004',
+  nombre = 'Graneodin B Frambuesa',
+  marca = 'Graneodin',
+  presentacion = 'C/24 pastillas',
+  principio_activo = 'Benzocaina',
+  forma_farmaceutica = 'PASTILLAS',
+  stock = 2,
+  stock_unidades = 2,
+  descripcion = coalesce(nullif(btrim(descripcion), ''), 'Ticket tenía 7501058715517 (otro sabor); físico frambuesa')
+WHERE sku = 'FC-58715517'
+  AND NOT EXISTS (
+    SELECT 1 FROM public.productos o
+    WHERE o.codigo_barras = '7501095409004' AND o.id <> public.productos.id
+  );
+
+-- FIX FC-08485316 → 7501008485316 · Tabcin efervescente C/12
+UPDATE public.productos SET
+  codigo_barras = '7501008485316',
+  nombre = 'Tabcin efervescente C/12',
+  marca = 'Tabcin',
+  presentacion = 'C/12 tabletas efervescentes',
+  principio_activo = 'Acido acetilsalicilico + Fenilefrina + Clorfenamina',
+  forma_farmaceutica = 'Tabletas efervescentes',
+  descripcion = coalesce(nullif(btrim(descripcion), ''), 'EAN caja azul; distinto de Noche/500/Active')
+WHERE sku = 'FC-08485316'
+  AND NOT EXISTS (
+    SELECT 1 FROM public.productos o
+    WHERE o.codigo_barras = '7501008485316' AND o.id <> public.productos.id
+  );
+
+-- ── 2) Productos del ticket (Genomma 65024…, OCR truncado, etc.) ──
 
 create temp table if not exists _fc_carga_map (
   codigo_barras text primary key,
@@ -1276,6 +1337,571 @@ begin
     on conflict (codigo_barras) do update set producto_id = excluded.producto_id;
   end if;
 end $$;
+-- ── 3) Altas verificadas en empaque (Topron, Brunadol, Veridex) ──
+
+-- Altas Farmalive FL-080826 que el OCR no cargó bien (barcodes truncados / líneas mezcladas)
+-- Ejecutar UNA vez en Supabase SQL Editor (Cmd+A del archivo completo)
+--
+-- 1) Topron C/16      · 7501088579615 · Chinoin
+-- 2) Brunadol C/10    · 7501537103521 · Bruluart
+-- 3) Veridex C/4 6 mg · 7502209747366 · Maver
+
+-- ── 1) Topron ──
+DO $$
+DECLARE v_pid bigint; v_lid bigint;
+BEGIN
+  SELECT id INTO v_pid FROM public.productos
+  WHERE sku = 'FC-08579615' OR codigo_barras = '7501088579615' LIMIT 1;
+  IF v_pid IS NULL THEN
+    SELECT f.producto_id, f.lote_id INTO v_pid, v_lid
+    FROM public.create_producto_with_lote(
+      jsonb_build_object(
+        'nombre', 'Topron C/16 400 mg',
+        'sku', 'FC-08579615',
+        'codigo_barras', '7501088579615',
+        'categoria', 'Medicamentos',
+        'tipo', 'marca',
+        'descripcion', 'Topron Nifuroxazida 400 mg 16 caps — Chinoin EAN 7501088579615',
+        'costo', 153.47,
+        'precio', 251.40,
+        'stock_minimo', 2,
+        'activo', true,
+        'requiere_receta', false
+      ),
+      1, '8FB077', '2028-02-28'::date, 153.47, NULL
+    ) f;
+    UPDATE public.productos SET
+      marca = 'Topron',
+      presentacion = 'C/16 capsulas 400 mg',
+      principio_activo = 'Nifuroxazida 400 mg',
+      forma_farmaceutica = 'Capsulas',
+      subcategoria = 'Antidiarreico',
+      proveedor = 'Chinoin'
+    WHERE id = v_pid;
+  ELSE
+    UPDATE public.productos SET
+      codigo_barras = '7501088579615',
+      nombre = 'Topron C/16 400 mg',
+      marca = 'Topron',
+      presentacion = 'C/16 capsulas 400 mg',
+      principio_activo = 'Nifuroxazida 400 mg',
+      forma_farmaceutica = 'Capsulas',
+      categoria = 'Medicamentos',
+      costo = 153.47,
+      precio = 251.40,
+      stock = greatest(coalesce(stock, 0), 1),
+      activo = true
+    WHERE id = v_pid;
+  END IF;
+END $$;
+
+-- ── 2) Brunadol ──
+DO $$
+DECLARE v_pid bigint; v_lid bigint;
+BEGIN
+  SELECT id INTO v_pid FROM public.productos
+  WHERE sku = 'FC-103521' OR codigo_barras = '7501537103521' LIMIT 1;
+  IF v_pid IS NULL THEN
+    SELECT f.producto_id, f.lote_id INTO v_pid, v_lid
+    FROM public.create_producto_with_lote(
+      jsonb_build_object(
+        'nombre', 'Brunadol C/10',
+        'sku', 'FC-103521',
+        'codigo_barras', '7501537103521',
+        'categoria', 'Medicamentos',
+        'tipo', 'generico',
+        'descripcion', 'Brunadol Paracetamol 300 mg + Naproxeno 275 mg 10 tab — Bruluart',
+        'costo', 19.31,
+        'precio', 72.00,
+        'stock_minimo', 3,
+        'activo', true,
+        'requiere_receta', false
+      ),
+      4, '604188', '2028-04-06'::date, 19.31, NULL
+    ) f;
+    UPDATE public.productos SET
+      marca = 'Brunadol',
+      presentacion = 'C/10 tabletas',
+      principio_activo = 'Paracetamol 300 mg + Naproxeno 275 mg',
+      forma_farmaceutica = 'Tabletas',
+      subcategoria = 'Analgesico / antipiretico / antinflamatorio',
+      proveedor = 'Bruluart'
+    WHERE id = v_pid;
+  ELSE
+    UPDATE public.productos SET
+      codigo_barras = '7501537103521',
+      nombre = 'Brunadol C/10',
+      marca = 'Brunadol',
+      presentacion = 'C/10 tabletas',
+      principio_activo = 'Paracetamol 300 mg + Naproxeno 275 mg',
+      forma_farmaceutica = 'Tabletas',
+      categoria = 'Medicamentos',
+      tipo = 'generico',
+      costo = 19.31,
+      precio = 72.00,
+      stock = greatest(coalesce(stock, 0), 4),
+      activo = true
+    WHERE id = v_pid;
+  END IF;
+END $$;
+
+-- ── 3) Veridex ──
+DO $$
+DECLARE v_pid bigint; v_lid bigint;
+BEGIN
+  SELECT id INTO v_pid FROM public.productos
+  WHERE sku = 'FC-9747366' OR codigo_barras = '7502209747366' LIMIT 1;
+  IF v_pid IS NULL THEN
+    SELECT f.producto_id, f.lote_id INTO v_pid, v_lid
+    FROM public.create_producto_with_lote(
+      jsonb_build_object(
+        'nombre', 'Veridex C/4 6 mg',
+        'sku', 'FC-9747366',
+        'codigo_barras', '7502209747366',
+        'categoria', 'Medicamentos',
+        'tipo', 'marca',
+        'descripcion', 'Veridex Ivermectina 6 mg 4 tab — Maver EAN 7502209747366',
+        'costo', 75.46,
+        'precio', 360.00,
+        'stock_minimo', 1,
+        'activo', true,
+        'requiere_receta', true
+      ),
+      1, '261181', '2028-02-28'::date, 75.46, NULL
+    ) f;
+    UPDATE public.productos SET
+      marca = 'Veridex',
+      presentacion = 'C/4 tabletas 6 mg',
+      principio_activo = 'Ivermectina 6 mg',
+      forma_farmaceutica = 'Tabletas',
+      subcategoria = 'Antiparasitario',
+      proveedor = 'Maver',
+      requiere_receta = true
+    WHERE id = v_pid;
+  ELSE
+    UPDATE public.productos SET
+      codigo_barras = '7502209747366',
+      nombre = 'Veridex C/4 6 mg',
+      marca = 'Veridex',
+      presentacion = 'C/4 tabletas 6 mg',
+      principio_activo = 'Ivermectina 6 mg',
+      forma_farmaceutica = 'Tabletas',
+      categoria = 'Medicamentos',
+      costo = 75.46,
+      precio = 360.00,
+      requiere_receta = true,
+      stock = greatest(coalesce(stock, 0), 1),
+      activo = true
+    WHERE id = v_pid;
+  END IF;
+END $$;
+
+-- Verificación: deben ser 3 filas
+SELECT p.sku, p.nombre, p.codigo_barras, p.costo, p.precio, p.stock,
+       p.requiere_receta, l.numero_lote, l.fecha_caducidad, l.cantidad_actual
+FROM public.productos p
+LEFT JOIN public.lotes l ON l.producto_id = p.id AND coalesce(l.activo, true) = true
+WHERE p.codigo_barras IN (
+  '7501088579615',
+  '7501537103521',
+  '7502209747366'
+)
+ORDER BY p.nombre;
+-- ── 4) Línea Tabcin (4 EAN distintos) ──
+
+-- Línea Tabcin Bayer: 4 variantes con EAN distintos
+-- Ejecutar en Supabase SQL Editor (copiar archivo completo, Cmd+A)
+--
+-- Ya existía: FC-08485316 eferv (7501008485316), posible FC-08499702 noche
+-- Altas: Tabcin 500 (7501008485408), Tabcin Active (7501008499689)
+
+-- 1) Corregir Tabcin efervescente (existía con nombre/presentación OCR)
+UPDATE public.productos SET
+  codigo_barras = '7501008485316',
+  nombre = 'Tabcin efervescente C/12',
+  marca = 'Tabcin',
+  presentacion = 'C/12 tabletas efervescentes',
+  principio_activo = 'Acido acetilsalicilico + Fenilefrina + Clorfenamina',
+  forma_farmaceutica = 'Tabletas efervescentes',
+  categoria = 'Medicamentos',
+  tipo = 'marca',
+  subcategoria = 'Antigripal',
+  costo = 37.73,
+  precio = 49.05,
+  activo = true
+WHERE sku = 'FC-08485316';
+
+-- 2) Tabcin Noche · 7501008499702
+DO $$
+DECLARE v_pid bigint; v_lid bigint;
+BEGIN
+  SELECT id INTO v_pid FROM public.productos
+  WHERE sku = 'FC-08499702' OR codigo_barras = '7501008499702' LIMIT 1;
+  IF v_pid IS NULL THEN
+    SELECT f.producto_id, f.lote_id INTO v_pid, v_lid
+    FROM public.create_producto_with_lote(
+      jsonb_build_object(
+        'nombre', 'Tabcin Noche C/12',
+        'sku', 'FC-08499702',
+        'codigo_barras', '7501008499702',
+        'categoria', 'Medicamentos',
+        'tipo', 'marca',
+        'descripcion', 'Tabcin Noche C/12 — EAN 7501008499702',
+        'costo', 71.21,
+        'precio', 96.14,
+        'stock_minimo', 3,
+        'activo', true,
+        'requiere_receta', false
+      ),
+      0, NULL, NULL, 71.21, NULL
+    ) f;
+    UPDATE public.productos SET
+      marca = 'Tabcin',
+      presentacion = 'C/12 capsulas',
+      principio_activo = 'Paracetamol + Fenilefrina + Dextrometorfano + Doxilamina',
+      forma_farmaceutica = 'Capsulas',
+      subcategoria = 'Antigripal / noche'
+    WHERE id = v_pid;
+  ELSE
+    UPDATE public.productos SET
+      codigo_barras = '7501008499702',
+      nombre = 'Tabcin Noche C/12',
+      marca = 'Tabcin',
+      presentacion = 'C/12 capsulas',
+      principio_activo = 'Paracetamol + Fenilefrina + Dextrometorfano + Doxilamina',
+      forma_farmaceutica = 'Capsulas',
+      categoria = 'Medicamentos',
+      costo = 71.21,
+      precio = 96.14,
+      activo = true
+    WHERE id = v_pid;
+  END IF;
+END $$;
+
+-- 3) Tabcin 500 · 7501008485408 · ticket $46.06/caja
+DO $$
+DECLARE v_pid bigint; v_lid bigint;
+BEGIN
+  SELECT id INTO v_pid FROM public.productos
+  WHERE sku = 'FC-08485408' OR codigo_barras = '7501008485408' LIMIT 1;
+  IF v_pid IS NULL THEN
+    SELECT f.producto_id, f.lote_id INTO v_pid, v_lid
+    FROM public.create_producto_with_lote(
+      jsonb_build_object(
+        'nombre', 'Tabcin 500 C/12',
+        'sku', 'FC-08485408',
+        'codigo_barras', '7501008485408',
+        'categoria', 'Medicamentos',
+        'tipo', 'marca',
+        'descripcion', 'Tabcin 500 C/12 — EAN 7501008485408',
+        'costo', 46.06,
+        'precio', 62.19,
+        'stock_minimo', 3,
+        'activo', true,
+        'requiere_receta', false
+      ),
+      0, NULL, NULL, 46.06, NULL
+    ) f;
+    UPDATE public.productos SET
+      marca = 'Tabcin',
+      presentacion = 'C/12 capsulas',
+      principio_activo = 'Paracetamol + Amantadina + Clorfenamina + Fenilefrina',
+      forma_farmaceutica = 'Capsulas',
+      subcategoria = 'Antigripal'
+    WHERE id = v_pid;
+  ELSE
+    UPDATE public.productos SET
+      codigo_barras = '7501008485408',
+      nombre = 'Tabcin 500 C/12',
+      costo = 46.06,
+      precio = 62.19,
+      activo = true
+    WHERE id = v_pid;
+  END IF;
+END $$;
+
+-- 4) Tabcin Active · 7501008499689 · Exprezo $70.60
+DO $$
+DECLARE v_pid bigint; v_lid bigint;
+BEGIN
+  SELECT id INTO v_pid FROM public.productos
+  WHERE sku = 'FC-08499689' OR codigo_barras = '7501008499689' LIMIT 1;
+  IF v_pid IS NULL THEN
+    SELECT f.producto_id, f.lote_id INTO v_pid, v_lid
+    FROM public.create_producto_with_lote(
+      jsonb_build_object(
+        'nombre', 'Tabcin Active C/12',
+        'sku', 'FC-08499689',
+        'codigo_barras', '7501008499689',
+        'categoria', 'Medicamentos',
+        'tipo', 'marca',
+        'descripcion', 'Tabcin Active C/12 — EAN 7501008499689',
+        'costo', 70.60,
+        'precio', 95.31,
+        'stock_minimo', 3,
+        'activo', true,
+        'requiere_receta', false
+      ),
+      0, NULL, NULL, 70.60, NULL
+    ) f;
+    UPDATE public.productos SET
+      marca = 'Tabcin',
+      presentacion = 'C/12 capsulas',
+      principio_activo = 'Paracetamol + Fenilefrina + Dextrometorfano + Guaifenesina',
+      forma_farmaceutica = 'Capsulas',
+      subcategoria = 'Antigripal / tos'
+    WHERE id = v_pid;
+  ELSE
+    UPDATE public.productos SET
+      codigo_barras = '7501008499689',
+      nombre = 'Tabcin Active C/12',
+      costo = 70.60,
+      precio = 95.31,
+      activo = true
+    WHERE id = v_pid;
+  END IF;
+END $$;
+
+-- Verificación (deben ser 4 filas, barcodes distintos)
+SELECT sku, nombre, codigo_barras, costo, precio, stock, activo
+FROM public.productos
+WHERE codigo_barras IN (
+  '7501008485316',
+  '7501008499702',
+  '7501008485408',
+  '7501008499689'
+)
+ORDER BY nombre;
+-- ── 5) Otros del anaquel no listados en ticket OCR ──
+
+-- INSERT FC-85278507 · 0736085278507 · Manzanilla Sophia Solucion 15 ml
+DO $$
+DECLARE v_pid bigint; v_lid bigint;
+BEGIN
+  SELECT id INTO v_pid FROM public.productos
+  WHERE sku = 'FC-85278507' OR codigo_barras = '0736085278507' LIMIT 1;
+  IF v_pid IS NULL THEN
+    SELECT f.producto_id, f.lote_id INTO v_pid, v_lid
+    FROM public.create_producto_with_lote(
+      jsonb_build_object(
+        'nombre', 'Manzanilla Sophia Solucion 15 ml',
+        'sku', 'FC-85278507',
+        'codigo_barras', '0736085278507',
+        'categoria', 'Medicamentos',
+        'tipo', 'marca',
+        'descripcion', 'Manzanilla Sophia Solucion 15 ml — alta canonica EAN 0736085278507',
+        'costo', 63.41,
+        'precio', 85.61,
+        'stock_minimo', 3,
+        'activo', true,
+        'requiere_receta', false
+      ),
+      1, NULL, NULL, 63.41, NULL
+    ) f;
+    UPDATE public.productos SET
+      marca = 'Sophia',
+      presentacion = 'Frasco 15 ml',
+      principio_activo = 'Manzanilla (Matricaria chamomilla)',
+      forma_farmaceutica = 'Solucion oral',
+      subcategoria = 'Digestivo / calmante',
+      stock = 1,
+      stock_unidades = 1
+    WHERE id = v_pid;
+  ELSE
+    UPDATE public.productos SET
+      codigo_barras = '0736085278507',
+      nombre = 'Manzanilla Sophia Solucion 15 ml',
+      activo = true
+    WHERE id = v_pid;
+  END IF;
+END $$;
+
+-- INSERT FC-08499818 · 7501008499818 · Aspirina 500 mg C/80
+DO $$
+DECLARE v_pid bigint; v_lid bigint;
+BEGIN
+  SELECT id INTO v_pid FROM public.productos
+  WHERE sku = 'FC-08499818' OR codigo_barras = '7501008499818' LIMIT 1;
+  IF v_pid IS NULL THEN
+    SELECT f.producto_id, f.lote_id INTO v_pid, v_lid
+    FROM public.create_producto_with_lote(
+      jsonb_build_object(
+        'nombre', 'Aspirina 500 mg C/80',
+        'sku', 'FC-08499818',
+        'codigo_barras', '7501008499818',
+        'categoria', 'Medicamentos',
+        'tipo', 'marca',
+        'descripcion', 'Aspirina 500 mg C/80 — alta canonica EAN 7501008499818',
+        'costo', 61.15,
+        'precio', 82.56,
+        'stock_minimo', 3,
+        'activo', true,
+        'requiere_receta', false
+      ),
+      2, NULL, NULL, 61.15, NULL
+    ) f;
+    UPDATE public.productos SET
+      marca = 'Aspirina',
+      presentacion = 'C/80 tabletas 500 mg',
+      principio_activo = 'Acido acetilsalicilico 500 mg',
+      forma_farmaceutica = 'Tabletas',
+      subcategoria = 'Analgesico / antipiretico',
+      stock = 2,
+      stock_unidades = 2
+    WHERE id = v_pid;
+  ELSE
+    UPDATE public.productos SET
+      codigo_barras = '7501008499818',
+      nombre = 'Aspirina 500 mg C/80',
+      activo = true
+    WHERE id = v_pid;
+  END IF;
+END $$;
+
+-- INSERT FC-08443033 · 7501008443033 · Alka-Seltzer C/12 alivio rapido
+DO $$
+DECLARE v_pid bigint; v_lid bigint;
+BEGIN
+  SELECT id INTO v_pid FROM public.productos
+  WHERE sku = 'FC-08443033' OR codigo_barras = '7501008443033' LIMIT 1;
+  IF v_pid IS NULL THEN
+    SELECT f.producto_id, f.lote_id INTO v_pid, v_lid
+    FROM public.create_producto_with_lote(
+      jsonb_build_object(
+        'nombre', 'Alka-Seltzer C/12 alivio rapido',
+        'sku', 'FC-08443033',
+        'codigo_barras', '7501008443033',
+        'categoria', 'Otro',
+        'tipo', 'marca',
+        'descripcion', 'Alka-Seltzer C/12 alivio rapido — alta canonica EAN 7501008443033',
+        'costo', 39.00,
+        'precio', 52.65,
+        'stock_minimo', 3,
+        'activo', true,
+        'requiere_receta', false
+      ),
+      2, NULL, NULL, 39.00, NULL
+    ) f;
+    UPDATE public.productos SET
+      marca = 'Alka-Seltzer',
+      presentacion = 'C/12 tabletas efervescentes',
+      principio_activo = 'Acido acetilsalicilico + Bicarbonato + Citrico',
+      forma_farmaceutica = 'Tabletas efervescentes',
+      subcategoria = 'Antiacido / analgesico',
+      stock = 2,
+      stock_unidades = 2
+    WHERE id = v_pid;
+  ELSE
+    UPDATE public.productos SET
+      codigo_barras = '7501008443033',
+      nombre = 'Alka-Seltzer C/12 alivio rapido',
+      activo = true
+    WHERE id = v_pid;
+  END IF;
+END $$;
+
+-- INSERT FC-46642073 · 7502246642073 · Microdacyn Solucion 60 ml
+DO $$
+DECLARE v_pid bigint; v_lid bigint;
+BEGIN
+  SELECT id INTO v_pid FROM public.productos
+  WHERE sku = 'FC-46642073' OR codigo_barras = '7502246642073' LIMIT 1;
+  IF v_pid IS NULL THEN
+    SELECT f.producto_id, f.lote_id INTO v_pid, v_lid
+    FROM public.create_producto_with_lote(
+      jsonb_build_object(
+        'nombre', 'Microdacyn Solucion 60 ml',
+        'sku', 'FC-46642073',
+        'codigo_barras', '7502246642073',
+        'categoria', 'Botiquín',
+        'tipo', 'marca',
+        'descripcion', 'Microdacyn Solucion 60 ml — alta canonica EAN 7502246642073',
+        'costo', 114.66,
+        'precio', 154.80,
+        'stock_minimo', 3,
+        'activo', true,
+        'requiere_receta', false
+      ),
+      1, NULL, NULL, 114.66, NULL
+    ) f;
+    UPDATE public.productos SET
+      marca = 'Microdacyn',
+      presentacion = 'Frasco 60 ml',
+      principio_activo = 'Acido hipocloroso / solucion antiseptica',
+      forma_farmaceutica = 'Solucion topica',
+      subcategoria = 'Antiseptico / curacion de heridas',
+      stock = 1,
+      stock_unidades = 1
+    WHERE id = v_pid;
+  ELSE
+    UPDATE public.productos SET
+      codigo_barras = '7502246642073',
+      nombre = 'Microdacyn Solucion 60 ml',
+      activo = true
+    WHERE id = v_pid;
+  END IF;
+END $$;
+
 commit;
 
-select count(*) as productos_fc from public.productos where sku like 'FC-%';
+-- Verificación: cuenta por barcode clave del ticket + fotos
+SELECT p.sku, p.nombre, p.codigo_barras, p.stock, p.precio, p.activo
+FROM public.productos p
+WHERE p.codigo_barras IN (
+  '0736085278507',
+  '3543122250276',
+  '354312225164',
+  '36647980596011',
+  '3664798062229',
+  '650240007408',
+  '650240010538',
+  '650240010712',
+  '650240015366',
+  '6502400170941',
+  '650240017100',
+  '6502400315021',
+  '650240036354',
+  '6502400525451',
+  '750022503405381',
+  '7501007535494',
+  '7501008421321',
+  '7501008427330',
+  '7501008443033',
+  '7501008485316',
+  '7501008485408',
+  '7501008497593',
+  '7501008499689',
+  '7501008499702',
+  '7501008499818',
+  '75010084999001',
+  '75010506134531',
+  '7501058367129',
+  '75010583683367',
+  '7501064560163',
+  '7501088579615',
+  '7501095409004',
+  '75010954525051',
+  '7501125112881',
+  '7501159525015',
+  '7501210734092301',
+  '75012501050724298',
+  '7501298215099',
+  '7501312250181',
+  '7501369200016',
+  '75015015371829601',
+  '7501537103521',
+  '7501685171118',
+  '75022088947797',
+  '7502209747366',
+  '7502246642073',
+  '7502250343072',
+  '75029650608272',
+  '7503050071598',
+  '7503854221482',
+  '750525301508201',
+  '7507201092730451',
+  '7509854054221',
+  '780083146207'
+)
+ORDER BY p.nombre;
+
