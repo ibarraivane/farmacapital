@@ -360,6 +360,21 @@ ALTAS_MANUALES: list[ProductoCanonico] = [
         subcategoria="Antiparasitario",
         notas="Maver; ticket OCR 75020027471 truncado; lote 261181 cad feb 2028; PMP $360",
     ),
+    ProductoCanonico(
+        barcode="7501037907117",
+        nombre="Bisolvon Solucion Adulto 120 ml",
+        marca="Bisolvon",
+        presentacion="Frasco 120 ml",
+        principio_activo="Bromhexina",
+        forma_farmaceutica="Solucion oral",
+        categoria="Respiratorio",
+        tipo="marca",
+        stock=1,
+        costo=141.94,
+        precio=191.62,
+        subcategoria="Expectorante / antitusivo",
+        notas="Sanfer; distinto de FC-79071241 infantil 7501037907124; cad feb 2028",
+    ),
 ]
 
 # Mapa OCR/ticket erróneo → EAN canónico (para patch masivo OCR)

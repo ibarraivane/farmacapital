@@ -803,6 +803,48 @@ BEGIN
   END IF;
 END $$;
 
+-- INSERT FC-37907117 · 7501037907117 · Bisolvon Solucion Adulto 120 ml
+DO $$
+DECLARE v_pid bigint; v_lid bigint;
+BEGIN
+  SELECT id INTO v_pid FROM public.productos
+  WHERE sku = 'FC-37907117' OR codigo_barras = '7501037907117' LIMIT 1;
+  IF v_pid IS NULL THEN
+    SELECT f.producto_id, f.lote_id INTO v_pid, v_lid
+    FROM public.create_producto_with_lote(
+      jsonb_build_object(
+        'nombre', 'Bisolvon Solucion Adulto 120 ml',
+        'sku', 'FC-37907117',
+        'codigo_barras', '7501037907117',
+        'categoria', 'Respiratorio',
+        'tipo', 'marca',
+        'descripcion', 'Bisolvon Solucion Adulto 120 ml — alta canonica EAN 7501037907117',
+        'costo', 141.94,
+        'precio', 191.62,
+        'stock_minimo', 3,
+        'activo', true,
+        'requiere_receta', false
+      ),
+      1, NULL, NULL, 141.94, NULL
+    ) f;
+    UPDATE public.productos SET
+      marca = 'Bisolvon',
+      presentacion = 'Frasco 120 ml',
+      principio_activo = 'Bromhexina',
+      forma_farmaceutica = 'Solucion oral',
+      subcategoria = 'Expectorante / antitusivo',
+      stock = 1,
+      stock_unidades = 1
+    WHERE id = v_pid;
+  ELSE
+    UPDATE public.productos SET
+      codigo_barras = '7501037907117',
+      nombre = 'Bisolvon Solucion Adulto 120 ml',
+      activo = true
+    WHERE id = v_pid;
+  END IF;
+END $$;
+
 -- Verificación
 SELECT sku, nombre, codigo_barras, stock, precio
 FROM public.productos
