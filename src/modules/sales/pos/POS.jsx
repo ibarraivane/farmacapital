@@ -9,6 +9,7 @@ import { $, logAudit, soloDigitosTel, normalizeForSearch } from "../../../utils"
 import { tiendaProductMatchesBusqueda, tiendaCatalogSearchSuggestions, tiendaSearchRelevanceRank } from "../../../utils/fuzzySearch";
 import { findProductExactScan, looksLikeBarcodeInput, isAllDigitsInput, normalizeBarcodeRaw, shouldReplaceScanInput } from "../../../utils/barcodeProductLookup";
 import { posTituloProducto, posSubtituloProducto } from "../../../utils/posProductDisplay";
+import { precioUnidadParaVenta } from "../../../utils/precioUnidad";
 import {
   suggestPosProductsLocal,
   posEsOtcConStock,
@@ -329,7 +330,7 @@ function PosProductoFichaPanel({
                   }}
                   style={{ flex: "1 1 160px" }}
                 >
-                  💊 1 unidad · {$(Math.ceil(item.precio_unidad || 0))}
+                  💊 1 unidad · {$(precioUnidadParaVenta(item))}
                 </Btn>
               </>
             ) : (
@@ -900,7 +901,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         }
         return ex
           ? p.map(c=>c.id===keyU?{...c,qty:c.qty+1}:c)
-          : [...p,{...item,id:keyU,producto_id:item.id,qty:1,rxI:null,esUnidad:true,precio:Math.ceil(item.precio_unidad||0),nombre:`${posTituloProducto(item)} (unidad)`}];
+          : [...p,{...item,id:keyU,producto_id:item.id,qty:1,rxI:null,esUnidad:true,precio:precioUnidadParaVenta(item),nombre:`${posTituloProducto(item)} (unidad)`}];
       });
     } else {
       if (!validarProductoParaCarrito(item, 1, false)) {

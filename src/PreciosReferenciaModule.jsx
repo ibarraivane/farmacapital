@@ -56,7 +56,17 @@ const COL_DEFAULTS_VENTA = {
 };
 
 const COL_STORAGE_V = "v5";
+const TAB_STORAGE_KEY = "farmacapital_precios_ref_tab";
 const SUGERIDO_OVERRIDES_KEY = "farmacapital_precios_sugerido_overrides";
+
+function loadPreciosRefTab() {
+  try {
+    const saved = sessionStorage.getItem(TAB_STORAGE_KEY);
+    return saved === "venta" || saved === "compra" ? saved : "venta";
+  } catch {
+    return "venta";
+  }
+}
 
 function loadSugeridoOverrides() {
   try {
@@ -784,7 +794,7 @@ const td = (C) => ({
 
 export default function PreciosReferenciaModule() {
   const C = C_LIGHT;
-  const [tab, setTab] = useState("compra");
+  const [tab, setTab] = useState(loadPreciosRefTab);
   const [productos, setProductos] = useState([]);
   const [refsByProduct, setRefsByProduct] = useState({});
   const [loading, setLoading] = useState(true);
@@ -806,6 +816,12 @@ export default function PreciosReferenciaModule() {
       sessionStorage.setItem(SUGERIDO_OVERRIDES_KEY, JSON.stringify(sugeridoOverrides));
     } catch { /* noop */ }
   }, [sugeridoOverrides]);
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(TAB_STORAGE_KEY, tab);
+    } catch { /* noop */ }
+  }, [tab]);
 
   useEffect(() => {
     try {
@@ -1196,6 +1212,17 @@ export default function PreciosReferenciaModule() {
           Compara tu costo de abastos vs proveedores. Columna <strong>Otros</strong>: promedio o precio que consultes (Claude, Google, etc.).
           <strong style={{ color: C.green }}> Verde</strong> = ref. más cara que tu costo.
           <strong style={{ color: C.blue }}> Azul</strong> = ref. más barata. «Mejor opción» = mínimo de todos.
+          {" "}Las columnas <strong>Margen %</strong>, <strong>Sugerido</strong> y <strong>Marg. est.</strong> están en la pestaña{" "}
+          <button
+            type="button"
+            onClick={() => { setTab("venta"); cancelEdit(); }}
+            style={{
+              padding: 0, border: "none", background: "none", cursor: "pointer",
+              color: BRAND.primary, fontWeight: 700, fontSize: 11, textDecoration: "underline",
+            }}
+          >
+            Venta (competencia)
+          </button>.
         </p>
       )}
 

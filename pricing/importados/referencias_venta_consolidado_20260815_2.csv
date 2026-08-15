@@ -1,0 +1,105 @@
+sku,precio,fuente,confianza_match,notas
+FC-5D9DFA3D,59.25,similares,media,"Norquinol = marca de Norfloxacino. Match generico: NORFLOXACINO 400 MG 20 TABLETAS, misma concentracion y cantidad."
+FC-65054135,,similares,dudoso,"Similares solo tiene TUMS Carbonato de Calcio 750mg 24 TABLETAS a $33.00 (marca igual, pero tu presentacion es de 8 tabletas, no 24 -- no se reporta precio por no coincidir cantidad)."
+FC-DDFBABDF,24.75,similares,alta,AMOXICILINA/ACIDO CLAVULANICO 200/28.5MG SUSPENSION 40 O 50 ML -- coincide concentracion exacta (recuperada del inventario original: CLAMOXIN 12H PED 1 SUSP 200/28.5MG/40ML).
+FC-A0D320D1,29.25,similares,alta,AMOXICILINA 500 MG 12 CAPSULAS -- coincidencia exacta.
+FC-CF18C740,90.00,similares,alta,CLINDAMICINA 300 MG 16 CAPSULAS -- coincidencia exacta.
+FC-48F732CF,46.50,similares,dudoso,"Similares solo tiene ERITROMICINA 500MG en TABLETAS (20), tu presentacion original es CAPSULAS (EPICIN 20 CAPS 500 MG). Misma mg y cantidad pero forma farmaceutica distinta."
+FC-8FB65B79,124.50,similares,dudoso,"CLARITROMICINA 250MG/5ML SUSPENSION -- el catalogo no especifica volumen del frasco (dice '1 pieza'), no se puede confirmar si son los 60ml de tu presentacion."
+FC-08496701,36.38,similares,alta,"ACIDO ACETILSALICILICO 500MG 12 TABLETAS EFERVESCENTES ASPIRINA -- coincidencia exacta de marca, mg y cantidad."
+FC-54521161,6.00,similares,media,"Tempra 500mg C/10 no esta como marca en Similares; se usa el generico PARACETAMOL 500 MG 10 TABLETAS (PICK UP), misma concentracion y cantidad exacta."
+FC-974EE5FD,,similares,sin_dato,No se encontro Gimalxina ni equivalente claro (Cefixima) en el catalogo de Similares.
+FC-9B93AC4C,,similares,sin_dato,No se encontro Beneventol ni su generico Salbutamol suspension en el catalogo de Similares.
+FC-A23F290E,,similares,sin_dato,No se encontro Zitriasol ni Azitromicina 100mg 15 capsulas en el catalogo de Similares.
+FC-CF719C07,,similares,sin_dato,No se encontro Diclofen ni Diclofenaco 500mg 12 capsulas en el catalogo de Similares.
+FC-F82A6E4B,67.0,otros,media,Vitau.mx - Ampicilina genérica 1g 10 tabletas
+FC-72C28BC1,,similares,sin_dato,No se encontro Nitrofurantoina suspension en el catalogo de Similares.
+FC-E6112F15,,similares,sin_dato,"Nalixone (probable Acido Nalidixico) no coincide con exactitud -- Similares tiene ACIDO NALIDIXICO/FENAZOPIRIDINA 500/50MG 20 TABLETAS a $48.00, mismo mg y cantidad, pero no se pudo confirmar que sea el mismo principio activo que Nalixone (posible pero no verificado)."
+FC-63975795,,similares,sin_dato,No se encontro Gentamicina en presentacion de 25 comprimidos/tabletas en el catalogo de Similares (Gentamicina normalmente es inyectable u oftalmica).
+FC-6EAD98A9,,similares,sin_dato,No se encontro Cefadroxil en el catalogo de Similares.
+FC-E9C38DC4,65.43,otros,media,Vitau.mx - Ciprofloxacino genérico 500mg 14 tabletas
+FC-7AF7ACB5,65.43,otros,dudoso,Basado en precio Ciprofloxacino 500mg genérico; presentación de 3 tab no encontrada
+FC-4C621D07,,similares,sin_dato,No se encontro Vanmoxol (Amoxicilina/Ac.Clavulanico 250/15mg 90ml) en el catalogo de Similares.
+FC-D210172A,,similares,sin_dato,Presentacion ambigua: tu inventario original tenia 2 variantes inyectables de Ampicilina (1G/5ML y 500MG/2ML) y el CSV no especifica cual corresponde a este SKU -- no se busca para evitar mezclar presentaciones.
+FC-F3E734A0,,similares,sin_dato,"Presentacion ambigua: Fasiclor tiene 3 concentraciones distintas de suspension en tu inventario original (375MG/5/50ML, 250MG/5/75ML, 125MG/5/75ML) y el CSV no especifica cual es -- no se busca para evitar mezclar presentaciones."
+FC-2EDC6E3B,,similares,sin_dato,Presentacion ambigua: Cefagen tiene 2 concentraciones de tabletas en tu inventario original (250MG y 500MG) y el CSV no especifica cual -- no se busca para evitar mezclar presentaciones.
+FC-A455EE80,,similares,sin_dato,Presentacion ambigua: Cefagen tiene 2 concentraciones de suspension en tu inventario original (250MG/5/50ML y 125MG/5/50ML) y el CSV no especifica cual -- no se busca para evitar mezclar presentaciones.
+FC-E374F23E,,similares,sin_dato,Mismo caso que FC-A455EE80: Cefagen suspension ambigua entre 2 concentraciones -- no se busca para evitar mezclar presentaciones.
+FC-428A228F,,similares,sin_dato,Gimalxina 12 capsulas no aparece en tu inventario original (solo se tenia registrada la presentacion en suspension) -- no se puede verificar la concentracion sin adivinar.
+FC-F48FF7EF,,similares,sin_dato,"Presentacion ambigua: Clamoxin 'S' 1 suspension podria ser cualquiera de 3 concentraciones (250/62.5MG, 125/31.25MG o 600/42.9MG) segun tu inventario original -- no se busca para evitar mezclar presentaciones."
+FC-F22C72BE,,similares,sin_dato,Presentacion ambigua: Clamoxin '12H' 10 tabletas podria ser 500/125MG o 875/125MG segun tu inventario original -- no se busca para evitar mezclar presentaciones.
+FC-0E0A9E42,,similares,sin_dato,Mismo caso que FC-F48FF7EF: Clamoxin 'S' suspension ambigua entre 3 concentraciones -- no se busca para evitar mezclar presentaciones.
+FC-262F2A30,,similares,sin_dato,Presentacion ambigua: Irbesartan 14 tabletas podria ser 150MG o 300MG segun tu inventario original -- no se busca para evitar mezclar presentaciones.
+FC-5F30F9D4,,similares,sin_dato,Presentacion ambigua: Clamoxin 10 tabletas podria ser 500/125MG o 875/125MG -- no se busca para evitar mezclar presentaciones.
+FC-01B2F362,,similares,sin_dato,Mismo caso que FC-F3E734A0: Fasiclor suspension ambigua entre 3 concentraciones -- no se busca para evitar mezclar presentaciones.
+FC-443C330E,,similares,sin_dato,Mismo caso que FC-2EDC6E3B: Cefagen tabletas ambigua entre 2 concentraciones -- no se busca para evitar mezclar presentaciones.
+FC-9538F7D6,,similares,sin_dato,Mismo caso que FC-F3E734A0: Fasiclor suspension ambigua entre 3 concentraciones -- no se busca para evitar mezclar presentaciones.
+FC-022543CD,,similares,sin_dato,Presentacion ambigua: Valclan 10 tabletas podria ser 500/125MG o 875/125MG -- no se busca para evitar mezclar presentaciones.
+FC-1FEA2FB7,,similares,sin_dato,Presentacion ambigua: Amikacina 1 ampolleta podria ser 500MG/2ML o 100MG/2ML segun tu inventario original -- no se busca para evitar mezclar presentaciones.
+FC-347A49C7,,similares,sin_dato,Mismo caso que FC-1FEA2FB7: Amikacina ampolleta ambigua entre 2 concentraciones -- no se busca para evitar mezclar presentaciones.
+FC-01246730,,similares,sin_dato,No se encontro Vicks Vaporub (marca) en el catalogo de Similares -- solo manejan su marca propia PICK UP para la mayoria de OTC.
+FC-02012475,,similares,sin_dato,No se encontro Vicks Vaporub 100g en el catalogo de Similares.
+FC-65095947,,similares,sin_dato,"No se encontro Centrum regular C/30. Similares solo tiene Centrum Silver 50+30 (80 tabletas) a $134.25, presentacion distinta -- no se reporta por no coincidir."
+FC-50959781,150.0,otros,media,Farmacias referencia - Centrum Multivitamínico 30 tabletas (verificar en Fahorro/Walmart)
+FC-08443026,,similares,sin_dato,"No se encontro Alka-Seltzer C/100. Similares solo tiene la caja de 10 tabletas a $29.25, presentacion muy distinta -- no se reporta por no coincidir."
+FC-84999001,260.0,otros,media,Farmacias San Isidro - Alka-Seltzer Boost 50 tabletas efervescentes
+FC-58792792,,similares,sin_dato,"No se encontro Tempra C/12. Similares solo tiene Tempra masticable 80mg C/30 a $77.25, presentacion distinta -- no se reporta por no coincidir."
+FC-08491074,97.89,otros,media,Vitau.mx - Aspirina 500mg genérica 40 tabletas (tu presentación es 80)
+FC-516C2E89,48.00,similares,alta,AMOXICILINA/ACIDO CLAVULANICO 400/57 SUSPENSION 50-60 ML -- coincide concentracion exacta (recuperada del inventario original: CLAMOXIN 12H JR 1 SUSP 400/57MG/5/50ML).
+FC-98217659,,similares,sin_dato,"No se encontro Diclofenaco/Complejo B en presentacion de 20 tabletas. Similares tiene una version de 30 tabletas ($48.00), cantidad distinta -- no se reporta por no coincidir presentacion."
+FC-369D1689,,similares,sin_dato,No se encontro Beneventol 400mg 6 capsulas ni su generico claro en el catalogo de Similares.
+FC-4BD80686,,similares,sin_dato,No se encontro Beneventol 400mg 3 capsulas ni su generico claro en el catalogo de Similares.
+FC-75163051,,similares,sin_dato,No encontrado en Similares ni búsqueda preliminar
+FC-26462061,,similares,sin_dato,No encontrado en Similares ni búsqueda preliminar
+FC-33954078,66.0,otros,media,Vitau.mx - Ensure Advance 237ml (referencia)
+FC-33950070,66.0,otros,media,Vitau.mx - Ensure Advance 237ml (referencia similar)
+FC-33956126,75.0,otros,dudoso,Estimado basado en Ensure; Glucerna agotado en mayoría de farmacias
+FC-33956133,75.0,otros,dudoso,Estimado; Glucerna agotado
+FC-33956140,75.0,otros,dudoso,Estimado; Glucerna agotado
+FC-33951008,,similares,sin_dato,No encontrado en Similares ni búsqueda preliminar
+FC-33950209,,similares,sin_dato,No encontrado en Similares ni búsqueda preliminar
+FC-75125811,,similares,sin_dato,No encontrado en Similares ni búsqueda preliminar
+FC-51747971,26.5,otros,media,Farmatodo.com.mx - Electrolit suero oral 625ml
+FC-84335531,,similares,sin_dato,No encontrado en Similares ni búsqueda preliminar
+FC-08426944,,similares,sin_dato,No encontrado en Similares ni búsqueda preliminar
+FC-82176351,,similares,sin_dato,No encontrado en Similares ni búsqueda preliminar
+FC-08344488,,similares,sin_dato,Busqueda 'lactopram' sin resultados en Farmacias Similares
+FC-08344747,,similares,sin_dato,"No se encontro 'Afrodit'; busqueda devolvio Vitamina E 400 MG PICK UP (30 y 90 capsulas) pero FarmaCapital no especifica cantidad de piezas y marca no coincide, no se puede confirmar equivalencia"
+FC-08491096,,similares,sin_dato,Busquedas 'cafiaspirina' y 'cafiaspirina tar' sin resultados en Farmacias Similares
+FC-08498798,25.50,similares,media,"Match generico: DEXPANTENOL 5/100GR CREMA 30GR SIMIBABY (equivalente generico de Bepanthen Multiusos Pomada, misma concentracion 5% y mismo tamano 30g)"
+FC-5C8C9C11,,similares,sin_dato,"Gelubrin (ibuprofeno) existe en 200mg, 400mg y 600mg segun fuentes externas; la presentacion de FarmaCapital solo dice '10 CAPSULAS' sin mg, no se puede determinar variante con confianza"
+FC-66055303,37.50,similares,media,"Match generico: PRUEBA DE EMBARAZO ANALOGA (PICK UP), equivalente generico de prueba Meditest, presentacion C/1 pieza asumida equivalente"
+FC-66534951,,similares,sin_dato,Marca Colgate no se encontro en catalogo de Farmacias Similares (solo manejan Oral-B en pastas dentales)
+FC-67905131,,similares,sin_dato,Busqueda 'blumen cherry blossom' sin resultados en Farmacias Similares
+FC-67905186,,similares,sin_dato,Busqueda 'blumen coconut' sin resultados en Farmacias Similares
+FC-55280956,,similares,sin_dato,Busqueda 'obao' sin resultados en Farmacias Similares
+FC-1DA570E3,18.75,similares,alta,"Confirmado por fuente externa que Cloxan = Ambroxol 30mg; match exacto AMBROXOL 30 MG 20 COMPRIMIDOS, misma cantidad de piezas (20)"
+FC-23001331,,similares,sin_dato,"Nombre de producto 'Sr I Ting' ambiguo y sin presentacion especificada, no es posible identificar ni buscar con confianza"
+FC-24511711,,similares,sin_dato,Busqueda 'silica shine' sin resultados en Farmacias Similares
+FC-25104268,,similares,sin_dato,"Busqueda 'electrolit fresa' solo devolvio presentaciones de 500 ML (Electrolitos Orales Fresa, Fresa/Kiwi, Hidratasim), ninguna coincide con presentacion de 625 ML del producto buscado"
+FC-27512574,,similares,sin_dato,"Busqueda 'evenflo' devolvio biberones genericos PICK UP (8oz y 4oz) sin marca Evenflo; FarmaCapital no especifica tamano, no se puede confirmar equivalencia"
+FC-2E5B7248,,similares,sin_dato,Busqueda 'reumatol' sin resultados en Farmacias Similares
+FC-30133021,,similares,sin_dato,"Nombre de producto 'Iri' ambiguo y sin presentacion especificada, no es posible identificar ni buscar con confianza"
+FC-33950100,38.62,similares,dudoso,"No se encontro marca Ensure; Similares maneja varias 'DIETA POLIMERICA' sabor chocolate 236ML genericas (sin fibra $38.62, con fibra $39.75, hipercalorica $42.00); se reporta la variante sin fibra estandar como la mas cercana a Ensure regular, pero existe ambiguedad real sobre cual formulacion corresponde"
+FC-6898B64F,,similares,sin_dato,"Bioerter (eritromicina 250mg/5ml) se vende en presentaciones de 20ML y 100ML segun fuentes externas; FarmaCapital solo indica '1 SUSPENSION' sin volumen, no se puede determinar cual coincide (Similares tiene generico ERITROMICINA 250 MG SUSPENSION 100 ML a $63.00 pero no se confirma volumen)"
+FC-6B2ADEE9,,similares,sin_dato,"Busquedas 'protect aerosol' y 'protect' no arrojaron ningun aerosol equivalente; resultados fueron productos no relacionados (tabletas, bloqueador solar, protectores de lactancia)"
+FC-6C2878CF,110.25,similares,media,"Interpretando '125 Mg/Ml' como 0.125 mg/ml (formato comun de captura sin punto decimal), coincide con BUDESONIDA SUSPENSION 0.250MG/2ML O 0.125MG/ML PARA NEBULIZACION 5 AMPOLLETAS, mismo numero de ampolletas (5)"
+FC-70612368,43.50,similares,media,"Match generico: NEOMICINA / CAOLIN / PECTINA 20 TABLETAS, equivalente generico de Treda (confirmado por fuentes externas que Treda = neomicina/caolin/pectina), misma cantidad C/20"
+FC-72300171,,similares,sin_dato,Busquedas 'ting polvo decolorante' y 'ting' sin resultados en Farmacias Similares
+FC-68960257,,similares,sin_dato,"Busquedas 'alcohol etilico' y 'alcohol' no arrojaron alcohol etilico; unico resultado fue enjuague bucal sin alcohol, no relacionado"
+FC-68990023,,similares,sin_dato,"Busquedas 'alcohol etilico' y 'alcohol' no arrojaron alcohol etilico; unico resultado fue enjuague bucal sin alcohol, no relacionado"
+FC-33950063,,similares,sin_dato,Busquedas 'pediasure fresa' y 'pediasure' sin resultados en Farmacias Similares
+FC-72629012,,similares,sin_dato,Marca Colgate no se encontro en catalogo de Farmacias Similares (solo manejan Oral-B en pastas dentales)
+FC-3676D5DC,,similares,sin_dato,Busquedas 'mercurio espiritu' y 'mercurio' sin resultados en Farmacias Similares
+FC-38CAFE6B,,similares,sin_dato,Busquedas 'aceite de romero' y 'mercurio' sin resultados en Farmacias Similares
+FC-39036C88,,similares,sin_dato,Busquedas 'glicerina' y 'mercurio' sin resultados en Farmacias Similares
+FC-42270027,,similares,sin_dato,"Busqueda 'nivea' solo devolvio CREMA CORPORAL NIVEA PIEL EXTRA SECA 220 ML, linea y presentacion distintas a 'Nivea Cuidada Clar-Nat 200 ML', no coincide"
+FC-80950139,,similares,sin_dato,Busqueda 'lasico enzimatico' sin resultados en Farmacias Similares
+FC-43454811,35.26,similares,media,"Match generico: toallitas humedas para bebe SIMIBABY 80 piezas, equivalente generico de Huggies Toallitas Cuidado Puro, misma cantidad C/80"
+FC-43471900,,similares,sin_dato,"Busqueda 'toallitas humedas' solo devolvio presentacion de 80 piezas (Simibaby), ninguna de 120 piezas que coincida con Absorsec C/120"
+FC-45079011,59.25,similares,alta,Match exacto de marca: BALSAMO LABIAL LABELLO 1 PIEZA
+FC-47AAF23B,,similares,sin_dato,Busquedas 'sulfatiazol' y 'mercurio' sin resultados en Farmacias Similares
+FC-73629981,,similares,sin_dato,Busqueda 'kleenex' sin resultados en Farmacias Similares
+FC-75069223,,similares,sin_dato,Busqueda 'rexona' sin resultados en Farmacias Similares
+FC-76000284,,similares,sin_dato,"Vitacilina real es unguento neomicina/retinol vendido en tubos de 28g; Similares tiene generico NEOMICINA/RETINOL UNGUENTO 28 GR a $23.25, pero no coincide con presentacion de 500 ML indicada en FarmaCapital"
+FC-77FE5C83,,similares,sin_dato,"Nombre de producto 'S' y marca 'Sonblefam' no identificables; busqueda devolvio BETAMETASONA 0.1% CREMA 40GR por coincidencia difusa de texto, sin poder confirmar que corresponda al producto buscado"

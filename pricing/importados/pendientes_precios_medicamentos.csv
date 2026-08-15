@@ -1,0 +1,518 @@
+sku,nombre,principio_activo,presentacion,marca,categoria,precio_fc,costo_fc
+FC-07521317,Gotero cristal,,,Genérico,Botiquín,7,1.2
+FC-01246730,Vicks Vaporub pomada 12 g,,12 G,Vicks,Botiquín,42,21.25
+FC-03406501,Quirmex,,25 CM x 5 M,Quirmex,Botiquín,29.8,18.62
+FC-03406600,Quirmex,,,Quirmex,Botiquín,143.53,89.7
+FC-08344488,Lactopram,,430 MG · C/20,Lactopram,Otro,45.94,28.71
+FC-08344747,Afrodit,,400 UI,Afrodit,Producto,72.13,45.08
+FC-08443026,Alka-Seltzer,,C/100,Alka-Seltzer,Otro,340.6,262.0
+FC-08491096,Cafiaspirina Tar C/100,,C/100,Cafiaspirina,Otro,347.94,217.46
+FC-08496701,Aspirina Eferv,,C/12,Aspirina,Otro,45.74,35.18
+FC-08498798,Bepanthen Multiusos Pomada 30 Multiusos Pomada,,,Bepanthen,GENERAL,101.2,63.25
+FC-5C8C9C11,Gelubrin,,10 CAPSULAS,Gelubrin,Otro,28.54,21.95
+FC-65095947,Centrum Tab 1 Tab,,C/30,Centrum,GENERAL,232.0,178.46
+FC-02012475,Vicks Vaporub ungüento 100 G,,100 G,Vicks,Botiquín,188.0,125.12
+FC-66055303,Meditest Prueba Embarazo,,C/1,Meditest,Producto,19.74,15.18
+FC-66534951,Colgate Total,,1 tubo,Colgate,Higiene,36.69,22.93
+FC-67905131,Blumen Cherry Bloss,,221 ML,Blumen,Higiene,28.45,17.78
+FC-67905186,Blumen Coconut Para,,221 ML,Blumen,Higiene,24.0,16.7
+FC-55280956,Desodorante Obao Men Tattoo Rebel (Hombre),,R-ON 65 G,Obao,Higiene,87.49,25.83
+FC-68900127,Gasa 10 x 10,,PAQ 10,Dibar,Botiquín,197.73,123.58
+FC-1DA570E3,Cloxan,,20 COMPRIMIDOS,Cloxan,Otro,12.68,9.75
+FC-23001331,Sr I Ting,,,Sr,Producto,117.76,73.6
+FC-23273451,Jeringa insulina 0.5 ml,,C/100,Jayor,Botiquín,282.36,217.2
+FC-24511711,Silica Shine Sily 3/1 Mora,,120 ML,Silica Shine,Higiene,73.03,45.64
+FC-25104268,Electrolit Fresa,,625 ML,Electrolit,Higiene,32.81,20.5
+FC-27512574,Evenflo Colors,,,Evenflo,Bebés,25.28,15.8
+FC-29003221,Quirmex,,,Quirmex,Botiquín,5.93,3.7
+FC-2E5B7248,Reumatol,,60 G,Del Viejito,Producto,17.61,11.0
+FC-30133021,Iri,,,Iri,Otro,437.48,273.42
+FC-33950100,Ensure chocolate,,236 ML,Ensure,Suplemento,63.0,42.0
+FC-68900134,Gasa Lox10 C/100,,C/100,Dibar,Producto,174.21,108.88
+FC-6898B64F,Bioerter,,1 SUSPENSION,Bioerter,Otro,62.02,47.7
+FC-6B2ADEE9,Protect aerosol 200 dosis,,12.80 G,Protect,GENERAL,125.08,96.21
+FC-6C2878CF,Susp 125 Mg/Ml,,5 AMPOLLETA,Budenova,Otro,169.32,130.24
+FC-70612368,Treda,,C/20,Treda,Otro,198.0,152.0
+FC-72300171,Ting polvo decolorante,,85 G,Ting,Cuidado personal,113.0,80.46
+FC-68960257,Alcohol Etilico Rojo 96°,,1 L,Dibar,Botiquín,80,53.2
+FC-68990023,Alcohol Etilico Rojo 96°,,500 ML,Dibar,Botiquín,1082.96,28.2
+FC-33950063,Pediasure fresa,,236 ML,Pediasure,Suplemento,66,44
+FC-72629012,Colgate Adulto Med 40 C12,,,Colgate,Higiene,136.0,96.63
+FC-3676D5DC,Mercurio Espiritus Tomar 1760823,,C/25,Mercurio,Producto,9.61,6.0
+FC-38CAFE6B,Mercurio Aceite Romero 1910923,,C/25,Mercurio,Producto,12.8,8.0
+FC-39036C88,Mercurio Glicerina 1230723 83125,,C/25,Mercurio,Producto,19.21,12.0
+FC-42270027,Nivea Cuidada Clar-Nat,,200 ML,Nivea,Cuidado personal,137.4,85.87
+FC-80950139,Lásico enzimático,,Caja,Lásico,Producto,68.0,42.5
+FC-43454811,Toallitas húmedas cuidado puro,,C/80,Huggies,Higiene,63.37,39.6
+FC-43471900,Toallitas húmedas C/120,,C/120,Absorsec,Higiene,34.34,21.46
+FC-45079011,Labello,,,Labello,Otro,90.4,56.5
+FC-47AAF23B,Mercurio Sulfatiazol Polvo 1710824,,C/50,Mercurio,Producto,110.4,69.0
+FC-48335305,Degasa 15.00 Agua Oxigenada,,480 ML,Degasa,Botiquín,23.52,14.7
+FC-73629981,Kleenex Panuelos Pack C/8 1,,C/8,Kleenex,Higiene,53.28,33.3
+FC-75069223,Rexona Mot-Sen Sport Stick,,,Rexona,Higiene,60.0,42.82
+FC-76000284,Vitacilina Ros-Sab,,500 ML,Vitacilina,Cuidado personal,115.0,81.47
+FC-77FE5C83,S,,1 CREMA,Sonblefam,Otro,42.14,32.41
+FC-79400556,Sanfer Syncol,,871210734092301 TABLETAS,Sanfer,Otro,139.62,107.4
+FC-75076009,Rexona 48H Happy (Mujer),,STICK 45 G,Rexona,Higiene,85.6,51.5
+FC-77620056,Agua destilada La Flor,,1 L,La Flor,Botiquín,29,19
+FC-01157296,Naturella flujo moderado con alas,,C/8,Naturella,Higiene,26,17
+FC-80953017,Trojan,,C/3,Trojan,Producto,78.41,49.0
+FC-89810021,Armstrong Herklin Ne Sham 60 Ml,,60 ML,Armstrong,Producto,127.01,79.38
+FC-48623006,Protec Pads Facial Redondos C/100,,C/100,Protec,Cuidado personal,34.72,21.7
+FC-4F05124E,Gelcavit-9M Capsulas,,C/30,Gelcavit-9M,Producto,86.19,66.3
+FC-50003151,Opella Neomelubrina Jbe I 121.00 Neomelubrina Jbe I,,100 ML,Opella,Otro,189.73,118.58
+FC-50882017,Dermodine Espuma 120 Mi,,,Dermodine,Botiquín,120.32,75.2
+FC-50AC2C82,Erispan,,1 FRASCO AMPULA,Erispan,Otro,31.79,24.45
+FC-51067711,Nido,,,Nido,Producto,180.33,112.7
+FC-51078461,Nan 1 Pro 1,,,Nan,GENERAL,207.05,129.4
+FC-51078531,Nan Nestle Bolsa Nestle Bolsa,,2 G,Nan,GENERAL,93.93,58.7
+FC-516C2E89,12H Jr,AMOXICILINA/AC. CLAVULANICO,1 SUSPENSION,Clamoxin,Otro,47.83,36.79
+FC-51747971,Electrolit Mora Azul,,625 ML,Electrolit,Higiene,32.81,20.5
+FC-54073302,Silica Shine Sily Oleo Argan,,120 ML,Silica Shine,Higiene,71.62,44.76
+FC-89F00320,Mercurio Arnica 2550123,,C/25,Mercurio,Cuidado personal,16.8,10.5
+FC-92506045,Ego Firme Matte,,25 G,Ego,Higiene,27.52,17.2
+FC-92509213,Nutribela Nutrice Tarro,,300 G,Nutribela,Cuidado personal,64.39,40.24
+FC-926099D3,Mertiolate Kohn Rojo 012023 82912,,C/25,Mertiolate,Producto,14.4,9.0
+FC-92821171,Nido Nido Nestle Bolsa Nestle,,240 G,Nido,Abarrotes,49.08,30.67
+FC-93022567,Desodorante Rexona Men V8 (Hombre),,90 G,Rexona,Higiene,77.0,54.68
+FC-06245686,Desodorante Axe Men Epic-F 48H,,SPRAY 150 ML,Axe,Higiene,73.33,45.83
+FC-93025865,desodorante Axe Men Gold Temp,,,Axe,Higiene,73.33,45.83
+FC-00701992,Nivea Manos 3En1 Ant-Arrugas,,75 ML,Nivea,Cuidado personal,51.0,36.3
+FC-10974329,Listerine Zero Mta Sve,,250 ML,Listerine,Higiene,76.0,54.06
+FC-19006371,Saba Inv Alas,,C/10,Saba,Higiene,15.0,10.17
+FC-930E0B1B,Vandil,,1 SUSPENSION,Vandil,Otro,26.76,20.58
+FC-931B4809,Mercurio Aceite Coco 800523 83064,,C/25,Mercurio,Producto,12.8,8.0
+FC-9507CD66,Mercurio Haba Alcanforada 1510724,,C/50,Mercurio,Producto,104.0,65.0
+FC-95201021,Hipoglos Turo,,45 G,Hipoglos,Producto,113.6,71.0
+FC-974EE5FD,Gimalxina,GIMALXINA,1 SUSPENSION,,Otro,43.35,27.09
+FC-98100381,Shampoo Herklin,,20 ML,Herklin,Higiene,206.09,128.8
+FC-98217659,Dolo-Neurobión,Diclofenaco c/ Complejo B,20 TABLETAS,Neurobion,Analgésico,694.89,269.28
+FC-9827438F,Mercurio Veneno De Abeja,,C/25,Mercurio,Cuidado personal,15.2,9.5
+FC-9A1C64E7,Perilla Edigar N O Caja,,,Perilla,Producto,23.21,14.5
+FC-9A37D44A,Amdoryl,,14 CAPSULAS,Amdoryl,Otro,33.95,26.11
+FC-9B93AC4C,Beneventol,BENEVENTOL,1 SUSPENSION,,Otro,156.16,97.6
+FC-9F67BB73,Amifarin,,1 SUSPENSION,Amifarin,Otro,35.1,27.0
+FC-A23F290E,Zitriasol,ZITRIASOL,15 CAPSULAS,,Otro,55.38,34.61
+FC-A680F97E,Mercurio Yodo Tomar 1800823 83156,,C/25,Mercurio,Producto,17.61,11.0
+FC-A871D831,Perilla N6,,PIEZA,Edigar,Botiquín,30.38,22.5
+FC-AA7B0686,Drosquim Ad 1 Ibe 300/160,,200 ML,Drosquim,Producto,91.97,70.74
+FC-AA905BF7,Perludil,,1 FRASCO AMPULA,Perludil,Otro,20.95,16.11
+FC-B3B8F9BB,Desrotan,,10 TABLETAS,Desrotan,Otro,61.51,47.31
+FC-B4477A00,Pentibroxil,,16 CAPSULAS,Pentibroxil,Otro,39.06,30.04
+FC-B8D7C997,Bicarbonato Sobres,,C/50,Bicarbonato,Botiquín,76.81,48.0
+FC-BCF59548,Perilla N1,,PIEZA,Edigar,Botiquín,24.8,15.5
+FC-BE0A0E46,Sumitex Intravenoso- Pu X 25 Mm C/1 Azul,,22 G,Sumitex,Botiquín,12.04,9.26
+FC-CF719C07,Diclofen,DICLOFENACO,12 CAPSULAS,Diclofen,Otro,34.87,26.82
+FC-43475014,Pañal Diapro Grande,,,Diapro,Otro,149,99
+FC-93025919,Desodorante Axe Excite Seco (hombre),,SPRAY 152 ML,Axe,Higiene,88.0,62.83
+FC-93038223,Desodorante Rexona Men Sport,,SPRAY 150 ML,Rexona,Higiene,77.0,54.68
+FC-1CF27DC9,Dex,,1 FRASCO AMPULA,Dison,Otro,47.92,36.86
+FC-56323059,Vaseline puro,,85 G,Vaseline,Cuidado personal,69.0,45.5
+FC-28979502,Ne,,JARABE,Histiacil,Otro,161.72,124.4
+FC-447B30F9,Budesonida,,5 AMPOLLETA,Budesonida,Otro,170.8,131.38
+FC-47624171,Nailex Desenterrador Unas Desenterrador Unas,,12 ML,Nailex,GENERAL,87.19,54.49
+FC-56323066,Vaseline FaseLine puro,,42 G,Vaseline,Cuidado personal,41,27
+FC-50002301,Eomelubrina,,C/10,Eomelubrina,Otro,93.9,72.23
+FC-54549819,Crema corporal piel seca,,100 ML,Nivea,Cuidado personal,42.09,26.3
+FC-54558682,Crema corporal Nivea Milk,,400 ML,Nivea,Cuidado personal,121.0,85.87
+FC-56131681,Evenflo,,C/90,Evenflo,Higiene,39.83,24.89
+FC-56326142,Ponds S Humectante,,100 G,Ponds,Cuidado personal,84.0,59.36
+FC-56330309,Clariant B3 Nml/Gsa,,100 G,Clariant,Cuidado personal,102.0,72.3
+FC-56340124,Sedal Sos Ceramida,,300 ML,Sedal,Cuidado personal,71.0,50.07
+FC-56342258,Sedal Recons Estructur,,135 ML,Sedal,Cuidado personal,28.44,17.77
+FC-56360429,Talco desodorante pies,,200 G,Genérico,Higiene,101.0,71.8
+FC-D037156B,Mercurio Bismuto Subnitrato 1390724,,C/50,Mercurio,Producto,117.6,73.5
+FC-33954078,Ensure Fresa,,237 ML,Ensure,Gastro,63,42
+FC-08485316,Tabcin Eferv,,50 TABLETAS · C/12,Tabcin,Otro,49.05,37.73
+FC-50959781,Centrum C/30,,C/30,Centrum,Otro,213.2,164.0
+FC-54521161,Tempra,,500 MG · C/10,Tempra,Otro,78.08,48.8
+FC-578F060C,Mercurio Borax Polvo 140072483490,,C/50,Mercurio,Producto,84.81,53.0
+FC-57925EF3,Reglusan,,50 TABLETAS,Reglusan,Otro,11.55,8.88
+FC-58203691,Hilo dental expanding,,0.9 M,Gum,Higiene,30.24,18.9
+FC-58611420,Nido Nido Nestle Bolsa,,,Nido,Abarrotes,85.93,53.7
+FC-33956126,Glucerna Vainilla,,237 ML,Glucerna,Gastro,72,47.5
+FC-58792792,Tempra,,C/12,Tempra,Producto,96.0,59.9
+FC-58793249,Lubricante sensación calor,,50 ML,Sico,Cuidado personal,163.05,101.9
+FC-59225411,Nido,,,Nido,Producto,118.71,74.19
+FC-5A697CC2,Mercurio Aceite Olivo 1000625 83825,,C/25,Mercurio,Producto,12.8,8.0
+FC-5D59ED54,Mercurio Cloruro De Magnesio Cajita,,C/10,Mercurio,Producto,54.41,34.0
+FC-5D9DFA3D,Norquinol,NORQUINOL,20 TABLETAS,,Otro,78.2,48.87
+FC-D11D586A,Valgab 3 Ibe /6Ml,,50 MG,Valgab,Producto,25.24,19.41
+FC-D210172A,Ampicilina,AMPICILINA,1 FRASCO AMPULA,,Otro,40.77,25.48
+FC-D3D28E20,Mercurio Yodo Untar 1810623 83156,,C/25,Mercurio,Producto,18.41,11.5
+FC-D751525D,Animalin,,GOTAS,Animalin,Otro,29.45,22.65
+FC-DE106642,Inf,,3 AMPOLLETA,Ampigrin,Otro,95.65,73.57
+FC-DF39BB27,Alevarin Capsulas,,C/45,Alevarin,Producto,89.55,68.88
+FC-DF8ADDAB,Erispan,,1 FRASCO AMPULA,Erispan,Otro,28.8,22.15
+FC-DFF99C3F,Mercurio,,JARABE,Mercurio,Otro,9.1,7.0
+FC-06209862,Desodorante Axe 48H Anarchy Fresh Love (Mujer),,SPRAY 150 ML,Axe,Higiene,65.0,45.83
+FC-06226852,Axe Wom Anarchy,,SPRAY 150 ML,Axe,Higiene,65.0,45.83
+FC-56371159,Jabon Dove Exfoliacion,,135 G,Dove,Otro,35,30.54
+FC-14121782,Jabón proteína de arroz y concha nácar,,,Genérico,Higiene,25.0,17.78
+FC-22B18244,I.M,,1 FRASCO AMPULA,Cefotaxima,Otro,40.38,31.06
+FC-25652716,Escudo Azul Rey,,135 G,Escudo,Higiene,11.0,7.39
+FC-28A424E5,Diziver,,20 TABLETAS,Diziver,Otro,10.6,8.15
+FC-35911208,Palmolive Aquarium,,221 ML,Palmolive,Higiene,34.0,23.79
+FC-43489165,Escudo Blanco Neut,,225 ML,Escudo,Higiene,36.0,25.08
+FC-46657035,Lio Flor Czo-Rsa,,221 ML,Lio,Higiene,34.0,23.79
+FC-61111501,Odolex Desdo,,150 G,Odolex,Higiene,25.0,17.77
+FC-E535DE28,Diurmessel,,20 TABLETAS,Diurmessel,Otro,12.11,9.31
+FC-F183C6E9,Penipot,,1 FRASCO AMPULA,Penipot,Otro,25.28,19.44
+FC-F3E734A0,Fasiclor,CEFACLOR,1 SUSPENSION,Fasiclor,Otro,82.48,63.44
+FC-F7A2CACF,Indarzona,,30 CAPSULAS,Indarzona,Otro,73.19,56.3
+FC-F7DB080D,Ovisen,,28 TABLETAS,Ovisen,Otro,26.43,20.33
+FC-F817BC3A,Sibicos,,1 CREMA,Sibicos,Otro,43.75,33.65
+FC-F82A6E4B,Ampicilina,AMPICILINA,10 TABLETAS,,Otro,43.28,27.05
+FC-F8691496,F,,16 TABLETAS,Bactiver,Otro,21.96,16.89
+FC-FA3D96E6,N Calcitriol,,30 CAPSULAS,Becatrim,Otro,61.27,47.13
+FC-FBD776D2,Mercurio Perlas De Eter 1630824,,C/50,Mercurio,Producto,272.0,170.0
+FC-14704156,Senosiain Supos Adto C/10,,C/10,Senosiain,Otro,94.34,58.96
+FC-14704163,Senosiain Supos Ine C/10,,C/10,Senosiain,Otro,102.0,63.4
+FC-1BF03D35,Acetonido De Fluocinolona Cma,,,Acetonido,Producto,23.98,18.44
+FC-24227339,Loxcel adulto,,C/1,Loxcel,Otro,101.4,78.0
+FC-2E79C2D8,Dex,,3 AMPOLLETA,Hierro,Otro,79.73,61.33
+FC-61124013,Odolex Fresh,,150 G,Odolex,Higiene,25.0,17.77
+FC-614E4F82,Perilla N3,,PIEZA,Edigar,Botiquín,29.6,18.5
+FC-62034164,Mercurio Espiritus Untar 1770823,,C/25,Mercurio,Producto,9.61,6.0
+FC-62746612,Ajolotius,,JARABE,Ajolotius,Otro,115.96,89.2
+FC-62746643,Ajolotius Menta Fucal Menta Fucal,,C/10,Ajolotius,GENERAL,31.21,19.5
+FC-64EB83AA,Compl,,1 FRASCO AMPULA,Bencil/Benz,Otro,23.5,18.07
+FC-FD718DF3,Mercurio Sulfatiazol 2600223,,C/25,Mercurio,Cuidado personal,18.41,11.5
+FC-65054135,TUMS,Carbonato de Calcio,8 TABLETAS,TUMS,Botiquín,57,37.48
+FC-68900226,Alcohol Etilico Rojo 96°,,250 ML,Dibar,Botiquín,24,15.68
+FC-06247327,Afrin Spray No Drip Extra Humectante Spray Drip Extra,,,Afrin,GENERAL,175.62,109.76
+FC-06257597,Rexona 1O0 G Tco Pies Efficient Orig,,,Rexona,GENERAL,55.0,40.24
+FC-68901131,Alcohol Etilico Azul 71.6,,1 L,Dibar,Botiquín,62.0,41.0
+FC-25116810,Agrifen Ab Pis,,TABLETAS,Agrifen,Otro,25.35,19.5
+FC-35246309,Vick Drops Tengibre Pastillas Drops Tengibre,,C/20,Vick,Botiquín,60.05,37.53
+FC-47640531,Recuperador una uña amarilla,,15 ML,Pisa,Cuidado personal,88.96,55.6
+FC-68901117,Alcohol Etilico Azul 71.6,,250 ML,Dibar,Botiquín,17.0,11.3
+FC-60403681,Desenfriol,,C/30,Desenfriol,Otro,100.81,63.0
+FC-68901124,Alcohol Etilico Azul 71.6,,500 ML,Dibar,Botiquín,180.0,120.0
+FC-68900264,Alcohol Etilico Rojo 96°,,125 ML,Dibar,Botiquín,14.0,8.1
+FC-68910034,Dibar Gr Algodon Algodon,,60 G,Dibar,Producto,16.16,10.1
+FC-68910041,Algodón 5 g C/12,,5 G,Dibar,Botiquín,10.0,6.9
+FC-06249776,Sedal Ceramidas Inf-Act,,180 ML,Sedal,Higiene,24.0,16.88
+FC-06249783,Sedal Rizos Def Inf-Act,,180 ML,Sedal,Higiene,27.0,19.11
+FC-07457826,Pantene Brillo Extremo,,40 ML,Pantene,Higiene,121.12,75.7
+FC-35155922,Pantene Bambu,,400 ML,Pantene,Higiene,71.0,50.07
+FC-46073156,Caprice Nat Mzna,,380 ML,Caprice,Higiene,42.0,29.31
+FC-56330378,Ponds Bio-Hydra Dual,,200 ML,Ponds,Cuidado personal,125.0,88.8
+FC-56340025,Sedal Sos Recon-Estru,,300 ML,Sedal,Cuidado personal,71.0,50.07
+FC-56340131,Sedal Rizos Obedie,,300 ML,Sedal,Cuidado personal,71.0,50.07
+FC-07F04F88,I.M,,1 FRASCO AMPULA,Amcef,Otro,25.26,19.43
+FC-0BDE9283,Clophiven 200 Dosis 50 Mcg,,15 G,Clophiven,Producto,73.47,56.51
+FC-2001A890,Ad,,3 AMPOLLETA,Ampigrin,Otro,106.23,81.71
+FC-44B6751A,Aquito 500/100/30/4 Mg,,3 AMPOLLETA,Laur,Otro,77.52,59.63
+FC-4FD413D2,Haspen,,3 AMPOLLETA,Haspen,Otro,30.59,23.53
+FC-75064938,Ego Force 24H R-On Dic26,,45 ML,Ego,Higiene,17.0,11.95
+FC-75125811,Evenflo Colors,,,Evenflo,Bebés,21.44,13.4
+FC-75163051,Evenflo Ensueno Azul,,,Evenflo,Bebés,25.28,15.8
+FC-759A5EF9,Wermy,,30 CAPSULAS,Wermy,Otro,32.36,24.89
+FC-76000277,Vitacilina Cre Humectante Humectante,,100 G,Vitacilina,GENERAL,374.0,277.0
+FC-76000260,Crema Vitacilina amarilla aclaradora,,100 G,Vitacilina,Cuidado personal,120.0,80.0
+FC-79071241,Bisolvon,,120 ML,Bisolvon,Otro,236.64,147.9
+FC-76000253,Crema Vitacilina roja antiarrugas,,100 G,Vitacilina,Cuidado personal,120.0,80.0
+FC-127F5753,Mercurio Arnica Tomar 1780823 83156,,C/25,Mercurio,Producto,12.0,7.5
+FC-25E452B6,Mercurio Arnica Untar 1790823 83156,,C/25,Mercurio,Producto,12.0,7.5
+FC-3E863E37,Tratidri,,1 GEL,Tratidri,Otro,61.72,47.47
+FC-69387811,Mercurio Aceite Gomenolado 1160623,,C/25,Mercurio,Producto,12.8,8.0
+FC-82176351,Neurobion Sot.O- Dc Ete Jga Sot.O- Prell Health9.20,,C/1,Neurobion,Otro,438.0,273.42
+FC-82740011,Nuvel Humec,,125 ML,Nuvel,Cuidado personal,20.0,14.08
+FC-83351381,Agua oxigenada,,100 ML,Dermocleen,Botiquín,12.23,7.64
+FC-83351691,Degasa Agua Oxigenada,,230 ML,Degasa,Botiquín,16.31,10.19
+FC-83510531,Protec Antibacterial 22.40 Antibacterial,,250 ML,Protec,Cuidado personal,197.73,123.58
+FC-84095411,Saridon,,120 TABLETAS,Saridon,Otro,84.18,64.75
+FC-84335531,Aspirina Forte C/24 Caf Iaspirina,,C/24,Aspirina,Otro,93.33,71.79
+FC-84431050,Jaloma,,60 ML,Jaloma,Cuidado personal,17.0,11.53
+FC-84437151,Jaloma,,120 ML,Jaloma,Cuidado personal,28.0,19.77
+FC-84999001,Alka-Seltzer,,C/50,Alka-Seltzer,Otro,278.41,174.0
+FC-85097661,Chinoin Jr. Jbe Ine 60 Mant Jr. Jbe Mant,,,Chinoin,GENERAL,204.64,127.9
+FC-85103015,Huggies Super Toallitas Humedas,,4 PZA,Huggies,GENERAL,18.0,13.32
+FC-01303454,Pantene Ctrcaida A/Pv,,400 ML,Pantene,Higiene,106.0,75.7
+FC-06234062,Sedal Anti Nudos,,300 ML,Sedal,Cuidado personal,71.0,50.07
+FC-07457796,Pantene Brillo Extremo,,,Pantene,Higiene,121.12,75.7
+FC-24511629,Silica Shine uva,,120 ML,Silica Shine,Higiene,63.0,44.76
+FC-35020008,Herbal Essences Limp Renoy,,375 ML,Herbal Essences,Higiene,104.0,73.76
+FC-35020077,Herbal Essences Alivio Instant,,,Herbal Essences,Higiene,35.0,24.91
+FC-35155847,Pantene Bambu Ctrl Caida,,400 ML,Pantene,Higiene,106.0,75.7
+FC-35168991,Hask Anti Comezon,,375 ML,Hask,Higiene,94.0,67.0
+FC-40CE757D,Cefalver,,12 TABLETAS,Cefalver,Otro,81.23,62.48
+FC-85592111,Scabisan,,,Scabisan,Producto,311.36,194.6
+FC-86167151,Nestum Probioticos Avena 270 Probioticos,,,Nestum,Abarrotes,83.89,52.43
+FC-86708021,Protec Sigital Termometro 42.10 Sigital Termometro,,,Protec,Producto,66.02,41.26
+FC-87154871,Graneodin,,C/16,Graneodin,Otro,172.12,132.4
+FC-87932321,Microdacyn Lubricante Ico Cereza 50 Ml 1 Ico Cereza 50,,50 ML,Microdacyn,Higiene,163.05,101.9
+FC-88508929,Anara,,C/20,Anara,Otro,211.38,162.6
+FC-88923551,Cilocid Iv,,C/20,Cilocid,Otro,9.43,7.25
+FC-88947797,Tribedoce,,C/30,Tribedoce,Otro,23.4,18.0
+FC-89794961,Ne,,JARABE,Histiacil,Otro,163.54,125.8
+FC-86901100,Alcohol Etilico Azul 71.6,,125 ML,Dibar,Botiquín,13.0,7.4
+FC-95451096,Sal de uvas,,C/10,Sal de Uvas,Otro,51.17,37.9
+FC-95467264,Sal de Uvas Ixh C/50,,C/50,Sal de Uvas,Producto,261.61,163.5
+FC-1321B34F,Hidroxon,,30 TABLETAS,Hidroxon,Otro,44.98,34.6
+FC-DA34D88D,Erbitrax,,C/7,Erbitrax,Otro,7.21,5.54
+FC-DB3B2584,Celesbitan,,1 FRASCO AMPULA,Celesbitan,Otro,21.99,16.91
+FC-DB4A39AE,Efe,,12 COMPRIMIDOS,Calcio,Otro,50.8,39.07
+FC-DDFBABDF,12H Ped,AMOXICILINA/AC. CLAVULANICO,1 SUSPENSION,Clamoxin,Otro,33.73,25.94
+FC-06247468,Ego Fresh C-Cas Fij-Alt,,200 ML,Ego,Cuidado personal,25.0,17.54
+FC-22150221,Ricitos de Oro Neutro,,90 G,Ricitos de Oro,Higiene,30.0,20.8
+FC-26462061,Ternura Ortodontic Miel C3,,,Ternura,Bebés,29.0,22.3
+FC-35908130,Mennen Azul,,200 G,Mennen,Higiene,54.0,38.18
+FC-35908147,Mennen Rosa,,200 G,Mennen,Higiene,97.0,69.19
+FC-36040450,Grisi Conchnac P/Manos,,80 ML,Grisi,Cuidado personal,62.0,43.63
+FC-40171550,Sensodyne rápido alivio,,100 G,Sensodyne,Higiene,150.0,106.44
+FC-42326414,Garnier De Rosas,,400 ML,Garnier,Cuidado personal,152.0,108.24
+FC-43489004,Escudo Rosa Prot Y Cuid,,110 G,Escudo,Higiene,7.0,4.48
+FC-45307181,Arnica Bde Parche,,,Arnica,GENERAL,101.0,74.68
+FC-48640751,Venda de yeso 5 cm x 2.75 m C/12,,1 PZA,Protec,Botiquín,22.0,14.53
+FC-48690909,Tensolastic Plus venda elástica 7 cm x 5 m,,7 CM x 5 M,Protec,Botiquín,32.0,21.14
+FC-54500216,Nivea Sdatarr Giga,,400 ML,Nivea,Cuidado personal,207.0,147.15
+FC-08837311,Nivea Pearlb Mspy,,150 ML,Nivea,Higiene,46.0,32.37
+FC-43427754,Kotex Flex Nocturna,,C/5,Kotex,Higiene,7.0,5.0
+FC-20500171,Pert Oliv+Ac Agu P/Pein,,100 ML,Pert,Cuidado personal,11.0,7.4
+FC-34062421,Tela adhesiva,,1.25 CM x 1 M,Quirmex,Botiquín,44.0,27.0
+FC-45720550,Quitaesmalte mora azul,,100 ML,Silkhair,Higiene,25.0,17.2
+FC-46073033,Caprice Sp Acti Ceramida,,200 ML,Caprice,Higiene,21.0,14.73
+FC-46073040,Caprice Sp Biotina Fza,,200 ML,Caprice,Higiene,21.0,14.73
+FC-46650708,Mennen Lavan-Extrac Aven,,200 ML,Mennen,Higiene,37.0,26.3
+FC-46655055,Caprice Volum-Cirl,,200 G,Caprice,Higiene,71.0,50.51
+FC-48640799,Venda de yeso 15 cm x 2.75 m C/12,,1 PZA,Protec,Botiquín,38.0,24.84
+FC-75001865,Lio 115M,,,Lio,Higiene,66.0,46.64
+FC-86472048,Alcanforada Mayo Somed,,,Alcanforada,Higiene,19.0,13.5
+FC-174824A0,Vernisen,,6 TABLETAS,Vernisen,Otro,16.1,12.38
+FC-34063651,Quirmex,,,Quirmex,Botiquín,19.0,11.7
+FC-41500096,Tiraleche de cristal,,1 PZA,Genérico,Botiquín,48.0,31.77
+FC-45720567,Quitaesmalte coco,,100 ML,Silkhair,Higiene,25.0,17.2
+FC-46655079,Palmolive N-Bal Corp Baby0%,,90 G,Palmolive,Higiene,11.0,7.49
+FC-48640775,Venda de yeso 10 cm x 2.75 m C/12,,1 PZA,Protec,Botiquín,28.0,18.05
+FC-82790016,Nuvel Pura Para Bebe200 G,,,Nuvel,Higiene,29.0,20.65
+FC-92504539,Ego Mod Met,,25 G,Ego,Higiene,27.0,19.28
+FC-B25B4654,Cina,,7 TABLETAS,Cina,Otro,37.54,28.87
+FC-F967863B,Terficho,,40 CAPSULAS,Terficho,Otro,59.87,46.05
+FC-00942760,Gel facial hidratante hialurónico,,200 ML,Nivea,Cuidado personal,148.0,105.35
+FC-05965071,Acroxil-C,,12 CAPSULAS,Acroxil-C,Otro,31.27,24.05
+FC-17360604,Kotex Ant Flujo Abundante S/A 10Pz,,,Kotex,Higiene,16.64,10.4
+FC-76040610,Desenfriolito,,2 PACK · C/24,BAYER,Otro,122.0,91.92
+FC-20500201,Pert Plus Ac-Oliva,,400 ML,Pert,Higiene,34.0,23.99
+FC-2EDC6E3B,Cefagen,CEFALEXINA,10 TABLETAS,Cefagen,Otro,106.72,82.09
+FC-31976394,Listerine Anticari-Al,,250 ML,Listerine,Higiene,89.0,63.53
+FC-34067301,Quirmex,,5 CM,Quirmex,Botiquín,10.0,6.8
+FC-35231237,Hask Anti Comezon,,375 ML,Hask,Higiene,104.0,73.76
+FC-51444145,Old Spice,,,Old Spice,Higiene,388.0,277.0
+FC-54503095,Nivea Sda Tarro,,100 ML,Nivea,Cuidado personal,86.0,60.75
+FC-A455EE80,Cefagen,CEFALEXINA,1 SUSPENSION,Cefagen,Otro,96.96,74.58
+FC-B18E386A,Cefaroxil,,15 TABLETAS,Cefaroxil,Otro,57.78,44.44
+FC-D5AC44CA,Amifarin,,20 CAPSULAS,Amifarin,Otro,59.52,45.78
+FC-E374F23E,Cefagen,CEFALEXINA,1 SUSPENSION,Cefagen,Otro,63.03,48.48
+FC-06217461,Rexona Effi Fresh,,200 G,Rexona,Higiene,90.0,64.12
+FC-09498091,Sensodyne Complet + Acc Lim Efec,,90 G,Sensodyne,Botiquín,107.0,70.91
+FC-75062927,Desodorante Rexona Pom-Dry 48 H,,STICK 45 G,Rexona,Higiene,75.0,53.5
+FC-20501765,Grisi Aloe Vera P/Manos,,80 ML,Grisi,Cuidado personal,64.0,45.15
+FC-35469151,Lubriderm Uv Fps15,,120 ML,Lubriderm,Cuidado personal,49.0,34.41
+FC-36033735,Ricitos de Oro Oro Agua De Coco,,250 ML,Ricitos de Oro,Higiene,60.0,42.34
+FC-40030338,Lomecan V Aclar,,200 ML,Lomecan,Higiene,100.0,70.92
+FC-40030963,Teatrical Cel-Ma Nutrit,,400 ML,Teatrical,Cuidado personal,88.0,62.25
+FC-46074504,Mennen Zero% Sve,,400 ML,Mennen,Higiene,62.0,43.59
+FC-46640629,Venda de yeso 20 cm x 2.75 m,,1 PZA,Protec,Botiquín,61.0,40.28
+FC-76040436,Mexsana P/Pies,,SPRAY 150 ML,Mexsana,Higiene,110.0,78.22
+FC-88915491,Tarmin 2 Mg /12,,12 TABLETAS,Tarmin,Otro,77.0,58.5
+FC-07528939,Lubriderm Thint Psec120 Ml,,,Lubriderm,Cuidado personal,45.0,31.59
+FC-36032776,Ricitos de Oro Oro Biopure,,250 ML,Ricitos de Oro,Higiene,105.0,74.31
+FC-369D1689,Beneventol,BENEVENTOL,6 CAPSULAS,,Otro,82.29,51.43
+FC-40025839,Lomecan V,,200 ML,Lomecan,Higiene,89.0,63.05
+FC-42417644,Nivea Cuidado Int P/Mano,,75 ML,Nivea,Cuidado personal,69.0,48.58
+FC-428A228F,Gimalxina,GIMALXINA,12 CAPSULAS,,Otro,37.72,23.57
+FC-46655727,Mennen Baby Magic Lavan,,90 G,Mennen,Higiene,19.0,12.97
+FC-50587FA6,Mexapin,,1 SUSPENSION,Mexapin,Otro,18.11,13.93
+FC-52816297,Fructis Pei Oil-R L-Coco,,300 ML,Fructis,Cuidado personal,62.0,43.58
+FC-52910971,Fructis Pei B-Dano Quim,,300 ML,Fructis,Cuidado personal,62.0,43.58
+FC-95779436,Acetilsalicilico Ef,,20 TABLETAS,Acido,Otro,24.8,19.07
+FC-A0D320D1,Amoxicilina,AMOXICILINA,12 CAPSULAS,,Otro,29.4,18.37
+FC-B69FCBF4,Lesaclor,,35 TABLETAS,Lesaclor,Otro,189.95,146.11
+FC-B72A6420,Pentiver,,1 SUSPENSION,Pentiver,Otro,35.18,27.06
+FC-F48FF7EF,Clamoxin,AMOXICILINA/AC. CLAVULANICO,1 SUSPENSION,Clamoxin,Otro,46.31,35.62
+FC-06249226,Savile Bio-Sab Creci Res,,700 ML,Savile,Higiene,57.0,40.66
+FC-20501673,Hinds Liq Agave Azul,,400 ML,Hinds,Cuidado personal,60.0,42.25
+FC-31244486,Lubriderm P/Normal,,120 ML,Lubriderm,Cuidado personal,45.0,31.59
+FC-35169035,Herbal Essences Rizo,,200 G,Herbal Essences,Higiene,82.0,57.9
+FC-36041402,Hinds Hidr-Extr Almendras,,500 ML,Hinds,Cuidado personal,56.0,39.9
+FC-38312374,Moco de Gorila Gel Citr,,100 G,Moco de Gorila,Higiene,46.0,32.34
+FC-49824911,Prudence Iva Dki Mexico S Cond Iva Mexico,,C/3,Prudence,Higiene,69.0,48.6
+FC-82790504,Nuvel Bifasico Oil,,125 ML,Nuvel,Cuidado personal,39.0,27.75
+FC-85800198,Huggies Super,,C/80,Huggies,Higiene,35.0,26.2
+FC-89100101,Algodón 200 g,,200 G,Dibak,Botiquín,53.0,35.3
+FC-92511261,Nutribela Bio Colageno,,300 G,Nutribela,Cuidado personal,59.0,41.84
+FC-95129166,Oral-B 3Dw Advant Med2X1,,,Oral-B,Higiene,75.0,53.19
+FC-06248052,Dove Aero Tono Uniforme 3Pack,,150 ML,Dove,Higiene,235.0,167.69
+FC-07502441,Johnson S Baby Antes/Dor,,75 G,Johnson,Higiene,22.0,15.51
+FC-21012303,Claris Desmaq Aloe,,C/40,Claris,Higiene,14.0,9.43
+FC-35231244,Head & Shoulders Anti Comezon,,180 ML,Head & Shoulders,Higiene,35.0,24.91
+FC-46072050,Mennen Miel-Mza Sve,,200 ML,Mennen,Higiene,37.0,26.3
+FC-48690800,Tensolastic Plus venda elástica 5 cm x 5 m,,5 CM x 5 M,Protec,Botiquín,22.0,14.42
+FC-48691005,Tensolastic Plus venda elástica 10 cm x 5 m,,10 CM x 5 M,Protec,Botiquín,40.0,26.48
+FC-84900280,Jaloma Spray,,130 ML,Jaloma,Cuidado personal,24.0,16.87
+FC-86494262,Oral-B Indicat35Sve,,,Oral-B,Higiene,22.0,15.51
+FC-99428024,Moco de Gorila Punk,,80 G,Moco de Gorila,Cuidado personal,20.0,14.15
+FC-D4AC123B,Mercurio Aceite Almendras 790523,,C/25,Mercurio,Producto,12.8,8.0
+FC-F22C72BE,12H,AMOXICILINA/AC. CLAVULANICO,10 TABLETAS,Clamoxin,Otro,71.54,55.03
+FC-01015141,Lubricante original,,56.7 G,Softlub,Higiene,134.0,83.5
+FC-06248045,Dove Spy Invisible Dry C3,,150 ML,Dove,Higiene,207.0,147.3
+FC-06249240,Savile Ker-Sab Fza Repar,,700 ML,Savile,Higiene,57.0,40.66
+FC-0E0A9E42,S,AMOXICILINA/AC. CLAVULANICO,1 SUSPENSION,Clamoxin,Otro,62.39,47.99
+FC-14985805,Prudence Chicle C/E Idkt Cond Chicle,,,Prudence,Higiene,69.0,48.6
+FC-23272151,Jeringa insulina 0.3 ml,,C/100,Jayor,Botiquín,326.0,217.2
+FC-24511636,Silica Shine Sily 3/1 Naran,,12 ML,Silica Shine,Higiene,63.0,44.76
+FC-49824391,Prudence 'Ull Retardante C/3,,C/3,Prudence,Producto,56.0,41.31
+FC-49853867,Softlub Extra Cond Extra,,C/3,Softlub,Higiene,64.0,45.4
+FC-4BD80686,Beneventol,BENEVENTOL,3 CAPSULAS,,Otro,141.08,88.17
+FC-4F737E93,Cloxan,,1 SOLUCION,Cloxan,Otro,57.26,44.04
+FC-61123009,Odolex Naturals Talco Desodorante,,300 G,Odolex,GENERAL,38.0,28.1
+FC-52844825,Desodorante Obao Ritual Natural Coco (Mujer),,Roll-ON 65 G,Obao,Higiene,35,24.95
+FC-93025797,Desodorante Axe Men Dark Temp (Hombre),,SPRAY 150 ML,Axe,Higiene,65.0,45.83
+FC-75062897,Desodorante Rexona Bamboo 48H,,STICK 45 G,Rexona,Higiene,75.0,53.5
+FC-01165321,Pantene Acond Rizos Definid,,400 ML,Pantene,GENERAL,103.0,75.7
+FC-08427330,Bepanthen,,100 G,Bepanthen,Otro,216.0,134.5
+FC-08491074,Aspirina,,80 TABLETAS,Aspirina,Otro,163.0,124.8
+FC-22133286,Grisi Rici Oro Miel,,250 ML,Grisi,Higiene,94.0,66.93
+FC-29670370,Degortzin,,1 SOLUCION,Degortzin,Otro,46.43,35.71
+FC-40013898,Teatrical Lanol/Ros,,52 G,Teatrical,Cuidado personal,43.0,30.36
+FC-48691104,Tensolastic Plus venda elástica 15 cm x 5 m,,15 CM x 5 M,Protec,Botiquín,58.0,38.31
+FC-49824771,Prudence Fresa,,C/3,Prudence,Producto,47.0,34.1
+FC-4A0245DA,Amlodipino,,100 TABLETAS,Amlodipino,Otro,42.28,32.52
+FC-56342227,Sedal Rizos Obedientes,,135 ML,Sedal,Cuidado personal,13.0,9.08
+FC-58DB24C4,Bitenver,,30 TABLETAS,Bitenver,Otro,81.62,62.78
+FC-6074BB64,Redalip,,30 TABLETAS,Redalip,Otro,27.32,21.01
+FC-52933307,Desodorante Obao Game 48Hr,,R-ON 65 G,Obao,Higiene,39.0,27.19
+FC-61113000,Odolex Desod,,,Odolex,Higiene,40.0,28.1
+FC-69A3C416,Wexpec,,1 SOLUCION,Wexpec,Otro,21.65,16.65
+FC-92506601,Ego For Men Attraction,,200 ML,Ego,Cuidado personal,29.0,20.02
+FC-C6C20517,Budimin,,20 TABLETAS,Budimin,Otro,40.71,31.31
+FC-08820243,Dermodine Ine M 1 37.60 Ine,,,Dermodine,GENERAL,58.97,36.85
+FC-08DB70CB,Bicarbonato Velazquez Grande 200G,,C/10,Bicarbonato,Producto,18.41,11.5
+FC-93037806,Desodorante Rexona Men Marine (hombre),,SPRAY 150 ML,Rexona,Higiene,77.0,54.68
+FC-0ACC5B6A,Mercurio Oxido De Zinc,,C/25,Mercurio,Cuidado personal,14.4,9.0
+FC-14982514,Prudence,,C/3,Prudence,Producto,54.56,34.1
+FC-14983153,Prudence Grosella,,75 ML,Prudence,Higiene,109.12,68.2
+FC-14983726,Prudence Natural Lubricante Natural,,75 ML,Prudence,Higiene,99.3,62.06
+FC-14985348,Prudence Ull Sensitive Cond 'Ull Sensitive,,C/3,Prudence,Higiene,66.1,41.31
+FC-1812D26D,Hucius Capsulas,,C/30,Hucius,Producto,101.61,78.16
+FC-262F2A30,Irbesartan,IRBESARTAN,14 TABLETAS,,Otro,70.37,43.98
+FC-16800803,Pañal Diapro Med,,C/10,Diapro,Producto,128,85
+FC-45722547,Agua micelar bifásica,,120 ML,Natural-G,Cuidado personal,30.0,21.08
+FC-97BEFA1A,Amlodipino,,100 TABLETAS,Amlodipino,Otro,42.28,32.52
+FC-9ABFB996,Elaphteron,,20 TABLETAS,Elaphteron,Otro,40.01,30.77
+FC-30622622,Desodorante Axe Men Young (hombre),,SPRAY 150 ML,Axe,Higiene,73.33,45.83
+FC-06244795,Desodorante Axe Intense 48H (Hombre),,SPRAY 150 ML,Axe,Higiene,65.0,45.83
+FC-04D83B46,Pralex,,28 TABLETAS,Pralex,Otro,55.71,42.85
+FC-1FBF5206,Del Viejito Reomatolum,,60 G,Del Viejito,Cuidado personal,32.0,20.0
+FC-33956775,Pedialyte Sr60 Uva,,,Pedialyte,Higiene,38.89,24.3
+FC-33961373,Pedialyte fresa,,500 ML,Pedialyte,Otro,38.1,23.81
+FC-34064021,Quirmex Tarro 1 2 12.00 Cotonetes Tarro 1,,C/100,Quirmex,Higiene,18.82,11.76
+FC-34067471,Quirmex,,,Quirmex,Botiquín,13.96,8.72
+FC-3D0ED22B,Zukedib,,30 TABLETAS,Zukedib,Otro,36.38,27.98
+FC-52D2A43A,Zukedib,,30 TABLETAS,Zukedib,Otro,37.81,29.08
+FC-33956140,Glucerna fresa,,237 ML,Glucerna,Suplemento,72.0,47.5
+FC-33956133,Glucerna chocolate,,237 ML,Glucerna,Gastro,72,47.5
+FC-06213906,Desodorante Axe Ice Chill 48H (hombre),,SPRAY 150 ML,Axe,Higiene,65.0,45.83
+FC-34067781,Quirmex,,30 CM,Quirmex,Botiquín,37.96,23.72
+FC-52876406,Desodorante Obao Men Tatto Aqua (Hombre),,R-ON 65 G,Obao,Higiene,35.0,24.71
+FC-34067851,Quirmex,,,Quirmex,Botiquín,28.07,17.54
+FC-3D0F54B7,Ibupro-Cafe,,10 CAPSULAS,Ibupro-Cafe,Otro,39.08,30.06
+FC-50D044FF,Wermy,,15 CAPSULAS,Wermy,Otro,31.87,24.51
+FC-5885E577,Pabesorag,,28 TABLETAS,Pabesorag,Otro,78.62,60.47
+FC-5EF90195,Mercurio Flor De Arnica 1430724,,C/50,Mercurio,Producto,88.0,55.0
+FC-5F30F9D4,Clamoxin,AMOXICILINA/AC. CLAVULANICO,10 TABLETAS,Clamoxin,Otro,63.03,48.48
+FC-60009851,Colgate Triple Acc,,75 ML,Colgate,Higiene,30.72,19.2
+FC-60101231,"Tempra ,",,C/12,Tempra,Otro,77.6,59.69
+FC-60101378,Lubricante íntimo,,,Piel con Piel,Higiene,164.0,102.5
+FC-60101521,Vitacilina,,56.7 G,Vitacilina,Producto,161.28,100.8
+FC-60689091,Colgate Trip Xtra,,50 ML,Colgate,Producto,21.96,13.72
+FC-06230507,Dove Barra Karite Vainill,,135 G,Dove,Higiene,48.34,30.21
+FC-08426944,Flanax,,40 G,Flanax,Otro,187.38,117.11
+FC-22111352,Grisi Corp Diabecare,,125 G,Grisi,Higiene,56.0,39.94
+FC-22150092,Grisi Leche De Burra,,125 G,Grisi,Higiene,31.0,21.88
+FC-26462078,Chupón con miel,,18 PZAS,Ternura,Cuidado personal,83.0,61.02
+FC-46059556,Palmolive N-Bal Dermol,,221 ML,Palmolive,Higiene,50.0,35.61
+FC-46683133,Palmolive N-Bal Dermo Limp,,120 G,Palmolive,Higiene,19.0,13.07
+FC-66873531,Crema dental anticaries,,,Genérico,Higiene,51.91,32.44
+FC-66888171,Colgate Max Clean,,120 ML,Colgate,Producto,40.81,25.5
+FC-92503558,Ego Magnetic Fij-Alta,,200 ML,Ego,Cuidado personal,26.0,18.39
+FC-99425580,X-Treme Titan,,250 G,X-Treme,Cuidado personal,16.0,11.31
+FC-BE2ACF63,Valnait Capsulas,,C/30,Valnait,Producto,5.93,4.56
+FC-BE76D409,I.M,,1 FRASCO AMPULA,Amcef,Otro,25.64,19.72
+FC-C22EBFE6,Perilla N2,,PIEZA,Edigar,Botiquín,25.6,16.0
+FC-C4530823,Mercurio Oxido De Zinc 1620824 83521,,C/50,Mercurio,Producto,86.4,54.0
+FC-C636D8EA,I.M,,1 FRASCO AMPULA,Ceftriaxona,Otro,12.75,9.8
+FC-C8B741F6,Fc 01711/2030,,,Fc,Producto,13.59,10.45
+FC-00003920,Arnica Mercurio,,Globulos,Mercurio,Producto,23,15
+FC-CB5C11ED,Mercurio Magnesia Anisada 1560824,,C/50,Mercurio,Producto,82.4,51.5
+FC-CD261CD5,Doliprofen,,10 TABLETAS,Doliprofen,Otro,29.14,22.41
+FC-CF18C740,Clindamicina,CLINDAMICINA,16 CAPSULAS,,Otro,48.87,30.54
+FC-01B2F362,Fasiclor,CEFACLOR,1 SUSPENSION,Fasiclor,Otro,64.81,49.85
+FC-443C330E,Cefagen,CEFALEXINA,10 TABLETAS,Cefagen,Otro,187.37,144.13
+FC-48F732CF,Epicin,ERITROMICINA,20 CAPSULAS,Epicin,Otro,38.43,29.56
+FC-492D652F,Cefalver,,20 CAPSULAS,Cefalver,Otro,56.36,43.35
+FC-697EEAD0,Kurtosil,,1 CREMA,Kurtosil,Otro,81.23,62.48
+FC-72C28BC1,Knoricin,NITROFURANTOINA,1 SUSPENSION,Knoricin,Otro,59.04,45.41
+FC-830BF3FB,Diviltac,,1 FRASCO AMPULA,Diviltac,Otro,44.79,34.45
+FC-85BDBD3D,Acroxil-C,,1 SUSPENSION,Acroxil-C,Otro,33.05,25.42
+FC-86A95D07,Tropharma,,20 TABLETAS,Tropharma,Otro,57.89,44.53
+FC-8FB65B79,Klarix,CLARITROMICINA,1 SUSPENSION,Klarix,Otro,106.18,81.67
+FC-9538F7D6,Fasiclor,CEFACLOR,1 SUSPENSION,Fasiclor,Otro,105.54,81.18
+FC-AEA8C8DA,Namifen,,20 TABLETAS,Namifen,Otro,31.57,24.28
+FC-022543CD,Valclan,AMOXICILINA/AC. CLAVULANICO,10 TABLETAS,Valclan,Otro,48.39,37.22
+FC-06241206,Dove Dermac Sk-C 48H,,SPRAY 150 ML,Dove,Higiene,45.0,32.14
+FC-17376CAE,Aspitak-P,,30 COMPRIMIDOS,Aspitak-P,Otro,25.64,19.72
+FC-3A4583F3,Penipot,,1 FRASCO AMPULA,Penipot,Otro,18.3,14.07
+FC-4C621D07,Vanmoxol,VANMOXOL,1 SUSPENSION,,Otro,28.85,18.03
+FC-E6112F15,Nalixone,NALIXONE,20 TABLETAS,,Otro,101.32,63.32
+FC-E69F2E63,Madrid Aceite Eucalipto 2712017 83401,,C/25,Madrid,Producto,17.61,11.0
+FC-E826D304,Lincomicina /2Ml 6 Ampolletas,,600 MG,Lincomicina,Producto,62.21,47.85
+FC-E9C38DC4,Ciprofloxacino G.I,CIPROFLOXACINO G.I,14 TABLETAS,,Otro,36.68,22.92
+FC-EFB599B5,Mercurio Pan Puerco 25401233,,C/25,Mercurio,Cuidado personal,15.2,9.5
+FC-27250612,Desodorante Obao Piel Delicada,,R-ON 65 G,Obao,Higiene,39.54,24.71
+FC-27286017,Desodorante Obao Classic (Hombre),,R-ON 65 G,Obao,Higiene,42.0,29.55
+FC-38891190,Jabon Dove Original,,135 G,Dove,Higiene,37,30.205
+FC-1FEA2FB7,Amikacina,AMIKACINA,1 AMPOLLETA,,Otro,46.74,29.21
+FC-1FFBB505,Dac,,1 SOLUCION,Supratex,Otro,54.79,42.14
+FC-26EA40A4,Ramcinet,,10 TABLETAS,Ramcinet,Otro,25.55,19.65
+FC-63975795,Gentamicina,GENTAMICINA,25 COMPRIMIDOS,,Otro,28.13,17.58
+FC-6EAD98A9,Cepobrom,CEFADROXIL,12 CAPSULAS,Cepobrom,Otro,62.37,47.97
+FC-7AA38F97,Pentiver,,1 SUSPENSION,Pentiver,Otro,40.56,31.2
+FC-7AF7ACB5,Charlyn,CIPROFLOXACINO,3 TABLETAS,Charlyn,Otro,32.48,24.98
+FC-A909ABC0,Odivitor,,10 TABLETAS,Odivitor,Otro,17.91,13.77
+FC-AE5EEDF7,Bactiver,,20 TABLETAS,Bactiver,Otro,63.25,48.65
+FC-B2123139,Oxivag,,4 TABLETAS,Oxivag,Otro,83.32,64.09
+FC-B25094C4,Lesaclor,,1 SUSPENSION,Lesaclor,Otro,57.76,44.43
+FC-08802838,Nivea B Sofmilk Sec400 Ml,,,Nivea,Cuidado personal,119.0,84.49
+FC-1751468C,Flospet,,8 TABLETAS,Flospet,Otro,35.53,27.33
+FC-1AE9D7E6,Collucort,,1 CREMA,Collucort,Otro,62.21,47.85
+FC-1DAD5EF1,Tusilen Ad 1 Ibe 240/30/50Mg/100,,118 ML,Tusilen,Producto,31.49,24.22
+FC-281E0F22,Budesonida,,1 SUSPENSION,Budesonida,Otro,199.84,153.72
+FC-347A49C7,Amikacina,AMIKACINA,1 AMPOLLETA,,Otro,31.14,19.46
+FC-FD92D114,Ovisen,,14 TABLETAS,Ovisen,Otro,13.25,10.19
+FC-FEAECBF1,Mercurio Tepezcohuite,,C/25,Mercurio,Cuidado personal,15.2,9.5
+FC-FFC25DD1,Perilla N4,,PIEZA,Edigar,Botiquín,31.21,19.5
+FC-33950070,Ensure vainilla,,236 ML,Ensure,Suplemento,63.0,42.0
+FC-14119032,Jabón azufre con miel,,,Azufre,Higiene,22.0,15.02
+FC-25605514,Escudo Antibact,,110 G,Escudo,Higiene,11.0,7.22
+FC-40036965,Jabon Asepxia Bicarbon,,100 G,Asepxia,Higiene,53.0,37.68
+FC-40004643,Jabon Asepxia Exfoliante,,100 G,Asepxia,Higiene,61.86,38.66
+FC-33951008,Pediasure chocolate,,236 ML,Pediasure,Suplemento,66,44
+FC-33950209,Pediasure vainilla,,237 ML,Pediasure,Analgésico,66,44
+FC-01405335,Naturella noche con alas,,C/8,Naturella,Higiene,28,18.5
+FC-19006623,Saba buenas noches,,,Saba,Higiene,15,9.9
+FC-00E8A9C7,Fotosun UV100,,125 ML,Fotosun,Cuidado personal,96.56,74.27
+FC-14980596,Prudence Mora Cond Mexico 34.10 Mora Cond Mexico,,C/3,Prudence,GENERAL,49.65,31.03
+FC-21042481,Manzanilla Ml Hnos 31.40 Hnos,,,Manzanilla,Producto,49.24,30.77
+FC-24004581,Ajolotius Pastillas Elderberry Past,,,Ajolotius,Producto,33.6,21.0
+FC-45045281,Labello Hydro-C,,,Labello,Otro,90.4,56.5
+FC-49800151,Prudence Clasico C/3,,C/3,Prudence,Higiene,46.88,29.3
+FC-52400038,Ajolotius Menta Eucal S/Azucar Past Menta Eucal,,,Ajolotius,GENERAL,34.18,21.36
+FC-52400212,Ajolotius Jengibre Tab Nati Jengibre,,C/10,Ajolotius,GENERAL,26.65,20.5
+FC-52400267,Ajolotius,,,Ajolotius,Otro,117.14,73.21
+FC-54504870,Lásico Pomada I.Abeili.C 56.50 56.50,,,Lásico,Otro,88.6,55.37
+FC-56034041,Toallitas húmedas antibacterial,,C/50,Escudo,Higiene,24.47,15.29
+FC-62746605,Jarabe 250 Ml 1 Nat Ajolotius Bioal Imentos,,JARABE,Jarabe,Otro,36.4,28.0
+FC-62746698,Ajolotius,,JARABE,Ajolotius,Otro,80.0,58.9

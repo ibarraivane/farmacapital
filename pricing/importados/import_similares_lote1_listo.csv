@@ -1,0 +1,10 @@
+sku,precio,confianza_match,notas
+FC-08496701,36.38,alta,"ACIDO ACETILSALICILICO 500MG 12 TABLETAS EFERVESCENTES ASPIRINA -- coincidencia exacta de marca, mg y cantidad."
+FC-48F732CF,46.5,dudoso,"Similares solo tiene ERITROMICINA 500MG en TABLETAS (20), tu presentacion original es CAPSULAS (EPICIN 20 CAPS 500 MG). Misma mg y cantidad pero forma farmaceutica distinta."
+FC-516C2E89,48.0,alta,AMOXICILINA/ACIDO CLAVULANICO 400/57 SUSPENSION 50-60 ML -- coincide concentracion exacta (recuperada del inventario original: CLAMOXIN 12H JR 1 SUSP 400/57MG/5/50ML).
+FC-54521161,6.0,media,"Tempra 500mg C/10 no esta como marca en Similares; se usa el generico PARACETAMOL 500 MG 10 TABLETAS (PICK UP), misma concentracion y cantidad exacta."
+FC-5D9DFA3D,59.25,media,"Norquinol = marca de Norfloxacino. Match generico: NORFLOXACINO 400 MG 20 TABLETAS, misma concentracion y cantidad."
+FC-8FB65B79,124.5,dudoso,"CLARITROMICINA 250MG/5ML SUSPENSION -- el catalogo no especifica volumen del frasco (dice '1 pieza'), no se puede confirmar si son los 60ml de tu presentacion."
+FC-A0D320D1,29.25,alta,AMOXICILINA 500 MG 12 CAPSULAS -- coincidencia exacta.
+FC-CF18C740,90.0,alta,CLINDAMICINA 300 MG 16 CAPSULAS -- coincidencia exacta.
+FC-DDFBABDF,24.75,alta,AMOXICILINA/ACIDO CLAVULANICO 200/28.5MG SUSPENSION 40 O 50 ML -- coincide concentracion exacta (recuperada del inventario original: CLAMOXIN 12H PED 1 SUSP 200/28.5MG/40ML).

@@ -14,6 +14,7 @@ import { showToast } from "./ui";
 import OnboardingTour from "./components/OnboardingTour";
 import { idEmpleadoUsuarios } from "./utils/usuarioId";
 import ImageUploader from "./components/ImageUploader";
+import { sugerirPrecioUnidad, aplicarReglaPrecioUnidad, margenBrutoPct } from "./utils/precioUnidad";
 
 const leerSesion = () => {
   try {
@@ -402,11 +403,11 @@ function InventarioEditableCell({
   );
 }
 
-const INV_CHECKBOX_COL_WIDTH = 52;
+const INV_CHECKBOX_COL_WIDTH = 38;
 const INV_STICKY_COL_IDS = ["foto", "acciones", "skuFarmaCapital", "nombre"];
 
 const INV_COL_WIDTHS_DEFAULT = {
-  acciones: 200,
+  acciones: 118,
   codigoBarras: 128,
   nombre: 272,
   marca: 130,
@@ -447,6 +448,23 @@ const INV_COLUMN_DEFS = {
   estado: { label: "Estado", hint: "" },
 };
 
+const INV_ICON_BTN = {
+  borderRadius: 4,
+  padding: "1px 4px",
+  cursor: "pointer",
+  fontSize: 11,
+  lineHeight: 1.1,
+  fontWeight: 700,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  minWidth: 20,
+  minHeight: 20,
+  flexShrink: 0,
+};
+
+const INV_COMPACT_CELL_PAD = "4px 6px";
+
 const INV_COLUMN_ORDER_DEFAULT = [
   "foto",
   "acciones",
@@ -473,8 +491,8 @@ const INV_COLUMN_ORDER_DEFAULT = [
 
 function invColumnPixelWidth(colId, colWidths) {
   const map = {
-    foto: 62,
-    acciones: Math.max(160, Number(colWidths?.acciones) || INV_COL_WIDTHS_DEFAULT.acciones),
+    foto: 44,
+    acciones: Math.max(100, Number(colWidths?.acciones) || INV_COL_WIDTHS_DEFAULT.acciones),
     skuFarmaCapital: 120,
     codigoBarras: Math.max(100, Number(colWidths?.codigoBarras) || INV_COL_WIDTHS_DEFAULT.codigoBarras),
     nombre: Math.max(200, Number(colWidths?.nombre) || INV_COL_WIDTHS_DEFAULT.nombre),
@@ -873,9 +891,11 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
         setCaducidadLote(loteCadRef?.fecha_caducidad || "");
         return;
       }
-      const msg = resp.accion === "crear"
-        ? `Lote creado (${resp.cantidad ?? form.stock} pza.) con caducidad`
-        : "Caducidad actualizada";
+      const msg = resp.accion === "crear_referencia"
+        ? "Caducidad guardada (lote de referencia, sin stock)"
+        : resp.accion === "crear"
+          ? `Lote creado (${resp.cantidad ?? form.stock} pza.) con caducidad`
+          : "Caducidad actualizada";
       showToast(msg, "success");
       await onCaducidadSaved?.();
     } finally {
@@ -905,12 +925,13 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
       const costoNum = parseFloat(form.costo) || 0;
 
       // Campos del producto (sin stock/costo que viajan al lote en el alta)
-      const productoFields = {
+      const productoFields = aplicarReglaPrecioUnidad({
         nombre: (form.nombre ?? "").trim(),
         sku: (form.sku ?? "").trim() || null,
         codigo_barras: codigoBarrasLimpio(form.codigo_barras) || null,
         categoria: form.categoria,
         precio: parseFloat(form.precio),
+        costo: costoNum,
         stock_minimo: form.stock_minimo !== "" ? parseInt(form.stock_minimo) : 0,
         tipo: form.tipo,
         proveedor: (form.proveedor ?? "").trim() || null,
@@ -928,7 +949,7 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
         unidades_por_caja: form.venta_unidad ? parseInt(form.unidades_por_caja) || 0 : 0,
         precio_unidad: form.venta_unidad ? Math.ceil(parseFloat(form.precio_unidad) || 0) : 0,
         stock_unidades: form.venta_unidad ? parseInt(form.stock_unidades) || 0 : 0,
-      };
+      });
 
       const sesion = leerSesion();
       await idEmpleadoUsuarios(sesion);
@@ -1144,10 +1165,12 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
                         </button>
                       ) : null}
                     </>
-                  ) : (parseInt(form.stock, 10) || 0) > 0 ? (
+                  ) : (
                     <>
                       <div style={{ color: C.textMid, marginBottom: 8 }}>
-                        Hay {form.stock} pza. en stock pero sin lote PEPS. Al elegir fecha se crea el lote <strong>sin cambiar cantidad ni precio</strong>.
+                        {(parseInt(form.stock, 10) || 0) > 0
+                          ? <>Hay {form.stock} pza. en stock pero sin lote PEPS. Al elegir fecha se crea el lote <strong>sin cambiar cantidad ni precio</strong>.</>
+                          : <>Sin stock ni lote. Al elegir fecha se crea un lote de referencia <strong>(0 pza.)</strong> — usá <strong>Recibir mercancía</strong> cuando entren unidades.</>}
                       </div>
                       <input
                         type="date"
@@ -1162,10 +1185,6 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
                         }}
                       />
                     </>
-                  ) : (
-                    <div style={{ color: C.textMid, marginBottom: 10 }}>
-                      Sin stock ni lote. Usá <strong>Recibir mercancía</strong> para entrar unidades con caducidad.
-                    </div>
                   )}
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                     {loteCadRef && onEditarCaducidad && !multiLotes ? (
@@ -1225,7 +1244,13 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
         <div style={{marginTop:16,padding:16,borderRadius:10,border:`1px solid ${C.border}`,background:C.cardDark}}>
           <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:form.venta_unidad?14:0}}>
             <input type="checkbox" id="venta_unidad_chk" checked={form.venta_unidad||false}
-              onChange={e=>set("venta_unidad",e.target.checked)} style={{width:16,height:16,cursor:"pointer"}}/>
+              onChange={e=>{
+                const on=e.target.checked;
+                set("venta_unidad", on);
+                if (on) {
+                  set("precio_unidad", sugerirPrecioUnidad(form.precio, form.costo, form.unidades_por_caja || 1, form.categoria, form.tipo));
+                }
+              }} style={{width:16,height:16,cursor:"pointer"}}/>
             <label htmlFor="venta_unidad_chk" style={{...labelStyle,margin:0,cursor:"pointer",fontSize:13,fontWeight:700}}>
               💊 Permite venta por unidad suelta (caja abierta)
             </label>
@@ -1235,7 +1260,7 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
               <div>
                 <label style={labelStyle}>Unidades por caja</label>
                 <input type="number" min="1" value={form.unidades_por_caja}
-                  onChange={e=>{ set("unidades_por_caja",e.target.value); const pv=parseFloat(form.precio)||0; const u=parseInt(e.target.value)||1; set("precio_unidad", Math.ceil(pv/u)); }}
+                  onChange={e=>{ const u=parseInt(e.target.value,10)||1; set("unidades_por_caja",e.target.value); set("precio_unidad", sugerirPrecioUnidad(form.precio, form.costo, u, form.categoria, form.tipo)); }}
                   style={inputStyle} placeholder="20"/>
               </div>
               <div>
@@ -1253,7 +1278,13 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
               </div>
               <div style={{gridColumn:"1/-1",background:C.blueDim,borderRadius:8,padding:"8px 12px",fontSize:11,color:C.blue}}>
                 💡 SKU unidad: <strong>{(form.sku||"PROD")+"-UNIT"}</strong> · 
-                Precio sugerido: <strong>${form.precio&&form.unidades_por_caja?Math.ceil(parseFloat(form.precio)/parseInt(form.unidades_por_caja)):"-"}</strong>/unidad
+                Precio mínimo (regla): <strong>${form.unidades_por_caja?sugerirPrecioUnidad(form.precio,form.costo,form.unidades_por_caja,form.categoria,form.tipo):"-"}</strong>/unidad
+                {form.unidades_por_caja && form.precio && form.costo ? (
+                  <> · margen caja {margenBrutoPct(form.precio, form.costo)}% → pieza {margenBrutoPct(
+                    sugerirPrecioUnidad(form.precio, form.costo, form.unidades_por_caja, form.categoria, form.tipo),
+                    (parseFloat(form.costo)||0) / (parseInt(form.unidades_por_caja,10)||1)
+                  )}%</>
+                ) : null}
               </div>
             </div>
           )}
@@ -2031,7 +2062,7 @@ function renderInventarioColumnCell(colId, ctx) {
         <td
           key={colId}
           style={{
-            padding: "6px 10px",
+            padding: INV_COMPACT_CELL_PAD,
             borderBottom: `1px solid ${C.border}`,
             verticalAlign: "middle",
             cursor: "pointer",
@@ -2042,15 +2073,15 @@ function renderInventarioColumnCell(colId, ctx) {
         >
           <div
             style={{
-              width: 40,
-              height: 40,
-              borderRadius: 6,
+              width: 28,
+              height: 28,
+              borderRadius: 4,
               background: p.imagen_url ? `url(${p.imagen_url}) center/cover` : C.bg,
               border: `1px solid ${C.border}`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: 16,
+              fontSize: 12,
             }}
           >
             {!p.imagen_url ? "📷" : null}
@@ -2062,7 +2093,7 @@ function renderInventarioColumnCell(colId, ctx) {
         <td
           key={colId}
           style={{
-            padding: "8px 10px",
+            padding: INV_COMPACT_CELL_PAD,
             borderBottom: `1px solid ${C.border}`,
             whiteSpace: "nowrap",
             verticalAlign: "middle",
@@ -2071,20 +2102,17 @@ function renderInventarioColumnCell(colId, ctx) {
             ...w("acciones"),
           }}
         >
+          <div style={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "nowrap" }}>
           <button
             type="button"
             onClick={() => abrirEdicionProducto(p)}
             style={{
+              ...INV_ICON_BTN,
               background: C.blueDim,
               border: `1px solid ${C.blue}30`,
               color: C.blue,
-              borderRadius: 6,
-              padding: "4px 8px",
-              cursor: "pointer",
-              fontSize: 10,
-              fontWeight: 700,
-              marginRight: 4,
             }}
+            title="Editar"
           >
             ✏️
           </button>
@@ -2092,24 +2120,22 @@ function renderInventarioColumnCell(colId, ctx) {
             type="button"
             onClick={() => setModalLotes(p)}
             style={{
+              ...INV_ICON_BTN,
               background: "#f1f5f9",
               border: `1px solid ${C.border}`,
               color: C.textMid,
-              borderRadius: 6,
-              padding: "4px 8px",
-              cursor: "pointer",
               fontSize: 10,
-              fontWeight: 700,
-              marginRight: 4,
             }}
+            title="Lotes"
           >
-            📦 {(p.lotes_activos || []).length}
+            📦{(p.lotes_activos || []).length}
           </button>
           {p.min_caducidad_lotes && diasParaCaducar(p.min_caducidad_lotes) <= 30 && diasParaCaducar(p.min_caducidad_lotes) >= 0 && (
             <button
               type="button"
               onClick={() => liquidar(p)}
-              style={{ ...btnSecondary, padding: "4px 8px", fontSize: 10, color: C.red, borderColor: C.red, background: C.redDim, marginRight: 4 }}
+              style={{ ...INV_ICON_BTN, ...btnSecondary, color: C.red, borderColor: C.red, background: C.redDim }}
+              title="Liquidar"
             >
               🏷️
             </button>
@@ -2120,7 +2146,7 @@ function renderInventarioColumnCell(colId, ctx) {
                 type="button"
                 onClick={() => desactivar(p.id)}
                 title="Desactivar (ocultar)"
-                style={{ background: C.redDim, border: `1px solid ${C.red}30`, color: C.red, borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontSize: 10, fontWeight: 700, marginRight: 4 }}
+                style={{ ...INV_ICON_BTN, background: C.redDim, border: `1px solid ${C.red}30`, color: C.red }}
               >
                 🔴
               </button>
@@ -2128,7 +2154,7 @@ function renderInventarioColumnCell(colId, ctx) {
                 type="button"
                 onClick={() => eliminarUno(p)}
                 title="Eliminar del catálogo"
-                style={{ background: C.redDim, border: `1px solid ${C.red}50`, color: C.red, borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontSize: 10, fontWeight: 700 }}
+                style={{ ...INV_ICON_BTN, background: C.redDim, border: `1px solid ${C.red}50`, color: C.red }}
               >
                 🗑️
               </button>
@@ -2137,11 +2163,13 @@ function renderInventarioColumnCell(colId, ctx) {
             <button
               type="button"
               onClick={() => reactivar(p.id)}
-              style={{ background: C.greenDim, border: `1px solid ${C.green}30`, color: C.green, borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontSize: 10, fontWeight: 700 }}
+              style={{ ...INV_ICON_BTN, background: C.greenDim, border: `1px solid ${C.green}30`, color: C.green }}
+              title="Reactivar"
             >
               ✅
             </button>
           )}
+          </div>
         </td>
       );
     case "skuFarmaCapital":
@@ -2359,7 +2387,7 @@ function renderInventarioColumnCell(colId, ctx) {
       return <td key={colId} style={{ padding: "8px 12px", fontWeight: 700, borderBottom: `1px solid ${C.border}`, color: mgnCol, background: stickyRowBg }}>{mgn}</td>;
     case "cad": {
       const loteRef = resolverLoteCaducidadProducto(p);
-      const puedeCad = Boolean(loteRef) || (p.stock ?? 0) > 0;
+      const puedeCad = true;
       const isEditingCad = inlineEdit?.productId === p.id && inlineEdit?.field === "cad";
       const tdCad = {
         padding: "8px 12px",
@@ -2410,11 +2438,11 @@ function renderInventarioColumnCell(colId, ctx) {
             cursor: selectionMode || !puedeCad ? "default" : "pointer",
           }}
           title={
-            !puedeCad
-              ? "Sin stock ni lote — Recibir mercancía"
-              : !loteRef
+            !loteRef
+              ? (p.stock ?? 0) > 0
                 ? `Stock ${p.stock} sin lote PEPS — clic para asignar caducidad (crea lote sin sumar unidades)`
-                : `${loteRef.fecha_caducidad || "Sin fecha"} · Lote ${loteRef.numero_lote || "—"}${
+                : "Sin lote — clic para asignar caducidad (lote de referencia 0 pza.)"
+              : `${loteRef.fecha_caducidad || "Sin fecha"} · Lote ${loteRef.numero_lote || "—"}${
                   multiLotes ? " (más próximo; otros en 📦 Lotes)" : ""
                 } · Clic para editar`
           }
@@ -2549,7 +2577,7 @@ export default function InventarioModule() {
   const invColWidthStyle = useCallback(
     (id) => {
       const map = {
-        acciones: Math.max(160, Number(colWidths.acciones) || INV_COL_WIDTHS_DEFAULT.acciones),
+        acciones: Math.max(100, Number(colWidths.acciones) || INV_COL_WIDTHS_DEFAULT.acciones),
         codigoBarras: Math.max(100, Number(colWidths.codigoBarras) || INV_COL_WIDTHS_DEFAULT.codigoBarras),
         nombre: Math.max(200, Number(colWidths.nombre) || INV_COL_WIDTHS_DEFAULT.nombre),
         marca: Math.max(90, Number(colWidths.marca) || INV_COL_WIDTHS_DEFAULT.marca),
@@ -2981,7 +3009,11 @@ export default function InventarioModule() {
       }
       await fetchProductos();
       showToast(
-        resp.accion === "crear" ? `Lote creado (${resp.cantidad ?? product.stock} pza.) con caducidad` : "Caducidad actualizada",
+        resp.accion === "crear_referencia"
+          ? "Caducidad guardada (lote de referencia, sin stock)"
+          : resp.accion === "crear"
+            ? `Lote creado (${resp.cantidad ?? product.stock} pza.) con caducidad`
+            : "Caducidad actualizada",
         "success"
       );
       return true;
@@ -3649,7 +3681,7 @@ export default function InventarioModule() {
               gap: 10,
             }}>
             {[
-              ["acciones", "Acciones", 160, 320],
+              ["acciones", "Acciones", 100, 240],
               ["codigoBarras", "Cód. barras", 100, 180],
               ["nombre", "Nombre", 200, 420],
               ["marca", "Marca", 90, 240],
@@ -3710,7 +3742,7 @@ export default function InventarioModule() {
             <thead>
               <tr style={{background:C.card}}>
                 <th style={{
-                  padding: "10px 8px",
+                  padding: "8px 4px",
                   textAlign: "center",
                   color: C.textMid,
                   fontWeight: 700,
@@ -3730,18 +3762,19 @@ export default function InventarioModule() {
                     checked={filtrados.length > 0 && filtrados.every((p) => selectedSet.has(p.id))}
                     onChange={toggleSelectAllOnPage}
                     aria-label="Seleccionar todos en esta página"
-                    style={{ width: 16, height: 16, cursor: "pointer", accentColor: BRAND.primary }}
+                    style={{ width: 14, height: 14, cursor: "pointer", accentColor: BRAND.primary }}
                   />
                 </th>
                 {colOrder.map((colId) => {
                   const col = INV_COLUMN_DEFS[colId];
                   if (!col) return null;
+                  const compactHead = colId === "foto" || colId === "acciones";
                   return (
                   <th
                     key={colId}
                     title={col.hint || undefined}
                     style={{
-                      padding: "10px 12px",
+                      padding: compactHead ? "8px 6px" : "10px 12px",
                       textAlign: "left",
                       color: C.textMid,
                       fontWeight: 700,
@@ -3819,7 +3852,7 @@ export default function InventarioModule() {
                 return (
                   <tr key={p.id} className="farmacapital-table-row" style={{opacity:inact?0.45:1,background:bajo?C.amberDim:nearCad?C.redDim:"transparent"}}>
                     <td style={{
-                      padding: "6px 8px",
+                      padding: "4px 4px",
                       borderBottom: `1px solid ${C.border}`,
                       textAlign: "center",
                       verticalAlign: "middle",
@@ -3836,7 +3869,7 @@ export default function InventarioModule() {
                         checked={selectedSet.has(p.id)}
                         onChange={() => toggleSelectId(p.id)}
                         aria-label={`Seleccionar ${p.nombre}`}
-                        style={{ width: 16, height: 16, cursor: "pointer", accentColor: BRAND.primary }}
+                        style={{ width: 14, height: 14, cursor: "pointer", accentColor: BRAND.primary }}
                       />
                     </td>
                     {colOrder.map((colId) => renderInventarioColumnCell(colId, rowCtx))}
@@ -3895,9 +3928,9 @@ export default function InventarioModule() {
               </div>
               <button onClick={()=>setModalLotes(null)} style={{background:"none",border:"none",color:C.textMid,fontSize:20,cursor:"pointer"}}>✕</button>
             </div>
-            {(modalLotes.lotes_activos||[]).length===0 ? (
+            {((modalLotes.lotes||[]).filter((l) => l.activo !== false)).length===0 ? (
               <div style={{textAlign:"center",padding:40,color:C.textMid,fontSize:13}}>
-                Este producto no tiene lotes activos. Usa <strong>📦 Recibir mercancía</strong> para agregar uno.
+                Este producto no tiene lotes. Asigná caducidad en la ficha del producto o usá <strong>📦 Recibir mercancía</strong>.
               </div>
             ) : (
               <>
@@ -3913,7 +3946,8 @@ export default function InventarioModule() {
                   </tr>
                 </thead>
                 <tbody>
-                  {(modalLotes.lotes_activos||[])
+                  {(modalLotes.lotes||[])
+                    .filter((l) => l.activo !== false)
                     .slice()
                     .sort((a,b)=>{
                       if(!a.fecha_caducidad) return 1;

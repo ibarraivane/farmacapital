@@ -54,6 +54,29 @@ FUENTE_TIPO = {
     "levic": "compra",
     "similares": "venta",
     "fahorro": "venta",
+    "otros_venta": "venta",
+}
+
+FUENTE_ALIASES = {
+    "otros": "otros_venta",
+    "otros_venta": "otros_venta",
+    "similares": "similares",
+    "fahorro": "fahorro",
+}
+
+
+def normalize_fuente(raw: str | None, fallback: str) -> str:
+    s = (raw or fallback or "similares").strip().lower()
+    s = FUENTE_ALIASES.get(s, s)
+    if s not in FUENTE_TIPO:
+        sys.exit(f"Fuente desconocida en CSV: {raw!r} (usa: {', '.join(FUENTE_TIPO)})")
+    return s
+
+CONFIDENCIA_TEXTO = {
+    "alta": 85,
+    "media": 75,
+    "dudoso": 60,
+    "sin_dato": 0,
 }
 
 
@@ -174,6 +197,17 @@ def parse_exprezo_rows(path: Path, precio_col: str) -> list[dict]:
     return rows
 
 
+def parse_confianza(val, fallback: int) -> int:
+    if val is None:
+        return fallback
+    s = str(val).strip().lower()
+    if not s:
+        return fallback
+    if s.isdigit():
+        return max(0, min(100, int(s)))
+    return CONFIDENCIA_TEXTO.get(s, fallback)
+
+
 def parse_generico_rows(path: Path) -> list[dict]:
     rows = []
     with path.open(newline="", encoding="utf-8-sig") as f:
@@ -187,24 +221,41 @@ def parse_generico_rows(path: Path) -> list[dict]:
             (c for c in reader.fieldnames or [] if c.lower().strip() in ("precio", "precio_ref", "precio_mayoreo")),
             None,
         )
+        conf_col = next(
+            (c for c in reader.fieldnames or [] if c.lower().strip() in ("confianza", "confianza_match")),
+            None,
+        )
+        notas_col = next((c for c in reader.fieldnames or [] if c.lower().strip() == "notas"), None)
+        fuente_col = next((c for c in reader.fieldnames or [] if c.lower().strip() == "fuente"), None)
         if not precio_col:
             sys.exit(f"CSV genérico: falta columna precio. Columnas: {reader.fieldnames}")
         for i, row in enumerate(reader, start=2):
             precio = parse_money(row.get(precio_col))
             if precio is None:
                 continue
+            conf_raw = row.get(conf_col) if conf_col else None
             rows.append({
                 "line": i,
                 "sku": (row.get(sku_col) or "").strip() if sku_col else "",
                 "nombre_fuente": (row.get(nombre_col) or "").strip() if nombre_col else "",
                 "precio": precio,
+                "confianza_csv": parse_confianza(conf_raw, 100 if (row.get(sku_col) or "").strip() else 75),
+                "notas": (row.get(notas_col) or "").strip() if notas_col else "",
+                "fuente_csv": (row.get(fuente_col) or "").strip() if fuente_col else "",
             })
     return rows
 
 
 def match_rows(fuente: str, archivo: Path, productos: list[dict], precio_col: str) -> list[dict]:
     sku_idx = build_sku_index(productos)
-    if fuente == "exprezo":
+    # CSV ya con sku FC- (capturas Claude / plantilla genérica)
+    with archivo.open(newline="", encoding="utf-8") as f:
+        peek = f.read(512)
+    if "sku" in peek.lower() and fuente != "exprezo":
+        raw = parse_generico_rows(archivo)
+    elif fuente == "exprezo" and "Producto" not in peek and "sku" in peek.lower():
+        raw = parse_generico_rows(archivo)
+    elif fuente == "exprezo":
         raw = parse_exprezo_rows(archivo, precio_col)
     else:
         raw = parse_generico_rows(archivo)
@@ -215,9 +266,11 @@ def match_rows(fuente: str, archivo: Path, productos: list[dict], precio_col: st
         score = 0
         if row.get("sku") and row["sku"] in sku_idx:
             prod = sku_idx[row["sku"]]
-            score = 100
+            score = row.get("confianza_csv") or 100
         elif row.get("nombre_fuente"):
             prod, score = fuzzy_match_producto(row["nombre_fuente"], "", productos)
+            if row.get("confianza_csv"):
+                score = min(score, row["confianza_csv"]) if score else row["confianza_csv"]
 
         if not prod:
             continue
@@ -227,8 +280,16 @@ def match_rows(fuente: str, archivo: Path, productos: list[dict], precio_col: st
             "sku": prod.get("sku"),
             "nombre_catalogo": prod.get("nombre"),
             "confianza": score,
+            "fuente": normalize_fuente(row.get("fuente_csv"), fuente),
         })
     return matched
+
+
+def group_by_fuente(matched: list[dict]) -> dict[str, list[dict]]:
+    out: dict[str, list[dict]] = {}
+    for m in matched:
+        out.setdefault(m["fuente"], []).append(m)
+    return out
 
 
 def sql_quote(s: str) -> str:
@@ -237,6 +298,7 @@ def sql_quote(s: str) -> str:
 
 def generate_sql(fuente: str, fecha: str, archivo: str, matched: list[dict]) -> str:
     tipo = FUENTE_TIPO[fuente]
+    use_sku_join = all(m.get("sku") for m in matched)
     lines = [
         f"-- Import referencias {fuente} — {len(matched)} filas",
         f"-- Archivo: {archivo}",
@@ -248,39 +310,137 @@ def generate_sql(fuente: str, fecha: str, archivo: str, matched: list[dict]) -> 
         f"  values ({sql_quote(fuente)}, {sql_quote(tipo)}, {sql_quote(fecha)}, {sql_quote(archivo)}, {len(matched)}, 'importar_referencias_precio.py')",
         "  returning id",
         ")",
-        "insert into public.producto_precios_referencia (",
-        "  producto_id, fuente, tipo, precio, fecha, nombre_fuente, confianza, origen, import_id",
-        ")",
-        "select",
-        "  v.producto_id,",
-        f"  {sql_quote(fuente)},",
-        f"  {sql_quote(tipo)},",
-        "  v.precio,",
-        f"  {sql_quote(fecha)}::date,",
-        "  v.nombre_fuente,",
-        "  v.confianza,",
-        "  'import_csv',",
-        "  imp.id",
-        "from imp, (values",
     ]
-    value_rows = []
-    for m in matched:
-        nf = sql_quote(m.get("nombre_fuente") or m.get("nombre_catalogo") or "")
-        value_rows.append(
-            f"  ({m['producto_id']}::bigint, {m['precio']}::numeric, {nf}, {m['confianza']}::smallint)"
-        )
-    if not value_rows:
-        lines.append("  (null::bigint, null::numeric, null::text, null::smallint) -- sin filas")
+    if use_sku_join:
+        lines.extend([
+            "insert into public.producto_precios_referencia (",
+            "  producto_id, fuente, tipo, precio, fecha, origen, import_id, confianza, notas",
+            ")",
+            "select",
+            "  p.id,",
+            f"  {sql_quote(fuente)},",
+            f"  {sql_quote(tipo)},",
+            "  v.precio,",
+            f"  {sql_quote(fecha)}::date,",
+            "  'import_csv',",
+            "  imp.id,",
+            "  v.confianza,",
+            "  v.notas",
+            "from imp, (values",
+        ])
+        value_rows = []
+        for m in matched:
+            notas = sql_quote(m.get("notas") or "")
+            value_rows.append(
+                f"  ({sql_quote(m['sku'])}, {m['precio']}::numeric, {m['confianza']}::smallint, {notas})"
+            )
+        lines.append(",\n".join(value_rows) if value_rows else "  (null::text, null::numeric, null::smallint, null::text)")
+        lines.extend([
+            ") as v(sku, precio, confianza, notas)",
+            "join public.productos p on p.sku = v.sku and p.activo = true",
+            "where v.sku is not null;",
+        ])
     else:
-        lines.append(",\n".join(value_rows))
-    lines.extend([
-        ") as v(producto_id, precio, nombre_fuente, confianza)",
-        "where v.producto_id is not null;",
-        "",
-        "commit;",
-        "",
-    ])
+        lines.extend([
+            "insert into public.producto_precios_referencia (",
+            "  producto_id, fuente, tipo, precio, fecha, nombre_fuente, confianza, origen, import_id, notas",
+            ")",
+            "select",
+            "  v.producto_id,",
+            f"  {sql_quote(fuente)},",
+            f"  {sql_quote(tipo)},",
+            "  v.precio,",
+            f"  {sql_quote(fecha)}::date,",
+            "  v.nombre_fuente,",
+            "  v.confianza,",
+            "  'import_csv',",
+            "  imp.id,",
+            "  v.notas",
+            "from imp, (values",
+        ])
+        value_rows = []
+        for m in matched:
+            nf = sql_quote(m.get("nombre_fuente") or m.get("nombre_catalogo") or "")
+            notas = sql_quote(m.get("notas") or "")
+            value_rows.append(
+                f"  ({m['producto_id']}::bigint, {m['precio']}::numeric, {nf}, {m['confianza']}::smallint, {notas})"
+            )
+        if not value_rows:
+            lines.append("  (null::bigint, null::numeric, null::text, null::smallint, null::text) -- sin filas")
+        else:
+            lines.append(",\n".join(value_rows))
+        lines.extend([
+            ") as v(producto_id, precio, nombre_fuente, confianza, notas)",
+            "where v.producto_id is not null;",
+        ])
+    lines.extend(["", "commit;", ""])
     return "\n".join(lines)
+
+
+def ensure_fuentes(url: str, key: str, fuentes: set[str]) -> None:
+    if not requests:
+        return
+    headers = {
+        "apikey": key,
+        "Authorization": f"Bearer {key}",
+        "Content-Type": "application/json",
+        "Prefer": "resolution=merge-duplicates",
+    }
+    presets = {
+        "otros_venta": {
+            "id": "otros_venta",
+            "nombre": "Otros (venta)",
+            "tipo": "venta",
+            "metodo": "manual",
+            "notas": "Promedio de mercado o consulta manual (Claude, Google, etc.)",
+        },
+        "otros_compra": {
+            "id": "otros_compra",
+            "nombre": "Otros (compra)",
+            "tipo": "compra",
+            "metodo": "manual",
+            "notas": "Promedio de mercado o consulta manual (Claude, Google, etc.)",
+        },
+    }
+    payload = [presets[f] for f in sorted(fuentes) if f in presets]
+    if not payload:
+        return
+    r = requests.post(
+        f"{url}/rest/v1/fuentes_precio",
+        headers=headers,
+        json=payload,
+        timeout=30,
+    )
+    if r.status_code not in (200, 201):
+        print(f"AVISO: no se pudieron registrar fuentes {payload}: {r.status_code} {r.text[:200]}")
+
+
+def generate_sql_multi(fecha: str, archivo: str, grouped: dict[str, list[dict]]) -> str:
+    parts = [
+        f"-- Import referencias consolidado — {sum(len(v) for v in grouped.values())} filas",
+        f"-- Archivo: {archivo}",
+        "-- Requiere fuentes otros_* (incluido abajo si falta en Supabase)",
+        "",
+        "begin;",
+        "",
+        "insert into public.fuentes_precio (id, nombre, tipo, metodo, notas) values",
+        "  ('otros_compra', 'Otros (compra)', 'compra', 'manual', 'Promedio de mercado o consulta manual (Claude, Google, etc.)'),",
+        "  ('otros_venta', 'Otros (venta)', 'venta', 'manual', 'Promedio de mercado o consulta manual (Claude, Google, etc.)')",
+        "on conflict (id) do update set",
+        "  nombre = excluded.nombre,",
+        "  tipo = excluded.tipo,",
+        "  metodo = excluded.metodo,",
+        "  notas = excluded.notas;",
+        "",
+    ]
+    for fuente, rows in sorted(grouped.items()):
+        block = generate_sql(fuente, fecha, archivo, rows)
+        inner = block.split("begin;", 1)[1].rsplit("commit;", 1)[0].strip()
+        parts.append(f"-- ── {fuente} ({len(rows)} filas) ──")
+        parts.append(inner)
+        parts.append("")
+    parts.extend(["commit;", ""])
+    return "\n".join(parts)
 
 
 def apply_rest(url: str, key: str, fuente: str, fecha: str, archivo: str, matched: list[dict]) -> None:
@@ -324,6 +484,7 @@ def apply_rest(url: str, key: str, fuente: str, fecha: str, archivo: str, matche
                 "confianza": m["confianza"],
                 "origen": "import_csv",
                 "import_id": import_id,
+                "notas": m.get("notas") or None,
             }
             for m in chunk
         ]
@@ -340,7 +501,8 @@ def apply_rest(url: str, key: str, fuente: str, fecha: str, archivo: str, matche
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Importar referencias de precio a Supabase")
-    parser.add_argument("--fuente", required=True, choices=list(FUENTE_TIPO.keys()))
+    parser.add_argument("--fuente", default="similares", choices=list(FUENTE_TIPO.keys()),
+                        help="Fuente por defecto si el CSV no trae columna fuente")
     parser.add_argument("--archivo", required=True, type=Path)
     parser.add_argument("--precio-col", choices=["mayoreo", "unidad"], default="mayoreo",
                         help="Solo Exprezo: columna de precio")
@@ -365,9 +527,12 @@ def main() -> None:
     print(f"  {len(productos)} productos activos")
 
     matched = match_rows(args.fuente, args.archivo, productos, args.precio_col)
+    grouped = group_by_fuente(matched)
     alta = sum(1 for m in matched if m["confianza"] >= 85)
     media = sum(1 for m in matched if 70 <= m["confianza"] < 85)
     print(f"Matches: {len(matched)} (alta confianza ≥85: {alta}, media 70–84: {media})")
+    for fuente, rows in sorted(grouped.items()):
+        print(f"  {fuente}: {len(rows)} filas")
 
     if args.dry_run:
         for m in matched[:15]:
@@ -376,15 +541,30 @@ def main() -> None:
             print(f"  … y {len(matched) - 15} más")
         return
 
-    sql_text = generate_sql(args.fuente, args.fecha, args.archivo.name, matched)
+    multi = len(grouped) > 1
+    date_tag = args.fecha.replace("-", "")
+    stem = args.archivo.stem
+    batch_suffix = ""
+    if re.search(r"_\d+$", stem) and not stem.endswith(date_tag):
+        batch_suffix = "_" + stem.rsplit("_", 1)[-1]
+    if multi:
+        sql_text = generate_sql_multi(args.fecha, args.archivo.name, grouped)
+        out_name = f"import_referencias_consolidado_{date_tag}{batch_suffix}.sql"
+    else:
+        fuente = next(iter(grouped)) if grouped else args.fuente
+        sql_text = generate_sql(fuente, args.fecha, args.archivo.name, matched)
+        out_name = f"import_referencias_{fuente}_{args.fecha.replace('-', '')}.sql"
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    out_sql = OUT_DIR / f"import_referencias_{args.fuente}_{args.fecha.replace('-', '')}.sql"
+    out_sql = OUT_DIR / out_name
     out_sql.write_text(sql_text, encoding="utf-8")
     print(f"SQL generado: {out_sql}")
 
     if args.apply:
         print("Aplicando vía REST…")
-        apply_rest(url, key, args.fuente, args.fecha, args.archivo.name, matched)
+        ensure_fuentes(url, key, set(grouped.keys()))
+        for fuente, rows in sorted(grouped.items()):
+            print(f"  Fuente {fuente} ({len(rows)} filas)…")
+            apply_rest(url, key, fuente, args.fecha, args.archivo.name, rows)
         print("Listo.")
     elif not args.sql_only:
         print("Ejecuta el SQL en Supabase o re-corre con --apply")

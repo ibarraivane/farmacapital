@@ -512,10 +512,47 @@ def parse_farma_mx(ocr: str) -> list[tuple]:
 
 
 def farmalive_barcode(line: str) -> str | None:
-    m = re.search(r"[\[(]?(750\d{10,11}|354\d{10,11}|840\d{10,11})", line)
-    if not m:
+    """Extrae EAN de línea OCR FarmaLive (750…, 354…, 65024… Genomma, 366…, 780…)."""
+    if not line or not line.strip():
         return None
-    return norm_barcode(m.group(1))
+
+    patterns = [
+        r"[\[(]?\s*(750\d{10,11})",
+        r"[\[(]?(354\d{10,11})",
+        r"[\[(]?\s*(840\d{10,11})",
+        r"[\[(]?\s*(780\d{10,11})",
+        r"[\[(]?\s*(366\d{11,12})",
+        r"[\[(]?\s*(65024\d{7,9})",
+        r"(750\d{10,11})",
+        r"(354\d{10,11})",
+        r"(65024\d{7,9})",
+        r"(780\d{10,11})",
+        r"(366\d{11,12})",
+    ]
+    for p in patterns:
+        m = re.search(p, line, re.I)
+        if m:
+            bc = norm_barcode(m.group(1))
+            if bc and len(bc) >= 10:
+                return bc
+
+    compact = re.sub(r"\D", "", line)
+    for run in re.findall(r"\d{12,14}", compact):
+        if run.startswith(("750", "354", "65024", "366", "780")):
+            return run
+
+    for bare, prefixed in (
+        ("2250343072", "7502250343072"),
+        ("222503430721", "7502250343072"),
+        ("1354312225027", "3543122250276"),
+        ("543122250227", "3543122250276"),
+        ("022503405381", "750022503405381"),
+        ("1312250181", "7501312250181"),
+    ):
+        if bare in compact:
+            return prefixed
+
+    return None
 
 
 def parse_farmalive(ocr: str) -> list[tuple]:

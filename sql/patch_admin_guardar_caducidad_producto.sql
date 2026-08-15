@@ -1,5 +1,7 @@
 -- Guarda caducidad por producto: encuentra el lote en servidor (sin depender del JOIN en cliente).
--- Si hay lote activo → actualiza fecha. Si no hay lote pero hay stock → crea lote sin sumar unidades.
+-- Si hay lote activo → actualiza fecha.
+-- Si no hay lote pero hay stock → crea lote PEPS sin sumar unidades.
+-- Si no hay lote ni stock → crea lote de referencia (0 pza.) solo para caducidad.
 
 create or replace function public.admin_guardar_caducidad_producto(
   p_session_token   uuid,
@@ -93,11 +95,33 @@ begin
     raise exception 'Producto % no existe', p_producto_id;
   end if;
 
+  v_numero := coalesce(
+    nullif(btrim(v_sku), ''),
+    p_producto_id::text
+  );
+
   if coalesce(v_stock, 0) <= 0 then
-    raise exception 'Sin lote ni stock — usá Recibir mercancía';
+    -- Catálogo sin stock: lote de referencia (0 pza.) solo para caducidad
+    v_numero := 'REF-' || v_numero || '-' || to_char(now(), 'YYYYMMDD');
+
+    insert into public.lotes (
+      producto_id, numero_lote, cantidad_inicial, cantidad_actual,
+      fecha_caducidad, costo_unitario, activo
+    ) values (
+      p_producto_id, v_numero, 0, 0,
+      p_fecha_caducidad, coalesce(v_costo, 0), true
+    )
+    returning id into v_lid;
+
+    return jsonb_build_object(
+      'success', true,
+      'lote_id', v_lid,
+      'accion', 'crear_referencia',
+      'cantidad', 0
+    );
   end if;
 
-  v_numero := 'INV-' || coalesce(nullif(btrim(v_sku), ''), p_producto_id::text) || '-' || to_char(now(), 'YYYYMMDD');
+  v_numero := 'INV-' || v_numero || '-' || to_char(now(), 'YYYYMMDD');
 
   insert into public.lotes (
     producto_id, numero_lote, cantidad_inicial, cantidad_actual,
