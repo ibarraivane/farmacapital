@@ -33,7 +33,8 @@ import { marcarMedicamentosRecetaFarmaCapitalSurtidos } from "../../../utils/rec
 import OnboardingTour from "../../../components/OnboardingTour";
 import { TOURS } from "../../../utils/tours";
 import { labelTipoEntregaPedido } from "../../../utils/orderChannels";
-import { buildOnlineOrderReceiptMessage, buildOnlineOrderReadyMessage, formatFolioOnline, openWhatsAppToCustomer } from "../../../utils/orderReceiptWhatsApp";
+import PagoServiciosPanel, { rpcRegistrarPagoServicio } from "./PagoServiciosPanel";
+import { buildOnlineOrderReceiptMessage, formatFolioOnline, notifyOrderReady, openWhatsAppToCustomer } from "../../../utils/orderReceiptWhatsApp";
 import { formatTelefonoDisplay } from "../../../utils/citaWhatsApp";
 import { configRowsToMap, mergeFarmaciaConfig, FARMACIA_FISCAL } from "../../../constants/farmaciaFiscal";
 
@@ -362,7 +363,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const isNarrow = useMediaQuery("(max-width: 1100px)");
   /** Solo celular / pantalla muy estrecha: carrito en modal + barra Carrito/total/? (no afecta escritorio). */
   const isMobilePos = useMediaQuery("(max-width: 768px)");
-  const [tab,setTab]         = useState(initialTab); // venta | online | consultas
+  const [tab,setTab]         = useState(initialTab); // venta | online | consultas | servicios
   const [productos,setProds] = useState([]);
   const [cart,setCart]       = useState([]);
   const [srch,setSrch]       = useState("");
@@ -430,6 +431,9 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const [recetaOrigenSel, setRecetaOrigenSel] = useState("no_aplica");
   /** Si no es null, el modal MP cobra esa cita (no venta de carrito). */
   const mpCitaRef = useRef(null);
+  /** Pago de servicios pendiente de registrar tras cobro Point. */
+  const mpServicioRef = useRef(null);
+  const [serviciosRefresh, setServiciosRefresh] = useState(0);
   const bbvaCitaRef = useRef(null);
   const [ventasDia,setVentasDia] = useState({total:0,count:0});
   const [folioActual,setFolioActual] = useState("VTA-00000000");
@@ -1422,21 +1426,11 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       // Notificar al cliente por WhatsApp al marcar listo (pagó en línea)
       const telCli = pedido.clientes?.telefono || pedido.guest_telefono;
       if (telCli) {
-        const msg = buildOnlineOrderReadyMessage({
-          pedidoId: pedido.id,
-          items: (pedido.pedido_items || []).map((i) => ({
-            nombre: i.productos?.nombre,
-            qty: i.cantidad,
-            precio: i.precio_unitario,
-          })),
-          total: pedido.total,
-          tipoEntrega: pedido.tipo_entrega,
-          metodoPago: pedido.metodo_pago,
-        });
-        if (openWhatsAppToCustomer(telCli, msg)) {
-          showToast("Pedido listo · WhatsApp abierto para el cliente", "success");
+        const notifyRes = await notifyOrderReady({ pedidoId: pedido.id });
+        if (notifyRes.sent) {
+          showToast("Pedido listo · cliente notificado por WhatsApp (PDF)", "success");
         } else {
-          showToast("Pedido listo (revisa el teléfono del cliente)", "success");
+          showToast(`Pedido listo (${notifyRes.reason || "sin WhatsApp automático"})`, "success");
         }
       } else {
         showToast("Pedido marcado como listo", "success");
@@ -1893,7 +1887,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
           marginRight: isMobilePos ? -4 : 0,
           width: isMobilePos ? "100%" : undefined,
         }}>
-          {[["venta","Venta"],["online",`Online (${pedOnline.length})`],["consultas",`Consultas${consPendientesCount ? ` (${consPendientesCount})` : ""}`]].map(([v,l])=>(
+          {[["venta","Venta"],["online",`Online (${pedOnline.length})`],["consultas",`Consultas${consPendientesCount ? ` (${consPendientesCount})` : ""}`],["servicios","Servicios"]].map(([v,l])=>(
             <button key={v} type="button" onClick={()=>setTab(v)} style={{
               padding:isMobilePos ? "8px 12px" : "6px 12px",
               borderRadius:8,
@@ -1990,13 +1984,39 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       {/* Mercado Pago Point Smart 2 Modal */}
       <MercadoPagoModal
         open={mpModal}
-        total={mpCitaRef.current ? totalCobroConsulta(mpCitaRef.current) : total}
-        folio={mpCitaRef.current ? `CONS-${mpCitaRef.current.id}` : mpFolio}
-        hint="El terminal recibe el monto; al aprobarse se registra la venta y podrás imprimir o enviar el ticket por WhatsApp."
+        total={
+          mpCitaRef.current
+            ? totalCobroConsulta(mpCitaRef.current)
+            : mpServicioRef.current
+              ? mpServicioRef.current.total
+              : total
+        }
+        folio={
+          mpCitaRef.current
+            ? `CONS-${mpCitaRef.current.id}`
+            : mpServicioRef.current?.folio || mpFolio
+        }
+        hint={
+          mpServicioRef.current
+            ? "Cobra al cliente servicio + comisión en la Point. Después liquida el recibo en Smart Launcher → Pago de servicios."
+            : "El terminal recibe el monto; al aprobarse se registra la venta y podrás imprimir o enviar el ticket por WhatsApp."
+        }
         onSuccess={async ()=>{
           setMpModal(false);
           const citaMp = mpCitaRef.current;
+          const servMp = mpServicioRef.current;
           mpCitaRef.current = null;
+          mpServicioRef.current = null;
+          if (servMp) {
+            try {
+              const data = await rpcRegistrarPagoServicio(servMp);
+              showToast(`Servicio registrado · ${data.folio} · ${$(data.total_cobrado)}`, "success");
+              setServiciosRefresh((n) => n + 1);
+            } catch (e) {
+              showToast(e?.message || "Tarjeta cobrada pero no se registró el servicio. Regístralo manualmente.", "error");
+            }
+            return;
+          }
           if (citaMp) {
             const citaKey = String(citaMp.id);
             await cobrarConsulta(citaMp, {
@@ -2010,7 +2030,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
             await ejecutarCobrar(ro);
           }
         }}
-        onCancel={()=>{ setMpModal(false); mpCitaRef.current = null; recetaOrigenPendienteRef.current = "no_aplica"; }}
+        onCancel={()=>{ setMpModal(false); mpCitaRef.current = null; mpServicioRef.current = null; recetaOrigenPendienteRef.current = "no_aplica"; }}
       />
 
       {/* Terminal BBVA Modal */}
@@ -2990,6 +3010,19 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
             </div>
           )}
         </div>
+      )}
+
+      {tab==="servicios"&&(
+        <PagoServiciosPanel
+          isNarrow={isNarrow}
+          refreshToken={serviciosRefresh}
+          onCobrarPoint={(payload) => {
+            mpCitaRef.current = null;
+            mpServicioRef.current = payload;
+            setMpFolio(payload.folio);
+            setMpModal(true);
+          }}
+        />
       )}
       <OnboardingTour ref={posTourRef} tourId="pos" usuario={usuario} showFab={!isMobilePos} />
     </div>

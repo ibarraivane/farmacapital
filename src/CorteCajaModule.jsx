@@ -45,6 +45,7 @@ export default function CorteCajaModule({usuario }) {
   const [loadingSis,         setLoadSis] = useState(false);
   const [saving,             setSaving]  = useState(false);
   const [saved,              setSaved]   = useState(false);
+  const [resumenServicios,   setResumenServicios] = useState(null);
 
   // Historial
   const [cortes,      setCortes]      = useState([]);
@@ -87,6 +88,25 @@ export default function CorteCajaModule({usuario }) {
   }, [turno]);
 
   useEffect(() => { fetchEfectivoSistema(); }, [fetchEfectivoSistema]);
+
+  const fetchResumenServicios = useCallback(async () => {
+    try {
+      const tok = sessionStorage.getItem("farmacapital_session_token");
+      const { inicio, fin } = getRango(turno);
+      const { data, error } = tok
+        ? await supabase.rpc("empleado_resumen_pagos_servicio_rango", {
+            p_session_token: tok,
+            p_desde: inicio,
+            p_hasta: fin,
+          })
+        : { data: null, error: null };
+      if (!error && data) setResumenServicios(data);
+    } catch (e) {
+      console.error("[CorteCaja servicios]", e);
+    }
+  }, [turno]);
+
+  useEffect(() => { fetchResumenServicios(); }, [fetchResumenServicios]);
 
   const fetchCortes = useCallback(async () => {
     setLoadingHist(true);
@@ -256,6 +276,18 @@ export default function CorteCajaModule({usuario }) {
                 <div style={{color:C.blue,fontWeight:800,fontSize:28}}>{loadingSis?"…":fmt(efectivo_sistema)}</div>
                 <div style={{color:C.textDim,fontSize:11,marginTop:4}}>Ventas en efectivo · turno {turno}</div>
               </div>
+
+              {resumenServicios?.operaciones > 0 && (
+                <div style={{background:C.amberDim,borderRadius:12,border:`1px solid ${C.amber}35`,padding:16}}>
+                  <div style={{color:C.amber,fontSize:11,fontWeight:700,letterSpacing:.5,marginBottom:6}}>PAGOS DE SERVICIO (POS)</div>
+                  <div style={{color:C.text,fontSize:12,lineHeight:1.45}}>
+                    {resumenServicios.operaciones} operación(es) · cobrado {fmt(resumenServicios.total_cobrado)} · comisión farmacia {fmt(resumenServicios.total_comision)}
+                  </div>
+                  <div style={{color:C.textDim,fontSize:10,marginTop:6}}>
+                    Efectivo {fmt(resumenServicios.efectivo)} · Tarjeta Point {fmt(resumenServicios.tarjeta)} — inclúyelos en los campos de arriba al cerrar turno.
+                  </div>
+                </div>
+              )}
 
               <div data-tour="caja-diferencia" style={{background:difBg,borderRadius:12,border:`1px solid ${difCol}30`,padding:20}}>
                 <div style={{color:C.textMid,fontSize:11,fontWeight:700,letterSpacing:.5,marginBottom:8}}>DIFERENCIA</div>
