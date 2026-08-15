@@ -405,6 +405,21 @@ ALTAS_MANUALES: list[ProductoCanonico] = [
         subcategoria="Protesis dental / adhesivo",
         notas="Haleon; ticket OCR 78960094906511 mezclado con Cafiaspirina; lote NK9S cad oct 2028",
     ),
+    ProductoCanonico(
+        barcode="7501008494226",
+        nombre="Aspirina Junior 100 mg C/60",
+        marca="Aspirina",
+        presentacion="C/60 tabletas 100 mg",
+        principio_activo="Acido acetilsalicilico 100 mg",
+        forma_farmaceutica="Tabletas",
+        categoria="Medicamentos",
+        tipo="marca",
+        stock=1,
+        costo=65.66,
+        precio=88.64,
+        subcategoria="Analgesico / antipiretico infantil",
+        notas="Bayer; ticket JUNIOR TAR sin barcode OCR; distinto FC-08499818 C/80",
+    ),
 ]
 
 # Mapa OCR/ticket erróneo → EAN canónico (para patch masivo OCR)

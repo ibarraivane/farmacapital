@@ -1,4 +1,4 @@
--- Bisolvon Adulto + Pepto-Bismol + Corega Ultra (ticket FL-080826 / empaque)
+-- Bisolvon Adulto + Pepto-Bismol + Corega Ultra + Aspirina Junior (ticket / empaque)
 -- Ejecutar en Supabase SQL Editor (Cmd+A)
 
 begin;
@@ -139,6 +139,50 @@ BEGIN
   END IF;
 END $$;
 
+-- ── 4) Aspirina Junior 100 mg C/60 · 7501008494226 ──
+DO $$
+DECLARE v_pid bigint; v_lid bigint;
+BEGIN
+  SELECT id INTO v_pid FROM public.productos
+  WHERE sku = 'FC-8494226' OR codigo_barras = '7501008494226' LIMIT 1;
+  IF v_pid IS NULL THEN
+    SELECT f.producto_id, f.lote_id INTO v_pid, v_lid
+    FROM public.create_producto_with_lote(
+      jsonb_build_object(
+        'nombre', 'Aspirina Junior 100 mg C/60',
+        'sku', 'FC-8494226',
+        'codigo_barras', '7501008494226',
+        'categoria', 'Medicamentos',
+        'tipo', 'marca',
+        'descripcion', 'Aspirina Junior 100 mg 60 tab — Bayer EAN 7501008494226',
+        'costo', 65.66,
+        'precio', 88.64,
+        'stock_minimo', 2,
+        'activo', true,
+        'requiere_receta', false
+      ),
+      1, NULL, NULL, 65.66, NULL
+    ) f;
+    UPDATE public.productos SET
+      marca = 'Aspirina',
+      presentacion = 'C/60 tabletas 100 mg',
+      principio_activo = 'Acido acetilsalicilico 100 mg',
+      forma_farmaceutica = 'Tabletas',
+      subcategoria = 'Analgesico / antipiretico infantil',
+      proveedor = 'Bayer'
+    WHERE id = v_pid;
+  ELSE
+    UPDATE public.productos SET
+      codigo_barras = '7501008494226',
+      nombre = 'Aspirina Junior 100 mg C/60',
+      costo = 65.66,
+      precio = 88.64,
+      stock = greatest(coalesce(stock, 0), 1),
+      activo = true
+    WHERE id = v_pid;
+  END IF;
+END $$;
+
 commit;
 
 SELECT p.sku, p.nombre, p.codigo_barras, p.costo, p.precio, p.stock,
@@ -146,6 +190,6 @@ SELECT p.sku, p.nombre, p.codigo_barras, p.costo, p.precio, p.stock,
 FROM public.productos p
 LEFT JOIN public.lotes l ON l.producto_id = p.id AND coalesce(l.activo, true) = true
 WHERE p.codigo_barras IN (
-  '7501037907117', '020800753067', '0208007530671', '7896009490651'
+  '7501037907117', '020800753067', '0208007530671', '7896009490651', '7501008494226'
 )
 ORDER BY p.nombre;

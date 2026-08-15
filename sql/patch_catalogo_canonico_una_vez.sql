@@ -929,6 +929,48 @@ BEGIN
   END IF;
 END $$;
 
+-- INSERT FC-08494226 · 7501008494226 · Aspirina Junior 100 mg C/60
+DO $$
+DECLARE v_pid bigint; v_lid bigint;
+BEGIN
+  SELECT id INTO v_pid FROM public.productos
+  WHERE sku = 'FC-08494226' OR codigo_barras = '7501008494226' LIMIT 1;
+  IF v_pid IS NULL THEN
+    SELECT f.producto_id, f.lote_id INTO v_pid, v_lid
+    FROM public.create_producto_with_lote(
+      jsonb_build_object(
+        'nombre', 'Aspirina Junior 100 mg C/60',
+        'sku', 'FC-08494226',
+        'codigo_barras', '7501008494226',
+        'categoria', 'Medicamentos',
+        'tipo', 'marca',
+        'descripcion', 'Aspirina Junior 100 mg C/60 — alta canonica EAN 7501008494226',
+        'costo', 65.66,
+        'precio', 88.64,
+        'stock_minimo', 3,
+        'activo', true,
+        'requiere_receta', false
+      ),
+      1, NULL, NULL, 65.66, NULL
+    ) f;
+    UPDATE public.productos SET
+      marca = 'Aspirina',
+      presentacion = 'C/60 tabletas 100 mg',
+      principio_activo = 'Acido acetilsalicilico 100 mg',
+      forma_farmaceutica = 'Tabletas',
+      subcategoria = 'Analgesico / antipiretico infantil',
+      stock = 1,
+      stock_unidades = 1
+    WHERE id = v_pid;
+  ELSE
+    UPDATE public.productos SET
+      codigo_barras = '7501008494226',
+      nombre = 'Aspirina Junior 100 mg C/60',
+      activo = true
+    WHERE id = v_pid;
+  END IF;
+END $$;
+
 -- Verificación
 SELECT sku, nombre, codigo_barras, stock, precio
 FROM public.productos
