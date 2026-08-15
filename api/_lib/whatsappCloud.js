@@ -39,6 +39,32 @@ function getWhatsAppCloudConfig() {
   };
 }
 
+/** Nombres de plantillas aprobadas en Meta (Utility). Vacío = solo texto libre. */
+function getWhatsAppTemplateConfig() {
+  const language = trimEnv('WHATSAPP_TEMPLATE_LANGUAGE') || 'es_MX';
+  const fallbackText = trimEnv('WHATSAPP_TEMPLATE_FALLBACK_TEXT').toLowerCase() !== 'false';
+  return {
+    language,
+    fallbackText,
+    pedidoConfirmado: trimEnv('WHATSAPP_TEMPLATE_PEDIDO_CONFIRMADO'),
+    pedidoPago:
+      trimEnv('WHATSAPP_TEMPLATE_PEDIDO_PAGO') ||
+      trimEnv('WHATSAPP_TEMPLATE_PEDIDO_PAGO_APROBADO'),
+    pedidoListo: trimEnv('WHATSAPP_TEMPLATE_PEDIDO_LISTO'),
+    citaConfirmacion:
+      trimEnv('WHATSAPP_TEMPLATE_CITA') ||
+      trimEnv('WHATSAPP_TEMPLATE_CITA_CONFIRMACION'),
+  };
+}
+
+function normalizeTemplateParams(params) {
+  if (!Array.isArray(params)) return [];
+  return params.map((p) => ({
+    type: 'text',
+    text: String(p ?? '').slice(0, 1024),
+  }));
+}
+
 function resolveWhatsAppProvider() {
   const pref = trimEnv('WHATSAPP_PROVIDER').toLowerCase();
   if (pref === 'twilio') return 'twilio';
@@ -161,6 +187,157 @@ async function sendWhatsAppText({ to, text, phoneNumberId, accessToken, graphVer
   return { sent: true, messageId, to: redactPhone(toE164) };
 }
 
+/**
+ * Plantilla Utility/Marketing (mensajes iniciados por la empresa).
+ * `bodyParameters` / `headerParameters`: arrays de strings → {{1}}, {{2}}, …
+ */
+async function sendWhatsAppTemplate({
+  to,
+  templateName,
+  languageCode,
+  bodyParameters,
+  headerParameters,
+  phoneNumberId,
+  accessToken,
+  graphVersion,
+} = {}) {
+  const cfg = getWhatsAppCloudConfig();
+  const tplCfg = getWhatsAppTemplateConfig();
+  const token = accessToken || cfg.accessToken;
+  const fromId = phoneNumberId || cfg.phoneNumberId;
+  const name = String(templateName || '').trim();
+
+  if (!token || !fromId) {
+    return { sent: false, reason: 'whatsapp_cloud_not_configured' };
+  }
+  if (!name) {
+    return { sent: false, reason: 'missing_template_name' };
+  }
+
+  const toE164 = normalizePhoneE164(to);
+  if (!toE164) {
+    return { sent: false, reason: 'invalid_phone' };
+  }
+
+  const components = [];
+  const headerParams = normalizeTemplateParams(headerParameters);
+  const bodyParams = normalizeTemplateParams(bodyParameters);
+  if (headerParams.length) {
+    components.push({ type: 'header', parameters: headerParams });
+  }
+  if (bodyParams.length) {
+    components.push({ type: 'body', parameters: bodyParams });
+  }
+
+  const payload = {
+    messaging_product: 'whatsapp',
+    to: toE164,
+    type: 'template',
+    template: {
+      name,
+      language: { code: languageCode || tplCfg.language || 'es_MX' },
+    },
+  };
+  if (components.length) {
+    payload.template.components = components;
+  }
+
+  const resp = await fetch(graphUrl(`${encodeURIComponent(fromId)}/messages`, graphVersion), {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  let data = null;
+  try {
+    data = await resp.json();
+  } catch {
+    data = null;
+  }
+
+  if (!resp.ok) {
+    return {
+      sent: false,
+      reason: 'meta_template_error',
+      status: resp.status,
+      detail: sanitizeMetaError(data),
+    };
+  }
+
+  const messageId = data?.messages?.[0]?.id || null;
+  return { sent: true, messageId, to: redactPhone(toE164), template: name };
+}
+
+/**
+ * Intenta plantilla; si falla y WHATSAPP_TEMPLATE_FALLBACK_TEXT≠false, envía texto libre.
+ */
+async function sendWhatsAppSmart({
+  to,
+  text,
+  templateName,
+  templateLanguage,
+  bodyParameters,
+  headerParameters,
+  allowTextFallback,
+  phoneNumberId,
+  accessToken,
+  graphVersion,
+} = {}) {
+  const tplCfg = getWhatsAppTemplateConfig();
+  const name = String(templateName || '').trim();
+  const bodyText = String(text || '').trim();
+  const mayFallback =
+    allowTextFallback !== false && tplCfg.fallbackText && Boolean(bodyText);
+
+  if (name) {
+    const tplResult = await sendWhatsAppTemplate({
+      to,
+      templateName: name,
+      languageCode: templateLanguage,
+      bodyParameters,
+      headerParameters,
+      phoneNumberId,
+      accessToken,
+      graphVersion,
+    });
+    if (tplResult.sent) {
+      return { ...tplResult, via: 'template' };
+    }
+    if (!mayFallback) {
+      return tplResult;
+    }
+    const textResult = await sendWhatsAppText({
+      to,
+      text: bodyText,
+      phoneNumberId,
+      accessToken,
+      graphVersion,
+    });
+    return {
+      ...textResult,
+      via: textResult.sent ? 'text_fallback' : textResult.reason,
+      templateError: tplResult.reason,
+      templateDetail: tplResult.detail || undefined,
+    };
+  }
+
+  if (!bodyText) {
+    return { sent: false, reason: 'empty_message' };
+  }
+
+  const textResult = await sendWhatsAppText({
+    to,
+    text: bodyText,
+    phoneNumberId,
+    accessToken,
+    graphVersion,
+  });
+  return { ...textResult, via: 'text' };
+}
+
 function verifyWebhookSubscribe(query, verifyToken) {
   const mode = String(query?.['hub.mode'] || query?.hub?.mode || '').trim();
   const token = String(query?.['hub.verify_token'] || query?.hub?.verify_token || '').trim();
@@ -279,12 +456,15 @@ function authorizeInternalSend(req, body) {
 module.exports = {
   DEFAULT_GRAPH_VERSION,
   getWhatsAppCloudConfig,
+  getWhatsAppTemplateConfig,
   resolveWhatsAppProvider,
   normalizePhoneE164,
   redactPhone,
   digitsOnly,
   graphUrl,
   sendWhatsAppText,
+  sendWhatsAppTemplate,
+  sendWhatsAppSmart,
   verifyWebhookSubscribe,
   verifyMetaSignature,
   parseWebhookPayload,

@@ -1,6 +1,15 @@
 'use strict';
 
-const { sendWhatsapp, buildReceiptMessage, buildCitaConfirmacionMessage, pedidoQuiereWhatsAppRecibo } = require('../_lib/orderNotifications');
+const {
+  sendWhatsapp,
+  buildReceiptMessage,
+  buildCitaConfirmacionMessage,
+  buildOrderTemplateBodyParams,
+  buildCitaTemplateBodyParams,
+  resolveOrderEventTemplate,
+  resolveCitaTemplate,
+  pedidoQuiereWhatsAppRecibo,
+} = require('../_lib/orderNotifications');
 const { getSupabaseAdminConfig, validateEmployeeSession } = require('../_lib/supabaseAdmin');
 const { handleWhatsAppManualSend } = require('../_lib/whatsappSendHandler');
 
@@ -105,7 +114,21 @@ async function handleCitaConfirmacion(req, res, body) {
       citaId: cita?.id || citaId,
     });
 
-  const waRes = await sendWhatsapp({ to: telefono, text: message });
+  const templateName = resolveCitaTemplate();
+  const bodyParameters = templateName
+    ? buildCitaTemplateBodyParams({
+        nombre: cita?.nombre || body?.nombre,
+        fecha: cita?.fecha || body?.fecha,
+        hora: cita?.hora || body?.hora,
+      })
+    : undefined;
+
+  const waRes = await sendWhatsapp({
+    to: telefono,
+    text: message,
+    templateName: templateName || undefined,
+    bodyParameters,
+  });
   return res.status(200).json({ ok: true, whatsapp: waRes, citaId });
 }
 
@@ -230,7 +253,17 @@ async function handleOrderReceipt(req, res, body) {
     items: pedido.pedido_items || [],
   });
 
-  const waRes = await sendWhatsapp({ to: telefono, text: message });
+  const templateName = resolveOrderEventTemplate(event);
+  const bodyParameters = templateName
+    ? buildOrderTemplateBodyParams({ event, pedido, items: pedido.pedido_items || [] })
+    : undefined;
+
+  const waRes = await sendWhatsapp({
+    to: telefono,
+    text: message,
+    templateName: templateName || undefined,
+    bodyParameters,
+  });
   return res.status(200).json({ ok: true, whatsapp: waRes, pedidoId });
 }
 

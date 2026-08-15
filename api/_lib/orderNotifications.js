@@ -2,7 +2,8 @@
 
 const { FARMACIA_FISCAL } = require('./farmaciaFiscal');
 const {
-  sendWhatsAppText,
+  sendWhatsAppSmart,
+  getWhatsAppTemplateConfig,
   resolveWhatsAppProvider,
   digitsOnly,
 } = require('./whatsappCloud');
@@ -116,6 +117,58 @@ function buildCitaConfirmacionMessage({ nombre, fecha, hora, motivo, citaId }) {
   );
 }
 
+function resolveOrderEventTemplate(event) {
+  const tpl = getWhatsAppTemplateConfig();
+  const ev = String(event || 'order_created').trim();
+  if (ev === 'payment_pending' || ev === 'payment_rejected') {
+    return '';
+  }
+  if (ev === 'payment_approved') {
+    return tpl.pedidoPago || tpl.pedidoConfirmado || '';
+  }
+  if (ev === 'order_ready') {
+    return tpl.pedidoListo || '';
+  }
+  return tpl.pedidoConfirmado || '';
+}
+
+function resolveCitaTemplate() {
+  return getWhatsAppTemplateConfig().citaConfirmacion || '';
+}
+
+function buildOrderTemplateBodyParams({ event, pedido }) {
+  const folio = formatFolioOnline(pedido?.id) || `#FC-${pedido?.id || '?'}`;
+  const total = formatMoneyMx(pedido?.total);
+  const entrega =
+    pedido?.tipo_entrega === 'envio' ? 'Envío a domicilio' : 'Pick-up en FarmaCapital';
+
+  if (event === 'order_ready') {
+    const note =
+      pedido?.tipo_entrega === 'recoger'
+        ? `Recógelo en mostrador. Mapa: ${FARMACIA_MAPS_URL}`
+        : 'Te contactamos para coordinar la entrega.';
+    return [folio, note];
+  }
+
+  let note = '¡Gracias por tu preferencia!';
+  if (event === 'payment_approved') {
+    note = 'Te avisaremos cuando esté listo.';
+  } else if (pedido?.tipo_entrega === 'recoger') {
+    note = `Muestra tu folio al llegar. Mapa: ${FARMACIA_MAPS_URL}`;
+  } else {
+    note = 'Te contactamos para coordinar tu entrega.';
+  }
+
+  return [folio, total, entrega, note];
+}
+
+function buildCitaTemplateBodyParams({ nombre, fecha, hora }) {
+  const nombreTxt = nombre && String(nombre).trim() ? String(nombre).trim() : 'Cliente';
+  const fechaTxt = formatCitaFecha(fecha) || String(fecha || '');
+  const horaTxt = String(hora || '');
+  return [nombreTxt, fechaTxt, horaTxt, FARMACIA_DIRECCION];
+}
+
 function buildMessage({ event, pedido, items }) {
   return buildReceiptMessage({ event, pedido, items });
 }
@@ -169,33 +222,52 @@ async function sendTwilioWhatsapp({ to, text }) {
   return { sent: true };
 }
 
-async function sendMetaWhatsapp({ to, text }) {
+async function sendMetaWhatsapp({ to, text, templateName, bodyParameters, templateLanguage }) {
   if (!to) return { sent: false, reason: 'invalid_phone' };
-  return sendWhatsAppText({ to, text });
+  return sendWhatsAppSmart({
+    to,
+    text,
+    templateName,
+    bodyParameters,
+    templateLanguage,
+  });
 }
 
-async function sendWhatsapp({ to, text }) {
+async function sendWhatsapp({ to, text, templateName, bodyParameters, templateLanguage }) {
   const provider = resolveWhatsAppProvider();
-  if (provider === 'meta') return sendMetaWhatsapp({ to, text });
+  if (provider === 'meta') {
+    return sendMetaWhatsapp({ to, text, templateName, bodyParameters, templateLanguage });
+  }
   return sendTwilioWhatsapp({ to, text });
 }
 
 function pedidoQuiereWhatsAppRecibo(pedido) {
+  if (pedido?.whatsapp_recibo === true) return true;
   if (pedido?.whatsapp_recibo === false) return false;
   const meta = pedido?.logistics_meta;
-  if (meta && typeof meta === 'object' && meta.whatsapp_recibo === false) return false;
-  // Pedidos anteriores a la migración: mantener envío si no hay bandera explícita en false
-  if (pedido?.whatsapp_recibo == null && (!meta || meta.whatsapp_recibo == null)) return true;
-  return Boolean(pedido?.whatsapp_recibo || meta?.whatsapp_recibo);
+  if (meta && typeof meta === 'object') {
+    if (meta.whatsapp_recibo === true) return true;
+    if (meta.whatsapp_recibo === false) return false;
+  }
+  return false;
 }
 
 async function sendOrderNotifications({ event, pedido, cliente, items }) {
   const msg = buildReceiptMessage({ event, pedido, items });
+  const templateName = resolveOrderEventTemplate(event);
+  const bodyParameters = templateName
+    ? buildOrderTemplateBodyParams({ event, pedido, items, cliente })
+    : undefined;
   const subject = event === 'payment_approved'
     ? `Pago aprobado Pedido #${pedido?.id || ''}`
     : `Actualizacion de Pedido #${pedido?.id || ''}`;
   const waPromise = pedidoQuiereWhatsAppRecibo(pedido)
-    ? sendWhatsapp({ to: cliente?.telefono || null, text: msg })
+    ? sendWhatsapp({
+        to: cliente?.telefono || null,
+        text: msg,
+        templateName: templateName || undefined,
+        bodyParameters,
+      })
     : Promise.resolve({ sent: false, reason: 'whatsapp_opt_out' });
   const [emailRes, waRes] = await Promise.all([
     sendEmail({ to: cliente?.email || null, subject, text: msg }),
@@ -210,5 +282,9 @@ module.exports = {
   buildReceiptMessage,
   buildMessage,
   buildCitaConfirmacionMessage,
+  buildOrderTemplateBodyParams,
+  buildCitaTemplateBodyParams,
+  resolveOrderEventTemplate,
+  resolveCitaTemplate,
   pedidoQuiereWhatsAppRecibo,
 };

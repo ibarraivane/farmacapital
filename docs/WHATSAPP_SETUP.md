@@ -31,6 +31,14 @@ WHATSAPP_APP_SECRET=...            # Meta → App → Configuración → Básica
 WHATSAPP_INTERNAL_SECRET=...       # tú lo generas; protege /api/whatsapp/send
 WHATSAPP_PROVIDER=meta             # opcional; auto-detecta si hay ACCESS_TOKEN
 WHATSAPP_GRAPH_VERSION=v21.0       # opcional
+
+# Plantillas Utility (nombres exactos tras aprobación en Meta)
+WHATSAPP_TEMPLATE_LANGUAGE=es_MX
+WHATSAPP_TEMPLATE_PEDIDO_CONFIRMADO=pedido_confirmado
+WHATSAPP_TEMPLATE_PEDIDO_PAGO=pedido_pago_aprobado
+WHATSAPP_TEMPLATE_PEDIDO_LISTO=pedido_listo
+WHATSAPP_TEMPLATE_CITA=cita_confirmacion
+WHATSAPP_TEMPLATE_FALLBACK_TEXT=true   # si la plantilla falla, envía texto libre
 ```
 
 Compatibilidad legacy (opcional): `META_WHATSAPP_TOKEN`, `META_WHATSAPP_PHONE_ID`, `META_APP_SECRET`.
@@ -55,45 +63,105 @@ Usar en pruebas: `Authorization: Bearer <valor>` al llamar `/api/whatsapp/send`.
 
 1. Meta for Developers → App **FarmaCapital** → **WhatsApp** → **Configuración**
 2. Sección **Webhook** → **Editar**
-3. **URL de devolución de llamada:** `https://farmacapital.mx/api/webhooks/whatsapp`
+3. **URL de devolución de llamada:** `https://www.farmacapital.mx/api/webhooks/whatsapp`
 4. **Token de verificación:** el mismo valor que `WHATSAPP_VERIFY_TOKEN` en Vercel
 5. Clic **Verificar y guardar**
 
-Si falla: revisa Vercel Logs de la función; errores comunes `invalid_verify_token`, `missing_verify_token_env`.
-
 ### Pantalla 2 — Suscribir campos
 
-1. En la misma sección, **Administrar** suscripciones del webhook
-2. Suscríbete al WABA **FarmaCapital** (`2277703916307084`)
-3. Activa el campo **`messages`** (incluye mensajes entrantes y estados de entrega)
+1. **Administrar** suscripciones del webhook → WABA FarmaCapital
+2. Activa **`messages`** y enciende **Suscribir webhooks** en el número +1 555-342-4819
 
 ### Pantalla 3 — Prueba entrante
 
-1. Desde un número registrado como tester en Meta, envía un WhatsApp al **+1 555-342-4819**
-2. Vercel → Deployments → Functions → `/api/webhooks/whatsapp` → Logs
-3. Debes ver líneas `[whatsapp-webhook]` con `kind: "message"` o `kind: "status"`
+Envía un WhatsApp al +1 555-342-4819 y revisa Vercel Logs (`[whatsapp-webhook]`).
 
 ## Envío manual de prueba (Fase 1)
 
 ```bash
-curl -sS -X POST "https://farmacapital.mx/api/whatsapp/send" \
+curl -sS -X POST "https://www.farmacapital.mx/api/whatsapp/send" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer TU_WHATSAPP_INTERNAL_SECRET" \
   -d '{"to":"52XXXXXXXXXX","text":"Prueba FarmaCapital API"}'
 ```
 
-Sustituye el teléfono por un número autorizado en Meta (modo desarrollo).
+## Fase 2 — Plantillas y recibos automáticos
 
-## Notificaciones existentes (pedidos / citas)
+El servidor intenta **plantilla Utility** si `WHATSAPP_TEMPLATE_*` está en Vercel; si falla, envía **texto libre** (fallback).
 
-Siguen usando `api/_lib/orderNotifications.js` → `sendWhatsAppText()` cuando `WHATSAPP_PROVIDER=meta` o hay `WHATSAPP_ACCESS_TOKEN`.
+Solo se envía WhatsApp de pedido con opt-in (`pedidos.whatsapp_recibo = true`).
 
-Opt-in checkout: columna `pedidos.whatsapp_recibo` (`sql/patch_pedidos_whatsapp_recibo.sql`).
+### Crear plantillas en Meta (WhatsApp → Plantillas)
 
-## Fases posteriores (no implementadas aún)
+Idioma **es_MX**, categoría **Utility**. Usa estos cuerpos (ajusta nombres a los de Vercel):
 
-- **Fase 2:** pedidos, citas, recibos con enlace seguro
-- **Fase 3:** plantillas Utility/Marketing, idempotencia, auditoría en Supabase
+**`pedido_confirmado`** — 4 variables cuerpo:
+```
+FarmaCapital — Pedido confirmado
+
+Folio: {{1}}
+Total: ${{2}}
+Entrega: {{3}}
+
+{{4}}
+```
+
+**`pedido_pago_aprobado`** — 4 variables:
+```
+FarmaCapital — Pago aprobado
+
+Folio: {{1}}
+Total: ${{2}}
+Entrega: {{3}}
+
+{{4}}
+```
+
+**`pedido_listo`** — 2 variables:
+```
+FarmaCapital — ¡Tu pedido está listo!
+
+Folio: {{1}}
+{{2}}
+```
+
+**`cita_confirmacion`** — 4 variables:
+```
+FarmaCapital — Cita confirmada
+
+Hola {{1}}, tu cita quedó registrada.
+Fecha: {{2}}
+Hora: {{3}}
+📍 {{4}}
+```
+
+Tras aprobación, agrega en Vercel los nombres exactos (`WHATSAPP_TEMPLATE_*`) y redeploy.
+
+### Envío manual con plantilla
+
+```bash
+curl -sS -X POST "https://www.farmacapital.mx/api/whatsapp/send" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer TU_WHATSAPP_INTERNAL_SECRET" \
+  -d '{
+    "to":"52XXXXXXXXXX",
+    "template":"pedido_confirmado",
+    "bodyParams":["#FC-0042","599.00","Pick-up en FarmaCapital","¡Gracias!"],
+    "text":"Fallback texto libre si la plantilla falla"
+  }'
+```
+
+## Notificaciones automáticas (pedidos / citas)
+
+- Checkout → `/api/notifications/order-receipt` (evento `order_created`)
+- Mercado Pago webhook → `payment_approved` / `pending` / `rejected`
+- Citas → `/api/notifications/cita-confirmacion`
+
+Opt-in checkout: `sql/patch_pedidos_whatsapp_recibo.sql` (columna `whatsapp_recibo`).
+
+## Fase 3 (pendiente)
+
+- Enlaces seguros en recibos, idempotencia, auditoría Supabase
 
 ## Reglas de negocio
 
