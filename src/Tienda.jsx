@@ -2964,6 +2964,25 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
   useEffect(()=>{ setEntregaGlobal?.(entrega); },[entrega,setEntregaGlobal]);
   const sub=cart.reduce((a,c)=>a+c.precio*c.qty,0);
   const qtyTouch = stack ? 44 : 28;
+  const qtyBtnStyle = {
+    width: qtyTouch,
+    height: qtyTouch,
+    borderRadius: 8,
+    border: `1px solid ${C.border}`,
+    background: C.white,
+    color: C.dark,
+    cursor: "pointer",
+    fontSize: stack ? 22 : 18,
+    fontWeight: 800,
+    lineHeight: 1,
+    fontFamily: "'Poppins', -apple-system, BlinkMacSystemFont, sans-serif",
+    colorScheme: "light",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 0,
+    flexShrink: 0,
+  };
   const upd=(id,d)=>setCart(p=>p.map(c=>{
     if(c.id!==id) return c;
     const next = Math.max(1,c.qty+d);
@@ -2991,9 +3010,9 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
               <div style={{flex:1}}><div style={{color:C.dark,fontWeight:700,fontSize:15}}>{item.nombre}</div><div style={{color:C.dim,fontSize:11,marginTop:4}}>+{labelPts(ptsGana(item.precio*item.qty))}</div></div>
               <div style={{display:"flex",alignItems:"center",gap:10,flexShrink:0,flexWrap:"wrap",marginLeft:"auto"}}>
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
-                  <button type="button" aria-label="Disminuir cantidad" onClick={()=>upd(item.id,-1)} style={{width:qtyTouch,height:qtyTouch,borderRadius:8,border:`1px solid ${C.border}`,background:C.white,cursor:"pointer",fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>−</button>
+                  <button type="button" aria-label="Disminuir cantidad" onClick={()=>upd(item.id,-1)} style={qtyBtnStyle}>-</button>
                   <span style={{color:C.dark,fontWeight:700,fontSize:15,minWidth:24,textAlign:"center"}}>{item.qty}</span>
-                  <button type="button" aria-label="Aumentar cantidad" onClick={()=>upd(item.id,1)} style={{width:qtyTouch,height:qtyTouch,borderRadius:8,border:`1px solid ${C.border}`,background:C.white,cursor:"pointer",fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>+</button>
+                  <button type="button" aria-label="Aumentar cantidad" onClick={()=>upd(item.id,1)} style={qtyBtnStyle}>+</button>
                 </div>
                 <div style={{color:BRAND.primary,fontWeight:800,fontSize:18,minWidth:60,textAlign:"right"}}>{$(item.precio*item.qty)}</div>
                 <button type="button" onClick={()=>rm(item.id)} style={{background:"none",border:"none",color:C.dim,cursor:"pointer",fontSize:18}}>🗑️</button>
