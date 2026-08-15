@@ -25,7 +25,7 @@ BEGIN
         'activo', true,
         'requiere_receta', false
       ),
-      1, '8FB077', '2028-02-29'::date, 153.47, NULL
+      1, '8FB077', '2028-02-28'::date, 153.47, NULL
     ) f;
     UPDATE public.productos SET
       marca = 'Topron',
