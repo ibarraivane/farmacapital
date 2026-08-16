@@ -79,23 +79,31 @@ function digitsOnly(v) {
 }
 
 /**
- * Normaliza a E.164 sin '+' (formato que espera Meta Cloud API en `to`).
- * MX: 10 dígitos → 52XXXXXXXXXX
- * US Meta test: 11 dígitos empezando en 1
+ * Normaliza a E.164 sin '+' (formato Meta Cloud API en `to`).
+ * MX móvil: 10 dígitos → 521XXXXXXXXXX (WhatsApp exige el 1 tras 52).
+ * US Meta test: 11 dígitos empezando en 1.
  */
 function normalizePhoneE164(input, { defaultCountryCode = '52' } = {}) {
   let digits = digitsOnly(input);
   if (!digits) return null;
 
-  if (digits.length === 10 && defaultCountryCode === '52') {
-    digits = `52${digits}`;
-  }
-
   if (digits.length === 11 && digits.startsWith('1')) {
     return digits;
   }
 
-  if (digits.length === 12 && digits.startsWith('52')) {
+  if (digits.length === 13 && digits.startsWith('521')) {
+    return digits;
+  }
+
+  if (digits.length === 10 && defaultCountryCode === '52') {
+    return `521${digits}`;
+  }
+
+  if (digits.length === 12 && digits.startsWith('52') && !digits.startsWith('521')) {
+    return `521${digits.slice(2)}`;
+  }
+
+  if (digits.startsWith('521') && digits.length >= 12 && digits.length <= 15) {
     return digits;
   }
 
@@ -180,6 +188,7 @@ async function sendWhatsAppText({ to, text, phoneNumberId, accessToken, graphVer
       reason: 'meta_provider_error',
       status: resp.status,
       detail: sanitizeMetaError(data),
+      to: redactPhone(toE164),
     };
   }
 
@@ -229,46 +238,66 @@ async function sendWhatsAppTemplate({
     components.push({ type: 'body', parameters: bodyParams });
   }
 
-  const payload = {
-    messaging_product: 'whatsapp',
-    to: toE164,
-    type: 'template',
-    template: {
-      name,
-      language: { code: languageCode || tplCfg.language || 'es_MX' },
-    },
-  };
-  if (components.length) {
-    payload.template.components = components;
-  }
+  const langCandidates = [...new Set([
+    languageCode || tplCfg.language || 'es_MX',
+    'es_MX',
+    'es',
+  ])];
 
-  const resp = await fetch(graphUrl(`${encodeURIComponent(fromId)}/messages`, graphVersion), {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
-  });
+  let lastResult = null;
+  for (const lang of langCandidates) {
+    const payload = {
+      messaging_product: 'whatsapp',
+      to: toE164,
+      type: 'template',
+      template: {
+        name,
+        language: { code: lang },
+      },
+    };
+    if (components.length) {
+      payload.template.components = components;
+    }
 
-  let data = null;
-  try {
-    data = await resp.json();
-  } catch {
-    data = null;
-  }
+    const resp = await fetch(graphUrl(`${encodeURIComponent(fromId)}/messages`, graphVersion), {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
 
-  if (!resp.ok) {
-    return {
+    let data = null;
+    try {
+      data = await resp.json();
+    } catch {
+      data = null;
+    }
+
+    if (resp.ok) {
+      const messageId = data?.messages?.[0]?.id || null;
+      return { sent: true, messageId, to: redactPhone(toE164), template: name, language: lang };
+    }
+
+    lastResult = {
       sent: false,
       reason: 'meta_template_error',
       status: resp.status,
       detail: sanitizeMetaError(data),
+      to: redactPhone(toE164),
+      language: lang,
     };
+
+    const errBlob = String(sanitizeMetaError(data) || '').toLowerCase();
+    const languageMismatch =
+      errBlob.includes('language') ||
+      errBlob.includes('locale') ||
+      errBlob.includes('translation');
+    if (!languageMismatch) break;
   }
 
-  const messageId = data?.messages?.[0]?.id || null;
-  return { sent: true, messageId, to: redactPhone(toE164), template: name };
+  return lastResult;
 }
 
 /**

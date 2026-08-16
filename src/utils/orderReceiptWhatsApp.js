@@ -48,7 +48,9 @@ export function formatWhatsAppSendError({ reason, detail, telefono } = {}) {
     metaMessage = parsed?.error?.message || parsed?.error?.error_user_msg || "";
     const code = parsed?.error?.code;
     if (code === 131030 || code === 131031) {
-      return `Meta (modo Development): agrega +52${digitsOnlyPhone(tel).slice(-10) || "XXXXXXXXXX"} en WhatsApp → API Setup → «Números de teléfono de prueba».`;
+      const digits = digitsOnlyPhone(tel);
+      const mx = digits.length >= 10 ? digits.slice(-10) : "XXXXXXXXXX";
+      return `Meta (modo Development): agrega +521${mx} (formato móvil MX) en WhatsApp → API Setup → «Números de teléfono de prueba».`;
     }
   } catch {
     /* detail no es JSON */
@@ -59,8 +61,8 @@ export function formatWhatsAppSendError({ reason, detail, telefono } = {}) {
     /not a valid whatsapp user/i.test(lower)
   ) {
     const digits = digitsOnlyPhone(tel);
-    const hint = digits.length >= 10 ? `+52${digits.slice(-10)}` : "el +52 del cliente";
-    return `Meta (modo Development): ${hint} debe estar en «Números de teléfono de prueba» del app Meta.`;
+    const hint = digits.length >= 10 ? `+521${digits.slice(-10)}` : "el número móvil del cliente";
+    return `Meta (modo Development): ${hint} debe estar en «Números de teléfono de prueba» (formato +521… para México).`;
   }
 
   if (metaMessage) {
