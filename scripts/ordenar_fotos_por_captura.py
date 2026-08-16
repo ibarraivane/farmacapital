@@ -143,14 +143,62 @@ def tiene_codigo(ruta):
     return False
 
 
+def asignar_roles(rutas, ventana=11):
+    """Decide portada/código foto por foto leyendo los códigos de barras.
+
+    Asumir que la secuencia alterna portada/código falla en cuanto se cuela o
+    se pierde una toma: de ahí en adelante todo queda desfasado. Aquí en vez de
+    asumirlo se mide, con dos precauciones:
+
+    - El detector se equivoca en ~10% (hay portadas que muestran el código, y
+      códigos que no alcanza a leer). Por eso la fase no se decide con la foto
+      suelta sino por mayoría en una ventana de vecinas.
+    - La fase puede cambiar a media sesión. La ventana es deslizante, así que
+      cada tramo se resuelve con su propia fase.
+    """
+    det = [bool(tiene_codigo(r)) for r in rutas]
+    roles, fases = [], []
+    for i in range(len(rutas)):
+        lo, hi = max(0, i - ventana), min(len(rutas), i + ventana + 1)
+        # fase A: las posiciones pares son portada. fase B: al revés.
+        a = sum(1 for j in range(lo, hi) if det[j] == (j % 2 == 1))
+        fase = "A" if a >= (hi - lo) - a else "B"
+        es_codigo = (i % 2 == 1) if fase == "A" else (i % 2 == 0)
+        roles.append("codigo" if es_codigo else "portada")
+        fases.append(fase)
+    return det, roles, fases
+
+
+def emparejar(rutas, roles):
+    """Agrupa cada portada con el código que le sigue.
+
+    Devuelve [(portada, codigo)], con None donde falte una de las dos: así los
+    productos incompletos quedan señalados en vez de arrastrar el desfase.
+    """
+    pares, i = [], 0
+    while i < len(rutas):
+        if roles[i] == "portada":
+            if i + 1 < len(rutas) and roles[i + 1] == "codigo":
+                pares.append((rutas[i], rutas[i + 1]))
+                i += 2
+            else:
+                pares.append((rutas[i], None))
+                i += 1
+        else:
+            pares.append((None, rutas[i]))
+            i += 1
+    return pares
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("carpeta", help="carpeta con las fotos recibidas")
     ap.add_argument("--salida", help="destino de las copias (default: <carpeta>/ordenadas)")
     ap.add_argument("--aplicar", action="store_true", help="copiar; sin esto solo muestra")
-    ap.add_argument("--verificar", action="store_true",
-                    help="revisar con el lector de códigos que los pares estén bien")
+    ap.add_argument("--emparejar", action="store_true",
+                    help="decidir portada/código leyendo los códigos de barras, "
+                         "en vez de asumir que la secuencia alterna")
     ap.add_argument("--grupo", choices=["exif", "nombre", "macos", "archivo"],
                     help="procesar solo las fotos que se ordenan por esta vía")
     ap.add_argument("--sesion", type=int, metavar="N",
@@ -238,33 +286,47 @@ def main():
     if args.aplicar:
         os.makedirs(salida, exist_ok=True)
 
-    problemas = []
-    for i, r in enumerate(registros):
-        par, papel = i // 2 + 1, "portada" if i % 2 == 0 else "codigo"
-        ext = os.path.splitext(r["ruta"])[1].lower()
-        r["nombre"] = f"{par:04d}_{'a' if i % 2 == 0 else 'b'}_{papel}{ext}"
+    rutas = [r["ruta"] for r in registros]
 
-        nota = ""
-        if args.verificar:
-            hay = tiene_codigo(r["ruta"])
-            if hay is None:
-                nota = "  (no evaluable)"
-            elif hay != (papel == "codigo"):
-                nota = "  ⚠️  NO COINCIDE"
-                problemas.append(r)
+    if args.emparejar:
+        print("Leyendo códigos de barras para decidir el papel de cada foto…")
+        _, roles, fases = asignar_roles(rutas)
+        pares = emparejar(rutas, roles)
+        cortes = [i + 1 for i in range(1, len(fases)) if fases[i] != fases[i - 1]]
+    else:
+        roles = ["portada" if i % 2 == 0 else "codigo" for i in range(len(rutas))]
+        pares = [(rutas[i], rutas[i + 1] if i + 1 < len(rutas) else None)
+                 for i in range(0, len(rutas), 2)]
+        cortes = []
 
-        print(f"  {r['etiqueta']:<16}  {os.path.basename(r['ruta']):<40} "
-              f"→ {r['nombre']}{nota}")
-
-        if args.aplicar:
-            shutil.copy2(r["ruta"], os.path.join(salida, r["nombre"]))
+    por_ruta = {r["ruta"]: r for r in registros}
+    incompletos = []
+    for n, (portada, codigo) in enumerate(pares, 1):
+        if not portada or not codigo:
+            incompletos.append(n)
+        for ruta, papel, letra in ((portada, "portada", "a"), (codigo, "codigo", "b")):
+            if not ruta:
+                print(f"  {'—':<16}  {'(falta)':<40} → {n:04d}_{letra}_{papel}  ⚠️")
+                continue
+            ext = os.path.splitext(ruta)[1].lower()
+            nombre = f"{n:04d}_{letra}_{papel}{ext}"
+            por_ruta[ruta]["nombre"] = nombre
+            print(f"  {por_ruta[ruta]['etiqueta']:<16}  "
+                  f"{os.path.basename(ruta):<40} → {nombre}")
+            if args.aplicar:
+                shutil.copy2(ruta, os.path.join(salida, nombre))
 
     print()
-    if len(registros) % 2:
-        print("⚠️  Número impar de fotos: falta una del último par.")
-    if problemas:
-        print(f"⚠️  {len(problemas)} foto(s) no cuadran con su papel. Suele significar")
-        print("    que se saltó una toma y de ahí en adelante el pareo se recorrió.")
+    print(f"{len(pares)} productos · {len(rutas)} fotos")
+    if cortes:
+        print(f"\n⚠️  El orden portada/código se invierte en la(s) foto(s) "
+              f"{', '.join(map(str, cortes))}.")
+        print("    Ahí se coló o se perdió una toma. El pareo ya se ajustó solo,")
+        print("    pero vale la pena revisar esos productos a ojo.")
+    if incompletos:
+        print(f"\n⚠️  {len(incompletos)} producto(s) sin su par completo: "
+              f"{', '.join(f'{n:04d}' for n in incompletos[:15])}"
+              f"{'…' if len(incompletos) > 15 else ''}")
     if args.aplicar:
         print(f"✅ Copiadas a {salida} (los originales no se tocaron)")
     else:
