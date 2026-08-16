@@ -27,7 +27,7 @@ const leerSesion = () => {
 const BRAND = { primary:"#0D1B2A", secondary:"#1E3ABA", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
 const CATEGORIAS = [
   "Analgésico","Antiinflamatorio","Antibiótico","Gastro","Diabetes",
-  "Hipertensión","Alergia","Vitaminas","Hidratación","Cardiovascular",
+  "Hipertensión","Alergia","Vitaminas","Suplemento","Hidratación","Cardiovascular",
   "Respiratorio","Botiquín","Higiene","Bebidas","Básicos","Abarrotes","Minisuper","Cuidado personal","Otro",
 ];
 const EMPTY = {
@@ -48,6 +48,9 @@ function productoIdDesdeCreateRpc(data) {
   const n = typeof raw === "number" ? raw : parseInt(String(raw), 10);
   return Number.isFinite(n) ? n : null;
 }
+
+/** Tope de filas por respuesta de PostgREST; el catálogo se pide por tramos. */
+const PRODUCTOS_POR_PAGINA = 1000;
 
 // F4: campos lote/fecha_caducidad ya NO viven en productos; son del lote.
 // Para productos ya existentes derivamos min_caducidad desde lotes activos.
@@ -2948,10 +2951,30 @@ export default function InventarioModule() {
   const fetchProductos = useCallback(async () => {
     setLoading(true);
     const tok = sessionStorage.getItem("farmacapital_session_token");
-    let q = supabase.from("productos").select("*").order("nombre");
-    if (!verInactivos) q = q.eq("activo", true);
+
+    // PostgREST corta en 1000 filas por página, así que hay que pedirlas por
+    // tramos. Sin esto el catálogo se truncaba en silencio y los contadores
+    // de arriba mentían.
+    const traerTodos = async () => {
+      const filas = [];
+      for (let desde = 0; ; desde += PRODUCTOS_POR_PAGINA) {
+        let q = supabase
+          .from("productos")
+          .select("*")
+          .order("nombre")
+          .order("id")
+          .range(desde, desde + PRODUCTOS_POR_PAGINA - 1);
+        if (!verInactivos) q = q.eq("activo", true);
+        const { data, error } = await q;
+        if (error) return { data: null, error };
+        filas.push(...(data || []));
+        if ((data || []).length < PRODUCTOS_POR_PAGINA) break;
+      }
+      return { data: filas, error: null };
+    };
+
     const [{ data, error }, lotesByProducto] = await Promise.all([
-      q,
+      traerTodos(),
       fetchLotesPorProducto(tok),
     ]);
     if (!error) {
