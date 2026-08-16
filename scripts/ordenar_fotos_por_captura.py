@@ -140,6 +140,21 @@ def _a_jpeg_temporal(ruta):
     return None, None
 
 
+def copiar_salida(origen, destino, a_jpg):
+    """Copia la foto al destino, convirtiendo HEIC a JPG si se pidió.
+
+    Las herramientas que consumen estas fotos después (lectores de códigos,
+    modelos que las analizan) casi nunca abren HEIC, así que convertir aquí
+    ahorra una pasada extra más adelante.
+    """
+    if not a_jpg or os.path.splitext(origen)[1].lower() not in {".heic", ".heif"}:
+        shutil.copy2(origen, destino)
+        return True
+    r = subprocess.run(["sips", "-s", "format", "jpeg", origen, "--out", destino],
+                       capture_output=True, timeout=120)
+    return r.returncode == 0 and os.path.exists(destino) and os.path.getsize(destino) > 0
+
+
 def tiene_codigo(ruta):
     """True si se decodifica un código de barras. None si no se pudo evaluar."""
     try:
@@ -245,6 +260,9 @@ def main():
     ap.add_argument("carpeta", help="carpeta con las fotos recibidas")
     ap.add_argument("--salida", help="destino de las copias (default: <carpeta>/ordenadas)")
     ap.add_argument("--aplicar", action="store_true", help="copiar; sin esto solo muestra")
+    ap.add_argument("--jpg", action="store_true",
+                    help="convertir los HEIC a JPG al copiar (lo que suelen "
+                         "necesitar las herramientas que los analizan después)")
     ap.add_argument("--emparejar", action="store_true",
                     help="decidir portada/código leyendo los códigos de barras, "
                          "en vez de asumir que la secuencia alterna")
@@ -356,7 +374,7 @@ def main():
         cortes = []
 
     por_ruta = {r["ruta"]: r for r in registros}
-    incompletos = []
+    incompletos, fallidas = [], []
     for n, (portada, codigo) in enumerate(pares, 1):
         if not portada or not codigo:
             incompletos.append(n)
@@ -365,12 +383,14 @@ def main():
                 print(f"  {'—':<16}  {'(falta)':<40} → {n:04d}_{letra}_{papel}  ⚠️")
                 continue
             ext = os.path.splitext(ruta)[1].lower()
+            if args.jpg and ext in {".heic", ".heif"}:
+                ext = ".jpg"
             nombre = f"{n:04d}_{letra}_{papel}{ext}"
             por_ruta[ruta]["nombre"] = nombre
             print(f"  {por_ruta[ruta]['etiqueta']:<16}  "
                   f"{os.path.basename(ruta):<40} → {nombre}")
-            if args.aplicar:
-                shutil.copy2(ruta, os.path.join(salida, nombre))
+            if args.aplicar and not copiar_salida(ruta, os.path.join(salida, nombre), args.jpg):
+                fallidas.append(os.path.basename(ruta))
 
     print()
     print(f"{len(pares)} productos · {len(rutas)} fotos")
@@ -383,8 +403,12 @@ def main():
         print(f"\n⚠️  {len(incompletos)} producto(s) sin su par completo: "
               f"{', '.join(f'{n:04d}' for n in incompletos[:15])}"
               f"{'…' if len(incompletos) > 15 else ''}")
+    if fallidas:
+        print(f"\n⚠️  {len(fallidas)} foto(s) no se pudieron convertir: "
+              f"{', '.join(fallidas[:8])}{'…' if len(fallidas) > 8 else ''}")
     if args.aplicar:
-        print(f"✅ Copiadas a {salida} (los originales no se tocaron)")
+        print(f"✅ Copiadas a {salida} (los originales no se tocaron)"
+              + (" · HEIC convertidos a JPG" if args.jpg else ""))
     else:
         print("Nada se copió. Repite con --aplicar cuando el orden se vea bien.")
 
