@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, createContext, useContext, useRef } from 
 import { supabase, isSupabaseProductionMisconfigured, isSupabaseLocalMisconfigured } from "./supabase";
 import { useTheme } from "./themeContext";
 import { useMediaQuery, useNarrowForBannerImage } from "./hooks/useMediaQuery";
-import { saludoUsuario, primerNombre, $, normalizarSesionLoginResp, nombreCompletoPacienteValido, telefonoMxValido, soloDigitosTel, getClienteToken } from "./utils";
+import { saludoUsuario, primerNombre, $, normalizarSesionLoginResp, nombreCompletoPacienteValido, telefonoMxValido, soloDigitosTel, normalizarTelefonoMxGuardar, getClienteToken } from "./utils";
 import {
   setClienteSession,
   clearClienteSession,
@@ -3347,7 +3347,9 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
         p_tipo_entrega: tipo_entrega,
         p_direccion: tipo_entrega === "envio" ? direccionStr : null,
         p_guest_nombre: esInvitado ? String(datos.nombre || "").trim() || null : null,
-        p_guest_telefono: esInvitado ? String(datos.tel || "").trim() || null : null,
+        p_guest_telefono: esInvitado && telefonoMxValido(datos.tel)
+          ? normalizarTelefonoMxGuardar(datos.tel)
+          : null,
         p_guest_email: esInvitado ? String(datos.email || "").trim() || null : null,
         p_reservation_session_id: null,
         p_whatsapp_recibo: Boolean(enviarReciboWhatsApp),
@@ -3778,10 +3780,11 @@ function AgendarCita({setPage,user}){
     try{
       const tokCli = getClienteToken();
       if (!tokCli) { setPostLoginPage("cita"); setPage("login"); setG(false); return; }
+      const telNorm = normalizarTelefonoMxGuardar(tel);
       const { data: resp, error } = await supabase.rpc("cliente_agendar_cita", {
         p_session_token: tokCli,
         p_nombre:        nombre,
-        p_telefono:      tel,
+        p_telefono:      telNorm,
         p_fecha:         fecha,
         p_hora:          hora,
         p_motivo:        motivo || null,
@@ -3795,7 +3798,7 @@ function AgendarCita({setPage,user}){
       setWaStatus("sending");
       notifyCitaConfirmacion({
         citaId: newCitaId,
-        telefono: tel,
+        telefono: telNorm,
         nombre,
         fecha,
         hora,
@@ -4207,10 +4210,10 @@ function Registro({setUser,setPage}){
     if(pwd !== pwd2) { setError("Las contraseñas no coinciden."); return; }
     setC(true); setError("");
     try{
-      const telDigits = soloDigitosTel(tel);
+      const telGuardado = telefonoMxValido(tel) ? normalizarTelefonoMxGuardar(tel) : "";
       const { data: raw, error: err } = await supabase.rpc("registrar_cliente", {
         p_nombre:   nombre.trim(),
-        p_telefono: telefonoMxValido(tel) ? telDigits : "",
+        p_telefono: telGuardado,
         p_password: pwd,
         p_email:    correoTiendaValido(email) ? email.trim() : null,
         p_user_agent: navigator.userAgent || null,

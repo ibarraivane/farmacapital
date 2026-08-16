@@ -5,7 +5,7 @@ import MercadoPagoModal from "../../../components/MercadoPagoModal";
 import BBVATerminalModal from "../../../components/BBVATerminalModal";
 import { supabase } from "../../../supabase";
 import { C_LIGHT, BRAND } from "../../../constants";
-import { $, logAudit, soloDigitosTel, normalizeForSearch } from "../../../utils";
+import { $, logAudit, soloDigitosTel, telefonosMxEquivalentes, normalizeForSearch } from "../../../utils";
 import { tiendaProductMatchesBusqueda, tiendaCatalogSearchSuggestions, tiendaSearchRelevanceRank } from "../../../utils/fuzzySearch";
 import { findProductExactScan, looksLikeBarcodeInput, isAllDigitsInput, normalizeBarcodeRaw, shouldReplaceScanInput } from "../../../utils/barcodeProductLookup";
 import { posTituloProducto, posSubtituloProducto } from "../../../utils/posProductDisplay";
@@ -609,7 +609,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
           if (cancelled || error) return;
           const rows = Array.isArray(data) ? data : [];
           const match =
-            rows.find((r) => soloDigitosTel(r.telefono) === soloDigitosTel(cita.telefono)) ||
+            rows.find((r) => telefonosMxEquivalentes(r.telefono, cita.telefono)) ||
             rows[0] ||
             null;
           if (match) {
@@ -656,7 +656,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         const rows = Array.isArray(data) ? data : [];
         setCliSearchItems(rows);
         if (digits.length >= 10) {
-          const exact = rows.find((r) => soloDigitosTel(r.telefono) === digits);
+          const exact = rows.find((r) => telefonosMxEquivalentes(r.telefono, tel));
           setCli(exact || null);
         } else {
           setCli(null);

@@ -3,7 +3,7 @@ import { useMediaQuery } from "./hooks/useMediaQuery";
 import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
 import { SkeletonTable, Paginador, SearchDropdown, showToast } from "./ui";
-import { nombreCompletoPacienteValido, telefonoMxValido, soloDigitosTel } from "./utils";
+import { nombreCompletoPacienteValido, telefonoMxValido, soloDigitosTel, normalizarTelefonoMxGuardar } from "./utils";
 import { productMatchesSearchQuery } from "./utils/fuzzySearch";
 
 const BRAND = { primary:"#0D1B2A", secondary:"#1E3ABA", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
@@ -50,10 +50,11 @@ function AgregarCliente({ onSaved, onCancel }) {
     setSaving(true);
     const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) { setSaving(false); showToast("Sesión expirada.","error"); return; }
+    const telGuardado = normalizarTelefonoMxGuardar(form.telefono);
     const { data: resp, error } = await supabase.rpc("admin_crear_cliente_manual", {
       p_session_token: tok,
       p_nombre:   form.nombre.trim(),
-      p_telefono: form.telefono.trim(),
+      p_telefono: telGuardado,
       p_email:    form.email.trim() || null,
       p_notas:    form.notas.trim() || null,
     });

@@ -8,7 +8,7 @@ import {
 } from "../../utils/orderReceiptWhatsApp";
 import { supabase } from "../../supabase";
 import { showToast } from "../../ui";
-import { telefonoMxValido, soloDigitosTel } from "../../utils";
+import { telefonoMxValido, soloDigitosTel, normalizarTelefonoMxGuardar, telefonosMxEquivalentes } from "../../utils";
 
 function FacturaInlineForm({ venta, cliente, onClose }) {
   const [rfc,    setRfc]    = React.useState(cliente?.rfc||"");
@@ -109,7 +109,7 @@ async function buscarClientePorTelefono(telefono) {
   if (error) return null;
   const rows = Array.isArray(data) ? data : [];
   const digits = soloDigitosTel(telefono);
-  return rows.find((c) => soloDigitosTel(c.telefono).endsWith(digits.slice(-10))) || rows[0] || null;
+  return rows.find((c) => telefonosMxEquivalentes(c.telefono, telefono)) || rows[0] || null;
 }
 
 async function crearClienteManual(nombre, telefono) {
@@ -118,13 +118,14 @@ async function crearClienteManual(nombre, telefono) {
   const { data: resp, error } = await supabase.rpc("admin_crear_cliente_manual", {
     p_session_token: tok,
     p_nombre: nombre.trim(),
-    p_telefono: soloDigitosTel(telefono),
+    p_telefono: normalizarTelefonoMxGuardar(telefono),
     p_email: null,
     p_notas: "Alta desde ticket POS / WhatsApp",
   });
   if (error) throw error;
   if (!resp?.success) throw new Error(resp?.error || "No se pudo registrar");
-  return resp.cliente || { id: resp.cliente_id, nombre, telefono: soloDigitosTel(telefono), puntos: 0 };
+  const telNorm = normalizarTelefonoMxGuardar(telefono);
+  return resp.cliente || { id: resp.cliente_id, nombre, telefono: telNorm, puntos: 0 };
 }
 
 async function acumularPuntosVenta(pedidoId, clienteId) {
@@ -180,6 +181,7 @@ function WhatsAppTicketPanel({
     const result = await notifyPosTicket({
       pedidoId,
       telefono: cli.telefono,
+      total: venta?.total,
       metodoPago,
       productos,
       puntosGanados,

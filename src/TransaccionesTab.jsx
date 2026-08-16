@@ -143,6 +143,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
         result = await notifyPosTicket({
           pedidoId: p.id,
           telefono: tel,
+          total: p.total,
           metodoPago: p.metodo_pago,
           productos,
         });

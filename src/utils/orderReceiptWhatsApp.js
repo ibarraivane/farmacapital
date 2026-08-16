@@ -39,6 +39,14 @@ export function formatWhatsAppSendError({ reason, detail, telefono } = {}) {
   if (reason === "invalid_employee_session") {
     return "Sesión de empleado inválida. Cierra sesión y vuelve a entrar.";
   }
+  if (reason === "pedido_not_found") {
+    return detail
+      ? `No se encontró el pedido en el servidor. ${detail}`
+      : "No se encontró el pedido en el servidor (revisa SUPABASE_SERVICE_ROLE_KEY en Vercel).";
+  }
+  if (reason === "missing_server_env") {
+    return "Falta SUPABASE_SERVICE_ROLE_KEY en Vercel (Settings → Environment Variables).";
+  }
 
   let metaMessage = "";
   try {
@@ -212,6 +220,7 @@ export function buildOnlineOrderReadyMessage({
 export async function notifyPosTicket({
   pedidoId,
   telefono,
+  total = null,
   metodoPago = null,
   productos = [],
   puntosGanados = null,
@@ -229,6 +238,7 @@ export async function notifyPosTicket({
       body: JSON.stringify({
         pedidoId,
         telefono,
+        total,
         employeeSessionToken,
         metodoPago,
         productos,

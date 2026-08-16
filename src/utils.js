@@ -16,6 +16,34 @@ export const soloDigitosTel = (t) => String(t ?? "").replace(/\D/g, "");
 export const telefonoMxValido = (t) => soloDigitosTel(t).length >= 10;
 
 /**
+ * Normaliza teléfono MX para guardar y enviar WhatsApp (Meta Cloud API).
+ * Acepta 10 dígitos, +52, 52… o 521… → devuelve 521XXXXXXXXXX (sin '+').
+ */
+export function normalizarTelefonoMxGuardar(input) {
+  const digits = soloDigitosTel(input);
+  if (!digits) return "";
+
+  if (digits.length === 11 && digits.startsWith("1")) return digits;
+  if (digits.length === 13 && digits.startsWith("521")) return digits;
+  if (digits.length === 10) return `521${digits}`;
+  if (digits.length === 12 && digits.startsWith("52") && !digits.startsWith("521")) {
+    return `521${digits.slice(2)}`;
+  }
+  if (digits.startsWith("521") && digits.length >= 12 && digits.length <= 15) return digits;
+  if (digits.length >= 10) return `521${digits.slice(-10)}`;
+
+  return digits;
+}
+
+/** Compara dos teléfonos MX ignorando prefijo (+52 / 521). */
+export function telefonosMxEquivalentes(a, b) {
+  const da = soloDigitosTel(a);
+  const db = soloDigitosTel(b);
+  if (da.length < 10 || db.length < 10) return da === db;
+  return da.slice(-10) === db.slice(-10);
+}
+
+/**
  * Nombre completo del paciente: al menos dos palabras (nombre + apellido) y longitud mínima.
  */
 export const nombreCompletoPacienteValido = (n) => {

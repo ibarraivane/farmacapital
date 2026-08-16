@@ -21,7 +21,10 @@ export function formatCitaFecha(fecha) {
 
 export function formatTelefonoDisplay(tel) {
   const d = String(tel || "").replace(/\D/g, "");
-  if (d.length === 10) return `${d.slice(0, 2)} ${d.slice(2, 6)} ${d.slice(6)}`;
+  const local = d.length >= 10 ? d.slice(-10) : d;
+  if (local.length === 10) {
+    return `${local.slice(0, 2)} ${local.slice(2, 6)} ${local.slice(6)}`;
+  }
   if (d.length > 10) return `+${d.slice(0, 2)} ${d.slice(2)}`;
   return tel || "";
 }

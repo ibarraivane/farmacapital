@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { C_LIGHT, BRAND } from "../../constants";
 import { supabase } from "../../supabase";
-import { nombreCompletoPacienteValido, telefonoMxValido } from "../../utils";
+import { nombreCompletoPacienteValido, telefonoMxValido, normalizarTelefonoMxGuardar } from "../../utils";
 import { Box, Tag, Btn, KPI, Modal, showToast, SkeletonKPIs, SkeletonTable, Inp } from "../../ui";
 import { citaPagoPendiente, citaPagoOk, labelCanal, labelEstadoPagoCita, franjaAgendaStyle } from "../../utils/consultaConstants";
 import { fetchProductosConsumiblesConsultorio } from "../../utils/consumiblesConsultorio";
@@ -419,7 +419,7 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
       const { data: resp, error } = await supabase.rpc("crear_cita", {
         p_session_token: tok,
         p_nombre: formNueva.nombre.trim(),
-        p_telefono: formNueva.telefono.trim(),
+        p_telefono: normalizarTelefonoMxGuardar(formNueva.telefono),
         p_fecha: diaSel,
         p_hora: slotNuevo,
         p_motivo: formNueva.motivo.trim() || null,

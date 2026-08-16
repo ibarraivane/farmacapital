@@ -139,9 +139,9 @@ function digitsOnly(v) {
   return String(v || '').replace(/\D/g, '');
 }
 
-async function fetchPedido(supabaseUrl, serviceKey, pedidoId) {
+async function supabaseGetPedidoRow(supabaseUrl, serviceKey, pedidoId, select) {
   const resp = await fetch(
-    `${supabaseUrl}/rest/v1/pedidos?id=eq.${pedidoId}&select=id,total,tipo,tipo_entrega,metodo_pago,cliente_id,guest_telefono,whatsapp_recibo,logistics_meta,created_at,pedido_items(cantidad,precio_unitario,productos(nombre))&limit=1`,
+    `${supabaseUrl}/rest/v1/pedidos?id=eq.${pedidoId}&select=${encodeURIComponent(select)}&limit=1`,
     {
       headers: {
         apikey: serviceKey,
@@ -149,8 +149,34 @@ async function fetchPedido(supabaseUrl, serviceKey, pedidoId) {
       },
     }
   );
-  const rows = await resp.json().catch(() => []);
-  return Array.isArray(rows) ? rows[0] : null;
+  const data = await resp.json().catch(() => null);
+  if (!resp.ok) {
+    const msg = data?.message || data?.hint || `HTTP ${resp.status}`;
+    const err = new Error(msg);
+    err.status = resp.status;
+    err.code = data?.code;
+    throw err;
+  }
+  return Array.isArray(data) ? data[0] : null;
+}
+
+/** PostgREST falla si faltan columnas opcionales (whatsapp_recibo, logistics_meta). Reintenta select mínimo. */
+async function fetchPedido(supabaseUrl, serviceKey, pedidoId) {
+  const base =
+    'id,total,tipo,tipo_entrega,metodo_pago,cliente_id,guest_telefono,created_at';
+  const withItems = `${base},pedido_items(cantidad,precio_unitario,productos(nombre))`;
+  const withOptional = `${withItems},whatsapp_recibo,logistics_meta`;
+
+  for (const select of [withOptional, withItems, base]) {
+    try {
+      const row = await supabaseGetPedidoRow(supabaseUrl, serviceKey, pedidoId, select);
+      if (row) return row;
+    } catch (e) {
+      console.warn('[fetchPedido] select failed:', select.slice(0, 48), e?.message);
+    }
+  }
+
+  return null;
 }
 
 async function fetchClienteTelefono(supabaseUrl, serviceKey, clienteId) {
@@ -305,19 +331,34 @@ async function handlePosTicket(req, res, body) {
     console.warn('[notifications/send:pos-ticket] fetch pedido:', e?.message);
   }
 
+  const itemsFromBody = Array.isArray(body?.productos) ? body.productos : [];
+  const totalFromBody = Number(body?.total ?? body?.pedidoTotal);
+  const metodoFromBody = body?.metodoPago || body?.metodo_pago || null;
+
   if (!pedido) {
-    return res.status(404).json({ ok: false, error: 'pedido_not_found' });
+    if (itemsFromBody.length && Number.isFinite(totalFromBody)) {
+      pedido = {
+        id: pedidoId,
+        total: totalFromBody,
+        metodo_pago: metodoFromBody,
+        tipo: 'pos',
+      };
+    } else {
+      return res.status(404).json({
+        ok: false,
+        error: 'pedido_not_found',
+        detail: 'Verifica SUPABASE_SERVICE_ROLE_KEY y que SUPABASE_URL apunte al mismo proyecto que el panel.',
+      });
+    }
   }
 
-  const items = Array.isArray(body?.productos) && body.productos.length
-    ? body.productos
-    : (pedido.pedido_items || []);
+  const items = itemsFromBody.length ? itemsFromBody : (pedido.pedido_items || []);
 
   const waRes = await sendPosTicketNotification({
     telefono,
     pedido,
     items,
-    metodoPago: body?.metodoPago || body?.metodo_pago || pedido.metodo_pago,
+    metodoPago: metodoFromBody || pedido.metodo_pago,
     puntosGanados: body?.puntosGanados ?? body?.puntos_ganados ?? null,
     saldoPuntos: body?.saldoPuntos ?? body?.saldo_puntos ?? null,
   });
