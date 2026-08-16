@@ -28,6 +28,10 @@ comment on column public.cortes_caja.contado_por is
 comment on column public.cortes_caja.denominaciones is
   'Conteo por denominación: {"500": 3, "200": 10, ...}. Informativo.';
 
+-- v_diferencias_caja (el reporte de faltantes por cajero) lee la columna
+-- diferencia, así que hay que quitarla de en medio y devolverla al final.
+drop view if exists public.v_diferencias_caja;
+
 -- Postgres no deja cambiar la expresión de una columna generada; hay que
 -- borrarla y volverla a crear.
 alter table public.cortes_caja drop column if exists diferencia;
@@ -45,6 +49,31 @@ alter table public.cortes_caja
     generated always as
       ((efectivo_declarado - fondo_inicial)
         + total_tarjeta + total_spei + total_mercadopago) stored;
+
+-- Se restituye la vista. Dos cambios menores:
+--   * el nombre del cajero sale de empleados O de usuarios: registrar_corte_caja
+--     guarda en empleado_id un id de usuarios, así que uniendo sólo contra
+--     empleados la columna podía venir vacía;
+--   * se agregan fondo y esperado, que son lo primero que se necesita para
+--     entender de dónde salió una diferencia.
+create view public.v_diferencias_caja as
+  select
+    c.id,
+    c.fecha,
+    c.turno,
+    coalesce(e.nombre, u.nombre) as cajero,
+    c.contado_por,
+    c.fondo_inicial,
+    c.efectivo_declarado,
+    c.efectivo_sistema,
+    (c.fondo_inicial + c.efectivo_sistema) as esperado,
+    c.diferencia,
+    c.total_general
+  from public.cortes_caja c
+  left join public.empleados e on e.id = c.empleado_id
+  left join public.usuarios  u on u.id = c.empleado_id
+  where c.diferencia <> 0::numeric
+  order by c.fecha desc;
 
 commit;
 
