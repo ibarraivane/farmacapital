@@ -12,7 +12,7 @@ const {
 const { getSupabaseAdminConfig } = require('./_lib/supabaseAdmin');
 const {
   fetchPedidoByReciboToken,
-  generateTicketHTML,
+  generateReciboHTML,
   buildReciboPublicUrl,
 } = require('./_lib/receiptTicket');
 
@@ -69,7 +69,7 @@ async function handleReciboView(req, res) {
   }
 
   const ticketUrl = buildReciboPublicUrl(token);
-  const html = generateTicketHTML({ pedido, ticketUrl });
+  const html = generateReciboHTML({ pedido, ticketUrl });
 
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.setHeader('Cache-Control', 'private, max-age=300');

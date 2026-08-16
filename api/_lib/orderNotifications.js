@@ -148,10 +148,15 @@ function buildOrderTemplateBodyParams({ event, pedido, ticketUrl }) {
     pedido?.tipo_entrega === 'envio' ? 'Envío a domicilio' : 'Pick-up en FarmaCapital';
 
   if (event === 'order_ready') {
-    const note =
-      pedido?.tipo_entrega === 'recoger'
-        ? `Recógelo en mostrador. Mapa: ${FARMACIA_MAPS_URL}`
-        : 'Te contactamos para coordinar la entrega.';
+    if (pedido?.tipo_entrega === 'envio') {
+      const note = ticketUrl
+        ? `Seguimiento: ${ticketUrl}. Te contactamos para coordinar la entrega.`
+        : 'Tu pedido está listo. Te contactamos para coordinar la entrega.';
+      return [folio, note];
+    }
+    const note = ticketUrl
+      ? `Abre tu pase de recogida: ${ticketUrl}`
+      : `Recógelo en mostrador. Mapa: ${FARMACIA_MAPS_URL}`;
     return [folio, note];
   }
 

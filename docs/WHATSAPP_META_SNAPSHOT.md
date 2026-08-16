@@ -54,7 +54,7 @@ Todas: categoría **Utilidad**, idioma **Spanish (MEX)** → API `es_MX`, estado
 |---------------------|---------------------|------------------|
 | `pedido_confirmado` | 📱 Transacciones / ticket POS (`sendPosTicketNotification`) | 4: folio, total, entrega, nota/ticket URL en {{4}} |
 | `pedido_pago_aprobado` | Pago online aprobado (webhook MP) | 4: folio, total, entrega, detalle |
-| `pedido_listo` | Pedido listo para recoger | 2: folio, nota |
+| `pedido_listo` | Pedido online listo (POS surte) | 2: folio, pase `/r/{token}` o seguimiento envío en {{2}} |
 | `cita_confirmacion` | Confirmación de cita | 4: nombre, fecha, hora, dirección |
 
 Lista UI trunca nombres largos (ej. `pedido_pago_aproba…`, `cita_confirmacion_co…`); los nombres API son los de la tabla.

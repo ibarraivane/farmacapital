@@ -3,6 +3,22 @@
 const crypto = require('crypto');
 const { FARMACIA_FISCAL } = require('./farmaciaFiscal');
 
+const PASS_CSS = `
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: #f1f5f9; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; color: #0f172a; }
+.pass { max-width: 420px; margin: 0 auto; min-height: 100vh; padding: 20px 16px 32px; }
+.card { background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 8px 30px rgba(15,23,42,.08); }
+.badge { display: inline-block; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 800; letter-spacing: .02em; }
+.badge-ready { background: #dcfce7; color: #166534; }
+.badge-prep { background: #fef3c7; color: #92400e; }
+.badge-envio { background: #dbeafe; color: #1e40af; }
+.folio { font-size: 28px; font-weight: 900; letter-spacing: .5px; margin: 12px 0 4px; }
+.sub { color: #64748b; font-size: 14px; line-height: 1.5; }
+.qr { display: block; margin: 16px auto; border-radius: 12px; }
+.btn { display: block; margin-top: 14px; padding: 12px 16px; background: #0D1B2A; color: #fff; text-align: center; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 14px; }
+.meta { margin-top: 16px; font-size: 13px; line-height: 1.6; color: #475569; }
+`;
+
 const TICKET_CSS = `
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; background: #fff; font-family: 'Courier New', Courier, monospace; }
@@ -20,6 +36,16 @@ function getPublicSiteBase() {
 function formatFolioPOS(pedidoId) {
   if (pedidoId == null) return null;
   return `VTA-${String(pedidoId).padStart(8, '0')}`;
+}
+
+function formatFolioOnline(pedidoId) {
+  if (pedidoId == null) return null;
+  return `#FC-${String(pedidoId).padStart(4, '0')}`;
+}
+
+function pedidoEstaListo(pedido) {
+  const estado = String(pedido?.estado || '').toLowerCase();
+  return estado === 'listo' || estado === 'completado';
 }
 
 function formatMoneyMx(value) {
@@ -46,6 +72,9 @@ async function fetchPedidoReciboRow(supabaseUrl, serviceKey, pedidoId) {
   const select = [
     'id',
     'total',
+    'tipo',
+    'tipo_entrega',
+    'estado',
     'created_at',
     'metodo_pago',
     'recibo_token',
@@ -90,6 +119,9 @@ async function fetchPedidoByReciboToken(supabaseUrl, serviceKey, token) {
   const select = [
     'id',
     'total',
+    'tipo',
+    'tipo_entrega',
+    'estado',
     'created_at',
     'metodo_pago',
     'recibo_token',
@@ -111,6 +143,88 @@ function mapItems(pedido) {
     qty: Number(i?.cantidad ?? 1),
     precio: Number(i?.precio_unitario ?? 0),
   }));
+}
+
+/** Pase móvil para pedidos online (no clona ticket Epson). */
+function generatePickupPassHTML({ pedido, ticketUrl, mode = 'pickup' }) {
+  const cfg = FARMACIA_FISCAL;
+  const folio = formatFolioOnline(pedido?.id) || `#FC-${pedido?.id || '?'}`;
+  const total = formatMoneyMx(pedido?.total);
+  const nombre = pedido?.clientes?.nombre ? String(pedido.clientes.nombre).trim() : '';
+  const qrSrc = ticketUrl
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(ticketUrl)}`
+    : null;
+
+  let badgeClass = 'badge-ready';
+  let badgeText = 'Listo para recoger';
+  let headline = 'Muestra este pase en mostrador';
+  let detail =
+    'Tu pedido ya está surtido. Presenta esta pantalla o el folio al llegar a FarmaCapital.';
+
+  if (mode === 'preparing') {
+    badgeClass = 'badge-prep';
+    badgeText = 'En preparación';
+    headline = 'Estamos preparando tu pedido';
+    detail =
+      'Cuando esté listo te avisaremos por WhatsApp. Guarda este enlace para consultar el estado.';
+  } else if (mode === 'envio') {
+    badgeClass = 'badge-envio';
+    badgeText = 'Listo para envío';
+    headline = 'Tu pedido está listo para salir';
+    detail =
+      'Coordinaremos la entrega (Rappi / Uber). Te contactamos por WhatsApp para confirmar horario.';
+  }
+
+  return `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>${folio} — FarmaCapital</title>
+  <style>${PASS_CSS}</style>
+</head>
+<body>
+  <div class="pass">
+    <div class="card">
+      <span class="badge ${badgeClass}">${badgeText}</span>
+      <div class="folio">${folio}</div>
+      ${nombre ? `<div class="sub">${nombre}</div>` : ''}
+      <h1 style="font-size:18px;margin:16px 0 8px;line-height:1.3">${headline}</h1>
+      <p class="sub">${detail}</p>
+      ${qrSrc && mode === 'pickup' ? `<img class="qr" src="${qrSrc}" width="200" height="200" alt="QR pase de recogida">` : ''}
+      <div class="meta">
+        <div><strong>Total pagado:</strong> $${total}</div>
+        <div><strong>Farmacia:</strong> ${cfg.direccion_comercial}</div>
+        <div><strong>Tel:</strong> ${cfg.telefono_display || cfg.telefono}</div>
+      </div>
+      <a class="btn" href="${cfg.maps_url}" target="_blank" rel="noopener">Cómo llegar (Google Maps)</a>
+    </div>
+    <p style="text-align:center;color:#94a3b8;font-size:12px;margin-top:16px">FarmaCapital · farmacapital.mx</p>
+  </div>
+</body>
+</html>`;
+}
+
+/** Elige ticket Epson (POS) o pase móvil (online) según tipo y estado del pedido. */
+function generateReciboHTML({ pedido, ticketUrl }) {
+  const tipo = String(pedido?.tipo || '').toLowerCase();
+  const entrega = String(pedido?.tipo_entrega || '').toLowerCase();
+  const listo = pedidoEstaListo(pedido);
+  const esOnline = tipo === 'online' || tipo === 'web' || tipo === 'tienda_online';
+
+  if (esOnline) {
+    if (listo && entrega === 'envio') {
+      return generatePickupPassHTML({ pedido, ticketUrl, mode: 'envio' });
+    }
+    if (listo && entrega === 'recoger') {
+      return generatePickupPassHTML({ pedido, ticketUrl, mode: 'pickup' });
+    }
+    if (!listo) {
+      return generatePickupPassHTML({ pedido, ticketUrl, mode: 'preparing' });
+    }
+  }
+
+  return generateTicketHTML({ pedido, ticketUrl });
 }
 
 function generateTicketHTML({ pedido, ticketUrl }) {
@@ -198,8 +312,12 @@ module.exports = {
   ensurePedidoReciboToken,
   fetchPedidoByReciboToken,
   fetchPedidoReciboRow,
+  generateReciboHTML,
+  generatePickupPassHTML,
   generateTicketHTML,
   formatFolioPOS,
+  formatFolioOnline,
   formatMoneyMx,
   mapItems,
+  pedidoEstaListo,
 };

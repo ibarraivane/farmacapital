@@ -35,7 +35,13 @@ import OnboardingTour from "../../../components/OnboardingTour";
 import { TOURS } from "../../../utils/tours";
 import { labelTipoEntregaPedido } from "../../../utils/orderChannels";
 import PagoServiciosPanel, { rpcRegistrarPagoServicio } from "./PagoServiciosPanel";
-import { buildOnlineOrderReceiptMessage, buildOnlineOrderReadyMessage, formatFolioOnline, openWhatsAppToCustomer } from "../../../utils/orderReceiptWhatsApp";
+import {
+  buildOnlineOrderReceiptMessage,
+  formatFolioOnline,
+  notifyOrderReady,
+  formatWhatsAppSendError,
+  openWhatsAppToCustomer,
+} from "../../../utils/orderReceiptWhatsApp";
 import { formatTelefonoDisplay } from "../../../utils/citaWhatsApp";
 import { configRowsToMap, mergeFarmaciaConfig, FARMACIA_FISCAL } from "../../../constants/farmaciaFiscal";
 
@@ -1438,24 +1444,18 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       if (!resp?.success) throw new Error(resp?.error || "No se pudo surtir");
       setPedOn(p=>p.filter(x=>x.id!==pedido.id));
       setPedOnHist((prev) => [{ ...pedido, estado: "listo" }, ...prev.filter((x) => x.id !== pedido.id)].slice(0, 20));
-      // Notificar al cliente por WhatsApp al marcar listo (pagó en línea)
       const telCli = pedido.clientes?.telefono || pedido.guest_telefono;
       if (telCli) {
-        const msg = buildOnlineOrderReadyMessage({
-          pedidoId: pedido.id,
-          items: (pedido.pedido_items || []).map((i) => ({
-            nombre: i.productos?.nombre,
-            qty: i.cantidad,
-            precio: i.precio_unitario,
-          })),
-          total: pedido.total,
-          tipoEntrega: pedido.tipo_entrega,
-          metodoPago: pedido.metodo_pago,
-        });
-        if (openWhatsAppToCustomer(telCli, msg)) {
-          showToast("Pedido listo · WhatsApp abierto para el cliente", "success");
+        const wa = await notifyOrderReady({ pedidoId: pedido.id, telefono: telCli });
+        if (wa?.sent) {
+          showToast("Pedido listo · pase de recogida enviado por WhatsApp", "success");
         } else {
-          showToast("Pedido listo (revisa el teléfono del cliente)", "success");
+          const hint = formatWhatsAppSendError({
+            reason: wa?.reason,
+            detail: wa?.detail,
+            telefono: telCli,
+          });
+          showToast(hint || "Pedido listo (WhatsApp no enviado)", "warning");
         }
       } else {
         showToast("Pedido marcado como listo", "success");

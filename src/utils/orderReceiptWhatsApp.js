@@ -387,6 +387,17 @@ export async function notifyPosTicket({
   }
 }
 
+/** Pedido online marcado listo en POS — plantilla pedido_listo + pase /r/{token}. */
+export async function notifyOrderReady({ pedidoId, telefono }) {
+  if (!pedidoId || !telefono) return { sent: false, reason: "missing_params" };
+  return notifyOnlineOrderReceipt({
+    pedidoId,
+    telefono,
+    event: "order_ready",
+    forceWhatsApp: true,
+  });
+}
+
 export async function notifyOnlineOrderReceipt({
   pedidoId,
   sessionToken = null,
