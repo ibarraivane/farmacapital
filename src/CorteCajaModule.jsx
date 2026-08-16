@@ -70,6 +70,10 @@ export default function CorteCajaModule({usuario }) {
       });
       if(!rpcErr && rpc?.efectivo_sistema !== undefined) {
         setEfSis(rpc.efectivo_sistema);
+        // Tarjeta y MercadoPago los conoce el sistema con exactitud (no se cuentan
+        // físicamente), así que se autocompletan desde el RPC. Siguen siendo editables.
+        if (rpc.tarjeta != null)     setTarjeta(String(rpc.tarjeta));
+        if (rpc.mercadopago != null) setMp(String(rpc.mercadopago));
       } else {
         const tok = sessionStorage.getItem("farmacapital_session_token");
         const { inicio, fin } = getRango(turno);
