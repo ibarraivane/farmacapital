@@ -45,6 +45,18 @@ Compatibilidad legacy (opcional): `META_WHATSAPP_TOKEN`, `META_WHATSAPP_PHONE_ID
 
 **No uses** prefijo `REACT_APP_` ni `NEXT_PUBLIC_` para secretos.
 
+### Token expirado — «Authentication Error»
+
+Si el panel muestra **Authentication Error**, el `WHATSAPP_ACCESS_TOKEN` en Vercel ya no es válido (caduca ~24 h si es el token temporal del panel Meta).
+
+1. [developers.facebook.com](https://developers.facebook.com) → App **FarmaCapital** → **WhatsApp** → **API Setup**
+2. En la misma pantalla anota el **Phone number ID** (debe coincidir con `WHATSAPP_PHONE_NUMBER_ID` en Vercel).
+3. Clic **Generate access token** (o token del System User si ya lo configuraste).
+4. Vercel → **Settings → Environment Variables** → actualiza `WHATSAPP_ACCESS_TOKEN` (Sensitive, Production).
+5. **Redeploy** y prueba 📱 de nuevo.
+
+> No pegues la **App Secret** ni el **Verify Token** en `WHATSAPP_ACCESS_TOKEN` — solo el access token largo que empieza con `EAA…`.
+
 ### Crear WHATSAPP_APP_SECRET en Vercel
 
 1. [developers.facebook.com](https://developers.facebook.com) → App **FarmaCapital** → **Configuración de la app** → **Básica**

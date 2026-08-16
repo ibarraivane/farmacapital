@@ -79,8 +79,22 @@ export function formatWhatsAppSendError({ reason, detail, telefono } = {}) {
     if (code === 132000 || code === 132001 || code === 132005) {
       return `Meta rechazó la plantilla: ${metaMessage || "revisa nombre, idioma es_MX y cantidad de variables (4)"}.`;
     }
+    if (code === 190 || code === 102 || code === 10) {
+      return (
+        "Meta rechazó el token (Authentication Error). " +
+        "Regenera WHATSAPP_ACCESS_TOKEN en Meta → WhatsApp → API Setup, pégalo en Vercel y redeploy. " +
+        "El token temporal dura ~24 h; confirma que WHATSAPP_PHONE_NUMBER_ID sea el de esa misma pantalla."
+      );
+    }
   } catch {
     /* detail no es JSON */
+  }
+
+  if (/authentication error|invalid oauth|error validating access token|session has expired/i.test(raw)) {
+    return (
+      "Meta rechazó el token (Authentication Error). " +
+      "Regenera WHATSAPP_ACCESS_TOKEN en Meta → WhatsApp → API Setup, pégalo en Vercel y redeploy."
+    );
   }
 
   if (reason === "whatsapp_text_outside_window" || reason === "meta_template_error") {
