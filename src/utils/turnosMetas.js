@@ -1,9 +1,9 @@
 // Helpers para calcular la meta de un turno específico en una fecha dada,
 // aplicando los ajustes automáticos por fecha que viven en la tabla `configuracion`.
 //
-// Reglas de turno (simplificadas):
-//   - Antes de las 14:00 → "matutino"
-//   - 14:00 en adelante  → "vespertino"
+// Los turnos salen de src/constants/turnos.js — no se redefinen aquí. Antes
+// este archivo partía el día a las 14:00 mientras el corte de caja lo partía a
+// las 16:00, así que la meta y el efectivo esperado hablaban de rangos distintos.
 //
 // Ajustes por fecha (acumulativos, en %):
 //   - Quincena   (día 15)            → ajuste_quincena
@@ -19,22 +19,16 @@
 //   Sábado vesper.   → meta_sabado_vespertino
 //   Domingo (todo)   → meta_domingo
 import { supabase } from "../supabase";
+import { rangoTurno, inferirTurno } from "../constants/turnos";
 
-export function inferirTurno(date = new Date()) {
-  return date.getHours() < 14 ? "matutino" : "vespertino";
-}
+export { inferirTurno };
 
 export function inicioDelTurno(fecha, turno) {
-  const d = new Date(fecha);
-  d.setHours(turno === "matutino" ? 0 : 14, 0, 0, 0);
-  return d;
+  return rangoTurno(fecha, turno).inicio;
 }
 
 export function finDelTurno(fecha, turno) {
-  const d = new Date(fecha);
-  if (turno === "matutino") d.setHours(13, 59, 59, 999);
-  else d.setHours(23, 59, 59, 999);
-  return d;
+  return rangoTurno(fecha, turno).fin;
 }
 
 export function nombreDia(date) {

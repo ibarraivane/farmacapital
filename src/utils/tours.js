@@ -91,7 +91,7 @@ export const TOURS = {
         target: '[data-tour="caja-turno"]',
         title: "1. Elige el turno",
         content:
-          "Selecciona si es corte matutino (8:00–16:00) o vespertino (16:00–22:00). FarmaCapital toma solo las ventas de ese rango para calcular el efectivo esperado.",
+          "Selecciona si es corte matutino (8:00–15:30) o vespertino (15:00–22:30). El relevo de caja es a las 15:30: FarmaCapital cuenta como matutinas las ventas anteriores a esa hora, y como vespertinas las posteriores.",
         placement: "bottom",
         disableBeacon: true,
       },

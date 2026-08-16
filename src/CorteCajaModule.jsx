@@ -3,6 +3,7 @@ import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
 import { showToast } from "./ui";
 import OnboardingTour from "./components/OnboardingTour";
+import { TURNOS, TURNOS_LISTA, rangoTurno } from "./constants/turnos";
 
 const BRAND = { primary:"#0D1B2A", secondary:"#1E3ABA", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
 
@@ -13,10 +14,8 @@ const mkLabelStyle = (C) => ({ color:C.textMid, fontSize:11, fontWeight:700, mar
 const mkBtnSecondary = (C) => ({ padding:"10px 22px", borderRadius:8, cursor:"pointer", fontWeight:700, fontSize:13, border:`1px solid ${C.border}`, background:"transparent", color:C.textMid });
 
 const getRango = (turno) => {
-  const hoy = new Date();
-  const y = hoy.getFullYear(), m = hoy.getMonth(), d = hoy.getDate();
-  if (turno === "matutino") return { inicio: new Date(y,m,d,8,0,0).toISOString(), fin: new Date(y,m,d,15,59,59).toISOString() };
-  return { inicio: new Date(y,m,d,16,0,0).toISOString(), fin: new Date(y,m,d,21,59,59).toISOString() };
+  const { inicio, fin } = rangoTurno(new Date(), turno);
+  return { inicio: inicio.toISOString(), fin: fin.toISOString() };
 };
 
 const getRangoFiltro = (filtro) => {
@@ -226,7 +225,7 @@ export default function CorteCajaModule({usuario }) {
           <div data-tour="caja-turno" style={{marginBottom:24}}>
             <label style={labelStyle}>TURNO</label>
             <div style={{display:"flex",gap:10}}>
-              {[["matutino","🌅 Matutino","8:00 – 16:00h"],["vespertino","🌆 Vespertino","16:00 – 22:00h"]].map(([val,label,hora])=>(
+              {TURNOS_LISTA.map(val=>[val,`${TURNOS[val].emoji} ${TURNOS[val].label}`,TURNOS[val].horario]).map(([val,label,hora])=>(
                 <button key={val} onClick={()=>setTurno(val)} style={{
                   flex:1,padding:"14px 20px",borderRadius:10,cursor:"pointer",textAlign:"left",
                   border:turno===val?`2px solid ${C.blue}`:`2px solid ${C.border}`,

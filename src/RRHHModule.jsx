@@ -3,6 +3,7 @@ import { useMediaQuery } from './hooks/useMediaQuery';
 import { supabase } from './supabase';
 import { showToast } from './ui';
 import { C_LIGHT, BRAND } from "./constants";
+import { TURNOS_LISTA, etiquetaTurno } from "./constants/turnos";
 
 const fmt = (n) =>
   new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(n || 0);
@@ -413,9 +414,14 @@ export default function RRHHModule() {
               </select></div>
             <div><label style={S.label}>Turno *</label>
               <select style={S.select} value={form.turno} onChange={e=>setForm({...form,turno:e.target.value})}>
-                <option value="matutino">Matutino 8:00–16:00</option>
-                <option value="vespertino">Vespertino 16:00–22:00</option>
-                <option value="nocturno">Nocturno 22:00–8:00</option>
+                {TURNOS_LISTA.map(t=>(
+                  <option key={t} value={t}>{etiquetaTurno(t)}</option>
+                ))}
+                {/* La farmacia ya no tiene turno nocturno. Solo se ofrece si el
+                    empleado venía con él, para no reasignarlo sin querer. */}
+                {form.turno === "nocturno" && (
+                  <option value="nocturno">Nocturno (turno retirado)</option>
+                )}
               </select></div>
             <div><label style={S.label}>Salario quincenal *</label>
               <input style={S.input} type="number" min="0" step="0.01" value={form.salario_quincenal} onChange={e=>setForm({...form,salario_quincenal:e.target.value})} placeholder="3500.00"/></div>
