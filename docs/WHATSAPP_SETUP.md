@@ -144,7 +144,7 @@ Tras aprobación, agrega en Vercel los nombres exactos (`WHATSAPP_TEMPLATE_*`) y
 3. Al enviar WhatsApp (POS o pedido online), el servidor genera un token único y guarda la URL en el pedido.
 4. La plantilla `pedido_confirmado` usa la variable **{{4}}** con el enlace, por ejemplo:  
    `Ver ticket: https://www.farmacapital.mx/r/550e8400-e29b-41d4-a716-446655440000`
-5. El cliente abre `/r/{token}` y ve el ticket HTML (mismo contenido que el ticket térmico).
+5. El cliente abre `/r/{token}` (rewrite → `/api/health?token=…`) y ve el ticket HTML (mismo contenido que el ticket térmico).
 
 **Opcional — botón «Ver ticket»** (un solo toque en WhatsApp):
 

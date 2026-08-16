@@ -33,11 +33,13 @@ function resolveNotificationType(req, body) {
   if (q === 'cita' || q === 'cita-confirmacion') return 'cita';
   if (q === 'order' || q === 'order-receipt') return 'order';
   if (q === 'pos-ticket' || q === 'pos_ticket') return 'pos-ticket';
+  if (q === 'recibo-ensure' || q === 'recibo_ensure') return 'recibo-ensure';
   if (q === 'whatsapp' || q === 'whatsapp-send') return 'whatsapp';
   const b = String(body?.type || body?.notificationType || '').trim().toLowerCase();
   if (b === 'cita' || b === 'cita-confirmacion') return 'cita';
   if (b === 'order' || b === 'order-receipt') return 'order';
   if (b === 'pos-ticket' || b === 'pos_ticket') return 'pos-ticket';
+  if (b === 'recibo-ensure' || b === 'recibo_ensure') return 'recibo-ensure';
   if (b === 'whatsapp' || b === 'whatsapp-send') return 'whatsapp';
   if (body?.citaId != null && body?.pedidoId == null) return 'cita';
   if (body?.pedidoId != null && body?.citaId == null) return 'order';
@@ -427,6 +429,40 @@ async function handlePosTicket(req, res, body) {
   });
 }
 
+async function handleReciboEnsure(req, res, body) {
+  const pedidoId = Number(body?.pedidoId);
+  const employeeToken = String(body?.employeeSessionToken || body?.sessionTokenEmpleado || '').trim();
+
+  if (!pedidoId || !Number.isFinite(pedidoId)) {
+    return res.status(400).json({ ok: false, error: 'invalid_pedido_id' });
+  }
+  if (!employeeToken) {
+    return res.status(403).json({ ok: false, error: 'missing_employee_session' });
+  }
+
+  const { supabaseUrl, serviceKey } = getSupabaseAdminConfig();
+  if (!supabaseUrl || !serviceKey) {
+    return res.status(500).json({ ok: false, error: 'missing_server_env' });
+  }
+
+  const validEmployee = await validateEmployeeSession(supabaseUrl, serviceKey, employeeToken);
+  if (!validEmployee) {
+    return res.status(403).json({ ok: false, error: 'invalid_employee_session' });
+  }
+
+  const token = await ensurePedidoReciboToken(supabaseUrl, serviceKey, pedidoId);
+  if (!token) {
+    return res.status(404).json({ ok: false, error: 'pedido_not_found' });
+  }
+
+  return res.status(200).json({
+    ok: true,
+    pedidoId,
+    token,
+    ticketUrl: buildReciboPublicUrl(token),
+  });
+}
+
 module.exports = async function handler(req, res) {
   try {
     if (req.method !== 'POST') {
@@ -444,6 +480,9 @@ module.exports = async function handler(req, res) {
     }
     if (type === 'pos-ticket') {
       return handlePosTicket(req, res, body);
+    }
+    if (type === 'recibo-ensure') {
+      return handleReciboEnsure(req, res, body);
     }
     if (type === 'whatsapp') {
       return handleWhatsAppManualSend(req, res, body);

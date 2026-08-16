@@ -53,8 +53,12 @@
       "destination": "/api/notifications/send?type=pos-ticket"
     },
     {
+      "source": "/api/recibos/ensure",
+      "destination": "/api/notifications/send?type=recibo-ensure"
+    },
+    {
       "source": "/r/:token",
-      "destination": "/api/recibos/view?token=:token"
+      "destination": "/api/health?token=:token"
     },
     {
       "source": "/((?!api/|static/|icons/|manifest\\.json|service-worker\\.js|favicon\\.ico|asset-manifest\\.json|robots\\.txt).*)",

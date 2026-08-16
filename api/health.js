@@ -5,6 +5,12 @@
 'use strict';
 
 const { whatsappWebhookHandler } = require('./_lib/whatsappWebhookHandler');
+const { getSupabaseAdminConfig } = require('./_lib/supabaseAdmin');
+const {
+  fetchPedidoByReciboToken,
+  generateTicketHTML,
+  buildReciboPublicUrl,
+} = require('./_lib/receiptTicket');
 
 function normalizeSupabaseProjectUrl(url) {
   if (url == null || typeof url !== 'string') return url;
@@ -30,6 +36,45 @@ function sanitizeError(err) {
     .slice(0, 300);
 }
 
+/** GET /api/health?token=… o rewrite /r/:token — ticket digital público. */
+async function handleReciboView(req, res) {
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    res.setHeader('Allow', 'GET, HEAD');
+    return res.status(405).send('Method not allowed');
+  }
+
+  const token = String(req.query?.token || '').trim();
+  if (!token || token.length < 8 || token.length > 64) {
+    return res.status(400).send('Enlace de ticket inválido');
+  }
+
+  const { supabaseUrl, serviceKey } = getSupabaseAdminConfig();
+  if (!supabaseUrl || !serviceKey) {
+    return res.status(503).send('Servicio no disponible');
+  }
+
+  let pedido = null;
+  try {
+    pedido = await fetchPedidoByReciboToken(supabaseUrl, serviceKey, token);
+  } catch (e) {
+    console.warn('[health:recibo] fetch:', e?.message);
+  }
+
+  if (!pedido) {
+    return res.status(404).send('Ticket no encontrado o enlace expirado');
+  }
+
+  const ticketUrl = buildReciboPublicUrl(token);
+  const html = generateTicketHTML({ pedido, ticketUrl });
+
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('Cache-Control', 'private, max-age=300');
+  if (req.method === 'HEAD') {
+    return res.status(200).end();
+  }
+  return res.status(200).send(html);
+}
+
 async function handler(req, res) {
   const hubMode = req.query?.['hub.mode'];
   const hasMetaSignature =
@@ -37,6 +82,10 @@ async function handler(req, res) {
 
   if (hubMode || (req.method === 'POST' && hasMetaSignature)) {
     return whatsappWebhookHandler(req, res);
+  }
+
+  if (req.query?.token && (req.method === 'GET' || req.method === 'HEAD')) {
+    return handleReciboView(req, res);
   }
 
   const startedAt = Date.now();
