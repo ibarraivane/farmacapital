@@ -77,11 +77,29 @@ export function formatWhatsAppSendError({ reason, detail, telefono } = {}) {
       );
     }
     if (code === 132000 || code === 132001 || code === 132005) {
+      let extra = '';
+      try {
+        const parsed = typeof detail === 'string' && detail.trim().startsWith('{')
+          ? JSON.parse(detail)
+          : null;
+        if (parsed?.available?.length) {
+          extra = ` Plantillas en tu WABA: ${parsed.available.join(', ')}.`;
+        }
+        if (parsed?.hint) extra = ` ${parsed.hint}`;
+      } catch { /* ignore */ }
       return (
-        `Meta rechazó la plantilla (${metaMessage || `error ${code}`}). ` +
-        "Revisa en Vercel: WHATSAPP_BUSINESS_ACCOUNT_ID=1575449287233472 y WHATSAPP_PHONE_NUMBER_ID=1320112064512676. " +
-        "Si WHATSAPP_TEMPLATE_LANGUAGE existe, bórrala o pon es_MX (no «Spanish (MEX)»)."
+        `Meta rechazó la plantilla (${metaMessage || `error ${code}`}).${extra} ` +
+        'Confirma WABA 1575449287233472 + Phone ID 1320112064512676 en Vercel.'
       );
+    }
+    if (reason === 'meta_template_wrong_waba' || reason === 'meta_template_not_on_waba') {
+      try {
+        const parsed = typeof detail === 'string' ? JSON.parse(detail) : detail;
+        if (parsed?.hint) return parsed.hint;
+        if (parsed?.available?.length) {
+          return `La plantilla no está en el WABA de tu número. Disponibles: ${parsed.available.join(', ')}.`;
+        }
+      } catch { /* ignore */ }
     }
     if (code === 190 || code === 102 || code === 10) {
       return (

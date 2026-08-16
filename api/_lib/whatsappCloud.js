@@ -6,7 +6,10 @@ const crypto = require('crypto');
 const DEFAULT_GRAPH_VERSION = 'v21.0';
 
 function trimEnv(name) {
-  return String(process.env[name] || '').trim();
+  return String(process.env[name] || '')
+    .replace(/^\uFEFF/, '')
+    .trim()
+    .replace(/^["']|["']$/g, '');
 }
 
 /**
@@ -59,7 +62,7 @@ function normalizeTemplateLanguage(raw) {
   return 'es_MX';
 }
 
-/** Plantillas Utility (Meta). Defaults = nombres en WhatsApp Manager; override con WHATSAPP_TEMPLATE_* si hace falta. */
+/** Plantillas Utility (Meta). Defaults = WHATSAPP_META_SNAPSHOT.md; override con WHATSAPP_TEMPLATE_* si hace falta. */
 function getWhatsAppTemplateConfig() {
   const language = normalizeTemplateLanguage(trimEnv('WHATSAPP_TEMPLATE_LANGUAGE'));
   const fallbackText = trimEnv('WHATSAPP_TEMPLATE_FALLBACK_TEXT').toLowerCase() === 'true';
@@ -162,36 +165,110 @@ function graphUrl(path, graphVersion) {
   return `https://graph.facebook.com/${ver}/${p}`;
 }
 
-/** Idiomas aprobados de una plantilla en el WABA (evita error 132001 por locale incorrecto). */
-async function lookupTemplateLanguageCodes({ wabaId, templateName, token, graphVersion }) {
+function templateRowLanguage(row) {
+  const lang = row?.language;
+  if (lang && typeof lang === 'object') {
+    return String(lang.code || lang.language || '').trim();
+  }
+  return String(lang || '').trim();
+}
+
+/** Lista plantillas del WABA (sin filtrar status — «calidad pendiente» sigue siendo enviable). */
+async function fetchWabaMessageTemplates({ wabaId, token, graphVersion }) {
   const waba = String(wabaId || '').trim();
-  const name = String(templateName || '').trim();
-  if (!waba || !name || !token) return [];
-  try {
+  if (!waba || !token) return { ok: false, rows: [], error: 'missing_waba_or_token' };
+
+  const rows = [];
+  let after = '';
+  for (let page = 0; page < 5; page += 1) {
     const qs = new URLSearchParams({
-      name,
-      fields: 'name,language,status',
-      limit: '20',
+      fields: 'name,language,status,category',
+      limit: '100',
     });
+    if (after) qs.set('after', after);
+
     const resp = await fetch(
       graphUrl(`${encodeURIComponent(waba)}/message_templates?${qs}`, graphVersion),
       { headers: { Authorization: `Bearer ${token}` } }
     );
     const data = await resp.json().catch(() => ({}));
-    if (!resp.ok || !Array.isArray(data?.data)) return [];
-    return [...new Set(
-      data.data
-        .filter((row) => String(row?.name || '') === name)
-        .filter((row) => {
-          const st = String(row?.status || 'APPROVED').toUpperCase();
-          return st === 'APPROVED' || st.startsWith('ACTIVE');
-        })
-        .map((row) => normalizeTemplateLanguage(String(row?.language || '')))
-        .filter(Boolean)
-    )];
-  } catch {
-    return [];
+    if (!resp.ok) {
+      return {
+        ok: false,
+        rows,
+        error: data?.error?.message || `list_templates_http_${resp.status}`,
+        code: data?.error?.code ?? null,
+      };
+    }
+    if (Array.isArray(data?.data)) rows.push(...data.data);
+    after = data?.paging?.cursors?.after || '';
+    if (!after) break;
   }
+
+  return { ok: true, rows };
+}
+
+/** Resuelve nombre e idioma exactos en el WABA antes de enviar (evita 132001). */
+async function resolveTemplateOnWaba({ wabaId, templateName, token, graphVersion }) {
+  const wanted = String(templateName || '').trim().toLowerCase();
+  if (!wanted) return { ok: false, reason: 'missing_template_name' };
+
+  const primaryWaba = String(wabaId || '').trim();
+  const scanWabas = [...new Set([primaryWaba, '2277703916307084'].filter(Boolean))];
+  let lastListError = null;
+  const availableByWaba = {};
+
+  for (const waba of scanWabas) {
+    const listed = await fetchWabaMessageTemplates({ wabaId: waba, token, graphVersion });
+    if (!listed.ok) {
+      lastListError = listed.error;
+      continue;
+    }
+    const rows = listed.rows || [];
+    availableByWaba[waba] = [...new Set(rows.map((r) => String(r?.name || '').trim()).filter(Boolean))];
+    const matches = rows.filter((r) => String(r?.name || '').trim().toLowerCase() === wanted);
+    if (!matches.length) continue;
+
+    if (waba !== primaryWaba) {
+      return {
+        ok: false,
+        reason: 'template_on_other_waba',
+        wanted: templateName,
+        templateWabaId: waba,
+        phoneWabaId: primaryWaba,
+        available: availableByWaba[waba] || [],
+      };
+    }
+
+    const preferred =
+      matches.find((r) => String(r?.status || '').toUpperCase() === 'APPROVED') || matches[0];
+    const rawLang = templateRowLanguage(preferred);
+    const langs = [...new Set([
+      rawLang,
+      normalizeTemplateLanguage(rawLang),
+      'es_MX',
+      'es',
+    ].filter(Boolean))];
+
+    return {
+      ok: true,
+      name: String(preferred.name || templateName).trim(),
+      languages: langs,
+      status: preferred?.status || null,
+      wabaId: waba,
+      available: availableByWaba[waba] || [],
+    };
+  }
+
+  return {
+    ok: false,
+    reason: lastListError ? 'template_list_failed' : 'template_not_on_waba',
+    wanted: templateName,
+    wabaId: primaryWaba,
+    available: availableByWaba[primaryWaba] || [],
+    availableByWaba,
+    detail: lastListError || null,
+  };
 }
 
 function parseMetaSendSuccess(data, toE164) {
@@ -316,18 +393,78 @@ async function sendWhatsAppTemplate({
   const tplCfg = getWhatsAppTemplateConfig();
   const token = accessToken || cfg.accessToken;
   const fromId = phoneNumberId || cfg.phoneNumberId;
-  const name = String(templateName || '').trim();
+  const requestedName = String(templateName || '').trim();
 
   if (!token || !fromId) {
     return { sent: false, reason: 'whatsapp_cloud_not_configured' };
   }
-  if (!name) {
+  if (!requestedName) {
     return { sent: false, reason: 'missing_template_name' };
+  }
+  if (!cfg.businessAccountId) {
+    return {
+      sent: false,
+      reason: 'missing_waba_id',
+      detail: 'Falta WHATSAPP_BUSINESS_ACCOUNT_ID=1575449287233472 en Vercel',
+    };
   }
 
   const candidates = getWhatsAppMxCandidates(to);
   if (!candidates.length) {
     return { sent: false, reason: 'invalid_phone' };
+  }
+
+  const resolved = await resolveTemplateOnWaba({
+    wabaId: cfg.businessAccountId,
+    templateName: requestedName,
+    token,
+    graphVersion,
+  });
+
+  if (resolved.ok === false && resolved.reason === 'template_not_on_waba') {
+    return {
+      sent: false,
+      reason: 'meta_template_not_on_waba',
+      detail: JSON.stringify({
+        wanted: requestedName,
+        wabaId: cfg.businessAccountId,
+        phoneNumberId: fromId,
+        available: resolved.available || [],
+        hint:
+          'pedido_confirmado no está en el WABA del número. Créala en WhatsApp Manager '
+          + 'vinculado al Phone ID 1320112064512676 (WABA 1575449287233472).',
+      }),
+    };
+  }
+
+  if (resolved.ok === false && resolved.reason === 'template_on_other_waba') {
+    return {
+      sent: false,
+      reason: 'meta_template_wrong_waba',
+      detail: JSON.stringify({
+        wanted: requestedName,
+        templateWabaId: resolved.templateWabaId,
+        phoneWabaId: resolved.phoneWabaId,
+        available: resolved.available || [],
+        hint:
+          'Las plantillas están en otro WABA de Meta. Duplícalas o créalas de nuevo en el WABA '
+          + '1575449287233472 (el de API Setup con tu número de prueba).',
+      }),
+    };
+  }
+
+  const sendName = resolved.ok ? resolved.name : requestedName;
+  let langCandidates = resolved.ok
+    ? [...resolved.languages]
+    : [normalizeTemplateLanguage(languageCode || tplCfg.language), 'es_MX', 'es'];
+
+  if (resolved.ok) {
+    console.log('[whatsapp] template resolved', JSON.stringify({
+      requested: requestedName,
+      sendName,
+      langs: langCandidates,
+      status: resolved.status,
+    }));
   }
 
   const components = [];
@@ -350,32 +487,20 @@ async function sendWhatsAppTemplate({
   }
 
   const cfgLang = normalizeTemplateLanguage(languageCode || tplCfg.language);
-  const discovered = await lookupTemplateLanguageCodes({
-    wabaId: cfg.businessAccountId,
-    templateName: name,
-    token,
-    graphVersion,
-  });
-  const langCandidates = [...new Set([
-    ...discovered,
-    cfgLang,
-    'es_MX',
-    'es',
-  ])];
-
-  if (discovered.length) {
-    console.log('[whatsapp] template languages', JSON.stringify({ template: name, langs: discovered }));
+  if (!resolved.ok) {
+    langCandidates.push(cfgLang);
+    langCandidates = [...new Set(langCandidates.filter(Boolean))];
   }
 
   let lastResult = null;
   for (const toE164 of candidates) {
-    for (const lang of langCandidates) {
+    for (const lang of [...new Set(langCandidates)]) {
       const payload = {
         messaging_product: 'whatsapp',
         to: toE164,
         type: 'template',
         template: {
-          name,
+          name: sendName,
           language: { code: lang },
         },
       };
@@ -413,7 +538,7 @@ async function sendWhatsAppTemplate({
         return {
           ...parsed,
           to: redactPhone(toE164),
-          template: name,
+          template: sendName,
           language: lang,
           phoneFormat: toE164.startsWith('521') ? '521' : '52',
         };
