@@ -64,8 +64,26 @@ export function formatWhatsAppSendError({ reason, detail, telefono } = {}) {
     if (code === 131030 || code === 131031) {
       return `Meta (modo Development): agrega ${metaTestDisplay} en WhatsApp → API Setup → «Números de teléfono de prueba». Debe ser el teléfono del cliente de esa fila (no otro).`;
     }
+    if (code === 131047) {
+      return (
+        "Meta rechazó el mensaje de texto libre (ventana de 24 h cerrada). " +
+        "Los tickets deben enviarse con la plantilla pedido_confirmado aprobada — revisa Vercel Logs por «template failed»."
+      );
+    }
+    if (code === 132000 || code === 132001 || code === 132005) {
+      return `Meta rechazó la plantilla: ${metaMessage || "revisa nombre, idioma es_MX y cantidad de variables (4)"}.`;
+    }
   } catch {
     /* detail no es JSON */
+  }
+
+  if (reason === "whatsapp_text_outside_window" || reason === "meta_template_error") {
+    if (/131047|re-engagement|24 hours/i.test(raw)) {
+      return (
+        "La plantilla falló y el texto libre no puede enviarse (Meta error 131047). " +
+        "Confirma que pedido_confirmado está Aprobada en es_MX con 4 variables."
+      );
+    }
   }
 
   if (

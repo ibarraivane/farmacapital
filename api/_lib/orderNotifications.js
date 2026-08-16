@@ -227,7 +227,14 @@ async function sendTwilioWhatsapp({ to, text }) {
   return { sent: true };
 }
 
-async function sendMetaWhatsapp({ to, text, templateName, bodyParameters, templateLanguage }) {
+async function sendMetaWhatsapp({
+  to,
+  text,
+  templateName,
+  bodyParameters,
+  templateLanguage,
+  allowTextFallback,
+}) {
   if (!to) return { sent: false, reason: 'invalid_phone' };
   return sendWhatsAppSmart({
     to,
@@ -235,13 +242,28 @@ async function sendMetaWhatsapp({ to, text, templateName, bodyParameters, templa
     templateName,
     bodyParameters,
     templateLanguage,
+    allowTextFallback,
   });
 }
 
-async function sendWhatsapp({ to, text, templateName, bodyParameters, templateLanguage }) {
+async function sendWhatsapp({
+  to,
+  text,
+  templateName,
+  bodyParameters,
+  templateLanguage,
+  allowTextFallback = false,
+}) {
   const provider = resolveWhatsAppProvider();
   if (provider === 'meta') {
-    return sendMetaWhatsapp({ to, text, templateName, bodyParameters, templateLanguage });
+    return sendMetaWhatsapp({
+      to,
+      text,
+      templateName,
+      bodyParameters,
+      templateLanguage,
+      allowTextFallback,
+    });
   }
   return sendTwilioWhatsapp({ to, text });
 }
@@ -317,6 +339,7 @@ async function sendPosTicketNotification({
     text,
     templateName: templateName || undefined,
     bodyParameters,
+    allowTextFallback: false,
   });
 }
 
@@ -335,6 +358,7 @@ async function sendOrderNotifications({ event, pedido, cliente, items }) {
         text: msg,
         templateName: templateName || undefined,
         bodyParameters,
+        allowTextFallback: false,
       })
     : Promise.resolve({ sent: false, reason: 'whatsapp_opt_out' });
   const [emailRes, waRes] = await Promise.all([

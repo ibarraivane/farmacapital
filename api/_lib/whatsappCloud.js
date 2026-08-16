@@ -402,9 +402,11 @@ async function sendWhatsAppSmart({
     if (tplResult.sent) {
       return { ...tplResult, via: 'template' };
     }
+    console.warn('[whatsapp] template failed:', name, tplResult.detail || tplResult.reason);
     if (!mayFallback) {
-      return tplResult;
+      return { ...tplResult, via: 'template_failed' };
     }
+    console.warn('[whatsapp] falling back to free text (may fail with 131047 outside 24h window)');
     const textResult = await sendWhatsAppText({
       to,
       text: bodyText,

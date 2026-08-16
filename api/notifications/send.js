@@ -367,7 +367,17 @@ async function handlePosTicket(req, res, body) {
     return res.status(502).json({
       ok: false,
       error: waRes?.reason || 'whatsapp_send_failed',
-      detail: waRes?.detail || null,
+      detail: waRes?.detail || waRes?.templateDetail || null,
+      template: waRes?.template || null,
+      pedidoId,
+    });
+  }
+
+  if (waRes.via === 'text_fallback' || waRes.via === 'text') {
+    return res.status(502).json({
+      ok: false,
+      error: 'whatsapp_text_outside_window',
+      detail: waRes?.templateDetail || waRes?.detail || null,
       pedidoId,
     });
   }
