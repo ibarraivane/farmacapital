@@ -77,7 +77,11 @@ export function formatWhatsAppSendError({ reason, detail, telefono } = {}) {
       );
     }
     if (code === 132000 || code === 132001 || code === 132005) {
-      return `Meta rechazó la plantilla: ${metaMessage || "revisa nombre, idioma es_MX y cantidad de variables (4)"}.`;
+      return (
+        `Meta rechazó la plantilla (${metaMessage || `error ${code}`}). ` +
+        "Revisa en Vercel: WHATSAPP_BUSINESS_ACCOUNT_ID=1575449287233472 y WHATSAPP_PHONE_NUMBER_ID=1320112064512676. " +
+        "Si WHATSAPP_TEMPLATE_LANGUAGE existe, bórrala o pon es_MX (no «Spanish (MEX)»)."
+      );
     }
     if (code === 190 || code === 102 || code === 10) {
       return (
