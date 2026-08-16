@@ -40,6 +40,14 @@ if (!nonEmpty(env.REACT_APP_FARMACAPITAL_BUILD_ID)) {
   env.REACT_APP_FARMACAPITAL_BUILD_ID = new Date().toISOString();
 }
 
+const syntaxCheck = spawnSync(process.execPath, [path.join(__dirname, "check-api-syntax.js")], {
+  stdio: "inherit",
+  cwd: appRoot,
+});
+if (syntaxCheck.status !== 0) {
+  process.exit(syntaxCheck.status === null ? 1 : syntaxCheck.status);
+}
+
 const buildScript = require.resolve("react-scripts/scripts/build.js");
 const result = spawnSync(process.execPath, [buildScript], {
   stdio: "inherit",

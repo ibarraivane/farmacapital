@@ -53,6 +53,12 @@ export function formatWhatsAppSendError({ reason, detail, telefono } = {}) {
   if (reason === "missing_server_env") {
     return "Falta SUPABASE_SERVICE_ROLE_KEY en Vercel (Settings → Environment Variables).";
   }
+  if (reason === "http_500" || /function_invocation_failed/i.test(raw)) {
+    return (
+      "El servidor de WhatsApp no responde (error interno). " +
+      "Espera 1–2 min a que termine el deploy en Vercel o revisa Deployments → último build en Error."
+    );
+  }
 
   let metaMessage = "";
   try {

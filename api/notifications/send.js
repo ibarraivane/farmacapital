@@ -428,25 +428,30 @@ async function handlePosTicket(req, res, body) {
 }
 
 module.exports = async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ ok: false, error: 'method_not_allowed' });
-  }
+  try {
+    if (req.method !== 'POST') {
+      return res.status(405).json({ ok: false, error: 'method_not_allowed' });
+    }
 
-  const body = await safeJson(req);
-  const type = resolveNotificationType(req, body);
+    const body = await safeJson(req);
+    const type = resolveNotificationType(req, body);
 
-  if (type === 'cita') {
-    return handleCitaConfirmacion(req, res, body);
-  }
-  if (type === 'order') {
-    return handleOrderReceipt(req, res, body);
-  }
-  if (type === 'pos-ticket') {
-    return handlePosTicket(req, res, body);
-  }
-  if (type === 'whatsapp') {
-    return handleWhatsAppManualSend(req, res, body);
-  }
+    if (type === 'cita') {
+      return handleCitaConfirmacion(req, res, body);
+    }
+    if (type === 'order') {
+      return handleOrderReceipt(req, res, body);
+    }
+    if (type === 'pos-ticket') {
+      return handlePosTicket(req, res, body);
+    }
+    if (type === 'whatsapp') {
+      return handleWhatsAppManualSend(req, res, body);
+    }
 
-  return res.status(400).json({ ok: false, error: 'invalid_notification_type' });
+    return res.status(400).json({ ok: false, error: 'invalid_notification_type' });
+  } catch (e) {
+    console.error('[notifications/send] unhandled:', e?.message || e);
+    return res.status(500).json({ ok: false, error: 'server_error', detail: e?.message || 'unknown' });
+  }
 };
