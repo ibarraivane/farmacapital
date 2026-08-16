@@ -9,6 +9,7 @@ import { configRowsToMap, mergeFarmaciaConfig } from "./constants/farmaciaFiscal
 import { productMatchesSearchQuery } from "./utils/fuzzySearch";
 import { parseRpcJsonArray } from "./utils/rpcJson";
 import { notifyPosTicket, notifyOnlineOrderReceipt, formatFolioPOS, formatFolioOnline, formatWhatsAppSendError, formatWhatsAppSuccessMessage } from "./utils/orderReceiptWhatsApp";
+import { usePedidoTicketUrl } from "./hooks/usePedidoTicketUrl";
 import { telefonoMxValido } from "./utils";
 
 /** Listado de pedidos con filtros — antes dentro de Admin/Reportes; requiere showConfirm del padre. */
@@ -42,6 +43,10 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
   const [loadDet, setLoadDet] = useState(false);
   const [editForm, setEditForm] = useState({});
   const [saving, setSaving] = useState(false);
+  const { ticketUrl: reprintTicketUrl, loading: reprintTicketUrlLoading } = usePedidoTicketUrl(
+    ticketReprint?.venta?.id,
+    Boolean(ticketReprint)
+  );
 
   const getRango = () => {
     const h = new Date(), y = h.getFullYear(), m = h.getMonth(), d = h.getDate();
@@ -554,12 +559,13 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                   cliente={ticketReprint.cliente}
                   metodoPago={ticketReprint.metodoPago}
                   config={farmaciaConfig}
+                  ticketUrl={reprintTicketUrl}
                 />
               </div>
             </div>
             <div style={{ padding: 16, display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <button type="button" onClick={() => printTicket("farmacapital-ticket")} style={{ flex: "2 1 160px", minHeight: 44, padding: "11px", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#7c3aed,#9d6fff)", color: "#fff", fontWeight: 800, fontSize: 14, cursor: "pointer" }}>
-                🖨️ Imprimir
+              <button type="button" onClick={() => printTicket("farmacapital-ticket")} disabled={reprintTicketUrlLoading} style={{ flex: "2 1 160px", minHeight: 44, padding: "11px", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#7c3aed,#9d6fff)", color: "#fff", fontWeight: 800, fontSize: 14, cursor: "pointer", opacity: reprintTicketUrlLoading ? 0.65 : 1 }}>
+                {reprintTicketUrlLoading ? "Preparando QR…" : "🖨️ Imprimir"}
               </button>
               {ticketReprint.pedido && (
                 <button

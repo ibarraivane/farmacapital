@@ -265,6 +265,29 @@ export function buildOnlineOrderReadyMessage({
   return receipt + listo;
 }
 
+/** Asegura recibo_token en el pedido y devuelve la URL pública del ticket (/r/{token}). */
+export async function ensurePedidoTicketUrl(pedidoId) {
+  if (!pedidoId) return { ok: false, reason: "missing_pedido_id" };
+
+  const employeeSessionToken = sessionStorage.getItem("farmacapital_session_token");
+  if (!employeeSessionToken) return { ok: false, reason: "missing_session" };
+
+  try {
+    const resp = await fetch("/api/recibos/ensure", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pedidoId, employeeSessionToken }),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (resp.ok && data?.ticketUrl) {
+      return { ok: true, ticketUrl: data.ticketUrl, token: data.token || null };
+    }
+    return { ok: false, reason: data?.error || `http_${resp.status}` };
+  } catch {
+    return { ok: false, reason: "network_error" };
+  }
+}
+
 /** POS: envía ticket por Meta Cloud API (sin abrir wa.me). */
 export async function notifyPosTicket({
   pedidoId,

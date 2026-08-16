@@ -6,6 +6,7 @@ import {
   notifyPosTicket,
   formatWhatsAppSendError,
 } from "../../utils/orderReceiptWhatsApp";
+import { usePedidoTicketUrl } from "../../hooks/usePedidoTicketUrl";
 import { supabase } from "../../supabase";
 import { showToast } from "../../ui";
 import { telefonoMxValido, soloDigitosTel, normalizarTelefonoMxGuardar, telefonosMxEquivalentes } from "../../utils";
@@ -381,6 +382,7 @@ export default function TicketPreviewModal({
   const handlePrint = () => printTicket("farmacapital-ticket");
   const esTienda = origen === "tienda" || origen === "consulta";
   const pedidoId = venta?.id;
+  const { ticketUrl, loading: ticketUrlLoading } = usePedidoTicketUrl(pedidoId, open);
   const esInvitado = !clienteLocal?.id && !clienteLocal?.telefono;
 
   const omitirWhatsApp = () => {
@@ -450,7 +452,7 @@ export default function TicketPreviewModal({
         }}>
           <div style={{background:"#fff",boxShadow:"0 2px 12px rgba(0,0,0,.08)",borderRadius:4,padding:4}}>
             <TicketVenta ref={ticketRef} venta={venta} productos={productos} cliente={clienteLocal}
-              metodoPago={metodoPago} config={config} promoMsg={promoMsg}/>
+              metodoPago={metodoPago} config={config} promoMsg={promoMsg} ticketUrl={ticketUrl}/>
           </div>
         </div>
 
@@ -470,9 +472,9 @@ export default function TicketPreviewModal({
             </button>
           )}
 
-          <button type="button" onClick={handlePrint}
-            style={{...btnBase,border:"none",background:"linear-gradient(135deg,#0D1B2A,#1E3ABA)",color:"#fff",fontWeight:800}}>
-            🖨️ Imprimir ticket {esInvitado ? "(si el cliente lo pide)" : ""}
+          <button type="button" onClick={handlePrint} disabled={Boolean(pedidoId && ticketUrlLoading)}
+            style={{...btnBase,border:"none",background:"linear-gradient(135deg,#0D1B2A,#1E3ABA)",color:"#fff",fontWeight:800,opacity:(pedidoId && ticketUrlLoading)?0.65:1}}>
+            {pedidoId && ticketUrlLoading ? "Preparando QR…" : `🖨️ Imprimir ticket ${esInvitado ? "(si el cliente lo pide)" : ""}`}
           </button>
 
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>

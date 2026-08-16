@@ -15,6 +15,7 @@ import "../../styles/ticket.css";
  * @param {string} metodoPago - "Efectivo" | "Tarjeta" | etc
  * @param {Object} config     - {nombre_farmacia, direccion_farmacia, rfc, telefono_farmacia}
  * @param {string} promoMsg   - Mensaje promocional opcional
+ * @param {string} ticketUrl  - URL pública /r/{token} para QR (mismo enlace que WhatsApp)
  */
 const TicketVenta = forwardRef(({
   venta      = {},
@@ -23,6 +24,7 @@ const TicketVenta = forwardRef(({
   metodoPago = "Efectivo",
   config     = {},
   promoMsg   = null,
+  ticketUrl  = null,
 }, ref) => {
   const cfg = mergeFarmaciaConfig(config);
 
@@ -42,8 +44,11 @@ const TicketVenta = forwardRef(({
   const ptsG     = Math.floor(total / 10);
   const fmt      = n => `$${parseFloat(n||0).toFixed(2)}`;
 
-  // ── QR data: FARMACAPITAL|folio|total|fecha ──────────────────
-  const qrData = `FARMACAPITAL|${folio}|${total.toFixed(2)}|${fechaStr}`;
+  // QR: URL digital del ticket (WhatsApp e impreso) o fallback legado sin pedido en servidor
+  const qrData = ticketUrl || `FARMACAPITAL|${folio}|${total.toFixed(2)}|${fechaStr}`;
+  const qrLabel = ticketUrl
+    ? ticketUrl.replace(/^https?:\/\//, "")
+    : qrData;
 
   return (
     <div id="farmacapital-ticket" ref={ref} className="ticket">
@@ -150,8 +155,19 @@ const TicketVenta = forwardRef(({
       <div className="qr-section">
         <QRCodeSVG value={qrData} size={80} bgColor="#fff" fgColor="#000" level="M"/>
         <div style={{fontSize:7,color:"#999",marginTop:2}}>
-          Escanea para verificar tu compra<br/>
-          {qrData}
+          {ticketUrl ? (
+            <>
+              Escanea para abrir tu ticket digital
+              <br/>
+              {qrLabel}
+            </>
+          ) : (
+            <>
+              Escanea para verificar tu compra
+              <br/>
+              {qrLabel}
+            </>
+          )}
         </div>
       </div>
 
