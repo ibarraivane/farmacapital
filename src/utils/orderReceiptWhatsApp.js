@@ -21,6 +21,61 @@ export function digitsOnlyPhone(v) {
   return String(v || "").replace(/\D/g, "");
 }
 
+/** Mensaje legible cuando falla notifyPosTicket / notifyOnlineOrderReceipt. */
+export function formatWhatsAppSendError({ reason, detail, telefono } = {}) {
+  const tel = telefono ? String(telefono).trim() : "";
+  const raw = [reason, detail].filter(Boolean).join(" ");
+  const lower = raw.toLowerCase();
+
+  if (reason === "missing_session") {
+    return "Sesión expirada. Vuelve a iniciar sesión en el panel.";
+  }
+  if (reason === "missing_phone" || reason === "invalid_phone") {
+    return "Teléfono inválido. Captura 10 dígitos de México.";
+  }
+  if (reason === "whatsapp_cloud_not_configured") {
+    return "WhatsApp no está configurado en el servidor (token o Phone Number ID).";
+  }
+  if (reason === "invalid_employee_session") {
+    return "Sesión de empleado inválida. Cierra sesión y vuelve a entrar.";
+  }
+
+  let metaMessage = "";
+  try {
+    const parsed = typeof detail === "string" && detail.trim().startsWith("{")
+      ? JSON.parse(detail)
+      : detail;
+    metaMessage = parsed?.error?.message || parsed?.error?.error_user_msg || "";
+    const code = parsed?.error?.code;
+    if (code === 131030 || code === 131031) {
+      return `Meta (modo Development): agrega +52${digitsOnlyPhone(tel).slice(-10) || "XXXXXXXXXX"} en WhatsApp → API Setup → «Números de teléfono de prueba».`;
+    }
+  } catch {
+    /* detail no es JSON */
+  }
+
+  if (
+    /131030|not in allowed list|recipient.*not allowed|no está en la lista/i.test(raw) ||
+    /not a valid whatsapp user/i.test(lower)
+  ) {
+    const digits = digitsOnlyPhone(tel);
+    const hint = digits.length >= 10 ? `+52${digits.slice(-10)}` : "el +52 del cliente";
+    return `Meta (modo Development): ${hint} debe estar en «Números de teléfono de prueba» del app Meta.`;
+  }
+
+  if (metaMessage) {
+    return `Meta rechazó el envío: ${metaMessage}`;
+  }
+
+  if (reason === "meta_template_error" || reason === "meta_provider_error") {
+    return "Meta rechazó el envío. Revisa plantilla aprobada y números de prueba (+52).";
+  }
+
+  return reason
+    ? `No se pudo enviar por WhatsApp (${reason}).`
+    : "No se pudo enviar por WhatsApp.";
+}
+
 export function buildOnlineOrderReceiptMessage({
   pedidoId,
   items = [],

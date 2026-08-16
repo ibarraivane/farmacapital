@@ -8,7 +8,7 @@ import { labelTipoEntregaPedido, labelTipoPedido, pedidoCoincideFiltroTipo, pedi
 import { configRowsToMap, mergeFarmaciaConfig } from "./constants/farmaciaFiscal";
 import { productMatchesSearchQuery } from "./utils/fuzzySearch";
 import { parseRpcJsonArray } from "./utils/rpcJson";
-import { notifyPosTicket, notifyOnlineOrderReceipt, formatFolioPOS, formatFolioOnline } from "./utils/orderReceiptWhatsApp";
+import { notifyPosTicket, notifyOnlineOrderReceipt, formatFolioPOS, formatFolioOnline, formatWhatsAppSendError } from "./utils/orderReceiptWhatsApp";
 import { telefonoMxValido } from "./utils";
 
 /** Listado de pedidos con filtros — antes dentro de Admin/Reportes; requiere showConfirm del padre. */
@@ -148,11 +148,8 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
         });
       }
       if (!result.sent) {
-        const hint =
-          result.reason === "missing_session"
-            ? "Sesión expirada."
-            : "No se pudo enviar. Revisa que el +52 esté en números de prueba de Meta.";
-        showToast(hint, "error");
+        console.warn("[TransaccionesTab] WhatsApp:", result.reason, result.detail);
+        showToast(formatWhatsAppSendError({ reason: result.reason, detail: result.detail, telefono: tel }), "error");
         return false;
       }
       showToast(`WhatsApp enviado a ${tel}`, "success");

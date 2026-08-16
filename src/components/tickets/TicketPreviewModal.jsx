@@ -4,6 +4,7 @@ import { printTicket } from "../../utils/printTicket";
 import { downloadFacturaPDF } from "../../utils/generateFacturaPDF";
 import {
   notifyPosTicket,
+  formatWhatsAppSendError,
 } from "../../utils/orderReceiptWhatsApp";
 import { supabase } from "../../supabase";
 import { showToast } from "../../ui";
@@ -186,15 +187,13 @@ function WhatsAppTicketPanel({
     });
     setEnviando(false);
     if (!result.sent) {
-      const reason = result.reason || "whatsapp_send_failed";
-      const hint =
-        reason === "missing_session"
-          ? "Sesión expirada. Vuelve a iniciar sesión."
-          : reason.includes("allowed") || reason.includes("recipient")
-            ? "Agrega este +52 como número de prueba en Meta (Development)."
-            : "No se pudo enviar por WhatsApp. Revisa Vercel Logs.";
+      const hint = formatWhatsAppSendError({
+        reason: result.reason,
+        detail: result.detail,
+        telefono: cli.telefono,
+      });
       setWaErr(hint);
-      console.warn("[ticket] WhatsApp API:", reason, result.detail);
+      console.warn("[ticket] WhatsApp API:", result.reason, result.detail);
       return;
     }
     setEnviadoOk({
