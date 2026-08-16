@@ -9,6 +9,26 @@ import { resumenLineasReceta } from "./utils/recetaLineas";
 import TransaccionesTab from "./TransaccionesTab";
 import { countPedidosTiendaPendientesHead } from "./utils/pedidosTiendaWeb";
 import { fixLegacyFarmaxBrand } from "./utils/brandText";
+import { parseRpcJsonArray, parseRpcJsonObject } from "./utils/rpcJson";
+import { pedidoEsTipoFisica, pedidoEsTipoOnline, pedidoEsTipoConsulta } from "./utils/orderChannels";
+
+function rpcBundleRows(bundle, key) {
+  return parseRpcJsonArray(parseRpcJsonObject(bundle)[key]);
+}
+
+function rpcFirstRows(bundle, ...keys) {
+  for (const key of keys) {
+    const rows = rpcBundleRows(bundle, key);
+    if (rows.length) return rows;
+  }
+  return [];
+}
+
+function ventasRowsOrFallback(primaryBundle, primaryKey, fallbackBundle, fallbackKey) {
+  const primary = rpcBundleRows(primaryBundle, primaryKey);
+  if (primary.length) return primary;
+  return rpcBundleRows(fallbackBundle, fallbackKey);
+}
 
 const STORAGE_PROYECTO_CAPEX = "farmacapital_proyecto_capex_v1";
 
@@ -329,6 +349,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
     };
     const [
       bundleRes,
+      homeRes,
       { count: onlinePendCount, error: errOnlinePend },
       { data: cofeprisRpcData, error: errAlertasCof },
     ] = await Promise.all([
@@ -338,30 +359,51 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
             p_ctx: bundleCtx,
           })
         : Promise.resolve({ data: null, error: null }),
+      adminTok
+        ? supabase.rpc("empleado_admin_home_snapshot", {
+            p_session_token: adminTok,
+            p_hoy_local: hoyLocal,
+            p_today_start: today.start,
+            p_today_end: today.end,
+            p_week_start: week.start,
+            p_month_start: month.start,
+          })
+        : Promise.resolve({ data: null, error: null }),
       countPedidosTiendaPendientesHead(supabase, adminTok),
       cofeprisRpc,
     ]);
-    const B = bundleRes.data || {};
-    const pedHoy = B.ped_hoy || [];
-    const pedAyer = B.ped_ayer || [];
-    const pedSemana = B.ped_semana || [];
-    const pedSemanaAnt = B.ped_semana_ant || [];
-    const pedMes = B.ped_mes || [];
-    const pedTodos = B.ped_todos || [];
-    const pedMesAnt = B.ped_mes_ant || [];
-    const citasHoy = B.citas_hoy || [];
-    const citasAyer = B.citas_ayer || [];
-    const pedMesTipo = B.ped_mes_tipo || [];
-    const pedItems = B.ped_items_top || [];
-    const bajoStock = B.bajo_stock || [];
-    const porCaducar = B.por_caducar || [];
-    const cortesConDif = B.cortes_con_dif || [];
-    const pedRecetaFarmaCapital = B.ped_receta_farmacapital || [];
+    const B = parseRpcJsonObject(bundleRes.data);
+    const H = parseRpcJsonObject(homeRes.data);
+    const pedHoy = ventasRowsOrFallback(B, "ped_hoy", H, "ventas_hoy");
+    const pedAyer = rpcBundleRows(B, "ped_ayer");
+    const pedSemana = ventasRowsOrFallback(B, "ped_semana", H, "ventas_semana");
+    const pedSemanaAnt = rpcBundleRows(B, "ped_semana_ant");
+    const pedMes = ventasRowsOrFallback(B, "ped_mes", H, "ventas_mes");
+    const pedTodos = rpcBundleRows(B, "ped_todos");
+    const pedMesAnt = rpcBundleRows(B, "ped_mes_ant");
+    const citasHoyRaw = rpcBundleRows(B, "citas_hoy");
+    const citasHoy = citasHoyRaw.length ? citasHoyRaw : rpcBundleRows(H, "citas_completadas_hoy");
+    const citasAyer = rpcBundleRows(B, "citas_ayer");
+    const pedMesTipo = rpcBundleRows(B, "ped_mes_tipo");
+    const pedItems = rpcBundleRows(B, "ped_items_top");
+    const bajoStock = rpcBundleRows(B, "bajo_stock");
+    const porCaducar = rpcBundleRows(B, "por_caducar");
+    const cortesConDif = rpcBundleRows(B, "cortes_con_dif");
+    const pedRecetaFarmaCapital = rpcFirstRows(B, "ped_receta_farmacapital", "ped_receta_farmax");
     const citasRecetaExternaMes = B.citas_receta_ext_mes_count ?? 0;
-    const cfgRows = B.cfg_rows || [];
-    const citasKpiMes = B.citas_kpi_mes || [];
+    const cfgRows = rpcBundleRows(B, "cfg_rows");
+    const citasKpiMes = rpcBundleRows(B, "citas_kpi_mes");
     const bundleErr = bundleRes.error;
+    const homeErr = homeRes.error;
     if (bundleErr) console.warn("[Dashboard] bundle operación:", bundleErr.message);
+    if (homeErr) console.warn("[Dashboard] home snapshot:", homeErr.message);
+    const dashboardLoadWarning = !adminTok
+      ? "Sesión expirada. Vuelve a iniciar sesión."
+      : bundleErr && homeErr
+        ? "No se pudieron cargar ventas del dashboard. Revisa que los RPC estén aplicados en Supabase."
+        : bundleErr && pedMes.length === 0
+          ? "Bundle de operación no disponible; mostrando respaldo de ventas."
+          : null;
     if (errOnlinePend) console.warn("[Dashboard] online pendientes:", errOnlinePend.message);
     if (errAlertasCof) console.warn("[Dashboard] alertas legales cofepris:", errAlertasCof.message);
 
@@ -404,9 +446,9 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
     const cofeprisVencidas = cofeprisItems.filter(c => c.vencida).length;
     const cofeprisPorVencer = cofeprisItems.length;
 
-    const fisica = (pedMesTipo || []).filter((p) => !p.tipo || p.tipo === "fisica").reduce((a, p) => a + parseFloat(p.total || 0), 0);
-    const online2 = (pedMesTipo || []).filter((p) => p.tipo === "online").reduce((a, p) => a + parseFloat(p.total || 0), 0);
-    const consult = (pedMesTipo || []).filter((p) => p.tipo === "consulta").reduce((a, p) => a + parseFloat(p.total || 0), 0);
+    const fisica = (pedMesTipo || []).filter((p) => pedidoEsTipoFisica(p.tipo)).reduce((a, p) => a + parseFloat(p.total || 0), 0);
+    const online2 = (pedMesTipo || []).filter((p) => pedidoEsTipoOnline(p.tipo)).reduce((a, p) => a + parseFloat(p.total || 0), 0);
+    const consult = (pedMesTipo || []).filter((p) => pedidoEsTipoConsulta(p.tipo)).reduce((a, p) => a + parseFloat(p.total || 0), 0);
 
     const byEmp = {};
     (pedMes || []).forEach((p) => { const k = p.atendido_por || "Sin asignar"; byEmp[k] = (byEmp[k] || 0) + parseFloat(p.total || 0); });
@@ -437,6 +479,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
     setData({
       ventasHoy, ventasAyer, ventasSemana, ventasSemanaAnt, ventasMes, ventasMesAnt, crecimiento, ticketProm, consultasHoy, consultasAyer, onlinePend,
       recuperado, gananciaMes,
+      dashboardLoadWarning,
       metas, trends,
       fuentes: [{ label: "Farmacia física", value: fisica }, { label: "Tienda online", value: online2 }, { label: "Consultorio", value: consult }],
       empleados, topProductos,
@@ -487,13 +530,13 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
           })
         : Promise.resolve({ count: 0 }),
     ]);
-    const RB = repBundleRes.data || {};
-    const peds = RB.peds || [];
-    const cons = RB.cons || [];
-    const ponl = RB.ponl || [];
-    const devs = RB.devs || [];
-    const pedsCat = RB.peds_cat || [];
-    const pedsRecetaFarmaCapital = RB.peds_receta_farmacapital || [];
+    const RB = parseRpcJsonObject(repBundleRes.data);
+    const peds = rpcBundleRows(RB, "peds");
+    const cons = rpcBundleRows(RB, "cons");
+    const ponl = rpcBundleRows(RB, "ponl");
+    const devs = rpcBundleRows(RB, "devs");
+    const pedsCat = rpcBundleRows(RB, "peds_cat");
+    const pedsRecetaFarmaCapital = rpcFirstRows(RB, "peds_receta_farmacapital", "peds_receta_farmax");
     const citasRecetaExternaPeriod = RB.citas_receta_ext_period_count ?? 0;
     if (repBundleRes.error) console.warn("[Dashboard] reporte bundle:", repBundleRes.error.message);
     const totalDevoluciones = (devs || []).reduce((a, d) => a + parseFloat(d.total_devuelto || 0), 0);
@@ -556,7 +599,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
     </div>
   );
 
-  const {ventasHoy,ventasSemana,ventasMes,crecimiento,ticketProm,consultasHoy,onlinePend,recuperado,gananciaMes,fuentes,empleados,topProductos,alertas,metas,trends} = data;
+  const {ventasHoy,ventasSemana,ventasMes,crecimiento,ticketProm,consultasHoy,onlinePend,recuperado,gananciaMes,fuentes,empleados,topProductos,alertas,metas,trends,dashboardLoadWarning} = data;
   const pctRecuperado = inversionTotal > 0 ? Math.min((recuperado / inversionTotal) * 100, 100) : 0;
   const restante = inversionTotal - recuperado;
   const paybackMeses = gananciaMes > 0 ? Math.max(Math.ceil(restante / gananciaMes), 0) : null;
@@ -938,6 +981,12 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
 
       {panelTab==="operacion" && (<>
       <TodoHoy items={todoItems}/>
+
+      {dashboardLoadWarning && (
+        <div style={{ background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 12, color: "#92400e", lineHeight: 1.5 }}>
+          ⚠️ {dashboardLoadWarning}
+        </div>
+      )}
 
       <div style={{color:C.textDim,fontSize:10,fontWeight:700,letterSpacing:1.5,marginBottom:12}}>KPIS ACCIONABLES · VENTAS Y ACTIVIDAD</div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(100%,220px),1fr))",gap:12,marginBottom:16}}>
