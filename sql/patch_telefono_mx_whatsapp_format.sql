@@ -1,9 +1,9 @@
--- FarmaCapital — Teléfono MX en formato WhatsApp (521 + 10 dígitos)
+-- FarmaCapital — Teléfono MX alineado con Meta Developer (52 + 10 dígitos)
 -- Ejecutar en Supabase SQL Editor.
 
 begin;
 
--- Normaliza a E.164 sin '+' para Meta Cloud API (MX móvil: 521XXXXXXXXXX).
+-- Formato interno: 52XXXXXXXXXX (como la lista de prueba de Meta Getting Started).
 create or replace function public.fn_telefono_mx_whatsapp(p_text text)
 returns text
 language plpgsql
@@ -11,6 +11,7 @@ immutable
 as $$
 declare
   d text;
+  local10 text;
 begin
   if p_text is null then
     return null;
@@ -25,42 +26,26 @@ begin
     return d;
   end if;
 
-  if length(d) = 13 and d like '521%' then
-    return d;
-  end if;
-
-  if length(d) = 10 then
-    return '521' || d;
-  end if;
-
-  if length(d) = 12 and d like '52%' and d not like '521%' then
-    return '521' || substring(d from 3);
-  end if;
-
-  if d like '521%' and length(d) between 12 and 15 then
-    return d;
-  end if;
-
-  if length(d) >= 10 then
-    return '521' || right(d, 10);
+  local10 := right(d, 10);
+  if length(local10) = 10 then
+    return '52' || local10;
   end if;
 
   return d;
 end;
 $$;
 
--- Clientes existentes con 10 dígitos → 521…
+-- 521… → 52… (formato anterior)
 update public.clientes c
 set telefono = public.fn_telefono_mx_whatsapp(c.telefono)
 where c.telefono is not null
-  and length(regexp_replace(c.telefono, '\D', '', 'g')) in (10, 12)
+  and regexp_replace(c.telefono, '\D', '', 'g') like '521%'
   and public.fn_telefono_mx_whatsapp(c.telefono) is distinct from trim(c.telefono);
 
--- Citas con teléfono corto o 52 sin el 1 móvil
 update public.citas c
 set telefono = public.fn_telefono_mx_whatsapp(c.telefono)
 where c.telefono is not null
-  and length(regexp_replace(c.telefono, '\D', '', 'g')) in (10, 12)
+  and regexp_replace(c.telefono, '\D', '', 'g') like '521%'
   and public.fn_telefono_mx_whatsapp(c.telefono) is distinct from trim(c.telefono);
 
 -- admin_crear_cliente_manual: guardar normalizado + evitar duplicados por últimos 10 dígitos

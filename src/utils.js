@@ -16,21 +16,20 @@ export const soloDigitosTel = (t) => String(t ?? "").replace(/\D/g, "");
 export const telefonoMxValido = (t) => soloDigitosTel(t).length >= 10;
 
 /**
- * Normaliza teléfono MX para guardar y enviar WhatsApp (Meta Cloud API).
- * Acepta 10 dígitos, +52, 52… o 521… → devuelve 521XXXXXXXXXX (sin '+').
+ * Normaliza teléfono MX para guardar en BD.
+ * Formato interno: 52 + 10 dígitos (coincide con Meta Developer → lista de prueba).
+ * Al enviar, la API prueba también 521… si hace falta para entrega en producción.
  */
 export function normalizarTelefonoMxGuardar(input) {
   const digits = soloDigitosTel(input);
   if (!digits) return "";
 
   if (digits.length === 11 && digits.startsWith("1")) return digits;
-  if (digits.length === 13 && digits.startsWith("521")) return digits;
-  if (digits.length === 10) return `521${digits}`;
-  if (digits.length === 12 && digits.startsWith("52") && !digits.startsWith("521")) {
-    return `521${digits.slice(2)}`;
-  }
-  if (digits.startsWith("521") && digits.length >= 12 && digits.length <= 15) return digits;
-  if (digits.length >= 10) return `521${digits.slice(-10)}`;
+  const local = digits.length >= 10 ? digits.slice(-10) : digits;
+  if (local.length === 10) return `52${local}`;
+  if (digits.startsWith("521") && digits.length === 13) return `52${digits.slice(3)}`;
+  if (digits.startsWith("52") && digits.length === 12) return digits;
+  if (digits.length >= 10) return `52${digits.slice(-10)}`;
 
   return digits;
 }

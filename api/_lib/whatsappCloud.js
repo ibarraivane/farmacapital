@@ -78,40 +78,52 @@ function digitsOnly(v) {
   return String(v || '').replace(/\D/g, '');
 }
 
+function extractMetaErrorCode(detail) {
+  try {
+    const parsed = typeof detail === 'string' ? JSON.parse(detail) : detail;
+    return parsed?.error?.code ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Últimos 10 dígitos de un teléfono MX. */
+function localMx10(input) {
+  const digits = digitsOnly(input);
+  return digits.length >= 10 ? digits.slice(-10) : '';
+}
+
 /**
- * Normaliza a E.164 sin '+' (formato Meta Cloud API en `to`).
- * MX móvil: 10 dígitos → 521XXXXXXXXXX (WhatsApp exige el 1 tras 52).
- * US Meta test: 11 dígitos empezando en 1.
+ * Candidatos `to` para Meta Cloud API (MX).
+ * - 521… = entrega móvil en producción
+ * - 52…  = formato de la lista de prueba en Meta Developer (Getting Started)
  */
-function normalizePhoneE164(input, { defaultCountryCode = '52' } = {}) {
-  let digits = digitsOnly(input);
-  if (!digits) return null;
+function getWhatsAppMxCandidates(input) {
+  const digits = digitsOnly(input);
+  if (!digits) return [];
 
   if (digits.length === 11 && digits.startsWith('1')) {
-    return digits;
+    return [digits];
   }
 
-  if (digits.length === 13 && digits.startsWith('521')) {
-    return digits;
+  const local = localMx10(digits);
+  if (local.length !== 10) {
+    return digits.length >= 11 ? [digits] : [];
   }
 
-  if (digits.length === 10 && defaultCountryCode === '52') {
-    return `521${digits}`;
-  }
+  const with521 = `521${local}`;
+  const with52 = `52${local}`;
+  return with521 === with52 ? [with521] : [with521, with52];
+}
 
-  if (digits.length === 12 && digits.startsWith('52') && !digits.startsWith('521')) {
-    return `521${digits.slice(2)}`;
-  }
-
-  if (digits.startsWith('521') && digits.length >= 12 && digits.length <= 15) {
-    return digits;
-  }
-
-  if (digits.length >= 11 && digits.length <= 15) {
-    return digits;
-  }
-
-  return null;
+/**
+ * Normaliza a E.164 sin '+' (formato Meta Cloud API en `to`).
+ * Preferimos 521… (móvil MX en producción); getWhatsAppMxCandidates reintenta 52… si Meta lo pide.
+ */
+function normalizePhoneE164(input, { defaultCountryCode = '52' } = {}) {
+  const candidates = getWhatsAppMxCandidates(input);
+  if (!candidates.length) return null;
+  return candidates[0];
 }
 
 function redactPhone(e164) {
@@ -156,44 +168,52 @@ async function sendWhatsAppText({ to, text, phoneNumberId, accessToken, graphVer
     return { sent: false, reason: 'empty_message' };
   }
 
-  const toE164 = normalizePhoneE164(to);
-  if (!toE164) {
+  const candidates = getWhatsAppMxCandidates(to);
+  if (!candidates.length) {
     return { sent: false, reason: 'invalid_phone' };
   }
 
-  const resp = await fetch(graphUrl(`${encodeURIComponent(fromId)}/messages`, graphVersion), {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      messaging_product: 'whatsapp',
-      to: toE164,
-      type: 'text',
-      text: { body: bodyText.slice(0, 4096) },
-    }),
-  });
+  let lastResult = null;
+  for (const toE164 of candidates) {
+    const resp = await fetch(graphUrl(`${encodeURIComponent(fromId)}/messages`, graphVersion), {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        to: toE164,
+        type: 'text',
+        text: { body: bodyText.slice(0, 4096) },
+      }),
+    });
 
-  let data = null;
-  try {
-    data = await resp.json();
-  } catch {
-    data = null;
-  }
+    let data = null;
+    try {
+      data = await resp.json();
+    } catch {
+      data = null;
+    }
 
-  if (!resp.ok) {
-    return {
+    if (resp.ok) {
+      const messageId = data?.messages?.[0]?.id || null;
+      return { sent: true, messageId, to: redactPhone(toE164), phoneFormat: toE164.startsWith('521') ? '521' : '52' };
+    }
+
+    lastResult = {
       sent: false,
       reason: 'meta_provider_error',
       status: resp.status,
       detail: sanitizeMetaError(data),
       to: redactPhone(toE164),
     };
+
+    const code = data?.error?.code;
+    if (code !== 131030 && code !== 131031) break;
   }
 
-  const messageId = data?.messages?.[0]?.id || null;
-  return { sent: true, messageId, to: redactPhone(toE164) };
+  return lastResult;
 }
 
 /**
@@ -223,8 +243,8 @@ async function sendWhatsAppTemplate({
     return { sent: false, reason: 'missing_template_name' };
   }
 
-  const toE164 = normalizePhoneE164(to);
-  if (!toE164) {
+  const candidates = getWhatsAppMxCandidates(to);
+  if (!candidates.length) {
     return { sent: false, reason: 'invalid_phone' };
   }
 
@@ -245,56 +265,73 @@ async function sendWhatsAppTemplate({
   ])];
 
   let lastResult = null;
-  for (const lang of langCandidates) {
-    const payload = {
-      messaging_product: 'whatsapp',
-      to: toE164,
-      type: 'template',
-      template: {
-        name,
-        language: { code: lang },
-      },
-    };
-    if (components.length) {
-      payload.template.components = components;
+  for (const toE164 of candidates) {
+    for (const lang of langCandidates) {
+      const payload = {
+        messaging_product: 'whatsapp',
+        to: toE164,
+        type: 'template',
+        template: {
+          name,
+          language: { code: lang },
+        },
+      };
+      if (components.length) {
+        payload.template.components = components;
+      }
+
+      const resp = await fetch(graphUrl(`${encodeURIComponent(fromId)}/messages`, graphVersion), {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      let data = null;
+      try {
+        data = await resp.json();
+      } catch {
+        data = null;
+      }
+
+      if (resp.ok) {
+        const messageId = data?.messages?.[0]?.id || null;
+        return {
+          sent: true,
+          messageId,
+          to: redactPhone(toE164),
+          template: name,
+          language: lang,
+          phoneFormat: toE164.startsWith('521') ? '521' : '52',
+        };
+      }
+
+      lastResult = {
+        sent: false,
+        reason: 'meta_template_error',
+        status: resp.status,
+        detail: sanitizeMetaError(data),
+        to: redactPhone(toE164),
+        language: lang,
+      };
+
+      const code = data?.error?.code;
+      if (code === 131030 || code === 131031) {
+        break;
+      }
+
+      const errBlob = String(sanitizeMetaError(data) || '').toLowerCase();
+      const languageMismatch =
+        errBlob.includes('language') ||
+        errBlob.includes('locale') ||
+        errBlob.includes('translation');
+      if (!languageMismatch) break;
     }
 
-    const resp = await fetch(graphUrl(`${encodeURIComponent(fromId)}/messages`, graphVersion), {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
-
-    let data = null;
-    try {
-      data = await resp.json();
-    } catch {
-      data = null;
-    }
-
-    if (resp.ok) {
-      const messageId = data?.messages?.[0]?.id || null;
-      return { sent: true, messageId, to: redactPhone(toE164), template: name, language: lang };
-    }
-
-    lastResult = {
-      sent: false,
-      reason: 'meta_template_error',
-      status: resp.status,
-      detail: sanitizeMetaError(data),
-      to: redactPhone(toE164),
-      language: lang,
-    };
-
-    const errBlob = String(sanitizeMetaError(data) || '').toLowerCase();
-    const languageMismatch =
-      errBlob.includes('language') ||
-      errBlob.includes('locale') ||
-      errBlob.includes('translation');
-    if (!languageMismatch) break;
+    const code = extractMetaErrorCode(lastResult?.detail);
+    if (code !== 131030 && code !== 131031) break;
   }
 
   return lastResult;
@@ -487,6 +524,9 @@ module.exports = {
   getWhatsAppCloudConfig,
   getWhatsAppTemplateConfig,
   resolveWhatsAppProvider,
+  getWhatsAppMxCandidates,
+  extractMetaErrorCode,
+  localMx10,
   normalizePhoneE164,
   redactPhone,
   digitsOnly,

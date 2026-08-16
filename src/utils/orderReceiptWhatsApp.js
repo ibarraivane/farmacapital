@@ -27,6 +27,12 @@ export function formatWhatsAppSendError({ reason, detail, telefono } = {}) {
   const raw = [reason, detail].filter(Boolean).join(" ");
   const lower = raw.toLowerCase();
 
+  const local10 = digitsOnlyPhone(tel).slice(-10);
+  const metaTestDisplay =
+    local10.length === 10
+      ? `+52 ${local10.slice(0, 2)} ${local10.slice(2, 6)} ${local10.slice(6)}`
+      : tel || "el teléfono del cliente";
+
   if (reason === "missing_session") {
     return "Sesión expirada. Vuelve a iniciar sesión en el panel.";
   }
@@ -56,9 +62,7 @@ export function formatWhatsAppSendError({ reason, detail, telefono } = {}) {
     metaMessage = parsed?.error?.message || parsed?.error?.error_user_msg || "";
     const code = parsed?.error?.code;
     if (code === 131030 || code === 131031) {
-      const digits = digitsOnlyPhone(tel);
-      const mx = digits.length >= 10 ? digits.slice(-10) : "XXXXXXXXXX";
-      return `Meta (modo Development): agrega +521${mx} (formato móvil MX) en WhatsApp → API Setup → «Números de teléfono de prueba».`;
+      return `Meta (modo Development): agrega ${metaTestDisplay} en WhatsApp → API Setup → «Números de teléfono de prueba». Debe ser el teléfono del cliente de esa fila (no otro).`;
     }
   } catch {
     /* detail no es JSON */
@@ -68,9 +72,7 @@ export function formatWhatsAppSendError({ reason, detail, telefono } = {}) {
     /131030|not in allowed list|recipient.*not allowed|no está en la lista/i.test(raw) ||
     /not a valid whatsapp user/i.test(lower)
   ) {
-    const digits = digitsOnlyPhone(tel);
-    const hint = digits.length >= 10 ? `+521${digits.slice(-10)}` : "el número móvil del cliente";
-    return `Meta (modo Development): ${hint} debe estar en «Números de teléfono de prueba» (formato +521… para México).`;
+    return `Meta (modo Development): ${metaTestDisplay} debe estar en «Números de teléfono de prueba» (formato +52, sin el 1 extra).`;
   }
 
   if (metaMessage) {
