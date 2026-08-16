@@ -22,6 +22,11 @@ function formatFolioOnline(pedidoId) {
   return `#FC-${String(pedidoId).padStart(4, '0')}`;
 }
 
+function formatFolioPOS(pedidoId) {
+  if (pedidoId == null) return null;
+  return `VTA-${String(pedidoId).padStart(8, '0')}`;
+}
+
 function normalizeItems(items) {
   if (!Array.isArray(items)) return [];
   return items.map((i) => ({
@@ -252,6 +257,69 @@ function pedidoQuiereWhatsAppRecibo(pedido) {
   return false;
 }
 
+function buildPosTicketMessage({ pedido, items, metodoPago, puntosGanados, saldoPuntos }) {
+  const folio = formatFolioPOS(pedido?.id) || `#${pedido?.id || '?'}`;
+  const lineItems = normalizeItems(items);
+  const itemsTxt = lineItems.length
+    ? lineItems.map((i) => `• ${i.nombre} ×${i.qty} = $${(i.precio * i.qty).toFixed(2)}`).join('\n')
+    : '• (sin detalle)';
+  const total = formatMoneyMx(pedido?.total);
+  const pago = String(metodoPago || pedido?.metodo_pago || '—').replace(/_/g, ' ');
+  let msg =
+    `🏥 FarmaCapital\n${FARMACIA_DIRECCION}\n🗺 ${FARMACIA_MAPS_URL}\n\n` +
+    `🧾 Ticket de compra\n🔖 Folio: ${folio}\n\n` +
+    `${itemsTxt}\n\n` +
+    `💰 Total: $${total}\n` +
+    `💳 Pago: ${pago}`;
+  if (puntosGanados != null && Number(puntosGanados) > 0) {
+    msg += `\n\n⭐ +${puntosGanados} puntos FarmaCapital`;
+    if (saldoPuntos != null) msg += `\nSaldo: ${saldoPuntos} pts`;
+  }
+  msg += '\n\n¡Gracias por su preferencia! 💊';
+  return msg;
+}
+
+function buildPosTicketTemplateBodyParams({ pedido, puntosGanados, saldoPuntos }) {
+  const folio = formatFolioPOS(pedido?.id) || `#${pedido?.id || '?'}`;
+  const total = formatMoneyMx(pedido?.total);
+  const entrega = 'Venta en mostrador FarmaCapital';
+  let note = '¡Gracias por su preferencia!';
+  if (puntosGanados != null && Number(puntosGanados) > 0) {
+    note = `+${puntosGanados} pts FarmaCapital`;
+    if (saldoPuntos != null) note += `. Saldo: ${saldoPuntos} pts`;
+  }
+  return [folio, total, entrega, note];
+}
+
+async function sendPosTicketNotification({
+  telefono,
+  pedido,
+  items,
+  metodoPago,
+  puntosGanados = null,
+  saldoPuntos = null,
+}) {
+  if (!telefono) return { sent: false, reason: 'missing_phone' };
+  const text = buildPosTicketMessage({
+    pedido,
+    items,
+    metodoPago,
+    puntosGanados,
+    saldoPuntos,
+  });
+  const tpl = getWhatsAppTemplateConfig();
+  const templateName = tpl.pedidoConfirmado || '';
+  const bodyParameters = templateName
+    ? buildPosTicketTemplateBodyParams({ pedido, puntosGanados, saldoPuntos })
+    : undefined;
+  return sendWhatsapp({
+    to: telefono,
+    text,
+    templateName: templateName || undefined,
+    bodyParameters,
+  });
+}
+
 async function sendOrderNotifications({ event, pedido, cliente, items }) {
   const msg = buildReceiptMessage({ event, pedido, items });
   const templateName = resolveOrderEventTemplate(event);
@@ -278,11 +346,14 @@ async function sendOrderNotifications({ event, pedido, cliente, items }) {
 
 module.exports = {
   sendOrderNotifications,
+  sendPosTicketNotification,
   sendWhatsapp,
   buildReceiptMessage,
+  buildPosTicketMessage,
   buildMessage,
   buildCitaConfirmacionMessage,
   buildOrderTemplateBodyParams,
+  buildPosTicketTemplateBodyParams,
   buildCitaTemplateBodyParams,
   resolveOrderEventTemplate,
   resolveCitaTemplate,

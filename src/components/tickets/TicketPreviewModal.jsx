@@ -3,8 +3,7 @@ import TicketVenta from "./TicketVenta";
 import { printTicket } from "../../utils/printTicket";
 import { downloadFacturaPDF } from "../../utils/generateFacturaPDF";
 import {
-  buildPosTicketWhatsAppMessage,
-  openWhatsAppToCustomer,
+  notifyPosTicket,
 } from "../../utils/orderReceiptWhatsApp";
 import { supabase } from "../../supabase";
 import { showToast } from "../../ui";
@@ -151,6 +150,7 @@ function WhatsAppTicketPanel({
   const [buscando, setBuscando] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [waErr, setWaErr] = useState("");
+  const [enviadoOk, setEnviadoOk] = useState(null);
   const telRef = useRef(null);
 
   useEffect(() => {
@@ -159,8 +159,13 @@ function WhatsAppTicketPanel({
 
   const enviarConCliente = useCallback(async (cli) => {
     if (!cli?.telefono) return;
+    if (!pedidoId) {
+      setWaErr("No hay folio de venta para enviar el ticket.");
+      return;
+    }
     setEnviando(true);
     setWaErr("");
+    setEnviadoOk(null);
     let puntosGanados = Math.floor(Number(venta.total || 0) / 10);
     let saldoPuntos = cli.puntos ?? null;
     if (pedidoId && cli.id) {
@@ -171,18 +176,41 @@ function WhatsAppTicketPanel({
         onClienteActualizado?.({ ...cli, puntos: saldoPuntos });
       }
     }
-    const msg = buildPosTicketWhatsAppMessage({
-      venta, productos, metodoPago, config, puntosGanados, saldoPuntos,
+    const result = await notifyPosTicket({
+      pedidoId,
+      telefono: cli.telefono,
+      metodoPago,
+      productos,
+      puntosGanados,
+      saldoPuntos,
     });
-    const ok = openWhatsAppToCustomer(cli.telefono, msg);
     setEnviando(false);
-    if (!ok) { setWaErr("Teléfono inválido (10 dígitos)."); return; }
+    if (!result.sent) {
+      const reason = result.reason || "whatsapp_send_failed";
+      const hint =
+        reason === "missing_session"
+          ? "Sesión expirada. Vuelve a iniciar sesión."
+          : reason.includes("allowed") || reason.includes("recipient")
+            ? "Agrega este +52 como número de prueba en Meta (Development)."
+            : "No se pudo enviar por WhatsApp. Revisa Vercel Logs.";
+      setWaErr(hint);
+      console.warn("[ticket] WhatsApp API:", reason, result.detail);
+      return;
+    }
+    setEnviadoOk({
+      telefono: cli.telefono,
+      nombre: cli.nombre,
+      puntosGanados,
+      saldoPuntos,
+    });
     showToast(
-      puntosGanados > 0 ? `WhatsApp listo · +${puntosGanados} pts` : "WhatsApp listo para enviar",
+      puntosGanados > 0
+        ? `Ticket enviado por WhatsApp · +${puntosGanados} pts`
+        : "Ticket enviado por WhatsApp",
       "success"
     );
     onSent?.();
-  }, [venta, productos, metodoPago, config, pedidoId, onClienteActualizado, onSent]);
+  }, [venta, productos, metodoPago, pedidoId, onClienteActualizado, onSent]);
 
   const iniciarEnvio = async () => {
     if (clienteInicial?.telefono && telefonoMxValido(clienteInicial.telefono)) {
@@ -241,6 +269,24 @@ function WhatsAppTicketPanel({
     </button>
   );
 
+  if (enviadoOk) {
+    return (
+      <div style={{ background: "#dcfce7", border: "1px solid #86efac", borderRadius: 10, padding: 14 }}>
+        <div style={{ fontWeight: 800, fontSize: 14, color: "#166534", marginBottom: 8 }}>✅ Ticket enviado por WhatsApp</div>
+        <div style={{ fontSize: 12, color: "#15803d", lineHeight: 1.5 }}>
+          {enviadoOk.nombre ? <div><strong>{enviadoOk.nombre}</strong></div> : null}
+          <div>📱 {enviadoOk.telefono}</div>
+          {enviadoOk.puntosGanados > 0 ? (
+            <div>⭐ +{enviadoOk.puntosGanados} pts
+              {enviadoOk.saldoPuntos != null ? ` · Saldo: ${enviadoOk.saldoPuntos} pts` : ""}
+            </div>
+          ) : null}
+        </div>
+        {btnOmitir}
+      </div>
+    );
+  }
+
   if (clienteInicial?.telefono && !modoRegistro) {
     return (
       <div style={{display:"flex",flexDirection:"column",gap:8}}>
@@ -250,7 +296,7 @@ function WhatsAppTicketPanel({
         </div>
         <button type="button" onClick={() => enviarConCliente(clienteInicial)} disabled={enviando}
           style={{padding:"12px",borderRadius:10,border:"none",background:"#25D366",color:"#fff",fontWeight:800,fontSize:14,cursor:"pointer",opacity:enviando?0.7:1}}>
-          {enviando ? "Abriendo WhatsApp…" : "📱 Enviar ticket por WhatsApp"}
+          {enviando ? "Enviando por WhatsApp…" : "📱 Enviar ticket por WhatsApp"}
         </button>
         {btnOmitir}
         {waErr ? <div style={{color:"#ef4444",fontSize:11}}>{waErr}</div> : null}
@@ -284,7 +330,7 @@ function WhatsAppTicketPanel({
           <div style={{display:"flex",gap:8}}>
             <button type="button" onClick={registrarYEnviar} disabled={enviando || !waNombre.trim()}
               style={{flex:1,padding:"10px",borderRadius:8,border:"none",background:"#25D366",color:"#fff",fontWeight:800,cursor:"pointer",opacity:(enviando||!waNombre.trim())?0.6:1}}>
-              {enviando ? "Registrando…" : "Registrar y enviar"}
+              {enviando ? "Enviando…" : "Registrar y enviar"}
             </button>
           </div>
           {btnOmitir}

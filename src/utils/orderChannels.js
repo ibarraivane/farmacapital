@@ -151,6 +151,35 @@ export function validarCarritoParaEntrega(cart, entregaUi, productRowById, optio
   return { ok: bloqueados.length === 0, bloqueados };
 }
 
+/** POS / legacy usan tienda_fisica; filtros antiguos usaban fisica. */
+export function pedidoEsTipoFisica(tipo) {
+  const t = String(tipo || "").toLowerCase().trim();
+  return !t || t === "fisica" || t === "tienda_fisica" || t === "pos";
+}
+
+export function pedidoEsTipoOnline(tipo) {
+  return String(tipo || "").toLowerCase().trim() === "online";
+}
+
+export function pedidoEsTipoConsulta(tipo) {
+  return String(tipo || "").toLowerCase().trim() === "consulta";
+}
+
+export function pedidoCoincideFiltroTipo(pedidoTipo, filtro) {
+  if (!filtro || filtro === "todos") return true;
+  if (filtro === "fisica") return pedidoEsTipoFisica(pedidoTipo);
+  if (filtro === "online") return pedidoEsTipoOnline(pedidoTipo);
+  if (filtro === "consulta") return pedidoEsTipoConsulta(pedidoTipo);
+  return String(pedidoTipo || "") === filtro;
+}
+
+export function labelTipoPedido(tipo) {
+  if (pedidoEsTipoOnline(tipo)) return "online";
+  if (pedidoEsTipoConsulta(tipo)) return "consulta";
+  if (pedidoEsTipoFisica(tipo)) return "física";
+  return tipo || "física";
+}
+
 /** Etiqueta legible para `pedidos.tipo_entrega` (recoger | envio). */
 export function labelTipoEntregaPedido(tipo) {
   const t = String(tipo || "").toLowerCase().trim();

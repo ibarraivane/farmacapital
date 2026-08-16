@@ -49,6 +49,10 @@
       "destination": "/api/notifications/send?type=order"
     },
     {
+      "source": "/api/notifications/pos-ticket",
+      "destination": "/api/notifications/send?type=pos-ticket"
+    },
+    {
       "source": "/((?!api/|static/|icons/|manifest\\.json|service-worker\\.js|favicon\\.ico|asset-manifest\\.json|robots\\.txt).*)",
       "destination": "/index.html"
     }

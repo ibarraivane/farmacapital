@@ -556,7 +556,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
     </div>
   );
 
-  const {ventasHoy,ventasSemana,ventasMes,crecimiento,ticketProm,consultasHoy,onlinePend,recuperado,gananciaMes,fuentes,empleados,topProductos,alertas,ventasRecetaMedicoFarmaCapitalMes,nRecetasExternasMes,oportunidadPerdidaRecetaEst,estimadoRecetaExternaUnit,lineasRecetaFarmaCapital,lineasRecetaExterna,lineasRecetaPendiente,lineasRecetaConCatalogo,tiempoPromConsultaMin,metas,trends} = data;
+  const {ventasHoy,ventasSemana,ventasMes,crecimiento,ticketProm,consultasHoy,onlinePend,recuperado,gananciaMes,fuentes,empleados,topProductos,alertas,metas,trends} = data;
   const pctRecuperado = inversionTotal > 0 ? Math.min((recuperado / inversionTotal) * 100, 100) : 0;
   const restante = inversionTotal - recuperado;
   const paybackMeses = gananciaMes > 0 ? Math.max(Math.ceil(restante / gananciaMes), 0) : null;
@@ -847,11 +847,12 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
               <Box style={{padding:20,minWidth:0,marginBottom:16}}>
                 <div style={{color:C.text,fontWeight:700,fontSize:14,marginBottom:16}}>📊 Ingresos por fuente</div>
                 {[
-                  ["Farmacia física", totalVentas-totalOnline-ingresoConsultas, C.blue],
+                  ["Farmacia física", Math.max(0, totalVentas - totalOnline), C.blue],
                   ["Tienda en línea", totalOnline, C.teal],
                   ["Consultorio", ingresoConsultas, C.purple],
                 ].map(([l,v,col])=>{
-                  const pct = totalVentas>0?Math.round((v/totalVentas)*100):0;
+                  const totalFuentes = Math.max(0, totalVentas - totalOnline) + totalOnline + ingresoConsultas;
+                  const pct = totalFuentes > 0 ? Math.round((v / totalFuentes) * 100) : 0;
                   return(
                     <div key={l} style={{marginBottom:12}}>
                       <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
@@ -980,23 +981,6 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
           value={onlinePend} display={onlinePend.toString()}
           onAction={() => goToPage("pos")} actionLabel="Atender →"
         />
-      </div>
-
-      <div style={{color:C.textDim,fontSize:10,fontWeight:700,letterSpacing:1.5,marginBottom:12}}>CONSULTORIO Y RECETAS — ESTE MES</div>
-      <p style={{margin:"0 0 14px",color:C.textMid,fontSize:11,lineHeight:1.5,maxWidth:720}}>
-        Una sola lectura: dinero capturado en POS por receta del consultorio, estimación cuando la receta se surte fuera, desglose de renglones prescritos y tiempo promedio de consulta (misma ventana: mes en curso).
-      </p>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(100%,200px),1fr))",gap:12,marginBottom:24}}>
-        <KpiCard label="Ventas POS (receta consultorio)" value={fmtK(ventasRecetaMedicoFarmaCapitalMes||0)} col={C.purple} icon="📋" sub="Pedidos receta_origen médico FarmaCapital"/>
-        <KpiCard label="Oportunidad fuera (est.)" value={fmtK(oportunidadPerdidaRecetaEst||0)} col={nRecetasExternasMes>0?C.amber:C.green} icon="📤" sub={`${nRecetasExternasMes||0} consultas surtidas fuera × ${fmt(estimadoRecetaExternaUnit||350)} c/u`}/>
-        <KpiCard
-          label="Renglones prescritos (total)"
-          value={(lineasRecetaFarmaCapital ?? 0) + (lineasRecetaExterna ?? 0) + (lineasRecetaPendiente ?? 0)}
-          col={C.blue}
-          icon="💊"
-          sub={`FarmaCapital ${lineasRecetaFarmaCapital ?? 0} · fuera/pend. ${(lineasRecetaExterna ?? 0) + (lineasRecetaPendiente ?? 0)} · catálogo ${lineasRecetaConCatalogo ?? 0}`}
-        />
-        <KpiCard label="Tiempo prom. consulta" value={tiempoPromConsultaMin != null ? `${tiempoPromConsultaMin.toFixed(1)} min` : "—"} col={C.teal} icon="⏱" sub="Solo citas con duración registrada"/>
       </div>
 
       <div style={{display:"grid",gridTemplateColumns:GRID_RESP_2COL,gap:20,marginBottom:24}}>

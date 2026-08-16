@@ -4,8 +4,12 @@ import { C_LIGHT, BRAND } from "./constants";
 import { showToast, SkeletonTable, Paginador } from "./ui";
 import TicketVenta from "./components/tickets/TicketVenta";
 import { printTicket } from "./utils/printTicket";
-import { labelTipoEntregaPedido } from "./utils/orderChannels";
+import { labelTipoEntregaPedido, labelTipoPedido, pedidoCoincideFiltroTipo, pedidoEsTipoOnline } from "./utils/orderChannels";
 import { configRowsToMap, mergeFarmaciaConfig } from "./constants/farmaciaFiscal";
+import { productMatchesSearchQuery } from "./utils/fuzzySearch";
+import { parseRpcJsonArray } from "./utils/rpcJson";
+import { notifyPosTicket, notifyOnlineOrderReceipt, formatFolioPOS, formatFolioOnline } from "./utils/orderReceiptWhatsApp";
+import { telefonoMxValido } from "./utils";
 
 /** Listado de pedidos con filtros — antes dentro de Admin/Reportes; requiere showConfirm del padre. */
 export default function TransaccionesTab({ usuario, showConfirm }) {
@@ -25,6 +29,9 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
   const [ticketReprint, setTicketReprint] = useState(null);
   const [farmaciaConfig, setFarmaciaConfig] = useState(() => mergeFarmaciaConfig({}));
   const [loadingReprint, setLoadingReprint] = useState(false);
+  const [enviandoWaId, setEnviandoWaId] = useState(null);
+  const [waTelDetalle, setWaTelDetalle] = useState("");
+  const [enviandoWaDet, setEnviandoWaDet] = useState(false);
 
   useEffect(() => {
     supabase.from("configuracion").select("clave,valor").then(({ data }) => {
@@ -63,7 +70,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
       p_limite: 300,
     });
     if (error) console.warn("[TransaccionesTab]", error.message);
-    setPedidos(Array.isArray(data) ? data : []);
+    setPedidos(parseRpcJsonArray(data));
     setLoading(false);
   }, [filtroFecha, fechaDesde, fechaHasta]);
 
@@ -81,48 +88,139 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
   const filtradosTodos = pedidos.filter((p) => {
     const q = busqueda.trim();
     const matchB = !q || p.id?.toString().includes(q) || (p.clientes && productMatchesSearchQuery(p.clientes, busqueda, [(x) => x.nombre]));
-    const matchT = filtroTipo === "todos" || p.tipo === filtroTipo || (!p.tipo && filtroTipo === "fisica");
+    const matchT = pedidoCoincideFiltroTipo(p.tipo, filtroTipo);
     const matchE = filtroEstado === "todos" || p.estado === filtroEstado;
     return matchB && matchT && matchE;
   });
   const filtrados = filtradosTodos.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA);
 
+  const mapItemsBasico = (items) =>
+    parseRpcJsonArray(items).map((i) => ({
+      nombre: i.productos?.nombre || "Producto",
+      qty: i.cantidad,
+      precio: i.precio_unitario,
+    }));
+
+  const folioPedido = (p) => {
+    if (!p?.id) return "—";
+    if (p.tipo === "online" || String(p.tipo || "").includes("online")) return formatFolioOnline(p.id);
+    return formatFolioPOS(p.id);
+  };
+
+  const cargarItemsPedido = async (pedidoId) => {
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    const { data: items, error } = await supabase.rpc("empleado_listar_pedido_items_basico", {
+      p_session_token: tok,
+      p_pedido_id: pedidoId,
+    });
+    if (error) throw new Error(error.message);
+    return mapItemsBasico(items);
+  };
+
+  const enviarWhatsAppTransaccion = async (p, telefonoOverride, event = "auto") => {
+    const tel = String(telefonoOverride || p.clientes?.telefono || "").trim();
+    if (!telefonoMxValido(tel)) {
+      showToast("Captura un teléfono válido de 10 dígitos.", "warning");
+      return false;
+    }
+    if (p.estado === "cancelado") {
+      showToast("No se puede enviar WhatsApp de un pedido cancelado.", "warning");
+      return false;
+    }
+    try {
+      const productos = await cargarItemsPedido(p.id);
+      const online = pedidoEsTipoOnline(p.tipo);
+      let result;
+      if (online) {
+        const ev = event === "auto" || event === "pos_ticket" ? "order_created" : event;
+        result = await notifyOnlineOrderReceipt({
+          pedidoId: p.id,
+          telefono: tel,
+          event: ev,
+          forceWhatsApp: true,
+        });
+      } else {
+        result = await notifyPosTicket({
+          pedidoId: p.id,
+          telefono: tel,
+          metodoPago: p.metodo_pago,
+          productos,
+        });
+      }
+      if (!result.sent) {
+        const hint =
+          result.reason === "missing_session"
+            ? "Sesión expirada."
+            : "No se pudo enviar. Revisa que el +52 esté en números de prueba de Meta.";
+        showToast(hint, "error");
+        return false;
+      }
+      showToast(`WhatsApp enviado a ${tel}`, "success");
+      return true;
+    } catch (e) {
+      showToast(e.message || "Error al enviar WhatsApp", "error");
+      return false;
+    }
+  };
+
+  const enviarTicketWhatsApp = enviarWhatsAppTransaccion;
+
   const reimprimir = async (p) => {
     setLoadingReprint(true);
-    const tok = sessionStorage.getItem("farmacapital_session_token");
-    const { data: items } = await supabase.rpc("empleado_listar_pedido_items_basico", {
-      p_session_token: tok,
-      p_pedido_id: p.id,
-    });
-    let cliente = null;
-    if (p.cliente_id) {
+    try {
       const tok = sessionStorage.getItem("farmacapital_session_token");
-      const { data: cli } = await supabase.rpc("admin_obtener_cliente", {
-        p_session_token: tok, p_cliente_id: p.cliente_id,
+      const productos = await cargarItemsPedido(p.id);
+      let cliente = null;
+      if (p.cliente_id) {
+        const { data: cli } = await supabase.rpc("admin_obtener_cliente", {
+          p_session_token: tok, p_cliente_id: p.cliente_id,
+        });
+        cliente = cli;
+      }
+      setTicketReprint({
+        venta: { id: p.id, folio: folioPedido(p), total: p.total, created_at: p.created_at, metodo_pago: p.metodo_pago },
+        productos,
+        cliente,
+        metodoPago: p.metodo_pago || "Efectivo",
+        pedido: p,
       });
-      cliente = cli;
+    } catch (e) {
+      showToast(e.message || "No se pudo cargar el ticket", "error");
     }
-    setTicketReprint({
-      venta: { id: p.id, total: p.total, created_at: p.created_at, metodo_pago: p.metodo_pago },
-      productos: (items || []).map((i) => ({
-        nombre: i.productos?.nombre || "Producto",
-        qty: i.cantidad,
-        precio: i.precio_unitario,
-      })),
-      cliente,
-      metodoPago: p.metodo_pago || "Efectivo",
-    });
     setLoadingReprint(false);
   };
 
+  const reenviarWhatsApp = async (p) => {
+    if (!p.clientes?.telefono) {
+      await abrirDetalle(p);
+      showToast("Captura el teléfono en el detalle para reenviar.", "info");
+      return;
+    }
+    setEnviandoWaId(p.id);
+    await enviarTicketWhatsApp(p);
+    setEnviandoWaId(null);
+  };
+
   const abrirDetalle = async (p) => {
-    setModalDet(p); setLoadDet(true); setDetItems([]);
+    setModalDet(p);
+    setWaTelDetalle(p.clientes?.telefono || "");
+    setLoadDet(true);
+    setDetItems([]);
     const tok = sessionStorage.getItem("farmacapital_session_token");
-    const { data } = await supabase.rpc("empleado_listar_pedido_items_detalle_transacciones", {
+    const { data, error } = await supabase.rpc("empleado_listar_pedido_items_detalle_transacciones", {
       p_session_token: tok,
       p_pedido_id: p.id,
     });
-    setDetItems(data || []); setLoadDet(false);
+    if (error) showToast("No se pudo cargar el detalle: " + error.message, "error");
+    setDetItems(parseRpcJsonArray(data));
+    setLoadDet(false);
+  };
+
+  const enviarWhatsAppDesdeDetalle = async (event = "auto") => {
+    if (!modalDetalle) return;
+    setEnviandoWaDet(true);
+    await enviarWhatsAppTransaccion(modalDetalle, waTelDetalle, event);
+    setEnviandoWaDet(false);
   };
 
   const abrirEditar = (p) => {
@@ -210,6 +308,18 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
           <option value="cancelado">Cancelado</option>
         </select>
         <span style={{ color: C.textMid, fontSize: 11, marginLeft: "auto" }}>{filtradosTodos.length} transacciones</span>
+        <button type="button" onClick={fetchPedidos} style={{ padding: "7px 12px", borderRadius: 7, border: `1px solid ${C.border}`, background: "transparent", color: C.textMid, cursor: "pointer", fontSize: 11, fontWeight: 700 }}>🔄 Actualizar</button>
+      </div>
+
+      <div style={{ background: "linear-gradient(135deg,#f0fdf4,#dcfce7)", border: "2px solid #25D366", borderRadius: 12, padding: "14px 16px", marginBottom: 14, fontSize: 13, color: "#166534", lineHeight: 1.55 }}>
+        <div style={{ fontWeight: 900, fontSize: 15, marginBottom: 6 }}>📱 Reenviar ticket / confirmación por WhatsApp</div>
+        <div>
+          En cada fila, botón verde <strong>Reenviar WhatsApp</strong> (columna Cliente).
+          O toca la fila → arriba del detalle verás <strong>Confirmación pedido</strong>, <strong>Pago aprobado</strong> o <strong>Ticket POS</strong>.
+        </div>
+        <div style={{ marginTop: 8, fontSize: 11, opacity: 0.9 }}>
+          Modo Development: el +52 del cliente debe estar en la lista de prueba de Meta.
+        </div>
       </div>
 
       {loading ? <SkeletonTable rows={5} cols={6} /> : (
@@ -217,25 +327,61 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
             <thead>
               <tr style={{ background: C.cardDark }}>
-                {["ID", "Fecha/Hora", "Cliente", "Total", "Método", "Tipo", "Atendido por", "Estado", "Acciones"].map((h) => (
+                {["ID", "Fecha/Hora", "Cliente / WhatsApp", "Total", "Método", "Tipo", "Estado", "Más"].map((h) => (
                   <th key={h} style={{ padding: "9px 12px", textAlign: "left", color: C.textMid, fontWeight: 700, borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap" }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {filtrados.length === 0 && <tr><td colSpan={9} style={{ textAlign: "center", padding: 32, color: C.textMid }}>Sin transacciones en este período</td></tr>}
+              {filtrados.length === 0 && <tr><td colSpan={8} style={{ textAlign: "center", padding: 32, color: C.textMid }}>Sin transacciones en este período</td></tr>}
               {filtrados.map((p, i) => (
-                <tr className="farmacapital-table-row" key={p.id} style={{ background: p.estado === "cancelado" ? "#fff5f5" : i % 2 === 0 ? "transparent" : "#f8fafc" }}>
-                  <td style={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}`, fontFamily: "monospace", fontSize: 11 }}>#{p.id}</td>
+                <tr
+                  className="farmacapital-table-row"
+                  key={p.id}
+                  onClick={() => abrirDetalle(p)}
+                  title="Ver detalle de la venta"
+                  style={{
+                    background: p.estado === "cancelado" ? "#fff5f5" : i % 2 === 0 ? "transparent" : "#f8fafc",
+                    cursor: "pointer",
+                  }}
+                >
+                  <td style={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}`, fontFamily: "monospace", fontSize: 11 }}>
+                    #{p.id}
+                    <div style={{ fontSize: 9, color: C.textDim, marginTop: 2 }}>{folioPedido(p)}</div>
+                  </td>
                   <td style={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap" }}>{fmtDT(p.created_at)}</td>
-                  <td style={{ padding: "8px 12px", color: C.text, fontWeight: 600, borderBottom: `1px solid ${C.border}` }}>{p.clientes?.nombre || "—"}</td>
+                  <td style={{ padding: "8px 12px", color: C.text, fontWeight: 600, borderBottom: `1px solid ${C.border}`, minWidth: 148 }} onClick={(e) => e.stopPropagation()}>
+                    <div>{p.clientes?.nombre || "—"}</div>
+                    {p.clientes?.telefono ? <div style={{ fontSize: 10, color: C.textMid, fontWeight: 500, marginTop: 2 }}>{p.clientes.telefono}</div> : null}
+                    <button
+                      type="button"
+                      onClick={() => reenviarWhatsApp(p)}
+                      disabled={enviandoWaId === p.id || p.estado === "cancelado"}
+                      style={{
+                        width: "100%",
+                        marginTop: 6,
+                        padding: "8px 10px",
+                        borderRadius: 8,
+                        border: "none",
+                        background: p.estado === "cancelado" ? "#94a3b8" : "#25D366",
+                        color: "#fff",
+                        fontWeight: 800,
+                        fontSize: 11,
+                        cursor: p.estado === "cancelado" ? "not-allowed" : "pointer",
+                        opacity: enviandoWaId === p.id ? 0.65 : 1,
+                        boxShadow: p.estado === "cancelado" ? "none" : "0 2px 8px rgba(37,211,102,.35)",
+                      }}
+                    >
+                      {enviandoWaId === p.id ? "Enviando…" : "📱 Reenviar WhatsApp"}
+                    </button>
+                  </td>
                   <td style={{ padding: "8px 12px", color: C.green, fontWeight: 700, borderBottom: `1px solid ${C.border}` }}>{fmtM(p.total)}</td>
                   <td style={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}` }}>{p.metodo_pago || "—"}</td>
                   <td style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, verticalAlign: "top" }}>
                     <span style={{ padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 700,
                       background: p.tipo === "online" ? "#ede9fe" : p.tipo === "consulta" ? "#dcfce7" : "#eff6ff",
                       color: p.tipo === "online" ? C.purple : p.tipo === "consulta" ? C.green : C.blue }}>
-                      {p.tipo || "física"}
+                      {labelTipoPedido(p.tipo)}
                     </span>
                     {p.tipo_entrega && (
                       <div style={{ fontSize: 10, color: C.textMid, marginTop: 4, lineHeight: 1.3, maxWidth: 140 }}>
@@ -246,13 +392,12 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                       </div>
                     )}
                   </td>
-                  <td style={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}` }}>{p.usuarios?.nombre || "—"}</td>
                   <td style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}` }}>
                     <span style={{ padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 700, background: estCol(p.estado) + "20", color: estCol(p.estado) }}>{p.estado || "—"}</span>
                   </td>
-                  <td style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap" }}>
-                    <button type="button" onClick={() => abrirDetalle(p)} style={{ padding: "3px 8px", borderRadius: 5, border: `1px solid ${C.blue}30`, background: "#eff6ff", color: C.blue, cursor: "pointer", fontSize: 10, fontWeight: 700, marginRight: 4 }}>👁 Ver</button>
-                    <button type="button" onClick={() => reimprimir(p)} disabled={loadingReprint} style={{ padding: "3px 8px", borderRadius: 5, border: `1px solid ${C.purple}30`, background: "#ede9fe", color: C.purple, cursor: "pointer", fontSize: 10, fontWeight: 700, marginRight: 4 }}>🖨️ Reimprimir</button>
+                  <td style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap" }} onClick={(e) => e.stopPropagation()}>
+                    <button type="button" onClick={() => abrirDetalle(p)} style={{ padding: "3px 8px", borderRadius: 5, border: `1px solid ${C.blue}30`, background: "#eff6ff", color: C.blue, cursor: "pointer", fontSize: 10, fontWeight: 700, marginRight: 4 }}>Detalle</button>
+                    <button type="button" onClick={() => reimprimir(p)} disabled={loadingReprint} style={{ padding: "3px 8px", borderRadius: 5, border: `1px solid ${C.purple}30`, background: "#ede9fe", color: C.purple, cursor: "pointer", fontSize: 10, fontWeight: 700, marginRight: 4 }}>🖨️</button>
                     {usuario?.rol === "admin" && <>
                       <button type="button" onClick={() => abrirEditar(p)} style={{ padding: "3px 8px", borderRadius: 5, border: `1px solid ${C.amber}30`, background: "#fef3c7", color: C.amber, cursor: "pointer", fontSize: 10, fontWeight: 700, marginRight: 4 }}>✏️</button>
                       {p.estado !== "cancelado" && <button type="button" onClick={() => cancelarPed(p)} style={{ padding: "3px 8px", borderRadius: 5, border: "1px solid #94a3b830", background: "#f1f5f9", color: C.textMid, cursor: "pointer", fontSize: 10, fontWeight: 700, marginRight: 4 }}>❌</button>}
@@ -286,17 +431,53 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
       {modalDetalle && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,.45)", backdropFilter: "blur(4px)", zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center", padding: "max(12px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px))", boxSizing: "border-box" }} onClick={(e) => e.target === e.currentTarget && setModalDet(null)}>
           <div style={{ background: C.card, borderRadius: 14, width: "min(600px, 100%)", maxHeight: "min(85dvh, 90vh)", overflowY: "auto", WebkitOverflowScrolling: "touch", padding: "clamp(16px, 4vw, 24px)", boxShadow: "0 20px 60px rgba(0,82,204,.15)", minWidth: 0 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
               <h3 style={{ margin: 0, color: C.text, fontSize: 15, fontWeight: 800 }}>👁 Detalle — Pedido #{modalDetalle.id}</h3>
               <button type="button" onClick={() => setModalDet(null)} style={{ background: "none", border: "none", color: C.textMid, fontSize: 20, cursor: "pointer" }}>✕</button>
             </div>
+
+            <div style={{ background: "#f0fdf4", border: "2px solid #25D366", borderRadius: 12, padding: 14, marginBottom: 16 }}>
+              <div style={{ fontWeight: 800, fontSize: 14, color: "#166534", marginBottom: 10 }}>📱 Reenviar por WhatsApp (Meta API)</div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 10 }}>
+                <input
+                  type="tel"
+                  inputMode="numeric"
+                  value={waTelDetalle}
+                  onChange={(e) => setWaTelDetalle(e.target.value)}
+                  placeholder="Teléfono cliente (10 dígitos)"
+                  style={{ flex: "1 1 160px", minWidth: 140, padding: "10px 12px", borderRadius: 8, border: "1px solid #86efac", fontSize: 16 }}
+                />
+              </div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {pedidoEsTipoOnline(modalDetalle.tipo) ? (
+                  <>
+                    <button type="button" onClick={() => enviarWhatsAppDesdeDetalle("order_created")} disabled={enviandoWaDet || modalDetalle.estado === "cancelado"} style={{ flex: "1 1 160px", padding: "11px 14px", borderRadius: 8, border: "none", background: "#25D366", color: "#fff", fontWeight: 800, fontSize: 12, cursor: "pointer", opacity: enviandoWaDet ? 0.7 : 1 }}>
+                      {enviandoWaDet ? "Enviando…" : "✅ Confirmación pedido"}
+                    </button>
+                    <button type="button" onClick={() => enviarWhatsAppDesdeDetalle("payment_approved")} disabled={enviandoWaDet || modalDetalle.estado === "cancelado"} style={{ flex: "1 1 160px", padding: "11px 14px", borderRadius: 8, border: "1px solid #25D366", background: "#fff", color: "#15803d", fontWeight: 800, fontSize: 12, cursor: "pointer" }}>
+                      💳 Pago aprobado
+                    </button>
+                  </>
+                ) : (
+                  <button type="button" onClick={() => enviarWhatsAppDesdeDetalle("pos_ticket")} disabled={enviandoWaDet || modalDetalle.estado === "cancelado"} style={{ flex: "1 1 200px", padding: "11px 14px", borderRadius: 8, border: "none", background: "#25D366", color: "#fff", fontWeight: 800, fontSize: 13, cursor: "pointer", opacity: enviandoWaDet ? 0.7 : 1 }}>
+                    {enviandoWaDet ? "Enviando ticket…" : "📱 Reenviar ticket POS"}
+                  </button>
+                )}
+                <button type="button" onClick={() => reimprimir(modalDetalle)} style={{ padding: "11px 14px", borderRadius: 8, border: `1px solid ${C.purple}40`, background: "#ede9fe", color: C.purple, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+                  🖨️ Imprimir
+                </button>
+              </div>
+            </div>
+
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 160px), 1fr))", gap: 12, marginBottom: 16, fontSize: 12 }}>
+              <div><span style={{ color: C.textMid }}>Folio: </span><strong style={{ color: C.text }}>{folioPedido(modalDetalle)}</strong></div>
               <div><span style={{ color: C.textMid }}>Cliente: </span><strong style={{ color: C.text }}>{modalDetalle.clientes?.nombre || "—"}</strong></div>
               <div><span style={{ color: C.textMid }}>Fecha: </span><strong style={{ color: C.text }}>{fmtDT(modalDetalle.created_at)}</strong></div>
               <div><span style={{ color: C.textMid }}>Total: </span><strong style={{ color: C.green }}>{fmtM(modalDetalle.total)}</strong></div>
               <div><span style={{ color: C.textMid }}>Método: </span><strong style={{ color: C.text }}>{modalDetalle.metodo_pago || "—"}</strong></div>
               <div><span style={{ color: C.textMid }}>Estado: </span><strong style={{ color: estCol(modalDetalle.estado) }}>{modalDetalle.estado}</strong></div>
-              <div><span style={{ color: C.textMid }}>Tipo: </span><strong style={{ color: C.text }}>{modalDetalle.tipo || "física"}</strong></div>
+              <div><span style={{ color: C.textMid }}>Tipo: </span><strong style={{ color: C.text }}>{labelTipoPedido(modalDetalle.tipo)}</strong></div>
+              <div><span style={{ color: C.textMid }}>Atendido por: </span><strong style={{ color: C.text }}>{modalDetalle.usuarios?.nombre || "—"}</strong></div>
               {modalDetalle.tipo_entrega && (
                 <div><span style={{ color: C.textMid }}>Entrega: </span><strong style={{ color: C.text }}>{labelTipoEntregaPedido(modalDetalle.tipo_entrega)}</strong></div>
               )}
@@ -305,23 +486,28 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
               )}
             </div>
             {modalDetalle.notas && <div style={{ background: C.cardDark, borderRadius: 8, padding: "8px 12px", marginBottom: 14, color: C.textMid, fontSize: 12 }}>📝 {modalDetalle.notas}</div>}
-            <div style={{ fontWeight: 700, color: C.text, fontSize: 13, marginBottom: 10 }}>Productos:</div>
+
+            <div style={{ fontWeight: 700, color: C.text, fontSize: 13, marginBottom: 10 }}>Productos vendidos:</div>
             {loadDet ? <SkeletonTable rows={3} cols={4} /> : (
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-                <thead><tr style={{ background: C.cardDark }}>{["Producto", "Cant.", "Precio", "Subtotal"].map((h) => <th key={h} style={{ padding: "7px 10px", textAlign: "left", color: C.textMid, fontWeight: 700, borderBottom: `1px solid ${C.border}` }}>{h}</th>)}</tr></thead>
+                <thead><tr style={{ background: C.cardDark }}>{["Producto", "SKU", "Cant.", "Precio", "Subtotal"].map((h) => <th key={h} style={{ padding: "7px 10px", textAlign: "left", color: C.textMid, fontWeight: 700, borderBottom: `1px solid ${C.border}` }}>{h}</th>)}</tr></thead>
                 <tbody>
+                  {detItems.length === 0 && !loadDet && (
+                    <tr><td colSpan={5} style={{ padding: 16, textAlign: "center", color: C.textMid }}>Sin productos registrados</td></tr>
+                  )}
                   {detItems.map((it, i) => (
                     <tr key={i}>
                       <td style={{ padding: "7px 10px", color: C.text, fontWeight: 600, borderBottom: `1px solid ${C.border}` }}>
                         {it.productos?.nombre || it.nombre || "—"}
                         {it.lotes?.numero_lote && <div style={{ fontSize: 9, color: C.textDim, marginTop: 1 }}>Lote: {it.lotes.numero_lote}{it.lotes.fecha_caducidad ? ` | Cad: ${it.lotes.fecha_caducidad}` : ""}</div>}
                       </td>
+                      <td style={{ padding: "7px 10px", color: C.textMid, fontSize: 10, borderBottom: `1px solid ${C.border}`, fontFamily: "monospace" }}>{it.productos?.sku || "—"}</td>
                       <td style={{ padding: "7px 10px", color: C.amber, fontWeight: 700, borderBottom: `1px solid ${C.border}` }}>{it.cantidad}</td>
                       <td style={{ padding: "7px 10px", color: C.textMid, borderBottom: `1px solid ${C.border}` }}>{fmtM(it.precio_unitario || it.precio || 0)}</td>
                       <td style={{ padding: "7px 10px", color: C.green, fontWeight: 700, borderBottom: `1px solid ${C.border}` }}>{fmtM((it.precio_unitario || it.precio || 0) * (it.cantidad || 1))}</td>
                     </tr>
                   ))}
-                  <tr><td colSpan={3} style={{ padding: "8px 10px", textAlign: "right", fontWeight: 800, color: C.text }}>TOTAL</td><td style={{ padding: "8px 10px", color: C.green, fontWeight: 900, fontSize: 14 }}>{fmtM(modalDetalle.total)}</td></tr>
+                  <tr><td colSpan={4} style={{ padding: "8px 10px", textAlign: "right", fontWeight: 800, color: C.text }}>TOTAL</td><td style={{ padding: "8px 10px", color: C.green, fontWeight: 900, fontSize: 14 }}>{fmtM(modalDetalle.total)}</td></tr>
                 </tbody>
               </table>
             )}
@@ -352,6 +538,20 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
               <button type="button" onClick={() => printTicket("farmacapital-ticket")} style={{ flex: "2 1 160px", minHeight: 44, padding: "11px", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#7c3aed,#9d6fff)", color: "#fff", fontWeight: 800, fontSize: 14, cursor: "pointer" }}>
                 🖨️ Imprimir
               </button>
+              {ticketReprint.pedido && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setEnviandoWaId(ticketReprint.pedido.id);
+                    await enviarTicketWhatsApp(ticketReprint.pedido, ticketReprint.cliente?.telefono);
+                    setEnviandoWaId(null);
+                  }}
+                  disabled={enviandoWaId === ticketReprint.pedido?.id}
+                  style={{ flex: "2 1 160px", minHeight: 44, padding: "11px", borderRadius: 10, border: "none", background: "#25D366", color: "#fff", fontWeight: 800, fontSize: 14, cursor: "pointer", opacity: enviandoWaId === ticketReprint.pedido?.id ? 0.7 : 1 }}
+                >
+                  {enviandoWaId === ticketReprint.pedido?.id ? "Enviando…" : "📱 WhatsApp"}
+                </button>
+              )}
               <button type="button" onClick={() => setTicketReprint(null)} style={{ flex: "1 1 120px", minHeight: 44, padding: "11px", borderRadius: 10, border: "1px solid #e2e8f0", background: "transparent", color: "#475569", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
                 Cerrar
               </button>

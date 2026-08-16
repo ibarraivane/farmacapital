@@ -151,21 +151,85 @@ export function buildOnlineOrderReadyMessage({
   return receipt + listo;
 }
 
-export async function notifyOnlineOrderReceipt({ pedidoId, sessionToken = null, phoneVerify = null, event = "order_created" }) {
-  if (!pedidoId) return { sent: false };
+/** POS: envía ticket por Meta Cloud API (sin abrir wa.me). */
+export async function notifyPosTicket({
+  pedidoId,
+  telefono,
+  metodoPago = null,
+  productos = [],
+  puntosGanados = null,
+  saldoPuntos = null,
+}) {
+  if (!pedidoId || !telefono) return { sent: false, reason: "missing_params" };
+
+  const employeeSessionToken = sessionStorage.getItem("farmacapital_session_token");
+  if (!employeeSessionToken) return { sent: false, reason: "missing_session" };
+
+  try {
+    const resp = await fetch("/api/notifications/pos-ticket", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        pedidoId,
+        telefono,
+        employeeSessionToken,
+        metodoPago,
+        productos,
+        puntosGanados,
+        saldoPuntos,
+      }),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (resp.ok && data?.whatsapp?.sent) {
+      return { sent: true, via: "server", whatsapp: data.whatsapp };
+    }
+    return {
+      sent: false,
+      reason: data?.error || data?.whatsapp?.reason || `http_${resp.status}`,
+      detail: data?.detail || data?.whatsapp?.detail || null,
+    };
+  } catch (e) {
+    console.warn("[orderReceiptWhatsApp] pos-ticket:", e);
+    return { sent: false, reason: "network_error" };
+  }
+}
+
+export async function notifyOnlineOrderReceipt({
+  pedidoId,
+  sessionToken = null,
+  phoneVerify = null,
+  event = "order_created",
+  employeeSessionToken = null,
+  telefono = null,
+  forceWhatsApp = false,
+}) {
+  if (!pedidoId) return { sent: false, reason: "missing_pedido_id" };
+
+  const tok = employeeSessionToken || sessionStorage.getItem("farmacapital_session_token");
 
   try {
     const resp = await fetch("/api/notifications/order-receipt", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pedidoId, sessionToken, phoneVerify, event }),
+      body: JSON.stringify({
+        pedidoId,
+        sessionToken,
+        phoneVerify,
+        event,
+        employeeSessionToken: tok,
+        telefono,
+        forceWhatsApp: forceWhatsApp === true,
+      }),
     });
     const data = await resp.json().catch(() => ({}));
-    if (data?.whatsapp?.sent) return { sent: true, via: "server" };
-    if (!resp.ok) console.warn("[orderReceiptWhatsApp] API:", data?.error || resp.status);
+    if (data?.whatsapp?.sent) return { sent: true, via: "server", whatsapp: data.whatsapp };
+    return {
+      sent: false,
+      reason: data?.error || data?.whatsapp?.reason || `http_${resp.status}`,
+      detail: data?.detail || data?.whatsapp?.detail || null,
+    };
   } catch (e) {
     console.warn("[orderReceiptWhatsApp] API notify:", e);
+    return { sent: false, reason: "network_error" };
   }
-
-  return { sent: false };
 }

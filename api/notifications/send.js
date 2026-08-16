@@ -2,6 +2,7 @@
 
 const {
   sendWhatsapp,
+  sendPosTicketNotification,
   buildReceiptMessage,
   buildCitaConfirmacionMessage,
   buildOrderTemplateBodyParams,
@@ -27,10 +28,12 @@ function resolveNotificationType(req, body) {
   const q = String(req.query?.type || '').trim().toLowerCase();
   if (q === 'cita' || q === 'cita-confirmacion') return 'cita';
   if (q === 'order' || q === 'order-receipt') return 'order';
+  if (q === 'pos-ticket' || q === 'pos_ticket') return 'pos-ticket';
   if (q === 'whatsapp' || q === 'whatsapp-send') return 'whatsapp';
   const b = String(body?.type || body?.notificationType || '').trim().toLowerCase();
   if (b === 'cita' || b === 'cita-confirmacion') return 'cita';
   if (b === 'order' || b === 'order-receipt') return 'order';
+  if (b === 'pos-ticket' || b === 'pos_ticket') return 'pos-ticket';
   if (b === 'whatsapp' || b === 'whatsapp-send') return 'whatsapp';
   if (body?.citaId != null && body?.pedidoId == null) return 'cita';
   if (body?.pedidoId != null && body?.citaId == null) return 'order';
@@ -194,6 +197,8 @@ async function handleOrderReceipt(req, res, body) {
   const sessionToken = String(body?.sessionToken || '').trim() || null;
   const employeeToken = String(body?.employeeSessionToken || body?.sessionTokenEmpleado || '').trim() || null;
   const phoneVerify = String(body?.phoneVerify || '').trim() || null;
+  const telefonoOverride = String(body?.telefono || body?.phone || '').trim() || null;
+  const forceWhatsApp = body?.forceWhatsApp === true;
   const event = String(body?.event || 'order_created').trim();
 
   if (!pedidoId || !Number.isFinite(pedidoId)) {
@@ -238,12 +243,13 @@ async function handleOrderReceipt(req, res, body) {
     return res.status(403).json({ ok: false, error: 'unauthorized' });
   }
 
-  const telefono = await resolvePedidoTelefono(supabaseUrl, serviceKey, pedido);
+  const telefono = telefonoOverride || (await resolvePedidoTelefono(supabaseUrl, serviceKey, pedido));
   if (!telefono) {
     return res.status(200).json({ ok: true, whatsapp: { sent: false, reason: 'missing_phone' } });
   }
 
-  if (!pedidoQuiereWhatsAppRecibo(pedido)) {
+  const staffForce = forceWhatsApp && authorized && !!employeeToken;
+  if (!staffForce && !pedidoQuiereWhatsAppRecibo(pedido)) {
     return res.status(200).json({ ok: true, whatsapp: { sent: false, reason: 'whatsapp_opt_out' }, pedidoId });
   }
 
@@ -267,6 +273,67 @@ async function handleOrderReceipt(req, res, body) {
   return res.status(200).json({ ok: true, whatsapp: waRes, pedidoId });
 }
 
+async function handlePosTicket(req, res, body) {
+  const pedidoId = Number(body?.pedidoId);
+  const telefono = String(body?.telefono || body?.phone || '').trim();
+  const employeeToken = String(body?.employeeSessionToken || body?.sessionTokenEmpleado || '').trim();
+
+  if (!pedidoId || !Number.isFinite(pedidoId)) {
+    return res.status(400).json({ ok: false, error: 'invalid_pedido_id' });
+  }
+  if (!telefono) {
+    return res.status(400).json({ ok: false, error: 'missing_phone' });
+  }
+  if (!employeeToken) {
+    return res.status(403).json({ ok: false, error: 'missing_employee_session' });
+  }
+
+  const { supabaseUrl, serviceKey } = getSupabaseAdminConfig();
+  if (!supabaseUrl || !serviceKey) {
+    return res.status(500).json({ ok: false, error: 'missing_server_env' });
+  }
+
+  const validEmployee = await validateEmployeeSession(supabaseUrl, serviceKey, employeeToken);
+  if (!validEmployee) {
+    return res.status(403).json({ ok: false, error: 'invalid_employee_session' });
+  }
+
+  let pedido = null;
+  try {
+    pedido = await fetchPedido(supabaseUrl, serviceKey, pedidoId);
+  } catch (e) {
+    console.warn('[notifications/send:pos-ticket] fetch pedido:', e?.message);
+  }
+
+  if (!pedido) {
+    return res.status(404).json({ ok: false, error: 'pedido_not_found' });
+  }
+
+  const items = Array.isArray(body?.productos) && body.productos.length
+    ? body.productos
+    : (pedido.pedido_items || []);
+
+  const waRes = await sendPosTicketNotification({
+    telefono,
+    pedido,
+    items,
+    metodoPago: body?.metodoPago || body?.metodo_pago || pedido.metodo_pago,
+    puntosGanados: body?.puntosGanados ?? body?.puntos_ganados ?? null,
+    saldoPuntos: body?.saldoPuntos ?? body?.saldo_puntos ?? null,
+  });
+
+  if (!waRes?.sent) {
+    return res.status(502).json({
+      ok: false,
+      error: waRes?.reason || 'whatsapp_send_failed',
+      detail: waRes?.detail || null,
+      pedidoId,
+    });
+  }
+
+  return res.status(200).json({ ok: true, whatsapp: waRes, pedidoId });
+}
+
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ ok: false, error: 'method_not_allowed' });
@@ -280,6 +347,9 @@ module.exports = async function handler(req, res) {
   }
   if (type === 'order') {
     return handleOrderReceipt(req, res, body);
+  }
+  if (type === 'pos-ticket') {
+    return handlePosTicket(req, res, body);
   }
   if (type === 'whatsapp') {
     return handleWhatsAppManualSend(req, res, body);
