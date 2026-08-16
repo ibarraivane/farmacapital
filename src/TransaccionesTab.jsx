@@ -277,6 +277,30 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
   const estCol = (e) => e === "completado" ? C.green : e === "cancelado" ? C.red : C.amber;
   const inpS = { padding: "7px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: C.card, color: C.text, fontSize: 12, outline: "none" };
 
+  const btnAccionIcono = ({ col, bg, border, title, onClick, disabled, children }) => (
+    <button
+      type="button"
+      title={title}
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        padding: "4px 7px",
+        borderRadius: 6,
+        border: `1px solid ${border}`,
+        background: bg,
+        color: col,
+        cursor: disabled ? "not-allowed" : "pointer",
+        fontSize: 12,
+        fontWeight: 700,
+        lineHeight: 1.2,
+        minWidth: 28,
+        opacity: disabled ? 0.55 : 1,
+      }}
+    >
+      {children}
+    </button>
+  );
+
   const sumaTotal = filtradosTodos.reduce((a, p) => a + parseFloat(p.total || 0), 0);
   const promedio = filtradosTodos.length ? sumaTotal / filtradosTodos.length : 0;
   const byMetodo = filtradosTodos.reduce((acc, p) => { const k = p.metodo_pago || "otro"; acc[k] = (acc[k] || 0) + parseFloat(p.total || 0); return acc; }, {});
@@ -311,15 +335,9 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
         <button type="button" onClick={fetchPedidos} style={{ padding: "7px 12px", borderRadius: 7, border: `1px solid ${C.border}`, background: "transparent", color: C.textMid, cursor: "pointer", fontSize: 11, fontWeight: 700 }}>🔄 Actualizar</button>
       </div>
 
-      <div style={{ background: "linear-gradient(135deg,#f0fdf4,#dcfce7)", border: "2px solid #25D366", borderRadius: 12, padding: "14px 16px", marginBottom: 14, fontSize: 13, color: "#166534", lineHeight: 1.55 }}>
-        <div style={{ fontWeight: 900, fontSize: 15, marginBottom: 6 }}>📱 Reenviar ticket / confirmación por WhatsApp</div>
-        <div>
-          En cada fila, botón verde <strong>Reenviar WhatsApp</strong> (columna Cliente).
-          O toca la fila → arriba del detalle verás <strong>Confirmación pedido</strong>, <strong>Pago aprobado</strong> o <strong>Ticket POS</strong>.
-        </div>
-        <div style={{ marginTop: 8, fontSize: 11, opacity: 0.9 }}>
-          Modo Development: el +52 del cliente debe estar en la lista de prueba de Meta.
-        </div>
+      <div style={{ fontSize: 11, color: C.textMid, marginBottom: 12, padding: "8px 12px", background: "#f8fafc", borderRadius: 8, border: `1px solid ${C.border}`, lineHeight: 1.45 }}>
+        📱 <strong>WhatsApp (Meta):</strong> usa el icono <span style={{ color: "#15803d", fontWeight: 800 }}>📱</span> en <strong>Acciones</strong>, o abre el detalle de la fila.
+        El +52 del cliente debe estar en la lista de prueba de Meta (modo Development).
       </div>
 
       {loading ? <SkeletonTable rows={5} cols={6} /> : (
@@ -327,7 +345,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
             <thead>
               <tr style={{ background: C.cardDark }}>
-                {["ID", "Fecha/Hora", "Cliente / WhatsApp", "Total", "Método", "Tipo", "Estado", "Más"].map((h) => (
+                {["ID", "Fecha/Hora", "Cliente", "Total", "Método", "Tipo", "Estado", "Acciones"].map((h) => (
                   <th key={h} style={{ padding: "9px 12px", textAlign: "left", color: C.textMid, fontWeight: 700, borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap" }}>{h}</th>
                 ))}
               </tr>
@@ -350,30 +368,9 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                     <div style={{ fontSize: 9, color: C.textDim, marginTop: 2 }}>{folioPedido(p)}</div>
                   </td>
                   <td style={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap" }}>{fmtDT(p.created_at)}</td>
-                  <td style={{ padding: "8px 12px", color: C.text, fontWeight: 600, borderBottom: `1px solid ${C.border}`, minWidth: 148 }} onClick={(e) => e.stopPropagation()}>
-                    <div>{p.clientes?.nombre || "—"}</div>
+                  <td style={{ padding: "8px 12px", color: C.text, fontWeight: 600, borderBottom: `1px solid ${C.border}` }}>
+                    {p.clientes?.nombre || "—"}
                     {p.clientes?.telefono ? <div style={{ fontSize: 10, color: C.textMid, fontWeight: 500, marginTop: 2 }}>{p.clientes.telefono}</div> : null}
-                    <button
-                      type="button"
-                      onClick={() => reenviarWhatsApp(p)}
-                      disabled={enviandoWaId === p.id || p.estado === "cancelado"}
-                      style={{
-                        width: "100%",
-                        marginTop: 6,
-                        padding: "8px 10px",
-                        borderRadius: 8,
-                        border: "none",
-                        background: p.estado === "cancelado" ? "#94a3b8" : "#25D366",
-                        color: "#fff",
-                        fontWeight: 800,
-                        fontSize: 11,
-                        cursor: p.estado === "cancelado" ? "not-allowed" : "pointer",
-                        opacity: enviandoWaId === p.id ? 0.65 : 1,
-                        boxShadow: p.estado === "cancelado" ? "none" : "0 2px 8px rgba(37,211,102,.35)",
-                      }}
-                    >
-                      {enviandoWaId === p.id ? "Enviando…" : "📱 Reenviar WhatsApp"}
-                    </button>
                   </td>
                   <td style={{ padding: "8px 12px", color: C.green, fontWeight: 700, borderBottom: `1px solid ${C.border}` }}>{fmtM(p.total)}</td>
                   <td style={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}` }}>{p.metodo_pago || "—"}</td>
@@ -396,13 +393,32 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                     <span style={{ padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 700, background: estCol(p.estado) + "20", color: estCol(p.estado) }}>{p.estado || "—"}</span>
                   </td>
                   <td style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap" }} onClick={(e) => e.stopPropagation()}>
-                    <button type="button" onClick={() => abrirDetalle(p)} style={{ padding: "3px 8px", borderRadius: 5, border: `1px solid ${C.blue}30`, background: "#eff6ff", color: C.blue, cursor: "pointer", fontSize: 10, fontWeight: 700, marginRight: 4 }}>Detalle</button>
-                    <button type="button" onClick={() => reimprimir(p)} disabled={loadingReprint} style={{ padding: "3px 8px", borderRadius: 5, border: `1px solid ${C.purple}30`, background: "#ede9fe", color: C.purple, cursor: "pointer", fontSize: 10, fontWeight: 700, marginRight: 4 }}>🖨️</button>
-                    {usuario?.rol === "admin" && <>
-                      <button type="button" onClick={() => abrirEditar(p)} style={{ padding: "3px 8px", borderRadius: 5, border: `1px solid ${C.amber}30`, background: "#fef3c7", color: C.amber, cursor: "pointer", fontSize: 10, fontWeight: 700, marginRight: 4 }}>✏️</button>
-                      {p.estado !== "cancelado" && <button type="button" onClick={() => cancelarPed(p)} style={{ padding: "3px 8px", borderRadius: 5, border: "1px solid #94a3b830", background: "#f1f5f9", color: C.textMid, cursor: "pointer", fontSize: 10, fontWeight: 700, marginRight: 4 }}>❌</button>}
-                      <button type="button" onClick={() => eliminarPed(p)} style={{ padding: "3px 8px", borderRadius: 5, border: `1px solid ${C.red}30`, background: "#fee2e2", color: C.red, cursor: "pointer", fontSize: 10, fontWeight: 700 }}>🗑️</button>
-                    </>}
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
+                      <button type="button" onClick={() => abrirDetalle(p)} title="Ver detalle" style={{ padding: "3px 8px", borderRadius: 5, border: `1px solid ${C.blue}30`, background: "#eff6ff", color: C.blue, cursor: "pointer", fontSize: 10, fontWeight: 700 }}>Detalle</button>
+                      {btnAccionIcono({
+                        col: "#15803d",
+                        bg: "#f0fdf4",
+                        border: "#86efac",
+                        title: p.estado === "cancelado" ? "Pedido cancelado" : "Reenviar ticket por WhatsApp",
+                        onClick: () => reenviarWhatsApp(p),
+                        disabled: enviandoWaId === p.id || p.estado === "cancelado",
+                        children: enviandoWaId === p.id ? "…" : "📱",
+                      })}
+                      {btnAccionIcono({
+                        col: C.purple,
+                        bg: "#ede9fe",
+                        border: `${C.purple}30`,
+                        title: "Reimprimir ticket",
+                        onClick: () => reimprimir(p),
+                        disabled: loadingReprint,
+                        children: "🖨️",
+                      })}
+                      {usuario?.rol === "admin" && <>
+                        {btnAccionIcono({ col: C.amber, bg: "#fef3c7", border: `${C.amber}30`, title: "Editar", onClick: () => abrirEditar(p), children: "✏️" })}
+                        {p.estado !== "cancelado" && btnAccionIcono({ col: C.textMid, bg: "#f1f5f9", border: "#94a3b830", title: "Cancelar pedido", onClick: () => cancelarPed(p), children: "❌" })}
+                        {btnAccionIcono({ col: C.red, bg: "#fee2e2", border: `${C.red}30`, title: "Eliminar", onClick: () => eliminarPed(p), children: "🗑️" })}
+                      </>}
+                    </div>
                   </td>
                 </tr>
               ))}
