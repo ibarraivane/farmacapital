@@ -8,7 +8,7 @@ import { labelTipoEntregaPedido, labelTipoPedido, pedidoCoincideFiltroTipo, pedi
 import { configRowsToMap, mergeFarmaciaConfig } from "./constants/farmaciaFiscal";
 import { productMatchesSearchQuery } from "./utils/fuzzySearch";
 import { parseRpcJsonArray } from "./utils/rpcJson";
-import { notifyPosTicket, notifyOnlineOrderReceipt, formatFolioPOS, formatFolioOnline, formatWhatsAppSendError } from "./utils/orderReceiptWhatsApp";
+import { notifyPosTicket, notifyOnlineOrderReceipt, formatFolioPOS, formatFolioOnline, formatWhatsAppSendError, formatWhatsAppSuccessMessage } from "./utils/orderReceiptWhatsApp";
 import { telefonoMxValido } from "./utils";
 
 /** Listado de pedidos con filtros — antes dentro de Admin/Reportes; requiere showConfirm del padre. */
@@ -153,7 +153,10 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
         showToast(formatWhatsAppSendError({ reason: result.reason, detail: result.detail, telefono: tel }), "error");
         return false;
       }
-      showToast(`WhatsApp enviado a ${tel}`, "success");
+      showToast(
+        formatWhatsAppSuccessMessage({ telefono: tel, whatsapp: result.whatsapp, devHint: result.devHint }),
+        "success"
+      );
       return true;
     } catch (e) {
       showToast(e.message || "Error al enviar WhatsApp", "error");
@@ -334,8 +337,9 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
       </div>
 
       <div style={{ fontSize: 11, color: C.textMid, marginBottom: 12, padding: "8px 12px", background: "#f8fafc", borderRadius: 8, border: `1px solid ${C.border}`, lineHeight: 1.45 }}>
-        📱 <strong>WhatsApp (Meta):</strong> usa el icono <span style={{ color: "#15803d", fontWeight: 800 }}>📱</span> en <strong>Acciones</strong>, o abre el detalle de la fila.
-        El +52 del cliente debe estar en la lista de prueba de Meta (modo Development).
+        📱 <strong>WhatsApp (Meta — modo prueba):</strong> usa el 📱 en Acciones.
+        El mensaje llega al celular del cliente desde el <strong>número de prueba Meta (+1 555…)</strong>, no desde +52 FarmaCapital.
+        El teléfono del cliente debe estar en Meta → API Setup → «Números de prueba».
       </div>
 
       {loading ? <SkeletonTable rows={5} cols={6} /> : (

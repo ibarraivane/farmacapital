@@ -138,7 +138,24 @@ function graphUrl(path, graphVersion) {
   return `https://graph.facebook.com/${ver}/${p}`;
 }
 
-function sanitizeMetaError(detail) {
+function parseMetaSendSuccess(data, toE164) {
+  const messageId = data?.messages?.[0]?.id || null;
+  const contact = Array.isArray(data?.contacts) ? data.contacts[0] : null;
+  if (!messageId) {
+    return {
+      sent: false,
+      reason: 'meta_no_message_id',
+      detail: sanitizeMetaError(data),
+      to: redactPhone(toE164),
+    };
+  }
+  return {
+    sent: true,
+    messageId,
+    waId: contact?.wa_id ? redactPhone(contact.wa_id) : null,
+    input: contact?.input ? redactPhone(contact.input) : redactPhone(toE164),
+  };
+}
   if (!detail) return null;
   try {
     const raw = typeof detail === 'string' ? detail : JSON.stringify(detail);
@@ -197,8 +214,13 @@ async function sendWhatsAppText({ to, text, phoneNumberId, accessToken, graphVer
     }
 
     if (resp.ok) {
-      const messageId = data?.messages?.[0]?.id || null;
-      return { sent: true, messageId, to: redactPhone(toE164), phoneFormat: toE164.startsWith('521') ? '521' : '52' };
+      const parsed = parseMetaSendSuccess(data, toE164);
+      if (!parsed.sent) return parsed;
+      return {
+        ...parsed,
+        to: redactPhone(toE164),
+        phoneFormat: toE164.startsWith('521') ? '521' : '52',
+      };
     }
 
     lastResult = {
@@ -297,10 +319,18 @@ async function sendWhatsAppTemplate({
       }
 
       if (resp.ok) {
-        const messageId = data?.messages?.[0]?.id || null;
+        const parsed = parseMetaSendSuccess(data, toE164);
+        if (!parsed.sent) {
+          lastResult = {
+            ...parsed,
+            reason: 'meta_template_error',
+            status: resp.status,
+            language: lang,
+          };
+          break;
+        }
         return {
-          sent: true,
-          messageId,
+          ...parsed,
           to: redactPhone(toE164),
           template: name,
           language: lang,
@@ -498,7 +528,11 @@ function parseWebhookPayload(body) {
 
 function logWebhookEvents(events) {
   for (const ev of events) {
-    console.log('[whatsapp-webhook]', JSON.stringify(ev));
+    if (ev.kind === 'status' && ev.status === 'failed') {
+      console.error('[whatsapp-delivery-failed]', JSON.stringify(ev));
+    } else {
+      console.log('[whatsapp-webhook]', JSON.stringify(ev));
+    }
   }
 }
 

@@ -372,7 +372,22 @@ async function handlePosTicket(req, res, body) {
     });
   }
 
-  return res.status(200).json({ ok: true, whatsapp: waRes, pedidoId });
+  console.log('[notifications/send:pos-ticket] ok', JSON.stringify({
+    pedidoId,
+    messageId: waRes.messageId || null,
+    via: waRes.via || null,
+    template: waRes.template || null,
+    to: waRes.to || null,
+    waId: waRes.waId || null,
+  }));
+
+  return res.status(200).json({
+    ok: true,
+    whatsapp: waRes,
+    pedidoId,
+    devHint:
+      'Modo Development: el mensaje llega al WhatsApp del cliente desde el número de prueba Meta (+1 555…), no desde +52 FarmaCapital. Revisa ese chat en el celular del destinatario.',
+  });
 }
 
 module.exports = async function handler(req, res) {

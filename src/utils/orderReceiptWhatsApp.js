@@ -88,6 +88,28 @@ export function formatWhatsAppSendError({ reason, detail, telefono } = {}) {
     : "No se pudo enviar por WhatsApp.";
 }
 
+/** Mensaje cuando Meta aceptó el envío (aún puede fallar en entrega — revisar webhook). */
+export function formatWhatsAppSuccessMessage({ telefono, whatsapp, devHint } = {}) {
+  const local10 = digitsOnlyPhone(telefono).slice(-10);
+  const dest =
+    local10.length === 10
+      ? `+52 ${local10.slice(0, 2)} ${local10.slice(2, 6)} ${local10.slice(6)}`
+      : telefono || "el cliente";
+  const viaLabel =
+    whatsapp?.via === "template"
+      ? `plantilla ${whatsapp.template || "Meta"}`
+      : whatsapp?.via === "text_fallback" || whatsapp?.via === "text"
+        ? "mensaje de texto"
+        : "Meta API";
+  const idHint = whatsapp?.messageId ? ` Ref: …${String(whatsapp.messageId).slice(-10)}.` : "";
+
+  return (
+    `Envío aceptado por Meta (${viaLabel}).${idHint} ` +
+    `Abre WhatsApp en ${dest} y busca el chat del número de prueba Meta (+1 555…), no el de FarmaCapital (+52). ` +
+    (devHint || "Si no aparece en 1 min, desliza «Actualizar conversaciones» en WhatsApp.")
+  );
+}
+
 export function buildOnlineOrderReceiptMessage({
   pedidoId,
   items = [],
@@ -250,7 +272,12 @@ export async function notifyPosTicket({
     });
     const data = await resp.json().catch(() => ({}));
     if (resp.ok && data?.whatsapp?.sent) {
-      return { sent: true, via: "server", whatsapp: data.whatsapp };
+      return {
+        sent: true,
+        via: data.whatsapp.via || "server",
+        whatsapp: data.whatsapp,
+        devHint: data.devHint || null,
+      };
     }
     return {
       sent: false,
