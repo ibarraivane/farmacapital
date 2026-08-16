@@ -27,7 +27,7 @@ const leerSesion = () => {
 const BRAND = { primary:"#0D1B2A", secondary:"#1E3ABA", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
 const CATEGORIAS = [
   "Analgésico","Antiinflamatorio","Antibiótico","Gastro","Diabetes",
-  "Hipertensión","Alergia","Vitaminas","Suplemento","Hidratación","Cardiovascular",
+  "Hipertensión","Alergia","Vitaminas","Suplemento","Herbolario","Hidratación","Cardiovascular",
   "Respiratorio","Botiquín","Higiene","Bebidas","Básicos","Abarrotes","Minisuper","Cuidado personal","Otro",
 ];
 const EMPTY = {
