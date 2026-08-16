@@ -15,6 +15,7 @@ import OnboardingTour from "./components/OnboardingTour";
 import { idEmpleadoUsuarios } from "./utils/usuarioId";
 import ImageUploader from "./components/ImageUploader";
 import { sugerirPrecioUnidad, aplicarReglaPrecioUnidad, margenBrutoPct } from "./utils/precioUnidad";
+import { productoEsVendible } from "./utils/productoVendible";
 
 const leerSesion = () => {
   try {
@@ -233,6 +234,10 @@ function codigoBarrasLimpio(v) {
 
 function productoSinCodigoBarras(p) {
   return !codigoBarrasLimpio(p?.codigo_barras);
+}
+
+function productoSinPrecioVenta(p) {
+  return !productoEsVendible(p);
 }
 
 /** Parte nombre/presentación y mueve dosis suelta de principio → concentración al importar CSV. */
@@ -2425,7 +2430,13 @@ function renderInventarioColumnCell(colId, ctx) {
           field="precio"
           value={String(parseFloat(p.precio || 0))}
           type="number"
-          display={`$${parseFloat(p.precio || 0).toFixed(2)}`}
+          display={
+            productoSinPrecioVenta(p) ? (
+              <span style={{ color: C.red, fontWeight: 700, fontSize: 10 }}>No vendible</span>
+            ) : (
+              `$${parseFloat(p.precio || 0).toFixed(2)}`
+            )
+          }
           tdStyle={{ padding: "8px 12px", color: C.text, borderBottom: `1px solid ${C.border}`, background: stickyRowBg }}
         />
       );
@@ -2997,6 +3008,7 @@ export default function InventarioModule() {
       filtroAlerta === "bajo_stock"       ? (p.stock <= (p.stock_minimo??0)) :
       filtroAlerta === "por_caducar"      ? (dias !== null && dias <= 30 && dias >= 0) :
       filtroAlerta === "sin_codigo_barras" ? productoSinCodigoBarras(p) :
+      filtroAlerta === "sin_precio" ? productoSinPrecioVenta(p) :
       true;
     return cat && alerta;
   }), [productos, filtroCategoria, filtroAlerta]);
@@ -3053,6 +3065,7 @@ export default function InventarioModule() {
   const bajoStock  = productos.filter(p => p.activo && p.stock<=(p.stock_minimo??0)).length;
   const porCaducar = productos.filter(p => { const d=diasParaCaducar(p.min_caducidad_lotes); return d!==null&&d<=30&&d>=0; }).length;
   const sinCodigoBarras = productos.filter(p => p.activo && productoSinCodigoBarras(p)).length;
+  const sinPrecioVenta = productos.filter(p => p.activo && productoSinPrecioVenta(p)).length;
   const inactivos  = productos.filter(p => !p.activo).length;
 
   const abrirEdicionProducto = useCallback((p, { focusBarcode = false } = {}) => {
@@ -3672,6 +3685,7 @@ export default function InventarioModule() {
           {label:"Bajo stock",  val:bajoStock,  col:C.amber, click:()=>setFiltroAlerta("bajo_stock")},
           {label:"Por caducar", val:porCaducar, col:C.red,   click:()=>setFiltroAlerta("por_caducar")},
           {label:"Sin cód. barras", val:sinCodigoBarras, col:C.blue, click:()=>setFiltroAlerta("sin_codigo_barras")},
+          {label:"Sin precio", val:sinPrecioVenta, col:C.red, click:()=>setFiltroAlerta("sin_precio")},
           {label:"Inactivos",   val:inactivos,  col:C.textMid},
         ].map(s=>(
           <div key={s.label} onClick={s.click} style={{
@@ -3714,6 +3728,7 @@ export default function InventarioModule() {
           <option value="bajo_stock">⚠ Bajo stock</option>
           <option value="por_caducar">⏰ Por caducar (30d)</option>
           <option value="sin_codigo_barras">🏷️ Sin código de barras</option>
+          <option value="sin_precio">Sin precio de venta</option>
         </select>
         <label style={{display:"flex",alignItems:"center",gap:7,cursor:"pointer",color:C.textMid,fontSize:12,fontWeight:600}}>
           <div onClick={()=>setVerInactivos(v=>!v)} style={{width:36,height:20,borderRadius:10,cursor:"pointer",

@@ -505,7 +505,11 @@ begin
             'cantidad', x.cantidad,
             'productos', jsonb_build_object(
               'categoria', pr.categoria,
-              'costo', pr.costo
+              'costo', pr.costo,
+              'precio', pr.precio,
+              'precio_unidad', pr.precio_unidad,
+              'venta_unidad', pr.venta_unidad,
+              'unidades_por_caja', pr.unidades_por_caja
             )
           )
           order by x.id

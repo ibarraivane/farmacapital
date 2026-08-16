@@ -10,6 +10,7 @@ import { tiendaProductMatchesBusqueda, tiendaCatalogSearchSuggestions, tiendaSea
 import { findProductExactScan, looksLikeBarcodeInput, isAllDigitsInput, normalizeBarcodeRaw, shouldReplaceScanInput } from "../../../utils/barcodeProductLookup";
 import { posTituloProducto, posSubtituloProducto } from "../../../utils/posProductDisplay";
 import { precioUnidadParaVenta } from "../../../utils/precioUnidad";
+import { productoEsVendible } from "../../../utils/productoVendible";
 import {
   suggestPosProductsLocal,
   posEsOtcConStock,
@@ -174,6 +175,7 @@ function PosProductoFichaPanel({
   const stockCajas = getStockCajasPOS(item);
   const sinLotes = productoSinLotesPEPS(item);
   const agotado = stockCajas <= 0 && (!item.venta_unidad || item.stock_unidades === 0);
+  const sinPrecio = !productoEsVendible(item);
   const uso = usoLoading
     ? "Consultando uso con Claude…"
     : (usoTexto || posUsoFallback(item));
@@ -315,7 +317,11 @@ function PosProductoFichaPanel({
           </div>
 
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, paddingTop: 4 }}>
-            {item.venta_unidad ? (
+            {sinPrecio ? (
+              <Btn col={C.amber} disabled full>
+                Sin precio de venta — cárgalo en Inventario
+              </Btn>
+            ) : item.venta_unidad ? (
               <>
                 <Btn col={C.blue} disabled={stockCajas <= 0} onClick={() => onAddCaja(item)} style={{ flex: "1 1 160px" }}>
                   📦 Caja · {$(item.precio)}
@@ -882,6 +888,10 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   };
 
   const add = (item, esUnidad=false) => {
+    if (!productoEsVendible(item)) {
+      showToast(`"${item?.nombre || "Producto"}" no tiene precio de venta. Cárgalo en Inventario antes de cobrarlo.`, "warning");
+      return;
+    }
     // Validar que el lote FEFO activo más próximo no esté vencido
     if(item.min_caducidad_lotes) {
       const hoy = new Date().toLocaleDateString("sv-SE");
@@ -1049,6 +1059,11 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const validarProductoParaCarrito = (item, cantidadNueva = 1, esUnidad = false, cartActual = cart) => {
     if (!item) {
       showToast("Producto inválido.", "warning");
+      return false;
+    }
+
+    if (!productoEsVendible(item)) {
+      showToast(`"${item.nombre || "Producto"}" no tiene precio de venta. Cárgalo en Inventario antes de cobrarlo.`, "warning");
       return false;
     }
 

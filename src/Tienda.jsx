@@ -24,6 +24,7 @@ import {
   razonBloqueoProductoTiendaFarmacia,
   productoEsCategoriaMinisuperTienda,
 } from "./utils/tiendaFarmaciaCatalogo";
+import { productoEsVendible } from "./utils/productoVendible";
 import { showToast, Logo, BrandSplash } from "./ui";
 import {
   formatFolioOnline,
@@ -5163,6 +5164,10 @@ export default function TiendaFarmaCapital(){
 
   const addToCart=prod=>{
     if (!prod || !prod.activo || Number(prod.stock||0) <= 0) return;
+    if (!productoEsVendible(prod)) {
+      alert("Este producto aún no tiene precio de venta. Disponible en sucursal cuando esté capturado.");
+      return;
+    }
     if (!productoPermitidoEnTiendaFarmaciaWeb(prod)) {
       alert(
         productoEsCategoriaMinisuperTienda(prod)

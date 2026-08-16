@@ -11,6 +11,7 @@ import { countPedidosTiendaPendientesHead } from "./utils/pedidosTiendaWeb";
 import { fixLegacyFarmaxBrand } from "./utils/brandText";
 import { parseRpcJsonArray, parseRpcJsonObject } from "./utils/rpcJson";
 import { pedidoEsTipoFisica, pedidoEsTipoOnline, pedidoEsTipoConsulta } from "./utils/orderChannels";
+import { costoLineaVenta, ingresoLineaVenta } from "./utils/margenVenta";
 
 function rpcBundleRows(bundle, key) {
   return parseRpcJsonArray(parseRpcJsonObject(bundle)[key]);
@@ -611,8 +612,8 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
     (pedsCat || []).forEach((ped) => {
       (ped.productos || []).forEach((item) => {
         const cat = item.productos?.categoria || "Sin categoría";
-        const ingreso = parseFloat(item.precio_unitario || 0) * parseInt(item.cantidad || 1);
-        const costo = parseFloat(item.productos?.costo || 0) * parseInt(item.cantidad || 1);
+        const ingreso = ingresoLineaVenta(item);
+        const costo = costoLineaVenta(item);
         if (!margenCat[cat]) margenCat[cat] = { ingreso: 0, costo: 0 };
         margenCat[cat].ingreso += ingreso;
         margenCat[cat].costo += costo;
