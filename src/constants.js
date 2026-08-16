@@ -41,7 +41,7 @@ export const NEG = {
 // INVENTARIO: inv (hub catálogo / lotes / reabasto)
 // DOCTORA: agenda (cons_dr) + expedientes; sin PWA ni consultorio duplicado
 export const NAV_ADMIN = [
-  "dash", "pos", "trans", "cli", "caja", "ped_online",
+  "dash", "pos", "cli", "caja", "ped_online",
   "inv",
   "agenda", "cons", "exp_dr",
   "cof", "dev", "fact",
@@ -52,7 +52,7 @@ export const NAV_ADMIN = [
 
 /** Títulos del sidebar admin (sin mezclar “vistas por rol”; solo agrupa trabajo). */
 export const ADMIN_NAV_SECTIONS = [
-  { title: "Operación diaria", ids: ["dash", "pos", "trans", "cli", "caja", "ped_online"] },
+  { title: "Operación diaria", ids: ["dash", "pos", "cli", "caja", "ped_online"] },
   { title: "Inventario", ids: ["inv"] },
   { title: "Consultorio", ids: ["agenda", "cons", "exp_dr"] },
   { title: "Control y cumplimiento", ids: ["cof", "dev", "fact"] },
@@ -62,7 +62,7 @@ export const ADMIN_NAV_SECTIONS = [
 ];
 
 export const NAV_VENDEDOR = [
-  "midia", "pos", "agenda", "trans", "cli", "inv", "caja", "cof", "ped_online", "pwa",
+  "midia", "pos", "agenda", "cli", "inv", "caja", "cof", "ped_online", "pwa",
 ];
 export const NAV_DOCTORA = ["cons_dr", "exp_dr"];
 
@@ -73,7 +73,7 @@ import {
   Wallet, Stethoscope, Users, UserCog, ShieldCheck,
   Target, Undo2, Receipt, Image as ImageIcon, Sparkles,
   Download, UserPlus, HeartPulse,
-  SlidersHorizontal, Gauge, FolderOpen, CalendarDays, ListOrdered,   Globe,
+  SlidersHorizontal, Gauge, FolderOpen, CalendarDays, Globe,
 } from "lucide-react";
 
 export const NAV_ITEMS = [
@@ -106,6 +106,5 @@ export const NAV_ITEMS = [
   {id:"agenda",     icon: CalendarDays,    label:"Agenda de consultas"},
   {id:"cons_dr",    icon: HeartPulse,      label:"Agenda médica"},
   {id:"exp_dr",     icon: FolderOpen,      label:"Expedientes"},
-  {id:"trans",      icon: ListOrdered,     label:"Transacciones"},
   {id:"ped_online", icon: Globe,           label:"Pedidos online"},
 ];

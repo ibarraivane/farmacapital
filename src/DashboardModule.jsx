@@ -30,6 +30,37 @@ function ventasRowsOrFallback(primaryBundle, primaryKey, fallbackBundle, fallbac
   return rpcBundleRows(fallbackBundle, fallbackKey);
 }
 
+function pedidosCompletados(rows) {
+  return parseRpcJsonArray(rows).filter((p) => String(p.estado || "").toLowerCase() === "completado");
+}
+
+function filtrarPedidosDesde(pedidos, desdeIso) {
+  const t0 = new Date(desdeIso).getTime();
+  return (pedidos || []).filter((p) => new Date(p.created_at).getTime() >= t0);
+}
+
+function filtrarPedidosRango(pedidos, startIso, endIso) {
+  const t0 = new Date(startIso).getTime();
+  const t1 = new Date(endIso).getTime();
+  return (pedidos || []).filter((p) => {
+    const t = new Date(p.created_at).getTime();
+    return t >= t0 && t <= t1;
+  });
+}
+
+function sumPedidosTotal(pedidos) {
+  return (pedidos || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
+}
+
+function loadDashboardInitialTab(fallback = "operacion") {
+  try {
+    const t = sessionStorage.getItem("farmacapital_dashboard_tab");
+    if (t) sessionStorage.removeItem("farmacapital_dashboard_tab");
+    if (t && [...DASHBOARD_TABS_DEFAULT, "proyecto"].includes(t)) return t;
+  } catch { /* noop */ }
+  return fallback;
+}
+
 const STORAGE_PROYECTO_CAPEX = "farmacapital_proyecto_capex_v1";
 
 /** Valores iniciales del CAPEX (se pueden editar en UI; persisten en localStorage del navegador). */
@@ -279,12 +310,13 @@ function TodoHoy({ items }) {
   );
 }
 
-export default function DashboardModule({ usuario, setPage, showConfirm }) {
+export default function DashboardModule({ usuario, setPage, showConfirm, initialTab }) {
   const C = C_LIGHT;
   const isMobileDash = useMediaQuery("(max-width: 768px)");
+  const soloTransacciones = usuario?.rol === "vendedor";
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [panelTab, setPanelTab] = useState("operacion");
+  const [panelTab, setPanelTab] = useState(() => loadDashboardInitialTab(initialTab || (soloTransacciones ? "transacciones" : "operacion")));
   const [tabOrder, setTabOrder] = useState(loadDashboardTabOrder);
   const dragTabId = useRef(null);
   const [periodo, setPeriodo] = useState("mes");
@@ -374,17 +406,43 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
     ]);
     const B = parseRpcJsonObject(bundleRes.data);
     const H = parseRpcJsonObject(homeRes.data);
-    const pedHoy = ventasRowsOrFallback(B, "ped_hoy", H, "ventas_hoy");
-    const pedAyer = rpcBundleRows(B, "ped_ayer");
-    const pedSemana = ventasRowsOrFallback(B, "ped_semana", H, "ventas_semana");
-    const pedSemanaAnt = rpcBundleRows(B, "ped_semana_ant");
-    const pedMes = ventasRowsOrFallback(B, "ped_mes", H, "ventas_mes");
+
+    let pedVentasMes = [];
+    if (adminTok) {
+      const { data: rawVentasMes, error: errVentasMes } = await supabase.rpc("empleado_listar_pedidos_transacciones", {
+        p_session_token: adminTok,
+        p_created_desde: month.start,
+        p_limite: 500,
+      });
+      if (errVentasMes) console.warn("[Dashboard] ventas transacciones:", errVentasMes.message);
+      pedVentasMes = pedidosCompletados(rawVentasMes);
+    }
+
+    const monthPrevStart = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toISOString();
+    const monthPrevEnd = new Date(new Date().getFullYear(), new Date().getMonth(), 0, 23, 59, 59).toISOString();
+
+    let pedHoy = pedVentasMes.length
+      ? filtrarPedidosRango(pedVentasMes, today.start, today.end)
+      : ventasRowsOrFallback(B, "ped_hoy", H, "ventas_hoy");
+    let pedAyer = pedVentasMes.length
+      ? filtrarPedidosRango(pedVentasMes, yesterday.start, yesterday.end)
+      : rpcBundleRows(B, "ped_ayer");
+    let pedSemana = pedVentasMes.length
+      ? filtrarPedidosDesde(pedVentasMes, week.start)
+      : ventasRowsOrFallback(B, "ped_semana", H, "ventas_semana");
+    let pedSemanaAnt = pedVentasMes.length
+      ? filtrarPedidosRango(pedVentasMes, weekPrev.start, weekPrev.end)
+      : rpcBundleRows(B, "ped_semana_ant");
+    let pedMes = pedVentasMes.length
+      ? pedVentasMes
+      : ventasRowsOrFallback(B, "ped_mes", H, "ventas_mes");
     const pedTodos = rpcBundleRows(B, "ped_todos");
-    const pedMesAnt = rpcBundleRows(B, "ped_mes_ant");
-    const citasHoyRaw = rpcBundleRows(B, "citas_hoy");
-    const citasHoy = citasHoyRaw.length ? citasHoyRaw : rpcBundleRows(H, "citas_completadas_hoy");
-    const citasAyer = rpcBundleRows(B, "citas_ayer");
-    const pedMesTipo = rpcBundleRows(B, "ped_mes_tipo");
+    let pedMesAnt = pedVentasMes.length
+      ? filtrarPedidosRango(pedVentasMes, monthPrevStart, monthPrevEnd)
+      : rpcBundleRows(B, "ped_mes_ant");
+    let pedMesTipo = pedVentasMes.length
+      ? pedVentasMes.map((p) => ({ total: p.total, tipo: p.tipo }))
+      : rpcBundleRows(B, "ped_mes_tipo");
     const pedItems = rpcBundleRows(B, "ped_items_top");
     const bajoStock = rpcBundleRows(B, "bajo_stock");
     const porCaducar = rpcBundleRows(B, "por_caducar");
@@ -393,6 +451,9 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
     const citasRecetaExternaMes = B.citas_receta_ext_mes_count ?? 0;
     const cfgRows = rpcBundleRows(B, "cfg_rows");
     const citasKpiMes = rpcBundleRows(B, "citas_kpi_mes");
+    const citasHoyRaw = rpcBundleRows(B, "citas_hoy");
+    const citasHoy = citasHoyRaw.length ? citasHoyRaw : rpcBundleRows(H, "citas_completadas_hoy");
+    const citasAyer = rpcBundleRows(B, "citas_ayer");
     const bundleErr = bundleRes.error;
     const homeErr = homeRes.error;
     if (bundleErr) console.warn("[Dashboard] bundle operación:", bundleErr.message);
@@ -451,7 +512,10 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
     const consult = (pedMesTipo || []).filter((p) => pedidoEsTipoConsulta(p.tipo)).reduce((a, p) => a + parseFloat(p.total || 0), 0);
 
     const byEmp = {};
-    (pedMes || []).forEach((p) => { const k = p.atendido_por || "Sin asignar"; byEmp[k] = (byEmp[k] || 0) + parseFloat(p.total || 0); });
+    (pedMes || []).forEach((p) => {
+      const k = p.usuarios?.nombre || p.atendido_por || "Sin asignar";
+      byEmp[k] = (byEmp[k] || 0) + parseFloat(p.total || 0);
+    });
     const empleados = Object.entries(byEmp).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
     const byProd = {};
@@ -650,11 +714,15 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
     return acc;
   },{}) : {};
 
+  const tabsOperativas = soloTransacciones ? ["transacciones"] : tabOrder;
+
   return (
     <div style={{padding:"clamp(12px, 3vw, 24px)",background:C.bg,minHeight:"100dvh",fontFamily:"'Plus Jakarta Sans',sans-serif",overflowX:"hidden",overflowWrap:"break-word"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16,flexWrap:"wrap",gap:12}}>
         <div style={{minWidth:0,flex:"1 1 200px"}}>
-          <h1 style={{margin:0,color:C.text,fontSize:"clamp(17px, 2.5vw, 20px)",fontWeight:800,lineHeight:1.2}}>◈ Dashboard y reportes</h1>
+          <h1 style={{margin:0,color:C.text,fontSize:"clamp(17px, 2.5vw, 20px)",fontWeight:800,lineHeight:1.2}}>
+            {soloTransacciones ? "◈ Transacciones" : "◈ Dashboard y reportes"}
+          </h1>
           <p style={{margin:"4px 0 0",color:C.textMid,fontSize:12,textTransform:"capitalize"}}>{fmtDate()}</p>
         </div>
         <div style={{display:"flex",gap:10,alignItems:"center",flexShrink:0,flexWrap:"wrap"}}>
@@ -675,6 +743,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
         WebkitOverflowScrolling:"touch",
         scrollbarWidth:"thin",
       }}>
+        {!soloTransacciones && (
         <button
           type="button"
           onClick={()=>setPanelTab("proyecto")}
@@ -693,10 +762,11 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
         >
           {(isMobileDash?DASHBOARD_TAB_LABELS_MOBILE:DASHBOARD_TAB_LABELS).proyecto}
         </button>
-        {!isMobileDash && (
+        )}
+        {!soloTransacciones && !isMobileDash && (
           <span style={{color:C.textDim,fontSize:11,marginRight:4,flexShrink:0}} title="Arrastra ⋮⋮ para cambiar el orden de las pestañas">Orden:</span>
         )}
-        {tabOrder.map((id) => (
+        {tabsOperativas.map((id) => (
           <div
             key={id}
             style={{display:"flex",alignItems:"center",gap:2,flexShrink:0}}
@@ -708,7 +778,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm }) {
               dragTabId.current = null;
             }}
           >
-            {!isMobileDash && (
+            {!soloTransacciones && !isMobileDash && (
               <span
                 draggable
                 onDragStart={(e) => {

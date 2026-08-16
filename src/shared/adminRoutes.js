@@ -16,8 +16,8 @@ const SLUG_TO_PAGE = {
   cons_dr: "cons_dr",
   "agenda-consultas": "agenda",
   agenda: "agenda",
-  transacciones: "trans",
-  trans: "trans",
+  transacciones: "dash",
+  trans: "dash",
   "pedidos-online": "ped_online",
   ped_online: "ped_online",
   inventario: "inv",
@@ -38,7 +38,6 @@ const PAGE_TO_SLUG = {
   exp_dr: "expedientes",
   cons_dr: "mi-consultorio",
   agenda: "agenda-consultas",
-  trans: "transacciones",
   ped_online: "pedidos-online",
   inv: "inventario",
 };
@@ -73,6 +72,13 @@ export function pageIdToAdminPath(pageId) {
   const slug = PAGE_TO_SLUG[pageId];
   if (slug) return `/admin/${slug}`;
   return `/admin/${encodeURIComponent(pageId)}`;
+}
+
+/** Si la URL legible es transacciones, abrir Dashboard en esa pestaña. */
+export function pathnameSuggestsDashTab(pathname) {
+  const p = String(pathname || "").toLowerCase();
+  if (p.includes("transacciones") || p.endsWith("/trans")) return "transacciones";
+  return null;
 }
 
 /** Si la URL legible es “cobrar consulta”, abrir POS en pestaña Consultas. */

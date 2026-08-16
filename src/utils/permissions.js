@@ -32,7 +32,7 @@ export const MODULOS_DISPONIBLES_VENDEDOR = [
   "midia",      // Su pantalla de inicio (default del rol)
   "pos",        // POS principal + pestaña Consultas para cobrar citas
   "agenda",     // Calendario / consultas del día (operativo; sin ficha clínica completa)
-  "trans",      // Listado de transacciones / pedidos
+  "trans",      // Legacy: redirige a Dashboard → pestaña Transacciones (vendedor)
   "inv",        // Inventario (consulta, catálogo, lotes)
   "cli",        // Clientes (ver / registrar)
   "cof",        // COFEPRIS (bitácora al vender controlados)

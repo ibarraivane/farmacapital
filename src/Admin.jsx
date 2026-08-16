@@ -9,11 +9,10 @@ import { Logo, Box, Tag, Btn, Inp, KPI, Modal, NotificacionesToast, showToast, T
 import { sincronizarVentasPendientes, contarVentasPendientes } from "./utils/offlineQueue";
 import { esPedidoTiendaWebPendiente, fetchPedidosTiendaPendientesMerged } from "./utils/pedidosTiendaWeb";
 import AgendaConsultasModule from "./modules/clinical/AgendaConsultasModule";
-import TransaccionesTab from "./TransaccionesTab";
 import ExpedientesDoctora from "./modules/clinical/patients/ExpedientesDoctora";
 import { loadAdminNavOrder } from "./utils/adminNavOrder";
 import { puedeVerModulo, modulosPermitidosParaRol } from "./utils/permissions";
-import { adminPathnameToPageId, pageIdToAdminPath, pathnameSuggestsPosTab } from "./shared/adminRoutes";
+import { adminPathnameToPageId, pageIdToAdminPath, pathnameSuggestsPosTab, pathnameSuggestsDashTab } from "./shared/adminRoutes";
 import { initBillingListeners } from "./modules/billing/core/initBillingListeners";
 import { canAccessRoute } from "./core/security/routeGuard";
 import ImageUploader from "./components/ImageUploader";
@@ -1700,12 +1699,18 @@ export default function FarmaCapitalAdmin(){
   // Migración: ids antiguos "rea" y "lotes" ahora son tabs dentro de "inv".
   // También migramos "rep" al dashboard (legacy).
   function migratePageId(p) {
-    if (!p || p === "rep") return { page: "dash", invTab: null, posTab: null };
-    if (p === "rea")   return { page: "inv",  invTab: "reabasto", posTab: null };
-    if (p === "lotes") return { page: "inv",  invTab: "lotes", posTab: null };
-    if (p === "cons_cobro") return { page: "pos", invTab: null, posTab: "consultas" };
-    if (p === "turno" || p === "pantalla-turno") return { page: "dash", invTab: null, posTab: null };
-    return { page: p, invTab: null, posTab: null };
+    if (!p || p === "rep") return { page: "dash", invTab: null, posTab: null, dashTab: null };
+    if (p === "trans") return { page: "dash", invTab: null, posTab: null, dashTab: "transacciones" };
+    if (p === "lotes") return { page: "inv",  invTab: "lotes", posTab: null, dashTab: null };
+    if (p === "cons_cobro") return { page: "pos", invTab: null, posTab: "consultas", dashTab: null };
+    if (p === "turno" || p === "pantalla-turno") return { page: "dash", invTab: null, posTab: null, dashTab: null };
+    return { page: p, invTab: null, posTab: null, dashTab: null };
+  }
+  function applyDashTabHint(dashTab) {
+    if (!dashTab) return;
+    try {
+      sessionStorage.setItem("farmacapital_dashboard_tab", dashTab);
+    } catch (_) { /* noop */ }
   }
   function applyPosTabHint(posTab) {
     if (!posTab) return;
@@ -1716,10 +1721,13 @@ export default function FarmaCapitalAdmin(){
   const [page, setPage] = useState(() => {
     const fromUrl = adminPathnameToPageId(window.location.pathname);
     const raw0 = fromUrl || sessionStorage.getItem("farmacapital_active_page") || "dash";
-    const { page: p, invTab, posTab } = migratePageId(raw0);
+    const { page: p, invTab, posTab, dashTab } = migratePageId(raw0);
     applyPosTabHint(posTab);
+    applyDashTabHint(dashTab);
     const pathHint = pathnameSuggestsPosTab(window.location.pathname);
     if (pathHint) applyPosTabHint(pathHint);
+    const dashHint = pathnameSuggestsDashTab(window.location.pathname);
+    if (dashHint) applyDashTabHint(dashHint);
     if (invTab) {
       try {
         sessionStorage.setItem("farmacapital_inv_tab", invTab);
@@ -1743,7 +1751,9 @@ export default function FarmaCapitalAdmin(){
     const next = migrated.page;
     const tabHint = opts?.tab ?? migrated.invTab ?? null;
     const posTab = opts?.posTab ?? migrated.posTab ?? null;
+    const dashTab = opts?.dashTab ?? migrated.dashTab ?? null;
     if (posTab) applyPosTabHint(posTab);
+    if (dashTab) applyDashTabHint(dashTab);
     try {
       sessionStorage.setItem("farmacapital_active_page", next);
       if (next === "inv" && tabHint) {
@@ -1777,8 +1787,11 @@ export default function FarmaCapitalAdmin(){
       if (!id) return;
       const migrated = migratePageId(id);
       applyPosTabHint(migrated.posTab);
+      applyDashTabHint(migrated.dashTab);
       const pathHint = pathnameSuggestsPosTab(window.location.pathname);
       if (pathHint) applyPosTabHint(pathHint);
+      const dashHint = pathnameSuggestsDashTab(window.location.pathname);
+      if (dashHint) applyDashTabHint(dashHint);
       try {
         sessionStorage.setItem("farmacapital_active_page", migrated.page);
       } catch (_) { /* noop */ }
@@ -2057,7 +2070,8 @@ export default function FarmaCapitalAdmin(){
 
   const renderPage = () => {
     // Guard de permisos: bloquea acceso a módulos fuera del rol.
-    if (!puedeVerModulo(usuario, page)) {
+    const accesoDashTransacciones = page === "dash" && usuario?.rol === "vendedor" && puedeVerModulo(usuario, "trans");
+    if (!puedeVerModulo(usuario, page) && !accesoDashTransacciones) {
       return (
         <div style={{padding:60, maxWidth:520, margin:"0 auto", textAlign:"center", background:C_LIGHT.bg, minHeight:"70vh"}}>
           <div style={{fontSize:56, marginBottom:16}}>🔒</div>
@@ -2092,7 +2106,6 @@ export default function FarmaCapitalAdmin(){
       case "cons_dr":
         return <AgendaConsultasModule usuario={usuario} onNavigate={setPageAndSave} />;
       case "exp_dr":    return <ExpedientesDoctora />;
-      case "trans":     return <TransaccionesTab usuario={usuario} showConfirm={showConfirm} />;
       case "ped_online":
         return <POS negocio={neg} usuario={usuario} initialTab="online" onNavigate={setPageAndSave} />;
       case "inventario":
