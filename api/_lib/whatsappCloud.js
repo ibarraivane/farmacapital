@@ -54,6 +54,8 @@ function getWhatsAppTemplateConfig() {
     citaConfirmacion:
       trimEnv('WHATSAPP_TEMPLATE_CITA') ||
       trimEnv('WHATSAPP_TEMPLATE_CITA_CONFIRMACION'),
+    /** Activa botón URL en plantilla (requiere botón «Ver ticket» en Meta). */
+    pedidoUrlButton: trimEnv('WHATSAPP_TEMPLATE_PEDIDO_URL_BUTTON').toLowerCase() === 'true',
   };
 }
 
@@ -156,6 +158,8 @@ function parseMetaSendSuccess(data, toE164) {
     input: contact?.input ? redactPhone(contact.input) : redactPhone(toE164),
   };
 }
+
+function sanitizeMetaError(detail) {
   if (!detail) return null;
   try {
     const raw = typeof detail === 'string' ? detail : JSON.stringify(detail);
@@ -248,6 +252,8 @@ async function sendWhatsAppTemplate({
   languageCode,
   bodyParameters,
   headerParameters,
+  buttonUrlSuffix,
+  buttonIndex = '0',
   phoneNumberId,
   accessToken,
   graphVersion,
@@ -278,6 +284,15 @@ async function sendWhatsAppTemplate({
   }
   if (bodyParams.length) {
     components.push({ type: 'body', parameters: bodyParams });
+  }
+  const urlSuffix = String(buttonUrlSuffix || '').trim();
+  if (urlSuffix) {
+    components.push({
+      type: 'button',
+      sub_type: 'url',
+      index: String(buttonIndex),
+      parameters: [{ type: 'text', text: urlSuffix.slice(0, 2000) }],
+    });
   }
 
   const langCandidates = [...new Set([
@@ -377,6 +392,8 @@ async function sendWhatsAppSmart({
   templateLanguage,
   bodyParameters,
   headerParameters,
+  buttonUrlSuffix,
+  buttonIndex,
   allowTextFallback,
   phoneNumberId,
   accessToken,
@@ -395,6 +412,8 @@ async function sendWhatsAppSmart({
       languageCode: templateLanguage,
       bodyParameters,
       headerParameters,
+      buttonUrlSuffix,
+      buttonIndex,
       phoneNumberId,
       accessToken,
       graphVersion,

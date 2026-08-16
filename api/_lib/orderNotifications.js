@@ -141,7 +141,7 @@ function resolveCitaTemplate() {
   return getWhatsAppTemplateConfig().citaConfirmacion || '';
 }
 
-function buildOrderTemplateBodyParams({ event, pedido }) {
+function buildOrderTemplateBodyParams({ event, pedido, ticketUrl }) {
   const folio = formatFolioOnline(pedido?.id) || `#FC-${pedido?.id || '?'}`;
   const total = formatMoneyMx(pedido?.total);
   const entrega =
@@ -155,11 +155,15 @@ function buildOrderTemplateBodyParams({ event, pedido }) {
     return [folio, note];
   }
 
-  let note = '¡Gracias por tu preferencia!';
+  let note = ticketUrl ? `Ver ticket: ${ticketUrl}` : '¡Gracias por tu preferencia!';
   if (event === 'payment_approved') {
-    note = 'Te avisaremos cuando esté listo.';
+    note = ticketUrl ? `Pago recibido. Ticket: ${ticketUrl}` : 'Te avisaremos cuando esté listo.';
   } else if (pedido?.tipo_entrega === 'recoger') {
-    note = `Muestra tu folio al llegar. Mapa: ${FARMACIA_MAPS_URL}`;
+    note = ticketUrl
+      ? `Recógelo en mostrador. Ticket: ${ticketUrl}`
+      : `Muestra tu folio al llegar. Mapa: ${FARMACIA_MAPS_URL}`;
+  } else if (ticketUrl) {
+    note = `Ver ticket: ${ticketUrl}`;
   } else {
     note = 'Te contactamos para coordinar tu entrega.';
   }
@@ -233,15 +237,20 @@ async function sendMetaWhatsapp({
   templateName,
   bodyParameters,
   templateLanguage,
+  buttonUrlSuffix,
   allowTextFallback,
 }) {
   if (!to) return { sent: false, reason: 'invalid_phone' };
+  const tplCfg = getWhatsAppTemplateConfig();
+  const useButton = tplCfg.pedidoUrlButton && buttonUrlSuffix;
   return sendWhatsAppSmart({
     to,
     text,
     templateName,
     bodyParameters,
     templateLanguage,
+    buttonUrlSuffix: useButton ? buttonUrlSuffix : undefined,
+    buttonIndex: '0',
     allowTextFallback,
   });
 }
@@ -252,6 +261,7 @@ async function sendWhatsapp({
   templateName,
   bodyParameters,
   templateLanguage,
+  buttonUrlSuffix,
   allowTextFallback = false,
 }) {
   const provider = resolveWhatsAppProvider();
@@ -262,6 +272,7 @@ async function sendWhatsapp({
       templateName,
       bodyParameters,
       templateLanguage,
+      buttonUrlSuffix,
       allowTextFallback,
     });
   }
@@ -301,14 +312,15 @@ function buildPosTicketMessage({ pedido, items, metodoPago, puntosGanados, saldo
   return msg;
 }
 
-function buildPosTicketTemplateBodyParams({ pedido, puntosGanados, saldoPuntos }) {
+function buildPosTicketTemplateBodyParams({ pedido, puntosGanados, saldoPuntos, ticketUrl }) {
   const folio = formatFolioPOS(pedido?.id) || `#${pedido?.id || '?'}`;
   const total = formatMoneyMx(pedido?.total);
   const entrega = 'Venta en mostrador FarmaCapital';
-  let note = '¡Gracias por su preferencia!';
+  let note = ticketUrl ? `Ver ticket: ${ticketUrl}` : '¡Gracias por su preferencia!';
   if (puntosGanados != null && Number(puntosGanados) > 0) {
     note = `+${puntosGanados} pts FarmaCapital`;
     if (saldoPuntos != null) note += `. Saldo: ${saldoPuntos} pts`;
+    if (ticketUrl) note += `. Ticket: ${ticketUrl}`;
   }
   return [folio, total, entrega, note];
 }
@@ -320,6 +332,8 @@ async function sendPosTicketNotification({
   metodoPago,
   puntosGanados = null,
   saldoPuntos = null,
+  ticketUrl = null,
+  ticketUrlSuffix = null,
 }) {
   if (!telefono) return { sent: false, reason: 'missing_phone' };
   const text = buildPosTicketMessage({
@@ -332,13 +346,15 @@ async function sendPosTicketNotification({
   const tpl = getWhatsAppTemplateConfig();
   const templateName = tpl.pedidoConfirmado || '';
   const bodyParameters = templateName
-    ? buildPosTicketTemplateBodyParams({ pedido, puntosGanados, saldoPuntos })
+    ? buildPosTicketTemplateBodyParams({ pedido, puntosGanados, saldoPuntos, ticketUrl })
     : undefined;
+  const suffix = ticketUrlSuffix || (ticketUrl ? String(ticketUrl).split('/r/').pop() : null);
   return sendWhatsapp({
     to: telefono,
     text,
     templateName: templateName || undefined,
     bodyParameters,
+    buttonUrlSuffix: suffix || undefined,
     allowTextFallback: false,
   });
 }

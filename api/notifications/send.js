@@ -13,6 +13,10 @@ const {
 } = require('../_lib/orderNotifications');
 const { getSupabaseAdminConfig, validateEmployeeSession } = require('../_lib/supabaseAdmin');
 const { handleWhatsAppManualSend } = require('../_lib/whatsappSendHandler');
+const {
+  ensurePedidoReciboToken,
+  buildReciboPublicUrl,
+} = require('../_lib/receiptTicket');
 
 async function safeJson(req) {
   try {
@@ -285,9 +289,18 @@ async function handleOrderReceipt(req, res, body) {
     items: pedido.pedido_items || [],
   });
 
+  let reciboToken = null;
+  let ticketUrl = null;
+  try {
+    reciboToken = await ensurePedidoReciboToken(supabaseUrl, serviceKey, pedidoId);
+    ticketUrl = reciboToken ? buildReciboPublicUrl(reciboToken) : null;
+  } catch (e) {
+    console.warn('[notifications/send:order] recibo token:', e?.message);
+  }
+
   const templateName = resolveOrderEventTemplate(event);
   const bodyParameters = templateName
-    ? buildOrderTemplateBodyParams({ event, pedido, items: pedido.pedido_items || [] })
+    ? buildOrderTemplateBodyParams({ event, pedido, ticketUrl })
     : undefined;
 
   const waRes = await sendWhatsapp({
@@ -295,8 +308,10 @@ async function handleOrderReceipt(req, res, body) {
     text: message,
     templateName: templateName || undefined,
     bodyParameters,
+    buttonUrlSuffix: reciboToken || undefined,
+    allowTextFallback: false,
   });
-  return res.status(200).json({ ok: true, whatsapp: waRes, pedidoId });
+  return res.status(200).json({ ok: true, whatsapp: waRes, pedidoId, ticketUrl });
 }
 
 async function handlePosTicket(req, res, body) {
@@ -354,6 +369,15 @@ async function handlePosTicket(req, res, body) {
 
   const items = itemsFromBody.length ? itemsFromBody : (pedido.pedido_items || []);
 
+  let reciboToken = null;
+  let ticketUrl = null;
+  try {
+    reciboToken = await ensurePedidoReciboToken(supabaseUrl, serviceKey, pedidoId);
+    ticketUrl = reciboToken ? buildReciboPublicUrl(reciboToken) : null;
+  } catch (e) {
+    console.warn('[notifications/send:pos-ticket] recibo token:', e?.message);
+  }
+
   const waRes = await sendPosTicketNotification({
     telefono,
     pedido,
@@ -361,6 +385,8 @@ async function handlePosTicket(req, res, body) {
     metodoPago: metodoFromBody || pedido.metodo_pago,
     puntosGanados: body?.puntosGanados ?? body?.puntos_ganados ?? null,
     saldoPuntos: body?.saldoPuntos ?? body?.saldo_puntos ?? null,
+    ticketUrl,
+    ticketUrlSuffix: reciboToken,
   });
 
   if (!waRes?.sent) {
@@ -395,6 +421,7 @@ async function handlePosTicket(req, res, body) {
     ok: true,
     whatsapp: waRes,
     pedidoId,
+    ticketUrl,
     devHint:
       'Modo Development: el mensaje llega al WhatsApp del cliente desde el número de prueba Meta (+1 555…), no desde +52 FarmaCapital. Revisa ese chat en el celular del destinatario.',
   });

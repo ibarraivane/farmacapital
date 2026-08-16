@@ -107,7 +107,7 @@ export function formatWhatsAppSendError({ reason, detail, telefono } = {}) {
 }
 
 /** Mensaje cuando Meta aceptó el envío (aún puede fallar en entrega — revisar webhook). */
-export function formatWhatsAppSuccessMessage({ telefono, whatsapp, devHint } = {}) {
+export function formatWhatsAppSuccessMessage({ telefono, whatsapp, devHint, ticketUrl } = {}) {
   const local10 = digitsOnlyPhone(telefono).slice(-10);
   const dest =
     local10.length === 10
@@ -120,11 +120,12 @@ export function formatWhatsAppSuccessMessage({ telefono, whatsapp, devHint } = {
         ? "mensaje de texto"
         : "Meta API";
   const idHint = whatsapp?.messageId ? ` Ref: …${String(whatsapp.messageId).slice(-10)}.` : "";
+  const linkHint = ticketUrl ? ` Ticket: ${ticketUrl}` : "";
 
   return (
-    `Envío aceptado por Meta (${viaLabel}).${idHint} ` +
-    `Abre WhatsApp en ${dest} y busca el chat del número de prueba Meta (+1 555…), no el de FarmaCapital (+52). ` +
-    (devHint || "Si no aparece en 1 min, desliza «Actualizar conversaciones» en WhatsApp.")
+    `Envío aceptado por Meta (${viaLabel}).${idHint}${linkHint} ` +
+    `Abre WhatsApp en ${dest} (chat del +1 555… de prueba Meta). ` +
+    (devHint || "El enlace del ticket también queda guardado en el pedido.")
   );
 }
 
@@ -295,6 +296,7 @@ export async function notifyPosTicket({
         via: data.whatsapp.via || "server",
         whatsapp: data.whatsapp,
         devHint: data.devHint || null,
+        ticketUrl: data.ticketUrl || null,
       };
     }
     return {

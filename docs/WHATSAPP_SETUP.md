@@ -137,6 +137,23 @@ Hora: {{3}}
 
 Tras aprobación, agrega en Vercel los nombres exactos (`WHATSAPP_TEMPLATE_*`) y redeploy.
 
+### Ticket digital en el mismo mensaje (URL `/r/{token}`)
+
+1. Ejecuta en Supabase: `sql/patch_recibos_ticket_whatsapp.sql` (columna `recibo_token`).
+2. En Vercel: `PUBLIC_SITE_URL=https://www.farmacapital.mx`
+3. Al enviar WhatsApp (POS o pedido online), el servidor genera un token único y guarda la URL en el pedido.
+4. La plantilla `pedido_confirmado` usa la variable **{{4}}** con el enlace, por ejemplo:  
+   `Ver ticket: https://www.farmacapital.mx/r/550e8400-e29b-41d4-a716-446655440000`
+5. El cliente abre `/r/{token}` y ve el ticket HTML (mismo contenido que el ticket térmico).
+
+**Opcional — botón «Ver ticket»** (un solo toque en WhatsApp):
+
+- Crea plantilla con botón URL fija: `https://www.farmacapital.mx/r/{{1}}`
+- En Vercel: `WHATSAPP_TEMPLATE_PEDIDO_URL_BUTTON=true`
+- El sistema envía solo el UUID en el botón (más limpio que pegar URL en el cuerpo).
+
+**Dónde se guarda:** columna `pedidos.recibo_token` en Supabase (no bucket PDF por ahora). El ticket se renderiza al vuelo desde los datos del pedido.
+
 ### Envío manual con plantilla
 
 ```bash

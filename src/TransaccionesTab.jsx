@@ -154,7 +154,12 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
         return false;
       }
       showToast(
-        formatWhatsAppSuccessMessage({ telefono: tel, whatsapp: result.whatsapp, devHint: result.devHint }),
+        formatWhatsAppSuccessMessage({
+          telefono: tel,
+          whatsapp: result.whatsapp,
+          devHint: result.devHint,
+          ticketUrl: result.ticketUrl,
+        }),
         "success"
       );
       return true;
