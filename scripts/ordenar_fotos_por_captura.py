@@ -24,7 +24,7 @@ import re
 import shutil
 import subprocess
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 
 EXTENSIONES = {".jpg", ".jpeg", ".png", ".heic", ".heif", ".tif", ".tiff"}
 
@@ -66,10 +66,20 @@ def fecha_por_spotlight(ruta):
         ).stdout
         valor = plistlib.loads(salida).get("kMDItemContentCreationDate")
         if isinstance(valor, datetime):
-            return valor.replace(tzinfo=None)
+            # Las fechas de un plist vienen en UTC. Hay que pasarlas a hora
+            # local o quedarían 6 h adelantadas frente a las de EXIF, y al
+            # mezclar ambas fuentes el orden saldría revuelto.
+            return valor.replace(tzinfo=timezone.utc).astimezone().replace(tzinfo=None)
     except Exception:
         pass
     return None
+
+
+def numero_iphone(ruta):
+    """El #### de IMG_####.JPG. El iPhone los asigna en orden de captura, así
+    que sirve de respaldo cuando la foto viene sin EXIF."""
+    m = re.match(r"IMG_(\d+)\.", os.path.basename(ruta), re.I)
+    return int(m.group(1)) if m else None
 
 
 def hora_captura(ruta):
@@ -81,6 +91,30 @@ def hora_captura(ruta):
     if f:
         return f, "macos"
     return datetime.fromtimestamp(os.path.getmtime(ruta)), "archivo"
+
+
+def clave_orden(ruta):
+    """(grupo, valor, etiqueta) para ordenar.
+
+    Dos señales distintas del mismo orden, según lo que traiga la foto:
+    la hora de captura del EXIF, o el consecutivo del nombre del iPhone.
+    No son comparables entre sí, por eso viajan en grupos separados: mezclar
+    fotos de las dos clases en una misma corrida daría un orden sin sentido.
+    """
+    f = fecha_por_exif(ruta)
+    if f:
+        return "exif", f, f"{f:%H:%M:%S.%f}"
+
+    n = numero_iphone(ruta)
+    if n is not None:
+        return "nombre", n, f"IMG_{n}"
+
+    f = fecha_por_spotlight(ruta)
+    if f:
+        return "macos", f, f"{f:%H:%M:%S}"
+
+    f = datetime.fromtimestamp(os.path.getmtime(ruta))
+    return "archivo", f, f"{f:%H:%M:%S}"
 
 
 def tiene_codigo(ruta):
@@ -117,6 +151,10 @@ def main():
     ap.add_argument("--aplicar", action="store_true", help="copiar; sin esto solo muestra")
     ap.add_argument("--verificar", action="store_true",
                     help="revisar con el lector de códigos que los pares estén bien")
+    ap.add_argument("--grupo", choices=["exif", "nombre", "macos", "archivo"],
+                    help="procesar solo las fotos que se ordenan por esta vía")
+    ap.add_argument("--sesion", type=int, metavar="N",
+                    help="procesar solo la sesión N (sin esto, las lista)")
     args = ap.parse_args()
 
     if not os.path.isdir(args.carpeta):
@@ -129,18 +167,71 @@ def main():
 
     registros = []
     for ruta in fotos:
-        fecha, origen = hora_captura(ruta)
-        registros.append({"ruta": ruta, "fecha": fecha, "origen": origen})
-    registros.sort(key=lambda r: r["fecha"])
+        grupo, valor, etiqueta = clave_orden(ruta)
+        registros.append({"ruta": ruta, "grupo": grupo, "valor": valor,
+                          "etiqueta": etiqueta})
 
-    origenes = {}
+    grupos = {}
     for r in registros:
-        origenes[r["origen"]] = origenes.get(r["origen"], 0) + 1
-    print(f"{len(registros)} fotos · fuente de la hora: "
-          + ", ".join(f"{k}={v}" for k, v in sorted(origenes.items())))
-    if origenes.get("archivo"):
-        print("  ⚠️  Algunas no traen hora de captura y se ordenaron por fecha de")
-        print("      archivo, que AirDrop sí altera. Revísalas a mano.")
+        grupos.setdefault(r["grupo"], []).append(r)
+
+    NOMBRES = {"exif": "hora de captura (EXIF)",
+               "nombre": "consecutivo IMG_#### del iPhone",
+               "macos": "fecha de macOS",
+               "archivo": "fecha de archivo"}
+    print(f"{len(registros)} fotos en {args.carpeta}")
+    for g, rs in sorted(grupos.items(), key=lambda kv: -len(kv[1])):
+        print(f"  {len(rs):4d} por {NOMBRES[g]}")
+
+    if len(grupos) > 1:
+        print()
+        print("⚠️  Hay fotos que conservan el orden por vías distintas, y no son")
+        print("    comparables entre sí: son lotes separados. Procesa uno a la vez")
+        print("    con --grupo, o muévelos a carpetas distintas.")
+        if not args.grupo:
+            print()
+            print("    Ejemplo:  --grupo " + max(grupos, key=lambda g: len(grupos[g])))
+            sys.exit(1)
+
+    if args.grupo:
+        if args.grupo not in grupos:
+            sys.exit(f"No hay fotos del grupo '{args.grupo}'. Hay: {', '.join(grupos)}")
+        registros = grupos[args.grupo]
+        print(f"\n→ Procesando solo el grupo '{args.grupo}' ({len(registros)} fotos)")
+
+    if any(r["grupo"] == "archivo" for r in registros):
+        print("  ⚠️  Algunas se ordenaron por fecha de archivo, que AirDrop sí")
+        print("      altera. Revísalas a mano.")
+    registros.sort(key=lambda r: r["valor"])
+
+    # Una carpeta de Descargas acumula fotos de muchos días. Un salto grande
+    # entre dos fotos consecutivas marca dónde termina una sesión y empieza otra.
+    sesiones, actual = [], [registros[0]]
+    for previo, r in zip(registros, registros[1:]):
+        if r["grupo"] == "nombre":
+            salto = r["valor"] - previo["valor"] > 20
+        else:
+            salto = (r["valor"] - previo["valor"]).total_seconds() > 1800
+        if salto:
+            sesiones.append(actual)
+            actual = []
+        actual.append(r)
+    sesiones.append(actual)
+
+    if len(sesiones) > 1 and not args.sesion:
+        print(f"\n{len(sesiones)} sesiones detectadas (fotos tomadas de corrido):\n")
+        for i, s in enumerate(sesiones, 1):
+            print(f"  {i:2d}. {len(s):4d} fotos   {s[0]['etiqueta']} → {s[-1]['etiqueta']}"
+                  f"{'' if len(s) % 2 == 0 else '   ⚠️ impar'}")
+        print("\nElige una con --sesion N")
+        sys.exit(0)
+
+    if args.sesion:
+        if not 1 <= args.sesion <= len(sesiones):
+            sys.exit(f"--sesion debe estar entre 1 y {len(sesiones)}")
+        registros = sesiones[args.sesion - 1]
+        print(f"→ Sesión {args.sesion}: {len(registros)} fotos "
+              f"({registros[0]['etiqueta']} → {registros[-1]['etiqueta']})")
     print()
 
     salida = args.salida or os.path.join(args.carpeta, "ordenadas")
@@ -162,7 +253,7 @@ def main():
                 nota = "  ⚠️  NO COINCIDE"
                 problemas.append(r)
 
-        print(f"  {r['fecha']:%H:%M:%S.%f}  {os.path.basename(r['ruta']):<28} "
+        print(f"  {r['etiqueta']:<16}  {os.path.basename(r['ruta']):<40} "
               f"→ {r['nombre']}{nota}")
 
         if args.aplicar:
