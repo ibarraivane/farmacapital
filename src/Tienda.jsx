@@ -34,6 +34,7 @@ import {
 } from "./utils/orderReceiptWhatsApp";
 import { notifyCitaConfirmacion, formatTelefonoDisplay, formatCitaFecha } from "./utils/citaWhatsApp";
 import { FARMACIA_FISCAL } from "./constants/farmaciaFiscal";
+import { HORARIO_FARMACIA } from "./constants/turnos";
 import { validarPasswordTienda, PASSWORD_RULES_TEXT, PASSWORD_MIN_LENGTH } from "./utils/passwordPolicy";
 import {
   X, ShoppingCart, Pill, Tag as TagIcon, Stethoscope, Star,
@@ -122,7 +123,7 @@ const CONTACTO = {
   whatsapp_link: `https://wa.me/52${FARMACIA_FISCAL.telefono}`,
   email: FARMACIA_FISCAL.email,
   direccion: FARMACIA_FISCAL.direccion_comercial,
-  horario: "Lun–Vie 8:00–22:00 · Sáb 8:00–20:00 · Dom 9:00–18:00",
+  horario: `Todos los días ${HORARIO_FARMACIA.apertura}–${HORARIO_FARMACIA.cierre}`,
   maps_url: FARMACIA_FISCAL.maps_url,
   maps_embed: FARMACIA_FISCAL.maps_embed,
 };
@@ -1159,26 +1160,17 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
   if (!abierto) return null;
 
   const ahora = new Date();
-  const dia = ahora.getDay();
   const hora = ahora.getHours();
 
   let estaAbierto = false;
   let horaCierre = "";
   let horarioHoy = "";
 
-  if (dia === 0) {
-    estaAbierto = hora >= 9 && hora < 18;
-    horaCierre = "18:00";
-    horarioHoy = "9:00 - 18:00";
-  } else if (dia === 6) {
-    estaAbierto = hora >= 8 && hora < 20;
-    horaCierre = "20:00";
-    horarioHoy = "8:00 - 20:00";
-  } else {
-    estaAbierto = hora >= 8 && hora < 22;
-    horaCierre = "22:00";
-    horarioHoy = "8:00 - 22:00";
-  }
+  // Mismo horario los siete días. Los minutos importan: cerramos 22:30, no 22:00.
+  const minutosAhora = hora * 60 + ahora.getMinutes();
+  estaAbierto = minutosAhora >= 8 * 60 && minutosAhora < 22 * 60 + 30;
+  horaCierre  = HORARIO_FARMACIA.cierre;
+  horarioHoy  = `${HORARIO_FARMACIA.apertura} - ${HORARIO_FARMACIA.cierre}`;
 
   const navItems = [
     { icon: ShoppingCart, label: "Inicio", page: "home" },
@@ -1378,9 +1370,7 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
                 Hoy: {horarioHoy}
               </div>
               <div style={{fontSize: 12, color: C.textMid, lineHeight: 1.6}}>
-                Lun-Vie: 8:00 - 22:00<br/>
-                Sábado: 8:00 - 20:00<br/>
-                Domingo: 9:00 - 18:00
+                Todos los días, incluidos sábados y domingos
               </div>
             </div>
           </div>
@@ -1574,7 +1564,7 @@ function Header({page,setPage,cart,user,setUser}){
           justifyContent:"center",minWidth:0,
         }}>
           <span>Iztapalapa, CDMX</span>
-          <span>Abierto hasta 22:00</span>
+          <span>Abierto hasta {HORARIO_FARMACIA.cierre}</span>
         </div>
 
         <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
