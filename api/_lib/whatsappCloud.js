@@ -39,21 +39,23 @@ function getWhatsAppCloudConfig() {
   };
 }
 
-/** Nombres de plantillas aprobadas en Meta (Utility). Vacío = solo texto libre. */
+/** Plantillas Utility (Meta). Defaults = nombres en WhatsApp Manager; override con WHATSAPP_TEMPLATE_* si hace falta. */
 function getWhatsAppTemplateConfig() {
   const language = trimEnv('WHATSAPP_TEMPLATE_LANGUAGE') || 'es_MX';
-  const fallbackText = trimEnv('WHATSAPP_TEMPLATE_FALLBACK_TEXT').toLowerCase() !== 'false';
+  const fallbackText = trimEnv('WHATSAPP_TEMPLATE_FALLBACK_TEXT').toLowerCase() === 'true';
   return {
     language,
     fallbackText,
-    pedidoConfirmado: trimEnv('WHATSAPP_TEMPLATE_PEDIDO_CONFIRMADO'),
+    pedidoConfirmado: trimEnv('WHATSAPP_TEMPLATE_PEDIDO_CONFIRMADO') || 'pedido_confirmado',
     pedidoPago:
       trimEnv('WHATSAPP_TEMPLATE_PEDIDO_PAGO') ||
-      trimEnv('WHATSAPP_TEMPLATE_PEDIDO_PAGO_APROBADO'),
-    pedidoListo: trimEnv('WHATSAPP_TEMPLATE_PEDIDO_LISTO'),
+      trimEnv('WHATSAPP_TEMPLATE_PEDIDO_PAGO_APROBADO') ||
+      'pedido_pago_aprobado',
+    pedidoListo: trimEnv('WHATSAPP_TEMPLATE_PEDIDO_LISTO') || 'pedido_listo',
     citaConfirmacion:
       trimEnv('WHATSAPP_TEMPLATE_CITA') ||
-      trimEnv('WHATSAPP_TEMPLATE_CITA_CONFIRMACION'),
+      trimEnv('WHATSAPP_TEMPLATE_CITA_CONFIRMACION') ||
+      'cita_confirmacion',
     /** Activa botón URL en plantilla (requiere botón «Ver ticket» en Meta). */
     pedidoUrlButton: trimEnv('WHATSAPP_TEMPLATE_PEDIDO_URL_BUTTON').toLowerCase() === 'true',
   };
