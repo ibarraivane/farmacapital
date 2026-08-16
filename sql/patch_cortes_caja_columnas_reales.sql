@@ -56,16 +56,20 @@ begin
   v_ahora    := now() at time zone 'America/Mexico_City';
   v_apertura := case when p_turno = 'matutino' then time '08:00' else time '16:00' end;
 
+  -- diferencia y total_general son columnas GENERATED: las calcula Postgres a
+  -- partir de las demás y rechazan cualquier valor explícito. Los parámetros
+  -- p_diferencia / p_total_general se conservan en la firma (el módulo los
+  -- manda) pero solo se usan para la bitácora.
   insert into public.cortes_caja (
     turno, empleado_id, fecha, hora_apertura, hora_cierre,
     efectivo_declarado, efectivo_sistema,
     total_tarjeta, total_spei, total_mercadopago,
-    diferencia, total_general, notas
+    notas
   ) values (
     p_turno, v_actor_id, v_ahora::date, v_apertura, v_ahora::time,
     coalesce(p_efectivo_declarado, 0), coalesce(p_efectivo_sistema, 0),
     coalesce(p_tarjeta, 0), coalesce(p_spei, 0), coalesce(p_mercadopago, 0),
-    p_diferencia, p_total_general, p_notas
+    p_notas
   ) returning id into v_corte_id;
 
   begin
