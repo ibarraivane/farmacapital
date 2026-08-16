@@ -2,7 +2,9 @@
 
 Número comercial (app celular): **+52 55 6253 0631** — no migrar vía Meta hasta resolver coexistencia.
 
-Número temporal Meta (API de prueba): Phone Number ID `1338650695990173` (+1 555-342-4819).
+**Modo Development (ago 2026):** Phone Number ID `1320112064512676`, WABA `1575449287233472`, número de prueba **+1 (555) 670-7800**.
+
+> Configuración completa (plantillas, teléfonos de prueba, Vercel): **[WHATSAPP_META_SNAPSHOT.md](./WHATSAPP_META_SNAPSHOT.md)**
 
 ## Endpoints (solo servidor Vercel)
 
@@ -24,21 +26,18 @@ URL pública del webhook (Meta): **https://www.farmacapital.mx/api/health**
 
 ```env
 WHATSAPP_ACCESS_TOKEN=...
-WHATSAPP_PHONE_NUMBER_ID=1338650695990173
-WHATSAPP_BUSINESS_ACCOUNT_ID=2277703916307084
+WHATSAPP_PHONE_NUMBER_ID=1320112064512676
+WHATSAPP_BUSINESS_ACCOUNT_ID=1575449287233472
 WHATSAPP_VERIFY_TOKEN=...          # tú lo eliges; mismo valor en Meta webhook
 WHATSAPP_APP_SECRET=...            # Meta → App → Configuración → Básica → Clave secreta
 WHATSAPP_INTERNAL_SECRET=...       # tú lo generas; protege /api/whatsapp/send
 WHATSAPP_PROVIDER=meta             # opcional; auto-detecta si hay ACCESS_TOKEN
 WHATSAPP_GRAPH_VERSION=v21.0       # opcional
+PUBLIC_SITE_URL=https://www.farmacapital.mx
 
-# Plantillas Utility (nombres exactos tras aprobación en Meta)
-WHATSAPP_TEMPLATE_LANGUAGE=es_MX
-WHATSAPP_TEMPLATE_PEDIDO_CONFIRMADO=pedido_confirmado
-WHATSAPP_TEMPLATE_PEDIDO_PAGO=pedido_pago_aprobado
-WHATSAPP_TEMPLATE_PEDIDO_LISTO=pedido_listo
-WHATSAPP_TEMPLATE_CITA=cita_confirmacion
-WHATSAPP_TEMPLATE_FALLBACK_TEXT=true   # si la plantilla falla, envía texto libre
+# Opcional — el código ya trae defaults (pedido_confirmado, etc.):
+# WHATSAPP_TEMPLATE_LANGUAGE=es_MX   # solo es_MX; NUNCA «Spanish (MEX)»
+# WHATSAPP_TEMPLATE_FALLBACK_TEXT=false
 ```
 
 Compatibilidad legacy (opcional): `META_WHATSAPP_TOKEN`, `META_WHATSAPP_PHONE_ID`, `META_APP_SECRET`.
@@ -82,11 +81,11 @@ Usar en pruebas: `Authorization: Bearer <valor>` al llamar `/api/whatsapp/send`.
 ### Pantalla 2 — Suscribir campos
 
 1. **Administrar** suscripciones del webhook → WABA FarmaCapital
-2. Activa **`messages`** y enciende **Suscribir webhooks** en el número +1 555-342-4819
+2. Activa **`messages`** y enciende **Suscribir webhooks** en el número de prueba +1 555 670-7800
 
 ### Pantalla 3 — Prueba entrante
 
-Envía un WhatsApp al +1 555-342-4819 y revisa Vercel Logs (`[whatsapp-webhook]`).
+Envía un WhatsApp al +1 555 670-7800 y revisa Vercel Logs (`[whatsapp-webhook]`).
 
 ## Envío manual de prueba (Fase 1)
 
