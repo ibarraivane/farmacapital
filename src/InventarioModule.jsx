@@ -28,7 +28,7 @@ const BRAND = { primary:"#0D1B2A", secondary:"#1E3ABA", gradient:"linear-gradien
 const CATEGORIAS = [
   "Analgésico","Antiinflamatorio","Antibiótico","Gastro","Diabetes",
   "Hipertensión","Alergia","Vitaminas","Suplemento","Herbolario","Hidratación","Cardiovascular",
-  "Respiratorio","Botiquín","Higiene","Bebidas","Básicos","Abarrotes","Minisuper","Cuidado personal","Otro",
+  "Respiratorio","Dispositivo médico","Botiquín","Higiene","Bebidas","Básicos","Abarrotes","Minisuper","Cuidado personal","Otro",
 ];
 const EMPTY = {
   nombre:"", sku:"", codigo_barras:"", categoria:"Otro", precio:"", costo:"", venta_unidad:false, unidades_por_caja:"", precio_unidad:"", stock_unidades:"",
