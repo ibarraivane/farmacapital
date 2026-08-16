@@ -173,6 +173,27 @@ function templateRowLanguage(row) {
   return String(lang || '').trim();
 }
 
+/** WABA real vinculado al Phone Number ID (evita mismatch con WHATSAPP_BUSINESS_ACCOUNT_ID en Vercel). */
+async function fetchWabaIdForPhoneNumber({ phoneNumberId, token, graphVersion } = {}) {
+  const id = String(phoneNumberId || '').trim();
+  if (!id || !token) return null;
+
+  try {
+    const resp = await fetch(
+      graphUrl(`${encodeURIComponent(id)}?fields=whatsapp_business_account`, graphVersion),
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) return null;
+    const waba = data?.whatsapp_business_account;
+    if (waba && typeof waba === 'object' && waba.id) return String(waba.id).trim();
+    if (waba) return String(waba).trim();
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 /** Lista plantillas del WABA (sin filtrar status — «calidad pendiente» sigue siendo enviable). */
 async function fetchWabaMessageTemplates({ wabaId, token, graphVersion }) {
   const waba = String(wabaId || '').trim();
@@ -214,7 +235,11 @@ async function resolveTemplateOnWaba({ wabaId, templateName, token, graphVersion
   if (!wanted) return { ok: false, reason: 'missing_template_name' };
 
   const primaryWaba = String(wabaId || '').trim();
-  const scanWabas = [...new Set([primaryWaba, '2277703916307084'].filter(Boolean))];
+  const scanWabas = [...new Set([
+    primaryWaba,
+    '1575449287233472',
+    '2277703916307084',
+  ].filter(Boolean))];
   let lastListError = null;
   const availableByWaba = {};
 
@@ -401,7 +426,21 @@ async function sendWhatsAppTemplate({
   if (!requestedName) {
     return { sent: false, reason: 'missing_template_name' };
   }
-  if (!cfg.businessAccountId) {
+  const candidates = getWhatsAppMxCandidates(to);
+  if (!candidates.length) {
+    return { sent: false, reason: 'invalid_phone' };
+  }
+
+  const gv = graphVersion || cfg.graphVersion;
+  const phoneWabaId = await fetchWabaIdForPhoneNumber({
+    phoneNumberId: fromId,
+    token,
+    graphVersion: gv,
+  });
+  const envWabaId = cfg.businessAccountId;
+  const effectiveWabaId = phoneWabaId || envWabaId;
+
+  if (!effectiveWabaId) {
     return {
       sent: false,
       reason: 'missing_waba_id',
@@ -409,30 +448,40 @@ async function sendWhatsAppTemplate({
     };
   }
 
-  const candidates = getWhatsAppMxCandidates(to);
-  if (!candidates.length) {
-    return { sent: false, reason: 'invalid_phone' };
+  if (phoneWabaId && envWabaId && phoneWabaId !== envWabaId) {
+    console.warn('[whatsapp] waba_env_mismatch', JSON.stringify({
+      phoneWabaId,
+      envWabaId,
+      phoneNumberId: fromId,
+    }));
   }
 
   const resolved = await resolveTemplateOnWaba({
-    wabaId: cfg.businessAccountId,
+    wabaId: effectiveWabaId,
     templateName: requestedName,
     token,
-    graphVersion,
+    graphVersion: gv,
   });
 
   if (resolved.ok === false && resolved.reason === 'template_not_on_waba') {
+    const other = resolved.availableByWaba?.['2277703916307084'] || [];
+    const hint = other.length
+      ? `Tus plantillas están en el WABA viejo (2277703916307084): ${other.join(', ')}. `
+        + 'Créalas de nuevo en WhatsApp Manager con el WABA 1575449287233472 (API Setup → Phone ID 1320112064512676).'
+      : 'pedido_confirmado no está en el WABA del número. Créala en WhatsApp Manager '
+        + 'vinculado al Phone ID 1320112064512676 (WABA 1575449287233472).';
     return {
       sent: false,
       reason: 'meta_template_not_on_waba',
       detail: JSON.stringify({
         wanted: requestedName,
-        wabaId: cfg.businessAccountId,
+        wabaId: effectiveWabaId,
+        phoneWabaId: phoneWabaId || null,
+        envWabaId: envWabaId || null,
         phoneNumberId: fromId,
         available: resolved.available || [],
-        hint:
-          'pedido_confirmado no está en el WABA del número. Créala en WhatsApp Manager '
-          + 'vinculado al Phone ID 1320112064512676 (WABA 1575449287233472).',
+        templatesOnLegacyWaba: other,
+        hint,
       }),
     };
   }
@@ -447,8 +496,24 @@ async function sendWhatsAppTemplate({
         phoneWabaId: resolved.phoneWabaId,
         available: resolved.available || [],
         hint:
-          'Las plantillas están en otro WABA de Meta. Duplícalas o créalas de nuevo en el WABA '
-          + '1575449287233472 (el de API Setup con tu número de prueba).',
+          'Las plantillas están en otro WABA de Meta (probablemente 2277703916307084). '
+          + 'Abre business.facebook.com/wa/manage/message-templates/, elige el WABA 1575449287233472 '
+          + 'y crea pedido_confirmado, pedido_pago_aprobado, pedido_listo y cita_confirmacion en es_MX.',
+      }),
+    };
+  }
+
+  if (resolved.ok === false && resolved.reason === 'template_list_failed') {
+    return {
+      sent: false,
+      reason: 'meta_template_list_failed',
+      detail: JSON.stringify({
+        wanted: requestedName,
+        wabaId: effectiveWabaId,
+        metaError: resolved.detail || null,
+        hint:
+          'Meta no dejó listar plantillas. Regenera WHATSAPP_ACCESS_TOKEN en API Setup '
+          + '(permiso whatsapp_business_management) y redeploy.',
       }),
     };
   }
@@ -765,6 +830,70 @@ function authorizeInternalSend(req, body) {
   return { ok: false, reason: 'unauthorized' };
 }
 
+/** Diagnóstico: WABA del Phone ID vs plantillas en cada WABA conocido. */
+async function diagnoseWhatsAppTemplates() {
+  const cfg = getWhatsAppCloudConfig();
+  if (!cfg.isConfigured) {
+    return { ok: false, reason: 'whatsapp_cloud_not_configured' };
+  }
+
+  const phoneWabaId = await fetchWabaIdForPhoneNumber({
+    phoneNumberId: cfg.phoneNumberId,
+    token: cfg.accessToken,
+    graphVersion: cfg.graphVersion,
+  });
+  const effectiveWabaId = phoneWabaId || cfg.businessAccountId || null;
+  const wabasToScan = [...new Set([
+    effectiveWabaId,
+    cfg.businessAccountId,
+    phoneWabaId,
+    '1575449287233472',
+    '2277703916307084',
+  ].filter(Boolean))];
+
+  const templatesByWaba = {};
+  for (const waba of wabasToScan) {
+    const listed = await fetchWabaMessageTemplates({
+      wabaId: waba,
+      token: cfg.accessToken,
+      graphVersion: cfg.graphVersion,
+    });
+    templatesByWaba[waba] = {
+      ok: listed.ok,
+      error: listed.error || null,
+      names: listed.ok
+        ? [...new Set((listed.rows || []).map((r) => String(r?.name || '').trim()).filter(Boolean))]
+        : [],
+    };
+  }
+
+  const resolved = effectiveWabaId
+    ? await resolveTemplateOnWaba({
+        wabaId: effectiveWabaId,
+        templateName: getWhatsAppTemplateConfig().pedidoConfirmado,
+        token: cfg.accessToken,
+        graphVersion: cfg.graphVersion,
+      })
+    : { ok: false, reason: 'missing_waba' };
+
+  return {
+    ok: true,
+    phoneNumberId: cfg.phoneNumberId,
+    envWabaId: cfg.businessAccountId || null,
+    phoneWabaId,
+    effectiveWabaId,
+    wabaMismatch: Boolean(
+      phoneWabaId && cfg.businessAccountId && phoneWabaId !== cfg.businessAccountId
+    ),
+    templateLanguage: getWhatsAppTemplateConfig().language,
+    pedidoConfirmado: getWhatsAppTemplateConfig().pedidoConfirmado,
+    resolved: resolved.ok
+      ? { ok: true, name: resolved.name, languages: resolved.languages, status: resolved.status }
+      : { ok: false, reason: resolved.reason, detail: resolved.detail || null },
+    templatesByWaba,
+  };
+}
+
 module.exports = {
   DEFAULT_GRAPH_VERSION,
   getWhatsAppCloudConfig,
@@ -786,4 +915,5 @@ module.exports = {
   logWebhookEvents,
   authorizeInternalSend,
   sanitizeMetaError,
+  diagnoseWhatsAppTemplates,
 };

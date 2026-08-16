@@ -5,6 +5,10 @@
 'use strict';
 
 const { whatsappWebhookHandler } = require('./_lib/whatsappWebhookHandler');
+const {
+  authorizeInternalSend,
+  diagnoseWhatsAppTemplates,
+} = require('./_lib/whatsappCloud');
 const { getSupabaseAdminConfig } = require('./_lib/supabaseAdmin');
 const {
   fetchPedidoByReciboToken,
@@ -86,6 +90,19 @@ async function handler(req, res) {
 
   if (req.query?.token && (req.method === 'GET' || req.method === 'HEAD')) {
     return handleReciboView(req, res);
+  }
+
+  if (req.query?.whatsapp === 'diag' && req.method === 'GET') {
+    const auth = authorizeInternalSend(req, {});
+    if (!auth.ok) {
+      return res.status(403).json({ ok: false, error: 'forbidden' });
+    }
+    try {
+      const diag = await diagnoseWhatsAppTemplates();
+      return res.status(200).json(diag);
+    } catch (e) {
+      return res.status(500).json({ ok: false, error: e?.message || 'diag_failed' });
+    }
   }
 
   const startedAt = Date.now();

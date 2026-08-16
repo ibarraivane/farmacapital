@@ -96,9 +96,21 @@ export function formatWhatsAppSendError({ reason, detail, telefono } = {}) {
       try {
         const parsed = typeof detail === 'string' ? JSON.parse(detail) : detail;
         if (parsed?.hint) return parsed.hint;
+        if (parsed?.templatesOnLegacyWaba?.length) {
+          return (
+            `Las plantillas están en el WABA viejo de Meta (2277703916307084): ${parsed.templatesOnLegacyWaba.join(', ')}. ` +
+            'Créalas de nuevo en el WABA 1575449287233472 (WhatsApp → API Setup → Phone ID 1320112064512676).'
+          );
+        }
         if (parsed?.available?.length) {
           return `La plantilla no está en el WABA de tu número. Disponibles: ${parsed.available.join(', ')}.`;
         }
+      } catch { /* ignore */ }
+    }
+    if (reason === 'meta_template_list_failed') {
+      try {
+        const parsed = typeof detail === 'string' ? JSON.parse(detail) : detail;
+        if (parsed?.hint) return parsed.hint;
       } catch { /* ignore */ }
     }
     if (code === 190 || code === 102 || code === 10) {

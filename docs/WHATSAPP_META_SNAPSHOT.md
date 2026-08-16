@@ -104,7 +104,7 @@ Los mensajes de prueba llegan al WhatsApp del cliente desde **+1 555 670-7800**,
 | Error | Causa | Fix |
 |-------|--------|-----|
 | Authentication Error | Token expirado o App Secret pegado como token | Regenerar token API Setup → Vercel |
-| 132001 | Idioma mal en Vercel o **plantillas en otro WABA** que el Phone ID | Código consulta Graph API; si plantillas están en WABA `2277703916307084` pero el número usa `1575449287233472`, **crear plantillas de nuevo** en el WABA del API Setup |
+| 132001 | Plantillas creadas en **WABA viejo** `2277703916307084` (WhatsApp Manager antiguo) pero el número de prueba usa **WABA** `1575449287233472` | Tras deploy: el toast dirá si detectó plantillas en el WABA viejo. **Solución:** en [WhatsApp Manager](https://business.facebook.com/wa/manage/message-templates/) selecciona WABA `1575449287233472` y crea de nuevo las 4 plantillas (`pedido_confirmado`, etc.) en **es_MX** |
 | 131030 | Número cliente no en lista de prueba Meta | Agregar +52 en API Setup |
 | 131047 | Texto libre fuera de ventana 24 h | Plantilla obligatoria; `WHATSAPP_TEMPLATE_FALLBACK_TEXT` no true |
 | http_500 / FUNCTION_INVOCATION_FAILED | >12 funciones Vercel o syntax error deploy | Límite Hobby; recibos en `health` + `notifications/send` |
