@@ -458,12 +458,15 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
     const homeErr = homeRes.error;
     if (bundleErr) console.warn("[Dashboard] bundle operación:", bundleErr.message);
     if (homeErr) console.warn("[Dashboard] home snapshot:", homeErr.message);
+
+    const ventasMesTotal = (pedMes || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
+    const ventasCargadas = (pedMes || []).length > 0 && ventasMesTotal > 0;
     const dashboardLoadWarning = !adminTok
       ? "Sesión expirada. Vuelve a iniciar sesión."
-      : bundleErr && homeErr
+      : !ventasCargadas && bundleErr && homeErr
         ? "No se pudieron cargar ventas del dashboard. Revisa que los RPC estén aplicados en Supabase."
-        : bundleErr && pedMes.length === 0
-          ? "Bundle de operación no disponible; mostrando respaldo de ventas."
+        : !ventasCargadas && (bundleErr || homeErr)
+          ? "No se pudieron cargar ventas. Revisa la sesión o el listado de transacciones."
           : null;
     if (errOnlinePend) console.warn("[Dashboard] online pendientes:", errOnlinePend.message);
     if (errAlertasCof) console.warn("[Dashboard] alertas legales cofepris:", errAlertasCof.message);
@@ -474,7 +477,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
     const ventasAyer = (pedAyer || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
     const ventasSemana = (pedSemana || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
     const ventasSemanaAnt = (pedSemanaAnt || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
-    const ventasMes = (pedMes || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
+    const ventasMes = ventasMesTotal;
     const totalPedMes = (pedMes || []).length;
     const ticketProm = totalPedMes > 0 ? ventasMes / totalPedMes : 0;
     const recuperado = (pedTodos || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
