@@ -9,6 +9,10 @@ const BRAND = { primary:"#0D1B2A", secondary:"#1E3ABA", gradient:"linear-gradien
 
 const fmt  = (n) => `$${parseFloat(n||0).toFixed(2)}`;
 
+// Billetes y monedas en circulación. Contar por denominación obliga a contar
+// de verdad, en vez de teclear una cifra global de memoria.
+const DENOMINACIONES = [1000, 500, 200, 100, 50, 20, 10, 5, 2, 1, 0.5];
+
 const mkInputStyle = (C) => ({ width:"100%", padding:"9px 12px", borderRadius:8, border:`1px solid ${C.border}`, background:C.bg, color:C.text, fontSize:13, outline:"none", boxSizing:"border-box" });
 const mkLabelStyle = (C) => ({ color:C.textMid, fontSize:11, fontWeight:700, marginBottom:4, display:"block", letterSpacing:.5 });
 const mkBtnSecondary = (C) => ({ padding:"10px 22px", borderRadius:8, cursor:"pointer", fontWeight:700, fontSize:13, border:`1px solid ${C.border}`, background:"transparent", color:C.textMid });
@@ -40,11 +44,18 @@ export default function CorteCajaModule({usuario }) {
   const [tarjeta,            setTarjeta] = useState("");
   const [mercadopago,        setMp]      = useState("");
   const [notas,              setNotas]   = useState("");
-  const [efectivo_sistema,   setEfSis]   = useState(0);
-  const [loadingSis,         setLoadSis] = useState(false);
   const [saving,             setSaving]  = useState(false);
-  const [saved,              setSaved]   = useState(false);
   const [resumenServicios,   setResumenServicios] = useState(null);
+  const [fondo,              setFondo]   = useState("");
+  const [contadoPor,         setContadoPor] = useState("");
+  const [denoms,             setDenoms]  = useState({});
+
+  // El corte es a ciegas: mientras se captura no se muestra ni lo que el
+  // sistema espera ni la diferencia. Un conteo que se puede copiar deja de ser
+  // un conteo. `resultado` se llena hasta que la base responde al guardar.
+  const [resultado,   setResultado]   = useState(null);
+  const [zTransac,    setZTransac]    = useState(null);
+  const [cargandoZ,   setCargandoZ]   = useState(false);
 
   // Historial
   const [cortes,      setCortes]      = useState([]);
@@ -53,44 +64,50 @@ export default function CorteCajaModule({usuario }) {
   const [filtroFecha, setFiltroFecha] = useState("todos");
 
   // Calculados
-  const efDec   = parseFloat(efectivo_declarado||0);
+  const totalDenoms = DENOMINACIONES.reduce(
+    (a,d) => a + d * (parseInt(denoms[d],10) || 0), 0);
+  const usaDenoms   = DENOMINACIONES.some(d => (parseInt(denoms[d],10) || 0) > 0);
+  // Si contó por denominación, ese total manda: evita que el desglose y la
+  // cifra global se contradigan.
+  const efDec   = usaDenoms ? totalDenoms : parseFloat(efectivo_declarado||0);
+  const fondoNum= parseFloat(fondo||0);
   const tar     = parseFloat(tarjeta||0);
   const mp      = parseFloat(mercadopago||0);
-  const diferencia    = efDec - efectivo_sistema;
-  const total_general = efDec + tar + mp;
+  // El fondo no es venta, por eso se descuenta del total del turno.
+  const total_general = (efDec - fondoNum) + tar + mp;
+  const puedeGuardar  = usaDenoms || efectivo_declarado !== "";
 
-  const fetchEfectivoSistema = useCallback(async () => {
-    setLoadSis(true);
+  // Sólo se precargan tarjeta y MercadoPago. El efectivo esperado NO se pide:
+  // si viajara al navegador, bastaría con abrir la pestaña de red para verlo
+  // antes de declarar, y el conteo a ciegas dejaría de serlo. Lo calcula la
+  // base al guardar.
+  const fetchTotalesElectronicos = useCallback(async () => {
     try {
-      // RPC server-side para reconciliación correcta (normalizado)
-      const { data:rpc, error:rpcErr } = await supabase.rpc("reconcile_shift_cash",{
+      const tok = sessionStorage.getItem("farmacapital_session_token");
+      if (!tok) return;
+      const { data, error } = await supabase.rpc("empleado_totales_electronicos_turno", {
+        p_session_token: tok,
         p_turno: turno,
         p_fecha: new Date().toLocaleDateString("sv-SE"),
       });
-      if(!rpcErr && rpc?.efectivo_sistema !== undefined) {
-        setEfSis(rpc.efectivo_sistema);
-        // Tarjeta y MercadoPago los conoce el sistema con exactitud (no se cuentan
-        // físicamente), así que se autocompletan desde el RPC. Siguen siendo editables.
-        if (rpc.tarjeta != null)     setTarjeta(String(rpc.tarjeta));
-        if (rpc.mercadopago != null) setMp(String(rpc.mercadopago));
-      } else {
-        const tok = sessionStorage.getItem("farmacapital_session_token");
-        const { inicio, fin } = getRango(turno);
-        const { data: ej } = tok
-          ? await supabase.rpc("empleado_sum_efectivo_pedidos_rango", {
-              p_session_token: tok,
-              p_desde: inicio,
-              p_hasta: fin,
-            })
-          : { data: null };
-        const sum = ej?.efectivo_sistema != null ? parseFloat(ej.efectivo_sistema) : 0;
-        if (Number.isFinite(sum)) setEfSis(sum);
-      }
+      if (error) return;
+      if (data?.tarjeta != null)     setTarjeta(String(data.tarjeta));
+      if (data?.mercadopago != null) setMp(String(data.mercadopago));
     } catch(e) { console.error("[CorteCaja]", e); }
-    setLoadSis(false);
   }, [turno]);
 
-  useEffect(() => { fetchEfectivoSistema(); }, [fetchEfectivoSistema]);
+  useEffect(() => { fetchTotalesElectronicos(); }, [fetchTotalesElectronicos]);
+
+  // El fondo casi nunca cambia, así que se precarga el del último corte para
+  // no teclearlo dos veces al día.
+  useEffect(() => {
+    (async () => {
+      const tok = sessionStorage.getItem("farmacapital_session_token");
+      if (!tok) return;
+      const { data } = await supabase.rpc("empleado_ultimo_fondo_caja", { p_session_token: tok });
+      if (data?.fondo > 0) setFondo(String(data.fondo));
+    })();
+  }, []);
 
   const fetchResumenServicios = useCallback(async () => {
     try {
@@ -147,8 +164,38 @@ export default function CorteCajaModule({usuario }) {
     return !!(data?.existe);
   };
 
+  // Detalle de las ventas del turno. Se carga DESPUÉS de guardar: si estuviera
+  // disponible antes, el cajero podría sumar las ventas en efectivo y deducir
+  // el número que se supone que debe descubrir contando.
+  const cargarReporteZ = useCallback(async () => {
+    setCargandoZ(true);
+    try {
+      const tok = sessionStorage.getItem("farmacapital_session_token");
+      const { inicio, fin } = getRango(turno);
+      const { data } = tok
+        ? await supabase.rpc("empleado_listar_pedidos_transacciones", {
+            p_session_token: tok,
+            p_created_desde: inicio,
+            p_created_hasta: fin,
+            p_limite: 400,
+          })
+        : { data: null };
+      setZTransac(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.error("[CorteCaja Z]", e);
+      setZTransac([]);
+    }
+    setCargandoZ(false);
+  }, [turno]);
+
+  const nuevoCorte = () => {
+    setResultado(null); setZTransac(null);
+    setEfDec(""); setNotas(""); setDenoms({}); setContadoPor("");
+    fetchTotalesElectronicos();
+  };
+
   const guardarCorte = async () => {
-    if (!efectivo_declarado) { alert("Ingresa el efectivo declarado"); return; }
+    if (!puedeGuardar) { showToast("Captura el efectivo contado", "warning"); return; }
     const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) { alert("Sesión expirada. Inicia sesión de nuevo."); return; }
     // J8: Validar turno duplicado
@@ -163,28 +210,35 @@ export default function CorteCajaModule({usuario }) {
       if (!ok) return;
     }
     setSaving(true);
-    const { error } = await supabase.rpc("registrar_corte_caja", {
+    const denomsLimpios = Object.fromEntries(
+      DENOMINACIONES.map(d => [d, parseInt(denoms[d],10) || 0]).filter(([,n]) => n > 0));
+    const { data, error } = await supabase.rpc("registrar_corte_caja", {
       p_session_token: tok,
       p_turno: turno,
       p_efectivo_declarado: efDec,
-      p_efectivo_sistema: efectivo_sistema,
+      p_efectivo_sistema: 0,   // lo calcula la base; el cliente no lo conoce
       p_tarjeta: tar,
       p_mercadopago: mp,
-      p_diferencia: diferencia,
-      p_total_general: total_general,
+      p_diferencia: 0,      // los calcula la base; aquí no se conocen todavía
+      p_total_general: 0,
       p_notas: notas.trim() || null,
+      p_fondo_inicial: fondoNum,
+      p_contado_por: contadoPor.trim() || null,
+      p_denominaciones: usaDenoms ? denomsLimpios : null,
     });
     setSaving(false);
     if (error) { showToast("Error al guardar corte: "+error.message, "error"); return; }
-    setSaved(true);
-    setEfDec(""); setTarjeta(""); setMp(""); setNotas("");
-    setTimeout(()=>setSaved(false), 3500);
-    fetchEfectivoSistema();
+
+    // Recién ahora se destapa: el cajero ya se comprometió con su conteo.
+    setResultado(data);
+    cargarReporteZ();
   };
 
-  const difCol = diferencia===0 ? C.green : diferencia>0 ? C.amber : C.red;
-  const difTxt = diferencia===0 ? "✓ Cuadrado" : diferencia>0 ? `▲ Sobrante: +${fmt(diferencia)}` : `▼ Faltante: ${fmt(diferencia)}`;
-  const difBg  = diferencia===0 ? C.greenDim : diferencia>0 ? C.amberDim : C.redDim;
+  // La diferencia sólo existe una vez que la base respondió al guardar.
+  const dif    = parseFloat(resultado?.diferencia ?? 0);
+  const difCol = dif===0 ? C.green : dif>0 ? C.amber : C.red;
+  const difTxt = dif===0 ? "✓ Cuadrado" : dif>0 ? `▲ Sobrante: +${fmt(dif)}` : `▼ Faltante: ${fmt(dif)}`;
+  const difBg  = dif===0 ? C.greenDim : dif>0 ? C.amberDim : C.redDim;
 
   const sumEf  = cortes.reduce((a,c)=>a+parseFloat(c.efectivo_declarado||0),0);
   const sumTar = cortes.reduce((a,c)=>a+parseFloat(c.tarjeta||0),0);
@@ -212,15 +266,16 @@ export default function CorteCajaModule({usuario }) {
       </div>
 
       {/* ══ NUEVO CORTE ══ */}
-      {tab==="nuevo" && (
-        <div>
-          {saved && (
-            <div style={{background:C.greenDim,border:`1px solid ${C.green}40`,borderRadius:10,
-              padding:"12px 18px",marginBottom:20,color:C.green,fontWeight:700,fontSize:14}}>
-              ✅ Corte guardado correctamente
-            </div>
-          )}
+      {tab==="nuevo" && resultado && (
+        <ResultadoCorte
+          C={C} resultado={resultado} turno={turno} dif={dif} difCol={difCol} difBg={difBg}
+          difTxt={difTxt} zTransac={zTransac} cargandoZ={cargandoZ}
+          btnSecondary={btnSecondary} onNuevo={nuevoCorte}
+        />
+      )}
 
+      {tab==="nuevo" && !resultado && (
+        <div>
           {/* Selector turno */}
           <div data-tour="caja-turno" style={{marginBottom:24}}>
             <label style={labelStyle}>TURNO</label>
@@ -247,10 +302,49 @@ export default function CorteCajaModule({usuario }) {
               <div style={{color:C.text,fontWeight:800,fontSize:14,marginBottom:16}}>💵 Ingresos del turno</div>
 
               <div style={{marginBottom:14}}>
-                <label style={labelStyle}>EFECTIVO DECLARADO</label>
-                <input type="number" value={efectivo_declarado} onChange={e=>setEfDec(e.target.value)}
-                  placeholder="0.00" style={{...inputStyle,fontSize:18,fontWeight:700,color:C.green}}/>
-                <div style={{color:C.textDim,fontSize:10,marginTop:4}}>Lo que cuenta físicamente el cajero</div>
+                <label style={labelStyle}>FONDO INICIAL</label>
+                <input type="number" value={fondo} onChange={e=>setFondo(e.target.value)}
+                  placeholder="0.00" style={inputStyle}/>
+                <div style={{color:C.textDim,fontSize:10,marginTop:4}}>
+                  El cambio con el que abrió el turno. Cuéntalo también: va incluido abajo.
+                </div>
+              </div>
+
+              <div style={{marginBottom:14}}>
+                <label style={labelStyle}>CONTEO POR DENOMINACIÓN</label>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:6}}>
+                  {DENOMINACIONES.map(d=>{
+                    const piezas = parseInt(denoms[d],10) || 0;
+                    return (
+                      <div key={d} style={{display:"flex",alignItems:"center",gap:6}}>
+                        <span style={{color:C.textMid,fontSize:11,fontWeight:700,width:44,textAlign:"right"}}>
+                          {d>=1?`$${d}`:"$0.50"}
+                        </span>
+                        <input type="number" min="0" value={denoms[d] ?? ""}
+                          onChange={e=>setDenoms(p=>({...p,[d]:e.target.value}))}
+                          placeholder="0"
+                          style={{...inputStyle,padding:"6px 8px",fontSize:12,width:56}}/>
+                        <span style={{color:piezas?C.text:C.textDim,fontSize:11,flex:1}}>
+                          {piezas?fmt(d*piezas):""}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div style={{marginBottom:14}}>
+                <label style={labelStyle}>EFECTIVO CONTADO</label>
+                <input type="number" value={usaDenoms?totalDenoms.toFixed(2):efectivo_declarado}
+                  onChange={e=>setEfDec(e.target.value)} readOnly={usaDenoms}
+                  placeholder="0.00"
+                  style={{...inputStyle,fontSize:18,fontWeight:700,color:C.green,
+                          background:usaDenoms?C.bg:undefined,cursor:usaDenoms?"not-allowed":undefined}}/>
+                <div style={{color:C.textDim,fontSize:10,marginTop:4}}>
+                  {usaDenoms
+                    ? "Sale de tu conteo por denominación. Borra el desglose para capturarlo a mano."
+                    : "Todo lo que hay en el cajón, fondo incluido."}
+                </div>
               </div>
 
               <div style={{marginBottom:14}}>
@@ -261,6 +355,12 @@ export default function CorteCajaModule({usuario }) {
               <div style={{marginBottom:14}}>
                 <label style={labelStyle}>MERCADOPAGO</label>
                 <input type="number" value={mercadopago} onChange={e=>setMp(e.target.value)} placeholder="0.00" style={inputStyle}/>
+              </div>
+
+              <div style={{marginBottom:14}}>
+                <label style={labelStyle}>CONTADO POR (OPCIONAL)</label>
+                <input type="text" value={contadoPor} onChange={e=>setContadoPor(e.target.value)}
+                  placeholder="Quién contó el dinero, si no fuiste tú" style={inputStyle}/>
               </div>
 
               <div>
@@ -274,10 +374,18 @@ export default function CorteCajaModule({usuario }) {
             {/* Resumen */}
             <div style={{display:"flex",flexDirection:"column",gap:12}}>
 
-              <div style={{background:C.card,borderRadius:12,border:`1px solid ${C.border}`,padding:20}}>
-                <div style={{color:C.textMid,fontSize:11,fontWeight:700,letterSpacing:.5,marginBottom:8}}>EFECTIVO EN SISTEMA</div>
-                <div style={{color:C.blue,fontWeight:800,fontSize:28}}>{loadingSis?"…":fmt(efectivo_sistema)}</div>
-                <div style={{color:C.textDim,fontSize:11,marginTop:4}}>Ventas en efectivo · turno {turno}</div>
+              <div style={{background:C.blueDim,borderRadius:12,border:`1px solid ${C.blue}30`,padding:20}}>
+                <div style={{color:C.blue,fontSize:11,fontWeight:700,letterSpacing:.5,marginBottom:8}}>
+                  🔒 CONTEO A CIEGAS
+                </div>
+                <div style={{color:C.text,fontSize:12.5,lineHeight:1.55}}>
+                  Cuenta el cajón y captura lo que encuentres. Lo que el sistema
+                  espera y la diferencia se destapan <strong>al guardar</strong>.
+                </div>
+                <div style={{color:C.textDim,fontSize:11,marginTop:8,lineHeight:1.5}}>
+                  Si vieras el número esperado antes, bastaría con copiarlo y el
+                  conteo dejaría de detectar faltantes.
+                </div>
               </div>
 
               {resumenServicios?.operaciones > 0 && (
@@ -292,36 +400,42 @@ export default function CorteCajaModule({usuario }) {
                 </div>
               )}
 
-              <div data-tour="caja-diferencia" style={{background:difBg,borderRadius:12,border:`1px solid ${difCol}30`,padding:20}}>
-                <div style={{color:C.textMid,fontSize:11,fontWeight:700,letterSpacing:.5,marginBottom:8}}>DIFERENCIA</div>
-                <div style={{color:difCol,fontWeight:800,fontSize:24}}>{difTxt}</div>
-                <div style={{color:C.textDim,fontSize:11,marginTop:4}}>Declarado {fmt(efDec)} — Sistema {fmt(efectivo_sistema)}</div>
-              </div>
-
-              <div style={{background:C.card,borderRadius:12,border:`1px solid ${C.border}`,padding:20}}>
-                <div style={{color:C.textMid,fontSize:11,fontWeight:700,letterSpacing:.5,marginBottom:12}}>DESGLOSE</div>
-                {[["Efectivo",efDec,C.green],["Tarjeta",tar,C.blue],["MercadoPago",mp,C.amber]].map(([lbl,val,col])=>(
+              <div data-tour="caja-diferencia" style={{background:C.card,borderRadius:12,border:`1px solid ${C.border}`,padding:20}}>
+                <div style={{color:C.textMid,fontSize:11,fontWeight:700,letterSpacing:.5,marginBottom:12}}>LO QUE CAPTURASTE</div>
+                {[["Efectivo contado",efDec,C.green],
+                  ["— del cual, fondo",fondoNum,C.textMid],
+                  ["Tarjeta",tar,C.blue],
+                  ["MercadoPago",mp,C.amber]].map(([lbl,val,col])=>(
                   <div key={lbl} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
                     <span style={{color:C.textMid,fontSize:12}}>{lbl}</span>
                     <span style={{color:col,fontWeight:700,fontSize:13}}>{fmt(val)}</span>
                   </div>
                 ))}
                 <div style={{borderTop:`1px solid ${C.border}`,marginTop:8,paddingTop:10,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <span style={{color:C.text,fontWeight:800,fontSize:13}}>TOTAL GENERAL</span>
+                  <span style={{color:C.text,fontWeight:800,fontSize:13}}>VENTA DEL TURNO</span>
                   <span style={{fontWeight:800,fontSize:22,background:BRAND.gradient,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>
                     {fmt(total_general)}
                   </span>
                 </div>
+                <div style={{color:C.textDim,fontSize:10,marginTop:6}}>
+                  Sin el fondo, que no es venta.
+                </div>
               </div>
 
-              <button data-tour="caja-guardar" onClick={guardarCorte} disabled={saving||!efectivo_declarado} style={{
-                width:"100%",padding:"14px",borderRadius:10,border:"none",cursor:"pointer",
-                background:saving||!efectivo_declarado?C.border:C.green,
+              <button data-tour="caja-guardar" onClick={guardarCorte} disabled={saving||!puedeGuardar} style={{
+                width:"100%",padding:"14px",borderRadius:10,border:"none",
+                cursor:saving||!puedeGuardar?"not-allowed":"pointer",
+                background:saving||!puedeGuardar?C.border:C.green,
                 color:"#fff",fontWeight:800,fontSize:15,transition:"all .2s",
-                opacity:saving||!efectivo_declarado?.5:1,
+                opacity:saving||!puedeGuardar?.5:1,
               }}>
-                {saving?"Guardando…":"💾 Guardar corte"}
+                {saving?"Guardando…":"🔒 Cerrar corte y ver resultado"}
               </button>
+              {!puedeGuardar && (
+                <div style={{color:C.textDim,fontSize:11,textAlign:"center",marginTop:-4}}>
+                  Captura el efectivo contado para poder cerrar.
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -353,14 +467,14 @@ export default function CorteCajaModule({usuario }) {
               <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                 <thead>
                   <tr style={{background:C.card}}>
-                    {["Fecha/Hora","Turno","Cajero","Ef. Declarado","Ef. Sistema","Diferencia","Tarjeta","MP","Total","Notas"].map(h=>(
+                    {["Fecha/Hora","Turno","Cajero","Contó","Fondo","Ef. Declarado","Ef. Sistema","Diferencia","Tarjeta","MP","Total","Notas"].map(h=>(
                       <th key={h} style={{padding:"10px 12px",textAlign:"left",color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {cortes.length===0&&(
-                    <tr><td colSpan={10} style={{textAlign:"center",padding:32,color:C.textMid}}>Sin cortes en este período</td></tr>
+                    <tr><td colSpan={12} style={{textAlign:"center",padding:32,color:C.textMid}}>Sin cortes en este período</td></tr>
                   )}
                   {cortes.map((c,i)=>{
                     const dif    = parseFloat(c.diferencia||0);
@@ -381,6 +495,8 @@ export default function CorteCajaModule({usuario }) {
                           </span>
                         </td>
                         <td style={{padding:"9px 12px",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>{c.cajero||"—"}</td>
+                        <td style={{padding:"9px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{c.contado_por||"—"}</td>
+                        <td style={{padding:"9px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{fmt(c.fondo_inicial)}</td>
                         <td style={{padding:"9px 12px",color:C.green,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{fmt(c.efectivo_declarado)}</td>
                         <td style={{padding:"9px 12px",color:C.blue,borderBottom:`1px solid ${C.border}`}}>{fmt(c.efectivo_sistema)}</td>
                         <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`}}><span style={{color:dc,fontWeight:700}}>{dt}</span></td>
@@ -414,6 +530,140 @@ export default function CorteCajaModule({usuario }) {
         </div>
       )}
       <OnboardingTour tourId="caja" usuario={usuario} />
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// RESULTADO DEL CORTE — se muestra sólo después de guardar
+//
+// Aquí se destapa lo que estuvo oculto durante la captura: lo que el sistema
+// esperaba y la diferencia contra lo contado. Debajo va el reporte Z, el
+// detalle de todas las ventas del turno, que sirve para investigar cuando la
+// diferencia no es cero y como comprobante del relevo.
+// ══════════════════════════════════════════════════════════════
+function ResultadoCorte({ C, resultado, turno, dif, difCol, difBg, difTxt,
+                          zTransac, cargandoZ, btnSecondary, onNuevo }) {
+  const esperado  = parseFloat(resultado?.esperado ?? 0);
+  const sistema   = parseFloat(resultado?.efectivo_sistema ?? 0);
+  const fondoRes  = parseFloat(resultado?.fondo_inicial ?? 0);
+  const declarado = esperado + dif;
+
+  const imprimir = () => {
+    const filas = (zTransac || []).map(t => `
+      <tr>
+        <td>#${t.id}</td>
+        <td>${new Date(t.created_at).toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"})}</td>
+        <td>${(t.metodo_pago || "—")}</td>
+        <td class="r">$${parseFloat(t.total || 0).toFixed(2)}</td>
+      </tr>`).join("");
+    const html = `<!doctype html><html><head><meta charset="utf-8">
+      <title>Corte ${turno} — ${new Date().toLocaleDateString("es-MX")}</title>
+      <style>
+        body{font-family:-apple-system,system-ui,sans-serif;font-size:12px;margin:24px;color:#111}
+        h1{font-size:16px;margin:0 0 2px} .sub{color:#666;margin-bottom:16px}
+        table{width:100%;border-collapse:collapse;margin-top:8px}
+        th,td{text-align:left;padding:4px 6px;border-bottom:1px solid #ddd}
+        th{font-size:10px;text-transform:uppercase;color:#666}
+        .r{text-align:right} .tot{font-weight:700;border-top:2px solid #111}
+        .box{border:1px solid #ccc;padding:10px 12px;margin-bottom:14px}
+        .box div{display:flex;justify-content:space-between;padding:2px 0}
+        .dif{font-weight:700;border-top:1px solid #ccc;margin-top:4px;padding-top:6px}
+      </style></head><body>
+      <h1>Corte de caja — turno ${turno}</h1>
+      <div class="sub">${new Date().toLocaleString("es-MX")} · corte #${resultado?.corte_id ?? ""}</div>
+      <div class="box">
+        <div><span>Fondo inicial</span><span>$${fondoRes.toFixed(2)}</span></div>
+        <div><span>Ventas en efectivo (sistema)</span><span>$${sistema.toFixed(2)}</span></div>
+        <div><span>Esperado en cajón</span><span>$${esperado.toFixed(2)}</span></div>
+        <div><span>Contado</span><span>$${declarado.toFixed(2)}</span></div>
+        <div class="dif"><span>Diferencia</span><span>$${dif.toFixed(2)}</span></div>
+      </div>
+      <h1 style="font-size:13px">Detalle de ventas del turno</h1>
+      <table>
+        <thead><tr><th>Folio</th><th>Hora</th><th>Método</th><th class="r">Total</th></tr></thead>
+        <tbody>${filas || '<tr><td colspan="4">Sin ventas en el turno</td></tr>'}</tbody>
+        <tfoot><tr class="tot"><td colspan="3">${(zTransac||[]).length} venta(s)</td>
+          <td class="r">$${(zTransac||[]).reduce((a,t)=>a+parseFloat(t.total||0),0).toFixed(2)}</td></tr></tfoot>
+      </table>
+      <p style="margin-top:24px">Contó: ____________________  Recibió: ____________________</p>
+      </body></html>`;
+    // Ventana aparte en vez de window.print() sobre la app: el reporte lleva su
+    // propio formato y así no pelea con los estilos del panel.
+    const w = window.open("", "_blank", "width=720,height=800");
+    if (!w) { showToast("El navegador bloqueó la ventana de impresión", "warning"); return; }
+    w.document.write(html); w.document.close(); w.focus(); w.print();
+  };
+
+  const totalZ = (zTransac || []).reduce((a,t)=>a+parseFloat(t.total||0),0);
+
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:16,maxWidth:820}}>
+      <div style={{background:difBg,borderRadius:12,border:`1px solid ${difCol}40`,padding:24}}>
+        <div style={{color:C.textMid,fontSize:11,fontWeight:700,letterSpacing:.5,marginBottom:6}}>
+          CORTE CERRADO · TURNO {turno.toUpperCase()}
+        </div>
+        <div style={{color:difCol,fontWeight:800,fontSize:30,marginBottom:14}}>{difTxt}</div>
+        {[["Fondo inicial",fondoRes],["Ventas en efectivo (sistema)",sistema],
+          ["Esperado en el cajón",esperado],["Contado por el cajero",declarado]].map(([l,v])=>(
+          <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"3px 0"}}>
+            <span style={{color:C.textMid,fontSize:12.5}}>{l}</span>
+            <span style={{color:C.text,fontSize:13,fontWeight:600}}>{fmt(v)}</span>
+          </div>
+        ))}
+        {dif !== 0 && (
+          <div style={{color:C.textDim,fontSize:11.5,marginTop:12,lineHeight:1.5}}>
+            {dif > 0
+              ? "Hay más dinero del esperado. Suele ser una venta cobrada de más, un cambio mal dado a favor, o una venta que no se registró en el sistema."
+              : "Falta dinero. Revisa el detalle de abajo: puede ser un cambio mal dado, una venta cobrada de menos, o un retiro que no se anotó."}
+          </div>
+        )}
+      </div>
+
+      <div style={{background:C.card,borderRadius:12,border:`1px solid ${C.border}`,padding:20}}>
+        <div style={{display:"flex",alignItems:"center",marginBottom:12}}>
+          <div style={{color:C.text,fontWeight:800,fontSize:14,flex:1}}>
+            🧾 Detalle del turno {cargandoZ ? "" : `· ${(zTransac||[]).length} venta(s) · ${fmt(totalZ)}`}
+          </div>
+          <button onClick={imprimir} disabled={cargandoZ} style={{...btnSecondary,padding:"8px 16px",fontSize:12}}>
+            🖨️ Imprimir
+          </button>
+        </div>
+        {cargandoZ ? (
+          <div style={{color:C.textMid,padding:20,textAlign:"center",fontSize:12}}>Cargando el detalle…</div>
+        ) : (zTransac||[]).length === 0 ? (
+          <div style={{color:C.textMid,padding:20,textAlign:"center",fontSize:12}}>Sin ventas en este turno</div>
+        ) : (
+          <div style={{maxHeight:300,overflowY:"auto",border:`1px solid ${C.border}`,borderRadius:8}}>
+            <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+              <thead><tr style={{background:C.bg}}>
+                {["Folio","Hora","Método","Total"].map(h=>(
+                  <th key={h} style={{padding:"7px 10px",textAlign:h==="Total"?"right":"left",
+                    color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{h}</th>
+                ))}
+              </tr></thead>
+              <tbody>
+                {(zTransac||[]).map(t=>(
+                  <tr key={t.id}>
+                    <td style={{padding:"6px 10px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>#{t.id}</td>
+                    <td style={{padding:"6px 10px",color:C.text,borderBottom:`1px solid ${C.border}`}}>
+                      {new Date(t.created_at).toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"})}
+                    </td>
+                    <td style={{padding:"6px 10px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{t.metodo_pago||"—"}</td>
+                    <td style={{padding:"6px 10px",textAlign:"right",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>
+                      {fmt(t.total)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <button onClick={onNuevo} style={{...btnSecondary,alignSelf:"flex-start"}}>
+        ➕ Hacer otro corte
+      </button>
     </div>
   );
 }
