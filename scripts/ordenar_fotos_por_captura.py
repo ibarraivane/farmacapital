@@ -24,6 +24,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 from datetime import datetime, timezone
 
 EXTENSIONES = {".jpg", ".jpeg", ".png", ".heic", ".heif", ".tif", ".tiff"}
@@ -117,15 +118,48 @@ def clave_orden(ruta):
     return "archivo", f, f"{f:%H:%M:%S}"
 
 
+def _a_jpeg_temporal(ruta):
+    """Convierte HEIC a un JPEG temporal, porque OpenCV no abre HEIC.
+
+    Devuelve (ruta_a_usar, temporal_a_borrar). macOS trae sips, así que sale
+    más barato convertir al vuelo que arrastrar una dependencia nueva.
+    """
+    if os.path.splitext(ruta)[1].lower() not in {".heic", ".heif"}:
+        return ruta, None
+    tmp = tempfile.NamedTemporaryFile(suffix=".jpg", delete=False)
+    tmp.close()
+    try:
+        r = subprocess.run(["sips", "-s", "format", "jpeg", ruta, "--out", tmp.name],
+                           capture_output=True, timeout=60)
+        if r.returncode == 0 and os.path.getsize(tmp.name) > 0:
+            return tmp.name, tmp.name
+    except Exception:
+        pass
+    try: os.unlink(tmp.name)
+    except OSError: pass
+    return None, None
+
+
 def tiene_codigo(ruta):
     """True si se decodifica un código de barras. None si no se pudo evaluar."""
     try:
         import cv2
     except ImportError:
         return None
+    ruta_cv, tmp = _a_jpeg_temporal(ruta)
+    try:
+        return _detectar(ruta_cv) if ruta_cv else None
+    finally:
+        if tmp:
+            try: os.unlink(tmp)
+            except OSError: pass
+
+
+def _detectar(ruta):
+    import cv2
     img = cv2.imread(ruta)
     if img is None:
-        return None  # cv2 no abre HEIC
+        return None
     if img.shape[0] > 1600:
         escala = 1600 / img.shape[0]
         img = cv2.resize(img, None, fx=escala, fy=escala, interpolation=cv2.INTER_AREA)
@@ -143,6 +177,13 @@ def tiene_codigo(ruta):
     return False
 
 
+class NoSePudoLeer(Exception):
+    """Demasiadas fotos ilegibles: emparejar por códigos daría basura."""
+    def __init__(self, sin_evaluar, total):
+        self.sin_evaluar, self.total = sin_evaluar, total
+        super().__init__(f"{sin_evaluar} de {total} fotos no se pudieron leer")
+
+
 def asignar_roles(rutas, ventana=11):
     """Decide portada/código foto por foto leyendo los códigos de barras.
 
@@ -156,7 +197,15 @@ def asignar_roles(rutas, ventana=11):
     - La fase puede cambiar a media sesión. La ventana es deslizante, así que
       cada tramo se resuelve con su propia fase.
     """
-    det = [bool(tiene_codigo(r)) for r in rutas]
+    crudo = [tiene_codigo(r) for r in rutas]
+    # None significa "no se pudo evaluar", que NO es lo mismo que "no tiene
+    # código". Confundirlos hace que todas las fotos parezcan portadas y el
+    # pareo salga inservible, sin que nada avise.
+    sin_evaluar = sum(1 for d in crudo if d is None)
+    if sin_evaluar > len(rutas) * 0.2:
+        raise NoSePudoLeer(sin_evaluar, len(rutas))
+
+    det = [bool(d) for d in crudo]
     roles, fases = [], []
     for i in range(len(rutas)):
         lo, hi = max(0, i - ventana), min(len(rutas), i + ventana + 1)
@@ -290,9 +339,16 @@ def main():
 
     if args.emparejar:
         print("Leyendo códigos de barras para decidir el papel de cada foto…")
-        _, roles, fases = asignar_roles(rutas)
-        pares = emparejar(rutas, roles)
-        cortes = [i + 1 for i in range(1, len(fases)) if fases[i] != fases[i - 1]]
+        try:
+            _, roles, fases = asignar_roles(rutas)
+            pares = emparejar(rutas, roles)
+            cortes = [i + 1 for i in range(1, len(fases)) if fases[i] != fases[i - 1]]
+        except NoSePudoLeer as e:
+            sys.exit(
+                f"\n✗ {e}.\n"
+                "  Sin poder leer los códigos no se puede decidir el papel de cada\n"
+                "  foto, y forzarlo daría un pareo inservible. Corre sin --emparejar\n"
+                "  para asumir que la secuencia alterna, o convierte las fotos a JPG.\n")
     else:
         roles = ["portada" if i % 2 == 0 else "codigo" for i in range(len(rutas))]
         pares = [(rutas[i], rutas[i + 1] if i + 1 < len(rutas) else None)
