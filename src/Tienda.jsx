@@ -227,7 +227,7 @@ function bannerVideoUrl(b){
 }
 
 /** Desktop 16:5 · móvil 1:1 — `<picture>` evita mostrar la imagen cuadrada en laptop o la panorámica en teléfono. */
-function HeroBannerPicture({ banner, alt = "", style }) {
+function HeroBannerPicture({ banner, alt = "", style, onRatio }) {
   const desktopUrl = bannerPublicUrl(banner?.imagen_url);
   const mobileUrl = bannerPublicUrl(banner?.imagen_url_mobile);
   const fallback = desktopUrl || mobileUrl;
@@ -243,6 +243,9 @@ function HeroBannerPicture({ banner, alt = "", style }) {
         style={style}
         onLoad={(e) => {
           const img = e.currentTarget;
+          if (onRatio && img.naturalWidth > 0 && img.naturalHeight > 0) {
+            onRatio(img.naturalWidth / img.naturalHeight);
+          }
           if (process.env.NODE_ENV === "development") {
             console.info("[HeroBanner]", alt || "banner", {
               naturalWidth: img.naturalWidth,
@@ -500,6 +503,10 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
   const [idx,setIdx]=useState(0);
   const [pauseAuto,setPauseAuto]=useState(false);
   const esMobile = useMediaQuery("(max-width: 767px)");
+  // El contenedor adopta la proporcion real del arte que se carga, en vez
+  // de imponer una fija. Asi un banner 16:5, 16:7 o 4:5 entra completo sin
+  // que objectFit:cover le recorte los costados.
+  const [ratioArte,setRatioArte]=useState(null);
 
   const banners = items.length
     ? items
@@ -512,6 +519,7 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
     : [];
 
   useEffect(()=>{ setIdx(0); },[banners.length]);
+  useEffect(()=>{ setRatioArte(null); },[idx,esMobile]);
   useEffect(()=>{
     if(banners.length<=1||pauseAuto) return undefined;
     const t=setInterval(()=>setIdx(i=>(i+1)%banners.length),4000);
@@ -530,10 +538,18 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
   const modoCompleto =
     (bannerTxt(b.modo_visualizacion)||"imagen_completa")==="imagen_completa" && tieneImagen;
 
+  // Por defecto coincide con el arte que hay hoy en produccion (16:5 en
+  // escritorio, 1:1 en movil) para que no haya salto antes de que cargue.
+  // Los topes evitan que un archivo con medidas raras deforme el hero.
+  const ratioPorDefecto = esMobile ? 1 : 16 / 5;
+  const ratioMin = esMobile ? 0.6 : 1.8;
+  const ratioMax = esMobile ? 1.3 : 3.6;
+  const ratioHero = Math.min(ratioMax, Math.max(ratioMin, Number(ratioArte) || ratioPorDefecto));
+
   const heroShellSx = {
     position: "relative",
     width: "100%",
-    aspectRatio: esMobile ? "4 / 5" : "16 / 7",
+    aspectRatio: String(ratioHero),
     height: "auto",
     overflow: "hidden",
     background: T.ink,
@@ -704,6 +720,7 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
               />
             ) : (
               <HeroBannerPicture
+                onRatio={setRatioArte}
                 banner={b}
                 alt={bannerTxt(b.titulo)||"Banner FarmaCapital"}
                 style={heroMediaSx}
@@ -749,7 +766,7 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
         ) : null}
         {!vid && tieneImagen ? (
           <div style={{ position:"absolute", inset:0, zIndex:0 }}>
-            <HeroBannerPicture banner={b} alt="" style={{ ...heroMediaSx, pointerEvents:"none" }} />
+            <HeroBannerPicture onRatio={setRatioArte} banner={b} alt="" style={{ ...heroMediaSx, pointerEvents:"none" }} />
           </div>
         ) : null}
         {vid ? (
