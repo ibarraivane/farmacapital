@@ -76,6 +76,14 @@ export function formatWhatsAppSendError({ reason, detail, telefono } = {}) {
         "Los tickets deben enviarse con la plantilla pedido_confirmado aprobada — revisa Vercel Logs por «template failed»."
       );
     }
+    if (code === 132018) {
+      return (
+        "Meta rechazó los parámetros de la plantilla (error 132018). " +
+        "Abre pedido_confirmado en WhatsApp Manager y confirma que el cuerpo tiene exactamente {{1}}, {{2}}, {{3}} y {{4}}. " +
+        "En Vercel borra WHATSAPP_TEMPLATE_PEDIDO_URL_BUTTON si existe (debe estar vacía o false). " +
+        "El total va sin signo $ (ej. 143.00) porque el $ ya está en la plantilla."
+      );
+    }
     if (code === 132000 || code === 132001 || code === 132005) {
       let extra = '';
       try {

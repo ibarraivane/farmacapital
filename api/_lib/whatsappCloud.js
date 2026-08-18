@@ -86,10 +86,14 @@ function getWhatsAppTemplateConfig() {
 
 function normalizeTemplateParams(params) {
   if (!Array.isArray(params)) return [];
-  return params.map((p) => ({
-    type: 'text',
-    text: String(p ?? '').slice(0, 1024),
-  }));
+  return params.map((p) => {
+    let text = String(p ?? '').trim();
+    if (!text) text = '—';
+    return {
+      type: 'text',
+      text: text.slice(0, 1024),
+    };
+  });
 }
 
 function resolveWhatsAppProvider() {
