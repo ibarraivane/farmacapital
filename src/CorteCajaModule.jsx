@@ -3,7 +3,7 @@ import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
 import { showToast } from "./ui";
 import OnboardingTour from "./components/OnboardingTour";
-import { TURNOS, TURNOS_LISTA, rangoTurno } from "./constants/turnos";
+import { TURNOS, TURNOS_LISTA, rangoTurno, inferirTurno, turnoDePerfil } from "./constants/turnos";
 import { esVendedor, fetchSesionCajaAbierta } from "./utils/cajaSesion";
 
 const BRAND = { primary:"#0D1B2A", secondary:"#1E3ABA", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
@@ -40,7 +40,9 @@ export default function CorteCajaModule({usuario }) {
   const [tab, setTab] = useState("nuevo");
 
   // Nuevo corte
-  const [turno,              setTurno]   = useState("matutino");
+  const turnoPerfil = turnoDePerfil(usuario);
+  const vendedorFijo = esVendedor(usuario);
+  const [turno,              setTurno]   = useState(() => turnoDePerfil(usuario) || inferirTurno());
   const [efectivo_declarado, setEfDec]   = useState("");
   const [tarjeta,            setTarjeta] = useState("");
   const [mercadopago,        setMp]      = useState("");
@@ -77,7 +79,8 @@ export default function CorteCajaModule({usuario }) {
   const mp      = parseFloat(mercadopago||0);
   // El fondo no es venta, por eso se descuenta del total del turno.
   const total_general = (efDec - fondoNum) + tar + mp;
-  const puedeGuardar  = usaDenoms || efectivo_declarado !== "";
+  const puedeGuardar  = (usaDenoms || efectivo_declarado !== "")
+    && (!vendedorFijo || !!turnoPerfil || !!sesionAbierta);
 
   // Sólo se precargan tarjeta y MercadoPago. El efectivo esperado NO se pide:
   // si viajara al navegador, bastaría con abrir la pestaña de red para verlo
@@ -99,6 +102,11 @@ export default function CorteCajaModule({usuario }) {
   }, [turno]);
 
   useEffect(() => { fetchTotalesElectronicos(); }, [fetchTotalesElectronicos]);
+
+  useEffect(() => {
+    if (sesionAbierta?.turno) return;
+    if (turnoPerfil) setTurno(turnoPerfil);
+  }, [turnoPerfil, sesionAbierta]);
 
   useEffect(() => {
     (async () => {
@@ -202,6 +210,10 @@ export default function CorteCajaModule({usuario }) {
   };
 
   const guardarCorte = async () => {
+    if (vendedorFijo && !turnoPerfil && !sesionAbierta) {
+      showToast("RH debe asignarte un turno antes de cerrar caja.", "warning");
+      return;
+    }
     if (!puedeGuardar) { showToast("Captura el efectivo contado", "warning"); return; }
     const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) { alert("Sesión expirada. Inicia sesión de nuevo."); return; }
@@ -292,12 +304,32 @@ export default function CorteCajaModule({usuario }) {
               Aún no hay caja abierta en este turno. Ábrela en el POS (conteo de billetes) para que la hora de entrada y el fondo queden registrados. Si cierras ahora, el fondo se captura aquí y la hora de apertura será la del turno, no la real.
             </div>
           )}
-          {/* Selector turno */}
+          {/* Turno: el vendedor no elige; lo asigna RH. Admin sí puede cubrir. */}
           <div data-tour="caja-turno" style={{marginBottom:24}}>
             <label style={labelStyle}>TURNO</label>
+            {vendedorFijo ? (
+              <div style={{
+                padding: "14px 18px",
+                borderRadius: 10,
+                border: `2px solid ${TURNOS[turno] ? C.blue : C.amber}`,
+                background: TURNOS[turno] ? C.blueDim : C.amberDim,
+                color: TURNOS[turno] ? C.blue : C.text,
+              }}>
+                <div style={{fontWeight:800, fontSize:14}}>
+                  {TURNOS[turno]
+                    ? `${TURNOS[turno].emoji} ${TURNOS[turno].label}`
+                    : "Sin turno asignado"}
+                </div>
+                <div style={{fontSize:11, marginTop:2, opacity:.75}}>
+                  {TURNOS[turno]
+                    ? `${TURNOS[turno].horario} · lo asigna RH; no puedes cerrar el otro turno.`
+                    : "Pide a RH que te asigne matutino o vespertino."}
+                </div>
+              </div>
+            ) : (
             <div style={{display:"flex",gap:10}}>
               {TURNOS_LISTA.map(val=>[val,`${TURNOS[val].emoji} ${TURNOS[val].label}`,TURNOS[val].horario]).map(([val,label,hora])=>(
-                <button key={val} onClick={()=>!sesionAbierta && setTurno(val)} style={{
+                <button key={val} type="button" onClick={()=>!sesionAbierta && setTurno(val)} style={{
                   flex:1,padding:"14px 20px",borderRadius:10,cursor:sesionAbierta?"default":"pointer",textAlign:"left",
                   border:turno===val?`2px solid ${C.blue}`:`2px solid ${C.border}`,
                   background:turno===val?C.blueDim:C.card,
@@ -309,6 +341,7 @@ export default function CorteCajaModule({usuario }) {
                 </button>
               ))}
             </div>
+            )}
           </div>
 
           {/* Grid */}

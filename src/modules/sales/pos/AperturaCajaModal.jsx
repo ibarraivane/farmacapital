@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { C_LIGHT, BRAND } from "../../../constants";
-import { etiquetaTurno, inferirTurno } from "../../../constants/turnos";
+import { etiquetaTurno, inferirTurno, turnoDePerfil } from "../../../constants/turnos";
 import { hayPiezasDenominacion } from "../../../constants/caja";
 import ArqueoDenominaciones from "../../../components/ArqueoDenominaciones";
 import { abrirSesionCaja } from "../../../utils/cajaSesion";
@@ -15,7 +15,8 @@ export default function AperturaCajaModal({ usuario, onAbierta }) {
   const [denoms, setDenoms] = useState({});
   const [nota, setNota] = useState("");
   const [saving, setSaving] = useState(false);
-  const turno = inferirTurno();
+  const turno = turnoDePerfil(usuario) || inferirTurno();
+  const turnoAsignado = turnoDePerfil(usuario);
   const nombre = (usuario?.nombre || "Vendedor").split(" ")[0];
 
   const setPiezas = (d, value) => {
@@ -23,6 +24,10 @@ export default function AperturaCajaModal({ usuario, onAbierta }) {
   };
 
   const confirmar = async () => {
+    if (!turnoAsignado) {
+      showToast("RH debe asignarte un turno antes de abrir caja.", "warning");
+      return;
+    }
     if (!hayPiezasDenominacion(denoms) && !nota.trim()) {
       showToast("Cuenta el efectivo que te entregaron, o deja una nota si abres en ceros.", "warning");
       return;
@@ -63,7 +68,9 @@ export default function AperturaCajaModal({ usuario, onAbierta }) {
         </h1>
         <p style={{ color: C.textMid, fontSize: 14, lineHeight: 1.5, margin: "10px 0 0" }}>
           Cuenta las piezas que te entregaron. El total se calcula solo.
-          Esta hora queda como tu entrada. Turno: <strong>{etiquetaTurno(turno)}</strong>.
+          Esta hora queda como tu entrada.{turnoAsignado
+            ? <> Turno: <strong>{etiquetaTurno(turno)}</strong>.</>
+            : " RH aún no te asigna turno: no puedes abrir caja."}
         </p>
 
         <div style={{
@@ -120,7 +127,7 @@ export default function AperturaCajaModal({ usuario, onAbierta }) {
         <button
           type="button"
           onClick={confirmar}
-          disabled={saving}
+          disabled={saving || !turnoAsignado}
           style={{
             marginTop: 18,
             width: "100%",
@@ -134,7 +141,7 @@ export default function AperturaCajaModal({ usuario, onAbierta }) {
             cursor: saving ? "wait" : "pointer",
           }}
         >
-          {saving ? "Abriendo…" : "Confirmar y empezar turno"}
+          {saving ? "Abriendo…" : !turnoAsignado ? "Falta asignar turno en RH" : "Confirmar y empezar turno"}
         </button>
       </div>
     </div>

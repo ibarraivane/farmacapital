@@ -45,6 +45,28 @@ const actionBtnBase = {
   marginLeft: 1,
 };
 
+function TurnoSelect({ value, onChange, style, compact, allowEmpty = true }) {
+  const v = value || (allowEmpty ? "" : "matutino");
+  return (
+    <select
+      value={v}
+      onChange={(e) => onChange(e.target.value)}
+      style={{
+        ...style,
+        ...(compact ? { width: "auto", minWidth: 168, padding: "6px 8px", fontSize: 12 } : {}),
+      }}
+    >
+      {allowEmpty && <option value="">Sin asignar</option>}
+      {TURNOS_LISTA.map((t) => (
+        <option key={t} value={t}>{etiquetaTurno(t)}</option>
+      ))}
+      {v && !TURNOS_LISTA.includes(v) && (
+        <option value={v}>{v}</option>
+      )}
+    </select>
+  );
+}
+
 export default function RRHHModule() {
   const C = C_LIGHT;
   const s = mkS(C);
@@ -52,6 +74,7 @@ export default function RRHHModule() {
   const isMobile = useMediaQuery("(max-width: 768px)");
   const [horarioAbierto, setHorarioAbierto] = useState(null);
   const [empleados, setEmpleados] = useState([]);
+  const [perfiles, setPerfiles]   = useState([]);
   const [loading, setLoading]     = useState(true);
   const emptyForm = { nombre:'', telefono:'', rol:'vendedor', turno:'matutino', salario_quincenal:'' };
   const [form, setForm]           = useState(emptyForm);
@@ -110,7 +133,57 @@ export default function RRHHModule() {
         return updated;
       });
     }
+    const { data: users, error: errU } = await supabase.rpc("admin_listar_usuarios", { p_session_token: tok });
+    if (errU) {
+      if (/could not find the function|pgrst202/i.test(errU.message || "")) {
+        showToast("Falta actualizar la base. Ejecuta sql/patch_turno_perfil_caja.sql en Supabase.", "error");
+      }
+      setPerfiles([]);
+    } else {
+      const rows = (users || []).map((row) => (typeof row === "string" ? JSON.parse(row) : row));
+      setPerfiles(rows.filter((u) => u.rol === "vendedor" || u.rol === "gerente"));
+    }
     setLoading(false);
+  };
+
+  const asignarTurnoPerfil = async (usuarioId, turno) => {
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    const { error } = await supabase.rpc("admin_set_usuario_turno", {
+      p_session_token: tok,
+      p_usuario_id: usuarioId,
+      p_turno: turno || null,
+    });
+    if (error) {
+      showToast(
+        /could not find the function|pgrst202/i.test(error.message || "")
+          ? "Falta actualizar la base. Ejecuta sql/patch_turno_perfil_caja.sql en Supabase."
+          : error.message,
+        "error"
+      );
+      return;
+    }
+    showToast("Turno asignado.", "success");
+    fetchEmpleados();
+  };
+
+  const asignarTurnoEmpleado = async (empleadoId, turno) => {
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    const { error } = await supabase.rpc("admin_set_empleado_turno", {
+      p_session_token: tok,
+      p_empleado_id: empleadoId,
+      p_turno: turno || null,
+    });
+    if (error) {
+      showToast(
+        /could not find the function|pgrst202/i.test(error.message || "")
+          ? "Falta actualizar la base. Ejecuta sql/patch_turno_perfil_caja.sql en Supabase."
+          : error.message,
+        "error"
+      );
+      return;
+    }
+    showToast("Turno asignado.", "success");
+    fetchEmpleados();
   };
 
   useEffect(() => { fetchEmpleados(); }, []);
@@ -225,6 +298,54 @@ export default function RRHHModule() {
         <p style={{ color:C.textMid, margin:'4px 0 0', fontSize:13 }}>Empleados · Horarios · Nómina quincenal — FarmaCapital</p>
       </div>
 
+      <div style={S.section}>
+        <div style={S.h2}>◐ Turnos de caja</div>
+        <p style={{ color:C.textMid, fontSize:13, margin:'0 0 16px', lineHeight:1.45 }}>
+          Cada perfil de piso cierra sólo el corte de su turno. Asígnarlo aquí; en caja ya no pueden elegir el del relevo.
+        </p>
+        {loading ? <p style={{ color:C.textMid }}>Cargando…</p> :
+         !perfiles.length ? (
+          <p style={{ color:C.textMid, fontSize:13 }}>
+            No hay perfiles de vendedor. Créalos en Usuarios y vuelve a asignar el turno aquí.
+          </p>
+         ) : isMobile ? (
+          <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+            {perfiles.map((u) => (
+              <div key={u.id} style={{ border:`1px solid ${C.border}`, borderRadius:12, padding:14, background:C.bg }}>
+                <div style={{ fontWeight:800, fontSize:15, color:C.text, marginBottom:8 }}>{u.nombre}</div>
+                <div style={{ fontSize:12, color:C.textMid, marginBottom:10 }}>{u.telefono || u.email || "—"}</div>
+                <label style={{ ...S.label, marginBottom:4 }}>Turno de caja</label>
+                <TurnoSelect style={S.select} value={u.turno || ""} onChange={(t) => asignarTurnoPerfil(u.id, t)} />
+              </div>
+            ))}
+          </div>
+         ) : (
+          <div style={{ overflowX:'auto' }}>
+            <table style={{ width:'100%', borderCollapse:'collapse' }}>
+              <thead><tr>
+                {['Nombre','Acceso','Turno de caja'].map((h) => <th key={h} style={S.th}>{h}</th>)}
+              </tr></thead>
+              <tbody>
+                {perfiles.map((u) => (
+                  <tr key={u.id}>
+                    <td style={{ ...S.td, fontWeight:700 }}>{u.nombre}</td>
+                    <td style={{ ...S.td, color:C.textMid }}>{u.telefono || u.email || "—"}</td>
+                    <td style={S.td}>
+                      <TurnoSelect
+                        compact
+                        style={S.select}
+                        value={u.turno || ""}
+                        onChange={(t) => asignarTurnoPerfil(u.id, t)}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+         )}
+      </div>
+
       {/* LISTA EMPLEADOS */}
       <div style={S.section}>
         <div style={S.h2}>📋 Empleados registrados</div>
@@ -255,7 +376,13 @@ export default function RRHHModule() {
                   </div>
                   <div>
                     <div style={{ ...S.label, marginBottom:2 }}>Turno</div>
-                    <div style={{ color:C.textMid, textTransform:'capitalize' }}>{emp.turno}</div>
+                    <TurnoSelect
+                      compact
+                      allowEmpty={false}
+                      style={S.select}
+                      value={emp.turno || "matutino"}
+                      onChange={(t) => asignarTurnoEmpleado(emp.id, t)}
+                    />
                   </div>
                   <div>
                     <div style={{ ...S.label, marginBottom:2 }}>Salario qna.</div>
@@ -335,7 +462,15 @@ export default function RRHHModule() {
                     <td style={S.td}>
                       <span style={{ background:rolColor(emp.rol)+'22', color:rolColor(emp.rol), padding:'3px 10px', borderRadius:20, fontSize:11, fontWeight:700, textTransform:'capitalize' }}>{emp.rol}</span>
                     </td>
-                    <td style={{ ...S.td, color:C.textMid, fontSize:12, textTransform:'capitalize' }}>{emp.turno}</td>
+                    <td style={S.td}>
+                      <TurnoSelect
+                        compact
+                        allowEmpty={false}
+                        style={S.select}
+                        value={emp.turno || "matutino"}
+                        onChange={(t) => asignarTurnoEmpleado(emp.id, t)}
+                      />
+                    </td>
                     <td style={{ ...S.td, fontWeight:700, color:C.green }}>{fmt(emp.salario_quincenal)}</td>
                     <td style={S.td}>
                       <span style={{ background: emp.estado?'#16a34a22':'#e0525222', color:emp.estado?C.green:C.red, padding:'3px 10px', borderRadius:20, fontSize:11, fontWeight:700 }}>

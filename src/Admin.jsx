@@ -225,6 +225,7 @@ function LoginScreen({onLogin}){
         email:          u.email || null,
         telefono:       u.telefono || "",
         rol:            u.rol || "vendedor",
+        turno:          u.turno || null,
         activo:         true,
         loginTimestamp: Date.now(),
       };

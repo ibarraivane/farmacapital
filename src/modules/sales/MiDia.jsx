@@ -8,6 +8,7 @@ import { supabase } from "../../supabase";
 import { showToast } from "../../ui";
 import { idEmpleadoUsuarios } from "../../utils/usuarioId";
 import { saludoUsuario } from "../../utils";
+import { turnoDePerfil } from "../../constants/turnos";
 import {
   inferirTurno, inicioDelTurno, finDelTurno, claveMetaTurno,
   calcularMultiplicador, cargarConfigMetas, escalonBono,
@@ -113,7 +114,8 @@ export default function MiDia({ usuario, setPage }) {
     return () => clearInterval(t);
   }, []);
 
-  const turno = inferirTurno(now);
+  const turnoAsignado = turnoDePerfil(usuario);
+  const turno = turnoAsignado || inferirTurno(now);
 
   const cargarDatos = useCallback(async () => {
     if (!usuario) return;
@@ -309,7 +311,9 @@ export default function MiDia({ usuario, setPage }) {
   }, [data, pctPuntos]);
 
   const saludo = saludoUsuario(usuario?.nombre);
-  const turnoLabel = turno === "matutino" ? "turno matutino" : "turno vespertino";
+  const turnoLabel = turnoAsignado
+    ? (turno === "matutino" ? "turno matutino" : "turno vespertino")
+    : "sin turno asignado";
 
   return (
     <div style={{ padding: 24, maxWidth: 1100, margin: "0 auto", background: C.bg, minHeight: "100dvh", fontFamily: "'Plus Jakarta Sans',sans-serif" }}>

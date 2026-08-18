@@ -12,6 +12,9 @@ alter table public.usuarios
 alter table public.usuarios
   add column if not exists eliminado_at timestamptz;
 
+alter table public.usuarios
+  add column if not exists turno text;
+
 create index if not exists idx_usuarios_eliminado_at
   on public.usuarios (eliminado_at)
   where eliminado_at is not null;
@@ -543,6 +546,7 @@ returns table (
   email          text,
   telefono       text,
   rol            text,
+  turno          text,
   notas          text,
   activo         boolean,
   modulos_custom jsonb,
@@ -563,6 +567,7 @@ begin
     u.email,
     u.telefono,
     u.rol,
+    u.turno,
     u.notas,
     coalesce(u.activo, false),
     u.modulos_custom,
@@ -646,6 +651,7 @@ begin
       'email',          v_usuario.email,
       'telefono',       v_usuario.telefono,
       'rol',            v_usuario.rol,
+      'turno',          v_usuario.turno,
       'modulos_custom', v_usuario.modulos_custom
     )
   );

@@ -55,3 +55,9 @@ export function etiquetaTurno(turno) {
   const t = TURNOS[turno];
   return t ? `${t.label} ${t.horario}` : turno;
 }
+
+/** Turno de caja asignado al perfil en RH. Null si aún no lo tienen. */
+export function turnoDePerfil(usuario) {
+  const t = String(usuario?.turno || "").toLowerCase();
+  return t === "matutino" || t === "vespertino" ? t : null;
+}

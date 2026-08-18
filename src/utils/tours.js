@@ -89,9 +89,9 @@ export const TOURS = {
     steps: [
       {
         target: '[data-tour="caja-turno"]',
-        title: "1. Elige el turno",
+        title: "1. El turno",
         content:
-          "Selecciona si es corte matutino (8:00–15:30) o vespertino (15:00–22:30). El relevo de caja es a las 15:30: FarmaCapital cuenta como matutinas las ventas anteriores a esa hora, y como vespertinas las posteriores.",
+          "El turno lo asigna RH a cada perfil. El vendedor cierra sólo el suyo (matutino 8:00–15:30 o vespertino 15:00–22:30). El relevo de caja es a las 15:30: las ventas de antes son del matutino; las de después, del vespertino.",
         placement: "bottom",
         disableBeacon: true,
       },
