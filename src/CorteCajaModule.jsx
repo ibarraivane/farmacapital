@@ -4,7 +4,7 @@ import { supabase } from "./supabase";
 import { showToast } from "./ui";
 import OnboardingTour from "./components/OnboardingTour";
 import { TURNOS, TURNOS_LISTA, rangoTurno, inferirTurno, turnoDePerfil } from "./constants/turnos";
-import { esVendedor, fetchSesionCajaAbierta } from "./utils/cajaSesion";
+import { esVendedor, fetchSesionCajaAbierta, fetchJornadaHoy } from "./utils/cajaSesion";
 
 const BRAND = { primary:"#0D1B2A", secondary:"#1E3ABA", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
 
@@ -53,6 +53,7 @@ export default function CorteCajaModule({usuario }) {
   const [contadoPor,         setContadoPor] = useState("");
   const [denoms,             setDenoms]  = useState({});
   const [sesionAbierta,      setSesionAbierta] = useState(null);
+  const [jornada,            setJornada] = useState(null);
 
   // El corte es a ciegas: mientras se captura no se muestra ni lo que el
   // sistema espera ni la diferencia. Un conteo que se puede copiar deja de ser
@@ -110,13 +111,18 @@ export default function CorteCajaModule({usuario }) {
 
   useEffect(() => {
     (async () => {
-      const { sesion } = await fetchSesionCajaAbierta();
+      const [{ sesion }, { jornada: j }] = await Promise.all([
+        fetchSesionCajaAbierta(),
+        fetchJornadaHoy(),
+      ]);
+      if (j) setJornada(j);
       if (sesion) {
         setSesionAbierta(sesion);
         if (sesion.turno) setTurno(sesion.turno);
         if (sesion.fondo_contado != null) setFondo(String(sesion.fondo_contado));
         return;
       }
+      if (j?.turno_abrir) setTurno(j.turno_abrir);
       const tok = sessionStorage.getItem("farmacapital_session_token");
       if (!tok) return;
       const { data } = await supabase.rpc("empleado_ultimo_fondo_caja", { p_session_token: tok });
@@ -329,7 +335,9 @@ export default function CorteCajaModule({usuario }) {
                 </div>
                 <div style={{fontSize:11, marginTop:2, opacity:.75}}>
                   {TURNOS[turno]
-                    ? `${TURNOS[turno].horario} · lo asigna RH; no puedes cerrar el otro turno.`
+                    ? (jornada?.cubre_ambos
+                      ? `${TURNOS[turno].horario} · hoy cubres ambos; cierra este y abre el siguiente.`
+                      : `${TURNOS[turno].horario} · lo asigna RH; no puedes cerrar el otro turno.`)
                     : "Pide a RH que te asigne matutino o vespertino."}
                 </div>
               </div>

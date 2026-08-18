@@ -3,14 +3,12 @@ import { useMediaQuery } from './hooks/useMediaQuery';
 import { supabase } from './supabase';
 import { showToast } from './ui';
 import { C_LIGHT, BRAND } from "./constants";
-import { TURNOS_LISTA, etiquetaTurno } from "./constants/turnos";
+import { TURNOS_LISTA, etiquetaTurno, DIAS_SEMANA, planSemanaCaja, descansosChocan, etiquetaDiaDescanso } from "./constants/turnos";
 import { cargarConfigMetas, bonosActivos } from "./utils/turnosMetas";
 import EmpleadoDocumentos from "./modules/rh/EmpleadoDocumentos";
 
 const fmt = (n) =>
   new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(n || 0);
-
-const DIAS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
 function getQuincena() {
   const hoy = new Date();
@@ -47,6 +45,25 @@ const actionBtnBase = {
   marginLeft: 1,
 };
 
+function DescansoSelect({ value, onChange, style, compact }) {
+  const v = value == null || value === "" ? "" : String(value);
+  return (
+    <select
+      value={v}
+      onChange={(e) => onChange(e.target.value === "" ? null : Number(e.target.value))}
+      style={{
+        ...style,
+        ...(compact ? { width: "auto", minWidth: 120, padding: "6px 8px", fontSize: 12 } : {}),
+      }}
+    >
+      <option value="">Sin asignar</option>
+      {DIAS_SEMANA.map((d) => (
+        <option key={d.idx} value={d.idx}>{d.largo}</option>
+      ))}
+    </select>
+  );
+}
+
 function TurnoSelect({ value, onChange, style, compact, allowEmpty = true }) {
   const v = value || (allowEmpty ? "" : "matutino");
   return (
@@ -74,14 +91,12 @@ export default function RRHHModule() {
   const s = mkS(C);
   const S = mkS(C);
   const isMobile = useMediaQuery("(max-width: 768px)");
-  const [horarioAbierto, setHorarioAbierto] = useState(null);
   const [empleados, setEmpleados] = useState([]);
   const [perfiles, setPerfiles]   = useState([]);
   const [loading, setLoading]     = useState(true);
   const emptyForm = { nombre:'', telefono:'', rol:'vendedor', turno:'matutino', salario_quincenal:'' };
   const [form, setForm]           = useState(emptyForm);
   const [formMsg, setFormMsg]     = useState(null);
-  const [schedule, setSchedule]   = useState({});
   const [selEmpId, setSelEmpId]   = useState('');
   const [calcBase, setCalcBase]   = useState(0);
   const [calcHE, setCalcHE]       = useState(0);
@@ -130,16 +145,11 @@ export default function RRHHModule() {
     const { data, error } = await supabase.rpc("admin_listar_empleados", { p_session_token: tok });
     if (!error && data) {
       setEmpleados(data);
-      setSchedule(prev => {
-        const updated = { ...prev };
-        data.forEach(e => { if (!updated[e.id]) updated[e.id] = Array(7).fill(false); });
-        return updated;
-      });
     }
     const { data: users, error: errU } = await supabase.rpc("admin_listar_usuarios", { p_session_token: tok });
     if (errU) {
       if (/could not find the function|pgrst202/i.test(errU.message || "")) {
-        showToast("Falta actualizar la base. Ejecuta sql/patch_turno_perfil_caja.sql en Supabase.", "error");
+        showToast("Falta actualizar la base. Ejecuta sql/patch_rh_descanso_cubre_ambos.sql en Supabase.", "error");
       }
       setPerfiles([]);
     } else {
@@ -166,6 +176,26 @@ export default function RRHHModule() {
       return;
     }
     showToast("Turno asignado.", "success");
+    fetchEmpleados();
+  };
+
+  const asignarDescanso = async (usuarioId, dia) => {
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    const { error } = await supabase.rpc("admin_set_usuario_descanso", {
+      p_session_token: tok,
+      p_usuario_id: usuarioId,
+      p_dia_descanso: dia,
+    });
+    if (error) {
+      showToast(
+        /could not find the function|pgrst202/i.test(error.message || "")
+          ? "Falta actualizar la base. Ejecuta sql/patch_rh_descanso_cubre_ambos.sql en Supabase."
+          : error.message,
+        "error"
+      );
+      return;
+    }
+    showToast("Día de descanso guardado.", "success");
     fetchEmpleados();
   };
 
@@ -295,6 +325,16 @@ export default function RRHHModule() {
   };
 
   const rolColor = r => ({ admin:'#9d6fff', vendedor:C.blue, doctora:C.green, farmaceutico:C.amber }[r] || C.textMid);
+  const semana = planSemanaCaja(perfiles);
+  const choques = descansosChocan(perfiles);
+
+  const etiquetaCelda = (estado) => {
+    if (estado === "descanso") return { txt: "Descanso", col: C.textMid };
+    if (estado === "ambos") return { txt: "Ambos turnos", col: C.amber };
+    if (estado === "matutino") return { txt: "Matutino", col: C.blue };
+    if (estado === "vespertino") return { txt: "Vespertino", col: C.purple };
+    return { txt: "Sin turno", col: C.textMid };
+  };
 
   return (
     <>
@@ -307,7 +347,7 @@ export default function RRHHModule() {
       <div style={S.section}>
         <div style={S.h2}>◐ Turnos de caja</div>
         <p style={{ color:C.textMid, fontSize:13, margin:'0 0 16px', lineHeight:1.45 }}>
-          Cada perfil de piso cierra sólo el corte de su turno. Asígnarlo aquí; en caja ya no pueden elegir el del relevo.
+          Turno habitual de cada una. El día de descanso, la otra cubre matutino y vespertino: abre, corta a las 15:30 y vuelve a abrir.
         </p>
         {loading ? <p style={{ color:C.textMid }}>Cargando…</p> :
          !perfiles.length ? (
@@ -320,8 +360,10 @@ export default function RRHHModule() {
               <div key={u.id} style={{ border:`1px solid ${C.border}`, borderRadius:12, padding:14, background:C.bg }}>
                 <div style={{ fontWeight:800, fontSize:15, color:C.text, marginBottom:8 }}>{u.nombre}</div>
                 <div style={{ fontSize:12, color:C.textMid, marginBottom:10 }}>{u.telefono || u.email || "—"}</div>
-                <label style={{ ...S.label, marginBottom:4 }}>Turno de caja</label>
+                <label style={{ ...S.label, marginBottom:4 }}>Turno habitual</label>
                 <TurnoSelect style={S.select} value={u.turno || ""} onChange={(t) => asignarTurnoPerfil(u.id, t)} />
+                <label style={{ ...S.label, marginBottom:4, marginTop:10 }}>Día de descanso</label>
+                <DescansoSelect style={S.select} value={u.dia_descanso} onChange={(d) => asignarDescanso(u.id, d)} />
               </div>
             ))}
           </div>
@@ -329,7 +371,7 @@ export default function RRHHModule() {
           <div style={{ overflowX:'auto' }}>
             <table style={{ width:'100%', borderCollapse:'collapse' }}>
               <thead><tr>
-                {['Nombre','Acceso','Turno de caja'].map((h) => <th key={h} style={S.th}>{h}</th>)}
+                {['Nombre','Acceso','Turno habitual','Día de descanso'].map((h) => <th key={h} style={S.th}>{h}</th>)}
               </tr></thead>
               <tbody>
                 {perfiles.map((u) => (
@@ -344,12 +386,25 @@ export default function RRHHModule() {
                         onChange={(t) => asignarTurnoPerfil(u.id, t)}
                       />
                     </td>
+                    <td style={S.td}>
+                      <DescansoSelect
+                        compact
+                        style={S.select}
+                        value={u.dia_descanso}
+                        onChange={(d) => asignarDescanso(u.id, d)}
+                      />
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
          )}
+        {choques.length > 0 && (
+          <p style={{ color:C.red, fontSize:13, fontWeight:700, margin:'12px 0 0' }}>
+            Dos personas no pueden descansar el mismo día: {choques.map(([idx, names]) => `${etiquetaDiaDescanso(idx)} (${names.join(", ")})`).join(" · ")}.
+          </p>
+        )}
       </div>
 
       {/* LISTA EMPLEADOS */}
@@ -574,107 +629,40 @@ export default function RRHHModule() {
 
       <EmpleadoDocumentos empleados={empleados} S={S} />
 
-      {/* HORARIO SEMANAL */}
+      {/* SEMANA 6+1 */}
       <div style={S.section}>
-        <div style={S.h2}>📅 Horario semanal</div>
-        {!empleados.length ? <p style={{ color:C.textMid }}>Registra empleados primero.</p> : isMobile ? (
-          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-            {empleados.map(emp => {
-              const dias = schedule[emp.id] || Array(7).fill(false);
-              const total = dias.filter(Boolean).length;
-              const open = horarioAbierto === emp.id;
-              return (
-                <div key={emp.id} style={{ border:`1px solid ${C.border}`, borderRadius:12, overflow:'hidden', background:C.bg }}>
-                  <button
-                    type="button"
-                    onClick={() => setHorarioAbierto(open ? null : emp.id)}
-                    style={{
-                      width:'100%',
-                      display:'flex',
-                      alignItems:'center',
-                      justifyContent:'space-between',
-                      gap:12,
-                      padding:'12px 14px',
-                      border:'none',
-                      background:C.card,
-                      cursor:'pointer',
-                      textAlign:'left',
-                      fontFamily:"inherit",
-                    }}
-                  >
-                    <span style={{ fontWeight:700, color:C.text, fontSize:14, lineHeight:1.35, wordBreak:'break-word', flex:1, minWidth:0 }}>{emp.nombre}</span>
-                    <span style={{
-                      fontWeight:800,
-                      fontSize:12,
-                      color:total>=5?C.green:total>=3?C.amber:C.textMid,
-                      flexShrink:0,
-                    }}>{total} días {open ? '▲' : '▼'}</span>
-                  </button>
-                  {open && (
-                    <div style={{ padding:'12px 14px 14px', borderTop:`1px solid ${C.border}` }}>
-                      {DIAS.map((d, idx) => (
-                        <label
-                          key={d}
-                          style={{
-                            display:'flex',
-                            alignItems:'center',
-                            gap:12,
-                            padding:'8px 0',
-                            borderBottom: idx < DIAS.length - 1 ? `1px solid ${C.border}` : 'none',
-                            cursor:'pointer',
-                            fontSize:13,
-                            color:C.text,
-                          }}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={dias[idx]}
-                            style={{ accentColor:C.green, width:18, height:18, cursor:'pointer', flexShrink:0 }}
-                            onChange={()=>{
-                              const updated=[...dias]; updated[idx]=!updated[idx];
-                              setSchedule(prev=>({ ...prev, [emp.id]:updated }));
-                            }}
-                          />
-                          <span style={{ fontWeight:600 }}>{d}</span>
-                        </label>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+        <div style={S.h2}>📅 Semana · 6 días y 1 descanso</div>
+        <p style={{ color:C.textMid, fontSize:13, margin:'0 0 16px', lineHeight:1.45 }}>
+          Se arma sola con el turno habitual y el día libre. El día que una descansa, la otra aparece en ambos turnos.
+        </p>
+        {!perfiles.length ? (
+          <p style={{ color:C.textMid }}>Asigna turno y descanso arriba.</p>
         ) : (
           <div style={{ overflowX:'auto' }}>
-            <table style={{ width:'100%', borderCollapse:'collapse' }}>
-              <thead><tr>
-                <th style={S.th}>Empleado</th>
-                {DIAS.map(d=><th key={d} style={{ ...S.th, textAlign:'center' }}>{d}</th>)}
-                <th style={{ ...S.th, textAlign:'center' }}>Días</th>
-              </tr></thead>
+            <table style={{ width:'100%', borderCollapse:'collapse', minWidth: 520 }}>
+              <thead>
+                <tr>
+                  <th style={S.th}> </th>
+                  {semana.map((d) => (
+                    <th key={d.idx} style={{ ...S.th, textAlign:'center' }}>{d.corto}</th>
+                  ))}
+                </tr>
+              </thead>
               <tbody>
-                {empleados.map(emp => {
-                  const dias = schedule[emp.id] || Array(7).fill(false);
-                  const total = dias.filter(Boolean).length;
-                  return (
-                    <tr key={emp.id}
-                      onMouseEnter={e=>{ e.currentTarget.style.background = C.blueDim; }}
-                      onMouseLeave={e=>{ e.currentTarget.style.background = "transparent"; }}>
-                      <td style={{ ...S.td, fontWeight:700, whiteSpace:'nowrap' }}>{emp.nombre}</td>
-                      {dias.map((checked,idx)=>(
-                        <td key={idx} style={{ ...S.td, textAlign:'center' }}>
-                          <input type="checkbox" checked={checked} style={{ accentColor:C.green, width:16, height:16, cursor:'pointer' }}
-                            onChange={()=>{
-                              const updated=[...dias]; updated[idx]=!updated[idx];
-                              setSchedule(prev=>({ ...prev, [emp.id]:updated }));
-                            }}/>
+                {perfiles.map((u) => (
+                  <tr key={u.id}>
+                    <td style={{ ...S.td, fontWeight:700, whiteSpace:'nowrap' }}>{u.nombre}</td>
+                    {semana.map((d) => {
+                      const cel = d.celdas.find((c) => String(c.id) === String(u.id));
+                      const est = etiquetaCelda(cel?.estado);
+                      return (
+                        <td key={d.idx} style={{ ...S.td, textAlign:'center' }}>
+                          <span style={{ color: est.col, fontWeight: 700, fontSize: 11 }}>{est.txt}</span>
                         </td>
-                      ))}
-                      <td style={{ ...S.td, textAlign:'center', fontWeight:800,
-                        color:total>=5?C.green:total>=3?C.amber:C.textMid }}>{total}d</td>
-                    </tr>
-                  );
-                })}
+                      );
+                    })}
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>

@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { C_LIGHT, BRAND } from "../../../constants";
-import { etiquetaTurno, inferirTurno, turnoDePerfil } from "../../../constants/turnos";
+import { etiquetaTurno, inferirTurno, turnoDePerfil, etiquetaDiaDescanso } from "../../../constants/turnos";
 import { hayPiezasDenominacion } from "../../../constants/caja";
 import ArqueoDenominaciones from "../../../components/ArqueoDenominaciones";
-import { abrirSesionCaja } from "../../../utils/cajaSesion";
+import { abrirSesionCaja, fetchJornadaHoy } from "../../../utils/cajaSesion";
 import { showToast } from "../../../ui";
 
 /**
@@ -15,9 +15,19 @@ export default function AperturaCajaModal({ usuario, onAbierta }) {
   const [denoms, setDenoms] = useState({});
   const [nota, setNota] = useState("");
   const [saving, setSaving] = useState(false);
-  const turno = turnoDePerfil(usuario) || inferirTurno();
+  const [jornada, setJornada] = useState(null);
+  const turnoHabitual = turnoDePerfil(usuario) || inferirTurno();
   const turnoAsignado = turnoDePerfil(usuario);
+  const turnoAbrir = jornada?.turno_abrir || (jornada?.cubre_ambos ? inferirTurno() : turnoHabitual);
   const nombre = (usuario?.nombre || "Vendedor").split(" ")[0];
+
+  useEffect(() => {
+    let cancel = false;
+    fetchJornadaHoy().then(({ jornada: j }) => {
+      if (!cancel && j) setJornada(j);
+    });
+    return () => { cancel = true; };
+  }, []);
 
   const setPiezas = (d, value) => {
     setDenoms((p) => ({ ...p, [d]: value }));
@@ -26,6 +36,10 @@ export default function AperturaCajaModal({ usuario, onAbierta }) {
   const confirmar = async () => {
     if (!turnoAsignado) {
       showToast("RH debe asignarte un turno antes de abrir caja.", "warning");
+      return;
+    }
+    if (jornada?.es_descanso) {
+      showToast("Hoy es tu día de descanso.", "warning");
       return;
     }
     if (!hayPiezasDenominacion(denoms) && !nota.trim()) {
@@ -42,6 +56,32 @@ export default function AperturaCajaModal({ usuario, onAbierta }) {
     showToast("Caja abierta. Ya puedes vender.", "success");
     onAbierta?.(sesion);
   };
+
+  if (jornada?.es_descanso) {
+    const dia = etiquetaDiaDescanso(jornada.dia_descanso) || "hoy";
+    return (
+      <div style={{
+        position: "fixed", inset: 0, zIndex: 2000, background: C.bg,
+        overflowY: "auto", fontFamily: "var(--fc-body)",
+      }}>
+        <div style={{ maxWidth: 560, margin: "0 auto", padding: "28px 20px 48px" }}>
+          <div style={{
+            fontSize: 11, fontWeight: 800, letterSpacing: 1.2,
+            textTransform: "uppercase", color: BRAND.primary, marginBottom: 8,
+          }}>
+            Día de descanso
+          </div>
+          <h1 style={{ margin: 0, color: C.text, fontSize: 22, fontWeight: 800 }}>
+            Hoy descansas, {nombre}
+          </h1>
+          <p style={{ color: C.textMid, fontSize: 14, lineHeight: 1.5, margin: "10px 0 0" }}>
+            Tu día libre es el <strong>{dia}</strong>. La compañera cubre matutino y vespertino.
+            No abras caja hoy.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{
@@ -61,16 +101,19 @@ export default function AperturaCajaModal({ usuario, onAbierta }) {
           color: BRAND.primary,
           marginBottom: 8,
         }}>
-          Inicio de turno
+          {jornada?.cubre_ambos ? "Día de cobertura · ambos turnos" : "Inicio de turno"}
         </div>
         <h1 style={{ margin: 0, color: C.text, fontSize: 22, fontWeight: 800 }}>
           Abre caja para empezar, {nombre}
         </h1>
         <p style={{ color: C.textMid, fontSize: 14, lineHeight: 1.5, margin: "10px 0 0" }}>
           Cuenta las piezas que te entregaron. El total se calcula solo.
-          Esta hora queda como tu entrada.{turnoAsignado
-            ? <> Turno: <strong>{etiquetaTurno(turno)}</strong>.</>
-            : " RH aún no te asigna turno: no puedes abrir caja."}
+          Esta hora queda como tu entrada.
+          {!turnoAsignado
+            ? " RH aún no te asigna turno: no puedes abrir caja."
+            : jornada?.cubre_ambos
+              ? <> Hoy cubres <strong>los dos turnos</strong>. Este conteo es el <strong>{etiquetaTurno(turnoAbrir)}</strong>. Al corte, vuelves a abrir el siguiente.</>
+              : <> Turno: <strong>{etiquetaTurno(turnoAbrir)}</strong>.</>}
         </p>
 
         <div style={{
