@@ -7,7 +7,7 @@ import { C_LIGHT, BRAND } from "../../constants";
 import { supabase } from "../../supabase";
 import { showToast } from "../../ui";
 import { idEmpleadoUsuarios } from "../../utils/usuarioId";
-import { primerNombre, saludoUsuario } from "../../utils";
+import { saludoUsuario } from "../../utils";
 import {
   inferirTurno, inicioDelTurno, finDelTurno, claveMetaTurno,
   calcularMultiplicador, cargarConfigMetas, escalonBono,
@@ -308,7 +308,6 @@ export default function MiDia({ usuario, setPage }) {
     return out;
   }, [data, pctPuntos]);
 
-  const nombre = primerNombre(usuario?.nombre) || "";
   const saludo = saludoUsuario(usuario?.nombre);
   const turnoLabel = turno === "matutino" ? "turno matutino" : "turno vespertino";
 
@@ -318,7 +317,7 @@ export default function MiDia({ usuario, setPage }) {
       {/* ── SECCIÓN 1: SALUDO ─────────────────────────────── */}
       <div style={{ marginBottom: 20 }}>
         <h1 style={{ margin: 0, color: C.text, fontSize: 22, fontWeight: 800 }}>
-          👋 {saludo}{nombre ? `, ${nombre}` : ""}
+          👋 {saludo}
           <span style={{ color: C.textMid, fontWeight: 600, fontSize: 16 }}> · {turnoLabel}</span>
         </h1>
         <p style={{ margin: "6px 0 0", color: C.textMid, fontSize: 13, textTransform: "capitalize" }}>

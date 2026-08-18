@@ -545,8 +545,14 @@ function loadInvColumnOrder() {
   try {
     const saved = JSON.parse(localStorage.getItem("farmacapital_inv_col_order") || "null");
     if (Array.isArray(saved) && saved.length) {
-      const cleaned = saved.filter((id) => INV_COLUMN_ORDER_DEFAULT.includes(id));
-      const missing = INV_COLUMN_ORDER_DEFAULT.filter((id) => !cleaned.includes(id));
+      const seen = new Set();
+      const cleaned = [];
+      for (const id of saved) {
+        if (!INV_COLUMN_ORDER_DEFAULT.includes(id) || seen.has(id)) continue;
+        seen.add(id);
+        cleaned.push(id);
+      }
+      const missing = INV_COLUMN_ORDER_DEFAULT.filter((id) => !seen.has(id));
       return [...cleaned, ...missing];
     }
   } catch {
@@ -2612,14 +2618,6 @@ function renderInventarioColumnCell(colId, ctx) {
   }
 }
 
-const PRODUCTOS_SELECT_CONSULTA = [
-  "id", "nombre", "sku", "codigo_barras", "categoria", "precio", "precio_unidad",
-  "stock", "stock_minimo", "stock_unidades", "activo", "imagen_url", "imagen_mobile_url",
-  "marca", "presentacion", "principio_activo", "denominacion_generica", "concentracion",
-  "forma_farmaceutica", "ubicacion_texto", "tipo", "proveedor", "venta_unidad",
-  "unidades_por_caja", "descuento_pct", "notas",
-].join(", ");
-
 const INV_COLS_OCULTAS_CONSULTA = ["costo", "margen", "acciones"];
 
 export default function InventarioModule({ modoConsulta = false }) {
@@ -2971,16 +2969,46 @@ export default function InventarioModule({ modoConsulta = false }) {
   const fetchProductos = useCallback(async () => {
     setLoading(true);
     const tok = sessionStorage.getItem("farmacapital_session_token");
+    const stripCosto = (p) => {
+      if (!p || typeof p !== "object") return p;
+      const next = { ...p };
+      delete next.costo;
+      return next;
+    };
 
-    // PostgREST corta en 1000 filas por página, así que hay que pedirlas por
-    // tramos. Sin esto el catálogo se truncaba en silencio y los contadores
-    // de arriba mentían.
+    const traerConsultaVendedor = async () => {
+      if (tok) {
+        const { data, error } = await supabase.rpc("empleado_listar_productos_con_lotes_pos", {
+          p_session_token: tok,
+        });
+        if (!error && data != null) {
+          const list = Array.isArray(data) ? data : [];
+          return { data: list.map(stripCosto), error: null, conLotes: true };
+        }
+        if (error) console.warn("[Inventario] RPC consulta vendedor:", error.message);
+      }
+      const filas = [];
+      for (let desde = 0; ; desde += PRODUCTOS_POR_PAGINA) {
+        const { data, error } = await supabase
+          .from("productos")
+          .select("*")
+          .eq("activo", true)
+          .order("nombre")
+          .order("id")
+          .range(desde, desde + PRODUCTOS_POR_PAGINA - 1);
+        if (error) return { data: null, error, conLotes: false };
+        filas.push(...(data || []).map(stripCosto));
+        if ((data || []).length < PRODUCTOS_POR_PAGINA) break;
+      }
+      return { data: filas, error: null, conLotes: false };
+    };
+
     const traerTodos = async () => {
       const filas = [];
       for (let desde = 0; ; desde += PRODUCTOS_POR_PAGINA) {
         let q = supabase
           .from("productos")
-          .select(modoConsulta ? PRODUCTOS_SELECT_CONSULTA : "*")
+          .select("*")
           .order("nombre")
           .order("id")
           .range(desde, desde + PRODUCTOS_POR_PAGINA - 1);
@@ -2993,18 +3021,36 @@ export default function InventarioModule({ modoConsulta = false }) {
       return { data: filas, error: null };
     };
 
-    const [{ data, error }, lotesByProducto] = await Promise.all([
-      traerTodos(),
-      fetchLotesPorProducto(tok, { omitCosto: modoConsulta }),
-    ]);
-    if (!error) {
-      const enriched = (data || []).map((p) => enrichProductoConLotes(p, lotesByProducto[p.id]));
+    if (modoConsulta) {
+      const { data, error, conLotes } = await traerConsultaVendedor();
+      if (error) {
+        showToast("No se pudo cargar el inventario: " + error.message, "error");
+        setProductos([]);
+        setLoading(false);
+        return null;
+      }
+      let lotesByProducto = {};
+      if (!conLotes) lotesByProducto = await fetchLotesPorProducto(tok, { omitCosto: true });
+      const enriched = (data || []).map((p) => enrichProductoConLotes(p, p.lotes || lotesByProducto[p.id]));
       setProductos(enriched);
       setLoading(false);
       return enriched;
     }
+
+    const [{ data, error }, lotesByProducto] = await Promise.all([
+      traerTodos(),
+      fetchLotesPorProducto(tok, { omitCosto: false }),
+    ]);
+    if (error) {
+      showToast("No se pudo cargar el inventario: " + error.message, "error");
+      setProductos([]);
+      setLoading(false);
+      return null;
+    }
+    const enriched = (data || []).map((p) => enrichProductoConLotes(p, lotesByProducto[p.id]));
+    setProductos(enriched);
     setLoading(false);
-    return null;
+    return enriched;
   }, [verInactivos, modoConsulta]);
 
   useEffect(() => { fetchProductos(); }, [fetchProductos]);
@@ -3748,6 +3794,7 @@ export default function InventarioModule({ modoConsulta = false }) {
           <option value="sin_codigo_barras">🏷️ Sin código de barras</option>
           <option value="sin_precio">Sin precio de venta</option>
         </select>
+        {!modoConsulta && (
         <label style={{display:"flex",alignItems:"center",gap:7,cursor:"pointer",color:C.textMid,fontSize:12,fontWeight:600}}>
           <div onClick={()=>setVerInactivos(v=>!v)} style={{width:36,height:20,borderRadius:10,cursor:"pointer",
             background:verInactivos?C.blue:C.border,position:"relative",transition:"background .2s"}}>
@@ -3755,6 +3802,7 @@ export default function InventarioModule({ modoConsulta = false }) {
           </div>
           Ver inactivos
         </label>
+        )}
         {(filtroCategoria!=="todas"||filtroAlerta!=="todos"||busqueda)&&(
           <button onClick={()=>{setFiltroCategoria("todas");setFiltroAlerta("todos");setBusqueda("");}}
             style={{...btnSecondary,padding:"7px 12px",fontSize:11}}>✕ Limpiar filtros</button>
