@@ -61,3 +61,54 @@ export function turnoDePerfil(usuario) {
   const t = String(usuario?.turno || "").toLowerCase();
   return t === "matutino" || t === "vespertino" ? t : null;
 }
+
+/** 0 = lunes … 6 = domingo. Coincide con extract(dow) de Postgres convertido. */
+export const DIAS_SEMANA = [
+  { idx: 0, corto: "Lun", largo: "lunes" },
+  { idx: 1, corto: "Mar", largo: "martes" },
+  { idx: 2, corto: "Mié", largo: "miércoles" },
+  { idx: 3, corto: "Jue", largo: "jueves" },
+  { idx: 4, corto: "Vie", largo: "viernes" },
+  { idx: 5, corto: "Sáb", largo: "sábado" },
+  { idx: 6, corto: "Dom", largo: "domingo" },
+];
+
+export function idxDiaDescanso(date = new Date()) {
+  return (date.getDay() + 6) % 7;
+}
+
+export function etiquetaDiaDescanso(idx) {
+  const d = DIAS_SEMANA.find((x) => x.idx === Number(idx));
+  return d ? d.largo : null;
+}
+
+/**
+ * Semana 6+1: quien descansa ese día; las demás cubren ambos turnos.
+ * perfiles: { id, nombre, rol, turno, dia_descanso }
+ */
+export function planSemanaCaja(perfiles) {
+  const piso = (perfiles || []).filter((p) => p.rol === "vendedor" || p.rol === "gerente");
+  return DIAS_SEMANA.map((d) => ({
+    ...d,
+    celdas: piso.map((p) => {
+      const descansoNum = p.dia_descanso == null || p.dia_descanso === ""
+        ? null
+        : Number(p.dia_descanso);
+      if (descansoNum === d.idx) return { id: p.id, nombre: p.nombre, estado: "descanso" };
+      const alguienDescansa = piso.some((o) => Number(o.dia_descanso) === d.idx && String(o.id) !== String(p.id));
+      if (alguienDescansa) return { id: p.id, nombre: p.nombre, estado: "ambos" };
+      const t = turnoDePerfil(p);
+      return { id: p.id, nombre: p.nombre, estado: t || "sin_turno" };
+    }),
+  }));
+}
+
+export function descansosChocan(perfiles) {
+  const counts = new Map();
+  (perfiles || []).forEach((p) => {
+    if (p.dia_descanso == null || p.dia_descanso === "") return;
+    const k = Number(p.dia_descanso);
+    counts.set(k, (counts.get(k) || []).concat(p.nombre || p.id));
+  });
+  return [...counts.entries()].filter(([, names]) => names.length > 1);
+}

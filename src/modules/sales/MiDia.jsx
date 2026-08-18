@@ -8,11 +8,12 @@ import { supabase } from "../../supabase";
 import { showToast } from "../../ui";
 import { idEmpleadoUsuarios } from "../../utils/usuarioId";
 import { saludoUsuario } from "../../utils";
-import { turnoDePerfil } from "../../constants/turnos";
+import { turnoDePerfil, etiquetaDiaDescanso } from "../../constants/turnos";
 import {
   inferirTurno, inicioDelTurno, finDelTurno, claveMetaTurno,
   calcularMultiplicador, cargarConfigMetas, escalonBono, bonosActivos,
 } from "../../utils/turnosMetas";
+import { fetchJornadaHoy } from "../../utils/cajaSesion";
 
 const C = C_LIGHT;
 
@@ -108,6 +109,7 @@ export default function MiDia({ usuario, setPage }) {
     citasEnEspera: 0,
     bonosOn: false,
   });
+  const [jornada, setJornada] = useState(null);
 
   // Reloj vivo (solo para la hora visible).
   useEffect(() => {
@@ -130,8 +132,15 @@ export default function MiDia({ usuario, setPage }) {
       }
 
       const hoy = new Date();
-      const inicioTurno = inicioDelTurno(hoy, turno).toISOString();
-      const finTurno = finDelTurno(hoy, turno).toISOString();
+      const { jornada: j } = await fetchJornadaHoy();
+      setJornada(j);
+      const cubreAmbos = !!j?.cubre_ambos;
+      const inicioTurno = cubreAmbos
+        ? new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate(), 0, 0, 0).toISOString()
+        : inicioDelTurno(hoy, turno).toISOString();
+      const finTurno = cubreAmbos
+        ? new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate(), 23, 59, 59, 999).toISOString()
+        : finDelTurno(hoy, turno).toISOString();
       const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString();
 
       const tok = sessionStorage.getItem("farmacapital_session_token");
@@ -154,11 +163,20 @@ export default function MiDia({ usuario, setPage }) {
       const pedMes = snap.ped_mes || [];
       const citasEspera = typeof snap.citas_espera === "number" ? snap.citas_espera : 0;
 
-      // ── Meta del turno con ajustes por fecha.
-      const claveMeta = claveMetaTurno(hoy, turno);
-      const metaBase = parseFloat(configMap[claveMeta] || 0);
+      // ── Meta del turno (si cubre ambos, es la meta de todo el día).
+      const cubreAmbosMeta = !!j?.cubre_ambos;
       const multTurno = calcularMultiplicador(hoy, configMap);
-      const metaTurno = Math.round(metaBase * multTurno);
+      let metaTurno;
+      if (cubreAmbosMeta) {
+        const claveM = claveMetaTurno(hoy, "matutino");
+        const claveV = claveMetaTurno(hoy, "vespertino");
+        const mm = parseFloat(configMap[claveM] || 0);
+        const mv = claveV === claveM ? 0 : parseFloat(configMap[claveV] || 0);
+        metaTurno = Math.round((mm + mv) * multTurno);
+      } else {
+        const claveMeta = claveMetaTurno(hoy, turno);
+        metaTurno = Math.round(parseFloat(configMap[claveMeta] || 0) * multTurno);
+      }
 
       // ── KPIs del turno.
       const ventasTurno = pedTurno.reduce((a, p) => a + parseFloat(p.total || 0), 0);
@@ -313,9 +331,13 @@ export default function MiDia({ usuario, setPage }) {
   }, [data, pctPuntos]);
 
   const saludo = saludoUsuario(usuario?.nombre);
-  const turnoLabel = turnoAsignado
-    ? (turno === "matutino" ? "turno matutino" : "turno vespertino")
-    : "sin turno asignado";
+  const turnoLabel = jornada?.es_descanso
+    ? `descansas (${etiquetaDiaDescanso(jornada.dia_descanso) || "hoy"})`
+    : jornada?.cubre_ambos
+      ? "hoy cubres ambos turnos"
+      : (turnoAsignado
+        ? (turno === "matutino" ? "turno matutino" : "turno vespertino")
+        : "sin turno asignado");
 
   return (
     <div style={{ padding: 24, maxWidth: 1100, margin: "0 auto", background: C.bg, minHeight: "100dvh", fontFamily: "var(--fc-body)" }}>
@@ -359,6 +381,11 @@ export default function MiDia({ usuario, setPage }) {
             : pctDia >= 70  ? `¡Vas muy bien! Faltan ${faltaDia}% para cumplir.`
             : pctDia >= 40  ? `Vamos a medio camino — ${faltaDia}% para la meta.`
                             : `Arrancando el turno. ${faltaDia}% para la meta.`}
+          {jornada?.cubre_ambos && (
+            <div style={{ fontSize: 12, opacity: 0.9, marginTop: 8 }}>
+              Hoy estás sola en caja: la meta es la de los dos turnos. Cierra el matutino a las 15:30 y abre el vespertino.
+            </div>
+          )}
         </div>
       </div>
 

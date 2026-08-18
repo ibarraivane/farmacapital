@@ -25,6 +25,12 @@ export async function abrirSesionCaja({ denoms, nota }) {
   return { sesion: data, error: null };
 }
 
-export function esVendedor(usuario) {
-  return usuario?.rol === "vendedor";
+export async function fetchJornadaHoy() {
+  const tok = sessionStorage.getItem("farmacapital_session_token");
+  if (!tok) return { jornada: null, error: "Sesión expirada." };
+  const { data, error } = await supabase.rpc("empleado_jornada_hoy", {
+    p_session_token: tok,
+  });
+  if (error) return { jornada: null, error: error.message };
+  return { jornada: data || null, error: null };
 }
