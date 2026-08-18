@@ -721,7 +721,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
   const tabsOperativas = soloTransacciones ? ["transacciones"] : tabOrder;
 
   return (
-    <div style={{padding:"clamp(12px, 3vw, 24px)",background:C.bg,minHeight:"100dvh",fontFamily:"'Plus Jakarta Sans',sans-serif",overflowX:"hidden",overflowWrap:"break-word"}}>
+    <div style={{padding:"clamp(12px, 3vw, 24px)",background:C.bg,minHeight:"100dvh",fontFamily:"var(--fc-body)",overflowX:"hidden",overflowWrap:"break-word"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16,flexWrap:"wrap",gap:12}}>
         <div style={{minWidth:0,flex:"1 1 200px"}}>
           <h1 style={{margin:0,color:C.text,fontSize:"clamp(17px, 2.5vw, 20px)",fontWeight:800,lineHeight:1.2}}>

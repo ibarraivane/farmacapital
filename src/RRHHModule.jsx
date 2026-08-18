@@ -21,7 +21,7 @@ function getQuincena() {
 }
 
 const mkS = (C) => ({
-  wrap:    { background:C.bg, minHeight:'100dvh', padding:'24px', fontFamily:"'Plus Jakarta Sans', Inter, sans-serif", color:C.text },
+  wrap:    { background:C.bg, minHeight:'100dvh', padding:'24px', fontFamily:"var(--fc-body)", color:C.text },
   section: { background:C.card, border:`1px solid ${C.border}`, borderRadius:12, padding:'24px', marginBottom:24 },
   h2:      { fontSize:16, fontWeight:700, color:C.blue, marginBottom:16, display:'flex', alignItems:'center', gap:8 },
   label:   { display:'block', fontSize:11, color:C.textMid, marginBottom:4, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em' },

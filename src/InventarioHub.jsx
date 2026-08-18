@@ -59,7 +59,7 @@ export default function InventarioHub({ initialTab, usuario }) {
   }, [initialTab, modoConsulta]);
 
   return (
-    <div style={{background: C.bg, minHeight: "100dvh", fontFamily: "'Plus Jakarta Sans',sans-serif"}}>
+    <div style={{background: C.bg, minHeight: "100dvh", fontFamily: "var(--fc-body)"}}>
       <div style={{
         padding: "18px 24px 0 24px",
         borderBottom: `1px solid ${C.border}`,

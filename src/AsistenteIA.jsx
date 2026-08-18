@@ -183,7 +183,7 @@ export default function AsistenteIA() {
 
   if (configState === "needs_key") {
     return (
-      <div style={{ padding: 24, background: C.bg, minHeight: "100dvh", fontFamily: "'Plus Jakarta Sans',sans-serif", display: "flex", alignItems: "center", justifyContent: "center", boxSizing: "border-box" }}>
+      <div style={{ padding: 24, background: C.bg, minHeight: "100dvh", fontFamily: "var(--fc-body)", display: "flex", alignItems: "center", justifyContent: "center", boxSizing: "border-box" }}>
         <div style={{ background: C.card, border: `1px solid ${C.amber}40`, borderRadius: 16, padding: 32, maxWidth: 520, width: "100%" }}>
           <div style={{ fontSize: 40, marginBottom: 16, textAlign: "center" }}>✦</div>
           <h2 style={{ margin: "0 0 12px", color: C.text, fontSize: 18, fontWeight: 800, textAlign: "center" }}>Activa Claude en Vercel</h2>
@@ -216,7 +216,7 @@ export default function AsistenteIA() {
       flexDirection: "column",
       minHeight: "100dvh",
       background: C.bg,
-      fontFamily: "'Plus Jakarta Sans',sans-serif",
+      fontFamily: "var(--fc-body)",
       boxSizing: "border-box",
     }}>
       <div style={{ padding: "16px 24px", borderBottom: `1px solid ${C.border}`, background: C.card, display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0, gap: 12 }}>

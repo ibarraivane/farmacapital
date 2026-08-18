@@ -389,7 +389,7 @@ function AdminNavSidebar({active,setActive,negocio,setNegocio,usuario,onLogout,a
     flex:1,minWidth:0,
     display:"flex",alignItems:"center",gap:10,
     padding:"8px 10px",borderRadius:8,border:"none",cursor:"pointer",
-    textAlign:"left",fontSize:12,fontWeight:600,fontFamily:"'Plus Jakarta Sans',sans-serif",
+    textAlign:"left",fontSize:12,fontWeight:600,fontFamily:"var(--fc-body)",
     background:rowActive?BRAND.primary+"18":"transparent",
     color:rowActive?BRAND.primary:C.textMid,
     borderLeft:`3px solid ${rowActive?BRAND.primary:"transparent"}`,
@@ -1466,7 +1466,7 @@ function GestionUsuarios({ showConfirm }){
     marginLeft: 0,
     fontSize: 11,
     fontWeight: 700,
-    fontFamily: "'Plus Jakarta Sans',sans-serif",
+    fontFamily: "var(--fc-body)",
     whiteSpace: "nowrap",
   };
 
@@ -2216,7 +2216,7 @@ export default function FarmaCapitalAdmin(){
       onConfirm={()=>{ confirmDlg.onConfirm?.(); setConfirmDlg(p=>({...p,open:false})); }}
       onCancel={()=>setConfirmDlg(p=>({...p,open:false}))}
     />
-    <div className="farmacapital-admin-root" style={{background:C.bg,fontFamily:"'Plus Jakarta Sans',sans-serif",transition:"background .3s,color .3s",color:C.text,overflowX:"hidden",touchAction:"pan-y"}}>
+    <div className="farmacapital-admin-root" style={{background:C.bg,fontFamily:"var(--fc-body)",transition:"background .3s,color .3s",color:C.text,overflowX:"hidden",touchAction:"pan-y"}}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
 html,body,#root{height:100%;-webkit-text-size-adjust:100%;text-size-adjust:100%}

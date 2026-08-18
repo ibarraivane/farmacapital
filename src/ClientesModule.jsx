@@ -483,7 +483,7 @@ export default function ClientesModule() {
       height: isMobile ? "auto" : "100vh",
       maxHeight: "none",
       background:C.bg,
-      fontFamily:"'Plus Jakarta Sans',sans-serif",
+      fontFamily:"var(--fc-body)",
       overflow: isMobile ? "visible" : "hidden",
     }}>
 

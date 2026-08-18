@@ -170,7 +170,7 @@ export function BarraEstadoOffline({ online, syncPendiente, ultimaSync }) {
           padding: "8px 20px",
           fontSize: 13,
           fontWeight: 700,
-          fontFamily: "'Plus Jakarta Sans',sans-serif",
+          fontFamily: "var(--fc-body)",
           display: "flex",
           alignItems: "center",
           gap: 8,
@@ -191,7 +191,7 @@ export function BarraEstadoOffline({ online, syncPendiente, ultimaSync }) {
           padding: "6px 16px",
           fontSize: 12,
           fontWeight: 700,
-          fontFamily: "'Plus Jakarta Sans',sans-serif",
+          fontFamily: "var(--fc-body)",
           display: "flex",
           alignItems: "center",
           gap: 6,
@@ -212,7 +212,7 @@ export function BarraEstadoOffline({ online, syncPendiente, ultimaSync }) {
           padding: "6px 16px",
           fontSize: 12,
           fontWeight: 700,
-          fontFamily: "'Plus Jakarta Sans',sans-serif",
+          fontFamily: "var(--fc-body)",
           display: "flex",
           alignItems: "center",
           gap: 6,
@@ -249,7 +249,7 @@ export function BannerInstalacion({ instalable, instalada, instalarApp }) {
       boxShadow: "0 8px 32px rgba(0,0,0,.4)",
       maxWidth: 420,
       width: "calc(100% - 48px)",
-      fontFamily: "'Plus Jakarta Sans',sans-serif",
+      fontFamily: "var(--fc-body)",
     }}>
       <div style={{
         width: 44, height: 44, borderRadius: 10,
@@ -297,7 +297,7 @@ export function IndicadorRed({ online, syncPendiente }) {
       fontSize: 11,
       fontWeight: 700,
       color: online ? "#00d068" : "#ff3d5a",
-      fontFamily: "'Plus Jakarta Sans',sans-serif",
+      fontFamily: "var(--fc-body)",
     }}>
       <div style={{
         width: 6, height: 6, borderRadius: "50%",
