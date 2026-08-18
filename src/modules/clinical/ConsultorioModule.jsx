@@ -832,7 +832,7 @@ export default function ConsultorioModule({ usuario }) {
     if (isDoctora && tab === "medicos") setTab("espera");
   }, [isDoctora, tab]);
   return (
-    <div style={{padding:24,background:C.bg,minHeight:"100dvh",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
+    <div style={{padding:24,background:C.bg,minHeight:"100dvh",fontFamily:"var(--fc-body)"}}>
       <div style={{marginBottom:20}}>
         <h1 style={{margin:0,color:C.text,fontSize:20,fontWeight:800}}>♥ Consultorio</h1>
         <p style={{margin:"4px 0 0",color:C.textMid,fontSize:12}}>Gestión médica · FarmaCapital</p>

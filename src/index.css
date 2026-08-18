@@ -14,8 +14,9 @@ html {
 
 body {
   margin: 0;
-  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto',
-    'Helvetica Neue', sans-serif;
+  font-family: var(--fc-body, 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
+  background: var(--fc-canvas, #F4ECE2);
+  color: var(--fc-text, #001534);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   height: auto;
@@ -78,3 +79,7 @@ textarea.farmacapital-field-input {
     width: 100%;
   }
 }
+
+/* ── Escala tipográfica del sistema visual ──
+   Los titulares usan la display serif; el resto hereda del body. */
+.fc-display { font-family: var(--fc-display); font-weight: 600; letter-spacing: -.025em; }

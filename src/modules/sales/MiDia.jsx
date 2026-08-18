@@ -316,7 +316,7 @@ export default function MiDia({ usuario, setPage }) {
     : "sin turno asignado";
 
   return (
-    <div style={{ padding: 24, maxWidth: 1100, margin: "0 auto", background: C.bg, minHeight: "100dvh", fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
+    <div style={{ padding: 24, maxWidth: 1100, margin: "0 auto", background: C.bg, minHeight: "100dvh", fontFamily: "var(--fc-body)" }}>
 
       {/* ── SECCIÓN 1: SALUDO ─────────────────────────────── */}
       <div style={{ marginBottom: 20 }}>

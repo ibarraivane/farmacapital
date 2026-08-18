@@ -7,19 +7,19 @@
 
     <!-- PWA / Theme -->
     <meta name="color-scheme" content="light dark" />
-    <meta name="theme-color" content="#1E3ABA" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0D1B2A" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#F4ECE2" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#001534" media="(prefers-color-scheme: dark)" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="FarmaCapital" />
     <meta name="application-name" content="FarmaCapital" />
-    <meta name="msapplication-TileColor" content="#1E3ABA" />
+    <meta name="msapplication-TileColor" content="#001534" />
 
-    <!-- Tipografía oficial FarmaCapital — Poppins (similar a fuente de logotipo) -->
+    <!-- Tipografía FarmaCapital — Fraunces (titulares) + Inter (texto) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
     <!-- SEO -->
     <title>FarmaCapital · Farmacia en línea</title>
@@ -113,6 +113,18 @@
 
     <!-- Estilos base -->
     <style>
+      /* Duplicado intencional de src/theme/tokens.js: el splash necesita
+         estos valores antes de que cargue el bundle de React. */
+      :root {
+        --fc-ink: #001534;
+        --fc-canvas: #F4ECE2;
+        --fc-surface: #FBFAF8;
+        --fc-border: #E4D9CA;
+        --fc-accent: #C9451F;
+        --fc-text-mid: #5A6472;
+        --fc-display: 'Fraunces', Georgia, serif;
+        --fc-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      }
       * { box-sizing: border-box; margin: 0; padding: 0; }
       html {
         -webkit-text-size-adjust: 100%;
@@ -123,7 +135,8 @@
         -webkit-overflow-scrolling: touch;
       }
       body {
-        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        font-family: var(--fc-body);
+        background: var(--fc-canvas);
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
         -webkit-text-size-adjust: 100%;
@@ -139,10 +152,10 @@
       /* Splash screen mientras carga */
       #splash {
         position: fixed; inset: 0; z-index: 9999;
-        background: #1E3ABA;
+        background: var(--fc-canvas);
         display: flex; align-items: center; justify-content: center;
         flex-direction: column; gap: 20px;
-        transition: opacity 0.5s ease;
+        transition: opacity 0.32s ease;
       }
       #splash.hide { opacity: 0; pointer-events: none; }
       .splash-logo img {
@@ -153,23 +166,23 @@
         object-fit: contain;
       }
       .splash-sub {
-        color: rgba(255,255,255,0.72);
+        color: var(--fc-text-mid);
         font-size: 12px;
         letter-spacing: 2px;
         text-transform: uppercase;
         font-weight: 600;
       }
       .splash-loader {
-        width: 48px;
+        width: 56px;
         height: 3px;
-        background: rgba(255,255,255,0.25);
+        background: var(--fc-border);
         border-radius: 2px;
         overflow: hidden;
       }
       .splash-loader-bar {
         height: 100%;
         width: 40%;
-        background: #ffffff;
+        background: var(--fc-accent);
         border-radius: 2px;
         animation: splash-bar 1.2s ease-in-out infinite;
       }
@@ -179,7 +192,7 @@
       }
       /* Ocultar scrollbar en móvil */
       ::-webkit-scrollbar { width: 4px; height: 4px; }
-      ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 2px; }
+      ::-webkit-scrollbar-thumb { background: var(--fc-border-hi, #CFC0AC); border-radius: 2px; }
       /* Safe area para iPhone X+ */
       .safe-top    { padding-top: env(safe-area-inset-top); }
       .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
@@ -189,7 +202,7 @@
     <!-- Splash screen -->
     <div id="splash">
       <div class="splash-logo">
-        <img src="%PUBLIC_URL%/brand/farmacapital-logo-full-light.png?v=6" srcset="%PUBLIC_URL%/brand/farmacapital-logo-full-light@1x.png?v=6 812w, %PUBLIC_URL%/brand/farmacapital-logo-full-light.png?v=6 1623w" sizes="320px" alt="FarmaCapital" decoding="async" />
+        <img src="%PUBLIC_URL%/brand/farmacapital-logo-full.png?v=6" srcset="%PUBLIC_URL%/brand/farmacapital-logo-full@1x.png?v=6 812w, %PUBLIC_URL%/brand/farmacapital-logo-full.png?v=6 1623w" sizes="320px" alt="FarmaCapital" decoding="async" />
       </div>
       <div class="splash-sub">Farmacia & Salud</div>
       <div class="splash-loader"><div class="splash-loader-bar"></div></div>
@@ -206,16 +219,16 @@
             .catch(e => console.warn('SW error:', e));
         });
       }
-      // Ocultar splash cuando React carga
-      window.addEventListener('load', () => {
-        setTimeout(() => {
-          const splash = document.getElementById('splash');
-          if (splash) {
-            splash.classList.add('hide');
-            setTimeout(() => splash.remove(), 500);
-          }
-        }, 1200);
-      });
+      // Ocultar splash. Antes habia un setTimeout de 1200 ms que hacia
+      // esperar al usuario aunque React ya estuviera listo. Ahora lo
+      // llama React al montar (src/index.js) y 'load' queda de respaldo.
+      window.__fcOcultarSplash = function () {
+        const splash = document.getElementById('splash');
+        if (!splash || splash.classList.contains('hide')) return;
+        splash.classList.add('hide');
+        setTimeout(() => splash.remove(), 320);
+      };
+      window.addEventListener('load', () => window.__fcOcultarSplash());
     </script>
   </body>
 </html>

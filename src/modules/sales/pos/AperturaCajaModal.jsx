@@ -50,7 +50,7 @@ export default function AperturaCajaModal({ usuario, onAbierta }) {
       zIndex: 2000,
       background: C.bg,
       overflowY: "auto",
-      fontFamily: "'Plus Jakarta Sans', sans-serif",
+      fontFamily: "var(--fc-body)",
     }}>
       <div style={{ maxWidth: 560, margin: "0 auto", padding: "28px 20px 48px" }}>
         <div style={{

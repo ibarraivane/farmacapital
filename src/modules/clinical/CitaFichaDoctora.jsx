@@ -19,7 +19,7 @@ const fieldTextareaStyle = {
   color: C.text,
   WebkitTextFillColor: C.text,
   colorScheme: "light",
-  fontFamily: "'Plus Jakarta Sans', sans-serif",
+  fontFamily: "var(--fc-body)",
   lineHeight: 1.45,
 };
 

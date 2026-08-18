@@ -3,8 +3,15 @@ import ReactDOM from "react-dom/client";
 import "./index.css";
 import App from "./App";
 import { initEventStore } from "./core/eventStore/initEventStore";
+import { aplicarTokensCSS } from "./theme/tokens";
 
+aplicarTokensCSS();
 initEventStore();
+
+// El splash se va en cuanto React esta listo, sin espera artificial.
+if (typeof window !== "undefined" && typeof window.__fcOcultarSplash === "function") {
+  requestAnimationFrame(() => window.__fcOcultarSplash());
+}
 
 if (typeof window !== "undefined" && process.env.REACT_APP_FARMACAPITAL_BUILD_ID) {
   window.__FARMACAPITAL_BUILD_ID__ = process.env.REACT_APP_FARMACAPITAL_BUILD_ID;

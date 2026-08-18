@@ -26,6 +26,7 @@ import {
 } from "./utils/tiendaFarmaciaCatalogo";
 import { productoEsVendible } from "./utils/productoVendible";
 import { showToast, Logo, BrandSplash } from "./ui";
+import { TOKENS as T, RADIO, SOMBRA } from "./theme/tokens";
 import {
   formatFolioOnline,
   FARMACIA_WHATSAPP_DISPLAY,
@@ -50,15 +51,19 @@ import {
 // ═══════════════════════════════════════════════════════════════
 
 const BRAND = {
-  primary:"#0D1B2A", secondary:"#1E3ABA", accent:"#16a34a",
-  amber:"#f59e0b",
-  gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)",
+  // primary/secondary/accent = colores exactos del logotipo registrado
+  primary:T.ink, secondary:T.blue, accent:T.jade,
+  // cta = terracota; el acento verde queda reservado a stock y confirmaciones
+  cta:T.accent, ctaHover:T.accentHover, ctaDim:T.accentDim,
+  amber:T.amber,
+  gradient:T.gradient,
 };
 const C = {
-  bg:"#f7f9fc", card:"#ffffff", cardDark:"#f0f4f9",
-  border:"#e2e8f0", borderHi:"#c7d4f5", dark:"#0f172a", mid:"#475569",
-  dim:"#94a3b8", white:"#ffffff", red:"#ef4444", redDim:"#fee2e2",
-  text:"#0f172a", textMid:"#475569", textDim:"#94a3b8", blueDim:"#eef1fb",
+  bg:T.canvas, card:T.surface, cardDark:T.surface2, surface:T.surface2,
+  border:T.border, borderHi:T.borderHi, dark:T.ink, mid:T.textMid,
+  dim:T.textDim, white:"#ffffff", red:T.red, redDim:T.redDim,
+  text:T.text, textMid:T.textMid, textDim:T.textDim,
+  blue:T.blue, blueDim:T.blueDim,
 };
 
 /** Id estable para Maps y RPC (PostgREST a veces mezcla string/bigint). */
@@ -138,7 +143,7 @@ const BANNERS = [
     descripcion:"Misma fórmula, mejor precio. Certificados por COFEPRIS.",
     cta:"Ver genéricos",
     pagina:"catalogo",
-    bg:"linear-gradient(135deg,#0D1B2A,#1E3ABA)",
+    bg:T.gradient,
     emoji:"💊",
   },
   {
@@ -148,7 +153,7 @@ const BANNERS = [
     descripcion:"O gratis con 160 puntos FarmaCapital. Médico general disponible.",
     cta:"Agendar cita",
     pagina:"cita",
-    bg:"linear-gradient(135deg,#009952,#16a34a)",
+    bg:"linear-gradient(100deg,#001534 0%,#0A3A2C 55%,#02A158 100%)",
     emoji:"🏥",
   },
   {
@@ -158,7 +163,7 @@ const BANNERS = [
     descripcion:"Gana 1 punto por cada $10 en farmacia, minisuper y consultorio.",
     cta:"Conocer más",
     pagina:"puntos",
-    bg:"linear-gradient(135deg,#6d28d9,#9d6fff)",
+    bg:"linear-gradient(100deg,#001534 0%,#4A1D0C 55%,#C9451F 100%)",
     emoji:"⭐",
   },
 ];
@@ -323,7 +328,7 @@ function horariosDisponibles(fecha){
 
 // ── UI BASE ───────────────────────────────────────────────────
 const Btn=({children,onClick,col,outline,sm,full,disabled,style,type="button"})=>(
-  <button type={type} onClick={onClick} disabled={disabled} style={{padding:sm?"7px 16px":"12px 24px",borderRadius:10,border:`2px solid ${outline?(col||BRAND.primary):"transparent"}`,background:outline?"transparent":disabled?C.dim:(col||BRAND.primary),color:outline?(col||BRAND.primary):C.white,fontWeight:700,fontSize:sm?13:14,cursor:disabled?"not-allowed":"pointer",fontFamily:"'Plus Jakarta Sans',sans-serif",width:full?"100%":undefined,opacity:disabled?.6:1,transition:"all .15s",...style}}>{children}</button>
+  <button type={type} onClick={onClick} disabled={disabled} style={{padding:sm?"7px 16px":"12px 24px",borderRadius:10,border:`2px solid ${outline?(col||BRAND.primary):"transparent"}`,background:outline?"transparent":disabled?C.dim:(col||BRAND.primary),color:outline?(col||BRAND.primary):C.white,fontWeight:700,fontSize:sm?13:14,cursor:disabled?"not-allowed":"pointer",fontFamily:"var(--fc-body)",width:full?"100%":undefined,opacity:disabled?.6:1,transition:"all .15s",...style}}>{children}</button>
 );
 const Tag=({children,col,sm})=>(
   <span style={{background:col+"18",color:col,border:`1px solid ${col}30`,borderRadius:20,padding:sm?"2px 8px":"4px 12px",fontSize:sm?10:12,fontWeight:700,whiteSpace:"nowrap",display:"inline-block"}}>{children}</span>
@@ -339,7 +344,7 @@ const tiendaFieldStyle=(overrides={},invalid=false)=>({
   padding:"11px 14px",
   fontSize:16,
   outline:"none",
-  fontFamily:"'Plus Jakarta Sans',sans-serif",
+  fontFamily:"var(--fc-body)",
   transition:"border-color .2s",
   width:"100%",
   boxSizing:"border-box",
@@ -458,7 +463,7 @@ function PopupBienvenida({onClose,setPage,precioConsulta,banner}){
           {showOverlayCopy ? (
             <div style={{position:"relative",zIndex:2}}>
               {titulo ? (
-                <h2 style={{color:C.white,fontSize:"clamp(18px,4.5vw,22px)",fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif",marginBottom:8}}>{titulo}</h2>
+                <h2 style={{color:C.white,fontSize:"clamp(18px,4.5vw,22px)",fontWeight:800,fontFamily:"var(--fc-body)",marginBottom:8}}>{titulo}</h2>
               ) : null}
               {(subtitulo || descripcion) ? (
                 <p style={{color:"rgba(255,255,255,.98)",fontSize:14,lineHeight:1.6,textShadow:"0 1px 4px rgba(2,6,23,.7)"}}>
@@ -528,10 +533,10 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
   const heroShellSx = {
     position: "relative",
     width: "100%",
-    aspectRatio: esMobile ? "1 / 1" : "16 / 5",
+    aspectRatio: esMobile ? "4 / 5" : "16 / 7",
     height: "auto",
     overflow: "hidden",
-    background: "#0f172a",
+    background: T.ink,
   };
 
   const heroMediaSx = {
@@ -552,10 +557,12 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
     zIndex: 1,
   };
 
+  // Zona segura: columna izquierda, por encima del 15% inferior que
+  // ocupan los indicadores. Antes caia sobre el arte (QR, producto).
   const heroCtaDesktopSx = {
     position: "absolute",
-    right: "clamp(24px, 5vw, 80px)",
-    bottom: "clamp(28px, 7%, 55px)",
+    left: "clamp(20px, 5%, 64px)",
+    bottom: "clamp(46px, 17%, 84px)",
     zIndex: 3,
   };
 
@@ -621,7 +628,7 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
             transform:"translateY(-50%)",
             ...(d===-1
               ? { left: esMobile ? 8 : 12 }
-              : { right: esMobile ? 8 : "clamp(24px, 5vw, 80px)", top: esMobile ? "42%" : "38%" }),
+              : { right: esMobile ? 8 : 12 }),
             background:"rgba(13,27,42,0.35)",
             border:"1px solid rgba(255,255,255,0.25)",
             color:C.white,
@@ -648,11 +655,12 @@ function HeroCarousel({setPage, items, precioConsulta, useStaticPlaceholder=true
     <Btn
       onClick={(e)=>{ e.stopPropagation(); setPage(b.pagina); }}
       style={{
-        background:"#fff",
-        color:BRAND.primary,
+        background:BRAND.cta,
+        color:"#fff",
         border:"none",
+        borderRadius:RADIO.pill,
         fontWeight:700,
-        boxShadow:"0 4px 14px rgba(0,0,0,.22)",
+        boxShadow:"0 10px 24px -10px rgba(201,69,31,.85)",
         padding: esMobile ? "11px 20px" : "13px 26px",
         fontSize: esMobile ? 14 : 15,
       }}
@@ -809,7 +817,7 @@ function HomeBannersStrip({setPage, items}){
   const narrowImg = useNarrowForBannerImage();
   if(!items?.length) return null;
   return(
-    <div style={{background:"linear-gradient(180deg,#f0f7ff,#f7f9fc)",borderBottom:`1px solid ${C.border}`,padding:"16px 12px"}}>
+    <div style={{background:"linear-gradient(180deg,#F1E8DD,#F4ECE2)",borderBottom:`1px solid ${C.border}`,padding:"16px 12px"}}>
       <div style={{maxWidth:1200,margin:"0 auto",display:"flex",gap:12,flexWrap:"wrap",justifyContent:"center"}}>
         {items.map((b,i)=>{
           const vid = bannerVideoUrl(b);
@@ -833,7 +841,7 @@ function HomeBannersStrip({setPage, items}){
                   borderRadius:14,
                   overflow:"hidden",
                   cursor:"pointer",
-                  background:"#0f172a",
+                  background:"#001534",
                   boxShadow:"0 4px 20px rgba(15,45,110,.12)",
                   transition:"transform .15s, box-shadow .15s",
                   display:"block",
@@ -880,7 +888,7 @@ function HomeBannersStrip({setPage, items}){
               position:"relative",
               overflow:"hidden",
               flex:"1 1 min(100%,280px)",maxWidth:420,minWidth:0,width:"100%",textAlign:"left",cursor:"pointer",border:"none",borderRadius:14,
-              background:(vid||imgUrl)?"#0f172a":b.bg,
+              background:(vid||imgUrl)?"#001534":b.bg,
               color:"#fff",padding:(vid||imgUrl)?0:"16px 18px",boxShadow:"0 4px 20px rgba(15,45,110,.12)",
               display:"flex",alignItems:(vid||imgUrl)?"stretch":"center",gap:(vid||imgUrl)?0:14,
               transition:"transform .15s, box-shadow .15s",
@@ -895,7 +903,7 @@ function HomeBannersStrip({setPage, items}){
                   width:stack?"36%":"40%",
                   maxWidth:176,
                   flexShrink:0,
-                  background:"#0f172a",
+                  background:"#001534",
                   display:"flex",
                   alignItems:"center",
                   justifyContent:"center",
@@ -944,7 +952,7 @@ function HomeBannersStrip({setPage, items}){
                 </div>
               </>
               ) : (
-                <div style={{width:"100%",background:"#0f172a",display:"flex",alignItems:"center",justifyContent:"center",padding:"10px 8px"}}>
+                <div style={{width:"100%",background:"#001534",display:"flex",alignItems:"center",justifyContent:"center",padding:"10px 8px"}}>
                   {vid ? (
                     <BannerLoopVideo
                       src={vid}
@@ -1021,7 +1029,7 @@ function HomeBannersTiles({setPage, items, stack}){
                   cursor:"pointer",
                   border:`1px solid ${C.border}`,
                   borderRadius:14,
-                  background:"#0f172a",
+                  background:"#001534",
                   color:"#fff",
                   padding:0,
                   minHeight:120,
@@ -1073,7 +1081,7 @@ function HomeBannersTiles({setPage, items, stack}){
               position:"relative",
               overflow:"hidden",
               textAlign:"left",cursor:"pointer",border:`1px solid ${C.border}`,borderRadius:14,
-              background:(vid||imgUrl)?"#0f172a":b.bg,
+              background:(vid||imgUrl)?"#001534":b.bg,
               color:"#fff",padding:(vid||imgUrl)?0:16,minHeight:(vid||imgUrl)?undefined:120,
               display:"flex",flexDirection:"column",justifyContent:(vid||imgUrl)?"flex-start":"space-between",gap:(vid||imgUrl)?0:8,
               boxShadow:"0 2px 12px rgba(0,0,0,.06)",transition:"transform .15s",
@@ -1082,7 +1090,7 @@ function HomeBannersTiles({setPage, items, stack}){
             onMouseLeave={e=>{ e.currentTarget.style.transform="none"; }}
           >
             {(vid||imgUrl) ? (
-              <div style={{position:"relative",width:"100%",background:"#0f172a"}}>
+              <div style={{position:"relative",width:"100%",background:"#001534"}}>
                 {vid ? (
                   <BannerLoopVideo
                     src={vid}
@@ -1236,7 +1244,7 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
             }}>
               <span style={{
                 width: 8, height: 8, borderRadius: "50%",
-                background: estaAbierto ? "#16a34a" : "#ff3d5a",
+                background: estaAbierto ? "#02A158" : "#ff3d5a",
               }}/>
               {estaAbierto ? `Abierto · cierra a las ${horaCierre}` : "Cerrado ahora"}
             </div>
@@ -1723,7 +1731,7 @@ function ProductCard({prod,addToCart,onClick}){
         <div style={{color:C.dim,fontSize:10,marginBottom:10}}>+{labelPts(ptsGana(prod.precio||prod.precio||0))}</div>
         <div style={{display:"flex",gap:8}}>
           <Btn onClick={handleDetailClick} outline col={BRAND.primary} sm style={{flex:1}}>Ver detalle</Btn>
-          <Btn onClick={handleAddClick} col={agotado||!productoPermitidoEnTiendaFarmaciaWeb(prod)?"#94a3b8":added?BRAND.secondary:BRAND.primary} sm style={{flex:1,opacity:(agotado||!productoPermitidoEnTiendaFarmaciaWeb(prod))?0.6:1,cursor:agotado||!productoPermitidoEnTiendaFarmaciaWeb(prod)?"not-allowed":"pointer"}}>{agotado?"Agotado":!productoPermitidoEnTiendaFarmaciaWeb(prod)?(productoEsCategoriaMinisuperTienda(prod)?"Solo minisuper":"Solo en mostrador"):added?"✓ Listo":"+ Carrito"}</Btn>
+          <Btn onClick={handleAddClick} col={agotado||!productoPermitidoEnTiendaFarmaciaWeb(prod)?"#9A9184":added?BRAND.secondary:BRAND.primary} sm style={{flex:1,opacity:(agotado||!productoPermitidoEnTiendaFarmaciaWeb(prod))?0.6:1,cursor:agotado||!productoPermitidoEnTiendaFarmaciaWeb(prod)?"not-allowed":"pointer"}}>{agotado?"Agotado":!productoPermitidoEnTiendaFarmaciaWeb(prod)?(productoEsCategoriaMinisuperTienda(prod)?"Solo minisuper":"Solo en mostrador"):added?"✓ Listo":"+ Carrito"}</Btn>
         </div>
       </div>
     </div>
@@ -1852,7 +1860,7 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
             </div>
           )}
           <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
-            <Btn onClick={()=>{ if(agotado) return; addToCart(prod);setAdded(true);setTimeout(()=>setAdded(false),1500); }} disabled={agotado} col={agotado?"#94a3b8":added?BRAND.secondary:BRAND.primary} style={{flex:"1 1 min(100%,200px)",minWidth:0}}>{agotado?"Agotado":added?"✓ Agregado":"Agregar al carrito"}</Btn>
+            <Btn onClick={()=>{ if(agotado) return; addToCart(prod);setAdded(true);setTimeout(()=>setAdded(false),1500); }} disabled={agotado} col={agotado?"#9A9184":added?BRAND.secondary:BRAND.primary} style={{flex:"1 1 min(100%,200px)",minWidth:0}}>{agotado?"Agotado":added?"✓ Agregado":"Agregar al carrito"}</Btn>
             <Btn onClick={()=>{ if(agotado) return; addToCart(prod);setPage("carrito"); }} disabled={agotado} outline col={BRAND.primary} style={{flex:"1 1 min(100%,200px)",minWidth:0}}>Comprar ahora</Btn>
           </div>
         </div>
@@ -1913,7 +1921,7 @@ function Footer({setPage}){
         <div>
           <div style={{color:C.white,fontWeight:700,fontSize:14,marginBottom:16,textTransform:"uppercase",letterSpacing:1}}>Mi consultorio</div>
           {[["Agendar cita","cita"],["Preguntas frecuentes","faq"],["Surtir receta","catalogo"],["Mis puntos FarmaCapital","puntos"],["Mi cuenta","cuenta"]].map(([l,pg])=>(
-            <button key={l} onClick={()=> l==="Surtir receta" ? goSurtirReceta() : l==="Agendar cita" ? navigateToCita(setPage) : setPage(pg)} style={{display:"block",background:"none",border:"none",color:"rgba(255,255,255,.6)",fontSize:13,cursor:"pointer",marginBottom:8,textAlign:"left",padding:0,fontFamily:"'Plus Jakarta Sans',sans-serif"}}
+            <button key={l} onClick={()=> l==="Surtir receta" ? goSurtirReceta() : l==="Agendar cita" ? navigateToCita(setPage) : setPage(pg)} style={{display:"block",background:"none",border:"none",color:"rgba(255,255,255,.6)",fontSize:13,cursor:"pointer",marginBottom:8,textAlign:"left",padding:0,fontFamily:"var(--fc-body)"}}
               onMouseEnter={e=>(e.currentTarget.style.color="rgba(255,255,255,.9)")}
               onMouseLeave={e=>(e.currentTarget.style.color="rgba(255,255,255,.6)")}>{l}</button>
           ))}
@@ -1922,7 +1930,7 @@ function Footer({setPage}){
         <div>
           <div style={{color:C.white,fontWeight:700,fontSize:14,marginBottom:16,textTransform:"uppercase",letterSpacing:1}}>Información legal</div>
           {[["Aviso de privacidad","privacidad"],["Términos y condiciones","terminos"],["Política de envíos","envios"],["Programa Puntos FarmaCapital","terminos-puntos"]].map(([l,pg])=>(
-            <button key={l} onClick={()=>setPage(pg)} style={{display:"block",background:"none",border:"none",color:"rgba(255,255,255,.6)",fontSize:13,cursor:"pointer",marginBottom:8,textAlign:"left",padding:0,fontFamily:"'Plus Jakarta Sans',sans-serif"}}
+            <button key={l} onClick={()=>setPage(pg)} style={{display:"block",background:"none",border:"none",color:"rgba(255,255,255,.6)",fontSize:13,cursor:"pointer",marginBottom:8,textAlign:"left",padding:0,fontFamily:"var(--fc-body)"}}
               onMouseEnter={e=>(e.currentTarget.style.color="rgba(255,255,255,.9)")}
               onMouseLeave={e=>(e.currentTarget.style.color="rgba(255,255,255,.6)")}>{l}</button>
           ))}
@@ -2130,7 +2138,7 @@ function ServicioModal({ abierto, onClose, titulo, color, contenido: Contenido }
             fontWeight:800,
             paddingRight:32,
             lineHeight:1.3,
-            fontFamily:"'Plus Jakarta Sans',sans-serif",
+            fontFamily:"var(--fc-body)",
           }}>
             {titulo}
           </h3>
@@ -2140,7 +2148,7 @@ function ServicioModal({ abierto, onClose, titulo, color, contenido: Contenido }
           color:C.text,
           fontSize:14,
           lineHeight:1.7,
-          fontFamily:"'Plus Jakarta Sans',sans-serif",
+          fontFamily:"var(--fc-body)",
         }}>
           <Contenido C={C} color={color}/>
         </div>
@@ -2161,7 +2169,7 @@ function ServicioModal({ abierto, onClose, titulo, color, contenido: Contenido }
               fontWeight:700,
               fontSize:14,
               cursor:"pointer",
-              fontFamily:"'Plus Jakarta Sans',sans-serif",
+              fontFamily:"var(--fc-body)",
             }}
           >
             Entendido
@@ -2180,8 +2188,8 @@ function HomeServices({setPage}){
     { key:"pickup", titulo:"Pick-up gratis", desc:"Recoge hoy", color:BRAND.primary, tipo:"modal", icon:Store },
     { key:"cdmx", titulo:"CDMX express", desc:"Rappi & Uber", color:BRAND.secondary, tipo:"modal", icon:Bike },
 
-    { key:"puntos", titulo:"Tus puntos", desc:"Acumula y canjea", color:"#f59e0b", tipo:"page", destino:"puntos", icon:Trophy },
-    { key:"pago", titulo:"Pago online", desc:"Mercado Pago", color:"#8b5cf6", tipo:"modal", icon:CreditCard },
+    { key:"puntos", titulo:"Tus puntos", desc:"Acumula y canjea", color:BRAND.cta, tipo:"page", destino:"puntos", icon:Trophy },
+    { key:"pago", titulo:"Pago online", desc:"Mercado Pago", color:T.amber, tipo:"modal", icon:CreditCard },
   ];
   const handleClick = (s)=>{
     if (s.tipo==="page") setPage(s.destino);
@@ -2218,7 +2226,7 @@ function HomeServices({setPage}){
                 flexDirection:"column",
                 gap:6,
                 transition:"transform .15s, background .15s",
-                fontFamily:"'Plus Jakarta Sans',sans-serif",
+                fontFamily:"var(--fc-body)",
               }}
               onMouseEnter={(e)=>{
                 e.currentTarget.style.transform="translateY(-2px)";
@@ -2279,10 +2287,10 @@ function HomeServices({setPage}){
 }
 
 function promoTipoBadgeStyles(tipo){
-  if (tipo==="descuento_pct") return { bg:"#eff6ff", fg:BRAND.primary };
+  if (tipo==="descuento_pct") return { bg:"#EAF0FB", fg:BRAND.primary };
   if (tipo==="2x1") return { bg:"#ede9fe", fg:"#7c3aed" };
-  if (tipo==="descuento_fijo") return { bg:"#dcfce7", fg:"#16a34a" };
-  return { bg:"#dcfce7", fg:"#16a34a" };
+  if (tipo==="descuento_fijo") return { bg:"#dcfce7", fg:"#02A158" };
+  return { bg:"#dcfce7", fg:"#02A158" };
 }
 
 /** Solo home: oculta bloque si no hay promos activas (respuesta ya filtrada por fecha en Home). */
@@ -2295,7 +2303,7 @@ function HomePromociones({promos,setPage}){
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,marginBottom:12,flexWrap:"wrap"}}>
         <h3 style={{
           fontSize:18,fontWeight:800,color:C.text,margin:0,
-          fontFamily:"'Plus Jakarta Sans',sans-serif",
+          fontFamily:"var(--fc-body)",
         }}>
           Promociones y descuentos
         </h3>
@@ -2334,7 +2342,7 @@ function HomePromociones({promos,setPage}){
                 scrollSnapAlign:"start",
                 padding:0,
                 textAlign:"left",
-                fontFamily:"'Plus Jakarta Sans',sans-serif",
+                fontFamily:"var(--fc-body)",
               }}
             >
               {img ? (
@@ -2422,7 +2430,7 @@ function TiendaSearchSuggestions({ suggestions, productos, onPick, C }) {
               borderBottom: `1px solid ${C.border}`,
               background: "transparent",
               cursor: "pointer",
-              fontFamily: "'Plus Jakarta Sans',sans-serif",
+              fontFamily: "var(--fc-body)",
             }}
           >
             <div style={{ color: C.dark, fontWeight: 700, fontSize: 13, lineHeight: 1.35 }}>{s.nombre}</div>
@@ -2500,7 +2508,7 @@ function TiendaBusquedaBar({
             border: compact ? `1px solid ${C.border}` : `2px solid ${BRAND.primary}30`,
             fontSize: 16,
             lineHeight: 1.25,
-            fontFamily: "'Plus Jakarta Sans',sans-serif",
+            fontFamily: "var(--fc-body)",
             outline: "none",
             background: C.white,
             color: C.text,
@@ -2533,7 +2541,7 @@ function TiendaBusquedaBar({
           color: "#fff",
           fontWeight: 800,
           fontSize: stack ? 14 : 15,
-          fontFamily: "'Plus Jakarta Sans',sans-serif",
+          fontFamily: "var(--fc-body)",
           cursor: "pointer",
           boxShadow: "0 4px 16px rgba(30,58,186,.22)",
           whiteSpace: "nowrap",
@@ -2874,7 +2882,7 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
         >
           {loadingProductos && productos.length===0
             ? Array.from({length:8}).map((_,i)=>(
-                <div key={i} style={{borderRadius:12,background:"#f0f4f9",height:260,animation:"pulse 1.4s ease-in-out infinite",opacity:0.7}}/>
+                <div key={i} style={{borderRadius:12,background:"#F1E8DD",height:260,animation:"pulse 1.4s ease-in-out infinite",opacity:0.7}}/>
               ))
             : fil.length===0
               ? <div style={{padding:40,textAlign:"center",color:C.mid,gridColumn:"1/-1"}}>{busq ? `Sin resultados para "${busq}"` : "No hay productos disponibles por el momento."}</div>
@@ -3031,7 +3039,7 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
           </div>
           {entrega==="cdmx"&&(<div style={{background:"#fef3c7",border:"1px solid #f59e0b30",borderRadius:8,padding:"10px 12px",marginBottom:8}}><div style={{color:"#92400e",fontSize:12}}>🛵 El repartidor irá a FarmaCapital y entregará en tu domicilio al costo que muestre la app de Rappi o Uber.</div></div>)}
           {entrega==="cdmx"&&(
-            <div style={{background:"#eff6ff",border:`1px solid ${BRAND.secondary}35`,borderRadius:8,padding:"10px 12px",marginBottom:8}}>
+            <div style={{background:"#EAF0FB",border:`1px solid ${BRAND.secondary}35`,borderRadius:8,padding:"10px 12px",marginBottom:8}}>
               <div style={{color:BRAND.primary,fontSize:11,lineHeight:1.45}}>
                 Algunos productos no se envían (controlados, con receta u omitidos para delivery). Si el checkout los rechaza, quítalos o elige <strong>pick-up en tienda</strong>.
               </div>
@@ -3596,7 +3604,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                   </>
                 )}
                 {!necesitaDireccion&&(
-                  <div style={{background:"#eff6ff",border:`1px solid ${BRAND.secondary}30`,borderRadius:8,padding:"9px 12px",fontSize:12,color:BRAND.primary,lineHeight:1.5}}>
+                  <div style={{background:"#EAF0FB",border:`1px solid ${BRAND.secondary}30`,borderRadius:8,padding:"9px 12px",fontSize:12,color:BRAND.primary,lineHeight:1.5}}>
                     🏪 <strong>Pick-up en farmacia:</strong> Al confirmar el pago recibirás un folio. Preséntalo en farmacia para recoger tu pedido.
                     <a href={CONTACTO.maps_url} target="_blank" rel="noopener noreferrer" style={{display:"block",marginTop:6,color:BRAND.primary,fontWeight:700,textDecoration:"none"}}>
                       📍 {CONTACTO.direccion} · Ver en Google Maps →
@@ -3918,8 +3926,8 @@ function AgendarCita({setPage,user}){
         )}
         {user&&(<div style={{background:BRAND.primary+"10",border:`1px solid ${BRAND.primary}30`,borderRadius:8,padding:"10px 12px",marginBottom:16}}><div style={{color:BRAND.primary,fontSize:13}}>✓ Datos precargados de tu cuenta. Puedes editarlos si la cita es para otra persona.</div></div>)}
         <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:16,marginBottom:16}}>
-          <div><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Nombre completo <span style={{color:"#ef4444"}}>*</span></div><Inp value={nombre} onChange={e=>setNombre(e.target.value)} placeholder="Nombre y apellido" style={{width:"100%",boxSizing:"border-box"}}/></div>
-          <div><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Teléfono <span style={{color:"#ef4444"}}>*</span></div><Inp value={tel} onChange={e=>setTel(e.target.value)} placeholder="10+ dígitos" type="tel" style={{width:"100%",boxSizing:"border-box"}}/></div>
+          <div><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Nombre completo <span style={{color:"#C62828"}}>*</span></div><Inp value={nombre} onChange={e=>setNombre(e.target.value)} placeholder="Nombre y apellido" style={{width:"100%",boxSizing:"border-box"}}/></div>
+          <div><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Teléfono <span style={{color:"#C62828"}}>*</span></div><Inp value={tel} onChange={e=>setTel(e.target.value)} placeholder="10+ dígitos" type="tel" style={{width:"100%",boxSizing:"border-box"}}/></div>
           <div>
             <div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Fecha</div>
             <div style={{position:"relative"}}>
@@ -4026,8 +4034,8 @@ function PromocionesPage({setPage}){
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
                 <span style={{fontWeight:800,color:C.dark,fontSize:15}}>{p.nombre}</span>
                 <span style={{padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:700,flexShrink:0,
-                  background:p.tipo==="descuento_pct"?"#eff6ff":p.tipo==="2x1"?"#ede9fe":"#dcfce7",
-                  color:p.tipo==="descuento_pct"?BRAND.primary:p.tipo==="2x1"?"#7c3aed":"#16a34a"}}>
+                  background:p.tipo==="descuento_pct"?"#EAF0FB":p.tipo==="2x1"?"#ede9fe":"#dcfce7",
+                  color:p.tipo==="descuento_pct"?BRAND.primary:p.tipo==="2x1"?"#7c3aed":"#02A158"}}>
                   {p.tipo==="descuento_pct"?`${p.valor}% OFF`:p.tipo==="descuento_fijo"?`$${p.valor} OFF`:p.tipo==="2x1"?"2×1":"Combo"}
                 </span>
               </div>
@@ -4056,7 +4064,7 @@ function FAQPage({setPage}){
       <div style={{display:"grid",gap:10,marginBottom:32}}>
         {FAQ_ITEMS.map((f,i)=>(
           <div key={i} style={{background:C.white,borderRadius:12,border:`1px solid ${abierto===i?BRAND.primary+"40":C.border}`,overflow:"hidden",transition:"border-color .2s"}}>
-            <button type="button" onClick={()=>setAbierto(abierto===i?null:i)} style={{width:"100%",padding:"14px 16px",background:"none",border:"none",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,fontFamily:"'Plus Jakarta Sans',sans-serif",textAlign:"left"}}>
+            <button type="button" onClick={()=>setAbierto(abierto===i?null:i)} style={{width:"100%",padding:"14px 16px",background:"none",border:"none",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,fontFamily:"var(--fc-body)",textAlign:"left"}}>
               <span style={{color:C.dark,fontWeight:700,fontSize:"clamp(14px,3.5vw,15px)",lineHeight:1.35,wordBreak:"break-word"}}>{f.p}</span>
               <span style={{color:BRAND.primary,fontSize:18,flexShrink:0,lineHeight:1.2}}>{abierto===i?"−":"+"}</span>
             </button>
@@ -4644,7 +4652,7 @@ function CambiarPwdCliente({user}) {
       <input type="password" className="farmacapital-field-input" placeholder="Contraseña actual" value={pwdA} onChange={e=>setPwdA(e.target.value)} style={inpS} autoComplete="current-password"/>
       <input type="password" className="farmacapital-field-input" placeholder={`Nueva contraseña (${PASSWORD_RULES_TEXT})`} value={pwdN} onChange={e=>setPwdN(e.target.value)} style={inpS} autoComplete="new-password"/>
       <input type="password" className="farmacapital-field-input" placeholder="Confirmar nueva contraseña" value={pwdN2} onChange={e=>setPwdN2(e.target.value)} style={{...inpS,marginBottom:10}} autoComplete="new-password"/>
-      {msg&&<div style={{padding:"8px 12px",borderRadius:8,marginBottom:8,fontSize:12,fontWeight:600,background:msg.ok?"#dcfce7":"#fee2e2",color:msg.ok?"#16a34a":"#dc2626"}}>{msg.txt}</div>}
+      {msg&&<div style={{padding:"8px 12px",borderRadius:8,marginBottom:8,fontSize:12,fontWeight:600,background:msg.ok?"#dcfce7":"#fee2e2",color:msg.ok?"#02A158":"#dc2626"}}>{msg.txt}</div>}
       <Btn onClick={cambiar} col={BRAND.primary} sm dis={carg}>{carg?"Cambiando...":"Cambiar contraseña"}</Btn>
     </div>
   );
@@ -4732,7 +4740,7 @@ function etiquetaEstadoPagoPedido(p) {
 }
 
 function etiquetaLogisticaPedido(p) {
-  const danger = "#ef4444";
+  const danger = "#C62828";
   const ds = String(p?.delivery_status || "").toLowerCase();
   if (ds === "ready_for_pickup") return { label: "Listo para recoger", col: BRAND.accent };
   if (ds === "in_route") return { label: "En ruta", col: "#0ea5e9" };
@@ -4969,7 +4977,7 @@ function Cuenta({user,setPage,setUser}){
       {tab==="datos"&&(
         <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:24}}>
           {[["Nombre",user.nombre],["Teléfono",user.telefono],["Correo",user.email||"No registrado"],["Puntos",`${user.puntos||0} pts FarmaCapital`]].map(([l,v])=>(<div key={l} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 0",borderBottom:`1px solid ${C.border}`}}><span style={{color:C.mid,fontSize:13}}>{l}</span><span style={{color:C.dark,fontSize:14,fontWeight:700}}>{v}</span></div>))}
-          <div style={{marginTop:16,padding:16,background:"#f8fafc",borderRadius:10,border:`1px solid ${C.border}`}}>
+          <div style={{marginTop:16,padding:16,background:"#FBFAF8",borderRadius:10,border:`1px solid ${C.border}`}}>
             <div style={{color:C.dark,fontWeight:700,fontSize:13,marginBottom:12}}>🔑 Cambiar contraseña</div>
             <CambiarPwdCliente user={user}/>
           </div>
@@ -5220,7 +5228,7 @@ export default function TiendaFarmaCapital(){
         <h2 style={{color:C.dark,fontSize:18,fontWeight:800,marginBottom:20}}>💰 ¿Cómo ganar puntos?</h2>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(100%,160px),1fr))",gap:14}}>
           {[{icon:"🛒",t:"Compras farmacia",d:"1 punto / $10"},{icon:"💻",t:"Compras en línea",d:"1.5 puntos / $10"},{icon:"🏥",t:"Consulta médica",d:"5 puntos"},{icon:"🎂",t:"Mes cumpleaños",d:"2× puntos"},{icon:"👋",t:"Registro nuevo",d:"10 pts bienvenida"}].map(r=>(
-            <div key={r.t} style={{background:"#f8fafc",borderRadius:12,padding:16,textAlign:"center"}}>
+            <div key={r.t} style={{background:"#FBFAF8",borderRadius:12,padding:16,textAlign:"center"}}>
               <div style={{fontSize:28,marginBottom:8}}>{r.icon}</div>
               <div style={{color:C.dark,fontWeight:700,fontSize:13,marginBottom:4}}>{r.t}</div>
               <div style={{color:BRAND.primary,fontSize:12,fontWeight:700}}>{r.d}</div>
@@ -5232,13 +5240,13 @@ export default function TiendaFarmaCapital(){
         <h2 style={{color:C.dark,fontSize:18,fontWeight:800,marginBottom:20}}>🎁 ¿Qué puedes canjear?</h2>
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {[{pts:20,ben:"$10 de descuento",icon:"💊",col:BRAND.secondary},{pts:50,ben:"Envío gratis",icon:"📦",col:BRAND.accent},{pts:100,ben:"$50 de descuento",icon:"🎁",col:BRAND.primary},{pts:160,ben:"Consulta médica gratis",icon:"🏥",col:"#f59e0b"},{pts:200,ben:"Producto gratis",icon:"⭐",col:"#9d6fff"}].map(r=>(
-            <div key={r.pts} style={{display:"flex",alignItems:"center",gap:14,padding:14,borderRadius:12,border:`1px solid ${(user?.puntos||0)>=r.pts?r.col+"40":C.border}`,background:(user?.puntos||0)>=r.pts?r.col+"08":"#f8fafc"}}>
+            <div key={r.pts} style={{display:"flex",alignItems:"center",gap:14,padding:14,borderRadius:12,border:`1px solid ${(user?.puntos||0)>=r.pts?r.col+"40":C.border}`,background:(user?.puntos||0)>=r.pts?r.col+"08":"#FBFAF8"}}>
               <span style={{fontSize:28}}>{r.icon}</span>
               <div style={{flex:1}}>
                 <div style={{color:C.dark,fontWeight:700,fontSize:14}}>{r.ben}</div>
                 <div style={{color:r.col,fontSize:12,fontWeight:700,marginTop:2}}>{r.pts} puntos</div>
               </div>
-              {user&&<span style={{padding:"4px 12px",borderRadius:20,fontSize:11,fontWeight:700,background:(user.puntos||0)>=r.pts?r.col+"20":"#e2e8f0",color:(user.puntos||0)>=r.pts?r.col:"#94a3b8"}}>{(user.puntos||0)>=r.pts?"✓ Disponible":`Faltan ${r.pts-(user.puntos||0)}`}</span>}
+              {user&&<span style={{padding:"4px 12px",borderRadius:20,fontSize:11,fontWeight:700,background:(user.puntos||0)>=r.pts?r.col+"20":"#E4D9CA",color:(user.puntos||0)>=r.pts?r.col:"#9A9184"}}>{(user.puntos||0)>=r.pts?"✓ Disponible":`Faltan ${r.pts-(user.puntos||0)}`}</span>}
             </div>
           ))}
         </div>
@@ -5279,7 +5287,7 @@ export default function TiendaFarmaCapital(){
         html{-webkit-text-size-adjust:100%;}
         body{
           background:${C.bg};
-          font-family:'Plus Jakarta Sans',sans-serif;
+          font-family:var(--fc-body);
           color:${C.dark};
           overflow-x:hidden;
           overflow-y:auto;
@@ -5295,7 +5303,7 @@ export default function TiendaFarmaCapital(){
         }
         img,svg,video,canvas{max-width:100%;height:auto;}
         ::-webkit-scrollbar{width:6px;}::-webkit-scrollbar-track{background:${C.bg};}::-webkit-scrollbar-thumb{background:${C.border};border-radius:4px;}
-        button,select{font-family:'Plus Jakarta Sans',sans-serif;}
+        button,select{font-family:var(--fc-body);}
       `}</style>
 
       {/* Popup bienvenida */}

@@ -2361,7 +2361,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                   if(e.key==="Escape"){setSrchFocus(false);}
                 }}
                 placeholder="🔫 Código de barras, SKU o nombre · Enter agrega · flechas en resultados"
-                style={{width:"100%",boxSizing:"border-box",padding: srch.trim() ? "9px 38px 9px 13px" : "9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:"#ffffff",color:C.text,WebkitTextFillColor:C.text,caretColor:C.text,colorScheme:"light",fontSize:isMobilePos?16:13,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}/>
+                style={{width:"100%",boxSizing:"border-box",padding: srch.trim() ? "9px 38px 9px 13px" : "9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:"#ffffff",color:C.text,WebkitTextFillColor:C.text,caretColor:C.text,colorScheme:"light",fontSize:isMobilePos?16:13,outline:"none",fontFamily:"var(--fc-body)"}}/>
               {srch.trim() && (
                 <button
                   type="button"

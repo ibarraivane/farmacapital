@@ -62,7 +62,7 @@ function FacturaInlineForm({ venta, cliente, onClose }) {
     border:"1px solid #e2e8f0",
     background:"#fff", color:"#0f172a",
     fontSize:12, outline:"none", marginBottom:8,
-    fontFamily:"'Plus Jakarta Sans',sans-serif",
+    fontFamily:"var(--fc-body)",
   };
 
   if(ok) return(

@@ -1,6 +1,7 @@
 import React, { useRef, useState, useLayoutEffect, useCallback } from "react";
 // FARMACAPITAL — Componentes UI base
 import { C_LIGHT, BRAND } from "./constants";
+import { RADIO, SOMBRA } from "./theme/tokens";
 import { logoFullStyle, logoIconStyle, logoFullSrc, logoFullSrcSet, logoAspect } from "./brand";
 import { useLogoOnDark } from "./hooks/useLogoOnDark";
 import { productMatchesSearchQuery, tiendaProductMatchesBusqueda, tiendaSearchRelevanceRank, inventarioProductMatchesBusqueda, inventarioSearchRelevanceRank } from "./utils/fuzzySearch";
@@ -91,7 +92,7 @@ export function Box({children,style,onClick,ac,className}){
   <div
     className={className||undefined}
     onClick={onClick}
-    style={{background:C.card,borderRadius:14,border:`1px solid ${ac?ac+"40":C.border}`,boxShadow:"0 1px 4px rgba(0,0,0,.06)",transition:"border-color .2s,box-shadow .2s",cursor:onClick?"pointer":"default",...style}}
+    style={{background:C.card,borderRadius:RADIO.md,border:`1px solid ${ac?ac+"40":C.border}`,boxShadow:SOMBRA.sm,transition:"border-color .2s,box-shadow .2s",cursor:onClick?"pointer":"default",...style}}
     onMouseEnter={!useCssHover&&onClick?(e=>{ e.currentTarget.style.borderColor=ac||C.borderHi; }):undefined}
     onMouseLeave={!useCssHover&&onClick?(e=>{ e.currentTarget.style.borderColor=ac?ac+"40":C.border; }):undefined}
   >
@@ -104,7 +105,7 @@ export function Tag({col,children,sm}){
   const C = C_LIGHT;
   return(
 
-  <span style={{background:col+"15",color:col,border:`1px solid ${col}30`,borderRadius:20,padding:sm?"2px 8px":"3px 11px",fontSize:sm?9:11,fontWeight:700,letterSpacing:.5,textTransform:"uppercase",whiteSpace:"nowrap",display:"inline-block"}}>{children}</span>
+  <span style={{background:col+"15",color:col,border:`1px solid ${col}30`,borderRadius:RADIO.pill,padding:sm?"2px 8px":"3px 11px",fontSize:sm?9:11,fontWeight:700,letterSpacing:.5,textTransform:"uppercase",whiteSpace:"nowrap",display:"inline-block"}}>{children}</span>
 
   );
 };
@@ -113,7 +114,7 @@ export function Btn({children,onClick,col,sm,ol,dis,full,style,type="button"}){
   const C = C_LIGHT;
   return(
 
-  <button type={type} onClick={onClick} disabled={dis} style={{padding:sm?"7px 14px":"10px 18px",borderRadius:8,border:`1px solid ${ol?(col||BRAND.primary):"transparent"}`,background:ol?"transparent":dis?C.border:(col||BRAND.primary),color:ol?(col||BRAND.primary):dis?C.textMid:C.card,fontWeight:700,fontSize:sm?12:14,cursor:dis?"not-allowed":"pointer",fontFamily:"'Plus Jakarta Sans',sans-serif",opacity:dis?.5:1,width:full?"100%":undefined,minHeight:sm?36:40,transition:"opacity .15s",...style}}>{children}</button>
+  <button type={type} onClick={onClick} disabled={dis} style={{padding:sm?"7px 16px":"10px 22px",borderRadius:RADIO.pill,border:`1px solid ${ol?(col||BRAND.primary):"transparent"}`,background:ol?"transparent":dis?C.border:(col||BRAND.primary),color:ol?(col||BRAND.primary):dis?C.textMid:C.card,fontWeight:700,fontSize:sm?12:14,cursor:dis?"not-allowed":"pointer",fontFamily:"var(--fc-body)",opacity:dis?.5:1,width:full?"100%":undefined,minHeight:sm?36:40,transition:"opacity .15s",...style}}>{children}</button>
 
   );
 };
@@ -135,7 +136,7 @@ export function Inp({value,onChange,placeholder,style,type,onKeyDown,disabled,na
     style={{
       background:"#ffffff",
       border:`1px solid ${invalid?C.red:C.border}`,
-      borderRadius:8,
+      borderRadius:RADIO.sm,
       color:C.text,
       WebkitTextFillColor:C.text,
       caretColor:C.text,
@@ -144,7 +145,7 @@ export function Inp({value,onChange,placeholder,style,type,onKeyDown,disabled,na
       fontSize:16,
       lineHeight:1.25,
       outline:"none",
-      fontFamily:"'Plus Jakarta Sans',sans-serif",
+      fontFamily:"var(--fc-body)",
       opacity:disabled?0.6:1,
       cursor:disabled?"not-allowed":"text",
       minHeight:44,
@@ -640,7 +641,7 @@ export function SearchDropdown({
         onFocus={()=>{ setOpen(!!value?.trim()); measurePanel(); }}
         onKeyDown={handleKey}
         placeholder={placeholder}
-        style={{width:"100%",boxSizing:"border-box",padding:"10px 14px",borderRadius:8,border:"1px solid #e2e8f0",background:"#f7f9fc",color:C.text,fontSize:16,lineHeight:1.25,minHeight:44,outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}
+        style={{width:"100%",boxSizing:"border-box",padding:"10px 14px",borderRadius:8,border:"1px solid #e2e8f0",background:"#f7f9fc",color:C.text,fontSize:16,lineHeight:1.25,minHeight:44,outline:"none",fontFamily:"var(--fc-body)"}}
         onBlur={e=>{ if(ref.current&&!ref.current.contains(e.relatedTarget)) setTimeout(()=>setOpen(false),150); }}
       />
       {open&&filtered.length>0&&(
