@@ -5,11 +5,17 @@ const {
   validateEmployeeSession,
   readRawBody,
 } = require('../_lib/supabaseAdmin');
+const { isRhDocumentoRequest, rhDocumentoHandler } = require('../_lib/rhDocumentoHandler');
 
 const ALLOWED_BUCKETS = new Set(['banners', 'productos']);
 const MAX_BYTES = 12 * 1024 * 1024;
 
 async function handler(req, res) {
+  // Hobby: máx. 12 funciones. El expediente RH vive aquí (?type=rh-documento).
+  if (isRhDocumentoRequest(req)) {
+    return rhDocumentoHandler(req, res);
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ ok: false, error: 'method_not_allowed' });
   }

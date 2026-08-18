@@ -5,7 +5,7 @@ const {
   validateAdminSession,
   readRawBody,
   rpc,
-} = require('../_lib/supabaseAdmin');
+} = require('./supabaseAdmin');
 
 const BUCKET = 'rh-documentos';
 const MAX_BYTES = 10 * 1024 * 1024;
@@ -199,7 +199,7 @@ async function handleDelete(req, res, supabaseUrl, serviceKey, sessionToken) {
   return res.status(200).json({ ok: true });
 }
 
-async function handler(req, res) {
+async function rhDocumentoHandler(req, res) {
   const { supabaseUrl, serviceKey } = getSupabaseAdminConfig();
   if (!supabaseUrl || !serviceKey) {
     return res.status(500).json({ ok: false, error: 'supabase_not_configured' });
@@ -226,8 +226,9 @@ async function handler(req, res) {
   }
 }
 
-handler.config = {
-  api: { bodyParser: false },
-};
+function isRhDocumentoRequest(req) {
+  const t = String(req.query?.type || '').trim().toLowerCase();
+  return t === 'rh-documento' || t === 'rh_documento' || t === 'rh';
+}
 
-module.exports = handler;
+module.exports = { rhDocumentoHandler, isRhDocumentoRequest };

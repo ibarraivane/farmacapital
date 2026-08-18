@@ -37,6 +37,10 @@
       "destination": "/api/health"
     },
     {
+      "source": "/api/rh/documento",
+      "destination": "/api/admin/storage-upload?type=rh-documento"
+    },
+    {
       "source": "/api/whatsapp/send",
       "destination": "/api/notifications/send?type=whatsapp"
     },

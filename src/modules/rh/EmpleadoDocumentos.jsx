@@ -6,6 +6,9 @@ import {
   RH_DOC_TIPOS, RH_DOC_MAX_MB, RH_DOC_ACCEPT, RH_DOC_MIMES, rhDocLabel,
 } from "../../constants/rhDocumentos";
 
+/** Misma función Vercel que banners/productos; Hobby solo permite 12 serverless. */
+const RH_DOC_API = "/api/admin/storage-upload?type=rh-documento";
+
 function sessionTok() {
   try { return sessionStorage.getItem("farmacapital_session_token") || ""; }
   catch { return ""; }
@@ -78,7 +81,7 @@ export default function EmpleadoDocumentos({ empleados, S }) {
     if (!tok) { showToast("Sesión expirada.", "error"); return; }
     setUploading(tipo);
     try {
-      const resp = await fetch("/api/rh/documento", {
+      const resp = await fetch(RH_DOC_API, {
         method: "POST",
         headers: {
           "Content-Type": mime,
@@ -105,7 +108,7 @@ export default function EmpleadoDocumentos({ empleados, S }) {
   const ver = async (doc) => {
     const tok = sessionTok();
     try {
-      const resp = await fetch(`/api/rh/documento?id=${doc.id}`, {
+      const resp = await fetch(`${RH_DOC_API}&id=${doc.id}`, {
         headers: { "X-Session-Token": tok },
       });
       if (!resp.ok) {
@@ -125,7 +128,7 @@ export default function EmpleadoDocumentos({ empleados, S }) {
     if (!window.confirm(`¿Quitar ${rhDocLabel(doc.tipo)} (${doc.nombre_archivo})?`)) return;
     const tok = sessionTok();
     try {
-      const resp = await fetch(`/api/rh/documento?id=${doc.id}`, {
+      const resp = await fetch(`${RH_DOC_API}&id=${doc.id}`, {
         method: "DELETE",
         headers: { "X-Session-Token": tok },
       });
