@@ -3,7 +3,7 @@ import { useMediaQuery } from "./hooks/useMediaQuery";
 import useSidebarBadges from "./hooks/useSidebarBadges";
 import { supabase, isSupabaseLocalMisconfigured } from "./supabase";
 import { C as _C, C_LIGHT, BRAND, NEG, NAV_ADMIN, NAV_VENDEDOR, NAV_DOCTORA, NAV_ITEMS, ADMIN_NAV_SECTIONS } from "./constants";
-import { $, dC, cC, abc, aCol, nCol, hashPwd, hashPwdLegacy, generateSalt, primerNombre, saludoUsuario, normalizarSesionLoginResp } from "./utils";
+import { $, dC, cC, abc, aCol, nCol, hashPwd, hashPwdLegacy, generateSalt, primerNombre, saludoUsuario, normalizarSesionLoginResp, getSessionToken, telefonoMxValido, normalizarTelefonoMxGuardar } from "./utils";
 import { validarPasswordTienda, PASSWORD_RULES_TEXT } from "./utils/passwordPolicy";
 import { Logo, Box, Tag, Btn, Inp, KPI, Modal, NotificacionesToast, showToast, ToastProvider, ConfirmDialog, SkeletonTable, SkeletonKPIs, SkeletonCard, Paginador, GlobalHoverStyles } from "./ui";
 import { sincronizarVentasPendientes, contarVentasPendientes } from "./utils/offlineQueue";
@@ -122,7 +122,8 @@ function LoginScreen({onLogin}){
   const entrar = async () => {
     if(!email||!pwd) return;
     if(pwd.length < 6) { setError("La contraseña debe tener al menos 6 caracteres."); return; }
-    const idNorm = email.trim().toLowerCase();
+    const idRaw = email.trim();
+    const idNorm = idRaw.includes("@") ? idRaw.toLowerCase() : idRaw;
 
     const bloqueoKey  = "farmacapital_login_bloqueo_"+idNorm;
     const intentosKey = "farmacapital_login_intentos_"+idNorm;
@@ -261,8 +262,8 @@ function LoginScreen({onLogin}){
           <div style={{color:C.text,fontWeight:800,fontSize:18,marginBottom:24}}>Iniciar sesión</div>
           <form className="farmacapital-login-form" autoComplete="on" onSubmit={(e)=>{ e.preventDefault(); entrar(); }}>
           <div style={{marginBottom:14}}>
-            <div style={{color:C.textMid,fontSize:11,marginBottom:6,fontWeight:700}}>EMAIL</div>
-            <Inp name="username" autoComplete="username email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="tu@email.com" type="email" style={{width:"100%",boxSizing:"border-box",background:"#fff",WebkitTextFillColor:C.text,colorScheme:"light"}}/>
+            <div style={{color:C.textMid,fontSize:11,marginBottom:6,fontWeight:700}}>CORREO O TELÉFONO</div>
+            <Inp name="username" autoComplete="username" value={email} onChange={e=>setEmail(e.target.value)} placeholder="tu@email.com o 55XXXXXXXX" type="text" style={{width:"100%",boxSizing:"border-box",background:"#fff",WebkitTextFillColor:C.text,colorScheme:"light"}}/>
           </div>
           <div style={{marginBottom:20}}>
             <div style={{color:C.textMid,fontSize:11,marginBottom:6,fontWeight:700}}>CONTRASEÑA</div>
@@ -926,6 +927,17 @@ function defaultIdsPorRol(rol) {
   return [];
 }
 
+function accesoEmpleadoValido(email, telefono) {
+  const e = (email || "").trim();
+  const emailOk = e ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e) : false;
+  return emailOk || telefonoMxValido(telefono);
+}
+
+function etiquetaAcceso(u) {
+  const partes = [u?.email, u?.telefono].map((x) => String(x || "").trim()).filter(Boolean);
+  return partes.length ? partes.join(" · ") : "—";
+}
+
 function PasswordResetSolicitudesModal({ open, onClose }) {
   const C = C_LIGHT;
   const [solicitudes, setSolicitudes] = useState([]);
@@ -1138,24 +1150,65 @@ function GestionUsuarios({ showConfirm }){
   const [modulosModal,setModulosModal] = useState(null); // objeto usuario o null
   const [modulosCheck,setModulosCheck] = useState(() => new Set());
   const [guardandoModulos,setGuardandoModulos] = useState(false);
+  const [pwdModal, setPwdModal] = useState(null);
+  const [pwdNueva, setPwdNueva] = useState("");
+  const [guardandoPwd, setGuardandoPwd] = useState(false);
 
-  useEffect(()=>{
-    const tok = sessionStorage.getItem("farmacapital_session_token");
-    if (!tok) { setLoad(false); return; }
-    supabase.rpc("admin_listar_usuarios", { p_session_token: tok }).then(({ data, error })=>{
-      if (error) console.warn("[GestionUsuarios] admin_listar_usuarios:", error.message);
-      setUsers(data || []);
-      setLoad(false);
-    });
-  },[]);
+  const sesionId = () => {
+    try { return Number(JSON.parse(sessionStorage.getItem("farmacapital_admin_user") || "{}").id); }
+    catch { return null; }
+  };
+
+  const errorRpc = (error, data) => {
+    const raw = String(data?.error || error?.message || "");
+    if (!raw) return "No se pudo completar la acción";
+    if (/sesión inválida|sesion invalida|expirada|sesión no iniciada/i.test(raw)) {
+      return "Sesión inválida o expirada. Cierra sesión y entra de nuevo.";
+    }
+    if (/could not find the function|pgrst202/i.test(raw)) {
+      return "Falta actualizar la base. Ejecuta sql/patch_admin_usuarios_botones.sql en Supabase.";
+    }
+    if (/audit_log|foreign key constraint|violates foreign key/i.test(raw)) {
+      return "Este usuario tiene historial. Ejecuta sql/patch_admin_usuarios_botones.sql en Supabase.";
+    }
+    if (/rol inválido|rol invalido/i.test(raw)) {
+      return "La base aún no acepta el perfil vendedor. Ejecuta sql/patch_admin_usuarios_botones.sql en Supabase.";
+    }
+    return raw;
+  };
+
+  const rpcAdmin = async (fn, args = {}) => {
+    const tok = getSessionToken();
+    if (!tok || tok === "undefined" || tok === "null") {
+      return { data: null, error: { message: "Sesión inválida o expirada. Cierra sesión y entra de nuevo." } };
+    }
+    return supabase.rpc(fn, { p_session_token: tok, ...args });
+  };
+
+  const cargarUsuarios = useCallback(async () => {
+    const { data, error } = await rpcAdmin("admin_listar_usuarios");
+    if (error) {
+      console.warn("[GestionUsuarios] admin_listar_usuarios:", error.message);
+      showToast(errorRpc(error), "error");
+      setUsers([]);
+    } else {
+      setUsers((data || []).map((row) => (typeof row === "string" ? JSON.parse(row) : row)));
+    }
+    setLoad(false);
+  }, []);
+
+  useEffect(()=>{ cargarUsuarios(); }, [cargarUsuarios]);
 
   const crear = async () => {
     const emailUsuario = (form.email || "").trim().toLowerCase();
-    const telefonoLimpio = (form.telefono || "").trim();
-    const telefonoValor = telefonoLimpio || null;
-    if(!form.nombre||!emailUsuario||!form.password) return;
-    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailUsuario)) {
-      setError("Ingresa un correo electrónico válido.");
+    const telefonoValor = normalizarTelefonoMxGuardar(form.telefono) || null;
+    if(!form.nombre||!form.password) return;
+    if(emailUsuario && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailUsuario)) {
+      setError("Ingresa un correo electrónico válido, o déjalo vacío y usa teléfono.");
+      return;
+    }
+    if(!accesoEmpleadoValido(form.email, form.telefono)) {
+      setError("Indica un correo o un teléfono de 10 dígitos para el acceso.");
       return;
     }
     if((form.password || "").length < 6) {
@@ -1164,26 +1217,24 @@ function GestionUsuarios({ showConfirm }){
     }
     setGuard(true); setError("");
     try {
-      const tok = sessionStorage.getItem("farmacapital_session_token");
-      if (!tok) { setError("Sesión expirada."); setGuard(false); return; }
-      const { data: resp, error: err } = await supabase.rpc("admin_crear_usuario", {
-        p_session_token: tok,
+      const { data: resp, error: err } = await rpcAdmin("admin_crear_usuario", {
         p_nombre:    form.nombre.trim(),
-        p_email:     emailUsuario,
+        p_email:     emailUsuario || null,
         p_telefono:  telefonoValor,
         p_password:  form.password,
         p_rol:       form.rol,
         p_notas:     form.notas?.trim() || null,
       });
       if (err || !resp?.success) {
-        setError("Error: " + (resp?.error || err?.message || "desconocido"));
+        setError(errorRpc(err, resp));
         setGuard(false); return;
       }
-      const nuevo = resp.user;
-      setUsers(p => [...p, nuevo]);
+      const nuevo = resp.user || resp.usuario;
+      if (nuevo) setUsers(p => [...p, nuevo]);
+      else await cargarUsuarios();
       setModal(false);
       setForm({nombre:"",email:"",telefono:"",password:"",rol:"vendedor",notas:""});
-      showToast(`✅ Usuario ${form.nombre} creado correctamente`, "success");
+      showToast(`Usuario ${form.nombre} creado`, "success");
     } catch(e){
       console.error("[FarmaCapital] Error crear usuario:", e);
       setError("Error al crear usuario: " + e.message);
@@ -1192,13 +1243,17 @@ function GestionUsuarios({ showConfirm }){
   };
 
   const toggle = async (id,activo) => {
-    const tok = sessionStorage.getItem("farmacapital_session_token");
-    const { error } = await supabase.rpc("admin_toggle_usuario", {
-      p_session_token: tok,
-      p_target_id: id,
-    });
-    if (error) { showToast("Error: "+error.message, "error"); return; }
-    setUsers(p=>p.map(u=>u.id===id?{...u,activo:!activo}:u));
+    if (Number(sesionId()) === Number(id)) {
+      showToast("No puedes desactivar tu propio usuario.", "warning");
+      return;
+    }
+    const { data, error } = await rpcAdmin("admin_toggle_usuario", { p_target_id: Number(id) });
+    if (error || data?.success === false) {
+      showToast(errorRpc(error, data), "error");
+      return;
+    }
+    const nuevoActivo = typeof data?.activo === "boolean" ? data.activo : !activo;
+    setUsers(p=>p.map(u=>Number(u.id)===Number(id)?{...u,activo:nuevoActivo}:u));
   };
 
   // ── MÓDULOS PERSONALIZADOS ─────────────────────────────────
@@ -1229,24 +1284,21 @@ function GestionUsuarios({ showConfirm }){
     try {
       const seleccionados = [...modulosCheck];
       const defaults = defaultIdsPorRol(modulosModal.rol);
-      // Si la selección es exactamente igual al default del rol, guardamos NULL (limpio).
       const igualAlDefault = seleccionados.length === defaults.length
         && seleccionados.every((id) => defaults.includes(id));
       const payload = igualAlDefault ? null : { activos: seleccionados };
-      const tok = sessionStorage.getItem("farmacapital_session_token");
-      const { data: modData, error: err } = await supabase.rpc("admin_set_usuario_modulos_custom", {
-        p_session_token: tok,
-        p_usuario_id: modulosModal.id,
+      const { data: modData, error: err } = await rpcAdmin("admin_set_usuario_modulos_custom", {
+        p_usuario_id: Number(modulosModal.id),
         p_modulos_custom: payload,
       });
       if (err) throw err;
       if (!modData?.success) throw new Error(modData?.error || "Error al guardar módulos");
-      setUsers((prev) => prev.map((u) => u.id === modulosModal.id ? { ...u, modulos_custom: payload } : u));
+      setUsers((prev) => prev.map((u) => Number(u.id) === Number(modulosModal.id) ? { ...u, modulos_custom: payload } : u));
       showToast(igualAlDefault ? "Restablecido al default del rol." : "Permisos guardados.", "success");
       setModulosModal(null);
     } catch (e) {
       console.error("[Usuarios] guardarModulos:", e);
-      showToast("No se pudo guardar: " + (e?.message || JSON.stringify(e)), "error");
+      showToast(errorRpc(e, e), "error");
     }
     setGuardandoModulos(false);
   };
@@ -1274,23 +1326,21 @@ function GestionUsuarios({ showConfirm }){
     setGuardandoEdit(true);
     setEditError("");
     const emailNuevo = (editForm.email || "").trim().toLowerCase();
-    if (!emailNuevo) {
-      setEditError("El correo de acceso es obligatorio.");
+    if (emailNuevo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailNuevo)) {
+      setEditError("Ingresa un correo electrónico válido, o déjalo vacío y usa teléfono.");
       setGuardandoEdit(false);
       return;
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailNuevo)) {
-      setEditError("Ingresa un correo electrónico válido.");
+    if (!accesoEmpleadoValido(editForm.email, editForm.telefono)) {
+      setEditError("Indica un correo o un teléfono de 10 dígitos.");
       setGuardandoEdit(false);
       return;
     }
-    const tok = sessionStorage.getItem("farmacapital_session_token");
-    const { data, error: err } = await supabase.rpc("admin_actualizar_usuario_datos", {
-      p_session_token: tok,
-      p_usuario_id: editForm.id,
+    const { data, error: err } = await rpcAdmin("admin_actualizar_usuario_datos", {
+      p_usuario_id: Number(editForm.id),
       p_nombre: editForm.nombre.trim(),
-      p_email: emailNuevo,
-      p_telefono: (editForm.telefono || "").trim() || null,
+      p_email: emailNuevo || null,
+      p_telefono: normalizarTelefonoMxGuardar(editForm.telefono) || null,
       p_rol: editForm.rol,
       p_notas: editForm.notas?.trim() || null,
       p_activo: !!editForm.activo,
@@ -1311,7 +1361,7 @@ function GestionUsuarios({ showConfirm }){
         setGuardandoEdit(false);
         return;
       }
-      setEditError(`Error: ${err.message}`);
+      setEditError(errorRpc(err, data));
       setGuardandoEdit(false);
       return;
     }
@@ -1320,8 +1370,8 @@ function GestionUsuarios({ showConfirm }){
       setGuardandoEdit(false);
       return;
     }
-    const row = data.user;
-    setUsers((prev) => prev.map((u) => (u.id === editForm.id ? { ...u, ...row } : u)));
+    const row = data.user || data.usuario || {};
+    setUsers((prev) => prev.map((u) => (Number(u.id) === Number(editForm.id) ? { ...u, ...row } : u)));
     setEditModal(false);
     setGuardandoEdit(false);
     showToast("✅ Usuario actualizado", "success");
@@ -1349,40 +1399,51 @@ function GestionUsuarios({ showConfirm }){
     showToast("✅ Contraseña actualizada", "success");
   };
 
-  const resetPwd = async (u) => {
-    const nueva = prompt(`Nueva contraseña para ${u.nombre} (mínimo 6 caracteres):`);
-    if (!nueva || nueva.length < 6) { showToast("Contraseña muy corta (mínimo 6 caracteres)","warning"); return; }
-    const tok = sessionStorage.getItem("farmacapital_session_token");
-    const { data: resp, error } = await supabase.rpc("admin_reset_password", {
-      p_session_token: tok, p_target_id: u.id, p_new_password: nueva,
+  const resetPwd = (u) => {
+    setPwdNueva("");
+    setPwdModal(u);
+  };
+
+  const guardarPwd = async () => {
+    if (!pwdModal) return;
+    if (!pwdNueva || pwdNueva.length < 6) {
+      showToast("La contraseña debe tener al menos 6 caracteres", "warning");
+      return;
+    }
+    setGuardandoPwd(true);
+    const { data: resp, error } = await rpcAdmin("admin_reset_password", {
+      p_target_id: Number(pwdModal.id),
+      p_new_password: pwdNueva,
     });
-    if (error || !resp?.success) { showToast("Error: "+(resp?.error||error?.message),"error"); return; }
-    showToast(`✅ Contraseña de ${u.nombre} actualizada`,"success");
+    setGuardandoPwd(false);
+    if (error || !resp?.success) {
+      showToast(errorRpc(error, resp), "error");
+      return;
+    }
+    showToast(`Contraseña de ${pwdModal.nombre} actualizada`, "success");
+    setPwdModal(null);
+    setPwdNueva("");
   };
 
   const ejecutarEliminar = async (id, nombre) => {
-    const tok = sessionStorage.getItem("farmacapital_session_token");
-    const { data: resp, error } = await supabase.rpc("admin_eliminar_usuario", {
-      p_session_token: tok, p_target_id: id,
+    const { data: resp, error } = await rpcAdmin("admin_eliminar_usuario", {
+      p_target_id: Number(id),
     });
     if (error || !resp?.success) {
-      const raw = String(resp?.error || error?.message || "");
-      if (/audit_log|foreign key constraint|violates foreign key/i.test(raw)) {
-        showToast("Este usuario tiene historial. Ejecuta sql/patch_admin_eliminar_usuario_fk.sql en Supabase y vuelve a intentar.", "error");
-        return;
-      }
-      showToast("Error: " + (resp?.error || error?.message), "error");
+      showToast(errorRpc(error, resp), "error");
       return;
     }
-    setUsers(p=>p.filter(u=>u.id!==id));
+    setUsers(p=>p.filter(u=>Number(u.id)!==Number(id)));
     showToast(resp?.modo === "soft"
       ? `${nombre} se ocultó porque tiene historial de ventas o caja.`
       : `Usuario ${nombre} eliminado.`, "info");
   };
 
   const eliminar = async (id,nombre) => {
-    const sesion = JSON.parse(sessionStorage.getItem("farmacapital_admin_user")||"{}");
-    if(sesion.id===id) { showToast("No puedes eliminar tu propio usuario.", "warning"); return; }
+    if (Number(sesionId()) === Number(id)) {
+      showToast("No puedes eliminar tu propio usuario.", "warning");
+      return;
+    }
     const mensaje = `¿Eliminar al usuario ${nombre}? Esta acción no se puede deshacer.`;
     if (showConfirm) {
       showConfirm("Eliminar usuario", mensaje, () => ejecutarEliminar(id, nombre), true);
@@ -1393,15 +1454,19 @@ function GestionUsuarios({ showConfirm }){
 
   const rolColor = r => r==="admin"?C.purple:r==="vendedor"?C.blue:C.green;
   const actionBtnBase = {
-    width: 18,
-    height: 18,
-    borderRadius: 5,
+    minHeight: 36,
+    borderRadius: 8,
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
+    gap: 6,
     cursor: "pointer",
-    padding: 0,
-    marginLeft: 1,
+    padding: "6px 10px",
+    marginLeft: 0,
+    fontSize: 11,
+    fontWeight: 700,
+    fontFamily: "'Plus Jakarta Sans',sans-serif",
+    whiteSpace: "nowrap",
   };
 
   return(
@@ -1419,12 +1484,13 @@ function GestionUsuarios({ showConfirm }){
           <Inp value={form.nombre} onChange={e=>setForm(p=>({...p,nombre:e.target.value}))} placeholder="Nombre del empleado" style={{width:"100%",boxSizing:"border-box"}}/>
         </div>
         <div style={{marginBottom:12}}>
-          <div style={{color:C.textMid,fontSize:11,marginBottom:4}}>Correo electrónico (será su usuario) *</div>
+          <div style={{color:C.textMid,fontSize:11,marginBottom:4}}>Correo electrónico</div>
           <Inp value={form.email} onChange={e=>setForm(p=>({...p,email:e.target.value}))} placeholder="usuario@empresa.com" type="email" style={{width:"100%",boxSizing:"border-box"}}/>
         </div>
         <div style={{marginBottom:12}}>
-          <div style={{color:C.textMid,fontSize:11,marginBottom:4}}>Teléfono (opcional)</div>
+          <div style={{color:C.textMid,fontSize:11,marginBottom:4}}>Teléfono</div>
           <Inp value={form.telefono} onChange={e=>setForm(p=>({...p,telefono:e.target.value}))} placeholder="55XXXXXXXX" type="tel" style={{width:"100%",boxSizing:"border-box"}}/>
+          <div style={{color:C.textDim,fontSize:10,marginTop:4}}>Basta con correo o teléfono (o ambos) para iniciar sesión.</div>
         </div>
         <div style={{marginBottom:12}}>
           <div style={{color:C.textMid,fontSize:11,marginBottom:4}}>Contraseña *</div>
@@ -1445,14 +1511,14 @@ function GestionUsuarios({ showConfirm }){
           <Inp value={form.notas} onChange={e=>setForm(p=>({...p,notas:e.target.value}))} placeholder="Turno, observaciones, etc." style={{width:"100%",boxSizing:"border-box"}}/>
         </div>
         <div style={{background:C.amberDim,border:`1px solid ${C.amber}30`,borderRadius:8,padding:"10px 12px",marginBottom:16}}>
-          <div style={{color:C.amber,fontSize:11}}>El usuario iniciará sesión con su correo electrónico y esta contraseña. Compártela de forma segura.</div>
+          <div style={{color:C.amber,fontSize:11}}>El usuario entra con correo o teléfono, más esta contraseña. Compártela de forma segura.</div>
         </div>
         <div style={{display:"flex",gap:8}}>
           <Btn onClick={()=>setModal(false)} ol col={C.textMid}>Cancelar</Btn>
           <Btn
             onClick={crear}
             col={BRAND.primary}
-            dis={!form.nombre||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((form.email||"").trim())||!form.password||form.password.length<6||guardando}
+            dis={!form.nombre||!form.password||form.password.length<6||!accesoEmpleadoValido(form.email, form.telefono)||guardando}
           >
             {guardando?"Creando...":"Crear usuario"}
           </Btn>
@@ -1473,11 +1539,11 @@ function GestionUsuarios({ showConfirm }){
             type="email"
             style={{width:"100%",boxSizing:"border-box"}}
           />
-          <div style={{color:C.textDim,fontSize:10,marginTop:4}}>Puedes corregir el correo para que inicie sesión con email + contraseña.</div>
         </div>
         <div style={{marginBottom:12}}>
-          <div style={{color:C.textMid,fontSize:11,marginBottom:4}}>Teléfono</div>
+          <div style={{color:C.textMid,fontSize:11,marginBottom:4}}>Teléfono de acceso</div>
           <Inp value={editForm.telefono} onChange={e=>setEditForm(p=>({...p,telefono:e.target.value}))} placeholder="55XXXXXXXX" type="tel" style={{width:"100%",boxSizing:"border-box"}}/>
+          <div style={{color:C.textDim,fontSize:10,marginTop:4}}>Puede entrar con correo, teléfono, o ambos.</div>
         </div>
         <div style={{marginBottom:12}}>
           <div style={{color:C.textMid,fontSize:11,marginBottom:4}}>Perfil *</div>
@@ -1501,8 +1567,21 @@ function GestionUsuarios({ showConfirm }){
         {editError&&<div style={{background:C.redDim,border:`1px solid ${C.red}30`,borderRadius:8,padding:"10px 12px",marginBottom:12,color:C.red,fontSize:13}}>{editError}</div>}
         <div style={{display:"flex",gap:8}}>
           <Btn onClick={()=>setEditModal(false)} ol col={C.textMid}>Cancelar</Btn>
-          <Btn onClick={guardarEdicion} col={BRAND.primary} dis={!editForm.nombre||guardandoEdit}>
+          <Btn onClick={guardarEdicion} col={BRAND.primary} dis={!editForm.nombre||!accesoEmpleadoValido(editForm.email, editForm.telefono)||guardandoEdit}>
             {guardandoEdit?"Guardando...":"Guardar cambios"}
+          </Btn>
+        </div>
+      </Modal>
+
+      <Modal open={!!pwdModal} onClose={()=>{ if(!guardandoPwd){ setPwdModal(null); setPwdNueva(""); } }} title={pwdModal ? `Nueva contraseña · ${pwdModal.nombre}` : "Nueva contraseña"} closeOnBackdrop={!guardandoPwd}>
+        <div style={{marginBottom:12}}>
+          <div style={{color:C.textMid,fontSize:11,marginBottom:4}}>Contraseña (mínimo 6 caracteres) *</div>
+          <Inp value={pwdNueva} onChange={e=>setPwdNueva(e.target.value)} placeholder="Nueva contraseña" type="password" style={{width:"100%",boxSizing:"border-box"}}/>
+        </div>
+        <div style={{display:"flex",gap:8}}>
+          <Btn onClick={()=>{ setPwdModal(null); setPwdNueva(""); }} ol col={C.textMid} dis={guardandoPwd}>Cancelar</Btn>
+          <Btn onClick={guardarPwd} col={BRAND.primary} dis={!pwdNueva||pwdNueva.length<6||guardandoPwd}>
+            {guardandoPwd?"Guardando...":"Guardar contraseña"}
           </Btn>
         </div>
       </Modal>
@@ -1583,76 +1662,55 @@ function GestionUsuarios({ showConfirm }){
       {loading?<SkeletonTable rows={4} cols={5}/>:(
         <Box>
           <table style={{width:"100%",borderCollapse:"collapse"}}>
-            <thead><tr>{["Nombre","Usuario (correo)","Perfil","Notas","Estado","Acciones"].map(h=><th key={h} style={{padding:"8px 14px",color:C.textDim,fontSize:9,textAlign:"left",letterSpacing:1.5,textTransform:"uppercase",borderBottom:`1px solid ${C.border}`}}>{h}</th>)}</tr></thead>
+            <thead><tr>{["Nombre","Acceso","Perfil","Notas","Estado","Acciones"].map(h=><th key={h} style={{padding:"8px 14px",color:C.textDim,fontSize:9,textAlign:"left",letterSpacing:1.5,textTransform:"uppercase",borderBottom:`1px solid ${C.border}`}}>{h}</th>)}</tr></thead>
             <tbody>
               {usuarios.map(u=>(
                 <tr key={u.id}>
                   <td style={{padding:"10px 14px",color:C.text,fontWeight:700,fontSize:13}}>{u.nombre}</td>
-                  <td style={{padding:"10px 14px",color:C.textMid,fontSize:12}}>{u.email||u.telefono||"—"}</td>
+                  <td style={{padding:"10px 14px",color:C.textMid,fontSize:12}}>{etiquetaAcceso(u)}</td>
                   <td style={{padding:"10px 14px"}}><Tag col={rolColor(u.rol)} sm>{u.rol}</Tag></td>
                   <td style={{padding:"10px 14px",color:C.textMid,fontSize:12}}>{u.notas||"—"}</td>
                   <td style={{padding:"10px 14px"}}><Tag col={u.activo?C.green:C.red} sm>{u.activo?"Activo":"Inactivo"}</Tag></td>
                   <td style={{padding:"10px 14px"}}>
+                    <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
                     <button
+                      type="button"
                       onClick={()=>abrirEditar(u)}
                       title="Editar usuario"
                       aria-label="Editar usuario"
-                      style={{...actionBtnBase, border:`1px solid ${C.amber}30`, background:C.amberDim, color:C.amber, marginLeft:0}}
-                    >
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <path d="M12 20h9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                        <path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
-                      </svg>
-                    </button>
+                      style={{...actionBtnBase, border:`1px solid ${C.amber}30`, background:C.amberDim, color:C.amber}}
+                    >Editar</button>
                     {u.rol !== "admin" && (
                       <button
+                        type="button"
                         onClick={()=>abrirModulos(u)}
                         title="Módulos y permisos"
                         aria-label="Módulos y permisos"
                         style={{...actionBtnBase, border:`1px solid ${C.purple}40`, background:C.purpleDim, color:C.purple}}
-                      >
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                          <path d="M3 9l3-3 3 3M3 15l3 3 3-3M18 9l3-3-3-3M18 15l3 3-3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M9 12h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                        </svg>
-                      </button>
+                      >Módulos</button>
                     )}
-                    <button onClick={()=>toggle(u.id,u.activo)}
+                    <button
+                      type="button"
+                      onClick={()=>toggle(u.id,u.activo)}
                       title={u.activo?"Desactivar usuario":"Activar usuario"}
                       aria-label={u.activo?"Desactivar usuario":"Activar usuario"}
-                      style={{...actionBtnBase,border:`1px solid ${u.activo?C.red:C.green}`,background:"transparent",color:u.activo?C.red:C.green}}>
-                      {u.activo ? (
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                          <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2"/>
-                          <path d="M8 8l8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                        </svg>
-                      ) : (
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                          <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2"/>
-                          <path d="M8 12l3 3 5-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      )}
-                    </button>
+                      style={{...actionBtnBase,border:`1px solid ${u.activo?C.red:C.green}`,background:"transparent",color:u.activo?C.red:C.green}}
+                    >{u.activo ? "Desactivar" : "Activar"}</button>
                     <button
+                      type="button"
                       onClick={()=>resetPwd(u)}
                       title="Resetear contraseña"
                       aria-label="Resetear contraseña"
                       style={{...actionBtnBase,border:`1px solid ${C.blue}`,background:C.blueDim,color:C.blue}}
-                    >
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <circle cx="8" cy="12" r="3" stroke="currentColor" strokeWidth="2"/>
-                        <path d="M11 12h10M17 12v3M20 12v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                      </svg>
-                    </button>
-                    <button onClick={()=>eliminar(u.id,u.nombre)}
+                    >Clave</button>
+                    <button
+                      type="button"
+                      onClick={()=>eliminar(u.id,u.nombre)}
                       title="Eliminar usuario"
                       aria-label="Eliminar usuario"
-                      style={{...actionBtnBase,border:`1px solid ${C.red}30`,background:C.redDim,color:C.red}}>
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <path d="M3 6h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                        <path d="M8 6V4h8v2M7 6l1 14h8l1-14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </button>
+                      style={{...actionBtnBase,border:`1px solid ${C.red}30`,background:C.redDim,color:C.red}}
+                    >Borrar</button>
+                    </div>
                   </td>
                 </tr>
               ))}
