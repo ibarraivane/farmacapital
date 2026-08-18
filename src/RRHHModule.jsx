@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useMediaQuery } from './hooks/useMediaQuery';
 import { supabase } from './supabase';
 import { showToast } from './ui';
@@ -97,6 +97,8 @@ export default function RRHHModule() {
   const emptyForm = { nombre:'', telefono:'', rol:'vendedor', turno:'matutino', salario_quincenal:'' };
   const [form, setForm]           = useState(emptyForm);
   const [formMsg, setFormMsg]     = useState(null);
+  const [editingId, setEditingId] = useState(null);
+  const formRef = useRef(null);
   const [selEmpId, setSelEmpId]   = useState('');
   const [calcBase, setCalcBase]   = useState(0);
   const [calcHE, setCalcHE]       = useState(0);
@@ -240,7 +242,29 @@ export default function RRHHModule() {
       p_session_token: tok, p_empleado_id: id,
     });
     if (error) alert("Error: "+error.message);
+    if (String(editingId) === String(id)) { setEditingId(null); setForm(emptyForm); }
     fetchEmpleados();
+  };
+
+  const empezarEdicion = (emp) => {
+    setEditingId(emp.id);
+    setForm({
+      nombre: emp.nombre || "",
+      telefono: emp.telefono || "",
+      rol: emp.rol || "vendedor",
+      turno: emp.turno === "vespertino" ? "vespertino" : "matutino",
+      salario_quincenal: emp.salario_quincenal != null ? String(emp.salario_quincenal) : "",
+    });
+    setFormMsg(null);
+    requestAnimationFrame(() => {
+      formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
+
+  const cancelarEdicion = () => {
+    setEditingId(null);
+    setForm(emptyForm);
+    setFormMsg(null);
   };
 
   const handleFormSubmit = async (e) => {
@@ -248,16 +272,31 @@ export default function RRHHModule() {
     if (!form.nombre.trim()) { setFormMsg({ ok:false, text:'El nombre es obligatorio.' }); return; }
     const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) { setFormMsg({ ok:false, text:'Sesión expirada.' }); return; }
-    const { error } = await supabase.rpc("admin_crear_empleado", {
+    const payload = {
       p_session_token: tok,
       p_nombre: form.nombre.trim(),
       p_telefono: form.telefono.trim() || null,
       p_rol: form.rol,
       p_turno: form.turno,
       p_salario_quincenal: parseFloat(form.salario_quincenal) || 0,
-    });
-    if (error) setFormMsg({ ok:false, text:`Error: ${error.message}` });
-    else { setFormMsg({ ok:true, text:'✅ Empleado registrado.' }); setForm(emptyForm); fetchEmpleados(); }
+    };
+    const { error } = editingId
+      ? await supabase.rpc("admin_actualizar_empleado", { ...payload, p_empleado_id: editingId })
+      : await supabase.rpc("admin_crear_empleado", payload);
+    if (error) {
+      const faltaFn = /could not find the function|pgrst202/i.test(error.message || "");
+      setFormMsg({
+        ok: false,
+        text: faltaFn
+          ? "Falta actualizar la base. Ejecuta sql/patch_rh_actualizar_empleado.sql en Supabase."
+          : `Error: ${error.message}`,
+      });
+      return;
+    }
+    setFormMsg({ ok:true, text: editingId ? "✅ Cambios guardados." : "✅ Empleado registrado." });
+    setEditingId(null);
+    setForm(emptyForm);
+    fetchEmpleados();
   };
 
   const selEmp = empleados.find(e => String(e.id) === String(selEmpId));
@@ -325,6 +364,27 @@ export default function RRHHModule() {
   };
 
   const rolColor = r => ({ admin:'#9d6fff', vendedor:C.blue, doctora:C.green, farmaceutico:C.amber }[r] || C.textMid);
+  const btnEditar = (emp) => (
+    <button
+      type="button"
+      onClick={() => empezarEdicion(emp)}
+      title="Editar ficha"
+      aria-label={`Editar ${emp.nombre}`}
+      style={{
+        ...actionBtnBase,
+        width: 36,
+        height: 36,
+        border: `1px solid ${C.blue}40`,
+        background: C.blueDim,
+        color: C.blue,
+      }}
+    >
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M4 20h4l10-10-4-4L4 16v4z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
+        <path d="M14 6l4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+    </button>
+  );
   const semana = planSemanaCaja(perfiles);
   const choques = descansosChocan(perfiles);
 
@@ -455,6 +515,7 @@ export default function RRHHModule() {
                     {emp.estado ? '● Activo' : '● Inactivo'}
                   </span>
                   <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+                    {btnEditar(emp)}
                     <button
                       type="button"
                       onClick={() => toggleEstado(emp)}
@@ -540,6 +601,7 @@ export default function RRHHModule() {
                     </td>
                     <td style={{ ...S.td }}>
                       <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+                        {btnEditar(emp)}
                         <button
                           type="button"
                           onClick={() => toggleEstado(emp)}
@@ -592,9 +654,9 @@ export default function RRHHModule() {
         )}
       </div>
 
-      {/* NUEVO EMPLEADO */}
-      <div style={S.section}>
-        <div style={S.h2}>➕ Registrar nuevo empleado</div>
+      {/* NUEVO / EDITAR EMPLEADO */}
+      <div ref={formRef} style={S.section}>
+        <div style={S.h2}>{editingId ? "✏️ Editar empleado" : "➕ Registrar nuevo empleado"}</div>
         <form onSubmit={handleFormSubmit}>
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 170px), 1fr))', gap:14, marginBottom:14 }}>
             <div><label style={S.label}>Nombre completo *</label>
@@ -622,7 +684,16 @@ export default function RRHHModule() {
             <div><label style={S.label}>Salario quincenal *</label>
               <input style={S.input} type="number" min="0" step="0.01" value={form.salario_quincenal} onChange={e=>setForm({...form,salario_quincenal:e.target.value})} placeholder="3500.00"/></div>
           </div>
-          <button type="submit" style={{ ...S.btnBlue, width:'100%', padding:12, fontSize:14 }}>➕ Registrar empleado</button>
+          <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
+            <button type="submit" style={{ ...S.btnBlue, padding:"12px 18px", fontSize:14 }}>
+              {editingId ? "💾 Guardar cambios" : "➕ Registrar empleado"}
+            </button>
+            {editingId && (
+              <button type="button" onClick={cancelarEdicion} style={{ ...S.btnBlue, background:"transparent", color:C.textMid, border:`1px solid ${C.border}` }}>
+                Cancelar
+              </button>
+            )}
+          </div>
           {formMsg && <p style={{ marginTop:10, color:formMsg.ok?C.green:C.red, fontSize:13, fontWeight:700 }}>{formMsg.text}</p>}
         </form>
       </div>
