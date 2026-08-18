@@ -47,7 +47,7 @@
   <p class="meta">
     <strong>Comercio:</strong> FarmaCapital &nbsp;|&nbsp;
     <strong>Sitio:</strong> https://www.farmacapital.mx &nbsp;|&nbsp;
-    <strong>Fecha:</strong> 28 de julio de 2026 (actualizado) &nbsp;|&nbsp;
+    <strong>Fecha:</strong> 18 de agosto de 2026 (actualizado) &nbsp;|&nbsp;
     <strong>Ticket:</strong> WCS-43806 / ID 470711389 &nbsp;|&nbsp;
     <strong>País:</strong> México (MEX)
   </p>
@@ -56,7 +56,7 @@
     <strong>Problema:</strong> La integración vía Orders API (<code>POST /v1/orders</code>) crea órdenes correctamente,
     pero el terminal físico <strong>no las sincroniza</strong>. Las órdenes permanecen en estado
     <code>created</code> y <strong>nunca pasan a <code>at_terminal</code></strong>. Existen además
-    <strong>7 órdenes atascadas</strong> en cola que no pueden cancelarse por API (<code>order_not_found</code>).
+    <strong>7 órdenes atascadas</strong> reportadas por soporte MP (varias ya no aparecen en <code>GET /v1/orders</code> del comercio; al 18-ago-2026 la cola visible por API está en 0). El Point sigue sin pasar de <code>created</code> a <code>at_terminal</code>.
   </div>
 
   <h2>1. Datos del comercio y terminal</h2>
@@ -69,8 +69,8 @@
     <tr><th>POS (caja)</th><td>Sucursal - QR #1 — <code>pos_id: 135063974</code></td></tr>
     <tr><th>Sucursal (store)</th><td><code>store_id: 84680678</code></td></tr>
     <tr><th>Modo operación (API)</th><td><code>PDV</code></td></tr>
-    <tr><th>Terminal — Ajustes</th><td>«Vincular frente de caja» = <strong>ACTIVO (ON)</strong></td></tr>
-    <tr><th>Conectividad</th><td>WiFi + chip AT&amp;T activo; terminal reportado online por soporte MP</td></tr>
+    <tr><th>Terminal — Ajustes</th><td>«Vincular frente de caja» = <strong>ACTIVO (ON)</strong> — el comercio confirma que <strong>siempre ha estado encendido y en PDV</strong></td></tr>
+    <tr><th>Conectividad</th><td>Siempre activa y estable (WiFi y/o SIM). No hay apagados ni cortes asociados al incidente.</td></tr>
     <tr><th>Versión sistema Point</th><td>12.1.8 (según panel MP)</td></tr>
     <tr><th>external_pos_id (API devices)</th><td><code>""</code> (vacío — posible vinculación incompleta)</td></tr>
   </table>
@@ -114,7 +114,14 @@
     <tr><th>Fecha creación (UTC)</th><td>2026-07-22T04:54:53.044Z</td></tr>
     <tr><th>Resultado</th><td><code>created</code> indefinido; terminal sin reacción</td></tr>
   </table>
-  <p><em>Conclusión: la orden existe en Mercado Pago, es consultable y cancelable por API, pero el lector físico no la obtiene.</em></p>
+  <h3>3.4 Snapshot en vivo — 18-ago-2026</h3>
+  <table>
+    <tr><th>GET devices / terminals</th><td>1 dispositivo: <code>NEWLAND_N950__N950NCCC05728001</code> · <code>PDV</code> · <code>store_id 84680678</code> · <code>pos_id 135063974</code></td></tr>
+    <tr><th>Cola visible por API</th><td><code>0</code> órdenes <code>created</code>/<code>at_terminal</code></td></tr>
+    <tr><th>Estado físico</th><td>Encendido, PDV activado y con internet estable (confirmado por el comercio)</td></tr>
+    <tr><th>Resultado</th><td>Sigue sin despacho a terminal: crear orden deja <code>created</code> y no llega a <code>at_terminal</code></td></tr>
+  </table>
+  <p><em>Conclusión: la orden existe en Mercado Pago, es consultable y cancelable por API, pero el lector físico no la obtiene. El comercio no apagó ni desactivó el Point; el bloqueo es de sincronización backend↔terminal.</em></p>
 
   <h2>4. Cola de órdenes atascadas (7 registros)</h2>
   <p>Órdenes en estado <code>created</code> desde hace horas. Al intentar <code>POST .../cancel</code>, la API responde <code>order_not_found</code> en la mayoría, aunque <code>GET .../orders/{id}</code> sí las devuelve.</p>

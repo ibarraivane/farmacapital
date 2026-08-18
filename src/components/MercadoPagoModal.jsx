@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { crearIntenciónDePago, esperarConfirmacionPago, cancelarPago, isMPConfigured, mensajeEstadoPoint } from "../utils/mercadoPago";
+import PointMpStatusPanel from "./PointMpStatusPanel";
 
 /**
  * FARMACAPITAL — Modal de pago con Mercado Pago Point Smart 2
@@ -196,6 +197,9 @@ export default function MercadoPagoModal({ open, total, folio, hint, onSuccess, 
             <strong>2.</strong> Pantalla de cobro → botón <strong>Actualizar (↻)</strong> o verde.<br/>
             <strong>3.</strong> Si no baja: app MP → Tu negocio → Terminales → <strong>desvincular y revincular</strong> el lector.
           </div>
+        )}
+        {estado==="error"&&(
+          <PointMpStatusPanel compact={false} />
         )}
       </div>
     </div>

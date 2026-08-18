@@ -5,9 +5,18 @@
 // Docs: https://www.mercadopago.com.mx/developers/en/docs/mp-point/migrate-payment-intent-to-orders
 
 const crypto = require('crypto');
+const {
+  terminalsFromV1Payload,
+  terminalsFromLegacyPayload,
+  findTerminal,
+  diagnosisFromStatus,
+  buildSupportPacket,
+  formatSupportPacketText,
+} = require('../../_lib/mpPoint');
 
 const MP_API = 'https://api.mercadopago.com';
 const MP_DEVICES_LEGACY = `${MP_API}/point/integration-api/devices`;
+const MP_TERMINALS_V1 = `${MP_API}/terminals/v1/list`;
 
 const PENDING_ORDER_STATUSES = new Set(['created', 'at_terminal']);
 const STALE_CREATED_MS = 90 * 1000;
@@ -152,15 +161,87 @@ async function createPointOrder(token, deviceId, body) {
   });
 }
 
-async function getDeviceOperatingMode(token, deviceId) {
-  const { resp, data } = await mpJson(MP_DEVICES_LEGACY, {
+async function listTerminals(token) {
+  const v1 = await mpJson(`${MP_TERMINALS_V1}?limit=50&offset=0`, {
     method: 'GET',
     headers: authHeaders(token),
   });
-  if (!resp.ok) return null;
-  const devices = Array.isArray(data?.devices) ? data.devices : [];
-  const match = devices.find((d) => d?.id === deviceId);
+  if (v1.resp.ok) {
+    return {
+      ok: true,
+      source: 'terminals_v1',
+      devices: terminalsFromV1Payload(v1.data),
+      paging: v1.data?.paging || null,
+    };
+  }
+
+  const legacy = await mpJson(MP_DEVICES_LEGACY, {
+    method: 'GET',
+    headers: authHeaders(token),
+  });
+  if (!legacy.resp.ok) {
+    return {
+      ok: false,
+      source: 'none',
+      devices: [],
+      paging: null,
+      status: legacy.resp.status,
+      message: mpErrorMessage(legacy.data, legacy.resp.status),
+    };
+  }
+  return {
+    ok: true,
+    source: 'devices_legacy',
+    devices: terminalsFromLegacyPayload(legacy.data),
+    paging: legacy.data?.paging || null,
+  };
+}
+
+async function getDeviceOperatingMode(token, deviceId) {
+  const listed = await listTerminals(token);
+  const match = findTerminal(listed.devices, deviceId);
   return match?.operating_mode || null;
+}
+
+function summarizePending(pending) {
+  return (pending || []).map((o) => ({
+    id: o.id,
+    status: o.status,
+    amount: o?.transactions?.payments?.[0]?.amount,
+    external_reference: o.external_reference,
+    created_date: o.created_date,
+  }));
+}
+
+async function buildPointStatus(token, deviceId) {
+  const listed = await listTerminals(token);
+  const fallbackId = listed.devices[0]?.id || '';
+  const tid = String(deviceId || fallbackId || '').trim();
+  const device = findTerminal(listed.devices, tid);
+  const pending = tid ? await listPendingPointOrders(token, tid) : [];
+  const packet = buildSupportPacket({
+    deviceId: tid,
+    device,
+    source: listed.source,
+    pending,
+  });
+  const diagnosis = diagnosisFromStatus({
+    operatingMode: device?.operating_mode || null,
+    pendingCount: pending.length,
+  });
+  return {
+    ok: listed.ok !== false,
+    operating_mode: device?.operating_mode || null,
+    device,
+    devices: listed.devices,
+    source: listed.source,
+    pending_count: pending.length,
+    pending_orders: summarizePending(pending),
+    support_packet: packet,
+    support_text: formatSupportPacketText(packet),
+    diagnosis,
+    terminals_error: listed.ok === false ? listed.message : null,
+  };
 }
 
 async function setTerminalOperatingMode(token, deviceId, mode) {
@@ -187,20 +268,31 @@ module.exports = async function handler(req, res) {
   const MP_ACCESS_TOKEN = (process.env.MP_ACCESS_TOKEN || process.env.MERCADOPAGO_ACCESS_TOKEN || '').trim();
   if (!MP_ACCESS_TOKEN) return res.status(500).json({ ok: false, error: 'missing_mp_access_token' });
 
-  // path: /api/payments/mp/point?action=devices|create-intent|get-intent|cancel-intent|clear-terminal|set-pdv
+  // path: /api/payments/mp/point?action=devices|status|create-intent|get-intent|cancel-intent|clear-terminal|set-pdv|diagnose
   const { action, deviceId, intentId, orderId } = req.query;
   const body = req.method === 'POST' ? (typeof req.body === 'object' ? req.body : {}) : null;
 
   try {
     if (action === 'devices') {
-      const { resp, data } = await mpJson(MP_DEVICES_LEGACY, {
-        method: 'GET',
-        headers: authHeaders(MP_ACCESS_TOKEN),
-      });
-      if (!resp.ok) {
-        return res.status(resp.status).json({ ok: false, message: mpErrorMessage(data, resp.status), ...data });
+      const listed = await listTerminals(MP_ACCESS_TOKEN);
+      if (!listed.ok) {
+        return res.status(listed.status || 500).json({
+          ok: false,
+          message: listed.message || 'No se pudo listar terminales',
+        });
       }
-      return res.status(200).json({ ok: true, ...data });
+      return res.status(200).json({
+        ok: true,
+        devices: listed.devices,
+        terminals: listed.devices,
+        source: listed.source,
+        paging: listed.paging,
+      });
+    }
+
+    if (action === 'status') {
+      const status = await buildPointStatus(MP_ACCESS_TOKEN, deviceId);
+      return res.status(200).json(status);
     }
 
     if (action === 'reset-terminal') {
@@ -232,13 +324,7 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({
         ok: true,
         count: pending.length,
-        orders: pending.map((o) => ({
-          id: o.id,
-          status: o.status,
-          amount: o?.transactions?.payments?.[0]?.amount,
-          external_reference: o.external_reference,
-          created_date: o.created_date,
-        })),
+        orders: summarizePending(pending),
       });
     }
 
@@ -332,13 +418,18 @@ module.exports = async function handler(req, res) {
         });
       }
 
+      const listed = await listTerminals(MP_ACCESS_TOKEN);
+      const device = findTerminal(listed.devices, deviceId);
       return res.status(200).json({
         ok: true,
         id: data.id,
         order_id: data.id,
         status: data.status,
         status_detail: data.status_detail,
-        operating_mode: operatingMode || 'PDV',
+        operating_mode: operatingMode || device?.operating_mode || 'PDV',
+        pos_id: device?.pos_id || null,
+        store_id: device?.store_id || null,
+        terminal_id: String(deviceId),
         ...data,
       });
     }
@@ -388,13 +479,24 @@ module.exports = async function handler(req, res) {
 
     if (action === 'diagnose') {
       if (!deviceId) return res.status(400).json({ ok: false, error: 'missing_deviceId' });
+      const wantCharge =
+        String(req.query.charge || '').toLowerCase() === '1' ||
+        req.query.charge === 'true' ||
+        body?.charge === true;
+
+      const status = await buildPointStatus(MP_ACCESS_TOKEN, String(deviceId));
+      if (!wantCharge) {
+        return res.status(200).json({
+          ...status,
+          order_created: false,
+          order_id: null,
+          order_status_after_8s: null,
+          charged: false,
+          diagnosis: status.diagnosis,
+        });
+      }
+
       const cleared = await clearTerminalQueue(MP_ACCESS_TOKEN, String(deviceId), { onlyStaleCreated: false });
-      const mode = await getDeviceOperatingMode(MP_ACCESS_TOKEN, String(deviceId));
-      const { data: devData } = await mpJson(MP_DEVICES_LEGACY, {
-        method: 'GET',
-        headers: authHeaders(MP_ACCESS_TOKEN),
-      });
-      const device = (devData?.devices || []).find((d) => d.id === deviceId);
       const testBody = buildCreateOrderBody(deviceId, 18, 'Diagnostico FC', `FC-DIAG-${Date.now()}`);
       const { resp, data } = await createPointOrder(MP_ACCESS_TOKEN, deviceId, testBody);
       let afterStatus = null;
@@ -407,9 +509,18 @@ module.exports = async function handler(req, res) {
         afterStatus = d2?.status || null;
         await cancelPointOrder(MP_ACCESS_TOKEN, data.id, d2?.status || 'created');
       }
+      const packet = buildSupportPacket({
+        deviceId: String(deviceId),
+        device: status.device,
+        source: status.source,
+        pending: cleared.failures || [],
+        userId: data?.user_id || null,
+        applicationId: data?.integration_data?.application_id || null,
+      });
       return res.status(200).json({
         ok: true,
-        operating_mode: mode,
+        charged: true,
+        operating_mode: status.operating_mode,
         pending_cleared: cleared.cleared,
         pending_remaining: cleared.pending,
         order_created: resp.ok,
@@ -418,16 +529,19 @@ module.exports = async function handler(req, res) {
         order_status_after_8s: afterStatus,
         user_id: data?.user_id || null,
         application_id: data?.integration_data?.application_id || null,
-        pos_id: device?.pos_id || null,
-        store_id: device?.store_id || null,
-        diagnosis:
-          mode !== 'PDV'
-            ? 'Terminal no está en PDV según API.'
-            : !resp.ok
-              ? `No se pudo crear cobro de prueba: ${mpErrorMessage(data, resp.status)}`
-              : afterStatus === 'at_terminal'
-                ? 'OK: el Point recibe cobros.'
-                : 'FarmaCapital y Mercado Pago OK; el Point físico no sincroniza. Desvincula y revincula el lector en la app MP.',
+        pos_id: status.device?.pos_id || null,
+        store_id: status.device?.store_id || null,
+        support_packet: packet,
+        support_text: formatSupportPacketText({
+          ...packet,
+          user_id: data?.user_id || null,
+          application_id: data?.integration_data?.application_id || null,
+        }),
+        diagnosis: diagnosisFromStatus({
+          operatingMode: status.operating_mode,
+          pendingCount: cleared.pending,
+          orderStatusAfterWait: afterStatus,
+        }),
       });
     }
 

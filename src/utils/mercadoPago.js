@@ -182,6 +182,63 @@ export async function cancelarPago(paymentIntentId) {
 /**
  * Lista los dispositivos Point disponibles
  */
+function pointProxyUrl(action, extra = {}) {
+  const params = new URLSearchParams({ action, ...extra });
+  return `${MP_PROXY_URL.replace(/\/$/, "")}?${params.toString()}`;
+}
+
+export async function consultarEstadoPoint() {
+  assertSecureModeOrThrow();
+  if (!MP_PROXY_URL) throw new Error("Falta REACT_APP_MP_PROXY_URL");
+  const response = await fetch(pointProxyUrl("status", MP_DEVICE_ID ? { deviceId: MP_DEVICE_ID } : {}));
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || data?.ok === false) {
+    throw new Error(data?.message || data?.error || `MP status ${response.status}`);
+  }
+  return data;
+}
+
+export async function activarPdvPoint() {
+  assertSecureModeOrThrow();
+  if (!MP_DEVICE_ID) throw new Error("ID del dispositivo Point Smart 2 no configurado");
+  const response = await fetch(pointProxyUrl("set-pdv", { deviceId: MP_DEVICE_ID }), { method: "POST" });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || data?.ok === false) {
+    throw new Error(data?.message || data?.error || `MP set-pdv ${response.status}`);
+  }
+  return data;
+}
+
+export async function resetearTerminalPoint() {
+  assertSecureModeOrThrow();
+  if (!MP_DEVICE_ID) throw new Error("ID del dispositivo Point Smart 2 no configurado");
+  const response = await fetch(pointProxyUrl("reset-terminal", { deviceId: MP_DEVICE_ID }), { method: "POST" });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || data?.ok === false) {
+    throw new Error(data?.message || data?.error || `MP reset ${response.status}`);
+  }
+  return data;
+}
+
+export function textoPaqueteSoportePoint(status, extra = {}) {
+  const packet = status?.support_packet || {};
+  const lines = [
+    status?.support_text,
+    extra.orderId ? `Última orden: ${extra.orderId}` : null,
+    extra.orderStatus ? `Estado última orden: ${extra.orderStatus}` : null,
+    extra.orderJson ? `JSON última orden:\n${extra.orderJson}` : null,
+  ].filter(Boolean);
+  if (lines.length) return lines.join("\n\n");
+  return [
+    `Caso: WCS-43806 / 470711389`,
+    `terminal_id: ${packet.terminal_id || MP_DEVICE_ID}`,
+    `store_id: ${packet.store_id || ""}`,
+    `pos_id: ${packet.pos_id ?? ""}`,
+    `operating_mode: ${status?.operating_mode || packet.operating_mode || ""}`,
+    "El terminal permanece encendido, en modo PDV/activado y con conexión estable.",
+  ].join("\n");
+}
+
 export async function listarDispositivos() {
   assertSecureModeOrThrow();
   const response = MP_PROXY_URL

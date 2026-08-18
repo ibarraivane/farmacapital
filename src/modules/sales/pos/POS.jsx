@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { useMediaQuery } from "../../../hooks/useMediaQuery";
 import TicketPreviewModal from "../../../components/tickets/TicketPreviewModal";
 import MercadoPagoModal from "../../../components/MercadoPagoModal";
+import PointMpStatusPanel from "../../../components/PointMpStatusPanel";
 import BBVATerminalModal from "../../../components/BBVATerminalModal";
 import { supabase } from "../../../supabase";
 import { C_LIGHT, BRAND } from "../../../constants";
@@ -1756,6 +1757,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
             <div style={{color:C.textDim,fontSize:10,marginTop:10,lineHeight:1.45}}>
               La app <strong>espera</strong> a que el Point Smart 2 confirme el pago. Recién entonces se registra la venta y se imprime el ticket.
             </div>
+            <PointMpStatusPanel compact />
           </div>
         ) : pay==="bbva_terminal" ? (
           <div>
