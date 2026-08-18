@@ -181,7 +181,9 @@ export function KPI({label,value,sub,col,icon,trend}){
 export function Modal({open,onClose,title,children,ac,closeOnBackdrop=true}){
   const C = C_LIGHT;
   const panelRef = useRef(null);
+  const onCloseRef = useRef(onClose);
   const titleId = React.useId();
+  onCloseRef.current = onClose;
 
   React.useEffect(()=>{
     if(!open) return undefined;
@@ -193,15 +195,19 @@ export function Modal({open,onClose,title,children,ac,closeOnBackdrop=true}){
   React.useEffect(()=>{
     if(!open) return undefined;
     const onKey = (e)=>{
-      if(e.key==="Escape"){ e.preventDefault(); onClose?.(); }
+      if(e.key==="Escape"){ e.preventDefault(); onCloseRef.current?.(); }
     };
     document.addEventListener("keydown", onKey);
     const t = setTimeout(()=>{
-      const closeBtn = panelRef.current?.querySelector("[data-modal-close]");
-      closeBtn?.focus?.();
+      const panel = panelRef.current;
+      if(!panel) return;
+      const active = document.activeElement;
+      if(active && panel.contains(active) && active !== panel) return;
+      const firstField = panel.querySelector("input:not([type=hidden]):not([disabled]), select:not([disabled]), textarea:not([disabled])");
+      (firstField || panel).focus?.();
     }, 0);
     return ()=>{ document.removeEventListener("keydown", onKey); clearTimeout(t); };
-  },[open, onClose]);
+  },[open]);
 
   if(!open) return null;
   return(
@@ -215,12 +221,13 @@ export function Modal({open,onClose,title,children,ac,closeOnBackdrop=true}){
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? titleId : undefined}
-        style={{background:C.card,borderRadius:16,padding:"clamp(18px, 4vw, 28px)",minWidth:0,maxWidth:560,width:"min(560px, 100%)",maxHeight:"min(90dvh, 92vh)",overflowY:"auto",WebkitOverflowScrolling:"touch",overscrollBehaviorY:"contain",boxShadow:"0 8px 40px rgba(0,0,0,.18)",border:`1px solid ${C.border}`}}
+        tabIndex={-1}
+        style={{background:C.card,borderRadius:16,padding:"clamp(18px, 4vw, 28px)",minWidth:0,maxWidth:560,width:"min(560px, 100%)",maxHeight:"min(90dvh, 92vh)",overflowY:"auto",WebkitOverflowScrolling:"touch",overscrollBehaviorY:"contain",boxShadow:"0 8px 40px rgba(0,0,0,.18)",border:`1px solid ${C.border}`,outline:"none"}}
         onClick={e=>e.stopPropagation()}
       >
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:18}}>
           <div id={titleId} style={{fontWeight:800,fontSize:16,color:C.text}}>{title}</div>
-          {!ac&&<button type="button" data-modal-close onClick={onClose} aria-label="Cerrar" style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:C.textMid}}>✕</button>}
+          {!ac&&<button type="button" data-modal-close onClick={onClose} aria-label="Cerrar" style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:C.textMid,width:36,height:36,borderRadius:8,display:"inline-flex",alignItems:"center",justifyContent:"center",flexShrink:0,lineHeight:1}}>✕</button>}
         </div>
         {children}
       </div>

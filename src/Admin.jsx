@@ -1122,7 +1122,7 @@ function PasswordResetSolicitudesModal({ open, onClose }) {
   );
 }
 
-function GestionUsuarios(){
+function GestionUsuarios({ showConfirm }){
   const C = C_LIGHT;
   const [usuarios,setUsers] = useState([]);
   const [modal,setModal]    = useState(false);
@@ -1354,24 +1354,31 @@ function GestionUsuarios(){
     if (!nueva || nueva.length < 6) { showToast("Contraseña muy corta (mínimo 6 caracteres)","warning"); return; }
     const tok = sessionStorage.getItem("farmacapital_session_token");
     const { data: resp, error } = await supabase.rpc("admin_reset_password", {
-      p_session_token: tok, p_usuario_id: u.id, p_nueva_password: nueva,
+      p_session_token: tok, p_target_id: u.id, p_new_password: nueva,
     });
     if (error || !resp?.success) { showToast("Error: "+(resp?.error||error?.message),"error"); return; }
     showToast(`✅ Contraseña de ${u.nombre} actualizada`,"success");
   };
 
+  const ejecutarEliminar = async (id, nombre) => {
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    const { data: resp, error } = await supabase.rpc("admin_eliminar_usuario", {
+      p_session_token: tok, p_target_id: id,
+    });
+    if (error || !resp?.success) { showToast("Error: "+(resp?.error||error?.message),"error"); return; }
+    setUsers(p=>p.filter(u=>u.id!==id));
+    showToast(`Usuario ${nombre} eliminado.`,"info");
+  };
+
   const eliminar = async (id,nombre) => {
     const sesion = JSON.parse(sessionStorage.getItem("farmacapital_admin_user")||"{}");
     if(sesion.id===id) { showToast("No puedes eliminar tu propio usuario.", "warning"); return; }
-    showConfirm("Eliminar usuario",`¿Eliminar al usuario ${nombre}? Esta acción no se puede deshacer.`, async()=>{
-      const tok = sessionStorage.getItem("farmacapital_session_token");
-      const { data: resp, error } = await supabase.rpc("admin_eliminar_usuario", {
-        p_session_token: tok, p_usuario_id: id,
-      });
-      if (error || !resp?.success) { showToast("Error: "+(resp?.error||error?.message),"error"); return; }
-      setUsers(p=>p.filter(u=>u.id!==id));
-      showToast(`Usuario ${nombre} eliminado.`,"info");
-    }, true);
+    const mensaje = `¿Eliminar al usuario ${nombre}? Esta acción no se puede deshacer.`;
+    if (showConfirm) {
+      showConfirm("Eliminar usuario", mensaje, () => ejecutarEliminar(id, nombre), true);
+      return;
+    }
+    if (window.confirm(mensaje)) await ejecutarEliminar(id, nombre);
   };
 
   const rolColor = r => r==="admin"?C.purple:r==="vendedor"?C.blue:C.green;
@@ -2121,7 +2128,7 @@ export default function FarmaCapitalAdmin(){
       case "bot":      return <AsistenteIA/>;
       case "cli":   return <ClientesModule/>;
       case "pwa":       return <InstalarPWA/>;
-      case "usuarios":  return <GestionUsuarios/>;
+      case "usuarios":  return <GestionUsuarios showConfirm={showConfirm}/>;
       default: return <div style={{color:C.textMid,padding:40,textAlign:"center"}}>Módulo en construcción...</div>;
     }
   };
