@@ -1365,9 +1365,19 @@ function GestionUsuarios({ showConfirm }){
     const { data: resp, error } = await supabase.rpc("admin_eliminar_usuario", {
       p_session_token: tok, p_target_id: id,
     });
-    if (error || !resp?.success) { showToast("Error: "+(resp?.error||error?.message),"error"); return; }
+    if (error || !resp?.success) {
+      const raw = String(resp?.error || error?.message || "");
+      if (/audit_log|foreign key constraint|violates foreign key/i.test(raw)) {
+        showToast("Este usuario tiene historial. Ejecuta sql/patch_admin_eliminar_usuario_fk.sql en Supabase y vuelve a intentar.", "error");
+        return;
+      }
+      showToast("Error: " + (resp?.error || error?.message), "error");
+      return;
+    }
     setUsers(p=>p.filter(u=>u.id!==id));
-    showToast(`Usuario ${nombre} eliminado.`,"info");
+    showToast(resp?.modo === "soft"
+      ? `${nombre} se ocultó porque tiene historial de ventas o caja.`
+      : `Usuario ${nombre} eliminado.`, "info");
   };
 
   const eliminar = async (id,nombre) => {
