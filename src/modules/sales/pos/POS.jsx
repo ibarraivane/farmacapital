@@ -35,6 +35,8 @@ import OnboardingTour from "../../../components/OnboardingTour";
 import { TOURS } from "../../../utils/tours";
 import { labelTipoEntregaPedido } from "../../../utils/orderChannels";
 import PagoServiciosPanel, { rpcRegistrarPagoServicio } from "./PagoServiciosPanel";
+import AperturaCajaModal from "./AperturaCajaModal";
+import { esVendedor, fetchSesionCajaAbierta } from "../../../utils/cajaSesion";
 import {
   buildOnlineOrderReceiptMessage,
   formatFolioOnline,
@@ -370,6 +372,10 @@ function PosProductoFichaPanel({
 }
 
 export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
+  const exigeCaja = esVendedor(usuario);
+  const [cajaAbierta, setCajaAbierta] = useState(() => !esVendedor(usuario));
+  const [cajaCheck, setCajaCheck] = useState(() => !esVendedor(usuario));
+  const [sesionCaja, setSesionCaja] = useState(null);
   const C = C_LIGHT;
   /** Vista estrecha (tablet / ventana angosta): tipografía, grillas, cabecera. */
   const isNarrow = useMediaQuery("(max-width: 1100px)");
@@ -475,6 +481,23 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     } catch (_) { /* noop */ }
     setTab(initialTab);
   }, [initialTab]);
+
+  useEffect(() => {
+    if (!exigeCaja) {
+      setCajaAbierta(true);
+      setCajaCheck(true);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { sesion } = await fetchSesionCajaAbierta();
+      if (cancelled) return;
+      setSesionCaja(sesion);
+      setCajaAbierta(!!sesion);
+      setCajaCheck(true);
+    })();
+    return () => { cancelled = true; };
+  }, [exigeCaja]);
 
   useEffect(()=>{
     supabase.from("configuracion").select("*").then(({ data: cfg }) => {
@@ -1242,6 +1265,11 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     }
     setGuard(true);
     try {
+      if (exigeCaja && !cajaAbierta) {
+        showToast("Abre caja antes de vender.", "warning");
+        setGuard(false);
+        return;
+      }
       const tok = sessionStorage.getItem("farmacapital_session_token");
       if (!tok) {
         showToast("Sesión expirada. Inicia sesión de nuevo.", "error");
@@ -1492,6 +1520,11 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const cobrarConsulta = async (cita, opts = {}) => {
     setGuard(true);
     try {
+      if (exigeCaja && !cajaAbierta) {
+        showToast("Abre caja antes de cobrar.", "warning");
+        setGuard(false);
+        return;
+      }
       const tok = sessionStorage.getItem("farmacapital_session_token");
       if (!tok) throw new Error("Sesión expirada");
       const metodoPagoRaw = opts.metodoPago || "efectivo";
@@ -1783,6 +1816,12 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       paddingBottom:"max(8px, env(safe-area-inset-bottom, 0px))",
       touchAction:"pan-y",
     }}>
+      {exigeCaja && cajaCheck && !cajaAbierta && (
+        <AperturaCajaModal
+          usuario={usuario}
+          onAbierta={(s) => { setSesionCaja(s); setCajaAbierta(true); }}
+        />
+      )}
       <style>{`
         .farmacapital-pos-root input.farmacapital-pos-srch,
         .farmacapital-pos-root input.farmacapital-field-input {
@@ -1875,23 +1914,34 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                 Último folio: {folioActual}
               </span>
             )}
+            {sesionCaja?.abierta_at && (
+              <span style={{padding:"3px 10px",borderRadius:20,fontSize:10,fontWeight:700,background:C.greenDim,color:C.greenDark}}>
+                Caja desde {new Date(sesionCaja.abierta_at).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })}
+              </span>
+            )}
           </div>
           {ventasDia.count>0&&(
             <div style={{display:"flex",gap:12,alignItems:"center",background:C.greenDim,border:`1px solid ${C.green}30`,borderRadius:10,padding:"6px 14px",flexWrap:"wrap"}}>
+              {!exigeCaja && (
               <div style={{textAlign:"center"}}>
                 <div style={{color:C.textDim,fontSize:9,fontWeight:700,textTransform:"uppercase"}}>Mi día</div>
                 <div style={{color:C.green,fontWeight:900,fontSize:16}}>{$(ventasDia.total)}</div>
               </div>
-              <div style={{width:1,height:28,background:C.border}}/>
+              )}
+              {!exigeCaja && <div style={{width:1,height:28,background:C.border}}/>}
               <div style={{textAlign:"center"}}>
                 <div style={{color:C.textDim,fontSize:9,fontWeight:700,textTransform:"uppercase"}}>Ventas</div>
                 <div style={{color:C.green,fontWeight:900,fontSize:16}}>{ventasDia.count}</div>
               </div>
+              {!exigeCaja && (
+              <>
               <div style={{width:1,height:28,background:C.border}}/>
               <div style={{textAlign:"center"}}>
                 <div style={{color:C.textDim,fontSize:9,fontWeight:700,textTransform:"uppercase"}}>Ticket prom.</div>
                 <div style={{color:C.blue,fontWeight:900,fontSize:16}}>{$(ventasDia.count?ventasDia.total/ventasDia.count:0)}</div>
               </div>
+              </>
+              )}
               <div style={{width:1,height:28,background:C.border}}/>
               <div style={{textAlign:"center"}}>
                 <div style={{color:C.textDim,fontSize:9,fontWeight:700,textTransform:"uppercase"}}>En carrito</div>

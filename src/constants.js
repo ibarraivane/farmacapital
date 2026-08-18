@@ -62,7 +62,7 @@ export const ADMIN_NAV_SECTIONS = [
 ];
 
 export const NAV_VENDEDOR = [
-  "midia", "pos", "agenda", "cli", "inv", "caja", "cof", "ped_online", "pwa",
+  "midia", "pos", "agenda", "inv", "caja", "pwa",
 ];
 export const NAV_DOCTORA = ["cons_dr", "exp_dr"];
 

@@ -4,6 +4,7 @@ import { supabase } from "./supabase";
 import { showToast } from "./ui";
 import OnboardingTour from "./components/OnboardingTour";
 import { TURNOS, TURNOS_LISTA, rangoTurno } from "./constants/turnos";
+import { esVendedor, fetchSesionCajaAbierta } from "./utils/cajaSesion";
 
 const BRAND = { primary:"#0D1B2A", secondary:"#1E3ABA", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
 
@@ -49,6 +50,7 @@ export default function CorteCajaModule({usuario }) {
   const [fondo,              setFondo]   = useState("");
   const [contadoPor,         setContadoPor] = useState("");
   const [denoms,             setDenoms]  = useState({});
+  const [sesionAbierta,      setSesionAbierta] = useState(null);
 
   // El corte es a ciegas: mientras se captura no se muestra ni lo que el
   // sistema espera ni la diferencia. Un conteo que se puede copiar deja de ser
@@ -98,10 +100,15 @@ export default function CorteCajaModule({usuario }) {
 
   useEffect(() => { fetchTotalesElectronicos(); }, [fetchTotalesElectronicos]);
 
-  // El fondo casi nunca cambia, así que se precarga el del último corte para
-  // no teclearlo dos veces al día.
   useEffect(() => {
     (async () => {
+      const { sesion } = await fetchSesionCajaAbierta();
+      if (sesion) {
+        setSesionAbierta(sesion);
+        if (sesion.turno) setTurno(sesion.turno);
+        if (sesion.fondo_contado != null) setFondo(String(sesion.fondo_contado));
+        return;
+      }
       const tok = sessionStorage.getItem("farmacapital_session_token");
       if (!tok) return;
       const { data } = await supabase.rpc("empleado_ultimo_fondo_caja", { p_session_token: tok });
@@ -255,7 +262,7 @@ export default function CorteCajaModule({usuario }) {
 
       {/* Tabs */}
       <div style={{display:"flex",gap:4,marginBottom:24,borderBottom:`1px solid ${C.border}`}}>
-        {[["nuevo","➕ Nuevo Corte"],["historial","📋 Historial"]].map(([id,label])=>(
+        {(esVendedor(usuario) ? [["nuevo","➕ Cerrar turno"]] : [["nuevo","➕ Nuevo Corte"],["historial","📋 Historial"]]).map(([id,label])=>(
           <button key={id} onClick={()=>setTab(id)} style={{
             padding:"9px 20px",border:"none",cursor:"pointer",fontWeight:700,fontSize:13,
             borderRadius:"8px 8px 0 0", background:tab===id?C.card:"transparent",
@@ -276,16 +283,26 @@ export default function CorteCajaModule({usuario }) {
 
       {tab==="nuevo" && !resultado && (
         <div>
+          {!sesionAbierta && esVendedor(usuario) && (
+            <div style={{
+              marginBottom: 16, padding: "12px 14px", borderRadius: 10,
+              background: C.amberDim, border: `1px solid ${C.amber}50`,
+              color: C.text, fontSize: 13, lineHeight: 1.45,
+            }}>
+              Aún no hay caja abierta en este turno. Ábrela en el POS (conteo de billetes) para que la hora de entrada y el fondo queden registrados. Si cierras ahora, el fondo se captura aquí y la hora de apertura será la del turno, no la real.
+            </div>
+          )}
           {/* Selector turno */}
           <div data-tour="caja-turno" style={{marginBottom:24}}>
             <label style={labelStyle}>TURNO</label>
             <div style={{display:"flex",gap:10}}>
               {TURNOS_LISTA.map(val=>[val,`${TURNOS[val].emoji} ${TURNOS[val].label}`,TURNOS[val].horario]).map(([val,label,hora])=>(
-                <button key={val} onClick={()=>setTurno(val)} style={{
-                  flex:1,padding:"14px 20px",borderRadius:10,cursor:"pointer",textAlign:"left",
+                <button key={val} onClick={()=>!sesionAbierta && setTurno(val)} style={{
+                  flex:1,padding:"14px 20px",borderRadius:10,cursor:sesionAbierta?"default":"pointer",textAlign:"left",
                   border:turno===val?`2px solid ${C.blue}`:`2px solid ${C.border}`,
                   background:turno===val?C.blueDim:C.card,
                   color:turno===val?C.blue:C.textMid,transition:"all .15s",
+                  opacity: sesionAbierta && turno!==val ? 0.5 : 1,
                 }}>
                   <div style={{fontWeight:800,fontSize:14}}>{label}</div>
                   <div style={{fontSize:11,marginTop:2,opacity:.7}}>{hora}</div>
@@ -303,10 +320,14 @@ export default function CorteCajaModule({usuario }) {
 
               <div style={{marginBottom:14}}>
                 <label style={labelStyle}>FONDO INICIAL</label>
-                <input type="number" value={fondo} onChange={e=>setFondo(e.target.value)}
-                  placeholder="0.00" style={inputStyle}/>
+                <input type="number" value={fondo} onChange={e=>!sesionAbierta && setFondo(e.target.value)}
+                  placeholder="0.00" readOnly={!!sesionAbierta}
+                  style={{...inputStyle, cursor: sesionAbierta ? "not-allowed" : undefined,
+                    background: sesionAbierta ? C.bg : undefined}}/>
                 <div style={{color:C.textDim,fontSize:10,marginTop:4}}>
-                  El cambio con el que abrió el turno. Cuéntalo también: va incluido abajo.
+                  {sesionAbierta
+                    ? `El cambio con el que abriste a las ${new Date(sesionAbierta.abierta_at).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })}. Ya no se edita.`
+                    : "El cambio con el que abrió el turno. Cuéntalo también: va incluido abajo."}
                 </div>
               </div>
 
@@ -442,7 +463,7 @@ export default function CorteCajaModule({usuario }) {
       )}
 
       {/* ══ HISTORIAL ══ */}
-      {tab==="historial" && (
+      {tab==="historial" && !esVendedor(usuario) && (
         <div>
           <div style={{display:"flex",gap:10,marginBottom:16,flexWrap:"wrap",alignItems:"center"}}>
             <select value={filtroTurno} onChange={e=>setFiltroTurno(e.target.value)} style={{...inputStyle,maxWidth:160}}>

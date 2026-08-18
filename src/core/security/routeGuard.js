@@ -1,7 +1,7 @@
 export function canAccessRoute(role, route) {
   const permissions = {
     doctora: ["/", "/patients", "/consultas", "/citas", "/expedientes", "/config"],
-    vendedor: ["/", "/pos", "/ventas", "/cobros", "/devoluciones"],
+    vendedor: ["/", "/pos", "/ventas", "/cobros"],
     admin: "*",
   };
 

@@ -21,10 +21,13 @@ const TABS = [
 
 const STORAGE_KEY = "farmacapital_inv_tab";
 
-export default function InventarioHub({ initialTab }) {
+export default function InventarioHub({ initialTab, usuario }) {
   const C = C_LIGHT;
   const isMobile = useMediaQuery("(max-width: 768px)");
+  const modoConsulta = usuario?.rol === "vendedor";
+  const tabsVisibles = modoConsulta ? TABS.filter((t) => t.id === "catalogo") : TABS;
   const [tab, setTab] = useState(() => {
+    if (usuario?.rol === "vendedor") return "catalogo";
     const fromProp = initialTab && TABS.some((t) => t.id === initialTab) ? initialTab : null;
     if (fromProp) return fromProp;
     try {
@@ -35,19 +38,25 @@ export default function InventarioHub({ initialTab }) {
   });
 
   const selectTab = (id) => {
+    if (modoConsulta && id !== "catalogo") return;
     setTab(id);
     try { sessionStorage.setItem(STORAGE_KEY, id); } catch (_) { /* noop */ }
   };
 
+  useEffect(() => {
+    if (modoConsulta && tab !== "catalogo") setTab("catalogo");
+  }, [modoConsulta, tab]);
+
   // Si el padre cambia el initialTab (deep-link desde Dashboard u otro módulo) mientras
   // el hub ya está montado, cambiamos a esa tab.
   useEffect(() => {
+    if (modoConsulta) return;
     if (initialTab && TABS.some((t) => t.id === initialTab) && initialTab !== tab) {
       setTab(initialTab);
       try { sessionStorage.setItem(STORAGE_KEY, initialTab); } catch (_) { /* noop */ }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialTab]);
+  }, [initialTab, modoConsulta]);
 
   return (
     <div style={{background: C.bg, minHeight: "100dvh", fontFamily: "'Plus Jakarta Sans',sans-serif"}}>
@@ -60,7 +69,11 @@ export default function InventarioHub({ initialTab }) {
         <div style={{display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap"}}>
           <h1 style={{margin: 0, color: C.text, fontSize: 20, fontWeight: 800}}>◆ Inventario</h1>
           {!isMobile && (
-            <span style={{color: C.textDim, fontSize: 12}}>Catálogo · reabasto · lotes · referencias de precio</span>
+            <span style={{color: C.textDim, fontSize: 12}}>
+              {modoConsulta
+                ? "Consulta de existencias y caducidad"
+                : "Catálogo · reabasto · lotes · referencias de precio"}
+            </span>
           )}
         </div>
         <div style={{
@@ -72,7 +85,7 @@ export default function InventarioHub({ initialTab }) {
           marginBottom: -1,
           scrollbarWidth: "thin",
         }}>
-          {TABS.map((t) => {
+          {!modoConsulta && tabsVisibles.map((t) => {
             const active = tab === t.id;
             const Icon = t.icon;
             const label = isMobile && t.labelMobile ? t.labelMobile : t.label;
@@ -111,10 +124,10 @@ export default function InventarioHub({ initialTab }) {
           <SkeletonCard height={120} />
         </div>
       }>
-        {tab === "catalogo" && <InventarioModule/>}
-        {tab === "reabasto" && <ReabastoModule/>}
-        {tab === "lotes"    && <LotesModule/>}
-        {tab === "precios"  && <PreciosReferenciaModule/>}
+        {tab === "catalogo" && <InventarioModule modoConsulta={modoConsulta}/>}
+        {!modoConsulta && tab === "reabasto" && <ReabastoModule/>}
+        {!modoConsulta && tab === "lotes"    && <LotesModule/>}
+        {!modoConsulta && tab === "precios"  && <PreciosReferenciaModule/>}
       </Suspense>
     </div>
   );

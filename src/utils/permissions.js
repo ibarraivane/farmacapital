@@ -8,46 +8,48 @@
 //
 // Regla general:
 //   - Admin → todos los módulos (siempre).
-//   - Vendedor → MODULOS_DISPONIBLES_VENDEDOR (nunca los BLOQUEADOS aunque
-//     un admin los agregue a modulos_custom).
-//   - Doctora → MODULOS_DOCTORA_LISTA.
+//   - Vendedor → piso operativo, sin finanzas ni costos. Nunca los BLOQUEADOS
+//     aunque un admin los agregue a modulos_custom.
+//   - Doctora → agenda clínica y expediente (sin POS/caja/finanzas).
 
-// Módulos PROHIBIDOS para vendedores (incluso si el admin los agrega a su modulos_custom).
 export const MODULOS_BLOQUEADOS_VENDEDOR = [
   "dash",         // Dashboard con datos sensibles del negocio
-  "rrhh",         // RR.HH.
-  "config_cons",  // Metas y Precios (configuración del negocio)
-  "promo",        // Promociones (estrategia comercial)
+  "rrhh",         // RR.HH. / nómina
+  "config_cons",  // Metas y Precios
+  "promo",        // Promociones
   "dev",          // Devoluciones (requiere admin)
   "fact",         // Facturación CFDI
   "banners",      // Banners de la tienda online
   "usuarios",     // Gestión de usuarios
   "bot",          // Asistente IA (costos por uso)
+  "cli",          // Clientes & Puntos (alta en el POS al vender)
+  "cof",          // Módulo COFEPRIS (licencias / bitácora completa; receta va en POS)
+  "trans",        // Transacciones / consolidado
+  "cons",         // Consultorio (configuración clínica)
+  "exp_dr",       // Expedientes
 ];
 
-// Módulos disponibles para vendedor (por default o por custom).
-// El vendedor siempre arranca con NAV_VENDEDOR (midia, pos; cobro consulta en POS).
-// Estos son los ADICIONALES que un admin le puede habilitar.
+// Default del rol (barra lateral). Pedidos online vive como pestaña del POS.
+export const NAV_VENDEDOR_DEFAULT = [
+  "midia",
+  "pos",
+  "agenda",
+  "inv",
+  "caja",
+  "pwa",
+];
+
+// Lo que un admin PUEDE habilitar de más (atajo; no finanzas).
 export const MODULOS_DISPONIBLES_VENDEDOR = [
-  "midia",      // Su pantalla de inicio (default del rol)
-  "pos",        // POS principal + pestaña Consultas para cobrar citas
-  "agenda",     // Calendario / consultas del día (operativo; sin ficha clínica completa)
-  "trans",      // Legacy: redirige a Dashboard → pestaña Transacciones (vendedor)
-  "inv",        // Inventario (consulta, catálogo, lotes)
-  "cli",        // Clientes (ver / registrar)
-  "cof",        // COFEPRIS (bitácora al vender controlados)
-  "caja",       // Corte de caja (admin puede habilitarlo a un líder de turno)
-  "ped_online", // Atajo a pedidos web (mismo POS, pestaña online)
-  "pwa",        // Instalar app
+  ...NAV_VENDEDOR_DEFAULT,
+  "ped_online",
 ];
 
-// Módulos para doctora: solo agenda clínica y expediente longitudinal (sin POS/caja/finanzas).
 export const MODULOS_DISPONIBLES_DOCTORA = [
-  "cons_dr",   // Agenda médica + indicadores de actividad (sin montos)
-  "exp_dr",    // Expedientes / pacientes
+  "cons_dr",
+  "exp_dr",
 ];
 
-// Retorna la lista de ids permitidos para un rol. 'admin' devuelve "all".
 export function modulosPermitidosParaRol(rol) {
   if (rol === "admin")    return "all";
   if (rol === "vendedor") return MODULOS_DISPONIBLES_VENDEDOR;
@@ -55,27 +57,41 @@ export function modulosPermitidosParaRol(rol) {
   return [];
 }
 
-// ¿Puede este usuario ver este módulo?
+export function defaultIdsPorRolPermisos(rol) {
+  if (rol === "admin")    return null;
+  if (rol === "vendedor") return NAV_VENDEDOR_DEFAULT;
+  if (rol === "doctora")  return MODULOS_DISPONIBLES_DOCTORA;
+  return [];
+}
+
 // 1. Admin siempre puede.
 // 2. Si el rol lo bloquea categóricamente → no.
-// 3. Si tiene modulos_custom, se respeta (siempre que esté en la lista permitida).
-// 4. Si no, se valida contra la lista default del rol.
+// 3. Si tiene modulos_custom.activos, se respeta (∩ whitelist).
+// 4. Si no, default del rol.
 export function puedeVerModulo(usuario, moduloId) {
   if (!usuario || !moduloId) return false;
   if (usuario.rol === "admin") return true;
 
-  // Regla dura: un vendedor no puede ver bloqueados bajo ninguna circunstancia.
   if (usuario.rol === "vendedor" && MODULOS_BLOQUEADOS_VENDEDOR.includes(moduloId)) {
     return false;
   }
 
   const permitidos = modulosPermitidosParaRol(usuario.rol);
   if (permitidos === "all") return true;
-  if (!Array.isArray(permitidos)) return false;
-  return permitidos.includes(moduloId);
+  if (!Array.isArray(permitidos) || !permitidos.includes(moduloId)) return false;
+
+  const custom = Array.isArray(usuario.modulos_custom?.activos)
+    ? usuario.modulos_custom.activos
+    : null;
+  if (custom && custom.length > 0) {
+    return custom.includes(moduloId);
+  }
+
+  const defaults = defaultIdsPorRolPermisos(usuario.rol);
+  if (!Array.isArray(defaults)) return true;
+  return defaults.includes(moduloId);
 }
 
-// Filtra una lista de ids contra lo que el rol permite.
 export function filtrarModulosPorRol(ids, rol) {
   if (rol === "admin") return ids;
   const permitidos = modulosPermitidosParaRol(rol);

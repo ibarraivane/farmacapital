@@ -29,7 +29,7 @@ const BRAND = { primary:"#0D1B2A", secondary:"#1E3ABA", gradient:"linear-gradien
 const CATEGORIAS = [
   "Analgésico","Antiinflamatorio","Antibiótico","Gastro","Diabetes",
   "Hipertensión","Alergia","Vitaminas","Suplemento","Herbolario","Hidratación","Cardiovascular",
-  "Respiratorio","Dispositivo médico","Botiquín","Higiene","Bebidas","Básicos","Abarrotes","Minisuper","Cuidado personal","Otro",
+  "Hormonales","Respiratorio","Dispositivo médico","Botiquín","Higiene","Bebidas","Básicos","Abarrotes","Minisuper","Cuidado personal","Otro",
 ];
 const EMPTY = {
   nombre:"", sku:"", codigo_barras:"", categoria:"Otro", precio:"", costo:"", venta_unidad:false, unidades_por_caja:"", precio_unidad:"", stock_unidades:"",
@@ -92,7 +92,7 @@ const resolverLoteCaducidadProducto = (product) => {
   return loteCaducidadMasProxima(sueltos.length ? sueltos : null) || sueltos[0] || null;
 };
 
-async function fetchLotesPorProducto(sessionToken) {
+async function fetchLotesPorProducto(sessionToken, { omitCosto = false } = {}) {
   if (!sessionToken) return {};
   const { data: lotesRaw, error } = await supabase.rpc("empleado_listar_lotes_inventario", {
     p_session_token: sessionToken,
@@ -104,14 +104,15 @@ async function fetchLotesPorProducto(sessionToken) {
     const pid = l.producto_id;
     if (!pid) continue;
     if (!byProducto[pid]) byProducto[pid] = [];
-    byProducto[pid].push({
+    const row = {
       id: l.id,
       numero_lote: l.numero_lote,
       fecha_caducidad: l.fecha_caducidad,
       cantidad_actual: l.cantidad_actual,
-      costo_unitario: l.costo_unitario,
       activo: l.activo,
-    });
+    };
+    if (!omitCosto) row.costo_unitario = l.costo_unitario;
+    byProducto[pid].push(row);
   }
   return byProducto;
 }
@@ -338,6 +339,7 @@ function InventarioEditableCell({
   options,
   mono = false,
   selectionMode = false,
+  readOnly = false,
 }) {
   const isEditing = inlineEdit?.productId === productId && inlineEdit?.field === field;
   const rowBg = tdStyle?.background;
@@ -389,14 +391,14 @@ function InventarioEditableCell({
 
   return (
     <td
-      style={{ ...tdStyle, cursor: selectionMode ? "default" : "pointer" }}
-      title={selectionMode ? "Hay productos seleccionados — usa el menú azul arriba de la tabla" : "Clic para editar"}
+      style={{ ...tdStyle, cursor: (selectionMode || readOnly) ? "default" : "pointer" }}
+      title={readOnly ? undefined : selectionMode ? "Hay productos seleccionados — usa el menú azul arriba de la tabla" : "Clic para editar"}
       onMouseDown={(e) => {
-        if (!selectionMode) e.preventDefault();
+        if (!selectionMode && !readOnly) e.preventDefault();
       }}
       onClick={(e) => {
         e.stopPropagation();
-        if (selectionMode) return;
+        if (selectionMode || readOnly) return;
         onStart(productId, field, value);
       }}
       onMouseEnter={(e) => {
@@ -415,7 +417,7 @@ const INV_CHECKBOX_COL_WIDTH = 38;
 const INV_STICKY_COL_IDS = ["foto", "acciones", "skuFarmaCapital", "nombre"];
 
 const INV_COL_WIDTHS_DEFAULT = {
-  acciones: 118,
+  acciones: 104,
   codigoBarras: 128,
   nombre: 272,
   marca: 130,
@@ -430,8 +432,8 @@ const INV_COLUMN_DEFS = {
   foto: { label: "Foto", hint: "" },
   acciones: { label: "Acciones", hint: "Editar, lotes, activar/desactivar" },
   skuFarmaCapital: {
-    label: "SKU FarmaCapital",
-    hint: "Identificador único en FarmaCapital — campo productos.sku (POS, ticket, código interno).",
+    label: "SKU",
+    hint: "SKU FarmaCapital — identificador único (POS, ticket, código interno).",
   },
   codigoBarras: {
     label: "Cód. barras",
@@ -500,8 +502,8 @@ const INV_COLUMN_ORDER_DEFAULT = [
 function invColumnPixelWidth(colId, colWidths) {
   const map = {
     foto: 44,
-    acciones: Math.max(100, Number(colWidths?.acciones) || INV_COL_WIDTHS_DEFAULT.acciones),
-    skuFarmaCapital: 120,
+    acciones: Math.max(88, Number(colWidths?.acciones) || INV_COL_WIDTHS_DEFAULT.acciones),
+    skuFarmaCapital: 118,
     codigoBarras: Math.max(100, Number(colWidths?.codigoBarras) || INV_COL_WIDTHS_DEFAULT.codigoBarras),
     nombre: Math.max(200, Number(colWidths?.nombre) || INV_COL_WIDTHS_DEFAULT.nombre),
     marca: Math.max(90, Number(colWidths?.marca) || INV_COL_WIDTHS_DEFAULT.marca),
@@ -531,7 +533,7 @@ function inventarioStickyStyle(colId, colOrder, colWidths, { header, bg }) {
     left,
     width: w,
     minWidth: w,
-    maxWidth: colId === "nombre" ? w : undefined,
+    maxWidth: w,
     boxSizing: "border-box",
     zIndex: header ? 35 + stickyRank : 15 + stickyRank,
     background: bg,
@@ -2166,7 +2168,7 @@ function renderInventarioColumnCell(colId, ctx) {
             ...w("acciones"),
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "nowrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "nowrap" }}>
           <button
             type="button"
             onClick={() => abrirEdicionProducto(p)}
@@ -2247,14 +2249,16 @@ function renderInventarioColumnCell(colId, ctx) {
           mono
           display={<span style={tdEllipsisStyle}>{p.sku || "—"}</span>}
           tdStyle={{
-            padding: "8px 12px",
+            padding: "6px 8px 6px 6px",
             color: C.textMid,
             borderBottom: `1px solid ${C.border}`,
             fontFamily: "ui-monospace,Menlo,monospace",
             fontSize: 11,
+            textAlign: "left",
             verticalAlign: "middle",
             background: stickyRowBg,
             ...sticky(),
+            ...w("skuFarmaCapital"),
           }}
         />
       );
@@ -2608,7 +2612,17 @@ function renderInventarioColumnCell(colId, ctx) {
   }
 }
 
-export default function InventarioModule() {
+const PRODUCTOS_SELECT_CONSULTA = [
+  "id", "nombre", "sku", "codigo_barras", "categoria", "precio", "precio_unidad",
+  "stock", "stock_minimo", "stock_unidades", "activo", "imagen_url", "imagen_mobile_url",
+  "marca", "presentacion", "principio_activo", "denominacion_generica", "concentracion",
+  "forma_farmaceutica", "ubicacion_texto", "tipo", "proveedor", "venta_unidad",
+  "unidades_por_caja", "descuento_pct", "notas",
+].join(", ");
+
+const INV_COLS_OCULTAS_CONSULTA = ["costo", "margen", "acciones"];
+
+export default function InventarioModule({ modoConsulta = false }) {
   const C = C_LIGHT;
   const inputStyle = mkInputStyle(C);
   const labelStyle = mkLabelStyle(C);
@@ -2641,11 +2655,18 @@ export default function InventarioModule() {
   const [modalBulkEdit, setModalBulkEdit] = useState(false);
   const [showColumnSizer, setShowColumnSizer] = useState(false);
   const [colOrder, setColOrder] = useState(loadInvColumnOrder);
+  const colOrderVisible = useMemo(
+    () => (modoConsulta ? colOrder.filter((id) => !INV_COLS_OCULTAS_CONSULTA.includes(id)) : colOrder),
+    [colOrder, modoConsulta]
+  );
   const [colDragId, setColDragId] = useState(null);
   const [colWidths, setColWidths] = useState(() => {
     try {
       const raw = JSON.parse(localStorage.getItem("farmacapital_inv_col_widths") || "{}");
-      return { ...INV_COL_WIDTHS_DEFAULT, ...raw };
+      const merged = { ...INV_COL_WIDTHS_DEFAULT, ...raw };
+      // El default viejo (118+) dejaba un hueco entre el basurero y el SKU.
+      if (!raw.acciones || Number(raw.acciones) >= 118) merged.acciones = INV_COL_WIDTHS_DEFAULT.acciones;
+      return merged;
     } catch {
       return { ...INV_COL_WIDTHS_DEFAULT };
     }
@@ -2668,26 +2689,14 @@ export default function InventarioModule() {
   }, [colOrder]);
 
   const inventarioStickyStyleFor = useCallback(
-    (colId, opts) => inventarioStickyStyle(colId, colOrder, colWidths, opts),
-    [colOrder, colWidths]
+    (colId, opts) => inventarioStickyStyle(colId, colOrderVisible, colWidths, opts),
+    [colOrderVisible, colWidths]
   );
 
   const invColWidthStyle = useCallback(
     (id) => {
-      const map = {
-        acciones: Math.max(100, Number(colWidths.acciones) || INV_COL_WIDTHS_DEFAULT.acciones),
-        codigoBarras: Math.max(100, Number(colWidths.codigoBarras) || INV_COL_WIDTHS_DEFAULT.codigoBarras),
-        nombre: Math.max(200, Number(colWidths.nombre) || INV_COL_WIDTHS_DEFAULT.nombre),
-        marca: Math.max(90, Number(colWidths.marca) || INV_COL_WIDTHS_DEFAULT.marca),
-        presentacion: Math.max(110, Number(colWidths.presentacion) || INV_COL_WIDTHS_DEFAULT.presentacion),
-        principio: Math.max(130, Number(colWidths.principio) || INV_COL_WIDTHS_DEFAULT.principio),
-        ubicacion: Math.max(120, Number(colWidths.ubicacion) || INV_COL_WIDTHS_DEFAULT.ubicacion),
-        categoria: Math.max(100, Number(colWidths.categoria) || INV_COL_WIDTHS_DEFAULT.categoria),
-        proveedor: Math.max(100, Number(colWidths.proveedor) || INV_COL_WIDTHS_DEFAULT.proveedor),
-      };
-      const w = map[id];
-      if (!w) return {};
-      return { width: w, minWidth: w, maxWidth: w };
+      const w = invColumnPixelWidth(id, colWidths);
+      return { width: w, minWidth: w, maxWidth: w, boxSizing: "border-box" };
     },
     [colWidths]
   );
@@ -2971,7 +2980,7 @@ export default function InventarioModule() {
       for (let desde = 0; ; desde += PRODUCTOS_POR_PAGINA) {
         let q = supabase
           .from("productos")
-          .select("*")
+          .select(modoConsulta ? PRODUCTOS_SELECT_CONSULTA : "*")
           .order("nombre")
           .order("id")
           .range(desde, desde + PRODUCTOS_POR_PAGINA - 1);
@@ -2986,7 +2995,7 @@ export default function InventarioModule() {
 
     const [{ data, error }, lotesByProducto] = await Promise.all([
       traerTodos(),
-      fetchLotesPorProducto(tok),
+      fetchLotesPorProducto(tok, { omitCosto: modoConsulta }),
     ]);
     if (!error) {
       const enriched = (data || []).map((p) => enrichProductoConLotes(p, lotesByProducto[p.id]));
@@ -2996,7 +3005,7 @@ export default function InventarioModule() {
     }
     setLoading(false);
     return null;
-  }, [verInactivos]);
+  }, [verInactivos, modoConsulta]);
 
   useEffect(() => { fetchProductos(); }, [fetchProductos]);
 
@@ -3288,6 +3297,7 @@ export default function InventarioModule() {
     inlineEdit,
     inlineSaving,
     selectionMode,
+    readOnly: modoConsulta,
     onStart: startInlineEdit,
     onDraft: (v) => setInlineEdit((prev) => (prev ? { ...prev, draft: v } : prev)),
     onCommit: commitInlineEdit,
@@ -3571,7 +3581,7 @@ export default function InventarioModule() {
           boxShadow: "0 6px 20px rgba(15,23,42,.06)",
         }}
       >
-      {selectionMode && (
+      {selectionMode && !modoConsulta && (
         <div
           style={{
             display: "flex",
@@ -3651,7 +3661,9 @@ export default function InventarioModule() {
         <div style={{ minWidth: 0 }}>
           <h1 style={{margin:0,color:C.text,fontSize:20,fontWeight:800}}>▤ Inventario</h1>
           <p style={{margin:"4px 0 0",color:C.textMid,fontSize:12}}>
-            Clic en cualquier celda para editar · ↔ Columnas para ordenar y ajustar anchos
+            {modoConsulta
+              ? "Existencias y caducidad. El precio de venta se consulta en el POS al escanear."
+              : "Clic en cualquier celda para editar · ↔ Columnas para ordenar y ajustar anchos"}
           </p>
         </div>
         <div style={isMobileInv ? {
@@ -3659,7 +3671,9 @@ export default function InventarioModule() {
           gridTemplateColumns:"1fr 1fr",
           gap:8,
           width:"100%",
-        } : { display:"flex", gap:8, flexWrap:"wrap" }}>
+        } :         {display:"flex", gap:8, flexWrap:"wrap" }}>
+          {!modoConsulta && (
+            <>
           <button data-tour="inv-agregar" style={{...btnPrimary, ...(isMobileInv ? { gridColumn:"1 / -1", padding:"11px 16px", fontSize:13 } : {})}} onClick={()=>setModal(EMPTY)}>
             ➕ Nuevo producto
           </button>
@@ -3676,6 +3690,8 @@ export default function InventarioModule() {
           <button style={btnOutline} onClick={()=>exportarCSV(filtradosTodosInv)}>
             ⬇ Exportar CSV
           </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -3711,9 +3727,11 @@ export default function InventarioModule() {
         <span style={{padding:"4px 10px",borderRadius:8,background:C.bg,border:`1px solid ${C.border}`}}>
           Sin color = normal · Tenue = inactivo
         </span>
+        {!modoConsulta && (
         <span style={{padding:"4px 10px",borderRadius:8,background:"#eff6ff",color:C.blue}}>
           📊 Referencias de mercado: Inventario → «Referencias de precio»
         </span>
+        )}
       </div>
 
       <div data-tour="inv-buscar" style={{display:"flex",flexDirection:"column",gap:10,marginBottom:0}}>
@@ -3741,7 +3759,7 @@ export default function InventarioModule() {
           <button onClick={()=>{setFiltroCategoria("todas");setFiltroAlerta("todos");setBusqueda("");}}
             style={{...btnSecondary,padding:"7px 12px",fontSize:11}}>✕ Limpiar filtros</button>
         )}
-        {filtrados.length > 0 && (
+        {filtrados.length > 0 && !modoConsulta && (
           <>
             <button type="button" onClick={toggleSelectAllOnPage} style={{ ...btnSecondary, padding: "7px 10px", fontSize: 11 }}>
               ☑ Esta página
@@ -3762,6 +3780,7 @@ export default function InventarioModule() {
           {filtrados.length} en página · {filtradosTodosInv.length} filtrado{filtradosTodosInv.length !== 1 ? "s" : ""}
         </span>
         </div>
+        {!modoConsulta && (
         <div style={{display:"flex",gap:8,alignItems:"center",marginTop:8,flexWrap:"wrap"}}>
           <button
             type="button"
@@ -3785,7 +3804,8 @@ export default function InventarioModule() {
             Restablecer orden
           </button>
         </div>
-        {showColumnSizer && (
+        )}
+        {showColumnSizer && !modoConsulta && (
           <div style={{
             marginTop: 8,
             background: C.card,
@@ -3840,7 +3860,7 @@ export default function InventarioModule() {
               gap: 10,
             }}>
             {[
-              ["acciones", "Acciones", 100, 240],
+              ["acciones", "Acciones", 88, 140],
               ["codigoBarras", "Cód. barras", 100, 180],
               ["nombre", "Nombre", 200, 420],
               ["marca", "Marca", 90, 240],
@@ -3897,9 +3917,10 @@ export default function InventarioModule() {
       ) : (
         <>
         <HorizontalScrollSync data-tour="inv-tabla">
-          <table style={{width:"100%",minWidth:1640,borderCollapse:"collapse",fontSize:12}}>
+          <table style={{width:"max-content",minWidth:1640,tableLayout:"fixed",borderCollapse:"collapse",fontSize:12}}>
             <thead>
               <tr style={{background:C.card}}>
+                {!modoConsulta && (
                 <th style={{
                   padding: "8px 4px",
                   textAlign: "center",
@@ -3924,7 +3945,8 @@ export default function InventarioModule() {
                     style={{ width: 14, height: 14, cursor: "pointer", accentColor: BRAND.primary }}
                   />
                 </th>
-                {colOrder.map((colId) => {
+                )}
+                {colOrderVisible.map((colId) => {
                   const col = INV_COLUMN_DEFS[colId];
                   if (!col) return null;
                   const compactHead = colId === "foto" || colId === "acciones";
@@ -3953,8 +3975,8 @@ export default function InventarioModule() {
             </thead>
             <tbody>
               {filtrados.length===0&&(
-                <tr><td colSpan={colOrder.length + 1} style={{textAlign:"center",padding:32,color:C.textMid}}>
-                  Sin productos{busqueda?` para "${busqueda}"`:""}. Agrega el primero con ➕
+                <tr><td colSpan={colOrderVisible.length + (modoConsulta ? 0 : 1)} style={{textAlign:"center",padding:32,color:C.textMid}}>
+                  Sin productos{busqueda?` para "${busqueda}"`:""}{modoConsulta ? "." : ". Agrega el primero con ➕"}
                 </td></tr>
               )}
               {filtrados.map((p,_rowIdx)=>{
@@ -4010,6 +4032,7 @@ export default function InventarioModule() {
                 };
                 return (
                   <tr key={p.id} className="farmacapital-table-row" style={{opacity:inact?0.45:1,background:bajo?C.amberDim:nearCad?C.redDim:"transparent"}}>
+                    {!modoConsulta && (
                     <td style={{
                       padding: "4px 4px",
                       borderBottom: `1px solid ${C.border}`,
@@ -4031,7 +4054,8 @@ export default function InventarioModule() {
                         style={{ width: 14, height: 14, cursor: "pointer", accentColor: BRAND.primary }}
                       />
                     </td>
-                    {colOrder.map((colId) => renderInventarioColumnCell(colId, rowCtx))}
+                    )}
+                    {colOrderVisible.map((colId) => renderInventarioColumnCell(colId, rowCtx))}
                   </tr>
                 );
               })}
@@ -4047,7 +4071,7 @@ export default function InventarioModule() {
         </>
       )}
 
-      {modal!==null&&(
+      {modal!==null && !modoConsulta && (
         <ProductoModal
           key={modal.id ?? "nuevo"}
           initial={modal}

@@ -2110,7 +2110,7 @@ export default function FarmaCapitalAdmin(){
         return <POS negocio={neg} usuario={usuario} initialTab="online" onNavigate={setPageAndSave} />;
       case "inventario":
       case "inv":
-        return <InventarioHub initialTab={invInitialTab}/>;
+        return <InventarioHub initialTab={invInitialTab} usuario={usuario}/>;
       case "rrhh": return <RRHHModule/>;
       case "caja":  return <CorteCajaModule usuario={usuario}/>;
       case "cof":      return <COFEPRISModule/>;
