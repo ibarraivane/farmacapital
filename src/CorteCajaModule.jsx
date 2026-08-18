@@ -246,7 +246,14 @@ export default function CorteCajaModule({usuario }) {
       p_denominaciones: usaDenoms ? denomsLimpios : null,
     });
     setSaving(false);
-    if (error) { showToast("Error al guardar corte: "+error.message, "error"); return; }
+    if (error) {
+      const raw = error.message || "";
+      const msg = /empleado_id_fkey|foreign key/i.test(raw)
+        ? "Falta actualizar la base. Ejecuta sql/patch_cortes_caja_fk_usuarios.sql en Supabase."
+        : "Error al guardar corte: " + raw;
+      showToast(msg, "error");
+      return;
+    }
 
     // Recién ahora se destapa: el cajero ya se comprometió con su conteo.
     setResultado(data);
