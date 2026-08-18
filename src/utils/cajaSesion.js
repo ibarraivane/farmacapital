@@ -25,6 +25,10 @@ export async function abrirSesionCaja({ denoms, nota }) {
   return { sesion: data, error: null };
 }
 
+export function esVendedor(usuario) {
+  return usuario?.rol === "vendedor";
+}
+
 export async function fetchJornadaHoy() {
   const tok = sessionStorage.getItem("farmacapital_session_token");
   if (!tok) return { jornada: null, error: "Sesión expirada." };
