@@ -45,6 +45,18 @@ async function validateEmployeeSession(supabaseUrl, serviceKey, sessionToken) {
   }
 }
 
+async function validateAdminSession(supabaseUrl, serviceKey, sessionToken) {
+  if (!sessionToken) return false;
+  try {
+    const data = await rpc(serviceKey, supabaseUrl, 'fn_require_admin', {
+      p_token: sessionToken,
+    });
+    return data != null && Number(data) > 0;
+  } catch {
+    return false;
+  }
+}
+
 async function readRawBody(req) {
   if (req.body && Buffer.isBuffer(req.body)) return req.body;
   if (typeof req.body === 'string') return Buffer.from(req.body);
@@ -57,6 +69,7 @@ module.exports = {
   normalizeSupabaseProjectUrl,
   getSupabaseAdminConfig,
   validateEmployeeSession,
+  validateAdminSession,
   readRawBody,
   rpc,
 };

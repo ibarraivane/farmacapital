@@ -5,6 +5,7 @@ import { supabase } from "../../supabase";
 import { Box, Btn, showToast } from "../../ui";
 import { CONSULTA_PRECIO_DEFAULT } from "../../utils/consultaConstants";
 import { CATEGORIAS_CONSUMIBLE_CONSULTORIO_SUGERIDAS } from "../../utils/consumiblesConsultorio";
+import { invalidarCacheMetas } from "../../utils/turnosMetas";
 
 const C = C_LIGHT;
 
@@ -84,6 +85,7 @@ const FIELDS = {
   meta_ticket_prom:          { tab:"ventas",    grupo:"legacy",         label:"Ticket promedio",           def:250,   tipo:"currency" },
 
   // ── TAB 3 · Bonos por desempeño ───────────────────────────────
+  bonos_activos:             { tab:"bonos",     grupo:"switch",         label:"Bonos al vendedor",         def:0,    tipo:"toggle" },
   bono_70_89:                { tab:"bonos",     grupo:"niveles",        label:"70-89% cumplimiento",       def:500,  tipo:"currency" },
   bono_90_99:                { tab:"bonos",     grupo:"niveles",        label:"90-99% cumplimiento",       def:700,  tipo:"currency" },
   bono_100_109:              { tab:"bonos",     grupo:"niveles",        label:"100-109% cumplimiento",     def:1200, tipo:"currency" },
@@ -110,6 +112,10 @@ const keysInTab = (tab) => ALL_KEYS.filter((k) => FIELDS[k].tab === tab);
 // Valida un valor según el tipo del campo. Devuelve { ok, num, msg }.
 function validarCampo(clave, raw) {
   const def = FIELDS[clave];
+  if (def.tipo === "toggle") {
+    const on = raw === "1" || raw === 1 || raw === true || raw === "true";
+    return { ok: true, num: on ? 1 : 0 };
+  }
   const n = parseFloat(raw);
   if (!Number.isFinite(n)) return { ok: false, msg: `"${def.label}" debe ser un número.` };
   if (def.tipo === "currency" && n < 0) return { ok: false, msg: `"${def.label}" no puede ser negativo.` };
@@ -239,7 +245,13 @@ export default function ConfigConsultorioModule() {
     setValores((prev) => {
       const next = { ...prev };
       ALL_KEYS.forEach((k) => {
-        if (map[k] != null && map[k] !== "") next[k] = String(map[k]);
+        if (map[k] == null || map[k] === "") return;
+        if (FIELDS[k].tipo === "toggle") {
+          const v = String(map[k]).toLowerCase();
+          next[k] = (v === "1" || v === "true") ? "1" : "0";
+        } else {
+          next[k] = String(map[k]);
+        }
       });
       return next;
     });
@@ -274,8 +286,10 @@ export default function ConfigConsultorioModule() {
     try {
       const errores = [];
       for (const k of keys) {
-        const n = parseFloat(valores[k]);
-        const err = await upsertConfig(k, String(n));
+        const def = FIELDS[k];
+        const v = validarCampo(k, valores[k]);
+        const payload = def.tipo === "toggle" ? String(v.num) : String(parseFloat(valores[k]));
+        const err = await upsertConfig(k, payload);
         if (err) errores.push({ k, err });
       }
       // Consumibles solo en tab cons (si alguien los marcó).
@@ -287,6 +301,7 @@ export default function ConfigConsultorioModule() {
         const first = errores[0];
         throw new Error(`[${first.k}] ${msgError(first.err)}${errores.length > 1 ? ` (+${errores.length - 1} más)` : ""}`);
       }
+      invalidarCacheMetas();
       showToast("Cambios guardados. Dashboard, POS y consultorio los usarán al recargar.", "success");
     } catch (e) {
       console.error("[ConfigCons] guardarTab error:", e);
@@ -451,6 +466,51 @@ export default function ConfigConsultorioModule() {
       {tab === "bonos" && (
         <>
           <Box style={{ padding: 20, marginBottom: 16 }}>
+            <SectionTitle sub="Apagado = solo salario base. El vendedor no ve escalones ni montos de bono. Enciéndelo cuando quieras pagar desempeño, sin pedir un cambio de código.">
+              ACTIVAR BONOS
+            </SectionTitle>
+            <button
+              type="button"
+              onClick={() => setValor("bonos_activos", valores.bonos_activos === "1" ? "0" : "1")}
+              aria-pressed={valores.bonos_activos === "1"}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                border: `1px solid ${valores.bonos_activos === "1" ? C.green : C.border}`,
+                background: valores.bonos_activos === "1" ? C.greenDim : C.card,
+                borderRadius: 10,
+                padding: "12px 14px",
+                cursor: "pointer",
+                fontFamily: "inherit",
+                width: "100%",
+                maxWidth: 420,
+                textAlign: "left",
+              }}
+            >
+              <span style={{
+                width: 44, height: 26, borderRadius: 13, padding: 3,
+                background: valores.bonos_activos === "1" ? C.green : C.border,
+                display: "flex", alignItems: "center",
+                justifyContent: valores.bonos_activos === "1" ? "flex-end" : "flex-start",
+                flexShrink: 0,
+              }}>
+                <span style={{ width: 20, height: 20, borderRadius: 10, background: "#fff", display: "block" }} />
+              </span>
+              <span>
+                <span style={{ display: "block", fontWeight: 800, fontSize: 14, color: C.text }}>
+                  {valores.bonos_activos === "1" ? "Bonos encendidos" : "Bonos apagados"}
+                </span>
+                <span style={{ display: "block", fontSize: 12, color: C.textMid, marginTop: 2 }}>
+                  {valores.bonos_activos === "1"
+                    ? "Mi Día muestra el escalón de bono. Recuerda pulsar Guardar."
+                    : "Nómina = salario base. Los montos de abajo se guardan pero no se muestran."}
+                </span>
+              </span>
+            </button>
+          </Box>
+
+          <Box style={{ padding: 20, marginBottom: 16, opacity: valores.bonos_activos === "1" ? 1 : 0.55 }}>
             <SectionTitle sub="Monto mensual según el % de meta cumplida. Menos de 70% = sin bono.">
               BONO POR CUMPLIMIENTO
             </SectionTitle>

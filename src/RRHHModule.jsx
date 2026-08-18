@@ -4,6 +4,8 @@ import { supabase } from './supabase';
 import { showToast } from './ui';
 import { C_LIGHT, BRAND } from "./constants";
 import { TURNOS_LISTA, etiquetaTurno } from "./constants/turnos";
+import { cargarConfigMetas, bonosActivos } from "./utils/turnosMetas";
+import EmpleadoDocumentos from "./modules/rh/EmpleadoDocumentos";
 
 const fmt = (n) =>
   new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(n || 0);
@@ -90,6 +92,7 @@ export default function RRHHModule() {
   const [loadCom, setLoadCom]       = useState(false);
   const [periCom, setPeriCom]       = useState("mes"); // dia|semana|mes
   const [pctCom, setPctCom]         = useState(3); // % comisión configurable
+  const [bonosOn, setBonosOn]       = useState(false);
 
   const fetchComisiones = async () => {
     setLoadCom(true);
@@ -187,6 +190,9 @@ export default function RRHHModule() {
   };
 
   useEffect(() => { fetchEmpleados(); }, []);
+  useEffect(() => {
+    cargarConfigMetas().then((m) => setBonosOn(bonosActivos(m)));
+  }, []);
 
   const toggleEstado = async (emp) => {
     const tok = sessionStorage.getItem("farmacapital_session_token");
@@ -566,6 +572,8 @@ export default function RRHHModule() {
         </form>
       </div>
 
+      <EmpleadoDocumentos empleados={empleados} S={S} />
+
       {/* HORARIO SEMANAL */}
       <div style={S.section}>
         <div style={S.h2}>📅 Horario semanal</div>
@@ -688,8 +696,10 @@ export default function RRHHModule() {
             <input style={S.input} type="number" min="0" step="0.5" value={calcHE} onChange={e=>setCalcHE(parseFloat(e.target.value)||0)} placeholder="0"/></div>
           <div><label style={S.label}>Prima dominical</label>
             <input style={S.input} type="number" min="0" step="0.01" value={calcPD} onChange={e=>setCalcPD(e.target.value)} placeholder="0"/></div>
-          <div><label style={S.label}>Bono</label>
-            <input style={S.input} type="number" min="0" step="0.01" value={calcBono} onChange={e=>setCalcBono(e.target.value)} placeholder="0"/></div>
+          <div><label style={S.label}>Bono {bonosOn ? "" : "(manual)"}</label>
+            <input style={S.input} type="number" min="0" step="0.01" value={calcBono} onChange={e=>setCalcBono(e.target.value)} placeholder="0"/>
+            {!bonosOn && <div style={{ fontSize:11, color:C.textMid, marginTop:4 }}>Los bonos automáticos están apagados. Este campo es un ajuste puntual.</div>}
+          </div>
         </div>
 
         <div style={{ background:C.bg, border:`1px solid ${C.border}`, borderRadius:10, padding:20, marginBottom:16 }}>
@@ -741,6 +751,7 @@ export default function RRHHModule() {
     </div>
 
     {/* ── COMISIONES POR VENTAS ── */}
+    {bonosOn ? (
     <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:24,marginTop:24}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:10}}>
         <h2 style={{margin:0,color:C.text,fontSize:16,fontWeight:800}}>💰 Comisiones por ventas</h2>
@@ -808,6 +819,15 @@ export default function RRHHModule() {
         </>
       )}
     </div>
+    ) : (
+    <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:24,marginTop:24}}>
+      <h2 style={{margin:"0 0 8px",color:C.text,fontSize:16,fontWeight:800}}>💰 Comisiones por ventas</h2>
+      <p style={{margin:0,color:C.textMid,fontSize:13,lineHeight:1.45}}>
+        Los bonos están apagados: ahora solo se paga salario base. Enciéndelos en{" "}
+        <strong>Metas y Precios → Bonos</strong> cuando el equipo esté listo.
+      </p>
+    </div>
+    )}
   </>
   );
 }

@@ -11,7 +11,7 @@ import { saludoUsuario } from "../../utils";
 import { turnoDePerfil } from "../../constants/turnos";
 import {
   inferirTurno, inicioDelTurno, finDelTurno, claveMetaTurno,
-  calcularMultiplicador, cargarConfigMetas, escalonBono,
+  calcularMultiplicador, cargarConfigMetas, escalonBono, bonosActivos,
 } from "../../utils/turnosMetas";
 
 const C = C_LIGHT;
@@ -106,6 +106,7 @@ export default function MiDia({ usuario, setPage }) {
     diasTrabajados: 0, diasCumplidos: 0, rachaActual: 0,
     categoriaTop: null, totalUnidadesCategoriaTop: 0,
     citasEnEspera: 0,
+    bonosOn: false,
   });
 
   // Reloj vivo (solo para la hora visible).
@@ -223,6 +224,7 @@ export default function MiDia({ usuario, setPage }) {
         diasTrabajados, diasCumplidos, rachaActual,
         categoriaTop, totalUnidadesCategoriaTop,
         citasEnEspera: citasEspera,
+        bonosOn: bonosActivos(configMap),
       });
     } catch (e) {
       console.warn("[MiDia] cargarDatos:", e?.message || e);
@@ -261,7 +263,7 @@ export default function MiDia({ usuario, setPage }) {
   const prodPorTicket = data.tickets > 0 ? (data.itemsTotales / data.tickets) : 0;
   const pctCruzada = data.tickets > 0 ? Math.round((data.ticketsConDosItems / data.tickets) * 100) : 0;
   const pctPuntos = data.tickets > 0 ? Math.round((data.ticketsConCliente / data.tickets) * 100) : 0;
-  const escalon = escalonBono(pctMes);
+  const escalon = data.bonosOn ? escalonBono(pctMes) : null;
   const escalonSiguiente = useMemo(() => {
     if (!escalon) return escalonBono(70);
     if (escalon.clave === "bono_70_89")  return { clave: "bono_90_99",   label: "90-99%" };
@@ -397,7 +399,7 @@ export default function MiDia({ usuario, setPage }) {
           </>
         )}
 
-        {escalon ? (
+        {data.bonosOn && escalon ? (
           <div style={{ marginTop: 14, padding: "12px 14px", background: C.greenDim, border: `1px solid ${C.green}40`, borderRadius: 10 }}>
             <div style={{ color: C.greenDark, fontSize: 12, fontWeight: 700, marginBottom: 4 }}>
               🎁 Bono proyectado: escalón {escalon.label}
@@ -408,7 +410,7 @@ export default function MiDia({ usuario, setPage }) {
               </div>
             )}
           </div>
-        ) : data.metaMes > 0 ? (
+        ) : data.bonosOn && data.metaMes > 0 ? (
           <div style={{ marginTop: 14, padding: "12px 14px", background: C.amberDim, border: `1px solid ${C.amber}40`, borderRadius: 10, fontSize: 12, color: C.textMid }}>
             Aún no alcanzas el primer escalón de bono (70%). Cada venta suma.
           </div>
