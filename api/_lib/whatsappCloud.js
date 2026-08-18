@@ -504,18 +504,11 @@ async function sendWhatsAppTemplate({
   }
 
   if (resolved.ok === false && resolved.reason === 'template_list_failed') {
-    return {
-      sent: false,
-      reason: 'meta_template_list_failed',
-      detail: JSON.stringify({
-        wanted: requestedName,
-        wabaId: effectiveWabaId,
-        metaError: resolved.detail || null,
-        hint:
-          'Meta no dejó listar plantillas. Regenera WHATSAPP_ACCESS_TOKEN en API Setup '
-          + '(permiso whatsapp_business_management) y redeploy.',
-      }),
-    };
+    console.warn('[whatsapp] template list failed, attempting send anyway', JSON.stringify({
+      wanted: requestedName,
+      wabaId: effectiveWabaId,
+      metaError: resolved.detail || null,
+    }));
   }
 
   const sendName = resolved.ok ? resolved.name : requestedName;
