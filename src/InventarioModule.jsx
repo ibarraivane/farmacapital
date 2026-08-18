@@ -516,11 +516,11 @@ function invColumnPixelWidth(colId, colWidths) {
   return map[colId] ?? 96;
 }
 
-function inventarioStickyStyle(colId, colOrder, colWidths, { header, bg }) {
+function inventarioStickyStyle(colId, colOrder, colWidths, { header, bg, hasCheckbox = true }) {
   if (!INV_STICKY_COL_IDS.includes(colId)) return {};
   const myIndex = colOrder.indexOf(colId);
   if (myIndex < 0) return {};
-  let left = INV_CHECKBOX_COL_WIDTH;
+  let left = hasCheckbox ? INV_CHECKBOX_COL_WIDTH : 0;
   for (const id of colOrder) {
     if (id === colId) break;
     if (INV_STICKY_COL_IDS.includes(id)) left += invColumnPixelWidth(id, colWidths);
@@ -535,9 +535,9 @@ function inventarioStickyStyle(colId, colOrder, colWidths, { header, bg }) {
     minWidth: w,
     maxWidth: w,
     boxSizing: "border-box",
-    zIndex: header ? 35 + stickyRank : 15 + stickyRank,
+    zIndex: header ? 5 + stickyRank : 2 + stickyRank,
     background: bg,
-    boxShadow: !hasStickyAfter ? "6px 0 18px -10px rgba(15, 23, 42, 0.22)" : undefined,
+    borderRight: !hasStickyAfter ? "1px solid #e2e8f0" : undefined,
   };
 }
 
@@ -2687,8 +2687,11 @@ export default function InventarioModule({ modoConsulta = false }) {
   }, [colOrder]);
 
   const inventarioStickyStyleFor = useCallback(
-    (colId, opts) => inventarioStickyStyle(colId, colOrderVisible, colWidths, opts),
-    [colOrderVisible, colWidths]
+    (colId, opts) => inventarioStickyStyle(colId, colOrderVisible, colWidths, {
+      ...opts,
+      hasCheckbox: !modoConsulta,
+    }),
+    [colOrderVisible, colWidths, modoConsulta]
   );
 
   const invColWidthStyle = useCallback(
@@ -3965,9 +3968,9 @@ export default function InventarioModule({ modoConsulta = false }) {
       ) : (
         <>
         <HorizontalScrollSync data-tour="inv-tabla">
-          <table style={{width:"max-content",minWidth:1640,tableLayout:"fixed",borderCollapse:"collapse",fontSize:12}}>
+          <table style={{width:"max-content",minWidth:1640,tableLayout:"fixed",borderCollapse:"separate",borderSpacing:0,fontSize:12}}>
             <thead>
-              <tr style={{background:C.card}}>
+              <tr>
                 {!modoConsulta && (
                 <th style={{
                   padding: "8px 4px",
@@ -4007,6 +4010,7 @@ export default function InventarioModule({ modoConsulta = false }) {
                       textAlign: "left",
                       color: C.textMid,
                       fontWeight: 700,
+                      background: C.card,
                       borderBottom: `1px solid ${C.border}`,
                       whiteSpace: "nowrap",
                       cursor: col.hint ? "help" : undefined,
