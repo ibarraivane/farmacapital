@@ -65,6 +65,17 @@ export function calcularMultiplicador(fecha, ajustes) {
 const _cache = { data: null, ts: 0 };
 const TTL_MS = 60 * 1000;
 
+export function invalidarCacheMetas() {
+  _cache.data = null;
+  _cache.ts = 0;
+}
+
+/** true solo si el admin encendió bonos_activos. Falta la clave = apagado. */
+export function bonosActivos(map) {
+  const v = String(map?.bonos_activos ?? "0").trim().toLowerCase();
+  return v === "1" || v === "true" || v === "si" || v === "sí" || v === "on";
+}
+
 export async function cargarConfigMetas() {
   if (_cache.data && Date.now() - _cache.ts < TTL_MS) return _cache.data;
   const claves = [
@@ -72,7 +83,7 @@ export async function cargarConfigMetas() {
     "meta_sabado_matutino","meta_sabado_vespertino","meta_domingo",
     "meta_ventas_mes","meta_ventas_dia",
     "ajuste_quincena","ajuste_dia_pago","ajuste_viernes","ajuste_lunes","ajuste_domingo",
-    "bono_70_89","bono_90_99","bono_100_109","bono_110_plus",
+    "bonos_activos",
   ];
   const { data, error } = await supabase.from("configuracion").select("clave,valor").in("clave", claves);
   if (error) { console.warn("[turnosMetas] cargar:", error.message); return {}; }
