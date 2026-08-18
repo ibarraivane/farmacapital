@@ -154,18 +154,59 @@ function catalogFieldsMatchAllTokens(product, queryRaw, { inventario = false } =
   const anchor = catalogQueryAnchorToken(tokens);
   if (anchor) {
     const nameEntries = entries.filter((e) => CATALOG_NAME_LIKE_KINDS.has(e.kind));
-    if (!nameEntries.some((e) => catalogTokenMatchesField(anchor, e.kind, e.norm, { queryTokens: tokens }))) {
+    if (!nameEntries.some((e) => catalogTokenOrVernacularMatches(anchor, e.kind, e.norm, tokens))) {
       return false;
     }
   }
 
   return tokens.every((tok) =>
-    entries.some((e) => catalogTokenMatchesField(tok, e.kind, e.norm, { queryTokens: tokens }))
+    entries.some((e) => catalogTokenOrVernacularMatches(tok, e.kind, e.norm, tokens))
   );
+}
+
+/**
+ * Término de mostrador → marcas/nombres del catálogo.
+ * No sustituye la palabra (suero sigue encontrando suero glucosado);
+ * añade alternativas con OR. Las alias no usan fuzzy de typos.
+ */
+const CATALOG_VERNACULAR_GROUPS = [
+  {
+    query: ["suero", "sueros", "rehidratante", "rehidratacion", "sro"],
+    catalog: [
+      "suero",
+      "electrolit",
+      "pedialyte",
+      "oralit",
+      "oraliv",
+      "hydralyte",
+      "sueroral",
+      "rehidrat",
+    ],
+  },
+];
+
+function vernacularAltsForToken(tok) {
+  const t = String(tok || "").toLowerCase();
+  if (!t) return [];
+  for (const g of CATALOG_VERNACULAR_GROUPS) {
+    if (g.query.includes(t)) return g.catalog;
+  }
+  return [];
+}
+
+function catalogTokenOrVernacularMatches(tok, kind, fieldNorm, queryTokens) {
+  if (catalogTokenMatchesField(tok, kind, fieldNorm, { queryTokens })) return true;
+  for (const alt of vernacularAltsForToken(tok)) {
+    if (alt === tok) continue;
+    if (tokenMatchesInNormalizedHaystack(alt, fieldNorm)) return true;
+  }
+  return false;
 }
 
 /** OCR / voz / plural → forma habitual en catálogo (solo consulta, no productos). */
 const CATALOG_QUERY_REPLACEMENTS = [
+  [/\bsueros?\s+oral(?:es)?\b/g, "suero"],
+  [/\bsolucion(?:es)?\s+de\s+rehidratacion\b/g, "suero"],
   [/\belectrolitos?\b/g, "electrolit"],
   [/\belectrolid\b/g, "electrolit"],
   [/\bpedialytes?\b/g, "pedialyte"],

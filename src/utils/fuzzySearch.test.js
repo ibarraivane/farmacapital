@@ -2,6 +2,7 @@ import {
   inventarioProductMatchesBusqueda,
   inventarioSearchRelevanceRank,
   tiendaProductMatchesBusqueda,
+  tiendaSearchRelevanceRank,
 } from "./fuzzySearch";
 
 const tensolastic7 = {
@@ -85,5 +86,29 @@ describe("catalog search dimensions", () => {
     expect(inventarioProductMatchesBusqueda(lubricante, "pañal")).toBe(false);
     expect(inventarioProductMatchesBusqueda(panal, "pañal")).toBe(true);
     expect(inventarioSearchRelevanceRank(panal, "pañal")).toBeLessThan(20);
+  });
+
+  test("suero encuentra Electrolit y también productos que sí dicen suero", () => {
+    const electrolit = {
+      id: 201,
+      nombre: "Electrolit Uva 625 ml",
+      marca: "Electrolit",
+      categoria: "Hidratación",
+      sku: "FC-EL-001",
+    };
+    const sueroGlu = {
+      id: 202,
+      nombre: "Suero Glucosado 5% 500 ml",
+      marca: "Pisa",
+      categoria: "Hidratación",
+      sku: "FC-SG-001",
+    };
+    expect(tiendaProductMatchesBusqueda(electrolit, "suero")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(electrolit, "suero oral")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(sueroGlu, "suero")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(centrum, "suero")).toBe(false);
+    expect(tiendaSearchRelevanceRank(sueroGlu, "suero")).toBeLessThan(
+      tiendaSearchRelevanceRank(electrolit, "suero")
+    );
   });
 });
