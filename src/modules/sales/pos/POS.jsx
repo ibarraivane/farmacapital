@@ -7,10 +7,12 @@ import { supabase } from "../../../supabase";
 import { C_LIGHT, BRAND } from "../../../constants";
 import { $, logAudit, soloDigitosTel, telefonosMxEquivalentes, normalizeForSearch } from "../../../utils";
 import { tiendaProductMatchesBusqueda, tiendaCatalogSearchSuggestions, tiendaSearchRelevanceRank } from "../../../utils/fuzzySearch";
-import { findProductExactScan, looksLikeBarcodeInput, isAllDigitsInput, normalizeBarcodeRaw, shouldReplaceScanInput } from "../../../utils/barcodeProductLookup";
+import { findProductExactScan, looksLikeBarcodeInput, looksLikeInternalSku, isAllDigitsInput, normalizeBarcodeRaw, shouldReplaceScanInput } from "../../../utils/barcodeProductLookup";
 import { posTituloProducto, posSubtituloProducto } from "../../../utils/posProductDisplay";
 import { precioUnidadParaVenta } from "../../../utils/precioUnidad";
 import { productoEsVendible } from "../../../utils/productoVendible";
+import { esCategoriaAntibiotico, categoriasCoinciden } from "../../../constants/categoriasProducto";
+import { isCoarsePointer, unlockInputForTouchKeyboard, lockInputAfterTouchKeyboard, armInputForTouchKeyboard } from "../../../utils/touchKeyboard";
 import {
   suggestPosProductsLocal,
   posEsOtcConStock,
@@ -80,6 +82,42 @@ function posFichaLinea(item) {
   return posSubtituloProducto(item) || [item.concentracion, item.presentacion, item.forma_farmaceutica].filter(Boolean).join(" · ");
 }
 
+/** Anon no puede leer `lotes` por RLS; Inventario ya usa este RPC (security definer). */
+async function fetchLotesMapPos(sessionToken) {
+  if (!sessionToken) return {};
+  const { data, error } = await supabase.rpc("empleado_listar_lotes_inventario", {
+    p_session_token: sessionToken,
+  });
+  if (error || !data) return {};
+  const byProducto = {};
+  for (const l of Array.isArray(data) ? data : []) {
+    const pid = l.producto_id;
+    if (!pid) continue;
+    if (!byProducto[pid]) byProducto[pid] = [];
+    byProducto[pid].push({
+      id: l.id,
+      numero_lote: l.numero_lote,
+      fecha_caducidad: l.fecha_caducidad,
+      cantidad_actual: l.cantidad_actual,
+      activo: l.activo,
+    });
+  }
+  return byProducto;
+}
+
+function enrichPosProductosConLotes(prodsRaw, lotesByProducto = {}) {
+  return (prodsRaw || []).map((p) => {
+    const nested = Array.isArray(p.lotes) ? p.lotes : [];
+    const extra = lotesByProducto[p.id] || lotesByProducto[String(p.id)] || [];
+    const lotes = nested.some((l) => Number(l?.cantidad_actual) > 0) ? nested : (extra.length ? extra : nested);
+    const activos = lotes.filter(
+      (l) => l?.activo !== false && Number(l?.cantidad_actual || 0) > 0 && l.fecha_caducidad
+    );
+    const minCad = activos.reduce((m, l) => (!m || l.fecha_caducidad < m) ? l.fecha_caducidad : m, null);
+    return { ...p, lotes, min_caducidad_lotes: minCad };
+  });
+}
+
 const POS_USO_CACHE_KEY = "farmacapital_pos_uso_cache_v1";
 
 function posDescripcionPareceTicket(text) {
@@ -143,6 +181,8 @@ function PosProductoFichaPanel({
   onAbrirCaja,
   getStockCajasPOS,
   productoSinLotesPEPS,
+  enCarrito = 0,
+  stockFifo = 0,
   usoTexto,
   usoLoading,
   C,
@@ -171,7 +211,7 @@ function PosProductoFichaPanel({
           </div>
           <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55, color: C.textMid }}>
             La ficha aparece aquí: foto grande, presentación, forma farmacéutica y para qué se usa normalmente.
-            Enter en el buscador agrega al carrito.
+            Enter en el buscador muestra todos los resultados.
           </p>
         </div>
       </div>
@@ -184,6 +224,7 @@ function PosProductoFichaPanel({
   const sinLotes = productoSinLotesPEPS(item);
   const agotado = stockCajas <= 0 && (!item.venta_unidad || item.stock_unidades === 0);
   const sinPrecio = !productoEsVendible(item);
+  const yaEnCarritoMax = !item.venta_unidad && stockFifo > 0 && enCarrito >= stockFifo;
   const uso = usoLoading
     ? "Consultando uso con Claude…"
     : (usoTexto || posUsoFallback(item));
@@ -216,19 +257,28 @@ function PosProductoFichaPanel({
           style={{
             borderRadius: 14,
             overflow: "hidden",
-            background: C.cardDark,
+            background: "#fff",
+            border: `1px solid ${C.border}`,
             minHeight: stack ? 180 : 240,
             maxHeight: stack ? 220 : 280,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            padding: stack ? 10 : 14,
           }}
         >
           {thumb ? (
             <img
               src={thumb}
               alt=""
-              style={{ width: "100%", height: "100%", minHeight: stack ? 180 : 240, objectFit: "contain", display: "block" }}
+              style={{
+                maxWidth: "100%",
+                maxHeight: stack ? 200 : 252,
+                width: "auto",
+                height: "auto",
+                objectFit: "contain",
+                display: "block",
+              }}
             />
           ) : (
             <span style={{ fontSize: 72, opacity: 0.35 }} aria-hidden>💊</span>
@@ -352,7 +402,7 @@ function PosProductoFichaPanel({
               <Btn
                 col={C.blue}
                 full
-                disabled={sinLotes || stockCajas <= 0}
+                disabled={sinLotes || stockCajas <= 0 || yaEnCarritoMax}
                 onClick={() => {
                   if (sinLotes) {
                     showToast("Sin lotes registrados. Ve a Inventario → Lotes.", "warning");
@@ -361,7 +411,9 @@ function PosProductoFichaPanel({
                   onAddCaja(item);
                 }}
               >
-                Agregar al carrito · {$(item.precio)}
+                {yaEnCarritoMax
+                  ? `Ya en el carrito · ${enCarrito} de ${stockFifo}`
+                  : `Agregar al carrito · ${$(item.precio)}`}
               </Btn>
             )}
           </div>
@@ -390,12 +442,15 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const srchWrapRef = useRef(null);
   /** Tour POS: botón "?" va en la barra de carrito (no FAB esquina). */
   const posTourRef = useRef(null);
-  // iOS Safari hace zoom al enfocar inputs si el tamaño es <16px o si el foco llega al cargar.
-  // En ≤768px no autoenfocamos el buscador para que la vista entre completa sin pellizcar.
+  // En tablet/celular no autoenfocar: Android enfoca sin abrir el teclado y el toque siguiente no hace nada.
   useEffect(() => {
     if (tab !== "venta" || typeof window === "undefined") return;
-    if (window.matchMedia("(max-width: 768px)").matches) return;
+    if (isCoarsePointer() || window.matchMedia("(max-width: 768px)").matches) return;
     srchRef.current?.focus();
+  }, [tab]);
+  useEffect(() => {
+    if (tab !== "venta") return;
+    armInputForTouchKeyboard(srchRef.current);
   }, [tab]);
   const [favs,setFavs]       = useState(()=>{ try{ return JSON.parse(localStorage.getItem("farmacapital_pos_favs")||"[]"); }catch{ return []; } });
   const toggleFav = id => {
@@ -444,6 +499,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const [bbvaFolio,setBbvaFolio] = useState("");
   /** Tras elegir origen de receta, cobro con tarjeta (Point) usa este valor al confirmar el pago. */
   const recetaOrigenPendienteRef = useRef("no_aplica");
+  const recetaOrigenEfectivoRef = useRef("no_aplica");
+  const [modalConfirmEfectivo, setModalConfirmEfectivo] = useState(false);
   const [modalRecetaVenta, setModalRecetaVenta] = useState(false);
   const [modalRecetaModo, setModalRecetaModo] = useState(null);
   const [recetaOrigenSel, setRecetaOrigenSel] = useState("no_aplica");
@@ -710,7 +767,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       if (typeof setLoadErr === "function") setLoadErr("");
       try {
         const tok = sessionStorage.getItem("farmacapital_session_token");
-        const [prodsRes, pedsRes, histRes] = await Promise.all([
+        const [prodsRes, pedsRes, histRes, lotesMap] = await Promise.all([
           tok
             ? supabase.rpc("empleado_listar_productos_con_lotes_pos", { p_session_token: tok })
             : Promise.resolve({ data: [], error: { message: "Sin sesión" } }),
@@ -725,6 +782,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                 p_limite: 20,
               })
             : Promise.resolve({ data: [], error: null }),
+          fetchLotesMapPos(tok),
         ]);
 
         const errs = [];
@@ -738,12 +796,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         }
 
         const prodsRaw = Array.isArray(prodsRes?.data) ? prodsRes.data : [];
-        const prodsConCad = prodsRaw.map(p => {
-          const activos = (p.lotes || []).filter(l => l.activo !== false && (l.cantidad_actual || 0) > 0 && l.fecha_caducidad);
-          const minCad = activos.reduce((m, l) => (!m || l.fecha_caducidad < m) ? l.fecha_caducidad : m, null);
-          return { ...p, min_caducidad_lotes: minCad };
-        });
-        setProds(prodsConCad);
+        setProds(enrichPosProductosConLotes(prodsRaw, lotesMap));
         setPedOn((pedsRes?.data || []).filter(esPedidoTiendaWebPendiente));
         setPedOnHist(Array.isArray(histRes?.data) ? histRes.data : []);
 
@@ -919,55 +972,58 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const add = (item, esUnidad=false) => {
     if (!productoEsVendible(item)) {
       showToast(`"${item?.nombre || "Producto"}" no tiene precio de venta. Cárgalo en Inventario antes de cobrarlo.`, "warning");
-      return;
+      return false;
     }
     // Validar que el lote FEFO activo más próximo no esté vencido
     if(item.min_caducidad_lotes) {
       const hoy = new Date().toLocaleDateString("sv-SE");
       if(item.min_caducidad_lotes < hoy) {
         showToast(`⚠️ ${item.nombre} tiene lote VENCIDO (${item.min_caducidad_lotes}). No se puede vender.`, "error");
-        return;
+        return false;
       }
     }
-    if((item.requiere_receta || item.categoria==="Antibiótico") && !esUnidad) { setRxM(item); return; }
+    if((item.requiere_receta || esCategoriaAntibiotico(item.categoria)) && !esUnidad) { setRxM(item); return false; }
     if (esUnidad) {
       if ((item.stock_unidades || 0) <= 0) {
         showToast("Sin unidades disponibles para venta suelta.", "warning");
-        return;
+        return false;
       }
       const keyU = item.id+"_unit";
+      let added = true;
       setCart(p=>{
         const ex = p.find(c=>c.id===keyU);
         if (ex && ex.qty >= (item.stock_unidades || 0)) {
           showToast(`Máx unidades sueltas: ${item.stock_unidades || 0}`, "warning");
+          added = false;
           return p;
         }
         return ex
           ? p.map(c=>c.id===keyU?{...c,qty:c.qty+1}:c)
           : [...p,{...item,id:keyU,producto_id:item.id,qty:1,rxI:null,esUnidad:true,precio:precioUnidadParaVenta(item),nombre:`${posTituloProducto(item)} (unidad)`}];
       });
-    } else {
-      if (!validarProductoParaCarrito(item, 1, false)) {
-        return;
+      return added;
+    }
+    if (!validarProductoParaCarrito(item, 1, false)) {
+      return false;
+    }
+
+    setCart(p=>{
+      const disponibleFifo = getStockFifoDisponible(item);
+      const ex=p.find(c=>c.id===item.id);
+      const qtyActual = Number(ex?.qty || 0);
+
+      if(qtyActual + 1 > disponibleFifo){
+        showToast(`Stock FIFO insuficiente. Disponible por lotes: ${disponibleFifo}, en carrito: ${qtyActual}.`, "warning");
+        return p;
       }
 
-      setCart(p=>{
-        const disponibleFifo = getStockFifoDisponible(item);
-        const ex=p.find(c=>c.id===item.id);
-        const qtyActual = Number(ex?.qty || 0);
+      if(ex){
+        return p.map(c=>c.id===item.id?{...c,qty:c.qty+1}:c);
+      }
 
-        if(qtyActual + 1 > disponibleFifo){
-          showToast(`Stock FIFO insuficiente. Disponible por lotes: ${disponibleFifo}, en carrito: ${qtyActual}.`, "warning");
-          return p;
-        }
-
-        if(ex){
-          return p.map(c=>c.id===item.id?{...c,qty:c.qty+1}:c);
-        }
-
-        return [...p,{...item,producto_id:item.id,qty:1,rxI:null,esUnidad:false,nombre:posTituloProducto(item)}];
-      });
-    }
+      return [...p,{...item,producto_id:item.id,qty:1,rxI:null,esUnidad:false,nombre:posTituloProducto(item)}];
+    });
+    return true;
   };
   addRef.current = add;
 
@@ -1008,34 +1064,21 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
 
 
   const getLoteCantidadDisponible = (lote) => {
-    return Number(
+    const n = Number(
+      lote?.cantidad_actual ??
       lote?.cantidad_disponible ??
       lote?.stock_disponible ??
-      lote?.cantidad_actual ??
       lote?.existencia ??
       lote?.stock ??
       lote?.cantidad ??
       0
-    ) || 0;
+    );
+    return Number.isFinite(n) && n > 0 ? n : 0;
   };
 
   const getStockFifoDisponible = (producto) => {
     if (!producto) return 0;
-
-    const directo = Number(
-      producto.stock_lotes_disponible ??
-      producto.stock_fifo_disponible ??
-      producto.stock_disponible_lotes ??
-      producto.stock_disponible ??
-      producto.disponible_fifo
-    );
-
-    if (Number.isFinite(directo)) {
-      return Math.max(0, directo);
-    }
-
     const lotes = Array.isArray(producto.lotes) ? producto.lotes : [];
-
     if (lotes.length > 0) {
       return Math.max(
         0,
@@ -1045,9 +1088,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         }, 0)
       );
     }
-
-    // Importante:
-    // Si no hay lotes, no vender por POS FIFO aunque productos.stock diga otra cosa.
+    // Sin lotes en el payload no se vende, aunque productos.stock diga otra cosa.
     return 0;
   };
 
@@ -1122,7 +1163,17 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     }
 
     if (enCarrito + cantidadNueva > disponibleFifo) {
-      showToast(`Stock FIFO insuficiente. Disponible por lotes: ${disponibleFifo}, en carrito: ${enCarrito}.`, "warning");
+      if (enCarrito >= disponibleFifo) {
+        showToast(
+          `Ya está en el carrito (${enCarrito} de ${disponibleFifo}). Cobra esa pieza; no hay más en stock.`,
+          "warning"
+        );
+      } else {
+        showToast(
+          `Solo hay ${disponibleFifo} en stock. En el carrito ya van ${enCarrito}.`,
+          "warning"
+        );
+      }
       return false;
     }
 
@@ -1264,6 +1315,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       }
     }
     setGuard(true);
+    setModalConfirmEfectivo(false);
     try {
       if (exigeCaja && !cajaAbierta) {
         showToast("Abre caja antes de vender.", "warning");
@@ -1418,16 +1470,13 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         // Sincroniza existencias visibles con BD tras un rechazo por stock.
         try {
           const tokRf = sessionStorage.getItem("farmacapital_session_token");
-          const { data } = tokRf
-            ? await supabase.rpc("empleado_listar_productos_con_lotes_pos", { p_session_token: tokRf })
-            : { data: [] };
-          const prodsArr = Array.isArray(data) ? data : [];
-          const prodsConCad = prodsArr.map((p) => {
-            const activos = (p.lotes || []).filter((l) => l.activo !== false && (l.cantidad_actual || 0) > 0 && l.fecha_caducidad);
-            const minCad = activos.reduce((m, l) => (!m || l.fecha_caducidad < m) ? l.fecha_caducidad : m, null);
-            return { ...p, min_caducidad_lotes: minCad };
-          });
-          setProds(prodsConCad);
+          const [{ data }, lotesMap] = await Promise.all([
+            tokRf
+              ? supabase.rpc("empleado_listar_productos_con_lotes_pos", { p_session_token: tokRf })
+              : Promise.resolve({ data: [] }),
+            fetchLotesMapPos(tokRf),
+          ]);
+          setProds(enrichPosProductosConLotes(Array.isArray(data) ? data : [], lotesMap));
         } catch (_) {
           // noop: no bloquear el flujo por un refresh fallido
         }
@@ -1455,7 +1504,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       setBbvaFolio(folioActual || "VTA-PENDIENTE");
       setBbvaModal(true);
     } else if (modo === "efectivo") {
-      ejecutarCobrar(ro);
+      recetaOrigenEfectivoRef.current = ro;
+      setModalConfirmEfectivo(true);
     }
   };
 
@@ -1687,7 +1737,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         const cats = [...new Set(cart.map(i=>i.categoria).filter(Boolean))];
         const idsEnCart = new Set(cart.map(i=>typeof i.id==="string"?i.id:String(i.id)));
         const sugs = productos.filter(p=>
-          cats.includes(p.categoria) &&
+          cats.some((c) => categoriasCoinciden(c, p.categoria)) &&
           !idsEnCart.has(String(p.id)) &&
           p.activo && p.stock>0
         ).slice(0,4);
@@ -1830,6 +1880,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
           color: #0f172a;
           -webkit-text-fill-color: #0f172a;
           caret-color: #0f172a;
+          touch-action: manipulation;
         }
         .farmacapital-pos-root input.farmacapital-pos-srch::placeholder,
         .farmacapital-pos-root input.farmacapital-field-input::placeholder {
@@ -1844,12 +1895,13 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         }
         @media (max-width: 1100px) {
           .farmacapital-pos-root { overflow-x: hidden; max-width: 100%; }
+          .farmacapital-pos-root input.farmacapital-pos-srch,
+          .farmacapital-pos-root input.farmacapital-field-input {
+            font-size: 16px !important;
+          }
         }
         /* Solo ≤768px: marco alto fijo + scroll de productos (carrito en modal por JS). */
         @media (max-width: 768px) {
-          input.farmacapital-pos-srch {
-            font-size: 16px !important;
-          }
           .farmacapital-pos-venta-grid.farmacapital-pos-venta-narrow {
             display: flex !important;
             flex-direction: column !important;
@@ -2052,6 +2104,35 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
           <Btn ol col={C.textMid} sm onClick={()=>{ setModalRecetaVenta(false); setModalRecetaModo(null); }}>Cancelar</Btn>
           <Btn col={C.green} onClick={confirmarRecetaVentaYContinuar} dis={guardando}>Continuar</Btn>
+        </div>
+      </Modal>
+
+      <Modal
+        open={modalConfirmEfectivo}
+        onClose={() => { if (!guardando) setModalConfirmEfectivo(false); }}
+        title="¿Ya recibiste el efectivo?"
+        ac={C.green}
+      >
+        <div style={{ color: C.textMid, fontSize: 13, marginBottom: 14, lineHeight: 1.5 }}>
+          La venta se registra y se descuenta el inventario solo cuando confirmas que el dinero ya está en caja.
+        </div>
+        <div style={{ background: C.greenDim, border: `1px solid ${C.green}30`, borderRadius: 10, padding: "12px 14px", marginBottom: 16 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 13 }}>
+            <span style={{ color: C.textMid }}>Total</span>
+            <strong style={{ color: C.text }}>{$(total)}</strong>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 13 }}>
+            <span style={{ color: C.textMid }}>Recibido</span>
+            <strong style={{ color: C.text }}>{Number.isFinite(recibidoNum) ? $(recibidoNum) : "—"}</strong>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 15 }}>
+            <span style={{ color: C.textMid }}>Cambio</span>
+            <strong style={{ color: C.green, fontWeight: 900 }}>{cambioNum != null ? $(cambioNum) : "—"}</strong>
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
+          <Btn ol col={C.textMid} sm onClick={() => setModalConfirmEfectivo(false)} dis={guardando}>Aún no</Btn>
+          <Btn col={C.green} onClick={() => ejecutarCobrar(recetaOrigenEfectivoRef.current)} dis={guardando}>{guardando ? "Registrando…" : "Sí, registrar venta"}</Btn>
         </div>
       </Modal>
 
@@ -2293,9 +2374,17 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
             </div>
             )}
             <div style={{display:"flex",gap:8,marginBottom:12,alignItems:"center",flexWrap: isNarrow ? "wrap" : "nowrap"}}>
-              <div ref={srchWrapRef} style={{flex:1,minWidth:0,position:"relative"}}>
-              <input ref={srchRef} className="farmacapital-pos-srch farmacapital-field-input" value={srch}
+              <form ref={srchWrapRef} onSubmit={(e)=>{ e.preventDefault(); e.stopPropagation(); }} style={{flex:1,minWidth:0,position:"relative"}}>
+              <input ref={(el)=>{ srchRef.current = el; }} className="farmacapital-pos-srch farmacapital-field-input" value={srch}
                 data-tour="pos-buscador"
+                inputMode="text"
+                enterKeyHint="enter"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
+                onTouchStart={(e)=>unlockInputForTouchKeyboard(e.currentTarget)}
+                onMouseDown={(e)=>unlockInputForTouchKeyboard(e.currentTarget)}
                 onChange={e=>{
                   const v = e.target.value;
                   setSrch(v);
@@ -2314,10 +2403,14 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                   }
                 }}
                 onFocus={(e)=>{
+                  unlockInputForTouchKeyboard(e.currentTarget);
                   if (isAllDigitsInput(srch)) e.target.select();
                   else if (!isAllDigitsInput(srch)) setSrchFocus(true);
                 }}
-                onBlur={()=>setTimeout(()=>setSrchFocus(false),200)}
+                onBlur={(e)=>{
+                  lockInputAfterTouchKeyboard(e.currentTarget);
+                  setTimeout(()=>setSrchFocus(false),200);
+                }}
                 onKeyDown={e=>{
                   if (e.key.length === 1 && /\d/.test(e.key)) {
                     const now = Date.now();
@@ -2332,36 +2425,29 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                     scanLastKeyTsRef.current = now;
                   }
                   if(e.key==="Enter"){
+                    e.preventDefault();
+                    e.stopPropagation();
                     const raw = normalizeBarcodeRaw(srch) || srch.trim();
-                    const exact = findProductExactScan(productos, raw);
-                    if(exact){
-                      finalizarEscaneoExitoso(exact, raw);
-                      e.preventDefault();
-                    }
-                    else if(looksLikeBarcodeInput(raw)){
-                      showToast("Código de barras no encontrado en inventario.","warning");
-                      setSrch("");
-                      e.preventDefault();
-                    }
-                    else if(srchSuggestions.length>0){
-                      const hit=productos.find(x=>x.id===srchSuggestions[0].id);
-                      if(hit){
-                        setFichaProd(hit);
-                        const fifo=getStockFifoDisponible(hit);
-                        if(!hit.venta_unidad&&fifo<=0){showToast(`"${hit.nombre}" no tiene lotes registrados. Ve a Inventario → Lotes para agregarlo.`,"warning");}
-                        else{add(hit,false);setSrch("");setFichaProd(null);setSrchFocus(false);}
-                        e.preventDefault();
+                    if (!raw) return;
+                    // Nombre ("levo") nunca se trata como escaneo: no agrega ni borra.
+                    if (looksLikeBarcodeInput(raw) || looksLikeInternalSku(raw)) {
+                      const exact = findProductExactScan(productos, raw);
+                      if (exact) {
+                        finalizarEscaneoExitoso(exact, raw);
+                        return;
                       }
+                      if (looksLikeBarcodeInput(raw)) {
+                        showToast("Código de barras no encontrado en inventario.","warning");
+                        setSrch("");
+                      }
+                      return;
                     }
-                    else if(fil.length>0){
-                      setFichaProd(fil[0]);
-                      e.preventDefault();
-                    }
+                    setSrchFocus(false);
                   }
                   if(e.key==="Escape"){setSrchFocus(false);}
                 }}
-                placeholder="🔫 Código de barras, SKU o nombre · Enter agrega · flechas en resultados"
-                style={{width:"100%",boxSizing:"border-box",padding: srch.trim() ? "9px 38px 9px 13px" : "9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:"#ffffff",color:C.text,WebkitTextFillColor:C.text,caretColor:C.text,colorScheme:"light",fontSize:isMobilePos?16:13,outline:"none",fontFamily:"var(--fc-body)"}}/>
+                placeholder="🔫 Código de barras, SKU o nombre · Enter muestra resultados"
+                style={{width:"100%",boxSizing:"border-box",padding: srch.trim() ? "9px 38px 9px 13px" : "9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:"#ffffff",color:C.text,WebkitTextFillColor:C.text,caretColor:C.text,colorScheme:"light",fontSize:isNarrow?16:13,outline:"none",fontFamily:"var(--fc-body)",touchAction:"manipulation",minHeight:44}}/>
               {srch.trim() && (
                 <button
                   type="button"
@@ -2421,7 +2507,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                   })}
                 </div>
               )}
-              </div>
+              </form>
               {!isMobilePos && (
               <button onClick={()=>setCartOpen(p=>!p)} style={{
                 padding:"9px 14px",borderRadius:8,border:`1px solid ${C.border}`,
@@ -2442,6 +2528,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
               onAbrirCaja={abrirCaja}
               getStockCajasPOS={getStockCajasPOS}
               productoSinLotesPEPS={productoSinLotesPEPS}
+              enCarrito={fichaProd ? getCantidadEnCarrito(cart, fichaProd.id, false) : 0}
+              stockFifo={fichaProd ? getStockFifoDisponible(fichaProd) : 0}
               C={C}
               isMobilePos={isMobilePos}
               isNarrow={isNarrow}
@@ -2515,9 +2603,9 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                         opacity: noDisp ? 0.72 : 1,
                       }}
                     >
-                      <div style={{ width: 44, height: 44, borderRadius: 8, overflow: "hidden", background: C.cardDark, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <div style={{ width: 44, height: 44, borderRadius: 8, overflow: "hidden", background: "#fff", border: `1px solid ${C.border}`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
                         {thumb ? (
-                          <img src={thumb} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          <img src={thumb} alt="" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
                         ) : (
                           <span style={{ fontSize: 20 }}>💊</span>
                         )}

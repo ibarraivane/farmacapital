@@ -20,6 +20,11 @@ export function looksLikeBarcodeInput(raw) {
   return t.length >= 8 && /^\d+$/.test(t);
 }
 
+/** SKU interno (FC-…, EQ-…, FMX-…). No es búsqueda por nombre. */
+export function looksLikeInternalSku(raw) {
+  return /^(FC|EQ|FMX)[-_]/i.test(String(raw || "").trim());
+}
+
 /** Coincidencia flexible EAN-13 / UPC-A (pistola vs BD con dígito extra). */
 export function barcodeDigitsMatch(scanRaw, storedRaw) {
   const scan = normalizeBarcodeRaw(scanRaw);

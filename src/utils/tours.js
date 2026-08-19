@@ -17,7 +17,7 @@ export const TOURS = {
         target: '[data-tour="pos-buscador"]',
         title: "1. Busca productos",
         content:
-          "Escanea el código de barras de la caja con la pistola USB, o escribe SKU/nombre. Enter agrega al carrito al instante.",
+          "Escanea el código de barras de la caja con la pistola USB, o escribe SKU/nombre. Enter muestra la lista; eliges el producto tocando la fila.",
         placement: "bottom",
         disableBeacon: true,
       },
