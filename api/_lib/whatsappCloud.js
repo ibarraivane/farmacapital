@@ -96,6 +96,70 @@ function normalizeTemplateParams(params) {
   });
 }
 
+const TEMPLATE_LIST_FIELDS = 'name,language,status,category,parameter_format,components';
+
+function templateComponents(row) {
+  return Array.isArray(row?.components) ? row.components : [];
+}
+
+function findBodyComponent(components) {
+  return components.find((c) => String(c?.type || '').toUpperCase() === 'BODY') || null;
+}
+
+/** Placeholders en orden de aparición: {{1}} o {{folio}}. */
+function extractBodyPlaceholders(text) {
+  const src = String(text || '');
+  const names = [];
+  const re = /\{\{([^}]+)\}\}/g;
+  let match = re.exec(src);
+  while (match) {
+    names.push(String(match[1]).trim());
+    match = re.exec(src);
+  }
+  return names;
+}
+
+function templateHasUrlButton(components) {
+  for (const c of components) {
+    if (String(c?.type || '').toUpperCase() !== 'BUTTONS') continue;
+    const buttons = Array.isArray(c?.buttons) ? c.buttons : [];
+    if (buttons.some((b) => String(b?.type || '').toUpperCase() === 'URL')) return true;
+  }
+  return false;
+}
+
+function isNamedParameterFormat(fmt) {
+  return String(fmt || '').trim().toUpperCase() === 'NAMED';
+}
+
+/**
+ * Meta POSITIONAL → solo { type, text } en orden.
+ * Meta NAMED → cada parámetro lleva parameter_name (ej. folio, total).
+ */
+function buildTemplateBodyParameters(params, { parameterFormat, bodyPlaceholders } = {}) {
+  const normalized = normalizeTemplateParams(params);
+  if (!isNamedParameterFormat(parameterFormat)) return normalized;
+
+  const placeholders = Array.isArray(bodyPlaceholders) ? bodyPlaceholders : [];
+  return normalized.map((item, idx) => {
+    const name = placeholders[idx];
+    if (!name || /^\d+$/.test(name)) return item;
+    return { ...item, parameter_name: name };
+  });
+}
+
+function readTemplateMeta(row) {
+  const components = templateComponents(row);
+  const body = findBodyComponent(components);
+  const bodyPlaceholders = extractBodyPlaceholders(body?.text || '');
+  return {
+    parameterFormat: String(row?.parameter_format || 'POSITIONAL').trim() || 'POSITIONAL',
+    bodyPlaceholders,
+    bodyParamCount: bodyPlaceholders.length,
+    hasUrlButton: templateHasUrlButton(components),
+  };
+}
+
 function resolveWhatsAppProvider() {
   const pref = trimEnv('WHATSAPP_PROVIDER').toLowerCase();
   if (pref === 'twilio') return 'twilio';
@@ -207,7 +271,7 @@ async function fetchWabaMessageTemplates({ wabaId, token, graphVersion }) {
   let after = '';
   for (let page = 0; page < 5; page += 1) {
     const qs = new URLSearchParams({
-      fields: 'name,language,status,category',
+      fields: TEMPLATE_LIST_FIELDS,
       limit: '100',
     });
     if (after) qs.set('after', after);
@@ -278,6 +342,7 @@ async function resolveTemplateOnWaba({ wabaId, templateName, token, graphVersion
       'es_MX',
       'es',
     ].filter(Boolean))];
+    const meta = readTemplateMeta(preferred);
 
     return {
       ok: true,
@@ -286,6 +351,7 @@ async function resolveTemplateOnWaba({ wabaId, templateName, token, graphVersion
       status: preferred?.status || null,
       wabaId: waba,
       available: availableByWaba[waba] || [],
+      ...meta,
     };
   }
 
@@ -529,17 +595,38 @@ async function sendWhatsAppTemplate({
     }));
   }
 
+  const parameterFormat = resolved.ok ? (resolved.parameterFormat || 'POSITIONAL') : 'POSITIONAL';
+  const bodyPlaceholders = resolved.ok ? (resolved.bodyPlaceholders || []) : [];
+  const templateHasButton = resolved.ok ? Boolean(resolved.hasUrlButton) : false;
+
   const components = [];
   const headerParams = normalizeTemplateParams(headerParameters);
-  const bodyParams = normalizeTemplateParams(bodyParameters);
+  const bodyParams = buildTemplateBodyParameters(bodyParameters, {
+    parameterFormat,
+    bodyPlaceholders,
+  });
   if (headerParams.length) {
     components.push({ type: 'header', parameters: headerParams });
   }
   if (bodyParams.length) {
+    if (bodyPlaceholders.length && bodyParams.length !== bodyPlaceholders.length) {
+      console.warn('[whatsapp] body param count mismatch', JSON.stringify({
+        template: sendName,
+        expected: bodyPlaceholders.length,
+        sent: bodyParams.length,
+        parameterFormat,
+      }));
+    }
     components.push({ type: 'body', parameters: bodyParams });
   }
   const urlSuffix = String(buttonUrlSuffix || '').trim();
-  if (urlSuffix && tplCfg.pedidoUrlButton) {
+  const sendUrlButton = urlSuffix && tplCfg.pedidoUrlButton && templateHasButton;
+  if (urlSuffix && tplCfg.pedidoUrlButton && !templateHasButton) {
+    console.warn('[whatsapp] skip url button — template has no URL button', JSON.stringify({
+      template: sendName,
+    }));
+  }
+  if (sendUrlButton) {
     components.push({
       type: 'button',
       sub_type: 'url',
