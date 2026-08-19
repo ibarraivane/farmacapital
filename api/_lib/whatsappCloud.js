@@ -89,6 +89,7 @@ function normalizeTemplateParams(params) {
   return params.map((p) => {
     let text = String(p ?? '').trim();
     if (!text) text = '—';
+    text = text.replace(/\r?\n+/g, ' ');
     return {
       type: 'text',
       text: text.slice(0, 1024),
@@ -134,7 +135,7 @@ function isNamedParameterFormat(fmt) {
 
 /**
  * Meta POSITIONAL → solo { type, text } en orden.
- * Meta NAMED → cada parámetro lleva parameter_name (ej. folio, total).
+ * Meta NAMED → cada parámetro lleva parameter_name ("1", "folio", etc.).
  */
 function buildTemplateBodyParameters(params, { parameterFormat, bodyPlaceholders } = {}) {
   const normalized = normalizeTemplateParams(params);
@@ -142,9 +143,83 @@ function buildTemplateBodyParameters(params, { parameterFormat, bodyPlaceholders
 
   const placeholders = Array.isArray(bodyPlaceholders) ? bodyPlaceholders : [];
   return normalized.map((item, idx) => {
-    const name = placeholders[idx];
-    if (!name || /^\d+$/.test(name)) return item;
+    const name = placeholders[idx] || String(idx + 1);
     return { ...item, parameter_name: name };
+  });
+}
+
+function buildTemplateSendComponents({
+  headerParameters,
+  bodyParameters,
+  parameterFormat,
+  bodyPlaceholders,
+  buttonUrlSuffix,
+  sendUrlButton,
+  buttonIndex = '0',
+  templateName = '',
+} = {}) {
+  const components = [];
+  const headerParams = normalizeTemplateParams(headerParameters);
+  const bodyParams = buildTemplateBodyParameters(bodyParameters, {
+    parameterFormat,
+    bodyPlaceholders,
+  });
+  if (headerParams.length) {
+    components.push({ type: 'header', parameters: headerParams });
+  }
+  if (bodyParams.length) {
+    if (bodyPlaceholders.length && bodyParams.length !== bodyPlaceholders.length) {
+      console.warn('[whatsapp] body param count mismatch', JSON.stringify({
+        template: templateName,
+        expected: bodyPlaceholders.length,
+        sent: bodyParams.length,
+        parameterFormat,
+      }));
+    }
+    components.push({ type: 'body', parameters: bodyParams });
+  }
+  const urlSuffix = String(buttonUrlSuffix || '').trim();
+  if (sendUrlButton && urlSuffix) {
+    components.push({
+      type: 'button',
+      sub_type: 'url',
+      index: String(buttonIndex),
+      parameters: [{ type: 'text', text: urlSuffix.slice(0, 2000) }],
+    });
+  }
+  return components;
+}
+
+/** Estrategias de envío: POSITIONAL primero; si Meta responde 132018, reintenta NAMED. */
+function templateSendStrategies({ parameterFormat, bodyPlaceholders, bodyParamCount }) {
+  const placeholders = Array.isArray(bodyPlaceholders) ? bodyPlaceholders : [];
+  const count = placeholders.length || Number(bodyParamCount) || 0;
+  const fallbackNames = count > 0
+    ? Array.from({ length: count }, (_, i) => String(i + 1))
+    : [];
+
+  const strategies = [];
+  const primary = String(parameterFormat || 'POSITIONAL').trim().toUpperCase() || 'POSITIONAL';
+  strategies.push({
+    format: primary,
+    placeholders: placeholders.length ? placeholders : fallbackNames,
+  });
+
+  if (primary !== 'NAMED') {
+    strategies.push({
+      format: 'NAMED',
+      placeholders: placeholders.length ? placeholders : fallbackNames,
+    });
+  } else if (primary === 'NAMED' && !placeholders.length && fallbackNames.length) {
+    strategies.push({ format: 'NAMED', placeholders: fallbackNames });
+  }
+
+  const seen = new Set();
+  return strategies.filter((s) => {
+    const key = `${s.format}:${s.placeholders.join(',')}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return s.placeholders.length > 0 || s.format === 'POSITIONAL';
   });
 }
 
@@ -597,28 +672,8 @@ async function sendWhatsAppTemplate({
 
   const parameterFormat = resolved.ok ? (resolved.parameterFormat || 'POSITIONAL') : 'POSITIONAL';
   const bodyPlaceholders = resolved.ok ? (resolved.bodyPlaceholders || []) : [];
+  const bodyParamCount = resolved.ok ? (resolved.bodyParamCount || bodyPlaceholders.length) : 0;
   const templateHasButton = resolved.ok ? Boolean(resolved.hasUrlButton) : false;
-
-  const components = [];
-  const headerParams = normalizeTemplateParams(headerParameters);
-  const bodyParams = buildTemplateBodyParameters(bodyParameters, {
-    parameterFormat,
-    bodyPlaceholders,
-  });
-  if (headerParams.length) {
-    components.push({ type: 'header', parameters: headerParams });
-  }
-  if (bodyParams.length) {
-    if (bodyPlaceholders.length && bodyParams.length !== bodyPlaceholders.length) {
-      console.warn('[whatsapp] body param count mismatch', JSON.stringify({
-        template: sendName,
-        expected: bodyPlaceholders.length,
-        sent: bodyParams.length,
-        parameterFormat,
-      }));
-    }
-    components.push({ type: 'body', parameters: bodyParams });
-  }
   const urlSuffix = String(buttonUrlSuffix || '').trim();
   const sendUrlButton = urlSuffix && tplCfg.pedidoUrlButton && templateHasButton;
   if (urlSuffix && tplCfg.pedidoUrlButton && !templateHasButton) {
@@ -626,13 +681,32 @@ async function sendWhatsAppTemplate({
       template: sendName,
     }));
   }
-  if (sendUrlButton) {
-    components.push({
-      type: 'button',
-      sub_type: 'url',
-      index: String(buttonIndex),
-      parameters: [{ type: 'text', text: urlSuffix.slice(0, 2000) }],
+
+  const paramCount = Array.isArray(bodyParameters) ? bodyParameters.length : 0;
+  const strategies = templateSendStrategies({
+    parameterFormat,
+    bodyPlaceholders,
+    bodyParamCount: bodyParamCount || paramCount,
+  });
+  if (!strategies.length && paramCount > 0) {
+    strategies.push({
+      format: 'POSITIONAL',
+      placeholders: Array.from({ length: paramCount }, (_, i) => String(i + 1)),
     });
+    strategies.push({
+      format: 'NAMED',
+      placeholders: Array.from({ length: paramCount }, (_, i) => String(i + 1)),
+    });
+  }
+
+  if (resolved.ok) {
+    console.log('[whatsapp] template meta', JSON.stringify({
+      template: sendName,
+      parameterFormat,
+      bodyPlaceholders,
+      bodyParamCount,
+      strategies: strategies.map((s) => s.format),
+    }));
   }
 
   const cfgLang = normalizeTemplateLanguage(languageCode || tplCfg.language);
@@ -644,75 +718,103 @@ async function sendWhatsAppTemplate({
   let lastResult = null;
   for (const toE164 of candidates) {
     for (const lang of [...new Set(langCandidates)]) {
-      const payload = {
-        messaging_product: 'whatsapp',
-        to: toE164,
-        type: 'template',
-        template: {
-          name: sendName,
-          language: { code: lang },
-        },
-      };
-      if (components.length) {
-        payload.template.components = components;
-      }
+      for (const strategy of strategies) {
+        const components = buildTemplateSendComponents({
+          headerParameters,
+          bodyParameters,
+          parameterFormat: strategy.format,
+          bodyPlaceholders: strategy.placeholders,
+          buttonUrlSuffix: urlSuffix,
+          sendUrlButton,
+          buttonIndex,
+          templateName: sendName,
+        });
 
-      const resp = await fetch(graphUrl(`${encodeURIComponent(fromId)}/messages`, graphVersion), {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
+        const payload = {
+          messaging_product: 'whatsapp',
+          to: toE164,
+          type: 'template',
+          template: {
+            name: sendName,
+            language: { code: lang },
+          },
+        };
+        if (components.length) {
+          payload.template.components = components;
+        }
 
-      let data = null;
-      try {
-        data = await resp.json();
-      } catch {
-        data = null;
-      }
+        const resp = await fetch(graphUrl(`${encodeURIComponent(fromId)}/messages`, graphVersion), {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
 
-      if (resp.ok) {
-        const parsed = parseMetaSendSuccess(data, toE164);
-        if (!parsed.sent) {
-          lastResult = {
+        let data = null;
+        try {
+          data = await resp.json();
+        } catch {
+          data = null;
+        }
+
+        if (resp.ok) {
+          const parsed = parseMetaSendSuccess(data, toE164);
+          if (!parsed.sent) {
+            lastResult = {
+              ...parsed,
+              reason: 'meta_template_error',
+              status: resp.status,
+              language: lang,
+              parameterFormat: strategy.format,
+            };
+            break;
+          }
+          return {
             ...parsed,
-            reason: 'meta_template_error',
-            status: resp.status,
+            to: redactPhone(toE164),
+            template: sendName,
             language: lang,
+            parameterFormat: strategy.format,
+            phoneFormat: toE164.startsWith('521') ? '521' : '52',
           };
+        }
+
+        lastResult = {
+          sent: false,
+          reason: 'meta_template_error',
+          status: resp.status,
+          detail: sanitizeMetaError(data),
+          to: redactPhone(toE164),
+          language: lang,
+          parameterFormat: strategy.format,
+        };
+
+        const code = data?.error?.code;
+        const strategyIdx = strategies.indexOf(strategy);
+        if (code === 132018 && strategyIdx >= 0 && strategyIdx < strategies.length - 1) {
+          console.warn('[whatsapp] 132018 retry', JSON.stringify({
+            template: sendName,
+            tried: strategy.format,
+            next: strategies[strategyIdx + 1]?.format || null,
+          }));
+          continue;
+        }
+        if (code === 131030 || code === 131031) {
           break;
         }
-        return {
-          ...parsed,
-          to: redactPhone(toE164),
-          template: sendName,
-          language: lang,
-          phoneFormat: toE164.startsWith('521') ? '521' : '52',
-        };
+
+        const errBlob = String(sanitizeMetaError(data) || '').toLowerCase();
+        const languageMismatch =
+          errBlob.includes('language') ||
+          errBlob.includes('locale') ||
+          errBlob.includes('translation');
+        if (!languageMismatch) break;
       }
 
-      lastResult = {
-        sent: false,
-        reason: 'meta_template_error',
-        status: resp.status,
-        detail: sanitizeMetaError(data),
-        to: redactPhone(toE164),
-        language: lang,
-      };
-
-      const code = data?.error?.code;
-      if (code === 131030 || code === 131031) {
-        break;
-      }
-
-      const errBlob = String(sanitizeMetaError(data) || '').toLowerCase();
-      const languageMismatch =
-        errBlob.includes('language') ||
-        errBlob.includes('locale') ||
-        errBlob.includes('translation');
-      if (!languageMismatch) break;
+      const code = extractMetaErrorCode(lastResult?.detail);
+      if (code !== 131030 && code !== 131031) break;
     }
 
     const code = extractMetaErrorCode(lastResult?.detail);
@@ -972,7 +1074,16 @@ async function diagnoseWhatsAppTemplates() {
     templateLanguage: getWhatsAppTemplateConfig().language,
     pedidoConfirmado: getWhatsAppTemplateConfig().pedidoConfirmado,
     resolved: resolved.ok
-      ? { ok: true, name: resolved.name, languages: resolved.languages, status: resolved.status }
+      ? {
+        ok: true,
+        name: resolved.name,
+        languages: resolved.languages,
+        status: resolved.status,
+        parameterFormat: resolved.parameterFormat || null,
+        bodyPlaceholders: resolved.bodyPlaceholders || [],
+        bodyParamCount: resolved.bodyParamCount || 0,
+        hasUrlButton: Boolean(resolved.hasUrlButton),
+      }
       : { ok: false, reason: resolved.reason, detail: resolved.detail || null },
     templatesByWaba,
   };
