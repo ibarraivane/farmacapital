@@ -7,6 +7,7 @@ import {
   buildReferenciasPorProducto,
   dedupeReferenciasActuales,
   calcMejorCompra,
+  calcMejorTienda,
   fmtPrecioRef,
 } from "./lib/preciosReferencia";
 import { asignarPedidosPorTienda } from "./lib/asignarPedidosPorTienda";
@@ -96,6 +97,7 @@ export default function ReabastoModule() {
       return {
         ...enriched,
         stock: enriched.stock_peps,
+        mejorTienda: calcMejorTienda(refsByProduct[p.id]),
         mejorCompra: calcMejorCompra(p.costo, refsByProduct[p.id]),
       };
     });
@@ -176,10 +178,14 @@ export default function ReabastoModule() {
       return;
     }
     const hayLevic = ordenes.some((o) => /levic/i.test(o.proveedor || o.fuente || ""));
+    const resumen = ordenes
+      .filter((o) => o.fuente !== "_sin_tienda")
+      .map((o) => `${o.proveedor} ${o.productos.length}`)
+      .join(" · ");
     showToast(
       hayLevic
-        ? `${ordenes.length} pedido(s). También se bajó Pedido_Levic_portal.xlsx — cárgalo en Levic; llega mañana.`
-        : `${ordenes.length} pedido(s) · Excel listo`,
+        ? `${resumen}. Pedido_Levic_portal.xlsx es el que subes al portal (llega mañana).`
+        : (resumen || `${ordenes.length} pedido(s)`) + " · Excel listo",
       "success"
     );
   };
@@ -214,26 +220,21 @@ export default function ReabastoModule() {
   const inpS = {width:"70px",padding:"8px 8px",borderRadius:6,border:`1px solid ${C.border}`,fontSize:isMobile?16:12,textAlign:"center",outline:"none"};
 
   const renderComprarEn = (p) => {
-    const mejor = p.mejorCompra;
-    if (mejor?.masBaratoQueTuCosto) {
-      return (
-        <div>
-          <div style={{fontWeight:800,color:C.green}}>{mejor.label}</div>
-          <div style={{fontSize:10,color:C.green,marginTop:2}}>
-            {fmtPrecioRef(mejor.precio)} · ahorras {fmtPrecioRef(mejor.ahorroVsTuCosto)}
-          </div>
-        </div>
-      );
+    const tienda = p.mejorTienda;
+    if (!tienda) {
+      return <span style={{color:C.textMid}}>Sin precio de tienda</span>;
     }
-    if (mejor && !mejor.esTuCosto) {
-      return (
-        <div>
-          <div style={{fontWeight:700,color:C.text}}>{mejor.label}</div>
-          <div style={{fontSize:10,color:C.textMid,marginTop:2}}>{fmtPrecioRef(mejor.precio)}</div>
+    const costo = Number(p.costo) || 0;
+    const ahorra = costo > 0 && tienda.precio < costo - 0.01;
+    return (
+      <div>
+        <div style={{fontWeight:800,color:ahorra ? C.green : C.text}}>{tienda.label}</div>
+        <div style={{fontSize:10,color:ahorra ? C.green : C.textMid,marginTop:2}}>
+          {fmtPrecioRef(tienda.precio)}
+          {ahorra ? ` · ahorras ${fmtPrecioRef(costo - tienda.precio)}` : ""}
         </div>
-      );
-    }
-    return <span style={{color:C.textMid}}>{p.proveedor || "—"}</span>;
+      </div>
+    );
   };
 
   return (
@@ -242,8 +243,8 @@ export default function ReabastoModule() {
         <div>
           <h1 style={{color:C.text,fontSize:isMobile?18:20,fontWeight:800,margin:0}}>Reabasto</h1>
           <p style={{margin:"6px 0 0",color:C.textMid,fontSize:12,maxWidth:720,lineHeight:1.45}}>
-            Mismo catálogo que Inventario. El stock y la caducidad salen de Lotes PEPS.
-            Si un producto no tiene mínimo, se usa {STOCK_MIN_DEFAULT} piezas. «Comprar en» toma el más barato; Levic baja su plantilla del portal.
+            El documento arma un pedido por tienda: medicamento en Levic (plantilla del portal), higiene/abarrotes en Exprezo.
+            Scorpion u otra solo si el ahorro paga el viaje. «Comprar en» es dónde pides, no tu último costo.
           </p>
         </div>
         <div style={{display:"flex",flexDirection:isMobile?"column":"row",gap:8,width:isMobile?"100%":"auto"}}>
@@ -414,7 +415,7 @@ export default function ReabastoModule() {
           <div style={{display:"flex",flexDirection:"column",gap:16}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
               <div style={{color:C.textMid,fontSize:12,lineHeight:1.45,maxWidth:640}}>
-                Pedidos agrupados para no hacer viajes de más. Si hay Levic, se baja también <strong>Pedido_Levic_portal.xlsx</strong>: ese es el que subes al portal (llega mañana).
+                Una hoja por tienda. <strong>Pedido_Levic_portal.xlsx</strong> es solo código de barras + piezas: cárgalo en Levic y llega mañana. Exprezo y Scorpion salen como lista para pedir.
               </div>
               <button onClick={()=>descargarPedidosWorkbook(ordenesEnv)}
                 style={{padding:"8px 14px",borderRadius:8,border:"none",background:BRAND.gradient,color:"#fff",fontWeight:700,fontSize:12,cursor:"pointer"}}>

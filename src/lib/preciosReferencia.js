@@ -3,7 +3,7 @@
  * Espejo simplificado de scripts/pricing_preview.py (classify + piso de margen).
  */
 
-export const FUENTES_COMPRA = ["exprezo", "marzam", "nadro", "levic", "otros_compra"];
+export const FUENTES_COMPRA = ["exprezo", "marzam", "nadro", "levic", "scorpion", "abarrotero", "mayoreototal", "otros_compra"];
 export const FUENTES_VENTA = ["fahorro", "similares", "otros_venta"];
 
 /** Fila tombstone al borrar una referencia manualmente (precio NOT NULL en BD). */
@@ -81,6 +81,9 @@ export const FUENTE_META = {
   marzam: { label: "Marzam", tipo: "compra", listaDistribuidor: true },
   nadro: { label: "Nadro", tipo: "compra", listaDistribuidor: true },
   levic: { label: "Levic", tipo: "compra", listaDistribuidor: false },
+  scorpion: { label: "Scorpion", tipo: "compra", listaDistribuidor: false },
+  abarrotero: { label: "Abarrotero", tipo: "compra", listaDistribuidor: false },
+  mayoreototal: { label: "MayoreoTotal", tipo: "compra", listaDistribuidor: false },
   otros_compra: {
     label: "Otros",
     tipo: "compra",
@@ -228,6 +231,25 @@ export function refsVentaDeProducto(refsMap) {
     if (row?.precio != null) out[id] = parseFloat(row.precio);
   }
   return out;
+}
+
+/** Tiendas B2B con precio, de más barata a más cara. Nunca incluye «tu costo». */
+export function opcionesTiendaCompra(refsMap) {
+  return Object.entries(refsCompraDeProducto(refsMap))
+    .filter(([, precio]) => Number.isFinite(precio) && precio > 0)
+    .map(([id, precio]) => ({
+      fuente: id,
+      label: FUENTE_META[id]?.label || id,
+      precio,
+    }))
+    .sort((a, b) => a.precio - b.precio);
+}
+
+/** Dónde pedir: la tienda más barata. El resurtido usa esto, no el último costo. */
+export function calcMejorTienda(refsMap) {
+  const opciones = opcionesTiendaCompra(refsMap);
+  if (!opciones.length) return null;
+  return { ...opciones[0], opciones };
 }
 
 /**
