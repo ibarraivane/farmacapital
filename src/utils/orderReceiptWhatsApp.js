@@ -79,9 +79,10 @@ export function formatWhatsAppSendError({ reason, detail, telefono } = {}) {
     if (code === 132018) {
       return (
         "Meta rechazó los parámetros de la plantilla (error 132018). " +
-        "Abre pedido_confirmado en WhatsApp Manager y confirma que el cuerpo tiene exactamente {{1}}, {{2}}, {{3}} y {{4}}. " +
-        "En Vercel borra WHATSAPP_TEMPLATE_PEDIDO_URL_BUTTON si existe (debe estar vacía o false). " +
-        "El total va sin signo $ (ej. 143.00) porque el $ ya está en la plantilla."
+        "En WhatsApp Manager confirma Tipo de variable **Número** (no Nombre), cuerpo con {{1}}–{{4}}, sin botones. " +
+        "Si la plantilla se creó antes con Nombre, bórrala y créala de nuevo con Número. " +
+        "En Vercel borra WHATSAPP_TEMPLATE_PEDIDO_URL_BUTTON si existe. " +
+        "El total va sin $ (ej. 143.00) porque el $ ya está en la plantilla."
       );
     }
     if (code === 132000 || code === 132001 || code === 132005) {
