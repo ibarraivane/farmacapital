@@ -7,7 +7,7 @@ import { supabase } from "../../../supabase";
 import { C_LIGHT, BRAND } from "../../../constants";
 import { $, logAudit, soloDigitosTel, telefonosMxEquivalentes, normalizeForSearch } from "../../../utils";
 import { tiendaProductMatchesBusqueda, tiendaCatalogSearchSuggestions, tiendaSearchRelevanceRank } from "../../../utils/fuzzySearch";
-import { findProductExactScan, looksLikeBarcodeInput, isAllDigitsInput, normalizeBarcodeRaw, shouldReplaceScanInput } from "../../../utils/barcodeProductLookup";
+import { findProductExactScan, looksLikeBarcodeInput, looksLikeInternalSku, isAllDigitsInput, normalizeBarcodeRaw, shouldReplaceScanInput } from "../../../utils/barcodeProductLookup";
 import { posTituloProducto, posSubtituloProducto } from "../../../utils/posProductDisplay";
 import { precioUnidadParaVenta } from "../../../utils/precioUnidad";
 import { productoEsVendible } from "../../../utils/productoVendible";
@@ -171,7 +171,7 @@ function PosProductoFichaPanel({
           </div>
           <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55, color: C.textMid }}>
             La ficha aparece aquí: foto grande, presentación, forma farmacéutica y para qué se usa normalmente.
-            Enter en el buscador agrega al carrito.
+            Enter en el buscador muestra todos los resultados.
           </p>
         </div>
       </div>
@@ -2332,35 +2332,27 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                     scanLastKeyTsRef.current = now;
                   }
                   if(e.key==="Enter"){
+                    e.preventDefault();
+                    e.stopPropagation();
                     const raw = normalizeBarcodeRaw(srch) || srch.trim();
-                    const exact = findProductExactScan(productos, raw);
-                    if(exact){
-                      finalizarEscaneoExitoso(exact, raw);
-                      e.preventDefault();
-                    }
-                    else if(looksLikeBarcodeInput(raw)){
-                      showToast("Código de barras no encontrado en inventario.","warning");
-                      setSrch("");
-                      e.preventDefault();
-                    }
-                    else if(srchSuggestions.length>0){
-                      const hit=productos.find(x=>x.id===srchSuggestions[0].id);
-                      if(hit){
-                        setFichaProd(hit);
-                        const fifo=getStockFifoDisponible(hit);
-                        if(!hit.venta_unidad&&fifo<=0){showToast(`"${hit.nombre}" no tiene lotes registrados. Ve a Inventario → Lotes para agregarlo.`,"warning");}
-                        else{add(hit,false);setSrch("");setFichaProd(null);setSrchFocus(false);}
-                        e.preventDefault();
+                    if (!raw) return;
+                    if (looksLikeBarcodeInput(raw) || looksLikeInternalSku(raw)) {
+                      const exact = findProductExactScan(productos, raw);
+                      if (exact) {
+                        finalizarEscaneoExitoso(exact, raw);
+                        return;
                       }
+                      if (looksLikeBarcodeInput(raw)) {
+                        showToast("Código de barras no encontrado en inventario.","warning");
+                        setSrch("");
+                      }
+                      return;
                     }
-                    else if(fil.length>0){
-                      setFichaProd(fil[0]);
-                      e.preventDefault();
-                    }
+                    setSrchFocus(false);
                   }
                   if(e.key==="Escape"){setSrchFocus(false);}
                 }}
-                placeholder="🔫 Código de barras, SKU o nombre · Enter agrega · flechas en resultados"
+                placeholder="🔫 Código de barras, SKU o nombre · Enter muestra resultados"
                 style={{width:"100%",boxSizing:"border-box",padding: srch.trim() ? "9px 38px 9px 13px" : "9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:"#ffffff",color:C.text,WebkitTextFillColor:C.text,caretColor:C.text,colorScheme:"light",fontSize:isMobilePos?16:13,outline:"none",fontFamily:"var(--fc-body)"}}/>
               {srch.trim() && (
                 <button
