@@ -324,22 +324,60 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
   const abrirEditar = (p) => {
     setModalEdit(p);
     const mp = p.metodo_pago === "spei" || p.metodo_pago === "mercadopago" ? "tarjeta" : (p.metodo_pago || "efectivo");
-    setEditForm({ estado: p.estado || "", metodo_pago: mp, notas: p.notas || "" });
+    setEditForm({
+      estado: p.estado || "completado",
+      metodo_pago: mp,
+      notas: p.notas || "",
+      referencia: p.referencia || "",
+      monto_servicio: p.monto_servicio != null ? String(p.monto_servicio) : "",
+      comision: p.comision != null ? String(p.comision) : "",
+    });
+  };
+
+  const guardarPagoServicioAdmin = async (action, extra = {}) => {
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    if (!tok) throw new Error("Sesión expirada");
+    const resp = await fetch("/api/inventarioProcesarPdf?type=pago-servicio", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-session-token": tok },
+      body: JSON.stringify({ session_token: tok, action, ...extra }),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok || !data?.ok) {
+      throw new Error(data?.error || "No se pudo guardar la recarga");
+    }
+    return data;
   };
 
   const guardarEditar = async () => {
     setSaving(true);
     const tok = sessionStorage.getItem("farmacapital_session_token");
-    const { error } = await supabase.rpc("admin_editar_pedido", {
-      p_session_token: tok,
-      p_pedido_id: modalEditar.id,
-      p_estado: editForm.estado,
-      p_metodo_pago: editForm.metodo_pago,
-      p_notas: editForm.notas || null,
-    });
-    setSaving(false); setModalEdit(null);
-    if (error) showToast("Error: "+error.message, "error");
-    fetchPedidos();
+    try {
+      if (esPagoServicio(modalEditar)) {
+        await guardarPagoServicioAdmin("editar", {
+          id: modalEditar.servicioId,
+          metodo_pago: editForm.metodo_pago,
+          notas: editForm.notas || null,
+          referencia: editForm.referencia,
+          monto_servicio: editForm.monto_servicio,
+          comision: editForm.comision,
+        });
+      } else {
+        const { error } = await supabase.rpc("admin_editar_pedido", {
+          p_session_token: tok,
+          p_pedido_id: modalEditar.id,
+          p_estado: editForm.estado,
+          p_metodo_pago: editForm.metodo_pago,
+          p_notas: editForm.notas || null,
+        });
+        if (error) throw error;
+      }
+      setModalEdit(null);
+      fetchPedidos();
+    } catch (e) {
+      showToast("Error: " + (e.message || e), "error");
+    }
+    setSaving(false);
   };
 
   const cancelarPed = async (p) => {
@@ -361,6 +399,18 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
   const eliminarPed = async (p) => {
     if (!showConfirm) {
       showToast("Diálogo de confirmación no disponible.", "error");
+      return;
+    }
+    if (esPagoServicio(p)) {
+      showConfirm("Eliminar recarga", `¿Eliminar ${p.folio || "esta recarga"}? No se puede deshacer.`, async () => {
+        try {
+          await guardarPagoServicioAdmin("eliminar", { id: p.servicioId });
+          fetchPedidos();
+          showToast(`${p.folio} eliminada.`, "info");
+        } catch (e) {
+          showToast("Error: " + (e.message || e), "error");
+        }
+      }, true);
       return;
     }
     showConfirm("Eliminar pedido", `¿Eliminar el pedido #${p.id}? Se restaurará el stock y esta acción NO se puede deshacer.`, async () => {
@@ -514,11 +564,11 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                         disabled: loadingReprint,
                         children: "🖨️",
                       })}
+                      </>}
                       {usuario?.rol === "admin" && <>
                         {btnAccionIcono({ col: C.amber, bg: "#fef3c7", border: `${C.amber}30`, title: "Editar", onClick: () => abrirEditar(p), children: "✏️" })}
-                        {p.estado !== "cancelado" && btnAccionIcono({ col: C.textMid, bg: "#f1f5f9", border: "#94a3b830", title: "Cancelar pedido", onClick: () => cancelarPed(p), children: "❌" })}
+                        {!esPagoServicio(p) && p.estado !== "cancelado" && btnAccionIcono({ col: C.textMid, bg: "#f1f5f9", border: "#94a3b830", title: "Cancelar pedido", onClick: () => cancelarPed(p), children: "❌" })}
                         {btnAccionIcono({ col: C.red, bg: "#fee2e2", border: `${C.red}30`, title: "Eliminar", onClick: () => eliminarPed(p), children: "🗑️" })}
-                      </>}
                       </>}
                     </div>
                   </td>
@@ -703,9 +753,12 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
         <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,.45)", backdropFilter: "blur(4px)", zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }} onClick={(e) => e.target === e.currentTarget && setModalEdit(null)}>
           <div style={{ background: C.card, borderRadius: 14, width: "min(440px,95vw)", padding: 24, boxShadow: "0 20px 60px rgba(0,82,204,.15)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-              <h3 style={{ margin: 0, color: C.text, fontSize: 15, fontWeight: 800 }}>✏️ Editar — Pedido #{modalEditar.id}</h3>
+              <h3 style={{ margin: 0, color: C.text, fontSize: 15, fontWeight: 800 }}>
+                ✏️ Editar — {esPagoServicio(modalEditar) ? (modalEditar.folio || "Recarga") : `Pedido #${modalEditar.id}`}
+              </h3>
               <button type="button" onClick={() => setModalEdit(null)} style={{ background: "none", border: "none", color: C.textMid, fontSize: 20, cursor: "pointer" }}>✕</button>
             </div>
+            {!esPagoServicio(modalEditar) && (
             <div style={{ marginBottom: 12 }}>
               <label style={{ color: C.textMid, fontSize: 10, fontWeight: 700, display: "block", marginBottom: 4 }}>ESTADO</label>
               <select value={editForm.estado} onChange={(e) => setEditForm((f) => ({ ...f, estado: e.target.value }))} style={{ width: "100%", padding: "8px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: C.card, color: C.text, fontSize: 12, outline: "none" }}>
@@ -714,6 +767,25 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                 <option value="cancelado">Cancelado</option>
               </select>
             </div>
+            )}
+            {esPagoServicio(modalEditar) && (
+              <>
+                <div style={{ marginBottom: 12 }}>
+                  <label style={{ color: C.textMid, fontSize: 10, fontWeight: 700, display: "block", marginBottom: 4 }}>REFERENCIA / TELÉFONO</label>
+                  <input value={editForm.referencia || ""} onChange={(e) => setEditForm((f) => ({ ...f, referencia: e.target.value }))} style={{ width: "100%", padding: "8px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: C.card, color: C.text, fontSize: 12, outline: "none", boxSizing: "border-box" }} />
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
+                  <div>
+                    <label style={{ color: C.textMid, fontSize: 10, fontWeight: 700, display: "block", marginBottom: 4 }}>MONTO RECARGA</label>
+                    <input value={editForm.monto_servicio || ""} onChange={(e) => setEditForm((f) => ({ ...f, monto_servicio: e.target.value }))} inputMode="decimal" style={{ width: "100%", padding: "8px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: C.card, color: C.text, fontSize: 12, outline: "none", boxSizing: "border-box" }} />
+                  </div>
+                  <div>
+                    <label style={{ color: C.textMid, fontSize: 10, fontWeight: 700, display: "block", marginBottom: 4 }}>COMISIÓN</label>
+                    <input value={editForm.comision || ""} onChange={(e) => setEditForm((f) => ({ ...f, comision: e.target.value }))} inputMode="decimal" style={{ width: "100%", padding: "8px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: C.card, color: C.text, fontSize: 12, outline: "none", boxSizing: "border-box" }} />
+                  </div>
+                </div>
+              </>
+            )}
             <div style={{ marginBottom: 12 }}>
               <label style={{ color: C.textMid, fontSize: 10, fontWeight: 700, display: "block", marginBottom: 4 }}>MÉTODO DE PAGO</label>
               <select value={editForm.metodo_pago} onChange={(e) => setEditForm((f) => ({ ...f, metodo_pago: e.target.value }))} style={{ width: "100%", padding: "8px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: C.card, color: C.text, fontSize: 12, outline: "none" }}>
