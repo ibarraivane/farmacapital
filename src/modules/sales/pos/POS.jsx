@@ -11,6 +11,7 @@ import { findProductExactScan, looksLikeBarcodeInput, looksLikeInternalSku, isAl
 import { posTituloProducto, posSubtituloProducto } from "../../../utils/posProductDisplay";
 import { precioUnidadParaVenta } from "../../../utils/precioUnidad";
 import { productoEsVendible } from "../../../utils/productoVendible";
+import { useHidBarcodeWedge } from "../../../hooks/useHidBarcodeWedge";
 import {
   suggestPosProductsLocal,
   posEsOtcConStock,
@@ -984,6 +985,22 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     lastScanBurstRef.current = { raw, ts: now };
     add(exact, false);
   }, [add]);
+
+  const onHidScan = useCallback((raw) => {
+    const exact = findProductExactScan(productos, raw);
+    if (exact) {
+      finalizarEscaneoExitoso(exact, raw);
+      return;
+    }
+    if (looksLikeBarcodeInput(raw)) {
+      showToast("Código de barras no encontrado en inventario.", "warning");
+    }
+  }, [productos, finalizarEscaneoExitoso]);
+
+  useHidBarcodeWedge({
+    enabled: tab === "venta" && !mpModal && !bbvaModal && !ticket,
+    onScan: onHidScan,
+  });
 
   useEffect(() => {
     if (tab !== "venta") return;
