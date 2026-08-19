@@ -1,12 +1,12 @@
 /**
- * Exporta pedidos de reabasto.
- * Levic: misma plantilla del portal (código de barras + piezas).
- * El resto: hoja usable para surtir a mano / WhatsApp / futuro portal.
+ * Exporta el resurtido en dos archivos:
+ * 1. Pedido_Levic_portal — plantilla del portal (código de barras + piezas). Ese se sube.
+ * 2. Pedido_otras_tiendas — todo lo que no va a Levic (Exprezo, Scorpion, etc.).
  */
 
 import * as XLSX from "xlsx";
 
-const esLevic = (orden) =>
+export const esLevic = (orden) =>
   String(orden.fuente || "").toLowerCase() === "levic" ||
   /levic/i.test(orden.proveedor || "");
 
@@ -19,6 +19,10 @@ function fechaArchivo() {
 function barcodeDe(p) {
   const raw = String(p.codigo_barras || p.barcode || "").replace(/\D/g, "");
   return raw || "";
+}
+
+function precioDe(p) {
+  return Number(p.precioUnit ?? p.mejorCompra?.precio ?? p.mejorTienda?.precio ?? p.costo ?? 0);
 }
 
 /** Hoja idéntica a /Downloads/plantilla_pedido.xlsx de Levic. */
@@ -39,26 +43,6 @@ export function hojaPlantillaLevic(productos) {
   return { aoa, sinCodigo };
 }
 
-function hojaGenerica(orden) {
-  return [
-    ["Pedir en", orden.proveedor],
-    ["Fecha", orden.fecha],
-    ["Líneas", orden.productos.length],
-    ["Total estimado", Number(orden.total.toFixed(2))],
-    [],
-    ["Código de barras", "SKU", "Producto", "Piezas", "Costo unit.", "Total", "Nota"],
-    ...orden.productos.map((p) => [
-      barcodeDe(p) || "",
-      p.sku || "",
-      p.nombre || "",
-      p.cantidadPedida,
-      Number((p.precioUnit ?? p.mejorCompra?.precio ?? p.costo ?? 0).toFixed(2)),
-      Number(((p.precioUnit ?? p.mejorCompra?.precio ?? p.costo ?? 0) * p.cantidadPedida).toFixed(2)),
-      p.motivoAgrupado || "",
-    ]),
-  ];
-}
-
 function descargarLibro(wb, nombre) {
   const out = XLSX.write(wb, { bookType: "xlsx", type: "array" });
   const blob = new Blob([out], {
@@ -71,65 +55,14 @@ function descargarLibro(wb, nombre) {
   URL.revokeObjectURL(a.href);
 }
 
-function nombreHoja(label, usados) {
-  let base = String(label || "Pedido").replace(/[:\\/?*[\]]/g, "").slice(0, 28) || "Pedido";
-  let name = base;
-  let n = 2;
-  while (usados.has(name)) {
-    name = `${base.slice(0, 26)}_${n++}`;
-  }
-  usados.add(name);
-  return name;
+function bajarConPausa(fn, ms) {
+  return new Promise((resolve) => {
+    fn();
+    setTimeout(resolve, ms);
+  });
 }
 
-/** Un xlsx: Resumen + una hoja por tienda + Levic_portal si aplica. */
-export function descargarPedidosWorkbook(ordenes) {
-  const wb = XLSX.utils.book_new();
-  const usados = new Set();
-
-  const resumen = [
-    ["Tienda", "Líneas", "Total estimado", "Ahorro vs tu costo", "Formato"],
-    ...ordenes.map((o) => [
-      o.proveedor,
-      o.productos.length,
-      Number(o.total.toFixed(2)),
-      Number((o.ahorroVsHabitual || 0).toFixed(2)),
-      esLevic(o)
-        ? "Cargar Pedido_Levic_portal.xlsx en el portal — llega mañana"
-        : "Lista FarmaCapital",
-    ]),
-  ];
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(resumen), "Resumen");
-
-  for (const orden of ordenes) {
-    const ws = XLSX.utils.aoa_to_sheet(hojaGenerica(orden));
-    ws["!cols"] = [{ wch: 16 }, { wch: 14 }, { wch: 42 }, { wch: 8 }, { wch: 12 }, { wch: 12 }, { wch: 40 }];
-    XLSX.utils.book_append_sheet(wb, ws, nombreHoja(orden.proveedor, usados));
-
-    if (esLevic(orden)) {
-      const { aoa, sinCodigo } = hojaPlantillaLevic(orden.productos);
-      const lev = XLSX.utils.aoa_to_sheet(aoa);
-      lev["!cols"] = [{ wch: 22 }, { wch: 14 }];
-      XLSX.utils.book_append_sheet(wb, lev, nombreHoja("Levic_portal", usados));
-      if (sinCodigo.length) {
-        const rev = XLSX.utils.aoa_to_sheet([
-          ["Estos no tienen código de barras — Levic no los puede cargar en el portal"],
-          ["SKU", "Producto", "Piezas"],
-          ...sinCodigo.map((p) => [p.sku || "", p.nombre || "", p.cantidadPedida]),
-        ]);
-        XLSX.utils.book_append_sheet(wb, rev, nombreHoja("Levic_sin_codigo", usados));
-      }
-    }
-  }
-
-  descargarLibro(wb, `Pedidos_FarmaCapital_${fechaArchivo()}.xlsx`);
-
-  // El portal de Levic pide UN archivo = su plantilla (2 columnas). No se le sube el libro grande.
-  const levic = ordenes.find(esLevic);
-  if (levic) descargarPlantillaPortalLevic(levic);
-}
-
-/** Archivo que se sube al portal Levic: solo 2 columnas, como su plantilla. Entrega al día siguiente. */
+/** Archivo 1: el que se sube a levicventas.mx. Solo 2 columnas. */
 export function descargarPlantillaPortalLevic(orden) {
   const { aoa } = hojaPlantillaLevic(orden.productos);
   const wb = XLSX.utils.book_new();
@@ -137,18 +70,102 @@ export function descargarPlantillaPortalLevic(orden) {
   ws["!cols"] = [{ wch: 22 }, { wch: 14 }];
   XLSX.utils.book_append_sheet(wb, ws, "Hoja1");
   descargarLibro(wb, `Pedido_Levic_portal_${fechaArchivo()}.xlsx`);
+  return hojaPlantillaLevic(orden.productos).sinCodigo;
 }
 
-/** Solo la plantilla de una tienda (Levic = archivo del portal; otras = lista). */
+function descargarOtrasTiendas(ordenes, levicSinCodigo) {
+  const filas = [];
+  for (const orden of ordenes) {
+    for (const p of orden.productos) {
+      const unit = precioDe(p);
+      filas.push([
+        orden.proveedor,
+        barcodeDe(p) || "",
+        p.sku || "",
+        p.nombre || "",
+        p.cantidadPedida,
+        Number(unit.toFixed(2)),
+        Number((unit * p.cantidadPedida).toFixed(2)),
+        p.motivoAgrupado || "",
+      ]);
+    }
+  }
+  for (const p of levicSinCodigo || []) {
+    const unit = precioDe(p);
+    filas.push([
+      "Levic (falta código)",
+      "",
+      p.sku || "",
+      p.nombre || "",
+      p.cantidadPedida,
+      Number(unit.toFixed(2)),
+      Number((unit * p.cantidadPedida).toFixed(2)),
+      "No entra al portal de Levic: no tiene código de barras",
+    ]);
+  }
+  if (!filas.length) return false;
+
+  const porTienda = {};
+  for (const row of filas) {
+    porTienda[row[0]] = (porTienda[row[0]] || 0) + 1;
+  }
+
+  const wb = XLSX.utils.book_new();
+  const resumen = [
+    ["Este archivo NO se sube a Levic. Levic va en Pedido_Levic_portal.xlsx"],
+    [],
+    ["Pedir en", "Líneas"],
+    ...Object.entries(porTienda).map(([tienda, n]) => [tienda, n]),
+  ];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(resumen), "Resumen");
+
+  const pedido = [
+    ["Pedir en", "Código de barras", "SKU", "Producto", "Piezas", "Costo unit.", "Total", "Nota"],
+    ...filas,
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(pedido);
+  ws["!cols"] = [
+    { wch: 22 }, { wch: 16 }, { wch: 14 }, { wch: 42 },
+    { wch: 8 }, { wch: 12 }, { wch: 12 }, { wch: 40 },
+  ];
+  XLSX.utils.book_append_sheet(wb, ws, "Pedido");
+  descargarLibro(wb, `Pedido_otras_tiendas_${fechaArchivo()}.xlsx`);
+  return true;
+}
+
+/**
+ * Baja como máximo 2 archivos:
+ * - Pedido_Levic_portal_…xlsx  → se sube al portal
+ * - Pedido_otras_tiendas_…xlsx → Exprezo, Scorpion y lo demás
+ */
+export async function descargarPedidosWorkbook(ordenes) {
+  const levic = (ordenes || []).find(esLevic);
+  const resto = (ordenes || []).filter((o) => !esLevic(o));
+  let levicSin = [];
+
+  if (levic && levic.productos?.length) {
+    const { aoa, sinCodigo } = hojaPlantillaLevic(levic.productos);
+    levicSin = sinCodigo;
+    if (aoa.length > 2) {
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      ws["!cols"] = [{ wch: 22 }, { wch: 14 }];
+      XLSX.utils.book_append_sheet(wb, ws, "Hoja1");
+      await bajarConPausa(
+        () => descargarLibro(wb, `Pedido_Levic_portal_${fechaArchivo()}.xlsx`),
+        400
+      );
+    }
+  }
+
+  descargarOtrasTiendas(resto, levicSin);
+}
+
+/** Un solo archivo: Levic = portal; el resto = lista con columna «Pedir en». */
 export function descargarPedidoTienda(orden) {
   if (esLevic(orden)) {
     descargarPlantillaPortalLevic(orden);
     return;
   }
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet(hojaGenerica(orden));
-  ws["!cols"] = [{ wch: 16 }, { wch: 14 }, { wch: 42 }, { wch: 8 }, { wch: 12 }, { wch: 12 }, { wch: 40 }];
-  XLSX.utils.book_append_sheet(wb, ws, "Pedido");
-  const slug = String(orden.proveedor || "tienda").replace(/\s+/g, "_").slice(0, 24);
-  descargarLibro(wb, `Pedido_${slug}_${fechaArchivo()}.xlsx`);
+  descargarOtrasTiendas([orden], []);
 }

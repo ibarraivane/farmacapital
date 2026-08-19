@@ -172,20 +172,18 @@ export default function ReabastoModule() {
     setTab("ordenes");
     setGenerando(false);
     try {
-      descargarPedidosWorkbook(ordenes);
+      await descargarPedidosWorkbook(ordenes);
     } catch (e) {
       showToast("La orden se armó, pero no se pudo bajar el Excel: " + (e.message || e), "warning");
       return;
     }
     const hayLevic = ordenes.some((o) => /levic/i.test(o.proveedor || o.fuente || ""));
-    const resumen = ordenes
-      .filter((o) => o.fuente !== "_sin_tienda")
-      .map((o) => `${o.proveedor} ${o.productos.length}`)
-      .join(" · ");
+    const nResto = ordenes.filter((o) => !/levic/i.test(o.proveedor || o.fuente || "")).reduce((a, o) => a + o.productos.length, 0);
+    const nLevic = ordenes.filter((o) => /levic/i.test(o.proveedor || o.fuente || "")).reduce((a, o) => a + o.productos.length, 0);
     showToast(
       hayLevic
-        ? `${resumen}. Pedido_Levic_portal.xlsx es el que subes al portal (llega mañana).`
-        : (resumen || `${ordenes.length} pedido(s)`) + " · Excel listo",
+        ? `2 archivos: Pedido_Levic_portal (${nLevic} líneas, súbelo a Levic) y Pedido_otras_tiendas (${nResto} líneas).`
+        : `Pedido_otras_tiendas.xlsx · ${nResto} líneas`,
       "success"
     );
   };
@@ -243,8 +241,7 @@ export default function ReabastoModule() {
         <div>
           <h1 style={{color:C.text,fontSize:isMobile?18:20,fontWeight:800,margin:0}}>Reabasto</h1>
           <p style={{margin:"6px 0 0",color:C.textMid,fontSize:12,maxWidth:720,lineHeight:1.45}}>
-            El documento arma un pedido por tienda: medicamento en Levic (plantilla del portal), higiene/abarrotes en Exprezo.
-            Scorpion u otra solo si el ahorro paga el viaje. «Comprar en» es dónde pides, no tu último costo.
+            Salen 2 archivos. <strong>Pedido_Levic_portal</strong> se sube a Levic (llega mañana). <strong>Pedido_otras_tiendas</strong> es Exprezo, Scorpion y lo demás.
           </p>
         </div>
         <div style={{display:"flex",flexDirection:isMobile?"column":"row",gap:8,width:isMobile?"100%":"auto"}}>
@@ -420,11 +417,11 @@ export default function ReabastoModule() {
           <div style={{display:"flex",flexDirection:"column",gap:16}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
               <div style={{color:C.textMid,fontSize:12,lineHeight:1.45,maxWidth:640}}>
-                Una hoja por tienda. <strong>Pedido_Levic_portal.xlsx</strong> es solo código de barras + piezas: cárgalo en Levic y llega mañana. Exprezo y Scorpion salen como lista para pedir.
+                <strong>Pedido_Levic_portal.xlsx</strong> — súbelo a Levic. <strong>Pedido_otras_tiendas.xlsx</strong> — Exprezo, Scorpion y lo que no va al portal.
               </div>
               <button onClick={()=>descargarPedidosWorkbook(ordenesEnv)}
                 style={{padding:"8px 14px",borderRadius:8,border:"none",background:BRAND.gradient,color:"#fff",fontWeight:700,fontSize:12,cursor:"pointer"}}>
-                Bajar Excel de todos
+                Bajar los 2 archivos
               </button>
             </div>
             {ordenesEnv.map((orden,i)=>(
@@ -443,8 +440,8 @@ export default function ReabastoModule() {
                   <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                     <button onClick={()=>descargarPedidoTienda(orden)} style={{padding:"7px 14px",borderRadius:8,border:`1px solid ${BRAND.primary}`,background:"#eff6ff",color:BRAND.primary,fontWeight:700,fontSize:12,cursor:"pointer"}}>
                       {/levic/i.test(orden.proveedor || orden.fuente || "")
-                        ? "Excel listo para cargar en Levic"
-                        : "Excel de esta tienda"}
+                        ? "Bajar archivo Levic"
+                        : "Bajar esta lista"}
                     </button>
                     <button onClick={()=>imprimirOrden(orden)} style={{padding:"7px 14px",borderRadius:8,border:`1px solid ${BRAND.primary}`,background:"#eff6ff",color:BRAND.primary,fontWeight:700,fontSize:12,cursor:"pointer"}}>
                       Imprimir
