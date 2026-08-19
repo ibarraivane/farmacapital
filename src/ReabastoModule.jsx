@@ -296,7 +296,12 @@ export default function ReabastoModule() {
                   value={busqueda}
                   onChange={(e)=>setBusqueda(e.target.value)}
                   placeholder="Producto, SKU o código…"
-                  style={{flex:"1 1 220px",maxWidth:320,padding:"8px 12px",borderRadius:8,border:`1px solid ${C.border}`,fontSize:13,outline:"none"}}
+                  style={{
+                    flex:"1 1 220px", maxWidth:320, padding:"8px 12px", borderRadius:8,
+                    border:`1px solid ${C.border}`, background:"#fff", color:C.text,
+                    WebkitTextFillColor:C.text, caretColor:C.text, colorScheme:"light",
+                    fontSize:13, outline:"none",
+                  }}
                 />
                 <div style={{color:C.textMid,fontSize:12,lineHeight:1.45,flex:"2 1 280px"}}>
                   {alertas.length
