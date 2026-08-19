@@ -1,22 +1,24 @@
-// InventarioHub: shell con tabs — Catálogo, Reabasto, Lotes PEPS, Referencias de precio.
+// InventarioHub: shell con tabs — Catálogo, Reabasto, Lotes PEPS, Referencias, Rappi.
 // Los módulos internos se mantienen intactos; solo cambia la forma de entrar.
 // Cada tab carga lazy para no inflar el bundle inicial.
 import React, { lazy, Suspense, useState, useEffect } from "react";
 import { useMediaQuery } from "./hooks/useMediaQuery";
 import { SkeletonCard } from "./ui";
 import { C_LIGHT, BRAND } from "./constants";
-import { Package, Truck, Tags, TrendingUp } from "lucide-react";
+import { Package, Truck, Tags, TrendingUp, ShoppingBag } from "lucide-react";
 
 const InventarioModule = lazy(() => import("./InventarioModule"));
 const ReabastoModule   = lazy(() => import("./ReabastoModule"));
 const LotesModule      = lazy(() => import("./LotesModule"));
 const PreciosReferenciaModule = lazy(() => import("./PreciosReferenciaModule"));
+const RappiSyncPanel   = lazy(() => import("./RappiSyncPanel"));
 
 const TABS = [
   { id: "catalogo", label: "Catálogo",   icon: Package },
   { id: "reabasto", label: "Reabasto",   icon: Truck },
   { id: "lotes",    label: "Lotes PEPS", icon: Tags },
   { id: "precios",  label: "Referencias de precio", icon: TrendingUp, labelMobile: "Precios" },
+  { id: "rappi",    label: "Rappi",      icon: ShoppingBag },
 ];
 
 const STORAGE_KEY = "farmacapital_inv_tab";
@@ -61,10 +63,12 @@ export default function InventarioHub({ initialTab, usuario }) {
   return (
     <div style={{background: C.bg, minHeight: "100dvh", fontFamily: "var(--fc-body)"}}>
       <div style={{
-        padding: "18px 24px 0 24px",
+        padding: isMobile ? "12px 16px 0" : "18px 24px 0 24px",
         borderBottom: `1px solid ${C.border}`,
         background: C.card,
-        position: "sticky", top: 0, zIndex: 10,
+        position: "sticky",
+        top: isMobile ? "calc(60px + env(safe-area-inset-top, 0px))" : 0,
+        zIndex: 20,
       }}>
         <div style={{display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap"}}>
           <h1 style={{margin: 0, color: C.text, fontSize: 20, fontWeight: 800}}>◆ Inventario</h1>
@@ -72,7 +76,7 @@ export default function InventarioHub({ initialTab, usuario }) {
             <span style={{color: C.textDim, fontSize: 12}}>
               {modoConsulta
                 ? "Consulta de existencias y caducidad"
-                : "Catálogo · reabasto · lotes · referencias de precio"}
+                : "Catálogo · reabasto · lotes · referencias · Rappi"}
             </span>
           )}
         </div>
@@ -128,6 +132,7 @@ export default function InventarioHub({ initialTab, usuario }) {
         {!modoConsulta && tab === "reabasto" && <ReabastoModule/>}
         {!modoConsulta && tab === "lotes"    && <LotesModule/>}
         {!modoConsulta && tab === "precios"  && <PreciosReferenciaModule/>}
+        {!modoConsulta && tab === "rappi"    && <RappiSyncPanel/>}
       </Suspense>
     </div>
   );

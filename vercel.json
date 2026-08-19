@@ -37,6 +37,14 @@
       "destination": "/api/health"
     },
     {
+      "source": "/api/webhooks/rappi-sync",
+      "destination": "/api/backup?action=rappi-sync"
+    },
+    {
+      "source": "/api/webhooks/rappi-order",
+      "destination": "/api/logistics/webhook?type=rappi-order"
+    },
+    {
       "source": "/api/rh/documento",
       "destination": "/api/admin/storage-upload?type=rh-documento"
     },

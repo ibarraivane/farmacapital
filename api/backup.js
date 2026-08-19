@@ -19,12 +19,17 @@
  *
  * Carga inicial referencias de precio (87 SKUs Claude/Exprezo):
  *   curl -X POST "https://TU-DOMINIO/api/backup?action=referencias&force=1" -H "Authorization: Bearer $CRON_SECRET"
+ *
+ * Sync disponibilidad Rappi (rewrite /api/webhooks/rappi-sync):
+ *   curl -X POST "https://TU-DOMINIO/api/webhooks/rappi-sync" -H "Authorization: Bearer $CRON_SECRET"
+ * Hobby no permite cron cada 2 min; usa Database Webhook o un cron externo.
  */
 
 'use strict';
 
 const { getSupabaseAdminConfig } = require('./_lib/supabaseAdmin');
 const { runBootstrapReferencias } = require('./_lib/bootstrapReferencias');
+const { drainRappiQueue } = require('./_lib/rappiSync');
 
 function getQuery(req) {
   try {
@@ -38,6 +43,10 @@ function getQuery(req) {
 
 function isReferenciasBootstrap(req) {
   return getQuery(req).get('action') === 'referencias';
+}
+
+function isRappiSync(req) {
+  return getQuery(req).get('action') === 'rappi-sync';
 }
 
 function sanitize(s) {
@@ -132,6 +141,30 @@ module.exports = async function handler(req, res) {
       res.status(500).json({ ok: false, error: msg.slice(0, 300) });
     }
     return;
+  }
+
+  if (isRappiSync(req)) {
+    try {
+      const result = await drainRappiQueue();
+      const status = result.ok === false ? 500 : 200;
+      res.status(status).json({ ...result, ms: Date.now() - startedAt, ts: new Date().toISOString() });
+    } catch (err) {
+      const msg = sanitize((err && err.message) || String(err));
+      console.error('[api/backup] rappi-sync failed:', msg.slice(0, 200));
+      res.status(500).json({ ok: false, error: msg.slice(0, 300) });
+    }
+    return;
+  }
+
+  try {
+    const rappi = await drainRappiQueue();
+    if (rappi && rappi.skipped) {
+      console.log('[api/backup] rappi-sync catch-up:', rappi.skipped);
+    } else if (rappi && rappi.processed) {
+      console.log('[api/backup] rappi-sync catch-up processed', rappi.processed);
+    }
+  } catch (err) {
+    console.warn('[api/backup] rappi-sync catch-up failed:', sanitize((err && err.message) || String(err)).slice(0, 200));
   }
 
   if (!repo || !token) {
