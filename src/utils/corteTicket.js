@@ -1,6 +1,7 @@
 /** Ticket de corte: resumen de caja + detalle de cada producto del turno. */
 
 import { jsPDF } from "jspdf";
+import { openThermalPrintWindow } from "./printTicket";
 
 export const CORTES_BUCKET = "cortes";
 
@@ -277,6 +278,11 @@ export function corteTicketHtml(snap) {
 }
 
 export function printCorteTicket(snap) {
+  return openThermalPrintWindow(corteTicketTermicoInner(snap), `Corte ${snap.turno || ""} #${snap.corte_id ?? ""}`);
+}
+
+/** Hoja A4: el mismo detalle del PDF, por si alguna vez se imprime en laser. */
+export function printCorteHojaA4(snap) {
   const w = window.open("", "_blank", "width=780,height=900");
   if (!w) return false;
   w.document.write(corteTicketHtml(snap));
@@ -284,6 +290,71 @@ export function printCorteTicket(snap) {
   w.focus();
   w.print();
   return true;
+}
+
+function row80(left, right, bold) {
+  return `<div class="total-line" style="${bold ? "font-weight:900" : "font-weight:400"}">
+    <span>${esc(left)}</span><span>${esc(right)}</span>
+  </div>`;
+}
+
+export function corteTicketTermicoInner(snap) {
+  const when = snap.generado_at
+    ? new Date(snap.generado_at).toLocaleString("es-MX")
+    : new Date().toLocaleString("es-MX");
+  const ventas = snap.ventas || [];
+  const bloques = ventas.map((t) => {
+    const items = t.items || [];
+    const lineas = items.length
+      ? items.map((i) => `
+        <div style="margin:2px 0 4px">
+          <div class="product-name">${esc((i.nombre || "Producto").slice(0, 36))}</div>
+          <div class="product-row">
+            <span>${esc(i.cantidad)} x ${money(i.precio_unitario)}${i.sku ? ` · ${esc(i.sku)}` : ""}</span>
+            <span class="product-total">${money(i.subtotal)}</span>
+          </div>
+          ${i.lote ? `<div style="font-size:9px;color:#333">lote ${esc(i.lote)}${i.caducidad ? ` cad ${esc(i.caducidad)}` : ""}</div>` : ""}
+        </div>`).join("")
+      : `<div style="font-size:9px;color:#333">Sin partidas</div>`;
+    return `
+      <hr class="separator">
+      <div class="total-line">
+        <span>#${t.id} ${horaLocal(t.created_at)} ${esc(t.metodo_pago)}</span>
+        <span>${money(t.total)}</span>
+      </div>
+      ${lineas}`;
+  }).join("");
+  const den = (snap.denominaciones || [])
+    .map((d) => row80(`${d.n} x ${money(d.denom)}`, money(d.sub)))
+    .join("");
+  return `<div id="farmacapital-ticket" class="ticket">
+    <div class="center ticket-brand-name">FarmaCapital</div>
+    <div class="center" style="font-size:11px;font-weight:900;margin-top:4px">CORTE ${(snap.turno || "").toUpperCase()}</div>
+    <div class="center" style="font-size:9px;margin-top:3px">#${snap.corte_id ?? "—"} · ${esc(when)}</div>
+    ${snap.cajero ? `<div class="center" style="font-size:9px">${esc(snap.cajero)}</div>` : ""}
+    <hr class="separator-solid">
+    ${row80("Fondo inicial", money(snap.fondo))}
+    ${row80("Ef. sistema", money(snap.sistema))}
+    ${row80("Esperado", money(snap.esperado))}
+    ${row80("Contado", money(snap.declarado))}
+    ${row80("DIFERENCIA", money(snap.diferencia), true)}
+    <hr class="separator">
+    ${row80("Tarjeta", money(snap.tarjeta))}
+    ${row80("MercadoPago", money(snap.mercadopago))}
+    ${parseFloat(snap.spei || 0) > 0 ? row80("SPEI", money(snap.spei)) : ""}
+    ${row80("Suma tickets", money(snap.suma_tickets))}
+    ${row80("Total turno", money(snap.total_general), true)}
+    ${den ? `<hr class="separator"><div style="font-size:9px;font-weight:900;margin:4px 0">BILLETES</div>${den}` : ""}
+    ${snap.notas ? `<hr class="separator"><div style="font-size:9px">Notas: ${esc(snap.notas)}</div>` : ""}
+    <hr class="separator-solid">
+    <div class="center" style="font-size:9px;font-weight:900;margin:6px 0">VENTAS ${ventas.length}</div>
+    ${bloques || `<div class="center" style="font-size:9px">Sin ventas</div>`}
+    <hr class="separator-solid">
+    <div style="font-size:9px;margin-top:10px;line-height:1.8">
+      <div>Conto: ________________</div>
+      <div>Recibio: ________________</div>
+    </div>
+  </div>`;
 }
 
 export function corteTicketPdfBlob(snap) {

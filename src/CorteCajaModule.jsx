@@ -9,7 +9,9 @@ import { useMediaQuery } from "./hooks/useMediaQuery";
 import { GRID_STACK_2COL } from "./constants/layout";
 import {
   snapshotFromCorte,
+  snapshotFromHistorialRow,
   printCorteTicket,
+  printCorteHojaA4,
   corteTicketPdfBlob,
   uploadCorteTicketPdf,
   abrirOCrearTicketCorte,
@@ -211,6 +213,14 @@ export default function CorteCajaModule({usuario }) {
 
   useEffect(() => { if (tab==="historial") fetchCortes(); }, [tab, fetchCortes]);
 
+  const fetchVentasDeCorte = async (corte) => {
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    if (!tok) throw new Error("Sesión expirada. Inicia sesión de nuevo.");
+    const fecha = corte.fecha ? new Date(corte.fecha) : new Date();
+    const { inicio, fin } = rangoTurno(fecha, corte.turno);
+    return cargarVentasDetalleTurno(supabase, tok, inicio.toISOString(), fin.toISOString());
+  };
+
   const abrirTicketHistorial = async (c) => {
     const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) { showToast("Sesión expirada. Inicia sesión de nuevo.", "warning"); return; }
@@ -219,19 +229,24 @@ export default function CorteCajaModule({usuario }) {
       await abrirOCrearTicketCorte({
         corte: c,
         sessionToken: tok,
-        fetchVentas: async (corte) => {
-          const fecha = corte.fecha ? new Date(corte.fecha) : new Date();
-          const { inicio, fin } = rangoTurno(fecha, corte.turno);
-          return cargarVentasDetalleTurno(
-            supabase,
-            tok,
-            inicio.toISOString(),
-            fin.toISOString(),
-          );
-        },
+        fetchVentas: fetchVentasDeCorte,
       });
     } catch (e) {
       showToast("No se pudo abrir el ticket: " + (e.message || e), "error");
+    } finally {
+      setTicketAbriendo(null);
+    }
+  };
+
+  const imprimirEpsonHistorial = async (c) => {
+    setTicketAbriendo(c.id);
+    try {
+      const ventas = await fetchVentasDeCorte(c);
+      if (!printCorteTicket(snapshotFromHistorialRow({ ...c, ventas }))) {
+        showToast("El navegador bloqueó la ventana de impresión", "warning");
+      }
+    } catch (e) {
+      showToast("No se pudo imprimir: " + (e.message || e), "error");
     } finally {
       setTicketAbriendo(null);
     }
@@ -677,13 +692,22 @@ export default function CorteCajaModule({usuario }) {
                         <td style={{padding:"9px 12px",color:C.text,fontWeight:800,borderBottom:`1px solid ${C.border}`}}>{fmt(c.total_general)}</td>
                         <td style={{padding:"9px 12px",color:C.textDim,fontSize:11,borderBottom:`1px solid ${C.border}`,maxWidth:130,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.notas||"—"}</td>
                         <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>
-                          <button
-                            onClick={() => abrirTicketHistorial(c)}
-                            disabled={ticketAbriendo === c.id}
-                            style={{...btnSecondary,padding:"5px 10px",fontSize:11}}
-                          >
-                            {ticketAbriendo === c.id ? "…" : "PDF"}
-                          </button>
+                          <div style={{display:"flex",gap:6}}>
+                            <button
+                              onClick={() => imprimirEpsonHistorial(c)}
+                              disabled={ticketAbriendo === c.id}
+                              style={{...btnSecondary,padding:"5px 10px",fontSize:11}}
+                            >
+                              {ticketAbriendo === c.id ? "…" : "Epson"}
+                            </button>
+                            <button
+                              onClick={() => abrirTicketHistorial(c)}
+                              disabled={ticketAbriendo === c.id}
+                              style={{...btnSecondary,padding:"5px 10px",fontSize:11}}
+                            >
+                              {ticketAbriendo === c.id ? "…" : "PDF"}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -820,7 +844,8 @@ function ResultadoCorte({ C, resultado, turno, dif, difCol, difBg, difTxt,
           <div style={{color:C.text,fontWeight:800,fontSize:14,flex:1}}>
             🧾 Detalle del turno {cargandoZ ? "" : `· ${(zTransac||[]).length} venta(s) · ${fmt(totalZ)}`}
           </div>
-          <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",justifyContent:"flex-end"}}>
             <span style={{color:C.textDim,fontSize:11}}>
               {ticketEstado === "guardando" ? "Guardando PDF…"
                 : ticketEstado === "listo" ? "PDF en historial"
@@ -828,8 +853,17 @@ function ResultadoCorte({ C, resultado, turno, dif, difCol, difBg, difTxt,
                 : ""}
             </span>
             <button onClick={imprimir} disabled={cargandoZ} style={{...btnSecondary,padding:"8px 16px",fontSize:12}}>
-              🖨️ Imprimir
+              Imprimir Epson
             </button>
+            <button onClick={() => {
+              if (!printCorteHojaA4(snap)) showToast("El navegador bloqueó la ventana", "warning");
+            }} disabled={cargandoZ} style={{...btnSecondary,padding:"8px 16px",fontSize:12}}>
+              Hoja A4
+            </button>
+          </div>
+          <div style={{color:C.textDim,fontSize:10,lineHeight:1.35,maxWidth:320,textAlign:"right"}}>
+            Epson: mismo diálogo que el ticket de venta (TM-T20, 80 mm). El PDF del historial queda en hoja completa.
+          </div>
           </div>
         </div>
         {cargandoZ ? (

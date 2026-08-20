@@ -2,7 +2,7 @@
 
 import { mergeFarmaciaConfig } from "../constants/farmaciaFiscal";
 
-const TICKET_CSS = `
+export const TICKET_CSS = `
 * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 html, body { margin: 0; padding: 0; background: #fff; }
 @page { size: 80mm auto; margin: 0; }
@@ -149,6 +149,52 @@ ${clone.outerHTML}
       tryPrint();
     }
   }, 800);
+}
+
+/**
+ * Misma ventana 80 mm que el ticket de venta (Epson TM-T20).
+ * `innerHtml` debe incluir el nodo #farmacapital-ticket.
+ */
+export function openThermalPrintWindow(innerHtml, title = "Ticket FarmaCapital") {
+  const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>${title}</title>
+  <style>${TICKET_CSS}</style>
+</head>
+<body>
+${innerHtml}
+</body>
+</html>`;
+  const win = window.open("", "_blank", "width=320,height=700,toolbar=0,menubar=0,scrollbars=1,resizable=1");
+  if (!win) return false;
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+  const tryPrint = () => {
+    try {
+      win.focus();
+      win.print();
+      setTimeout(() => { if (!win.closed) win.close(); }, 3000);
+    } catch (e) {
+      console.error("[FarmaCapital] Error al imprimir:", e);
+    }
+  };
+  let printed = false;
+  win.addEventListener("load", () => {
+    if (printed) return;
+    printed = true;
+    setTimeout(tryPrint, 300);
+  });
+  setTimeout(() => {
+    if (!printed && !win.closed) {
+      printed = true;
+      tryPrint();
+    }
+  }, 800);
+  return true;
 }
 
 /**
