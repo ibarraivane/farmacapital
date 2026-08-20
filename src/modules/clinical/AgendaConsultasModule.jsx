@@ -11,6 +11,8 @@ import {
   horariosDisponiblesCita,
   formatFechaAgendaLargaEs,
   addDaysSv,
+  puedeCancelarCitaCaja,
+  esCitaNoShow,
 } from "../../utils/citasAgenda";
 
 const hoySvLocal = () => new Date().toLocaleDateString("sv-SE");
@@ -375,6 +377,40 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
     }
   };
 
+  const cancelarCitaAgenda = async (cita) => {
+    if (mode === "doctora") {
+      showToast("Quien anula citas es mostrador o administración.", "info");
+      return;
+    }
+    if (!puedeCancelarCitaCaja(cita)) return;
+    const noShow = esCitaNoShow(cita);
+    const ok = window.confirm(
+      noShow
+        ? `¿Marcar que ${cita.nombre} no se presentó (${cita.fecha || ""} ${cita.hora})?`
+        : `¿Cancelar la cita de ${cita.nombre} (${cita.fecha || ""} ${cita.hora})?`
+    );
+    if (!ok) return;
+    setGuard(true);
+    try {
+      const tok = sessionStorage.getItem("farmacapital_session_token");
+      if (!tok) throw new Error("Sesión expirada");
+      const { data: resp, error } = await supabase.rpc("actualizar_estado_cita", {
+        p_session_token: tok,
+        p_cita_id: cita.id,
+        p_estado: noShow ? "no_asistio" : "cancelada",
+      });
+      if (error) throw error;
+      if (resp && resp.success === false) throw new Error(resp.error || "No se pudo cancelar");
+      showToast(noShow ? "Marcada: no se presentó." : "Cita cancelada.", "info");
+      setDetalleSimple(null);
+      await cargarMes();
+    } catch (e) {
+      showToast(String(e.message || e), "error");
+    } finally {
+      setGuard(false);
+    }
+  };
+
   const guardarNuevaCita = async () => {
     if (mode === "doctora") {
       showToast("Quien agenda citas es mostrador o administración. Vos atendés desde «Entrar a consulta» y expediente.", "info");
@@ -731,15 +767,22 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
               </div>
             )}
             <div style={{ marginTop: 16, display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <Btn
-                col={BRAND.primary}
-                onClick={() => {
-                  setDetalleSimple(null);
-                  onNavigate?.("pos", { posTab: "consultas" });
-                }}
-              >
-                Ir a POS (cobrar consulta)
-              </Btn>
+              {citaPagoPendiente(detalleSimple) && (
+                <Btn
+                  col={BRAND.primary}
+                  onClick={() => {
+                    setDetalleSimple(null);
+                    onNavigate?.("pos", { posTab: "consultas" });
+                  }}
+                >
+                  Ir a POS (cobrar consulta)
+                </Btn>
+              )}
+              {puedeCancelarCitaCaja(detalleSimple) && (
+                <Btn ol col={C.red} onClick={() => cancelarCitaAgenda(detalleSimple)} dis={guardando}>
+                  {esCitaNoShow(detalleSimple) ? "No se presentó" : "Cancelar cita"}
+                </Btn>
+              )}
               <Btn ol col={C.textMid} onClick={() => setDetalleSimple(null)}>
                 Cerrar
               </Btn>
@@ -998,6 +1041,13 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
                               </Tag>
                             )}
                           </div>
+                          {(mode === "admin" || mode === "vendedor") && puedeCancelarCitaCaja(ocupada) && (
+                            <div style={{ marginTop: 10 }}>
+                              <Btn sm ol col={C.red} onClick={() => cancelarCitaAgenda(ocupada)} dis={guardando}>
+                                {esCitaNoShow(ocupada) ? "No se presentó" : "Cancelar cita"}
+                              </Btn>
+                            </div>
+                          )}
                           {mode === "doctora" && (
                             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12, alignItems: "center" }}>
                               {citaPagoOk(ocupada) &&

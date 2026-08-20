@@ -39,6 +39,9 @@ export function labelCanal(c) {
 /** Badge de cobro en caja (POS / agenda / consultorio). */
 export function labelEstadoPagoCita(c) {
   if (!c) return { key: "unknown", label: "—", col: "#64748b" };
+  const est = String(c.estado || "").toLowerCase();
+  if (est === "cancelada") return { key: "cancelada", label: "Cancelada", col: "#64748b" };
+  if (est === "no_asistio") return { key: "no_asistio", label: "No asistió", col: "#64748b" };
   const consumiblesPend = (c.consumibles_consulta || []).some((x) => !x.cobrado);
   const consultaPagada = citaEstaPagada(c);
   if (consultaPagada && !consumiblesPend) {
@@ -93,7 +96,9 @@ export function franjaAgendaStyle(cita, { libre = false, focoAccion = false, C, 
 
 /** Citas visibles en POS con su estado de cobro (hoy ± ventana cercana). */
 export function citaRelevanteParaResumenPOS(c, { hoySv, diasAtras = 7, diasAdelante = 14 } = {}) {
-  if (!c || c.estado === "cancelada") return false;
+  if (!c) return false;
+  const est = String(c.estado || "").toLowerCase();
+  if (est === "cancelada" && citaEstaPagada(c)) return false;
   const f = String(c.fecha || "").slice(0, 10);
   if (!f || !hoySv) return citaPagoPendiente(c) || (c.consumibles_consulta || []).some((x) => !x.cobrado);
   const tHoy = new Date(`${hoySv}T12:00:00`).getTime();

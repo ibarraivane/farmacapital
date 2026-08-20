@@ -5,6 +5,8 @@ import { showToast } from "./ui";
 import OnboardingTour from "./components/OnboardingTour";
 import { TURNOS, TURNOS_LISTA, rangoTurno, inferirTurno, turnoDePerfil } from "./constants/turnos";
 import { esVendedor, fetchSesionCajaAbierta, fetchJornadaHoy } from "./utils/cajaSesion";
+import { useMediaQuery } from "./hooks/useMediaQuery";
+import { GRID_STACK_2COL } from "./constants/layout";
 
 const BRAND = { primary:"#0D1B2A", secondary:"#1E3ABA", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
 
@@ -34,7 +36,8 @@ const getRangoFiltro = (filtro) => {
 
 export default function CorteCajaModule({usuario }) {
   const C = C_LIGHT;
-  const inputStyle = mkInputStyle(C);
+  const isMobile = useMediaQuery("(max-width: 900px)");
+  const inputStyle = { ...mkInputStyle(C), fontSize: isMobile ? 16 : 13 };
   const labelStyle = mkLabelStyle(C);
   const btnSecondary = mkBtnSecondary(C);
   const [tab, setTab] = useState("nuevo");
@@ -54,6 +57,7 @@ export default function CorteCajaModule({usuario }) {
   const [denoms,             setDenoms]  = useState({});
   const [sesionAbierta,      setSesionAbierta] = useState(null);
   const [jornada,            setJornada] = useState(null);
+  const [corteHoy,           setCorteHoy] = useState(null);
 
   // El corte es a ciegas: mientras se captura no se muestra ni lo que el
   // sistema espera ni la diferencia. Un conteo que se puede copiar deja de ser
@@ -148,6 +152,21 @@ export default function CorteCajaModule({usuario }) {
   }, [turno]);
 
   useEffect(() => { fetchResumenServicios(); }, [fetchResumenServicios]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const tok = sessionStorage.getItem("farmacapital_session_token");
+      if (!tok) return;
+      const { data } = await supabase.rpc("empleado_corte_turno_en_fecha", {
+        p_session_token: tok,
+        p_fecha: new Date().toLocaleDateString("sv-SE"),
+        p_turno: turno,
+      });
+      if (!cancelled) setCorteHoy(data?.existe ? data : null);
+    })();
+    return () => { cancelled = true; };
+  }, [turno]);
 
   const fetchCortes = useCallback(async () => {
     setLoadingHist(true);
@@ -264,6 +283,22 @@ export default function CorteCajaModule({usuario }) {
     // Recién ahora se destapa: el cajero ya se comprometió con su conteo.
     setResultado(data);
     cargarReporteZ();
+    try {
+      const { data: ns } = await supabase.rpc("empleado_marcar_citas_no_show_corte", {
+        p_session_token: tok,
+      });
+      const n = Number(ns?.marcadas || 0);
+      if (n > 0) {
+        showToast(
+          n === 1
+            ? "1 consulta sin pago se marcó como no se presentó."
+            : `${n} consultas sin pago se marcaron como no se presentó.`,
+          "info"
+        );
+      }
+    } catch {
+      /* Si falta el SQL, el corte igual ya quedó guardado. */
+    }
   };
 
   // La diferencia sólo existe una vez que la base respondió al guardar.
@@ -278,7 +313,7 @@ export default function CorteCajaModule({usuario }) {
   const sumTot = cortes.reduce((a,c)=>a+parseFloat(c.total_general||0),0);
 
   return (
-    <div style={{padding:24,background:C.bg,minHeight:"100dvh",fontFamily:"var(--fc-body)"}}>
+    <div style={{padding:isMobile?0:24,background:C.bg,minHeight:"100dvh",fontFamily:"var(--fc-body)",maxWidth:"100%"}}>
 
       <div style={{marginBottom:24}}>
         <h1 style={{margin:0,color:C.text,fontSize:20,fontWeight:800}}>⊞ Corte de Caja</h1>
@@ -342,10 +377,11 @@ export default function CorteCajaModule({usuario }) {
                 </div>
               </div>
             ) : (
-            <div style={{display:"flex",gap:10}}>
+            <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
               {TURNOS_LISTA.map(val=>[val,`${TURNOS[val].emoji} ${TURNOS[val].label}`,TURNOS[val].horario]).map(([val,label,hora])=>(
                 <button key={val} type="button" onClick={()=>!sesionAbierta && setTurno(val)} style={{
-                  flex:1,padding:"14px 20px",borderRadius:10,cursor:sesionAbierta?"default":"pointer",textAlign:"left",
+                  flex: isMobile ? "1 1 140px" : 1,padding:isMobile?"12px 14px":"14px 20px",borderRadius:10,cursor:sesionAbierta?"default":"pointer",textAlign:"left",
+                  minWidth: isMobile ? 0 : undefined,
                   border:turno===val?`2px solid ${C.blue}`:`2px solid ${C.border}`,
                   background:turno===val?C.blueDim:C.card,
                   color:turno===val?C.blue:C.textMid,transition:"all .15s",
@@ -359,11 +395,29 @@ export default function CorteCajaModule({usuario }) {
             )}
           </div>
 
+          {corteHoy && (
+            <div style={{
+              marginBottom: 16, padding: "12px 14px", borderRadius: 10,
+              background: C.greenDim, border: `1px solid ${C.green}40`,
+              color: C.text, fontSize: 13, lineHeight: 1.45,
+            }}>
+              Ya hay un corte {turno} de hoy. Esta pantalla está en blanco a
+              propósito: es para un corte <strong>nuevo</strong>, y el conteo es
+              a ciegas. Las ventas de ese turno están en el corte que ya se guardó
+              {esVendedor(usuario)
+                ? "."
+                : <> — ábrelo en <button type="button" onClick={() => setTab("historial")}
+                    style={{ background: "none", border: "none", padding: 0, color: C.blue, fontWeight: 800, cursor: "pointer", fontSize: "inherit" }}>
+                    Historial
+                  </button>.</>}
+            </div>
+          )}
+
           {/* Grid */}
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20}}>
+          <div style={{display:"grid",gridTemplateColumns:GRID_STACK_2COL,gap:16,minWidth:0}}>
 
             {/* Inputs */}
-            <div data-tour="caja-declarado" style={{background:C.card,borderRadius:12,border:`1px solid ${C.border}`,padding:20}}>
+            <div data-tour="caja-declarado" style={{background:C.card,borderRadius:12,border:`1px solid ${C.border}`,padding:isMobile?14:20,minWidth:0}}>
               <div style={{color:C.text,fontWeight:800,fontSize:14,marginBottom:16}}>💵 Ingresos del turno</div>
 
               <div style={{marginBottom:14}}>
@@ -381,19 +435,19 @@ export default function CorteCajaModule({usuario }) {
 
               <div style={{marginBottom:14}}>
                 <label style={labelStyle}>CONTEO POR DENOMINACIÓN</label>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:6}}>
+                <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"repeat(2,1fr)",gap:6}}>
                   {DENOMINACIONES.map(d=>{
                     const piezas = parseInt(denoms[d],10) || 0;
                     return (
-                      <div key={d} style={{display:"flex",alignItems:"center",gap:6}}>
-                        <span style={{color:C.textMid,fontSize:11,fontWeight:700,width:44,textAlign:"right"}}>
+                      <div key={d} style={{display:"flex",alignItems:"center",gap:8,minWidth:0}}>
+                        <span style={{color:C.textMid,fontSize:12,fontWeight:700,width:52,flexShrink:0,textAlign:"right"}}>
                           {d>=1?`$${d}`:"$0.50"}
                         </span>
-                        <input type="number" min="0" value={denoms[d] ?? ""}
+                        <input type="number" min="0" inputMode="numeric" value={denoms[d] ?? ""}
                           onChange={e=>setDenoms(p=>({...p,[d]:e.target.value}))}
                           placeholder="0"
-                          style={{...inputStyle,padding:"6px 8px",fontSize:12,width:56}}/>
-                        <span style={{color:piezas?C.text:C.textDim,fontSize:11,flex:1}}>
+                          style={{...inputStyle,padding:"8px 10px",fontSize:isMobile?16:12,width:72,flex:"0 0 72px"}}/>
+                        <span style={{color:piezas?C.text:C.textDim,fontSize:12,flex:1,minWidth:0}}>
                           {piezas?fmt(d*piezas):""}
                         </span>
                       </div>
@@ -481,7 +535,7 @@ export default function CorteCajaModule({usuario }) {
                   </div>
                 ))}
                 <div style={{borderTop:`1px solid ${C.border}`,marginTop:8,paddingTop:10,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <span style={{color:C.text,fontWeight:800,fontSize:13}}>VENTA DEL TURNO</span>
+                  <span style={{color:C.text,fontWeight:800,fontSize:13}}>TU DECLARACIÓN</span>
                   <span style={{fontWeight:800,fontSize:22,background:BRAND.gradient,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>
                     {fmt(total_general)}
                   </span>

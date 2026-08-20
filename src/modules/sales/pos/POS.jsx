@@ -28,7 +28,7 @@ import {
   labelEstadoPagoCita,
   citaRelevanteParaResumenPOS,
 } from "../../../utils/consultaConstants";
-import { puedeCancelarCitaNoShow } from "../../../utils/citasAgenda";
+import { puedeCancelarCitaCaja, esCitaNoShow } from "../../../utils/citasAgenda";
 import { esPedidoTiendaWebPendiente, fetchPedidosTiendaPendientesMerged } from "../../../utils/pedidosTiendaWeb";
 import { desgloseCambioMN, sugerenciasPagoCliente } from "../../../utils/cambioCaja";
 import { marcarMedicamentosRecetaFarmaCapitalSurtidos } from "../../../utils/recetaCitaSync";
@@ -623,6 +623,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     setCitasVentana(citas);
     setConsCobrar(
       citas.filter((c) => {
+        const est = String(c.estado || "").toLowerCase();
+        if (est === "cancelada" || est === "no_asistio") return false;
         const pendientePago = citaPagoPendiente(c);
         const consumiblesPend = (c.consumibles_consulta || []).some((x) => !x.cobrado);
         return pendientePago || consumiblesPend;
@@ -1588,18 +1590,49 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     setGuard(false);
   };
 
+  const reabrirCitaCobro = async (cita) => {
+    if (!window.confirm(`¿Volver a poner en cobro la consulta de ${cita.nombre}? Úsalo si sí se atendió (fuera de horario o se marcó no-show por error).`)) return;
+    setGuard(true);
+    try {
+      const tok = sessionStorage.getItem("farmacapital_session_token");
+      const { data: resp, error } = await supabase.rpc("empleado_reabrir_cita_cobro", {
+        p_session_token: tok,
+        p_cita_id: cita.id,
+      });
+      if (error) throw error;
+      if (!resp?.success) throw new Error(resp?.error || "No se pudo reabrir");
+      showToast("Lista para cobrar otra vez.", "success");
+      await refrescarCitasPOS();
+    } catch (e) {
+      const faltaFn = /could not find the function|pgrst202/i.test(e?.message || "");
+      showToast(
+        faltaFn
+          ? "Falta actualizar la base. Ejecuta sql/patch_citas_no_show_corte.sql en Supabase."
+          : "No se pudo reabrir: " + (e?.message || e),
+        "error"
+      );
+    }
+    setGuard(false);
+  };
+
   const cancelarCitaPorNoShow = async (cita) => {
-    if (!puedeCancelarCitaNoShow(cita)) return;
-    if (!window.confirm(`¿Cancelar la cita de ${cita.nombre} (${cita.hora}) y liberar el horario? Solo aplica si pasaron 10 min del inicio sin pago en caja.`)) return;
+    if (!puedeCancelarCitaCaja(cita)) return;
+    const noShow = esCitaNoShow(cita);
+    const ok = window.confirm(
+      noShow
+        ? `¿Marcar que ${cita.nombre} no se presentó (${cita.fecha || ""} ${cita.hora})? Ya no pedirá cobro y el horario queda libre.`
+        : `¿Cancelar la cita de ${cita.nombre} (${cita.fecha || ""} ${cita.hora})? El horario queda libre.`
+    );
+    if (!ok) return;
     setGuard(true);
     try {
       const tok = sessionStorage.getItem("farmacapital_session_token");
       const { data: resp, error } = await supabase.rpc("actualizar_estado_cita", {
-        p_session_token: tok, p_cita_id: cita.id, p_estado: "cancelada",
+        p_session_token: tok, p_cita_id: cita.id, p_estado: noShow ? "no_asistio" : "cancelada",
       });
       if (error) throw error;
       if (!resp?.success) throw new Error(resp?.error || "No se pudo cancelar");
-      showToast("Cita cancelada. El horario queda libre.", "info");
+      showToast(noShow ? "Marcada: no se presentó." : "Cita cancelada. El horario queda libre.", "info");
       await refrescarCitasPOS();
     } catch (e) {
       console.error(e);
@@ -2917,7 +2950,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
           </div>
 
           <div style={{color:C.text,fontWeight:800,fontSize:14,marginBottom:10}}>💳 Cobrar en caja</div>
-          <div style={{color:C.textMid,fontSize:12,marginBottom:14}}>Citas con consulta o consumibles pendientes de cobro. Al pagar, el estado cambia a <strong style={{color:C.green}}>Pagada</strong> en la lista de abajo. Si pasaron 10 min del inicio sin pago, puedes usar <em>Cancelar (no asistió)</em>.</div>
+          <div style={{color:C.textMid,fontSize:12,marginBottom:14}}>Citas con consulta o consumibles pendientes de cobro. Al pagar, el estado cambia a <strong style={{color:C.green}}>Pagada</strong>. Si no vinieron o hay que anular, usa <em>No se presentó</em> o <em>Cancelar cita</em>.</div>
 
           {!consxCobrar.length?<div style={{color:C.textMid,padding:24,textAlign:"center",background:C.bg,borderRadius:10,border:`1px solid ${C.border}`,marginBottom:20}}>✓ Nada pendiente de cobro en caja</div>:
            consxCobrar.map(cita=>{
@@ -2946,6 +2979,11 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                       <div style={{color:C.text,fontWeight:800,fontSize:15}}>Consulta — {cita.nombre}</div>
                       <Tag col={pagoTag.col} sm>{pagoTag.label}</Tag>
                       {cita.canal && <Tag col={C.blue} sm>{labelCanal(cita)}</Tag>}
+                      {puedeCancelarCitaCaja(cita) && (
+                        <Btn sm ol col={C.red} onClick={()=>cancelarCitaPorNoShow(cita)} dis={guardando}>
+                          {esCitaNoShow(cita) ? "No se presentó" : "Cancelar cita"}
+                        </Btn>
+                      )}
                     </div>
                     <div style={{color:C.textMid,fontSize:12,marginTop:2}}>
                       {cita.fecha ? `${cita.fecha} · ` : ""}{cita.hora} hrs · {cita.motivo||"Consulta general"}
@@ -3115,11 +3153,6 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                       </div>
                     </div>
                   )}
-                  {puedeCancelarCitaNoShow(cita) && (
-                    <Btn sm ol col={C.red} onClick={()=>cancelarCitaPorNoShow(cita)} dis={guardando}>
-                      Cancelar (no asistió)
-                    </Btn>
-                  )}
                 </div>
               </Box>
             );
@@ -3140,6 +3173,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                   en_consulta: "En consulta",
                   completada: "Atendida",
                   pagada: "Pagada",
+                  cancelada: "Cancelada",
                   no_asistio: "No asistió",
                 }[cita.estado] || cita.estado || "—";
                 return (
@@ -3166,6 +3200,16 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                     <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
                       {cita.canal && <Tag col={C.blue} sm>{labelCanal(cita)}</Tag>}
                       <Tag col={pagoTag.col} sm>{pagoTag.label}</Tag>
+                      {puedeCancelarCitaCaja(cita) && (
+                        <Btn sm ol col={C.red} onClick={()=>cancelarCitaPorNoShow(cita)} dis={guardando}>
+                          {esCitaNoShow(cita) ? "No se presentó" : "Cancelar"}
+                        </Btn>
+                      )}
+                      {(cita.estado === "no_asistio" || cita.estado === "cancelada") && citaPagoPendiente(cita) && (
+                        <Btn sm ol col={C.blue} onClick={()=>reabrirCitaCobro(cita)} dis={guardando}>
+                          Cobrar igual
+                        </Btn>
+                      )}
                     </div>
                   </div>
                 );
