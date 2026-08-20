@@ -4,13 +4,80 @@ import { C_LIGHT, BRAND } from "./constants";
 import { showToast, SkeletonTable, Paginador } from "./ui";
 import TicketVenta from "./components/tickets/TicketVenta";
 import { printTicket } from "./utils/printTicket";
-import { labelTipoEntregaPedido, labelTipoPedido, pedidoCoincideFiltroTipo, pedidoEsTipoOnline } from "./utils/orderChannels";
+import { labelTipoEntregaPedido, labelTipoPedido, pedidoCoincideFiltroTipo, pedidoEsTipoOnline, pedidoEsTipoServicio } from "./utils/orderChannels";
 import { configRowsToMap, mergeFarmaciaConfig } from "./constants/farmaciaFiscal";
 import { productMatchesSearchQuery } from "./utils/fuzzySearch";
 import { parseRpcJsonArray } from "./utils/rpcJson";
 import { notifyPosTicket, notifyOnlineOrderReceipt, formatFolioPOS, formatFolioOnline, formatWhatsAppSendError, formatWhatsAppSuccessMessage } from "./utils/orderReceiptWhatsApp";
 import { usePedidoTicketUrl } from "./hooks/usePedidoTicketUrl";
 import { telefonoMxValido } from "./utils";
+
+function esPagoServicio(p) {
+  return p?.origen === "pago_servicio" || pedidoEsTipoServicio(p?.tipo);
+}
+
+function mapPagoServicioAFila(ps) {
+  const proveedor = ps.proveedor || "Servicio";
+  return {
+    origen: "pago_servicio",
+    id: `srv-${ps.id}`,
+    servicioId: ps.id,
+    folio: ps.folio,
+    total: ps.total_cobrado,
+    metodo_pago: ps.metodo_pago,
+    tipo: "servicio",
+    estado: "completado",
+    created_at: ps.created_at,
+    notas: ps.notas || null,
+    atendido_por: ps.atendido_por ?? null,
+    clientes: {
+      nombre: proveedor,
+      telefono: ps.referencia || "",
+    },
+    usuarios: { nombre: ps.atendido_por_nombre || "" },
+    proveedor,
+    categoria: ps.categoria,
+    referencia: ps.referencia,
+    monto_servicio: ps.monto_servicio,
+    comision: ps.comision,
+    liquidado_point: ps.liquidado_point,
+  };
+}
+
+function nombreVendedor(p) {
+  if (!p) return "—";
+  return p.usuarios?.nombre || p.atendido_por_nombre || "—";
+}
+
+async function fetchPagosServicioRango(tok, rango) {
+  const { data, error } = await supabase.rpc("empleado_listar_pagos_servicio_rango", {
+    p_session_token: tok,
+    p_desde: rango?.desde ?? null,
+    p_hasta: rango?.hasta ?? null,
+    p_limite: 300,
+  });
+  if (!error) return parseRpcJsonArray(data);
+  const dia = await supabase.rpc("empleado_listar_pagos_servicio_dia", {
+    p_session_token: tok,
+    p_limite: 100,
+  });
+  if (dia.error) {
+    console.warn("[TransaccionesTab] pagos servicio:", error?.message || dia.error.message);
+    return [];
+  }
+  let rows = parseRpcJsonArray(dia.data);
+  if (rango?.desde || rango?.hasta) {
+    const desdeMs = rango.desde ? new Date(rango.desde).getTime() : null;
+    const hastaMs = rango.hasta ? new Date(rango.hasta).getTime() : null;
+    rows = rows.filter((r) => {
+      const t = new Date(r.created_at).getTime();
+      if (desdeMs != null && t < desdeMs) return false;
+      if (hastaMs != null && t > hastaMs) return false;
+      return true;
+    });
+  }
+  return rows;
+}
 
 /** Listado de pedidos con filtros — antes dentro de Admin/Reportes; requiere showConfirm del padre. */
 export default function TransaccionesTab({ usuario, showConfirm }) {
@@ -43,6 +110,21 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
   const [loadDet, setLoadDet] = useState(false);
   const [editForm, setEditForm] = useState({});
   const [saving, setSaving] = useState(false);
+  const [vendedores, setVendedores] = useState([]);
+
+  useEffect(() => {
+    if (usuario?.rol !== "admin") return;
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    if (!tok) return;
+    supabase.rpc("admin_listar_usuarios", { p_session_token: tok }).then(({ data, error }) => {
+      if (error) {
+        console.warn("[TransaccionesTab] vendedores:", error.message);
+        return;
+      }
+      const rows = Array.isArray(data) ? data : [];
+      setVendedores(rows.filter((u) => u.activo !== false));
+    });
+  }, [usuario?.rol]);
   const { ticketUrl: reprintTicketUrl, loading: reprintTicketUrlLoading } = usePedidoTicketUrl(
     ticketReprint?.venta?.id,
     Boolean(ticketReprint)
@@ -75,7 +157,12 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
       p_limite: 300,
     });
     if (error) console.warn("[TransaccionesTab]", error.message);
-    setPedidos(parseRpcJsonArray(data));
+    const ventas = parseRpcJsonArray(data);
+    const servicios = (await fetchPagosServicioRango(tok, rango)).map(mapPagoServicioAFila);
+    const mezclados = [...ventas, ...servicios].sort(
+      (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
+    );
+    setPedidos(mezclados);
     setLoading(false);
   }, [filtroFecha, fechaDesde, fechaHasta]);
 
@@ -92,7 +179,15 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
 
   const filtradosTodos = pedidos.filter((p) => {
     const q = busqueda.trim();
-    const matchB = !q || p.id?.toString().includes(q) || (p.clientes && productMatchesSearchQuery(p.clientes, busqueda, [(x) => x.nombre]));
+    const hayQ = q
+      && (
+        String(p.id || "").includes(q)
+        || String(p.folio || "").toLowerCase().includes(q.toLowerCase())
+        || String(p.proveedor || "").toLowerCase().includes(q.toLowerCase())
+        || String(p.referencia || "").includes(q)
+        || (p.clientes && productMatchesSearchQuery(p.clientes, busqueda, [(x) => x.nombre, (x) => x.telefono]))
+      );
+    const matchB = !q || hayQ;
     const matchT = pedidoCoincideFiltroTipo(p.tipo, filtroTipo);
     const matchE = filtroEstado === "todos" || p.estado === filtroEstado;
     return matchB && matchT && matchE;
@@ -107,7 +202,8 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
     }));
 
   const folioPedido = (p) => {
-    if (!p?.id) return "—";
+    if (!p) return "—";
+    if (esPagoServicio(p) && p.folio) return p.folio;
     if (p.tipo === "online" || String(p.tipo || "").includes("online")) return formatFolioOnline(p.id);
     return formatFolioPOS(p.id);
   };
@@ -130,6 +226,10 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
     }
     if (p.estado === "cancelado") {
       showToast("No se puede enviar WhatsApp de un pedido cancelado.", "warning");
+      return false;
+    }
+    if (esPagoServicio(p)) {
+      showToast("Las recargas no tienen ticket de venta. Están en POS → Servicios.", "info");
       return false;
     }
     try {
@@ -177,6 +277,10 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
   const enviarTicketWhatsApp = enviarWhatsAppTransaccion;
 
   const reimprimir = async (p) => {
+    if (esPagoServicio(p)) {
+      showToast("Las recargas no tienen ticket de productos. Revísalas en POS → Servicios.", "info");
+      return;
+    }
     setLoadingReprint(true);
     try {
       const tok = sessionStorage.getItem("farmacapital_session_token");
@@ -215,8 +319,12 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
   const abrirDetalle = async (p) => {
     setModalDet(p);
     setWaTelDetalle(p.clientes?.telefono || "");
-    setLoadDet(true);
     setDetItems([]);
+    if (esPagoServicio(p)) {
+      setLoadDet(false);
+      return;
+    }
+    setLoadDet(true);
     const tok = sessionStorage.getItem("farmacapital_session_token");
     const { data, error } = await supabase.rpc("empleado_listar_pedido_items_detalle_transacciones", {
       p_session_token: tok,
@@ -237,22 +345,64 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
   const abrirEditar = (p) => {
     setModalEdit(p);
     const mp = p.metodo_pago === "spei" || p.metodo_pago === "mercadopago" ? "tarjeta" : (p.metodo_pago || "efectivo");
-    setEditForm({ estado: p.estado || "", metodo_pago: mp, notas: p.notas || "" });
+    setEditForm({
+      estado: p.estado || "completado",
+      metodo_pago: mp,
+      notas: p.notas || "",
+      referencia: p.referencia || "",
+      monto_servicio: p.monto_servicio != null ? String(p.monto_servicio) : "",
+      comision: p.comision != null ? String(p.comision) : "",
+      atendido_por: p.atendido_por != null ? String(p.atendido_por) : "",
+    });
+  };
+
+  const guardarPagoServicioAdmin = async (action, extra = {}) => {
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    if (!tok) throw new Error("Sesión expirada");
+    const resp = await fetch("/api/inventarioProcesarPdf?type=pago-servicio", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-session-token": tok },
+      body: JSON.stringify({ session_token: tok, action, ...extra }),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok || !data?.ok) {
+      throw new Error(data?.error || "No se pudo guardar la recarga");
+    }
+    return data;
   };
 
   const guardarEditar = async () => {
     setSaving(true);
     const tok = sessionStorage.getItem("farmacapital_session_token");
-    const { error } = await supabase.rpc("admin_editar_pedido", {
-      p_session_token: tok,
-      p_pedido_id: modalEditar.id,
-      p_estado: editForm.estado,
-      p_metodo_pago: editForm.metodo_pago,
-      p_notas: editForm.notas || null,
-    });
-    setSaving(false); setModalEdit(null);
-    if (error) showToast("Error: "+error.message, "error");
-    fetchPedidos();
+    try {
+      if (esPagoServicio(modalEditar)) {
+        await guardarPagoServicioAdmin("editar", {
+          id: modalEditar.servicioId,
+          metodo_pago: editForm.metodo_pago,
+          notas: editForm.notas || null,
+          referencia: editForm.referencia,
+          monto_servicio: editForm.monto_servicio,
+          comision: editForm.comision,
+          atendido_por: editForm.atendido_por ? Number(editForm.atendido_por) : null,
+        });
+      } else {
+        const atendidoPor = editForm.atendido_por ? Number(editForm.atendido_por) : null;
+        const { error } = await supabase.rpc("admin_editar_pedido", {
+          p_session_token: tok,
+          p_pedido_id: modalEditar.id,
+          p_estado: editForm.estado,
+          p_metodo_pago: editForm.metodo_pago,
+          p_notas: editForm.notas || null,
+          p_atendido_por: Number.isFinite(atendidoPor) ? atendidoPor : null,
+        });
+        if (error) throw error;
+      }
+      setModalEdit(null);
+      fetchPedidos();
+    } catch (e) {
+      showToast("Error: " + (e.message || e), "error");
+    }
+    setSaving(false);
   };
 
   const cancelarPed = async (p) => {
@@ -274,6 +424,18 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
   const eliminarPed = async (p) => {
     if (!showConfirm) {
       showToast("Diálogo de confirmación no disponible.", "error");
+      return;
+    }
+    if (esPagoServicio(p)) {
+      showConfirm("Eliminar recarga", `¿Eliminar ${p.folio || "esta recarga"}? No se puede deshacer.`, async () => {
+        try {
+          await guardarPagoServicioAdmin("eliminar", { id: p.servicioId });
+          fetchPedidos();
+          showToast(`${p.folio} eliminada.`, "info");
+        } catch (e) {
+          showToast("Error: " + (e.message || e), "error");
+        }
+      }, true);
       return;
     }
     showConfirm("Eliminar pedido", `¿Eliminar el pedido #${p.id}? Se restaurará el stock y esta acción NO se puede deshacer.`, async () => {
@@ -335,6 +497,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
           <option value="fisica">Física</option>
           <option value="online">Online</option>
           <option value="consulta">Consulta</option>
+          <option value="servicio">Servicio / recarga</option>
         </select>
         <select value={filtroEstado} onChange={(e) => setFiltroE(e.target.value)} style={inpS}>
           <option value="todos">Todos los estados</option>
@@ -352,47 +515,54 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
         El teléfono del cliente debe estar en Meta → API Setup → «Números de prueba».
       </div>
 
-      {loading ? <SkeletonTable rows={5} cols={6} /> : (
+      {loading ? <SkeletonTable rows={5} cols={9} /> : (
         <div style={{ overflowX: "auto", borderRadius: 12, border: `1px solid ${C.border}`, marginBottom: 16 }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
             <thead>
               <tr style={{ background: C.cardDark }}>
-                {["ID", "Fecha/Hora", "Cliente", "Total", "Método", "Tipo", "Estado", "Acciones"].map((h) => (
+                {["ID", "Fecha/Hora", "Cliente", "Vendedor", "Total", "Método", "Tipo", "Estado", "Acciones"].map((h) => (
                   <th key={h} style={{ padding: "9px 12px", textAlign: "left", color: C.textMid, fontWeight: 700, borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap" }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {filtrados.length === 0 && <tr><td colSpan={8} style={{ textAlign: "center", padding: 32, color: C.textMid }}>Sin transacciones en este período</td></tr>}
+              {filtrados.length === 0 && <tr><td colSpan={9} style={{ textAlign: "center", padding: 32, color: C.textMid }}>Sin transacciones en este período</td></tr>}
               {filtrados.map((p, i) => (
                 <tr
                   className="farmacapital-table-row"
                   key={p.id}
                   onClick={() => abrirDetalle(p)}
-                  title="Ver detalle de la venta"
+                  title={esPagoServicio(p) ? "Ver detalle de la recarga" : "Ver detalle de la venta"}
                   style={{
                     background: p.estado === "cancelado" ? "#fff5f5" : i % 2 === 0 ? "transparent" : "#f8fafc",
                     cursor: "pointer",
                   }}
                 >
                   <td style={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}`, fontFamily: "monospace", fontSize: 11 }}>
-                    #{p.id}
-                    <div style={{ fontSize: 9, color: C.textDim, marginTop: 2 }}>{folioPedido(p)}</div>
+                    {esPagoServicio(p) ? p.folio : `#${p.id}`}
+                    <div style={{ fontSize: 9, color: C.textDim, marginTop: 2 }}>{esPagoServicio(p) ? "Recarga / servicio" : folioPedido(p)}</div>
                   </td>
                   <td style={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap" }}>{fmtDT(p.created_at)}</td>
                   <td style={{ padding: "8px 12px", color: C.text, fontWeight: 600, borderBottom: `1px solid ${C.border}` }}>
                     {p.clientes?.nombre || "—"}
                     {p.clientes?.telefono ? <div style={{ fontSize: 10, color: C.textMid, fontWeight: 500, marginTop: 2 }}>{p.clientes.telefono}</div> : null}
                   </td>
+                  <td style={{ padding: "8px 12px", color: C.text, fontWeight: 600, borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap" }}>
+                    {nombreVendedor(p) === "—" ? (
+                      <span style={{ color: C.textMid, fontWeight: 500 }}>Sin asignar</span>
+                    ) : (
+                      nombreVendedor(p)
+                    )}
+                  </td>
                   <td style={{ padding: "8px 12px", color: C.green, fontWeight: 700, borderBottom: `1px solid ${C.border}` }}>{fmtM(p.total)}</td>
                   <td style={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}` }}>{p.metodo_pago || "—"}</td>
                   <td style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, verticalAlign: "top" }}>
                     <span style={{ padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 700,
-                      background: p.tipo === "online" ? "#ede9fe" : p.tipo === "consulta" ? "#dcfce7" : "#eff6ff",
-                      color: p.tipo === "online" ? C.purple : p.tipo === "consulta" ? C.green : C.blue }}>
+                      background: p.tipo === "online" ? "#ede9fe" : p.tipo === "consulta" ? "#dcfce7" : pedidoEsTipoServicio(p.tipo) ? "#fef3c7" : "#eff6ff",
+                      color: p.tipo === "online" ? C.purple : p.tipo === "consulta" ? C.green : pedidoEsTipoServicio(p.tipo) ? C.amber : C.blue }}>
                       {labelTipoPedido(p.tipo)}
                     </span>
-                    {p.tipo_entrega && (
+                    {pedidoEsTipoOnline(p.tipo) && p.tipo_entrega && (
                       <div style={{ fontSize: 10, color: C.textMid, marginTop: 4, lineHeight: 1.3, maxWidth: 140 }}>
                         {labelTipoEntregaPedido(p.tipo_entrega)}
                         {p.tipo_entrega === "envio" && p.direccion && (
@@ -407,6 +577,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                   <td style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap" }} onClick={(e) => e.stopPropagation()}>
                     <div style={{ display: "inline-flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
                       <button type="button" onClick={() => abrirDetalle(p)} title="Ver detalle" style={{ padding: "3px 8px", borderRadius: 5, border: `1px solid ${C.blue}30`, background: "#eff6ff", color: C.blue, cursor: "pointer", fontSize: 10, fontWeight: 700 }}>Detalle</button>
+                      {!esPagoServicio(p) && <>
                       {btnAccionIcono({
                         col: "#15803d",
                         bg: "#f0fdf4",
@@ -425,9 +596,10 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                         disabled: loadingReprint,
                         children: "🖨️",
                       })}
+                      </>}
                       {usuario?.rol === "admin" && <>
                         {btnAccionIcono({ col: C.amber, bg: "#fef3c7", border: `${C.amber}30`, title: "Editar", onClick: () => abrirEditar(p), children: "✏️" })}
-                        {p.estado !== "cancelado" && btnAccionIcono({ col: C.textMid, bg: "#f1f5f9", border: "#94a3b830", title: "Cancelar pedido", onClick: () => cancelarPed(p), children: "❌" })}
+                        {!esPagoServicio(p) && p.estado !== "cancelado" && btnAccionIcono({ col: C.textMid, bg: "#f1f5f9", border: "#94a3b830", title: "Cancelar pedido", onClick: () => cancelarPed(p), children: "❌" })}
                         {btnAccionIcono({ col: C.red, bg: "#fee2e2", border: `${C.red}30`, title: "Eliminar", onClick: () => eliminarPed(p), children: "🗑️" })}
                       </>}
                     </div>
@@ -460,10 +632,13 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
         <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,.45)", backdropFilter: "blur(4px)", zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center", padding: "max(12px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px))", boxSizing: "border-box" }} onClick={(e) => e.target === e.currentTarget && setModalDet(null)}>
           <div style={{ background: C.card, borderRadius: 14, width: "min(600px, 100%)", maxHeight: "min(85dvh, 90vh)", overflowY: "auto", WebkitOverflowScrolling: "touch", padding: "clamp(16px, 4vw, 24px)", boxShadow: "0 20px 60px rgba(0,82,204,.15)", minWidth: 0 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <h3 style={{ margin: 0, color: C.text, fontSize: 15, fontWeight: 800 }}>👁 Detalle — Pedido #{modalDetalle.id}</h3>
+              <h3 style={{ margin: 0, color: C.text, fontSize: 15, fontWeight: 800 }}>
+                👁 Detalle — {esPagoServicio(modalDetalle) ? (modalDetalle.folio || "Servicio") : `Pedido #${modalDetalle.id}`}
+              </h3>
               <button type="button" onClick={() => setModalDet(null)} style={{ background: "none", border: "none", color: C.textMid, fontSize: 20, cursor: "pointer" }}>✕</button>
             </div>
 
+            {!esPagoServicio(modalDetalle) && (
             <div style={{ background: "#f0fdf4", border: "2px solid #25D366", borderRadius: 12, padding: 14, marginBottom: 16 }}>
               <div style={{ fontWeight: 800, fontSize: 14, color: "#166534", marginBottom: 10 }}>📱 Reenviar por WhatsApp (Meta API)</div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 10 }}>
@@ -496,6 +671,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                 </button>
               </div>
             </div>
+            )}
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 160px), 1fr))", gap: 12, marginBottom: 16, fontSize: 12 }}>
               <div><span style={{ color: C.textMid }}>Folio: </span><strong style={{ color: C.text }}>{folioPedido(modalDetalle)}</strong></div>
@@ -506,15 +682,29 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
               <div><span style={{ color: C.textMid }}>Estado: </span><strong style={{ color: estCol(modalDetalle.estado) }}>{modalDetalle.estado}</strong></div>
               <div><span style={{ color: C.textMid }}>Tipo: </span><strong style={{ color: C.text }}>{labelTipoPedido(modalDetalle.tipo)}</strong></div>
               <div><span style={{ color: C.textMid }}>Atendido por: </span><strong style={{ color: C.text }}>{modalDetalle.usuarios?.nombre || "—"}</strong></div>
-              {modalDetalle.tipo_entrega && (
+              {esPagoServicio(modalDetalle) && (
+                <>
+                  <div><span style={{ color: C.textMid }}>Proveedor: </span><strong style={{ color: C.text }}>{modalDetalle.proveedor || "—"}</strong></div>
+                  <div><span style={{ color: C.textMid }}>Referencia: </span><strong style={{ color: C.text }}>{modalDetalle.referencia || "—"}</strong></div>
+                  <div><span style={{ color: C.textMid }}>Monto recarga: </span><strong style={{ color: C.text }}>{fmtM(modalDetalle.monto_servicio)}</strong></div>
+                  <div><span style={{ color: C.textMid }}>Comisión: </span><strong style={{ color: C.amber }}>{fmtM(modalDetalle.comision)}</strong></div>
+                </>
+              )}
+              {pedidoEsTipoOnline(modalDetalle.tipo) && modalDetalle.tipo_entrega && (
                 <div><span style={{ color: C.textMid }}>Entrega: </span><strong style={{ color: C.text }}>{labelTipoEntregaPedido(modalDetalle.tipo_entrega)}</strong></div>
               )}
-              {modalDetalle.tipo_entrega === "envio" && modalDetalle.direccion && (
+              {pedidoEsTipoOnline(modalDetalle.tipo) && modalDetalle.tipo_entrega === "envio" && modalDetalle.direccion && (
                 <div style={{ gridColumn: "1 / -1" }}><span style={{ color: C.textMid }}>Dirección: </span><strong style={{ color: C.text }}>{modalDetalle.direccion}</strong></div>
               )}
             </div>
             {modalDetalle.notas && <div style={{ background: C.cardDark, borderRadius: 8, padding: "8px 12px", marginBottom: 14, color: C.textMid, fontSize: 12 }}>📝 {modalDetalle.notas}</div>}
 
+            {esPagoServicio(modalDetalle) ? (
+              <div style={{ background: C.cardDark, borderRadius: 8, padding: 14, fontSize: 12, color: C.textMid, lineHeight: 1.5 }}>
+                Recarga registrada en POS → Servicios. No es una venta de producto, por eso no tenía folio VTA ni aparecía aquí antes.
+              </div>
+            ) : (
+            <>
             <div style={{ fontWeight: 700, color: C.text, fontSize: 13, marginBottom: 10 }}>Productos vendidos:</div>
             {loadDet ? <SkeletonTable rows={3} cols={4} /> : (
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
@@ -538,6 +728,8 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                   <tr><td colSpan={4} style={{ padding: "8px 10px", textAlign: "right", fontWeight: 800, color: C.text }}>TOTAL</td><td style={{ padding: "8px 10px", color: C.green, fontWeight: 900, fontSize: 14 }}>{fmtM(modalDetalle.total)}</td></tr>
                 </tbody>
               </table>
+            )}
+            </>
             )}
           </div>
         </div>
@@ -593,9 +785,12 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
         <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,.45)", backdropFilter: "blur(4px)", zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }} onClick={(e) => e.target === e.currentTarget && setModalEdit(null)}>
           <div style={{ background: C.card, borderRadius: 14, width: "min(440px,95vw)", padding: 24, boxShadow: "0 20px 60px rgba(0,82,204,.15)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-              <h3 style={{ margin: 0, color: C.text, fontSize: 15, fontWeight: 800 }}>✏️ Editar — Pedido #{modalEditar.id}</h3>
+              <h3 style={{ margin: 0, color: C.text, fontSize: 15, fontWeight: 800 }}>
+                ✏️ Editar — {esPagoServicio(modalEditar) ? (modalEditar.folio || "Recarga") : `Pedido #${modalEditar.id}`}
+              </h3>
               <button type="button" onClick={() => setModalEdit(null)} style={{ background: "none", border: "none", color: C.textMid, fontSize: 20, cursor: "pointer" }}>✕</button>
             </div>
+            {!esPagoServicio(modalEditar) && (
             <div style={{ marginBottom: 12 }}>
               <label style={{ color: C.textMid, fontSize: 10, fontWeight: 700, display: "block", marginBottom: 4 }}>ESTADO</label>
               <select value={editForm.estado} onChange={(e) => setEditForm((f) => ({ ...f, estado: e.target.value }))} style={{ width: "100%", padding: "8px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: C.card, color: C.text, fontSize: 12, outline: "none" }}>
@@ -604,6 +799,44 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                 <option value="cancelado">Cancelado</option>
               </select>
             </div>
+            )}
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ color: C.textMid, fontSize: 10, fontWeight: 700, display: "block", marginBottom: 4 }}>VENDEDOR / QUIEN CERRÓ</label>
+              <select
+                value={editForm.atendido_por || ""}
+                onChange={(e) => setEditForm((f) => ({ ...f, atendido_por: e.target.value }))}
+                style={{ width: "100%", padding: "8px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: C.card, color: C.text, fontSize: 12, outline: "none" }}
+              >
+                <option value="">Sin asignar</option>
+                {vendedores.map((v) => (
+                  <option key={v.id} value={String(v.id)}>
+                    {v.nombre}{v.turno ? ` · ${v.turno}` : ""}
+                  </option>
+                ))}
+              </select>
+              <div style={{ fontSize: 10, color: C.textMid, marginTop: 4, lineHeight: 1.35 }}>
+                Actualiza Mi Día, comisiones RRHH y ventas por empleado en el dashboard.
+                El corte de caja cuadra por turno y horario, no por vendedor individual.
+              </div>
+            </div>
+            {esPagoServicio(modalEditar) && (
+              <>
+                <div style={{ marginBottom: 12 }}>
+                  <label style={{ color: C.textMid, fontSize: 10, fontWeight: 700, display: "block", marginBottom: 4 }}>REFERENCIA / TELÉFONO</label>
+                  <input value={editForm.referencia || ""} onChange={(e) => setEditForm((f) => ({ ...f, referencia: e.target.value }))} style={{ width: "100%", padding: "8px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: C.card, color: C.text, fontSize: 12, outline: "none", boxSizing: "border-box" }} />
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
+                  <div>
+                    <label style={{ color: C.textMid, fontSize: 10, fontWeight: 700, display: "block", marginBottom: 4 }}>MONTO RECARGA</label>
+                    <input value={editForm.monto_servicio || ""} onChange={(e) => setEditForm((f) => ({ ...f, monto_servicio: e.target.value }))} inputMode="decimal" style={{ width: "100%", padding: "8px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: C.card, color: C.text, fontSize: 12, outline: "none", boxSizing: "border-box" }} />
+                  </div>
+                  <div>
+                    <label style={{ color: C.textMid, fontSize: 10, fontWeight: 700, display: "block", marginBottom: 4 }}>COMISIÓN</label>
+                    <input value={editForm.comision || ""} onChange={(e) => setEditForm((f) => ({ ...f, comision: e.target.value }))} inputMode="decimal" style={{ width: "100%", padding: "8px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: C.card, color: C.text, fontSize: 12, outline: "none", boxSizing: "border-box" }} />
+                  </div>
+                </div>
+              </>
+            )}
             <div style={{ marginBottom: 12 }}>
               <label style={{ color: C.textMid, fontSize: 10, fontWeight: 700, display: "block", marginBottom: 4 }}>MÉTODO DE PAGO</label>
               <select value={editForm.metodo_pago} onChange={(e) => setEditForm((f) => ({ ...f, metodo_pago: e.target.value }))} style={{ width: "100%", padding: "8px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: C.card, color: C.text, fontSize: 12, outline: "none" }}>
