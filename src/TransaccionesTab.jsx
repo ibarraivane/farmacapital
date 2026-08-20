@@ -111,6 +111,8 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
   const [editForm, setEditForm] = useState({});
   const [saving, setSaving] = useState(false);
   const [vendedores, setVendedores] = useState([]);
+  const [editandoVendedor, setEditandoVendedor] = useState(null);
+  const [guardandoVendedor, setGuardandoVendedor] = useState(null);
 
   useEffect(() => {
     if (usuario?.rol !== "admin") return;
@@ -405,6 +407,40 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
     setSaving(false);
   };
 
+  const cambiarVendedor = async (p, rawId) => {
+    const nuevoId = rawId ? Number(rawId) : null;
+    if (!nuevoId || Number(p.atendido_por) === nuevoId) {
+      setEditandoVendedor(null);
+      return;
+    }
+    const nombre = vendedores.find((v) => Number(v.id) === nuevoId)?.nombre || "ese vendedor";
+    setGuardandoVendedor(p.id);
+    setPedidos((prev) => prev.map((row) => (
+      row.id === p.id
+        ? { ...row, atendido_por: nuevoId, atendido_por_nombre: nombre, usuarios: { nombre } }
+        : row
+    )));
+    try {
+      if (esPagoServicio(p)) {
+        await guardarPagoServicioAdmin("editar", { id: p.servicioId, atendido_por: nuevoId });
+      } else {
+        const tok = sessionStorage.getItem("farmacapital_session_token");
+        const { error } = await supabase.rpc("admin_editar_pedido", {
+          p_session_token: tok,
+          p_pedido_id: p.id,
+          p_atendido_por: nuevoId,
+        });
+        if (error) throw error;
+      }
+      showToast(`Ahora cuenta para ${nombre} (Mi Día, comisiones y dashboard).`, "success");
+    } catch (e) {
+      showToast("No se pudo cambiar el vendedor: " + (e.message || e), "error");
+      fetchPedidos();
+    }
+    setGuardandoVendedor(null);
+    setEditandoVendedor(null);
+  };
+
   const cancelarPed = async (p) => {
     if (!showConfirm) {
       showToast("Diálogo de confirmación no disponible.", "error");
@@ -555,8 +591,43 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                     {p.clientes?.nombre || "—"}
                     {p.clientes?.telefono ? <div style={{ fontSize: 10, color: C.textMid, fontWeight: 500, marginTop: 2 }}>{p.clientes.telefono}</div> : null}
                   </td>
-                  <td style={{ padding: "8px 12px", color: C.text, fontWeight: 600, borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap" }}>
-                    {nombreVendedor(p) === "—" ? (
+                  <td
+                    style={{ padding: "8px 12px", color: C.text, fontWeight: 600, borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap" }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {usuario?.rol === "admin" && (editandoVendedor === p.id || guardandoVendedor === p.id) ? (
+                      <select
+                        autoFocus
+                        disabled={guardandoVendedor === p.id}
+                        value={p.atendido_por != null ? String(p.atendido_por) : ""}
+                        onChange={(e) => cambiarVendedor(p, e.target.value)}
+                        onBlur={() => { if (guardandoVendedor !== p.id) setEditandoVendedor(null); }}
+                        style={{ ...inpS, maxWidth: 220, fontWeight: 700 }}
+                        aria-label="Cambiar vendedor"
+                      >
+                        <option value="">Sin asignar</option>
+                        {vendedores.map((v) => (
+                          <option key={v.id} value={String(v.id)}>
+                            {v.nombre}{v.turno ? ` · ${v.turno}` : ""}
+                          </option>
+                        ))}
+                      </select>
+                    ) : usuario?.rol === "admin" ? (
+                      <button
+                        type="button"
+                        onClick={() => setEditandoVendedor(p.id)}
+                        title="Clic para cambiar quién hizo la venta"
+                        style={{
+                          background: "none", border: "none", padding: 0, cursor: "pointer",
+                          color: nombreVendedor(p) === "—" ? C.textMid : BRAND.primary,
+                          fontWeight: 700, fontSize: 12, textDecoration: "underline",
+                          textUnderlineOffset: 3, colorScheme: "light",
+                        }}
+                      >
+                        {guardandoVendedor === p.id ? "Guardando…" : (nombreVendedor(p) === "—" ? "Sin asignar" : nombreVendedor(p))}
+                        <span style={{ marginLeft: 4, fontSize: 10, textDecoration: "none" }}>▾</span>
+                      </button>
+                    ) : nombreVendedor(p) === "—" ? (
                       <span style={{ color: C.textMid, fontWeight: 500 }}>Sin asignar</span>
                     ) : (
                       nombreVendedor(p)
