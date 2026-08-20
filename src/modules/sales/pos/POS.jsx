@@ -13,6 +13,7 @@ import { precioUnidadParaVenta } from "../../../utils/precioUnidad";
 import { productoEsVendible } from "../../../utils/productoVendible";
 import { esCategoriaAntibiotico, categoriasCoinciden } from "../../../constants/categoriasProducto";
 import { isCoarsePointer, unlockInputForTouchKeyboard, lockInputAfterTouchKeyboard, armInputForTouchKeyboard } from "../../../utils/touchKeyboard";
+import { useHidBarcodeWedge } from "../../../hooks/useHidBarcodeWedge";
 import {
   suggestPosProductsLocal,
   posEsOtcConStock,
@@ -29,7 +30,7 @@ import {
   labelEstadoPagoCita,
   citaRelevanteParaResumenPOS,
 } from "../../../utils/consultaConstants";
-import { puedeCancelarCitaNoShow } from "../../../utils/citasAgenda";
+import { puedeCancelarCitaCaja, esCitaNoShow } from "../../../utils/citasAgenda";
 import { esPedidoTiendaWebPendiente, fetchPedidosTiendaPendientesMerged } from "../../../utils/pedidosTiendaWeb";
 import { desgloseCambioMN, sugerenciasPagoCliente } from "../../../utils/cambioCaja";
 import { marcarMedicamentosRecetaFarmaCapitalSurtidos } from "../../../utils/recetaCitaSync";
@@ -190,6 +191,18 @@ function PosProductoFichaPanel({
   isNarrow,
   sticky = false,
 }) {
+  const [fotoAbierta, setFotoAbierta] = useState(false);
+  const fotoBtnRef = useRef(null);
+
+  useEffect(() => {
+    setFotoAbierta(false);
+  }, [item?.id]);
+
+  const cerrarFoto = useCallback(() => {
+    setFotoAbierta(false);
+    queueMicrotask(() => fotoBtnRef.current?.focus?.());
+  }, []);
+
   const panelShell = {
     marginBottom: 14,
     borderRadius: 16,
@@ -243,6 +256,7 @@ function PosProductoFichaPanel({
   );
 
   return (
+    <>
     <div style={panelShell} data-tour="pos-ficha-producto">
       <div
         style={{
@@ -253,21 +267,33 @@ function PosProductoFichaPanel({
           alignItems: stack ? "stretch" : "start",
         }}
       >
-        <div
-          style={{
-            borderRadius: 14,
-            overflow: "hidden",
-            background: "#fff",
-            border: `1px solid ${C.border}`,
-            minHeight: stack ? 180 : 240,
-            maxHeight: stack ? 220 : 280,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: stack ? 10 : 14,
-          }}
-        >
-          {thumb ? (
+        {thumb ? (
+          <button
+            type="button"
+            ref={fotoBtnRef}
+            onClick={() => setFotoAbierta(true)}
+            aria-label={`Ver foto de ${posTituloProducto(item)}`}
+            aria-haspopup="dialog"
+            style={{
+              borderRadius: 14,
+              overflow: "hidden",
+              background: "#fff",
+              border: `1px solid ${C.border}`,
+              minHeight: stack ? 180 : 240,
+              maxHeight: stack ? 220 : 280,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: stack ? 10 : 14,
+              cursor: "zoom-in",
+              width: "100%",
+              boxSizing: "border-box",
+              appearance: "none",
+              WebkitAppearance: "none",
+              font: "inherit",
+              color: "inherit",
+            }}
+          >
             <img
               src={thumb}
               alt=""
@@ -278,12 +304,29 @@ function PosProductoFichaPanel({
                 height: "auto",
                 objectFit: "contain",
                 display: "block",
+                background: "#fff",
+                pointerEvents: "none",
               }}
             />
-          ) : (
+          </button>
+        ) : (
+          <div
+            style={{
+              borderRadius: 14,
+              overflow: "hidden",
+              background: "#fff",
+              border: `1px solid ${C.border}`,
+              minHeight: stack ? 180 : 240,
+              maxHeight: stack ? 220 : 280,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: stack ? 10 : 14,
+            }}
+          >
             <span style={{ fontSize: 72, opacity: 0.35 }} aria-hidden>💊</span>
-          )}
-        </div>
+          </div>
+        )}
 
         <div style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
           <div>
@@ -420,6 +463,14 @@ function PosProductoFichaPanel({
         </div>
       </div>
     </div>
+    <Modal open={Boolean(fotoAbierta && thumb)} onClose={cerrarFoto} title={posTituloProducto(item)}>
+      <img
+        src={thumb}
+        alt={posTituloProducto(item)}
+        style={{ width: "100%", height: "auto", display: "block", borderRadius: 12, background: "#fff" }}
+      />
+    </Modal>
+    </>
   );
 }
 
@@ -600,6 +651,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     setCitasVentana(citas);
     setConsCobrar(
       citas.filter((c) => {
+        const est = String(c.estado || "").toLowerCase();
+        if (est === "cancelada" || est === "no_asistio") return false;
         const pendientePago = citaPagoPendiente(c);
         const consumiblesPend = (c.consumibles_consulta || []).some((x) => !x.cobrado);
         return pendientePago || consumiblesPend;
@@ -1041,6 +1094,22 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     add(exact, false);
   }, [add]);
 
+  const onHidScan = useCallback((raw) => {
+    const exact = findProductExactScan(productos, raw);
+    if (exact) {
+      finalizarEscaneoExitoso(exact, raw);
+      return;
+    }
+    if (looksLikeBarcodeInput(raw)) {
+      showToast("Código de barras no encontrado en inventario.", "warning");
+    }
+  }, [productos, finalizarEscaneoExitoso]);
+
+  useHidBarcodeWedge({
+    enabled: tab === "venta" && !mpModal && !bbvaModal && !ticket && !modalConfirmEfectivo,
+    onScan: onHidScan,
+  });
+
   useEffect(() => {
     if (tab !== "venta") return;
     clearTimeout(scanAddTimerRef.current);
@@ -1079,17 +1148,14 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const getStockFifoDisponible = (producto) => {
     if (!producto) return 0;
     const lotes = Array.isArray(producto.lotes) ? producto.lotes : [];
-    if (lotes.length > 0) {
-      return Math.max(
-        0,
-        lotes.reduce((sum, lote) => {
-          if (lote?.activo === false) return sum;
-          return sum + getLoteCantidadDisponible(lote);
-        }, 0)
-      );
-    }
-    // Sin lotes en el payload no se vende, aunque productos.stock diga otra cosa.
-    return 0;
+    const fromLots = lotes.reduce((sum, lote) => {
+      if (lote?.activo === false) return sum;
+      return sum + getLoteCantidadDisponible(lote);
+    }, 0);
+    if (fromLots > 0) return fromLots;
+    // Sin piezas en lotes (payload vacío o solo lotes en 0): usar el caché
+    // productos.stock. Un lote fantasma qty=0 no debe bloquear la venta.
+    return Math.max(0, Number(producto?.stock || 0));
   };
 
   /** ¿Hay filas de lote activas con existencia? (PEPS — fuente de verdad en POS) */
@@ -1105,16 +1171,11 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
    * - Con lotes: suma cantidad_actual de lotes activos
    * - Sin lotes (legacy): productos.stock
    */
-  const getStockCajasPOS = (producto) => {
-    const lotes = Array.isArray(producto?.lotes) ? producto.lotes : [];
-    if (lotes.length > 0) return getStockFifoDisponible(producto);
-    return Math.max(0, Number(producto?.stock || 0));
-  };
+  const getStockCajasPOS = (producto) => getStockFifoDisponible(producto);
 
   const productoSinLotesPEPS = (producto) => {
     if (producto?.venta_unidad) return false;
-    const lotes = Array.isArray(producto?.lotes) ? producto.lotes : [];
-    return lotes.length === 0;
+    return getStockFifoDisponible(producto) <= 0;
   };
 
   const getCantidadEnCarrito = (cartActual, productoId, esUnidad = false) => {
@@ -1181,7 +1242,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   };
 
   const abrirCaja = async (item) => {
-    if (item.stock <= 0) { showToast("Sin stock de cajas disponibles.", "warning"); return; }
+    if (getStockCajasPOS(item) <= 0) { showToast("Sin stock de cajas disponibles.", "warning"); return; }
     const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) { showToast("Sesión expirada.", "error"); return; }
     const { data, error } = await supabase.rpc("abrir_caja_secure", {
@@ -1542,18 +1603,49 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     setGuard(false);
   };
 
+  const reabrirCitaCobro = async (cita) => {
+    if (!window.confirm(`¿Volver a poner en cobro la consulta de ${cita.nombre}? Úsalo si sí se atendió (fuera de horario o se marcó no-show por error).`)) return;
+    setGuard(true);
+    try {
+      const tok = sessionStorage.getItem("farmacapital_session_token");
+      const { data: resp, error } = await supabase.rpc("empleado_reabrir_cita_cobro", {
+        p_session_token: tok,
+        p_cita_id: cita.id,
+      });
+      if (error) throw error;
+      if (!resp?.success) throw new Error(resp?.error || "No se pudo reabrir");
+      showToast("Lista para cobrar otra vez.", "success");
+      await refrescarCitasPOS();
+    } catch (e) {
+      const faltaFn = /could not find the function|pgrst202/i.test(e?.message || "");
+      showToast(
+        faltaFn
+          ? "Falta actualizar la base. Ejecuta sql/patch_citas_no_show_corte.sql en Supabase."
+          : "No se pudo reabrir: " + (e?.message || e),
+        "error"
+      );
+    }
+    setGuard(false);
+  };
+
   const cancelarCitaPorNoShow = async (cita) => {
-    if (!puedeCancelarCitaNoShow(cita)) return;
-    if (!window.confirm(`¿Cancelar la cita de ${cita.nombre} (${cita.hora}) y liberar el horario? Solo aplica si pasaron 10 min del inicio sin pago en caja.`)) return;
+    if (!puedeCancelarCitaCaja(cita)) return;
+    const noShow = esCitaNoShow(cita);
+    const ok = window.confirm(
+      noShow
+        ? `¿Marcar que ${cita.nombre} no se presentó (${cita.fecha || ""} ${cita.hora})? Ya no pedirá cobro y el horario queda libre.`
+        : `¿Cancelar la cita de ${cita.nombre} (${cita.fecha || ""} ${cita.hora})? El horario queda libre.`
+    );
+    if (!ok) return;
     setGuard(true);
     try {
       const tok = sessionStorage.getItem("farmacapital_session_token");
       const { data: resp, error } = await supabase.rpc("actualizar_estado_cita", {
-        p_session_token: tok, p_cita_id: cita.id, p_estado: "cancelada",
+        p_session_token: tok, p_cita_id: cita.id, p_estado: noShow ? "no_asistio" : "cancelada",
       });
       if (error) throw error;
       if (!resp?.success) throw new Error(resp?.error || "No se pudo cancelar");
-      showToast("Cita cancelada. El horario queda libre.", "info");
+      showToast(noShow ? "Marcada: no se presentó." : "Cita cancelada. El horario queda libre.", "info");
       await refrescarCitasPOS();
     } catch (e) {
       console.error(e);
@@ -2917,7 +3009,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
           </div>
 
           <div style={{color:C.text,fontWeight:800,fontSize:14,marginBottom:10}}>💳 Cobrar en caja</div>
-          <div style={{color:C.textMid,fontSize:12,marginBottom:14}}>Citas con consulta o consumibles pendientes de cobro. Al pagar, el estado cambia a <strong style={{color:C.green}}>Pagada</strong> en la lista de abajo. Si pasaron 10 min del inicio sin pago, puedes usar <em>Cancelar (no asistió)</em>.</div>
+          <div style={{color:C.textMid,fontSize:12,marginBottom:14}}>Citas con consulta o consumibles pendientes de cobro. Al pagar, el estado cambia a <strong style={{color:C.green}}>Pagada</strong>. Si no vinieron o hay que anular, usa <em>No se presentó</em> o <em>Cancelar cita</em>.</div>
 
           {!consxCobrar.length?<div style={{color:C.textMid,padding:24,textAlign:"center",background:C.bg,borderRadius:10,border:`1px solid ${C.border}`,marginBottom:20}}>✓ Nada pendiente de cobro en caja</div>:
            consxCobrar.map(cita=>{
@@ -2946,6 +3038,11 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                       <div style={{color:C.text,fontWeight:800,fontSize:15}}>Consulta — {cita.nombre}</div>
                       <Tag col={pagoTag.col} sm>{pagoTag.label}</Tag>
                       {cita.canal && <Tag col={C.blue} sm>{labelCanal(cita)}</Tag>}
+                      {puedeCancelarCitaCaja(cita) && (
+                        <Btn sm ol col={C.red} onClick={()=>cancelarCitaPorNoShow(cita)} dis={guardando}>
+                          {esCitaNoShow(cita) ? "No se presentó" : "Cancelar cita"}
+                        </Btn>
+                      )}
                     </div>
                     <div style={{color:C.textMid,fontSize:12,marginTop:2}}>
                       {cita.fecha ? `${cita.fecha} · ` : ""}{cita.hora} hrs · {cita.motivo||"Consulta general"}
@@ -3115,11 +3212,6 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                       </div>
                     </div>
                   )}
-                  {puedeCancelarCitaNoShow(cita) && (
-                    <Btn sm ol col={C.red} onClick={()=>cancelarCitaPorNoShow(cita)} dis={guardando}>
-                      Cancelar (no asistió)
-                    </Btn>
-                  )}
                 </div>
               </Box>
             );
@@ -3140,6 +3232,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                   en_consulta: "En consulta",
                   completada: "Atendida",
                   pagada: "Pagada",
+                  cancelada: "Cancelada",
                   no_asistio: "No asistió",
                 }[cita.estado] || cita.estado || "—";
                 return (
@@ -3166,6 +3259,16 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                     <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
                       {cita.canal && <Tag col={C.blue} sm>{labelCanal(cita)}</Tag>}
                       <Tag col={pagoTag.col} sm>{pagoTag.label}</Tag>
+                      {puedeCancelarCitaCaja(cita) && (
+                        <Btn sm ol col={C.red} onClick={()=>cancelarCitaPorNoShow(cita)} dis={guardando}>
+                          {esCitaNoShow(cita) ? "No se presentó" : "Cancelar"}
+                        </Btn>
+                      )}
+                      {(cita.estado === "no_asistio" || cita.estado === "cancelada") && citaPagoPendiente(cita) && (
+                        <Btn sm ol col={C.blue} onClick={()=>reabrirCitaCobro(cita)} dis={guardando}>
+                          Cobrar igual
+                        </Btn>
+                      )}
                     </div>
                   </div>
                 );
