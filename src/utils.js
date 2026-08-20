@@ -4,7 +4,11 @@ import { C } from "./constants";
 
 export const dC   = f => Math.floor((new Date(f)-new Date())/86400000);
 export const cC   = d => d<0?C.red:d<15?C.red:d<30?C.amber:C.green;
-export const $    = n => `$${Number(n).toLocaleString("es-MX")}`;
+export const $    = n => {
+  const v = Number(n);
+  const x = Number.isFinite(v) ? v : 0;
+  return `$${x.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
 export const abc  = i => { const v=i.stock*i.price; return v>800?"A":v>300?"B":"C"; };
 export const aCol = a => ({A:C.green,B:C.amber,C:C.red}[a]);
 export const nCol = n => ({Gold:C.amber,Silver:C.textMid,Bronze:"#cd7f32"}[n]||C.textMid);

@@ -5,7 +5,7 @@ import { supabase, isSupabaseLocalMisconfigured } from "./supabase";
 import { C as _C, C_LIGHT, BRAND, NEG, NAV_ADMIN, NAV_VENDEDOR, NAV_DOCTORA, NAV_ITEMS, ADMIN_NAV_SECTIONS } from "./constants";
 import { $, dC, cC, abc, aCol, nCol, hashPwd, hashPwdLegacy, generateSalt, primerNombre, saludoUsuario, normalizarSesionLoginResp, getSessionToken, telefonoMxValido, normalizarTelefonoMxGuardar } from "./utils";
 import { validarPasswordTienda, PASSWORD_RULES_TEXT } from "./utils/passwordPolicy";
-import { Logo, Box, Tag, Btn, Inp, KPI, Modal, NotificacionesToast, showToast, ToastProvider, ConfirmDialog, SkeletonTable, SkeletonKPIs, SkeletonCard, Paginador, GlobalHoverStyles } from "./ui";
+import { Logo, Box, Tag, Btn, Inp, KPI, KPI_ROW, Modal, NotificacionesToast, showToast, ToastProvider, ConfirmDialog, SkeletonTable, SkeletonKPIs, SkeletonCard, Paginador, GlobalHoverStyles } from "./ui";
 import { sincronizarVentasPendientes, contarVentasPendientes } from "./utils/offlineQueue";
 import { esPedidoTiendaWebPendiente, fetchPedidosTiendaPendientesMerged } from "./utils/pedidosTiendaWeb";
 import AgendaConsultasModule from "./modules/clinical/AgendaConsultasModule";
@@ -627,7 +627,7 @@ function Dashboard({negocio,alertas,setPage}){
       {alertas.citas>0&&<PuenteOnline count={alertas.citas} label={`${alertas.citas} citas agendadas en línea hoy`} color={C.green}/>}
 
       {/* KPIs */}
-      <div style={{display:"flex",gap:12,marginBottom:20,flexWrap:"wrap"}}>
+      <div style={KPI_ROW}>
         <KPI label="Ventas hoy"    value={$(kpis.hoy)}    col={C.blue}   icon="💵" trend={12}/>
         <KPI label="Esta semana"   value={$(kpis.semana)} col={C.teal}   icon="📈"/>
         <KPI label="Este mes"      value={$(kpis.mes)}    col={C.green}  icon="📊"/>

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { C_LIGHT, BRAND } from "../../constants";
 import { supabase } from "../../supabase";
 import { nombreCompletoPacienteValido, telefonoMxValido, normalizarTelefonoMxGuardar } from "../../utils";
-import { Box, Tag, Btn, KPI, Modal, showToast, SkeletonKPIs, SkeletonTable, Inp } from "../../ui";
+import { Box, Tag, Btn, KPI, KPI_ROW, Modal, showToast, SkeletonKPIs, SkeletonTable, Inp } from "../../ui";
 import { citaPagoPendiente, citaPagoOk, labelCanal, labelEstadoPagoCita, franjaAgendaStyle } from "../../utils/consultaConstants";
 import { fetchProductosConsumiblesConsultorio } from "../../utils/consumiblesConsultorio";
 import { CitaFichaModal } from "./CitaFichaDoctora";
@@ -670,7 +670,7 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
           {kpiLoad ? (
             <SkeletonKPIs count={3} />
           ) : (
-            <div style={{ display: "flex", gap: 12, marginBottom: 18, flexWrap: "wrap" }}>
+            <div style={KPI_ROW}>
               <KPI
                 label="Consultas cerradas"
                 value={kpi.completadas}

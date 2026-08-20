@@ -3,7 +3,7 @@ import { useMediaQuery } from "./hooks/useMediaQuery";
 import { C_LIGHT, BRAND } from "./constants";
 import { supabase } from "./supabase";
 import { saludoUsuario, $ } from "./utils";
-import { SkeletonKPIs, SkeletonTable, SkeletonCard, KPI, Box, Tag, Btn } from "./ui";
+import { SkeletonKPIs, SkeletonTable, SkeletonCard, KPI, KPI_ROW, Box, Tag, Btn } from "./ui";
 import { CONSULTA_PRECIO_DEFAULT } from "./utils/consultaConstants";
 import { resumenLineasReceta } from "./utils/recetaLineas";
 import TransaccionesTab from "./TransaccionesTab";
@@ -952,7 +952,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
           </div>
           {repLoading||!rep?<SkeletonKPIs count={5}/>:(
             <>
-              <div style={{display:"flex",gap:12,marginBottom:20,flexWrap:"wrap"}}>
+              <div style={KPI_ROW}>
                 <KPI label="Ventas totales" value={$(totalVentas)} col={C.blue} icon="💵"/>
                 <KPI label="Ventas online" value={$(totalOnline)} col={C.teal} icon="🌐"/>
                 <KPI label="Consultas" value={$(ingresoConsultas)} col={C.purple} icon="🏥" sub={`${rep.consultas} citas`}/>
@@ -974,7 +974,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
                     <div key={l} style={{marginBottom:12}}>
                       <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
                         <span style={{color:C.textMid,fontSize:12}}>{l}</span>
-                        <span style={{color:col,fontWeight:700,fontSize:12}}>{$(v)}</span>
+                        <span style={{color:col,fontWeight:700,fontSize:12,whiteSpace:"nowrap",fontVariantNumeric:"tabular-nums"}}>{$(v)}</span>
                       </div>
                       <div style={{background:C.border,borderRadius:4,height:8,overflow:"hidden"}}>
                         <div style={{width:`${pct}%`,height:"100%",background:col,borderRadius:4}}/>
@@ -991,7 +991,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
                     <div key={nombre} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${C.border}`}}>
                       <span style={{color:C.text,fontSize:13,fontWeight:600}}>{nombre}</span>
                       <div style={{display:"flex",gap:10,alignItems:"center"}}>
-                        <span style={{color:C.green,fontWeight:800,fontSize:14}}>{$(total)}</span>
+                        <span style={{color:C.green,fontWeight:800,fontSize:14,whiteSpace:"nowrap",fontVariantNumeric:"tabular-nums"}}>{$(total)}</span>
                         <Tag col={C.green} sm>{totalVentas>0?((total/totalVentas)*100).toFixed(0):0}%</Tag>
                       </div>
                     </div>
@@ -1011,7 +1011,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
           </div>
           {repLoading||!rep?<SkeletonTable rows={5} cols={5}/>:(
             <div>
-              <div style={{display:"flex",gap:12,marginBottom:20,flexWrap:"wrap"}}>
+              <div style={KPI_ROW}>
                 <KPI label="Ventas brutas" value={$(totalVentas)} col={C.blue} icon="💵"/>
                 <KPI label="Devoluciones" value={$(rep.totalDevoluciones||0)} col={C.red} icon="↩️"/>
                 <KPI label="Ventas netas" value={$(totalVentas-(rep.totalDevoluciones||0))} col={C.green} icon="✅"/>

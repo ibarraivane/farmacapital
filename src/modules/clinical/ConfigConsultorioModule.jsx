@@ -40,7 +40,7 @@ function msgError(e) {
   return e.message || e.hint || e.details || JSON.stringify(e);
 }
 
-const fmtMXN = (n) => `$${Number(n).toLocaleString("es-MX")}`;
+const fmtMXN = (n) => `$${Number(n || 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const fmtPct = (n) => `${n >= 0 ? "+" : ""}${n}%`;
 
 // ═══════════════════════════════════════════════════════════════
