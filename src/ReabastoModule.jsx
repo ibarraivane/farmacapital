@@ -60,6 +60,7 @@ export default function ReabastoModule() {
   const [generando,   setGenerando]   = useState(false);
   const [busqueda,    setBusqueda]    = useState("");
   const [filtroTienda, setFiltroTienda] = useState("todas");
+  const [filtroUrgencia, setFiltroUrgencia] = useState("");
 
   const fetchProductos = useCallback(async () => {
     setLoading(true);
@@ -126,7 +127,7 @@ export default function ReabastoModule() {
       ? alertas
       : menores.map(p=>({...p, urgencia: calcUrgencia(p, C) || { nivel:"OK", col:C.textMid, bg:C.cardDark, icon:"·" }}))
   ), [alertas, menores, C]);
-  const filasAlertas = useMemo(() => {
+  const filasTienda = useMemo(() => {
     const q = busqueda.trim();
     let list = q ? filasBase.filter((p) => inventarioProductMatchesBusqueda(p, q)) : filasBase;
     if (filtroTienda === "levic") list = list.filter((p) => p.mejorTienda?.fuente === "levic");
@@ -134,8 +135,21 @@ export default function ReabastoModule() {
     else if (filtroTienda === "sin") list = list.filter((p) => !p.mejorTienda);
     return list;
   }, [filasBase, busqueda, filtroTienda]);
+  const filasAlertas = useMemo(() => {
+    if (filtroUrgencia === "elegidos") return filasTienda.filter((p) => selProds[p.id] > 0);
+    if (filtroUrgencia === "CADUCA") {
+      return filasTienda.filter((p) => p.urgencia?.nivel === "CADUCA" || p.urgencia?.nivel === "VENCIDO");
+    }
+    if (filtroUrgencia) return filasTienda.filter((p) => p.urgencia?.nivel === filtroUrgencia);
+    return filasTienda;
+  }, [filasTienda, filtroUrgencia, selProds]);
   const listaVacia = !loading && !productos.length;
   const nMarcados = Object.values(selProds).filter((v) => v > 0).length;
+  const nAgotados = filasTienda.filter((p) => p.urgencia?.nivel === "AGOTADO").length;
+  const nCriticos = filasTienda.filter((p) => p.urgencia?.nivel === "CRÍTICO").length;
+  const nCaduca = filasTienda.filter((p) => p.urgencia?.nivel === "CADUCA" || p.urgencia?.nivel === "VENCIDO").length;
+  const nBajo = filasTienda.filter((p) => p.urgencia?.nivel === "BAJO").length;
+  const nPronto = filasTienda.filter((p) => p.urgencia?.nivel === "PRONTO").length;
 
   const cantidadSugerida = (p) => {
     const min = stockMinimoEfectivo(p);
@@ -288,10 +302,6 @@ export default function ReabastoModule() {
       <div style={{display:"flex",flexDirection:isMobile?"column":"row",justifyContent:"space-between",alignItems:isMobile?"stretch":"flex-start",marginBottom:16,gap:12}}>
         <div>
           <h1 style={{color:C.text,fontSize:isMobile?18:20,fontWeight:800,margin:0}}>Reabasto</h1>
-          <p style={{margin:"6px 0 0",color:C.textMid,fontSize:12,maxWidth:720,lineHeight:1.45}}>
-            Elige aquí, con el nombre a la vista: marca la caja, revisa stock actual y sugerido, y pon cuántas piezas pedir.
-            El archivo de Levic sale sin nombres porque así lo pide su portal; tú ya decidiste la cantidad en esta lista.
-          </p>
         </div>
         <div style={{display:"flex",flexDirection:isMobile?"column":"row",gap:8,width:isMobile?"100%":"auto"}}>
           <button onClick={generarOrden} disabled={generando || nMarcados===0}
@@ -303,18 +313,27 @@ export default function ReabastoModule() {
 
       <div style={{display:"grid",gridTemplateColumns:isMobile?"repeat(2,minmax(0,1fr))":"repeat(auto-fit,minmax(120px,1fr))",gap:8,marginBottom:16}}>
         {[
-          {label:"Agotados",value:alertas.filter(p=>p.urgencia.nivel==="AGOTADO").length,col:C.red,icon:"🚨"},
-          {label:"Críticos",value:alertas.filter(p=>p.urgencia.nivel==="CRÍTICO").length,col:C.red,icon:"🔴"},
-          {label:"Caduca",value:alertas.filter(p=>p.urgencia.nivel==="CADUCA"||p.urgencia.nivel==="VENCIDO").length,col:C.amber,icon:"⏳"},
-          {label:"Bajo",value:alertas.filter(p=>p.urgencia.nivel==="BAJO").length,col:C.amber,icon:"🟡"},
-          {label:"Pronto",value:alertas.filter(p=>p.urgencia.nivel==="PRONTO").length,col:"#0891b2",icon:"🔵"},
-          {label:"Elegidos",value:nMarcados,col:BRAND.primary,icon:"✅"},
-        ].map(k=>(
-          <div key={k.label} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:isMobile?"10px 12px":"12px 16px",minWidth:0}}>
+          {id:"AGOTADO",label:"Agotados",value:nAgotados,col:C.red,icon:"🚨"},
+          {id:"CRÍTICO",label:"Críticos",value:nCriticos,col:C.red,icon:"🔴"},
+          {id:"CADUCA",label:"Caduca",value:nCaduca,col:C.amber,icon:"⏳"},
+          {id:"BAJO",label:"Bajo",value:nBajo,col:C.amber,icon:"🟡"},
+          {id:"PRONTO",label:"Pronto",value:nPronto,col:"#0891b2",icon:"🔵"},
+          {id:"elegidos",label:"Elegidos",value:nMarcados,col:BRAND.primary,icon:"✅"},
+        ].map(k=>{
+          const on = filtroUrgencia === k.id;
+          return (
+          <button key={k.id} type="button" onClick={()=>{ setFiltroUrgencia(on ? "" : k.id); setTab("alertas"); }}
+            style={{
+              background: on ? k.col + "14" : C.card,
+              border:`1.5px solid ${on ? k.col : C.border}`,
+              borderRadius:12, padding:isMobile?"10px 12px":"12px 16px", minWidth:0,
+              textAlign:"left", cursor:"pointer", colorScheme:"light",
+            }}>
             <div style={{color:C.textDim,fontSize:10,fontWeight:700,letterSpacing:.3}}>{k.icon} {k.label.toUpperCase()}</div>
             <div style={{color:k.col,fontWeight:900,fontSize:isMobile?20:22,marginTop:4}}>{k.value}</div>
-          </div>
-        ))}
+          </button>
+          );
+        })}
       </div>
 
       <div style={{display:"flex",gap:4,marginBottom:16,borderBottom:`1px solid ${C.border}`,overflowX:"auto"}}>
@@ -349,10 +368,8 @@ export default function ReabastoModule() {
                     fontSize:13, outline:"none",
                   }}
                 />
-                <div style={{color:C.textMid,fontSize:12,lineHeight:1.45,flex:"2 1 280px"}}>
-                  {nMarcados
-                    ? `${nMarcados} marcado${nMarcados===1?"":"s"} · se descarga solo eso, en Levic o en otras tiendas según «Comprar en».`
-                    : `${filasAlertas.length} en la lista · marca la caja y pon la cantidad. El sugerido es una guía.`}
+                <div style={{color:C.textMid,fontSize:12,flex:"1 1 80px"}}>
+                  {filasAlertas.length} producto{filasAlertas.length===1?"":"s"}
                 </div>
                 {[
                   ["todas", "Todas"],
@@ -369,7 +386,7 @@ export default function ReabastoModule() {
                 ))}
               </div>
               {isMobile ? (
-                <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                <div style={{display:"flex",flexDirection:"column",gap:10,maxHeight:"min(70dvh, 640px)",overflowY:"auto",WebkitOverflowScrolling:"touch",paddingRight:2}}>
                   {filasAlertas.map((p)=>(
                     <div key={p.id} style={{
                       background:C.card,border:`1px solid ${selProds[p.id]>0?C.blue:C.border}`,
@@ -406,11 +423,11 @@ export default function ReabastoModule() {
                   ))}
                 </div>
               ) : (
-              <HorizontalScrollSync>
+              <HorizontalScrollSync bodyMaxHeight="min(62dvh, 560px)">
                 <table style={{width:"100%",minWidth:980,borderCollapse:"collapse",fontSize:12}}>
                   <thead>
-                    <tr style={{background:C.cardDark}}>
-                      <th style={{padding:"9px 12px",textAlign:"left",color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>
+                    <tr>
+                      <th style={{padding:"9px 12px",textAlign:"left",color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`,position:"sticky",top:0,zIndex:4,background:C.cardDark,boxShadow:`0 1px 0 ${C.border}`}}>
                         <Caja
                           checked={filasAlertas.length>0 && filasAlertas.every(p=>selProds[p.id]>0)}
                           onChange={()=>{
@@ -430,7 +447,7 @@ export default function ReabastoModule() {
                         }}/>
                       </th>
                       {["Producto","SKU","Stock actual","Sugerido","Pedir","Comprar en","Urgencia"].map(h=>(
-                        <th key={h} style={{padding:"9px 12px",textAlign:"left",color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>{h}</th>
+                        <th key={h} style={{padding:"9px 12px",textAlign:"left",color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap",position:"sticky",top:0,zIndex:4,background:C.cardDark,boxShadow:`0 1px 0 ${C.border}`}}>{h}</th>
                       ))}
                     </tr>
                   </thead>
