@@ -247,7 +247,23 @@ export default function ReabastoModule() {
     w.document.close(); w.focus(); setTimeout(()=>w.print(),500);
   };
 
-  const inpS = {width:"70px",padding:"8px 8px",borderRadius:6,border:`1px solid ${C.border}`,fontSize:isMobile?16:12,textAlign:"center",outline:"none"};
+  const inpS = {
+    width:"70px", padding:"8px 8px", borderRadius:6, border:`1px solid ${C.border}`,
+    fontSize:isMobile?16:12, textAlign:"center", outline:"none",
+    background:"#fff", color:C.text, WebkitTextFillColor:C.text, caretColor:C.text,
+    colorScheme:"light",
+  };
+  const Caja = ({ checked, onChange, style }) => (
+    <button type="button" role="checkbox" aria-checked={!!checked} onClick={onChange} style={{
+      width:18, height:18, borderRadius:4, flexShrink:0, padding:0, cursor:"pointer",
+      border:`1.5px solid ${checked ? BRAND.primary : "#94a3b8"}`,
+      background:"#fff", colorScheme:"light",
+      display:"inline-flex", alignItems:"center", justifyContent:"center",
+      ...style,
+    }}>
+      {checked ? <span aria-hidden="true" style={{color:BRAND.primary,fontSize:13,fontWeight:800,lineHeight:1}}>✓</span> : null}
+    </button>
+  );
 
   const renderComprarEn = (p) => {
     const tienda = p.mejorTienda;
@@ -268,7 +284,7 @@ export default function ReabastoModule() {
   };
 
   return (
-    <div style={{padding: isMobile ? "12px 16px 24px" : "16px 24px 24px", maxWidth: "100%", overflow: "hidden"}}>
+    <div style={{padding: isMobile ? "12px 16px 24px" : "16px 24px 24px", maxWidth: "100%", overflow: "hidden", colorScheme:"light"}}>
       <div style={{display:"flex",flexDirection:isMobile?"column":"row",justifyContent:"space-between",alignItems:isMobile?"stretch":"flex-start",marginBottom:16,gap:12}}>
         <div>
           <h1 style={{color:C.text,fontSize:isMobile?18:20,fontWeight:800,margin:0}}>Reabasto</h1>
@@ -361,7 +377,7 @@ export default function ReabastoModule() {
                     }}>
                       <div style={{display:"flex",justifyContent:"space-between",gap:8,alignItems:"flex-start"}}>
                         <label style={{display:"flex",gap:8,minWidth:0,flex:1,alignItems:"flex-start",cursor:"pointer"}}>
-                          <input type="checkbox" checked={selProds[p.id]>0} onChange={()=>toggleSel(p.id)} style={{marginTop:3,cursor:"pointer"}}/>
+                          <Caja checked={selProds[p.id]>0} onChange={()=>toggleSel(p.id)} style={{marginTop:3}}/>
                           <div style={{minWidth:0}}>
                             <div style={{color:C.text,fontWeight:700,fontSize:14,lineHeight:1.3}}>{p.nombre}</div>
                             <div style={{color:C.textMid,fontSize:11,marginTop:3}}>{p.sku||"sin SKU"}</div>
@@ -395,10 +411,11 @@ export default function ReabastoModule() {
                   <thead>
                     <tr style={{background:C.cardDark}}>
                       <th style={{padding:"9px 12px",textAlign:"left",color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>
-                        <input type="checkbox"
+                        <Caja
                           checked={filasAlertas.length>0 && filasAlertas.every(p=>selProds[p.id]>0)}
-                          onChange={e=>{
-                          if(e.target.checked) {
+                          onChange={()=>{
+                          const allOn = filasAlertas.length>0 && filasAlertas.every(p=>selProds[p.id]>0);
+                          if(!allOn) {
                             setSelProds((prev) => ({
                               ...prev,
                               ...Object.fromEntries(filasAlertas.map((p) => [p.id, prev[p.id] > 0 ? prev[p.id] : cantidadSugerida(p)])),
@@ -410,7 +427,7 @@ export default function ReabastoModule() {
                               return next;
                             });
                           }
-                        }} style={{cursor:"pointer"}}/>
+                        }}/>
                       </th>
                       {["Producto","SKU","Stock actual","Sugerido","Pedir","Comprar en","Urgencia"].map(h=>(
                         <th key={h} style={{padding:"9px 12px",textAlign:"left",color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>{h}</th>
@@ -421,7 +438,7 @@ export default function ReabastoModule() {
                     {filasAlertas.map((p,i)=>(
                       <tr key={p.id} style={{background:i%2===0?"transparent":"#f8fafc"}}>
                         <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`}}>
-                          <input type="checkbox" checked={selProds[p.id]>0} onChange={()=>toggleSel(p.id)} style={{cursor:"pointer"}}/>
+                          <Caja checked={selProds[p.id]>0} onChange={()=>toggleSel(p.id)}/>
                         </td>
                         <td style={{padding:"9px 12px",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>{p.nombre}</td>
                         <td style={{padding:"9px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,fontFamily:"monospace",fontSize:10}}>{p.sku||"—"}</td>
