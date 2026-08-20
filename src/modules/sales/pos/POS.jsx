@@ -151,6 +151,16 @@ function PosProductoFichaPanel({
   isNarrow,
   sticky = false,
 }) {
+  const [fotoAbierta, setFotoAbierta] = useState(false);
+  useEffect(() => {
+    setFotoAbierta(false);
+  }, [item?.id]);
+  useEffect(() => {
+    if (!fotoAbierta) return undefined;
+    const onKey = (e) => { if (e.key === "Escape") setFotoAbierta(false); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [fotoAbierta]);
   const panelShell = {
     marginBottom: 14,
     borderRadius: 16,
@@ -203,6 +213,7 @@ function PosProductoFichaPanel({
   );
 
   return (
+    <>
     <div style={panelShell} data-tour="pos-ficha-producto">
       <div
         style={{
@@ -213,28 +224,52 @@ function PosProductoFichaPanel({
           alignItems: stack ? "stretch" : "start",
         }}
       >
-        <div
-          style={{
-            borderRadius: 14,
-            overflow: "hidden",
-            background: C.cardDark,
-            minHeight: stack ? 180 : 240,
-            maxHeight: stack ? 220 : 280,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          {thumb ? (
+        {thumb ? (
+          <button
+            type="button"
+            onClick={() => setFotoAbierta(true)}
+            aria-label={`Ver foto grande de ${posTituloProducto(item)}`}
+            style={{
+              borderRadius: 14,
+              overflow: "hidden",
+              background: "#fff",
+              border: `1px solid ${C.border}`,
+              minHeight: stack ? 180 : 240,
+              maxHeight: stack ? 220 : 280,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 0,
+              cursor: "zoom-in",
+              width: "100%",
+              boxSizing: "border-box",
+              appearance: "none",
+              WebkitAppearance: "none",
+              colorScheme: "light",
+            }}
+          >
             <img
               src={thumb}
               alt=""
-              style={{ width: "100%", height: "100%", minHeight: stack ? 180 : 240, objectFit: "contain", display: "block" }}
+              style={{ width: "100%", height: "100%", minHeight: stack ? 180 : 240, objectFit: "contain", display: "block", pointerEvents: "none" }}
             />
-          ) : (
+          </button>
+        ) : (
+          <div
+            style={{
+              borderRadius: 14,
+              overflow: "hidden",
+              background: C.cardDark,
+              minHeight: stack ? 180 : 240,
+              maxHeight: stack ? 220 : 280,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
             <span style={{ fontSize: 72, opacity: 0.35 }} aria-hidden>💊</span>
-          )}
-        </div>
+          </div>
+        )}
 
         <div style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
           <div>
@@ -369,6 +404,50 @@ function PosProductoFichaPanel({
         </div>
       </div>
     </div>
+    {fotoAbierta && thumb && (
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={posTituloProducto(item)}
+        onClick={() => setFotoAbierta(false)}
+        style={{
+          position: "fixed", inset: 0, zIndex: 1200,
+          background: "rgba(15,23,42,.72)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          padding: "max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left))",
+          boxSizing: "border-box",
+          cursor: "zoom-out",
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => setFotoAbierta(false)}
+          aria-label="Cerrar foto"
+          style={{
+            position: "absolute", top: 16, right: 16, width: 44, height: 44,
+            borderRadius: 22, border: "none", background: "rgba(255,255,255,.95)",
+            color: "#0f172a", fontSize: 22, fontWeight: 800, cursor: "pointer",
+            colorScheme: "light",
+          }}
+        >✕</button>
+        <img
+          src={thumb}
+          alt={posTituloProducto(item)}
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            maxWidth: "min(920px, 96vw)",
+            maxHeight: "min(88dvh, 88vh)",
+            width: "auto",
+            height: "auto",
+            objectFit: "contain",
+            borderRadius: 12,
+            background: "#fff",
+            boxShadow: "0 24px 80px rgba(0,0,0,.35)",
+          }}
+        />
+      </div>
+    )}
+    </>
   );
 }
 
