@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
 import { showToast } from "./ui";
@@ -7,6 +7,13 @@ import { TURNOS, TURNOS_LISTA, rangoTurno, inferirTurno, turnoDePerfil } from ".
 import { esVendedor, fetchSesionCajaAbierta, fetchJornadaHoy } from "./utils/cajaSesion";
 import { useMediaQuery } from "./hooks/useMediaQuery";
 import { GRID_STACK_2COL } from "./constants/layout";
+import {
+  snapshotFromCorte,
+  printCorteTicket,
+  corteTicketPdfBlob,
+  uploadCorteTicketPdf,
+  abrirOCrearTicketCorte,
+} from "./utils/corteTicket";
 
 const BRAND = { primary:"#0D1B2A", secondary:"#1E3ABA", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
 
@@ -84,6 +91,7 @@ export default function CorteCajaModule({usuario }) {
   const [loadingHist, setLoadingHist] = useState(false);
   const [filtroTurno, setFiltroTurno] = useState("todos");
   const [filtroFecha, setFiltroFecha] = useState("todos");
+  const [ticketAbriendo, setTicketAbriendo] = useState(null);
 
   // Calculados
   const totalDenoms = DENOMINACIONES.reduce(
@@ -202,6 +210,33 @@ export default function CorteCajaModule({usuario }) {
 
   useEffect(() => { if (tab==="historial") fetchCortes(); }, [tab, fetchCortes]);
 
+  const abrirTicketHistorial = async (c) => {
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    if (!tok) { showToast("Sesión expirada. Inicia sesión de nuevo.", "warning"); return; }
+    setTicketAbriendo(c.id);
+    try {
+      await abrirOCrearTicketCorte({
+        corte: c,
+        sessionToken: tok,
+        fetchVentas: async (corte) => {
+          const fecha = corte.fecha ? new Date(corte.fecha) : new Date();
+          const { inicio, fin } = rangoTurno(fecha, corte.turno);
+          const { data } = await supabase.rpc("empleado_listar_pedidos_transacciones", {
+            p_session_token: tok,
+            p_created_desde: inicio.toISOString(),
+            p_created_hasta: fin.toISOString(),
+            p_limite: 400,
+          });
+          return Array.isArray(data) ? data : [];
+        },
+      });
+    } catch (e) {
+      showToast("No se pudo abrir el ticket: " + (e.message || e), "error");
+    } finally {
+      setTicketAbriendo(null);
+    }
+  };
+
   // P3.4: Función para verificar si hay turno activo (usada desde POS)
   // Esta función se puede llamar externamente via ref o contexto
   const verificarTurnoActivo = async () => {
@@ -294,7 +329,12 @@ export default function CorteCajaModule({usuario }) {
     }
 
     // Recién ahora se destapa: el cajero ya se comprometió con su conteo.
-    setResultado(data);
+    // El RPC a veces no devuelve tarjeta/MP; se conservan los del turno para el PDF.
+    setResultado({
+      ...data,
+      tarjeta: data?.tarjeta ?? tar,
+      mercadopago: data?.mercadopago ?? mp,
+    });
     cargarReporteZ();
     try {
       const { data: ns } = await supabase.rpc("empleado_marcar_citas_no_show_corte", {
@@ -350,7 +390,7 @@ export default function CorteCajaModule({usuario }) {
         <ResultadoCorte
           C={C} resultado={resultado} turno={turno} dif={dif} difCol={difCol} difBg={difBg}
           difTxt={difTxt} zTransac={zTransac} cargandoZ={cargandoZ}
-          btnSecondary={btnSecondary} onNuevo={nuevoCorte}
+          btnSecondary={btnSecondary} onNuevo={nuevoCorte} cajero={usuario?.nombre}
         />
       )}
 
@@ -602,14 +642,14 @@ export default function CorteCajaModule({usuario }) {
               <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                 <thead>
                   <tr style={{background:C.card}}>
-                    {["Fecha/Hora","Turno","Cajero","Contó","Fondo","Ef. Declarado","Ef. Sistema","Diferencia","Tarjeta","MP","Total","Notas"].map(h=>(
+                    {["Fecha/Hora","Turno","Cajero","Contó","Fondo","Ef. Declarado","Ef. Sistema","Diferencia","Tarjeta","MP","Total","Notas","Ticket"].map(h=>(
                       <th key={h} style={{padding:"10px 12px",textAlign:"left",color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {cortes.length===0&&(
-                    <tr><td colSpan={12} style={{textAlign:"center",padding:32,color:C.textMid}}>Sin cortes en este período</td></tr>
+                    <tr><td colSpan={13} style={{textAlign:"center",padding:32,color:C.textMid}}>Sin cortes en este período</td></tr>
                   )}
                   {cortes.map((c,i)=>{
                     const dif    = parseFloat(c.diferencia||0);
@@ -639,6 +679,15 @@ export default function CorteCajaModule({usuario }) {
                         <td style={{padding:"9px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{fmt(c.mercadopago)}</td>
                         <td style={{padding:"9px 12px",color:C.text,fontWeight:800,borderBottom:`1px solid ${C.border}`}}>{fmt(c.total_general)}</td>
                         <td style={{padding:"9px 12px",color:C.textDim,fontSize:11,borderBottom:`1px solid ${C.border}`,maxWidth:130,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.notas||"—"}</td>
+                        <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>
+                          <button
+                            onClick={() => abrirTicketHistorial(c)}
+                            disabled={ticketAbriendo === c.id}
+                            style={{...btnSecondary,padding:"5px 10px",fontSize:11}}
+                          >
+                            {ticketAbriendo === c.id ? "…" : "PDF"}
+                          </button>
+                        </td>
                       </tr>
                     );
                   })}
@@ -678,56 +727,68 @@ export default function CorteCajaModule({usuario }) {
 // diferencia no es cero y como comprobante del relevo.
 // ══════════════════════════════════════════════════════════════
 function ResultadoCorte({ C, resultado, turno, dif, difCol, difBg, difTxt,
-                          zTransac, cargandoZ, btnSecondary, onNuevo }) {
+                          zTransac, cargandoZ, btnSecondary, onNuevo, cajero }) {
   const esperado  = parseFloat(resultado?.esperado ?? 0);
   const sistema   = parseFloat(resultado?.efectivo_sistema ?? 0);
   const fondoRes  = parseFloat(resultado?.fondo_inicial ?? 0);
   const declarado = esperado + dif;
+  const tarjetaRes = parseFloat(resultado?.tarjeta ?? 0);
+  const mpRes      = parseFloat(resultado?.mercadopago ?? 0);
+  const speiRes    = parseFloat(resultado?.spei ?? 0);
+  const [ticketEstado, setTicketEstado] = useState("idle");
+  const subidoRef = useRef(false);
 
-  const imprimir = () => {
-    const filas = (zTransac || []).map(t => `
-      <tr>
-        <td>#${t.id}</td>
-        <td>${new Date(t.created_at).toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"})}</td>
-        <td>${(t.metodo_pago || "—")}</td>
-        <td class="r">$${parseFloat(t.total || 0).toFixed(2)}</td>
-      </tr>`).join("");
-    const html = `<!doctype html><html><head><meta charset="utf-8">
-      <title>Corte ${turno} — ${new Date().toLocaleDateString("es-MX")}</title>
-      <style>
-        body{font-family:-apple-system,system-ui,sans-serif;font-size:12px;margin:24px;color:#111}
-        h1{font-size:16px;margin:0 0 2px} .sub{color:#666;margin-bottom:16px}
-        table{width:100%;border-collapse:collapse;margin-top:8px}
-        th,td{text-align:left;padding:4px 6px;border-bottom:1px solid #ddd}
-        th{font-size:10px;text-transform:uppercase;color:#666}
-        .r{text-align:right} .tot{font-weight:700;border-top:2px solid #111}
-        .box{border:1px solid #ccc;padding:10px 12px;margin-bottom:14px}
-        .box div{display:flex;justify-content:space-between;padding:2px 0}
-        .dif{font-weight:700;border-top:1px solid #ccc;margin-top:4px;padding-top:6px}
-      </style></head><body>
-      <h1>Corte de caja — turno ${turno}</h1>
-      <div class="sub">${new Date().toLocaleString("es-MX")} · corte #${resultado?.corte_id ?? ""}</div>
-      <div class="box">
-        <div><span>Fondo inicial</span><span>$${fondoRes.toFixed(2)}</span></div>
-        <div><span>Ventas en efectivo (sistema)</span><span>$${sistema.toFixed(2)}</span></div>
-        <div><span>Esperado en cajón</span><span>$${esperado.toFixed(2)}</span></div>
-        <div><span>Contado</span><span>$${declarado.toFixed(2)}</span></div>
-        <div class="dif"><span>Diferencia</span><span>$${dif.toFixed(2)}</span></div>
-      </div>
-      <h1 style="font-size:13px">Detalle de ventas del turno</h1>
-      <table>
-        <thead><tr><th>Folio</th><th>Hora</th><th>Método</th><th class="r">Total</th></tr></thead>
-        <tbody>${filas || '<tr><td colspan="4">Sin ventas en el turno</td></tr>'}</tbody>
-        <tfoot><tr class="tot"><td colspan="3">${(zTransac||[]).length} venta(s)</td>
-          <td class="r">$${(zTransac||[]).reduce((a,t)=>a+parseFloat(t.total||0),0).toFixed(2)}</td></tr></tfoot>
-      </table>
-      <p style="margin-top:24px">Contó: ____________________  Recibió: ____________________</p>
-      </body></html>`;
-    // Ventana aparte en vez de window.print() sobre la app: el reporte lleva su
-    // propio formato y así no pelea con los estilos del panel.
-    const w = window.open("", "_blank", "width=720,height=800");
-    if (!w) { showToast("El navegador bloqueó la ventana de impresión", "warning"); return; }
-    w.document.write(html); w.document.close(); w.focus(); w.print();
+  const snap = snapshotFromCorte({
+    resultado: {
+      ...resultado,
+      diferencia: dif,
+      efectivo_declarado: declarado,
+      tarjeta: tarjetaRes,
+      mercadopago: mpRes,
+      spei: speiRes,
+    },
+    turno,
+    zTransac,
+    cajero,
+  });
+
+  const guardarPdf = async () => {
+    const id = resultado?.corte_id ?? resultado?.id;
+    if (!id) return null;
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    if (!tok) throw new Error("Sesión expirada");
+    const blob = corteTicketPdfBlob(snap);
+    return uploadCorteTicketPdf(id, blob, tok);
+  };
+
+  useEffect(() => {
+    if (cargandoZ || zTransac === null) return;
+    const id = resultado?.corte_id ?? resultado?.id;
+    if (!id || subidoRef.current) return;
+    subidoRef.current = true;
+    setTicketEstado("guardando");
+    guardarPdf()
+      .then(() => setTicketEstado("listo"))
+      .catch((e) => {
+        subidoRef.current = false;
+        setTicketEstado("error");
+        console.error("[corte ticket]", e);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cargandoZ, zTransac, resultado?.corte_id]);
+
+  const imprimir = async () => {
+    if (!printCorteTicket(snap)) {
+      showToast("El navegador bloqueó la ventana de impresión", "warning");
+      return;
+    }
+    try {
+      await guardarPdf();
+      setTicketEstado("listo");
+    } catch (e) {
+      console.error("[corte ticket]", e);
+      showToast("Se imprimió, pero no se pudo guardar el PDF: " + (e.message || e), "warning");
+    }
   };
 
   const totalZ = (zTransac || []).reduce((a,t)=>a+parseFloat(t.total||0),0);
@@ -760,9 +821,17 @@ function ResultadoCorte({ C, resultado, turno, dif, difCol, difBg, difTxt,
           <div style={{color:C.text,fontWeight:800,fontSize:14,flex:1}}>
             🧾 Detalle del turno {cargandoZ ? "" : `· ${(zTransac||[]).length} venta(s) · ${fmt(totalZ)}`}
           </div>
-          <button onClick={imprimir} disabled={cargandoZ} style={{...btnSecondary,padding:"8px 16px",fontSize:12}}>
-            🖨️ Imprimir
-          </button>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <span style={{color:C.textDim,fontSize:11}}>
+              {ticketEstado === "guardando" ? "Guardando PDF…"
+                : ticketEstado === "listo" ? "PDF en historial"
+                : ticketEstado === "error" ? "PDF no se guardó"
+                : ""}
+            </span>
+            <button onClick={imprimir} disabled={cargandoZ} style={{...btnSecondary,padding:"8px 16px",fontSize:12}}>
+              🖨️ Imprimir
+            </button>
+          </div>
         </div>
         {cargandoZ ? (
           <div style={{color:C.textMid,padding:20,textAlign:"center",fontSize:12}}>Cargando el detalle…</div>

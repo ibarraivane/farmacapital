@@ -7,8 +7,32 @@ const {
 } = require('../_lib/supabaseAdmin');
 const { isRhDocumentoRequest, rhDocumentoHandler } = require('../_lib/rhDocumentoHandler');
 
-const ALLOWED_BUCKETS = new Set(['banners', 'productos']);
+const ALLOWED_BUCKETS = new Set(['banners', 'productos', 'cortes']);
 const MAX_BYTES = 12 * 1024 * 1024;
+
+async function ensureCortesBucket(supabaseUrl, serviceKey) {
+  const headers = {
+    apikey: serviceKey,
+    Authorization: `Bearer ${serviceKey}`,
+  };
+  const getResp = await fetch(`${supabaseUrl}/storage/v1/bucket/cortes`, { headers });
+  if (getResp.ok) return;
+  const createResp = await fetch(`${supabaseUrl}/storage/v1/bucket`, {
+    method: 'POST',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      id: 'cortes',
+      name: 'cortes',
+      public: true,
+      file_size_limit: 5 * 1024 * 1024,
+      allowed_mime_types: ['application/pdf'],
+    }),
+  });
+  if (!createResp.ok) {
+    const detail = await createResp.text().catch(() => '');
+    console.error('[storage-upload] create bucket cortes', createResp.status, detail.slice(0, 300));
+  }
+}
 
 async function handler(req, res) {
   // Hobby: máx. 12 funciones. El expediente RH vive aquí (?type=rh-documento).
@@ -39,6 +63,9 @@ async function handler(req, res) {
   if (!fileName || !/^[a-z0-9._-]+$/i.test(fileName)) {
     return res.status(400).json({ ok: false, error: 'invalid_file_name' });
   }
+  if (bucket === 'cortes' && !/^corte-\d+\.pdf$/i.test(fileName)) {
+    return res.status(400).json({ ok: false, error: 'invalid_file_name' });
+  }
 
   const valid = await validateEmployeeSession(supabaseUrl, serviceKey, sessionToken);
   if (!valid) {
@@ -59,7 +86,16 @@ async function handler(req, res) {
     return res.status(413).json({ ok: false, error: 'file_too_large' });
   }
 
+  if (bucket === 'cortes') {
+    try {
+      await ensureCortesBucket(supabaseUrl, serviceKey);
+    } catch (e) {
+      console.error('[storage-upload] ensure bucket cortes', e);
+    }
+  }
+
   const uploadUrl = `${supabaseUrl}/storage/v1/object/${encodeURIComponent(bucket)}/${encodeURIComponent(fileName)}`;
+  const upsert = bucket === 'cortes' ? 'true' : 'false';
 
   try {
     const uploadResp = await fetch(uploadUrl, {
@@ -68,7 +104,7 @@ async function handler(req, res) {
         apikey: serviceKey,
         Authorization: `Bearer ${serviceKey}`,
         'Content-Type': contentType,
-        'x-upsert': 'false',
+        'x-upsert': upsert,
       },
       body,
     });
