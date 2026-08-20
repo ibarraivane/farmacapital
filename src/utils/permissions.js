@@ -50,6 +50,10 @@ export const MODULOS_DISPONIBLES_DOCTORA = [
   "exp_dr",
 ];
 
+export function rolEsAdmin(rol) {
+  return rol === "admin";
+}
+
 export function modulosPermitidosParaRol(rol) {
   if (rol === "admin")    return "all";
   if (rol === "vendedor") return MODULOS_DISPONIBLES_VENDEDOR;
