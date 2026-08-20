@@ -1,6 +1,10 @@
 'use strict';
 
-const { getSupabaseAdminConfig, validateAdminSession } = require('./supabaseAdmin');
+const {
+  getSupabaseAdminConfig,
+  validateAdminSession,
+  validateEmployeeSession,
+} = require('./supabaseAdmin');
 
 function safeJson(req) {
   try {
@@ -14,6 +18,22 @@ function safeJson(req) {
 
 function roundMoney(n) {
   return Math.round(Number(n) * 100) / 100;
+}
+
+function restHeaders(serviceKey) {
+  return {
+    apikey: serviceKey,
+    Authorization: `Bearer ${serviceKey}`,
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+    Prefer: 'return=representation',
+  };
+}
+
+function patchError(data) {
+  if (!data) return 'no_se_pudo_guardar';
+  if (typeof data === 'string') return data.slice(0, 180);
+  return data.message || data.error || data.code || 'no_se_pudo_guardar';
 }
 
 async function pagoServicioAdminHandler(req, res) {
@@ -32,26 +52,46 @@ async function pagoServicioAdminHandler(req, res) {
     return res.status(401).json({ ok: false, error: 'missing_session' });
   }
 
-  const isAdmin = await validateAdminSession(supabaseUrl, serviceKey, sessionToken);
-  if (!isAdmin) {
-    return res.status(403).json({ ok: false, error: 'requiere_admin' });
-  }
-
-  const id = Number(body.id);
-  if (!Number.isFinite(id) || id <= 0) {
-    return res.status(400).json({ ok: false, error: 'id_invalido' });
-  }
-
   const action = String(body.action || 'editar').trim();
-  const headers = {
-    apikey: serviceKey,
-    Authorization: `Bearer ${serviceKey}`,
-    Accept: 'application/json',
-    'Content-Type': 'application/json',
-    Prefer: 'return=representation',
-  };
+  const headers = restHeaders(serviceKey);
 
   try {
+    if (action === 'listar') {
+      const isEmp = await validateEmployeeSession(supabaseUrl, serviceKey, sessionToken);
+      if (!isEmp) return res.status(403).json({ ok: false, error: 'requiere_empleado' });
+      const qs = new URLSearchParams();
+      qs.set('select', 'id,folio,proveedor,categoria,referencia,monto_servicio,comision,total_cobrado,metodo_pago,liquidado_point,notas,created_at,atendido_por');
+      qs.set('order', 'created_at.desc');
+      qs.set('limit', '300');
+      if (body.desde) qs.append('created_at', `gte.${body.desde}`);
+      if (body.hasta) qs.append('created_at', `lte.${body.hasta}`);
+      const resp = await fetch(`${supabaseUrl}/rest/v1/pagos_servicio?${qs.toString()}`, { headers });
+      const rows = await resp.json().catch(() => []);
+      if (!resp.ok || !Array.isArray(rows)) {
+        return res.status(502).json({ ok: false, error: 'no_se_pudo_listar' });
+      }
+      const usersResp = await fetch(`${supabaseUrl}/rest/v1/usuarios?select=id,nombre`, { headers });
+      const users = await usersResp.json().catch(() => []);
+      const byId = Object.fromEntries((Array.isArray(users) ? users : []).map((u) => [String(u.id), u.nombre]));
+      return res.status(200).json({
+        ok: true,
+        rows: rows.map((r) => ({
+          ...r,
+          atendido_por_nombre: r.atendido_por != null ? (byId[String(r.atendido_por)] || '') : '',
+        })),
+      });
+    }
+
+    const isAdmin = await validateAdminSession(supabaseUrl, serviceKey, sessionToken);
+    if (!isAdmin) {
+      return res.status(403).json({ ok: false, error: 'requiere_admin' });
+    }
+
+    const id = Number(body.id);
+    if (!Number.isFinite(id) || id <= 0) {
+      return res.status(400).json({ ok: false, error: 'id_invalido' });
+    }
+
     if (action === 'eliminar') {
       const resp = await fetch(`${supabaseUrl}/rest/v1/pagos_servicio?id=eq.${id}`, {
         method: 'DELETE',
@@ -118,7 +158,7 @@ async function pagoServicioAdminHandler(req, res) {
     });
     const data = await resp.json().catch(() => []);
     if (!resp.ok) {
-      return res.status(502).json({ ok: false, error: 'no_se_pudo_guardar' });
+      return res.status(502).json({ ok: false, error: patchError(data) });
     }
     return res.status(200).json({ ok: true, row: Array.isArray(data) ? data[0] : data });
   } catch (e) {

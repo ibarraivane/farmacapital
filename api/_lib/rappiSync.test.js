@@ -2,7 +2,15 @@
 
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
-const { applyPushResult, drainSimulatedQueue, MAX_INTENTOS } = require('./rappiSync');
+const {
+  applyPushResult,
+  drainSimulatedQueue,
+  MAX_INTENTOS,
+  loginIntegrationsUrl,
+  rappiAuthHeaders,
+  getIntegrationsAccessToken,
+  resetRappiTokenCache,
+} = require('./rappiSync');
 const { normalizeRappiInboundOrder } = require('./rappiIngest');
 
 function row(overrides) {
@@ -113,5 +121,42 @@ describe('normalizeRappiInboundOrder', () => {
     assert.equal(n.ok, true);
     assert.equal(n.order.external_order_id, 'RAPP-1');
     assert.deepEqual(n.order.items, [{ sku: 'EQ-AVT216', qty: 2 }]);
+  });
+});
+
+describe('Rappi Authentication (docs)', () => {
+  it('arma el login de integrations en el NEW_DOMAIN', () => {
+    assert.equal(
+      loginIntegrationsUrl('https://api.dev.rappi.com'),
+      'https://api.dev.rappi.com/restaurants/auth/v1/token/login/integrations'
+    );
+    assert.equal(
+      loginIntegrationsUrl('https://api.rappi.com.mx/'),
+      'https://api.rappi.com.mx/restaurants/auth/v1/token/login/integrations'
+    );
+  });
+
+  it('manda el token en x-authorization, no Basic', () => {
+    const h = rappiAuthHeaders('tok_abc');
+    assert.equal(h['x-authorization'], 'Bearer: tok_abc');
+    assert.equal(h.Authorization, undefined);
+  });
+
+  it('pide el access_token con client_id/client_secret', async () => {
+    resetRappiTokenCache();
+    let seen = null;
+    const token = await getIntegrationsAccessToken(
+      { clientId: 'id1', clientSecret: 'sec1', apiBase: 'https://api.dev.rappi.com' },
+      async (url, opts) => {
+        seen = { url, body: JSON.parse(opts.body) };
+        return {
+          ok: true,
+          json: async () => ({ access_token: 'jwt-x', token_type: 'Bearer', expires_in: 86400 }),
+        };
+      }
+    );
+    assert.equal(token, 'jwt-x');
+    assert.equal(seen.url, 'https://api.dev.rappi.com/restaurants/auth/v1/token/login/integrations');
+    assert.deepEqual(seen.body, { client_id: 'id1', client_secret: 'sec1' });
   });
 });

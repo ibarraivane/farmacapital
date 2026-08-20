@@ -3,7 +3,11 @@
  * Espejo simplificado de scripts/pricing_preview.py (classify + piso de margen).
  */
 
-export const FUENTES_COMPRA = ["exprezo", "marzam", "nadro", "levic", "otros_compra"];
+/** Columnas visibles en la tabla Compra (no inflar con fuentes de pocos matches). */
+export const FUENTES_COMPRA_TABLA = ["exprezo", "marzam", "nadro", "levic", "otros_compra"];
+/** Entran a «Comprar en» / mejor precio, sin columna propia. */
+export const FUENTES_COMPRA_EXTRA = ["scorpion", "abarrotero", "mayoreototal"];
+export const FUENTES_COMPRA = [...FUENTES_COMPRA_TABLA, ...FUENTES_COMPRA_EXTRA];
 export const FUENTES_VENTA = ["fahorro", "similares", "otros_venta"];
 
 /** Fila tombstone al borrar una referencia manualmente (precio NOT NULL en BD). */
@@ -77,15 +81,38 @@ export function productoSubtituloReferencia(p) {
 }
 
 export const FUENTE_META = {
-  exprezo: { label: "Exprezo", tipo: "compra", listaDistribuidor: false },
+  exprezo: {
+    label: "Exprezo",
+    tipo: "compra",
+    listaDistribuidor: false,
+    hint: "Zorro Abarrotero: el piso barato de higiene, pañales y abarrotes. No se compara con clubes (City Club / Sam's).",
+  },
   marzam: { label: "Marzam", tipo: "compra", listaDistribuidor: true },
   nadro: { label: "Nadro", tipo: "compra", listaDistribuidor: true },
   levic: { label: "Levic", tipo: "compra", listaDistribuidor: false },
+  scorpion: {
+    label: "Scorpion",
+    tipo: "compra",
+    listaDistribuidor: false,
+    hint: "Mayoreo CDMX, higiene y pañales. Actualizar lo refresca. No tiene columna propia.",
+  },
+  abarrotero: {
+    label: "Abarrotero",
+    tipo: "compra",
+    listaDistribuidor: false,
+    hint: "OTC y cuidado personal. Actualizar lo refresca.",
+  },
+  mayoreototal: {
+    label: "MayoreoTotal",
+    tipo: "compra",
+    listaDistribuidor: false,
+    hint: "Poco traslape con el catálogo; solo aparece si gana precio.",
+  },
   otros_compra: {
     label: "Otros",
     tipo: "compra",
     listaDistribuidor: false,
-    hint: "Promedio o consulta manual (Claude, Google, etc.)",
+    hint: "Otro abarrotero barato o lista de representante. No uses esto para City Club/Sam's: no son el mismo piso que Zorro.",
   },
   similares: { label: "Similares", tipo: "venta", listaDistribuidor: false },
   fahorro: { label: "Del Ahorro", tipo: "venta", listaDistribuidor: false },
@@ -165,6 +192,21 @@ export function margenToneColors(tone, C) {
   return { color: C.textMid, bg: C.cardDark };
 }
 
+/** Última fecha de referencia vigente por fuente (YYYY-MM-DD). */
+export function fechasActualizacionPorFuente(rows) {
+  const m = {};
+  for (const row of rows || []) {
+    if (!esReferenciaVigente(row)) continue;
+    const f = row.fuente;
+    const d =
+      (row.fecha && String(row.fecha).slice(0, 10)) ||
+      (row.created_at && String(row.created_at).slice(0, 10));
+    if (!f || !d) continue;
+    if (!m[f] || d > m[f]) m[f] = d;
+  }
+  return m;
+}
+
 /** Mapa producto_id → { fuente → fila ref } desde filas de producto_precios_referencia_actual */
 export function buildReferenciasPorProducto(rows) {
   const byProduct = {};
@@ -228,6 +270,25 @@ export function refsVentaDeProducto(refsMap) {
     if (row?.precio != null) out[id] = parseFloat(row.precio);
   }
   return out;
+}
+
+/** Tiendas B2B con precio, de más barata a más cara. Nunca incluye «tu costo». */
+export function opcionesTiendaCompra(refsMap) {
+  return Object.entries(refsCompraDeProducto(refsMap))
+    .filter(([, precio]) => Number.isFinite(precio) && precio > 0)
+    .map(([id, precio]) => ({
+      fuente: id,
+      label: FUENTE_META[id]?.label || id,
+      precio,
+    }))
+    .sort((a, b) => a.precio - b.precio);
+}
+
+/** Dónde pedir: la tienda más barata. El resurtido usa esto, no el último costo. */
+export function calcMejorTienda(refsMap) {
+  const opciones = opcionesTiendaCompra(refsMap);
+  if (!opciones.length) return null;
+  return { ...opciones[0], opciones };
 }
 
 /**
@@ -325,8 +386,10 @@ export function classifyProductoMargen(p) {
 }
 
 /**
- * Precio de venta sugerido: competir con min(FDA, Similares) −2%.
- * No sube el precio por piso de margen; solo avisa si quedarías bajo costo o piso habitual.
+ * Precio de venta sugerido = ~2% bajo la ref. más barata (FDA / Similares / Otros).
+ * Si hoy vendes más barato que eso, la acción es SUBIR (estabas dejando margen).
+ * Si vendes más caro, la acción es BAJAR para no quedarte fuera.
+ * El piso de margen no infla el precio; solo avisa si el competitivo queda bajo costo.
  */
 export function calcPrecioSugeridoVenta(producto, refsMap) {
   const precioActual = parseFloat(producto.precio) || 0;
@@ -343,6 +406,7 @@ export function calcPrecioSugeridoVenta(producto, refsMap) {
       piso: null,
       nota: "Sin referencias de venta",
       alerta: null,
+      accion: null,
       margenActual,
       margenSugerido: margenSugeridoEmpty,
     };
@@ -355,8 +419,9 @@ export function calcPrecioSugeridoVenta(producto, refsMap) {
   const sugeridoCompetitivo = calcPrecioCompetitivo(refMin);
   const sugerido = sugeridoCompetitivo;
   const margenSugerido = sugerido != null ? calcMargenVenta(sugerido, producto) : margenSugeridoEmpty;
+  const accion = accionPrecioSugerido(precioActual, sugerido);
 
-  let nota = "Competir: ~2% bajo la ref. más barata, redondeado a peso entero";
+  let nota = "Al nivel del mercado (~2% bajo la ref. más barata)";
   let alerta = margenSugerido.tone === "debajo_costo" ? "debajo_costo"
     : margenSugerido.tone === "debajo_piso" ? "debajo_piso"
     : null;
@@ -364,11 +429,13 @@ export function calcPrecioSugeridoVenta(producto, refsMap) {
   if (alerta === "debajo_costo") {
     nota = `A ${fmtPrecioVenta(sugerido)} no cubres tu costo (${fmtPrecioRef(costo)}). Revisa costo o decide margen.`;
   } else if (alerta === "debajo_piso") {
-    nota = `Competitivo (${fmtPrecioVenta(sugerido)}) queda bajo tu piso habitual (${fmtPrecioVenta(piso)}). Puedes aplicarlo si priorizas share.`;
-  } else if (precioActual > 0 && roundPrecioVenta(precioActual) === sugerido) {
-    nota = "Tu precio ya está al nivel competitivo";
-  } else if (precioActual > refMin) {
-    nota = `Competencia desde ${fmtPrecioRef(refMin)} — bajar a ${fmtPrecioVenta(sugerido)}`;
+    nota = `El mercado pide ${fmtPrecioVenta(sugerido)}, bajo tu piso habitual (${fmtPrecioVenta(piso)}).`;
+  } else if (accion === "subir") {
+    nota = `Subir: vendes ${fmtPrecioVenta(precioActual)} y el mercado más barato está en ${fmtPrecioRef(refMin)}. Puedes ir a ${fmtPrecioVenta(sugerido)} sin quedar caro.`;
+  } else if (accion === "bajar") {
+    nota = `Bajar: estás arriba del mercado (${fmtPrecioRef(refMin)}). Competir a ${fmtPrecioVenta(sugerido)}.`;
+  } else if (accion === "mantener") {
+    nota = "Tu precio ya está al nivel del mercado";
   }
 
   return {
@@ -378,6 +445,7 @@ export function calcPrecioSugeridoVenta(producto, refsMap) {
     piso,
     nota,
     alerta,
+    accion,
     margenActual,
     margenSugerido,
   };
@@ -407,7 +475,18 @@ export function colorDiffVenta(pctStr) {
   if (pctStr == null) return null;
   const n = parseFloat(pctStr);
   if (Number.isNaN(n)) return null;
+  // % = (tu precio − ref) / ref. Negativo = tú más barato.
+  if (n < -12) return "barato";
   if (n <= 0) return "ok";
-  if (n > 0) return "caro";
-  return "neutral";
+  return "caro";
+}
+
+/** ¿El sugerido sube, baja o ya está al mercado? */
+export function accionPrecioSugerido(precioActual, sugerido) {
+  const a = roundPrecioVenta(precioActual);
+  const s = roundPrecioVenta(sugerido);
+  if (a == null || s == null) return null;
+  if (s - a >= 2) return "subir";
+  if (a - s >= 2) return "bajar";
+  return "mantener";
 }

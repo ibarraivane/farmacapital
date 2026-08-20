@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { C_LIGHT } from "../../constants";
+import { GRID_STACK_2COL } from "../../constants/layout";
 import { supabase } from "../../supabase";
 import { showToast } from "../../ui";
 import { fetchProductosConsumiblesConsultorio } from "../../utils/consumiblesConsultorio";
@@ -121,7 +122,7 @@ function MedicoModal({ initial, onClose, onSaved }) {
           <h3 style={{margin:0,color:C.text,fontSize:15,fontWeight:800}}>{form.id?"✏️ Editar":"➕ Nuevo"} médico</h3>
           <button onClick={onClose} style={{background:"none",border:"none",color:C.textMid,fontSize:18,cursor:"pointer"}}>✕</button>
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 16px"}}>
+        <div style={{display:"grid",gridTemplateColumns:GRID_STACK_2COL,gap:"0 16px"}}>
           <div style={{marginBottom:12}}><label style={labelStyle}>NOMBRE *</label><input value={form.nombre} onChange={e=>set("nombre",e.target.value)} style={inputStyle}/></div>
           <div style={{marginBottom:12}}><label style={labelStyle}>ESPECIALIDAD</label><input value={form.especialidad} onChange={e=>set("especialidad",e.target.value)} style={inputStyle}/></div>
           <div style={{marginBottom:12}}><label style={labelStyle}>CÉDULA PROFESIONAL</label><input value={form.cedula} onChange={e=>set("cedula",e.target.value)} style={inputStyle}/></div>
@@ -832,7 +833,7 @@ export default function ConsultorioModule({ usuario }) {
     if (isDoctora && tab === "medicos") setTab("espera");
   }, [isDoctora, tab]);
   return (
-    <div style={{padding:24,background:C.bg,minHeight:"100dvh",fontFamily:"var(--fc-body)"}}>
+    <div style={{padding:isMobile?0:24,background:C.bg,minHeight:"100dvh",fontFamily:"var(--fc-body)"}}>
       <div style={{marginBottom:20}}>
         <h1 style={{margin:0,color:C.text,fontSize:20,fontWeight:800}}>♥ Consultorio</h1>
         <p style={{margin:"4px 0 0",color:C.textMid,fontSize:12}}>Gestión médica · FarmaCapital</p>

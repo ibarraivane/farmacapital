@@ -6,7 +6,12 @@ function titleCase(s) {
   return String(s || "")
     .trim()
     .split(/\s+/)
-    .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : ""))
+    .map((w) =>
+      w
+        .split("-")
+        .map((p) => (p ? p.charAt(0).toUpperCase() + p.slice(1).toLowerCase() : ""))
+        .join("-")
+    )
     .join(" ");
 }
 
@@ -44,6 +49,30 @@ function nombreTipoProducto(nombre) {
   return null;
 }
 
+const FORMA_EN_NOMBRE =
+  /\s+(?:suspensi[oó]n|tabletas?|tabs?\.?|c[aá]psulas?|c[aá]ps\.?|jarabe|crema|gel|ung[uü]ento|pomada|soluci[oó]n|gotas|aerosol|spray|comprimidos?|ampolletas?|inyectable|frasco|sobres?|polvo|loci[oó]n|emulsi[oó]n|elixir|jalea|[oó]vulos?|supositorios?|parche|inhalador|grageas?)\b/i;
+
+/** Nombre de mostrador: Alu-Mag, no el laboratorio ni la fórmula completa. */
+export function nombreComercialPos(nombre) {
+  const limpio = limpiarNombrePosCrudo(nombre);
+  if (!limpio) return "";
+  const corte = limpio.split(FORMA_EN_NOMBRE)[0].trim();
+  if (corte && corte !== limpio && corte.length >= 2 && corte.length <= 48) {
+    return corte;
+  }
+  const palabras = limpio.split(/\s+/);
+  if (palabras.length > 6 || limpio.length > 56) {
+    return palabras.slice(0, 3).join(" ");
+  }
+  return limpio;
+}
+
+function mismaMarca(texto, marca) {
+  const a = String(texto || "").trim().toLowerCase();
+  const b = String(marca || "").trim().toLowerCase();
+  return Boolean(a && b && a === b);
+}
+
 /** Título principal en ficha, resultados y carrito. */
 export function posTituloProducto(p) {
   if (!p) return "";
@@ -51,23 +80,24 @@ export function posTituloProducto(p) {
   const pa = String(p.principio_activo || "").trim();
   const forma = String(p.forma_farmaceutica || "").trim();
   const limpio = limpiarNombrePosCrudo(p.nombre);
+  const comercial = nombreComercialPos(p.nombre);
 
   const tipo = nombreTipoProducto(p.nombre) || nombreTipoProducto(limpio);
   if (tipo) return titleCase(tipo);
 
-  if (pa && (p.tipo === "generico" || p.requiere_receta)) {
-    return titleCase(pa);
+  if (comercial && !mismaMarca(comercial, marca)) {
+    const cortoConMarca =
+      marca &&
+      !/gen[eé]rico/i.test(marca) &&
+      limpio.toLowerCase().startsWith(marca.toLowerCase()) &&
+      limpio.split(/\s+/).length <= 5 &&
+      limpio.length <= 40;
+    if (cortoConMarca) return titleCase(limpio);
+    return titleCase(comercial);
   }
 
-  if (marca && !/gen[eé]rico/i.test(marca)) {
-    const resto = limpio.replace(new RegExp(`^${marca}\\b`, "i"), "").trim();
-    if (!resto) return titleCase(marca);
-    // Sabores cortos: Electrolit Uva, Electrolit Coco, etc.
-    if (resto.length <= 24 && limpio.split(/\s+/).length <= 5) {
-      return titleCase(limpio);
-    }
-    if (resto.length < 4) return titleCase(marca);
-    if (limpio.length > 48) return titleCase(marca);
+  if (pa && (p.tipo === "generico" || p.requiere_receta)) {
+    return titleCase(pa);
   }
 
   if (forma && !/material de curaci[oó]n|producto|medicamento|otro/i.test(forma)) {

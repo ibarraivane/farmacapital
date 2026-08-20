@@ -3,7 +3,7 @@ import { useMediaQuery } from "./hooks/useMediaQuery";
 import { C_LIGHT, BRAND } from "./constants";
 import { supabase } from "./supabase";
 import { saludoUsuario, $ } from "./utils";
-import { SkeletonKPIs, SkeletonTable, SkeletonCard, KPI, Box, Tag, Btn } from "./ui";
+import { SkeletonKPIs, SkeletonTable, SkeletonCard, KPI, KPI_ROW, Box, Tag, Btn } from "./ui";
 import { CONSULTA_PRECIO_DEFAULT } from "./utils/consultaConstants";
 import { resumenLineasReceta } from "./utils/recetaLineas";
 import TransaccionesTab from "./TransaccionesTab";
@@ -12,6 +12,7 @@ import { fixLegacyFarmaxBrand } from "./utils/brandText";
 import { parseRpcJsonArray, parseRpcJsonObject } from "./utils/rpcJson";
 import { pedidoEsTipoFisica, pedidoEsTipoOnline, pedidoEsTipoConsulta } from "./utils/orderChannels";
 import { costoLineaVenta, ingresoLineaVenta } from "./utils/margenVenta";
+import { categoriaCanon } from "./constants/categoriasProducto";
 
 function rpcBundleRows(bundle, key) {
   return parseRpcJsonArray(parseRpcJsonObject(bundle)[key]);
@@ -600,7 +601,6 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
     ]);
     const RB = parseRpcJsonObject(repBundleRes.data);
     const peds = rpcBundleRows(RB, "peds");
-    const cons = rpcBundleRows(RB, "cons");
     const ponl = rpcBundleRows(RB, "ponl");
     const devs = rpcBundleRows(RB, "devs");
     const pedsCat = rpcBundleRows(RB, "peds_cat");
@@ -611,7 +611,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
     const margenCat = {};
     (pedsCat || []).forEach((ped) => {
       (ped.productos || []).forEach((item) => {
-        const cat = item.productos?.categoria || "Sin categoría";
+        const cat = categoriaCanon(item.productos?.categoria) || "Sin categoría";
         const ingreso = ingresoLineaVenta(item);
         const costo = costoLineaVenta(item);
         if (!margenCat[cat]) margenCat[cat] = { ingreso: 0, costo: 0 };
@@ -639,9 +639,13 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
     });
     const ventasRecetaFarmaCapitalPeriod = (pedsRecetaFarmaCapital || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
     const nExt = citasRecetaExternaPeriod ?? 0;
+    const pedsConsulta = (peds || []).filter((p) => pedidoEsTipoConsulta(p.tipo));
+    const ingresoConsultasPeriod = pedsConsulta.reduce((a, p) => a + parseFloat(p.total || 0), 0);
     setRep({
       ventas: peds || [], clientes: clientesNuevos ?? 0,
-      consultas: cons?.length || 0, online: (ponl || []).reduce((a, p) => a + parseFloat(p.total || 0), 0),
+      consultas: pedsConsulta.length,
+      ingresoConsultas: ingresoConsultasPeriod,
+      online: (ponl || []).reduce((a, p) => a + parseFloat(p.total || 0), 0),
       totalDevoluciones, margenPorCat, precioConsulta,
       ventasRecetaFarmaCapitalPeriod,
       nRecetasExternasPeriod: nExt,
@@ -711,7 +715,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
   const totalVentas = rep ? (rep.ventas||[]).reduce((a,p)=>a+parseFloat(p.total||0),0) : 0;
   const totalOnline = rep ? rep.online : 0;
   const ticketPromedio = rep && rep.ventas?.length ? totalVentas/rep.ventas.length : 0;
-  const ingresoConsultas = rep ? rep.consultas * (rep.precioConsulta || CONSULTA_PRECIO_DEFAULT) : 0;
+  const ingresoConsultas = rep ? Number(rep.ingresoConsultas || 0) : 0;
   const porEmpleado = rep ? rep.ventas.reduce((acc,p)=>{
     const nombre = p.usuarios?.nombre||"Sin asignar";
     acc[nombre]=(acc[nombre]||0)+parseFloat(p.total||0);
@@ -952,10 +956,10 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
           </div>
           {repLoading||!rep?<SkeletonKPIs count={5}/>:(
             <>
-              <div style={{display:"flex",gap:12,marginBottom:20,flexWrap:"wrap"}}>
+              <div style={KPI_ROW}>
                 <KPI label="Ventas totales" value={$(totalVentas)} col={C.blue} icon="💵"/>
                 <KPI label="Ventas online" value={$(totalOnline)} col={C.teal} icon="🌐"/>
-                <KPI label="Consultas" value={$(ingresoConsultas)} col={C.purple} icon="🏥" sub={`${rep.consultas} citas`}/>
+                <KPI label="Consultas" value={$(ingresoConsultas)} col={C.purple} icon="🏥" sub={`${rep.consultas} cobrada${rep.consultas === 1 ? "" : "s"} en caja`}/>
                 <KPI label="Ventas receta médico FarmaCapital" value={$(rep.ventasRecetaFarmaCapitalPeriod || 0)} col={C.purple} icon="📋" sub="POS en el período"/>
                 <KPI label="Oportunidad perdida (est.)" value={$(rep.oportunidadPerdidaRecetaPeriod || 0)} col={(rep.nRecetasExternasPeriod || 0) > 0 ? C.amber : C.green} icon="📤" sub={`${rep.nRecetasExternasPeriod || 0} recetas fuera × ${fmt(rep.estimadoRecetaExternaUnit || 350)}`}/>
                 <KPI label="Ticket promedio" value={$(ticketPromedio)} col={C.green} icon="🧾"/>
@@ -1011,7 +1015,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
           </div>
           {repLoading||!rep?<SkeletonTable rows={5} cols={5}/>:(
             <div>
-              <div style={{display:"flex",gap:12,marginBottom:20,flexWrap:"wrap"}}>
+              <div style={KPI_ROW}>
                 <KPI label="Ventas brutas" value={$(totalVentas)} col={C.blue} icon="💵"/>
                 <KPI label="Devoluciones" value={$(rep.totalDevoluciones||0)} col={C.red} icon="↩️"/>
                 <KPI label="Ventas netas" value={$(totalVentas-(rep.totalDevoluciones||0))} col={C.green} icon="✅"/>

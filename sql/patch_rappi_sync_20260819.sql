@@ -412,10 +412,10 @@ begin
          where id = v_lote_id;
 
         insert into public.pedido_items (
-          pedido_id, producto_id, cantidad, precio_unitario, lote, caducidad
+          pedido_id, producto_id, cantidad, precio_unitario, lote_id
         ) values (
           v_pedido_id, v_prod.id, v_lote_tomar, (v_item->>'precio')::numeric,
-          v_lote_numero, v_lote_caducidad
+          v_lote_id
         );
 
         v_restante := v_restante - v_lote_tomar;
@@ -428,17 +428,24 @@ begin
       );
     end if;
 
-    v_stock_nuevo := v_stock_antes - v_qty;
-    update public.productos
-       set stock = v_stock_nuevo
-     where id = v_prod.id;
+    -- Con lotes, el trigger trg_sync_productos_stock ya dejó productos.stock
+    -- en la suma PEPS. No reescribir: desfasaba caché vs lotes.
+    if v_lotes_activos = 0 then
+      v_stock_nuevo := v_stock_antes - v_qty;
+      update public.productos
+         set stock = v_stock_nuevo
+       where id = v_prod.id;
+    else
+      select coalesce(stock, 0) into v_stock_nuevo
+        from public.productos where id = v_prod.id;
+    end if;
 
     insert into public.movimientos_inventario (
-      producto_id, tipo, cantidad, stock_antes, stock_despues, motivo, usuario_id
+      producto_id, tipo, cantidad, motivo, usuario_id, referencia
     ) values (
-      v_prod.id, 'salida', v_qty, v_stock_antes, v_stock_nuevo,
+      v_prod.id, 'salida', v_qty,
       format('Rappi %s pedido #%s', v_ext, v_pedido_id),
-      null
+      null, v_pedido_id::text
     );
   end loop;
 

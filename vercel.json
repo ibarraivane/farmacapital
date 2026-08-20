@@ -49,6 +49,14 @@
       "destination": "/api/admin/storage-upload?type=rh-documento"
     },
     {
+      "source": "/api/precios/buscar",
+      "destination": "/api/inventarioProcesarPdf?type=buscar-similares"
+    },
+    {
+      "source": "/api/precios/actualizar-compra",
+      "destination": "/api/inventarioProcesarPdf?type=actualizar-compra"
+    },
+    {
       "source": "/api/whatsapp/send",
       "destination": "/api/notifications/send?type=whatsapp"
     },

@@ -5,7 +5,7 @@ import { supabase, isSupabaseLocalMisconfigured } from "./supabase";
 import { C as _C, C_LIGHT, BRAND, NEG, NAV_ADMIN, NAV_VENDEDOR, NAV_DOCTORA, NAV_ITEMS, ADMIN_NAV_SECTIONS } from "./constants";
 import { $, dC, cC, abc, aCol, nCol, hashPwd, hashPwdLegacy, generateSalt, primerNombre, saludoUsuario, normalizarSesionLoginResp, getSessionToken, telefonoMxValido, normalizarTelefonoMxGuardar } from "./utils";
 import { validarPasswordTienda, PASSWORD_RULES_TEXT } from "./utils/passwordPolicy";
-import { Logo, Box, Tag, Btn, Inp, KPI, Modal, NotificacionesToast, showToast, ToastProvider, ConfirmDialog, SkeletonTable, SkeletonKPIs, SkeletonCard, Paginador, GlobalHoverStyles } from "./ui";
+import { Logo, Box, Tag, Btn, Inp, KPI, KPI_ROW, Modal, NotificacionesToast, showToast, ToastProvider, ConfirmDialog, SkeletonTable, SkeletonKPIs, SkeletonCard, Paginador, GlobalHoverStyles } from "./ui";
 import { sincronizarVentasPendientes, contarVentasPendientes } from "./utils/offlineQueue";
 import { esPedidoTiendaWebPendiente, fetchPedidosTiendaPendientesMerged } from "./utils/pedidosTiendaWeb";
 import AgendaConsultasModule from "./modules/clinical/AgendaConsultasModule";
@@ -16,6 +16,7 @@ import { adminPathnameToPageId, pageIdToAdminPath, pathnameSuggestsPosTab, pathn
 import { initBillingListeners } from "./modules/billing/core/initBillingListeners";
 import { canAccessRoute } from "./core/security/routeGuard";
 import ImageUploader from "./components/ImageUploader";
+import { GRID_STACK_2COL } from "./constants/layout";
 
 // Fallback estático para estilos fuera de componentes (evita undefined en import).
 const C = C_LIGHT;
@@ -627,7 +628,7 @@ function Dashboard({negocio,alertas,setPage}){
       {alertas.citas>0&&<PuenteOnline count={alertas.citas} label={`${alertas.citas} citas agendadas en línea hoy`} color={C.green}/>}
 
       {/* KPIs */}
-      <div style={{display:"flex",gap:12,marginBottom:20,flexWrap:"wrap"}}>
+      <div style={KPI_ROW}>
         <KPI label="Ventas hoy"    value={$(kpis.hoy)}    col={C.blue}   icon="💵" trend={12}/>
         <KPI label="Esta semana"   value={$(kpis.semana)} col={C.teal}   icon="📈"/>
         <KPI label="Este mes"      value={$(kpis.mes)}    col={C.green}  icon="📊"/>
@@ -635,7 +636,7 @@ function Dashboard({negocio,alertas,setPage}){
         {alertas.stock>0&&<KPI label="Bajo stock" value={alertas.stock} col={C.red} icon="⚠️" sub="productos"/>}
       </div>
 
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}>
+      <div style={{display:"grid",gridTemplateColumns:GRID_STACK_2COL,gap:16,marginBottom:16}}>
         {/* Pedidos online pendientes */}
         <Box style={{padding:20}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
@@ -2271,7 +2272,7 @@ body{
             position:"fixed",
             top:"calc(12px + env(safe-area-inset-top, 0px))",
             left:"calc(12px + env(safe-area-inset-left, 0px))",
-            zIndex:10,
+            zIndex:40,
             width:48,height:48,borderRadius:12,
             border:`1px solid ${C.border}`,background:C.card,
             boxShadow:"0 4px 20px rgba(0,0,0,.08)",cursor:"pointer",
@@ -2298,13 +2299,13 @@ body{
       <main className="farmacapital-admin-main" style={{
         marginLeft:isMobileLayout?0:220,
         padding:isMobileLayout
-          ? "calc(56px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) calc(20px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px))"
+          ? "calc(72px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) calc(24px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px))"
           : "clamp(16px, 3vw, 28px)",
         /* En escritorio: NO usar width:100% con marginLeft (provoca overflow horizontal al redimensionar). */
         ...(isMobileLayout
           ? { width: "100%", maxWidth: "100%" }
           : { width: "auto", maxWidth: "none", minWidth: 0 }),
-        overflowX:"hidden",
+        overflowX: isMobileLayout ? "visible" : "hidden",
         touchAction:"pan-y",
         boxSizing:"border-box",
       }}>

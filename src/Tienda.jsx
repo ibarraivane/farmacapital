@@ -25,6 +25,7 @@ import {
   productoEsCategoriaMinisuperTienda,
 } from "./utils/tiendaFarmaciaCatalogo";
 import { productoEsVendible } from "./utils/productoVendible";
+import { CATEGORIAS_PRODUCTO, categoriaCanon, categoriaPasaFiltro, categoriasCoinciden } from "./constants/categoriasProducto";
 import { showToast, Logo, BrandSplash } from "./ui";
 import { TOKENS as T, RADIO, SOMBRA } from "./theme/tokens";
 import {
@@ -1692,7 +1693,7 @@ function ProductCard({prod,addToCart,onClick}){
     >
       <div
         style={{
-          background:C.cardDark,
+          background:"#fff",
           overflow:"hidden",
           minHeight:152,
           height:152,
@@ -1782,7 +1783,7 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
   };
   if(!prod) return null;
   const agotado = productoAgotadoTienda(prod);
-  const similares=productos.filter(p=>p.categoria===prod.categoria&&p.id!==prod.id).slice(0,4);
+  const similares=productos.filter(p=>categoriasCoinciden(p.categoria, prod.categoria)&&p.id!==prod.id).slice(0,4);
   const d=prod.disponible||(prod.stock>0?"inmediato":"48hrs");
   const imgSrc = productImageUrl(prod, stack, placeholderUrl);
   return(
@@ -1825,7 +1826,7 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
       </div>
       <button type="button" onClick={()=>{ setProdDetalle(null); setPage("catalogo"); }} style={{background:"none",border:"none",color:BRAND.primary,cursor:"pointer",fontSize:14,fontWeight:700,marginBottom:20,display:"flex",alignItems:"center",gap:6}}>← Volver al catálogo</button>
       <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:stack?24:32,marginBottom:48,opacity:agotado?0.85:1}}>
-        <div style={{background:C.cardDark,borderRadius:20,overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",minHeight:stack?220:280,padding:stack?16:20,opacity:agotado?0.42:1}}>
+        <div style={{background:"#fff",border:`1px solid ${C.border}`,borderRadius:20,overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",minHeight:stack?220:280,padding:stack?16:20,opacity:agotado?0.42:1}}>
           {imgSrc ? (
             <img src={imgSrc} alt="" style={{maxWidth:"100%",maxHeight:stack?360:420,width:"auto",height:"auto",objectFit:"contain",display:"block"}}/>
           ) : (
@@ -2751,7 +2752,14 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
   const stack = useMediaQuery("(max-width: 768px)");
   /** Safari iOS: sticky lateral + scroll del documento suele causar rebote/“lock”; solo usar sticky en escritorio ancho. */
   const categoriasStickyDesktop = useMediaQuery("(min-width: 1025px)");
-  const [cat,setCat]=useState(()=>sessionStorage.getItem("farmacapital_cat")||"Todos");
+  const [cat,setCat]=useState(()=>{
+    try {
+      const saved = sessionStorage.getItem("farmacapital_cat") || "Todos";
+      return saved === "Todos" ? "Todos" : (categoriaCanon(saved) || "Todos");
+    } catch {
+      return "Todos";
+    }
+  });
   const [busq,setBusq]=useState(busqHero||sessionStorage.getItem("farmacapital_busq")||"");
   const [tipo,setTipo]=useState(()=>sessionStorage.getItem("farmacapital_tipo")||"todos");
   const [openCategorias, setOpenCategorias] = useState(false);
@@ -2767,9 +2775,13 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
       setCat("Todos");
     }
   },[busqHero]);
-  const cats=["Todos",...new Set(poolCatalogoTienda(productos).map(p=>p.categoria).filter(Boolean))];
+  const cats = useMemo(() => {
+    const pool = poolCatalogoTienda(productos);
+    const presentes = new Set(pool.map((p) => categoriaCanon(p.categoria)).filter(Boolean));
+    return ["Todos", ...CATEGORIAS_PRODUCTO.filter((c) => presentes.has(c))];
+  }, [productos]);
   const basePool = useMemo(()=>poolCatalogoTienda(productos)
-    .filter(p=>cat==="Todos"||p.categoria===cat)
+    .filter(p=>categoriaPasaFiltro(p.categoria, cat))
     .filter(p=>tipo==="todos"||p.tipo===tipo),
   [productos,cat,tipo]);
   const fil = useMemo(()=>{
@@ -3016,7 +3028,7 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
             const lineImg = productImageUrl(item, stack, placeholderUrl);
             return (
             <div key={item.id} style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:16,marginBottom:12,display:"flex",gap:16,alignItems:"center",flexWrap:"wrap"}}>
-              <div style={{background:C.cardDark,borderRadius:10,width:64,height:64,overflow:"hidden",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <div style={{background:"#fff",border:`1px solid ${C.border}`,borderRadius:10,width:64,height:64,overflow:"hidden",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
                 {lineImg ? (
                   <img src={lineImg} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
                 ) : (

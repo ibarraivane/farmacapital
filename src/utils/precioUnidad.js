@@ -1,13 +1,18 @@
 /** Regla de precio por pieza suelta: margen mayor que caja + penalización vs paquete. */
 
+import { recargoCategoriaEsHigiene } from "../constants/categoriasProducto";
+
 export const PENALIZACION_CAJA = 1.12; // Σ piezas ≥ 12% sobre precio caja
 
 function recargoPorCategoria(categoria = "", tipo = "") {
-  const cat = String(categoria || "").toLowerCase();
   const t = String(tipo || "").toLowerCase();
-  if (cat === "general" || t === "generico") return 0.75;
-  if (["higiene", "cuidado personal", "bebés", "bebes"].includes(cat)) return 0.55;
+  if (normalizeCategoriaLegacyGeneral(categoria) || t === "generico") return 0.75;
+  if (recargoCategoriaEsHigiene(categoria)) return 0.55;
   return 0.5;
+}
+
+function normalizeCategoriaLegacyGeneral(categoria) {
+  return String(categoria || "").trim().toLowerCase() === "general";
 }
 
 /** Precio mínimo sugerido por pieza (entero hacia arriba). */

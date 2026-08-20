@@ -6,6 +6,13 @@ import { inventarioProductMatchesBusqueda, inventarioSearchRelevanceRank, normal
 import { normalizeForSearch } from "./utils";
 import { findProductExactScan } from "./utils/barcodeProductLookup";
 import { etiquetaProductoInventario } from "./utils/parseNombreProducto";
+import {
+  compararLotesPeps,
+  fechaCaducidadInvalida,
+  fetchLotesInventario,
+  fetchProductosPaginados,
+  PRODUCTOS_SELECT_LOTES,
+} from "./lib/inventarioHubData";
 
 const BRAND = { primary:"#0D1B2A", secondary:"#1E3ABA", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
 const fmt = n => `$${parseFloat(n||0).toFixed(2)}`;
@@ -48,6 +55,7 @@ export default function LotesModule() {
   const [modal,       setModal]       = useState(false);
   const [filtroP,     setFiltroP]     = useState("");
   const [filtroVenc,  setFiltroV]     = useState("todos");
+  const [filtroCat,   setFiltroCat]   = useState("catalogo");
   const [form,        setForm]        = useState({
     producto_id:"", numero_lote:"", fecha_caducidad:"",
     cantidad_inicial:"", costo_unitario:"", proveedor_id:"",
@@ -63,22 +71,25 @@ export default function LotesModule() {
   const fetchData = useCallback(async()=>{
     setLoading(true);
     const tok = sessionStorage.getItem("farmacapital_session_token");
-    const [{ data: ls }, { data: ps }, { data: pv }] = tok
-      ? await Promise.all([
-          supabase.rpc("empleado_listar_lotes_inventario", { p_session_token: tok }),
-          supabase.from("productos").select("id,nombre,sku,codigo_barras,marca,presentacion,forma_farmaceutica,categoria").eq("activo", true).order("nombre"),
-          supabase.rpc("empleado_listar_proveedores_catalogo", { p_session_token: tok }),
-        ])
-      : [{ data: [] }, { data: [] }, { data: [] }];
-    const lotRows = Array.isArray(ls) ? ls : [];
-    lotRows.sort((a, b) => {
-      const fa = a.fecha_caducidad ? new Date(a.fecha_caducidad).getTime() : 0;
-      const fb = b.fecha_caducidad ? new Date(b.fecha_caducidad).getTime() : 0;
-      return fa - fb;
-    });
+    if (!tok) {
+      setLotes([]);
+      setProductos([]);
+      setProveedores([]);
+      setLoading(false);
+      return;
+    }
+    const [lsRes, psRes, pvRes] = await Promise.all([
+      fetchLotesInventario(tok),
+      fetchProductosPaginados({ select: PRODUCTOS_SELECT_LOTES, activosSolo: false, order: "nombre" }),
+      supabase.rpc("empleado_listar_proveedores_catalogo", { p_session_token: tok }),
+    ]);
+    if (lsRes.error) showToast("No se pudieron cargar lotes: " + lsRes.error.message, "error");
+    if (psRes.error) showToast("No se pudo cargar catálogo: " + psRes.error.message, "error");
+    const lotRows = Array.isArray(lsRes.data) ? [...lsRes.data] : [];
+    lotRows.sort(compararLotesPeps);
     setLotes(lotRows);
-    setProductos(Array.isArray(ps) ? ps : []);
-    setProveedores(Array.isArray(pv) ? pv : []);
+    setProductos(Array.isArray(psRes.data) ? psRes.data : []);
+    setProveedores(Array.isArray(pvRes.data) ? pvRes.data : []);
     setLoading(false);
   },[]);
 
@@ -86,11 +97,12 @@ export default function LotesModule() {
 
   const diasRestantes = fecha => {
     if(!fecha) return null;
+    if (fechaCaducidadInvalida(fecha)) return "invalida";
     return Math.floor((new Date(fecha)-new Date())/86400000);
   };
 
-  const colCad = d => d===null?"#94a3b8":d<0?C.red:d<=15?C.red:d<=30?C.amber:C.green;
-  const txtCad = d => d===null?"Sin fecha":d<0?"VENCIDO":d===0?"HOY":d<=30?`${d} días`:`${d} días`;
+  const colCad = d => d===null?"#94a3b8":d==="invalida"?C.amber:d<0?C.red:d<=15?C.red:d<=30?C.amber:C.green;
+  const txtCad = d => d===null?"Sin fecha":d==="invalida"?"Revisar año":d<0?"VENCIDO":d===0?"HOY":d<=30?`${d} días`:`${d} días`;
 
   const prodById = useMemo(
     () => Object.fromEntries(productos.map((p) => [String(p.id), p])),
@@ -101,14 +113,19 @@ export default function LotesModule() {
     const q = filtroP.trim();
     const list = lotes.filter((l) => {
       const prod = loteRowProducto(l, prodById);
+      const enCatalogo = prod.activo !== false;
+      const matchCat =
+        filtroCat === "todos" ? true :
+        filtroCat === "catalogo" ? enCatalogo :
+        filtroCat === "fuera" ? !enCatalogo : true;
       const matchP = loteRowMatchesBusqueda(l, prod, q);
       const dias = diasRestantes(l.fecha_caducidad);
       const matchV =
         filtroVenc === "todos" ? true :
-        filtroVenc === "vencidos" ? (dias !== null && dias < 0) :
-        filtroVenc === "criticos" ? (dias !== null && dias >= 0 && dias <= 15) :
-        filtroVenc === "pronto" ? (dias !== null && dias > 15 && dias <= 30) : true;
-      return matchP && matchV;
+        filtroVenc === "vencidos" ? (typeof dias === "number" && dias < 0) :
+        filtroVenc === "criticos" ? (typeof dias === "number" && dias >= 0 && dias <= 15) :
+        filtroVenc === "pronto" ? (typeof dias === "number" && dias > 15 && dias <= 30) : true;
+      return matchCat && matchP && matchV;
     });
     if (!q) return list;
     return list.sort(
@@ -116,13 +133,14 @@ export default function LotesModule() {
         inventarioSearchRelevanceRank(loteRowProducto(a, prodById), q)
         - inventarioSearchRelevanceRank(loteRowProducto(b, prodById), q)
     );
-  }, [lotes, filtroP, filtroVenc, prodById]);
+  }, [lotes, filtroP, filtroVenc, filtroCat, prodById]);
 
   const selProducto = productos.find((p) => String(p.id) === String(form.producto_id));
 
   const prodsFiltModal = useMemo(
     () =>
       productos
+        .filter((p) => p.activo !== false)
         .filter((p) => inventarioProductMatchesBusqueda(p, prodBusq))
         .sort((a, b) => inventarioSearchRelevanceRank(a, prodBusq) - inventarioSearchRelevanceRank(b, prodBusq)),
     [productos, prodBusq]
@@ -139,7 +157,7 @@ export default function LotesModule() {
   const trySelectFromScan = (raw) => {
     const trimmed = raw.trim();
     if (!trimmed) return false;
-    const exact = findProductExactScan(productos, trimmed);
+    const exact = findProductExactScan(productos.filter((p) => p.activo !== false), trimmed);
     if (exact) {
       selectProductoScan(exact);
       return true;
@@ -212,16 +230,26 @@ export default function LotesModule() {
     else { showToast("Lote desactivado","info"); fetchData(); }
   };
 
-  const vencidos  = lotes.filter(l=>{ const d=diasRestantes(l.fecha_caducidad); return d!==null&&d<0; }).length;
-  const criticos  = lotes.filter(l=>{ const d=diasRestantes(l.fecha_caducidad); return d!==null&&d>=0&&d<=15; }).length;
-  const pronto    = lotes.filter(l=>{ const d=diasRestantes(l.fecha_caducidad); return d!==null&&d>15&&d<=30; }).length;
+  const vencidos  = lotes.filter(l=>{ const d=diasRestantes(l.fecha_caducidad); return typeof d==="number"&&d<0; }).length;
+  const criticos  = lotes.filter(l=>{ const d=diasRestantes(l.fecha_caducidad); return typeof d==="number"&&d>=0&&d<=15; }).length;
+  const pronto    = lotes.filter(l=>{ const d=diasRestantes(l.fecha_caducidad); return typeof d==="number"&&d>15&&d<=30; }).length;
+  const lotesFueraCatalogo = lotes.filter((l) => {
+    const prod = loteRowProducto(l, prodById);
+    return prod.activo === false;
+  }).length;
+  const idsConLote = useMemo(() => new Set(lotes.map((l) => String(l.producto_id))), [lotes]);
+  const catalogoSinLote = productos.filter((p) => p.activo !== false && !idsConLote.has(String(p.id))).length;
 
   return(
     <div>
       <div style={{background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:10,padding:"10px 14px",marginBottom:14,fontSize:12,color:"#1e3a8a",lineHeight:1.5}}>
-        <strong>Stock en Lotes = existencia real (PEPS).</strong> El POS vende desde lotes activos.
-        Los lotes <strong>REINTEGRO-*</strong> se crean solos al reingresar mercancía (devoluciones); conviene completar caducidad y costo.
-        Para entrada nueva de proveedor usa <strong>Catálogo → 📦 Resurtir (escáner)</strong> o <strong>+ Registrar lote</strong> aquí (prefijo RX-* si omites número de lote).
+        <strong>Mismos productos que Catálogo.</strong> El nombre y el SKU salen de ahí; el stock de cada fila es el lote PEPS.
+        {catalogoSinLote > 0 && (
+          <> Hay <strong>{catalogoSinLote}</strong> producto{catalogoSinLote === 1 ? "" : "s"} del catálogo sin lote — usa + Registrar lote o Catálogo → Resurtir.</>
+        )}
+        {lotesFueraCatalogo > 0 && (
+          <> Hay <strong>{lotesFueraCatalogo}</strong> lote{lotesFueraCatalogo === 1 ? "" : "s"} de productos dados de baja — filtro «Fuera de catálogo».</>
+        )}
       </div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:10}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
@@ -282,6 +310,18 @@ export default function LotesModule() {
             color:filtroVenc===f?BRAND.primary:C.textMid,
           }}>{f.charAt(0).toUpperCase()+f.slice(1)}</button>
         ))}
+        {[
+          ["catalogo", "Catálogo"],
+          ["fuera", `Fuera de catálogo${lotesFueraCatalogo ? ` (${lotesFueraCatalogo})` : ""}`],
+          ["todos", "Todos los lotes"],
+        ].map(([id, label]) => (
+          <button key={id} onClick={()=>setFiltroCat(id)} style={{
+            padding:"6px 14px",borderRadius:20,fontSize:11,fontWeight:700,cursor:"pointer",
+            border:`1px solid ${filtroCat===id?BRAND.primary:C.border}`,
+            background:filtroCat===id?BRAND.primary+"18":"transparent",
+            color:filtroCat===id?BRAND.primary:C.textMid,
+          }}>{label}</button>
+        ))}
       </div>
 
       {/* Tabla */}
@@ -321,11 +361,14 @@ export default function LotesModule() {
                 return(
                   <tr key={l.id} style={{background:dias!==null&&dias<0?"#fff5f5":i%2===0?"transparent":"#f8fafc"}}>
                     <td style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`,maxWidth:280}}>
-                      <div style={{color:C.text,fontWeight:600,lineHeight:1.35}} title={prod.nombre}>{etiqueta || prod.nombre || "—"}</div>
+                      <div style={{color:C.text,fontWeight:600,lineHeight:1.35}} title={prod.nombre}>{prod.nombre || etiqueta || "—"}</div>
                       {(prod.marca || prod.presentacion || prod.forma_farmaceutica) && (
                         <div style={{color:C.textMid,fontSize:10,marginTop:2}}>
                           {[prod.forma_farmaceutica, prod.marca, prod.presentacion].filter(Boolean).join(" · ")}
                         </div>
+                      )}
+                      {prod.activo === false && (
+                        <div style={{color:C.amber,fontSize:10,fontWeight:700,marginTop:2}}>Fuera de catálogo</div>
                       )}
                     </td>
                     <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,fontFamily:"monospace",fontSize:10}}>{prod.sku||"—"}</td>

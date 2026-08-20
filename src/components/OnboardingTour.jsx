@@ -27,6 +27,7 @@ import React, {
 } from "react";
 import { Joyride, STATUS } from "react-joyride";
 import { TOURS, tourStorageKey } from "../utils/tours";
+import { useMediaQuery } from "../hooks/useMediaQuery";
 
 const JOYRIDE_STYLES = {
   options: {
@@ -112,6 +113,7 @@ const OnboardingTour = forwardRef(function OnboardingTour(
   const [run, setRun] = useState(false);
   const [steps, setSteps] = useState([]);
   const autoStartedRef = useRef(false);
+  const isMobile = useMediaQuery("(max-width: 900px)");
 
   const abrirTour = useCallback(() => {
     if (!tour) return;
@@ -178,17 +180,29 @@ const OnboardingTour = forwardRef(function OnboardingTour(
 
   if (!tour) return null;
 
+  const pasos = isMobile
+    ? steps.map((s) => ({ ...s, placement: "center", disableBeacon: true }))
+    : steps;
+
   return (
     <>
       <Joyride
-        steps={steps}
+        steps={pasos}
         run={run}
         continuous
         showProgress
         showSkipButton
         disableOverlayClose
+        disableScrolling={isMobile}
+        scrollToFirstStep={!isMobile}
         locale={LOCALE}
-        styles={JOYRIDE_STYLES}
+        styles={{
+          ...JOYRIDE_STYLES,
+          tooltip: {
+            ...JOYRIDE_STYLES.tooltip,
+            maxWidth: isMobile ? "min(360px, calc(100vw - 28px))" : 420,
+          },
+        }}
         callback={handleCallback}
       />
       {showFab ? (
@@ -199,16 +213,16 @@ const OnboardingTour = forwardRef(function OnboardingTour(
           title={tour.label}
           style={{
             position: "fixed",
-            right: 16,
-            bottom: 24,
-            width: 48,
-            height: 48,
+            right: "max(12px, env(safe-area-inset-right, 0px))",
+            bottom: "max(16px, env(safe-area-inset-bottom, 0px))",
+            width: isMobile ? 40 : 48,
+            height: isMobile ? 40 : 48,
             borderRadius: 24,
             border: "none",
             background: "linear-gradient(135deg,#1E3ABA,#1E3ABA)",
             color: "#fff",
             fontWeight: 800,
-            fontSize: 20,
+            fontSize: isMobile ? 18 : 20,
             cursor: "pointer",
             boxShadow: "0 8px 20px rgba(0, 82, 204, 0.35)",
             zIndex: 20,

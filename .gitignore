@@ -45,3 +45,15 @@ e2e/artifacts/screenshots/*.png.env
 
 # Cursor / Claude local (no subir a producción)
 .claude/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Caché cruda de scrapers de pricing (HTML/JSON por fecha)
+pricing/importados/mayoreototal/
+pricing/importados/scorpion/
+pricing/importados/abarrotero/
+pricing/importados/chedraui/
+pricing/importados/walmart/

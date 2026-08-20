@@ -126,7 +126,7 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
       return false;
     }
     if (!liquidado) {
-      showToast("Marca que ya liquidaste el recibo en la terminal Point (Smart Launcher)", "error");
+      showToast("Marca que ya pagaste la recarga (saldo Mercado Pago o Smart Launcher)", "error");
       return false;
     }
     return true;
@@ -168,10 +168,10 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
     <div>
       <div style={{ background: C.blueDim, border: `1px solid ${C.blue}30`, borderRadius: 10, padding: "12px 16px", marginBottom: 16 }}>
         <div style={{ color: C.blue, fontSize: 13, fontWeight: 700, lineHeight: 1.5 }}>
-          <strong>Pago de servicios y recargas.</strong> Cobras aquí al cliente (servicio + tu comisión). La liquidación del recibo se hace en la terminal Point: menú <strong>Smart Launcher → Pago de servicios</strong> (mismo proveedor y referencia).
+          <strong>Pago de servicios y recargas.</strong> Aquí anotas lo que cobraste al cliente (recarga + tu comisión). Si te pagó en efectivo, usa <strong>Efectivo</strong>. Si te pagó con tarjeta en la Point, usa <strong>Tarjeta Point</strong>.
         </div>
         <div style={{ color: C.textMid, fontSize: 11, marginTop: 8, lineHeight: 1.45 }}>
-          La Point en modo PDV solo cobra tarjeta por API. Para CFE, Telcel, etc. usa Smart Launcher en la misma terminal (puede pedir salir del modo integrado un momento). Sin Prontipagos: la comisión de MP va a Mercado Pago, no se desglosa en FarmaCapital.
+          La recarga en sí se paga aparte: con <strong>saldo de Mercado Pago</strong> o en la Point (Smart Launcher → Pago de servicios). Márcalo abajo cuando ya la hayas pagado. La comisión de MP (si cobra alguna) se queda en Mercado Pago; aquí solo se registra la comisión que le cobraste tú al cliente.
         </div>
       </div>
 
@@ -249,7 +249,7 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
           <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", marginBottom: 16, padding: "10px 12px", borderRadius: 8, border: `1px solid ${liquidado ? C.green : C.border}`, background: liquidado ? C.greenDim : C.bg }}>
             <input type="checkbox" checked={liquidado} onChange={(e) => setLiquidado(e.target.checked)} style={{ marginTop: 3 }} />
             <span style={{ color: C.text, fontSize: 12, lineHeight: 1.45 }}>
-              Confirmo que <strong>liquidaré / liquidé</strong> este servicio en la Point (Smart Launcher → Pago de servicios → {servicio.proveedor}).
+              Confirmo que <strong>ya pagué</strong> esta recarga / servicio (saldo de Mercado Pago o Smart Launcher → {servicio.proveedor}).
             </span>
           </label>
 

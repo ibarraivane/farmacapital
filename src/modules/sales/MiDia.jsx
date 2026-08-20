@@ -14,6 +14,7 @@ import {
   calcularMultiplicador, cargarConfigMetas, escalonBono, bonosActivos,
 } from "../../utils/turnosMetas";
 import { fetchJornadaHoy } from "../../utils/cajaSesion";
+import { categoriaCanon } from "../../constants/categoriasProducto";
 
 const C = C_LIGHT;
 
@@ -188,7 +189,7 @@ export default function MiDia({ usuario, setPage }) {
       // ── Categoría top del vendedor en el turno (para logro).
       const catCount = new Map();
       pedTurno.forEach((p) => (p.pedido_items || []).forEach((it) => {
-        const cat = it.productos?.categoria || null;
+        const cat = categoriaCanon(it.productos?.categoria) || null;
         if (!cat) return;
         catCount.set(cat, (catCount.get(cat) || 0) + (it.cantidad || 0));
       }));

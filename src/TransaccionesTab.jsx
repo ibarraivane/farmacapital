@@ -44,12 +44,29 @@ function mapPagoServicioAFila(ps) {
   };
 }
 
-function nombreVendedor(p) {
+function nombreVendedor(p, vendedores = []) {
   if (!p) return "—";
-  return p.usuarios?.nombre || p.atendido_por_nombre || "—";
+  const n = p.usuarios?.nombre || p.atendido_por_nombre;
+  if (n) return n;
+  const v = (vendedores || []).find((x) => Number(x.id) === Number(p.atendido_por));
+  return v?.nombre || "—";
 }
 
 async function fetchPagosServicioRango(tok, rango) {
+  try {
+    const resp = await fetch("/api/inventarioProcesarPdf?type=pago-servicio", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-session-token": tok },
+      body: JSON.stringify({
+        session_token: tok,
+        action: "listar",
+        desde: rango?.desde ?? null,
+        hasta: rango?.hasta ?? null,
+      }),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (resp.ok && data?.ok && Array.isArray(data.rows)) return data.rows;
+  } catch { /* usa RPC */ }
   const { data, error } = await supabase.rpc("empleado_listar_pagos_servicio_rango", {
     p_session_token: tok,
     p_desde: rango?.desde ?? null,
@@ -111,6 +128,8 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
   const [editForm, setEditForm] = useState({});
   const [saving, setSaving] = useState(false);
   const [vendedores, setVendedores] = useState([]);
+  const [editandoVendedor, setEditandoVendedor] = useState(null);
+  const [guardandoVendedor, setGuardandoVendedor] = useState(null);
 
   useEffect(() => {
     if (usuario?.rol !== "admin") return;
@@ -185,7 +204,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
         || String(p.folio || "").toLowerCase().includes(q.toLowerCase())
         || String(p.proveedor || "").toLowerCase().includes(q.toLowerCase())
         || String(p.referencia || "").includes(q)
-        || (p.clientes && productMatchesSearchQuery(p.clientes, busqueda, [(x) => x.nombre, (x) => x.telefono]))
+        || String(nombreVendedor(p, vendedores)).toLowerCase().includes(q.toLowerCase())
       );
     const matchB = !q || hayQ;
     const matchT = pedidoCoincideFiltroTipo(p.tipo, filtroTipo);
@@ -405,6 +424,47 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
     setSaving(false);
   };
 
+  const cambiarVendedor = async (p, rawId) => {
+    const nuevoId = rawId ? Number(rawId) : null;
+    if (!nuevoId || Number(p.atendido_por) === nuevoId) {
+      setEditandoVendedor(null);
+      return;
+    }
+    const nombre = vendedores.find((v) => Number(v.id) === nuevoId)?.nombre || "ese vendedor";
+    setGuardandoVendedor(p.id);
+    setPedidos((prev) => prev.map((row) => (
+      row.id === p.id
+        ? { ...row, atendido_por: nuevoId, atendido_por_nombre: nombre, usuarios: { nombre } }
+        : row
+    )));
+    try {
+      const tok = sessionStorage.getItem("farmacapital_session_token");
+      if (esPagoServicio(p)) {
+        const { error } = await supabase.rpc("admin_editar_pago_servicio", {
+          p_session_token: tok,
+          p_id: p.servicioId,
+          p_atendido_por: nuevoId,
+        });
+        if (error) {
+          await guardarPagoServicioAdmin("editar", { id: p.servicioId, atendido_por: nuevoId });
+        }
+      } else {
+        const { error } = await supabase.rpc("admin_editar_pedido", {
+          p_session_token: tok,
+          p_pedido_id: p.id,
+          p_atendido_por: nuevoId,
+        });
+        if (error) throw error;
+      }
+      showToast(`Ahora cuenta para ${nombre} (Mi Día, comisiones y dashboard).`, "success");
+    } catch (e) {
+      showToast("No se pudo cambiar el vendedor: " + (e.message || e), "error");
+      fetchPedidos();
+    }
+    setGuardandoVendedor(null);
+    setEditandoVendedor(null);
+  };
+
   const cancelarPed = async (p) => {
     if (!showConfirm) {
       showToast("Diálogo de confirmación no disponible.", "error");
@@ -448,7 +508,15 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
   const fmtM = (n) => `$${parseFloat(n || 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   const fmtDT = (s) => { if (!s) return "—"; const d = new Date(s); return d.toLocaleDateString("es-MX", { day: "2-digit", month: "short" }) + " " + d.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" }); };
   const estCol = (e) => e === "completado" ? C.green : e === "cancelado" ? C.red : C.amber;
-  const inpS = { padding: "7px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: C.card, color: C.text, fontSize: 12, outline: "none" };
+  const campoClaro = {
+    background: "#fff",
+    color: C.text,
+    WebkitTextFillColor: C.text,
+    caretColor: C.text,
+    colorScheme: "light",
+  };
+  const inpS = { padding: "7px 10px", borderRadius: 7, border: `1px solid ${C.border}`, fontSize: 12, outline: "none", ...campoClaro };
+  const inpForm = { ...inpS, width: "100%", boxSizing: "border-box" };
 
   const btnAccionIcono = ({ col, bg, border, title, onClick, disabled, children }) => (
     <button
@@ -479,7 +547,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
   const byMetodo = filtradosTodos.reduce((acc, p) => { const k = p.metodo_pago || "otro"; acc[k] = (acc[k] || 0) + parseFloat(p.total || 0); return acc; }, {});
 
   return (
-    <div>
+    <div style={{ colorScheme: "light" }}>
       <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
         <input placeholder="🔍 ID o cliente…" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} style={{ ...inpS, maxWidth: 180 }} />
         <select value={filtroFecha} onChange={(e) => setFiltroF(e.target.value)} style={inpS}>
@@ -547,11 +615,38 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                     {p.clientes?.nombre || "—"}
                     {p.clientes?.telefono ? <div style={{ fontSize: 10, color: C.textMid, fontWeight: 500, marginTop: 2 }}>{p.clientes.telefono}</div> : null}
                   </td>
-                  <td style={{ padding: "8px 12px", color: C.text, fontWeight: 600, borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap" }}>
-                    {nombreVendedor(p) === "—" ? (
+                  <td
+                    style={{ padding: "8px 12px", color: C.text, fontWeight: 600, borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap", minWidth: 140 }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {usuario?.rol === "admin" ? (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          const r = e.currentTarget.getBoundingClientRect();
+                          const openUp = r.bottom + 6 > window.innerHeight - 220;
+                          setEditandoVendedor({
+                            row: p,
+                            top: openUp ? undefined : r.bottom + 6,
+                            bottom: openUp ? window.innerHeight - r.top + 6 : undefined,
+                            left: Math.min(r.left, window.innerWidth - 240),
+                          });
+                        }}
+                        title="Clic para cambiar quién hizo la venta"
+                        style={{
+                          background: "none", border: "none", padding: 0, cursor: "pointer",
+                          color: nombreVendedor(p, vendedores) === "—" ? C.textMid : BRAND.primary,
+                          fontWeight: 700, fontSize: 12, textDecoration: "underline",
+                          textUnderlineOffset: 3, colorScheme: "light",
+                        }}
+                      >
+                        {guardandoVendedor === p.id ? "Guardando…" : (nombreVendedor(p, vendedores) === "—" ? "Sin asignar" : nombreVendedor(p, vendedores))}
+                        <span style={{ marginLeft: 4, fontSize: 10 }}>▾</span>
+                      </button>
+                    ) : nombreVendedor(p, vendedores) === "—" ? (
                       <span style={{ color: C.textMid, fontWeight: 500 }}>Sin asignar</span>
                     ) : (
-                      nombreVendedor(p)
+                      nombreVendedor(p, vendedores)
                     )}
                   </td>
                   <td style={{ padding: "8px 12px", color: C.green, fontWeight: 700, borderBottom: `1px solid ${C.border}` }}>{fmtM(p.total)}</td>
@@ -648,7 +743,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                   value={waTelDetalle}
                   onChange={(e) => setWaTelDetalle(e.target.value)}
                   placeholder="Teléfono cliente (10 dígitos)"
-                  style={{ flex: "1 1 160px", minWidth: 140, padding: "10px 12px", borderRadius: 8, border: "1px solid #86efac", fontSize: 16 }}
+                  style={{ flex: "1 1 160px", minWidth: 140, padding: "10px 12px", borderRadius: 8, border: "1px solid #86efac", fontSize: 16, ...campoClaro }}
                 />
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -793,7 +888,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
             {!esPagoServicio(modalEditar) && (
             <div style={{ marginBottom: 12 }}>
               <label style={{ color: C.textMid, fontSize: 10, fontWeight: 700, display: "block", marginBottom: 4 }}>ESTADO</label>
-              <select value={editForm.estado} onChange={(e) => setEditForm((f) => ({ ...f, estado: e.target.value }))} style={{ width: "100%", padding: "8px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: C.card, color: C.text, fontSize: 12, outline: "none" }}>
+              <select value={editForm.estado} onChange={(e) => setEditForm((f) => ({ ...f, estado: e.target.value }))} style={inpForm}>
                 <option value="completado">Completado</option>
                 <option value="pendiente">Pendiente</option>
                 <option value="cancelado">Cancelado</option>
@@ -805,7 +900,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
               <select
                 value={editForm.atendido_por || ""}
                 onChange={(e) => setEditForm((f) => ({ ...f, atendido_por: e.target.value }))}
-                style={{ width: "100%", padding: "8px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: C.card, color: C.text, fontSize: 12, outline: "none" }}
+                style={inpForm}
               >
                 <option value="">Sin asignar</option>
                 {vendedores.map((v) => (
@@ -823,30 +918,30 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
               <>
                 <div style={{ marginBottom: 12 }}>
                   <label style={{ color: C.textMid, fontSize: 10, fontWeight: 700, display: "block", marginBottom: 4 }}>REFERENCIA / TELÉFONO</label>
-                  <input value={editForm.referencia || ""} onChange={(e) => setEditForm((f) => ({ ...f, referencia: e.target.value }))} style={{ width: "100%", padding: "8px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: C.card, color: C.text, fontSize: 12, outline: "none", boxSizing: "border-box" }} />
+                  <input value={editForm.referencia || ""} onChange={(e) => setEditForm((f) => ({ ...f, referencia: e.target.value }))} style={inpForm} />
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
                   <div>
                     <label style={{ color: C.textMid, fontSize: 10, fontWeight: 700, display: "block", marginBottom: 4 }}>MONTO RECARGA</label>
-                    <input value={editForm.monto_servicio || ""} onChange={(e) => setEditForm((f) => ({ ...f, monto_servicio: e.target.value }))} inputMode="decimal" style={{ width: "100%", padding: "8px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: C.card, color: C.text, fontSize: 12, outline: "none", boxSizing: "border-box" }} />
+                    <input value={editForm.monto_servicio || ""} onChange={(e) => setEditForm((f) => ({ ...f, monto_servicio: e.target.value }))} inputMode="decimal" style={inpForm} />
                   </div>
                   <div>
                     <label style={{ color: C.textMid, fontSize: 10, fontWeight: 700, display: "block", marginBottom: 4 }}>COMISIÓN</label>
-                    <input value={editForm.comision || ""} onChange={(e) => setEditForm((f) => ({ ...f, comision: e.target.value }))} inputMode="decimal" style={{ width: "100%", padding: "8px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: C.card, color: C.text, fontSize: 12, outline: "none", boxSizing: "border-box" }} />
+                    <input value={editForm.comision || ""} onChange={(e) => setEditForm((f) => ({ ...f, comision: e.target.value }))} inputMode="decimal" style={inpForm} />
                   </div>
                 </div>
               </>
             )}
             <div style={{ marginBottom: 12 }}>
               <label style={{ color: C.textMid, fontSize: 10, fontWeight: 700, display: "block", marginBottom: 4 }}>MÉTODO DE PAGO</label>
-              <select value={editForm.metodo_pago} onChange={(e) => setEditForm((f) => ({ ...f, metodo_pago: e.target.value }))} style={{ width: "100%", padding: "8px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: C.card, color: C.text, fontSize: 12, outline: "none" }}>
+              <select value={editForm.metodo_pago} onChange={(e) => setEditForm((f) => ({ ...f, metodo_pago: e.target.value }))} style={inpForm}>
                 <option value="efectivo">Efectivo</option>
                 <option value="tarjeta">Tarjeta</option>
               </select>
             </div>
             <div style={{ marginBottom: 16 }}>
               <label style={{ color: C.textMid, fontSize: 10, fontWeight: 700, display: "block", marginBottom: 4 }}>NOTAS</label>
-              <textarea value={editForm.notas} onChange={(e) => setEditForm((f) => ({ ...f, notas: e.target.value }))} rows={3} placeholder="Observaciones…" style={{ width: "100%", padding: "8px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: C.card, color: C.text, fontSize: 12, outline: "none", resize: "vertical", boxSizing: "border-box" }} />
+              <textarea value={editForm.notas} onChange={(e) => setEditForm((f) => ({ ...f, notas: e.target.value }))} rows={3} placeholder="Observaciones…" style={{ ...inpForm, resize: "vertical" }} />
             </div>
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
               <button type="button" onClick={() => setModalEdit(null)} style={{ padding: "8px 16px", borderRadius: 8, border: `1px solid ${C.border}`, background: "transparent", color: C.textMid, cursor: "pointer", fontWeight: 700, fontSize: 12 }}>Cancelar</button>
@@ -854,6 +949,55 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                 {saving ? "Guardando…" : "💾 Guardar"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {editandoVendedor?.row && (
+        <div
+          style={{ position: "fixed", inset: 0, zIndex: 450, background: "transparent" }}
+          onClick={() => setEditandoVendedor(null)}
+        >
+          <div
+            role="listbox"
+            aria-label="Elegir vendedor"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: "fixed",
+              top: editandoVendedor.top,
+              bottom: editandoVendedor.bottom,
+              left: editandoVendedor.left,
+              width: 228,
+              maxHeight: 260,
+              overflowY: "auto",
+              background: "#fff",
+              color: C.text,
+              border: `1px solid ${C.border}`,
+              borderRadius: 10,
+              boxShadow: "0 12px 40px rgba(15,23,42,.18)",
+              colorScheme: "light",
+              padding: 6,
+            }}
+          >
+            {vendedores.map((v) => {
+              const selected = Number(editandoVendedor.row.atendido_por) === Number(v.id);
+              return (
+                <button
+                  key={v.id}
+                  type="button"
+                  onClick={() => cambiarVendedor(editandoVendedor.row, String(v.id))}
+                  disabled={guardandoVendedor === editandoVendedor.row.id}
+                  style={{
+                    display: "block", width: "100%", textAlign: "left",
+                    padding: "10px 12px", border: "none", borderRadius: 8,
+                    background: selected ? "#eff6ff" : "#fff",
+                    color: C.text, fontWeight: selected ? 800 : 600, fontSize: 13,
+                    cursor: "pointer", colorScheme: "light",
+                  }}
+                >
+                  {v.nombre}{v.turno ? ` · ${v.turno}` : ""}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}

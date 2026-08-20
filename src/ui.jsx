@@ -5,6 +5,7 @@ import { RADIO, SOMBRA } from "./theme/tokens";
 import { logoFullStyle, logoIconStyle, logoFullSrc, logoFullSrcSet, logoAspect } from "./brand";
 import { useLogoOnDark } from "./hooks/useLogoOnDark";
 import { productMatchesSearchQuery, tiendaProductMatchesBusqueda, tiendaSearchRelevanceRank, inventarioProductMatchesBusqueda, inventarioSearchRelevanceRank } from "./utils/fuzzySearch";
+import { unlockInputForTouchKeyboard, lockInputAfterTouchKeyboard, armInputForTouchKeyboard } from "./utils/touchKeyboard";
 
 export function Logo({ size = 36, showText = true, light, sub = "", iconOnly = false, variant = "default", auto = true }) {
   const autoDetect = auto && light === undefined;
@@ -151,6 +152,7 @@ export function Inp({value,onChange,placeholder,style,type,onKeyDown,disabled,na
       minHeight:44,
       boxSizing:"border-box",
       width:"100%",
+      touchAction:"manipulation",
       ...style,
     }}
     onFocus={e=>{e.target.style.borderColor=invalid?C.red:C.blue;e.target.style.boxShadow="0 0 0 3px "+C.blueDim;}}
@@ -160,19 +162,86 @@ export function Inp({value,onChange,placeholder,style,type,onKeyDown,disabled,na
   );
 };
 
+/** Fila de KPIs: cada tarjeta tiene ancho mínimo y el monto no se parte. */
+export const KPI_ROW = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 168px), 1fr))",
+  gap: 12,
+  marginBottom: 20,
+  alignItems: "stretch",
+};
+
+/** Baja el tamaño de letra hasta que el valor quepa en una sola línea. */
+function FitValue({ children, color, maxPx = 22, minPx = 13 }) {
+  const wrapRef = useRef(null);
+  const textRef = useRef(null);
+  const [px, setPx] = useState(maxPx);
+
+  const recalc = useCallback(() => {
+    const wrap = wrapRef.current;
+    const text = textRef.current;
+    if (!wrap || !text) return;
+    const avail = wrap.clientWidth;
+    if (avail <= 0) return;
+    let lo = minPx;
+    let hi = maxPx;
+    let best = minPx;
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1;
+      text.style.fontSize = `${mid}px`;
+      if (text.scrollWidth <= avail) {
+        best = mid;
+        lo = mid + 1;
+      } else {
+        hi = mid - 1;
+      }
+    }
+    text.style.fontSize = `${best}px`;
+    setPx((prev) => (prev === best ? prev : best));
+  }, [children, maxPx, minPx]);
+
+  useLayoutEffect(() => {
+    recalc();
+    const wrap = wrapRef.current;
+    if (!wrap || typeof ResizeObserver === "undefined") return undefined;
+    const ro = new ResizeObserver(recalc);
+    ro.observe(wrap);
+    return () => ro.disconnect();
+  }, [recalc]);
+
+  return (
+    <div ref={wrapRef} style={{ width: "100%", minWidth: 0, overflow: "hidden" }}>
+      <div
+        ref={textRef}
+        title={typeof children === "string" || typeof children === "number" ? String(children) : undefined}
+        style={{
+          color,
+          fontSize: px,
+          fontWeight: 800,
+          lineHeight: 1.15,
+          whiteSpace: "nowrap",
+          fontVariantNumeric: "tabular-nums",
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
 export function KPI({label,value,sub,col,icon,trend}){
   const C = C_LIGHT;
   return(
 
-  <Box style={{padding:"18px 20px",flex:"1 1 140px",minWidth:0}}>
-    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+  <Box style={{padding:"16px 16px 14px",minWidth:0,width:"100%",boxSizing:"border-box"}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
       <div style={{flex:1,minWidth:0}}>
-        <div style={{color:C.textDim,fontSize:9,letterSpacing:1.5,textTransform:"uppercase",marginBottom:8}}>{label}</div>
-        <div style={{color:col||C.text,fontSize:22,fontWeight:800,lineHeight:1}}>{value}</div>
-        {sub&&<div style={{color:C.textMid,fontSize:11,marginTop:4}}>{sub}</div>}
+        <div style={{color:C.textDim,fontSize:9,letterSpacing:1.2,textTransform:"uppercase",marginBottom:8,lineHeight:1.35,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{label}</div>
+        <FitValue color={col||C.text}>{value}</FitValue>
+        {sub&&<div style={{color:C.textMid,fontSize:11,marginTop:6,lineHeight:1.35}}>{sub}</div>}
         {trend!==undefined&&<div style={{color:trend>=0?C.green:C.red,fontSize:11,marginTop:4,fontWeight:700}}>{trend>=0?"▲":"▼"} {Math.abs(trend)}% vs ayer</div>}
       </div>
-      <div style={{fontSize:22,opacity:.5,marginLeft:8}}>{icon}</div>
+      {icon ? <div style={{fontSize:18,opacity:.45,flexShrink:0,lineHeight:1}}>{icon}</div> : null}
     </div>
   </Box>
 
@@ -365,7 +434,7 @@ export function SkeletonCard({ height=80, style={} }) {
 /**
  * Contenedor con scroll horizontal sincronizado: barra arriba y abajo (misma posición).
  */
-export function HorizontalScrollSync({ children, style = {}, topBarHeight = 12, ...rest }) {
+export function HorizontalScrollSync({ children, style = {}, topBarHeight = 12, bodyMaxHeight, ...rest }) {
   const C = C_LIGHT;
   const topRef = useRef(null);
   const bottomRef = useRef(null);
@@ -445,7 +514,8 @@ export function HorizontalScrollSync({ children, style = {}, topBarHeight = 12, 
         onScroll={onBottomScroll}
         style={{
           overflowX: "auto",
-          overflowY: "hidden",
+          overflowY: bodyMaxHeight ? "auto" : "hidden",
+          maxHeight: bodyMaxHeight,
           WebkitOverflowScrolling: "touch",
           scrollbarWidth: "thin",
         }}
@@ -483,9 +553,9 @@ export function SkeletonTable({ rows=5, cols=5 }) {
 export function SkeletonKPIs({ count=4 }) {
   const C = C_LIGHT;
   return (
-    <div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:20}}>
+    <div style={KPI_ROW}>
       {Array(count).fill(0).map((_,i)=>(
-        <div key={i} style={{flex:"1 1 160px",minWidth:0,borderRadius:14,border:"1px solid #e2e8f0",padding:"18px 20px",background:C.card}}>
+        <div key={i} style={{minWidth:0,borderRadius:14,border:"1px solid #e2e8f0",padding:"16px",background:C.card}}>
           <div style={{height:10,borderRadius:4,background:"linear-gradient(90deg,#f0f4f9 25%,#e2e8f0 50%,#f0f4f9 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite",width:"60%",marginBottom:12}}/>
           <div style={{height:24,borderRadius:4,background:"linear-gradient(90deg,#f0f4f9 25%,#e2e8f0 50%,#f0f4f9 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite",width:"80%"}}/>
           <style>{`@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
@@ -589,6 +659,10 @@ export function SearchDropdown({
   }, [open, value, filtered.length, measurePanel]);
 
   React.useEffect(()=>{
+    armInputForTouchKeyboard(inputRef.current);
+  },[]);
+
+  React.useEffect(()=>{
     const handler = e => { if(ref.current&&!ref.current.contains(e.target)) setOpen(false); };
     document.addEventListener("mousedown", handler);
     return ()=>document.removeEventListener("mousedown", handler);
@@ -637,12 +711,23 @@ export function SearchDropdown({
       <input
         ref={inputRef}
         value={value}
+        inputMode="search"
+        enterKeyHint="search"
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="off"
+        spellCheck={false}
+        onTouchStart={(e)=>unlockInputForTouchKeyboard(e.currentTarget)}
+        onMouseDown={(e)=>unlockInputForTouchKeyboard(e.currentTarget)}
         onChange={e=>{ onChange(e.target.value); setOpen(true); setIdx(-1); }}
-        onFocus={()=>{ setOpen(!!value?.trim()); measurePanel(); }}
+        onFocus={(e)=>{ unlockInputForTouchKeyboard(e.currentTarget); setOpen(!!value?.trim()); measurePanel(); }}
         onKeyDown={handleKey}
         placeholder={placeholder}
-        style={{width:"100%",boxSizing:"border-box",padding:"10px 14px",borderRadius:8,border:"1px solid #e2e8f0",background:"#f7f9fc",color:C.text,fontSize:16,lineHeight:1.25,minHeight:44,outline:"none",fontFamily:"var(--fc-body)"}}
-        onBlur={e=>{ if(ref.current&&!ref.current.contains(e.relatedTarget)) setTimeout(()=>setOpen(false),150); }}
+        style={{width:"100%",boxSizing:"border-box",padding:"10px 14px",borderRadius:8,border:"1px solid #e2e8f0",background:"#f7f9fc",color:C.text,fontSize:16,lineHeight:1.25,minHeight:44,outline:"none",fontFamily:"var(--fc-body)",touchAction:"manipulation"}}
+        onBlur={e=>{
+          lockInputAfterTouchKeyboard(e.currentTarget);
+          if(ref.current&&!ref.current.contains(e.relatedTarget)) setTimeout(()=>setOpen(false),150);
+        }}
       />
       {open&&filtered.length>0&&(
         <div style={panelStyle}>

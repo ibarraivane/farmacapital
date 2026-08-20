@@ -4,15 +4,18 @@ import { supabase } from "./supabase";
 import { showToast, HorizontalScrollSync, SkeletonTable } from "./ui";
 import {
   FUENTES_COMPRA,
+  FUENTES_COMPRA_TABLA,
   FUENTES_VENTA,
   FUENTE_META,
   buildReferenciasPorProducto,
+  fechasActualizacionPorFuente,
   dedupeReferenciasActuales,
   REFERENCIA_ANULADA_NOTA,
   diffPctCompra,
   diffPctVenta,
   calcMejorCompra,
   calcPrecioSugeridoVenta,
+  accionPrecioSugerido,
   calcMargenVenta,
   precioDesdeMargen,
   margenToneColors,
@@ -142,6 +145,7 @@ function resolveSugeridoFila(producto, refs, overrides) {
   else if (margenSugerido.tone === "debajo_piso") alerta = "debajo_piso";
 
   let nota = base.nota;
+  const accion = accionPrecioSugerido(producto.precio, sugerido) ?? base.accion;
   if (esAjusteManual) {
     nota = `Ajuste manual · competir: ${base.sugeridoCompetitivo != null ? fmtPrecioVenta(base.sugeridoCompetitivo) : "—"}`;
     if (alerta === "debajo_costo") {
@@ -158,6 +162,7 @@ function resolveSugeridoFila(producto, refs, overrides) {
     alerta,
     nota,
     esAjusteManual,
+    accion,
   };
 }
 
@@ -282,9 +287,11 @@ function DiffBadge({ pct, mode, C }) {
   const tone = colorDiffVenta(pct);
   const col =
     tone === "ok" ? C.green :
+    tone === "barato" ? C.amber :
     tone === "caro" ? C.red : C.textMid;
   const bg =
     tone === "ok" ? C.greenDim :
+    tone === "barato" ? C.amberDim :
     tone === "caro" ? C.redDim : C.cardDark;
   const prefix = parseFloat(pct) > 0 ? "+" : "";
   return (
@@ -437,14 +444,14 @@ function TablaCompra({
   const tdS = (colId, extra = {}) => ({ ...td(C), ...colStyle(colWidths, colId), ...extra });
 
   return (
-    <HorizontalScrollSync>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, tableLayout: "fixed" }}>
+    <HorizontalScrollSync bodyMaxHeight={TABLE_SCROLL_MAX}>
+      <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: 12, tableLayout: "fixed" }}>
         <thead>
           <tr style={{ background: C.cardDark }}>
             <th style={thS("producto")}>Producto</th>
             <th style={thS("sku")}>SKU</th>
             <th style={{ ...thS("costo"), textAlign: "right" }}>Tu costo</th>
-            {FUENTES_COMPRA.map((id) => (
+            {FUENTES_COMPRA_TABLA.map((id) => (
               <th
                 key={id}
                 style={{ ...thS(id), textAlign: "right" }}
@@ -461,7 +468,7 @@ function TablaCompra({
         </thead>
         <tbody>
           {!fil.length && (
-            <tr><td colSpan={4 + FUENTES_COMPRA.length} style={{ textAlign: "center", padding: 32, color: C.textMid }}>Sin productos</td></tr>
+            <tr><td colSpan={4 + FUENTES_COMPRA_TABLA.length} style={{ textAlign: "center", padding: 32, color: C.textMid }}>Sin productos</td></tr>
           )}
           {fil.map((p, i) => {
             const refs = refsByProduct[p.id] || {};
@@ -486,7 +493,7 @@ function TablaCompra({
                   tdStyle={{ ...tdS("costo", { fontWeight: 700, background: rowBg }) }}
                   display={fmtPrecioRef(p.costo)}
                 />
-                {FUENTES_COMPRA.map((id) => {
+                {FUENTES_COMPRA_TABLA.map((id) => {
                   const precio = refs[id]?.precio;
                   const pct = diffPctCompra(p.costo, precio);
                   const tone = colorDiffCompra(pct);
@@ -557,8 +564,8 @@ function TablaVenta({
   const colSpan = 11;
 
   return (
-    <HorizontalScrollSync>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, tableLayout: "fixed" }}>
+    <HorizontalScrollSync bodyMaxHeight={TABLE_SCROLL_MAX}>
+      <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: 12, tableLayout: "fixed" }}>
         <thead>
           <tr style={{ background: C.cardDark }}>
             <th style={thS("producto")}>Producto</th>
@@ -592,13 +599,19 @@ function TablaVenta({
             const dSim = diffPctVenta(p.precio, sim);
             const dOtr = diffPctVenta(p.precio, otr);
             const {
-              sugerido, refMin, nota, alerta, margenActual, margenSugerido, esAjusteManual,
+              sugerido, refMin, nota, alerta, margenActual, margenSugerido, esAjusteManual, accion,
             } = resolveSugeridoFila(p, refs, sugeridoOverrides);
             const puedeAplicar = sugerido != null && roundPrecioVenta(p.precio) !== sugerido;
             const sugeridoCol =
               alerta === "debajo_costo" ? C.red :
               alerta === "debajo_piso" ? C.amber :
-              esAjusteManual ? C.blue : C.green;
+              esAjusteManual ? C.blue :
+              accion === "subir" ? C.green :
+              accion === "bajar" ? C.amber : C.green;
+            const btnAplicar =
+              applyingId === p.id ? "…" :
+              accion === "subir" ? "Subir" :
+              accion === "bajar" ? "Bajar" : "Aplicar";
             const rowBg = i % 2 ? "#f8fafc" : "transparent";
             const sinCosto = !(parseFloat(p.costo) > 0);
 
@@ -743,7 +756,7 @@ function TablaVenta({
                           fontSize: 11, fontWeight: 700, opacity: applyingId === p.id ? 0.6 : 1,
                         }}
                       >
-                        {applyingId === p.id ? "…" : "Aplicar"}
+                        {applyingId === p.id ? "…" : btnAplicar}
                       </button>
                     ) : (
                       <span style={{ color: C.textDim, fontSize: 10 }}>—</span>
@@ -773,6 +786,8 @@ function TablaVenta({
   );
 }
 
+const TABLE_SCROLL_MAX = "calc(100dvh - 250px)";
+
 const th = (C) => ({
   padding: "9px 12px",
   textAlign: "left",
@@ -782,6 +797,11 @@ const th = (C) => ({
   whiteSpace: "nowrap",
   overflow: "hidden",
   textOverflow: "ellipsis",
+  position: "sticky",
+  top: 0,
+  zIndex: 4,
+  background: C.cardDark,
+  boxShadow: `0 1px 0 ${C.border}`,
 });
 
 const td = (C) => ({
@@ -797,6 +817,7 @@ export default function PreciosReferenciaModule() {
   const [tab, setTab] = useState(loadPreciosRefTab);
   const [productos, setProductos] = useState([]);
   const [refsByProduct, setRefsByProduct] = useState({});
+  const [fechasFuente, setFechasFuente] = useState({});
   const [loading, setLoading] = useState(true);
   const [schemaOk, setSchemaOk] = useState(true);
   const [busq, setBusq] = useState("");
@@ -807,6 +828,8 @@ export default function PreciosReferenciaModule() {
   const [inlineEdit, setInlineEdit] = useState(null);
   const [savingKey, setSavingKey] = useState(null);
   const [sugeridoOverrides, setSugeridoOverrides] = useState(() => loadSugeridoOverrides());
+  const [buscandoSimilares, setBuscandoSimilares] = useState(false);
+  const [actualizandoCompra, setActualizandoCompra] = useState(false);
 
   const colWidths = tab === "compra" ? colWidthsCompra : colWidthsVenta;
   const setColWidths = tab === "compra" ? setColWidthsCompra : setColWidthsVenta;
@@ -846,7 +869,7 @@ export default function PreciosReferenciaModule() {
     if (prodRes.error) {
       showToast("Error cargando productos: " + prodRes.error.message, "error");
       setLoading(false);
-      return;
+      return false;
     }
     setProductos(prodRes.data || []);
 
@@ -861,8 +884,9 @@ export default function PreciosReferenciaModule() {
       if (rawRes.error) {
         setSchemaOk(false);
         setRefsByProduct({});
+        setFechasFuente({});
         setLoading(false);
-        return;
+        return false;
       }
       refRows = dedupeReferenciasActuales(rawRes.data);
     } else {
@@ -871,7 +895,9 @@ export default function PreciosReferenciaModule() {
 
     setSchemaOk(true);
     setRefsByProduct(buildReferenciasPorProducto(refRows));
+    setFechasFuente(fechasActualizacionPorFuente(refRows));
     setLoading(false);
+    return true;
   }, []);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
@@ -1124,12 +1150,67 @@ export default function PreciosReferenciaModule() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12, marginBottom: 16 }}>
         <div>
           <h2 style={{ margin: 0, color: C.text, fontSize: 18, fontWeight: 800 }}>Referencias de precio</h2>
-          <p style={{ margin: "6px 0 0", color: C.textMid, fontSize: 12, maxWidth: 640, lineHeight: 1.45 }}>
+          <p style={{ margin: "6px 0 0", color: C.textMid, fontSize: 12, maxWidth: 720, lineHeight: 1.45 }}>
             Precios de mercado (compra y venta). Clic en un precio para editarlo. Tu <strong>costo</strong> y <strong>venta</strong> usan el mismo guardado que Inventario.
+            No hace falta darnos usuario ni contraseña. Medicamento: Nadro, Marzam, Levic.
+            Higiene y abarrotes: <strong>Exprezo (Zorro)</strong> es el piso barato; no se compara con City Club ni Sam's (otro tipo de precio y empaque).
+            Si un abarrotero te da lista igual de barata, impórtala en <strong>Otros</strong>.
+            Scorpion y Abarrotero no tienen columna: ganan en <strong>Mejor opción</strong>.
+            <strong> Actualizar</strong> baja listas públicas y recarga. El pedido de resurtido está en Reabasto.
           </p>
+          {Object.keys(fechasFuente).length > 0 && (
+            <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {[...FUENTES_COMPRA, ...FUENTES_VENTA].filter((f) => fechasFuente[f]).map((f) => {
+                const iso = fechasFuente[f];
+                const [y, m, d] = String(iso).slice(0, 10).split("-");
+                const label = FUENTE_META[f]?.label || f;
+                return (
+                  <span key={f} style={{
+                    fontSize: 10, fontWeight: 700, color: C.textMid, background: C.cardDark,
+                    border: `1px solid ${C.border}`, borderRadius: 20, padding: "3px 8px",
+                  }}>
+                    {label} {d && m && y ? `${d}/${m}/${y}` : iso}
+                  </span>
+                );
+              })}
+            </div>
+          )}
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <ImportReferenciaPrecios productos={productos} onImported={fetchAll} />
+          <button
+            type="button"
+            disabled={buscandoSimilares}
+            onClick={async () => {
+              const tok = sessionStorage.getItem("farmacapital_session_token");
+              if (!tok) { showToast("Sesión expirada", "error"); return; }
+              setBuscandoSimilares(true);
+              try {
+                const r = await fetch("/api/precios/buscar", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ session_token: tok }),
+                });
+                const data = await r.json().catch(() => ({}));
+                if (!r.ok || !data.ok) {
+                  showToast(data.error || "No se pudo buscar en Similares", "error");
+                  return;
+                }
+                showToast(data.message || `Actualizados: ${data.actualizados || 0}`, "success");
+                await fetchAll();
+              } catch (err) {
+                showToast("Error de red al buscar precios", "error");
+              }
+              setBuscandoSimilares(false);
+            }}
+            style={{
+              padding: "8px 14px", borderRadius: 8, border: "none",
+              background: BRAND.gradient, color: "#fff", fontWeight: 700, fontSize: 12,
+              cursor: buscandoSimilares ? "wait" : "pointer", opacity: buscandoSimilares ? 0.7 : 1,
+            }}
+          >
+            {buscandoSimilares ? "Buscando…" : "Buscar en Similares"}
+          </button>
           <button
             type="button"
             onClick={() => setShowColSizer((v) => !v)}
@@ -1140,11 +1221,34 @@ export default function PreciosReferenciaModule() {
           >
             ↔ Columnas
           </button>
-          <button type="button" onClick={fetchAll} style={{
+          <button type="button" disabled={actualizandoCompra} onClick={async () => {
+            const tok = sessionStorage.getItem("farmacapital_session_token");
+            if (!tok) { showToast("Sesión expirada", "error"); return; }
+            setActualizandoCompra(true);
+            try {
+              const r = await fetch("/api/precios/actualizar-compra", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ session_token: tok }),
+              });
+              const data = await r.json().catch(() => ({}));
+              await fetchAll();
+              if (!r.ok || !data.ok) {
+                showToast(data.error || "No se pudieron bajar listas públicas. Se recargó lo guardado.", "warning");
+              } else {
+                showToast(data.message || "Precios de compra actualizados", "success");
+              }
+            } catch {
+              const ok = await fetchAll();
+              showToast(ok ? "Sin red al buscar. Se recargó lo guardado." : "No se pudo actualizar", "warning");
+            }
+            setActualizandoCompra(false);
+          }} style={{
             padding: "8px 14px", borderRadius: 8, border: `1px solid ${C.border}`,
-            background: C.card, color: C.textMid, fontWeight: 700, fontSize: 12, cursor: "pointer",
+            background: C.card, color: C.textMid, fontWeight: 700, fontSize: 12,
+            cursor: actualizandoCompra ? "wait" : "pointer", opacity: actualizandoCompra ? 0.7 : 1,
           }}>
-            ↻ Actualizar
+            {actualizandoCompra ? "Actualizando…" : "Actualizar"}
           </button>
         </div>
       </div>
@@ -1229,7 +1333,8 @@ export default function PreciosReferenciaModule() {
       {tab === "venta" && (
         <p style={{ fontSize: 11, color: C.textDim, marginBottom: 10 }}>
           Precios en <strong>pesos enteros</strong>. <strong>Otros</strong> = promedio de mercado manual (Claude, Google…).
-          Sugerido usa la ref. más barata (FDA, Similares u Otros). Edita margen % o sugerido; <strong>↺ Competir</strong> restaura mercado.
+          Sugerido = ~2% bajo la ref. más barata. Si hoy vendes más barato, el botón dice <strong>Subir</strong> (estabas dejando margen). Si vendes más caro, dice <strong>Bajar</strong>.
+          Badge ámbar vs ref. = demasiado barato frente al mercado. Edita margen % o sugerido; <strong>↺ Competir</strong> restaura mercado.
           Margen: <strong style={{ color: C.green }}>verde</strong> ok,
           <strong style={{ color: C.amber }}> ámbar</strong> bajo piso,
           <strong style={{ color: C.red }}> rojo</strong> bajo costo.

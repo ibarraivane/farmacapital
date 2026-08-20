@@ -6,10 +6,14 @@
 import { normalizeForSearch } from "../utils";
 
 export const FUENTES_IMPORT = [
-  { id: "exprezo", label: "Exprezo (compra)", tipo: "compra", adapter: "exprezo" },
-  { id: "marzam", label: "Marzam (compra)", tipo: "compra", adapter: "generico" },
-  { id: "nadro", label: "Nadro (compra)", tipo: "compra", adapter: "generico" },
-  { id: "levic", label: "Levic (compra)", tipo: "compra", adapter: "generico" },
+  { id: "exprezo", label: "Exprezo / Zorro (piso barato: higiene y abarrotes)", tipo: "compra", adapter: "exprezo" },
+  { id: "scorpion", label: "Scorpion (higiene / pañales)", tipo: "compra", adapter: "generico" },
+  { id: "abarrotero", label: "Abarrotero (OTC / cuidado personal)", tipo: "compra", adapter: "generico" },
+  { id: "mayoreototal", label: "MayoreoTotal", tipo: "compra", adapter: "generico" },
+  { id: "otros_compra", label: "Otro abarrotero barato (no City Club / Sam's)", tipo: "compra", adapter: "generico" },
+  { id: "marzam", label: "Marzam (medicamento)", tipo: "compra", adapter: "generico" },
+  { id: "nadro", label: "Nadro (medicamento)", tipo: "compra", adapter: "generico" },
+  { id: "levic", label: "Levic (medicamento)", tipo: "compra", adapter: "generico" },
   { id: "fahorro", label: "Del Ahorro (venta)", tipo: "venta", adapter: "generico" },
 ];
 

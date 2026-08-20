@@ -4,24 +4,81 @@ const { getSupabaseAdminConfig } = require('./supabaseAdmin');
 
 const MAX_INTENTOS = 5;
 const DEFAULT_BATCH = 25;
+/** Dominio NEW de desarrollo (docs Authentication). México prod: https://api.rappi.com.mx */
+const DEFAULT_API_BASE = 'https://api.dev.rappi.com';
+const TOKEN_LOGIN_PATH = '/restaurants/auth/v1/token/login/integrations';
+
+let tokenCache = { token: null, expMs: 0 };
+
+function resetRappiTokenCache() {
+  tokenCache = { token: null, expMs: 0 };
+}
 
 function rappiCredentials() {
   const clientId = String(process.env.RAPPI_CLIENT_ID || '').trim();
   const clientSecret = String(process.env.RAPPI_CLIENT_SECRET || '').trim();
   const storeId = String(process.env.RAPPI_STORE_ID || '').trim();
-  const apiBase = String(process.env.RAPPI_API_BASE || '').trim().replace(/\/+$/, '');
-  const availabilityPath = String(
-    process.env.RAPPI_AVAILABILITY_PATH || '/availability'
-  ).trim();
+  const apiBase = String(process.env.RAPPI_API_BASE || DEFAULT_API_BASE).trim().replace(/\/+$/, '');
+  const availabilityPath = String(process.env.RAPPI_AVAILABILITY_PATH || '').trim();
+  const hasSecrets = Boolean(clientId && clientSecret);
+  const stockReady = Boolean(hasSecrets && storeId && availabilityPath);
   return {
     clientId,
     clientSecret,
     storeId,
     apiBase,
     availabilityPath,
-    hasSecrets: Boolean(clientId && clientSecret && storeId),
-    ready: Boolean(clientId && clientSecret && storeId && apiBase),
+    hasSecrets,
+    stockReady,
+    ready: stockReady,
   };
+}
+
+function loginIntegrationsUrl(apiBase) {
+  const base = String(apiBase || DEFAULT_API_BASE).replace(/\/+$/, '');
+  return `${base}${TOKEN_LOGIN_PATH}`;
+}
+
+/**
+ * Docs Authentication: header `x-authorization` = `Bearer: <access_token>`
+ */
+function rappiAuthHeaders(accessToken) {
+  const prefix = String(process.env.RAPPI_BEARER_PREFIX || 'Bearer:').trim();
+  return {
+    'x-authorization': `${prefix} ${accessToken}`.replace(/ {2,}/g, ' '),
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+    'User-Agent': 'FarmaCapital/1.0',
+  };
+}
+
+async function getIntegrationsAccessToken(creds = rappiCredentials(), fetchFn = fetch) {
+  if (tokenCache.token && Date.now() < tokenCache.expMs) {
+    return tokenCache.token;
+  }
+  const resp = await fetchFn(loginIntegrationsUrl(creds.apiBase), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      'User-Agent': 'FarmaCapital/1.0',
+    },
+    body: JSON.stringify({
+      client_id: creds.clientId,
+      client_secret: creds.clientSecret,
+    }),
+  });
+  const data = await resp.json().catch(() => null);
+  if (!resp.ok || !data?.access_token) {
+    const detail = typeof data === 'object' ? JSON.stringify(data) : String(data || '');
+    throw new Error(`rappi_token_${resp.status}:${detail.slice(0, 200)}`);
+  }
+  const ttlSec = Math.max(60, Number(data.expires_in) || 86400);
+  tokenCache = {
+    token: data.access_token,
+    expMs: Date.now() + (ttlSec - 60) * 1000,
+  };
+  return tokenCache.token;
 }
 
 function nextBackoffIso(intentos, now = new Date()) {
@@ -31,31 +88,28 @@ function nextBackoffIso(intentos, now = new Date()) {
 }
 
 /**
- * Adaptador de disponibilidad. No inventa la URL de Rappi:
- * sin RAPPI_API_BASE (la da el KAM / Developer Portal) queda inerte.
+ * Push de disponibilidad. Auth = token integrations + x-authorization.
+ * Sin RAPPI_AVAILABILITY_PATH (Rest API of Availability) no pega a Rappi.
  */
 async function pushDisponibilidadRappi(payload, creds = rappiCredentials(), fetchFn = fetch) {
   if (!creds.hasSecrets) {
     return { ok: false, skipped: 'no_credentials' };
   }
-  if (!creds.apiBase) {
+  if (!creds.storeId || !creds.availabilityPath) {
     return { ok: false, skipped: 'adapter_unverified' };
   }
-  const url = `${creds.apiBase}${creds.availabilityPath.startsWith('/') ? '' : '/'}${creds.availabilityPath}`;
+  const token = await getIntegrationsAccessToken(creds, fetchFn);
+  const path = creds.availabilityPath.startsWith('/') ? creds.availabilityPath : `/${creds.availabilityPath}`;
+  const url = `${creds.apiBase}${path}`.replace('{storeId}', encodeURIComponent(creds.storeId));
   const body = {
     store_id: creds.storeId,
     sku: payload?.sku,
     available: Boolean(payload?.disponible),
     stock: Number(payload?.stock_rappi) || 0,
   };
-  const token = Buffer.from(`${creds.clientId}:${creds.clientSecret}`).toString('base64');
   const resp = await fetchFn(url, {
     method: 'PATCH',
-    headers: {
-      Authorization: `Basic ${token}`,
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    },
+    headers: rappiAuthHeaders(token),
     body: JSON.stringify(body),
   });
   if (!resp.ok) {
@@ -209,12 +263,12 @@ async function drainRappiQueue(options = {}) {
   const batchSize = Math.max(1, Math.min(Number(options.batchSize) || DEFAULT_BATCH, 100));
 
   if (!creds.hasSecrets) {
-    console.warn('[rappi-sync] modo sin-API: faltan RAPPI_CLIENT_ID / RAPPI_CLIENT_SECRET / RAPPI_STORE_ID');
+    console.warn('[rappi-sync] modo sin-API: faltan RAPPI_CLIENT_ID / RAPPI_CLIENT_SECRET');
     return { ok: true, skipped: 'no_credentials', processed: 0 };
   }
-  if (!creds.apiBase) {
+  if (!creds.stockReady) {
     console.warn(
-      '[rappi-sync] modo sin-API: hay credenciales pero falta RAPPI_API_BASE (confirmar endpoint con el KAM)'
+      '[rappi-sync] auth lista, stock no: falta RAPPI_STORE_ID y/o RAPPI_AVAILABILITY_PATH (Rest API of Availability)'
     );
     return { ok: true, skipped: 'adapter_unverified', processed: 0 };
   }
@@ -293,7 +347,13 @@ async function drainRappiQueue(options = {}) {
 
 module.exports = {
   MAX_INTENTOS,
+  DEFAULT_API_BASE,
+  TOKEN_LOGIN_PATH,
   rappiCredentials,
+  loginIntegrationsUrl,
+  rappiAuthHeaders,
+  getIntegrationsAccessToken,
+  resetRappiTokenCache,
   nextBackoffIso,
   pushDisponibilidadRappi,
   applyPushResult,

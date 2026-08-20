@@ -16,6 +16,19 @@ import { idEmpleadoUsuarios } from "./utils/usuarioId";
 import ImageUploader from "./components/ImageUploader";
 import { sugerirPrecioUnidad, aplicarReglaPrecioUnidad, margenBrutoPct } from "./utils/precioUnidad";
 import { productoEsVendible } from "./utils/productoVendible";
+import {
+  CATEGORIAS_PRODUCTO as CATEGORIAS,
+  categoriaCanon,
+  categoriaPasaFiltro,
+  opcionesCategoriaSelect,
+} from "./constants/categoriasProducto";
+import {
+  PRODUCTOS_POR_PAGINA,
+  agruparLotesPorProducto,
+  diasParaCaducar,
+  fetchLotesInventario,
+  minCaducidadLotes,
+} from "./lib/inventarioHubData";
 
 const leerSesion = () => {
   try {
@@ -26,11 +39,6 @@ const leerSesion = () => {
 };
 
 const BRAND = { primary:"#0D1B2A", secondary:"#1E3ABA", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
-const CATEGORIAS = [
-  "Analgésico","Antiinflamatorio","Antibiótico","Gastro","Diabetes",
-  "Hipertensión","Alergia","Vitaminas","Suplemento","Herbolario","Hidratación","Cardiovascular",
-  "Hormonales","Respiratorio","Dispositivo médico","Botiquín","Higiene","Bebidas","Básicos","Abarrotes","Minisuper","Cuidado personal","Otro",
-];
 const EMPTY = {
   nombre:"", sku:"", codigo_barras:"", categoria:"Otro", precio:"", costo:"", venta_unidad:false, unidades_por_caja:"", precio_unidad:"", stock_unidades:"",
   stock:"", stock_minimo:"", tipo:"generico", proveedor:"", lote:"",
@@ -50,18 +58,7 @@ function productoIdDesdeCreateRpc(data) {
   return Number.isFinite(n) ? n : null;
 }
 
-/** Tope de filas por respuesta de PostgREST; el catálogo se pide por tramos. */
-const PRODUCTOS_POR_PAGINA = 1000;
-
 // F4: campos lote/fecha_caducidad ya NO viven en productos; son del lote.
-// Para productos ya existentes derivamos min_caducidad desde lotes activos.
-const minCaducidadLotes = (lotes) => {
-  const conFecha = (lotes || []).filter((l) => l.activo !== false && l.fecha_caducidad);
-  if (!conFecha.length) return null;
-  const conStock = conFecha.filter((l) => (l.cantidad_actual || 0) > 0);
-  const pool = conStock.length ? conStock : conFecha;
-  return pool.reduce((m, l) => (!m || l.fecha_caducidad < m) ? l.fecha_caducidad : m, null);
-};
 
 /** Lote activo con caducidad más próxima (PEPS). */
 const loteCaducidadMasProxima = (lotes) => {
@@ -94,27 +91,20 @@ const resolverLoteCaducidadProducto = (product) => {
 
 async function fetchLotesPorProducto(sessionToken, { omitCosto = false } = {}) {
   if (!sessionToken) return {};
-  const { data: lotesRaw, error } = await supabase.rpc("empleado_listar_lotes_inventario", {
-    p_session_token: sessionToken,
-  });
-  if (error || !lotesRaw) return {};
-  const list = Array.isArray(lotesRaw) ? lotesRaw : [];
-  const byProducto = {};
-  for (const l of list) {
-    const pid = l.producto_id;
-    if (!pid) continue;
-    if (!byProducto[pid]) byProducto[pid] = [];
-    const row = {
+  const { data: list } = await fetchLotesInventario(sessionToken);
+  const grouped = agruparLotesPorProducto(list);
+  if (!omitCosto) return grouped;
+  const slim = {};
+  for (const [pid, lotes] of Object.entries(grouped)) {
+    slim[pid] = lotes.map((l) => ({
       id: l.id,
       numero_lote: l.numero_lote,
       fecha_caducidad: l.fecha_caducidad,
       cantidad_actual: l.cantidad_actual,
       activo: l.activo,
-    };
-    if (!omitCosto) row.costo_unitario = l.costo_unitario;
-    byProducto[pid].push(row);
+    }));
   }
-  return byProducto;
+  return slim;
 }
 
 function enrichProductoConLotes(p, lotes) {
@@ -160,12 +150,6 @@ const margen = (pv, co) => {
   const p = parseFloat(pv), c = parseFloat(co);
   if (!c || c === 0) return "—";
   return ((p - c) / c * 100).toFixed(1) + "%";
-};
-
-const diasParaCaducar = (fecha) => {
-  if (!fecha) return null;
-  const diff = (new Date(fecha) - new Date()) / (1000 * 60 * 60 * 24);
-  return Math.ceil(diff);
 };
 
 /** Mes/año para control de caducidad en tabla (ej. 11/2027). */
@@ -340,16 +324,22 @@ function InventarioEditableCell({
   mono = false,
   selectionMode = false,
   readOnly = false,
+  onCommitValue,
 }) {
   const isEditing = inlineEdit?.productId === productId && inlineEdit?.field === field;
   const rowBg = tdStyle?.background;
+  const selectOptions = options || [];
 
   if (isEditing) {
     const controlProps = {
-      autoFocus: true,
+      autoFocus: type !== "select",
       value: inlineEdit.draft,
       disabled: inlineSaving,
-      onChange: (e) => onDraft(e.target.value),
+      onChange: (e) => {
+        const v = e.target.value;
+        onDraft(v);
+        if (type === "select" && onCommitValue) onCommitValue(v);
+      },
       onKeyDown: (e) => {
         if (e.key === "Enter") {
           e.preventDefault();
@@ -361,6 +351,7 @@ function InventarioEditableCell({
         }
       },
       onBlur: () => {
+        if (type === "select") return;
         if (!inlineSaving) onCommit();
       },
       style: {
@@ -376,7 +367,7 @@ function InventarioEditableCell({
       <td style={tdStyle}>
         {type === "select" ? (
           <select {...controlProps}>
-            {(options || []).map((o) => (
+            {selectOptions.map((o) => (
               <option key={o} value={o}>
                 {o}
               </option>
@@ -2083,7 +2074,6 @@ function renderInventarioColumnCell(colId, ctx) {
   const {
     C,
     BRAND: BR,
-    CATEGORIAS: cats,
     p,
     stickyRowBg,
     inlineCellProps,
@@ -2370,7 +2360,7 @@ function renderInventarioColumnCell(colId, ctx) {
           field="categoria"
           value={p.categoria || "Otro"}
           type="select"
-          options={cats}
+          options={opcionesCategoriaSelect(p.categoria || "Otro")}
           display={p.categoria}
           tdStyle={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}`, background: stickyRowBg, ...w("categoria") }}
         />
@@ -3059,7 +3049,7 @@ export default function InventarioModule({ modoConsulta = false }) {
   useEffect(() => { fetchProductos(); }, [fetchProductos]);
 
   const poolSinBusqueda = useMemo(() => productos.filter(p => {
-    const cat = filtroCategoria === "todas" || p.categoria === filtroCategoria;
+    const cat = categoriaPasaFiltro(p.categoria, filtroCategoria);
     const dias = diasParaCaducar(p.min_caducidad_lotes);
     const alerta =
       filtroAlerta === "todos"            ? true :
@@ -3266,6 +3256,8 @@ export default function InventarioModule({ modoConsulta = false }) {
         return false;
       }
       patchValue = draft;
+    } else if (field === "categoria") {
+      patchValue = categoriaCanon(draft) || "Otro";
     } else {
       patchValue = draft || null;
     }
@@ -3293,16 +3285,17 @@ export default function InventarioModule({ modoConsulta = false }) {
     return true;
   }, [fetchProductos]);
 
-  const commitInlineEdit = useCallback(async () => {
+  const commitInlineEdit = useCallback(async (draftOverride) => {
     if (!inlineEdit || inlineSaving) return;
     const product = productos.find((x) => x.id === inlineEdit.productId);
     if (!product) {
       cancelInlineEdit();
       return;
     }
+    const draft = typeof draftOverride === "string" ? draftOverride : inlineEdit.draft;
     setInlineSaving(true);
     try {
-      const ok = await guardarCampoInline(product, inlineEdit.field, inlineEdit.draft, inlineEdit.meta);
+      const ok = await guardarCampoInline(product, inlineEdit.field, draft, inlineEdit.meta);
       if (ok) {
         cancelInlineEdit();
       } else if (inlineEdit.field === "cad") {
@@ -3350,6 +3343,7 @@ export default function InventarioModule({ modoConsulta = false }) {
     onStart: startInlineEdit,
     onDraft: (v) => setInlineEdit((prev) => (prev ? { ...prev, draft: v } : prev)),
     onCommit: commitInlineEdit,
+    onCommitValue: commitInlineEdit,
     onCancel: cancelInlineEdit,
     onQuitarCad: quitarCaducidadInline,
   };
@@ -3616,7 +3610,7 @@ export default function InventarioModule({ modoConsulta = false }) {
   };
 
   return (
-    <div style={{padding:24,background:C.bg,minHeight:"100dvh",fontFamily:"var(--fc-body)"}}>
+    <div style={{padding:isMobileInv?12:24,background:C.bg,minHeight:"100dvh",fontFamily:"var(--fc-body)"}}>
 
       <div
         style={{
@@ -4052,7 +4046,6 @@ export default function InventarioModule({ modoConsulta = false }) {
                 const rowCtx = {
                   C,
                   BRAND,
-                  CATEGORIAS,
                   p,
                   stickyRowBg,
                   inlineCellProps,

@@ -16,7 +16,20 @@ const fmt  = (n) => `$${parseFloat(n||0).toFixed(2)}`;
 // de verdad, en vez de teclear una cifra global de memoria.
 const DENOMINACIONES = [1000, 500, 200, 100, 50, 20, 10, 5, 2, 1, 0.5];
 
-const mkInputStyle = (C) => ({ width:"100%", padding:"9px 12px", borderRadius:8, border:`1px solid ${C.border}`, background:C.bg, color:C.text, fontSize:13, outline:"none", boxSizing:"border-box" });
+const mkInputStyle = (C) => ({
+  width: "100%",
+  padding: "9px 12px",
+  borderRadius: 8,
+  border: `1px solid ${C.border}`,
+  background: "#ffffff",
+  color: C.text,
+  WebkitTextFillColor: C.text,
+  caretColor: C.text,
+  colorScheme: "light",
+  fontSize: 13,
+  outline: "none",
+  boxSizing: "border-box",
+});
 const mkLabelStyle = (C) => ({ color:C.textMid, fontSize:11, fontWeight:700, marginBottom:4, display:"block", letterSpacing:.5 });
 const mkBtnSecondary = (C) => ({ padding:"10px 22px", borderRadius:8, cursor:"pointer", fontWeight:700, fontSize:13, border:`1px solid ${C.border}`, background:"transparent", color:C.textMid });
 
@@ -313,7 +326,7 @@ export default function CorteCajaModule({usuario }) {
   const sumTot = cortes.reduce((a,c)=>a+parseFloat(c.total_general||0),0);
 
   return (
-    <div style={{padding:isMobile?0:24,background:C.bg,minHeight:"100dvh",fontFamily:"var(--fc-body)",maxWidth:"100%"}}>
+    <div style={{padding:isMobile?0:24,background:C.bg,minHeight:"100dvh",fontFamily:"var(--fc-body)",maxWidth:"100%",colorScheme:"light"}}>
 
       <div style={{marginBottom:24}}>
         <h1 style={{margin:0,color:C.text,fontSize:20,fontWeight:800}}>⊞ Corte de Caja</h1>
@@ -424,8 +437,7 @@ export default function CorteCajaModule({usuario }) {
                 <label style={labelStyle}>FONDO INICIAL</label>
                 <input type="number" value={fondo} onChange={e=>!sesionAbierta && setFondo(e.target.value)}
                   placeholder="0.00" readOnly={!!sesionAbierta}
-                  style={{...inputStyle, cursor: sesionAbierta ? "not-allowed" : undefined,
-                    background: sesionAbierta ? C.bg : undefined}}/>
+                  style={{...inputStyle, cursor: sesionAbierta ? "not-allowed" : undefined}}/>
                 <div style={{color:C.textDim,fontSize:10,marginTop:4}}>
                   {sesionAbierta
                     ? `El cambio con el que abriste a las ${new Date(sesionAbierta.abierta_at).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })}. Ya no se edita.`
@@ -462,7 +474,7 @@ export default function CorteCajaModule({usuario }) {
                   onChange={e=>setEfDec(e.target.value)} readOnly={usaDenoms}
                   placeholder="0.00"
                   style={{...inputStyle,fontSize:18,fontWeight:700,color:C.green,
-                          background:usaDenoms?C.bg:undefined,cursor:usaDenoms?"not-allowed":undefined}}/>
+                          WebkitTextFillColor:C.green,cursor:usaDenoms?"not-allowed":undefined}}/>
                 <div style={{color:C.textDim,fontSize:10,marginTop:4}}>
                   {usaDenoms
                     ? "Sale de tu conteo por denominación. Borra el desglose para capturarlo a mano."
