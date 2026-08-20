@@ -6,7 +6,8 @@ const { actualizarCompraHandler } = require('./_lib/actualizarCompraHandler');
 const { pagoServicioAdminHandler } = require('./_lib/pagoServicioAdminHandler');
 
 module.exports = async function handler(req, res) {
-  const type = String(req.query?.type || '').trim();
+  const bodyType = (req.body && typeof req.body === 'object') ? req.body.type : '';
+  const type = String(req.query?.type || bodyType || '').trim();
   if (type === 'buscar-similares') {
     return buscarSimilaresHandler(req, res);
   }

@@ -44,12 +44,29 @@ function mapPagoServicioAFila(ps) {
   };
 }
 
-function nombreVendedor(p) {
+function nombreVendedor(p, vendedores = []) {
   if (!p) return "—";
-  return p.usuarios?.nombre || p.atendido_por_nombre || "—";
+  const n = p.usuarios?.nombre || p.atendido_por_nombre;
+  if (n) return n;
+  const v = (vendedores || []).find((x) => Number(x.id) === Number(p.atendido_por));
+  return v?.nombre || "—";
 }
 
 async function fetchPagosServicioRango(tok, rango) {
+  try {
+    const resp = await fetch("/api/inventarioProcesarPdf?type=pago-servicio", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-session-token": tok },
+      body: JSON.stringify({
+        session_token: tok,
+        action: "listar",
+        desde: rango?.desde ?? null,
+        hasta: rango?.hasta ?? null,
+      }),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (resp.ok && data?.ok && Array.isArray(data.rows)) return data.rows;
+  } catch { /* usa RPC */ }
   const { data, error } = await supabase.rpc("empleado_listar_pagos_servicio_rango", {
     p_session_token: tok,
     p_desde: rango?.desde ?? null,
@@ -187,7 +204,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
         || String(p.folio || "").toLowerCase().includes(q.toLowerCase())
         || String(p.proveedor || "").toLowerCase().includes(q.toLowerCase())
         || String(p.referencia || "").includes(q)
-        || String(nombreVendedor(p)).toLowerCase().includes(q.toLowerCase())
+        || String(nombreVendedor(p, vendedores)).toLowerCase().includes(q.toLowerCase())
       );
     const matchB = !q || hayQ;
     const matchT = pedidoCoincideFiltroTipo(p.tipo, filtroTipo);
@@ -421,10 +438,17 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
         : row
     )));
     try {
+      const tok = sessionStorage.getItem("farmacapital_session_token");
       if (esPagoServicio(p)) {
-        await guardarPagoServicioAdmin("editar", { id: p.servicioId, atendido_por: nuevoId });
+        const { error } = await supabase.rpc("admin_editar_pago_servicio", {
+          p_session_token: tok,
+          p_id: p.servicioId,
+          p_atendido_por: nuevoId,
+        });
+        if (error) {
+          await guardarPagoServicioAdmin("editar", { id: p.servicioId, atendido_por: nuevoId });
+        }
       } else {
-        const tok = sessionStorage.getItem("farmacapital_session_token");
         const { error } = await supabase.rpc("admin_editar_pedido", {
           p_session_token: tok,
           p_pedido_id: p.id,
@@ -592,45 +616,37 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                     {p.clientes?.telefono ? <div style={{ fontSize: 10, color: C.textMid, fontWeight: 500, marginTop: 2 }}>{p.clientes.telefono}</div> : null}
                   </td>
                   <td
-                    style={{ padding: "8px 12px", color: C.text, fontWeight: 600, borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap" }}
+                    style={{ padding: "8px 12px", color: C.text, fontWeight: 600, borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap", minWidth: 140 }}
                     onClick={(e) => e.stopPropagation()}
                   >
-                    {usuario?.rol === "admin" && (editandoVendedor === p.id || guardandoVendedor === p.id) ? (
-                      <select
-                        autoFocus
-                        disabled={guardandoVendedor === p.id}
-                        value={p.atendido_por != null ? String(p.atendido_por) : ""}
-                        onChange={(e) => cambiarVendedor(p, e.target.value)}
-                        onBlur={() => { if (guardandoVendedor !== p.id) setEditandoVendedor(null); }}
-                        style={{ ...inpS, maxWidth: 220, fontWeight: 700 }}
-                        aria-label="Cambiar vendedor"
-                      >
-                        <option value="">Sin asignar</option>
-                        {vendedores.map((v) => (
-                          <option key={v.id} value={String(v.id)}>
-                            {v.nombre}{v.turno ? ` · ${v.turno}` : ""}
-                          </option>
-                        ))}
-                      </select>
-                    ) : usuario?.rol === "admin" ? (
+                    {usuario?.rol === "admin" ? (
                       <button
                         type="button"
-                        onClick={() => setEditandoVendedor(p.id)}
+                        onClick={(e) => {
+                          const r = e.currentTarget.getBoundingClientRect();
+                          const openUp = r.bottom + 6 > window.innerHeight - 220;
+                          setEditandoVendedor({
+                            row: p,
+                            top: openUp ? undefined : r.bottom + 6,
+                            bottom: openUp ? window.innerHeight - r.top + 6 : undefined,
+                            left: Math.min(r.left, window.innerWidth - 240),
+                          });
+                        }}
                         title="Clic para cambiar quién hizo la venta"
                         style={{
                           background: "none", border: "none", padding: 0, cursor: "pointer",
-                          color: nombreVendedor(p) === "—" ? C.textMid : BRAND.primary,
+                          color: nombreVendedor(p, vendedores) === "—" ? C.textMid : BRAND.primary,
                           fontWeight: 700, fontSize: 12, textDecoration: "underline",
                           textUnderlineOffset: 3, colorScheme: "light",
                         }}
                       >
-                        {guardandoVendedor === p.id ? "Guardando…" : (nombreVendedor(p) === "—" ? "Sin asignar" : nombreVendedor(p))}
-                        <span style={{ marginLeft: 4, fontSize: 10, textDecoration: "none" }}>▾</span>
+                        {guardandoVendedor === p.id ? "Guardando…" : (nombreVendedor(p, vendedores) === "—" ? "Sin asignar" : nombreVendedor(p, vendedores))}
+                        <span style={{ marginLeft: 4, fontSize: 10 }}>▾</span>
                       </button>
-                    ) : nombreVendedor(p) === "—" ? (
+                    ) : nombreVendedor(p, vendedores) === "—" ? (
                       <span style={{ color: C.textMid, fontWeight: 500 }}>Sin asignar</span>
                     ) : (
-                      nombreVendedor(p)
+                      nombreVendedor(p, vendedores)
                     )}
                   </td>
                   <td style={{ padding: "8px 12px", color: C.green, fontWeight: 700, borderBottom: `1px solid ${C.border}` }}>{fmtM(p.total)}</td>
@@ -933,6 +949,55 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                 {saving ? "Guardando…" : "💾 Guardar"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {editandoVendedor?.row && (
+        <div
+          style={{ position: "fixed", inset: 0, zIndex: 450, background: "transparent" }}
+          onClick={() => setEditandoVendedor(null)}
+        >
+          <div
+            role="listbox"
+            aria-label="Elegir vendedor"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: "fixed",
+              top: editandoVendedor.top,
+              bottom: editandoVendedor.bottom,
+              left: editandoVendedor.left,
+              width: 228,
+              maxHeight: 260,
+              overflowY: "auto",
+              background: "#fff",
+              color: C.text,
+              border: `1px solid ${C.border}`,
+              borderRadius: 10,
+              boxShadow: "0 12px 40px rgba(15,23,42,.18)",
+              colorScheme: "light",
+              padding: 6,
+            }}
+          >
+            {vendedores.map((v) => {
+              const selected = Number(editandoVendedor.row.atendido_por) === Number(v.id);
+              return (
+                <button
+                  key={v.id}
+                  type="button"
+                  onClick={() => cambiarVendedor(editandoVendedor.row, String(v.id))}
+                  disabled={guardandoVendedor === editandoVendedor.row.id}
+                  style={{
+                    display: "block", width: "100%", textAlign: "left",
+                    padding: "10px 12px", border: "none", borderRadius: 8,
+                    background: selected ? "#eff6ff" : "#fff",
+                    color: C.text, fontWeight: selected ? 800 : 600, fontSize: 13,
+                    cursor: "pointer", colorScheme: "light",
+                  }}
+                >
+                  {v.nombre}{v.turno ? ` · ${v.turno}` : ""}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
