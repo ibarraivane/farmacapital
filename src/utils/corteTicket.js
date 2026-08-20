@@ -155,6 +155,8 @@ export function snapshotFromCorte({ resultado, turno, zTransac, cajero, denomina
     total_general: parseFloat(resultado?.total_general ?? 0),
     notas: resultado?.notas || "",
     denominaciones: filasDenoms(denominaciones || resultado?.denominaciones),
+    devoluciones_efectivo: parseFloat(resultado?.detalle_metodos?.efectivo_devoluciones ?? 0),
+    credito_otorgado: parseFloat(resultado?.detalle_metodos?.credito_otorgado ?? 0),
     ventas,
     suma_tickets: sumZ,
     por_metodo: porMetodo,
@@ -260,6 +262,8 @@ export function corteTicketHtml(snap) {
       <div><span>Esperado en cajón</span><span>${money(snap.esperado)}</span></div>
       <div><span>Contado</span><span>${money(snap.declarado)}</span></div>
       <div class="dif"><span>Diferencia</span><span>${money(snap.diferencia)}</span></div>
+      ${parseFloat(snap.devoluciones_efectivo || 0) > 0 ? `<div><span>Devoluciones en efectivo (ya restadas)</span><span>${money(snap.devoluciones_efectivo)}</span></div>` : ""}
+      ${parseFloat(snap.credito_otorgado || 0) > 0 ? `<div><span>Crédito otorgado (no sale de caja)</span><span>${money(snap.credito_otorgado)}</span></div>` : ""}
     </div>
     <div class="box">
       <div><span>Tarjeta (BBVA + Point)</span><span>${money(snap.tarjeta)}</span></div>
@@ -338,6 +342,8 @@ export function corteTicketTermicoInner(snap) {
     ${row80("Esperado", money(snap.esperado))}
     ${row80("Contado", money(snap.declarado))}
     ${row80("DIFERENCIA", money(snap.diferencia), true)}
+    ${parseFloat(snap.devoluciones_efectivo || 0) > 0 ? row80("Dev. efectivo", money(snap.devoluciones_efectivo)) : ""}
+    ${parseFloat(snap.credito_otorgado || 0) > 0 ? row80("Credito otorgado", money(snap.credito_otorgado)) : ""}
     <hr class="separator">
     ${row80("Tarjeta", money(snap.tarjeta))}
     ${row80("MercadoPago", money(snap.mercadopago))}
@@ -414,6 +420,12 @@ export function corteTicketPdfBlob(snap) {
   line("Esperado en cajón", money(snap.esperado));
   line("Contado", money(snap.declarado));
   line("Diferencia", money(snap.diferencia), true);
+  if (parseFloat(snap.devoluciones_efectivo || 0) > 0) {
+    line("Devoluciones en efectivo (ya restadas)", money(snap.devoluciones_efectivo));
+  }
+  if (parseFloat(snap.credito_otorgado || 0) > 0) {
+    line("Crédito otorgado (no sale de caja)", money(snap.credito_otorgado));
+  }
   y += 2;
   doc.line(M, y, W - M, y);
   y += 6;

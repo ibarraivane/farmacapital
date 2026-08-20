@@ -493,6 +493,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   };
   const [pay,setPay]         = useState("efectivo");
   const [montoRecibido, setMontoRecibido] = useState("");
+  const [usarCredito, setUsarCredito] = useState(false);
+  const [montoCredito, setMontoCredito] = useState("");
   const [tel,setTel]         = useState("");
   const [cli,setCli]         = useState(null);
   const [ticket,setTicket]   = useState(null);
@@ -1299,6 +1301,12 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const sub   = calcularTotalConPromos();
   const ptsG  = Math.floor(sub/10);
   const total = sub;
+  const saldoCredito = parseFloat(cli?.saldo_credito || 0);
+  const creditoTope = Math.min(saldoCredito, total);
+  const creditoNum = usarCredito && creditoTope > 0
+    ? Math.min(creditoTope, Math.max(0, parseFloat(String(montoCredito).replace(/,/g, "").replace(/^\$/, "")) || creditoTope))
+    : 0;
+  const aCobrar = Math.max(0, Math.round((total - creditoNum) * 100) / 100);
 
   const parseMontoEfectivo = (s) => {
     const x = String(s ?? "").replace(/,/g, "").trim().replace(/^\$/, "");
@@ -1306,14 +1314,14 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     return Number.isFinite(n) ? Math.round(n * 100) / 100 : NaN;
   };
   const recibidoNum = parseMontoEfectivo(montoRecibido);
-  const cambioNum = pay === "efectivo" && Number.isFinite(recibidoNum) ? Math.round(Math.max(0, recibidoNum - total) * 100) / 100 : null;
+  const cambioNum = pay === "efectivo" && Number.isFinite(recibidoNum) ? Math.round(Math.max(0, recibidoNum - aCobrar) * 100) / 100 : null;
 
   const abrirModalRecetaVenta = (modo) => {
     if (!cart.length) return;
-    if (modo === "efectivo") {
+    if (modo === "efectivo" && aCobrar > 0) {
       const rec = parseMontoEfectivo(montoRecibido);
-      if (!Number.isFinite(rec) || rec < total) {
-        showToast(`Indica cuánto te entregó el cliente en efectivo (mínimo ${$(total)}).`, "warning");
+      if (!Number.isFinite(rec) || rec < aCobrar) {
+        showToast(`Indica cuánto te entregó el cliente en efectivo (mínimo ${$(aCobrar)}).`, "warning");
         return;
       }
     }
@@ -1353,10 +1361,10 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     // bbva_terminal y mercadopago (Point MP) se registran como "tarjeta".
     const DB_METODO_MAP = { bbva_terminal: "tarjeta", mercadopago_point: "tarjeta" };
     const metodoPagoFinal = DB_METODO_MAP[metodoPagoInterno] ?? metodoPagoInterno;
-    if (metodoPagoFinal === "efectivo") {
+    if (metodoPagoFinal === "efectivo" && aCobrar > 0) {
       const rec = parseMontoEfectivo(montoRecibido);
-      if (!Number.isFinite(rec) || rec < total) {
-        showToast(`Indica cuánto te entregó el cliente en efectivo (mínimo ${$(total)}).`, "warning");
+      if (!Number.isFinite(rec) || rec < aCobrar) {
+        showToast(`Indica cuánto te entregó el cliente en efectivo (mínimo ${$(aCobrar)}).`, "warning");
         return;
       }
     }
@@ -1381,15 +1389,17 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         modo_venta: c.esUnidad ? "unidad" : "caja",
       }));
 
-      const { data: rpcData, error: rpcError } = await supabase.rpc("create_sale_transaction_secure", {
+      const rpcName = creditoNum > 0 ? "empleado_cobrar_venta_pos" : "create_sale_transaction_secure";
+      const { data: rpcData, error: rpcError } = await supabase.rpc(rpcName, {
         p_session_token: tok,
-        p_metodo_pago: metodoPagoFinal,
+        p_metodo_pago: aCobrar === 0 ? "efectivo" : metodoPagoFinal,
         p_total: total,
         p_cart_items: cartItemsMapped,
         p_cliente_id: cli?.id ?? null,
         p_tipo: "pos",
         p_tipo_entrega: null,
         p_direccion: null,
+        ...(creditoNum > 0 ? { p_monto_credito: creditoNum } : {}),
       });
 
       if (rpcError) throw rpcError;
@@ -1398,7 +1408,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       const pedidoId = rpcRow?.pedido_id;
       const ok = rpcRow?.success === true;
       if (!pedidoId || !ok) {
-        throw new Error("RPC create_sale_transaction_secure devolvió una respuesta inválida");
+        throw new Error(`RPC ${rpcName} devolvió una respuesta inválida`);
       }
 
       const ro = recetaOrigen === "medico_farmacapital" || recetaOrigen === "medico_externo" ? recetaOrigen : "no_aplica";
@@ -1480,7 +1490,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       const netoAmt = parseFloat((total - ivaAmt).toFixed(2));
       const folioVenta = `VTA-${String(pedidoId).padStart(8,"0")}`;
       const recEf = metodoPagoFinal === "efectivo" ? parseMontoEfectivo(montoRecibido) : null;
-      const cambioEf = metodoPagoFinal === "efectivo" && Number.isFinite(recEf) ? Math.round(Math.max(0, recEf - total) * 100) / 100 : null;
+      const cambioEf = metodoPagoFinal === "efectivo" && Number.isFinite(recEf) ? Math.round(Math.max(0, recEf - aCobrar) * 100) / 100 : null;
       const desgloseEf = metodoPagoFinal === "efectivo" && cambioEf != null && cambioEf > 0 ? desgloseCambioMN(cambioEf) : "";
       setTicket({
         id:pedidoId,
@@ -1506,6 +1516,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       showToast("Venta registrada correctamente", "success");
       setCart([]); setTel(""); setCli(null);
       setMontoRecibido("");
+      setUsarCredito(false);
+      setMontoCredito("");
     } catch(e) {
       console.error(e);
       const msg = e?.message || e?.details || String(e);
@@ -1780,6 +1792,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         {cli&&<div style={{background:C.purpleDim,border:`1px solid ${C.purple}30`,borderRadius:8,padding:"8px 10px",marginBottom:10}}>
           <div style={{color:C.purple,fontWeight:700,fontSize:12}}>{cli.nombre}</div>
           <div style={{color:C.textMid,fontSize:10}}>⭐ {cli.puntos||0} puntos FarmaCapital</div>
+          {saldoCredito>0&&<div style={{color:C.green,fontSize:11,fontWeight:700,marginTop:2}}>Crédito: {$(saldoCredito)}</div>}
         </div>}
         {!cart.length?<div style={{color:C.textMid,fontSize:13,textAlign:"center",padding:"24px 0"}}>Agrega productos</div>:
          cart.map(item=>(
@@ -1844,7 +1857,33 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         );
       })()}
 
+      {cli && saldoCredito > 0 && cart.length > 0 && (
+        <Box style={{padding:14,marginBottom:12,background:C.greenDim,border:`1px solid ${C.green}25`}}>
+          <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",marginBottom:usarCredito?8:0}}>
+            <input
+              type="checkbox"
+              checked={usarCredito}
+              onChange={(e)=>{
+                setUsarCredito(e.target.checked);
+                setMontoCredito(e.target.checked ? String(creditoTope) : "");
+              }}
+            />
+            <span style={{color:C.text,fontSize:12,fontWeight:700}}>Usar crédito FarmaCapital ({$(saldoCredito)})</span>
+          </label>
+          {usarCredito && (
+            <Inp
+              value={montoCredito}
+              onChange={(e)=>setMontoCredito(e.target.value)}
+              inputMode="decimal"
+              placeholder={`Máximo ${$(creditoTope)}`}
+              style={{width:"100%",boxSizing:"border-box",fontSize:15,fontWeight:700}}
+            />
+          )}
+        </Box>
+      )}
+
       {/* Método pago */}
+      {aCobrar > 0 && (
       <Box style={{padding:14,marginBottom:12}}>
         <div style={{color:C.textDim,fontSize:10,letterSpacing:1.5,textTransform:"uppercase",marginBottom:8}}>Método de pago</div>
         <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
@@ -1857,26 +1896,27 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
           ))}
         </div>
       </Box>
-      {pay==="efectivo"&&cart.length>0&&(
+      )}
+      {pay==="efectivo"&&cart.length>0&&aCobrar>0&&(
         <Box style={{padding:14,marginBottom:12,background:C.greenDim,border:`1px solid ${C.green}25`}}>
           <div style={{color:C.textDim,fontSize:10,letterSpacing:1.2,textTransform:"uppercase",marginBottom:8}}>Efectivo</div>
           <div style={{color:C.textMid,fontSize:11,marginBottom:8}}>¿Cuánto te entregó el cliente?</div>
           <Inp
             value={montoRecibido}
             onChange={(e)=>setMontoRecibido(e.target.value)}
-            placeholder={`Mínimo ${$(total)}`}
+            placeholder={`Mínimo ${$(aCobrar)}`}
             inputMode="decimal"
             style={{width:"100%",boxSizing:"border-box",marginBottom:8,fontSize:16,fontWeight:700}}
           />
           <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
-            <button type="button" onClick={()=>setMontoRecibido(String(total))} style={{padding:"4px 10px",borderRadius:8,border:`1px solid ${C.green}`,background:"#fff",color:C.green,fontSize:10,fontWeight:700,cursor:"pointer"}}>Exacto {$(total)}</button>
-            {sugerenciasPagoCliente(total).map(({billete,cambio})=>(
+            <button type="button" onClick={()=>setMontoRecibido(String(aCobrar))} style={{padding:"4px 10px",borderRadius:8,border:`1px solid ${C.green}`,background:"#fff",color:C.green,fontSize:10,fontWeight:700,cursor:"pointer"}}>Exacto {$(aCobrar)}</button>
+            {sugerenciasPagoCliente(aCobrar).map(({billete,cambio})=>(
               <button key={billete} type="button" onClick={()=>setMontoRecibido(String(billete))} style={{padding:"4px 10px",borderRadius:8,border:`1px solid ${C.border}`,background:C.card,fontSize:10,fontWeight:600,cursor:"pointer",color:C.text}}>
                 ${billete} → cambio {$(cambio)}
               </button>
             ))}
           </div>
-          {Number.isFinite(recibidoNum)&&recibidoNum>=total&&(
+          {Number.isFinite(recibidoNum)&&recibidoNum>=aCobrar&&(
             <div style={{marginBottom:8}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
                 <span style={{color:C.textMid,fontSize:12}}>Cambio a entregar</span>
@@ -1889,8 +1929,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
               )}
             </div>
           )}
-          {Number.isFinite(recibidoNum)&&recibidoNum>0&&recibidoNum<total&&(
-            <div style={{color:C.red,fontSize:11,fontWeight:700}}>Falta ${(total-recibidoNum).toFixed(2)}</div>
+          {Number.isFinite(recibidoNum)&&recibidoNum>0&&recibidoNum<aCobrar&&(
+            <div style={{color:C.red,fontSize:11,fontWeight:700}}>Falta ${(aCobrar-recibidoNum).toFixed(2)}</div>
           )}
           <div style={{color:C.textDim,fontSize:9,marginTop:6,lineHeight:1.35}}>
             Consejo caja: si te quedas sin billetes chicos, pide al cliente pagar con el monto exacto o con billetes que dejen un cambio “redondo” (usa los botones de arriba). Para control fino por denominación usa el corte de caja al cerrar turno.
@@ -1904,11 +1944,26 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
           <span style={{color:C.textMid,fontSize:13}}>Total</span>
           <span style={{color:C.blue,fontWeight:900,fontSize:20}}>{$(total)}</span>
         </div>
+        {creditoNum>0&&(
+          <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+            <span style={{color:C.textMid,fontSize:12}}>Crédito</span>
+            <span style={{color:C.green,fontWeight:700,fontSize:13}}>−{$(creditoNum)}</span>
+          </div>
+        )}
+        {creditoNum>0&&(
+          <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
+            <span style={{color:C.text,fontSize:13,fontWeight:800}}>Por cobrar</span>
+            <span style={{color:C.text,fontWeight:900,fontSize:18}}>{$(aCobrar)}</span>
+          </div>
+        )}
         {cli&&<div style={{color:C.purple,fontSize:11,fontWeight:700,marginBottom:10}}>+{ptsG} puntos → {cli.nombre}</div>}
-        {pay==="efectivo" ? (
-          <Btn onClick={cobrar} full col={C.green} dis={!cart.length||guardando||(!Number.isFinite(recibidoNum)||recibidoNum<total)}
-            onKeyDown={e=>e.key==="Enter"&&!guardando&&cart.length&&Number.isFinite(recibidoNum)&&recibidoNum>=total&&cobrar()}
-          >{guardando?"Procesando...":"✅ Cobrar "+$(total)}</Btn>
+        {aCobrar===0 ? (
+          <Btn onClick={cobrar} full col={C.green} dis={!cart.length||guardando}
+          >{guardando?"Procesando...":"✅ Cobrar con crédito"}</Btn>
+        ) : pay==="efectivo" ? (
+          <Btn onClick={cobrar} full col={C.green} dis={!cart.length||guardando||(!Number.isFinite(recibidoNum)||recibidoNum<aCobrar)}
+            onKeyDown={e=>e.key==="Enter"&&!guardando&&cart.length&&Number.isFinite(recibidoNum)&&recibidoNum>=aCobrar&&cobrar()}
+          >{guardando?"Procesando...":"✅ Cobrar "+$(aCobrar)}</Btn>
         ) : pay==="tarjeta" ? (
           <div>
             <Btn onClick={()=>abrirModalRecetaVenta("tarjeta")}

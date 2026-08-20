@@ -757,6 +757,7 @@ function ResultadoCorte({ C, resultado, turno, dif, difCol, difBg, difTxt,
   const tarjetaRes = parseFloat(resultado?.tarjeta ?? 0);
   const mpRes      = parseFloat(resultado?.mercadopago ?? 0);
   const speiRes    = parseFloat(resultado?.spei ?? 0);
+  const detalle    = resultado?.detalle_metodos ?? null;
   const [ticketEstado, setTicketEstado] = useState("idle");
   const subidoRef = useRef(false);
 
@@ -830,6 +831,19 @@ function ResultadoCorte({ C, resultado, turno, dif, difCol, difBg, difTxt,
             <span style={{color:C.text,fontSize:13,fontWeight:600}}>{fmt(v)}</span>
           </div>
         ))}
+        {detalle && parseFloat(detalle.efectivo_devoluciones || 0) > 0 && (
+          <div style={{color:C.textDim,fontSize:11,marginTop:4,lineHeight:1.4}}>
+            El efectivo del sistema ya restó {fmt(detalle.efectivo_devoluciones)} de devoluciones
+            {parseFloat(detalle.efectivo_cambios_ingreso || 0) > 0
+              ? ` y sumó ${fmt(detalle.efectivo_cambios_ingreso)} de diferencias cobradas en cambios`
+              : ""}.
+          </div>
+        )}
+        {detalle && parseFloat(detalle.credito_otorgado || 0) > 0 && (
+          <div style={{color:C.textDim,fontSize:11,marginTop:4}}>
+            Crédito otorgado en el turno: {fmt(detalle.credito_otorgado)} (no sale del cajón).
+          </div>
+        )}
         {dif !== 0 && (
           <div style={{color:C.textDim,fontSize:11.5,marginTop:12,lineHeight:1.5}}>
             {dif > 0

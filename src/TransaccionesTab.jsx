@@ -101,6 +101,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
   const C = C_LIGHT;
   const [pedidos, setPedidos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [devolucionesPeriodo, setDevolucionesPeriodo] = useState({ total_devuelto: 0, n: 0 });
   const [busqueda, setBusqueda] = useState("");
   const [filtroFecha, setFiltroF] = useState("mes");
   const [filtroTipo, setFiltroT] = useState("todos");
@@ -182,6 +183,19 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
       (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
     );
     setPedidos(mezclados);
+    try {
+      const { data: dev } = await supabase.rpc("empleado_sumar_devoluciones_rango", {
+        p_session_token: tok,
+        p_created_desde: rango?.desde ?? null,
+        p_created_hasta: rango?.hasta ?? null,
+      });
+      setDevolucionesPeriodo({
+        total_devuelto: parseFloat(dev?.total_devuelto || 0),
+        n: parseInt(dev?.n || 0, 10) || 0,
+      });
+    } catch {
+      setDevolucionesPeriodo({ total_devuelto: 0, n: 0 });
+    }
     setLoading(false);
   }, [filtroFecha, fechaDesde, fechaHasta]);
 
@@ -711,6 +725,12 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
         <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
           <div><div style={{ color: C.textMid, fontSize: 10, fontWeight: 700 }}>TRANSACCIONES</div><div style={{ color: C.blue, fontWeight: 800, fontSize: 18 }}>{filtradosTodos.length}</div></div>
           <div><div style={{ color: C.textMid, fontSize: 10, fontWeight: 700 }}>TOTAL PERÍODO</div><div style={{ color: C.green, fontWeight: 800, fontSize: 18 }}>{fmtM(sumaTotal)}</div></div>
+          {devolucionesPeriodo.n > 0 && (
+            <>
+              <div><div style={{ color: C.textMid, fontSize: 10, fontWeight: 700 }}>DEVOLUCIONES</div><div style={{ color: C.red, fontWeight: 800, fontSize: 18 }}>−{fmtM(devolucionesPeriodo.total_devuelto)}</div></div>
+              <div><div style={{ color: C.textMid, fontSize: 10, fontWeight: 700 }}>VENTAS NETAS</div><div style={{ color: C.text, fontWeight: 800, fontSize: 18 }}>{fmtM(sumaTotal - devolucionesPeriodo.total_devuelto)}</div></div>
+            </>
+          )}
           <div><div style={{ color: C.textMid, fontSize: 10, fontWeight: 700 }}>PROMEDIO</div><div style={{ color: C.purple, fontWeight: 800, fontSize: 18 }}>{fmtM(promedio)}</div></div>
           <div style={{ flex: "1 1 200px", minWidth: 0 }}>
             <div style={{ color: C.textMid, fontSize: 10, fontWeight: 700, marginBottom: 6 }}>POR MÉTODO</div>
