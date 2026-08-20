@@ -165,17 +165,24 @@ export function pedidoEsTipoConsulta(tipo) {
   return String(tipo || "").toLowerCase().trim() === "consulta";
 }
 
+export function pedidoEsTipoServicio(tipo) {
+  const t = String(tipo || "").toLowerCase().trim();
+  return t === "servicio" || t === "recarga";
+}
+
 export function pedidoCoincideFiltroTipo(pedidoTipo, filtro) {
   if (!filtro || filtro === "todos") return true;
   if (filtro === "fisica") return pedidoEsTipoFisica(pedidoTipo);
   if (filtro === "online") return pedidoEsTipoOnline(pedidoTipo);
   if (filtro === "consulta") return pedidoEsTipoConsulta(pedidoTipo);
+  if (filtro === "servicio") return pedidoEsTipoServicio(pedidoTipo);
   return String(pedidoTipo || "") === filtro;
 }
 
 export function labelTipoPedido(tipo) {
   if (pedidoEsTipoOnline(tipo)) return "online";
   if (pedidoEsTipoConsulta(tipo)) return "consulta";
+  if (pedidoEsTipoServicio(tipo)) return "servicio";
   if (pedidoEsTipoFisica(tipo)) return "física";
   return tipo || "física";
 }
