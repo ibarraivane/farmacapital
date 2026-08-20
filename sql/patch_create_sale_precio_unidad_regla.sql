@@ -1,6 +1,75 @@
 -- POS: create_sale_transaction_v2 usa precio_unidad_efectivo (regla pieza)
 -- Generado desde refactor_fase4a_rpcs_sin_legacy.sql — no simplificar manualmente
 
+-- Si productos.stock > 0 pero no hay lote con piezas (lotes fantasma qty=0
+-- o venta legacy), crea un lote SYNC para que FEFO pueda descontar.
+create or replace function public.fn_ensure_lote_stock_vendible(p_producto_id bigint)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_en_lotes integer;
+  v_stock integer;
+  v_costo numeric;
+begin
+  if p_producto_id is null then
+    return 0;
+  end if;
+
+  select coalesce(sum(l.cantidad_actual), 0)::integer
+    into v_en_lotes
+  from public.lotes l
+  where l.producto_id = p_producto_id
+    and coalesce(l.activo, true) = true
+    and coalesce(l.cantidad_actual, 0) > 0;
+
+  if v_en_lotes > 0 then
+    return v_en_lotes;
+  end if;
+
+  select coalesce(p.stock, 0), p.costo
+    into v_stock, v_costo
+  from public.productos p
+  where p.id = p_producto_id
+  for update;
+
+  if not found or v_stock <= 0 then
+    return 0;
+  end if;
+
+  insert into public.lotes (
+    producto_id, numero_lote, cantidad_inicial, cantidad_actual,
+    costo_unitario, activo
+  ) values (
+    p_producto_id,
+    'SYNC-' || to_char(now(), 'YYYYMMDD-HH24MISS'),
+    v_stock,
+    v_stock,
+    v_costo,
+    true
+  );
+
+  return v_stock;
+end;
+$$;
+
+grant execute on function public.fn_ensure_lote_stock_vendible(bigint)
+  to anon, authenticated, service_role;
+
+-- Mostrador: el cliente paga pesos enteros. La ficha puede traer PMP con centavos.
+create or replace function public.peso_publico(p numeric)
+returns numeric
+language sql
+immutable
+parallel safe
+as $$
+  select case when p is null then 0 else round(p, 0) end;
+$$;
+
+grant execute on function public.peso_publico(numeric) to anon, authenticated, service_role;
+
 create or replace function public.create_sale_transaction_v2(
   p_user_id bigint,
   p_metodo_pago text,
@@ -113,6 +182,9 @@ begin
       )
       else coalesce(v_precio_prod, 0)
     end;
+    if p_tipo = 'pos' then
+      v_db_precio := public.peso_publico(v_db_precio);
+    end if;
 
     if v_modo_venta = 'unidad' then
       if coalesce(v_stock_unidades_actual, 0) < v_cantidad then
@@ -127,6 +199,17 @@ begin
         and coalesce(l.activo, true) = true
         and coalesce(l.cantidad_actual, 0) > 0
         and (l.fecha_caducidad is null or l.fecha_caducidad >= current_date);
+
+      if coalesce(v_lotes_disponibles, 0) < v_cantidad then
+        perform public.fn_ensure_lote_stock_vendible(v_producto_id);
+        select coalesce(sum(l.cantidad_actual), 0)::integer
+          into v_lotes_disponibles
+        from public.lotes l
+        where l.producto_id = v_producto_id
+          and coalesce(l.activo, true) = true
+          and coalesce(l.cantidad_actual, 0) > 0
+          and (l.fecha_caducidad is null or l.fecha_caducidad >= current_date);
+      end if;
 
       if coalesce(v_lotes_disponibles, 0) < v_cantidad then
         raise exception 'lotes FEFO insuficientes para producto % (disponible %, solicitado %)',
@@ -208,6 +291,9 @@ begin
       )
       else coalesce(v_precio_prod, 0)
     end;
+    if p_tipo = 'pos' then
+      v_db_precio := public.peso_publico(v_db_precio);
+    end if;
 
     if v_modo_venta = 'unidad' then
       v_stock_unidades_nuevo := v_stock_unidades_actual - v_cantidad;
@@ -232,6 +318,7 @@ begin
       );
 
     else
+      perform public.fn_ensure_lote_stock_vendible(v_producto_id);
       v_restante := v_cantidad;
       while v_restante > 0 loop
         select f.lote_id, f.cantidad_disponible

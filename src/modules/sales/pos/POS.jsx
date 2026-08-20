@@ -11,6 +11,7 @@ import { findProductExactScan, looksLikeBarcodeInput, looksLikeInternalSku, isAl
 import { posTituloProducto, posSubtituloProducto } from "../../../utils/posProductDisplay";
 import { precioUnidadParaVenta } from "../../../utils/precioUnidad";
 import { productoEsVendible } from "../../../utils/productoVendible";
+import { cobroLinea, pesoPublico } from "../../../utils/pesoPublico";
 import { useHidBarcodeWedge } from "../../../hooks/useHidBarcodeWedge";
 import {
   suggestPosProductsLocal,
@@ -348,12 +349,17 @@ function PosProductoFichaPanel({
                 {item.descuento_pct > 0 ? (
                   <>
                     <span style={{ fontSize: 14, color: C.textDim, textDecoration: "line-through", marginRight: 8 }}>{$(item.precio)}</span>
-                    {$(Math.round((item.precio || 0) * (1 - item.descuento_pct / 100)))}
+                    {$(cobroLinea(item.precio, 1, item.descuento_pct))}
                   </>
                 ) : (
-                  $(item.precio)
+                  $(pesoPublico(item.precio))
                 )}
               </div>
+              {Math.abs((parseFloat(item.precio) || 0) - pesoPublico(item.precio)) > 0.001 && !(item.descuento_pct > 0) && (
+                <div style={{ fontSize: 11, color: C.textDim, marginTop: 4 }}>
+                  Lista {$(item.precio)} · en caja se cobra peso entero
+                </div>
+              )}
             </div>
             <span style={{ fontSize: 12, fontWeight: 700, color: item.ubicacion_texto ? C.blue : C.textDim }}>
               📍 {item.ubicacion_texto || "Sin ubicación"}
@@ -1047,7 +1053,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
           return p.map(c=>c.id===item.id?{...c,qty:c.qty+1}:c);
         }
 
-        return [...p,{...item,producto_id:item.id,qty:1,rxI:null,esUnidad:false,nombre:posTituloProducto(item)}];
+        return [...p,{...item,producto_id:item.id,qty:1,rxI:null,esUnidad:false,nombre:posTituloProducto(item),precio:pesoPublico(item.precio)}];
       });
     }
   };
@@ -1280,7 +1286,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
 
       return ex
         ? p.map(c=>c.id===rxM.id?{...c,qty:c.qty+1,rxI:{...rx}}:c)
-        : [...p,{...rxM,producto_id:rxM.id,qty:1,rxI:{...rx},esUnidad:false}];
+        : [...p,{...rxM,producto_id:rxM.id,qty:1,rxI:{...rx},esUnidad:false,precio:pesoPublico(rxM.precio)}];
     });
 
     setRxM(null); setRx({receta:"",medico:"",cedula:"",paciente:"",indicaciones:""});
@@ -1288,14 +1294,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
 
   // P2.2: Calcular total con promociones activas aplicadas
   const calcularTotalConPromos = () => {
-    return cart.reduce((a,c) => {
-      let precio = c.precio;
-      // Si el producto tiene descuento_pct, aplicarlo
-      if(c.descuento_pct>0) {
-        precio = precio * (1 - c.descuento_pct/100);
-      }
-      return a + precio * c.qty;
-    }, 0);
+    return cart.reduce((a,c) => a + cobroLinea(c.precio, c.qty, c.descuento_pct), 0);
   };
   const sub   = calcularTotalConPromos();
   const ptsG  = Math.floor(sub/10);
@@ -1378,7 +1377,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       const cartItemsMapped = cart.map(c=>({
         producto_id: c.producto_id ?? c.id,
         cantidad: c.qty,
-        precio_unitario: c.precio,
+        precio_unitario: cobroLinea(c.precio, 1, c.descuento_pct),
         modo_venta: c.esUnidad ? "unidad" : "caja",
       }));
 
