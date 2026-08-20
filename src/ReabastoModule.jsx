@@ -59,6 +59,7 @@ export default function ReabastoModule() {
   const [selProds,    setSelProds]    = useState({});
   const [generando,   setGenerando]   = useState(false);
   const [busqueda,    setBusqueda]    = useState("");
+  const [filtroTienda, setFiltroTienda] = useState("todas");
 
   const fetchProductos = useCallback(async () => {
     setLoading(true);
@@ -127,10 +128,14 @@ export default function ReabastoModule() {
   ), [alertas, menores, C]);
   const filasAlertas = useMemo(() => {
     const q = busqueda.trim();
-    if (!q) return filasBase;
-    return filasBase.filter((p) => inventarioProductMatchesBusqueda(p, q));
-  }, [filasBase, busqueda]);
+    let list = q ? filasBase.filter((p) => inventarioProductMatchesBusqueda(p, q)) : filasBase;
+    if (filtroTienda === "levic") list = list.filter((p) => p.mejorTienda?.fuente === "levic");
+    else if (filtroTienda === "otras") list = list.filter((p) => p.mejorTienda && p.mejorTienda.fuente !== "levic");
+    else if (filtroTienda === "sin") list = list.filter((p) => !p.mejorTienda);
+    return list;
+  }, [filasBase, busqueda, filtroTienda]);
   const listaVacia = !loading && !productos.length;
+  const nMarcados = Object.values(selProds).filter((v) => v > 0).length;
 
   const cantidadSugerida = (p) => {
     const min = stockMinimoEfectivo(p);
@@ -142,29 +147,56 @@ export default function ReabastoModule() {
   };
 
   const toggleSel = (id) => {
-    const fila = alertas.find(p=>p.id===id) || productos.find(p=>p.id===id) || {};
-    setSelProds(prev=>({
-      ...prev,
-      [id]: prev[id]!==undefined ? undefined : cantidadSugerida(fila)
-    }));
+    const fila = filasAlertas.find(p=>p.id===id) || productos.find(p=>p.id===id) || {};
+    setSelProds((prev) => {
+      if (prev[id] > 0) {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      }
+      return { ...prev, [id]: cantidadSugerida(fila) };
+    });
   };
 
-  const generarOrden = async (todosAlertas = false) => {
-    let items = Object.entries(selProds)
+  const inputPedir = (p) => (
+    <input
+      type="number"
+      min="1"
+      inputMode="numeric"
+      placeholder={String(cantidadSugerida(p))}
+      value={selProds[p.id] ?? ""}
+      onChange={(e) => setCantidad(p.id, e.target.value)}
+      onClick={(e) => e.stopPropagation()}
+      style={inpS}
+      aria-label={`Piezas a pedir de ${p.nombre}`}
+    />
+  );
+
+  const setCantidad = (id, raw) => {
+    const n = parseInt(String(raw).replace(/\D/g, ""), 10);
+    setSelProds((prev) => {
+      if (!Number.isFinite(n) || n <= 0) {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      }
+      return { ...prev, [id]: n };
+    });
+  };
+
+  const generarOrden = async () => {
+    const items = Object.entries(selProds)
       .filter(([,qty])=>qty>0)
       .map(([id,qty])=>({
-        producto: filasAlertas.find(p=>p.id===parseInt(id)) || productos.find(p=>p.id===parseInt(id)),
+        producto: productos.find(p=>p.id===parseInt(id)),
         cantidad: qty,
       }))
       .filter(x=>x.producto);
 
-    if (!items.length || todosAlertas) {
-      items = filasAlertas
-        .filter((p) => (selProds[p.id] || cantidadSugerida(p)) > 0)
-        .map((p) => ({ producto: p, cantidad: selProds[p.id] || cantidadSugerida(p) }));
+    if (!items.length) {
+      showToast("Marca al menos un producto y pon cuántas piezas pedir","warning");
+      return;
     }
-
-    if (!items.length) { showToast("No hay productos para pedir","warning"); return; }
     setGenerando(true);
 
     const ordenes = asignarPedidosPorTienda(items);
@@ -241,13 +273,14 @@ export default function ReabastoModule() {
         <div>
           <h1 style={{color:C.text,fontSize:isMobile?18:20,fontWeight:800,margin:0}}>Reabasto</h1>
           <p style={{margin:"6px 0 0",color:C.textMid,fontSize:12,maxWidth:720,lineHeight:1.45}}>
-            Salen 2 archivos. <strong>Pedido_Levic_portal</strong> se sube a Levic (llega mañana). <strong>Pedido_otras_tiendas</strong> es Exprezo, Scorpion y lo demás.
+            Elige aquí, con el nombre a la vista: marca la caja, revisa stock actual y sugerido, y pon cuántas piezas pedir.
+            El archivo de Levic sale sin nombres porque así lo pide su portal; tú ya decidiste la cantidad en esta lista.
           </p>
         </div>
         <div style={{display:"flex",flexDirection:isMobile?"column":"row",gap:8,width:isMobile?"100%":"auto"}}>
-          <button onClick={()=>generarOrden(false)} disabled={generando || (!Object.values(selProds).some(v=>v>0) && !filasAlertas.length)}
-            style={{padding:"12px 16px",borderRadius:10,border:"none",background:BRAND.gradient,color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer",opacity:generando?0.7:1,width:isMobile?"100%":"auto"}}>
-            {generando?"Generando…":"Obtener documento de resurtido"}
+          <button onClick={generarOrden} disabled={generando || nMarcados===0}
+            style={{padding:"12px 16px",borderRadius:10,border:"none",background:BRAND.gradient,color:"#fff",fontWeight:700,fontSize:13,cursor:nMarcados? "pointer":"not-allowed",opacity:generando||!nMarcados?0.7:1,width:isMobile?"100%":"auto"}}>
+            {generando?"Generando…": nMarcados ? `Descargar ${nMarcados} marcado${nMarcados===1?"":"s"}` : "Marca lo que quieres pedir"}
           </button>
         </div>
       </div>
@@ -259,7 +292,7 @@ export default function ReabastoModule() {
           {label:"Caduca",value:alertas.filter(p=>p.urgencia.nivel==="CADUCA"||p.urgencia.nivel==="VENCIDO").length,col:C.amber,icon:"⏳"},
           {label:"Bajo",value:alertas.filter(p=>p.urgencia.nivel==="BAJO").length,col:C.amber,icon:"🟡"},
           {label:"Pronto",value:alertas.filter(p=>p.urgencia.nivel==="PRONTO").length,col:"#0891b2",icon:"🔵"},
-          {label:"Elegidos",value:Object.values(selProds).filter(v=>v>0).length,col:BRAND.primary,icon:"✅"},
+          {label:"Elegidos",value:nMarcados,col:BRAND.primary,icon:"✅"},
         ].map(k=>(
           <div key={k.label} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:isMobile?"10px 12px":"12px 16px",minWidth:0}}>
             <div style={{color:C.textDim,fontSize:10,fontWeight:700,letterSpacing:.3}}>{k.icon} {k.label.toUpperCase()}</div>
@@ -301,102 +334,106 @@ export default function ReabastoModule() {
                   }}
                 />
                 <div style={{color:C.textMid,fontSize:12,lineHeight:1.45,flex:"2 1 280px"}}>
-                  {alertas.length
-                    ? `${filasAlertas.length} de ${alertas.length} alertas · marca lo que quieres pedir y genera la orden.`
-                    : "Nadie está bajo el umbral. Se muestran las existencias más bajas para que puedas pedir igual."}
+                  {nMarcados
+                    ? `${nMarcados} marcado${nMarcados===1?"":"s"} · se descarga solo eso, en Levic o en otras tiendas según «Comprar en».`
+                    : `${filasAlertas.length} en la lista · marca la caja y pon la cantidad. El sugerido es una guía.`}
                 </div>
+                {[
+                  ["todas", "Todas"],
+                  ["levic", "Levic"],
+                  ["otras", "Otras tiendas"],
+                  ["sin", "Sin tienda"],
+                ].map(([id, label]) => (
+                  <button key={id} type="button" onClick={()=>setFiltroTienda(id)} style={{
+                    padding:"6px 12px",borderRadius:20,fontSize:11,fontWeight:700,cursor:"pointer",
+                    border:`1px solid ${filtroTienda===id?BRAND.primary:C.border}`,
+                    background:filtroTienda===id?BRAND.primary+"18":"#fff",
+                    color:filtroTienda===id?BRAND.primary:C.textMid,
+                  }}>{label}</button>
+                ))}
               </div>
               {isMobile ? (
                 <div style={{display:"flex",flexDirection:"column",gap:10}}>
                   {filasAlertas.map((p)=>(
-                    <div key={p.id} onClick={()=>toggleSel(p.id)} style={{
-                      background:C.card,border:`1px solid ${selProds[p.id]!==undefined?C.blue:C.border}`,
-                      borderRadius:12,padding:12,cursor:"pointer",
+                    <div key={p.id} style={{
+                      background:C.card,border:`1px solid ${selProds[p.id]>0?C.blue:C.border}`,
+                      borderRadius:12,padding:12,
                     }}>
                       <div style={{display:"flex",justifyContent:"space-between",gap:8,alignItems:"flex-start"}}>
-                        <div style={{minWidth:0,flex:1}}>
-                          <div style={{color:C.text,fontWeight:700,fontSize:14,lineHeight:1.3}}>{p.nombre}</div>
-                          <div style={{color:C.textMid,fontSize:11,marginTop:3}}>{p.sku||"sin SKU"} · mín. {stockMinimoEfectivo(p)}</div>
-                        </div>
+                        <label style={{display:"flex",gap:8,minWidth:0,flex:1,alignItems:"flex-start",cursor:"pointer"}}>
+                          <input type="checkbox" checked={selProds[p.id]>0} onChange={()=>toggleSel(p.id)} style={{marginTop:3,cursor:"pointer"}}/>
+                          <div style={{minWidth:0}}>
+                            <div style={{color:C.text,fontWeight:700,fontSize:14,lineHeight:1.3}}>{p.nombre}</div>
+                            <div style={{color:C.textMid,fontSize:11,marginTop:3}}>{p.sku||"sin SKU"}</div>
+                          </div>
+                        </label>
                         <span style={{padding:"3px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:p.urgencia.bg,color:p.urgencia.col,flexShrink:0}}>
                           {p.urgencia.icon} {p.urgencia.nivel}
                         </span>
                       </div>
-                      <div style={{display:"flex",flexWrap:"wrap",gap:"10px 16px",marginTop:10,fontSize:12,color:C.textMid}}>
-                        <span>Stock <strong style={{color:p.stock===0?C.red:C.text}}>{p.stock}</strong></span>
-                        {p.min_caducidad_lotes && <span>Caduca {p.min_caducidad_lotes}</span>}
-                        {p.sinLotePeps && <span style={{color:C.amber,fontWeight:700}}>Sin lote PEPS</span>}
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginTop:12}}>
+                        <div>
+                          <div style={{fontSize:10,color:C.textDim,fontWeight:700}}>STOCK ACTUAL</div>
+                          <div style={{fontSize:16,fontWeight:800,color:p.stock===0?C.red:C.text}}>{p.stock}</div>
+                        </div>
+                        <div>
+                          <div style={{fontSize:10,color:C.textDim,fontWeight:700}}>SUGERIDO</div>
+                          <div style={{fontSize:16,fontWeight:800,color:C.textMid}}>{cantidadSugerida(p)}</div>
+                        </div>
+                        <div>
+                          <div style={{fontSize:10,color:C.textDim,fontWeight:700}}>PEDIR</div>
+                          {inputPedir(p)}
+                        </div>
                       </div>
                       <div style={{marginTop:8,fontSize:12}}>{renderComprarEn(p)}</div>
-                      <div style={{marginTop:10}} onClick={e=>e.stopPropagation()}>
-                        {selProds[p.id]!==undefined?(
-                          <label style={{display:"flex",alignItems:"center",gap:8,fontSize:12,color:C.textMid}}>
-                            Pedir
-                            <input type="number" min="1" inputMode="numeric" value={selProds[p.id]}
-                              onChange={e=>setSelProds(prev=>({...prev,[p.id]:parseInt(e.target.value)||1}))}
-                              style={inpS}/>
-                          </label>
-                        ):(
-                          <span style={{color:C.textDim,fontSize:12}}>{cantidadSugerida(p)} sugeridas</span>
-                        )}
-                      </div>
                     </div>
                   ))}
                 </div>
               ) : (
               <HorizontalScrollSync>
-                <table style={{width:"100%",minWidth:1080,borderCollapse:"collapse",fontSize:12}}>
+                <table style={{width:"100%",minWidth:980,borderCollapse:"collapse",fontSize:12}}>
                   <thead>
                     <tr style={{background:C.cardDark}}>
                       <th style={{padding:"9px 12px",textAlign:"left",color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>
-                        <input type="checkbox" onChange={e=>{
-                          if(e.target.checked) setSelProds(Object.fromEntries(filasAlertas.map(p=>[p.id,cantidadSugerida(p)])));
-                          else setSelProds({});
+                        <input type="checkbox"
+                          checked={filasAlertas.length>0 && filasAlertas.every(p=>selProds[p.id]>0)}
+                          onChange={e=>{
+                          if(e.target.checked) {
+                            setSelProds((prev) => ({
+                              ...prev,
+                              ...Object.fromEntries(filasAlertas.map((p) => [p.id, prev[p.id] > 0 ? prev[p.id] : cantidadSugerida(p)])),
+                            }));
+                          } else {
+                            setSelProds((prev) => {
+                              const next = { ...prev };
+                              filasAlertas.forEach((p) => { delete next[p.id]; });
+                              return next;
+                            });
+                          }
                         }} style={{cursor:"pointer"}}/>
                       </th>
-                      {["Producto","SKU","Categoría","Stock","Mín.","Caducidad PEPS","Urgencia","Pedir (sugerido)","Comprar en"].map(h=>(
+                      {["Producto","SKU","Stock actual","Sugerido","Pedir","Comprar en","Urgencia"].map(h=>(
                         <th key={h} style={{padding:"9px 12px",textAlign:"left",color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {filasAlertas.map((p,i)=>(
-                      <tr key={p.id} style={{background:i%2===0?"transparent":"#f8fafc",cursor:"pointer"}} onClick={()=>toggleSel(p.id)}>
+                      <tr key={p.id} style={{background:i%2===0?"transparent":"#f8fafc"}}>
                         <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`}}>
-                          <input type="checkbox" checked={selProds[p.id]!==undefined} onChange={()=>toggleSel(p.id)} onClick={e=>e.stopPropagation()} style={{cursor:"pointer"}}/>
+                          <input type="checkbox" checked={selProds[p.id]>0} onChange={()=>toggleSel(p.id)} style={{cursor:"pointer"}}/>
                         </td>
                         <td style={{padding:"9px 12px",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>{p.nombre}</td>
                         <td style={{padding:"9px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,fontFamily:"monospace",fontSize:10}}>{p.sku||"—"}</td>
-                        <td style={{padding:"9px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{p.categoria||"—"}</td>
                         <td style={{padding:"9px 12px",color:p.stock===0?C.red:C.amber,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{p.stock}</td>
-                        <td style={{padding:"9px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{stockMinimoEfectivo(p)}{!p.stock_minimo ? " *" : ""}</td>
-                        <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>
-                          {p.min_caducidad_lotes ? (
-                            <span style={{
-                              color: p.diasCaducidad < 0 ? C.red : p.diasCaducidad <= 30 ? C.amber : C.textMid,
-                              fontWeight: p.diasCaducidad != null && p.diasCaducidad <= 30 ? 700 : 500,
-                            }}>
-                              {p.min_caducidad_lotes}{p.diasCaducidad != null ? ` (${p.diasCaducidad}d)` : ""}
-                            </span>
-                          ) : p.sinLotePeps ? (
-                            <span style={{color:C.amber,fontWeight:700}}>Sin lote PEPS</span>
-                          ) : "—"}
-                        </td>
+                        <td style={{padding:"9px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{cantidadSugerida(p)}</td>
+                        <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`}}>{inputPedir(p)}</td>
+                        <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`}}>{renderComprarEn(p)}</td>
                         <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`}}>
                           <span style={{padding:"3px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:p.urgencia.bg,color:p.urgencia.col}}>
                             {p.urgencia.icon} {p.urgencia.nivel}
                           </span>
                         </td>
-                        <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`}} onClick={e=>e.stopPropagation()}>
-                          {selProds[p.id]!==undefined?(
-                            <input type="number" min="1" value={selProds[p.id]}
-                              onChange={e=>setSelProds(prev=>({...prev,[p.id]:parseInt(e.target.value)||1}))}
-                              style={inpS}/>
-                          ):(
-                            <span style={{color:C.textDim,fontSize:11}}>{cantidadSugerida(p)} sugeridas</span>
-                          )}
-                        </td>
-                        <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`}}>{renderComprarEn(p)}</td>
                       </tr>
                     ))}
                   </tbody>
