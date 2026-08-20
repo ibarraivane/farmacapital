@@ -13,6 +13,7 @@ import {
   corteTicketPdfBlob,
   uploadCorteTicketPdf,
   abrirOCrearTicketCorte,
+  cargarVentasDetalleTurno,
 } from "./utils/corteTicket";
 
 const BRAND = { primary:"#0D1B2A", secondary:"#1E3ABA", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
@@ -221,13 +222,12 @@ export default function CorteCajaModule({usuario }) {
         fetchVentas: async (corte) => {
           const fecha = corte.fecha ? new Date(corte.fecha) : new Date();
           const { inicio, fin } = rangoTurno(fecha, corte.turno);
-          const { data } = await supabase.rpc("empleado_listar_pedidos_transacciones", {
-            p_session_token: tok,
-            p_created_desde: inicio.toISOString(),
-            p_created_hasta: fin.toISOString(),
-            p_limite: 400,
-          });
-          return Array.isArray(data) ? data : [];
+          return cargarVentasDetalleTurno(
+            supabase,
+            tok,
+            inicio.toISOString(),
+            fin.toISOString(),
+          );
         },
       });
     } catch (e) {
@@ -260,15 +260,10 @@ export default function CorteCajaModule({usuario }) {
     try {
       const tok = sessionStorage.getItem("farmacapital_session_token");
       const { inicio, fin } = getRango(turno);
-      const { data } = tok
-        ? await supabase.rpc("empleado_listar_pedidos_transacciones", {
-            p_session_token: tok,
-            p_created_desde: inicio,
-            p_created_hasta: fin,
-            p_limite: 400,
-          })
-        : { data: null };
-      setZTransac(Array.isArray(data) ? data : []);
+      const ventas = tok
+        ? await cargarVentasDetalleTurno(supabase, tok, inicio, fin)
+        : [];
+      setZTransac(ventas);
     } catch (e) {
       console.error("[CorteCaja Z]", e);
       setZTransac([]);
@@ -334,6 +329,7 @@ export default function CorteCajaModule({usuario }) {
       ...data,
       tarjeta: data?.tarjeta ?? tar,
       mercadopago: data?.mercadopago ?? mp,
+      denominaciones: usaDenoms ? denomsLimpios : data?.denominaciones,
     });
     cargarReporteZ();
     try {
@@ -391,6 +387,7 @@ export default function CorteCajaModule({usuario }) {
           C={C} resultado={resultado} turno={turno} dif={dif} difCol={difCol} difBg={difBg}
           difTxt={difTxt} zTransac={zTransac} cargandoZ={cargandoZ}
           btnSecondary={btnSecondary} onNuevo={nuevoCorte} cajero={usuario?.nombre}
+          denominaciones={resultado?.denominaciones}
         />
       )}
 
@@ -727,7 +724,8 @@ export default function CorteCajaModule({usuario }) {
 // diferencia no es cero y como comprobante del relevo.
 // ══════════════════════════════════════════════════════════════
 function ResultadoCorte({ C, resultado, turno, dif, difCol, difBg, difTxt,
-                          zTransac, cargandoZ, btnSecondary, onNuevo, cajero }) {
+                          zTransac, cargandoZ, btnSecondary, onNuevo, cajero,
+                          denominaciones }) {
   const esperado  = parseFloat(resultado?.esperado ?? 0);
   const sistema   = parseFloat(resultado?.efectivo_sistema ?? 0);
   const fondoRes  = parseFloat(resultado?.fondo_inicial ?? 0);
@@ -750,6 +748,7 @@ function ResultadoCorte({ C, resultado, turno, dif, difCol, difBg, difTxt,
     turno,
     zTransac,
     cajero,
+    denominaciones: denominaciones || resultado?.denominaciones,
   });
 
   const guardarPdf = async () => {
@@ -841,24 +840,45 @@ function ResultadoCorte({ C, resultado, turno, dif, difCol, difBg, difTxt,
           <div style={{maxHeight:300,overflowY:"auto",border:`1px solid ${C.border}`,borderRadius:8}}>
             <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
               <thead><tr style={{background:C.bg}}>
-                {["Folio","Hora","Método","Total"].map(h=>(
-                  <th key={h} style={{padding:"7px 10px",textAlign:h==="Total"?"right":"left",
+                {["Folio","Hora","Método","Producto","Importe"].map(h=>(
+                  <th key={h} style={{padding:"7px 10px",textAlign:h==="Importe"?"right":"left",
                     color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{h}</th>
                 ))}
               </tr></thead>
               <tbody>
-                {(zTransac||[]).map(t=>(
-                  <tr key={t.id}>
-                    <td style={{padding:"6px 10px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>#{t.id}</td>
-                    <td style={{padding:"6px 10px",color:C.text,borderBottom:`1px solid ${C.border}`}}>
-                      {new Date(t.created_at).toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"})}
-                    </td>
-                    <td style={{padding:"6px 10px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{t.metodo_pago||"—"}</td>
-                    <td style={{padding:"6px 10px",textAlign:"right",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>
-                      {fmt(t.total)}
-                    </td>
-                  </tr>
-                ))}
+                {(zTransac||[]).flatMap(t=>{
+                  const items = t.items || [];
+                  if (!items.length) {
+                    return [(
+                      <tr key={t.id}>
+                        <td style={{padding:"6px 10px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>#{t.id}</td>
+                        <td style={{padding:"6px 10px",color:C.text,borderBottom:`1px solid ${C.border}`}}>
+                          {new Date(t.created_at).toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"})}
+                        </td>
+                        <td style={{padding:"6px 10px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{t.metodo_pago||"—"}</td>
+                        <td style={{padding:"6px 10px",color:C.textDim,borderBottom:`1px solid ${C.border}`}}>—</td>
+                        <td style={{padding:"6px 10px",textAlign:"right",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>
+                          {fmt(t.total)}
+                        </td>
+                      </tr>
+                    )];
+                  }
+                  return items.map((it, idx) => (
+                    <tr key={`${t.id}-${idx}`}>
+                      <td style={{padding:"6px 10px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{idx===0?`#${t.id}`:""}</td>
+                      <td style={{padding:"6px 10px",color:C.text,borderBottom:`1px solid ${C.border}`}}>
+                        {idx===0?new Date(t.created_at).toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"}):""}
+                      </td>
+                      <td style={{padding:"6px 10px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{idx===0?(t.metodo_pago||"—"):""}</td>
+                      <td style={{padding:"6px 10px",color:C.text,borderBottom:`1px solid ${C.border}`}}>
+                        {it.cantidad} × {it.nombre}{it.sku?` · ${it.sku}`:""}
+                      </td>
+                      <td style={{padding:"6px 10px",textAlign:"right",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>
+                        {fmt(it.subtotal ?? it.precio_unitario)}
+                      </td>
+                    </tr>
+                  ));
+                })}
               </tbody>
             </table>
           </div>
