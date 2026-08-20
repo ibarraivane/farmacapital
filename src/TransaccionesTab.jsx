@@ -448,7 +448,15 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
   const fmtM = (n) => `$${parseFloat(n || 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   const fmtDT = (s) => { if (!s) return "—"; const d = new Date(s); return d.toLocaleDateString("es-MX", { day: "2-digit", month: "short" }) + " " + d.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" }); };
   const estCol = (e) => e === "completado" ? C.green : e === "cancelado" ? C.red : C.amber;
-  const inpS = { padding: "7px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: C.card, color: C.text, fontSize: 12, outline: "none" };
+  const campoClaro = {
+    background: "#fff",
+    color: C.text,
+    WebkitTextFillColor: C.text,
+    caretColor: C.text,
+    colorScheme: "light",
+  };
+  const inpS = { padding: "7px 10px", borderRadius: 7, border: `1px solid ${C.border}`, fontSize: 12, outline: "none", ...campoClaro };
+  const inpForm = { ...inpS, width: "100%", boxSizing: "border-box" };
 
   const btnAccionIcono = ({ col, bg, border, title, onClick, disabled, children }) => (
     <button
@@ -479,7 +487,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
   const byMetodo = filtradosTodos.reduce((acc, p) => { const k = p.metodo_pago || "otro"; acc[k] = (acc[k] || 0) + parseFloat(p.total || 0); return acc; }, {});
 
   return (
-    <div>
+    <div style={{ colorScheme: "light" }}>
       <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
         <input placeholder="🔍 ID o cliente…" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} style={{ ...inpS, maxWidth: 180 }} />
         <select value={filtroFecha} onChange={(e) => setFiltroF(e.target.value)} style={inpS}>
@@ -648,7 +656,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                   value={waTelDetalle}
                   onChange={(e) => setWaTelDetalle(e.target.value)}
                   placeholder="Teléfono cliente (10 dígitos)"
-                  style={{ flex: "1 1 160px", minWidth: 140, padding: "10px 12px", borderRadius: 8, border: "1px solid #86efac", fontSize: 16 }}
+                  style={{ flex: "1 1 160px", minWidth: 140, padding: "10px 12px", borderRadius: 8, border: "1px solid #86efac", fontSize: 16, ...campoClaro }}
                 />
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -793,7 +801,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
             {!esPagoServicio(modalEditar) && (
             <div style={{ marginBottom: 12 }}>
               <label style={{ color: C.textMid, fontSize: 10, fontWeight: 700, display: "block", marginBottom: 4 }}>ESTADO</label>
-              <select value={editForm.estado} onChange={(e) => setEditForm((f) => ({ ...f, estado: e.target.value }))} style={{ width: "100%", padding: "8px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: C.card, color: C.text, fontSize: 12, outline: "none" }}>
+              <select value={editForm.estado} onChange={(e) => setEditForm((f) => ({ ...f, estado: e.target.value }))} style={inpForm}>
                 <option value="completado">Completado</option>
                 <option value="pendiente">Pendiente</option>
                 <option value="cancelado">Cancelado</option>
@@ -805,7 +813,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
               <select
                 value={editForm.atendido_por || ""}
                 onChange={(e) => setEditForm((f) => ({ ...f, atendido_por: e.target.value }))}
-                style={{ width: "100%", padding: "8px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: C.card, color: C.text, fontSize: 12, outline: "none" }}
+                style={inpForm}
               >
                 <option value="">Sin asignar</option>
                 {vendedores.map((v) => (
@@ -823,30 +831,30 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
               <>
                 <div style={{ marginBottom: 12 }}>
                   <label style={{ color: C.textMid, fontSize: 10, fontWeight: 700, display: "block", marginBottom: 4 }}>REFERENCIA / TELÉFONO</label>
-                  <input value={editForm.referencia || ""} onChange={(e) => setEditForm((f) => ({ ...f, referencia: e.target.value }))} style={{ width: "100%", padding: "8px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: C.card, color: C.text, fontSize: 12, outline: "none", boxSizing: "border-box" }} />
+                  <input value={editForm.referencia || ""} onChange={(e) => setEditForm((f) => ({ ...f, referencia: e.target.value }))} style={inpForm} />
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
                   <div>
                     <label style={{ color: C.textMid, fontSize: 10, fontWeight: 700, display: "block", marginBottom: 4 }}>MONTO RECARGA</label>
-                    <input value={editForm.monto_servicio || ""} onChange={(e) => setEditForm((f) => ({ ...f, monto_servicio: e.target.value }))} inputMode="decimal" style={{ width: "100%", padding: "8px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: C.card, color: C.text, fontSize: 12, outline: "none", boxSizing: "border-box" }} />
+                    <input value={editForm.monto_servicio || ""} onChange={(e) => setEditForm((f) => ({ ...f, monto_servicio: e.target.value }))} inputMode="decimal" style={inpForm} />
                   </div>
                   <div>
                     <label style={{ color: C.textMid, fontSize: 10, fontWeight: 700, display: "block", marginBottom: 4 }}>COMISIÓN</label>
-                    <input value={editForm.comision || ""} onChange={(e) => setEditForm((f) => ({ ...f, comision: e.target.value }))} inputMode="decimal" style={{ width: "100%", padding: "8px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: C.card, color: C.text, fontSize: 12, outline: "none", boxSizing: "border-box" }} />
+                    <input value={editForm.comision || ""} onChange={(e) => setEditForm((f) => ({ ...f, comision: e.target.value }))} inputMode="decimal" style={inpForm} />
                   </div>
                 </div>
               </>
             )}
             <div style={{ marginBottom: 12 }}>
               <label style={{ color: C.textMid, fontSize: 10, fontWeight: 700, display: "block", marginBottom: 4 }}>MÉTODO DE PAGO</label>
-              <select value={editForm.metodo_pago} onChange={(e) => setEditForm((f) => ({ ...f, metodo_pago: e.target.value }))} style={{ width: "100%", padding: "8px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: C.card, color: C.text, fontSize: 12, outline: "none" }}>
+              <select value={editForm.metodo_pago} onChange={(e) => setEditForm((f) => ({ ...f, metodo_pago: e.target.value }))} style={inpForm}>
                 <option value="efectivo">Efectivo</option>
                 <option value="tarjeta">Tarjeta</option>
               </select>
             </div>
             <div style={{ marginBottom: 16 }}>
               <label style={{ color: C.textMid, fontSize: 10, fontWeight: 700, display: "block", marginBottom: 4 }}>NOTAS</label>
-              <textarea value={editForm.notas} onChange={(e) => setEditForm((f) => ({ ...f, notas: e.target.value }))} rows={3} placeholder="Observaciones…" style={{ width: "100%", padding: "8px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: C.card, color: C.text, fontSize: 12, outline: "none", resize: "vertical", boxSizing: "border-box" }} />
+              <textarea value={editForm.notas} onChange={(e) => setEditForm((f) => ({ ...f, notas: e.target.value }))} rows={3} placeholder="Observaciones…" style={{ ...inpForm, resize: "vertical" }} />
             </div>
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
               <button type="button" onClick={() => setModalEdit(null)} style={{ padding: "8px 16px", borderRadius: 8, border: `1px solid ${C.border}`, background: "transparent", color: C.textMid, cursor: "pointer", fontWeight: 700, fontSize: 12 }}>Cancelar</button>
