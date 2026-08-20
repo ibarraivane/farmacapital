@@ -86,6 +86,13 @@ async function pagoServicioAdminHandler(req, res) {
       if (c < 0 || !Number.isFinite(c)) return res.status(400).json({ ok: false, error: 'comision_invalida' });
       patch.comision = c;
     }
+    if (body.atendido_por != null && body.atendido_por !== '') {
+      const aid = Number(body.atendido_por);
+      if (!Number.isFinite(aid) || aid <= 0) {
+        return res.status(400).json({ ok: false, error: 'atendido_por_invalido' });
+      }
+      patch.atendido_por = aid;
+    }
 
     if (patch.monto_servicio != null || patch.comision != null) {
       const curResp = await fetch(

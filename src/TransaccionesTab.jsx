@@ -29,6 +29,7 @@ function mapPagoServicioAFila(ps) {
     estado: "completado",
     created_at: ps.created_at,
     notas: ps.notas || null,
+    atendido_por: ps.atendido_por ?? null,
     clientes: {
       nombre: proveedor,
       telefono: ps.referencia || "",
@@ -41,6 +42,11 @@ function mapPagoServicioAFila(ps) {
     comision: ps.comision,
     liquidado_point: ps.liquidado_point,
   };
+}
+
+function nombreVendedor(p) {
+  if (!p) return "—";
+  return p.usuarios?.nombre || p.atendido_por_nombre || "—";
 }
 
 async function fetchPagosServicioRango(tok, rango) {
@@ -104,6 +110,21 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
   const [loadDet, setLoadDet] = useState(false);
   const [editForm, setEditForm] = useState({});
   const [saving, setSaving] = useState(false);
+  const [vendedores, setVendedores] = useState([]);
+
+  useEffect(() => {
+    if (usuario?.rol !== "admin") return;
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    if (!tok) return;
+    supabase.rpc("admin_listar_usuarios", { p_session_token: tok }).then(({ data, error }) => {
+      if (error) {
+        console.warn("[TransaccionesTab] vendedores:", error.message);
+        return;
+      }
+      const rows = Array.isArray(data) ? data : [];
+      setVendedores(rows.filter((u) => u.activo !== false));
+    });
+  }, [usuario?.rol]);
   const { ticketUrl: reprintTicketUrl, loading: reprintTicketUrlLoading } = usePedidoTicketUrl(
     ticketReprint?.venta?.id,
     Boolean(ticketReprint)
@@ -164,7 +185,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
         || String(p.folio || "").toLowerCase().includes(q.toLowerCase())
         || String(p.proveedor || "").toLowerCase().includes(q.toLowerCase())
         || String(p.referencia || "").includes(q)
-        || (p.clientes && productMatchesSearchQuery(p.clientes, busqueda, [(x) => x.nombre, (x) => x.telefono]))
+        || String(nombreVendedor(p)).toLowerCase().includes(q.toLowerCase())
       );
     const matchB = !q || hayQ;
     const matchT = pedidoCoincideFiltroTipo(p.tipo, filtroTipo);
@@ -331,6 +352,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
       referencia: p.referencia || "",
       monto_servicio: p.monto_servicio != null ? String(p.monto_servicio) : "",
       comision: p.comision != null ? String(p.comision) : "",
+      atendido_por: p.atendido_por != null ? String(p.atendido_por) : "",
     });
   };
 
@@ -361,14 +383,17 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
           referencia: editForm.referencia,
           monto_servicio: editForm.monto_servicio,
           comision: editForm.comision,
+          atendido_por: editForm.atendido_por ? Number(editForm.atendido_por) : null,
         });
       } else {
+        const atendidoPor = editForm.atendido_por ? Number(editForm.atendido_por) : null;
         const { error } = await supabase.rpc("admin_editar_pedido", {
           p_session_token: tok,
           p_pedido_id: modalEditar.id,
           p_estado: editForm.estado,
           p_metodo_pago: editForm.metodo_pago,
           p_notas: editForm.notas || null,
+          p_atendido_por: Number.isFinite(atendidoPor) ? atendidoPor : null,
         });
         if (error) throw error;
       }
@@ -490,18 +515,18 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
         El teléfono del cliente debe estar en Meta → API Setup → «Números de prueba».
       </div>
 
-      {loading ? <SkeletonTable rows={5} cols={6} /> : (
+      {loading ? <SkeletonTable rows={5} cols={9} /> : (
         <div style={{ overflowX: "auto", borderRadius: 12, border: `1px solid ${C.border}`, marginBottom: 16 }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
             <thead>
               <tr style={{ background: C.cardDark }}>
-                {["ID", "Fecha/Hora", "Cliente", "Total", "Método", "Tipo", "Estado", "Acciones"].map((h) => (
+                {["ID", "Fecha/Hora", "Cliente", "Vendedor", "Total", "Método", "Tipo", "Estado", "Acciones"].map((h) => (
                   <th key={h} style={{ padding: "9px 12px", textAlign: "left", color: C.textMid, fontWeight: 700, borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap" }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {filtrados.length === 0 && <tr><td colSpan={8} style={{ textAlign: "center", padding: 32, color: C.textMid }}>Sin transacciones en este período</td></tr>}
+              {filtrados.length === 0 && <tr><td colSpan={9} style={{ textAlign: "center", padding: 32, color: C.textMid }}>Sin transacciones en este período</td></tr>}
               {filtrados.map((p, i) => (
                 <tr
                   className="farmacapital-table-row"
@@ -521,6 +546,13 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                   <td style={{ padding: "8px 12px", color: C.text, fontWeight: 600, borderBottom: `1px solid ${C.border}` }}>
                     {p.clientes?.nombre || "—"}
                     {p.clientes?.telefono ? <div style={{ fontSize: 10, color: C.textMid, fontWeight: 500, marginTop: 2 }}>{p.clientes.telefono}</div> : null}
+                  </td>
+                  <td style={{ padding: "8px 12px", color: C.text, fontWeight: 600, borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap" }}>
+                    {nombreVendedor(p) === "—" ? (
+                      <span style={{ color: C.textMid, fontWeight: 500 }}>Sin asignar</span>
+                    ) : (
+                      nombreVendedor(p)
+                    )}
                   </td>
                   <td style={{ padding: "8px 12px", color: C.green, fontWeight: 700, borderBottom: `1px solid ${C.border}` }}>{fmtM(p.total)}</td>
                   <td style={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}` }}>{p.metodo_pago || "—"}</td>
@@ -768,6 +800,25 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
               </select>
             </div>
             )}
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ color: C.textMid, fontSize: 10, fontWeight: 700, display: "block", marginBottom: 4 }}>VENDEDOR / QUIEN CERRÓ</label>
+              <select
+                value={editForm.atendido_por || ""}
+                onChange={(e) => setEditForm((f) => ({ ...f, atendido_por: e.target.value }))}
+                style={{ width: "100%", padding: "8px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: C.card, color: C.text, fontSize: 12, outline: "none" }}
+              >
+                <option value="">Sin asignar</option>
+                {vendedores.map((v) => (
+                  <option key={v.id} value={String(v.id)}>
+                    {v.nombre}{v.turno ? ` · ${v.turno}` : ""}
+                  </option>
+                ))}
+              </select>
+              <div style={{ fontSize: 10, color: C.textMid, marginTop: 4, lineHeight: 1.35 }}>
+                Actualiza Mi Día, comisiones RRHH y ventas por empleado en el dashboard.
+                El corte de caja cuadra por turno y horario, no por vendedor individual.
+              </div>
+            </div>
             {esPagoServicio(modalEditar) && (
               <>
                 <div style={{ marginBottom: 12 }}>
