@@ -165,6 +165,8 @@ export const getSessionToken = () => {
   catch { return null; }
 };
 
+export { esErrorSesionEmpleado, onSesionEmpleadoInvalida } from "./utils/sesionEmpleadoAuth";
+
 /** Token de sesión de cliente (tienda pública). Persiste en localStorage. */
 export { getClienteToken } from "./utils/clienteSession.js";
 
