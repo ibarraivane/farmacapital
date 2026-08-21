@@ -8,10 +8,12 @@ import { CONSULTA_PRECIO_DEFAULT } from "./utils/consultaConstants";
 import { resumenLineasReceta } from "./utils/recetaLineas";
 import TransaccionesTab from "./TransaccionesTab";
 import { countPedidosTiendaPendientesHead } from "./utils/pedidosTiendaWeb";
+import { rolEsAdmin } from "./utils/permissions";
 import { fixLegacyFarmaxBrand } from "./utils/brandText";
 import { parseRpcJsonArray, parseRpcJsonObject } from "./utils/rpcJson";
 import { pedidoEsTipoFisica, pedidoEsTipoOnline, pedidoEsTipoConsulta } from "./utils/orderChannels";
 import { costoLineaVenta, ingresoLineaVenta } from "./utils/margenVenta";
+import { DIAS_CADUCIDAD_ALERTA } from "./lib/caducidad";
 import { categoriaCanon } from "./constants/categoriasProducto";
 
 function rpcBundleRows(bundle, key) {
@@ -255,8 +257,8 @@ function InsightCard({ label, icon, value, display, meta, metaLabel, delta, col,
             {up?"↑":"↓"} {Math.abs(delta).toFixed(1)}% <span style={{color:C.textDim,fontWeight:500}}>vs periodo anterior</span>
           </span>
         ) : <span style={{fontSize:11,color:C.textDim}}>Sin comparativo</span>}
-        {onAction && (pct < 70 || !tieneMeta) && (
-          <button onClick={onAction} style={{padding:"4px 10px",borderRadius:6,border:`1px solid ${mainCol}40`,background:"transparent",color:mainCol,cursor:"pointer",fontSize:10,fontWeight:700}}>
+        {onAction && (
+          <button type="button" onClick={onAction} style={{padding:"4px 10px",borderRadius:6,border:`1px solid ${mainCol}40`,background:"transparent",color:mainCol,cursor:"pointer",fontSize:10,fontWeight:700}}>
             {actionLabel || "Ver detalle →"}
           </button>
         )}
@@ -326,7 +328,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
   const [repLoading, setRepLoading] = useState(false);
   const [capexLineas, setCapexLineas] = useState(loadCapexLineas);
   const inversionTotal = useMemo(() => sumCapexMontos(capexLineas), [capexLineas]);
-  const puedeEditarCapex = usuario?.rol === "admin";
+  const puedeEditarCapex = rolEsAdmin(usuario?.rol);
 
   useEffect(() => {
     saveCapexLineas(capexLineas);
@@ -386,6 +388,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
       homeRes,
       { count: onlinePendCount, error: errOnlinePend },
       { data: cofeprisRpcData, error: errAlertasCof },
+      caducarRes,
     ] = await Promise.all([
       adminTok
         ? supabase.rpc("empleado_dashboard_operacion_bundle", {
@@ -405,6 +408,12 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
         : Promise.resolve({ data: null, error: null }),
       countPedidosTiendaPendientesHead(supabase, adminTok),
       cofeprisRpc,
+      adminTok
+        ? supabase.rpc("empleado_contar_por_caducar", {
+            p_session_token: adminTok,
+            p_dias: DIAS_CADUCIDAD_ALERTA,
+          })
+        : Promise.resolve({ data: null, error: null }),
     ]);
     const B = parseRpcJsonObject(bundleRes.data);
     const H = parseRpcJsonObject(homeRes.data);
@@ -447,7 +456,11 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
       : rpcBundleRows(B, "ped_mes_tipo");
     const pedItems = rpcBundleRows(B, "ped_items_top");
     const bajoStock = rpcBundleRows(B, "bajo_stock");
-    const porCaducar = rpcBundleRows(B, "por_caducar");
+    const caducarJs = parseRpcJsonObject(caducarRes?.data);
+    if (caducarRes?.error) console.warn("[Dashboard] por caducar 90d:", caducarRes.error.message);
+    const porCaducar = caducarRes?.error
+      ? rpcBundleRows(B, "por_caducar")
+      : (Array.isArray(caducarJs.productos) ? caducarJs.productos : rpcBundleRows(B, "por_caducar"));
     const cortesConDif = rpcBundleRows(B, "cortes_con_dif");
     const pedRecetaFarmaCapital = rpcFirstRows(B, "ped_receta_farmacapital", "ped_receta_farmax");
     const citasRecetaExternaMes = B.citas_receta_ext_mes_count ?? 0;
@@ -681,9 +694,9 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
   const goToPage = (id, opts) => { if (setPage) setPage(id, opts); };
   const todoItems = [
     { id:"stock",    icon:"📦", count: alertas.bajoStock,      col: C.red,    label: "Reordenar productos",                sub: alertas.bajoStockNombres.join(", ") || "stock en 0",          onAction: () => goToPage("inv", {tab:"reabasto"}), actionLabel: "Ir a reabasto →" },
-    { id:"caduca",   icon:"⏰", count: alertas.porCaducar,     col: C.amber,  label: "Próximos a caducar (30 días)",       sub: "Revisa lotes y aplica descuentos",                            onAction: () => goToPage("inv", {tab:"lotes"}), actionLabel: "Ver lotes →" },
+    { id:"caduca",   icon:"⏰", count: alertas.porCaducar,     col: C.amber,  label: `Próximos a caducar (${DIAS_CADUCIDAD_ALERTA} días)`,       sub: "Todavía alcanza a devolver, rematar o empujar en mostrador",                            onAction: () => goToPage("inv", {tab:"lotes"}), actionLabel: "Ver lotes →" },
     { id:"cortes",   icon:"💰", count: alertas.cortesConDif,   col: C.red,    label: "Cortes de caja con diferencia",       sub: "Revisa faltantes o sobrantes",                                onAction: () => goToPage("caja"), actionLabel: "Ver cortes →" },
-    { id:"online",   icon:"🌐", count: alertas.sinAtender,     col: C.amber,  label: "Pedidos online pendientes",           sub: "Clientes esperando preparación",                              onAction: () => goToPage("pos"), actionLabel: "Atender →" },
+    { id:"online",   icon:"🌐", count: alertas.sinAtender,     col: C.amber,  label: "Pedidos online pendientes",           sub: "Clientes esperando preparación",                              onAction: () => goToPage("pos", { posTab: "online" }), actionLabel: "Atender →" },
     { id:"cofepris", icon:"⚖️", count: alertas.cofeprisPorVencer, col: (alertas.cofeprisVencidas > 0 ? C.red : C.amber), label: alertas.cofeprisVencidas > 0 ? `COFEPRIS · ${alertas.cofeprisVencidas} vencido${alertas.cofeprisVencidas!==1?"s":""}` : "Documentos COFEPRIS por vencer", sub: (alertas.cofeprisItems||[]).slice(0,2).map(x=>x.nombre).join(" · "), onAction: () => goToPage("cof"), actionLabel: "Ver alertas →" },
   ];
   const roiCol = pctRecuperado>=75?C.green:pctRecuperado>=40?C.amber:C.red;
@@ -1101,12 +1114,12 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
           value={consultasHoy} display={consultasHoy.toString()}
           meta={metas?.consultasDia} metaLabel="diaria"
           delta={trends?.consultasHoy}
-          onAction={() => goToPage("cons")} actionLabel="Ir al consultorio →"
+          onAction={() => goToPage("agenda")} actionLabel="Ir a la agenda →"
         />
         <InsightCard
           label="Online pendientes" icon="🌐" col={onlinePend>0?C.amber:C.green}
           value={onlinePend} display={onlinePend.toString()}
-          onAction={() => goToPage("pos")} actionLabel="Atender →"
+          onAction={() => goToPage("pos", { posTab: "online" })} actionLabel="Atender →"
         />
       </div>
 

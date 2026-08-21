@@ -38,7 +38,7 @@ export const NEG = {
 // agenda = calendario de consultas (admin/vendedor); cons_dr = misma vista, id reservado a doctora.
 // trans = Transacciones (listado de pedidos); ped_online = POS pestaña pedidos web.
 // VENTAS: pos (consultas en POS), ped_online
-// INVENTARIO: inv (hub catálogo / lotes / reabasto)
+// INVENTARIO: inv (hub: recibir / catálogo / lotes / reabasto)
 // DOCTORA: agenda (cons_dr) + expedientes; sin PWA ni consultorio duplicado
 export const NAV_ADMIN = [
   "dash", "pos", "cli", "caja", "ped_online",
@@ -47,7 +47,7 @@ export const NAV_ADMIN = [
   "cof", "dev", "fact",
   "promo", "banners", "bot", "config_cons",
   "usuarios", "rrhh",
-  "pwa",
+  "ayuda", "pwa",
 ];
 
 /** Títulos del sidebar admin (sin mezclar “vistas por rol”; solo agrupa trabajo). */
@@ -58,13 +58,13 @@ export const ADMIN_NAV_SECTIONS = [
   { title: "Control y cumplimiento", ids: ["cof", "dev", "fact"] },
   { title: "Comercial y crecimiento", ids: ["promo", "banners", "bot", "config_cons"] },
   { title: "Administración interna", ids: ["usuarios", "rrhh"] },
-  { title: "Sistema", ids: ["pwa"] },
+  { title: "Sistema", ids: ["ayuda", "pwa"] },
 ];
 
 export const NAV_VENDEDOR = [
-  "midia", "pos", "agenda", "inv", "caja", "pwa",
+  "midia", "pos", "dev", "agenda", "inv", "caja", "ayuda", "pwa",
 ];
-export const NAV_DOCTORA = ["cons_dr", "exp_dr"];
+export const NAV_DOCTORA = ["cons_dr", "exp_dr", "ayuda"];
 
 // Iconos: usamos lucide-react (componentes) en vez de emojis para look consistente.
 // El render del Sidebar acepta tanto componentes como strings (compatibilidad).
@@ -73,7 +73,7 @@ import {
   Wallet, Stethoscope, Users, UserCog, ShieldCheck,
   Target, Undo2, Receipt, Image as ImageIcon, Sparkles,
   Download, UserPlus, HeartPulse,
-  SlidersHorizontal, Gauge, FolderOpen, CalendarDays, Globe,
+  SlidersHorizontal, Gauge, FolderOpen, CalendarDays, Globe, BookOpen,
 } from "lucide-react";
 
 export const NAV_ITEMS = [
@@ -101,6 +101,7 @@ export const NAV_ITEMS = [
   {id:"banners",    icon: ImageIcon,       label:"Banners"},
   {id:"bot",        icon: Sparkles,        label:"Asistente IA"},
   {id:"pwa",        icon: Download,        label:"Instalar app"},
+  {id:"ayuda",      icon: BookOpen,        label:"Manual"},
   {id:"usuarios",   icon: UserPlus,        label:"Usuarios"},
   // ══ ROLES ESPECIALES (vendedor / doctora) ══
   {id:"agenda",     icon: CalendarDays,    label:"Agenda de consultas"},

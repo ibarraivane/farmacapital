@@ -29,6 +29,7 @@ import {
   fetchLotesInventario,
   minCaducidadLotes,
 } from "./lib/inventarioHubData";
+import { DIAS_CADUCIDAD_ALERTA, DIAS_CADUCIDAD_CRITICO, esPorCaducar } from "./lib/caducidad";
 
 const leerSesion = () => {
   try {
@@ -1183,7 +1184,7 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
                         style={{
                           ...inputStyle,
                           marginBottom: 8,
-                          color: diasProx !== null && diasProx <= 30 ? C.red : C.text,
+                          color: diasProx !== null && diasProx <= DIAS_CADUCIDAD_ALERTA ? C.red : C.text,
                           fontWeight: caducidadLote ? 600 : 400,
                         }}
                       />
@@ -2192,7 +2193,7 @@ function renderInventarioColumnCell(colId, ctx) {
           >
             📦{(p.lotes_activos || []).length}
           </button>
-          {p.min_caducidad_lotes && diasParaCaducar(p.min_caducidad_lotes) <= 30 && diasParaCaducar(p.min_caducidad_lotes) >= 0 && (
+          {p.min_caducidad_lotes && esPorCaducar(diasParaCaducar(p.min_caducidad_lotes)) && (
             <button
               type="button"
               onClick={() => liquidar(p)}
@@ -2610,7 +2611,7 @@ function renderInventarioColumnCell(colId, ctx) {
 
 const INV_COLS_OCULTAS_CONSULTA = ["costo", "margen", "acciones"];
 
-export default function InventarioModule({ modoConsulta = false }) {
+export default function InventarioModule({ modoConsulta = false, onIrARecibir }) {
   const C = C_LIGHT;
   const inputStyle = mkInputStyle(C);
   const labelStyle = mkLabelStyle(C);
@@ -3054,7 +3055,7 @@ export default function InventarioModule({ modoConsulta = false }) {
     const alerta =
       filtroAlerta === "todos"            ? true :
       filtroAlerta === "bajo_stock"       ? (p.stock <= (p.stock_minimo??0)) :
-      filtroAlerta === "por_caducar"      ? (dias !== null && dias <= 30 && dias >= 0) :
+      filtroAlerta === "por_caducar"      ? esPorCaducar(dias) :
       filtroAlerta === "sin_codigo_barras" ? productoSinCodigoBarras(p) :
       filtroAlerta === "sin_precio" ? productoSinPrecioVenta(p) :
       true;
@@ -3111,7 +3112,7 @@ export default function InventarioModule({ modoConsulta = false }) {
 
   const activos    = productos.filter(p => p.activo).length;
   const bajoStock  = productos.filter(p => p.activo && p.stock<=(p.stock_minimo??0)).length;
-  const porCaducar = productos.filter(p => { const d=diasParaCaducar(p.min_caducidad_lotes); return d!==null&&d<=30&&d>=0; }).length;
+  const porCaducar = productos.filter(p => esPorCaducar(diasParaCaducar(p.min_caducidad_lotes))).length;
   const sinCodigoBarras = productos.filter(p => p.activo && productoSinCodigoBarras(p)).length;
   const sinPrecioVenta = productos.filter(p => p.activo && productoSinPrecioVenta(p)).length;
   const inactivos  = productos.filter(p => !p.activo).length;
@@ -3720,8 +3721,8 @@ export default function InventarioModule({ modoConsulta = false }) {
           <button data-tour="inv-agregar" style={{...btnPrimary, ...(isMobileInv ? { gridColumn:"1 / -1", padding:"11px 16px", fontSize:13 } : {})}} onClick={()=>setModal(EMPTY)}>
             ➕ Nuevo producto
           </button>
-          <button style={btnOutline} onClick={()=>setModalRecibir(true)}>
-            {isMobileInv ? "📦 Resurtir" : "📦 Resurtir (escáner)"}
+          <button style={btnOutline} onClick={() => (onIrARecibir ? onIrARecibir() : setModalRecibir(true))}>
+            {isMobileInv ? "📦 Recibir" : "📦 Recibir (escáner)"}
           </button>
           <button style={btnOutline} onClick={()=>{ setImportResult(null); setImportCsvSoloNuevos(false); setModalImportar(true); }}>
             {isMobileInv ? "📥 Importar" : "📥 Importar CSV"}
@@ -3765,7 +3766,7 @@ export default function InventarioModule({ modoConsulta = false }) {
           🟡 Fondo ámbar = stock bajo (≤ mínimo)
         </span>
         <span style={{padding:"4px 10px",borderRadius:8,background:C.redDim,color:C.red,fontWeight:600}}>
-          🔴 Fondo rojo = caduca en ≤30 días
+          🔴 Fondo rojo = caduca en ≤{DIAS_CADUCIDAD_ALERTA} días
         </span>
         <span style={{padding:"4px 10px",borderRadius:8,background:C.bg,border:`1px solid ${C.border}`}}>
           Sin color = normal · Tenue = inactivo
@@ -3787,7 +3788,7 @@ export default function InventarioModule({ modoConsulta = false }) {
         <select value={filtroAlerta} onChange={e=>setFiltroAlerta(e.target.value)} style={{...inputStyle,maxWidth:180}}>
           <option value="todos">Todas las alertas</option>
           <option value="bajo_stock">⚠ Bajo stock</option>
-          <option value="por_caducar">⏰ Por caducar (30d)</option>
+          <option value="por_caducar">⏰ Por caducar ({DIAS_CADUCIDAD_ALERTA}d)</option>
           <option value="sin_codigo_barras">🏷️ Sin código de barras</option>
           <option value="sin_precio">Sin precio de venta</option>
         </select>
@@ -4030,7 +4031,7 @@ export default function InventarioModule({ modoConsulta = false }) {
                 const inact   = !p.activo;
                 const proxCad = p.min_caducidad_lotes || resolverLoteCaducidadProducto(p)?.fecha_caducidad;
                 const dias    = diasParaCaducar(proxCad);
-                const nearCad = dias!==null && dias<=30 && dias>=0;
+                const nearCad = esPorCaducar(dias);
                 const mgn     = margen(p.precio, p.costo);
                 const mgnNum  = parseFloat(mgn);
                 const mgnCol  = isNaN(mgnNum)?C.textMid:mgnNum>=50?C.green:mgnNum>=25?C.amber:C.red;
@@ -4184,7 +4185,7 @@ export default function InventarioModule({ modoConsulta = false }) {
                     })
                     .map((l,i)=>{
                       const dias = diasParaCaducar(l.fecha_caducidad);
-                      const col  = dias===null?C.textMid:dias<0?C.red:dias<=15?C.red:dias<=30?C.amber:C.green;
+                      const col  = dias===null?C.textMid:dias<0?C.red:dias<=DIAS_CADUCIDAD_CRITICO?C.red:dias<=DIAS_CADUCIDAD_ALERTA?C.amber:C.green;
                       const saving = loteCadSaving === l.id;
                       return (
                         <tr key={l.id} style={{background:i%2===0?"transparent":"#f8fafc"}}>
