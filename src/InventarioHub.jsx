@@ -17,8 +17,8 @@ const RappiSyncPanel   = lazy(() => import("./RappiSyncPanel"));
 const TABS_VENDEDOR = ["recibir", "catalogo"];
 
 const TABS = [
-  { id: "catalogo", label: "Catálogo",   icon: Package },
   { id: "recibir",  label: "Recibir",    icon: ScanLine },
+  { id: "catalogo", label: "Catálogo",   icon: Package },
   { id: "reabasto", label: "Reabasto",   icon: Truck },
   { id: "lotes",    label: "Lotes PEPS", icon: Tags },
   { id: "precios",  label: "Referencias de precio", icon: TrendingUp, labelMobile: "Precios" },
@@ -136,7 +136,7 @@ export default function InventarioHub({ initialTab, usuario }) {
         {tab === "catalogo" && (
           <InventarioModule modoConsulta={modoConsulta} onIrARecibir={() => selectTab("recibir")} />
         )}
-        {tab === "recibir" && <RecepcionModule />}
+        {tab === "recibir" && <RecepcionModule ocultarMontos={modoConsulta} />}
         {!modoConsulta && tab === "reabasto" && <ReabastoModule/>}
         {!modoConsulta && tab === "lotes"    && <LotesModule/>}
         {!modoConsulta && tab === "precios"  && <PreciosReferenciaModule/>}

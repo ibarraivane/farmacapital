@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { ScanLine } from "lucide-react";
 import { C_LIGHT, BRAND } from "./constants";
 import { supabase } from "./supabase";
@@ -15,8 +15,11 @@ import { etiquetaCaducidadMMAA, formatCaducidadMesAnio, parseCaducidadMMAA } fro
 import { fetchProductosPaginados } from "./lib/inventarioHubData";
 import { parseTicketCsv } from "./lib/recepcionTicketCsv";
 
-const fmt = (n) =>
-  `$${parseFloat(n || 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const fmtFecha = (f) => {
+  const s = String(f || "").slice(0, 10);
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : "";
+};
 
 function sessionTok() {
   return sessionStorage.getItem("farmacapital_session_token");
@@ -60,7 +63,112 @@ const labelS = (C) => ({
   marginBottom: 6,
 });
 
-export default function RecepcionModule() {
+function normProv(s) {
+  return String(s || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function nombresProveedorUnicos(proveedores) {
+  const seen = new Set();
+  const out = [];
+  for (const p of proveedores || []) {
+    const n = String(p?.nombre || "").trim();
+    if (!n) continue;
+    const k = normProv(n);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(n);
+  }
+  return out.sort((a, b) => a.localeCompare(b, "es"));
+}
+
+/** Texto libre + sugerencias del catálogo. No usa datalist nativo (el globo negro del OS). */
+function ProveedorCombo({ id, value, onChange, onCommit, proveedores, C, style }) {
+  const [open, setOpen] = useState(false);
+  const opts = useMemo(() => nombresProveedorUnicos(proveedores), [proveedores]);
+  const q = normProv(value);
+  const filtered = q ? opts.filter((n) => normProv(n).includes(q)) : opts;
+  const exacto = q && opts.some((n) => normProv(n) === q);
+  const show = open && filtered.length > 0 && !(exacto && filtered.length === 1);
+
+  const elegir = (n) => {
+    onChange(n);
+    setOpen(false);
+    onCommit?.(n);
+  };
+
+  return (
+    <div style={{ position: "relative" }}>
+      <input
+        id={id}
+        value={value}
+        autoComplete="off"
+        autoCorrect="off"
+        spellCheck={false}
+        placeholder="Nadro, Marzam…"
+        onChange={(e) => { onChange(e.target.value); setOpen(true); }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => {
+          setTimeout(() => setOpen(false), 140);
+          onCommit?.(value);
+        }}
+        style={style}
+      />
+      {show && (
+        <div
+          role="listbox"
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            top: "100%",
+            marginTop: 4,
+            zIndex: 30,
+            background: C.card,
+            border: `1px solid ${C.border}`,
+            borderRadius: 10,
+            boxShadow: "0 8px 24px rgba(15,23,42,0.10)",
+            overflow: "hidden",
+            maxHeight: 220,
+          }}
+        >
+          {filtered.slice(0, 8).map((n) => (
+            <button
+              key={n}
+              type="button"
+              role="option"
+              onMouseDown={(e) => { e.preventDefault(); elegir(n); }}
+              style={{
+                display: "block",
+                width: "100%",
+                textAlign: "left",
+                border: "none",
+                background: "transparent",
+                padding: "10px 12px",
+                color: C.text,
+                fontWeight: 700,
+                fontSize: 14,
+                cursor: "pointer",
+              }}
+            >
+              {n}
+            </button>
+          ))}
+          {q && !exacto && (
+            <div style={{ padding: "8px 12px", color: C.textDim, fontSize: 11, borderTop: `1px solid ${C.border}` }}>
+              Enter deja “{value.trim()}” como proveedor nuevo
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function RecepcionModule({ ocultarMontos = false }) {
   const C = C_LIGHT;
   const isMobile = useMediaQuery("(max-width: 768px)");
   const scanRef = useRef(null);
@@ -85,6 +193,8 @@ export default function RecepcionModule() {
   const [pendiente, setPendiente] = useState(null);
   const [errorLinea, setErrorLinea] = useState("");
   const [subiendo, setSubiendo] = useState(false);
+  const [pendientes, setPendientes] = useState([]);
+  const [vistaNuevo, setVistaNuevo] = useState(false);
 
   const aplicarDoc = useCallback((raw) => {
     const d = unwrapJson(raw);
@@ -98,6 +208,24 @@ export default function RecepcionModule() {
     return rec;
   }, []);
 
+  const cargarLista = useCallback(async () => {
+    const tok = sessionTok();
+    if (!tok) return;
+    const { data, error } = await supabase.rpc("recepcion_listar_abiertas", { p_session_token: tok });
+    if (error) {
+      const msg = error.message || "";
+      if (/does not exist|schema cache|listar_abiertas/i.test(msg)) {
+        showToast("Falta correr sql/patch_recepcion_lista_pendientes_20260821.sql en Supabase.", "error");
+        setPendientes([]);
+      } else {
+        showToast("No se pudieron listar tickets: " + msg, "error");
+      }
+      return;
+    }
+    const raw = unwrapJson(data);
+    setPendientes(Array.isArray(raw) ? raw : []);
+  }, []);
+
   const cargar = useCallback(async () => {
     setLoading(true);
     const tok = sessionTok();
@@ -106,8 +234,7 @@ export default function RecepcionModule() {
       showToast("Sesión expirada.", "error");
       return;
     }
-    const [borradorRes, provRes, prodRes] = await Promise.all([
-      supabase.rpc("recepcion_borrador_abierto", { p_session_token: tok }),
+    const [provRes, prodRes] = await Promise.all([
       supabase.rpc("empleado_listar_proveedores_catalogo", { p_session_token: tok }),
       fetchProductosPaginados({
         select: "id,nombre,sku,codigo_barras,activo",
@@ -115,16 +242,7 @@ export default function RecepcionModule() {
         order: "nombre",
       }),
     ]);
-    if (borradorRes.error) {
-      const msg = borradorRes.error.message || "";
-      if (/does not exist|schema cache|recepcion_borrador/i.test(msg)) {
-        showToast("Falta correr sql/patch_recepcion_fefo_caducidad_20260821.sql en Supabase.", "error");
-      } else {
-        showToast("No se pudo abrir recepción: " + msg, "error");
-      }
-    } else {
-      aplicarDoc(borradorRes.data);
-    }
+    await cargarLista();
     const prov = unwrapJson(provRes.data);
     setProveedores(Array.isArray(prov) ? prov : []);
     if (prodRes.error) {
@@ -134,7 +252,7 @@ export default function RecepcionModule() {
       setProductos(prodRes.data || []);
     }
     setLoading(false);
-  }, [aplicarDoc]);
+  }, [cargarLista]);
 
   useEffect(() => { cargar(); }, [cargar]);
 
@@ -146,8 +264,8 @@ export default function RecepcionModule() {
 
   const rpcError = (err, fallback) => {
     const msg = err?.message || fallback;
-    if (/does not exist|schema cache|cargar_renglones|confirmar_item/i.test(msg)) {
-      showToast("Falta correr sql/patch_recepcion_pdf_confirmar_20260821.sql en Supabase.", "error");
+    if (/does not exist|schema cache|cargar_renglones|confirmar_item|listar_abiertas|abrir_existente/i.test(msg)) {
+      showToast("Falta correr sql/patch_recepcion_lista_pendientes_20260821.sql en Supabase.", "error");
       return;
     }
     showToast(msg, "error");
@@ -167,6 +285,7 @@ export default function RecepcionModule() {
     });
     setSaving(false);
     if (error) { rpcError(error, "No se pudo empezar la recepción"); return; }
+    setVistaNuevo(false);
     aplicarDoc(data);
     setTimeout(() => scanRef.current?.focus(), 40);
   };
@@ -215,6 +334,7 @@ export default function RecepcionModule() {
       return;
     }
     aplicarDoc(data);
+    setVistaNuevo(false);
     const n = renglones.length;
     showToast(`${n} renglón${n === 1 ? "" : "es"} del ticket. Escanea cada caja y pon MMAA.`, "success");
     setTimeout(() => scanRef.current?.focus(), 40);
@@ -270,18 +390,20 @@ export default function RecepcionModule() {
     }
   };
 
-  const guardarCabecera = async () => {
+  const guardarCabecera = async (patch = {}) => {
     if (!doc?.id) return;
     const tok = sessionTok();
     const total = totalTicket.trim() === "" ? null : Number(String(totalTicket).replace(/,/g, ""));
+    const prov = patch.proveedor !== undefined ? patch.proveedor : proveedor;
     const { data, error } = await supabase.rpc("recepcion_guardar_cabecera", {
       p_session_token: tok,
       p_recepcion_id: doc.id,
-      p_proveedor: proveedor.trim() || null,
+      p_proveedor: String(prov || "").trim() || null,
       p_folio: folio.trim() || null,
       p_total_ticket: Number.isFinite(total) ? total : null,
     });
     if (error) rpcError(error, "No se guardó la cabecera");
+
     else aplicarDoc(data);
   };
 
@@ -292,6 +414,34 @@ export default function RecepcionModule() {
     setPendiente(null);
     setErrorLinea("");
     setTimeout(() => scanRef.current?.focus(), 30);
+  };
+
+  const abrirPendiente = async (id) => {
+    const tok = sessionTok();
+    if (!tok || !id) return;
+    setSaving(true);
+    const { data, error } = await supabase.rpc("recepcion_abrir_existente", {
+      p_session_token: tok,
+      p_recepcion_id: id,
+    });
+    setSaving(false);
+    if (error) {
+      rpcError(error, "No se pudo abrir el ticket");
+      return;
+    }
+    setVistaNuevo(false);
+    aplicarDoc(data);
+    setTimeout(() => scanRef.current?.focus(), 40);
+  };
+
+  const volverALista = async () => {
+    setDoc(null);
+    setVistaNuevo(false);
+    setProveedor("");
+    setFolio("");
+    setTotalTicket("");
+    resetLinea();
+    await cargarLista();
   };
 
   const resolverScan = (raw) => {
@@ -432,22 +582,33 @@ export default function RecepcionModule() {
       p_recepcion_id: doc.id,
     });
     if (error) { rpcError(error, "No se pudo descartar"); return; }
-    setDoc(null);
-    setProveedor("");
-    setFolio("");
-    setTotalTicket("");
-    resetLinea();
     showToast("Borrador descartado", "info");
+    await volverALista();
   };
 
   const cerrar = async () => {
     if (!doc?.id) return;
-    const n = Number(doc.renglones) || 0;
-    if (n === 0) { showToast("Escanea al menos un producto", "warning"); return; }
-    const yaEnAnaquel = (doc.items || []).some((i) => i.lote_id);
-    const msg = yaEnAnaquel
-      ? "¿Cerrar? Se guardan las caducidades de caja. No se vuelve a sumar lo que ya está en anaquel."
-      : `¿Cerrar recepción de ${n} renglón${n === 1 ? "" : "es"}? El stock entra ahora.`;
+    const lista = Array.isArray(doc.items) ? doc.items : [];
+    const anaquelSinCad = lista.filter((i) => i.lote_id && !i.fecha_caducidad).length;
+    const grisPendiente = lista.filter((i) => !i.pendiente_alta && !i.confirmado).length;
+    const confirmadosOk = lista.filter((i) => i.confirmado && i.fecha_caducidad).length;
+    if (anaquelSinCad > 0) {
+      showToast(`Faltan ${anaquelSinCad} caducidad(es) de cajas ya en anaquel. Escanea cada una y teclea MMAA (ej. 0629).`, "warning");
+      return;
+    }
+    if (confirmadosOk === 0) {
+      showToast("Escanea cada caja y teclea caducidad MMAA antes de cerrar.", "warning");
+      return;
+    }
+    const yaEnAnaquel = lista.some((i) => i.lote_id);
+    let msg;
+    if (grisPendiente > 0) {
+      msg = `Hay ${grisPendiente} sin escanear. ¿Recibir las ${confirmadosOk} confirmadas y dejar ${grisPendiente} pendiente${grisPendiente === 1 ? "" : "s"} en Recibir?`;
+    } else if (yaEnAnaquel) {
+      msg = "¿Cerrar? Se guardan las caducidades de caja. No se vuelve a sumar lo que ya está en anaquel.";
+    } else {
+      msg = `¿Cerrar recepción de ${confirmadosOk} renglón${confirmadosOk === 1 ? "" : "es"}? El stock entra ahora.`;
+    }
     if (!window.confirm(msg)) return;
     const tok = sessionTok();
     setSaving(true);
@@ -460,8 +621,16 @@ export default function RecepcionModule() {
     if (error) { rpcError(error, "No se pudo cerrar"); return; }
     const rec = unwrapJson(data);
     const estado = rec?.estado;
+    const siguenPendientes = (rec?.sin_confirmar || 0) > 0 && estado === "borrador";
+    if (siguenPendientes) {
+      aplicarDoc(rec);
+      showToast(`Entró lo confirmado. Quedan ${rec.sin_confirmar} pendiente${rec.sin_confirmar === 1 ? "" : "s"} en Recibir.`, "warning");
+      return;
+    }
     if (estado === "descuadre") {
-      showToast(`Stock recibido, pero no cuadra con el ticket (${fmt(rec.subtotal_estimado)} vs ${fmt(rec.total_ticket)}). Avísale al dueño.`, "warning");
+      showToast(ocultarMontos
+        ? "Stock recibido, pero no cuadra con el ticket. Avísale al dueño."
+        : `Stock recibido, pero no cuadra con el ticket (${fmt(rec.subtotal_estimado)} vs ${fmt(rec.total_ticket)}). Avísale al dueño.`, "warning");
     } else if (estado === "pendiente_alta") {
       showToast(`Stock recibido. ${rec.pendientes_alta} código(s) no están en catálogo — quedan pendientes de alta.`, "warning");
     } else {
@@ -472,11 +641,16 @@ export default function RecepcionModule() {
     setFolio("");
     setTotalTicket("");
     resetLinea();
+    await cargarLista();
   };
 
   const items = Array.isArray(doc?.items)
     ? [...doc.items].sort((a, b) => Number(!!a.confirmado) - Number(!!b.confirmado) || Number(b.id) - Number(a.id))
     : [];
+  const anaquelSinCad = items.filter((i) => i.lote_id && !i.fecha_caducidad).length;
+  const grisPendiente = items.filter((i) => !i.pendiente_alta && !i.confirmado).length;
+  const confirmadosOk = items.filter((i) => i.confirmado && i.fecha_caducidad).length;
+  const puedeCerrar = confirmadosOk > 0 && anaquelSinCad === 0;
   const cadPreview = etiquetaCaducidadMMAA(cad);
   const ticketNum = totalTicket.trim() === "" ? null : Number(String(totalTicket).replace(/,/g, ""));
   const estimado = Number(doc?.subtotal_estimado) || 0;
@@ -497,7 +671,9 @@ export default function RecepcionModule() {
             <ScanLine size={22} strokeWidth={2.2} /> Recibir
           </h2>
           <p style={{ margin: "4px 0 0", color: C.textMid, fontSize: 13 }}>
-            Escanea, cantidad, caducidad MMAA. O sube el PDF/CSV y solo confirma cada caja.
+            {doc
+              ? "Escanea, cantidad, caducidad MMAA."
+              : "Tickets pendientes de caducidad, o uno nuevo."}
           </p>
         </div>
         {doc && (
@@ -506,7 +682,7 @@ export default function RecepcionModule() {
               {doc.renglones || 0} renglones · {(doc.items || []).filter((i) => i.confirmado).length} ok
               {(doc.sin_confirmar > 0) ? ` · ${doc.sin_confirmar} sin caducidad` : ""}
             </div>
-            {ticketNum != null && Number.isFinite(ticketNum) && (
+            {ticketNum != null && Number.isFinite(ticketNum) && !ocultarMontos && (
               <div style={{ color: C.textMid, fontSize: 12, marginTop: 2 }}>
                 estimado {fmt(estimado)} de {fmt(ticketNum)} del ticket
               </div>
@@ -515,31 +691,85 @@ export default function RecepcionModule() {
         )}
       </div>
 
-      {!doc && (
+      {!doc && !vistaNuevo && (
+        <div>
+          <button
+            type="button"
+            onClick={() => setVistaNuevo(true)}
+            style={{
+              marginBottom: 16, padding: "12px 18px", borderRadius: 10, border: "none",
+              background: BRAND.gradient, color: "#fff", fontWeight: 800, fontSize: 14, cursor: "pointer",
+              width: isMobile ? "100%" : "auto",
+            }}
+          >
+            Nuevo ticket
+          </button>
+          {pendientes.length === 0 ? (
+            <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: isMobile ? 20 : 24, color: C.textMid, fontSize: 13, lineHeight: 1.5 }}>
+              No hay tickets pendientes. Nuevo ticket, o sube PDF/CSV desde ahí.
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ color: C.textMid, fontSize: 11, fontWeight: 700, letterSpacing: 0.4, textTransform: "uppercase" }}>
+                Pendientes · {pendientes.length}
+              </div>
+              {pendientes.map((t) => {
+                const falta = (t.sin_caducidad_anaquel || 0) + (t.sin_confirmar || 0);
+                const alta = t.pendientes_alta || 0;
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => abrirPendiente(t.id)}
+                    disabled={saving}
+                    style={{
+                      display: "block", width: "100%", textAlign: "left",
+                      background: C.card, border: `1px solid ${C.border}`, borderRadius: 12,
+                      padding: "12px 14px", cursor: "pointer",
+                    }}
+                  >
+                    <div style={{ color: C.text, fontWeight: 800, fontSize: 15 }}>
+                      {t.proveedor || "Sin proveedor"}
+                      {t.folio ? ` · ${t.folio}` : ""}
+                    </div>
+                    <div style={{ color: C.textMid, fontSize: 12, marginTop: 4 }}>
+                      {fmtFecha(t.fecha)}
+                      {t.renglones ? ` · ${t.renglones} renglón${t.renglones === 1 ? "" : "es"}` : ""}
+                      {falta > 0 ? ` · ${falta} sin caducidad` : ""}
+                      {alta > 0 ? ` · ${alta} sin catálogo` : ""}
+                      {!ocultarMontos && t.total_ticket != null ? ` · ${fmt(t.total_ticket)}` : ""}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {!doc && vistaNuevo && (
         <form onSubmit={empezar} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: isMobile ? 16 : 22 }}>
+          <button type="button" onClick={() => setVistaNuevo(false)} style={{ border: "none", background: "transparent", color: C.textMid, fontWeight: 700, fontSize: 13, cursor: "pointer", padding: 0, marginBottom: 12 }}>
+            ← Tickets
+          </button>
           <div style={{ color: C.text, fontWeight: 800, marginBottom: 14, fontSize: 15 }}>Ticket del proveedor</div>
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 12 }}>
             <div>
               <label style={labelS(C)} htmlFor="rc-prov">Proveedor</label>
-              <input
+              <ProveedorCombo
                 id="rc-prov"
-                list="rc-prov-list"
                 value={proveedor}
-                onChange={(e) => setProveedor(e.target.value)}
-                placeholder="Nadro, Marzam…"
-                autoComplete="off"
+                onChange={setProveedor}
+                proveedores={proveedores}
+                C={C}
                 style={inpBase(C)}
               />
-              <datalist id="rc-prov-list">
-                {proveedores.map((p) => (
-                  <option key={p.id} value={p.nombre} />
-                ))}
-              </datalist>
             </div>
             <div>
               <label style={labelS(C)} htmlFor="rc-folio">Folio del ticket</label>
               <input id="rc-folio" value={folio} onChange={(e) => setFolio(e.target.value)} placeholder="440393" autoComplete="off" style={inpBase(C)} />
             </div>
+            {!ocultarMontos && (
             <div>
               <label style={labelS(C)} htmlFor="rc-total">Total del ticket</label>
               <input
@@ -552,6 +782,7 @@ export default function RecepcionModule() {
                 style={inpBase(C)}
               />
             </div>
+            )}
           </div>
           <button
             type="submit"
@@ -580,24 +811,32 @@ export default function RecepcionModule() {
 
       {doc && (
         <>
+          <button type="button" onClick={volverALista} style={{ border: "none", background: "transparent", color: C.textMid, fontWeight: 700, fontSize: 13, cursor: "pointer", padding: 0, marginBottom: 12 }}>
+            ← Tickets
+          </button>
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr auto", gap: 8, marginBottom: 16, alignItems: "end" }}>
             <div>
               <label style={labelS(C)}>Proveedor</label>
-              <input value={proveedor} onChange={(e) => setProveedor(e.target.value)} onBlur={guardarCabecera} list="rc-prov-list" style={inpBase(C, { padding: "9px 12px", fontSize: 14 })} />
-              <datalist id="rc-prov-list">
-                {proveedores.map((p) => (
-                  <option key={p.id} value={p.nombre} />
-                ))}
-              </datalist>
+              <ProveedorCombo
+                id="rc-prov-doc"
+                value={proveedor}
+                onChange={setProveedor}
+                onCommit={(v) => guardarCabecera({ proveedor: v })}
+                proveedores={proveedores}
+                C={C}
+                style={inpBase(C, { padding: "9px 12px", fontSize: 14 })}
+              />
             </div>
             <div>
               <label style={labelS(C)}>Folio</label>
               <input value={folio} onChange={(e) => setFolio(e.target.value)} onBlur={guardarCabecera} style={inpBase(C, { padding: "9px 12px", fontSize: 14 })} />
             </div>
+            {!ocultarMontos && (
             <div>
               <label style={labelS(C)}>Total ticket</label>
               <input value={totalTicket} onChange={(e) => setTotalTicket(e.target.value)} onBlur={guardarCabecera} inputMode="decimal" style={inpBase(C, { padding: "9px 12px", fontSize: 14 })} />
             </div>
+            )}
             <button type="button" onClick={descartar} style={{ padding: "9px 12px", borderRadius: 8, border: `1px solid ${C.border}`, background: "transparent", color: C.textMid, fontWeight: 700, fontSize: 12, cursor: "pointer", height: 42 }}>
               Descartar
             </button>
@@ -745,18 +984,36 @@ export default function RecepcionModule() {
             })}
           </div>
 
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {anaquelSinCad > 0 && (
+              <div style={{ background: C.amberDim, border: `1px solid #f5d78a`, borderRadius: 10, padding: "12px 14px", color: C.text, fontSize: 13, lineHeight: 1.45 }}>
+                {anaquelSinCad} caja{anaquelSinCad === 1 ? "" : "s"} ya en anaquel sin MMAA. Escanea cada una y teclea la caducidad (ej. 0629). No se puede cerrar hasta entonces: si no, el sistema no sabe qué caduca primero.
+              </div>
+            )}
+            {anaquelSinCad === 0 && grisPendiente > 0 && confirmadosOk > 0 && (
+              <div style={{ background: "#f1f5f9", border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px 14px", color: C.textMid, fontSize: 13, lineHeight: 1.45 }}>
+                {grisPendiente} sin pistola. Puedes recibir lo confirmado y dejar el resto pendiente aquí, o quitar con × lo que no llegó.
+              </div>
+            )}
             <button
               type="button"
               onClick={cerrar}
-              disabled={saving || !items.length}
+              disabled={saving || !puedeCerrar}
               style={{
                 flex: 1, minWidth: 200, padding: "14px 18px", borderRadius: 10, border: "none",
-                background: items.length ? BRAND.gradient : C.border,
-                color: "#fff", fontWeight: 800, fontSize: 15, cursor: items.length ? "pointer" : "not-allowed",
+                background: puedeCerrar ? BRAND.gradient : C.border,
+                color: "#fff", fontWeight: 800, fontSize: 15, cursor: puedeCerrar ? "pointer" : "not-allowed",
               }}
             >
-              Cerrar recepción
+              {saving
+                ? "Guardando…"
+                : anaquelSinCad > 0
+                  ? `Faltan ${anaquelSinCad} caducidad${anaquelSinCad === 1 ? "" : "es"}`
+                  : confirmadosOk === 0
+                    ? "Escanea para cerrar"
+                    : grisPendiente > 0
+                      ? "Recibir lo confirmado"
+                      : "Cerrar recepción"}
             </button>
           </div>
         </>

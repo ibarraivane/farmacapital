@@ -40,6 +40,33 @@ describe("manualContenido", () => {
     expect(r.temas.some((t) => t.id === "recibir")).toBe(true);
   });
 
+  test("vendedor ve Recibir aunque el permiso venga de Inventario", () => {
+    const u = { rol: "vendedor" };
+    const temas = temasParaUsuario(u, (_user, id) => ["midia", "pos", "inv", "caja", "ayuda"].includes(id));
+    expect(temas.some((t) => t.id === "recibir")).toBe(true);
+    expect(temas.find((t) => t.id === "recibir")?.moduloId).toBe("recibir");
+  });
+
+  test("Recibir explica PDF, un borrador y cierre sin MMAA", () => {
+    const t = TEMAS.find((x) => x.id === "recibir");
+    const blob = [t.resumen, ...(t.pasos || []), ...(t.dudas || []).flatMap((d) => [d.q, d.a])].join(" ");
+    expect(blob).toMatch(/PDF/i);
+    expect(blob).toMatch(/lista/i);
+    expect(blob).toMatch(/Nuevo ticket/);
+    expect(blob).toMatch(/Farmalive/);
+    expect(blob).toMatch(/Cityfarma/);
+    expect(blob).toMatch(/apaga/);
+  });
+
+  test("Mi Día y Catálogo cubren tickets y Activos", () => {
+    const midia = TEMAS.find((x) => x.id === "midia");
+    const cat = TEMAS.find((x) => x.id === "catalogo");
+    expect(midia.pasos.join(" ")).toMatch(/Tickets/);
+    expect(cat.pasos.join(" ")).toMatch(/Activos/);
+    expect(cat.pasos.join(" ")).toMatch(/pvp|POS/i);
+    expect(cat.dudas.some((d) => /precios/i.test(d.q))).toBe(true);
+  });
+
   test("hayrol respeta exclusividad", () => {
     expect(hayrol(["vendedor"], "admin")).toBe(false);
     expect(hayrol(["admin", "gerente"], "vendedor")).toBe(false);

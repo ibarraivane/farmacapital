@@ -98,7 +98,8 @@ export default function ManualModule({ usuario, onNavigate }) {
 
   const irAlModulo = (t) => {
     if (!onNavigate || !t?.moduloId || t.moduloId === "ayuda") return;
-    if (t.moduloId === "inv" && t.invTab) onNavigate("inv", { tab: t.invTab });
+    if (t.moduloId === "recibir" || t.invTab === "recibir") onNavigate("recibir");
+    else if (t.moduloId === "inv" && t.invTab) onNavigate("inv", { tab: t.invTab });
     else onNavigate(t.moduloId);
   };
 

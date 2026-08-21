@@ -8,24 +8,26 @@ export const GLOSARIO = [
   { id: "ean", term: "Código de barras / EAN", aliases: ["ean", "upc", "pistola", "escáner"], def: "El código de la caja. La pistola lo lee y el sistema busca el producto. No escribas precios aquí." },
   { id: "sku", term: "SKU", aliases: ["sku farmacapital", "fc-"], def: "Clave interna FarmaCapital (ej. FC-06134531). Distinta del código de barras del laboratorio." },
   { id: "folio", term: "Folio", aliases: ["ticket", "número de ticket"], def: "Número del ticket o factura del proveedor. Identifica esa entrega." },
-  { id: "borrador", term: "Borrador de recepción", aliases: ["recibir abierto"], def: "Lista en curso. Solo puede haber un borrador a la vez. No lo descartes si es una cola de caducidades (Cityfarma, Farmalive)." },
+  { id: "borrador", term: "Borrador de recepción", aliases: ["recibir abierto"], def: "Lista en curso. Solo se muestra un borrador a la vez (el más reciente). Termina uno (MMAA y cerrar) para ver el siguiente. No lo descartes si es una cola de caducidades (Cityfarma, Farmalive)." },
   { id: "pendiente-alta", term: "Pendiente de alta", aliases: ["no está en catálogo"], def: "El código no está en el catálogo. Se anota, no se vende. El dueño lo da de alta (precio, receta, categoría)." },
   { id: "descuadre", term: "Descuadre", aliases: ["no cuadra"], def: "El total estimado no coincide con el total del ticket. El stock sí puede entrar; hay que avisarle al dueño." },
   { id: "anaquel", term: "Anaquel", aliases: ["piso", "mostrador"], def: "Lo que está en el piso de venta, no en un papel ni en un PDF." },
-  { id: "pvp", term: "PVP", aliases: ["precio de venta", "precio al público"], def: "Precio al público. La vendedora no lo captura al recibir. Lo define el dueño." },
-  { id: "costo", term: "Costo", aliases: ["precio de compra"], def: "Lo que se pagó al proveedor. No se captura en Recibir. Vive en el lote y lo ve el dueño en Reabasto." },
+  { id: "pvp", term: "PVP", aliases: ["precio de venta", "precio al público"], def: "Precio al público. La vendedora lo consulta en el POS al escanear, no en el Catálogo. No se captura al recibir. Lo define el dueño." },
+  { id: "costo", term: "Costo", aliases: ["precio de compra", "en cuánto compramos"], def: "Lo que se pagó al proveedor. El piso no lo ve: ni en Catálogo, ni en Recibir (estimado). Vive en el lote y lo ve el dueño." },
   { id: "reabasto", term: "Reabasto", aliases: ["qué comprar", "sugerido"], def: "Qué conviene pedir según rotación y existencia. No es la pantalla para recibir cajas." },
   { id: "pos", term: "POS", aliases: ["punto de venta", "caja registradora"], def: "Punto de venta: escanear, cobrar, receta. En el POS no se elige lote: el sistema descuenta por FEFO." },
   { id: "receta", term: "Receta", aliases: ["requiere receta", "controlado"], def: "Algunos medicamentos piden receta al vender. Eso lo configura el dueño en el catálogo, no al recibir." },
   { id: "corte", term: "Corte de caja", aliases: ["fondo", "arqueo"], def: "Cierre del turno: se cuenta el efectivo y se compara con lo que el sistema dice que debió haber." },
   { id: "fondo", term: "Fondo de caja", aliases: ["apertura", "efectivo inicial"], def: "Dinero con el que abres el turno. Lo entregaron; hay que contarlo antes de vender." },
-  { id: "midia", term: "Mi Día", aliases: ["inicio vendedor"], def: "Pantalla de arranque del vendedor: ventas del turno, pendientes y atajos. No es el inventario." },
+  { id: "midia", term: "Mi Día", aliases: ["inicio vendedor"], def: "Pantalla de arranque del vendedor. El recuadro Tickets se toca: lista del turno (folio, hora, artículos), sin montos. No es el inventario." },
   { id: "devolucion", term: "Devolución", aliases: ["regresar", "cambio"], def: "Regresar una venta. Se busca por folio o teléfono. No borra el historial: ajusta stock y, si aplica, caja." },
   { id: "puntos", term: "Puntos", aliases: ["cliente frecuente"], def: "Programa de lealtad. Se acumulan al vender si el cliente está identificado. No se editan en Recibir." },
   { id: "expediente", term: "Expediente", aliases: ["historia clínica"], def: "Ficha del paciente en consultorio. Solo agenda médica y dueño. No es el catálogo de farmacia." },
   { id: "no-show", term: "No-show", aliases: ["falta a consulta"], def: "El paciente no llegó. Se puede cancelar para no dejar la agenda sucia; al corte se limpian las viejas." },
   { id: "cofepris", term: "COFEPRIS", aliases: ["bitácora", "licencia"], def: "Cumplimiento sanitario. Módulo del dueño: licencias y bitácora. La receta de venta va en el POS." },
   { id: "pwa", term: "Instalar app", aliases: ["pwa", "acceso directo"], def: "Instala FarmaCapital en el teléfono o la computadora para abrirla como app, sin buscar el sitio cada vez." },
+  { id: "pdf", term: "PDF del ticket", aliases: ["factura pdf", "subir pdf"], def: "Ticket o factura del proveedor. El sistema lo lee sin formato especial FarmaCapital. Tiene que verse claro. La caducidad nunca se toma del PDF: sale de la caja (MMAA)." },
+  { id: "csv", term: "CSV", aliases: ["excel", "plantilla csv"], def: "Plan B si no hay PDF legible. Excel del proveedor guardado como CSV: ean o codigo, nombre, cantidad. Opcional costo, lote, folio. No hay que armarlo a mano con el dueño cada entrega." },
 ];
 
 /** @typedef {{ id: string, moduloId: string, invTab?: string, roles?: string[], titulo: string, resumen: string, pasos: string[], dudas?: {q: string, a: string}[] }} TemaManual */
@@ -38,6 +40,7 @@ export const TEMAS = [
     titulo: "Cómo usar este Manual",
     resumen: "Busca una duda, toca un término del glosario o abre el módulo en el que estás trabado.",
     pasos: [
+      "El Manual está en el menú (libro). El botón ? flotante no es este Manual.",
       "Arriba escribe lo que no te queda claro: caducidad, corte, receta, lote…",
       "Solo ves los temas de TU perfil. La vendedora no ve Reabasto ni costos; la doctora no ve el POS.",
       "En el glosario toca una palabra. Abajo dice en qué temas aparece.",
@@ -52,15 +55,16 @@ export const TEMAS = [
     moduloId: "midia",
     roles: ["vendedor"],
     titulo: "Mi Día",
-    resumen: "Tu inicio de turno: cómo vas, qué falta y atajos. No se reciben cajas aquí.",
+    resumen: "Tu inicio de turno: cómo vas, tickets del turno y atajos. No se reciben cajas aquí.",
     pasos: [
-      "Al entrar con perfil vendedor aterrizas en Mi Día.",
-      "Revisa ventas del turno y pendientes (consultas, caja).",
-      "Para vender: Punto de Venta. Para meter mercancía: Inventario → Recibir.",
+      "Al entrar con perfil vendedor aterrizas en Mi Día. En el menú también ves Recibir, Inventario y Manual.",
+      "El recuadro Tickets se toca: abre folio, hora y artículos de TU turno. Sin montos ni edición.",
+      "Para vender: Punto de Venta. Para meter mercancía: Recibir (menú), no el Catálogo.",
       "Si te pide abrir caja, cuenta el [[fondo]] antes de cobrar.",
     ],
     dudas: [
       { q: "No veo costos ni ganancias", a: "Así debe ser. Costos y Dashboard son del dueño." },
+      { q: "Toco Tickets y no pasa nada", a: "Recarga fuerte o cierra la app instalada. Debe decir «Toca para ver los tickets»." },
     ],
   },
   {
@@ -110,25 +114,31 @@ export const TEMAS = [
   },
   {
     id: "recibir",
-    moduloId: "inv",
+    moduloId: "recibir",
     invTab: "recibir",
     titulo: "Recibir mercancía",
     resumen: "Pistola = está aquí. [[mmaa]] = fecha de ESTA caja. Cerrar = ya conté lo que sí llegó.",
     pasos: [
-      "Inventario → Recibir. Un [[folio]] / ticket a la vez.",
-      "Si hay lista gris: no subas el mismo PDF otra vez. Escanea cada caja y pon [[mmaa]].",
-      "Si no hay lista: llena proveedor, folio y total → Empezar a escanear. O Subir PDF/CSV (la fecha NO sale del papel).",
+      "En el menú izquierdo abre Recibir (no Inventario/Catálogo).",
+      "Entras a la lista de tickets pendientes. Toca uno para continuar, o Nuevo ticket.",
+      "Si hay lista gris: no subas el mismo [[pdf]] otra vez. Escanea cada caja y pon [[mmaa]].",
+      "Nuevo ticket: proveedor, folio y total → Empezar a escanear. O Subir [[pdf]] / [[csv]] (la fecha NO sale del papel).",
+      "El PDF es el ticket del proveedor, sin formato especial. Si no se lee: pistola caja por caja o [[csv]] (ean, nombre, cantidad).",
       "[[ean]] con pistola → cantidad → [[mmaa]] (4 dígitos, ej. 0629) → Enter.",
       "Gris = falta fecha. Verde = ya confirmaste. Amarillo = [[pendiente-alta]].",
       "Si dice [[lote-distinto]]: es otra producción. Fecha de esta caja, no la del [[anaquel]].",
-      "Cerrar recepción. Si hay [[descuadre]] o pendientes de alta, avísale al dueño.",
-      "No toques Descartar si es una cola de caducidades ya armada (Cityfarma, Farmalive).",
+      "Cerrar: si hay cajas ya en anaquel sin MMAA, el botón se apaga (ej. Farmalive). Si faltan del ticket, avisa y deja pendientes o quita con × lo que no llegó.",
+      "← Tickets vuelve a la lista sin borrar el borrador. No toques Descartar si es una cola de caducidades ya armada (Cityfarma 11 renglones, Farmalive 6).",
     ],
     dudas: [
-      { q: "El ticket no trae caducidad", a: "Normal. La fecha está en la caja. El PDF nunca debe inventarla." },
+      { q: "El ticket no trae caducidad", a: "Normal. La fecha está en la caja. El [[pdf]] nunca debe inventarla." },
+      { q: "¿El PDF tiene que ser de FarmaCapital?", a: "No. Cualquier ticket/factura legible. Foto borrosa de ticket térmico a veces falla: usa pistola o [[csv]]." },
+      { q: "¿De dónde saco el CSV?", a: "Del Excel del proveedor, o no lo uses. No hay que crearlo con el dueño en cada entrega." },
+      { q: "Cargamos dos tickets, ¿dónde están?", a: "En la lista de Recibir: Cityfarma 6315912 (11) y Farmalive 11590 (6). Toca uno. Nuevo ticket no pisa el otro." },
       { q: "Ya estaba en catálogo", a: "Igual se recibe. Si el [[lote]] es otro, queda pendiente de corroborar fecha." },
       { q: "¿Pongo el costo?", a: "No. Recibir no pide [[costo]] ni [[pvp]]." },
       { q: "Dos cajas, dos fechas", a: "Dos renglones, dos MMAA. Nunca una sola fecha para los dos." },
+      { q: "¿Cierro aunque falten MMAA?", a: "No si ya están en anaquel. Si son cajas nuevas del PDF que no llegaron: Recibir lo confirmado y el resto queda pendiente." },
     ],
   },
   {
@@ -138,13 +148,16 @@ export const TEMAS = [
     titulo: "Catálogo",
     resumen: "Buscar existencias y ficha del producto. La vendedora consulta; el dueño edita precios y receta.",
     pasos: [
-      "Inventario → Catálogo.",
+      "Inventario en el menú (existencias). Recibir es otra entrada, para cajas nuevas.",
       "Busca por nombre, [[sku]] o [[ean]].",
-      "La vendedora ve existencias. No cambia [[pvp]] ni da de alta para vender.",
-      "Para meter piezas nuevas: pestaña Recibir, no «inventar» stock en la ficha.",
+      "Toca Bajo stock, Por caducar, etc. Toca Activos para volver al listado general (igual que Limpiar filtros).",
+      "La vendedora no ve [[costo]] ni [[pvp]] aquí. El precio de venta se consulta en el POS al escanear.",
+      "Para meter piezas nuevas: Recibir, no «inventar» stock en la ficha.",
     ],
     dudas: [
       { q: "No encuentro un producto que sí vendí", a: "Puede estar inactivo o con otro nombre. Prueba el código de barras. Si no, Recibir o avísale al dueño." },
+      { q: "¿Por qué no veo precios?", a: "El [[costo]] (en cuánto compramos) y el [[pvp]] no salen en el Catálogo del piso. El PVP se ve en el POS al escanear." },
+      { q: "Activos no me quita Bajo stock", a: "En la versión nueva sí. Recarga. Activos limpia el filtro; no hace falta Limpiar filtros para eso." },
     ],
   },
   {
@@ -406,8 +419,10 @@ export function temasParaUsuario(usuario, puedeVer) {
   const vendedor = rol === "vendedor";
   return TEMAS.filter((t) => {
     if (!hayrol(t.roles, rol)) return false;
-    if (t.moduloId && t.moduloId !== "ayuda" && typeof puedeVer === "function" && !puedeVer(usuario, t.moduloId)) {
-      return false;
+    if (t.moduloId && t.moduloId !== "ayuda" && typeof puedeVer === "function") {
+      const visible = puedeVer(usuario, t.moduloId)
+        || (t.moduloId === "recibir" && puedeVer(usuario, "inv"));
+      if (!visible) return false;
     }
     if (vendedor && t.invTab && !["recibir", "catalogo"].includes(t.invTab)) return false;
     return true;
