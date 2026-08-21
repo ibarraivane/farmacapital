@@ -1517,12 +1517,33 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
 
 // ── HEADER ────────────────────────────────────────────────────
 
-function Header({page,setPage,cart,user,setUser}){
+function Header({page,setPage,cart,user,setUser,busqHero,setBusqHero,productos,setProdDetalle}){
   const C = useTheme();
+  const stackHeader = useMediaQuery("(max-width: 768px)");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [busqFocus, setBusqFocus] = useState(false);
+  const searchInputRef = useRef(null);
   const n=cart.reduce((a,c)=>a+c.qty,0);
+  const mostrarBuscador = page === "carrito";
+  const poolHeader = useMemo(() => poolCatalogoTienda(productos || []), [productos]);
+  const headerSuggestions = useMemo(
+    () => (busqFocus && String(busqHero || "").trim().length >= 2
+      ? tiendaCatalogSearchSuggestions(poolHeader, busqHero, { limit: 8 })
+      : []),
+    [poolHeader, busqHero, busqFocus]
+  );
 
   useEffect(()=>{ setMenuOpen(false); }, [page]);
+
+  const irACatalogoBusqueda = () => {
+    const q = String(busqHero || "").trim();
+    setBusqFocus(false);
+    try { if (q) sessionStorage.setItem("farmacapital_busq", q); } catch (_) { /* noop */ }
+    setPage("catalogo");
+    requestAnimationFrame(() => {
+      document.getElementById("farmacapital-catalogo-resultados")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
 
   const go = (id) => {
     setMenuOpen(false);
@@ -1540,6 +1561,7 @@ function Header({page,setPage,cart,user,setUser}){
 
   return(
     <>
+      <div style={{position:"sticky",top:0,zIndex:50}}>
       <header data-brand-surface="dark" style={{
         background:BRAND.primary,
         borderBottom:"none",
@@ -1551,9 +1573,6 @@ function Header({page,setPage,cart,user,setUser}){
         alignItems:"center",
         justifyContent:"space-between",
         gap:12,
-        position:"sticky",
-        top:0,
-        zIndex:50,
       }}>
         <button
           type="button"
@@ -1577,6 +1596,21 @@ function Header({page,setPage,cart,user,setUser}){
         </div>
 
         <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+          {mostrarBuscador && (
+            <button
+              type="button"
+              aria-label="Buscar producto"
+              onClick={() => searchInputRef.current?.focus()}
+              style={{
+                background:"rgba(255,255,255,.15)",
+                border:"none",padding:8,borderRadius:8,
+                cursor:"pointer",
+                display:"flex",alignItems:"center",justifyContent:"center",
+              }}
+            >
+              <Search size={22} color="#fff"/>
+            </button>
+          )}
           <button
             type="button"
             aria-label="Ir al carrito"
@@ -1615,6 +1649,49 @@ function Header({page,setPage,cart,user,setUser}){
           </button>
         </div>
       </header>
+      {mostrarBuscador && (
+        <div style={{
+          background:"#fff",
+          borderBottom:`1px solid ${C.border}`,
+          padding:"10px 16px",
+          paddingLeft:"max(16px, env(safe-area-inset-left, 0px))",
+          paddingRight:"max(16px, env(safe-area-inset-right, 0px))",
+        }}>
+          <TiendaBusquedaBar
+            compact
+            showCita={false}
+            inputRef={searchInputRef}
+            stack={stackHeader}
+            value={busqHero || ""}
+            onChange={(e) => {
+              const v = e.target.value;
+              setBusqHero?.(v);
+              try { if (v.trim()) sessionStorage.setItem("farmacapital_busq", v); } catch (_) { /* noop */ }
+            }}
+            onFocus={() => setBusqFocus(true)}
+            onBlur={() => setTimeout(() => setBusqFocus(false), 280)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                irACatalogoBusqueda();
+              }
+              if (e.key === "Escape") setBusqFocus(false);
+            }}
+            placeholder="Buscar para agregar al carrito…"
+            suggestions={headerSuggestions}
+            productos={productos || []}
+            onPickSuggestion={(row) => {
+              if (!row) return;
+              setProdDetalle?.(row);
+              setBusqFocus(false);
+              setPage("detalle", { productId: row.id });
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+            setPage={setPage}
+          />
+        </div>
+      )}
+      </div>
 
       <MenuTienda
         abierto={menuOpen}
@@ -2460,6 +2537,8 @@ function TiendaBusquedaBar({
   setPage,
   stack,
   compact = false,
+  showCita = true,
+  inputRef = null,
 }) {
   const C = useTheme();
   const q = String(value || "").trim();
@@ -2491,6 +2570,7 @@ function TiendaBusquedaBar({
           }}
         />
         <input
+          ref={inputRef}
           type="search"
           value={value}
           onChange={onChange}
@@ -2525,6 +2605,7 @@ function TiendaBusquedaBar({
           C={C}
         />
       </div>
+      {showCita && (
       <button
         type="button"
         onClick={() => navigateToCita(setPage)}
@@ -2551,6 +2632,7 @@ function TiendaBusquedaBar({
         <Stethoscope size={18} strokeWidth={2.25} aria-hidden />
         Agendar cita
       </button>
+      )}
     </div>
   );
 }
@@ -5309,7 +5391,7 @@ export default function TiendaFarmaCapital(){
       {/* Popup bienvenida */}
       {showPopup&&<PopupBienvenida onClose={()=>setShowPopup(false)} setPage={setPage} precioConsulta={precioConsultaCfg} banner={popupBanner}/>}
 
-      <Header page={page} setPage={setPage} cart={cart} user={user} setUser={setUser}/>
+      <Header page={page} setPage={setPage} cart={cart} user={user} setUser={setUser} busqHero={busqHero} setBusqHero={setBusqHero} productos={productosVistaTiendaFarmacia} setProdDetalle={setProdD}/>
 
       {(isSupabaseProductionMisconfigured || isSupabaseLocalMisconfigured) && (
         <div style={{
