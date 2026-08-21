@@ -442,12 +442,27 @@ export default function RecepcionModule() {
 
   const cerrar = async () => {
     if (!doc?.id) return;
-    const n = Number(doc.renglones) || 0;
-    if (n === 0) { showToast("Escanea al menos un producto", "warning"); return; }
-    const yaEnAnaquel = (doc.items || []).some((i) => i.lote_id);
-    const msg = yaEnAnaquel
-      ? "¿Cerrar? Se guardan las caducidades de caja. No se vuelve a sumar lo que ya está en anaquel."
-      : `¿Cerrar recepción de ${n} renglón${n === 1 ? "" : "es"}? El stock entra ahora.`;
+    const lista = Array.isArray(doc.items) ? doc.items : [];
+    const anaquelSinCad = lista.filter((i) => i.lote_id && !i.fecha_caducidad).length;
+    const grisPendiente = lista.filter((i) => !i.pendiente_alta && !i.confirmado).length;
+    const confirmadosOk = lista.filter((i) => i.confirmado && i.fecha_caducidad).length;
+    if (anaquelSinCad > 0) {
+      showToast(`Faltan ${anaquelSinCad} caducidad(es) de cajas ya en anaquel. Escanea cada una y teclea MMAA (ej. 0629).`, "warning");
+      return;
+    }
+    if (confirmadosOk === 0) {
+      showToast("Escanea cada caja y teclea caducidad MMAA antes de cerrar.", "warning");
+      return;
+    }
+    const yaEnAnaquel = lista.some((i) => i.lote_id);
+    let msg;
+    if (grisPendiente > 0) {
+      msg = `Hay ${grisPendiente} sin escanear. ¿Recibir las ${confirmadosOk} confirmadas y dejar ${grisPendiente} pendiente${grisPendiente === 1 ? "" : "s"} en Recibir?`;
+    } else if (yaEnAnaquel) {
+      msg = "¿Cerrar? Se guardan las caducidades de caja. No se vuelve a sumar lo que ya está en anaquel.";
+    } else {
+      msg = `¿Cerrar recepción de ${confirmadosOk} renglón${confirmadosOk === 1 ? "" : "es"}? El stock entra ahora.`;
+    }
     if (!window.confirm(msg)) return;
     const tok = sessionTok();
     setSaving(true);
@@ -460,6 +475,12 @@ export default function RecepcionModule() {
     if (error) { rpcError(error, "No se pudo cerrar"); return; }
     const rec = unwrapJson(data);
     const estado = rec?.estado;
+    const siguenPendientes = (rec?.sin_confirmar || 0) > 0 && estado === "borrador";
+    if (siguenPendientes) {
+      aplicarDoc(rec);
+      showToast(`Entró lo confirmado. Quedan ${rec.sin_confirmar} pendiente${rec.sin_confirmar === 1 ? "" : "s"} en Recibir.`, "warning");
+      return;
+    }
     if (estado === "descuadre") {
       showToast(`Stock recibido, pero no cuadra con el ticket (${fmt(rec.subtotal_estimado)} vs ${fmt(rec.total_ticket)}). Avísale al dueño.`, "warning");
     } else if (estado === "pendiente_alta") {
@@ -477,6 +498,10 @@ export default function RecepcionModule() {
   const items = Array.isArray(doc?.items)
     ? [...doc.items].sort((a, b) => Number(!!a.confirmado) - Number(!!b.confirmado) || Number(b.id) - Number(a.id))
     : [];
+  const anaquelSinCad = items.filter((i) => i.lote_id && !i.fecha_caducidad).length;
+  const grisPendiente = items.filter((i) => !i.pendiente_alta && !i.confirmado).length;
+  const confirmadosOk = items.filter((i) => i.confirmado && i.fecha_caducidad).length;
+  const puedeCerrar = confirmadosOk > 0 && anaquelSinCad === 0;
   const cadPreview = etiquetaCaducidadMMAA(cad);
   const ticketNum = totalTicket.trim() === "" ? null : Number(String(totalTicket).replace(/,/g, ""));
   const estimado = Number(doc?.subtotal_estimado) || 0;
@@ -745,18 +770,36 @@ export default function RecepcionModule() {
             })}
           </div>
 
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {anaquelSinCad > 0 && (
+              <div style={{ background: C.amberDim, border: `1px solid #f5d78a`, borderRadius: 10, padding: "12px 14px", color: C.text, fontSize: 13, lineHeight: 1.45 }}>
+                {anaquelSinCad} caja{anaquelSinCad === 1 ? "" : "s"} ya en anaquel sin MMAA. Escanea cada una y teclea la caducidad (ej. 0629). No se puede cerrar hasta entonces: si no, el sistema no sabe qué caduca primero.
+              </div>
+            )}
+            {anaquelSinCad === 0 && grisPendiente > 0 && confirmadosOk > 0 && (
+              <div style={{ background: "#f1f5f9", border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px 14px", color: C.textMid, fontSize: 13, lineHeight: 1.45 }}>
+                {grisPendiente} sin pistola. Puedes recibir lo confirmado y dejar el resto pendiente aquí, o quitar con × lo que no llegó.
+              </div>
+            )}
             <button
               type="button"
               onClick={cerrar}
-              disabled={saving || !items.length}
+              disabled={saving || !puedeCerrar}
               style={{
                 flex: 1, minWidth: 200, padding: "14px 18px", borderRadius: 10, border: "none",
-                background: items.length ? BRAND.gradient : C.border,
-                color: "#fff", fontWeight: 800, fontSize: 15, cursor: items.length ? "pointer" : "not-allowed",
+                background: puedeCerrar ? BRAND.gradient : C.border,
+                color: "#fff", fontWeight: 800, fontSize: 15, cursor: puedeCerrar ? "pointer" : "not-allowed",
               }}
             >
-              Cerrar recepción
+              {saving
+                ? "Guardando…"
+                : anaquelSinCad > 0
+                  ? `Faltan ${anaquelSinCad} caducidad${anaquelSinCad === 1 ? "" : "es"}`
+                  : confirmadosOk === 0
+                    ? "Escanea para cerrar"
+                    : grisPendiente > 0
+                      ? "Recibir lo confirmado"
+                      : "Cerrar recepción"}
             </button>
           </div>
         </>

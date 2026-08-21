@@ -121,7 +121,7 @@ export const TEMAS = [
       "[[ean]] con pistola → cantidad → [[mmaa]] (4 dígitos, ej. 0629) → Enter.",
       "Gris = falta fecha. Verde = ya confirmaste. Amarillo = [[pendiente-alta]].",
       "Si dice [[lote-distinto]]: es otra producción. Fecha de esta caja, no la del [[anaquel]].",
-      "Cerrar recepción. Si hay [[descuadre]] o pendientes de alta, avísale al dueño.",
+      "Cerrar: todas las cajas con [[mmaa]]. Si faltan, avisa y deja pendientes; las de anaquel sin fecha no se pueden cerrar.",
       "No toques Descartar si es una cola de caducidades ya armada (Cityfarma, Farmalive).",
     ],
     dudas: [
