@@ -55,6 +55,29 @@ function etiquetaProveedorLista(nombre) {
   return n;
 }
 
+/** Pedido abierto con cajas que todavía esperan pistola / MMAA. */
+function pedidoEsperaEntrada(t) {
+  const renglones = Number(t?.renglones || 0);
+  const falta = Number(t?.sin_confirmar || 0) + Number(t?.sin_caducidad_anaquel || 0);
+  return renglones > 0 && (falta > 0 || t?.estado === "borrador" || t?.estado === "pendiente_caducidad");
+}
+
+async function fetchPedidosVivosApi(tok, recepcionId) {
+  const resp = await fetch("/api/inventarioProcesarPdf?type=recepcion-abiertas", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      session_token: tok,
+      ...(recepcionId ? { recepcion_id: recepcionId } : {}),
+    }),
+  });
+  const json = await resp.json().catch(() => null);
+  if (!resp.ok) {
+    throw new Error(json?.error || `HTTP ${resp.status}`);
+  }
+  return json;
+}
+
 function ticketMatchScan(t, raw) {
   const codigo = normalizeBarcodeRaw(raw) || String(raw || "").trim();
   if (!t || !codigo) return false;
@@ -243,23 +266,29 @@ export default function RecepcionModule({ ocultarMontos = false }) {
   const cargarLista = useCallback(async () => {
     const tok = sessionTok();
     if (!tok) return { ok: false };
+    const aplicarTickets = (rows) => {
+      setPendientes((Array.isArray(rows) ? rows : []).filter(pedidoEsperaEntrada));
+    };
     const { data, error } = await supabase.rpc("recepcion_listar_abiertas", { p_session_token: tok });
-    if (error) {
-      const msg = error.message || "";
-      if (esErrorSesionEmpleado(msg)) {
-        return { ok: false };
-      }
+    if (!error) {
+      aplicarTickets(unwrapJson(data));
+      return { ok: true };
+    }
+    const msg = error.message || "";
+    if (esErrorSesionEmpleado(msg)) return { ok: false };
+    try {
+      const api = await fetchPedidosVivosApi(tok);
+      aplicarTickets(api?.tickets);
+      return { ok: true, viaApi: true };
+    } catch (apiErr) {
       if (/does not exist|schema cache|listar_abiertas/i.test(msg)) {
-        showToast("Falta correr sql/patch_recepcion_lista_pendientes_20260821.sql en Supabase.", "error");
+        showToast("No se pudieron listar los pedidos vivos: " + (apiErr.message || msg), "error");
         setPendientes([]);
         return { ok: false, missingRpc: true };
       }
       showToast("No se pudieron listar tickets: " + msg, "error");
       return { ok: false };
     }
-    const raw = unwrapJson(data);
-    setPendientes(Array.isArray(raw) ? raw : []);
-    return { ok: true };
   }, []);
 
   const cargar = useCallback(async () => {
@@ -279,9 +308,21 @@ export default function RecepcionModule({ ocultarMontos = false }) {
       }),
     ]);
     const lista = await cargarLista();
-    if (lista?.missingRpc) {
+    if (lista?.missingRpc && !lista?.viaApi) {
       const { data: borrador } = await supabase.rpc("recepcion_borrador_abierto", { p_session_token: tok });
-      aplicarDoc(borrador);
+      const rec = aplicarDoc(borrador);
+      if (rec?.id) {
+        setPendientes([{
+          id: rec.id,
+          proveedor: rec.proveedor,
+          folio: rec.folio,
+          estado: rec.estado,
+          renglones: rec.renglones || (rec.items || []).length,
+          sin_confirmar: rec.sin_confirmar,
+          sin_caducidad_anaquel: rec.sin_caducidad_anaquel,
+        }].filter(pedidoEsperaEntrada));
+        setDoc(null);
+      }
     }
     const prov = unwrapJson(provRes.data);
     setProveedores(Array.isArray(prov) ? prov : []);
@@ -486,14 +527,23 @@ export default function RecepcionModule({ ocultarMontos = false }) {
       p_session_token: tok,
       p_recepcion_id: id,
     });
-    setSaving(false);
-    if (error) {
-      rpcError(error, "No se pudo abrir el ticket");
+    if (!error) {
+      setSaving(false);
+      setVistaNuevo(false);
+      aplicarDoc(data);
+      setTimeout(() => scanRef.current?.focus(), 40);
       return;
     }
-    setVistaNuevo(false);
-    aplicarDoc(data);
-    setTimeout(() => scanRef.current?.focus(), 40);
+    try {
+      const api = await fetchPedidosVivosApi(tok, id);
+      setSaving(false);
+      setVistaNuevo(false);
+      aplicarDoc(api);
+      setTimeout(() => scanRef.current?.focus(), 40);
+    } catch {
+      setSaving(false);
+      rpcError(error, "No se pudo abrir el pedido");
+    }
   };
 
   const elegirCarga = async (id) => {
@@ -744,7 +794,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
             <ScanLine size={22} strokeWidth={2.2} /> Recibir
           </h2>
           <p style={{ margin: "4px 0 0", color: C.textMid, fontSize: 13 }}>
-            Toca Farma City, Farmalive o Levic. Abajo salen las cajas. Escanea, caducidad, y sigue con el otro.
+            Cada botón es un pedido vivo que espera entrada. Tócalo, escanea las cajas, pon caducidad.
           </p>
         </div>
         {doc && (
@@ -765,7 +815,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
       {!vistaNuevo && pendientes.length > 0 && (
         <div style={{ marginBottom: 16 }}>
           <div style={{ color: C.textMid, fontSize: 11, fontWeight: 800, letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 8 }}>
-            Toca la tienda para ver las cajas
+            Pedidos vivos · esperando entrada
           </div>
           {!doc && (
             <input
@@ -787,6 +837,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
             {pendientes.map((t) => {
               const activo = doc?.id === t.id;
               const cajas = t.renglones || 0;
+              const porEntrar = Number(t.sin_confirmar || 0) || Number(t.sin_caducidad_anaquel || 0);
               return (
                 <button
                   key={t.id}
@@ -808,7 +859,8 @@ export default function RecepcionModule({ ocultarMontos = false }) {
                   </div>
                   <div style={{ color: C.textMid, fontSize: 12, marginTop: 4 }}>
                     {cajas} {cajas === 1 ? "caja" : "cajas"}
-                    {activo ? " · abierta" : " · toca para abrir"}
+                    {porEntrar > 0 ? ` · ${porEntrar} por entrar` : ""}
+                    {activo ? " · abierto" : ""}
                   </div>
                 </button>
               );
@@ -819,7 +871,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
 
       {!doc && !vistaNuevo && pendientes.length === 0 && (
         <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: isMobile ? 20 : 24, color: C.textMid, fontSize: 13, lineHeight: 1.5, marginBottom: 16 }}>
-          No hay cargas pendientes.
+          No hay pedidos vivos esperando entrada.
         </div>
       )}
 
@@ -992,7 +1044,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
           <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
             {items.length === 0 && (
               <div style={{ color: C.textMid, fontSize: 13, padding: "20px 8px", textAlign: "center" }}>
-                Toca Farma City o Farmalive arriba. Aquí salen las cajas.
+                Toca el pedido vivo arriba. Aquí salen las cajas.
               </div>
             )}
             {items.map((it) => {

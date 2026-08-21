@@ -4,6 +4,7 @@ const { inventarioProcesarPdfHandler } = require('../lib/inventarioProcesarPdfHa
 const { buscarSimilaresHandler } = require('./_lib/buscarSimilaresHandler');
 const { actualizarCompraHandler } = require('./_lib/actualizarCompraHandler');
 const { pagoServicioAdminHandler } = require('./_lib/pagoServicioAdminHandler');
+const { recepcionAbiertasHandler } = require('./_lib/recepcionAbiertasHandler');
 
 module.exports = async function handler(req, res) {
   const bodyType = (req.body && typeof req.body === 'object') ? req.body.type : '';
@@ -16,6 +17,9 @@ module.exports = async function handler(req, res) {
   }
   if (type === 'pago-servicio') {
     return pagoServicioAdminHandler(req, res);
+  }
+  if (type === 'recepcion-abiertas') {
+    return recepcionAbiertasHandler(req, res);
   }
   if (req.method === 'GET') {
     return res.status(200).json({ ok: true, route: 'inventarioProcesarPdf' });

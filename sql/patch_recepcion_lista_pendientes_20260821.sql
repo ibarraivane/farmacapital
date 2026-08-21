@@ -101,6 +101,12 @@ begin
     left join public.recepcion_items i on i.recepcion_id = r.id
     where r.estado in ('borrador', 'pendiente_alta', 'pendiente_caducidad')
     group by r.id
+    having count(i.id) > 0
+       and (
+         count(*) filter (where not i.confirmado) > 0
+         or count(*) filter (where i.lote_id is not null and i.fecha_caducidad is null) > 0
+         or r.estado in ('borrador', 'pendiente_caducidad')
+       )
   ) x;
   return v_out;
 end;
