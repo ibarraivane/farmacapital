@@ -1,8 +1,6 @@
--- Farmalive 11590 ya cargó stock/lotes SIN fecha (lote RX inventado, no de fábrica).
--- Arma el documento Recibir para corroborar MMAA en caja, sin volver a sumar piezas.
--- Idempotente. Pegar en Supabase DESPUÉS de:
---   1) sql/patch_recepcion_pdf_confirmar_20260821.sql
---   2) Cerrar o terminar el borrador de Cityfarma 6315912 (Recibir solo muestra un borrador).
+-- Levic 9012078353 ya cargó stock/lotes SIN fecha (lote de fábrica sí; MMAA de la caja).
+-- Arma el documento Recibir para corroborar MMAA, sin volver a sumar piezas.
+-- Idempotente. Pegar en Supabase DESPUÉS de patch_carga_levic_9012078353.sql.
 
 begin;
 
@@ -15,33 +13,34 @@ declare
 begin
   select id into v_id
   from public.recepciones
-  where folio = '11590' and coalesce(proveedor, '') ilike '%farmalive%'
+  where folio = '9012078353' and coalesce(proveedor, '') ilike '%levic%'
   order by id desc
   limit 1;
 
   if v_id is not null and (select estado from public.recepciones where id = v_id) <> 'borrador' then
-    raise notice 'Recepcion Farmalive 11590 ya cerrada (id %)', v_id;
+    raise notice 'Recepcion Levic 9012078353 ya cerrada (id %)', v_id;
   else
     if v_id is null then
       insert into public.recepciones (proveedor, folio, fecha, total_ticket, estado, notas)
-      values ('Farmalive', '11590', '2026-08-21', 704.42, 'borrador',
-              'Ticket Farmalive 11590 · cola Recibir; stock al confirmar pistola')
+      values ('Levic', '9012078353', '2026-08-20', 637.25, 'borrador',
+              'Factura Levic A 9012078353 · cola Recibir; stock al confirmar pistola')
       returning id into v_id;
     else
       delete from public.recepcion_items where recepcion_id = v_id;
       update public.recepciones
-      set total_ticket = 704.42, updated_at = now()
+      set total_ticket = 637.25, updated_at = now()
       where id = v_id;
     end if;
 
     for r in
       select * from (values
-        ('7501065054029', 'Tums surtido tabletas masticables C/48', 2, 85.26::numeric, 'RX-FARMALIVE-20260821-11590'),
-        ('7501019064807', 'Tena Pants Comfort grande C/13', 1, 113.62, 'RX-FARMALIVE-20260821-11590'),
-        ('7500435179980', 'Oral-B enjuague bucal 100% 250 mL', 2, 47.79, 'RX-FARMALIVE-20260821-11590'),
-        ('7891051037878', 'Oral-B enjuague bucal Complete 250 mL', 2, 47.50, 'RX-FARMALIVE-20260821-11590'),
-        ('5000174305449', 'Fixodent Original crema dental 40 mL', 2, 93.30, 'RX-FARMALIVE-20260821-11590'),
-        ('020800600330', 'Tampax Super C/10', 1, 43.12, 'RX-FARMALIVE-20260821-11590')
+        ('7501342802749', 'Sildenafil beadvance 50 mg 1 tableta', 4, 4.90::numeric, 'ECM297C'),
+        ('7501573909958', 'Colchicina 30 Tab 1 Mg', 2, 31.24, 'SD2602'),
+        ('7501048335138', 'Agua oxigenada Dermocleen 100 mL', 2, 8.08, '3A206030'),
+        ('7501048335169', 'Agua oxigenada Dermocleen 230 mL', 2, 11.57, '3A196054'),
+        ('7502009745478', 'Ideliver Pro duloxetina 60 mg C/14', 4, 63.74, '283429'),
+        ('7501109769063', 'Agecaps minoxidil hombre 5% solución 60 mL', 1, 150.00, '26C063'),
+        ('7502216800984', 'Acemetacina 14 cáps 90 mg', 2, 52.31, '68N323A')
       ) as t(ean, nombre, qty, costo, lote)
     loop
       v_pid := public.fc_buscar_producto_escaneo(r.ean);
@@ -70,7 +69,7 @@ begin
       );
     end loop;
 
-    raise notice 'Recepcion Farmalive lista id=% — Recibir y corroborar MMAA (un borrador a la vez)', v_id;
+    raise notice 'Recepcion Levic lista id=% — Recibir y corroborar MMAA', v_id;
   end if;
 end $$;
 
@@ -78,5 +77,5 @@ commit;
 
 select id, folio, proveedor, estado, (select count(*) from public.recepcion_items i where i.recepcion_id = r.id) as renglones
 from public.recepciones r
-where folio in ('11590', '6315912')
+where folio in ('9012078353', '11590', '6315912')
 order by updated_at desc;

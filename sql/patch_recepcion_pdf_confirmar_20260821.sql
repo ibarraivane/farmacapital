@@ -399,6 +399,7 @@ declare
   v_pendientes int := 0;
   v_mapeados int := 0;
   v_anaquel_sin_cad int := 0;
+  v_gris_sin_cad int := 0;
   v_estado text;
   v_diff numeric;
 begin
@@ -412,8 +413,9 @@ begin
     count(*) filter (where confirmado and not pendiente_alta),
     count(*) filter (where pendiente_alta),
     count(*) filter (where lote_id is not null and fecha_caducidad is null),
+    count(*) filter (where not confirmado and not pendiente_alta),
     coalesce(sum(cantidad * coalesce(costo_estimado, 0)) filter (where confirmado), 0)
-  into v_mapeados, v_pendientes, v_anaquel_sin_cad, v_subtotal
+  into v_mapeados, v_pendientes, v_anaquel_sin_cad, v_gris_sin_cad, v_subtotal
   from public.recepcion_items
   where recepcion_id = p_recepcion_id;
 
@@ -456,6 +458,19 @@ begin
     when v_rec.total_ticket is null then 0
     else round(v_subtotal - v_rec.total_ticket, 2)
   end;
+
+  -- Lista gris sin pistola: el stock de lo confirmado sí entra, pero el documento
+  -- sigue abierto para no perder las cajas que faltan.
+  if v_gris_sin_cad > 0 then
+    update public.recepciones
+    set
+      subtotal_estimado = round(v_subtotal, 2),
+      diferencia = v_diff,
+      capturado_por = coalesce(capturado_por, v_user),
+      updated_at = now()
+    where id = p_recepcion_id;
+    return public.fc_recepcion_json(p_recepcion_id);
+  end if;
 
   if v_pendientes > 0 then
     v_estado := 'pendiente_alta';

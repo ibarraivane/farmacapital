@@ -47,15 +47,19 @@ describe("manualContenido", () => {
     expect(temas.find((t) => t.id === "recibir")?.moduloId).toBe("recibir");
   });
 
-  test("Recibir explica PDF, un borrador y cierre sin MMAA", () => {
+  test("Recibir explica PDF, lista, cierre y dos pantallas", () => {
     const t = TEMAS.find((x) => x.id === "recibir");
     const blob = [t.resumen, ...(t.pasos || []), ...(t.dudas || []).flatMap((d) => [d.q, d.a])].join(" ");
     expect(blob).toMatch(/PDF/i);
-    expect(blob).toMatch(/lista/i);
+    expect(blob).toMatch(/lista|tarjeta/i);
     expect(blob).toMatch(/Nuevo ticket/);
     expect(blob).toMatch(/Farmalive/);
     expect(blob).toMatch(/Cityfarma/);
+    expect(blob).toMatch(/Levic/);
     expect(blob).toMatch(/apaga/);
+    expect(blob).toMatch(/← Tickets/);
+    expect(blob).toMatch(/Inventario/);
+    expect(blob).toMatch(/Pistola aquí/);
   });
 
   test("Mi Día y Catálogo cubren tickets y Activos", () => {
@@ -63,7 +67,8 @@ describe("manualContenido", () => {
     const cat = TEMAS.find((x) => x.id === "catalogo");
     expect(midia.pasos.join(" ")).toMatch(/Tickets/);
     expect(cat.pasos.join(" ")).toMatch(/Activos/);
-    expect(cat.pasos.join(" ")).toMatch(/pvp|POS/i);
+    expect(cat.pasos.join(" ")).toMatch(/Recibir cajas/);
+    expect(cat.pasos.join(" ")).toMatch(/pvp|POS|pos/i);
     expect(cat.dudas.some((d) => /precios/i.test(d.q))).toBe(true);
   });
 

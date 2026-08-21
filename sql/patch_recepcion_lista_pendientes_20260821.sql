@@ -94,7 +94,11 @@ begin
       coalesce(sum(i.cantidad), 0)::int as piezas,
       count(*) filter (where i.pendiente_alta)::int as pendientes_alta,
       count(*) filter (where not i.confirmado)::int as sin_confirmar,
-      count(*) filter (where i.lote_id is not null and i.fecha_caducidad is null)::int as sin_caducidad_anaquel
+      count(*) filter (where i.lote_id is not null and i.fecha_caducidad is null)::int as sin_caducidad_anaquel,
+      coalesce(
+        array_remove(array_agg(distinct i.codigo_escaneado), null),
+        array[]::text[]
+      ) as codigos
     from public.recepciones r
     left join public.recepcion_items i on i.recepcion_id = r.id
     where r.estado in ('borrador', 'pendiente_alta', 'pendiente_caducidad')

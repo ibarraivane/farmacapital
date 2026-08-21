@@ -26,7 +26,7 @@
       font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
       background: var(--bg);
       color: var(--text);
-      line-height: 1.45;
+      line-height: 1.5;
     }
     .bar {
       background: linear-gradient(135deg, #0D1B2A, #1E3ABA);
@@ -46,7 +46,7 @@
     h3 { font-size: 16px; margin: 18px 0 8px; }
     p, li { font-size: 15px; color: var(--text); }
     ol, ul { padding-left: 1.25em; }
-    li { margin: 6px 0; }
+    li { margin: 8px 0; }
     .card {
       background: var(--card);
       border: 1px solid var(--border);
@@ -66,7 +66,6 @@
     .s-gris { background: #f1f5f9; }
     .s-verde { background: #dcfce7; }
     .s-ama { background: #fef3c7; }
-    .paso { counter-increment: p; }
     .k { font-family: ui-monospace, Menlo, monospace; background: #eef1fb; padding: 1px 6px; border-radius: 4px; font-size: 13px; }
     .foot { color: var(--dim); font-size: 12px; margin-top: 32px; }
     @media print {
@@ -79,145 +78,177 @@
 </head>
 <body>
   <div class="bar">
-    <h1>FarmaCapital · Manual de Recibir</h1>
-    <p>Para piso / vendedora · 21 ago 2026 · Imprime o guarda como PDF (Archivo → Imprimir)</p>
+    <h1>FarmaCapital · Cómo recibir cajas</h1>
+    <p>Para el piso · 21 ago 2026 · Un toque por paso. Imprime: Archivo → Imprimir</p>
   </div>
   <div class="wrap">
 
     <div class="card">
-      <strong>Para qué sirve.</strong> Que lo que llegó quede en el sistema con la caducidad de la caja.
-      Si la fecha no entra, las alertas de vencimiento mienten y se pierde dinero.
+      <strong>La regla de oro.</strong> Cada caja que llega se escanea y se le pone la fecha que trae <em>impresa ella misma</em>.
+      Si no pones esa fecha, el sistema no sabe cuándo caduca y se vende mal.
     </div>
 
-    <h2>Antes de empezar</h2>
+    <h2>Dos puertas distintas. No las mezcles.</h2>
+    <table>
+      <thead>
+        <tr><th>En el menú izquierdo toca…</th><th>Para qué sirve</th><th>Para qué NO sirve</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Recibir</strong></td>
+          <td>Meter cajas: pistola + fecha</td>
+          <td>Buscar “¿cuánto hay de X?”</td>
+        </tr>
+        <tr>
+          <td><strong>Inventario</strong></td>
+          <td>Consultar existencias (nombre, stock, caducidad)</td>
+          <td>Meter mercancía nueva</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>Dentro de Recibir <strong>ya no hay</strong> pestaña Catálogo. Si estás en Inventario y tocas <strong>Recibir cajas</strong>, te manda a Recibir. El precio de venta se ve en el <strong>Punto de Venta</strong> al escanear, no aquí.</p>
+
+    <h2>Antes de tocar nada</h2>
     <ol>
-      <li>Entra con <strong>tu usuario</strong>.</li>
-      <li>En el menú izquierdo toca <strong>Recibir</strong> (no Inventario). Inventario es la consulta de existencias.</li>
-      <li>Si no ves Recibir ni Manual: cierra la app del todo y vuelve a entrar (o recarga fuerte).</li>
-      <li>Ten el <strong>ticket del proveedor</strong> y las <strong>cajas físicas</strong>.</li>
-      <li>La pistola apunta al recuadro <strong>Código de barras</strong> (dice “Pistola aquí”).</li>
+      <li>Entra con <strong>tu usuario</strong> (el de Mary, no el del dueño, si eres de piso).</li>
+      <li>Si no ves Recibir en el menú: cierra la app del todo y vuelve a entrar, o recarga fuerte (Ctrl+Shift+R / en el teléfono: quitar app y abrir de nuevo).</li>
+      <li>Pon a tu lado: las <strong>cajas físicas</strong> y el <strong>ticket de papel</strong> del proveedor.</li>
+      <li>La pistola debe escribir en el recuadro que dice <strong>Pistola aquí</strong>. Si escribe en otro lado, toca ese recuadro primero.</li>
     </ol>
 
     <div class="card no">
-      <strong>No hagas esto</strong>
+      <strong>Prohibido</strong>
       <ul>
-        <li>No escribas costos ni precios.</li>
-        <li>No inventes la caducidad. Sale <strong>de la caja</strong>, no del ticket.</li>
-        <li>No toques <strong>Descartar</strong> si ya hay una lista gris. Eso borra la cola de fechas, no el stock.</li>
-        <li>Un ticket a la vez. Termina uno y <strong>ciérralo</strong> antes de abrir otro.</li>
+        <li>Escribir costos o precios. Recibir no los pide.</li>
+        <li>Inventar la fecha. Si no la ves en la caja, no la adivines.</li>
+        <li>Tocar <strong>Descartar</strong> en Farmalive o Cityfarma. Eso borra la lista de trabajo, no el stock.</li>
+        <li>Subir otra vez el mismo PDF si el ticket ya está en una tarjeta.</li>
       </ul>
     </div>
 
-    <h2>Caducidad MMAA</h2>
-    <p>En la caja dice mes y año. En la computadora escribes <strong>4 dígitos: mes + año</strong>.</p>
+    <h2>Paso 1 — Entra a Recibir</h2>
+    <ol>
+      <li>Menú izquierdo → <strong>Recibir</strong>.</li>
+      <li>Vas a ver un botón grande <strong>Nuevo ticket</strong>.</li>
+      <li>Abajo, si hay trabajo pendiente, verás <strong>tarjetas</strong>. Ejemplo:
+        <ul>
+          <li><strong>Farmalive · 11590</strong> — 6 renglones</li>
+          <li><strong>Cityfarma · 6315912</strong> — 11 renglones</li>
+        </ul>
+      </li>
+      <li>Tocas <strong>una</strong> tarjeta para trabajar ese ticket. Arriba, <strong>← Tickets</strong> te regresa a esta lista <em>sin borrar nada</em>.</li>
+    </ol>
+
+    <h2>Paso 2 — Elige tu camino</h2>
+    <p><strong>Camino A.</strong> Ya hay tarjeta de ese proveedor y folio → tócala. Sigue en “Paso 3”.</p>
+    <p><strong>Camino B.</strong> No hay tarjeta → <strong>Nuevo ticket</strong>.</p>
+    <ol>
+      <li>En <strong>Proveedor</strong> escribe el nombre (Farmalive, Cityfarma, Nadro…). Si sale una lista blanca debajo, puedes tocarla. No pasa nada si dice FarmaLive o Farmalive.</li>
+      <li>En <strong>Folio</strong> copia el número del papel (ej. 11590).</li>
+      <li>No busques “total” si eres de piso: no sale.</li>
+      <li>Toca <strong>Empezar a escanear</strong> si vas caja por caja.</li>
+      <li>O <strong>Subir PDF</strong> si te pasaron el ticket en archivo (tiene que verse claro, no una foto borrosa). La fecha <strong>nunca</strong> se toma del PDF.</li>
+      <li>O <strong>Subir CSV</strong> solo si hay un Excel del proveedor. Columnas: <span class="k">ean</span> o <span class="k">codigo</span>, <span class="k">nombre</span>, <span class="k">cantidad</span>. No lo armes a mano.</li>
+    </ol>
+    <p><strong>Nuevo ticket no borra</strong> Farmalive ni Cityfarma. Cada uno es su tarjeta.</p>
+
+    <h2>Paso 3 — Una caja</h2>
+    <ol>
+      <li>Toma <strong>una</strong> caja en la mano. Solo una.</li>
+      <li>Toca el recuadro <strong>Código de barras</strong> (dice Pistola aquí).</li>
+      <li>Dispara la pistola al código de la caja.</li>
+      <li>Lee el nombre en la pantalla. ¿Es esa caja? Si no: <strong>Cancelar</strong> y escanea otra.</li>
+      <li>Cuenta las piezas de <em>ese</em> producto que sí tienes. Si el número está mal, corrígelo.</li>
+      <li>Busca en la caja la caducidad (mes y año). Escríbela con <strong>4 números</strong> (mira la tabla de abajo).</li>
+      <li>Enter, o el botón <strong>Guardar renglón</strong>.</li>
+      <li>Esa línea se pone <strong>verde</strong>. Suelta la caja. Toma la siguiente. Repite desde el punto 1.</li>
+    </ol>
+
+    <h2>Cómo se escribe la fecha (MMAA)</h2>
+    <p>En la caja ves mes y año. En la computadora son <strong>siempre 4 dígitos</strong>: primero el mes (01 a 12), luego el año (los dos últimos).</p>
     <table>
       <thead>
-        <tr><th>En la caja</th><th>Escribes</th><th>El sistema muestra</th></tr>
+        <tr><th>Si en la caja dice</th><th>Tú escribes</th><th>La pantalla muestra</th></tr>
       </thead>
       <tbody>
-        <tr><td>06/29 o jun 2029</td><td><span class="k">0629</span></td><td>jun 2029</td></tr>
+        <tr><td>06/29 · jun 2029 · 06-2029</td><td><span class="k">0629</span></td><td>jun 2029</td></tr>
         <tr><td>12/28</td><td><span class="k">1228</span></td><td>dic 2028</td></tr>
         <tr><td>01/30</td><td><span class="k">0130</span></td><td>ene 2030</td></tr>
       </tbody>
     </table>
-    <p>Si te equivocas: <strong>Cancelar</strong> y vuelve a escanear. No adivines.</p>
+    <p>Te equivocaste: <strong>Cancelar</strong> y otra vez. O quita el renglón con la <strong>×</strong> y vuelve a escanear.</p>
 
-    <h2>Colores de la lista</h2>
+    <h2>Colores</h2>
     <table>
       <thead>
-        <tr><th>Color</th><th>Qué significa</th><th>Qué haces</th></tr>
+        <tr><th>Color</th><th>Significa</th><th>Tú haces</th></tr>
       </thead>
       <tbody>
         <tr>
           <td><span class="swatch s-gris"></span> Gris</td>
-          <td>Llegó en el ticket; falta caducidad</td>
-          <td>Escanea esa caja y pon MMAA</td>
+          <td>Está en el ticket; falta la fecha de la caja</td>
+          <td>Escanear esa caja y poner MMAA</td>
         </tr>
         <tr>
           <td><span class="swatch s-verde"></span> Verde</td>
-          <td>Ya confirmaste fecha</td>
-          <td>Siguiente caja</td>
+          <td>Ya confirmaste esta caja</td>
+          <td>Pasar a la siguiente</td>
         </tr>
         <tr>
           <td><span class="swatch s-ama"></span> Amarillo</td>
-          <td>No está en catálogo</td>
-          <td>Anota el código y avísale al dueño. No se vende hasta que él lo dé de alta</td>
+          <td>Ese código no está en el catálogo</td>
+          <td>Anotar el código (o foto del empaque) y avisarle al dueño. No se vende todavía</td>
         </tr>
       </tbody>
     </table>
-    <p>Si dice <strong>“lote distinto al de anaquel”</strong>: es el mismo producto, pero otra producción. Pon la fecha de <em>esta</em> caja. No copies la del anaquel.</p>
+    <p>Si dice <strong>“lote distinto al de anaquel”</strong>: es el mismo producto, pero de otra fábrica/fecha. Pon la fecha de <em>esta</em> caja. No copies la de la que ya estaba en el anaquel.</p>
 
-    <h2>PDF y CSV</h2>
-    <p>El sistema lee un PDF de ticket o factura de proveedor. <strong>No</strong> tiene que ser un formato FarmaCapital. Tiene que verse claro. La caducidad <strong>nunca</strong> se toma del papel.</p>
-    <ul>
-      <li>Foto borrosa de ticket térmico: a veces falla. Entonces pistola caja por caja, o CSV.</li>
-      <li>CSV = plan B. Excel del proveedor guardado como CSV. Columnas: <span class="k">ean</span> o <span class="k">codigo</span>, <span class="k">nombre</span>, <span class="k">cantidad</span>. Opcional costo, lote, folio. No hay que armarlo a mano en cada entrega.</li>
-    </ul>
-    <p>Recibir muestra <strong>un borrador a la vez</strong>. Farmalive 11590 = 6 renglones. Al cerrarlo (con MMAA) sale Cityfarma 6315912 = 11. No descartes esas colas.</p>
-
-    <h2>Camino A — Ya hay lista gris</h2>
-    <p>Así llega Cityfarma, Farmalive o cuando alguien subió el PDF/CSV.</p>
+    <h2>Paso 4 — Cerrar (cuando ya no quedan cajas en la mesa)</h2>
     <ol>
-      <li>Abre <strong>Recibir</strong>. Si ves renglones grises, esa es tu lista. No subas el mismo ticket otra vez.</li>
-      <li>Toma la primera caja. Pistola al código de barras.</li>
-      <li>Revisa que el <strong>nombre coincida</strong> con lo que tienes en la mano.</li>
-      <li>La cantidad ya viene del ticket. Cuenta las piezas. Si faltan o sobran, corrige el número.</li>
-      <li>En <strong>Caducidad MMAA</strong> escribe los 4 dígitos de esa caja. Enter (o <strong>Guardar renglón</strong>).</li>
-      <li>Esa línea se pone verde. Siguiente caja.</li>
-      <li>Cuando las que <strong>sí llegaron</strong> estén verdes: <strong>Cerrar recepción</strong>. Si faltan, el botón dice <strong>Recibir lo confirmado</strong> y el resto queda pendiente. Si ya están en anaquel sin fecha, el botón se apaga.</li>
+      <li>Mira la lista. Lo que <strong>sí llegó</strong> debe estar verde.</li>
+      <li>Toca <strong>Cerrar recepción</strong>.</li>
+      <li>Si el botón dice <strong>Recibir lo confirmado</strong>: hay líneas grises (el ticket traía algo que no está en la mesa). Avisa. Puedes recibir lo verde y dejar el resto pendiente, o quitar con × lo que no llegó.</li>
+      <li>Si el botón está apagado y dice que faltan caducidades: esas cajas <strong>ya están en anaquel</strong> sin fecha. No hay truco. Hay que encontrarlas, escanear y poner MMAA.</li>
     </ol>
     <ul>
-      <li>Lo gris que no llegó se queda: es mercancía del ticket que no está en el mostrador. Avísale al dueño.</li>
-      <li>Si pide caducidad de algo ya en anaquel, no cierres: esas cajas necesitan fecha.</li>
-    </ul>
-
-    <h2>Camino B — No hay lista: caja por caja</h2>
-    <ol>
-      <li>En <strong>Ticket del proveedor</strong> llena Proveedor, Folio y Total del ticket.</li>
-      <li>Toca <strong>Empezar a escanear</strong>. (Si te pasan PDF o CSV del ticket: <strong>Subir PDF</strong> o <strong>Subir CSV</strong> y sigue el Camino A. La caducidad nunca se toma del papel.)</li>
-      <li>Pistola → cantidad → MMAA → Enter.</li>
-      <li>Mismo producto + misma caducidad: se suma. Otra fecha = otro renglón.</li>
-      <li>Al terminar: <strong>Cerrar recepción</strong>. Ahí entra el stock.</li>
-    </ol>
-
-    <h2>Si el código no está en catálogo</h2>
-    <ol>
-      <li>Aparece “queda pendiente de alta” (amarillo).</li>
-      <li>Igual pon cantidad y MMAA si la caja tiene fecha.</li>
-      <li>Esa mercancía no se vende hasta que el dueño la dé de alta.</li>
-      <li>Deja el código o una foto del empaque.</li>
-    </ol>
-
-    <h2>Al cerrar</h2>
-    <ul>
-      <li>Si hay cajas <strong>ya en anaquel sin MMAA</strong>, el botón se apaga (<em>Faltan N caducidades</em>). No hay “cerrar de todas maneras”: hay que escanear.</li>
-      <li>Si hay cajas del ticket que <strong>no llegaron</strong>: avisa y puedes <strong>Recibir lo confirmado</strong>; el resto queda pendiente en Recibir. O quítalas con ×.</li>
-      <li><strong>Recepción confirmada</strong> — listo, todas con fecha.</li>
+      <li><strong>Recepción confirmada</strong> — terminaste ese ticket.</li>
       <li><strong>No cuadra con el ticket</strong> — el stock sí entra; avísale al dueño.</li>
-      <li><strong>Códigos pendientes de alta</strong> — el resto sí se recibió; esos códigos los atiende el dueño.</li>
+      <li><strong>Pendiente de alta</strong> — el resto sí se recibió; esos códigos los atiende el dueño.</li>
     </ul>
-    <p>Si pide caducidad y no la tienes: no inventes. Busca la caja o deja esa línea gris.</p>
+    <p>Luego ← Tickets y sigue con la otra tarjeta (si quedó Cityfarma o Farmalive).</p>
 
-    <h2>Errores frecuentes</h2>
+    <h2>Si el código no está en catálogo (amarillo)</h2>
+    <ol>
+      <li>Igual cuenta piezas y pon MMAA si la caja trae fecha.</li>
+      <li>Esa mercancía <strong>no se vende</strong> hasta que el dueño la dé de alta.</li>
+      <li>Déjale el código o una foto del empaque.</li>
+    </ol>
+
+    <h2>Si te trabas</h2>
     <table>
       <thead>
-        <tr><th>Error</th><th>Qué hacer</th></tr>
+        <tr><th>Qué pasó</th><th>Qué haces</th></tr>
       </thead>
       <tbody>
-        <tr><td>Caja equivocada</td><td><strong>Cancelar</strong>, escanea la correcta</td></tr>
-        <tr><td>Fecha mal</td><td>Quita el renglón con la ×, vuelve a escanear</td></tr>
-        <tr><td>Dos cajas, dos fechas</td><td>Dos renglones, dos MMAA. Nunca una sola fecha</td></tr>
-        <tr><td>El ticket trae algo que no llegó</td><td>Déjalo gris. No lo confirmes</td></tr>
+        <tr><td>Escaneé la caja equivocada</td><td><strong>Cancelar</strong>, escanea la correcta</td></tr>
+        <tr><td>Puse mal la fecha</td><td>Quita el renglón con ×, vuelve a escanear</td></tr>
+        <tr><td>Dos cajas, dos fechas distintas</td><td>Dos renglones. Nunca una sola fecha para las dos</td></tr>
+        <tr><td>El ticket trae algo que no llegó</td><td>Déjalo gris. No lo confirmes. Avisa</td></tr>
         <tr><td>Llegó algo que no está en el ticket</td><td>Escánéalo igual. El dueño ve el descuadre</td></tr>
-        <tr><td>Toqué Descartar</td><td>Solo si empezaste por error. Si era lista de corroborar, avísale al dueño</td></tr>
+        <tr><td>Quiero el otro ticket</td><td>← Tickets, toca la otra tarjeta. No Descartar</td></tr>
+        <tr><td>Toqué Descartar</td><td>Solo está bien si era un ticket vacío de prueba. Si era Cityfarma/Farmalive, avísale al dueño</td></tr>
+        <tr><td>No veo Recibir, o veo Catálogo dentro de Recibir</td><td>Cierra la app y entra de nuevo. La versión nueva separa Recibir e Inventario</td></tr>
       </tbody>
     </table>
 
     <div class="card ok">
-      <strong>En una línea.</strong> Pistola = “sí está aquí”. MMAA = “esta es la fecha de esta caja”. Cerrar = “ya conté lo que sí llegó”.
+      <strong>En tres frases.</strong>
+      Recibir = cajas. Inventario = consultar.
+      Pistola = “sí está aquí”. MMAA = “esta es la fecha de esta caja”.
+      Cerrar = “ya conté lo que sí llegó”.
     </div>
 
-    <p class="foot">FarmaCapital · Menú Recibir · El Manual del sistema está en el menú (libro), no en el botón ?. No usar Reabasto ni Catálogo para meter caducidades de entrega.</p>
+    <p class="foot">FarmaCapital · Menú Recibir · El Manual del sistema está en el menú (libro), no en el botón ?. No uses Reabasto ni Inventario para meter caducidades de una entrega.</p>
   </div>
 </body>
 </html>

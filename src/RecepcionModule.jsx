@@ -40,6 +40,15 @@ function itemMatchScan(it, codigo) {
   return false;
 }
 
+function ticketMatchScan(t, raw) {
+  const codigo = normalizeBarcodeRaw(raw) || String(raw || "").trim();
+  if (!t || !codigo) return false;
+  const codes = Array.isArray(t.codigos) ? t.codigos : [];
+  if (codes.some((c) => c && barcodeDigitsMatch(codigo, c))) return true;
+  if (t.folio && String(t.folio).replace(/\D/g, "") === codigo.replace(/\D/g, "") && codigo.length >= 4) return true;
+  return false;
+}
+
 const inpBase = (C, extra = {}) => ({
   width: "100%",
   boxSizing: "border-box",
@@ -113,7 +122,13 @@ function ProveedorCombo({ id, value, onChange, onCommit, proveedores, C, style }
         onFocus={() => setOpen(true)}
         onBlur={() => {
           setTimeout(() => setOpen(false), 140);
-          onCommit?.(value);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            onCommit?.(value);
+            setOpen(false);
+          }
         }}
         style={style}
       />
@@ -195,6 +210,8 @@ export default function RecepcionModule({ ocultarMontos = false }) {
   const [subiendo, setSubiendo] = useState(false);
   const [pendientes, setPendientes] = useState([]);
   const [vistaNuevo, setVistaNuevo] = useState(false);
+  const [listaScan, setListaScan] = useState("");
+  const listaScanRef = useRef(null);
 
   const aplicarDoc = useCallback((raw) => {
     const d = unwrapJson(raw);
@@ -260,7 +277,10 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     if (!loading && doc && !pendiente) {
       scanRef.current?.focus();
     }
-  }, [loading, doc, pendiente]);
+    if (!loading && !doc && !vistaNuevo) {
+      listaScanRef.current?.focus();
+    }
+  }, [loading, doc, pendiente, vistaNuevo]);
 
   const rpcError = (err, fallback) => {
     const msg = err?.message || fallback;
@@ -414,6 +434,22 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     setPendiente(null);
     setErrorLinea("");
     setTimeout(() => scanRef.current?.focus(), 30);
+  };
+
+  const abrirPorCodigoLista = async (raw) => {
+    const codigo = normalizeBarcodeRaw(raw) || String(raw || "").trim();
+    setListaScan("");
+    if (!codigo) return;
+    const hits = pendientes.filter((t) => ticketMatchScan(t, codigo));
+    if (hits.length === 1) {
+      await abrirPendiente(hits[0].id);
+      return;
+    }
+    if (hits.length > 1) {
+      showToast("Ese código está en más de un ticket. Toca la tarjeta.", "warning");
+      return;
+    }
+    showToast("Esa caja no está en un ticket pendiente. Toca la tarjeta o Nuevo ticket.", "warning");
   };
 
   const abrirPendiente = async (id) => {
@@ -672,7 +708,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
           </h2>
           <p style={{ margin: "4px 0 0", color: C.textMid, fontSize: 13 }}>
             {doc
-              ? "Escanea, cantidad, caducidad MMAA."
+              ? "Escanea, cantidad, caducidad MMAA. Hasta entonces no se vende en POS ni en línea."
               : "Tickets pendientes de caducidad, o uno nuevo."}
           </p>
         </div>
@@ -704,6 +740,30 @@ export default function RecepcionModule({ ocultarMontos = false }) {
           >
             Nuevo ticket
           </button>
+          {pendientes.length > 0 && (
+            <div style={{ marginBottom: 16 }}>
+              <label style={labelS(C)} htmlFor="rc-lista-scan">Código de barras</label>
+              <input
+                id="rc-lista-scan"
+                ref={listaScanRef}
+                value={listaScan}
+                onChange={(e) => setListaScan(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    abrirPorCodigoLista(listaScan);
+                  }
+                }}
+                placeholder="Pistola aquí — abre el ticket de esa caja"
+                autoComplete="off"
+                inputMode="numeric"
+                style={inpBase(C)}
+              />
+              <div style={{ color: C.textDim, fontSize: 12, marginTop: 6, lineHeight: 1.45 }}>
+                No hace falta el folio. Toca la tarjeta, o escanea cualquier caja del ticket.
+              </div>
+            </div>
+          )}
           {pendientes.length === 0 ? (
             <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: isMobile ? 20 : 24, color: C.textMid, fontSize: 13, lineHeight: 1.5 }}>
               No hay tickets pendientes. Nuevo ticket, o sube PDF/CSV desde ahí.

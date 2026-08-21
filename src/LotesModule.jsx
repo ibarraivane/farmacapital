@@ -345,7 +345,7 @@ export default function LotesModule() {
                         Sin lotes para «{filtroP.trim()}».
                         <br />
                         <span style={{ fontSize: 11 }}>
-                          Si el producto está en <strong>Catálogo</strong> pero no aparece aquí, aún no tiene lote PEPS — usa <strong>+ Registrar lote</strong> o la pestaña <strong>Recibir</strong>.
+                          Si el producto está en <strong>Catálogo</strong> pero no aparece aquí, aún no tiene lote PEPS — usa <strong>+ Registrar lote</strong> o el menú <strong>Recibir</strong>.
                         </span>
                       </>
                     ) : (

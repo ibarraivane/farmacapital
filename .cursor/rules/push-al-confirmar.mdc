@@ -1,0 +1,13 @@
+---
+description: After the user confirms a change, commit and push without waiting to be asked.
+alwaysApply: true
+---
+
+# Push al confirmar
+
+Cuando el usuario confirma un cambio (sí, de acuerdo, está bien, adelante, esa lógica, etc.):
+
+1. Haz commit de **solo** los archivos de ese trabajo (no el árbol sucio ajeno).
+2. Haz `git push` a la rama actual. No preguntes otra vez si hay que publicar.
+3. No hagas force push a main/master.
+4. No incluyas `.env`, secretos ni SQL/CSV de inventario que no pertenezcan al cambio confirmado.
