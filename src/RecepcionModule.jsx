@@ -295,12 +295,18 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     e?.preventDefault();
     const tok = sessionTok();
     if (!tok) return;
+    const folioN = folio.trim();
+    const ya = pendientes.find((t) => folioN && String(t.folio || "").trim() === folioN && (t.renglones || 0) > 0);
+    if (ya) {
+      await abrirPendiente(ya.id);
+      return;
+    }
     setSaving(true);
     const total = totalTicket.trim() === "" ? null : Number(String(totalTicket).replace(/,/g, ""));
     const { data, error } = await supabase.rpc("recepcion_abrir", {
       p_session_token: tok,
       p_proveedor: proveedor.trim() || null,
-      p_folio: folio.trim() || null,
+      p_folio: folioN || null,
       p_total_ticket: Number.isFinite(total) ? total : null,
     });
     setSaving(false);
@@ -994,8 +1000,13 @@ export default function RecepcionModule({ ocultarMontos = false }) {
 
           <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
             {items.length === 0 && (
-              <div style={{ color: C.textMid, fontSize: 13, padding: "20px 8px", textAlign: "center" }}>
-                Todavía no hay renglones. Escanea o sube el PDF/CSV del ticket.
+              <div style={{ color: C.text, fontSize: 13, padding: "20px 8px", textAlign: "center", lineHeight: 1.5 }}>
+                Este ticket está vacío. No escribas el folio otra vez.
+                <div style={{ marginTop: 10 }}>
+                  <button type="button" onClick={volverALista} style={{ border: "none", background: "transparent", color: BRAND.primary, fontWeight: 800, fontSize: 14, cursor: "pointer" }}>
+                    ← Ver tickets pendientes
+                  </button>
+                </div>
               </div>
             )}
             {items.map((it) => {
