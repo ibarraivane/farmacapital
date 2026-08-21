@@ -92,8 +92,8 @@
     <h2>Antes de empezar</h2>
     <ol>
       <li>Entra con <strong>tu usuario</strong>.</li>
-      <li>Abre <strong>Inventario</strong>.</li>
-      <li>Toca la pestaña <strong>Recibir</strong>.</li>
+      <li>En el menú izquierdo toca <strong>Recibir</strong> (no Inventario). Inventario es la consulta de existencias.</li>
+      <li>Si no ves Recibir ni Manual: cierra la app del todo y vuelve a entrar (o recarga fuerte).</li>
       <li>Ten el <strong>ticket del proveedor</strong> y las <strong>cajas físicas</strong>.</li>
       <li>La pistola apunta al recuadro <strong>Código de barras</strong> (dice “Pistola aquí”).</li>
     </ol>
@@ -147,6 +147,14 @@
     </table>
     <p>Si dice <strong>“lote distinto al de anaquel”</strong>: es el mismo producto, pero otra producción. Pon la fecha de <em>esta</em> caja. No copies la del anaquel.</p>
 
+    <h2>PDF y CSV</h2>
+    <p>El sistema lee un PDF de ticket o factura de proveedor. <strong>No</strong> tiene que ser un formato FarmaCapital. Tiene que verse claro. La caducidad <strong>nunca</strong> se toma del papel.</p>
+    <ul>
+      <li>Foto borrosa de ticket térmico: a veces falla. Entonces pistola caja por caja, o CSV.</li>
+      <li>CSV = plan B. Excel del proveedor guardado como CSV. Columnas: <span class="k">ean</span> o <span class="k">codigo</span>, <span class="k">nombre</span>, <span class="k">cantidad</span>. Opcional costo, lote, folio. No hay que armarlo a mano en cada entrega.</li>
+    </ul>
+    <p>Recibir muestra <strong>un borrador a la vez</strong>. Farmalive 11590 = 6 renglones. Al cerrarlo (con MMAA) sale Cityfarma 6315912 = 11. No descartes esas colas.</p>
+
     <h2>Camino A — Ya hay lista gris</h2>
     <p>Así llega Cityfarma, Farmalive o cuando alguien subió el PDF/CSV.</p>
     <ol>
@@ -156,7 +164,7 @@
       <li>La cantidad ya viene del ticket. Cuenta las piezas. Si faltan o sobran, corrige el número.</li>
       <li>En <strong>Caducidad MMAA</strong> escribe los 4 dígitos de esa caja. Enter (o <strong>Guardar renglón</strong>).</li>
       <li>Esa línea se pone verde. Siguiente caja.</li>
-      <li>Cuando todas las cajas que <strong>sí llegaron</strong> estén verdes, toca <strong>Cerrar recepción</strong>.</li>
+      <li>Cuando las que <strong>sí llegaron</strong> estén verdes: <strong>Cerrar recepción</strong>. Si faltan, el botón dice <strong>Recibir lo confirmado</strong> y el resto queda pendiente. Si ya están en anaquel sin fecha, el botón se apaga.</li>
     </ol>
     <ul>
       <li>Lo gris que no llegó se queda: es mercancía del ticket que no está en el mostrador. Avísale al dueño.</li>
@@ -182,7 +190,9 @@
 
     <h2>Al cerrar</h2>
     <ul>
-      <li><strong>Recepción confirmada</strong> — listo.</li>
+      <li>Si hay cajas <strong>ya en anaquel sin MMAA</strong>, el botón se apaga (<em>Faltan N caducidades</em>). No hay “cerrar de todas maneras”: hay que escanear.</li>
+      <li>Si hay cajas del ticket que <strong>no llegaron</strong>: avisa y puedes <strong>Recibir lo confirmado</strong>; el resto queda pendiente en Recibir. O quítalas con ×.</li>
+      <li><strong>Recepción confirmada</strong> — listo, todas con fecha.</li>
       <li><strong>No cuadra con el ticket</strong> — el stock sí entra; avísale al dueño.</li>
       <li><strong>Códigos pendientes de alta</strong> — el resto sí se recibió; esos códigos los atiende el dueño.</li>
     </ul>
@@ -207,7 +217,7 @@
       <strong>En una línea.</strong> Pistola = “sí está aquí”. MMAA = “esta es la fecha de esta caja”. Cerrar = “ya conté lo que sí llegó”.
     </div>
 
-    <p class="foot">FarmaCapital · Inventario → Recibir · No usar Reabasto ni Catálogo para meter caducidades de entrega.</p>
+    <p class="foot">FarmaCapital · Menú Recibir · El Manual del sistema está en el menú (libro), no en el botón ?. No usar Reabasto ni Catálogo para meter caducidades de entrega.</p>
   </div>
 </body>
 </html>
