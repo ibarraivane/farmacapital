@@ -43,7 +43,7 @@ function itemMatchScan(it, codigo) {
 function etiquetaProveedorLista(nombre) {
   const n = String(nombre || "").trim();
   if (!n) return "Sin proveedor";
-  if (/cityfarma/i.test(n)) return "Cityfarma";
+  if (/cityfarma/i.test(n)) return "Farma City";
   if (/farmalive|farmalife/i.test(n)) return "Farmalive";
   return n;
 }
@@ -285,10 +285,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     if (!loading && doc && !pendiente) {
       scanRef.current?.focus();
     }
-    if (!loading && !doc && !vistaNuevo) {
-      listaScanRef.current?.focus();
-    }
-  }, [loading, doc, pendiente, vistaNuevo]);
+  }, [loading, doc, pendiente]);
 
   const rpcError = (err, fallback) => {
     const msg = err?.message || fallback;
@@ -482,6 +479,15 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     setVistaNuevo(false);
     aplicarDoc(data);
     setTimeout(() => scanRef.current?.focus(), 40);
+  };
+
+  const elegirCarga = async (id) => {
+    if (doc?.id === id) {
+      setTimeout(() => scanRef.current?.focus(), 40);
+      return;
+    }
+    resetLinea();
+    await abrirPendiente(id);
   };
 
   const volverALista = async () => {
@@ -680,7 +686,13 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     if (estado === "pendiente_alta") {
       showToast(`Stock recibido. ${rec.pendientes_alta} código(s) no están en catálogo — quedan pendientes de alta.`, "warning");
     } else {
-      showToast(`Recepción confirmada · ${rec?.piezas || 0} pzas`, "success");
+      const quedan = pendientes.filter((t) => t.id !== doc.id).length;
+      showToast(
+        quedan > 0
+          ? "Guardado. Toca el siguiente proveedor."
+          : `Recepción confirmada · ${rec?.piezas || 0} pzas`,
+        "success",
+      );
     }
     setDoc(null);
     setProveedor("");
@@ -717,9 +729,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
             <ScanLine size={22} strokeWidth={2.2} /> Recibir
           </h2>
           <p style={{ margin: "4px 0 0", color: C.textMid, fontSize: 13 }}>
-            {doc
-              ? "Escanea cada caja y pon caducidad MMAA."
-              : "Toca el proveedor. No hace falta el número del ticket."}
+            Toca el proveedor. Abajo salen las cajas. Escanea, guarda, y sigue con el otro.
           </p>
         </div>
         {doc && (
@@ -737,78 +747,57 @@ export default function RecepcionModule({ ocultarMontos = false }) {
         )}
       </div>
 
-      {!doc && !vistaNuevo && (
-        <div>
-          {pendientes.length === 0 ? (
-            <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: isMobile ? 20 : 24, color: C.textMid, fontSize: 13, lineHeight: 1.5 }}>
-              No hay tickets pendientes.
-            </div>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
-              <div style={{ color: C.text, fontWeight: 800, fontSize: 15, marginBottom: 4 }}>
-                ¿De qué proveedor son estas cajas?
-              </div>
-              {pendientes.map((t) => {
-                const falta = (t.sin_caducidad_anaquel || 0) + (t.sin_confirmar || 0);
-                const alta = t.pendientes_alta || 0;
-                const cajas = t.renglones || 0;
-                return (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => abrirPendiente(t.id)}
-                    disabled={saving}
-                    style={{
-                      display: "block", width: "100%", textAlign: "left",
-                      background: C.card, border: `1px solid ${C.border}`, borderRadius: 12,
-                      padding: "14px 16px", cursor: "pointer",
-                    }}
-                  >
-                    <div style={{ color: C.text, fontWeight: 800, fontSize: 18 }}>
-                      {etiquetaProveedorLista(t.proveedor)}
-                    </div>
-                    <div style={{ color: C.textMid, fontSize: 13, marginTop: 4 }}>
-                      {cajas ? `${cajas} caja${cajas === 1 ? "" : "s"} por recibir` : "Sin renglones"}
-                      {falta > 0 ? ` · falta caducidad` : ""}
-                      {alta > 0 ? ` · ${alta} sin catálogo` : ""}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-          {pendientes.length > 0 && (
-            <div style={{ marginBottom: 20 }}>
-              <label style={labelS(C)} htmlFor="rc-lista-scan">O escanea una caja</label>
-              <input
-                id="rc-lista-scan"
-                ref={listaScanRef}
-                value={listaScan}
-                onChange={(e) => setListaScan(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    abrirPorCodigoLista(listaScan);
-                  }
+      {!vistaNuevo && pendientes.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
+          {pendientes.map((t) => {
+            const activo = doc?.id === t.id;
+            const cajas = t.renglones || 0;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => elegirCarga(t.id)}
+                disabled={saving}
+                style={{
+                  flex: "1 1 140px",
+                  textAlign: "left",
+                  background: activo ? `${BRAND.primary}14` : C.card,
+                  border: `2px solid ${activo ? BRAND.primary : C.border}`,
+                  borderRadius: 12,
+                  padding: "12px 14px",
+                  cursor: "pointer",
                 }}
-                placeholder="Pistola aquí"
-                autoComplete="off"
-                inputMode="numeric"
-                style={inpBase(C)}
-              />
-            </div>
-          )}
-          <button
-            type="button"
-            onClick={() => setVistaNuevo(true)}
-            style={{
-              padding: 0, border: "none", background: "transparent",
-              color: C.textMid, fontWeight: 700, fontSize: 13, cursor: "pointer",
-            }}
-          >
-            Ticket que no está en la lista…
-          </button>
+              >
+                <div style={{ color: activo ? BRAND.primary : C.text, fontWeight: 800, fontSize: 16 }}>
+                  {etiquetaProveedorLista(t.proveedor)}
+                </div>
+                <div style={{ color: C.textMid, fontSize: 12, marginTop: 2 }}>
+                  {cajas} {cajas === 1 ? "caja" : "cajas"}
+                </div>
+              </button>
+            );
+          })}
         </div>
+      )}
+
+      {!doc && !vistaNuevo && pendientes.length === 0 && (
+        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: isMobile ? 20 : 24, color: C.textMid, fontSize: 13, lineHeight: 1.5, marginBottom: 16 }}>
+          No hay cargas pendientes.
+        </div>
+      )}
+
+      {!doc && !vistaNuevo && !ocultarMontos && (
+        <button
+          type="button"
+          onClick={() => setVistaNuevo(true)}
+          style={{
+            padding: 0, border: "none", background: "transparent",
+            color: C.textMid, fontWeight: 700, fontSize: 13, cursor: "pointer",
+            marginBottom: 8,
+          }}
+        >
+          Ticket que no está en la lista…
+        </button>
       )}
 
       {!doc && vistaNuevo && (
@@ -875,43 +864,6 @@ export default function RecepcionModule({ ocultarMontos = false }) {
 
       {doc && (
         <>
-          <button type="button" onClick={volverALista} style={{ border: "none", background: "transparent", color: C.textMid, fontWeight: 700, fontSize: 13, cursor: "pointer", padding: 0, marginBottom: 12 }}>
-            ← Tickets
-          </button>
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr auto", gap: 8, marginBottom: 16, alignItems: "end" }}>
-            <div>
-              <label style={labelS(C)}>Proveedor</label>
-              <ProveedorCombo
-                id="rc-prov-doc"
-                value={proveedor}
-                onChange={setProveedor}
-                onCommit={(v) => guardarCabecera({ proveedor: v })}
-                proveedores={proveedores}
-                C={C}
-                style={inpBase(C, { padding: "9px 12px", fontSize: 14 })}
-              />
-            </div>
-            <div>
-              <label style={labelS(C)}>Folio</label>
-              <input value={folio} onChange={(e) => setFolio(e.target.value)} onBlur={guardarCabecera} style={inpBase(C, { padding: "9px 12px", fontSize: 14 })} />
-            </div>
-            {!ocultarMontos && (
-            <div>
-              <label style={labelS(C)}>Total ticket</label>
-              <input value={totalTicket} onChange={(e) => setTotalTicket(e.target.value)} onBlur={guardarCabecera} inputMode="decimal" style={inpBase(C, { padding: "9px 12px", fontSize: 14 })} />
-            </div>
-            )}
-            <button type="button" onClick={descartar} style={{ padding: "9px 12px", borderRadius: 8, border: `1px solid ${C.border}`, background: "transparent", color: C.textMid, fontWeight: 700, fontSize: 12, cursor: "pointer", height: 42 }}>
-              Descartar
-            </button>
-            <button type="button" disabled={subiendo} onClick={() => pdfRef.current?.click()} style={{ padding: "9px 12px", borderRadius: 8, border: `1px solid ${C.border}`, background: "transparent", color: C.textMid, fontWeight: 700, fontSize: 12, cursor: "pointer", height: 42 }}>
-              PDF
-            </button>
-            <button type="button" disabled={subiendo} onClick={() => csvRef.current?.click()} style={{ padding: "9px 12px", borderRadius: 8, border: `1px solid ${C.border}`, background: "transparent", color: C.textMid, fontWeight: 700, fontSize: 12, cursor: "pointer", height: 42 }}>
-              CSV
-            </button>
-          </div>
-
           <div style={{ background: C.card, border: `1px solid ${pendiente ? C.blue : C.border}`, borderRadius: 14, padding: 16, marginBottom: 16 }}>
             <label style={labelS(C)} htmlFor="rc-scan">Código de barras</label>
             <input
@@ -1002,13 +954,8 @@ export default function RecepcionModule({ ocultarMontos = false }) {
 
           <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
             {items.length === 0 && (
-              <div style={{ color: C.text, fontSize: 13, padding: "20px 8px", textAlign: "center", lineHeight: 1.5 }}>
-                Este ticket está vacío. No escribas el folio otra vez.
-                <div style={{ marginTop: 10 }}>
-                  <button type="button" onClick={volverALista} style={{ border: "none", background: "transparent", color: BRAND.primary, fontWeight: 800, fontSize: 14, cursor: "pointer" }}>
-                    ← Ver tickets pendientes
-                  </button>
-                </div>
+              <div style={{ color: C.textMid, fontSize: 13, padding: "20px 8px", textAlign: "center" }}>
+                Toca Farma City o Farmalive arriba. Aquí salen las cajas.
               </div>
             )}
             {items.map((it) => {
@@ -1079,10 +1026,10 @@ export default function RecepcionModule({ ocultarMontos = false }) {
                 : anaquelSinCad > 0
                   ? `Faltan ${anaquelSinCad} caducidad${anaquelSinCad === 1 ? "" : "es"}`
                   : confirmadosOk === 0
-                    ? "Escanea para cerrar"
+                    ? "Escanea para guardar"
                     : grisPendiente > 0
-                      ? "Recibir lo confirmado"
-                      : "Cerrar recepción"}
+                      ? "Guardar lo confirmado"
+                      : "Guardar"}
             </button>
           </div>
         </>
