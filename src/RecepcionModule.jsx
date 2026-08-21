@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { ScanLine } from "lucide-react";
 import { C_LIGHT, BRAND } from "./constants";
 import { supabase } from "./supabase";
@@ -14,12 +14,22 @@ import {
 import { etiquetaCaducidadMMAA, formatCaducidadMesAnio, parseCaducidadMMAA } from "./lib/caducidad";
 import { fetchProductosPaginados } from "./lib/inventarioHubData";
 import { parseTicketCsv } from "./lib/recepcionTicketCsv";
+import { getSessionToken, esErrorSesionEmpleado } from "./utils";
+import { notifySesionEmpleadoInvalida } from "./utils/sesionEmpleadoAuth";
 
 const fmt = (n) =>
   `$${parseFloat(n || 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+const fmtFecha = (f) => {
+  const s = String(f || "").slice(0, 10);
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : "";
+};
+
 function sessionTok() {
-  return sessionStorage.getItem("farmacapital_session_token");
+  const tok = getSessionToken();
+  if (!tok) notifySesionEmpleadoInvalida();
+  return tok;
 }
 
 function unwrapJson(data) {
@@ -34,6 +44,23 @@ function itemMatchScan(it, codigo) {
   if (!it || !codigo) return false;
   if (it.codigo_escaneado && barcodeDigitsMatch(codigo, it.codigo_escaneado)) return true;
   if (it.sku && String(it.sku).toUpperCase() === String(codigo).toUpperCase()) return true;
+  return false;
+}
+
+function etiquetaProveedorLista(nombre) {
+  const n = String(nombre || "").trim();
+  if (!n) return "Sin proveedor";
+  if (/cityfarma/i.test(n)) return "Farma City";
+  if (/farmalive|farmalife/i.test(n)) return "Farmalive";
+  return n;
+}
+
+function ticketMatchScan(t, raw) {
+  const codigo = normalizeBarcodeRaw(raw) || String(raw || "").trim();
+  if (!t || !codigo) return false;
+  const codes = Array.isArray(t.codigos) ? t.codigos : [];
+  if (codes.some((c) => c && barcodeDigitsMatch(codigo, c))) return true;
+  if (t.folio && String(t.folio).replace(/\D/g, "") === codigo.replace(/\D/g, "") && codigo.length >= 4) return true;
   return false;
 }
 
@@ -60,6 +87,117 @@ const labelS = (C) => ({
   marginBottom: 6,
 });
 
+function normProv(s) {
+  return String(s || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function nombresProveedorUnicos(proveedores) {
+  const seen = new Set();
+  const out = [];
+  for (const p of proveedores || []) {
+    const n = String(p?.nombre || "").trim();
+    if (!n) continue;
+    const k = normProv(n);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(n);
+  }
+  return out.sort((a, b) => a.localeCompare(b, "es"));
+}
+
+/** Texto libre + sugerencias del catálogo. No usa datalist nativo (el globo negro del OS). */
+function ProveedorCombo({ id, value, onChange, onCommit, proveedores, C, style }) {
+  const [open, setOpen] = useState(false);
+  const opts = useMemo(() => nombresProveedorUnicos(proveedores), [proveedores]);
+  const q = normProv(value);
+  const filtered = q ? opts.filter((n) => normProv(n).includes(q)) : opts;
+  const exacto = q && opts.some((n) => normProv(n) === q);
+  const show = open && filtered.length > 0 && !(exacto && filtered.length === 1);
+
+  const elegir = (n) => {
+    onChange(n);
+    setOpen(false);
+    onCommit?.(n);
+  };
+
+  return (
+    <div style={{ position: "relative" }}>
+      <input
+        id={id}
+        value={value}
+        autoComplete="off"
+        autoCorrect="off"
+        spellCheck={false}
+        placeholder="Nadro, Marzam…"
+        onChange={(e) => { onChange(e.target.value); setOpen(true); }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => {
+          setTimeout(() => setOpen(false), 140);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            onCommit?.(value);
+            setOpen(false);
+          }
+        }}
+        style={style}
+      />
+      {show && (
+        <div
+          role="listbox"
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            top: "100%",
+            marginTop: 4,
+            zIndex: 30,
+            background: C.card,
+            border: `1px solid ${C.border}`,
+            borderRadius: 10,
+            boxShadow: "0 8px 24px rgba(15,23,42,0.10)",
+            overflow: "hidden",
+            maxHeight: 220,
+          }}
+        >
+          {filtered.slice(0, 8).map((n) => (
+            <button
+              key={n}
+              type="button"
+              role="option"
+              onMouseDown={(e) => { e.preventDefault(); elegir(n); }}
+              style={{
+                display: "block",
+                width: "100%",
+                textAlign: "left",
+                border: "none",
+                background: "transparent",
+                padding: "10px 12px",
+                color: C.text,
+                fontWeight: 700,
+                fontSize: 14,
+                cursor: "pointer",
+              }}
+            >
+              {n}
+            </button>
+          ))}
+          {q && !exacto && (
+            <div style={{ padding: "8px 12px", color: C.textDim, fontSize: 11, borderTop: `1px solid ${C.border}` }}>
+              Enter deja “{value.trim()}” como proveedor nuevo
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function RecepcionModule({ ocultarMontos = false }) {
   const C = C_LIGHT;
   const isMobile = useMediaQuery("(max-width: 768px)");
@@ -85,6 +223,10 @@ export default function RecepcionModule({ ocultarMontos = false }) {
   const [pendiente, setPendiente] = useState(null);
   const [errorLinea, setErrorLinea] = useState("");
   const [subiendo, setSubiendo] = useState(false);
+  const [pendientes, setPendientes] = useState([]);
+  const [vistaNuevo, setVistaNuevo] = useState(false);
+  const [listaScan, setListaScan] = useState("");
+  const listaScanRef = useRef(null);
 
   const aplicarDoc = useCallback((raw) => {
     const d = unwrapJson(raw);
@@ -98,6 +240,28 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     return rec;
   }, []);
 
+  const cargarLista = useCallback(async () => {
+    const tok = sessionTok();
+    if (!tok) return { ok: false };
+    const { data, error } = await supabase.rpc("recepcion_listar_abiertas", { p_session_token: tok });
+    if (error) {
+      const msg = error.message || "";
+      if (esErrorSesionEmpleado(msg)) {
+        return { ok: false };
+      }
+      if (/does not exist|schema cache|listar_abiertas/i.test(msg)) {
+        showToast("Falta correr sql/patch_recepcion_lista_pendientes_20260821.sql en Supabase.", "error");
+        setPendientes([]);
+        return { ok: false, missingRpc: true };
+      }
+      showToast("No se pudieron listar tickets: " + msg, "error");
+      return { ok: false };
+    }
+    const raw = unwrapJson(data);
+    setPendientes(Array.isArray(raw) ? raw : []);
+    return { ok: true };
+  }, []);
+
   const cargar = useCallback(async () => {
     setLoading(true);
     const tok = sessionTok();
@@ -106,8 +270,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
       showToast("Sesión expirada.", "error");
       return;
     }
-    const [borradorRes, provRes, prodRes] = await Promise.all([
-      supabase.rpc("recepcion_borrador_abierto", { p_session_token: tok }),
+    const [provRes, prodRes] = await Promise.all([
       supabase.rpc("empleado_listar_proveedores_catalogo", { p_session_token: tok }),
       fetchProductosPaginados({
         select: "id,nombre,sku,codigo_barras,activo",
@@ -115,15 +278,10 @@ export default function RecepcionModule({ ocultarMontos = false }) {
         order: "nombre",
       }),
     ]);
-    if (borradorRes.error) {
-      const msg = borradorRes.error.message || "";
-      if (/does not exist|schema cache|recepcion_borrador/i.test(msg)) {
-        showToast("Falta correr sql/patch_recepcion_fefo_caducidad_20260821.sql en Supabase.", "error");
-      } else {
-        showToast("No se pudo abrir recepción: " + msg, "error");
-      }
-    } else {
-      aplicarDoc(borradorRes.data);
+    const lista = await cargarLista();
+    if (lista?.missingRpc) {
+      const { data: borrador } = await supabase.rpc("recepcion_borrador_abierto", { p_session_token: tok });
+      aplicarDoc(borrador);
     }
     const prov = unwrapJson(provRes.data);
     setProveedores(Array.isArray(prov) ? prov : []);
@@ -134,7 +292,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
       setProductos(prodRes.data || []);
     }
     setLoading(false);
-  }, [aplicarDoc]);
+  }, [aplicarDoc, cargarLista]);
 
   useEffect(() => { cargar(); }, [cargar]);
 
@@ -146,8 +304,8 @@ export default function RecepcionModule({ ocultarMontos = false }) {
 
   const rpcError = (err, fallback) => {
     const msg = err?.message || fallback;
-    if (/does not exist|schema cache|cargar_renglones|confirmar_item/i.test(msg)) {
-      showToast("Falta correr sql/patch_recepcion_pdf_confirmar_20260821.sql en Supabase.", "error");
+    if (/does not exist|schema cache|cargar_renglones|confirmar_item|listar_abiertas|abrir_existente/i.test(msg)) {
+      showToast("Falta correr sql/patch_recepcion_lista_pendientes_20260821.sql en Supabase.", "error");
       return;
     }
     showToast(msg, "error");
@@ -157,16 +315,23 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     e?.preventDefault();
     const tok = sessionTok();
     if (!tok) return;
+    const folioN = folio.trim();
+    const ya = pendientes.find((t) => folioN && String(t.folio || "").trim() === folioN && (t.renglones || 0) > 0);
+    if (ya) {
+      await abrirPendiente(ya.id);
+      return;
+    }
     setSaving(true);
     const total = totalTicket.trim() === "" ? null : Number(String(totalTicket).replace(/,/g, ""));
     const { data, error } = await supabase.rpc("recepcion_abrir", {
       p_session_token: tok,
       p_proveedor: proveedor.trim() || null,
-      p_folio: folio.trim() || null,
+      p_folio: folioN || null,
       p_total_ticket: Number.isFinite(total) ? total : null,
     });
     setSaving(false);
     if (error) { rpcError(error, "No se pudo empezar la recepción"); return; }
+    setVistaNuevo(false);
     aplicarDoc(data);
     setTimeout(() => scanRef.current?.focus(), 40);
   };
@@ -215,6 +380,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
       return;
     }
     aplicarDoc(data);
+    setVistaNuevo(false);
     const n = renglones.length;
     showToast(`${n} renglón${n === 1 ? "" : "es"} del ticket. Escanea cada caja y pon MMAA.`, "success");
     setTimeout(() => scanRef.current?.focus(), 40);
@@ -270,18 +436,20 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     }
   };
 
-  const guardarCabecera = async () => {
+  const guardarCabecera = async (patch = {}) => {
     if (!doc?.id) return;
     const tok = sessionTok();
     const total = totalTicket.trim() === "" ? null : Number(String(totalTicket).replace(/,/g, ""));
+    const prov = patch.proveedor !== undefined ? patch.proveedor : proveedor;
     const { data, error } = await supabase.rpc("recepcion_guardar_cabecera", {
       p_session_token: tok,
       p_recepcion_id: doc.id,
-      p_proveedor: proveedor.trim() || null,
+      p_proveedor: String(prov || "").trim() || null,
       p_folio: folio.trim() || null,
       p_total_ticket: Number.isFinite(total) ? total : null,
     });
     if (error) rpcError(error, "No se guardó la cabecera");
+
     else aplicarDoc(data);
   };
 
@@ -292,6 +460,59 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     setPendiente(null);
     setErrorLinea("");
     setTimeout(() => scanRef.current?.focus(), 30);
+  };
+
+  const abrirPorCodigoLista = async (raw) => {
+    const codigo = normalizeBarcodeRaw(raw) || String(raw || "").trim();
+    setListaScan("");
+    if (!codigo) return;
+    const hits = pendientes.filter((t) => ticketMatchScan(t, codigo));
+    if (hits.length === 1) {
+      await abrirPendiente(hits[0].id);
+      return;
+    }
+    if (hits.length > 1) {
+      showToast("Ese código está en más de un ticket. Toca la tarjeta.", "warning");
+      return;
+    }
+    showToast("Esa caja no está en un ticket pendiente. Toca la tarjeta o Nuevo ticket.", "warning");
+  };
+
+  const abrirPendiente = async (id) => {
+    const tok = sessionTok();
+    if (!tok || !id) return;
+    setSaving(true);
+    const { data, error } = await supabase.rpc("recepcion_abrir_existente", {
+      p_session_token: tok,
+      p_recepcion_id: id,
+    });
+    setSaving(false);
+    if (error) {
+      rpcError(error, "No se pudo abrir el ticket");
+      return;
+    }
+    setVistaNuevo(false);
+    aplicarDoc(data);
+    setTimeout(() => scanRef.current?.focus(), 40);
+  };
+
+  const elegirCarga = async (id) => {
+    if (doc?.id === id) {
+      setTimeout(() => scanRef.current?.focus(), 40);
+      return;
+    }
+    resetLinea();
+    await abrirPendiente(id);
+  };
+
+  const volverALista = async () => {
+    setDoc(null);
+    setVistaNuevo(false);
+    setProveedor("");
+    setFolio("");
+    setTotalTicket("");
+    resetLinea();
+    await cargarLista();
   };
 
   const resolverScan = (raw) => {
@@ -432,12 +653,8 @@ export default function RecepcionModule({ ocultarMontos = false }) {
       p_recepcion_id: doc.id,
     });
     if (error) { rpcError(error, "No se pudo descartar"); return; }
-    setDoc(null);
-    setProveedor("");
-    setFolio("");
-    setTotalTicket("");
-    resetLinea();
     showToast("Borrador descartado", "info");
+    await volverALista();
   };
 
   const cerrar = async () => {
@@ -481,20 +698,23 @@ export default function RecepcionModule({ ocultarMontos = false }) {
       showToast(`Entró lo confirmado. Quedan ${rec.sin_confirmar} pendiente${rec.sin_confirmar === 1 ? "" : "s"} en Recibir.`, "warning");
       return;
     }
-    if (estado === "descuadre") {
-      showToast(ocultarMontos
-        ? "Stock recibido, pero no cuadra con el ticket. Avísale al dueño."
-        : `Stock recibido, pero no cuadra con el ticket (${fmt(rec.subtotal_estimado)} vs ${fmt(rec.total_ticket)}). Avísale al dueño.`, "warning");
-    } else if (estado === "pendiente_alta") {
+    if (estado === "pendiente_alta") {
       showToast(`Stock recibido. ${rec.pendientes_alta} código(s) no están en catálogo — quedan pendientes de alta.`, "warning");
     } else {
-      showToast(`Recepción confirmada · ${rec?.piezas || 0} pzas`, "success");
+      const quedan = pendientes.filter((t) => t.id !== doc.id).length;
+      showToast(
+        quedan > 0
+          ? "Guardado. Toca el siguiente proveedor."
+          : `Recepción confirmada · ${rec?.piezas || 0} pzas`,
+        "success",
+      );
     }
     setDoc(null);
     setProveedor("");
     setFolio("");
     setTotalTicket("");
     resetLinea();
+    await cargarLista();
   };
 
   const items = Array.isArray(doc?.items)
@@ -524,7 +744,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
             <ScanLine size={22} strokeWidth={2.2} /> Recibir
           </h2>
           <p style={{ margin: "4px 0 0", color: C.textMid, fontSize: 13 }}>
-            Escanea, cantidad, caducidad MMAA. O sube el PDF/CSV y solo confirma cada caja.
+            Toca Farma City, Farmalive o Levic. Abajo salen las cajas. Escanea, caducidad, y sigue con el otro.
           </p>
         </div>
         {doc && (
@@ -542,26 +762,98 @@ export default function RecepcionModule({ ocultarMontos = false }) {
         )}
       </div>
 
-      {!doc && (
+      {!vistaNuevo && pendientes.length > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ color: C.textMid, fontSize: 11, fontWeight: 800, letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 8 }}>
+            Toca la tienda para ver las cajas
+          </div>
+          {!doc && (
+            <input
+              ref={listaScanRef}
+              value={listaScan}
+              onChange={(e) => setListaScan(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key !== "Enter") return;
+                e.preventDefault();
+                abrirPorCodigoLista(listaScan);
+              }}
+              placeholder="O pistola aquí: abre el ticket de esa caja"
+              autoComplete="off"
+              autoCapitalize="off"
+              style={inpBase(C, { fontFamily: "ui-monospace, monospace", fontWeight: 700, marginBottom: 10 })}
+            />
+          )}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {pendientes.map((t) => {
+              const activo = doc?.id === t.id;
+              const cajas = t.renglones || 0;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => elegirCarga(t.id)}
+                  disabled={saving}
+                  style={{
+                    flex: "1 1 160px",
+                    textAlign: "left",
+                    background: activo ? `${BRAND.primary}14` : C.card,
+                    border: `2px solid ${activo ? BRAND.primary : C.border}`,
+                    borderRadius: 14,
+                    padding: "14px 16px",
+                    cursor: "pointer",
+                  }}
+                >
+                  <div style={{ color: activo ? BRAND.primary : C.text, fontWeight: 800, fontSize: 17 }}>
+                    {etiquetaProveedorLista(t.proveedor)}
+                  </div>
+                  <div style={{ color: C.textMid, fontSize: 12, marginTop: 4 }}>
+                    {cajas} {cajas === 1 ? "caja" : "cajas"}
+                    {activo ? " · abierta" : " · toca para abrir"}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {!doc && !vistaNuevo && pendientes.length === 0 && (
+        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: isMobile ? 20 : 24, color: C.textMid, fontSize: 13, lineHeight: 1.5, marginBottom: 16 }}>
+          No hay cargas pendientes.
+        </div>
+      )}
+
+      {!doc && !vistaNuevo && !ocultarMontos && (
+        <button
+          type="button"
+          onClick={() => setVistaNuevo(true)}
+          style={{
+            padding: 0, border: "none", background: "transparent",
+            color: C.textMid, fontWeight: 700, fontSize: 13, cursor: "pointer",
+            marginBottom: 8,
+          }}
+        >
+          Ticket que no está en la lista…
+        </button>
+      )}
+
+      {!doc && vistaNuevo && (
         <form onSubmit={empezar} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: isMobile ? 16 : 22 }}>
+          <button type="button" onClick={() => setVistaNuevo(false)} style={{ border: "none", background: "transparent", color: C.textMid, fontWeight: 700, fontSize: 13, cursor: "pointer", padding: 0, marginBottom: 12 }}>
+            ← Tickets
+          </button>
           <div style={{ color: C.text, fontWeight: 800, marginBottom: 14, fontSize: 15 }}>Ticket del proveedor</div>
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 12 }}>
             <div>
               <label style={labelS(C)} htmlFor="rc-prov">Proveedor</label>
-              <input
+              <ProveedorCombo
                 id="rc-prov"
-                list="rc-prov-list"
                 value={proveedor}
-                onChange={(e) => setProveedor(e.target.value)}
-                placeholder="Nadro, Marzam…"
-                autoComplete="off"
+                onChange={setProveedor}
+                proveedores={proveedores}
+                C={C}
                 style={inpBase(C)}
               />
-              <datalist id="rc-prov-list">
-                {proveedores.map((p) => (
-                  <option key={p.id} value={p.nombre} />
-                ))}
-              </datalist>
             </div>
             <div>
               <label style={labelS(C)} htmlFor="rc-folio">Folio del ticket</label>
@@ -609,37 +901,6 @@ export default function RecepcionModule({ ocultarMontos = false }) {
 
       {doc && (
         <>
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr auto", gap: 8, marginBottom: 16, alignItems: "end" }}>
-            <div>
-              <label style={labelS(C)}>Proveedor</label>
-              <input value={proveedor} onChange={(e) => setProveedor(e.target.value)} onBlur={guardarCabecera} list="rc-prov-list" style={inpBase(C, { padding: "9px 12px", fontSize: 14 })} />
-              <datalist id="rc-prov-list">
-                {proveedores.map((p) => (
-                  <option key={p.id} value={p.nombre} />
-                ))}
-              </datalist>
-            </div>
-            <div>
-              <label style={labelS(C)}>Folio</label>
-              <input value={folio} onChange={(e) => setFolio(e.target.value)} onBlur={guardarCabecera} style={inpBase(C, { padding: "9px 12px", fontSize: 14 })} />
-            </div>
-            {!ocultarMontos && (
-            <div>
-              <label style={labelS(C)}>Total ticket</label>
-              <input value={totalTicket} onChange={(e) => setTotalTicket(e.target.value)} onBlur={guardarCabecera} inputMode="decimal" style={inpBase(C, { padding: "9px 12px", fontSize: 14 })} />
-            </div>
-            )}
-            <button type="button" onClick={descartar} style={{ padding: "9px 12px", borderRadius: 8, border: `1px solid ${C.border}`, background: "transparent", color: C.textMid, fontWeight: 700, fontSize: 12, cursor: "pointer", height: 42 }}>
-              Descartar
-            </button>
-            <button type="button" disabled={subiendo} onClick={() => pdfRef.current?.click()} style={{ padding: "9px 12px", borderRadius: 8, border: `1px solid ${C.border}`, background: "transparent", color: C.textMid, fontWeight: 700, fontSize: 12, cursor: "pointer", height: 42 }}>
-              PDF
-            </button>
-            <button type="button" disabled={subiendo} onClick={() => csvRef.current?.click()} style={{ padding: "9px 12px", borderRadius: 8, border: `1px solid ${C.border}`, background: "transparent", color: C.textMid, fontWeight: 700, fontSize: 12, cursor: "pointer", height: 42 }}>
-              CSV
-            </button>
-          </div>
-
           <div style={{ background: C.card, border: `1px solid ${pendiente ? C.blue : C.border}`, borderRadius: 14, padding: 16, marginBottom: 16 }}>
             <label style={labelS(C)} htmlFor="rc-scan">Código de barras</label>
             <input
@@ -731,7 +992,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
           <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
             {items.length === 0 && (
               <div style={{ color: C.textMid, fontSize: 13, padding: "20px 8px", textAlign: "center" }}>
-                Todavía no hay renglones. Escanea o sube el PDF/CSV del ticket.
+                Toca Farma City o Farmalive arriba. Aquí salen las cajas.
               </div>
             )}
             {items.map((it) => {
@@ -802,10 +1063,10 @@ export default function RecepcionModule({ ocultarMontos = false }) {
                 : anaquelSinCad > 0
                   ? `Faltan ${anaquelSinCad} caducidad${anaquelSinCad === 1 ? "" : "es"}`
                   : confirmadosOk === 0
-                    ? "Escanea para cerrar"
+                    ? "Escanea para guardar"
                     : grisPendiente > 0
-                      ? "Recibir lo confirmado"
-                      : "Cerrar recepción"}
+                      ? "Guardar lo confirmado"
+                      : "Guardar"}
             </button>
           </div>
         </>
