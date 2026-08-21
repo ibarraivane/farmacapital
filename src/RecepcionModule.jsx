@@ -40,6 +40,14 @@ function itemMatchScan(it, codigo) {
   return false;
 }
 
+function etiquetaProveedorLista(nombre) {
+  const n = String(nombre || "").trim();
+  if (!n) return "Sin proveedor";
+  if (/cityfarma/i.test(n)) return "Cityfarma";
+  if (/farmalive|farmalife/i.test(n)) return "Farmalive";
+  return n;
+}
+
 function ticketMatchScan(t, raw) {
   const codigo = normalizeBarcodeRaw(raw) || String(raw || "").trim();
   if (!t || !codigo) return false;
@@ -710,8 +718,8 @@ export default function RecepcionModule({ ocultarMontos = false }) {
           </h2>
           <p style={{ margin: "4px 0 0", color: C.textMid, fontSize: 13 }}>
             {doc
-              ? "Escanea, cantidad, caducidad MMAA. Hasta entonces no se vende en POS ni en línea."
-              : "Tickets pendientes de caducidad, o uno nuevo."}
+              ? "Escanea cada caja y pon caducidad MMAA."
+              : "Toca el proveedor. No hace falta el número del ticket."}
           </p>
         </div>
         {doc && (
@@ -731,20 +739,47 @@ export default function RecepcionModule({ ocultarMontos = false }) {
 
       {!doc && !vistaNuevo && (
         <div>
-          <button
-            type="button"
-            onClick={() => setVistaNuevo(true)}
-            style={{
-              marginBottom: 16, padding: "12px 18px", borderRadius: 10, border: "none",
-              background: BRAND.gradient, color: "#fff", fontWeight: 800, fontSize: 14, cursor: "pointer",
-              width: isMobile ? "100%" : "auto",
-            }}
-          >
-            Nuevo ticket
-          </button>
+          {pendientes.length === 0 ? (
+            <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: isMobile ? 20 : 24, color: C.textMid, fontSize: 13, lineHeight: 1.5 }}>
+              No hay tickets pendientes.
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
+              <div style={{ color: C.text, fontWeight: 800, fontSize: 15, marginBottom: 4 }}>
+                ¿De qué proveedor son estas cajas?
+              </div>
+              {pendientes.map((t) => {
+                const falta = (t.sin_caducidad_anaquel || 0) + (t.sin_confirmar || 0);
+                const alta = t.pendientes_alta || 0;
+                const cajas = t.renglones || 0;
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => abrirPendiente(t.id)}
+                    disabled={saving}
+                    style={{
+                      display: "block", width: "100%", textAlign: "left",
+                      background: C.card, border: `1px solid ${C.border}`, borderRadius: 12,
+                      padding: "14px 16px", cursor: "pointer",
+                    }}
+                  >
+                    <div style={{ color: C.text, fontWeight: 800, fontSize: 18 }}>
+                      {etiquetaProveedorLista(t.proveedor)}
+                    </div>
+                    <div style={{ color: C.textMid, fontSize: 13, marginTop: 4 }}>
+                      {cajas ? `${cajas} caja${cajas === 1 ? "" : "s"} por recibir` : "Sin renglones"}
+                      {falta > 0 ? ` · falta caducidad` : ""}
+                      {alta > 0 ? ` · ${alta} sin catálogo` : ""}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
           {pendientes.length > 0 && (
-            <div style={{ marginBottom: 16 }}>
-              <label style={labelS(C)} htmlFor="rc-lista-scan">Código de barras</label>
+            <div style={{ marginBottom: 20 }}>
+              <label style={labelS(C)} htmlFor="rc-lista-scan">O escanea una caja</label>
               <input
                 id="rc-lista-scan"
                 ref={listaScanRef}
@@ -756,56 +791,23 @@ export default function RecepcionModule({ ocultarMontos = false }) {
                     abrirPorCodigoLista(listaScan);
                   }
                 }}
-                placeholder="Pistola aquí — abre el ticket de esa caja"
+                placeholder="Pistola aquí"
                 autoComplete="off"
                 inputMode="numeric"
                 style={inpBase(C)}
               />
-              <div style={{ color: C.textDim, fontSize: 12, marginTop: 6, lineHeight: 1.45 }}>
-                No hace falta el folio. Toca la tarjeta, o escanea cualquier caja del ticket.
-              </div>
             </div>
           )}
-          {pendientes.length === 0 ? (
-            <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: isMobile ? 20 : 24, color: C.textMid, fontSize: 13, lineHeight: 1.5 }}>
-              No hay tickets pendientes. Nuevo ticket, o sube PDF/CSV desde ahí.
-            </div>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <div style={{ color: C.textMid, fontSize: 11, fontWeight: 700, letterSpacing: 0.4, textTransform: "uppercase" }}>
-                Pendientes · {pendientes.length}
-              </div>
-              {pendientes.map((t) => {
-                const falta = (t.sin_caducidad_anaquel || 0) + (t.sin_confirmar || 0);
-                const alta = t.pendientes_alta || 0;
-                return (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => abrirPendiente(t.id)}
-                    disabled={saving}
-                    style={{
-                      display: "block", width: "100%", textAlign: "left",
-                      background: C.card, border: `1px solid ${C.border}`, borderRadius: 12,
-                      padding: "12px 14px", cursor: "pointer",
-                    }}
-                  >
-                    <div style={{ color: C.text, fontWeight: 800, fontSize: 15 }}>
-                      {t.proveedor || "Sin proveedor"}
-                      {t.folio ? ` · ${t.folio}` : ""}
-                    </div>
-                    <div style={{ color: C.textMid, fontSize: 12, marginTop: 4 }}>
-                      {fmtFecha(t.fecha)}
-                      {t.renglones ? ` · ${t.renglones} renglón${t.renglones === 1 ? "" : "es"}` : ""}
-                      {falta > 0 ? ` · ${falta} sin caducidad` : ""}
-                      {alta > 0 ? ` · ${alta} sin catálogo` : ""}
-                      {!ocultarMontos && t.total_ticket != null ? ` · ${fmt(t.total_ticket)}` : ""}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
+          <button
+            type="button"
+            onClick={() => setVistaNuevo(true)}
+            style={{
+              padding: 0, border: "none", background: "transparent",
+              color: C.textMid, fontWeight: 700, fontSize: 13, cursor: "pointer",
+            }}
+          >
+            Ticket que no está en la lista…
+          </button>
         </div>
       )}
 
