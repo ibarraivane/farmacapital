@@ -40,7 +40,7 @@ export default function InventarioHub({ initialTab, usuario }) {
       const saved = sessionStorage.getItem(STORAGE_KEY);
       if (saved && TABS.some((t) => t.id === saved) && (!modoConsulta || TABS_VENDEDOR.includes(saved))) return saved;
     } catch (_) { /* storage bloqueado */ }
-    return modoConsulta ? "recibir" : "catalogo";
+    return "recibir";
   });
 
   const selectTab = (id) => {

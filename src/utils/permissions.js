@@ -35,6 +35,7 @@ export const NAV_VENDEDOR_DEFAULT = [
   "pos",
   "dev",
   "agenda",
+  "recibir",
   "inv",
   "caja",
   "ayuda",
@@ -78,6 +79,10 @@ export function defaultIdsPorRolPermisos(rol) {
 export function puedeVerModulo(usuario, moduloId) {
   if (!usuario || !moduloId) return false;
   if (moduloId === "ayuda") return true;
+  if (moduloId === "recibir") {
+    if (usuario.rol === "doctora") return false;
+    return puedeVerModulo(usuario, "inv");
+  }
   if (rolEsAdmin(usuario.rol)) return true;
 
   if (usuario.rol === "vendedor" && MODULOS_BLOQUEADOS_VENDEDOR.includes(moduloId)) {
@@ -98,6 +103,19 @@ export function puedeVerModulo(usuario, moduloId) {
   const defaults = defaultIdsPorRolPermisos(usuario.rol);
   if (!Array.isArray(defaults)) return true;
   return defaults.includes(moduloId);
+}
+
+export function inyectarNavOperacionPiso(ids) {
+  const out = Array.isArray(ids) ? [...ids] : [];
+  if (!out.includes("recibir") && out.includes("inv")) {
+    out.splice(out.indexOf("inv"), 0, "recibir");
+  }
+  if (!out.includes("ayuda")) {
+    const at = out.indexOf("inv");
+    if (at >= 0) out.splice(at + 1, 0, "ayuda");
+    else out.push("ayuda");
+  }
+  return out;
 }
 
 export function filtrarModulosPorRol(ids, rol) {

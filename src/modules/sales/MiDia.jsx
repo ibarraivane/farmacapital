@@ -14,6 +14,7 @@ import {
   calcularMultiplicador, cargarConfigMetas, escalonBono, bonosActivos,
 } from "../../utils/turnosMetas";
 import { fetchJornadaHoy } from "../../utils/cajaSesion";
+import { formatFolioPOS } from "../../utils/orderReceiptWhatsApp";
 
 const C = C_LIGHT;
 
@@ -38,16 +39,127 @@ function ProgressBar({ pct, col, height = 14 }) {
   );
 }
 
-function KpiCell({ icon, value, label, col }) {
-  return (
-    <div style={{
-      background: C.card, border: `1px solid ${C.border}`, borderRadius: 12,
-      padding: "16px 14px", display: "flex", flexDirection: "column", gap: 6,
-    }}>
-      <div style={{ fontSize: 22 }}>{icon}</div>
+function KpiCell({ icon, value, label, col, onClick, expanded }) {
+  const interactive = typeof onClick === "function";
+  const style = {
+    background: expanded ? C.blueDim : C.card,
+    border: expanded ? `1.5px solid ${col || C.blue}` : `1px solid ${C.border}`,
+    borderRadius: 12,
+    padding: "16px 14px",
+    display: "flex",
+    flexDirection: "column",
+    gap: 6,
+    width: "100%",
+    textAlign: "left",
+    font: "inherit",
+    color: "inherit",
+    cursor: interactive ? "pointer" : "default",
+    boxSizing: "border-box",
+  };
+  const inner = (
+    <>
+      <div style={{ fontSize: 22 }} aria-hidden="true">{icon}</div>
       <div style={{ color: col || C.text, fontWeight: 800, fontSize: 22, lineHeight: 1 }}>{value}</div>
       <div style={{ color: C.textMid, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>{label}</div>
-    </div>
+      {interactive && (
+        <div style={{ color: col || C.blue, fontSize: 10, fontWeight: 700, marginTop: 2 }}>
+          {expanded ? "Ocultar lista" : "Toca para ver los tickets"}
+        </div>
+      )}
+    </>
+  );
+  if (!interactive) return <div style={style}>{inner}</div>;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-expanded={!!expanded}
+      aria-controls="midia-tickets-turno"
+      style={style}
+    >
+      {inner}
+    </button>
+  );
+}
+
+/** Lista de piso: folio, hora y artículos. Nunca montos. */
+function ticketsTurnoDesdePedidos(pedTurno) {
+  return [...(pedTurno || [])]
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    .map((p) => ({
+      id: p.id,
+      created_at: p.created_at,
+      conCliente: p.cliente_id != null,
+      items: (p.pedido_items || []).map((it) => ({
+        cantidad: it.cantidad || 0,
+        nombre: String(it.productos?.nombre || it.productos?.categoria || "Artículo").trim() || "Artículo",
+        lote: it.lotes?.numero_lote || null,
+      })),
+    }));
+}
+
+function TicketsTurnoList({ tickets }) {
+  return (
+    <section
+      id="midia-tickets-turno"
+      aria-label="Tickets de tu turno"
+      style={{
+        background: C.card,
+        border: `1px solid ${C.border}`,
+        borderRadius: 14,
+        padding: "16px 18px",
+        marginBottom: 20,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, marginBottom: 12, flexWrap: "wrap" }}>
+        <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, letterSpacing: 1.5 }}>
+          TUS TICKETS · SOLO LECTURA
+        </div>
+        <div style={{ color: C.textMid, fontSize: 11 }}>Sin totales ni edición</div>
+      </div>
+      {!tickets.length ? (
+        <p style={{ margin: 0, color: C.textMid, fontSize: 13 }}>Aún no registras tickets en este turno.</p>
+      ) : (
+        <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 10 }}>
+          {tickets.map((t) => (
+            <li
+              key={t.id}
+              style={{
+                border: `1px solid ${C.border}`,
+                borderRadius: 10,
+                padding: "12px 14px",
+                background: C.bg,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
+                <div style={{ color: C.text, fontWeight: 800, fontSize: 14, fontVariantNumeric: "tabular-nums" }}>
+                  {formatFolioPOS(t.id)}
+                </div>
+                <div style={{ color: C.textMid, fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
+                  {t.created_at ? fmtHora(new Date(t.created_at)) : "—"}
+                  {t.conCliente ? " · con cliente" : ""}
+                </div>
+              </div>
+              {t.items.length === 0 ? (
+                <div style={{ color: C.textMid, fontSize: 13 }}>Sin artículos en este ticket.</div>
+              ) : (
+                <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 4 }}>
+                  {t.items.map((it, i) => (
+                    <li key={`${t.id}-${i}`} style={{ color: C.text, fontSize: 13, lineHeight: 1.35 }}>
+                      <span style={{ fontWeight: 800, fontVariantNumeric: "tabular-nums", marginRight: 6 }}>{it.cantidad}×</span>
+                      {it.nombre}
+                      {it.lote ? (
+                        <span style={{ color: C.textMid, fontSize: 12 }}> · Lote {it.lote}</span>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 
@@ -108,8 +220,10 @@ export default function MiDia({ usuario, setPage }) {
     categoriaTop: null, totalUnidadesCategoriaTop: 0,
     citasEnEspera: 0,
     bonosOn: false,
+    ticketsTurno: [],
   });
   const [jornada, setJornada] = useState(null);
+  const [verTickets, setVerTickets] = useState(false);
 
   // Reloj vivo (solo para la hora visible).
   useEffect(() => {
@@ -243,6 +357,7 @@ export default function MiDia({ usuario, setPage }) {
         categoriaTop, totalUnidadesCategoriaTop,
         citasEnEspera: citasEspera,
         bonosOn: bonosActivos(configMap),
+        ticketsTurno: ticketsTurnoDesdePedidos(pedTurno),
       });
     } catch (e) {
       console.warn("[MiDia] cargarDatos:", e?.message || e);
@@ -391,11 +506,20 @@ export default function MiDia({ usuario, setPage }) {
 
       {/* ── SECCIÓN 3: KPIs DEL TURNO ─────────────────────── */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 160px), 1fr))", gap: 12, marginBottom: 20 }}>
-        <KpiCell icon="🎫" value={data.tickets}                       label="Tickets"        col={C.blue}/>
+        <KpiCell
+          icon="🎫"
+          value={data.tickets}
+          label="Tickets"
+          col={C.blue}
+          expanded={verTickets}
+          onClick={() => setVerTickets((v) => !v)}
+        />
         <KpiCell icon="💊" value={prodPorTicket.toFixed(1)}            label="Prod/Ticket"    col={C.purple}/>
         <KpiCell icon="🤝" value={`${pctCruzada}%`}                    label="Venta cruzada"  col={C.teal}/>
         <KpiCell icon="⭐" value={`${pctPuntos}%`}                     label="Con cliente"    col={C.green}/>
       </div>
+
+      {verTickets && <TicketsTurnoList tickets={data.ticketsTurno || []} />}
 
       {/* ── SECCIÓN 4: TU MES ─────────────────────────────── */}
       <div style={{

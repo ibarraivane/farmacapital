@@ -3705,6 +3705,11 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
           gap:8,
           width:"100%",
         } :         {display:"flex", gap:8, flexWrap:"wrap" }}>
+          {modoConsulta && onIrARecibir && (
+            <button type="button" style={{...btnPrimary, ...(isMobileInv ? { gridColumn:"1 / -1", padding:"11px 16px", fontSize:13 } : {})}} onClick={onIrARecibir}>
+              📦 Recibir cajas
+            </button>
+          )}
           {!modoConsulta && (
             <>
           <button data-tour="inv-agregar" style={{...btnPrimary, ...(isMobileInv ? { gridColumn:"1 / -1", padding:"11px 16px", fontSize:13 } : {})}} onClick={()=>setModal(EMPTY)}>
@@ -3730,21 +3735,22 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
 
       <div style={{display:"flex",gap:12,marginBottom:14,flexWrap:"wrap"}}>
         {[
-          {label:"Activos",     val:activos,    col:C.blue},
-          {label:"Bajo stock",  val:bajoStock,  col:C.amber, click:()=>setFiltroAlerta("bajo_stock")},
-          {label:"Por caducar", val:porCaducar, col:C.red,   click:()=>setFiltroAlerta("por_caducar")},
-          {label:"Sin cód. barras", val:sinCodigoBarras, col:C.blue, click:()=>setFiltroAlerta("sin_codigo_barras")},
-          {label:"Sin precio", val:sinPrecioVenta, col:C.red, click:()=>setFiltroAlerta("sin_precio")},
-          {label:"Inactivos",   val:inactivos,  col:C.textMid},
+          {label:"Activos",     val:activos,    col:C.blue,  click:()=>{ setFiltroAlerta("todos"); setFiltroCategoria("todas"); setBusqueda(""); setVerInactivos(false); }, on: filtroAlerta==="todos" && filtroCategoria==="todas" && !busqueda && !verInactivos},
+          {label:"Bajo stock",  val:bajoStock,  col:C.amber, click:()=>setFiltroAlerta(filtroAlerta==="bajo_stock"?"todos":"bajo_stock"), on: filtroAlerta==="bajo_stock"},
+          {label:"Por caducar", val:porCaducar, col:C.red,   click:()=>setFiltroAlerta(filtroAlerta==="por_caducar"?"todos":"por_caducar"), on: filtroAlerta==="por_caducar"},
+          {label:"Sin cód. barras", val:sinCodigoBarras, col:C.blue, click:()=>setFiltroAlerta(filtroAlerta==="sin_codigo_barras"?"todos":"sin_codigo_barras"), on: filtroAlerta==="sin_codigo_barras"},
+          {label:"Sin precio", val:sinPrecioVenta, col:C.red, click:()=>setFiltroAlerta(filtroAlerta==="sin_precio"?"todos":"sin_precio"), on: filtroAlerta==="sin_precio"},
+          {label:"Inactivos",   val:inactivos,  col:C.textMid, click:()=>{ setVerInactivos(true); setFiltroAlerta("todos"); }, on: !!verInactivos},
         ].map(s=>(
-          <div key={s.label} onClick={s.click} style={{
-            background:C.card,border:`1px solid ${C.border}`,borderRadius:10,
-            padding:"10px 18px",minWidth:110,cursor:s.click?"pointer":"default"}}
-            onMouseEnter={e=>{if(s.click)e.currentTarget.style.border=`1px solid ${s.col}`;}}
-            onMouseLeave={e=>{if(s.click)e.currentTarget.style.border=`1px solid ${C.border}`;}}>
+          <button key={s.label} type="button" onClick={s.click} style={{
+            background:s.on ? `${s.col}14` : C.card,
+            border:`1.5px solid ${s.on ? s.col : C.border}`,borderRadius:10,
+            padding:"10px 18px",minWidth:110,cursor:"pointer",textAlign:"left"}}
+            onMouseEnter={e=>{e.currentTarget.style.border=`1.5px solid ${s.col}`;}}
+            onMouseLeave={e=>{e.currentTarget.style.border=`1.5px solid ${s.on ? s.col : C.border}`;}}>
             <div style={{color:s.col,fontWeight:800,fontSize:22}}>{s.val}</div>
             <div style={{color:C.textMid,fontSize:11}}>{s.label}</div>
-          </div>
+          </button>
         ))}
       </div>
 

@@ -11,7 +11,7 @@ import { esPedidoTiendaWebPendiente, fetchPedidosTiendaPendientesMerged } from "
 import AgendaConsultasModule from "./modules/clinical/AgendaConsultasModule";
 import ExpedientesDoctora from "./modules/clinical/patients/ExpedientesDoctora";
 import { loadAdminNavOrder } from "./utils/adminNavOrder";
-import { puedeVerModulo, modulosPermitidosParaRol, rolEsAdmin } from "./utils/permissions";
+import { puedeVerModulo, modulosPermitidosParaRol, rolEsAdmin, inyectarNavOperacionPiso } from "./utils/permissions";
 import { adminPathnameToPageId, pageIdToAdminPath, pathnameSuggestsPosTab, pathnameSuggestsDashTab } from "./shared/adminRoutes";
 import { TIENDA_BANNER_DESTINOS, resolveTiendaPage } from "./shared/tiendaRoutes";
 import { initBillingListeners } from "./modules/billing/core/initBillingListeners";
@@ -384,7 +384,7 @@ function AdminNavSidebar({active,setActive,negocio,setNegocio,usuario,onLogout,a
   // Defensa en profundidad: aunque alguien haya guardado un módulo prohibido
   // en modulos_custom, filtramos aquí contra la whitelist del rol.
   const navIdsFiltered = isAdmin ? navIdsRaw : navIdsRaw.filter((id) => puedeVerModulo(usuario, id));
-  const navIds = navIdsFiltered.includes("ayuda") ? navIdsFiltered : [...navIdsFiltered, "ayuda"];
+  const navIds = inyectarNavOperacionPiso(navIdsFiltered);
   const navItems = navIds.map((id) => NAV_ITEMS.find((n) => n.id === id)).filter(Boolean);
   const rolColor = usuario.rol==="admin"?C.purple:usuario.rol==="vendedor"?C.blue:C.green;
 
@@ -1867,11 +1867,15 @@ export default function FarmaCapitalAdmin(){
     if (dashTab) applyDashTabHint(dashTab);
     try {
       sessionStorage.setItem("farmacapital_active_page", next);
-      if (next === "inv" && tabHint) {
+      if (next === "recibir") {
+        sessionStorage.setItem("farmacapital_inv_tab", "recibir");
+        setInvInitialTab("recibir");
+      } else if (next === "inv" && tabHint) {
         sessionStorage.setItem("farmacapital_inv_tab", tabHint);
         setInvInitialTab(tabHint);
-      } else if (next !== "inv") {
-        // Al salir de inv, no borramos farmacapital_inv_tab — al volver recordará la última tab.
+      } else if (next === "inv") {
+        sessionStorage.setItem("farmacapital_inv_tab", "catalogo");
+        setInvInitialTab("catalogo");
       }
     } catch (_) { /* noop */ }
     setPage(next);
@@ -2223,6 +2227,8 @@ export default function FarmaCapitalAdmin(){
       case "inventario":
       case "inv":
         return <InventarioHub initialTab={invInitialTab} usuario={usuario}/>;
+      case "recibir":
+        return <InventarioHub initialTab="recibir" usuario={usuario}/>;
       case "rrhh": return <RRHHModule/>;
       case "caja":  return <CorteCajaModule usuario={usuario}/>;
       case "cof":      return <COFEPRISModule/>;
