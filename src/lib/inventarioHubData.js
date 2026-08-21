@@ -117,12 +117,12 @@ export function enriquecerProductoConLotes(p, lotes) {
   };
 }
 
-/** Orden PEPS: fechas ilegibles, vencidos, por fecha, y al final sin fecha. */
+/** Orden PEPS: ilegibles, sin fecha (stock ciego), luego la caducidad más próxima. */
 export function compararLotesPeps(a, b) {
   const rank = (l) => {
     if (fechaCaducidadInvalida(l.fecha_caducidad)) return [0, 0];
-    if (!l.fecha_caducidad) return [2, Number.MAX_SAFE_INTEGER];
-    return [1, new Date(l.fecha_caducidad).getTime() || 0];
+    if (!l.fecha_caducidad) return [1, 0];
+    return [2, new Date(l.fecha_caducidad).getTime() || 0];
   };
   const aa = rank(a);
   const bb = rank(b);

@@ -11,8 +11,9 @@ import { esPedidoTiendaWebPendiente, fetchPedidosTiendaPendientesMerged } from "
 import AgendaConsultasModule from "./modules/clinical/AgendaConsultasModule";
 import ExpedientesDoctora from "./modules/clinical/patients/ExpedientesDoctora";
 import { loadAdminNavOrder } from "./utils/adminNavOrder";
-import { puedeVerModulo, modulosPermitidosParaRol } from "./utils/permissions";
+import { puedeVerModulo, modulosPermitidosParaRol, rolEsAdmin } from "./utils/permissions";
 import { adminPathnameToPageId, pageIdToAdminPath, pathnameSuggestsPosTab, pathnameSuggestsDashTab } from "./shared/adminRoutes";
+import { TIENDA_BANNER_DESTINOS, resolveTiendaPage } from "./shared/tiendaRoutes";
 import { initBillingListeners } from "./modules/billing/core/initBillingListeners";
 import { canAccessRoute } from "./core/security/routeGuard";
 import ImageUploader from "./components/ImageUploader";
@@ -36,6 +37,7 @@ const DevolucionesModule=lazy(()=>import("./DevolucionesModule"));
 const FacturacionModule= lazy(()=>import("./FacturacionModule"));
 const DashboardModule  = lazy(()=>import("./DashboardModule"));
 const InstalarPWA      = lazy(()=>import("./InstalarPWA"));
+const ManualModule     = lazy(()=>import("./ManualModule"));
 
 // ── ErrorBoundary para módulos lazy ──────────────────────────
 class ModuleErrorBoundary extends React.Component {
@@ -121,7 +123,7 @@ function LoginScreen({onLogin}){
 
   const entrar = async () => {
     if(!email||!pwd) return;
-    if(pwd.length < 6) { setError("La contraseña debe tener al menos 6 caracteres."); return; }
+    if(pwd.length < 8) { setError("La contraseña debe tener al menos 8 caracteres."); return; }
     const idRaw = email.trim();
     const idNorm = idRaw.includes("@") ? idRaw.toLowerCase() : idRaw;
 
@@ -358,7 +360,7 @@ function SidebarBadge({count, critical}) {
 
 function AdminNavSidebar({active,setActive,negocio,setNegocio,usuario,onLogout,alertas,ventasOffline=0,mobile=false,navOpen=false,badgeCounts={},badgeCritical={}}){
   const C = C_LIGHT;
-  const isAdmin = usuario.rol==="admin";
+  const isAdmin = rolEsAdmin(usuario.rol);
   const [adminOrder, setAdminOrder] = useState(() => (isAdmin ? loadAdminNavOrder(usuario) : null));
 
   useEffect(() => {
@@ -381,7 +383,8 @@ function AdminNavSidebar({active,setActive,negocio,setNegocio,usuario,onLogout,a
         : NAV_DOCTORA;
   // Defensa en profundidad: aunque alguien haya guardado un módulo prohibido
   // en modulos_custom, filtramos aquí contra la whitelist del rol.
-  const navIds = isAdmin ? navIdsRaw : navIdsRaw.filter((id) => puedeVerModulo(usuario, id));
+  const navIdsFiltered = isAdmin ? navIdsRaw : navIdsRaw.filter((id) => puedeVerModulo(usuario, id));
+  const navIds = navIdsFiltered.includes("ayuda") ? navIdsFiltered : [...navIdsFiltered, "ayuda"];
   const navItems = navIds.map((id) => NAV_ITEMS.find((n) => n.id === id)).filter(Boolean);
   const rolColor = usuario.rol==="admin"?C.purple:usuario.rol==="vendedor"?C.blue:C.green;
 
@@ -528,8 +531,24 @@ function AdminNavSidebar({active,setActive,negocio,setNegocio,usuario,onLogout,a
       {/* Alertas y logout */}
       <div style={{flexShrink:0,padding:"0 8px 16px"}}>
         {/* "bajo stock" ahora se muestra como badge junto a Inventario en el sidebar. */}
-        {alertas.pedidos>0&&<div style={{background:C.blueDim,border:`1px solid ${C.blue}20`,borderRadius:8,padding:"8px 12px",marginBottom:6}}><div style={{color:C.blue,fontSize:11,fontWeight:700}}>🌐 {alertas.pedidos} pedidos online</div></div>}
-        {alertas.citas>0&&<div style={{background:C.greenDim,border:`1px solid ${C.green}20`,borderRadius:8,padding:"8px 12px",marginBottom:6}}><div style={{color:C.green,fontSize:11,fontWeight:700}}>📅 {alertas.citas} citas nuevas</div></div>}
+        {alertas.pedidos>0&&(
+          <button
+            type="button"
+            onClick={()=>setActive("pos", { posTab: "online" })}
+            style={{width:"100%",background:C.blueDim,border:`1px solid ${C.blue}20`,borderRadius:8,padding:"8px 12px",marginBottom:6,cursor:"pointer",textAlign:"left"}}
+          >
+            <div style={{color:C.blue,fontSize:11,fontWeight:700}}>🌐 {alertas.pedidos} pedidos online →</div>
+          </button>
+        )}
+        {alertas.citas>0&&(
+          <button
+            type="button"
+            onClick={()=>setActive(usuario?.rol==="doctora"?"cons_dr":"agenda")}
+            style={{width:"100%",background:C.greenDim,border:`1px solid ${C.green}20`,borderRadius:8,padding:"8px 12px",marginBottom:6,cursor:"pointer",textAlign:"left"}}
+          >
+            <div style={{color:C.green,fontSize:11,fontWeight:700}}>📅 {alertas.citas} citas nuevas →</div>
+          </button>
+        )}
         {ventasOffline>0&&(
           <div style={{background:C.amberDim,border:`1px solid ${C.amber}30`,borderRadius:8,padding:"6px 10px",marginBottom:4,fontSize:10,color:C.amber,fontWeight:700,textAlign:"center"}}>
             📵 {ventasOffline} venta{ventasOffline>1?"s":""} offline pendiente{ventasOffline>1?"s":""}
@@ -640,7 +659,7 @@ function Dashboard({negocio,alertas,setPage}){
         <Box style={{padding:20}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
             <div style={{color:C.text,fontWeight:700,fontSize:13}}>🌐 Pedidos online pendientes</div>
-            {pedOnline.length>0&&<Btn sm col={C.blue} onClick={()=>setPage("pos")}>Ver todos</Btn>}
+            {pedOnline.length>0&&<Btn sm col={C.blue} onClick={()=>setPage("pos", { posTab: "online" })}>Ver todos</Btn>}
           </div>
           {loading?<SkeletonCard height={40} style={{margin:"8px 0"}}/>:
            !pedOnline.length?<div style={{color:C.textMid,fontSize:12}}>✓ Sin pedidos pendientes</div>:
@@ -711,6 +730,7 @@ function BannersAdmin(){
     const tok = sessionStorage.getItem("farmacapital_session_token");
     const payload = {
       ...form,
+      pagina: resolveTiendaPage(form.pagina) || "catalogo",
       imagen_mobile_url: form.imagen_url_mobile || "",
       imagen_url_mobile: form.imagen_url_mobile || "",
     };
@@ -758,7 +778,7 @@ function BannersAdmin(){
       </div>
       <div style={{background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:10,padding:"10px 16px",marginBottom:16,fontSize:12,color:"#1d4ed8",lineHeight:1.55}}>
         💡 <strong>Zona:</strong> <em>Carrusel</em> (arriba, rotación automática) · <em>Franja</em> (tarjetas anchas bajo la barra de servicios) · <em>Mosaico</em> (rejilla bajo la búsqueda) · <em>Popup</em> (ventana de bienvenida al entrar).
-        {" "}En <strong>Página destino</strong>: <code style={{background:"#fff",padding:"1px 6px",borderRadius:4}}>promo</code>, <code style={{background:"#fff",padding:"1px 6px",borderRadius:4}}>catalogo</code>, <code style={{background:"#fff",padding:"1px 6px",borderRadius:4}}>cita</code>…
+        {" "}Elige la <strong>página destino</strong> del botón (catálogo, citas, puntos…). Un valor viejo inválido se corrige a Catálogo al guardar.
         {" "}Si no ves el campo <strong>Zona</strong> en Supabase, ejecutá <code style={{background:"#fff",padding:"1px 6px",borderRadius:4}}>sql/banners_slot.sql</code>.
       </div>
       {loading?<SkeletonTable rows={5} cols={5}/>:(
@@ -889,9 +909,24 @@ function BannersAdmin(){
                 💡 <strong>Imagen de fondo:</strong> usa cuando quieres cambiar el texto sin re-generar la imagen.
               </div>
             </div>
-            {[["Título (opcional)","titulo"],["Subtítulo","subtitulo"],["Descripción","descripcion"],["Emoji (si no hay imagen)","emoji"],["Texto del botón","cta"],["Página destino","pagina"]].map(([l,k])=>(
+            {[["Título (opcional)","titulo"],["Subtítulo","subtitulo"],["Descripción","descripcion"],["Emoji (si no hay imagen)","emoji"],["Texto del botón","cta"]].map(([l,k])=>(
               <div key={k}><label style={{color:C.textMid,fontSize:11,fontWeight:700,display:"block",marginBottom:3}}>{l.toUpperCase()}</label><input style={inpS} value={form[k]||""} onChange={e=>setForm(p=>({...p,[k]:e.target.value}))} placeholder={l}/></div>
             ))}
+            <div>
+              <label style={{color:C.textMid,fontSize:11,fontWeight:700,display:"block",marginBottom:3}}>PÁGINA DESTINO</label>
+              <select
+                style={inpS}
+                value={resolveTiendaPage(form.pagina) || "catalogo"}
+                onChange={(e)=>setForm(p=>({...p,pagina:e.target.value}))}
+              >
+                {TIENDA_BANNER_DESTINOS.map((d)=>(
+                  <option key={d.id} value={d.id}>{d.label} ({d.id})</option>
+                ))}
+              </select>
+              <div style={{fontSize:11,color:C.textMid,marginTop:-4,marginBottom:10,lineHeight:1.4}}>
+                El botón del banner abre esa pantalla de la tienda. Si el valor viejo no existe, se usa Catálogo.
+              </div>
+            </div>
             <div>
               <label style={{color:C.textMid,fontSize:11,fontWeight:700,display:"block",marginBottom:3}}>ZONA EN EL HOME</label>
               <select style={{...inpS,marginBottom:10}} value={form.slot||"hero"} onChange={e=>setForm(p=>({...p,slot:e.target.value}))}>
@@ -922,7 +957,7 @@ function candidatosPorRolTmp(rol) {
 }
 
 function defaultIdsPorRol(rol) {
-  if (rol === "admin")    return NAV_ADMIN;
+  if (rolEsAdmin(rol)) return NAV_ADMIN;
   if (rol === "vendedor") return NAV_VENDEDOR;
   if (rol === "doctora")  return NAV_DOCTORA;
   return [];
@@ -2030,8 +2065,9 @@ export default function FarmaCapitalAdmin(){
 
   const handleNotifAction = useCallback((n)=>{
     if(n.action==="password_reset") setPasswordResetOpen(true);
+    if(n.action==="ped_online") setPageAndSave("pos", { posTab: "online" });
     setNotifs(p=>p.filter(x=>x.id!==n.id));
-  },[]);
+  },[setPageAndSave]);
 
   useEffect(()=>{
     if(!usuario) return;
@@ -2048,7 +2084,7 @@ export default function FarmaCapitalAdmin(){
           showToast(`🔑 Solicitud de reset: ${req.email_o_telefono}`,"warning");
         })
       .on("postgres_changes",{event:"UPDATE",schema:"public",table:"pedidos"},
-        pl=>{ if(pl.new?.estado==="listo") addNotif("✅ Pedido listo",`Pedido #${pl.new.id} listo para entrega`,"✅","#16a34a"); })
+        pl=>{ if(pl.new?.estado==="listo") addNotif("✅ Pedido listo",`Pedido #${pl.new.id} listo para entrega — toca para ver`,"✅","#16a34a","ped_online"); })
       .subscribe();
     return ()=>supabase.removeChannel(ch);
   },[usuario,addNotif, pushNotif]);
@@ -2090,7 +2126,7 @@ export default function FarmaCapitalAdmin(){
     if (fromUrl) {
       const migrated = migratePageId(fromUrl);
       let next = migrated.page;
-      if (usuario.rol === "admin" && next === "cons_dr") next = "agenda";
+      if (rolEsAdmin(usuario.rol) && next === "cons_dr") next = "agenda";
       applyPosTabHint(migrated.posTab);
       const pathHint = pathnameSuggestsPosTab(window.location.pathname);
       if (pathHint) applyPosTabHint(pathHint);
@@ -2197,6 +2233,7 @@ export default function FarmaCapitalAdmin(){
       case "bot":      return <AsistenteIA/>;
       case "cli":   return <ClientesModule/>;
       case "pwa":       return <InstalarPWA/>;
+      case "ayuda":     return <ManualModule usuario={usuario} onNavigate={setPageAndSave}/>;
       case "usuarios":  return <GestionUsuarios showConfirm={showConfirm}/>;
       default: return <div style={{color:C.textMid,padding:40,textAlign:"center"}}>Módulo en construcción...</div>;
     }

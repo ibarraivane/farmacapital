@@ -13,6 +13,7 @@ import {
   fetchProductosPaginados,
   PRODUCTOS_SELECT_LOTES,
 } from "./lib/inventarioHubData";
+import { DIAS_CADUCIDAD_ALERTA, DIAS_CADUCIDAD_CRITICO } from "./lib/caducidad";
 
 const BRAND = { primary:"#0D1B2A", secondary:"#1E3ABA", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
 const fmt = n => `$${parseFloat(n||0).toFixed(2)}`;
@@ -101,8 +102,8 @@ export default function LotesModule() {
     return Math.floor((new Date(fecha)-new Date())/86400000);
   };
 
-  const colCad = d => d===null?"#94a3b8":d==="invalida"?C.amber:d<0?C.red:d<=15?C.red:d<=30?C.amber:C.green;
-  const txtCad = d => d===null?"Sin fecha":d==="invalida"?"Revisar año":d<0?"VENCIDO":d===0?"HOY":d<=30?`${d} días`:`${d} días`;
+  const colCad = d => d===null?"#94a3b8":d==="invalida"?C.amber:d<0?C.red:d<=DIAS_CADUCIDAD_CRITICO?C.red:d<=DIAS_CADUCIDAD_ALERTA?C.amber:C.green;
+  const txtCad = d => d===null?"Sin fecha":d==="invalida"?"Revisar año":d<0?"VENCIDO":d===0?"HOY":`${d} días`;
 
   const prodById = useMemo(
     () => Object.fromEntries(productos.map((p) => [String(p.id), p])),
@@ -123,8 +124,8 @@ export default function LotesModule() {
       const matchV =
         filtroVenc === "todos" ? true :
         filtroVenc === "vencidos" ? (typeof dias === "number" && dias < 0) :
-        filtroVenc === "criticos" ? (typeof dias === "number" && dias >= 0 && dias <= 15) :
-        filtroVenc === "pronto" ? (typeof dias === "number" && dias > 15 && dias <= 30) : true;
+        filtroVenc === "criticos" ? (typeof dias === "number" && dias >= 0 && dias <= DIAS_CADUCIDAD_CRITICO) :
+        filtroVenc === "pronto" ? (typeof dias === "number" && dias > DIAS_CADUCIDAD_CRITICO && dias <= DIAS_CADUCIDAD_ALERTA) : true;
       return matchCat && matchP && matchV;
     });
     if (!q) return list;
@@ -231,8 +232,8 @@ export default function LotesModule() {
   };
 
   const vencidos  = lotes.filter(l=>{ const d=diasRestantes(l.fecha_caducidad); return typeof d==="number"&&d<0; }).length;
-  const criticos  = lotes.filter(l=>{ const d=diasRestantes(l.fecha_caducidad); return typeof d==="number"&&d>=0&&d<=15; }).length;
-  const pronto    = lotes.filter(l=>{ const d=diasRestantes(l.fecha_caducidad); return typeof d==="number"&&d>15&&d<=30; }).length;
+  const criticos  = lotes.filter(l=>{ const d=diasRestantes(l.fecha_caducidad); return typeof d==="number"&&d>=0&&d<=DIAS_CADUCIDAD_CRITICO; }).length;
+  const pronto    = lotes.filter(l=>{ const d=diasRestantes(l.fecha_caducidad); return typeof d==="number"&&d>DIAS_CADUCIDAD_CRITICO&&d<=DIAS_CADUCIDAD_ALERTA; }).length;
   const lotesFueraCatalogo = lotes.filter((l) => {
     const prod = loteRowProducto(l, prodById);
     return prod.activo === false;
@@ -245,7 +246,7 @@ export default function LotesModule() {
       <div style={{background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:10,padding:"10px 14px",marginBottom:14,fontSize:12,color:"#1e3a8a",lineHeight:1.5}}>
         <strong>Mismos productos que Catálogo.</strong> El nombre y el SKU salen de ahí; el stock de cada fila es el lote PEPS.
         {catalogoSinLote > 0 && (
-          <> Hay <strong>{catalogoSinLote}</strong> producto{catalogoSinLote === 1 ? "" : "s"} del catálogo sin lote — usa + Registrar lote o Catálogo → Resurtir.</>
+          <> Hay <strong>{catalogoSinLote}</strong> producto{catalogoSinLote === 1 ? "" : "s"} del catálogo sin lote — usa + Registrar lote o la pestaña Recibir.</>
         )}
         {lotesFueraCatalogo > 0 && (
           <> Hay <strong>{lotesFueraCatalogo}</strong> lote{lotesFueraCatalogo === 1 ? "" : "s"} de productos dados de baja — filtro «Fuera de catálogo».</>
@@ -281,8 +282,8 @@ export default function LotesModule() {
       <div style={{display:"flex",gap:12,marginBottom:20,flexWrap:"wrap"}}>
         {[
           {label:"Vencidos",    val:vencidos,     col:C.red,   filter:"vencidos"},
-          {label:"Críticos ≤15d",val:criticos,    col:C.amber, filter:"criticos"},
-          {label:"Por vencer ≤30d",val:pronto,    col:"#f59e0b",filter:"pronto"},
+          {label:`Críticos ≤${DIAS_CADUCIDAD_CRITICO}d`,val:criticos,    col:C.amber, filter:"criticos"},
+          {label:`Por vencer ≤${DIAS_CADUCIDAD_ALERTA}d`,val:pronto,    col:"#f59e0b",filter:"pronto"},
           {label:"Total lotes", val:lotes.length, col:C.blue,  filter:"todos"},
         ].map(k=>(
           <div key={k.label} onClick={()=>setFiltroV(k.filter)}
@@ -344,7 +345,7 @@ export default function LotesModule() {
                         Sin lotes para «{filtroP.trim()}».
                         <br />
                         <span style={{ fontSize: 11 }}>
-                          Si el producto está en <strong>Catálogo</strong> pero no aparece aquí, aún no tiene lote PEPS — usa <strong>+ Registrar lote</strong> o <strong>Catálogo → Resurtir</strong>.
+                          Si el producto está en <strong>Catálogo</strong> pero no aparece aquí, aún no tiene lote PEPS — usa <strong>+ Registrar lote</strong> o la pestaña <strong>Recibir</strong>.
                         </span>
                       </>
                     ) : (

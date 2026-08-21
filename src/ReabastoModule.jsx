@@ -18,6 +18,7 @@ import {
   fetchLotesInventario,
   fetchProductosPaginados,
 } from "./lib/inventarioHubData";
+import { DIAS_CADUCIDAD_ALERTA } from "./lib/caducidad";
 import { inventarioProductMatchesBusqueda } from "./utils/fuzzySearch";
 
 const BRAND = { primary:"#0D1B2A", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
@@ -27,26 +28,24 @@ const STOCK_MIN_DEFAULT = 5;
 const stockDe = (p) => Number(p.stock_peps ?? p.stock) || 0;
 const stockMinimoEfectivo = (p) => (Number(p.stock_minimo) > 0 ? Number(p.stock_minimo) : STOCK_MIN_DEFAULT);
 
-const calcUrgencia = (p, C) => {
-  const dias = p.diasCaducidad;
-  let cad = null;
-  if (dias != null && dias < 0) cad = { nivel:"VENCIDO", col:C.red, bg:C.redDim, icon:"⛔" };
-  else if (dias != null && dias <= 30) cad = { nivel:"CADUCA", col:C.amber, bg:C.amberDim, icon:"⏳" };
-
-  let stockU = null;
+const calcStockUrgencia = (p, C) => {
   const min = stockMinimoEfectivo(p);
   const stock = stockDe(p);
   const pct = stock / min;
-  if (stock === 0) stockU = { nivel:"AGOTADO", col:C.red, bg:C.redDim, icon:"🚨" };
-  else if (pct <= 0.5)    stockU = { nivel:"CRÍTICO", col:C.red, bg:C.redDim, icon:"🔴" };
-  else if (pct <= 1)      stockU = { nivel:"BAJO",    col:C.amber, bg:C.amberDim, icon:"🟡" };
-  else if (pct <= 1.5)    stockU = { nivel:"PRONTO",  col:"#0891b2", bg:"#cffafe", icon:"🔵" };
+  if (stock === 0) return { nivel:"AGOTADO", col:C.red, bg:C.redDim, icon:"🚨" };
+  if (pct <= 0.5)    return { nivel:"CRÍTICO", col:C.red, bg:C.redDim, icon:"🔴" };
+  if (pct <= 1)      return { nivel:"BAJO",    col:C.amber, bg:C.amberDim, icon:"🟡" };
+  if (pct <= 1.5)    return { nivel:"PRONTO",  col:"#0891b2", bg:"#cffafe", icon:"🔵" };
+  return null;
+};
 
-  if (stockU && cad) {
-    const ord = { AGOTADO:0, VENCIDO:1, CRÍTICO:2, CADUCA:3, BAJO:4, PRONTO:5 };
-    return (ord[stockU.nivel] ?? 9) <= (ord[cad.nivel] ?? 9) ? stockU : cad;
+const calcCaducidadUrgencia = (p, C) => {
+  const dias = p.diasCaducidad;
+  if (dias != null && dias < 0) return { nivel:"VENCIDO", col:C.red, bg:C.redDim, icon:"⛔" };
+  if (dias != null && dias <= DIAS_CADUCIDAD_ALERTA) {
+    return { nivel:"CADUCA", col:C.amber, bg:C.amberDim, icon:"⏳" };
   }
-  return stockU || cad;
+  return null;
 };
 
 export default function ReabastoModule() {
@@ -111,52 +110,59 @@ export default function ReabastoModule() {
 
   const alertas = useMemo(() => (
     productos
-      .map(p=>({...p, urgencia:calcUrgencia(p, C)}))
+      .map(p=>({...p, urgencia: calcStockUrgencia(p, C)}))
       .filter(p=>p.urgencia)
       .sort((a,b)=>{
-        const ord={AGOTADO:0,VENCIDO:1,CRÍTICO:2,CADUCA:3,BAJO:4,PRONTO:5};
+        const ord={AGOTADO:0,CRÍTICO:1,BAJO:2,PRONTO:3};
         return (ord[a.urgencia.nivel]??9)-(ord[b.urgencia.nivel]??9);
       })
+  ), [productos, C]);
+
+  const colaCaduca = useMemo(() => (
+    productos
+      .map(p=>({
+        ...p,
+        caducidad: calcCaducidadUrgencia(p, C),
+        urgencia: calcCaducidadUrgencia(p, C) || calcStockUrgencia(p, C),
+      }))
+      .filter(p=>p.caducidad)
+      .sort((a,b)=>(a.diasCaducidad ?? 9999)-(b.diasCaducidad ?? 9999))
   ), [productos, C]);
 
   const menores = useMemo(() => (
     [...productos].sort((a,b)=>stockDe(a)-stockDe(b)).slice(0, 40)
   ), [productos]);
-  const filasBase = useMemo(() => (
+  const filasStock = useMemo(() => (
     alertas.length
       ? alertas
-      : menores.map(p=>({...p, urgencia: calcUrgencia(p, C) || { nivel:"OK", col:C.textMid, bg:C.cardDark, icon:"·" }}))
+      : menores.map(p=>({...p, urgencia: calcStockUrgencia(p, C) || { nivel:"OK", col:C.textMid, bg:C.cardDark, icon:"·" }}))
   ), [alertas, menores, C]);
+  const filasFuente = filtroUrgencia === "CADUCA" ? colaCaduca : filasStock;
   const filasTienda = useMemo(() => {
     const q = busqueda.trim();
-    let list = q ? filasBase.filter((p) => inventarioProductMatchesBusqueda(p, q)) : filasBase;
+    let list = q ? filasFuente.filter((p) => inventarioProductMatchesBusqueda(p, q)) : filasFuente;
     if (filtroTienda === "levic") list = list.filter((p) => p.mejorTienda?.fuente === "levic");
     else if (filtroTienda === "otras") list = list.filter((p) => p.mejorTienda && p.mejorTienda.fuente !== "levic");
     else if (filtroTienda === "sin") list = list.filter((p) => !p.mejorTienda);
     return list;
-  }, [filasBase, busqueda, filtroTienda]);
+  }, [filasFuente, busqueda, filtroTienda]);
   const filasAlertas = useMemo(() => {
     if (filtroUrgencia === "elegidos") return filasTienda.filter((p) => selProds[p.id] > 0);
-    if (filtroUrgencia === "CADUCA") {
-      return filasTienda.filter((p) => p.urgencia?.nivel === "CADUCA" || p.urgencia?.nivel === "VENCIDO");
-    }
+    if (filtroUrgencia === "CADUCA") return filasTienda;
     if (filtroUrgencia) return filasTienda.filter((p) => p.urgencia?.nivel === filtroUrgencia);
     return filasTienda;
   }, [filasTienda, filtroUrgencia, selProds]);
   const listaVacia = !loading && !productos.length;
   const nMarcados = Object.values(selProds).filter((v) => v > 0).length;
-  const nAgotados = filasTienda.filter((p) => p.urgencia?.nivel === "AGOTADO").length;
-  const nCriticos = filasTienda.filter((p) => p.urgencia?.nivel === "CRÍTICO").length;
-  const nCaduca = filasTienda.filter((p) => p.urgencia?.nivel === "CADUCA" || p.urgencia?.nivel === "VENCIDO").length;
-  const nBajo = filasTienda.filter((p) => p.urgencia?.nivel === "BAJO").length;
-  const nPronto = filasTienda.filter((p) => p.urgencia?.nivel === "PRONTO").length;
+  const nAgotados = productos.filter((p) => calcStockUrgencia(p, C)?.nivel === "AGOTADO").length;
+  const nCriticos = productos.filter((p) => calcStockUrgencia(p, C)?.nivel === "CRÍTICO").length;
+  const nCaduca = colaCaduca.length;
+  const nBajo = productos.filter((p) => calcStockUrgencia(p, C)?.nivel === "BAJO").length;
+  const nPronto = productos.filter((p) => calcStockUrgencia(p, C)?.nivel === "PRONTO").length;
 
   const cantidadSugerida = (p) => {
     const min = stockMinimoEfectivo(p);
     const base = Math.max(min * 3 - stockDe(p), 0);
-    if (p.urgencia?.nivel === "VENCIDO" || p.urgencia?.nivel === "CADUCA") {
-      return Math.max(base, min);
-    }
     return Math.max(base, 1);
   };
 
@@ -315,7 +321,7 @@ export default function ReabastoModule() {
         {[
           {id:"AGOTADO",label:"Agotados",value:nAgotados,col:C.red,icon:"🚨"},
           {id:"CRÍTICO",label:"Críticos",value:nCriticos,col:C.red,icon:"🔴"},
-          {id:"CADUCA",label:"Caduca",value:nCaduca,col:C.amber,icon:"⏳"},
+          {id:"CADUCA",label:`Caduca ${DIAS_CADUCIDAD_ALERTA}d`,value:nCaduca,col:C.amber,icon:"⏳"},
           {id:"BAJO",label:"Bajo",value:nBajo,col:C.amber,icon:"🟡"},
           {id:"PRONTO",label:"Pronto",value:nPronto,col:"#0891b2",icon:"🔵"},
           {id:"elegidos",label:"Elegidos",value:nMarcados,col:BRAND.primary,icon:"✅"},

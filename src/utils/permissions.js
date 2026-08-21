@@ -9,7 +9,8 @@
 // Regla general:
 //   - Admin → todos los módulos (siempre).
 //   - Vendedor → piso operativo, sin finanzas ni costos. Nunca los BLOQUEADOS
-//     aunque un admin los agregue a modulos_custom.
+//     aunque un admin los agregue a modulos_custom. Devoluciones sí: el piso
+//     identifica la venta con folio o teléfono.
 //   - Doctora → agenda clínica y expediente (sin POS/caja/finanzas).
 
 export const MODULOS_BLOQUEADOS_VENDEDOR = [
@@ -17,7 +18,6 @@ export const MODULOS_BLOQUEADOS_VENDEDOR = [
   "rrhh",         // RR.HH. / nómina
   "config_cons",  // Metas y Precios
   "promo",        // Promociones
-  "dev",          // Devoluciones (requiere admin)
   "fact",         // Facturación CFDI
   "banners",      // Banners de la tienda online
   "usuarios",     // Gestión de usuarios
@@ -33,9 +33,11 @@ export const MODULOS_BLOQUEADOS_VENDEDOR = [
 export const NAV_VENDEDOR_DEFAULT = [
   "midia",
   "pos",
+  "dev",
   "agenda",
   "inv",
   "caja",
+  "ayuda",
   "pwa",
 ];
 
@@ -48,6 +50,7 @@ export const MODULOS_DISPONIBLES_VENDEDOR = [
 export const MODULOS_DISPONIBLES_DOCTORA = [
   "cons_dr",
   "exp_dr",
+  "ayuda",
 ];
 
 export function rolEsAdmin(rol) {
@@ -55,14 +58,14 @@ export function rolEsAdmin(rol) {
 }
 
 export function modulosPermitidosParaRol(rol) {
-  if (rol === "admin")    return "all";
+  if (rolEsAdmin(rol)) return "all";
   if (rol === "vendedor") return MODULOS_DISPONIBLES_VENDEDOR;
   if (rol === "doctora")  return MODULOS_DISPONIBLES_DOCTORA;
   return [];
 }
 
 export function defaultIdsPorRolPermisos(rol) {
-  if (rol === "admin")    return null;
+  if (rolEsAdmin(rol)) return null;
   if (rol === "vendedor") return NAV_VENDEDOR_DEFAULT;
   if (rol === "doctora")  return MODULOS_DISPONIBLES_DOCTORA;
   return [];
@@ -74,7 +77,8 @@ export function defaultIdsPorRolPermisos(rol) {
 // 4. Si no, default del rol.
 export function puedeVerModulo(usuario, moduloId) {
   if (!usuario || !moduloId) return false;
-  if (usuario.rol === "admin") return true;
+  if (moduloId === "ayuda") return true;
+  if (rolEsAdmin(usuario.rol)) return true;
 
   if (usuario.rol === "vendedor" && MODULOS_BLOQUEADOS_VENDEDOR.includes(moduloId)) {
     return false;
@@ -97,7 +101,7 @@ export function puedeVerModulo(usuario, moduloId) {
 }
 
 export function filtrarModulosPorRol(ids, rol) {
-  if (rol === "admin") return ids;
+  if (rolEsAdmin(rol)) return ids;
   const permitidos = modulosPermitidosParaRol(rol);
   if (permitidos === "all") return ids;
   if (!Array.isArray(permitidos)) return [];

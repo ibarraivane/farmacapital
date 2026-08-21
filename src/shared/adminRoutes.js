@@ -22,6 +22,8 @@ const SLUG_TO_PAGE = {
   ped_online: "ped_online",
   inventario: "inv",
   "ingreso-inventario": "inv",
+  manual: "ayuda",
+  ayuda: "ayuda",
   /** Cobro de consultas vive en POS → pestaña Consultas (sin módulo aparte). */
   "cobrar-consulta": "pos",
   cons_cobro: "pos",
@@ -40,6 +42,7 @@ const PAGE_TO_SLUG = {
   agenda: "agenda-consultas",
   ped_online: "pedidos-online",
   inv: "inventario",
+  ayuda: "manual",
 };
 
 /**
