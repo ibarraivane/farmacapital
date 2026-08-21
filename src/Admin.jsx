@@ -125,7 +125,7 @@ function LoginScreen({onLogin}){
 
   const entrar = async () => {
     if(!email||!pwd) return;
-    if(pwd.length < 8) { setError("La contraseña debe tener al menos 8 caracteres."); return; }
+    if(pwd.length < 6) { setError("La contraseña debe tener al menos 6 caracteres."); return; }
     const idRaw = email.trim();
     const idNorm = idRaw.includes("@") ? idRaw.toLowerCase() : idRaw;
 
