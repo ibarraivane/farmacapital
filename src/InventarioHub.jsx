@@ -132,7 +132,7 @@ export default function InventarioHub({ initialTab, usuario }) {
         {tab === "catalogo" && (
           <InventarioModule modoConsulta={modoConsulta} onIrARecibir={() => selectTab("recibir")} />
         )}
-        {tab === "recibir" && <RecepcionModule />}
+        {tab === "recibir" && <RecepcionModule ocultarMontos={modoConsulta} />}
         {!modoConsulta && tab === "reabasto" && <ReabastoModule/>}
         {!modoConsulta && tab === "lotes"    && <LotesModule/>}
         {!modoConsulta && tab === "precios"  && <PreciosReferenciaModule/>}

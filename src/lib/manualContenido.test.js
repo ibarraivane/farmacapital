@@ -62,6 +62,8 @@ describe("manualContenido", () => {
     const cat = TEMAS.find((x) => x.id === "catalogo");
     expect(midia.pasos.join(" ")).toMatch(/Tickets/);
     expect(cat.pasos.join(" ")).toMatch(/Activos/);
+    expect(cat.pasos.join(" ")).toMatch(/pvp|POS/i);
+    expect(cat.dudas.some((d) => /precios/i.test(d.q))).toBe(true);
   });
 
   test("hayrol respeta exclusividad", () => {

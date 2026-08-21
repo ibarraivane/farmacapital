@@ -60,7 +60,7 @@ const labelS = (C) => ({
   marginBottom: 6,
 });
 
-export default function RecepcionModule() {
+export default function RecepcionModule({ ocultarMontos = false }) {
   const C = C_LIGHT;
   const isMobile = useMediaQuery("(max-width: 768px)");
   const scanRef = useRef(null);
@@ -482,7 +482,9 @@ export default function RecepcionModule() {
       return;
     }
     if (estado === "descuadre") {
-      showToast(`Stock recibido, pero no cuadra con el ticket (${fmt(rec.subtotal_estimado)} vs ${fmt(rec.total_ticket)}). Avísale al dueño.`, "warning");
+      showToast(ocultarMontos
+        ? "Stock recibido, pero no cuadra con el ticket. Avísale al dueño."
+        : `Stock recibido, pero no cuadra con el ticket (${fmt(rec.subtotal_estimado)} vs ${fmt(rec.total_ticket)}). Avísale al dueño.`, "warning");
     } else if (estado === "pendiente_alta") {
       showToast(`Stock recibido. ${rec.pendientes_alta} código(s) no están en catálogo — quedan pendientes de alta.`, "warning");
     } else {
@@ -531,7 +533,7 @@ export default function RecepcionModule() {
               {doc.renglones || 0} renglones · {(doc.items || []).filter((i) => i.confirmado).length} ok
               {(doc.sin_confirmar > 0) ? ` · ${doc.sin_confirmar} sin caducidad` : ""}
             </div>
-            {ticketNum != null && Number.isFinite(ticketNum) && (
+            {ticketNum != null && Number.isFinite(ticketNum) && !ocultarMontos && (
               <div style={{ color: C.textMid, fontSize: 12, marginTop: 2 }}>
                 estimado {fmt(estimado)} de {fmt(ticketNum)} del ticket
               </div>
@@ -565,6 +567,7 @@ export default function RecepcionModule() {
               <label style={labelS(C)} htmlFor="rc-folio">Folio del ticket</label>
               <input id="rc-folio" value={folio} onChange={(e) => setFolio(e.target.value)} placeholder="440393" autoComplete="off" style={inpBase(C)} />
             </div>
+            {!ocultarMontos && (
             <div>
               <label style={labelS(C)} htmlFor="rc-total">Total del ticket</label>
               <input
@@ -577,6 +580,7 @@ export default function RecepcionModule() {
                 style={inpBase(C)}
               />
             </div>
+            )}
           </div>
           <button
             type="submit"
@@ -619,10 +623,12 @@ export default function RecepcionModule() {
               <label style={labelS(C)}>Folio</label>
               <input value={folio} onChange={(e) => setFolio(e.target.value)} onBlur={guardarCabecera} style={inpBase(C, { padding: "9px 12px", fontSize: 14 })} />
             </div>
+            {!ocultarMontos && (
             <div>
               <label style={labelS(C)}>Total ticket</label>
               <input value={totalTicket} onChange={(e) => setTotalTicket(e.target.value)} onBlur={guardarCabecera} inputMode="decimal" style={inpBase(C, { padding: "9px 12px", fontSize: 14 })} />
             </div>
+            )}
             <button type="button" onClick={descartar} style={{ padding: "9px 12px", borderRadius: 8, border: `1px solid ${C.border}`, background: "transparent", color: C.textMid, fontWeight: 700, fontSize: 12, cursor: "pointer", height: 42 }}>
               Descartar
             </button>

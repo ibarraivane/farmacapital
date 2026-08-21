@@ -2602,7 +2602,7 @@ function renderInventarioColumnCell(colId, ctx) {
   }
 }
 
-const INV_COLS_OCULTAS_CONSULTA = ["costo", "margen", "acciones"];
+const INV_COLS_OCULTAS_CONSULTA = ["costo", "margen", "acciones", "precio", "desc"];
 
 export default function InventarioModule({ modoConsulta = false, onIrARecibir }) {
   const C = C_LIGHT;
@@ -2960,6 +2960,15 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
       if (!p || typeof p !== "object") return p;
       const next = { ...p };
       delete next.costo;
+      if (Array.isArray(next.lotes)) {
+        next.lotes = next.lotes.map((l) => {
+          if (!l || typeof l !== "object") return l;
+          const sl = { ...l };
+          delete sl.costo_unitario;
+          delete sl.costo;
+          return sl;
+        });
+      }
       return next;
     };
 
@@ -2978,7 +2987,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
       for (let desde = 0; ; desde += PRODUCTOS_POR_PAGINA) {
         const { data, error } = await supabase
           .from("productos")
-          .select("*")
+          .select("id,nombre,sku,codigo_barras,categoria,stock,stock_minimo,activo,marca,presentacion,principio_activo,forma_farmaceutica,precio")
           .eq("activo", true)
           .order("nombre")
           .order("id")
@@ -3739,8 +3748,10 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
           {label:"Bajo stock",  val:bajoStock,  col:C.amber, click:()=>setFiltroAlerta(filtroAlerta==="bajo_stock"?"todos":"bajo_stock"), on: filtroAlerta==="bajo_stock"},
           {label:"Por caducar", val:porCaducar, col:C.red,   click:()=>setFiltroAlerta(filtroAlerta==="por_caducar"?"todos":"por_caducar"), on: filtroAlerta==="por_caducar"},
           {label:"Sin cód. barras", val:sinCodigoBarras, col:C.blue, click:()=>setFiltroAlerta(filtroAlerta==="sin_codigo_barras"?"todos":"sin_codigo_barras"), on: filtroAlerta==="sin_codigo_barras"},
-          {label:"Sin precio", val:sinPrecioVenta, col:C.red, click:()=>setFiltroAlerta(filtroAlerta==="sin_precio"?"todos":"sin_precio"), on: filtroAlerta==="sin_precio"},
-          {label:"Inactivos",   val:inactivos,  col:C.textMid, click:()=>{ setVerInactivos(true); setFiltroAlerta("todos"); }, on: !!verInactivos},
+          ...(!modoConsulta ? [
+            {label:"Sin precio", val:sinPrecioVenta, col:C.red, click:()=>setFiltroAlerta(filtroAlerta==="sin_precio"?"todos":"sin_precio"), on: filtroAlerta==="sin_precio"},
+            {label:"Inactivos",   val:inactivos,  col:C.textMid, click:()=>{ setVerInactivos(true); setFiltroAlerta("todos"); }, on: !!verInactivos},
+          ] : []),
         ].map(s=>(
           <button key={s.label} type="button" onClick={s.click} style={{
             background:s.on ? `${s.col}14` : C.card,
@@ -3785,7 +3796,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
           <option value="bajo_stock">⚠ Bajo stock</option>
           <option value="por_caducar">⏰ Por caducar ({DIAS_CADUCIDAD_ALERTA}d)</option>
           <option value="sin_codigo_barras">🏷️ Sin código de barras</option>
-          <option value="sin_precio">Sin precio de venta</option>
+          {!modoConsulta && <option value="sin_precio">Sin precio de venta</option>}
         </select>
         {!modoConsulta && (
         <label style={{display:"flex",alignItems:"center",gap:7,cursor:"pointer",color:C.textMid,fontSize:12,fontWeight:600}}>
