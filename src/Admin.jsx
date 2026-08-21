@@ -11,7 +11,7 @@ import { esPedidoTiendaWebPendiente, fetchPedidosTiendaPendientesMerged } from "
 import AgendaConsultasModule from "./modules/clinical/AgendaConsultasModule";
 import ExpedientesDoctora from "./modules/clinical/patients/ExpedientesDoctora";
 import { loadAdminNavOrder } from "./utils/adminNavOrder";
-import { puedeVerModulo, modulosPermitidosParaRol, rolEsAdmin } from "./utils/permissions";
+import { puedeVerModulo, modulosPermitidosParaRol, rolEsAdmin, inyectarNavOperacionPiso } from "./utils/permissions";
 import { adminPathnameToPageId, pageIdToAdminPath, pathnameSuggestsPosTab, pathnameSuggestsDashTab } from "./shared/adminRoutes";
 import { TIENDA_BANNER_DESTINOS, resolveTiendaPage } from "./shared/tiendaRoutes";
 import { initBillingListeners } from "./modules/billing/core/initBillingListeners";
@@ -25,6 +25,7 @@ const C = C_LIGHT;
 // ── Lazy loading — módulos se cargan solo cuando se necesitan ──
 const RRHHModule       = lazy(()=>import("./RRHHModule"));
 const InventarioHub    = lazy(()=>import("./InventarioHub"));
+const RecepcionModule  = lazy(()=>import("./RecepcionModule"));
 const MiDia            = lazy(()=>import("./modules/sales/MiDia"));
 const POS              = lazy(()=>import("./modules/sales/pos/POS"));
 const CorteCajaModule  = lazy(()=>import("./CorteCajaModule"));
@@ -385,7 +386,7 @@ function AdminNavSidebar({active,setActive,negocio,setNegocio,usuario,onLogout,a
   // Defensa en profundidad: aunque alguien haya guardado un módulo prohibido
   // en modulos_custom, filtramos aquí contra la whitelist del rol.
   const navIdsFiltered = isAdmin ? navIdsRaw : navIdsRaw.filter((id) => puedeVerModulo(usuario, id));
-  const navIds = navIdsFiltered.includes("ayuda") ? navIdsFiltered : [...navIdsFiltered, "ayuda"];
+  const navIds = inyectarNavOperacionPiso(navIdsFiltered);
   const navItems = navIds.map((id) => NAV_ITEMS.find((n) => n.id === id)).filter(Boolean);
   const rolColor = usuario.rol==="admin"?C.purple:usuario.rol==="vendedor"?C.blue:C.green;
 
@@ -1868,11 +1869,15 @@ export default function FarmaCapitalAdmin(){
     if (dashTab) applyDashTabHint(dashTab);
     try {
       sessionStorage.setItem("farmacapital_active_page", next);
-      if (next === "inv" && tabHint) {
+      if (next === "inv" && (!tabHint || tabHint === "recibir")) {
+        sessionStorage.setItem("farmacapital_inv_tab", "catalogo");
+        setInvInitialTab("catalogo");
+      } else if (next === "inv" && tabHint) {
         sessionStorage.setItem("farmacapital_inv_tab", tabHint);
         setInvInitialTab(tabHint);
-      } else if (next !== "inv") {
-        // Al salir de inv, no borramos farmacapital_inv_tab — al volver recordará la última tab.
+      } else if (next === "inv") {
+        sessionStorage.setItem("farmacapital_inv_tab", "catalogo");
+        setInvInitialTab("catalogo");
       }
     } catch (_) { /* noop */ }
     setPage(next);
@@ -2223,7 +2228,9 @@ export default function FarmaCapitalAdmin(){
         return <POS negocio={neg} usuario={usuario} initialTab="online" onNavigate={setPageAndSave} />;
       case "inventario":
       case "inv":
-        return <InventarioHub initialTab={invInitialTab} usuario={usuario}/>;
+        return <InventarioHub initialTab={invInitialTab} usuario={usuario} onNavigate={setPageAndSave}/>;
+      case "recibir":
+        return <RecepcionModule ocultarMontos={usuario?.rol === "vendedor"} />;
       case "rrhh": return <RRHHModule/>;
       case "caja":  return <CorteCajaModule usuario={usuario}/>;
       case "cof":      return <COFEPRISModule/>;

@@ -119,7 +119,7 @@ export const TEMAS = [
     titulo: "Recibir mercancía",
     resumen: "Pistola = está aquí. [[mmaa]] = fecha de ESTA caja. Cerrar = ya conté lo que sí llegó.",
     pasos: [
-      "En el menú izquierdo abre Recibir (no Inventario/Catálogo).",
+      "En el menú izquierdo abre Recibir. Inventario es otra pantalla: existencias, no cajas.",
       "Entras a la lista de tickets pendientes. Toca uno para continuar, o Nuevo ticket.",
       "Si hay lista gris: no subas el mismo [[pdf]] otra vez. Escanea cada caja y pon [[mmaa]].",
       "Nuevo ticket: proveedor, folio y total → Empezar a escanear. O Subir [[pdf]] / [[csv]] (la fecha NO sale del papel).",
@@ -145,10 +145,10 @@ export const TEMAS = [
     id: "catalogo",
     moduloId: "inv",
     invTab: "catalogo",
-    titulo: "Catálogo",
+    titulo: "Inventario (existencias)",
     resumen: "Buscar existencias y ficha del producto. La vendedora consulta; el dueño edita precios y receta.",
     pasos: [
-      "Inventario en el menú (existencias). Recibir es otra entrada, para cajas nuevas.",
+      "Menú Inventario: qué hay en anaquel. Menú Recibir: meter cajas. No están duplicados.",
       "Busca por nombre, [[sku]] o [[ean]].",
       "Toca Bajo stock, Por caducar, etc. Toca Activos para volver al listado general (igual que Limpiar filtros).",
       "La vendedora no ve [[costo]] ni [[pvp]] aquí. El precio de venta se consulta en el POS al escanear.",

@@ -38,11 +38,11 @@ export const NEG = {
 // agenda = calendario de consultas (admin/vendedor); cons_dr = misma vista, id reservado a doctora.
 // trans = Transacciones (listado de pedidos); ped_online = POS pestaña pedidos web.
 // VENTAS: pos (consultas en POS), ped_online
-// INVENTARIO: inv (hub: recibir / catálogo / lotes / reabasto)
+// INVENTARIO: recibir (cajas) + inv (hub: catálogo / lotes / reabasto)
 // DOCTORA: agenda (cons_dr) + expedientes; sin PWA ni consultorio duplicado
 export const NAV_ADMIN = [
   "dash", "pos", "cli", "caja", "ped_online",
-  "inv",
+  "recibir", "inv",
   "agenda", "cons", "exp_dr",
   "cof", "dev", "fact",
   "promo", "banners", "bot", "config_cons",
@@ -53,7 +53,7 @@ export const NAV_ADMIN = [
 /** Títulos del sidebar admin (sin mezclar “vistas por rol”; solo agrupa trabajo). */
 export const ADMIN_NAV_SECTIONS = [
   { title: "Operación diaria", ids: ["dash", "pos", "cli", "caja", "ped_online"] },
-  { title: "Inventario", ids: ["inv"] },
+  { title: "Inventario", ids: ["recibir", "inv"] },
   { title: "Consultorio", ids: ["agenda", "cons", "exp_dr"] },
   { title: "Control y cumplimiento", ids: ["cof", "dev", "fact"] },
   { title: "Comercial y crecimiento", ids: ["promo", "banners", "bot", "config_cons"] },
@@ -62,7 +62,7 @@ export const ADMIN_NAV_SECTIONS = [
 ];
 
 export const NAV_VENDEDOR = [
-  "midia", "pos", "dev", "agenda", "inv", "caja", "ayuda", "pwa",
+  "midia", "pos", "dev", "agenda", "recibir", "inv", "caja", "ayuda", "pwa",
 ];
 export const NAV_DOCTORA = ["cons_dr", "exp_dr", "ayuda"];
 
@@ -73,7 +73,7 @@ import {
   Wallet, Stethoscope, Users, UserCog, ShieldCheck,
   Target, Undo2, Receipt, Image as ImageIcon, Sparkles,
   Download, UserPlus, HeartPulse,
-  SlidersHorizontal, Gauge, FolderOpen, CalendarDays, Globe, BookOpen,
+  SlidersHorizontal, Gauge, FolderOpen, CalendarDays, Globe, BookOpen, ScanLine,
 } from "lucide-react";
 
 export const NAV_ITEMS = [
@@ -81,8 +81,9 @@ export const NAV_ITEMS = [
   {id:"midia",      icon: Gauge,           label:"Mi Día"},
   // ══ VENTAS ════════════════════════════════
   {id:"pos",        icon: ShoppingCart,    label:"Punto de Venta"},
-  // ══ INVENTARIO (hub con tabs catálogo/reabasto/lotes) ══
+  // ══ INVENTARIO (Recibir = cajas; Inventario = existencias) ══
   {id:"inv",        icon: Package,         label:"Inventario"},
+  {id:"recibir",    icon: ScanLine,        label:"Recibir"},
   // ══ OPERACIONES ═══════════════════════════
   {id:"caja",       icon: Wallet,          label:"Corte de Caja"},
   {id:"cons",       icon: Stethoscope,     label:"Consultorio"},
