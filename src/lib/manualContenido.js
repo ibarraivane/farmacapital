@@ -10,7 +10,7 @@ export const GLOSARIO = [
   { id: "folio", term: "Folio", aliases: ["ticket", "número de ticket"], def: "Número del ticket o factura del proveedor. Identifica esa entrega." },
   { id: "borrador", term: "Borrador de recepción", aliases: ["recibir abierto", "ticket pendiente"], def: "Un ticket abierto en Recibir. En la pantalla de inicio ves todos los pendientes (tarjetas). Tocas uno para trabajarlo. ← Tickets te regresa a la lista sin borrar. No toques Descartar si es una cola de caducidades (Cityfarma, Farmalive, Levic)." },
   { id: "pendiente-alta", term: "Pendiente de alta", aliases: ["no está en catálogo"], def: "El código no está en el catálogo. Se anota, no se vende. El dueño lo da de alta (precio, receta, categoría)." },
-  { id: "descuadre", term: "Descuadre", aliases: ["no cuadra"], def: "El total estimado no coincide con el total del ticket. El stock sí puede entrar; hay que avisarle al dueño." },
+  { id: "descuadre", term: "Descuadre", aliases: ["no cuadra"], def: "Antes el sistema avisaba si el total del ticket (con IVA) no coincidía con la suma de las líneas. Si todo está en verde, el stock sí entró: no es que falte una caja." },
   { id: "anaquel", term: "Anaquel", aliases: ["piso", "mostrador"], def: "Lo que está en el piso de venta, no en un papel ni en un PDF." },
   { id: "pvp", term: "PVP", aliases: ["precio de venta", "precio al público"], def: "Precio al público. La vendedora lo consulta en el POS al escanear, no en el Catálogo. No se captura al recibir. Lo define el dueño." },
   { id: "costo", term: "Costo", aliases: ["precio de compra", "en cuánto compramos"], def: "Lo que se pagó al proveedor. El piso no lo ve: ni en Catálogo, ni en Recibir (estimado). Vive en el lote y lo ve el dueño." },

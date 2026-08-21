@@ -474,8 +474,6 @@ begin
 
   if v_pendientes > 0 then
     v_estado := 'pendiente_alta';
-  elsif v_rec.total_ticket is not null and abs(v_diff) > 1 then
-    v_estado := 'descuadre';
   else
     v_estado := 'confirmada';
   end if;

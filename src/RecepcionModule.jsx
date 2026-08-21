@@ -663,11 +663,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
       showToast(`Entró lo confirmado. Quedan ${rec.sin_confirmar} pendiente${rec.sin_confirmar === 1 ? "" : "s"} en Recibir.`, "warning");
       return;
     }
-    if (estado === "descuadre") {
-      showToast(ocultarMontos
-        ? "Stock recibido, pero no cuadra con el ticket. Avísale al dueño."
-        : `Stock recibido, pero no cuadra con el ticket (${fmt(rec.subtotal_estimado)} vs ${fmt(rec.total_ticket)}). Avísale al dueño.`, "warning");
-    } else if (estado === "pendiente_alta") {
+    if (estado === "pendiente_alta") {
       showToast(`Stock recibido. ${rec.pendientes_alta} código(s) no están en catálogo — quedan pendientes de alta.`, "warning");
     } else {
       showToast(`Recepción confirmada · ${rec?.piezas || 0} pzas`, "success");
