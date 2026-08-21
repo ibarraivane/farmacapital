@@ -7,6 +7,7 @@ import { C_LIGHT, BRAND } from "./constants";
 import { Package, Truck, Tags, TrendingUp, ShoppingBag } from "lucide-react";
 
 const InventarioModule = lazy(() => import("./InventarioModule"));
+const RecepcionModule  = lazy(() => import("./RecepcionModule"));
 const ReabastoModule   = lazy(() => import("./ReabastoModule"));
 const LotesModule      = lazy(() => import("./LotesModule"));
 const PreciosReferenciaModule = lazy(() => import("./PreciosReferenciaModule"));
@@ -24,12 +25,12 @@ const TABS = [
 
 const STORAGE_KEY = "farmacapital_inv_tab";
 
-function tabInicial({ initialTab, modoConsulta, tabPermitida }) {
-  const raw = initialTab === "recibir" ? "catalogo" : initialTab;
-  if (raw && tabPermitida(raw)) return raw;
+function tabInicial({ initialTab, tabPermitida }) {
+  if (initialTab === "recibir") return "recibir";
+  if (initialTab && tabPermitida(initialTab)) return initialTab;
   try {
     const saved = sessionStorage.getItem(STORAGE_KEY);
-    if (saved === "recibir") return "catalogo";
+    if (saved === "recibir") return "recibir";
     if (saved && tabPermitida(saved)) return saved;
   } catch (_) { /* storage bloqueado */ }
   return "catalogo";
@@ -43,8 +44,9 @@ export default function InventarioHub({ initialTab, usuario, onNavigate }) {
     ? TABS_VENDEDOR.map((id) => TABS.find((t) => t.id === id)).filter(Boolean)
     : TABS;
   const tabPermitida = (id) => tabsVisibles.some((t) => t.id === id);
-  const [tab, setTab] = useState(() => tabInicial({ initialTab, modoConsulta, tabPermitida }));
-  const mostrarTabs = tabsVisibles.length > 1;
+  const [tab, setTab] = useState(() => tabInicial({ initialTab, tabPermitida }));
+  const enRecibir = tab === "recibir";
+  const mostrarTabs = !enRecibir && tabsVisibles.length > 1;
 
   const selectTab = (id) => {
     if (!tabPermitida(id)) return;
@@ -57,14 +59,18 @@ export default function InventarioHub({ initialTab, usuario, onNavigate }) {
   };
 
   useEffect(() => {
+    if (tab === "recibir") return;
     if (!tabPermitida(tab)) setTab("catalogo");
   }, [modoConsulta, tab]);
 
   useEffect(() => {
-    const next = initialTab === "recibir" ? "catalogo" : initialTab;
-    if (next && tabPermitida(next) && next !== tab) {
-      setTab(next);
-      try { sessionStorage.setItem(STORAGE_KEY, next); } catch (_) { /* noop */ }
+    if (initialTab === "recibir") {
+      setTab("recibir");
+      return;
+    }
+    if (initialTab && tabPermitida(initialTab) && initialTab !== tab) {
+      setTab(initialTab);
+      try { sessionStorage.setItem(STORAGE_KEY, initialTab); } catch (_) { /* noop */ }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialTab, modoConsulta]);
@@ -137,6 +143,7 @@ export default function InventarioHub({ initialTab, usuario, onNavigate }) {
           <SkeletonCard height={120} />
         </div>
       }>
+        {enRecibir && <RecepcionModule ocultarMontos={modoConsulta} />}
         {tab === "catalogo" && (
           <InventarioModule modoConsulta={modoConsulta} onIrARecibir={irARecibir} />
         )}

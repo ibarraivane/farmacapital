@@ -3,7 +3,7 @@ import { useMediaQuery } from "./hooks/useMediaQuery";
 import useSidebarBadges from "./hooks/useSidebarBadges";
 import { supabase, isSupabaseLocalMisconfigured } from "./supabase";
 import { C as _C, C_LIGHT, BRAND, NEG, NAV_ADMIN, NAV_VENDEDOR, NAV_DOCTORA, NAV_ITEMS, ADMIN_NAV_SECTIONS } from "./constants";
-import { $, dC, cC, abc, aCol, nCol, hashPwd, hashPwdLegacy, generateSalt, primerNombre, saludoUsuario, normalizarSesionLoginResp, getSessionToken, telefonoMxValido, normalizarTelefonoMxGuardar } from "./utils";
+import { $, dC, cC, abc, aCol, nCol, hashPwd, hashPwdLegacy, generateSalt, primerNombre, saludoUsuario, normalizarSesionLoginResp, getSessionToken, setSessionToken, writeAdminUser, readAdminUser, clearEmpleadoSession, esErrorSesionEmpleado, onSesionEmpleadoInvalida, telefonoMxValido, normalizarTelefonoMxGuardar } from "./utils";
 import { validarPasswordTienda, PASSWORD_RULES_TEXT } from "./utils/passwordPolicy";
 import { Logo, Box, Tag, Btn, Inp, KPI, KPI_ROW, Modal, NotificacionesToast, showToast, ToastProvider, ConfirmDialog, SkeletonTable, SkeletonKPIs, SkeletonCard, Paginador, GlobalHoverStyles } from "./ui";
 import { sincronizarVentasPendientes, contarVentasPendientes } from "./utils/offlineQueue";
@@ -234,8 +234,8 @@ function LoginScreen({onLogin}){
         loginTimestamp: Date.now(),
       };
 
-      sessionStorage.setItem("farmacapital_session_token", String(resp.session_token));
-      sessionStorage.setItem("farmacapital_admin_user", JSON.stringify(data));
+      setSessionToken(String(resp.session_token));
+      writeAdminUser(data);
       localStorage.setItem("farmacapital_last_login_"+data.id, new Date().toLocaleString("es-MX"));
       onLogin(data);
     } catch(e) {
@@ -1797,16 +1797,7 @@ export default function FarmaCapitalAdmin(){
   const C = C_LIGHT;
   const [usuario,setUsuario] = useState(()=>{
     try{
-      const u = sessionStorage.getItem("farmacapital_admin_user");
-      if (!u) return null;
-      const data = JSON.parse(u);
-      // Verificar expiración (8 horas)
-      if (data.loginTimestamp && Date.now() - data.loginTimestamp > 8*60*60*1000) {
-        sessionStorage.removeItem("farmacapital_admin_user");
-        sessionStorage.removeItem("farmacapital_session_token");
-        return null;
-      }
-      return data;
+      return readAdminUser();
     } catch{ return null; }
   });
   // Migración: ids antiguos "rea" y "lotes" ahora son tabs dentro de "inv".
@@ -1847,6 +1838,13 @@ export default function FarmaCapitalAdmin(){
         sessionStorage.setItem("farmacapital_active_page", p);
       } catch (_) { /* noop */ }
     }
+    try {
+      if (p === "inv" && sessionStorage.getItem("farmacapital_inv_tab") === "recibir") {
+        sessionStorage.setItem("farmacapital_active_page", "recibir");
+        sessionStorage.setItem("farmacapital_inv_tab", "catalogo");
+        return "recibir";
+      }
+    } catch (_) { /* noop */ }
     return p;
   });
   const [invInitialTab, setInvInitialTab] = useState(() => {
@@ -1869,7 +1867,21 @@ export default function FarmaCapitalAdmin(){
     if (dashTab) applyDashTabHint(dashTab);
     try {
       sessionStorage.setItem("farmacapital_active_page", next);
-      if (next === "inv" && (!tabHint || tabHint === "recibir")) {
+      if (next === "inv" && tabHint === "recibir") {
+        sessionStorage.setItem("farmacapital_active_page", "recibir");
+        sessionStorage.setItem("farmacapital_inv_tab", "catalogo");
+        setInvInitialTab("catalogo");
+        setPage("recibir");
+        try {
+          const url = pageIdToAdminPath("recibir");
+          if (window.location.pathname !== url) {
+            window.history.pushState({ farmacapitalPage: "recibir" }, "", url);
+          }
+        } catch (_) { /* noop */ }
+        if (isMobileLayout) setMobileNavOpen(false);
+        return;
+      }
+      if (next === "inv" && !tabHint) {
         sessionStorage.setItem("farmacapital_inv_tab", "catalogo");
         setInvInitialTab("catalogo");
       } else if (next === "inv" && tabHint) {
@@ -2036,28 +2048,49 @@ export default function FarmaCapitalAdmin(){
     };
   },[usuario]);
 
-  // ── E5: Guard de sesión — verificar expiración cada minuto ──
+  // ── Guard de sesión: 16 h en el iPad; token muerto → login (nunca “abrir caja”).
   useEffect(()=>{
     const check = () => {
-      const u = sessionStorage.getItem("farmacapital_admin_user");
-      if (!u) return;
+      let hadUser = false;
       try {
-        const data = JSON.parse(u);
-        if (data.loginTimestamp && Date.now() - data.loginTimestamp > 8*60*60*1000) {
-          sessionStorage.removeItem("farmacapital_admin_user");
-          sessionStorage.removeItem("farmacapital_session_token");
-          setUsuario(null);
-          showToast("Tu sesión expiró. Por favor inicia sesión de nuevo.", "warning");
-        }
-      } catch(e) {
-        sessionStorage.removeItem("farmacapital_admin_user");
-        sessionStorage.removeItem("farmacapital_session_token");
+        hadUser = !!(sessionStorage.getItem("farmacapital_admin_user") || localStorage.getItem("farmacapital_admin_user"));
+      } catch (_) { /* noop */ }
+      const data = readAdminUser();
+      if (hadUser && !data) {
         setUsuario(null);
+        showToast("Tu sesión expiró. Entra de nuevo — la caja no se cierra.", "warning");
       }
     };
-    const interval = setInterval(check, 60*1000); // cada minuto
+    const interval = setInterval(check, 60*1000);
     return () => clearInterval(interval);
   },[]);
+
+  useEffect(() => {
+    if (!usuario) return;
+    const tok = getSessionToken();
+    if (!tok) {
+      clearEmpleadoSession();
+      setUsuario(null);
+      showToast("Tu sesión caducó. Entra de nuevo — la caja no se cierra.", "warning");
+      return;
+    }
+    let cancel = false;
+    supabase.rpc("empleado_jornada_hoy", { p_session_token: tok }).then(({ error }) => {
+      if (cancel || !error) return;
+      if (esErrorSesionEmpleado(error.message)) {
+        clearEmpleadoSession();
+        setUsuario(null);
+        showToast("Tu sesión caducó. Entra de nuevo — la caja no se cierra.", "warning");
+      }
+    });
+    return () => { cancel = true; };
+  }, [usuario]);
+
+  useEffect(() => onSesionEmpleadoInvalida(() => {
+    clearEmpleadoSession();
+    setUsuario(null);
+    showToast("Tu sesión caducó. Entra de nuevo con tu usuario — la caja no se cierra.", "warning");
+  }), []);
   const notifId = useRef(0);
 
   const addNotif = useCallback((titulo,mensaje,icon="🔔",col="#0D1B2A",action=null)=>{
@@ -2168,8 +2201,7 @@ export default function FarmaCapitalAdmin(){
     if (tok) {
       try { await supabase.rpc("logout_empleado", { p_token: tok }); } catch(e) {}
     }
-    sessionStorage.removeItem("farmacapital_session_token");
-    sessionStorage.removeItem("farmacapital_admin_user");
+    clearEmpleadoSession();
     localStorage.removeItem("farmacapital_pos_favs");
     localStorage.removeItem("farmacapital_busqs");
     localStorage.removeItem("farmacapital_last_login_"+usuario?.id);
@@ -2177,11 +2209,16 @@ export default function FarmaCapitalAdmin(){
     showToast("Sesión cerrada correctamente","info");
   };
 
+  const forzarLoginPorSesion = useCallback(() => {
+    clearEmpleadoSession();
+    setUsuario(null);
+  }, []);
+
   if (!usuario) {
     return (
       <>
         <DevSupabaseEnvBanner />
-        <LoginScreen onLogin={u=>{ sessionStorage.setItem("farmacapital_admin_user",JSON.stringify(u)); setUsuario(u); }}/>
+        <LoginScreen onLogin={u=>{ writeAdminUser(u); setUsuario(u); }}/>
       </>
     );
   }
@@ -2216,16 +2253,16 @@ export default function FarmaCapitalAdmin(){
         if (!canAccessRoute(usuario.rol, "/pos")) {
           return <div>No autorizado</div>;
         }
-        return <POS negocio={neg} usuario={usuario} initialTab="venta" onNavigate={setPageAndSave}/>;
+        return <POS negocio={neg} usuario={usuario} initialTab="venta" onNavigate={setPageAndSave} onSesionExpirada={forzarLoginPorSesion}/>;
       case "cons":      return <ConsultorioModule usuario={usuario}/>;
       case "config_cons": return <ConfigConsultorioModule />;
-      case "cons_cobro":return <POS negocio={neg} usuario={usuario} initialTab="consultas" onNavigate={setPageAndSave}/>;
+      case "cons_cobro":return <POS negocio={neg} usuario={usuario} initialTab="consultas" onNavigate={setPageAndSave} onSesionExpirada={forzarLoginPorSesion}/>;
       case "agenda":
       case "cons_dr":
         return <AgendaConsultasModule usuario={usuario} onNavigate={setPageAndSave} />;
       case "exp_dr":    return <ExpedientesDoctora />;
       case "ped_online":
-        return <POS negocio={neg} usuario={usuario} initialTab="online" onNavigate={setPageAndSave} />;
+        return <POS negocio={neg} usuario={usuario} initialTab="online" onNavigate={setPageAndSave} onSesionExpirada={forzarLoginPorSesion} />;
       case "inventario":
       case "inv":
         return <InventarioHub initialTab={invInitialTab} usuario={usuario} onNavigate={setPageAndSave}/>;
