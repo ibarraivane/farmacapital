@@ -161,6 +161,38 @@ export const getSessionToken = () => {
   catch { return null; }
 };
 
+export function setSessionToken(tok) {
+  try {
+    if (!tok) sessionStorage.removeItem("farmacapital_session_token");
+    else sessionStorage.setItem("farmacapital_session_token", String(tok));
+  } catch (_) { /* noop */ }
+}
+
+export function readAdminUser() {
+  try {
+    const raw = sessionStorage.getItem("farmacapital_admin_user");
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function writeAdminUser(data) {
+  try {
+    if (!data) sessionStorage.removeItem("farmacapital_admin_user");
+    else sessionStorage.setItem("farmacapital_admin_user", JSON.stringify(data));
+  } catch (_) { /* noop */ }
+}
+
+export function clearEmpleadoSession() {
+  try {
+    sessionStorage.removeItem("farmacapital_session_token");
+    sessionStorage.removeItem("farmacapital_admin_user");
+  } catch (_) { /* noop */ }
+}
+
+export { esErrorSesionEmpleado, onSesionEmpleadoInvalida } from "./utils/sesionEmpleadoAuth";
+
 /** Token de sesión de cliente (tienda pública). Persiste en localStorage. */
 export { getClienteToken } from "./utils/clienteSession.js";
 
