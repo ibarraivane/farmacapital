@@ -49,7 +49,11 @@ class ModuleErrorBoundary extends React.Component {
       <div style={{padding:40,textAlign:"center"}}>
         <div style={{fontSize:48,marginBottom:16}}>⚠️</div>
         <div style={{color:"#0f172a",fontWeight:700,fontSize:16,marginBottom:8}}>Error al cargar este módulo</div>
-        <div style={{color:"#475569",fontSize:12,marginBottom:20,maxWidth:400,margin:"0 auto 20px",fontFamily:"monospace",background:"#f8fafc",padding:"8px 12px",borderRadius:6}}>{this.state.error?.message}</div>
+        <div style={{color:"#475569",fontSize:12,marginBottom:20,maxWidth:400,margin:"0 auto 20px",fontFamily:"monospace",background:"#f8fafc",padding:"8px 12px",borderRadius:6}}>{
+          /object can not be found/i.test(this.state.error?.message || "")
+            ? "La tablet se quedó con una pantalla vieja. Toca Recargar página."
+            : this.state.error?.message
+        }</div>
         <button onClick={()=>{
           try {
             const u = new URL(window.location.href);

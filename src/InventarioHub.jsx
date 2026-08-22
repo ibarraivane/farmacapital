@@ -6,9 +6,9 @@ import { useMediaQuery } from "./hooks/useMediaQuery";
 import { SkeletonCard } from "./ui";
 import { C_LIGHT, BRAND } from "./constants";
 import { Package, Truck, Tags, TrendingUp, ScanLine } from "lucide-react";
+import RecepcionModule from "./RecepcionModule";
 
 const InventarioModule = lazy(() => import("./InventarioModule"));
-const RecepcionModule  = lazy(() => import("./RecepcionModule"));
 const ReabastoModule   = lazy(() => import("./ReabastoModule"));
 const LotesModule      = lazy(() => import("./LotesModule"));
 const PreciosReferenciaModule = lazy(() => import("./PreciosReferenciaModule"));

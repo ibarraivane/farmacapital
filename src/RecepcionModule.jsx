@@ -350,9 +350,22 @@ export default function RecepcionModule({ ocultarMontos = false }) {
 
   useEffect(() => { cargar(); }, [cargar]);
 
+  useEffect(() => () => {
+    if (scanIdleRef.current) {
+      clearTimeout(scanIdleRef.current);
+      scanIdleRef.current = null;
+    }
+  }, []);
+
+  const focusSafe = (ref) => {
+    requestAnimationFrame(() => {
+      try { ref?.current?.focus?.(); } catch (_) { /* Safari: nodo ya no está */ }
+    });
+  };
+
   useEffect(() => {
     if (!loading && doc && !pendiente) {
-      scanRef.current?.focus();
+      focusSafe(scanRef);
     }
   }, [loading, doc, pendiente]);
 
@@ -599,6 +612,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
       setScan("");
       return;
     }
+    try { scanRef.current?.blur(); } catch (_) { /* Safari */ }
     const codigo = r.codigo;
     const gray = (doc?.items || []).find((it) => !it.confirmado && itemMatchScan(it, codigo));
     if (gray) {
@@ -614,13 +628,13 @@ export default function RecepcionModule({ ocultarMontos = false }) {
       });
       setScan(codigo);
       setQty(String(gray.cantidad || 1));
-      setTimeout(() => cadRef.current?.focus(), 30);
+      focusSafe(cadRef);
       return;
     }
     setErrorLinea("");
     setPendiente(r);
     setScan(codigo);
-    setTimeout(() => qtyRef.current?.focus(), 30);
+    focusSafe(qtyRef);
   };
 
   const cancelScanIdle = () => {
@@ -647,8 +661,6 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     cancelScanIdle();
     tomarScan(e.currentTarget.value);
   };
-
-  useEffect(() => () => cancelScanIdle(), []);
 
   const onQtyKey = (e) => {
     if (e.key === "Escape") { e.preventDefault(); resetLinea(); return; }
@@ -997,8 +1009,8 @@ export default function RecepcionModule({ ocultarMontos = false }) {
         </form>
       )}
 
-      {doc && (
-        <>
+      {doc ? (
+        <div>
           <div style={{ background: C.card, border: `1px solid ${pendiente ? C.blue : C.border}`, borderRadius: 14, padding: 16, marginBottom: 16 }}>
             <label style={labelS(C)} htmlFor="rc-scan">Código de barras</label>
             <input
@@ -1014,7 +1026,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
               placeholder="Pistola aquí"
               autoComplete="off"
               autoCapitalize="off"
-              disabled={!!pendiente}
+              readOnly={!!pendiente}
               style={inpBase(C, { fontFamily: "ui-monospace, monospace", fontWeight: 700, letterSpacing: 0.4 })}
             />
 
@@ -1171,8 +1183,8 @@ export default function RecepcionModule({ ocultarMontos = false }) {
                       : "Guardar"}
             </button>
           </div>
-        </>
-      )}
+        </div>
+      ) : null}
     </div>
   );
 }
