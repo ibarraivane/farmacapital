@@ -3,7 +3,7 @@ import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
 import { showToast } from "./ui";
 import OnboardingTour from "./components/OnboardingTour";
-import { TURNOS, TURNOS_LISTA, rangoTurno, inferirTurno, turnoDePerfil } from "./constants/turnos";
+import { TURNOS, TURNOS_LISTA, rangoTurno, rangoCajaDeCorte, inferirTurno, turnoDePerfil } from "./constants/turnos";
 import { esVendedor, fetchSesionCajaAbierta, fetchJornadaHoy } from "./utils/cajaSesion";
 import { useMediaQuery } from "./hooks/useMediaQuery";
 import { GRID_STACK_2COL } from "./constants/layout";
@@ -46,6 +46,13 @@ const mkBtnSecondary = (C) => ({ padding:"10px 22px", borderRadius:8, cursor:"po
 const getRango = (turno) => {
   const { inicio, fin } = rangoTurno(new Date(), turno);
   return { inicio: inicio.toISOString(), fin: fin.toISOString() };
+};
+
+const isoRangoSesion = (sesion, turno) => {
+  if (sesion?.abierta_at) {
+    return { inicio: sesion.abierta_at, fin: new Date().toISOString() };
+  }
+  return getRango(turno);
 };
 
 const getRangoFiltro = (filtro) => {
@@ -161,7 +168,7 @@ export default function CorteCajaModule({usuario }) {
   const fetchResumenServicios = useCallback(async () => {
     try {
       const tok = sessionStorage.getItem("farmacapital_session_token");
-      const { inicio, fin } = getRango(turno);
+      const { inicio, fin } = isoRangoSesion(sesionAbierta, turno);
       const { data, error } = tok
         ? await supabase.rpc("empleado_resumen_pagos_servicio_rango", {
             p_session_token: tok,
@@ -173,7 +180,7 @@ export default function CorteCajaModule({usuario }) {
     } catch (e) {
       console.error("[CorteCaja servicios]", e);
     }
-  }, [turno]);
+  }, [turno, sesionAbierta]);
 
   useEffect(() => { fetchResumenServicios(); }, [fetchResumenServicios]);
 
@@ -216,8 +223,7 @@ export default function CorteCajaModule({usuario }) {
   const fetchVentasDeCorte = async (corte) => {
     const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) throw new Error("Sesión expirada. Inicia sesión de nuevo.");
-    const fecha = corte.fecha ? new Date(corte.fecha) : new Date();
-    const { inicio, fin } = rangoTurno(fecha, corte.turno);
+    const { inicio, fin } = rangoCajaDeCorte(corte);
     return cargarVentasDetalleTurno(supabase, tok, inicio.toISOString(), fin.toISOString());
   };
 
@@ -274,7 +280,7 @@ export default function CorteCajaModule({usuario }) {
     setCargandoZ(true);
     try {
       const tok = sessionStorage.getItem("farmacapital_session_token");
-      const { inicio, fin } = getRango(turno);
+      const { inicio, fin } = isoRangoSesion(sesionAbierta, turno);
       const ventas = tok
         ? await cargarVentasDetalleTurno(supabase, tok, inicio, fin)
         : [];
@@ -284,7 +290,7 @@ export default function CorteCajaModule({usuario }) {
       setZTransac([]);
     }
     setCargandoZ(false);
-  }, [turno]);
+  }, [turno, sesionAbierta]);
 
   const nuevoCorte = () => {
     setResultado(null); setZTransac(null);

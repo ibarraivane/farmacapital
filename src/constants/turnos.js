@@ -6,10 +6,9 @@
 //   Matutino    8:00 – 15:30
 //   Vespertino 15:00 – 22:30
 //
-// Ese traslape es de PERSONAL, no de caja. Para el dinero hace falta un corte
-// limpio, porque una venta no puede pertenecer a dos turnos a la vez: la línea
-// se traza a las 15:30, cuando el matutino cuenta su caja y entrega. Todo lo
-// vendido antes es del matutino; de ahí en adelante, del vespertino.
+// Ese traslape es de PERSONAL, no de caja. Si hay sesión de caja abierta, el
+// dinero es de esa sesión (aunque el reloj ya pasó de las 15:30). El corte a
+// las 15:30 solo aplica cuando nadie tiene el cajón abierto.
 //
 // Los rangos de conciliación cubren el día completo (00:00–23:59) a propósito:
 // si alguien vende a las 7:50 abriendo, o a las 22:40 cerrando, la venta cae
@@ -48,6 +47,21 @@ export function rangoTurno(fecha, turno) {
   const fin = new Date(fecha);
   fin.setHours(23, 59, 59, 999);
   return { inicio: corte, fin };
+}
+
+/** Ventana real del cajón: de cuando abrieron a cuando cerraron. */
+export function rangoCajaDeCorte(corte) {
+  const fecha = String(corte?.fecha || "").slice(0, 10);
+  const fallback = () => rangoTurno(fecha ? new Date(`${fecha}T12:00:00-06:00`) : new Date(), corte?.turno || "matutino");
+  if (!fecha) return fallback();
+  const apRaw = String(corte.hora_apertura || "").slice(0, 8);
+  const ciRaw = String(corte.hora_cierre || "").slice(0, 8);
+  const ap = /^\d{2}:\d{2}:\d{2}$/.test(apRaw) ? apRaw : (corte.turno === "vespertino" ? "15:30:00" : "00:00:00");
+  const ci = /^\d{2}:\d{2}:\d{2}$/.test(ciRaw) ? ciRaw : "23:59:59";
+  const inicio = new Date(`${fecha}T${ap}-06:00`);
+  const fin = new Date(`${fecha}T${ci}-06:00`);
+  if (Number.isNaN(inicio.getTime()) || Number.isNaN(fin.getTime()) || fin < inicio) return fallback();
+  return { inicio, fin };
 }
 
 /** "Matutino 8:00 – 15:30h" — para selects y etiquetas. */
