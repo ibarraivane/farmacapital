@@ -48,6 +48,14 @@ if (syntaxCheck.status !== 0) {
   process.exit(syntaxCheck.status === null ? 1 : syntaxCheck.status);
 }
 
+const recibirCheck = spawnSync(process.execPath, [path.join(__dirname, "check-recibir-tablet.js")], {
+  stdio: "inherit",
+  cwd: appRoot,
+});
+if (recibirCheck.status !== 0) {
+  process.exit(recibirCheck.status === null ? 1 : recibirCheck.status);
+}
+
 const buildScript = require.resolve("react-scripts/scripts/build.js");
 const result = spawnSync(process.execPath, [buildScript], {
   stdio: "inherit",

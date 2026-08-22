@@ -13,6 +13,15 @@ import {
   splitBarcodeCandidates,
 } from "./utils/barcodeProductLookup";
 import { etiquetaCaducidadMMAA, formatCaducidadMesAnio, parseCaducidadMMAA } from "./lib/caducidad";
+import {
+  eanPistolaListo,
+  itemMatchScan,
+  matchScanEnTicket,
+  MSG_SCAN_FUERA_TICKET,
+  MSG_SCAN_YA_EN_TICKET,
+  pedidoEsperaEntrada,
+  recepcionEsTicket,
+} from "./lib/recepcionScan";
 import { fetchProductosPaginados } from "./lib/inventarioHubData";
 import { parseTicketCsv } from "./lib/recepcionTicketCsv";
 import { getSessionToken, esErrorSesionEmpleado } from "./utils";
@@ -41,37 +50,12 @@ function unwrapJson(data) {
   return data;
 }
 
-function skuSoloDigitos(sku) {
-  const d = String(sku || "").replace(/\D/g, "");
-  return d.length >= 7 ? d : "";
-}
-
-function itemMatchScan(it, codigo) {
-  if (!it || !codigo) return false;
-  const cands = splitBarcodeCandidates(codigo);
-  for (const c of cands) {
-    if (it.codigo_escaneado && barcodeDigitsMatch(c, it.codigo_escaneado)) return true;
-    if (it.sku && String(it.sku).toUpperCase() === String(c).toUpperCase()) return true;
-    const sd = skuSoloDigitos(it.sku);
-    const cd = String(c).replace(/\D/g, "");
-    if (sd && cd && (cd.includes(sd) || sd.includes(cd))) return true;
-  }
-  return false;
-}
-
 function etiquetaProveedorLista(nombre) {
   const n = String(nombre || "").trim();
   if (!n) return "Sin proveedor";
   if (/cityfarma/i.test(n)) return "Farma City";
   if (/farmalive|farmalife/i.test(n)) return "Farmalive";
   return n;
-}
-
-/** Pedido abierto con cajas que todavía esperan pistola / MMAA. */
-function pedidoEsperaEntrada(t) {
-  const renglones = Number(t?.renglones || 0);
-  const falta = Number(t?.sin_confirmar || 0) + Number(t?.sin_caducidad_anaquel || 0);
-  return renglones > 0 && (falta > 0 || t?.estado === "borrador" || t?.estado === "pendiente_caducidad");
 }
 
 async function fetchPedidosVivosApi(tok, recepcionId) {
@@ -614,6 +598,31 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     }
     try { scanRef.current?.blur(); } catch (_) { /* Safari */ }
     const codigo = r.codigo;
+    if (recepcionEsTicket(doc)) {
+      const { gris, yaConfirmado } = matchScanEnTicket(doc.items, codigo);
+      if (gris) {
+        setErrorLinea("");
+        setPendiente({
+          codigo,
+          producto: { nombre: gris.nombre, sku: gris.sku },
+          pendienteAlta: gris.pendiente_alta,
+          itemId: gris.id,
+          loteDistinto: gris.lote_distinto,
+          numeroLote: gris.numero_lote,
+          lotesPiso: gris.lotes_piso,
+        });
+        setScan(codigo);
+        setQty(String(gris.cantidad || 1));
+        focusSafe(cadRef);
+        return;
+      }
+      const msg = yaConfirmado ? MSG_SCAN_YA_EN_TICKET : MSG_SCAN_FUERA_TICKET;
+      setPendiente(null);
+      setScan("");
+      setErrorLinea(msg);
+      showToast(msg, "warning");
+      return;
+    }
     const gray = (doc?.items || []).find((it) => !it.confirmado && itemMatchScan(it, codigo));
     if (gray) {
       setErrorLinea("");
@@ -647,8 +656,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
   const programarScanPistola = (raw) => {
     cancelScanIdle();
     const codigo = normalizeBarcodeRaw(raw);
-    const eanListo = looksLikeBarcodeInput(codigo) && [8, 12, 13, 14].includes(codigo.length);
-    if (!eanListo && !looksLikeInternalSku(codigo)) return;
+    if (!eanPistolaListo(codigo)) return;
     scanIdleRef.current = setTimeout(() => {
       scanIdleRef.current = null;
       tomarScan(codigo);
@@ -700,6 +708,11 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     const tok = sessionTok();
     let data;
     let error;
+    if (recepcionEsTicket(doc) && !pendiente.itemId) {
+      setErrorLinea(MSG_SCAN_FUERA_TICKET);
+      setSaving(false);
+      return;
+    }
     if (pendiente.itemId) {
       ({ data, error } = await supabase.rpc("recepcion_confirmar_item", {
         p_session_token: tok,
