@@ -10,6 +10,7 @@ import {
   looksLikeBarcodeInput,
   looksLikeInternalSku,
   normalizeBarcodeRaw,
+  splitBarcodeCandidates,
 } from "./utils/barcodeProductLookup";
 import { etiquetaCaducidadMMAA, formatCaducidadMesAnio, parseCaducidadMMAA } from "./lib/caducidad";
 import { fetchProductosPaginados } from "./lib/inventarioHubData";
@@ -40,10 +41,21 @@ function unwrapJson(data) {
   return data;
 }
 
+function skuSoloDigitos(sku) {
+  const d = String(sku || "").replace(/\D/g, "");
+  return d.length >= 7 ? d : "";
+}
+
 function itemMatchScan(it, codigo) {
   if (!it || !codigo) return false;
-  if (it.codigo_escaneado && barcodeDigitsMatch(codigo, it.codigo_escaneado)) return true;
-  if (it.sku && String(it.sku).toUpperCase() === String(codigo).toUpperCase()) return true;
+  const cands = splitBarcodeCandidates(codigo);
+  for (const c of cands) {
+    if (it.codigo_escaneado && barcodeDigitsMatch(c, it.codigo_escaneado)) return true;
+    if (it.sku && String(it.sku).toUpperCase() === String(c).toUpperCase()) return true;
+    const sd = skuSoloDigitos(it.sku);
+    const cd = String(c).replace(/\D/g, "");
+    if (sd && cd && (cd.includes(sd) || sd.includes(cd))) return true;
+  }
   return false;
 }
 
@@ -229,6 +241,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
   const cadRef = useRef(null);
   const pdfRef = useRef(null);
   const csvRef = useRef(null);
+  const scanIdleRef = useRef(null);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -610,11 +623,32 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     setTimeout(() => qtyRef.current?.focus(), 30);
   };
 
-  const onScanKey = (e) => {
-    if (e.key !== "Enter") return;
-    e.preventDefault();
-    tomarScan(scan);
+  const cancelScanIdle = () => {
+    if (scanIdleRef.current) {
+      clearTimeout(scanIdleRef.current);
+      scanIdleRef.current = null;
+    }
   };
+
+  const programarScanPistola = (raw) => {
+    cancelScanIdle();
+    const codigo = normalizeBarcodeRaw(raw);
+    const eanListo = looksLikeBarcodeInput(codigo) && [8, 12, 13, 14].includes(codigo.length);
+    if (!eanListo && !looksLikeInternalSku(codigo)) return;
+    scanIdleRef.current = setTimeout(() => {
+      scanIdleRef.current = null;
+      tomarScan(codigo);
+    }, 140);
+  };
+
+  const onScanKey = (e) => {
+    if (e.key !== "Enter" && e.key !== "Tab") return;
+    e.preventDefault();
+    cancelScanIdle();
+    tomarScan(e.currentTarget.value);
+  };
+
+  useEffect(() => () => cancelScanIdle(), []);
 
   const onQtyKey = (e) => {
     if (e.key === "Escape") { e.preventDefault(); resetLinea(); return; }
@@ -821,11 +855,23 @@ export default function RecepcionModule({ ocultarMontos = false }) {
             <input
               ref={listaScanRef}
               value={listaScan}
-              onChange={(e) => setListaScan(e.target.value)}
+              onChange={(e) => {
+                const v = e.target.value;
+                setListaScan(v);
+                cancelScanIdle();
+                const codigo = normalizeBarcodeRaw(v);
+                if (looksLikeBarcodeInput(codigo) && [8, 12, 13, 14].includes(codigo.length)) {
+                  scanIdleRef.current = setTimeout(() => {
+                    scanIdleRef.current = null;
+                    abrirPorCodigoLista(codigo);
+                  }, 140);
+                }
+              }}
               onKeyDown={(e) => {
-                if (e.key !== "Enter") return;
+                if (e.key !== "Enter" && e.key !== "Tab") return;
                 e.preventDefault();
-                abrirPorCodigoLista(listaScan);
+                cancelScanIdle();
+                abrirPorCodigoLista(e.currentTarget.value);
               }}
               placeholder="O pistola aquí: abre el ticket de esa caja"
               autoComplete="off"
@@ -959,7 +1005,11 @@ export default function RecepcionModule({ ocultarMontos = false }) {
               id="rc-scan"
               ref={scanRef}
               value={scan}
-              onChange={(e) => { setScan(e.target.value); setErrorLinea(""); }}
+              onChange={(e) => {
+                setScan(e.target.value);
+                setErrorLinea("");
+                programarScanPistola(e.target.value);
+              }}
               onKeyDown={onScanKey}
               placeholder="Pistola aquí"
               autoComplete="off"
