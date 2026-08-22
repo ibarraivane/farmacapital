@@ -2271,6 +2271,7 @@ function renderInventarioColumnCell(colId, ctx) {
             )
           }
           tdStyle={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, verticalAlign: "middle", background: stickyRowBg, ...w("codigoBarras") }}
+          readOnly={false}
         />
       );
     case "nombre":
@@ -3160,6 +3161,11 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
     }
     const draft = String(rawDraft ?? "").trim();
 
+    if (modoConsulta && field !== "cad" && field !== "codigo_barras") {
+      showToast("En este perfil solo puedes corregir código de barras y caducidad.", "error");
+      return false;
+    }
+
     if (field === "cad") {
       const quitar = Boolean(meta?.quitar);
       const fecha = quitar ? null : (draft || null);
@@ -3232,6 +3238,28 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
     let patchValue;
     if (field === "codigo_barras") {
       patchValue = codigoBarrasLimpio(draft) || null;
+      if (!patchValue || patchValue.length < 8 || patchValue.length > 14) {
+        showToast("Usa 8–14 dígitos (EAN/UPC).", "error");
+        return false;
+      }
+      if (modoConsulta) {
+        const { data, error } = await supabase.rpc("empleado_guardar_codigo_barras", {
+          p_session_token: tok,
+          p_producto_id: product.id,
+          p_codigo_barras: patchValue,
+        });
+        if (error) {
+          showToast(error.message, "error");
+          return false;
+        }
+        if (!data?.success) {
+          showToast(data?.error || "No se pudo guardar el código.", "error");
+          return false;
+        }
+        await fetchProductos();
+        showToast("Código de barras guardado", "success");
+        return true;
+      }
     } else if (field === "precio" || field === "costo") {
       const n = parseFloat(draft);
       if (Number.isNaN(n) || n < 0) {
@@ -3284,7 +3312,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
     await fetchProductos();
     showToast("Guardado", "success");
     return true;
-  }, [fetchProductos]);
+  }, [fetchProductos, modoConsulta]);
 
   const commitInlineEdit = useCallback(async () => {
     if (!inlineEdit || inlineSaving) return;
@@ -3704,7 +3732,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
           <h1 style={{margin:0,color:C.text,fontSize:20,fontWeight:800}}>▤ Inventario</h1>
           <p style={{margin:"4px 0 0",color:C.textMid,fontSize:12}}>
             {modoConsulta
-              ? "Existencias y caducidad. El precio de venta se consulta en el POS al escanear."
+              ? "Toca el código de barras o la caducidad para corregirlos. El precio se consulta en el POS."
               : "Clic en cualquier celda para editar · ↔ Columnas para ordenar y ajustar anchos"}
           </p>
         </div>
