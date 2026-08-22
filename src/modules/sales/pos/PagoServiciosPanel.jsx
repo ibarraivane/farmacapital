@@ -3,6 +3,7 @@ import { supabase } from "../../../supabase";
 import { C_LIGHT, BRAND } from "../../../constants";
 import { $ } from "../../../utils";
 import { Box, Btn, Inp, Tag, showToast } from "../../../ui";
+import { compensacionMpDe, compensacionMpDeFila, utilidadServicio } from "../../../lib/pagoServicio";
 
 const CATALOGO_SERVICIOS = [
   { id: "telcel", categoria: "recarga", proveedor: "Telcel", comision: 5, emoji: "📱" },
@@ -68,6 +69,8 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
   const monto = parseMonto(montoStr);
   const comision = parseMonto(comisionStr);
   const total = Number.isFinite(monto) && Number.isFinite(comision) ? Math.round((monto + comision) * 100) / 100 : 0;
+  const compensacionMp = Number.isFinite(monto) ? compensacionMpDe(monto) : 0;
+  const utilidad = Number.isFinite(comision) ? utilidadServicio({ comision, compensacionMp }) : 0;
 
   const fetchHistorial = useCallback(async () => {
     setLoadHist(true);
@@ -105,14 +108,19 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
   const resumenDia = useMemo(() => {
     return historial.reduce(
       (acc, row) => {
+        const cobrado = parseFloat(row.total_cobrado || 0);
+        const recargo = parseFloat(row.comision || 0);
+        const comp = compensacionMpDeFila(row);
         acc.ops += 1;
-        acc.total += parseFloat(row.total_cobrado || 0);
-        acc.comision += parseFloat(row.comision || 0);
-        if (row.metodo_pago === "efectivo") acc.efectivo += parseFloat(row.total_cobrado || 0);
-        if (row.metodo_pago === "tarjeta") acc.tarjeta += parseFloat(row.total_cobrado || 0);
+        acc.total += cobrado;
+        acc.comision += recargo;
+        acc.compensacionMp += comp;
+        acc.utilidad += utilidadServicio({ comision: recargo, compensacionMp: comp });
+        if (row.metodo_pago === "efectivo") acc.efectivo += cobrado;
+        if (row.metodo_pago === "tarjeta") acc.tarjeta += cobrado;
         return acc;
       },
-      { ops: 0, total: 0, comision: 0, efectivo: 0, tarjeta: 0 }
+      { ops: 0, total: 0, comision: 0, compensacionMp: 0, utilidad: 0, efectivo: 0, tarjeta: 0 }
     );
   }, [historial]);
 
@@ -168,10 +176,10 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
     <div>
       <div style={{ background: C.blueDim, border: `1px solid ${C.blue}30`, borderRadius: 10, padding: "12px 16px", marginBottom: 16 }}>
         <div style={{ color: C.blue, fontSize: 13, fontWeight: 700, lineHeight: 1.5 }}>
-          <strong>Pago de servicios y recargas.</strong> Aquí anotas lo que cobraste al cliente (recarga + tu comisión). Si te pagó en efectivo, usa <strong>Efectivo</strong>. Si te pagó con tarjeta en la Point, usa <strong>Tarjeta Point</strong>.
+          <strong>Pago de servicios y recargas.</strong> Primero la recarga en la Point (Smart Launcher → Recargas). Aquí anotas lo que cobraste al cliente (recarga + tu recargo). Prefiere <strong>Efectivo</strong>: con tarjeta, Point se come la ganancia.
         </div>
         <div style={{ color: C.textMid, fontSize: 11, marginTop: 8, lineHeight: 1.45 }}>
-          La recarga en sí se paga aparte: con <strong>saldo de Mercado Pago</strong> o en la Point (Smart Launcher → Pago de servicios). Márcalo abajo cuando ya la hayas pagado. La comisión de MP (si cobra alguna) se queda en Mercado Pago; aquí solo se registra la comisión que le cobraste tú al cliente.
+          El dinero de la recarga sale de tu <strong>saldo de Mercado Pago</strong>, no del cajón. MP te acredita <strong>1%</strong> en esa misma cuenta (Actividad), no en efectivo. El recargo de ${servicio.comision} que le cobras al cliente sí entra al cajón. Los dos son ganancia; son distintos.
         </div>
       </div>
 
@@ -179,7 +187,7 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
         {[
           ["Operaciones hoy", resumenDia.ops, C.blue],
           ["Cobrado hoy", $(resumenDia.total), C.green],
-          ["Tu comisión hoy", $(resumenDia.comision), C.amber],
+          ["Utilidad hoy", $(resumenDia.utilidad), C.amber],
         ].map(([lbl, val, col]) => (
           <div key={lbl} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: "10px 16px", minWidth: 120 }}>
             <div style={{ color: col, fontWeight: 900, fontSize: isNarrow ? 18 : 22 }}>{val}</div>
@@ -187,6 +195,11 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
           </div>
         ))}
       </div>
+      {resumenDia.ops > 0 && (
+        <div style={{ color: C.textDim, fontSize: 11, marginTop: -8, marginBottom: 16, lineHeight: 1.4 }}>
+          Utilidad = recargo al cliente {$(resumenDia.comision)} + compensación MP {$(resumenDia.compensacionMp)}. El 1% no está en el cajón.
+        </div>
+      )}
 
       <div style={{ display: "grid", gridTemplateColumns: isNarrow ? "1fr" : "1fr 1fr", gap: 16, alignItems: "start" }}>
         <Box style={{ padding: isNarrow ? 14 : 18 }}>
@@ -236,9 +249,16 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
             </div>
           </div>
 
-          <div style={{ background: C.bg, borderRadius: 8, padding: "10px 12px", marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ color: C.textMid, fontSize: 12 }}>Total a cobrar al cliente</span>
-            <span style={{ color: C.green, fontWeight: 900, fontSize: 20 }}>{$(total)}</span>
+          <div style={{ background: C.bg, borderRadius: 8, padding: "10px 12px", marginBottom: 12 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ color: C.textMid, fontSize: 12 }}>Total a cobrar al cliente</span>
+              <span style={{ color: C.green, fontWeight: 900, fontSize: 20 }}>{$(total)}</span>
+            </div>
+            {Number.isFinite(monto) && monto > 0 && (
+              <div style={{ color: C.textDim, fontSize: 11, marginTop: 8, lineHeight: 1.45 }}>
+                Recargo farmacia {$(Number.isFinite(comision) ? comision : 0)} (cajón) + compensación MP {$(compensacionMp)} (saldo MP) = utilidad {$(utilidad)}. El 1% no lo cobras tú: lo acredita Mercado Pago.
+              </div>
+            )}
           </div>
 
           <div style={{ marginBottom: 12 }}>
@@ -261,6 +281,9 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
               💳 Tarjeta Point
             </Btn>
           </div>
+          <div style={{ color: C.textDim, fontSize: 11, marginTop: 8, lineHeight: 1.4 }}>
+            Tarjeta Point cobra comisión sobre recarga + recargo. En CFE u otros montos grandes se pierde dinero. Prefiere efectivo.
+          </div>
         </Box>
 
         <Box style={{ padding: isNarrow ? 14 : 18 }}>
@@ -282,7 +305,9 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
                   </div>
                   <div style={{ textAlign: "right" }}>
                     <div style={{ color: C.green, fontWeight: 800 }}>{$(row.total_cobrado)}</div>
-                    <div style={{ color: C.textDim, fontSize: 10 }}>com. {$(row.comision)}</div>
+                    <div style={{ color: C.textDim, fontSize: 10 }}>
+                      recargo {$(row.comision)} · MP {$(compensacionMpDeFila(row))}
+                    </div>
                   </div>
                 </div>
                 <div style={{ marginTop: 6, display: "flex", gap: 6, flexWrap: "wrap" }}>

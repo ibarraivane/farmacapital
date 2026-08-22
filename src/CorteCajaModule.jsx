@@ -527,10 +527,13 @@ export default function CorteCajaModule({usuario }) {
                 <div style={{background:C.amberDim,borderRadius:12,border:`1px solid ${C.amber}35`,padding:16}}>
                   <div style={{color:C.amber,fontSize:11,fontWeight:700,letterSpacing:.5,marginBottom:6}}>PAGOS DE SERVICIO (POS)</div>
                   <div style={{color:C.text,fontSize:12,lineHeight:1.45}}>
-                    {resumenServicios.operaciones} operación(es) · cobrado {fmt(resumenServicios.total_cobrado)} · comisión farmacia {fmt(resumenServicios.total_comision)}
+                    {resumenServicios.operaciones} operación(es) · cobrado {fmt(resumenServicios.total_cobrado)} · recargo farmacia {fmt(resumenServicios.total_comision)}
+                    {resumenServicios.total_compensacion_mp != null && (
+                      <> · compensación MP {fmt(resumenServicios.total_compensacion_mp)} · utilidad {fmt(resumenServicios.total_utilidad ?? (Number(resumenServicios.total_comision || 0) + Number(resumenServicios.total_compensacion_mp || 0)))}</>
+                    )}
                   </div>
-                  <div style={{color:C.textDim,fontSize:10,marginTop:6}}>
-                    Efectivo {fmt(resumenServicios.efectivo)} · Tarjeta Point {fmt(resumenServicios.tarjeta)} — inclúyelos en los campos de arriba al cerrar turno.
+                  <div style={{color:C.textDim,fontSize:10,marginTop:6,lineHeight:1.45}}>
+                    Efectivo {fmt(resumenServicios.efectivo)} · Tarjeta Point {fmt(resumenServicios.tarjeta)} — ya entran solos al corte, no los captures a mano. La compensación MP (1%) vive en el saldo de Mercado Pago, no en el cajón. El efectivo de recargas hay que reponerlo en ese saldo.
                   </div>
                 </div>
               )}

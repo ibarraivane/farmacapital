@@ -77,4 +77,25 @@ describe("manualContenido", () => {
     expect(hayrol(["admin", "gerente"], "vendedor")).toBe(false);
     expect(hayrol(undefined, "vendedor")).toBe(true);
   });
+
+  test("vendedor ve recargas; doctora no", () => {
+    const vend = temasParaUsuario({ rol: "vendedor" }, (_u, id) => ["pos", "caja", "ayuda"].includes(id));
+    const doc = temasParaUsuario({ rol: "doctora" }, (_u, id) => ["cons_dr", "exp_dr", "ayuda"].includes(id));
+    expect(vend.some((t) => t.id === "recargas")).toBe(true);
+    expect(doc.some((t) => t.id === "recargas")).toBe(false);
+  });
+
+  test("Recargas explica Point, 1% y que no va al cajón", () => {
+    const t = TEMAS.find((x) => x.id === "recargas");
+    const blob = [t.resumen, ...(t.pasos || []), ...(t.dudas || []).flatMap((d) => [d.q, d.a])].join(" ");
+    expect(blob).toMatch(/Point/i);
+    expect(blob).toMatch(/1%/);
+    expect(blob).toMatch(/saldo/i);
+    expect(blob).toMatch(/efectivo/i);
+    expect(blob).toMatch(/Telcel/i);
+    expect(blob).toMatch(/cajón|cajon/i);
+    const r = buscarManual("telcel compensacion", [t], GLOSARIO);
+    expect(r.temas.some((x) => x.id === "recargas")).toBe(true);
+    expect(r.glosario.some((g) => g.id === "compensacion-mp" || g.id === "recarga")).toBe(true);
+  });
 });

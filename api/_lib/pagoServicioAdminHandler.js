@@ -60,7 +60,7 @@ async function pagoServicioAdminHandler(req, res) {
       const isEmp = await validateEmployeeSession(supabaseUrl, serviceKey, sessionToken);
       if (!isEmp) return res.status(403).json({ ok: false, error: 'requiere_empleado' });
       const qs = new URLSearchParams();
-      qs.set('select', 'id,folio,proveedor,categoria,referencia,monto_servicio,comision,total_cobrado,metodo_pago,liquidado_point,notas,created_at,atendido_por');
+      qs.set('select', 'id,folio,proveedor,categoria,referencia,monto_servicio,comision,compensacion_mp,costo_liquidacion,fuente_liquidacion,referencia_externa,total_cobrado,metodo_pago,liquidado_point,notas,created_at,atendido_por');
       qs.set('order', 'created_at.desc');
       qs.set('limit', '300');
       if (body.desde) qs.append('created_at', `gte.${body.desde}`);
@@ -145,6 +145,11 @@ async function pagoServicioAdminHandler(req, res) {
       const monto = patch.monto_servicio != null ? patch.monto_servicio : Number(row.monto_servicio);
       const com = patch.comision != null ? patch.comision : Number(row.comision);
       patch.total_cobrado = roundMoney(monto + com);
+      if (patch.monto_servicio != null) {
+        patch.compensacion_mp = roundMoney(monto * 0.01);
+        patch.costo_liquidacion = monto;
+        if (!patch.fuente_liquidacion) patch.fuente_liquidacion = 'saldo_mp';
+      }
     }
 
     if (!Object.keys(patch).length) {

@@ -2246,7 +2246,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         }
         hint={
           mpServicioRef.current
-            ? "Cobra al cliente servicio + comisión en la Point. Después liquida el recibo en Smart Launcher → Pago de servicios."
+            ? "Cobra al cliente recarga + tu recargo en la Point. La recarga misma ya se pagó con saldo MP. Prefiere efectivo: la comisión de Point se come la ganancia."
             : "El terminal recibe el monto; al aprobarse se registra la venta y podrás imprimir o enviar el ticket por WhatsApp."
         }
         onSuccess={async ()=>{

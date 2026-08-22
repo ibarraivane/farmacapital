@@ -28,6 +28,10 @@ export const GLOSARIO = [
   { id: "pwa", term: "Instalar app", aliases: ["pwa", "acceso directo"], def: "Instala FarmaCapital en el teléfono o la computadora para abrirla como app, sin buscar el sitio cada vez." },
   { id: "pdf", term: "PDF del ticket", aliases: ["factura pdf", "subir pdf"], def: "Ticket o factura del proveedor. El sistema lo lee sin formato especial FarmaCapital. Tiene que verse claro. La caducidad nunca se toma del PDF: sale de la caja (MMAA)." },
   { id: "csv", term: "CSV", aliases: ["excel", "plantilla csv"], def: "Plan B si no hay PDF legible. Excel del proveedor guardado como CSV: ean o codigo, nombre, cantidad. Opcional costo, lote, folio. No hay que armarlo a mano con el dueño cada entrega." },
+  { id: "recarga", term: "Recarga", aliases: ["tiempo aire", "telcel", "movistar", "servicios", "cfe"], def: "Saldo de celular o pago de luz/TV que se hace en la terminal Point. El cliente te deja efectivo; el costo sale del saldo de Mercado Pago. La compensación (1%) de MP no entra al cajón." },
+  { id: "recargo", term: "Recargo de farmacia", aliases: ["comisión farmacia", "tu comisión", "los 5 pesos"], def: "Lo que le sumas al cliente por hacerle la recarga ($5 Telcel, $8 CFE, $10 Sky). Entra al cajón. No es lo que paga Mercado Pago." },
+  { id: "compensacion-mp", term: "Compensación MP", aliases: ["1%", "comisión mercado pago", "cashback recarga"], def: "El 1% del monto recargado que Mercado Pago te acredita en tu cuenta cuando la recarga ya quedó. No entra al cajón. Se ve en Actividad de la app." },
+  { id: "saldo-mp", term: "Saldo Mercado Pago", aliases: ["saldo point", "fondeo recargas"], def: "Dinero en la cuenta de Mercado Pago. Las recargas se pagan de ahí. Es inventario: si se acaba, la Point deja de recargar. Hay que reponerlo con el efectivo de las recargas." },
 ];
 
 /** @typedef {{ id: string, moduloId: string, invTab?: string, roles?: string[], titulo: string, resumen: string, pasos: string[], dudas?: {q: string, a: string}[] }} TemaManual */
@@ -78,11 +82,36 @@ export const TEMAS = [
       "Si el producto pide [[receta]], cárgala antes de cobrar.",
       "Identifica al cliente si acumula [[puntos]].",
       "Cobra (efectivo, tarjeta, mixto). Imprime o manda el ticket.",
+      "Recargas y CFE no van en el carrito: pestaña Servicios. Primero la Point, luego anotas aquí.",
       "No entres a Recibir desde aquí para «arreglar» un lote: eso es otra pantalla.",
     ],
     dudas: [
       { q: "¿Puedo elegir qué lote descontar?", a: "No. Se descuenta el que caduca primero. Si la fecha está mal, corrígela en Recibir/Lotes, no en el POS." },
       { q: "El código no existe", a: "No lo inventes. Avísale al dueño. Si acaba de llegar, primero Recibir." },
+      { q: "¿Dónde anoto una recarga de Telcel?", a: "Pestaña Servicios. El paso a paso está en el tema Recargas y pago de servicios." },
+    ],
+  },
+  {
+    id: "recargas",
+    moduloId: "pos",
+    titulo: "Recargas y pago de servicios",
+    resumen: "La [[recarga]] se hace en la Point. Aquí solo anotas lo que cobraste. Hay dos ganancias: tu [[recargo]] (cajón) y la [[compensacion-mp]] (saldo MP).",
+    pasos: [
+      "El cliente pide recarga o pagar un servicio (Telcel, CFE, Sky…). Cobra en efectivo si puedes: con tarjeta, Point se come la ganancia.",
+      "En la terminal Point: Smart Launcher → Recargas (o Pago de servicios). Número, monto, confirmar. Espera el OK de la operadora.",
+      "Ese monto sale de tu [[saldo-mp]], no del cajón. Si el saldo está en ceros, la Point no recarga. Avisa al dueño.",
+      "POS → pestaña Servicios. Elige la operadora. Escribe el teléfono o referencia. Monto de la recarga (ej. 100). El recargo ya viene ($5 Telcel, $8 CFE, $10 Sky).",
+      "Marca «ya pagué» (la recarga ya salió en la Point). Toca Efectivo. El cliente te deja recarga + recargo (ej. $105). Folio SRV-…",
+      "Mercado Pago te acredita 1% en tu cuenta cuando la recarga queda hecha. Se ve en Actividad de la app, no en el cajón. En $100 Telcel son $1. Utilidad real: $5 + $1 = $6.",
+      "Al corte, el $105 ya entra solo al efectivo esperado. No lo vuelvas a capturar. El 1% no se cuenta en el cajón: hay que reponer el [[saldo-mp]] con parte de ese efectivo.",
+    ],
+    dudas: [
+      { q: "¿Cuándo me pagan la comisión de Mercado Pago?", a: "Cuando la recarga ya quedó. Entra a tu cuenta de Mercado Pago (Actividad), no al cajón. Es el 1% del monto recargado, no de tu recargo." },
+      { q: "¿Los $5 son lo de Mercado Pago?", a: "No. Los $5 los cobras tú. Mercado Pago te da otro 1% aparte, en su app." },
+      { q: "¿Puedo cobrar la recarga con tarjeta?", a: "Sí, pero Point cobra su comisión sobre recarga + recargo. En Telcel $100 te queda poco. En CFE $500 se pierde dinero. Prefiere efectivo." },
+      { q: "El cliente ya se fue y no anoté", a: "Anótalo igual en Servicios el mismo turno. Si no, el corte va a decir que sobra efectivo y el dueño no va a poder conciliar el saldo MP." },
+      { q: "La Point no deja recargar", a: "Casi siempre se acabó el [[saldo-mp]]. No es un fallo del POS. Avisa para fondear la cuenta." },
+      { q: "¿Esto es una venta?", a: "No. No tiene folio VTA ni ticket de productos. Vive en POS → Servicios y en Transacciones como recarga." },
     ],
   },
   {
@@ -120,7 +149,7 @@ export const TEMAS = [
     resumen: "Pistola = esta caja está aquí. [[mmaa]] = la fecha impresa en ESTA caja. Cerrar = ya conté lo que sí llegó.",
     pasos: [
       "Mira el menú de la izquierda. Hay dos entradas distintas: Recibir (meter cajas) e Inventario (solo consultar qué hay). No son lo mismo. No hay pestaña Catálogo dentro de Recibir.",
-      "Toca Recibir. Primera pantalla: pistola (abre el ticket de esa caja), botón Nuevo ticket y, abajo, tarjetas de tickets pendientes (ej. Farmalive 11590 = 6, Cityfarma 6315912 = 11, Levic 9012078353 = 7). No hace falta escribir el folio si ya está la tarjeta.",
+      "Toca Recibir. Primera pantalla: tarjetas con el nombre del proveedor (Cityfarma, Farmalive). No hace falta el número del ticket. Toca la tarjeta de esas cajas.",
       "Si el ticket que vas a checar ya está en una tarjeta: tócala, o escanea cualquier caja de ese ticket. No subas otra vez el mismo [[pdf]] ni el mismo [[csv]].",
       "Si no hay tarjeta de ese ticket: toca Nuevo ticket. Escribe el proveedor (puedes elegir de la lista blanca; no el globo negro del sistema). Escribe el [[folio]] que viene en el papel. El piso no ve el total. Luego Empezar a escanear, o Subir PDF / Subir CSV.",
       "El PDF es la foto o archivo del ticket del proveedor. No tiene que decir FarmaCapital. Tiene que verse nítido. La caducidad NUNCA sale del papel: sale de la caja.",
@@ -222,16 +251,19 @@ export const TEMAS = [
     id: "caja",
     moduloId: "caja",
     titulo: "Corte de caja",
-    resumen: "Cerrar el turno contando efectivo contra el sistema.",
+    resumen: "Cerrar el turno contando efectivo contra el sistema. Las [[recarga]]s ya entran solas; el 1% de MP no está en el cajón.",
     pasos: [
       "Abre Corte de caja al terminar el turno (o cuando te lo indiquen).",
       "El vendedor no elige turno: lo asigna RR.HH. El dueño sí puede cubrir.",
-      "Cuenta el efectivo. Captura lo contado.",
+      "Cuenta el efectivo. Captura lo contado. No copies un número que viste antes: el conteo es a ciegas a propósito.",
+      "Si hubo recargas, el recuadro Pagos de servicio ya suma el efectivo y la tarjeta de esas operaciones. No los captures otra vez.",
+      "Ese efectivo de recargas no es ganancia extra: hay que reponer el [[saldo-mp]]. La [[compensacion-mp]] (1%) vive en la app de Mercado Pago.",
       "Si hay diferencia, no «ajustes» ventas: anota y avisa.",
       "Confirma el corte. Sin corte, el siguiente turno hereda un lío.",
     ],
     dudas: [
       { q: "No me deja vender", a: "Falta abrir caja con el [[fondo]] que te entregaron. Cuéntalo, no adivines." },
+      { q: "Me sobra efectivo y vendí recargas", a: "Normal si no repones el saldo MP. El cajón tiene el dinero del cliente; el costo ya salió de Mercado Pago." },
     ],
   },
   {
@@ -253,7 +285,8 @@ export const TEMAS = [
     resumen: "Operación, resumen, transacciones y margen. Datos de negocio, no de piso.",
     pasos: [
       "Ventas / Dashboard.",
-      "Operación = el día. Transacciones = listado. Margen = rentabilidad.",
+      "Operación = el día. Transacciones = listado (ventas y recargas SRV-). Margen = rentabilidad.",
+      "En una recarga verás recargo de farmacia y compensación MP (1%). El 1% no es venta de mostrador.",
       "Alertas de caducidad a 90 días: para actuar (devolver, marcar), no para vender más barato a ciegas.",
     ],
   },

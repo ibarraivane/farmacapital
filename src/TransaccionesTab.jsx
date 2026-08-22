@@ -40,6 +40,9 @@ function mapPagoServicioAFila(ps) {
     referencia: ps.referencia,
     monto_servicio: ps.monto_servicio,
     comision: ps.comision,
+    compensacion_mp: ps.compensacion_mp,
+    costo_liquidacion: ps.costo_liquidacion,
+    referencia_externa: ps.referencia_externa,
     liquidado_point: ps.liquidado_point,
   };
 }
@@ -782,7 +785,11 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                   <div><span style={{ color: C.textMid }}>Proveedor: </span><strong style={{ color: C.text }}>{modalDetalle.proveedor || "—"}</strong></div>
                   <div><span style={{ color: C.textMid }}>Referencia: </span><strong style={{ color: C.text }}>{modalDetalle.referencia || "—"}</strong></div>
                   <div><span style={{ color: C.textMid }}>Monto recarga: </span><strong style={{ color: C.text }}>{fmtM(modalDetalle.monto_servicio)}</strong></div>
-                  <div><span style={{ color: C.textMid }}>Comisión: </span><strong style={{ color: C.amber }}>{fmtM(modalDetalle.comision)}</strong></div>
+                  <div><span style={{ color: C.textMid }}>Recargo farmacia: </span><strong style={{ color: C.amber }}>{fmtM(modalDetalle.comision)}</strong></div>
+                  <div><span style={{ color: C.textMid }}>Compensación MP (1%): </span><strong style={{ color: C.text }}>{fmtM(modalDetalle.compensacion_mp)}</strong></div>
+                  {modalDetalle.costo_liquidacion != null && (
+                    <div><span style={{ color: C.textMid }}>Costo saldo MP: </span><strong style={{ color: C.text }}>{fmtM(modalDetalle.costo_liquidacion)}</strong></div>
+                  )}
                 </>
               )}
               {pedidoEsTipoOnline(modalDetalle.tipo) && modalDetalle.tipo_entrega && (
@@ -796,7 +803,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
 
             {esPagoServicio(modalDetalle) ? (
               <div style={{ background: C.cardDark, borderRadius: 8, padding: 14, fontSize: 12, color: C.textMid, lineHeight: 1.5 }}>
-                Recarga registrada en POS → Servicios. No es una venta de producto, por eso no tenía folio VTA ni aparecía aquí antes.
+                Recarga registrada en POS → Servicios. El recargo es lo que le cobraste al cliente. La compensación MP (1%) entra al saldo de Mercado Pago, no al cajón. No es una venta de producto: no tiene folio VTA.
               </div>
             ) : (
             <>
