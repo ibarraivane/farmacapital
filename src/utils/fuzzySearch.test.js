@@ -111,4 +111,74 @@ describe("catalog search dimensions", () => {
       tiendaSearchRelevanceRank(electrolit, "suero")
     );
   });
+
+  test("Affective Cover Pro: marca, SKU y habla de mostrador", () => {
+    const affective = {
+      id: 301,
+      activo: true,
+      nombre: "Affective Cover Pro protector desechable unitalla C/16",
+      marca: "Affective",
+      presentacion: "Bolsa con 16 protectores 90 x 60 cm",
+      forma_farmaceutica: "Protector desechable",
+      categoria: "Higiene",
+      sku: "FC-11700134",
+      codigo_barras: "013117001341",
+    };
+    const diapro = {
+      id: 302,
+      activo: true,
+      nombre: "Pañal Diapro Grande",
+      marca: "Diapro",
+      categoria: "Higiene",
+      sku: "FC-43475816",
+    };
+    const solar = {
+      id: 303,
+      activo: true,
+      nombre: "Nivea Sun protector solar FPS 50",
+      marca: "Nivea",
+      forma_farmaceutica: "Crema",
+      categoria: "Cuidado personal",
+      sku: "FC-SOL-001",
+    };
+    const tempra = {
+      id: 304,
+      activo: true,
+      nombre: "Tempra 500 mg tabletas",
+      marca: "Tempra",
+      principio_activo: "Paracetamol",
+      sku: "FC-TMP-001",
+    };
+    const paraGeneric = {
+      id: 305,
+      activo: true,
+      nombre: "Paracetamol 500 mg",
+      principio_activo: "Paracetamol",
+      sku: "FC-PARA-001",
+    };
+    expect(tiendaProductMatchesBusqueda(affective, "affe")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(affective, "affective")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(affective, "protector")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(affective, "cover pro")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(affective, "FC-11700134")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(affective, "pañal")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(affective, "pañales")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(affective, "pañales para adultos")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(affective, "incontinencia")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(affective, "sabanilla")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(diapro, "pañal")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(diapro, "pañales para adultos")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(diapro, "sabanilla")).toBe(false);
+    expect(tiendaProductMatchesBusqueda(diapro, "affective")).toBe(false);
+    expect(tiendaProductMatchesBusqueda(solar, "pañal")).toBe(false);
+    expect(tiendaProductMatchesBusqueda(solar, "protector")).toBe(true);
+    expect(tiendaSearchRelevanceRank(diapro, "pañal")).toBeLessThan(
+      tiendaSearchRelevanceRank(affective, "pañal")
+    );
+    expect(tiendaProductMatchesBusqueda(tempra, "paracetamol")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(paraGeneric, "tempra")).toBe(true);
+    expect(tiendaSearchRelevanceRank(tempra, "tempra")).toBeLessThan(
+      tiendaSearchRelevanceRank(paraGeneric, "tempra")
+    );
+  });
 });

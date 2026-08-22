@@ -12,6 +12,23 @@ import {
 
 const AMBIGUOUS_SHORT_SUBSTRING_TOKENS = new Set(["para"]);
 
+/** Conectores y talla de frase. No tumban el AND si ya pegó el ancla (pañales para adultos). */
+const WEAK_QUERY_TOKENS = new Set([
+  "para", "de", "del", "al", "la", "el", "los", "las",
+  "un", "una", "unos", "unas", "y", "o", "en", "con", "por", "sin", "tipo",
+  "adulto", "adultos", "adulta", "adultas",
+  "pieza", "piezas", "pza", "pzas", "caja", "cajas",
+]);
+
+function isWeakQueryToken(tok) {
+  return WEAK_QUERY_TOKENS.has(String(tok || "").toLowerCase());
+}
+
+function requiredCatalogQueryTokens(tokens) {
+  const required = (tokens || []).filter((t) => !isWeakQueryToken(t));
+  return required.length ? required : tokens || [];
+}
+
 const CATALOG_UNIT_TOKENS = new Set([
   "cm", "mm", "m", "ml", "mg", "mcg", "g", "kg", "l", "lt", "iu", "ui",
   "tab", "tabs", "cap", "caps", "pza", "pieza",
@@ -39,6 +56,7 @@ function isCatalogUnitToken(tok) {
 function catalogQueryAnchorToken(tokens) {
   return tokens.find(
     (t) =>
+      !isWeakQueryToken(t) &&
       t.length >= 5 &&
       /[a-z]/.test(t) &&
       !/^fc-[0-9a-f-]+$/i.test(t) &&
@@ -151,16 +169,17 @@ function catalogFieldsMatchAllTokens(product, queryRaw, { inventario = false } =
   if (!tokens.length) return true;
 
   const entries = catalogSearchFieldEntries(product, { inventario });
-  const anchor = catalogQueryAnchorToken(tokens);
+  const required = requiredCatalogQueryTokens(tokens);
+  const anchor = catalogQueryAnchorToken(required);
   if (anchor) {
     const nameEntries = entries.filter((e) => CATALOG_NAME_LIKE_KINDS.has(e.kind));
-    if (!nameEntries.some((e) => catalogTokenOrVernacularMatches(anchor, e.kind, e.norm, tokens))) {
+    if (!nameEntries.some((e) => catalogTokenOrVernacularMatches(anchor, e.kind, e.norm, required))) {
       return false;
     }
   }
 
-  return tokens.every((tok) =>
-    entries.some((e) => catalogTokenOrVernacularMatches(tok, e.kind, e.norm, tokens))
+  return required.every((tok) =>
+    entries.some((e) => catalogTokenOrVernacularMatches(tok, e.kind, e.norm, required))
   );
 }
 
@@ -182,6 +201,47 @@ const CATALOG_VERNACULAR_GROUPS = [
       "sueroral",
       "rehidrat",
     ],
+  },
+  {
+    query: ["panal", "panales", "incontinencia", "incontinente"],
+    catalog: [
+      "panal",
+      "diapro",
+      "tena",
+      "affective",
+      "depend",
+      "molicare",
+      "molimed",
+      "indasec",
+    ],
+  },
+  {
+    query: ["empapador", "empapadores", "sabanilla", "sabanillas", "chux", "underpad"],
+    catalog: ["affective", "cover pro", "empapador", "sabanilla"],
+  },
+  {
+    query: ["tempra", "tylenol", "acetaminofen"],
+    catalog: ["paracetamol", "tempra", "tylenol", "acetaminofen"],
+  },
+  {
+    query: ["advil", "motrin"],
+    catalog: ["ibuprofeno", "advil", "motrin"],
+  },
+  {
+    query: ["clarityne", "claritin"],
+    catalog: ["loratadina", "clarityne", "claritin"],
+  },
+  {
+    query: ["curita", "curitas", "bandaid", "band-aid"],
+    catalog: ["curita", "bandaid", "band-aid", "nexcare", "aposito"],
+  },
+  {
+    query: ["condon", "condones", "preservativo", "preservativos"],
+    catalog: ["condon", "preservativo", "durex", "prudence", "trojan", "sico"],
+  },
+  {
+    query: ["cubrebocas", "cubreboca", "mascarilla", "mascarillas"],
+    catalog: ["cubrebocas", "cubreboca", "mascarilla", "n95", "kn95"],
   },
 ];
 
@@ -211,6 +271,7 @@ const CATALOG_QUERY_REPLACEMENTS = [
   [/\belectrolid\b/g, "electrolit"],
   [/\bpedialytes?\b/g, "pedialyte"],
   [/\bparacetamols?\b/g, "paracetamol"],
+  [/\bacetaminofens?\b/g, "paracetamol"],
   [/\bibuprofenos?\b/g, "ibuprofeno"],
   [/\bomeprazols?\b/g, "omeprazol"],
   [/\bantibioticos?\b/g, "antibiotico"],
@@ -218,6 +279,9 @@ const CATALOG_QUERY_REPLACEMENTS = [
   [/\bprotector\s+solars?\b/g, "protector solar"],
   [/\btoallitas?\s+humedas?\b/g, "toallitas humedas"],
   [/\btoa\s*hum\b/g, "toallitas humedas"],
+  [/\bpanales?\s+(?:desechables?\s+)?(?:para\s+)?adultos?\b/g, "panal"],
+  [/\bpants?\s+(?:desechables?\s+)?(?:para\s+)?adultos?\b/g, "panal"],
+  [/\bropa\s+interior\s+desechable\b/g, "panal"],
 ];
 
 export function normalizeCatalogSearchQuery(raw) {
@@ -451,7 +515,7 @@ function catalogSearchRelevanceRank(product, queryRaw, { inventario = false } = 
   if (!raw) return 0;
   const qn = normalizeCatalogSearchQuery(raw);
   if (!qn) return 40;
-  const tokens = qn.split(/\s+/).filter(Boolean);
+  const tokens = requiredCatalogQueryTokens(qn.split(/\s+/).filter(Boolean));
   const n = normalizeForSearch(product?.nombre || "");
   const pa = normalizeForSearch(product?.principio_activo || "");
   const dg = normalizeForSearch(product?.denominacion_generica || "");
