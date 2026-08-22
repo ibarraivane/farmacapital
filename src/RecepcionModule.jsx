@@ -367,6 +367,10 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     const tok = sessionTok();
     if (!tok) return;
     const folioN = folio.trim();
+    if (!proveedor.trim() || !folioN) {
+      showToast("Pon la tienda y el folio del ticket.", "warning");
+      return;
+    }
     const ya = pendientes.find((t) => folioN && String(t.folio || "").trim() === folioN && (t.renglones || 0) > 0);
     if (ya) {
       await abrirPendiente(ya.id);
@@ -526,7 +530,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
       showToast("Ese código está en más de un ticket. Toca la tarjeta.", "warning");
       return;
     }
-    showToast("Esa caja no está en un ticket pendiente. Toca la tarjeta o Nuevo ticket.", "warning");
+    showToast("Esa caja no está en un ticket pendiente. Toca la tarjeta o captura el ticket abajo.", "warning");
   };
 
   const abrirPendiente = async (id) => {
@@ -853,7 +857,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
             <ScanLine size={22} strokeWidth={2.2} /> Recibir
           </h2>
           <p style={{ margin: "4px 0 0", color: C.textMid, fontSize: 13 }}>
-            Cada botón es un pedido vivo que espera entrada. Tócalo, escanea las cajas, pon caducidad.
+            Si hay un pedido vivo, tócalo (sale el nombre de la tienda). Si son pocas piezas, llena el ticket abajo y escanea.
           </p>
         </div>
         {doc && (
@@ -871,7 +875,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
         )}
       </div>
 
-      {!vistaNuevo && pendientes.length > 0 && (
+      {pendientes.length > 0 && (
         <div style={{ marginBottom: 16 }}>
           <div style={{ color: C.textMid, fontSize: 11, fontWeight: 800, letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 8 }}>
             Pedidos vivos · esperando entrada
@@ -940,32 +944,21 @@ export default function RecepcionModule({ ocultarMontos = false }) {
         </div>
       )}
 
-      {!doc && !vistaNuevo && pendientes.length === 0 && (
+      {!doc && pendientes.length === 0 && (
         <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: isMobile ? 20 : 24, color: C.textMid, fontSize: 13, lineHeight: 1.5, marginBottom: 16 }}>
-          No hay pedidos vivos esperando entrada.
+          No hay pedidos vivos esperando entrada. Para un ticket chico, captura proveedor y folio abajo.
         </div>
       )}
 
-      {!doc && !vistaNuevo && !ocultarMontos && (
-        <button
-          type="button"
-          onClick={() => setVistaNuevo(true)}
-          style={{
-            padding: 0, border: "none", background: "transparent",
-            color: C.textMid, fontWeight: 700, fontSize: 13, cursor: "pointer",
-            marginBottom: 8,
-          }}
-        >
-          Ticket que no está en la lista…
-        </button>
-      )}
-
-      {!doc && vistaNuevo && (
+      {!doc && (
         <form onSubmit={empezar} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: isMobile ? 16 : 22 }}>
-          <button type="button" onClick={() => setVistaNuevo(false)} style={{ border: "none", background: "transparent", color: C.textMid, fontWeight: 700, fontSize: 13, cursor: "pointer", padding: 0, marginBottom: 12 }}>
-            ← Tickets
-          </button>
-          <div style={{ color: C.text, fontWeight: 800, marginBottom: 14, fontSize: 15 }}>Ticket del proveedor</div>
+          <div style={{ color: C.textDim, fontSize: 10, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>
+            Ticket que no está en la lista
+          </div>
+          <div style={{ color: C.text, fontWeight: 800, marginBottom: 6, fontSize: 15 }}>Entrada manual</div>
+          <p style={{ margin: "0 0 14px", color: C.textMid, fontSize: 13, lineHeight: 1.45 }}>
+            Pocas piezas: pon la tienda, el folio y empieza a escanear. No hace falta PDF.
+          </p>
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 12 }}>
             <div>
               <label style={labelS(C)} htmlFor="rc-prov">Proveedor</label>
@@ -1017,7 +1010,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
             </button>
           </div>
           <div style={{ color: C.textDim, fontSize: 12, marginTop: 8, lineHeight: 1.45 }}>
-            El PDF/CSV arma la lista. La caducidad sale de la caja, no del papel.
+            PDF/CSV es opcional (ticket largo). La caducidad siempre sale de la caja.
           </div>
         </form>
       )}
@@ -1119,7 +1112,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
           <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
             {items.length === 0 && (
               <div style={{ color: C.textMid, fontSize: 13, padding: "20px 8px", textAlign: "center" }}>
-                Toca el pedido vivo arriba. Aquí salen las cajas.
+                Escanea cada caja. Pon cantidad y caducidad MMAA.
               </div>
             )}
             {items.map((it) => {
