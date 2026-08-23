@@ -20,6 +20,7 @@ export const FAMILIA = {
   levic: "farma",
   nadro: "farma",
   marzam: "farma",
+  farmalive: "farma",
   fanasa: "farma",
   saba: "farma",
   exprezo: "abarrotes",

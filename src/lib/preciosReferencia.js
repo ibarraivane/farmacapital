@@ -4,7 +4,7 @@
  */
 
 /** Columnas visibles en la tabla Compra (no inflar con fuentes de pocos matches). */
-export const FUENTES_COMPRA_TABLA = ["exprezo", "marzam", "nadro", "levic", "otros_compra"];
+export const FUENTES_COMPRA_TABLA = ["exprezo", "marzam", "nadro", "levic", "farmalive", "otros_compra"];
 /** Entran a «Comprar en» / mejor precio, sin columna propia. */
 export const FUENTES_COMPRA_EXTRA = ["scorpion", "abarrotero", "mayoreototal"];
 export const FUENTES_COMPRA = [...FUENTES_COMPRA_TABLA, ...FUENTES_COMPRA_EXTRA];
@@ -90,6 +90,12 @@ export const FUENTE_META = {
   marzam: { label: "Marzam", tipo: "compra", listaDistribuidor: true },
   nadro: { label: "Nadro", tipo: "compra", listaDistribuidor: true },
   levic: { label: "Levic", tipo: "compra", listaDistribuidor: false },
+  farmalive: {
+    label: "Farmalive",
+    tipo: "compra",
+    listaDistribuidor: false,
+    hint: "Lista Club Iztapalapa. Precio base (2%), sin campañas de día.",
+  },
   scorpion: {
     label: "Scorpion",
     tipo: "compra",
