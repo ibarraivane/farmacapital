@@ -1,5 +1,28 @@
 /** Compensación oficial de Mercado Pago por recarga / pago de servicio (Point). */
 export const COMPENSACION_MP_TASA = 0.01;
+export const TZ_FARMACIA = "America/Mexico_City";
+
+/** Fecha civil de la farmacia (YYYY-MM-DD), no la del navegador en Europa. */
+export function fechaLocalMexico(d = new Date()) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: TZ_FARMACIA,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
+}
+
+export function esMismoDiaMexico(iso, dia = fechaLocalMexico()) {
+  if (!iso) return false;
+  const dt = iso instanceof Date ? iso : new Date(iso);
+  if (Number.isNaN(dt.getTime())) return false;
+  return fechaLocalMexico(dt) === dia;
+}
+
+/** Recargo de farmacia: no se guarda en cero. El dueño puede corregir después. */
+export function recargoEsValido(comision) {
+  return money2(comision) > 0;
+}
 
 export function money2(n) {
   const x = Number(n);

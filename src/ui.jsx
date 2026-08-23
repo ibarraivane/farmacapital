@@ -120,7 +120,7 @@ export function Btn({children,onClick,col,sm,ol,dis,full,style,type="button"}){
   );
 };
 
-export function Inp({value,onChange,placeholder,style,type,onKeyDown,disabled,name,autoComplete,className="",invalid=false}){
+export function Inp({value,onChange,placeholder,style,type,onKeyDown,onBlur,disabled,name,autoComplete,className="",invalid=false}){
   const C = C_LIGHT;
   return(
 
@@ -156,7 +156,7 @@ export function Inp({value,onChange,placeholder,style,type,onKeyDown,disabled,na
       ...style,
     }}
     onFocus={e=>{e.target.style.borderColor=invalid?C.red:C.blue;e.target.style.boxShadow="0 0 0 3px "+C.blueDim;}}
-    onBlur={e=>{e.target.style.borderColor=invalid?C.red:C.border;e.target.style.boxShadow="none";}}
+    onBlur={e=>{e.target.style.borderColor=invalid?C.red:C.border;e.target.style.boxShadow="none";onBlur?.(e);}}
   />
 
   );

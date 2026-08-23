@@ -111,6 +111,7 @@ export const TEMAS = [
       { q: "¿Puedo cobrar la recarga con tarjeta?", a: "Sí, pero Point cobra su comisión sobre recarga + recargo. En Telcel $100 te queda poco. En CFE $500 se pierde dinero. Prefiere efectivo." },
       { q: "El cliente ya se fue y no anoté", a: "Anótalo igual en Servicios el mismo turno. Si no, el corte va a decir que sobra efectivo y el dueño no va a poder conciliar el saldo MP." },
       { q: "La Point no deja recargar", a: "Casi siempre se acabó el [[saldo-mp]]. No es un fallo del POS. Avisa para fondear la cuenta." },
+      { q: "¿Puedo dejar el recargo en 0?", a: "No. El POS no guarda Telcel ni CFE sin recargo: te lo vuelve a poner ($5, $8, $10). Si de verdad no cobraste, el dueño lo corrige en Transacciones." },
       { q: "¿Esto es una venta?", a: "No. No tiene folio VTA ni ticket de productos. Vive en POS → Servicios y en Transacciones como recarga." },
     ],
   },

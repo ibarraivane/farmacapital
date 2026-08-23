@@ -3,7 +3,7 @@ import { supabase } from "../../../supabase";
 import { C_LIGHT, BRAND } from "../../../constants";
 import { $ } from "../../../utils";
 import { Box, Btn, Inp, Tag, showToast } from "../../../ui";
-import { compensacionMpDe, compensacionMpDeFila, utilidadServicio } from "../../../lib/pagoServicio";
+import { compensacionMpDe, compensacionMpDeFila, esMismoDiaMexico, recargoEsValido, utilidadServicio } from "../../../lib/pagoServicio";
 
 const CATALOGO_SERVICIOS = [
   { id: "telcel", categoria: "recarga", proveedor: "Telcel", comision: 5, emoji: "📱" },
@@ -105,8 +105,13 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
     }
   }, [refreshToken, fetchHistorial]);
 
+  const historialHoy = useMemo(
+    () => historial.filter((row) => !row.created_at || esMismoDiaMexico(row.created_at)),
+    [historial]
+  );
+
   const resumenDia = useMemo(() => {
-    return historial.reduce(
+    return historialHoy.reduce(
       (acc, row) => {
         const cobrado = parseFloat(row.total_cobrado || 0);
         const recargo = parseFloat(row.comision || 0);
@@ -122,15 +127,16 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
       },
       { ops: 0, total: 0, comision: 0, compensacionMp: 0, utilidad: 0, efectivo: 0, tarjeta: 0 }
     );
-  }, [historial]);
+  }, [historialHoy]);
 
   const validarForm = () => {
     if (!Number.isFinite(monto) || monto <= 0) {
       showToast("Ingresa el monto del servicio o recarga", "error");
       return false;
     }
-    if (!Number.isFinite(comision) || comision < 0) {
-      showToast("Comisión inválida", "error");
+    if (!recargoEsValido(comision)) {
+      setComisionStr(String(servicio.comision));
+      showToast(`El recargo de ${servicio.proveedor} es $${servicio.comision}. No se guarda en cero.`, "error");
       return false;
     }
     if (!liquidado) {
@@ -244,8 +250,16 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
               <Inp value={montoStr} onChange={(e) => setMontoStr(e.target.value)} placeholder="0.00" style={{ width: "100%", boxSizing: "border-box" }} />
             </div>
             <div>
-              <div style={{ color: C.textMid, fontSize: 11, marginBottom: 4 }}>Tu comisión</div>
-              <Inp value={comisionStr} onChange={(e) => setComisionStr(e.target.value)} placeholder="0.00" style={{ width: "100%", boxSizing: "border-box" }} />
+              <div style={{ color: C.textMid, fontSize: 11, marginBottom: 4 }}>Tu recargo *</div>
+              <Inp
+                value={comisionStr}
+                onChange={(e) => setComisionStr(e.target.value)}
+                onBlur={() => {
+                  if (!recargoEsValido(parseMonto(comisionStr))) setComisionStr(String(servicio.comision));
+                }}
+                placeholder={String(servicio.comision)}
+                style={{ width: "100%", boxSizing: "border-box" }}
+              />
             </div>
           </div>
 
@@ -293,10 +307,10 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
               ↻
             </Btn>
           </div>
-          {!historial.length ? (
+          {!historialHoy.length ? (
             <div style={{ color: C.textMid, padding: 20, textAlign: "center", fontSize: 12 }}>Sin operaciones hoy</div>
           ) : (
-            historial.map((row) => (
+            historialHoy.map((row) => (
               <div key={row.id} style={{ borderBottom: `1px solid ${C.border}`, padding: "10px 0" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
                   <div>
