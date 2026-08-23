@@ -1330,7 +1330,7 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
                 <div style={{ color: C.textDim, fontSize: 9, marginTop: 2, lineHeight: 1.45 }}>
                   {costoPieza > 0 ? <>Costo/pieza ${costoPieza.toFixed(2)}</> : "Indicá costo y unidades/caja"}
                   {precioPieza > 0 && minPrecioPieza > 0 && precioPieza < minPrecioPieza
-                    ? <> · al guardar sube a <strong style={{ color: C.amber }}>${minPrecioPieza}</strong> (mín. regla)</>
+                    ? <> · sugerido ${minPrecioPieza} (se guarda el que indiques)</>
                     : margenCajaPct != null
                       ? <> · margen caja {margenCajaPct}%</>
                       : null}
@@ -1344,7 +1344,7 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
               </div>
               <div style={{gridColumn:"1/-1",background:C.blueDim,borderRadius:8,padding:"8px 12px",fontSize:11,color:C.blue}}>
                 💡 SKU unidad: <strong>{(form.sku||"PROD")+"-UNIT"}</strong> ·
-                Precio mínimo (regla): <strong>${upcVenta ? minPrecioPieza : "-"}</strong>/unidad
+                Sugerido: <strong>${upcVenta ? minPrecioPieza : "-"}</strong>/unidad (puedes poner menos)
                 {margenPiezaPct != null && margenCajaPct != null ? (
                   <> · margen pieza <strong style={{ color: margenPiezaColor }}>{margenPiezaPct}%</strong> vs caja {margenCajaPct}%</>
                 ) : null}
