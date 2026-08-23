@@ -228,9 +228,85 @@ function printViaPopup(html) {
   return true;
 }
 
+function printPdfBlob(blobUrl) {
+  const prev = document.getElementById(PRINT_IFRAME_ID);
+  if (prev) prev.remove();
+  const iframe = document.createElement("iframe");
+  iframe.id = PRINT_IFRAME_ID;
+  iframe.title = "Imprimir ticket";
+  iframe.src = blobUrl;
+  iframe.style.cssText = "position:fixed;right:0;bottom:0;width:80mm;height:80vh;border:0;opacity:0.02;";
+  document.body.appendChild(iframe);
+  iframe.onload = () => {
+    try {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+    } catch (e) {
+      console.error("[FarmaCapital] Error al imprimir PDF:", e);
+      window.open(blobUrl, "_blank");
+    }
+  };
+  return true;
+}
+
+/** PDF de 80 mm reales. En tablet Chrome no respeta @page y TM Assistant encoge la carta. */
+async function printElementAs80mmPdf(el) {
+  const { default: html2canvas } = await import("html2canvas");
+  const { jsPDF } = await import("jspdf");
+  const canvas = await html2canvas(el, {
+    scale: 3,
+    backgroundColor: "#ffffff",
+    useCORS: true,
+    logging: false,
+    onclone(doc) {
+      const t = doc.getElementById(el.id) || doc.body;
+      t.style.width = "80mm";
+      t.style.maxWidth = "80mm";
+      t.style.color = "#000";
+      t.style.background = "#fff";
+      t.style.position = "static";
+      t.querySelectorAll("img").forEach((img) => {
+        img.style.filter = "grayscale(1) contrast(8) brightness(0.15)";
+      });
+    },
+  });
+  const widthMm = 80;
+  const heightMm = Math.max(50, (canvas.height / canvas.width) * widthMm);
+  const pdf = new jsPDF({ unit: "mm", format: [widthMm, heightMm] });
+  pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, widthMm, heightMm);
+  return printPdfBlob(pdf.output("bloburl"));
+}
+
+async function printHtmlAs80mmPdf(html) {
+  const host = document.createElement("div");
+  host.style.cssText = "position:fixed;left:-120vw;top:0;width:80mm;background:#fff;";
+  if (/<html/i.test(html)) {
+    const parsed = new DOMParser().parseFromString(html, "text/html");
+    host.appendChild(parsed.body.firstElementChild || parsed.body);
+  } else {
+    host.innerHTML = html;
+  }
+  document.body.appendChild(host);
+  await waitForPrintAssets(host);
+  const target = host.querySelector("#farmacapital-ticket") || host.firstElementChild || host;
+  try {
+    await printElementAs80mmPdf(target);
+  } finally {
+    host.remove();
+  }
+  return true;
+}
+
 /** Popup (gesto del toque) o iframe si la tablet/PWA bloquea ventanas. */
 export function printPreparedHtml(html) {
   if (typeof window === "undefined") return false;
+  if (shouldKeepPrintWindowOpen()) {
+    printHtmlAs80mmPdf(html).catch((e) => {
+      console.error("[FarmaCapital] PDF térmico:", e);
+      if (!printViaPopup(html) && !printViaIframe(html)) alert(popupBlockedMessage());
+    });
+    return true;
+  }
   if (printViaPopup(html)) return true;
   if (printViaIframe(html)) return true;
   alert(popupBlockedMessage());
@@ -247,6 +323,20 @@ export function printTicket(ticketId = "farmacapital-ticket") {
   if (!ticket) {
     console.error("[FarmaCapital] Ticket no encontrado:", ticketId);
     return false;
+  }
+
+  if (shouldKeepPrintWindowOpen()) {
+    printElementAs80mmPdf(ticket).catch((e) => {
+      console.error("[FarmaCapital] PDF térmico:", e);
+      const clone = ticket.cloneNode(true);
+      const srcSvgs = ticket.querySelectorAll("svg");
+      const dstSvgs = clone.querySelectorAll("svg");
+      srcSvgs.forEach((src, i) => {
+        if (dstSvgs[i]) dstSvgs[i].replaceWith(src.cloneNode(true));
+      });
+      printPreparedHtml(wrapTicketHtml(clone.outerHTML));
+    });
+    return true;
   }
 
   const clone = ticket.cloneNode(true);
