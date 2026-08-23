@@ -11,6 +11,7 @@ import { parseRpcJsonArray } from "./utils/rpcJson";
 import { notifyPosTicket, notifyOnlineOrderReceipt, formatFolioPOS, formatFolioOnline, formatWhatsAppSendError, formatWhatsAppSuccessMessage } from "./utils/orderReceiptWhatsApp";
 import { usePedidoTicketUrl } from "./hooks/usePedidoTicketUrl";
 import { telefonoMxValido } from "./utils";
+import { fmtDateTimeMexico } from "./lib/ventasVsMeta";
 
 function esPagoServicio(p) {
   return p?.origen === "pago_servicio" || pedidoEsTipoServicio(p?.tipo);
@@ -520,7 +521,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
   };
 
   const fmtM = (n) => `$${parseFloat(n || 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  const fmtDT = (s) => { if (!s) return "—"; const d = new Date(s); return d.toLocaleDateString("es-MX", { day: "2-digit", month: "short" }) + " " + d.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" }); };
+  const fmtDT = (s) => fmtDateTimeMexico(s);
   const estCol = (e) => e === "completado" ? C.green : e === "cancelado" ? C.red : C.amber;
   const campoClaro = {
     background: "#fff",

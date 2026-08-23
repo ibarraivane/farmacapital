@@ -12,6 +12,16 @@ export function ymdMexico(value = new Date()) {
   return new Date(value).toLocaleDateString("en-CA", { timeZone: TZ_FARMACIA });
 }
 
+/** Fecha/hora de mostrador (CDMX). Evita que desde Europa el ticket salte al día siguiente. */
+export function fmtDateTimeMexico(s) {
+  if (!s) return "—";
+  const d = s instanceof Date ? s : new Date(s);
+  if (Number.isNaN(d.getTime())) return "—";
+  const fecha = d.toLocaleDateString("es-MX", { timeZone: TZ_FARMACIA, day: "2-digit", month: "short" });
+  const hora = d.toLocaleTimeString("es-MX", { timeZone: TZ_FARMACIA, hour: "2-digit", minute: "2-digit" });
+  return `${fecha} ${hora}`;
+}
+
 export function parseYmdLocal(ymd) {
   const [y, m, d] = String(ymd || "").split("-").map(Number);
   if (!y || !m || !d) return null;
