@@ -25,8 +25,28 @@ export const TICKET_CSS = `
 html, body { margin: 0; padding: 0; width: 80mm; max-width: 80mm; background: #fff; }
 @page { size: 80mm auto; margin: 0; }
 @media print {
-  html, body { width: 80mm !important; max-width: 80mm !important; }
+  html, body { width: 80mm !important; max-width: 80mm !important; margin: 0 !important; padding: 0 !important; }
   #farmacapital-ticket { width: 80mm !important; max-width: 80mm !important; padding: 3mm 2mm 13mm 2mm !important; }
+}
+/* Android/iPad: Chrome ignora @page 80mm y manda una hoja carta.
+   TM Print Assistant encoge toda la hoja → ticket minúsculo.
+   zoom 2.7 ≈ 216mm/80mm para que el ticket ocupe el ancho y al encoger quede a 80 mm. */
+@media print {
+  html.fc-thermal-fill { zoom: 2.7; }
+  #farmacapital-ticket, #farmacapital-ticket *:not(svg):not(svg *) {
+    color: #000 !important;
+    -webkit-text-stroke: 0.15px #000;
+  }
+  #farmacapital-ticket .ticket-puntos,
+  #farmacapital-ticket [style*="background:#000"],
+  #farmacapital-ticket [style*="background: #000"] {
+    color: #fff !important;
+    background: #000 !important;
+  }
+  #farmacapital-ticket img.ticket-logo-icon,
+  #farmacapital-ticket img.ticket-logo-img {
+    filter: grayscale(1) contrast(8) brightness(0.15);
+  }
 }
 
 #farmacapital-ticket {
@@ -57,7 +77,7 @@ html, body { margin: 0; padding: 0; width: 80mm; max-width: 80mm; background: #f
 .product-total { width: 40%; text-align: right; font-weight: bold; }
 .total-line { display: flex; justify-content: space-between; font-weight: bold; font-size: 11px; padding: 2px 0; }
 .qr-section { text-align: center; margin-top: 10px; margin-bottom: 4mm; page-break-inside: avoid; }
-.footer { text-align: center; margin-top: 8px; margin-bottom: 2mm; font-size: 9px; color: #333; page-break-inside: avoid; }
+.footer { text-align: center; margin-top: 8px; margin-bottom: 2mm; font-size: 9px; color: #000; page-break-inside: avoid; }
 .ticket-puntos { background: #000 !important; color: #fff !important; text-align: center; padding: 5px 4px; font-size: 10px; font-weight: 900; margin: 6px 0; letter-spacing: 1px; }
 .ticket-logo-wrap { text-align: center; margin-bottom: 4px; }
 .ticket-logo-icon {
@@ -88,7 +108,7 @@ html, body { margin: 0; padding: 0; width: 80mm; max-width: 80mm; background: #f
 .ticket-brand-slogan {
   font-size: 9px;
   margin-top: 2px;
-  color: #333;
+  color: #000;
 }
 `;
 
@@ -99,8 +119,9 @@ function escTitle(title) {
 }
 
 function wrapTicketHtml(innerHtml, title = "Ticket FarmaCapital") {
+  const fillClass = shouldKeepPrintWindowOpen() ? " fc-thermal-fill" : "";
   return `<!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="${fillClass.trim()}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
