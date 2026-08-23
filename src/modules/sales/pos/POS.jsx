@@ -277,10 +277,14 @@ function PosProductoFichaPanel({
           <div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", marginBottom: 6 }}>
               <span style={{ color: C.textDim, fontSize: 10, fontWeight: 800, letterSpacing: 1 }}>{item.sku}</span>
-              {item.requiere_receta && <Tag col={C.amber} sm>⚕ Receta</Tag>}
               {item.controlado && <Tag col={C.red} sm>Controlado</Tag>}
+              {item.categoria === "Antibiótico" && !item.controlado && (
+                <Tag col={C.amber} sm>Receta recomendada</Tag>
+              )}
               {item.tipo === "generico" && <Tag col={C.teal} sm>Genérico</Tag>}
-              {!item.requiere_receta && !item.controlado && <Tag col={C.blue} sm>Venta libre</Tag>}
+              {!item.controlado && item.categoria !== "Antibiótico" && (
+                <Tag col={C.blue} sm>Venta libre</Tag>
+              )}
               {sinLotes ? <Tag col={C.red} sm>Sin lotes</Tag> : agotado ? <Tag col={C.red} sm>Agotado</Tag> : <Tag col={C.green} sm>{stockCajas} en stock</Tag>}
             </div>
             <h2 style={{ margin: 0, fontSize: stack ? 17 : 20, fontWeight: 900, color: C.text, lineHeight: 1.25 }}>
@@ -1024,7 +1028,13 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         return;
       }
     }
-    if((item.requiere_receta || item.categoria==="Antibiótico") && !esUnidad) { setRxM(item); return; }
+    if (item.controlado && !esUnidad) { setRxM(item); return; }
+    if (item.categoria === "Antibiótico" && !esUnidad) {
+      const yaEnCarrito = cart.some((c) => c.id === item.id || c.producto_id === item.id);
+      if (!yaEnCarrito) {
+        showToast("Antibiótico: se recomienda receta. No es obligatoria para cobrar.", "info");
+      }
+    }
     if (esUnidad) {
       if ((item.stock_unidades || 0) <= 0) {
         showToast("Sin unidades disponibles para venta suelta.", "warning");
