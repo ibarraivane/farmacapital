@@ -1,4 +1,4 @@
-import { compensacionMpDe, compensacionMpDeFila, costoLiquidacionDe, esMismoDiaMexico, fechaLocalMexico, parseSaldoConfig, recargoEsValido, utilidadServicio } from "./pagoServicio";
+import { compensacionMpDe, compensacionMpDeFila, costoLiquidacionDe, esMismoDiaMexico, fechaLocalMexico, labelMetodoServicio, parseSaldoConfig, recargoEsValido, tituloTicketServicio, utilidadServicio } from "./pagoServicio";
 
 describe("pagoServicio", () => {
   test("compensación MP es 1% redondeado a centavos", () => {
@@ -39,6 +39,12 @@ describe("pagoServicio", () => {
     expect(parseSaldoConfig([
       { clave: "saldo_mp_recargas", valor: "800" },
     ]).bajo).toBe(false);
+  });
+
+  test("el ticket de recarga se titula RECARGA + operadora", () => {
+    expect(tituloTicketServicio("recarga", "Telcel")).toBe("RECARGA TELCEL");
+    expect(tituloTicketServicio("luz", "CFE")).toBe("PAGO CFE");
+    expect(labelMetodoServicio("tarjeta")).toBe("Tarjeta Point");
   });
 
   test("el día de la farmacia es el de Ciudad de México", () => {

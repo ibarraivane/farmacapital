@@ -71,3 +71,18 @@ export function parseSaldoConfig(rows) {
   const bajo = configurado && saldo <= minimo;
   return { configurado, saldo, minimo, bajo };
 }
+
+/** Título del ticket que ve el cliente (sin jerga de MP). */
+export function tituloTicketServicio(categoria, proveedor) {
+  const prov = String(proveedor || "").trim() || "SERVICIO";
+  const cat = String(categoria || "").toLowerCase();
+  if (cat === "recarga") return `RECARGA ${prov}`.toUpperCase();
+  return `PAGO ${prov}`.toUpperCase();
+}
+
+export function labelMetodoServicio(metodo) {
+  const m = String(metodo || "").toLowerCase();
+  if (m === "tarjeta") return "Tarjeta Point";
+  if (m === "efectivo") return "Efectivo";
+  return metodo || "Efectivo";
+}

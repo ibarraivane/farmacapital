@@ -5,6 +5,7 @@ import { $ } from "../../../utils";
 import { Box, Btn, Inp, Tag, showToast } from "../../../ui";
 import { compensacionMpDe, compensacionMpDeFila, CLAVES_SALDO_MP, esMismoDiaMexico, parseSaldoConfig, recargoEsValido, utilidadServicio } from "../../../lib/pagoServicio";
 import { rolEsAdmin } from "../../../utils/permissions";
+import { printServicioTicket } from "../../../utils/servicioTicket";
 
 const CATALOGO_SERVICIOS = [
   { id: "telcel", categoria: "recarga", proveedor: "Telcel", comision: 5, emoji: "📱" },
@@ -46,7 +47,7 @@ export async function rpcRegistrarPagoServicio(payload) {
   return data;
 }
 
-export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshToken = 0, usuario = null }) {
+export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshToken = 0, usuario = null, config = null }) {
   const C = C_LIGHT;
   const [selId, setSelId] = useState("telcel");
   const [referencia, setReferencia] = useState("");
@@ -183,8 +184,15 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
     if (!validarForm()) return;
     setGuardando(true);
     try {
-      const data = await rpcRegistrarPagoServicio(buildPayload("efectivo"));
+      const payload = buildPayload("efectivo");
+      const data = await rpcRegistrarPagoServicio(payload);
       showToast(`Servicio registrado · ${data.folio} · ${$(data.total_cobrado)}`, "success");
+      printServicioTicket({
+        ...payload,
+        folio: data.folio,
+        total: data.total_cobrado,
+        comision: data.comision ?? payload.comision,
+      }, config);
       limpiarForm();
       fetchHistorial();
       fetchSaldoMp();
@@ -425,11 +433,14 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
                     </div>
                   </div>
                 </div>
-                <div style={{ marginTop: 6, display: "flex", gap: 6, flexWrap: "wrap" }}>
+                <div style={{ marginTop: 6, display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
                   <Tag col={row.metodo_pago === "tarjeta" ? C.blue : C.amber} sm>
                     {row.metodo_pago === "tarjeta" ? "Tarjeta" : "Efectivo"}
                   </Tag>
                   {row.liquidado_point && <Tag col={C.green} sm>Liquidado Point</Tag>}
+                  <Btn sm ol col={C.textMid} onClick={() => printServicioTicket(row, config)}>
+                    Imprimir
+                  </Btn>
                 </div>
               </div>
             ))
