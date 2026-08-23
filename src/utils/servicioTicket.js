@@ -1,6 +1,19 @@
 import { mergeFarmaciaConfig } from "../constants/farmaciaFiscal";
-import { labelMetodoServicio, tituloTicketServicio } from "../lib/pagoServicio";
 import { openThermalPrintWindow } from "./printTicket";
+
+export function tituloTicketServicio(categoria, proveedor) {
+  const prov = String(proveedor || "").trim() || "SERVICIO";
+  const cat = String(categoria || "").toLowerCase();
+  if (cat === "recarga") return `RECARGA ${prov}`.toUpperCase();
+  return `PAGO ${prov}`.toUpperCase();
+}
+
+export function labelMetodoServicio(metodo) {
+  const m = String(metodo || "").toLowerCase();
+  if (m === "tarjeta") return "Tarjeta Point";
+  if (m === "efectivo") return "Efectivo";
+  return metodo || "Efectivo";
+}
 
 function esc(s) {
   return String(s ?? "").replace(/[&<>"']/g, (c) => (

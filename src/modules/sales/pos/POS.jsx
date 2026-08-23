@@ -38,6 +38,7 @@ import OnboardingTour from "../../../components/OnboardingTour";
 import { TOURS } from "../../../utils/tours";
 import { labelTipoEntregaPedido } from "../../../utils/orderChannels";
 import PagoServiciosPanel, { rpcRegistrarPagoServicio } from "./PagoServiciosPanel";
+import { printServicioTicket } from "../../../utils/servicioTicket";
 import AperturaCajaModal from "./AperturaCajaModal";
 import { esVendedor, fetchSesionCajaAbierta } from "../../../utils/cajaSesion";
 import {
@@ -2284,6 +2285,12 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
             try {
               const data = await rpcRegistrarPagoServicio(servMp);
               showToast(`Servicio registrado · ${data.folio} · ${$(data.total_cobrado)}`, "success");
+              printServicioTicket({
+                ...servMp,
+                folio: data.folio,
+                total: data.total_cobrado,
+                comision: data.comision ?? servMp.comision,
+              }, config);
               setServiciosRefresh((n) => n + 1);
             } catch (e) {
               showToast(e?.message || "Tarjeta cobrada pero no se registró el servicio. Regístralo manualmente.", "error");
@@ -3291,6 +3298,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       {tab==="servicios"&&(
         <PagoServiciosPanel
           isNarrow={isNarrow}
+          config={config}
           refreshToken={serviciosRefresh}
           onCobrarPoint={(payload) => {
             mpCitaRef.current = null;

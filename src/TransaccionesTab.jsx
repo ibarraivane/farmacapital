@@ -4,6 +4,7 @@ import { C_LIGHT, BRAND } from "./constants";
 import { showToast, SkeletonTable, Paginador } from "./ui";
 import TicketVenta from "./components/tickets/TicketVenta";
 import { printTicket } from "./utils/printTicket";
+import { printServicioTicket } from "./utils/servicioTicket";
 import { labelTipoEntregaPedido, labelTipoPedido, pedidoCoincideFiltroTipo, pedidoEsTipoOnline, pedidoEsTipoServicio } from "./utils/orderChannels";
 import { configRowsToMap, mergeFarmaciaConfig } from "./constants/farmaciaFiscal";
 import { productMatchesSearchQuery } from "./utils/fuzzySearch";
@@ -312,7 +313,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
 
   const reimprimir = async (p) => {
     if (esPagoServicio(p)) {
-      showToast("Las recargas no tienen ticket de productos. Revísalas en POS → Servicios.", "info");
+      printServicioTicket(p, farmaciaConfig);
       return;
     }
     setLoadingReprint(true);

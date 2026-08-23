@@ -3,6 +3,7 @@ import { supabase } from "../../../supabase";
 import { C_LIGHT, BRAND } from "../../../constants";
 import { $ } from "../../../utils";
 import { Box, Btn, Inp, Tag, showToast } from "../../../ui";
+import { printServicioTicket } from "../../../utils/servicioTicket";
 
 const CATALOGO_SERVICIOS = [
   { id: "telcel", categoria: "recarga", proveedor: "Telcel", comision: 5, emoji: "📱" },
@@ -44,12 +45,11 @@ export async function rpcRegistrarPagoServicio(payload) {
   return data;
 }
 
-export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshToken = 0 }) {
+export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshToken = 0, config = null }) {
   const C = C_LIGHT;
   const [selId, setSelId] = useState("telcel");
   const [referencia, setReferencia] = useState("");
   const [montoStr, setMontoStr] = useState("");
-  const [comisionStr, setComisionStr] = useState("");
   const [notas, setNotas] = useState("");
   const [liquidado, setLiquidado] = useState(false);
   const [guardando, setGuardando] = useState(false);
@@ -61,12 +61,8 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
     [selId]
   );
 
-  useEffect(() => {
-    setComisionStr(String(servicio.comision));
-  }, [servicio]);
-
   const monto = parseMonto(montoStr);
-  const comision = parseMonto(comisionStr);
+  const comision = Number(servicio.comision);
   const total = Number.isFinite(monto) && Number.isFinite(comision) ? Math.round((monto + comision) * 100) / 100 : 0;
 
   const fetchHistorial = useCallback(async () => {
@@ -148,8 +144,15 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
     if (!validarForm()) return;
     setGuardando(true);
     try {
-      const data = await rpcRegistrarPagoServicio(buildPayload("efectivo"));
+      const payload = buildPayload("efectivo");
+      const data = await rpcRegistrarPagoServicio(payload);
       showToast(`Servicio registrado · ${data.folio} · ${$(data.total_cobrado)}`, "success");
+      printServicioTicket({
+        ...payload,
+        folio: data.folio,
+        total: data.total_cobrado,
+        comision: data.comision ?? payload.comision,
+      }, config);
       limpiarForm();
       fetchHistorial();
     } catch (e) {
@@ -168,7 +171,7 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
     <div>
       <div style={{ background: C.blueDim, border: `1px solid ${C.blue}30`, borderRadius: 10, padding: "12px 16px", marginBottom: 16 }}>
         <div style={{ color: C.blue, fontSize: 13, fontWeight: 700, lineHeight: 1.5 }}>
-          <strong>Pago de servicios y recargas.</strong> Cobras aquí al cliente (servicio + tu comisión). La liquidación del recibo se hace en la terminal Point: menú <strong>Smart Launcher → Pago de servicios</strong> (mismo proveedor y referencia).
+          <strong>Pago de servicios y recargas.</strong> Aquí solo pones el monto: el recargo ({$(servicio.comision)}) se suma solo. La liquidación del recibo se hace en la terminal Point: menú <strong>Smart Launcher → Pago de servicios</strong> (mismo proveedor y referencia).
         </div>
         <div style={{ color: C.textMid, fontSize: 11, marginTop: 8, lineHeight: 1.45 }}>
           La Point en modo PDV solo cobra tarjeta por API. Para CFE, Telcel, etc. usa Smart Launcher en la misma terminal (puede pedir salir del modo integrado un momento). Sin Prontipagos: la comisión de MP va a Mercado Pago, no se desglosa en FarmaCapital.
@@ -210,7 +213,7 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
                   color: selId === s.id ? BRAND.secondary : C.textMid,
                 }}
               >
-                {s.emoji} {s.proveedor}
+                {s.emoji} {s.proveedor} +{$(s.comision)}
               </button>
             ))}
           </div>
@@ -225,20 +228,24 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
             />
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
-            <div>
-              <div style={{ color: C.textMid, fontSize: 11, marginBottom: 4 }}>Monto servicio *</div>
-              <Inp value={montoStr} onChange={(e) => setMontoStr(e.target.value)} placeholder="0.00" style={{ width: "100%", boxSizing: "border-box" }} />
-            </div>
-            <div>
-              <div style={{ color: C.textMid, fontSize: 11, marginBottom: 4 }}>Tu comisión</div>
-              <Inp value={comisionStr} onChange={(e) => setComisionStr(e.target.value)} placeholder="0.00" style={{ width: "100%", boxSizing: "border-box" }} />
-            </div>
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ color: C.textMid, fontSize: 11, marginBottom: 4 }}>Monto de la recarga *</div>
+            <Inp value={montoStr} onChange={(e) => setMontoStr(e.target.value)} placeholder="100" style={{ width: "100%", boxSizing: "border-box" }} />
           </div>
 
-          <div style={{ background: C.bg, borderRadius: 8, padding: "10px 12px", marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ color: C.textMid, fontSize: 12 }}>Total a cobrar al cliente</span>
-            <span style={{ color: C.green, fontWeight: 900, fontSize: 20 }}>{$(total)}</span>
+          <div style={{ background: C.bg, borderRadius: 8, padding: "10px 12px", marginBottom: 12 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+              <span style={{ color: C.textMid, fontSize: 12 }}>Recarga</span>
+              <span style={{ color: C.text, fontWeight: 700, fontSize: 13 }}>{Number.isFinite(monto) && monto > 0 ? $(monto) : "—"}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <span style={{ color: C.textMid, fontSize: 12 }}>Recargo {servicio.proveedor} (automático)</span>
+              <span style={{ color: C.text, fontWeight: 700, fontSize: 13 }}>+{$(comision)}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ color: C.textMid, fontSize: 12 }}>Total a cobrar</span>
+              <span style={{ color: C.green, fontWeight: 900, fontSize: 20 }}>{$(total)}</span>
+            </div>
           </div>
 
           <div style={{ marginBottom: 12 }}>
@@ -285,11 +292,14 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
                     <div style={{ color: C.textDim, fontSize: 10 }}>com. {$(row.comision)}</div>
                   </div>
                 </div>
-                <div style={{ marginTop: 6, display: "flex", gap: 6, flexWrap: "wrap" }}>
+                <div style={{ marginTop: 6, display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
                   <Tag col={row.metodo_pago === "tarjeta" ? C.blue : C.amber} sm>
                     {row.metodo_pago === "tarjeta" ? "Tarjeta" : "Efectivo"}
                   </Tag>
                   {row.liquidado_point && <Tag col={C.green} sm>Liquidado Point</Tag>}
+                  <Btn sm ol col={C.textMid} onClick={() => printServicioTicket(row, config)}>
+                    Imprimir
+                  </Btn>
                 </div>
               </div>
             ))
