@@ -26,6 +26,7 @@ import {
 } from "./utils/tiendaFarmaciaCatalogo";
 import { productoEsVendible } from "./utils/productoVendible";
 import { showToast, Logo, BrandSplash } from "./ui";
+import { setBloqueaReloadApp } from "./utils/appUpdate";
 import { TOKENS as T, RADIO, SOMBRA } from "./theme/tokens";
 import {
   formatFolioOnline,
@@ -3143,6 +3144,10 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
 function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoProductos=[]}){
   const C = useTheme();
   const stack = useMediaQuery("(max-width: 768px)");
+  useEffect(() => {
+    setBloqueaReloadApp(true, "tienda-checkout");
+    return () => setBloqueaReloadApp(false, "tienda-checkout");
+  }, []);
   const [step,setStep]=useState(1);
   const [datos,setDatos]=useState(()=>({
     nombre:user?.nombre||"",

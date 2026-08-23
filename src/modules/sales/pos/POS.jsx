@@ -12,6 +12,7 @@ import { posTituloProducto, posSubtituloProducto } from "../../../utils/posProdu
 import { precioUnidadParaVenta } from "../../../utils/precioUnidad";
 import { productoEsVendible } from "../../../utils/productoVendible";
 import { cobroLinea, pesoPublico } from "../../../utils/pesoPublico";
+import { setBloqueaReloadApp } from "../../../utils/appUpdate";
 import { useHidBarcodeWedge } from "../../../hooks/useHidBarcodeWedge";
 import {
   suggestPosProductsLocal,
@@ -470,6 +471,10 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const [tab,setTab]         = useState(initialTab); // venta | online | consultas | servicios
   const [productos,setProds] = useState([]);
   const [cart,setCart]       = useState([]);
+  useEffect(() => {
+    setBloqueaReloadApp(cart.length > 0, "pos-cart");
+    return () => setBloqueaReloadApp(false, "pos-cart");
+  }, [cart.length]);
   const [srch,setSrch]       = useState("");
   const [srchFocus,setSrchFocus] = useState(false);
   const srchRef = useRef(null);

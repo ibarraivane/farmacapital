@@ -26,6 +26,7 @@ import { fetchProductosPaginados } from "./lib/inventarioHubData";
 import { parseTicketCsv } from "./lib/recepcionTicketCsv";
 import { getSessionToken, esErrorSesionEmpleado } from "./utils";
 import { notifySesionEmpleadoInvalida } from "./utils/sesionEmpleadoAuth";
+import { setBloqueaReloadApp } from "./utils/appUpdate";
 
 const fmt = (n) =>
   `$${parseFloat(n || 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -247,6 +248,11 @@ export default function RecepcionModule({ ocultarMontos = false }) {
   const [vistaNuevo, setVistaNuevo] = useState(false);
   const [listaScan, setListaScan] = useState("");
   const listaScanRef = useRef(null);
+
+  useEffect(() => {
+    setBloqueaReloadApp(!!doc || !!pendiente, "recibir");
+    return () => setBloqueaReloadApp(false, "recibir");
+  }, [doc, pendiente]);
 
   const aplicarDoc = useCallback((raw) => {
     const d = unwrapJson(raw);
