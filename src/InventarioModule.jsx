@@ -15,7 +15,7 @@ import OnboardingTour from "./components/OnboardingTour";
 import { idEmpleadoUsuarios } from "./utils/usuarioId";
 import ImageUploader from "./components/ImageUploader";
 import { sugerirPrecioUnidad, aplicarReglaPrecioUnidad, margenBrutoPct } from "./utils/precioUnidad";
-import { productoEsVendible } from "./utils/productoVendible";
+import { parseDinero, productoEsVendible } from "./utils/productoVendible";
 import {
   PRODUCTOS_POR_PAGINA,
   agruparLotesPorProducto,
@@ -337,15 +337,15 @@ function InventarioEditableCell({
       onKeyDown: (e) => {
         if (e.key === "Enter") {
           e.preventDefault();
-          onCommit();
+          onCommit(e.currentTarget.value);
         }
         if (e.key === "Escape") {
           e.preventDefault();
           onCancel();
         }
       },
-      onBlur: () => {
-        if (!inlineSaving) onCommit();
+      onBlur: (e) => {
+        if (!inlineSaving) onCommit(e.currentTarget.value);
       },
       style: {
         ...inputStyle,
@@ -378,7 +378,10 @@ function InventarioEditableCell({
       style={{ ...tdStyle, cursor: (selectionMode || readOnly) ? "default" : "pointer" }}
       title={readOnly ? undefined : selectionMode ? "Hay productos seleccionados — usa el menú azul arriba de la tabla" : "Clic para editar"}
       onMouseDown={(e) => {
-        if (!selectionMode && !readOnly) e.preventDefault();
+        if (selectionMode || readOnly) return;
+        const editingOther = inlineEdit && (inlineEdit.productId !== productId || inlineEdit.field !== field);
+        // Si otra celda está en edición, no bloquees el blur: si no, el precio no se guarda.
+        if (!editingOther) e.preventDefault();
       }}
       onClick={(e) => {
         e.stopPropagation();
@@ -987,6 +990,7 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
           costo: costoNum,
           imagen_url: urlNow || null,
           imagen_mobile_url: urlNow || null,
+          manual_price_override: true,
         };
         const { error: editErr } = await supabase.rpc("admin_editar_producto", {
           p_session_token: tok,
@@ -2428,6 +2432,11 @@ function renderInventarioColumnCell(colId, ctx) {
           display={
             productoSinPrecioVenta(p) ? (
               <span style={{ color: C.red, fontWeight: 700, fontSize: 10 }}>No vendible</span>
+            ) : p.venta_unidad && parseFloat(p.precio_unidad) > 0 ? (
+              <span>
+                ${parseFloat(p.precio || 0).toFixed(2)}
+                <span style={{ color: C.textMid, fontSize: 10, marginLeft: 6 }}>pza ${parseFloat(p.precio_unidad).toFixed(0)}</span>
+              </span>
             ) : (
               `$${parseFloat(p.precio || 0).toFixed(2)}`
             )
@@ -3147,9 +3156,11 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
   }, [fetchProductos, modal?.id]);
 
   const [inlineEdit, setInlineEdit] = useState(null);
+  const inlineEditRef = useRef(null);
   const [inlineSaving, setInlineSaving] = useState(false);
 
   const cancelInlineEdit = useCallback(() => {
+    inlineEditRef.current = null;
     setInlineEdit(null);
   }, []);
 
@@ -3261,7 +3272,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
         return true;
       }
     } else if (field === "precio" || field === "costo") {
-      const n = parseFloat(draft);
+      const n = parseDinero(draft);
       if (Number.isNaN(n) || n < 0) {
         showToast("Precio/costo inválido.", "error");
         return false;
@@ -3300,7 +3311,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
           : String(currentRaw);
     if (currentNorm === patchValue || (patchValue == null && !currentNorm)) return true;
 
-    const { error } = await supabase.rpc("admin_editar_producto", {
+    const { data, error } = await supabase.rpc("admin_editar_producto", {
       p_session_token: tok,
       p_producto_id: product.id,
       p_patch: { [patchKey]: patchValue },
@@ -3309,27 +3320,45 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
       showToast(error.message, "error");
       return false;
     }
+    const saved = typeof data === "string" ? JSON.parse(data) : data;
+    const row = saved?.producto;
+    if (row && row.id != null) {
+      setProductos((prev) => prev.map((p) => (
+        p.id === product.id
+          ? { ...p, precio: row.precio ?? p.precio, costo: row.costo ?? p.costo, precio_unidad: row.precio_unidad ?? p.precio_unidad }
+          : p
+      )));
+      if (field === "precio" && row.precio != null && Number(row.precio) !== Number(patchValue)) {
+        showToast(`Quedó en $${Number(row.precio).toFixed(2)} (regla de pieza).`, "warning");
+      }
+    }
     await fetchProductos();
     showToast("Guardado", "success");
     return true;
   }, [fetchProductos, modoConsulta]);
 
-  const commitInlineEdit = useCallback(async () => {
-    if (!inlineEdit || inlineSaving) return;
-    const product = productos.find((x) => x.id === inlineEdit.productId);
+  const commitInlineEdit = useCallback(async (draftOverride) => {
+    const edit = inlineEditRef.current || inlineEdit;
+    if (!edit || inlineSaving) return;
+    const product = productos.find((x) => x.id === edit.productId);
     if (!product) {
       cancelInlineEdit();
       return;
     }
     setInlineSaving(true);
     try {
-      const ok = await guardarCampoInline(product, inlineEdit.field, inlineEdit.draft, inlineEdit.meta);
+      const draft = draftOverride != null ? draftOverride : edit.draft;
+      const ok = await guardarCampoInline(product, edit.field, draft, edit.meta);
       if (ok) {
         cancelInlineEdit();
-      } else if (inlineEdit.field === "cad") {
-        const loteId = inlineEdit.meta?.loteId ?? resolverLoteCaducidadProducto(product)?.id ?? null;
+      } else if (edit.field === "cad") {
+        const loteId = edit.meta?.loteId ?? resolverLoteCaducidadProducto(product)?.id ?? null;
         const lote = loteId ? (product.lotes || []).find((l) => l.id === loteId) : null;
-        setInlineEdit((prev) => (prev ? { ...prev, draft: lote?.fecha_caducidad || "" } : prev));
+        setInlineEdit((prev) => {
+          const next = prev ? { ...prev, draft: lote?.fecha_caducidad || "" } : prev;
+          inlineEditRef.current = next;
+          return next;
+        });
       }
     } finally {
       setInlineSaving(false);
@@ -3351,12 +3380,14 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
   }, [inlineSaving, productos, guardarCampoInline, cancelInlineEdit]);
 
   const startInlineEdit = useCallback((productId, field, rawValue, meta = null) => {
-    setInlineEdit({
+    const next = {
       productId,
       field,
       draft: rawValue == null || rawValue === "" ? "" : String(rawValue),
       meta,
-    });
+    };
+    inlineEditRef.current = next;
+    setInlineEdit(next);
   }, []);
 
   const selectionMode = selectedIds.length > 0;
@@ -3369,7 +3400,11 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
     selectionMode,
     readOnly: modoConsulta,
     onStart: startInlineEdit,
-    onDraft: (v) => setInlineEdit((prev) => (prev ? { ...prev, draft: v } : prev)),
+    onDraft: (v) => setInlineEdit((prev) => {
+      const next = prev ? { ...prev, draft: v } : prev;
+      inlineEditRef.current = next;
+      return next;
+    }),
     onCommit: commitInlineEdit,
     onCancel: cancelInlineEdit,
     onQuitarCad: quitarCaducidadInline,
