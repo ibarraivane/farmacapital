@@ -16,6 +16,7 @@ const CFG = {
   meta_sabado_vespertino: "1800",
   meta_domingo: "2200",
   meta_ventas_dia: "3000",
+  meta_ventas_semana: "20800",
   meta_ventas_mes: "80000",
   ajuste_domingo: "0",
 };
@@ -48,7 +49,7 @@ describe("construirSerie", () => {
     expect(resumenPunto(hoy).ok).toBe(false);
   });
 
-  test("semana: lunes a domingo, meta = suma de días", () => {
+  test("semana: lunes a domingo, meta fija si está configurada", () => {
     const lunes = parseYmdLocal("2026-08-17");
     expect(metaSemana(lunes, CFG)).toBe(
       3000 + 3000 + 3000 + 3000 + 3000 + 3600 + 2200,
@@ -57,6 +58,13 @@ describe("construirSerie", () => {
     expect(s).toHaveLength(8);
     const actual = s.find((p) => p.esActual);
     expect(actual.actual).toBe(3100 + 800 + 12);
+    expect(actual.meta).toBe(20800);
+  });
+
+  test("semana sin cifra fija usa la suma de días", () => {
+    const { meta_ventas_semana, ...sinSemana } = CFG;
+    const s = construirSerie({ porDia, cfg: sinSemana, grano: "semana", hoyYmd: "2026-08-23" });
+    expect(s.find((p) => p.esActual).meta).toBe(20800);
   });
 
   test("mes: usa meta_ventas_mes", () => {

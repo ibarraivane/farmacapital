@@ -77,7 +77,8 @@ export function construirSerie({ porDia, cfg, grano, hoyYmd }) {
       const domingo = addDays(lunes, 6);
       let actual = 0;
       for (let i = 0; i < 7; i += 1) actual += map[ymdFromLocalDate(addDays(lunes, i))] || 0;
-      const meta = metaSemana(lunes, cfg);
+      const metaFija = Math.round(parseFloat(cfg?.meta_ventas_semana || 0) || 0);
+      const meta = metaFija > 0 ? metaFija : metaSemana(lunes, cfg);
       points.push({
         key: ymdFromLocalDate(lunes),
         label: `${lunes.getDate()} ${MES_CORTOS[lunes.getMonth()]}`,

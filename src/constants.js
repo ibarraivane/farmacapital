@@ -52,11 +52,11 @@ export const NAV_ADMIN = [
 
 /** Títulos del sidebar admin (sin mezclar “vistas por rol”; solo agrupa trabajo). */
 export const ADMIN_NAV_SECTIONS = [
-  { title: "Operación diaria", ids: ["dash", "pos", "cli", "caja", "ped_online"] },
+  { title: "Operación diaria", ids: ["dash", "config_cons", "pos", "cli", "caja", "ped_online"] },
   { title: "Inventario", ids: ["recibir", "inv"] },
   { title: "Consultorio", ids: ["agenda", "cons", "exp_dr"] },
   { title: "Control y cumplimiento", ids: ["cof", "dev", "fact"] },
-  { title: "Comercial y crecimiento", ids: ["promo", "banners", "bot", "config_cons"] },
+  { title: "Comercial y crecimiento", ids: ["promo", "banners", "bot"] },
   { title: "Administración interna", ids: ["usuarios", "rrhh"] },
   { title: "Sistema", ids: ["ayuda", "pwa"] },
 ];

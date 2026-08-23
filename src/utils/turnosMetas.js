@@ -81,7 +81,7 @@ export async function cargarConfigMetas() {
   const claves = [
     "meta_matutino_lv","meta_vespertino_lv",
     "meta_sabado_matutino","meta_sabado_vespertino","meta_domingo",
-    "meta_ventas_mes","meta_ventas_dia",
+    "meta_ventas_mes","meta_ventas_dia","meta_ventas_semana",
     "ajuste_quincena","ajuste_dia_pago","ajuste_viernes","ajuste_lunes","ajuste_domingo",
     "bonos_activos",
   ];

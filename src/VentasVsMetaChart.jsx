@@ -22,7 +22,7 @@ function colorBarra(p) {
   return C_LIGHT.red;
 }
 
-export default function VentasVsMetaChart({ porDia, cfg, hoyYmd }) {
+export default function VentasVsMetaChart({ porDia, cfg, hoyYmd, onEditarMetas }) {
   const C = C_LIGHT;
   const [grano, setGrano] = useState("dia");
   const [selKey, setSelKey] = useState(null);
@@ -62,6 +62,30 @@ export default function VentasVsMetaChart({ porDia, cfg, hoyYmd }) {
           </div>
           <p style={{ margin: "4px 0 0", color: C.textMid, fontSize: 13, lineHeight: 1.45, maxWidth: 520 }}>
             {sub}
+            {onEditarMetas && (
+              <>
+                {" "}
+                <button
+                  type="button"
+                  onClick={() => {
+                    try { sessionStorage.setItem("farmacapital_config_tab", "ventas"); } catch { /* noop */ }
+                    onEditarMetas();
+                  }}
+                  style={{
+                    border: "none",
+                    background: "none",
+                    padding: 0,
+                    color: BRAND.primary,
+                    fontWeight: 800,
+                    fontSize: 13,
+                    cursor: "pointer",
+                    textDecoration: "underline",
+                  }}
+                >
+                  Cambiar metas
+                </button>
+              </>
+            )}
           </p>
         </div>
         <div role="tablist" aria-label="Periodo de la gráfica" style={{ display: "flex", background: C.bg, borderRadius: 10, padding: 3, border: `1px solid ${C.border}` }}>

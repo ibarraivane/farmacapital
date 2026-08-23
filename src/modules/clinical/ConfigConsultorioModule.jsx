@@ -69,20 +69,20 @@ const FIELDS = {
   descuento_max_admin:       { tab:"servicios", grupo:"descuentos",     label:"Administrador",             def:25,   tipo:"percent", max:100 },
 
   // ── TAB 2 · Metas de ventas ───────────────────────────────────
-  meta_ventas_mes:           { tab:"ventas",    grupo:"global",         label:"Meta mensual global",       def:80000, tipo:"currency" },
-  meta_matutino_lv:          { tab:"ventas",    grupo:"turnos",         label:"Matutino L-V",              def:1500,  tipo:"currency" },
-  meta_vespertino_lv:        { tab:"ventas",    grupo:"turnos",         label:"Vespertino L-V",            def:1500,  tipo:"currency" },
-  meta_sabado_matutino:      { tab:"ventas",    grupo:"turnos",         label:"Sábado matutino",           def:1800,  tipo:"currency" },
-  meta_sabado_vespertino:    { tab:"ventas",    grupo:"turnos",         label:"Sábado vespertino",         def:1800,  tipo:"currency" },
-  meta_domingo:              { tab:"ventas",    grupo:"turnos",         label:"Domingo",                   def:2200,  tipo:"currency" },
+  meta_ventas_dia:           { tab:"ventas",    grupo:"periodos",       label:"Meta del día (L–V)",        def:4000,  tipo:"currency" },
+  meta_ventas_semana:        { tab:"ventas",    grupo:"periodos",       label:"Meta de la semana",         def:27200, tipo:"currency" },
+  meta_ventas_mes:           { tab:"ventas",    grupo:"periodos",       label:"Meta del mes",              def:110000, tipo:"currency" },
+  meta_ticket_prom:          { tab:"ventas",    grupo:"periodos",       label:"Ticket promedio",           def:120,   tipo:"currency" },
+  meta_matutino_lv:          { tab:"ventas",    grupo:"turnos",         label:"Matutino L-V",              def:2000,  tipo:"currency" },
+  meta_vespertino_lv:        { tab:"ventas",    grupo:"turnos",         label:"Vespertino L-V",            def:2000,  tipo:"currency" },
+  meta_sabado_matutino:      { tab:"ventas",    grupo:"turnos",         label:"Sábado matutino",           def:2200,  tipo:"currency" },
+  meta_sabado_vespertino:    { tab:"ventas",    grupo:"turnos",         label:"Sábado vespertino",         def:2200,  tipo:"currency" },
+  meta_domingo:              { tab:"ventas",    grupo:"turnos",         label:"Domingo",                   def:2800,  tipo:"currency" },
   ajuste_quincena:           { tab:"ventas",    grupo:"ajustes",        label:"Quincena (día 15)",         def:25,    tipo:"percent_signed" },
   ajuste_dia_pago:           { tab:"ventas",    grupo:"ajustes",        label:"Día de pago (último día)",  def:30,    tipo:"percent_signed" },
   ajuste_viernes:            { tab:"ventas",    grupo:"ajustes",        label:"Viernes",                   def:15,    tipo:"percent_signed" },
   ajuste_lunes:              { tab:"ventas",    grupo:"ajustes",        label:"Lunes",                     def:-10,   tipo:"percent_signed" },
   ajuste_domingo:            { tab:"ventas",    grupo:"ajustes",        label:"Domingo (castigo)",         def:-10,   tipo:"percent_signed" },
-  meta_ventas_dia:           { tab:"ventas",    grupo:"legacy",         label:"Ventas diarias (dashboard)",   def:3000,  tipo:"currency" },
-  meta_ventas_semana:        { tab:"ventas",    grupo:"legacy",         label:"Ventas semanales (dashboard)", def:20000, tipo:"currency" },
-  meta_ticket_prom:          { tab:"ventas",    grupo:"legacy",         label:"Ticket promedio",           def:250,   tipo:"currency" },
 
   // ── TAB 3 · Bonos por desempeño ───────────────────────────────
   bonos_activos:             { tab:"bonos",     grupo:"switch",         label:"Bonos al vendedor",         def:0,    tipo:"toggle" },
@@ -96,8 +96,8 @@ const FIELDS = {
   extra_fidelizacion_min:    { tab:"bonos",     grupo:"extras",         label:"Clientes mín. p/fidelizar", def:15,   tipo:"int" },
 
   // ── TAB 4 · Metas del consultorio ─────────────────────────────
-  meta_consultas_dia:        { tab:"cons",      grupo:"consultas",      label:"Consultas por día",         def:8,    tipo:"int" },
-  meta_consultas_mes:        { tab:"cons",      grupo:"consultas",      label:"Consultas por mes",         def:180,  tipo:"int" },
+  meta_consultas_dia:        { tab:"cons",      grupo:"consultas",      label:"Consultas por día",         def:6,    tipo:"int" },
+  meta_consultas_mes:        { tab:"cons",      grupo:"consultas",      label:"Consultas por mes",         def:120,  tipo:"int" },
   meta_procedimientos_dia:   { tab:"cons",      grupo:"procedimientos", label:"Procedimientos por día",    def:4,    tipo:"int" },
   meta_procedimientos_mes:   { tab:"cons",      grupo:"procedimientos", label:"Procedimientos por mes",    def:80,   tipo:"int" },
   meta_recetas_mes:          { tab:"cons",      grupo:"recetas",        label:"Recetas completadas / mes", def:120,  tipo:"int" },
@@ -219,7 +219,14 @@ function SectionTitle({ children, sub }) {
 
 export default function ConfigConsultorioModule() {
   const isMobileCfg = useMediaQuery("(max-width: 768px)");
-  const [tab, setTab] = useState("servicios");
+  const [tab, setTab] = useState(() => {
+    try {
+      const t = sessionStorage.getItem("farmacapital_config_tab");
+      if (t) sessionStorage.removeItem("farmacapital_config_tab");
+      if (t === "ventas" || t === "servicios" || t === "bonos" || t === "cons") return t;
+    } catch { /* noop */ }
+    return "servicios";
+  });
 
   // Estado unificado: mapa clave → string. Se inicializa con los defaults.
   const [valores, setValores] = useState(() => {
@@ -414,14 +421,18 @@ export default function ConfigConsultorioModule() {
       {tab === "ventas" && (
         <>
           <Box style={{ padding: 20, marginBottom: 16 }}>
-            <SectionTitle>META MENSUAL GLOBAL</SectionTitle>
-            <div style={{ maxWidth: 260 }}>
-              <InputField clave="meta_ventas_mes" valor={valores.meta_ventas_mes} onChange={setValor} />
+            <SectionTitle sub="Estos tres números son los de la gráfica en Operación. Farmacia de colonia, 2 turnos: el día L–V es la suma de matutino + vespertino.">
+              DÍA · SEMANA · MES
+            </SectionTitle>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,220px),1fr))", gap: 14 }}>
+              {keysInTab("ventas").filter((k) => FIELDS[k].grupo === "periodos").map((k) => (
+                <InputField key={k} clave={k} valor={valores[k]} onChange={setValor} />
+              ))}
             </div>
           </Box>
 
           <Box style={{ padding: 20, marginBottom: 16 }}>
-            <SectionTitle sub="Objetivo de caja por turno. Los ajustes de abajo modifican estas metas según el día.">
+            <SectionTitle sub="La raya de cada día en la gráfica (y Mi Día) usa estos montos. L–V $2,000 + $2,000 = $4,000.">
               META POR TURNO
             </SectionTitle>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,210px),1fr))", gap: 14 }}>
@@ -442,17 +453,6 @@ export default function ConfigConsultorioModule() {
             </div>
             <div style={{ marginTop: 14, padding: "10px 12px", background: C.amberDim, border: `1px solid ${C.amber}40`, borderRadius: 8, fontSize: 12, color: C.textMid }}>
               <strong>Ejemplo:</strong> viernes {fmtPct(previewAjuste.pct)} → meta matutino {fmtMXN(previewAjuste.base)} sube a <strong>{fmtMXN(previewAjuste.ajustada)}</strong>.
-            </div>
-          </Box>
-
-          <Box style={{ padding: 20, marginBottom: 16 }}>
-            <SectionTitle sub="Usadas por el Dashboard en los KPIs principales. No afectan el cálculo por turno.">
-              METAS HISTÓRICAS DEL DASHBOARD
-            </SectionTitle>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,220px),1fr))", gap: 14 }}>
-              {keysInTab("ventas").filter((k) => FIELDS[k].grupo === "legacy").map((k) => (
-                <InputField key={k} clave={k} valor={valores[k]} onChange={setValor} />
-              ))}
             </div>
           </Box>
 

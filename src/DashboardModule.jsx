@@ -533,12 +533,12 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
     const crecimiento = ventasMesAnt > 0 ? ((ventasMes - ventasMesAnt) / ventasMesAnt * 100).toFixed(1) : null;
 
     const metas = {
-      ventasDia:     parseMeta(cfgRows, "meta_ventas_dia", 3000),
-      ventasSemana:  parseMeta(cfgRows, "meta_ventas_semana", 20000),
-      ventasMes:     parseMeta(cfgRows, "meta_ventas_mes", 80000),
-      ticketProm:    parseMeta(cfgRows, "meta_ticket_prom", 250),
-      consultasDia:  parseMeta(cfgRows, "meta_consultas_dia", 8),
-      consultasMes:  parseMeta(cfgRows, "meta_consultas_mes", 180),
+      ventasDia:     parseMeta(cfgRows, "meta_ventas_dia", 4000),
+      ventasSemana:  parseMeta(cfgRows, "meta_ventas_semana", 27200),
+      ventasMes:     parseMeta(cfgRows, "meta_ventas_mes", 110000),
+      ticketProm:    parseMeta(cfgRows, "meta_ticket_prom", 120),
+      consultasDia:  parseMeta(cfgRows, "meta_consultas_dia", 6),
+      consultasMes:  parseMeta(cfgRows, "meta_consultas_mes", 120),
     };
     const trends = {
       ventasHoy:     trendDelta(ventasHoy, ventasAyer),
@@ -1152,7 +1152,12 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
         />
       </div>
 
-      <VentasVsMetaChart porDia={ventasPorDia} cfg={metasTurnoCfg} hoyYmd={ymdMexico()} />
+      <VentasVsMetaChart
+        porDia={ventasPorDia}
+        cfg={metasTurnoCfg}
+        hoyYmd={ymdMexico()}
+        onEditarMetas={() => goToPage("config_cons")}
+      />
 
       <div style={{display:"grid",gridTemplateColumns:GRID_RESP_2COL,gap:20,marginBottom:24}}>
         <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:20,minWidth:0}}>
