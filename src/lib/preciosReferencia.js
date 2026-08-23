@@ -3,7 +3,7 @@
  * Espejo simplificado de scripts/pricing_preview.py (classify + piso de margen).
  */
 
-export const FUENTES_COMPRA = ["exprezo", "marzam", "nadro", "levic", "scorpion", "abarrotero", "mayoreototal", "otros_compra"];
+export const FUENTES_COMPRA = ["exprezo", "marzam", "nadro", "levic", "farmalive", "scorpion", "abarrotero", "mayoreototal", "otros_compra"];
 export const FUENTES_VENTA = ["fahorro", "similares", "otros_venta"];
 
 /** Fila tombstone al borrar una referencia manualmente (precio NOT NULL en BD). */
@@ -81,6 +81,12 @@ export const FUENTE_META = {
   marzam: { label: "Marzam", tipo: "compra", listaDistribuidor: true },
   nadro: { label: "Nadro", tipo: "compra", listaDistribuidor: true },
   levic: { label: "Levic", tipo: "compra", listaDistribuidor: false },
+  farmalive: {
+    label: "Farmalive",
+    tipo: "compra",
+    listaDistribuidor: false,
+    hint: "Mayorista Club Iztapalapa. Precio de compra (lista base 2%).",
+  },
   scorpion: { label: "Scorpion", tipo: "compra", listaDistribuidor: false },
   abarrotero: { label: "Abarrotero", tipo: "compra", listaDistribuidor: false },
   mayoreototal: { label: "MayoreoTotal", tipo: "compra", listaDistribuidor: false },

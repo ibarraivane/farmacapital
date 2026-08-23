@@ -37,6 +37,7 @@ const COL_DEFAULTS_COMPRA = {
   marzam: 68,
   nadro: 68,
   levic: 68,
+  farmalive: 76,
   otros_compra: 68,
   mejor: 100,
 };
@@ -110,6 +111,7 @@ const COL_LABELS_COMPRA = {
   marzam: "Marzam",
   nadro: "Nadro",
   levic: "Levic",
+  farmalive: "Farmalive",
   otros_compra: "Otros",
   mejor: "Mejor opción",
 };
@@ -373,6 +375,7 @@ function ColumnSizer({ tab, colWidths, setColWidths, C }) {
     marzam: [52, 120],
     nadro: [52, 120],
     levic: [52, 120],
+    farmalive: [52, 120],
     otros_compra: [52, 120],
     fahorro: [52, 120],
     similares: [52, 120],
@@ -1067,6 +1070,8 @@ export default function PreciosReferenciaModule() {
       const msg = e.message || "Error al guardar";
       if (/fuentes_precio|foreign key/i.test(msg) && /^otros_/.test(parts[2] || "")) {
         showToast("Falta SQL: ejecuta sql/patch_fuentes_otros_precio.sql en Supabase", "error");
+      } else if (/fuentes_precio|foreign key/i.test(msg) && parts[2] === "farmalive") {
+        showToast("Falta SQL: ejecuta sql/patch_fuentes_farmalive.sql en Supabase", "error");
       } else {
         showToast(msg, "error");
       }

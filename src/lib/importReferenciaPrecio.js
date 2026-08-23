@@ -10,6 +10,7 @@ export const FUENTES_IMPORT = [
   { id: "marzam", label: "Marzam (compra)", tipo: "compra", adapter: "generico" },
   { id: "nadro", label: "Nadro (compra)", tipo: "compra", adapter: "generico" },
   { id: "levic", label: "Levic (compra)", tipo: "compra", adapter: "generico" },
+  { id: "farmalive", label: "Farmalive (compra / mayorista)", tipo: "compra", adapter: "generico" },
   { id: "fahorro", label: "Del Ahorro (venta)", tipo: "venta", adapter: "generico" },
 ];
 
