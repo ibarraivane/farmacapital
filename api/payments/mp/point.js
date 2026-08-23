@@ -184,6 +184,11 @@ module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
+  const { action: incomingAction } = req.query || {};
+  if (String(incomingAction || '') === 'balance') {
+    return require('../../_lib/mpBalanceHandler')(req, res);
+  }
+
   const MP_ACCESS_TOKEN = (process.env.MP_ACCESS_TOKEN || process.env.MERCADOPAGO_ACCESS_TOKEN || '').trim();
   if (!MP_ACCESS_TOKEN) return res.status(500).json({ ok: false, error: 'missing_mp_access_token' });
 

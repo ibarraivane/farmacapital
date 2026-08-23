@@ -81,6 +81,10 @@
       "destination": "/api/health?token=:token"
     },
     {
+      "source": "/api/payments/mp/balance",
+      "destination": "/api/payments/mp/point?action=balance"
+    },
+    {
       "source": "/((?!api/|static/|icons/|manifest\\.json|service-worker\\.js|favicon\\.ico|asset-manifest\\.json|robots\\.txt).*)",
       "destination": "/index.html"
     }
