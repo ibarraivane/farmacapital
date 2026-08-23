@@ -29,18 +29,18 @@ export function sugerirPrecioUnidad(precio, costo, unidadesPorCaja, categoria = 
   return calcPrecioUnidad(precio, costo, unidadesPorCaja, categoria, tipo);
 }
 
-/** Precio efectivo en POS: nunca menor que la regla. */
+/** Precio efectivo en POS: el que guardó el dueño. La regla solo sugiere. */
 export function precioUnidadParaVenta(producto) {
   if (!producto?.venta_unidad) return 0;
-  const minimo = calcPrecioUnidad(
+  const guardado = Math.ceil(parseFloat(producto.precio_unidad) || 0);
+  if (guardado > 0) return guardado;
+  return calcPrecioUnidad(
     producto.precio,
     producto.costo,
     producto.unidades_por_caja,
     producto.categoria,
     producto.tipo,
   );
-  const guardado = Math.ceil(parseFloat(producto.precio_unidad) || 0);
-  return Math.max(guardado, minimo);
 }
 
 export function margenBrutoPct(precioVenta, costo) {
@@ -56,11 +56,11 @@ export function aplicarReglaPrecioUnidad(fields) {
     return { ...fields, precio_unidad: 0, unidades_por_caja: 0 };
   }
   const upc = parseInt(fields.unidades_por_caja, 10) || 0;
-  const minimo = calcPrecioUnidad(fields.precio, fields.costo, upc, fields.categoria, fields.tipo);
   const manual = Math.ceil(parseFloat(fields.precio_unidad) || 0);
+  const sugerido = calcPrecioUnidad(fields.precio, fields.costo, upc, fields.categoria, fields.tipo);
   return {
     ...fields,
     unidades_por_caja: upc,
-    precio_unidad: Math.max(manual, minimo),
+    precio_unidad: manual > 0 ? manual : sugerido,
   };
 }
