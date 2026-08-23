@@ -19,6 +19,31 @@ export function esMismoDiaMexico(iso, dia = fechaLocalMexico()) {
   return fechaLocalMexico(dt) === dia;
 }
 
+/** Recargo de mostrador por servicio. No lo pone Mercado Pago: lo pone FarmaCapital. */
+export const CATALOGO_SERVICIOS = [
+  { id: "telcel", categoria: "recarga", proveedor: "Telcel", comision: 5, emoji: "📱" },
+  { id: "movistar", categoria: "recarga", proveedor: "Movistar", comision: 5, emoji: "📱" },
+  { id: "att", categoria: "recarga", proveedor: "AT&T", comision: 5, emoji: "📱" },
+  { id: "unefon", categoria: "recarga", proveedor: "Unefon", comision: 5, emoji: "📱" },
+  { id: "cfe", categoria: "luz", proveedor: "CFE", comision: 8, emoji: "💡" },
+  { id: "telmex", categoria: "telefonia", proveedor: "Telmex", comision: 8, emoji: "☎️" },
+  { id: "totalplay", categoria: "telefonia", proveedor: "Totalplay", comision: 8, emoji: "📺" },
+  { id: "izzi", categoria: "telefonia", proveedor: "Izzi", comision: 8, emoji: "📺" },
+  { id: "sky", categoria: "tv", proveedor: "Sky", comision: 10, emoji: "📡" },
+  { id: "agua", categoria: "agua", proveedor: "Agua (local)", comision: 8, emoji: "💧" },
+  { id: "gas", categoria: "gas", proveedor: "Gas Natural", comision: 8, emoji: "🔥" },
+  { id: "otro", categoria: "otro", proveedor: "Otro servicio", comision: 10, emoji: "📋" },
+];
+
+/** Recargo fijo del catálogo. El piso no lo captura. */
+export function recargoCatalogoDe(idOrProveedor) {
+  const key = String(idOrProveedor || "").trim().toLowerCase();
+  const hit = CATALOGO_SERVICIOS.find(
+    (s) => s.id === key || String(s.proveedor).toLowerCase() === key
+  );
+  return money2(hit?.comision ?? 5);
+}
+
 /** Recargo de farmacia: no se guarda en cero. El dueño puede corregir después. */
 export function recargoEsValido(comision) {
   return money2(comision) > 0;

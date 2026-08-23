@@ -1,4 +1,4 @@
-import { compensacionMpDe, compensacionMpDeFila, costoLiquidacionDe, esMismoDiaMexico, fechaLocalMexico, labelMetodoServicio, parseSaldoConfig, recargoEsValido, tituloTicketServicio, utilidadServicio } from "./pagoServicio";
+import { compensacionMpDe, compensacionMpDeFila, costoLiquidacionDe, esMismoDiaMexico, fechaLocalMexico, labelMetodoServicio, parseSaldoConfig, recargoCatalogoDe, recargoEsValido, tituloTicketServicio, utilidadServicio } from "./pagoServicio";
 
 describe("pagoServicio", () => {
   test("compensación MP es 1% redondeado a centavos", () => {
@@ -27,6 +27,13 @@ describe("pagoServicio", () => {
     expect(recargoEsValido(0)).toBe(false);
     expect(recargoEsValido("")).toBe(false);
     expect(recargoEsValido(null)).toBe(false);
+  });
+
+  test("el recargo del catálogo es fijo por operadora", () => {
+    expect(recargoCatalogoDe("telcel")).toBe(5);
+    expect(recargoCatalogoDe("CFE")).toBe(8);
+    expect(recargoCatalogoDe("Sky")).toBe(10);
+    expect(recargoCatalogoDe("desconocido")).toBe(5);
   });
 
   test("saldo de recargas avisa solo si ya lo cargó el admin y está bajo el mínimo", () => {
