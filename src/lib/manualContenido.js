@@ -16,7 +16,7 @@ export const GLOSARIO = [
   { id: "costo", term: "Costo", aliases: ["precio de compra", "en cuánto compramos"], def: "Lo que se pagó al proveedor. El piso no lo ve: ni en Catálogo, ni en Recibir (estimado). Vive en el lote y lo ve el dueño." },
   { id: "reabasto", term: "Reabasto", aliases: ["qué comprar", "sugerido"], def: "Qué conviene pedir según rotación y existencia. No es la pantalla para recibir cajas." },
   { id: "pos", term: "POS", aliases: ["punto de venta", "caja registradora"], def: "Punto de venta: escanear, cobrar, receta. En el POS no se elige lote: el sistema descuenta por FEFO." },
-  { id: "receta", term: "Receta", aliases: ["requiere receta", "controlado"], def: "Algunos medicamentos piden receta al vender. Eso lo configura el dueño en el catálogo, no al recibir." },
+  { id: "receta", term: "Receta", aliases: ["requiere receta", "controlado"], def: "En antibióticos se recomienda receta, pero no detiene la venta. Solo los controlados exigen receta en el POS (médico, cédula, paciente)." },
   { id: "corte", term: "Corte de caja", aliases: ["fondo", "arqueo"], def: "Cierre del turno: se cuenta el efectivo y se compara con lo que el sistema dice que debió haber." },
   { id: "fondo", term: "Fondo de caja", aliases: ["apertura", "efectivo inicial"], def: "Dinero con el que abres el turno. Lo entregaron; hay que contarlo antes de vender." },
   { id: "midia", term: "Mi Día", aliases: ["inicio vendedor"], def: "Pantalla de arranque del vendedor. El recuadro Tickets se toca: lista del turno (folio, hora, artículos), sin montos. No es el inventario." },
@@ -79,7 +79,7 @@ export const TEMAS = [
     pasos: [
       "Pistola en el buscador, o escribe nombre / [[sku]].",
       "Revisa cantidad en el carrito. Quita líneas si te equivocaste.",
-      "Si el producto pide [[receta]], cárgala antes de cobrar.",
+      "Si es [[receta]] de controlado, cárgala antes de cobrar. Antibiótico se cobra igual; la receta es recomendación.",
       "Identifica al cliente si acumula [[puntos]].",
       "Cobra (efectivo, tarjeta, mixto). Imprime o manda el ticket.",
       "Recargas y CFE no van en el carrito: pestaña Servicios. Primero la Point, luego anotas aquí.",

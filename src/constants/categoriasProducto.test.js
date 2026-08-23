@@ -4,6 +4,7 @@ import {
   categoriasCoinciden,
   categoriaPasaFiltro,
   esCategoriaAntibiotico,
+  esMedicamentoControlado,
   opcionesCategoriaSelect,
 } from "./categoriasProducto";
 
@@ -26,6 +27,9 @@ describe("categoriasProducto", () => {
   test("filtro y POS no dependen del acento", () => {
     expect(categoriasCoinciden("Antibiótico", "antibiotico")).toBe(true);
     expect(esCategoriaAntibiotico("antibiotico")).toBe(true);
+    expect(esMedicamentoControlado({ categoria: "Antibiótico" })).toBe(false);
+    expect(esMedicamentoControlado({ controlado: true })).toBe(true);
+    expect(esMedicamentoControlado({ grupo_controlado: "II" })).toBe(true);
     expect(categoriaPasaFiltro("Digestivo", "Gastro")).toBe(true);
     expect(categoriaPasaFiltro("Alergia", "Gastro")).toBe(false);
   });

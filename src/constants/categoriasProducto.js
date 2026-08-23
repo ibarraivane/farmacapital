@@ -84,6 +84,13 @@ export function esCategoriaAntibiotico(raw) {
   return categoriaCanon(raw) === "Antibiótico";
 }
 
+/** Fracción controlada COFEPRIS. La receta sí detiene la venta. Antibiótico no. */
+export function esMedicamentoControlado(p) {
+  if (!p || typeof p !== "object") return false;
+  if (p.controlado === true) return true;
+  return Boolean(String(p.grupo_controlado || "").trim());
+}
+
 export function categoriaPasaFiltro(raw, filtro) {
   if (!filtro || filtro === "todas" || filtro === "Todos") return true;
   return categoriasCoinciden(raw, filtro);
