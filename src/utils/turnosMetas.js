@@ -93,6 +93,20 @@ export async function cargarConfigMetas() {
   return map;
 }
 
+/** Meta de caja de todo el día (los dos turnos, o domingo suelto), con ajustes de fecha. */
+export function metaDiaCompleto(fecha, map) {
+  const cfg = map || {};
+  const dow = fecha.getDay();
+  const mult = calcularMultiplicador(fecha, cfg);
+  const num = (clave) => parseFloat(cfg[clave] || 0) || 0;
+  let base;
+  if (dow === 0) base = num("meta_domingo");
+  else if (dow === 6) base = num("meta_sabado_matutino") + num("meta_sabado_vespertino");
+  else base = num("meta_matutino_lv") + num("meta_vespertino_lv");
+  if (base <= 0) base = num("meta_ventas_dia");
+  return Math.round(base * mult);
+}
+
 // Devuelve la meta en $ para el turno y fecha indicados.
 export async function obtenerMetaTurno(fecha, turno) {
   const map = await cargarConfigMetas();

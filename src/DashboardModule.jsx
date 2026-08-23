@@ -14,6 +14,9 @@ import { parseRpcJsonArray, parseRpcJsonObject } from "./utils/rpcJson";
 import { pedidoEsTipoFisica, pedidoEsTipoOnline, pedidoEsTipoConsulta } from "./utils/orderChannels";
 import { costoLineaVenta, ingresoLineaVenta } from "./utils/margenVenta";
 import { DIAS_CADUCIDAD_ALERTA } from "./lib/caducidad";
+import VentasVsMetaChart from "./VentasVsMetaChart";
+import { agruparVentasPorDia, porDiaDesdeSerieRpc, ymdMexico } from "./lib/ventasVsMeta";
+import { cargarConfigMetas } from "./utils/turnosMetas";
 
 function rpcBundleRows(bundle, key) {
   return parseRpcJsonArray(parseRpcJsonObject(bundle)[key]);
@@ -382,12 +385,17 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
       ayer_local: ayerLocal,
       inicio_mes_local: inicioMesLocal,
     };
+    const desdeSerie = new Date();
+    desdeSerie.setDate(desdeSerie.getDate() - 92);
+    const desdeSerieYmd = ymdMexico(desdeSerie);
     const [
       bundleRes,
       homeRes,
       { count: onlinePendCount, error: errOnlinePend },
       { data: cofeprisRpcData, error: errAlertasCof },
       caducarRes,
+      serieRes,
+      metasTurnoCfg,
     ] = await Promise.all([
       adminTok
         ? supabase.rpc("empleado_dashboard_operacion_bundle", {
@@ -413,6 +421,13 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
             p_dias: DIAS_CADUCIDAD_ALERTA,
           })
         : Promise.resolve({ data: null, error: null }),
+      adminTok
+        ? supabase.rpc("empleado_dashboard_ventas_serie", {
+            p_session_token: adminTok,
+            p_desde: desdeSerieYmd,
+          })
+        : Promise.resolve({ data: null, error: null }),
+      cargarConfigMetas(),
     ]);
     const B = parseRpcJsonObject(bundleRes.data);
     const H = parseRpcJsonObject(homeRes.data);
@@ -426,6 +441,23 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
       });
       if (errVentasMes) console.warn("[Dashboard] ventas transacciones:", errVentasMes.message);
       pedVentasMes = pedidosCompletados(rawVentasMes);
+    }
+
+    let ventasPorDia = porDiaDesdeSerieRpc(parseRpcJsonArray(serieRes?.data));
+    if (!Object.keys(ventasPorDia).length) {
+      if (serieRes?.error) console.warn("[Dashboard] ventas serie:", serieRes.error.message);
+      if (adminTok) {
+        const { data: raw90, error: err90 } = await supabase.rpc("empleado_listar_pedidos_transacciones", {
+          p_session_token: adminTok,
+          p_created_desde: new Date(Date.now() - 92 * 86400000).toISOString(),
+          p_limite: 800,
+        });
+        if (err90) console.warn("[Dashboard] ventas serie fallback:", err90.message);
+        ventasPorDia = agruparVentasPorDia(pedidosCompletados(raw90));
+      }
+      if (!Object.keys(ventasPorDia).length) {
+        ventasPorDia = agruparVentasPorDia(pedVentasMes);
+      }
     }
 
     const monthPrevStart = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toISOString();
@@ -558,6 +590,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
     trends.consultasHoy = trendDelta(consultasHoy, consultasAyer);
 
     setData({
+      ventasPorDia, metasTurnoCfg,
       ventasHoy, ventasAyer, ventasSemana, ventasSemanaAnt, ventasMes, ventasMesAnt, crecimiento, ticketProm, consultasHoy, consultasAyer, onlinePend,
       recuperado, gananciaMes,
       dashboardLoadWarning,
@@ -680,7 +713,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
     </div>
   );
 
-  const {ventasHoy,ventasSemana,ventasMes,crecimiento,ticketProm,consultasHoy,onlinePend,recuperado,gananciaMes,fuentes,empleados,topProductos,alertas,metas,trends,dashboardLoadWarning} = data;
+  const {ventasHoy,ventasSemana,ventasMes,crecimiento,ticketProm,consultasHoy,onlinePend,recuperado,gananciaMes,fuentes,empleados,topProductos,alertas,metas,trends,dashboardLoadWarning,ventasPorDia,metasTurnoCfg} = data;
   const pctRecuperado = inversionTotal > 0 ? Math.min((recuperado / inversionTotal) * 100, 100) : 0;
   const restante = inversionTotal - recuperado;
   const paybackMeses = gananciaMes > 0 ? Math.max(Math.ceil(restante / gananciaMes), 0) : null;
@@ -1118,6 +1151,8 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
           onAction={() => goToPage("pos", { posTab: "online" })} actionLabel="Atender →"
         />
       </div>
+
+      <VentasVsMetaChart porDia={ventasPorDia} cfg={metasTurnoCfg} hoyYmd={ymdMexico()} />
 
       <div style={{display:"grid",gridTemplateColumns:GRID_RESP_2COL,gap:20,marginBottom:24}}>
         <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:20,minWidth:0}}>

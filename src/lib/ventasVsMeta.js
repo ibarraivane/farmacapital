@@ -1,0 +1,137 @@
+/** Ventas vs meta del dashboard. Fechas en calendario de la farmacia (CDMX). */
+
+import { metaDiaCompleto } from "../utils/turnosMetas";
+
+export const TZ_FARMACIA = "America/Mexico_City";
+
+function pad2(n) {
+  return String(n).padStart(2, "0");
+}
+
+export function ymdMexico(value = new Date()) {
+  return new Date(value).toLocaleDateString("en-CA", { timeZone: TZ_FARMACIA });
+}
+
+export function parseYmdLocal(ymd) {
+  const [y, m, d] = String(ymd || "").split("-").map(Number);
+  if (!y || !m || !d) return null;
+  return new Date(y, m - 1, d);
+}
+
+export function ymdFromLocalDate(d) {
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+export function agruparVentasPorDia(pedidos) {
+  const out = {};
+  for (const p of pedidos || []) {
+    if (!p?.created_at) continue;
+    const dia = ymdMexico(p.created_at);
+    out[dia] = (out[dia] || 0) + (parseFloat(p.total) || 0);
+  }
+  return out;
+}
+
+export function porDiaDesdeSerieRpc(raw) {
+  const rows = Array.isArray(raw) ? raw : [];
+  const out = {};
+  for (const r of rows) {
+    const dia = String(r.dia || r.fecha || "").slice(0, 10);
+    if (!dia) continue;
+    out[dia] = (out[dia] || 0) + (parseFloat(r.total) || 0);
+  }
+  return out;
+}
+
+function lunesDe(d) {
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const dow = x.getDay();
+  x.setDate(x.getDate() + (dow === 0 ? -6 : 1 - dow));
+  return x;
+}
+
+function addDays(d, n) {
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  x.setDate(x.getDate() + n);
+  return x;
+}
+
+const DIAS_CORTOS = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
+const MES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+
+export function metaSemana(lunes, cfg) {
+  let t = 0;
+  for (let i = 0; i < 7; i += 1) t += metaDiaCompleto(addDays(lunes, i), cfg);
+  return t;
+}
+
+export function construirSerie({ porDia, cfg, grano, hoyYmd }) {
+  const hoy = parseYmdLocal(hoyYmd) || new Date();
+  const map = porDia || {};
+  const points = [];
+
+  if (grano === "semana") {
+    const esteLunes = lunesDe(hoy);
+    for (let w = 7; w >= 0; w -= 1) {
+      const lunes = addDays(esteLunes, -7 * w);
+      const domingo = addDays(lunes, 6);
+      let actual = 0;
+      for (let i = 0; i < 7; i += 1) actual += map[ymdFromLocalDate(addDays(lunes, i))] || 0;
+      const meta = metaSemana(lunes, cfg);
+      points.push({
+        key: ymdFromLocalDate(lunes),
+        label: `${lunes.getDate()} ${MES_CORTOS[lunes.getMonth()]}`,
+        detalle: `${lunes.getDate()}–${domingo.getDate()} ${MES_CORTOS[domingo.getMonth()]}`,
+        actual,
+        meta,
+        esActual: ymdFromLocalDate(lunes) === ymdFromLocalDate(esteLunes),
+      });
+    }
+    return points;
+  }
+
+  if (grano === "mes") {
+    const metaMes = Math.round(parseFloat(cfg?.meta_ventas_mes || 0) || 0);
+    for (let i = 5; i >= 0; i -= 1) {
+      const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+      const y = d.getFullYear();
+      const m = d.getMonth();
+      const prefix = `${y}-${pad2(m + 1)}-`;
+      let actual = 0;
+      for (const [dia, tot] of Object.entries(map)) {
+        if (dia.startsWith(prefix)) actual += tot;
+      }
+      points.push({
+        key: prefix.slice(0, 7),
+        label: `${MES_CORTOS[m]} ${String(y).slice(2)}`,
+        detalle: `${MES_CORTOS[m]} ${y}`,
+        actual,
+        meta: metaMes,
+        esActual: y === hoy.getFullYear() && m === hoy.getMonth(),
+      });
+    }
+    return points;
+  }
+
+  for (let i = 20; i >= 0; i -= 1) {
+    const d = addDays(hoy, -i);
+    const ymd = ymdFromLocalDate(d);
+    points.push({
+      key: ymd,
+      label: DIAS_CORTOS[d.getDay()],
+      detalle: `${DIAS_CORTOS[d.getDay()]} ${d.getDate()} ${MES_CORTOS[d.getMonth()]}`,
+      actual: map[ymd] || 0,
+      meta: metaDiaCompleto(d, cfg),
+      esActual: ymd === hoyYmd,
+    });
+  }
+  return points;
+}
+
+export function resumenPunto(p) {
+  if (!p) return { pct: 0, falta: 0, ok: false };
+  const meta = p.meta || 0;
+  const actual = p.actual || 0;
+  const pct = meta > 0 ? (actual / meta) * 100 : 0;
+  return { pct, falta: Math.max(0, meta - actual), ok: meta > 0 && actual >= meta };
+}
