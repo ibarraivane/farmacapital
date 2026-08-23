@@ -13,8 +13,8 @@ export function isStandalonePwa() {
 }
 
 /**
- * iPad / Galaxy / PWA: no cerrar la ventana a los 3 s.
- * Al elegir la Epson el preview se rehace; si el documento ya no está, sale blanco o se cancela.
+ * iPad / Galaxy / PWA: captura a imagen + iframe oculto.
+ * Chrome en Android abre un tab a pantalla completa si usamos window.open.
  */
 export function shouldKeepPrintWindowOpen() {
   return isCoarsePointer() || isStandalonePwa();
@@ -35,13 +35,16 @@ html, body { margin: 0; padding: 0; width: 80mm; max-width: 80mm; background: #f
   html.fc-thermal-fill { zoom: 2.7; }
   #farmacapital-ticket, #farmacapital-ticket *:not(svg):not(svg *) {
     color: #000 !important;
-    -webkit-text-stroke: 0.15px #000;
+    -webkit-text-stroke: 0.4px #000;
+    font-weight: 700 !important;
   }
   #farmacapital-ticket .ticket-puntos,
+  #farmacapital-ticket .ticket-puntos *,
   #farmacapital-ticket [style*="background:#000"],
   #farmacapital-ticket [style*="background: #000"] {
     color: #fff !important;
     background: #000 !important;
+    -webkit-text-stroke: 0 !important;
   }
   #farmacapital-ticket img.ticket-logo-icon,
   #farmacapital-ticket img.ticket-logo-img {
@@ -50,8 +53,9 @@ html, body { margin: 0; padding: 0; width: 80mm; max-width: 80mm; background: #f
 }
 
 #farmacapital-ticket {
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 11px;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
   line-height: 1.45;
   width: 80mm;
   max-width: 80mm;
@@ -62,23 +66,29 @@ html, body { margin: 0; padding: 0; width: 80mm; max-width: 80mm; background: #f
   box-sizing: border-box;
 }
 #farmacapital-ticket * {
-  font-family: 'Courier New', Courier, monospace;
+  font-family: Arial, Helvetica, sans-serif;
   -webkit-print-color-adjust: exact !important;
   print-color-adjust: exact !important;
 }
-.ticket { width: 80mm; max-width: 80mm; font-family: 'Courier New', Courier, monospace; font-size: 11px; line-height: 1.4; background: #fff; color: #000; padding: 8px 6px calc(8px + 10mm); }
+.ticket { width: 80mm; max-width: 80mm; font-family: Arial, Helvetica, sans-serif; font-size: 12px; font-weight: 700; line-height: 1.4; background: #fff; color: #000; padding: 8px 6px calc(8px + 10mm); }
 .center { text-align: center; }
 .left   { text-align: left; }
 .right  { text-align: right; }
 .separator { border: none; border-top: 1px dashed #000; margin: 5px 0; display: block; }
 .separator-solid { border: none; border-top: 2px solid #000; margin: 5px 0; display: block; }
-.product-row { display: flex; justify-content: space-between; font-size: 10px; padding: 2px 0; }
+.product-row { display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; padding: 2px 0; }
 .product-name  { width: 60%; word-break: break-word; }
-.product-total { width: 40%; text-align: right; font-weight: bold; }
-.total-line { display: flex; justify-content: space-between; font-weight: bold; font-size: 11px; padding: 2px 0; }
+.product-total { width: 40%; text-align: right; font-weight: 800; }
+.total-line { display: flex; justify-content: space-between; font-weight: 700; font-size: 12px; padding: 2px 0; }
 .qr-section { text-align: center; margin-top: 10px; margin-bottom: 4mm; page-break-inside: avoid; }
-.footer { text-align: center; margin-top: 8px; margin-bottom: 2mm; font-size: 9px; color: #000; page-break-inside: avoid; }
-.ticket-puntos { background: #000 !important; color: #fff !important; text-align: center; padding: 5px 4px; font-size: 10px; font-weight: 900; margin: 6px 0; letter-spacing: 1px; }
+.footer { text-align: center; margin-top: 8px; margin-bottom: 2mm; font-size: 12px; font-weight: 700; color: #000; page-break-inside: avoid; }
+.ticket-puntos { background: #000 !important; color: #fff !important; text-align: center; padding: 6px 4px; font-size: 12px; font-weight: 900; margin: 6px 0; letter-spacing: 0.5px; }
+.ticket-block { font-size: 12px; font-weight: 700; line-height: 1.45; color: #000; }
+.ticket-product-name { font-size: 13px; font-weight: 800; }
+.ticket-total-final { font-size: 17px; font-weight: 900; border-top: 2px solid #000; padding-top: 3px; margin-top: 2px; }
+.ticket-qr-caption { font-size: 11px; font-weight: 700; color: #000; margin-top: 4px; }
+.ticket-gracias { font-weight: 900; font-size: 13px; }
+.ticket-web { margin-top: 3px; font-size: 12px; font-weight: 700; color: #000; }
 .ticket-logo-wrap { text-align: center; margin-bottom: 4px; }
 .ticket-logo-icon {
   height: 32px;
@@ -99,14 +109,15 @@ html, body { margin: 0; padding: 0; width: 80mm; max-width: 80mm; background: #f
   object-fit: contain;
 }
 .ticket-brand-name {
-  font-size: 12px;
+  font-size: 16px;
   font-weight: 900;
-  letter-spacing: 2px;
+  letter-spacing: 1px;
   text-transform: uppercase;
   line-height: 1.2;
 }
 .ticket-brand-slogan {
-  font-size: 9px;
+  font-size: 12px;
+  font-weight: 700;
   margin-top: 2px;
   color: #000;
 }
@@ -164,8 +175,15 @@ function waitForPrintAssets(doc) {
   });
 }
 
-function launchPrintOnWindow(win, { closeAfter }) {
+function launchPrintOnWindow(win, { closeAfter, onClose }) {
   let started = false;
+  let closed = false;
+  const close = () => {
+    if (closed) return;
+    closed = true;
+    try { if (win && !win.closed) win.close(); } catch { /* noop */ }
+    try { onClose?.(); } catch { /* noop */ }
+  };
   const run = async () => {
     if (started || !win || win.closed) return;
     started = true;
@@ -176,12 +194,10 @@ function launchPrintOnWindow(win, { closeAfter }) {
       win.print();
     } catch (e) {
       console.error("[FarmaCapital] Error al imprimir:", e);
+      close();
       return;
     }
     if (!closeAfter) return;
-    const close = () => {
-      try { if (!win.closed) win.close(); } catch { /* noop */ }
-    };
     win.addEventListener("afterprint", close);
     setTimeout(close, 60_000);
   };
@@ -209,9 +225,15 @@ function printViaIframe(html) {
   iframe.style.cssText = "position:fixed;left:-10000px;top:0;width:80mm;min-height:200px;border:0;opacity:0;pointer-events:none;";
   document.body.appendChild(iframe);
   const win = iframe.contentWindow;
-  if (!win?.document) return false;
+  if (!win?.document) {
+    iframe.remove();
+    return false;
+  }
   writeHtml(win, html);
-  launchPrintOnWindow(win, { closeAfter: false });
+  launchPrintOnWindow(win, {
+    closeAfter: true,
+    onClose: () => { try { iframe.remove(); } catch { /* noop */ } },
+  });
   return true;
 }
 
@@ -224,11 +246,18 @@ function printViaPopup(html) {
   }
   if (!win || win.closed) return false;
   writeHtml(win, html);
-  launchPrintOnWindow(win, { closeAfter: !shouldKeepPrintWindowOpen() });
+  launchPrintOnWindow(win, { closeAfter: true });
   return true;
 }
 
 function printRawHtml(html) {
+  // Tablet/PWA: iframe oculto. El popup abre Chrome con el ticket a pantalla.
+  if (shouldKeepPrintWindowOpen()) {
+    if (printViaIframe(html)) return true;
+    if (printViaPopup(html)) return true;
+    alert(popupBlockedMessage());
+    return false;
+  }
   if (printViaPopup(html)) return true;
   if (printViaIframe(html)) return true;
   alert(popupBlockedMessage());
@@ -256,10 +285,46 @@ img { display: block; width: 100%; height: auto; }
 </html>`);
 }
 
+function isThermalBlackBg(el) {
+  let node = el;
+  while (node && node.nodeType === 1) {
+    if (node.classList?.contains("ticket-puntos") || node.classList?.contains("ticket-rx")) return true;
+    const bg = `${node.getAttribute?.("style") || ""}`.replace(/\s/g, "").toLowerCase();
+    if (bg.includes("background:#000") || bg.includes("background-color:#000")) return true;
+    node = node.parentElement;
+  }
+  return false;
+}
+
+function hardenTicketForThermal(root, view) {
+  if (!root) return;
+  root.style.fontFamily = "Arial, Helvetica, sans-serif";
+  root.style.color = "#000";
+  root.style.fontWeight = "700";
+  root.querySelectorAll("*").forEach((node) => {
+    if (node.closest("svg")) return;
+    const onBlack = isThermalBlackBg(node);
+    node.style.fontFamily = "Arial, Helvetica, sans-serif";
+    if (onBlack) {
+      node.style.color = "#fff";
+      node.style.webkitTextStroke = "0";
+    } else {
+      node.style.color = "#000";
+      node.style.webkitTextStroke = "0.45px #000";
+    }
+    const computed = view?.getComputedStyle?.(node);
+    const weight = parseInt(node.style.fontWeight || computed?.fontWeight || "400", 10);
+    if (!Number.isFinite(weight) || weight < 700) node.style.fontWeight = "700";
+    const px = parseFloat(computed?.fontSize || node.style.fontSize || "12");
+    if (Number.isFinite(px) && px < 12) node.style.fontSize = "12px";
+  });
+}
+
 async function printElementAs80mmPdf(el) {
   const { default: html2canvas } = await import("html2canvas");
   const canvas = await html2canvas(el, {
-    scale: 3,
+    scale: 4,
+    letterRendering: true,
     backgroundColor: "#ffffff",
     useCORS: true,
     logging: false,
@@ -270,6 +335,7 @@ async function printElementAs80mmPdf(el) {
       t.style.color = "#000";
       t.style.background = "#fff";
       t.style.position = "static";
+      hardenTicketForThermal(t, doc.defaultView);
       t.querySelectorAll("img").forEach((img) => {
         img.style.filter = "grayscale(1) contrast(8) brightness(0.15)";
       });
@@ -298,7 +364,7 @@ async function printHtmlAs80mmPdf(html) {
   return true;
 }
 
-/** Popup (gesto del toque) o iframe si la tablet/PWA bloquea ventanas. */
+/** Tablet: iframe oculto. PC: popup que se cierra al terminar. */
 export function printPreparedHtml(html) {
   if (typeof window === "undefined") return false;
   if (shouldKeepPrintWindowOpen()) {
@@ -374,11 +440,11 @@ export function generateTicketHTML(data) {
   const cfg = mergeFarmaciaConfig(config || {});
 
   const rows = (productos || []).map(p => `
-    <div style="margin-bottom:3px">
-      <div style="font-size:10px;font-weight:bold">${(p.nombre||"Producto").slice(0,22)}</div>
-      <div style="display:flex;justify-content:space-between;font-size:10px">
+    <div style="margin-bottom:4px">
+      <div class="ticket-product-name">${(p.nombre||"Producto").slice(0,22)}</div>
+      <div class="product-row">
         <span>${p.qty||p.cantidad||1} x ${fmt(p.precio||p.precio_unitario||0)}</span>
-        <span style="font-weight:bold">${fmt((p.precio||p.precio_unitario||0)*(p.qty||p.cantidad||1))}</span>
+        <span class="product-total">${fmt((p.precio||p.precio_unitario||0)*(p.qty||p.cantidad||1))}</span>
       </div>
     </div>`).join("");
 
@@ -399,14 +465,14 @@ export function generateTicketHTML(data) {
     <div class="ticket-brand-slogan">"Tu salud primero"</div>
   </div>
   <hr class="separator">
-  <div style="font-size:9px;line-height:1.6">
+  <div class="ticket-block">
     <div>Sucursal: ${cfg.nombre_farmacia}</div>
     <div>Dirección: ${cfg.direccion_farmacia}</div>
     <div>RFC: ${cfg.rfc}</div>
     ${cfg.telefono_farmacia?`<div>Tel: ${cfg.telefono_farmacia_display||cfg.telefono_farmacia}</div>`:""}
   </div>
   <hr class="separator">
-  <div style="font-size:9px;line-height:1.7">
+  <div class="ticket-block">
     <div>Fecha:  ${fechaStr}</div>
     <div>Hora:   ${horaStr}</div>
     <div>Folio:  #${folio}</div>
@@ -415,20 +481,20 @@ export function generateTicketHTML(data) {
   <hr class="separator">
   ${rows}
   <hr class="separator">
-  <div style="display:flex;justify-content:space-between;font-size:10px;padding:1px 0">
+  <div class="total-line">
     <span>Subtotal:</span><span>${fmt(total)}</span>
   </div>
   <hr class="separator">
-  <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:900;padding:3px 0">
+  <div class="total-line ticket-total-final">
     <span>TOTAL:</span><span>${fmt(total)}</span>
   </div>
   <hr class="separator">
-  <div style="font-size:10px">Método: ${metodoPago||"Efectivo"}</div>
+  <div class="ticket-block">Método: ${metodoPago||"Efectivo"}</div>
   <hr class="separator">
   <div class="footer">
-    <div style="font-weight:bold;font-size:11px;letter-spacing:1px">Gracias por su compra</div>
+    <div class="ticket-gracias">Gracias por su compra</div>
     <div>¡Vuelva pronto!</div>
-    <div style="margin-top:3px;font-size:8px;color:#555">farmacapital.mx</div>
+    <div class="ticket-web">farmacapital.mx</div>
   </div>
 </div>
 </body>

@@ -63,7 +63,7 @@ const TicketVenta = forwardRef(({
       <div className="separator"/>
 
       {/* ══ DATOS FARMACIA ══ */}
-      <div style={{fontSize:9,lineHeight:1.6}}>
+      <div className="ticket-block">
         <div>Sucursal: {cfg.nombre_farmacia}</div>
         <div>Dirección: {cfg.direccion_farmacia}</div>
         <div>RFC: {cfg.rfc}</div>
@@ -73,7 +73,7 @@ const TicketVenta = forwardRef(({
       <div className="separator"/>
 
       {/* ══ DATOS DE LA VENTA ══ */}
-      <div style={{fontSize:9,lineHeight:1.7}}>
+      <div className="ticket-block">
         <div>Fecha:  {fechaStr}</div>
         <div>Hora:   {horaStr}</div>
         <div>Folio:  #{folio}</div>
@@ -89,16 +89,16 @@ const TicketVenta = forwardRef(({
         const precio = parseFloat(p.precio || p.precio_unitario || 0);
         const ptotal = precio * qty;
         return (
-          <div key={i} style={{marginBottom:3}}>
-            <div className="product-name" style={{fontSize:10,fontWeight:"bold"}}>
+          <div key={i} style={{marginBottom:4}}>
+            <div className="product-name ticket-product-name">
               {nombre}
-              {p.rxI&&<span style={{fontSize:8,background:"#000",color:"#fff",padding:"0 3px",marginLeft:3}}>Rx</span>}
-              {p.esUnidad&&<span style={{fontSize:8,color:"#555"}}> (unit)</span>}
-              {p.lote&&<div style={{fontSize:7,color:"#777",marginTop:1}}>Lote: {p.lote}{p.caducidad?` | Cad: ${p.caducidad}`:""}</div>}
+              {p.rxI&&<span className="ticket-rx">Rx</span>}
+              {p.esUnidad&&<span> (unit)</span>}
+              {p.lote&&<div className="ticket-lote">Lote: {p.lote}{p.caducidad?` | Cad: ${p.caducidad}`:""}</div>}
             </div>
             <div className="product-row">
-              <div style={{fontSize:10}}>{qty} x {fmt(precio)}</div>
-              <div className="product-total" style={{fontSize:10}}>{fmt(ptotal)}</div>
+              <div>{qty} x {fmt(precio)}</div>
+              <div className="product-total">{fmt(ptotal)}</div>
             </div>
           </div>
         );
@@ -107,15 +107,15 @@ const TicketVenta = forwardRef(({
       <div className="separator"/>
 
       {/* ══ TOTALES ══ */}
-      <div className="total-line" style={{fontSize:10,fontWeight:"normal"}}>
+      <div className="total-line">
         <div>Subtotal:</div>
         <div>{fmt(subtotal)}</div>
       </div>
-      <div className="total-line" style={{fontSize:9,fontWeight:"normal",color:"#555"}}>
+      <div className="total-line">
         <div>IVA (16%):</div>
         <div>{fmt(iva)}</div>
       </div>
-      <div className="total-line" style={{fontSize:14,borderTop:"2px solid #000",paddingTop:3,marginTop:2}}>
+      <div className="total-line ticket-total-final">
         <div>TOTAL:</div>
         <div>{fmt(total)}</div>
       </div>
@@ -123,29 +123,29 @@ const TicketVenta = forwardRef(({
       <div className="separator"/>
 
       {/* ══ MÉTODO DE PAGO ══ */}
-      <div style={{fontSize:10}}>Método: {metodoPago}</div>
+      <div className="ticket-block">Método: {metodoPago}</div>
       {metodoPago === "Efectivo" && venta.recibido != null && (
-        <div style={{fontSize:9,lineHeight:1.5,marginTop:4}}>
+        <div className="ticket-block" style={{marginTop:4}}>
           <div>Recibido: {fmt(venta.recibido)}</div>
-          <div style={{fontWeight:"bold"}}>Cambio: {fmt(venta.cambio)}</div>
+          <div>Cambio: {fmt(venta.cambio)}</div>
           {venta.cambioDesglose && (
-            <div style={{fontSize:8,color:"#555",marginTop:2}}>Entregar: {venta.cambioDesglose}</div>
+            <div style={{marginTop:2}}>Entregar: {venta.cambioDesglose}</div>
           )}
         </div>
       )}
 
       {/* ══ PUNTOS FARMACAPITAL ══ */}
       {ptsG > 0 && (
-        <div style={{background:"#000",color:"#fff",textAlign:"center",padding:"4px 2px",margin:"5px 0",fontSize:10,fontWeight:"bold"}}>
-          ⭐ +{ptsG} PUNTOS FARMACAPITAL GANADOS
-          {cliente&&<div style={{fontSize:9}}>Saldo: {(cliente.puntos||0)+ptsG} pts = ${(((cliente.puntos||0)+ptsG)*0.5).toFixed(0)}</div>}
+        <div className="ticket-puntos">
+          ★ +{ptsG} PUNTOS FARMACAPITAL GANADOS
+          {cliente&&<div>Saldo: {(cliente.puntos||0)+ptsG} pts = ${(((cliente.puntos||0)+ptsG)*0.5).toFixed(0)}</div>}
         </div>
       )}
 
       {/* ══ PROMO MSG ══ */}
       {promoMsg&&(
-        <div style={{border:"1px dashed #999",padding:"3px 4px",fontSize:9,fontStyle:"italic",margin:"4px 0",textAlign:"center"}}>
-          🏷️ {promoMsg}
+        <div className="ticket-promo">
+          {promoMsg}
         </div>
       )}
 
@@ -154,7 +154,7 @@ const TicketVenta = forwardRef(({
       {/* ══ QR CODE ══ */}
       <div className="qr-section">
         <QRCodeSVG value={qrData} size={80} bgColor="#fff" fgColor="#000" level="M"/>
-        <div style={{fontSize:7,color:"#999",marginTop:2}}>
+        <div className="ticket-qr-caption">
           {ticketUrl ? (
             <>
               Escanea para abrir tu ticket digital
@@ -173,10 +173,9 @@ const TicketVenta = forwardRef(({
 
       {/* ══ FOOTER ══ */}
       <div className="footer">
-        <div style={{fontWeight:"bold",fontSize:11,letterSpacing:1}}>Gracias por su compra</div>
+        <div className="ticket-gracias">Gracias por su compra</div>
         <div>¡Vuelva pronto!</div>
-        <div style={{marginTop:3,fontSize:8,color:"#555"}}>farmacapital.mx</div>
-        <div style={{marginTop:4,fontSize:8,color:"#ccc",letterSpacing:3}}>* * * * * * * * *</div>
+        <div className="ticket-web">farmacapital.mx</div>
       </div>
 
     </div>

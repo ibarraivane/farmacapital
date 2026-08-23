@@ -35,7 +35,7 @@ describe("impresión tablet / PWA", () => {
     expect(shouldKeepPrintWindowOpen()).toBe(false);
   });
 
-  test("en tablet (puntero grueso) no cierra a los 3 s", () => {
+  test("en tablet (puntero grueso) usa el flujo térmico (iframe oculto)", () => {
     mockMatchMedia({
       "(pointer: coarse)": true,
       "(hover: none)": true,
@@ -44,7 +44,7 @@ describe("impresión tablet / PWA", () => {
     expect(shouldKeepPrintWindowOpen()).toBe(true);
   });
 
-  test("en PWA instalada tampoco cierra sola", () => {
+  test("en PWA instalada también usa el flujo térmico", () => {
     mockMatchMedia({
       "(pointer: coarse)": false,
       "(hover: none)": false,
