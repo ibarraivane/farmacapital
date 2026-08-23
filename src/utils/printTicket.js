@@ -228,31 +228,36 @@ function printViaPopup(html) {
   return true;
 }
 
-function printPdfBlob(blobUrl) {
-  const prev = document.getElementById(PRINT_IFRAME_ID);
-  if (prev) prev.remove();
-  const iframe = document.createElement("iframe");
-  iframe.id = PRINT_IFRAME_ID;
-  iframe.title = "Imprimir ticket";
-  iframe.src = blobUrl;
-  iframe.style.cssText = "position:fixed;right:0;bottom:0;width:80mm;height:80vh;border:0;opacity:0.02;";
-  document.body.appendChild(iframe);
-  iframe.onload = () => {
-    try {
-      iframe.contentWindow.focus();
-      iframe.contentWindow.print();
-    } catch (e) {
-      console.error("[FarmaCapital] Error al imprimir PDF:", e);
-      window.open(blobUrl, "_blank");
-    }
-  };
-  return true;
+function printRawHtml(html) {
+  if (printViaPopup(html)) return true;
+  if (printViaIframe(html)) return true;
+  alert(popupBlockedMessage());
+  return false;
 }
 
-/** PDF de 80 mm reales. En tablet Chrome no respeta @page y TM Assistant encoge la carta. */
+/** Imagen a todo el ancho de la hoja. Chrome manda carta; al encoger a 80 mm el ticket llena el rollo. */
+function printCanvasFullBleed(canvas) {
+  const png = canvas.toDataURL("image/png");
+  return printRawHtml(`<!DOCTYPE html>
+<html lang="es"><head>
+<meta charset="UTF-8">
+<title>Ticket FarmaCapital</title>
+<style>
+html, body { margin: 0; padding: 0; background: #fff; }
+img { display: block; width: 100%; height: auto; }
+@media print {
+  @page { margin: 0; }
+  html, body { margin: 0; width: 100%; }
+  img { width: 100% !important; height: auto !important; }
+}
+</style>
+</head>
+<body><img src="${png}" alt="ticket"/></body>
+</html>`);
+}
+
 async function printElementAs80mmPdf(el) {
   const { default: html2canvas } = await import("html2canvas");
-  const { jsPDF } = await import("jspdf");
   const canvas = await html2canvas(el, {
     scale: 3,
     backgroundColor: "#ffffff",
@@ -270,11 +275,7 @@ async function printElementAs80mmPdf(el) {
       });
     },
   });
-  const widthMm = 80;
-  const heightMm = Math.max(50, (canvas.height / canvas.width) * widthMm);
-  const pdf = new jsPDF({ unit: "mm", format: [widthMm, heightMm] });
-  pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, widthMm, heightMm);
-  return printPdfBlob(pdf.output("bloburl"));
+  return printCanvasFullBleed(canvas);
 }
 
 async function printHtmlAs80mmPdf(html) {
@@ -303,7 +304,7 @@ export function printPreparedHtml(html) {
   if (shouldKeepPrintWindowOpen()) {
     printHtmlAs80mmPdf(html).catch((e) => {
       console.error("[FarmaCapital] PDF térmico:", e);
-      if (!printViaPopup(html) && !printViaIframe(html)) alert(popupBlockedMessage());
+      printRawHtml(html);
     });
     return true;
   }
