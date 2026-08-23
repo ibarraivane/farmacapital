@@ -16,7 +16,7 @@ import { costoLineaVenta, ingresoLineaVenta } from "./utils/margenVenta";
 import { DIAS_CADUCIDAD_ALERTA } from "./lib/caducidad";
 import VentasVsMetaChart from "./VentasVsMetaChart";
 import { agruparVentasPorDia, porDiaDesdeSerieRpc, ymdMexico } from "./lib/ventasVsMeta";
-import { cargarConfigMetas } from "./utils/turnosMetas";
+import { cargarConfigMetas, mezclarCfgMetas } from "./utils/turnosMetas";
 
 function rpcBundleRows(bundle, key) {
   return parseRpcJsonArray(parseRpcJsonObject(bundle)[key]);
@@ -589,8 +589,10 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
     const consultasAyer = (citasAyer || []).length;
     trends.consultasHoy = trendDelta(consultasHoy, consultasAyer);
 
+    const metasChartCfg = mezclarCfgMetas(metasTurnoCfg, cfgRows);
+
     setData({
-      ventasPorDia, metasTurnoCfg,
+      ventasPorDia, metasTurnoCfg: metasChartCfg,
       ventasHoy, ventasAyer, ventasSemana, ventasSemanaAnt, ventasMes, ventasMesAnt, crecimiento, ticketProm, consultasHoy, consultasAyer, onlinePend,
       recuperado, gananciaMes,
       dashboardLoadWarning,

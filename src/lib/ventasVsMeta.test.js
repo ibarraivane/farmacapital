@@ -1,4 +1,4 @@
-import { metaDiaCompleto } from "../utils/turnosMetas";
+import { metaDiaCompleto, mezclarCfgMetas } from "../utils/turnosMetas";
 import {
   agruparVentasPorDia,
   construirSerie,
@@ -30,6 +30,10 @@ describe("metaDiaCompleto", () => {
   });
   test("sábado suma matutino + vespertino", () => {
     expect(metaDiaCompleto(new Date(2026, 7, 22), CFG)).toBe(3600);
+  });
+  test("sin config la gráfica no debe pintar meta $0", () => {
+    expect(metaDiaCompleto(new Date(2026, 7, 21), {})).toBe(0);
+    expect(metaDiaCompleto(new Date(2026, 7, 21), mezclarCfgMetas({}))).toBe(4000);
   });
 });
 

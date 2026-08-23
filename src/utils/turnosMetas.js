@@ -70,6 +70,35 @@ export function invalidarCacheMetas() {
   _cache.ts = 0;
 }
 
+/** Respaldo si la tabla no se puede leer (RLS) o falta una clave. */
+export const METAS_COLONIA_DEF = {
+  meta_matutino_lv: "2000",
+  meta_vespertino_lv: "2000",
+  meta_sabado_matutino: "2200",
+  meta_sabado_vespertino: "2200",
+  meta_domingo: "2800",
+  meta_ventas_dia: "4000",
+  meta_ventas_semana: "27200",
+  meta_ventas_mes: "110000",
+  meta_ticket_prom: "120",
+};
+
+export function mezclarCfgMetas(...fuentes) {
+  const out = { ...METAS_COLONIA_DEF };
+  for (const src of fuentes) {
+    if (!src) continue;
+    const rows = Array.isArray(src)
+      ? src
+      : Object.entries(src).map(([clave, valor]) => ({ clave, valor }));
+    for (const r of rows) {
+      if (r?.clave != null && r.valor != null && String(r.valor).trim() !== "") {
+        out[r.clave] = String(r.valor);
+      }
+    }
+  }
+  return out;
+}
+
 /** true solo si el admin encendió bonos_activos. Falta la clave = apagado. */
 export function bonosActivos(map) {
   const v = String(map?.bonos_activos ?? "0").trim().toLowerCase();
@@ -86,8 +115,11 @@ export async function cargarConfigMetas() {
     "bonos_activos",
   ];
   const { data, error } = await supabase.from("configuracion").select("clave,valor").in("clave", claves);
-  if (error) { console.warn("[turnosMetas] cargar:", error.message); return {}; }
-  const map = Object.fromEntries((data || []).map((r) => [r.clave, r.valor]));
+  if (error) {
+    console.warn("[turnosMetas] cargar:", error.message);
+    return { ...METAS_COLONIA_DEF };
+  }
+  const map = mezclarCfgMetas(data);
   _cache.data = map;
   _cache.ts = Date.now();
   return map;

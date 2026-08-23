@@ -234,7 +234,9 @@ export default function VentasVsMetaChart({ porDia, cfg, hoyYmd, onEditarMetas }
                   {elegido.esActual ? (grano === "dia" ? " · hoy" : " · en curso") : ""}
                 </div>
                 <div style={{ color: C.textMid, fontSize: 13, marginTop: 2 }}>
-                  {ok
+                  {!elegido.meta
+                    ? `${fmtK(elegido.actual)} vendidos · falta configurar la meta.`
+                    : ok
                     ? `Meta cubierta. ${fmtK(elegido.actual)} de ${fmtK(elegido.meta)}.`
                     : `${fmtK(elegido.actual)} de ${fmtK(elegido.meta)} · falta ${fmtK(falta)}`}
                 </div>
