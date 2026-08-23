@@ -1,21 +1,60 @@
 // FARMACAPITAL — Utilidad de impresión de tickets
 
 import { mergeFarmaciaConfig } from "../constants/farmaciaFiscal";
+import { isCoarsePointer } from "./touchKeyboard";
+
+const PRINT_IFRAME_ID = "fc-epson-print-frame";
+
+export function isStandalonePwa() {
+  if (typeof window === "undefined") return false;
+  const standalone = typeof window.matchMedia === "function"
+    && window.matchMedia("(display-mode: standalone)").matches;
+  return Boolean(standalone || window.navigator.standalone);
+}
+
+/**
+ * iPad / Galaxy / PWA: no cerrar la ventana a los 3 s.
+ * Al elegir la Epson el preview se rehace; si el documento ya no está, sale blanco o se cancela.
+ */
+export function shouldKeepPrintWindowOpen() {
+  return isCoarsePointer() || isStandalonePwa();
+}
 
 export const TICKET_CSS = `
 * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-html, body { margin: 0; padding: 0; background: #fff; }
+html, body { margin: 0; padding: 0; width: 80mm; max-width: 80mm; background: #fff; }
 @page { size: 80mm auto; margin: 0; }
 @media print {
-  #farmacapital-ticket { padding: 3mm 2mm 13mm 2mm !important; }
+  html, body { width: 80mm !important; max-width: 80mm !important; margin: 0 !important; padding: 0 !important; }
+  #farmacapital-ticket { width: 80mm !important; max-width: 80mm !important; padding: 3mm 2mm 13mm 2mm !important; }
+}
+/* Android/iPad: Chrome ignora @page 80mm y manda una hoja carta.
+   TM Print Assistant encoge toda la hoja → ticket minúsculo.
+   zoom 2.7 ≈ 216mm/80mm para que el ticket ocupe el ancho y al encoger quede a 80 mm. */
+@media print {
+  html.fc-thermal-fill { zoom: 2.7; }
+  #farmacapital-ticket, #farmacapital-ticket *:not(svg):not(svg *) {
+    color: #000 !important;
+    -webkit-text-stroke: 0.15px #000;
+  }
+  #farmacapital-ticket .ticket-puntos,
+  #farmacapital-ticket [style*="background:#000"],
+  #farmacapital-ticket [style*="background: #000"] {
+    color: #fff !important;
+    background: #000 !important;
+  }
+  #farmacapital-ticket img.ticket-logo-icon,
+  #farmacapital-ticket img.ticket-logo-img {
+    filter: grayscale(1) contrast(8) brightness(0.15);
+  }
 }
 
 #farmacapital-ticket {
   font-family: 'Courier New', Courier, monospace;
   font-size: 11px;
   line-height: 1.45;
-  width: 280px;
-  max-width: 280px;
+  width: 80mm;
+  max-width: 80mm;
   background: #ffffff;
   color: #000000;
   padding: 10px 8px calc(10px + 10mm);
@@ -27,7 +66,7 @@ html, body { margin: 0; padding: 0; background: #fff; }
   -webkit-print-color-adjust: exact !important;
   print-color-adjust: exact !important;
 }
-.ticket { width: 280px; font-family: 'Courier New', Courier, monospace; font-size: 11px; line-height: 1.4; background: #fff; color: #000; padding: 8px 6px calc(8px + 10mm); }
+.ticket { width: 80mm; max-width: 80mm; font-family: 'Courier New', Courier, monospace; font-size: 11px; line-height: 1.4; background: #fff; color: #000; padding: 8px 6px calc(8px + 10mm); }
 .center { text-align: center; }
 .left   { text-align: left; }
 .right  { text-align: right; }
@@ -38,7 +77,7 @@ html, body { margin: 0; padding: 0; background: #fff; }
 .product-total { width: 40%; text-align: right; font-weight: bold; }
 .total-line { display: flex; justify-content: space-between; font-weight: bold; font-size: 11px; padding: 2px 0; }
 .qr-section { text-align: center; margin-top: 10px; margin-bottom: 4mm; page-break-inside: avoid; }
-.footer { text-align: center; margin-top: 8px; margin-bottom: 2mm; font-size: 9px; color: #333; page-break-inside: avoid; }
+.footer { text-align: center; margin-top: 8px; margin-bottom: 2mm; font-size: 9px; color: #000; page-break-inside: avoid; }
 .ticket-puntos { background: #000 !important; color: #fff !important; text-align: center; padding: 5px 4px; font-size: 10px; font-weight: 900; margin: 6px 0; letter-spacing: 1px; }
 .ticket-logo-wrap { text-align: center; margin-bottom: 4px; }
 .ticket-logo-icon {
@@ -69,86 +108,246 @@ html, body { margin: 0; padding: 0; background: #fff; }
 .ticket-brand-slogan {
   font-size: 9px;
   margin-top: 2px;
-  color: #333;
+  color: #000;
 }
 `;
 
+function escTitle(title) {
+  return String(title || "Ticket FarmaCapital").replace(/[&<>"']/g, (c) => (
+    { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
+  ));
+}
+
+function wrapTicketHtml(innerHtml, title = "Ticket FarmaCapital") {
+  const fillClass = shouldKeepPrintWindowOpen() ? " fc-thermal-fill" : "";
+  return `<!DOCTYPE html>
+<html lang="es" class="${fillClass.trim()}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>${escTitle(title)}</title>
+  <style>${TICKET_CSS}</style>
+</head>
+<body>
+${innerHtml}
+</body>
+</html>`;
+}
+
+function popupBlockedMessage() {
+  return (
+    "No se pudo abrir la ventana de impresión.\n\n" +
+    "En la tablet: permite ventanas emergentes para farmacapital.mx.\n" +
+    "Si usas el icono de la app (PWA), abre FarmaCapital en Chrome o Safari e inténtalo de nuevo.\n" +
+    "En iPad: Ajustes → Safari → Bloquear ventanas emergentes → desactivar."
+  );
+}
+
+function waitForPrintAssets(doc) {
+  return new Promise((resolve) => {
+    const imgs = Array.from(doc?.images || []);
+    const pending = imgs.filter((img) => !img.complete);
+    if (!pending.length) {
+      resolve();
+      return;
+    }
+    let left = pending.length;
+    const tick = () => {
+      left -= 1;
+      if (left <= 0) resolve();
+    };
+    pending.forEach((img) => {
+      img.addEventListener("load", tick, { once: true });
+      img.addEventListener("error", tick, { once: true });
+    });
+    setTimeout(resolve, 2000);
+  });
+}
+
+function launchPrintOnWindow(win, { closeAfter }) {
+  let started = false;
+  const run = async () => {
+    if (started || !win || win.closed) return;
+    started = true;
+    await waitForPrintAssets(win.document);
+    if (win.closed) return;
+    try {
+      win.focus();
+      win.print();
+    } catch (e) {
+      console.error("[FarmaCapital] Error al imprimir:", e);
+      return;
+    }
+    if (!closeAfter) return;
+    const close = () => {
+      try { if (!win.closed) win.close(); } catch { /* noop */ }
+    };
+    win.addEventListener("afterprint", close);
+    setTimeout(close, 60_000);
+  };
+  try {
+    win.addEventListener("load", () => { setTimeout(run, 200); });
+  } catch { /* about:blank en algunos WebViews */ }
+  setTimeout(run, 900);
+}
+
+function writeHtml(win, html) {
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+}
+
+function printViaIframe(html) {
+  if (typeof document === "undefined") return false;
+  const prev = document.getElementById(PRINT_IFRAME_ID);
+  if (prev) prev.remove();
+  const iframe = document.createElement("iframe");
+  iframe.id = PRINT_IFRAME_ID;
+  iframe.title = "Imprimir ticket";
+  iframe.setAttribute("aria-hidden", "true");
+  // iOS imprime en blanco si el iframe es display:none o 0×0
+  iframe.style.cssText = "position:fixed;left:-10000px;top:0;width:80mm;min-height:200px;border:0;opacity:0;pointer-events:none;";
+  document.body.appendChild(iframe);
+  const win = iframe.contentWindow;
+  if (!win?.document) return false;
+  writeHtml(win, html);
+  launchPrintOnWindow(win, { closeAfter: false });
+  return true;
+}
+
+function printViaPopup(html) {
+  let win = null;
+  try {
+    win = window.open("", "_blank", "width=320,height=700,toolbar=0,menubar=0,scrollbars=1,resizable=1");
+  } catch {
+    win = null;
+  }
+  if (!win || win.closed) return false;
+  writeHtml(win, html);
+  launchPrintOnWindow(win, { closeAfter: !shouldKeepPrintWindowOpen() });
+  return true;
+}
+
+function printRawHtml(html) {
+  if (printViaPopup(html)) return true;
+  if (printViaIframe(html)) return true;
+  alert(popupBlockedMessage());
+  return false;
+}
+
+/** Imagen a todo el ancho de la hoja. Chrome manda carta; al encoger a 80 mm el ticket llena el rollo. */
+function printCanvasFullBleed(canvas) {
+  const png = canvas.toDataURL("image/png");
+  return printRawHtml(`<!DOCTYPE html>
+<html lang="es"><head>
+<meta charset="UTF-8">
+<title>Ticket FarmaCapital</title>
+<style>
+html, body { margin: 0; padding: 0; background: #fff; }
+img { display: block; width: 100%; height: auto; }
+@media print {
+  @page { margin: 0; }
+  html, body { margin: 0; width: 100%; }
+  img { width: 100% !important; height: auto !important; }
+}
+</style>
+</head>
+<body><img src="${png}" alt="ticket"/></body>
+</html>`);
+}
+
+async function printElementAs80mmPdf(el) {
+  const { default: html2canvas } = await import("html2canvas");
+  const canvas = await html2canvas(el, {
+    scale: 3,
+    backgroundColor: "#ffffff",
+    useCORS: true,
+    logging: false,
+    onclone(doc) {
+      const t = doc.getElementById(el.id) || doc.body;
+      t.style.width = "80mm";
+      t.style.maxWidth = "80mm";
+      t.style.color = "#000";
+      t.style.background = "#fff";
+      t.style.position = "static";
+      t.querySelectorAll("img").forEach((img) => {
+        img.style.filter = "grayscale(1) contrast(8) brightness(0.15)";
+      });
+    },
+  });
+  return printCanvasFullBleed(canvas);
+}
+
+async function printHtmlAs80mmPdf(html) {
+  const host = document.createElement("div");
+  host.style.cssText = "position:fixed;left:-120vw;top:0;width:80mm;background:#fff;";
+  if (/<html/i.test(html)) {
+    const parsed = new DOMParser().parseFromString(html, "text/html");
+    host.appendChild(parsed.body.firstElementChild || parsed.body);
+  } else {
+    host.innerHTML = html;
+  }
+  document.body.appendChild(host);
+  await waitForPrintAssets(host);
+  const target = host.querySelector("#farmacapital-ticket") || host.firstElementChild || host;
+  try {
+    await printElementAs80mmPdf(target);
+  } finally {
+    host.remove();
+  }
+  return true;
+}
+
+/** Popup (gesto del toque) o iframe si la tablet/PWA bloquea ventanas. */
+export function printPreparedHtml(html) {
+  if (typeof window === "undefined") return false;
+  if (shouldKeepPrintWindowOpen()) {
+    printHtmlAs80mmPdf(html).catch((e) => {
+      console.error("[FarmaCapital] PDF térmico:", e);
+      printRawHtml(html);
+    });
+    return true;
+  }
+  if (printViaPopup(html)) return true;
+  if (printViaIframe(html)) return true;
+  alert(popupBlockedMessage());
+  return false;
+}
+
 /**
- * Abre una ventana popup con el ticket y lanza el diálogo de impresión.
- * Compatible con impresoras térmicas Epson TM-T20III/IV.
+ * Abre el diálogo de impresión del ticket ya montado en pantalla.
+ * Compatible con Epson TM-T20III/IV (80 mm) desde PC, Galaxy o iPad.
  * @param {string} ticketId - ID del elemento DOM del ticket
  */
 export function printTicket(ticketId = "farmacapital-ticket") {
   const ticket = document.getElementById(ticketId);
   if (!ticket) {
     console.error("[FarmaCapital] Ticket no encontrado:", ticketId);
-    return;
+    return false;
   }
 
-  // Clonar el nodo para capturar SVG y estilos inline actuales
-  const clone = ticket.cloneNode(true);
+  if (shouldKeepPrintWindowOpen()) {
+    printElementAs80mmPdf(ticket).catch((e) => {
+      console.error("[FarmaCapital] PDF térmico:", e);
+      const clone = ticket.cloneNode(true);
+      const srcSvgs = ticket.querySelectorAll("svg");
+      const dstSvgs = clone.querySelectorAll("svg");
+      srcSvgs.forEach((src, i) => {
+        if (dstSvgs[i]) dstSvgs[i].replaceWith(src.cloneNode(true));
+      });
+      printPreparedHtml(wrapTicketHtml(clone.outerHTML));
+    });
+    return true;
+  }
 
-  // Copiar el SVG del QR inline (canvas/SVG no sobreviven cloneNode solo)
+  const clone = ticket.cloneNode(true);
   const srcSvgs = ticket.querySelectorAll("svg");
   const dstSvgs = clone.querySelectorAll("svg");
   srcSvgs.forEach((src, i) => {
-    if (dstSvgs[i]) {
-      const fresh = src.cloneNode(true);
-      dstSvgs[i].replaceWith(fresh);
-    }
+    if (dstSvgs[i]) dstSvgs[i].replaceWith(src.cloneNode(true));
   });
 
-  const html = `<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Ticket FarmaCapital</title>
-  <style>${TICKET_CSS}</style>
-</head>
-<body>
-${clone.outerHTML}
-</body>
-</html>`;
-
-  const win = window.open("", "_blank", "width=320,height=700,toolbar=0,menubar=0,scrollbars=1,resizable=1");
-  if (!win) {
-    alert(
-      "🖨️ Permite ventanas emergentes para imprimir el ticket.\n" +
-      "En Chrome: ícono 🚫 en la barra de dirección → Permitir ventanas emergentes."
-    );
-    return;
-  }
-
-  win.document.open();
-  win.document.write(html);
-  win.document.close();
-
-  // Imprimir después de que el DOM termine de renderizar
-  const tryPrint = () => {
-    try {
-      win.focus();
-      win.print();
-      // Cerrar después de que el usuario confirme/cancele la impresión
-      setTimeout(() => { if (!win.closed) win.close(); }, 3000);
-    } catch (e) {
-      console.error("[FarmaCapital] Error al imprimir:", e);
-    }
-  };
-
-  // Esperar carga completa, o usar fallback a los 800ms
-  let printed = false;
-  win.addEventListener("load", () => {
-    if (printed) return;
-    printed = true;
-    setTimeout(tryPrint, 300);
-  });
-  setTimeout(() => {
-    if (!printed && !win.closed) {
-      printed = true;
-      tryPrint();
-    }
-  }, 800);
+  return printPreparedHtml(wrapTicketHtml(clone.outerHTML));
 }
 
 /**
@@ -156,45 +355,7 @@ ${clone.outerHTML}
  * `innerHtml` debe incluir el nodo #farmacapital-ticket.
  */
 export function openThermalPrintWindow(innerHtml, title = "Ticket FarmaCapital") {
-  const html = `<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>${title}</title>
-  <style>${TICKET_CSS}</style>
-</head>
-<body>
-${innerHtml}
-</body>
-</html>`;
-  const win = window.open("", "_blank", "width=320,height=700,toolbar=0,menubar=0,scrollbars=1,resizable=1");
-  if (!win) return false;
-  win.document.open();
-  win.document.write(html);
-  win.document.close();
-  const tryPrint = () => {
-    try {
-      win.focus();
-      win.print();
-      setTimeout(() => { if (!win.closed) win.close(); }, 3000);
-    } catch (e) {
-      console.error("[FarmaCapital] Error al imprimir:", e);
-    }
-  };
-  let printed = false;
-  win.addEventListener("load", () => {
-    if (printed) return;
-    printed = true;
-    setTimeout(tryPrint, 300);
-  });
-  setTimeout(() => {
-    if (!printed && !win.closed) {
-      printed = true;
-      tryPrint();
-    }
-  }, 800);
-  return true;
+  return printPreparedHtml(wrapTicketHtml(innerHtml, title));
 }
 
 /**
@@ -276,11 +437,5 @@ export function generateTicketHTML(data) {
 
 /** Abre ventana popup e imprime HTML generado programáticamente. */
 export function printTicketWindow(data) {
-  const html = generateTicketHTML(data);
-  const win = window.open("", "_blank", "width=320,height=600,toolbar=0,menubar=0");
-  if (!win) { alert("Por favor permite las ventanas emergentes para imprimir."); return; }
-  win.document.open();
-  win.document.write(html);
-  win.document.close();
-  setTimeout(() => { win.focus(); win.print(); }, 800);
+  return printPreparedHtml(generateTicketHTML(data));
 }
