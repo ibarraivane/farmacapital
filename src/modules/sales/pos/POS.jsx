@@ -3280,6 +3280,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
 
       {tab==="servicios"&&(
         <PagoServiciosPanel
+          usuario={usuario}
           isNarrow={isNarrow}
           refreshToken={serviciosRefresh}
           onCobrarPoint={(payload) => {

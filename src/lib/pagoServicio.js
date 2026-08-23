@@ -56,3 +56,18 @@ export function compensacionMpDeFila(row) {
   }
   return compensacionMpDe(row.monto_servicio);
 }
+
+export const SALDO_MP_MINIMO_DEFAULT = 500;
+export const CLAVES_SALDO_MP = ["saldo_mp_recargas", "saldo_mp_recargas_minimo"];
+
+/** MP no avisa. FarmaCapital sí, si el admin cargó el saldo. */
+export function parseSaldoConfig(rows) {
+  const map = Object.fromEntries((rows || []).map((r) => [r.clave, r.valor]));
+  const raw = map.saldo_mp_recargas;
+  const configurado = raw != null && String(raw).trim() !== "";
+  const saldo = configurado ? money2(raw) : null;
+  const minimoRaw = money2(map.saldo_mp_recargas_minimo);
+  const minimo = minimoRaw > 0 ? minimoRaw : SALDO_MP_MINIMO_DEFAULT;
+  const bajo = configurado && saldo <= minimo;
+  return { configurado, saldo, minimo, bajo };
+}

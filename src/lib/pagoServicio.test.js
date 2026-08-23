@@ -1,4 +1,4 @@
-import { compensacionMpDe, compensacionMpDeFila, costoLiquidacionDe, esMismoDiaMexico, fechaLocalMexico, recargoEsValido, utilidadServicio } from "./pagoServicio";
+import { compensacionMpDe, compensacionMpDeFila, costoLiquidacionDe, esMismoDiaMexico, fechaLocalMexico, parseSaldoConfig, recargoEsValido, utilidadServicio } from "./pagoServicio";
 
 describe("pagoServicio", () => {
   test("compensación MP es 1% redondeado a centavos", () => {
@@ -27,6 +27,18 @@ describe("pagoServicio", () => {
     expect(recargoEsValido(0)).toBe(false);
     expect(recargoEsValido("")).toBe(false);
     expect(recargoEsValido(null)).toBe(false);
+  });
+
+  test("saldo de recargas avisa solo si ya lo cargó el admin y está bajo el mínimo", () => {
+    expect(parseSaldoConfig([]).configurado).toBe(false);
+    expect(parseSaldoConfig([]).bajo).toBe(false);
+    expect(parseSaldoConfig([
+      { clave: "saldo_mp_recargas", valor: "320" },
+      { clave: "saldo_mp_recargas_minimo", valor: "500" },
+    ]).bajo).toBe(true);
+    expect(parseSaldoConfig([
+      { clave: "saldo_mp_recargas", valor: "800" },
+    ]).bajo).toBe(false);
   });
 
   test("el día de la farmacia es el de Ciudad de México", () => {

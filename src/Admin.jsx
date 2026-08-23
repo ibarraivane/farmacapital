@@ -16,6 +16,7 @@ import { adminPathnameToPageId, pageIdToAdminPath, pathnameSuggestsPosTab, pathn
 import { TIENDA_BANNER_DESTINOS, resolveTiendaPage } from "./shared/tiendaRoutes";
 import { initBillingListeners } from "./modules/billing/core/initBillingListeners";
 import { canAccessRoute } from "./core/security/routeGuard";
+import { CLAVES_SALDO_MP, fechaLocalMexico, parseSaldoConfig } from "./lib/pagoServicio";
 import ImageUploader from "./components/ImageUploader";
 import { GRID_STACK_2COL } from "./constants/layout";
 
@@ -2100,11 +2101,37 @@ export default function FarmaCapitalAdmin(){
     setTimeout(()=>setNotifs(p=>p.filter(n=>n.id!==id)),8000);
   },[]);
 
+  useEffect(() => {
+    if (!usuario || !rolEsAdmin(usuario.rol)) return;
+    let cancelled = false;
+    const checkSaldo = async () => {
+      const { data } = await supabase.from("configuracion").select("clave,valor").in("clave", CLAVES_SALDO_MP);
+      if (cancelled) return;
+      const st = parseSaldoConfig(data);
+      if (!st.bajo) return;
+      const key = `fc_alerta_saldo_mp_${fechaLocalMexico()}`;
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, "1");
+      addNotif(
+        "Saldo de recargas bajo",
+        `Quedan ${$(st.saldo)}. Fondea Mercado Pago (mínimo ${$(st.minimo)}).`,
+        "📱",
+        "#d97706",
+        "recargas"
+      );
+      pushNotif("Saldo de recargas bajo", `Quedan ${$(st.saldo)} para recargas. Fondea Mercado Pago.`);
+    };
+    checkSaldo();
+    const iv = setInterval(checkSaldo, 5 * 60 * 1000);
+    return () => { cancelled = true; clearInterval(iv); };
+  }, [usuario, addNotif, pushNotif]);
+
   const dismissNotif = useCallback(id=>setNotifs(p=>p.filter(n=>n.id!==id)),[]);
 
   const handleNotifAction = useCallback((n)=>{
     if(n.action==="password_reset") setPasswordResetOpen(true);
     if(n.action==="ped_online") setPageAndSave("pos", { posTab: "online" });
+    if(n.action==="recargas") setPageAndSave("pos", { posTab: "servicios" });
     setNotifs(p=>p.filter(x=>x.id!==n.id));
   },[setPageAndSave]);
 

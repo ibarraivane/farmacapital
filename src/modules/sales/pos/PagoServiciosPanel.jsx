@@ -3,7 +3,8 @@ import { supabase } from "../../../supabase";
 import { C_LIGHT, BRAND } from "../../../constants";
 import { $ } from "../../../utils";
 import { Box, Btn, Inp, Tag, showToast } from "../../../ui";
-import { compensacionMpDe, compensacionMpDeFila, esMismoDiaMexico, recargoEsValido, utilidadServicio } from "../../../lib/pagoServicio";
+import { compensacionMpDe, compensacionMpDeFila, CLAVES_SALDO_MP, esMismoDiaMexico, parseSaldoConfig, recargoEsValido, utilidadServicio } from "../../../lib/pagoServicio";
+import { rolEsAdmin } from "../../../utils/permissions";
 
 const CATALOGO_SERVICIOS = [
   { id: "telcel", categoria: "recarga", proveedor: "Telcel", comision: 5, emoji: "📱" },
@@ -45,7 +46,7 @@ export async function rpcRegistrarPagoServicio(payload) {
   return data;
 }
 
-export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshToken = 0 }) {
+export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshToken = 0, usuario = null }) {
   const C = C_LIGHT;
   const [selId, setSelId] = useState("telcel");
   const [referencia, setReferencia] = useState("");
@@ -56,6 +57,11 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
   const [guardando, setGuardando] = useState(false);
   const [historial, setHistorial] = useState([]);
   const [loadHist, setLoadHist] = useState(false);
+  const [saldoMp, setSaldoMp] = useState(() => parseSaldoConfig([]));
+  const [saldoStr, setSaldoStr] = useState("");
+  const [minimoStr, setMinimoStr] = useState("500");
+  const [salvandoSaldo, setSalvandoSaldo] = useState(false);
+  const esAdmin = rolEsAdmin(usuario?.rol);
 
   const servicio = useMemo(
     () => CATALOGO_SERVICIOS.find((s) => s.id === selId) || CATALOGO_SERVICIOS[0],
@@ -71,6 +77,19 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
   const total = Number.isFinite(monto) && Number.isFinite(comision) ? Math.round((monto + comision) * 100) / 100 : 0;
   const compensacionMp = Number.isFinite(monto) ? compensacionMpDe(monto) : 0;
   const utilidad = Number.isFinite(comision) ? utilidadServicio({ comision, compensacionMp }) : 0;
+
+  const fetchSaldoMp = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.from("configuracion").select("clave,valor").in("clave", CLAVES_SALDO_MP);
+      if (error) throw error;
+      const st = parseSaldoConfig(data);
+      setSaldoMp(st);
+      setSaldoStr(st.configurado ? String(st.saldo) : "");
+      setMinimoStr(String(st.minimo));
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
 
   const fetchHistorial = useCallback(async () => {
     setLoadHist(true);
@@ -96,14 +115,16 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
 
   useEffect(() => {
     fetchHistorial();
-  }, [fetchHistorial]);
+    fetchSaldoMp();
+  }, [fetchHistorial, fetchSaldoMp]);
 
   useEffect(() => {
     if (refreshToken > 0) {
       limpiarForm();
       fetchHistorial();
+      fetchSaldoMp();
     }
-  }, [refreshToken, fetchHistorial]);
+  }, [refreshToken, fetchHistorial, fetchSaldoMp]);
 
   const historialHoy = useMemo(
     () => historial.filter((row) => !row.created_at || esMismoDiaMexico(row.created_at)),
@@ -166,6 +187,7 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
       showToast(`Servicio registrado · ${data.folio} · ${$(data.total_cobrado)}`, "success");
       limpiarForm();
       fetchHistorial();
+      fetchSaldoMp();
     } catch (e) {
       showToast(e?.message || "Error al registrar", "error");
     }
@@ -178,8 +200,87 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
     onCobrarPoint?.({ ...buildPayload("tarjeta"), folio });
   };
 
+  const guardarSaldoAdmin = async () => {
+    const saldo = parseMonto(saldoStr);
+    const minimo = parseMonto(minimoStr);
+    if (!Number.isFinite(saldo) || saldo < 0) {
+      showToast("Pon el saldo que ves en la app de Mercado Pago", "error");
+      return;
+    }
+    if (!Number.isFinite(minimo) || minimo < 0) {
+      showToast("Mínimo inválido", "error");
+      return;
+    }
+    setSalvandoSaldo(true);
+    try {
+      const tok = sessionStorage.getItem("farmacapital_session_token");
+      const { data, error } = await supabase.rpc("admin_set_saldo_recargas", {
+        p_session_token: tok,
+        p_saldo: saldo,
+        p_minimo: minimo,
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "No se pudo guardar");
+      showToast(`Saldo de recargas: ${$(saldo)} · aviso desde ${$(minimo)}`, "success");
+      fetchSaldoMp();
+    } catch (e) {
+      showToast(e?.message || "No se pudo guardar el saldo", "error");
+    }
+    setSalvandoSaldo(false);
+  };
+
+  const leerSaldoMercadoPago = async () => {
+    setSalvandoSaldo(true);
+    try {
+      const tok = sessionStorage.getItem("farmacapital_session_token");
+      const resp = await fetch("/api/payments/mp/balance", { headers: { "x-session-token": tok || "" } });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok || !data?.ok || data.available_balance == null) {
+        throw new Error(data?.message || "Mercado Pago no deja leer el saldo. Ponlo a mano desde la app.");
+      }
+      setSaldoStr(String(data.available_balance));
+      showToast(`Saldo MP: ${$(data.available_balance)}. Revisa y guarda.`, "info");
+    } catch (e) {
+      showToast(e?.message || "No se pudo leer Mercado Pago", "error");
+    }
+    setSalvandoSaldo(false);
+  };
+
   return (
     <div>
+      {saldoMp.bajo && (
+        <div style={{ background: C.red ? `${C.red}14` : "#fef2f2", border: `1px solid ${C.red || "#dc2626"}40`, borderRadius: 10, padding: "12px 16px", marginBottom: 12 }}>
+          <div style={{ color: C.red || "#dc2626", fontSize: 13, fontWeight: 800 }}>Saldo de recargas bajo</div>
+          <div style={{ color: C.text, fontSize: 12, marginTop: 4, lineHeight: 1.45 }}>
+            Quedan {$(saldoMp.saldo)} en el control de FarmaCapital (mínimo {$(saldoMp.minimo)}). Mercado Pago no avisa: hay que fondear la cuenta o las recargas se apagan.
+          </div>
+        </div>
+      )}
+      {esAdmin && (
+        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px 16px", marginBottom: 16 }}>
+          <div style={{ color: C.text, fontWeight: 800, fontSize: 13, marginBottom: 6 }}>Saldo MP para recargas (solo admin)</div>
+          <div style={{ color: C.textDim, fontSize: 11, lineHeight: 1.45, marginBottom: 10 }}>
+            MP no manda alerta de saldo bajo. Aquí lo tratamos como inventario: pegas lo que ves en la app, y cada recarga lo va descontando. Aviso cuando baje del mínimo.
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: isNarrow ? "1fr" : "1fr 1fr", gap: 10, marginBottom: 10 }}>
+            <div>
+              <div style={{ color: C.textMid, fontSize: 11, marginBottom: 4 }}>Saldo actual</div>
+              <Inp value={saldoStr} onChange={(e) => setSaldoStr(e.target.value)} placeholder="Lo que ves en MP" style={{ width: "100%", boxSizing: "border-box" }} />
+            </div>
+            <div>
+              <div style={{ color: C.textMid, fontSize: 11, marginBottom: 4 }}>Avisar si baja de</div>
+              <Inp value={minimoStr} onChange={(e) => setMinimoStr(e.target.value)} placeholder="500" style={{ width: "100%", boxSizing: "border-box" }} />
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <Btn col={BRAND.secondary} onClick={guardarSaldoAdmin} dis={salvandoSaldo}>Guardar saldo</Btn>
+            <Btn ol col={C.textMid} onClick={leerSaldoMercadoPago} dis={salvandoSaldo}>Leer de Mercado Pago</Btn>
+          </div>
+          {saldoMp.configurado && !saldoMp.bajo && (
+            <div style={{ color: C.textDim, fontSize: 11, marginTop: 8 }}>Control actual: {$(saldoMp.saldo)} · aviso en {$(saldoMp.minimo)}</div>
+          )}
+        </div>
+      )}
       <div style={{ background: C.blueDim, border: `1px solid ${C.blue}30`, borderRadius: 10, padding: "12px 16px", marginBottom: 16 }}>
         <div style={{ color: C.blue, fontSize: 13, fontWeight: 700, lineHeight: 1.5 }}>
           <strong>Pago de servicios y recargas.</strong> Primero la recarga en la Point (Smart Launcher → Recargas). Aquí anotas lo que cobraste al cliente (recarga + tu recargo). Prefiere <strong>Efectivo</strong>: con tarjeta, Point se come la ganancia.
