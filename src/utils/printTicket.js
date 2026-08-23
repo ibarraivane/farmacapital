@@ -22,18 +22,19 @@ export function shouldKeepPrintWindowOpen() {
 
 export const TICKET_CSS = `
 * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-html, body { margin: 0; padding: 0; background: #fff; }
+html, body { margin: 0; padding: 0; width: 80mm; max-width: 80mm; background: #fff; }
 @page { size: 80mm auto; margin: 0; }
 @media print {
-  #farmacapital-ticket { padding: 3mm 2mm 13mm 2mm !important; }
+  html, body { width: 80mm !important; max-width: 80mm !important; }
+  #farmacapital-ticket { width: 80mm !important; max-width: 80mm !important; padding: 3mm 2mm 13mm 2mm !important; }
 }
 
 #farmacapital-ticket {
   font-family: 'Courier New', Courier, monospace;
   font-size: 11px;
   line-height: 1.45;
-  width: 280px;
-  max-width: 280px;
+  width: 80mm;
+  max-width: 80mm;
   background: #ffffff;
   color: #000000;
   padding: 10px 8px calc(10px + 10mm);
@@ -45,7 +46,7 @@ html, body { margin: 0; padding: 0; background: #fff; }
   -webkit-print-color-adjust: exact !important;
   print-color-adjust: exact !important;
 }
-.ticket { width: 280px; font-family: 'Courier New', Courier, monospace; font-size: 11px; line-height: 1.4; background: #fff; color: #000; padding: 8px 6px calc(8px + 10mm); }
+.ticket { width: 80mm; max-width: 80mm; font-family: 'Courier New', Courier, monospace; font-size: 11px; line-height: 1.4; background: #fff; color: #000; padding: 8px 6px calc(8px + 10mm); }
 .center { text-align: center; }
 .left   { text-align: left; }
 .right  { text-align: right; }

@@ -10,9 +10,11 @@
   #farmacapital-ticket, #farmacapital-ticket * { visibility: visible !important; }
 
   /* Posición y dimensiones exactas para 80mm */
-  body {
+  html, body {
     margin: 0 !important;
     padding: 0 !important;
+    width: 80mm !important;
+    max-width: 80mm !important;
     background: #fff !important;
   }
 
@@ -20,8 +22,8 @@
     position: fixed !important;
     left: 0 !important;
     top: 0 !important;
-    width: 280px !important;
-    max-width: 280px !important;
+    width: 80mm !important;
+    max-width: 80mm !important;
     padding: 3mm 2mm 13mm 2mm !important; /* +10mm abajo: evita corte del QR en térmica */
     margin: 0 !important;
     font-size: 10px !important;
