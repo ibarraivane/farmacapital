@@ -24,6 +24,7 @@ const C = C_LIGHT;
 // ── Lazy loading — módulos se cargan solo cuando se necesitan ──
 const RRHHModule       = lazy(()=>import("./RRHHModule"));
 const InventarioHub    = lazy(()=>import("./InventarioHub"));
+const RecepcionModule  = lazy(()=>import("./RecepcionModule"));
 const MiDia            = lazy(()=>import("./modules/sales/MiDia"));
 const POS              = lazy(()=>import("./modules/sales/pos/POS"));
 const CorteCajaModule  = lazy(()=>import("./CorteCajaModule"));
@@ -1871,10 +1872,7 @@ export default function FarmaCapitalAdmin(){
     if (dashTab) applyDashTabHint(dashTab);
     try {
       sessionStorage.setItem("farmacapital_active_page", next);
-      if (next === "recibir") {
-        sessionStorage.setItem("farmacapital_inv_tab", "recibir");
-        setInvInitialTab("recibir");
-      } else if (next === "inv" && tabHint) {
+      if (next === "inv" && tabHint) {
         sessionStorage.setItem("farmacapital_inv_tab", tabHint);
         setInvInitialTab(tabHint);
       } else if (next === "inv") {
@@ -2230,9 +2228,10 @@ export default function FarmaCapitalAdmin(){
         return <POS negocio={neg} usuario={usuario} initialTab="online" onNavigate={setPageAndSave} />;
       case "inventario":
       case "inv":
-        return <InventarioHub initialTab={invInitialTab} usuario={usuario}/>;
+        return <InventarioHub initialTab={invInitialTab} usuario={usuario} onNavigate={setPageAndSave}/>;
       case "recibir":
-        return <InventarioHub initialTab="recibir" usuario={usuario}/>;
+        // Recibir es su propia pantalla: no lleva las pestañas de Inventario.
+        return <RecepcionModule ocultarMontos={usuario?.rol === "vendedor"} />;
       case "rrhh": return <RRHHModule/>;
       case "caja":  return <CorteCajaModule usuario={usuario}/>;
       case "cof":      return <COFEPRISModule/>;

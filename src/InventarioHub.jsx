@@ -1,22 +1,21 @@
-// InventarioHub: shell con tabs — Recibir, Catálogo, Reabasto, Lotes PEPS, Referencias.
-// Los módulos internos se mantienen intactos; solo cambia la forma de entrar.
+// InventarioHub: shell con tabs — Catálogo, Reabasto, Lotes PEPS, Referencias.
+// Recibir NO es una tab de aquí: es otra pantalla del menú (RecepcionModule),
+// para no arrastrar el catálogo mientras se descargan cajas.
 // Cada tab carga lazy para no inflar el bundle inicial.
 import React, { lazy, Suspense, useState, useEffect } from "react";
 import { useMediaQuery } from "./hooks/useMediaQuery";
 import { SkeletonCard } from "./ui";
 import { C_LIGHT, BRAND } from "./constants";
-import { Package, Truck, Tags, TrendingUp, ScanLine } from "lucide-react";
-import RecepcionModule from "./RecepcionModule";
+import { Package, Truck, Tags, TrendingUp } from "lucide-react";
 
 const InventarioModule = lazy(() => import("./InventarioModule"));
 const ReabastoModule   = lazy(() => import("./ReabastoModule"));
 const LotesModule      = lazy(() => import("./LotesModule"));
 const PreciosReferenciaModule = lazy(() => import("./PreciosReferenciaModule"));
 
-const TABS_VENDEDOR = ["recibir", "catalogo"];
+const TABS_VENDEDOR = ["catalogo"];
 
 const TABS = [
-  { id: "recibir",  label: "Recibir",    icon: ScanLine },
   { id: "catalogo", label: "Catálogo",   icon: Package },
   { id: "reabasto", label: "Reabasto",   icon: Truck },
   { id: "lotes",    label: "Lotes PEPS", icon: Tags },
@@ -25,7 +24,7 @@ const TABS = [
 
 const STORAGE_KEY = "farmacapital_inv_tab";
 
-export default function InventarioHub({ initialTab, usuario }) {
+export default function InventarioHub({ initialTab, usuario, onNavigate }) {
   const C = C_LIGHT;
   const isMobile = useMediaQuery("(max-width: 768px)");
   const modoConsulta = usuario?.rol === "vendedor";
@@ -40,8 +39,11 @@ export default function InventarioHub({ initialTab, usuario }) {
       const saved = sessionStorage.getItem(STORAGE_KEY);
       if (saved && TABS.some((t) => t.id === saved) && (!modoConsulta || TABS_VENDEDOR.includes(saved))) return saved;
     } catch (_) { /* storage bloqueado */ }
-    return "recibir";
+    return "catalogo";
   });
+
+  /** Recibir vive fuera del hub: se sale a esa pantalla del menú. */
+  const irARecibir = () => { if (onNavigate) onNavigate("recibir"); };
 
   const selectTab = (id) => {
     if (!tabPermitida(id)) return;
@@ -50,7 +52,7 @@ export default function InventarioHub({ initialTab, usuario }) {
   };
 
   useEffect(() => {
-    if (modoConsulta && !tabPermitida(tab)) setTab("recibir");
+    if (!tabPermitida(tab)) setTab("catalogo");
   }, [modoConsulta, tab]);
 
   // Si el padre cambia el initialTab (deep-link desde Dashboard u otro módulo) mientras
@@ -76,8 +78,8 @@ export default function InventarioHub({ initialTab, usuario }) {
           {!isMobile && (
             <span style={{color: C.textDim, fontSize: 12}}>
               {modoConsulta
-                ? "Recibir mercancía · consulta de existencias"
-                : "Recibir · catálogo · reabasto · lotes · referencias"}
+                ? "Consulta de existencias"
+                : "Catálogo · reabasto · lotes · referencias"}
             </span>
           )}
         </div>
@@ -130,9 +132,8 @@ export default function InventarioHub({ initialTab, usuario }) {
         </div>
       }>
         {tab === "catalogo" && (
-          <InventarioModule modoConsulta={modoConsulta} onIrARecibir={() => selectTab("recibir")} />
+          <InventarioModule modoConsulta={modoConsulta} onIrARecibir={irARecibir} />
         )}
-        {tab === "recibir" && <RecepcionModule ocultarMontos={modoConsulta} />}
         {!modoConsulta && tab === "reabasto" && <ReabastoModule/>}
         {!modoConsulta && tab === "lotes"    && <LotesModule/>}
         {!modoConsulta && tab === "precios"  && <PreciosReferenciaModule/>}
