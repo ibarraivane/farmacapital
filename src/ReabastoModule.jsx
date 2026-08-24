@@ -103,7 +103,7 @@ export default function ReabastoModule() {
           (refsByProduct[p.id]?.ultima_compra?.precio ?? p.costo),
           refsByProduct[p.id],
           refsByProduct[p.id]?.ultima_compra
-            ? { proveedor: refsByProduct[p.id].ultima_compra.nombre_fuente, origen: "ticket" }
+            ? { proveedor: refsByProduct[p.id].ultima_compra.nombre_fuente, origen: "compra" }
             : {}
         ),
       };

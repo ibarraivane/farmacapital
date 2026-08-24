@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Rellena fuente ultima_compra desde tickets Recibir y, si falta, desde lotes."""
+"""Costo vigente = primera compra (quién + precio). Solo se pisa si otra bajó el precio."""
 from __future__ import annotations
 
 import os
 import re
 import sys
 import time
+from datetime import date
 from pathlib import Path
 
 import requests
@@ -15,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def cargar_env() -> dict[str, str]:
     out: dict[str, str] = {}
-    for env_path in (ROOT / ".env", ROOT.parent / "farmacapital" / ".env", Path("/Users/ibarra/farmacapital/.env")):
+    for env_path in (ROOT / ".env", Path("/Users/ibarra/farmacapital/.env")):
         if not env_path.exists():
             continue
         for line in env_path.read_text(encoding="utf-8").splitlines():
@@ -73,10 +74,52 @@ def fetch_all(url: str, key: str, table: str, select: str, extra: str = "") -> l
     return rows
 
 
+def mas_barato(actual, nuevo) -> bool:
+    try:
+        n = float(nuevo)
+    except (TypeError, ValueError):
+        return False
+    if n <= 0:
+        return False
+    try:
+        a = float(actual)
+    except (TypeError, ValueError):
+        return True
+    if a <= 0:
+        return True
+    return n < a - 0.005
+
+
+def elegir_vigente(eventos: list[dict]) -> dict | None:
+    evs = []
+    for e in eventos:
+        try:
+            precio = float(e["precio"])
+        except (TypeError, ValueError):
+            continue
+        if precio <= 0:
+            continue
+        evs.append({
+            "precio": precio,
+            "proveedor": norm_prov(e.get("proveedor") or "") or (e.get("proveedor") or "").strip(),
+            "fecha": e.get("fecha") or "",
+            "id": e.get("id") or 0,
+            "notas": e.get("notas") or "",
+        })
+    evs.sort(key=lambda x: (x["fecha"], x["id"]))
+    if not evs:
+        return None
+    vigente = evs[0]
+    for ev in evs[1:]:
+        if mas_barato(vigente["precio"], ev["precio"]):
+            vigente = ev
+    return vigente
+
+
 def main() -> int:
     env = cargar_env()
     url = env.get("REACT_APP_SUPABASE_URL") or env.get("SUPABASE_URL") or ""
-    key = env.get("SUPABASE_SERVICE_ROLE_KEY") or env.get("REACT_APP_SUPABASE_ANON_KEY") or ""
+    key = env.get("SUPABASE_SERVICE_ROLE_KEY") or ""
     if not url or not key:
         sys.exit("Falta URL/key de Supabase")
 
@@ -91,10 +134,10 @@ def main() -> int:
         headers=headers,
         json=[{
             "id": "ultima_compra",
-            "nombre": "Última compra",
+            "nombre": "Costo de compra",
             "tipo": "compra",
             "metodo": "manual",
-            "notas": "Precio pagado en el último ticket de Recibir. No es lista.",
+            "notas": "Primera compra (quién + precio). Solo se pisa si Recibir trae uno más barato.",
         }],
         timeout=30,
     )
@@ -113,71 +156,61 @@ def main() -> int:
         "id,producto_id,costo_unitario,proveedor_id,created_at",
         "costo_unitario=gt.0",
     )
+    productos = fetch_all(url, key, "productos", "id,costo", "activo=eq.true")
 
-    best: dict[int, dict] = {}
+    por_prod: dict[int, list[dict]] = {}
     for it in items:
-        precio = it.get("costo_estimado")
-        try:
-            precio = float(precio)
-        except (TypeError, ValueError):
-            continue
-        if precio <= 0:
-            continue
         rec = recs.get(it["recepcion_id"]) or {}
-        fecha = rec.get("fecha") or "1970-01-01"
-        pid = it["producto_id"]
-        prev = best.get(pid)
-        if prev and (prev["fecha"], prev["_id"]) >= (fecha, it["id"]):
-            continue
-        best[pid] = {
-            "producto_id": pid,
-            "precio": round(precio, 2),
-            "fecha": fecha,
-            "nombre_fuente": norm_prov(rec.get("proveedor") or "") or rec.get("proveedor"),
-            "sku_externo": rec.get("folio"),
+        por_prod.setdefault(it["producto_id"], []).append({
+            "id": it["id"],
+            "precio": it.get("costo_estimado"),
+            "proveedor": rec.get("proveedor"),
+            "fecha": rec.get("fecha") or "",
             "notas": f"ticket {rec.get('folio')}" if rec.get("folio") else "recepcion",
-            "_id": it["id"],
-        }
-
+        })
     for lote in lotes:
-        pid = lote["producto_id"]
-        try:
-            precio = float(lote["costo_unitario"])
-        except (TypeError, ValueError):
-            continue
-        fecha = (lote.get("created_at") or "")[:10] or "1970-01-01"
-        prev = best.get(pid)
-        if prev and prev["fecha"] >= fecha:
-            continue
-        best[pid] = {
-            "producto_id": pid,
-            "precio": round(precio, 2),
-            "fecha": fecha,
-            "nombre_fuente": norm_prov(provs.get(lote.get("proveedor_id")) or "") or None,
-            "sku_externo": None,
+        por_prod.setdefault(lote["producto_id"], []).append({
+            "id": lote["id"],
+            "precio": lote.get("costo_unitario"),
+            "proveedor": provs.get(lote.get("proveedor_id")),
+            "fecha": (lote.get("created_at") or "")[:10],
             "notas": "lote",
-            "_id": lote["id"],
-        }
+        })
+    for p in productos:
+        if p["id"] in por_prod:
+            continue
+        if p.get("costo") is None:
+            continue
+        por_prod[p["id"]] = [{
+            "id": 0,
+            "precio": p.get("costo"),
+            "proveedor": p.get("proveedor"),
+            "fecha": "1970-01-01",
+            "notas": "catalogo",
+        }]
 
+    hoy = date.today().isoformat()
     filas = []
-    for row in best.values():
-        if not row.get("nombre_fuente"):
-            row["nombre_fuente"] = "Ticket"
+    for pid, eventos in por_prod.items():
+        vigente = elegir_vigente(eventos)
+        if not vigente:
+            continue
+        if not vigente["proveedor"]:
+            vigente["proveedor"] = ""
         filas.append({
-            "producto_id": row["producto_id"],
+            "producto_id": pid,
             "fuente": "ultima_compra",
             "tipo": "compra",
-            "precio": row["precio"],
-            "fecha": row["fecha"],
-            "nombre_fuente": row["nombre_fuente"],
-            "sku_externo": row.get("sku_externo"),
+            "precio": round(vigente["precio"], 2),
+            "fecha": hoy,
+            "nombre_fuente": vigente["proveedor"] or "Sin proveedor",
             "confianza": 100,
             "origen": "manual",
-            "notas": row["notas"],
+            "notas": f"vigente {vigente['fecha']} · {vigente['notas']}",
         })
 
-    print(f"Productos con última compra: {len(filas)}")
-    ins_headers = {
+    print(f"Costos vigentes: {len(filas)}")
+    ins = {
         "apikey": key,
         "Authorization": f"Bearer {key}",
         "Content-Type": "application/json",
@@ -186,13 +219,13 @@ def main() -> int:
     n = 0
     for i in range(0, len(filas), 80):
         chunk = filas[i : i + 80]
-        r = requests.post(
+        resp = requests.post(
             f"{url}/rest/v1/producto_precios_referencia",
-            headers=ins_headers,
+            headers=ins,
             json=chunk,
             timeout=120,
         )
-        r.raise_for_status()
+        resp.raise_for_status()
         n += len(chunk)
         print(f"  Insertadas {n}/{len(filas)}")
         time.sleep(0.12)
