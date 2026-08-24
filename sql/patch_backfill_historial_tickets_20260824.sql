@@ -718,7 +718,7 @@ BEGIN
 
   IF v_id IS NULL THEN
     INSERT INTO public.recepciones (proveedor, folio, fecha, estado, notas, cerrado_en)
-    VALUES ('Equilibrio', '440393', DATE '2026-08-08', 'confirmada', 'backfill ticket inicial (fecha del ticket sin confirmar)', now())
+    VALUES ('Equilibrio', '440393', DATE '2026-08-08', 'confirmada', 'backfill ticket inicial', now())
     RETURNING id INTO v_id;
   ELSE
     -- Re-ejecutable: se rehacen los renglones del propio backfill.

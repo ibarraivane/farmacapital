@@ -15,7 +15,8 @@ RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SALIDA = os.path.join(RAIZ, "sql", "patch_backfill_historial_tickets_20260824.sql")
 
 # Fecha confirmada por el OCR de cada ticket (.tmp_ocr_vision/*.txt).
-# Equilibrio no trae fecha legible; queda marcada como supuesta en notas.
+# Equilibrio no trae fecha legible en el OCR; el dueño confirmó que es el
+# mismo día que los demás.
 TICKETS = [
     dict(archivo="sql/generated/comparacion_bodega_f42_77827.csv",
          proveedor="Bodega F-42", folio="77827", fecha="2026-08-08", modo="comparacion"),
@@ -28,8 +29,7 @@ TICKETS = [
     dict(archivo="sql/generated/comparacion_surtidor_112558.csv",
          proveedor="El Surtidor", folio="112558", fecha="2026-08-08", modo="comparacion"),
     dict(archivo="sql/generated/ticket_equilibrio_440393.csv",
-         proveedor="Equilibrio", folio="440393", fecha="2026-08-08", modo="equilibrio",
-         fecha_supuesta=True),
+         proveedor="Equilibrio", folio="440393", fecha="2026-08-08", modo="equilibrio"),
     dict(archivo="sql/generated/ticket_farmamx_CAICA1CA108588.csv",
          proveedor="Farma MX", folio="CAICA1CA108588", fecha="2026-08-08", modo="farmamx"),
 ]
@@ -80,7 +80,7 @@ def leer(t):
 
 
 def bloque(t, filas):
-    nota = MARCA + (" (fecha del ticket sin confirmar)" if t.get("fecha_supuesta") else "")
+    nota = MARCA
     values = ",\n      ".join(
         "({}, {}, {}, {}, {})".format(q(s), q(c), q(d), n, p)
         for s, c, d, n, p in filas
