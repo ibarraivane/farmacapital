@@ -143,6 +143,10 @@
     {
       "path": "/api/caducidad/job",
       "schedule": "15 6 * * *"
+    },
+    {
+      "path": "/api/monitor-precios/job",
+      "schedule": "0 7 * * 1"
     }
   ]
 }
