@@ -47,12 +47,20 @@ async function ensureFuente(supabaseUrl, serviceKey) {
     prefer: 'resolution=merge-duplicates,return=minimal',
     body: [{
       id: 'ultima_compra',
-      nombre: 'Última compra',
+      nombre: 'Costo de compra',
       tipo: 'compra',
       metodo: 'manual',
-      notas: 'Precio pagado en el último ticket de Recibir. No es lista de proveedor.',
+      notas: 'Primera compra (quién + precio). Recibir solo lo pisa si el ticket es más barato.',
     }],
   });
+}
+
+function esMasBarato(actual, nuevo) {
+  const n = Number(nuevo);
+  if (!Number.isFinite(n) || n <= 0) return false;
+  const a = Number(actual);
+  if (!Number.isFinite(a) || a <= 0) return true;
+  return n < a - 0.005;
 }
 
 async function registrarDesdeRecepcion(supabaseUrl, serviceKey, recepcionId) {
@@ -70,6 +78,30 @@ async function registrarDesdeRecepcion(supabaseUrl, serviceKey, recepcionId) {
     `recepcion_items?recepcion_id=eq.${encodeURIComponent(recepcionId)}&confirmado=eq.true&pendiente_alta=eq.false&producto_id=not.is.null&select=producto_id,costo_estimado`,
   );
 
+  const ids = [...new Set((items || []).map((i) => Number(i.producto_id)).filter(Boolean))];
+  const actuales = {};
+  if (ids.length) {
+    const vigentes = await rest(
+      supabaseUrl,
+      serviceKey,
+      `producto_precios_referencia_actual?fuente=eq.ultima_compra&producto_id=in.(${ids.join(',')})&select=producto_id,precio`,
+    );
+    for (const row of vigentes || []) {
+      actuales[Number(row.producto_id)] = row.precio;
+    }
+    if (Object.keys(actuales).length < ids.length) {
+      const faltan = ids.filter((id) => actuales[id] == null);
+      const prods = await rest(
+        supabaseUrl,
+        serviceKey,
+        `productos?id=in.(${faltan.join(',')})&select=id,costo`,
+      );
+      for (const p of prods || []) {
+        if (actuales[p.id] == null) actuales[p.id] = p.costo;
+      }
+    }
+  }
+
   const proveedor = normalizeProveedor(rec.proveedor) || String(rec.proveedor || '').trim();
   const fecha = rec.fecha || new Date().toISOString().slice(0, 10);
   const folio = rec.folio ? String(rec.folio) : '';
@@ -78,6 +110,7 @@ async function registrarDesdeRecepcion(supabaseUrl, serviceKey, recepcionId) {
     const productoId = Number(item.producto_id);
     const precio = Number(item.costo_estimado);
     if (!productoId || !Number.isFinite(precio) || precio <= 0) continue;
+    if (!esMasBarato(actuales[productoId], precio)) continue;
     byProd.set(productoId, {
       producto_id: productoId,
       fuente: 'ultima_compra',
@@ -135,7 +168,7 @@ async function ultimaCompraHandler(req, res) {
     const result = await registrarDesdeRecepcion(supabaseUrl, serviceKey, recepcionId);
     return res.status(200).json(result);
   } catch (err) {
-    return res.status(500).json({ error: err.message || 'No se registró la última compra' });
+    return res.status(500).json({ error: err.message || 'No se registró el costo de compra' });
   }
 }
 

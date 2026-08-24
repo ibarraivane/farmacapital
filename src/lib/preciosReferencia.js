@@ -91,10 +91,10 @@ export const FUENTE_META = {
   abarrotero: { label: "Abarrotero", tipo: "compra", listaDistribuidor: false },
   mayoreototal: { label: "MayoreoTotal", tipo: "compra", listaDistribuidor: false },
   ultima_compra: {
-    label: "Última compra",
+    label: "Costo de compra",
     tipo: "compra",
     listaDistribuidor: false,
-    hint: "Lo que pagamos en el último ticket de Recibir. No es lista.",
+    hint: "Primera compra (quién + precio). Recibir solo lo pisa si el ticket es más barato.",
   },
   otros_compra: {
     label: "Otros",
@@ -265,7 +265,7 @@ export function calcMejorTienda(refsMap) {
 }
 
 /**
- * Mejor opción de compra: mínimo entre la última compra (o tu costo) y listas.
+ * Mejor opción de compra: mínimo entre el costo vigente (quién + precio) y listas.
  * El precio más bajo gana.
  */
 export function calcMejorCompra(costo, refsMap, meta = {}) {
@@ -273,8 +273,8 @@ export function calcMejorCompra(costo, refsMap, meta = {}) {
   const options = [];
   const proveedor = String(meta.proveedor || "").trim();
   const labelCosto = proveedor
-    ? `Última compra (${proveedor})`
-    : (meta.origen === "ticket" ? "Última compra" : "Tu costo (abastos)");
+    ? `Compra ${proveedor}`
+    : (meta.origen === "compra" ? "Tu compra" : "Tu costo");
 
   if (Number.isFinite(c) && c > 0) {
     options.push({

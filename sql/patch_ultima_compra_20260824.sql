@@ -1,9 +1,9 @@
--- Última compra = precio pagado en Recibir (no lista de proveedor).
--- La UI lee fuente 'ultima_compra' en producto_precios_referencia.
+-- Costo de compra = primera compra (quién + precio).
+-- Recibir solo lo pisa si el ticket nuevo es más barato.
 
 INSERT INTO public.fuentes_precio (id, nombre, tipo, metodo, notas) VALUES
-  ('ultima_compra', 'Última compra', 'compra', 'manual',
-   'Precio pagado en el último ticket de Recibir. No es lista.')
+  ('ultima_compra', 'Costo de compra', 'compra', 'manual',
+   'Primera compra (quién + precio). Recibir solo lo pisa si el ticket es más barato.')
 ON CONFLICT (id) DO UPDATE SET
   nombre = EXCLUDED.nombre,
   tipo = EXCLUDED.tipo,
@@ -25,6 +25,18 @@ BEGIN
 
   IF NEW.proveedor_id IS NOT NULL THEN
     SELECT nombre INTO v_nombre FROM public.proveedores WHERE id = NEW.proveedor_id;
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM public.producto_precios_referencia_actual a
+    WHERE a.producto_id = NEW.producto_id
+      AND a.fuente = 'ultima_compra'
+      AND a.precio IS NOT NULL
+      AND a.precio > 0
+      AND NEW.costo_unitario >= a.precio - 0.005
+  ) THEN
+    RETURN NEW;
   END IF;
 
   INSERT INTO public.producto_precios_referencia (

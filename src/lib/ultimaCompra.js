@@ -1,4 +1,6 @@
-/** Última compra real (ticket Recibir), distinta de la lista del proveedor. */
+/** Costo vigente de compra: primera compra (quién + precio).
+ *  Recibir solo lo reemplaza si el ticket nuevo es más barato.
+ */
 
 export const FUENTE_ULTIMA_COMPRA = "ultima_compra";
 
@@ -25,31 +27,58 @@ export function parseCostoTicket(val) {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
-export function ultimaCompraDe(producto, refsMap) {
+/** Solo se pisa el costo vigente si el nuevo es más barato (o no había ninguno). */
+export function debeReemplazarCompra(precioActual, precioNuevo) {
+  const nuevo = parseCostoTicket(precioNuevo);
+  if (nuevo == null) return false;
+  const actual = parseCostoTicket(precioActual);
+  if (actual == null) return true;
+  return nuevo < actual - 0.005;
+}
+
+/**
+ * Primera compra, luego se queda con quien bajó el precio.
+ * eventos: { precio, proveedor, fecha, id }
+ */
+export function elegirCompraVigente(eventos) {
+  const ordenados = (eventos || [])
+    .map((e, idx) => ({
+      precio: parseCostoTicket(e.precio),
+      proveedor: normalizeProveedorCompra(e.proveedor) || String(e.proveedor || "").trim(),
+      fecha: e.fecha || "",
+      id: e.id ?? idx,
+    }))
+    .filter((e) => e.precio != null)
+    .sort((a, b) => {
+      if (a.fecha !== b.fecha) return String(a.fecha).localeCompare(String(b.fecha));
+      return (a.id || 0) - (b.id || 0);
+    });
+  if (!ordenados.length) return null;
+  let vigente = ordenados[0];
+  for (const ev of ordenados.slice(1)) {
+    if (debeReemplazarCompra(vigente.precio, ev.precio)) vigente = ev;
+  }
+  return vigente;
+}
+
+export function compraVigenteDe(producto, refsMap) {
   const ref = refsMap?.ultima_compra;
   const precioRef = parseCostoTicket(ref?.precio);
   if (precioRef) {
     return {
       precio: precioRef,
-      proveedor: normalizeProveedorCompra(ref.nombre_fuente) || "Ticket",
+      proveedor: normalizeProveedorCompra(ref.nombre_fuente)
+        || normalizeProveedorCompra(producto?.proveedor)
+        || "",
       fecha: ref.fecha || null,
-      origen: "ticket",
-    };
-  }
-  const ultimo = parseCostoTicket(producto?.ultimo_costo);
-  if (ultimo) {
-    return {
-      precio: ultimo,
-      proveedor: normalizeProveedorCompra(producto.ultimo_proveedor) || "Ticket",
-      fecha: producto.ultima_compra_en || null,
-      origen: "ticket",
+      origen: "compra",
     };
   }
   const costo = parseCostoTicket(producto?.costo);
   if (costo) {
     return {
       precio: costo,
-      proveedor: "",
+      proveedor: normalizeProveedorCompra(producto?.proveedor) || "",
       fecha: null,
       origen: "catalogo",
     };
@@ -58,10 +87,10 @@ export function ultimaCompraDe(producto, refsMap) {
 }
 
 export function costoComparacionDe(producto, refsMap) {
-  return ultimaCompraDe(producto, refsMap)?.precio ?? null;
+  return compraVigenteDe(producto, refsMap)?.precio ?? null;
 }
 
-export function filasUltimaCompraDesdeRecepcion(rec) {
+export function filasCompraVigenteDesdeRecepcion(rec, actualesPorProducto = {}) {
   const proveedor = normalizeProveedorCompra(rec?.proveedor) || String(rec?.proveedor || "").trim();
   const fecha = rec?.fecha || new Date().toISOString().slice(0, 10);
   const folio = rec?.folio ? String(rec.folio) : "";
@@ -71,6 +100,8 @@ export function filasUltimaCompraDesdeRecepcion(rec) {
     const productoId = Number(item.producto_id);
     const precio = parseCostoTicket(item.costo_estimado ?? item.costo);
     if (!productoId || !precio) continue;
+    const actual = actualesPorProducto[productoId];
+    if (!debeReemplazarCompra(actual, precio)) continue;
     byProd.set(productoId, {
       producto_id: productoId,
       fuente: FUENTE_ULTIMA_COMPRA,
@@ -85,6 +116,11 @@ export function filasUltimaCompraDesdeRecepcion(rec) {
     });
   }
   return [...byProd.values()];
+}
+
+/** @deprecated usar filasCompraVigenteDesdeRecepcion */
+export function filasUltimaCompraDesdeRecepcion(rec, actuales) {
+  return filasCompraVigenteDesdeRecepcion(rec, actuales);
 }
 
 export async function persistirUltimaCompra(supabase, filas) {

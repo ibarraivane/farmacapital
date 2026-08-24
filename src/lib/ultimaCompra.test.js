@@ -1,48 +1,60 @@
 import {
   normalizeProveedorCompra,
-  ultimaCompraDe,
+  debeReemplazarCompra,
+  elegirCompraVigente,
+  compraVigenteDe,
   costoComparacionDe,
-  filasUltimaCompraDesdeRecepcion,
+  filasCompraVigenteDesdeRecepcion,
 } from "./ultimaCompra";
 
-describe("ultimaCompra", () => {
+describe("compra vigente", () => {
   test("normaliza mayoristas del ticket", () => {
     expect(normalizeProveedorCompra("Farmalive Club Iztapalapa")).toBe("Farmalive");
     expect(normalizeProveedorCompra("Cityfarma Iztapalapa")).toBe("Farma City");
     expect(normalizeProveedorCompra("Levic")).toBe("Levic");
+    expect(normalizeProveedorCompra("EQUILIBRIO FARMACEÚTICO")).toBe("Equilibrio");
   });
 
-  test("prioriza ticket sobre costo de catálogo", () => {
-    const u = ultimaCompraDe(
-      { costo: 90, ultimo_costo: null },
-      { ultima_compra: { precio: 64.44, nombre_fuente: "Farmalive", fecha: "2026-08-21" } }
+  test("solo reemplaza si el nuevo es más barato", () => {
+    expect(debeReemplazarCompra(null, 90)).toBe(true);
+    expect(debeReemplazarCompra(90, 64.44)).toBe(true);
+    expect(debeReemplazarCompra(64.44, 80)).toBe(false);
+    expect(debeReemplazarCompra(64.44, 64.44)).toBe(false);
+  });
+
+  test("primera compra se queda hasta que otra baje el precio", () => {
+    const vigente = elegirCompraVigente([
+      { precio: 90, proveedor: "Equilibrio", fecha: "2026-08-01", id: 1 },
+      { precio: 80, proveedor: "Levic", fecha: "2026-08-10", id: 2 },
+      { precio: 95, proveedor: "Farmalive", fecha: "2026-08-21", id: 3 },
+    ]);
+    expect(vigente.precio).toBe(80);
+    expect(vigente.proveedor).toBe("Levic");
+  });
+
+  test("muestra quién en el costo de catálogo si no hay ticket", () => {
+    const u = compraVigenteDe({ costo: 17.98, proveedor: "Equilibrio Farmacéutico" }, {});
+    expect(u.precio).toBe(17.98);
+    expect(u.proveedor).toBe("Equilibrio");
+    expect(costoComparacionDe({ costo: 17.98, proveedor: "Equilibrio" }, {})).toBe(17.98);
+  });
+
+  test("ticket más caro al cerrar Recibir no pisa el vigente", () => {
+    const filas = filasCompraVigenteDesdeRecepcion(
+      {
+        proveedor: "Farmalive",
+        folio: "11590",
+        fecha: "2026-08-21",
+        items: [
+          { producto_id: 10, confirmado: true, costo_estimado: 64.44 },
+          { producto_id: 11, confirmado: true, costo_estimado: 80 },
+        ],
+      },
+      { 10: 90, 11: 50 }
     );
-    expect(u.precio).toBe(64.44);
-    expect(u.proveedor).toBe("Farmalive");
-    expect(u.origen).toBe("ticket");
-    expect(costoComparacionDe({ costo: 90 }, { ultima_compra: { precio: 64.44 } })).toBe(64.44);
-  });
-
-  test("sin ticket usa el costo de catálogo", () => {
-    const u = ultimaCompraDe({ costo: 17.98 }, {});
-    expect(u).toEqual({ precio: 17.98, proveedor: "", fecha: null, origen: "catalogo" });
-  });
-
-  test("arma filas al cerrar Recibir; sin costo no escribe", () => {
-    const filas = filasUltimaCompraDesdeRecepcion({
-      proveedor: "Farmalive",
-      folio: "11590",
-      fecha: "2026-08-21",
-      items: [
-        { producto_id: 10, confirmado: true, costo_estimado: 64.44 },
-        { producto_id: 11, confirmado: true, costo_estimado: 0 },
-        { producto_id: 12, confirmado: false, costo_estimado: 20 },
-      ],
-    });
     expect(filas).toHaveLength(1);
     expect(filas[0].producto_id).toBe(10);
     expect(filas[0].precio).toBe(64.44);
     expect(filas[0].nombre_fuente).toBe("Farmalive");
-    expect(filas[0].notas).toBe("ticket 11590");
   });
 });
