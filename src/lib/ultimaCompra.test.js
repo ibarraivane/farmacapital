@@ -58,4 +58,41 @@ describe("compra vigente", () => {
     expect(filas[0].nombre_fuente).toBe("Farmalive");
     expect(filas[0].fecha).toBe(new Date().toISOString().slice(0, 10));
   });
+
+  test("lote anónimo más barato se queda el precio y toma el quién del ticket", () => {
+    const vigente = elegirCompraVigente([
+      { precio: 59.45, proveedor: "", fecha: "2026-08-16", id: 1 },
+      { precio: 63.74, proveedor: "Levic", fecha: "2026-08-20", id: 2 },
+    ]);
+    expect(vigente.precio).toBe(59.45);
+    expect(vigente.proveedor).toBe("Levic");
+  });
+
+  test("Recibir completa el quién sin subir el costo vigente", () => {
+    const filas = filasCompraVigenteDesdeRecepcion(
+      {
+        proveedor: "Levic",
+        folio: "9012078353",
+        fecha: "2026-08-20",
+        items: [{ producto_id: 900, confirmado: true, costo_estimado: 63.74 }],
+      },
+      { 900: { precio: 59.45, proveedor: "" } }
+    );
+    expect(filas).toHaveLength(1);
+    expect(filas[0].precio).toBe(59.45);
+    expect(filas[0].nombre_fuente).toBe("Levic");
+  });
+
+  test("Recibir no pisa el quién si ya hay proveedor aunque el ticket sea otro", () => {
+    const filas = filasCompraVigenteDesdeRecepcion(
+      {
+        proveedor: "Farmalive",
+        folio: "1",
+        fecha: "2026-08-21",
+        items: [{ producto_id: 11, confirmado: true, costo_estimado: 80 }],
+      },
+      { 11: { precio: 50, proveedor: "Equilibrio" } }
+    );
+    expect(filas).toHaveLength(0);
+  });
 });

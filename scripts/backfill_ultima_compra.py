@@ -99,9 +99,12 @@ def elegir_vigente(eventos: list[dict]) -> dict | None:
             continue
         if precio <= 0:
             continue
+        quien = norm_prov(e.get("proveedor") or "")
+        if re.match(r"^sin proveedor$", quien, re.I):
+            quien = ""
         evs.append({
             "precio": precio,
-            "proveedor": norm_prov(e.get("proveedor") or "") or (e.get("proveedor") or "").strip(),
+            "proveedor": quien,
             "fecha": e.get("fecha") or "",
             "id": e.get("id") or 0,
             "notas": e.get("notas") or "",
@@ -109,10 +112,13 @@ def elegir_vigente(eventos: list[dict]) -> dict | None:
     evs.sort(key=lambda x: (x["fecha"], x["id"]))
     if not evs:
         return None
-    vigente = evs[0]
+    vigente = dict(evs[0])
     for ev in evs[1:]:
         if mas_barato(vigente["precio"], ev["precio"]):
-            vigente = ev
+            vigente = dict(ev)
+            continue
+        if not vigente["proveedor"] and ev["proveedor"]:
+            vigente["proveedor"] = ev["proveedor"]
     return vigente
 
 
@@ -203,13 +209,15 @@ def main() -> int:
             "tipo": "compra",
             "precio": round(vigente["precio"], 2),
             "fecha": hoy,
-            "nombre_fuente": vigente["proveedor"] or "Sin proveedor",
+            "nombre_fuente": vigente["proveedor"] or "",
             "confianza": 100,
             "origen": "manual",
             "notas": f"vigente {vigente['fecha']} · {vigente['notas']}",
         })
 
     print(f"Costos vigentes: {len(filas)}")
+    con_quien = sum(1 for f in filas if f["nombre_fuente"])
+    print(f"  con quién: {con_quien}  sin quién: {len(filas) - con_quien}")
     ins = {
         "apikey": key,
         "Authorization": f"Bearer {key}",

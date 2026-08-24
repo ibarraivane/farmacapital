@@ -55,6 +55,12 @@ async function ensureFuente(supabaseUrl, serviceKey) {
   });
 }
 
+function proveedorVisible(nombre) {
+  const n = normalizeProveedor(nombre);
+  if (!n || /^sin proveedor$/i.test(n)) return '';
+  return n;
+}
+
 function esMasBarato(actual, nuevo) {
   const n = Number(nuevo);
   if (!Number.isFinite(n) || n <= 0) return false;
@@ -80,14 +86,16 @@ async function registrarDesdeRecepcion(supabaseUrl, serviceKey, recepcionId) {
 
   const ids = [...new Set((items || []).map((i) => Number(i.producto_id)).filter(Boolean))];
   const actuales = {};
+  const quienes = {};
   if (ids.length) {
     const vigentes = await rest(
       supabaseUrl,
       serviceKey,
-      `producto_precios_referencia_actual?fuente=eq.ultima_compra&producto_id=in.(${ids.join(',')})&select=producto_id,precio`,
+      `producto_precios_referencia_actual?fuente=eq.ultima_compra&producto_id=in.(${ids.join(',')})&select=producto_id,precio,nombre_fuente`,
     );
     for (const row of vigentes || []) {
       actuales[Number(row.producto_id)] = row.precio;
+      quienes[Number(row.producto_id)] = proveedorVisible(row.nombre_fuente);
     }
     if (Object.keys(actuales).length < ids.length) {
       const faltan = ids.filter((id) => actuales[id] == null);
@@ -102,16 +110,20 @@ async function registrarDesdeRecepcion(supabaseUrl, serviceKey, recepcionId) {
     }
   }
 
-  const proveedor = normalizeProveedor(rec.proveedor) || String(rec.proveedor || '').trim();
+  const proveedor = proveedorVisible(rec.proveedor) || String(rec.proveedor || '').trim();
   const fecha = new Date().toISOString().slice(0, 10);
   const fechaTicket = rec.fecha || fecha;
   const folio = rec.folio ? String(rec.folio) : '';
   const byProd = new Map();
   for (const item of items || []) {
     const productoId = Number(item.producto_id);
-    const precio = Number(item.costo_estimado);
-    if (!productoId || !Number.isFinite(precio) || precio <= 0) continue;
-    if (!esMasBarato(actuales[productoId], precio)) continue;
+    const precioTicket = Number(item.costo_estimado);
+    if (!productoId || !Number.isFinite(precioTicket) || precioTicket <= 0) continue;
+    const masBarato = esMasBarato(actuales[productoId], precioTicket);
+    const completarQuien = !masBarato && !quienes[productoId] && !!proveedor
+      && Number(actuales[productoId]) > 0;
+    if (!masBarato && !completarQuien) continue;
+    const precio = masBarato ? precioTicket : Number(actuales[productoId]);
     byProd.set(productoId, {
       producto_id: productoId,
       fuente: 'ultima_compra',
