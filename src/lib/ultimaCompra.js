@@ -27,6 +27,23 @@ export function parseCostoTicket(val) {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
+export function proveedorCompraVisible(nombre) {
+  const n = normalizeProveedorCompra(nombre);
+  if (!n || /^sin proveedor$/i.test(n)) return "";
+  return n;
+}
+
+function costoDeActual(actual) {
+  if (actual == null) return null;
+  if (typeof actual === "object") return actual.precio ?? actual.costo ?? null;
+  return actual;
+}
+
+function quienDeActual(actual) {
+  if (actual == null || typeof actual !== "object") return "";
+  return proveedorCompraVisible(actual.proveedor || actual.nombre_fuente);
+}
+
 /** Solo se pisa el costo vigente si el nuevo es más barato (o no había ninguno). */
 export function debeReemplazarCompra(precioActual, precioNuevo) {
   const nuevo = parseCostoTicket(precioNuevo);
@@ -38,13 +55,14 @@ export function debeReemplazarCompra(precioActual, precioNuevo) {
 
 /**
  * Primera compra, luego se queda con quien bajó el precio.
- * eventos: { precio, proveedor, fecha, id }
+ * Si el vigente no tiene quién, se completa con el primer proveedor conocido
+ * (sin subir el precio).
  */
 export function elegirCompraVigente(eventos) {
   const ordenados = (eventos || [])
     .map((e, idx) => ({
       precio: parseCostoTicket(e.precio),
-      proveedor: normalizeProveedorCompra(e.proveedor) || String(e.proveedor || "").trim(),
+      proveedor: proveedorCompraVisible(e.proveedor),
       fecha: e.fecha || "",
       id: e.id ?? idx,
     }))
@@ -54,9 +72,15 @@ export function elegirCompraVigente(eventos) {
       return (a.id || 0) - (b.id || 0);
     });
   if (!ordenados.length) return null;
-  let vigente = ordenados[0];
+  let vigente = { ...ordenados[0] };
   for (const ev of ordenados.slice(1)) {
-    if (debeReemplazarCompra(vigente.precio, ev.precio)) vigente = ev;
+    if (debeReemplazarCompra(vigente.precio, ev.precio)) {
+      vigente = { ...ev };
+      continue;
+    }
+    if (!vigente.proveedor && ev.proveedor) {
+      vigente = { ...vigente, proveedor: ev.proveedor };
+    }
   }
   return vigente;
 }
@@ -67,8 +91,8 @@ export function compraVigenteDe(producto, refsMap) {
   if (precioRef) {
     return {
       precio: precioRef,
-      proveedor: normalizeProveedorCompra(ref.nombre_fuente)
-        || normalizeProveedorCompra(producto?.proveedor)
+      proveedor: proveedorCompraVisible(ref.nombre_fuente)
+        || proveedorCompraVisible(producto?.proveedor)
         || "",
       fecha: ref.fecha || null,
       origen: "compra",
@@ -78,7 +102,7 @@ export function compraVigenteDe(producto, refsMap) {
   if (costo) {
     return {
       precio: costo,
-      proveedor: normalizeProveedorCompra(producto?.proveedor) || "",
+      proveedor: proveedorCompraVisible(producto?.proveedor) || "",
       fecha: null,
       origen: "catalogo",
     };
@@ -91,8 +115,9 @@ export function costoComparacionDe(producto, refsMap) {
 }
 
 export function filasCompraVigenteDesdeRecepcion(rec, actualesPorProducto = {}) {
-  const proveedor = normalizeProveedorCompra(rec?.proveedor) || String(rec?.proveedor || "").trim();
-  // La vista actual es DISTINCT ON fecha DESC: hay que estampar hoy para que el más barato se vea.
+  const proveedor = proveedorCompraVisible(rec?.proveedor)
+    || String(rec?.proveedor || "").trim();
+  // La vista actual es DISTINCT ON fecha DESC: hay que estampar hoy para que se vea.
   const fecha = new Date().toISOString().slice(0, 10);
   const fechaTicket = rec?.fecha || fecha;
   const folio = rec?.folio ? String(rec.folio) : "";
@@ -100,15 +125,24 @@ export function filasCompraVigenteDesdeRecepcion(rec, actualesPorProducto = {}) 
   for (const item of rec?.items || []) {
     if (!item?.confirmado || item.pendiente_alta) continue;
     const productoId = Number(item.producto_id);
-    const precio = parseCostoTicket(item.costo_estimado ?? item.costo);
-    if (!productoId || !precio) continue;
+    const precioTicket = parseCostoTicket(item.costo_estimado ?? item.costo);
+    if (!productoId || !precioTicket) continue;
     const actual = actualesPorProducto[productoId];
-    if (!debeReemplazarCompra(actual, precio)) continue;
+    const precioActual = costoDeActual(actual);
+    const quienActual = quienDeActual(actual);
+    const masBarato = debeReemplazarCompra(precioActual, precioTicket);
+    const completarQuien = !masBarato
+      && actual != null
+      && typeof actual === "object"
+      && !quienActual
+      && !!proveedor
+      && parseCostoTicket(precioActual);
+    if (!masBarato && !completarQuien) continue;
     byProd.set(productoId, {
       producto_id: productoId,
       fuente: FUENTE_ULTIMA_COMPRA,
       tipo: "compra",
-      precio,
+      precio: masBarato ? precioTicket : parseCostoTicket(precioActual),
       fecha,
       nombre_fuente: proveedor,
       sku_externo: folio || null,
