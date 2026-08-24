@@ -114,6 +114,12 @@ export const FUENTE_META = {
     listaDistribuidor: false,
     hint: "Poco traslape con el catálogo; solo aparece si gana precio.",
   },
+  ultima_compra: {
+    label: "Última compra",
+    tipo: "compra",
+    listaDistribuidor: false,
+    hint: "Lo que pagamos en el último ticket de Recibir. No es lista.",
+  },
   otros_compra: {
     label: "Otros",
     tipo: "compra",
@@ -298,17 +304,21 @@ export function calcMejorTienda(refsMap) {
 }
 
 /**
- * Mejor opción de compra: mínimo entre tu costo (abastos) y refs de proveedor.
+ * Mejor opción de compra: mínimo entre la última compra (o tu costo) y listas.
  * El precio más bajo gana.
  */
-export function calcMejorCompra(costo, refsMap) {
+export function calcMejorCompra(costo, refsMap, meta = {}) {
   const c = parseFloat(costo);
   const options = [];
+  const proveedor = String(meta.proveedor || "").trim();
+  const labelCosto = proveedor
+    ? `Última compra (${proveedor})`
+    : (meta.origen === "ticket" ? "Última compra" : "Tu costo (abastos)");
 
   if (Number.isFinite(c) && c > 0) {
     options.push({
       fuente: "_tu_costo",
-      label: "Tu costo (abastos)",
+      label: labelCosto,
       precio: c,
       esTuCosto: true,
     });
@@ -468,11 +478,12 @@ export function colorDiffCompra(pctStr) {
 }
 
 /** Texto corto para badge en columna compra */
-export function labelDiffCompra(pctStr) {
+export function labelDiffCompra(pctStr, vsLabel = "tu costo") {
   if (pctStr == null) return null;
   const n = parseFloat(pctStr);
   if (Number.isNaN(n)) return null;
-  if (n > 0.5) return `+${pctStr}% vs tu costo`;
+  const vs = vsLabel || "tu costo";
+  if (n > 0.5) return `+${pctStr}% vs ${vs}`;
   if (n < -0.5) return `${pctStr}% más barato`;
   return "≈ igual";
 }

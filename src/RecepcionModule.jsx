@@ -676,6 +676,15 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     setSaving(false);
     if (error) { rpcError(error, "No se pudo cerrar"); return; }
     const rec = unwrapJson(data);
+    try {
+      await fetch("/api/inventarioProcesarPdf?type=ultima-compra", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session_token: tok, recepcion_id: rec?.id || doc.id }),
+      });
+    } catch {
+      /* la columna se puede rellenar después; el stock ya entró */
+    }
     const estado = rec?.estado;
     const siguenPendientes = (rec?.sin_confirmar || 0) > 0 && estado === "borrador";
     if (siguenPendientes) {
