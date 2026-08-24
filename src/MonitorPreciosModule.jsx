@@ -157,6 +157,30 @@ export default function MonitorPreciosModule() {
     cargar();
   };
 
+  const onRastrear = async () => {
+    setBusy(true);
+    try {
+      const resp = await fetch("/api/monitor-precios/job?action=rastrear", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-session-token": sessionTok() || "",
+        },
+        body: JSON.stringify({ session_token: sessionTok() }),
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(data.error || "rastreo_failed");
+      showToast(
+        `Buscó precios: ${data.insertadas || 0} datos nuevos · compra ${data.matches_compra || 0} · venta ${data.busquedas_venta || 0}`,
+        "success"
+      );
+      cargar();
+    } catch (err) {
+      showToast(err.message || "No se pudo buscar ahora", "error");
+    }
+    setBusy(false);
+  };
+
   const onCsv = async (file) => {
     if (!file) return;
     const csvText = await file.text();
@@ -191,11 +215,14 @@ export default function MonitorPreciosModule() {
   return (
     <div style={{ padding: 20, maxWidth: 1280 }}>
       <h2 style={{ margin: "0 0 6px", fontSize: 18, color: C.text }}>
-        Aprobar precios de venta
+        Precios que se buscan solos
       </h2>
       <p style={{ margin: "0 0 16px", fontSize: 13, color: C.textMid, lineHeight: 1.45, maxWidth: 760 }}>
-        Complementa Referencias de precio: el costo y el proveedor salen del ticket de Recibir.
-        La referencia de mercado sale de fuentes con URL o archivo. Ningún PVP cambia hasta que apruebes.
+        Dos veces al día llena Referencias: Abarrotero, Scorpion y MayoreoTotal en compra;
+        Similares y Del Ahorro en venta si la tienda responde.
+        <strong> Otros</strong> es el promedio cuando hay más de una cadena.
+        Exprezo / Zorro no tiene lista pública: se actualiza importando el CSV.
+        Un PVP no cambia hasta que lo apruebes aquí.
       </p>
 
       <div style={{
@@ -226,6 +253,17 @@ export default function MonitorPreciosModule() {
             if (f) onCsv(f);
           }}
         />
+        <button
+          type="button"
+          disabled={busy}
+          onClick={onRastrear}
+          style={{
+            padding: "8px 14px", borderRadius: 8, border: `1px solid ${BRAND.primary}`,
+            background: BRAND.primary, color: "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer",
+          }}
+        >
+          {busy ? "Buscando…" : "Buscar precios ahora"}
+        </button>
         <span style={{ fontSize: 11, color: C.textDim }}>
           Columnas: nombre/producto, precio. EAN opcional. El precio tiene que venir en el archivo.
         </span>

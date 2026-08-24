@@ -5,7 +5,7 @@
  */
 "use strict";
 
-const { getSupabaseAdminConfig, validateAdminSession } = require("../_lib/supabaseAdmin");
+const { getSupabaseAdminConfig, validateAdminSession, validateEmployeeSession } = require("../_lib/supabaseAdmin");
 const { runMonitorPreciosJob } = require("../_lib/monitorPreciosJob");
 
 function getQuery(req) {
@@ -75,6 +75,20 @@ module.exports = async function handler(req, res) {
           ciudad: body.ciudad,
         },
       });
+      res.status(200).json(result);
+      return;
+    }
+
+    if (action === "rastrear") {
+      const sessionToken = String(
+        req.headers["x-session-token"] || readJsonBody(req).session_token || ""
+      ).trim();
+      const sessionOk = await validateEmployeeSession(supabaseUrl, serviceKey, sessionToken);
+      if (!sessionOk) {
+        res.status(401).json({ ok: false, error: "unauthorized" });
+        return;
+      }
+      const result = await runMonitorPreciosJob({ supabaseUrl, serviceKey, opts: {} });
       res.status(200).json(result);
       return;
     }

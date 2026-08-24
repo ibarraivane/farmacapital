@@ -2,20 +2,19 @@
  * Monitor de precios de referencia — configuración.
  *
  * REGLA DE ORO: ningún modelo genera, estima ni recuerda precios.
- * El LLM solo elige entre candidatos de emparejamiento.
+ * El job diario rastrea catálogos públicos y escribe las columnas de Referencias.
+ * Exprezo no tiene catálogo público: se actualiza importando la lista.
  *
  * Márgenes de ESTE monitor (piso sobre costo). No toca pricing_rules.
  *   patente 12 % · genérico 25 % · OTC 30 %
  *
  * Variables de entorno (solo servidor, nunca en el cliente):
- *   ANTHROPIC_API_KEY          — emparejador (paso 3.3), opcional
+ *   ANTHROPIC_API_KEY          — emparejador (import CSV), opcional
  *   ANTHROPIC_MODEL            — default claude-sonnet-4-20250514
  *   PROFECO_QQP_CSV_URL        — URL del CSV oficial de datos.profeco.gob.mx
  *   PROFECO_QQP_CIUDAD         — filtro opcional (ej. "Ciudad de México")
  *   DATOS_GOB_PATENTE_CSV_URL  — CSV del catálogo de datos abiertos (opcional)
- *   CRON_SECRET                — job semanal /api/monitor-precios/job
- *
- * No implementar scrapers de cadenas hasta revisar robots.txt y términos.
+ *   CRON_SECRET                — job /api/monitor-precios/job
  */
 
 "use strict";
@@ -43,8 +42,8 @@ const MONITOR_PRECIOS_CONFIG = {
     verificar: 0.6,
     max_llamadas_por_corrida: 40,
   },
-  fuentes_venta: ["profeco_qqp", "datos_gob_patente"],
-  fuentes_compra: ["lista_distribuidor"],
+  fuentes_venta: ["fahorro", "similares", "otros_venta", "profeco_qqp", "datos_gob_patente"],
+  fuentes_compra: ["abarrotero", "scorpion", "mayoreototal", "lista_distribuidor"],
 };
 
 module.exports = { MONITOR_PRECIOS_CONFIG };

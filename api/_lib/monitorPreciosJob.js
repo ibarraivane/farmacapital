@@ -5,6 +5,7 @@
 
 const { MONITOR_PRECIOS_CONFIG } = require("../../src/lib/monitorPrecios/config");
 const { correrPipeline } = require("../../src/lib/monitorPrecios/pipeline");
+const { rastrearReferencias } = require("../../src/lib/monitorPrecios/rastrearReferencias");
 const { crearAdaptadorDistribuidor } = require("../../src/lib/monitorPrecios/fuentes/distribuidor");
 const { crearAdaptadorProfecoQqp } = require("../../src/lib/monitorPrecios/fuentes/profecoQqp");
 const { crearAdaptadorDatosGobPatente } = require("../../src/lib/monitorPrecios/fuentes/datosGobPatente");
@@ -337,32 +338,111 @@ function adaptadoresJob(opts, capturasDb) {
   return list;
 }
 
+async function persistirFilasUi(supabaseUrl, serviceKey, filas) {
+  if (!filas.length) return 0;
+  const hoy = hoyMexico();
+  const porFuente = new Map();
+  for (const f of filas) {
+    if (!porFuente.has(f.fuente)) porFuente.set(f.fuente, []);
+    porFuente.get(f.fuente).push(f);
+  }
+  let n = 0;
+  for (const [fuente, rows] of porFuente) {
+    const tipo = rows[0].tipo || tipoDeFuente(fuente);
+    await restPost(supabaseUrl, serviceKey, "importaciones_referencia", [{
+      fuente,
+      tipo,
+      fecha_lista: hoy,
+      archivo: "rastreo_automatico",
+      filas_ok: rows.length,
+      filas_error: 0,
+      notas: "monitor_rastreo",
+    }]);
+    for (const part of chunk(rows, 80)) {
+      await restPost(supabaseUrl, serviceKey, "producto_precios_referencia", part.map((r) => ({
+        producto_id: r.producto_id,
+        fuente: r.fuente,
+        tipo,
+        precio: r.precio,
+        fecha: hoy,
+        nombre_fuente: r.nombre_fuente,
+        confianza: r.confianza,
+        origen: r.origen || "job_api",
+        notas: r.notas || "rastreo_automatico",
+      })));
+      n += part.length;
+    }
+  }
+  return n;
+}
+
+async function cargarRefsUi(supabaseUrl, serviceKey) {
+  try {
+    const rows = await restGetAll(
+      supabaseUrl,
+      serviceKey,
+      "producto_precios_referencia_actual?select=producto_id,fuente,precio,fecha,tipo"
+    );
+    const map = {};
+    for (const r of rows) {
+      if (!map[r.producto_id]) map[r.producto_id] = {};
+      map[r.producto_id][r.fuente] = r;
+    }
+    return map;
+  } catch {
+    return {};
+  }
+}
+
 async function runMonitorPreciosJob({ supabaseUrl, serviceKey, opts }) {
-  const ctx = await cargarContexto(supabaseUrl, serviceKey);
-  const result = await correrPipeline({
-    adaptadores: adaptadoresJob(opts || {}, ctx.capturasDb),
-    catalogo: ctx.catalogo,
-    mapeosCache: ctx.mapeosCache,
-    ultimoUnitarioPorClave: ctx.ultimoUnitarioPorClave,
-    historialVigente: ctx.historialVigente,
-    llamarModelo: crearLlamarModelo(),
+  if (opts && opts.csvText) {
+    const ctx = await cargarContexto(supabaseUrl, serviceKey);
+    const result = await correrPipeline({
+      adaptadores: adaptadoresJob(opts || {}, ctx.capturasDb),
+      catalogo: ctx.catalogo,
+      mapeosCache: ctx.mapeosCache,
+      ultimoUnitarioPorClave: ctx.ultimoUnitarioPorClave,
+      historialVigente: ctx.historialVigente,
+      llamarModelo: crearLlamarModelo(),
+      ahora: new Date(),
+    });
+    await persistir(supabaseUrl, serviceKey, result, {
+      fuente: opts.fuente || "lista_distribuidor",
+      tipo: opts.fuente === "lista_distribuidor" ? "compra" : "venta",
+      archivo: opts.archivo || "upload.csv",
+    });
+    return {
+      ok: true,
+      modo: "import",
+      capturas: result.capturas.length,
+      propuestas: result.propuestas.length,
+      llamadas_modelo: result.llamadas_modelo,
+      errores_fuente: result.errores_fuente,
+    };
+  }
+
+  const catalogo = await restGetAll(
+    supabaseUrl,
+    serviceKey,
+    "productos?select=id,sku,nombre,marca,codigo_barras,principio_activo,concentracion,forma_farmaceutica,presentacion,precio,costo,tipo,categoria,activo&activo=eq.true"
+  );
+  const refsByProduct = await cargarRefsUi(supabaseUrl, serviceKey);
+  const rast = await rastrearReferencias({
+    catalogo,
+    refsByProduct,
     ahora: new Date(),
   });
-  await persistir(supabaseUrl, serviceKey, result, {
-    fuente: (opts && opts.fuente) || "profeco_qqp",
-    tipo: (opts && opts.fuente) === "lista_distribuidor" ? "compra" : "venta",
-    archivo: (opts && opts.archivo) || "job_semanal",
-  });
+  const insertadas = await persistirFilasUi(supabaseUrl, serviceKey, rast.filas);
   return {
     ok: true,
-    capturas: result.capturas.length,
-    normalizadas: result.capturas.filter((c) => c.estado_norm === "NORMALIZADO").length,
-    mapeos: result.mapeos.length,
-    referencias: result.referencias.length,
-    anomalias: result.referencias.filter((r) => r.estado_ref === "ANOMALIA_POR_REVISAR").length,
-    propuestas: result.propuestas.length,
-    llamadas_modelo: result.llamadas_modelo,
-    errores_fuente: result.errores_fuente,
+    modo: "rastreo",
+    insertadas,
+    ofertas_compra: rast.ofertas_compra,
+    matches_compra: rast.matches_compra,
+    busquedas_venta: rast.busquedas_venta,
+    filas: rast.filas.length,
+    errores_fuente: rast.errores,
+    ms: rast.ms,
   };
 }
 

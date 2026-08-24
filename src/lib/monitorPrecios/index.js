@@ -11,6 +11,7 @@ const { emparejarSku, validarRespuestaModelo, indexarCache } = require("./empare
 const { evaluarAnomalia, mediana, consolidarReferencia } = require("./referencia");
 const { calcularPvpSugerido, generarPropuesta } = require("./sugerenciaPvp");
 const { correrPipeline } = require("./pipeline");
+const { rastrearReferencias } = require("./rastrearReferencias");
 
 module.exports = {
   MONITOR_PRECIOS_CONFIG,
@@ -31,4 +32,5 @@ module.exports = {
   calcularPvpSugerido,
   generarPropuesta,
   correrPipeline,
+  rastrearReferencias,
 };

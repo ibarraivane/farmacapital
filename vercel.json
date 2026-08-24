@@ -146,7 +146,7 @@
     },
     {
       "path": "/api/monitor-precios/job",
-      "schedule": "0 7 * * 1"
+      "schedule": "0 13,1 * * *"
     }
   ]
 }
