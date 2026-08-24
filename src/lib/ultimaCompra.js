@@ -92,7 +92,9 @@ export function costoComparacionDe(producto, refsMap) {
 
 export function filasCompraVigenteDesdeRecepcion(rec, actualesPorProducto = {}) {
   const proveedor = normalizeProveedorCompra(rec?.proveedor) || String(rec?.proveedor || "").trim();
-  const fecha = rec?.fecha || new Date().toISOString().slice(0, 10);
+  // La vista actual es DISTINCT ON fecha DESC: hay que estampar hoy para que el más barato se vea.
+  const fecha = new Date().toISOString().slice(0, 10);
+  const fechaTicket = rec?.fecha || fecha;
   const folio = rec?.folio ? String(rec.folio) : "";
   const byProd = new Map();
   for (const item of rec?.items || []) {
@@ -112,7 +114,7 @@ export function filasCompraVigenteDesdeRecepcion(rec, actualesPorProducto = {}) 
       sku_externo: folio || null,
       confianza: 100,
       origen: "manual",
-      notas: folio ? `ticket ${folio}` : "recepcion",
+      notas: folio ? `ticket ${folio} ${fechaTicket}` : `recepcion ${fechaTicket}`,
     });
   }
   return [...byProd.values()];

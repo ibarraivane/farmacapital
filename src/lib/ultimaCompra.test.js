@@ -56,5 +56,6 @@ describe("compra vigente", () => {
     expect(filas[0].producto_id).toBe(10);
     expect(filas[0].precio).toBe(64.44);
     expect(filas[0].nombre_fuente).toBe("Farmalive");
+    expect(filas[0].fecha).toBe(new Date().toISOString().slice(0, 10));
   });
 });

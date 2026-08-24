@@ -103,7 +103,8 @@ async function registrarDesdeRecepcion(supabaseUrl, serviceKey, recepcionId) {
   }
 
   const proveedor = normalizeProveedor(rec.proveedor) || String(rec.proveedor || '').trim();
-  const fecha = rec.fecha || new Date().toISOString().slice(0, 10);
+  const fecha = new Date().toISOString().slice(0, 10);
+  const fechaTicket = rec.fecha || fecha;
   const folio = rec.folio ? String(rec.folio) : '';
   const byProd = new Map();
   for (const item of items || []) {
@@ -121,7 +122,7 @@ async function registrarDesdeRecepcion(supabaseUrl, serviceKey, recepcionId) {
       sku_externo: folio || null,
       confianza: 100,
       origen: 'manual',
-      notas: folio ? `ticket ${folio}` : 'recepcion',
+      notas: folio ? `ticket ${folio} ${fechaTicket}` : `recepcion ${fechaTicket}`,
     });
   }
   const filas = [...byProd.values()];
