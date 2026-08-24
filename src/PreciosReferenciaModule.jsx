@@ -24,6 +24,7 @@ import {
   roundPrecioVenta,
   productoSubtituloReferencia,
 } from "./lib/preciosReferencia";
+import { costoComparacionDe, ultimaCompraDe } from "./lib/ultimaCompra";
 import { inventarioProductMatchesBusqueda } from "./utils/fuzzySearch";
 import ImportReferenciaPrecios from "./components/ImportReferenciaPrecios";
 
@@ -33,6 +34,7 @@ const COL_DEFAULTS_COMPRA = {
   producto: 160,
   sku: 72,
   costo: 64,
+  ultima: 108,
   exprezo: 68,
   marzam: 68,
   nadro: 68,
@@ -56,7 +58,7 @@ const COL_DEFAULTS_VENTA = {
   accion: 68,
 };
 
-const COL_STORAGE_V = "v5";
+const COL_STORAGE_V = "v6";
 const TAB_STORAGE_KEY = "farmacapital_precios_ref_tab";
 const SUGERIDO_OVERRIDES_KEY = "farmacapital_precios_sugerido_overrides";
 
@@ -107,6 +109,7 @@ const COL_LABELS_COMPRA = {
   producto: "Producto",
   sku: "SKU",
   costo: "Tu costo",
+  ultima: "Última compra",
   exprezo: "Exprezo",
   marzam: "Marzam",
   nadro: "Nadro",
@@ -262,12 +265,12 @@ function EditableMargenCell({
   );
 }
 
-function DiffBadge({ pct, mode, C }) {
+function DiffBadge({ pct, mode, C, vsLabel }) {
   if (pct == null) return <span style={{ color: C.textDim }}>—</span>;
 
   if (mode === "compra") {
     const tone = colorDiffCompra(pct);
-    const label = labelDiffCompra(pct);
+    const label = labelDiffCompra(pct, vsLabel);
     const col =
       tone === "tu_costo_mejor" ? C.green :
       tone === "proveedor_mas_barato" ? C.blue : C.textMid;
@@ -368,6 +371,7 @@ function ColumnSizer({ tab, colWidths, setColWidths, C }) {
     producto: [120, 320],
     sku: [56, 140],
     costo: [52, 100],
+    ultima: [80, 180],
     tuVenta: [52, 100],
     margen: [48, 90],
     margenEst: [48, 90],
@@ -447,6 +451,9 @@ function TablaCompra({
             <th style={thS("producto")}>Producto</th>
             <th style={thS("sku")}>SKU</th>
             <th style={{ ...thS("costo"), textAlign: "right" }}>Tu costo</th>
+            <th style={{ ...thS("ultima"), textAlign: "right" }} title="Lo que pagamos en el último ticket de Recibir">
+              Última compra
+            </th>
             {FUENTES_COMPRA.map((id) => (
               <th
                 key={id}
@@ -464,11 +471,14 @@ function TablaCompra({
         </thead>
         <tbody>
           {!fil.length && (
-            <tr><td colSpan={4 + FUENTES_COMPRA.length} style={{ textAlign: "center", padding: 32, color: C.textMid }}>Sin productos</td></tr>
+            <tr><td colSpan={5 + FUENTES_COMPRA.length} style={{ textAlign: "center", padding: 32, color: C.textMid }}>Sin productos</td></tr>
           )}
           {fil.map((p, i) => {
             const refs = refsByProduct[p.id] || {};
-            const mejor = calcMejorCompra(p.costo, refs);
+            const ultima = ultimaCompraDe(p, refs);
+            const costoBase = costoComparacionDe(p, refs);
+            const mejor = calcMejorCompra(costoBase, refs, ultima || {});
+            const vsLabel = ultima?.origen === "ticket" ? "última compra" : "tu costo";
             const rowBg = i % 2 ? "#f8fafc" : "transparent";
 
             return (
@@ -489,9 +499,22 @@ function TablaCompra({
                   tdStyle={{ ...tdS("costo", { fontWeight: 700, background: rowBg }) }}
                   display={fmtPrecioRef(p.costo)}
                 />
+                <td style={{ ...tdS("ultima", { textAlign: "right", background: rowBg }) }}>
+                  {ultima?.origen === "ticket" ? (
+                    <div>
+                      <div style={{ fontWeight: 700, color: C.text }}>{fmtPrecioRef(ultima.precio)}</div>
+                      <div style={{ fontSize: 10, color: C.blue, fontWeight: 700 }}>{ultima.proveedor}</div>
+                      {ultima.fecha ? (
+                        <div style={{ fontSize: 9, color: C.textMid }}>{ultima.fecha}</div>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <span style={{ color: C.textDim }}>—</span>
+                  )}
+                </td>
                 {FUENTES_COMPRA.map((id) => {
                   const precio = refs[id]?.precio;
-                  const pct = diffPctCompra(p.costo, precio);
+                  const pct = diffPctCompra(costoBase, precio);
                   const tone = colorDiffCompra(pct);
                   const col =
                     tone === "tu_costo_mejor" ? C.green :
@@ -514,7 +537,7 @@ function TablaCompra({
                       display={precio != null ? (
                         <div>
                           <span style={{ color: col, fontWeight: 600 }}>{fmtPrecioRef(precio)}</span>
-                          <div><DiffBadge pct={pct} mode="compra" C={C} /></div>
+                          <div><DiffBadge pct={pct} mode="compra" C={C} vsLabel={vsLabel} /></div>
                         </div>
                       ) : "—"}
                     />
@@ -887,7 +910,8 @@ export default function PreciosReferenciaModule() {
 
     for (const p of productos) {
       const refs = refsByProduct[p.id] || {};
-      const mejor = calcMejorCompra(p.costo, refs);
+      const ultima = ultimaCompraDe(p, refs);
+      const mejor = calcMejorCompra(costoComparacionDe(p, refs), refs, ultima || {});
       if (mejor?.masBaratoQueTuCosto) compraOportunidad += 1;
       if (!FUENTES_COMPRA.some((f) => refs[f]?.precio != null)) sinRefCompra += 1;
 
@@ -1168,7 +1192,7 @@ export default function PreciosReferenciaModule() {
 
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
         <span style={{ padding: "4px 12px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: "#dbeafe", color: C.blue }}>
-          Proveedor más barato que abastos: {stats.compraOportunidad}
+          Proveedor más barato que la última compra: {stats.compraOportunidad}
         </span>
         <span style={{ padding: "4px 12px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: C.redDim, color: C.red }}>
           Venta más cara que ref.: {stats.ventaCaro}
@@ -1214,9 +1238,10 @@ export default function PreciosReferenciaModule() {
 
       {tab === "compra" && (
         <p style={{ fontSize: 11, color: C.textDim, marginBottom: 10 }}>
-          Compara tu costo de abastos vs proveedores. Columna <strong>Otros</strong>: promedio o precio que consultes (Claude, Google, etc.).
-          <strong style={{ color: C.green }}> Verde</strong> = ref. más cara que tu costo.
-          <strong style={{ color: C.blue }}> Azul</strong> = ref. más barata. «Mejor opción» = mínimo de todos.
+          Compara la <strong>última compra</strong> (quién y a qué precio en Recibir) vs listas de mayoristas.
+          Si aún no hay ticket, se usa tu costo de catálogo. Columna <strong>Otros</strong>: promedio o consulta manual.
+          <strong style={{ color: C.green }}> Verde</strong> = lista más cara que la última compra.
+          <strong style={{ color: C.blue }}> Azul</strong> = lista más barata. «Mejor opción» = mínimo de todos.
           {" "}Las columnas <strong>Margen %</strong>, <strong>Sugerido</strong> y <strong>Marg. est.</strong> están en la pestaña{" "}
           <button
             type="button"

@@ -99,7 +99,13 @@ export default function ReabastoModule() {
         ...enriched,
         stock: enriched.stock_peps,
         mejorTienda: calcMejorTienda(refsByProduct[p.id]),
-        mejorCompra: calcMejorCompra(p.costo, refsByProduct[p.id]),
+        mejorCompra: calcMejorCompra(
+          (refsByProduct[p.id]?.ultima_compra?.precio ?? p.costo),
+          refsByProduct[p.id],
+          refsByProduct[p.id]?.ultima_compra
+            ? { proveedor: refsByProduct[p.id].ultima_compra.nombre_fuente, origen: "ticket" }
+            : {}
+        ),
       };
     });
     setProductos(rows);
