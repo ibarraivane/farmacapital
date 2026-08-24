@@ -1,6 +1,7 @@
 /** Historia de compras — pestaña Historia dentro de Recibir.
- *  Arma la tabla producto (filas) × ticket (columnas) y marca, celda por
- *  celda, si esa compra salió más barata, más cara o igual que la anterior.
+ *  Filas = productos, columnas = FECHAS de compra. Dentro de cada celda va
+ *  el precio y con quién se compró ese día, porque en un mismo día se puede
+ *  haber comprado el mismo producto en varias tiendas.
  */
 
 import { proveedorCompraVisible } from "./ultimaCompra";
@@ -13,15 +14,10 @@ export function parseCosto(val) {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
-export function etiquetaTicket(t) {
-  const quien = proveedorCompraVisible(t?.proveedor) || "Sin tienda";
-  return t?.folio ? `${quien} · ${t.folio}` : quien;
-}
-
 export function fechaCorta(f) {
   const s = String(f || "").slice(0, 10);
   const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  return m ? `${m[3]}/${m[2]}` : "";
+  return m ? `${m[3]}/${m[2]}/${m[1].slice(2)}` : "";
 }
 
 /** Compara contra la compra anterior de ESE producto, no contra la columna vecina. */
@@ -35,29 +31,34 @@ export function tendenciaCosto(costo, anterior) {
 
 /**
  * @param payload {{tickets: [], renglones: []}} tal cual lo devuelve recepcion_historial
- * @returns {{tickets: [], filas: []}} tickets del más nuevo al más viejo;
+ * @returns {{fechas: [], filas: []}} fechas de la más nueva a la más vieja;
  *          cada fila trae `celdas` alineadas a ese mismo orden.
  */
 export function construirHistorial(payload) {
-  const tickets = [...(payload?.tickets || [])]
-    .map((t) => ({
-      ...t,
-      quien: proveedorCompraVisible(t.proveedor) || "Sin tienda",
-      etiqueta: etiquetaTicket(t),
-    }))
-    .sort((a, b) => {
-      const f = String(b.fecha || "").localeCompare(String(a.fecha || ""));
-      return f !== 0 ? f : Number(b.id) - Number(a.id);
+  const tickets = new Map();
+  for (const t of payload?.tickets || []) {
+    tickets.set(Number(t.id), {
+      id: Number(t.id),
+      fecha: String(t.fecha || "").slice(0, 10),
+      tienda: proveedorCompraVisible(t.proveedor) || "Sin tienda",
+      folio: t.folio || "",
     });
+  }
 
-  const idx = new Map(tickets.map((t, i) => [Number(t.id), i]));
+  // Una columna por día, de la más reciente a la más vieja.
+  const fechas = [...new Set([...tickets.values()].map((t) => t.fecha))]
+    .filter(Boolean)
+    .sort((a, b) => b.localeCompare(a));
+  const idx = new Map(fechas.map((f, i) => [f, i]));
+
   const porProducto = new Map();
-
   for (const r of payload?.renglones || []) {
     const productoId = Number(r.producto_id);
-    const col = idx.get(Number(r.recepcion_id));
-    const costo = parseCosto(r.costo);
-    if (!productoId || col === undefined || costo == null) continue;
+    const ticket = tickets.get(Number(r.recepcion_id));
+    const precio = parseCosto(r.costo);
+    if (!productoId || !ticket || precio == null) continue;
+    const col = idx.get(ticket.fecha);
+    if (col === undefined) continue;
 
     let fila = porProducto.get(productoId);
     if (!fila) {
@@ -65,58 +66,79 @@ export function construirHistorial(payload) {
         producto_id: productoId,
         sku: r.sku || "",
         nombre: r.nombre || "",
-        celdas: new Array(tickets.length).fill(null),
+        celdas: new Array(fechas.length).fill(null),
       };
       porProducto.set(productoId, fila);
     }
     if (!fila.nombre && r.nombre) fila.nombre = r.nombre;
     if (!fila.sku && r.sku) fila.sku = r.sku;
-    fila.celdas[col] = { costo, cantidad: Number(r.cantidad) || 0 };
+
+    if (!fila.celdas[col]) fila.celdas[col] = { fecha: ticket.fecha, compras: [] };
+    fila.celdas[col].compras.push({
+      precio,
+      tienda: ticket.tienda,
+      folio: ticket.folio,
+      cantidad: Number(r.cantidad) || 0,
+    });
   }
 
   const filas = [...porProducto.values()];
   for (const fila of filas) {
-    // Del más viejo al más nuevo, para que «anterior» sea la compra previa.
+    for (const celda of fila.celdas) {
+      if (!celda) continue;
+      // La más barata del día manda: es la que arriba en la celda y la que
+      // se compara contra el día anterior.
+      celda.compras.sort((a, b) => a.precio - b.precio || a.tienda.localeCompare(b.tienda, "es"));
+      celda.mejor = celda.compras[0].precio;
+      celda.tienda = celda.compras[0].tienda;
+      celda.cantidad = celda.compras.reduce((s, c) => s + c.cantidad, 0);
+      celda.tiendas = celda.compras.length;
+    }
+
+    // Del día más viejo al más nuevo, para que «anterior» sea la compra previa.
     let previo = null;
     for (let i = fila.celdas.length - 1; i >= 0; i -= 1) {
       const celda = fila.celdas[i];
       if (!celda) continue;
-      celda.tendencia = tendenciaCosto(celda.costo, previo);
+      celda.tendencia = tendenciaCosto(celda.mejor, previo);
       celda.anterior = previo;
-      previo = celda.costo;
+      previo = celda.mejor;
     }
 
-    const costos = fila.celdas.filter(Boolean).map((c) => c.costo);
-    fila.compras = costos.length;
-    fila.minCosto = Math.min(...costos);
-    fila.maxCosto = Math.max(...costos);
-    fila.ultimoCosto = fila.celdas.find(Boolean)?.costo ?? null;
-    fila.piezas = fila.celdas.reduce((s, c) => s + (c?.cantidad || 0), 0);
+    const conDato = fila.celdas.filter(Boolean);
+    fila.dias = conDato.length;
+    fila.compras = conDato.reduce((s, c) => s + c.compras.length, 0);
+    fila.minCosto = Math.min(...conDato.map((c) => c.mejor));
+    fila.maxCosto = Math.max(...conDato.map((c) => c.mejor));
+    fila.ultimoCosto = conDato[0].mejor;
+    fila.piezas = conDato.reduce((s, c) => s + c.cantidad, 0);
 
     // La base: la compra más barata es la que manda en la columna Costo.
-    for (const celda of fila.celdas) {
-      if (celda) celda.esBase = celda.costo <= fila.minCosto + EPS;
+    for (const celda of conDato) {
+      celda.esBase = celda.mejor <= fila.minCosto + EPS;
     }
-    const colBase = fila.celdas.findIndex((c) => c?.esBase);
-    fila.tiendaBase = colBase >= 0 ? tickets[colBase].quien : "";
+    const base = fila.celdas.find((c) => c?.esBase);
+    fila.tiendaBase = base ? base.tienda : "";
+    fila.fechaBase = base ? base.fecha : "";
   }
 
   filas.sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
-  return { tickets, filas };
+  return { fechas, filas };
 }
 
-/** Texto del buscador → filas que lo contienen en nombre o SKU. */
+/** Texto del buscador → filas que lo contienen en nombre, SKU o tienda. */
 export function filtrarFilas(filas, q) {
   const term = String(q || "").trim().toLowerCase();
   if (!term) return filas;
   return filas.filter(
     (f) =>
       f.nombre.toLowerCase().includes(term)
-      || String(f.sku).toLowerCase().includes(term),
+      || String(f.sku).toLowerCase().includes(term)
+      || f.celdas.some((c) => c?.compras.some((x) => x.tienda.toLowerCase().includes(term))),
   );
 }
 
-/** Solo productos comprados más de una vez: los que sí tienen con qué comparar. */
+/** Solo productos comprados en más de un día: los que sí tienen con qué comparar. */
 export function soloConComparacion(filas) {
-  return filas.filter((f) => f.compras > 1);
+  return filas.filter((f) => f.dias > 1);
 }
