@@ -219,6 +219,49 @@ export function fechasActualizacionPorFuente(rows) {
   return m;
 }
 
+export const NOTA_RASTREO_BOT = "rastreo_automatico";
+
+export function esActualizacionBot(row) {
+  return String(row?.notas || "") === NOTA_RASTREO_BOT;
+}
+
+export function instanteDeRef(row) {
+  const t = Date.parse(row?.created_at || row?.fecha_captura || row?.fecha || "");
+  return Number.isFinite(t) ? t : null;
+}
+
+/** Última vez que el bot tocó las refs de venta de este SKU. */
+export function instanteBotVentaDe(refsMap) {
+  let best = null;
+  for (const id of FUENTES_VENTA) {
+    const row = refsMap?.[id];
+    if (!esActualizacionBot(row)) continue;
+    const t = instanteDeRef(row);
+    if (t != null && (best == null || t > best)) best = t;
+  }
+  return best;
+}
+
+export function instanteBotVentaGlobal(refsByProduct) {
+  let best = null;
+  for (const refs of Object.values(refsByProduct || {})) {
+    const t = instanteBotVentaDe(refs);
+    if (t != null && (best == null || t > best)) best = t;
+  }
+  return best;
+}
+
+export function fmtBotCuando(ts) {
+  if (ts == null) return null;
+  return new Date(ts).toLocaleString("es-MX", {
+    timeZone: "America/Mexico_City",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 /** Mapa producto_id → { fuente → fila ref } desde filas de producto_precios_referencia_actual */
 export function buildReferenciasPorProducto(rows) {
   const byProduct = {};

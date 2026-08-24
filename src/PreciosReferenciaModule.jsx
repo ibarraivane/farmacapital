@@ -25,6 +25,9 @@ import {
   fmtPrecioRef,
   fmtPrecioVenta,
   roundPrecioVenta,
+  instanteBotVentaDe,
+  instanteBotVentaGlobal,
+  fmtBotCuando,
   productoSubtituloReferencia,
 } from "./lib/preciosReferencia";
 import { costoComparacionDe, compraVigenteDe } from "./lib/ultimaCompra";
@@ -53,7 +56,7 @@ const COL_DEFAULTS_COMPRA = {
 
 const COL_DEFAULTS_VENTA = {
   producto: 150,
-  tuVenta: 62,
+  tuVenta: 76,
   margen: 54,
   fahorro: 68,
   similares: 68,
@@ -637,6 +640,8 @@ function TablaVenta({
               accion === "bajar" ? "Bajar" : "Aplicar";
             const rowBg = i % 2 ? "#f8fafc" : "transparent";
             const sinCosto = !(parseFloat(p.costo) > 0);
+            const botTs = instanteBotVentaDe(refs);
+            const botLabel = fmtBotCuando(botTs);
 
             return (
               <tr key={p.id} style={{ background: rowBg }}>
@@ -653,7 +658,17 @@ function TablaVenta({
                   onCommit={onCommit}
                   onCancel={onCancel}
                   tdStyle={{ ...tdS("tuVenta", { fontWeight: 700, color: BRAND.primary, background: rowBg }) }}
-                  display={fmtPrecioVenta(p.precio)}
+                  display={
+                    <div>
+                      <div>{fmtPrecioVenta(p.precio)}</div>
+                      <div
+                        style={{ fontSize: 10, fontWeight: 600, marginTop: 2, color: botLabel ? C.blue : C.textDim }}
+                        title={botLabel ? "Última vez que el bot actualizó Del Ahorro, Similares u Otros de este SKU" : "El bot aún no ha tocado este SKU"}
+                      >
+                        {botLabel ? `Bot ${botLabel}` : "Bot —"}
+                      </div>
+                    </div>
+                  }
                 />
                 <EditableMargenCell
                   C={C}
@@ -953,6 +968,11 @@ export default function PreciosReferenciaModule() {
 
     return { compraOportunidad, ventaCaro, sinRefCompra, sinRefVenta };
   }, [productos, refsByProduct]);
+
+  const botVentaCuando = useMemo(
+    () => fmtBotCuando(instanteBotVentaGlobal(refsByProduct)),
+    [refsByProduct]
+  );
 
   const startEdit = useCallback((key, value) => {
     setInlineEdit({ key, draft: value ?? "" });
@@ -1367,7 +1387,13 @@ export default function PreciosReferenciaModule() {
 
       {tab === "venta" && (
         <p style={{ fontSize: 11, color: C.textDim, marginBottom: 10 }}>
-          Precios en <strong>pesos enteros</strong>. <strong>Otros</strong> = promedio de mercado manual (Claude, Google…).
+          Bajo <strong>Tu venta</strong> sale cuándo el bot tocó ese SKU (Del Ahorro / Similares / Otros).
+          {botVentaCuando ? (
+            <> Última corrida: <strong style={{ color: C.blue }}>{botVentaCuando}</strong>.</>
+          ) : (
+            <> El bot aún no ha escrito precios de venta.</>
+          )}
+          {" "}Precios en <strong>pesos enteros</strong>. <strong>Otros</strong> = promedio cuando hay más de una cadena.
           Sugerido = ~2% bajo la ref. más barata. Si hoy vendes más barato, el botón dice <strong>Subir</strong> (estabas dejando margen). Si vendes más caro, dice <strong>Bajar</strong>.
           Badge ámbar vs ref. = demasiado barato frente al mercado. Edita margen % o sugerido; <strong>↺ Competir</strong> restaura mercado.
           Margen: <strong style={{ color: C.green }}>verde</strong> ok,
