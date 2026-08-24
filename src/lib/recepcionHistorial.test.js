@@ -3,19 +3,23 @@ import {
   tendenciaCosto,
   filtrarFilas,
   soloConComparacion,
+  fechaCorta,
 } from "./recepcionHistorial";
 
 const payload = {
   tickets: [
-    { id: 1, proveedor: "Cityfarma Iztapalapa", folio: "A1", fecha: "2026-08-01" },
-    { id: 2, proveedor: "Levic", folio: "B2", fecha: "2026-08-10" },
-    { id: 3, proveedor: "Farmalive Club", folio: "C3", fecha: "2026-08-20" },
+    { id: 1, proveedor: "Cityfarma Iztapalapa", folio: "A1", fecha: "2026-08-08" },
+    { id: 2, proveedor: "Bodega F-42", folio: "A2", fecha: "2026-08-08" },
+    { id: 3, proveedor: "Levic", folio: "B2", fecha: "2026-08-20" },
+    { id: 4, proveedor: "Farmalive Club", folio: "C3", fecha: "2026-08-21" },
   ],
   renglones: [
+    // el mismo día en dos tiendas distintas
     { recepcion_id: 1, producto_id: 10, sku: "S10", nombre: "Paracetamol", cantidad: 5, costo: 90 },
-    { recepcion_id: 2, producto_id: 10, sku: "S10", nombre: "Paracetamol", cantidad: 3, costo: 80 },
-    { recepcion_id: 3, producto_id: 10, sku: "S10", nombre: "Paracetamol", cantidad: 2, costo: 95 },
-    { recepcion_id: 2, producto_id: 20, sku: "S20", nombre: "Aspirina", cantidad: 1, costo: 40 },
+    { recepcion_id: 2, producto_id: 10, sku: "S10", nombre: "Paracetamol", cantidad: 4, costo: 86 },
+    { recepcion_id: 3, producto_id: 10, sku: "S10", nombre: "Paracetamol", cantidad: 3, costo: 80 },
+    { recepcion_id: 4, producto_id: 10, sku: "S10", nombre: "Paracetamol", cantidad: 2, costo: 95 },
+    { recepcion_id: 3, producto_id: 20, sku: "S20", nombre: "Aspirina", cantidad: 1, costo: 40 },
   ],
 };
 
@@ -33,59 +37,66 @@ describe("historia de compras", () => {
     expect(tendenciaCosto(79.99, 80)).toBe("baja");
   });
 
-  test("los tickets salen del más nuevo al más viejo", () => {
-    const { tickets } = construirHistorial(payload);
-    expect(tickets.map((t) => t.id)).toEqual([3, 2, 1]);
-    expect(tickets.map((t) => t.quien)).toEqual(["Farmalive", "Levic", "Farma City"]);
+  test("una columna por día, de la más nueva a la más vieja", () => {
+    const { fechas } = construirHistorial(payload);
+    expect(fechas).toEqual(["2026-08-21", "2026-08-20", "2026-08-08"]);
   });
 
-  test("las celdas se alinean con las columnas y marcan el movimiento", () => {
+  test("dos tiendas el mismo día caen en una sola celda, la barata arriba", () => {
     const { filas } = construirHistorial(payload);
     const para = filas.find((f) => f.producto_id === 10);
-    expect(para.celdas.map((c) => c?.costo)).toEqual([95, 80, 90]);
+    const dia8 = para.celdas[2];
+    expect(dia8.compras.map((c) => [c.precio, c.tienda]))
+      .toEqual([[86, "Bodega F-42"], [90, "Farma City"]]);
+    expect(dia8.mejor).toBe(86);
+    expect(dia8.tienda).toBe("Bodega F-42");
+    expect(dia8.tiendas).toBe(2);
+    expect(dia8.cantidad).toBe(9);
+  });
+
+  test("el movimiento compara el mejor precio de cada día", () => {
+    const { filas } = construirHistorial(payload);
+    const para = filas.find((f) => f.producto_id === 10);
+    expect(para.celdas.map((c) => c?.mejor)).toEqual([95, 80, 86]);
     expect(para.celdas.map((c) => c?.tendencia)).toEqual(["sube", "baja", "primera"]);
   });
 
-  test("la base es la compra más barata y dice en qué tienda fue", () => {
+  test("la base es la compra más barata, con su tienda y su fecha", () => {
     const { filas } = construirHistorial(payload);
     const para = filas.find((f) => f.producto_id === 10);
     expect(para.minCosto).toBe(80);
     expect(para.tiendaBase).toBe("Levic");
+    expect(para.fechaBase).toBe("2026-08-20");
     expect(para.celdas.map((c) => !!c?.esBase)).toEqual([false, true, false]);
-    expect(para.compras).toBe(3);
-    expect(para.piezas).toBe(10);
+    expect(para.dias).toBe(3);
+    expect(para.compras).toBe(4);
+    expect(para.piezas).toBe(14);
     expect(para.ultimoCosto).toBe(95);
   });
 
-  test("un producto comprado una sola vez no tiene con qué comparar", () => {
+  test("un producto de un solo día no tiene con qué comparar", () => {
     const { filas } = construirHistorial(payload);
     const asp = filas.find((f) => f.producto_id === 20);
-    expect(asp.celdas.map((c) => c?.tendencia)).toEqual([undefined, "primera", undefined]);
+    expect(asp.dias).toBe(1);
     expect(soloConComparacion(filas).map((f) => f.producto_id)).toEqual([10]);
   });
 
-  test("filas en orden alfabético y buscador por nombre o SKU", () => {
+  test("el buscador encuentra por nombre, SKU y tienda", () => {
     const { filas } = construirHistorial(payload);
     expect(filas.map((f) => f.nombre)).toEqual(["Aspirina", "Paracetamol"]);
     expect(filtrarFilas(filas, "para").map((f) => f.sku)).toEqual(["S10"]);
     expect(filtrarFilas(filas, "s20").map((f) => f.nombre)).toEqual(["Aspirina"]);
+    expect(filtrarFilas(filas, "bodega").map((f) => f.sku)).toEqual(["S10"]);
     expect(filtrarFilas(filas, "")).toHaveLength(2);
   });
 
-  test("sin tickets no truena", () => {
-    expect(construirHistorial(null)).toEqual({ tickets: [], filas: [] });
-    expect(construirHistorial({ tickets: [], renglones: [] })).toEqual({ tickets: [], filas: [] });
+  test("la fecha se lee dd/mm/aa", () => {
+    expect(fechaCorta("2026-08-08")).toBe("08/08/26");
+    expect(fechaCorta("")).toBe("");
   });
 
-  test("el mismo producto dos veces en un ticket cae en una sola celda", () => {
-    const { filas } = construirHistorial({
-      tickets: [{ id: 1, proveedor: "Levic", folio: "A", fecha: "2026-08-01" }],
-      renglones: [
-        { recepcion_id: 1, producto_id: 10, sku: "S10", nombre: "Paracetamol", cantidad: 5, costo: 90 },
-        { recepcion_id: 1, producto_id: 10, sku: "S10", nombre: "Paracetamol", cantidad: 2, costo: 80 },
-      ],
-    });
-    expect(filas[0].celdas).toHaveLength(1);
-    expect(filas[0].celdas[0].costo).toBe(80);
+  test("sin tickets no truena", () => {
+    expect(construirHistorial(null)).toEqual({ fechas: [], filas: [] });
+    expect(construirHistorial({ tickets: [], renglones: [] })).toEqual({ fechas: [], filas: [] });
   });
 });

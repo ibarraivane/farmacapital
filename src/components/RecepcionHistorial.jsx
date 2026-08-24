@@ -1,7 +1,7 @@
 /** Historia de compras — pestaña dentro de Recibir.
- *  Filas = productos, columnas = tickets (del más nuevo al más viejo).
- *  Cada celda dice a qué costo entró y si esa compra salió más barata,
- *  más cara o igual que la compra anterior de ese mismo producto.
+ *  Filas = productos, columnas = fechas de compra (de la más nueva a la más
+ *  vieja). Dentro de cada celda va el precio y con quién se compró ese día;
+ *  si ese día se compró en varias tiendas, salen todas, la más barata arriba.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { History, Search, Star } from "lucide-react";
@@ -17,42 +17,70 @@ import {
   soloConComparacion,
 } from "../lib/recepcionHistorial";
 
-const ANCHO_PRODUCTO = 210;
-const ANCHO_TICKET = 104;
+const ANCHO_PRODUCTO = 220;
+const ANCHO_FECHA = 148;
 const SCROLL_MAX = "calc(100dvh - 320px)";
 
 const fmtCosto = (n) =>
   n == null ? "—" : `$${Number(n).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const TONOS = {
-  baja:    { color: "#16a34a", bg: "#dcfce7", flecha: "▼" },
-  sube:    { color: "#ef4444", bg: "#fee2e2", flecha: "▲" },
-  igual:   { color: "#475569", bg: "transparent", flecha: "=" },
-  primera: { color: "#1E3ABA", bg: "transparent", flecha: "" },
+  baja:    { color: "#16a34a", bg: "#f0fdf4", borde: "#86efac", flecha: "▼" },
+  sube:    { color: "#ef4444", bg: "#fef2f2", borde: "#fca5a5", flecha: "▲" },
+  igual:   { color: "#475569", bg: "transparent", borde: "#e2e8f0", flecha: "=" },
+  primera: { color: "#1E3ABA", bg: "transparent", borde: "#e2e8f0", flecha: "" },
 };
 
+/** El día completo de un producto: lo que costó y en qué tienda. */
 function Celda({ celda, C, ocultarMontos }) {
-  if (!celda) {
-    return <span style={{ color: C.textDim, fontSize: 11 }}>·</span>;
-  }
+  if (!celda) return <span style={{ color: C.textDim, fontSize: 11 }}>·</span>;
   const tono = TONOS[celda.tendencia] || TONOS.primera;
+
   return (
     <div style={{
       background: tono.bg,
-      borderRadius: 6,
-      padding: "3px 6px",
-      display: "inline-block",
-      minWidth: 62,
-      textAlign: "right",
+      border: `1px solid ${tono.borde}`,
+      borderRadius: 8,
+      padding: "5px 7px",
+      textAlign: "left",
     }}>
-      <div style={{ color: tono.color, fontWeight: 800, fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
-        {tono.flecha ? <span style={{ fontSize: 9, marginRight: 2 }}>{tono.flecha}</span> : null}
-        {ocultarMontos ? "—" : fmtCosto(celda.costo)}
-        {celda.esBase ? (
-          <Star size={9} strokeWidth={3} style={{ marginLeft: 3, verticalAlign: "middle" }} />
-        ) : null}
-      </div>
-      <div style={{ color: C.textDim, fontSize: 9.5, fontWeight: 600 }}>
+      {celda.compras.map((c, i) => (
+        <div
+          key={`${c.tienda}-${i}`}
+          style={{
+            display: "flex", alignItems: "baseline", justifyContent: "space-between",
+            gap: 6,
+            marginTop: i ? 3 : 0,
+            paddingTop: i ? 3 : 0,
+            borderTop: i ? `1px dashed ${C.border}` : "none",
+            opacity: i ? 0.72 : 1,
+          }}
+        >
+          <span style={{
+            color: i ? C.textMid : tono.color,
+            fontWeight: i ? 700 : 800,
+            fontSize: i ? 11 : 12.5,
+            fontVariantNumeric: "tabular-nums",
+            whiteSpace: "nowrap",
+          }}>
+            {i === 0 && tono.flecha ? (
+              <span style={{ fontSize: 9, marginRight: 2 }}>{tono.flecha}</span>
+            ) : null}
+            {ocultarMontos ? "—" : fmtCosto(c.precio)}
+            {i === 0 && celda.esBase ? (
+              <Star size={9} strokeWidth={3} style={{ marginLeft: 3, verticalAlign: "middle" }} />
+            ) : null}
+          </span>
+          <span style={{
+            color: C.textMid, fontSize: 10, fontWeight: 700,
+            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            maxWidth: 78,
+          }} title={c.folio ? `${c.tienda} · folio ${c.folio}` : c.tienda}>
+            {c.tienda}
+          </span>
+        </div>
+      ))}
+      <div style={{ color: C.textDim, fontSize: 9.5, fontWeight: 600, marginTop: 2 }}>
         {celda.cantidad} pz
       </div>
     </div>
@@ -89,23 +117,22 @@ export default function RecepcionHistorial({ ocultarMontos = false }) {
       }
       return;
     }
-    const raw = typeof data === "string" ? JSON.parse(data || "null") : data;
-    setPayload(raw);
+    setPayload(typeof data === "string" ? JSON.parse(data || "null") : data);
   }, []);
 
   useEffect(() => { cargar(); }, [cargar]);
 
-  const { tickets, filas } = useMemo(() => construirHistorial(payload), [payload]);
+  const { fechas, filas } = useMemo(() => construirHistorial(payload), [payload]);
   const visibles = useMemo(() => {
     const base = soloRepetidos ? soloConComparacion(filas) : filas;
     return filtrarFilas(base, q);
   }, [filas, q, soloRepetidos]);
 
   if (loading) {
-    return <div style={{ marginTop: 16 }}><SkeletonTable rows={6} cols={6} /></div>;
+    return <div style={{ marginTop: 16 }}><SkeletonTable rows={6} cols={5} /></div>;
   }
 
-  if (!tickets.length) {
+  if (!fechas.length) {
     return (
       <div style={{
         background: C.card, border: `1px solid ${C.border}`, borderRadius: 14,
@@ -125,7 +152,7 @@ export default function RecepcionHistorial({ ocultarMontos = false }) {
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Buscar producto o SKU"
+            placeholder="Buscar producto, SKU o tienda"
             style={{
               width: "100%", boxSizing: "border-box",
               padding: "9px 12px 9px 32px",
@@ -140,10 +167,10 @@ export default function RecepcionHistorial({ ocultarMontos = false }) {
             checked={soloRepetidos}
             onChange={(e) => setSoloRepetidos(e.target.checked)}
           />
-          Solo lo comprado más de una vez
+          Solo lo comprado en más de un día
         </label>
         <span style={{ color: C.textDim, fontSize: 12 }}>
-          {tickets.length} {tickets.length === 1 ? "ticket" : "tickets"} · {visibles.length} de {filas.length} productos
+          {fechas.length} {fechas.length === 1 ? "fecha" : "fechas"} · {visibles.length} de {filas.length} productos
         </span>
       </div>
 
@@ -159,7 +186,7 @@ export default function RecepcionHistorial({ ocultarMontos = false }) {
           <table style={{
             borderCollapse: "separate", borderSpacing: 0, fontSize: 12,
             tableLayout: "fixed",
-            width: ANCHO_PRODUCTO + tickets.length * ANCHO_TICKET,
+            width: ANCHO_PRODUCTO + fechas.length * ANCHO_FECHA,
           }}>
             <thead>
               <tr style={{ background: C.cardDark }}>
@@ -174,20 +201,20 @@ export default function RecepcionHistorial({ ocultarMontos = false }) {
                 }}>
                   Producto
                 </th>
-                {tickets.map((t) => (
-                  <th key={t.id} style={{
-                    width: ANCHO_TICKET, minWidth: ANCHO_TICKET,
-                    padding: "8px 10px", textAlign: "right",
+                {fechas.map((f) => (
+                  <th key={f} style={{
+                    width: ANCHO_FECHA, minWidth: ANCHO_FECHA,
+                    padding: "8px 10px", textAlign: "left",
                     borderBottom: `1px solid ${C.border}`,
                     position: "sticky", top: 0, zIndex: 4,
                     background: C.cardDark,
                     boxShadow: `0 1px 0 ${C.border}`,
-                  }} title={t.folio ? `Folio ${t.folio}` : ""}>
-                    <div style={{ color: C.text, fontWeight: 800, fontSize: 11.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {t.quien}
+                  }}>
+                    <div style={{ color: C.text, fontWeight: 800, fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
+                      {fechaCorta(f)}
                     </div>
                     <div style={{ color: C.textDim, fontSize: 10, fontWeight: 600 }}>
-                      {fechaCorta(t.fecha)}{t.piezas ? ` · ${t.piezas} pz` : ""}
+                      precio · tienda
                     </div>
                   </th>
                 ))}
@@ -196,7 +223,7 @@ export default function RecepcionHistorial({ ocultarMontos = false }) {
             <tbody>
               {!visibles.length && (
                 <tr>
-                  <td colSpan={tickets.length + 1} style={{ textAlign: "center", padding: 28, color: C.textMid }}>
+                  <td colSpan={fechas.length + 1} style={{ textAlign: "center", padding: 28, color: C.textMid }}>
                     Ningún producto coincide.
                   </td>
                 </tr>
@@ -219,17 +246,18 @@ export default function RecepcionHistorial({ ocultarMontos = false }) {
                       <div style={{ color: C.textDim, fontSize: 10, fontFamily: "monospace" }}>
                         {f.sku || "—"}
                       </div>
-                      {f.compras > 1 && !ocultarMontos ? (
+                      {!ocultarMontos && f.compras > 1 ? (
                         <div style={{ color: C.textMid, fontSize: 10, marginTop: 2 }}>
                           base {fmtCosto(f.minCosto)}
                           {f.tiendaBase ? ` · ${f.tiendaBase}` : ""}
+                          {f.fechaBase ? ` · ${fechaCorta(f.fechaBase)}` : ""}
                         </div>
                       ) : null}
                     </td>
-                    {tickets.map((t, col) => (
-                      <td key={t.id} style={{
-                        width: ANCHO_TICKET, minWidth: ANCHO_TICKET,
-                        padding: "6px 8px", textAlign: "right",
+                    {fechas.map((fecha, col) => (
+                      <td key={fecha} style={{
+                        width: ANCHO_FECHA, minWidth: ANCHO_FECHA,
+                        padding: "6px 8px", verticalAlign: "top",
                         borderBottom: `1px solid ${C.border}`,
                         background: rowBg,
                       }}>
@@ -246,8 +274,9 @@ export default function RecepcionHistorial({ ocultarMontos = false }) {
 
       <p style={{ color: C.textDim, fontSize: 11, marginTop: 10, lineHeight: 1.5 }}>
         <History size={11} style={{ verticalAlign: "middle", marginRight: 4 }} />
-        La estrella marca tu compra más barata: ese es el costo que manda en Referencias de precio.
-        Un ticket más caro se guarda aquí, pero no sube el costo.
+        Cada columna es un día de compra. Si ese día compraste el mismo producto en
+        varias tiendas, salen todas y la más barata va arriba. La estrella marca tu
+        compra más barata: ese es el costo que manda en Referencias de precio.
       </p>
     </div>
   );
