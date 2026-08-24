@@ -10,7 +10,7 @@ dejó la carga original del ticket:
 
   1. el SKU (los CSV de cruce ya lo traen; Equilibrio y Farma MX lo arman
      con su convención EQ-/FMX- + código de proveedor),
-  2. la nota «Código proveedor …» que la carga escribió en el producto,
+  2. el código de barras, para lo que se dio de alta después del cruce,
   3. el lote que la carga registró, si apunta a un solo producto.
 
 Si ninguna resuelve, el renglón se queda fuera en vez de adivinar.
@@ -38,10 +38,10 @@ TICKETS = [
          proveedor="El Surtidor", folio="112558", fecha="2026-08-08", modo="comparacion"),
     dict(archivo="sql/generated/ticket_equilibrio_440393.csv",
          proveedor="Equilibrio", folio="440393", fecha="2026-08-08", modo="equilibrio",
-         prefijo="EQ-", nota="Código proveedor Equilibrio: "),
+         prefijo="EQ-"),
     dict(archivo="sql/generated/ticket_farmamx_CAICA1CA108588.csv",
          proveedor="Farma MX", folio="CAICA1CA108588", fecha="2026-08-08", modo="farmamx",
-         prefijo="FMX-", nota="Clave proveedor Farma MX: "),
+         prefijo="FMX-"),
 ]
 
 MARCA = "backfill ticket inicial"
@@ -60,20 +60,21 @@ def q(s):
     return "NULL" if not s else "'" + s.replace("'", "''") + "'"
 
 
-def qlit(s):
-    """Literal SQL tal cual — respeta el espacio final del prefijo de la nota."""
-    return "'" + str(s).replace("'", "''") + "'"
-
-
 def leer(t):
-    """→ [(sku, codigo, lote, descripcion, cantidad, costo)] ya filtrado."""
+    """→ [(sku, codigo, ean, lote, descripcion, cantidad, costo)] ya filtrado.
+
+    `ean` solo se llena cuando el CSV trae código de barras de verdad. Los
+    tickets de IFC traen clave de proveedor en esa columna, y empatarla
+    contra codigo_barras daría falsos positivos.
+    """
     ruta = os.path.join(RAIZ, t["archivo"])
     filas = []
     with open(ruta, encoding="utf-8-sig") as fh:
         for r in csv.DictReader(fh):
             if t["modo"] == "comparacion":
                 sku = (r.get("sku") or "").strip()
-                codigo = (r.get("ean_ticket") or r.get("clave_ticket") or "").strip()
+                ean = (r.get("ean_ticket") or "").strip()
+                codigo = ean or (r.get("clave_ticket") or "").strip()
                 lote = ""
                 desc = (r.get("descripcion_ticket") or "").strip()
                 cant, costo = num(r.get("cantidad")), num(r.get("costo_ticket"))
@@ -81,27 +82,40 @@ def leer(t):
                 campo = "codigo_prov" if t["modo"] == "equilibrio" else "clave"
                 precio = "costo_unitario" if t["modo"] == "equilibrio" else "precio_unitario"
                 codigo = (r.get(campo) or "").strip()
+                ean = ""
                 sku = t["prefijo"] + codigo if codigo else ""
                 lote = (r.get("lote") or "").strip()
                 desc = (r.get("descripcion") or "").strip()
                 cant, costo = num(r.get("cantidad")), num(r.get(precio))
-            if not sku or cant <= 0 or costo <= 0:
+            if cant <= 0 or costo <= 0:
                 continue
-            filas.append((sku, codigo, lote, desc, int(round(cant)), round(costo, 2)))
+            if not sku and not ean:
+                continue
+            filas.append((sku, codigo, ean, lote, desc, int(round(cant)), round(costo, 2)))
     return filas
 
 
 def resolucion(t):
-    """SQL que devuelve el producto_id de un renglón, o NULL si no se puede."""
-    por_sku = "(SELECT p.id FROM public.productos p WHERE p.sku = d.sku LIMIT 1)"
-    if t["modo"] == "comparacion":
-        return por_sku
-    # to_jsonb evita tronar si la columna notas no existe en este ambiente.
-    return f"""COALESCE(
-        {por_sku},
+    """SQL que devuelve el producto_id de un renglón, o NULL si no se puede.
+
+    Tres huellas, en orden de confianza. `ean` viene vacío en Equilibrio y
+    Farma MX (sus tickets no traen código de barras) y `lote` viene vacío en
+    los CSV de cruce, así que cada cláusula solo actúa donde tiene con qué.
+
+    No se busca por la nota «Código proveedor …» que escribía la carga
+    original: productos.notas no existe en este esquema, así que esa columna
+    nunca se llenó. Por descripción tampoco rescata ninguno — se midió.
+    """
+    return """COALESCE(
+        (SELECT p.id FROM public.productos p WHERE p.sku = d.sku LIMIT 1),
+        -- Un producto puede haberse dado de alta después de generarse el CSV
+        -- de cruce. 12 dígitos mínimo para no confundir el código de barras
+        -- con una clave corta de proveedor.
         (SELECT CASE WHEN count(*) = 1 THEN min(p.id) END
            FROM public.productos p
-          WHERE (to_jsonb(p) ->> 'notas') = {qlit(t['nota'])} || d.codigo),
+          WHERE d.ean IS NOT NULL AND length(d.ean) >= 12
+            AND p.codigo_barras = d.ean),
+        -- El lote que registró la carga original del ticket, con su costo.
         (SELECT CASE WHEN count(DISTINCT l.producto_id) = 1 THEN min(l.producto_id) END
            FROM public.lotes l
           WHERE d.lote IS NOT NULL
@@ -112,8 +126,8 @@ def resolucion(t):
 
 def bloque(t, filas):
     values = ",\n        ".join(
-        "({}, {}, {}, {}, {}, {})".format(q(s), q(c), q(lo), q(de), n, p)
-        for s, c, lo, de, n, p in filas
+        "({}, {}, {}, {}, {}, {}, {})".format(q(s), q(c), q(e), q(lo), q(de), n, p)
+        for s, c, e, lo, de, n, p in filas
     )
     return f"""
 -- ── {t['proveedor']} · folio {t['folio']} · {len(filas)} renglones del ticket ──
@@ -142,7 +156,7 @@ BEGIN
     DELETE FROM public.recepcion_items WHERE recepcion_id = v_id;
   END IF;
 
-  WITH d(sku, codigo, lote, descripcion, cantidad, costo) AS (
+  WITH d(sku, codigo, ean, lote, descripcion, cantidad, costo) AS (
     VALUES
         {values}
   ),
