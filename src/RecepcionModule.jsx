@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { ScanLine } from "lucide-react";
+import { ScanLine, History } from "lucide-react";
 import { C_LIGHT, BRAND } from "./constants";
 import { supabase } from "./supabase";
 import { showToast } from "./ui";
@@ -27,6 +27,7 @@ import { parseTicketCsv } from "./lib/recepcionTicketCsv";
 import { getSessionToken, esErrorSesionEmpleado } from "./utils";
 import { notifySesionEmpleadoInvalida } from "./utils/sesionEmpleadoAuth";
 import { setBloqueaReloadApp } from "./utils/appUpdate";
+import RecepcionHistorial from "./components/RecepcionHistorial";
 
 const fmt = (n) =>
   `$${parseFloat(n || 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -248,6 +249,8 @@ export default function RecepcionModule({ ocultarMontos = false }) {
   const [vistaNuevo, setVistaNuevo] = useState(false);
   const [listaScan, setListaScan] = useState("");
   const listaScanRef = useRef(null);
+  /** "recibir" captura el ticket; "historia" solo consulta lo ya comprado. */
+  const [vista, setVista] = useState("recibir");
 
   useEffect(() => {
     setBloqueaReloadApp(!!doc || !!pendiente, "recibir");
@@ -354,10 +357,11 @@ export default function RecepcionModule({ ocultarMontos = false }) {
   };
 
   useEffect(() => {
+    if (vista !== "recibir") return;
     if (!loading && doc && !pendiente) {
       focusSafe(scanRef);
     }
-  }, [loading, doc, pendiente]);
+  }, [loading, doc, pendiente, vista]);
 
   const rpcError = (err, fallback) => {
     const msg = err?.message || fallback;
@@ -856,6 +860,52 @@ export default function RecepcionModule({ ocultarMontos = false }) {
   const ticketNum = totalTicket.trim() === "" ? null : Number(String(totalTicket).replace(/,/g, ""));
   const estimado = Number(doc?.subtotal_estimado) || 0;
 
+  const tabBar = (
+    <div style={{ display: "flex", gap: 6, borderBottom: `1px solid ${C.border}`, marginBottom: 16 }}>
+      {[
+        { id: "recibir", label: "Recibir", Icon: ScanLine },
+        { id: "historia", label: "Historia", Icon: History },
+      ].map(({ id, label, Icon }) => {
+        const activo = vista === id;
+        return (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setVista(id)}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              padding: "9px 14px", marginBottom: -1,
+              background: "transparent", border: "none",
+              borderBottom: `2px solid ${activo ? BRAND.primary : "transparent"}`,
+              color: activo ? BRAND.primary : C.textMid,
+              fontWeight: 700, fontSize: 13, cursor: "pointer",
+            }}
+          >
+            <Icon size={15} strokeWidth={2.1} />
+            {label}
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  if (vista === "historia") {
+    return (
+      <div style={{ padding: isMobile ? "12px 16px 32px" : "18px 24px 40px", maxWidth: 1180 }}>
+        <div style={{ marginBottom: 16 }}>
+          <h2 style={{ margin: 0, color: C.text, fontSize: 20, fontWeight: 800, display: "flex", alignItems: "center", gap: 8 }}>
+            <ScanLine size={22} strokeWidth={2.2} /> Recibir
+          </h2>
+          <p style={{ margin: "4px 0 0", color: C.textMid, fontSize: 13 }}>
+            Todo lo que has comprado, ticket por ticket. Cada columna es una entrada; el color dice si esa vez salió más barato o más caro que la compra anterior.
+          </p>
+        </div>
+        {tabBar}
+        <RecepcionHistorial ocultarMontos={ocultarMontos} />
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div style={{ padding: 28, color: C.textMid }}>Cargando recepción…</div>
@@ -889,6 +939,8 @@ export default function RecepcionModule({ ocultarMontos = false }) {
           </div>
         )}
       </div>
+
+      {tabBar}
 
       {pendientes.length > 0 && (
         <div style={{ marginBottom: 16 }}>
