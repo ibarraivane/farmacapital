@@ -4,14 +4,16 @@ import React, { lazy, Suspense, useState, useEffect } from "react";
 import { useMediaQuery } from "./hooks/useMediaQuery";
 import { SkeletonCard } from "./ui";
 import { C_LIGHT, BRAND } from "./constants";
-import { Package, Truck, Tags, TrendingUp, ShoppingBag } from "lucide-react";
+import { Package, Truck, Tags, TrendingUp, ShoppingBag, Percent } from "lucide-react";
+
+import RecepcionModule from "./RecepcionModule";
 
 const InventarioModule = lazy(() => import("./InventarioModule"));
-const RecepcionModule  = lazy(() => import("./RecepcionModule"));
 const ReabastoModule   = lazy(() => import("./ReabastoModule"));
 const LotesModule      = lazy(() => import("./LotesModule"));
 const PreciosReferenciaModule = lazy(() => import("./PreciosReferenciaModule"));
 const RappiSyncPanel   = lazy(() => import("./RappiSyncPanel"));
+const DescuentoCaducidadModule = lazy(() => import("./DescuentoCaducidadModule"));
 
 const TABS_VENDEDOR = ["catalogo"];
 
@@ -20,6 +22,7 @@ const TABS = [
   { id: "reabasto", label: "Reabasto",   icon: Truck },
   { id: "lotes",    label: "Lotes PEPS", icon: Tags },
   { id: "precios",  label: "Referencias de precio", icon: TrendingUp, labelMobile: "Precios" },
+  { id: "caducidad", label: "Precio por caducar", icon: Percent, labelMobile: "Caducar" },
   { id: "rappi",    label: "Rappi",      icon: ShoppingBag },
 ];
 
@@ -90,7 +93,7 @@ export default function InventarioHub({ initialTab, usuario, onNavigate }) {
             <h1 style={{margin: 0, color: C.text, fontSize: 20, fontWeight: 800}}>◆ Inventario</h1>
             {!isMobile && (
               <span style={{color: C.textDim, fontSize: 12}}>
-                Catálogo · reabasto · lotes · referencias · Rappi
+                Catálogo · reabasto · lotes · referencias · caducar · Rappi
               </span>
             )}
           </div>
@@ -150,6 +153,7 @@ export default function InventarioHub({ initialTab, usuario, onNavigate }) {
         {!modoConsulta && tab === "reabasto" && <ReabastoModule/>}
         {!modoConsulta && tab === "lotes"    && <LotesModule/>}
         {!modoConsulta && tab === "precios"  && <PreciosReferenciaModule/>}
+        {!modoConsulta && tab === "caducidad" && <DescuentoCaducidadModule/>}
         {!modoConsulta && tab === "rappi"    && <RappiSyncPanel/>}
       </Suspense>
     </div>

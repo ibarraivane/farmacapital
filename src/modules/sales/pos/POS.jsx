@@ -11,8 +11,12 @@ import { findProductExactScan, looksLikeBarcodeInput, looksLikeInternalSku, isAl
 import { posTituloProducto, posSubtituloProducto } from "../../../utils/posProductDisplay";
 import { precioUnidadParaVenta } from "../../../utils/precioUnidad";
 import { productoEsVendible } from "../../../utils/productoVendible";
-import { esCategoriaAntibiotico, categoriasCoinciden } from "../../../constants/categoriasProducto";
+import { cobroLinea, pesoPublico } from "../../../utils/pesoPublico";
+import { precioLineaCajaPos } from "../../../lib/precioVentaExclusivo";
+import { fechaLocalMexico } from "../../../lib/pagoServicio";
+import { esCategoriaAntibiotico, esMedicamentoControlado, categoriasCoinciden } from "../../../constants/categoriasProducto";
 import { isCoarsePointer, unlockInputForTouchKeyboard, lockInputAfterTouchKeyboard, armInputForTouchKeyboard } from "../../../utils/touchKeyboard";
+import { setBloqueaReloadApp } from "../../../utils/appUpdate";
 import { useHidBarcodeWedge } from "../../../hooks/useHidBarcodeWedge";
 import {
   suggestPosProductsLocal,
@@ -40,6 +44,7 @@ import { labelTipoEntregaPedido } from "../../../utils/orderChannels";
 import PagoServiciosPanel, { rpcRegistrarPagoServicio } from "./PagoServiciosPanel";
 import { printServicioTicket } from "../../../utils/servicioTicket";
 import AperturaCajaModal from "./AperturaCajaModal";
+import { NuevaDevolucionModal } from "../../../DevolucionesModule";
 import { esVendedor, fetchSesionCajaAbierta } from "../../../utils/cajaSesion";
 import {
   buildOnlineOrderReceiptMessage,
@@ -118,6 +123,29 @@ function enrichPosProductosConLotes(prodsRaw, lotesByProducto = {}) {
     const minCad = activos.reduce((m, l) => (!m || l.fecha_caducidad < m) ? l.fecha_caducidad : m, null);
     return { ...p, lotes, min_caducidad_lotes: minCad };
   });
+}
+
+function mapEspecialesCaducidad(rows) {
+  const map = {};
+  for (const r of rows || []) {
+    if (r?.lote_id == null) continue;
+    map[r.lote_id] = r;
+    map[String(r.lote_id)] = r;
+  }
+  return map;
+}
+
+async function fetchEspecialesCaducidadPos(sessionToken) {
+  if (!sessionToken) return {};
+  const { data, error } = await supabase.rpc("empleado_precios_especiales_caducidad_vigentes", {
+    p_session_token: sessionToken,
+  });
+  if (error || !data) return {};
+  return mapEspecialesCaducidad(Array.isArray(data) ? data : []);
+}
+
+function precioCajaDesdeProducto(producto, qty, propuestasByLote) {
+  return precioLineaCajaPos(producto, qty, propuestasByLote, fechaLocalMexico());
 }
 
 const POS_USO_CACHE_KEY = "farmacapital_pos_uso_cache_v1";
@@ -333,10 +361,14 @@ function PosProductoFichaPanel({
           <div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", marginBottom: 6 }}>
               <span style={{ color: C.textDim, fontSize: 10, fontWeight: 800, letterSpacing: 1 }}>{item.sku}</span>
-              {item.requiere_receta && <Tag col={C.amber} sm>⚕ Receta</Tag>}
-              {item.controlado && <Tag col={C.red} sm>Controlado</Tag>}
+              {esMedicamentoControlado(item) && <Tag col={C.red} sm>Controlado</Tag>}
+              {esCategoriaAntibiotico(item.categoria) && !esMedicamentoControlado(item) && (
+                <Tag col={C.amber} sm>Receta recomendada</Tag>
+              )}
               {item.tipo === "generico" && <Tag col={C.teal} sm>Genérico</Tag>}
-              {!item.requiere_receta && !item.controlado && <Tag col={C.blue} sm>Venta libre</Tag>}
+              {!esMedicamentoControlado(item) && !esCategoriaAntibiotico(item.categoria) && (
+                <Tag col={C.blue} sm>Venta libre</Tag>
+              )}
               {sinLotes ? <Tag col={C.red} sm>Sin lotes</Tag> : agotado ? <Tag col={C.red} sm>Agotado</Tag> : <Tag col={C.green} sm>{stockCajas} en stock</Tag>}
             </div>
             <h2 style={{ margin: 0, fontSize: stack ? 17 : 20, fontWeight: 900, color: C.text, lineHeight: 1.25 }}>
@@ -406,12 +438,17 @@ function PosProductoFichaPanel({
                 {item.descuento_pct > 0 ? (
                   <>
                     <span style={{ fontSize: 14, color: C.textDim, textDecoration: "line-through", marginRight: 8 }}>{$(item.precio)}</span>
-                    {$(Math.round((item.precio || 0) * (1 - item.descuento_pct / 100)))}
+                    {$(cobroLinea(item.precio, 1, item.descuento_pct))}
                   </>
                 ) : (
-                  $(item.precio)
+                  $(pesoPublico(item.precio))
                 )}
               </div>
+              {Math.abs((parseFloat(item.precio) || 0) - pesoPublico(item.precio)) > 0.001 && !(item.descuento_pct > 0) && (
+                <div style={{ fontSize: 11, color: C.textDim, marginTop: 4 }}>
+                  Lista {$(item.precio)} · en caja se cobra peso entero
+                </div>
+              )}
             </div>
             <span style={{ fontSize: 12, fontWeight: 700, color: item.ubicacion_texto ? C.blue : C.textDim }}>
               📍 {item.ubicacion_texto || "Sin ubicación"}
@@ -475,10 +512,12 @@ function PosProductoFichaPanel({
   );
 }
 
-export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
+export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSesionExpirada}){
   const exigeCaja = esVendedor(usuario);
   const [cajaAbierta, setCajaAbierta] = useState(() => !esVendedor(usuario));
   const [cajaCheck, setCajaCheck] = useState(() => !esVendedor(usuario));
+  const [cajaVerifyError, setCajaVerifyError] = useState(null);
+  const [cajaRetry, setCajaRetry] = useState(0);
   const [sesionCaja, setSesionCaja] = useState(null);
   const C = C_LIGHT;
   /** Vista estrecha (tablet / ventana angosta): tipografía, grillas, cabecera. */
@@ -488,6 +527,11 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const [tab,setTab]         = useState(initialTab); // venta | online | consultas | servicios
   const [productos,setProds] = useState([]);
   const [cart,setCart]       = useState([]);
+  const especialesRef = useRef({});
+  useEffect(() => {
+    setBloqueaReloadApp(cart.length > 0, "pos-cart");
+    return () => setBloqueaReloadApp(false, "pos-cart");
+  }, [cart.length]);
   const [srch,setSrch]       = useState("");
   const [srchFocus,setSrchFocus] = useState(false);
   const srchRef = useRef(null);
@@ -514,8 +558,12 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   };
   const [pay,setPay]         = useState("efectivo");
   const [montoRecibido, setMontoRecibido] = useState("");
+  const [usarCredito, setUsarCredito] = useState(false);
+  const [montoCredito, setMontoCredito] = useState("");
   const [tel,setTel]         = useState("");
   const [cli,setCli]         = useState(null);
+  const [modalDev, setModalDev] = useState(false);
+  const [devQuery, setDevQuery] = useState("");
   const [ticket,setTicket]   = useState(null);
   const ticketRef = useRef(null);
   const [rxM,setRxM]         = useState(null);
@@ -595,18 +643,32 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     if (!exigeCaja) {
       setCajaAbierta(true);
       setCajaCheck(true);
+      setCajaVerifyError(null);
       return;
     }
     let cancelled = false;
     (async () => {
-      const { sesion } = await fetchSesionCajaAbierta();
+      const { sesion, error, auth } = await fetchSesionCajaAbierta();
       if (cancelled) return;
+      if (auth) {
+        showToast("Tu sesión caducó. Entra de nuevo con tu usuario — la caja no se cierra.", "warning");
+        onSesionExpirada?.();
+        return;
+      }
+      if (error) {
+        setCajaVerifyError(error);
+        setSesionCaja(null);
+        setCajaAbierta(false);
+        setCajaCheck(true);
+        return;
+      }
+      setCajaVerifyError(null);
       setSesionCaja(sesion);
       setCajaAbierta(!!sesion);
       setCajaCheck(true);
     })();
     return () => { cancelled = true; };
-  }, [exigeCaja]);
+  }, [exigeCaja, cajaRetry, onSesionExpirada]);
 
   useEffect(()=>{
     supabase.from("configuracion").select("*").then(({ data: cfg }) => {
@@ -821,7 +883,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       if (typeof setLoadErr === "function") setLoadErr("");
       try {
         const tok = sessionStorage.getItem("farmacapital_session_token");
-        const [prodsRes, pedsRes, histRes, lotesMap] = await Promise.all([
+        const [prodsRes, pedsRes, histRes, lotesMap, especialesMap] = await Promise.all([
           tok
             ? supabase.rpc("empleado_listar_productos_con_lotes_pos", { p_session_token: tok })
             : Promise.resolve({ data: [], error: { message: "Sin sesión" } }),
@@ -837,7 +899,9 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
               })
             : Promise.resolve({ data: [], error: null }),
           fetchLotesMapPos(tok),
+          fetchEspecialesCaducidadPos(tok),
         ]);
+        especialesRef.current = especialesMap || {};
 
         const errs = [];
         if (prodsRes?.error) errs.push(`Productos (${prodsRes.status||"?"}): ${prodsRes.error.message}`);
@@ -1036,7 +1100,16 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         return false;
       }
     }
-    if((item.requiere_receta || esCategoriaAntibiotico(item.categoria)) && !esUnidad) { setRxM(item); return false; }
+    if (esMedicamentoControlado(item) && !esUnidad) {
+      setRxM(item);
+      return false;
+    }
+    if (esCategoriaAntibiotico(item.categoria) && !esUnidad) {
+      const yaEnCarrito = cart.some((c) => c.id === item.id || c.producto_id === item.id);
+      if (!yaEnCarrito) {
+        showToast("Antibiótico: se recomienda receta. No es obligatoria para cobrar.", "info");
+      }
+    }
     if (esUnidad) {
       if ((item.stock_unidades || 0) <= 0) {
         showToast("Sin unidades disponibles para venta suelta.", "warning");
@@ -1072,10 +1145,20 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       }
 
       if(ex){
-        return p.map(c=>c.id===item.id?{...c,qty:c.qty+1}:c);
+        const qty = ex.qty + 1;
+        const priced = precioCajaDesdeProducto(item, qty, especialesRef.current);
+        return p.map(c=>c.id===item.id?{...c,qty,...priced}:c);
       }
 
-      return [...p,{...item,producto_id:item.id,qty:1,rxI:null,esUnidad:false,nombre:posTituloProducto(item)}];
+      return [...p,{
+        ...item,
+        producto_id:item.id,
+        qty:1,
+        rxI:null,
+        esUnidad:false,
+        nombre:posTituloProducto(item),
+        ...precioCajaDesdeProducto(item, 1, especialesRef.current),
+      }];
     });
     return true;
   };
@@ -1294,8 +1377,19 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       }
 
       return ex
-        ? p.map(c=>c.id===rxM.id?{...c,qty:c.qty+1,rxI:{...rx}}:c)
-        : [...p,{...rxM,producto_id:rxM.id,qty:1,rxI:{...rx},esUnidad:false}];
+        ? p.map(c=>{
+            if (c.id !== rxM.id) return c;
+            const qty = c.qty + 1;
+            return { ...c, qty, rxI: { ...rx }, ...precioCajaDesdeProducto(rxM, qty, especialesRef.current) };
+          })
+        : [...p,{
+            ...rxM,
+            producto_id:rxM.id,
+            qty:1,
+            rxI:{...rx},
+            esUnidad:false,
+            ...precioCajaDesdeProducto(rxM, 1, especialesRef.current),
+          }];
     });
 
     setRxM(null); setRx({receta:"",medico:"",cedula:"",paciente:"",indicaciones:""});
@@ -1303,18 +1397,17 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
 
   // P2.2: Calcular total con promociones activas aplicadas
   const calcularTotalConPromos = () => {
-    return cart.reduce((a,c) => {
-      let precio = c.precio;
-      // Si el producto tiene descuento_pct, aplicarlo
-      if(c.descuento_pct>0) {
-        precio = precio * (1 - c.descuento_pct/100);
-      }
-      return a + precio * c.qty;
-    }, 0);
+    return cart.reduce((a,c) => a + cobroLinea(c.precio, c.qty, c.descuento_pct), 0);
   };
   const sub   = calcularTotalConPromos();
   const ptsG  = Math.floor(sub/10);
   const total = sub;
+  const saldoCredito = parseFloat(cli?.saldo_credito || 0);
+  const creditoTope = Math.min(saldoCredito, total);
+  const creditoNum = usarCredito && creditoTope > 0
+    ? Math.min(creditoTope, Math.max(0, parseFloat(String(montoCredito).replace(/,/g, "").replace(/^\$/, "")) || creditoTope))
+    : 0;
+  const aCobrar = Math.max(0, Math.round((total - creditoNum) * 100) / 100);
 
   const parseMontoEfectivo = (s) => {
     const x = String(s ?? "").replace(/,/g, "").trim().replace(/^\$/, "");
@@ -1322,14 +1415,14 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     return Number.isFinite(n) ? Math.round(n * 100) / 100 : NaN;
   };
   const recibidoNum = parseMontoEfectivo(montoRecibido);
-  const cambioNum = pay === "efectivo" && Number.isFinite(recibidoNum) ? Math.round(Math.max(0, recibidoNum - total) * 100) / 100 : null;
+  const cambioNum = pay === "efectivo" && Number.isFinite(recibidoNum) ? Math.round(Math.max(0, recibidoNum - aCobrar) * 100) / 100 : null;
 
   const abrirModalRecetaVenta = (modo) => {
     if (!cart.length) return;
-    if (modo === "efectivo") {
+    if (modo === "efectivo" && aCobrar > 0) {
       const rec = parseMontoEfectivo(montoRecibido);
-      if (!Number.isFinite(rec) || rec < total) {
-        showToast(`Indica cuánto te entregó el cliente en efectivo (mínimo ${$(total)}).`, "warning");
+      if (!Number.isFinite(rec) || rec < aCobrar) {
+        showToast(`Indica cuánto te entregó el cliente en efectivo (mínimo ${$(aCobrar)}).`, "warning");
         return;
       }
     }
@@ -1369,10 +1462,10 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     // bbva_terminal y mercadopago (Point MP) se registran como "tarjeta".
     const DB_METODO_MAP = { bbva_terminal: "tarjeta", mercadopago_point: "tarjeta" };
     const metodoPagoFinal = DB_METODO_MAP[metodoPagoInterno] ?? metodoPagoInterno;
-    if (metodoPagoFinal === "efectivo") {
+    if (metodoPagoFinal === "efectivo" && aCobrar > 0) {
       const rec = parseMontoEfectivo(montoRecibido);
-      if (!Number.isFinite(rec) || rec < total) {
-        showToast(`Indica cuánto te entregó el cliente en efectivo (mínimo ${$(total)}).`, "warning");
+      if (!Number.isFinite(rec) || rec < aCobrar) {
+        showToast(`Indica cuánto te entregó el cliente en efectivo (mínimo ${$(aCobrar)}).`, "warning");
         return;
       }
     }
@@ -1394,20 +1487,23 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       const cartItemsMapped = cart.map(c=>({
         producto_id: c.producto_id ?? c.id,
         cantidad: c.qty,
-        precio_unitario: c.precio,
+        precio_unitario: cobroLinea(c.precio, 1, c.descuento_pct),
         modo_venta: c.esUnidad ? "unidad" : "caja",
       }));
 
-      const { data: rpcData, error: rpcError } = await supabase.rpc("create_sale_transaction_secure", {
+      const rpcName = creditoNum > 0 ? "empleado_cobrar_venta_pos" : "create_sale_transaction_secure";
+      const rpcArgs = {
         p_session_token: tok,
-        p_metodo_pago: metodoPagoFinal,
+        p_metodo_pago: aCobrar === 0 ? "efectivo" : metodoPagoFinal,
         p_total: total,
         p_cart_items: cartItemsMapped,
         p_cliente_id: cli?.id ?? null,
         p_tipo: "pos",
         p_tipo_entrega: null,
         p_direccion: null,
-      });
+        ...(creditoNum > 0 ? { p_monto_credito: creditoNum } : {}),
+      };
+      const { data: rpcData, error: rpcError } = await supabase.rpc(rpcName, rpcArgs);
 
       if (rpcError) throw rpcError;
 
@@ -1415,7 +1511,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       const pedidoId = rpcRow?.pedido_id;
       const ok = rpcRow?.success === true;
       if (!pedidoId || !ok) {
-        throw new Error("RPC create_sale_transaction_secure devolvió una respuesta inválida");
+        throw new Error(`RPC ${rpcName} devolvió una respuesta inválida`);
       }
 
       const ro = recetaOrigen === "medico_farmacapital" || recetaOrigen === "medico_externo" ? recetaOrigen : "no_aplica";
@@ -1497,7 +1593,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       const netoAmt = parseFloat((total - ivaAmt).toFixed(2));
       const folioVenta = `VTA-${String(pedidoId).padStart(8,"0")}`;
       const recEf = metodoPagoFinal === "efectivo" ? parseMontoEfectivo(montoRecibido) : null;
-      const cambioEf = metodoPagoFinal === "efectivo" && Number.isFinite(recEf) ? Math.round(Math.max(0, recEf - total) * 100) / 100 : null;
+      const cambioEf = metodoPagoFinal === "efectivo" && Number.isFinite(recEf) ? Math.round(Math.max(0, recEf - aCobrar) * 100) / 100 : null;
       const desgloseEf = metodoPagoFinal === "efectivo" && cambioEf != null && cambioEf > 0 ? desgloseCambioMN(cambioEf) : "";
       setTicket({
         id:pedidoId,
@@ -1523,6 +1619,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       showToast("Venta registrada correctamente", "success");
       setCart([]); setTel(""); setCli(null);
       setMontoRecibido("");
+      setUsarCredito(false);
+      setMontoCredito("");
     } catch(e) {
       console.error(e);
       const msg = e?.message || e?.details || String(e);
@@ -1532,12 +1630,14 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         // Sincroniza existencias visibles con BD tras un rechazo por stock.
         try {
           const tokRf = sessionStorage.getItem("farmacapital_session_token");
-          const [{ data }, lotesMap] = await Promise.all([
+          const [{ data }, lotesMap, especialesMap] = await Promise.all([
             tokRf
               ? supabase.rpc("empleado_listar_productos_con_lotes_pos", { p_session_token: tokRf })
               : Promise.resolve({ data: [] }),
             fetchLotesMapPos(tokRf),
+            fetchEspecialesCaducidadPos(tokRf),
           ]);
+          especialesRef.current = especialesMap || {};
           setProds(enrichPosProductosConLotes(Array.isArray(data) ? data : [], lotesMap));
         } catch (_) {
           // noop: no bloquear el flujo por un refresh fallido
@@ -1791,21 +1891,56 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
           style={{marginBottom:8}}
           emptyMsg="Sin coincidencias · prueba más dígitos del teléfono o el nombre"
         />
+        <button
+          type="button"
+          onClick={() => {
+            const q = String(tel || "").replace(/\D/g, "").length >= 10
+              ? tel
+              : (folioActual !== "VTA-00000000" ? folioActual : tel);
+            setDevQuery(String(q || "").trim());
+            setModalDev(true);
+          }}
+          style={{
+            marginBottom: 10,
+            background: "none",
+            border: "none",
+            padding: 0,
+            color: C.blue,
+            fontSize: 12,
+            fontWeight: 700,
+            cursor: "pointer",
+            textAlign: "left",
+          }}
+        >
+          ↩️ Devolver última venta (teléfono o folio)
+        </button>
         </div>
         {cli&&<div style={{background:C.purpleDim,border:`1px solid ${C.purple}30`,borderRadius:8,padding:"8px 10px",marginBottom:10}}>
           <div style={{color:C.purple,fontWeight:700,fontSize:12}}>{cli.nombre}</div>
           <div style={{color:C.textMid,fontSize:10}}>⭐ {cli.puntos||0} puntos FarmaCapital</div>
+          {saldoCredito>0&&<div style={{color:C.green,fontSize:11,fontWeight:700,marginTop:2}}>Crédito: {$(saldoCredito)}</div>}
         </div>}
         {!cart.length?<div style={{color:C.textMid,fontSize:13,textAlign:"center",padding:"24px 0"}}>Agrega productos</div>:
          cart.map(item=>(
           <div key={item.id} style={{marginBottom:12,paddingBottom:12,borderBottom:`1px solid ${C.border}`}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:6,marginBottom:8}}>
-              <div style={{color:C.text,fontSize:14,fontWeight:700,flex:1,lineHeight:1.3}}>{item.nombre}</div>
+              <div style={{flex:1,lineHeight:1.3}}>
+                <div style={{color:C.text,fontSize:14,fontWeight:700}}>{item.nombre}</div>
+                {item.fuentePrecio === "caducidad" && (
+                  <div style={{color:C.amber,fontSize:11,fontWeight:700,marginTop:2}}>Precio especial por caducar</div>
+                )}
+              </div>
               <button onClick={()=>setCart(p=>p.filter(c=>c.id!==item.id))} style={{background:"none",border:"none",color:C.red,cursor:"pointer",fontSize:18,lineHeight:1,padding:"0 2px",flexShrink:0}}>×</button>
             </div>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div style={{display:"flex",alignItems:"center",gap:8}}>
-                <button onClick={()=>setCart(p=>p.map(c=>c.id===item.id?{...c,qty:Math.max(1,c.qty-1)}:c))} style={{width:28,height:28,borderRadius:6,border:`1px solid ${C.border}`,background:"none",color:C.text,cursor:"pointer",fontSize:16,fontWeight:700}}>−</button>
+                <button onClick={()=>setCart(p=>p.map(c=>{
+                  if(c.id!==item.id) return c;
+                  const qty = Math.max(1, c.qty - 1);
+                  if (c.esUnidad) return { ...c, qty };
+                  const prod = productos.find(x=>String(x.id)===String(item.producto_id??item.id)) || c;
+                  return { ...c, qty, ...precioCajaDesdeProducto(prod, qty, especialesRef.current) };
+                }))} style={{width:28,height:28,borderRadius:6,border:`1px solid ${C.border}`,background:"none",color:C.text,cursor:"pointer",fontSize:16,fontWeight:700}}>−</button>
                 <span style={{color:C.text,fontSize:15,fontWeight:800,minWidth:20,textAlign:"center"}}>{item.qty}</span>
             <button onClick={()=>setCart(p=>p.map(c=>{
               if(c.id!==item.id) return c;
@@ -1817,10 +1952,11 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
               const prod = productos.find(x=>String(x.id)===String(item.producto_id??item.id));
               const maxF = prod ? getStockFifoDisponible(prod) : 0;
               if(c.qty>=maxF){ showToast(`Stock FIFO insuficiente. Disponible: ${maxF}`,"warning"); return c; }
-              return {...c,qty:c.qty+1};
+              const qty = c.qty + 1;
+              return {...c,qty,...precioCajaDesdeProducto(prod || c, qty, especialesRef.current)};
             }))} style={{width:28,height:28,borderRadius:6,border:`1px solid ${C.border}`,background:"none",color:C.text,cursor:"pointer",fontSize:16,fontWeight:700}}>+</button>
               </div>
-              <span style={{color:C.blue,fontWeight:800,fontSize:16}}>{$(item.precio*item.qty)}</span>
+              <span style={{color:C.blue,fontWeight:800,fontSize:16}}>{$(cobroLinea(item.precio, item.qty, item.descuento_pct))}</span>
             </div>
           </div>
         ))}
@@ -1859,7 +1995,34 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         );
       })()}
 
+      {/* Crédito en tienda */}
+      {cli && saldoCredito > 0 && cart.length > 0 && (
+        <Box style={{padding:14,marginBottom:12,background:C.greenDim,border:`1px solid ${C.green}25`}}>
+          <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",marginBottom:usarCredito?8:0}}>
+            <input
+              type="checkbox"
+              checked={usarCredito}
+              onChange={(e)=>{
+                setUsarCredito(e.target.checked);
+                setMontoCredito(e.target.checked ? String(creditoTope) : "");
+              }}
+            />
+            <span style={{color:C.text,fontSize:12,fontWeight:700}}>Usar crédito FarmaCapital ({$(saldoCredito)})</span>
+          </label>
+          {usarCredito && (
+            <Inp
+              value={montoCredito}
+              onChange={(e)=>setMontoCredito(e.target.value)}
+              inputMode="decimal"
+              placeholder={`Máximo ${$(creditoTope)}`}
+              style={{width:"100%",boxSizing:"border-box",fontSize:15,fontWeight:700}}
+            />
+          )}
+        </Box>
+      )}
+
       {/* Método pago */}
+      {aCobrar > 0 && (
       <Box style={{padding:14,marginBottom:12}}>
         <div style={{color:C.textDim,fontSize:10,letterSpacing:1.5,textTransform:"uppercase",marginBottom:8}}>Método de pago</div>
         <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
@@ -1872,26 +2035,27 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
           ))}
         </div>
       </Box>
-      {pay==="efectivo"&&cart.length>0&&(
+      )}
+      {pay==="efectivo"&&cart.length>0&&aCobrar>0&&(
         <Box style={{padding:14,marginBottom:12,background:C.greenDim,border:`1px solid ${C.green}25`}}>
           <div style={{color:C.textDim,fontSize:10,letterSpacing:1.2,textTransform:"uppercase",marginBottom:8}}>Efectivo</div>
           <div style={{color:C.textMid,fontSize:11,marginBottom:8}}>¿Cuánto te entregó el cliente?</div>
           <Inp
             value={montoRecibido}
             onChange={(e)=>setMontoRecibido(e.target.value)}
-            placeholder={`Mínimo ${$(total)}`}
+            placeholder={`Mínimo ${$(aCobrar)}`}
             inputMode="decimal"
             style={{width:"100%",boxSizing:"border-box",marginBottom:8,fontSize:16,fontWeight:700}}
           />
           <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
-            <button type="button" onClick={()=>setMontoRecibido(String(total))} style={{padding:"4px 10px",borderRadius:8,border:`1px solid ${C.green}`,background:"#fff",color:C.green,fontSize:10,fontWeight:700,cursor:"pointer"}}>Exacto {$(total)}</button>
-            {sugerenciasPagoCliente(total).map(({billete,cambio})=>(
+            <button type="button" onClick={()=>setMontoRecibido(String(aCobrar))} style={{padding:"4px 10px",borderRadius:8,border:`1px solid ${C.green}`,background:"#fff",color:C.green,fontSize:10,fontWeight:700,cursor:"pointer"}}>Exacto {$(aCobrar)}</button>
+            {sugerenciasPagoCliente(aCobrar).map(({billete,cambio})=>(
               <button key={billete} type="button" onClick={()=>setMontoRecibido(String(billete))} style={{padding:"4px 10px",borderRadius:8,border:`1px solid ${C.border}`,background:C.card,fontSize:10,fontWeight:600,cursor:"pointer",color:C.text}}>
                 ${billete} → cambio {$(cambio)}
               </button>
             ))}
           </div>
-          {Number.isFinite(recibidoNum)&&recibidoNum>=total&&(
+          {Number.isFinite(recibidoNum)&&recibidoNum>=aCobrar&&(
             <div style={{marginBottom:8}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
                 <span style={{color:C.textMid,fontSize:12}}>Cambio a entregar</span>
@@ -1904,8 +2068,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
               )}
             </div>
           )}
-          {Number.isFinite(recibidoNum)&&recibidoNum>0&&recibidoNum<total&&(
-            <div style={{color:C.red,fontSize:11,fontWeight:700}}>Falta ${(total-recibidoNum).toFixed(2)}</div>
+          {Number.isFinite(recibidoNum)&&recibidoNum>0&&recibidoNum<aCobrar&&(
+            <div style={{color:C.red,fontSize:11,fontWeight:700}}>Falta ${(aCobrar-recibidoNum).toFixed(2)}</div>
           )}
           <div style={{color:C.textDim,fontSize:9,marginTop:6,lineHeight:1.35}}>
             Consejo caja: si te quedas sin billetes chicos, pide al cliente pagar con el monto exacto o con billetes que dejen un cambio “redondo” (usa los botones de arriba). Para control fino por denominación usa el corte de caja al cerrar turno.
@@ -1919,11 +2083,26 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
           <span style={{color:C.textMid,fontSize:13}}>Total</span>
           <span style={{color:C.blue,fontWeight:900,fontSize:20}}>{$(total)}</span>
         </div>
+        {creditoNum>0&&(
+          <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+            <span style={{color:C.textMid,fontSize:12}}>Crédito</span>
+            <span style={{color:C.green,fontWeight:700,fontSize:13}}>−{$(creditoNum)}</span>
+          </div>
+        )}
+        {creditoNum>0&&(
+          <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
+            <span style={{color:C.text,fontSize:13,fontWeight:800}}>Por cobrar</span>
+            <span style={{color:C.text,fontWeight:900,fontSize:18}}>{$(aCobrar)}</span>
+          </div>
+        )}
         {cli&&<div style={{color:C.purple,fontSize:11,fontWeight:700,marginBottom:10}}>+{ptsG} puntos → {cli.nombre}</div>}
-        {pay==="efectivo" ? (
-          <Btn onClick={cobrar} full col={C.green} dis={!cart.length||guardando||(!Number.isFinite(recibidoNum)||recibidoNum<total)}
-            onKeyDown={e=>e.key==="Enter"&&!guardando&&cart.length&&Number.isFinite(recibidoNum)&&recibidoNum>=total&&cobrar()}
-          >{guardando?"Procesando...":"✅ Cobrar "+$(total)}</Btn>
+        {aCobrar===0 ? (
+          <Btn onClick={cobrar} full col={C.green} dis={!cart.length||guardando}
+          >{guardando?"Procesando...":"✅ Cobrar con crédito"}</Btn>
+        ) : pay==="efectivo" ? (
+          <Btn onClick={cobrar} full col={C.green} dis={!cart.length||guardando||(!Number.isFinite(recibidoNum)||recibidoNum<aCobrar)}
+            onKeyDown={e=>e.key==="Enter"&&!guardando&&cart.length&&Number.isFinite(recibidoNum)&&recibidoNum>=aCobrar&&cobrar()}
+          >{guardando?"Procesando...":"✅ Cobrar "+$(aCobrar)}</Btn>
         ) : pay==="tarjeta" ? (
           <div>
             <Btn onClick={()=>abrirModalRecetaVenta("tarjeta")}
@@ -1959,9 +2138,34 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       paddingBottom:"max(8px, env(safe-area-inset-bottom, 0px))",
       touchAction:"pan-y",
     }}>
-      {exigeCaja && cajaCheck && !cajaAbierta && (
+      {exigeCaja && cajaCheck && cajaVerifyError && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 2000, background: C.bg,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          padding: 24, fontFamily: "var(--fc-body)",
+        }}>
+          <div style={{ maxWidth: 420, width: "100%", background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 22 }}>
+            <div style={{ color: C.text, fontWeight: 800, fontSize: 18, marginBottom: 8 }}>No se pudo verificar la caja</div>
+            <p style={{ color: C.textMid, fontSize: 14, lineHeight: 1.5, margin: "0 0 16px" }}>
+              {cajaVerifyError}. La caja no se cierra por esto. Reintenta; si sigue fallando, entra de nuevo con tu usuario.
+            </p>
+            <button
+              type="button"
+              onClick={() => { setCajaCheck(false); setCajaVerifyError(null); setCajaRetry((n) => n + 1); }}
+              style={{
+                width: "100%", padding: "12px 16px", border: "none", borderRadius: 10,
+                background: BRAND.gradient, color: "#fff", fontWeight: 800, fontSize: 15, cursor: "pointer",
+              }}
+            >
+              Reintentar
+            </button>
+          </div>
+        </div>
+      )}
+      {exigeCaja && cajaCheck && !cajaAbierta && !cajaVerifyError && (
         <AperturaCajaModal
           usuario={usuario}
+          onSesionExpirada={onSesionExpirada}
           onAbierta={(s) => { setSesionCaja(s); setCajaAbierta(true); }}
         />
       )}
@@ -2055,9 +2259,13 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
               )}
             </h1>
             {folioActual!=="VTA-00000000"&&(
-              <span style={{padding:"3px 10px",borderRadius:20,fontSize:10,fontWeight:700,background:C.blueDim,color:C.blue}}>
-                Último folio: {folioActual}
-              </span>
+              <button
+                type="button"
+                onClick={() => { setDevQuery(folioActual); setModalDev(true); }}
+                style={{padding:"3px 10px",borderRadius:20,fontSize:10,fontWeight:700,background:C.blueDim,color:C.blue,border:"none",cursor:"pointer"}}
+              >
+                Último folio: {folioActual} · devolver
+              </button>
             )}
             {sesionCaja?.abierta_at && (
               <span style={{padding:"3px 10px",borderRadius:20,fontSize:10,fontWeight:700,background:C.greenDim,color:C.greenDark}}>
@@ -2139,8 +2347,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       </div>
 
       {/* Modal RX */}
-      <Modal open={!!rxM} onClose={()=>setRxM(null)} title="⚕ Medicamento con Receta — COFEPRIS" ac={C.amber}>
-        <div style={{color:C.textMid,fontSize:13,marginBottom:14}}><strong style={{color:C.text}}>{rxM?.nombre}</strong> — se registrará en bitácora COFEPRIS/SICAD</div>
+      <Modal open={!!rxM} onClose={()=>setRxM(null)} title="⚕ Medicamento controlado — receta obligatoria" ac={C.red}>
+        <div style={{color:C.textMid,fontSize:13,marginBottom:14}}><strong style={{color:C.text}}>{rxM?.nombre}</strong> — controlado: captura receta, médico, cédula y paciente para bitácora COFEPRIS/SICAD</div>
         {[["Número de receta","receta","RX-2024-XXX"],["Médico prescriptor","medico","Dr. Nombre Completo"],["Cédula profesional","cedula","Número cédula SEP"],["Nombre del paciente","paciente","Nombre completo"]].map(([l,k,ph])=>(
           <div key={k} style={{marginBottom:12}}>
             <div style={{color:C.textMid,fontSize:11,marginBottom:4}}>{l} *</div>
@@ -2330,6 +2538,15 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         onClose={()=>setTicket(null)}
         onNuevaVenta={()=>{ setTicket(null); setCart([]); setTel(""); setCli(null); }}
       />}
+
+      {modalDev && (
+        <NuevaDevolucionModal
+          usuario={usuario}
+          initialQuery={devQuery}
+          onClose={() => setModalDev(false)}
+          onSaved={() => { setModalDev(false); showToast("Devolución registrada", "success"); }}
+        />
+      )}
       
 
       {/* TAB: VENTA NORMAL */}
