@@ -194,8 +194,8 @@ export default function MonitorPreciosModule() {
         Aprobar precios de venta
       </h2>
       <p style={{ margin: "0 0 16px", fontSize: 13, color: C.textMid, lineHeight: 1.45, maxWidth: 760 }}>
-        La referencia sale de fuentes con URL o archivo (PROFECO, lista de distribuidor).
-        El modelo solo empareja descripciones. Ningún PVP cambia hasta que apruebes.
+        Complementa Referencias de precio: el costo y el proveedor salen del ticket de Recibir.
+        La referencia de mercado sale de fuentes con URL o archivo. Ningún PVP cambia hasta que apruebes.
       </p>
 
       <div style={{
@@ -310,6 +310,7 @@ export default function MonitorPreciosModule() {
                   <tr style={{ background: C.cardDark, textAlign: "left" }}>
                     {pendientes && <th style={th} />}
                     <th style={th}>Producto</th>
+                    <th style={th}>Compra</th>
                     <th style={{ ...th, textAlign: "right" }}>PVP actual</th>
                     <th style={{ ...th, textAlign: "right" }}>Ref. mercado</th>
                     <th style={{ ...th, textAlign: "right" }}>Fuentes</th>
@@ -335,6 +336,12 @@ export default function MonitorPreciosModule() {
                             ? ` · dato ${String(r.fecha_dato_mas_reciente).slice(0, 10)}`
                             : ""}
                         </div>
+                      </td>
+                      <td style={td}>
+                        <div style={{ fontWeight: 700 }}>{money(r.costo_compra ?? r.costo_usado)}</div>
+                        {r.proveedor_compra ? (
+                          <div style={{ color: C.blue, fontSize: 11, fontWeight: 700 }}>{r.proveedor_compra}</div>
+                        ) : null}
                       </td>
                       <td style={{ ...td, textAlign: "right" }}>{money(r.precio_actual)}</td>
                       <td style={{ ...td, textAlign: "right" }}>

@@ -28,6 +28,11 @@ import {
   productoSubtituloReferencia,
 } from "./lib/preciosReferencia";
 import { costoComparacionDe, compraVigenteDe } from "./lib/ultimaCompra";
+import {
+  agruparLotesPorProducto,
+  enriquecerProductoConLotes,
+  fetchLotesInventario,
+} from "./lib/inventarioHubData";
 import { inventarioProductMatchesBusqueda } from "./utils/fuzzySearch";
 import ImportReferenciaPrecios from "./components/ImportReferenciaPrecios";
 
@@ -505,9 +510,7 @@ function TablaCompra({
                       <div>{fmtPrecioRef(vigente.precio)}</div>
                       {vigente.proveedor ? (
                         <div style={{ fontSize: 10, color: C.blue, fontWeight: 700 }}>{vigente.proveedor}</div>
-                      ) : (
-                        <div style={{ fontSize: 10, color: C.textMid }}>sin proveedor</div>
-                      )}
+                      ) : null}
                     </div>
                   ) : (
                     fmtPrecioRef(p.costo)
@@ -916,6 +919,14 @@ export default function PreciosReferenciaModule() {
     setSchemaOk(true);
     setRefsByProduct(buildReferenciasPorProducto(refRows));
     setFechasFuente(fechasActualizacionPorFuente(refRows));
+
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    let lotesByProducto = {};
+    if (tok) {
+      const { data: lotes } = await fetchLotesInventario(tok);
+      lotesByProducto = agruparLotesPorProducto(lotes);
+    }
+    setProductos((prodRes.data || []).map((p) => enriquecerProductoConLotes(p, lotesByProducto[p.id])));
     setLoading(false);
     return true;
   }, []);

@@ -26,8 +26,8 @@ import {
   PRODUCTOS_POR_PAGINA,
   agruparLotesPorProducto,
   diasParaCaducar,
+  enriquecerProductoConLotes,
   fetchLotesInventario,
-  minCaducidadLotes,
 } from "./lib/inventarioHubData";
 import { DIAS_CADUCIDAD_ALERTA, DIAS_CADUCIDAD_CRITICO, esPorCaducar } from "./lib/caducidad";
 
@@ -103,19 +103,15 @@ async function fetchLotesPorProducto(sessionToken, { omitCosto = false } = {}) {
       fecha_caducidad: l.fecha_caducidad,
       cantidad_actual: l.cantidad_actual,
       activo: l.activo,
+      proveedores: l.proveedores,
+      proveedor_nombre: l.proveedor_nombre,
     }));
   }
   return slim;
 }
 
 function enrichProductoConLotes(p, lotes) {
-  const lotesList = lotes || [];
-  return {
-    ...p,
-    lotes: lotesList,
-    min_caducidad_lotes: minCaducidadLotes(lotesList),
-    lotes_activos: lotesList.filter((l) => l.activo !== false && (l.cantidad_actual || 0) > 0),
-  };
+  return enriquecerProductoConLotes(p, lotes);
 }
 
 async function refetchProductoLotes(productoId) {

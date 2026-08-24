@@ -83,6 +83,18 @@ describe("compra vigente", () => {
     expect(filas[0].nombre_fuente).toBe("Levic");
   });
 
+  test("si el ticket no trae quién, usa el proveedor del lote", () => {
+    const u = compraVigenteDe(
+      {
+        costo: 59.45,
+        lotes: [{ activo: true, cantidad_actual: 12, proveedores: { nombre: "Farma City Iztapalapa" } }],
+      },
+      { ultima_compra: { precio: 59.45, nombre_fuente: "", fecha: "2026-08-16" } }
+    );
+    expect(u.precio).toBe(59.45);
+    expect(u.proveedor).toBe("Farma City");
+  });
+
   test("Recibir no pisa el quién si ya hay proveedor aunque el ticket sea otro", () => {
     const filas = filasCompraVigenteDesdeRecepcion(
       {

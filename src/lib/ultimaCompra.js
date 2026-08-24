@@ -2,6 +2,8 @@
  *  Recibir solo lo reemplaza si el ticket nuevo es más barato.
  */
 
+import { proveedorDesdeLotes } from "./inventarioHubData";
+
 export const FUENTE_ULTIMA_COMPRA = "ultima_compra";
 
 export function normalizeProveedorCompra(nombre) {
@@ -88,12 +90,16 @@ export function elegirCompraVigente(eventos) {
 export function compraVigenteDe(producto, refsMap) {
   const ref = refsMap?.ultima_compra;
   const precioRef = parseCostoTicket(ref?.precio);
+  const quienLote = proveedorCompraVisible(
+    producto?.proveedor
+    || producto?.proveedor_nombre
+    || proveedorDesdeLotes(producto?.lotes_activos)
+    || proveedorDesdeLotes(producto?.lotes)
+  );
   if (precioRef) {
     return {
       precio: precioRef,
-      proveedor: proveedorCompraVisible(ref.nombre_fuente)
-        || proveedorCompraVisible(producto?.proveedor)
-        || "",
+      proveedor: proveedorCompraVisible(ref.nombre_fuente) || quienLote || "",
       fecha: ref.fecha || null,
       origen: "compra",
     };
@@ -102,7 +108,7 @@ export function compraVigenteDe(producto, refsMap) {
   if (costo) {
     return {
       precio: costo,
-      proveedor: proveedorCompraVisible(producto?.proveedor) || "",
+      proveedor: quienLote || "",
       fecha: null,
       origen: "catalogo",
     };
