@@ -1,0 +1,343 @@
+sku,nombre,principio_activo,costo,precio_fc,mejor_confianza,mejor_candidato,motivo
+FC-06237407,Shampoo Sedal Ceramidas,Surfactantes / formula capilar,16.48,27,39,PARACETAMOL/CAFEINA/FENILEFRINA 10 TABLETAS SEDALMERCK,no comparable: candidato sin tamano declarado
+FC-08344495,Lactopram infantil 150 mg sabor chocolate,Lactobacillus,27.24,0.01,82,GOMITAS LACTOBACILLUS ESPORULADOS 60 GOMITAS,no comparable: candidato sin tamano declarado
+FC-08498798,Bepanthen Cutanea,Dexpanthenol,131.81,155,0,,sin resultados VTEX
+FC-01303464,Shampoo Pantene control caída,Surfactantes / formula capilar,75.7,103,0,,sin resultados VTEX
+FC-02012468,Vicks Vaporub ungüento 50G,Alcanfor + Mentol + Eucalipto,82.41,124.0,82,ALCANFOR / MENTOL / EUCALIPTO / TREMENTINA / SALICILATO DE METILO UNGÜENTO 1 PIEZA,no comparable: candidato sin tamano declarado
+FC-02012475,Vicks Vaporub ungüento 100 G,Alcanfor + Mentol + Eucalipto,125.12,188.0,82,ALCANFOR / MENTOL / EUCALIPTO / TREMENTINA / SALICILATO DE METILO UNGÜENTO 1 PIEZA,no comparable: candidato sin tamano declarado
+FC-06226739,Desodorante Axe Conviction,Antitranspirante / desodorante,45.83,65,0,,sin resultados VTEX
+FC-09839202,Old Spice Wolfthorn barra desodorante,,45.24,75.4,14,DESODORANTE EN AEROSOL PARA CABALLERO OLD SPICE 150 ML 1 PIEZA,no comparable: concentracion difiere ['50000mg']≠['150ml']
+FC-50003314,Unguento Bronco Rub 40 g,Herbolario topico,29.01,39.16,0,,sin resultados VTEX
+FC-12225027,Derman Crema 50 g,Ácido undecilénico + Undecilenato de zinc,44.69,60.34,0,ACIDO ACETILSALICILICO/BICARBONATO DE SODIO/ACIDO CITRICO 10 TABLETAS ALKA SELTZER,no comparable: al competidor le faltan 1/2 principios activos (undecilenato)
+FC-25104268,Electrolit Fresa,,20.09,32,56,ELECTROLITOS ORALES FRESA 500 ML 1 PIEZA,no comparable: concentracion difiere ['625ml']≠['500ml']
+FC-25104411,Electrolit Coco,,20.09,32,55,ELECTROLITOS ORALES COCO 500 ML 1 PIEZA,no comparable: concentracion difiere ['625ml']≠['500ml']
+FC-25149221,Electrolit Fresa-Kiwi,,20.09,32,60,ELECTROLITOS ORALES FRESA / KIWI 500 ML  1 PIEZA,no comparable: concentracion difiere ['625ml']≠['500ml']
+FC-30133021,Bedoyecta Tri,Hidroxocobalamina/Tiamina/Piridoxina,273.42,437.48,72,HIDROXOCOBALAMINA 10000 MCG / TIAMINA 100 MG / PIRIDOXINA 50 MG SOLUCION INYECTABLE 5 AMPOLLETAS,no comparable: forma difiere inyectable≠solucion
+FC-39390230,Old Spice Lena barra desodorante,,45.24,75.4,20,DESODORANTE EN AEROSOL PARA CABALLERO OLD SPICE 150 ML 1 PIEZA,no comparable: concentracion difiere ['50000mg']≠['150ml']
+FC-6C2878CF,Susp 125 Mg/Ml,,130.24,169.32,0,BUDESONIDA SUSPENSION 0.500MG/2ML O 0.250MG/ML SUSPENSION PARA NEBULIZACION 5 AMPOLLETAS,"no comparable: concentracion difiere ['125mg']≠['0.25mg', '0.5mg', '2ml']"
+FC-92506045,Cera Ego Matte,Cera / resina,17.98,27,0,,sin resultados VTEX
+FC-92506601,Gel Ego Attraction,,20.02,29.0,0,,sin resultados VTEX
+FC-92509213,Nutribela Nutricion,,41.84,64.39,0,,sin resultados VTEX
+FC-92511261,Nutribela Bio Colageno,,41.84,59.0,0,,sin resultados VTEX
+FC-71829601,Tribedoce 50000 UI,Hidroxocobalamina + Tiamina + Piridoxina,73.11,98.7,70,HIDROXOCOBALAMINA 10000 MCG / TIAMINA 100 MG / PIRIDOXINA 50 MG SOLUCION INYECTABLE 5 AMPOLLETAS,"no comparable: concentracion difiere ['50000ui']≠['10000mcg', '100mg', '50mg']"
+FC-76000284,Vitacilina agua micelar agua rosas,,81.74,110,0,NEOMICINA / RETINOL (VITAMINA A) UNGÜENTO 28 GR 1 PIEZA,no comparable: concentracion difiere ['500ml']≠['28000mg']
+FC-79400556,Syncol (Paracetamol),Paracetamol/Pamabrom/Pirilamina,98.81,140,65,PARACETAMOL 500 MG 10 TABLETAS,"no comparable: al competidor le faltan 2/3 principios activos (pamabrom, pirilamina)"
+FC-01303454,Pantene Control caída anticaída,,75.7,106.0,0,,sin resultados VTEX
+FC-12250181,Rocainol Ung,Salicilato de metilo + Mentol,53.12,71.72,82,ALCANFOR / MENTOL / EUCALIPTO / TREMENTINA / SALICILATO DE METILO UNGÜENTO 1 PIEZA,no comparable: candidato sin tamano declarado
+FC-35155847,Shampoo Pantene bambú control caída,Surfactantes / formula capilar,75.7,106.0,0,,sin resultados VTEX
+FC-00701992,Crema Nivea manos antiarrugas,Emolientes / humectantes,36.3,51.0,0,,sin resultados VTEX
+FC-10974329,Enjuague Buc Listerine Cool Mint,,54.06,76.0,0,ENJUAGUE BUCAL ANTISEPTICO SABOR MENTA POLVO 12 SOBRES,no comparable: candidato sin tamano declarado
+FC-23111387,Jarabe dropropizina/bromhexina Quimpharma 100 mL,Dropropizina + Bromhexina,0.0,0,70,DROPROPIZINA / BROMHEXINA 0.300/0.160GR 200ML SOLUCION ADULTO,"no comparable: concentracion difiere ['100ml']≠['160mg', '200ml']"
+FC-95201021,Pomada Hipoglos Pac,Oxido de zinc,69.58,110,70,OXIDO DE ZINC 25GR/100GR PASTA 1 PIEZA,"no comparable: concentracion difiere ['45000mg']≠['100000mg', '25000mg']"
+FC-5112881,Pisacaina 2% 20 mg/ml Sol 50 ml,Lidocaina,85.0,114.75,72,DEXAMETASONA/LIDOCAINA/VITAMINA B1 B6 B12 6 AMPOLLETAS,no comparable: candidato sin tamano declarado
+FC-69200016,Estomaquil Polvo C/20,Bismuto subsalicilato; Hidróxido de magnesio; Carbonato de calcio,98.79,133.37,72,SUBSALICILATO DE BISMUTO 24 TABLETAS MASTICABLES,no comparable: candidato sin tamano declarado
+FC-9233072,Nido Kinder 1+ bolsa 144 g,,30.28,48.45,0,DIFENIDOL 25 MG 30 TABLETAS,no comparable: concentracion difiere ['144000mg']≠['25mg']
+FC-AA7B0686,Drosquim adulto jarabe 300/160,,70.74,91.97,0,,sin resultados VTEX
+FC-BE0A0E46,Cateter para Venoclisis 22 g,,9.26,12.04,0,,sin resultados VTEX
+FC-92821171,Leche en polvo Nutri Rindes,,30.67,50,0,EXTRACTOR MANUAL PARA LECHE MATERNA SIMIBABY 1 PIEZA,no comparable: candidato sin tamano declarado
+FC-93022567,Desodorante Rexona Men V8 (Hombre),Antitranspirante / desodorante,54.68,77.0,0,,sin resultados VTEX
+FC-98217659,Dolo-Neurobion solucion inyectable C/3,Complejo B + Lidocaina + Diclofenaco sodico,434.3,575,0,DEXAMETASONA/LIDOCAINA/VITAMINA B1 B6 B12 6 AMPOLLETAS,"no comparable: al competidor le faltan 2/3 principios activos (complejo, diclofenaco)"
+FC-06134531,Afrin Adulto spray 20 mL,OXIMETAZOLINA CLORHIDRATO,75.46,120.74,72,OXIMETAZOLINA ADULTO 50MG/100ML SOLUCION NASAL 20 ML 1 PIEZA,no comparable: forma difiere spray≠solucion
+FC-3961366,Pedialyte SR Coco 500 ml,,23.81,38.1,15,ELECTROLITOS ORALES COCO 500 ML 1 PIEZA,confianza 15 < 85
+FC-00322571,Suerox 8 Iones Manzana 630 ML,,14.73,25,0,ELECTROLITOS ORALES LIMA / LIMON 500ML 1 PIEZA,no comparable: concentracion difiere ['630ml']≠['500ml']
+FC-40032264,Suerox 8 Iones Eresa-Kiwi 630 ML,,14.73,25,0,ELECTROLITOS ORALES LIMA / LIMON 500ML 1 PIEZA,no comparable: concentracion difiere ['630ml']≠['500ml']
+FC-40032271,Suerox 8 Iones Uva 630 ML,,14.73,25,0,ELECTROLITOS ORALES LIMA / LIMON 500ML 1 PIEZA,no comparable: concentracion difiere ['630ml']≠['500ml']
+FC-5106788,Leche en Polvo Nidal 2Bebé 6 a 12 M,,101.82,160,0,EXTRACTOR MANUAL PARA LECHE MATERNA SIMIBABY 1 PIEZA,no comparable: candidato sin tamano declarado
+FC-54521161,Tempra 500 mg,Paracetamol,45.87,62,82,PARACETAMOL/CAFEINA/FENILEFRINA/CLORFENAMINA 10TABLETAS SIMIFLU,no comparable: candidato sin tamano declarado
+FC-00323011,Suerox 8 Iones Naranja Mandarina 630 ML,,14.73,25,0,ELECTROLITOS ORALES LIMA / LIMON 500ML 1 PIEZA,no comparable: concentracion difiere ['630ml']≠['500ml']
+FC-36003621,Precicol hioscina/paracetamol gotas 20 mL,Hioscina + Paracetamol,0.0,0,72,PARACETAMOL / BUTILHIOSCINA 100/2 MG SOLUCION GOTAS 20 ML 1 PIEZA,no comparable: forma difiere gotas≠solucion
+FC-14121782,Jabón proteína de arroz y concha nácar,,17.78,25.0,0,PROTEINA XGEAR ZERO CARBOHIDRATOS VAINILLA 450GR,no comparable: concentracion difiere ['80000mg']≠['450000mg']
+FC-40032295,Suerox 8 Iones Mora Azul 630 ML,,14.73,25,0,ELECTROLITOS ORALES LIMA / LIMON 500ML 1 PIEZA,no comparable: concentracion difiere ['630ml']≠['500ml']
+FC-53601247,Rinomar Agua Isotonica,,86.9,105,0,,sin resultados VTEX
+FC-58616678,Nestum Cereal Infantil Arroz,,52.43,84,0,,sin resultados VTEX
+FC-00721541,Suerox Vitamins Manzana V-Limón 630 ML,,14.73,25,0,ELECTROLITOS ORALES LIMA / LIMON 500ML 1 PIEZA,no comparable: concentracion difiere ['630ml']≠['500ml']
+FC-00661391,Suerox 8 Iones Frutos Rojos 630 ML,,14.73,25,0,ELECTROLITOS ORALES LIMA / LIMON 500ML 1 PIEZA,no comparable: concentracion difiere ['630ml']≠['500ml']
+FC-00744481,Suerox 8 Iones Coco Piña 630 ML,,14.72,25,0,ELECTROLITOS ORALES LIMA / LIMON 500ML 1 PIEZA,no comparable: concentracion difiere ['630ml']≠['500ml']
+FC-00721471,Suerox Vitamins Naranja Mango 630 ML,,14.73,25,0,ELECTROLITOS ORALES LIMA / LIMON 500ML 1 PIEZA,no comparable: concentracion difiere ['630ml']≠['500ml']
+FC-03405381,Vitacilina Ungüento,Neomicina + Bacitracina zinc,23.06,31.14,70,POLIMIXINA B / NEOMICINA / BACITRACINA UNGÜENTO 3.5GR 1 PIEZA,no comparable: concentracion difiere ['18000mg']≠['3500mg']
+FC-03430721,Vitacilina 28 Crema,Neomicina + Bacitracina zinc,38.12,51.47,70,POLIMIXINA B / NEOMICINA / BACITRACINA UNGÜENTO 3.5GR 1 PIEZA,no comparable: concentracion difiere ['28000mg']≠['3500mg']
+FC-54221482,Deeflamox Plus,Amoxicilina + Acido clavulanico,42.41,57.26,70,AMOXICILINA / ACIDO CLAVULANICO 875MG 10 TABLETAS,no comparable: concentracion difiere ['5ml']≠['875mg']
+FC-06226852,Desodorante Axe Wom Anarchy,Antitranspirante / desodorante,45.83,65.0,0,,sin resultados VTEX
+FC-06245686,Desodorante Axe Men Epic-F 48H,Antitranspirante / desodorante,45.83,73.33,0,,sin resultados VTEX
+FC-06247327,Afrin No Drip Descongestivo Nasal spray,Clrhidrato de oximetazolina,109.76,175.62,0,OXIMETAZOLINA ADULTO 50MG/100ML SOLUCION NASAL 20 ML 1 PIEZA,"no comparable: concentracion difiere ['0.5mg', '15ml']≠['100ml', '20ml', '50mg']"
+FC-06209862,Desodorante Axe 48H Anarchy Fresh Love (Mujer),Antitranspirante / desodorante,45.83,65.0,0,,sin resultados VTEX
+FC-06249783,Sedal Rizos Def,,19.11,25,39,PARACETAMOL/CAFEINA/FENILEFRINA 10 TABLETAS SEDALMERCK,no comparable: candidato sin tamano declarado
+FC-08344747,Afrodit,Emolientes,45.08,72.13,0,VITAMINA E 400 MG 90 CAPSULAS,no comparable: concentracion difiere ['400ui']≠['400mg']
+FC-06249776,Shampoo Sedal Ceramidas,Surfactantes / formula capilar,18.88,25,39,PARACETAMOL/CAFEINA/FENILEFRINA 10 TABLETAS SEDALMERCK,no comparable: candidato sin tamano declarado
+FC-07457826,Acondicionador Pantene Brillo Extremo,,75.7,121.12,0,,sin resultados VTEX
+FC-07535494,Motrin Infantil Suspension 120 ml,Ibuprofeno 2 g/100 ml,186.4,251.64,100,IBUPROFENO  2GR/100ML SUSPENSION 120 ML 1 PIEZA,precio 0.17x el costo
+FC-07F04F88,Amcef IM 500 mg (Inyectable),,19.43,25.26,0,CEFTRIAXONA 500 MG SOLUCION INYECTABLE 1 PIEZA,no comparable: forma difiere inyectable≠solucion
+FC-08344488,Lactopram 430 mg C/20,Lactobacillus,28.71,38.76,82,GOMITAS LACTOBACILLUS ESPORULADOS 60 GOMITAS,no comparable: candidato sin tamano declarado
+FC-0BDE9283,Clophiven 200 Dosis 50 Mcg,,56.51,73.47,0,,sin resultados VTEX
+FC-07457796,Shampoo Pantene Brillo Extremo,Surfactantes / formula capilar,75.7,121.12,0,,sin resultados VTEX
+FC-23001331,Sr. Ting pomada (ácido bórico),Acido bórico / talco,73.6,117.76,72,ACIDO ACETILSALICILICO/BICARBONATO DE SODIO/ACIDO CITRICO 10 TABLETAS ALKA SELTZER,no comparable: candidato sin tamano declarado
+FC-23273451,Jeringa insulina 0.5 ml Sensi Medical,,2.13,8,42,RASTRILLO CABALLERO TRIPLE HOJA CON BANDA LUBRICANTE PIEL SENSIBLE COLOR VERDE 1 PIEZA,no comparable: candidato sin tamano declarado
+FC-06234062,Sedal Anti Nudos,,50.07,71.0,16,PARACETAMOL/CAFEINA/FENILEFRINA 10 TABLETAS SEDALMERCK,no comparable: candidato sin tamano declarado
+FC-24511629,Silica Shine uva,Silice / dimeticone,44.76,63.0,0,,sin resultados VTEX
+FC-24511711,Silica Shine Sily 3/1 Mora,Silice / dimeticone,45.26,63,0,,sin resultados VTEX
+FC-25104688,Electrolit Naranja-Mandarina,,20.09,32,64,ELECTROLITOS ORALES NARANJA / MANDARINA 500ML 1 PIEZA,no comparable: concentracion difiere ['625ml']≠['500ml']
+FC-25652716,Escudo Antibacterial Original,Surfactantes / formula corporal,14.775,19,0,,sin resultados VTEX
+FC-27512574,Evenflo Colors,,15.48,25.28,0,BIBERON 4 ONZAS 1 PIEZA,no comparable: candidato sin tamano declarado
+FC-42003469,Gel Dental  GUM Paw Patrol,,16.56,26.5,0,,sin resultados VTEX
+FC-29003221,Vaso Recolector Para Muestras Quirmex capacidad 120 mL,,3.63,6,0,,sin resultados VTEX
+FC-2E5B7248,Reumatol,MENTOL + ALCANFOR + METILSALICILATO,11.0,17.61,64,ALCANFOR / MENTOL / EUCALIPTO / TREMENTINA / SALICILATO DE METILO UNGÜENTO 1 PIEZA,no comparable: al competidor le faltan 1/3 principios activos (metilsalicilato)
+FC-31887928,Enjuague Buc Listerine Cuidado Total,,63.53,89.0,0,ENJUAGUE BUCAL ANTISEPTICO SABOR MENTA POLVO 12 SOBRES,no comparable: candidato sin tamano declarado
+FC-31976394,Enjuague Bucal Listerine Anticaries,,63.53,89.0,0,ENJUAGUE BUCAL ANTISEPTICO SABOR MENTA POLVO 12 SOBRES,no comparable: candidato sin tamano declarado
+FC-06247468,Gel Ego Fresh,,17.54,25.0,0,,sin resultados VTEX
+FC-22150221,Jabon en Barra Ricitos de Oro Neutro,Jabon / tensioactivos,20.8,30.0,0,,sin resultados VTEX
+FC-35908130,Talco para bebé Mennen azul,Talco / zinc undecilenato,69.19,97,82,SIMI B HIERRO Y ZINC 60 CAPSULAS,no comparable: candidato sin tamano declarado
+FC-33950063,Pediasure fresa,Suplemento nutricional,44.0,66,0,,sin resultados VTEX
+FC-33950100,Ensure chocolate,Suplemento nutricional,42.0,63.0,19,DIETA POLIMERICA CON FIBRA SABOR CHOCOLATE 236 ML 1 PIEZA,confianza 19 < 85
+FC-08837311,Nivea Antitransp Pearlb Spray,Emolientes / humectantes,64.73,83,0,,sin resultados VTEX
+FC-20500171,Crema para peinar Pert aceite oliva aguacate,,14.8,25,0,,sin resultados VTEX
+FC-33954078,Ensure Fresa,Suplemento nutricional,42.0,63,0,SIMISURE DIABETICO FRESA 462 GR 1 PIEZA,no comparable: concentracion difiere ['237ml']≠['462000mg']
+FC-33956126,Glucerna Vainilla,Suplemento nutricional,47.5,72,0,ALIMENTO EN POLVO SABOR VAINILLA PARA DIABETICOS 400 GR 1 PIEZA,no comparable: concentracion difiere ['237ml']≠['400000mg']
+FC-6519183A,Clamoxin (Amoxicilina/Clavulánico 500/125 mg),AMOXICILINA/AC. CLAVULANICO,27.89,36.26,43,AMOXICILINA 500 MG SUSPENSION 75 ML 1 PIEZA,no comparable: al competidor le faltan 1/2 principios activos (ac.)
+FC-35020008,Shampoo Herbal Essences Limp Renov,Surfactantes / formula capilar,73.76,104.0,0,,sin resultados VTEX
+FC-35020077,Shampoo Head & Shoulders Alivio Refrescante,Surfactantes / formula capilar,24.91,35.0,0,,sin resultados VTEX
+FC-35155922,Pantene Bambu,,75.0,86,0,,sin resultados VTEX
+FC-00942760,Gel Nivea facial hidratante hialurónico,Emolientes / humectantes,105.35,148.0,0,CREMA FACIAL CON ACIDO HIALURONICO PARA TODO TIPO DE PIEL ETERNAL SECRET 50 GR 1 PIEZA,no comparable: concentracion difiere ['200ml']≠['50000mg']
+FC-01163983,Old Spice Fresh barra desodorante,,45.24,75.4,16,DESODORANTE EN AEROSOL PARA CABALLERO OLD SPICE 150 ML 1 PIEZA,no comparable: concentracion difiere ['50000mg']≠['150ml']
+FC-20500201,Shampoo Pert Aceite oliva,Surfactantes / formula capilar,23.99,34.0,0,,sin resultados VTEX
+FC-06217461,Talco Desodorante Rexona Effi Fresh,Antitranspirante / desodorante,64.12,90.0,0,,sin resultados VTEX
+FC-09498091,Pasta Dent Sensodyne Proteccion Comp,Fluoruro de sodio,70.91,107.0,47,PASTA DENTAL 100% ORAL-B 1 PIEZA,no comparable: candidato sin tamano declarado
+FC-2225010,Derman Crema 25 g,Acido undecilenico + Undecilenato de zinc,27.8,37.53,0,ACIDO ACETILSALICILICO/BICARBONATO DE SODIO/ACIDO CITRICO 10 TABLETAS ALKA SELTZER,no comparable: al competidor le faltan 1/2 principios activos (undecilenato)
+FC-20501765,Crema Grisi aloe vera para manos,,45.15,64.0,0,JABON NEUTRO 100 GR 1 PIEZA,no comparable: concentracion difiere ['80ml']≠['100000mg']
+FC-35168991,Mousse Herbal Essences extra control,,67.0,90,0,,sin resultados VTEX
+FC-35231237,Shampoo Head & Shoulders Anti Comezon,Surfactantes / formula capilar,73.76,104.0,0,,sin resultados VTEX
+FC-07528939,Crema Lubriderm Repa Intens,,31.59,45.0,0,,sin resultados VTEX
+FC-36032776,Shampoo Ricitos de Oro Biopure,Surfactantes / formula capilar,74.31,105.0,0,,sin resultados VTEX
+FC-35469151,Crema Lubriderm Uv Fps15,,34.41,49.0,0,,sin resultados VTEX
+FC-35908147,Talco para bebé Mennen rosa,Talco / zinc undecilenato,69.19,97.0,82,SIMI B HIERRO Y ZINC 60 CAPSULAS,no comparable: candidato sin tamano declarado
+FC-35911208,Palmolive Aquarium,Surfactantes / formula corporal,23.79,34.0,0,,sin resultados VTEX
+FC-20501673,Crema Hinds líquida agave azul,Emolientes / humectantes,42.25,60.0,0,,sin resultados VTEX
+FC-31244486,Crema Lubriderm piel normal,,31.59,45.0,0,,sin resultados VTEX
+FC-35169035,Mousse Herbal Essences Rizo,,57.9,82.0,0,,sin resultados VTEX
+FC-35919129,Shampoo Palmolive Vital Keratina,Surfactantes / formula capilar,49.29,55,0,,sin resultados VTEX
+FC-36033735,Shampoo Ricitos de Oro Agua De Coco,Surfactantes / formula capilar,42.34,60.0,0,,sin resultados VTEX
+FC-36040450,Crema Grisi concha nácar para manos,,43.63,62.0,0,JABON NEUTRO 100 GR 1 PIEZA,no comparable: concentracion difiere ['80ml']≠['100000mg']
+FC-36041273,Crema Hinds Clasica Rosa,Emolientes / humectantes,49.97,60,0,,sin resultados VTEX
+FC-36041341,Crema Hinds Natural piel seca 90 ml,,17.64,24.7,0,,sin resultados VTEX
+FC-36041389,Crema Hinds Hidratacion Extrema Almendras ch,,17.64,25,0,,sin resultados VTEX
+FC-06249226,Shampoo Savile bio sábila crecimiento resistente,Surfactantes / formula capilar,40.66,57.0,0,,sin resultados VTEX
+FC-36041402,Crema Hinds hidratación extra almendras,Emolientes / humectantes,39.9,60,0,,sin resultados VTEX
+FC-38312374,Cera gel Moco de Gorila Citrus,Cera / resina,32.34,46.0,0,,sin resultados VTEX
+FC-07502441,Jabon Johnsons Baby Antes/Dorm,Jabon / tensioactivos,15.51,22.0,0,,sin resultados VTEX
+FC-35231244,Shampoo Head & Shoulders Anti Comezon,Surfactantes / formula capilar,36.73,45,0,,sin resultados VTEX
+FC-36041297,Crema Hinds Inspiración piel seca 90 ml,,17.64,24.7,0,,sin resultados VTEX
+FC-5181402,Sedalmerck C/40 tabletas,Paracetamol 500 mg + Cafeina 50 mg + Fenilefrina 5 mg,144.73,195.39,90,AGRIFEN PARACETAMOL 500 MG / CAFEINA 25 MG / FENILEFRINA 5 MG / CLORFENAMINA 4 MG 10 TABLETAS,precio 0.16x el costo
+FC-06248052,Dove aerosol tono uniforme caléndula y vitamina E,Surfactantes / formula corporal,55.89,69,0,,sin resultados VTEX
+FC-40010712,Tukol-D jarabe Adulto,Guaifenesina + Dextrometorfano,117.42,158.52,70,GUAIFENESINA / FENILEFRINA / DEXTROMETORFANO PEDIATRICO SOLUCION GOTAS 60 ML 1 PIEZA,no comparable: concentracion difiere ['125ml']≠['60ml']
+FC-40013850,Crema Teatrical Lanolina,Emolientes / lanolina,30.02,43,0,,sin resultados VTEX
+FC-40015366,Nasalub Sol,Cloruro de sodio + Glicerol,83.32,112.49,39,CLORURO DE SODIO 6.5MG/1ML SOLUCION NASAL 30 ML 1 PIEZA,no comparable: al competidor le faltan 1/2 principios activos (glicerol)
+FC-01015141,Lubricante Sico Softlube Origin,Latex,94.75,119,0,CONDON AROMA Y SABOR UVA SIMICONDON 3 PIEZAS,no comparable: candidato sin tamano declarado
+FC-06248045,Dove Men Care 72 h,Surfactantes / formula corporal,49.1,60,0,,sin resultados VTEX
+FC-06249240,Shampoo Savile keratina sábila fuerza reparadora,Surfactantes / formula capilar,40.66,57.0,0,,sin resultados VTEX
+FC-23272151,Jeringa insulina 0.3 ml Sensi Medical,,2.128,8,42,RASTRILLO CABALLERO TRIPLE HOJA CON BANDA LUBRICANTE PIEL SENSIBLE COLOR VERDE 1 PIEZA,no comparable: candidato sin tamano declarado
+FC-24511636,Silica Shine Sily 3/1 Naran,Silice / dimeticone,44.76,63.0,0,,sin resultados VTEX
+FC-40025839,Jabon Intimo Lomecan V,Jabon / tensioactivos,63.05,89.0,0,SHAMPOO HIGIENE INTIMA 220ML ETERNAL SECRET,no comparable: concentracion difiere ['200ml']≠['220ml']
+FC-40030338,Jabon Intimo Lomecan V Aclar,Jabon / tensioactivos,70.92,100.0,0,SHAMPOO HIGIENE INTIMA 220ML ETERNAL SECRET,no comparable: concentracion difiere ['200ml']≠['220ml']
+FC-01165321,Acondicionador Pantene Rizos Definid,,75.7,103.0,0,,sin resultados VTEX
+FC-08427330,Bepanthen Pomada Protectora Contra Rozaduras,Dexpanthenol,134.5,160,0,,sin resultados VTEX
+FC-22130063,Shampoo Ricitos de Oro miel y argán 100 ml,,31.56,44.2,0,,sin resultados VTEX
+FC-22133286,Shampoo Grisi Rici Oro Miel,Surfactantes / formula capilar,66.93,94.0,0,JABON NEUTRO 100 GR 1 PIEZA,no comparable: concentracion difiere ['250ml']≠['100000mg']
+FC-40013898,Crema Teatrical Lanol/Ros,Emolientes / lanolina,30.36,43.0,0,,sin resultados VTEX
+FC-40030963,Crema Teatrical Cel-Ma Nutrit,Emolientes / lanolina,62.25,88.0,0,,sin resultados VTEX
+FC-40032325,Suerox 8 Iones Lima Limón 630 ML,,14.73,25,0,ELECTROLITOS ORALES LIMA / LIMON 500ML 1 PIEZA,no comparable: concentracion difiere ['630ml']≠['500ml']
+FC-40035395,Suerox 8 Iones Coco 630 ML,,14.73,25,0,ELECTROLITOS ORALES LIMA / LIMON 500ML 1 PIEZA,no comparable: concentracion difiere ['630ml']≠['500ml']
+FC-52933307,Desodorante Obao Game 48Hr,Antitranspirante / desodorante,27.19,39.0,0,,sin resultados VTEX
+FC-14983726,Prudence Natural Lubricante Natural,,62.06,99.3,0,GEL LUBRICANTE VAGINAL 113GR 1 PIEZA,no comparable: concentracion difiere ['75ml']≠['113000mg']
+FC-08DB70CB,Bicarbonato Velazquez Grande 200G,Bicarbonato de sodio,11.5,18.41,82,ACIDO ACETILSALICILICO/BICARBONATO DE SODIO/ACIDO CITRICO 10 TABLETAS ALKA SELTZER,no comparable: candidato sin tamano declarado
+FC-14983153,Lubricante Intimo Prudence Grosella,,62.06,109,0,GEL LUBRICANTE VAGINAL 113GR 1 PIEZA,no comparable: concentracion difiere ['75ml']≠['113000mg']
+FC-30622622,Desodorante Axe Men Young (hombre),Antitranspirante / desodorante,45.83,73.33,0,,sin resultados VTEX
+FC-33956775,Suero Pedialyte Sr Uva,,23.81,36,10,ELECTROLITOS ORALES UVA 500 ML 1 PIEZA,confianza 10 < 85
+FC-06213906,Desodorante Axe Ice Chill 48H (hombre),Antitranspirante / desodorante,45.83,65.0,0,,sin resultados VTEX
+FC-06244795,Desodorante Axe Intense 48H (Hombre),Antitranspirante / desodorante,45.83,65.0,0,,sin resultados VTEX
+FC-1FBF5206,Del Viejito Reomatolum,,20.0,32.0,0,,sin resultados VTEX
+FC-33954740,Suero Pedialyte Sr Manzana,,23.81,36,18,ELECTROLITOS ORALES MANZANA 500ML 1 PIEZA,confianza 18 < 85
+FC-33956133,Glucerna chocolate,Suplemento nutricional,47.5,72,0,,sin resultados VTEX
+FC-33956140,Glucerna fresa,Suplemento nutricional,47.5,72.0,0,,sin resultados VTEX
+FC-33961373,Suero Pedialyte Sr fresa,,23.81,36,14,ELECTROLITOS ORALES FRESA 500 ML 1 PIEZA,confianza 14 < 85
+FC-40066306,Suerox 8 Iones Fresa 630 ML,,14.73,25,0,ELECTROLITOS ORALES LIMA / LIMON 500ML 1 PIEZA,no comparable: concentracion difiere ['630ml']≠['500ml']
+FC-40074455,Suerox 8 Iones Uva Mora Azul 630 ML,,14.73,25,0,ELECTROLITOS ORALES LIMA / LIMON 500ML 1 PIEZA,no comparable: concentracion difiere ['630ml']≠['500ml']
+FC-40171550,Pasta Dent Sensodyne rápido relief,Fluoruro de sodio,106.44,150.0,47,PASTA DENTAL 100% ORAL-B 1 PIEZA,no comparable: candidato sin tamano declarado
+FC-7048853,Melox Plus,Hidroxido de aluminio + Hidroxido de magnesio + Simeticona,132.3,178.78,65,ALUMINIO 200 MG / MAGNESIO 200 MG / DIMETICONA 20 MG 50 TABLETAS MASTICABLES,"no comparable: al competidor le faltan 2/3 principios activos (hidroxido, hidroxido)"
+FC-002663,Lomotil Loperamida,Loperamida,119.56,161.57,90,LOPERAMIDA 2 MG 12 TABLETAS,precio 0.10x el costo
+FC-52876406,Desodorante Obao Men Tatto Aqua (Hombre),Antitranspirante / desodorante,24.71,35.0,0,,sin resultados VTEX
+FC-34067851,Torundas de algodon Quirmex,,17.54,28,0,,sin resultados VTEX
+FC-36041259,Crema Hinds Clásica piel seca 90 ml,,17.64,24.7,0,,sin resultados VTEX
+FC-42270027,Crema Nivea Facial 7 en 1,Emolientes / humectantes,86.77,137.4,0,CREMA CORPORAL NIVEA PARA PIEL EXTRA SECA 220 ML 1 PIEZA,no comparable: concentracion difiere ['200ml']≠['220ml']
+FC-42302289,Enjuague Bucal GUM Paroex Gengivitis,,148.27,237,0,,sin resultados VTEX
+FC-42326414,Garnier agua micelar De Rosas,,108.24,152.0,0,AGUA MICELAR SOLUCION ETERNAL SECRET 200ML 1 PIEZA,no comparable: concentracion difiere ['400ml']≠['200ml']
+FC-42417644,Crema Nivea Cuidado Int P/Mano,Emolientes / humectantes,48.58,69.0,0,,sin resultados VTEX
+FC-60101378,Lubricante íntimo,,102.5,164.0,42,SUCCIONADOR INTIMO DAMA 1 PIEZA ALFA KINKY,no comparable: candidato sin tamano declarado
+FC-46059556,Palmolive líquido neutro,Surfactantes / formula corporal,35.61,50.0,0,,sin resultados VTEX
+FC-46683133,Palmolive Neutro-Bal Dermo Limp,Surfactantes / formula corporal,26.145,30,0,,sin resultados VTEX
+FC-66873531,Colgate Máxima Protección Anticaries,,32.44,51,0,PASTA DENTAL 100% ORAL-B 1 PIEZA,no comparable: candidato sin tamano declarado
+FC-66888171,Colgate Max Clean Frescura y Limpieza,Fluoruro de sodio,24.99,40,0,,sin resultados VTEX
+FC-70100307,Broncolin Etiqueta Azul jarabe oral 140 ml,Miel,64.19,102.7,82,CARAMELOS DR SIMI SABOR MIEL DE ABEJA / LIMON / HERBAL PAQUETE 10 PIEZAS,no comparable: candidato sin tamano declarado
+FC-06230507,Dove Barra Karite Vainill,Surfactantes / formula corporal,30.21,48.34,0,,sin resultados VTEX
+FC-08426944,Flanax Gel Naproxeno Sodico,Naproxeno sodico,117.11,187.38,70,NAPROXENO SODICO/PARACETAMOL 275MG/300MG 10TABLETAS,"no comparable: concentracion difiere ['40000mg']≠['275mg', '300mg']"
+FC-22111352,Grisi Corp Diabecare,,39.94,56.0,0,JABON NEUTRO 100 GR 1 PIEZA,no comparable: concentracion difiere ['125000mg']≠['100000mg']
+FC-22150092,Grisi Leche De Burra,,21.88,31.0,0,JABON NEUTRO 100 GR 1 PIEZA,no comparable: concentracion difiere ['125000mg']≠['100000mg']
+FC-14980350,Prudence Lub lubricante íntimo mora azul 75 ml,,62.06,99.3,0,GEL LUBRICANTE VAGINAL 113GR 1 PIEZA,no comparable: concentracion difiere ['75ml']≠['113000mg']
+FC-43489004,Escudo Rosa Cuidado,Surfactantes / formula corporal,8.96,19,0,,sin resultados VTEX
+FC-43489165,Escudo jabón líquido blanco neutro,Jabon / tensioactivos,25.08,36.0,0,,sin resultados VTEX
+FC-44B6751A,Aquito 500/100/30/4 Mg,,59.63,77.52,0,,sin resultados VTEX
+FC-45720550,Quitaesmalte SKN mora azul,,17.2,25.0,0,,sin resultados VTEX
+FC-45720567,Quitaesmalte coco,,17.2,25.0,0,,sin resultados VTEX
+FC-45722547,Natural Gloss Agua micelar bifásica,,21.08,30.0,0,,sin resultados VTEX
+FC-46072050,Shampoo Mennen miel manzana,Surfactantes / formula capilar,26.3,37.0,0,,sin resultados VTEX
+FC-46073033,Shampoo Caprice Acti Ceramida,Surfactantes / formula capilar,14.73,21.0,0,,sin resultados VTEX
+FC-46073040,Shampoo Caprice biotina fuerza,Surfactantes / formula capilar,14.73,21.0,0,,sin resultados VTEX
+FC-46073118,Shampo Caprice Acti-Ceramidas,,29.31,40,0,SHAMPOO KIDS 400ML SIMI CHAPULIN,no comparable: concentracion difiere ['380ml']≠['400ml']
+FC-46073156,Shampoo Caprice natural manzana,Surfactantes / formula capilar,29.31,42.0,0,,sin resultados VTEX
+FC-46074504,Shampoo Mennen Zero%,Surfactantes / formula capilar,49.97,63,0,,sin resultados VTEX
+FC-46642073,Microdacyn Solucion 60 ml,Acido hipocloroso / solucion antiseptica,114.66,154.8,43,MICRODACYN SOLUCION ANTISEPTICA SPRAY 120 ML 1 PIEZA,no comparable: al competidor le faltan 1/2 principios activos (acido)
+FC-92503558,Ego Magnetic Fij-Alta,,18.39,26.0,0,,sin resultados VTEX
+FC-99425580,Gel X-Treme Titan,,22.615,32,20,ALCANFOR / MENTOL / EUCALIPTO / TREMENTINA / SALICILATO DE METILO UNGÜENTO 1 PIEZA,no comparable: candidato sin tamano declarado
+FC-46650708,Shampoo Mennen lavanda extracto avena,Surfactantes / formula capilar,26.3,37.0,0,,sin resultados VTEX
+FC-46655055,Mousse Caprice Volum-Cirl,,50.51,71.0,0,,sin resultados VTEX
+FC-46655079,Jabon barra Palmolive Neutro Bal Corp Baby,Jabon / tensioactivos,17.98,25,0,,sin resultados VTEX
+FC-46655727,Jabon Mennen Baby Magic Lavan Hipoalerg,Jabon / tensioactivos,12.97,19.0,0,,sin resultados VTEX
+FC-46657035,Palmolive jabón líquido cerezo y rosa,Jabon / tensioactivos,23.79,34.0,0,,sin resultados VTEX
+FC-46682815,Desodorante Speed Stick sensitive protect,Antitranspirante / desodorante,29.905,40,0,,sin resultados VTEX
+FC-47624171,Nailex Desenterrador Unas Desenterrador Unas,,54.49,87.19,0,,sin resultados VTEX
+FC-47640531,Nailex El Recuperador,,54.49,80,0,,sin resultados VTEX
+FC-48335305,Agua Oxigenada,,14.7,23,22,PROTECTORES PARA LACTANCIA PIEZAS SIMI BABY 24 PIEZAS,no comparable: candidato sin tamano declarado
+FC-BE76D409,Amcef IM 1 g (Inyectable),,19.72,25.64,0,CEFTRIAXONA 500 MG SOLUCION INYECTABLE 1 PIEZA,no comparable: concentracion difiere ['1000mg']≠['500mg']
+FC-06241206,Dove tono uniforme 72h,Surfactantes / formula corporal,64.285,80,0,,sin resultados VTEX
+FC-22105207,Jabon Grisi Neutro,Jabon / tensioactivos,20.87,30,25,JABON NEUTRO 100 GR 1 PIEZA,no comparable: concentracion difiere ['150000mg']≠['100000mg']
+FC-27250612,Desodorante Obao Piel Delicada,Antitranspirante / desodorante,24.71,39.54,0,,sin resultados VTEX
+FC-27286017,Desodorante Obao Classic (Hombre),Antitranspirante / desodorante,29.55,42.0,0,,sin resultados VTEX
+FC-38891190,Jabon Dove Original,Jabon / tensioactivos,30.205,37,0,,sin resultados VTEX
+FC-50002301,Neo-Melubrina metamizol tabletas C/10,Metamizol Sodico,72.23,93.9,100,METAMIZOL 500MG 10 COMPRIMIDOS,precio 0.15x el costo
+FC-50882000,Dermodine solución antiséptica 120 ml,Iodopovidona,36.85,57.36,0,,sin resultados VTEX
+FC-50882017,Dermodine Espuma 120 mL,Iodopovidona,36.85,120.32,0,,sin resultados VTEX
+FC-08802838,Crema Nivea Softmilk,Emolientes / humectantes,84.49,119.0,0,,sin resultados VTEX
+FC-1DAD5EF1,Tusilen adulto jarabe,,24.22,31.49,0,,sin resultados VTEX
+FC-50882024,Dermodine Bucofaríngeo 120 ml,Iodopovidona,36.85,58.97,0,,sin resultados VTEX
+FC-51067711,Leche Nidal en Polvo 1bebé  0 a 6 M,,110.45,180,0,FORMULA LACTEA 1-3 AÑOS NUTRIFORMULA 400 GR 1 PIEZA,no comparable: concentracion difiere ['360000mg']≠['400000mg']
+FC-51078461,Leche en polvo NAN Optimal Pro 1/ 0 a 6 M,,63.41,92,0,EXTRACTOR MANUAL PARA LECHE MATERNA SIMIBABY 1 PIEZA,no comparable: candidato sin tamano declarado
+FC-51078531,Leche en Polvo NAN Optimal Pro 2 / 6 a 12 M,,58.7,92,0,EXTRACTOR MANUAL PARA LECHE MATERNA SIMIBABY 1 PIEZA,no comparable: candidato sin tamano declarado
+FC-51448511,Electrolit Uva,,20.09,32,54,ELECTROLITOS ORALES UVA 500 ML 1 PIEZA,no comparable: concentracion difiere ['525ml']≠['500ml']
+FC-51747971,Electrolit Mora Azul,,20.09,32,60,ELECTROLITOS ORALES MORA AZUL 500ML 1 PIEZA,no comparable: concentracion difiere ['625ml']≠['500ml']
+FC-52816297,Crema Para Peinar Fructis Oil-Repail L-Coco,,43.58,62.0,0,,sin resultados VTEX
+FC-52844825,Desodorante Obao Ritual Natural Coco (Mujer),Antitranspirante / desodorante,24.95,35,0,,sin resultados VTEX
+FC-52910971,Crema Para Peinar Fructis Borrador de Daño,,43.58,62.0,0,,sin resultados VTEX
+FC-08100013,Eucalín jarabe miel y propóleo 120 ml,,44.46,71.14,0,,sin resultados VTEX
+FC-22150801,Jabon Grisi Avena,Jabon / tensioactivos,21.72,31.0,0,,sin resultados VTEX
+FC-25605514,Escudo Antibacterial Frescura,Surfactantes / formula corporal,14.45,19,0,,sin resultados VTEX
+FC-33950070,Ensure vainilla,Suplemento nutricional,42.0,63.0,17,DIETA POLIMERICA CON FIBRA SABOR VAINILLA 236 ML 1 PIEZA,confianza 17 < 85
+FC-33950209,Pediasure vainilla,Suplemento nutricional,44.0,66,0,,sin resultados VTEX
+FC-33951008,Pediasure chocolate,Suplemento nutricional,44.0,66,0,,sin resultados VTEX
+FC-40004643,Jabon Asepxia Exfoliante,Jabon / tensioactivos,38.66,61.86,0,,sin resultados VTEX
+FC-40036965,Jabon Asepxia Bicarbon,Jabon / tensioactivos,37.68,53.0,0,,sin resultados VTEX
+FC-54073302,Silica Shine Sily Oleo Argan,Silice / dimeticone,45.26,63,0,,sin resultados VTEX
+FC-54500216,Crema Nivea de Tarro Crist,Emolientes / humectantes,147.15,207.0,0,,sin resultados VTEX
+FC-54503095,Crema Nivea Tarro,Emolientes / humectantes,60.75,86.0,0,,sin resultados VTEX
+FC-54504535,Crema corporal Nivea Milk,Emolientes / humectantes,85.87,121,0,CREMA CORPORAL NIVEA PARA PIEL EXTRA SECA 220 ML 1 PIEZA,no comparable: concentracion difiere ['400ml']≠['220ml']
+FC-54549796,Crema Nivea Milk Nutritiva,Emolientes / humectantes,31.58,45,0,CREMA CORPORAL NIVEA PARA PIEL EXTRA SECA 220 ML 1 PIEZA,no comparable: concentracion difiere ['100ml']≠['220ml']
+FC-54549819,Crema Nivea Softmilk,Emolientes / humectantes,26.3,42.09,0,,sin resultados VTEX
+FC-54558682,Nivea Milk Crema corp 400 ML,Emolientes / humectantes,22.3,30.11,0,CREMA CORPORAL NIVEA PARA PIEL EXTRA SECA 220 ML 1 PIEZA,no comparable: concentracion difiere ['400ml']≠['220ml']
+FC-55280956,Desodorante Obao Men Tattoo Rebel (Hombre),Antitranspirante / desodorante,25.83,33,0,,sin resultados VTEX
+FC-56323059,Vaseline puro,,45.5,69.0,0,,sin resultados VTEX
+FC-56323066,Vaseline FaseLine puro,,27.0,41,0,,sin resultados VTEX
+FC-56326142,Crema Ponds Suave y Tersa,,59.36,84.0,0,CREMA BLANQUEADORA Y DESMANCHADORA CON CELULAS MADRE ETERNAL SECRET 50 GR 1 PIEZA,no comparable: concentracion difiere ['100000mg']≠['50000mg']
+FC-56330309,Crema Ponds Clarant B3,,72.3,102.0,0,CREMA BLANQUEADORA Y DESMANCHADORA CON CELULAS MADRE ETERNAL SECRET 50 GR 1 PIEZA,no comparable: concentracion difiere ['100000mg']≠['50000mg']
+FC-56330378,Ponds desmaquillante Bio-Hydra dual,,88.8,125.0,0,CREMA BLANQUEADORA Y DESMANCHADORA CON CELULAS MADRE ETERNAL SECRET 50 GR 1 PIEZA,no comparable: concentracion difiere ['200ml']≠['50000mg']
+FC-56340025,Crema Para Peinar Sedal Restauracion Inst,,50.07,71.0,31,PARACETAMOL/CAFEINA/FENILEFRINA 10 TABLETAS SEDALMERCK,no comparable: candidato sin tamano declarado
+FC-56340117,Crema Para Peinar Sedal Liso Perfecto,,50.07,71,31,PARACETAMOL/CAFEINA/FENILEFRINA 10 TABLETAS SEDALMERCK,no comparable: candidato sin tamano declarado
+FC-56340124,Crema Para Peinar Sedal Ceramida,,50.07,71.0,29,PARACETAMOL/CAFEINA/FENILEFRINA 10 TABLETAS SEDALMERCK,no comparable: candidato sin tamano declarado
+FC-56340131,Crema Para Peinar Sedal Rizos Definidos,,50.07,71.0,27,PARACETAMOL/CAFEINA/FENILEFRINA 10 TABLETAS SEDALMERCK,no comparable: candidato sin tamano declarado
+FC-56342227,Crema Para Peinar Sedal Rizos Definidos,,18.165,25,27,PARACETAMOL/CAFEINA/FENILEFRINA 10 TABLETAS SEDALMERCK,no comparable: candidato sin tamano declarado
+FC-56342258,Crema para peinar Sedal reconstructor instantáneo,,18.17,28.44,26,PARACETAMOL/CAFEINA/FENILEFRINA 10 TABLETAS SEDALMERCK,no comparable: candidato sin tamano declarado
+FC-56360429,Talco para pies Rexona Efficient Orig,Talco / zinc undecilenato,71.8,101.0,82,SIMI B HIERRO Y ZINC 60 CAPSULAS,no comparable: candidato sin tamano declarado
+FC-56371159,Jabon Dove Exfoliacion,Jabon / tensioactivos,30.54,35,0,,sin resultados VTEX
+FC-58611420,Leche en Polvo Nutri Rindes,,53.7,86,0,EXTRACTOR MANUAL PARA LECHE MATERNA SIMIBABY 1 PIEZA,no comparable: candidato sin tamano declarado
+FC-58792792,Tempra,Paracetamol/fenilefrina/carbinoxamina,58.7,96.0,63,DEXTROMETORFANO / PARACETAMOL / CLORFENAMINA / FENILEFRINA 12 CAPSULAS SIMI 1-2-3,no comparable: al competidor le faltan 1/3 principios activos (carbinoxamina)
+FC-58793249,Lubricante sensación calor,,101.9,163.05,19,CONDON ALFA SENSACIONES 3 PIEZAS,no comparable: candidato sin tamano declarado
+FC-59225411,Leche en polvo Nido Kinder,,74.19,118,0,EXTRACTOR MANUAL PARA LECHE MATERNA SIMIBABY 1 PIEZA,no comparable: candidato sin tamano declarado
+FC-5F30F9D4,Clamoxin (Amoxicilina/Clavulánico 500/125 mg),AMOXICILINA/AC. CLAVULANICO,48.48,63.03,39,AMOXICILINA / ACIDO CLAVULANICO 875MG 10 TABLETAS,no comparable: al competidor le faltan 1/2 principios activos (ac.)
+FC-60009851,Colgate Triple Acc Original,,18.82,30,0,PASTA DENTAL 100% ORAL-B 1 PIEZA,no comparable: candidato sin tamano declarado
+FC-60101231,Tempra XT Noche,Paracetamol/Fenilefrina/Carbinoxamina,59.69,77.6,54,LORATADINA 2.5 MG / FENILEFRINA 5 MG / PARACETAMOL 500 MG 12 TABLETAS,no comparable: al competidor le faltan 1/3 principios activos (carbinoxamina)
+FC-60101521,Soft Lub Pleasure 56.7 g,,100.8,161.28,0,NEOMICINA / RETINOL (VITAMINA A) UNGÜENTO 28 GR 1 PIEZA,no comparable: concentracion difiere ['56700mg']≠['28000mg']
+FC-60689091,Colgate Trip Xtra Blancura,,13.72,21.96,0,PASTA DENTAL 100% ORAL-B 1 PIEZA,no comparable: candidato sin tamano declarado
+FC-61111501,Talco Desodorante ODolex,Antitranspirante / desodorante,17.77,25.0,0,,sin resultados VTEX
+FC-61113000,Talco Desodorante ODolex,Antitranspirante / desodorante,28.1,40.0,0,,sin resultados VTEX
+FC-61123009,Talco Desodorante Odolex Naturals,Antitranspirante / desodorante,28.1,38.0,0,,sin resultados VTEX
+FC-61124013,Talco Desodorante Odolex Fresh,Antitranspirante / desodorante,17.77,25.0,0,,sin resultados VTEX
+FC-62746612,Ajolotius Jarabe Sin azucar,Mezcla Herbal con vitamina C yA,87.42,115.96,5,SIMIBROX D MALTITOL Y MEZCLA DE HIERBAS SIN AZUCAR JARABE 240 ML 1 PIEZA,no comparable: al competidor le faltan 1/2 principios activos (vitamina)
+FC-64560163,Iodex Cristal,Mentol + eucalipto,70.07,94.6,82,ALCANFOR / MENTOL / EUCALIPTO / TREMENTINA / SALICILATO DE METILO UNGÜENTO 1 PIEZA,no comparable: candidato sin tamano declarado
+FC-66534951,Colgate Total 65 mL,Fluoruro de sodio,22.93,36.69,0,,sin resultados VTEX
+FC-00E8A9C7,Protector Solar Fotosun UV100,,103.89,170,0,,sin resultados VTEX
+FC-67905131,Blumen jabón líquido cherry blossom,Jabon / tensioactivos,16.7,28.45,0,,sin resultados VTEX
+FC-67905186,Blumen coconut líquido,Surfactantes,16.7,24.0,0,,sin resultados VTEX
+FC-68900226,Alcohol Etilico Rojo 96°,Alcohol etilico,15.68,24,70,CLORHEXIDINA ENJUAGUE BUCAL SIN ALCOHOL 200 ML 1 PIEZA,no comparable: concentracion difiere ['250ml']≠['200ml']
+FC-68900264,Alcohol Etilico Rojo 96°,Alcohol etilico,8.1,14.0,70,CLORHEXIDINA ENJUAGUE BUCAL SIN ALCOHOL 200 ML 1 PIEZA,no comparable: concentracion difiere ['125ml']≠['200ml']
+FC-68901117,Alcohol Etilico Azul 71.6,Alcohol etilico,11.3,17.0,70,CLORHEXIDINA ENJUAGUE BUCAL SIN ALCOHOL 200 ML 1 PIEZA,no comparable: concentracion difiere ['250ml']≠['200ml']
+FC-68901124,Alcohol Etilico Azul 71.6,Alcohol etilico,24.0,45,70,CLORHEXIDINA ENJUAGUE BUCAL SIN ALCOHOL 200 ML 1 PIEZA,no comparable: concentracion difiere ['500ml']≠['200ml']
+FC-68910034,Dibar algodón 50 g,,9.9,16.16,0,,sin resultados VTEX
+FC-68910041,Algodón 25g,,6.9,10.0,0,,sin resultados VTEX
+FC-68990023,Alcohol Etilico Rojo 96°,Alcohol etilico,28.2,49,70,CLORHEXIDINA ENJUAGUE BUCAL SIN ALCOHOL 200 ML 1 PIEZA,no comparable: concentracion difiere ['500ml']≠['200ml']
+FC-6B2ADEE9,Protect aerosol 200 dosis,Budesonida + Formoterol,96.21,125.08,0,BUDESONIDA SUSPENSION 0.500MG/2ML O 0.250MG/ML SUSPENSION PARA NEBULIZACION 5 AMPOLLETAS,no comparable: al competidor le faltan 1/2 principios activos (formoterol)
+FC-72300171,Talco Desodorante Ting polvo,Antitranspirante / desodorante,80.46,113.0,0,,sin resultados VTEX
+FC-75001865,Brillantina Palmolive,Surfactantes / formula corporal,46.64,66.0,0,,sin resultados VTEX
+FC-75062897,Desodorante Rexona Bamboo 48H,Antitranspirante / desodorante,53.5,75.0,0,,sin resultados VTEX
+FC-75062927,Desodorante Rexona Pom-Dry 48 H,Antitranspirante / desodorante,53.5,75.0,0,,sin resultados VTEX
+FC-75064938,Desodorante Ego Force 24H roll-on,Antitranspirante / desodorante,23.895,40,0,,sin resultados VTEX
+FC-75069223,Rexona Sport Stick,Antitranspirante,42.82,60.0,0,,sin resultados VTEX
+FC-75076009,Rexona 48H Happy (Mujer),Antitranspirante,51.5,85.6,0,,sin resultados VTEX
+FC-0287855,Vita Kid-C jarabe vitamina C naranja 240 ml,,47.08,75.33,72,VITAMINA D3+VITAMINA K2 30 CAPSULAS,no comparable: candidato sin tamano declarado
+FC-75717914,K-PEC suspension infantil Novag,Neomicina + Caolin + Pectina,0.0,0,82,NEOMICINA / CAOLIN / PECTINA SUSPENSION 1 PZA,no comparable: candidato sin tamano declarado
+FC-76000253,Crema Vitacilina roja antiarrugas,,80.0,120.0,0,NEOMICINA / RETINOL (VITAMINA A) UNGÜENTO 28 GR 1 PIEZA,no comparable: concentracion difiere ['100000mg']≠['28000mg']
+FC-76000260,Crema Vitacilina amarilla aclaradora,,80.0,120.0,0,NEOMICINA / RETINOL (VITAMINA A) UNGÜENTO 28 GR 1 PIEZA,no comparable: concentracion difiere ['100000mg']≠['28000mg']
+FC-76000277,Vitacilina crema humectante,,77.03,374.0,0,NEOMICINA / RETINOL (VITAMINA A) UNGÜENTO 28 GR 1 PIEZA,no comparable: concentracion difiere ['100000mg']≠['28000mg']
+FC-76040436,Desodorante Para Pies Mexsana,Antitranspirante / desodorante,78.22,110.0,25,SPRAY DESODORANTE PARA PIES 160ML,no comparable: concentracion difiere ['150ml']≠['160ml']
+FC-76040610,Desenfriolito Plus Masticables,Clorfenamina/Fenilefrina/Paracetamol,45.96,78,82,CLORFENAMINA / FENILEFRINA / PARACETAMOL 24 TABLETAS,no comparable: candidato sin tamano declarado
+FC-7907117,Bisolvon Solucion Adulto 120 ml,Bromhexina,141.94,191.62,70,BROMHEXINA 160MG/100ML ADULTO SOLUCION 1 PIEZA,"no comparable: concentracion difiere ['120ml']≠['100ml', '160mg']"
+FC-82176351,Dolo-Neurobión Forte inyectable prellenado,"Complejo B, Lidocaína, Diclofenaco Sódico",273.24,438.0,0,DEXAMETASONA/LIDOCAINA/VITAMINA B1 B6 B12 6 AMPOLLETAS,"no comparable: al competidor le faltan 2/3 principios activos (complejo, diclofenaco)"
+FC-82740011,Nuvel quita esmalte humectante lanolina,,14.08,20.0,0,,sin resultados VTEX
+FC-82790016,Talco Nuvel Pura para bebé,Talco / zinc undecilenato,20.65,29.0,82,SIMI B HIERRO Y ZINC 60 CAPSULAS,no comparable: candidato sin tamano declarado
+FC-82790504,Nuvel desmaquillante bifásico oil,,27.75,39.0,0,,sin resultados VTEX
+FC-83146207,Fazolin F,Nafazolina,26.85,36.25,72,NAFAZOLINA SOLUCION OFTALMICA 15 ML 1 PIEZA,no comparable: forma difiere gotas≠solucion
+FC-83351381,Agua oxigenada Protec,,7.64,12,42,PROTECTORES PARA LACTANCIA PIEZAS SIMI BABY 24 PIEZAS,no comparable: candidato sin tamano declarado
+FC-83351691,Agua Oxigenada Protec,,10.19,16,42,PROTECTORES PARA LACTANCIA PIEZAS SIMI BABY 24 PIEZAS,no comparable: candidato sin tamano declarado
+FC-83510531,Protec gel Antibacterial,Alcohol etilico,21.95,197.73,70,CLORHEXIDINA ENJUAGUE BUCAL SIN ALCOHOL 200 ML 1 PIEZA,no comparable: concentracion difiere ['250ml']≠['200ml']
+FC-84431050,Acetona Jaloma chico,,11.53,17.0,0,ALGODON PAQUETE 50 GR 1 PIEZA,no comparable: concentracion difiere ['60ml']≠['50000mg']
+FC-84437151,Acetona Jaloma mediano,,19.77,28.0,0,ALGODON PAQUETE 50 GR 1 PIEZA,no comparable: concentracion difiere ['120ml']≠['50000mg']
+FC-84471476,Repelente de Insectos Jaloma Bio Clap,,46.06,74,20,REPELENTE INSECTOS CREMA 200 ML 1 PIEZA,no comparable: concentracion difiere ['265ml']≠['200ml']
+FC-84900280,Jaloma Agua de Rosas,,16.87,24.0,0,ALGODON PAQUETE 50 GR 1 PIEZA,no comparable: concentracion difiere ['130ml']≠['50000mg']
+FC-8505003,Alin Dexametasona 8 mg/2 mL amp,Dexametasona,68.8,92.97,82,DEXAMETASONA/LIDOCAINA/VITAMINA B1 B6 B12 6 AMPOLLETAS,no comparable: candidato sin tamano declarado
+FC-85097661,Antiflu-Des Jr Antigripal,Clorhidrato de amantadina/Maleato de clorfenamina/Paracetamol,125.34,204,61,AMANTADINA .5 GR / CLORFENAMINA .02 GR/ PARACETAMOL 3 GR  SOLUCION INFANTIL 60 ML 1 PIEZA,"no comparable: al competidor le faltan 2/3 principios activos (clorhidrato, maleato)"
+FC-85278507,Manzanilla Sophia Solucion 15 ml,Manzanilla (Matricaria chamomilla),63.41,85.61,70,BALSAMO FRIO CON EXTRACTO AISLADO DE CANNABIDIOL CBD / ALOE VERA /ARNICA / MANZANILLA 90 GR 1 PIEZA,no comparable: concentracion difiere ['15ml']≠['90000mg']
+FC-85592111,Scabisan,PERMETRINA,190.71,311.36,70,PERMETRINA 5G/100ML SOLUCION 100ML 1 PIEZA,"no comparable: concentracion difiere ['60000mg']≠['100ml', '5000mg']"
+FC-86167151,Nestum Cereal Infantil Avena,,52.43,84,0,,sin resultados VTEX
+FC-4391156,Jaloma pomada labios sabores 3 g,Vaselia,171.5,14.7,0,,sin resultados VTEX
+FC-5145497,NyQuil Z difenhidramina 25 mg C/30,Difenhidramina 25 mg,265.0,357.75,100,DIFENHIDRAMINA 25 MG 30 CAPSULAS,precio 0.12x el costo
+FC-84154058,Jaloma Bebé vaselina lavanda 60 g,,14.21,37.8,0,ALGODON PAQUETE 50 GR 1 PIEZA,no comparable: concentracion difiere ['60000mg']≠['50000mg']
+FC-86901100,Alcohol Etilico Azul 71.6,Alcohol etilico,7.4,13.0,70,CLORHEXIDINA ENJUAGUE BUCAL SIN ALCOHOL 200 ML 1 PIEZA,no comparable: concentracion difiere ['125ml']≠['200ml']
+FC-87932321,Sico lubricante cereza 50 ml,,95.79,163.05,0,CONDON AROMA Y SABOR UVA SIMICONDON 3 PIEZAS,no comparable: candidato sin tamano declarado
+FC-88947797,Tribedoce Tabletas,Tiamina/Piridoxina/Cianocobalamina,17.64,24,46,HIDROXOCOBALAMINA 10000 MCG / TIAMINA 100 MG / PIRIDOXINA 50 MG SOLUCION INYECTABLE 5 AMPOLLETAS,no comparable: al competidor le faltan 1/3 principios activos (cianocobalamina)
+FC-8910003,Dibar algodon plisado absorbente 100 g,,18.91,30.26,0,,sin resultados VTEX
+FC-89100101,Algodón 200 g,,35.3,53.0,0,,sin resultados VTEX
+FC-89810021,Shampoo Herklin,Surfactantes,79.38,127.01,0,PEINE PARA PIOJOS Y LIENDRES ACERO INOXIDABLE 1 PIEZA,no comparable: candidato sin tamano declarado
+FC-92504539,Cera Ego Brillo,Cera / resina,19.28,27.0,0,,sin resultados VTEX
+FC-09745027,Treda infantil suspension Maver 120 mL,Neomicina + Caolin + Pectina,0.0,0,82,NEOMICINA / CAOLIN / PECTINA SUSPENSION 1 PZA,no comparable: candidato sin tamano declarado
+FC-21042481,Crema Manzanilla ricitos de oro 100 ml,,30.77,49.24,40,BALSAMO FRIO CON EXTRACTO AISLADO DE CANNABIDIOL CBD / ALOE VERA /ARNICA / MANZANILLA 90 GR 1 PIEZA,no comparable: concentracion difiere ['100ml']≠['90000mg']
+FC-52400267,Ajolotius Jarabe Elderberry,Mezcla Herbal y vitaminas C y A,73.21,117.14,0,SIMIFILA CLOROFILA LIQUIDA SOLUCION 250 ML 1 PIEZA,confianza 0 < 85
+FC-62746605,Jarabe Ajolotiux Orig Con Miel,Mezcla herbal con Vitaminas C & A,28.0,36,1,SIMIFILA CLOROFILA LIQUIDA SOLUCION 250 ML 1 PIEZA,confianza 1 < 85
+FC-93025797,Desodorante Axe Men Dark Temp (Hombre),Antitranspirante / desodorante,45.83,65.0,0,,sin resultados VTEX
+FC-93025919,Desodorante Axe Excite Seco (hombre),Antitranspirante / desodorante,62.83,88.0,0,,sin resultados VTEX
+FC-9303047,Cicloferon Crema 5% 2 g,Aciclovir 5%,48.61,65.62,70,ACICLOVIR 200 MG 25 TABLETAS,no comparable: concentracion difiere ['2000mg']≠['200mg']
+FC-93037806,Desodorante Rexona Men Marine (hombre),Antitranspirante / desodorante,54.68,77.0,0,,sin resultados VTEX
+FC-93038223,Desodorante Rexona Men Sport,Antitranspirante / desodorante,54.68,77.0,0,,sin resultados VTEX
+FC-9490651,Corega Ultra Sin Sabor 40 g,,120.05,162.07,28,TABLETAS LIMPIADORAS EFERVESCENTES COREGA 30 TABLETAS,no comparable: candidato sin tamano declarado
+FC-9511421,Pasta Lassar Andromaco 30 g,Oxido de zinc 25%,23.62,31.89,70,OXIDO DE ZINC 25GR/100GR PASTA 1 PIEZA,"no comparable: concentracion difiere ['30000mg']≠['100000mg', '25000mg']"
+FC-9525015,Eucaliptine Jarabe 140 ml,Dextrometorfano + Sulfoguayacol,107.0,144.45,43,DEXTROMETORFANO 300 MG JARABE 120 ML 1 PIEZA,no comparable: al competidor le faltan 1/2 principios activos (sulfoguayacol)
+FC-98100381,Shampoo Herklin,Surfactantes / formula capilar,128.8,206.09,0,PEINE PARA PIOJOS Y LIENDRES ACERO INOXIDABLE 1 PIEZA,no comparable: candidato sin tamano declarado
+FC-99428024,Gel Moco de Gorila Punk,,28.305,36,0,CREMA CORPORAL DERMOCOSMETICA PH NATURAL 250 ML 1 PIEZA,no comparable: concentracion difiere ['80000mg']≠['250ml']
+FC-C636D8EA,Ceftriaxona IM 1 g (Inyectable),,9.8,12.75,72,CEFTRIAXONA SOLUCION INYECTABLE 1 GR  1 AMPOLLETA,no comparable: forma difiere inyectable≠solucion
+FC-D11D586A,Valgab 3 jarabe 6 mL,,19.41,25.24,0,DESLORATADINA 50 MG SOLUCION 120 ML 1 PIEZA,confianza 0 < 85
+FC-D751525D,Animalin fórmula líquida 30 mL,,22.65,29.45,0,GOMITAS LTEANINA 50 PIEZAS MULTIGOMI INFANTIL,no comparable: candidato sin tamano declarado
+FC-E826D304,Lincomicina /2Ml 6 Ampolletas,,47.85,62.21,72,LINCOMICINA 600MG/2ML SOLUCION INYECTABLE 6 AMPOLLETAS,no comparable: forma difiere inyectable≠solucion

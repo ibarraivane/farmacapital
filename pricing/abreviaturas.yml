@@ -1,0 +1,67 @@
+# Expansión de abreviaturas del catálogo FarmaCapital (ticket / POS).
+# Se aplican de más larga a más corta. Agregar entradas sin tocar código.
+#
+# Formato:
+#   de: texto a buscar (ya sin acentos, minúsculas)
+#   a:  expansión
+
+abreviaturas:
+  - {de: "bicarbon sod", a: "bicarbonato de sodio"}
+  - {de: "bicarbon", a: "bicarbonato"}
+  - {de: "toallitas humedas", a: "toallitas humedas"}
+  - {de: "tas sanit", a: "toallas sanitarias"}
+  - {de: "tas hum", a: "toallas humedas"}
+  - {de: "toa hum", a: "toallas humedas"}
+  - {de: "enj buc", a: "enjuague bucal"}
+  - {de: "cep dent", a: "cepillo dental"}
+  - {de: "crema dent", a: "pasta dental"}
+  - {de: "pasta dent", a: "pasta dental"}
+  - {de: "jbn liq", a: "jabon liquido"}
+  - {de: "agua mic", a: "agua micelar"}
+  - {de: "agua dest", a: "agua destilada"}
+  - {de: "sh int", a: "shampoo"}
+  - {de: "acond", a: "acondicionador"}
+  - {de: "acono", a: "acondicionador"}
+  - {de: "desod", a: "desodorante"}
+  - {de: "exfol", a: "exfoliante"}
+  - {de: "fem", a: "femenina"}
+  - {de: "jbn", a: "jabon"}
+  - {de: "jab", a: "jabon"}
+  - {de: "sh", a: "shampoo"}
+  - {de: "crm", a: "crema"}
+  - {de: "cra", a: "crema"}
+  - {de: "past", a: "pasta"}
+  - {de: "des", a: "desodorante"}
+  - {de: "tal", a: "talco"}
+  - {de: "tco", a: "talco"}
+  - {de: "sol", a: "solucion"}
+  - {de: "susp", a: "suspension"}
+  - {de: "tab", a: "tabletas"}
+  - {de: "caps", a: "capsulas"}
+  - {de: "deo", a: "desodorante"}
+  - {de: "pan", a: "panal"}
+  - {de: "pnal", a: "panal"}
+  - {de: "toa", a: "toalla"}
+  - {de: "prot", a: "protector"}
+  - {de: "loc", a: "locion"}
+  - {de: "acondicionador", a: "acondicionador"}
+
+# Palabras que definen el tipo de producto (después de expandir).
+# El primer match gana. Usado en matching nivel A.
+tipos:
+  jabon: [jabon, jabones, syndet]
+  shampoo: [shampoo, champu]
+  acondicionador: [acondicionador]
+  crema: [crema, locion, unguento, pomada]
+  pasta_dental: [pasta dental, crema dental]
+  desodorante: [desodorante, antitranspirante]
+  talco: [talco]
+  panal: [panal, panales, diaper]
+  toalla_femenina: [toalla femenina, toallas femeninas, toalla sanitaria, protector femenino, pantiprotector]
+  toalla_humeda: [toalla humeda, toallitas humedas, toallita]
+  enjuague: [enjuague]
+  cepillo: [cepillo]
+  gel: [gel]
+  suero: [electrolit, pedialyte, suero]
+  formula: [formula infantil, nan, nido, enfamil]
+  vitamina: [vitamina, suplemento]
