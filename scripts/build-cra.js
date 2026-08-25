@@ -55,4 +55,15 @@ const result = spawnSync(process.execPath, [buildScript], {
   cwd: appRoot,
 });
 
+if (result.status === 0) {
+  const fs = require("fs");
+  const id = env.REACT_APP_FARMACAPITAL_BUILD_ID;
+  const versionPath = path.join(appRoot, "build", "version.json");
+  fs.writeFileSync(versionPath, `${JSON.stringify({ id, builtAt: new Date().toISOString() })}\n`);
+  const swPath = path.join(appRoot, "build", "service-worker.js");
+  if (fs.existsSync(swPath)) {
+    fs.appendFileSync(swPath, `\n// build ${id}\n`);
+  }
+}
+
 process.exit(result.status === null ? 1 : result.status);

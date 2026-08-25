@@ -27,9 +27,15 @@
 
 'use strict';
 
-const { getSupabaseAdminConfig } = require('./_lib/supabaseAdmin');
+const {
+  getSupabaseAdminConfig,
+  validateAdminSession,
+  validateEmployeeSession,
+} = require('./_lib/supabaseAdmin');
 const { runBootstrapReferencias } = require('./_lib/bootstrapReferencias');
 const { drainRappiQueue } = require('./_lib/rappiSync');
+const { runCaducidadJob } = require('./_lib/caducidadJob');
+const { runMonitorPreciosJob } = require('./_lib/monitorPreciosJob');
 
 function getQuery(req) {
   try {
@@ -88,11 +94,126 @@ function isAuthorized(req) {
   return { ok: true };
 }
 
+function readJsonBody(req) {
+  if (req.body && typeof req.body === 'object' && !Buffer.isBuffer(req.body)) return req.body;
+  if (typeof req.body === 'string') {
+    try {
+      return JSON.parse(req.body);
+    } catch {
+      return {};
+    }
+  }
+  return {};
+}
+
+/**
+ * Rutas de job absorbidas por esta función para respetar el límite de
+ * funciones del plan Hobby. Llegan por rewrite (ver vercel.json):
+ *   /api/caducidad/job        -> /api/backup?job=caducidad
+ *   /api/monitor-precios/job  -> /api/backup?job=monitor-precios
+ * Se usa el parámetro `job` (no `action`) para no pisar el `action` que ya
+ * mandan el front y el cron.
+ */
+async function handleJobRoute(job, req, res, startedAt) {
+  const { supabaseUrl, serviceKey } = getSupabaseAdminConfig();
+  if (!supabaseUrl || !serviceKey) {
+    res.status(500).json({ ok: false, error: 'supabase_not_configured' });
+    return;
+  }
+
+  const finish = (result) =>
+    res.status(200).json({ ...result, ms: Date.now() - startedAt, ts: new Date().toISOString() });
+
+  const fail = (err, tag) => {
+    const msg = sanitize((err && err.message) || String(err));
+    console.error(`[api/backup] ${tag} failed:`, msg.slice(0, 200));
+    res.status(500).json({ ok: false, error: msg.slice(0, 300) });
+  };
+
+  if (job === 'caducidad') {
+    const auth = isAuthorized(req);
+    if (!auth.ok) {
+      res.status(401).json({ ok: false, error: 'unauthorized' });
+      return;
+    }
+    try {
+      finish(await runCaducidadJob({ supabaseUrl, serviceKey }));
+    } catch (err) {
+      fail(err, 'caducidad job');
+    }
+    return;
+  }
+
+  // job === 'monitor-precios'
+  const action =
+    getQuery(req).get('action') || (req.method === 'POST' && readJsonBody(req).action) || 'job';
+
+  try {
+    if (action === 'import') {
+      const sessionToken = String(
+        req.headers['x-session-token'] || readJsonBody(req).session_token || ''
+      ).trim();
+      if (!(await validateAdminSession(supabaseUrl, serviceKey, sessionToken))) {
+        res.status(403).json({ ok: false, error: 'requiere_admin' });
+        return;
+      }
+      const body = readJsonBody(req);
+      if (!body.csvText) {
+        res.status(400).json({ ok: false, error: 'falta_csv' });
+        return;
+      }
+      finish(
+        await runMonitorPreciosJob({
+          supabaseUrl,
+          serviceKey,
+          opts: {
+            csvText: body.csvText,
+            fuente: body.fuente || 'lista_distribuidor',
+            archivo: body.archivo || 'upload.csv',
+            url_origen: body.url_origen || `archivo:${body.archivo || 'upload.csv'}`,
+            ciudad: body.ciudad,
+          },
+        })
+      );
+      return;
+    }
+
+    if (action === 'rastrear') {
+      const sessionToken = String(
+        req.headers['x-session-token'] || readJsonBody(req).session_token || ''
+      ).trim();
+      if (!(await validateEmployeeSession(supabaseUrl, serviceKey, sessionToken))) {
+        res.status(401).json({ ok: false, error: 'unauthorized' });
+        return;
+      }
+      finish(await runMonitorPreciosJob({ supabaseUrl, serviceKey, opts: {} }));
+      return;
+    }
+
+    const auth = isAuthorized(req);
+    if (!auth.ok) {
+      res.status(401).json({ ok: false, error: 'unauthorized' });
+      return;
+    }
+    finish(await runMonitorPreciosJob({ supabaseUrl, serviceKey, opts: {} }));
+  } catch (err) {
+    fail(err, 'monitor-precios job');
+  }
+}
+
 module.exports = async function handler(req, res) {
   const startedAt = Date.now();
 
   if (req.method !== 'POST' && req.method !== 'GET') {
     res.status(405).json({ ok: false, error: 'method_not_allowed' });
+    return;
+  }
+
+  // Antes del candado de CRON_SECRET: monitor-precios tiene acciones que se
+  // autentican con sesión de usuario, no con el secreto del cron.
+  const job = getQuery(req).get('job');
+  if (job === 'caducidad' || job === 'monitor-precios') {
+    await handleJobRoute(job, req, res, startedAt);
     return;
   }
 

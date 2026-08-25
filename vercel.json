@@ -91,6 +91,14 @@
       "destination": "/api/admin/storage-upload?type=rh-documento"
     },
     {
+      "source": "/api/caducidad/job",
+      "destination": "/api/backup?job=caducidad"
+    },
+    {
+      "source": "/api/monitor-precios/job",
+      "destination": "/api/backup?job=monitor-precios"
+    },
+    {
       "source": "/api/precios/buscar",
       "destination": "/api/inventarioProcesarPdf?type=buscar-similares"
     },
@@ -146,7 +154,7 @@
     },
     {
       "path": "/api/monitor-precios/job",
-      "schedule": "0 13,1 * * *"
+      "schedule": "0 13 * * *"
     }
   ]
 }
