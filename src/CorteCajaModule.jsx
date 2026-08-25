@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
 import { showToast } from "./ui";
@@ -7,6 +7,16 @@ import { TURNOS, TURNOS_LISTA, rangoTurno, inferirTurno, turnoDePerfil } from ".
 import { esVendedor, fetchSesionCajaAbierta, fetchJornadaHoy } from "./utils/cajaSesion";
 import { useMediaQuery } from "./hooks/useMediaQuery";
 import { GRID_STACK_2COL } from "./constants/layout";
+import {
+  snapshotFromCorte,
+  snapshotFromHistorialRow,
+  printCorteTicket,
+  printCorteHojaA4,
+  corteTicketPdfBlob,
+  uploadCorteTicketPdf,
+  abrirOCrearTicketCorte,
+  cargarVentasDetalleTurno,
+} from "./utils/corteTicket";
 
 const BRAND = { primary:"#0D1B2A", secondary:"#1E3ABA", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
 
@@ -71,6 +81,9 @@ export default function CorteCajaModule({usuario }) {
   const [sesionAbierta,      setSesionAbierta] = useState(null);
   const [jornada,            setJornada] = useState(null);
   const [corteHoy,           setCorteHoy] = useState(null);
+  const [anulando,           setAnulando] = useState(false);
+  const [electronicosError,  setElectronicosError] = useState(null);
+  const [desgloseTarjeta,    setDesgloseTarjeta]   = useState(null);
 
   // El corte es a ciegas: mientras se captura no se muestra ni lo que el
   // sistema espera ni la diferencia. Un conteo que se puede copiar deja de ser
@@ -84,6 +97,7 @@ export default function CorteCajaModule({usuario }) {
   const [loadingHist, setLoadingHist] = useState(false);
   const [filtroTurno, setFiltroTurno] = useState("todos");
   const [filtroFecha, setFiltroFecha] = useState("todos");
+  const [ticketAbriendo, setTicketAbriendo] = useState(null);
 
   // Calculados
   const totalDenoms = DENOMINACIONES.reduce(
@@ -97,13 +111,22 @@ export default function CorteCajaModule({usuario }) {
   const mp      = parseFloat(mercadopago||0);
   // El fondo no es venta, por eso se descuenta del total del turno.
   const total_general = (efDec - fondoNum) + tar + mp;
+  // Un vendedor sólo cierra la caja que abrió. Antes bastaba con tener turno
+  // en el perfil, y así se guardó el corte fantasma del 24-ago a las 15:19:
+  // cerró un turno que nadie había abierto y dejó a Erika fuera siete horas.
   const puedeGuardar  = (usaDenoms || efectivo_declarado !== "")
-    && (!vendedorFijo || !!turnoPerfil || !!sesionAbierta);
+    && (!vendedorFijo || !!sesionAbierta)
+    && !corteHoy;
 
-  // Sólo se precargan tarjeta y MercadoPago. El efectivo esperado NO se pide:
+  // Sólo se muestran tarjeta y MercadoPago. El efectivo esperado NO se pide:
   // si viajara al navegador, bastaría con abrir la pestaña de red para verlo
   // antes de declarar, y el conteo a ciegas dejaría de serlo. Lo calcula la
   // base al guardar.
+  //
+  // Estas cifras son informativas: quien manda es lo que recalcula
+  // registrar_corte_caja en el momento de guardar. Antes se guardaba este
+  // valor tal cual, y como se pedía al ABRIR la pantalla, toda venta con
+  // tarjeta hecha mientras el cajero contaba el cajón se perdía.
   const fetchTotalesElectronicos = useCallback(async () => {
     try {
       const tok = sessionStorage.getItem("farmacapital_session_token");
@@ -113,13 +136,36 @@ export default function CorteCajaModule({usuario }) {
         p_turno: turno,
         p_fecha: new Date().toLocaleDateString("sv-SE"),
       });
-      if (error) return;
+      // Un fallo silencioso aquí dejaba tarjeta en $0.00 sin que nadie
+      // se enterara, y así quedaba guardado el corte.
+      if (error) {
+        setElectronicosError(error.message || "No se pudieron leer los cobros electrónicos.");
+        return;
+      }
+      setElectronicosError(null);
       if (data?.tarjeta != null)     setTarjeta(String(data.tarjeta));
       if (data?.mercadopago != null) setMp(String(data.mercadopago));
-    } catch(e) { console.error("[CorteCaja]", e); }
+      setDesgloseTarjeta(
+        data?.tarjeta_servicios != null || data?.tarjeta_pedidos != null
+          ? { pedidos: data.tarjeta_pedidos, servicios: data.tarjeta_servicios }
+          : null
+      );
+    } catch(e) {
+      console.error("[CorteCaja]", e);
+      setElectronicosError("No se pudieron leer los cobros electrónicos.");
+    }
   }, [turno]);
 
   useEffect(() => { fetchTotalesElectronicos(); }, [fetchTotalesElectronicos]);
+
+  // Se refrescan justo antes de guardar para que lo que ve el cajero coincida
+  // con lo que va a quedar registrado. Aun así, el número que se guarda lo
+  // recalcula la base: esto es sólo para que la pantalla no mienta.
+  useEffect(() => {
+    if (resultado) return;
+    const id = setInterval(fetchTotalesElectronicos, 60000);
+    return () => clearInterval(id);
+  }, [fetchTotalesElectronicos, resultado]);
 
   useEffect(() => {
     if (sesionAbierta?.turno) return;
@@ -181,6 +227,51 @@ export default function CorteCajaModule({usuario }) {
     return () => { cancelled = true; };
   }, [turno]);
 
+  // Gerencia puede deshacer un corte del mismo día. Sin esto, un clic
+  // equivocado cierra el turno de alguien hasta mañana y sólo se arregla
+  // entrando a Supabase: el 24-ago costó siete horas de caja parada.
+  const puedeAnular = ["admin", "gerente"].includes(usuario?.rol || "");
+
+  const anularCorte = async () => {
+    if (!corteHoy?.id) return;
+    const motivo = window.prompt(
+      `Vas a anular el corte #${corteHoy.id} (${TURNOS[turno]?.label || turno}).\n` +
+      "La caja se reabre y quien lo hizo puede volver a su turno hoy.\n\n" +
+      "¿Por qué se anula? Queda en la bitácora."
+    );
+    if (motivo === null) return;
+    if (!motivo.trim()) {
+      showToast("Hace falta el motivo para anular.", "warning");
+      return;
+    }
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    if (!tok) { showToast("Sesión expirada. Entra de nuevo.", "error"); return; }
+    setAnulando(true);
+    const { data, error } = await supabase.rpc("anular_corte_caja", {
+      p_session_token: tok,
+      p_corte_id: corteHoy.id,
+      p_motivo: motivo.trim(),
+    });
+    setAnulando(false);
+    if (error) {
+      showToast(
+        /function .*anular_corte_caja/i.test(error.message || "")
+          ? "Falta actualizar la base. Ejecuta sql/patch_caja_cadena_continua_20260824.sql en Supabase."
+          : "No se pudo anular: " + (error.message || ""),
+        "error"
+      );
+      return;
+    }
+    if (data?.success === false) {
+      showToast(data.error || "No se pudo anular el corte.", "error");
+      return;
+    }
+    setCorteHoy(null);
+    setResultado(null);
+    showToast(data?.mensaje || "Corte anulado.", "success");
+    fetchTotalesElectronicos();
+  };
+
   const fetchCortes = useCallback(async () => {
     setLoadingHist(true);
     const tok = sessionStorage.getItem("farmacapital_session_token");
@@ -201,6 +292,70 @@ export default function CorteCajaModule({usuario }) {
   }, [filtroFecha, filtroTurno]);
 
   useEffect(() => { if (tab==="historial") fetchCortes(); }, [tab, fetchCortes]);
+
+  const [revisandoDif, setRevisandoDif] = useState(null);
+  const [diferenciasRevisadas, setDiferenciasRevisadas] = useState(() => new Set());
+
+  const marcarDiferenciaEnterada = async (corteId) => {
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    if (!tok) {
+      showToast("Sesión expirada. Inicia sesión de nuevo.", "warning");
+      return;
+    }
+    setRevisandoDif(corteId);
+    try {
+      const { error } = await supabase.rpc("empleado_marcar_corte_diferencia_revisada", {
+        p_session_token: tok,
+        p_corte_id: Number(corteId),
+      });
+      if (error) throw error;
+      setDiferenciasRevisadas((prev) => new Set(prev).add(Number(corteId)));
+      showToast("Diferencia marcada como enterada — ya no cuenta en el badge.", "success");
+      fetchCortes();
+    } catch (e) {
+      showToast("No se pudo marcar: " + (e.message || e), "error");
+    }
+    setRevisandoDif(null);
+  };
+
+  const fetchVentasDeCorte = async (corte) => {
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    if (!tok) throw new Error("Sesión expirada. Inicia sesión de nuevo.");
+    const fecha = corte.fecha ? new Date(corte.fecha) : new Date();
+    const { inicio, fin } = rangoTurno(fecha, corte.turno);
+    return cargarVentasDetalleTurno(supabase, tok, inicio.toISOString(), fin.toISOString());
+  };
+
+  const abrirTicketHistorial = async (c) => {
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    if (!tok) { showToast("Sesión expirada. Inicia sesión de nuevo.", "warning"); return; }
+    setTicketAbriendo(c.id);
+    try {
+      await abrirOCrearTicketCorte({
+        corte: c,
+        sessionToken: tok,
+        fetchVentas: fetchVentasDeCorte,
+      });
+    } catch (e) {
+      showToast("No se pudo abrir el ticket: " + (e.message || e), "error");
+    } finally {
+      setTicketAbriendo(null);
+    }
+  };
+
+  const imprimirEpsonHistorial = async (c) => {
+    setTicketAbriendo(c.id);
+    try {
+      const ventas = await fetchVentasDeCorte(c);
+      if (!printCorteTicket(snapshotFromHistorialRow({ ...c, ventas }))) {
+        showToast("El navegador bloqueó la ventana de impresión", "warning");
+      }
+    } catch (e) {
+      showToast("No se pudo imprimir: " + (e.message || e), "error");
+    } finally {
+      setTicketAbriendo(null);
+    }
+  };
 
   // P3.4: Función para verificar si hay turno activo (usada desde POS)
   // Esta función se puede llamar externamente via ref o contexto
@@ -225,15 +380,10 @@ export default function CorteCajaModule({usuario }) {
     try {
       const tok = sessionStorage.getItem("farmacapital_session_token");
       const { inicio, fin } = getRango(turno);
-      const { data } = tok
-        ? await supabase.rpc("empleado_listar_pedidos_transacciones", {
-            p_session_token: tok,
-            p_created_desde: inicio,
-            p_created_hasta: fin,
-            p_limite: 400,
-          })
-        : { data: null };
-      setZTransac(Array.isArray(data) ? data : []);
+      const ventas = tok
+        ? await cargarVentasDetalleTurno(supabase, tok, inicio, fin)
+        : [];
+      setZTransac(ventas);
     } catch (e) {
       console.error("[CorteCaja Z]", e);
       setZTransac([]);
@@ -248,28 +398,26 @@ export default function CorteCajaModule({usuario }) {
   };
 
   const guardarCorte = async () => {
-    if (vendedorFijo && !turnoPerfil && !sesionAbierta) {
-      showToast("RH debe asignarte un turno antes de cerrar caja.", "warning");
+    if (vendedorFijo && !sesionAbierta) {
+      showToast(
+        turnoPerfil
+          ? "No tienes caja abierta, así que no hay turno que cortar."
+          : "RH debe asignarte un turno antes de cerrar caja.",
+        "warning"
+      );
+      return;
+    }
+    if (corteHoy) {
+      showToast("Ya hay un corte de este turno hoy. No se guarda otro.", "warning");
       return;
     }
     if (!puedeGuardar) { showToast("Captura el efectivo contado", "warning"); return; }
     const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) { alert("Sesión expirada. Inicia sesión de nuevo."); return; }
-    // J8: Validar turno duplicado
-    const hoy = new Date().toLocaleDateString("sv-SE");
-    const { data: exSnap } = await supabase.rpc("empleado_corte_turno_en_fecha", {
-      p_session_token: tok,
-      p_fecha: hoy,
-      p_turno: turno,
-    });
-    if (exSnap?.existe) {
-      const ok = window.confirm(`Ya existe un corte del turno ${turno} de hoy. ¿Guardar otro de todas formas?`);
-      if (!ok) return;
-    }
     setSaving(true);
     const denomsLimpios = Object.fromEntries(
       DENOMINACIONES.map(d => [d, parseInt(denoms[d],10) || 0]).filter(([,n]) => n > 0));
-    const { data, error } = await supabase.rpc("registrar_corte_caja", {
+    const pedirCorte = (confirmar) => supabase.rpc("registrar_corte_caja", {
       p_session_token: tok,
       p_turno: turno,
       p_efectivo_declarado: efDec,
@@ -282,19 +430,48 @@ export default function CorteCajaModule({usuario }) {
       p_fondo_inicial: fondoNum,
       p_contado_por: contadoPor.trim() || null,
       p_denominaciones: usaDenoms ? denomsLimpios : null,
+      p_confirmar: confirmar,
     });
+
+    let { data, error } = await pedirCorte(false);
+
+    // El corte es de ida: cerrado el turno, no se reabre en el día. Cuando la
+    // base detecta que es casi seguro un clic equivocado — caja recién
+    // abierta, o sin una sola venta en el periodo — no guarda: devuelve
+    // confirmable y deja que la persona decida con el dato enfrente.
+    if (!error && data?.success === false && data?.confirmable) {
+      if (!window.confirm(data.error)) {
+        setSaving(false);
+        return;
+      }
+      ({ data, error } = await pedirCorte(true));
+    }
+
     setSaving(false);
     if (error) {
       const raw = error.message || "";
       const msg = /empleado_id_fkey|foreign key/i.test(raw)
         ? "Falta actualizar la base. Ejecuta sql/patch_cortes_caja_fk_usuarios.sql en Supabase."
-        : "Error al guardar corte: " + raw;
+        : /ya existe un corte/i.test(raw)
+          ? "Ya existe un corte de este turno hoy. No se puede guardar otro."
+          : "Error al guardar corte: " + raw;
       showToast(msg, "error");
       return;
     }
+    if (data?.success === false) {
+      showToast(data.error || "No se pudo guardar el corte.", "error");
+      return;
+    }
+    setCorteHoy({ existe: true, id: data?.corte_id });
 
     // Recién ahora se destapa: el cajero ya se comprometió con su conteo.
-    setResultado(data);
+    // El RPC a veces no devuelve tarjeta/MP; se conservan los del turno para el PDF.
+    setResultado({
+      ...data,
+      tarjeta: data?.tarjeta ?? tar,
+      mercadopago: data?.mercadopago ?? mp,
+      denominaciones: usaDenoms ? denomsLimpios : data?.denominaciones,
+    });
     cargarReporteZ();
     try {
       const { data: ns } = await supabase.rpc("empleado_marcar_citas_no_show_corte", {
@@ -320,7 +497,13 @@ export default function CorteCajaModule({usuario }) {
   const difTxt = dif===0 ? "✓ Cuadrado" : dif>0 ? `▲ Sobrante: +${fmt(dif)}` : `▼ Faltante: ${fmt(dif)}`;
   const difBg  = dif===0 ? C.greenDim : dif>0 ? C.amberDim : C.redDim;
 
-  const sumEf  = cortes.reduce((a,c)=>a+parseFloat(c.efectivo_declarado||0),0);
+  // El efectivo del resumen es VENTA, no el contenido del cajón: hay que
+  // restar el fondo, que es cambio que ya estaba ahí. Sumar efectivo_declarado
+  // a secas inflaba el tile con la suma de todos los fondos y dejaba de cuadrar
+  // con el gran total, que sí descuenta el fondo (total_general es GENERATED).
+  const sumFondo = cortes.reduce((a,c)=>a+parseFloat(c.fondo_inicial||0),0);
+  const sumEf  = cortes.reduce(
+    (a,c)=>a+(parseFloat(c.efectivo_declarado||0)-parseFloat(c.fondo_inicial||0)),0);
   const sumTar = cortes.reduce((a,c)=>a+parseFloat(c.tarjeta||0),0);
   const sumMp  = cortes.reduce((a,c)=>a+parseFloat(c.mercadopago||0),0);
   const sumTot = cortes.reduce((a,c)=>a+parseFloat(c.total_general||0),0);
@@ -350,7 +533,12 @@ export default function CorteCajaModule({usuario }) {
         <ResultadoCorte
           C={C} resultado={resultado} turno={turno} dif={dif} difCol={difCol} difBg={difBg}
           difTxt={difTxt} zTransac={zTransac} cargandoZ={cargandoZ}
-          btnSecondary={btnSecondary} onNuevo={nuevoCorte}
+          btnSecondary={btnSecondary} onNuevo={nuevoCorte} cajero={usuario?.nombre}
+          denominaciones={resultado?.denominaciones}
+          permitirOtro={!esVendedor(usuario)}
+          cierreHint={jornada?.cubre_ambos
+            ? "Hoy cubres ambos. Abre el siguiente turno en el POS."
+            : "Turno cerrado. El otro turno lo abre tu compañera."}
         />
       )}
 
@@ -411,18 +599,42 @@ export default function CorteCajaModule({usuario }) {
           {corteHoy && (
             <div style={{
               marginBottom: 16, padding: "12px 14px", borderRadius: 10,
-              background: C.greenDim, border: `1px solid ${C.green}40`,
+              background: C.amberDim, border: `1px solid ${C.amber}50`,
               color: C.text, fontSize: 13, lineHeight: 1.45,
             }}>
-              Ya hay un corte {turno} de hoy. Esta pantalla está en blanco a
-              propósito: es para un corte <strong>nuevo</strong>, y el conteo es
-              a ciegas. Las ventas de ese turno están en el corte que ya se guardó
+              Ya hay un corte {TURNOS[turno]?.label || turno} de hoy. No se
+              guarda otro.
+              {jornada?.cubre_ambos
+                ? " Si hoy cubres ambos, abre el siguiente turno en el POS."
+                : " Mary cierra el matutino y Erika el vespertino."}
               {esVendedor(usuario)
-                ? "."
-                : <> — ábrelo en <button type="button" onClick={() => setTab("historial")}
+                ? ""
+                : <> Ábrelo en <button type="button" onClick={() => setTab("historial")}
                     style={{ background: "none", border: "none", padding: 0, color: C.blue, fontWeight: 800, cursor: "pointer", fontSize: "inherit" }}>
                     Historial
                   </button>.</>}
+              {puedeAnular && corteHoy?.id && (
+                <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${C.amber}40` }}>
+                  <div style={{ color: C.textMid, fontSize: 12, marginBottom: 8 }}>
+                    ¿Se guardó por error? Anularlo reabre la caja y quien lo hizo
+                    vuelve a su turno hoy mismo.
+                  </div>
+                  <button
+                    type="button"
+                    onClick={anularCorte}
+                    disabled={anulando}
+                    style={{
+                      padding: "8px 16px", borderRadius: 8,
+                      border: `1px solid ${C.border}`, background: C.card,
+                      color: C.text, fontSize: 12, fontWeight: 800,
+                      cursor: anulando ? "default" : "pointer",
+                      opacity: anulando ? 0.6 : 1,
+                    }}
+                  >
+                    {anulando ? "Anulando…" : `Anular corte #${corteHoy.id}`}
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -482,15 +694,41 @@ export default function CorteCajaModule({usuario }) {
                 </div>
               </div>
 
+              {/* Tarjeta y MP no se cuentan a mano: los liquida el banco y los
+                  calcula la base al guardar. Se muestran para que el cajero
+                  sepa qué va a quedar registrado, pero no se teclean. */}
               <div style={{marginBottom:14}}>
                 <label style={labelStyle}>TARJETA</label>
-                <input type="number" value={tarjeta} onChange={e=>setTarjeta(e.target.value)} placeholder="0.00" style={inputStyle}/>
+                <input type="number" value={tarjeta} readOnly placeholder="0.00"
+                  style={{...inputStyle, cursor:"not-allowed", background:C.bg}}/>
+                <div style={{color:C.textDim,fontSize:10,marginTop:4,lineHeight:1.45}}>
+                  {desgloseTarjeta && (desgloseTarjeta.servicios > 0)
+                    ? `Ventas ${fmt(desgloseTarjeta.pedidos)} + pagos de servicio ${fmt(desgloseTarjeta.servicios)}. Se vuelve a calcular al guardar.`
+                    : "Lo calcula el sistema al guardar, con lo cobrado hasta ese momento."}
+                </div>
               </div>
 
               <div style={{marginBottom:14}}>
                 <label style={labelStyle}>MERCADOPAGO</label>
-                <input type="number" value={mercadopago} onChange={e=>setMp(e.target.value)} placeholder="0.00" style={inputStyle}/>
+                <input type="number" value={mercadopago} readOnly placeholder="0.00"
+                  style={{...inputStyle, cursor:"not-allowed", background:C.bg}}/>
+                <div style={{color:C.textDim,fontSize:10,marginTop:4,lineHeight:1.45}}>
+                  Sólo pedidos de la tienda web. Los cobros con la terminal Point
+                  se registran como tarjeta.
+                </div>
               </div>
+
+              {electronicosError && (
+                <div style={{
+                  marginBottom:14, padding:"10px 12px", borderRadius:8,
+                  background:C.redDim, border:`1px solid ${C.red}40`,
+                  color:C.text, fontSize:12, lineHeight:1.45,
+                }}>
+                  No se pudieron leer los cobros con tarjeta ({electronicosError}).
+                  Puedes cerrar el corte de todas formas: la base los recalcula al
+                  guardar. Verifica el resultado contra la terminal.
+                </div>
+              )}
 
               <div style={{marginBottom:14}}>
                 <label style={labelStyle}>CONTADO POR (OPCIONAL)</label>
@@ -555,8 +793,10 @@ export default function CorteCajaModule({usuario }) {
                     {fmt(total_general)}
                   </span>
                 </div>
-                <div style={{color:C.textDim,fontSize:10,marginTop:6}}>
-                  Sin el fondo, que no es venta.
+                <div style={{color:C.textDim,fontSize:10,marginTop:6,lineHeight:1.45}}>
+                  Sin el fondo, que no es venta. Tarjeta y MercadoPago los
+                  recalcula la base al guardar, así que el total definitivo
+                  puede subir si entra un cobro mientras cuentas.
                 </div>
               </div>
 
@@ -571,7 +811,9 @@ export default function CorteCajaModule({usuario }) {
               </button>
               {!puedeGuardar && (
                 <div style={{color:C.textDim,fontSize:11,textAlign:"center",marginTop:-4}}>
-                  Captura el efectivo contado para poder cerrar.
+                  {corteHoy
+                    ? "Este turno ya tiene corte. No se guarda otro."
+                    : "Captura el efectivo contado para poder cerrar."}
                 </div>
               )}
             </div>
@@ -602,17 +844,17 @@ export default function CorteCajaModule({usuario }) {
             <div style={{color:C.textMid,textAlign:"center",padding:40}}>Cargando historial…</div>
           ) : (
             <div style={{overflowX:"auto",borderRadius:12,border:`1px solid ${C.border}`}}>
-              <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+              <table className="fc-tabla-cards" style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                 <thead>
                   <tr style={{background:C.card}}>
-                    {["Fecha/Hora","Turno","Cajero","Contó","Fondo","Ef. Declarado","Ef. Sistema","Diferencia","Tarjeta","MP","Total","Notas"].map(h=>(
+                    {["Fecha/Hora","Turno","Cajero","Contó","Fondo","Ef. Declarado","Ef. Sistema","Diferencia","Revisión","Tarjeta","MP","Total","Notas","Ticket"].map(h=>(
                       <th key={h} style={{padding:"10px 12px",textAlign:"left",color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {cortes.length===0&&(
-                    <tr><td colSpan={12} style={{textAlign:"center",padding:32,color:C.textMid}}>Sin cortes en este período</td></tr>
+                    <tr><td colSpan={14} style={{textAlign:"center",padding:32,color:C.textMid}}>Sin cortes en este período</td></tr>
                   )}
                   {cortes.map((c,i)=>{
                     const dif    = parseFloat(c.diferencia||0);
@@ -621,27 +863,61 @@ export default function CorteCajaModule({usuario }) {
                     const fecha  = new Date(c.fecha);
                     return (
                       <tr key={c.id||i} style={{background:i%2===0?"transparent":C.card+"80"}}>
-                        <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>
+                        <td data-label="Fecha" data-primary style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>
                           <div style={{fontWeight:600,color:C.text}}>{fecha.toLocaleDateString("es-MX")}</div>
                           <div style={{color:C.textMid,fontSize:10}}>{fecha.toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"})}</div>
                         </td>
-                        <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`}}>
+                        <td data-label="Turno" style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`}}>
                           <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,
                             background:c.turno==="matutino"?C.blueDim:C.amberDim,
                             color:c.turno==="matutino"?C.blue:C.amber}}>
                             {c.turno==="matutino"?"🌅 Mat":"🌆 Vesp"}
                           </span>
                         </td>
-                        <td style={{padding:"9px 12px",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>{c.cajero||"—"}</td>
-                        <td style={{padding:"9px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{c.contado_por||"—"}</td>
-                        <td style={{padding:"9px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{fmt(c.fondo_inicial)}</td>
-                        <td style={{padding:"9px 12px",color:C.green,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{fmt(c.efectivo_declarado)}</td>
-                        <td style={{padding:"9px 12px",color:C.blue,borderBottom:`1px solid ${C.border}`}}>{fmt(c.efectivo_sistema)}</td>
-                        <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`}}><span style={{color:dc,fontWeight:700}}>{dt}</span></td>
-                        <td style={{padding:"9px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{fmt(c.tarjeta)}</td>
-                        <td style={{padding:"9px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{fmt(c.mercadopago)}</td>
-                        <td style={{padding:"9px 12px",color:C.text,fontWeight:800,borderBottom:`1px solid ${C.border}`}}>{fmt(c.total_general)}</td>
-                        <td style={{padding:"9px 12px",color:C.textDim,fontSize:11,borderBottom:`1px solid ${C.border}`,maxWidth:130,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.notas||"—"}</td>
+                        <td data-label="Cajero" style={{padding:"9px 12px",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>{c.cajero||"—"}</td>
+                        <td data-label="Contó" style={{padding:"9px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{c.contado_por||"—"}</td>
+                        <td data-label="Fondo" style={{padding:"9px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{fmt(c.fondo_inicial)}</td>
+                        <td data-label="Ef. declarado" style={{padding:"9px 12px",color:C.green,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{fmt(c.efectivo_declarado)}</td>
+                        <td data-label="Ef. sistema" style={{padding:"9px 12px",color:C.blue,borderBottom:`1px solid ${C.border}`}}>{fmt(c.efectivo_sistema)}</td>
+                        <td data-label="Diferencia" style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`}}><span style={{color:dc,fontWeight:700}}>{dt}</span></td>
+                        <td data-label="Revisión" style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>
+                          {dif === 0 ? (
+                            <span style={{ color: C.textMid, fontSize: 11 }}>—</span>
+                          ) : (c.diferencia_revisada || diferenciasRevisadas.has(Number(c.id))) ? (
+                            <span style={{ color: C.green, fontSize: 11, fontWeight: 700 }}>✓ Enterado</span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => marcarDiferenciaEnterada(c.id)}
+                              disabled={revisandoDif === c.id}
+                              style={{ ...btnSecondary, padding: "4px 8px", fontSize: 10 }}
+                            >
+                              {revisandoDif === c.id ? "…" : "Enterado"}
+                            </button>
+                          )}
+                        </td>
+                        <td data-label="Tarjeta" style={{padding:"9px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{fmt(c.tarjeta)}</td>
+                        <td data-label="MP" style={{padding:"9px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{fmt(c.mercadopago)}</td>
+                        <td data-label="Total" style={{padding:"9px 12px",color:C.text,fontWeight:800,borderBottom:`1px solid ${C.border}`}}>{fmt(c.total_general)}</td>
+                        <td data-label="Notas" data-wide style={{padding:"9px 12px",color:C.textDim,fontSize:11,borderBottom:`1px solid ${C.border}`,maxWidth:130,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.notas||"—"}</td>
+                        <td data-label="Ticket" data-actions style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>
+                          <div style={{display:"flex",gap:6}}>
+                            <button
+                              onClick={() => imprimirEpsonHistorial(c)}
+                              disabled={ticketAbriendo === c.id}
+                              style={{...btnSecondary,padding:"5px 10px",fontSize:11}}
+                            >
+                              {ticketAbriendo === c.id ? "…" : "Epson"}
+                            </button>
+                            <button
+                              onClick={() => abrirTicketHistorial(c)}
+                              disabled={ticketAbriendo === c.id}
+                              style={{...btnSecondary,padding:"5px 10px",fontSize:11}}
+                            >
+                              {ticketAbriendo === c.id ? "…" : "PDF"}
+                            </button>
+                          </div>
+                        </td>
                       </tr>
                     );
                   })}
@@ -656,12 +932,16 @@ export default function CorteCajaModule({usuario }) {
                 📊 Resumen del período — {cortes.length} corte{cortes.length!==1?"s":""}
               </div>
               <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
-                {[["Efectivo",sumEf,C.green],["Tarjeta",sumTar,C.blue],["MercadoPago",sumMp,C.amber],["Gran total",sumTot,C.text]].map(([lbl,val,col])=>(
+                {[["Efectivo (venta)",sumEf,C.green],["Tarjeta",sumTar,C.blue],["MercadoPago",sumMp,C.amber],["Gran total",sumTot,C.text]].map(([lbl,val,col])=>(
                   <div key={lbl} style={{background:C.bg,borderRadius:10,padding:"12px 18px",minWidth:130,border:`1px solid ${C.border}`}}>
                     <div style={{color:C.textMid,fontSize:10,fontWeight:700,marginBottom:4}}>{lbl.toUpperCase()}</div>
                     <div style={{color:col,fontWeight:800,fontSize:18}}>{fmt(val)}</div>
                   </div>
                 ))}
+              </div>
+              <div style={{color:C.textDim,fontSize:11,marginTop:10,lineHeight:1.5}}>
+                El efectivo es venta: ya se le descontaron {fmt(sumFondo)} de fondos,
+                que son cambio y no ingreso. Por eso {fmt(sumEf)} + {fmt(sumTar)} + {fmt(sumMp)} = {fmt(sumTot)}.
               </div>
             </div>
           )}
@@ -681,56 +961,74 @@ export default function CorteCajaModule({usuario }) {
 // diferencia no es cero y como comprobante del relevo.
 // ══════════════════════════════════════════════════════════════
 function ResultadoCorte({ C, resultado, turno, dif, difCol, difBg, difTxt,
-                          zTransac, cargandoZ, btnSecondary, onNuevo }) {
+                          zTransac, cargandoZ, btnSecondary, onNuevo, cajero,
+                          denominaciones, permitirOtro, cierreHint }) {
   const esperado  = parseFloat(resultado?.esperado ?? 0);
   const sistema   = parseFloat(resultado?.efectivo_sistema ?? 0);
   const fondoRes  = parseFloat(resultado?.fondo_inicial ?? 0);
   const declarado = esperado + dif;
+  // Los electrónicos que realmente quedaron guardados, recalculados por la
+  // base al guardar. Si el RPC todavía no los devuelve, se ocultan en 0.
+  const tarjetaRes = parseFloat(resultado?.tarjeta ?? 0);
+  const mpRes      = parseFloat(resultado?.mercadopago ?? 0);
+  const speiRes    = parseFloat(resultado?.spei ?? 0);
+  const detalle    = resultado?.detalle_metodos ?? null;
+  const [ticketEstado, setTicketEstado] = useState("idle");
+  const subidoRef = useRef(false);
 
-  const imprimir = () => {
-    const filas = (zTransac || []).map(t => `
-      <tr>
-        <td>#${t.id}</td>
-        <td>${new Date(t.created_at).toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"})}</td>
-        <td>${(t.metodo_pago || "—")}</td>
-        <td class="r">$${parseFloat(t.total || 0).toFixed(2)}</td>
-      </tr>`).join("");
-    const html = `<!doctype html><html><head><meta charset="utf-8">
-      <title>Corte ${turno} — ${new Date().toLocaleDateString("es-MX")}</title>
-      <style>
-        body{font-family:-apple-system,system-ui,sans-serif;font-size:12px;margin:24px;color:#111}
-        h1{font-size:16px;margin:0 0 2px} .sub{color:#666;margin-bottom:16px}
-        table{width:100%;border-collapse:collapse;margin-top:8px}
-        th,td{text-align:left;padding:4px 6px;border-bottom:1px solid #ddd}
-        th{font-size:10px;text-transform:uppercase;color:#666}
-        .r{text-align:right} .tot{font-weight:700;border-top:2px solid #111}
-        .box{border:1px solid #ccc;padding:10px 12px;margin-bottom:14px}
-        .box div{display:flex;justify-content:space-between;padding:2px 0}
-        .dif{font-weight:700;border-top:1px solid #ccc;margin-top:4px;padding-top:6px}
-      </style></head><body>
-      <h1>Corte de caja — turno ${turno}</h1>
-      <div class="sub">${new Date().toLocaleString("es-MX")} · corte #${resultado?.corte_id ?? ""}</div>
-      <div class="box">
-        <div><span>Fondo inicial</span><span>$${fondoRes.toFixed(2)}</span></div>
-        <div><span>Ventas en efectivo (sistema)</span><span>$${sistema.toFixed(2)}</span></div>
-        <div><span>Esperado en cajón</span><span>$${esperado.toFixed(2)}</span></div>
-        <div><span>Contado</span><span>$${declarado.toFixed(2)}</span></div>
-        <div class="dif"><span>Diferencia</span><span>$${dif.toFixed(2)}</span></div>
-      </div>
-      <h1 style="font-size:13px">Detalle de ventas del turno</h1>
-      <table>
-        <thead><tr><th>Folio</th><th>Hora</th><th>Método</th><th class="r">Total</th></tr></thead>
-        <tbody>${filas || '<tr><td colspan="4">Sin ventas en el turno</td></tr>'}</tbody>
-        <tfoot><tr class="tot"><td colspan="3">${(zTransac||[]).length} venta(s)</td>
-          <td class="r">$${(zTransac||[]).reduce((a,t)=>a+parseFloat(t.total||0),0).toFixed(2)}</td></tr></tfoot>
-      </table>
-      <p style="margin-top:24px">Contó: ____________________  Recibió: ____________________</p>
-      </body></html>`;
-    // Ventana aparte en vez de window.print() sobre la app: el reporte lleva su
-    // propio formato y así no pelea con los estilos del panel.
-    const w = window.open("", "_blank", "width=720,height=800");
-    if (!w) { showToast("El navegador bloqueó la ventana de impresión", "warning"); return; }
-    w.document.write(html); w.document.close(); w.focus(); w.print();
+  const snap = snapshotFromCorte({
+    resultado: {
+      ...resultado,
+      diferencia: dif,
+      efectivo_declarado: declarado,
+      tarjeta: tarjetaRes,
+      mercadopago: mpRes,
+      spei: speiRes,
+    },
+    turno,
+    zTransac,
+    cajero,
+    denominaciones: denominaciones || resultado?.denominaciones,
+  });
+
+  const guardarPdf = async () => {
+    const id = resultado?.corte_id ?? resultado?.id;
+    if (!id) return null;
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    if (!tok) throw new Error("Sesión expirada");
+    const blob = corteTicketPdfBlob(snap);
+    return uploadCorteTicketPdf(id, blob, tok);
+  };
+
+  useEffect(() => {
+    if (cargandoZ || zTransac === null) return;
+    const id = resultado?.corte_id ?? resultado?.id;
+    if (!id || subidoRef.current) return;
+    subidoRef.current = true;
+    setTicketEstado("guardando");
+    guardarPdf()
+      .then(() => setTicketEstado("listo"))
+      .catch((e) => {
+        subidoRef.current = false;
+        setTicketEstado("error");
+        console.error("[corte ticket]", e);
+      });
+    // El PDF se arma con el reporte Z; sólo una vez por corte.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cargandoZ, zTransac, resultado?.corte_id]);
+
+  const imprimir = async () => {
+    if (!printCorteTicket(snap)) {
+      showToast("El navegador bloqueó la ventana de impresión", "warning");
+      return;
+    }
+    try {
+      await guardarPdf();
+      setTicketEstado("listo");
+    } catch (e) {
+      console.error("[corte ticket]", e);
+      showToast("Se imprimió, pero no se pudo guardar el PDF: " + (e.message || e), "warning");
+    }
   };
 
   const totalZ = (zTransac || []).reduce((a,t)=>a+parseFloat(t.total||0),0);
@@ -749,6 +1047,43 @@ function ResultadoCorte({ C, resultado, turno, dif, difCol, difBg, difTxt,
             <span style={{color:C.text,fontSize:13,fontWeight:600}}>{fmt(v)}</span>
           </div>
         ))}
+        {detalle && parseFloat(detalle.efectivo_devoluciones || 0) > 0 && (
+          <div style={{color:C.textDim,fontSize:11,marginTop:4,lineHeight:1.4}}>
+            El efectivo del sistema ya restó {fmt(detalle.efectivo_devoluciones)} de devoluciones
+            {parseFloat(detalle.efectivo_cambios_ingreso || 0) > 0
+              ? ` y sumó ${fmt(detalle.efectivo_cambios_ingreso)} de diferencias cobradas en cambios`
+              : ""}.
+          </div>
+        )}
+        {detalle && parseFloat(detalle.credito_otorgado || 0) > 0 && (
+          <div style={{color:C.textDim,fontSize:11,marginTop:4}}>
+            Crédito otorgado en el turno: {fmt(detalle.credito_otorgado)} (no sale del cajón).
+          </div>
+        )}
+
+        {/* Los electrónicos: lo que la base calculó al guardar, no lo que
+            traía la pantalla. Sirve para cotejar contra la terminal. */}
+        <div style={{borderTop:`1px solid ${C.border}`,marginTop:10,paddingTop:8}}>
+          {[["Tarjeta (BBVA + Point)",tarjetaRes],["MercadoPago (tienda web)",mpRes],
+            ...(speiRes > 0 ? [["SPEI",speiRes]] : [])].map(([l,v])=>(
+            <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"3px 0"}}>
+              <span style={{color:C.textMid,fontSize:12.5}}>{l}</span>
+              <span style={{color:C.text,fontSize:13,fontWeight:600}}>{fmt(v)}</span>
+            </div>
+          ))}
+          {detalle && (detalle.tarjeta_servicios > 0) && (
+            <div style={{color:C.textDim,fontSize:11,marginTop:4}}>
+              De la tarjeta, {fmt(detalle.tarjeta_servicios)} son pagos de servicio.
+            </div>
+          )}
+          <div style={{display:"flex",justifyContent:"space-between",paddingTop:8,marginTop:6,
+                       borderTop:`1px solid ${C.border}`}}>
+            <span style={{color:C.text,fontSize:13,fontWeight:800}}>TOTAL DEL TURNO</span>
+            <span style={{color:C.text,fontSize:15,fontWeight:800}}>
+              {fmt(resultado?.total_general ?? 0)}
+            </span>
+          </div>
+        </div>
         {dif !== 0 && (
           <div style={{color:C.textDim,fontSize:11.5,marginTop:12,lineHeight:1.5}}>
             {dif > 0
@@ -763,9 +1098,27 @@ function ResultadoCorte({ C, resultado, turno, dif, difCol, difBg, difTxt,
           <div style={{color:C.text,fontWeight:800,fontSize:14,flex:1}}>
             🧾 Detalle del turno {cargandoZ ? "" : `· ${(zTransac||[]).length} venta(s) · ${fmt(totalZ)}`}
           </div>
-          <button onClick={imprimir} disabled={cargandoZ} style={{...btnSecondary,padding:"8px 16px",fontSize:12}}>
-            🖨️ Imprimir
-          </button>
+          <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",justifyContent:"flex-end"}}>
+            <span style={{color:C.textDim,fontSize:11}}>
+              {ticketEstado === "guardando" ? "Guardando PDF…"
+                : ticketEstado === "listo" ? "PDF en historial"
+                : ticketEstado === "error" ? "PDF no se guardó"
+                : ""}
+            </span>
+            <button onClick={imprimir} disabled={cargandoZ} style={{...btnSecondary,padding:"8px 16px",fontSize:12}}>
+              Imprimir Epson
+            </button>
+            <button onClick={() => {
+              if (!printCorteHojaA4(snap)) showToast("El navegador bloqueó la ventana", "warning");
+            }} disabled={cargandoZ} style={{...btnSecondary,padding:"8px 16px",fontSize:12}}>
+              Hoja A4
+            </button>
+          </div>
+          <div style={{color:C.textDim,fontSize:10,lineHeight:1.35,maxWidth:320,textAlign:"right"}}>
+            Epson: mismo diálogo que el ticket de venta (TM-T20, 80 mm). El PDF del historial queda en hoja completa.
+          </div>
+          </div>
         </div>
         {cargandoZ ? (
           <div style={{color:C.textMid,padding:20,textAlign:"center",fontSize:12}}>Cargando el detalle…</div>
@@ -773,35 +1126,62 @@ function ResultadoCorte({ C, resultado, turno, dif, difCol, difBg, difTxt,
           <div style={{color:C.textMid,padding:20,textAlign:"center",fontSize:12}}>Sin ventas en este turno</div>
         ) : (
           <div style={{maxHeight:300,overflowY:"auto",border:`1px solid ${C.border}`,borderRadius:8}}>
-            <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+            <table className="fc-tabla-cards" style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
               <thead><tr style={{background:C.bg}}>
-                {["Folio","Hora","Método","Total"].map(h=>(
-                  <th key={h} style={{padding:"7px 10px",textAlign:h==="Total"?"right":"left",
+                {["Folio","Hora","Método","Producto","Importe"].map(h=>(
+                  <th key={h} style={{padding:"7px 10px",textAlign:h==="Importe"?"right":"left",
                     color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{h}</th>
                 ))}
               </tr></thead>
               <tbody>
-                {(zTransac||[]).map(t=>(
-                  <tr key={t.id}>
-                    <td style={{padding:"6px 10px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>#{t.id}</td>
-                    <td style={{padding:"6px 10px",color:C.text,borderBottom:`1px solid ${C.border}`}}>
-                      {new Date(t.created_at).toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"})}
-                    </td>
-                    <td style={{padding:"6px 10px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{t.metodo_pago||"—"}</td>
-                    <td style={{padding:"6px 10px",textAlign:"right",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>
-                      {fmt(t.total)}
-                    </td>
-                  </tr>
-                ))}
+                {(zTransac||[]).flatMap(t=>{
+                  const items = t.items || [];
+                  if (!items.length) {
+                    return [(
+                      <tr key={t.id}>
+                        <td data-label="Folio" data-primary style={{padding:"6px 10px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>#{t.id}</td>
+                        <td data-label="Hora" style={{padding:"6px 10px",color:C.text,borderBottom:`1px solid ${C.border}`}}>
+                          {new Date(t.created_at).toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"})}
+                        </td>
+                        <td data-label="Método" style={{padding:"6px 10px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{t.metodo_pago||"—"}</td>
+                        <td data-label="Producto" data-wide style={{padding:"6px 10px",color:C.textDim,borderBottom:`1px solid ${C.border}`}}>—</td>
+                        <td data-label="Importe" style={{padding:"6px 10px",textAlign:"right",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>
+                          {fmt(t.total)}
+                        </td>
+                      </tr>
+                    )];
+                  }
+                  return items.map((it, idx) => (
+                    <tr key={`${t.id}-${idx}`}>
+                      <td data-label="Folio" data-primary style={{padding:"6px 10px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{idx===0?`#${t.id}`:`#${t.id}`}</td>
+                      <td data-label="Hora" style={{padding:"6px 10px",color:C.text,borderBottom:`1px solid ${C.border}`}}>
+                        {new Date(t.created_at).toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"})}
+                      </td>
+                      <td data-label="Método" style={{padding:"6px 10px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{t.metodo_pago||"—"}</td>
+                      <td data-label="Producto" data-wide style={{padding:"6px 10px",color:C.text,borderBottom:`1px solid ${C.border}`}}>
+                        {it.cantidad} × {it.nombre}{it.sku?` · ${it.sku}`:""}
+                      </td>
+                      <td data-label="Importe" style={{padding:"6px 10px",textAlign:"right",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>
+                        {fmt(it.subtotal ?? it.precio_unitario)}
+                      </td>
+                    </tr>
+                  ));
+                })}
               </tbody>
             </table>
           </div>
         )}
       </div>
 
-      <button onClick={onNuevo} style={{...btnSecondary,alignSelf:"flex-start"}}>
-        ➕ Hacer otro corte
-      </button>
+      {permitirOtro ? (
+        <button onClick={onNuevo} style={{...btnSecondary,alignSelf:"flex-start"}}>
+          Hacer otro corte
+        </button>
+      ) : (
+        <div style={{color:C.textMid,fontSize:13,lineHeight:1.45}}>
+          {cierreHint || "Turno cerrado. El otro turno lo abre tu compañera."}
+        </div>
+      )}
     </div>
   );
 }
