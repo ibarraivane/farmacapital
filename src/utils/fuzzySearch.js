@@ -9,6 +9,7 @@ import {
   isNormalizedDoseUnitToken,
   tokenMatchesInNormalizedHaystack,
 } from "../utils";
+import { coincidenciaIntencionMostrador } from "./intencionMostrador";
 
 const AMBIGUOUS_SHORT_SUBSTRING_TOKENS = new Set(["para"]);
 
@@ -638,15 +639,34 @@ export function productMatchesSearchQuery(product, queryRaw, valueGetters) {
 
 /** Producto de catálogo con campos estándar (tienda / POS). */
 export function tiendaProductMatchesBusqueda(product, queryRaw) {
-  return catalogProductMatchesBusqueda(product, queryRaw, { inventario: false, allowDescripcion: false });
+  return catalogProductMatchesBusqueda(product, queryRaw, { inventario: false, allowDescripcion: false })
+    || Boolean(coincidenciaIntencionMostrador(product, queryRaw));
 }
 
 export function tiendaSearchRelevanceRank(product, queryRaw) {
-  return catalogSearchRelevanceRank(product, queryRaw, { inventario: false });
+  const catalogRank = catalogSearchRelevanceRank(product, queryRaw, { inventario: false });
+  // Identidad, marca, activo y atributos del SKU siempre ganan a una intención.
+  if (catalogRank < 60) return catalogRank;
+  return coincidenciaIntencionMostrador(product, queryRaw) ? 30 : catalogRank;
 }
 
 export function tiendaCatalogSearchSuggestions(products, queryRaw, { limit = 8 } = {}) {
-  return catalogSearchSuggestions(products, queryRaw, { limit, inventario: false });
+  const direct = catalogSearchSuggestions(products, queryRaw, { limit, inventario: false });
+  if (direct.length >= limit) return direct;
+  const seen = new Set(direct.map((item) => String(item.id)));
+  const related = (products || [])
+    .filter((product) => product?.activo !== false && !seen.has(String(product?.id)))
+    .filter((product) => coincidenciaIntencionMostrador(product, queryRaw))
+    .map((product) => ({
+      id: product.id,
+      nombre: product.nombre || "",
+      sku: product.sku != null ? String(product.sku) : "",
+      codigo_barras: product.codigo_barras != null ? String(product.codigo_barras) : "",
+      stock: product.stock,
+      rank: 30,
+    }))
+    .sort((a, b) => String(a.nombre).localeCompare(String(b.nombre), "es"));
+  return [...direct, ...related].slice(0, limit);
 }
 
 export function inventarioProductMatchesBusqueda(product, queryRaw) {

@@ -1,56 +1,50 @@
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import TableroEquivalentes from "./TableroEquivalentes";
-import { agruparOpcionesEquivalentes } from "../../../utils/equivalentesPos";
+import { grupoOpcionesRelacionadas } from "../../../utils/equivalentesPos";
 
-const treda = { id: 1, nombre: "Treda antidiarreico C/20", marca: "Treda", tipo: "marca", principio_activo: "Neomicina + Caolin + Pectina", presentacion: "C/20", forma_farmaceutica: "Cápsulas", precio: 189, activo: true };
-const tredaJarabe = { id: 5, nombre: "Treda jarabe", marca: "Treda", tipo: "marca", principio_activo: "Neomicina + Caolin + Pectina", presentacion: "Frasco 120 mL", precio: 145, activo: true };
-const kpec = { id: 2, nombre: "Nineka suspensión", marca: "K-PEC", tipo: "generico", principio_activo: "Neomicina + Caolin + Pectina", presentacion: "Frasco 100 mL", precio: 38, activo: true, imagen_url: "http://x/1.jpg" };
-const catalogo = [treda, tredaJarabe, kpec];
-const grupo = agruparOpcionesEquivalentes(catalogo, kpec);
+const treda = { id: 1, nombre: "Treda C/20", marca: "Treda", tipo: "marca", principio_activo: "Neomicina + Caolin + Pectina", presentacion: "C/20", forma_farmaceutica: "Tabletas", concentracion: "129/280/30 mg", precio: 189, activo: true };
+const nineka = { id: 2, nombre: "Nineka C/20", marca: "Nineka", tipo: "generico", principio_activo: "Neomicina + Caolin + Pectina", presentacion: "C/20", forma_farmaceutica: "Tabletas", concentracion: "129/280/30 mg", precio: 61, activo: true, imagen_url: "http://x/nineka.jpg" };
+const suspension = { id: 3, nombre: "Nineka suspensión", marca: "Nineka", principio_activo: "Neomicina + Caolin + Pectina", presentacion: "75 mL", forma_farmaceutica: "Suspensión", concentracion: "500/36/35 mg/5 mL", precio: 38, activo: true };
+const grupo = grupoOpcionesRelacionadas([treda, nineka, suspension], treda, "treda");
 
-it("muestra la patente y el genérico con su etiqueta", () => {
-  render(<TableroEquivalentes grupo={grupo} onSelect={() => {}} />);
-  expect(screen.getByText("PATENTE")).toBeInTheDocument();
-  expect(screen.getByText("GENÉRICO")).toBeInTheDocument();
-  expect(screen.getByText("K-PEC")).toBeInTheDocument();
-});
-
-it("pone las presentaciones de una marca como cajitas dentro de su tarjeta", () => {
-  render(<TableroEquivalentes grupo={grupo} onSelect={() => {}} />);
-  expect(screen.getByText("Frasco 120 mL")).toBeInTheDocument();
-  expect(screen.getByText("C/20 · Cápsulas")).toBeInTheDocument();
-  expect(screen.getByText("$189.00")).toBeInTheDocument();
-  expect(screen.getByText("$145.00")).toBeInTheDocument();
-});
-
-it("cuando no hay foto enseña la marca en grande, una sola vez", () => {
-  const { container } = render(<TableroEquivalentes grupo={grupo} onSelect={() => {}} />);
-  expect(screen.getByText("SIN FOTO")).toBeInTheDocument();
-  expect(screen.getAllByText("Treda")).toHaveLength(1);
+it("pinta un SKU por tarjeta, su foto propia y el respaldo sin inventar otra", () => {
+  const { container } = render(<TableroEquivalentes grupo={grupo} onSelect={() => {}} onAdd={() => {}} estadoStock={() => ({ agotado: false, etiqueta: "3 disp." })} />);
+  expect(screen.getAllByRole("article")).toHaveLength(3);
   expect(container.querySelectorAll("img")).toHaveLength(1);
+  expect(screen.getAllByText("Treda").length).toBeGreaterThan(0);
+  expect(screen.getAllByText("3 disp.")).toHaveLength(3);
 });
 
-it("al tocar una presentación la devuelve completa", () => {
+it("separa la suspensión como Otras presentaciones", () => {
+  render(<TableroEquivalentes grupo={grupo} onSelect={() => {}} onAdd={() => {}} />);
+  expect(screen.getByText("3 opciones con Neomicina + Caolín + Pectina")).toBeInTheDocument();
+  expect(screen.getByText("Misma presentación")).toBeInTheDocument();
+  expect(screen.getByText("Otras presentaciones")).toBeInTheDocument();
+  expect(screen.getByText(/cambia forma, vía o concentración/i)).toBeInTheDocument();
+});
+
+it("abre ficha al tocar tarjeta y usa el callback de carrito al agregar", () => {
   const onSelect = jest.fn();
-  render(<TableroEquivalentes grupo={grupo} onSelect={onSelect} />);
-  fireEvent.click(screen.getByText("Frasco 120 mL"));
-  expect(onSelect).toHaveBeenCalledWith(tredaJarabe);
+  const onAdd = jest.fn();
+  render(<TableroEquivalentes grupo={grupo} onSelect={onSelect} onAdd={onAdd} estadoStock={() => ({ agotado: false, etiqueta: "2 disp." })} />);
+  fireEvent.click(screen.getByRole("button", { name: /ver ficha de treda/i }));
+  expect(onSelect).toHaveBeenCalledWith(treda);
+  fireEvent.click(screen.getAllByRole("button", { name: "Agregar" })[0]);
+  expect(onAdd).toHaveBeenCalledWith(treda);
 });
 
-it("marca lo agotado sin esconderlo", () => {
-  const estadoStock = (p) => (p.id === 1 ? { agotado: true, etiqueta: "Sin lotes" } : { agotado: false, etiqueta: "3 disp." });
-  render(<TableroEquivalentes grupo={grupo} onSelect={() => {}} estadoStock={estadoStock} />);
-  expect(screen.getByText("Sin lotes")).toBeInTheDocument();
-  expect(screen.getByText("C/20 · Cápsulas")).toBeInTheDocument();
+it("no muestra clasificación falsa cuando falta tipo", () => {
+  render(<TableroEquivalentes grupo={grupo} onSelect={() => {}} onAdd={() => {}} />);
+  expect(screen.getByText("Marca")).toBeInTheDocument();
+  expect(screen.getByText("Genérico")).toBeInTheDocument();
+  expect(screen.getByText("Nineka Suspensión")).toBeInTheDocument();
 });
 
-it("resume cuántas son de patente", () => {
-  render(<TableroEquivalentes grupo={grupo} onSelect={() => {}} />);
-  expect(screen.getByText("1 de patente · 1 genérico")).toBeInTheDocument();
-});
-
-it("sin grupo no pinta nada", () => {
-  const { container } = render(<TableroEquivalentes grupo={null} onSelect={() => {}} />);
-  expect(container).toBeEmptyDOMElement();
+it("cada tarjeta identifica sus activos sin inferirlos", () => {
+  const sinActivos = { ...suspension, id: 4, nombre: "Producto sin activos", marca: "", presentacion: "", forma_farmaceutica: "", principio_activo: "", denominacion_generica: "" };
+  const grupoConHueco = { ...grupo, total: 4, otrasPresentaciones: [...grupo.otrasPresentaciones, sinActivos] };
+  render(<TableroEquivalentes grupo={grupoConHueco} onSelect={() => {}} onAdd={() => {}} />);
+  expect(screen.getAllByText("Activos: Neomicina + Caolín + Pectina")).toHaveLength(3);
+  expect(screen.getAllByText("Producto Sin Activos")).toHaveLength(2);
 });

@@ -995,7 +995,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
    */
   const grupoEquivalentes = React.useMemo(() => {
     if (srchEsEscaneo || !srch.trim() || !fil.length) return null;
-    return grupoEquivalentesDeBusqueda(productos, fil);
+    return grupoEquivalentesDeBusqueda(productos, fil, srch);
   }, [productos, fil, srch, srchEsEscaneo]);
 
   const clearPosSearch = useCallback(() => {
@@ -1015,8 +1015,9 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       return;
     }
     if (srchEsEscaneo) return;
+    // En búsqueda textual las opciones aparecen sin elegir una por la vendedora.
+    // El EAN/SKU exacto conserva arriba su camino rápido y sí abre la ficha.
     if (fil.length === 0) return;
-    setFichaProd((prev) => (prev && fil.some((p) => p.id === prev.id) ? prev : fil[0]));
   }, [srch, fil, tab, productos, srchEsEscaneo]);
 
   useEffect(() => {
@@ -2797,6 +2798,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                     setFichaProd(exact);
                     setSrchFocus(false);
                   } else {
+                    setFichaProd(null);
                     setSrchFocus(!isAllDigitsInput(v));
                   }
                 }}
@@ -2875,7 +2877,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                   ×
                 </button>
               )}
-              {srchSuggestions.length>0&&srchFocus&&!srchEsEscaneo&&(
+              {srchSuggestions.length>0&&srchFocus&&!srchEsEscaneo&&!grupoEquivalentes&&(
                 <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,right:0,zIndex:7000,background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,boxShadow:"0 8px 32px rgba(15,45,110,.14)",overflow:"hidden",maxHeight:280,overflowY:"auto"}}>
                   {srchSuggestions.map((s,i)=>{
                     const row=productos.find(x=>x.id===s.id);
@@ -2915,6 +2917,14 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
               }}>🛒{cart.length>0?` (${cart.length})`:""} {cartOpen?"▶":"◀"}</button>
               )}
             </div>
+            {grupoEquivalentes && !fichaProd ? (
+              <TableroEquivalentes
+                grupo={grupoEquivalentes}
+                onSelect={setFichaProd}
+                onAdd={(it) => add(it, false)}
+                estadoStock={estadoStockPos}
+              />
+            ) : (
             <PosProductoFichaPanel
               item={fichaProd}
               productos={productos}
@@ -2933,6 +2943,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
               isNarrow={isNarrow}
               sticky={!!srch.trim() || !!fichaProd}
             />
+            )}
 
             {favs.length>0&&(
               <div data-tour="pos-favoritos" style={{marginBottom:12}}>
@@ -2947,7 +2958,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                 </div>
               </div>
             )}
-            {srch.trim() && !srchEsEscaneo && (
+            {srch.trim() && !srchEsEscaneo && !grupoEquivalentes && (
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4,padding:"2px 0"}}>
                 <span style={{fontSize:11,color:C.textDim}}>
                   {fil.length === 0
@@ -2970,16 +2981,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                 </span>
               </div>
             )}
-            {grupoEquivalentes && !looksLikeBarcodeInput(normalizeBarcodeRaw(srch) || srch) && (
-              <TableroEquivalentes
-                grupo={grupoEquivalentes}
-                seleccionadoId={fichaProd?.id}
-                onSelect={setFichaProd}
-                estadoStock={estadoStockPos}
-                stack={isNarrow}
-              />
-            )}
-            {srch.trim() && fil.length > 0 && !srchEsEscaneo && !looksLikeBarcodeInput(normalizeBarcodeRaw(srch) || srch) && (
+            {srch.trim() && fil.length > 0 && !grupoEquivalentes && !srchEsEscaneo && !looksLikeBarcodeInput(normalizeBarcodeRaw(srch) || srch) && (
               <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden", background: C.card, maxHeight: 320, overflowY: "auto" }}>
                 <div style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: 0.5, textTransform: "uppercase", position: "sticky", top: 0, background: C.card, zIndex: 1 }}>
                   Resultados ({Math.min(fil.length, 60)}{fil.length > 60 ? "+" : ""})
