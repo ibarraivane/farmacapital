@@ -1,0 +1,24 @@
+---
+description: Auditar Recibir, pistola y tablet (iPad/Safari) antes de publicar, no esperar a que falle en piso.
+alwaysApply: true
+---
+
+# Recibir / pistola / tablet — auditar antes de push
+
+Cuando toques Recibir, POS, InventarioHub, caducidad o el service worker, **revisa estos fallos antes de commitear**. No esperes a que Erika o Mary los encuentren.
+
+## Checklist (obligatorio)
+
+1. **Pistola:** el EAN no puede quedarse en el recuadro. Tiene que abrir el renglón al terminar el beep, sin depender de Enter. En tablet a veces no hay Enter, o llega antes de que React tenga el valor: usa `e.currentTarget.value` y un debounce ~140 ms cuando el código ya es EAN-8/12/13/14.
+2. **Safari / iPad:** no pongas `disabled` en el input que tiene el foco. Eso tira `NotFoundError: The object can not be found here` y la pantalla “Error al cargar este módulo”. Usa `readOnly`. Quita el foco (`blur`) antes de mostrar cantidad/MMAA. No uses Fragment (`<>`) alrededor de bloques que aparecen/desaparecen.
+3. **Recibir en el hub:** importa `RecepcionModule` en estático (`InventarioHub`). No lo dejes `lazy()`: tras un deploy la PWA pide un chunk que ya no existe.
+4. **Caducidad:** nunca inventar. `0000` es inválido (`parseCaducidadMMAA` → null). Si no hay fecha en la caja, el renglón se queda gris; no hay “poner ceros”.
+5. **Pedidos vivos:** un botón por cada ticket abierto con cajas pendientes. Nuevo ticket no pisa el anterior. No auto-abrir un solo borrador tapando Farma City / Farmalive.
+6. **Pistola vs ticket:** si el documento vino de PDF/CSV, un EAN que no esté en la lista no registra ni suma stock. Leyenda: “No corresponde a ninguno de los ítems de este ticket.” Si ya está verde: “Ya está en este ticket.”
+7. **Pruebas:** si cambias el match de pistola o MMAA, corre `src/lib/recepcionScan.test.js` y `src/lib/caducidad.test.js`. El build ya corre `scripts/check-recibir-tablet.js`.
+
+## Cómo probar en 30 s (mental)
+
+- Escaneo Tegaderm `4001895928765` → selecciona el gris, pide MMAA.
+- iPad: escanear no puede tumbar el módulo.
+- Recibir muestra Farma City y Farmalive si ambos están vivos.
