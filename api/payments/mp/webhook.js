@@ -11,7 +11,7 @@ function normalizeSupabaseProjectUrl(url) {
 
 function verifyMpWebhookSignature(req, dataId) {
   const secret = String(process.env.MP_WEBHOOK_SECRET || process.env.MERCADOPAGO_WEBHOOK_SECRET || '').trim();
-  if (!secret) return true;
+  if (!secret) return false;
 
   const xSignature = String(req.headers['x-signature'] || req.headers['X-Signature'] || '');
   const xRequestId = String(req.headers['x-request-id'] || req.headers['X-Request-Id'] || '');
@@ -98,6 +98,18 @@ module.exports = async function handler(req, res) {
 
     const status = String(payment?.status || '').toLowerCase();
     const approved = status === 'approved';
+    const paidAmount = Number(payment?.transaction_amount);
+    if (approved && pedidoBefore) {
+      const expected = Number(pedidoBefore.total || 0);
+      if (!Number.isFinite(paidAmount) || Math.abs(paidAmount - expected) > 0.5) {
+        return res.status(409).json({
+          ok: false,
+          error: 'payment_amount_mismatch',
+          expected,
+          paid: paidAmount,
+        });
+      }
+    }
     const patch = {
       payment_provider: 'mercadopago',
       payment_status: status || 'unknown',
@@ -126,6 +138,22 @@ module.exports = async function handler(req, res) {
       let detail = null;
       try { detail = await patchResp.json(); } catch { detail = await patchResp.text(); }
       return res.status(502).json({ ok: false, error: 'supabase_update_failed', detail });
+    }
+
+    if (approved) {
+      try {
+        await fetch(`${SUPABASE_URL}/rest/v1/rpc/service_acreditar_puntos_pedido`, {
+          method: 'POST',
+          headers: {
+            apikey: SUPABASE_SERVICE_ROLE_KEY,
+            Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ p_pedido_id: pedidoId }),
+        });
+      } catch (_) {
+        // Puntos no bloquean el webhook.
+      }
     }
 
     if (pedidoBefore && pedidoBefore.payment_status !== status) {

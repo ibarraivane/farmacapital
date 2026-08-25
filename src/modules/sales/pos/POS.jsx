@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useMediaQuery } from "../../../hooks/useMediaQuery";
 import TicketPreviewModal from "../../../components/tickets/TicketPreviewModal";
+import SpeiManualModal from "../../../components/SpeiManualModal";
+import SpeiMPModal from "../../../components/SpeiMPModal";
 import MercadoPagoModal from "../../../components/MercadoPagoModal";
 import BBVATerminalModal from "../../../components/BBVATerminalModal";
 import { supabase } from "../../../supabase";
@@ -539,6 +541,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const [mpModal,setMpModal]     = useState(false);
   const [mpFolio,setMpFolio]     = useState("");
   const [bbvaModal,setBbvaModal] = useState(false);
+  const [speiModal,setSpeiModal]     = useState(false);
+  const [speiMpModal,setSpeiMpModal] = useState(false);
   const [bbvaFolio,setBbvaFolio] = useState("");
   /** Tras elegir origen de receta, cobro con tarjeta (Point) usa este valor al confirmar el pago. */
   const recetaOrigenPendienteRef = useRef("no_aplica");
@@ -1003,6 +1007,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     efectivo:       "Efectivo",
     tarjeta:        "Tarjeta",
     spei:           "SPEI",
+    spei_mp:        "SPEI MP",
     mercadopago:    "Tarjeta MP",
     bbva_terminal:  "Tarjeta BBVA",
   }[method] || "Otro");
@@ -1103,7 +1108,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   }, [productos, finalizarEscaneoExitoso]);
 
   useHidBarcodeWedge({
-    enabled: tab === "venta" && !mpModal && !bbvaModal && !ticket,
+    enabled: tab === "venta" && !mpModal && !bbvaModal && !speiModal && !speiMpModal && !ticket,
     onScan: onHidScan,
   });
 
@@ -1375,7 +1380,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     const metodoPagoInterno = metodoPagoOverride || pay;
     // El DB solo acepta los valores clásicos del constraint chk_metodo_pago.
     // bbva_terminal y mercadopago (Point MP) se registran como "tarjeta".
-    const DB_METODO_MAP = { bbva_terminal: "tarjeta", mercadopago_point: "tarjeta" };
+    const DB_METODO_MAP = { bbva_terminal: "tarjeta", mercadopago_point: "tarjeta", spei_mp: "spei" };
     const metodoPagoFinal = DB_METODO_MAP[metodoPagoInterno] ?? metodoPagoInterno;
     if (metodoPagoFinal === "efectivo" && aCobrar > 0) {
       const rec = parseMontoEfectivo(montoRecibido);
@@ -1579,6 +1584,12 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       recetaOrigenPendienteRef.current = ro;
       setBbvaFolio(folioActual || "VTA-PENDIENTE");
       setBbvaModal(true);
+    } else if (modo === "spei") {
+      recetaOrigenPendienteRef.current = ro;
+      setSpeiModal(true);
+    } else if (modo === "spei_mp") {
+      recetaOrigenPendienteRef.current = ro;
+      setSpeiMpModal(true);
     } else if (modo === "efectivo") {
       ejecutarCobrar(ro);
     }
@@ -1669,7 +1680,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   };
 
   const mapMetodoPagoConsulta = (raw) => {
-    const DB_METODO_MAP = { bbva_terminal: "tarjeta", mercadopago_point: "tarjeta" };
+    const DB_METODO_MAP = { bbva_terminal: "tarjeta", mercadopago_point: "tarjeta", spei_mp: "spei" };
     return DB_METODO_MAP[raw] ?? raw ?? "efectivo";
   };
 
@@ -1907,6 +1918,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
             ["efectivo","💵 Efectivo"],
             ["tarjeta","💳 Point MP"],
             ["bbva_terminal","🏦 Terminal BBVA"],
+            ["spei","💸 Transferencia"],
+            ["spei_mp","💸 Transferencia MP"],
           ].map(([v,l])=>(
             <button key={v} type="button" onClick={()=>{ setPay(v); if(v!=="efectivo") setMontoRecibido(""); }} style={{padding:isMobilePos?"8px 14px":"4px 10px",borderRadius:20,border:`1px solid ${pay===v?C.blue:C.border}`,background:pay===v?C.blueDim:"transparent",color:pay===v?C.blue:C.textMid,fontSize:isMobilePos?13:10,fontWeight:700,cursor:"pointer",minHeight:isMobilePos?40:undefined}}>{l}</button>
           ))}
@@ -1996,6 +2009,24 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
             >🏦 Cobrar con terminal BBVA</Btn>
             <div style={{color:C.textDim,fontSize:10,marginTop:10,lineHeight:1.45}}>
               Procesa el pago en la terminal física BBVA y confirma el resultado aquí. La venta se registra solo cuando indicas que fue <strong>aprobado</strong>.
+            </div>
+          </div>
+        ) : pay==="spei" ? (
+          <div>
+            <Btn onClick={()=>abrirModalRecetaVenta("spei")}
+              full col="#0891b2" dis={!cart.length||guardando}
+            >💸 Cobrar por transferencia</Btn>
+            <div style={{color:C.textDim,fontSize:10,marginTop:10,lineHeight:1.45}}>
+              El cliente transfiere a la CLABE de la farmacia. La venta se registra solo cuando <strong>tú confirmas</strong> que viste el abono en tu cuenta.
+            </div>
+          </div>
+        ) : pay==="spei_mp" ? (
+          <div>
+            <Btn onClick={()=>abrirModalRecetaVenta("spei_mp")}
+              full col="#009ee3" dis={!cart.length||guardando}
+            >💸 Cobrar con CLABE de Mercado Pago</Btn>
+            <div style={{color:C.textDim,fontSize:10,marginTop:10,lineHeight:1.45}}>
+              Mercado Pago genera una CLABE única y la app <strong>espera</strong> a que el dinero llegue. No hay que revisar comprobantes.
             </div>
           </div>
         ) : null}
@@ -2253,6 +2284,41 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
           <Btn col={C.green} onClick={confirmarRecetaVentaYContinuar} dis={guardando}>Continuar</Btn>
         </div>
       </Modal>
+
+      {/* Transferencia SPEI a la cuenta de la farmacia (confirmación manual) */}
+      <SpeiManualModal
+        open={speiModal}
+        total={total}
+        folio={folioActual || "VTA-PENDIENTE"}
+        onSuccess={async () => {
+          setSpeiModal(false);
+          const ro = recetaOrigenPendienteRef.current || "no_aplica";
+          recetaOrigenPendienteRef.current = "no_aplica";
+          await ejecutarCobrar(ro, "spei");
+        }}
+        onCancel={() => {
+          setSpeiModal(false);
+          recetaOrigenPendienteRef.current = "no_aplica";
+        }}
+      />
+
+      {/* Transferencia SPEI con CLABE única de Mercado Pago (acreditación automática) */}
+      <SpeiMPModal
+        open={speiMpModal}
+        total={total}
+        folio={folioActual || "VTA-PENDIENTE"}
+        clienteEmail={cli?.email || null}
+        onSuccess={async () => {
+          setSpeiMpModal(false);
+          const ro = recetaOrigenPendienteRef.current || "no_aplica";
+          recetaOrigenPendienteRef.current = "no_aplica";
+          await ejecutarCobrar(ro, "spei_mp");
+        }}
+        onCancel={() => {
+          setSpeiMpModal(false);
+          recetaOrigenPendienteRef.current = "no_aplica";
+        }}
+      />
 
       {/* Modal ticket — TicketPreviewModal (aparece automáticamente después de venta) */}
       {/* Mercado Pago Point Smart 2 Modal */}

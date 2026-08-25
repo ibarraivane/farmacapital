@@ -5,6 +5,8 @@
 // Docs: https://www.mercadopago.com.mx/developers/en/docs/mp-point/migrate-payment-intent-to-orders
 
 const crypto = require('crypto');
+const { getSupabaseAdminConfig, validateEmployeeSession } = require('../../_lib/supabaseAdmin');
+const { applyRestrictiveCors } = require('../../_lib/allowedOrigins');
 
 const MP_API = 'https://api.mercadopago.com';
 const MP_DEVICES_LEGACY = `${MP_API}/point/integration-api/devices`;
@@ -123,6 +125,59 @@ async function clearTerminalQueue(token, terminalId, { onlyStaleCreated = true }
   return { cleared, pending: pending.length, blocked: false, failures };
 }
 
+// ── SPEI por Mercado Pago (CLABE de referencia única) ──────────────────
+// MP genera una CLABE distinta por cobro; cuando el cliente transfiere,
+// la orden pasa a acreditada sola. No hay que juzgar comprobantes.
+//
+// El contrato exacto de la respuesta no está documentado con claridad y
+// cambia entre versiones de la Orders API, así que la CLABE se busca por
+// llave en todo el árbol en vez de asumir una ruta fija.
+function deepFind(obj, keys, depth = 0) {
+  if (!obj || typeof obj !== 'object' || depth > 8) return undefined;
+  for (const k of keys) {
+    if (k in obj && obj[k] != null && obj[k] !== '') return obj[k];
+  }
+  for (const v of Object.values(obj)) {
+    const found = deepFind(v, keys, depth + 1);
+    if (found !== undefined) return found;
+  }
+  return undefined;
+}
+
+function buildSpeiOrderBody({ amount, description, externalReference, payerEmail, expiresIn }) {
+  return {
+    type: 'online',
+    processing_mode: 'automatic',
+    external_reference: String(externalReference || `FC-SPEI-${Date.now()}`).slice(0, 64),
+    expiration_time: expiresIn || 'PT30M',
+    payer: { email: String(payerEmail || 'cliente@farmacapital.mx').slice(0, 254) },
+    transactions: {
+      payments: [
+        {
+          amount: Number(amount).toFixed(2),
+          payment_method: { id: 'clabe', type: 'bank_transfer' },
+        },
+      ],
+    },
+    description: String(description || 'Venta FarmaCapital').slice(0, 255),
+  };
+}
+
+// Extrae de la respuesta lo único que el cajero necesita ver en pantalla.
+function extractSpeiDatos(data) {
+  return {
+    order_id: data?.id ?? null,
+    clabe: deepFind(data, ['clabe', 'bank_transfer_id', 'financial_institution_clabe']) ?? null,
+    beneficiario: deepFind(data, ['receiver_name', 'account_holder_name', 'holder_name']) ?? null,
+    banco: deepFind(data, ['bank_name', 'financial_institution']) ?? null,
+    referencia: deepFind(data, ['reference', 'reference_id', 'transaction_id']) ?? null,
+    ticket_url: deepFind(data, ['ticket_url', 'external_resource_url']) ?? null,
+    expira: deepFind(data, ['expiration_date', 'date_of_expiration']) ?? null,
+    status: data?.status ?? null,
+    status_detail: data?.status_detail ?? null,
+  };
+}
+
 function buildCreateOrderBody(deviceId, amount, description, externalReference) {
   return {
     type: 'point',
@@ -179,13 +234,30 @@ async function setTerminalPdvMode(token, deviceId) {
 }
 
 module.exports = async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  applyRestrictiveCors(req, res);
   if (req.method === 'OPTIONS') return res.status(200).end();
+
+  const { action: incomingAction } = req.query || {};
+  if (String(incomingAction || '') === 'balance') {
+    return require('../../_lib/mpBalanceHandler')(req, res);
+  }
 
   const MP_ACCESS_TOKEN = (process.env.MP_ACCESS_TOKEN || process.env.MERCADOPAGO_ACCESS_TOKEN || '').trim();
   if (!MP_ACCESS_TOKEN) return res.status(500).json({ ok: false, error: 'missing_mp_access_token' });
+
+  const { supabaseUrl, serviceKey } = getSupabaseAdminConfig();
+  const sessionToken = String(
+    req.headers['x-session-token'] ||
+      (req.headers.authorization || '').replace(/^Bearer\s+/i, '') ||
+      ''
+  ).trim();
+  if (!supabaseUrl || !serviceKey) {
+    return res.status(500).json({ ok: false, error: 'missing_supabase_service_role' });
+  }
+  const sessionOk = await validateEmployeeSession(supabaseUrl, serviceKey, sessionToken);
+  if (!sessionOk) {
+    return res.status(401).json({ ok: false, error: 'invalid_session' });
+  }
 
   // path: /api/payments/mp/point?action=devices|create-intent|get-intent|cancel-intent|clear-terminal|set-pdv
   const { action, deviceId, intentId, orderId } = req.query;
@@ -429,6 +501,66 @@ module.exports = async function handler(req, res) {
                 ? 'OK: el Point recibe cobros.'
                 : 'FarmaCapital y Mercado Pago OK; el Point físico no sincroniza. Desvincula y revincula el lector en la app MP.',
       });
+    }
+
+    // ── SPEI: crear cobro con CLABE de referencia única ──────────────
+    if (action === 'spei-create') {
+      const { amount, description, externalReference, payerEmail } = body || {};
+      if (!amount || !Number.isFinite(Number(amount)) || Number(amount) <= 0) {
+        return res.status(400).json({ ok: false, error: 'invalid_amount' });
+      }
+
+      const orderBody = buildSpeiOrderBody({
+        amount,
+        description,
+        externalReference,
+        payerEmail,
+      });
+
+      const { resp, data } = await mpJson(`${MP_API}/v1/orders`, {
+        method: 'POST',
+        headers: authHeaders(MP_ACCESS_TOKEN, { 'X-Idempotency-Key': newIdempotencyKey() }),
+        body: JSON.stringify(orderBody),
+      });
+
+      if (!resp.ok) {
+        // La cuenta puede no tener habilitado el cobro por transferencia.
+        // Se devuelve el error crudo de MP: es lo único que dice el motivo real.
+        return res.status(resp.status).json({
+          ok: false,
+          error: 'spei_create_failed',
+          message: mpErrorMessage(data, resp.status),
+          mp_response: data,
+        });
+      }
+
+      const datos = extractSpeiDatos(data);
+      if (!datos.clabe) {
+        // Se creó la orden pero no vino CLABE: sin ella el cliente no puede
+        // pagar, así que se reporta como fallo en vez de mostrar una pantalla vacía.
+        return res.status(502).json({
+          ok: false,
+          error: 'spei_sin_clabe',
+          message: 'Mercado Pago creó la orden pero no devolvió una CLABE de cobro.',
+          mp_response: data,
+        });
+      }
+
+      return res.status(200).json({ ok: true, ...datos });
+    }
+
+    // ── SPEI: consultar si ya se acreditó ────────────────────────────
+    if (action === 'spei-status') {
+      const oid = orderId || intentId;
+      if (!oid) return res.status(400).json({ ok: false, error: 'missing_orderId' });
+      const { resp, data } = await mpJson(`${MP_API}/v1/orders/${encodeURIComponent(String(oid))}`, {
+        method: 'GET',
+        headers: authHeaders(MP_ACCESS_TOKEN),
+      });
+      if (!resp.ok) {
+        return res.status(resp.status).json({ ok: false, message: mpErrorMessage(data, resp.status), ...data });
+      }
+      return res.status(200).json({ ok: true, ...extractSpeiDatos(data), raw_status: data?.status });
     }
 
     return res.status(400).json({ ok: false, error: 'unknown_action' });

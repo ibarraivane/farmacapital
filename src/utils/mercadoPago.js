@@ -22,6 +22,20 @@ const SANDBOX_MODE    = !MP_ACCESS_TOKEN?.startsWith("APP_USR");
 const HOSTNAME        = globalThis?.location?.hostname || "";
 const IS_LOCAL_DEV    = HOSTNAME === "localhost" || HOSTNAME === "127.0.0.1";
 
+function employeeAuthHeaders(extra = {}) {
+  let tok = "";
+  try {
+    tok = sessionStorage.getItem("farmacapital_session_token") || "";
+  } catch {
+    tok = "";
+  }
+  return {
+    "Content-Type": "application/json",
+    ...(tok ? { "x-session-token": tok } : {}),
+    ...extra,
+  };
+}
+
 function newIdempotencyKey() {
   if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
   return `fc-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -71,7 +85,7 @@ export async function crearIntenciónDePago({ amount, description, externalRefer
   const response = MP_PROXY_URL
     ? await fetch(`${MP_PROXY_URL.replace(/\/$/, "")}?action=create-intent&deviceId=${encodeURIComponent(MP_DEVICE_ID)}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: employeeAuthHeaders(),
         body: JSON.stringify({ amount, description, externalReference }),
       })
     : await fetch(`${MP_BASE_URL}/v1/orders`, {
@@ -148,7 +162,9 @@ function errorPagoPoint(estado, detail, data) {
 export async function consultarEstadoPago(paymentIntentId) {
   assertSecureModeOrThrow();
   const response = MP_PROXY_URL
-    ? await fetch(`${MP_PROXY_URL.replace(/\/$/, "")}?action=get-intent&orderId=${encodeURIComponent(paymentIntentId)}`)
+    ? await fetch(`${MP_PROXY_URL.replace(/\/$/, "")}?action=get-intent&orderId=${encodeURIComponent(paymentIntentId)}`, {
+        headers: employeeAuthHeaders(),
+      })
     : await fetch(`${MP_BASE_URL}/v1/orders/${encodeURIComponent(paymentIntentId)}`, {
         headers: { Authorization: `Bearer ${MP_ACCESS_TOKEN}` },
       });
@@ -166,6 +182,7 @@ export async function cancelarPago(paymentIntentId) {
   const response = MP_PROXY_URL
     ? await fetch(`${MP_PROXY_URL.replace(/\/$/, "")}?action=cancel-intent&orderId=${encodeURIComponent(paymentIntentId)}`, {
         method: "POST",
+        headers: employeeAuthHeaders(),
       })
     : await fetch(`${MP_BASE_URL}/v1/orders/${encodeURIComponent(paymentIntentId)}/cancel`, {
         method: "POST",
@@ -185,7 +202,9 @@ export async function cancelarPago(paymentIntentId) {
 export async function listarDispositivos() {
   assertSecureModeOrThrow();
   const response = MP_PROXY_URL
-    ? await fetch(`${MP_PROXY_URL.replace(/\/$/, "")}?action=devices`)
+    ? await fetch(`${MP_PROXY_URL.replace(/\/$/, "")}?action=devices`, {
+        headers: employeeAuthHeaders(),
+      })
     : await fetch(
         `${MP_BASE_URL}/point/integration-api/devices`,
         {
@@ -245,6 +264,120 @@ export function esperarConfirmacionPago(intentId, onStatus) {
         }
       }
     }, 5000);
+  });
+
+  promise.cancelar = () => {
+    if (interval) clearInterval(interval);
+  };
+
+  return promise;
+}
+
+// ═══════════════════════════════════════════════════════════
+// SPEI — cobro por transferencia con CLABE de referencia única
+// ═══════════════════════════════════════════════════════════
+// Mercado Pago genera una CLABE distinta por cobro. Cuando el cliente
+// transfiere, la orden se acredita sola: nadie tiene que juzgar un
+// comprobante. A cambio el dinero cae en la cuenta de MP, no en el banco.
+
+/**
+ * Crea un cobro SPEI y devuelve la CLABE que el cliente debe usar.
+ * @param {Object} opts
+ * @param {number} opts.amount        Monto a cobrar
+ * @param {string} [opts.description] Concepto
+ * @param {string} [opts.externalReference] Folio interno
+ * @param {string} [opts.payerEmail]  Correo del cliente (MP suele exigirlo)
+ */
+export async function crearCobroSpei({ amount, description, externalReference, payerEmail }) {
+  if (!MP_PROXY_URL) {
+    throw new Error("El cobro SPEI requiere el backend seguro (REACT_APP_MP_PROXY_URL).");
+  }
+  const response = await fetch(`${MP_PROXY_URL.replace(/\/$/, "")}?action=spei-create`, {
+    method: "POST",
+    headers: employeeAuthHeaders(),
+    body: JSON.stringify({ amount, description, externalReference, payerEmail }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || data?.ok === false) {
+    throw new Error(data?.message || data?.error || `MP Error ${response.status}`);
+  }
+  return data;
+}
+
+/**
+ * Consulta si un cobro SPEI ya se acreditó.
+ */
+export async function consultarCobroSpei(orderId) {
+  const response = await fetch(
+    `${MP_PROXY_URL.replace(/\/$/, "")}?action=spei-status&orderId=${encodeURIComponent(orderId)}`,
+    { headers: employeeAuthHeaders() }
+  );
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || data?.ok === false) {
+    throw new Error(data?.message || data?.error || `MP Error ${response.status}`);
+  }
+  return data;
+}
+
+/**
+ * Espera a que la transferencia se acredite.
+ *
+ * Una SPEI normal tarda segundos, pero puede tardar minutos si el banco
+ * emisor la agenda; por eso la espera es más larga que la del Point y el
+ * cajero siempre puede cancelar y cobrar de otra forma.
+ *
+ * @returns {Promise} con .cancelar() para detener el sondeo
+ */
+export function esperarAcreditacionSpei(orderId, onStatus) {
+  const INTERVALO_MS = 6000;
+  const MAX_ATTEMPTS = 100; // 100 × 6s = 10 minutos
+  let attempts = 0;
+  let interval = null;
+
+  const promise = new Promise((resolve, reject) => {
+    interval = setInterval(async () => {
+      attempts++;
+      try {
+        const data = await consultarCobroSpei(orderId);
+        const estado = String(data?.raw_status || data?.status || "").toLowerCase();
+        const detail = String(data?.status_detail || "").toLowerCase();
+        onStatus?.(estado, data);
+
+        const acreditado =
+          estado === "processed" ||
+          estado === "approved" ||
+          detail === "accredited" ||
+          (estado === "finished" && detail === "accredited");
+        const fallo =
+          estado === "expired" ||
+          estado === "cancelled" ||
+          estado === "canceled" ||
+          estado === "rejected" ||
+          detail === "expired";
+
+        if (acreditado) {
+          clearInterval(interval);
+          resolve({ success: true, data });
+        } else if (fallo) {
+          clearInterval(interval);
+          reject(new Error(
+            estado === "expired" || detail === "expired"
+              ? "La referencia SPEI expiró sin recibir la transferencia. Genera una nueva o cobra de otra forma."
+              : "Mercado Pago canceló el cobro SPEI. Cobra de otra forma."
+          ));
+        } else if (attempts >= MAX_ATTEMPTS) {
+          clearInterval(interval);
+          reject(new Error(
+            "La transferencia no se acreditó en 10 minutos. Si el cliente ya la envió, quedará registrada en Mercado Pago; verifícala ahí antes de entregar el producto."
+          ));
+        }
+      } catch (e) {
+        if (attempts >= MAX_ATTEMPTS) {
+          clearInterval(interval);
+          reject(e);
+        }
+      }
+    }, INTERVALO_MS);
   });
 
   promise.cancelar = () => {
