@@ -25,8 +25,11 @@ import {
   productoEsCategoriaMinisuperTienda,
 } from "./utils/tiendaFarmaciaCatalogo";
 import { productoEsVendible } from "./utils/productoVendible";
-import { CATEGORIAS_PRODUCTO, categoriaCanon, categoriaPasaFiltro, categoriasCoinciden } from "./constants/categoriasProducto";
+import { CATEGORIAS_PRODUCTO, categoriaCanon, categoriaPasaFiltro, categoriasCoinciden, esCategoriaAntibiotico } from "./constants/categoriasProducto";
 import { showToast, Logo, BrandSplash } from "./ui";
+import { setBloqueaReloadApp } from "./utils/appUpdate";
+import { pageIdToTiendaPath, resolveTiendaPage, tiendaPathnameToPageId, tiendaPathSuggestsReceta, tiendaProductIdFromSearch } from "./shared/tiendaRoutes";
+import { canjePorPuntos, guardarCanjeActivo, leerCanjeActivo, limpiarCanjeActivo } from "./utils/puntosCanje";
 import { TOKENS as T, RADIO, SOMBRA } from "./theme/tokens";
 import {
   formatFolioOnline,
@@ -42,7 +45,7 @@ import { validarPasswordTienda, PASSWORD_RULES_TEXT, PASSWORD_MIN_LENGTH } from 
 import {
   X, ShoppingCart, Pill, Tag as TagIcon, Stethoscope, Star,
   MapPin, Clock, Phone, Mail, HelpCircle, FileText,
-  LogIn, UserPlus, ChevronRight, Menu, Package,
+  LogIn, UserPlus, User, ChevronRight, Menu, Package,
   Store, Bike, PackageCheck, Trophy, CreditCard, Search, Calendar
 } from "lucide-react";
 
@@ -292,7 +295,7 @@ const FAQ_ITEMS = [
   { p:"¿Cuánto tarda el envío?", r:"En CDMX puedes elegir entrega express vía Rappi o Uber (al costo del servicio). Por el momento solo hacemos entregas dentro de CDMX." },
   { p:"¿Puedo recoger mi pedido en la farmacia?", r:"Sí. El pick-up es gratis y el mismo día. Recibirás un mensaje cuando tu pedido esté listo." },
   { p:"¿Cómo funcionan los Puntos FarmaCapital?", r:"Ganas 1 punto por cada $10 de compra. 1 punto equivale a $0.50 de descuento. Puedes usarlos en farmacia, minisuper y consultorio." },
-  { p:"¿Qué hago si necesito un medicamento con receta?", r:"Agrégalo al carrito normalmente. Al recoger o recibir tu pedido, presenta tu receta médica original. Para antibióticos y controlados es obligatorio por COFEPRIS." },
+  { p:"¿Qué hago si necesito un medicamento con receta?", r:"Agrégalo al carrito normalmente. En antibióticos te recomendamos traer receta al recoger; no es obligatoria. Los medicamentos controlados sí requieren receta original vigente." },
   { p:"¿Cómo puedo facturar mi compra?", r:"Solicita tu factura CFDI en el mostrador al momento de tu compra o escríbenos a contacto@farmacapital.mx dentro de las 24 horas siguientes." },
   { p:"¿Cuál es la política de devoluciones?", r:"Aceptamos devoluciones dentro de 72 horas si el producto está en perfecto estado y sin abrir. Medicamentos controlados y con receta no tienen devolución. Consulta nuestra política completa." },
   { p:"¿Tienen medicamentos genéricos?", r:"Sí. Tenemos una amplia variedad de genéricos intercambiables certificados por COFEPRIS, con el mismo principio activo que las marcas de patente pero a menor precio." },
@@ -488,7 +491,9 @@ function PopupBienvenida({onClose,setPage,precioConsulta,banner}){
             </div>
           ) : null}
           {showPrimaryBtn ? (
-            <Btn onClick={()=>{onClose();setPage(ctaPage);}} col={BRAND.primary} full>{cta} →</Btn>
+            <Btn onClick={()=>{onClose();setPage(ctaPage);}} col={BRAND.primary} full>
+              {/→\s*$/.test(String(cta || "")) ? cta : `${cta} →`}
+            </Btn>
           ) : null}
           <button onClick={onClose} style={{width:"100%",background:"none",border:"none",color:C.dim,fontSize:13,cursor:"pointer",marginTop:showPrimaryBtn?10:0,padding:8}}>Seguir comprando sin cuenta</button>
         </div>
@@ -1205,6 +1210,7 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
     { icon: TagIcon, label: "Promociones", page: "promo" },
     { icon: Stethoscope, label: "Consulta médica", page: "cita" },
     { icon: Star, label: "Puntos FarmaCapital", page: "puntos" },
+    ...(usuario ? [{ icon: User, label: "Mi cuenta", page: "cuenta" }] : []),
   ];
 
   const ayudaItems = [
@@ -1215,6 +1221,7 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
 
   const handleNav = (page) => {
     if (page === "cita") navigateToCita(setPage);
+    else if (page === "catalogo") setPage("catalogo", { rx: false });
     else setPage(page);
     onClose();
   };
@@ -1270,6 +1277,7 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
           <button
             type="button"
             onClick={onClose}
+            aria-label="Cerrar menú"
             style={{
               background: C.bg, border: "none",
               width: 36, height: 36, borderRadius: "50%",
@@ -1535,12 +1543,33 @@ function MenuTienda({ abierto, onClose, setPage, usuario, onLogout }) {
 
 // ── HEADER ────────────────────────────────────────────────────
 
-function Header({page,setPage,cart,user,setUser}){
+function Header({page,setPage,cart,user,setUser,busqHero,setBusqHero,productos,setProdDetalle}){
   const C = useTheme();
+  const stackHeader = useMediaQuery("(max-width: 768px)");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [busqFocus, setBusqFocus] = useState(false);
+  const searchInputRef = useRef(null);
   const n=cart.reduce((a,c)=>a+c.qty,0);
+  const mostrarBuscador = page === "carrito";
+  const poolHeader = useMemo(() => poolCatalogoTienda(productos || []), [productos]);
+  const headerSuggestions = useMemo(
+    () => (busqFocus && String(busqHero || "").trim().length >= 2
+      ? tiendaCatalogSearchSuggestions(poolHeader, busqHero, { limit: 8 })
+      : []),
+    [poolHeader, busqHero, busqFocus]
+  );
 
   useEffect(()=>{ setMenuOpen(false); }, [page]);
+
+  const irACatalogoBusqueda = () => {
+    const q = String(busqHero || "").trim();
+    setBusqFocus(false);
+    try { if (q) sessionStorage.setItem("farmacapital_busq", q); } catch (_) { /* noop */ }
+    setPage("catalogo");
+    requestAnimationFrame(() => {
+      document.getElementById("farmacapital-catalogo-resultados")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
 
   const go = (id) => {
     setMenuOpen(false);
@@ -1558,6 +1587,7 @@ function Header({page,setPage,cart,user,setUser}){
 
   return(
     <>
+      <div style={{position:"sticky",top:0,zIndex:50}}>
       <header data-brand-surface="dark" style={{
         background:BRAND.primary,
         borderBottom:"none",
@@ -1569,9 +1599,6 @@ function Header({page,setPage,cart,user,setUser}){
         alignItems:"center",
         justifyContent:"space-between",
         gap:12,
-        position:"sticky",
-        top:0,
-        zIndex:50,
       }}>
         <button
           type="button"
@@ -1595,6 +1622,21 @@ function Header({page,setPage,cart,user,setUser}){
         </div>
 
         <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+          {mostrarBuscador && (
+            <button
+              type="button"
+              aria-label="Buscar producto"
+              onClick={() => searchInputRef.current?.focus()}
+              style={{
+                background:"rgba(255,255,255,.15)",
+                border:"none",padding:8,borderRadius:8,
+                cursor:"pointer",
+                display:"flex",alignItems:"center",justifyContent:"center",
+              }}
+            >
+              <Search size={22} color="#fff"/>
+            </button>
+          )}
           <button
             type="button"
             aria-label="Ir al carrito"
@@ -1633,6 +1675,49 @@ function Header({page,setPage,cart,user,setUser}){
           </button>
         </div>
       </header>
+      {mostrarBuscador && (
+        <div style={{
+          background:"#fff",
+          borderBottom:`1px solid ${C.border}`,
+          padding:"10px 16px",
+          paddingLeft:"max(16px, env(safe-area-inset-left, 0px))",
+          paddingRight:"max(16px, env(safe-area-inset-right, 0px))",
+        }}>
+          <TiendaBusquedaBar
+            compact
+            showCita={false}
+            inputRef={searchInputRef}
+            stack={stackHeader}
+            value={busqHero || ""}
+            onChange={(e) => {
+              const v = e.target.value;
+              setBusqHero?.(v);
+              try { if (v.trim()) sessionStorage.setItem("farmacapital_busq", v); } catch (_) { /* noop */ }
+            }}
+            onFocus={() => setBusqFocus(true)}
+            onBlur={() => setTimeout(() => setBusqFocus(false), 280)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                irACatalogoBusqueda();
+              }
+              if (e.key === "Escape") setBusqFocus(false);
+            }}
+            placeholder="Buscar para agregar al carrito…"
+            suggestions={headerSuggestions}
+            productos={productos || []}
+            onPickSuggestion={(row) => {
+              if (!row) return;
+              setProdDetalle?.(row);
+              setBusqFocus(false);
+              setPage("detalle", { productId: row.id });
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+            setPage={setPage}
+          />
+        </div>
+      )}
+      </div>
 
       <MenuTienda
         abierto={menuOpen}
@@ -1781,8 +1866,15 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
       document.getElementById("farmacapital-catalogo-resultados")?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   };
-  if(!prod) return null;
+  if(!prod) return (
+    <div style={{maxWidth:560,margin:"80px auto",padding:"0 24px",textAlign:"center"}}>
+      <h2 style={{color:C.dark,fontSize:22,fontWeight:800,marginBottom:12}}>Producto no disponible</h2>
+      <p style={{color:C.mid,fontSize:14,marginBottom:20,lineHeight:1.5}}>Este enlace no tiene un producto cargado. Vuelve al catálogo para elegir otro.</p>
+      <Btn onClick={()=>setPage("catalogo")} col={BRAND.primary}>Ver catálogo</Btn>
+    </div>
+  );
   const agotado = productoAgotadoTienda(prod);
+  const permitidoWeb = productoPermitidoEnTiendaFarmaciaWeb(prod);
   const similares=productos.filter(p=>categoriasCoinciden(p.categoria, prod.categoria)&&p.id!==prod.id).slice(0,4);
   const d=prod.disponible||(prod.stock>0?"inmediato":"48hrs");
   const imgSrc = productImageUrl(prod, stack, placeholderUrl);
@@ -1878,8 +1970,18 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
             </div>
           )}
           <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
-            <Btn onClick={()=>{ if(agotado) return; addToCart(prod);setAdded(true);setTimeout(()=>setAdded(false),1500); }} disabled={agotado} col={agotado?"#9A9184":added?BRAND.secondary:BRAND.primary} style={{flex:"1 1 min(100%,200px)",minWidth:0}}>{agotado?"Agotado":added?"✓ Agregado":"Agregar al carrito"}</Btn>
-            <Btn onClick={()=>{ if(agotado) return; addToCart(prod);setPage("carrito"); }} disabled={agotado} outline col={BRAND.primary} style={{flex:"1 1 min(100%,200px)",minWidth:0}}>Comprar ahora</Btn>
+            <Btn onClick={()=>{
+              if(agotado) return;
+              if(!permitidoWeb){
+                alert(razonBloqueoProductoTiendaFarmacia(prod));
+                return;
+              }
+              addToCart(prod);setAdded(true);setTimeout(()=>setAdded(false),1500);
+            }} disabled={agotado||!permitidoWeb} col={agotado||!permitidoWeb?"#9A9184":added?BRAND.secondary:BRAND.primary} style={{flex:"1 1 min(100%,200px)",minWidth:0}}>{agotado?"Agotado":!permitidoWeb?(productoEsCategoriaMinisuperTienda(prod)?"Solo minisuper":"Solo en mostrador"):added?"✓ Agregado":"Agregar al carrito"}</Btn>
+            <Btn onClick={()=>{
+              if(agotado||!permitidoWeb) return;
+              addToCart(prod);setPage("carrito");
+            }} disabled={agotado||!permitidoWeb} outline col={BRAND.primary} style={{flex:"1 1 min(100%,200px)",minWidth:0}}>{permitidoWeb?"Comprar ahora":"Ver en sucursal"}</Btn>
           </div>
         </div>
       </div>
@@ -1904,8 +2006,9 @@ function Footer({setPage}){
       sessionStorage.removeItem("farmacapital_cat");
       sessionStorage.removeItem("farmacapital_busq");
       sessionStorage.removeItem("farmacapital_tipo");
+      sessionStorage.setItem("farmacapital_rx", "1");
     } catch (_) { /* noop */ }
-    setPage("catalogo");
+    setPage("catalogo", { rx: true });
   };
   return(
     <footer data-brand-surface="dark" style={{background:C.dark,marginTop:48}}>
@@ -2478,6 +2581,8 @@ function TiendaBusquedaBar({
   setPage,
   stack,
   compact = false,
+  showCita = true,
+  inputRef = null,
 }) {
   const C = useTheme();
   const q = String(value || "").trim();
@@ -2509,6 +2614,7 @@ function TiendaBusquedaBar({
           }}
         />
         <input
+          ref={inputRef}
           type="search"
           value={value}
           onChange={onChange}
@@ -2543,6 +2649,7 @@ function TiendaBusquedaBar({
           C={C}
         />
       </div>
+      {showCita && (
       <button
         type="button"
         onClick={() => navigateToCita(setPage)}
@@ -2569,6 +2676,7 @@ function TiendaBusquedaBar({
         <Stethoscope size={18} strokeWidth={2.25} aria-hidden />
         Agendar cita
       </button>
+      )}
     </div>
   );
 }
@@ -2665,7 +2773,7 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
             suggestions={heroSuggestions}
             productos={productos}
             onPickSuggestion={(row)=>{
-              if(row){ setProdDetalle(row); setPage("detalle"); }
+              if(row){ setProdDetalle(row); setPage("detalle", { productId: row.id }); }
               setHeroBusqFocus(false);
             }}
             setPage={setPage}
@@ -2682,7 +2790,7 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
       <div style={{maxWidth:1200,margin:"0 auto",padding:"0 16px 48px"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24,flexWrap:"wrap",gap:12}}>
           <h2 style={{color:C.dark,fontSize:"clamp(20px,4.5vw,24px)",fontWeight:800,margin:0}}>Más vendidos en FarmaCapital</h2>
-          <Btn onClick={()=>setPage("catalogo")} outline col={BRAND.primary} sm>Ver catálogo →</Btn>
+          <Btn onClick={()=>setPage("catalogo",{rx:false})} outline col={BRAND.primary} sm>Ver catálogo →</Btn>
         </div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(100%,220px),1fr))",gap:16}}>
           {loadingProductos && productos.length===0
@@ -2691,7 +2799,7 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
               ))
             : sortCatalogoTienda(productos, "")
                 .slice(0, 6)
-                .map(p=><ProductCard key={p.id} prod={p} addToCart={addToCart} onClick={()=>{setProdDetalle(p);setPage("detalle");}}/>)
+                .map(p=><ProductCard key={p.id} prod={p} addToCart={addToCart} onClick={()=>{setProdDetalle(p);setPage("detalle", { productId: p.id });}}/>)
           }
         </div>
       </div>
@@ -2747,7 +2855,7 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
 }
 
 // ── CATÁLOGO ──────────────────────────────────────────────────
-function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHero,loadingProductos}){
+function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHero,loadingProductos,filtroRx,onClearRx}){
   const C = useTheme();
   const stack = useMediaQuery("(max-width: 768px)");
   /** Safari iOS: sticky lateral + scroll del documento suele causar rebote/“lock”; solo usar sticky en escritorio ancho. */
@@ -2782,8 +2890,9 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
   }, [productos]);
   const basePool = useMemo(()=>poolCatalogoTienda(productos)
     .filter(p=>categoriaPasaFiltro(p.categoria, cat))
-    .filter(p=>tipo==="todos"||p.tipo===tipo),
-  [productos,cat,tipo]);
+    .filter(p=>tipo==="todos"||p.tipo===tipo)
+    .filter(p=>!filtroRx || p.requiere_receta || esCategoriaAntibiotico(p.categoria)),
+  [productos,cat,tipo,filtroRx]);
   const fil = useMemo(()=>{
     const arr = basePool.filter((p)=>tiendaProductMatchesBusqueda(p, busq));
     return sortCatalogoTienda(arr, busq);
@@ -2813,7 +2922,17 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
   const busqActiva = busq.trim().length > 0;
   return(
     <div style={{maxWidth:1200,margin:"0 auto",padding:"clamp(20px,4vw,32px) 16px",width:"100%",minHeight:"100dvh",overflowX:"hidden"}}>
-      <h1 style={{color:C.dark,fontSize:"clamp(22px,5vw,28px)",fontWeight:800,marginBottom:6}}>Catálogo FarmaCapital</h1>
+      <h1 style={{color:C.dark,fontSize:"clamp(22px,5vw,28px)",fontWeight:800,marginBottom:6}}>
+        {filtroRx ? "Surtir receta" : "Catálogo FarmaCapital"}
+      </h1>
+      {filtroRx && (
+        <div style={{background:"#EAF0FB",border:`1px solid ${BRAND.secondary}40`,borderRadius:10,padding:"10px 14px",marginBottom:16,display:"flex",flexWrap:"wrap",gap:10,alignItems:"center",justifyContent:"space-between"}}>
+          <div style={{color:BRAND.primary,fontSize:13,lineHeight:1.45}}>
+            Mostrando medicamentos que requieren receta (Rx / antibióticos). Trae tu receta al recoger.
+          </div>
+          <Btn sm outline col={BRAND.primary} onClick={()=>onClearRx?.()}>Ver catálogo completo</Btn>
+        </div>
+      )}
       <div style={{color:C.dim,fontSize:14,marginBottom:24}}>
         {busqActiva
           ? `${fil.length} resultado${fil.length === 1 ? "" : "s"}${agotadosCount > 0 ? ` · ${disponiblesCount} disponible${disponiblesCount === 1 ? "" : "s"}, ${agotadosCount} agotado${agotadosCount === 1 ? "" : "s"}` : ""} · refiná con filtros o escribí más palabras (ej. «ácido fólico»)`
@@ -2854,7 +2973,7 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
           suggestions={suggestions}
           productos={productos}
           onPickSuggestion={(row)=>{
-            if (row){ setProdDetalle(row); setPage("detalle"); }
+            if (row){ setProdDetalle(row); setPage("detalle", { productId: row.id }); }
             setBusqFocus(false);
           }}
           setPage={setPage}
@@ -2915,7 +3034,7 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
               ))
             : fil.length===0
               ? <div style={{padding:40,textAlign:"center",color:C.mid,gridColumn:"1/-1"}}>{busq ? `Sin resultados para "${busq}"` : "No hay productos disponibles por el momento."}</div>
-              : fil.map(p=><ProductCard key={p.id} prod={p} addToCart={addToCart} onClick={()=>{setProdDetalle(p);setPage("detalle");}}/>)
+              : fil.map(p=><ProductCard key={p.id} prod={p} addToCart={addToCart} onClick={()=>{setProdDetalle(p);setPage("detalle", { productId: p.id });}}/>)
           }
         </div>
         {stack && busqActiva ? (
@@ -2989,6 +3108,7 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
   const stack = useMediaQuery("(max-width: 768px)");
   const placeholderUrl = useContext(TiendaPlaceholderCtx);
   const [entrega,setEntrega]=useState("pickup");
+  const [, setCanjeTick] = useState(0);
   useEffect(()=>{ setEntregaGlobal?.(entrega); },[entrega,setEntregaGlobal]);
   const sub=cart.reduce((a,c)=>a+c.precio*c.qty,0);
   const qtyTouch = stack ? 44 : 28;
@@ -3018,7 +3138,7 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
     return {...c,qty:Math.min(next,max)};
   }));
   const rm=id=>setCart(p=>p.filter(c=>c.id!==id));
-  if(!cart.length) return(<div style={{maxWidth:600,margin:"80px auto",padding:"0 24px",textAlign:"center"}}><div style={{fontSize:64,marginBottom:16}}>🛒</div><h2 style={{color:C.dark,fontSize:24,fontWeight:800,marginBottom:16}}>Carrito vacío</h2><Btn onClick={()=>setPage("catalogo")} col={BRAND.primary}>Ver catálogo</Btn></div>);
+  if(!cart.length) return(<div style={{maxWidth:600,margin:"80px auto",padding:"0 24px",textAlign:"center"}}><div style={{fontSize:64,marginBottom:16}}>🛒</div><h2 style={{color:C.dark,fontSize:24,fontWeight:800,marginBottom:16}}>Carrito vacío</h2><Btn onClick={()=>setPage("catalogo",{rx:false})} col={BRAND.primary}>Ver catálogo</Btn></div>);
   return(
     <div style={{maxWidth:1100,margin:"0 auto",padding:"clamp(20px,4vw,32px) 16px"}}>
       <h1 style={{color:C.dark,fontSize:"clamp(22px,5vw,26px)",fontWeight:800,marginBottom:24}}>🛒 Tu carrito</h1>
@@ -3074,6 +3194,18 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
               </div>
             </div>
           )}
+          {(() => {
+            const canje = leerCanjeActivo();
+            if (!canje) return null;
+            return (
+              <div style={{background:"#EAF0FB",border:`1px solid ${BRAND.secondary}40`,borderRadius:10,padding:"10px 12px",marginBottom:12,fontSize:12,color:BRAND.primary,lineHeight:1.45}}>
+                Canje activo: <strong>{canje.ben}</strong>
+                {canje.codigo ? ` · código ${canje.codigo}` : ""}. Se confirma en sucursal al recoger o coordinar el envío.
+                {" "}
+                <button type="button" onClick={()=>{ limpiarCanjeActivo(); setCanjeTick((n)=>n+1); }} style={{background:"none",border:"none",color:BRAND.primary,fontWeight:700,cursor:"pointer",textDecoration:"underline",padding:0}}>Quitar</button>
+              </div>
+            );
+          })()}
           <div style={{borderTop:`1px solid ${C.border}`,paddingTop:14,marginTop:8,marginBottom:14}}>
             <div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:C.dark,fontWeight:800,fontSize:16}}>Total</span><span style={{color:BRAND.primary,fontWeight:900,fontSize:22}}>{$(sub)}</span></div>
             <div style={{color:"#92400e",fontSize:12,fontWeight:700,marginTop:6}}>⭐ +{labelPts(Math.floor(sub/10))}</div>
@@ -3090,6 +3222,10 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
 function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoProductos=[]}){
   const C = useTheme();
   const stack = useMediaQuery("(max-width: 768px)");
+  useEffect(() => {
+    setBloqueaReloadApp(true, "tienda-checkout");
+    return () => setBloqueaReloadApp(false, "tienda-checkout");
+  }, []);
   const [step,setStep]=useState(1);
   const [datos,setDatos]=useState(()=>({
     nombre:user?.nombre||"",
@@ -3112,8 +3248,10 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
       return true;
     }
   });
+  const [, setCanjeTick] = useState(0);
   const sub=cart.reduce((a,c)=>a+(Number(c.precio)||0)*(Number(c.qty)||0),0);
   const ptsG=Math.floor(sub/10);
+  const canjeActivo = leerCanjeActivo();
 
   const catalogoById = useMemo(() => {
     const m = new Map();
@@ -3413,6 +3551,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
             amount: subSnap,
             baseUrl,
             guest: esInvitado,
+            guestPhone: esInvitado ? soloDigitosTel(datos.tel) : undefined,
             payer: {
               name: String(datos.nombre || "").trim() || null,
               email: String(datos.email || "").trim() || null,
@@ -3474,7 +3613,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
         notifyOnlineOrderReceipt({
           pedidoId: resp.pedido_id,
           sessionToken: tokCli || null,
-          phoneVerify: tokCli ? null : soloDigitosTel(datos.tel).slice(-4),
+          phoneVerify: tokCli ? null : soloDigitosTel(datos.tel),
         }).catch((e) => console.warn("[Checkout] WhatsApp recibo:", e));
       }
       setG(false);
@@ -3572,6 +3711,14 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
   return(
     <div style={{maxWidth:900,margin:"0 auto",padding:"clamp(20px,4vw,32px) 16px"}}>
       <h1 style={{color:C.dark,fontSize:"clamp(22px,5vw,26px)",fontWeight:800,marginBottom:24,lineHeight:1.2}}>Finalizar compra</h1>
+      {canjeActivo && (
+        <div style={{background:"#EAF0FB",border:`1px solid ${BRAND.secondary}40`,borderRadius:10,padding:"12px 14px",marginBottom:16,fontSize:13,color:BRAND.primary,lineHeight:1.5}}>
+          Canje activo: <strong>{canjeActivo.ben}</strong>
+          {canjeActivo.codigo ? ` · código ${canjeActivo.codigo}` : ""}. Menciónalo al recoger; el pago en línea cubre el total y el descuento se aplica en farmacia.
+          {" "}
+          <button type="button" onClick={()=>{ limpiarCanjeActivo(); setCanjeTick((n)=>n+1); }} style={{background:"none",border:"none",color:BRAND.primary,fontWeight:700,cursor:"pointer",textDecoration:"underline",padding:0}}>Quitar canje</button>
+        </div>
+      )}
       {checkoutMsg?.text && (
         <div
           style={{
@@ -3882,7 +4029,7 @@ function AgendarCita({setPage,user}){
       )}
       <div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap",marginBottom:16}}>
         <Btn onClick={()=>setPage("cuenta")} col={BRAND.primary}>Ver mis citas</Btn>
-        <Btn onClick={()=>setPage("catalogo")} outline col={BRAND.primary}>Ver catálogo</Btn>
+        <Btn onClick={()=>setPage("catalogo",{rx:false})} outline col={BRAND.primary}>Ver catálogo</Btn>
       </div>
       {waStatus === "failed" && (
         <Btn
@@ -4047,7 +4194,7 @@ function PromocionesPage({setPage}){
       <div style={{marginBottom:28}}>
         <h1 style={{color:C.dark,fontSize:"clamp(24px,5.5vw,30px)",fontWeight:800,marginBottom:8,lineHeight:1.2}}>Promociones vigentes</h1>
         <p style={{color:C.mid,fontSize:"clamp(14px,3.5vw,15px)",lineHeight:1.6,maxWidth:640}}>
-          Ofertas y campañas activas en FarmaCapital. Los banners del inicio pueden enlazar aquí: en administración, en el campo <strong>Página destino</strong> escribe <code style={{background:C.cardDark,padding:"2px 6px",borderRadius:4}}>promo</code>.
+          Ofertas y campañas activas en FarmaCapital. También puedes verlas en el catálogo o preguntar en sucursal.
         </p>
       </div>
       {load ? (
@@ -4070,7 +4217,7 @@ function PromocionesPage({setPage}){
               </div>
               {p.descripcion&&<p style={{color:C.mid,fontSize:13,margin:0,lineHeight:1.5}}>{p.descripcion}</p>}
               {p.fecha_fin&&<div style={{color:C.dim,fontSize:11}}>⏰ Válido hasta: {p.fecha_fin}</div>}
-              <Btn onClick={()=>setPage("catalogo")} col={BRAND.primary} sm style={{marginTop:4}}>Ver productos →</Btn>
+              <Btn onClick={()=>setPage("catalogo",{rx:false})} col={BRAND.primary} sm style={{marginTop:4}}>Ver productos →</Btn>
             </div>
           ))}
         </div>
@@ -4787,7 +4934,14 @@ function etiquetaLogisticaPedido(p) {
 
 function Cuenta({user,setPage,setUser}){
   const C = useTheme();
-  const [tab,setTab]=useState("pedidos");
+  const [tab,setTab]=useState(()=>{
+    try {
+      const t = sessionStorage.getItem("farmacapital_cuenta_tab");
+      if (t) sessionStorage.removeItem("farmacapital_cuenta_tab");
+      if (["pedidos","citas","canjear","datos"].includes(t)) return t;
+    } catch (_) { /* noop */ }
+    return "pedidos";
+  });
   const [pedidos,setPeds]=useState([]);
   const [citas,setCitas]=useState([]);
   const [cargando,setC]=useState(true);
@@ -4904,7 +5058,7 @@ function Cuenta({user,setPage,setUser}){
         ))}
       </div>
       {tab==="pedidos"&&(cargando?<div style={{textAlign:"center",padding:40,color:C.mid}}>Cargando pedidos...</div>:!pedidos.length?(
-        <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:40,textAlign:"center"}}><div style={{fontSize:40,marginBottom:12}}>📦</div><div style={{color:C.mid,fontSize:15}}>Aún no tienes pedidos en FarmaCapital</div><Btn onClick={()=>setPage("catalogo")} col={BRAND.primary} sm style={{marginTop:16}}>Hacer mi primer pedido</Btn></div>
+        <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:40,textAlign:"center"}}><div style={{fontSize:40,marginBottom:12}}>📦</div><div style={{color:C.mid,fontSize:15}}>Aún no tienes pedidos en FarmaCapital</div><Btn onClick={()=>setPage("catalogo",{rx:false})} col={BRAND.primary} sm style={{marginTop:16}}>Hacer mi primer pedido</Btn></div>
       ):pedidos.map(p=>(
         <div key={p.id} style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:20,marginBottom:12}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
@@ -4998,7 +5152,45 @@ function Cuenta({user,setPage,setUser}){
             <div key={r.pts} style={{display:"flex",alignItems:"center",gap:14,padding:16,borderRadius:12,border:`1px solid ${(user.puntos||0)>=r.pts?r.col+"40":C.border}`,background:(user.puntos||0)>=r.pts?r.col+"08":C.cardDark,marginBottom:10}}>
               <div style={{fontSize:28}}>{r.icon}</div>
               <div style={{flex:1}}><div style={{color:C.dark,fontWeight:700,fontSize:14}}>{r.ben}</div><div style={{color:r.col,fontSize:12,fontWeight:700,marginTop:2}}>{r.pts} puntos</div></div>
-              <Btn sm col={r.col} disabled={(user.puntos||0)<r.pts}>{(user.puntos||0)>=r.pts?"Canjear":"Faltan "+(r.pts-(user.puntos||0))}</Btn>
+              <Btn sm col={r.col} disabled={(user.puntos||0)<r.pts} onClick={async()=>{
+                if ((user.puntos||0)<r.pts) return;
+                const reward = canjePorPuntos(r.pts) || { pts: r.pts, ben: r.ben, tipo: "descuento" };
+                if (reward.tipo === "consulta" || r.pts === 160) {
+                  try { sessionStorage.setItem("farmacapital_consulta_puntos", "1"); } catch (_) { /* noop */ }
+                  navigateToCita(setPage);
+                  return;
+                }
+                const tok = getClienteToken();
+                let codigo = null;
+                if (tok) {
+                  try {
+                    const { data } = await supabase.rpc("cliente_canjear_puntos_tienda", {
+                      p_session_token: tok,
+                      p_puntos: r.pts,
+                    });
+                    if (data?.success) {
+                      codigo = data.codigo;
+                      const nextPts = Number(data.puntos);
+                      setUser((u) => {
+                        const nu = { ...(u || {}), puntos: Number.isFinite(nextPts) ? nextPts : Math.max(0, (u?.puntos || 0) - r.pts) };
+                        try { localStorage.setItem("farmacapital_user", JSON.stringify(nu)); } catch (_) { /* noop */ }
+                        return nu;
+                      });
+                    }
+                  } catch (e) {
+                    console.warn("[Canje] RPC:", e);
+                  }
+                }
+                guardarCanjeActivo({ ...reward, codigo, pts: r.pts, ben: r.ben });
+                if (codigo) {
+                  showToast(`Canje ${codigo}: ${r.ben}. Preséntalo en sucursal.`, "success");
+                } else {
+                  const msg = `Hola, soy ${user.nombre || "cliente"} (${user.telefono || ""}). Quiero canjear ${r.pts} puntos por: ${r.ben}.`;
+                  window.open(`${CONTACTO.whatsapp_link}?text=${encodeURIComponent(msg)}`, "_blank", "noopener,noreferrer");
+                  showToast("WhatsApp abierto para confirmar el canje en farmacia.", "info");
+                }
+                setPage(reward.tipo === "envio" ? "carrito" : "catalogo");
+              }}>{(user.puntos||0)>=r.pts?(r.pts===160?"Agendar consulta":"Canjear"):"Faltan "+(r.pts-(user.puntos||0))}</Btn>
             </div>
           ))}
         </div>
@@ -5029,33 +5221,70 @@ export default function TiendaFarmaCapital(){
     try { return new URLSearchParams(window.location.search).get("reset") || ""; } catch { return ""; }
   })();
   const [resetToken, setResetToken] = useState(initialResetToken);
-  const [page,setPageRaw] = useState(() => (initialResetToken ? "reset-password" : "home"));
-  const setPage = (p) => {
-    let target = p;
-    if (p === "cita" && !getClienteToken()) {
+  const [filtroRx, setFiltroRx] = useState(() => {
+    try {
+      if (sessionStorage.getItem("farmacapital_rx") === "1") return true;
+      return tiendaPathSuggestsReceta(window.location.pathname, window.location.search);
+    } catch {
+      return false;
+    }
+  });
+  const [page,setPageRaw] = useState(() => {
+    if (initialResetToken) return "reset-password";
+    return tiendaPathnameToPageId(window.location.pathname) || "home";
+  });
+  const writeTiendaHistory = (target, { replace = false, rx = false, token = "", productId = "" } = {}) => {
+    const path = pageIdToTiendaPath(target, {
+      rx: target === "catalogo" && rx,
+      reset: target === "reset-password" ? token : undefined,
+      productId: target === "detalle" ? productId : undefined,
+    });
+    const fn = replace ? window.history.replaceState : window.history.pushState;
+    fn.call(window.history, { page: target, productId: target === "detalle" ? productId : undefined }, "", path);
+  };
+  const setPage = (p, opts = {}) => {
+    const resolved = p === "reset-password" ? "reset-password" : resolveTiendaPage(p);
+    if (!resolved) return;
+    let target = resolved;
+    if (target === "cita" && !getClienteToken()) {
       setPostLoginPage("cita");
       target = "login";
     }
+    let nextRx = filtroRx;
+    if (target === "catalogo") {
+      if (opts.rx === true) nextRx = true;
+      if (opts.rx === false) nextRx = false;
+    }
+    if (nextRx !== filtroRx) setFiltroRx(nextRx);
     try {
-      const u = new URL(window.location.href);
-      if (target !== "reset-password") u.searchParams.delete("reset");
-      const qs = u.searchParams.toString();
-      window.history.pushState({ page: target }, "", u.pathname + (qs ? `?${qs}` : ""));
+      if (nextRx) sessionStorage.setItem("farmacapital_rx", "1");
+      else sessionStorage.removeItem("farmacapital_rx");
+    } catch (_) { /* noop */ }
+    try {
+      writeTiendaHistory(target, {
+        rx: nextRx,
+        token: resetToken,
+        productId: target === "detalle" ? (opts.productId || "") : undefined,
+      });
     } catch {
-      window.history.pushState({ page: target }, "", window.location.pathname);
+      try { window.history.pushState({ page: target }, "", window.location.pathname); } catch (_) { /* noop */ }
     }
     setPageRaw(target);
   };
   useEffect(()=>{
     const h=(e)=>{
-      let p = e.state?.page||"home";
+      let p = e.state?.page || tiendaPathnameToPageId(window.location.pathname) || "home";
+      p = resolveTiendaPage(p) || "home";
       if (p === "cita" && !getClienteToken()) {
         setPostLoginPage("cita");
         p = "login";
-        try {
-          window.history.replaceState({ page: "login" }, "", window.location.pathname);
-        } catch (_) { /* noop */ }
+        try { writeTiendaHistory("login", { replace: true }); } catch (_) { /* noop */ }
       }
+      try {
+        const rx = tiendaPathSuggestsReceta(window.location.pathname, window.location.search)
+          || sessionStorage.getItem("farmacapital_rx") === "1";
+        setFiltroRx(Boolean(rx && p === "catalogo"));
+      } catch (_) { /* noop */ }
       setPageRaw(p);
     };
     window.addEventListener("popstate",h);
@@ -5065,12 +5294,19 @@ export default function TiendaFarmaCapital(){
       if (reset) {
         setResetToken(reset);
         setPageRaw("reset-password");
-        window.history.replaceState({ page: "reset-password" }, "", `${window.location.pathname}?reset=${encodeURIComponent(reset)}`);
+        writeTiendaHistory("reset-password", { replace: true, token: reset });
       } else {
-        window.history.replaceState({ page: "home" }, "", window.location.pathname);
+        const id = tiendaPathnameToPageId(window.location.pathname) || "home";
+        const rx = tiendaPathSuggestsReceta(window.location.pathname, window.location.search);
+        if (rx) {
+          setFiltroRx(true);
+          try { sessionStorage.setItem("farmacapital_rx", "1"); } catch (_) { /* noop */ }
+        }
+        setPageRaw(id);
+        writeTiendaHistory(id, { replace: true, rx: rx && id === "catalogo" });
       }
     } catch {
-      window.history.replaceState({ page: "home" }, "", window.location.pathname);
+      try { window.history.replaceState({ page: "home" }, "", "/"); } catch (_) { /* noop */ }
     }
     return ()=>window.removeEventListener("popstate",h);
   },[]);
@@ -5094,13 +5330,59 @@ export default function TiendaFarmaCapital(){
   });
   const [cargando,setCargando]   = useState(false);
   const [loadingProductos,setLoadingProductos] = useState(productos.length === 0);
-  const [prodDetalle,setProdD]   = useState(null);
+  const [prodDetalle,setProdDRaw] = useState(() => {
+    try {
+      const id = tiendaProductIdFromSearch(window.location.search);
+      const cached = JSON.parse(localStorage.getItem("farmacapital_productos_cache") || "[]");
+      if (id && Array.isArray(cached)) {
+        const found = cached.find((x) => String(x?.id) === String(id));
+        if (found) return found;
+      }
+      const raw = sessionStorage.getItem("farmacapital_prod_detalle");
+      if (!raw) return null;
+      const saved = JSON.parse(raw);
+      if (saved?.id && (!id || String(saved.id) === String(id))) return saved;
+    } catch (_) { /* noop */ }
+    return null;
+  });
+  const setProdD = (p) => {
+    try {
+      if (p?.id) sessionStorage.setItem("farmacapital_prod_detalle", JSON.stringify(p));
+      else sessionStorage.removeItem("farmacapital_prod_detalle");
+    } catch (_) { /* noop */ }
+    setProdDRaw(p);
+  };
   const [busqHero,setBusqHero]   = useState("");
   const [showPopup,setShowPopup] = useState(false);
   const [popupBanner,setPopupBanner] = useState(null);
   const [entregaCheckout,setEntregaCheckout] = useState("pickup");
   const [precioConsultaCfg,setPrecioConsultaCfg] = useState(CONSULTA_PRECIO_DEFAULT);
   const [placeholderProductoUrl, setPlaceholderProductoUrl] = useState("");
+
+  useEffect(() => {
+    if (page !== "detalle") return;
+    if (prodDetalle?.id) {
+      try { writeTiendaHistory("detalle", { replace: true, productId: prodDetalle.id }); } catch (_) { /* noop */ }
+      return;
+    }
+    const id = (() => {
+      try { return tiendaProductIdFromSearch(window.location.search); } catch { return ""; }
+    })();
+    let found = null;
+    try {
+      const cached = JSON.parse(localStorage.getItem("farmacapital_productos_cache") || "[]");
+      if (id && Array.isArray(cached)) found = cached.find((x) => String(x?.id) === String(id)) || null;
+    } catch (_) { /* noop */ }
+    if (!found && id && productos.length) {
+      found = productos.find((x) => String(x?.id) === String(id)) || null;
+    }
+    if (found) {
+      setProdD(found);
+      return;
+    }
+    if (loadingProductos) return;
+    if (!id) setPage("catalogo");
+  }, [page, prodDetalle, productos, loadingProductos]);
 
   useEffect(() => {
     fetchPrecioConsultaConfig(supabase).then(setPrecioConsultaCfg);
@@ -5164,13 +5446,13 @@ export default function TiendaFarmaCapital(){
     return ()=>{ cancelled = true; document.removeEventListener("visibilitychange", onVis); };
   },[]);
 
-  // Mostrar popup 1 vez por sesión si no está logueado
+  // Popup de bienvenida: solo en inicio, una vez por pestaña, si no hay sesión.
   useEffect(()=>{
-    if(!cargando&&!user){
-      const t=setTimeout(()=>{setShowPopup(true);},2000);
-      return ()=>clearTimeout(t);
-    }
-  },[cargando,user]);
+    if (user || page !== "home") return;
+    try { if (sessionStorage.getItem("farmacapital_popup_visto") === "1") return; } catch (_) { /* noop */ }
+    const t=setTimeout(()=>{setShowPopup(true);},2000);
+    return ()=>clearTimeout(t);
+  },[user, page]);
 
   useEffect(()=>{
     let cancelled = false;
@@ -5279,7 +5561,7 @@ export default function TiendaFarmaCapital(){
             </div>
           ))}
         </div>
-        {user&&<div style={{marginTop:16,textAlign:"center"}}><Btn onClick={()=>setPage("cuenta")} col={BRAND.primary}>Ir a canjear →</Btn></div>}
+        {user&&<div style={{marginTop:16,textAlign:"center"}}><Btn onClick={()=>{ try { sessionStorage.setItem("farmacapital_cuenta_tab","canjear"); } catch (_) { /* noop */ } setPage("cuenta"); }} col={BRAND.primary}>Ir a canjear →</Btn></div>}
       </div>
       <div style={{textAlign:"center"}}><button onClick={()=>setPage("terminos-puntos")} style={{background:"none",border:"none",color:C.mid,fontSize:12,cursor:"pointer",textDecoration:"underline"}}>Ver términos del programa</button></div>
     </div>
@@ -5287,7 +5569,7 @@ export default function TiendaFarmaCapital(){
 
   const pages={
     home:          <Home setPage={setPage} addToCart={addToCart} productos={productosVistaTiendaFarmacia} setProdDetalle={setProdD} busqHero={busqHero} setBusqHero={setBusqHero} precioConsulta={precioConsultaCfg} loadingProductos={loadingProductos}/>,
-    catalogo:      <Catalogo addToCart={addToCart} productos={productosVistaTiendaFarmacia} setProdDetalle={setProdD} setPage={setPage} busqHero={busqHero} setBusqHero={setBusqHero} loadingProductos={loadingProductos}/>,
+    catalogo:      <Catalogo addToCart={addToCart} productos={productosVistaTiendaFarmacia} setProdDetalle={setProdD} setPage={setPage} busqHero={busqHero} setBusqHero={setBusqHero} loadingProductos={loadingProductos} filtroRx={filtroRx} onClearRx={()=>setPage("catalogo",{rx:false})}/>,
     promo:         <PromocionesPage setPage={setPage}/>,
     detalle:       <DetalleProducto prod={prodDetalle} productos={productosVistaTiendaFarmacia} addToCart={addToCart} setPage={setPage} setProdDetalle={setProdD} busqHero={busqHero} setBusqHero={setBusqHero}/>,
     carrito:       <Carrito cart={cart} setCart={setCart} setPage={setPage} setEntregaGlobal={setEntregaCheckout}/>,
@@ -5336,9 +5618,9 @@ export default function TiendaFarmaCapital(){
       `}</style>
 
       {/* Popup bienvenida */}
-      {showPopup&&<PopupBienvenida onClose={()=>setShowPopup(false)} setPage={setPage} precioConsulta={precioConsultaCfg} banner={popupBanner}/>}
+      {showPopup&&<PopupBienvenida onClose={()=>{ setShowPopup(false); try { sessionStorage.setItem("farmacapital_popup_visto","1"); } catch (_) { /* noop */ } }} setPage={setPage} precioConsulta={precioConsultaCfg} banner={popupBanner}/>}
 
-      <Header page={page} setPage={setPage} cart={cart} user={user} setUser={setUser}/>
+      <Header page={page} setPage={setPage} cart={cart} user={user} setUser={setUser} busqHero={busqHero} setBusqHero={setBusqHero} productos={productosVistaTiendaFarmacia} setProdDetalle={setProdD}/>
 
       {(isSupabaseProductionMisconfigured || isSupabaseLocalMisconfigured) && (
         <div style={{
