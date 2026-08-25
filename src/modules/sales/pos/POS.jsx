@@ -9,6 +9,8 @@ import { $, logAudit, soloDigitosTel, telefonosMxEquivalentes, normalizeForSearc
 import { tiendaProductMatchesBusqueda, tiendaCatalogSearchSuggestions, tiendaSearchRelevanceRank } from "../../../utils/fuzzySearch";
 import { findProductExactScan, looksLikeBarcodeInput, looksLikeInternalSku, isAllDigitsInput, normalizeBarcodeRaw, shouldReplaceScanInput } from "../../../utils/barcodeProductLookup";
 import { posTituloProducto, posSubtituloProducto } from "../../../utils/posProductDisplay";
+import { grupoEquivalentesDeBusqueda, claveSustancia } from "../../../utils/equivalentesPos";
+import TableroEquivalentes from "./TableroEquivalentes";
 import { precioUnidadParaVenta } from "../../../utils/precioUnidad";
 import { productoEsVendible } from "../../../utils/productoVendible";
 import { cobroLinea, pesoPublico } from "../../../utils/pesoPublico";
@@ -70,15 +72,11 @@ function ubicacionPedidoItem(item) {
 
 function posVariantesDeProducto(productos, item) {
   if (!item) return [];
-  const pa = String(item.principio_activo || "").trim().toLowerCase();
-  const dg = String(item.denominacion_generica || "").trim().toLowerCase();
-  if (!pa && !dg) return [item];
-  const matches = productos.filter((p) => {
-    if (p.activo === false) return false;
-    if (pa && String(p.principio_activo || "").trim().toLowerCase() === pa) return true;
-    if (dg && String(p.denominacion_generica || "").trim().toLowerCase() === dg) return true;
-    return false;
-  });
+  // Clave normalizada: "Neomicina + Caolin + Pectina" y "Neomicina / Caolín y
+  // Pectina" son lo mismo, y comparar texto crudo partía el grupo en dos.
+  const clave = claveSustancia(item);
+  if (!clave) return [item];
+  const matches = productos.filter((p) => p.activo !== false && claveSustancia(p) === clave);
   const list = matches.length > 1 ? matches : [item];
   return [...list].sort((a, b) =>
     String(a.concentracion || "").localeCompare(String(b.concentracion || ""), "es")
@@ -986,6 +984,16 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
 
   const srchEsEscaneo = isAllDigitsInput(srch);
 
+  /**
+   * Tablero de equivalentes del mejor resultado. El orden por parecido de texto
+   * hunde la patente (Treda no se llama "neomicina caolín pectina"), así que el
+   * grupo completo se arma aparte y se pinta arriba de la lista.
+   */
+  const grupoEquivalentes = React.useMemo(() => {
+    if (srchEsEscaneo || !srch.trim() || !fil.length) return null;
+    return grupoEquivalentesDeBusqueda(productos, fil);
+  }, [productos, fil, srch, srchEsEscaneo]);
+
   const clearPosSearch = useCallback(() => {
     setSrch("");
     setSrchFocus(false);
@@ -1260,6 +1268,14 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
   const productoSinLotesPEPS = (producto) => {
     if (producto?.venta_unidad) return false;
     return getStockFifoDisponible(producto) <= 0;
+  };
+
+  /** Mismo criterio que la lista de resultados, para el tablero de equivalentes. */
+  const estadoStockPos = (producto) => {
+    if (productoSinLotesPEPS(producto)) return { agotado: true, etiqueta: "Sin lotes" };
+    const cajas = getStockCajasPOS(producto);
+    const agotado = cajas <= 0 && (!producto.venta_unidad || producto.stock_unidades === 0);
+    return { agotado, etiqueta: agotado ? "Agotado" : `${cajas} disp.` };
   };
 
   const getCantidadEnCarrito = (cartActual, productoId, esUnidad = false) => {
@@ -2887,6 +2903,15 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                     : "Intenta con otro nombre, SKU o código de barras."}
                 </span>
               </div>
+            )}
+            {grupoEquivalentes && !looksLikeBarcodeInput(normalizeBarcodeRaw(srch) || srch) && (
+              <TableroEquivalentes
+                grupo={grupoEquivalentes}
+                seleccionadoId={fichaProd?.id}
+                onSelect={setFichaProd}
+                estadoStock={estadoStockPos}
+                stack={isNarrow}
+              />
             )}
             {srch.trim() && fil.length > 0 && !srchEsEscaneo && !looksLikeBarcodeInput(normalizeBarcodeRaw(srch) || srch) && (
               <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden", background: C.card, maxHeight: 320, overflowY: "auto" }}>
