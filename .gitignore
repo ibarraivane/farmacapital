@@ -57,3 +57,12 @@ pricing/importados/scorpion/
 pricing/importados/abarrotero/
 pricing/importados/chedraui/
 pricing/importados/walmart/
+
+# Artefactos de trabajo pesados: no van al repo (165 MB)
+# catalogo-imagenes: packshots descargados, se regeneran desde Supabase
+# _to_delete, _fc_check*.tgz: respaldos y comparaciones de una sesión
+# .tmp_ocr_vision: recortes temporales del OCR de tickets
+/catalogo-imagenes/
+/_to_delete/
+/.tmp_ocr_vision/
+/_fc_check*.tgz
