@@ -1,0 +1,20 @@
+ticket,estado,clave_ticket,seccion,descripcion_ticket,cantidad,costo_ticket,sku,nombre_bd,ean_bd,costo_bd,stock_bd,nota
+ifc1_118217,falta,,MAYOREO,POMADA REOMATOLUM DEL VIEJITO 60G,1.00,20.00,,,,,,sin EAN; no hay nombre parecido
+ifc1_118217,falta,81606,MAYOREO,ARFAM LAVA OJOS VIDRIO ABR56,2.00,11.00,,,,,,sin EAN; no hay nombre parecido
+ifc1_118217,falta,84373,MAYOREO,ESENCIA DE CLAVO HERBOTEC 10ML. 0004,3.00,10.00,,,,,,sin EAN; no hay nombre parecido
+ifc1_118217,ya_esta_por_nombre,83156,MENUDEO,MERCURIO ESPIRITUS UNTAR C/25 1770823,3.00,6.00,FC-62034164,Mercurio Espiritus Untar,,6.0,3,score 0.75
+ifc1_118217,ya_esta_por_nombre,83156,MENUDEO,MERCURIO ESPIRITUS TOMAR C/25 1760823,3.00,6.00,FC-3676D5DC,Mercurio Espiritus Tomar,,6.0,3,score 0.75
+ifc1_118217,ya_esta_por_nombre,83825,MENUDEO,MERCURIO ACEITE OLIVO C/25 1000625,3.00,8.00,FC-5A697CC2,Mercurio Aceite Olivo,,8.0,3,score 0.75
+ifc1_118217,ya_esta_por_nombre,83125,MENUDEO,MERCURIO GLICERINA C/25 1230723,3.00,12.00,FC-39036C88,Mercurio Glicerina,,12.0,3,score 0.67
+ifc1_118217,falta,83156,MENUDEO,MERCURIO JARABE DE GRANADA C/25 1750823,3.00,7.00,,,,,,sin EAN; no hay nombre parecido
+ifc1_118217,falta,83095,MENUDEO,MERCURIO ACEITE RICINO C/25 1120623,3.00,9.50,,,,,,sin EAN; no hay nombre parecido
+ifc1_118217,ya_esta_por_nombre,83064,MENUDEO,MERCURIO ACEITE COCO C/25 800523,5.00,8.00,FC-931B4809,Mercurio Aceite Coco,,8.0,5,score 0.75
+ifc1_118217,ya_esta_por_nombre,83064,MENUDEO,MERCURIO ACEITE ALMENDRAS C/25 790523,5.00,8.00,FC-D4AC123B,Mercurio Aceite Almendras,,8.0,5,score 0.75
+ifc1_118217,ya_esta_por_nombre,83187,MENUDEO,MERCURIO ACEITE ROMERO C/25 1910923,3.00,8.00,FC-38CAFE6B,Mercurio Aceite Romero,,8.0,3,score 0.75
+ifc1_118217,ya_esta_por_nombre,82912,MENUDEO,KOHN MERTIOLATE ROJO C/25 012023,5.00,9.00,FC-926099D3,Mertiolate Kohn Rojo,,9.0,5,score 0.75
+ifc1_118217,ya_esta_por_nombre,83407,MENUDEO,MADRID ACEITE EUCALIPTO C/25 2712017,3.00,11.00,FC-E69F2E63,Madrid Aceite Eucalipto,,11.0,3,score 0.75
+ifc1_118217,ya_esta_por_nombre,83156,MENUDEO,MERCURIO ARNICA UNTAR C/25 1790823,3.00,7.50,FC-25E452B6,Mercurio Arnica Untar,3311000003920,7.5,3,score 0.75
+ifc1_118217,ya_esta_por_nombre,83156,MENUDEO,MERCURIO ARNICA TOMAR C/25 1780823,3.00,7.50,FC-127F5753,Mercurio Arnica Tomar,3311000003920,7.5,3,score 0.75
+ifc1_118217,ya_esta_por_nombre,83156,MENUDEO,MERCURIO YODO UNTAR C/25 1810823,3.00,11.50,FC-D3D28E20,Mercurio Yodo Untar,,11.5,3,score 0.75
+ifc1_118217,ya_esta_por_nombre,83095,MENUDEO,MERCURIO ACEITE GOMENOLADO C/25 1160623,3.00,8.00,FC-69387811,Mercurio Aceite Gomenolado,,8.0,3,score 0.75
+ifc1_118217,ya_esta_por_nombre,83156,MENUDEO,MERCURIO YODO TOMAR C/25 1800823,3.00,11.00,FC-A680F97E,Mercurio Yodo Tomar,,11.0,3,score 0.75

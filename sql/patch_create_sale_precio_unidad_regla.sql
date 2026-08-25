@@ -58,6 +58,18 @@ $$;
 grant execute on function public.fn_ensure_lote_stock_vendible(bigint)
   to anon, authenticated, service_role;
 
+-- Mostrador: el cliente paga pesos enteros. La ficha puede traer PMP con centavos.
+create or replace function public.peso_publico(p numeric)
+returns numeric
+language sql
+immutable
+parallel safe
+as $$
+  select case when p is null then 0 else round(p, 0) end;
+$$;
+
+grant execute on function public.peso_publico(numeric) to anon, authenticated, service_role;
+
 create or replace function public.create_sale_transaction_v2(
   p_user_id bigint,
   p_metodo_pago text,
@@ -170,6 +182,9 @@ begin
       )
       else coalesce(v_precio_prod, 0)
     end;
+    if p_tipo = 'pos' then
+      v_db_precio := public.peso_publico(v_db_precio);
+    end if;
 
     if v_modo_venta = 'unidad' then
       if coalesce(v_stock_unidades_actual, 0) < v_cantidad then
@@ -276,6 +291,9 @@ begin
       )
       else coalesce(v_precio_prod, 0)
     end;
+    if p_tipo = 'pos' then
+      v_db_precio := public.peso_publico(v_db_precio);
+    end if;
 
     if v_modo_venta = 'unidad' then
       v_stock_unidades_nuevo := v_stock_unidades_actual - v_cantidad;

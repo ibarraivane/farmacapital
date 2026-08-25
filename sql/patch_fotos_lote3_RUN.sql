@@ -1,0 +1,4 @@
+-- Ejecutar EN ORDEN los 3 archivos (evita truncado Supabase):
+-- 1) patch_fotos_lote3_RUN_1.sql
+-- 2) patch_fotos_lote3_RUN_2.sql
+-- 3) patch_fotos_lote3_RUN_3.sql
