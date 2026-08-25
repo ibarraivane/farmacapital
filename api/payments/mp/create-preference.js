@@ -1,5 +1,7 @@
 'use strict';
 
+const { isAllowedReturnBase } = require('../../_lib/allowedOrigins');
+
 function normalizeSupabaseProjectUrl(url) {
   if (url == null || typeof url !== 'string') return url;
   let u = url.trim().replace(/\/+$/g, '');
@@ -32,30 +34,33 @@ module.exports = async function handler(req, res) {
   const body = await safeJson(req);
   const pedidoId = Number(body?.pedidoId);
   const amount = Number(body?.amount || 0);
-  const items = Array.isArray(body?.items) ? body.items : [];
   const payer = body?.payer && typeof body.payer === 'object' ? body.payer : {};
   const baseUrl = String(body?.baseUrl || '').trim();
   const auth = req.headers.authorization || req.headers.Authorization || '';
   const clienteToken = auth.replace(/^Bearer\s+/i, '').trim();
+  const guestPhone = String(body?.guestPhone || body?.guest_telefono || '').replace(/\D/g, '');
 
   const isGuest = body?.guest === true;
 
   if (!pedidoId || !Number.isFinite(pedidoId)) return res.status(400).json({ ok: false, error: 'invalid_pedido_id' });
   if (!Number.isFinite(amount) || amount <= 0) return res.status(400).json({ ok: false, error: 'invalid_amount' });
   if (!clienteToken && !isGuest) return res.status(401).json({ ok: false, error: 'missing_cliente_token' });
+  if (isGuest && guestPhone.length < 10) {
+    return res.status(401).json({ ok: false, error: 'missing_guest_phone' });
+  }
+
+  const serviceHeaders = {
+    apikey: SUPABASE_SERVICE_ROLE_KEY,
+    Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+  };
 
   try {
     let clienteId = null;
 
     if (!isGuest) {
-      // Verifica sesión cliente y ownership del pedido.
       const validTokResp = await fetch(`${SUPABASE_URL}/rest/v1/rpc/fn_validar_token_cliente`, {
         method: 'POST',
-        headers: {
-          apikey: SUPABASE_SERVICE_ROLE_KEY,
-          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { ...serviceHeaders, 'Content-Type': 'application/json' },
         body: JSON.stringify({ p_token: clienteToken }),
       });
       clienteId = Number(await validTokResp.json());
@@ -63,13 +68,8 @@ module.exports = async function handler(req, res) {
     }
 
     const pedidoResp = await fetch(
-      `${SUPABASE_URL}/rest/v1/pedidos?id=eq.${pedidoId}&select=id,cliente_id,total,estado,tipo,metodo_pago,tipo_entrega`,
-      {
-        headers: {
-          apikey: SUPABASE_SERVICE_ROLE_KEY,
-          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-        },
-      }
+      `${SUPABASE_URL}/rest/v1/pedidos?id=eq.${pedidoId}&select=id,cliente_id,total,estado,tipo,metodo_pago,tipo_entrega,created_at,guest_telefono`,
+      { headers: serviceHeaders }
     );
     const pedidoRows = await pedidoResp.json();
     const pedido = Array.isArray(pedidoRows) ? pedidoRows[0] : null;
@@ -79,19 +79,39 @@ module.exports = async function handler(req, res) {
     if (pedido.tipo !== 'online') return res.status(400).json({ ok: false, error: 'pedido_not_online' });
     if (pedido.estado !== 'pendiente') return res.status(409).json({ ok: false, error: 'pedido_not_pending' });
 
+    if (isGuest) {
+      const created = new Date(pedido.created_at).getTime();
+      if (!Number.isFinite(created) || Date.now() - created > 2 * 60 * 60 * 1000) {
+        return res.status(403).json({ ok: false, error: 'guest_checkout_expired' });
+      }
+      let telPedido = String(pedido.guest_telefono || '').replace(/\D/g, '');
+      if (telPedido.length < 10 && clienteId) {
+        const cliResp = await fetch(
+          `${SUPABASE_URL}/rest/v1/clientes?id=eq.${clienteId}&select=telefono&limit=1`,
+          { headers: serviceHeaders }
+        );
+        const cliRows = await cliResp.json().catch(() => []);
+        telPedido = String(Array.isArray(cliRows) ? cliRows[0]?.telefono || '' : '').replace(/\D/g, '');
+      }
+      if (telPedido.slice(-10) !== guestPhone.slice(-10)) {
+        return res.status(403).json({ ok: false, error: 'guest_phone_mismatch' });
+      }
+    }
+
     const totalDb = Number(pedido.total || 0);
     if (!Number.isFinite(totalDb) || totalDb <= 0) return res.status(400).json({ ok: false, error: 'invalid_db_total' });
     if (Math.abs(totalDb - amount) > 0.01) return res.status(409).json({ ok: false, error: 'amount_mismatch' });
 
-    const safeBase = baseUrl || 'https://farmacapital.mx';
+    const siteDefault = String(process.env.PUBLIC_SITE_URL || 'https://www.farmacapital.mx').replace(/\/+$/, '');
+    const safeBase = isAllowedReturnBase(baseUrl) ? String(baseUrl).replace(/\/+$/, '') : siteDefault;
     const externalReference = `FARMACAPITAL-PED-${pedidoId}`;
     const mpPayload = {
       external_reference: externalReference,
-      notification_url: `${safeBase.replace(/\/$/, '')}/api/payments/mp/webhook`,
+      notification_url: `${safeBase}/api/payments/mp/webhook`,
       back_urls: {
-        success: `${safeBase.replace(/\/$/, '')}/?payment=success&pedido=${pedidoId}`,
-        pending: `${safeBase.replace(/\/$/, '')}/?payment=pending&pedido=${pedidoId}`,
-        failure: `${safeBase.replace(/\/$/, '')}/?payment=failure&pedido=${pedidoId}`,
+        success: `${safeBase}/?payment=success&pedido=${pedidoId}`,
+        pending: `${safeBase}/?payment=pending&pedido=${pedidoId}`,
+        failure: `${safeBase}/?payment=failure&pedido=${pedidoId}`,
       },
       auto_return: 'approved',
       statement_descriptor: 'FARMACAPITAL',
@@ -99,14 +119,7 @@ module.exports = async function handler(req, res) {
         name: String(payer?.name || '').slice(0, 120) || undefined,
         email: String(payer?.email || '').slice(0, 120) || undefined,
       },
-      items: items.length
-        ? items.map((it) => ({
-            title: String(it?.title || 'Producto FarmaCapital').slice(0, 256),
-            quantity: Math.max(1, Number(it?.quantity || 1)),
-            currency_id: 'MXN',
-            unit_price: Number(it?.unit_price || 0),
-          }))
-        : [{ title: `Pedido #${pedidoId}`, quantity: 1, currency_id: 'MXN', unit_price: totalDb }],
+      items: [{ title: `Pedido #${pedidoId}`, quantity: 1, currency_id: 'MXN', unit_price: totalDb }],
       metadata: {
         pedido_id: pedidoId,
         cliente_id: clienteId,
