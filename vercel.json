@@ -9,6 +9,30 @@
         {
           "key": "Cache-Control",
           "value": "public, max-age=0, must-revalidate"
+        },
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=63072000; includeSubDomains; preload"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=()"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://sdk.mercadopago.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.mercadopago.com https://www.mercadopago.com https://www.mercadopago.com.mx; frame-src https://www.mercadopago.com https://www.mercadopago.com.mx https://www.mercadolibre.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://www.mercadopago.com https://www.mercadopago.com.mx"
         }
       ]
     },
@@ -55,8 +79,32 @@
       "destination": "/api/health"
     },
     {
+      "source": "/api/webhooks/rappi-sync",
+      "destination": "/api/backup?action=rappi-sync"
+    },
+    {
+      "source": "/api/webhooks/rappi-order",
+      "destination": "/api/logistics/webhook?type=rappi-order"
+    },
+    {
       "source": "/api/rh/documento",
       "destination": "/api/admin/storage-upload?type=rh-documento"
+    },
+    {
+      "source": "/api/caducidad/job",
+      "destination": "/api/backup?job=caducidad"
+    },
+    {
+      "source": "/api/monitor-precios/job",
+      "destination": "/api/backup?job=monitor-precios"
+    },
+    {
+      "source": "/api/precios/buscar",
+      "destination": "/api/inventarioProcesarPdf?type=buscar-similares"
+    },
+    {
+      "source": "/api/precios/actualizar-compra",
+      "destination": "/api/inventarioProcesarPdf?type=actualizar-compra"
     },
     {
       "source": "/api/whatsapp/send",
@@ -79,11 +127,15 @@
       "destination": "/api/notifications/send?type=recibo-ensure"
     },
     {
+      "source": "/api/payments/mp/balance",
+      "destination": "/api/payments/mp/point?action=balance"
+    },
+    {
       "source": "/r/:token",
       "destination": "/api/health?token=:token"
     },
     {
-      "source": "/((?!api/|static/|icons/|manifest\\.json|service-worker\\.js|favicon\\.ico|asset-manifest\\.json|robots\\.txt).*)",
+      "source": "/((?!api/|static/|icons/|manifest\\.json|service-worker\\.js|version\\.json|favicon\\.ico|asset-manifest\\.json|robots\\.txt).*)",
       "destination": "/index.html"
     }
   ],
@@ -95,6 +147,14 @@
     {
       "path": "/api/health",
       "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/caducidad/job",
+      "schedule": "15 6 * * *"
+    },
+    {
+      "path": "/api/monitor-precios/job",
+      "schedule": "0 13 * * *"
     }
   ]
 }

@@ -6,12 +6,15 @@ import React, { lazy, Suspense, useState, useEffect } from "react";
 import { useMediaQuery } from "./hooks/useMediaQuery";
 import { SkeletonCard } from "./ui";
 import { C_LIGHT, BRAND } from "./constants";
-import { Package, Truck, Tags, TrendingUp } from "lucide-react";
+import { Package, Truck, Tags, TrendingUp, BadgeCheck, Percent, ShoppingBag } from "lucide-react";
 
 const InventarioModule = lazy(() => import("./InventarioModule"));
 const ReabastoModule   = lazy(() => import("./ReabastoModule"));
 const LotesModule      = lazy(() => import("./LotesModule"));
 const PreciosReferenciaModule = lazy(() => import("./PreciosReferenciaModule"));
+const MonitorPreciosModule    = lazy(() => import("./MonitorPreciosModule"));
+const DescuentoCaducidadModule = lazy(() => import("./DescuentoCaducidadModule"));
+const RappiSyncPanel          = lazy(() => import("./RappiSyncPanel"));
 
 const TABS_VENDEDOR = ["catalogo"];
 
@@ -20,6 +23,9 @@ const TABS = [
   { id: "reabasto", label: "Reabasto",   icon: Truck },
   { id: "lotes",    label: "Lotes PEPS", icon: Tags },
   { id: "precios",  label: "Referencias de precio", icon: TrendingUp, labelMobile: "Precios" },
+  { id: "aprobar",  label: "Aprobar PVP", icon: BadgeCheck, labelMobile: "Aprobar" },
+  { id: "caducidad", label: "Precio por caducar", icon: Percent, labelMobile: "Caducar" },
+  { id: "rappi",    label: "Rappi",      icon: ShoppingBag },
 ];
 
 const STORAGE_KEY = "farmacapital_inv_tab";
@@ -137,6 +143,9 @@ export default function InventarioHub({ initialTab, usuario, onNavigate }) {
         {!modoConsulta && tab === "reabasto" && <ReabastoModule/>}
         {!modoConsulta && tab === "lotes"    && <LotesModule/>}
         {!modoConsulta && tab === "precios"  && <PreciosReferenciaModule/>}
+        {!modoConsulta && tab === "aprobar" && <MonitorPreciosModule/>}
+        {!modoConsulta && tab === "caducidad" && <DescuentoCaducidadModule/>}
+        {!modoConsulta && tab === "rappi"    && <RappiSyncPanel/>}
       </Suspense>
     </div>
   );
