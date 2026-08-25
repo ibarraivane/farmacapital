@@ -7,9 +7,11 @@ import { $, dC, cC, abc, aCol, nCol, hashPwd, hashPwdLegacy, generateSalt, prime
 import { validarPasswordTienda, PASSWORD_RULES_TEXT } from "./utils/passwordPolicy";
 import { Logo, Box, Tag, Btn, Inp, KPI, KPI_ROW, Modal, NotificacionesToast, showToast, ToastProvider, ConfirmDialog, SkeletonTable, SkeletonKPIs, SkeletonCard, Paginador, GlobalHoverStyles } from "./ui";
 import { sincronizarVentasPendientes, contarVentasPendientes } from "./utils/offlineQueue";
+import { ymdMexico, ymdFarmaciaMas, rangoDiaFarmacia, inicioDiaFarmacia, inicioMesFarmaciaYmd } from "./lib/ventasVsMeta";
 import { esPedidoTiendaWebPendiente, fetchPedidosTiendaPendientesMerged } from "./utils/pedidosTiendaWeb";
 import AgendaConsultasModule from "./modules/clinical/AgendaConsultasModule";
 import ExpedientesDoctora from "./modules/clinical/patients/ExpedientesDoctora";
+import RecepcionModule from "./RecepcionModule";
 import { loadAdminNavOrder } from "./utils/adminNavOrder";
 import { puedeVerModulo, modulosPermitidosParaRol, rolEsAdmin, inyectarNavOperacionPiso } from "./utils/permissions";
 import { adminPathnameToPageId, pageIdToAdminPath, pathnameSuggestsPosTab, pathnameSuggestsDashTab } from "./shared/adminRoutes";
@@ -26,7 +28,6 @@ const C = C_LIGHT;
 // ── Lazy loading — módulos se cargan solo cuando se necesitan ──
 const RRHHModule       = lazy(()=>import("./RRHHModule"));
 const InventarioHub    = lazy(()=>import("./InventarioHub"));
-const RecepcionModule  = lazy(()=>import("./RecepcionModule"));
 const MiDia            = lazy(()=>import("./modules/sales/MiDia"));
 const POS              = lazy(()=>import("./modules/sales/pos/POS"));
 const CorteCajaModule  = lazy(()=>import("./CorteCajaModule"));
@@ -577,13 +578,14 @@ function Dashboard({negocio,alertas,setPage}){
     const cargar = async () => {
       setLoad(true);
       try {
-        const hoyLocal = new Date().toLocaleDateString("sv-SE");
-        const t0 = new Date();
-        t0.setHours(0, 0, 0, 0);
-        const t1 = new Date();
-        t1.setHours(23, 59, 59, 999);
-        const weekAgo = new Date(Date.now() - 7 * 86400000);
-        const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+        // Cortes de dia en el calendario de la farmacia (CDMX), no en el del
+        // navegador: desde otro huso "hoy" arrancaria el dia anterior.
+        const hoyLocal = ymdMexico();
+        const _hoyRango = rangoDiaFarmacia(hoyLocal);
+        const t0 = new Date(_hoyRango.start);
+        const t1 = new Date(_hoyRango.end);
+        const weekAgo = inicioDiaFarmacia(ymdFarmaciaMas(-6));
+        const monthStart = inicioDiaFarmacia(inicioMesFarmaciaYmd());
 
         const pedidosTiendaSelect = `
             id,total,created_at,tipo,metodo_pago,estado,
@@ -1700,17 +1702,17 @@ function GestionUsuarios({ showConfirm }){
 
       {loading?<SkeletonTable rows={4} cols={5}/>:(
         <Box>
-          <table style={{width:"100%",borderCollapse:"collapse"}}>
+          <table className="fc-tabla-cards" style={{width:"100%",borderCollapse:"collapse"}}>
             <thead><tr>{["Nombre","Acceso","Perfil","Notas","Estado","Acciones"].map(h=><th key={h} style={{padding:"8px 14px",color:C.textDim,fontSize:9,textAlign:"left",letterSpacing:1.5,textTransform:"uppercase",borderBottom:`1px solid ${C.border}`}}>{h}</th>)}</tr></thead>
             <tbody>
               {usuarios.map(u=>(
                 <tr key={u.id}>
-                  <td style={{padding:"10px 14px",color:C.text,fontWeight:700,fontSize:13}}>{u.nombre}</td>
-                  <td style={{padding:"10px 14px",color:C.textMid,fontSize:12}}>{etiquetaAcceso(u)}</td>
-                  <td style={{padding:"10px 14px"}}><Tag col={rolColor(u.rol)} sm>{u.rol}</Tag></td>
-                  <td style={{padding:"10px 14px",color:C.textMid,fontSize:12}}>{u.notas||"—"}</td>
-                  <td style={{padding:"10px 14px"}}><Tag col={u.activo?C.green:C.red} sm>{u.activo?"Activo":"Inactivo"}</Tag></td>
-                  <td style={{padding:"10px 14px"}}>
+                  <td data-label="Nombre" data-primary style={{padding:"10px 14px",color:C.text,fontWeight:700,fontSize:13}}>{u.nombre}</td>
+                  <td data-label="Acceso" style={{padding:"10px 14px",color:C.textMid,fontSize:12}}>{etiquetaAcceso(u)}</td>
+                  <td data-label="Perfil" style={{padding:"10px 14px"}}><Tag col={rolColor(u.rol)} sm>{u.rol}</Tag></td>
+                  <td data-label="Notas" data-wide style={{padding:"10px 14px",color:C.textMid,fontSize:12}}>{u.notas||"—"}</td>
+                  <td data-label="Estado" style={{padding:"10px 14px"}}><Tag col={u.activo?C.green:C.red} sm>{u.activo?"Activo":"Inactivo"}</Tag></td>
+                  <td data-label="Acciones" data-actions style={{padding:"10px 14px"}}>
                     <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
                     <button
                       type="button"

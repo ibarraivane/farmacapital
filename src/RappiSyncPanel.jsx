@@ -172,7 +172,7 @@ export default function RappiSyncPanel() {
 function QueueTable({ rows, showError }) {
   return (
     <div style={{ overflowX: "auto" }}>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+      <table className="fc-tabla-cards" style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
         <thead>
           <tr style={{ textAlign: "left", color: C.textDim }}>
             <th style={th}>SKU</th>
@@ -185,12 +185,12 @@ function QueueTable({ rows, showError }) {
         <tbody>
           {rows.map((r) => (
             <tr key={r.id} style={{ borderTop: `1px solid ${C.border}` }}>
-              <td style={td}><code>{r.sku}</code></td>
-              <td style={td}>{r.estado}</td>
-              <td style={td}>{r.intentos}</td>
-              <td style={td}>{fmtWhen(r.processed_at || r.created_at)}</td>
+              <td data-label="SKU" data-primary style={td}><code>{r.sku}</code></td>
+              <td data-label="Estado" style={td}>{r.estado}</td>
+              <td data-label="Intentos" style={td}>{r.intentos}</td>
+              <td data-label="Cuándo" style={td}>{fmtWhen(r.processed_at || r.created_at)}</td>
               {showError ? (
-                <td style={{ ...td, color: C.red, maxWidth: 280 }}>{r.last_error || "—"}</td>
+                <td data-label="Error" data-wide style={{ ...td, color: C.red, maxWidth: 280 }}>{r.last_error || "—"}</td>
               ) : null}
             </tr>
           ))}

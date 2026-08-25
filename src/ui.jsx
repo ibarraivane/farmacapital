@@ -111,11 +111,13 @@ export function Tag({col,children,sm}){
   );
 };
 
-export function Btn({children,onClick,col,sm,ol,dis,full,style,type="button"}){
+export function Btn({children,onClick,col,sm,ol,outline,dis,disabled,full,style,type="button"}){
   const C = C_LIGHT;
+  const isOutline = Boolean(ol || outline);
+  const isDisabled = Boolean(dis || disabled);
   return(
 
-  <button type={type} onClick={onClick} disabled={dis} style={{padding:sm?"7px 16px":"10px 22px",borderRadius:RADIO.pill,border:`1px solid ${ol?(col||BRAND.primary):"transparent"}`,background:ol?"transparent":dis?C.border:(col||BRAND.primary),color:ol?(col||BRAND.primary):dis?C.textMid:C.card,fontWeight:700,fontSize:sm?12:14,cursor:dis?"not-allowed":"pointer",fontFamily:"var(--fc-body)",opacity:dis?.5:1,width:full?"100%":undefined,minHeight:sm?36:40,transition:"opacity .15s",...style}}>{children}</button>
+  <button type={type} onClick={onClick} disabled={isDisabled} style={{padding:sm?"7px 16px":"10px 22px",borderRadius:RADIO.pill,border:`1px solid ${isOutline?(col||BRAND.primary):"transparent"}`,background:isOutline?"transparent":isDisabled?C.border:(col||BRAND.primary),color:isOutline?(col||BRAND.primary):isDisabled?C.textMid:C.card,fontWeight:700,fontSize:sm?12:14,cursor:isDisabled?"not-allowed":"pointer",fontFamily:"var(--fc-body)",opacity:isDisabled?.5:1,width:full?"100%":undefined,minHeight:sm?36:40,transition:"opacity .15s",...style}}>{children}</button>
 
   );
 };
@@ -434,7 +436,7 @@ export function SkeletonCard({ height=80, style={} }) {
 /**
  * Contenedor con scroll horizontal sincronizado: barra arriba y abajo (misma posición).
  */
-export function HorizontalScrollSync({ children, style = {}, topBarHeight = 12, bodyMaxHeight, ...rest }) {
+export function HorizontalScrollSync({ children, style = {}, topBarHeight = 12, bodyMaxHeight, className, ...rest }) {
   const C = C_LIGHT;
   const topRef = useRef(null);
   const bottomRef = useRef(null);
@@ -490,7 +492,20 @@ export function HorizontalScrollSync({ children, style = {}, topBarHeight = 12, 
   };
 
   return (
-    <div {...rest} style={{ borderRadius: 12, border: `1px solid ${C.border}`, overflow: "hidden", ...style }}>
+    <div
+      {...rest}
+      className={["fc-tabla-scroll", className].filter(Boolean).join(" ")}
+      style={{
+        borderRadius: 12,
+        border: `1px solid ${C.border}`,
+        overflow: "hidden",
+        width: "100%",
+        maxWidth: "100%",
+        minWidth: 0,
+        boxSizing: "border-box",
+        ...style,
+      }}
+    >
       <div
         ref={topRef}
         onScroll={onTopScroll}

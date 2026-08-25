@@ -15,6 +15,20 @@ import { pedidoEsTipoFisica, pedidoEsTipoOnline, pedidoEsTipoConsulta } from "./
 import { costoLineaVenta, ingresoLineaVenta } from "./utils/margenVenta";
 import { DIAS_CADUCIDAD_ALERTA } from "./lib/caducidad";
 import { categoriaCanon } from "./constants/categoriasProducto";
+import VentasVsMetaChart from "./VentasVsMetaChart";
+import {
+  agruparVentasPorDia,
+  porDiaDesdeSerieRpc,
+  ymdMexico,
+  ymdFarmaciaMas,
+  rangoDiaFarmacia,
+  inicioDiaFarmacia,
+  inicioMesFarmaciaYmd,
+  fraccionMesFarmacia,
+  fmtDateMexico,
+} from "./lib/ventasVsMeta";
+import { cargarConfigMetas } from "./utils/turnosMetas";
+import { CLAVES_SALDO_MP, parseSaldoConfig } from "./lib/pagoServicio";
 
 function rpcBundleRows(bundle, key) {
   return parseRpcJsonArray(parseRpcJsonObject(bundle)[key]);
@@ -150,24 +164,31 @@ function loadDashboardTabOrder() {
 
 const fmt     = (n) => `$${parseFloat(n||0).toLocaleString("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2})}`;
 const fmtK    = (n) => n>=1000?`$${(n/1000).toFixed(1)}k`:fmt(n);
-const fmtDate = () => new Date().toLocaleDateString("es-MX",{weekday:"long",day:"2-digit",month:"long",year:"numeric"});
+const fmtDate = () => fmtDateMexico();
 
 /** Grilla 2 columnas que en ventanas estrechas pasa a 1 columna (Chrome / escritorio redimensionado). */
 const GRID_RESP_2COL = "repeat(auto-fit, minmax(min(100%, 280px), 1fr))";
 
-const rangeToday = () => { const d=new Date(),y=d.getFullYear(),m=d.getMonth(),dd=d.getDate(); return {start:new Date(y,m,dd,0,0,0).toISOString(),end:new Date(y,m,dd,23,59,59).toISOString()}; };
-const rangeWeek  = () => { const d=new Date(); d.setDate(d.getDate()-7); return {start:d.toISOString(),end:new Date().toISOString()}; };
-const rangeMonth = () => { const d=new Date(),y=d.getFullYear(),m=d.getMonth(); return {start:new Date(y,m,1).toISOString(),end:new Date().toISOString()}; };
-const rangeYesterday = () => { const d=new Date(),y=d.getFullYear(),m=d.getMonth(),dd=d.getDate()-1; return {start:new Date(y,m,dd,0,0,0).toISOString(),end:new Date(y,m,dd,23,59,59).toISOString()}; };
-const rangeWeekPrev  = () => { const end=new Date(); end.setDate(end.getDate()-7); const start=new Date(end); start.setDate(start.getDate()-7); return {start:start.toISOString(),end:end.toISOString()}; };
-const yesterdayLocal = () => { const d=new Date(); d.setDate(d.getDate()-1); return d.toLocaleDateString("sv-SE"); };
+/**
+ * Todos los cortes de día usan el calendario de la farmacia (CDMX), NO el del
+ * navegador. Si se calculan con la hora local de quien abre el dashboard, desde
+ * Europa "hoy" arranca a las 16:00 del día anterior en el mostrador y las
+ * tarjetas dejan de cuadrar con la gráfica de Ventas vs meta.
+ */
+const rangeToday     = () => rangoDiaFarmacia(ymdMexico());
+const rangeYesterday = () => rangoDiaFarmacia(ymdFarmaciaMas(-1));
+// Ventana de 7 días naturales de la farmacia, incluyendo hoy.
+const rangeWeek      = () => ({ start: inicioDiaFarmacia(ymdFarmaciaMas(-6)).toISOString(), end: new Date().toISOString() });
+const rangeWeekPrev  = () => ({
+  start: inicioDiaFarmacia(ymdFarmaciaMas(-13)).toISOString(),
+  end:   new Date(inicioDiaFarmacia(ymdFarmaciaMas(-6)).getTime() - 1).toISOString(),
+});
+const rangeMonth     = () => ({ start: inicioDiaFarmacia(inicioMesFarmaciaYmd()).toISOString(), end: new Date().toISOString() });
+const yesterdayLocal = () => ymdFarmaciaMas(-1);
 
 // Calcula el tramo transcurrido del mes actual (0..1) para proyectar metas.
 function fraccionMesTranscurrido() {
-  const d = new Date();
-  const dia = d.getDate();
-  const fin = new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
-  return Math.min(Math.max(dia / fin, 0.01), 1);
+  return fraccionMesFarmacia();
 }
 
 function parseMeta(rows, clave, def) {
@@ -356,16 +377,16 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
     const today = rangeToday(), week = rangeWeek(), month = rangeMonth();
     const yesterday = rangeYesterday();
     const weekPrev = rangeWeekPrev();
-    const hoyLocal = new Date().toLocaleDateString("sv-SE");
+    const hoyLocal = ymdMexico();
     const ayerLocal = yesterdayLocal();
-    const inicioMesLocal = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toLocaleDateString("sv-SE");
-    const cofeprisLimite = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+    const inicioMesLocal = inicioMesFarmaciaYmd();
+    const cofeprisLimite = ymdFarmaciaMas(30);
     const adminTok = sessionStorage.getItem("farmacapital_session_token");
     const cofeprisRpc = adminTok
       ? supabase.rpc("admin_alertas_cofepris_ventana", {
           p_session_token: adminTok,
           p_limite: cofeprisLimite,
-          p_hoy: new Date().toISOString().slice(0, 10),
+          p_hoy: hoyLocal,
         })
       : Promise.resolve({ data: null, error: { message: "sin sesión" } });
     const bundleCtx = {
@@ -377,18 +398,24 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
       week_prev_start: weekPrev.start,
       week_prev_end: weekPrev.end,
       month_start: month.start,
-      month_prev_start: new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toISOString(),
-      month_prev_end: new Date(new Date().getFullYear(), new Date().getMonth(), 0, 23, 59, 59).toISOString(),
+      month_prev_start: inicioDiaFarmacia(`${ymdFarmaciaMas(-1, inicioDiaFarmacia(inicioMesLocal)).slice(0, 8)}01`).toISOString(),
+      month_prev_end: new Date(inicioDiaFarmacia(inicioMesLocal).getTime() - 1).toISOString(),
       hoy_local: hoyLocal,
       ayer_local: ayerLocal,
       inicio_mes_local: inicioMesLocal,
     };
+    const desdeSerie = new Date();
+    desdeSerie.setDate(desdeSerie.getDate() - 92);
+    const desdeSerieYmd = ymdMexico(desdeSerie);
     const [
       bundleRes,
       homeRes,
       { count: onlinePendCount, error: errOnlinePend },
       { data: cofeprisRpcData, error: errAlertasCof },
       caducarRes,
+      serieRes,
+      metasTurnoCfg,
+      saldoMpRes,
     ] = await Promise.all([
       adminTok
         ? supabase.rpc("empleado_dashboard_operacion_bundle", {
@@ -414,7 +441,16 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
             p_dias: DIAS_CADUCIDAD_ALERTA,
           })
         : Promise.resolve({ data: null, error: null }),
+      adminTok
+        ? supabase.rpc("empleado_dashboard_ventas_serie", {
+            p_session_token: adminTok,
+            p_desde: desdeSerieYmd,
+          })
+        : Promise.resolve({ data: null, error: null }),
+      cargarConfigMetas(),
+      supabase.from("configuracion").select("clave,valor").in("clave", CLAVES_SALDO_MP),
     ]);
+    const saldoMp = parseSaldoConfig(saldoMpRes?.data);
     const B = parseRpcJsonObject(bundleRes.data);
     const H = parseRpcJsonObject(homeRes.data);
 
@@ -427,6 +463,23 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
       });
       if (errVentasMes) console.warn("[Dashboard] ventas transacciones:", errVentasMes.message);
       pedVentasMes = pedidosCompletados(rawVentasMes);
+    }
+
+    let ventasPorDia = porDiaDesdeSerieRpc(parseRpcJsonArray(serieRes?.data));
+    if (!Object.keys(ventasPorDia).length) {
+      if (serieRes?.error) console.warn("[Dashboard] ventas serie:", serieRes.error.message);
+      if (adminTok) {
+        const { data: raw90, error: err90 } = await supabase.rpc("empleado_listar_pedidos_transacciones", {
+          p_session_token: adminTok,
+          p_created_desde: new Date(Date.now() - 92 * 86400000).toISOString(),
+          p_limite: 800,
+        });
+        if (err90) console.warn("[Dashboard] ventas serie fallback:", err90.message);
+        ventasPorDia = agruparVentasPorDia(pedidosCompletados(raw90));
+      }
+      if (!Object.keys(ventasPorDia).length) {
+        ventasPorDia = agruparVentasPorDia(pedVentasMes);
+      }
     }
 
     const monthPrevStart = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toISOString();
@@ -517,7 +570,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
       consultasHoy:  null,
     };
 
-    const hoyISO = new Date().toISOString().slice(0,10);
+    const hoyISO = ymdMexico();
     const cofeprisItems = (alertasCofepris || []).map(a => ({
       id: a.id, nombre: fixLegacyFarmaxBrand(a.nombre), fecha: a.fecha_vencimiento,
       vencida: a.fecha_vencimiento && a.fecha_vencimiento < hoyISO,
@@ -559,6 +612,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
     trends.consultasHoy = trendDelta(consultasHoy, consultasAyer);
 
     setData({
+      ventasPorDia, metasTurnoCfg,
       ventasHoy, ventasAyer, ventasSemana, ventasSemanaAnt, ventasMes, ventasMesAnt, crecimiento, ticketProm, consultasHoy, consultasAyer, onlinePend,
       recuperado, gananciaMes,
       dashboardLoadWarning,
@@ -583,6 +637,9 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
         cofeprisVencidas,
         cofeprisPorVencer,
         cofeprisItems,
+        saldoRecargasBajo: saldoMp.bajo,
+        saldoRecargas: saldoMp.saldo,
+        saldoRecargasMinimo: saldoMp.minimo,
       },
     });
     setLoading(false);
@@ -684,7 +741,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
     </div>
   );
 
-  const {ventasHoy,ventasSemana,ventasMes,crecimiento,ticketProm,consultasHoy,onlinePend,recuperado,gananciaMes,fuentes,empleados,topProductos,alertas,metas,trends,dashboardLoadWarning} = data;
+  const {ventasHoy,ventasSemana,ventasMes,crecimiento,ticketProm,consultasHoy,onlinePend,recuperado,gananciaMes,fuentes,empleados,topProductos,alertas,metas,trends,dashboardLoadWarning,ventasPorDia,metasTurnoCfg} = data;
   const pctRecuperado = inversionTotal > 0 ? Math.min((recuperado / inversionTotal) * 100, 100) : 0;
   const restante = inversionTotal - recuperado;
   const paybackMeses = gananciaMes > 0 ? Math.max(Math.ceil(restante / gananciaMes), 0) : null;
@@ -698,6 +755,16 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
     { id:"cortes",   icon:"💰", count: alertas.cortesConDif,   col: C.red,    label: "Cortes de caja con diferencia",       sub: "Revisa faltantes o sobrantes",                                onAction: () => goToPage("caja"), actionLabel: "Ver cortes →" },
     { id:"online",   icon:"🌐", count: alertas.sinAtender,     col: C.amber,  label: "Pedidos online pendientes",           sub: "Clientes esperando preparación",                              onAction: () => goToPage("pos", { posTab: "online" }), actionLabel: "Atender →" },
     { id:"cofepris", icon:"⚖️", count: alertas.cofeprisPorVencer, col: (alertas.cofeprisVencidas > 0 ? C.red : C.amber), label: alertas.cofeprisVencidas > 0 ? `COFEPRIS · ${alertas.cofeprisVencidas} vencido${alertas.cofeprisVencidas!==1?"s":""}` : "Documentos COFEPRIS por vencer", sub: (alertas.cofeprisItems||[]).slice(0,2).map(x=>x.nombre).join(" · "), onAction: () => goToPage("cof"), actionLabel: "Ver alertas →" },
+    ...(alertas.saldoRecargasBajo ? [{
+      id: "recargas",
+      icon: "📱",
+      count: 1,
+      col: C.red,
+      label: "Saldo de recargas bajo",
+      sub: `Quedan ${$(alertas.saldoRecargas)} (mínimo ${$(alertas.saldoRecargasMinimo)}). Fondea Mercado Pago.`,
+      onAction: () => goToPage("pos", { posTab: "servicios" }),
+      actionLabel: "Ir a Servicios →",
+    }] : []),
   ];
   const roiCol = pctRecuperado>=75?C.green:pctRecuperado>=40?C.amber:C.red;
   const totalEmp = empleados.reduce((a,e)=>a+e[1],0);
@@ -851,7 +918,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
             </p>
           )}
           <Box style={{ padding: 0, marginBottom: 20, overflow: "auto" }}>
-            <table style={{ width: "100%", minWidth: puedeEditarCapex ? 520 : 0, borderCollapse: "collapse", fontSize: 12 }}>
+            <table className="fc-tabla-cards" style={{ width: "100%", minWidth: puedeEditarCapex ? 520 : 0, borderCollapse: "collapse", fontSize: 12 }}>
               <thead>
                 <tr style={{ background: C.cardDark }}>
                   <th style={{ padding: "10px 14px", textAlign: "left", color: C.textMid, fontWeight: 700, borderBottom: `1px solid ${C.border}` }}>Concepto</th>
@@ -867,7 +934,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
                   const pct = inversionTotal > 0 ? (row.monto / inversionTotal) * 100 : 0;
                   return (
                     <tr key={row.id} style={{ background: i % 2 === 0 ? "transparent" : C.bg }}>
-                      <td style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, verticalAlign: "top" }}>
+                      <td data-label="Concepto" data-primary style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, verticalAlign: "top" }}>
                         {puedeEditarCapex ? (
                           <>
                             <input value={row.label} onChange={(e) => updateCapexRow(row.id, { label: e.target.value })} style={{ ...inpCapex, fontWeight: 600, marginBottom: 6 }} />
@@ -880,8 +947,8 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
                           </>
                         )}
                       </td>
-                      <td style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, textAlign: "right", color: C.textMid, fontWeight: 700 }}>{pct.toFixed(1)}%</td>
-                      <td style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, textAlign: "right", color: C.blue, fontWeight: 800, verticalAlign: "middle" }}>
+                      <td data-label="% del total" style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, textAlign: "right", color: C.textMid, fontWeight: 700 }}>{pct.toFixed(1)}%</td>
+                      <td data-label="Monto" style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, textAlign: "right", color: C.blue, fontWeight: 800, verticalAlign: "middle" }}>
                         {puedeEditarCapex ? (
                           <input
                             type="number"
@@ -896,7 +963,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
                         )}
                       </td>
                       {puedeEditarCapex && (
-                        <td style={{ padding: "10px 8px", borderBottom: `1px solid ${C.border}`, textAlign: "center", verticalAlign: "middle" }}>
+                        <td data-label=" " data-actions style={{ padding: "10px 8px", borderBottom: `1px solid ${C.border}`, textAlign: "center", verticalAlign: "middle" }}>
                           <button
                             type="button"
                             title="Quitar rubro"
@@ -1036,7 +1103,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
               </div>
               <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,overflow:"hidden"}}>
                 <div style={{padding:"14px 16px",borderBottom:`1px solid ${C.border}`,fontWeight:700,color:C.text,fontSize:14}}>📈 Margen por categoría</div>
-                <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                <table className="fc-tabla-cards" style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                   <thead>
                     <tr style={{background:C.cardDark}}>
                       {["Categoría","Ingreso","Costo","Ganancia","Margen %"].map(h=>(
@@ -1048,11 +1115,11 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
                     {!(rep.margenPorCat||[]).length&&<tr><td colSpan={5} style={{padding:32,textAlign:"center",color:C.textMid}}>Sin datos en este período</td></tr>}
                     {(rep.margenPorCat||[]).map((r,i)=>(
                       <tr key={r.cat} style={{background:i%2===0?"transparent":"#f8fafc"}}>
-                        <td style={{padding:"9px 14px",fontWeight:600,color:C.text,borderBottom:`1px solid ${C.border}`}}>{r.cat}</td>
-                        <td style={{padding:"9px 14px",color:C.blue,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{$(r.ingreso)}</td>
-                        <td style={{padding:"9px 14px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{$(r.costo)}</td>
-                        <td style={{padding:"9px 14px",color:r.ganancia>=0?C.green:C.red,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{$(r.ganancia)}</td>
-                        <td style={{padding:"9px 14px",borderBottom:`1px solid ${C.border}`}}>
+                        <td data-label="Categoría" data-primary style={{padding:"9px 14px",fontWeight:600,color:C.text,borderBottom:`1px solid ${C.border}`}}>{r.cat}</td>
+                        <td data-label="Ingreso" style={{padding:"9px 14px",color:C.blue,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{$(r.ingreso)}</td>
+                        <td data-label="Costo" style={{padding:"9px 14px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{$(r.costo)}</td>
+                        <td data-label="Ganancia" style={{padding:"9px 14px",color:r.ganancia>=0?C.green:C.red,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{$(r.ganancia)}</td>
+                        <td data-label="Margen" data-wide style={{padding:"9px 14px",borderBottom:`1px solid ${C.border}`}}>
                           <div style={{display:"flex",alignItems:"center",gap:8}}>
                             <div style={{flex:1,height:6,background:"#f1f5f9",borderRadius:3,overflow:"hidden"}}>
                               <div style={{height:"100%",width:`${Math.min(parseFloat(r.margen),100)}%`,background:parseFloat(r.margen)>30?C.green:parseFloat(r.margen)>15?C.amber:C.red,borderRadius:3}}/>
@@ -1123,6 +1190,8 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
         />
       </div>
 
+      <VentasVsMetaChart porDia={ventasPorDia} cfg={metasTurnoCfg} hoyYmd={ymdMexico()} />
+
       <div style={{display:"grid",gridTemplateColumns:GRID_RESP_2COL,gap:20,marginBottom:24}}>
         <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:20,minWidth:0}}>
           <div style={{color:C.textDim,fontSize:10,fontWeight:700,letterSpacing:1.5,marginBottom:16}}>INGRESOS POR FUENTE — ESTE MES</div>
@@ -1136,14 +1205,14 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
           <div style={{color:C.textDim,fontSize:10,fontWeight:700,letterSpacing:1.5,marginBottom:16}}>VENTAS POR EMPLEADO — ESTE MES</div>
           {empleados.length===0
             ? <div style={{color:C.textMid,fontSize:12,textAlign:"center",padding:20}}>Sin datos este mes</div>
-            : <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+            : <table className="fc-tabla-cards" style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                 <thead><tr>{["Empleado","Ventas","%"].map(h=><th key={h} style={{padding:"6px 8px",textAlign:"left",color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`,fontSize:10}}>{h}</th>)}</tr></thead>
                 <tbody>
                   {empleados.map(([nombre,total],i)=>(
                     <tr key={i}>
-                      <td style={{padding:"8px",color:C.text,borderBottom:`1px solid ${C.border}`,fontWeight:600}}>{nombre}</td>
-                      <td style={{padding:"8px",color:C.green,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{fmt(total)}</td>
-                      <td style={{padding:"8px",borderBottom:`1px solid ${C.border}`}}>
+                      <td data-label="Empleado" data-primary style={{padding:"8px",color:C.text,borderBottom:`1px solid ${C.border}`,fontWeight:600}}>{nombre}</td>
+                      <td data-label="Ventas" style={{padding:"8px",color:C.green,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{fmt(total)}</td>
+                      <td data-label="%" style={{padding:"8px",borderBottom:`1px solid ${C.border}`}}>
                         <span style={{padding:"2px 8px",borderRadius:12,fontSize:10,fontWeight:700,background:C.blueDim,color:C.blue}}>{totalEmp>0?((total/totalEmp)*100).toFixed(0):0}%</span>
                       </td>
                     </tr>
@@ -1159,17 +1228,17 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
         {topProductos.length===0
           ? <div style={{color:C.textMid,fontSize:12,textAlign:"center",padding:20}}>Sin datos de ventas</div>
           : <div style={{overflowX:"auto"}}>
-              <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+              <table className="fc-tabla-cards" style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                 <thead><tr style={{background:C.bg}}>{["#","Producto","Unidades","Ingreso total"].map(h=><th key={h} style={{padding:"8px 12px",textAlign:"left",color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>{h}</th>)}</tr></thead>
                 <tbody>
                   {topProductos.map(([nombre,stats],i)=>(
                     <tr key={i} style={{background:i%2===0?"transparent":C.bg}}>
-                      <td style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`}}>
+                      <td data-label="#" style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`}}>
                         <span style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:22,height:22,borderRadius:"50%",fontSize:10,fontWeight:800,background:i<3?BRAND.gradient:C.border,color:i<3?"#fff":C.textMid}}>{i+1}</span>
                       </td>
-                      <td style={{padding:"8px 12px",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>{nombre}</td>
-                      <td style={{padding:"8px 12px",color:C.amber,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{stats.unidades.toLocaleString()}</td>
-                      <td style={{padding:"8px 12px",color:C.green,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{fmt(stats.ingreso)}</td>
+                      <td data-label="Producto" data-primary style={{padding:"8px 12px",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>{nombre}</td>
+                      <td data-label="Unidades" style={{padding:"8px 12px",color:C.amber,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{stats.unidades.toLocaleString()}</td>
+                      <td data-label="Ingreso" style={{padding:"8px 12px",color:C.green,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{fmt(stats.ingreso)}</td>
                     </tr>
                   ))}
                 </tbody>

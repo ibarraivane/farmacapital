@@ -12,6 +12,8 @@ import { parseRpcJsonArray } from "./utils/rpcJson";
 import { notifyPosTicket, notifyOnlineOrderReceipt, formatFolioPOS, formatFolioOnline, formatWhatsAppSendError, formatWhatsAppSuccessMessage } from "./utils/orderReceiptWhatsApp";
 import { usePedidoTicketUrl } from "./hooks/usePedidoTicketUrl";
 import { telefonoMxValido } from "./utils";
+import { rolEsAdmin } from "./utils/permissions";
+import { fmtDateTimeMexico } from "./lib/ventasVsMeta";
 
 function esPagoServicio(p) {
   return p?.origen === "pago_servicio" || pedidoEsTipoServicio(p?.tipo);
@@ -105,6 +107,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
   const C = C_LIGHT;
   const [pedidos, setPedidos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [devolucionesPeriodo, setDevolucionesPeriodo] = useState({ total_devuelto: 0, n: 0 });
   const [busqueda, setBusqueda] = useState("");
   const [filtroFecha, setFiltroF] = useState("mes");
   const [filtroTipo, setFiltroT] = useState("todos");
@@ -186,6 +189,19 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
       (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
     );
     setPedidos(mezclados);
+    try {
+      const { data: dev } = await supabase.rpc("empleado_sumar_devoluciones_rango", {
+        p_session_token: tok,
+        p_created_desde: rango?.desde ?? null,
+        p_created_hasta: rango?.hasta ?? null,
+      });
+      setDevolucionesPeriodo({
+        total_devuelto: parseFloat(dev?.total_devuelto || 0),
+        n: parseInt(dev?.n || 0, 10) || 0,
+      });
+    } catch {
+      setDevolucionesPeriodo({ total_devuelto: 0, n: 0 });
+    }
     setLoading(false);
   }, [filtroFecha, fechaDesde, fechaHasta]);
 
@@ -367,7 +383,9 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
 
   const abrirEditar = (p) => {
     setModalEdit(p);
-    const mp = p.metodo_pago === "spei" || p.metodo_pago === "mercadopago" ? "tarjeta" : (p.metodo_pago || "efectivo");
+    const mp = esPagoServicio(p)
+      ? (p.metodo_pago === "efectivo" ? "efectivo" : "tarjeta")
+      : (p.metodo_pago || "efectivo");
     setEditForm({
       estado: p.estado || "completado",
       metodo_pago: mp,
@@ -510,7 +528,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
   };
 
   const fmtM = (n) => `$${parseFloat(n || 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  const fmtDT = (s) => { if (!s) return "—"; const d = new Date(s); return d.toLocaleDateString("es-MX", { day: "2-digit", month: "short" }) + " " + d.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" }); };
+  const fmtDT = (s) => fmtDateTimeMexico(s);
   const estCol = (e) => e === "completado" ? C.green : e === "cancelado" ? C.red : C.amber;
   const campoClaro = {
     background: "#fff",
@@ -589,7 +607,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
 
       {loading ? <SkeletonTable rows={5} cols={9} /> : (
         <div style={{ overflowX: "auto", borderRadius: 12, border: `1px solid ${C.border}`, marginBottom: 16 }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+          <table className="fc-tabla-cards" style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
             <thead>
               <tr style={{ background: C.cardDark }}>
                 {["ID", "Fecha/Hora", "Cliente", "Vendedor", "Total", "Método", "Tipo", "Estado", "Acciones"].map((h) => (
@@ -610,20 +628,21 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                     cursor: "pointer",
                   }}
                 >
-                  <td style={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}`, fontFamily: "monospace", fontSize: 11 }}>
+                  <td data-label="Folio" data-primary style={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}`, fontFamily: "monospace", fontSize: 11 }}>
                     {esPagoServicio(p) ? p.folio : `#${p.id}`}
                     <div style={{ fontSize: 9, color: C.textDim, marginTop: 2 }}>{esPagoServicio(p) ? "Recarga / servicio" : folioPedido(p)}</div>
                   </td>
-                  <td style={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap" }}>{fmtDT(p.created_at)}</td>
-                  <td style={{ padding: "8px 12px", color: C.text, fontWeight: 600, borderBottom: `1px solid ${C.border}` }}>
+                  <td data-label="Fecha" style={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap" }}>{fmtDT(p.created_at)}</td>
+                  <td data-label="Cliente" data-wide style={{ padding: "8px 12px", color: C.text, fontWeight: 600, borderBottom: `1px solid ${C.border}` }}>
                     {p.clientes?.nombre || "—"}
                     {p.clientes?.telefono ? <div style={{ fontSize: 10, color: C.textMid, fontWeight: 500, marginTop: 2 }}>{p.clientes.telefono}</div> : null}
                   </td>
                   <td
+                    data-label="Vendedor"
                     style={{ padding: "8px 12px", color: C.text, fontWeight: 600, borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap", minWidth: 140 }}
                     onClick={(e) => e.stopPropagation()}
                   >
-                    {usuario?.rol === "admin" ? (
+                    {rolEsAdmin(usuario?.rol) ? (
                       <button
                         type="button"
                         onClick={(e) => {
@@ -653,9 +672,9 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                       nombreVendedor(p, vendedores)
                     )}
                   </td>
-                  <td style={{ padding: "8px 12px", color: C.green, fontWeight: 700, borderBottom: `1px solid ${C.border}` }}>{fmtM(p.total)}</td>
-                  <td style={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}` }}>{p.metodo_pago || "—"}</td>
-                  <td style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, verticalAlign: "top" }}>
+                  <td data-label="Total" style={{ padding: "8px 12px", color: C.green, fontWeight: 700, borderBottom: `1px solid ${C.border}` }}>{fmtM(p.total)}</td>
+                  <td data-label="Método" style={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}` }}>{p.metodo_pago || "—"}</td>
+                  <td data-label="Tipo" style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, verticalAlign: "top" }}>
                     <span style={{ padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 700,
                       background: p.tipo === "online" ? "#ede9fe" : p.tipo === "consulta" ? "#dcfce7" : pedidoEsTipoServicio(p.tipo) ? "#fef3c7" : "#eff6ff",
                       color: p.tipo === "online" ? C.purple : p.tipo === "consulta" ? C.green : pedidoEsTipoServicio(p.tipo) ? C.amber : C.blue }}>
@@ -670,10 +689,10 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                       </div>
                     )}
                   </td>
-                  <td style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}` }}>
+                  <td data-label="Estado" style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}` }}>
                     <span style={{ padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 700, background: estCol(p.estado) + "20", color: estCol(p.estado) }}>{p.estado || "—"}</span>
                   </td>
-                  <td style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap" }} onClick={(e) => e.stopPropagation()}>
+                  <td data-label="Acciones" data-actions style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap" }} onClick={(e) => e.stopPropagation()}>
                     <div style={{ display: "inline-flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
                       <button type="button" onClick={() => abrirDetalle(p)} title="Ver detalle" style={{ padding: "3px 8px", borderRadius: 5, border: `1px solid ${C.blue}30`, background: "#eff6ff", color: C.blue, cursor: "pointer", fontSize: 10, fontWeight: 700 }}>Detalle</button>
                       {!esPagoServicio(p) && <>
@@ -696,7 +715,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                         children: "🖨️",
                       })}
                       </>}
-                      {usuario?.rol === "admin" && <>
+                      {rolEsAdmin(usuario?.rol) && <>
                         {btnAccionIcono({ col: C.amber, bg: "#fef3c7", border: `${C.amber}30`, title: "Editar", onClick: () => abrirEditar(p), children: "✏️" })}
                         {!esPagoServicio(p) && p.estado !== "cancelado" && btnAccionIcono({ col: C.textMid, bg: "#f1f5f9", border: "#94a3b830", title: "Cancelar pedido", onClick: () => cancelarPed(p), children: "❌" })}
                         {btnAccionIcono({ col: C.red, bg: "#fee2e2", border: `${C.red}30`, title: "Eliminar", onClick: () => eliminarPed(p), children: "🗑️" })}
@@ -715,6 +734,12 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
         <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
           <div><div style={{ color: C.textMid, fontSize: 10, fontWeight: 700 }}>TRANSACCIONES</div><div style={{ color: C.blue, fontWeight: 800, fontSize: 18 }}>{filtradosTodos.length}</div></div>
           <div><div style={{ color: C.textMid, fontSize: 10, fontWeight: 700 }}>TOTAL PERÍODO</div><div style={{ color: C.green, fontWeight: 800, fontSize: 18 }}>{fmtM(sumaTotal)}</div></div>
+          {devolucionesPeriodo.n > 0 && (
+            <>
+              <div><div style={{ color: C.textMid, fontSize: 10, fontWeight: 700 }}>DEVOLUCIONES</div><div style={{ color: C.red, fontWeight: 800, fontSize: 18 }}>−{fmtM(devolucionesPeriodo.total_devuelto)}</div></div>
+              <div><div style={{ color: C.textMid, fontSize: 10, fontWeight: 700 }}>VENTAS NETAS</div><div style={{ color: C.text, fontWeight: 800, fontSize: 18 }}>{fmtM(sumaTotal - devolucionesPeriodo.total_devuelto)}</div></div>
+            </>
+          )}
           <div><div style={{ color: C.textMid, fontSize: 10, fontWeight: 700 }}>PROMEDIO</div><div style={{ color: C.purple, fontWeight: 800, fontSize: 18 }}>{fmtM(promedio)}</div></div>
           <div style={{ flex: "1 1 200px", minWidth: 0 }}>
             <div style={{ color: C.textMid, fontSize: 10, fontWeight: 700, marginBottom: 6 }}>POR MÉTODO</div>
@@ -810,7 +835,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
             <>
             <div style={{ fontWeight: 700, color: C.text, fontSize: 13, marginBottom: 10 }}>Productos vendidos:</div>
             {loadDet ? <SkeletonTable rows={3} cols={4} /> : (
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+              <table className="fc-tabla-cards" style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                 <thead><tr style={{ background: C.cardDark }}>{["Producto", "SKU", "Cant.", "Precio", "Subtotal"].map((h) => <th key={h} style={{ padding: "7px 10px", textAlign: "left", color: C.textMid, fontWeight: 700, borderBottom: `1px solid ${C.border}` }}>{h}</th>)}</tr></thead>
                 <tbody>
                   {detItems.length === 0 && !loadDet && (
@@ -818,14 +843,14 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                   )}
                   {detItems.map((it, i) => (
                     <tr key={i}>
-                      <td style={{ padding: "7px 10px", color: C.text, fontWeight: 600, borderBottom: `1px solid ${C.border}` }}>
+                      <td data-label="Producto" data-primary style={{ padding: "7px 10px", color: C.text, fontWeight: 600, borderBottom: `1px solid ${C.border}` }}>
                         {it.productos?.nombre || it.nombre || "—"}
                         {it.lotes?.numero_lote && <div style={{ fontSize: 9, color: C.textDim, marginTop: 1 }}>Lote: {it.lotes.numero_lote}{it.lotes.fecha_caducidad ? ` | Cad: ${it.lotes.fecha_caducidad}` : ""}</div>}
                       </td>
-                      <td style={{ padding: "7px 10px", color: C.textMid, fontSize: 10, borderBottom: `1px solid ${C.border}`, fontFamily: "monospace" }}>{it.productos?.sku || "—"}</td>
-                      <td style={{ padding: "7px 10px", color: C.amber, fontWeight: 700, borderBottom: `1px solid ${C.border}` }}>{it.cantidad}</td>
-                      <td style={{ padding: "7px 10px", color: C.textMid, borderBottom: `1px solid ${C.border}` }}>{fmtM(it.precio_unitario || it.precio || 0)}</td>
-                      <td style={{ padding: "7px 10px", color: C.green, fontWeight: 700, borderBottom: `1px solid ${C.border}` }}>{fmtM((it.precio_unitario || it.precio || 0) * (it.cantidad || 1))}</td>
+                      <td data-label="SKU" style={{ padding: "7px 10px", color: C.textMid, fontSize: 10, borderBottom: `1px solid ${C.border}`, fontFamily: "monospace" }}>{it.productos?.sku || "—"}</td>
+                      <td data-label="Cant." style={{ padding: "7px 10px", color: C.amber, fontWeight: 700, borderBottom: `1px solid ${C.border}` }}>{it.cantidad}</td>
+                      <td data-label="Precio" style={{ padding: "7px 10px", color: C.textMid, borderBottom: `1px solid ${C.border}` }}>{fmtM(it.precio_unitario || it.precio || 0)}</td>
+                      <td data-label="Subtotal" style={{ padding: "7px 10px", color: C.green, fontWeight: 700, borderBottom: `1px solid ${C.border}` }}>{fmtM((it.precio_unitario || it.precio || 0) * (it.cantidad || 1))}</td>
                     </tr>
                   ))}
                   <tr><td colSpan={4} style={{ padding: "8px 10px", textAlign: "right", fontWeight: 800, color: C.text }}>TOTAL</td><td style={{ padding: "8px 10px", color: C.green, fontWeight: 900, fontSize: 14 }}>{fmtM(modalDetalle.total)}</td></tr>
@@ -945,6 +970,12 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
               <select value={editForm.metodo_pago} onChange={(e) => setEditForm((f) => ({ ...f, metodo_pago: e.target.value }))} style={inpForm}>
                 <option value="efectivo">Efectivo</option>
                 <option value="tarjeta">Tarjeta</option>
+                {!esPagoServicio(modalEditar) && (
+                  <>
+                    <option value="spei">SPEI / Transferencia</option>
+                    <option value="mercadopago">Mercado Pago</option>
+                  </>
+                )}
               </select>
             </div>
             <div style={{ marginBottom: 16 }}>

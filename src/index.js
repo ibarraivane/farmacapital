@@ -1,9 +1,11 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import "./index.css";
+import "./styles/adminMobileTables.css";
 import App from "./App";
 import { initEventStore } from "./core/eventStore/initEventStore";
 import { aplicarTokensCSS } from "./theme/tokens";
+import { iniciarVigilanciaDeploy } from "./utils/appUpdate";
 
 aplicarTokensCSS();
 initEventStore();
@@ -15,6 +17,10 @@ if (typeof window !== "undefined" && typeof window.__fcOcultarSplash === "functi
 
 if (typeof window !== "undefined" && process.env.REACT_APP_FARMACAPITAL_BUILD_ID) {
   window.__FARMACAPITAL_BUILD_ID__ = process.env.REACT_APP_FARMACAPITAL_BUILD_ID;
+}
+
+if (typeof window !== "undefined") {
+  iniciarVigilanciaDeploy();
 }
 
 const CHUNK_RETRY_KEY = "farmacapital_chunk_retries";

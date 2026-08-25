@@ -840,7 +840,7 @@ export default function RRHHModule() {
       ):(
         <>
         <div style={{overflowX:"auto",borderRadius:10,border:`1px solid ${C.border}`,marginBottom:16}}>
-          <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
+          <table className="fc-tabla-cards" style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
             <thead>
               <tr style={{background:C.cardDark}}>
                 {["Empleado","Ventas","Transacciones","Ticket prom.",`Comisión (${pctCom}%)`].map(h=>(
@@ -851,11 +851,11 @@ export default function RRHHModule() {
             <tbody>
               {comisiones.map((c,i)=>(
                 <tr key={c.uid} style={{background:i%2===0?"transparent":"#f8fafc"}}>
-                  <td style={{padding:"10px 14px",color:C.text,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{c.nombre}</td>
-                  <td style={{padding:"10px 14px",color:C.green,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{fmt(c.ventas)}</td>
-                  <td style={{padding:"10px 14px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{c.transacciones}</td>
-                  <td style={{padding:"10px 14px",color:C.blue,borderBottom:`1px solid ${C.border}`}}>{fmt(c.transacciones?c.ventas/c.transacciones:0)}</td>
-                  <td style={{padding:"10px 14px",borderBottom:`1px solid ${C.border}`}}>
+                  <td data-label="Empleado" data-primary style={{padding:"10px 14px",color:C.text,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{c.nombre}</td>
+                  <td data-label="Ventas" style={{padding:"10px 14px",color:C.green,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{fmt(c.ventas)}</td>
+                  <td data-label="Transacciones" style={{padding:"10px 14px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{c.transacciones}</td>
+                  <td data-label="Ticket prom." style={{padding:"10px 14px",color:C.blue,borderBottom:`1px solid ${C.border}`}}>{fmt(c.transacciones?c.ventas/c.transacciones:0)}</td>
+                  <td data-label="Comisión" style={{padding:"10px 14px",borderBottom:`1px solid ${C.border}`}}>
                     <span style={{background:C.greenDim,color:C.green,fontWeight:800,padding:"3px 10px",borderRadius:8}}>{fmt(c.comision)}</span>
                   </td>
                 </tr>

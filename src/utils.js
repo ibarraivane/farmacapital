@@ -156,39 +156,73 @@ export const hashPwdLegacy = async pwd => {
 // ────────────────────────────────────────────────────────────────
 
 /** Token de sesión de empleado (null si no hay sesión admin). */
-export const getSessionToken = () => {
-  try { return sessionStorage.getItem("farmacapital_session_token") || null; }
-  catch { return null; }
-};
+const EMPLEADO_TOKEN_KEY = "farmacapital_session_token";
+const EMPLEADO_USER_KEY = "farmacapital_admin_user";
+/** Cubre matutino + vespertino + corte. El servidor alarga el token si siguen vendiendo. */
+export const SESION_EMPLEADO_MAX_MS = 16 * 60 * 60 * 1000;
+
+function storageRead(key) {
+  try {
+    const s = sessionStorage.getItem(key);
+    if (s) return s;
+  } catch (_) { /* noop */ }
+  try {
+    const l = localStorage.getItem(key);
+    if (l) {
+      try { sessionStorage.setItem(key, l); } catch (_) { /* noop */ }
+      return l;
+    }
+  } catch (_) { /* noop */ }
+  return null;
+}
+
+function storageWrite(key, val) {
+  try { sessionStorage.setItem(key, val); } catch (_) { /* noop */ }
+  try { localStorage.setItem(key, val); } catch (_) { /* noop */ }
+}
+
+function storageClear(key) {
+  try { sessionStorage.removeItem(key); } catch (_) { /* noop */ }
+  try { localStorage.removeItem(key); } catch (_) { /* noop */ }
+}
+
+export const getSessionToken = () => storageRead(EMPLEADO_TOKEN_KEY);
 
 export function setSessionToken(tok) {
-  try {
-    if (!tok) sessionStorage.removeItem("farmacapital_session_token");
-    else sessionStorage.setItem("farmacapital_session_token", String(tok));
-  } catch (_) { /* noop */ }
+  if (!tok) {
+    storageClear(EMPLEADO_TOKEN_KEY);
+    return;
+  }
+  storageWrite(EMPLEADO_TOKEN_KEY, String(tok));
 }
 
 export function readAdminUser() {
+  const raw = storageRead(EMPLEADO_USER_KEY);
+  if (!raw) return null;
   try {
-    const raw = sessionStorage.getItem("farmacapital_admin_user");
-    return raw ? JSON.parse(raw) : null;
-  } catch {
+    const data = JSON.parse(raw);
+    if (data.loginTimestamp && Date.now() - data.loginTimestamp > SESION_EMPLEADO_MAX_MS) {
+      clearEmpleadoSession();
+      return null;
+    }
+    return data;
+  } catch (_) {
+    clearEmpleadoSession();
     return null;
   }
 }
 
 export function writeAdminUser(data) {
-  try {
-    if (!data) sessionStorage.removeItem("farmacapital_admin_user");
-    else sessionStorage.setItem("farmacapital_admin_user", JSON.stringify(data));
-  } catch (_) { /* noop */ }
+  if (!data) {
+    storageClear(EMPLEADO_USER_KEY);
+    return;
+  }
+  storageWrite(EMPLEADO_USER_KEY, JSON.stringify(data));
 }
 
 export function clearEmpleadoSession() {
-  try {
-    sessionStorage.removeItem("farmacapital_session_token");
-    sessionStorage.removeItem("farmacapital_admin_user");
-  } catch (_) { /* noop */ }
+  storageClear(EMPLEADO_TOKEN_KEY);
+  storageClear(EMPLEADO_USER_KEY);
 }
 
 export { esErrorSesionEmpleado, onSesionEmpleadoInvalida } from "./utils/sesionEmpleadoAuth";

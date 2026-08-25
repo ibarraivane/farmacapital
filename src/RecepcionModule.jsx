@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { ScanLine, History } from "lucide-react";
+import { ScanLine, History, ArrowLeft } from "lucide-react";
 import { C_LIGHT, BRAND } from "./constants";
 import { supabase } from "./supabase";
 import { showToast } from "./ui";
@@ -14,7 +14,7 @@ import {
 import { etiquetaCaducidadMMAA, formatCaducidadMesAnio, parseCaducidadMMAA } from "./lib/caducidad";
 import { fetchProductosPaginados } from "./lib/inventarioHubData";
 import { parseTicketCsv } from "./lib/recepcionTicketCsv";
-import { getSessionToken, esErrorSesionEmpleado } from "./utils";
+import { $ as fmt, getSessionToken, esErrorSesionEmpleado } from "./utils";
 import { notifySesionEmpleadoInvalida } from "./utils/sesionEmpleadoAuth";
 import { setBloqueaReloadApp } from "./utils/appUpdate";
 import RecepcionHistorial from "./components/RecepcionHistorial";
@@ -203,6 +203,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
   const scanRef = useRef(null);
   const qtyRef = useRef(null);
   const cadRef = useRef(null);
+  const costoRef = useRef(null);
   const pdfRef = useRef(null);
   const csvRef = useRef(null);
 
@@ -219,6 +220,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
   const [scan, setScan] = useState("");
   const [qty, setQty] = useState("");
   const [cad, setCad] = useState("");
+  const [costo, setCosto] = useState("");
   const [pendiente, setPendiente] = useState(null);
   const [errorLinea, setErrorLinea] = useState("");
   const [subiendo, setSubiendo] = useState(false);
@@ -467,6 +469,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     setScan("");
     setQty("");
     setCad("");
+    setCosto("");
     setPendiente(null);
     setErrorLinea("");
     setTimeout(() => scanRef.current?.focus(), 30);
@@ -560,12 +563,14 @@ export default function RecepcionModule({ ocultarMontos = false }) {
       });
       setScan(codigo);
       setQty(String(gray.cantidad || 1));
+      setCosto(gray.costo_estimado != null ? String(gray.costo_estimado) : "");
       setTimeout(() => cadRef.current?.focus(), 30);
       return;
     }
     setErrorLinea("");
     setPendiente(r);
     setScan(codigo);
+    setCosto(r.producto?.costo != null ? String(r.producto.costo) : "");
     setTimeout(() => qtyRef.current?.focus(), 30);
   };
 
@@ -615,6 +620,18 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     setQty(val.replace(/[^\d]/g, "").slice(0, 5));
   };
 
+  const onCostoChange = (val) => {
+    if (looksLikeBarcodeInput(val)) {
+      setCosto("");
+      tomarScan(val);
+      return;
+    }
+    // un punto, dos decimales; la pistola nunca escribe aquí
+    const limpio = val.replace(/[^\d.]/g, "").replace(/(\..*)\./g, "$1");
+    const [ent, dec] = limpio.split(".");
+    setCosto(dec === undefined ? ent.slice(0, 7) : `${ent.slice(0, 7)}.${dec.slice(0, 2)}`);
+  };
+
   const onCadChange = (val) => {
     if (looksLikeBarcodeInput(val)) {
       setCad("");
@@ -630,6 +647,12 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     if (!n || n <= 0) { setErrorLinea("Pon la cantidad"); qtyRef.current?.focus(); return; }
     const iso = parseCaducidadMMAA(cad);
     if (!iso) { setErrorLinea("Caducidad MMAA — ej. 0629"); cadRef.current?.focus(); return; }
+    const costoN = costo.trim() === "" ? null : Number(costo);
+    if (costoN != null && (!Number.isFinite(costoN) || costoN <= 0)) {
+      setErrorLinea("El costo tiene que ser un número mayor que cero");
+      costoRef.current?.focus();
+      return;
+    }
     setSaving(true);
     setErrorLinea("");
     const tok = sessionTok();
@@ -641,6 +664,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
         p_item_id: pendiente.itemId,
         p_fecha_caducidad: iso,
         p_cantidad: n,
+        p_costo: costoN,
       }));
     } else {
       ({ data, error } = await supabase.rpc("recepcion_agregar_item", {
@@ -649,12 +673,20 @@ export default function RecepcionModule({ ocultarMontos = false }) {
         p_codigo: pendiente.codigo,
         p_cantidad: n,
         p_fecha_caducidad: iso,
+        p_costo: costoN,
       }));
     }
     setSaving(false);
     if (error) { setErrorLinea(error.message); return; }
     aplicarDoc(data);
     resetLinea();
+  };
+
+  const onCostoKey = (e) => {
+    if (e.key === "Escape") { e.preventDefault(); resetLinea(); return; }
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    guardarLinea();
   };
 
   const onCadKey = (e) => {
@@ -765,6 +797,13 @@ export default function RecepcionModule({ ocultarMontos = false }) {
   const confirmadosOk = items.filter((i) => i.confirmado && i.fecha_caducidad).length;
   const puedeCerrar = confirmadosOk > 0 && anaquelSinCad === 0;
   const cadPreview = etiquetaCaducidadMMAA(cad);
+  const costoAnterior = pendiente?.itemId
+    ? Number((doc?.items || []).find((i) => i.id === pendiente.itemId)?.costo_estimado)
+    : Number(pendiente?.producto?.costo);
+  const costoTecleado = costo.trim() === "" ? null : Number(costo);
+  const costoCambia = Number.isFinite(costoAnterior) && costoAnterior > 0
+    && costoTecleado != null && Number.isFinite(costoTecleado)
+    && Math.abs(costoTecleado - costoAnterior) > 0.005;
   const ticketNum = totalTicket.trim() === "" ? null : Number(String(totalTicket).replace(/,/g, ""));
   const estimado = Number(doc?.subtotal_estimado) || 0;
 
@@ -835,6 +874,21 @@ export default function RecepcionModule({ ocultarMontos = false }) {
         </div>
         {doc && (
           <div style={{ textAlign: "right" }}>
+            <button
+              type="button"
+              onClick={volverALista}
+              disabled={saving}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                marginBottom: 6, padding: "7px 12px", borderRadius: 8,
+                border: `1px solid ${C.border}`, background: C.card,
+                color: C.textMid, fontWeight: 700, fontSize: 13,
+                cursor: saving ? "not-allowed" : "pointer",
+              }}
+            >
+              <ArrowLeft size={15} strokeWidth={2.2} />
+              Salir sin cerrar
+            </button>
             <div style={{ color: C.text, fontWeight: 800, fontSize: 18, letterSpacing: -0.3 }}>
               {doc.renglones || 0} renglones · {(doc.items || []).filter((i) => i.confirmado).length} ok
               {(doc.sin_confirmar > 0) ? ` · ${doc.sin_confirmar} sin caducidad` : ""}
@@ -995,7 +1049,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
                     </div>
                   )}
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(112px, 1fr))", gap: 10 }}>
                   <div>
                     <label style={labelS(C)} htmlFor="rc-qty">Cantidad</label>
                     <input
@@ -1028,6 +1082,25 @@ export default function RecepcionModule({ ocultarMontos = false }) {
                     ) : (
                       <div style={{ color: C.textDim, fontSize: 11, marginTop: 4 }}>Cuatro dígitos: mes y año de la caja</div>
                     )}
+                  </div>
+                  <div>
+                    <label style={labelS(C)} htmlFor="rc-costo">Costo por pieza</label>
+                    <input
+                      id="rc-costo"
+                      ref={costoRef}
+                      inputMode="decimal"
+                      value={costo}
+                      onChange={(e) => onCostoChange(e.target.value)}
+                      onKeyDown={onCostoKey}
+                      placeholder="13.61"
+                      autoComplete="off"
+                      style={inpBase(C)}
+                    />
+                    <div style={{ color: costoCambia ? "#b45309" : C.textDim, fontSize: 11, fontWeight: costoCambia ? 700 : 400, marginTop: 4 }}>
+                      {costoCambia
+                        ? `Antes ${fmt(costoAnterior)} — se guarda el nuevo`
+                        : "El de la factura. Así queda en Historia."}
+                    </div>
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
