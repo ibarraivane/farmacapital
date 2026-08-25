@@ -88,6 +88,7 @@ export default function CorteCajaModule({usuario }) {
   const [sesionAbierta,      setSesionAbierta] = useState(null);
   const [jornada,            setJornada] = useState(null);
   const [corteHoy,           setCorteHoy] = useState(null);
+  const [anulando,           setAnulando] = useState(false);
 
   // El corte es a ciegas: mientras se captura no se muestra ni lo que el
   // sistema espera ni la diferencia. Un conteo que se puede copiar deja de ser
@@ -115,8 +116,11 @@ export default function CorteCajaModule({usuario }) {
   const mp      = parseFloat(mercadopago||0);
   // El fondo no es venta, por eso se descuenta del total del turno.
   const total_general = (efDec - fondoNum) + tar + mp;
+  // Un vendedor sólo cierra la caja que abrió. Antes bastaba con tener turno
+  // en el perfil, y así se guardó el corte fantasma del 24-ago a las 15:19:
+  // cerró un turno que nadie había abierto y dejó a Erika fuera siete horas.
   const puedeGuardar  = (usaDenoms || efectivo_declarado !== "")
-    && (!vendedorFijo || !!turnoPerfil || !!sesionAbierta);
+    && (!vendedorFijo || !!sesionAbierta);
 
   // Sólo se precargan tarjeta y MercadoPago. El efectivo esperado NO se pide:
   // si viajara al navegador, bastaría con abrir la pestaña de red para verlo
@@ -198,6 +202,49 @@ export default function CorteCajaModule({usuario }) {
     })();
     return () => { cancelled = true; };
   }, [turno]);
+
+  // Gerencia puede deshacer un corte del mismo día. Sin esto, un clic
+  // equivocado cierra el turno de alguien hasta mañana y sólo se arregla
+  // entrando a Supabase: el 24-ago costó siete horas de caja parada.
+  const puedeAnular = ["admin", "gerente"].includes(usuario?.rol || "");
+
+  const anularCorte = async () => {
+    if (!corteHoy?.id) return;
+    const motivo = window.prompt(
+      `Vas a anular el corte #${corteHoy.id} (${turno}).\n` +
+      "La caja se reabre y quien lo hizo puede volver a su turno hoy.\n\n" +
+      "¿Por qué se anula? Queda en la bitácora."
+    );
+    if (motivo === null) return;
+    if (!motivo.trim()) {
+      showToast("Hace falta el motivo para anular.", "warning");
+      return;
+    }
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    if (!tok) { showToast("Sesión expirada. Entra de nuevo.", "error"); return; }
+    setAnulando(true);
+    const { data, error } = await supabase.rpc("anular_corte_caja", {
+      p_session_token: tok,
+      p_corte_id: corteHoy.id,
+      p_motivo: motivo.trim(),
+    });
+    setAnulando(false);
+    if (error) {
+      showToast(
+        /function .*anular_corte_caja/i.test(error.message || "")
+          ? "Falta actualizar la base. Ejecuta sql/patch_caja_cadena_continua_20260824.sql en Supabase."
+          : "No se pudo anular: " + (error.message || ""),
+        "error"
+      );
+      return;
+    }
+    if (data?.success === false) {
+      showToast(data.error || "No se pudo anular el corte.", "error");
+      return;
+    }
+    setCorteHoy(null);
+    showToast(data?.mensaje || "Corte anulado.", "success");
+  };
 
   const fetchCortes = useCallback(async () => {
     setLoadingHist(true);
@@ -299,8 +346,13 @@ export default function CorteCajaModule({usuario }) {
   };
 
   const guardarCorte = async () => {
-    if (vendedorFijo && !turnoPerfil && !sesionAbierta) {
-      showToast("RH debe asignarte un turno antes de cerrar caja.", "warning");
+    if (vendedorFijo && !sesionAbierta) {
+      showToast(
+        turnoPerfil
+          ? "No tienes caja abierta, así que no hay turno que cortar."
+          : "RH debe asignarte un turno antes de cerrar caja.",
+        "warning"
+      );
       return;
     }
     if (!puedeGuardar) { showToast("Captura el efectivo contado", "warning"); return; }
@@ -320,7 +372,7 @@ export default function CorteCajaModule({usuario }) {
     setSaving(true);
     const denomsLimpios = Object.fromEntries(
       DENOMINACIONES.map(d => [d, parseInt(denoms[d],10) || 0]).filter(([,n]) => n > 0));
-    const { data, error } = await supabase.rpc("registrar_corte_caja", {
+    const pedirCorte = (confirmar) => supabase.rpc("registrar_corte_caja", {
       p_session_token: tok,
       p_turno: turno,
       p_efectivo_declarado: efDec,
@@ -333,7 +385,23 @@ export default function CorteCajaModule({usuario }) {
       p_fondo_inicial: fondoNum,
       p_contado_por: contadoPor.trim() || null,
       p_denominaciones: usaDenoms ? denomsLimpios : null,
+      p_confirmar: confirmar,
     });
+
+    let { data, error } = await pedirCorte(false);
+
+    // El corte es de ida: cerrado el turno, no se reabre en el día. Cuando la
+    // base detecta que es casi seguro un clic equivocado — caja recién
+    // abierta, o sin una sola venta en el periodo — no guarda: devuelve
+    // confirmable y deja que la persona decida con el dato enfrente.
+    if (!error && data?.success === false && data?.confirmable) {
+      if (!window.confirm(data.error)) {
+        setSaving(false);
+        return;
+      }
+      ({ data, error } = await pedirCorte(true));
+    }
+
     setSaving(false);
     if (error) {
       const raw = error.message || "";
@@ -481,6 +549,28 @@ export default function CorteCajaModule({usuario }) {
                     style={{ background: "none", border: "none", padding: 0, color: C.blue, fontWeight: 800, cursor: "pointer", fontSize: "inherit" }}>
                     Historial
                   </button>.</>}
+              {puedeAnular && corteHoy?.id && (
+                <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${C.green}40` }}>
+                  <div style={{ color: C.textMid, fontSize: 12, marginBottom: 8 }}>
+                    ¿Se guardó por error? Anularlo reabre la caja y quien lo hizo
+                    vuelve a su turno hoy mismo.
+                  </div>
+                  <button
+                    type="button"
+                    onClick={anularCorte}
+                    disabled={anulando}
+                    style={{
+                      padding: "8px 16px", borderRadius: 8,
+                      border: `1px solid ${C.border}`, background: C.card,
+                      color: C.text, fontSize: 12, fontWeight: 800,
+                      cursor: anulando ? "default" : "pointer",
+                      opacity: anulando ? 0.6 : 1,
+                    }}
+                  >
+                    {anulando ? "Anulando…" : `Anular corte #${corteHoy.id}`}
+                  </button>
+                </div>
+              )}
             </div>
           )}
 

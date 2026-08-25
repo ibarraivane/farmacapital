@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { C_LIGHT, BRAND } from "../../../constants";
 import { etiquetaTurno, inferirTurno, turnoDePerfil, etiquetaDiaDescanso } from "../../../constants/turnos";
 import { hayPiezasDenominacion } from "../../../constants/caja";
@@ -21,6 +21,15 @@ export default function AperturaCajaModal({ usuario, onAbierta }) {
   const turnoAbrir = jornada?.turno_abrir || (jornada?.cubre_ambos ? inferirTurno() : turnoHabitual);
   const nombre = (usuario?.nombre || "Vendedor").split(" ")[0];
 
+  const [revisando, setRevisando] = useState(false);
+  const ocupadaPor = jornada?.caja_ocupada_por || null;
+
+  const cargarJornada = useCallback(async () => {
+    const { jornada: j } = await fetchJornadaHoy();
+    if (j) setJornada(j);
+    return j;
+  }, []);
+
   useEffect(() => {
     let cancel = false;
     fetchJornadaHoy().then(({ jornada: j }) => {
@@ -28,6 +37,15 @@ export default function AperturaCajaModal({ usuario, onAbierta }) {
     });
     return () => { cancel = true; };
   }, []);
+
+  const revisarDeNuevo = async () => {
+    setRevisando(true);
+    const j = await cargarJornada();
+    setRevisando(false);
+    if (j?.caja_ocupada_por) {
+      showToast(`${j.caja_ocupada_por} sigue con la caja abierta.`, "info");
+    }
+  };
 
   const setPiezas = (d, value) => {
     setDenoms((p) => ({ ...p, [d]: value }));
@@ -56,6 +74,49 @@ export default function AperturaCajaModal({ usuario, onAbierta }) {
     showToast("Caja abierta. Ya puedes vender.", "success");
     onAbierta?.(sesion);
   };
+
+  // El cajón es uno solo. Mary sale 15:30 y Erika entra 15:00, así que media
+  // hora al día las dos están en el piso: más vale decirlo aquí que dejar que
+  // cuente el fondo y se lo rechacen al confirmar.
+  if (ocupadaPor) {
+    return (
+      <div style={{
+        position: "fixed", inset: 0, zIndex: 2000, background: C.bg,
+        overflowY: "auto", fontFamily: "var(--fc-body)",
+      }}>
+        <div style={{ maxWidth: 560, margin: "0 auto", padding: "28px 20px 48px" }}>
+          <div style={{
+            fontSize: 11, fontWeight: 800, letterSpacing: 1.2,
+            textTransform: "uppercase", color: BRAND.primary, marginBottom: 8,
+          }}>
+            Caja ocupada
+          </div>
+          <h1 style={{ margin: 0, color: C.text, fontSize: 22, fontWeight: 800 }}>
+            {ocupadaPor} todavía no corta
+          </h1>
+          <p style={{ color: C.textMid, fontSize: 14, lineHeight: 1.5, margin: "10px 0 0" }}>
+            La caja es una sola. En cuanto <strong>{ocupadaPor}</strong> cuente su
+            cajón y guarde el corte, abres la tuya. Las ventas de mientras
+            quedan en el turno de ella.
+          </p>
+          <button
+            type="button"
+            onClick={revisarDeNuevo}
+            disabled={revisando}
+            style={{
+              marginTop: 22, padding: "12px 20px", borderRadius: 10,
+              border: `1px solid ${C.border}`, background: C.card,
+              color: C.text, fontSize: 14, fontWeight: 700,
+              fontFamily: "inherit", cursor: revisando ? "default" : "pointer",
+              opacity: revisando ? 0.6 : 1,
+            }}
+          >
+            {revisando ? "Revisando…" : "Ya cortó, revisar"}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (jornada?.es_descanso) {
     const dia = etiquetaDiaDescanso(jornada.dia_descanso) || "hoy";
