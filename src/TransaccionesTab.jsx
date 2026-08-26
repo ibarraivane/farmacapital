@@ -544,6 +544,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
     <button
       type="button"
       title={title}
+      aria-label={title}
       onClick={onClick}
       disabled={disabled}
       style={{
@@ -607,7 +608,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
 
       {loading ? <SkeletonTable rows={5} cols={9} /> : (
         <div style={{ overflowX: "auto", borderRadius: 12, border: `1px solid ${C.border}`, marginBottom: 16 }}>
-          <table className="fc-tabla-cards" style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+          <table className="fc-tabla-cards" style={{ width: "100%", minWidth: 1080, borderCollapse: "collapse", fontSize: 12 }}>
             <thead>
               <tr style={{ background: C.cardDark }}>
                 {["ID", "Fecha/Hora", "Cliente", "Vendedor", "Total", "Método", "Tipo", "Estado", "Acciones"].map((h) => (
@@ -692,8 +693,8 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                   <td data-label="Estado" style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}` }}>
                     <span style={{ padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 700, background: estCol(p.estado) + "20", color: estCol(p.estado) }}>{p.estado || "—"}</span>
                   </td>
-                  <td data-label="Acciones" data-actions style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap" }} onClick={(e) => e.stopPropagation()}>
-                    <div style={{ display: "inline-flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
+                  <td data-label="Acciones" data-actions style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap", width: 1 }} onClick={(e) => e.stopPropagation()}>
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: 4, flexWrap: "nowrap" }}>
                       <button type="button" onClick={() => abrirDetalle(p)} title="Ver detalle" style={{ padding: "3px 8px", borderRadius: 5, border: `1px solid ${C.blue}30`, background: "#eff6ff", color: C.blue, cursor: "pointer", fontSize: 10, fontWeight: 700 }}>Detalle</button>
                       {!esPagoServicio(p) && <>
                       {btnAccionIcono({

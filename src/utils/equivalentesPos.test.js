@@ -55,4 +55,28 @@ describe("grupoEquivalentesDeBusqueda", () => {
     expect(grupoEquivalentesDeBusqueda(catalogo, [treda], "pastillas")).toBeNull();
     expect(grupoEquivalentesDeBusqueda(catalogo, [], "neomicina")).toBeNull();
   });
+
+  it("una marca directa gobierna el tablero aunque haya más falsos candidatos", () => {
+    const dentales = [1, 2, 3, 4, 5].map((id) => ({
+      id: 100 + id,
+      nombre: id === 1 ? "Colgate Max Clean Frescura y Limpieza" : `Crema dental ${id}`,
+      marca: id === 1 ? "Colgate" : "Sensodyne",
+      principio_activo: "Fluoruro de sodio",
+      forma_farmaceutica: "Crema",
+      activo: true,
+    }));
+    const resultadosConRuido = [treda, ...dentales, nineka];
+    const grupo = grupoEquivalentesDeBusqueda([...catalogo, ...dentales], resultadosConRuido, "treda");
+    expect(grupo?.clave).toBe("caolin+neomicina+pectina");
+    expect(grupo?.mismaConfiguracion[0].id).toBe(treda.id);
+  });
+
+  it("una coincidencia directa sin alternativas no muestra un grupo ajeno", () => {
+    const unico = { id: 700, nombre: "Producto Único", marca: "Único", principio_activo: "Sustancia exclusiva", activo: true };
+    const ruido = [
+      { id: 701, nombre: "Crema A", principio_activo: "Fluoruro de sodio", activo: true },
+      { id: 702, nombre: "Crema B", principio_activo: "Fluoruro de sodio", activo: true },
+    ];
+    expect(grupoEquivalentesDeBusqueda([unico, ...ruido], [unico, ...ruido], "Producto Único")).toBeNull();
+  });
 });

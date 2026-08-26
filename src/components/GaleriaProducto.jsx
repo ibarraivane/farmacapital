@@ -22,6 +22,8 @@ import { BRAND, C_LIGHT } from "../constants";
  * @param {boolean} [puntosFlotantes] Pone los puntos encima de la foto en vez
  *   de debajo. Para cajas de alto acotado (la ficha del POS), donde una fila
  *   extra abajo se recortaría y la foto es lo que el vendedor necesita grande.
+ * @param {boolean} [mostrarPuntos] Si es false, no pinta la tira de puntos
+ *   (tapan la foto). Queda un contador discreto 2/9 y las flechas.
  */
 export default function GaleriaProducto({
   imagenes = [],
@@ -32,6 +34,7 @@ export default function GaleriaProducto({
   onImagenClick,
   imagenRef,
   puntosFlotantes = false,
+  mostrarPuntos = true,
 }) {
   const C = C_LIGHT;
   const fotos = useMemo(
@@ -184,51 +187,73 @@ export default function GaleriaProducto({
         )}
       </div>
 
+      {!soloUna && mostrarPuntos && (
+        <div style={{
+          display: "flex",
+          gap: 6,
+          flexWrap: "wrap",
+          justifyContent: "center",
+          ...(puntosFlotantes
+            ? {
+                position: "absolute",
+                bottom: 6,
+                left: "50%",
+                transform: "translateX(-50%)",
+                padding: "5px 8px",
+                borderRadius: 999,
+                background: "rgba(255,255,255,.86)",
+                boxShadow: "0 1px 4px rgba(0,21,52,.16)",
+                zIndex: 2,
+              }
+            : { marginTop: 10 }),
+        }}>
+          {fotos.map((u, idx) => (
+            <button
+              key={u}
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setI(idx); }}
+              aria-label={`Ver foto ${idx + 1} de ${total}`}
+              aria-current={idx === i}
+              style={{
+                width: idx === i ? 20 : 8,
+                height: 8,
+                borderRadius: 999,
+                border: "none",
+                padding: 0,
+                cursor: "pointer",
+                background: idx === i ? BRAND.primary : C.border,
+                transition: "width .15s ease, background .15s ease",
+              }}
+            />
+          ))}
+        </div>
+      )}
+      {!soloUna && !mostrarPuntos && (
+        <div
+          aria-hidden
+          style={{
+            position: "absolute",
+            top: 8,
+            right: 8,
+            zIndex: 2,
+            padding: "3px 7px",
+            borderRadius: 999,
+            background: "rgba(255,255,255,.88)",
+            border: `1px solid ${C.border}`,
+            fontSize: 11,
+            fontWeight: 800,
+            color: C.textMid,
+            lineHeight: 1,
+            pointerEvents: "none",
+          }}
+        >
+          {i + 1}/{total}
+        </div>
+      )}
       {!soloUna && (
-        <>
-          <div style={{
-            display: "flex",
-            gap: 6,
-            flexWrap: "wrap",
-            justifyContent: "center",
-            ...(puntosFlotantes
-              ? {
-                  position: "absolute",
-                  bottom: 6,
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  padding: "5px 8px",
-                  borderRadius: 999,
-                  background: "rgba(255,255,255,.86)",
-                  boxShadow: "0 1px 4px rgba(0,21,52,.16)",
-                  zIndex: 2,
-                }
-              : { marginTop: 10 }),
-          }}>
-            {fotos.map((u, idx) => (
-              <button
-                key={u}
-                type="button"
-                onClick={(e) => { e.stopPropagation(); setI(idx); }}
-                aria-label={`Ver foto ${idx + 1} de ${total}`}
-                aria-current={idx === i}
-                style={{
-                  width: idx === i ? 20 : 8,
-                  height: 8,
-                  borderRadius: 999,
-                  border: "none",
-                  padding: 0,
-                  cursor: "pointer",
-                  background: idx === i ? BRAND.primary : C.border,
-                  transition: "width .15s ease, background .15s ease",
-                }}
-              />
-            ))}
-          </div>
-          <span aria-live="polite" style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap" }}>
-            Foto {i + 1} de {total}
-          </span>
-        </>
+        <span aria-live="polite" style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap" }}>
+          Foto {i + 1} de {total}
+        </span>
       )}
     </div>
   );

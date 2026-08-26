@@ -414,7 +414,9 @@ export function minEditDistanceQueryToText(queryNorm, textNorm) {
 }
 
 function maxTypoForLength(len) {
-  if (len <= 4) return 1;
+  // En cinco letras, dos cambios generan falsos positivos peligrosos:
+  // "treda" terminaba coincidiendo con "crema".
+  if (len <= 5) return 1;
   if (len <= 7) return 2;
   return Math.min(4, Math.floor(len * 0.35));
 }
@@ -495,8 +497,20 @@ export function catalogProductMatchesBusqueda(product, queryRaw, options = {}) {
   if (!raw) return true;
 
   const q = normalizeCatalogSearchQuery(raw);
+  const directQ = normalizeForSearch(raw);
   const tokens = q.split(/\s+/).filter(Boolean);
   if (!tokens.length) return true;
+
+  // El texto persistido completo siempre se encuentra a sí mismo. Esto evita
+  // que unidades/conectores de nombres largos rompan el AND por tokens.
+  const directIdentityFields = [
+    product?.nombre,
+    product?.marca,
+    product?.denominacion_distintiva,
+    product?.principio_activo,
+    product?.denominacion_generica,
+  ].map((value) => normalizeForSearch(value)).filter(Boolean);
+  if (directIdentityFields.some((field) => field === directQ || field.includes(directQ))) return true;
 
   if (catalogFieldsMatchAllTokens(product, raw, { inventario })) return true;
 
@@ -515,6 +529,7 @@ function catalogSearchRelevanceRank(product, queryRaw, { inventario = false } = 
   const raw = String(queryRaw ?? "").trim();
   if (!raw) return 0;
   const qn = normalizeCatalogSearchQuery(raw);
+  const directQn = normalizeForSearch(raw);
   if (!qn) return 40;
   const tokens = requiredCatalogQueryTokens(qn.split(/\s+/).filter(Boolean));
   const n = normalizeForSearch(product?.nombre || "");
@@ -533,6 +548,12 @@ function catalogSearchRelevanceRank(product, queryRaw, { inventario = false } = 
     tokens.length > 0 && tokens.every((t) => shortCatalogTokenMatchesNormalizedField(t, hay));
   const everyInNameLike = catalogTokensMatchNameLikeFields(tokens, product);
 
+  // Identidad exacta antes de cualquier coincidencia fuzzy en otro campo.
+  if (sku === directQn || cb === directQn) return 0;
+  if (n === directQn) return 0;
+  if (marca === directQn) return 1;
+  if (dd === directQn) return 1;
+
   if (normalizedHaystackMatchesPhrase(n, qn, tokens)) {
     const pr = catalogPhraseMatchRank(qn, tokens, product?.nombre);
     return pr != null ? pr : 0;
@@ -549,7 +570,6 @@ function catalogSearchRelevanceRank(product, queryRaw, { inventario = false } = 
   if (everyIn(pa)) return 4;
   if (everyIn(dg)) return 5;
   if (everyIn(dd)) return 6;
-  if (sku === qn || cb === qn) return 0;
   if (qn.length >= 2 && (sku.startsWith(qn) || cb.startsWith(qn))) return 5;
   if (everyInNameLike) return 5;
   if (conc.includes(qn) || pres.includes(qn) || forma.includes(qn)) return 6;

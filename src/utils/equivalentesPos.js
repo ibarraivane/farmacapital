@@ -110,6 +110,23 @@ export function grupoOpcionesRelacionadas(productos, ancla, query = "") {
 export function grupoEquivalentesDeBusqueda(productos, resultados, query = "") {
   if (!consultaEsClara(query, resultados)) return null;
   const top = (resultados || []).slice(0, RESULTADOS_QUE_DECIDEN);
+  const q = norm(query);
+
+  // Una marca o nombre escrito directamente manda sobre la mayoría accidental
+  // de resultados fuzzy. Ej.: Treda no debe perder contra varias cremas dentales
+  // que compartan otro activo sólo porque "treda" se parezca a "crema".
+  const anclaDirecta = top.find((p) =>
+    q && [p?.nombre, p?.marca, p?.denominacion_distintiva]
+      .map(norm)
+      .filter(Boolean)
+      .some((campo) => campo === q || campo.startsWith(`${q} `) || campo.includes(` ${q} `))
+  );
+  if (anclaDirecta) {
+    // Si el producto directo no tiene alternativas, no buscamos un grupo ajeno:
+    // se conserva la lista/ficha normal para esa búsqueda.
+    return grupoOpcionesRelacionadas(productos, anclaDirecta, query);
+  }
+
   const candidatos = new Map();
   top.forEach((p, orden) => {
     const clave = claveSustancia(p);

@@ -62,6 +62,15 @@ it("con puntos flotantes no ocupa alto extra: la caja del POS los recortaría", 
   expect(puntos().style.position).toBe("absolute");
 });
 
+it("sin puntos deja las flechas y un contador que no tapa la foto", () => {
+  const { container } = render(<GaleriaProducto imagenes={tres} alt="Nido" mostrarPuntos={false} />);
+  expect(screen.queryByLabelText("Ver foto 2 de 3")).not.toBeInTheDocument();
+  expect(screen.getByLabelText("Foto siguiente")).toBeInTheDocument();
+  expect(container).toHaveTextContent("1/3");
+  fireEvent.click(screen.getByLabelText("Foto siguiente"));
+  expect(container).toHaveTextContent("2/3");
+});
+
 it("cae al ícono cuando la foto no carga, sin romper la galería", () => {
   const { container } = render(<GaleriaProducto imagenes={tres} alt="Nido" />);
   fireEvent.error(container.querySelector("img"));

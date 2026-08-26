@@ -93,13 +93,12 @@ export default function VentasVsMetaChart({ porDia, cfg, hoyYmd }) {
         </div>
       </div>
 
-      {!hayDatos ? (
-        <div style={{ color: C.textMid, fontSize: 13, padding: "28px 8px", textAlign: "center" }}>
-          Aún no hay ventas en este tramo. Cuando entren tickets, aquí se comparan con la meta.
+      {hayDatos ? null : (
+        <div style={{ color: C.textMid, fontSize: 12, marginBottom: 8 }}>
+          Aún no hay ventas en este tramo. Las barras se llenan cuando entren tickets.
         </div>
-      ) : (
-        <>
-          <div
+      )}
+      <div
             role="img"
             aria-label={elegido
               ? `${elegido.detalle}: ${fmtK(elegido.actual)} de ${fmtK(elegido.meta)}`
@@ -220,8 +219,6 @@ export default function VentasVsMetaChart({ porDia, cfg, hoyYmd }) {
               </div>
             </div>
           )}
-        </>
-      )}
     </section>
   );
 }

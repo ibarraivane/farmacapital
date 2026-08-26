@@ -37,6 +37,33 @@ const centrum = {
 };
 
 describe("catalog search dimensions", () => {
+  test("Treda no se confunde con crema", () => {
+    const treda = { id: 501, nombre: "Treda Antidiarreico", marca: "Treda", principio_activo: "Neomicina + Caolín + Pectina" };
+    const crema = { id: 502, nombre: "Colgate Max Clean", marca: "Colgate", forma_farmaceutica: "Crema", principio_activo: "Fluoruro de sodio" };
+    expect(tiendaProductMatchesBusqueda(treda, "treda")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(crema, "treda")).toBe(false);
+    expect(tiendaSearchRelevanceRank(treda, "treda")).toBeLessThan(tiendaSearchRelevanceRank(crema, "treda"));
+  });
+
+  test("un nombre largo se encuentra completo y conserva prioridad exacta", () => {
+    const producto = {
+      id: 503,
+      nombre: "Levofloxacino 500 mg Caja con 7 tabletas beadvance",
+      marca: "beadvance",
+      principio_activo: "Levofloxacino",
+      presentacion: "Caja con 7 tabletas",
+      concentracion: "500 mg",
+    };
+    expect(tiendaProductMatchesBusqueda(producto, producto.nombre)).toBe(true);
+    expect(tiendaSearchRelevanceRank(producto, producto.nombre)).toBe(0);
+  });
+
+  test("la normalización singular/plural no rebaja un nombre exacto", () => {
+    const producto = { id: 504, nombre: "La Femme vitaminas menopausia C/30", marca: "La Femme" };
+    expect(tiendaProductMatchesBusqueda(producto, producto.nombre)).toBe(true);
+    expect(tiendaSearchRelevanceRank(producto, producto.nombre)).toBe(0);
+  });
+
   test("Tensolastic 7 cm matches venda 7 cm", () => {
     expect(inventarioProductMatchesBusqueda(tensolastic7, "Tensolastic 7 cm")).toBe(true);
     expect(tiendaProductMatchesBusqueda(tensolastic7, "Tensolastic 7 cm")).toBe(true);

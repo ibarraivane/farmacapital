@@ -351,7 +351,7 @@ function PosProductoFichaPanel({
               maxAlto={stack ? 200 : 252}
               onImagenClick={() => setFotoAbierta(true)}
               imagenRef={fotoBtnRef}
-              puntosFlotantes
+              mostrarPuntos={false}
             />
           </div>
         ) : (
@@ -523,6 +523,7 @@ function PosProductoFichaPanel({
         alt={posTituloProducto(item)}
         maxAlto={520}
         style={{ borderRadius: 12, background: "#fff" }}
+        mostrarPuntos={false}
       />
     </Modal>
     </>
