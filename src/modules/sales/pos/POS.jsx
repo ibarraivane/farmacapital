@@ -29,6 +29,8 @@ import {
   describePosProductUseFallback,
 } from "../../../utils/posConocimientoFarmacia";
 import { Box, Tag, Btn, Inp, Modal, showToast, SearchDropdown, SkeletonTable } from "../../../ui";
+import GaleriaProducto from "../../../components/GaleriaProducto";
+import { useImagenesPrincipales, useProductoImagenes } from "../../../hooks/useProductoImagenes";
 import {
   CONSULTA_PRECIO_DEFAULT,
   CONSULTA_PARTE_DOCTOR,
@@ -205,6 +207,8 @@ function posEtiquetaForma(item) {
 function PosProductoFichaPanel({
   item,
   productos,
+  onVolver,
+  volverTexto = "Volver a los resultados",
   onSelectVariante,
   onAddCaja,
   onAddUnidad,
@@ -222,6 +226,10 @@ function PosProductoFichaPanel({
 }) {
   const [fotoAbierta, setFotoAbierta] = useState(false);
   const fotoBtnRef = useRef(null);
+  const { imagenes: galeria } = useProductoImagenes(
+    item?.id,
+    item?.imagen_url || item?.imagen_mobile_url || "",
+  );
 
   useEffect(() => {
     setFotoAbierta(false);
@@ -260,7 +268,6 @@ function PosProductoFichaPanel({
     );
   }
 
-  const thumb = item.imagen_url || item.imagen_mobile_url || "";
   const variantes = posVariantesDeProducto(productos, item);
   const stockCajas = getStockCajasPOS(item);
   const sinLotes = productoSinLotesPEPS(item);
@@ -287,6 +294,30 @@ function PosProductoFichaPanel({
   return (
     <>
     <div style={panelShell} data-tour="pos-ficha-producto">
+      {onVolver && (
+        <button
+          type="button"
+          onClick={onVolver}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            width: "100%",
+            padding: stack ? "10px 14px" : "10px 20px",
+            border: "none",
+            borderBottom: `1px solid ${C.border}`,
+            background: C.bg,
+            color: C.blue,
+            font: "inherit",
+            fontSize: 13,
+            fontWeight: 800,
+            cursor: "pointer",
+            textAlign: "left",
+          }}
+        >
+          <span aria-hidden>←</span> {volverTexto}
+        </button>
+      )}
       <div
         style={{
           display: "grid",
@@ -296,14 +327,10 @@ function PosProductoFichaPanel({
           alignItems: stack ? "stretch" : "start",
         }}
       >
-        {thumb ? (
-          <button
-            type="button"
-            ref={fotoBtnRef}
-            onClick={() => setFotoAbierta(true)}
-            aria-label={`Ver foto de ${posTituloProducto(item)}`}
-            aria-haspopup="dialog"
+        {galeria.length ? (
+          <div
             style={{
+              position: "relative",
               borderRadius: 14,
               overflow: "hidden",
               background: "#fff",
@@ -314,30 +341,19 @@ function PosProductoFichaPanel({
               alignItems: "center",
               justifyContent: "center",
               padding: stack ? 10 : 14,
-              cursor: "zoom-in",
               width: "100%",
               boxSizing: "border-box",
-              appearance: "none",
-              WebkitAppearance: "none",
-              font: "inherit",
-              color: "inherit",
             }}
           >
-            <img
-              src={thumb}
-              alt=""
-              style={{
-                maxWidth: "100%",
-                maxHeight: stack ? 200 : 252,
-                width: "auto",
-                height: "auto",
-                objectFit: "contain",
-                display: "block",
-                background: "#fff",
-                pointerEvents: "none",
-              }}
+            <GaleriaProducto
+              imagenes={galeria}
+              alt={posTituloProducto(item)}
+              maxAlto={stack ? 200 : 252}
+              onImagenClick={() => setFotoAbierta(true)}
+              imagenRef={fotoBtnRef}
+              puntosFlotantes
             />
-          </button>
+          </div>
         ) : (
           <div
             style={{
@@ -501,11 +517,12 @@ function PosProductoFichaPanel({
         </div>
       </div>
     </div>
-    <Modal open={Boolean(fotoAbierta && thumb)} onClose={cerrarFoto} title={posTituloProducto(item)}>
-      <img
-        src={thumb}
+    <Modal open={Boolean(fotoAbierta && galeria.length)} onClose={cerrarFoto} title={posTituloProducto(item)}>
+      <GaleriaProducto
+        imagenes={galeria}
         alt={posTituloProducto(item)}
-        style={{ width: "100%", height: "auto", display: "block", borderRadius: 12, background: "#fff" }}
+        maxAlto={520}
+        style={{ borderRadius: 12, background: "#fff" }}
       />
     </Modal>
     </>
@@ -527,6 +544,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
   const [tab,setTab]         = useState(initialTab); // venta | online | consultas | servicios
   const [productos,setProds] = useState([]);
   const [cart,setCart]       = useState([]);
+  /** Foto principal del catálogo cuando el producto no tiene imagen_url propia. */
+  const fotoPrincipalDe = useImagenesPrincipales();
   const especialesRef = useRef({});
   useEffect(() => {
     setBloqueaReloadApp(cart.length > 0, "pos-cart");
@@ -2928,6 +2947,13 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
             <PosProductoFichaPanel
               item={fichaProd}
               productos={productos}
+              onVolver={grupoEquivalentes && fichaProd ? () => {
+                setFichaProd(null);
+                // La pistola escanea a nivel documento, pero devolver el foco
+                // deja al vendedor listo para teclear sin buscar el campo.
+                srchRef.current?.focus();
+              } : undefined}
+              volverTexto={grupoEquivalentes ? `Volver a las ${grupoEquivalentes.total} opciones` : "Volver a los resultados"}
               usoTexto={fichaProd ? (usoByProdId[fichaProd.id] || (posDescripcionEsUsoValido(fichaProd) ? fichaProd.descripcion : null)) : null}
               usoLoading={!!fichaProd && usoLoadingId === fichaProd.id}
               onSelectVariante={setFichaProd}
@@ -2988,7 +3014,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                 </div>
                 {fil.slice(0, 60).map((item) => {
                   const sel = fichaProd?.id === item.id;
-                  const thumb = item.imagen_url || item.imagen_mobile_url || "";
+                  const thumb = item.imagen_url || item.imagen_mobile_url || fotoPrincipalDe(item.id) || "";
                   const stockCajas = getStockCajasPOS(item);
                   const sinLotes = productoSinLotesPEPS(item);
                   const agotado = stockCajas <= 0 && (!item.venta_unidad || item.stock_unidades === 0);

@@ -14,6 +14,8 @@ import { showToast } from "./ui";
 import OnboardingTour from "./components/OnboardingTour";
 import { idEmpleadoUsuarios } from "./utils/usuarioId";
 import ImageUploader from "./components/ImageUploader";
+import GaleriaProducto from "./components/GaleriaProducto";
+import { useImagenesPrincipales, useProductoImagenes } from "./hooks/useProductoImagenes";
 import { sugerirPrecioUnidad, aplicarReglaPrecioUnidad, margenBrutoPct } from "./utils/precioUnidad";
 import { productoEsVendible } from "./utils/productoVendible";
 import {
@@ -830,6 +832,71 @@ const exportarCSV = (productos) => {
   a.click(); URL.revokeObjectURL(url);
 };
 
+/**
+ * Fotos ya disponibles en el catálogo para este producto (Rappi, distribuidor,
+ * propias). Se pasan con las flechas y cualquiera se puede promover a foto
+ * principal sin salir del formulario.
+ *
+ * No escribe nada por su cuenta: solo propone la URL: se guarda cuando el
+ * usuario guarda el producto.
+ */
+function FotosDelCatalogo({ productoId, imagenActual, onElegir, C }) {
+  const { imagenes, cargando } = useProductoImagenes(productoId, "");
+  const [verTodas, setVerTodas] = useState(false);
+
+  if (!productoId || cargando || imagenes.length === 0) return null;
+
+  const actual = String(imagenActual || "").trim();
+  const visible = verTodas ? imagenes : imagenes.slice(0, 1);
+
+  return (
+    <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.border}` }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 8 }}>
+        <label style={{ color: C.textMid, fontSize: 11, fontWeight: 700 }}>
+          🖼️ OTRAS FOTOS DEL CATÁLOGO ({imagenes.length})
+        </label>
+        <button
+          type="button"
+          onClick={() => setVerTodas((v) => !v)}
+          style={{ background: "none", border: "none", color: C.blue, fontSize: 11, fontWeight: 700, cursor: "pointer", padding: 0 }}
+        >
+          {verTodas ? "Ocultar" : "Ver galería"}
+        </button>
+      </div>
+
+      {verTodas && (
+        <div style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 10, padding: 10 }}>
+          <GaleriaProducto imagenes={visible} alt="" maxAlto={220} iconoVacio={48} />
+        </div>
+      )}
+
+      {verTodas && (
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
+          {imagenes.map((url) => (
+            <button
+              key={url}
+              type="button"
+              onClick={() => onElegir(url)}
+              title={url === actual ? "Ya es la foto principal" : "Usar como foto principal"}
+              style={{
+                width: 56,
+                height: 56,
+                padding: 2,
+                borderRadius: 8,
+                cursor: "pointer",
+                background: "#fff",
+                border: url === actual ? `2px solid ${C.blue}` : `1px solid ${C.border}`,
+              }}
+            >
+              <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibirMercancia, onCaducidadSaved }) {
   const C = C_LIGHT;
   const inputStyle = mkInputStyle(C);
@@ -1097,6 +1164,12 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
           <div style={{fontSize:11,color:C.textDim,marginTop:8,lineHeight:1.4}}>
             💡 También podés pegar URL abajo si preferís. Bucket <code style={{background:C.card,padding:"1px 4px",borderRadius:4}}>productos</code> · <code style={{background:C.card,padding:"1px 4px",borderRadius:4}}>sql/storage_buckets.sql</code>
           </div>
+          <FotosDelCatalogo
+            productoId={form.id}
+            imagenActual={form.imagen_url}
+            onElegir={(url)=>setForm((f)=>({...f,imagen_url:url,imagen_mobile_url:url}))}
+            C={C}
+          />
         </div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 18px"}}>
           <div>
@@ -2072,6 +2145,7 @@ function renderInventarioColumnCell(colId, ctx) {
     C,
     BRAND: BR,
     p,
+    fotoCatalogoDe,
     stickyRowBg,
     inlineCellProps,
     invColWidthStyle,
@@ -2115,6 +2189,9 @@ function renderInventarioColumnCell(colId, ctx) {
     onQuitarCad,
   } = inlineCellProps;
 
+  // Respaldo del catálogo cuando el producto no tiene foto propia.
+  const fotoMiniatura = p.imagen_url || fotoCatalogoDe?.(p.id) || "";
+
   switch (colId) {
     case "foto":
       return (
@@ -2135,7 +2212,7 @@ function renderInventarioColumnCell(colId, ctx) {
               width: 28,
               height: 28,
               borderRadius: 4,
-              background: p.imagen_url ? `url(${p.imagen_url}) center/cover` : C.bg,
+              background: fotoMiniatura ? `url(${fotoMiniatura}) center/cover` : C.bg,
               border: `1px solid ${C.border}`,
               display: "flex",
               alignItems: "center",
@@ -2143,7 +2220,7 @@ function renderInventarioColumnCell(colId, ctx) {
               fontSize: 12,
             }}
           >
-            {!p.imagen_url ? "📷" : null}
+            {!fotoMiniatura ? "📷" : null}
           </div>
         </td>
       );
@@ -2617,6 +2694,8 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
   const btnGreen = mkBtnGreen(C);
   const btnSecondary = mkBtnSecondary(C);
   const isMobileInv = useMediaQuery("(max-width: 768px)");
+  /** Foto principal del catálogo para los productos sin imagen_url propia. */
+  const fotoCatalogoDe = useImagenesPrincipales();
   const [productos,       setProductos]       = useState([]);
   const [loading,         setLoading]         = useState(true);
   const [busqueda,        setBusqueda]        = useState("");
@@ -4089,6 +4168,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
                   C,
                   BRAND,
                   p,
+                  fotoCatalogoDe,
                   stickyRowBg,
                   inlineCellProps,
                   invColWidthStyle,

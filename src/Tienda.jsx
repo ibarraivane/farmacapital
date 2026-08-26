@@ -27,6 +27,8 @@ import {
 import { productoEsVendible } from "./utils/productoVendible";
 import { CATEGORIAS_PRODUCTO, categoriaCanon, categoriaPasaFiltro, categoriasCoinciden, esCategoriaAntibiotico } from "./constants/categoriasProducto";
 import { showToast, Logo, BrandSplash } from "./ui";
+import GaleriaProducto from "./components/GaleriaProducto";
+import { useImagenesPrincipales, useProductoImagenes } from "./hooks/useProductoImagenes";
 import { setBloqueaReloadApp } from "./utils/appUpdate";
 import { pageIdToTiendaPath, resolveTiendaPage, tiendaPathnameToPageId, tiendaPathSuggestsReceta, tiendaProductIdFromSearch } from "./shared/tiendaRoutes";
 import { canjePorPuntos, guardarCanjeActivo, leerCanjeActivo, limpiarCanjeActivo } from "./utils/puntosCanje";
@@ -282,11 +284,15 @@ function BannerLoopVideo({ src, poster, style, "aria-label": ariaLabel }){
 
 const TiendaPlaceholderCtx = createContext("");
 
-/** Imagen de producto en catálogo / carrito: variante móvil si existe y viewport estrecho */
-function productImageUrl(prod, narrow, placeholderFallback = ""){
+/**
+ * Imagen de producto en catálogo / carrito: variante móvil si existe y viewport
+ * estrecho. `fotoCatalogo` es la principal de producto_imagenes: entra cuando el
+ * producto no tiene foto propia, antes de caer al placeholder genérico.
+ */
+function productImageUrl(prod, narrow, placeholderFallback = "", fotoCatalogo = ""){
   if (!prod) return placeholderFallback || "";
   if (narrow && prod.imagen_mobile_url) return prod.imagen_mobile_url;
-  return prod.imagen_url || placeholderFallback || "";
+  return prod.imagen_url || fotoCatalogo || placeholderFallback || "";
 }
 
 // ── FAQ ───────────────────────────────────────────────────────
@@ -1744,7 +1750,8 @@ function ProductCard({prod,addToCart,onClick}){
   const agotado = productoAgotadoTienda(prod);
   const d=prod.disponible||(prod.stock>0?"inmediato":"48hrs");
   const placeholderUrl = useContext(TiendaPlaceholderCtx);
-  const imgSrc = productImageUrl(prod, narrow, placeholderUrl);
+  const fotoCatalogoDe = useImagenesPrincipales();
+  const imgSrc = productImageUrl(prod, narrow, placeholderUrl, fotoCatalogoDe(prod?.id));
   const handleDetailClick = () => { onClick?.(); };
   const handleAddClick = (e) => {
     e.stopPropagation();
@@ -1866,6 +1873,9 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
       document.getElementById("farmacapital-catalogo-resultados")?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   };
+  // Antes del early return: los hooks deben correr en el mismo orden siempre.
+  const imgSrc = productImageUrl(prod, stack, placeholderUrl);
+  const { imagenes: galeria } = useProductoImagenes(prod?.id, imgSrc);
   if(!prod) return (
     <div style={{maxWidth:560,margin:"80px auto",padding:"0 24px",textAlign:"center"}}>
       <h2 style={{color:C.dark,fontSize:22,fontWeight:800,marginBottom:12}}>Producto no disponible</h2>
@@ -1877,7 +1887,6 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
   const permitidoWeb = productoPermitidoEnTiendaFarmaciaWeb(prod);
   const similares=productos.filter(p=>categoriasCoinciden(p.categoria, prod.categoria)&&p.id!==prod.id).slice(0,4);
   const d=prod.disponible||(prod.stock>0?"inmediato":"48hrs");
-  const imgSrc = productImageUrl(prod, stack, placeholderUrl);
   return(
     <div style={{maxWidth:1100,margin:"0 auto",padding:"clamp(20px, 4vw, 32px) 16px"}}>
       <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:16,marginBottom:20}}>
@@ -1919,13 +1928,13 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
       <button type="button" onClick={()=>{ setProdDetalle(null); setPage("catalogo"); }} style={{background:"none",border:"none",color:BRAND.primary,cursor:"pointer",fontSize:14,fontWeight:700,marginBottom:20,display:"flex",alignItems:"center",gap:6}}>← Volver al catálogo</button>
       <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:stack?24:32,marginBottom:48,opacity:agotado?0.85:1}}>
         <div style={{background:"#fff",border:`1px solid ${C.border}`,borderRadius:20,overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",minHeight:stack?220:280,padding:stack?16:20,opacity:agotado?0.42:1}}>
-          {imgSrc ? (
-            <img src={imgSrc} alt="" style={{maxWidth:"100%",maxHeight:stack?360:420,width:"auto",height:"auto",objectFit:"contain",display:"block"}}/>
-          ) : (
-            <div style={{padding:stack?32:48,display:"flex",alignItems:"center",justifyContent:"center"}}>
-              <Package size={88} strokeWidth={1} color={C.dim} aria-hidden/>
-            </div>
-          )}
+          <GaleriaProducto
+            imagenes={galeria}
+            alt={prod?.nombre || ""}
+            maxAlto={stack?360:420}
+            iconoVacio={88}
+            style={{padding:galeria.length?0:(stack?32:48)}}
+          />
         </div>
         <div>
           <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
@@ -3107,6 +3116,7 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
   const C = useTheme();
   const stack = useMediaQuery("(max-width: 768px)");
   const placeholderUrl = useContext(TiendaPlaceholderCtx);
+  const fotoCatalogoDe = useImagenesPrincipales();
   const [entrega,setEntrega]=useState("pickup");
   const [, setCanjeTick] = useState(0);
   useEffect(()=>{ setEntregaGlobal?.(entrega); },[entrega,setEntregaGlobal]);
@@ -3145,7 +3155,7 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
       <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr min(340px, 100%)",gap:24,alignItems:"start"}}>
         <div style={{minWidth:0}}>
           {cart.map(item=>{
-            const lineImg = productImageUrl(item, stack, placeholderUrl);
+            const lineImg = productImageUrl(item, stack, placeholderUrl, fotoCatalogoDe(item?.id));
             return (
             <div key={item.id} style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:16,marginBottom:12,display:"flex",gap:16,alignItems:"center",flexWrap:"wrap"}}>
               <div style={{background:"#fff",border:`1px solid ${C.border}`,borderRadius:10,width:64,height:64,overflow:"hidden",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>

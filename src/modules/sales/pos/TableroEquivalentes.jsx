@@ -3,6 +3,7 @@ import { C_LIGHT } from "../../../constants";
 import { $ } from "../../../utils";
 import { posSubtituloProducto, posTituloProducto } from "../../../utils/posProductDisplay";
 import { etiquetaTipoProducto } from "../../../utils/equivalentesPos";
+import { useImagenesPrincipales } from "../../../hooks/useProductoImagenes";
 
 function etiquetaSustanciaVisible(value) {
   return String(value || "")
@@ -11,9 +12,11 @@ function etiquetaSustanciaVisible(value) {
     .replace(/\bpectina\b/gi, "Pectina");
 }
 
-function TarjetaProducto({ producto, onSelect, onAdd, estadoStock, diferencia }) {
+function TarjetaProducto({ producto, onSelect, onAdd, estadoStock, diferencia, fotoDe }) {
   const C = C_LIGHT;
-  const foto = producto.imagen_url || producto.imagen_mobile_url || "";
+  // Sin foto propia caemos a la principal del catálogo: el vendedor reconoce
+  // el empaque, no el nombre de la marca en letras.
+  const foto = producto.imagen_url || producto.imagen_mobile_url || fotoDe?.(producto.id) || "";
   const titulo = posTituloProducto(producto) || producto.nombre;
   const tipo = etiquetaTipoProducto(producto);
   const activos = etiquetaSustanciaVisible(producto.principio_activo || producto.denominacion_generica || "");
@@ -63,14 +66,16 @@ function Seccion({ titulo, productos, diferencia, ...props }) {
 }
 
 export default function TableroEquivalentes({ grupo, onSelect, onAdd, estadoStock }) {
+  // Antes del early return: el hook debe correr en el mismo orden siempre.
+  const fotoDe = useImagenesPrincipales();
   if (!grupo?.total) return null;
   const otras = [...(grupo.otroContenido || []), ...(grupo.otrasPresentaciones || [])];
   const idsOtroContenido = new Set((grupo.otroContenido || []).map((p) => p.id));
   return (
     <div style={{ border: `1px solid ${C_LIGHT.border}`, borderRadius: 14, background: C_LIGHT.bg, padding: 10, marginBottom: 10 }}>
       <div style={{ fontSize: 16, fontWeight: 900, color: C_LIGHT.text }}>{grupo.total} opciones con {etiquetaSustanciaVisible(grupo.etiqueta)}</div>
-      <Seccion titulo="Misma presentación" productos={grupo.mismaConfiguracion} onSelect={onSelect} onAdd={onAdd} estadoStock={estadoStock} />
-      <Seccion titulo="Otras presentaciones" productos={otras} diferencia={(p) => idsOtroContenido.has(p.id) ? "Cambia contenido" : "Cambia forma, vía o concentración"} onSelect={onSelect} onAdd={onAdd} estadoStock={estadoStock} />
+      <Seccion titulo="Misma presentación" productos={grupo.mismaConfiguracion} onSelect={onSelect} onAdd={onAdd} estadoStock={estadoStock} fotoDe={fotoDe} />
+      <Seccion titulo="Otras presentaciones" productos={otras} diferencia={(p) => idsOtroContenido.has(p.id) ? "Cambia contenido" : "Cambia forma, vía o concentración"} onSelect={onSelect} onAdd={onAdd} estadoStock={estadoStock} fotoDe={fotoDe} />
       <style>{`@media (min-width: 1180px){.pos-related-products-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important}} @media (max-width: 620px){.pos-related-products-grid{grid-template-columns:1fr!important}}`}</style>
     </div>
   );
