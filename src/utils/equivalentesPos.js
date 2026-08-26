@@ -112,15 +112,19 @@ export function grupoEquivalentesDeBusqueda(productos, resultados, query = "") {
   const top = (resultados || []).slice(0, RESULTADOS_QUE_DECIDEN);
   const q = norm(query);
 
-  // Una marca o nombre escrito directamente manda sobre la mayoría accidental
-  // de resultados fuzzy. Ej.: Treda no debe perder contra varias cremas dentales
-  // que compartan otro activo sólo porque "treda" se parezca a "crema".
-  const anclaDirecta = top.find((p) =>
-    q && [p?.nombre, p?.marca, p?.denominacion_distintiva]
-      .map(norm)
-      .filter(Boolean)
-      .some((campo) => campo === q || campo.startsWith(`${q} `) || campo.includes(` ${q} `))
-  );
+  // Marca o nombre escrito de verdad (Treda, Nineka), no un prefijo de sustancia
+  // que también abre otro SKU ("neomici" → "Neomici Polimixi…").
+  const anclaDirecta = top.find((p) => {
+    if (!q) return false;
+    const marca = norm(p?.marca);
+    const nombre = norm(p?.nombre);
+    const dist = norm(p?.denominacion_distintiva);
+    if ([marca, nombre, dist].includes(q)) return true;
+    if (marca && q.length >= 4 && marca.length >= 4 && (marca.startsWith(q) || q.startsWith(marca))) return true;
+    const variasPalabras = q.split(" ").length >= 2;
+    if (variasPalabras && [nombre, dist].some((campo) => campo.startsWith(`${q} `) || campo.includes(` ${q} `))) return true;
+    return false;
+  });
   if (anclaDirecta) {
     // Si el producto directo no tiene alternativas, no buscamos un grupo ajeno:
     // se conserva la lista/ficha normal para esa búsqueda.

@@ -22,18 +22,22 @@ describe("pagoServicio", () => {
     expect(compensacionMpDeFila({ monto_servicio: 100 })).toBe(1);
   });
 
-  test("recargo en cero o vacío no es válido", () => {
-    expect(recargoEsValido(5)).toBe(true);
+  test("recargas van en cero; recibos sí llevan recargo", () => {
+    expect(recargoEsValido(0, "recarga")).toBe(true);
+    expect(recargoEsValido(5, "recarga")).toBe(false);
+    expect(recargoEsValido(8, "luz")).toBe(true);
+    expect(recargoEsValido(0, "luz")).toBe(false);
     expect(recargoEsValido(0)).toBe(false);
     expect(recargoEsValido("")).toBe(false);
     expect(recargoEsValido(null)).toBe(false);
   });
 
-  test("el recargo del catálogo es fijo por operadora", () => {
-    expect(recargoCatalogoDe("telcel")).toBe(5);
+  test("el recargo del catálogo es 0 en recargas y fijo en recibos", () => {
+    expect(recargoCatalogoDe("telcel")).toBe(0);
+    expect(recargoCatalogoDe("Movistar")).toBe(0);
     expect(recargoCatalogoDe("CFE")).toBe(8);
     expect(recargoCatalogoDe("Sky")).toBe(10);
-    expect(recargoCatalogoDe("desconocido")).toBe(5);
+    expect(recargoCatalogoDe("desconocido")).toBe(0);
   });
 
   test("saldo de recargas avisa solo si ya lo cargó el admin y está bajo el mínimo", () => {

@@ -136,8 +136,13 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
       showToast("Ingresa el monto del servicio o recarga", "error");
       return false;
     }
-    if (!recargoEsValido(comision)) {
-      showToast(`El recargo de ${servicio.proveedor} va automático ($${servicio.comision}).`, "error");
+    if (!recargoEsValido(comision, servicio.categoria)) {
+      showToast(
+        servicio.categoria === "recarga"
+          ? "Las recargas no llevan recargo. Solo el monto de tiempo aire."
+          : `El recargo de ${servicio.proveedor} va automático ($${servicio.comision}).`,
+        "error",
+      );
       return false;
     }
     if (!liquidado) {
@@ -270,10 +275,16 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
       )}
       <div style={{ background: C.blueDim, border: `1px solid ${C.blue}30`, borderRadius: 10, padding: "12px 16px", marginBottom: 16 }}>
         <div style={{ color: C.blue, fontSize: 13, fontWeight: 700, lineHeight: 1.5 }}>
-          <strong>Pago de servicios y recargas.</strong> Primero la recarga en la Point. Aquí solo pones el monto: el recargo ({$(servicio.comision)}) se suma solo. Prefiere <strong>Efectivo</strong>.
+          {servicio.categoria === "recarga" ? (
+            <><strong>Recargas.</strong> Primero el tiempo aire en la Point. Aquí solo anotas el monto: <strong>sin recargo</strong>. Prefiere <strong>Efectivo</strong>.</>
+          ) : (
+            <><strong>Pago de recibos.</strong> Primero el pago en la Point. Aquí pones el monto: el recargo ({$(servicio.comision)}) se suma solo. Prefiere <strong>Efectivo</strong>.</>
+          )}
         </div>
         <div style={{ color: C.textMid, fontSize: 11, marginTop: 8, lineHeight: 1.45 }}>
-          El recargo entra al cajón. Mercado Pago te acredita aparte el <strong>1%</strong> en su app (Actividad), no en efectivo.
+          {servicio.categoria === "recarga"
+            ? "No se cobra comisión de farmacia. Mercado Pago te acredita aparte el 1% en su app (Actividad)."
+            : "El recargo entra al cajón. Mercado Pago te acredita aparte el 1% en su app (Actividad), no en efectivo."}
         </div>
       </div>
 
@@ -317,7 +328,7 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
                   color: selId === s.id ? BRAND.secondary : C.textMid,
                 }}
               >
-                {s.emoji} {s.proveedor} +{$(s.comision)}
+                {s.emoji} {s.proveedor}{s.comision > 0 ? ` +${$(s.comision)}` : " sin recargo"}
               </button>
             ))}
           </div>
@@ -343,8 +354,10 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
               <span style={{ color: C.text, fontWeight: 700, fontSize: 13 }}>{Number.isFinite(monto) && monto > 0 ? $(monto) : "—"}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <span style={{ color: C.textMid, fontSize: 12 }}>Recargo {servicio.proveedor} (automático)</span>
-              <span style={{ color: C.text, fontWeight: 700, fontSize: 13 }}>+{$(comision)}</span>
+              <span style={{ color: C.textMid, fontSize: 12 }}>
+                {servicio.categoria === "recarga" ? "Recargo farmacia" : `Recargo ${servicio.proveedor} (automático)`}
+              </span>
+              <span style={{ color: C.text, fontWeight: 700, fontSize: 13 }}>{comision > 0 ? `+${$(comision)}` : "Sin recargo"}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span style={{ color: C.textMid, fontSize: 12 }}>Total a cobrar</span>

@@ -1,4 +1,4 @@
-import { nombreComercialPos, posSubtituloProducto, posTituloProducto } from "./posProductDisplay";
+import { nombreComercialPos, posDestacadoTarjeta, posSubtituloProducto, posTituloProducto } from "./posProductDisplay";
 
 const alumag = {
   sku: "FC-75710113",
@@ -37,5 +37,24 @@ describe("posTituloProducto", () => {
 
   test("si el nombre es solo la marca, se queda la marca", () => {
     expect(posTituloProducto({ nombre: "Novag", marca: "Novag" })).toBe("Novag");
+  });
+
+  test("leche en polvo no se corta en la palabra polvo", () => {
+    expect(
+      posTituloProducto({
+        nombre: "Leche En Polvo Nan 1 Optimal Pro 120 G",
+        marca: "Nestle",
+      })
+    ).toMatch(/Leche En Polvo/i);
+    expect(nombreComercialPos("Leche En Polvo Nan 1 Optimal Pro 120 G")).not.toBe("Leche En");
+  });
+});
+
+describe("posDestacadoTarjeta", () => {
+  test("usa activos si existen y si no, presentación", () => {
+    expect(posDestacadoTarjeta({ principio_activo: "Neomicina + Caolin + Pectina" })).toBe("Activos: Neomicina + Caolín + Pectina");
+    expect(posDestacadoTarjeta({ denominacion_distintiva: "NAN 1 OPTIMAL pro", presentacion: "120 g" })).toBe("NAN 1 OPTIMAL pro");
+    expect(posDestacadoTarjeta({ presentacion: "120 g", concentracion: "" })).toBe("120 g");
+    expect(posDestacadoTarjeta({ nombre: "Leche" })).toBe("");
   });
 });

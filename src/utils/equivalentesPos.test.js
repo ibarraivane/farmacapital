@@ -79,4 +79,19 @@ describe("grupoEquivalentesDeBusqueda", () => {
     ];
     expect(grupoEquivalentesDeBusqueda([unico, ...ruido], [unico, ...ruido], "Producto Único")).toBeNull();
   });
+
+  it("un prefijo de sustancia no se queda con el SKU que empieza igual", () => {
+    const polimixi = {
+      id: 800,
+      nombre: "Neomici Polimixi B Gramicidi 1 Sol",
+      marca: "Exakta",
+      principio_activo: "Neomicina / Polimixina B / Gramicidina",
+      forma_farmaceutica: "Solución",
+      activo: true,
+    };
+    const resultados = [polimixi, treda, nineka];
+    const grupo = grupoEquivalentesDeBusqueda([polimixi, ...catalogo], resultados, "neomici");
+    expect(grupo?.clave).toBe("caolin+neomicina+pectina");
+    expect(grupo?.total).toBe(4);
+  });
 });

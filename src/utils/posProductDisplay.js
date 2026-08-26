@@ -56,13 +56,16 @@ const FORMA_EN_NOMBRE =
 export function nombreComercialPos(nombre) {
   const limpio = limpiarNombrePosCrudo(nombre);
   if (!limpio) return "";
-  const corte = limpio.split(FORMA_EN_NOMBRE)[0].trim();
+  // "Leche en polvo" no es forma farmacéutica: no cortar en "polvo".
+  const protegido = limpio.replace(/\ben\s+polvo\b/gi, "en_polvo");
+  const corte = protegido.split(FORMA_EN_NOMBRE)[0].trim().replace(/en_polvo/gi, "en polvo");
   if (corte && corte !== limpio && corte.length >= 2 && corte.length <= 48) {
     return corte;
   }
   const palabras = limpio.split(/\s+/);
+  const esLechePolvo = /\bleche\s+en\s+polvo\b/i.test(limpio);
   if (palabras.length > 6 || limpio.length > 56) {
-    return palabras.slice(0, 3).join(" ");
+    return palabras.slice(0, esLechePolvo ? 6 : 3).join(" ");
   }
   return limpio;
 }
@@ -136,4 +139,20 @@ export function posSubtituloProducto(p) {
   const limpio = limpiarNombrePosCrudo(p.nombre);
   if (limpio && limpio.toLowerCase() !== titulo) return titleCase(limpio);
   return p.sku ? `SKU ${p.sku}` : "";
+}
+
+/** Caja azul de la tarjeta: activos, o presentación / distintiva si no hay fórmula. */
+export function posDestacadoTarjeta(p) {
+  if (!p) return "";
+  const activos = String(p.principio_activo || p.denominacion_generica || "").trim();
+  if (activos) {
+    return `Activos: ${activos
+      .replace(/\bcaolin\b/gi, "Caolín")
+      .replace(/\bneomicina\b/gi, "Neomicina")
+      .replace(/\bpectina\b/gi, "Pectina")}`;
+  }
+  const dist = String(p.denominacion_distintiva || "").trim();
+  if (dist) return dist;
+  const partes = [p.contenido, p.presentacion, p.concentracion].map((x) => String(x || "").trim()).filter(Boolean);
+  return partes.length ? partes.join(" · ") : "";
 }

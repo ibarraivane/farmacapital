@@ -1,6 +1,6 @@
 import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
-import TableroEquivalentes from "./TableroEquivalentes";
+import TableroEquivalentes, { TableroResultados } from "./TableroEquivalentes";
 import { grupoOpcionesRelacionadas } from "../../../utils/equivalentesPos";
 
 const treda = { id: 1, nombre: "Treda C/20", marca: "Treda", tipo: "marca", principio_activo: "Neomicina + Caolin + Pectina", presentacion: "C/20", forma_farmaceutica: "Tabletas", concentracion: "129/280/30 mg", precio: 189, activo: true };
@@ -47,9 +47,31 @@ it("cada tarjeta identifica sus activos sin inferirlos", () => {
   render(<TableroEquivalentes grupo={grupoConHueco} onSelect={() => {}} onAdd={() => {}} />);
   expect(screen.getAllByText("Activos: Neomicina + Caolín + Pectina")).toHaveLength(3);
   expect(screen.getAllByText("Producto Sin Activos")).toHaveLength(2);
+  expect(screen.queryByText(/Activos:\s*$/)).not.toBeInTheDocument();
 });
 
 it("sin grupo no pinta nada", () => {
   const { container } = render(<TableroEquivalentes grupo={null} onSelect={() => {}} onAdd={() => {}} />);
   expect(container).toBeEmptyDOMElement();
+});
+
+it("la búsqueda genérica usa las mismas tarjetas con Agregar y ficha", () => {
+  const onSelect = jest.fn();
+  const onAdd = jest.fn();
+  render(
+    <TableroResultados
+      productos={[treda, nineka]}
+      titulo="2 resultados · mejores primero"
+      onSelect={onSelect}
+      onAdd={onAdd}
+      estadoStock={() => ({ agotado: false, etiqueta: "1 disp." })}
+    />,
+  );
+  expect(screen.getByText("2 resultados · mejores primero")).toBeInTheDocument();
+  expect(screen.getAllByRole("article")).toHaveLength(2);
+  expect(screen.queryByText("Misma presentación")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: /ver ficha de treda/i }));
+  expect(onSelect).toHaveBeenCalledWith(treda);
+  fireEvent.click(screen.getAllByRole("button", { name: "Agregar" })[0]);
+  expect(onAdd).toHaveBeenCalledWith(treda);
 });

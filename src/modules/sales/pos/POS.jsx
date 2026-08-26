@@ -12,7 +12,7 @@ import { tiendaProductMatchesBusqueda, tiendaCatalogSearchSuggestions, tiendaSea
 import { findProductExactScan, looksLikeBarcodeInput, looksLikeInternalSku, isAllDigitsInput, normalizeBarcodeRaw, shouldReplaceScanInput } from "../../../utils/barcodeProductLookup";
 import { posTituloProducto, posSubtituloProducto } from "../../../utils/posProductDisplay";
 import { grupoEquivalentesDeBusqueda, claveSustancia } from "../../../utils/equivalentesPos";
-import TableroEquivalentes from "./TableroEquivalentes";
+import TableroEquivalentes, { TableroResultados } from "./TableroEquivalentes";
 import { precioUnidadParaVenta } from "../../../utils/precioUnidad";
 import { productoEsVendible } from "../../../utils/productoVendible";
 import { cobroLinea, pesoPublico } from "../../../utils/pesoPublico";
@@ -30,7 +30,7 @@ import {
 } from "../../../utils/posConocimientoFarmacia";
 import { Box, Tag, Btn, Inp, Modal, showToast, SearchDropdown, SkeletonTable } from "../../../ui";
 import GaleriaProducto from "../../../components/GaleriaProducto";
-import { useImagenesPrincipales, useProductoImagenes } from "../../../hooks/useProductoImagenes";
+import { useProductoImagenes } from "../../../hooks/useProductoImagenes";
 import {
   CONSULTA_PRECIO_DEFAULT,
   CONSULTA_PARTE_DOCTOR,
@@ -545,8 +545,6 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
   const [tab,setTab]         = useState(initialTab); // venta | online | consultas | servicios
   const [productos,setProds] = useState([]);
   const [cart,setCart]       = useState([]);
-  /** Foto principal del catálogo cuando el producto no tiene imagen_url propia. */
-  const fotoPrincipalDe = useImagenesPrincipales();
   const especialesRef = useRef({});
   useEffect(() => {
     setBloqueaReloadApp(cart.length > 0, "pos-cart");
@@ -1025,20 +1023,25 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
     srchRef.current?.focus();
   }, []);
 
+  const srchAnteriorRef = useRef(srch);
   useEffect(() => {
     if (tab !== "venta") return;
+    const cambioBusqueda = srchAnteriorRef.current !== srch;
+    srchAnteriorRef.current = srch;
     const s = normalizeBarcodeRaw(srch) || srch.trim();
-    if (!s) return;
+    if (!s) {
+      if (cambioBusqueda) setFichaProd(null);
+      return;
+    }
     const exact = findProductExactScan(productos, s);
     if (exact) {
       setFichaProd(exact);
       return;
     }
     if (srchEsEscaneo) return;
-    // En búsqueda textual las opciones aparecen sin elegir una por la vendedora.
-    // El EAN/SKU exacto conserva arriba su camino rápido y sí abre la ficha.
-    if (fil.length === 0) return;
-  }, [srch, fil, tab, productos, srchEsEscaneo]);
+    // Texto nuevo: volver al tablero. El EAN/SKU exacto sí abre la ficha.
+    if (cambioBusqueda) setFichaProd(null);
+  }, [srch, tab, productos, srchEsEscaneo]);
 
   useEffect(() => {
     if (tab !== "venta" || !fichaProd?.id) return;
@@ -2864,7 +2867,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                   ×
                 </button>
               )}
-              {srchSuggestions.length>0&&srchFocus&&!srchEsEscaneo&&!grupoEquivalentes&&(
+              {srchSuggestions.length>0&&srchFocus&&!srchEsEscaneo&&!grupoEquivalentes&&!(fil.length>0)&&!fichaProd&&(
                 <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,right:0,zIndex:7000,background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,boxShadow:"0 8px 32px rgba(15,45,110,.14)",overflow:"hidden",maxHeight:280,overflowY:"auto"}}>
                   {srchSuggestions.map((s,i)=>{
                     const row=productos.find(x=>x.id===s.id);
@@ -2904,18 +2907,11 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
               }}>🛒{cart.length>0?` (${cart.length})`:""} {cartOpen?"▶":"◀"}</button>
               )}
             </div>
-            {grupoEquivalentes && !fichaProd ? (
-              <TableroEquivalentes
-                grupo={grupoEquivalentes}
-                onSelect={setFichaProd}
-                onAdd={(it) => add(it, false)}
-                estadoStock={estadoStockPos}
-              />
-            ) : (
+            {fichaProd ? (
             <PosProductoFichaPanel
               item={fichaProd}
               productos={productos}
-              onVolver={grupoEquivalentes && fichaProd ? () => {
+              onVolver={srch.trim() && !srchEsEscaneo ? () => {
                 setFichaProd(null);
                 // La pistola escanea a nivel documento, pero devolver el foco
                 // deja al vendedor listo para teclear sin buscar el campo.
@@ -2937,9 +2933,42 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
               isNarrow={isNarrow}
               sticky={!!srch.trim() || !!fichaProd}
             />
+            ) : grupoEquivalentes ? (
+              <TableroEquivalentes
+                grupo={grupoEquivalentes}
+                onSelect={setFichaProd}
+                onAdd={(it) => add(it, false)}
+                estadoStock={estadoStockPos}
+              />
+            ) : srch.trim() && !srchEsEscaneo && fil.length > 0 && !looksLikeBarcodeInput(normalizeBarcodeRaw(srch) || srch) ? (
+              <TableroResultados
+                productos={fil.slice(0, 60)}
+                titulo={`${fil.length} resultado${fil.length !== 1 ? "s" : ""} · mejores primero`}
+                onSelect={setFichaProd}
+                onAdd={(it) => add(it, false)}
+                estadoStock={estadoStockPos}
+              />
+            ) : srch.trim() ? null : (
+            <PosProductoFichaPanel
+              item={null}
+              productos={productos}
+              usoTexto={null}
+              usoLoading={false}
+              onSelectVariante={setFichaProd}
+              onAddCaja={(it) => add(it, false)}
+              onAddUnidad={(it) => add(it, true)}
+              onAbrirCaja={abrirCaja}
+              getStockCajasPOS={getStockCajasPOS}
+              productoSinLotesPEPS={productoSinLotesPEPS}
+              enCarrito={0}
+              stockFifo={0}
+              C={C}
+              isMobilePos={isMobilePos}
+              isNarrow={isNarrow}
+            />
             )}
 
-            {favs.length>0&&(
+            {favs.length>0 && !srch.trim() && !fichaProd &&(
               <div data-tour="pos-favoritos" style={{marginBottom:12}}>
                 <div style={{color:C.textDim,fontSize:10,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:6}}>⭐ Favoritos</div>
                 <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
@@ -2950,16 +2979,6 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                     </button>
                   ))}
                 </div>
-              </div>
-            )}
-            {srch.trim() && !srchEsEscaneo && !grupoEquivalentes && (
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4,padding:"2px 0"}}>
-                <span style={{fontSize:11,color:C.textDim}}>
-                  {fil.length === 0
-                    ? "Sin resultados para esta búsqueda"
-                    : `${fil.length} resultado${fil.length!==1?"s":""} · mejores primero`}
-                </span>
-                <button type="button" onClick={clearPosSearch} style={{fontSize:11,color:C.textDim,background:"none",border:"none",cursor:"pointer",padding:"0 4px",lineHeight:1}}>✕ Limpiar</button>
               </div>
             )}
             {srch.trim() && fil.length === 0 && (
@@ -2973,64 +2992,6 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                     ? "Verifica el código o captúralo en Inventario."
                     : "Intenta con otro nombre, SKU o código de barras."}
                 </span>
-              </div>
-            )}
-            {srch.trim() && fil.length > 0 && !grupoEquivalentes && !srchEsEscaneo && !looksLikeBarcodeInput(normalizeBarcodeRaw(srch) || srch) && (
-              <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden", background: C.card, maxHeight: 320, overflowY: "auto" }}>
-                <div style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: 0.5, textTransform: "uppercase", position: "sticky", top: 0, background: C.card, zIndex: 1 }}>
-                  Resultados ({Math.min(fil.length, 60)}{fil.length > 60 ? "+" : ""})
-                </div>
-                {fil.slice(0, 60).map((item) => {
-                  const sel = fichaProd?.id === item.id;
-                  const thumb = item.imagen_url || item.imagen_mobile_url || fotoPrincipalDe(item.id) || "";
-                  const stockCajas = getStockCajasPOS(item);
-                  const sinLotes = productoSinLotesPEPS(item);
-                  const agotado = stockCajas <= 0 && (!item.venta_unidad || item.stock_unidades === 0);
-                  const noDisp = sinLotes || agotado;
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => setFichaProd(item)}
-                      style={{
-                        width: "100%",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 12,
-                        padding: "10px 12px",
-                        border: "none",
-                        borderBottom: `1px solid ${C.border}`,
-                        background: sel ? C.blueDim : C.card,
-                        cursor: "pointer",
-                        textAlign: "left",
-                        opacity: noDisp ? 0.72 : 1,
-                      }}
-                    >
-                      <div style={{ width: 44, height: 44, borderRadius: 8, overflow: "hidden", background: "#fff", border: `1px solid ${C.border}`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        {thumb ? (
-                          <img src={thumb} alt="" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
-                        ) : (
-                          <span style={{ fontSize: 20 }}>💊</span>
-                        )}
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: sel ? 800 : 600, fontSize: 13, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {posTituloProducto(item)}
-                        </div>
-                        <div style={{ fontSize: 11, color: C.textDim, marginTop: 2 }}>
-                          {posSubtituloProducto(item) || item.sku}
-                          {sinLotes ? " · Sin lotes" : agotado ? " · Agotado" : ` · ${stockCajas} disp.`}
-                        </div>
-                      </div>
-                      <div style={{ fontWeight: 800, fontSize: 14, color: C.blue, flexShrink: 0 }}>{$(item.precio)}</div>
-                    </button>
-                  );
-                })}
-                {fil.length > 60 && (
-                  <div style={{ padding: "10px 12px", fontSize: 11, color: C.textDim, textAlign: "center" }}>
-                    Hay {fil.length - 60} resultados más — afina la búsqueda
-                  </div>
-                )}
               </div>
             )}
           </div>
