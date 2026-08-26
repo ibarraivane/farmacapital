@@ -285,14 +285,15 @@ function BannerLoopVideo({ src, poster, style, "aria-label": ariaLabel }){
 const TiendaPlaceholderCtx = createContext("");
 
 /**
- * Imagen de producto en catálogo / carrito: variante móvil si existe y viewport
- * estrecho. `fotoCatalogo` es la principal de producto_imagenes: entra cuando el
- * producto no tiene foto propia, antes de caer al placeholder genérico.
+ * Imagen de producto en catálogo / carrito. La principal de producto_imagenes
+ * (Rappi, Levic, etc.) va primero: si no, el packshot de imagen_url, luego el
+ * placeholder. En móvil se usa imagen_mobile_url solo si no hay foto de catálogo.
  */
 function productImageUrl(prod, narrow, placeholderFallback = "", fotoCatalogo = ""){
   if (!prod) return placeholderFallback || "";
+  if (fotoCatalogo) return fotoCatalogo;
   if (narrow && prod.imagen_mobile_url) return prod.imagen_mobile_url;
-  return prod.imagen_url || fotoCatalogo || placeholderFallback || "";
+  return prod.imagen_url || placeholderFallback || "";
 }
 
 // ── FAQ ───────────────────────────────────────────────────────
@@ -1856,6 +1857,7 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
   const [busqFocus,setBusqFocus]=useState(false);
   const [added,setAdded]=useState(false);
   const placeholderUrl = useContext(TiendaPlaceholderCtx);
+  const fotoCatalogoDe = useImagenesPrincipales();
   const poolCatalogo = useMemo(
     ()=>poolCatalogoTienda(productos),
     [productos]
@@ -1874,7 +1876,7 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
     });
   };
   // Antes del early return: los hooks deben correr en el mismo orden siempre.
-  const imgSrc = productImageUrl(prod, stack, placeholderUrl);
+  const imgSrc = productImageUrl(prod, stack, placeholderUrl, fotoCatalogoDe(prod?.id));
   const { imagenes: galeria } = useProductoImagenes(prod?.id, imgSrc);
   if(!prod) return (
     <div style={{maxWidth:560,margin:"80px auto",padding:"0 24px",textAlign:"center"}}>
