@@ -366,11 +366,15 @@ function InventarioEditableCell({
       <td style={tdStyle}>
         {type === "select" ? (
           <select {...controlProps}>
-            {selectOptions.map((o) => (
-              <option key={o} value={o}>
-                {o}
-              </option>
-            ))}
+            {selectOptions.map((o) => {
+              const value = typeof o === "object" ? o.value : o;
+              const label = typeof o === "object" ? o.label : o;
+              return (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              );
+            })}
           </select>
         ) : (
           <input type={type} {...controlProps} />
@@ -1219,7 +1223,7 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
               <label style={labelStyle}>Tipo</label>
               <select value={form.tipo} onChange={e=>set("tipo",e.target.value)} style={{...inputStyle}}>
                 <option value="generico">Genérico</option>
-                <option value="marca">Marca</option>
+                <option value="marca">Patente</option>
               </select>
             </div>
             {field("Proveedor","proveedor")}
@@ -2107,7 +2111,7 @@ function BulkEditProductosModal({ count, onClose, onApplied }) {
             <select value={tipo} onChange={(e) => setTipo(e.target.value)} style={inputStyle}>
               <option value="">— Sin cambiar —</option>
               <option value="generico">Genérico</option>
-              <option value="marca">Marca</option>
+              <option value="marca">Patente</option>
             </select>
           </div>
           <div>
@@ -2449,10 +2453,10 @@ function renderInventarioColumnCell(colId, ctx) {
           field="tipo"
           value={p.tipo || "generico"}
           type="select"
-          options={["generico", "marca"]}
+          options={[{ value: "generico", label: "Genérico" }, { value: "marca", label: "Patente" }]}
           display={
             <span style={{ padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 700, background: p.tipo === "marca" ? "#9d6fff18" : C.blueDim, color: p.tipo === "marca" ? "#9d6fff" : C.blue }}>
-              {p.tipo}
+              {p.tipo === "marca" || p.tipo === "patente" ? "Patente" : "Genérico"}
             </span>
           }
           tdStyle={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, background: stickyRowBg }}

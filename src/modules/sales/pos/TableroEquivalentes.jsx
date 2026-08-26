@@ -38,7 +38,7 @@ function TarjetaProducto({ producto, onSelect, onAdd, estadoStock, diferencia, f
           )}
         </div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, minHeight: 22 }}>
-          {tipo ? <span style={{ fontSize: 10, fontWeight: 850, borderRadius: 7, padding: "3px 7px", background: tipo === "Marca" ? C.purpleDim : C.tealDim, color: tipo === "Marca" ? C.purple : C.teal }}>{tipo}</span> : <span />}
+          {tipo ? <span style={{ fontSize: 10, fontWeight: 850, borderRadius: 7, padding: "3px 7px", background: tipo === "Patente" ? C.purpleDim : C.tealDim, color: tipo === "Patente" ? C.purple : C.teal }}>{tipo}</span> : <span />}
           <span style={{ fontSize: 12, fontWeight: 800, color: agotado ? C.red : C.green }}>{estado.etiqueta || (agotado ? "No disponible" : "Disponible")}</span>
         </div>
         {destacado ? (
@@ -105,6 +105,7 @@ export default function TableroEquivalentes({ grupo, onSelect, onAdd, estadoStoc
   const idsOtroContenido = new Set((grupo.otroContenido || []).map((p) => p.id));
   return (
     <MarcoTablero titulo={`${grupo.total} opciones con ${etiquetaSustanciaVisible(grupo.etiqueta)}`}>
+      <Seccion titulo={grupo.etiquetaDirecta || "Lo que buscaste"} productos={grupo.coincidenciasDirectas} onSelect={onSelect} onAdd={onAdd} estadoStock={estadoStock} fotoDe={fotoDe} />
       <Seccion titulo="Misma presentación" productos={grupo.mismaConfiguracion} onSelect={onSelect} onAdd={onAdd} estadoStock={estadoStock} fotoDe={fotoDe} />
       <Seccion titulo="Otras presentaciones" productos={otras} diferencia={(p) => idsOtroContenido.has(p.id) ? "Cambia contenido" : "Cambia forma, vía o concentración"} onSelect={onSelect} onAdd={onAdd} estadoStock={estadoStock} fotoDe={fotoDe} />
     </MarcoTablero>

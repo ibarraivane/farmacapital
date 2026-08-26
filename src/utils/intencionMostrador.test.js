@@ -31,6 +31,18 @@ describe("lenguaje controlado de mostrador", () => {
     expect(tiendaProductMatchesBusqueda(paracetamol, "dolor espalda")).toBe(false);
   });
 
+  test("dolor de cabeza encuentra paracetamol y exige los espacios", () => {
+    expect(tiendaProductMatchesBusqueda(paracetamol, "dolor de cabeza")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(paracetamol, "dolordecabeza")).toBe(false);
+    expect(etiquetaIntencionMostrador("dolor de cabeza")).toBe("dolor de cabeza");
+  });
+
+  test("deshidratado abre hidratación oral", () => {
+    const suero = producto({ nombre: "Electrolit 625 mL", subcategoria: "Electrolitos" });
+    expect(tiendaProductMatchesBusqueda(suero, "deshidratado")).toBe(true);
+    expect(etiquetaIntencionMostrador("deshidratado")).toBe("hidratación oral");
+  });
+
   test("distingue tos con flema de tos seca", () => {
     expect(tiendaProductMatchesBusqueda(mucolitico, "tos con flema")).toBe(true);
     expect(tiendaProductMatchesBusqueda(antitusivo, "tos con flema")).toBe(false);

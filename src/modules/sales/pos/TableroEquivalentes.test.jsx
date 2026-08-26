@@ -19,6 +19,7 @@ it("pinta un SKU por tarjeta, su foto propia y el respaldo sin inventar otra", (
 it("separa la suspensión como Otras presentaciones", () => {
   render(<TableroEquivalentes grupo={grupo} onSelect={() => {}} onAdd={() => {}} />);
   expect(screen.getByText("3 opciones con Neomicina + Caolín + Pectina")).toBeInTheDocument();
+  expect(screen.getAllByText("Treda").length).toBeGreaterThan(0);
   expect(screen.getByText("Misma presentación")).toBeInTheDocument();
   expect(screen.getByText("Otras presentaciones")).toBeInTheDocument();
   expect(screen.getByText(/cambia forma, vía o concentración/i)).toBeInTheDocument();
@@ -36,7 +37,7 @@ it("abre ficha al tocar tarjeta y usa el callback de carrito al agregar", () => 
 
 it("no muestra clasificación falsa cuando falta tipo", () => {
   render(<TableroEquivalentes grupo={grupo} onSelect={() => {}} onAdd={() => {}} />);
-  expect(screen.getByText("Marca")).toBeInTheDocument();
+  expect(screen.getByText("Patente")).toBeInTheDocument();
   expect(screen.getByText("Genérico")).toBeInTheDocument();
   expect(screen.getByText("Nineka Suspensión")).toBeInTheDocument();
 });

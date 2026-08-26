@@ -8,6 +8,17 @@ export function normalizeBarcodeRaw(raw) {
   return t;
 }
 
+/**
+ * Consulta de catálogo en el POS: conserva espacios ("dolor de cabeza").
+ * Si es pistola (solo dígitos), sí se pegan para armar el EAN.
+ */
+export function queryCatalogoDesdeInputPos(srch) {
+  const texto = String(srch || "").trim();
+  if (!texto) return "";
+  if (isAllDigitsInput(texto)) return normalizeBarcodeRaw(texto);
+  return texto;
+}
+
 /** Solo dígitos (escaneo en progreso o código completo). */
 export function isAllDigitsInput(raw) {
   const t = normalizeBarcodeRaw(raw);

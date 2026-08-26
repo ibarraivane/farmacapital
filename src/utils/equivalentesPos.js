@@ -65,7 +65,7 @@ function precioNum(p) { const n = parseFloat(p?.precio); return Number.isFinite(
 /** Sólo respeta el dato explícito; no infiere clasificación desde el nombre. */
 export function etiquetaTipoProducto(producto) {
   const tipo = norm(producto?.tipo);
-  if (tipo === "marca" || tipo === "patente") return "Marca";
+  if (tipo === "marca" || tipo === "patente") return "Patente";
   if (tipo === "generico") return "Genérico";
   return "";
 }
@@ -79,6 +79,31 @@ function consultaEsClara(query, resultados) {
     const campos = [p?.nombre, p?.marca, p?.principio_activo, p?.denominacion_generica].map(norm).filter(Boolean);
     return tokens.every((token) => campos.some((campo) => normalizedTextFuzzyMatch(token, campo)));
   });
+}
+
+/** La vendedora escribió la marca: todos esos SKU van arriba, no solo el primero. */
+export function coincideConsultaDirecta(producto, query) {
+  const q = norm(query);
+  if (!q || q.length < 4) return false;
+  const marca = norm(producto?.marca);
+  const nombre = norm(producto?.nombre);
+  const dist = norm(producto?.denominacion_distintiva);
+  if (marca && marca.length >= 4 && (marca === q || marca.startsWith(q) || q.startsWith(marca))) return true;
+  const tipo = norm(producto?.tipo);
+  const esPatenteTipo = tipo === "marca" || tipo === "patente";
+  const primera = (nombre.split(" ")[0] || "");
+  if (primera === q && (esPatenteTipo || primera === marca)) return true;
+  const primDist = (dist.split(" ")[0] || "");
+  if (primDist === q && (esPatenteTipo || primDist === marca)) return true;
+  return false;
+}
+
+function etiquetaDirectaDe(productos, query) {
+  const marcas = [...new Set((productos || []).map((p) => String(p?.marca || "").trim()).filter(Boolean))];
+  if (marcas.length === 1) return marcas[0];
+  const q = String(query || "").trim();
+  if (!q) return "Lo que buscaste";
+  return q.charAt(0).toUpperCase() + q.slice(1);
 }
 
 function ordenarProductos(opciones, query) {
@@ -104,7 +129,29 @@ export function grupoOpcionesRelacionadas(productos, ancla, query = "") {
     else if (relacion === "otra_forma") secciones.otrasPresentaciones.push(p);
   });
   Object.keys(secciones).forEach((k) => { secciones[k] = ordenarProductos(secciones[k], query); });
-  return { clave, etiqueta: String(ancla?.principio_activo || ancla?.denominacion_generica || "").trim(), ancla, total: opciones.length, ...secciones };
+
+  const coincidenciasDirectas = [];
+  const vistos = new Set();
+  ["mismaConfiguracion", "otroContenido", "otrasPresentaciones"].forEach((k) => {
+    secciones[k] = secciones[k].filter((p) => {
+      if (!coincideConsultaDirecta(p, query)) return true;
+      if (!vistos.has(p.id)) {
+        vistos.add(p.id);
+        coincidenciasDirectas.push(p);
+      }
+      return false;
+    });
+  });
+
+  return {
+    clave,
+    etiqueta: String(ancla?.principio_activo || ancla?.denominacion_generica || "").trim(),
+    etiquetaDirecta: coincidenciasDirectas.length ? etiquetaDirectaDe(coincidenciasDirectas, query) : "",
+    ancla,
+    total: opciones.length,
+    coincidenciasDirectas: ordenarProductos(coincidenciasDirectas, query),
+    ...secciones,
+  };
 }
 
 export function grupoEquivalentesDeBusqueda(productos, resultados, query = "") {
@@ -147,4 +194,4 @@ export function grupoEquivalentesDeBusqueda(productos, resultados, query = "") {
 }
 
 export const agruparOpcionesEquivalentes = grupoOpcionesRelacionadas;
-export const esPatente = (producto) => etiquetaTipoProducto(producto) === "Marca";
+export const esPatente = (producto) => etiquetaTipoProducto(producto) === "Patente";

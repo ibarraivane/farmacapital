@@ -34,7 +34,7 @@ const INTENCIONES_MOSTRADOR = [
   { id: "colicos", label: "cólicos o espasmos", q: ["colicos", "colico", "retortijones", "espasmo estomago", "dolor abdominal"], pa: ["butilhioscina", "hioscina", "trimebutina", "pinaverio"], sub: ["antiespasmodico"] },
   { id: "diarrea", label: "diarrea", q: ["diarrea", "evacuaciones liquidas", "estomago suelto", "antidiarreico"], pa: ["loperamida", "nifuroxazida", "subsalicilato de bismuto", "neomicina / caolin / pectina", "neomicina + caolin + pectina"], sub: ["antidiarreico"] },
   { id: "estrenimiento", label: "estreñimiento", q: ["estrenimiento", "estrenido", "estrenida", "no puedo evacuar", "laxante"], pa: ["lactulosa", "senosidos", "senna", "picosulfato", "psyllium", "citrato de magnesio"], sub: ["laxante", "fibra"] },
-  { id: "deshidratacion", label: "hidratación oral", q: ["deshidratacion", "rehidratar", "rehidratacion", "electrolitos", "suero oral"], cat: ["hidratacion"], sub: ["electrolitos", "suero oral"] },
+  { id: "deshidratacion", label: "hidratación oral", q: ["deshidratacion", "deshidratado", "deshidratada", "rehidratar", "rehidratacion", "electrolitos", "suero oral"], cat: ["hidratacion"], sub: ["electrolitos", "suero oral"] },
   { id: "parasitos", label: "desparasitación", q: ["parasitos", "lombrices", "desparasitar", "desparasitante", "amibas"], pa: ["albendazol", "nitazoxanida", "quinfamida", "mebendazol"], sub: ["antiparasitario"] },
 
   { id: "hongos-piel", label: "hongos en piel", q: ["hongos piel", "hongo pie", "pie de atleta", "tiña", "pano piel", "antimicotico piel"], pa: ["clotrimazol", "ketoconazol", "bifonazol", "terbinafina", "miconazol"], forma: ["crema", "gel", "solucion", "spray", "polvo"] },
