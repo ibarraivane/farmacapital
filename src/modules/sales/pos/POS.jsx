@@ -15,7 +15,9 @@ import { posTituloProducto, posSubtituloProducto, posEtiquetaVariante } from "..
 import { grupoEquivalentesDeBusqueda, claveSustancia } from "../../../utils/equivalentesPos";
 import TableroEquivalentes, { TableroResultados } from "./TableroEquivalentes";
 import { precioUnidadParaVenta } from "../../../utils/precioUnidad";
+import { precioMostradorPos, productoCajaEsFalsa, stockMostradorPos } from "../../../utils/productoCajaFalsa";
 import { productoEsVendible } from "../../../utils/productoVendible";
+import { IconoAnaquel, IconoBolsa, IconoBuscar, IconoCaja, IconoChevron, IconoPieza, filaIconoBtn } from "../../../components/pos/PosIconos";
 import { cobroLinea, pesoPublico } from "../../../utils/pesoPublico";
 import { precioLineaCajaPos } from "../../../lib/precioVentaExclusivo";
 import { fechaLocalMexico } from "../../../lib/pagoServicio";
@@ -259,7 +261,9 @@ function PosProductoFichaPanel({
     return (
       <div style={{ ...panelShell, display: "flex", alignItems: "center", justifyContent: "center", padding: "28px 20px" }}>
         <div style={{ textAlign: "center", maxWidth: 420 }}>
-          <div style={{ fontSize: isMobilePos ? 40 : 52, marginBottom: 10, lineHeight: 1 }} aria-hidden>💊</div>
+          <div style={{ marginBottom: 10, color: C.blue, opacity: 0.72, display: "flex", justifyContent: "center" }}>
+            <IconoBuscar size={isMobilePos ? 36 : 44} />
+          </div>
           <div style={{ fontWeight: 900, fontSize: isMobilePos ? 16 : 18, color: C.text, marginBottom: 6 }}>
             Busca o escanea un producto
           </div>
@@ -275,8 +279,13 @@ function PosProductoFichaPanel({
   const variantes = posVariantesDeProducto(productos, item);
   const stockCajas = getStockCajasPOS(item);
   const sinLotes = productoSinLotesPEPS(item);
-  const agotado = stockCajas <= 0 && (!item.venta_unidad || item.stock_unidades === 0);
-  const sinPrecio = !productoEsVendible(item);
+  const cajaFalsa = productoCajaEsFalsa(item);
+  const stockVisible = stockMostradorPos(item, stockCajas);
+  const precioFicha = precioMostradorPos(item);
+  const agotado = cajaFalsa
+    ? stockVisible <= 0
+    : stockCajas <= 0 && (!item.venta_unidad || item.stock_unidades === 0);
+  const sinPrecio = cajaFalsa ? precioFicha <= 0.01 : !productoEsVendible(item);
   const yaEnCarritoMax = !item.venta_unidad && stockFifo > 0 && enCarrito >= stockFifo;
   const uso = usoLoading
     ? "Consultando uso con Claude…"
@@ -373,7 +382,9 @@ function PosProductoFichaPanel({
               padding: stack ? 10 : 14,
             }}
           >
-            <span style={{ fontSize: 72, opacity: 0.35 }} aria-hidden>💊</span>
+            <span style={{ color: C.textDim, opacity: 0.55 }} aria-hidden>
+              <IconoPieza size={56} />
+            </span>
           </div>
         )}
 
@@ -389,7 +400,7 @@ function PosProductoFichaPanel({
               {!esMedicamentoControlado(item) && !esCategoriaAntibiotico(item.categoria) && (
                 <Tag col={C.blue} sm>Venta libre</Tag>
               )}
-              {sinLotes ? <Tag col={C.red} sm>Sin lotes</Tag> : agotado ? <Tag col={C.red} sm>Agotado</Tag> : <Tag col={C.green} sm>{stockCajas} en stock</Tag>}
+              {sinLotes ? <Tag col={C.red} sm>Sin lotes</Tag> : agotado ? <Tag col={C.red} sm>Agotado</Tag> : <Tag col={C.green} sm>{stockVisible} en stock</Tag>}
             </div>
             <h2 style={{ margin: 0, fontSize: stack ? 17 : 20, fontWeight: 900, color: C.text, lineHeight: 1.25 }}>
               {posTituloProducto(item)}
@@ -461,23 +472,24 @@ function PosProductoFichaPanel({
             <div>
               <div style={{ fontSize: 11, color: C.textDim, marginBottom: 2 }}>Precio</div>
               <div style={{ fontSize: stack ? 22 : 26, fontWeight: 900, color: C.blue, lineHeight: 1 }}>
-                {item.descuento_pct > 0 ? (
+                {item.descuento_pct > 0 && !cajaFalsa ? (
                   <>
                     <span style={{ fontSize: 14, color: C.textDim, textDecoration: "line-through", marginRight: 8 }}>{$(item.precio)}</span>
                     {$(cobroLinea(item.precio, 1, item.descuento_pct))}
                   </>
                 ) : (
-                  $(pesoPublico(item.precio))
+                  $(pesoPublico(precioFicha))
                 )}
               </div>
-              {Math.abs((parseFloat(item.precio) || 0) - pesoPublico(item.precio)) > 0.001 && !(item.descuento_pct > 0) && (
+              {!cajaFalsa && Math.abs((parseFloat(item.precio) || 0) - pesoPublico(item.precio)) > 0.001 && !(item.descuento_pct > 0) && (
                 <div style={{ fontSize: 11, color: C.textDim, marginTop: 4 }}>
                   Lista {$(item.precio)} · en caja se cobra peso entero
                 </div>
               )}
             </div>
-            <span style={{ fontSize: 12, fontWeight: 700, color: item.ubicacion_texto ? C.blue : C.textDim }}>
-              📍 {item.ubicacion_texto || "Sin ubicación"}
+            <span style={{ fontSize: 12, fontWeight: 700, color: item.ubicacion_texto ? C.blue : C.textDim, display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <IconoAnaquel size={15} />
+              {item.ubicacion_texto || "Sin ubicación"}
             </span>
           </div>
 
@@ -486,10 +498,26 @@ function PosProductoFichaPanel({
               <Btn col={C.amber} disabled full>
                 Sin precio de venta — cárgalo en Inventario
               </Btn>
+            ) : cajaFalsa ? (
+              <Btn
+                col={C.blue}
+                full
+                disabled={stockVisible <= 0}
+                onClick={() => {
+                  if (item.stock_unidades > 0) onAddUnidad(item);
+                  else if (stockCajas > 0) onAddCaja(item);
+                  else showToast("Sin stock disponible.", "warning");
+                }}
+                style={filaIconoBtn()}
+              >
+                <IconoPieza size={18} />
+                Agregar · {$(pesoPublico(precioFicha))}
+              </Btn>
             ) : item.venta_unidad ? (
               <>
-                <Btn col={C.blue} disabled={stockCajas <= 0} onClick={() => onAddCaja(item)} style={{ flex: "1 1 160px" }}>
-                  📦 Caja · {$(item.precio)}
+                <Btn col={C.blue} disabled={stockCajas <= 0} onClick={() => onAddCaja(item)} style={filaIconoBtn({ flex: "1 1 160px" })}>
+                  <IconoCaja size={18} />
+                  Caja · {$(item.precio)}
                 </Btn>
                 <Btn
                   outline
@@ -500,9 +528,10 @@ function PosProductoFichaPanel({
                     else if (stockCajas > 0) onAbrirCaja(item);
                     else showToast("Sin stock disponible.", "warning");
                   }}
-                  style={{ flex: "1 1 160px" }}
+                  style={filaIconoBtn({ flex: "1 1 160px" })}
                 >
-                  💊 1 unidad · {$(precioUnidadParaVenta(item))}
+                  <IconoPieza size={18} />
+                  Pieza · {$(precioUnidadParaVenta(item))}
                 </Btn>
               </>
             ) : (
@@ -517,10 +546,12 @@ function PosProductoFichaPanel({
                   }
                   onAddCaja(item);
                 }}
+                style={filaIconoBtn()}
               >
+                <IconoBolsa size={18} />
                 {yaEnCarritoMax
                   ? `Ya en el carrito · ${enCarrito} de ${stockFifo}`
-                  : `Agregar al carrito · ${$(item.precio)}`}
+                  : `Agregar · ${$(item.precio)}`}
               </Btn>
             )}
           </div>
@@ -1339,8 +1370,11 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
   const estadoStockPos = (producto) => {
     if (productoSinLotesPEPS(producto)) return { agotado: true, etiqueta: "Sin lotes" };
     const cajas = getStockCajasPOS(producto);
-    const agotado = cajas <= 0 && (!producto.venta_unidad || producto.stock_unidades === 0);
-    return { agotado, etiqueta: agotado ? "Agotado" : `${cajas} disp.` };
+    const visible = stockMostradorPos(producto, cajas);
+    const agotado = productoCajaEsFalsa(producto)
+      ? visible <= 0
+      : cajas <= 0 && (!producto.venta_unidad || producto.stock_unidades === 0);
+    return { agotado, etiqueta: agotado ? "Agotado" : `${visible} disp.` };
   };
 
   const getCantidadEnCarrito = (cartActual, productoId, esUnidad = false) => {
@@ -1964,7 +1998,10 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
   const renderPosCarritoVentaInner = () => (
     <>
       <Box style={{padding:16,marginBottom:12}}>
-        <div style={{color:C.text,fontWeight:800,fontSize:16,marginBottom:12}}>🛒 Carrito {cart.length>0&&<span style={{color:BRAND.primary,fontWeight:700,fontSize:13}}>({cart.length})</span>}</div>
+        <div style={{color:C.text,fontWeight:800,fontSize:16,marginBottom:12,display:"flex",alignItems:"center",gap:8}}>
+          <span style={{color:BRAND.primary}}><IconoBolsa size={18} /></span>
+          Carrito {cart.length>0&&<span style={{color:BRAND.primary,fontWeight:700,fontSize:13}}>({cart.length})</span>}
+        </div>
         <div data-tour="pos-cliente">
         <SearchDropdown
           value={tel}
@@ -2720,13 +2757,13 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
               >
                 <span
                   style={{
-                    fontSize: 22,
                     lineHeight: 1,
                     flexShrink: 0,
+                    color: cart.length ? BRAND.primary : C.textMid,
                   }}
                   aria-hidden
                 >
-                  🛒
+                  <IconoBolsa size={20} />
                 </span>
                 <div style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0 }}>
                   <span style={{ fontWeight: 800, fontSize: 12, color: C.text }}>
@@ -2904,7 +2941,12 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                 background:cart.length?BRAND.primary+"18":"transparent",
                 color:cart.length?BRAND.primary:C.textMid,
                 fontWeight:700,fontSize:12,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,
-              }}>🛒{cart.length>0?` (${cart.length})`:""} {cartOpen?"▶":"◀"}</button>
+                display:"inline-flex",alignItems:"center",gap:8,
+              }}>
+                <IconoBolsa size={16} />
+                {cart.length>0?` (${cart.length})`:""}
+                <IconoChevron size={12} direccion={cartOpen ? "der" : "izq"} />
+              </button>
               )}
             </div>
             {fichaProd ? (
@@ -3187,7 +3229,10 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                   <div style={{color:C.text,fontSize:13,fontWeight:700,marginTop:6}}>{clienteNombre}</div>
                   {clienteTel&&<div style={{color:C.textMid,fontSize:12,marginTop:1}}>📱 {clienteTel}</div>}
                   {p.tipo_entrega==="envio"&&p.direccion&&(
-                    <div style={{color:C.textDim,fontSize:11,marginTop:4,maxWidth:480,lineHeight:1.35}}>📍 {p.direccion}</div>
+                    <div style={{color:C.textDim,fontSize:11,marginTop:4,maxWidth:480,lineHeight:1.35,display:"flex",alignItems:"flex-start",gap:5}}>
+                      <span style={{marginTop:1}}><IconoAnaquel size={13} /></span>
+                      {p.direccion}
+                    </div>
                   )}
                   <div style={{color:C.textDim,fontSize:11,marginTop:2}}>{new Date(p.created_at).toLocaleString("es-MX")}</div>
                 </div>
@@ -3202,8 +3247,9 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                   <div key={i} style={{display:"flex",justifyContent:"space-between",gap:10,marginBottom:6}}>
                     <div style={{minWidth:0}}>
                       <div style={{color:C.text,fontSize:12}}>{item.productos?.nombre} ×{item.cantidad}</div>
-                      <div style={{color:ubicacionPedidoItem(item)==="Sin ubicación"?C.textDim:C.blue,fontSize:11,fontWeight:700}}>
-                        📍 {ubicacionPedidoItem(item)}
+                      <div style={{color:ubicacionPedidoItem(item)==="Sin ubicación"?C.textDim:C.blue,fontSize:11,fontWeight:700,display:"flex",alignItems:"center",gap:5}}>
+                        <IconoAnaquel size={13} />
+                        {ubicacionPedidoItem(item)}
                       </div>
                     </div>
                     <span style={{color:C.blue,fontSize:12,fontWeight:700,flexShrink:0}}>{$(item.precio_unitario*item.cantidad)}</span>
