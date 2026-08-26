@@ -1,10 +1,8 @@
--- Recargas: no guardar recargo en 0, y "hoy" en hora de México (no UTC).
--- Requiere sql/patch_pagos_servicio_compensacion_mp.sql (columnas nuevas).
--- Ejecutar en Supabase SQL Editor. Idempotente.
---
--- SUPERSEDED: no reaplicar este archivo. La regla "comisión no puede ser 0"
--- bloqueaba recargas "sin recargo". La función vigente está en
--- sql/patch_pagos_servicio_recarga_sin_recargo_20260826.sql.
+-- Recargas (Telcel, AT&T, Movistar, Unefon): recargo de farmacia = 0.
+-- Recibos (CFE, Sky, …): recargo obligatorio > 0.
+-- Sustituye la regla de sql/patch_pagos_servicio_hoy_y_recargo.sql que
+-- bloqueaba TODA comisión en cero (incluida la recarga "sin recargo").
+-- Idempotente. Ejecutar en Supabase o vía API/Postgres.
 
 begin;
 
@@ -34,6 +32,7 @@ declare
   v_total numeric;
   v_metodo text;
   v_comp numeric;
+  v_cat text;
 begin
   v_actor := public.fn_require_empleado(p_session_token);
 
@@ -44,13 +43,19 @@ begin
     raise exception 'Categoría requerida';
   end if;
 
+  v_cat := lower(btrim(p_categoria));
   v_monto := round(coalesce(p_monto_servicio, 0)::numeric, 2);
   v_com := round(coalesce(p_comision, 0)::numeric, 2);
   if v_monto <= 0 then
     raise exception 'Monto del servicio debe ser mayor a 0';
   end if;
-  if v_com <= 0 then
-    raise exception 'El recargo de farmacia es obligatorio. No se guarda en cero.';
+  if v_cat = 'recarga' then
+    if v_com <> 0 then
+      raise exception 'Las recargas no llevan recargo de farmacia. Solo el monto de tiempo aire.';
+    end if;
+    v_com := 0;
+  elsif v_com <= 0 then
+    raise exception 'El recargo de farmacia es obligatorio en recibos. No se guarda en cero.';
   end if;
 
   v_total := round(v_monto + v_com, 2);
@@ -73,7 +78,7 @@ begin
     compensacion_mp, costo_liquidacion, fuente_liquidacion
   ) values (
     'PENDING',
-    lower(btrim(p_categoria)),
+    v_cat,
     btrim(p_proveedor),
     nullif(btrim(coalesce(p_referencia, '')), ''),
     v_monto,
@@ -126,58 +131,5 @@ $$;
 grant execute on function public.registrar_pago_servicio_pos(
   uuid, text, text, text, numeric, numeric, text, boolean, text, bigint
 ) to anon, authenticated;
-
-create or replace function public.empleado_listar_pagos_servicio_dia(
-  p_session_token uuid,
-  p_limite        integer default 30
-)
-returns jsonb
-language plpgsql
-security definer
-set search_path = public, pg_temp
-as $$
-declare
-  v_dia date;
-  v_desde timestamptz;
-  v_hasta timestamptz;
-begin
-  perform public.fn_require_empleado(p_session_token);
-  -- Midnight Mexico as timestamptz. date_trunc(now() AT TIME ZONE ...)
-  -- without the outer AT TIME ZONE was compared as UTC and colaba el día anterior.
-  v_dia := (now() at time zone 'America/Mexico_City')::date;
-  v_desde := (v_dia::timestamp) at time zone 'America/Mexico_City';
-  v_hasta := ((v_dia + 1)::timestamp) at time zone 'America/Mexico_City';
-
-  return coalesce((
-    select jsonb_agg(row order by row->>'created_at' desc)
-    from (
-      select jsonb_build_object(
-        'id', ps.id,
-        'folio', ps.folio,
-        'proveedor', ps.proveedor,
-        'categoria', ps.categoria,
-        'referencia', ps.referencia,
-        'monto_servicio', ps.monto_servicio,
-        'comision', ps.comision,
-        'compensacion_mp', ps.compensacion_mp,
-        'costo_liquidacion', ps.costo_liquidacion,
-        'fuente_liquidacion', ps.fuente_liquidacion,
-        'referencia_externa', ps.referencia_externa,
-        'total_cobrado', ps.total_cobrado,
-        'metodo_pago', ps.metodo_pago,
-        'liquidado_point', ps.liquidado_point,
-        'created_at', ps.created_at
-      ) as row
-      from public.pagos_servicio ps
-      where ps.created_at >= v_desde
-        and ps.created_at < v_hasta
-      order by ps.created_at desc
-      limit greatest(1, least(coalesce(p_limite, 30), 100))
-    ) q
-  ), '[]'::jsonb);
-end;
-$$;
-
-grant execute on function public.empleado_listar_pagos_servicio_dia(uuid, integer) to anon, authenticated;
 
 commit;

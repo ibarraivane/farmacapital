@@ -34,6 +34,8 @@ describe("pagoServicio", () => {
 
   test("el recargo del catálogo es 0 en recargas y fijo en recibos", () => {
     expect(recargoCatalogoDe("telcel")).toBe(0);
+    expect(recargoCatalogoDe("att")).toBe(0);
+    expect(recargoCatalogoDe("AT&T")).toBe(0);
     expect(recargoCatalogoDe("Movistar")).toBe(0);
     expect(recargoCatalogoDe("CFE")).toBe(8);
     expect(recargoCatalogoDe("Sky")).toBe(10);

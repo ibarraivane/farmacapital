@@ -15,6 +15,43 @@ const parseMonto = (s) => {
 export async function rpcRegistrarPagoServicio(payload) {
   const tok = sessionStorage.getItem("farmacapital_session_token");
   if (!tok) throw new Error("Sesión expirada");
+
+  try {
+    const resp = await fetch("/api/inventarioProcesarPdf?type=pago-servicio", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-session-token": tok },
+      body: JSON.stringify({
+        session_token: tok,
+        action: "registrar",
+        proveedor: payload.proveedor,
+        categoria: payload.categoria,
+        referencia: payload.referencia || null,
+        monto_servicio: payload.montoServicio,
+        comision: payload.comision,
+        metodo_pago: payload.metodoPago,
+        liquidado_point: !!payload.liquidadoPoint,
+        notas: payload.notas || null,
+        cliente_id: payload.clienteId || null,
+      }),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (resp.ok && data?.ok && data.row) {
+      return {
+        success: true,
+        id: data.row.id,
+        folio: data.row.folio,
+        total_cobrado: data.row.total_cobrado,
+        comision: data.row.comision,
+        compensacion_mp: data.row.compensacion_mp,
+      };
+    }
+    if (data?.error && data.error !== "requiere_admin" && data.error !== "nada_que_guardar") {
+      throw new Error(data.error);
+    }
+  } catch (e) {
+    if (e?.message && e.message !== "Failed to fetch") throw e;
+  }
+
   const { data, error } = await supabase.rpc("registrar_pago_servicio_pos", {
     p_session_token: tok,
     p_proveedor: payload.proveedor,

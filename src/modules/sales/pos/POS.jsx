@@ -2530,7 +2530,9 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
         }
         hint={
           mpServicioRef.current
-            ? "Cobra al cliente recarga + tu recargo en la Point. La recarga misma ya se pagó con saldo MP. Prefiere efectivo: la comisión de Point se come la ganancia."
+            ? (mpServicioRef.current.categoria === "recarga"
+              ? "Cobra al cliente solo el monto de la recarga en la Point. El tiempo aire ya salió del saldo MP. Prefiere efectivo: la comisión de Point se come el 1%."
+              : "Cobra al cliente el recibo + tu recargo en la Point. El servicio ya se pagó con saldo MP. Prefiere efectivo: la comisión de Point se come la ganancia.")
             : "El terminal recibe el monto; al aprobarse se registra la venta y podrás imprimir o enviar el ticket por WhatsApp."
         }
         onSuccess={async ()=>{

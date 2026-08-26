@@ -44,7 +44,9 @@ export function recargoCatalogoDe(idOrProveedor) {
   return money2(hit?.comision ?? 0);
 }
 
-/** Recargas van en 0. Recibos de servicio sí llevan recargo. */
+/** Recargas van en 0. Recibos de servicio sí llevan recargo.
+ *  La RPC registrar_pago_servicio_pos y el API de servicios deben usar la misma regla
+ *  (sql/patch_pagos_servicio_recarga_sin_recargo_20260826.sql). */
 export function recargoEsValido(comision, categoria) {
   const n = money2(comision);
   if (String(categoria || "").toLowerCase() === "recarga") return n === 0;

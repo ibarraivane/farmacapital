@@ -14,6 +14,7 @@ import { usePedidoTicketUrl } from "./hooks/usePedidoTicketUrl";
 import { telefonoMxValido, $ } from "./utils";
 import { rolEsAdmin } from "./utils/permissions";
 import { fmtDateTimeMexico } from "./lib/ventasVsMeta";
+import { recargoEsValido } from "./lib/pagoServicio";
 
 function esPagoServicio(p) {
   return p?.origen === "pago_servicio" || pedidoEsTipoServicio(p?.tipo);
@@ -414,6 +415,13 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
     const tok = sessionStorage.getItem("farmacapital_session_token");
     try {
       if (esPagoServicio(modalEditar)) {
+        if (!recargoEsValido(editForm.comision, modalEditar.categoria)) {
+          throw new Error(
+            modalEditar.categoria === "recarga"
+              ? "Las recargas no llevan recargo de farmacia. Déjalo en 0."
+              : "El recargo de farmacia es obligatorio en recibos. No se guarda en cero."
+          );
+        }
         await guardarPagoServicioAdmin("editar", {
           id: modalEditar.servicioId,
           metodo_pago: editForm.metodo_pago,
@@ -828,7 +836,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
 
             {esPagoServicio(modalDetalle) ? (
               <div style={{ background: C.cardDark, borderRadius: 8, padding: 14, fontSize: 12, color: C.textMid, lineHeight: 1.5 }}>
-                Recarga registrada en POS → Servicios. El recargo es lo que le cobraste al cliente. La compensación MP (1%) entra al saldo de Mercado Pago, no al cajón. No es una venta de producto: no tiene folio VTA.
+                Recarga registrada en POS → Servicios. En tiempo aire el recargo va en 0; en recibos es lo que le cobraste al cliente. La compensación MP (1%) entra al saldo de Mercado Pago, no al cajón. No es una venta de producto: no tiene folio VTA.
               </div>
             ) : (
             <>
@@ -958,8 +966,16 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                     <input value={editForm.monto_servicio || ""} onChange={(e) => setEditForm((f) => ({ ...f, monto_servicio: e.target.value }))} inputMode="decimal" style={inpForm} />
                   </div>
                   <div>
-                    <label style={{ color: C.textMid, fontSize: 10, fontWeight: 700, display: "block", marginBottom: 4 }}>COMISIÓN</label>
-                    <input value={editForm.comision || ""} onChange={(e) => setEditForm((f) => ({ ...f, comision: e.target.value }))} inputMode="decimal" style={inpForm} />
+                    <label style={{ color: C.textMid, fontSize: 10, fontWeight: 700, display: "block", marginBottom: 4 }}>
+                      {modalEditar.categoria === "recarga" ? "RECARGO (SIEMPRE 0)" : "RECARGO FARMACIA"}
+                    </label>
+                    <input
+                      value={editForm.comision || ""}
+                      onChange={(e) => setEditForm((f) => ({ ...f, comision: e.target.value }))}
+                      inputMode="decimal"
+                      disabled={modalEditar.categoria === "recarga"}
+                      style={inpForm}
+                    />
                   </div>
                 </div>
               </>
