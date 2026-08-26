@@ -6,6 +6,7 @@ import {
   metaSemana,
   parseYmdLocal,
   porDiaDesdeSerieRpc,
+  resumenMetasActuales,
   resumenPunto,
   ymdFromLocalDate,
 } from "./ventasVsMeta";
@@ -90,6 +91,21 @@ describe("porDiaDesdeSerieRpc", () => {
     expect(porDiaDesdeSerieRpc([{ dia: "2026-08-23", total: "12" }])).toEqual({
       "2026-08-23": 12,
     });
+  });
+});
+
+describe("resumenMetasActuales", () => {
+  test("devuelve el día, la semana y el mes en curso", () => {
+    const r = resumenMetasActuales({
+      porDia: { "2026-08-26": 1500 },
+      cfg: CFG,
+      hoyYmd: "2026-08-26",
+    });
+    expect(r.dia?.actual).toBe(1500);
+    expect(r.dia?.meta).toBe(3000);
+    expect(r.semana?.esActual).toBe(true);
+    expect(r.mes?.esActual).toBe(true);
+    expect(r.mes?.meta).toBe(80000);
   });
 });
 

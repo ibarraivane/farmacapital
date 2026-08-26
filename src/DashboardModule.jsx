@@ -1024,10 +1024,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
       )}
 
       {panelTab==="transacciones" && (
-        <>
-          <VentasVsMetaChart porDia={ventasPorDia} cfg={metasTurnoCfg} hoyYmd={ymdMexico()} />
-          <TransaccionesTab usuario={usuario} showConfirm={showConfirm} />
-        </>
+        <TransaccionesTab usuario={usuario} showConfirm={showConfirm} ventasPorDia={ventasPorDia} metasTurnoCfg={metasTurnoCfg} />
       )}
 
       {panelTab==="resumen" && (

@@ -13,7 +13,8 @@ import { notifyPosTicket, notifyOnlineOrderReceipt, formatFolioPOS, formatFolioO
 import { usePedidoTicketUrl } from "./hooks/usePedidoTicketUrl";
 import { telefonoMxValido } from "./utils";
 import { rolEsAdmin } from "./utils/permissions";
-import { fmtDateTimeMexico } from "./lib/ventasVsMeta";
+import { fmtDateTimeMexico, ymdMexico } from "./lib/ventasVsMeta";
+import VentasVsMetaChart, { MetasPeriodoStrip } from "./VentasVsMetaChart";
 
 function esPagoServicio(p) {
   return p?.origen === "pago_servicio" || pedidoEsTipoServicio(p?.tipo);
@@ -33,10 +34,7 @@ function mapPagoServicioAFila(ps) {
     created_at: ps.created_at,
     notas: ps.notas || null,
     atendido_por: ps.atendido_por ?? null,
-    clientes: {
-      nombre: proveedor,
-      telefono: ps.referencia || "",
-    },
+    clientes: null,
     usuarios: { nombre: ps.atendido_por_nombre || "" },
     proveedor,
     categoria: ps.categoria,
@@ -103,7 +101,7 @@ async function fetchPagosServicioRango(tok, rango) {
 }
 
 /** Listado de pedidos con filtros — antes dentro de Admin/Reportes; requiere showConfirm del padre. */
-export default function TransaccionesTab({ usuario, showConfirm }) {
+export default function TransaccionesTab({ usuario, showConfirm, ventasPorDia, metasTurnoCfg }) {
   const C = C_LIGHT;
   const [pedidos, setPedidos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -571,6 +569,12 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
 
   return (
     <div style={{ colorScheme: "light" }}>
+      {(ventasPorDia || metasTurnoCfg) && (
+        <>
+          <MetasPeriodoStrip porDia={ventasPorDia} cfg={metasTurnoCfg} hoyYmd={ymdMexico()} />
+          <VentasVsMetaChart porDia={ventasPorDia} cfg={metasTurnoCfg} hoyYmd={ymdMexico()} />
+        </>
+      )}
       <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
         <input placeholder="🔍 ID o cliente…" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} style={{ ...inpS, maxWidth: 180 }} />
         <select value={filtroFecha} onChange={(e) => setFiltroF(e.target.value)} style={inpS}>
@@ -634,9 +638,8 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                     <div style={{ fontSize: 9, color: C.textDim, marginTop: 2 }}>{esPagoServicio(p) ? "Recarga / servicio" : folioPedido(p)}</div>
                   </td>
                   <td data-label="Fecha" style={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap" }}>{fmtDT(p.created_at)}</td>
-                  <td data-label="Cliente" data-wide style={{ padding: "8px 12px", color: C.text, fontWeight: 600, borderBottom: `1px solid ${C.border}` }}>
-                    {p.clientes?.nombre || "—"}
-                    {p.clientes?.telefono ? <div style={{ fontSize: 10, color: C.textMid, fontWeight: 500, marginTop: 2 }}>{p.clientes.telefono}</div> : null}
+                  <td data-label="Cliente" data-wide style={{ padding: "8px 12px", color: C.text, fontWeight: 600, borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 180 }}>
+                    {esPagoServicio(p) ? "—" : (p.clientes?.nombre || "—")}
                   </td>
                   <td
                     data-label="Vendedor"
@@ -675,7 +678,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                   </td>
                   <td data-label="Total" style={{ padding: "8px 12px", color: C.green, fontWeight: 700, borderBottom: `1px solid ${C.border}` }}>{fmtM(p.total)}</td>
                   <td data-label="Método" style={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}` }}>{p.metodo_pago || "—"}</td>
-                  <td data-label="Tipo" style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, verticalAlign: "top" }}>
+                  <td data-label="Tipo" style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, verticalAlign: "middle" }}>
                     <span style={{ padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 700,
                       background: p.tipo === "online" ? "#ede9fe" : p.tipo === "consulta" ? "#dcfce7" : pedidoEsTipoServicio(p.tipo) ? "#fef3c7" : "#eff6ff",
                       color: p.tipo === "online" ? C.purple : p.tipo === "consulta" ? C.green : pedidoEsTipoServicio(p.tipo) ? C.amber : C.blue }}>
@@ -800,7 +803,9 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 160px), 1fr))", gap: 12, marginBottom: 16, fontSize: 12 }}>
               <div><span style={{ color: C.textMid }}>Folio: </span><strong style={{ color: C.text }}>{folioPedido(modalDetalle)}</strong></div>
+              {!esPagoServicio(modalDetalle) && (
               <div><span style={{ color: C.textMid }}>Cliente: </span><strong style={{ color: C.text }}>{modalDetalle.clientes?.nombre || "—"}</strong></div>
+              )}
               <div><span style={{ color: C.textMid }}>Fecha: </span><strong style={{ color: C.text }}>{fmtDT(modalDetalle.created_at)}</strong></div>
               <div><span style={{ color: C.textMid }}>Total: </span><strong style={{ color: C.green }}>{fmtM(modalDetalle.total)}</strong></div>
               <div><span style={{ color: C.textMid }}>Método: </span><strong style={{ color: C.text }}>{modalDetalle.metodo_pago || "—"}</strong></div>
@@ -810,7 +815,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
               {esPagoServicio(modalDetalle) && (
                 <>
                   <div><span style={{ color: C.textMid }}>Proveedor: </span><strong style={{ color: C.text }}>{modalDetalle.proveedor || "—"}</strong></div>
-                  <div><span style={{ color: C.textMid }}>Referencia: </span><strong style={{ color: C.text }}>{modalDetalle.referencia || "—"}</strong></div>
+                  <div><span style={{ color: C.textMid }}>Teléfono / referencia: </span><strong style={{ color: C.text }}>{modalDetalle.referencia || "—"}</strong></div>
                   <div><span style={{ color: C.textMid }}>Monto recarga: </span><strong style={{ color: C.text }}>{fmtM(modalDetalle.monto_servicio)}</strong></div>
                   <div><span style={{ color: C.textMid }}>Recargo farmacia: </span><strong style={{ color: C.amber }}>{fmtM(modalDetalle.comision)}</strong></div>
                   <div><span style={{ color: C.textMid }}>Compensación MP (1%): </span><strong style={{ color: C.text }}>{fmtM(modalDetalle.compensacion_mp)}</strong></div>

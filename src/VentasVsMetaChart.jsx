@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { C_LIGHT, BRAND } from "./constants";
-import { construirSerie, resumenPunto, ymdMexico } from "./lib/ventasVsMeta";
+import { construirSerie, resumenMetasActuales, resumenPunto, ymdMexico } from "./lib/ventasVsMeta";
 
 const GRAINS = [
   { id: "dia", label: "Día" },
@@ -20,6 +20,39 @@ function colorBarra(p) {
   if (pct >= 70) return C_LIGHT.blue;
   if (pct >= 40) return C_LIGHT.amber;
   return C_LIGHT.red;
+}
+
+export function MetasPeriodoStrip({ porDia, cfg, hoyYmd }) {
+  const C = C_LIGHT;
+  const { dia, semana, mes } = resumenMetasActuales({ porDia, cfg, hoyYmd: hoyYmd || ymdMexico() });
+  const cards = [
+    { id: "dia", label: "Hoy", punto: dia },
+    { id: "semana", label: "Esta semana", punto: semana },
+    { id: "mes", label: "Este mes", punto: mes },
+  ];
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 180px), 1fr))", gap: 10, marginBottom: 14 }}>
+      {cards.map((c) => {
+        const { pct, ok } = resumenPunto(c.punto);
+        const col = colorBarra(c.punto);
+        return (
+          <div key={c.id} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "12px 14px" }}>
+            <div style={{ color: C.textDim, fontSize: 10, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase" }}>{c.label}</div>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8, marginTop: 4 }}>
+              <div style={{ color: C.text, fontWeight: 900, fontSize: 18, fontVariantNumeric: "tabular-nums" }}>{fmtK(c.punto?.actual)}</div>
+              <div style={{ color: col, fontWeight: 800, fontSize: 13 }}>{ok ? "Meta" : `${pct.toFixed(0)}%`}</div>
+            </div>
+            <div style={{ height: 6, background: C.bg, borderRadius: 99, overflow: "hidden", marginTop: 8 }}>
+              <div style={{ height: "100%", width: `${Math.min(100, pct)}%`, background: col, borderRadius: 99 }} />
+            </div>
+            <div style={{ color: C.textMid, fontSize: 11, marginTop: 6 }}>
+              meta {fmtK(c.punto?.meta)}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 export default function VentasVsMetaChart({ porDia, cfg, hoyYmd }) {

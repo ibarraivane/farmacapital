@@ -211,3 +211,14 @@ export function resumenPunto(p) {
   const pct = meta > 0 ? (actual / meta) * 100 : 0;
   return { pct, falta: Math.max(0, meta - actual), ok: meta > 0 && actual >= meta };
 }
+
+/** Hoy / semana en curso / mes en curso, para las fichas de Transacciones. */
+export function resumenMetasActuales({ porDia, cfg, hoyYmd }) {
+  const hoy = hoyYmd || ymdMexico();
+  const pick = (grano) => construirSerie({ porDia, cfg, grano, hoyYmd: hoy }).find((p) => p.esActual) || null;
+  return {
+    dia: pick("dia"),
+    semana: pick("semana"),
+    mes: pick("mes"),
+  };
+}
