@@ -4,9 +4,8 @@ import { supabase } from "../supabase";
 /**
  * Fotos de un producto para la galería.
  *
- * La foto curada de `productos.imagen_url` siempre va primero: la galería es
- * aditiva y no cambia lo que ya se ve hoy en pantalla. Detrás van las de
- * `producto_imagenes` ordenadas por posición, sin repetir la primera.
+ * Si hay set de catálogo (Rappi), esa galería manda: más fotos y mejor
+ * calidad. `imagen_url` solo se usa cuando no hay galería.
  */
 
 const cache = new Map();
@@ -14,6 +13,21 @@ const enVuelo = new Map();
 
 function normalizar(url) {
   return String(url || "").trim();
+}
+
+/** Galería Rappi primero; imagen_url solo si no hay set de catálogo. */
+export function ordenarGaleriaProducto(imagenPrincipal, urlsGaleria) {
+  const extra = (urlsGaleria || []).map(normalizar).filter(Boolean);
+  const base = normalizar(imagenPrincipal);
+  const fuentes = extra.length ? extra : (base ? [base] : []);
+  const vistas = new Set();
+  const imagenes = [];
+  for (const url of fuentes) {
+    if (vistas.has(url)) continue;
+    vistas.add(url);
+    imagenes.push(url);
+  }
+  return imagenes;
 }
 
 async function traer(productoId) {
@@ -73,15 +87,7 @@ export function useProductoImagenes(productoId, imagenPrincipal = "") {
     return () => { vivo = false; };
   }, [productoId]);
 
-  const vistas = new Set();
-  const imagenes = [];
-  for (const url of [base, ...extra]) {
-    if (!url || vistas.has(url)) continue;
-    vistas.add(url);
-    imagenes.push(url);
-  }
-
-  return { imagenes, cargando };
+  return { imagenes: ordenarGaleriaProducto(base, extra), cargando };
 }
 
 // ── Fotos principales de todo el catálogo ────────────────────────────
@@ -127,8 +133,8 @@ function cargarPrincipales() {
 
 /**
  * Devuelve una función `(productoId) => url` con la foto principal del
- * catálogo. Sirve de respaldo cuando el producto todavía no tiene
- * imagen_url propia: sin esto el vendedor ve un ícono en vez del empaque.
+ * catálogo (Rappi si existe). Las rejillas la prefieren sobre el packshot
+ * viejo de `imagen_url`.
  */
 export function useImagenesPrincipales() {
   const [v, setV] = useState(version);
