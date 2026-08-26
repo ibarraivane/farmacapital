@@ -16,6 +16,8 @@ import { idEmpleadoUsuarios } from "./utils/usuarioId";
 import ImageUploader from "./components/ImageUploader";
 import GaleriaProducto from "./components/GaleriaProducto";
 import { useImagenesPrincipales, useProductoImagenes } from "./hooks/useProductoImagenes";
+import { useCatalogoVivo } from "./hooks/useCatalogoVivo";
+import { avisarCatalogoCambio } from "./utils/catalogoVivo";
 import { sugerirPrecioUnidad, aplicarReglaPrecioUnidad, margenBrutoPct } from "./utils/precioUnidad";
 import { productoEsVendible } from "./utils/productoVendible";
 import {
@@ -222,6 +224,12 @@ function productoSinCodigoBarras(p) {
 
 function productoSinPrecioVenta(p) {
   return !productoEsVendible(p);
+}
+
+function productoSinFoto(p, fotoCatalogoDe) {
+  if (String(p?.imagen_url || "").trim()) return false;
+  if (fotoCatalogoDe?.(p?.id)) return false;
+  return true;
 }
 
 /** Parte nombre/presentación y mueve dosis suelta de principio → concentración al importar CSV. */
@@ -3003,6 +3011,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
       setModalImportar(false);
       setImportResult(null);
       await fetchProductos();
+      avisarCatalogoCambio({ origen: "inventario-import" });
       if (err > 0) {
         const tail = importCsvSoloNuevos ? ` · ${skipped} omitidos` : "";
         showToast(
@@ -3038,10 +3047,12 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
     const conDto = Math.max(0, precioBase * (1 - parseFloat(pct) / 100));
     showToast(`✅ ${prod.nombre} liquidado con ${pct}% desc. · Precio ref. ~$${conDto.toFixed(2)}`, "success");
     fetchProductos();
+    avisarCatalogoCambio({ origen: "inventario" });
   };
 
-  const fetchProductos = useCallback(async () => {
-    setLoading(true);
+  const fetchProductos = useCallback(async (opts) => {
+    const silencioso = !!(opts && typeof opts === "object" && opts.silencioso);
+    if (!silencioso) setLoading(true);
     const tok = sessionStorage.getItem("farmacapital_session_token");
     const stripCosto = (p) => {
       if (!p || typeof p !== "object") return p;
@@ -3107,16 +3118,18 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
     if (modoConsulta) {
       const { data, error, conLotes } = await traerConsultaVendedor();
       if (error) {
-        showToast("No se pudo cargar el inventario: " + error.message, "error");
-        setProductos([]);
-        setLoading(false);
+        if (!silencioso) {
+          showToast("No se pudo cargar el inventario: " + error.message, "error");
+          setProductos([]);
+          setLoading(false);
+        }
         return null;
       }
       let lotesByProducto = {};
       if (!conLotes) lotesByProducto = await fetchLotesPorProducto(tok, { omitCosto: true });
       const enriched = (data || []).map((p) => enrichProductoConLotes(p, p.lotes || lotesByProducto[p.id]));
       setProductos(enriched);
-      setLoading(false);
+      if (!silencioso) setLoading(false);
       return enriched;
     }
 
@@ -3125,18 +3138,21 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
       fetchLotesPorProducto(tok, { omitCosto: false }),
     ]);
     if (error) {
-      showToast("No se pudo cargar el inventario: " + error.message, "error");
-      setProductos([]);
-      setLoading(false);
+      if (!silencioso) {
+        showToast("No se pudo cargar el inventario: " + error.message, "error");
+        setProductos([]);
+        setLoading(false);
+      }
       return null;
     }
     const enriched = (data || []).map((p) => enrichProductoConLotes(p, lotesByProducto[p.id]));
     setProductos(enriched);
-    setLoading(false);
+    if (!silencioso) setLoading(false);
     return enriched;
   }, [verInactivos, modoConsulta]);
 
   useEffect(() => { fetchProductos(); }, [fetchProductos]);
+  useCatalogoVivo(() => fetchProductos({ silencioso: true }));
 
   const poolSinBusqueda = useMemo(() => productos.filter(p => {
     const cat = categoriaPasaFiltro(p.categoria, filtroCategoria);
@@ -3147,9 +3163,10 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
       filtroAlerta === "por_caducar"      ? esPorCaducar(dias) :
       filtroAlerta === "sin_codigo_barras" ? productoSinCodigoBarras(p) :
       filtroAlerta === "sin_precio" ? productoSinPrecioVenta(p) :
+      filtroAlerta === "sin_foto" ? productoSinFoto(p, fotoCatalogoDe) :
       true;
     return cat && alerta;
-  }), [productos, filtroCategoria, filtroAlerta]);
+  }), [productos, filtroCategoria, filtroAlerta, fotoCatalogoDe]);
 
   const filtradosTodosInv = useMemo(() => {
     const q = busqueda.trim();
@@ -3204,6 +3221,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
   const porCaducar = productos.filter(p => esPorCaducar(diasParaCaducar(p.min_caducidad_lotes))).length;
   const sinCodigoBarras = productos.filter(p => p.activo && productoSinCodigoBarras(p)).length;
   const sinPrecioVenta = productos.filter(p => p.activo && productoSinPrecioVenta(p)).length;
+  const sinFoto = productos.filter(p => p.activo && productoSinFoto(p, fotoCatalogoDe)).length;
   const inactivos  = productos.filter(p => !p.activo).length;
 
   const abrirEdicionProducto = useCallback((p, { focusBarcode = false } = {}) => {
@@ -3867,6 +3885,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
           {label:"Por caducar", val:porCaducar, col:C.red,   click:()=>setFiltroAlerta(filtroAlerta==="por_caducar"?"todos":"por_caducar"), on: filtroAlerta==="por_caducar"},
           {label:"Sin cód. barras", val:sinCodigoBarras, col:C.blue, click:()=>setFiltroAlerta(filtroAlerta==="sin_codigo_barras"?"todos":"sin_codigo_barras"), on: filtroAlerta==="sin_codigo_barras"},
           ...(!modoConsulta ? [
+            {label:"Sin foto", val:sinFoto, col:C.amber, click:()=>setFiltroAlerta(filtroAlerta==="sin_foto"?"todos":"sin_foto"), on: filtroAlerta==="sin_foto"},
             {label:"Sin precio", val:sinPrecioVenta, col:C.red, click:()=>setFiltroAlerta(filtroAlerta==="sin_precio"?"todos":"sin_precio"), on: filtroAlerta==="sin_precio"},
             {label:"Inactivos",   val:inactivos,  col:C.textMid, click:()=>{ setVerInactivos(true); setFiltroAlerta("todos"); }, on: !!verInactivos},
           ] : []),
@@ -3914,6 +3933,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
           <option value="bajo_stock">⚠ Bajo stock</option>
           <option value="por_caducar">⏰ Por caducar ({DIAS_CADUCIDAD_ALERTA}d)</option>
           <option value="sin_codigo_barras">🏷️ Sin código de barras</option>
+          <option value="sin_foto">🖼 Sin foto</option>
           {!modoConsulta && <option value="sin_precio">Sin precio de venta</option>}
         </select>
         {!modoConsulta && (
@@ -4247,7 +4267,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
           key={modal.id ?? "nuevo"}
           initial={modal}
           onClose={() => setModal(null)}
-          onSaved={() => { setModal(null); fetchProductos(); }}
+          onSaved={() => { setModal(null); fetchProductos(); avisarCatalogoCambio({ origen: "inventario" }); }}
           onEditarCaducidad={modal.id ? abrirLotesDesdeEdicion : undefined}
           onRecibirMercancia={modal.id ? abrirRecibirDesdeEdicion : undefined}
           onCaducidadSaved={modal.id ? refrescarProductoEnEdicion : undefined}

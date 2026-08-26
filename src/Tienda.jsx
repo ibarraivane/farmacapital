@@ -29,6 +29,7 @@ import { CATEGORIAS_PRODUCTO, categoriaCanon, categoriaPasaFiltro, categoriasCoi
 import { showToast, Logo, BrandSplash } from "./ui";
 import GaleriaProducto from "./components/GaleriaProducto";
 import { useImagenesPrincipales, useProductoImagenes } from "./hooks/useProductoImagenes";
+import { useCatalogoVivo } from "./hooks/useCatalogoVivo";
 import { setBloqueaReloadApp } from "./utils/appUpdate";
 import { pageIdToTiendaPath, resolveTiendaPage, tiendaPathnameToPageId, tiendaPathSuggestsReceta, tiendaProductIdFromSearch } from "./shared/tiendaRoutes";
 import { canjePorPuntos, guardarCanjeActivo, leerCanjeActivo, limpiarCanjeActivo } from "./utils/puntosCanje";
@@ -5421,11 +5422,35 @@ export default function TiendaFarmaCapital(){
     }
   },[user]);
 
-  // Cargar productos con timeout y reintentos para sobrevivir cold start de Supabase
+  // Cargar productos con timeout y reintentos para sobrevivir cold start de Supabase.
+  // Refresh silencioso (catálogo vivo): actualiza lista/detalle/carrito, no cambia de página.
+  const recargarProductosRef = useRef(async () => {});
   useEffect(()=>{
     let cancelled = false;
     const MAX_INTENTOS = 4;
-    const loadProductos = async (intento = 1)=>{
+    const aplicarLista = (data) => {
+      setProductos(data);
+      setProdDRaw((prev) => {
+        if (!prev?.id) return prev;
+        const next = data.find((p) => String(p.id) === String(prev.id));
+        if (!next) return prev;
+        const merged = { ...prev, ...next };
+        try { sessionStorage.setItem("farmacapital_prod_detalle", JSON.stringify(merged)); } catch (_) { /* noop */ }
+        return merged;
+      });
+      setCart((prev) => prev.map((c) => {
+        const next = data.find((p) => String(p.id) === String(c.id));
+        if (!next) return c;
+        return {
+          ...c,
+          precio: next.precio ?? c.precio,
+          stock: next.stock ?? c.stock,
+          nombre: next.nombre || c.nombre,
+          imagen_url: next.imagen_url || c.imagen_url,
+        };
+      }));
+    };
+    const loadProductos = async (intento = 1, { silencioso = false } = {})=>{
       try {
         const queryPromise = supabase.from("productos").select("*").eq("activo",true).order("id");
         const timeoutPromise = new Promise((_,r)=>setTimeout(()=>r(new Error("timeout")),20000));
@@ -5433,30 +5458,34 @@ export default function TiendaFarmaCapital(){
         if (cancelled) return;
         if (error) {
           const isTimeout = (error.message||"").toLowerCase().includes("upstream request timeout");
-          if (isTimeout && intento < MAX_INTENTOS) { await new Promise(r=>setTimeout(r,1500)); return loadProductos(intento+1); }
-          console.error("[Tienda] productos:", error);
-          setLoadingProductos(false);
+          if (isTimeout && intento < MAX_INTENTOS) { await new Promise(r=>setTimeout(r,1500)); return loadProductos(intento+1, { silencioso }); }
+          if (!silencioso) {
+            console.error("[Tienda] productos:", error);
+            setLoadingProductos(false);
+          }
           return;
         }
         if (data?.length) {
-          setProductos(data);
+          aplicarLista(data);
           try { localStorage.setItem("farmacapital_productos_cache", JSON.stringify(data)); } catch(_) {}
         } else if (data && data.length === 0) {
           setProductos([]);
           try { localStorage.removeItem("farmacapital_productos_cache"); } catch(_) {}
         }
-        setLoadingProductos(false);
+        if (!silencioso) setLoadingProductos(false);
       } catch(e) {
         if (cancelled) return;
-        if (e?.message === "timeout" && intento < MAX_INTENTOS) { await new Promise(r=>setTimeout(r,1500)); return loadProductos(intento+1); }
-        setLoadingProductos(false);
+        if (e?.message === "timeout" && intento < MAX_INTENTOS) { await new Promise(r=>setTimeout(r,1500)); return loadProductos(intento+1, { silencioso }); }
+        if (!silencioso) setLoadingProductos(false);
       }
     };
+    recargarProductosRef.current = () => loadProductos(1, { silencioso: true });
     loadProductos();
-    const onVis = ()=>{ if (document.visibilityState==="visible") loadProductos(); };
+    const onVis = ()=>{ if (document.visibilityState==="visible") loadProductos(1, { silencioso: true }); };
     document.addEventListener("visibilitychange", onVis);
     return ()=>{ cancelled = true; document.removeEventListener("visibilitychange", onVis); };
   },[]);
+  useCatalogoVivo(() => recargarProductosRef.current());
 
   // Popup de bienvenida: solo en inicio, una vez por pestaña, si no hay sesión.
   useEffect(()=>{

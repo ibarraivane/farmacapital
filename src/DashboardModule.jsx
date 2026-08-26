@@ -978,17 +978,6 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
         <TransaccionesTab
           usuario={usuario}
           showConfirm={showConfirm}
-          ventasPorDia={ventasPorDia}
-          metasTurnoCfg={metasTurnoCfg}
-          kpis={{
-            ventasHoy,
-            ventasSemana,
-            ventasMes,
-            metas,
-            metaMesProrrateada: metaVentasMesProrrateada || metas?.ventasMes,
-            fracMes,
-            trends,
-          }}
         />
       )}
 

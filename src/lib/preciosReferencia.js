@@ -134,6 +134,36 @@ export const FUENTE_META = {
     listaDistribuidor: false,
     hint: "Promedio de mercado o consulta manual (Claude, Google, etc.)",
   },
+  rappi_gdl: {
+    label: "GDL",
+    tipo: "venta",
+    listaDistribuidor: false,
+    hint: "Farmacias Guadalajara en Rappi. Entra al sugerido de venta en línea.",
+  },
+  rappi_farmatodo: {
+    label: "Farmatodo",
+    tipo: "venta",
+    listaDistribuidor: false,
+    hint: "Farmatodo en Rappi. Entra al sugerido de venta en línea.",
+  },
+  rappi_benavides: {
+    label: "Benavides",
+    tipo: "venta",
+    listaDistribuidor: false,
+    hint: "Farmacias Benavides en Rappi. Entra al sugerido de venta en línea.",
+  },
+  rappi_otros: {
+    label: "Otras farm.",
+    tipo: "venta",
+    listaDistribuidor: false,
+    hint: "Otra farmacia en Rappi (La Paz, San Pablo, Selecto…). Entra al sugerido.",
+  },
+  rappi_super: {
+    label: "Súper",
+    tipo: "venta",
+    listaDistribuidor: false,
+    hint: "Chedraui / Soriana / Walmart en Rappi. Solo contexto: no mueve el sugerido (envío caro y otro piso).",
+  },
 };
 
 export const fmtPrecioRef = (n) =>
@@ -318,13 +348,19 @@ export function refsCompraDeProducto(refsMap) {
   return out;
 }
 
-export function refsVentaDeProducto(refsMap) {
+export function refsDeFuentes(refsMap, fuentes) {
   const out = {};
-  for (const id of FUENTES_VENTA) {
+  for (const id of fuentes || []) {
     const row = refsMap?.[id];
-    if (row?.precio != null) out[id] = parseFloat(row.precio);
+    if (row?.precio == null) continue;
+    const n = parseFloat(row.precio);
+    if (Number.isFinite(n) && n > 0) out[id] = n;
   }
   return out;
+}
+
+export function refsVentaDeProducto(refsMap) {
+  return refsDeFuentes(refsMap, FUENTES_VENTA);
 }
 
 /** Tiendas B2B con precio, de más barata a más cara. Nunca incluye «tu costo». */
@@ -450,12 +486,12 @@ export function classifyProductoMargen(p) {
  * Si vendes más caro, la acción es BAJAR para no quedarte fuera.
  * El piso de margen no infla el precio; solo avisa si el competitivo queda bajo costo.
  */
-export function calcPrecioSugeridoVenta(producto, refsMap) {
+export function calcPrecioSugeridoVenta(producto, refsMap, fuentes = FUENTES_VENTA) {
   const precioActual = parseFloat(producto.precio) || 0;
   const margenActual = calcMargenVenta(precioActual, producto);
   const margenSugeridoEmpty = { pct: null, utilidad: null, tone: null };
 
-  const refs = refsVentaDeProducto(refsMap);
+  const refs = refsDeFuentes(refsMap, fuentes);
   const vals = Object.values(refs).filter((v) => Number.isFinite(v) && v > 0);
   if (!vals.length) {
     return {

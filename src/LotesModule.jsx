@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useCatalogoVivo } from "./hooks/useCatalogoVivo";
+import { avisarCatalogoCambio } from "./utils/catalogoVivo";
 import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
 import { showToast, HorizontalScrollSync } from "./ui";
@@ -69,14 +71,17 @@ export default function LotesModule() {
   const caducidadRef = useRef(null);
   const [saving, setSaving] = useState(false);
 
-  const fetchData = useCallback(async()=>{
-    setLoading(true);
+  const fetchData = useCallback(async (opts) => {
+    const silencioso = !!(opts && typeof opts === "object" && opts.silencioso);
+    if (!silencioso) setLoading(true);
     const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) {
-      setLotes([]);
-      setProductos([]);
-      setProveedores([]);
-      setLoading(false);
+      if (!silencioso) {
+        setLotes([]);
+        setProductos([]);
+        setProveedores([]);
+        setLoading(false);
+      }
       return;
     }
     const [lsRes, psRes, pvRes] = await Promise.all([
@@ -84,17 +89,22 @@ export default function LotesModule() {
       fetchProductosPaginados({ select: PRODUCTOS_SELECT_LOTES, activosSolo: false, order: "nombre" }),
       supabase.rpc("empleado_listar_proveedores_catalogo", { p_session_token: tok }),
     ]);
-    if (lsRes.error) showToast("No se pudieron cargar lotes: " + lsRes.error.message, "error");
-    if (psRes.error) showToast("No se pudo cargar catálogo: " + psRes.error.message, "error");
+    if (!silencioso) {
+      if (lsRes.error) showToast("No se pudieron cargar lotes: " + lsRes.error.message, "error");
+      if (psRes.error) showToast("No se pudo cargar catálogo: " + psRes.error.message, "error");
+    } else if (lsRes.error || psRes.error) {
+      return;
+    }
     const lotRows = Array.isArray(lsRes.data) ? [...lsRes.data] : [];
     lotRows.sort(compararLotesPeps);
     setLotes(lotRows);
     setProductos(Array.isArray(psRes.data) ? psRes.data : []);
     setProveedores(Array.isArray(pvRes.data) ? pvRes.data : []);
-    setLoading(false);
+    if (!silencioso) setLoading(false);
   },[]);
 
   useEffect(()=>{ fetchData(); },[fetchData]);
+  useCatalogoVivo(() => fetchData({ silencioso: true }));
 
   const diasRestantes = fecha => {
     if(!fecha) return null;
@@ -204,6 +214,7 @@ export default function LotesModule() {
     if(error){ showToast("Error: "+error.message,"error"); }
     else {
       showToast("✅ Lote registrado","success");
+      avisarCatalogoCambio({ origen: "lotes" });
       setForm({
         producto_id: "",
         numero_lote: "",
@@ -228,7 +239,7 @@ export default function LotesModule() {
       p_session_token: tok, p_lote_id: id, p_motivo: "Desactivación manual",
     });
     if (error) showToast("Error: "+error.message, "error");
-    else { showToast("Lote desactivado","info"); fetchData(); }
+    else { showToast("Lote desactivado","info"); avisarCatalogoCambio({ origen: "lotes" }); fetchData(); }
   };
 
   const vencidos  = lotes.filter(l=>{ const d=diasRestantes(l.fecha_caducidad); return typeof d==="number"&&d<0; }).length;

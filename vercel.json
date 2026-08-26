@@ -107,6 +107,10 @@
       "destination": "/api/inventarioProcesarPdf?type=actualizar-compra"
     },
     {
+      "source": "/api/precios/buscar-rappi",
+      "destination": "/api/inventarioProcesarPdf?type=buscar-rappi"
+    },
+    {
       "source": "/api/whatsapp/send",
       "destination": "/api/notifications/send?type=whatsapp"
     },

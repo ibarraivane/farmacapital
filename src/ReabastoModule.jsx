@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useCatalogoVivo } from "./hooks/useCatalogoVivo";
 import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
 import { showToast, HorizontalScrollSync, SkeletonTable } from "./ui";
@@ -61,8 +62,9 @@ export default function ReabastoModule() {
   const [filtroTienda, setFiltroTienda] = useState("todas");
   const [filtroUrgencia, setFiltroUrgencia] = useState("");
 
-  const fetchProductos = useCallback(async () => {
-    setLoading(true);
+  const fetchProductos = useCallback(async (opts) => {
+    const silencioso = !!(opts && typeof opts === "object" && opts.silencioso);
+    if (!silencioso) setLoading(true);
     const tok = sessionStorage.getItem("farmacapital_session_token");
     const [prodRes, lotesRes, viewRes] = await Promise.all([
       fetchProductosPaginados({ activosSolo: true, order: "nombre" }),
@@ -71,12 +73,14 @@ export default function ReabastoModule() {
     ]);
 
     if (prodRes.error) {
-      showToast("No se pudo cargar inventario: " + prodRes.error.message, "error");
-      setProductos([]);
-      setLoading(false);
+      if (!silencioso) {
+        showToast("No se pudo cargar inventario: " + prodRes.error.message, "error");
+        setProductos([]);
+        setLoading(false);
+      }
       return;
     }
-    if (lotesRes.error) {
+    if (lotesRes.error && !silencioso) {
       showToast("No se pudieron cargar lotes PEPS: " + lotesRes.error.message, "warning");
     }
 
@@ -109,10 +113,11 @@ export default function ReabastoModule() {
       };
     });
     setProductos(rows);
-    setLoading(false);
+    if (!silencioso) setLoading(false);
   }, []);
 
   useEffect(()=>{ fetchProductos(); },[fetchProductos]);
+  useCatalogoVivo(() => fetchProductos({ silencioso: true }));
 
   const alertas = useMemo(() => (
     productos

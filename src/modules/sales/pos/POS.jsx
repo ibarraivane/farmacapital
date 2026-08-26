@@ -22,6 +22,8 @@ import { fechaLocalMexico } from "../../../lib/pagoServicio";
 import { esCategoriaAntibiotico, esMedicamentoControlado } from "../../../constants/categoriasProducto";
 import { isCoarsePointer, unlockInputForTouchKeyboard, lockInputAfterTouchKeyboard, armInputForTouchKeyboard } from "../../../utils/touchKeyboard";
 import { setBloqueaReloadApp } from "../../../utils/appUpdate";
+import { avisarCatalogoCambio } from "../../../utils/catalogoVivo";
+import { useCatalogoVivo } from "../../../hooks/useCatalogoVivo";
 import { useHidBarcodeWedge } from "../../../hooks/useHidBarcodeWedge";
 import {
   suggestPosProductsLocal,
@@ -956,6 +958,38 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
     cargar();
   },[refrescarCitasPOS]);
 
+  const refrescarCatalogoPos = useCallback(async () => {
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    if (!tok) return;
+    try {
+      const [prodsRes, lotesMap, especialesMap] = await Promise.all([
+        supabase.rpc("empleado_listar_productos_con_lotes_pos", { p_session_token: tok }),
+        fetchLotesMapPos(tok),
+        fetchEspecialesCaducidadPos(tok),
+      ]);
+      if (prodsRes?.error) return;
+      especialesRef.current = especialesMap || {};
+      setProds(enrichPosProductosConLotes(Array.isArray(prodsRes.data) ? prodsRes.data : [], lotesMap));
+    } catch (_) { /* se queda el catálogo que ya está en pantalla */ }
+  }, []);
+
+  useCatalogoVivo(refrescarCatalogoPos);
+
+  useEffect(() => {
+    setFichaProd((prev) => {
+      if (!prev?.id) return prev;
+      const next = productos.find((p) => String(p.id) === String(prev.id));
+      if (!next) return prev;
+      if (
+        next.stock === prev.stock &&
+        next.precio === prev.precio &&
+        next.nombre === prev.nombre &&
+        next.min_caducidad_lotes === prev.min_caducidad_lotes
+      ) return prev;
+      return { ...prev, ...next };
+    });
+  }, [productos]);
+
   useEffect(() => {
     refrescarCitasPOS();
   }, [refrescarCitasPOS]);
@@ -1664,6 +1698,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
         ...(metodoPagoFinal === "efectivo" && Number.isFinite(recEf) ? { efectivo_recibido: recEf, cambio: cambioEf } : {}),
       });
       showToast("Venta registrada correctamente", "success");
+      avisarCatalogoCambio({ origen: "pos-venta" });
       setCart([]); setTel(""); setCli(null);
       setMontoRecibido("");
       setUsarCredito(false);

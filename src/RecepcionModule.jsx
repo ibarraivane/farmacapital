@@ -17,6 +17,8 @@ import { parseTicketCsv } from "./lib/recepcionTicketCsv";
 import { $ as fmt, getSessionToken, esErrorSesionEmpleado } from "./utils";
 import { notifySesionEmpleadoInvalida } from "./utils/sesionEmpleadoAuth";
 import { setBloqueaReloadApp } from "./utils/appUpdate";
+import { avisarCatalogoCambio } from "./utils/catalogoVivo";
+import { useCatalogoVivo } from "./hooks/useCatalogoVivo";
 import RecepcionHistorial from "./components/RecepcionHistorial";
 
 const fmtFecha = (f) => {
@@ -298,6 +300,22 @@ export default function RecepcionModule({ ocultarMontos = false }) {
   }, [cargarLista]);
 
   useEffect(() => { cargar(); }, [cargar]);
+
+  const pendienteRef = useRef(pendiente);
+  pendienteRef.current = pendiente;
+  const refrescarCatalogoRecepcion = useCallback(async () => {
+    if (pendienteRef.current) return;
+    const tok = sessionTok();
+    if (!tok) return;
+    const prodRes = await fetchProductosPaginados({
+      select: "id,nombre,sku,codigo_barras,activo",
+      activosSolo: true,
+      order: "nombre",
+    });
+    if (!prodRes.error) setProductos(prodRes.data || []);
+    await cargarLista();
+  }, [cargarLista]);
+  useCatalogoVivo(refrescarCatalogoRecepcion, { pausado: () => !!pendienteRef.current });
 
   useEffect(() => () => {
     if (scanIdleRef.current) {
@@ -691,6 +709,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     if (error) { setErrorLinea(error.message); return; }
     aplicarDoc(data);
     resetLinea();
+    avisarCatalogoCambio({ origen: "recibir" });
   };
 
   const onCostoKey = (e) => {

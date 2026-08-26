@@ -243,10 +243,12 @@ export const TEMAS = [
     invTab: "rappi",
     roles: ["admin", "gerente"],
     titulo: "Rappi",
-    resumen: "Disponibilidad hacia Rappi. El piso no opera esto.",
+    resumen: "Disponibilidad hacia Rappi y precios de otras tiendas en línea. El piso no opera esto.",
     pasos: [
-      "Inventario → Rappi.",
-      "Revisa cola de disponibilidad. No sustituye Recibir ni el POS de mostrador.",
+      "Inventario → Rappi → Disponibilidad: cola y colchón de stock.",
+      "Inventario → Rappi → Precios en línea: qué cobran GDL, Farmatodo, Benavides y el súper.",
+      "El sugerido usa farmacias + Del Ahorro / Similares. El súper no lo mueve.",
+      "No sustituye Recibir ni el POS de mostrador.",
     ],
   },
   {
