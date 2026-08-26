@@ -62,6 +62,21 @@ export function turnoDePerfil(usuario) {
   return t === "matutino" || t === "vespertino" ? t : null;
 }
 
+/**
+ * Quién entra en la caja esta semana: vendedor/gerente con acceso vigente.
+ * Una baja (activo=false) o un usuario eliminado no cubre turnos; sus ventas
+ * y cortes siguen grabados en su usuario.
+ */
+export function perfilesTurnoCaja(perfiles) {
+  return (perfiles || []).filter((p) => {
+    const rol = String(p?.rol || "").toLowerCase();
+    if (rol !== "vendedor" && rol !== "gerente") return false;
+    if (p?.eliminado_at) return false;
+    if (p?.activo === false) return false;
+    return true;
+  });
+}
+
 /** 0 = lunes … 6 = domingo. Coincide con extract(dow) de Postgres convertido. */
 export const DIAS_SEMANA = [
   { idx: 0, corto: "Lun", largo: "lunes" },
@@ -87,7 +102,7 @@ export function etiquetaDiaDescanso(idx) {
  * perfiles: { id, nombre, rol, turno, dia_descanso }
  */
 export function planSemanaCaja(perfiles) {
-  const piso = (perfiles || []).filter((p) => p.rol === "vendedor" || p.rol === "gerente");
+  const piso = perfilesTurnoCaja(perfiles);
   return DIAS_SEMANA.map((d) => ({
     ...d,
     celdas: piso.map((p) => {
@@ -105,7 +120,7 @@ export function planSemanaCaja(perfiles) {
 
 export function descansosChocan(perfiles) {
   const counts = new Map();
-  (perfiles || []).forEach((p) => {
+  perfilesTurnoCaja(perfiles).forEach((p) => {
     if (p.dia_descanso == null || p.dia_descanso === "") return;
     const k = Number(p.dia_descanso);
     counts.set(k, (counts.get(k) || []).concat(p.nombre || p.id));

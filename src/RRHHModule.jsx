@@ -3,7 +3,7 @@ import { useMediaQuery } from './hooks/useMediaQuery';
 import { supabase } from './supabase';
 import { showToast } from './ui';
 import { C_LIGHT, BRAND } from "./constants";
-import { TURNOS_LISTA, etiquetaTurno, DIAS_SEMANA, planSemanaCaja, descansosChocan, etiquetaDiaDescanso } from "./constants/turnos";
+import { TURNOS_LISTA, etiquetaTurno, DIAS_SEMANA, planSemanaCaja, descansosChocan, etiquetaDiaDescanso, perfilesTurnoCaja } from "./constants/turnos";
 import { cargarConfigMetas, bonosActivos } from "./utils/turnosMetas";
 import EmpleadoDocumentos from "./modules/rh/EmpleadoDocumentos";
 
@@ -232,6 +232,17 @@ export default function RRHHModule() {
       p_session_token: tok, p_empleado_id: emp.id, p_estado: !emp.estado,
     });
     if (error) alert("Error: "+error.message);
+    // Baja de nómina: si aún puede entrar al POS, quitarle el acceso.
+    // No reactivamos el usuario al volver a marcar el empleado: eso es otro paso.
+    if (!error && emp.estado && emp.usuario_id) {
+      const perfil = perfiles.find((p) => Number(p.id) === Number(emp.usuario_id));
+      if (perfil?.activo) {
+        await supabase.rpc("admin_toggle_usuario", {
+          p_session_token: tok,
+          p_target_id: emp.usuario_id,
+        });
+      }
+    }
     fetchEmpleados();
   };
 
@@ -280,6 +291,17 @@ export default function RRHHModule() {
       p_turno: form.turno,
       p_salario_quincenal: parseFloat(form.salario_quincenal) || 0,
     };
+    if (editingId) {
+      const prev = empleados.find((e) => String(e.id) === String(editingId));
+      const nombreAntes = String(prev?.nombre || "").trim().toLowerCase();
+      const nombreAhora = form.nombre.trim().toLowerCase();
+      if (nombreAntes && nombreAntes !== nombreAhora) {
+        const ok = window.confirm(
+          "Cambiar el nombre no crea a alguien nueva. Las ventas y los cortes siguen en el usuario de acceso.\n\nSi entra una persona nueva, cancela y créala en Usuarios; no reutilices la ficha de quien ya salió."
+        );
+        if (!ok) return;
+      }
+    }
     const { error } = editingId
       ? await supabase.rpc("admin_actualizar_empleado", { ...payload, p_empleado_id: editingId })
       : await supabase.rpc("admin_crear_empleado", payload);
@@ -385,8 +407,19 @@ export default function RRHHModule() {
       </svg>
     </button>
   );
-  const semana = planSemanaCaja(perfiles);
-  const choques = descansosChocan(perfiles);
+  const perfilesCaja = perfilesTurnoCaja(perfiles);
+  const bajasCaja = (perfiles || []).filter((u) => {
+    const rol = String(u.rol || "").toLowerCase();
+    return (rol === "vendedor" || rol === "gerente") && u.activo === false && !u.eliminado_at;
+  });
+  const empleadosOrden = [...empleados].sort((a, b) => {
+    const ae = a.estado ? 0 : 1;
+    const be = b.estado ? 0 : 1;
+    if (ae !== be) return ae - be;
+    return String(a.nombre || "").localeCompare(String(b.nombre || ""), "es");
+  });
+  const semana = planSemanaCaja(perfilesCaja);
+  const choques = descansosChocan(perfilesCaja);
 
   const etiquetaCelda = (estado) => {
     if (estado === "descanso") return { txt: "Descanso", col: C.textMid };
@@ -407,16 +440,16 @@ export default function RRHHModule() {
       <div style={S.section}>
         <div style={S.h2}>◐ Turnos de caja</div>
         <p style={{ color:C.textMid, fontSize:13, margin:'0 0 16px', lineHeight:1.45 }}>
-          Turno habitual de cada una. El día de descanso, la otra cubre matutino y vespertino: abre, corta a las 15:30 y vuelve a abrir.
+          Turno habitual de cada una. El día de descanso, la otra cubre matutino y vespertino: abre, corta a las 15:30 y vuelve a abrir. Quien ya salió no aparece aquí; sus ventas y cortes quedan a su nombre.
         </p>
         {loading ? <p style={{ color:C.textMid }}>Cargando…</p> :
-         !perfiles.length ? (
+         !perfilesCaja.length ? (
           <p style={{ color:C.textMid, fontSize:13 }}>
             No hay perfiles de vendedor. Créalos en Usuarios y vuelve a asignar el turno aquí.
           </p>
          ) : isMobile ? (
           <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-            {perfiles.map((u) => (
+            {perfilesCaja.map((u) => (
               <div key={u.id} style={{ border:`1px solid ${C.border}`, borderRadius:12, padding:14, background:C.bg }}>
                 <div style={{ fontWeight:800, fontSize:15, color:C.text, marginBottom:8 }}>{u.nombre}</div>
                 <div style={{ fontSize:12, color:C.textMid, marginBottom:10 }}>{u.telefono || u.email || "—"}</div>
@@ -434,7 +467,7 @@ export default function RRHHModule() {
                 {['Nombre','Acceso','Turno habitual','Día de descanso'].map((h) => <th key={h} style={S.th}>{h}</th>)}
               </tr></thead>
               <tbody>
-                {perfiles.map((u) => (
+                {perfilesCaja.map((u) => (
                   <tr key={u.id}>
                     <td style={{ ...S.td, fontWeight:700 }}>{u.nombre}</td>
                     <td style={{ ...S.td, color:C.textMid }}>{u.telefono || u.email || "—"}</td>
@@ -465,6 +498,11 @@ export default function RRHHModule() {
             Dos personas no pueden descansar el mismo día: {choques.map(([idx, names]) => `${etiquetaDiaDescanso(idx)} (${names.join(", ")})`).join(" · ")}.
           </p>
         )}
+        {bajasCaja.length > 0 && (
+          <p style={{ color:C.textMid, fontSize:12, margin:'12px 0 0', lineHeight:1.45 }}>
+            Fuera de caja (baja): {bajasCaja.map((u) => u.nombre).join(", ")}. Ventas y cortes siguen a su nombre.
+          </p>
+        )}
       </div>
 
       {/* LISTA EMPLEADOS */}
@@ -473,7 +511,7 @@ export default function RRHHModule() {
         {loading ? <p style={{ color:C.textMid }}>Cargando…</p> :
          !empleados.length ? <p style={{ color:C.textMid }}>No hay empleados. Registra el primero abajo.</p> : isMobile ? (
           <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-            {empleados.map(emp => (
+            {empleadosOrden.map(emp => (
               <div
                 key={emp.id}
                 style={{
@@ -575,7 +613,7 @@ export default function RRHHModule() {
                   <th key={h} style={S.th}>{h}</th>)}
               </tr></thead>
               <tbody>
-                {empleados.map(emp => (
+                {empleadosOrden.map(emp => (
                   <tr key={emp.id}
                     onMouseEnter={e=>{ e.currentTarget.style.background = C.blueDim; }}
                     onMouseLeave={e=>{ e.currentTarget.style.background = "transparent"; }}>
@@ -657,6 +695,11 @@ export default function RRHHModule() {
       {/* NUEVO / EDITAR EMPLEADO */}
       <div ref={formRef} style={S.section}>
         <div style={S.h2}>{editingId ? "✏️ Editar empleado" : "➕ Registrar nuevo empleado"}</div>
+        <p style={{ color:C.textMid, fontSize:13, margin:'0 0 16px', lineHeight:1.45 }}>
+          {editingId
+            ? "Corrige datos de esta persona. No la conviertas en otra: las ventas y los cortes viven en el usuario de acceso."
+            : "Alta de nómina. Si es vendedora nueva, créala primero en Usuarios para que tenga su propio login, ventas y cortes."}
+        </p>
         <form onSubmit={handleFormSubmit}>
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 170px), 1fr))', gap:14, marginBottom:14 }}>
             <div><label style={S.label}>Nombre completo *</label>
@@ -706,7 +749,7 @@ export default function RRHHModule() {
         <p style={{ color:C.textMid, fontSize:13, margin:'0 0 16px', lineHeight:1.45 }}>
           Se arma sola con el turno habitual y el día libre. El día que una descansa, la otra aparece en ambos turnos.
         </p>
-        {!perfiles.length ? (
+        {!perfilesCaja.length ? (
           <p style={{ color:C.textMid }}>Asigna turno y descanso arriba.</p>
         ) : (
           <div style={{ overflowX:'auto' }}>
@@ -720,7 +763,7 @@ export default function RRHHModule() {
                 </tr>
               </thead>
               <tbody>
-                {perfiles.map((u) => (
+                {perfilesCaja.map((u) => (
                   <tr key={u.id}>
                     <td style={{ ...S.td, fontWeight:700, whiteSpace:'nowrap' }}>{u.nombre}</td>
                     {semana.map((d) => {
@@ -747,7 +790,7 @@ export default function RRHHModule() {
           <div><label style={S.label}>Empleado</label>
             <select style={S.select} value={selEmpId} onChange={e=>setSelEmpId(e.target.value)}>
               <option value="">— Seleccionar —</option>
-              {empleados.map(e=><option key={e.id} value={e.id}>{e.nombre}</option>)}
+              {empleadosOrden.map(e=><option key={e.id} value={e.id}>{e.nombre}</option>)}
             </select></div>
           <div><label style={S.label}>Salario base</label>
             <input style={S.input} type="number" min="0" step="0.01" value={calcBase} onChange={e=>setCalcBase(parseFloat(e.target.value)||0)}/></div>

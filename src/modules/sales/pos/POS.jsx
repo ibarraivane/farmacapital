@@ -18,7 +18,7 @@ import { productoEsVendible } from "../../../utils/productoVendible";
 import { cobroLinea, pesoPublico } from "../../../utils/pesoPublico";
 import { precioLineaCajaPos } from "../../../lib/precioVentaExclusivo";
 import { fechaLocalMexico } from "../../../lib/pagoServicio";
-import { esCategoriaAntibiotico, esMedicamentoControlado, categoriasCoinciden } from "../../../constants/categoriasProducto";
+import { esCategoriaAntibiotico, esMedicamentoControlado } from "../../../constants/categoriasProducto";
 import { isCoarsePointer, unlockInputForTouchKeyboard, lockInputAfterTouchKeyboard, armInputForTouchKeyboard } from "../../../utils/touchKeyboard";
 import { setBloqueaReloadApp } from "../../../utils/appUpdate";
 import { useHidBarcodeWedge } from "../../../hooks/useHidBarcodeWedge";
@@ -2009,39 +2009,6 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
           </div>
         ))}
       </Box>
-      {/* Sugerencias */}
-      {cart.length>0&&(()=>{
-        const cats = [...new Set(cart.map(i=>i.categoria).filter(Boolean))];
-        const idsEnCart = new Set(cart.map(i=>typeof i.id==="string"?i.id:String(i.id)));
-        const sugs = productos.filter(p=>
-          cats.some((c) => categoriasCoinciden(c, p.categoria)) &&
-          !idsEnCart.has(String(p.id)) &&
-          p.activo && p.stock>0
-        ).slice(0,4);
-        if(!sugs.length) return null;
-        return (
-          <Box style={{padding:12,marginBottom:12}}>
-            <div style={{color:C.textMid,fontSize:10,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>💡 Sugeridos</div>
-            <div style={{display:"flex",flexDirection:"column",gap:6}}>
-              {sugs.map(p=>(
-                <div key={p.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 8px",borderRadius:7,background:C.bg,cursor:"pointer"}}
-                  onClick={()=>add(p,false)}
-                  onMouseEnter={e=>e.currentTarget.style.background=C.blueDim}
-                  onMouseLeave={e=>e.currentTarget.style.background=C.bg}>
-                  <div style={{flex:1}}>
-                    <div style={{color:C.text,fontSize:11,fontWeight:600,lineHeight:1.3}}>{p.nombre}</div>
-                    <div style={{color:C.textDim,fontSize:9}}>{p.categoria}</div>
-                  </div>
-                  <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
-                    <span style={{color:C.blue,fontWeight:700,fontSize:11}}>{$(p.precio||p.precio||0)}</span>
-                    <span style={{color:C.green,fontSize:14,fontWeight:700}}>+</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Box>
-        );
-      })()}
 
       {/* Crédito en tienda */}
       {cli && saldoCredito > 0 && cart.length > 0 && (

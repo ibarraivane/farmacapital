@@ -1,4 +1,4 @@
-import { idxDiaDescanso, planSemanaCaja, descansosChocan, etiquetaDiaDescanso } from "./turnos";
+import { idxDiaDescanso, planSemanaCaja, descansosChocan, etiquetaDiaDescanso, perfilesTurnoCaja } from "./turnos";
 
 describe("plan 6+1 (descanso y cobertura)", () => {
   const mary = { id: 1, nombre: "Mary", rol: "vendedor", turno: "matutino", dia_descanso: 0 };
@@ -33,5 +33,14 @@ describe("plan 6+1 (descanso y cobertura)", () => {
   test("etiqueta del día", () => {
     expect(etiquetaDiaDescanso(0)).toBe("lunes");
     expect(etiquetaDiaDescanso(5)).toBe("sábado");
+  });
+
+  test("una baja no entra a la caja ni choca descansos", () => {
+    const baja = { ...mary, activo: false };
+    const rene = { id: 3, nombre: "Rene", rol: "vendedor", turno: "matutino", dia_descanso: 6, activo: true };
+    expect(perfilesTurnoCaja([baja, ana, rene]).map((p) => p.nombre)).toEqual(["Ana", "Rene"]);
+    const lun = planSemanaCaja([baja, ana, rene])[0];
+    expect(lun.celdas.find((c) => c.id === 1)).toBeUndefined();
+    expect(descansosChocan([baja, { ...rene, dia_descanso: 0 }])).toHaveLength(0);
   });
 });
