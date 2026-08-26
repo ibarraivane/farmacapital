@@ -1,56 +1,79 @@
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import TableroEquivalentes from "./TableroEquivalentes";
-import { agruparOpcionesEquivalentes } from "../../../utils/equivalentesPos";
+import { grupoOpcionesRelacionadas } from "../../../utils/equivalentesPos";
 
-const treda = { id: 1, nombre: "Treda antidiarreico C/20", marca: "Treda", tipo: "marca", principio_activo: "Neomicina + Caolin + Pectina", presentacion: "C/20", forma_farmaceutica: "Cápsulas", precio: 189, activo: true };
-const tredaJarabe = { id: 5, nombre: "Treda jarabe", marca: "Treda", tipo: "marca", principio_activo: "Neomicina + Caolin + Pectina", presentacion: "Frasco 120 mL", precio: 145, activo: true };
-const kpec = { id: 2, nombre: "Nineka suspensión", marca: "K-PEC", tipo: "generico", principio_activo: "Neomicina + Caolin + Pectina", presentacion: "Frasco 100 mL", precio: 38, activo: true, imagen_url: "http://x/1.jpg" };
-const catalogo = [treda, tredaJarabe, kpec];
-const grupo = agruparOpcionesEquivalentes(catalogo, kpec);
+const treda = { id: 1, nombre: "Treda C/20", marca: "Treda", tipo: "marca", principio_activo: "Neomicina + Caolin + Pectina", presentacion: "C/20", forma_farmaceutica: "Tabletas", concentracion: "129/280/30 mg", precio: 189, activo: true };
+const nineka = { id: 2, nombre: "Nineka C/20", marca: "Nineka", tipo: "generico", principio_activo: "Neomicina + Caolin + Pectina", presentacion: "C/20", forma_farmaceutica: "Tabletas", concentracion: "129/280/30 mg", precio: 61, activo: true, imagen_url: "http://x/nineka.jpg" };
+const suspension = { id: 3, nombre: "Nineka suspensión", marca: "Nineka", principio_activo: "Neomicina + Caolin + Pectina", presentacion: "75 mL", forma_farmaceutica: "Suspensión", concentracion: "500/36/35 mg/5 mL", precio: 38, activo: true };
+const grupo = grupoOpcionesRelacionadas([treda, nineka, suspension], treda, "treda");
+const stockLleno = () => ({ agotado: false, etiqueta: "3 disp." });
 
-it("muestra la patente y el genérico con su etiqueta", () => {
-  render(<TableroEquivalentes grupo={grupo} onSelect={() => {}} />);
-  expect(screen.getByText("PATENTE")).toBeInTheDocument();
-  expect(screen.getByText("GENÉRICO")).toBeInTheDocument();
-  expect(screen.getByText("K-PEC")).toBeInTheDocument();
-});
-
-it("pone las presentaciones de una marca como cajitas dentro de su tarjeta", () => {
-  render(<TableroEquivalentes grupo={grupo} onSelect={() => {}} />);
-  expect(screen.getByText("Frasco 120 mL")).toBeInTheDocument();
-  expect(screen.getByText("C/20 · Cápsulas")).toBeInTheDocument();
-  expect(screen.getByText("$189.00")).toBeInTheDocument();
-  expect(screen.getByText("$145.00")).toBeInTheDocument();
-});
-
-it("cuando no hay foto enseña la marca en grande, una sola vez", () => {
-  const { container } = render(<TableroEquivalentes grupo={grupo} onSelect={() => {}} />);
-  expect(screen.getByText("SIN FOTO")).toBeInTheDocument();
+it("agrupa por marca: Nineka es una tarjeta, no dos", () => {
+  render(<TableroEquivalentes grupo={grupo} onSelect={() => {}} onAdd={() => {}} estadoStock={stockLleno} />);
+  expect(screen.getAllByRole("article")).toHaveLength(2);
   expect(screen.getAllByText("Treda")).toHaveLength(1);
-  expect(container.querySelectorAll("img")).toHaveLength(1);
+  expect(screen.getByText("Nineka")).toBeInTheDocument();
+  expect(screen.getByText("2 presentaciones")).toBeInTheDocument();
 });
 
-it("al tocar una presentación la devuelve completa", () => {
+it("pone la patente antes que los genéricos", () => {
+  render(<TableroEquivalentes grupo={grupo} onSelect={() => {}} onAdd={() => {}} estadoStock={stockLleno} />);
+  const marcas = screen.getAllByRole("article").map((a) => a.textContent);
+  expect(marcas[0]).toContain("Treda");
+  expect(marcas[0]).toContain("Patente");
+  expect(marcas[1]).toContain("Nineka");
+  expect(marcas[1]).toContain("Genérico");
+});
+
+it("mete las presentaciones como cajitas dentro de la tarjeta de su marca", () => {
+  render(<TableroEquivalentes grupo={grupo} onSelect={() => {}} onAdd={() => {}} estadoStock={stockLleno} />);
+  const nk = screen.getAllByRole("article")[1];
+  expect(nk).toHaveTextContent("500/36/35 mg/5 mL · 75 mL · Suspensión");
+  expect(nk).toHaveTextContent("129/280/30 mg · C/20 · Tabletas");
+  expect(nk).toHaveTextContent("$38.00");
+  expect(nk).toHaveTextContent("$61.00");
+});
+
+it("tocar una presentación abre la ficha de ESA presentación", () => {
   const onSelect = jest.fn();
-  render(<TableroEquivalentes grupo={grupo} onSelect={onSelect} />);
-  fireEvent.click(screen.getByText("Frasco 120 mL"));
-  expect(onSelect).toHaveBeenCalledWith(tredaJarabe);
+  render(<TableroEquivalentes grupo={grupo} onSelect={onSelect} onAdd={() => {}} estadoStock={stockLleno} />);
+  fireEvent.click(screen.getByText("500/36/35 mg/5 mL · 75 mL · Suspensión"));
+  expect(onSelect).toHaveBeenCalledWith(suspension);
 });
 
-it("marca lo agotado sin esconderlo", () => {
-  const estadoStock = (p) => (p.id === 1 ? { agotado: true, etiqueta: "Sin lotes" } : { agotado: false, etiqueta: "3 disp." });
-  render(<TableroEquivalentes grupo={grupo} onSelect={() => {}} estadoStock={estadoStock} />);
-  expect(screen.getByText("Sin lotes")).toBeInTheDocument();
-  expect(screen.getByText("C/20 · Cápsulas")).toBeInTheDocument();
+it("avisa que cambia la dosis sin tapar el stock", () => {
+  render(<TableroEquivalentes grupo={grupo} onSelect={() => {}} onAdd={() => {}} estadoStock={stockLleno} />);
+  const cajita = screen.getByText("500/36/35 mg/5 mL · 75 mL · Suspensión").closest("button");
+  expect(cajita).toHaveTextContent("Otra dosis o forma");
+  expect(cajita).toHaveTextContent("3 disp.");
 });
 
-it("resume cuántas son de patente", () => {
-  render(<TableroEquivalentes grupo={grupo} onSelect={() => {}} />);
-  expect(screen.getByText("1 de patente · 1 genérico")).toBeInTheDocument();
+it("la marca de una sola presentación trae su botón Agregar", () => {
+  const onAdd = jest.fn();
+  render(<TableroEquivalentes grupo={grupo} onSelect={() => {}} onAdd={onAdd} estadoStock={stockLleno} />);
+  const agregar = screen.getAllByRole("button", { name: "Agregar" });
+  expect(agregar).toHaveLength(1);
+  fireEvent.click(agregar[0]);
+  expect(onAdd).toHaveBeenCalledWith(treda);
+});
+
+it("sin foto propia pone la marca en letras y no inventa otra imagen", () => {
+  const { container } = render(<TableroEquivalentes grupo={grupo} onSelect={() => {}} onAdd={() => {}} estadoStock={stockLleno} />);
+  expect(container.querySelectorAll("img")).toHaveLength(1);
+  expect(screen.getAllByRole("article")[0]).toHaveTextContent("Treda");
+});
+
+it("no inventa clasificación cuando ninguna presentación declara tipo", () => {
+  const sinTipo = { ...suspension, id: 9, marca: "Anónima" };
+  const g = grupoOpcionesRelacionadas([treda, sinTipo], treda, "treda");
+  render(<TableroEquivalentes grupo={g} onSelect={() => {}} onAdd={() => {}} estadoStock={stockLleno} />);
+  const anon = screen.getAllByRole("article").find((a) => a.textContent.includes("Anónima"));
+  expect(anon).not.toHaveTextContent("Patente");
+  expect(anon).not.toHaveTextContent("Genérico");
 });
 
 it("sin grupo no pinta nada", () => {
-  const { container } = render(<TableroEquivalentes grupo={null} onSelect={() => {}} />);
+  const { container } = render(<TableroEquivalentes grupo={null} onSelect={() => {}} onAdd={() => {}} />);
   expect(container).toBeEmptyDOMElement();
 });

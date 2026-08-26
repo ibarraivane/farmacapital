@@ -924,7 +924,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
    */
   const grupoEquivalentes = React.useMemo(() => {
     if (srchEsEscaneo || !srch.trim() || !fil.length) return null;
-    return grupoEquivalentesDeBusqueda(productos, fil);
+    return grupoEquivalentesDeBusqueda(productos, fil, srch);
   }, [productos, fil, srch, srchEsEscaneo]);
 
   const clearPosSearch = useCallback(() => {
@@ -2766,10 +2766,9 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
             {grupoEquivalentes && !looksLikeBarcodeInput(normalizeBarcodeRaw(srch) || srch) && (
               <TableroEquivalentes
                 grupo={grupoEquivalentes}
-                seleccionadoId={fichaProd?.id}
                 onSelect={setFichaProd}
+                onAdd={(it) => add(it, false)}
                 estadoStock={estadoStockPos}
-                stack={isNarrow}
               />
             )}
             {srch.trim() && fil.length > 0 && !srchEsEscaneo && !looksLikeBarcodeInput(normalizeBarcodeRaw(srch) || srch) && (

@@ -1,166 +1,115 @@
-/**
- * Opciones del mismo principio activo, agrupadas por marca, para el mostrador.
- *
- * El buscador ordena por parecido de texto, así que la patente siempre cae al
- * final: "Treda" no se parece a "neomicina caolín pectina". Aquí se arma el
- * grupo completo para mostrarlo de un vistazo, sin depender de cómo se llama.
- */
-
+/** Opciones visuales del POS relacionadas por principio activo. */
 import { normalizeForSearch } from "../utils";
+import { normalizedTextFuzzyMatch } from "./fuzzySearch";
 
-/** Sales, prefijos y conectores que no cambian de qué sustancia hablamos. */
-const RUIDO_SUSTANCIA = new Set([
-  "clorhidrato", "hidrocloruro", "maleato", "sulfato", "fosfato", "nitrato",
-  "acetato", "tartrato", "citrato", "succinato", "besilato", "mesilato",
-  "sodico", "sodica", "sodio", "calcico", "calcio", "potasico", "potasio",
-  "magnesico", "acido", "dihidratado", "monohidratado", "trihidrato",
-  "anhidro", "micronizado", "purificado", "del", "con", "mas", "por",
-]);
-
-/**
- * Palabras de categoría, no de sustancia. Si aparecen, el campo trae un rubro
- * ("surfactantes fórmula capilar") y agrupar juntaría 23 shampoos distintos.
- */
-const NO_ES_SUSTANCIA = new Set([
-  "producto", "homeopatico", "homeopatica", "natural", "naturales",
-  "material", "curacion", "plastico", "sintetico", "sinteticos",
-  "suplemento", "nutricional", "alimento", "cosmetico", "cosmeticos",
-  "formula", "surfactantes", "tensioactivos", "detergentes",
-  "capilar", "corporal", "facial", "emolientes", "humectantes",
-  "antitranspirante", "desodorante", "jabon", "latex", "absorbente",
-  "celulosa", "limpiadora", "limpiador", "solucion", "higiene", "aseo",
-  "varios", "otros", "generico", "genericos",
-]);
-
-/** Un grupo más grande que esto ya no es una decisión de mostrador. */
-const MAX_OPCIONES_GRUPO = 16;
-
-/**
- * Clave estable del principio activo: sin dosis, sin sales, sin orden.
- * "Neomicina + Caolin + Pectina" y "Neomicina / Caolín y Pectina" caen igual.
- */
-/** El POS recalcula esto en cada tecla sobre todo el catálogo; se cachea por producto. */
+const RUIDO_SUSTANCIA = new Set(["clorhidrato", "hidrocloruro", "maleato", "sulfato", "fosfato", "nitrato", "acetato", "tartrato", "citrato", "succinato", "besilato", "mesilato", "sodico", "sodica", "sodio", "calcico", "calcio", "potasico", "potasio", "magnesico", "acido", "dihidratado", "monohidratado", "trihidrato", "anhidro", "micronizado", "purificado", "del", "con", "mas", "por"]);
+const NO_ES_SUSTANCIA = new Set(["producto", "homeopatico", "homeopatica", "natural", "naturales", "material", "curacion", "plastico", "sintetico", "sinteticos", "suplemento", "nutricional", "alimento", "cosmetico", "cosmeticos", "formula", "surfactantes", "tensioactivos", "detergentes", "capilar", "corporal", "facial", "emolientes", "humectantes", "antitranspirante", "desodorante", "jabon", "latex", "absorbente", "celulosa", "limpiadora", "limpiador", "solucion", "higiene", "aseo", "varios", "otros", "generico", "genericos"]);
+const CONSULTAS_AMBIGUAS = new Set(["para", "dolor", "medicina", "medicamento", "pastilla", "pastillas", "jarabe", "crema", "gotas", "adulto", "nino", "nina"]);
+const MAX_OPCIONES_GRUPO = 24;
+const RESULTADOS_QUE_DECIDEN = 8;
 const cacheClave = new WeakMap();
 
 export function claveSustancia(producto) {
-  if (producto && typeof producto === "object" && cacheClave.has(producto)) {
-    return cacheClave.get(producto);
-  }
-  const clave = calcularClaveSustancia(producto);
+  if (producto && typeof producto === "object" && cacheClave.has(producto)) return cacheClave.get(producto);
+  const crudo = String(producto?.principio_activo || producto?.denominacion_generica || "");
+  let s = normalizeForSearch(crudo);
+  if (s) s = s.replace(/\b\d+([.,]\d+)?\s*(mg|mcg|ug|g|gr|kg|ml|l|lt|ui|iu|meq|%)\b/g, " ").replace(/\d+\s*\/\s*\d+/g, " ").replace(/\b\d+([.,]\d+)?\b/g, " ").replace(/[^a-z]+/g, " ");
+  const palabras = s.split(" ").filter((w) => w.length > 2 && !RUIDO_SUSTANCIA.has(w));
+  const clave = !palabras.length || palabras.some((w) => NO_ES_SUSTANCIA.has(w)) ? "" : [...new Set(palabras)].sort().join("+");
   if (producto && typeof producto === "object") cacheClave.set(producto, clave);
   return clave;
 }
 
-function calcularClaveSustancia(producto) {
-  const crudo = String(producto?.principio_activo || producto?.denominacion_generica || "");
-  let s = normalizeForSearch(crudo);
-  if (!s) return "";
+function norm(value) { return normalizeForSearch(String(value || "")).replace(/\s+/g, " ").trim(); }
 
-  s = s.replace(/\b\d+([.,]\d+)?\s*(mg|mcg|ug|g|gr|kg|ml|l|lt|ui|iu|meq|%)\b/g, " ");
-  s = s.replace(/\d+\s*\/\s*\d+/g, " ");
-  s = s.replace(/\b\d+([.,]\d+)?\b/g, " ");
-  s = s.replace(/[^a-z]+/g, " ");
-
-  const palabras = s.split(" ").filter((w) => w.length > 2 && !RUIDO_SUSTANCIA.has(w));
-  if (!palabras.length) return "";
-  if (palabras.some((w) => NO_ES_SUSTANCIA.has(w))) return "";
-
-  return [...new Set(palabras)].sort().join("+");
+function formaDe(producto) {
+  const s = norm(`${producto?.forma_farmaceutica || ""} ${producto?.presentacion || ""} ${producto?.nombre || ""}`);
+  if (/\b(tableta|tabletas|tab|comprimido|comprimidos|gragea|grageas)\b/.test(s)) return "tabletas";
+  if (/\b(capsula|capsulas|cap)\b/.test(s)) return "capsulas";
+  if (/\b(suspension|jarabe|solucion oral)\b/.test(s)) return "suspension";
+  if (/\b(gota|gotas)\b/.test(s)) return "gotas";
+  if (/\b(unguento|pomada)\b/.test(s)) return "unguento";
+  if (/\b(crema)\b/.test(s)) return "crema";
+  if (/\b(ampolleta|inyectable|frasco ampula)\b/.test(s)) return "inyectable";
+  if (/\b(polvo|sobre|sobres)\b/.test(s)) return "polvo";
+  return norm(producto?.forma_farmaceutica);
 }
 
-function precioNum(p) {
-  const n = parseFloat(p?.precio);
-  return Number.isFinite(n) ? n : Infinity;
+function viaDe(producto) {
+  const declarada = norm(producto?.via_administracion || producto?.via || "");
+  if (declarada) return declarada;
+  const s = norm(`${producto?.forma_farmaceutica || ""} ${producto?.presentacion || ""} ${producto?.nombre || ""}`);
+  if (/oftalm|ocular/.test(s)) return "oftalmica";
+  if (/otico|auricular/.test(s)) return "otica";
+  if (/nasal/.test(s)) return "nasal";
+  if (/topico|topica|crema|unguento|pomada/.test(s)) return "topica";
+  if (/inyectable|ampolleta|intramuscular|intravenosa/.test(s)) return "inyectable";
+  if (/tableta|capsula|comprimido|gragea|suspension|jarabe|solucion oral|sobre/.test(s)) return "oral";
+  return "";
 }
 
-/** Patente = lo que el laboratorio vende con su marca; el resto, genérico. */
-export function esPatente(producto) {
-  return String(producto?.tipo || "").trim().toLowerCase() === "marca";
+// Si falta un atributo en uno de los dos, no afirmamos compatibilidad.
+// Dos valores vacíos sí son iguales; vacío frente a un dato declarado, no.
+function igualSiDeclarado(a, b) { return a === b; }
+function concentracionDe(p) { return norm(p?.concentracion); }
+function presentacionDe(p) { return norm(p?.contenido || p?.presentacion); }
+
+export function clasificarRelacionProducto(producto, ancla) {
+  if (claveSustancia(producto) !== claveSustancia(ancla)) return "ninguna";
+  if (!igualSiDeclarado(formaDe(producto), formaDe(ancla)) || !igualSiDeclarado(viaDe(producto), viaDe(ancla)) || !igualSiDeclarado(concentracionDe(producto), concentracionDe(ancla))) return "otra_forma";
+  return igualSiDeclarado(presentacionDe(producto), presentacionDe(ancla)) ? "misma_configuracion" : "otro_contenido";
 }
 
-function nombreDeMarca(producto) {
-  const marca = String(producto?.marca || "").trim();
-  if (marca && !/^gen[eé]rico$/i.test(marca)) return marca;
-  const nombre = String(producto?.nombre || "").trim();
-  return nombre.split(/\s+/).slice(0, 2).join(" ") || "Sin marca";
+function precioNum(p) { const n = parseFloat(p?.precio); return Number.isFinite(n) ? n : Infinity; }
+
+/** Sólo respeta el dato explícito; no infiere clasificación desde el nombre. */
+export function etiquetaTipoProducto(producto) {
+  const tipo = norm(producto?.tipo);
+  if (tipo === "marca" || tipo === "patente") return "Marca";
+  if (tipo === "generico") return "Genérico";
+  return "";
 }
 
-function fotoDe(producto) {
-  return producto?.imagen_url || producto?.imagen_mobile_url || "";
+function consultaEsClara(query, resultados) {
+  const q = norm(query);
+  if (q.length < 4 || CONSULTAS_AMBIGUAS.has(q)) return false;
+  const tokens = q.split(" ").filter((t) => t.length >= 4 && !CONSULTAS_AMBIGUAS.has(t));
+  if (!tokens.length) return false;
+  return (resultados || []).slice(0, RESULTADOS_QUE_DECIDEN).some((p) => {
+    const campos = [p?.nombre, p?.marca, p?.principio_activo, p?.denominacion_generica].map(norm).filter(Boolean);
+    return tokens.every((token) => campos.some((campo) => normalizedTextFuzzyMatch(token, campo)));
+  });
 }
 
-/** Etiqueta legible del grupo: la escritura más corta que ya trae el catálogo. */
-function etiquetaSustancia(opciones) {
-  const textos = opciones
-    .map((p) => String(p?.principio_activo || p?.denominacion_generica || "").trim())
-    .filter(Boolean)
-    .sort((a, b) => a.length - b.length);
-  return textos[0] || "";
+function ordenarProductos(opciones, query) {
+  const q = norm(query);
+  return [...opciones].sort((a, b) => {
+    const aDirecto = q && [a?.nombre, a?.marca].some((x) => norm(x).includes(q));
+    const bDirecto = q && [b?.nombre, b?.marca].some((x) => norm(x).includes(q));
+    if (aDirecto !== bDirecto) return aDirecto ? -1 : 1;
+    return precioNum(a) - precioNum(b) || String(a?.nombre || "").localeCompare(String(b?.nombre || ""), "es");
+  });
 }
 
-/**
- * Grupo de equivalentes de `item`, ya listo para pintar: una tarjeta por marca,
- * patente primero y luego lo más barato. Devuelve null si no hay nada que comparar.
- */
-export function agruparOpcionesEquivalentes(productos, item) {
-  const clave = claveSustancia(item);
+export function grupoOpcionesRelacionadas(productos, ancla, query = "") {
+  const clave = claveSustancia(ancla);
   if (!clave) return null;
-
-  const opciones = (productos || []).filter(
-    (p) => p?.activo !== false && claveSustancia(p) === clave
-  );
+  const opciones = (productos || []).filter((p) => p?.activo !== false && claveSustancia(p) === clave);
   if (opciones.length < 2 || opciones.length > MAX_OPCIONES_GRUPO) return null;
-
-  const porMarca = new Map();
-  for (const p of opciones) {
-    const marca = nombreDeMarca(p);
-    const llave = normalizeForSearch(marca);
-    if (!porMarca.has(llave)) {
-      porMarca.set(llave, { marca, patente: esPatente(p), opciones: [] });
-    }
-    const grupo = porMarca.get(llave);
-    grupo.opciones.push(p);
-    if (esPatente(p)) grupo.patente = true;
-  }
-
-  const marcas = [...porMarca.values()].map((g) => {
-    const ordenadas = [...g.opciones].sort((a, b) => precioNum(a) - precioNum(b));
-    const conFoto = ordenadas.find((p) => fotoDe(p));
-    return {
-      ...g,
-      opciones: ordenadas,
-      precioDesde: precioNum(ordenadas[0]),
-      foto: conFoto ? fotoDe(conFoto) : "",
-    };
+  const secciones = { mismaConfiguracion: [], otroContenido: [], otrasPresentaciones: [] };
+  opciones.forEach((p) => {
+    const relacion = clasificarRelacionProducto(p, ancla);
+    if (relacion === "misma_configuracion") secciones.mismaConfiguracion.push(p);
+    else if (relacion === "otro_contenido") secciones.otroContenido.push(p);
+    else if (relacion === "otra_forma") secciones.otrasPresentaciones.push(p);
   });
-
-  if (marcas.length < 2) return null;
-
-  marcas.sort((a, b) => {
-    if (a.patente !== b.patente) return a.patente ? -1 : 1;
-    return a.precioDesde - b.precioDesde;
-  });
-
-  return {
-    clave,
-    etiqueta: etiquetaSustancia(opciones),
-    total: opciones.length,
-    marcas,
-  };
+  Object.keys(secciones).forEach((k) => { secciones[k] = ordenarProductos(secciones[k], query); });
+  return { clave, etiqueta: String(ancla?.principio_activo || ancla?.denominacion_generica || "").trim(), ancla, total: opciones.length, ...secciones };
 }
 
-/** Cuántos de los primeros resultados se miran para decidir de qué habla la búsqueda. */
-const RESULTADOS_QUE_DECIDEN = 8;
-
-/**
- * De qué sustancia habla la búsqueda, mirando los primeros resultados y no
- * sólo el primero: "tempra" trae arriba el antigripal, pero lo que la clienta
- * pide casi siempre es el paracetamol que viene abajo.
- */
-export function grupoEquivalentesDeBusqueda(productos, resultados) {
+export function grupoEquivalentesDeBusqueda(productos, resultados, query = "") {
+  if (!consultaEsClara(query, resultados)) return null;
   const top = (resultados || []).slice(0, RESULTADOS_QUE_DECIDEN);
-  if (!top.length) return null;
-
   const candidatos = new Map();
   top.forEach((p, orden) => {
     const clave = claveSustancia(p);
@@ -168,13 +117,13 @@ export function grupoEquivalentesDeBusqueda(productos, resultados) {
     if (!candidatos.has(clave)) candidatos.set(clave, { n: 0, orden, ancla: p });
     candidatos.get(clave).n += 1;
   });
-
-  // Gana la sustancia que más se repite; empate, la que salió antes. Si esa no
-  // arma tablero (una sola marca), se prueba la siguiente antes de rendirse.
   const ordenados = [...candidatos.values()].sort((a, b) => b.n - a.n || a.orden - b.orden);
-  for (const c of ordenados) {
-    const grupo = agruparOpcionesEquivalentes(productos, c.ancla);
+  for (const candidato of ordenados) {
+    const grupo = grupoOpcionesRelacionadas(productos, candidato.ancla, query);
     if (grupo) return grupo;
   }
-  return agruparOpcionesEquivalentes(productos, top[0]);
+  return null;
 }
+
+export const agruparOpcionesEquivalentes = grupoOpcionesRelacionadas;
+export const esPatente = (producto) => etiquetaTipoProducto(producto) === "Marca";
