@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { ScanLine, History, ArrowLeft } from "lucide-react";
+import { ScanLine, History, ArrowLeft, AlertTriangle } from "lucide-react";
 import { C_LIGHT, BRAND } from "./constants";
 import { supabase } from "./supabase";
 import { showToast } from "./ui";
@@ -223,6 +223,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
   const [costo, setCosto] = useState("");
   const [pendiente, setPendiente] = useState(null);
   const [errorLinea, setErrorLinea] = useState("");
+  const [codigoCopiado, setCodigoCopiado] = useState("");
   const [subiendo, setSubiendo] = useState(false);
   const [pendientes, setPendientes] = useState([]);
   const [listaScan, setListaScan] = useState("");
@@ -463,6 +464,16 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     if (error) rpcError(error, "No se guardó la cabecera");
 
     else aplicarDoc(data);
+  };
+
+  const copiarCodigo = async (codigo) => {
+    try {
+      await navigator.clipboard.writeText(String(codigo || ""));
+      setCodigoCopiado(String(codigo || ""));
+      setTimeout(() => setCodigoCopiado(""), 2000);
+    } catch {
+      showToast("Copia el código a mano: " + codigo, "info");
+    }
   };
 
   const resetLinea = () => {
@@ -734,6 +745,16 @@ export default function RecepcionModule({ ocultarMontos = false }) {
       showToast("Escanea cada caja y teclea caducidad MMAA antes de cerrar.", "warning");
       return;
     }
+    const noRegistrados = lista.filter((i) => i.pendiente_alta);
+    if (noRegistrados.length > 0) {
+      const detalle = noRegistrados.map((i) => `  · ${i.codigo_escaneado} × ${i.cantidad}`).join("\n");
+      const seguir = window.confirm(
+        `OJO: ${noRegistrados.length} producto(s) no están en catálogo y NO van a entrar a stock:\n\n${detalle}\n\n` +
+        "Lo correcto es darlos de alta en Inventario → Catálogo → Nuevo producto y volver a escanear esas cajas.\n\n" +
+        "¿Cerrar de todos modos y dejar esas piezas fuera del inventario?",
+      );
+      if (!seguir) return;
+    }
     const yaEnAnaquel = lista.some((i) => i.lote_id);
     let msg;
     if (grisPendiente > 0) {
@@ -793,6 +814,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     ? [...doc.items].sort((a, b) => Number(!!a.confirmado) - Number(!!b.confirmado) || Number(b.id) - Number(a.id))
     : [];
   const anaquelSinCad = items.filter((i) => i.lote_id && !i.fecha_caducidad).length;
+  const sinRegistrar = items.filter((i) => i.pendiente_alta);
   const grisPendiente = items.filter((i) => !i.pendiente_alta && !i.confirmado).length;
   const confirmadosOk = items.filter((i) => i.confirmado && i.fecha_caducidad).length;
   const puedeCerrar = confirmadosOk > 0 && anaquelSinCad === 0;
@@ -1031,24 +1053,57 @@ export default function RecepcionModule({ ocultarMontos = false }) {
 
             {pendiente && (
               <div style={{ marginTop: 12 }}>
-                <div style={{
-                  background: pendiente.pendienteAlta ? C.amberDim : C.blueDim,
-                  borderRadius: 10, padding: "10px 12px", marginBottom: 12,
-                }}>
-                  <div style={{ fontWeight: 800, color: C.text, fontSize: 15 }}>
-                    {pendiente.producto?.nombre || "No está en el catálogo"}
-                  </div>
-                  <div style={{ color: C.textMid, fontSize: 12, marginTop: 2, fontFamily: "ui-monospace, monospace" }}>
-                    {pendiente.codigo}
-                    {pendiente.pendienteAlta ? " · queda pendiente de alta" : ""}
-                    {pendiente.numeroLote ? ` · lote ticket ${pendiente.numeroLote}` : ""}
-                  </div>
-                  {pendiente.loteDistinto && (
-                    <div style={{ color: "#b45309", fontSize: 12, fontWeight: 700, marginTop: 6 }}>
-                      Lote distinto al de anaquel{Array.isArray(pendiente.lotesPiso) && pendiente.lotesPiso.length ? ` (piso: ${pendiente.lotesPiso.filter(Boolean).join(", ")})` : ""}. Confirma caducidad de esta caja.
+                {pendiente.pendienteAlta ? (
+                  <div style={{
+                    background: C.redDim, border: "2px solid #fca5a5",
+                    borderRadius: 10, padding: "12px 14px", marginBottom: 12,
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#b91c1c", fontWeight: 900, fontSize: 15 }}>
+                      <AlertTriangle size={18} />
+                      Este producto NO está registrado
                     </div>
-                  )}
-                </div>
+                    <div style={{ color: C.text, fontSize: 13, lineHeight: 1.45, marginTop: 8 }}>
+                      Hay que darlo de alta <strong>antes</strong> de recibirlo. Ve a <strong>Inventario → Catálogo → ➕ Nuevo producto</strong>,
+                      pega este código de barras, pon nombre y costo de la factura, deja el stock en 0 y guarda. Luego vuelve aquí y escanea la caja otra vez.
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+                      <code style={{
+                        fontFamily: "ui-monospace, monospace", fontSize: 15, fontWeight: 800, letterSpacing: 0.5,
+                        background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 10px", color: C.text,
+                      }}>
+                        {pendiente.codigo}
+                      </code>
+                      <button
+                        type="button"
+                        onClick={() => copiarCodigo(pendiente.codigo)}
+                        style={{
+                          padding: "7px 12px", borderRadius: 8, border: `1px solid ${C.border}`,
+                          background: C.card, color: C.textMid, fontWeight: 700, fontSize: 12, cursor: "pointer",
+                        }}
+                      >
+                        {codigoCopiado === pendiente.codigo ? "Copiado ✓" : "Copiar código"}
+                      </button>
+                    </div>
+                    <div style={{ color: "#b91c1c", fontSize: 12, fontWeight: 700, marginTop: 10, lineHeight: 1.4 }}>
+                      Si lo guardas así, la caja queda anotada pero <u>no entra a stock</u> y el sistema no la va a poder vender.
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ background: C.blueDim, borderRadius: 10, padding: "10px 12px", marginBottom: 12 }}>
+                    <div style={{ fontWeight: 800, color: C.text, fontSize: 15 }}>
+                      {pendiente.producto?.nombre || "No está en el catálogo"}
+                    </div>
+                    <div style={{ color: C.textMid, fontSize: 12, marginTop: 2, fontFamily: "ui-monospace, monospace" }}>
+                      {pendiente.codigo}
+                      {pendiente.numeroLote ? ` · lote ticket ${pendiente.numeroLote}` : ""}
+                    </div>
+                    {pendiente.loteDistinto && (
+                      <div style={{ color: "#b45309", fontSize: 12, fontWeight: 700, marginTop: 6 }}>
+                        Lote distinto al de anaquel{Array.isArray(pendiente.lotesPiso) && pendiente.lotesPiso.length ? ` (piso: ${pendiente.lotesPiso.filter(Boolean).join(", ")})` : ""}. Confirma caducidad de esta caja.
+                      </div>
+                    )}
+                  </div>
+                )}
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(112px, 1fr))", gap: 10 }}>
                   <div>
                     <label style={labelS(C)} htmlFor="rc-qty">Cantidad</label>
@@ -1111,9 +1166,19 @@ export default function RecepcionModule({ ocultarMontos = false }) {
                     type="button"
                     onClick={guardarLinea}
                     disabled={saving}
-                    style={{ flex: 1, padding: "10px 14px", borderRadius: 8, border: "none", background: BRAND.gradient, color: "#fff", fontWeight: 800, fontSize: 13, cursor: "pointer" }}
+                    style={{
+                      flex: 1, padding: "10px 14px", borderRadius: 8,
+                      border: pendiente.pendienteAlta ? "1px solid #fca5a5" : "none",
+                      background: pendiente.pendienteAlta ? C.card : BRAND.gradient,
+                      color: pendiente.pendienteAlta ? "#b91c1c" : "#fff",
+                      fontWeight: 800, fontSize: 13, cursor: "pointer",
+                    }}
                   >
-                    {saving ? "Guardando…" : "Guardar renglón"}
+                    {saving
+                      ? "Guardando…"
+                      : pendiente.pendienteAlta
+                        ? "Anotar sin registrar (no entra a stock)"
+                        : "Guardar renglón"}
                   </button>
                 </div>
               </div>
@@ -1170,6 +1235,19 @@ export default function RecepcionModule({ ocultarMontos = false }) {
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {sinRegistrar.length > 0 && (
+              <div style={{ background: C.redDim, border: "2px solid #fca5a5", borderRadius: 10, padding: "12px 14px", color: C.text, fontSize: 13, lineHeight: 1.45 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#b91c1c", fontWeight: 900, marginBottom: 6 }}>
+                  <AlertTriangle size={16} />
+                  {sinRegistrar.length} producto{sinRegistrar.length === 1 ? "" : "s"} sin registrar en catálogo
+                </div>
+                Dalos de alta en <strong>Inventario → Catálogo → ➕ Nuevo producto</strong> y vuelve a escanear esas cajas.
+                Si cierras así, esas piezas <u>no entran a stock</u>:
+                <div style={{ fontFamily: "ui-monospace, monospace", fontSize: 12, marginTop: 8, color: C.textMid }}>
+                  {sinRegistrar.map((i) => `${i.codigo_escaneado} × ${i.cantidad}`).join("  ·  ")}
+                </div>
+              </div>
+            )}
             {anaquelSinCad > 0 && (
               <div style={{ background: C.amberDim, border: `1px solid #f5d78a`, borderRadius: 10, padding: "12px 14px", color: C.text, fontSize: 13, lineHeight: 1.45 }}>
                 {anaquelSinCad} caja{anaquelSinCad === 1 ? "" : "s"} ya en anaquel sin MMAA. Escanea cada una y teclea la caducidad (ej. 0629). No se puede cerrar hasta entonces: si no, el sistema no sabe qué caduca primero.
