@@ -11,7 +11,7 @@ import { $, logAudit, soloDigitosTel, telefonosMxEquivalentes, normalizeForSearc
 import { tiendaProductMatchesBusqueda, tiendaSearchRelevanceRank } from "../../../utils/fuzzySearch";
 import { etiquetaIntencionMostrador } from "../../../utils/intencionMostrador";
 import { findProductExactScan, looksLikeBarcodeInput, looksLikeInternalSku, isAllDigitsInput, normalizeBarcodeRaw, queryCatalogoDesdeInputPos, shouldReplaceScanInput } from "../../../utils/barcodeProductLookup";
-import { posTituloProducto, posSubtituloProducto } from "../../../utils/posProductDisplay";
+import { posTituloProducto, posSubtituloProducto, posEtiquetaVariante } from "../../../utils/posProductDisplay";
 import { grupoEquivalentesDeBusqueda, claveSustancia } from "../../../utils/equivalentesPos";
 import TableroEquivalentes, { TableroResultados } from "./TableroEquivalentes";
 import { precioUnidadParaVenta } from "../../../utils/precioUnidad";
@@ -89,7 +89,8 @@ function posVariantesDeProducto(productos, item) {
 }
 
 function posFichaLinea(item) {
-  return posSubtituloProducto(item) || [item.concentracion, item.presentacion, item.forma_farmaceutica].filter(Boolean).join(" · ");
+  const { nombre, detalle } = posEtiquetaVariante(item);
+  return { nombre, detalle };
 }
 
 /** Anon no puede leer `lotes` por RLS; Inventario ya usa este RPC (security definer). */
@@ -421,7 +422,7 @@ function PosProductoFichaPanel({
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 {variantes.map((v) => {
                   const sel = v.id === item.id;
-                  const label = posFichaLinea(v) || v.nombre;
+                  const { nombre, detalle } = posFichaLinea(v);
                   return (
                     <button
                       key={v.id}
@@ -437,9 +438,15 @@ function PosProductoFichaPanel({
                         fontWeight: sel ? 800 : 600,
                         color: sel ? C.blue : C.text,
                         textAlign: "left",
+                        maxWidth: 220,
                       }}
                     >
-                      <div>{label}</div>
+                      <div style={{ fontWeight: 800, lineHeight: 1.25 }}>{nombre || v.nombre}</div>
+                      {detalle ? (
+                        <div style={{ fontSize: 11, color: C.textMid, marginTop: 2, fontWeight: 600, lineHeight: 1.3 }}>
+                          {detalle}
+                        </div>
+                      ) : null}
                       <div style={{ fontSize: 11, color: C.textDim, marginTop: 2 }}>{$(v.precio)}</div>
                     </button>
                   );

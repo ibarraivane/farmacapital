@@ -1,4 +1,4 @@
-import { nombreComercialPos, posDestacadoTarjeta, posSubtituloProducto, posTituloProducto } from "./posProductDisplay";
+import { nombreComercialPos, posDestacadoTarjeta, posEtiquetaVariante, posNombreReconocido, posSubtituloProducto, posTituloProducto } from "./posProductDisplay";
 
 const alumag = {
   sku: "FC-75710113",
@@ -47,6 +47,48 @@ describe("posTituloProducto", () => {
       })
     ).toMatch(/Leche En Polvo/i);
     expect(nombreComercialPos("Leche En Polvo Nan 1 Optimal Pro 120 G")).not.toBe("Leche En");
+  });
+});
+
+describe("posEtiquetaVariante", () => {
+  test("XL-3 se reconoce por el nombre, no solo por el C/24", () => {
+    const xl3 = {
+      nombre: "Xl-3 Vr",
+      marca: "",
+      presentacion: "C/24",
+      concentracion: "375/50/3 MG",
+      forma_farmaceutica: "TABLETAS",
+    };
+    expect(posNombreReconocido(xl3)).toMatch(/xl-3/i);
+    expect(posEtiquetaVariante(xl3)).toEqual({
+      nombre: "Xl-3 Vr",
+      detalle: "C/24 · 375/50/3 MG · TABLETAS",
+    });
+  });
+
+  test("Antiflu-Des no se queda en cápsulas sueltas", () => {
+    const antiflu = {
+      nombre: "Antiflu-Des Capsulas",
+      marca: "Chinoin",
+      presentacion: "C/24 capsulas",
+      forma_farmaceutica: "Capsulas",
+    };
+    expect(posNombreReconocido(antiflu)).toMatch(/antiflu-des/i);
+    expect(posEtiquetaVariante(antiflu).detalle).toMatch(/c\/24/i);
+  });
+
+  test("un genérico no usa el principio activo como nombre de la ficha", () => {
+    const generico = {
+      nombre: "Antigripal C/15 tabletas",
+      marca: "Wermar",
+      tipo: "generico",
+      principio_activo: "Paracetamol / Clorfenamina / Fenilefrina",
+      presentacion: "C/15",
+      concentracion: "50 mg / 3 mg / 300 mg",
+      forma_farmaceutica: "Tabletas",
+    };
+    expect(posNombreReconocido(generico)).toMatch(/antigripal|wermar/i);
+    expect(posNombreReconocido(generico)).not.toMatch(/paracetamol/i);
   });
 });
 

@@ -116,6 +116,46 @@ export function posTituloProducto(p) {
   return titleCase(limpio || p.nombre || "");
 }
 
+function pareceSoloEmpaque(texto) {
+  const s = String(texto || "").trim();
+  if (!s) return true;
+  return /^(c\/\s*\d+|c\d+|tabletas?|c[aá]psulas?|jarabe|crema|gel|suspensi[oó]n|soluci[oó]n|gotas|frasco|comprimidos?)$/i.test(s);
+}
+
+/**
+ * Cómo lo piden en mostrador (XL-3, Antiflu-Des).
+ * No usa el principio activo: en “otras presentaciones” todas lo comparten.
+ */
+export function posNombreReconocido(p) {
+  if (!p) return "";
+  const comercial = nombreComercialPos(p.nombre);
+  const dist = String(p.denominacion_distintiva || "").trim();
+  const marca = String(p.marca || "").trim();
+  if (comercial && !pareceSoloEmpaque(comercial) && !mismaMarca(comercial, marca)) {
+    return titleCase(comercial);
+  }
+  if (dist && !pareceSoloEmpaque(dist)) return titleCase(dist);
+  if (marca && !/gen[eé]rico/i.test(marca)) return titleCase(marca);
+  if (comercial && !pareceSoloEmpaque(comercial)) return titleCase(comercial);
+  const limpio = limpiarNombrePosCrudo(p.nombre);
+  if (limpio && !pareceSoloEmpaque(limpio)) return titleCase(limpio);
+  return titleCase(marca || limpio || p.nombre || "");
+}
+
+/** Nombre + empaque para las fichas de “otras presentaciones”. */
+export function posEtiquetaVariante(p) {
+  const nombre = posNombreReconocido(p);
+  const partes = [
+    p?.presentacion,
+    p?.concentracion,
+    p?.forma_farmaceutica,
+  ].map((x) => String(x || "").trim()).filter(Boolean);
+  const detalle = partes
+    .filter((parte) => parte.toLowerCase() !== nombre.toLowerCase())
+    .join(" · ");
+  return { nombre, detalle };
+}
+
 /** Segunda línea: marca, presentación, concentración, forma. */
 export function posSubtituloProducto(p) {
   if (!p) return "";
