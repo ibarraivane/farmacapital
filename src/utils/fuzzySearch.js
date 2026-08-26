@@ -244,6 +244,10 @@ const CATALOG_VERNACULAR_GROUPS = [
     query: ["cubrebocas", "cubreboca", "mascarilla", "mascarillas"],
     catalog: ["cubrebocas", "cubreboca", "mascarilla", "n95", "kn95"],
   },
+  {
+    query: ["paleta", "paletas", "paleto", "paletos"],
+    catalog: ["paleta", "broncolin"],
+  },
 ];
 
 function vernacularAltsForToken(tok) {
@@ -414,9 +418,9 @@ export function minEditDistanceQueryToText(queryNorm, textNorm) {
 }
 
 function maxTypoForLength(len) {
-  // En cinco letras, dos cambios generan falsos positivos peligrosos:
-  // "treda" terminaba coincidiendo con "crema".
-  if (len <= 5) return 1;
+  // En seis letras, dos cambios generan falsos positivos peligrosos:
+  // "paleta" terminaba coincidiendo con "tableta".
+  if (len <= 6) return 1;
   if (len <= 7) return 2;
   return Math.min(4, Math.floor(len * 0.35));
 }

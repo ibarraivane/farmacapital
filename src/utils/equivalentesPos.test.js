@@ -96,6 +96,23 @@ describe("grupoEquivalentesDeBusqueda", () => {
     expect(grupo?.total).toBe(4);
   });
 
+  it("paleta no abre un tablero de tabletas", () => {
+    const broncolin = {
+      id: 702,
+      nombre: "Broncolin Paleta",
+      marca: "Broncolin",
+      tipo: "marca",
+      forma_farmaceutica: "Paleta",
+      activo: true,
+    };
+    const ruido = [
+      { id: 10, nombre: "Paracetamol tabletas", principio_activo: "Paracetamol", forma_farmaceutica: "Tabletas", activo: true },
+      { id: 11, nombre: "Tempra tabletas", principio_activo: "Paracetamol", forma_farmaceutica: "Tabletas", activo: true },
+    ];
+    expect(coincideConsultaDirecta(broncolin, "paleta")).toBe(true);
+    expect(grupoEquivalentesDeBusqueda([broncolin, ...ruido], [broncolin, ...ruido], "paleta")).toBeNull();
+  });
+
   it("si busca Afrin, todas las Afrin van arriba aunque cambie la presentación", () => {
     const adulto = { id: 901, nombre: "Afrin Adulto Spray", marca: "Afrin", tipo: "marca", principio_activo: "Oximetazolina", forma_farmaceutica: "Spray", concentracion: "0.05%", presentacion: "20 mL", precio: 120, activo: true };
     const nodrip = { id: 902, nombre: "Afrin No Drip Solución Nasal", marca: "Afrin", tipo: "marca", principio_activo: "Oximetazolina", forma_farmaceutica: "Solución", concentracion: "0.05%", presentacion: "15 mL", precio: 140, activo: true };

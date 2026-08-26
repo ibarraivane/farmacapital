@@ -37,6 +37,29 @@ const centrum = {
 };
 
 describe("catalog search dimensions", () => {
+  test("paleta encuentra Broncolin y no se confunde con tableta", () => {
+    const broncolin = {
+      id: 702,
+      nombre: "Broncolin Paleta",
+      marca: "Broncolin",
+      forma_farmaceutica: "Paleta",
+      presentacion: "1 paleta 10 g",
+    };
+    const tableta = {
+      id: 10,
+      nombre: "Paracetamol 500 mg tabletas",
+      marca: "Genérico",
+      forma_farmaceutica: "Tabletas",
+      principio_activo: "Paracetamol",
+    };
+    expect(tiendaProductMatchesBusqueda(broncolin, "paleta")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(broncolin, "paletas")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(tableta, "paleta")).toBe(false);
+    expect(tiendaSearchRelevanceRank(broncolin, "paleta")).toBeLessThan(
+      tiendaSearchRelevanceRank(tableta, "paleta")
+    );
+  });
+
   test("Treda no se confunde con crema", () => {
     const treda = { id: 501, nombre: "Treda Antidiarreico", marca: "Treda", principio_activo: "Neomicina + Caolín + Pectina" };
     const crema = { id: 502, nombre: "Colgate Max Clean", marca: "Colgate", forma_farmaceutica: "Crema", principio_activo: "Fluoruro de sodio" };

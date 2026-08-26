@@ -82,12 +82,21 @@ function consultaEsClara(query, resultados) {
 }
 
 /** La vendedora escribió la marca: todos esos SKU van arriba, no solo el primero. */
+function nombreContieneConsulta(texto, q) {
+  const n = norm(texto);
+  if (!n || !q || q.length < 4) return false;
+  const palabras = n.split(" ").filter(Boolean);
+  // Solo palabras internas: el primer token sigue las reglas de marca/patente.
+  return palabras.slice(1).some((w) => w === q || w === `${q}s` || (q.endsWith("s") && w === q.slice(0, -1)));
+}
+
 export function coincideConsultaDirecta(producto, query) {
   const q = norm(query);
   if (!q || q.length < 4) return false;
   const marca = norm(producto?.marca);
   const nombre = norm(producto?.nombre);
   const dist = norm(producto?.denominacion_distintiva);
+  if (nombreContieneConsulta(nombre, q) || nombreContieneConsulta(dist, q)) return true;
   if (marca && marca.length >= 4 && (marca === q || marca.startsWith(q) || q.startsWith(marca))) return true;
   const tipo = norm(producto?.tipo);
   const esPatenteTipo = tipo === "marca" || tipo === "patente";
@@ -158,6 +167,12 @@ export function grupoEquivalentesDeBusqueda(productos, resultados, query = "") {
   if (!consultaEsClara(query, resultados)) return null;
   const top = (resultados || []).slice(0, RESULTADOS_QUE_DECIDEN);
   const q = norm(query);
+  const primero = top[0];
+  // "paleta" no debe abrir un tablero de tabletas: el primer hit nombra
+  // la consulta y no tiene familia de sustancia.
+  if (primero && coincideConsultaDirecta(primero, query) && !claveSustancia(primero)) {
+    return null;
+  }
 
   // Marca o nombre escrito de verdad (Treda, Nineka), no un prefijo de sustancia
   // que también abre otro SKU ("neomici" → "Neomici Polimixi…").
