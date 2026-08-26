@@ -11,10 +11,11 @@ import { productMatchesSearchQuery } from "./utils/fuzzySearch";
 import { parseRpcJsonArray } from "./utils/rpcJson";
 import { notifyPosTicket, notifyOnlineOrderReceipt, formatFolioPOS, formatFolioOnline, formatWhatsAppSendError, formatWhatsAppSuccessMessage } from "./utils/orderReceiptWhatsApp";
 import { usePedidoTicketUrl } from "./hooks/usePedidoTicketUrl";
-import { telefonoMxValido } from "./utils";
+import { telefonoMxValido, $ } from "./utils";
 import { rolEsAdmin } from "./utils/permissions";
 import { fmtDateTimeMexico, ymdMexico } from "./lib/ventasVsMeta";
-import VentasVsMetaChart, { MetasPeriodoStrip } from "./VentasVsMetaChart";
+import VentasVsMetaChart from "./VentasVsMetaChart";
+import InsightKpiCard from "./components/InsightKpiCard";
 
 function esPagoServicio(p) {
   return p?.origen === "pago_servicio" || pedidoEsTipoServicio(p?.tipo);
@@ -101,7 +102,12 @@ async function fetchPagosServicioRango(tok, rango) {
 }
 
 /** Listado de pedidos con filtros — antes dentro de Admin/Reportes; requiere showConfirm del padre. */
-export default function TransaccionesTab({ usuario, showConfirm, ventasPorDia, metasTurnoCfg }) {
+function fmtK(n) {
+  const v = Number(n) || 0;
+  return v >= 1000 ? `$${(v / 1000).toFixed(1)}k` : $(v);
+}
+
+export default function TransaccionesTab({ usuario, showConfirm, ventasPorDia, metasTurnoCfg, kpis }) {
   const C = C_LIGHT;
   const [pedidos, setPedidos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -569,11 +575,33 @@ export default function TransaccionesTab({ usuario, showConfirm, ventasPorDia, m
 
   return (
     <div style={{ colorScheme: "light" }}>
+      {kpis && (
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, marginBottom: 12 }}>VENTAS VS META · DÍA · SEMANA · MES</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 220px), 1fr))", gap: 12 }}>
+            <InsightKpiCard
+              label="Ventas hoy" icon="💵" col={C.green}
+              value={kpis.ventasHoy} display={fmtK(kpis.ventasHoy)}
+              meta={kpis.metas?.ventasDia} metaLabel="diaria" formatMeta={fmtK}
+              delta={kpis.trends?.ventasHoy}
+            />
+            <InsightKpiCard
+              label="Ventas esta semana" icon="📈" col={C.blue}
+              value={kpis.ventasSemana} display={fmtK(kpis.ventasSemana)}
+              meta={kpis.metas?.ventasSemana} metaLabel="7 días" formatMeta={fmtK}
+              delta={kpis.trends?.ventasSemana}
+            />
+            <InsightKpiCard
+              label="Ventas del mes" icon="📅" col={C.blue}
+              value={kpis.ventasMes} display={fmtK(kpis.ventasMes)}
+              meta={kpis.metaMesProrrateada} metaLabel={`prorrateada (${((kpis.fracMes || 0) * 100).toFixed(0)}% del mes)`} formatMeta={fmtK}
+              delta={kpis.trends?.ventasMes}
+            />
+          </div>
+        </div>
+      )}
       {(ventasPorDia || metasTurnoCfg) && (
-        <>
-          <MetasPeriodoStrip porDia={ventasPorDia} cfg={metasTurnoCfg} hoyYmd={ymdMexico()} />
-          <VentasVsMetaChart porDia={ventasPorDia} cfg={metasTurnoCfg} hoyYmd={ymdMexico()} />
-        </>
+        <VentasVsMetaChart porDia={ventasPorDia} cfg={metasTurnoCfg} hoyYmd={ymdMexico()} />
       )}
       <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
         <input placeholder="🔍 ID o cliente…" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} style={{ ...inpS, maxWidth: 180 }} />

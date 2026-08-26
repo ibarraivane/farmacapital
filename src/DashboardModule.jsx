@@ -16,6 +16,7 @@ import { costoLineaVenta, ingresoLineaVenta } from "./utils/margenVenta";
 import { DIAS_CADUCIDAD_ALERTA } from "./lib/caducidad";
 import { categoriaCanon } from "./constants/categoriasProducto";
 import VentasVsMetaChart from "./VentasVsMetaChart";
+import InsightKpiCard from "./components/InsightKpiCard";
 import {
   agruparVentasPorDia,
   porDiaDesdeSerieRpc,
@@ -198,11 +199,6 @@ function parseMeta(rows, clave, def) {
   return Number.isFinite(v) && v > 0 ? v : def;
 }
 
-function pctCumplimiento(actual, meta) {
-  if (!meta || meta <= 0) return 0;
-  return Math.max(0, (actual / meta) * 100);
-}
-
 function trendDelta(actual, anterior) {
   if (anterior === 0 || anterior == null) return null;
   return ((actual - anterior) / anterior) * 100;
@@ -239,51 +235,6 @@ function BarChart({ data, colorFn }) {
           <div style={{flex:"0 1 auto",minWidth:0,color:C.text,fontSize:11,fontWeight:700}}>{fmt(d.value)}</div>
         </div>
       ))}
-    </div>
-  );
-}
-
-// Tarjeta KPI "accionable": muestra valor, meta, % cumplimiento y tendencia vs período anterior.
-function InsightCard({ label, icon, value, display, meta, metaLabel, delta, col, formatMeta, onAction, actionLabel }) {
-  const C = C_LIGHT;
-  const tieneMeta = Number.isFinite(meta) && meta > 0;
-  const pct = tieneMeta ? pctCumplimiento(value, meta) : 0;
-  const pctClamp = Math.min(pct, 100);
-  const barColor = pct >= 100 ? C.green : pct >= 70 ? (col || C.blue) : pct >= 40 ? C.amber : C.red;
-  const mainCol = col || C.blue;
-  const hasTrend = Number.isFinite(delta);
-  const up = hasTrend && delta >= 0;
-  const fmtMeta = formatMeta || ((n) => n.toLocaleString("es-MX"));
-  return (
-    <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"16px 18px",display:"flex",flexDirection:"column",gap:10}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-        <div style={{color:C.textMid,fontSize:11,fontWeight:700,letterSpacing:.4}}>{label.toUpperCase()}</div>
-        {icon && <span style={{fontSize:18}}>{icon}</span>}
-      </div>
-      <div style={{color:mainCol,fontWeight:800,fontSize:26,lineHeight:1.1}}>{display ?? value}</div>
-      {tieneMeta && (
-        <>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:10,color:C.textMid}}>
-            <span>Meta {metaLabel || ""}: <strong style={{color:C.text}}>{fmtMeta(meta)}</strong></span>
-            <span style={{fontWeight:800,color:barColor}}>{pct.toFixed(0)}%</span>
-          </div>
-          <div style={{background:C.bg,borderRadius:4,height:6,overflow:"hidden"}}>
-            <div style={{height:"100%",width:`${pctClamp}%`,background:barColor,borderRadius:4,transition:"width .6s ease"}}/>
-          </div>
-        </>
-      )}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:tieneMeta?0:4}}>
-        {hasTrend ? (
-          <span style={{fontSize:11,fontWeight:700,color:up?C.green:C.red}}>
-            {up?"↑":"↓"} {Math.abs(delta).toFixed(1)}% <span style={{color:C.textDim,fontWeight:500}}>vs periodo anterior</span>
-          </span>
-        ) : <span style={{fontSize:11,color:C.textDim}}>Sin comparativo</span>}
-        {onAction && (
-          <button type="button" onClick={onAction} style={{padding:"4px 10px",borderRadius:6,border:`1px solid ${mainCol}40`,background:"transparent",color:mainCol,cursor:"pointer",fontSize:10,fontWeight:700}}>
-            {actionLabel || "Ver detalle →"}
-          </button>
-        )}
-      </div>
     </div>
   );
 }
@@ -1024,7 +975,21 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
       )}
 
       {panelTab==="transacciones" && (
-        <TransaccionesTab usuario={usuario} showConfirm={showConfirm} ventasPorDia={ventasPorDia} metasTurnoCfg={metasTurnoCfg} />
+        <TransaccionesTab
+          usuario={usuario}
+          showConfirm={showConfirm}
+          ventasPorDia={ventasPorDia}
+          metasTurnoCfg={metasTurnoCfg}
+          kpis={{
+            ventasHoy,
+            ventasSemana,
+            ventasMes,
+            metas,
+            metaMesProrrateada: metaVentasMesProrrateada || metas?.ventasMes,
+            fracMes,
+            trends,
+          }}
+        />
       )}
 
       {panelTab==="resumen" && (
@@ -1148,42 +1113,42 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
 
       <div style={{color:C.textDim,fontSize:10,fontWeight:700,letterSpacing:1.5,marginBottom:12}}>KPIS ACCIONABLES · VENTAS Y ACTIVIDAD</div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(100%,220px),1fr))",gap:12,marginBottom:16}}>
-        <InsightCard
+        <InsightKpiCard
           label="Ventas hoy" icon="💵" col={C.green}
           value={ventasHoy} display={fmtK(ventasHoy)}
           meta={metas?.ventasDia} metaLabel="diaria" formatMeta={fmtK}
           delta={trends?.ventasHoy}
           onAction={() => goToPage("pos")} actionLabel="Ir a POS →"
         />
-        <InsightCard
+        <InsightKpiCard
           label="Ventas esta semana" icon="📈" col={C.blue}
           value={ventasSemana} display={fmtK(ventasSemana)}
           meta={metas?.ventasSemana} metaLabel="7 días" formatMeta={fmtK}
           delta={trends?.ventasSemana}
           onAction={() => setPanelTab("resumen")} actionLabel="Ver resumen →"
         />
-        <InsightCard
+        <InsightKpiCard
           label="Ventas del mes" icon="📅" col={C.blue}
           value={ventasMes} display={fmtK(ventasMes)}
           meta={metaVentasMesProrrateada || metas?.ventasMes} metaLabel={`prorrateada (${(fracMes*100).toFixed(0)}% del mes)`} formatMeta={fmtK}
           delta={trends?.ventasMes}
           onAction={() => setPanelTab("resumen")} actionLabel="Ver detalle →"
         />
-        <InsightCard
+        <InsightKpiCard
           label="Ticket promedio" icon="🧾" col={C.purple}
           value={ticketProm} display={fmtK(ticketProm)}
           meta={metas?.ticketProm} metaLabel="por venta" formatMeta={fmtK}
           delta={trends?.ticketProm}
           onAction={() => setPanelTab("margen")} actionLabel="Ver margen →"
         />
-        <InsightCard
+        <InsightKpiCard
           label="Consultas hoy" icon="🩺" col={C.teal}
           value={consultasHoy} display={consultasHoy.toString()}
           meta={metas?.consultasDia} metaLabel="diaria"
           delta={trends?.consultasHoy}
           onAction={() => goToPage("agenda")} actionLabel="Ir a la agenda →"
         />
-        <InsightCard
+        <InsightKpiCard
           label="Online pendientes" icon="🌐" col={onlinePend>0?C.amber:C.green}
           value={onlinePend} display={onlinePend.toString()}
           onAction={() => goToPage("pos", { posTab: "online" })} actionLabel="Atender →"
