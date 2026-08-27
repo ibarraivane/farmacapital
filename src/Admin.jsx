@@ -21,6 +21,12 @@ import ImageUploader from "./components/ImageUploader";
 // Fallback estático para estilos fuera de componentes (evita undefined en import).
 const C = C_LIGHT;
 
+function tituloPaginaMovil(page) {
+  const aliases = { inventario: "inv", cons_cobro: "pos", trans: "dash" };
+  const id = aliases[page] || page;
+  return NAV_ITEMS.find((n) => n.id === id)?.label || "FarmaCapital";
+}
+
 // ── Lazy loading — módulos se cargan solo cuando se necesitan ──
 const RRHHModule       = lazy(()=>import("./RRHHModule"));
 const InventarioHub    = lazy(()=>import("./InventarioHub"));
@@ -411,7 +417,7 @@ function AdminNavSidebar({active,setActive,negocio,setNegocio,usuario,onLogout,a
       width:220,flexShrink:0,background:C.card,borderRight:`1px solid ${C.border}`,
       boxShadow: mobile?"4px 0 24px rgba(0,0,0,.12)":"2px 0 8px rgba(0,0,0,.06)",
       display:"flex",flexDirection:"column",position:"fixed",left:mobile?(navOpen?0:-220):0,top:0,
-      height:"100vh",maxHeight:"100dvh",zIndex:mobile?1001:100,overflow:"hidden",transition:"left .22s ease",
+      height:"100vh",maxHeight:"100dvh",zIndex:mobile?1200:100,overflow:"hidden",transition:"left .22s ease",
     }}>
       <div style={{flexShrink:0,padding:"18px 14px 14px",borderBottom:`1px solid ${C.border}`}}>
         <Logo size={32} showText={true}/>
@@ -2308,27 +2314,18 @@ body{
         />
       )}
       {isMobileLayout && (
-        <button
-          type="button"
-          aria-label="Abrir menú de navegación"
-          aria-expanded={mobileNavOpen}
-          onClick={()=>setMobileNavOpen(o=>!o)}
-          style={{
-            position:"fixed",
-            top:"calc(12px + env(safe-area-inset-top, 0px))",
-            left:"calc(12px + env(safe-area-inset-left, 0px))",
-            zIndex:10,
-            width:48,height:48,borderRadius:12,
-            border:`1px solid ${C.border}`,background:C.card,
-            boxShadow:"0 4px 20px rgba(0,0,0,.08)",cursor:"pointer",
-            fontSize:20,lineHeight:1,display:"flex",alignItems:"center",justifyContent:"center",
-            color:C.text,
-            pointerEvents:"auto",
-            touchAction:"manipulation",
-          }}
-        >
-          ☰
-        </button>
+        <header className="fc-mobile-topbar">
+          <button
+            type="button"
+            className="fc-mobile-topbar-btn"
+            aria-label={mobileNavOpen ? "Cerrar menú de navegación" : "Abrir menú de navegación"}
+            aria-expanded={mobileNavOpen}
+            onClick={()=>setMobileNavOpen(o=>!o)}
+          >
+            {mobileNavOpen ? "✕" : "☰"}
+          </button>
+          <div className="fc-mobile-topbar-title">{tituloPaginaMovil(page)}</div>
+        </header>
       )}
       <AdminNavSidebar
         active={page} setActive={setPageAndSave}
@@ -2344,7 +2341,7 @@ body{
       <main className="farmacapital-admin-main" style={{
         marginLeft:isMobileLayout?0:220,
         padding:isMobileLayout
-          ? "calc(56px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) calc(20px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px))"
+          ? "calc(64px + env(safe-area-inset-top, 0px)) max(14px, env(safe-area-inset-right, 0px)) calc(20px + env(safe-area-inset-bottom, 0px)) max(14px, env(safe-area-inset-left, 0px))"
           : "clamp(16px, 3vw, 28px)",
         /* En escritorio: NO usar width:100% con marginLeft (provoca overflow horizontal al redimensionar). */
         ...(isMobileLayout

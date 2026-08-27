@@ -75,7 +75,7 @@ export function metaSemana(lunes, cfg) {
   return t;
 }
 
-export function construirSerie({ porDia, cfg, grano, hoyYmd }) {
+export function construirSerie({ porDia, cfg, grano, hoyYmd, ventana }) {
   const hoy = parseYmdLocal(hoyYmd) || new Date();
   const map = porDia || {};
   const points = [];
@@ -124,12 +124,14 @@ export function construirSerie({ porDia, cfg, grano, hoyYmd }) {
     return points;
   }
 
-  for (let i = 20; i >= 0; i -= 1) {
+  const dias = Number.isFinite(ventana) && ventana > 0 ? Math.round(ventana) : 21;
+  for (let i = dias - 1; i >= 0; i -= 1) {
     const d = addDays(hoy, -i);
     const ymd = ymdFromLocalDate(d);
     points.push({
       key: ymd,
       label: DIAS_CORTOS[d.getDay()],
+      labelDia: String(d.getDate()),
       detalle: `${DIAS_CORTOS[d.getDay()]} ${d.getDate()} ${MES_CORTOS[d.getMonth()]}`,
       actual: map[ymd] || 0,
       meta: metaDiaCompleto(d, cfg),
@@ -145,4 +147,15 @@ export function resumenPunto(p) {
   const actual = p.actual || 0;
   const pct = meta > 0 ? (actual / meta) * 100 : 0;
   return { pct, falta: Math.max(0, meta - actual), ok: meta > 0 && actual >= meta };
+}
+
+/** Hoy / semana en curso / mes en curso — las tres metas a la vista. */
+export function resumenMetasActuales({ porDia, cfg, hoyYmd }) {
+  const hoy = hoyYmd || ymdMexico();
+  const pick = (grano) => construirSerie({ porDia, cfg, grano, hoyYmd: hoy }).find((p) => p.esActual) || null;
+  return {
+    dia: pick("dia"),
+    semana: pick("semana"),
+    mes: pick("mes"),
+  };
 }

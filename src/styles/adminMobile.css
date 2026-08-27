@@ -1,0 +1,530 @@
+/* Admin en celular: barra fija, fichas legibles, gráfica con meta visible. */
+
+.farmacapital-admin-main {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.fc-tabla-scroll {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* ── Barra superior (hamburguesa + título) ── */
+.fc-mobile-topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: env(safe-area-inset-top, 0px) 12px 0 max(8px, env(safe-area-inset-left, 0px));
+  height: calc(52px + env(safe-area-inset-top, 0px));
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  box-sizing: border-box;
+}
+
+.fc-mobile-topbar-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 20px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.fc-mobile-topbar-title {
+  min-width: 0;
+  font-weight: 800;
+  font-size: 16px;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Metas día / semana / mes ── */
+.fc-metas-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.fc-metas-strip-card {
+  background: #f7f9fc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px 12px 10px;
+  min-width: 0;
+}
+
+.fc-metas-strip-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.fc-metas-strip-bar {
+  height: 6px;
+  background: #ffffff;
+  border-radius: 99px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.fc-ventas-meta-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.fc-ventas-meta-tabs {
+  display: flex;
+  background: #f7f9fc;
+  border-radius: 10px;
+  padding: 3px;
+  border: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+.fc-ventas-meta-legend {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.fc-ventas-meta-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fc-ventas-meta-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: #ef4444;
+}
+
+.fc-ventas-meta-dash {
+  width: 16px;
+  height: 0;
+  border-top: 2px dashed #0d1b2a;
+}
+
+.fc-ventas-meta-scroll {
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  margin: 0 -4px;
+  padding: 4px 4px 0;
+}
+
+.fc-ventas-meta-bars {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  height: 168px;
+  min-width: 0;
+}
+
+.fc-ventas-meta-bars.is-dia {
+  gap: 6px;
+}
+
+.fc-ventas-meta-col {
+  flex: 1 0 auto;
+  min-width: 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  color: #475569;
+}
+
+.fc-ventas-meta-col.is-on,
+.fc-ventas-meta-col.is-hoy {
+  color: #0f172a;
+}
+
+.fc-ventas-meta-track {
+  position: relative;
+  width: 100%;
+  max-width: 28px;
+  height: 132px;
+  background: #f7f9fc;
+  border-radius: 6px;
+  overflow: visible;
+}
+
+.fc-ventas-meta-col.is-on .fc-ventas-meta-track {
+  outline: 2px solid #1e3aba;
+  outline-offset: 1px;
+}
+
+.fc-ventas-meta-fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 6px;
+}
+
+.fc-ventas-meta-tick {
+  position: absolute;
+  left: -5px;
+  right: -5px;
+  height: 0;
+  border-top: 2px dashed #0d1b2a;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.fc-ventas-meta-xlabel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.15;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.fc-ventas-meta-xlabel em {
+  font-style: normal;
+  color: #94a3b8;
+  font-weight: 700;
+}
+
+.fc-ventas-meta-foot {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* ── Teléfono vertical: metas en columna ── */
+@media (max-width: 767px) and (orientation: portrait) {
+  .fc-metas-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .fc-ventas-meta-col {
+    min-width: 40px;
+  }
+}
+
+/* ── Admin estrecho (vertical u horizontal) ── */
+@media (max-width: 900px) {
+  .farmacapital-admin-root table {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .farmacapital-admin-root *:has(> table:not(.fc-tabla-cards):not(.fc-tabla-compact)) {
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+  }
+
+  .farmacapital-admin-root .fc-tabla-scroll *:has(> table) {
+    overflow: visible;
+    max-width: none;
+  }
+
+  .farmacapital-admin-root table:not(.fc-tabla-cards):not(.fc-tabla-compact) {
+    width: max-content;
+    min-width: 100%;
+    border-collapse: collapse;
+  }
+
+  .farmacapital-admin-root table:not(.fc-tabla-cards):not(.fc-tabla-compact) th,
+  .farmacapital-admin-root table:not(.fc-tabla-cards):not(.fc-tabla-compact) td {
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+
+  .farmacapital-admin-root table:not(.fc-tabla-cards):not(.fc-tabla-compact) th:first-child,
+  .farmacapital-admin-root table:not(.fc-tabla-cards):not(.fc-tabla-compact) td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: #ffffff;
+    box-shadow: 4px 0 8px -6px rgba(15, 23, 42, 0.28);
+  }
+
+  .fc-tabla-scroll::before {
+    content: "Desliza para ver más →";
+    display: block;
+    padding: 8px 12px 6px;
+    color: #475569;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    border-bottom: 1px solid #e2e8f0;
+    background: #f8fafc;
+  }
+
+  .farmacapital-admin-root *:has(> table.fc-tabla-cards),
+  .farmacapital-admin-root *:has(> table.fc-tabla-compact) {
+    overflow: visible !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .farmacapital-admin-root *:has(> table.fc-tabla-cards)::before,
+  .farmacapital-admin-root *:has(> table.fc-tabla-compact)::before {
+    content: none;
+  }
+
+  table.fc-tabla-cards,
+  table.fc-tabla-compact {
+    display: block;
+    width: 100%;
+    min-width: 0 !important;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  table.fc-tabla-cards thead,
+  table.fc-tabla-compact thead {
+    display: none;
+  }
+
+  table.fc-tabla-cards tbody,
+  table.fc-tabla-compact tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* Ficha: etiqueta a la izquierda, valor a la derecha. Acciones abajo. */
+  table.fc-tabla-cards tr {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 14px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+  }
+
+  table.fc-tabla-cards td {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    padding: 0 !important;
+    border: none !important;
+    white-space: normal !important;
+    min-width: 0;
+    max-width: none !important;
+    background: transparent !important;
+    font-size: 13px;
+    line-height: 1.35;
+    color: #0f172a;
+    overflow-wrap: break-word;
+  }
+
+  table.fc-tabla-cards td[data-label]::before {
+    content: attr(data-label);
+    color: #64748b;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  table.fc-tabla-cards td[data-label=" "]::before,
+  table.fc-tabla-cards td[data-label=""]::before {
+    content: none;
+    display: none;
+  }
+
+  table.fc-tabla-cards td[data-primary] {
+    font-size: 15px;
+    font-weight: 800;
+  }
+
+  table.fc-tabla-cards td[colspan] {
+    display: block;
+    text-align: center;
+    padding: 20px 8px !important;
+    color: #475569;
+  }
+
+  table.fc-tabla-cards td[colspan]::before {
+    content: none;
+  }
+
+  table.fc-tabla-cards td[data-actions] {
+    flex-direction: column;
+    align-items: stretch;
+    padding-top: 4px !important;
+  }
+
+  table.fc-tabla-cards td[data-actions] > div,
+  table.fc-tabla-cards td[data-actions] {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: stretch;
+  }
+
+  table.fc-tabla-cards td[data-actions] button,
+  table.fc-tabla-cards td[data-actions] a {
+    min-height: 40px;
+    min-width: 40px;
+    padding: 8px 12px;
+    box-sizing: border-box;
+    touch-action: manipulation;
+  }
+
+  /* Lista densa (empleados, top productos): una línea por renglón. */
+  table.fc-tabla-compact tr {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+  }
+
+  table.fc-tabla-compact td {
+    display: block;
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  table.fc-tabla-compact td:first-child {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-weight: 700;
+  }
+
+  table.fc-tabla-compact td[colspan] {
+    flex: 1;
+    text-align: center;
+    white-space: normal;
+    padding: 16px 8px !important;
+    color: #475569;
+  }
+
+  /* KPIs: el monto no se parte ($226.00 → 0 abajo). */
+  .fc-kpi-value,
+  .fc-nowrap-money {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .fc-toolbar-filters {
+    gap: 8px;
+  }
+
+  .fc-toolbar-filters input,
+  .fc-toolbar-filters select {
+    flex: 1 1 140px;
+    min-width: 0;
+    max-width: 100%;
+  }
+}
+
+/* ── Móvil horizontal: más aire, 3 metas en fila, gráfica más baja ── */
+@media (max-width: 900px) and (orientation: landscape) {
+  .farmacapital-admin-main {
+    padding-top: calc(52px + env(safe-area-inset-top, 0px)) !important;
+  }
+
+  .fc-mobile-topbar {
+    min-height: 44px;
+    height: calc(44px + env(safe-area-inset-top, 0px));
+  }
+
+  .fc-mobile-topbar-btn {
+    width: 40px;
+    height: 40px;
+  }
+
+  .fc-metas-strip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .fc-ventas-meta-track {
+    height: 96px;
+  }
+
+  .fc-ventas-meta-bars {
+    height: 128px;
+  }
+
+  table.fc-tabla-cards tr {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 16px;
+  }
+
+  table.fc-tabla-cards td {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+
+  table.fc-tabla-cards td[data-primary],
+  table.fc-tabla-cards td[data-wide],
+  table.fc-tabla-cards td[data-actions],
+  table.fc-tabla-cards td[colspan] {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .farmacapital-admin-root *:has(> table:not(.fc-tabla-cards)) {
+    scroll-behavior: auto;
+  }
+}

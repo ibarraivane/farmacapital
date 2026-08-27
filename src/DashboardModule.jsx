@@ -1174,14 +1174,14 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
           <div style={{color:C.textDim,fontSize:10,fontWeight:700,letterSpacing:1.5,marginBottom:16}}>VENTAS POR EMPLEADO — ESTE MES</div>
           {empleados.length===0
             ? <div style={{color:C.textMid,fontSize:12,textAlign:"center",padding:20}}>Sin datos este mes</div>
-            : <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+            : <table className="fc-tabla-compact" style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                 <thead><tr>{["Empleado","Ventas","%"].map(h=><th key={h} style={{padding:"6px 8px",textAlign:"left",color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`,fontSize:10}}>{h}</th>)}</tr></thead>
                 <tbody>
                   {empleados.map(([nombre,total],i)=>(
                     <tr key={i}>
-                      <td style={{padding:"8px",color:C.text,borderBottom:`1px solid ${C.border}`,fontWeight:600}}>{nombre}</td>
-                      <td style={{padding:"8px",color:C.green,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{fmt(total)}</td>
-                      <td style={{padding:"8px",borderBottom:`1px solid ${C.border}`}}>
+                      <td data-label="Empleado" style={{padding:"8px",color:C.text,borderBottom:`1px solid ${C.border}`,fontWeight:600}}>{nombre}</td>
+                      <td data-label="Ventas" className="fc-nowrap-money" style={{padding:"8px",color:C.green,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{fmt(total)}</td>
+                      <td data-label="%" style={{padding:"8px",borderBottom:`1px solid ${C.border}`}}>
                         <span style={{padding:"2px 8px",borderRadius:12,fontSize:10,fontWeight:700,background:C.blueDim,color:C.blue}}>{totalEmp>0?((total/totalEmp)*100).toFixed(0):0}%</span>
                       </td>
                     </tr>
@@ -1197,7 +1197,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
         {topProductos.length===0
           ? <div style={{color:C.textMid,fontSize:12,textAlign:"center",padding:20}}>Sin datos de ventas</div>
           : <div style={{overflowX:"auto"}}>
-              <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+              <table className="fc-tabla-compact" style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                 <thead><tr style={{background:C.bg}}>{["#","Producto","Unidades","Ingreso total"].map(h=><th key={h} style={{padding:"8px 12px",textAlign:"left",color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>{h}</th>)}</tr></thead>
                 <tbody>
                   {topProductos.map(([nombre,stats],i)=>(

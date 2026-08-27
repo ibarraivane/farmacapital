@@ -699,9 +699,9 @@ export default function DevolucionesModule({ usuario }) {
           {label:"Aprobadas",value:devoluciones.filter(d=>d.estado==="aprobada").length,col:C.green},
           {label:"Total registradas",value:devoluciones.length,col:C.blue},
         ].map(k=>(
-          <div key={k.label} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px 20px",flex:1,minWidth:120}}>
+          <div key={k.label} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px 16px",flex:"1 1 140px",minWidth:0}}>
             <div style={{color:C.textDim,fontSize:10,fontWeight:700,marginBottom:4}}>{k.label.toUpperCase()}</div>
-            <div style={{color:k.col,fontWeight:900,fontSize:22}}>{k.value}</div>
+            <div className="fc-kpi-value" style={{color:k.col,fontWeight:900,fontSize:22}}>{k.value}</div>
           </div>
         ))}
       </div>
@@ -721,7 +721,7 @@ export default function DevolucionesModule({ usuario }) {
       {/* Tabla */}
       {loading?<div style={{color:C.textMid,textAlign:"center",padding:40}}>Cargando…</div>:(
         <div style={{overflowX:"auto",borderRadius:12,border:`1px solid ${C.border}`}}>
-          <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+          <table className="fc-tabla-cards" style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
             <thead>
               <tr style={{background:C.cardDark}}>
                 {["ID","Fecha","Cliente","Pedido orig.","Productos","Total","Método","Estado","Acciones"].map(h=>(
@@ -733,23 +733,23 @@ export default function DevolucionesModule({ usuario }) {
               {!fil.length&&<tr><td colSpan={9} style={{textAlign:"center",padding:32,color:C.textMid}}>Sin devoluciones registradas</td></tr>}
               {fil.map((d,i)=>(
                 <tr key={d.id} style={{background:i%2===0?"transparent":"#f8fafc"}}>
-                  <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,fontFamily:"monospace"}}>#{d.id}</td>
-                  <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>{fmtDT(d.created_at)}</td>
-                  <td style={{padding:"8px 12px",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>{d.clientes?.nombre||"—"}</td>
-                  <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>#{d.pedido_id||"—"}</td>
-                  <td style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`,maxWidth:180}}>
+                  <td data-label="ID" data-primary style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,fontFamily:"monospace"}}>#{d.id}</td>
+                  <td data-label="Fecha" style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>{fmtDT(d.created_at)}</td>
+                  <td data-label="Cliente" style={{padding:"8px 12px",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>{d.clientes?.nombre||"—"}</td>
+                  <td data-label="Pedido" style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>#{d.pedido_id||"—"}</td>
+                  <td data-label="Productos" data-wide style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`,maxWidth:180}}>
                     {(d.devolucion_items||[]).map((it,idx)=>(
                       <div key={idx} style={{color:C.text,fontSize:11}}>{it.producto_nombre} ×{it.cantidad}</div>
                     ))}
                   </td>
-                  <td style={{padding:"8px 12px",color:C.red,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{fmt(d.total_devuelto)}</td>
-                  <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{d.metodo_reembolso||"—"}</td>
-                  <td style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`}}>
+                  <td data-label="Total" className="fc-nowrap-money" style={{padding:"8px 12px",color:C.red,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{fmt(d.total_devuelto)}</td>
+                  <td data-label="Método" style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{d.metodo_reembolso||"—"}</td>
+                  <td data-label="Estado" style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`}}>
                     <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:estCol(d.estado, C)+"20",color:estCol(d.estado, C)}}>
                       {d.estado}
                     </span>
                   </td>
-                  <td style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>
+                  <td data-label="Acciones" data-actions style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>
                     {d.estado==="pendiente" && esAdmin ? (
                       <div style={{display:"flex",gap:6}}>
                         <button type="button" onClick={()=>resolver(d,"aprobar")} style={btnSmall(C.green)}>Aprobar</button>

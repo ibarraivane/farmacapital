@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { C_LIGHT, BRAND } from "./constants";
-import { construirSerie, resumenPunto, ymdMexico } from "./lib/ventasVsMeta";
+import { useMediaQuery } from "./hooks/useMediaQuery";
+import { construirSerie, resumenMetasActuales, resumenPunto, ymdMexico } from "./lib/ventasVsMeta";
+import { mezclarCfgMetas } from "./utils/turnosMetas";
 
 const GRAINS = [
   { id: "dia", label: "Día" },
@@ -22,45 +24,89 @@ function colorBarra(p) {
   return C_LIGHT.red;
 }
 
+export function MetasPeriodoStrip({ porDia, cfg, hoyYmd }) {
+  const C = C_LIGHT;
+  const { dia, semana, mes } = resumenMetasActuales({ porDia, cfg, hoyYmd: hoyYmd || ymdMexico() });
+  const cards = [
+    { id: "dia", label: "Hoy", punto: dia },
+    { id: "semana", label: "Esta semana", punto: semana },
+    { id: "mes", label: "Este mes", punto: mes },
+  ];
+  return (
+    <div className="fc-metas-strip" aria-label="Metas de hoy, semana y mes">
+      {cards.map((c) => {
+        const { pct, ok, falta } = resumenPunto(c.punto);
+        const col = colorBarra(c.punto);
+        const meta = c.punto?.meta || 0;
+        return (
+          <div key={c.id} className="fc-metas-strip-card">
+            <div style={{ color: C.textDim, fontSize: 10, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase" }}>{c.label}</div>
+            <div className="fc-metas-strip-row">
+              <div style={{ color: C.text, fontWeight: 900, fontSize: 18, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
+                {fmtK(c.punto?.actual)}
+              </div>
+              <div style={{ color: col, fontWeight: 800, fontSize: 13, whiteSpace: "nowrap" }}>
+                {ok ? "Meta ok" : `${pct.toFixed(0)}%`}
+              </div>
+            </div>
+            <div className="fc-metas-strip-bar">
+              <div style={{ height: "100%", width: `${Math.min(100, pct)}%`, background: col, borderRadius: 99 }} />
+            </div>
+            <div style={{ color: C.textMid, fontSize: 11, marginTop: 6, lineHeight: 1.35 }}>
+              {meta > 0
+                ? (ok ? `Meta ${fmtK(meta)} cubierta` : `de ${fmtK(meta)} · faltan ${fmtK(falta)}`)
+                : "Falta configurar la meta"}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function VentasVsMetaChart({ porDia, cfg, hoyYmd, onEditarMetas }) {
   const C = C_LIGHT;
   const [grano, setGrano] = useState("dia");
   const [selKey, setSelKey] = useState(null);
+  const isPhone = useMediaQuery("(max-width: 768px)");
+  const isLandscapePhone = useMediaQuery("(max-width: 900px) and (orientation: landscape)");
 
   const hoy = hoyYmd || ymdMexico();
+  const cfgSafe = useMemo(() => mezclarCfgMetas(cfg), [cfg]);
+  const ventana = grano !== "dia" ? undefined : (isPhone ? (isLandscapePhone ? 14 : 7) : 21);
+
   const serie = useMemo(
-    () => construirSerie({ porDia, cfg, grano, hoyYmd: hoy }),
-    [porDia, cfg, grano, hoy],
+    () => construirSerie({ porDia, cfg: cfgSafe, grano, hoyYmd: hoy, ventana }),
+    [porDia, cfgSafe, grano, hoy, ventana],
   );
 
   const elegido = serie.find((p) => p.key === selKey) || serie.find((p) => p.esActual) || serie[serie.length - 1];
   const { pct, falta, ok } = resumenPunto(elegido);
   const max = Math.max(...serie.map((p) => Math.max(p.actual || 0, p.meta || 0)), 1);
 
-  const hayDatos = serie.some((p) => (p.actual || 0) > 0);
   const sub = grano === "dia"
-    ? "Cada barra es un día. La raya es la meta de ese día (domingo no es lo mismo que viernes)."
+    ? "Cada barra es un día. La raya punteada es la meta de ese día (domingo no es lo mismo que viernes)."
     : grano === "semana"
-      ? "Lunes a domingo. La raya es la suma de las metas de esos 7 días."
-      : "La raya es la meta mensual que configuraste (no el prorrateo).";
+      ? "Lunes a domingo. La raya punteada es la meta de esos 7 días."
+      : "La raya punteada es la meta mensual que configuraste.";
 
   return (
-    <section
-      style={{
-        background: C.card,
-        border: `1px solid ${C.border}`,
-        borderRadius: 12,
-        padding: "18px 20px 16px",
-        marginBottom: 24,
-        minWidth: 0,
-      }}
-    >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
+    <section className="fc-ventas-meta" style={{
+      background: C.card,
+      border: `1px solid ${C.border}`,
+      borderRadius: 12,
+      padding: "16px 16px 14px",
+      marginBottom: 24,
+      minWidth: 0,
+    }}>
+      <MetasPeriodoStrip porDia={porDia} cfg={cfgSafe} hoyYmd={hoy} />
+
+      <div className="fc-ventas-meta-head">
         <div>
           <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, letterSpacing: 1.5 }}>
             VENTAS VS META
           </div>
-          <p style={{ margin: "4px 0 0", color: C.textMid, fontSize: 13, lineHeight: 1.45, maxWidth: 520 }}>
+          <p style={{ margin: "4px 0 0", color: C.textMid, fontSize: 13, lineHeight: 1.45, maxWidth: 560 }}>
             {sub}
             {onEditarMetas && (
               <>
@@ -88,7 +134,7 @@ export default function VentasVsMetaChart({ porDia, cfg, hoyYmd, onEditarMetas }
             )}
           </p>
         </div>
-        <div role="tablist" aria-label="Periodo de la gráfica" style={{ display: "flex", background: C.bg, borderRadius: 10, padding: 3, border: `1px solid ${C.border}` }}>
+        <div role="tablist" aria-label="Periodo de la gráfica" className="fc-ventas-meta-tabs">
           {GRAINS.map((g) => {
             const on = grano === g.id;
             return (
@@ -117,136 +163,72 @@ export default function VentasVsMetaChart({ porDia, cfg, hoyYmd, onEditarMetas }
         </div>
       </div>
 
-      {!hayDatos ? (
-        <div style={{ color: C.textMid, fontSize: 13, padding: "28px 8px", textAlign: "center" }}>
-          Aún no hay ventas en este tramo. Cuando entren tickets, aquí se comparan con la meta.
-        </div>
-      ) : (
-        <>
-          <div
-            role="img"
-            aria-label={elegido
-              ? `${elegido.detalle}: ${fmtK(elegido.actual)} de ${fmtK(elegido.meta)}`
-              : "Ventas contra meta"}
-            style={{
-              display: "flex",
-              alignItems: "stretch",
-              gap: grano === "dia" ? 4 : 10,
-              height: 168,
-              padding: "8px 0 0",
-            }}
-          >
-            {serie.map((p) => {
-              const h = p.actual > 0 ? Math.max(3, (p.actual / max) * 100) : 0;
-              const metaH = p.meta > 0 ? (p.meta / max) * 100 : 0;
-              const activo = elegido?.key === p.key;
-              const col = colorBarra(p);
-              return (
-                <button
-                  key={p.key}
-                  type="button"
-                  aria-pressed={activo}
-                  aria-label={`${p.detalle}: ${fmtK(p.actual)} de meta ${fmtK(p.meta)}`}
-                  onClick={() => setSelKey(p.key)}
-                  style={{
-                    flex: 1,
-                    minWidth: 0,
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "flex-end",
-                    gap: 6,
-                    border: "none",
-                    background: "transparent",
-                    padding: 0,
-                    cursor: "pointer",
-                    color: activo ? C.text : C.textMid,
-                  }}
-                >
-                  <span style={{
-                    position: "relative",
-                    width: "100%",
-                    maxWidth: grano === "dia" ? 18 : 36,
-                    height: 132,
-                    background: C.bg,
-                    borderRadius: 5,
-                    overflow: "hidden",
-                    outline: activo ? `2px solid ${BRAND.primary}` : "none",
-                    outlineOffset: 1,
-                  }}>
-                    <span
-                      style={{
-                        position: "absolute",
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        height: `${h}%`,
-                        background: col,
-                        borderRadius: 5,
-                      }}
-                    />
-                    {metaH > 0 && (
-                      <span
-                        aria-hidden="true"
-                        style={{
-                          position: "absolute",
-                          left: 0,
-                          right: 0,
-                          bottom: `${metaH}%`,
-                          height: 2,
-                          background: C.blueDark,
-                          opacity: 0.7,
-                        }}
-                      />
-                    )}
-                  </span>
-                  <span style={{
-                    fontSize: 10,
-                    fontWeight: p.esActual ? 800 : 600,
-                    letterSpacing: 0.2,
-                    textTransform: "uppercase",
-                    whiteSpace: "nowrap",
-                  }}>
-                    {p.label}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+      <div className="fc-ventas-meta-legend" aria-hidden="true">
+        <span><i className="fc-ventas-meta-swatch" /> Ventas</span>
+        <span><i className="fc-ventas-meta-dash" /> Meta</span>
+      </div>
 
-          {elegido && (
-            <div
-              aria-live="polite"
-              style={{
-                marginTop: 14,
-                paddingTop: 12,
-                borderTop: `1px solid ${C.border}`,
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "baseline",
-                gap: 12,
-                flexWrap: "wrap",
-              }}
-            >
-              <div>
-                <div style={{ color: C.text, fontWeight: 800, fontSize: 15 }}>
-                  {elegido.detalle}
-                  {elegido.esActual ? (grano === "dia" ? " · hoy" : " · en curso") : ""}
-                </div>
-                <div style={{ color: C.textMid, fontSize: 13, marginTop: 2 }}>
-                  {!elegido.meta
-                    ? `${fmtK(elegido.actual)} vendidos · falta configurar la meta.`
-                    : ok
-                    ? `Meta cubierta. ${fmtK(elegido.actual)} de ${fmtK(elegido.meta)}.`
-                    : `${fmtK(elegido.actual)} de ${fmtK(elegido.meta)} · falta ${fmtK(falta)}`}
-                </div>
-              </div>
-              <div style={{ fontWeight: 800, fontSize: 22, color: colorBarra(elegido), fontVariantNumeric: "tabular-nums" }}>
-                {pct.toFixed(0)}%
-              </div>
+      <div
+        className="fc-ventas-meta-scroll"
+        role="img"
+        aria-label={elegido
+          ? `${elegido.detalle}: ${fmtK(elegido.actual)} de ${fmtK(elegido.meta)}`
+          : "Ventas contra meta"}
+      >
+        <div className={`fc-ventas-meta-bars${grano === "dia" ? " is-dia" : ""}`}>
+          {serie.map((p) => {
+            const h = p.actual > 0 ? Math.max(3, (p.actual / max) * 100) : 0;
+            const metaH = p.meta > 0 ? Math.min(100, (p.meta / max) * 100) : 0;
+            const activo = elegido?.key === p.key;
+            const col = colorBarra(p);
+            return (
+              <button
+                key={p.key}
+                type="button"
+                className={`fc-ventas-meta-col${activo ? " is-on" : ""}${p.esActual ? " is-hoy" : ""}`}
+                aria-pressed={activo}
+                aria-label={`${p.detalle}: ${fmtK(p.actual)} de meta ${fmtK(p.meta)}`}
+                onClick={() => setSelKey(p.key)}
+              >
+                <span className="fc-ventas-meta-track">
+                  <span className="fc-ventas-meta-fill" style={{ height: `${h}%`, background: col }} />
+                  {metaH > 0 && (
+                    <span
+                      className="fc-ventas-meta-tick"
+                      aria-hidden="true"
+                      style={{ bottom: `${metaH}%` }}
+                    />
+                  )}
+                </span>
+                <span className="fc-ventas-meta-xlabel">
+                  <strong>{p.label}</strong>
+                  {grano === "dia" && p.labelDia ? <em>{p.labelDia}</em> : null}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {elegido && (
+        <div className="fc-ventas-meta-foot" aria-live="polite">
+          <div>
+            <div style={{ color: C.text, fontWeight: 800, fontSize: 15 }}>
+              {elegido.detalle}
+              {elegido.esActual ? (grano === "dia" ? " · hoy" : " · en curso") : ""}
             </div>
-          )}
-        </>
+            <div style={{ color: C.textMid, fontSize: 13, marginTop: 2 }}>
+              {!elegido.meta
+                ? `${fmtK(elegido.actual)} vendidos · falta configurar la meta.`
+                : ok
+                  ? `Meta cubierta. ${fmtK(elegido.actual)} de ${fmtK(elegido.meta)}.`
+                  : `${fmtK(elegido.actual)} de ${fmtK(elegido.meta)} · falta ${fmtK(falta)}`}
+            </div>
+          </div>
+          <div style={{ fontWeight: 800, fontSize: 22, color: colorBarra(elegido), fontVariantNumeric: "tabular-nums" }}>
+            {pct.toFixed(0)}%
+          </div>
+        </div>
       )}
     </section>
   );

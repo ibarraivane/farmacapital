@@ -727,7 +727,7 @@ export default function CorteCajaModule({usuario }) {
       {/* ══ HISTORIAL ══ */}
       {tab==="historial" && !esVendedor(usuario) && (
         <div>
-          <div style={{display:"flex",gap:10,marginBottom:16,flexWrap:"wrap",alignItems:"center"}}>
+          <div className="fc-toolbar-filters" style={{display:"flex",gap:10,marginBottom:16,flexWrap:"wrap",alignItems:"center"}}>
             <select value={filtroTurno} onChange={e=>setFiltroTurno(e.target.value)} style={{...inputStyle,maxWidth:160}}>
               <option value="todos">Todos los turnos</option>
               <option value="matutino">🌅 Matutino</option>
@@ -747,7 +747,7 @@ export default function CorteCajaModule({usuario }) {
             <div style={{color:C.textMid,textAlign:"center",padding:40}}>Cargando historial…</div>
           ) : (
             <div style={{overflowX:"auto",borderRadius:12,border:`1px solid ${C.border}`}}>
-              <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+              <table className="fc-tabla-cards" style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                 <thead>
                   <tr style={{background:C.card}}>
                     {["Fecha/Hora","Turno","Cajero","Contó","Fondo","Ef. Declarado","Ef. Sistema","Diferencia","Tarjeta","MP","Total","Notas","Ticket"].map(h=>(
@@ -766,28 +766,28 @@ export default function CorteCajaModule({usuario }) {
                     const fecha  = new Date(c.fecha);
                     return (
                       <tr key={c.id||i} style={{background:i%2===0?"transparent":C.card+"80"}}>
-                        <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>
+                        <td data-label="Fecha" data-primary style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>
                           <div style={{fontWeight:600,color:C.text}}>{fecha.toLocaleDateString("es-MX")}</div>
                           <div style={{color:C.textMid,fontSize:10}}>{fecha.toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"})}</div>
                         </td>
-                        <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`}}>
+                        <td data-label="Turno" style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`}}>
                           <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,
                             background:c.turno==="matutino"?C.blueDim:C.amberDim,
                             color:c.turno==="matutino"?C.blue:C.amber}}>
                             {c.turno==="matutino"?"🌅 Mat":"🌆 Vesp"}
                           </span>
                         </td>
-                        <td style={{padding:"9px 12px",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>{c.cajero||"—"}</td>
-                        <td style={{padding:"9px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{c.contado_por||"—"}</td>
-                        <td style={{padding:"9px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{fmt(c.fondo_inicial)}</td>
-                        <td style={{padding:"9px 12px",color:C.green,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{fmt(c.efectivo_declarado)}</td>
-                        <td style={{padding:"9px 12px",color:C.blue,borderBottom:`1px solid ${C.border}`}}>{fmt(c.efectivo_sistema)}</td>
-                        <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`}}><span style={{color:dc,fontWeight:700}}>{dt}</span></td>
-                        <td style={{padding:"9px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{fmt(c.tarjeta)}</td>
-                        <td style={{padding:"9px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{fmt(c.mercadopago)}</td>
-                        <td style={{padding:"9px 12px",color:C.text,fontWeight:800,borderBottom:`1px solid ${C.border}`}}>{fmt(c.total_general)}</td>
-                        <td style={{padding:"9px 12px",color:C.textDim,fontSize:11,borderBottom:`1px solid ${C.border}`,maxWidth:130,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.notas||"—"}</td>
-                        <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>
+                        <td data-label="Cajero" style={{padding:"9px 12px",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>{c.cajero||"—"}</td>
+                        <td data-label="Contó" style={{padding:"9px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{c.contado_por||"—"}</td>
+                        <td data-label="Fondo" className="fc-nowrap-money" style={{padding:"9px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{fmt(c.fondo_inicial)}</td>
+                        <td data-label="Ef. declarado" className="fc-nowrap-money" style={{padding:"9px 12px",color:C.green,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{fmt(c.efectivo_declarado)}</td>
+                        <td data-label="Ef. sistema" className="fc-nowrap-money" style={{padding:"9px 12px",color:C.blue,borderBottom:`1px solid ${C.border}`}}>{fmt(c.efectivo_sistema)}</td>
+                        <td data-label="Diferencia" style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`}}><span style={{color:dc,fontWeight:700}}>{dt}</span></td>
+                        <td data-label="Tarjeta" className="fc-nowrap-money" style={{padding:"9px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{fmt(c.tarjeta)}</td>
+                        <td data-label="MP" className="fc-nowrap-money" style={{padding:"9px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{fmt(c.mercadopago)}</td>
+                        <td data-label="Total" className="fc-nowrap-money" style={{padding:"9px 12px",color:C.text,fontWeight:800,borderBottom:`1px solid ${C.border}`}}>{fmt(c.total_general)}</td>
+                        <td data-label="Notas" data-wide style={{padding:"9px 12px",color:C.textDim,fontSize:11,borderBottom:`1px solid ${C.border}`,maxWidth:130,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.notas||"—"}</td>
+                        <td data-label="Ticket" data-actions style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>
                           <div style={{display:"flex",gap:6}}>
                             <button
                               onClick={() => imprimirEpsonHistorial(c)}

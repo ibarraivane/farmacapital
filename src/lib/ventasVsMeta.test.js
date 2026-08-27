@@ -5,6 +5,7 @@ import {
   metaSemana,
   parseYmdLocal,
   porDiaDesdeSerieRpc,
+  resumenMetasActuales,
   resumenPunto,
   ymdFromLocalDate,
 } from "./ventasVsMeta";
@@ -50,7 +51,35 @@ describe("construirSerie", () => {
     const hoy = s.find((p) => p.esActual);
     expect(hoy.actual).toBe(12);
     expect(hoy.meta).toBe(2200);
+    expect(hoy.labelDia).toBe("23");
     expect(resumenPunto(hoy).ok).toBe(false);
+  });
+
+  test("día: ventana 7 para celular", () => {
+    const s = construirSerie({ porDia, cfg: CFG, grano: "dia", hoyYmd: "2026-08-23", ventana: 7 });
+    expect(s).toHaveLength(7);
+    expect(s[0].key).toBe("2026-08-17");
+    expect(s[6].esActual).toBe(true);
+  });
+
+  test("con respaldo de colonia ninguna barra queda en meta $0", () => {
+    const s = construirSerie({
+      porDia,
+      cfg: mezclarCfgMetas({}),
+      grano: "dia",
+      hoyYmd: "2026-08-23",
+    });
+    expect(s.every((p) => p.meta > 0)).toBe(true);
+  });
+
+  test("resumenMetasActuales deja día, semana y mes a la vista", () => {
+    const r = resumenMetasActuales({ porDia, cfg: CFG, hoyYmd: "2026-08-23" });
+    expect(r.dia.meta).toBe(2200);
+    expect(r.dia.actual).toBe(12);
+    expect(r.semana.meta).toBe(20800);
+    expect(r.semana.actual).toBe(3100 + 800 + 12);
+    expect(r.mes.meta).toBe(80000);
+    expect(r.mes.actual).toBe(3100 + 800 + 12);
   });
 
   test("semana: lunes a domingo, meta fija si está configurada", () => {

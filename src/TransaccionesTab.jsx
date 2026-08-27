@@ -564,7 +564,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
 
   return (
     <div style={{ colorScheme: "light" }}>
-      <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
+      <div className="fc-toolbar-filters" style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
         <input placeholder="🔍 ID o cliente…" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} style={{ ...inpS, maxWidth: 180 }} />
         <select value={filtroFecha} onChange={(e) => setFiltroF(e.target.value)} style={inpS}>
           <option value="hoy">Hoy</option>
@@ -601,7 +601,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
 
       {loading ? <SkeletonTable rows={5} cols={9} /> : (
         <div style={{ overflowX: "auto", borderRadius: 12, border: `1px solid ${C.border}`, marginBottom: 16 }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+          <table className="fc-tabla-cards" style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
             <thead>
               <tr style={{ background: C.cardDark }}>
                 {["ID", "Fecha/Hora", "Cliente", "Vendedor", "Total", "Método", "Tipo", "Estado", "Acciones"].map((h) => (
@@ -622,16 +622,17 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                     cursor: "pointer",
                   }}
                 >
-                  <td style={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}`, fontFamily: "monospace", fontSize: 11 }}>
+                  <td data-label="Folio" data-primary style={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}`, fontFamily: "monospace", fontSize: 11 }}>
                     {esPagoServicio(p) ? p.folio : `#${p.id}`}
                     <div style={{ fontSize: 9, color: C.textDim, marginTop: 2 }}>{esPagoServicio(p) ? "Recarga / servicio" : folioPedido(p)}</div>
                   </td>
-                  <td style={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap" }}>{fmtDT(p.created_at)}</td>
-                  <td style={{ padding: "8px 12px", color: C.text, fontWeight: 600, borderBottom: `1px solid ${C.border}` }}>
+                  <td data-label="Fecha" style={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap" }}>{fmtDT(p.created_at)}</td>
+                  <td data-label="Cliente" data-wide style={{ padding: "8px 12px", color: C.text, fontWeight: 600, borderBottom: `1px solid ${C.border}` }}>
                     {p.clientes?.nombre || "—"}
                     {p.clientes?.telefono ? <div style={{ fontSize: 10, color: C.textMid, fontWeight: 500, marginTop: 2 }}>{p.clientes.telefono}</div> : null}
                   </td>
                   <td
+                    data-label="Vendedor"
                     style={{ padding: "8px 12px", color: C.text, fontWeight: 600, borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap", minWidth: 140 }}
                     onClick={(e) => e.stopPropagation()}
                   >
@@ -665,9 +666,9 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                       nombreVendedor(p, vendedores)
                     )}
                   </td>
-                  <td style={{ padding: "8px 12px", color: C.green, fontWeight: 700, borderBottom: `1px solid ${C.border}` }}>{fmtM(p.total)}</td>
-                  <td style={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}` }}>{p.metodo_pago || "—"}</td>
-                  <td style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, verticalAlign: "top" }}>
+                  <td data-label="Total" className="fc-nowrap-money" style={{ padding: "8px 12px", color: C.green, fontWeight: 700, borderBottom: `1px solid ${C.border}` }}>{fmtM(p.total)}</td>
+                  <td data-label="Método" style={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}` }}>{p.metodo_pago || "—"}</td>
+                  <td data-label="Tipo" style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, verticalAlign: "top" }}>
                     <span style={{ padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 700,
                       background: p.tipo === "online" ? "#ede9fe" : p.tipo === "consulta" ? "#dcfce7" : pedidoEsTipoServicio(p.tipo) ? "#fef3c7" : "#eff6ff",
                       color: p.tipo === "online" ? C.purple : p.tipo === "consulta" ? C.green : pedidoEsTipoServicio(p.tipo) ? C.amber : C.blue }}>
@@ -682,10 +683,10 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                       </div>
                     )}
                   </td>
-                  <td style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}` }}>
+                  <td data-label="Estado" style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}` }}>
                     <span style={{ padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 700, background: estCol(p.estado) + "20", color: estCol(p.estado) }}>{p.estado || "—"}</span>
                   </td>
-                  <td style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap" }} onClick={(e) => e.stopPropagation()}>
+                  <td data-label="Acciones" data-actions style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap" }} onClick={(e) => e.stopPropagation()}>
                     <div style={{ display: "inline-flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
                       <button type="button" onClick={() => abrirDetalle(p)} title="Ver detalle" style={{ padding: "3px 8px", borderRadius: 5, border: `1px solid ${C.blue}30`, background: "#eff6ff", color: C.blue, cursor: "pointer", fontSize: 10, fontWeight: 700 }}>Detalle</button>
                       {!esPagoServicio(p) && <>
