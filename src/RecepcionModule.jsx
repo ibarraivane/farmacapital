@@ -14,6 +14,7 @@ import {
 import { etiquetaCaducidadMMAA, formatCaducidadMesAnio, parseCaducidadMMAA } from "./lib/caducidad";
 import { fetchProductosPaginados } from "./lib/inventarioHubData";
 import { parseTicketCsv } from "./lib/recepcionTicketCsv";
+import { recepcionEsTicketDocumento, resolverEscaneoRecepcion } from "./lib/recepcionScan";
 import { $ as fmt, getSessionToken, esErrorSesionEmpleado } from "./utils";
 import { notifySesionEmpleadoInvalida } from "./utils/sesionEmpleadoAuth";
 import { setBloqueaReloadApp } from "./utils/appUpdate";
@@ -39,13 +40,6 @@ function unwrapJson(data) {
     try { return JSON.parse(data); } catch { return null; }
   }
   return data;
-}
-
-function itemMatchScan(it, codigo) {
-  if (!it || !codigo) return false;
-  if (it.codigo_escaneado && barcodeDigitsMatch(codigo, it.codigo_escaneado)) return true;
-  if (it.sku && String(it.sku).toUpperCase() === String(codigo).toUpperCase()) return true;
-  return false;
 }
 
 function etiquetaProveedorLista(nombre) {
@@ -231,6 +225,8 @@ export default function RecepcionModule({ ocultarMontos = false }) {
   const [listaScan, setListaScan] = useState("");
   const listaScanRef = useRef(null);
   const scanIdleRef = useRef(null);
+  /** Ticket que ya trajo renglones (PDF/CSV o pedido vivo): la pistola no inventa líneas. */
+  const ticketListaRef = useRef(false);
   /** "recibir" captura el ticket; "historia" solo consulta lo ya comprado. */
   const [vista, setVista] = useState("recibir");
 
@@ -365,6 +361,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     setSaving(false);
     if (error) { rpcError(error, "No se pudo empezar la recepción"); return; }
     aplicarDoc(data);
+    ticketListaRef.current = false;
     setTimeout(() => scanRef.current?.focus(), 40);
   };
 
@@ -412,6 +409,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
       return;
     }
     aplicarDoc(data);
+    ticketListaRef.current = true;
     const n = renglones.length;
     showToast(`${n} renglón${n === 1 ? "" : "es"} del ticket. Escanea cada caja y pon MMAA.`, "success");
     setTimeout(() => scanRef.current?.focus(), 40);
@@ -533,7 +531,9 @@ export default function RecepcionModule({ ocultarMontos = false }) {
       rpcError(error, "No se pudo abrir el ticket");
       return;
     }
-    aplicarDoc(data);
+    const rec = aplicarDoc(data);
+    const lista = Array.isArray(rec?.items) ? rec.items : [];
+    ticketListaRef.current = lista.length > 0 || recepcionEsTicketDocumento(lista);
     setTimeout(() => scanRef.current?.focus(), 40);
   };
 
@@ -551,6 +551,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     setProveedor("");
     setFolio("");
     setTotalTicket("");
+    ticketListaRef.current = false;
     resetLinea();
     await cargarLista();
   };
@@ -568,7 +569,57 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     return { codigo, producto: null, pendienteAlta: false, noEncontrado: !looksLikeInternalSku(codigo) };
   };
 
+  const abrirRenglon = (it, codigoOverride) => {
+    if (!it) return;
+    if (it.confirmado && it.fecha_caducidad) {
+      setErrorLinea("Ya está en este ticket.");
+      return;
+    }
+    try { scanRef.current?.blur(); } catch (_) { /* Safari */ }
+    const codigo = codigoOverride || it.codigo_escaneado || it.sku || "";
+    setErrorLinea("");
+    setPendiente({
+      codigo,
+      producto: { nombre: it.nombre, sku: it.sku },
+      pendienteAlta: it.pendiente_alta,
+      itemId: it.id,
+      loteDistinto: it.lote_distinto,
+      numeroLote: it.numero_lote,
+      lotesPiso: it.lotes_piso,
+    });
+    setScan(codigo);
+    setQty(String(it.cantidad || 1));
+    setCosto(it.costo_estimado != null ? String(it.costo_estimado) : "");
+    setTimeout(() => cadRef.current?.focus(), 30);
+  };
+
   const tomarScan = (raw) => {
+    const codigo = normalizeBarcodeRaw(raw) || String(raw || "").trim();
+    if (!codigo) return;
+    const items = doc?.items || [];
+    const esTicket = ticketListaRef.current || recepcionEsTicketDocumento(items);
+    const hit = resolverEscaneoRecepcion({
+      items,
+      codigo,
+      productos,
+      esTicketDocumento: esTicket,
+    });
+
+    if (hit.tipo === "ya_confirmado") {
+      setScan("");
+      setErrorLinea("Ya está en este ticket.");
+      return;
+    }
+    if (hit.tipo === "fuera") {
+      setScan("");
+      setErrorLinea("No corresponde a ninguno de los ítems de este ticket.");
+      return;
+    }
+    if (hit.tipo === "gris") {
+      abrirRenglon(hit.item, hit.codigo);
+      return;
+    }
+
     const r = resolverScan(raw);
     if (!r) return;
     if (r.noEncontrado && !r.pendienteAlta) {
@@ -577,28 +628,9 @@ export default function RecepcionModule({ ocultarMontos = false }) {
       return;
     }
     try { scanRef.current?.blur(); } catch (_) { /* Safari */ }
-    const codigo = r.codigo;
-    const gray = (doc?.items || []).find((it) => !it.confirmado && itemMatchScan(it, codigo));
-    if (gray) {
-      setErrorLinea("");
-      setPendiente({
-        codigo,
-        producto: { nombre: gray.nombre, sku: gray.sku },
-        pendienteAlta: gray.pendiente_alta,
-        itemId: gray.id,
-        loteDistinto: gray.lote_distinto,
-        numeroLote: gray.numero_lote,
-        lotesPiso: gray.lotes_piso,
-      });
-      setScan(codigo);
-      setQty(String(gray.cantidad || 1));
-      setCosto(gray.costo_estimado != null ? String(gray.costo_estimado) : "");
-      setTimeout(() => cadRef.current?.focus(), 30);
-      return;
-    }
     setErrorLinea("");
     setPendiente(r);
-    setScan(codigo);
+    setScan(r.codigo);
     setCosto(r.producto?.costo != null ? String(r.producto.costo) : "");
     setTimeout(() => qtyRef.current?.focus(), 30);
   };
@@ -825,6 +857,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     setProveedor("");
     setFolio("");
     setTotalTicket("");
+    ticketListaRef.current = false;
     resetLinea();
     await cargarLista();
   };
@@ -904,48 +937,58 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     <div style={{ padding: isMobile ? "12px 16px 32px" : "18px 24px 40px", maxWidth: 720 }}>
       <input ref={pdfRef} type="file" accept="application/pdf,.pdf" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) onPdfFile(f); }} />
       <input ref={csvRef} type="file" accept=".csv,text/csv,.txt" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) onCsvFile(f); }} />
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
-        <div>
-          <h2 style={{ margin: 0, color: C.text, fontSize: 20, fontWeight: 800, display: "flex", alignItems: "center", gap: 8 }}>
-            <ScanLine size={22} strokeWidth={2.2} /> Recibir
-          </h2>
-          <p style={{ margin: "4px 0 0", color: C.textMid, fontSize: 13 }}>
-            Si hay un pedido vivo, tócalo (sale el nombre de la tienda). Si son pocas piezas, llena el ticket abajo y escanea.
-          </p>
-        </div>
-        {doc && (
-          <div style={{ textAlign: "right" }}>
+      <div style={{ marginBottom: 16 }}>
+        {doc ? (
+          <div>
             <button
               type="button"
               onClick={volverALista}
               disabled={saving}
               style={{
                 display: "inline-flex", alignItems: "center", gap: 6,
-                marginBottom: 6, padding: "7px 12px", borderRadius: 8,
-                border: `1px solid ${C.border}`, background: C.card,
-                color: C.textMid, fontWeight: 700, fontSize: 13,
+                margin: "0 0 10px", padding: "8px 2px",
+                border: "none", background: "transparent",
+                color: C.text, fontWeight: 700, fontSize: 14,
                 cursor: saving ? "not-allowed" : "pointer",
               }}
             >
-              <ArrowLeft size={15} strokeWidth={2.2} />
-              Salir sin cerrar
+              <ArrowLeft size={18} strokeWidth={2.2} />
+              Tickets
             </button>
-            <div style={{ color: C.text, fontWeight: 800, fontSize: 18, letterSpacing: -0.3 }}>
-              {doc.renglones || 0} renglones · {(doc.items || []).filter((i) => i.confirmado).length} ok
-              {(doc.sin_confirmar > 0) ? ` · ${doc.sin_confirmar} sin caducidad` : ""}
-            </div>
-            {ticketNum != null && Number.isFinite(ticketNum) && !ocultarMontos && (
-              <div style={{ color: C.textMid, fontSize: 12, marginTop: 2 }}>
-                estimado {fmt(estimado)} de {fmt(ticketNum)} del ticket
+            <div>
+              <h2 style={{ margin: 0, color: C.text, fontSize: 20, fontWeight: 800, letterSpacing: -0.3 }}>
+                {etiquetaProveedorLista(doc.proveedor)}
+              </h2>
+              <p style={{ margin: "4px 0 0", color: C.textMid, fontSize: 13 }}>
+                {doc.folio ? `Folio ${doc.folio}` : "Sin folio"}
+                {" · "}escanea la caja o toca el renglón gris para grabarlo
+              </p>
+              <div style={{ color: C.text, fontWeight: 800, fontSize: 14, letterSpacing: -0.3, marginTop: 8 }}>
+                {doc.renglones || 0} renglones · {(doc.items || []).filter((i) => i.confirmado).length} ok
+                {(doc.sin_confirmar > 0) ? ` · ${doc.sin_confirmar} sin caducidad` : ""}
               </div>
-            )}
+              {ticketNum != null && Number.isFinite(ticketNum) && !ocultarMontos && (
+                <div style={{ color: C.textMid, fontSize: 12, marginTop: 2 }}>
+                  estimado {fmt(estimado)} de {fmt(ticketNum)} del ticket
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div>
+            <h2 style={{ margin: 0, color: C.text, fontSize: 20, fontWeight: 800, display: "flex", alignItems: "center", gap: 8 }}>
+              <ScanLine size={22} strokeWidth={2.2} /> Recibir
+            </h2>
+            <p style={{ margin: "4px 0 0", color: C.textMid, fontSize: 13 }}>
+              Si hay un pedido vivo, tócalo (sale el nombre de la tienda). Si son pocas piezas, llena el ticket abajo y escanea.
+            </p>
           </div>
         )}
       </div>
 
-      {tabBar}
+      {!doc && tabBar}
 
-      {pendientes.length > 0 && (
+      {pendientes.length > 0 && !doc && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
           {pendientes.map((t) => {
             const activo = doc?.id === t.id;
@@ -1213,38 +1256,50 @@ export default function RecepcionModule({ ocultarMontos = false }) {
             )}
             {items.map((it) => {
               const ok = it.confirmado && it.fecha_caducidad;
-              const bg = it.pendiente_alta ? C.amberDim : ok ? C.greenDim : "#f1f5f9";
-              const border = it.pendiente_alta ? "#f5d78a" : ok ? "#86efac" : C.border;
+              const activo = pendiente?.itemId === it.id;
+              const bg = it.pendiente_alta ? C.amberDim : ok ? C.greenDim : activo ? `${BRAND.primary}14` : "#f1f5f9";
+              const border = it.pendiente_alta ? "#f5d78a" : ok ? "#86efac" : activo ? BRAND.primary : C.border;
               return (
               <div
                 key={it.id}
                 style={{
                   display: "flex",
-                  alignItems: "center",
-                  gap: 10,
+                  alignItems: "stretch",
+                  gap: 4,
                   background: bg,
                   border: `1px solid ${border}`,
                   borderRadius: 12,
-                  padding: "10px 12px",
                 }}
               >
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ color: C.text, fontWeight: 700, fontSize: 14, lineHeight: 1.3 }}>{it.nombre}</div>
-                  <div style={{ color: C.textMid, fontSize: 11, marginTop: 2 }}>
-                    {it.pendiente_alta ? "Pendiente de alta" : (it.sku || "")}
-                    {it.numero_lote ? ` · lote ${it.numero_lote}` : ""}
-                    {ok ? ` · cad ${formatCaducidadMesAnio(it.fecha_caducidad)}` : " · falta caducidad"}
-                    {it.lote_distinto && !ok ? " · lote distinto al piso" : ""}
+                <button
+                  type="button"
+                  onClick={() => abrirRenglon(it)}
+                  style={{
+                    flex: 1, minWidth: 0, textAlign: "left",
+                    display: "flex", alignItems: "center", gap: 10,
+                    padding: "10px 12px",
+                    border: "none", background: "transparent",
+                    cursor: "pointer",
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ color: C.text, fontWeight: 700, fontSize: 14, lineHeight: 1.3 }}>{it.nombre}</div>
+                    <div style={{ color: C.textMid, fontSize: 11, marginTop: 2 }}>
+                      {it.pendiente_alta ? "Pendiente de alta" : (it.sku || "")}
+                      {it.numero_lote ? ` · lote ${it.numero_lote}` : ""}
+                      {ok ? ` · cad ${formatCaducidadMesAnio(it.fecha_caducidad)}` : " · toca para grabar · falta caducidad"}
+                      {it.lote_distinto && !ok ? " · lote distinto al piso" : ""}
+                    </div>
                   </div>
-                </div>
-                <div style={{ fontWeight: 800, fontSize: 16, color: C.text, fontVariantNumeric: "tabular-nums" }}>
-                  {it.cantidad}
-                </div>
+                  <div style={{ fontWeight: 800, fontSize: 16, color: C.text, fontVariantNumeric: "tabular-nums" }}>
+                    {it.cantidad}
+                  </div>
+                </button>
                 <button
                   type="button"
                   aria-label={`Quitar ${it.nombre}`}
                   onClick={() => quitar(it.id)}
-                  style={{ border: "none", background: "transparent", color: C.textDim, cursor: "pointer", fontSize: 18, padding: "4px 6px" }}
+                  style={{ border: "none", background: "transparent", color: C.textDim, cursor: "pointer", fontSize: 18, padding: "4px 10px" }}
                 >
                   ×
                 </button>
