@@ -91,11 +91,9 @@ export default function InventarioHub({ initialTab, usuario, onNavigate }) {
         }}>
           <div style={{display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap"}}>
             <h1 style={{margin: 0, color: C.text, fontSize: 20, fontWeight: 800}}>◆ Inventario</h1>
-            {!isMobile && (
-              <span style={{color: C.textDim, fontSize: 12}}>
-                Catálogo · reabasto · lotes · referencias · caducar · Rappi
-              </span>
-            )}
+            <span style={{color: C.textDim, fontSize: 11}}>
+              {isMobile ? "27 ago" : "27 ago · Catálogo · reabasto · lotes · referencias · caducar · Rappi"}
+            </span>
           </div>
           <div style={{
             display: "flex",
