@@ -865,8 +865,8 @@ export default function PreciosReferenciaModule() {
     } catch { /* noop */ }
   }, [colWidthsVenta]);
 
-  const fetchAll = useCallback(async () => {
-    setLoading(true);
+  const fetchAll = useCallback(async ({ silent } = {}) => {
+    if (!silent) setLoading(true);
     const prodRes = await supabase
       .from("productos")
       .select("id,sku,nombre,categoria,tipo,costo,precio,stock,principio_activo,concentracion,presentacion,forma_farmaceutica,requiere_receta,marca,denominacion_generica,denominacion_distintiva")
@@ -909,16 +909,20 @@ export default function PreciosReferenciaModule() {
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
   useEffect(() => {
-    const t = setInterval(() => fetchAll(), 3 * 60 * 1000);
+    const tick = () => {
+      if (inlineEdit) return;
+      fetchAll({ silent: true });
+    };
+    const t = setInterval(tick, 3 * 60 * 1000);
     const onVis = () => {
-      if (document.visibilityState === "visible") fetchAll();
+      if (document.visibilityState === "visible") tick();
     };
     document.addEventListener("visibilitychange", onVis);
     return () => {
       clearInterval(t);
       document.removeEventListener("visibilitychange", onVis);
     };
-  }, [fetchAll]);
+  }, [fetchAll, inlineEdit]);
 
   const stats = useMemo(() => {
     let compraOportunidad = 0;
