@@ -184,6 +184,37 @@ function colStyle(colWidths, colId) {
   return { width: w, minWidth: w, maxWidth: w };
 }
 
+const TABLA_SCROLL_MAX = "min(70dvh, 740px)";
+
+function stickyHead(C, extra = {}) {
+  return {
+    position: "sticky",
+    top: 0,
+    zIndex: 4,
+    background: C.cardDark,
+    boxShadow: `0 1px 0 ${C.border}`,
+    ...extra,
+  };
+}
+
+function stickyProductoHead(C) {
+  return stickyHead(C, {
+    left: 0,
+    zIndex: 6,
+    boxShadow: `1px 0 0 ${C.border}, 0 1px 0 ${C.border}`,
+  });
+}
+
+function stickyProductoCell(C, bg) {
+  return {
+    position: "sticky",
+    left: 0,
+    zIndex: 2,
+    background: bg || "#fff",
+    boxShadow: `1px 0 0 ${C.border}`,
+  };
+}
+
 function EditableMargenCell({
   C,
   cellKey,
@@ -444,19 +475,19 @@ function TablaCompra({
   const tdS = (colId, extra = {}) => ({ ...td(C), ...colStyle(colWidths, colId), ...extra });
 
   return (
-    <HorizontalScrollSync>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, tableLayout: "fixed" }}>
+    <HorizontalScrollSync bodyMaxHeight={TABLA_SCROLL_MAX}>
+      <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: 12, tableLayout: "fixed" }}>
         <thead>
           <tr style={{ background: C.cardDark }}>
-            <th style={thS("producto")}>Producto</th>
-            <th style={thS("sku")}>SKU</th>
-            <th style={{ ...thS("costo"), textAlign: "right" }} title="Primera compra (quién y precio). Se reemplaza solo si Recibir trae uno más barato.">
+            <th style={{ ...thS("producto"), ...stickyProductoHead(C) }}>Producto</th>
+            <th style={{ ...thS("sku"), ...stickyHead(C) }}>SKU</th>
+            <th style={{ ...thS("costo"), ...stickyHead(C), textAlign: "right" }} title="Primera compra (quién y precio). Se reemplaza solo si Recibir trae uno más barato.">
               Costo
             </th>
             {FUENTES_COMPRA.map((id) => (
               <th
                 key={id}
-                style={{ ...thS(id), textAlign: "right" }}
+                style={{ ...thS(id), ...stickyHead(C), textAlign: "right" }}
                 title={
                   FUENTE_META[id]?.hint
                   || (FUENTE_META[id]?.listaDistribuidor ? "Precio lista distribuidor" : "")
@@ -465,7 +496,7 @@ function TablaCompra({
                 {FUENTE_META[id]?.label}
               </th>
             ))}
-            <th style={thS("mejor")}>Mejor opción</th>
+            <th style={{ ...thS("mejor"), ...stickyHead(C) }}>Mejor opción</th>
           </tr>
         </thead>
         <tbody>
@@ -478,11 +509,11 @@ function TablaCompra({
             const costoBase = costoComparacionDe(p, refs);
             const mejor = calcMejorCompra(costoBase, refs, vigente || {});
             const vsLabel = vigente?.proveedor ? `compra ${vigente.proveedor}` : "tu costo";
-            const rowBg = i % 2 ? "#f8fafc" : "transparent";
+            const rowBg = i % 2 ? "#f8fafc" : "#ffffff";
 
             return (
               <tr key={p.id} style={{ background: rowBg }}>
-                <ProductoCell p={p} tdStyle={{ ...tdS("producto"), background: rowBg }} C={C} />
+                <ProductoCell p={p} tdStyle={{ ...tdS("producto"), ...stickyProductoCell(C, rowBg) }} C={C} />
                 <td style={{ ...tdS("sku", { fontFamily: "monospace", fontSize: 10, color: C.textMid, background: rowBg }) }}>{p.sku || "—"}</td>
                 <EditablePrecioCell
                   C={C}
@@ -578,26 +609,26 @@ function TablaVenta({
   const colSpan = 11;
 
   return (
-    <HorizontalScrollSync>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, tableLayout: "fixed" }}>
+    <HorizontalScrollSync bodyMaxHeight={TABLA_SCROLL_MAX}>
+      <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: 12, tableLayout: "fixed" }}>
         <thead>
           <tr style={{ background: C.cardDark }}>
-            <th style={thS("producto")}>Producto</th>
-            <th style={{ ...thS("tuVenta"), textAlign: "right" }}>Tu venta</th>
-            <th style={{ ...thS("margen"), textAlign: "right" }}>Margen %</th>
-            <th style={{ ...thS("fahorro"), textAlign: "right" }}>Del Ahorro</th>
-            <th style={{ ...thS("similares"), textAlign: "right" }}>Similares</th>
+            <th style={{ ...thS("producto"), ...stickyProductoHead(C) }}>Producto</th>
+            <th style={{ ...thS("tuVenta"), ...stickyHead(C), textAlign: "right" }}>Tu venta</th>
+            <th style={{ ...thS("margen"), ...stickyHead(C), textAlign: "right" }}>Margen %</th>
+            <th style={{ ...thS("fahorro"), ...stickyHead(C), textAlign: "right" }}>Del Ahorro</th>
+            <th style={{ ...thS("similares"), ...stickyHead(C), textAlign: "right" }}>Similares</th>
             <th
-              style={{ ...thS("otros_venta"), textAlign: "right" }}
+              style={{ ...thS("otros_venta"), ...stickyHead(C), textAlign: "right" }}
               title={FUENTE_META.otros_venta?.hint}
             >
               Otros
             </th>
-            <th style={{ ...thS("refMin"), textAlign: "right" }}>Ref. mín.</th>
-            <th style={{ ...thS("sugerido"), textAlign: "right" }}>Sugerido</th>
-            <th style={{ ...thS("margenEst"), textAlign: "right" }} title="Margen estimado del sugerido">Marg. est.</th>
-            <th style={thS("nota")}>Nota</th>
-            <th style={thS("accion")}>Acción</th>
+            <th style={{ ...thS("refMin"), ...stickyHead(C), textAlign: "right" }}>Ref. mín.</th>
+            <th style={{ ...thS("sugerido"), ...stickyHead(C), textAlign: "right" }}>Sugerido</th>
+            <th style={{ ...thS("margenEst"), ...stickyHead(C), textAlign: "right" }} title="Margen estimado del sugerido">Marg. est.</th>
+            <th style={{ ...thS("nota"), ...stickyHead(C) }}>Nota</th>
+            <th style={{ ...thS("accion"), ...stickyHead(C) }}>Acción</th>
           </tr>
         </thead>
         <tbody>
@@ -620,12 +651,12 @@ function TablaVenta({
               alerta === "debajo_costo" ? C.red :
               alerta === "debajo_piso" ? C.amber :
               esAjusteManual ? C.blue : C.green;
-            const rowBg = i % 2 ? "#f8fafc" : "transparent";
+            const rowBg = i % 2 ? "#f8fafc" : "#ffffff";
             const sinCosto = !(parseFloat(p.costo) > 0);
 
             return (
               <tr key={p.id} style={{ background: rowBg }}>
-                <ProductoCell p={p} tdStyle={{ ...tdS("producto", { background: rowBg }) }} C={C} />
+                <ProductoCell p={p} tdStyle={{ ...tdS("producto"), ...stickyProductoCell(C, rowBg) }} C={C} />
                 <EditablePrecioCell
                   C={C}
                   cellKey={`${p.id}:precio`}
