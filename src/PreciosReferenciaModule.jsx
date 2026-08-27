@@ -27,6 +27,13 @@ import {
 import { costoComparacionDe, compraVigenteDe } from "./lib/ultimaCompra";
 import { inventarioProductMatchesBusqueda } from "./utils/fuzzySearch";
 import ImportReferenciaPrecios from "./components/ImportReferenciaPrecios";
+import DecisionesPreciosPanel from "./DecisionesPreciosPanel";
+import {
+  clasificarDecisiones,
+  dismissDecision,
+  loadDismissed,
+  resumenDecisiones,
+} from "./lib/decisionesPrecios";
 
 const BRAND = { primary: "#0D1B2A", gradient: "linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
 
@@ -67,7 +74,7 @@ const SUGERIDO_OVERRIDES_KEY = "farmacapital_precios_sugerido_overrides";
 function loadPreciosRefTab() {
   try {
     const saved = sessionStorage.getItem(TAB_STORAGE_KEY);
-    return saved === "venta" || saved === "compra" ? saved : "venta";
+    return saved === "venta" || saved === "compra" || saved === "decisiones" ? saved : "venta";
   } catch {
     return "venta";
   }
@@ -828,6 +835,8 @@ export default function PreciosReferenciaModule() {
   const [inlineEdit, setInlineEdit] = useState(null);
   const [savingKey, setSavingKey] = useState(null);
   const [sugeridoOverrides, setSugeridoOverrides] = useState(() => loadSugeridoOverrides());
+  const [dismissed, setDismissed] = useState(() => loadDismissed());
+  const [revisadoAt, setRevisadoAt] = useState(null);
 
   const colWidths = tab === "compra" ? colWidthsCompra : colWidthsVenta;
   const setColWidths = tab === "compra" ? setColWidthsCompra : setColWidthsVenta;
@@ -860,7 +869,7 @@ export default function PreciosReferenciaModule() {
     setLoading(true);
     const prodRes = await supabase
       .from("productos")
-      .select("id,sku,nombre,categoria,tipo,costo,precio,principio_activo,concentracion,presentacion,forma_farmaceutica,requiere_receta,marca,denominacion_generica,denominacion_distintiva")
+      .select("id,sku,nombre,categoria,tipo,costo,precio,stock,principio_activo,concentracion,presentacion,forma_farmaceutica,requiere_receta,marca,denominacion_generica,denominacion_distintiva")
       .eq("activo", true)
       .order("nombre");
 
@@ -892,10 +901,24 @@ export default function PreciosReferenciaModule() {
 
     setSchemaOk(true);
     setRefsByProduct(buildReferenciasPorProducto(refRows));
+    setDismissed(loadDismissed());
+    setRevisadoAt(Date.now());
     setLoading(false);
   }, []);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  useEffect(() => {
+    const t = setInterval(() => fetchAll(), 3 * 60 * 1000);
+    const onVis = () => {
+      if (document.visibilityState === "visible") fetchAll();
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      clearInterval(t);
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, [fetchAll]);
 
   const stats = useMemo(() => {
     let compraOportunidad = 0;
@@ -917,6 +940,14 @@ export default function PreciosReferenciaModule() {
 
     return { compraOportunidad, ventaCaro, sinRefCompra, sinRefVenta };
   }, [productos, refsByProduct]);
+
+  const decisiones = useMemo(
+    () => clasificarDecisiones(productos, refsByProduct, {
+      dismissedKeys: Object.keys(dismissed),
+    }),
+    [productos, refsByProduct, dismissed]
+  );
+  const resumenDec = useMemo(() => resumenDecisiones(decisiones), [decisiones]);
 
   const startEdit = useCallback((key, value) => {
     setInlineEdit({ key, draft: value ?? "" });
@@ -1149,21 +1180,23 @@ export default function PreciosReferenciaModule() {
         <div>
           <h2 style={{ margin: 0, color: C.text, fontSize: 18, fontWeight: 800 }}>Referencias de precio</h2>
           <p style={{ margin: "6px 0 0", color: C.textMid, fontSize: 12, maxWidth: 640, lineHeight: 1.45 }}>
-            Precios de mercado (compra y venta). Clic en un precio para editarlo. Tu <strong>costo</strong> y <strong>venta</strong> usan el mismo guardado que Inventario.
+            Precios de mercado (compra y venta). El agente revisa la bandeja cada 3 min. Clic en un precio para editarlo. Tu <strong>costo</strong> y <strong>venta</strong> usan el mismo guardado que Inventario.
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <ImportReferenciaPrecios productos={productos} onImported={fetchAll} />
-          <button
-            type="button"
-            onClick={() => setShowColSizer((v) => !v)}
-            style={{
-              padding: "8px 14px", borderRadius: 8, border: `1px solid ${C.border}`,
-              background: showColSizer ? C.cardDark : C.card, color: C.textMid, fontWeight: 700, fontSize: 12, cursor: "pointer",
-            }}
-          >
-            ↔ Columnas
-          </button>
+          {tab !== "decisiones" && (
+            <button
+              type="button"
+              onClick={() => setShowColSizer((v) => !v)}
+              style={{
+                padding: "8px 14px", borderRadius: 8, border: `1px solid ${C.border}`,
+                background: showColSizer ? C.cardDark : C.card, color: C.textMid, fontWeight: 700, fontSize: 12, cursor: "pointer",
+              }}
+            >
+              ↔ Columnas
+            </button>
+          )}
           <button type="button" onClick={fetchAll} style={{
             padding: "8px 14px", borderRadius: 8, border: `1px solid ${C.border}`,
             background: C.card, color: C.textMid, fontWeight: 700, fontSize: 12, cursor: "pointer",
@@ -1198,10 +1231,26 @@ export default function PreciosReferenciaModule() {
         <span style={{ padding: "4px 12px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: C.cardDark, color: C.textMid }}>
           Sin ref. venta: {stats.sinRefVenta}
         </span>
+        <button
+          type="button"
+          onClick={() => { setTab("decisiones"); cancelEdit(); }}
+          style={{
+            padding: "4px 12px",
+            borderRadius: 20,
+            fontSize: 11,
+            fontWeight: 700,
+            border: "none",
+            cursor: "pointer",
+            background: resumenDec.total ? C.amberDim : C.greenDim,
+            color: resumenDec.total ? C.amber : C.greenDark,
+          }}
+        >
+          Decisiones pendientes: {resumenDec.total}
+        </button>
       </div>
 
       <div style={{ display: "flex", gap: 4, marginBottom: 16, borderBottom: `1px solid ${C.border}` }}>
-        {[["compra", "🛒 Compra (proveedores)"], ["venta", "🏪 Venta (competencia)"]].map(([id, label]) => (
+        {[["decisiones", `⚡ Decisiones${resumenDec.total ? ` (${resumenDec.total})` : ""}`], ["compra", "🛒 Compra (proveedores)"], ["venta", "🏪 Venta (competencia)"]].map(([id, label]) => (
           <button
             key={id}
             type="button"
@@ -1218,17 +1267,26 @@ export default function PreciosReferenciaModule() {
         ))}
       </div>
 
-      <div style={{ marginBottom: 12, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-        <input
-          placeholder="🔍 Buscar nombre, PA, SKU…"
-          value={busq}
-          onChange={(e) => setBusq(e.target.value)}
-          style={{ ...inpS, maxWidth: 280 }}
-        />
-      </div>
+      {tab !== "decisiones" && (
+        <div style={{ marginBottom: 12, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+          <input
+            placeholder="🔍 Buscar nombre, PA, SKU…"
+            value={busq}
+            onChange={(e) => setBusq(e.target.value)}
+            style={{ ...inpS, maxWidth: 280 }}
+          />
+        </div>
+      )}
 
-      {showColSizer && (
+      {showColSizer && tab !== "decisiones" && (
         <ColumnSizer tab={tab} colWidths={colWidths} setColWidths={setColWidths} C={C} />
+      )}
+
+      {tab === "decisiones" && (
+        <p style={{ fontSize: 11, color: C.textDim, marginBottom: 10 }}>
+          Bandeja del agente: qué aplicar en venta, dónde hay lista más barata, y qué SKU de Rappi hay que alinear.
+          El cron de Similares/PROFECO sigue llenando referencias; esto solo decide sobre lo que ya está cargado.
+        </p>
       )}
 
       {tab === "compra" && (
@@ -1261,7 +1319,26 @@ export default function PreciosReferenciaModule() {
         </p>
       )}
 
-      {loading ? (
+      {tab === "decisiones" ? (
+        <DecisionesPreciosPanel
+          decisiones={decisiones}
+          loading={loading}
+          revisadoAt={revisadoAt}
+          onRefresh={fetchAll}
+          onPosponer={(clave) => setDismissed(dismissDecision(clave))}
+          onApplied={(productoId, precio) => {
+            setProductos((prev) => prev.map((x) => (x.id === productoId ? { ...x, precio } : x)));
+            setSugeridoOverrides((prev) => {
+              if (!prev[productoId]) return prev;
+              const next = { ...prev };
+              delete next[productoId];
+              return next;
+            });
+          }}
+          applyingId={applyingId}
+          setApplyingId={setApplyingId}
+        />
+      ) : loading ? (
         <SkeletonTable rows={8} cols={8} />
       ) : tab === "compra" ? (
         <TablaCompra

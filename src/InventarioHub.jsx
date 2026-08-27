@@ -4,6 +4,7 @@
 // Cada tab carga lazy para no inflar el bundle inicial.
 import React, { lazy, Suspense, useState, useEffect } from "react";
 import { useMediaQuery } from "./hooks/useMediaQuery";
+import { useDecisionesPrecios } from "./hooks/useDecisionesPrecios";
 import { SkeletonCard } from "./ui";
 import { C_LIGHT, BRAND } from "./constants";
 import { Package, Truck, Tags, TrendingUp, BadgeCheck, Percent, ShoppingBag } from "lucide-react";
@@ -30,6 +31,21 @@ const TABS = [
 
 const STORAGE_KEY = "farmacapital_inv_tab";
 
+function badgeStyle(C, amber) {
+  return {
+    minWidth: 16,
+    height: 16,
+    padding: "0 5px",
+    borderRadius: 999,
+    background: amber ? C.amber : C.teal,
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: 800,
+    lineHeight: "16px",
+    textAlign: "center",
+  };
+}
+
 export default function InventarioHub({ initialTab, usuario, onNavigate }) {
   const C = C_LIGHT;
   const isMobile = useMediaQuery("(max-width: 768px)");
@@ -38,6 +54,7 @@ export default function InventarioHub({ initialTab, usuario, onNavigate }) {
     ? TABS_VENDEDOR.map((id) => TABS.find((t) => t.id === id)).filter(Boolean)
     : TABS;
   const tabPermitida = (id) => tabsVisibles.some((t) => t.id === id);
+  const dec = useDecisionesPrecios({ enabled: !modoConsulta });
   const [tab, setTab] = useState(() => {
     const fromProp = initialTab && TABS.some((t) => t.id === initialTab) ? initialTab : null;
     if (fromProp && (!modoConsulta || TABS_VENDEDOR.includes(fromProp))) return fromProp;
@@ -124,6 +141,12 @@ export default function InventarioHub({ initialTab, usuario, onNavigate }) {
               >
                 <Icon size={iconSz} strokeWidth={2.1} />
                 {label}
+                {!modoConsulta && t.id === "precios" && dec.resumen.total > 0 && (
+                  <span style={badgeStyle(C, true)}>{dec.resumen.total}</span>
+                )}
+                {!modoConsulta && t.id === "rappi" && dec.resumen.rappi > 0 && (
+                  <span style={badgeStyle(C, false)}>{dec.resumen.rappi}</span>
+                )}
               </button>
             );
           })}
