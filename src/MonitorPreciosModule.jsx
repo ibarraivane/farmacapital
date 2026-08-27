@@ -342,8 +342,8 @@ export default function MonitorPreciosModule() {
               {" "}tras el SQL <code>sql/patch_monitor_precios_20260824.sql</code>.
             </p>
           ) : (
-            <div style={{ overflowX: "auto", border: `1px solid ${C.border}`, borderRadius: 10, background: C.card }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+            <div className="fc-tabla-scroll fc-tabla-pane" style={{ border: `1px solid ${C.border}`, borderRadius: 10, background: C.card }}>
+              <table className="fc-tabla-sticky" style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: 12 }}>
                 <thead>
                   <tr style={{ background: C.cardDark, textAlign: "left" }}>
                     {pendientes && <th style={th} />}
@@ -447,11 +447,11 @@ export default function MonitorPreciosModule() {
       )}
 
       {tab === "mapeos" && (
-        <div style={{ overflowX: "auto", border: `1px solid ${C.border}`, borderRadius: 10, background: C.card }}>
+        <div className="fc-tabla-scroll fc-tabla-pane" style={{ border: `1px solid ${C.border}`, borderRadius: 10, background: C.card }}>
           {mapeos.length === 0 ? (
             <p style={{ padding: 16, color: C.textMid, fontSize: 13 }}>No hay mapeos por verificar.</p>
           ) : (
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+            <table className="fc-tabla-sticky" style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: 12 }}>
               <thead>
                 <tr style={{ background: C.cardDark }}>
                   <th style={th}>Producto</th>
@@ -485,13 +485,13 @@ export default function MonitorPreciosModule() {
       )}
 
       {tab === "anomalias" && (
-        <div style={{ overflowX: "auto", border: `1px solid ${C.border}`, borderRadius: 10, background: C.card }}>
+        <div className="fc-tabla-scroll fc-tabla-pane" style={{ border: `1px solid ${C.border}`, borderRadius: 10, background: C.card }}>
           {anomalias.length === 0 ? (
             <p style={{ padding: 16, color: C.textMid, fontSize: 13 }}>
               No hay saltos &gt; 40 % pendientes. Eso evita que un scrape roto envenene la mediana.
             </p>
           ) : (
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+            <table className="fc-tabla-sticky" style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: 12 }}>
               <thead>
                 <tr style={{ background: C.cardDark }}>
                   <th style={th}>Producto</th>

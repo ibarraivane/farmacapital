@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
-import { showToast, HorizontalScrollSync, SkeletonTable } from "./ui";
+import { showToast, HorizontalScrollSync, SkeletonTable, TABLA_SCROLL_MAX } from "./ui";
 import {
   FUENTES_COMPRA,
   FUENTES_VENTA,
@@ -84,7 +84,7 @@ function loadSugeridoOverrides() {
 function ProductoCell({ p, tdStyle, C }) {
   const { principioActivo, detalle } = productoSubtituloReferencia(p);
   return (
-    <td style={tdStyle}>
+    <td data-sticky-col style={tdStyle}>
       <div style={{ fontWeight: 600, lineHeight: 1.25, wordBreak: "break-word" }}>{p.nombre}</div>
       {principioActivo ? (
         <div style={{
@@ -183,8 +183,6 @@ function colStyle(colWidths, colId) {
   const w = Math.max(48, Number(colWidths[colId]) || 64);
   return { width: w, minWidth: w, maxWidth: w };
 }
-
-const TABLA_SCROLL_MAX = "min(70dvh, 740px)";
 
 function stickyHead(C, extra = {}) {
   return {
@@ -476,7 +474,7 @@ function TablaCompra({
 
   return (
     <HorizontalScrollSync bodyMaxHeight={TABLA_SCROLL_MAX}>
-      <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: 12, tableLayout: "fixed" }}>
+      <table className="fc-tabla-sticky" style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: 12, tableLayout: "fixed" }}>
         <thead>
           <tr style={{ background: C.cardDark }}>
             <th style={{ ...thS("producto"), ...stickyProductoHead(C) }}>Producto</th>
@@ -610,7 +608,7 @@ function TablaVenta({
 
   return (
     <HorizontalScrollSync bodyMaxHeight={TABLA_SCROLL_MAX}>
-      <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: 12, tableLayout: "fixed" }}>
+      <table className="fc-tabla-sticky" style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: 12, tableLayout: "fixed" }}>
         <thead>
           <tr style={{ background: C.cardDark }}>
             <th style={{ ...thS("producto"), ...stickyProductoHead(C) }}>Producto</th>

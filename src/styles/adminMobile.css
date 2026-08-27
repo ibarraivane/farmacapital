@@ -1,3 +1,45 @@
+/* Tablas largas: el renglón de títulos se queda arriba al bajar. */
+table.fc-tabla-sticky {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+table.fc-tabla-sticky thead th {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  background: #f0f4f9;
+  box-shadow: 0 1px 0 #e2e8f0;
+}
+
+table.fc-tabla-sticky thead th[data-sticky-col] {
+  left: 0;
+  z-index: 6;
+  box-shadow: 1px 0 0 #e2e8f0, 0 1px 0 #e2e8f0;
+}
+
+table.fc-tabla-sticky td[data-sticky-col] {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  box-shadow: 1px 0 0 #e2e8f0;
+}
+
+table.fc-tabla-sticky tbody tr:nth-child(odd) td[data-sticky-col] {
+  background: #ffffff;
+}
+
+table.fc-tabla-sticky tbody tr:nth-child(even) td[data-sticky-col] {
+  background: #f8fafc;
+}
+
+/* Panel con altura tope: el scroll es del cuerpo, no de toda la página. */
+.fc-tabla-pane {
+  overflow: auto;
+  max-height: min(70dvh, 740px);
+  -webkit-overflow-scrolling: touch;
+}
+
 /* Admin en celular: barra fija, fichas legibles, gráfica con meta visible. */
 
 .farmacapital-admin-main {
@@ -276,6 +318,11 @@
     border-collapse: collapse;
   }
 
+  .farmacapital-admin-root table.fc-tabla-sticky:not(.fc-tabla-cards):not(.fc-tabla-compact) {
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
   .farmacapital-admin-root table:not(.fc-tabla-cards):not(.fc-tabla-compact) th,
   .farmacapital-admin-root table:not(.fc-tabla-cards):not(.fc-tabla-compact) td {
     white-space: nowrap;
@@ -306,6 +353,7 @@
   .farmacapital-admin-root *:has(> table.fc-tabla-cards),
   .farmacapital-admin-root *:has(> table.fc-tabla-compact) {
     overflow: visible !important;
+    max-height: none !important;
     border: none !important;
     background: transparent !important;
     box-shadow: none !important;

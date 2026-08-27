@@ -204,8 +204,8 @@ function BitacoraAntibioticos() {
         <span style={{color:C.textMid,fontSize:11}}>{filtrados.length} registro{filtrados.length!==1?"s":""}</span>
       </div>
       {loading ? <div style={{color:C.textMid,textAlign:"center",padding:40}}>Cargando…</div> : (
-        <div style={{overflowX:"auto",borderRadius:12,border:`1px solid ${C.border}`}}>
-          <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+        <div className="fc-tabla-scroll fc-tabla-pane" style={{borderRadius:12,border:`1px solid ${C.border}`}}>
+          <table className="fc-tabla-sticky" style={{width:"100%",borderCollapse:"separate",borderSpacing:0,fontSize:11}}>
             <thead>
               <tr style={{background:C.card}}>
                 {["Fecha","Medicamento","Cant.","Lote","Caducidad","Médico","Cédula","Paciente","Folio Rx"].map(h=>(
@@ -290,8 +290,8 @@ function Controlados() {
         ⚠ Mostrando todos los registros con receta médica de la bitácora COFEPRIS.
       </div>
       {loading ? <div style={{color:C.textMid,textAlign:"center",padding:40}}>Cargando…</div> : (
-        <div style={{overflowX:"auto",borderRadius:12,border:`1px solid ${C.border}`}}>
-          <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+        <div className="fc-tabla-scroll fc-tabla-pane" style={{borderRadius:12,border:`1px solid ${C.border}`}}>
+          <table className="fc-tabla-sticky" style={{width:"100%",borderCollapse:"separate",borderSpacing:0,fontSize:11}}>
             <thead>
               <tr style={{background:C.card}}>
                 {["Fecha","Medicamento","Cantidad","Médico","Cédula","Paciente","Folio Rx"].map(h=>(

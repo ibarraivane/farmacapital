@@ -9,7 +9,7 @@ import {
   spellSuggestFromProducts,
 } from "./utils/fuzzySearch";
 import { findProductExactScan } from "./utils/barcodeProductLookup";
-import { SkeletonTable, Paginador, SearchDropdown, HorizontalScrollSync } from "./ui";
+import { SkeletonTable, Paginador, SearchDropdown, HorizontalScrollSync, TABLA_SCROLL_MAX } from "./ui";
 import { showToast } from "./ui";
 import OnboardingTour from "./components/OnboardingTour";
 import { idEmpleadoUsuarios } from "./utils/usuarioId";
@@ -4031,8 +4031,8 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
         <SkeletonTable rows={8} cols={12}/>
       ) : (
         <>
-        <HorizontalScrollSync data-tour="inv-tabla">
-          <table style={{width:"max-content",minWidth:1640,tableLayout:"fixed",borderCollapse:"separate",borderSpacing:0,fontSize:12}}>
+        <HorizontalScrollSync data-tour="inv-tabla" bodyMaxHeight={TABLA_SCROLL_MAX}>
+          <table className="fc-tabla-sticky" style={{width:"max-content",minWidth:1640,tableLayout:"fixed",borderCollapse:"separate",borderSpacing:0,fontSize:12}}>
             <thead>
               <tr>
                 {!modoConsulta && (
@@ -4044,6 +4044,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
                   borderBottom: `1px solid ${C.border}`,
                   verticalAlign: "middle",
                   position: "sticky",
+                  top: 0,
                   left: 0,
                   width: INV_CHECKBOX_COL_WIDTH,
                   minWidth: INV_CHECKBOX_COL_WIDTH,
@@ -4079,6 +4080,9 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
                       whiteSpace: "nowrap",
                       cursor: col.hint ? "help" : undefined,
                       verticalAlign: "middle",
+                      position: "sticky",
+                      top: 0,
+                      zIndex: 4,
                       ...inventarioStickyStyleFor(colId, { header: true, bg: C.card }),
                       ...invColWidthStyle(colId),
                     }}

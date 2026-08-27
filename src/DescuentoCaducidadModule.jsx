@@ -238,8 +238,8 @@ export default function DescuentoCaducidadModule() {
           <code style={{ marginLeft: 6 }}>/api/caducidad/job</code>.
         </p>
       ) : (
-        <div style={{ overflowX: "auto", border: `1px solid ${C.border}`, borderRadius: 10, background: C.card }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+        <div className="fc-tabla-scroll fc-tabla-pane" style={{ border: `1px solid ${C.border}`, borderRadius: 10, background: C.card }}>
+          <table className="fc-tabla-sticky" style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: 12 }}>
             <thead>
               <tr style={{ background: C.cardDark, textAlign: "left" }}>
                 {pendientes && (

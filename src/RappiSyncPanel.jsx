@@ -171,8 +171,8 @@ export default function RappiSyncPanel() {
 
 function QueueTable({ rows, showError }) {
   return (
-    <div style={{ overflowX: "auto" }}>
-      <table className="fc-tabla-cards" style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+    <div className="fc-tabla-scroll fc-tabla-pane">
+      <table className="fc-tabla-cards fc-tabla-sticky" style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: 12 }}>
         <thead>
           <tr style={{ textAlign: "left", color: C.textDim }}>
             <th style={th}>SKU</th>
