@@ -24,6 +24,9 @@ import {
   minCaducidadLotes,
 } from "./lib/inventarioHubData";
 import { DIAS_CADUCIDAD_ALERTA, DIAS_CADUCIDAD_CRITICO, esPorCaducar } from "./lib/caducidad";
+import { alertaCatalogoDe, productoTieneAlertaPrecio } from "./lib/decisionesPrecios";
+import { useDecisionesPrecios } from "./hooks/useDecisionesPrecios";
+import AlertaPrecioChips, { RefMercadoCell } from "./AlertaPrecioChips";
 
 const leerSesion = () => {
   try {
@@ -413,6 +416,8 @@ const INV_COL_WIDTHS_DEFAULT = {
   ubicacion: 180,
   categoria: 120,
   proveedor: 140,
+  refMercado: 124,
+  alertaPrecio: 148,
 };
 
 const INV_COLUMN_DEFS = {
@@ -439,6 +444,8 @@ const INV_COLUMN_DEFS = {
   precio: { label: "Precio", hint: "" },
   costo: { label: "Costo", hint: "" },
   margen: { label: "Margen%", hint: "" },
+  refMercado: { label: "Ref. mercado", hint: "Mínimo de Del Ahorro / Similares / Otros y mejor lista de compra" },
+  alertaPrecio: { label: "Alerta precio", hint: "Más caro que el mercado, margen bajo o compra más barata. Mismo dato para Rappi / Uber / DiDi." },
   cad: { label: "Cad.", hint: "Mes/año del lote más próximo — clic para editar" },
   agot: { label: "Agot. (días)", hint: "" },
   desc: { label: "Desc%", hint: "" },
@@ -480,6 +487,8 @@ const INV_COLUMN_ORDER_DEFAULT = [
   "precio",
   "costo",
   "margen",
+  "refMercado",
+  "alertaPrecio",
   "cad",
   "agot",
   "desc",
@@ -499,6 +508,8 @@ function invColumnPixelWidth(colId, colWidths) {
     ubicacion: Math.max(120, Number(colWidths?.ubicacion) || INV_COL_WIDTHS_DEFAULT.ubicacion),
     categoria: Math.max(100, Number(colWidths?.categoria) || INV_COL_WIDTHS_DEFAULT.categoria),
     proveedor: Math.max(100, Number(colWidths?.proveedor) || INV_COL_WIDTHS_DEFAULT.proveedor),
+    refMercado: Math.max(110, Number(colWidths?.refMercado) || INV_COL_WIDTHS_DEFAULT.refMercado),
+    alertaPrecio: Math.max(130, Number(colWidths?.alertaPrecio) || INV_COL_WIDTHS_DEFAULT.alertaPrecio),
   };
   return map[colId] ?? 96;
 }
@@ -2088,6 +2099,7 @@ function renderInventarioColumnCell(colId, ctx) {
     inact,
     mgn,
     mgnCol,
+    alertaPrecio,
     marcaDisp,
     nombreTabla,
     presDisp,
@@ -2459,6 +2471,18 @@ function renderInventarioColumnCell(colId, ctx) {
       );
     case "margen":
       return <td key={colId} style={{ padding: "8px 12px", fontWeight: 700, borderBottom: `1px solid ${C.border}`, color: mgnCol, background: stickyRowBg }}>{mgn}</td>;
+    case "refMercado":
+      return (
+        <td key={colId} style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, background: stickyRowBg, fontSize: 11 }}>
+          <RefMercadoCell alerta={alertaPrecio} />
+        </td>
+      );
+    case "alertaPrecio":
+      return (
+        <td key={colId} style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, background: stickyRowBg }}>
+          <AlertaPrecioChips alerta={alertaPrecio} />
+        </td>
+      );
     case "cad": {
       const loteRef = resolverLoteCaducidadProducto(p);
       const puedeCad = true;
@@ -2612,9 +2636,9 @@ function renderInventarioColumnCell(colId, ctx) {
   }
 }
 
-const INV_COLS_OCULTAS_CONSULTA = ["costo", "margen", "acciones", "precio", "desc"];
+const INV_COLS_OCULTAS_CONSULTA = ["costo", "margen", "acciones", "precio", "desc", "refMercado", "alertaPrecio"];
 
-export default function InventarioModule({ modoConsulta = false, onIrARecibir }) {
+export default function InventarioModule({ modoConsulta = false, onIrARecibir, refsByProduct: refsProp }) {
   const C = C_LIGHT;
   const inputStyle = mkInputStyle(C);
   const labelStyle = mkLabelStyle(C);
@@ -2623,6 +2647,8 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
   const btnGreen = mkBtnGreen(C);
   const btnSecondary = mkBtnSecondary(C);
   const isMobileInv = useMediaQuery("(max-width: 768px)");
+  const decLocal = useDecisionesPrecios({ enabled: !modoConsulta && refsProp == null });
+  const refsByProduct = refsProp || decLocal.refsByProduct;
   const [productos,       setProductos]       = useState([]);
   const [loading,         setLoading]         = useState(true);
   const [busqueda,        setBusqueda]        = useState("");
@@ -3070,9 +3096,11 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
       filtroAlerta === "por_caducar"      ? esPorCaducar(dias) :
       filtroAlerta === "sin_codigo_barras" ? productoSinCodigoBarras(p) :
       filtroAlerta === "sin_precio" ? productoSinPrecioVenta(p) :
-      true;
+      filtroAlerta === "caro_mercado" || filtroAlerta === "margen_bajo" || filtroAlerta === "alerta_precio"
+        ? productoTieneAlertaPrecio(p, refsByProduct[p.id] || {}, filtroAlerta)
+        : true;
     return cat && alerta;
-  }), [productos, filtroCategoria, filtroAlerta]);
+  }), [productos, filtroCategoria, filtroAlerta, refsByProduct]);
 
   const filtradosTodosInv = useMemo(() => {
     const q = busqueda.trim();
@@ -3127,6 +3155,8 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
   const porCaducar = productos.filter(p => esPorCaducar(diasParaCaducar(p.min_caducidad_lotes))).length;
   const sinCodigoBarras = productos.filter(p => p.activo && productoSinCodigoBarras(p)).length;
   const sinPrecioVenta = productos.filter(p => p.activo && productoSinPrecioVenta(p)).length;
+  const caroMercado = productos.filter((p) => p.activo && productoTieneAlertaPrecio(p, refsByProduct[p.id] || {}, "caro_mercado")).length;
+  const margenBajo = productos.filter((p) => p.activo && productoTieneAlertaPrecio(p, refsByProduct[p.id] || {}, "margen_bajo")).length;
   const inactivos  = productos.filter(p => !p.activo).length;
 
   const abrirEdicionProducto = useCallback((p, { focusBarcode = false } = {}) => {
@@ -3813,6 +3843,8 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
           {label:"Sin cód. barras", val:sinCodigoBarras, col:C.blue, click:()=>setFiltroAlerta(filtroAlerta==="sin_codigo_barras"?"todos":"sin_codigo_barras"), on: filtroAlerta==="sin_codigo_barras"},
           ...(!modoConsulta ? [
             {label:"Sin precio", val:sinPrecioVenta, col:C.red, click:()=>setFiltroAlerta(filtroAlerta==="sin_precio"?"todos":"sin_precio"), on: filtroAlerta==="sin_precio"},
+            {label:"Caro vs mercado", val:caroMercado, col:C.red, click:()=>setFiltroAlerta(filtroAlerta==="caro_mercado"?"todos":"caro_mercado"), on: filtroAlerta==="caro_mercado"},
+            {label:"Margen bajo", val:margenBajo, col:C.amber, click:()=>setFiltroAlerta(filtroAlerta==="margen_bajo"?"todos":"margen_bajo"), on: filtroAlerta==="margen_bajo"},
             {label:"Inactivos",   val:inactivos,  col:C.textMid, click:()=>{ setVerInactivos(true); setFiltroAlerta("todos"); }, on: !!verInactivos},
           ] : []),
         ].map(s=>(
@@ -3842,7 +3874,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
         </span>
         {!modoConsulta && (
         <span style={{padding:"4px 10px",borderRadius:8,background:"#eff6ff",color:C.blue}}>
-          📊 Referencias de mercado: Inventario → «Referencias de precio»
+          📊 Ref. mercado y alertas están en las columnas · Rappi / Uber / DiDi usan el mismo precio
         </span>
         )}
       </div>
@@ -3860,6 +3892,9 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
           <option value="por_caducar">⏰ Por caducar ({DIAS_CADUCIDAD_ALERTA}d)</option>
           <option value="sin_codigo_barras">🏷️ Sin código de barras</option>
           {!modoConsulta && <option value="sin_precio">Sin precio de venta</option>}
+          {!modoConsulta && <option value="caro_mercado">Caro vs mercado</option>}
+          {!modoConsulta && <option value="margen_bajo">Margen bajo</option>}
+          {!modoConsulta && <option value="alerta_precio">Alertas de precio (todas)</option>}
         </select>
         {!modoConsulta && (
         <label style={{display:"flex",alignItems:"center",gap:7,cursor:"pointer",color:C.textMid,fontSize:12,fontWeight:600}}>
@@ -4133,6 +4168,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
                   inact,
                   mgn,
                   mgnCol,
+                  alertaPrecio: alertaCatalogoDe(p, refsByProduct[p.id] || {}),
                   marcaDisp,
                   nombreTabla,
                   presDisp,

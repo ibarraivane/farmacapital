@@ -1,6 +1,7 @@
 import {
   TIPO_DECISION,
   esElegibleRappi,
+  esMuchoMasCaroQueMercado,
   clasificarProducto,
   clasificarDecisiones,
   filtrarDecisiones,
@@ -9,6 +10,8 @@ import {
   dismissDecision,
   claveDecision,
   textoConfirmacionAplicar,
+  alertaCatalogoDe,
+  productoTieneAlertaPrecio,
 } from "./decisionesPrecios";
 
 function prod(over = {}) {
@@ -69,9 +72,10 @@ test("sugerido bajo costo → crítica, no aplicar a ciegas", () => {
     prod({ costo: 100, precio: 140, tipo: "marca" }),
     refsVenta(50, 55)
   );
-  const venta = rows.find((d) => d.ambito === "venta");
-  expect(venta.tipo).toBe(TIPO_DECISION.VENTA_DEBAJO_COSTO);
+  const venta = rows.find((d) => d.tipo === TIPO_DECISION.VENTA_DEBAJO_COSTO);
+  expect(venta).toBeTruthy();
   expect(venta.puede_aplicar).toBe(false);
+  expect(rows.some((d) => d.tipo === TIPO_DECISION.MARGEN_ACTUAL_BAJO)).toBe(true);
 });
 
 test("lista de compra más barata que tu costo", () => {
@@ -139,9 +143,47 @@ test("posponer guarda y caduca", () => {
 });
 
 test("confirmación avisa Rappi y no inventa aplicar automático", () => {
-  const d = clasificarProducto(prod(), refsVenta()).find((x) => x.ambito === "venta");
+  const d = clasificarProducto(prod(), refsVenta()).find((x) => x.tipo === TIPO_DECISION.VENTA_BAJAR);
   const txt = textoConfirmacionAplicar(d);
   expect(txt).toMatch(/Aplicar/);
   expect(txt).toMatch(/Rappi/);
+  expect(txt).toMatch(/Uber/);
   expect(claveDecision(d)).toContain(String(d.sugerido));
+});
+
+test("mucho más caro: 8% o $10 sobre la ref.", () => {
+  expect(esMuchoMasCaroQueMercado(100, 90)).toBe(true);
+  expect(esMuchoMasCaroQueMercado(92, 90)).toBe(false);
+  expect(esMuchoMasCaroQueMercado(89, 90)).toBe(false);
+});
+
+test("margen actual bajo se alerta aunque no haya refs de venta", () => {
+  const rows = clasificarProducto(prod({ costo: 80, precio: 70 }), {});
+  const m = rows.find((d) => d.tipo === TIPO_DECISION.MARGEN_ACTUAL_BAJO);
+  expect(m).toBeTruthy();
+  expect(m.alerta).toBe("debajo_costo");
+  expect(m.canales).toContain("mostrador");
+  expect(m.canales).toContain("rappi");
+  expect(m.canales_futuros).toEqual(["uber", "didi"]);
+});
+
+test("venta cara marca canales futuros Uber/DiDi y mucho_mas_caro", () => {
+  const venta = clasificarProducto(prod({ precio: 120 }), refsVenta()).find((d) => d.tipo === TIPO_DECISION.VENTA_BAJAR);
+  expect(venta.mucho_mas_caro).toBe(true);
+  expect(venta.canales).toContain("rappi");
+  expect(venta.canales_futuros).toEqual(["uber", "didi"]);
+  expect(filtrarDecisiones([venta], "uber")).toHaveLength(1);
+  expect(filtrarDecisiones([venta], "didi")).toHaveLength(1);
+  expect(filtrarDecisiones([venta], "caro")).toHaveLength(1);
+});
+
+test("alerta de catálogo: chips de mercado, margen y Rappi", () => {
+  const a = alertaCatalogoDe(prod({ precio: 120, costo: 50 }), refsVenta());
+  expect(a.refMin).toBe(90);
+  expect(a.sugerido).toBe(89);
+  expect(a.tieneAlerta).toBe(true);
+  expect(a.chips.some((c) => c.id === "caro")).toBe(true);
+  expect(a.chips.some((c) => c.id === "apps")).toBe(true);
+  expect(productoTieneAlertaPrecio(prod({ precio: 120 }), refsVenta(), "caro_mercado")).toBe(true);
+  expect(productoTieneAlertaPrecio(prod({ precio: 89, costo: 50 }), refsVenta(), "alerta_precio")).toBe(false);
 });

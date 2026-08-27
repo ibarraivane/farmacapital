@@ -32,7 +32,7 @@ function fmtWhen(iso) {
   }
 }
 
-export default function RappiSyncPanel() {
+export default function RappiSyncPanel({ decisiones: decisionesProp } = {}) {
   const [loading, setLoading] = useState(true);
   const [paused, setPaused] = useState(false);
   const [reserva, setReserva] = useState("2");
@@ -40,7 +40,8 @@ export default function RappiSyncPanel() {
   const [errors, setErrors] = useState([]);
   const [stale, setStale] = useState([]);
   const [pendingCount, setPendingCount] = useState(0);
-  const dec = useDecisionesPrecios({ enabled: true });
+  const decLocal = useDecisionesPrecios({ enabled: !decisionesProp });
+  const dec = decisionesProp || decLocal;
   const [applyingId, setApplyingId] = useState(null);
   const decisionesRappi = filtrarDecisiones(dec.decisiones, "rappi");
 
@@ -103,7 +104,7 @@ export default function RappiSyncPanel() {
         <div>
           <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: C.text, display: "flex", alignItems: "center", gap: 8 }}>
             <ShoppingBag size={18} strokeWidth={2.2} aria-hidden />
-            Rappi · disponibilidad
+            Rappi · disponibilidad y precios
           </h2>
           <p style={{ margin: "6px 0 0", color: C.textMid, fontSize: 13, maxWidth: 560, lineHeight: 1.45 }}>
             Se publica <code>stock − {reserva}</code> piezas de colchón. Receta y controlados no salen.

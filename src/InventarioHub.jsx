@@ -15,7 +15,7 @@ const LotesModule      = lazy(() => import("./LotesModule"));
 const PreciosReferenciaModule = lazy(() => import("./PreciosReferenciaModule"));
 const MonitorPreciosModule    = lazy(() => import("./MonitorPreciosModule"));
 const DescuentoCaducidadModule = lazy(() => import("./DescuentoCaducidadModule"));
-const RappiSyncPanel          = lazy(() => import("./RappiSyncPanel"));
+const MarketplaceHub          = lazy(() => import("./MarketplaceHub"));
 
 const TABS_VENDEDOR = ["catalogo"];
 
@@ -26,7 +26,7 @@ const TABS = [
   { id: "precios",  label: "Referencias de precio", icon: TrendingUp, labelMobile: "Precios" },
   { id: "aprobar",  label: "Aprobar PVP", icon: BadgeCheck, labelMobile: "Aprobar" },
   { id: "caducidad", label: "Precio por caducar", icon: Percent, labelMobile: "Caducar" },
-  { id: "rappi",    label: "Rappi",      icon: ShoppingBag },
+  { id: "rappi",    label: "Marketplaces", icon: ShoppingBag, labelMobile: "Apps" },
 ];
 
 const STORAGE_KEY = "farmacapital_inv_tab";
@@ -102,7 +102,7 @@ export default function InventarioHub({ initialTab, usuario, onNavigate }) {
             <span style={{color: C.textDim, fontSize: 12}}>
               {modoConsulta
                 ? "Consulta de existencias"
-                : "Catálogo · reabasto · lotes · referencias"}
+                : "Catálogo · reabasto · lotes · referencias · apps"}
             </span>
           )}
         </div>
@@ -161,14 +161,18 @@ export default function InventarioHub({ initialTab, usuario, onNavigate }) {
         </div>
       }>
         {tab === "catalogo" && (
-          <InventarioModule modoConsulta={modoConsulta} onIrARecibir={irARecibir} />
+          <InventarioModule
+            modoConsulta={modoConsulta}
+            onIrARecibir={irARecibir}
+            refsByProduct={dec.refsByProduct}
+          />
         )}
         {!modoConsulta && tab === "reabasto" && <ReabastoModule/>}
         {!modoConsulta && tab === "lotes"    && <LotesModule/>}
         {!modoConsulta && tab === "precios"  && <PreciosReferenciaModule/>}
         {!modoConsulta && tab === "aprobar" && <MonitorPreciosModule/>}
         {!modoConsulta && tab === "caducidad" && <DescuentoCaducidadModule/>}
-        {!modoConsulta && tab === "rappi"    && <RappiSyncPanel/>}
+        {!modoConsulta && tab === "rappi"    && <MarketplaceHub decisiones={dec}/>}
       </Suspense>
     </div>
   );

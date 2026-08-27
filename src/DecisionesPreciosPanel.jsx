@@ -10,6 +10,7 @@ import {
   resumenDecisiones,
   textoConfirmacionAplicar,
 } from "./lib/decisionesPrecios";
+import { CANALES_VENTA, labelCanales } from "./lib/canalesVenta";
 import { fmtPrecioRef, fmtPrecioVenta } from "./lib/preciosReferencia";
 
 const C = C_LIGHT;
@@ -52,7 +53,7 @@ async function aplicarDecision(d) {
 
 /**
  * Bandeja del agente de precios. Presentacional + aplicar/posponer.
- * variant: "referencias" | "rappi"
+ * variant: "referencias" | "rappi" | "marketplace"
  */
 export default function DecisionesPreciosPanel({
   decisiones,
@@ -66,18 +67,19 @@ export default function DecisionesPreciosPanel({
   variant = "referencias",
   filtroInicial,
 }) {
-  const [filtro, setFiltro] = useState(filtroInicial || (variant === "rappi" ? "rappi" : "todas"));
+  const esApps = variant === "rappi" || variant === "marketplace";
+  const [filtro, setFiltro] = useState(filtroInicial || (esApps ? "rappi" : "todas"));
   const [busq, setBusq] = useState("");
   const [busyId, setBusyId] = useState(null);
 
   const visibles = useMemo(() => {
-    const scoped = filtrarDecisiones(decisiones, variant === "rappi" && filtro === "todas" ? "rappi" : filtro);
+    const scoped = filtrarDecisiones(decisiones, esApps && filtro === "todas" ? "rappi" : filtro);
     if (!busq.trim()) return scoped;
     return scoped.filter((d) => inventarioProductMatchesBusqueda({
       nombre: d.nombre,
       sku: d.sku,
     }, busq));
-  }, [decisiones, filtro, busq, variant]);
+  }, [decisiones, filtro, busq, esApps]);
 
   const resumen = useMemo(() => resumenDecisiones(decisiones), [decisiones]);
 
@@ -97,17 +99,23 @@ export default function DecisionesPreciosPanel({
     }
   };
 
-  const pills = variant === "rappi"
+  const pills = esApps
     ? [
       ["rappi", `Rappi ${resumen.rappi}`],
-      ["venta", `Venta ${resumen.venta}`],
+      ["uber", `Uber ${resumen.uber}${CANALES_VENTA.uber.activo ? "" : " · pronto"}`],
+      ["didi", `DiDi ${resumen.didi}${CANALES_VENTA.didi.activo ? "" : " · pronto"}`],
+      ["caro", `Caro vs mercado ${resumen.caro}`],
+      ["margen", `Margen ${resumen.margen}`],
       ["criticas", `Críticas ${resumen.criticas}`],
     ]
     : [
       ["todas", `Todas ${resumen.total}`],
-      ["venta", `Venta ${resumen.venta}`],
+      ["caro", `Caro vs mercado ${resumen.caro}`],
+      ["margen", `Margen ${resumen.margen}`],
       ["compra", `Compra ${resumen.compra}`],
       ["rappi", `Rappi ${resumen.rappi}`],
+      ["uber", `Uber ${resumen.uber}`],
+      ["didi", `DiDi ${resumen.didi}`],
       ["criticas", `Críticas ${resumen.criticas}`],
     ];
 
@@ -115,9 +123,9 @@ export default function DecisionesPreciosPanel({
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
         <p style={{ margin: 0, color: C.textMid, fontSize: 12, maxWidth: 640, lineHeight: 1.45 }}>
-          {variant === "rappi"
-            ? "El agente mira tus referencias de venta y marca qué tocar en Rappi. El sync de Rappi solo publica stock: el precio del catálogo se actualiza a mano."
-            : "Revisa solo lo que ya tienes en Referencias. No aplica precios solo: tú confirmas. Lo de Rappi es el mismo precio de mostrador."}
+          {esApps
+            ? "Mismas referencias de compra y venta que el catálogo. Rappi está vivo (stock, no precio). Uber y DiDi usarán este mismo precio cuando se conecten."
+            : "Revisa compra y venta de Referencias. El precio de mostrador es el de Rappi y, más adelante, Uber y DiDi. No aplica solo: tú confirmas."}
         </p>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontSize: 11, color: C.textDim }}>
@@ -186,8 +194,8 @@ export default function DecisionesPreciosPanel({
           padding: 22, borderRadius: 10, background: C.greenDim, color: C.greenDark,
           fontSize: 13, fontWeight: 600,
         }}>
-          {variant === "rappi"
-            ? "Nada pendiente para Rappi con las referencias de hoy."
+          {esApps
+            ? "Nada pendiente en este canal con las referencias de hoy."
             : "Sin decisiones pendientes. El agente sigue revisando cada 3 minutos."}
         </div>
       ) : (
@@ -232,6 +240,11 @@ export default function DecisionesPreciosPanel({
                       </span>
                       {d.rappi && d.tipo !== TIPO_DECISION.RAPPI_SIN_REF ? (
                         <div style={{ fontSize: 10, color: C.teal, fontWeight: 700, marginTop: 4 }}>También Rappi</div>
+                      ) : null}
+                      {(d.canales_futuros || []).length ? (
+                        <div style={{ fontSize: 10, color: C.textDim, fontWeight: 700, marginTop: 2 }}>
+                          Luego {labelCanales(d.canales_futuros).join(" · ")}
+                        </div>
                       ) : null}
                     </td>
                     <td data-label="Actual" style={{ ...td, textAlign: "right", fontWeight: 700, color: BRAND.primary }}>
