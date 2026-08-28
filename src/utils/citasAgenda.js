@@ -1,4 +1,5 @@
 import { citaEstaPagada } from "./consultaConstants";
+import { hoyISOMexico } from "../lib/fecha";
 
 const pad2 = (n) => String(n).padStart(2, "0");
 
@@ -39,7 +40,7 @@ export const TODOS_HORARIOS_CITA = [
  */
 export function horariosDisponiblesCita(fecha) {
   if (!fecha) return TODOS_HORARIOS_CITA;
-  const hoy = new Date().toLocaleDateString("sv-SE");
+  const hoy = hoyISOMexico();
   if (fecha < hoy) return [];
   if (fecha > hoy) return TODOS_HORARIOS_CITA;
   const ahora = new Date();

@@ -45,6 +45,7 @@ import {
   LogIn, UserPlus, ChevronRight, Menu, Package,
   Store, Bike, PackageCheck, Trophy, CreditCard, Search, Calendar
 } from "lucide-react";
+import { hoyISOMexico } from "./lib/fecha";
 
 // ═══════════════════════════════════════════════════════════════
 // FARMACAPITAL — Tienda en Línea v4
@@ -2659,7 +2660,7 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
   );
 
   useEffect(()=>{
-    const hoy = new Date().toISOString().split("T")[0];
+    const hoy = hoyISOMexico();
     supabase.from("promociones").select("*")
       .eq("activa",true)
       .or(`fecha_fin.is.null,fecha_fin.gte.${hoy}`)
@@ -4093,7 +4094,7 @@ function PromocionesPage({setPage}){
   const [promos, setPromos] = useState([]);
   const [load, setLoad] = useState(true);
   useEffect(()=>{
-    const hoy = new Date().toISOString().split("T")[0];
+    const hoy = hoyISOMexico();
     supabase.from("promociones").select("*")
       .eq("activa",true)
       .or(`fecha_fin.is.null,fecha_fin.gte.${hoy}`)

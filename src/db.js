@@ -3,6 +3,8 @@
 // Almacena datos offline + cola de sincronización con Supabase
 // ═══════════════════════════════════════════════════════════════
 
+import { rangoDiaMexico } from "./lib/fecha";
+
 const DB_NAME    = "VenturaDB";
 const DB_VERSION = 1;
 
@@ -159,13 +161,13 @@ export async function guardarVenta(venta) {
 // Obtener todas las ventas del día
 export async function obtenerVentasHoy() {
   const db = await abrirDB();
-  const hoy = new Date().toISOString().split("T")[0];
+  const { start, end } = rangoDiaMexico();
 
   return new Promise((resolve, reject) => {
     const tx = db.transaction("ventas", "readonly");
     const store = tx.objectStore("ventas");
     const indice = store.index("fecha");
-    const rango = IDBKeyRange.bound(`${hoy}T00:00:00`, `${hoy}T23:59:59`);
+    const rango = IDBKeyRange.bound(start, end, false, true);
     const request = indice.getAll(rango);
 
     request.onsuccess = () => resolve(request.result);
@@ -392,13 +394,13 @@ export async function guardarRegistroCOFEPRIS(registro) {
 
 export async function obtenerBitacoraHoy() {
   const db = await abrirDB();
-  const hoy = new Date().toISOString().split("T")[0];
+  const { start, end } = rangoDiaMexico();
 
   return new Promise((resolve, reject) => {
     const tx = db.transaction("bitacora_cofepris", "readonly");
     const store = tx.objectStore("bitacora_cofepris");
     const indice = store.index("fecha");
-    const rango = IDBKeyRange.bound(`${hoy}T00:00:00`, `${hoy}T23:59:59`);
+    const rango = IDBKeyRange.bound(start, end, false, true);
     const request = indice.getAll(rango);
 
     request.onsuccess = () => resolve(request.result);
@@ -427,13 +429,13 @@ export async function guardarCorteCaja(corte) {
 
 export async function obtenerCortesDia() {
   const db = await abrirDB();
-  const hoy = new Date().toISOString().split("T")[0];
+  const { start, end } = rangoDiaMexico();
 
   return new Promise((resolve, reject) => {
     const tx = db.transaction("cortes_caja", "readonly");
     const store = tx.objectStore("cortes_caja");
     const indice = store.index("fecha");
-    const rango = IDBKeyRange.bound(`${hoy}T00:00:00`, `${hoy}T23:59:59`);
+    const rango = IDBKeyRange.bound(start, end, false, true);
     const request = indice.getAll(rango);
 
     request.onsuccess = () => resolve(request.result);

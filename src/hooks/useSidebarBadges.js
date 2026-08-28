@@ -5,12 +5,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../supabase";
 import { countPedidosTiendaPendientesHead } from "../utils/pedidosTiendaWeb";
+import { addDaysISO, hoyISOMexico } from "../lib/fecha";
 
 const REFRESH_MS = 60 * 1000;
-
-function addDaysISO(days) {
-  return new Date(Date.now() + days * 86400000).toISOString().slice(0, 10);
-}
 
 export default function useSidebarBadges(currentPage) {
   const [counts, setCounts] = useState({});
@@ -20,8 +17,8 @@ export default function useSidebarBadges(currentPage) {
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
-    const hoyISO = new Date().toISOString().slice(0, 10);
-    const limite30 = addDaysISO(30);
+    const hoyISO = hoyISOMexico();
+    const limite30 = addDaysISO(hoyISO, 30);
     try {
       const tok = sessionStorage.getItem("farmacapital_session_token");
       const cofeprisRpc = tok

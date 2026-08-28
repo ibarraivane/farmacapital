@@ -14,8 +14,7 @@ import {
   puedeCancelarCitaCaja,
   esCitaNoShow,
 } from "../../utils/citasAgenda";
-
-const hoySvLocal = () => new Date().toLocaleDateString("sv-SE");
+import { addDaysISO, hoyISOMexico, ymdLocalDate } from "../../lib/fecha";
 
 const C = C_LIGHT;
 
@@ -38,7 +37,7 @@ function monthRangeSv(year, month0) {
 }
 
 function buildMonthCells(year, month0) {
-  const hoy = hoySvLocal();
+  const hoy = hoyISOMexico();
   const first = new Date(year, month0, 1);
   const mondayFirst = (first.getDay() + 6) % 7;
   const cells = [];
@@ -46,7 +45,7 @@ function buildMonthCells(year, month0) {
   while (cells.length < 42) {
     const d = new Date(year, month0, i);
     const inMonth = d.getMonth() === month0;
-    const sv = d.toLocaleDateString("sv-SE");
+    const sv = ymdLocalDate(d);
     cells.push({
       d,
       inMonth,
@@ -89,7 +88,7 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
   const [y, setY] = useState(now.getFullYear());
   const [m, setM] = useState(now.getMonth());
   const [vista, setVista] = useState(() => (usuario?.rol === "doctora" ? "dia" : "mes")); // mes | dia
-  const [diaSel, setDiaSel] = useState(() => new Date().toLocaleDateString("sv-SE"));
+  const [diaSel, setDiaSel] = useState(() => hoyISOMexico());
   const [citasMes, setCitasMes] = useState([]);
   const [loadMes, setLoadMes] = useState(true);
   const [fichaCita, setFichaCita] = useState(null);
@@ -218,7 +217,7 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
     let cancel = false;
     (async () => {
       setKpiLoad(true);
-      const hoy = new Date().toLocaleDateString("sv-SE");
+      const hoy = hoyISOMexico();
       const nowD = new Date();
       let desdeFecha;
       let hastaFecha;
@@ -228,9 +227,7 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
         hastaFecha = hoy;
         periodoSub = "hoy (fecha local)";
       } else if (kpiPer === "semana") {
-        const d = new Date();
-        d.setDate(d.getDate() - 6);
-        desdeFecha = d.toLocaleDateString("sv-SE");
+        desdeFecha = addDaysISO(hoy, -6);
         hastaFecha = hoy;
         periodoSub = "últimos 7 días";
       } else {
@@ -416,7 +413,7 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
       showToast("Quien agenda citas es mostrador o administración. Vos atendés desde «Entrar a consulta» y expediente.", "info");
       return;
     }
-    const hoy = hoySvLocal();
+    const hoy = hoyISOMexico();
     if (diaSel < hoy) {
       showToast("No se pueden agendar citas en fechas pasadas.", "warning");
       return;
@@ -516,11 +513,11 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {mode === "doctora" && diaSel !== hoySvLocal() && (
+          {mode === "doctora" && diaSel !== hoyISOMexico() && (
             <button
               type="button"
               onClick={() => {
-                const h = hoySvLocal();
+                const h = hoyISOMexico();
                 setDiaSel(h);
                 const d = new Date();
                 setY(d.getFullYear());
@@ -546,7 +543,7 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
             onClick={() => {
               if (vista === "mes") {
                 if (mode === "doctora") {
-                  const h = hoySvLocal();
+                  const h = hoyISOMexico();
                   setDiaSel(h);
                   const d = new Date();
                   setY(d.getFullYear());
@@ -593,7 +590,7 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
               marginBottom: 10,
             }}
           >
-            {diaSel === hoySvLocal() ? "Próxima acción" : "Acción (día que estás viendo)"}
+            {diaSel === hoyISOMexico() ? "Próxima acción" : "Acción (día que estás viendo)"}
           </div>
           {loadMes && <div style={{ color: C.textMid, fontSize: 13 }}>Cargando citas del día…</div>}
           {!loadMes && accionPrincipalDoctora?.tipo === "vacio" && (
@@ -956,7 +953,7 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
               </Btn>
             </div>
           </div>
-          {diaSel < hoySvLocal() && (
+          {diaSel < hoyISOMexico() && (
             <div
               style={{
                 marginBottom: 12,
@@ -977,7 +974,7 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
               const ocupada = citaPorHora[hora];
               const disponibles = horariosDisponiblesCita(diaSel);
               const libre = !ocupada && disponibles.includes(hora);
-              const esDiaPasado = diaSel < hoySvLocal();
+              const esDiaPasado = diaSel < hoyISOMexico();
               const ev = etiquetaEstadoVisual(ocupada);
               const focoAccion =
                 mode === "doctora" &&

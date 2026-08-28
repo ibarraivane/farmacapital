@@ -1,29 +1,11 @@
 /** Semana laboral FarmaCapital: martes–viernes. Sáb/dom/lun pertenecen al viernes anterior. */
 
-const TZ = "America/Mexico_City";
+import { addDaysISO, dowISO, hoyISOMexico } from "./fecha";
+
+export { addDaysISO, dowISO, hoyISOMexico };
 
 export function round2(n) {
   return Math.round((Number(n) + Number.EPSILON) * 100) / 100;
-}
-
-export function hoyISOMexico(now = new Date()) {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: TZ,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(now);
-}
-
-export function addDaysISO(iso, days) {
-  const [y, m, d] = String(iso).slice(0, 10).split("-").map(Number);
-  const dt = new Date(Date.UTC(y, m - 1, d + Number(days)));
-  return dt.toISOString().slice(0, 10);
-}
-
-export function dowISO(iso) {
-  const [y, m, d] = String(iso).slice(0, 10).split("-").map(Number);
-  return new Date(Date.UTC(y, m - 1, d)).getUTCDay();
 }
 
 /** Martes de la semana de pago que cubre `iso` (YYYY-MM-DD). */

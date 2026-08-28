@@ -17,6 +17,7 @@ import { TIENDA_BANNER_DESTINOS, resolveTiendaPage } from "./shared/tiendaRoutes
 import { initBillingListeners } from "./modules/billing/core/initBillingListeners";
 import { canAccessRoute } from "./core/security/routeGuard";
 import ImageUploader from "./components/ImageUploader";
+import { hoyISOMexico } from "./lib/fecha";
 
 // Fallback estático para estilos fuera de componentes (evita undefined en import).
 const C = C_LIGHT;
@@ -585,7 +586,7 @@ function Dashboard({negocio,alertas,setPage}){
     const cargar = async () => {
       setLoad(true);
       try {
-        const hoyLocal = new Date().toLocaleDateString("sv-SE");
+        const hoyLocal = hoyISOMexico();
         const t0 = new Date();
         t0.setHours(0, 0, 0, 0);
         const t1 = new Date();
@@ -2111,7 +2112,7 @@ export default function FarmaCapitalAdmin(){
   useEffect(()=>{
     if(!usuario) return;
     const cargar = async () => {
-      const hoy = new Date().toISOString().split("T")[0];
+      const hoy = hoyISOMexico();
       const tok = sessionStorage.getItem("farmacapital_session_token");
       const { data: snap } = tok
         ? await supabase.rpc("empleado_admin_alertas_snapshot", { p_session_token: tok, p_hoy: hoy })
