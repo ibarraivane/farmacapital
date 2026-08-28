@@ -168,9 +168,8 @@ export default function VentasVsMetaChart({ porDia, cfg, hoyYmd, onEditarMetas }
         <span><i className="fc-ventas-meta-dash" /> Meta</span>
       </div>
 
-      <div
+      <figure
         className="fc-ventas-meta-scroll"
-        role="img"
         aria-label={elegido
           ? `${elegido.detalle}: ${fmtK(elegido.actual)} de ${fmtK(elegido.meta)}`
           : "Ventas contra meta"}
@@ -208,7 +207,7 @@ export default function VentasVsMetaChart({ porDia, cfg, hoyYmd, onEditarMetas }
             );
           })}
         </div>
-      </div>
+      </figure>
 
       {elegido && (
         <div className="fc-ventas-meta-foot" aria-live="polite">

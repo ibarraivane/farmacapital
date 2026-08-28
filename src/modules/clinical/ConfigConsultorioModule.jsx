@@ -309,7 +309,7 @@ export default function ConfigConsultorioModule() {
         throw new Error(`[${first.k}] ${msgError(first.err)}${errores.length > 1 ? ` (+${errores.length - 1} más)` : ""}`);
       }
       invalidarCacheMetas();
-      showToast("Cambios guardados. Dashboard, POS y consultorio los usarán al recargar.", "success");
+      showToast("Cambios guardados. Las metas se refrescan al volver al Dashboard.", "success");
     } catch (e) {
       console.error("[ConfigCons] guardarTab error:", e);
       showToast("No se pudo guardar: " + msgError(e), "error");
