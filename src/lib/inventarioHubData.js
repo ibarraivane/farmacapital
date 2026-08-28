@@ -57,11 +57,28 @@ export function proveedorDesdeLotes(lotes) {
   return (top?.proveedores?.nombre || top?.proveedor_nombre || "").trim();
 }
 
+export function filasJson(data) {
+  let raw = data;
+  if (raw == null) return [];
+  if (typeof raw === "string") {
+    try { raw = JSON.parse(raw); } catch { return []; }
+  }
+  if (Array.isArray(raw)) return raw;
+  if (Array.isArray(raw?.data)) return raw.data;
+  return [];
+}
+
+export function productoIdDeLote(l) {
+  const raw = l?.producto_id ?? l?.productos?.id;
+  const n = typeof raw === "number" ? raw : parseInt(String(raw || ""), 10);
+  return Number.isFinite(n) ? n : null;
+}
+
 export function agruparLotesPorProducto(lotesRaw) {
   const byProducto = {};
   for (const l of Array.isArray(lotesRaw) ? lotesRaw : []) {
-    const pid = l?.producto_id;
-    if (!pid) continue;
+    const pid = productoIdDeLote(l);
+    if (pid == null) continue;
     if (!byProducto[pid]) byProducto[pid] = [];
     byProducto[pid].push(l);
   }
@@ -95,7 +112,7 @@ export async function fetchLotesInventario(sessionToken) {
     p_session_token: sessionToken,
   });
   if (error) return { data: [], error };
-  return { data: Array.isArray(data) ? data : [], error: null };
+  return { data: filasJson(data), error: null };
 }
 
 export function enriquecerProductoConLotes(p, lotes) {

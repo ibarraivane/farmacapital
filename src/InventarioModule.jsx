@@ -2491,7 +2491,7 @@ function renderInventarioColumnCell(colId, ctx) {
           field="stock"
           value={String(p.stock ?? 0)}
           type="number"
-          display={<span style={{ fontWeight: 700, color: bajo ? C.amber : C.green }}>{p.stock}</span>}
+          display={<span style={{ fontWeight: 700, color: bajo ? C.amber : C.green }}>{p.stock_peps ?? p.stock}</span>}
           tdStyle={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, background: stickyRowBg }}
         />
       );

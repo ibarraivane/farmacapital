@@ -13,6 +13,12 @@ import {
 } from "./utils/barcodeProductLookup";
 import { etiquetaCaducidadMMAA, formatCaducidadMesAnio, parseCaducidadMMAA } from "./lib/caducidad";
 import { fetchProductosPaginados } from "./lib/inventarioHubData";
+import {
+  margenAltaRecepcion,
+  payloadAltaRecepcion,
+  precioSugeridoAltaRecepcion,
+} from "./lib/recepcionAlta";
+import { fmtPrecioVenta } from "./lib/preciosReferencia";
 import { parseTicketCsv } from "./lib/recepcionTicketCsv";
 import { recepcionEsTicketDocumento, resolverEscaneoRecepcion } from "./lib/recepcionScan";
 import { $ as fmt, getSessionToken, esErrorSesionEmpleado } from "./utils";
@@ -217,6 +223,8 @@ export default function RecepcionModule({ ocultarMontos = false }) {
   const [qty, setQty] = useState("");
   const [cad, setCad] = useState("");
   const [costo, setCosto] = useState("");
+  const [altaNombre, setAltaNombre] = useState("");
+  const [altaTipo, setAltaTipo] = useState("generico");
   const [pendiente, setPendiente] = useState(null);
   const [errorLinea, setErrorLinea] = useState("");
   const [codigoCopiado, setCodigoCopiado] = useState("");
@@ -278,7 +286,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     const [provRes, prodRes] = await Promise.all([
       supabase.rpc("empleado_listar_proveedores_catalogo", { p_session_token: tok }),
       fetchProductosPaginados({
-        select: "id,nombre,sku,codigo_barras,activo",
+        select: "id,nombre,sku,codigo_barras,activo,costo,tipo",
         activosSolo: true,
         order: "nombre",
       }),
@@ -304,7 +312,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     const tok = sessionTok();
     if (!tok) return;
     const prodRes = await fetchProductosPaginados({
-      select: "id,nombre,sku,codigo_barras,activo",
+      select: "id,nombre,sku,codigo_barras,activo,costo,tipo",
       activosSolo: true,
       order: "nombre",
     });
@@ -497,6 +505,8 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     setQty("");
     setCad("");
     setCosto("");
+    setAltaNombre("");
+    setAltaTipo("generico");
     setPendiente(null);
     setErrorLinea("");
     setTimeout(() => scanRef.current?.focus(), 30);
@@ -717,9 +727,56 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     setSaving(true);
     setErrorLinea("");
     const tok = sessionTok();
+    if (pendiente.pendienteAlta && !pendiente.producto?.id) {
+      const nombre = altaNombre.trim();
+      if (!nombre) {
+        setSaving(false);
+        setErrorLinea("Pon el nombre del producto");
+        return;
+      }
+      const pdata = payloadAltaRecepcion({
+        nombre,
+        codigo: pendiente.codigo,
+        tipo: altaTipo,
+        costo: costoN,
+      });
+      if (!pdata.precio || !pdata.costo) {
+        setSaving(false);
+        setErrorLinea("El costo de la factura es obligatorio para darlo de alta");
+        return;
+      }
+      const { data: created, error: altaErr } = await supabase.rpc("create_producto_secure", {
+        p_session_token: tok,
+        p_producto_data: pdata,
+        p_cantidad_inicial: 0,
+        p_numero_lote: null,
+        p_fecha_caducidad: null,
+        p_costo_unitario: costoN,
+      });
+      if (altaErr) {
+        setSaving(false);
+        setErrorLinea(altaErr.message || "No se pudo dar de alta. Hazlo como gerente en Catálogo.");
+        return;
+      }
+      const nuevo = Array.isArray(created) ? created[0] : created;
+      if (nuevo?.producto_id) {
+        setProductos((prev) => [
+          ...prev,
+          {
+            id: nuevo.producto_id,
+            nombre: pdata.nombre,
+            sku: null,
+            codigo_barras: pdata.codigo_barras,
+            activo: true,
+            costo: pdata.costo,
+            tipo: pdata.tipo,
+          },
+        ]);
+      }
+    }
     let data;
     let error;
-    if (pendiente.itemId) {
+    if (pendiente.itemId && !pendiente.pendienteAlta) {
       ({ data, error } = await supabase.rpc("recepcion_confirmar_item", {
         p_session_token: tok,
         p_item_id: pendiente.itemId,
@@ -1125,8 +1182,35 @@ export default function RecepcionModule({ ocultarMontos = false }) {
                       Este producto NO está registrado
                     </div>
                     <div style={{ color: C.text, fontSize: 13, lineHeight: 1.45, marginTop: 8 }}>
-                      Hay que darlo de alta <strong>antes</strong> de recibirlo. Ve a <strong>Inventario → Catálogo → ➕ Nuevo producto</strong>,
-                      pega este código de barras, pon nombre y costo de la factura, deja el stock en 0 y guarda. Luego vuelve aquí y escanea la caja otra vez.
+                      Pon nombre, si es patente o genérico, cantidad y caducidad de la caja. El stock entra aquí, no en Catálogo.
+                    </div>
+                    <div style={{ marginTop: 10 }}>
+                      <label style={labelS(C)} htmlFor="rc-alta-nombre">Nombre</label>
+                      <input
+                        id="rc-alta-nombre"
+                        value={altaNombre}
+                        onChange={(e) => setAltaNombre(e.target.value)}
+                        placeholder="Como dice la caja"
+                        autoComplete="off"
+                        style={inpBase(C)}
+                      />
+                    </div>
+                    <div style={{ marginTop: 10 }}>
+                      <label style={labelS(C)} htmlFor="rc-alta-tipo">Tipo</label>
+                      <select
+                        id="rc-alta-tipo"
+                        value={altaTipo}
+                        onChange={(e) => setAltaTipo(e.target.value)}
+                        style={inpBase(C)}
+                      >
+                        <option value="generico">Genérico · ganancia 60%</option>
+                        <option value="marca">Patente · ganancia 25%</option>
+                      </select>
+                      <div style={{ color: C.textMid, fontSize: 11, marginTop: 4, lineHeight: 1.4 }}>
+                        {precioSugeridoAltaRecepcion(costo, altaTipo)
+                          ? `Venta sugerida ${fmtPrecioVenta(precioSugeridoAltaRecepcion(costo, altaTipo))} (${margenAltaRecepcion(altaTipo)}% sobre el costo de factura).`
+                          : "El costo de la factura arma el precio de venta."}
+                      </div>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
                       <code style={{
@@ -1145,9 +1229,6 @@ export default function RecepcionModule({ ocultarMontos = false }) {
                       >
                         {codigoCopiado === pendiente.codigo ? "Copiado ✓" : "Copiar código"}
                       </button>
-                    </div>
-                    <div style={{ color: "#b91c1c", fontSize: 12, fontWeight: 700, marginTop: 10, lineHeight: 1.4 }}>
-                      Si lo guardas así, la caja queda anotada pero <u>no entra a stock</u> y el sistema no la va a poder vender.
                     </div>
                   </div>
                 ) : (
@@ -1239,7 +1320,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
                     {saving
                       ? "Guardando…"
                       : pendiente.pendienteAlta
-                        ? "Anotar sin registrar (no entra a stock)"
+                        ? "Dar de alta y guardar renglón"
                         : "Guardar renglón"}
                   </button>
                 </div>
