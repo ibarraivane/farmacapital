@@ -1,5 +1,6 @@
 import { supabase } from "../../supabase";
 import { EVENTS } from "../events/types";
+import { ymdMexico } from "../../lib/fecha";
 
 export async function buildSalesProjection() {
   const { data: events } = await supabase
@@ -10,7 +11,7 @@ export async function buildSalesProjection() {
   const rows = events ?? [];
 
   const summary = rows.reduce((acc, ev) => {
-    const date = new Date(ev.created_at).toISOString().split("T")[0];
+    const date = ymdMexico(ev.created_at);
 
     acc[date] = acc[date] || { total: 0, count: 0 };
     acc[date].total += ev.payload?.total || 0;

@@ -47,7 +47,13 @@
     "extends": [
       "react-app",
       "react-app/jest"
-    ]
+    ],
+    "rules": {
+      "no-restricted-syntax": ["error", {
+        "selector": "CallExpression[callee.property.name='slice'][callee.object.callee.property.name='toISOString']",
+        "message": "Usa hoyISOMexico() de src/lib/fecha.js. toISOString() da el día UTC y en CDMX adelanta el día desde las 18:00."
+      }]
+    }
   },
   "browserslist": {
     "production": [

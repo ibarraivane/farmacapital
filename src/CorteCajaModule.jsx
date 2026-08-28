@@ -7,6 +7,7 @@ import { TURNOS, TURNOS_LISTA, rangoTurno, rangoCajaDeCorte, inferirTurno, turno
 import { esVendedor, fetchSesionCajaAbierta, fetchJornadaHoy } from "./utils/cajaSesion";
 import { useMediaQuery } from "./hooks/useMediaQuery";
 import { GRID_STACK_2COL } from "./constants/layout";
+import { hoyISOMexico } from "./lib/fecha";
 import {
   snapshotFromCorte,
   snapshotFromHistorialRow,
@@ -133,7 +134,7 @@ export default function CorteCajaModule({usuario }) {
       const { data, error } = await supabase.rpc("empleado_totales_electronicos_turno", {
         p_session_token: tok,
         p_turno: turno,
-        p_fecha: new Date().toLocaleDateString("sv-SE"),
+        p_fecha: hoyISOMexico(),
       });
       if (error) return;
       if (data?.tarjeta != null)     setTarjeta(String(data.tarjeta));
@@ -195,7 +196,7 @@ export default function CorteCajaModule({usuario }) {
       if (!tok) return;
       const { data } = await supabase.rpc("empleado_corte_turno_en_fecha", {
         p_session_token: tok,
-        p_fecha: new Date().toLocaleDateString("sv-SE"),
+        p_fecha: hoyISOMexico(),
         p_turno: turno,
       });
       if (!cancelled) setCorteHoy(data?.existe ? data : null);
@@ -309,7 +310,7 @@ export default function CorteCajaModule({usuario }) {
   // Esta función se puede llamar externamente via ref o contexto
   const verificarTurnoActivo = async () => {
     const tok = sessionStorage.getItem("farmacapital_session_token");
-    const hoy = new Date().toLocaleDateString("sv-SE");
+    const hoy = hoyISOMexico();
     const { data } = tok
       ? await supabase.rpc("empleado_corte_turno_en_fecha", {
           p_session_token: tok,
@@ -359,7 +360,7 @@ export default function CorteCajaModule({usuario }) {
     const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) { alert("Sesión expirada. Inicia sesión de nuevo."); return; }
     // J8: Validar turno duplicado
-    const hoy = new Date().toLocaleDateString("sv-SE");
+    const hoy = hoyISOMexico();
     const { data: exSnap } = await supabase.rpc("empleado_corte_turno_en_fecha", {
       p_session_token: tok,
       p_fecha: hoy,

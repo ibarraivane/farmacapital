@@ -54,6 +54,7 @@ import {
 } from "../../../utils/orderReceiptWhatsApp";
 import { formatTelefonoDisplay } from "../../../utils/citaWhatsApp";
 import { configRowsToMap, mergeFarmaciaConfig, FARMACIA_FISCAL } from "../../../constants/farmaciaFiscal";
+import { hoyISOMexico } from "../../../lib/fecha";
 
 const PEDIDOS_TIENDA_SELECT_POS = `
             id,total,created_at,tipo,metodo_pago,estado,tipo_entrega,direccion,
@@ -654,7 +655,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   }, []);
 
   const hoySvPos = useMemo(
-    () => new Date().toLocaleDateString("sv-SE"),
+    () => hoyISOMexico(),
     []
   );
 
@@ -1037,7 +1038,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     }
     // Validar que el lote FEFO activo más próximo no esté vencido
     if(item.min_caducidad_lotes) {
-      const hoy = new Date().toLocaleDateString("sv-SE");
+      const hoy = hoyISOMexico();
       if(item.min_caducidad_lotes < hoy) {
         showToast(`⚠️ ${item.nombre} tiene lote VENCIDO (${item.min_caducidad_lotes}). No se puede vender.`, "error");
         return;
@@ -1461,7 +1462,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       }
 
       if (ro === "medico_farmacapital") {
-        const fechaSv = new Date().toLocaleDateString("sv-SE");
+        const fechaSv = hoyISOMexico();
         try {
           await marcarMedicamentosRecetaFarmaCapitalSurtidos(supabase, {
             p_session_token: tokRo,

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
 import { showToast } from "./ui";
+import { hoyISOMexico } from "./lib/fecha";
 
 const BRAND = { primary:"#0D1B2A", secondary:"#1E3ABA", accent:"#16a34a", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
 
@@ -193,7 +194,7 @@ function Promociones({ productos }) {
   const tipoLabel = t => TIPOS.find(x=>x.val===t)?.label||t;
   const tipoColor = t => t==="descuento_pct"?C.blue:t==="descuento_fijo"?C.green:t==="2x1"?C.purple:C.amber;
 
-  const hoy = new Date().toISOString().split("T")[0];
+  const hoy = hoyISOMexico();
   const vigente = p => p.activa && (!p.fecha_fin || p.fecha_fin >= hoy) && (!p.fecha_inicio || p.fecha_inicio <= hoy);
 
   return (

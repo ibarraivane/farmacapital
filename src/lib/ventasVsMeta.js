@@ -1,15 +1,11 @@
 /** Ventas vs meta del dashboard. Fechas en calendario de la farmacia (CDMX). */
 
 import { metaDiaCompleto } from "../utils/turnosMetas";
+import { TZ_FARMACIA, ymdLocalDate, ymdMexico as ymdMexicoFecha } from "./fecha";
 
-export const TZ_FARMACIA = "America/Mexico_City";
-
-function pad2(n) {
-  return String(n).padStart(2, "0");
-}
-
+export { TZ_FARMACIA };
 export function ymdMexico(value = new Date()) {
-  return new Date(value).toLocaleDateString("en-CA", { timeZone: TZ_FARMACIA });
+  return ymdMexicoFecha(value);
 }
 
 /** Fecha/hora de mostrador (CDMX). Evita que desde Europa el ticket salte al día siguiente. */
@@ -29,7 +25,7 @@ export function parseYmdLocal(ymd) {
 }
 
 export function ymdFromLocalDate(d) {
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  return ymdLocalDate(d);
 }
 
 export function agruparVentasPorDia(pedidos) {
@@ -64,6 +60,10 @@ function addDays(d, n) {
   const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
   x.setDate(x.getDate() + n);
   return x;
+}
+
+function pad2(n) {
+  return String(n).padStart(2, "0");
 }
 
 const DIAS_CORTOS = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];

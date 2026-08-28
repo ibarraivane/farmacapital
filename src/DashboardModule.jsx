@@ -16,6 +16,7 @@ import { costoLineaVenta, ingresoLineaVenta } from "./utils/margenVenta";
 import { DIAS_CADUCIDAD_ALERTA } from "./lib/caducidad";
 import VentasVsMetaChart from "./VentasVsMetaChart";
 import { agruparVentasPorDia, porDiaDesdeSerieRpc, ymdMexico } from "./lib/ventasVsMeta";
+import { addDaysISO, hoyISOMexico } from "./lib/fecha";
 import { cargarConfigMetas, mezclarCfgMetas } from "./utils/turnosMetas";
 
 function rpcBundleRows(bundle, key) {
@@ -148,7 +149,7 @@ const rangeWeek  = () => { const d=new Date(); d.setDate(d.getDate()-7); return 
 const rangeMonth = () => { const d=new Date(),y=d.getFullYear(),m=d.getMonth(); return {start:new Date(y,m,1).toISOString(),end:new Date().toISOString()}; };
 const rangeYesterday = () => { const d=new Date(),y=d.getFullYear(),m=d.getMonth(),dd=d.getDate()-1; return {start:new Date(y,m,dd,0,0,0).toISOString(),end:new Date(y,m,dd,23,59,59).toISOString()}; };
 const rangeWeekPrev  = () => { const end=new Date(); end.setDate(end.getDate()-7); const start=new Date(end); start.setDate(start.getDate()-7); return {start:start.toISOString(),end:end.toISOString()}; };
-const yesterdayLocal = () => { const d=new Date(); d.setDate(d.getDate()-1); return d.toLocaleDateString("sv-SE"); };
+const yesterdayLocal = () => addDaysISO(hoyISOMexico(), -1);
 
 // Calcula el tramo transcurrido del mes actual (0..1) para proyectar metas.
 function fraccionMesTranscurrido() {
@@ -344,16 +345,16 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
     const today = rangeToday(), week = rangeWeek(), month = rangeMonth();
     const yesterday = rangeYesterday();
     const weekPrev = rangeWeekPrev();
-    const hoyLocal = new Date().toLocaleDateString("sv-SE");
+    const hoyLocal = hoyISOMexico();
     const ayerLocal = yesterdayLocal();
-    const inicioMesLocal = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toLocaleDateString("sv-SE");
-    const cofeprisLimite = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+    const inicioMesLocal = `${hoyLocal.slice(0, 7)}-01`;
+    const cofeprisLimite = addDaysISO(hoyLocal, 30);
     const adminTok = sessionStorage.getItem("farmacapital_session_token");
     const cofeprisRpc = adminTok
       ? supabase.rpc("admin_alertas_cofepris_ventana", {
           p_session_token: adminTok,
           p_limite: cofeprisLimite,
-          p_hoy: new Date().toISOString().slice(0, 10),
+          p_hoy: hoyLocal,
         })
       : Promise.resolve({ data: null, error: { message: "sin sesión" } });
     const bundleCtx = {
@@ -505,7 +506,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
       consultasHoy:  null,
     };
 
-    const hoyISO = new Date().toISOString().slice(0,10);
+    const hoyISO = hoyISOMexico();
     const cofeprisItems = (alertasCofepris || []).map(a => ({
       id: a.id, nombre: fixLegacyFarmaxBrand(a.nombre), fecha: a.fecha_vencimiento,
       vencida: a.fecha_vencimiento && a.fecha_vencimiento < hoyISO,
@@ -583,7 +584,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
     setRepLoading(true);
     const dias = periodo === "dia" ? 1 : periodo === "semana" ? 7 : 30;
     const desde = new Date(Date.now() - dias * 86400000).toISOString();
-    const desdeFecha = new Date(Date.now() - dias * 86400000).toISOString().split("T")[0];
+    const desdeFecha = addDaysISO(hoyISOMexico(), -dias);
     const sessionTok = sessionStorage.getItem("farmacapital_session_token");
     const [
       repBundleRes,

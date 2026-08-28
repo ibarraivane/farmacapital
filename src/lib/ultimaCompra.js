@@ -2,6 +2,8 @@
  *  Recibir solo lo reemplaza si el ticket nuevo es más barato.
  */
 
+import { hoyISOMexico } from "./fecha";
+
 export const FUENTE_ULTIMA_COMPRA = "ultima_compra";
 
 export function normalizeProveedorCompra(nombre) {
@@ -118,7 +120,7 @@ export function filasCompraVigenteDesdeRecepcion(rec, actualesPorProducto = {}) 
   const proveedor = proveedorCompraVisible(rec?.proveedor)
     || String(rec?.proveedor || "").trim();
   // La vista actual es DISTINCT ON fecha DESC: hay que estampar hoy para que se vea.
-  const fecha = new Date().toISOString().slice(0, 10);
+  const fecha = hoyISOMexico();
   const fechaTicket = rec?.fecha || fecha;
   const folio = rec?.folio ? String(rec.folio) : "";
   const byProd = new Map();

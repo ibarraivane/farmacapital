@@ -1,5 +1,6 @@
 import { supabase } from "../../supabase";
 import { EVENTS } from "../events/types";
+import { ymdMexico } from "../../lib/fecha";
 
 export async function buildSalesModel() {
   const { data } = await supabase
@@ -11,7 +12,7 @@ export async function buildSalesModel() {
   const model = {};
 
   for (const ev of rows) {
-    const date = new Date(ev.created_at).toISOString().split("T")[0];
+    const date = ymdMexico(ev.created_at);
     const total = Number(ev.payload?.total) || 0;
 
     if (!model[date]) {

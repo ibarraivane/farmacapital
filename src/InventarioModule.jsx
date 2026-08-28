@@ -24,6 +24,7 @@ import {
   minCaducidadLotes,
 } from "./lib/inventarioHubData";
 import { DIAS_CADUCIDAD_ALERTA, DIAS_CADUCIDAD_CRITICO, esPorCaducar } from "./lib/caducidad";
+import { hoyISOMexico } from "./lib/fecha";
 
 const leerSesion = () => {
   try {
@@ -825,7 +826,7 @@ const exportarCSV = (productos) => {
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement("a");
   a.href = url; 
-  a.download = `inventario_farmacapital_${new Date().toISOString().slice(0,10)}.csv`;
+  a.download = `inventario_farmacapital_${hoyISOMexico()}.csv`;
   a.click(); URL.revokeObjectURL(url);
 };
 

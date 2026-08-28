@@ -25,6 +25,7 @@ import {
   productoSubtituloReferencia,
 } from "./lib/preciosReferencia";
 import { costoComparacionDe, compraVigenteDe } from "./lib/ultimaCompra";
+import { hoyISOMexico } from "./lib/fecha";
 import { inventarioProductMatchesBusqueda } from "./utils/fuzzySearch";
 import ImportReferenciaPrecios from "./components/ImportReferenciaPrecios";
 
@@ -994,7 +995,7 @@ export default function PreciosReferenciaModule() {
 
     setSavingKey(key);
     const tok = sessionStorage.getItem("farmacapital_session_token");
-    const fecha = new Date().toISOString().slice(0, 10);
+    const fecha = hoyISOMexico();
 
     try {
       if (parts[1] === "costo") {
