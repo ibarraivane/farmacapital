@@ -32,8 +32,10 @@ describe("VentasVsMetaChart", () => {
     expect(screen.getByText("Este mes")).toBeInTheDocument();
     expect(screen.getAllByText(/de \$2\.2k/).length).toBeGreaterThan(0);
     expect(screen.getByText(/de \$20\.8k/)).toBeInTheDocument();
-    expect(screen.getByText(/de \$80\.0k/)).toBeInTheDocument();
+    // Mes en curso prorrateado (23/31 de 80k)
+    expect(screen.getByText(/de \$59\.4k/)).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Día" })).toHaveAttribute("aria-selected", "true");
+    expect(document.querySelector("figure.fc-ventas-meta-scroll")).toBeInTheDocument();
     expect(document.querySelectorAll(".fc-ventas-meta-tick").length).toBeGreaterThan(0);
   });
 });

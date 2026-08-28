@@ -72,13 +72,15 @@ describe("construirSerie", () => {
     expect(s.every((p) => p.meta > 0)).toBe(true);
   });
 
-  test("resumenMetasActuales deja día, semana y mes a la vista", () => {
+  test("resumenMetasActuales deja día, semana y mes a la vista (metas prorrateadas)", () => {
     const r = resumenMetasActuales({ porDia, cfg: CFG, hoyYmd: "2026-08-23" });
     expect(r.dia.meta).toBe(2200);
     expect(r.dia.actual).toBe(12);
+    // domingo = 7/7 de la semana
     expect(r.semana.meta).toBe(20800);
     expect(r.semana.actual).toBe(3100 + 800 + 12);
-    expect(r.mes.meta).toBe(80000);
+    // 23 ago = 23/31 del mes
+    expect(r.mes.meta).toBe(Math.round(80000 * (23 / 31)));
     expect(r.mes.actual).toBe(3100 + 800 + 12);
   });
 

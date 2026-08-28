@@ -1,6 +1,7 @@
 /** Ventas vs meta del dashboard. Fechas en calendario de la farmacia (CDMX). */
 
 import { metaDiaCompleto } from "../utils/turnosMetas";
+import { metasDelPeriodo } from "./metasDelPeriodo";
 
 export const TZ_FARMACIA = "America/Mexico_City";
 
@@ -149,13 +150,18 @@ export function resumenPunto(p) {
   return { pct, falta: Math.max(0, meta - actual), ok: meta > 0 && actual >= meta };
 }
 
-/** Hoy / semana en curso / mes en curso — las tres metas a la vista. */
+/** Hoy / semana en curso / mes en curso — mismas metas que InsightCard (prorrateadas). */
 export function resumenMetasActuales({ porDia, cfg, hoyYmd }) {
   const hoy = hoyYmd || ymdMexico();
+  const d = parseYmdLocal(hoy) || new Date();
+  const metas = metasDelPeriodo(d, cfg);
   const pick = (grano) => construirSerie({ porDia, cfg, grano, hoyYmd: hoy }).find((p) => p.esActual) || null;
+  const dia = pick("dia");
+  const semana = pick("semana");
+  const mes = pick("mes");
   return {
-    dia: pick("dia"),
-    semana: pick("semana"),
-    mes: pick("mes"),
+    dia: dia ? { ...dia, meta: metas.dia } : null,
+    semana: semana ? { ...semana, meta: metas.semana } : null,
+    mes: mes ? { ...mes, meta: metas.mes } : null,
   };
 }

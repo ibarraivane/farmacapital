@@ -16,7 +16,8 @@ import { costoLineaVenta, ingresoLineaVenta } from "./utils/margenVenta";
 import { DIAS_CADUCIDAD_ALERTA } from "./lib/caducidad";
 import VentasVsMetaChart from "./VentasVsMetaChart";
 import { agruparVentasPorDia, porDiaDesdeSerieRpc, ymdMexico } from "./lib/ventasVsMeta";
-import { cargarConfigMetas, mezclarCfgMetas } from "./utils/turnosMetas";
+import { cargarConfigMetas, invalidarCacheMetas, mezclarCfgMetas } from "./utils/turnosMetas";
+import { metasDelPeriodo } from "./lib/metasDelPeriodo";
 
 function rpcBundleRows(bundle, key) {
   return parseRpcJsonArray(parseRpcJsonObject(bundle)[key]);
@@ -163,14 +164,6 @@ const rangeMonth = () => { const d=new Date(),y=d.getFullYear(),m=d.getMonth(); 
 const rangeYesterday = () => { const d=new Date(),y=d.getFullYear(),m=d.getMonth(),dd=d.getDate()-1; return {start:new Date(y,m,dd,0,0,0).toISOString(),end:new Date(y,m,dd,23,59,59).toISOString()}; };
 const rangeWeekPrev  = () => { const end=new Date(); end.setDate(end.getDate()-7); const start=new Date(end); start.setDate(start.getDate()-7); return {start:start.toISOString(),end:end.toISOString()}; };
 const yesterdayLocal = () => { const d=new Date(); d.setDate(d.getDate()-1); return d.toLocaleDateString("sv-SE"); };
-
-// Calcula el tramo transcurrido del mes actual (0..1) para proyectar metas.
-function fraccionMesTranscurrido() {
-  const d = new Date();
-  const dia = d.getDate();
-  const fin = new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
-  return Math.min(Math.max(dia / fin, 0.01), 1);
-}
 
 function parseMeta(rows, clave, def) {
   const r = (rows || []).find(x => x.clave === clave);
@@ -355,6 +348,8 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
+    // Tras editar metas en Config, el cache de 60s no debe pintar cifras viejas.
+    invalidarCacheMetas();
     const today = rangeToday(), week = rangeWeek(), month = rangeMonth();
     const yesterday = rangeYesterday();
     const weekPrev = rangeWeekPrev();
@@ -719,9 +714,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
   const pctRecuperado = inversionTotal > 0 ? Math.min((recuperado / inversionTotal) * 100, 100) : 0;
   const restante = inversionTotal - recuperado;
   const paybackMeses = gananciaMes > 0 ? Math.max(Math.ceil(restante / gananciaMes), 0) : null;
-  const fracMes = fraccionMesTranscurrido();
-  const metaVentasMesProrrateada = Math.round((metas?.ventasMes || 0) * fracMes);
-  const metaConsultasMesProrrateada = Math.round((metas?.consultasMes || 0) * fracMes);
+  const metasPeriodo = metasDelPeriodo(new Date(), mezclarCfgMetas(metasTurnoCfg));
   const goToPage = (id, opts) => { if (setPage) setPage(id, opts); };
   const todoItems = [
     { id:"stock",    icon:"📦", count: alertas.bajoStock,      col: C.red,    label: "Reordenar productos",                sub: alertas.bajoStockNombres.join(", ") || "stock en 0",          onAction: () => goToPage("inv", {tab:"reabasto"}), actionLabel: "Ir a reabasto →" },
@@ -1115,21 +1108,21 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
         <InsightCard
           label="Ventas hoy" icon="💵" col={C.green}
           value={ventasHoy} display={fmtK(ventasHoy)}
-          meta={metas?.ventasDia} metaLabel="diaria" formatMeta={fmtK}
+          meta={metasPeriodo.dia} metaLabel="diaria" formatMeta={fmtK}
           delta={trends?.ventasHoy}
           onAction={() => goToPage("pos")} actionLabel="Ir a POS →"
         />
         <InsightCard
           label="Ventas esta semana" icon="📈" col={C.blue}
           value={ventasSemana} display={fmtK(ventasSemana)}
-          meta={metas?.ventasSemana} metaLabel="7 días" formatMeta={fmtK}
+          meta={metasPeriodo.semana} metaLabel={`semana (${(metasPeriodo.fracSemana * 100).toFixed(0)}%)`} formatMeta={fmtK}
           delta={trends?.ventasSemana}
           onAction={() => setPanelTab("resumen")} actionLabel="Ver resumen →"
         />
         <InsightCard
           label="Ventas del mes" icon="📅" col={C.blue}
           value={ventasMes} display={fmtK(ventasMes)}
-          meta={metaVentasMesProrrateada || metas?.ventasMes} metaLabel={`prorrateada (${(fracMes*100).toFixed(0)}% del mes)`} formatMeta={fmtK}
+          meta={metasPeriodo.mes} metaLabel={`mes (${(metasPeriodo.fracMes * 100).toFixed(0)}%)`} formatMeta={fmtK}
           delta={trends?.ventasMes}
           onAction={() => setPanelTab("resumen")} actionLabel="Ver detalle →"
         />
