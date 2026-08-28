@@ -111,6 +111,10 @@
       "destination": "/api/inventarioProcesarPdf?type=buscar-rappi"
     },
     {
+      "source": "/api/precios/nadro",
+      "destination": "/api/inventarioProcesarPdf?type=nadro-sync"
+    },
+    {
       "source": "/api/whatsapp/send",
       "destination": "/api/notifications/send?type=whatsapp"
     },
