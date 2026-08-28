@@ -78,7 +78,7 @@ function main() {
   }
   console.error(`✗ ${findings.length} posible(s) secreto(s) literal(es) en el schema dump:`);
   for (const f of findings) {
-    console.error(`  línea ${f.line}: [${f.name}] ${f.sample}`);
+    console.error(`  línea ${f.line}: [${f.name}]`);
   }
   console.error('No se pushea. Revisa a mano — hallazgo de seguridad aparte.');
   process.exit(1);
