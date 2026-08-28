@@ -94,87 +94,67 @@ export default function MonitorPreciosModule() {
   const aprobar = async (ids, precio) => {
     if (!ids.length) return;
     setBusy(true);
-    try {
-      const { data, error } = await supabase.rpc("admin_aprobar_propuestas_precio", {
-        p_session_token: sessionTok(),
-        p_ids: ids,
-        p_precio: precio == null || precio === "" ? null : Number(precio),
-      });
-      if (error) {
-        showToast(error.message || "No se pudo aprobar", "error");
-        return;
-      }
-      showToast(`Precios actualizados: ${data?.aprobadas ?? ids.length}`, "success");
-      setEditId(null);
-      cargar();
-    } catch (e) {
-      showToast(e?.message || "Se cayó la conexión. Intenta de nuevo.", "error");
-    } finally {
-      setBusy(false);
+    const { data, error } = await supabase.rpc("admin_aprobar_propuestas_precio", {
+      p_session_token: sessionTok(),
+      p_ids: ids,
+      p_precio: precio == null || precio === "" ? null : Number(precio),
+    });
+    setBusy(false);
+    if (error) {
+      showToast(error.message || "No se pudo aprobar", "error");
+      return;
     }
+    showToast(`Precios actualizados: ${data?.aprobadas ?? ids.length}`, "success");
+    setEditId(null);
+    cargar();
   };
 
   const rechazar = async (ids) => {
     if (!ids.length) return;
     setBusy(true);
-    try {
-      const { data, error } = await supabase.rpc("admin_rechazar_propuestas_precio", {
-        p_session_token: sessionTok(),
-        p_ids: ids,
-      });
-      if (error) {
-        showToast(error.message || "No se pudo rechazar", "error");
-        return;
-      }
-      showToast(`Rechazadas: ${data?.rechazadas ?? ids.length}`, "info");
-      cargar();
-    } catch (e) {
-      showToast(e?.message || "Se cayó la conexión. Intenta de nuevo.", "error");
-    } finally {
-      setBusy(false);
+    const { data, error } = await supabase.rpc("admin_rechazar_propuestas_precio", {
+      p_session_token: sessionTok(),
+      p_ids: ids,
+    });
+    setBusy(false);
+    if (error) {
+      showToast(error.message || "No se pudo rechazar", "error");
+      return;
     }
+    showToast(`Rechazadas: ${data?.rechazadas ?? ids.length}`, "info");
+    cargar();
   };
 
   const decidirMapeo = async (id, accion) => {
     setBusy(true);
-    try {
-      const { error } = await supabase.rpc("admin_decidir_mapeo_monitor", {
-        p_session_token: sessionTok(),
-        p_id: id,
-        p_accion: accion,
-      });
-      if (error) {
-        showToast(error.message || "No se pudo guardar el mapeo", "error");
-        return;
-      }
-      showToast(accion === "ACEPTAR" ? "Mapeo aceptado" : "Mapeo invalidado", "success");
-      cargar();
-    } catch (e) {
-      showToast(e?.message || "Se cayó la conexión. Intenta de nuevo.", "error");
-    } finally {
-      setBusy(false);
+    const { error } = await supabase.rpc("admin_decidir_mapeo_monitor", {
+      p_session_token: sessionTok(),
+      p_id: id,
+      p_accion: accion,
+    });
+    setBusy(false);
+    if (error) {
+      showToast(error.message || "No se pudo guardar el mapeo", "error");
+      return;
     }
+    showToast(accion === "ACEPTAR" ? "Mapeo aceptado" : "Mapeo invalidado", "success");
+    cargar();
   };
 
   const resolverAnomalia = async (id, accion) => {
     setBusy(true);
-    try {
-      const { error } = await supabase.rpc("admin_resolver_anomalia_monitor", {
-        p_session_token: sessionTok(),
-        p_id: id,
-        p_accion: accion,
-      });
-      if (error) {
-        showToast(error.message || "No se pudo resolver", "error");
-        return;
-      }
-      showToast(accion === "ACEPTAR" ? "Anomalía aceptada (entra a la mediana)" : "Captura descartada", "success");
-      cargar();
-    } catch (e) {
-      showToast(e?.message || "Se cayó la conexión. Intenta de nuevo.", "error");
-    } finally {
-      setBusy(false);
+    const { error } = await supabase.rpc("admin_resolver_anomalia_monitor", {
+      p_session_token: sessionTok(),
+      p_id: id,
+      p_accion: accion,
+    });
+    setBusy(false);
+    if (error) {
+      showToast(error.message || "No se pudo resolver", "error");
+      return;
     }
+    showToast(accion === "ACEPTAR" ? "Anomalía aceptada (entra a la mediana)" : "Captura descartada", "success");
+    cargar();
   };
 
   const onRastrear = async () => {

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
-import { Pause, Play, RefreshCw, ShoppingBag } from "lucide-react";
+import { Pause, Play, RefreshCw, ShoppingBag, TrendingUp } from "lucide-react";
 import { C_LIGHT, BRAND } from "./constants";
 import { supabase } from "./supabase";
 import { Box, Btn, Tag, showToast, SkeletonTable } from "./ui";
+import RappiPreciosPanel from "./RappiPreciosPanel";
 
 const C = C_LIGHT;
 const STALE_MS = 10 * 60 * 1000;
@@ -29,7 +30,65 @@ function fmtWhen(iso) {
   }
 }
 
+const SUB_KEY = "farmacapital_rappi_subtab";
+
+function loadSubTab() {
+  try {
+    const saved = sessionStorage.getItem(SUB_KEY);
+    return saved === "precios" || saved === "disponibilidad" ? saved : "precios";
+  } catch {
+    return "precios";
+  }
+}
+
 export default function RappiSyncPanel() {
+  const [sub, setSub] = useState(loadSubTab);
+  const selectSub = (id) => {
+    setSub(id);
+    try { sessionStorage.setItem(SUB_KEY, id); } catch { /* noop */ }
+  };
+
+  return (
+    <div>
+      <div style={{
+        padding: "12px 24px 0",
+        display: "flex",
+        gap: 6,
+        borderBottom: `1px solid ${C.border}`,
+        background: C.card,
+      }}>
+        {[
+          { id: "precios", label: "Precios en línea", icon: TrendingUp },
+          { id: "disponibilidad", label: "Disponibilidad", icon: ShoppingBag },
+        ].map((t) => {
+          const active = sub === t.id;
+          const Icon = t.icon;
+          return (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => selectSub(t.id)}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "10px 14px", marginBottom: -1,
+                background: "transparent", border: "none",
+                borderBottom: `2px solid ${active ? BRAND.primary : "transparent"}`,
+                color: active ? BRAND.primary : C.textMid,
+                fontWeight: 700, fontSize: 13, cursor: "pointer",
+              }}
+            >
+              <Icon size={15} strokeWidth={2.1} aria-hidden />
+              {t.label}
+            </button>
+          );
+        })}
+      </div>
+      {sub === "precios" ? <RappiPreciosPanel /> : <RappiDisponibilidadPanel />}
+    </div>
+  );
+}
+
+function RappiDisponibilidadPanel() {
   const [loading, setLoading] = useState(true);
   const [paused, setPaused] = useState(false);
   const [reserva, setReserva] = useState("2");
@@ -80,20 +139,15 @@ export default function RappiSyncPanel() {
 
   const togglePause = async () => {
     setSaving(true);
-    try {
-      const next = !paused;
-      const { data, error } = await upsertConfig("rappi_sync_paused", next ? "true" : "false");
-      if (error || data?.success === false) {
-        showToast(error?.message || data?.error || "No se pudo pausar el sync", "error");
-        return;
-      }
-      setPaused(next);
-      showToast(next ? "Sync Rappi pausado. La cola sigue acumulando cambios." : "Sync Rappi reanudado.", "success");
-    } catch (e) {
-      showToast(e?.message || "Se cayó la conexión. Intenta de nuevo.", "error");
-    } finally {
-      setSaving(false);
+    const next = !paused;
+    const { data, error } = await upsertConfig("rappi_sync_paused", next ? "true" : "false");
+    setSaving(false);
+    if (error || data?.success === false) {
+      showToast(error?.message || data?.error || "No se pudo pausar el sync", "error");
+      return;
     }
+    setPaused(next);
+    showToast(next ? "Sync Rappi pausado. La cola sigue acumulando cambios." : "Sync Rappi reanudado.", "success");
   };
 
   return (

@@ -6,7 +6,6 @@ import {
   costoComparacionDe,
   filasCompraVigenteDesdeRecepcion,
 } from "./ultimaCompra";
-import { hoyISOMexico } from "./fecha";
 
 describe("compra vigente", () => {
   test("normaliza mayoristas del ticket", () => {
@@ -57,7 +56,7 @@ describe("compra vigente", () => {
     expect(filas[0].producto_id).toBe(10);
     expect(filas[0].precio).toBe(64.44);
     expect(filas[0].nombre_fuente).toBe("Farmalive");
-    expect(filas[0].fecha).toBe(hoyISOMexico());
+    expect(filas[0].fecha).toBe(new Date().toISOString().slice(0, 10));
   });
 
   test("lote anónimo más barato se queda el precio y toma el quién del ticket", () => {
@@ -82,6 +81,18 @@ describe("compra vigente", () => {
     expect(filas).toHaveLength(1);
     expect(filas[0].precio).toBe(59.45);
     expect(filas[0].nombre_fuente).toBe("Levic");
+  });
+
+  test("si el ticket no trae quién, usa el proveedor del lote", () => {
+    const u = compraVigenteDe(
+      {
+        costo: 59.45,
+        lotes: [{ activo: true, cantidad_actual: 12, proveedores: { nombre: "Farma City Iztapalapa" } }],
+      },
+      { ultima_compra: { precio: 59.45, nombre_fuente: "", fecha: "2026-08-16" } }
+    );
+    expect(u.precio).toBe(59.45);
+    expect(u.proveedor).toBe("Farma City");
   });
 
   test("Recibir no pisa el quién si ya hay proveedor aunque el ticket sea otro", () => {
