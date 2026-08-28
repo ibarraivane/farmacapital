@@ -19,12 +19,13 @@ export function esMismoDiaMexico(iso, dia = fechaLocalMexico()) {
   return fechaLocalMexico(dt) === dia;
 }
 
-/** Recargo de mostrador por servicio. No lo pone Mercado Pago: lo pone FarmaCapital. */
+/** Recargo de mostrador por servicio. No lo pone Mercado Pago: lo pone FarmaCapital.
+ *  Recargas (tiempo aire): comision 0. Recibos (CFE, Sky…): sí llevan recargo. */
 export const CATALOGO_SERVICIOS = [
-  { id: "telcel", categoria: "recarga", proveedor: "Telcel", comision: 5, emoji: "📱" },
-  { id: "movistar", categoria: "recarga", proveedor: "Movistar", comision: 5, emoji: "📱" },
-  { id: "att", categoria: "recarga", proveedor: "AT&T", comision: 5, emoji: "📱" },
-  { id: "unefon", categoria: "recarga", proveedor: "Unefon", comision: 5, emoji: "📱" },
+  { id: "telcel", categoria: "recarga", proveedor: "Telcel", comision: 0, emoji: "📱" },
+  { id: "movistar", categoria: "recarga", proveedor: "Movistar", comision: 0, emoji: "📱" },
+  { id: "att", categoria: "recarga", proveedor: "AT&T", comision: 0, emoji: "📱" },
+  { id: "unefon", categoria: "recarga", proveedor: "Unefon", comision: 0, emoji: "📱" },
   { id: "cfe", categoria: "luz", proveedor: "CFE", comision: 8, emoji: "💡" },
   { id: "telmex", categoria: "telefonia", proveedor: "Telmex", comision: 8, emoji: "☎️" },
   { id: "totalplay", categoria: "telefonia", proveedor: "Totalplay", comision: 8, emoji: "📺" },
@@ -41,12 +42,15 @@ export function recargoCatalogoDe(idOrProveedor) {
   const hit = CATALOGO_SERVICIOS.find(
     (s) => s.id === key || String(s.proveedor).toLowerCase() === key
   );
-  return money2(hit?.comision ?? 5);
+  return money2(hit?.comision ?? 0);
 }
 
-/** Recargo de farmacia: no se guarda en cero. El dueño puede corregir después. */
-export function recargoEsValido(comision) {
-  return money2(comision) > 0;
+/** Recargas van en 0. Recibos de servicio sí llevan recargo.
+ *  La RPC registrar_pago_servicio_pos debe usar la misma regla. */
+export function recargoEsValido(comision, categoria) {
+  const n = money2(comision);
+  if (String(categoria || "").toLowerCase() === "recarga") return n === 0;
+  return n > 0;
 }
 
 export function money2(n) {
