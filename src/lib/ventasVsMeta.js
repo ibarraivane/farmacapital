@@ -1,12 +1,59 @@
 /** Ventas vs meta del dashboard. Fechas en calendario de la farmacia (CDMX). */
 
 import { metaDiaCompleto } from "../utils/turnosMetas";
-import { TZ_FARMACIA, ymdLocalDate, ymdMexico as ymdMexicoFecha } from "./fecha";
+import {
+  TZ_FARMACIA,
+  addDaysISO,
+  rangoDiaMexico,
+  ymdLocalDate,
+  ymdMexico as ymdMexicoFecha,
+} from "./fecha";
 import { metasDelPeriodo } from "./metasDelPeriodo";
 
 export { TZ_FARMACIA };
 export function ymdMexico(value = new Date()) {
   return ymdMexicoFecha(value);
+}
+
+/** Instante de inicio del día civil de farmacia (para Admin / KPIs). */
+export function inicioDiaFarmacia(ymd) {
+  const r = rangoDiaMexico(ymd);
+  return r?.start ? new Date(r.start) : null;
+}
+
+/** Día del calendario de la farmacia desplazado n días. */
+export function ymdFarmaciaMas(dias, base = new Date()) {
+  return addDaysISO(ymdMexico(base), Number(dias) || 0);
+}
+
+/**
+ * Rango ISO del día en farmacia.
+ * Admin espera end inclusivo (último ms); fecha.rangoDiaMexico usa [start, end).
+ */
+export function rangoDiaFarmacia(ymd) {
+  const r = rangoDiaMexico(ymd);
+  if (!r?.start || !r?.end) return null;
+  return { start: r.start, end: new Date(new Date(r.end).getTime() - 1).toISOString() };
+}
+
+export function inicioMesFarmaciaYmd(base = new Date()) {
+  return `${ymdMexico(base).slice(0, 8)}01`;
+}
+
+export function fraccionMesFarmacia(base = new Date()) {
+  const [y, m, d] = ymdMexico(base).split("-").map(Number);
+  const diasDelMes = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  return Math.min(Math.max(d / diasDelMes, 0.01), 1);
+}
+
+export function fmtDateMexico(value = new Date()) {
+  return new Date(value).toLocaleDateString("es-MX", {
+    timeZone: TZ_FARMACIA,
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
 }
 
 /** Fecha/hora de mostrador (CDMX). Evita que desde Europa el ticket salte al día siguiente. */
