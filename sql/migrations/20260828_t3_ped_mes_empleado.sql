@@ -1,0 +1,21 @@
+-- T3 · ped_mes del dashboard: incluir nombre de empleado
+--
+-- NO EJECUTAR este archivo a ciegas como create or replace de toda la función.
+-- Protocolo: sacar pg_get_functiondef de empleado_dashboard_operacion_bundle
+-- (definición VIVA), snapshot, y en ped_mes sustituir el jsonb_agg por el
+-- fragmento de abajo (left join usuarios). Luego apply fuera de horario.
+--
+-- Hasta que esto esté en vivo, "Ventas por empleado" muestra UUIDs (atendido_por).
+
+-- Fragmento a poner en el jsonb del bundle (clave 'ped_mes'):
+--
+-- 'ped_mes', coalesce((
+--   select jsonb_agg(jsonb_build_object(
+--     'total', p.total,
+--     'atendido_por', p.atendido_por,
+--     'usuarios', jsonb_build_object('nombre', u.nombre)
+--   ))
+--   from public.pedidos p
+--   left join public.usuarios u on u.id = p.atendido_por
+--   where (p.estado)::text = 'completado' and p.created_at >= v_ms
+-- ), '[]'::jsonb),
