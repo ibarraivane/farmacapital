@@ -7,6 +7,15 @@ Cada tarea es **un commit independiente**. Están ordenadas: T1 y T2 primero.
 `@AUDITORIA_MODULOS.md`, y pega el bloque `PROMPT` de la tarea que toque.
 Las reglas de `.cursor/rules/farmacapital-invariantes.mdc` se aplican solas.
 
+> ## ⚠️ Esto corre en producción
+>
+> Una sola base Supabase, sin staging. Farmacia abierta, vendiendo.
+> **Ninguna tarea de este archivo modifica, borra ni migra datos existentes.**
+> Si un paso te pide mutar filas, está mal escrito: para y pregunta.
+>
+> Lee **[Protocolo de producción](#protocolo-de-producción)** antes de tocar SQL.
+> Es obligatorio, no una recomendación.
+
 **Antes de empezar cualquier tarea de SQL**, corre las consultas de
 [Verificación previa](#verificación-previa-obligatoria) contra Supabase. Varias tareas
 cambian de forma según lo que devuelvan.
@@ -48,6 +57,89 @@ select count(*) as productos_descuadrados from (
 
 ---
 
+---
+
+## Protocolo de producción
+
+### Clasificación de riesgo
+
+| Tarea | Qué toca | ¿Riesgo para datos existentes? |
+|---|---|---|
+| T3, T4, T5, T6, T8 | Solo código del front | **Ninguno.** Deploy normal, revertible con un revert |
+| T2 | `create` de funciones/tablas que faltan | Ninguno **si** usas `if not exists` y no re-declaras nada que ya exista |
+| T1 | `create or replace` de la función de **venta** | Ninguno sobre filas viejas, pero **cambia cómo se cobra desde ese segundo**. Ver abajo |
+| T7 | `alter table pedidos add column` | Ninguno con `default 0`. **Sin backfill** |
+| T9 | Funciones que **descuentan stock** | **Alto.** No entrar sin ambiente de pruebas |
+
+Nada aquí hace `update`, `delete` ni `truncate` sobre datos históricos. Si en algún momento
+alguien propone un backfill (por ejemplo, llenar `total_devuelto` hacia atrás), eso es un
+proyecto aparte, con su propio respaldo y su propia ventana. No lo mezcles con estas tareas.
+
+### La regla que más importa
+
+**Nunca corras un `create or replace function` copiado de un archivo del repo.**
+
+`sql/` tiene 255 archivos sin orden y funciones redefinidas hasta 19 veces. La versión del
+repo puede ser **más vieja** que la que está viva en Supabase. Si la pegas tal cual, revierte
+silenciosamente arreglos que ya estaban aplicados — y en `create_sale_transaction_v2` eso
+significa romper el cobro en el mostrador, en vivo, sin aviso.
+
+El procedimiento correcto, siempre:
+
+```sql
+-- 1. Sacar la definición VIVA y guardarla (esto es tu rollback).
+select pg_get_functiondef(p.oid)
+from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+where n.nspname = 'public' and p.proname = 'create_sale_transaction_v2';
+```
+
+2. Pega ese resultado en `sql/migrations/000_snapshot_<fecha>_<funcion>.sql` y **comitéalo**.
+   Ese archivo es el botón de deshacer.
+3. Sobre **esa** definición (no la del repo) aplica el cambio de la tarea.
+4. Ejecuta el `create or replace` resultante.
+5. Si algo sale mal: vuelve a ejecutar el snapshot del paso 2. Vuelve al estado exacto anterior.
+
+`create or replace function` es atómico y no bloquea ventas en curso: una venta que ya empezó
+termina con la versión vieja, la siguiente usa la nueva. No hay estado intermedio.
+
+### Antes de cualquier ejecución de SQL
+
+1. **Confirma que el respaldo de hoy corrió.** El workflow `backup.yml` hace `pg_dump` diario
+   a las 06:30 UTC (00:30 CDMX) y guarda 30 días. Revisa en GitHub → Actions que el último
+   corrió en verde. Si no, dispáralo a mano (`workflow_dispatch`) y espera a que termine.
+2. **Ventana horaria.** Fuera del horario de mostrador. Nada de SQL en hora pico.
+3. **Una tarea a la vez.** Ejecuta, verifica en la app real, y recién entonces la siguiente.
+   Si algo se rompe quieres saber exactamente qué lo rompió.
+4. **Ten el snapshot abierto** en otra pestaña antes de ejecutar. Si hay que revertir, son
+   segundos, no minutos buscando el archivo.
+
+### Cómo probar sin ensuciar datos
+
+En orden de preferencia:
+
+1. **Consultas de verificación que no escriben** — comparan lo que la función *calcularía*
+   contra lo que el front manda. Cada tarea trae la suya. Empieza siempre por aquí.
+2. **Una copia real para pruebas.** Restaura el último `pg_dump` en un Postgres local o en un
+   segundo proyecto Supabase. Es la única forma honesta de probar T9. Vale el rato que toma.
+3. **Transacción con `rollback`** — sirve, pero deja huella: consume ids de secuencia
+   (`pedidos.id` avanza aunque revierta). Inofensivo, pero no lo uses en bucle ni te asustes
+   si ves un salto de folio.
+4. **Venta real de prueba en el POS** — última opción. Es una venta de verdad: aparece en el
+   corte de caja y en el dashboard. Si la haces, hazla por el monto mínimo y devuélvela por
+   el flujo normal de Devoluciones, para que quede el rastro correcto en vez de un borrado.
+
+**Nunca:** `update`/`delete` a mano para "dejar limpio" lo que dejó una prueba. Un dato de
+prueba trazable es mejor que un borrado sin rastro en una farmacia.
+
+### Orden de despliegue recomendado
+
+Las tareas de **solo front** (T4, T6, T3-parte-JS) no tocan la base y se pueden desplegar
+cualquier día: si algo falla, `git revert` y redeploy.
+
+Las de SQL (T1, T2, T3-parte-SQL, T7) van de a una, con snapshot previo, fuera de horario.
+
+---
+
 ## T1 · Aplicar `descuento_pct` en el cobro · CRÍTICO · ~30 min
 
 ### Qué pasa
@@ -57,8 +149,14 @@ y aborta. Cualquier producto con `descuento_pct > 0` es invendible.
 
 ### Archivos
 
-- `sql/patch_create_sale_precio_unidad_regla.sql` (definición vigente de `create_sale_transaction_v2`)
-- Nuevo: `sql/migrations/001_venta_aplica_descuento_pct.sql`
+- **Punto de partida: la definición VIVA en Supabase**, no la del repo. Ver
+  [Protocolo](#la-regla-que-más-importa). `create_sale_transaction_v2` está declarada
+  9 veces en `sql/`; pegar la del repo puede revertir arreglos ya aplicados y romper el
+  cobro en vivo.
+- `sql/migrations/000_snapshot_<fecha>_create_sale_transaction_v2.sql` (rollback)
+- `sql/migrations/001_venta_aplica_descuento_pct.sql` (el cambio)
+- Referencia de lectura: `sql/patch_create_sale_precio_unidad_regla.sql` — sirve para ubicar
+  **dónde** van los cambios, no para copiar el cuerpo.
 
 ### Cambio exacto
 
@@ -118,21 +216,43 @@ y en su bloque de precio.
 > `cobroLinea` en `src/utils/pesoPublico.js:10-13`, que hace
 > `pesoPublico(precio * (1 - pct/100))`.
 
-### Verificación
+### Verificación (sin escribir nada)
+
+**Paso 1 — comprobar que las dos fórmulas coinciden.** No toca datos:
 
 ```sql
--- Sandbox: no deja rastro.
-begin;
-update productos set descuento_pct = 10 where id = <ID_DE_PRUEBA>;
-select * from create_sale_transaction_v2(
-  <USER_ID>, 'efectivo', <total_con_descuento_redondeado>,
-  '[{"producto_id":<ID_DE_PRUEBA>,"cantidad":1,"modo_venta":"caja"}]'::jsonb,
-  null, 'pos');
-rollback;
+-- Lo que el RPC va a calcular, producto por producto, para los que tienen descuento.
+select p.id, p.nombre, p.precio, p.descuento_pct,
+       public.peso_publico(p.precio * (1 - coalesce(p.descuento_pct,0)/100.0)) as cobrara_el_rpc
+from public.productos p
+where coalesce(p.descuento_pct,0) > 0
+order by p.nombre;
 ```
 
-Y en el POS real: producto con 10% → agregar al carrito → cobrar. No debe salir
-"Total mismatch".
+Compara `cobrara_el_rpc` con lo que muestra el POS en la línea del carrito. Tienen que ser
+idénticos: el front hace `pesoPublico(precio * (1 - pct/100))` en
+`src/utils/pesoPublico.js:10-13`.
+
+**Paso 2 — no romper lo que ya funciona.** Para productos SIN descuento el resultado no
+puede cambiar:
+
+```sql
+select count(*) as deberia_ser_cero
+from public.productos p
+where coalesce(p.descuento_pct,0) = 0
+  and public.peso_publico(p.precio * (1 - coalesce(p.descuento_pct,0)/100.0))
+      is distinct from public.peso_publico(p.precio);
+```
+
+**Paso 3 — prueba de punta a punta.** Solo si los pasos 1 y 2 cuadran, y fuera de horario:
+una venta real en el POS de un producto con descuento, por el monto más bajo posible.
+No debe salir "Total mismatch". Déjala registrada o devuélvela por el flujo normal de
+Devoluciones — nunca la borres a mano.
+
+> Si la consulta #1 de la verificación previa devolvió **0 productos con descuento**, el bug
+> no está lastimando hoy. Aplica el arreglo igual (es preventivo y sin riesgo), pero el
+> paso 3 tendrás que hacerlo poniendo un descuento a un producto real. Ponlo, prueba,
+> y déjalo o quítalo desde la UI de Inventario — no con SQL.
 
 ### Criterio de aceptación
 
@@ -140,19 +260,26 @@ Y en el POS real: producto con 10% → agregar al carrito → cobrar. No debe sa
 - [ ] `pedido_items.precio_unitario` guarda el precio **con** descuento.
 - [ ] Venta sin descuento sigue cobrando igual que antes (no hay regresión de centavos).
 - [ ] `p_tipo = 'online'` sigue **sin** redondear a pesos enteros.
+- [ ] El snapshot de la función original está comiteado en `sql/migrations/000_*.sql`.
 
 ### PROMPT
 
 ```
 Lee @AUDITORIA_MODULOS.md sección A1 y @CURSOR_TAREAS.md tarea T1.
 
-Crea sql/migrations/001_venta_aplica_descuento_pct.sql con la definición completa
-de create_sale_transaction_v2 copiada de sql/patch_create_sale_precio_unidad_regla.sql,
-aplicando los tres cambios de T1 (declaración v_descuento_pct, y el select + bloque
-de precio en LOS DOS bucles).
+Esto va a producción en vivo, sin staging.
 
-Reglas: descuento antes del redondeo. No cambies nada más de la función. No toques
-el front. Deja el archivo idempotente (create or replace) y con el grant al final.
+Te voy a pegar la definición VIVA de create_sale_transaction_v2, sacada de Supabase con
+pg_get_functiondef. NO uses la del repo: hay 9 definiciones y la del repo puede ser vieja.
+
+1. Guarda lo que te pegue tal cual en sql/migrations/000_snapshot_<fecha>_create_sale_transaction_v2.sql
+   (es el rollback, no lo modifiques).
+2. Crea sql/migrations/001_venta_aplica_descuento_pct.sql partiendo de ESA definición y
+   aplicando los tres cambios de T1: declarar v_descuento_pct, agregarlo al select y aplicar
+   el descuento antes del peso_publico, en LOS DOS bucles.
+
+Reglas: descuento antes del redondeo. No cambies absolutamente nada más de la función.
+No toques el front. Ningún update/delete a datos. Deja el grant al final.
 ```
 
 ---
@@ -183,9 +310,14 @@ order by p.proname;
 Añade también las tablas que usan (`propuestas_precio`, `mapeos_monitor`,
 `anomalias_monitor`, o como se llamen — sácalas del `prosrc`) y sus `grant`.
 
+> **En vivo:** este paso es una **exportación, no una ejecución**. Estás copiando a `sql/`
+> lo que ya existe en Supabase. No corras nada de lo exportado contra la base: ya está ahí.
+> Los `create table` que escribas van con `if not exists`, y ningún `drop`.
+
 ### Paso 2 — si las funciones NO existen en Supabase
 
-Entonces esas dos pestañas llevan tiempo rotas y hay que decidir:
+Entonces esas dos pestañas llevan tiempo rotas — lo cual es una buena noticia para el
+riesgo: nadie depende de datos que nunca se generaron. Hay que decidir:
 escribirlas desde cero (el front ya define el contrato: mira los parámetros en
 `src/MonitorPreciosModule.jsx:37,58,62,97,115,130,146` y
 `src/DescuentoCaducidadModule.jsx:41,123,142`) **o** quitar las pestañas de
@@ -215,6 +347,10 @@ al `ped_mes` del bundle, que no tiene límite. Además rompe todas las comparati
 filtrar rangos del mes pasado — que siempre dan vacío.
 
 ### Cambio
+
+> **En vivo:** `empleado_dashboard_operacion_bundle` es una función de **solo lectura**
+> (puros `select`). Cambiarla no puede alterar datos. Aun así, saca el snapshot antes:
+> es la misma regla para toda función que reemplaces.
 
 **a) SQL** — `sql/rpc_p1_lecturas_admin.sql:376`. `ped_mes` no trae el nombre del empleado,
 que es la única razón por la que existe el fetch de 500. Agrégalo:
@@ -452,6 +588,14 @@ cuenta como venta para siempre — e infla el `recuperado` del ROI.
 
 ### Cambio
 
+> **En vivo — lo más delicado de esta tarea es lo que NO se hace.**
+> El `alter table` con `default 0` no reescribe la tabla en Postgres 11+ (Supabase corre 17),
+> así que es casi instantáneo. Toma un lock breve: hazlo fuera de horario igual.
+> **Prohibido el backfill.** Las devoluciones históricas se quedan con `total_devuelto = 0`
+> y los reportes viejos siguen mostrando lo mismo de siempre. Recalcular hacia atrás es un
+> proyecto aparte, con respaldo y ventana propios. Si lo mezclas aquí, cambias números que
+> alguien ya cerró contablemente.
+
 1. Migración: `alter table pedidos add column if not exists total_devuelto numeric not null default 0;`
 2. En `fn_ejecutar_efectos_devolucion`, sumar el monto devuelto a `pedidos.total_devuelto`
    del `v_dev.pedido_id`.
@@ -496,6 +640,12 @@ Cuatro implementaciones de "saca N unidades de los lotes", dos sin filtro de cad
 `consume_stock_via_lotes` se contradice: valida contra stock no vencido y luego consume
 vencidos primero.
 
+> **En vivo: no entres a esta tarea contra producción.** Es el único cambio que puede
+> corromper inventario de forma difícil de deshacer — un lote mal descontado no se arregla
+> con un revert de código. Restaura el último `pg_dump` en un Postgres local o en un segundo
+> proyecto Supabase, prueba ahí, y recién entonces planea el despliegue. Si no hay tiempo
+> para eso, no hay tiempo para esta tarea.
+
 **Antes de codificar hay que decidir:** ¿un ajuste de merma **debe** consumir lotes vencidos
 primero (para darlos de baja) o no? La respuesta define la política.
 
@@ -537,18 +687,21 @@ RPCs fantasma.
 
 ## Resumen de orden
 
-| # | Tarea | Riesgo | Depende de |
-|---|---|---|---|
-| T1 | `descuento_pct` en el cobro | Bajo | Verificación previa #1 y #2 |
-| T2 | RPCs faltantes al repo | Bajo | Verificación previa #3 |
-| T3 | Totales del Dashboard | Bajo | — |
-| T4 | Bucle de recarga | Muy bajo | — |
-| T5 | `src/lib/fecha.js` | Medio (toca 40 sitios) | — |
-| T6 | `try/finally` | Muy bajo | — |
-| T7 | `total_devuelto` | Medio (SQL + reporting) | T3 |
-| T8 | Metas unificadas | Bajo | T3 |
-| T9 | FEFO único | Alto (toca stock) | Decisión de producto |
-| T10 | Conectar o borrar | Bajo | Decisión de producto |
+| # | Tarea | Toca | Datos existentes | Cómo se revierte |
+|---|---|---|---|---|
+| T4 | Bucle de recarga | Front | No | `git revert` |
+| T6 | `try/finally` | Front | No | `git revert` |
+| T3 | Totales del Dashboard | Front + función de lectura | No | `git revert` + snapshot |
+| T5 | `src/lib/fecha.js` | Front | No | `git revert` |
+| T8 | Metas unificadas | Front | No | `git revert` |
+| T1 | `descuento_pct` en el cobro | Función de **escritura** | No, pero cambia el cobro futuro | Snapshot |
+| T2 | RPCs faltantes al repo | Solo archivos | No (es exportar) | — |
+| T7 | `total_devuelto` | `alter table` + lecturas | No, **sin backfill** | Snapshot; la columna se puede dejar |
+| T9 | FEFO único | Funciones de **stock** | **Alto** | Snapshot, pero un lote mal descontado no se revierte solo |
+| T10 | Conectar o borrar | Depende | No | `git revert` |
 
-T1–T4 son commits chicos e independientes: se pueden hacer y desplegar el mismo día.
-T5 y T6 son mecánicos pero largos. T7–T10 necesitan que alguien decida antes de escribir código.
+Ordenadas así, los primeros cinco no tocan la base: se pueden desplegar hoy mismo y el
+peor caso es un `git revert`. Los de SQL van después, de a uno, con snapshot y fuera de horario.
+
+T7–T10 necesitan que alguien decida antes de escribir código. T9 además necesita una copia
+restaurada de la base: no se toca contra producción.

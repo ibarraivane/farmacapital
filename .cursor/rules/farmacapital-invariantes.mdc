@@ -8,6 +8,27 @@ alwaysApply: true
 Salieron de la auditoría de `AUDITORIA_MODULOS.md`. Si un cambio contradice alguno,
 para y explica por qué antes de escribirlo.
 
+## Producción en vivo — antes que nada
+
+Hay **una sola base Supabase**. No hay staging. La farmacia está abierta y vendiendo
+mientras tú escribes código.
+
+- **Nunca propongas `update`, `delete`, `truncate` ni backfills sobre datos existentes.**
+  Si una tarea parece necesitarlo, dilo y espera; no lo escribas.
+- **Nunca corras un `create or replace function` copiado de un archivo de `sql/`.**
+  Hay 255 archivos sin orden y funciones redefinidas hasta 19 veces: la del repo puede ser
+  más vieja que la viva y revertir arreglos en silencio. Parte siempre de la definición viva
+  (`pg_get_functiondef`), guárdala como snapshot en `sql/migrations/000_*.sql` — ese archivo
+  es el rollback — y aplica el cambio sobre ella.
+- **Prefiere verificaciones que no escriben.** Una consulta que compara lo que la función
+  *calcularía* contra lo que el front manda vale más que una venta de prueba.
+- **Si hay que probar con datos reales**, que sea por el flujo normal de la app (una venta
+  mínima, devuelta por Devoluciones). Nunca limpies con SQL a mano: en una farmacia un dato
+  de prueba trazable es mejor que un borrado sin rastro.
+- **Lo que toca stock no se prueba en producción.** Restaura el `pg_dump` diario en una copia.
+
+Protocolo completo en `CURSOR_TAREAS.md` → "Protocolo de producción".
+
 ## Dinero
 
 1. **El precio que cobra el POS y el que valida la base tienen que salir de la misma fórmula.**
