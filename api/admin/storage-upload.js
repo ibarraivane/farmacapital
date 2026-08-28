@@ -3,6 +3,7 @@
 const {
   getSupabaseAdminConfig,
   validateEmployeeSession,
+  validateAdminSession,
   readRawBody,
 } = require('../_lib/supabaseAdmin');
 const { isRhDocumentoRequest, rhDocumentoHandler } = require('../_lib/rhDocumentoHandler');
@@ -70,6 +71,12 @@ async function handler(req, res) {
   const valid = await validateEmployeeSession(supabaseUrl, serviceKey, sessionToken);
   if (!valid) {
     return res.status(401).json({ ok: false, error: 'invalid_session' });
+  }
+  if (bucket !== 'cortes') {
+    const isAdmin = await validateAdminSession(supabaseUrl, serviceKey, sessionToken);
+    if (!isAdmin) {
+      return res.status(403).json({ ok: false, error: 'admin_required' });
+    }
   }
 
   let body;

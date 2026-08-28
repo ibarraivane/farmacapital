@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useCatalogoVivo } from "./hooks/useCatalogoVivo";
 import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
 import { showToast, HorizontalScrollSync, SkeletonTable } from "./ui";
@@ -61,8 +62,9 @@ export default function ReabastoModule() {
   const [filtroTienda, setFiltroTienda] = useState("todas");
   const [filtroUrgencia, setFiltroUrgencia] = useState("");
 
-  const fetchProductos = useCallback(async () => {
-    setLoading(true);
+  const fetchProductos = useCallback(async (opts) => {
+    const silencioso = !!(opts && typeof opts === "object" && opts.silencioso);
+    if (!silencioso) setLoading(true);
     const tok = sessionStorage.getItem("farmacapital_session_token");
     const [prodRes, lotesRes, viewRes] = await Promise.all([
       fetchProductosPaginados({ activosSolo: true, order: "nombre" }),
@@ -71,12 +73,14 @@ export default function ReabastoModule() {
     ]);
 
     if (prodRes.error) {
-      showToast("No se pudo cargar inventario: " + prodRes.error.message, "error");
-      setProductos([]);
-      setLoading(false);
+      if (!silencioso) {
+        showToast("No se pudo cargar inventario: " + prodRes.error.message, "error");
+        setProductos([]);
+        setLoading(false);
+      }
       return;
     }
-    if (lotesRes.error) {
+    if (lotesRes.error && !silencioso) {
       showToast("No se pudieron cargar lotes PEPS: " + lotesRes.error.message, "warning");
     }
 
@@ -109,10 +113,11 @@ export default function ReabastoModule() {
       };
     });
     setProductos(rows);
-    setLoading(false);
+    if (!silencioso) setLoading(false);
   }, []);
 
   useEffect(()=>{ fetchProductos(); },[fetchProductos]);
+  useCatalogoVivo(() => fetchProductos({ silencioso: true }));
 
   const alertas = useMemo(() => (
     productos
@@ -291,19 +296,32 @@ export default function ReabastoModule() {
     </button>
   );
 
+  const costoCompra = (p) => {
+    const n = Number(p.costo);
+    return Number.isFinite(n) && n > 0.009 ? n : 0;
+  };
+
+  const renderTuCosto = (p) => {
+    const costo = costoCompra(p);
+    if (!costo) return <span style={{color:C.textMid}}>—</span>;
+    return <span style={{fontWeight:700,color:C.text,whiteSpace:"nowrap"}}>{fmt(costo)}</span>;
+  };
+
   const renderComprarEn = (p) => {
     const tienda = p.mejorTienda;
     if (!tienda) {
       return <span style={{color:C.textMid}}>Sin precio de tienda</span>;
     }
-    const costo = Number(p.costo) || 0;
+    const costo = costoCompra(p);
     const ahorra = costo > 0 && tienda.precio < costo - 0.01;
+    const masCaro = costo > 0 && tienda.precio > costo + 0.01;
     return (
       <div>
         <div style={{fontWeight:800,color:ahorra ? C.green : C.text}}>{tienda.label}</div>
-        <div style={{fontSize:10,color:ahorra ? C.green : C.textMid,marginTop:2}}>
+        <div style={{fontSize:10,color:ahorra ? C.green : masCaro ? C.amber : C.textMid,marginTop:2}}>
           {fmtPrecioRef(tienda.precio)}
-          {ahorra ? ` · ahorras ${fmtPrecioRef(costo - tienda.precio)}` : ""}
+          {ahorra ? ` · ahorras ${fmtPrecioRef(costo - tienda.precio)} vs tu costo` : ""}
+          {masCaro ? ` · +${fmtPrecioRef(tienda.precio - costo)} vs tu costo` : ""}
         </div>
       </div>
     );
@@ -422,21 +440,27 @@ export default function ReabastoModule() {
                           <div style={{fontSize:16,fontWeight:800,color:p.stock===0?C.red:C.text}}>{p.stock}</div>
                         </div>
                         <div>
+                          <div style={{fontSize:10,color:C.textDim,fontWeight:700}}>TU COSTO</div>
+                          <div style={{fontSize:16,fontWeight:800,color:C.text}}>{costoCompra(p) ? fmt(costoCompra(p)) : "—"}</div>
+                        </div>
+                        <div>
                           <div style={{fontSize:10,color:C.textDim,fontWeight:700}}>SUGERIDO</div>
                           <div style={{fontSize:16,fontWeight:800,color:C.textMid}}>{cantidadSugerida(p)}</div>
                         </div>
+                      </div>
+                      <div style={{display:"flex",alignItems:"center",gap:12,marginTop:10}}>
                         <div>
                           <div style={{fontSize:10,color:C.textDim,fontWeight:700}}>PEDIR</div>
                           {inputPedir(p)}
                         </div>
+                        <div style={{fontSize:12,minWidth:0,flex:1}}>{renderComprarEn(p)}</div>
                       </div>
-                      <div style={{marginTop:8,fontSize:12}}>{renderComprarEn(p)}</div>
                     </div>
                   ))}
                 </div>
               ) : (
               <HorizontalScrollSync bodyMaxHeight="min(62dvh, 560px)">
-                <table style={{width:"100%",minWidth:980,borderCollapse:"collapse",fontSize:12}}>
+                <table style={{width:"100%",minWidth:1080,borderCollapse:"collapse",fontSize:12}}>
                   <thead>
                     <tr>
                       <th style={{padding:"9px 12px",textAlign:"left",color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`,position:"sticky",top:0,zIndex:4,background:C.cardDark,boxShadow:`0 1px 0 ${C.border}`}}>
@@ -458,7 +482,7 @@ export default function ReabastoModule() {
                           }
                         }}/>
                       </th>
-                      {["Producto","SKU","Stock actual","Sugerido","Pedir","Comprar en","Urgencia"].map(h=>(
+                      {["Producto","SKU","Stock actual","Tu costo","Sugerido","Pedir","Comprar en","Urgencia"].map(h=>(
                         <th key={h} style={{padding:"9px 12px",textAlign:"left",color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap",position:"sticky",top:0,zIndex:4,background:C.cardDark,boxShadow:`0 1px 0 ${C.border}`}}>{h}</th>
                       ))}
                     </tr>
@@ -472,6 +496,7 @@ export default function ReabastoModule() {
                         <td style={{padding:"9px 12px",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>{p.nombre}</td>
                         <td style={{padding:"9px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,fontFamily:"monospace",fontSize:10}}>{p.sku||"—"}</td>
                         <td style={{padding:"9px 12px",color:p.stock===0?C.red:C.amber,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{p.stock}</td>
+                        <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`}}>{renderTuCosto(p)}</td>
                         <td style={{padding:"9px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{cantidadSugerida(p)}</td>
                         <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`}}>{inputPedir(p)}</td>
                         <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`}}>{renderComprarEn(p)}</td>

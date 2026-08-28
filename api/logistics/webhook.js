@@ -1,10 +1,24 @@
 'use strict';
 
+const { ingestRappiOrder, isRappiWebhookAuthorized, rappiWebhookSecretConfigured } = require('../_lib/rappiIngest');
+
 function normalizeSupabaseProjectUrl(url) {
   if (url == null || typeof url !== 'string') return url;
   let u = url.trim().replace(/\/+$/g, '');
   while (/\/rest\/v1$/i.test(u)) u = u.replace(/\/rest\/v1$/i, '').replace(/\/+$/g, '');
   return u;
+}
+
+function getQuery(req) {
+  try {
+    const q = req.query;
+    if (q && typeof q === 'object' && !Array.isArray(q)) return q;
+    const full = req.url || '';
+    const qs = full.includes('?') ? full.split('?')[1] : '';
+    return Object.fromEntries(new URLSearchParams(qs));
+  } catch {
+    return {};
+  }
 }
 
 async function safeJson(req) {
@@ -27,9 +41,29 @@ function mapDeliveryStatus(raw) {
   return s;
 }
 
+async function handleRappiOrder(req, res, body) {
+  if (!rappiWebhookSecretConfigured()) {
+    console.warn('[rappi-order] inerte: falta RAPPI_WEBHOOK_SECRET (o LOGISTICS_WEBHOOK_TOKEN)');
+    return res.status(503).json({ ok: false, skipped: 'not_configured' });
+  }
+  const auth = isRappiWebhookAuthorized(req);
+  if (!auth.ok) {
+    return res.status(401).json({ ok: false, error: auth.reason });
+  }
+  const result = await ingestRappiOrder(body);
+  const status = result.ok ? 200 : (result.error === 'payload_invalido' || result.error === 'falta_external_order_id' || result.error === 'sin_items' || result.error === 'item_invalido' || result.error === 'sku_no_existe' ? 400 : 502);
+  return res.status(status).json(result);
+}
+
 module.exports = async function handler(req, res) {
   if (!['POST', 'PUT'].includes(req.method)) {
     return res.status(405).json({ ok: false, error: 'method_not_allowed' });
+  }
+
+  const body = await safeJson(req);
+  const type = String(getQuery(req).type || body?.type || '').toLowerCase();
+  if (type === 'rappi-order' || type === 'rappi_order') {
+    return handleRappiOrder(req, res, body);
   }
 
   const SUPABASE_URL = normalizeSupabaseProjectUrl(process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL || '');
@@ -45,7 +79,6 @@ module.exports = async function handler(req, res) {
     return res.status(401).json({ ok: false, error: 'invalid_token' });
   }
 
-  const body = await safeJson(req);
   const pedidoId = Number(body?.pedidoId || body?.pedido_id || body?.orderId);
   const provider = String(body?.provider || body?.courier || 'manual').toLowerCase();
   const deliveryStatus = mapDeliveryStatus(body?.status || body?.delivery_status);

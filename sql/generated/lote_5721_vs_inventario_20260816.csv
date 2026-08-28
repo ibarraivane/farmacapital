@@ -1,0 +1,161 @@
+par,ean,estado,nombre_foto,sku,nombre_bd,codigo_bd,costo,precio,stock,nota
+0001,7501075727425,eq_sin_ean,Acetif (PARACETAMOL) Tableta 500 mg Caja de cartón con 10 tabletas Novag,EQ-NOV179,Acetif 10 Tab 500 Mg,,5.72,10,10,"mismo nombre · ['500', 'acetif'] nums=['10', '500']"
+0002,785118753528,fc_sin_ean,LESACLOR (ACICLOVIR) Suspensión 200 mg/5 mL caja con frasco con 125 mL MAVI,FC-B25094C4,Lesaclor,,44.43,60.0,1,mismo nombre · ['lesaclor'] nums=[]
+0003,7502001164833,eq_sin_ean,"Dison's Dex (Betametasona) Suspensión Inyectable 5 mg, 2 mg C/1 amp SON'S",EQ-SON160,Disons Dex 1 Fa 5/2 Mg,,36.86,59,1,"mismo nombre · ['dex'] nums=['1', '2', '5']"
+0004,7501537102982,fc_sin_ean,Celesbitan (Betametasona) Solución Inyectable 8 mg / 2 mL C/1 amp BRULUART,FC-DB3B2584,Celesbitan,,16.91,21.99,4,mismo nombre · ['celesbitan'] nums=[]
+0005,7502216805361,fc_sin_ean,Celecoxib (Celecoxib) Cápsulas 200 mg C/10 ULTRA,FC-E6B50AC3,Celecoxib,,34.82,48.0,2,mismo nombre · ['celecoxib'] nums=[]
+0006,7501349022799,en_inventario,ceftazidima (ceftazidima) Solución 1 g Inyectable C/1 FA AMSA,FC-357D4A17,Ceftazidima,7501349022799,45.42,59.05,2,EAN exacto
+0007,7506624900519,fc_sin_ean,Ceftriaxona (Ceftriaxona) Solución 1 g Inyectable C/1 FA beadvance,FC-C636D8EA,Ceftriaxona IM 1 g (Inyectable),,9.8,12.75,2,mismo nombre · ['ceftriaxona'] nums=['1']
+0008,7501349028913,falta,atorvastatina (atorvastatina) Tableta 40 mg C/10 AMSA,,,,,,,EAN nuevo
+0009,7501349012004,fc_sin_ean,Amcef I.M. (ceftriaxona) Solución 1 g Inyectable C/1 FA AMSA,FC-BE76D409,Amcef IM 1 g (Inyectable),,19.72,25.64,10,mismo nombre · ['amcef'] nums=['1']
+0010,7501349011007,fc_sin_ean,Amcef I.M. (ceftriaxona) Solución 500 mg Inyectable C/1 FA AMSA,FC-07F04F88,Amcef IM 500 mg (Inyectable),,19.43,25.26,2,"mismo nombre · ['500', 'amcef'] nums=['500']"
+0011,7502009745737,en_inventario,Beneventol (CEFIXIMA) Suspensión 100 mg / 5 mL 50 mL Maver,FC-9B93AC4C,Beneventol,7502009745737,97.6,157.0,1,EAN exacto
+0012,7501349023987,en_inventario,budesonida (budesonida) Suspensión 0.250 mg/2 mL nebulización  AMSA,FC-447B30F9,Budesonida,7501349023987,131.38,170.8,1,EAN exacto
+0013,7501349022799,duplicado_lote,ceftazidima (ceftazidima) Solución 1 g Inyectable C/1 FA AMSA,FC-357D4A17,Ceftazidima,7501349022799,45.42,59.05,2,misma caja que 0006 Ceftazidima
+0014,7501384541163,fc_sin_ean,Carbamazepina (Carbamazepina) Tableta 200 mg C/20 psicofarma,FC-885F2723,Carbamazepina,,18.11,29.0,6,mismo nombre · ['carbamazepina'] nums=[]
+0015,7502216792579,fc_sin_ean,Captopril (Captopril) Tabletas 25 mg C/30 ULTRA,FC-82F88FED,Captopril,,7.95,13.0,5,mismo nombre · ['captopril'] nums=[]
+0016,7501349024304,fc_sin_ean,budesonida (budesonida) Suspensión 0.500 mg/2 mL nebulización  AMSA,FC-281E0F22,Budesonida,,153.72,208.0,1,mismo nombre · ['budesonida'] nums=[]
+0017,7501825304562,fc_sin_ean,DEGORTZIN (Cetirizina) Solución 1 mg / mL 50 mL,FC-29670370,Degortzin,,35.71,49.0,2,mismo nombre · ['degortzin'] nums=[]
+0018,7503000422498,fc_sin_ean,Redalip (BEZAFIBRATO) Tabletas 200 mg C/30 maver,FC-6074BB64,Redalip,,21.01,30.0,4,mismo nombre · ['redalip'] nums=[]
+0019,7503001007090,en_inventario,Amifarin (Dicloxacilina) Suspensión 250 mg/5 mL 60 mL WANDEL,FC-9F67BB73,Amifarin,7503001007090,27.0,37.0,1,EAN exacto
+0020,780083140663,fc_sin_ean,GIMALXINA (Amoxicilina) Cápsula 500 mg C/12 Collins,FC-428A228F,Gimalxina,,23.57,38.0,2,mismo nombre · ['gimalxina'] nums=[]
+0021,785120755497,en_inventario,Norquinol (Norfloxacino) Tabletas 400 mg C/20 MAVI,FC-5D9DFA3D,Norquinol,7851207554970,48.87,79.0,4,EAN 12 dígitos = 7851207554970 en BD
+0022,7502213042745,eq_sin_ean,Protaisol (Bromuro de Ipratropio) Aerosol 20 µg 200 dosis,EQ-HIS085,Protaisol 1 Susp/Aer 200 Dos/5 12.80 G,,96.21,154,1,"mismo nombre · ['200', 'protaisol'] nums=['200']"
+0023,7502001163775,fc_sin_ean,"Acroxil-C (Amoxicilina, Bromhexina) Cápsulas 500 mg, 8 mg C/12 SON'S",FC-85BDBD3D,Acroxil-C,,25.42,35.0,1,mismo nombre · ['acroxil'] nums=[]
+0024,7501342803524,falta,Ácido Acetilsalicílico (Ácido Acetilsalicílico) Tabletas 100 mg LR C/30 beadvance,,,,,,,ASA 100 mg LR beadvance · no es el efervescente 300
+0025,7502009746093,fc_sin_ean,SIBICOS (BIFONAZOL) Crema 1% tubo 20 g Maver,FC-F817BC3A,Sibicos,,33.65,43.75,2,mismo nombre · ['sibicos'] nums=[]
+0026,7501349021983,fc_sin_ean,lincomicina (lincomicina) Solución 600 mg/2 mL Inyectable  AMSA,FC-E826D304,Lincomicina /2Ml 6 Ampolletas,,47.85,62.21,2,mismo nombre · ['lincomicina'] nums=['2']
+0027,7502009744877,fc_sin_ean,Odivitor (ATORVASTATINA) Tableta 20 mg C/10 maver,FC-A909ABC0,Odivitor,,13.77,19.0,6,mismo nombre · ['odivitor'] nums=[]
+0028,7503000422283,fc_sin_ean,"Bactiver F (SULFAMETOXAZOL, TRIMETOPRIMA) Tableta 800/160 mg C/14 maver",FC-F8691496,Bactiver F (Sulfametoxazol/Trimetoprima),,16.89,23.0,3,"mismo nombre · ['bactiver', 'sulfametoxazol', 'trimetoprima'] nums=[]"
+0029,7502216804661,fc_sin_ean,Amlodipino (Amlodipino) Tableta 5 mg C/30 avivia,FC-3B001F9B,Amlodipino,,9.04,11.76,3,mismo nombre · ['amlodipino'] nums=[]
+0030,7501349021570,falta,amoxicilina (amoxicilina) Cápsulas 500 mg C/12 AMSA,,,,,,,Amoxicilina caps 500 AMSA · no es Clamoxin 12H Ped
+0031,7501349021686,fc_sin_ean,claritromicina (Claritromicina) Tableta 500 mg  AMSA,FC-41339950,Claritromicina,,59.45,96.0,2,mismo nombre · ['claritromicina'] nums=[]
+0032,7501349025271,eq_sin_ean,bencilpenicilina compuesta (Benzatina/procaína/cristalina) Suspensión 1 200 000 UI  AMSA,EQ-AMS398,Bencil/Benz Comp 1 Fa 1.2 U 3 Ml,,18.07,29,5,mismo producto 1.2 MU
+0033,7502009740992,en_inventario,"Clamoxín (AMOXICILINA, ÁCIDO CLAVULÁNICO) Tableta 500/125 mg C/10 Maver",FC-5F30F9D4,Clamoxin (Amoxicilina/Clavulánico 500/125 mg),7502009740992,48.48,66.0,3,EAN exacto
+0034,7502001165311,fc_sin_ean,"Diviltac (Algestona, Estradiol) Inyectable 150/10 mg C/1 SON'S",FC-830BF3FB,Diviltac,,34.45,44.79,1,mismo nombre · ['diviltac'] nums=[]
+0035,780083141226,falta,"Perudil (Algestona, Estradiol) Inyectable 150/10 mg C/1 Collins",,,,,,,EAN nuevo
+0036,7501349021488,en_inventario,amikacina (amikacina) Solución 500 mg/2 mL C/2 amp AMSA,FC-11294615,Amikacina,7501349021488,31.94,51.11,1,EAN exacto
+0037,7501349021440,fc_sin_ean,amikacina (amikacina) Solución 500 mg/2 mL C/1 amp AMSA,FC-1FEA2FB7,Amikacina,,29.21,46.74,1,mismo nombre · ['amikacina'] nums=[]
+0038,7502009740763,en_inventario,"Clamoxín 12 H (AMOXICILINA, ÁCIDO CLAVULÁNICO) Tableta 875/125 mg C/10 Maver",FC-F22C72BE,Clamoxin 12H (Amoxicilina/Clavulánico),7502009740763,55.03,75.0,5,EAN exacto
+0039,7502009740503,en_inventario,"Clamoxín 12 H Junior (AMOXICILINA, ÁCIDO CLAVULÁNICO) Suspensión 400/57 mg/5 mL 50 mL Maver",FC-516C2E89,Clamoxin 12H Jr (Amoxicilina/Clavulánico susp.),7502009740503,36.79,50.0,3,EAN exacto
+0040,7502009740497,en_inventario,"Clamoxín 12 H Pediátrico (AMOXICILINA, ÁCIDO CLAVULÁNICO) Suspensión 200/28.5 mg/5 mL 40 mL Maver",FC-0E0A9E42,Clamoxin S (Amoxicilina/Clavulánico susp.),7502009740497,47.99,65.0,1,"EAN exacto · foto Clamoxin 12H Pediátrico, BD dice Clamoxin S — revisar nombre"
+0041,7503001007250,falta,"Valclan (Amoxicilina, Ácido clavulánico) TABLETA 875/125 mg C/10 WANDEL",,,,,,,EAN nuevo
+0042,7503001007199,falta,"Valclan (Amoxicilina, Ácido clavulánico) TABLETA 500/125 mg C/10 WANDEL",,,,,,,EAN nuevo
+0043,7501349022881,en_inventario,ampicilina (ampicilina) Tableta 1 g  AMSA,FC-F82A6E4B,Ampicilina,7501349022881,27.05,44.0,3,EAN exacto
+0044,7501349011175,en_inventario,PENIPOT (bencilpenicilina) Suspensión 800 000 UI  AMSA,FC-F183C6E9,Penipot,7501349011175,19.44,25.28,6,EAN exacto
+0045,7501349012172,fc_sin_ean,PENIPOT (bencilpenicilina) Suspensión 400 000 UI  AMSA,FC-3A4583F3,Penipot,,14.07,18.3,2,mismo nombre · ['penipot'] nums=[]
+0046,7503000422757,en_inventario,"PentiBroxil (AMOXICILINA, AMBROXOL) Cápsula 500/30 mg C/16 Maver",FC-B4477A00,Pentibroxil,7503000422757,30.04,41.0,2,EAN exacto
+0047,54321342,fc_sin_ean,Tropharma (ERITROMICINA) TABLETA 500 mg C/20 ALPHARMA,FC-86A95D07,Tropharma,,44.53,61.0,2,mismo nombre · ['tropharma'] nums=[]
+0048,7501384504908,eq_sin_ean,Ácido acetilsalicílico (Ácido acetilsalicílico) Tableta efervescente 300 mg C/20 psicofarma,EQ-ALP0300,Acido Acetilsalicilico Ef 20 Tab 300 Mg,,19.07,31,11,efervescente 300 C/20
+0049,7502240450018,eq_sin_ean,CHARYN (Azitromicina) Tabletas 500 mg C/3 WERMAR,EQ-WER038,Charyn 3 Tab 500 Mg,,24.98,40,6,"mismo nombre · ['500', 'charyn'] nums=['3', '500']"
+0050,7503001007113,fc_sin_ean,Amifarin (Dicloxacilina) Cápsula 500 mg C/20 WANDEL,FC-D5AC44CA,Amifarin,,45.78,62.0,2,mismo nombre · ['amifarin'] nums=[]
+0051,7502001165328,eq_sin_ean,Expicin (Ampicilina) Cápsulas 500 mg C/20 SON'S,EQ-SON237,Expicin 25 Caps 500 Mg,,29.56,48,5,"mismo nombre · ['500', 'expicin'] nums=['500']"
+0052,5887400973807,fc_sin_ean,clindamicina (clindamicina) Cápsula 300 mg C/16 AMSA,FC-CF18C740,Clindamicina,,30.54,49.0,3,mismo nombre · ['clindamicina'] nums=[]
+0053,7501258210393,fc_sin_ean,Azitromicina (Azitromicina) Suspensión 200 mg/5 mL 15 mL Serral,FC-D9391288,Azitromicina,,68.5,110.0,1,mismo nombre · ['azitromicina'] nums=[]
+0054,741339020894,fc_sin_ean,ciprofloxacino (ciprofloxacino) Tableta 250 mg  AMSA,FC-74A5ABEE,Ciprofloxacino,,13.69,22.0,2,ciprofloxacino (no la combo)
+0055,7502001165328,duplicado_lote,Expicin (Ampicilina) Cápsulas 500 mg C/20 SON'S,EQ-SON237,Expicin 25 Caps 500 Mg,,,,,misma caja que 0051 Expicin → EQ-SON237
+0056,7502001169296,fc_sin_ean,"Acroxil-C (Amoxicilina, Bromhexina) Suspensión 250/8 mg/5 mL 60 mL SON'S",FC-05965071,Acroxil-C,,24.05,33.0,1,mismo nombre · ['acroxil'] nums=[]
+0057,581520933707,fc_sin_ean,cefalexina (cefalexina) Cápsulas 500 mg C/20 AMSA,FC-2005DD57,Cefalexina,,39.84,64.0,4,mismo nombre · ['cefalexina'] nums=[]
+0058,7503000422696,fc_sin_ean,Pentiver (AMPICILINA) Suspensión 500 mg/5 mL 60 mL Maver,FC-B72A6420,Pentiver,,27.06,37.0,1,mismo nombre · ['pentiver'] nums=[]
+0059,7502009741050,en_inventario,Fasiclor (CEFACLOR) Suspensión 250 mg/5 mL 75 mL Maver,FC-9538F7D6,Fasiclor,7502009741050,81.18,110.0,1,EAN exacto
+0060,7502009741067,fc_sin_ean,Fasiclor (CEFACLOR) Suspensión 375 mg/5 mL 50 mL Maver,FC-01B2F362,Fasiclor,,49.85,68.0,1,mismo nombre · ['fasiclor'] nums=[]
+0061,7502009741289,fc_sin_ean,"CepoBrom (CEFALEXINA, BROMHEXINA) Cápsula 500/8.8 mg C/12 Maver",FC-6EAD98A9,Cepobrom,,47.97,65.0,1,mismo nombre · ['cepobrom'] nums=[]
+0062,019828833707,falta,Levofloxacino (Levofloxacino) Tableta 500 mg C/7 beadvance,,,,,,,EAN nuevo
+0063,7503001007120,fc_sin_ean,Mexapin (Ampicilina) Suspensión 125 mg/5 ml 60 mL WANDEL,FC-50587FA6,Mexapin,,13.93,19.0,2,mismo nombre · ['mexapin'] nums=[]
+0064,7502009741425,falta,Fasiclor (CEFACLOR) Cápsula 500 mg C/15 Maver,,,,,,,EAN nuevo
+0065,817317520707,fc_sin_ean,Namifen (ÁCIDO MEFENÁMICO) Tabletas 500 mg C/20 Novag,FC-AEA8C8DA,Namifen,,24.28,33.0,1,mismo nombre · ['namifen'] nums=[]
+0066,7502009741296,fc_sin_ean,Cefagen (CEFUROXIMA) Suspensión 250 mg/5 mL 50 mL Maver,FC-443C330E,Cefagen,,144.13,195.0,1,mismo nombre · ['cefagen'] nums=[]
+0067,7301348804309,fc_sin_ean,Alopurinol (Alopurinol) Tabletas 300 mg C/20 beadvance,FC-ACA2A2F6,Alopurinol,,21.46,35.0,2,mismo nombre · ['alopurinol'] nums=[]
+0068,7503000422719,fc_sin_ean,Pentiver (AMPICILINA) Suspensión 250 mg/5 mL 90 mL Maver,FC-7AA38F97,Pentiver,,31.2,43.0,1,mismo nombre · ['pentiver'] nums=[]
+0069,7502009749223,fc_sin_ean,Klarix (CLARITROMICINA) Suspensión 250 mg/5 mL 60 mL Maver,FC-8FB65B79,Klarix,,81.67,111.0,1,mismo nombre · ['klarix'] nums=[]
+0070,7501109763375,fc_sin_ean,BISOPROLOL (BISOPROLOL) TABLETAS 2.50 mg C/30 iQuifa,FC-C101D5B1,Bisoprolol,,97.51,157.0,1,mismo nombre · ['bisoprolol'] nums=[]
+0071,7502001163782,eq_sin_ean,Dicleophen (Dicloxacilina) Cápsulas 500 mg C/12 SON'S,EQ-SON039,Dicleophen 12 Caps 500 Mg,,26.82,43,2,"mismo nombre · ['500', 'dicleophen'] nums=['12', '500']"
+0072,52200809,falta,Cina (Levofloxacino) Tableta 750 mg C/7 Landsteiner,,,,,,,Cina levofloxacino 750 · el SKU existente es Cina ciprofloxacino
+0073,7502001165533,fc_sin_ean,"Nalixone (Ácido Nalidíxico, Fenazopiridina) Tabletas 500/50 mg C/20 SON'S",FC-E6112F15,Nalixone,,63.32,102.0,4,mismo nombre · ['nalixone'] nums=[]
+0074,7502009745119,en_inventario,Cefagen (CEFUROXIMA) Tableta 250 mg C/10 Maver,FC-2EDC6E3B,Cefagen,7502009745119,82.09,111.0,1,EAN exacto
+0075,7501349021044,falta,clindamicina (clindamicina) Solución 600 mg/4 mL Inyectable C/5 AMSA,,,,,,,EAN nuevo
+0076,7501349026094,fc_sin_ean,gentamicina (gentamicina) Solución Inyectable 160 mg/2 mL C/5 AMSA,FC-60F627D5,Gentamicina,,52.57,84.12,2,mismo nombre · ['gentamicina'] nums=[]
+0077,7502009741302,fc_sin_ean,Cefagen (CEFUROXIMA) Suspensión 125 mg/5 mL pediátrica 50 mL Maver,FC-A455EE80,Cefagen,,74.58,101.0,1,mismo nombre · ['cefagen'] nums=[]
+0078,7502213042325,eq_sin_ean,TERFHICID (Nitrofurantoína) Cápsula 100 mg C/40 FM,EQ-HIS075,Terfhicid 40 Caps 100 Mg,,46.05,74,1,"mismo nombre · ['100', 'terfhicid'] nums=['100', '40']"
+0079,7502009740480,fc_sin_ean,Cefalver (CEFALEXINA) Cápsula 500 mg C/20 Maver,FC-40CE757D,Cefalver,,62.48,85.0,1,mismo nombre · ['cefalver'] nums=[]
+0080,7501075715927,eq_sin_ean,Vermisen (ALBENDAZOL) Tabletas 200 mg C/6 Novag,EQ-NOV025,Vermisen 6 Tab 200 Mg,,12.38,20,2,"mismo nombre · ['200', 'vermisen'] nums=['200', '6']"
+0081,7502001162976,fc_sin_ean,Aspitak-P (Ácido Acetilsalicílico) Comprimidos 100 mg LR C/30 SON'S,FC-17376CAE,Aspitak-P,,19.72,27.0,2,mismo nombre · ['aspitak'] nums=[]
+0082,7502009741043,falta,Fasiclor (CEFACLOR) Suspensión 125 mg/5 ml 75 mL Maver,,,,,,,EAN nuevo
+0083,7502009740206,en_inventario,"Clamoxín (AMOXICILINA, ÁCIDO CLAVULÁNICO) Suspensión 125/31.25 mg/5 mL 60 mL Maver",FC-6519183A,Clamoxin (Amoxicilina/Clavulánico 500/125 mg),7502009740206,27.89,38.0,1,"EAN exacto · foto Clamoxin susp 125/31.25, BD dice Clamoxin 500/125 — revisar nombre"
+0084,7502009745140,falta,"Clamoxín S (AMOXICILINA, ÁCIDO CLAVULÁNICO) Suspensión 600/42.9 mg/5 mL 50 mL Maver",,,,,,,EAN nuevo
+0085,7502009745614,fc_sin_ean,Cefalver (CEFALEXINA) Tableta 1 g C/12 Maver,FC-492D652F,Cefalver,,43.35,59.0,1,mismo nombre · ['cefalver'] nums=[]
+0086,7502009741500,eq_sin_ean,"CefaBroxil (CEFALEXINA, AMBROXOL) Tableta 500/30 mg C/15 Maver",EQ-MAV142,Cefabroxil 15 Tab 500/30 Mg,,44.44,72,1,"mismo nombre · ['500', 'cefabroxil'] nums=['15', '30', '500']"
+0087,7502009745126,fc_sin_ean,Cefagen (CEFUROXIMA) Tableta 500 mg C/10 Maver,FC-E374F23E,Cefagen,,48.48,66.0,1,mismo nombre · ['cefagen'] nums=[]
+0088,785120753530,fc_sin_ean,LESACLOR (ACICLOVIR) Tabletas 400 mg C/35 MAVI,FC-B69FCBF4,Lesaclor,,146.11,198.0,1,mismo nombre · ['lesaclor'] nums=[]
+0089,7502001163782,duplicado_lote,Dicleophen (Dicloxacilina) Cápsulas 500 mg C/12 SON'S,EQ-SON039,Dicleophen 12 Caps 500 Mg,,,,,misma caja que 0071 Dicleophen → EQ-SON039
+0090,7502213042752,eq_sin_ean,CloFHiven (Beclometasona) Aerosol 50 µg,EQ-HIS087,Clofhiven 200 Dosis 50 Mcg/12.80g,,56.51,91,1,mismo nombre · ['clofhiven'] nums=['50']
+0091,7501075717860,fc_sin_ean,Oxivag (Ácido Alendrónico) Tabletas 70 mg C/4 Novag,FC-B2123139,Oxivag,,64.09,87.0,1,mismo nombre · ['oxivag'] nums=[]
+0092,7502009747656,fc_sin_ean,"Kurtosil (ÁCIDO FUSÍDICO, BETAMETASONA) Crema 20/1 mg tubo 15 g Maver",FC-697EEAD0,Kurtosil,,62.48,81.23,1,mismo nombre · ['kurtosil'] nums=[]
+0093,7501573900337,en_inventario,Cloxan (Ambroxol) Comprimidos 30 mg C/20 BIOMEP,FC-1DA570E3,Cloxan,7501573900337,9.75,12.68,2,EAN exacto
+0094,7501349028791,fc_sin_ean,aciclovir (Aciclovir) Tableta 400 mg  AMSA,FC-FD845E68,Aciclovir,,23.68,32.0,1,mismo nombre · ['aciclovir'] nums=[]
+0095,7503001007069,en_inventario,Vandix (Amoxicilina) Suspensión 250 mg/5 ml 75 mL WANDEL,FC-930E0B1B,Vandil,7503001007069,20.58,29.0,1,"EAN exacto · BD dice Vandil, foto Vandix (mismo producto). Queda EQ-WAN013 sin EAN."
+0096,7501342803524,duplicado_lote,Ácido Acetilsalicílico (Ácido Acetilsalicílico) Tabletas 100 mg LR C/30 beadvance,,,,,,,misma caja que 0024 ASA 100 LR
+0097,7501342803524,duplicado_lote,Ácido Acetilsalicílico (Ácido Acetilsalicílico) Tabletas 100 mg LR C/30 beadvance,,,,,,,misma caja que 0024 ASA 100 LR
+0098,7501349021051,en_inventario,ampicilina (ampicilina) Solución 500 mg Inyectable C/1 FA AMSA,FC-7F90064A,Ampicilina,7501349021051,20.37,32.6,2,EAN exacto
+0099,5178190973703,falta,ampicilina (ampicilina) Solución 1 g Inyectable C/1 FA AMSA,,,,,,,Ampicilina 1 g iny AMSA · no es Ampigrin AD
+0100,7502009745928,en_inventario,Beneventol (CEFIXIMA) Cápsula 400 mg C/3 Maver,FC-4BD80686,Beneventol,7502009745928,88.17,142.0,1,EAN exacto
+0101,7502009740763,duplicado_lote,Clamoxín 12 H (Amoxicilina / Ácido Clavulánico) Tableta 875/125 mg C/10 Maver,FC-F22C72BE,Clamoxin 12H (Amoxicilina/Clavulánico),7502009740763,55.03,75.0,5,misma caja que 0038 Clamoxin 12H
+0102,7503001007205,fc_sin_ean,"Vanmoxol (Amoxicilina, Ambroxol) Suspensión 250/15 mg/5 mL 90 mL WANDEL",FC-4C621D07,Vanmoxol,,18.03,29.0,2,mismo nombre · ['vanmoxol'] nums=[]
+0103,7501825304579,otra_ean,DEGORTZIN (Cetirizina) Solución 1 mg/mL 50 mL Degort's,FC-29670370,Degortzin,,,,,"mismo Degortzin que 0017, EAN 4579 vs 4562"
+0104,785118752330,eq_sin_ean,KROBICIN (Claritromicina) Suspensión 125 mg/5 mL 60 mL MAVI,EQ-MAI071,Krobicin 1 Susp 125mg/5/60 Ml,,45.41,73,1,"mismo nombre · ['krobicin'] nums=['125', '5', '60']"
+0105,780083140663,duplicado_lote,GIMALXINA (Amoxicilina) Cápsula 500 mg C/12 Collins,FC-428A228F,Gimalxina,,,,,misma caja que 0020 Gimalxina → FC-428A228F
+0106,785118754242,fc_sin_ean,SUPRATEX DAC (Ambroxol / Levodropropizina) Solución 300/600 mg/100 mL 120 mL MAVI,FC-1FFBB505,Supratex levodropropizina jarabe 120 mL,,42.14,57.0,4,"mismo nombre · ['120', 'levodropropizina', 'supratex'] nums=['120']"
+0107,7503000422498,duplicado_lote,Redalip (Bezafibrato) Tabletas 200 mg C/30 Maver,FC-6074BB64,Redalip,,,,,misma caja que 0018 Redalip → FC-6074BB64
+0108,7503004908820,fc_sin_ean,Cinarizina (Cinarizina) Tabletas 75 mg,FC-3CAA7C5C,Cinarizina,,35.05,57.0,2,mismo nombre · ['cinarizina'] nums=[]
+0109,7506624900519,duplicado_lote,Ceftriaxona (Ceftriaxona) Solución inyectable 1 g C/1 FA beadvance,FC-C636D8EA,Ceftriaxona IM 1 g (Inyectable),,,,,misma caja que 0007 Ceftriaxona → FC-C636D8EA
+0110,7502213042370,eq_sin_ean,FHaspem (Hioscina) Solución inyectable 20 mg/1 mL C/3 FH,EQ-HIS076,Fhaspem 3 Amp 20 Mg/1 Ml,,23.53,38,1,"mismo nombre · ['fhaspem'] nums=['1', '20', '3']"
+0111,7502216800984,fc_sin_ean,Acemetacina (Acemetacina) Cápsulas 90 mg LP C/14 Ultra,FC-C9F4ACCC,Acemetacina,,39.44,64.0,2,mismo nombre · ['acemetacina'] nums=[]
+0112,7502001166592,eq_sin_ean,Sonblefam's (Betametasona) Crema 0.100 g tubo 40 g SON'S,EQ-SON256,Sonblefan S 1 Cma .100 G/ 40 G,,32.41,52,1,mismo nombre · ['100'] nums=['40']
+0113,785118753887,eq_sin_ean,Flosep (Ofloxacino) Tabletas 400 mg C/8 MAVI,EQ-MAI141,Flosef 8 Tab 400 Mg,,27.33,44,1,"mismo nombre · ['400'] nums=['400', '8']"
+0114,7503027446125,eq_sin_ean,Ercatriv-M (Calcitriol) Cápsula 0.25 µg C/30,EQ-PGE052,Ercatriv M Calcitriol 30 Caps 0.25 Mcg,,47.13,76,1,"mismo nombre · ['calcitriol', 'ercatriv'] nums=['0.25', '30']"
+0115,7502009745218,fc_sin_ean,Erispan (Betametasona) Inyectable 4 mg/mL C/1 Maver,FC-DF8ADDAB,Erispan,,22.15,28.8,1,mismo nombre · ['erispan'] nums=[]
+0116,7502009740916,en_inventario,Erispan (Betametasona) Inyectable 8 mg/2 mL C/1 Maver,FC-50AC2C82,Erispan,7502009740916,24.45,31.79,1,EAN exacto
+0117,7503000422238,fc_sin_ean,"Bactiver (Sulfametoxazol, Trimetoprima) Tableta 400/80 mg C/20 Maver",FC-AE5EEDF7,Bactiver,,48.65,66.0,1,mismo nombre · ['bactiver'] nums=[]
+0118,7502009747373,fc_sin_ean,Bitenver (Betahistina) Tableta 24 mg C/30 Maver,FC-58DB24C4,Bitenver,,62.78,85.0,1,mismo nombre · ['bitenver'] nums=[]
+0119,7501075726251,eq_sin_ean,Budenova (Budesonida) Suspensión 0.125 mg/mL C/5 amp Novag,EQ-NOV165,Budenova Susp .125 Mg/Ml 5 Amp 2ml,,130.24,209,1,"mismo nombre · ['125', 'budenova'] nums=['5']"
+0120,7502009748868,fc_sin_ean,Budimin (Bumetanida) Tableta 1 mg C/20 Maver,FC-C6C20517,Budimin,,31.31,43.0,1,mismo nombre · ['budimin'] nums=[]
+0121,7501349020269,falta,ácido ursodeoxicólico (ácido ursodeoxicólico) Cápsula 250 mg C/50 AMSA,,,,,,,EAN nuevo
+0122,7503001007694,fc_sin_ean,Wexpec (Salbutamol-Ambroxol) Solución 2/7.5 mg/5 mL 120 mL,FC-69A3C416,Wexpec,,16.65,23.0,2,mismo nombre · ['wexpec'] nums=[]
+0123,7501349027312,eq_sin_ean,cinitaprida (cinitaprida) Comprimido 1 mg  AMSA,EQ-AMS406,Cinitaprida 25 Comp 1 Mg,,17.58,29,3,mismo nombre · ['cinitaprida'] nums=['1']
+0124,780083141875,falta,GIMALXINA (Amoxicilina) Suspensión 250 mg/5 mL 75 mL Collins,,,,,,,EAN nuevo
+0125,7501349021839,en_inventario,amoxicilina (amoxicilina) Suspensión 500 mg/5 mL  AMSA,FC-F4E9C71F,Amoxicilina,7501349021839,72.03,116.0,1,EAN exacto
+0126,7506346601138,falta,MERTHORAB (Cloruro de benzalconio) Tintura 20 mL Kohn,,,,,,,EAN nuevo
+0127,7506313000575,posible_nombre,ACEITE DE EUCALIPTO (Aceite de eucalipto) Aceite,FC-E69F2E63,Madrid Aceite Eucalipto,,11.0,17.61,3,¿mismo aceite de eucalipto? foto no dice Madrid
+0128,7503002045008,fc_sin_ean,Reomatolum (),FC-1FBF5206,Del Viejito Reomatolum,,20.0,28.0,1,mismo nombre · ['reomatolum'] nums=[]
+0129,7503002045312,falta,ESENCIA DE CLAVO (Aceite de clavo) Esencia gotero HERBOTEC,,,,,,,EAN nuevo
+0130,3311000001476,fc_sin_ean,ACEITE DE COCO (Aceite de coco) Aceite 50 mL mercurio,FC-931B4809,Mercurio Aceite Coco,,8.0,12.8,5,"mismo nombre · ['aceite', 'coco', 'mercurio'] nums=[]"
+0131,3311000001209,fc_sin_ean,ACEITE DE ALMENDRAS DULCES (Aceite de almendras) Aceite 50 mL mercurio,FC-D4AC123B,Mercurio Aceite Almendras,,8.0,12.8,5,"mismo nombre · ['aceite', 'almendras', 'mercurio'] nums=[]"
+0132,3311000001612,falta,JARABE DE GRANADA (Jarabe de granada) Jarabe 50 mL mercurio,,,,,,,EAN nuevo
+0133,3311000001292,falta,ACEITE DE RICINO (Aceite de ricino) Aceite 50 mL mercurio,,,,,,,Aceite de ricino · no es gomenolado
+0134,3311000001513,fc_sin_ean,ESPIRITUS DE TOMAR ()  50 mL mercurio,FC-3676D5DC,Mercurio Espiritus Tomar,,6.0,9.61,3,"mismo nombre · ['espiritus', 'mercurio', 'tomar'] nums=[]"
+0135,3311000001605,fc_sin_ean,ESPIRITUS DE UNTAR ()  50 mL mercurio,FC-62034164,Mercurio Espiritus Untar,,6.0,9.61,3,"mismo nombre · ['espiritus', 'mercurio', 'untar'] nums=[]"
+0136,3311000001582,fc_sin_ean,ACEITE DE OLIVO (Aceite de olivo) Aceite 50 mL mercurio,FC-5A697CC2,Mercurio Aceite Olivo,,8.0,12.8,3,"mismo nombre · ['aceite', 'mercurio', 'olivo'] nums=[]"
+0137,,sin_ean_foto,ACEITE GOMENOLADO (Aceite gomenolado) Aceite 50 mL mercurio,FC-69387811,Mercurio Aceite Gomenolado,,8.0,12.8,3,foto de código faltante · SKU ya existe
+0138,3311000001537,fc_sin_ean,ACEITE DE ROMERO (Aceite de romero) Aceite 50 mL mercurio,FC-38CAFE6B,Mercurio Aceite Romero,,8.0,12.8,3,Aceite romero
+0139,3311000015084,otra_ean,ARNICA DE TOMAR (Árnica)  50 mL mercurio,FC-127F5753,Mercurio Arnica Tomar,3311000003920,7.5,13.0,3,Árnica tomar · BD ya tiene 3311000003920
+0140,3311000015084,duplicado_lote,ARNICA DE TOMAR (Árnica)  50 mL mercurio,FC-127F5753,Mercurio Arnica Tomar,,,,,misma caja que 0139 Árnica tomar
+0141,3311000001223,otra_ean,ARNICA DE UNTAR (Árnica)  50 mL mercurio,FC-25E452B6,Mercurio Arnica Untar,3311000003920,7.5,12.0,3,Árnica untar · BD ya tiene 3311000003920
+0142,3311000000493,fc_sin_ean,YODO DE UNTAR (Yodo)  50 mL mercurio,FC-D3D28E20,Mercurio Yodo Untar,,11.5,18.41,3,Yodo untar
+0143,3311000001506,fc_sin_ean,YODO DE TOMAR (Yodo)  50 mL mercurio,FC-A680F97E,Mercurio Yodo Tomar,,11.0,17.61,3,Yodo tomar
+0144,7503022640153,fc_sin_ean,BICARBONATO DE SODIO PURO (Bicarbonato) Polvo 200 g,FC-08DB70CB,Bicarbonato Velazquez Grande 200G,,11.5,18.41,5,Bicarbonato Velázquez 200 g · sin EAN en BD
+0145,3311000000882,fc_sin_ean,POMADA DE VENENO DE ABEJA (Veneno de abeja) Pomada 50 g,FC-9827438F,Mercurio Veneno De Abeja,,9.5,15.0,3,"mismo nombre · ['abeja', 'veneno'] nums=[]"
+0146,3311000003845,otra_ean,FLOR DE ARNICA (Flor de árnica) Flor 3 g Mercurio,FC-5EF90195,Mercurio Flor De Arnica,3311000003920,55.0,88.0,1,Flor de árnica · BD ya tiene 3311000003920
+0147,3311000000868,fc_sin_ean,POMADA DE PAN PUERCO () Pomada 50 g,FC-EFB599B5,Mercurio Pan Puerco,,9.5,15.0,5,"mismo nombre · ['pan', 'puerco'] nums=[]"
+0148,3311000000936,fc_sin_ean,POMADA DE OXIDO DE ZINC (Óxido de zinc) Pomada 50 g,FC-C4530823,Mercurio óxido de zinc C/50,,54.0,86.4,1,"mismo nombre · ['oxido', 'zinc'] nums=['50']"
+0149,3311000001087,fc_sin_ean,POMADA DE TEPEZCOHUITE (Tepezcohuite) Pomada 50 g,FC-FEAECBF1,Mercurio Tepezcohuite,,9.5,15.0,3,mismo nombre · ['tepezcohuite'] nums=[]
+0150,3311000001049,falta,POMADA DE ARNICA (Árnica) Pomada 50 g,,,,,,,EAN nuevo
+0151,3311000000967,falta,POMADA DE SULFATAZOL (Sulfatiazol) Pomada 50 g,,,,,,,EAN nuevo
+0152,3311000003487,fc_sin_ean,PERLAS DE ETER (Éter) Perlas  Mercurio,FC-FBD776D2,Mercurio Perlas De Eter,,170.0,272.0,1,"mismo nombre · ['eter', 'mercurio', 'perlas'] nums=[]"
+0153,3311000003388,fc_sin_ean,POLVO DE HABA ALCANFORADA () Polvo  Mercurio,FC-9507CD66,Mercurio Haba Alcanforada,,65.0,104.0,1,"mismo nombre · ['alcanforada', 'haba', 'mercurio'] nums=[]"
+0154,3311000003715,fc_sin_ean,BICARBONATO (Bicarbonato)  50 Sobres Mercurio,FC-B8D7C997,Bicarbonato Sobres,,48.0,72.0,1,"mismo nombre · ['bicarbonato', 'sobres'] nums=[]"
+0155,3311000003739,fc_sin_ean,BORAX POLVO (Borax) Polvo 50 Sobres Mercurio,FC-578F060C,Mercurio Borax Polvo,,53.0,84.81,1,"mismo nombre · ['borax', 'mercurio'] nums=[]"
+0156,3311000003722,fc_sin_ean,OXIDO DE ZINC (Óxido de zinc)  50 Sobres Mercurio,FC-0ACC5B6A,Mercurio Oxido De Zinc,,9.0,14.0,3,"mismo nombre · ['mercurio', 'oxido', 'zinc'] nums=[]"
+0157,3311000003425,fc_sin_ean,MAGNESIA ANISADA ()   Mercurio,FC-CB5C11ED,Mercurio Magnesia Anisada,,51.5,82.4,1,"mismo nombre · ['anisada', 'magnesia', 'mercurio'] nums=[]"
+0158,3311000003494,fc_sin_ean,SULFATIAZOL (Sulfatiazol) Polvo  Mercurio,FC-47AAF23B,Mercurio Sulfatiazol Polvo,,69.0,110.4,1,"mismo nombre · ['mercurio', 'sulfatiazol'] nums=[]"
+0159,3311000003708,fc_sin_ean,BISMUTO SUB-NITRATO (Bismuto subnitrato)   Mercurio,FC-D037156B,Mercurio Bismuto Subnitrato,,73.5,117.6,1,"mismo nombre · ['bismuto', 'mercurio', 'subnitrato'] nums=[]"
+0160,3311000000776,fc_sin_ean,CLORURO DE MAGNESIO (Cloruro de magnesio)  100 g mercurio,FC-5D59ED54,Mercurio Cloruro De Magnesio Cajita,,34.0,54.41,2,"mismo nombre · ['cloruro', 'magnesio', 'mercurio'] nums=[]"

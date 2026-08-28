@@ -1,0 +1,44 @@
+par,portada,codigo,ean,nombre_foto,estado,sku,nota
+0001,0001_a_portada.jpg,0001_b_codigo.jpg,7502001165397,Zimeton (Pancreatina/Bilis/Dimeticona) 20 tab SON'S,eq_sin_ean,EQ-SON233,mismo producto que 0008
+0002,0002_a_portada.jpg,0002_b_codigo.jpg,7502227871058,Fermig (Sumatriptán) 100 mg 2 tab RAAM,eq_sin_ean,EQ-RAM014,
+0003,0003_a_portada.jpg,0003_b_codigo.jpg,7502227426982,ML-PRIM (Metocarbamol/Ibuprofeno) 12 cap GEL pharma,ean_otro,FC-27427392,ese SKU ya tiene EAN de X-TRID 7502227427392 — no se pisa
+0004,0004_a_portada.jpg,0004_b_codigo.jpg,780083144302,Collifrin (Oximetazolina) 0.05% 20 mL adulto Collins,ean_ya,FC-83144302,en BD está 0780083144302
+0005,0005_a_portada.jpg,0005_b_codigo.jpg,7502211784029,Zukedib (Glimepirida) 2 mg 30 tab Loeffler,fc_sin_ean,FC-52D2A43A,el de 4 mg ya tiene 7502211784036
+0006,0006_a_portada.jpg,0006_b_codigo.jpg,7503004908738,Lidocaína ungüento 5% tubo 35 g Alpharma,ean_ya,FC-04908738,
+0007,0007_a_portada.jpg,0007_b_codigo.jpg,7503003738879,Rosel-T (Amantadina/Clorfenamina/Paracetamol) 15 tab Wermar,ean_ya,FC-03738879,
+0008,0008_a_portada.jpg,0008_b_codigo.jpg,7502001165397,Zimeton (Pancreatina/Bilis/Dimeticona) 20 tab SON'S,eq_sin_ean,EQ-SON233,foto repetida de 0001
+0009,0009_a_portada.jpg,0009_b_codigo.jpg,7502009747236,Exaliv (Paracetamol/Fenilefrina/Clorfenamina) 24 tab Maver,nombre_malo,FC-09747236,EAN+costo 19.82 son de Exaliv; el nombre dice Bactiver infantil — no se renombra
+0010,0010_a_portada.jpg,0010_b_codigo.jpg,7506624901059,beadvancé Senósidos A-B 8.6 mg 20 tab,ean_ya,FC-24901059,marca en BD dice Novag (error viejo; no se pisa)
+0011,0011_a_portada.jpg,0011_b_codigo.jpg,7502227875568,Desrotan (Fexofenadina) 180 mg 10 tab RAAM,ean_ya,FC-27875568,
+0012,0012_a_portada.jpg,0012_b_codigo.jpg,7502227872123,Raamcinet (Cetirizina) 10 mg 10 tab RAAM,ean_ya,FC-27872123,
+0013,0013_a_portada.jpg,0013_b_codigo.jpg,7502009745522,Galaver gel 10 sobres 10 mL Maver,nombre_malo,FC-09745522,EAN está en un SKU llamado Treda sobres; el real es EQ-MAV263 sin EAN — no se mueve
+0014,0014_a_portada.jpg,0014_b_codigo.jpg,7502227871416,Raamfen (Difenidol) 25 mg 30 tab RAAM,ean_ya,FC-27871416,
+0015,0015_a_portada.jpg,0015_b_codigo.jpg,7501075723137,Novakosid (Senósidos A-B) 8.6 mg 20 tab Novag,ean_ya,FC-75723137,
+0016,0016_a_portada.jpg,0016_b_codigo.jpg,7502001165724,Raspisons (Neomicina/Retinol) ungüento 28 g SON'S,ean_otro,FC-11165726,ya tiene 7501311165726 — no se reemplaza
+0017,0017_a_portada.jpg,0017_b_codigo.jpg,7502223111202,Pharmacaine (Lidocaína) 10% atomizador 115 mL Quimpharma,eq_sin_ean,EQ-QUM014,
+0018,0018_a_portada.jpg,0018_b_codigo.jpg,7502223111387,Drosequim infantil (Dropropizina/Bromhexina) 200 mL Quimpharma,ean_ya,FC-23111387,presentación en BD dice 100 mL; no se pisa
+0019,0019_a_portada.jpg,0019_b_codigo.jpg,7501573906469,Biobend (Bencidamina) 360 mL Biomep,ean_ya,FC-73906469,
+0020,0020_a_portada.jpg,0020_b_codigo.jpg,7501075718676,Novagon psyllium 400 g naranja-piña Novag,ean_ya,FC-75718676,
+0021,0021_a_portada.jpg,0021_b_codigo.jpg,7501075713770,Novagon psyllium 400 g natural Novag,nombre_malo,FC-75713770,EAN+costo 99.10 son de Novagon natural; el nombre dice Metamizol Novag — no se renombra
+0022,0022_a_portada.jpg,0022_b_codigo.jpg,7502009745027,Galaver gel 250 mL Maver,nombre_malo,FC-09745027,EAN está en un SKU llamado Treda infantil; Galaver 250 no tiene EQ- — no se crea
+0023,0023_a_portada.jpg,0023_b_codigo.jpg,7502003388008,Velatuss (Levodropropizina) 120 mL Rayere,ean_ya,FC-03388008,
+0024,0024_a_portada.jpg,0024_b_codigo.jpg,7502009745584,Oppelver (Lactulosa) 125 mL Maver,ean_ya,FC-09745584,
+0025,0025_a_portada.jpg,0025_b_codigo.jpg,7502211780229,Keraffler (Ketotifeno) 120 mL Loeffler,eq_sin_ean,EQ-LOE013,
+0026,0026_a_portada.jpg,0026_b_codigo.jpg,785118754259,Supratex (Levodropropizina) 120 mL MAVI,nombre_malo,FC-18754259,SKU fantasma Levocetirizina Mavi; el Supratex real ya tiene 785118754242
+0027,0027_a_portada.jpg,0027_b_codigo.jpg,7502009745560,Bioxover (Dropropizina) 120 mL Maver,nombre_malo,FC-09745560,EAN+costo 28.84 son de Bioxover; el nombre dice Kao-Paver — no se renombra
+0028,0028_a_portada.jpg,0028_b_codigo.jpg,7503000422511,Bactiver (SMX/TMP) susp. 120 mL Maver,ean_ya,FC-00422511,
+0029,0029_a_portada.jpg,0029_b_codigo.jpg,7502227427392,X-TRID 12 cápsulas GEL pharma,ean_otro,EQ-GEP049,ese EAN ya está en FC-27427392 (nombrado ML-PRIM) — no se copia
+0030,0030_a_portada.jpg,0030_b_codigo.jpg,7501836003621,Precicol (Hioscina/Paracetamol) gotas 20 mL Liferpal,ean_ya,FC-36003621,
+0031,0031_a_portada.jpg,0031_b_codigo.jpg,714908100228,Revenox (Melatonina) 3 mg 60 tab Salud Natural,eq_sin_ean,EQ-SAN025,UPC-A de 12 dígitos
+0032,0032_a_portada.jpg,0032_b_codigo.jpg,7502216803800,Omeprazol 20 mg 60 cápsulas Avivia,ean_ya,FC-16803800,
+0033,0033_a_portada.jpg,0033_b_codigo.jpg,7501349022485,Pantoprazol 20 mg 7 tab AMSA,eq_sin_ean,EQ-AMS292,
+0034,0034_a_portada.jpg,0034_b_codigo.jpg,7503014377197,Playboy Max Sens Tropicana Mix 3+1,ean_ya,FC-14377197,EQ-PBY007 es duplicado del ticket; no se le pone el mismo EAN
+0035,0035_a_portada.jpg,0035_b_codigo.jpg,7501109763986,Magsokon (Sulfato de magnesio) 26 g Quifa,eq_sin_ean,EQ-QUI091,
+0036,0036_a_portada.jpg,0036_b_codigo.jpg,7503014377180,Playboy Max Sens Passion Mix 3+1,ean_ya,FC-14377180,EQ-PBY008 es duplicado del ticket
+0037,0037_a_portada.jpg,0037_b_codigo.jpg,780083140588,Plusgel 50 tab masticables Collins,ean_otro,FC-31405888,ya tiene 7500831405888 — no se reemplaza
+0038,0038_a_portada.jpg,0038_b_codigo.jpg,7501482200016,Omeprazol Aktyzar 20 mg 120 cápsulas Solfrán,ean_ya,FC-82200016,
+0039,0039_a_portada.jpg,0039_b_codigo.jpg,7502253601339,Daclafin (Subsalicilato de bismuto) 120 mL,ean_ya,FC-53601339,
+0040,0040_a_portada.jpg,0040_b_codigo.jpg,7501075717914,Nineka (Neomicina/Caolín/Pectina) 75 mL Novag,ean_ya,FC-75717914,
+0041,0041_a_portada.jpg,0041_b_codigo.jpg,7502009740435,Laritol (Loratadina) 10 mg 10 tab Maver,falta,,ticket MAV039 nunca se creó como SKU — no se inventa
+0042,0042_a_portada.jpg,0042_b_codigo.jpg,7502009749209,Lumboxen parche gel Maver,ean_ya,FC-09749209,
+0043,0043_a_portada.jpg,0043_b_codigo.jpg,7502001165953,Rexurdir (Nifuroxazida) 400 mg 16 cap SON'S,ean_ya,FC-01165953,

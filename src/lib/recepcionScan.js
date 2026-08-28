@@ -1,99 +1,55 @@
-/** Match de pistola en Recibir. Sin React ni utils: el build lo audita con Node. */
+/**
+ * Match de pistola en Recibir.
+ * Un ticket PDF/CSV solo acepta códigos de esa lista.
+ * El EAN de la caja puede ser distinto al SKU interno del renglón:
+ * se cruza con el catálogo (producto_id / sku → codigo_barras).
+ */
+import {
+  barcodeDigitsMatch,
+  findProductExactScan,
+  normalizeBarcodeRaw,
+} from "../utils/barcodeProductLookup";
 
-export function normalizeScanRaw(raw) {
-  let t = String(raw ?? "").trim();
-  t = t.replace(/^[\]C1\][\x00-\x1f]*/i, "");
-  t = t.replace(/\s/g, "");
-  return t;
+export function recepcionEsTicketDocumento(items) {
+  return (items || []).some((i) => i?.origen === "pdf" || i?.origen === "csv");
 }
 
-export function looksLikeBarcodeInput(raw) {
-  const t = normalizeScanRaw(raw);
-  return t.length >= 8 && /^\d+$/.test(t);
-}
-
-export function looksLikeInternalSku(raw) {
-  return /^(FC|EQ|FMX)[-_]/i.test(String(raw || "").trim());
-}
-
-export function barcodeDigitsMatch(scanRaw, storedRaw) {
-  const scan = normalizeScanRaw(scanRaw);
-  const stored = normalizeScanRaw(storedRaw);
-  if (!scan || !stored) return false;
-  if (scan === stored) return true;
-  if (stored.startsWith(scan) && stored.length - scan.length <= 1) return true;
-  if (scan.startsWith(stored) && scan.length - stored.length <= 1) return true;
-  if (scan.length === 12 && stored.length === 13 && stored === `0${scan}`) return true;
-  if (stored.length === 12 && scan.length === 13 && scan === `0${stored}`) return true;
-  return false;
-}
-
-export function splitBarcodeCandidates(raw) {
-  const t = normalizeScanRaw(raw);
-  if (!t) return [];
-  const out = [];
-  const push = (v) => {
-    if (v && !out.includes(v)) out.push(v);
-  };
-  push(t);
-  for (const len of [13, 12, 8]) {
-    if (t.length === len * 2) {
-      push(t.slice(0, len));
-      push(t.slice(len));
-    }
-    if (t.length > len) {
-      push(t.slice(0, len));
-      push(t.slice(-len));
-    }
-  }
-  return out;
-}
-
-export function skuSoloDigitos(sku) {
-  const d = String(sku || "").replace(/\D/g, "");
-  return d.length >= 7 ? d : "";
-}
-
-/** El renglón gris de Recibir coincide con lo que acaba de leer la pistola. */
-export function itemMatchScan(it, codigo) {
+export function itemMatchScan(it, codigo, productos = []) {
   if (!it || !codigo) return false;
-  const cands = splitBarcodeCandidates(codigo);
-  for (const c of cands) {
-    if (it.codigo_escaneado && barcodeDigitsMatch(c, it.codigo_escaneado)) return true;
-    if (it.sku && String(it.sku).toUpperCase() === String(c).toUpperCase()) return true;
-    const sd = skuSoloDigitos(it.sku);
-    const cd = String(c).replace(/\D/g, "");
-    if (sd && cd && (cd.includes(sd) || sd.includes(cd))) return true;
+  if (it.codigo_escaneado && barcodeDigitsMatch(codigo, it.codigo_escaneado)) return true;
+  if (it.sku && String(it.sku).toUpperCase() === String(codigo).toUpperCase()) return true;
+
+  const porId = it.producto_id != null
+    ? productos.find((p) => p?.id === it.producto_id)
+    : null;
+  if (porId && findProductExactScan([porId], codigo, { activeOnly: false })) return true;
+
+  if (it.sku) {
+    const porSku = productos.find(
+      (p) => p?.sku && String(p.sku).toUpperCase() === String(it.sku).toUpperCase(),
+    );
+    if (porSku && findProductExactScan([porSku], codigo, { activeOnly: false })) return true;
   }
   return false;
 }
 
-export function pedidoEsperaEntrada(t) {
-  const renglones = Number(t?.renglones || 0);
-  const falta = Number(t?.sin_confirmar || 0) + Number(t?.sin_caducidad_anaquel || 0);
-  return renglones > 0 && (falta > 0 || t?.estado === "borrador" || t?.estado === "pendiente_caducidad");
-}
+/**
+ * @returns {{ tipo: 'vacio'|'gris'|'ya_confirmado'|'fuera'|'nuevo', item?: object, codigo?: string }}
+ */
+export function resolverEscaneoRecepcion({ items, codigo, productos, esTicketDocumento }) {
+  const code = normalizeBarcodeRaw(codigo) || String(codigo || "").trim();
+  if (!code) return { tipo: "vacio" };
 
-/** Código completo de pistola: no hay que esperar Enter. */
-export function eanPistolaListo(raw) {
-  const codigo = normalizeScanRaw(raw);
-  if (looksLikeInternalSku(codigo)) return true;
-  return looksLikeBarcodeInput(codigo) && [8, 12, 13, 14].includes(codigo.length);
-}
+  const lista = Array.isArray(items) ? items : [];
+  const catalogo = Array.isArray(productos) ? productos : [];
 
-export const MSG_SCAN_FUERA_TICKET = "No corresponde a ninguno de los ítems de este ticket.";
-export const MSG_SCAN_YA_EN_TICKET = "Ya está en este ticket.";
+  const ya = lista.find((it) => it.confirmado && itemMatchScan(it, code, catalogo));
+  if (ya) return { tipo: "ya_confirmado", item: ya, codigo: code };
 
-/** Lista gris/verde de un PDF o CSV: la pistola no puede inventar renglones. */
-export function recepcionEsTicket(doc) {
-  const items = Array.isArray(doc?.items) ? doc.items : [];
-  return items.some((it) => it?.origen === "pdf" || it?.origen === "csv");
-}
+  const gris = lista.find((it) => !it.confirmado && itemMatchScan(it, code, catalogo));
+  if (gris) return { tipo: "gris", item: gris, codigo: code };
 
-export function matchScanEnTicket(items, codigo) {
-  const hits = (Array.isArray(items) ? items : []).filter((it) => itemMatchScan(it, codigo));
-  return {
-    gris: hits.find((it) => !it.confirmado) || null,
-    yaConfirmado: hits.find((it) => it.confirmado) || null,
-  };
+  if (esTicketDocumento) return { tipo: "fuera", codigo: code };
+
+  return { tipo: "nuevo", codigo: code };
 }

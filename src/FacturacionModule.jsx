@@ -323,7 +323,7 @@ export default function FacturacionModule() {
       {tab==="facturas"&&(
         loading?<div style={{color:C.textMid,textAlign:"center",padding:40}}>Cargando…</div>:(
           <div style={{overflowX:"auto",borderRadius:12,border:`1px solid ${C.border}`}}>
-            <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+            <table className="fc-tabla-cards" style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
               <thead>
                 <tr style={{background:C.cardDark}}>
                   {["ID","Fecha","RFC","Razón social","Pedido","Total","PAC","Estado","Acciones"].map(h=>(
@@ -335,17 +335,17 @@ export default function FacturacionModule() {
                 {!facturas.length&&<tr><td colSpan={9} style={{textAlign:"center",padding:32,color:C.textMid}}>Sin facturas emitidas</td></tr>}
                 {facturas.map((f,i)=>(
                   <tr key={f.id} style={{background:i%2===0?"transparent":"#f8fafc"}}>
-                    <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,fontFamily:"monospace"}}>#{f.id}</td>
-                    <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>{fmtDT(f.created_at)}</td>
-                    <td style={{padding:"8px 12px",color:C.text,fontWeight:700,borderBottom:`1px solid ${C.border}`,fontFamily:"monospace"}}>{f.rfc}</td>
-                    <td style={{padding:"8px 12px",color:C.text,borderBottom:`1px solid ${C.border}`,maxWidth:180}}>{f.razon_social}</td>
-                    <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>#{f.pedido_id||"—"}</td>
-                    <td style={{padding:"8px 12px",color:C.green,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{fmt(f.total)}</td>
-                    <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{f.pac_proveedor||"—"}</td>
-                    <td style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`}}>
+                    <td data-label="ID" data-primary style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,fontFamily:"monospace"}}>#{f.id}</td>
+                    <td data-label="Fecha" style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>{fmtDT(f.created_at)}</td>
+                    <td data-label="RFC" style={{padding:"8px 12px",color:C.text,fontWeight:700,borderBottom:`1px solid ${C.border}`,fontFamily:"monospace"}}>{f.rfc}</td>
+                    <td data-label="Razón social" data-wide style={{padding:"8px 12px",color:C.text,borderBottom:`1px solid ${C.border}`,maxWidth:180}}>{f.razon_social}</td>
+                    <td data-label="Pedido" style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>#{f.pedido_id||"—"}</td>
+                    <td data-label="Total" style={{padding:"8px 12px",color:C.green,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{fmt(f.total)}</td>
+                    <td data-label="PAC" style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{f.pac_proveedor||"—"}</td>
+                    <td data-label="Estado" style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`}}>
                       <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:estCol(f.estado)+"20",color:estCol(f.estado)}}>{f.estado}</span>
                     </td>
-                    <td style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>
+                    <td data-label="Acciones" data-actions style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>
                       {f.xml_url&&<a href={f.xml_url} target="_blank" rel="noreferrer" style={{padding:"3px 8px",borderRadius:5,border:`1px solid ${C.blue}30`,background:"#eff6ff",color:C.blue,fontSize:10,fontWeight:700,marginRight:4,textDecoration:"none"}}>XML</a>}
                       {f.pdf_url&&<a href={f.pdf_url} target="_blank" rel="noreferrer" style={{padding:"3px 8px",borderRadius:5,border:`1px solid ${C.green}30`,background:C.greenDim,color:C.green,fontSize:10,fontWeight:700,textDecoration:"none"}}>PDF</a>}
                     </td>

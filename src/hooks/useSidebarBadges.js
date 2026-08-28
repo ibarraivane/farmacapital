@@ -33,17 +33,23 @@ export default function useSidebarBadges(currentPage) {
         ? supabase.rpc("empleado_contar_cortes_con_diferencia", { p_session_token: tok })
         : Promise.resolve({ data: 0, error: null });
 
+      const stockRpc = tok
+        ? supabase.rpc("empleado_contar_productos_bajo_stock", { p_session_token: tok })
+        : Promise.resolve({ data: 0, error: null });
+
       const [
-        { count: bajoStock, error: errBajo },
+        stockRes,
         cortesRes,
         { count: onlinePend, error: errOnline },
         { data: cofeprisVentana, error: errCof },
       ] = await Promise.all([
-        supabase.from("productos").select("id", { count: "exact", head: true }).eq("activo", true).lte("stock", 0),
+        stockRpc,
         cortesRpc,
         countPedidosTiendaPendientesHead(supabase, tok),
         cofeprisRpc,
       ]);
+      const bajoStock = Number(stockRes?.data);
+      const errBajo = stockRes?.error;
       const cortesDif = Number(cortesRes?.data);
       const errCortes = cortesRes?.error;
       if (errBajo) console.warn("[Badges] bajo stock:", errBajo.message);
@@ -61,12 +67,12 @@ export default function useSidebarBadges(currentPage) {
       const nextCounts = {
         pos:  pend,
         ped_online: pend,
-        inv:  bajoStock ?? 0,
+        inv:  Number.isFinite(bajoStock) ? bajoStock : 0,
         caja: Number.isFinite(cortesDif) ? cortesDif : 0,
         cof:  cofeprisCount,
       };
       const nextCritical = {
-        inv:  (bajoStock ?? 0) > 0,
+        inv:  (Number.isFinite(bajoStock) ? bajoStock : 0) > 0,
         caja: (Number.isFinite(cortesDif) ? cortesDif : 0) > 0,
         cof:  cofeprisVencidas > 0,
       };

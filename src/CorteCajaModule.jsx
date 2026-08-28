@@ -3,11 +3,10 @@ import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
 import { showToast } from "./ui";
 import OnboardingTour from "./components/OnboardingTour";
-import { TURNOS, TURNOS_LISTA, rangoTurno, rangoCajaDeCorte, inferirTurno, turnoDePerfil } from "./constants/turnos";
+import { TURNOS, TURNOS_LISTA, rangoTurno, inferirTurno, turnoDePerfil } from "./constants/turnos";
 import { esVendedor, fetchSesionCajaAbierta, fetchJornadaHoy } from "./utils/cajaSesion";
 import { useMediaQuery } from "./hooks/useMediaQuery";
 import { GRID_STACK_2COL } from "./constants/layout";
-import { hoyISOMexico } from "./lib/fecha";
 import {
   snapshotFromCorte,
   snapshotFromHistorialRow,
@@ -49,13 +48,6 @@ const getRango = (turno) => {
   return { inicio: inicio.toISOString(), fin: fin.toISOString() };
 };
 
-const isoRangoSesion = (sesion, turno) => {
-  if (sesion?.abierta_at) {
-    return { inicio: sesion.abierta_at, fin: new Date().toISOString() };
-  }
-  return getRango(turno);
-};
-
 const getRangoFiltro = (filtro) => {
   const hoy = new Date();
   const y = hoy.getFullYear(), mo = hoy.getMonth(), d = hoy.getDate();
@@ -90,6 +82,8 @@ export default function CorteCajaModule({usuario }) {
   const [jornada,            setJornada] = useState(null);
   const [corteHoy,           setCorteHoy] = useState(null);
   const [anulando,           setAnulando] = useState(false);
+  const [electronicosError,  setElectronicosError] = useState(null);
+  const [desgloseTarjeta,    setDesgloseTarjeta]   = useState(null);
 
   // El corte es a ciegas: mientras se captura no se muestra ni lo que el
   // sistema espera ni la diferencia. Un conteo que se puede copiar deja de ser
@@ -121,12 +115,18 @@ export default function CorteCajaModule({usuario }) {
   // en el perfil, y así se guardó el corte fantasma del 24-ago a las 15:19:
   // cerró un turno que nadie había abierto y dejó a Erika fuera siete horas.
   const puedeGuardar  = (usaDenoms || efectivo_declarado !== "")
-    && (!vendedorFijo || !!sesionAbierta);
+    && (!vendedorFijo || !!sesionAbierta)
+    && !corteHoy;
 
-  // Sólo se precargan tarjeta y MercadoPago. El efectivo esperado NO se pide:
+  // Sólo se muestran tarjeta y MercadoPago. El efectivo esperado NO se pide:
   // si viajara al navegador, bastaría con abrir la pestaña de red para verlo
   // antes de declarar, y el conteo a ciegas dejaría de serlo. Lo calcula la
   // base al guardar.
+  //
+  // Estas cifras son informativas: quien manda es lo que recalcula
+  // registrar_corte_caja en el momento de guardar. Antes se guardaba este
+  // valor tal cual, y como se pedía al ABRIR la pantalla, toda venta con
+  // tarjeta hecha mientras el cajero contaba el cajón se perdía.
   const fetchTotalesElectronicos = useCallback(async () => {
     try {
       const tok = sessionStorage.getItem("farmacapital_session_token");
@@ -134,15 +134,38 @@ export default function CorteCajaModule({usuario }) {
       const { data, error } = await supabase.rpc("empleado_totales_electronicos_turno", {
         p_session_token: tok,
         p_turno: turno,
-        p_fecha: hoyISOMexico(),
+        p_fecha: new Date().toLocaleDateString("sv-SE"),
       });
-      if (error) return;
+      // Un fallo silencioso aquí dejaba tarjeta en $0.00 sin que nadie
+      // se enterara, y así quedaba guardado el corte.
+      if (error) {
+        setElectronicosError(error.message || "No se pudieron leer los cobros electrónicos.");
+        return;
+      }
+      setElectronicosError(null);
       if (data?.tarjeta != null)     setTarjeta(String(data.tarjeta));
       if (data?.mercadopago != null) setMp(String(data.mercadopago));
-    } catch(e) { console.error("[CorteCaja]", e); }
+      setDesgloseTarjeta(
+        data?.tarjeta_servicios != null || data?.tarjeta_pedidos != null
+          ? { pedidos: data.tarjeta_pedidos, servicios: data.tarjeta_servicios }
+          : null
+      );
+    } catch(e) {
+      console.error("[CorteCaja]", e);
+      setElectronicosError("No se pudieron leer los cobros electrónicos.");
+    }
   }, [turno]);
 
   useEffect(() => { fetchTotalesElectronicos(); }, [fetchTotalesElectronicos]);
+
+  // Se refrescan justo antes de guardar para que lo que ve el cajero coincida
+  // con lo que va a quedar registrado. Aun así, el número que se guarda lo
+  // recalcula la base: esto es sólo para que la pantalla no mienta.
+  useEffect(() => {
+    if (resultado) return;
+    const id = setInterval(fetchTotalesElectronicos, 60000);
+    return () => clearInterval(id);
+  }, [fetchTotalesElectronicos, resultado]);
 
   useEffect(() => {
     if (sesionAbierta?.turno) return;
@@ -173,7 +196,7 @@ export default function CorteCajaModule({usuario }) {
   const fetchResumenServicios = useCallback(async () => {
     try {
       const tok = sessionStorage.getItem("farmacapital_session_token");
-      const { inicio, fin } = isoRangoSesion(sesionAbierta, turno);
+      const { inicio, fin } = getRango(turno);
       const { data, error } = tok
         ? await supabase.rpc("empleado_resumen_pagos_servicio_rango", {
             p_session_token: tok,
@@ -185,7 +208,7 @@ export default function CorteCajaModule({usuario }) {
     } catch (e) {
       console.error("[CorteCaja servicios]", e);
     }
-  }, [turno, sesionAbierta]);
+  }, [turno]);
 
   useEffect(() => { fetchResumenServicios(); }, [fetchResumenServicios]);
 
@@ -196,7 +219,7 @@ export default function CorteCajaModule({usuario }) {
       if (!tok) return;
       const { data } = await supabase.rpc("empleado_corte_turno_en_fecha", {
         p_session_token: tok,
-        p_fecha: hoyISOMexico(),
+        p_fecha: new Date().toLocaleDateString("sv-SE"),
         p_turno: turno,
       });
       if (!cancelled) setCorteHoy(data?.existe ? data : null);
@@ -212,7 +235,7 @@ export default function CorteCajaModule({usuario }) {
   const anularCorte = async () => {
     if (!corteHoy?.id) return;
     const motivo = window.prompt(
-      `Vas a anular el corte #${corteHoy.id} (${turno}).\n` +
+      `Vas a anular el corte #${corteHoy.id} (${TURNOS[turno]?.label || turno}).\n` +
       "La caja se reabre y quien lo hizo puede volver a su turno hoy.\n\n" +
       "¿Por qué se anula? Queda en la bitácora."
     );
@@ -244,7 +267,9 @@ export default function CorteCajaModule({usuario }) {
       return;
     }
     setCorteHoy(null);
+    setResultado(null);
     showToast(data?.mensaje || "Corte anulado.", "success");
+    fetchTotalesElectronicos();
   };
 
   const fetchCortes = useCallback(async () => {
@@ -268,10 +293,36 @@ export default function CorteCajaModule({usuario }) {
 
   useEffect(() => { if (tab==="historial") fetchCortes(); }, [tab, fetchCortes]);
 
+  const [revisandoDif, setRevisandoDif] = useState(null);
+  const [diferenciasRevisadas, setDiferenciasRevisadas] = useState(() => new Set());
+
+  const marcarDiferenciaEnterada = async (corteId) => {
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    if (!tok) {
+      showToast("Sesión expirada. Inicia sesión de nuevo.", "warning");
+      return;
+    }
+    setRevisandoDif(corteId);
+    try {
+      const { error } = await supabase.rpc("empleado_marcar_corte_diferencia_revisada", {
+        p_session_token: tok,
+        p_corte_id: Number(corteId),
+      });
+      if (error) throw error;
+      setDiferenciasRevisadas((prev) => new Set(prev).add(Number(corteId)));
+      showToast("Diferencia marcada como enterada — ya no cuenta en el badge.", "success");
+      fetchCortes();
+    } catch (e) {
+      showToast("No se pudo marcar: " + (e.message || e), "error");
+    }
+    setRevisandoDif(null);
+  };
+
   const fetchVentasDeCorte = async (corte) => {
     const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) throw new Error("Sesión expirada. Inicia sesión de nuevo.");
-    const { inicio, fin } = rangoCajaDeCorte(corte);
+    const fecha = corte.fecha ? new Date(corte.fecha) : new Date();
+    const { inicio, fin } = rangoTurno(fecha, corte.turno);
     return cargarVentasDetalleTurno(supabase, tok, inicio.toISOString(), fin.toISOString());
   };
 
@@ -310,7 +361,7 @@ export default function CorteCajaModule({usuario }) {
   // Esta función se puede llamar externamente via ref o contexto
   const verificarTurnoActivo = async () => {
     const tok = sessionStorage.getItem("farmacapital_session_token");
-    const hoy = hoyISOMexico();
+    const hoy = new Date().toLocaleDateString("sv-SE");
     const { data } = tok
       ? await supabase.rpc("empleado_corte_turno_en_fecha", {
           p_session_token: tok,
@@ -328,7 +379,7 @@ export default function CorteCajaModule({usuario }) {
     setCargandoZ(true);
     try {
       const tok = sessionStorage.getItem("farmacapital_session_token");
-      const { inicio, fin } = isoRangoSesion(sesionAbierta, turno);
+      const { inicio, fin } = getRango(turno);
       const ventas = tok
         ? await cargarVentasDetalleTurno(supabase, tok, inicio, fin)
         : [];
@@ -338,7 +389,7 @@ export default function CorteCajaModule({usuario }) {
       setZTransac([]);
     }
     setCargandoZ(false);
-  }, [turno, sesionAbierta]);
+  }, [turno]);
 
   const nuevoCorte = () => {
     setResultado(null); setZTransac(null);
@@ -356,20 +407,13 @@ export default function CorteCajaModule({usuario }) {
       );
       return;
     }
+    if (corteHoy) {
+      showToast("Ya hay un corte de este turno hoy. No se guarda otro.", "warning");
+      return;
+    }
     if (!puedeGuardar) { showToast("Captura el efectivo contado", "warning"); return; }
     const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) { alert("Sesión expirada. Inicia sesión de nuevo."); return; }
-    // J8: Validar turno duplicado
-    const hoy = hoyISOMexico();
-    const { data: exSnap } = await supabase.rpc("empleado_corte_turno_en_fecha", {
-      p_session_token: tok,
-      p_fecha: hoy,
-      p_turno: turno,
-    });
-    if (exSnap?.existe) {
-      const ok = window.confirm(`Ya existe un corte del turno ${turno} de hoy. ¿Guardar otro de todas formas?`);
-      if (!ok) return;
-    }
     setSaving(true);
     const denomsLimpios = Object.fromEntries(
       DENOMINACIONES.map(d => [d, parseInt(denoms[d],10) || 0]).filter(([,n]) => n > 0));
@@ -408,10 +452,17 @@ export default function CorteCajaModule({usuario }) {
       const raw = error.message || "";
       const msg = /empleado_id_fkey|foreign key/i.test(raw)
         ? "Falta actualizar la base. Ejecuta sql/patch_cortes_caja_fk_usuarios.sql en Supabase."
-        : "Error al guardar corte: " + raw;
+        : /ya existe un corte/i.test(raw)
+          ? "Ya existe un corte de este turno hoy. No se puede guardar otro."
+          : "Error al guardar corte: " + raw;
       showToast(msg, "error");
       return;
     }
+    if (data?.success === false) {
+      showToast(data.error || "No se pudo guardar el corte.", "error");
+      return;
+    }
+    setCorteHoy({ existe: true, id: data?.corte_id });
 
     // Recién ahora se destapa: el cajero ya se comprometió con su conteo.
     // El RPC a veces no devuelve tarjeta/MP; se conservan los del turno para el PDF.
@@ -446,7 +497,13 @@ export default function CorteCajaModule({usuario }) {
   const difTxt = dif===0 ? "✓ Cuadrado" : dif>0 ? `▲ Sobrante: +${fmt(dif)}` : `▼ Faltante: ${fmt(dif)}`;
   const difBg  = dif===0 ? C.greenDim : dif>0 ? C.amberDim : C.redDim;
 
-  const sumEf  = cortes.reduce((a,c)=>a+parseFloat(c.efectivo_declarado||0),0);
+  // El efectivo del resumen es VENTA, no el contenido del cajón: hay que
+  // restar el fondo, que es cambio que ya estaba ahí. Sumar efectivo_declarado
+  // a secas inflaba el tile con la suma de todos los fondos y dejaba de cuadrar
+  // con el gran total, que sí descuenta el fondo (total_general es GENERATED).
+  const sumFondo = cortes.reduce((a,c)=>a+parseFloat(c.fondo_inicial||0),0);
+  const sumEf  = cortes.reduce(
+    (a,c)=>a+(parseFloat(c.efectivo_declarado||0)-parseFloat(c.fondo_inicial||0)),0);
   const sumTar = cortes.reduce((a,c)=>a+parseFloat(c.tarjeta||0),0);
   const sumMp  = cortes.reduce((a,c)=>a+parseFloat(c.mercadopago||0),0);
   const sumTot = cortes.reduce((a,c)=>a+parseFloat(c.total_general||0),0);
@@ -478,6 +535,10 @@ export default function CorteCajaModule({usuario }) {
           difTxt={difTxt} zTransac={zTransac} cargandoZ={cargandoZ}
           btnSecondary={btnSecondary} onNuevo={nuevoCorte} cajero={usuario?.nombre}
           denominaciones={resultado?.denominaciones}
+          permitirOtro={!esVendedor(usuario)}
+          cierreHint={jornada?.cubre_ambos
+            ? "Hoy cubres ambos. Abre el siguiente turno en el POS."
+            : "Turno cerrado. El otro turno lo abre tu compañera."}
         />
       )}
 
@@ -538,20 +599,22 @@ export default function CorteCajaModule({usuario }) {
           {corteHoy && (
             <div style={{
               marginBottom: 16, padding: "12px 14px", borderRadius: 10,
-              background: C.greenDim, border: `1px solid ${C.green}40`,
+              background: C.amberDim, border: `1px solid ${C.amber}50`,
               color: C.text, fontSize: 13, lineHeight: 1.45,
             }}>
-              Ya hay un corte {turno} de hoy. Esta pantalla está en blanco a
-              propósito: es para un corte <strong>nuevo</strong>, y el conteo es
-              a ciegas. Las ventas de ese turno están en el corte que ya se guardó
+              Ya hay un corte {TURNOS[turno]?.label || turno} de hoy. No se
+              guarda otro.
+              {jornada?.cubre_ambos
+                ? " Si hoy cubres ambos, abre el siguiente turno en el POS."
+                : " Mary cierra el matutino y Erika el vespertino."}
               {esVendedor(usuario)
-                ? "."
-                : <> — ábrelo en <button type="button" onClick={() => setTab("historial")}
+                ? ""
+                : <> Ábrelo en <button type="button" onClick={() => setTab("historial")}
                     style={{ background: "none", border: "none", padding: 0, color: C.blue, fontWeight: 800, cursor: "pointer", fontSize: "inherit" }}>
                     Historial
                   </button>.</>}
               {puedeAnular && corteHoy?.id && (
-                <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${C.green}40` }}>
+                <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${C.amber}40` }}>
                   <div style={{ color: C.textMid, fontSize: 12, marginBottom: 8 }}>
                     ¿Se guardó por error? Anularlo reabre la caja y quien lo hizo
                     vuelve a su turno hoy mismo.
@@ -631,15 +694,41 @@ export default function CorteCajaModule({usuario }) {
                 </div>
               </div>
 
+              {/* Tarjeta y MP no se cuentan a mano: los liquida el banco y los
+                  calcula la base al guardar. Se muestran para que el cajero
+                  sepa qué va a quedar registrado, pero no se teclean. */}
               <div style={{marginBottom:14}}>
                 <label style={labelStyle}>TARJETA</label>
-                <input type="number" value={tarjeta} onChange={e=>setTarjeta(e.target.value)} placeholder="0.00" style={inputStyle}/>
+                <input type="number" value={tarjeta} readOnly placeholder="0.00"
+                  style={{...inputStyle, cursor:"not-allowed", background:C.bg}}/>
+                <div style={{color:C.textDim,fontSize:10,marginTop:4,lineHeight:1.45}}>
+                  {desgloseTarjeta && (desgloseTarjeta.servicios > 0)
+                    ? `Ventas ${fmt(desgloseTarjeta.pedidos)} + pagos de servicio ${fmt(desgloseTarjeta.servicios)}. Se vuelve a calcular al guardar.`
+                    : "Lo calcula el sistema al guardar, con lo cobrado hasta ese momento."}
+                </div>
               </div>
 
               <div style={{marginBottom:14}}>
                 <label style={labelStyle}>MERCADOPAGO</label>
-                <input type="number" value={mercadopago} onChange={e=>setMp(e.target.value)} placeholder="0.00" style={inputStyle}/>
+                <input type="number" value={mercadopago} readOnly placeholder="0.00"
+                  style={{...inputStyle, cursor:"not-allowed", background:C.bg}}/>
+                <div style={{color:C.textDim,fontSize:10,marginTop:4,lineHeight:1.45}}>
+                  Sólo pedidos de la tienda web. Los cobros con la terminal Point
+                  se registran como tarjeta.
+                </div>
               </div>
+
+              {electronicosError && (
+                <div style={{
+                  marginBottom:14, padding:"10px 12px", borderRadius:8,
+                  background:C.redDim, border:`1px solid ${C.red}40`,
+                  color:C.text, fontSize:12, lineHeight:1.45,
+                }}>
+                  No se pudieron leer los cobros con tarjeta ({electronicosError}).
+                  Puedes cerrar el corte de todas formas: la base los recalcula al
+                  guardar. Verifica el resultado contra la terminal.
+                </div>
+              )}
 
               <div style={{marginBottom:14}}>
                 <label style={labelStyle}>CONTADO POR (OPCIONAL)</label>
@@ -676,10 +765,13 @@ export default function CorteCajaModule({usuario }) {
                 <div style={{background:C.amberDim,borderRadius:12,border:`1px solid ${C.amber}35`,padding:16}}>
                   <div style={{color:C.amber,fontSize:11,fontWeight:700,letterSpacing:.5,marginBottom:6}}>PAGOS DE SERVICIO (POS)</div>
                   <div style={{color:C.text,fontSize:12,lineHeight:1.45}}>
-                    {resumenServicios.operaciones} operación(es) · cobrado {fmt(resumenServicios.total_cobrado)} · comisión farmacia {fmt(resumenServicios.total_comision)}
+                    {resumenServicios.operaciones} operación(es) · cobrado {fmt(resumenServicios.total_cobrado)} · recargo farmacia {fmt(resumenServicios.total_comision)}
+                    {resumenServicios.total_compensacion_mp != null && (
+                      <> · compensación MP {fmt(resumenServicios.total_compensacion_mp)} · utilidad {fmt(resumenServicios.total_utilidad ?? (Number(resumenServicios.total_comision || 0) + Number(resumenServicios.total_compensacion_mp || 0)))}</>
+                    )}
                   </div>
-                  <div style={{color:C.textDim,fontSize:10,marginTop:6}}>
-                    Efectivo {fmt(resumenServicios.efectivo)} · Tarjeta Point {fmt(resumenServicios.tarjeta)} — inclúyelos en los campos de arriba al cerrar turno.
+                  <div style={{color:C.textDim,fontSize:10,marginTop:6,lineHeight:1.45}}>
+                    Efectivo {fmt(resumenServicios.efectivo)} · Tarjeta Point {fmt(resumenServicios.tarjeta)} — ya entran solos al corte, no los captures a mano. La compensación MP (1%) vive en el saldo de Mercado Pago, no en el cajón. El efectivo de recargas hay que reponerlo en ese saldo.
                   </div>
                 </div>
               )}
@@ -701,8 +793,10 @@ export default function CorteCajaModule({usuario }) {
                     {fmt(total_general)}
                   </span>
                 </div>
-                <div style={{color:C.textDim,fontSize:10,marginTop:6}}>
-                  Sin el fondo, que no es venta.
+                <div style={{color:C.textDim,fontSize:10,marginTop:6,lineHeight:1.45}}>
+                  Sin el fondo, que no es venta. Tarjeta y MercadoPago los
+                  recalcula la base al guardar, así que el total definitivo
+                  puede subir si entra un cobro mientras cuentas.
                 </div>
               </div>
 
@@ -717,7 +811,9 @@ export default function CorteCajaModule({usuario }) {
               </button>
               {!puedeGuardar && (
                 <div style={{color:C.textDim,fontSize:11,textAlign:"center",marginTop:-4}}>
-                  Captura el efectivo contado para poder cerrar.
+                  {corteHoy
+                    ? "Este turno ya tiene corte. No se guarda otro."
+                    : "Captura el efectivo contado para poder cerrar."}
                 </div>
               )}
             </div>
@@ -728,7 +824,7 @@ export default function CorteCajaModule({usuario }) {
       {/* ══ HISTORIAL ══ */}
       {tab==="historial" && !esVendedor(usuario) && (
         <div>
-          <div className="fc-toolbar-filters" style={{display:"flex",gap:10,marginBottom:16,flexWrap:"wrap",alignItems:"center"}}>
+          <div style={{display:"flex",gap:10,marginBottom:16,flexWrap:"wrap",alignItems:"center"}}>
             <select value={filtroTurno} onChange={e=>setFiltroTurno(e.target.value)} style={{...inputStyle,maxWidth:160}}>
               <option value="todos">Todos los turnos</option>
               <option value="matutino">🌅 Matutino</option>
@@ -751,14 +847,14 @@ export default function CorteCajaModule({usuario }) {
               <table className="fc-tabla-cards" style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                 <thead>
                   <tr style={{background:C.card}}>
-                    {["Fecha/Hora","Turno","Cajero","Contó","Fondo","Ef. Declarado","Ef. Sistema","Diferencia","Tarjeta","MP","Total","Notas","Ticket"].map(h=>(
+                    {["Fecha/Hora","Turno","Cajero","Contó","Fondo","Ef. Declarado","Ef. Sistema","Diferencia","Revisión","Tarjeta","MP","Total","Notas","Ticket"].map(h=>(
                       <th key={h} style={{padding:"10px 12px",textAlign:"left",color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {cortes.length===0&&(
-                    <tr><td colSpan={13} style={{textAlign:"center",padding:32,color:C.textMid}}>Sin cortes en este período</td></tr>
+                    <tr><td colSpan={14} style={{textAlign:"center",padding:32,color:C.textMid}}>Sin cortes en este período</td></tr>
                   )}
                   {cortes.map((c,i)=>{
                     const dif    = parseFloat(c.diferencia||0);
@@ -780,13 +876,29 @@ export default function CorteCajaModule({usuario }) {
                         </td>
                         <td data-label="Cajero" style={{padding:"9px 12px",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>{c.cajero||"—"}</td>
                         <td data-label="Contó" style={{padding:"9px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{c.contado_por||"—"}</td>
-                        <td data-label="Fondo" className="fc-nowrap-money" style={{padding:"9px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{fmt(c.fondo_inicial)}</td>
-                        <td data-label="Ef. declarado" className="fc-nowrap-money" style={{padding:"9px 12px",color:C.green,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{fmt(c.efectivo_declarado)}</td>
-                        <td data-label="Ef. sistema" className="fc-nowrap-money" style={{padding:"9px 12px",color:C.blue,borderBottom:`1px solid ${C.border}`}}>{fmt(c.efectivo_sistema)}</td>
+                        <td data-label="Fondo" style={{padding:"9px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{fmt(c.fondo_inicial)}</td>
+                        <td data-label="Ef. declarado" style={{padding:"9px 12px",color:C.green,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{fmt(c.efectivo_declarado)}</td>
+                        <td data-label="Ef. sistema" style={{padding:"9px 12px",color:C.blue,borderBottom:`1px solid ${C.border}`}}>{fmt(c.efectivo_sistema)}</td>
                         <td data-label="Diferencia" style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`}}><span style={{color:dc,fontWeight:700}}>{dt}</span></td>
-                        <td data-label="Tarjeta" className="fc-nowrap-money" style={{padding:"9px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{fmt(c.tarjeta)}</td>
-                        <td data-label="MP" className="fc-nowrap-money" style={{padding:"9px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{fmt(c.mercadopago)}</td>
-                        <td data-label="Total" className="fc-nowrap-money" style={{padding:"9px 12px",color:C.text,fontWeight:800,borderBottom:`1px solid ${C.border}`}}>{fmt(c.total_general)}</td>
+                        <td data-label="Revisión" style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>
+                          {dif === 0 ? (
+                            <span style={{ color: C.textMid, fontSize: 11 }}>—</span>
+                          ) : (c.diferencia_revisada || diferenciasRevisadas.has(Number(c.id))) ? (
+                            <span style={{ color: C.green, fontSize: 11, fontWeight: 700 }}>✓ Enterado</span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => marcarDiferenciaEnterada(c.id)}
+                              disabled={revisandoDif === c.id}
+                              style={{ ...btnSecondary, padding: "4px 8px", fontSize: 10 }}
+                            >
+                              {revisandoDif === c.id ? "…" : "Enterado"}
+                            </button>
+                          )}
+                        </td>
+                        <td data-label="Tarjeta" style={{padding:"9px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{fmt(c.tarjeta)}</td>
+                        <td data-label="MP" style={{padding:"9px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{fmt(c.mercadopago)}</td>
+                        <td data-label="Total" style={{padding:"9px 12px",color:C.text,fontWeight:800,borderBottom:`1px solid ${C.border}`}}>{fmt(c.total_general)}</td>
                         <td data-label="Notas" data-wide style={{padding:"9px 12px",color:C.textDim,fontSize:11,borderBottom:`1px solid ${C.border}`,maxWidth:130,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.notas||"—"}</td>
                         <td data-label="Ticket" data-actions style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>
                           <div style={{display:"flex",gap:6}}>
@@ -820,12 +932,16 @@ export default function CorteCajaModule({usuario }) {
                 📊 Resumen del período — {cortes.length} corte{cortes.length!==1?"s":""}
               </div>
               <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
-                {[["Efectivo",sumEf,C.green],["Tarjeta",sumTar,C.blue],["MercadoPago",sumMp,C.amber],["Gran total",sumTot,C.text]].map(([lbl,val,col])=>(
+                {[["Efectivo (venta)",sumEf,C.green],["Tarjeta",sumTar,C.blue],["MercadoPago",sumMp,C.amber],["Gran total",sumTot,C.text]].map(([lbl,val,col])=>(
                   <div key={lbl} style={{background:C.bg,borderRadius:10,padding:"12px 18px",minWidth:130,border:`1px solid ${C.border}`}}>
                     <div style={{color:C.textMid,fontSize:10,fontWeight:700,marginBottom:4}}>{lbl.toUpperCase()}</div>
                     <div style={{color:col,fontWeight:800,fontSize:18}}>{fmt(val)}</div>
                   </div>
                 ))}
+              </div>
+              <div style={{color:C.textDim,fontSize:11,marginTop:10,lineHeight:1.5}}>
+                El efectivo es venta: ya se le descontaron {fmt(sumFondo)} de fondos,
+                que son cambio y no ingreso. Por eso {fmt(sumEf)} + {fmt(sumTar)} + {fmt(sumMp)} = {fmt(sumTot)}.
               </div>
             </div>
           )}
@@ -846,11 +962,13 @@ export default function CorteCajaModule({usuario }) {
 // ══════════════════════════════════════════════════════════════
 function ResultadoCorte({ C, resultado, turno, dif, difCol, difBg, difTxt,
                           zTransac, cargandoZ, btnSecondary, onNuevo, cajero,
-                          denominaciones }) {
+                          denominaciones, permitirOtro, cierreHint }) {
   const esperado  = parseFloat(resultado?.esperado ?? 0);
   const sistema   = parseFloat(resultado?.efectivo_sistema ?? 0);
   const fondoRes  = parseFloat(resultado?.fondo_inicial ?? 0);
   const declarado = esperado + dif;
+  // Los electrónicos que realmente quedaron guardados, recalculados por la
+  // base al guardar. Si el RPC todavía no los devuelve, se ocultan en 0.
   const tarjetaRes = parseFloat(resultado?.tarjeta ?? 0);
   const mpRes      = parseFloat(resultado?.mercadopago ?? 0);
   const speiRes    = parseFloat(resultado?.spei ?? 0);
@@ -895,6 +1013,7 @@ function ResultadoCorte({ C, resultado, turno, dif, difCol, difBg, difTxt,
         setTicketEstado("error");
         console.error("[corte ticket]", e);
       });
+    // El PDF se arma con el reporte Z; sólo una vez por corte.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cargandoZ, zTransac, resultado?.corte_id]);
 
@@ -941,6 +1060,30 @@ function ResultadoCorte({ C, resultado, turno, dif, difCol, difBg, difTxt,
             Crédito otorgado en el turno: {fmt(detalle.credito_otorgado)} (no sale del cajón).
           </div>
         )}
+
+        {/* Los electrónicos: lo que la base calculó al guardar, no lo que
+            traía la pantalla. Sirve para cotejar contra la terminal. */}
+        <div style={{borderTop:`1px solid ${C.border}`,marginTop:10,paddingTop:8}}>
+          {[["Tarjeta (BBVA + Point)",tarjetaRes],["MercadoPago (tienda web)",mpRes],
+            ...(speiRes > 0 ? [["SPEI",speiRes]] : [])].map(([l,v])=>(
+            <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"3px 0"}}>
+              <span style={{color:C.textMid,fontSize:12.5}}>{l}</span>
+              <span style={{color:C.text,fontSize:13,fontWeight:600}}>{fmt(v)}</span>
+            </div>
+          ))}
+          {detalle && (detalle.tarjeta_servicios > 0) && (
+            <div style={{color:C.textDim,fontSize:11,marginTop:4}}>
+              De la tarjeta, {fmt(detalle.tarjeta_servicios)} son pagos de servicio.
+            </div>
+          )}
+          <div style={{display:"flex",justifyContent:"space-between",paddingTop:8,marginTop:6,
+                       borderTop:`1px solid ${C.border}`}}>
+            <span style={{color:C.text,fontSize:13,fontWeight:800}}>TOTAL DEL TURNO</span>
+            <span style={{color:C.text,fontSize:15,fontWeight:800}}>
+              {fmt(resultado?.total_general ?? 0)}
+            </span>
+          </div>
+        </div>
         {dif !== 0 && (
           <div style={{color:C.textDim,fontSize:11.5,marginTop:12,lineHeight:1.5}}>
             {dif > 0
@@ -983,7 +1126,7 @@ function ResultadoCorte({ C, resultado, turno, dif, difCol, difBg, difTxt,
           <div style={{color:C.textMid,padding:20,textAlign:"center",fontSize:12}}>Sin ventas en este turno</div>
         ) : (
           <div style={{maxHeight:300,overflowY:"auto",border:`1px solid ${C.border}`,borderRadius:8}}>
-            <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+            <table className="fc-tabla-cards" style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
               <thead><tr style={{background:C.bg}}>
                 {["Folio","Hora","Método","Producto","Importe"].map(h=>(
                   <th key={h} style={{padding:"7px 10px",textAlign:h==="Importe"?"right":"left",
@@ -996,13 +1139,13 @@ function ResultadoCorte({ C, resultado, turno, dif, difCol, difBg, difTxt,
                   if (!items.length) {
                     return [(
                       <tr key={t.id}>
-                        <td style={{padding:"6px 10px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>#{t.id}</td>
-                        <td style={{padding:"6px 10px",color:C.text,borderBottom:`1px solid ${C.border}`}}>
+                        <td data-label="Folio" data-primary style={{padding:"6px 10px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>#{t.id}</td>
+                        <td data-label="Hora" style={{padding:"6px 10px",color:C.text,borderBottom:`1px solid ${C.border}`}}>
                           {new Date(t.created_at).toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"})}
                         </td>
-                        <td style={{padding:"6px 10px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{t.metodo_pago||"—"}</td>
-                        <td style={{padding:"6px 10px",color:C.textDim,borderBottom:`1px solid ${C.border}`}}>—</td>
-                        <td style={{padding:"6px 10px",textAlign:"right",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>
+                        <td data-label="Método" style={{padding:"6px 10px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{t.metodo_pago||"—"}</td>
+                        <td data-label="Producto" data-wide style={{padding:"6px 10px",color:C.textDim,borderBottom:`1px solid ${C.border}`}}>—</td>
+                        <td data-label="Importe" style={{padding:"6px 10px",textAlign:"right",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>
                           {fmt(t.total)}
                         </td>
                       </tr>
@@ -1010,15 +1153,15 @@ function ResultadoCorte({ C, resultado, turno, dif, difCol, difBg, difTxt,
                   }
                   return items.map((it, idx) => (
                     <tr key={`${t.id}-${idx}`}>
-                      <td style={{padding:"6px 10px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{idx===0?`#${t.id}`:""}</td>
-                      <td style={{padding:"6px 10px",color:C.text,borderBottom:`1px solid ${C.border}`}}>
-                        {idx===0?new Date(t.created_at).toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"}):""}
+                      <td data-label="Folio" data-primary style={{padding:"6px 10px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{idx===0?`#${t.id}`:`#${t.id}`}</td>
+                      <td data-label="Hora" style={{padding:"6px 10px",color:C.text,borderBottom:`1px solid ${C.border}`}}>
+                        {new Date(t.created_at).toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"})}
                       </td>
-                      <td style={{padding:"6px 10px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{idx===0?(t.metodo_pago||"—"):""}</td>
-                      <td style={{padding:"6px 10px",color:C.text,borderBottom:`1px solid ${C.border}`}}>
+                      <td data-label="Método" style={{padding:"6px 10px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{t.metodo_pago||"—"}</td>
+                      <td data-label="Producto" data-wide style={{padding:"6px 10px",color:C.text,borderBottom:`1px solid ${C.border}`}}>
                         {it.cantidad} × {it.nombre}{it.sku?` · ${it.sku}`:""}
                       </td>
-                      <td style={{padding:"6px 10px",textAlign:"right",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>
+                      <td data-label="Importe" style={{padding:"6px 10px",textAlign:"right",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>
                         {fmt(it.subtotal ?? it.precio_unitario)}
                       </td>
                     </tr>
@@ -1030,9 +1173,15 @@ function ResultadoCorte({ C, resultado, turno, dif, difCol, difBg, difTxt,
         )}
       </div>
 
-      <button onClick={onNuevo} style={{...btnSecondary,alignSelf:"flex-start"}}>
-        ➕ Hacer otro corte
-      </button>
+      {permitirOtro ? (
+        <button onClick={onNuevo} style={{...btnSecondary,alignSelf:"flex-start"}}>
+          Hacer otro corte
+        </button>
+      ) : (
+        <div style={{color:C.textMid,fontSize:13,lineHeight:1.45}}>
+          {cierreHint || "Turno cerrado. El otro turno lo abre tu compañera."}
+        </div>
+      )}
     </div>
   );
 }

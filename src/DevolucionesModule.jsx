@@ -699,9 +699,9 @@ export default function DevolucionesModule({ usuario }) {
           {label:"Aprobadas",value:devoluciones.filter(d=>d.estado==="aprobada").length,col:C.green},
           {label:"Total registradas",value:devoluciones.length,col:C.blue},
         ].map(k=>(
-          <div key={k.label} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px 16px",flex:"1 1 140px",minWidth:0}}>
+          <div key={k.label} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px 20px",flex:1,minWidth:120}}>
             <div style={{color:C.textDim,fontSize:10,fontWeight:700,marginBottom:4}}>{k.label.toUpperCase()}</div>
-            <div className="fc-kpi-value" style={{color:k.col,fontWeight:900,fontSize:22}}>{k.value}</div>
+            <div style={{color:k.col,fontWeight:900,fontSize:22}}>{k.value}</div>
           </div>
         ))}
       </div>
@@ -742,7 +742,7 @@ export default function DevolucionesModule({ usuario }) {
                       <div key={idx} style={{color:C.text,fontSize:11}}>{it.producto_nombre} ×{it.cantidad}</div>
                     ))}
                   </td>
-                  <td data-label="Total" className="fc-nowrap-money" style={{padding:"8px 12px",color:C.red,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{fmt(d.total_devuelto)}</td>
+                  <td data-label="Total" style={{padding:"8px 12px",color:C.red,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{fmt(d.total_devuelto)}</td>
                   <td data-label="Método" style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{d.metodo_reembolso||"—"}</td>
                   <td data-label="Estado" style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`}}>
                     <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:estCol(d.estado, C)+"20",color:estCol(d.estado, C)}}>

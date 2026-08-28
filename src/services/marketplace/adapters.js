@@ -1,12 +1,15 @@
 /**
- * Adaptadores placeholder para integraciones externas (sin credenciales).
+ * Adaptadores para integraciones externas.
  *
- * - Rappi / Uber Eats: típicamente reciben pedidos vía API del marketplace o tablet;
- *   aquí solo definimos la forma esperada del payload y puntos de enganche.
- * - Uber Direct: última milla desde FarmaCapital; crear entrega programmatically cuando exista token.
+ * Rappi disponibilidad: cola + worker en api/_lib/rappiSync.js (no llama a Rappi
+ * desde el navegador). Pedidos entrantes: POST /api/webhooks/rappi-order.
  *
- * Ver: docs/DELIVERY_MARKETPLACE_PREP.md
+ * Ver: docs/DELIVERY_MARKETPLACE_PREP.md y sql/patch_rappi_sync_20260819.sql
  */
+
+import { normalizeRappiInboundOrder } from "./rappiOrder";
+
+export { normalizeRappiInboundOrder };
 
 /** @typedef {{ external_order_id?: string, provider: string, raw?: object }} MarketplaceOrderRef */
 
@@ -26,11 +29,25 @@ export function toMarketplaceOutboundSnapshot(pedido) {
   };
 }
 
-/** Placeholder: registrar pedido entrante desde Rappi (implementar con API real). */
-export async function ingestRappiOrderPlaceholder(_payload) {
+/**
+ * Ingesta canónica de un pedido Rappi.
+ * El navegador no puede descontar stock (F6: escrituras vía RPC service_role).
+ * En el servidor, pasar `{ ingest }` (tests) o pegar en POST /api/webhooks/rappi-order.
+ *
+ * @param {object} payload
+ * @param {{ ingest?: (order: object) => Promise<object> }} [deps]
+ */
+export async function ingestRappiOrderPlaceholder(payload, deps = {}) {
+  const normalized = normalizeRappiInboundOrder(payload);
+  if (!normalized.ok) return normalized;
+  if (typeof deps.ingest === "function") {
+    return deps.ingest(normalized.order);
+  }
   return {
     ok: false,
-    error: "Integración Rappi no configurada. Ver docs/DELIVERY_MARKETPLACE_PREP.md",
+    error: "use_server",
+    hint: "POST /api/webhooks/rappi-order con RAPPI_WEBHOOK_SECRET. El RPC ingest_rappi_order descuenta stock y guarda external_order_id en logistics_meta.",
+    order: normalized.order,
   };
 }
 

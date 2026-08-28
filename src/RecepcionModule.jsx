@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { ScanLine, History, AlertTriangle } from "lucide-react";
+import { ScanLine, History, ArrowLeft, AlertTriangle } from "lucide-react";
 import { C_LIGHT, BRAND } from "./constants";
 import { supabase } from "./supabase";
 import { showToast } from "./ui";
@@ -10,27 +10,23 @@ import {
   looksLikeBarcodeInput,
   looksLikeInternalSku,
   normalizeBarcodeRaw,
-  splitBarcodeCandidates,
 } from "./utils/barcodeProductLookup";
 import { etiquetaCaducidadMMAA, formatCaducidadMesAnio, parseCaducidadMMAA } from "./lib/caducidad";
-import {
-  eanPistolaListo,
-  itemMatchScan,
-  matchScanEnTicket,
-  MSG_SCAN_FUERA_TICKET,
-  MSG_SCAN_YA_EN_TICKET,
-  pedidoEsperaEntrada,
-  recepcionEsTicket,
-} from "./lib/recepcionScan";
 import { fetchProductosPaginados } from "./lib/inventarioHubData";
+import {
+  margenAltaRecepcion,
+  payloadAltaRecepcion,
+  precioSugeridoAltaRecepcion,
+} from "./lib/recepcionAlta";
+import { fmtPrecioVenta } from "./lib/preciosReferencia";
 import { parseTicketCsv } from "./lib/recepcionTicketCsv";
-import { getSessionToken, esErrorSesionEmpleado } from "./utils";
+import { recepcionEsTicketDocumento, resolverEscaneoRecepcion } from "./lib/recepcionScan";
+import { $ as fmt, getSessionToken, esErrorSesionEmpleado } from "./utils";
 import { notifySesionEmpleadoInvalida } from "./utils/sesionEmpleadoAuth";
 import { setBloqueaReloadApp } from "./utils/appUpdate";
+import { avisarCatalogoCambio } from "./utils/catalogoVivo";
+import { useCatalogoVivo } from "./hooks/useCatalogoVivo";
 import RecepcionHistorial from "./components/RecepcionHistorial";
-
-const fmt = (n) =>
-  `$${parseFloat(n || 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const fmtFecha = (f) => {
   const s = String(f || "").slice(0, 10);
@@ -58,22 +54,6 @@ function etiquetaProveedorLista(nombre) {
   if (/cityfarma/i.test(n)) return "Farma City";
   if (/farmalive|farmalife/i.test(n)) return "Farmalive";
   return n;
-}
-
-async function fetchPedidosVivosApi(tok, recepcionId) {
-  const resp = await fetch("/api/inventarioProcesarPdf?type=recepcion-abiertas", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      session_token: tok,
-      ...(recepcionId ? { recepcion_id: recepcionId } : {}),
-    }),
-  });
-  const json = await resp.json().catch(() => null);
-  if (!resp.ok) {
-    throw new Error(json?.error || `HTTP ${resp.status}`);
-  }
-  return json;
 }
 
 function ticketMatchScan(t, raw) {
@@ -225,9 +205,9 @@ export default function RecepcionModule({ ocultarMontos = false }) {
   const scanRef = useRef(null);
   const qtyRef = useRef(null);
   const cadRef = useRef(null);
+  const costoRef = useRef(null);
   const pdfRef = useRef(null);
   const csvRef = useRef(null);
-  const scanIdleRef = useRef(null);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -242,14 +222,19 @@ export default function RecepcionModule({ ocultarMontos = false }) {
   const [scan, setScan] = useState("");
   const [qty, setQty] = useState("");
   const [cad, setCad] = useState("");
+  const [costo, setCosto] = useState("");
+  const [altaNombre, setAltaNombre] = useState("");
+  const [altaTipo, setAltaTipo] = useState("generico");
   const [pendiente, setPendiente] = useState(null);
-  const [codigoCopiado, setCodigoCopiado] = useState("");
   const [errorLinea, setErrorLinea] = useState("");
+  const [codigoCopiado, setCodigoCopiado] = useState("");
   const [subiendo, setSubiendo] = useState(false);
   const [pendientes, setPendientes] = useState([]);
-  const [vistaNuevo, setVistaNuevo] = useState(false);
   const [listaScan, setListaScan] = useState("");
   const listaScanRef = useRef(null);
+  const scanIdleRef = useRef(null);
+  /** Ticket que ya trajo renglones (PDF/CSV o pedido vivo): la pistola no inventa líneas. */
+  const ticketListaRef = useRef(false);
   /** "recibir" captura el ticket; "historia" solo consulta lo ya comprado. */
   const [vista, setVista] = useState("recibir");
 
@@ -272,30 +257,22 @@ export default function RecepcionModule({ ocultarMontos = false }) {
 
   const cargarLista = useCallback(async () => {
     const tok = sessionTok();
-    if (!tok) return { ok: false };
-    const aplicarTickets = (rows) => {
-      setPendientes((Array.isArray(rows) ? rows : []).filter(pedidoEsperaEntrada));
-    };
+    if (!tok) return;
     const { data, error } = await supabase.rpc("recepcion_listar_abiertas", { p_session_token: tok });
-    if (!error) {
-      aplicarTickets(unwrapJson(data));
-      return { ok: true };
-    }
-    const msg = error.message || "";
-    if (esErrorSesionEmpleado(msg)) return { ok: false };
-    try {
-      const api = await fetchPedidosVivosApi(tok);
-      aplicarTickets(api?.tickets);
-      return { ok: true, viaApi: true };
-    } catch (apiErr) {
-      if (/does not exist|schema cache|listar_abiertas/i.test(msg)) {
-        showToast("No se pudieron listar los pedidos vivos: " + (apiErr.message || msg), "error");
+    if (error) {
+      const msg = error.message || "";
+      if (esErrorSesionEmpleado(msg)) {
+        /* el guard global manda al login */
+      } else if (/does not exist|schema cache|listar_abiertas/i.test(msg)) {
+        showToast("Falta correr sql/patch_recepcion_lista_pendientes_20260821.sql en Supabase.", "error");
         setPendientes([]);
-        return { ok: false, missingRpc: true };
+      } else {
+        showToast("No se pudieron listar tickets: " + msg, "error");
       }
-      showToast("No se pudieron listar tickets: " + msg, "error");
-      return { ok: false };
+      return;
     }
+    const raw = unwrapJson(data);
+    setPendientes(Array.isArray(raw) ? raw : []);
   }, []);
 
   const cargar = useCallback(async () => {
@@ -309,28 +286,12 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     const [provRes, prodRes] = await Promise.all([
       supabase.rpc("empleado_listar_proveedores_catalogo", { p_session_token: tok }),
       fetchProductosPaginados({
-        select: "id,nombre,sku,codigo_barras,activo",
+        select: "id,nombre,sku,codigo_barras,activo,costo,tipo",
         activosSolo: true,
         order: "nombre",
       }),
     ]);
-    const lista = await cargarLista();
-    if (lista?.missingRpc && !lista?.viaApi) {
-      const { data: borrador } = await supabase.rpc("recepcion_borrador_abierto", { p_session_token: tok });
-      const rec = aplicarDoc(borrador);
-      if (rec?.id) {
-        setPendientes([{
-          id: rec.id,
-          proveedor: rec.proveedor,
-          folio: rec.folio,
-          estado: rec.estado,
-          renglones: rec.renglones || (rec.items || []).length,
-          sin_confirmar: rec.sin_confirmar,
-          sin_caducidad_anaquel: rec.sin_caducidad_anaquel,
-        }].filter(pedidoEsperaEntrada));
-        setDoc(null);
-      }
-    }
+    await cargarLista();
     const prov = unwrapJson(provRes.data);
     setProveedores(Array.isArray(prov) ? prov : []);
     if (prodRes.error) {
@@ -340,9 +301,25 @@ export default function RecepcionModule({ ocultarMontos = false }) {
       setProductos(prodRes.data || []);
     }
     setLoading(false);
-  }, [aplicarDoc, cargarLista]);
+  }, [cargarLista]);
 
   useEffect(() => { cargar(); }, [cargar]);
+
+  const pendienteRef = useRef(pendiente);
+  pendienteRef.current = pendiente;
+  const refrescarCatalogoRecepcion = useCallback(async () => {
+    if (pendienteRef.current) return;
+    const tok = sessionTok();
+    if (!tok) return;
+    const prodRes = await fetchProductosPaginados({
+      select: "id,nombre,sku,codigo_barras,activo,costo,tipo",
+      activosSolo: true,
+      order: "nombre",
+    });
+    if (!prodRes.error) setProductos(prodRes.data || []);
+    await cargarLista();
+  }, [cargarLista]);
+  useCatalogoVivo(refrescarCatalogoRecepcion, { pausado: () => !!pendienteRef.current });
 
   useEffect(() => () => {
     if (scanIdleRef.current) {
@@ -351,16 +328,10 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     }
   }, []);
 
-  const focusSafe = (ref) => {
-    requestAnimationFrame(() => {
-      try { ref?.current?.focus?.(); } catch (_) { /* Safari: nodo ya no está */ }
-    });
-  };
-
   useEffect(() => {
     if (vista !== "recibir") return;
     if (!loading && doc && !pendiente) {
-      focusSafe(scanRef);
+      try { scanRef.current?.focus(); } catch (_) { /* Safari */ }
     }
   }, [loading, doc, pendiente, vista]);
 
@@ -388,23 +359,18 @@ export default function RecepcionModule({ ocultarMontos = false }) {
       return;
     }
     setSaving(true);
-    try {
-      const total = totalTicket.trim() === "" ? null : Number(String(totalTicket).replace(/,/g, ""));
-      const { data, error } = await supabase.rpc("recepcion_abrir", {
-        p_session_token: tok,
-        p_proveedor: proveedor.trim() || null,
-        p_folio: folioN || null,
-        p_total_ticket: Number.isFinite(total) ? total : null,
-      });
-      if (error) { rpcError(error, "No se pudo empezar la recepción"); return; }
-      setVistaNuevo(false);
-      aplicarDoc(data);
-      setTimeout(() => scanRef.current?.focus(), 40);
-    } catch (e) {
-      showToast(e?.message || "Se cayó la conexión. Intenta de nuevo.", "error");
-    } finally {
-      setSaving(false);
-    }
+    const total = totalTicket.trim() === "" ? null : Number(String(totalTicket).replace(/,/g, ""));
+    const { data, error } = await supabase.rpc("recepcion_abrir", {
+      p_session_token: tok,
+      p_proveedor: proveedor.trim() || null,
+      p_folio: folioN || null,
+      p_total_ticket: Number.isFinite(total) ? total : null,
+    });
+    setSaving(false);
+    if (error) { rpcError(error, "No se pudo empezar la recepción"); return; }
+    aplicarDoc(data);
+    ticketListaRef.current = false;
+    setTimeout(() => scanRef.current?.focus(), 40);
   };
 
   const cargarRenglones = async (renglones, meta = {}) => {
@@ -451,7 +417,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
       return;
     }
     aplicarDoc(data);
-    setVistaNuevo(false);
+    ticketListaRef.current = true;
     const n = renglones.length;
     showToast(`${n} renglón${n === 1 ? "" : "es"} del ticket. Escanea cada caja y pon MMAA.`, "success");
     setTimeout(() => scanRef.current?.focus(), 40);
@@ -538,6 +504,9 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     setScan("");
     setQty("");
     setCad("");
+    setCosto("");
+    setAltaNombre("");
+    setAltaTipo("generico");
     setPendiente(null);
     setErrorLinea("");
     setTimeout(() => scanRef.current?.focus(), 30);
@@ -567,23 +536,15 @@ export default function RecepcionModule({ ocultarMontos = false }) {
       p_session_token: tok,
       p_recepcion_id: id,
     });
-    if (!error) {
-      setSaving(false);
-      setVistaNuevo(false);
-      aplicarDoc(data);
-      setTimeout(() => scanRef.current?.focus(), 40);
+    setSaving(false);
+    if (error) {
+      rpcError(error, "No se pudo abrir el ticket");
       return;
     }
-    try {
-      const api = await fetchPedidosVivosApi(tok, id);
-      setSaving(false);
-      setVistaNuevo(false);
-      aplicarDoc(api);
-      setTimeout(() => scanRef.current?.focus(), 40);
-    } catch {
-      setSaving(false);
-      rpcError(error, "No se pudo abrir el pedido");
-    }
+    const rec = aplicarDoc(data);
+    const lista = Array.isArray(rec?.items) ? rec.items : [];
+    ticketListaRef.current = lista.length > 0 || recepcionEsTicketDocumento(lista);
+    setTimeout(() => scanRef.current?.focus(), 40);
   };
 
   const elegirCarga = async (id) => {
@@ -597,10 +558,10 @@ export default function RecepcionModule({ ocultarMontos = false }) {
 
   const volverALista = async () => {
     setDoc(null);
-    setVistaNuevo(false);
     setProveedor("");
     setFolio("");
     setTotalTicket("");
+    ticketListaRef.current = false;
     resetLinea();
     await cargarLista();
   };
@@ -618,7 +579,57 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     return { codigo, producto: null, pendienteAlta: false, noEncontrado: !looksLikeInternalSku(codigo) };
   };
 
+  const abrirRenglon = (it, codigoOverride) => {
+    if (!it) return;
+    if (it.confirmado && it.fecha_caducidad) {
+      setErrorLinea("Ya está en este ticket.");
+      return;
+    }
+    try { scanRef.current?.blur(); } catch (_) { /* Safari */ }
+    const codigo = codigoOverride || it.codigo_escaneado || it.sku || "";
+    setErrorLinea("");
+    setPendiente({
+      codigo,
+      producto: { nombre: it.nombre, sku: it.sku },
+      pendienteAlta: it.pendiente_alta,
+      itemId: it.id,
+      loteDistinto: it.lote_distinto,
+      numeroLote: it.numero_lote,
+      lotesPiso: it.lotes_piso,
+    });
+    setScan(codigo);
+    setQty(String(it.cantidad || 1));
+    setCosto(it.costo_estimado != null ? String(it.costo_estimado) : "");
+    setTimeout(() => cadRef.current?.focus(), 30);
+  };
+
   const tomarScan = (raw) => {
+    const codigo = normalizeBarcodeRaw(raw) || String(raw || "").trim();
+    if (!codigo) return;
+    const items = doc?.items || [];
+    const esTicket = ticketListaRef.current || recepcionEsTicketDocumento(items);
+    const hit = resolverEscaneoRecepcion({
+      items,
+      codigo,
+      productos,
+      esTicketDocumento: esTicket,
+    });
+
+    if (hit.tipo === "ya_confirmado") {
+      setScan("");
+      setErrorLinea("Ya está en este ticket.");
+      return;
+    }
+    if (hit.tipo === "fuera") {
+      setScan("");
+      setErrorLinea("No corresponde a ninguno de los ítems de este ticket.");
+      return;
+    }
+    if (hit.tipo === "gris") {
+      abrirRenglon(hit.item, hit.codigo);
+      return;
+    }
+
     const r = resolverScan(raw);
     if (!r) return;
     if (r.noEncontrado && !r.pendienteAlta) {
@@ -627,53 +638,11 @@ export default function RecepcionModule({ ocultarMontos = false }) {
       return;
     }
     try { scanRef.current?.blur(); } catch (_) { /* Safari */ }
-    const codigo = r.codigo;
-    if (recepcionEsTicket(doc)) {
-      const { gris, yaConfirmado } = matchScanEnTicket(doc.items, codigo);
-      if (gris) {
-        setErrorLinea("");
-        setPendiente({
-          codigo,
-          producto: { nombre: gris.nombre, sku: gris.sku },
-          pendienteAlta: gris.pendiente_alta,
-          itemId: gris.id,
-          loteDistinto: gris.lote_distinto,
-          numeroLote: gris.numero_lote,
-          lotesPiso: gris.lotes_piso,
-        });
-        setScan(codigo);
-        setQty(String(gris.cantidad || 1));
-        focusSafe(cadRef);
-        return;
-      }
-      const msg = yaConfirmado ? MSG_SCAN_YA_EN_TICKET : MSG_SCAN_FUERA_TICKET;
-      setPendiente(null);
-      setScan("");
-      setErrorLinea(msg);
-      showToast(msg, "warning");
-      return;
-    }
-    const gray = (doc?.items || []).find((it) => !it.confirmado && itemMatchScan(it, codigo));
-    if (gray) {
-      setErrorLinea("");
-      setPendiente({
-        codigo,
-        producto: { nombre: gray.nombre, sku: gray.sku },
-        pendienteAlta: gray.pendiente_alta,
-        itemId: gray.id,
-        loteDistinto: gray.lote_distinto,
-        numeroLote: gray.numero_lote,
-        lotesPiso: gray.lotes_piso,
-      });
-      setScan(codigo);
-      setQty(String(gray.cantidad || 1));
-      focusSafe(cadRef);
-      return;
-    }
     setErrorLinea("");
     setPendiente(r);
-    setScan(codigo);
-    focusSafe(qtyRef);
+    setScan(r.codigo);
+    setCosto(r.producto?.costo != null ? String(r.producto.costo) : "");
+    setTimeout(() => qtyRef.current?.focus(), 30);
   };
 
   const cancelScanIdle = () => {
@@ -686,7 +655,11 @@ export default function RecepcionModule({ ocultarMontos = false }) {
   const programarScanPistola = (raw) => {
     cancelScanIdle();
     const codigo = normalizeBarcodeRaw(raw);
-    if (!eanPistolaListo(codigo)) return;
+    if (looksLikeInternalSku(codigo)) {
+      /* SKU interno: disparar igual que EAN completo */
+    } else if (!(looksLikeBarcodeInput(codigo) && [8, 12, 13, 14].includes(codigo.length))) {
+      return;
+    }
     scanIdleRef.current = setTimeout(() => {
       scanIdleRef.current = null;
       tomarScan(codigo);
@@ -718,6 +691,18 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     setQty(val.replace(/[^\d]/g, "").slice(0, 5));
   };
 
+  const onCostoChange = (val) => {
+    if (looksLikeBarcodeInput(val)) {
+      setCosto("");
+      tomarScan(val);
+      return;
+    }
+    // un punto, dos decimales; la pistola nunca escribe aquí
+    const limpio = val.replace(/[^\d.]/g, "").replace(/(\..*)\./g, "$1");
+    const [ent, dec] = limpio.split(".");
+    setCosto(dec === undefined ? ent.slice(0, 7) : `${ent.slice(0, 7)}.${dec.slice(0, 2)}`);
+  };
+
   const onCadChange = (val) => {
     if (looksLikeBarcodeInput(val)) {
       setCad("");
@@ -733,40 +718,94 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     if (!n || n <= 0) { setErrorLinea("Pon la cantidad"); qtyRef.current?.focus(); return; }
     const iso = parseCaducidadMMAA(cad);
     if (!iso) { setErrorLinea("Caducidad MMAA — ej. 0629"); cadRef.current?.focus(); return; }
+    const costoN = costo.trim() === "" ? null : Number(costo);
+    if (costoN != null && (!Number.isFinite(costoN) || costoN <= 0)) {
+      setErrorLinea("El costo tiene que ser un número mayor que cero");
+      costoRef.current?.focus();
+      return;
+    }
     setSaving(true);
     setErrorLinea("");
-    try {
-      const tok = sessionTok();
-      let data;
-      let error;
-      if (recepcionEsTicket(doc) && !pendiente.itemId) {
-        setErrorLinea(MSG_SCAN_FUERA_TICKET);
+    const tok = sessionTok();
+    if (pendiente.pendienteAlta && !pendiente.producto?.id) {
+      const nombre = altaNombre.trim();
+      if (!nombre) {
+        setSaving(false);
+        setErrorLinea("Pon el nombre del producto");
         return;
       }
-      if (pendiente.itemId) {
-        ({ data, error } = await supabase.rpc("recepcion_confirmar_item", {
-          p_session_token: tok,
-          p_item_id: pendiente.itemId,
-          p_fecha_caducidad: iso,
-          p_cantidad: n,
-        }));
-      } else {
-        ({ data, error } = await supabase.rpc("recepcion_agregar_item", {
-          p_session_token: tok,
-          p_recepcion_id: doc.id,
-          p_codigo: pendiente.codigo,
-          p_cantidad: n,
-          p_fecha_caducidad: iso,
-        }));
+      const pdata = payloadAltaRecepcion({
+        nombre,
+        codigo: pendiente.codigo,
+        tipo: altaTipo,
+        costo: costoN,
+      });
+      if (!pdata.precio || !pdata.costo) {
+        setSaving(false);
+        setErrorLinea("El costo de la factura es obligatorio para darlo de alta");
+        return;
       }
-      if (error) { setErrorLinea(error.message); return; }
-      aplicarDoc(data);
-      resetLinea();
-    } catch (e) {
-      setErrorLinea(e?.message || "Se cayó la conexión. Intenta de nuevo.");
-    } finally {
-      setSaving(false);
+      const { data: created, error: altaErr } = await supabase.rpc("create_producto_secure", {
+        p_session_token: tok,
+        p_producto_data: pdata,
+        p_cantidad_inicial: 0,
+        p_numero_lote: null,
+        p_fecha_caducidad: null,
+        p_costo_unitario: costoN,
+      });
+      if (altaErr) {
+        setSaving(false);
+        setErrorLinea(altaErr.message || "No se pudo dar de alta. Hazlo como gerente en Catálogo.");
+        return;
+      }
+      const nuevo = Array.isArray(created) ? created[0] : created;
+      if (nuevo?.producto_id) {
+        setProductos((prev) => [
+          ...prev,
+          {
+            id: nuevo.producto_id,
+            nombre: pdata.nombre,
+            sku: null,
+            codigo_barras: pdata.codigo_barras,
+            activo: true,
+            costo: pdata.costo,
+            tipo: pdata.tipo,
+          },
+        ]);
+      }
     }
+    let data;
+    let error;
+    if (pendiente.itemId && !pendiente.pendienteAlta) {
+      ({ data, error } = await supabase.rpc("recepcion_confirmar_item", {
+        p_session_token: tok,
+        p_item_id: pendiente.itemId,
+        p_fecha_caducidad: iso,
+        p_cantidad: n,
+        p_costo: costoN,
+      }));
+    } else {
+      ({ data, error } = await supabase.rpc("recepcion_agregar_item", {
+        p_session_token: tok,
+        p_recepcion_id: doc.id,
+        p_codigo: pendiente.codigo,
+        p_cantidad: n,
+        p_fecha_caducidad: iso,
+        p_costo: costoN,
+      }));
+    }
+    setSaving(false);
+    if (error) { setErrorLinea(error.message); return; }
+    aplicarDoc(data);
+    resetLinea();
+    avisarCatalogoCambio({ origen: "recibir" });
+  };
+
+  const onCostoKey = (e) => {
+    if (e.key === "Escape") { e.preventDefault(); resetLinea(); return; }
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    guardarLinea();
   };
 
   const onCadKey = (e) => {
@@ -875,6 +914,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     setProveedor("");
     setFolio("");
     setTotalTicket("");
+    ticketListaRef.current = false;
     resetLinea();
     await cargarLista();
   };
@@ -888,6 +928,13 @@ export default function RecepcionModule({ ocultarMontos = false }) {
   const confirmadosOk = items.filter((i) => i.confirmado && i.fecha_caducidad).length;
   const puedeCerrar = confirmadosOk > 0 && anaquelSinCad === 0;
   const cadPreview = etiquetaCaducidadMMAA(cad);
+  const costoAnterior = pendiente?.itemId
+    ? Number((doc?.items || []).find((i) => i.id === pendiente.itemId)?.costo_estimado)
+    : Number(pendiente?.producto?.costo);
+  const costoTecleado = costo.trim() === "" ? null : Number(costo);
+  const costoCambia = Number.isFinite(costoAnterior) && costoAnterior > 0
+    && costoTecleado != null && Number.isFinite(costoTecleado)
+    && Math.abs(costoTecleado - costoAnterior) > 0.005;
   const ticketNum = totalTicket.trim() === "" ? null : Number(String(totalTicket).replace(/,/g, ""));
   const estimado = Number(doc?.subtotal_estimado) || 0;
 
@@ -947,98 +994,87 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     <div style={{ padding: isMobile ? "12px 16px 32px" : "18px 24px 40px", maxWidth: 720 }}>
       <input ref={pdfRef} type="file" accept="application/pdf,.pdf" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) onPdfFile(f); }} />
       <input ref={csvRef} type="file" accept=".csv,text/csv,.txt" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) onCsvFile(f); }} />
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
-        <div>
-          <h2 style={{ margin: 0, color: C.text, fontSize: 20, fontWeight: 800, display: "flex", alignItems: "center", gap: 8 }}>
-            <ScanLine size={22} strokeWidth={2.2} /> Recibir
-          </h2>
-          <p style={{ margin: "4px 0 0", color: C.textMid, fontSize: 13 }}>
-            Si hay un pedido vivo, tócalo (sale el nombre de la tienda). Si son pocas piezas, llena el ticket abajo y escanea.
-          </p>
-        </div>
-        {doc && (
-          <div style={{ textAlign: "right" }}>
-            <div style={{ color: C.text, fontWeight: 800, fontSize: 18, letterSpacing: -0.3 }}>
-              {doc.renglones || 0} renglones · {(doc.items || []).filter((i) => i.confirmado).length} ok
-              {(doc.sin_confirmar > 0) ? ` · ${doc.sin_confirmar} sin caducidad` : ""}
-            </div>
-            {ticketNum != null && Number.isFinite(ticketNum) && !ocultarMontos && (
-              <div style={{ color: C.textMid, fontSize: 12, marginTop: 2 }}>
-                estimado {fmt(estimado)} de {fmt(ticketNum)} del ticket
+      <div style={{ marginBottom: 16 }}>
+        {doc ? (
+          <div>
+            <button
+              type="button"
+              onClick={volverALista}
+              disabled={saving}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                margin: "0 0 10px", padding: "8px 2px",
+                border: "none", background: "transparent",
+                color: C.text, fontWeight: 700, fontSize: 14,
+                cursor: saving ? "not-allowed" : "pointer",
+              }}
+            >
+              <ArrowLeft size={18} strokeWidth={2.2} />
+              Tickets
+            </button>
+            <div>
+              <h2 style={{ margin: 0, color: C.text, fontSize: 20, fontWeight: 800, letterSpacing: -0.3 }}>
+                {etiquetaProveedorLista(doc.proveedor)}
+              </h2>
+              <p style={{ margin: "4px 0 0", color: C.textMid, fontSize: 13 }}>
+                {doc.folio ? `Folio ${doc.folio}` : "Sin folio"}
+                {" · "}escanea la caja o toca el renglón gris para grabarlo
+              </p>
+              <div style={{ color: C.text, fontWeight: 800, fontSize: 14, letterSpacing: -0.3, marginTop: 8 }}>
+                {doc.renglones || 0} renglones · {(doc.items || []).filter((i) => i.confirmado).length} ok
+                {(doc.sin_confirmar > 0) ? ` · ${doc.sin_confirmar} sin caducidad` : ""}
               </div>
-            )}
+              {ticketNum != null && Number.isFinite(ticketNum) && !ocultarMontos && (
+                <div style={{ color: C.textMid, fontSize: 12, marginTop: 2 }}>
+                  estimado {fmt(estimado)} de {fmt(ticketNum)} del ticket
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div>
+            <h2 style={{ margin: 0, color: C.text, fontSize: 20, fontWeight: 800, display: "flex", alignItems: "center", gap: 8 }}>
+              <ScanLine size={22} strokeWidth={2.2} /> Recibir
+            </h2>
+            <p style={{ margin: "4px 0 0", color: C.textMid, fontSize: 13 }}>
+              Si hay un pedido vivo, tócalo (sale el nombre de la tienda). Si son pocas piezas, llena el ticket abajo y escanea.
+            </p>
           </div>
         )}
       </div>
 
-      {tabBar}
+      {!doc && tabBar}
 
-      {pendientes.length > 0 && (
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ color: C.textMid, fontSize: 11, fontWeight: 800, letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 8 }}>
-            Pedidos vivos · esperando entrada
-          </div>
-          {!doc && (
-            <input
-              ref={listaScanRef}
-              value={listaScan}
-              onChange={(e) => {
-                const v = e.target.value;
-                setListaScan(v);
-                cancelScanIdle();
-                const codigo = normalizeBarcodeRaw(v);
-                if (looksLikeBarcodeInput(codigo) && [8, 12, 13, 14].includes(codigo.length)) {
-                  scanIdleRef.current = setTimeout(() => {
-                    scanIdleRef.current = null;
-                    abrirPorCodigoLista(codigo);
-                  }, 140);
-                }
-              }}
-              onKeyDown={(e) => {
-                if (e.key !== "Enter" && e.key !== "Tab") return;
-                e.preventDefault();
-                cancelScanIdle();
-                abrirPorCodigoLista(e.currentTarget.value);
-              }}
-              placeholder="O pistola aquí: abre el ticket de esa caja"
-              autoComplete="off"
-              autoCapitalize="off"
-              style={inpBase(C, { fontFamily: "ui-monospace, monospace", fontWeight: 700, marginBottom: 10 })}
-            />
-          )}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {pendientes.map((t) => {
-              const activo = doc?.id === t.id;
-              const cajas = t.renglones || 0;
-              const porEntrar = Number(t.sin_confirmar || 0) || Number(t.sin_caducidad_anaquel || 0);
-              return (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => elegirCarga(t.id)}
-                  disabled={saving}
-                  style={{
-                    flex: "1 1 160px",
-                    textAlign: "left",
-                    background: activo ? `${BRAND.primary}14` : C.card,
-                    border: `2px solid ${activo ? BRAND.primary : C.border}`,
-                    borderRadius: 14,
-                    padding: "14px 16px",
-                    cursor: "pointer",
-                  }}
-                >
-                  <div style={{ color: activo ? BRAND.primary : C.text, fontWeight: 800, fontSize: 17 }}>
-                    {etiquetaProveedorLista(t.proveedor)}
-                  </div>
-                  <div style={{ color: C.textMid, fontSize: 12, marginTop: 4 }}>
-                    {cajas} {cajas === 1 ? "caja" : "cajas"}
-                    {porEntrar > 0 ? ` · ${porEntrar} por entrar` : ""}
-                    {activo ? " · abierto" : ""}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+      {pendientes.length > 0 && !doc && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
+          {pendientes.map((t) => {
+            const activo = doc?.id === t.id;
+            const cajas = t.renglones || 0;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => elegirCarga(t.id)}
+                disabled={saving}
+                style={{
+                  flex: "1 1 140px",
+                  textAlign: "left",
+                  background: activo ? `${BRAND.primary}14` : C.card,
+                  border: `2px solid ${activo ? BRAND.primary : C.border}`,
+                  borderRadius: 12,
+                  padding: "12px 14px",
+                  cursor: "pointer",
+                }}
+              >
+                <div style={{ color: activo ? BRAND.primary : C.text, fontWeight: 800, fontSize: 16 }}>
+                  {etiquetaProveedorLista(t.proveedor)}
+                </div>
+                <div style={{ color: C.textMid, fontSize: 12, marginTop: 2 }}>
+                  {cajas} {cajas === 1 ? "caja" : "cajas"}
+                </div>
+              </button>
+            );
+          })}
         </div>
       )}
 
@@ -1113,7 +1149,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
         </form>
       )}
 
-      {doc ? (
+      {doc && (
         <div>
           <div style={{ background: C.card, border: `1px solid ${pendiente ? C.blue : C.border}`, borderRadius: 14, padding: 16, marginBottom: 16 }}>
             <label style={labelS(C)} htmlFor="rc-scan">Código de barras</label>
@@ -1146,8 +1182,35 @@ export default function RecepcionModule({ ocultarMontos = false }) {
                       Este producto NO está registrado
                     </div>
                     <div style={{ color: C.text, fontSize: 13, lineHeight: 1.45, marginTop: 8 }}>
-                      Hay que darlo de alta <strong>antes</strong> de recibirlo. Ve a <strong>Inventario → Catálogo → ➕ Nuevo producto</strong>,
-                      pega este código de barras, pon nombre y costo de la factura, deja el stock en 0 y guarda. Luego vuelve aquí y escanea la caja otra vez.
+                      Pon nombre, si es patente o genérico, cantidad y caducidad de la caja. El stock entra aquí, no en Catálogo.
+                    </div>
+                    <div style={{ marginTop: 10 }}>
+                      <label style={labelS(C)} htmlFor="rc-alta-nombre">Nombre</label>
+                      <input
+                        id="rc-alta-nombre"
+                        value={altaNombre}
+                        onChange={(e) => setAltaNombre(e.target.value)}
+                        placeholder="Como dice la caja"
+                        autoComplete="off"
+                        style={inpBase(C)}
+                      />
+                    </div>
+                    <div style={{ marginTop: 10 }}>
+                      <label style={labelS(C)} htmlFor="rc-alta-tipo">Tipo</label>
+                      <select
+                        id="rc-alta-tipo"
+                        value={altaTipo}
+                        onChange={(e) => setAltaTipo(e.target.value)}
+                        style={inpBase(C)}
+                      >
+                        <option value="generico">Genérico · ganancia 60%</option>
+                        <option value="marca">Patente · ganancia 25%</option>
+                      </select>
+                      <div style={{ color: C.textMid, fontSize: 11, marginTop: 4, lineHeight: 1.4 }}>
+                        {precioSugeridoAltaRecepcion(costo, altaTipo)
+                          ? `Venta sugerida ${fmtPrecioVenta(precioSugeridoAltaRecepcion(costo, altaTipo))} (${margenAltaRecepcion(altaTipo)}% sobre el costo de factura).`
+                          : "El costo de la factura arma el precio de venta."}
+                      </div>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
                       <code style={{
@@ -1167,9 +1230,6 @@ export default function RecepcionModule({ ocultarMontos = false }) {
                         {codigoCopiado === pendiente.codigo ? "Copiado ✓" : "Copiar código"}
                       </button>
                     </div>
-                    <div style={{ color: "#b91c1c", fontSize: 12, fontWeight: 700, marginTop: 10, lineHeight: 1.4 }}>
-                      Si lo guardas así, la caja queda anotada pero <u>no entra a stock</u> y el sistema no la va a poder vender.
-                    </div>
                   </div>
                 ) : (
                   <div style={{ background: C.blueDim, borderRadius: 10, padding: "10px 12px", marginBottom: 12 }}>
@@ -1187,7 +1247,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
                     )}
                   </div>
                 )}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(112px, 1fr))", gap: 10 }}>
                   <div>
                     <label style={labelS(C)} htmlFor="rc-qty">Cantidad</label>
                     <input
@@ -1221,6 +1281,25 @@ export default function RecepcionModule({ ocultarMontos = false }) {
                       <div style={{ color: C.textDim, fontSize: 11, marginTop: 4 }}>Cuatro dígitos: mes y año de la caja</div>
                     )}
                   </div>
+                  <div>
+                    <label style={labelS(C)} htmlFor="rc-costo">Costo por pieza</label>
+                    <input
+                      id="rc-costo"
+                      ref={costoRef}
+                      inputMode="decimal"
+                      value={costo}
+                      onChange={(e) => onCostoChange(e.target.value)}
+                      onKeyDown={onCostoKey}
+                      placeholder="13.61"
+                      autoComplete="off"
+                      style={inpBase(C)}
+                    />
+                    <div style={{ color: costoCambia ? "#b45309" : C.textDim, fontSize: 11, fontWeight: costoCambia ? 700 : 400, marginTop: 4 }}>
+                      {costoCambia
+                        ? `Antes ${fmt(costoAnterior)} — se guarda el nuevo`
+                        : "El de la factura. Así queda en Historia."}
+                    </div>
+                  </div>
                 </div>
                 <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
                   <button type="button" onClick={resetLinea} style={{ padding: "10px 14px", borderRadius: 8, border: `1px solid ${C.border}`, background: "transparent", color: C.textMid, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
@@ -1241,7 +1320,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
                     {saving
                       ? "Guardando…"
                       : pendiente.pendienteAlta
-                        ? "Anotar sin registrar (no entra a stock)"
+                        ? "Dar de alta y guardar renglón"
                         : "Guardar renglón"}
                   </button>
                 </div>
@@ -1258,38 +1337,50 @@ export default function RecepcionModule({ ocultarMontos = false }) {
             )}
             {items.map((it) => {
               const ok = it.confirmado && it.fecha_caducidad;
-              const bg = it.pendiente_alta ? C.amberDim : ok ? C.greenDim : "#f1f5f9";
-              const border = it.pendiente_alta ? "#f5d78a" : ok ? "#86efac" : C.border;
+              const activo = pendiente?.itemId === it.id;
+              const bg = it.pendiente_alta ? C.amberDim : ok ? C.greenDim : activo ? `${BRAND.primary}14` : "#f1f5f9";
+              const border = it.pendiente_alta ? "#f5d78a" : ok ? "#86efac" : activo ? BRAND.primary : C.border;
               return (
               <div
                 key={it.id}
                 style={{
                   display: "flex",
-                  alignItems: "center",
-                  gap: 10,
+                  alignItems: "stretch",
+                  gap: 4,
                   background: bg,
                   border: `1px solid ${border}`,
                   borderRadius: 12,
-                  padding: "10px 12px",
                 }}
               >
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ color: C.text, fontWeight: 700, fontSize: 14, lineHeight: 1.3 }}>{it.nombre}</div>
-                  <div style={{ color: C.textMid, fontSize: 11, marginTop: 2 }}>
-                    {it.pendiente_alta ? "Pendiente de alta" : (it.sku || "")}
-                    {it.numero_lote ? ` · lote ${it.numero_lote}` : ""}
-                    {ok ? ` · cad ${formatCaducidadMesAnio(it.fecha_caducidad)}` : " · falta caducidad"}
-                    {it.lote_distinto && !ok ? " · lote distinto al piso" : ""}
+                <button
+                  type="button"
+                  onClick={() => abrirRenglon(it)}
+                  style={{
+                    flex: 1, minWidth: 0, textAlign: "left",
+                    display: "flex", alignItems: "center", gap: 10,
+                    padding: "10px 12px",
+                    border: "none", background: "transparent",
+                    cursor: "pointer",
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ color: C.text, fontWeight: 700, fontSize: 14, lineHeight: 1.3 }}>{it.nombre}</div>
+                    <div style={{ color: C.textMid, fontSize: 11, marginTop: 2 }}>
+                      {it.pendiente_alta ? "Pendiente de alta" : (it.sku || "")}
+                      {it.numero_lote ? ` · lote ${it.numero_lote}` : ""}
+                      {ok ? ` · cad ${formatCaducidadMesAnio(it.fecha_caducidad)}` : " · toca para grabar · falta caducidad"}
+                      {it.lote_distinto && !ok ? " · lote distinto al piso" : ""}
+                    </div>
                   </div>
-                </div>
-                <div style={{ fontWeight: 800, fontSize: 16, color: C.text, fontVariantNumeric: "tabular-nums" }}>
-                  {it.cantidad}
-                </div>
+                  <div style={{ fontWeight: 800, fontSize: 16, color: C.text, fontVariantNumeric: "tabular-nums" }}>
+                    {it.cantidad}
+                  </div>
+                </button>
                 <button
                   type="button"
                   aria-label={`Quitar ${it.nombre}`}
                   onClick={() => quitar(it.id)}
-                  style={{ border: "none", background: "transparent", color: C.textDim, cursor: "pointer", fontSize: 18, padding: "4px 6px" }}
+                  style={{ border: "none", background: "transparent", color: C.textDim, cursor: "pointer", fontSize: 18, padding: "4px 10px" }}
                 >
                   ×
                 </button>
@@ -1344,7 +1435,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
             </button>
           </div>
         </div>
-      ) : null}
+      )}
     </div>
   );
 }

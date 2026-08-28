@@ -1,0 +1,23 @@
+# No perder la UI de producción
+
+## Qué pasó (agosto 2026)
+
+La farmacia en vivo corría features de `rediseno/sistema-visual` (tarjetas POS, tienda/banners, Rappi, sin Aprobar PVP, cabeceras sticky, Recibir, etc.).
+Vercel publica **`main`**. Al mergear auditoría solo a `main` y desplegar, se pisó esa UI.
+
+## Regla obligatoria
+
+1. **`main` es la única rama de producción.** Todo lo que esté en uso en la farmacia debe estar en `main` antes de dar por cerrado un deploy.
+2. **Antes de mergear/desplegar a `main`**, compara con `origin/rediseno/sistema-visual` (o la rama de UI activa) si el cambio toca POS, Tienda, InventarioHub, Referencias de precio, Recibir, banners o `ui.jsx`. Si `main` está atrás en UI, **porta/mergea esa UI primero**; no publiques un `main` más pobre.
+3. **No “arreglar” en `main` reemplazando módulos enteros** desde una versión vieja. Preferir cherry-pick / port desde la rama donde ya funcionaba en piso.
+4. Tras portar UI desde rediseno, **reaplica** fixes de auditoría que solo vivan en `main`: T1' (cobro sin `descuento_pct`), T5 (`hoyISOMexico` / `fecha.js`), dashboard CDMX, recargas `comision: 0`, sticky `bodyMaxHeight`.
+5. Si el usuario dice que “ya estaba”, asume regresión por deploy de rama incompleta — restaura, no rediseñes.
+
+## Checklist rápido pre-push a main
+
+- [ ] ¿POS sigue con tarjetas / TableroEquivalentes?
+- [ ] ¿InventarioHub sin pestaña Aprobar PVP?
+- [ ] ¿Tienda banners sin zoom cover agresivo?
+- [ ] ¿Referencias: cabecera sticky (`bodyMaxHeight`) + fuentes Rappi?
+- [ ] ¿Recibir: RecepcionModule estático en hub si aplica?
+- [ ] ¿`pagoServicio` recargas en 0?

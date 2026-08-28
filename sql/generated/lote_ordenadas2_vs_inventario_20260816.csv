@@ -1,0 +1,115 @@
+par,ean,estado,nombre_foto,sku,nombre_bd,codigo_bd,costo,precio,stock,nota
+0001,7502009748929,eq_sin_ean,Flausiver () Gel corporal 100 g Maver,EQ-MAV376,Flausiver 1 Gel 100 G,,37.55,61,1,corregido a mano
+0002,7501349024267,falta,ketorolaco (ketorolaco) Solución 30 mg/mL inyectable Caja con 3 ampolletas AMSA,,,,9.19,15,8,otra presentación / no encaja
+0003,7501349023369,falta,Ketorolaco (Ketorolaco) Tableta 30 mg  AMSA,,,,,,,EAN nuevo
+0004,7502009740244,eq_sin_ean,Lorotec (Ketorolaco) Tableta 10 mg Caja con 10 tabletas Maver,EQ-MAV043,Lorotec 10 Tab 10 Mg,,5.96,10,5,corregido a mano
+0005,785118752941,eq_sin_ean,Mavifem (Clindamicina/Ketoconazol) Crema vaginal Tubo 30 g + 6 aplicadores MAVI,EQ-MAI152,Mavifem (Vag) 1 Cha/6 Apli 2/8 G 30 G,,68.5,110,2,corregido a mano
+0006,7501349027329,falta,dexametasona (dexametasona) Solución 8 mg/2 mL inyectable Caja con 1 ampolleta AMSA,,,,24.28,39,2,otra presentación / no encaja
+0007,7501249600813,eq_sin_ean,Levotiroxina (Levotiroxina) Tableta 100 mcg Caja con 100 tabletas Tempus,EQ-TEM009,Levotiroxina 100 Tab 100 Mcg,,45.57,73,2,corregido a mano
+0008,7502216804814,fc_sin_ean,Amlodipino (Amlodipino) Tableta 5 mg Frasco con 100 tabletas Avivia,FC-4A0245DA,Amlodipino,,32.52,44.0,1,corregido a mano
+0009,7502009746239,falta,"Erispan Compuesto (Loratadina, Betametasona) Tableta 5/0.25 mg Caja con 10 tabletas Maver",,,,,,,EAN nuevo
+0010,7501075717150,eq_sin_ean,Lizovag (Ketoconazol) Tabletas 200 mg Caja con 10 tabletas Novag,EQ-NOV032,Lizovag 10 Tab 200 Mg,,12.98,21,2,corregido a mano
+0011,7502211784036,fc_sin_ean,Zukedib (Glimepirida) Tableta 4 mg Caja con 30 tabletas Loeffler,FC-3D0ED22B,Zukedib glimepirida 2 mg C/30,,29.08,40.0,1,corregido a mano
+0012,7502209858237,fc_sin_ean,Elaphterón (Lamotrigina) Tableta 25 mg dispersable Caja con 28 tabletas Avitus,FC-9ABFB996,Elaphteron,,30.77,42.0,3,corregido a mano
+0013,7503004908721,fc_sin_ean,Fluocinolona (Fluocinolona) Crema 0.01% Tubo 40 g Alpharma,FC-1BF03D35,Acetonido De Fluocinolona Cma,,18.44,23.98,1,corregido a mano
+0014,7501249606778,eq_sin_ean,Postday (Levonorgestrel) Comprimido 1.5 mg Caja con 1 comprimido ifa,EQ-IFA001,Postday 1 Comp 1.5 Mg,,61.32,99,2,corregido a mano
+0015,7503027446408,eq_sin_ean,Lorefic-D (Colecalciferol) Cápsula 4000 UI Caja con 30 cápsulas,EQ-PGE059,Lorefic-D 30 Caps 4000 Ui,,38.79,63,1,corregido a mano
+0016,7502009746727,falta,Cariden (Deflazacort) Tableta 6 mg Caja con 20 tabletas Maver,,,,90.81,146,2,otra presentación / no encaja
+0017,7501075722543,fc_sin_ean,Pabesorag (Irbesartán-HCTZ) Tabletas 150/12.5 mg Caja con 28 tabletas Novag,FC-5885E577,Pabesorag,,60.47,82.0,2,corregido a mano
+0018,7501349024922,eq_sin_ean,citalopram (citalopram) Tableta 20 mg Caja con 14 tabletas AMSA,EQ-AMS472,Citalopram 14 Tab 20 Mg,,35.08,57,2,corregido a mano
+0019,780083140021,eq_sin_ean,"Otilin (Lidocaína, Neomicina) Gotas 20 mL  Collins",EQ-COL073,Otilin 1 Got 350mg/2g De 20 Ml,,25.01,41,2,corregido a mano
+0020,785120754681,eq_sin_ean,Hidroxin (Hidroxizina) Tabletas 10 mg Caja con 30 tabletas MAVI,EQ-MAI099,Hidroxin 30 Tab 10 Mg,,34.6,56,1,corregido a mano
+0021,785120755442,fc_sin_ean,Pralex (Escitalopram) Tableta 10 mg Caja con 28 tabletas MAVI,FC-04D83B46,Pralex,,42.85,58.0,4,corregido a mano
+0022,7501563380286,eq_sin_ean,Indometacina (Indometacina) Cápsula 25 mg Caja con 30 cápsulas,EQ-RAD082,Indometacina 30 Caps 25 Mg,,20.02,33,2,corregido a mano
+0023,75058661,fc_sin_ean,Hialuronato de sodio (Hialuronato de sodio) Gotas 4 mg/mL Frasco 10 mL OPKO,FC-A2B284E0,Hialuronato De Sodio 4Mg,,113.89,148.06,1,corregido a mano
+0024,7502223112346,eq_sin_ean,Histapharm (Desloratadina) Tabletas 5 mg Caja con 10 tabletas Quimpharma,EQ-QUM043,Histapharm 10 Tab 5 Mg,,21.99,36,1,corregido a mano
+0025,7501349029712,falta,"dexametasona neomicina (Dexametasona, Neomicina) Gotas 1/3.5 mg/mL  AMSA",,,,4.41,8,11,otra presentación / no encaja
+0026,7501349020535,falta,irbesartán (Irbesartán) Tableta 300 mg  AMSA,,,,,,,EAN nuevo
+0027,7501573909958,eq_sin_ean,Colchicina (Colchicina) Tableta 1 mg Caja con 30 tabletas Biomep,EQ-BIO212,Colchicina 30 Tab 1 Mg,,30.37,49,1,corregido a mano
+0028,500487172707,eq_sin_ean,Feniffler-T (Fenitoína) Tableta 100 mg Frasco 50 tabletas Loeffler,EQ-LOE058,Feniffler-T 50 Tab 100 Mg,,20.08,33,2,corregido a mano
+0029,7501563380439,eq_sin_ean,Calcio (Calcio) Comprimido efervescente 500 mg Tubo 12 Raam,EQ-RAD096,Calcio Efe 12 Comp 500 Mg,,39.07,63,1,corregido a mano
+0030,7502004401409,falta,"Dexne Nasal (Fenilefrina, Dexametasona, Neomicina) Gotas Frasco 10 mL Offenbach",,,,42.69,69,3,otra presentación / no encaja
+0031,7501342803418,eq_sin_ean,Dexametasona (Dexametasona) Tableta 0.5 mg Caja con 20 tabletas beadvance,EQ-BEA342,Dexametasona/Ciprofloxacino Sol,,43.08,69,1,corregido a mano
+0032,7502009741326,eq_sin_ean,"Doltrix (Clonixinato, Hioscina) Inyectable 100/20 mg Caja con 3+3 amp Maver",EQ-MAV140,Doltrix 3 Amp 100/20mg/2 Ml,,61.88,100,4,corregido a mano
+0033,7502001162600,eq_sin_ean,"Poral Ótico (Hidrocortisona, Cloranfenicol, Benzocaína) Gotas 10 mL  SON'S",EQ-SON193,Poral Otico 1 Got 10 Ml,,34.41,56,2,corregido a mano
+0034,7506335700019,eq_sin_ean,Steryx (Finasterida) Tableta 5 mg Caja con 30 tabletas Accord,EQ-ACC066,Steryx 30 Tab 5 Mg,,40.51,65,1,corregido a mano
+0035,7502274791163,eq_sin_ean,Vixgoplisol (Levetiracetam) Tabletas 500 mg Caja con 60 tabletas Solfrán,EQ-SOF041,Vixgoplisol 60 Tab 500 Mg,,112.04,180,1,corregido a mano
+0036,7501349022249,eq_sin_ean,levetiracetam (Levetiracetam) Tabletas 1000 mg  AMSA,EQ-AMS497,Levetiracetam 30 Tab 1000 Mg,,120.9,194,1,corregido a mano
+0037,7502216806474,eq_sin_ean,Levonorgestrel (Levonorgestrel) Tabletas 1.5 mg Caja con 1 tableta Ultra,EQ-ULT230,Levonorgestrel 1 Tab 1.5 Mg,,15.5,25,5,corregido a mano
+0038,7501349012943,en_inventario,fluconazol (fluconazol) Cápsula 150 mg Caja con 1 cápsula AMSA,FC-5BC5F234,Fluconazol,7501349012943,12.92,21.0,2,EAN exacto
+0039,7502009746178,eq_sin_ean,Avattor (Leflunomida) Comprimido 20 mg Caja con 30 comprimidos Maver,EQ-MAV358,Avattor 30 Comp 20 Mg,,103.08,165,1,corregido a mano
+0040,7502009741487,falta,"Doltrix (Clonixinato, Hioscina) Tableta 250/10 mg Caja con 10 tabletas Maver",,,,,,,EAN nuevo
+0041,785118752477,eq_sin_ean,Urezol (Fenazopiridina) Tabletas 100 mg Caja con 20 tabletas MAVI,EQ-MAI078,Urezol 20 Tab 100 Mg,,33.46,54,1,corregido a mano
+0042,7501349027787,eq_sin_ean,etoricoxib (Etoricoxib) Comprimido 90 mg  AMSA,EQ-AMS460,Etoricoxib 14 Comp 90 Mg,,50.98,82,1,corregido a mano
+0043,7501349025929,falta,diclofenaco (diclofenaco) Inyectable 75 mg/3 mL Caja con 2 amp AMSA,,,,7.6,13,6,otra presentación / no encaja
+0044,7501258200288,eq_sin_ean,Asmaral-K (Ketotifeno) Tableta 1 mg Caja con 30 tabletas Serral,EQ-SER001,Asmaral-K 30 Tab 1 Mg,,61.07,98,1,corregido a mano
+0045,7501349028326,eq_sin_ean,cisaprida (cisaprida) Tableta 5 mg Caja con 30 tabletas AMSA,EQ-AMS428,Cisaprida 30 Tab 5 Mg,,23.91,39,1,corregido a mano
+0046,7502009742392,falta,"Doltrix (Clonixinato, Hioscina) Tableta 125/10 mg Caja con 20 tabletas Maver",,,,,,,EAN nuevo
+0047,7501075722604,otra_ean,Belazix (Levocetirizina) Tabletas 5 mg Caja con 20 tabletas Novag,EQ-NOV154,,,,,,EAN nuevo
+0048,7502009740299,eq_sin_ean,Presistín (Cisaprida) Suspensión 1 mg/mL Frasco 60 mL Maver,EQ-MAV065,Presistin 1 Susp 0.1g/60ml,,24.47,40,2,corregido a mano
+0049,7502240450780,fc_sin_ean,Wermy (Gabapentina) Cápsula 300 mg Caja con 30 cápsulas Wermar,FC-50D044FF,Wermy,,24.51,34.0,2,corregido a mano
+0050,7501478316813,falta,"Ibuprofeno Cafeína (Ibuprofeno, Cafeína) Cápsula 400/100 mg Caja con 10 cápsulas GEL",,,,,,,EAN nuevo
+0051,7502240450773,fc_sin_ean,Wermy (Gabapentina) Cápsula 300 mg Caja con 15 cápsulas Wermar,FC-759A5EF9,Wermy,,24.89,34.0,2,corregido a mano
+0052,7501563380637,eq_sin_ean,Fenazopiridina (Fenazopiridina) Tableta 100 mg Frasco 20 tabletas Randall,EQ-RAD100,Fenazopiridina 1 Fco 20 Tab 100 Mg,,21.09,34,2,corregido a mano
+0053,75053086,eq_sin_ean,Cromoglicato (Cromoglicato de sodio) Gotas oftálmicas 40 mg/mL Frasco 5 mL OPKO,EQ-EXA042,Cromoglicato Sodio 1 Sol 40 Mg/5 Ml,,45.61,73,1,corregido a mano
+0054,7503000422191,falta,Presistín (Cisaprida) Tableta 10 mg,,,,,,,EAN nuevo
+0055,7502209858107,en_inventario,Zitriasol (Itraconazol) Cápsulas 100 mg Caja con 15 cápsulas Avitus,FC-A23F290E,Zitriasol,7502209858107,34.61,56.0,2,EAN exacto
+0056,7502226295954,eq_sin_ean,Dexketoprofeno (Dexketoprofeno) Tableta 25 mg Caja con 10 tabletas Alpharma,EQ-ALP0633,Dexketoprofeno 10 Tab 25 Mg,,64.24,103,1,corregido a mano
+0057,7502001161511,eq_sin_ean,"Bentix (Clioquinol, Fluocinolona) Crema Tubo 40 g SON'S",EQ-SON024,Bentix 1 Cma 40g 3/0.0 %,,28.12,45,1,corregido a mano
+0058,7502004401508,eq_sin_ean,"Dexne Ótico (Dexametasona, Neomicina, Lidocaína) Gotas Frasco 10 mL Offenbach",EQ-OFF009,Phendex Otico 1 Susp 2/10/50mg/10 Ml,,30.6,49,2,corregido a mano
+0059,785120755442,duplicado_lote,Pralex (Escitalopram) Tableta 10 mg Caja con 28 tabletas MAVI,,,,,,,misma caja que 0021
+0060,7502001164338,eq_sin_ean,"Ciprofloxacino Dexametasona (Ciprofloxacino, Dexametasona) Gotas 5 mL  SON'S",EQ-SON214,Infamid (Metamizol + Dexametasona + Vit. B),,73.57,95.65,1,corregido a mano
+0061,7502240450827,eq_sin_ean,Mevedim (Diosmina) Tabletas 600 mg Caja con 15 tabletas Wermar,EQ-WER046,Mevedim 15 Tab 600 Mg,,61.32,99,1,corregido a mano
+0062,7502009746734,eq_sin_ean,Cariden (Deflazacort) Tableta 30 mg Caja con 10 tabletas Maver,EQ-MAV320,,,,,,corregido a mano
+0063,7501573907688,falta,Valgab (Desloratadina) Jarabe 50 mg/100 ml  Biomep,,,,19.41,25.24,2,otra presentación / no encaja
+0064,7502211788423,falta,Indometacina (Indometacina) Supositorios 100 mg Caja con 6 Loeffler,,,,,,,EAN nuevo
+0065,7502004401454,falta,"Dexne Oftálmico (Dexametasona, Neomicina) Gotas Frasco 5 mL Offenbach",,,,,,,EAN nuevo
+0066,7502009746499,eq_sin_ean,Exicort (Etoricoxib) Comprimido 120 mg Caja con 7 Maver,EQ-MAV311,Exicort 7 Comp 120 Mg,,52.66,85,1,corregido a mano
+0067,7502009746932,eq_sin_ean,"Traditor (Indometacina, Betametasona) Gel Tubo 60 g Maver",EQ-MAV322,Traditor 1 Gel 500/50 Mg 60 G,,47.47,76,1,corregido a mano
+0068,7501537102586,eq_sin_ean,Brulin (Dexametasona) Inyectable 8 mg/2 mL Caja con 3 amp Bruluart,EQ-BRU016,,,,,,corregido a mano
+0069,7506022331502,eq_sin_ean,Diflosensi (Dapagliflozina) Tabletas 10 mg Caja con 28 tabletas,EQ-JAY263,Diflosensi 28 Tab 10 Mg,,335.5,537,1,corregido a mano
+0070,7502209858183,eq_sin_ean,Cidorix (Clopidogrel) Tableta 75 mg Caja con 28 tabletas Avitus,EQ-AVT203,Cidorix 28 Tab 75 Mg,,38.11,61,1,corregido a mano
+0071,7502009746383,en_inventario,Diziver (Hidroclorotiazida) Tableta 25 mg Caja con 20 tabletas Maver,FC-28A424E5,Diziver,7502009746383,8.15,10.6,3,EAN exacto
+0072,7503003738961,en_inventario,Amdory (Lansoprazol) Cápsula 30 mg Caja con 14 cápsulas Wermar,FC-9A37D44A,Amdoryl,7503003738961,26.11,36.0,2,EAN exacto
+0073,7501563380408,eq_sin_ean,Dextrometorfano (Dextrometorfano) Jarabe 15 mg/5 mL Frasco 120 mL Randall,EQ-RAD092,Dextrometorfano 1 Jbe 300 Mg/120 Ml,,13.58,22,2,corregido a mano
+0074,7501825300175,eq_sin_ean,Convifer con hierro (Ciproheptadina + vitaminas + hierro) Solución  Degort's,EQ-DEG011,Convifer C/Hierro 1 Sol 3/2/.1mg/110,,33.94,55,1,corregido a mano
+0075,7501384545659,falta,Fenazopiridina (Fenazopiridina) Tableta 100 mg Frasco 20 tabletas psicofarma,,,,,,,EAN nuevo
+0076,7501349028654,eq_sin_ean,hipromelosa (hipromelosa) Gotas 0.5% Frasco 10 ml AMSA,EQ-AMS209,Hipromelosa Oft 1 Sol 5mg/10 Ml,,24.86,40,2,corregido a mano
+0077,7502209858251,falta,Elaphterón (Lamotrigina) Tableta 100 mg dispersable Caja con 28 tabletas Avitus,,,,,,,EAN nuevo
+0078,656599040226,eq_sin_ean,Tofel (Diclofenaco / Paracetamol) Tabletas 50/500 mg Caja con 10 tabletas Victory,EQ-VIC030,Tofel 10 Tab 50/500 Mg,,37.55,61,2,corregido a mano
+0079,7501573904151,eq_sin_ean,Biostafex (Fexofenadina) Tabletas 120 mg Caja con 10 tabletas Biomep,EQ-BIO100,Biostafex 10 Tab 120 Mg,,29.94,48,2,corregido a mano
+0080,7501342803814,eq_sin_ean,Espironolactona (Espironolactona) Tableta 25 mg Caja con 20 tabletas beadvance,EQ-BEA379,Espironolactona 20 Tab 25mg,,26.86,43,1,corregido a mano
+0081,7502009745478,eq_sin_ean,Ideliver Pro (Duloxetina) Tableta 60 mg LP Caja con 14 tabletas Maver,EQ-MAV236,Ideliver Pro 14 Tab 60 Mg,,59.45,96,1,corregido a mano
+0082,7501342803067,falta,Dexametasona (Dexametasona) Tableta 1 mg Caja con 20 tabletas beadvance,,,,,,,EAN nuevo
+0083,7501563380163,eq_sin_ean,Fumarato ferroso (Fumarato ferroso) Tableta 200 mg Caja con 50 tabletas Pisa,EQ-RAD081,Fumarato Ferroso 50 Tab 200mg,,13.79,23,1,corregido a mano
+0084,7501573900290,fc_sin_ean,Ovisen (Fluoxetina) Tabletas 20 mg Caja con 14 tabletas Biomep,FC-FD92D114,Ovisen,,10.19,13.25,1,corregido a mano
+0085,7501573909408,en_inventario,Ovisen (Fluoxetina) Tabletas 20 mg Caja con 28 tabletas Biomep,FC-F7DB080D,Ovisen,7501573909408,20.33,29.0,1,EAN exacto
+0086,7502001166981,eq_sin_ean,"Laur (Ampicilina, Metamizol, Guaifenesina) Inyectable adulto Caja con 3 FA SON'S",EQ-SON264,Laur Adulto 500/500/100/30/4 Mg 3 Amp,,59.63,96,1,corregido a mano
+0087,7502216802919,eq_sin_ean,Diclofenaco (Diclofenaco) Tableta 100 mg LP Caja con 20 tabletas Ultra,EQ-ULT103,,,,,,corregido a mano
+0088,785118752415,eq_sin_ean,Dalatina (Clindamicina) Gel 1% Tubo 30 g MAVI,EQ-MAI055,Dalatina 1 Gel 1g/30 G,,29.85,48,1,corregido a mano
+0089,780083148805,eq_sin_ean,Dolprofen (Ibuprofeno) Tableta 800 mg Caja con 10 tabletas Collins,EQ-COL226,Dolprofen 10 Tab 800 Mg,,22.41,36,5,corregido a mano
+0090,7501258203586,eq_sin_ean,Lonixer (Clonixinato) Tableta 250 mg Caja con 10 tabletas Serral,EQ-SER025,Lonixer 10 Tab 250 Mg,,32.51,53,2,corregido a mano
+0091,780083140939,falta,Ampigrin (Ampicilina) Inyectable 250 mg infantil Caja con 3 FA Collins,,,,81.71,106.23,4,otra presentación / no encaja
+0092,7501349024540,eq_sin_ean,"ezetimiba simvastatina (ezetimiba, simvastatina) Tableta 10/20 mg  AMSA",EQ-AMS274,Ezetimiba/Simvasta 14 Tab 10/20 Mg,,55.9,90,2,corregido a mano
+0093,7501349024533,falta,"ezetimiba simvastatina (ezetimiba, simvastatina) Tableta 10/20 mg  AMSA",,,,,,,EAN nuevo
+0094,7501349012004,en_inventario,Amcef IM (ceftriaxona) Inyectable 1 g Caja con 1 FA AMSA,FC-BE76D409,Amcef IM 1 g (Inyectable),7501349012004,19.72,25.64,10,EAN exacto
+0095,7501349021532,falta,ciprofloxacino (ciprofloxacino) Tableta 500 mg Caja con 14 tabletas AMSA,,,,24.98,34.0,6,otra presentación / no encaja
+0096,7501573900375,en_inventario,Diurmessel (Furosemida) Tabletas 40 mg Caja con 20 tabletas Biomep,FC-E535DE28,Diurmessel,7501573900375,9.31,12.11,10,EAN exacto
+0097,7503027446279,en_inventario,Gelubrin (Ibuprofeno) Cápsula 600 mg Caja con 10 cápsulas,FC-5C8C9C11,Gelubrin,7503027446279,21.95,30.0,10,EAN exacto
+0098,7501547509016,fc_sin_ean,"Indarzona (Indometacina, Dexametasona) Cápsulas 25/0.5 mg Caja con 30 cápsulas",FC-F7A2CACF,Indarzona,,56.3,77.0,4,corregido a mano
+0099,7502009748912,falta,Esomeprazol (Esomeprazol) Tableta 40 mg LR Caja con 14 tabletas Maver,,,,99.14,159,2,mismo nombre · ['esomeprazol'] nums=['40']
+0100,7502009749292,eq_sin_ean,Esomeprazol (Esomeprazol) Tableta 40 mg LR Caja con 28 tabletas Maver,EQ-MAV415,,,,,,corregido a mano
+0101,7502223111400,eq_sin_ean,Drosequim (Dropropizina / Bromhexina) Jarabe adulto Frasco 200 mL Quimpharma,EQ-QUM070,Drosequim Ad 1 Jbe 300/160/200 Ml,,70.74,114,2,corregido a mano
+0102,780083142537,eq_sin_ean,Collicort (Hidrocortisona) Crema 1% Tubo 60 g Collins,EQ-COL120,Collicort 1 Cma 1% 60 G,,47.85,77,2,corregido a mano
+0103,7502209810365,fc_sin_ean,"Tusilen (Dextrometorfano, Guaifenesina, Fenilefrina) Jarabe Frasco 118 mL Avitus",FC-1DAD5EF1,Tusilen adulto jarabe,,24.22,31.49,3,corregido a mano
+0104,7502209810358,falta,"Tusilen Pediátrico (Dextrometorfano, Guaifenesina, Paracetamol) Jarabe Frasco 118 mL Avitus",,,,,,,EAN nuevo
+0105,7501349020412,fc_sin_ean,hierro dextrán (Hierro-Dextrán) Inyectable 100 mg/2 mL  AMSA,FC-2E79C2D8,Hierro Dex,,61.33,79.73,2,corregido a mano
+0106,7501537102845,eq_sin_ean,Nediclon (Diclofenaco) Tableta 100 mg LP Caja con 20 tabletas Bruluart,EQ-BRU053,Nediclon 20 Grag 100 Mg,,7.56,13,4,corregido a mano
+0107,7501573902706,fc_sin_ean,Cloxan (Ambroxol) Solución 15 mg/5 mL Frasco 120 mL Biomep,FC-4F737E93,Cloxan,,44.04,60.0,1,corregido a mano
+0108,7502226292182,otra_ean,Bioerter (Eritromicina) Suspensión 250 mg/5 mL Frasco 100 mL,FC-6898B64F,,,,,,EAN nuevo
+0109,7502001162693,eq_sin_ean,"Phendex (Ciprofloxacino, Hidrocortisona, Lidocaína) Suspensión ótica 10 mL  SON'S",EQ-SON204,,,,,,corregido a mano
+0110,7501349012943,duplicado_lote,fluconazol (fluconazol) Cápsula 150 mg  AMSA,FC-5BC5F234,Fluconazol,7501349012943,12.92,21.0,2,EAN exacto
+0111,7501349022454,en_inventario,irbesartán (irbesartán) Tableta 150 mg  AMSA,FC-262F2A30,Irbesartan,7501349022454,43.98,71.0,1,EAN exacto
+0112,6348812732387,fc_sin_ean,Diosmina Hesperidina (Diosmina / Hesperidina) Tableta 450/50 mg Caja con 20 tabletas beadvance,FC-EADF1484,Diosmina Hesperidina,,39.41,64.0,3,corregido a mano
+0113,7501075714739,en_inventario,Reglusan (Glibenclamida) Tabletas 5 mg Caja con 50 tabletas Novag,FC-57925EF3,Reglusan,7501075714739,8.88,11.55,5,EAN exacto
+0114,780083140922,fc_sin_ean,Ampigrin (Ampicilina) Inyectable 500 mg adulto Caja con 3 FA Collins,FC-2001A890,,,,,,corregido a mano

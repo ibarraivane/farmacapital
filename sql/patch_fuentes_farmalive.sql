@@ -4,7 +4,7 @@
 
 INSERT INTO public.fuentes_precio (id, nombre, tipo, metodo, notas) VALUES
   ('farmalive', 'Farmalive', 'compra', 'import_archivo',
-   'Mayorista Club Iztapalapa. Precio de compra (lista base 2%).')
+   'Lista normal Club Iztapalapa. Precio base (2%), no campañas de día.')
 ON CONFLICT (id) DO UPDATE SET
   nombre = EXCLUDED.nombre,
   tipo = EXCLUDED.tipo,

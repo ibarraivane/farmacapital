@@ -1,0 +1,30 @@
+[
+  {
+    "id": 501,
+    "name": "Vick Vaporub Ungüento 100g. Caja con 48 piezas.",
+    "sku": "7501038162083",
+    "permalink": "https://abarrotero.com/producto/vick-vaporub-100g-caja-48/",
+    "categories": [{"id": 6873, "name": "Farmacia", "slug": "farmacia"}],
+    "prices": {
+      "price": "17236",
+      "regular_price": "18000",
+      "sale_price": "17236",
+      "currency_code": "MXN",
+      "currency_minor_unit": 0
+    }
+  },
+  {
+    "id": 502,
+    "name": "Treda Oral Tabletas – 20 comprimidos – caja con 12",
+    "sku": "7501000000001",
+    "permalink": "https://abarrotero.com/producto/treda-caja-12/",
+    "categories": [{"id": 6873, "name": "Farmacia", "slug": "farmacia"}],
+    "prices": {
+      "price": "1857",
+      "regular_price": "2043",
+      "sale_price": "1857",
+      "currency_code": "MXN",
+      "currency_minor_unit": 0
+    }
+  }
+]

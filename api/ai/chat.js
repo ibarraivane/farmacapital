@@ -292,7 +292,9 @@ module.exports = async function handler(req, res) {
   const anthropicKey = readAnthropicKey();
 
   if (req.method === 'GET') {
-    const sessionToken = String(req.query?.session_token || '').trim();
+    const sessionToken = String(
+      req.headers['x-session-token'] || req.query?.session_token || ''
+    ).trim();
     const configured = Boolean(anthropicKey || geminiKey);
     const provider = anthropicKey ? 'claude' : (geminiKey ? 'gemini' : null);
 

@@ -1,0 +1,5 @@
+# Pipeline multi-proveedor (scripts/run_pricing.py)
+rapidfuzz>=3.0
+PyYAML>=6.0
+openpyxl>=3.1
+pandas>=2.0

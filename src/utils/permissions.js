@@ -55,7 +55,7 @@ export const MODULOS_DISPONIBLES_DOCTORA = [
 ];
 
 export function rolEsAdmin(rol) {
-  return rol === "admin";
+  return rol === "admin" || rol === "gerente";
 }
 
 export function modulosPermitidosParaRol(rol) {

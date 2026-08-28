@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { C_LIGHT, BRAND } from "../../../constants";
-import { etiquetaTurno, inferirTurno, turnoDePerfil, etiquetaDiaDescanso } from "../../../constants/turnos";
+import { etiquetaTurno, turnoDePerfil, etiquetaDiaDescanso } from "../../../constants/turnos";
 import { hayPiezasDenominacion } from "../../../constants/caja";
 import ArqueoDenominaciones from "../../../components/ArqueoDenominaciones";
 import { abrirSesionCaja, fetchJornadaHoy } from "../../../utils/cajaSesion";
@@ -10,30 +10,35 @@ import { showToast } from "../../../ui";
  * Pantalla bloqueante: el vendedor no vende hasta contar el fondo que le entregaron.
  * Esa confirmación es también la hora de entrada.
  */
-export default function AperturaCajaModal({ usuario, onAbierta }) {
+export default function AperturaCajaModal({ usuario, onAbierta, onSesionExpirada }) {
   const C = C_LIGHT;
   const [denoms, setDenoms] = useState({});
   const [nota, setNota] = useState("");
   const [saving, setSaving] = useState(false);
   const [jornada, setJornada] = useState(null);
-  const turnoHabitual = turnoDePerfil(usuario) || inferirTurno();
-  const turnoAsignado = turnoDePerfil(usuario);
-  const turnoAbrir = jornada?.turno_abrir || (jornada?.cubre_ambos ? inferirTurno() : turnoHabitual);
-  const nombre = (usuario?.nombre || "Vendedor").split(" ")[0];
-
+  const [jornadaListo, setJornadaListo] = useState(false);
   const [revisando, setRevisando] = useState(false);
-  const ocupadaPor = jornada?.caja_ocupada_por || null;
+  const turnoAsignado = turnoDePerfil(usuario);
+  const turnoAbrir = jornadaListo ? (jornada?.turno_abrir || null) : null;
+  const nombre = (usuario?.nombre || "Vendedor").split(" ")[0];
+  const ocupadaPor = jornadaListo ? (jornada?.caja_ocupada_por || null) : null;
+  const noPuedeAbrir = jornadaListo && !jornada?.es_descanso && !turnoAbrir && !!turnoAsignado;
 
   const cargarJornada = useCallback(async () => {
-    const { jornada: j } = await fetchJornadaHoy();
+    const { jornada: j, error } = await fetchJornadaHoy();
     if (j) setJornada(j);
+    if (error) showToast(error, "error");
+    setJornadaListo(true);
     return j;
   }, []);
 
   useEffect(() => {
     let cancel = false;
-    fetchJornadaHoy().then(({ jornada: j }) => {
-      if (!cancel && j) setJornada(j);
+    fetchJornadaHoy().then(({ jornada: j, error }) => {
+      if (cancel) return;
+      if (j) setJornada(j);
+      if (error) showToast(error, "error");
+      setJornadaListo(true);
     });
     return () => { cancel = true; };
   }, []);
@@ -56,6 +61,15 @@ export default function AperturaCajaModal({ usuario, onAbierta }) {
       showToast("RH debe asignarte un turno antes de abrir caja.", "warning");
       return;
     }
+    if (!turnoAbrir) {
+      showToast(
+        jornada?.ya_cerro_turno
+          ? "Ya cerraste tu turno de hoy. El otro turno es de tu compañera."
+          : "Ahora no te toca abrir caja.",
+        "warning"
+      );
+      return;
+    }
     if (jornada?.es_descanso) {
       showToast("Hoy es tu día de descanso.", "warning");
       return;
@@ -65,20 +79,86 @@ export default function AperturaCajaModal({ usuario, onAbierta }) {
       return;
     }
     setSaving(true);
-    try {
-      const { sesion, error } = await abrirSesionCaja({ denoms, nota });
-      if (error) {
-        showToast(error, "error");
-        return;
-      }
-      showToast("Caja abierta. Ya puedes vender.", "success");
-      onAbierta?.(sesion);
-    } catch (e) {
-      showToast(e?.message || "Se cayó la conexión. Intenta de nuevo.", "error");
-    } finally {
-      setSaving(false);
+    const { sesion, error, auth } = await abrirSesionCaja({ denoms, nota });
+    setSaving(false);
+    if (auth) {
+      showToast("Tu sesión caducó. Entra de nuevo con tu usuario — la caja no se cierra.", "warning");
+      onSesionExpirada?.();
+      return;
     }
+    if (error) {
+      showToast(error, "error");
+      return;
+    }
+    showToast(sesion?.reanudada ? "Caja reanudada. Ya puedes vender." : "Caja abierta. Ya puedes vender.", "success");
+    onAbierta?.(sesion);
   };
+
+  if (jornada?.es_descanso) {
+    const dia = etiquetaDiaDescanso(jornada.dia_descanso) || "hoy";
+    return (
+      <div style={{
+        position: "fixed", inset: 0, zIndex: 2000, background: C.bg,
+        overflowY: "auto", fontFamily: "var(--fc-body)",
+      }}>
+        <div style={{ maxWidth: 560, margin: "0 auto", padding: "28px 20px 48px" }}>
+          <div style={{
+            fontSize: 11, fontWeight: 800, letterSpacing: 1.2,
+            textTransform: "uppercase", color: BRAND.primary, marginBottom: 8,
+          }}>
+            Día de descanso
+          </div>
+          <h1 style={{ margin: 0, color: C.text, fontSize: 22, fontWeight: 800 }}>
+            Hoy descansas, {nombre}
+          </h1>
+          <p style={{ color: C.textMid, fontSize: 14, lineHeight: 1.5, margin: "10px 0 0" }}>
+            Tu día libre es el <strong>{dia}</strong>. La compañera cubre matutino y vespertino.
+            No abras caja hoy.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (noPuedeAbrir) {
+    const habitual = etiquetaTurno(turnoAsignado);
+    return (
+      <div style={{
+        position: "fixed", inset: 0, zIndex: 2000, background: C.bg,
+        overflowY: "auto", fontFamily: "var(--fc-body)",
+      }}>
+        <div style={{ maxWidth: 560, margin: "0 auto", padding: "28px 20px 48px" }}>
+          <div style={{
+            fontSize: 11, fontWeight: 800, letterSpacing: 1.2,
+            textTransform: "uppercase", color: BRAND.primary, marginBottom: 8,
+          }}>
+            Turno cerrado
+          </div>
+          <h1 style={{ margin: 0, color: C.text, fontSize: 22, fontWeight: 800 }}>
+            {jornada?.ya_cerro_turno
+              ? `Ya cerraste, ${nombre}`
+              : `Ahora no te toca, ${nombre}`}
+          </h1>
+          <p style={{ color: C.textMid, fontSize: 14, lineHeight: 1.5, margin: "10px 0 0" }}>
+            {jornada?.ya_cerro_turno
+              ? <>
+                  {jornada?.mi_corte_hora
+                    ? <>Hiciste tu corte a las <strong>{jornada.mi_corte_hora}</strong>. </>
+                    : <>Tu turno de hoy ya tiene corte. </>}
+                  Un turno se cierra una sola vez al día.
+                </>
+              : <>Tu turno es el <strong>{habitual}</strong>. El otro lo abre tu compañera.</>}
+          </p>
+          {jornada?.ya_cerro_turno && (
+            <p style={{ color: C.textDim, fontSize: 13, lineHeight: 1.5, margin: "14px 0 0" }}>
+              ¿Fue por error? Gerencia puede anular el corte y la caja se reabre
+              al momento{jornada?.mi_corte_id ? <> (corte #{jornada.mi_corte_id})</> : null}.
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   // El cajón es uno solo. Mary sale 15:30 y Erika entra 15:00, así que media
   // hora al día las dos están en el piso: más vale decirlo aquí que dejar que
@@ -123,32 +203,6 @@ export default function AperturaCajaModal({ usuario, onAbierta }) {
     );
   }
 
-  if (jornada?.es_descanso) {
-    const dia = etiquetaDiaDescanso(jornada.dia_descanso) || "hoy";
-    return (
-      <div style={{
-        position: "fixed", inset: 0, zIndex: 2000, background: C.bg,
-        overflowY: "auto", fontFamily: "var(--fc-body)",
-      }}>
-        <div style={{ maxWidth: 560, margin: "0 auto", padding: "28px 20px 48px" }}>
-          <div style={{
-            fontSize: 11, fontWeight: 800, letterSpacing: 1.2,
-            textTransform: "uppercase", color: BRAND.primary, marginBottom: 8,
-          }}>
-            Día de descanso
-          </div>
-          <h1 style={{ margin: 0, color: C.text, fontSize: 22, fontWeight: 800 }}>
-            Hoy descansas, {nombre}
-          </h1>
-          <p style={{ color: C.textMid, fontSize: 14, lineHeight: 1.5, margin: "10px 0 0" }}>
-            Tu día libre es el <strong>{dia}</strong>. La compañera cubre matutino y vespertino.
-            No abras caja hoy.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div style={{
       position: "fixed",
@@ -178,8 +232,8 @@ export default function AperturaCajaModal({ usuario, onAbierta }) {
           {!turnoAsignado
             ? " RH aún no te asigna turno: no puedes abrir caja."
             : jornada?.cubre_ambos
-              ? <> Hoy cubres <strong>los dos turnos</strong>. Este conteo es el <strong>{etiquetaTurno(turnoAbrir)}</strong>. Al corte, vuelves a abrir el siguiente.</>
-              : <> Turno: <strong>{etiquetaTurno(turnoAbrir)}</strong>.</>}
+              ? <> Hoy cubres <strong>los dos turnos</strong>. Este conteo es el <strong>{etiquetaTurno(turnoAbrir || turnoAsignado)}</strong>. Al corte, vuelves a abrir el siguiente.</>
+              : <> Turno: <strong>{etiquetaTurno(turnoAbrir || turnoAsignado)}</strong>.</>}
         </p>
 
         <div style={{
@@ -236,7 +290,7 @@ export default function AperturaCajaModal({ usuario, onAbierta }) {
         <button
           type="button"
           onClick={confirmar}
-          disabled={saving || !turnoAsignado}
+          disabled={saving || !turnoAsignado || !jornadaListo || !turnoAbrir}
           style={{
             marginTop: 18,
             width: "100%",
@@ -250,7 +304,13 @@ export default function AperturaCajaModal({ usuario, onAbierta }) {
             cursor: saving ? "wait" : "pointer",
           }}
         >
-          {saving ? "Abriendo…" : !turnoAsignado ? "Falta asignar turno en RH" : "Confirmar y empezar turno"}
+          {saving
+            ? "Abriendo…"
+            : !turnoAsignado
+              ? "Falta asignar turno en RH"
+              : !jornadaListo
+                ? "Revisando turno…"
+                : "Confirmar y empezar turno"}
         </button>
       </div>
     </div>

@@ -1511,8 +1511,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
     setRxM(null); setRx({receta:"",medico:"",cedula:"",paciente:"",indicaciones:""});
   };
 
-  // P2.2: Total a cobrar = precio de línea (FEFO/exclusivo ya viene en c.precio).
-  // No aplicar descuento_pct otra vez: el lote FEFO es el descuento real (T1').
+  // P2.2: Total a cobrar = precio de línea (FEFO). Sin descuento_pct (T1').
   const calcularTotalConPromos = () => {
     return cart.reduce((a,c) => a + cobroLinea(c.precio, c.qty), 0);
   };

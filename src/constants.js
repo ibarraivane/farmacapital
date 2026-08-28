@@ -38,7 +38,7 @@ export const NEG = {
 // agenda = calendario de consultas (admin/vendedor); cons_dr = misma vista, id reservado a doctora.
 // trans = Transacciones (listado de pedidos); ped_online = POS pestaña pedidos web.
 // VENTAS: pos (consultas en POS), ped_online
-// INVENTARIO: inv (hub: recibir / catálogo / lotes / reabasto)
+// INVENTARIO: recibir (cajas) + inv (hub: catálogo / lotes / reabasto)
 // DOCTORA: agenda (cons_dr) + expedientes; sin PWA ni consultorio duplicado
 export const NAV_ADMIN = [
   "dash", "pos", "cli", "caja", "ped_online",
@@ -52,11 +52,11 @@ export const NAV_ADMIN = [
 
 /** Títulos del sidebar admin (sin mezclar “vistas por rol”; solo agrupa trabajo). */
 export const ADMIN_NAV_SECTIONS = [
-  { title: "Operación diaria", ids: ["dash", "config_cons", "pos", "cli", "caja", "ped_online"] },
+  { title: "Operación diaria", ids: ["dash", "pos", "cli", "caja", "ped_online"] },
   { title: "Inventario", ids: ["recibir", "inv"] },
   { title: "Consultorio", ids: ["agenda", "cons", "exp_dr"] },
   { title: "Control y cumplimiento", ids: ["cof", "dev", "fact"] },
-  { title: "Comercial y crecimiento", ids: ["promo", "banners", "bot"] },
+  { title: "Comercial y crecimiento", ids: ["promo", "banners", "bot", "config_cons"] },
   { title: "Administración interna", ids: ["usuarios", "rrhh"] },
   { title: "Sistema", ids: ["ayuda", "pwa"] },
 ];
@@ -81,7 +81,7 @@ export const NAV_ITEMS = [
   {id:"midia",      icon: Gauge,           label:"Mi Día"},
   // ══ VENTAS ════════════════════════════════
   {id:"pos",        icon: ShoppingCart,    label:"Punto de Venta"},
-  // ══ INVENTARIO (hub con tabs catálogo/reabasto/lotes) ══
+  // ══ INVENTARIO (Recibir = cajas; Inventario = existencias) ══
   {id:"inv",        icon: Package,         label:"Inventario"},
   {id:"recibir",    icon: ScanLine,        label:"Recibir"},
   // ══ OPERACIONES ═══════════════════════════

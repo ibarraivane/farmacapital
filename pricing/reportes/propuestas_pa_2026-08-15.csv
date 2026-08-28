@@ -1,0 +1,106 @@
+confirmado,sku,nombre_fc,marca_fc,principio_activo_propuesto,candidato_externo,precio_externo,etiqueta_externa
+x,FC-2001A890,Ampigrin AD (Ampicilina + Dicloxacilina),Ampigrin,Ampicilina + Dicloxacilina,(del propio nombre del producto),,nombre_propio
+x,FC-B25B4654,Cina (Ciprofloxacino),Cina,Ciprofloxacino,(del propio nombre del producto),,nombre_propio
+x,FC-DE106642,Infamid (Metamizol + Dexametasona + Vit. B),Ampigrin,Metamizol + Dexametasona + Vit.,(del propio nombre del producto),,nombre_propio
+,FC-05965071,Acroxil-C,Acroxil-C,AMOXICILINA/BROM 250MG SUSP 60ML,Excel · marca ACROXIL C,54.0,excel_marca
+,FC-85BDBD3D,Acroxil-C,Acroxil-C,AMOXICILINA/BROM 250MG SUSP 60ML,Excel · marca ACROXIL C,54.0,excel_marca
+,FC-BE76D409,Amcef IM 1 g (Inyectable),Amcef,CEFTRIAXONA 1GR 1AMP,Excel · marca AMCEF,79.0,excel_marca
+,FC-07F04F88,Amcef IM 500 mg (Inyectable),Amcef,CEFTRIAXONA 1GR 1AMP,Excel · marca AMCEF,79.0,excel_marca
+,FC-17376CAE,Aspitak-P,Aspitak-P,AC ACETILSALICILICO 100MG AD 30COMP,Excel · marca ASPITAK P,24.0,excel_marca
+,FC-40CE757D,Cefalver,Cefalver,CEFALEXINA 1GR 12TAB,Excel · marca CEFALVER,90.0,excel_marca
+,FC-492D652F,Cefalver,Cefalver,CEFALEXINA 1GR 12TAB,Excel · marca CEFALVER,90.0,excel_marca
+,FC-DB3B2584,Celesbitan,Celesbitan,BETAMETASONA 8MG/2ML 1AMP+JER,Excel · marca CELESBITAN,37.0,excel_marca
+,FC-20501765,Crema Grisi aloe vera para manos,Grisi,JABON DE AZUFRE CON LANOLINA 100GR,Excel · marca GRISI,56.0,excel_marca
+,FC-36040450,Crema Grisi concha nácar para manos,Grisi,JABON DE AZUFRE CON LANOLINA 100GR,Excel · marca GRISI,56.0,excel_marca
+,FC-76000260,Crema Vitacilina amarilla aclaradora,Vitacilina,NEOMICINA/VIT A UNGÜENTO 28GR,Excel · marca VITACILINA,31.0,excel_marca
+,FC-76000253,Crema Vitacilina roja antiarrugas,Vitacilina,NEOMICINA/VIT A UNGÜENTO 28GR,Excel · marca VITACILINA,31.0,excel_marca
+,FC-29670370,Degortzin,Degortzin,CETIRIZINA 10MG 10TAB,Excel · marca DEGORTZIN,60.0,excel_marca
+,FC-0211225,Dibenel cápsulas vitaminas omega 3 C/30,Dibenel,SIMI DIAB PLUS 30CAP,Excel · marca DIBENEL,71.0,excel_marca
+,FC-830BF3FB,Diviltac,Diviltac,ALGESTONA/ESTRADIOL 1AMP 1ML,Excel · marca DIVILTAC,54.0,excel_marca
+,FC-25104411,Electrolit Coco,Electrolit,ELECTROLITO ORAL NJA-MDNA 500ML,Excel · marca ELECTROLIT,25.5,excel_marca
+,FC-25104268,Electrolit Fresa,Electrolit,ELECTROLITO ORAL NJA-MDNA 500ML,Excel · marca ELECTROLIT,25.5,excel_marca
+,FC-25149221,Electrolit Fresa-Kiwi,Electrolit,ELECTROLITO ORAL NJA-MDNA 500ML,Excel · marca ELECTROLIT,25.5,excel_marca
+,FC-51747971,Electrolit Mora Azul,Electrolit,ELECTROLITO ORAL NJA-MDNA 500ML,Excel · marca ELECTROLIT,25.5,excel_marca
+,FC-25104688,Electrolit Naranja-Mandarina,Electrolit,ELECTROLITO ORAL NJA-MDNA 500ML,Excel · marca ELECTROLIT,25.5,excel_marca
+,FC-51448511,Electrolit Uva,Electrolit,ELECTROLITO ORAL NJA-MDNA 500ML,Excel · marca ELECTROLIT,25.5,excel_marca
+,FC-DA34D88D,Erbitrax Terbinafina,Erbitrax,TERBINAFINA CLORHIDRATO 15GR,Excel · marca ERBITRAX,34.0,excel_marca
+,FC-22111352,Grisi Corp Diabecare,Grisi,JABON DE AZUFRE CON LANOLINA 100GR,Excel · marca GRISI,56.0,excel_marca
+,FC-22150092,Grisi Leche De Burra,Grisi,JABON DE AZUFRE CON LANOLINA 100GR,Excel · marca GRISI,56.0,excel_marca
+,FC-1812D26D,Hucius cápsulas,Hucius,CASTAÑO INDIAS/RUSCUS 250MG/70MG 30CAP,Excel · marca HUCIUS,139.0,excel_marca
+,FC-697EEAD0,Kurtosil,Kurtosil,AC FUSIDICO/BETA 20/1MG CREMA,Excel · marca KURTOSIL,119.0,excel_marca
+,FC-08344716,La Femme vitaminas menopausia C/30,La Femme,CIMICIFUGA/VIT/ISOFLAV 30CAPGEL,Excel · marca LA FEMME,107.0,excel_marca
+,FC-B69FCBF4,Lesaclor,Lesaclor,ACICLOVIR 4GR/100ML SUSP 120ML,Excel · marca LESACLOR,79.0,excel_marca
+,FC-B25094C4,Lesaclor,Lesaclor,ACICLOVIR 4GR/100ML SUSP 120ML,Excel · marca LESACLOR,79.0,excel_marca
+,FC-50587FA6,Mexapin,Mexapin,AMPICILINA 1GR 10TAB,Excel · marca MEXAPIN,49.0,excel_marca
+,FC-AEA8C8DA,Namifen,Namifen,AC MEFENAMICO 500MG 20TAB,Excel · marca NAMIFEN,34.0,excel_marca
+,FC-A909ABC0,Odivitor,Odivitor,ATORVASTATINA 10MG 20TAB,Excel · marca ODIVITOR,66.0,excel_marca
+,FC-B2123139,Oxivag,Oxivag,ALENDRONATO 70MG 4TAB,Excel · marca OXIVAG,81.0,excel_marca
+,FC-B72A6420,Pentiver,Pentiver,AMPICILINA 1GR 10TAB,Excel · marca PENTIVER,49.0,excel_marca
+,FC-7AA38F97,Pentiver,Pentiver,AMPICILINA 1GR 10TAB,Excel · marca PENTIVER,49.0,excel_marca
+,FC-04D83B46,Pralex,Pralex,ESCITALOPRAM 10MG 14TAB,Excel · marca PRALEX,74.0,excel_marca
+,FC-6074BB64,Redalip,Redalip,BEZAFIBRATO 200MG 30TAB,Excel · marca REDALIP,59.0,excel_marca
+,FC-22133286,Shampoo Grisi Rici Oro Miel,Grisi,JABON DE AZUFRE CON LANOLINA 100GR,Excel · marca GRISI,56.0,excel_marca
+,FC-F817BC3A,Sibicos,Sibicos,BIFONAZOL UNGUENTO 20GR,Excel · marca SIBICOS,49.0,excel_marca
+,FC-60101521,Soft Lub Pleasure 56.7 g,Vitacilina,NEOMICINA/VIT A UNGÜENTO 28GR,Excel · marca VITACILINA,31.0,excel_marca
+,FC-86A95D07,Tropharma,Tropharma,ERITROMICINA 500MG 20TAB,Excel · marca TROPHARMA,62.0,excel_marca
+,FC-D11D586A,Valgab 3 jarabe 6 mL,Valgab,DESLORATADINA 50MG SOL 120ML,Excel · marca VALGAB,99.0,excel_marca
+,FC-BE2ACF63,Valnait cápsulas valeriana,Valnait,SIMIPZ VALERIANA + 250MG 30CAP,Excel · marca VALNAIT,89.0,excel_marca
+,FC-76000284,Vitacilina agua micelar agua rosas,Vitacilina,NEOMICINA/VIT A UNGÜENTO 28GR,Excel · marca VITACILINA,31.0,excel_marca
+,FC-76000277,Vitacilina crema humectante,Vitacilina,NEOMICINA/VIT A UNGÜENTO 28GR,Excel · marca VITACILINA,31.0,excel_marca
+,FC-759A5EF9,Wermy,Wermy,GABAPENTINA 300MG 15CAP,Excel · marca WERMY,111.0,excel_marca
+,FC-50D044FF,Wermy,Wermy,GABAPENTINA 300MG 15CAP,Excel · marca WERMY,111.0,excel_marca
+,FC-69A3C416,Wexpec,Wexpec,AMBROXOL/SALBUTAMOL SOL 120ML,Excel · marca WEXPEC,45.0,excel_marca
+,FC-3D0ED22B,Zukedib,Zukedib,GLIMEPIRIDA 2MG 30TAB,Excel · marca ZUKEDIB,63.0,excel_marca
+,FC-95779436,Acetilsalicilico Ef,Acido,Acetilsalicilico 300 mg,AC ACETILSALICILICO 300MG 20TAB  EFERV,18.0,alta
+,FC-1BF03D35,Acetonido De Fluocinolona Cma,Acetonido,Fluocinolona 20 g,FLUOCINOLONA CREMA 20GR,17.5,alta
+,FC-83351691,Agua Oxigenada Protec,Protec,Agua 224 ml,AGUA OXIGENADA SOL 224ML,17.0,alta
+,FC-4A0245DA,Amlodipino,Amlodipino,Amlodipino 5 mg,AMLODIPINO 5MG 10TAB,35.0,alta
+,FC-97BEFA1A,Amlodipino,Amlodipino,Amlodipino 5 mg,AMLODIPINO 5MG 10TAB,35.0,alta
+,FC-45307181,Arnica Bde Parche,Arnica,Parche,PARCHE LEON ARNICA 3% 12X18CM,84.0,alta
+,FC-22B18244,Cefotaxima IM (Inyectable),Cefotaxima,Cefotaxima 1 g,CEFOTAXIMA 1GR SOL INY,88.0,alta
+,FC-C636D8EA,Ceftriaxona IM 1 g (Inyectable),Ceftriaxona,Ceftriaxona 1 g,CEFTRIAXONA 1GR 1AMP,79.0,alta
+,FC-1CF27DC9,Dison Dex,Dison,Betametasona / Beta,BETAMETASONA DIP/BETA FOS 1AMP,56.0,alta
+,FC-2E79C2D8,Hierro Dex,Hierro,Hierro 100 mg,HIERRO DEXTRAN 100MG/2ML 3AMP,93.0,alta
+,FC-E826D304,Lincomicina /2Ml 6 Ampolletas,Lincomicina,Lincomicina 2 ml,LINCOMICINA 600MG/2ML 6AMP,79.0,alta
+,FC-33956775,Suero Pedialyte Sr Uva,Pedialyte,Electrolito 500 ml,ELECTROLITO PED UVA 500ML,25.5,alta
+,FC-61123009,Talco Desodorante Odolex Naturals,Odolex,200 g,TALCO DESODORANTE 200GR,49.0,alta
+,FC-48335305,Agua Oxigenada,Protec,Agua 224 ml,AGUA OXIGENADA SOL 224ML,17.0,media
+,FC-83351381,Agua oxigenada Protec,Protec,Agua 224 ml,AGUA OXIGENADA SOL 224ML,17.0,media
+,FC-75001865,Brillantina Palmolive,Palmolive,Ursodeoxicolico 250 mg,AC URSODEOXICOLICO 250MG 50CAP,339.0,media
+,FC-66873531,Colgate Máxima Protección Anticaries,Colgate,Arnica 30 g,CREMA DE ARNICA 30GR,16.0,media
+,FC-56326142,Crema Ponds Suave y Tersa,Ponds,Tatuajes 74 ml,CREMA HUMECTANTE P/ TATUAJES 74ML,84.0,media
+,FC-06209862,Desodorante Axe 48H Anarchy Fresh Love (Mujer),Axe,200 g,TALCO DESODORANTE 200GR,49.0,media
+,FC-93025919,Desodorante Axe Excite Seco (hombre),Axe,200 g,TALCO DESODORANTE 200GR,49.0,media
+,FC-06213906,Desodorante Axe Ice Chill 48H (hombre),Axe,Aer 150 ml,DESODORANTE AER CAB 150ML OLD SPICE,69.01,media
+,FC-06244795,Desodorante Axe Intense 48H (Hombre),Axe,200 g,TALCO DESODORANTE 200GR,49.0,media
+,FC-93025797,Desodorante Axe Men Dark Temp (Hombre),Axe,200 g,TALCO DESODORANTE 200GR,49.0,media
+,FC-06245686,Desodorante Axe Men Epic-F 48H,Axe,200 g,TALCO DESODORANTE 200GR,49.0,media
+,FC-93025865,desodorante Axe Men Gold Temp,Axe,Aer 150 ml,DESODORANTE AER CAB 150ML OLD SPICE,69.01,media
+,FC-30622622,Desodorante Axe Men Young (hombre),Axe,200 g,TALCO DESODORANTE 200GR,49.0,media
+,FC-27286017,Desodorante Obao Classic (Hombre),Obao,200 g,TALCO DESODORANTE 200GR,49.0,media
+,FC-52933307,Desodorante Obao Game 48Hr,Obao,200 g,TALCO DESODORANTE 200GR,49.0,media
+,FC-52876406,Desodorante Obao Men Tatto Aqua (Hombre),Obao,200 g,TALCO DESODORANTE 200GR,49.0,media
+,FC-27250612,Desodorante Obao Piel Delicada,Obao,Aer 150 ml,DESODORANTE AER CAB 150ML OLD SPICE,69.01,media
+,FC-52844825,Desodorante Obao Ritual Natural Coco (Mujer),Obao,200 g,TALCO DESODORANTE 200GR,49.0,media
+,FC-75062897,Desodorante Rexona Bamboo 48H,Rexona,200 g,TALCO DESODORANTE 200GR,49.0,media
+,FC-93037806,Desodorante Rexona Men Marine (hombre),Rexona,200 g,TALCO DESODORANTE 200GR,49.0,media
+,FC-93038223,Desodorante Rexona Men Sport,Rexona,Pies 160 ml,SPRAY DESODORANTE PARA PIES 160ML,82.0,media
+,FC-93022567,Desodorante Rexona Men V8 (Hombre),Rexona,200 g,TALCO DESODORANTE 200GR,49.0,media
+,FC-75062927,Desodorante Rexona Pom-Dry 48 H,Rexona,200 g,TALCO DESODORANTE 200GR,49.0,media
+,FC-3D0F54B7,Ibupro-Cafe,Ibupro-Cafe,Metocarbamol / Ibupro 200 mg,METOCARBAMOL/IBUPRO 375/200MG 12CAP,58.0,media
+,FC-14119032,Jabón azufre con miel,Azufre,Azufre / Lanolina 100 g,JABON DE AZUFRE CON LANOLINA 100GR,56.0,media
+,FC-51078461,Leche en polvo NAN Optimal Pro 1/ 0 a 6 M,Nestle,Lactea 230 g,FORMULA LACTEA 0-6MESES 230GR NAN 1,109.0,media
+,FC-59225411,Leche en polvo Nido Kinder,Nestle,Ciprofloxa / Hidro / Lido 10 ml,CIPROFLOXA/HIDRO/LIDO OTICA 10ML,63.0,media
+,FC-51067711,Leche Nidal en Polvo 1bebé  0 a 6 M,Nestle,Ciprofloxa / Hidro / Lido 10 ml,CIPROFLOXA/HIDRO/LIDO OTICA 10ML,63.0,media
+,FC-58793249,Lubricante sensación calor,Sico,Vaginal 113 g,GEL LUBRICANTE VAGINAL 113GR,84.0,media
+,FC-01015141,Lubricante Sico Softlube Origin,Sico,Vaginal 113 g,GEL LUBRICANTE VAGINAL 113GR,84.0,media
+,FC-D4AC123B,Mercurio Aceite Almendras,Mercurio,Almendra 225 ml,CREMA ACEITE DE ALMENDRA 225ML,131.0,media
+,FC-0ACC5B6A,Mercurio Oxido De Zinc,Mercurio,Oxido 100 g,OXIDO DE ZINC 25GR/100GR 30GR,19.0,media
+,FC-FA3D96E6,N Calcitriol,Becatrim,Calcitriol 0.25 mcg,CALCITRIOL 0.25MCG 50CAP,170.0,media
+,FC-86167151,Nestum Cereal Infantil Avena,Nestle,Probioticos,PROBIOTICOS 30TAB MAST UVA SIMIPROBIOT,51.0,media
+,FC-26EA40A4,Ramcinet,Ramcinet,Tobramicina / Dexamet 5 ml,TOBRAMICINA/DEXAMET 5ML SOL OFT,79.0,media
+,FC-87932321,Sico lubricante cereza 50 ml,SICO,Lubricantes 10 ml,GOTAS LUBRICANTES OCULARES 10ML,379.0,media
+,FC-33961373,Suero Pedialyte Sr fresa,Pedialyte,Electrolito 500 ml,ELECTROLITO PED UVA 500ML,25.5,media
+,FC-34062421,Tela adhesiva Impermeable Quirmex,Quirmex,Tela,TELA ADHESIVA SEDOSA 1.25CMX5MTS,22.0,media
+,FC-86708021,Termómetro Digital Protec,Protec,Termometro,TERMOMETRO DIGITAL 1PZA,63.0,media
+,FC-56034041,Toallitas húmedas Escudo antibacterial,Escudo,Toalla / Manos,TOALLA HUMEDA ANTIBAC P/MANOS,18.0,media

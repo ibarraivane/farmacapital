@@ -14,17 +14,26 @@ import { showToast } from "./ui";
 import OnboardingTour from "./components/OnboardingTour";
 import { idEmpleadoUsuarios } from "./utils/usuarioId";
 import ImageUploader from "./components/ImageUploader";
+import GaleriaProducto from "./components/GaleriaProducto";
+import { useImagenesPrincipales, useProductoImagenes } from "./hooks/useProductoImagenes";
+import { useCatalogoVivo } from "./hooks/useCatalogoVivo";
+import { avisarCatalogoCambio } from "./utils/catalogoVivo";
 import { sugerirPrecioUnidad, aplicarReglaPrecioUnidad, margenBrutoPct } from "./utils/precioUnidad";
-import { parseDinero, productoEsVendible } from "./utils/productoVendible";
+import { productoEsVendible } from "./utils/productoVendible";
+import {
+  CATEGORIAS_PRODUCTO as CATEGORIAS,
+  categoriaCanon,
+  categoriaPasaFiltro,
+  opcionesCategoriaSelect,
+} from "./constants/categoriasProducto";
 import {
   PRODUCTOS_POR_PAGINA,
   agruparLotesPorProducto,
   diasParaCaducar,
+  enriquecerProductoConLotes,
   fetchLotesInventario,
-  minCaducidadLotes,
 } from "./lib/inventarioHubData";
 import { DIAS_CADUCIDAD_ALERTA, DIAS_CADUCIDAD_CRITICO, esPorCaducar } from "./lib/caducidad";
-import { hoyISOMexico } from "./lib/fecha";
 
 const leerSesion = () => {
   try {
@@ -35,11 +44,6 @@ const leerSesion = () => {
 };
 
 const BRAND = { primary:"#0D1B2A", secondary:"#1E3ABA", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
-const CATEGORIAS = [
-  "Analgésico","Antiinflamatorio","Antibiótico","Gastro","Diabetes",
-  "Hipertensión","Alergia","Vitaminas","Suplemento","Herbolario","Hidratación","Cardiovascular",
-  "Hormonales","Respiratorio","Dispositivo médico","Botiquín","Higiene","Bebidas","Básicos","Abarrotes","Minisuper","Cuidado personal","Otro",
-];
 const EMPTY = {
   nombre:"", sku:"", codigo_barras:"", categoria:"Otro", precio:"", costo:"", venta_unidad:false, unidades_por_caja:"", precio_unidad:"", stock_unidades:"",
   stock:"", stock_minimo:"", tipo:"generico", proveedor:"", lote:"",
@@ -103,19 +107,15 @@ async function fetchLotesPorProducto(sessionToken, { omitCosto = false } = {}) {
       fecha_caducidad: l.fecha_caducidad,
       cantidad_actual: l.cantidad_actual,
       activo: l.activo,
+      proveedores: l.proveedores,
+      proveedor_nombre: l.proveedor_nombre,
     }));
   }
   return slim;
 }
 
 function enrichProductoConLotes(p, lotes) {
-  const lotesList = lotes || [];
-  return {
-    ...p,
-    lotes: lotesList,
-    min_caducidad_lotes: minCaducidadLotes(lotesList),
-    lotes_activos: lotesList.filter((l) => l.activo !== false && (l.cantidad_actual || 0) > 0),
-  };
+  return enriquecerProductoConLotes(p, lotes);
 }
 
 async function refetchProductoLotes(productoId) {
@@ -226,6 +226,12 @@ function productoSinPrecioVenta(p) {
   return !productoEsVendible(p);
 }
 
+function productoSinFoto(p, fotoCatalogoDe) {
+  if (String(p?.imagen_url || "").trim()) return false;
+  if (fotoCatalogoDe?.(p?.id)) return false;
+  return true;
+}
+
 /** Parte nombre/presentación y mueve dosis suelta de principio → concentración al importar CSV. */
 function normalizarCamposFarmaceuticosImport(row) {
   const out = { ...row };
@@ -325,28 +331,35 @@ function InventarioEditableCell({
   mono = false,
   selectionMode = false,
   readOnly = false,
+  onCommitValue,
 }) {
   const isEditing = inlineEdit?.productId === productId && inlineEdit?.field === field;
   const rowBg = tdStyle?.background;
+  const selectOptions = options || [];
 
   if (isEditing) {
     const controlProps = {
-      autoFocus: true,
+      autoFocus: type !== "select",
       value: inlineEdit.draft,
       disabled: inlineSaving,
-      onChange: (e) => onDraft(e.target.value),
+      onChange: (e) => {
+        const v = e.target.value;
+        onDraft(v);
+        if (type === "select" && onCommitValue) onCommitValue(v);
+      },
       onKeyDown: (e) => {
         if (e.key === "Enter") {
           e.preventDefault();
-          onCommit(e.currentTarget.value);
+          onCommit();
         }
         if (e.key === "Escape") {
           e.preventDefault();
           onCancel();
         }
       },
-      onBlur: (e) => {
-        if (!inlineSaving) onCommit(e.currentTarget.value);
+      onBlur: () => {
+        if (type === "select") return;
+        if (!inlineSaving) onCommit();
       },
       style: {
         ...inputStyle,
@@ -361,11 +374,15 @@ function InventarioEditableCell({
       <td style={tdStyle}>
         {type === "select" ? (
           <select {...controlProps}>
-            {(options || []).map((o) => (
-              <option key={o} value={o}>
-                {o}
-              </option>
-            ))}
+            {selectOptions.map((o) => {
+              const value = typeof o === "object" ? o.value : o;
+              const label = typeof o === "object" ? o.label : o;
+              return (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              );
+            })}
           </select>
         ) : (
           <input type={type} {...controlProps} />
@@ -379,10 +396,7 @@ function InventarioEditableCell({
       style={{ ...tdStyle, cursor: (selectionMode || readOnly) ? "default" : "pointer" }}
       title={readOnly ? undefined : selectionMode ? "Hay productos seleccionados — usa el menú azul arriba de la tabla" : "Clic para editar"}
       onMouseDown={(e) => {
-        if (selectionMode || readOnly) return;
-        const editingOther = inlineEdit && (inlineEdit.productId !== productId || inlineEdit.field !== field);
-        // Si otra celda está en edición, no bloquees el blur: si no, el precio no se guarda.
-        if (!editingOther) e.preventDefault();
+        if (!selectionMode && !readOnly) e.preventDefault();
       }}
       onClick={(e) => {
         e.stopPropagation();
@@ -826,9 +840,74 @@ const exportarCSV = (productos) => {
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement("a");
   a.href = url; 
-  a.download = `inventario_farmacapital_${hoyISOMexico()}.csv`;
+  a.download = `inventario_farmacapital_${new Date().toISOString().slice(0,10)}.csv`;
   a.click(); URL.revokeObjectURL(url);
 };
+
+/**
+ * Fotos ya disponibles en el catálogo para este producto (Rappi, distribuidor,
+ * propias). Se pasan con las flechas y cualquiera se puede promover a foto
+ * principal sin salir del formulario.
+ *
+ * No escribe nada por su cuenta: solo propone la URL: se guarda cuando el
+ * usuario guarda el producto.
+ */
+function FotosDelCatalogo({ productoId, imagenActual, onElegir, C }) {
+  const { imagenes, cargando } = useProductoImagenes(productoId, "");
+  const [verTodas, setVerTodas] = useState(false);
+
+  if (!productoId || cargando || imagenes.length === 0) return null;
+
+  const actual = String(imagenActual || "").trim();
+  const visible = verTodas ? imagenes : imagenes.slice(0, 1);
+
+  return (
+    <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.border}` }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 8 }}>
+        <label style={{ color: C.textMid, fontSize: 11, fontWeight: 700 }}>
+          🖼️ OTRAS FOTOS DEL CATÁLOGO ({imagenes.length})
+        </label>
+        <button
+          type="button"
+          onClick={() => setVerTodas((v) => !v)}
+          style={{ background: "none", border: "none", color: C.blue, fontSize: 11, fontWeight: 700, cursor: "pointer", padding: 0 }}
+        >
+          {verTodas ? "Ocultar" : "Ver galería"}
+        </button>
+      </div>
+
+      {verTodas && (
+        <div style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 10, padding: 10 }}>
+          <GaleriaProducto imagenes={visible} alt="" maxAlto={220} iconoVacio={48} />
+        </div>
+      )}
+
+      {verTodas && (
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
+          {imagenes.map((url) => (
+            <button
+              key={url}
+              type="button"
+              onClick={() => onElegir(url)}
+              title={url === actual ? "Ya es la foto principal" : "Usar como foto principal"}
+              style={{
+                width: 56,
+                height: 56,
+                padding: 2,
+                borderRadius: 8,
+                cursor: "pointer",
+                background: "#fff",
+                border: url === actual ? `2px solid ${C.blue}` : `1px solid ${C.border}`,
+              }}
+            >
+              <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibirMercancia, onCaducidadSaved }) {
   const C = C_LIGHT;
@@ -991,7 +1070,6 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
           costo: costoNum,
           imagen_url: urlNow || null,
           imagen_mobile_url: urlNow || null,
-          manual_price_override: true,
         };
         const { error: editErr } = await supabase.rpc("admin_editar_producto", {
           p_session_token: tok,
@@ -1098,6 +1176,12 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
           <div style={{fontSize:11,color:C.textDim,marginTop:8,lineHeight:1.4}}>
             💡 También podés pegar URL abajo si preferís. Bucket <code style={{background:C.card,padding:"1px 4px",borderRadius:4}}>productos</code> · <code style={{background:C.card,padding:"1px 4px",borderRadius:4}}>sql/storage_buckets.sql</code>
           </div>
+          <FotosDelCatalogo
+            productoId={form.id}
+            imagenActual={form.imagen_url}
+            onElegir={(url)=>setForm((f)=>({...f,imagen_url:url,imagen_mobile_url:url}))}
+            C={C}
+          />
         </div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 18px"}}>
           <div>
@@ -1147,7 +1231,7 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
               <label style={labelStyle}>Tipo</label>
               <select value={form.tipo} onChange={e=>set("tipo",e.target.value)} style={{...inputStyle}}>
                 <option value="generico">Genérico</option>
-                <option value="marca">Marca</option>
+                <option value="marca">Patente</option>
               </select>
             </div>
             {field("Proveedor","proveedor")}
@@ -1435,27 +1519,22 @@ function RecibirModal({ productos, onClose, onReceived, initialProductId = null 
     if (!cantidad || parseInt(cantidad, 10) <= 0) { setError("Cantidad inválida"); return; }
     setSaving(true);
     setError("");
-    try {
-      const tok = sessionStorage.getItem("farmacapital_session_token");
-      if (!tok) { setError("Sesión expirada."); return; }
-      const { error: err } = await supabase.rpc("receive_merchandise_secure", {
-        p_session_token: tok,
-        p_producto_id: selProd.id,
-        p_cantidad: parseInt(cantidad, 10),
-        p_numero_lote: lote.trim() || null,
-        p_fecha_caducidad: caducidad || null,
-        p_costo_unitario: costo ? parseFloat(costo) : null,
-        p_proveedor: proveedor.trim() || null,
-      });
-      if (err) { setError("Error: " + err.message); return; }
-      showToast(`✅ +${cantidad} · ${selProd.nombre}`, "success");
-      resetScanForm();
-      onReceived?.();
-    } catch (e) {
-      setError(e?.message || "Se cayó la conexión. Intenta de nuevo.");
-    } finally {
-      setSaving(false);
-    }
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    if (!tok) { setSaving(false); setError("Sesión expirada."); return; }
+    const { error: err } = await supabase.rpc("receive_merchandise_secure", {
+      p_session_token: tok,
+      p_producto_id: selProd.id,
+      p_cantidad: parseInt(cantidad, 10),
+      p_numero_lote: lote.trim() || null,
+      p_fecha_caducidad: caducidad || null,
+      p_costo_unitario: costo ? parseFloat(costo) : null,
+      p_proveedor: proveedor.trim() || null,
+    });
+    setSaving(false);
+    if (err) { setError("Error: " + err.message); return; }
+    showToast(`✅ +${cantidad} · ${selProd.nombre}`, "success");
+    resetScanForm();
+    onReceived?.();
   };
 
   return (
@@ -2040,7 +2119,7 @@ function BulkEditProductosModal({ count, onClose, onApplied }) {
             <select value={tipo} onChange={(e) => setTipo(e.target.value)} style={inputStyle}>
               <option value="">— Sin cambiar —</option>
               <option value="generico">Genérico</option>
-              <option value="marca">Marca</option>
+              <option value="marca">Patente</option>
             </select>
           </div>
           <div>
@@ -2077,8 +2156,8 @@ function renderInventarioColumnCell(colId, ctx) {
   const {
     C,
     BRAND: BR,
-    CATEGORIAS: cats,
     p,
+    fotoCatalogoDe,
     stickyRowBg,
     inlineCellProps,
     invColWidthStyle,
@@ -2122,6 +2201,9 @@ function renderInventarioColumnCell(colId, ctx) {
     onQuitarCad,
   } = inlineCellProps;
 
+  // Respaldo del catálogo cuando el producto no tiene foto propia.
+  const fotoMiniatura = p.imagen_url || fotoCatalogoDe?.(p.id) || "";
+
   switch (colId) {
     case "foto":
       return (
@@ -2142,7 +2224,7 @@ function renderInventarioColumnCell(colId, ctx) {
               width: 28,
               height: 28,
               borderRadius: 4,
-              background: p.imagen_url ? `url(${p.imagen_url}) center/cover` : C.bg,
+              background: fotoMiniatura ? `url(${fotoMiniatura}) center/cover` : C.bg,
               border: `1px solid ${C.border}`,
               display: "flex",
               alignItems: "center",
@@ -2150,7 +2232,7 @@ function renderInventarioColumnCell(colId, ctx) {
               fontSize: 12,
             }}
           >
-            {!p.imagen_url ? "📷" : null}
+            {!fotoMiniatura ? "📷" : null}
           </div>
         </td>
       );
@@ -2365,7 +2447,7 @@ function renderInventarioColumnCell(colId, ctx) {
           field="categoria"
           value={p.categoria || "Otro"}
           type="select"
-          options={cats}
+          options={opcionesCategoriaSelect(p.categoria || "Otro")}
           display={p.categoria}
           tdStyle={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}`, background: stickyRowBg, ...w("categoria") }}
         />
@@ -2379,10 +2461,10 @@ function renderInventarioColumnCell(colId, ctx) {
           field="tipo"
           value={p.tipo || "generico"}
           type="select"
-          options={["generico", "marca"]}
+          options={[{ value: "generico", label: "Genérico" }, { value: "marca", label: "Patente" }]}
           display={
             <span style={{ padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 700, background: p.tipo === "marca" ? "#9d6fff18" : C.blueDim, color: p.tipo === "marca" ? "#9d6fff" : C.blue }}>
-              {p.tipo}
+              {p.tipo === "marca" || p.tipo === "patente" ? "Patente" : "Genérico"}
             </span>
           }
           tdStyle={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, background: stickyRowBg }}
@@ -2409,7 +2491,7 @@ function renderInventarioColumnCell(colId, ctx) {
           field="stock"
           value={String(p.stock ?? 0)}
           type="number"
-          display={<span style={{ fontWeight: 700, color: bajo ? C.amber : C.green }}>{p.stock}</span>}
+          display={<span style={{ fontWeight: 700, color: bajo ? C.amber : C.green }}>{p.stock_peps ?? p.stock}</span>}
           tdStyle={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, background: stickyRowBg }}
         />
       );
@@ -2438,11 +2520,6 @@ function renderInventarioColumnCell(colId, ctx) {
           display={
             productoSinPrecioVenta(p) ? (
               <span style={{ color: C.red, fontWeight: 700, fontSize: 10 }}>No vendible</span>
-            ) : p.venta_unidad && parseFloat(p.precio_unidad) > 0 ? (
-              <span>
-                ${parseFloat(p.precio || 0).toFixed(2)}
-                <span style={{ color: C.textMid, fontSize: 10, marginLeft: 6 }}>pza ${parseFloat(p.precio_unidad).toFixed(0)}</span>
-              </span>
             ) : (
               `$${parseFloat(p.precio || 0).toFixed(2)}`
             )
@@ -2629,6 +2706,8 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
   const btnGreen = mkBtnGreen(C);
   const btnSecondary = mkBtnSecondary(C);
   const isMobileInv = useMediaQuery("(max-width: 768px)");
+  /** Foto principal del catálogo para los productos sin imagen_url propia. */
+  const fotoCatalogoDe = useImagenesPrincipales();
   const [productos,       setProductos]       = useState([]);
   const [loading,         setLoading]         = useState(true);
   const [busqueda,        setBusqueda]        = useState("");
@@ -2932,6 +3011,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
       setModalImportar(false);
       setImportResult(null);
       await fetchProductos();
+      avisarCatalogoCambio({ origen: "inventario-import" });
       if (err > 0) {
         const tail = importCsvSoloNuevos ? ` · ${skipped} omitidos` : "";
         showToast(
@@ -2967,10 +3047,12 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
     const conDto = Math.max(0, precioBase * (1 - parseFloat(pct) / 100));
     showToast(`✅ ${prod.nombre} liquidado con ${pct}% desc. · Precio ref. ~$${conDto.toFixed(2)}`, "success");
     fetchProductos();
+    avisarCatalogoCambio({ origen: "inventario" });
   };
 
-  const fetchProductos = useCallback(async () => {
-    setLoading(true);
+  const fetchProductos = useCallback(async (opts) => {
+    const silencioso = !!(opts && typeof opts === "object" && opts.silencioso);
+    if (!silencioso) setLoading(true);
     const tok = sessionStorage.getItem("farmacapital_session_token");
     const stripCosto = (p) => {
       if (!p || typeof p !== "object") return p;
@@ -3036,16 +3118,18 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
     if (modoConsulta) {
       const { data, error, conLotes } = await traerConsultaVendedor();
       if (error) {
-        showToast("No se pudo cargar el inventario: " + error.message, "error");
-        setProductos([]);
-        setLoading(false);
+        if (!silencioso) {
+          showToast("No se pudo cargar el inventario: " + error.message, "error");
+          setProductos([]);
+          setLoading(false);
+        }
         return null;
       }
       let lotesByProducto = {};
       if (!conLotes) lotesByProducto = await fetchLotesPorProducto(tok, { omitCosto: true });
       const enriched = (data || []).map((p) => enrichProductoConLotes(p, p.lotes || lotesByProducto[p.id]));
       setProductos(enriched);
-      setLoading(false);
+      if (!silencioso) setLoading(false);
       return enriched;
     }
 
@@ -3054,21 +3138,24 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
       fetchLotesPorProducto(tok, { omitCosto: false }),
     ]);
     if (error) {
-      showToast("No se pudo cargar el inventario: " + error.message, "error");
-      setProductos([]);
-      setLoading(false);
+      if (!silencioso) {
+        showToast("No se pudo cargar el inventario: " + error.message, "error");
+        setProductos([]);
+        setLoading(false);
+      }
       return null;
     }
     const enriched = (data || []).map((p) => enrichProductoConLotes(p, lotesByProducto[p.id]));
     setProductos(enriched);
-    setLoading(false);
+    if (!silencioso) setLoading(false);
     return enriched;
   }, [verInactivos, modoConsulta]);
 
   useEffect(() => { fetchProductos(); }, [fetchProductos]);
+  useCatalogoVivo(() => fetchProductos({ silencioso: true }));
 
   const poolSinBusqueda = useMemo(() => productos.filter(p => {
-    const cat = filtroCategoria === "todas" || p.categoria === filtroCategoria;
+    const cat = categoriaPasaFiltro(p.categoria, filtroCategoria);
     const dias = diasParaCaducar(p.min_caducidad_lotes);
     const alerta =
       filtroAlerta === "todos"            ? true :
@@ -3076,9 +3163,10 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
       filtroAlerta === "por_caducar"      ? esPorCaducar(dias) :
       filtroAlerta === "sin_codigo_barras" ? productoSinCodigoBarras(p) :
       filtroAlerta === "sin_precio" ? productoSinPrecioVenta(p) :
+      filtroAlerta === "sin_foto" ? productoSinFoto(p, fotoCatalogoDe) :
       true;
     return cat && alerta;
-  }), [productos, filtroCategoria, filtroAlerta]);
+  }), [productos, filtroCategoria, filtroAlerta, fotoCatalogoDe]);
 
   const filtradosTodosInv = useMemo(() => {
     const q = busqueda.trim();
@@ -3133,6 +3221,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
   const porCaducar = productos.filter(p => esPorCaducar(diasParaCaducar(p.min_caducidad_lotes))).length;
   const sinCodigoBarras = productos.filter(p => p.activo && productoSinCodigoBarras(p)).length;
   const sinPrecioVenta = productos.filter(p => p.activo && productoSinPrecioVenta(p)).length;
+  const sinFoto = productos.filter(p => p.activo && productoSinFoto(p, fotoCatalogoDe)).length;
   const inactivos  = productos.filter(p => !p.activo).length;
 
   const abrirEdicionProducto = useCallback((p, { focusBarcode = false } = {}) => {
@@ -3162,11 +3251,9 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
   }, [fetchProductos, modal?.id]);
 
   const [inlineEdit, setInlineEdit] = useState(null);
-  const inlineEditRef = useRef(null);
   const [inlineSaving, setInlineSaving] = useState(false);
 
   const cancelInlineEdit = useCallback(() => {
-    inlineEditRef.current = null;
     setInlineEdit(null);
   }, []);
 
@@ -3278,7 +3365,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
         return true;
       }
     } else if (field === "precio" || field === "costo") {
-      const n = parseDinero(draft);
+      const n = parseFloat(draft);
       if (Number.isNaN(n) || n < 0) {
         showToast("Precio/costo inválido.", "error");
         return false;
@@ -3304,6 +3391,8 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
         return false;
       }
       patchValue = draft;
+    } else if (field === "categoria") {
+      patchValue = categoriaCanon(draft) || "Otro";
     } else {
       patchValue = draft || null;
     }
@@ -3317,7 +3406,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
           : String(currentRaw);
     if (currentNorm === patchValue || (patchValue == null && !currentNorm)) return true;
 
-    const { data, error } = await supabase.rpc("admin_editar_producto", {
+    const { error } = await supabase.rpc("admin_editar_producto", {
       p_session_token: tok,
       p_producto_id: product.id,
       p_patch: { [patchKey]: patchValue },
@@ -3326,45 +3415,28 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
       showToast(error.message, "error");
       return false;
     }
-    const saved = typeof data === "string" ? JSON.parse(data) : data;
-    const row = saved?.producto;
-    if (row && row.id != null) {
-      setProductos((prev) => prev.map((p) => (
-        p.id === product.id
-          ? { ...p, precio: row.precio ?? p.precio, costo: row.costo ?? p.costo, precio_unidad: row.precio_unidad ?? p.precio_unidad }
-          : p
-      )));
-      if (field === "precio" && row.precio != null && Number(row.precio) !== Number(patchValue)) {
-        showToast(`Quedó en $${Number(row.precio).toFixed(2)} (regla de pieza).`, "warning");
-      }
-    }
     await fetchProductos();
     showToast("Guardado", "success");
     return true;
   }, [fetchProductos, modoConsulta]);
 
   const commitInlineEdit = useCallback(async (draftOverride) => {
-    const edit = inlineEditRef.current || inlineEdit;
-    if (!edit || inlineSaving) return;
-    const product = productos.find((x) => x.id === edit.productId);
+    if (!inlineEdit || inlineSaving) return;
+    const product = productos.find((x) => x.id === inlineEdit.productId);
     if (!product) {
       cancelInlineEdit();
       return;
     }
+    const draft = typeof draftOverride === "string" ? draftOverride : inlineEdit.draft;
     setInlineSaving(true);
     try {
-      const draft = draftOverride != null ? draftOverride : edit.draft;
-      const ok = await guardarCampoInline(product, edit.field, draft, edit.meta);
+      const ok = await guardarCampoInline(product, inlineEdit.field, draft, inlineEdit.meta);
       if (ok) {
         cancelInlineEdit();
-      } else if (edit.field === "cad") {
-        const loteId = edit.meta?.loteId ?? resolverLoteCaducidadProducto(product)?.id ?? null;
+      } else if (inlineEdit.field === "cad") {
+        const loteId = inlineEdit.meta?.loteId ?? resolverLoteCaducidadProducto(product)?.id ?? null;
         const lote = loteId ? (product.lotes || []).find((l) => l.id === loteId) : null;
-        setInlineEdit((prev) => {
-          const next = prev ? { ...prev, draft: lote?.fecha_caducidad || "" } : prev;
-          inlineEditRef.current = next;
-          return next;
-        });
+        setInlineEdit((prev) => (prev ? { ...prev, draft: lote?.fecha_caducidad || "" } : prev));
       }
     } finally {
       setInlineSaving(false);
@@ -3386,14 +3458,12 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
   }, [inlineSaving, productos, guardarCampoInline, cancelInlineEdit]);
 
   const startInlineEdit = useCallback((productId, field, rawValue, meta = null) => {
-    const next = {
+    setInlineEdit({
       productId,
       field,
       draft: rawValue == null || rawValue === "" ? "" : String(rawValue),
       meta,
-    };
-    inlineEditRef.current = next;
-    setInlineEdit(next);
+    });
   }, []);
 
   const selectionMode = selectedIds.length > 0;
@@ -3406,12 +3476,9 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
     selectionMode,
     readOnly: modoConsulta,
     onStart: startInlineEdit,
-    onDraft: (v) => setInlineEdit((prev) => {
-      const next = prev ? { ...prev, draft: v } : prev;
-      inlineEditRef.current = next;
-      return next;
-    }),
+    onDraft: (v) => setInlineEdit((prev) => (prev ? { ...prev, draft: v } : prev)),
     onCommit: commitInlineEdit,
+    onCommitValue: commitInlineEdit,
     onCancel: cancelInlineEdit,
     onQuitarCad: quitarCaducidadInline,
   };
@@ -3678,7 +3745,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
   };
 
   return (
-    <div style={{padding:24,background:C.bg,minHeight:"100dvh",fontFamily:"var(--fc-body)"}}>
+    <div style={{padding:isMobileInv?12:24,background:C.bg,minHeight:"100dvh",fontFamily:"var(--fc-body)"}}>
 
       <div
         style={{
@@ -3794,7 +3861,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
             ➕ Nuevo producto
           </button>
           <button style={btnOutline} onClick={() => (onIrARecibir ? onIrARecibir() : setModalRecibir(true))}>
-            {isMobileInv ? "📦 Recibir" : "📦 Recibir (escáner)"}
+            {isMobileInv ? "📦 Ir a Recibir" : "📦 Ir a Recibir"}
           </button>
           <button style={btnOutline} onClick={()=>{ setImportResult(null); setImportCsvSoloNuevos(false); setModalImportar(true); }}>
             {isMobileInv ? "📥 Importar" : "📥 Importar CSV"}
@@ -3818,6 +3885,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
           {label:"Por caducar", val:porCaducar, col:C.red,   click:()=>setFiltroAlerta(filtroAlerta==="por_caducar"?"todos":"por_caducar"), on: filtroAlerta==="por_caducar"},
           {label:"Sin cód. barras", val:sinCodigoBarras, col:C.blue, click:()=>setFiltroAlerta(filtroAlerta==="sin_codigo_barras"?"todos":"sin_codigo_barras"), on: filtroAlerta==="sin_codigo_barras"},
           ...(!modoConsulta ? [
+            {label:"Sin foto", val:sinFoto, col:C.amber, click:()=>setFiltroAlerta(filtroAlerta==="sin_foto"?"todos":"sin_foto"), on: filtroAlerta==="sin_foto"},
             {label:"Sin precio", val:sinPrecioVenta, col:C.red, click:()=>setFiltroAlerta(filtroAlerta==="sin_precio"?"todos":"sin_precio"), on: filtroAlerta==="sin_precio"},
             {label:"Inactivos",   val:inactivos,  col:C.textMid, click:()=>{ setVerInactivos(true); setFiltroAlerta("todos"); }, on: !!verInactivos},
           ] : []),
@@ -3865,6 +3933,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
           <option value="bajo_stock">⚠ Bajo stock</option>
           <option value="por_caducar">⏰ Por caducar ({DIAS_CADUCIDAD_ALERTA}d)</option>
           <option value="sin_codigo_barras">🏷️ Sin código de barras</option>
+          <option value="sin_foto">🖼 Sin foto</option>
           {!modoConsulta && <option value="sin_precio">Sin precio de venta</option>}
         </select>
         {!modoConsulta && (
@@ -4122,8 +4191,8 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
                 const rowCtx = {
                   C,
                   BRAND,
-                  CATEGORIAS,
                   p,
+                  fotoCatalogoDe,
                   stickyRowBg,
                   inlineCellProps,
                   invColWidthStyle,
@@ -4198,7 +4267,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
           key={modal.id ?? "nuevo"}
           initial={modal}
           onClose={() => setModal(null)}
-          onSaved={() => { setModal(null); fetchProductos(); }}
+          onSaved={() => { setModal(null); fetchProductos(); avisarCatalogoCambio({ origen: "inventario" }); }}
           onEditarCaducidad={modal.id ? abrirLotesDesdeEdicion : undefined}
           onRecibirMercancia={modal.id ? abrirRecibirDesdeEdicion : undefined}
           onCaducidadSaved={modal.id ? refrescarProductoEnEdicion : undefined}

@@ -213,7 +213,7 @@ function BitacoraAntibioticos() {
       </div>
       {loading ? <div style={{color:C.textMid,textAlign:"center",padding:40}}>Cargando…</div> : (
         <div style={{overflowX:"auto",borderRadius:12,border:`1px solid ${C.border}`}}>
-          <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+          <table className="fc-tabla-cards" style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
             <thead>
               <tr style={{background:C.card}}>
                 {["Fecha","Medicamento","Cant.","Lote","Caducidad","Médico","Cédula","Paciente","Folio Rx"].map(h=>(
@@ -225,18 +225,18 @@ function BitacoraAntibioticos() {
               {filtrados.length===0&&<tr><td colSpan={9} style={{textAlign:"center",padding:40,color:C.textMid}}>{busqueda?"Sin resultados":"Sin registros en la bitácora"}</td></tr>}
               {filtrados.map((r,i)=>(
                 <tr key={r.id||i} style={{background:i%2===0?"transparent":C.card+"60"}}>
-                  <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>
+                  <td data-label="Fecha" style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>
                     {r.created_at?new Date(r.created_at).toLocaleDateString("es-MX"):"—"}
                     <div style={{fontSize:9,color:C.textDim}}>{r.created_at?new Date(r.created_at).toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"}):""}</div>
                   </td>
-                  <td style={{padding:"8px 12px",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>{r.medicamento||"—"}</td>
-                  <td style={{padding:"8px 12px",color:C.amber,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{r.cantidad||"—"}</td>
-                  <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{r.lote||"—"}</td>
-                  <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{r.caducidad||"—"}</td>
-                  <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{r.medico||"—"}</td>
-                  <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{r.cedula_medico||"—"}</td>
-                  <td style={{padding:"8px 12px",color:C.text,borderBottom:`1px solid ${C.border}`}}>{r.paciente||"—"}</td>
-                  <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{r.receta||"—"}</td>
+                  <td data-label="Medicamento" data-primary style={{padding:"8px 12px",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>{r.medicamento||"—"}</td>
+                  <td data-label="Cant." style={{padding:"8px 12px",color:C.amber,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{r.cantidad||"—"}</td>
+                  <td data-label="Lote" style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{r.lote||"—"}</td>
+                  <td data-label="Caducidad" style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{r.caducidad||"—"}</td>
+                  <td data-label="Médico" style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{r.medico||"—"}</td>
+                  <td data-label="Cédula" style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{r.cedula_medico||"—"}</td>
+                  <td data-label="Paciente" data-wide style={{padding:"8px 12px",color:C.text,borderBottom:`1px solid ${C.border}`}}>{r.paciente||"—"}</td>
+                  <td data-label="Folio Rx" style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{r.receta||"—"}</td>
                 </tr>
               ))}
             </tbody>
@@ -299,7 +299,7 @@ function Controlados() {
       </div>
       {loading ? <div style={{color:C.textMid,textAlign:"center",padding:40}}>Cargando…</div> : (
         <div style={{overflowX:"auto",borderRadius:12,border:`1px solid ${C.border}`}}>
-          <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+          <table className="fc-tabla-cards" style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
             <thead>
               <tr style={{background:C.card}}>
                 {["Fecha","Medicamento","Cantidad","Médico","Cédula","Paciente","Folio Rx"].map(h=>(
@@ -311,13 +311,13 @@ function Controlados() {
               {registros.length===0&&<tr><td colSpan={7} style={{textAlign:"center",padding:40,color:C.textMid}}>Sin registros de medicamentos controlados</td></tr>}
               {registros.map((r,i)=>(
                 <tr key={r.id||i} style={{background:i%2===0?"transparent":C.card+"60"}}>
-                  <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>{r.created_at?new Date(r.created_at).toLocaleDateString("es-MX"):"—"}</td>
-                  <td style={{padding:"8px 12px",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>{r.medicamento||"—"}</td>
-                  <td style={{padding:"8px 12px",color:C.amber,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{r.cantidad||"—"}</td>
-                  <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{r.medico||"—"}</td>
-                  <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{r.cedula_medico||"—"}</td>
-                  <td style={{padding:"8px 12px",color:C.text,borderBottom:`1px solid ${C.border}`}}>{r.paciente||"—"}</td>
-                  <td style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{r.receta||"—"}</td>
+                  <td data-label="Fecha" style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>{r.created_at?new Date(r.created_at).toLocaleDateString("es-MX"):"—"}</td>
+                  <td data-label="Medicamento" data-primary style={{padding:"8px 12px",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>{r.medicamento||"—"}</td>
+                  <td data-label="Cantidad" style={{padding:"8px 12px",color:C.amber,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{r.cantidad||"—"}</td>
+                  <td data-label="Médico" style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{r.medico||"—"}</td>
+                  <td data-label="Cédula" style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{r.cedula_medico||"—"}</td>
+                  <td data-label="Paciente" data-wide style={{padding:"8px 12px",color:C.text,borderBottom:`1px solid ${C.border}`}}>{r.paciente||"—"}</td>
+                  <td data-label="Folio Rx" style={{padding:"8px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{r.receta||"—"}</td>
                 </tr>
               ))}
             </tbody>

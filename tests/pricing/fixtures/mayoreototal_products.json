@@ -1,0 +1,52 @@
+{
+  "products": [
+    {
+      "id": 1001,
+      "title": "Pañal Suavelastic Max Jumbo Etapa 4 40 pzas",
+      "handle": "panal-suavelastic-max-jumbo-40",
+      "vendor": "Suavelastic",
+      "product_type": "Pañales",
+      "tags": ["bebes", "panales"],
+      "variants": [
+        {
+          "id": 2001,
+          "title": "Default Title",
+          "sku": "MT-SUAVE-40",
+          "price": "160.00"
+        }
+      ]
+    },
+    {
+      "id": 1002,
+      "title": "Jabón Asepxia Bicarbonato de Sodio 100 g — caja con 36",
+      "handle": "jabon-asepxia-bicarbonato-100g",
+      "vendor": "Asepxia",
+      "product_type": "Jabones",
+      "tags": ["higiene"],
+      "variants": [
+        {
+          "id": 2002,
+          "title": "Default Title",
+          "sku": "MT-ASEP-100",
+          "price": "720.00"
+        }
+      ]
+    },
+    {
+      "id": 1003,
+      "title": "Victoria’s Secret Fragrance Lotion 236 ml",
+      "handle": "vs-lotion-236",
+      "vendor": "MayoreoTotal",
+      "product_type": "",
+      "tags": [],
+      "variants": [
+        {
+          "id": 2003,
+          "title": "Pure Seduction",
+          "sku": "MT-VS-236-PS",
+          "price": "419.00"
+        }
+      ]
+    }
+  ]
+}

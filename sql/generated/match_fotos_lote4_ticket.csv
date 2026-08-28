@@ -1,0 +1,174 @@
+producto,ean,estado,codigo_prov,descripcion_ticket,lote,caducidad,cantidad,costo_unitario
+Sarox Omeprazol cáps 20 mg — caja c/14,7501573902584,MATCH (2 candidatos),BIO067,SAROX 14 CAPS 20 MG,5D2618,2028-04-01,5,8.42
+Sarox Omeprazol cáps 20 mg — caja c/14,7501573902584,MATCH (2 candidatos),BIO213,SAROX 28 CAPS 20 MG,5E2646,2028-05-01,5,15.61
+Sarox Omeprazol cáps 20 mg — caja c/28,7501573909859,MATCH (2 candidatos),BIO067,SAROX 14 CAPS 20 MG,5D2618,2028-04-01,5,8.42
+Sarox Omeprazol cáps 20 mg — caja c/28,7501573909859,MATCH (2 candidatos),BIO213,SAROX 28 CAPS 20 MG,5E2646,2028-05-01,5,15.61
+Wamindel Paracetamol gotas 100 mg/mL — frasco 30 mL,7503001007656,MATCH (2 candidatos),BIO068,WAMINDEL 1 SOL 3.20G/120 ML,LB2645,2028-02-01,2,15.44
+Wamindel Paracetamol gotas 100 mg/mL — frasco 30 mL,7503001007656,MATCH (2 candidatos),BIO087,WAMINDEL 1 GOT 100MG/30 ML,LF2607,2028-06-30,1,12.02
+Wamindel Paracetamol sol. infantil 3.2 g/100 mL — frasco 120 mL,7503001007663,MATCH (2 candidatos),BIO068,WAMINDEL 1 SOL 3.20G/120 ML,LB2645,2028-02-01,2,15.44
+Wamindel Paracetamol sol. infantil 3.2 g/100 mL — frasco 120 mL,7503001007663,MATCH (2 candidatos),BIO087,WAMINDEL 1 GOT 100MG/30 ML,LF2607,2028-06-30,1,12.02
+Braxigort Nifuroxazida susp. 4.4 g/100 mL — frasco 90 mL,7501825304555,MATCH,DEG186,BRAXIGORT 1 SUSP 90 ML,487AA,2028-05-31,1,39.45
+Virindrez Adulto Oximetazolina 0.050% — atomizador 20 mL,7501836006042,MATCH (2 candidatos),LIF161,VIRINDREZ INFANTIL 1 ATOM 25 MG/20 ML,26C079,2028-04-30,1,20.70
+Virindrez Adulto Oximetazolina 0.050% — atomizador 20 mL,7501836006042,MATCH (2 candidatos),LIF160,VIRINDREZ ADULTO 1 ATOM 50 MG/20 ML,26D035,2028-04-30,2,23.85
+Virindrez Infantil Oximetazolina 0.025% — atomizador 20 mL,7501836006028,MATCH (2 candidatos),LIF161,VIRINDREZ INFANTIL 1 ATOM 25 MG/20 ML,26C079,2028-04-30,1,20.70
+Virindrez Infantil Oximetazolina 0.025% — atomizador 20 mL,7501836006028,MATCH (2 candidatos),LIF160,VIRINDREZ ADULTO 1 ATOM 50 MG/20 ML,26D035,2028-04-30,2,23.85
+Playboy Playpack mixtos (Classic/Extra Sens/Textured),7503014377074,MATCH,PBY004,PLAYBOY PLAYPACK 1 BLISTER C/3 PZAS,1991025,2030-09-30,1,30.83
+Playboy Max Sens Extra Delgados 3+1,7503014377197,MATCH,PBY004,PLAYBOY PLAYPACK 1 BLISTER C/3 PZAS,1991025,2030-09-30,1,30.83
+Miconazol crema 2% — tubo 20 g (Alpharma),7503004908714,MATCH,ALP0520,MICONAZOL 1 CMA DE 20 G,2512183,2027-12-01,1,10.87
+Bioadvance Senósidos A-B 8.6 mg — caja c/20 tabs,7506624901059,MATCH,BEA483,SENOSIDOS 20 TAB 8.6 MG,540346,2028-03-01,2,11.14
+Novakosid Senósidos A-B 8.6 mg — caja c/20 tabs (Novag),7501075723137,MATCH,NOV136,NOVAKOSID 20 TAB 8.6 MG,540266,2028-05-01,2,13.93
+Desyn-N Lidocaína/Hidrocortisona — caja c/6 supositorios,7502211788928,MATCH,LOE119,DESYN-N 6 SUP 60/5 MG,R2508053,2027-08-31,1,31.62
+Prugnex Senósidos A-B 12 mg + ciruela — caja c/30 cáps,7503008344150,MATCH,PGE040,PRUGNEX 30 CAPS 12MG/50MG,T0885,2027-10-16,1,37.07
+Rosel-T Amantadina/Clorfenamina/Paracetamol — caja c/15 tabs,7503003738879,MATCH (3 candidatos),WER025,AMANTADINA(ROSEL) 24 CAPS 50/3/300 MG,260032,2028-01-01,5,27.44
+Rosel-T Amantadina/Clorfenamina/Paracetamol — caja c/15 tabs,7503003738879,MATCH (3 candidatos),WER015,ROSEL T 15 TAB 300/50/3 MG,251070,2028-01-01,2,21.26
+Rosel-T Amantadina/Clorfenamina/Paracetamol — caja c/15 tabs,7503003738879,MATCH (3 candidatos),WER033,ROSEL 1 SOL 0.5/.02/3 G/ 60 ML,260204,2028-04-01,2,26.88
+Rosel solución infantil — frasco 60 mL,7502240450230,MATCH (3 candidatos),WER025,AMANTADINA(ROSEL) 24 CAPS 50/3/300 MG,260032,2028-01-01,5,27.44
+Rosel solución infantil — frasco 60 mL,7502240450230,MATCH (3 candidatos),WER015,ROSEL T 15 TAB 300/50/3 MG,251070,2028-01-01,2,21.26
+Rosel solución infantil — frasco 60 mL,7502240450230,MATCH (3 candidatos),WER033,ROSEL 1 SOL 0.5/.02/3 G/ 60 ML,260204,2028-04-01,2,26.88
+Erbitrax Terbinafina crema 1% — tubo 30 g,7502211783282,MATCH,LOE076,ERBITRAX 1 CMA 1% 30 G,R2602067,2028-03-31,2,28.62
+Nafich Terbinafina crema 1% — tubo 15 g,7501573902966,MATCH,BIO103,NAFICH 1 CMA 1% 15 G,CD2603,2028-04-01,2,13.06
+Dualgos Paracetamol/Ibuprofeno 325/200 — caja c/20 tabs,7501836009661,MATCH,LIF147,DUALGOS 20 TAB 325/200 MG,25J081,2027-11-30,3,29.02
+Tempire Paracetamol sol. ped. 100 mg/mL — frasco 30 mL,0780083142308,MATCH,COL090,TEMPIRE 1 GOT 100MG/30 ML,26140833,2029-04-06,1,20.00
+Dolzycam Piroxicam gel 0.5% — tubo 60 g,7502001165045,MATCH,SON044,DOLZYCAM 1 GEL 5MG/100G DE 60 G,26010268,2028-01-01,1,24.81
+Ladexgel Paracetamol/Loratadina/Dextrometorfano — caja c/12 cáps,7503008344303,MATCH,PGE018,LADEXGEL 12 CAPS 300/2/10 MG,U0150,2028-01-08,2,20.55
+Rexurdir Nifuroxazida 400 mg — caja c/16 cáps,7502001165953,MATCH,SON226,REXURDIR 16 CAPS 400 MG,26051290,2028-05-01,2,29.92
+Espabion Trimebutina gotas 2 g/100 mL — frasco 30 mL,7501825300366,MATCH (2 candidatos),DEG029,ESPABION 1 SUSP 100MG/5ML 100 ML,414AA,2029-05-31,1,44.45
+Espabion Trimebutina gotas 2 g/100 mL — frasco 30 mL,7501825300366,MATCH (2 candidatos),DEG030,ESPABION 1 SUSP 20MG/1ML 30 ML,449AA,2029-05-31,1,25.67
+Pamedan Dexpantenol crema 5% — tubo 30 g,7502009745997,MATCH,MAV279,PAMEDAN 1 CMA 5% 30 G,261562,2028-03-01,1,19.53
+Itamol Subsalicilato de bismuto 262 mg — caja c/24 tabs mast.,0785118752637,MATCH,MAI080,ITAMOL 24 TAB MAST 262 MG,6C0337,2028-03-31,1,34.09
+Motilaxil-T Picosulfato de sodio 5 mg — caja c/20 tabs,7502006920021,MATCH (3 candidatos),FAC0046,MOTILAXIL 1 SOL 100MG/5/120 ML,ITE26L157,2028-05-31,1,25.04
+Motilaxil-T Picosulfato de sodio 5 mg — caja c/20 tabs,7502006920021,MATCH (3 candidatos),FAC0045,MOTILAXIL 1 GOT 750MG/100ML DE 30 ML,ITE26L147,2028-06-30,1,27.53
+Motilaxil-T Picosulfato de sodio 5 mg — caja c/20 tabs,7502006920021,MATCH (3 candidatos),FAC0059,MOTILAXIL 20 TAB 5 MG,ITF26S084,2028-06-30,1,17.02
+Lumboxen gel naproxeno/lidocaína — tubo 35 g,7502009745539,MATCH (2 candidatos),MAV247,LUMBOXEN ROJO 1 GEL 10/2/35 G,256834,2027-12-01,2,39.54
+Lumboxen gel naproxeno/lidocaína — tubo 35 g,7502009745539,MATCH (2 candidatos),MAV400,LUMBOXEN 1 BOL C/1 PCHE 03/1.20/1/9 %,20251225,2028-12-31,1,14.37
+Lumboxen parche — bolsa c/1 parche,,MATCH (2 candidatos),MAV247,LUMBOXEN ROJO 1 GEL 10/2/35 G,256834,2027-12-01,2,39.54
+Lumboxen parche — bolsa c/1 parche,,MATCH (2 candidatos),MAV400,LUMBOXEN 1 BOL C/1 PCHE 03/1.20/1/9 %,20251225,2028-12-31,1,14.37
+Oxital-C Vitamina C 2000 mg efervescente — tubo c/10 tabs,7501258207010,MATCH (2 candidatos),SER093,OXITAL C 10 COMP 1G,252033,2027-12-08,3,45.14
+Oxital-C Vitamina C 2000 mg efervescente — tubo c/10 tabs,7501258207010,MATCH (2 candidatos),SER141,OXITAL C 10 COMP 2G,260140,2028-01-26,3,62.48
+Benciefedril jarabe dextrometorfano/guaifenesina — 120 mL,,MATCH,NOV101,BENCIEFEDRIL 1 SOL 0.2/2G/120 ML,070115,2027-12-01,2,22.74
+Pedialyte SR 60 mEq uva — frasco 500 mL,7501033956775,SIN MATCH,,,,,,
+Histiacil NF jarabe infantil — frasco 150 mL,7501328979496,SIN MATCH,,,,,,
+NyQuil Z Difenhidramina 25 mg — caja c/30 cáps,7500435145497,MATCH,PYG024,NYQUILZ 30 CAPS 25 MG,A00056,2026-10-31,1,281.55
+Exaliv 325/5/2 mg — caja c/24 tabs (Maver),7502009747236,MATCH,MAV341,EXALIV 24 TAB 325/5/2 MG,260224,2028-05-01,2,19.82
+Topron Nifuroxazida 400 mg — caja c/16 cáps (Chinoin),7501088579615,SIN MATCH,,,,,,
+ML-PRIM Metocarbamol/Naproxeno 375/200 — caja c/12 cáps,7502227427392,MATCH,GEP030,ML-PRIM 12 CAPS 375MG/200MG,260735,2028-03-01,2,47.28
+Novagon polvo plántago psyllium 400 g naranja-piña,7501075718676,MATCH (2 candidatos),NOV017,NOVAGON 1 PVO 49.7G/100G DE 400 G,500546,2030-01-01,1,99.10
+Novagon polvo plántago psyllium 400 g naranja-piña,7501075718676,MATCH (2 candidatos),NOV098,NOVAGON PINA-NARANJA 1 PVO 35G/400 G,491066,2030-04-01,1,97.10
+Novagon polvo (variante tapa azul) 400 g,7501075713770,MATCH (2 candidatos),NOV017,NOVAGON 1 PVO 49.7G/100G DE 400 G,500546,2030-01-01,1,99.10
+Novagon polvo (variante tapa azul) 400 g,7501075713770,MATCH (2 candidatos),NOV098,NOVAGON PINA-NARANJA 1 PVO 35G/400 G,491066,2030-04-01,1,97.10
+Ajolotius jarabe original 250 mL,7500462746612,SIN MATCH,,,,,,
+Ajolotius jarabe con propóleo 250 mL,7500462746698,SIN MATCH,,,,,,
+Ajolotius jarabe sin azúcar 250 mL,,SIN MATCH,,,,,,
+Grisi Nicos de Oro crema corporal,7501022104248,SIN MATCH,,,,,,
+Metamucil plántago psyllium,0020800790246,SIN MATCH,,,,,,
+Daclafin suspensión,7502253601339,MATCH,DAC005,DACLAFIN SUBSALICILATO DE BISMUTO 120,26C0037,2028-03-31,1,31.49
+Promega 3 omega 3 — frasco 60 cáps,,SIN MATCH,,,,,,
+Galaver antiácido/antiflatulento — frasco 250 mL,,MATCH (2 candidatos),MAV263,GALAVER GEL 10 SOB 80MG/10MG/10 ML,262767,2028-05-01,2,37.54
+Galaver antiácido/antiflatulento — frasco 250 mL,,MATCH (2 candidatos),MAV250,GALAVER 1 GEL 8MG/1MG/250 ML,262654,2028-04-01,2,48.22
+Oppelver lactulosa 10 g/15 mL — frasco 125 mL,,MATCH,MAV245,OPPELVER 1 JBE 10G/15ML DE 125 ML,261962,2028-03-01,1,49.25
+Vaselina blanca Jaloma 60 g,,SIN MATCH,,,,,,
+Velatuss levodropropizina 600 mg — frasco 120 mL,,MATCH,RAY114,VELATUSS 1 SOL 600MG/120 ML,25109,2027-05-01,1,34.55
+Omeprazol Aktyzar 20 mg — frasco 120 cáps,,MATCH,SOF054,OMEPRAZOL (AKTYZAR) 120 CAPS 20MG,61168,2028-06-05,1,46.79
+Omeprazol Aktyzar 20 mg — frasco 120 cáps (alterno),,MATCH (4 candidatos),MAV415,ESOMEPRAZOL 28 TAB 40 MG,263550,2028-06-30,1,99.14
+Omeprazol Aktyzar 20 mg — frasco 120 cáps (alterno),,MATCH (4 candidatos),MAV380,ESOMEPRAZOL 14 TAB 40 MG,262638,2028-04-30,1,51.64
+Omeprazol Aktyzar 20 mg — frasco 120 cáps (alterno),,MATCH (4 candidatos),SOF054,OMEPRAZOL (AKTYZAR) 120 CAPS 20MG,61168,2028-06-05,1,46.79
+Omeprazol Aktyzar 20 mg — frasco 120 cáps (alterno),,MATCH (4 candidatos),AVI004,OMEPRAZOL 60 CAPS 20 MG,5LM253D,2028-11-15,1,32.76
+Raspisons ungüento neomicina/retinol — tubo 28 g,,MATCH,SON173,RASPISONS 1 UNG 28/35 G,25123585,2027-12-01,1,19.61
+Hisopos KIUTS 50 piezas (Jaloma),,SIN MATCH,,,,,,
+Precicol hioscina/paracetamol gotas — frasco 20 mL,,MATCH,LIF162,PRECICOL 1 GOT 20 ML,26C062,2028-03-31,1,37.22
+Revenox melatonina 3 mg — frasco 60 tabs,,MATCH,SAN025,REVENOX 60 TAB 3 MG,26340240,2028-02-17,1,72.13
+Broncolin Bicoestol pastillas — 16 piezas,,SIN MATCH,,,,,,
+Broncolin Bicoestol pastillas — 16 piezas (alterno),,SIN MATCH,,,,,,
+Pharmacaine lidocaína 10% — atomizador 115 mL,,MATCH,QUM014,PHARMACAINE 1 AER 10G/100ML/115 ML,26DP57,2028-04-01,1,101.30
+Supratex (Mavi Farmacéutica),0785118754259,MATCH (2 candidatos),MAI158,SUPRATEX DAC 1 SOL 300/600 MG 120 ML,5K2102,2027-11-01,1,42.14
+Supratex (Mavi Farmacéutica),0785118754259,MATCH (2 candidatos),MAI157,SUPRATEX 1 JBE 600 MG 120 ML,6BD201,2028-02-01,2,40.91
+Jarabe dropropizina/bromhexina (Quimpharma),7502223111387,SIN MATCH,,,,,,
+Novag neomicina/caolín/pectina — frasco susp.,7501075717914,SIN MATCH,,,,,,
+Novag neomicina/caolín/pectina — frasco susp. (alterno),7501075717914,SIN MATCH,,,,,,
+OFF! Extra Duración aerosol 170 g,,SIN MATCH,,,,,,
+Nineka susp. neomicina/caolín/pectina — frasco 75 mL (Novag),7501075717914,MATCH (2 candidatos),NOV137,NINEKA 20 TAB 129/280/30 MG,941746,2028-05-01,3,37.67
+Nineka susp. neomicina/caolín/pectina — frasco 75 mL (Novag),7501075717914,MATCH (2 candidatos),NOV090,NINEKA 1 SUSP 500/36/35MG/5/75 ML,460056,2028-04-01,2,23.45
+Treda tabletas neomicina/caolín/pectina — caja c/20 (Sanfer),,SIN MATCH,,,,,,
+Bactiver susp. sulfametoxazol/trimetoprima — frasco 120 mL,7503000422511,MATCH (3 candidatos),MAV001,BACTIVER 20 TAB 400/80 MG,260134,2028-05-01,2,16.89
+Bactiver susp. sulfametoxazol/trimetoprima — frasco 120 mL,7503000422511,MATCH (3 candidatos),MAV002,BACTIVER F 14 TAB 160/800 MG,261127,2028-03-01,3,21.01
+Bactiver susp. sulfametoxazol/trimetoprima — frasco 120 mL,7503000422511,MATCH (3 candidatos),MAV003,BACTIVER 1 SUSP 40/200/5/120 ML,262631,2028-05-01,1,21.28
+Drosequim jarabe infantil dropropizina/bromhexina — frasco 200 mL,7502223111387,MATCH (2 candidatos),QUM070,DROSEQUIM AD 1 JBE 300/160/200 ML,26DP32,2028-04-01,1,70.74
+Drosequim jarabe infantil dropropizina/bromhexina — frasco 200 mL,7502223111387,MATCH (2 candidatos),QUM069,DROSEQUIM INF 1 JBE 150/80/200 ML,253X42,2027-10-01,1,70.37
+Metamucil plántago psyllium sabor natural — 504 g,0020800790246,MATCH,PYG016,METANUCIL 1 POLVO SABOR NATURAL 504 G,43421725A1,2026-10-30,1,545.81
+Broncolin Bicoestol pastillas,0714706910906,SIN MATCH,,,,,,
+Zimeton pancreatina/bilis/dimeticona — caja c/20 tabs (Son's),,MATCH,SON233,ZIMETON 20 TAB 130/50/40 MG,26040958,2028-04-30,2,56.59
+Plusgel masticable 200/200/20 mg — frasco c/50 tabs,,SIN MATCH,,,,,,
+Zukedib glimepirida 2 mg — caja c/30 tabs (Loeffler),,MATCH (2 candidatos),LOE070,ZUKEDIB 30 TAB 2 MG,R25126048,2028-01-13,1,29.08
+Zukedib glimepirida 2 mg — caja c/30 tabs (Loeffler),,MATCH (2 candidatos),LOE071,ZUKEDIB 30 TAB 4 MG,R2506781,2027-06-30,1,27.98
+Biobend bencidamina 0.15 g/100 mL — frasco 360 mL (Biomep),7501573906469,MATCH,BIO146,BIOBEND 1 SOL .15G/360 ML,LD2619,2028-04-01,2,39.49
+Collifrin oximetazolina 0.05% adulto — frasco 20 mL,0780083144302,MATCH,COL145,COLLIFRIN ADULTO 1 SOL 50MG/20 ML,26140881,2028-04-06,2,33.61
+X-TRID antigripal — caja c/12 cáps (Gelpharma),,MATCH,GEP049,X-TRID 12 CAPS 15MG/5MG/2MG/250MG,260444,2028-02-01,3,23.17
+Raamcinet cetirizina 10 mg (RAAM),7502227872123,MATCH,RAM054,RAAMCINET 10 TAB 10 MG,7220526,2028-03-31,6,19.65
+Desrotan fexofenadina 180 mg (RAAM),7502227875568,MATCH,RAM100,DESROTAN 10 TAB 180 MG,RD085,2028-03-31,1,47.31
+Fermig sumatriptán 100 mg (RAAM),,MATCH,RAM014,FERMIG 2 TAB 100 MG,RFR356,2028-04-30,1,62.03
+Raamfen difenidol 25 mg (RAAM),7502227871416,MATCH,RAM046,RAAMFEN 30 TAB 25 MG,RR184,2028-03-31,3,15.49
+Laritol loratadina 10 mg — caja c/10 tabs (Maver),,MATCH (5 candidatos),MAV182,LARITOL D 10 TAB 30/5 MG,257221,2027-12-01,2,38.59
+Laritol loratadina 10 mg — caja c/10 tabs (Maver),,MATCH (5 candidatos),MAV118,LARITOL D INF 1 JBE 100/50MG/5/50 ML,262393,2028-04-30,1,26.44
+Laritol loratadina 10 mg — caja c/10 tabs (Maver),,MATCH (5 candidatos),MAV115,LARITOL EX 10 TAB 30/5 MG,254338,2027-08-01,2,21.66
+Laritol loratadina 10 mg — caja c/10 tabs (Maver),,MATCH (5 candidatos),MAV042,LARITOL EX 1 JBE 600/100MG/5/120 ML,252141,2028-05-01,2,19.11
+Laritol loratadina 10 mg — caja c/10 tabs (Maver),,MATCH (5 candidatos),MAV039,LARITOL 10 TAB 10 MG,257226,2027-12-01,5,7.01
+Magsokon sulfato de magnesio polvo 26 g (Quifa),,MATCH,QUI091,MAGSOKON 1 CAJA 26 G,253006,2028-08-31,1,15.61
+Normex leche de magnesia — frascos 60/180/360 mL (Quifa),,MATCH (3 candidatos),QUI018,LECHE MAGNESIA NORMEX 1 SUSP 8.5G/360,26B099,2028-01-31,1,41.82
+Normex leche de magnesia — frascos 60/180/360 mL (Quifa),,MATCH (3 candidatos),QUI017,LECHE MAGNESI NORMEX 1 SUSP 8.5G/180 ML,25M0BB,2027-11-30,1,26.67
+Normex leche de magnesia — frascos 60/180/360 mL (Quifa),,MATCH (3 candidatos),QUI016,LECHE MAGNESIA NORMEX 1 SUSP 8.5G/60,26B098,2028-01-31,1,14.06
+Alu-Mag susp. hidróxido aluminio/magnesio — frasco 240 mL (Novag),7501075710113,MATCH,NOV049,ALUMAG 1 SUSP 4/3.7G/240 ML,020036,2028-04-01,2,23.77
+Exhantil susp. antiácido/antiflatulento — frasco 320 mL (Son's),7502001165298,MATCH,SON231,EXHANTIL 1 SUSP 3.70/4.5G/320 ML,26061512,2029-06-30,2,33.00
+Culminax carbocisteína adulto — frasco 150 mL (Maver),7502009747779,MATCH (2 candidatos),MAV363,CULMINAX ADULTO 1 SOL 375 MG/S/150 ML,261984,2028-04-01,1,50.05
+Culminax carbocisteína adulto — frasco 150 mL (Maver),7502009747779,MATCH (2 candidatos),MAV377,CULMINAX INFANTIL 1 SOL 250 MG/5/150 ML,261981,2028-04-01,1,40.24
+Fedrimin teofilina/ambroxol — frasco 150 mL (Maver),7502009747168,MATCH,MAV323,FEDRIMIN 1 SOL 0.700/.150 G/ 150 ML,263034,2028-05-31,1,34.25
+Cobadex adulto ambroxol/dextrometorfano — frasco 120 mL (Maver),7502009740268,MATCH,MAV015,COBADEX AD 1 JBE 225/225MG/100/120 ML,260606,2028-01-01,1,19.31
+Siracux adulto oxeladina/ambroxol — frasco 120 mL (Maver),7502009745393,MATCH,MAV233,SIRACUX ADULTO 1 JBE 120 ML,263295,2028-05-31,1,42.66
+Atroxolam teofilina/ambroxol — frasco 150 mL (Novag),7501075723830,MATCH,NOV148,ATROXOLAM 1 SUSP 7.0 MG/1.5 MG,890066,2028-01-30,1,29.77
+Ridin pediátrica jarabe — frasco 120 mL (Son's),7502001163232,MATCH (5 candidatos),BEA428,DIOSMINA HESPERIDINA 20 TAB 450/50 MG,C50366,2028-05-01,3,39.41
+Ridin pediátrica jarabe — frasco 120 mL (Son's),7502001163232,MATCH (5 candidatos),RAD100,FENAZOPIRIDINA 1 FCO 20 TAB 100 MG,27772,2028-02-04,1,21.09
+Ridin pediátrica jarabe — frasco 120 mL (Son's),7502001163232,MATCH (5 candidatos),ALP0554,FENAZOPIRIDINA 20 TAB 100 MG,6571125,2027-11-01,1,18.89
+Ridin pediátrica jarabe — frasco 120 mL (Son's),7502001163232,MATCH (5 candidatos),SON112,RIDIN ADULTO 1 JBE 7.5/1/100MG/5/120 ML,26030796,2028-03-01,2,30.53
+Ridin pediátrica jarabe — frasco 120 mL (Son's),7502001163232,MATCH (5 candidatos),SON113,RIDIN PED 1 JBE 3.5/3.5/2.5MG/5/120 ML,26030795,2028-03-01,2,26.62
+Bruluaquil AAS/paracetamol/cafeína — frasco c/24 tabs,,MATCH,BRL075,BRULUAQUIL 24 TAB 250/250/65 MG,5101455,2027-10-23,1,42.35
+Aflusil ibuprofeno susp. 2 g/100 mL — frasco 120 mL (Loeffler),7502211780359,MATCH,LOE001,AFLUSIL 1 SUSP 2G/120ML,R2602932,2028-02-28,2,19.60
+Diotexona dimeticona pediátrico — frasco gotero 30 mL (Loeffler),7502211788690,MATCH,LOE123,DIOTEXONA 1 GOTERO 10G/100/30 ML,R2511440,2027-11-01,1,38.87
+Voldratol electrolitos — caja c/25 sobres (Solfran),,SIN MATCH,,,,,,
+Brunadol infantil paracetamol/naproxeno — frasco 100 mL,7501537103354,MATCH,BRU136,BRUNADOL 1 SUSP 125/100MG/5/100 ML,2605454,2028-05-14,1,30.57
+Dolprin ibuprofeno susp. 2 g/100 mL — frasco 120 mL,0780083141929,MATCH,COL039,DOLPRIN 1 SUSP 100MG/5/120 ML,26140862,2028-04-16,2,27.52
+Hidrigort difenhidramina 50 mg — caja c/8 tabs (Degort's),7501825304142,MATCH,DEG175,HIDRIGORT 8 TAB 50 MG,477AA,2028-05-31,2,10.11
+Lesaclor aciclovir crema 5% — tubo 5 g (Mavi),0785118753597,MATCH (3 candidatos),MAI026,LESACLOR (MACLOV) 35 TAB 400 MG,531964,2028-10-01,1,72.03
+Lesaclor aciclovir crema 5% — tubo 5 g (Mavi),0785118753597,MATCH (3 candidatos),MAI072,LESACLOR 1 SUSP 200MG/5/125 ML,5K2106,2027-11-01,1,44.43
+Lesaclor aciclovir crema 5% — tubo 5 g (Mavi),0785118753597,MATCH (3 candidatos),MAI153,LESACLOR 1 CMA 5 G,5K1988,2027-11-01,5,16.60
+Argental sulfadiazina de plata crema 1% — tubo 28 g (Liferpal),7501836000828,MATCH,LIF048,ARGENTAL 1 CMA 1%/28 G,26A127,2028-03-31,2,35.50
+Pharmafil LP teofilina 100 mg — caja c/20 tabs (Alpharma),7502226291475,MATCH,ALP0192,PHARMAFIL LP 20 TAB 100 MG,2512917,2027-12-01,1,36.02
+Fazolin nafazolina 1 mg/mL — frasco gotero 15 mL (Collins),0780083144807,MATCH,COL174,FAZOLIN 1 SOL OF 1MG/15 ML,26340537,2028-04-29,2,23.75
+Sulindaco 200 mg — caja c/20 tabs (AMSA),7501349020337,MATCH,AMS502,SULINDACO 20 TAB 200 MG,U26E326,2028-01-01,1,47.30
+Hemoger sulfato ferroso — frasco c/50 grageas (Streger),,MATCH,STR009,HEMOGER 50 GRAG 300 MG,5Z02DR,2030-03-01,1,56.30
+Vomisin dimenhidrinato 50 mg — caja c/20 tabs (Rayere),7502003388107,MATCH,RAY083,VOMISIN 20 TAB 50 MG,26030,2028-01-01,1,40.10
+Telmisartán 40 mg — caja c/28 tabs (AMSA),7501349025844,MATCH (4 candidatos),ULT224,"TELMISARTAN, HIDROCLO 14 TAB 80/12.5 MG",6CH107A,2028-03-01,3,47.18
+Telmisartán 40 mg — caja c/28 tabs (AMSA),7501349025844,MATCH (4 candidatos),AMS221,TELMISARTAN 28 TAB 80 MG,U26F035,2028-02-01,2,51.70
+Telmisartán 40 mg — caja c/28 tabs (AMSA),7501349025844,MATCH (4 candidatos),AMS237,TELMISARTAN 28 TAB 40 MG,U25S032,2027-09-01,1,35.10
+Telmisartán 40 mg — caja c/28 tabs (AMSA),7501349025844,MATCH (4 candidatos),AMS237,TELMISARTAN 28 TAB 40 MG,U26E105,2028-01-01,1,35.10
+Groobe dimenhidrinato 50 mg — caja c/24 cáps (Gelpharma),7502227425008,MATCH,GEP053,GROOBE 24 CAPS 50 MG,260729,2028-03-01,1,30.31
+Lozamir-V clotrimazol crema 2% — tubo 20 g (Biomep),7501573906407,MATCH (2 candidatos),BIO136,LOZAMIR-C 1 CMA 1/30 G,CJ2505,2027-10-01,1,15.08
+Lozamir-V clotrimazol crema 2% — tubo 20 g (Biomep),7501573906407,MATCH (2 candidatos),BIO149,LOZAMIR V C/3 APLICS 1 CMA 2% 20G,CB2607,2028-02-01,3,22.71
+Redbelgy cianocobalamina 1000 mcg — frasco c/30 tabs (CMD),7501590287992,MATCH,CMD124,REDBELGY 30 TAB 1000 MCG,25005840,2027-11-25,1,34.69
+Caltrón 600+D calcio/vitamina D — frasco c/60 tabs,0714908100099,MATCH,SAN007,CALTRON 600+D 60 TAB 600MG /125 UI,26540138,2028-05-25,1,106.37
+Benvia infantil dimenhidrinato — frasco 120 mL (Loeffler),7506386100158,MATCH,LOE173,BENVIA 1 JBE 250 MG/100/120 ML,R2601738,2028-01-31,1,32.38
+Ampigrin PFC infantil jarabe — frasco 60 mL,,MATCH (3 candidatos),COL009,AMPIGRIN AD 3 AMP 500/500/100/30MG/3 ML,26240110,2028-03-31,2,81.71
+Ampigrin PFC infantil jarabe — frasco 60 mL,,MATCH (3 candidatos),COL008,AMPIGRIN INF 3 AMP 250/200/100/30MG/3 ML,26240043,2028-01-12,1,73.57
+Ampigrin PFC infantil jarabe — frasco 60 mL,,MATCH (3 candidatos),COL213,AMPIGRIN PFC 1 JBE 3/0.50/0.02 G 60 ML,26140890,2028-04-10,1,24.91
+Bromhexina solución Biomep (adulto 160 mg / infantil 80 mg),,MATCH (2 candidatos),BIO109,BROMHEXINA INF 1 SUSP 80MG/100 ML,LC2605,2028-03-01,1,17.11
+Bromhexina solución Biomep (adulto 160 mg / infantil 80 mg),,MATCH (2 candidatos),BIO108,BROMHEXINA AD 1 SUSP 160MG/100 ML,LC2607,2028-03-01,1,17.59
+Pantoprazol 20 mg — caja c/7 tabs (AMSA),,MATCH,AMS292,PANTOPRAZOL 7 TAB 20 MG,U26E384,2028-01-01,2,11.29
+Bioxover dropropizina jarabe 3 mg/mL — frasco 120 mL,,MATCH,MAV238,BIOXOVER 1 JBE 300MG/120 ML,255469,2027-10-01,2,28.84
+Floroglucinol/trimetilfloroglucinol 80/80 mg — caja c/20 cáps,7501471800210,SIN MATCH,,,,,,
+Tobramicina/dexametasona sol. oftálmica — frasco 5 mL (Grin),0008400005823,MATCH,EXA040,TOBRAMICINA 1 SOL OFT 3 MG/15 ML,26139P,2028-04-20,2,66.33
+Dexpantenol crema 5% — tubo 30 g (Maver),,MATCH,MAV401,DEXPANTENOL 1 CMA 5% 30 G,252304,2027-05-01,2,14.12
+Baby Son's pomada dexpantenol 5% — tubo 30 g,7502001166578,MATCH (5 candidatos),SON160,DISONS DEX 1 FA 5/2 MG,26040978,2028-04-30,1,36.86
+Baby Son's pomada dexpantenol 5% — tubo 30 g,7502001166578,MATCH (5 candidatos),SON153,NYSMOSONS-V 10 OVS 500/0.5MG/100000 UI,26030761,2028-03-01,2,43.06
+Baby Son's pomada dexpantenol 5% — tubo 30 g,7502001166578,MATCH (5 candidatos),SON175,ARDOSONS 20 CAPS 215/25/0.75 MG,26030625,2028-03-01,1,60.33
+Baby Son's pomada dexpantenol 5% — tubo 30 g,7502001166578,MATCH (5 candidatos),SON258,BABYSONS 1 CMA 5G/30 G,25102952,2027-10-01,1,21.55
+Baby Son's pomada dexpantenol 5% — tubo 30 g,7502001166578,MATCH (5 candidatos),SON173,RASPISONS 1 UNG 28/35 G,25123585,2027-12-01,1,19.61
+Difenhidramina 25 mg — caja c/10 cáps (Gelpharma),7502227424995,MATCH,GEP020,DIFENHIDRAMINA 10 CAPS 25 MG,260869,2028-03-01,2,19.59
+Keraffler ketotifeno (Loeffler),,MATCH,LOE013,KERAFFLER 1 SOL 20MG/5/120 ML,R2510414,2027-11-06,1,20.17

@@ -71,11 +71,11 @@ Campos lógicos (guardar en `logistics_meta` tras el patch):
 
 | Sistema | Rol | Estado |
 |---------|-----|--------|
-| Rappi marketplace | Pedidos entrantes + courier de plataforma | Stub `ingestRappiOrderPlaceholder` |
+| Rappi marketplace | Disponibilidad (cola) + pedidos entrantes | SQL `patch_rappi_sync_20260819.sql` + `/api/webhooks/rappi-sync` y `/api/webhooks/rappi-order`. Worker inerte sin `RAPPI_*`. No inventar la URL: pide `RAPPI_API_BASE` al KAM. Hobby de Vercel no corre cron cada 2 min — usa Database Webhook o cron externo. |
 | Uber Eats | Idem | Stub `ingestUberEatsOrderPlaceholder` |
 | Uber Direct | Última milla desde tienda | Stub `requestUberDirectDeliveryPlaceholder` |
 
-Flujo futuro típico: webhook o job → crear/actualizar `pedidos` + rellenar `logistics_meta` → UI admin para “solicitar courier” / ver tracking.
+Cola: trigger en `productos.stock` encola solo cambios de `disponible_rappi` (`stock − reserva_mostrador`, default 2) o cruce del umbral 5. El worker hace PATCH cuando hay URL. Pedido Rappi → RPC `ingest_rappi_order` (idempotente por `external_order_id` en `logistics_meta`). Panel: Inventario → Rappi.
 
 ## 4. Archivos tocados / nuevos
 
@@ -99,6 +99,7 @@ Flujo futuro típico: webhook o job → crear/actualizar `pedidos` + rellenar `l
 - Validación server-side de `controlado` en el mismo RPC que `requiere_receta`.
 - Estados intermedios (`preparing`, `courier_requested`) si el negocio los necesita en reportes.
 - Integraciones reales: API keys, webhooks, idempotencia, pruebas en sandbox.
+- Rappi: ejecutar `sql/patch_rappi_sync_20260819.sql`; pedir al KAM `client_id` / `client_secret` / `store_id` y la URL de Disponibilidad; Database Webhook en `rappi_sync_queue` → `POST /api/webhooks/rappi-sync` con `CRON_SECRET`.
 
 ## 6. Build
 

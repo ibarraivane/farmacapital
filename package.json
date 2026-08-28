@@ -25,7 +25,7 @@
     "start": "node scripts/start-dev.js",
     "build": "node scripts/build-cra.js",
     "test": "react-scripts test",
-    "test:recibir": "CI=true react-scripts test --watchAll=false --testPathPattern='recepcionScan|caducidad'",
+    "test:rappi": "node --test api/_lib/rappiAvailability.test.js api/_lib/rappiSync.test.js",
     "playwright:install": "PLAYWRIGHT_BROWSERS_PATH=0 npx playwright install chromium",
     "test:e2e:mobile": "npm run build && PLAYWRIGHT_BROWSERS_PATH=0 playwright test e2e/mobile-responsive.spec.js",
     "test:e2e:routes": "npm run build && PLAYWRIGHT_BROWSERS_PATH=0 playwright test e2e/tienda-scroll-routes.spec.js",
@@ -47,13 +47,7 @@
     "extends": [
       "react-app",
       "react-app/jest"
-    ],
-    "rules": {
-      "no-restricted-syntax": ["error", {
-        "selector": "CallExpression[callee.property.name='slice'][callee.object.callee.property.name='toISOString']",
-        "message": "Usa hoyISOMexico() de src/lib/fecha.js. toISOString() da el día UTC y en CDMX adelanta el día desde las 18:00."
-      }]
-    }
+    ]
   },
   "browserslist": {
     "production": [

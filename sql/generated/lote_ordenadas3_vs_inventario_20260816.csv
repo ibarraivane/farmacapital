@@ -1,0 +1,44 @@
+par,ean,estado,sku,nombre_foto,nombre_bd,ean_bd,pa,forma,marca,conc,unid,pres,nota
+0001,7502001165397,nombre_sin_ean,EQ-SON233,Zimeton,Zimeton 20 Tab 130/50/40 Mg,,Pancreatina / Bilis / Dimeticona,Tableta,SON'S,130/50/40 mg,20,Caja con 20 tabletas,cands_sin=1 tot=1
+0002,7502227871058,nombre_sin_ean,EQ-RAM014,Fermig,Fermig 2 Tab 100 Mg,,Sumatriptán,Tableta,RAAM,100 mg,2,Caja con 2 tabletas,cands_sin=1 tot=1
+0003,7502227426982,nombre_con_otro_ean,FC-27427392,ML-PRIM,ML-PRIM metocarbamol/ibuprofeno C/12,7502227427392,Metocarbamol / Ibuprofeno,Cápsula,GEL pharma,375 mg / 200 mg,12,Caja con 12 cápsulas,NO_PISAR ean_bd cands=1
+0004,780083144302,ean_ya,FC-83144302,Collifrin,Collifrin Adulto (Oximetazolina) 0.05% extra humectante,0780083144302,Oximetazolina,Solución nasal,Collins,0.05%,,Frasco 20 mL adulto,"forma,conc"
+0005,7502211784029,nombre_sin_ean,FC-52D2A43A,Zukedib,Zukedib glimepirida 2 mg C/30,,Glimepirida,Tableta,Loeffler,2 mg,30,Caja con 30 tabletas,cands_sin=1 tot=2
+0006,7503004908738,ean_ya,FC-04908738,Lidocaína,Lidocaina unguento 5% tubo 35 g,7503004908738,Lidocaína,Ungüento,Alpharma,5%,,Tubo 35 g,conc
+0007,7503003738879,ean_ya,FC-03738879,Rosel-T,Rosel-t antigripal C/15,7503003738879,Amantadina / Clorfenamina / Paracetamol,Tableta,Wermar,50/3/300 mg,15,Caja con 15 tabletas,conc
+0008,7502001165397,nombre_sin_ean,EQ-SON233,Zimeton,Zimeton 20 Tab 130/50/40 Mg,,Pancreatina / Bilis / Dimeticona,Tableta,SON'S,130/50/40 mg,20,Caja con 20 tabletas,cands_sin=1 tot=1
+0009,7502009747236,ean_ya,FC-09747236,Exaliv,Bactiver infantil tabletas Maver,7502009747236,Paracetamol / Fenilefrina / Clorfenamina,Tableta,Maver,325/5/2 mg,24,Caja con 24 tabletas,conc
+0010,7506624901059,ean_ya,FC-24901059,beadvancé Senósidos,beadvance Senósidos A-B 8.6 mg,7506624901059,Senósidos A-B,Tableta,beadvance,8.6 mg,20,Caja con 20 tabletas,"pa,conc"
+0011,7502227875568,ean_ya,FC-27875568,Desrotan,Desrotan fexofenadina 180 mg C/10,7502227875568,Fexofenadina,Tableta,RAAM,180 mg,10,Caja con 10 tabletas,completo
+0012,7502227872123,ean_ya,FC-27872123,Raamcinet,Raamcinet cetirizina 10 mg,7502227872123,Cetirizina,Tableta,RAAM,10 mg,10,Caja con 10 tabletas,conc
+0013,7502009745522,ean_ya,FC-09745522,Galaver sobres,Treda antidiarreico sobres Maver,7502009745522,Magaldrato / Dimeticona,Gel,Maver,80 mg / 10 mg / 1 mL,10,Caja con 10 sobres de 10 mL,conc
+0014,7502227871416,ean_ya,FC-27871416,Raamfen,Raamfen difenidol 25 mg,7502227871416,Difenidol,Tableta,RAAM,25 mg,30,Caja con 30 tabletas,conc
+0015,7501075723137,ean_ya,FC-75723137,Novakosid,Novakosid senosidos A-B 8.6 mg C/20,7501075723137,Senósidos A-B,Tableta,Novag,8.6 mg,20,Caja con 20 tabletas,conc
+0016,7502001165724,nombre_con_otro_ean,FC-11165726,Raspisons,Raspisons unguento neomicina/retinol 28 g,7501311165726,Neomicina / Retinol,Ungüento,SON'S,,,Tubo 28 g,NO_PISAR ean_bd cands=1
+0017,7502223111202,nombre_sin_ean,EQ-QUM014,Pharmacaine,Pharmacaine 1 Aer 10g/100ml/115 Ml,,Lidocaína,Solución tópica,Quimpharma,10%,,Frasco atomizador 115 mL,cands_sin=1 tot=3
+0018,7502223111387,ean_ya,FC-23111387,Drosequim infantil,Jarabe dropropizina/bromhexina Quimpharma 100 mL,7502223111387,Dropropizina / Bromhexina,Jarabe,Quimpharma,150/80 mg / 100 mL,,Frasco 200 mL,conc
+0019,7501573906469,ean_ya,FC-73906469,Biobend,Biobend bencidamina solucion bucal 360 mL,7501573906469,Bencidamina,Solución bucal,Biomep,0.15 g / 100 mL,,Frasco 360 mL,conc
+0020,7501075718676,ean_ya,FC-75718676,Novagon naranja piña,Novagon psyllium polvo 400 g,7501075718676,Plantago psyllium,Polvo,Novag,,,Frasco 400 g sabor naranja piña,conc
+0021,7501075713770,ean_ya,FC-75713770,Novagon natural,Metamizol sodico solucion Novag Infancia,7501075713770,Plantago psyllium,Polvo,Novag,,,Frasco 400 g sabor natural,conc
+0022,7502009745027,ean_ya,FC-09745027,Galaver frasco,Treda infantil suspension Maver 120 mL,7502009745027,Magaldrato / Dimeticona,Gel,Maver,8 g / 1 g / 100 mL,,Frasco 250 mL,conc
+0023,7502003388008,ean_ya,FC-03388008,Velatuss,Velatuss levodropropizina jarabe 120 mL,7502003388008,Levodropropizina,Solución,Rayere,600 mg / 120 mL,,Frasco 120 mL,conc
+0024,7502009745584,ean_ya,FC-09745584,Oppelver,Oppelver lactulosa jarabe 125 mL,7502009745584,Lactulosa,Jarabe,Maver,10 g / 15 mL,,Frasco 125 mL,conc
+0025,7502211780229,nombre_sin_ean,EQ-LOE013,Keraffler,Keraffler 1 Sol 20mg/5/120 Ml,,Ketotifeno,Solución,Loeffler,20 mg / 100 mL,,Frasco 120 mL,cands_sin=1 tot=1
+0026,785118754259,ean_ya,FC-18754259,Supratex,Levocetirizina Mavi Reg. 086M2019,785118754259,Levodropropizina,Jarabe,MAVI,600 mg / 100 mL,,Frasco 120 mL,conc
+0027,7502009745560,ean_ya,FC-09745560,Bioxover,Kao-Paver infantil suspension Maver,7502009745560,Dropropizina,Jarabe,Maver,3 mg / mL,,Frasco 120 mL,conc
+0028,7503000422511,ean_ya,FC-00422511,Bactiver,Bactiver sulfametoxazol/trimetoprima susp. 120 mL,7503000422511,Sulfametoxazol / Trimetoprima,Suspensión,Maver,200/40 mg / 5 mL,,Frasco 120 mL,completo
+0029,7502227427392,ean_ya,FC-27427392,X-TRID,ML-PRIM metocarbamol/ibuprofeno C/12,7502227427392,,Cápsula,GEL pharma,,12,Caja con 12 cápsulas,conc
+0030,7501836003621,ean_ya,FC-36003621,Precicol,Precicol hioscina/paracetamol gotas 20 mL,7501836003621,Hioscina / Paracetamol,Solución,Liferpal,2 mg / 100 mg / mL,,Gotero 20 mL,conc
+0031,714908100228,nombre_sin_ean,EQ-SAN025,Revenox,Revenox 60 Tab 3 Mg,,Melatonina,Tableta,Salud Natural,3 mg,60,Frasco 60 tabletas,cands_sin=1 tot=1
+0032,7502216803800,ean_ya,FC-16803800,Omeprazol Avivia,Omeprazol Avivia capsulas C/60,7502216803800,Omeprazol,Cápsula,Avivia,20 mg,60,Frasco 60 cápsulas,conc
+0033,7501349022485,nombre_sin_ean,EQ-AMS292,Pantoprazol AMSA,Pantoprazol 7 Tab 20 Mg,,Pantoprazol,Tableta liberación retardada,AMSA,20 mg,7,Caja con 7 tabletas,cands_sin=1 tot=1
+0034,7503014377197,ean_ya,FC-14377197,Playboy Max Sens Tropicana,Playboy Max Sens Extra Sensible C/4 3+1,7503014377197,,,Playboy,,4,3+1 extra delgados Tropicana Mix,conc
+0035,7501109763986,nombre_sin_ean,EQ-QUI091,Magsokon,Magsokon 1 Caja 26 G,,Sulfato de magnesio,Polvo,Quifa,,,Bolsa 26 g,cands_sin=1 tot=1
+0036,7503014377180,ean_ya,FC-14377180,Playboy Max Sens Passion,Playboy Max Sens condones C/4 3+1,7503014377180,,,Playboy,,4,3+1 extra delgados Passion Mix,conc
+0037,780083140588,nombre_con_otro_ean,FC-31405888,Plusgel,Plusgel antiacido C/50 masticables,7500831405888,Aluminio / Magnesio / Dimeticona,Tableta masticable,Collins,200/200/20 mg,50,Frasco 50 tabletas menta limón,NO_PISAR ean_bd cands=1
+0038,7501482200016,ean_ya,FC-82200016,Omeprazol Aktyzar,Aktyzar omeprazol Solfran capsulas C/120,7501482200016,Omeprazol,Cápsula,Solfrán,20 mg,120,Frasco 120 cápsulas,conc
+0039,7502253601339,ean_ya,FC-53601339,Daclafin,Daclafin subsalicilato bismuto susp. 120 mL,7502253601339,Subsalicilato de bismuto,Suspensión,Daclafin,1.750 g / 100 mL,,Frasco 120 mL,conc
+0040,7501075717914,ean_ya,FC-75717914,Nineka,Nineka suspensión neomicina/caolín/pectina,7501075717914,Neomicina / Caolín / Pectina,Suspensión,Novag,,,Frasco 75 mL,conc
+0041,7502009740435,ambiguo,,Laritol,FMX-501200:Laritol loratadina solución 1 mg/ml 60 ml | FC-09740657:Laritol EX (Loratadina/Ambroxol) 100-600 mg/100 mL,,Loratadina,Tableta,Maver,10 mg,10,Caja con 10 tabletas,n=2
+0042,7502009749209,ean_ya,FC-09749209,Lumboxen,Lumboxen parche capsicum C/1,7502009749209,Mentol,Parche de gel,Maver,,1,Bolsa con 1 parche,conc
+0043,7502001165953,ean_ya,FC-01165953,Rexurdir,Rexurdir nifuroxazida 400 mg C/16,7502001165953,Nifuroxazida,Cápsula,SON'S,400 mg,16,Caja con 16 cápsulas,conc

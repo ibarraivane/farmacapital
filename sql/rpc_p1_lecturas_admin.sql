@@ -153,12 +153,20 @@ begin
           select jsonb_agg(
             jsonb_build_object(
               'cantidad', x.cantidad,
-              'productos', jsonb_build_object('categoria', pr.categoria)
+              'productos', jsonb_build_object(
+                'nombre', pr.nombre,
+                'sku', pr.sku,
+                'categoria', pr.categoria
+              ),
+              'lotes', jsonb_build_object(
+                'numero_lote', lo.numero_lote
+              )
             )
             order by x.id
           ) as js
           from public.pedido_items x
           join public.productos pr on pr.id = x.producto_id
+          left join public.lotes lo on lo.id = x.lote_id
           where x.pedido_id = p.id
         ) pi on true
         where p.atendido_por = p_empleado_id

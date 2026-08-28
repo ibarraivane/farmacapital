@@ -2,7 +2,7 @@
 // Muestra solo % y conteos (nunca montos de ventas en pesos) para no exponer
 // información de negocio al personal de piso.
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Gauge, ShoppingCart, ClipboardList, Target, Award, Zap, Flame, Users as UsersIcon } from "lucide-react";
+import { Gauge, ShoppingCart, ClipboardList, Target, Award, Zap, Flame, Users as UsersIcon, Undo2 } from "lucide-react";
 import { C_LIGHT, BRAND } from "../../constants";
 import { supabase } from "../../supabase";
 import { showToast } from "../../ui";
@@ -15,7 +15,7 @@ import {
 } from "../../utils/turnosMetas";
 import { fetchJornadaHoy } from "../../utils/cajaSesion";
 import { formatFolioPOS } from "../../utils/orderReceiptWhatsApp";
-import { ymdMexico } from "../../lib/fecha";
+import { categoriaCanon } from "../../constants/categoriasProducto";
 
 const C = C_LIGHT;
 
@@ -268,7 +268,7 @@ export default function MiDia({ usuario, setPage }) {
               p_turno_start: inicioTurno,
               p_turno_end: finTurno,
               p_mes_start: inicioMes,
-              p_fecha_citas: ymdMexico(hoy),
+              p_fecha_citas: hoy.toISOString().slice(0, 10),
             })
           : Promise.resolve({ data: null, error: { message: "sin sesión" } }),
       ]);
@@ -303,7 +303,7 @@ export default function MiDia({ usuario, setPage }) {
       // ── Categoría top del vendedor en el turno (para logro).
       const catCount = new Map();
       pedTurno.forEach((p) => (p.pedido_items || []).forEach((it) => {
-        const cat = it.productos?.categoria || null;
+        const cat = categoriaCanon(it.productos?.categoria) || null;
         if (!cat) return;
         catCount.set(cat, (catCount.get(cat) || 0) + (it.cantidad || 0));
       }));
@@ -315,7 +315,7 @@ export default function MiDia({ usuario, setPage }) {
       const ventasPorDia = new Map();
       pedMes.forEach((p) => {
         const d = new Date(p.created_at);
-        const k = ymdMexico(d);
+        const k = d.toISOString().slice(0, 10);
         ventasPorDia.set(k, (ventasPorDia.get(k) || 0) + parseFloat(p.total || 0));
       });
       const diasTrabajados = ventasPorDia.size;
@@ -595,6 +595,12 @@ export default function MiDia({ usuario, setPage }) {
           titulo="LISTA DE ESPERA"
           sub={data.citasEnEspera > 0 ? `${data.citasEnEspera} paciente${data.citasEnEspera !== 1 ? "s" : ""} aguardando` : "Sin pacientes en espera"}
           onClick={() => setPage && setPage("pos", { posTab: "consultas" })}
+        />
+        <BotonGrande
+          icon={Undo2}
+          titulo="DEVOLUCIÓN"
+          sub="Con el folio del ticket o el celular del cliente"
+          onClick={() => setPage && setPage("dev")}
         />
       </div>
 

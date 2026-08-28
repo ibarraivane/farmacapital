@@ -283,7 +283,7 @@ FORM_MAP = {
 
 GENERIC_SUFFIXES = (
     "OXACINO", "MICINA", "MYCIN", "PRIL", "STATIN", "METFORM", "AZOL", "PAM", "ZOL", "PRAZOL",
-    "DIPINA", "ARTAN", "CILLIN", "PRIL", "SARTAN", "AFIL", "VASTAT", "BULIN", "METRO",
+    "DIPINA", "ARTAN", "CILLIN", "PRIL", "SARTAN", "AFIL", "VASTAT", "BULIN", "METRO", "GESTREL",
 )
 
 COMMERCIAL_MED_NAMES = {
@@ -330,10 +330,27 @@ def _is_garbage_name(s: str) -> bool:
     return False
 
 
+# Abreviaciones del ERP de Equilibrio (nombres recortados a ~40 chars).
+_EQUILIBRIO_ABREV = (
+    (r"\bLEVO[.,]\s*ETINILESTRADIOL\b", "LEVONORGESTREL ETINILESTRADIOL"),
+    (r"\bLEVONORGES\s+ETINILEST\b", "LEVONORGESTREL ETINILESTRADIOL"),
+    (r"\bTELMISARTAN[.,]?\s*HIDROCLO\b", "TELMISARTAN HIDROCLOROTIAZIDA"),
+    (r"\b0\.15/0\.03\s*M\b", "0.15/0.03 MG"),
+)
+
+
+def _expand_equilibrio_abrev(s: str) -> str:
+    out = s
+    for pat, repl in _EQUILIBRIO_ABREV:
+        out = re.sub(pat, repl, out, flags=re.I)
+    return out
+
+
 def _normalize_ticket_text(nombre: str) -> str:
     s = str(nombre or "").strip()
     if not s:
         return ""
+    s = _expand_equilibrio_abrev(s)
     s = re.sub(r"\$\s*[\d.,]+", " ", s)
     s = re.sub(r"Descto:\s*[\d.,]+%?\s*", " ", s, flags=re.I)
     s = re.sub(r"\b\d{8,14}\b", " ", s)

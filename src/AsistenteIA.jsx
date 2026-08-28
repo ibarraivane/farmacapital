@@ -98,8 +98,11 @@ export default function AsistenteIA() {
         return;
       }
       try {
-        const tok = encodeURIComponent(getSessionToken());
-        const resp = await fetch(`/api/ai/chat?session_token=${tok}`);
+        const tok = getSessionToken();
+        const resp = await fetch("/api/ai/chat", {
+          method: "GET",
+          headers: tok ? { "x-session-token": tok } : {},
+        });
         const data = await resp.json().catch(() => ({}));
         if (!cancelled) {
           if (data?.configured && data?.session) setConfigState("ready");
