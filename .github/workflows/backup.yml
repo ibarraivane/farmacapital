@@ -133,3 +133,4 @@ jobs:
             echo "- Archivo: ${{ steps.run_backup.outputs.backup_filename }}" >> "$GITHUB_STEP_SUMMARY"
             echo "- Tamaño: ${{ steps.run_backup.outputs.backup_size_bytes }} bytes" >> "$GITHUB_STEP_SUMMARY"
           fi
+          echo "- Schema: \`schema/schema.sql\` en el repo privado (pg_dump --schema-only + gate de secretos literales)" >> "$GITHUB_STEP_SUMMARY"
