@@ -6,7 +6,12 @@ function titleCase(s) {
   return String(s || "")
     .trim()
     .split(/\s+/)
-    .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : ""))
+    .map((w) =>
+      w
+        .split("-")
+        .map((p) => (p ? p.charAt(0).toUpperCase() + p.slice(1).toLowerCase() : ""))
+        .join("-")
+    )
     .join(" ");
 }
 
@@ -44,6 +49,33 @@ function nombreTipoProducto(nombre) {
   return null;
 }
 
+const FORMA_EN_NOMBRE =
+  /\s+(?:suspensi[oó]n|tabletas?|tabs?\.?|c[aá]psulas?|c[aá]ps\.?|jarabe|crema|gel|ung[uü]ento|pomada|soluci[oó]n|gotas|aerosol|spray|comprimidos?|ampolletas?|inyectable|frasco|sobres?|polvo|loci[oó]n|emulsi[oó]n|elixir|jalea|[oó]vulos?|supositorios?|parche|inhalador|grageas?)\b/i;
+
+/** Nombre de mostrador: Alu-Mag, no el laboratorio ni la fórmula completa. */
+export function nombreComercialPos(nombre) {
+  const limpio = limpiarNombrePosCrudo(nombre);
+  if (!limpio) return "";
+  // "Leche en polvo" no es forma farmacéutica: no cortar en "polvo".
+  const protegido = limpio.replace(/\ben\s+polvo\b/gi, "en_polvo");
+  const corte = protegido.split(FORMA_EN_NOMBRE)[0].trim().replace(/en_polvo/gi, "en polvo");
+  if (corte && corte !== limpio && corte.length >= 2 && corte.length <= 48) {
+    return corte;
+  }
+  const palabras = limpio.split(/\s+/);
+  const esLechePolvo = /\bleche\s+en\s+polvo\b/i.test(limpio);
+  if (palabras.length > 6 || limpio.length > 56) {
+    return palabras.slice(0, esLechePolvo ? 6 : 3).join(" ");
+  }
+  return limpio;
+}
+
+function mismaMarca(texto, marca) {
+  const a = String(texto || "").trim().toLowerCase();
+  const b = String(marca || "").trim().toLowerCase();
+  return Boolean(a && b && a === b);
+}
+
 /** Título principal en ficha, resultados y carrito. */
 export function posTituloProducto(p) {
   if (!p) return "";
@@ -51,23 +83,24 @@ export function posTituloProducto(p) {
   const pa = String(p.principio_activo || "").trim();
   const forma = String(p.forma_farmaceutica || "").trim();
   const limpio = limpiarNombrePosCrudo(p.nombre);
+  const comercial = nombreComercialPos(p.nombre);
 
   const tipo = nombreTipoProducto(p.nombre) || nombreTipoProducto(limpio);
   if (tipo) return titleCase(tipo);
 
-  if (pa && (p.tipo === "generico" || p.requiere_receta)) {
-    return titleCase(pa);
+  if (comercial && !mismaMarca(comercial, marca)) {
+    const cortoConMarca =
+      marca &&
+      !/gen[eé]rico/i.test(marca) &&
+      limpio.toLowerCase().startsWith(marca.toLowerCase()) &&
+      limpio.split(/\s+/).length <= 5 &&
+      limpio.length <= 40;
+    if (cortoConMarca) return titleCase(limpio);
+    return titleCase(comercial);
   }
 
-  if (marca && !/gen[eé]rico/i.test(marca)) {
-    const resto = limpio.replace(new RegExp(`^${marca}\\b`, "i"), "").trim();
-    if (!resto) return titleCase(marca);
-    // Sabores cortos: Electrolit Uva, Electrolit Coco, etc.
-    if (resto.length <= 24 && limpio.split(/\s+/).length <= 5) {
-      return titleCase(limpio);
-    }
-    if (resto.length < 4) return titleCase(marca);
-    if (limpio.length > 48) return titleCase(marca);
+  if (pa && (p.tipo === "generico" || p.requiere_receta)) {
+    return titleCase(pa);
   }
 
   if (forma && !/material de curaci[oó]n|producto|medicamento|otro/i.test(forma)) {
@@ -81,6 +114,46 @@ export function posTituloProducto(p) {
 
   if (marca && !/gen[eé]rico/i.test(marca)) return titleCase(marca);
   return titleCase(limpio || p.nombre || "");
+}
+
+function pareceSoloEmpaque(texto) {
+  const s = String(texto || "").trim();
+  if (!s) return true;
+  return /^(c\/\s*\d+|c\d+|tabletas?|c[aá]psulas?|jarabe|crema|gel|suspensi[oó]n|soluci[oó]n|gotas|frasco|comprimidos?)$/i.test(s);
+}
+
+/**
+ * Cómo lo piden en mostrador (XL-3, Antiflu-Des).
+ * No usa el principio activo: en “otras presentaciones” todas lo comparten.
+ */
+export function posNombreReconocido(p) {
+  if (!p) return "";
+  const comercial = nombreComercialPos(p.nombre);
+  const dist = String(p.denominacion_distintiva || "").trim();
+  const marca = String(p.marca || "").trim();
+  if (comercial && !pareceSoloEmpaque(comercial) && !mismaMarca(comercial, marca)) {
+    return titleCase(comercial);
+  }
+  if (dist && !pareceSoloEmpaque(dist)) return titleCase(dist);
+  if (marca && !/gen[eé]rico/i.test(marca)) return titleCase(marca);
+  if (comercial && !pareceSoloEmpaque(comercial)) return titleCase(comercial);
+  const limpio = limpiarNombrePosCrudo(p.nombre);
+  if (limpio && !pareceSoloEmpaque(limpio)) return titleCase(limpio);
+  return titleCase(marca || limpio || p.nombre || "");
+}
+
+/** Nombre + empaque para las fichas de “otras presentaciones”. */
+export function posEtiquetaVariante(p) {
+  const nombre = posNombreReconocido(p);
+  const partes = [
+    p?.presentacion,
+    p?.concentracion,
+    p?.forma_farmaceutica,
+  ].map((x) => String(x || "").trim()).filter(Boolean);
+  const detalle = partes
+    .filter((parte) => parte.toLowerCase() !== nombre.toLowerCase())
+    .join(" · ");
+  return { nombre, detalle };
 }
 
 /** Segunda línea: marca, presentación, concentración, forma. */
@@ -106,4 +179,20 @@ export function posSubtituloProducto(p) {
   const limpio = limpiarNombrePosCrudo(p.nombre);
   if (limpio && limpio.toLowerCase() !== titulo) return titleCase(limpio);
   return p.sku ? `SKU ${p.sku}` : "";
+}
+
+/** Caja azul de la tarjeta: activos, o presentación / distintiva si no hay fórmula. */
+export function posDestacadoTarjeta(p) {
+  if (!p) return "";
+  const activos = String(p.principio_activo || p.denominacion_generica || "").trim();
+  if (activos) {
+    return `Activos: ${activos
+      .replace(/\bcaolin\b/gi, "Caolín")
+      .replace(/\bneomicina\b/gi, "Neomicina")
+      .replace(/\bpectina\b/gi, "Pectina")}`;
+  }
+  const dist = String(p.denominacion_distintiva || "").trim();
+  if (dist) return dist;
+  const partes = [p.contenido, p.presentacion, p.concentracion].map((x) => String(x || "").trim()).filter(Boolean);
+  return partes.length ? partes.join(" · ") : "";
 }

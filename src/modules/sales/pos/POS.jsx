@@ -1,22 +1,32 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useMediaQuery } from "../../../hooks/useMediaQuery";
 import TicketPreviewModal from "../../../components/tickets/TicketPreviewModal";
-import SpeiManualModal from "../../../components/SpeiManualModal";
-import SpeiMPModal from "../../../components/SpeiMPModal";
 import MercadoPagoModal from "../../../components/MercadoPagoModal";
 import BBVATerminalModal from "../../../components/BBVATerminalModal";
+import SpeiManualModal from "../../../components/SpeiManualModal";
+import SpeiMPModal from "../../../components/SpeiMPModal";
 import { supabase } from "../../../supabase";
 import { C_LIGHT, BRAND } from "../../../constants";
 import { $, logAudit, soloDigitosTel, telefonosMxEquivalentes, normalizeForSearch } from "../../../utils";
-import { tiendaProductMatchesBusqueda, tiendaCatalogSearchSuggestions, tiendaSearchRelevanceRank } from "../../../utils/fuzzySearch";
-import { findProductExactScan, looksLikeBarcodeInput, looksLikeInternalSku, isAllDigitsInput, normalizeBarcodeRaw, shouldReplaceScanInput } from "../../../utils/barcodeProductLookup";
-import { posTituloProducto, posSubtituloProducto } from "../../../utils/posProductDisplay";
+import { tiendaProductMatchesBusqueda, tiendaSearchRelevanceRank } from "../../../utils/fuzzySearch";
+import { etiquetaIntencionMostrador } from "../../../utils/intencionMostrador";
+import { findProductExactScan, looksLikeBarcodeInput, looksLikeInternalSku, isAllDigitsInput, normalizeBarcodeRaw, queryCatalogoDesdeInputPos, shouldReplaceScanInput } from "../../../utils/barcodeProductLookup";
+import { posTituloProducto, posSubtituloProducto, posEtiquetaVariante } from "../../../utils/posProductDisplay";
 import { grupoEquivalentesDeBusqueda, claveSustancia } from "../../../utils/equivalentesPos";
-import TableroEquivalentes from "./TableroEquivalentes";
+import TableroEquivalentes, { TableroResultados } from "./TableroEquivalentes";
 import { precioUnidadParaVenta } from "../../../utils/precioUnidad";
+import { precioMostradorPos, productoCajaEsFalsa, stockMostradorPos } from "../../../utils/productoCajaFalsa";
 import { productoEsVendible } from "../../../utils/productoVendible";
+import { IconoAnaquel, IconoBolsa, IconoBuscar, IconoCaja, IconoChevron, IconoPieza, filaIconoBtn } from "../../../components/pos/PosIconos";
 import { cobroLinea, pesoPublico } from "../../../utils/pesoPublico";
+import { precioLineaCajaPos } from "../../../lib/precioVentaExclusivo";
+import { fechaLocalMexico } from "../../../lib/pagoServicio";
+import { hoyISOMexico } from "../../../lib/fecha";
+import { esCategoriaAntibiotico, esMedicamentoControlado } from "../../../constants/categoriasProducto";
+import { isCoarsePointer, unlockInputForTouchKeyboard, lockInputAfterTouchKeyboard, armInputForTouchKeyboard } from "../../../utils/touchKeyboard";
 import { setBloqueaReloadApp } from "../../../utils/appUpdate";
+import { avisarCatalogoCambio } from "../../../utils/catalogoVivo";
+import { useCatalogoVivo } from "../../../hooks/useCatalogoVivo";
 import { useHidBarcodeWedge } from "../../../hooks/useHidBarcodeWedge";
 import {
   suggestPosProductsLocal,
@@ -25,6 +35,8 @@ import {
   describePosProductUseFallback,
 } from "../../../utils/posConocimientoFarmacia";
 import { Box, Tag, Btn, Inp, Modal, showToast, SearchDropdown, SkeletonTable } from "../../../ui";
+import GaleriaProducto from "../../../components/GaleriaProducto";
+import { useProductoImagenes } from "../../../hooks/useProductoImagenes";
 import {
   CONSULTA_PRECIO_DEFAULT,
   CONSULTA_PARTE_DOCTOR,
@@ -44,6 +56,7 @@ import { labelTipoEntregaPedido } from "../../../utils/orderChannels";
 import PagoServiciosPanel, { rpcRegistrarPagoServicio } from "./PagoServiciosPanel";
 import { printServicioTicket } from "../../../utils/servicioTicket";
 import AperturaCajaModal from "./AperturaCajaModal";
+import { NuevaDevolucionModal } from "../../../DevolucionesModule";
 import { esVendedor, fetchSesionCajaAbierta } from "../../../utils/cajaSesion";
 import {
   buildOnlineOrderReceiptMessage,
@@ -54,7 +67,6 @@ import {
 } from "../../../utils/orderReceiptWhatsApp";
 import { formatTelefonoDisplay } from "../../../utils/citaWhatsApp";
 import { configRowsToMap, mergeFarmaciaConfig, FARMACIA_FISCAL } from "../../../constants/farmaciaFiscal";
-import { hoyISOMexico } from "../../../lib/fecha";
 
 const PEDIDOS_TIENDA_SELECT_POS = `
             id,total,created_at,tipo,metodo_pago,estado,tipo_entrega,direccion,
@@ -82,7 +94,67 @@ function posVariantesDeProducto(productos, item) {
 }
 
 function posFichaLinea(item) {
-  return posSubtituloProducto(item) || [item.concentracion, item.presentacion, item.forma_farmaceutica].filter(Boolean).join(" · ");
+  const { nombre, detalle } = posEtiquetaVariante(item);
+  return { nombre, detalle };
+}
+
+/** Anon no puede leer `lotes` por RLS; Inventario ya usa este RPC (security definer). */
+async function fetchLotesMapPos(sessionToken) {
+  if (!sessionToken) return {};
+  const { data, error } = await supabase.rpc("empleado_listar_lotes_inventario", {
+    p_session_token: sessionToken,
+  });
+  if (error || !data) return {};
+  const byProducto = {};
+  for (const l of Array.isArray(data) ? data : []) {
+    const pid = l.producto_id;
+    if (!pid) continue;
+    if (!byProducto[pid]) byProducto[pid] = [];
+    byProducto[pid].push({
+      id: l.id,
+      numero_lote: l.numero_lote,
+      fecha_caducidad: l.fecha_caducidad,
+      cantidad_actual: l.cantidad_actual,
+      activo: l.activo,
+    });
+  }
+  return byProducto;
+}
+
+function enrichPosProductosConLotes(prodsRaw, lotesByProducto = {}) {
+  return (prodsRaw || []).map((p) => {
+    const nested = Array.isArray(p.lotes) ? p.lotes : [];
+    const extra = lotesByProducto[p.id] || lotesByProducto[String(p.id)] || [];
+    const lotes = nested.some((l) => Number(l?.cantidad_actual) > 0) ? nested : (extra.length ? extra : nested);
+    const activos = lotes.filter(
+      (l) => l?.activo !== false && Number(l?.cantidad_actual || 0) > 0 && l.fecha_caducidad
+    );
+    const minCad = activos.reduce((m, l) => (!m || l.fecha_caducidad < m) ? l.fecha_caducidad : m, null);
+    return { ...p, lotes, min_caducidad_lotes: minCad };
+  });
+}
+
+function mapEspecialesCaducidad(rows) {
+  const map = {};
+  for (const r of rows || []) {
+    if (r?.lote_id == null) continue;
+    map[r.lote_id] = r;
+    map[String(r.lote_id)] = r;
+  }
+  return map;
+}
+
+async function fetchEspecialesCaducidadPos(sessionToken) {
+  if (!sessionToken) return {};
+  const { data, error } = await supabase.rpc("empleado_precios_especiales_caducidad_vigentes", {
+    p_session_token: sessionToken,
+  });
+  if (error || !data) return {};
+  return mapEspecialesCaducidad(Array.isArray(data) ? data : []);
+}
+
+function precioCajaDesdeProducto(producto, qty, propuestasByLote) {
+  return precioLineaCajaPos(producto, qty, propuestasByLote, fechaLocalMexico());
 }
 
 const POS_USO_CACHE_KEY = "farmacapital_pos_uso_cache_v1";
@@ -142,12 +214,16 @@ function posEtiquetaForma(item) {
 function PosProductoFichaPanel({
   item,
   productos,
+  onVolver,
+  volverTexto = "Volver a los resultados",
   onSelectVariante,
   onAddCaja,
   onAddUnidad,
   onAbrirCaja,
   getStockCajasPOS,
   productoSinLotesPEPS,
+  enCarrito = 0,
+  stockFifo = 0,
   usoTexto,
   usoLoading,
   C,
@@ -156,15 +232,21 @@ function PosProductoFichaPanel({
   sticky = false,
 }) {
   const [fotoAbierta, setFotoAbierta] = useState(false);
+  const fotoBtnRef = useRef(null);
+  const { imagenes: galeria } = useProductoImagenes(
+    item?.id,
+    item?.imagen_url || item?.imagen_mobile_url || "",
+  );
+
   useEffect(() => {
     setFotoAbierta(false);
   }, [item?.id]);
-  useEffect(() => {
-    if (!fotoAbierta) return undefined;
-    const onKey = (e) => { if (e.key === "Escape") setFotoAbierta(false); };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [fotoAbierta]);
+
+  const cerrarFoto = useCallback(() => {
+    setFotoAbierta(false);
+    queueMicrotask(() => fotoBtnRef.current?.focus?.());
+  }, []);
+
   const panelShell = {
     marginBottom: 14,
     borderRadius: 16,
@@ -180,7 +262,9 @@ function PosProductoFichaPanel({
     return (
       <div style={{ ...panelShell, display: "flex", alignItems: "center", justifyContent: "center", padding: "28px 20px" }}>
         <div style={{ textAlign: "center", maxWidth: 420 }}>
-          <div style={{ fontSize: isMobilePos ? 40 : 52, marginBottom: 10, lineHeight: 1 }} aria-hidden>💊</div>
+          <div style={{ marginBottom: 10, color: C.blue, opacity: 0.72, display: "flex", justifyContent: "center" }}>
+            <IconoBuscar size={isMobilePos ? 36 : 44} />
+          </div>
           <div style={{ fontWeight: 900, fontSize: isMobilePos ? 16 : 18, color: C.text, marginBottom: 6 }}>
             Busca o escanea un producto
           </div>
@@ -193,12 +277,17 @@ function PosProductoFichaPanel({
     );
   }
 
-  const thumb = item.imagen_url || item.imagen_mobile_url || "";
   const variantes = posVariantesDeProducto(productos, item);
   const stockCajas = getStockCajasPOS(item);
   const sinLotes = productoSinLotesPEPS(item);
-  const agotado = stockCajas <= 0 && (!item.venta_unidad || item.stock_unidades === 0);
-  const sinPrecio = !productoEsVendible(item);
+  const cajaFalsa = productoCajaEsFalsa(item);
+  const stockVisible = stockMostradorPos(item, stockCajas);
+  const precioFicha = precioMostradorPos(item);
+  const agotado = cajaFalsa
+    ? stockVisible <= 0
+    : stockCajas <= 0 && (!item.venta_unidad || item.stock_unidades === 0);
+  const sinPrecio = cajaFalsa ? precioFicha <= 0.01 : !productoEsVendible(item);
+  const yaEnCarritoMax = !item.venta_unidad && stockFifo > 0 && enCarrito >= stockFifo;
   const uso = usoLoading
     ? "Consultando uso con Claude…"
     : (usoTexto || posUsoFallback(item));
@@ -219,6 +308,30 @@ function PosProductoFichaPanel({
   return (
     <>
     <div style={panelShell} data-tour="pos-ficha-producto">
+      {onVolver && (
+        <button
+          type="button"
+          onClick={onVolver}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            width: "100%",
+            padding: stack ? "10px 14px" : "10px 20px",
+            border: "none",
+            borderBottom: `1px solid ${C.border}`,
+            background: C.bg,
+            color: C.blue,
+            font: "inherit",
+            fontSize: 13,
+            fontWeight: 800,
+            cursor: "pointer",
+            textAlign: "left",
+          }}
+        >
+          <span aria-hidden>←</span> {volverTexto}
+        </button>
+      )}
       <div
         style={{
           display: "grid",
@@ -228,11 +341,35 @@ function PosProductoFichaPanel({
           alignItems: stack ? "stretch" : "start",
         }}
       >
-        {thumb ? (
-          <button
-            type="button"
-            onClick={() => setFotoAbierta(true)}
-            aria-label={`Ver foto grande de ${posTituloProducto(item)}`}
+        {galeria.length ? (
+          <div
+            style={{
+              position: "relative",
+              borderRadius: 14,
+              overflow: "hidden",
+              background: "#fff",
+              border: `1px solid ${C.border}`,
+              minHeight: stack ? 180 : 240,
+              maxHeight: stack ? 220 : 280,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: stack ? 10 : 14,
+              width: "100%",
+              boxSizing: "border-box",
+            }}
+          >
+            <GaleriaProducto
+              imagenes={galeria}
+              alt={posTituloProducto(item)}
+              maxAlto={stack ? 200 : 252}
+              onImagenClick={() => setFotoAbierta(true)}
+              imagenRef={fotoBtnRef}
+              mostrarPuntos={false}
+            />
+          </div>
+        ) : (
+          <div
             style={{
               borderRadius: 14,
               overflow: "hidden",
@@ -243,35 +380,12 @@ function PosProductoFichaPanel({
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              padding: 0,
-              cursor: "zoom-in",
-              width: "100%",
-              boxSizing: "border-box",
-              appearance: "none",
-              WebkitAppearance: "none",
-              colorScheme: "light",
+              padding: stack ? 10 : 14,
             }}
           >
-            <img
-              src={thumb}
-              alt=""
-              style={{ width: "100%", height: "100%", minHeight: stack ? 180 : 240, objectFit: "contain", display: "block", pointerEvents: "none" }}
-            />
-          </button>
-        ) : (
-          <div
-            style={{
-              borderRadius: 14,
-              overflow: "hidden",
-              background: C.cardDark,
-              minHeight: stack ? 180 : 240,
-              maxHeight: stack ? 220 : 280,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <span style={{ fontSize: 72, opacity: 0.35 }} aria-hidden>💊</span>
+            <span style={{ color: C.textDim, opacity: 0.55 }} aria-hidden>
+              <IconoPieza size={56} />
+            </span>
           </div>
         )}
 
@@ -279,15 +393,15 @@ function PosProductoFichaPanel({
           <div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", marginBottom: 6 }}>
               <span style={{ color: C.textDim, fontSize: 10, fontWeight: 800, letterSpacing: 1 }}>{item.sku}</span>
-              {item.controlado && <Tag col={C.red} sm>Controlado</Tag>}
-              {item.categoria === "Antibiótico" && !item.controlado && (
+              {esMedicamentoControlado(item) && <Tag col={C.red} sm>Controlado</Tag>}
+              {esCategoriaAntibiotico(item.categoria) && !esMedicamentoControlado(item) && (
                 <Tag col={C.amber} sm>Receta recomendada</Tag>
               )}
               {item.tipo === "generico" && <Tag col={C.teal} sm>Genérico</Tag>}
-              {!item.controlado && item.categoria !== "Antibiótico" && (
+              {!esMedicamentoControlado(item) && !esCategoriaAntibiotico(item.categoria) && (
                 <Tag col={C.blue} sm>Venta libre</Tag>
               )}
-              {sinLotes ? <Tag col={C.red} sm>Sin lotes</Tag> : agotado ? <Tag col={C.red} sm>Agotado</Tag> : <Tag col={C.green} sm>{stockCajas} en stock</Tag>}
+              {sinLotes ? <Tag col={C.red} sm>Sin lotes</Tag> : agotado ? <Tag col={C.red} sm>Agotado</Tag> : <Tag col={C.green} sm>{stockVisible} en stock</Tag>}
             </div>
             <h2 style={{ margin: 0, fontSize: stack ? 17 : 20, fontWeight: 900, color: C.text, lineHeight: 1.25 }}>
               {posTituloProducto(item)}
@@ -322,7 +436,7 @@ function PosProductoFichaPanel({
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 {variantes.map((v) => {
                   const sel = v.id === item.id;
-                  const label = posFichaLinea(v) || v.nombre;
+                  const { nombre, detalle } = posFichaLinea(v);
                   return (
                     <button
                       key={v.id}
@@ -338,9 +452,15 @@ function PosProductoFichaPanel({
                         fontWeight: sel ? 800 : 600,
                         color: sel ? C.blue : C.text,
                         textAlign: "left",
+                        maxWidth: 220,
                       }}
                     >
-                      <div>{label}</div>
+                      <div style={{ fontWeight: 800, lineHeight: 1.25 }}>{nombre || v.nombre}</div>
+                      {detalle ? (
+                        <div style={{ fontSize: 11, color: C.textMid, marginTop: 2, fontWeight: 600, lineHeight: 1.3 }}>
+                          {detalle}
+                        </div>
+                      ) : null}
                       <div style={{ fontSize: 11, color: C.textDim, marginTop: 2 }}>{$(v.precio)}</div>
                     </button>
                   );
@@ -353,24 +473,24 @@ function PosProductoFichaPanel({
             <div>
               <div style={{ fontSize: 11, color: C.textDim, marginBottom: 2 }}>Precio</div>
               <div style={{ fontSize: stack ? 22 : 26, fontWeight: 900, color: C.blue, lineHeight: 1 }}>
-                {/* Etiqueta visual si hay descuento_pct legacy; el cobro del carrito no lo usa. */}
-                {item.descuento_pct > 0 ? (
+                {item.descuento_pct > 0 && !cajaFalsa ? (
                   <>
                     <span style={{ fontSize: 14, color: C.textDim, textDecoration: "line-through", marginRight: 8 }}>{$(item.precio)}</span>
                     {$(cobroLinea(item.precio, 1, item.descuento_pct))}
                   </>
                 ) : (
-                  $(pesoPublico(item.precio))
+                  $(pesoPublico(precioFicha))
                 )}
               </div>
-              {Math.abs((parseFloat(item.precio) || 0) - pesoPublico(item.precio)) > 0.001 && !(item.descuento_pct > 0) && (
+              {!cajaFalsa && Math.abs((parseFloat(item.precio) || 0) - pesoPublico(item.precio)) > 0.001 && !(item.descuento_pct > 0) && (
                 <div style={{ fontSize: 11, color: C.textDim, marginTop: 4 }}>
                   Lista {$(item.precio)} · en caja se cobra peso entero
                 </div>
               )}
             </div>
-            <span style={{ fontSize: 12, fontWeight: 700, color: item.ubicacion_texto ? C.blue : C.textDim }}>
-              📍 {item.ubicacion_texto || "Sin ubicación"}
+            <span style={{ fontSize: 12, fontWeight: 700, color: item.ubicacion_texto ? C.blue : C.textDim, display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <IconoAnaquel size={15} />
+              {item.ubicacion_texto || "Sin ubicación"}
             </span>
           </div>
 
@@ -379,10 +499,26 @@ function PosProductoFichaPanel({
               <Btn col={C.amber} disabled full>
                 Sin precio de venta — cárgalo en Inventario
               </Btn>
+            ) : cajaFalsa ? (
+              <Btn
+                col={C.blue}
+                full
+                disabled={stockVisible <= 0}
+                onClick={() => {
+                  if (item.stock_unidades > 0) onAddUnidad(item);
+                  else if (stockCajas > 0) onAddCaja(item);
+                  else showToast("Sin stock disponible.", "warning");
+                }}
+                style={filaIconoBtn()}
+              >
+                <IconoPieza size={18} />
+                Agregar · {$(pesoPublico(precioFicha))}
+              </Btn>
             ) : item.venta_unidad ? (
               <>
-                <Btn col={C.blue} disabled={stockCajas <= 0} onClick={() => onAddCaja(item)} style={{ flex: "1 1 160px" }}>
-                  📦 Caja · {$(item.precio)}
+                <Btn col={C.blue} disabled={stockCajas <= 0} onClick={() => onAddCaja(item)} style={filaIconoBtn({ flex: "1 1 160px" })}>
+                  <IconoCaja size={18} />
+                  Caja · {$(item.precio)}
                 </Btn>
                 <Btn
                   outline
@@ -393,16 +529,17 @@ function PosProductoFichaPanel({
                     else if (stockCajas > 0) onAbrirCaja(item);
                     else showToast("Sin stock disponible.", "warning");
                   }}
-                  style={{ flex: "1 1 160px" }}
+                  style={filaIconoBtn({ flex: "1 1 160px" })}
                 >
-                  💊 1 unidad · {$(precioUnidadParaVenta(item))}
+                  <IconoPieza size={18} />
+                  Pieza · {$(precioUnidadParaVenta(item))}
                 </Btn>
               </>
             ) : (
               <Btn
                 col={C.blue}
                 full
-                disabled={sinLotes || stockCajas <= 0}
+                disabled={sinLotes || stockCajas <= 0 || yaEnCarritoMax}
                 onClick={() => {
                   if (sinLotes) {
                     showToast("Sin lotes registrados. Ve a Inventario → Lotes.", "warning");
@@ -410,65 +547,37 @@ function PosProductoFichaPanel({
                   }
                   onAddCaja(item);
                 }}
+                style={filaIconoBtn()}
               >
-                Agregar al carrito · {$(item.precio)}
+                <IconoBolsa size={18} />
+                {yaEnCarritoMax
+                  ? `Ya en el carrito · ${enCarrito} de ${stockFifo}`
+                  : `Agregar · ${$(item.precio)}`}
               </Btn>
             )}
           </div>
         </div>
       </div>
     </div>
-    {fotoAbierta && thumb && (
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={posTituloProducto(item)}
-        onClick={() => setFotoAbierta(false)}
-        style={{
-          position: "fixed", inset: 0, zIndex: 1200,
-          background: "rgba(15,23,42,.72)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          padding: "max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left))",
-          boxSizing: "border-box",
-          cursor: "zoom-out",
-        }}
-      >
-        <button
-          type="button"
-          onClick={() => setFotoAbierta(false)}
-          aria-label="Cerrar foto"
-          style={{
-            position: "absolute", top: 16, right: 16, width: 44, height: 44,
-            borderRadius: 22, border: "none", background: "rgba(255,255,255,.95)",
-            color: "#0f172a", fontSize: 22, fontWeight: 800, cursor: "pointer",
-            colorScheme: "light",
-          }}
-        >✕</button>
-        <img
-          src={thumb}
-          alt={posTituloProducto(item)}
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            maxWidth: "min(920px, 96vw)",
-            maxHeight: "min(88dvh, 88vh)",
-            width: "auto",
-            height: "auto",
-            objectFit: "contain",
-            borderRadius: 12,
-            background: "#fff",
-            boxShadow: "0 24px 80px rgba(0,0,0,.35)",
-          }}
-        />
-      </div>
-    )}
+    <Modal open={Boolean(fotoAbierta && galeria.length)} onClose={cerrarFoto} title={posTituloProducto(item)}>
+      <GaleriaProducto
+        imagenes={galeria}
+        alt={posTituloProducto(item)}
+        maxAlto={520}
+        style={{ borderRadius: 12, background: "#fff" }}
+        mostrarPuntos={false}
+      />
+    </Modal>
     </>
   );
 }
 
-export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
+export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSesionExpirada}){
   const exigeCaja = esVendedor(usuario);
   const [cajaAbierta, setCajaAbierta] = useState(() => !esVendedor(usuario));
   const [cajaCheck, setCajaCheck] = useState(() => !esVendedor(usuario));
+  const [cajaVerifyError, setCajaVerifyError] = useState(null);
+  const [cajaRetry, setCajaRetry] = useState(0);
   const [sesionCaja, setSesionCaja] = useState(null);
   const C = C_LIGHT;
   /** Vista estrecha (tablet / ventana angosta): tipografía, grillas, cabecera. */
@@ -478,22 +587,25 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const [tab,setTab]         = useState(initialTab); // venta | online | consultas | servicios
   const [productos,setProds] = useState([]);
   const [cart,setCart]       = useState([]);
+  const especialesRef = useRef({});
   useEffect(() => {
     setBloqueaReloadApp(cart.length > 0, "pos-cart");
     return () => setBloqueaReloadApp(false, "pos-cart");
   }, [cart.length]);
   const [srch,setSrch]       = useState("");
-  const [srchFocus,setSrchFocus] = useState(false);
   const srchRef = useRef(null);
   const srchWrapRef = useRef(null);
   /** Tour POS: botón "?" va en la barra de carrito (no FAB esquina). */
   const posTourRef = useRef(null);
-  // iOS Safari hace zoom al enfocar inputs si el tamaño es <16px o si el foco llega al cargar.
-  // En ≤768px no autoenfocamos el buscador para que la vista entre completa sin pellizcar.
+  // En tablet/celular no autoenfocar: Android enfoca sin abrir el teclado y el toque siguiente no hace nada.
   useEffect(() => {
     if (tab !== "venta" || typeof window === "undefined") return;
-    if (window.matchMedia("(max-width: 768px)").matches) return;
+    if (isCoarsePointer() || window.matchMedia("(max-width: 768px)").matches) return;
     srchRef.current?.focus();
+  }, [tab]);
+  useEffect(() => {
+    if (tab !== "venta") return;
+    armInputForTouchKeyboard(srchRef.current);
   }, [tab]);
   const [favs,setFavs]       = useState(()=>{ try{ return JSON.parse(localStorage.getItem("farmacapital_pos_favs")||"[]"); }catch{ return []; } });
   const toggleFav = id => {
@@ -509,6 +621,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const [montoCredito, setMontoCredito] = useState("");
   const [tel,setTel]         = useState("");
   const [cli,setCli]         = useState(null);
+  const [modalDev, setModalDev] = useState(false);
+  const [devQuery, setDevQuery] = useState("");
   const [ticket,setTicket]   = useState(null);
   const ticketRef = useRef(null);
   const [rxM,setRxM]         = useState(null);
@@ -546,6 +660,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const [bbvaFolio,setBbvaFolio] = useState("");
   /** Tras elegir origen de receta, cobro con tarjeta (Point) usa este valor al confirmar el pago. */
   const recetaOrigenPendienteRef = useRef("no_aplica");
+  const recetaOrigenEfectivoRef = useRef("no_aplica");
+  const [modalConfirmEfectivo, setModalConfirmEfectivo] = useState(false);
   const [modalRecetaVenta, setModalRecetaVenta] = useState(false);
   const [modalRecetaModo, setModalRecetaModo] = useState(null);
   const [recetaOrigenSel, setRecetaOrigenSel] = useState("no_aplica");
@@ -588,18 +704,32 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     if (!exigeCaja) {
       setCajaAbierta(true);
       setCajaCheck(true);
+      setCajaVerifyError(null);
       return;
     }
     let cancelled = false;
     (async () => {
-      const { sesion } = await fetchSesionCajaAbierta();
+      const { sesion, error, auth } = await fetchSesionCajaAbierta();
       if (cancelled) return;
+      if (auth) {
+        showToast("Tu sesión caducó. Entra de nuevo con tu usuario — la caja no se cierra.", "warning");
+        onSesionExpirada?.();
+        return;
+      }
+      if (error) {
+        setCajaVerifyError(error);
+        setSesionCaja(null);
+        setCajaAbierta(false);
+        setCajaCheck(true);
+        return;
+      }
+      setCajaVerifyError(null);
       setSesionCaja(sesion);
       setCajaAbierta(!!sesion);
       setCajaCheck(true);
     })();
     return () => { cancelled = true; };
-  }, [exigeCaja]);
+  }, [exigeCaja, cajaRetry, onSesionExpirada]);
 
   useEffect(()=>{
     supabase.from("configuracion").select("*").then(({ data: cfg }) => {
@@ -814,7 +944,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       if (typeof setLoadErr === "function") setLoadErr("");
       try {
         const tok = sessionStorage.getItem("farmacapital_session_token");
-        const [prodsRes, pedsRes, histRes] = await Promise.all([
+        const [prodsRes, pedsRes, histRes, lotesMap, especialesMap] = await Promise.all([
           tok
             ? supabase.rpc("empleado_listar_productos_con_lotes_pos", { p_session_token: tok })
             : Promise.resolve({ data: [], error: { message: "Sin sesión" } }),
@@ -829,7 +959,10 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                 p_limite: 20,
               })
             : Promise.resolve({ data: [], error: null }),
+          fetchLotesMapPos(tok),
+          fetchEspecialesCaducidadPos(tok),
         ]);
+        especialesRef.current = especialesMap || {};
 
         const errs = [];
         if (prodsRes?.error) errs.push(`Productos (${prodsRes.status||"?"}): ${prodsRes.error.message}`);
@@ -842,12 +975,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         }
 
         const prodsRaw = Array.isArray(prodsRes?.data) ? prodsRes.data : [];
-        const prodsConCad = prodsRaw.map(p => {
-          const activos = (p.lotes || []).filter(l => l.activo !== false && (l.cantidad_actual || 0) > 0 && l.fecha_caducidad);
-          const minCad = activos.reduce((m, l) => (!m || l.fecha_caducidad < m) ? l.fecha_caducidad : m, null);
-          return { ...p, min_caducidad_lotes: minCad };
-        });
-        setProds(prodsConCad);
+        setProds(enrichPosProductosConLotes(prodsRaw, lotesMap));
         setPedOn((pedsRes?.data || []).filter(esPedidoTiendaWebPendiente));
         setPedOnHist(Array.isArray(histRes?.data) ? histRes.data : []);
 
@@ -861,6 +989,38 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     };
     cargar();
   },[refrescarCitasPOS]);
+
+  const refrescarCatalogoPos = useCallback(async () => {
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    if (!tok) return;
+    try {
+      const [prodsRes, lotesMap, especialesMap] = await Promise.all([
+        supabase.rpc("empleado_listar_productos_con_lotes_pos", { p_session_token: tok }),
+        fetchLotesMapPos(tok),
+        fetchEspecialesCaducidadPos(tok),
+      ]);
+      if (prodsRes?.error) return;
+      especialesRef.current = especialesMap || {};
+      setProds(enrichPosProductosConLotes(Array.isArray(prodsRes.data) ? prodsRes.data : [], lotesMap));
+    } catch (_) { /* se queda el catálogo que ya está en pantalla */ }
+  }, []);
+
+  useCatalogoVivo(refrescarCatalogoPos);
+
+  useEffect(() => {
+    setFichaProd((prev) => {
+      if (!prev?.id) return prev;
+      const next = productos.find((p) => String(p.id) === String(prev.id));
+      if (!next) return prev;
+      if (
+        next.stock === prev.stock &&
+        next.precio === prev.precio &&
+        next.nombre === prev.nombre &&
+        next.min_caducidad_lotes === prev.min_caducidad_lotes
+      ) return prev;
+      return { ...prev, ...next };
+    });
+  }, [productos]);
 
   useEffect(() => {
     refrescarCitasPOS();
@@ -908,9 +1068,9 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
 
 
   const fil = React.useMemo(() => {
-    const s = normalizeBarcodeRaw(srch) || srch.trim();
+    const s = queryCatalogoDesdeInputPos(srch);
     if (!s) return [];
-    const exact = findProductExactScan(productos, s);
+    const exact = findProductExactScan(productos, normalizeBarcodeRaw(srch) || s);
     if (exact) return [exact];
     if (isAllDigitsInput(srch)) return [];
     const matched = productos.filter(p => tiendaProductMatchesBusqueda(p, s));
@@ -931,24 +1091,29 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
 
   const clearPosSearch = useCallback(() => {
     setSrch("");
-    setSrchFocus(false);
     setFichaProd(null);
     srchRef.current?.focus();
   }, []);
 
+  const srchAnteriorRef = useRef(srch);
   useEffect(() => {
     if (tab !== "venta") return;
-    const s = normalizeBarcodeRaw(srch) || srch.trim();
-    if (!s) return;
-    const exact = findProductExactScan(productos, s);
+    const cambioBusqueda = srchAnteriorRef.current !== srch;
+    srchAnteriorRef.current = srch;
+    const s = queryCatalogoDesdeInputPos(srch);
+    if (!s) {
+      if (cambioBusqueda) setFichaProd(null);
+      return;
+    }
+    const exact = findProductExactScan(productos, normalizeBarcodeRaw(srch) || s);
     if (exact) {
       setFichaProd(exact);
       return;
     }
     if (srchEsEscaneo) return;
-    if (fil.length === 0) return;
-    setFichaProd((prev) => (prev && fil.some((p) => p.id === prev.id) ? prev : fil[0]));
-  }, [srch, fil, tab, productos, srchEsEscaneo]);
+    // Texto nuevo: volver al tablero. El EAN/SKU exacto sí abre la ficha.
+    if (cambioBusqueda) setFichaProd(null);
+  }, [srch, tab, productos, srchEsEscaneo]);
 
   useEffect(() => {
     if (tab !== "venta" || !fichaProd?.id) return;
@@ -1005,13 +1170,10 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     })();
   }, [fichaProd, tab, usoByProdId]);
 
-  const srchSuggestions = React.useMemo(() => {
-    const s = srch.trim();
-    if (!srchFocus || s.length < 2) return [];
-    if (srchEsEscaneo) return [];
-    if (findProductExactScan(productos, normalizeBarcodeRaw(s) || s)) return [];
-    return tiendaCatalogSearchSuggestions(productos.filter(p => p.activo !== false), s, { limit: 7 });
-  }, [productos, srch, srchFocus, srchEsEscaneo]);
+  const etiquetaIntencion = etiquetaIntencionMostrador(queryCatalogoDesdeInputPos(srch));
+  const tituloResultados = etiquetaIntencion
+    ? `Para ${etiquetaIntencion}`
+    : `${fil.length} resultado${fil.length !== 1 ? "s" : ""} · mejores primero`;
 
   const paymentLabel = (method) => ({
     efectivo:       "Efectivo",
@@ -1034,18 +1196,21 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const add = (item, esUnidad=false) => {
     if (!productoEsVendible(item)) {
       showToast(`"${item?.nombre || "Producto"}" no tiene precio de venta. Cárgalo en Inventario antes de cobrarlo.`, "warning");
-      return;
+      return false;
     }
     // Validar que el lote FEFO activo más próximo no esté vencido
     if(item.min_caducidad_lotes) {
       const hoy = hoyISOMexico();
       if(item.min_caducidad_lotes < hoy) {
         showToast(`⚠️ ${item.nombre} tiene lote VENCIDO (${item.min_caducidad_lotes}). No se puede vender.`, "error");
-        return;
+        return false;
       }
     }
-    if (item.controlado && !esUnidad) { setRxM(item); return; }
-    if (item.categoria === "Antibiótico" && !esUnidad) {
+    if (esMedicamentoControlado(item) && !esUnidad) {
+      setRxM(item);
+      return false;
+    }
+    if (esCategoriaAntibiotico(item.categoria) && !esUnidad) {
       const yaEnCarrito = cart.some((c) => c.id === item.id || c.producto_id === item.id);
       if (!yaEnCarrito) {
         showToast("Antibiótico: se recomienda receta. No es obligatoria para cobrar.", "info");
@@ -1054,41 +1219,54 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     if (esUnidad) {
       if ((item.stock_unidades || 0) <= 0) {
         showToast("Sin unidades disponibles para venta suelta.", "warning");
-        return;
+        return false;
       }
       const keyU = item.id+"_unit";
+      let added = true;
       setCart(p=>{
         const ex = p.find(c=>c.id===keyU);
         if (ex && ex.qty >= (item.stock_unidades || 0)) {
           showToast(`Máx unidades sueltas: ${item.stock_unidades || 0}`, "warning");
+          added = false;
           return p;
         }
         return ex
           ? p.map(c=>c.id===keyU?{...c,qty:c.qty+1}:c)
           : [...p,{...item,id:keyU,producto_id:item.id,qty:1,rxI:null,esUnidad:true,precio:precioUnidadParaVenta(item),nombre:`${posTituloProducto(item)} (unidad)`}];
       });
-    } else {
-      if (!validarProductoParaCarrito(item, 1, false)) {
-        return;
+      return added;
+    }
+    if (!validarProductoParaCarrito(item, 1, false)) {
+      return false;
+    }
+
+    setCart(p=>{
+      const disponibleFifo = getStockFifoDisponible(item);
+      const ex=p.find(c=>c.id===item.id);
+      const qtyActual = Number(ex?.qty || 0);
+
+      if(qtyActual + 1 > disponibleFifo){
+        showToast(`Stock FIFO insuficiente. Disponible por lotes: ${disponibleFifo}, en carrito: ${qtyActual}.`, "warning");
+        return p;
       }
 
-      setCart(p=>{
-        const disponibleFifo = getStockFifoDisponible(item);
-        const ex=p.find(c=>c.id===item.id);
-        const qtyActual = Number(ex?.qty || 0);
+      if(ex){
+        const qty = ex.qty + 1;
+        const priced = precioCajaDesdeProducto(item, qty, especialesRef.current);
+        return p.map(c=>c.id===item.id?{...c,qty,...priced}:c);
+      }
 
-        if(qtyActual + 1 > disponibleFifo){
-          showToast(`Stock FIFO insuficiente. Disponible por lotes: ${disponibleFifo}, en carrito: ${qtyActual}.`, "warning");
-          return p;
-        }
-
-        if(ex){
-          return p.map(c=>c.id===item.id?{...c,qty:c.qty+1}:c);
-        }
-
-        return [...p,{...item,producto_id:item.id,qty:1,rxI:null,esUnidad:false,nombre:posTituloProducto(item),precio:pesoPublico(item.precio)}];
-      });
-    }
+      return [...p,{
+        ...item,
+        producto_id:item.id,
+        qty:1,
+        rxI:null,
+        esUnidad:false,
+        nombre:posTituloProducto(item),
+        ...precioCajaDesdeProducto(item, 1, especialesRef.current),
+      }];
+    });
+    return true;
   };
   addRef.current = add;
 
@@ -1099,7 +1277,6 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     const mismoEscaneo = prev.raw === raw && now - prev.ts < 400;
     setFichaProd(exact);
     setSrch("");
-    setSrchFocus(false);
     srchRef.current?.focus();
     if (mismoEscaneo) return;
     lastScanBurstRef.current = { raw, ts: now };
@@ -1118,7 +1295,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   }, [productos, finalizarEscaneoExitoso]);
 
   useHidBarcodeWedge({
-    enabled: tab === "venta" && !mpModal && !bbvaModal && !speiModal && !speiMpModal && !ticket,
+    enabled: tab === "venta" && !mpModal && !bbvaModal && !speiModal && !speiMpModal && !ticket && !modalConfirmEfectivo,
     onScan: onHidScan,
   });
 
@@ -1145,47 +1322,29 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
 
 
   const getLoteCantidadDisponible = (lote) => {
-    return Number(
+    const n = Number(
+      lote?.cantidad_actual ??
       lote?.cantidad_disponible ??
       lote?.stock_disponible ??
-      lote?.cantidad_actual ??
       lote?.existencia ??
       lote?.stock ??
       lote?.cantidad ??
       0
-    ) || 0;
+    );
+    return Number.isFinite(n) && n > 0 ? n : 0;
   };
 
   const getStockFifoDisponible = (producto) => {
     if (!producto) return 0;
-
-    const directo = Number(
-      producto.stock_lotes_disponible ??
-      producto.stock_fifo_disponible ??
-      producto.stock_disponible_lotes ??
-      producto.stock_disponible ??
-      producto.disponible_fifo
-    );
-
-    if (Number.isFinite(directo)) {
-      return Math.max(0, directo);
-    }
-
     const lotes = Array.isArray(producto.lotes) ? producto.lotes : [];
-
-    if (lotes.length > 0) {
-      return Math.max(
-        0,
-        lotes.reduce((sum, lote) => {
-          if (lote?.activo === false) return sum;
-          return sum + getLoteCantidadDisponible(lote);
-        }, 0)
-      );
-    }
-
-    // Importante:
-    // Si no hay lotes, no vender por POS FIFO aunque productos.stock diga otra cosa.
-    return 0;
+    const fromLots = lotes.reduce((sum, lote) => {
+      if (lote?.activo === false) return sum;
+      return sum + getLoteCantidadDisponible(lote);
+    }, 0);
+    if (fromLots > 0) return fromLots;
+    // Sin piezas en lotes (payload vacío o solo lotes en 0): usar el caché
+    // productos.stock. Un lote fantasma qty=0 no debe bloquear la venta.
+    return Math.max(0, Number(producto?.stock || 0));
   };
 
   /** ¿Hay filas de lote activas con existencia? (PEPS — fuente de verdad en POS) */
@@ -1201,24 +1360,22 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
    * - Con lotes: suma cantidad_actual de lotes activos
    * - Sin lotes (legacy): productos.stock
    */
-  const getStockCajasPOS = (producto) => {
-    const lotes = Array.isArray(producto?.lotes) ? producto.lotes : [];
-    if (lotes.length > 0) return getStockFifoDisponible(producto);
-    return Math.max(0, Number(producto?.stock || 0));
-  };
+  const getStockCajasPOS = (producto) => getStockFifoDisponible(producto);
 
   const productoSinLotesPEPS = (producto) => {
     if (producto?.venta_unidad) return false;
-    const lotes = Array.isArray(producto?.lotes) ? producto.lotes : [];
-    return lotes.length === 0;
+    return getStockFifoDisponible(producto) <= 0;
   };
 
   /** Mismo criterio que la lista de resultados, para el tablero de equivalentes. */
   const estadoStockPos = (producto) => {
     if (productoSinLotesPEPS(producto)) return { agotado: true, etiqueta: "Sin lotes" };
     const cajas = getStockCajasPOS(producto);
-    const agotado = cajas <= 0 && (!producto.venta_unidad || producto.stock_unidades === 0);
-    return { agotado, etiqueta: agotado ? "Agotado" : `${cajas} disp.` };
+    const visible = stockMostradorPos(producto, cajas);
+    const agotado = productoCajaEsFalsa(producto)
+      ? visible <= 0
+      : cajas <= 0 && (!producto.venta_unidad || producto.stock_unidades === 0);
+    return { agotado, etiqueta: agotado ? "Agotado" : `${visible} disp.` };
   };
 
   const getCantidadEnCarrito = (cartActual, productoId, esUnidad = false) => {
@@ -1267,7 +1424,17 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     }
 
     if (enCarrito + cantidadNueva > disponibleFifo) {
-      showToast(`Stock FIFO insuficiente. Disponible por lotes: ${disponibleFifo}, en carrito: ${enCarrito}.`, "warning");
+      if (enCarrito >= disponibleFifo) {
+        showToast(
+          `Ya está en el carrito (${enCarrito} de ${disponibleFifo}). Cobra esa pieza; no hay más en stock.`,
+          "warning"
+        );
+      } else {
+        showToast(
+          `Solo hay ${disponibleFifo} en stock. En el carrito ya van ${enCarrito}.`,
+          "warning"
+        );
+      }
       return false;
     }
 
@@ -1275,7 +1442,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   };
 
   const abrirCaja = async (item) => {
-    if (item.stock <= 0) { showToast("Sin stock de cajas disponibles.", "warning"); return; }
+    if (getStockCajasPOS(item) <= 0) { showToast("Sin stock de cajas disponibles.", "warning"); return; }
     const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) { showToast("Sesión expirada.", "error"); return; }
     const { data, error } = await supabase.rpc("abrir_caja_secure", {
@@ -1326,17 +1493,28 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       }
 
       return ex
-        ? p.map(c=>c.id===rxM.id?{...c,qty:c.qty+1,rxI:{...rx}}:c)
-        : [...p,{...rxM,producto_id:rxM.id,qty:1,rxI:{...rx},esUnidad:false,precio:pesoPublico(rxM.precio)}];
+        ? p.map(c=>{
+            if (c.id !== rxM.id) return c;
+            const qty = c.qty + 1;
+            return { ...c, qty, rxI: { ...rx }, ...precioCajaDesdeProducto(rxM, qty, especialesRef.current) };
+          })
+        : [...p,{
+            ...rxM,
+            producto_id:rxM.id,
+            qty:1,
+            rxI:{...rx},
+            esUnidad:false,
+            ...precioCajaDesdeProducto(rxM, 1, especialesRef.current),
+          }];
     });
 
     setRxM(null); setRx({receta:"",medico:"",cedula:"",paciente:"",indicaciones:""});
   };
 
-  // Total de cobro: precio de lista → pesoPublico. El descuento real va por lote
-  // (precio_caja_cobro_pos / importe_cajas_fefo), no por productos.descuento_pct.
+  // P2.2: Total a cobrar = precio de línea (FEFO/exclusivo ya viene en c.precio).
+  // No aplicar descuento_pct otra vez: el lote FEFO es el descuento real (T1').
   const calcularTotalConPromos = () => {
-    return cart.reduce((a, c) => a + cobroLinea(c.precio, c.qty), 0);
+    return cart.reduce((a,c) => a + cobroLinea(c.precio, c.qty), 0);
   };
   const sub   = calcularTotalConPromos();
   const ptsG  = Math.floor(sub/10);
@@ -1409,6 +1587,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       }
     }
     setGuard(true);
+    setModalConfirmEfectivo(false);
     try {
       if (exigeCaja && !cajaAbierta) {
         showToast("Abre caja antes de vender.", "warning");
@@ -1425,13 +1604,12 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       const cartItemsMapped = cart.map(c=>({
         producto_id: c.producto_id ?? c.id,
         cantidad: c.qty,
-        // Sin descuento_pct: el cobro por caducidad/lote lo resuelve el RPC vía FEFO.
         precio_unitario: cobroLinea(c.precio, 1),
         modo_venta: c.esUnidad ? "unidad" : "caja",
       }));
 
       const rpcName = creditoNum > 0 ? "empleado_cobrar_venta_pos" : "create_sale_transaction_secure";
-      const { data: rpcData, error: rpcError } = await supabase.rpc(rpcName, {
+      const rpcArgs = {
         p_session_token: tok,
         p_metodo_pago: aCobrar === 0 ? "efectivo" : metodoPagoFinal,
         p_total: total,
@@ -1441,7 +1619,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         p_tipo_entrega: null,
         p_direccion: null,
         ...(creditoNum > 0 ? { p_monto_credito: creditoNum } : {}),
-      });
+      };
+      const { data: rpcData, error: rpcError } = await supabase.rpc(rpcName, rpcArgs);
 
       if (rpcError) throw rpcError;
 
@@ -1555,6 +1734,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         ...(metodoPagoFinal === "efectivo" && Number.isFinite(recEf) ? { efectivo_recibido: recEf, cambio: cambioEf } : {}),
       });
       showToast("Venta registrada correctamente", "success");
+      avisarCatalogoCambio({ origen: "pos-venta" });
       setCart([]); setTel(""); setCli(null);
       setMontoRecibido("");
       setUsarCredito(false);
@@ -1568,16 +1748,15 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         // Sincroniza existencias visibles con BD tras un rechazo por stock.
         try {
           const tokRf = sessionStorage.getItem("farmacapital_session_token");
-          const { data } = tokRf
-            ? await supabase.rpc("empleado_listar_productos_con_lotes_pos", { p_session_token: tokRf })
-            : { data: [] };
-          const prodsArr = Array.isArray(data) ? data : [];
-          const prodsConCad = prodsArr.map((p) => {
-            const activos = (p.lotes || []).filter((l) => l.activo !== false && (l.cantidad_actual || 0) > 0 && l.fecha_caducidad);
-            const minCad = activos.reduce((m, l) => (!m || l.fecha_caducidad < m) ? l.fecha_caducidad : m, null);
-            return { ...p, min_caducidad_lotes: minCad };
-          });
-          setProds(prodsConCad);
+          const [{ data }, lotesMap, especialesMap] = await Promise.all([
+            tokRf
+              ? supabase.rpc("empleado_listar_productos_con_lotes_pos", { p_session_token: tokRf })
+              : Promise.resolve({ data: [] }),
+            fetchLotesMapPos(tokRf),
+            fetchEspecialesCaducidadPos(tokRf),
+          ]);
+          especialesRef.current = especialesMap || {};
+          setProds(enrichPosProductosConLotes(Array.isArray(data) ? data : [], lotesMap));
         } catch (_) {
           // noop: no bloquear el flujo por un refresh fallido
         }
@@ -1611,7 +1790,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       recetaOrigenPendienteRef.current = ro;
       setSpeiMpModal(true);
     } else if (modo === "efectivo") {
-      ejecutarCobrar(ro);
+      recetaOrigenEfectivoRef.current = ro;
+      setModalConfirmEfectivo(true);
     }
   };
 
@@ -1820,7 +2000,10 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   const renderPosCarritoVentaInner = () => (
     <>
       <Box style={{padding:16,marginBottom:12}}>
-        <div style={{color:C.text,fontWeight:800,fontSize:16,marginBottom:12}}>🛒 Carrito {cart.length>0&&<span style={{color:BRAND.primary,fontWeight:700,fontSize:13}}>({cart.length})</span>}</div>
+        <div style={{color:C.text,fontWeight:800,fontSize:16,marginBottom:12,display:"flex",alignItems:"center",gap:8}}>
+          <span style={{color:BRAND.primary}}><IconoBolsa size={18} /></span>
+          Carrito {cart.length>0&&<span style={{color:BRAND.primary,fontWeight:700,fontSize:13}}>({cart.length})</span>}
+        </div>
         <div data-tour="pos-cliente">
         <SearchDropdown
           value={tel}
@@ -1835,6 +2018,29 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
           style={{marginBottom:8}}
           emptyMsg="Sin coincidencias · prueba más dígitos del teléfono o el nombre"
         />
+        <button
+          type="button"
+          onClick={() => {
+            const q = String(tel || "").replace(/\D/g, "").length >= 10
+              ? tel
+              : (folioActual !== "VTA-00000000" ? folioActual : tel);
+            setDevQuery(String(q || "").trim());
+            setModalDev(true);
+          }}
+          style={{
+            marginBottom: 10,
+            background: "none",
+            border: "none",
+            padding: 0,
+            color: C.blue,
+            fontSize: 12,
+            fontWeight: 700,
+            cursor: "pointer",
+            textAlign: "left",
+          }}
+        >
+          ↩️ Devolver última venta (teléfono o folio)
+        </button>
         </div>
         {cli&&<div style={{background:C.purpleDim,border:`1px solid ${C.purple}30`,borderRadius:8,padding:"8px 10px",marginBottom:10}}>
           <div style={{color:C.purple,fontWeight:700,fontSize:12}}>{cli.nombre}</div>
@@ -1845,12 +2051,23 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
          cart.map(item=>(
           <div key={item.id} style={{marginBottom:12,paddingBottom:12,borderBottom:`1px solid ${C.border}`}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:6,marginBottom:8}}>
-              <div style={{color:C.text,fontSize:14,fontWeight:700,flex:1,lineHeight:1.3}}>{item.nombre}</div>
+              <div style={{flex:1,lineHeight:1.3}}>
+                <div style={{color:C.text,fontSize:14,fontWeight:700}}>{item.nombre}</div>
+                {item.fuentePrecio === "caducidad" && (
+                  <div style={{color:C.amber,fontSize:11,fontWeight:700,marginTop:2}}>Precio especial por caducar</div>
+                )}
+              </div>
               <button onClick={()=>setCart(p=>p.filter(c=>c.id!==item.id))} style={{background:"none",border:"none",color:C.red,cursor:"pointer",fontSize:18,lineHeight:1,padding:"0 2px",flexShrink:0}}>×</button>
             </div>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div style={{display:"flex",alignItems:"center",gap:8}}>
-                <button onClick={()=>setCart(p=>p.map(c=>c.id===item.id?{...c,qty:Math.max(1,c.qty-1)}:c))} style={{width:28,height:28,borderRadius:6,border:`1px solid ${C.border}`,background:"none",color:C.text,cursor:"pointer",fontSize:16,fontWeight:700}}>−</button>
+                <button onClick={()=>setCart(p=>p.map(c=>{
+                  if(c.id!==item.id) return c;
+                  const qty = Math.max(1, c.qty - 1);
+                  if (c.esUnidad) return { ...c, qty };
+                  const prod = productos.find(x=>String(x.id)===String(item.producto_id??item.id)) || c;
+                  return { ...c, qty, ...precioCajaDesdeProducto(prod, qty, especialesRef.current) };
+                }))} style={{width:28,height:28,borderRadius:6,border:`1px solid ${C.border}`,background:"none",color:C.text,cursor:"pointer",fontSize:16,fontWeight:700}}>−</button>
                 <span style={{color:C.text,fontSize:15,fontWeight:800,minWidth:20,textAlign:"center"}}>{item.qty}</span>
             <button onClick={()=>setCart(p=>p.map(c=>{
               if(c.id!==item.id) return c;
@@ -1862,48 +2079,17 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
               const prod = productos.find(x=>String(x.id)===String(item.producto_id??item.id));
               const maxF = prod ? getStockFifoDisponible(prod) : 0;
               if(c.qty>=maxF){ showToast(`Stock FIFO insuficiente. Disponible: ${maxF}`,"warning"); return c; }
-              return {...c,qty:c.qty+1};
+              const qty = c.qty + 1;
+              return {...c,qty,...precioCajaDesdeProducto(prod || c, qty, especialesRef.current)};
             }))} style={{width:28,height:28,borderRadius:6,border:`1px solid ${C.border}`,background:"none",color:C.text,cursor:"pointer",fontSize:16,fontWeight:700}}>+</button>
               </div>
-              <span style={{color:C.blue,fontWeight:800,fontSize:16}}>{$(item.precio*item.qty)}</span>
+              <span style={{color:C.blue,fontWeight:800,fontSize:16}}>{$(cobroLinea(item.precio, item.qty))}</span>
             </div>
           </div>
         ))}
       </Box>
-      {/* Sugerencias */}
-      {cart.length>0&&(()=>{
-        const cats = [...new Set(cart.map(i=>i.categoria).filter(Boolean))];
-        const idsEnCart = new Set(cart.map(i=>typeof i.id==="string"?i.id:String(i.id)));
-        const sugs = productos.filter(p=>
-          cats.includes(p.categoria) &&
-          !idsEnCart.has(String(p.id)) &&
-          p.activo && p.stock>0
-        ).slice(0,4);
-        if(!sugs.length) return null;
-        return (
-          <Box style={{padding:12,marginBottom:12}}>
-            <div style={{color:C.textMid,fontSize:10,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>💡 Sugeridos</div>
-            <div style={{display:"flex",flexDirection:"column",gap:6}}>
-              {sugs.map(p=>(
-                <div key={p.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 8px",borderRadius:7,background:C.bg,cursor:"pointer"}}
-                  onClick={()=>add(p,false)}
-                  onMouseEnter={e=>e.currentTarget.style.background=C.blueDim}
-                  onMouseLeave={e=>e.currentTarget.style.background=C.bg}>
-                  <div style={{flex:1}}>
-                    <div style={{color:C.text,fontSize:11,fontWeight:600,lineHeight:1.3}}>{p.nombre}</div>
-                    <div style={{color:C.textDim,fontSize:9}}>{p.categoria}</div>
-                  </div>
-                  <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
-                    <span style={{color:C.blue,fontWeight:700,fontSize:11}}>{$(p.precio||p.precio||0)}</span>
-                    <span style={{color:C.green,fontSize:14,fontWeight:700}}>+</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Box>
-        );
-      })()}
 
+      {/* Crédito en tienda */}
       {cli && saldoCredito > 0 && cart.length > 0 && (
         <Box style={{padding:14,marginBottom:12,background:C.greenDim,border:`1px solid ${C.green}25`}}>
           <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",marginBottom:usarCredito?8:0}}>
@@ -2066,9 +2252,34 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       paddingBottom:"max(8px, env(safe-area-inset-bottom, 0px))",
       touchAction:"pan-y",
     }}>
-      {exigeCaja && cajaCheck && !cajaAbierta && (
+      {exigeCaja && cajaCheck && cajaVerifyError && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 2000, background: C.bg,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          padding: 24, fontFamily: "var(--fc-body)",
+        }}>
+          <div style={{ maxWidth: 420, width: "100%", background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 22 }}>
+            <div style={{ color: C.text, fontWeight: 800, fontSize: 18, marginBottom: 8 }}>No se pudo verificar la caja</div>
+            <p style={{ color: C.textMid, fontSize: 14, lineHeight: 1.5, margin: "0 0 16px" }}>
+              {cajaVerifyError}. La caja no se cierra por esto. Reintenta; si sigue fallando, entra de nuevo con tu usuario.
+            </p>
+            <button
+              type="button"
+              onClick={() => { setCajaCheck(false); setCajaVerifyError(null); setCajaRetry((n) => n + 1); }}
+              style={{
+                width: "100%", padding: "12px 16px", border: "none", borderRadius: 10,
+                background: BRAND.gradient, color: "#fff", fontWeight: 800, fontSize: 15, cursor: "pointer",
+              }}
+            >
+              Reintentar
+            </button>
+          </div>
+        </div>
+      )}
+      {exigeCaja && cajaCheck && !cajaAbierta && !cajaVerifyError && (
         <AperturaCajaModal
           usuario={usuario}
+          onSesionExpirada={onSesionExpirada}
           onAbierta={(s) => { setSesionCaja(s); setCajaAbierta(true); }}
         />
       )}
@@ -2080,6 +2291,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
           color: #0f172a;
           -webkit-text-fill-color: #0f172a;
           caret-color: #0f172a;
+          touch-action: manipulation;
         }
         .farmacapital-pos-root input.farmacapital-pos-srch::placeholder,
         .farmacapital-pos-root input.farmacapital-field-input::placeholder {
@@ -2094,12 +2306,13 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         }
         @media (max-width: 1100px) {
           .farmacapital-pos-root { overflow-x: hidden; max-width: 100%; }
+          .farmacapital-pos-root input.farmacapital-pos-srch,
+          .farmacapital-pos-root input.farmacapital-field-input {
+            font-size: 16px !important;
+          }
         }
         /* Solo ≤768px: marco alto fijo + scroll de productos (carrito en modal por JS). */
         @media (max-width: 768px) {
-          input.farmacapital-pos-srch {
-            font-size: 16px !important;
-          }
           .farmacapital-pos-venta-grid.farmacapital-pos-venta-narrow {
             display: flex !important;
             flex-direction: column !important;
@@ -2160,9 +2373,13 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
               )}
             </h1>
             {folioActual!=="VTA-00000000"&&(
-              <span style={{padding:"3px 10px",borderRadius:20,fontSize:10,fontWeight:700,background:C.blueDim,color:C.blue}}>
-                Último folio: {folioActual}
-              </span>
+              <button
+                type="button"
+                onClick={() => { setDevQuery(folioActual); setModalDev(true); }}
+                style={{padding:"3px 10px",borderRadius:20,fontSize:10,fontWeight:700,background:C.blueDim,color:C.blue,border:"none",cursor:"pointer"}}
+              >
+                Último folio: {folioActual} · devolver
+              </button>
             )}
             {sesionCaja?.abierta_at && (
               <span style={{padding:"3px 10px",borderRadius:20,fontSize:10,fontWeight:700,background:C.greenDim,color:C.greenDark}}>
@@ -2244,8 +2461,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       </div>
 
       {/* Modal RX */}
-      <Modal open={!!rxM} onClose={()=>setRxM(null)} title="⚕ Medicamento con Receta — COFEPRIS" ac={C.amber}>
-        <div style={{color:C.textMid,fontSize:13,marginBottom:14}}><strong style={{color:C.text}}>{rxM?.nombre}</strong> — se registrará en bitácora COFEPRIS/SICAD</div>
+      <Modal open={!!rxM} onClose={()=>setRxM(null)} title="⚕ Medicamento controlado — receta obligatoria" ac={C.red}>
+        <div style={{color:C.textMid,fontSize:13,marginBottom:14}}><strong style={{color:C.text}}>{rxM?.nombre}</strong> — controlado: captura receta, médico, cédula y paciente para bitácora COFEPRIS/SICAD</div>
         {[["Número de receta","receta","RX-2024-XXX"],["Médico prescriptor","medico","Dr. Nombre Completo"],["Cédula profesional","cedula","Número cédula SEP"],["Nombre del paciente","paciente","Nombre completo"]].map(([l,k,ph])=>(
           <div key={k} style={{marginBottom:12}}>
             <div style={{color:C.textMid,fontSize:11,marginBottom:4}}>{l} *</div>
@@ -2305,40 +2522,34 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         </div>
       </Modal>
 
-      {/* Transferencia SPEI a la cuenta de la farmacia (confirmación manual) */}
-      <SpeiManualModal
-        open={speiModal}
-        total={total}
-        folio={folioActual || "VTA-PENDIENTE"}
-        onSuccess={async () => {
-          setSpeiModal(false);
-          const ro = recetaOrigenPendienteRef.current || "no_aplica";
-          recetaOrigenPendienteRef.current = "no_aplica";
-          await ejecutarCobrar(ro, "spei");
-        }}
-        onCancel={() => {
-          setSpeiModal(false);
-          recetaOrigenPendienteRef.current = "no_aplica";
-        }}
-      />
-
-      {/* Transferencia SPEI con CLABE única de Mercado Pago (acreditación automática) */}
-      <SpeiMPModal
-        open={speiMpModal}
-        total={total}
-        folio={folioActual || "VTA-PENDIENTE"}
-        clienteEmail={cli?.email || null}
-        onSuccess={async () => {
-          setSpeiMpModal(false);
-          const ro = recetaOrigenPendienteRef.current || "no_aplica";
-          recetaOrigenPendienteRef.current = "no_aplica";
-          await ejecutarCobrar(ro, "spei_mp");
-        }}
-        onCancel={() => {
-          setSpeiMpModal(false);
-          recetaOrigenPendienteRef.current = "no_aplica";
-        }}
-      />
+      <Modal
+        open={modalConfirmEfectivo}
+        onClose={() => { if (!guardando) setModalConfirmEfectivo(false); }}
+        title="¿Ya recibiste el efectivo?"
+        ac={C.green}
+      >
+        <div style={{ color: C.textMid, fontSize: 13, marginBottom: 14, lineHeight: 1.5 }}>
+          La venta se registra y se descuenta el inventario solo cuando confirmas que el dinero ya está en caja.
+        </div>
+        <div style={{ background: C.greenDim, border: `1px solid ${C.green}30`, borderRadius: 10, padding: "12px 14px", marginBottom: 16 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 13 }}>
+            <span style={{ color: C.textMid }}>Total</span>
+            <strong style={{ color: C.text }}>{$(total)}</strong>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 13 }}>
+            <span style={{ color: C.textMid }}>Recibido</span>
+            <strong style={{ color: C.text }}>{Number.isFinite(recibidoNum) ? $(recibidoNum) : "—"}</strong>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 15 }}>
+            <span style={{ color: C.textMid }}>Cambio</span>
+            <strong style={{ color: C.green, fontWeight: 900 }}>{cambioNum != null ? $(cambioNum) : "—"}</strong>
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
+          <Btn ol col={C.textMid} sm onClick={() => setModalConfirmEfectivo(false)} dis={guardando}>Aún no</Btn>
+          <Btn col={C.green} onClick={() => ejecutarCobrar(recetaOrigenEfectivoRef.current)} dis={guardando}>{guardando ? "Registrando…" : "Sí, registrar venta"}</Btn>
+        </div>
+      </Modal>
 
       {/* Modal ticket — TicketPreviewModal (aparece automáticamente después de venta) */}
       {/* Mercado Pago Point Smart 2 Modal */}
@@ -2358,7 +2569,9 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         }
         hint={
           mpServicioRef.current
-            ? "Cobra al cliente servicio + comisión en la Point. Después liquida el recibo en Smart Launcher → Pago de servicios."
+            ? (mpServicioRef.current.categoria === "recarga"
+              ? "Cobra al cliente solo el monto de la recarga en la Point. El tiempo aire ya salió del saldo MP. Prefiere efectivo: la comisión de Point se come el 1%."
+              : "Cobra al cliente el recibo + tu recargo en la Point. El servicio ya se pagó con saldo MP. Prefiere efectivo: la comisión de Point se come la ganancia.")
             : "El terminal recibe el monto; al aprobarse se registra la venta y podrás imprimir o enviar el ticket por WhatsApp."
         }
         onSuccess={async ()=>{
@@ -2428,6 +2641,41 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         }}
       />
 
+      {/* Transferencia SPEI a la cuenta de la farmacia (confirmación manual) */}
+      <SpeiManualModal
+        open={speiModal}
+        total={total}
+        folio={folioActual || "VTA-PENDIENTE"}
+        onSuccess={async () => {
+          setSpeiModal(false);
+          const ro = recetaOrigenPendienteRef.current || "no_aplica";
+          recetaOrigenPendienteRef.current = "no_aplica";
+          await ejecutarCobrar(ro, "spei");
+        }}
+        onCancel={() => {
+          setSpeiModal(false);
+          recetaOrigenPendienteRef.current = "no_aplica";
+        }}
+      />
+
+      {/* Transferencia SPEI con CLABE única de Mercado Pago (acreditación automática) */}
+      <SpeiMPModal
+        open={speiMpModal}
+        total={total}
+        folio={folioActual || "VTA-PENDIENTE"}
+        clienteEmail={cli?.email || null}
+        onSuccess={async () => {
+          setSpeiMpModal(false);
+          const ro = recetaOrigenPendienteRef.current || "no_aplica";
+          recetaOrigenPendienteRef.current = "no_aplica";
+          await ejecutarCobrar(ro, "spei_mp");
+        }}
+        onCancel={() => {
+          setSpeiMpModal(false);
+          recetaOrigenPendienteRef.current = "no_aplica";
+        }}
+      />
+
       {ticket&&<TicketPreviewModal
         open={!!ticket}
         venta={{id:ticket.id, folio:ticket.folio, total:ticket.total, created_at:new Date().toISOString(), metodo_pago:ticket.pay, neto:ticket.neto, iva:ticket.iva}}
@@ -2441,6 +2689,15 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
         onClose={()=>setTicket(null)}
         onNuevaVenta={()=>{ setTicket(null); setCart([]); setTel(""); setCli(null); }}
       />}
+
+      {modalDev && (
+        <NuevaDevolucionModal
+          usuario={usuario}
+          initialQuery={devQuery}
+          onClose={() => setModalDev(false)}
+          onSaved={() => { setModalDev(false); showToast("Devolución registrada", "success"); }}
+        />
+      )}
       
 
       {/* TAB: VENTA NORMAL */}
@@ -2502,13 +2759,13 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
               >
                 <span
                   style={{
-                    fontSize: 22,
                     lineHeight: 1,
                     flexShrink: 0,
+                    color: cart.length ? BRAND.primary : C.textMid,
                   }}
                   aria-hidden
                 >
-                  🛒
+                  <IconoBolsa size={20} />
                 </span>
                 <div style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0 }}>
                   <span style={{ fontWeight: 800, fontSize: 12, color: C.text }}>
@@ -2584,31 +2841,39 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
             </div>
             )}
             <div style={{display:"flex",gap:8,marginBottom:12,alignItems:"center",flexWrap: isNarrow ? "wrap" : "nowrap"}}>
-              <div ref={srchWrapRef} style={{flex:1,minWidth:0,position:"relative"}}>
-              <input ref={srchRef} className="farmacapital-pos-srch farmacapital-field-input" value={srch}
+              <form ref={srchWrapRef} onSubmit={(e)=>{ e.preventDefault(); e.stopPropagation(); }} style={{flex:1,minWidth:0,position:"relative"}}>
+              <input ref={(el)=>{ srchRef.current = el; }} className="farmacapital-pos-srch farmacapital-field-input" value={srch}
                 data-tour="pos-buscador"
+                inputMode="text"
+                enterKeyHint="enter"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
+                onTouchStart={(e)=>unlockInputForTouchKeyboard(e.currentTarget)}
+                onMouseDown={(e)=>unlockInputForTouchKeyboard(e.currentTarget)}
                 onChange={e=>{
                   const v = e.target.value;
                   setSrch(v);
                   if (!v.trim()) {
                     setFichaProd(null);
-                    setSrchFocus(false);
                     return;
                   }
                   const scanKey = normalizeBarcodeRaw(v) || v.trim();
                   const exact = findProductExactScan(productos, scanKey);
                   if (exact) {
                     setFichaProd(exact);
-                    setSrchFocus(false);
                   } else {
-                    setSrchFocus(!isAllDigitsInput(v));
+                    setFichaProd(null);
                   }
                 }}
                 onFocus={(e)=>{
+                  unlockInputForTouchKeyboard(e.currentTarget);
                   if (isAllDigitsInput(srch)) e.target.select();
-                  else if (!isAllDigitsInput(srch)) setSrchFocus(true);
                 }}
-                onBlur={()=>setTimeout(()=>setSrchFocus(false),200)}
+                onBlur={(e)=>{
+                  lockInputAfterTouchKeyboard(e.currentTarget);
+                }}
                 onKeyDown={e=>{
                   if (e.key.length === 1 && /\d/.test(e.key)) {
                     const now = Date.now();
@@ -2616,7 +2881,6 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                       e.preventDefault();
                       setSrch(e.key);
                       setFichaProd(null);
-                      setSrchFocus(false);
                       scanLastKeyTsRef.current = now;
                       return;
                     }
@@ -2627,6 +2891,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                     e.stopPropagation();
                     const raw = normalizeBarcodeRaw(srch) || srch.trim();
                     if (!raw) return;
+                    // Nombre ("levo") nunca se trata como escaneo: no agrega ni borra.
                     if (looksLikeBarcodeInput(raw) || looksLikeInternalSku(raw)) {
                       const exact = findProductExactScan(productos, raw);
                       if (exact) {
@@ -2637,14 +2902,11 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                         showToast("Código de barras no encontrado en inventario.","warning");
                         setSrch("");
                       }
-                      return;
                     }
-                    setSrchFocus(false);
                   }
-                  if(e.key==="Escape"){setSrchFocus(false);}
                 }}
-                placeholder="🔫 Código de barras, SKU o nombre · Enter muestra resultados"
-                style={{width:"100%",boxSizing:"border-box",padding: srch.trim() ? "9px 38px 9px 13px" : "9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:"#ffffff",color:C.text,WebkitTextFillColor:C.text,caretColor:C.text,colorScheme:"light",fontSize:isMobilePos?16:13,outline:"none",fontFamily:"var(--fc-body)"}}/>
+                placeholder="Código, SKU, nombre o molestia"
+                style={{width:"100%",boxSizing:"border-box",padding: srch.trim() ? "9px 38px 9px 13px" : "9px 13px",borderRadius:8,border:`1px solid ${C.border}`,background:"#ffffff",color:C.text,WebkitTextFillColor:C.text,caretColor:C.text,colorScheme:"light",fontSize:isNarrow?16:13,outline:"none",fontFamily:"var(--fc-body)",touchAction:"manipulation",minHeight:44}}/>
               {srch.trim() && (
                 <button
                   type="button"
@@ -2674,49 +2936,32 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                   ×
                 </button>
               )}
-              {srchSuggestions.length>0&&srchFocus&&!srchEsEscaneo&&(
-                <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,right:0,zIndex:7000,background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,boxShadow:"0 8px 32px rgba(15,45,110,.14)",overflow:"hidden",maxHeight:280,overflowY:"auto"}}>
-                  {srchSuggestions.map((s,i)=>{
-                    const row=productos.find(x=>x.id===s.id);
-                    const rowFifo = row ? getStockFifoDisponible(row) : 0;
-                    const rowSinLotes = row && !row.venta_unidad && rowFifo <= 0;
-                    return(
-                        <div key={s.id} onMouseDown={e=>{
-                            e.preventDefault();
-                            if(row){
-                              setFichaProd(row);
-                              if(rowSinLotes){showToast(`"${row.nombre}" no tiene lotes. Ve a Inventario → Lotes.`,"warning");}
-                            }
-                            setSrchFocus(false);
-                          }}
-                          style={{padding:"9px 13px",cursor:"pointer",borderBottom:"1px solid #f0f4f9",background:rowSinLotes?"#fef2f2":"#fff",display:"flex",alignItems:"center",gap:10,opacity:rowSinLotes?0.75:1}}
-                          onMouseEnter={e=>e.currentTarget.style.background=rowSinLotes?"#fee2e2":"#eff6ff"}
-                          onMouseLeave={e=>e.currentTarget.style.background=rowSinLotes?"#fef2f2":"#fff"}>
-                          <div style={{flex:1,minWidth:0}}>
-                            <div style={{color:"#1e293b",fontWeight:600,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{posTituloProducto(row || s)}</div>
-                            <div style={{color:rowSinLotes?"#ef4444":"#94a3b8",fontSize:11,marginTop:1,fontWeight:rowSinLotes?700:400}}>
-                              {rowSinLotes?"⚠ Sin lotes disponibles":(posSubtituloProducto(row) || (s.sku?`SKU ${s.sku}`:"")+(Number(s.stock)<=0?" · Agotado":""))}
-                            </div>
-                          </div>
-                          <span style={{fontSize:11,fontWeight:700,color:rowSinLotes?"#ef4444":BRAND.accent,flexShrink:0}}>{row?.precio!=null?`$${Number(row.precio).toFixed(0)}`:""}</span>
-                        </div>
-                    );
-                  })}
-                </div>
-              )}
-              </div>
+              </form>
               {!isMobilePos && (
               <button onClick={()=>setCartOpen(p=>!p)} style={{
                 padding:"9px 14px",borderRadius:8,border:`1px solid ${C.border}`,
                 background:cart.length?BRAND.primary+"18":"transparent",
                 color:cart.length?BRAND.primary:C.textMid,
                 fontWeight:700,fontSize:12,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,
-              }}>🛒{cart.length>0?` (${cart.length})`:""} {cartOpen?"▶":"◀"}</button>
+                display:"inline-flex",alignItems:"center",gap:8,
+              }}>
+                <IconoBolsa size={16} />
+                {cart.length>0?` (${cart.length})`:""}
+                <IconoChevron size={12} direccion={cartOpen ? "der" : "izq"} />
+              </button>
               )}
             </div>
+            {fichaProd ? (
             <PosProductoFichaPanel
               item={fichaProd}
               productos={productos}
+              onVolver={srch.trim() && !srchEsEscaneo ? () => {
+                setFichaProd(null);
+                // La pistola escanea a nivel documento, pero devolver el foco
+                // deja al vendedor listo para teclear sin buscar el campo.
+                srchRef.current?.focus();
+              } : undefined}
+              volverTexto={grupoEquivalentes ? `Volver a las ${grupoEquivalentes.total} opciones` : "Volver a los resultados"}
               usoTexto={fichaProd ? (usoByProdId[fichaProd.id] || (posDescripcionEsUsoValido(fichaProd) ? fichaProd.descripcion : null)) : null}
               usoLoading={!!fichaProd && usoLoadingId === fichaProd.id}
               onSelectVariante={setFichaProd}
@@ -2725,13 +2970,49 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
               onAbrirCaja={abrirCaja}
               getStockCajasPOS={getStockCajasPOS}
               productoSinLotesPEPS={productoSinLotesPEPS}
+              enCarrito={fichaProd ? getCantidadEnCarrito(cart, fichaProd.id, false) : 0}
+              stockFifo={fichaProd ? getStockFifoDisponible(fichaProd) : 0}
               C={C}
               isMobilePos={isMobilePos}
               isNarrow={isNarrow}
               sticky={!!srch.trim() || !!fichaProd}
             />
+            ) : grupoEquivalentes ? (
+              <TableroEquivalentes
+                grupo={grupoEquivalentes}
+                onSelect={setFichaProd}
+                onAdd={(it) => add(it, false)}
+                estadoStock={estadoStockPos}
+              />
+            ) : srch.trim() && !srchEsEscaneo && fil.length > 0 && !looksLikeBarcodeInput(normalizeBarcodeRaw(srch) || srch) ? (
+              <TableroResultados
+                productos={fil.slice(0, 60)}
+                titulo={tituloResultados}
+                onSelect={setFichaProd}
+                onAdd={(it) => add(it, false)}
+                estadoStock={estadoStockPos}
+              />
+            ) : srch.trim() ? null : (
+            <PosProductoFichaPanel
+              item={null}
+              productos={productos}
+              usoTexto={null}
+              usoLoading={false}
+              onSelectVariante={setFichaProd}
+              onAddCaja={(it) => add(it, false)}
+              onAddUnidad={(it) => add(it, true)}
+              onAbrirCaja={abrirCaja}
+              getStockCajasPOS={getStockCajasPOS}
+              productoSinLotesPEPS={productoSinLotesPEPS}
+              enCarrito={0}
+              stockFifo={0}
+              C={C}
+              isMobilePos={isMobilePos}
+              isNarrow={isNarrow}
+            />
+            )}
 
-            {favs.length>0&&(
+            {favs.length>0 && !srch.trim() && !fichaProd &&(
               <div data-tour="pos-favoritos" style={{marginBottom:12}}>
                 <div style={{color:C.textDim,fontSize:10,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:6}}>⭐ Favoritos</div>
                 <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
@@ -2742,16 +3023,6 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                     </button>
                   ))}
                 </div>
-              </div>
-            )}
-            {srch.trim() && !srchEsEscaneo && (
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4,padding:"2px 0"}}>
-                <span style={{fontSize:11,color:C.textDim}}>
-                  {fil.length === 0
-                    ? "Sin resultados para esta búsqueda"
-                    : `${fil.length} resultado${fil.length!==1?"s":""} · mejores primero`}
-                </span>
-                <button type="button" onClick={clearPosSearch} style={{fontSize:11,color:C.textDim,background:"none",border:"none",cursor:"pointer",padding:"0 4px",lineHeight:1}}>✕ Limpiar</button>
               </div>
             )}
             {srch.trim() && fil.length === 0 && (
@@ -2765,72 +3036,6 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                     ? "Verifica el código o captúralo en Inventario."
                     : "Intenta con otro nombre, SKU o código de barras."}
                 </span>
-              </div>
-            )}
-            {grupoEquivalentes && !looksLikeBarcodeInput(normalizeBarcodeRaw(srch) || srch) && (
-              <TableroEquivalentes
-                grupo={grupoEquivalentes}
-                onSelect={setFichaProd}
-                onAdd={(it) => add(it, false)}
-                estadoStock={estadoStockPos}
-              />
-            )}
-            {srch.trim() && fil.length > 0 && !srchEsEscaneo && !looksLikeBarcodeInput(normalizeBarcodeRaw(srch) || srch) && (
-              <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden", background: C.card, maxHeight: 320, overflowY: "auto" }}>
-                <div style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: 0.5, textTransform: "uppercase", position: "sticky", top: 0, background: C.card, zIndex: 1 }}>
-                  Resultados ({Math.min(fil.length, 60)}{fil.length > 60 ? "+" : ""})
-                </div>
-                {fil.slice(0, 60).map((item) => {
-                  const sel = fichaProd?.id === item.id;
-                  const thumb = item.imagen_url || item.imagen_mobile_url || "";
-                  const stockCajas = getStockCajasPOS(item);
-                  const sinLotes = productoSinLotesPEPS(item);
-                  const agotado = stockCajas <= 0 && (!item.venta_unidad || item.stock_unidades === 0);
-                  const noDisp = sinLotes || agotado;
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => setFichaProd(item)}
-                      style={{
-                        width: "100%",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 12,
-                        padding: "10px 12px",
-                        border: "none",
-                        borderBottom: `1px solid ${C.border}`,
-                        background: sel ? C.blueDim : C.card,
-                        cursor: "pointer",
-                        textAlign: "left",
-                        opacity: noDisp ? 0.72 : 1,
-                      }}
-                    >
-                      <div style={{ width: 44, height: 44, borderRadius: 8, overflow: "hidden", background: C.cardDark, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        {thumb ? (
-                          <img src={thumb} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                        ) : (
-                          <span style={{ fontSize: 20 }}>💊</span>
-                        )}
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: sel ? 800 : 600, fontSize: 13, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {posTituloProducto(item)}
-                        </div>
-                        <div style={{ fontSize: 11, color: C.textDim, marginTop: 2 }}>
-                          {posSubtituloProducto(item) || item.sku}
-                          {sinLotes ? " · Sin lotes" : agotado ? " · Agotado" : ` · ${stockCajas} disp.`}
-                        </div>
-                      </div>
-                      <div style={{ fontWeight: 800, fontSize: 14, color: C.blue, flexShrink: 0 }}>{$(item.precio)}</div>
-                    </button>
-                  );
-                })}
-                {fil.length > 60 && (
-                  <div style={{ padding: "10px 12px", fontSize: 11, color: C.textDim, textAlign: "center" }}>
-                    Hay {fil.length - 60} resultados más — afina la búsqueda
-                  </div>
-                )}
               </div>
             )}
           </div>
@@ -3026,7 +3231,10 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                   <div style={{color:C.text,fontSize:13,fontWeight:700,marginTop:6}}>{clienteNombre}</div>
                   {clienteTel&&<div style={{color:C.textMid,fontSize:12,marginTop:1}}>📱 {clienteTel}</div>}
                   {p.tipo_entrega==="envio"&&p.direccion&&(
-                    <div style={{color:C.textDim,fontSize:11,marginTop:4,maxWidth:480,lineHeight:1.35}}>📍 {p.direccion}</div>
+                    <div style={{color:C.textDim,fontSize:11,marginTop:4,maxWidth:480,lineHeight:1.35,display:"flex",alignItems:"flex-start",gap:5}}>
+                      <span style={{marginTop:1}}><IconoAnaquel size={13} /></span>
+                      {p.direccion}
+                    </div>
                   )}
                   <div style={{color:C.textDim,fontSize:11,marginTop:2}}>{new Date(p.created_at).toLocaleString("es-MX")}</div>
                 </div>
@@ -3041,8 +3249,9 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
                   <div key={i} style={{display:"flex",justifyContent:"space-between",gap:10,marginBottom:6}}>
                     <div style={{minWidth:0}}>
                       <div style={{color:C.text,fontSize:12}}>{item.productos?.nombre} ×{item.cantidad}</div>
-                      <div style={{color:ubicacionPedidoItem(item)==="Sin ubicación"?C.textDim:C.blue,fontSize:11,fontWeight:700}}>
-                        📍 {ubicacionPedidoItem(item)}
+                      <div style={{color:ubicacionPedidoItem(item)==="Sin ubicación"?C.textDim:C.blue,fontSize:11,fontWeight:700,display:"flex",alignItems:"center",gap:5}}>
+                        <IconoAnaquel size={13} />
+                        {ubicacionPedidoItem(item)}
                       </div>
                     </div>
                     <span style={{color:C.blue,fontSize:12,fontWeight:700,flexShrink:0}}>{$(item.precio_unitario*item.cantidad)}</span>
@@ -3391,6 +3600,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
 
       {tab==="servicios"&&(
         <PagoServiciosPanel
+          usuario={usuario}
           isNarrow={isNarrow}
           config={config}
           refreshToken={serviciosRefresh}
