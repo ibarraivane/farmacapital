@@ -80,15 +80,20 @@ export default function RappiSyncPanel() {
 
   const togglePause = async () => {
     setSaving(true);
-    const next = !paused;
-    const { data, error } = await upsertConfig("rappi_sync_paused", next ? "true" : "false");
-    setSaving(false);
-    if (error || data?.success === false) {
-      showToast(error?.message || data?.error || "No se pudo pausar el sync", "error");
-      return;
+    try {
+      const next = !paused;
+      const { data, error } = await upsertConfig("rappi_sync_paused", next ? "true" : "false");
+      if (error || data?.success === false) {
+        showToast(error?.message || data?.error || "No se pudo pausar el sync", "error");
+        return;
+      }
+      setPaused(next);
+      showToast(next ? "Sync Rappi pausado. La cola sigue acumulando cambios." : "Sync Rappi reanudado.", "success");
+    } catch (e) {
+      showToast(e?.message || "Se cayó la conexión. Intenta de nuevo.", "error");
+    } finally {
+      setSaving(false);
     }
-    setPaused(next);
-    showToast(next ? "Sync Rappi pausado. La cola sigue acumulando cambios." : "Sync Rappi reanudado.", "success");
   };
 
   return (

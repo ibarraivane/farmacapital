@@ -65,14 +65,19 @@ export default function AperturaCajaModal({ usuario, onAbierta }) {
       return;
     }
     setSaving(true);
-    const { sesion, error } = await abrirSesionCaja({ denoms, nota });
-    setSaving(false);
-    if (error) {
-      showToast(error, "error");
-      return;
+    try {
+      const { sesion, error } = await abrirSesionCaja({ denoms, nota });
+      if (error) {
+        showToast(error, "error");
+        return;
+      }
+      showToast("Caja abierta. Ya puedes vender.", "success");
+      onAbierta?.(sesion);
+    } catch (e) {
+      showToast(e?.message || "Se cayó la conexión. Intenta de nuevo.", "error");
+    } finally {
+      setSaving(false);
     }
-    showToast("Caja abierta. Ya puedes vender.", "success");
-    onAbierta?.(sesion);
   };
 
   // El cajón es uno solo. Mary sale 15:30 y Erika entra 15:00, así que media

@@ -69,66 +69,69 @@ export default function AdminDashboard() {
     setError("");
     setOkMsg("");
 
-    const nombre = form.nombre.trim();
-    const stockTarget = asNumber(form.stock, 0);
-    const productoFields = {
-      nombre,
-      sku: form.sku.trim() || null,
-      categoria: form.categoria.trim() || "General",
-      precio: asNumber(form.precio, 0),
-      activo: !!form.activo,
-    };
+    try {
+      const nombre = form.nombre.trim();
+      const stockTarget = asNumber(form.stock, 0);
+      const productoFields = {
+        nombre,
+        sku: form.sku.trim() || null,
+        categoria: form.categoria.trim() || "General",
+        precio: asNumber(form.precio, 0),
+        activo: !!form.activo,
+      };
 
-    if (!nombre) {
-      setError("El nombre es obligatorio.");
-      setSaving(false);
-      return;
-    }
+      if (!nombre) {
+        setError("El nombre es obligatorio.");
+        return;
+      }
 
-    const tok = sessionStorage.getItem("farmacapital_session_token");
-    if (!tok) {
-      setError("Sesión expirada. Inicia sesión de nuevo.");
-      setSaving(false);
-      return;
-    }
+      const tok = sessionStorage.getItem("farmacapital_session_token");
+      if (!tok) {
+        setError("Sesión expirada. Inicia sesión de nuevo.");
+        return;
+      }
 
-    let dbError = null;
-    if (isEdit) {
-      const { error: updError } = await supabase.rpc("admin_editar_producto", {
-        p_session_token: tok,
-        p_producto_id:   form.id,
-        p_patch:         productoFields,
-      });
-      dbError = updError;
-      if (!dbError) {
-        const { error: adjErr } = await supabase.rpc("adjust_stock_secure", {
+      let dbError = null;
+      if (isEdit) {
+        const { error: updError } = await supabase.rpc("admin_editar_producto", {
           p_session_token: tok,
           p_producto_id:   form.id,
-          p_nuevo_stock:   stockTarget,
-          p_motivo:        "Edición manual (Admin Dashboard)",
+          p_patch:         productoFields,
         });
-        if (adjErr) dbError = adjErr;
+        dbError = updError;
+        if (!dbError) {
+          const { error: adjErr } = await supabase.rpc("adjust_stock_secure", {
+            p_session_token: tok,
+            p_producto_id:   form.id,
+            p_nuevo_stock:   stockTarget,
+            p_motivo:        "Edición manual (Admin Dashboard)",
+          });
+          if (adjErr) dbError = adjErr;
+        }
+      } else {
+        const { error: rpcErr } = await supabase.rpc("create_producto_secure", {
+          p_session_token:   tok,
+          p_producto_data:   productoFields,
+          p_cantidad_inicial: stockTarget,
+          p_numero_lote:     null,
+          p_fecha_caducidad: null,
+          p_costo_unitario:  null,
+        });
+        dbError = rpcErr;
       }
-    } else {
-      const { error: rpcErr } = await supabase.rpc("create_producto_secure", {
-        p_session_token:   tok,
-        p_producto_data:   productoFields,
-        p_cantidad_inicial: stockTarget,
-        p_numero_lote:     null,
-        p_fecha_caducidad: null,
-        p_costo_unitario:  null,
-      });
-      dbError = rpcErr;
-    }
 
-    if (dbError) {
-      setError(`No se pudo guardar: ${dbError.message}`);
-    } else {
-      setOkMsg(isEdit ? "Producto actualizado." : "Producto creado.");
-      resetForm();
-      await loadProductos();
+      if (dbError) {
+        setError(`No se pudo guardar: ${dbError.message}`);
+      } else {
+        setOkMsg(isEdit ? "Producto actualizado." : "Producto creado.");
+        resetForm();
+        await loadProductos();
+      }
+    } catch (err) {
+      setError(err?.message || "Se cayó la conexión. Intenta de nuevo.");
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   const onEdit = (p) => {

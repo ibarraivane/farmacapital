@@ -189,36 +189,41 @@ export default function LotesModule() {
   const guardar = async()=>{
     if(!form.producto_id||!form.numero_lote||!form.cantidad_inicial){ showToast("Completa producto, lote y cantidad","warning"); return; }
     setSaving(true);
-    const qty = parseInt(form.cantidad_inicial)||0;
-    const tok = sessionStorage.getItem("farmacapital_session_token");
-    if (!tok) { showToast("Sesión expirada","error"); setSaving(false); return; }
-    const { error } = await supabase.rpc("admin_crear_lote", {
-      p_session_token:  tok,
-      p_producto_id:    parseInt(form.producto_id),
-      p_numero_lote:    form.numero_lote.trim(),
-      p_cantidad:       qty,
-      p_fecha_caducidad: form.fecha_caducidad || null,
-      p_costo_unitario: parseFloat(form.costo_unitario) || null,
-      p_proveedor_id:   form.proveedor_id ? parseInt(form.proveedor_id) : null,
-    });
-    if(error){ showToast("Error: "+error.message,"error"); }
-    else {
-      showToast("✅ Lote registrado","success");
-      setForm({
-        producto_id: "",
-        numero_lote: "",
-        fecha_caducidad: "",
-        cantidad_inicial: "",
-        costo_unitario: "",
-        proveedor_id: form.proveedor_id,
-        fecha_recepcion: new Date().toLocaleDateString("sv-SE"),
+    try {
+      const qty = parseInt(form.cantidad_inicial)||0;
+      const tok = sessionStorage.getItem("farmacapital_session_token");
+      if (!tok) { showToast("Sesión expirada","error"); return; }
+      const { error } = await supabase.rpc("admin_crear_lote", {
+        p_session_token:  tok,
+        p_producto_id:    parseInt(form.producto_id),
+        p_numero_lote:    form.numero_lote.trim(),
+        p_cantidad:       qty,
+        p_fecha_caducidad: form.fecha_caducidad || null,
+        p_costo_unitario: parseFloat(form.costo_unitario) || null,
+        p_proveedor_id:   form.proveedor_id ? parseInt(form.proveedor_id) : null,
       });
-      setProdBusq("");
-      setScanErr("");
-      fetchData();
-      setTimeout(() => prodBusqRef.current?.focus(), 80);
+      if(error){ showToast("Error: "+error.message,"error"); }
+      else {
+        showToast("✅ Lote registrado","success");
+        setForm({
+          producto_id: "",
+          numero_lote: "",
+          fecha_caducidad: "",
+          cantidad_inicial: "",
+          costo_unitario: "",
+          proveedor_id: form.proveedor_id,
+          fecha_recepcion: new Date().toLocaleDateString("sv-SE"),
+        });
+        setProdBusq("");
+        setScanErr("");
+        fetchData();
+        setTimeout(() => prodBusqRef.current?.focus(), 80);
+      }
+    } catch (e) {
+      showToast(e?.message || "Se cayó la conexión. Intenta de nuevo.", "error");
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   const desactivar = async(id)=>{

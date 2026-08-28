@@ -56,16 +56,21 @@ function ProcedimientoModal({initial, onClose, onSaved }) {
   const handleSave = async () => {
     if (!form.nombre.trim()||!form.precio) { showToast("Nombre y precio son requeridos.", "warning"); return; }
     setSaving(true);
-    const payload = { nombre:form.nombre.trim(), precio:parseFloat(form.precio), descripcion:form.descripcion.trim()||null, activo:form.activo };
-    const tok = sessionStorage.getItem("farmacapital_session_token");
-    const { error: err } = await supabase.rpc("admin_upsert_procedimiento_medico", {
-      p_session_token: tok,
-      p_id:            form.id || null,
-      p_payload:       payload,
-    });
-    setSaving(false);
-    if (err) { showToast("Error al guardar: "+err.message, "error"); return; }
-    onSaved();
+    try {
+      const payload = { nombre:form.nombre.trim(), precio:parseFloat(form.precio), descripcion:form.descripcion.trim()||null, activo:form.activo };
+      const tok = sessionStorage.getItem("farmacapital_session_token");
+      const { error: err } = await supabase.rpc("admin_upsert_procedimiento_medico", {
+        p_session_token: tok,
+        p_id:            form.id || null,
+        p_payload:       payload,
+      });
+      if (err) { showToast("Error al guardar: "+err.message, "error"); return; }
+      onSaved();
+    } catch (e) {
+      showToast(e?.message || "Se cayó la conexión. Intenta de nuevo.", "error");
+    } finally {
+      setSaving(false);
+    }
   };
   return (
     <div style={{position:"fixed",inset:0,background:"#00000088",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}>
@@ -103,16 +108,21 @@ function MedicoModal({ initial, onClose, onSaved }) {
   const handleSave = async () => {
     if (!form.nombre.trim()) { showToast("El nombre del médico es requerido.", "warning"); return; }
     setSaving(true);
-    const payload = { nombre:form.nombre.trim(), especialidad:form.especialidad||"Medicina General", cedula:form.cedula.trim()||null, turno:form.turno.trim()||null, modelo_pago:form.modelo_pago, monto_fijo:parseFloat(form.monto_fijo)||0, porcentaje:parseFloat(form.porcentaje)||70, activo:form.activo };
-    const tok = sessionStorage.getItem("farmacapital_session_token");
-    const { error: err } = await supabase.rpc("admin_upsert_medico", {
-      p_session_token: tok,
-      p_id:            form.id || null,
-      p_payload:       payload,
-    });
-    setSaving(false);
-    if (err) { alert("Error: "+err.message); return; }
-    onSaved();
+    try {
+      const payload = { nombre:form.nombre.trim(), especialidad:form.especialidad||"Medicina General", cedula:form.cedula.trim()||null, turno:form.turno.trim()||null, modelo_pago:form.modelo_pago, monto_fijo:parseFloat(form.monto_fijo)||0, porcentaje:parseFloat(form.porcentaje)||70, activo:form.activo };
+      const tok = sessionStorage.getItem("farmacapital_session_token");
+      const { error: err } = await supabase.rpc("admin_upsert_medico", {
+        p_session_token: tok,
+        p_id:            form.id || null,
+        p_payload:       payload,
+      });
+      if (err) { alert("Error: "+err.message); return; }
+      onSaved();
+    } catch (e) {
+      showToast(e?.message || "Se cayó la conexión. Intenta de nuevo.", "error");
+    } finally {
+      setSaving(false);
+    }
   };
   return (
     <div style={{position:"fixed",inset:0,background:"#00000088",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}>
@@ -486,33 +496,39 @@ function EnConsulta() {
   const guardarConsulta = async () => {
     if (!diagnostico.trim()) { showToast("El diagnóstico es requerido para guardar.", "warning"); return; }
     setSaving(true);
-    const tok = sessionStorage.getItem("farmacapital_session_token");
-    if (!tok) { showToast("Sesión expirada.", "error"); setSaving(false); return; }
+    try {
+      const tok = sessionStorage.getItem("farmacapital_session_token");
+      if (!tok) { showToast("Sesión expirada.", "error"); return; }
 
-    const { data: resp, error } = await supabase.rpc("doctora_completar_consulta", {
-      p_session_token:  tok,
-      p_cita_id:        citaActual.id,
-      p_diagnostico:    diagnostico.trim(),
-      p_medicamentos:   medicamentos.filter(m => m.medicamento.trim()),
-      p_procedimientos: procSel,
-      p_notas_medico:   notasMedico.trim() || null,
-      p_alergias:       alergias.trim() || null,
-      p_antecedentes:   antecedentes.trim() || null,
-      p_consumibles:    consumibles.map(c => ({
-        producto_id: c.id,
-        cantidad:    c.cantidad,
-        precio:      c.precio || 0,
-      })),
-    });
-    if (error || !resp?.success) {
-      showToast("Error al guardar consulta: "+(resp?.error||error?.message), "error");
-      setSaving(false); return;
+      const { data: resp, error } = await supabase.rpc("doctora_completar_consulta", {
+        p_session_token:  tok,
+        p_cita_id:        citaActual.id,
+        p_diagnostico:    diagnostico.trim(),
+        p_medicamentos:   medicamentos.filter(m => m.medicamento.trim()),
+        p_procedimientos: procSel,
+        p_notas_medico:   notasMedico.trim() || null,
+        p_alergias:       alergias.trim() || null,
+        p_antecedentes:   antecedentes.trim() || null,
+        p_consumibles:    consumibles.map(c => ({
+          producto_id: c.id,
+          cantidad:    c.cantidad,
+          precio:      c.precio || 0,
+        })),
+      });
+      if (error || !resp?.success) {
+        showToast("Error al guardar consulta: "+(resp?.error||error?.message), "error");
+        return;
+      }
+
+      setSaved(true);
+      setDiagnostico(""); setMedicamentos([{medicamento:"",dosis:"",indicaciones:""}]);
+      setProcSel([]); setConsumibles([]); setNotasMedico("");
+      setTimeout(()=>{ setSaved(false); fetchActual(); }, 2000);
+    } catch (e) {
+      showToast(e?.message || "Se cayó la conexión. Intenta de nuevo.", "error");
+    } finally {
+      setSaving(false);
     }
-
-    setSaving(false); setSaved(true);
-    setDiagnostico(""); setMedicamentos([{medicamento:"",dosis:"",indicaciones:""}]);
-    setProcSel([]); setConsumibles([]); setNotasMedico("");
-    setTimeout(()=>{ setSaved(false); fetchActual(); }, 2000);
   };
 
   if (loading) return <div style={{color:C.textMid,textAlign:"center",padding:60}}>Cargando…</div>;
