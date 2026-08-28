@@ -15,8 +15,8 @@ import { pedidoEsTipoFisica, pedidoEsTipoOnline, pedidoEsTipoConsulta } from "./
 import { costoLineaVenta, ingresoLineaVenta } from "./utils/margenVenta";
 import { DIAS_CADUCIDAD_ALERTA } from "./lib/caducidad";
 import VentasVsMetaChart from "./VentasVsMetaChart";
-import { agruparVentasPorDia, porDiaDesdeSerieRpc, ymdMexico } from "./lib/ventasVsMeta";
-import { addDaysISO, hoyISOMexico } from "./lib/fecha";
+import { agruparVentasPorDia, parseYmdLocal, porDiaDesdeSerieRpc, ymdMexico } from "./lib/ventasVsMeta";
+import { addDaysISO, dowISO, hoyISOMexico, rangoDiaMexico } from "./lib/fecha";
 import { cargarConfigMetas, invalidarCacheMetas, mezclarCfgMetas } from "./utils/turnosMetas";
 import { metasDelPeriodo } from "./lib/metasDelPeriodo";
 
@@ -145,12 +145,20 @@ const fmtDate = () => new Date().toLocaleDateString("es-MX",{weekday:"long",day:
 /** Grilla 2 columnas que en ventanas estrechas pasa a 1 columna (Chrome / escritorio redimensionado). */
 const GRID_RESP_2COL = "repeat(auto-fit, minmax(min(100%, 280px), 1fr))";
 
-const rangeToday = () => { const d=new Date(),y=d.getFullYear(),m=d.getMonth(),dd=d.getDate(); return {start:new Date(y,m,dd,0,0,0).toISOString(),end:new Date(y,m,dd,23,59,59).toISOString()}; };
-const rangeWeek  = () => { const d=new Date(); d.setDate(d.getDate()-7); return {start:d.toISOString(),end:new Date().toISOString()}; };
-const rangeMonth = () => { const d=new Date(),y=d.getFullYear(),m=d.getMonth(); return {start:new Date(y,m,1).toISOString(),end:new Date().toISOString()}; };
-const rangeYesterday = () => { const d=new Date(),y=d.getFullYear(),m=d.getMonth(),dd=d.getDate()-1; return {start:new Date(y,m,dd,0,0,0).toISOString(),end:new Date(y,m,dd,23,59,59).toISOString()}; };
-const rangeWeekPrev  = () => { const end=new Date(); end.setDate(end.getDate()-7); const start=new Date(end); start.setDate(start.getDate()-7); return {start:start.toISOString(),end:end.toISOString()}; };
-const yesterdayLocal = () => addDaysISO(hoyISOMexico(), -1);
+/** Ventanas del dashboard en calendario de la farmacia (CDMX), no del navegador. */
+function lunesISODe(iso) {
+  const dow = dowISO(iso); // 0=dom … 6=sáb
+  const back = dow === 0 ? 6 : dow - 1;
+  return addDaysISO(iso, -back);
+}
+
+function sumPorDiaYmd(porDia, desdeYmd, hastaYmd) {
+  let t = 0;
+  for (const [dia, tot] of Object.entries(porDia || {})) {
+    if (dia >= desdeYmd && dia <= hastaYmd) t += tot;
+  }
+  return t;
+}
 
 function parseMeta(rows, clave, def) {
   const r = (rows || []).find(x => x.clave === clave);
@@ -337,12 +345,28 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
     setLoading(true);
     // Tras editar metas en Config, el cache de 60s no debe pintar cifras viejas.
     invalidarCacheMetas();
-    const today = rangeToday(), week = rangeWeek(), month = rangeMonth();
-    const yesterday = rangeYesterday();
-    const weekPrev = rangeWeekPrev();
+
+    // Día / semana / mes en America/Mexico_City. Si el admin abre desde Europa
+    // de noche, el reloj local ya es "mañana" y ped_hoy salía en $0 mientras
+    // la gráfica (ymdMexico) seguía mostrando el viernes con ventas.
     const hoyLocal = hoyISOMexico();
-    const ayerLocal = yesterdayLocal();
+    const ayerLocal = addDaysISO(hoyLocal, -1);
+    const today = rangoDiaMexico(hoyLocal);
+    const yesterday = rangoDiaMexico(ayerLocal);
+    const lunes = lunesISODe(hoyLocal);
+    const lunesAnt = addDaysISO(lunes, -7);
+    const week = { start: rangoDiaMexico(lunes).start, end: today.end };
+    const weekPrev = {
+      start: rangoDiaMexico(lunesAnt).start,
+      end: rangoDiaMexico(addDaysISO(lunes, -1)).end,
+    };
     const inicioMesLocal = `${hoyLocal.slice(0, 7)}-01`;
+    const finMesAnt = addDaysISO(inicioMesLocal, -1);
+    const inicioMesAnt = `${finMesAnt.slice(0, 7)}-01`;
+    const month = { start: rangoDiaMexico(inicioMesLocal).start, end: today.end };
+    const monthPrevStart = rangoDiaMexico(inicioMesAnt).start;
+    const monthPrevEnd = rangoDiaMexico(finMesAnt).end;
+
     const cofeprisLimite = addDaysISO(hoyLocal, 30);
     const adminTok = sessionStorage.getItem("farmacapital_session_token");
     const cofeprisRpc = adminTok
@@ -361,15 +385,13 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
       week_prev_start: weekPrev.start,
       week_prev_end: weekPrev.end,
       month_start: month.start,
-      month_prev_start: new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toISOString(),
-      month_prev_end: new Date(new Date().getFullYear(), new Date().getMonth(), 0, 23, 59, 59).toISOString(),
+      month_prev_start: monthPrevStart,
+      month_prev_end: monthPrevEnd,
       hoy_local: hoyLocal,
       ayer_local: ayerLocal,
       inicio_mes_local: inicioMesLocal,
     };
-    const desdeSerie = new Date();
-    desdeSerie.setDate(desdeSerie.getDate() - 92);
-    const desdeSerieYmd = ymdMexico(desdeSerie);
+    const desdeSerieYmd = addDaysISO(hoyLocal, -92);
     const [
       bundleRes,
       homeRes,
@@ -454,17 +476,25 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
         console.warn("[Dashboard] ventas fallback listar:", errVentasMes.message);
       } else {
         const all = pedidosCompletados(rawVentasMes);
-        const inRange = (p, startIso, endIso) => {
-          const t = new Date(p.created_at).getTime();
-          return t >= new Date(startIso).getTime() && t <= new Date(endIso).getTime();
-        };
-        pedMes = all;
-        pedHoy = all.filter((p) => inRange(p, today.start, today.end));
-        pedAyer = all.filter((p) => inRange(p, yesterday.start, yesterday.end));
-        pedSemana = all.filter((p) => new Date(p.created_at).getTime() >= new Date(week.start).getTime());
-        pedSemanaAnt = all.filter((p) => inRange(p, weekPrev.start, weekPrev.end));
-        pedMesAnt = [];
-        pedMesTipo = all.map((p) => ({ total: p.total, tipo: p.tipo }));
+        pedMes = all.filter((p) => {
+          const d = ymdMexico(p.created_at);
+          return d >= inicioMesLocal && d <= hoyLocal;
+        });
+        pedHoy = all.filter((p) => ymdMexico(p.created_at) === hoyLocal);
+        pedAyer = all.filter((p) => ymdMexico(p.created_at) === ayerLocal);
+        pedSemana = all.filter((p) => {
+          const d = ymdMexico(p.created_at);
+          return d >= lunes && d <= hoyLocal;
+        });
+        pedSemanaAnt = all.filter((p) => {
+          const d = ymdMexico(p.created_at);
+          return d >= lunesAnt && d < lunes;
+        });
+        pedMesAnt = all.filter((p) => {
+          const d = ymdMexico(p.created_at);
+          return d >= inicioMesAnt && d <= finMesAnt;
+        });
+        pedMesTipo = pedMes.map((p) => ({ total: p.total, tipo: p.tipo }));
       }
     }
 
@@ -484,8 +514,10 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
     const citasHoy = citasHoyRaw.length ? citasHoyRaw : rpcBundleRows(H, "citas_completadas_hoy");
     const citasAyer = rpcBundleRows(B, "citas_ayer");
 
-    const ventasMesTotal = (pedMes || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
-    const ventasCargadas = (pedMes || []).length > 0 && ventasMesTotal > 0;
+    const ventasMesPedEarly = (pedMes || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
+    const ventasCargadas =
+      ((pedMes || []).length > 0 && ventasMesPedEarly > 0)
+      || Object.keys(ventasPorDia || {}).length > 0;
     const rpcDetail = [bundleErr?.message, homeErr?.message].filter(Boolean).join(" · ");
     const dashboardLoadWarning = !adminTok
       ? "Sesión expirada. Vuelve a iniciar sesión."
@@ -497,13 +529,29 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
 
     const alertasCofepris = Array.isArray(cofeprisRpcData?.items) ? cofeprisRpcData.items : [];
 
-    const ventasHoy = (pedHoy || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
-    const ventasAyer = (pedAyer || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
-    const ventasSemana = (pedSemana || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
-    const ventasSemanaAnt = (pedSemanaAnt || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
-    const ventasMes = ventasMesTotal;
+    // Misma fuente que la strip / gráfica (día civil CDMX). Así "Ventas hoy"
+    // no puede decir $0 mientras el viernes en la gráfica tiene barra.
+    // El turno vespertino en México sigue contando en "hoy" hasta medianoche CDMX.
+    const ventasHoySerie = Number(ventasPorDia[hoyLocal] || 0);
+    const ventasAyerSerie = Number(ventasPorDia[ayerLocal] || 0);
+    const ventasSemanaSerie = sumPorDiaYmd(ventasPorDia, lunes, hoyLocal);
+    const ventasSemanaAntSerie = sumPorDiaYmd(ventasPorDia, lunesAnt, addDaysISO(lunes, -1));
+    const ventasMesSerie = sumPorDiaYmd(ventasPorDia, inicioMesLocal, hoyLocal);
+
+    const ventasHoyPed = (pedHoy || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
+    const ventasAyerPed = (pedAyer || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
+    const ventasSemanaPed = (pedSemana || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
+    const ventasSemanaAntPed = (pedSemanaAnt || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
+    const ventasMesPed = ventasMesPedEarly;
+
+    const tieneSerie = Object.keys(ventasPorDia || {}).length > 0;
+    const ventasHoy = tieneSerie ? ventasHoySerie : ventasHoyPed;
+    const ventasAyer = tieneSerie ? ventasAyerSerie : ventasAyerPed;
+    const ventasSemana = tieneSerie ? ventasSemanaSerie : ventasSemanaPed;
+    const ventasSemanaAnt = tieneSerie ? ventasSemanaAntSerie : ventasSemanaAntPed;
+    const ventasMes = tieneSerie ? ventasMesSerie : ventasMesPed;
     const totalPedMes = (pedMes || []).length;
-    const ticketProm = totalPedMes > 0 ? ventasMes / totalPedMes : 0;
+    const ticketProm = totalPedMes > 0 ? ventasMesPed / totalPedMes : 0;
     const recuperado = (pedTodos || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
     const gananciaMes = ventasMes * 0.55;
     const ventasMesAnt = (pedMesAnt || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
@@ -697,7 +745,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
   const pctRecuperado = inversionTotal > 0 ? Math.min((recuperado / inversionTotal) * 100, 100) : 0;
   const restante = inversionTotal - recuperado;
   const paybackMeses = gananciaMes > 0 ? Math.max(Math.ceil(restante / gananciaMes), 0) : null;
-  const metasPeriodo = metasDelPeriodo(new Date(), mezclarCfgMetas(metasTurnoCfg));
+  const metasPeriodo = metasDelPeriodo(parseYmdLocal(hoyISOMexico()) || new Date(), mezclarCfgMetas(metasTurnoCfg));
   const goToPage = (id, opts) => { if (setPage) setPage(id, opts); };
   const todoItems = [
     { id:"stock",    icon:"📦", count: alertas.bajoStock,      col: C.red,    label: "Reordenar productos",                sub: alertas.bajoStockNombres.join(", ") || "stock en 0",          onAction: () => goToPage("inv", {tab:"reabasto"}), actionLabel: "Ir a reabasto →" },
