@@ -38,8 +38,9 @@ const LITERAL_SECRET_PATTERNS = [
 ];
 
 /**
+ * Solo patrón + línea — no loguear fragmentos del match (pueden ser user/password).
  * @param {string} sql
- * @returns {{ name: string, sample: string, line: number }[]}
+ * @returns {{ name: string, line: number }[]}
  */
 function findLiteralSecrets(sql) {
   const findings = [];
@@ -50,12 +51,7 @@ function findLiteralSecrets(sql) {
     while ((m = re.exec(text)) !== null) {
       const idx = m.index;
       const line = text.slice(0, idx).split(/\r?\n/).length;
-      const raw = m[0];
-      const sample =
-        raw.length <= 24
-          ? raw.slice(0, 8) + '…'
-          : raw.slice(0, 12) + '…' + raw.slice(-4);
-      findings.push({ name, sample, line });
+      findings.push({ name, line });
       // Evitar loops infinitos si el regex no avanza
       if (m[0].length === 0) re.lastIndex += 1;
     }
