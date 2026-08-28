@@ -3,6 +3,9 @@ import { Pause, Play, RefreshCw, ShoppingBag } from "lucide-react";
 import { C_LIGHT, BRAND } from "./constants";
 import { supabase } from "./supabase";
 import { Box, Btn, Tag, showToast, SkeletonTable } from "./ui";
+import { useDecisionesPrecios } from "./hooks/useDecisionesPrecios";
+import DecisionesPreciosPanel from "./DecisionesPreciosPanel";
+import { filtrarDecisiones } from "./lib/decisionesPrecios";
 
 const C = C_LIGHT;
 const STALE_MS = 10 * 60 * 1000;
@@ -29,7 +32,7 @@ function fmtWhen(iso) {
   }
 }
 
-export default function RappiSyncPanel() {
+export default function RappiSyncPanel({ decisiones: decisionesProp } = {}) {
   const [loading, setLoading] = useState(true);
   const [paused, setPaused] = useState(false);
   const [reserva, setReserva] = useState("2");
@@ -37,6 +40,10 @@ export default function RappiSyncPanel() {
   const [errors, setErrors] = useState([]);
   const [stale, setStale] = useState([]);
   const [pendingCount, setPendingCount] = useState(0);
+  const decLocal = useDecisionesPrecios({ enabled: !decisionesProp });
+  const dec = decisionesProp || decLocal;
+  const [applyingId, setApplyingId] = useState(null);
+  const decisionesRappi = filtrarDecisiones(dec.decisiones, "rappi");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -97,11 +104,12 @@ export default function RappiSyncPanel() {
         <div>
           <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: C.text, display: "flex", alignItems: "center", gap: 8 }}>
             <ShoppingBag size={18} strokeWidth={2.2} aria-hidden />
-            Rappi · disponibilidad
+            Rappi · disponibilidad y precios
           </h2>
           <p style={{ margin: "6px 0 0", color: C.textMid, fontSize: 13, maxWidth: 560, lineHeight: 1.45 }}>
             Se publica <code>stock − {reserva}</code> piezas de colchón. Receta y controlados no salen.
             Sin <code>RAPPI_CLIENT_ID</code> el worker no llama a Rappi: queda inerte.
+            El agente de precios usa las mismas referencias: el sync no publica precio.
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -142,7 +150,27 @@ export default function RappiSyncPanel() {
           <div style={{ marginTop: 6, fontSize: 22, fontWeight: 800, color: stale.length ? C.amber : C.text }}>{stale.length}</div>
           <div style={{ fontSize: 11, color: C.textDim, marginTop: 4 }}>Pendiente &gt; 10 min</div>
         </Box>
+        <Box style={{ padding: 14 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: C.textDim, letterSpacing: 0.4, textTransform: "uppercase" }}>Precios Rappi</div>
+          <div style={{ marginTop: 6, fontSize: 22, fontWeight: 800, color: dec.resumen.rappi ? C.amber : C.text }}>{dec.resumen.rappi}</div>
+          <div style={{ fontSize: 11, color: C.textDim, marginTop: 4 }}>Decisiones vs referencias</div>
+        </Box>
       </div>
+
+      <Box style={{ padding: 16, marginBottom: 14 }}>
+        <div style={{ fontWeight: 800, fontSize: 13, color: C.text, marginBottom: 10 }}>Agente · precios para Rappi</div>
+        <DecisionesPreciosPanel
+          variant="rappi"
+          decisiones={decisionesRappi}
+          loading={dec.loading}
+          revisadoAt={dec.revisadoAt}
+          onRefresh={dec.refetch}
+          onPosponer={dec.posponer}
+          onApplied={dec.marcarAplicado}
+          applyingId={applyingId}
+          setApplyingId={setApplyingId}
+        />
+      </Box>
 
       <Box style={{ padding: 16, marginBottom: 14 }}>
         <div style={{ fontWeight: 800, fontSize: 13, color: C.text, marginBottom: 10 }}>SKUs desincronizados</div>
