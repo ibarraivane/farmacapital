@@ -9,8 +9,26 @@ import {
   isNormalizedDoseUnitToken,
   tokenMatchesInNormalizedHaystack,
 } from "../utils";
+import { coincidenciaIntencionMostrador } from "./intencionMostrador";
 
 const AMBIGUOUS_SHORT_SUBSTRING_TOKENS = new Set(["para"]);
+
+/** Conectores y talla de frase. No tumban el AND si ya pegó el ancla (pañales para adultos). */
+const WEAK_QUERY_TOKENS = new Set([
+  "para", "de", "del", "al", "la", "el", "los", "las",
+  "un", "una", "unos", "unas", "y", "o", "en", "con", "por", "sin", "tipo",
+  "adulto", "adultos", "adulta", "adultas",
+  "pieza", "piezas", "pza", "pzas", "caja", "cajas",
+]);
+
+function isWeakQueryToken(tok) {
+  return WEAK_QUERY_TOKENS.has(String(tok || "").toLowerCase());
+}
+
+function requiredCatalogQueryTokens(tokens) {
+  const required = (tokens || []).filter((t) => !isWeakQueryToken(t));
+  return required.length ? required : tokens || [];
+}
 
 const CATALOG_UNIT_TOKENS = new Set([
   "cm", "mm", "m", "ml", "mg", "mcg", "g", "kg", "l", "lt", "iu", "ui",
@@ -39,6 +57,7 @@ function isCatalogUnitToken(tok) {
 function catalogQueryAnchorToken(tokens) {
   return tokens.find(
     (t) =>
+      !isWeakQueryToken(t) &&
       t.length >= 5 &&
       /[a-z]/.test(t) &&
       !/^fc-[0-9a-f-]+$/i.test(t) &&
@@ -151,16 +170,17 @@ function catalogFieldsMatchAllTokens(product, queryRaw, { inventario = false } =
   if (!tokens.length) return true;
 
   const entries = catalogSearchFieldEntries(product, { inventario });
-  const anchor = catalogQueryAnchorToken(tokens);
+  const required = requiredCatalogQueryTokens(tokens);
+  const anchor = catalogQueryAnchorToken(required);
   if (anchor) {
     const nameEntries = entries.filter((e) => CATALOG_NAME_LIKE_KINDS.has(e.kind));
-    if (!nameEntries.some((e) => catalogTokenOrVernacularMatches(anchor, e.kind, e.norm, tokens))) {
+    if (!nameEntries.some((e) => catalogTokenOrVernacularMatches(anchor, e.kind, e.norm, required))) {
       return false;
     }
   }
 
-  return tokens.every((tok) =>
-    entries.some((e) => catalogTokenOrVernacularMatches(tok, e.kind, e.norm, tokens))
+  return required.every((tok) =>
+    entries.some((e) => catalogTokenOrVernacularMatches(tok, e.kind, e.norm, required))
   );
 }
 
@@ -182,6 +202,51 @@ const CATALOG_VERNACULAR_GROUPS = [
       "sueroral",
       "rehidrat",
     ],
+  },
+  {
+    query: ["panal", "panales", "incontinencia", "incontinente"],
+    catalog: [
+      "panal",
+      "diapro",
+      "tena",
+      "affective",
+      "depend",
+      "molicare",
+      "molimed",
+      "indasec",
+    ],
+  },
+  {
+    query: ["empapador", "empapadores", "sabanilla", "sabanillas", "chux", "underpad"],
+    catalog: ["affective", "cover pro", "empapador", "sabanilla"],
+  },
+  {
+    query: ["tempra", "tylenol", "acetaminofen"],
+    catalog: ["paracetamol", "tempra", "tylenol", "acetaminofen"],
+  },
+  {
+    query: ["advil", "motrin"],
+    catalog: ["ibuprofeno", "advil", "motrin"],
+  },
+  {
+    query: ["clarityne", "claritin"],
+    catalog: ["loratadina", "clarityne", "claritin"],
+  },
+  {
+    query: ["curita", "curitas", "bandaid", "band-aid"],
+    catalog: ["curita", "bandaid", "band-aid", "nexcare", "aposito"],
+  },
+  {
+    query: ["condon", "condones", "preservativo", "preservativos"],
+    catalog: ["condon", "preservativo", "durex", "prudence", "trojan", "sico"],
+  },
+  {
+    query: ["cubrebocas", "cubreboca", "mascarilla", "mascarillas"],
+    catalog: ["cubrebocas", "cubreboca", "mascarilla", "n95", "kn95"],
+  },
+  {
+    query: ["paleta", "paletas", "paleto", "paletos"],
+    catalog: ["paleta", "broncolin"],
   },
 ];
 
@@ -211,6 +276,7 @@ const CATALOG_QUERY_REPLACEMENTS = [
   [/\belectrolid\b/g, "electrolit"],
   [/\bpedialytes?\b/g, "pedialyte"],
   [/\bparacetamols?\b/g, "paracetamol"],
+  [/\bacetaminofens?\b/g, "paracetamol"],
   [/\bibuprofenos?\b/g, "ibuprofeno"],
   [/\bomeprazols?\b/g, "omeprazol"],
   [/\bantibioticos?\b/g, "antibiotico"],
@@ -218,6 +284,9 @@ const CATALOG_QUERY_REPLACEMENTS = [
   [/\bprotector\s+solars?\b/g, "protector solar"],
   [/\btoallitas?\s+humedas?\b/g, "toallitas humedas"],
   [/\btoa\s*hum\b/g, "toallitas humedas"],
+  [/\bpanales?\s+(?:desechables?\s+)?(?:para\s+)?adultos?\b/g, "panal"],
+  [/\bpants?\s+(?:desechables?\s+)?(?:para\s+)?adultos?\b/g, "panal"],
+  [/\bropa\s+interior\s+desechable\b/g, "panal"],
 ];
 
 export function normalizeCatalogSearchQuery(raw) {
@@ -349,7 +418,9 @@ export function minEditDistanceQueryToText(queryNorm, textNorm) {
 }
 
 function maxTypoForLength(len) {
-  if (len <= 4) return 1;
+  // En seis letras, dos cambios generan falsos positivos peligrosos:
+  // "paleta" terminaba coincidiendo con "tableta".
+  if (len <= 6) return 1;
   if (len <= 7) return 2;
   return Math.min(4, Math.floor(len * 0.35));
 }
@@ -430,8 +501,20 @@ export function catalogProductMatchesBusqueda(product, queryRaw, options = {}) {
   if (!raw) return true;
 
   const q = normalizeCatalogSearchQuery(raw);
+  const directQ = normalizeForSearch(raw);
   const tokens = q.split(/\s+/).filter(Boolean);
   if (!tokens.length) return true;
+
+  // El texto persistido completo siempre se encuentra a sí mismo. Esto evita
+  // que unidades/conectores de nombres largos rompan el AND por tokens.
+  const directIdentityFields = [
+    product?.nombre,
+    product?.marca,
+    product?.denominacion_distintiva,
+    product?.principio_activo,
+    product?.denominacion_generica,
+  ].map((value) => normalizeForSearch(value)).filter(Boolean);
+  if (directIdentityFields.some((field) => field === directQ || field.includes(directQ))) return true;
 
   if (catalogFieldsMatchAllTokens(product, raw, { inventario })) return true;
 
@@ -450,8 +533,9 @@ function catalogSearchRelevanceRank(product, queryRaw, { inventario = false } = 
   const raw = String(queryRaw ?? "").trim();
   if (!raw) return 0;
   const qn = normalizeCatalogSearchQuery(raw);
+  const directQn = normalizeForSearch(raw);
   if (!qn) return 40;
-  const tokens = qn.split(/\s+/).filter(Boolean);
+  const tokens = requiredCatalogQueryTokens(qn.split(/\s+/).filter(Boolean));
   const n = normalizeForSearch(product?.nombre || "");
   const pa = normalizeForSearch(product?.principio_activo || "");
   const dg = normalizeForSearch(product?.denominacion_generica || "");
@@ -467,6 +551,12 @@ function catalogSearchRelevanceRank(product, queryRaw, { inventario = false } = 
   const everyIn = (hay) =>
     tokens.length > 0 && tokens.every((t) => shortCatalogTokenMatchesNormalizedField(t, hay));
   const everyInNameLike = catalogTokensMatchNameLikeFields(tokens, product);
+
+  // Identidad exacta antes de cualquier coincidencia fuzzy en otro campo.
+  if (sku === directQn || cb === directQn) return 0;
+  if (n === directQn) return 0;
+  if (marca === directQn) return 1;
+  if (dd === directQn) return 1;
 
   if (normalizedHaystackMatchesPhrase(n, qn, tokens)) {
     const pr = catalogPhraseMatchRank(qn, tokens, product?.nombre);
@@ -484,7 +574,6 @@ function catalogSearchRelevanceRank(product, queryRaw, { inventario = false } = 
   if (everyIn(pa)) return 4;
   if (everyIn(dg)) return 5;
   if (everyIn(dd)) return 6;
-  if (sku === qn || cb === qn) return 0;
   if (qn.length >= 2 && (sku.startsWith(qn) || cb.startsWith(qn))) return 5;
   if (everyInNameLike) return 5;
   if (conc.includes(qn) || pres.includes(qn) || forma.includes(qn)) return 6;
@@ -574,15 +663,34 @@ export function productMatchesSearchQuery(product, queryRaw, valueGetters) {
 
 /** Producto de catálogo con campos estándar (tienda / POS). */
 export function tiendaProductMatchesBusqueda(product, queryRaw) {
-  return catalogProductMatchesBusqueda(product, queryRaw, { inventario: false, allowDescripcion: false });
+  return catalogProductMatchesBusqueda(product, queryRaw, { inventario: false, allowDescripcion: false })
+    || Boolean(coincidenciaIntencionMostrador(product, queryRaw));
 }
 
 export function tiendaSearchRelevanceRank(product, queryRaw) {
-  return catalogSearchRelevanceRank(product, queryRaw, { inventario: false });
+  const catalogRank = catalogSearchRelevanceRank(product, queryRaw, { inventario: false });
+  // Identidad, marca, activo y atributos del SKU siempre ganan a una intención.
+  if (catalogRank < 60) return catalogRank;
+  return coincidenciaIntencionMostrador(product, queryRaw) ? 30 : catalogRank;
 }
 
 export function tiendaCatalogSearchSuggestions(products, queryRaw, { limit = 8 } = {}) {
-  return catalogSearchSuggestions(products, queryRaw, { limit, inventario: false });
+  const direct = catalogSearchSuggestions(products, queryRaw, { limit, inventario: false });
+  if (direct.length >= limit) return direct;
+  const seen = new Set(direct.map((item) => String(item.id)));
+  const related = (products || [])
+    .filter((product) => product?.activo !== false && !seen.has(String(product?.id)))
+    .filter((product) => coincidenciaIntencionMostrador(product, queryRaw))
+    .map((product) => ({
+      id: product.id,
+      nombre: product.nombre || "",
+      sku: product.sku != null ? String(product.sku) : "",
+      codigo_barras: product.codigo_barras != null ? String(product.codigo_barras) : "",
+      stock: product.stock,
+      rank: 30,
+    }))
+    .sort((a, b) => String(a.nombre).localeCompare(String(b.nombre), "es"));
+  return [...direct, ...related].slice(0, limit);
 }
 
 export function inventarioProductMatchesBusqueda(product, queryRaw) {

@@ -8,6 +8,17 @@ export function normalizeBarcodeRaw(raw) {
   return t;
 }
 
+/**
+ * Consulta de catálogo en el POS: conserva espacios ("dolor de cabeza").
+ * Si es pistola (solo dígitos), sí se pegan para armar el EAN.
+ */
+export function queryCatalogoDesdeInputPos(srch) {
+  const texto = String(srch || "").trim();
+  if (!texto) return "";
+  if (isAllDigitsInput(texto)) return normalizeBarcodeRaw(texto);
+  return texto;
+}
+
 /** Solo dígitos (escaneo en progreso o código completo). */
 export function isAllDigitsInput(raw) {
   const t = normalizeBarcodeRaw(raw);
@@ -23,6 +34,40 @@ export function looksLikeBarcodeInput(raw) {
 /** SKU interno (FC-…, EQ-…, FMX-…). No es búsqueda por nombre. */
 export function looksLikeInternalSku(raw) {
   return /^(FC|EQ|FMX)[-_]/i.test(String(raw || "").trim());
+}
+
+/** Un mismo producto con dos empaques (pieza y bote). */
+export const EAN_PARES_CONOCIDOS = [
+  ["747589705123", "714706903205"], // Broncolin paleta suelta / vitrolero C/50
+];
+
+function digitsOnly(raw) {
+  return String(raw || "").replace(/\D/g, "");
+}
+
+export function eansAliasDe(ean) {
+  const d = digitsOnly(ean);
+  if (!d) return [];
+  const extra = [];
+  for (const par of EAN_PARES_CONOCIDOS) {
+    if (par.some((p) => barcodeDigitsMatch(d, p))) extra.push(...par);
+  }
+  return extra;
+}
+
+/** Código principal, pares conocidos y EANs escritos en la ficha. */
+export function codigosBarrasDeProducto(product) {
+  const out = [];
+  const push = (v) => {
+    const d = digitsOnly(v);
+    if (d.length < 8 || d.length > 14) return;
+    if (!out.some((x) => barcodeDigitsMatch(d, x))) out.push(d);
+  };
+  push(product?.codigo_barras);
+  for (const a of eansAliasDe(product?.codigo_barras)) push(a);
+  const desc = String(product?.descripcion || "");
+  for (const m of desc.match(/\d{12,14}/g) || []) push(m);
+  return out;
 }
 
 /** Coincidencia flexible EAN-13 / UPC-A (pistola vs BD con dígito extra). */
@@ -65,8 +110,7 @@ export function splitBarcodeCandidates(raw) {
 
 function productMatchesScan(product, candidate, qN) {
   if (!product) return false;
-  const cb = product.codigo_barras ? String(product.codigo_barras).trim() : "";
-  if (cb && barcodeDigitsMatch(candidate, cb)) return true;
+  if (codigosBarrasDeProducto(product).some((cb) => barcodeDigitsMatch(candidate, cb))) return true;
   if (product.sku && normalizeForSearch(product.sku) === qN) return true;
   return false;
 }
