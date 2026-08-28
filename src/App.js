@@ -118,9 +118,14 @@ class TiendaRouteBoundary extends React.Component {
 
 export default function App() {
   useEffect(() => {
-    try {
-      sessionStorage.removeItem("farmacapital_chunk_retries");
-    } catch (_) { /* noop */ }
+    // El contador se limpia solo si la app aguantó estable. Si lo borramos al
+    // montar, el corta-circuitos de index.js nunca llega a 4 y un chunk roto
+    // deja la PWA recargando para siempre.
+    const t = setTimeout(() => {
+      try {
+        sessionStorage.removeItem("farmacapital_chunk_retries");
+      } catch (_) { /* noop */ }
+    }, 15000);
     try {
       const u = new URL(window.location.href);
       if (u.searchParams.has("_farmacapital_v")) {
@@ -130,6 +135,7 @@ export default function App() {
         window.history.replaceState(null, "", next);
       }
     } catch (_) { /* noop */ }
+    return () => clearTimeout(t);
   }, []);
 
   /** Manifest PWA: Tienda (/) vs Admin (/admin…); el panel usa pushState sin re-render de App. */
