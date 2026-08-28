@@ -12,6 +12,7 @@ export function canAccess(user, module) {
 
   const permissions = {
     admin: ["clinical", "sales", "billing", "inventory"],
+    gerente: ["clinical", "sales", "billing", "inventory"],
     doctor: ["clinical"],
     doctora: ["clinical"],
     vendedor: ["sales", "inventory"],

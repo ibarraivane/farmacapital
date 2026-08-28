@@ -52,6 +52,7 @@ FUENTE_TIPO = {
     "marzam": "compra",
     "nadro": "compra",
     "levic": "compra",
+    "farmalive": "compra",
     "similares": "venta",
     "fahorro": "venta",
     "otros_venta": "venta",
@@ -400,6 +401,13 @@ def ensure_fuentes(url: str, key: str, fuentes: set[str]) -> None:
             "tipo": "compra",
             "metodo": "manual",
             "notas": "Promedio de mercado o consulta manual (Claude, Google, etc.)",
+        },
+        "farmalive": {
+            "id": "farmalive",
+            "nombre": "Farmalive",
+            "tipo": "compra",
+            "metodo": "import_archivo",
+            "notas": "Lista normal Club Iztapalapa. Precio base (2%), no campañas de día.",
         },
     }
     payload = [presets[f] for f in sorted(fuentes) if f in presets]

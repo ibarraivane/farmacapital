@@ -1,0 +1,26 @@
+ticket,estado,clave_ticket,seccion,descripcion_ticket,cantidad,costo_ticket,sku,nombre_bd,ean_bd,costo_bd,stock_bd,nota
+ifc2_118216,ya_esta_por_nombre,83521,MAYOREO,MERCURIO OXIDO DE ZINC C/50 1620824,1.00,54.00,FC-C4530823,Mercurio óxido de zinc C/50,,54.0,1,score 0.75 | también FC-0ACC5B6A Mercurio Oxido De Zinc
+ifc2_118216,ya_esta_por_nombre,83490,MAYOREO,MERCURIO BISMUTO SUBNITRATO C/50 1390724,1.00,73.50,FC-D037156B,Mercurio Bismuto Subnitrato,,73.5,1,score 0.75
+ifc2_118216,falta,83490,MAYOREO,MERCURIO BICARBONATO SOBRES C/50 1380724,1.00,48.00,,,,,,sin EAN; no hay nombre parecido
+ifc2_118216,ya_esta_por_nombre,83521,MAYOREO,MERCURIO MAGNESIA ANISADA C/50 1560824,1.00,51.50,FC-CB5C11ED,Mercurio Magnesia Anisada,,51.5,1,score 0.75
+ifc2_118216,ya_esta_por_nombre,81608,MAYOREO,EDIGAR PERILLA N 5 CAJA 1512,2.00,20.50,FC-9A1C64E7,Perilla Edigar N O Caja,,14.5,2,score 0.67 | SKU genérico Perilla; revisar talla N0-N6
+ifc2_118216,ya_esta_por_nombre,81608,MAYOREO,EDIGAR PERILLA N 6 CAJA 1649,2.00,22.50,FC-9A1C64E7,Perilla Edigar N O Caja,,14.5,2,score 0.67 | SKU genérico Perilla; revisar talla N0-N6
+ifc2_118216,ya_esta_por_nombre,83490,MAYOREO,MERCURIO BORAX POLVO C/50 1400724,1.00,53.00,FC-578F060C,Mercurio Borax Polvo,,53.0,1,score 0.75
+ifc2_118216,ya_esta_por_nombre,83521,MAYOREO,MERCURIO PERLAS DE ETER C/50 1630824,1.00,170.00,FC-FBD776D2,Mercurio Perlas De Eter,,170.0,1,score 0.75
+ifc2_118216,ya_esta_por_nombre,83490,MAYOREO,MERCURIO FLOR DE ARNICA C/50 1430724,1.00,55.00,FC-5EF90195,Mercurio Flor De Arnica,3311000003920,55.0,1,score 0.75
+ifc2_118216,ya_esta_por_nombre,,MAYOREO,EDIGAR PERILLA N 0 CAJA,2.00,14.50,FC-9A1C64E7,Perilla Edigar N O Caja,,14.5,2,score 1.00 | SKU genérico Perilla; revisar talla N0-N6
+ifc2_118216,ya_esta_por_nombre,83521,MAYOREO,MERCURIO SULFATIAZOL POLVO C/50 1710824,1.00,69.00,FC-47AAF23B,Mercurio Sulfatiazol Polvo,,69.0,1,score 0.75
+ifc2_118216,ya_esta_por_nombre,81608,MAYOREO,EDIGAR PERILLA N 4 CAJA 1439,2.00,19.50,FC-9A1C64E7,Perilla Edigar N O Caja,,14.5,2,score 0.67 | SKU genérico Perilla; revisar talla N0-N6
+ifc2_118216,ya_esta_por_nombre,81608,MAYOREO,EDIGAR PERILLA N 3 CAJA 1334,2.00,18.50,FC-9A1C64E7,Perilla Edigar N O Caja,,14.5,2,score 0.67 | SKU genérico Perilla; revisar talla N0-N6
+ifc2_118216,ya_esta_por_nombre,81608,MAYOREO,EDIGAR PERILLA N 2 CAJA 1145,2.00,16.00,FC-9A1C64E7,Perilla Edigar N O Caja,,14.5,2,score 0.67 | SKU genérico Perilla; revisar talla N0-N6
+ifc2_118216,falta,,MAYOREO,VELAZQUEZ ALCANFOR PASTILLAS C/50 SOBRES,1.00,127.50,,,,,,sin EAN; no hay nombre parecido
+ifc2_118216,ya_esta_por_nombre,81608,MAYOREO,EDIGAR PERILLA N 1 CAJA 1113,2.00,15.50,FC-9A1C64E7,Perilla Edigar N O Caja,,14.5,2,score 0.67 | SKU genérico Perilla; revisar talla N0-N6
+ifc2_118216,ya_esta_por_nombre,83490,MAYOREO,MERCURIO HABA ALCANFORADA C/50 1510724,1.00,65.00,FC-9507CD66,Mercurio Haba Alcanforada,,65.0,1,score 0.75
+ifc2_118216,falta,82943,MENUDEO,MERCURIO POMADA TEPEZCOHUITE C/25 2560123,3.00,9.50,,,,,,sin EAN; no hay nombre parecido
+ifc2_118216,ya_esta_por_nombre,82972,MENUDEO,MERCURIO POMADA VENENO DE ABEJA C/25 2580223,3.00,9.50,FC-9827438F,Mercurio Veneno De Abeja,,9.5,3,score 0.60
+ifc2_118216,ya_esta_por_nombre,82943,MENUDEO,MERCURIO POMADA PAN PUERCO C/25 25401233,5.00,9.50,FC-EFB599B5,Mercurio Pan Puerco,,9.5,5,score 0.60
+ifc2_118216,ya_esta_por_nombre,2023,MENUDEO,VELAZQUEZ BICARBONATO GRANDE 200G C/10 0121,5.00,11.50,FC-08DB70CB,Bicarbonato Velazquez Grande 200G,,11.5,5,score 0.80
+ifc2_118216,falta,82943,MENUDEO,MERCURIO POMADA ARNICA C/25 2550123,5.00,10.50,,,,,,sin EAN; no hay nombre parecido
+ifc2_118216,falta,82972,MENUDEO,MERCURIO POMADA SULFATIAZOL C/25 2600223,3.00,11.50,,,,,,sin EAN; no hay nombre parecido
+ifc2_118216,ya_esta_por_nombre,82972,MENUDEO,MERCURIO POMADA OXIDO DE ZINC C/25 2590223,3.00,9.00,FC-C4530823,Mercurio óxido de zinc C/50,,54.0,1,score 0.60 | también FC-0ACC5B6A Mercurio Oxido De Zinc
+ifc2_118216,ya_esta_por_nombre,83125,MENUDEO,MERCURIO CLORURO DE MAGNESIO C/10 CAJITA 1420723,2.00,17.00,FC-5D59ED54,Mercurio Cloruro De Magnesio Cajita,,34.0,2,score 0.80

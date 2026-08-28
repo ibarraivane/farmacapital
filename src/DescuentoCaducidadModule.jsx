@@ -119,47 +119,37 @@ export default function DescuentoCaducidadModule() {
   const aprobar = async (ids, precio) => {
     if (!ids.length) return;
     setBusy(true);
-    try {
-      const tok = sessionTok();
-      const { data, error } = await supabase.rpc("admin_aprobar_propuestas_caducidad", {
-        p_session_token: tok,
-        p_ids: ids,
-        p_precio: precio == null || precio === "" ? null : Number(precio),
-      });
-      if (error) {
-        showToast(error.message || "No se pudo aprobar", "error");
-        return;
-      }
-      showToast(`Aprobadas: ${data?.aprobadas ?? ids.length}. El POS aún cobra el PVP.`, "success");
-      setEditId(null);
-      cargar();
-    } catch (e) {
-      showToast(e?.message || "Se cayó la conexión. Intenta de nuevo.", "error");
-    } finally {
-      setBusy(false);
+    const tok = sessionTok();
+    const { data, error } = await supabase.rpc("admin_aprobar_propuestas_caducidad", {
+      p_session_token: tok,
+      p_ids: ids,
+      p_precio: precio == null || precio === "" ? null : Number(precio),
+    });
+    setBusy(false);
+    if (error) {
+      showToast(error.message || "No se pudo aprobar", "error");
+      return;
     }
+    showToast(`Aprobadas: ${data?.aprobadas ?? ids.length}. El POS aún cobra el PVP.`, "success");
+    setEditId(null);
+    cargar();
   };
 
   const rechazar = async (ids) => {
     if (!ids.length) return;
     setBusy(true);
-    try {
-      const tok = sessionTok();
-      const { data, error } = await supabase.rpc("admin_rechazar_propuestas_caducidad", {
-        p_session_token: tok,
-        p_ids: ids,
-      });
-      if (error) {
-        showToast(error.message || "No se pudo rechazar", "error");
-        return;
-      }
-      showToast(`Rechazadas: ${data?.rechazadas ?? ids.length}`, "info");
-      cargar();
-    } catch (e) {
-      showToast(e?.message || "Se cayó la conexión. Intenta de nuevo.", "error");
-    } finally {
-      setBusy(false);
+    const tok = sessionTok();
+    const { data, error } = await supabase.rpc("admin_rechazar_propuestas_caducidad", {
+      p_session_token: tok,
+      p_ids: ids,
+    });
+    setBusy(false);
+    if (error) {
+      showToast(error.message || "No se pudo rechazar", "error");
+      return;
     }
+    showToast(`Rechazadas: ${data?.rechazadas ?? ids.length}`, "info");
+    cargar();
   };
 
   const verEtiqueta = (r) => {

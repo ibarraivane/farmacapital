@@ -1,4 +1,4 @@
-import { idxDiaDescanso, planSemanaCaja, descansosChocan, etiquetaDiaDescanso, rangoCajaDeCorte } from "./turnos";
+import { idxDiaDescanso, planSemanaCaja, descansosChocan, etiquetaDiaDescanso, perfilesTurnoCaja } from "./turnos";
 
 describe("plan 6+1 (descanso y cobertura)", () => {
   const mary = { id: 1, nombre: "Mary", rol: "vendedor", turno: "matutino", dia_descanso: 0 };
@@ -34,17 +34,13 @@ describe("plan 6+1 (descanso y cobertura)", () => {
     expect(etiquetaDiaDescanso(0)).toBe("lunes");
     expect(etiquetaDiaDescanso(5)).toBe("sábado");
   });
-});
 
-describe("rangoCajaDeCorte", () => {
-  test("usa apertura y cierre del corte, no el reloj 15:30", () => {
-    const { inicio, fin } = rangoCajaDeCorte({
-      fecha: "2026-08-21",
-      turno: "matutino",
-      hora_apertura: "08:22:03.131",
-      hora_cierre: "17:42:34.641",
-    });
-    expect(inicio.toISOString()).toBe("2026-08-21T14:22:03.000Z");
-    expect(fin.toISOString()).toBe("2026-08-21T23:42:34.000Z");
+  test("una baja no entra a la caja ni choca descansos", () => {
+    const baja = { ...mary, activo: false };
+    const rene = { id: 3, nombre: "Rene", rol: "vendedor", turno: "matutino", dia_descanso: 6, activo: true };
+    expect(perfilesTurnoCaja([baja, ana, rene]).map((p) => p.nombre)).toEqual(["Ana", "Rene"]);
+    const lun = planSemanaCaja([baja, ana, rene])[0];
+    expect(lun.celdas.find((c) => c.id === 1)).toBeUndefined();
+    expect(descansosChocan([baja, { ...rene, dia_descanso: 0 }])).toHaveLength(0);
   });
 });

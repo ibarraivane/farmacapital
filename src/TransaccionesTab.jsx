@@ -11,8 +11,10 @@ import { productMatchesSearchQuery } from "./utils/fuzzySearch";
 import { parseRpcJsonArray } from "./utils/rpcJson";
 import { notifyPosTicket, notifyOnlineOrderReceipt, formatFolioPOS, formatFolioOnline, formatWhatsAppSendError, formatWhatsAppSuccessMessage } from "./utils/orderReceiptWhatsApp";
 import { usePedidoTicketUrl } from "./hooks/usePedidoTicketUrl";
-import { telefonoMxValido } from "./utils";
+import { telefonoMxValido, $ } from "./utils";
+import { rolEsAdmin } from "./utils/permissions";
 import { fmtDateTimeMexico } from "./lib/ventasVsMeta";
+import { recargoEsValido } from "./lib/pagoServicio";
 
 function esPagoServicio(p) {
   return p?.origen === "pago_servicio" || pedidoEsTipoServicio(p?.tipo);
@@ -32,16 +34,16 @@ function mapPagoServicioAFila(ps) {
     created_at: ps.created_at,
     notas: ps.notas || null,
     atendido_por: ps.atendido_por ?? null,
-    clientes: {
-      nombre: proveedor,
-      telefono: ps.referencia || "",
-    },
+    clientes: null,
     usuarios: { nombre: ps.atendido_por_nombre || "" },
     proveedor,
     categoria: ps.categoria,
     referencia: ps.referencia,
     monto_servicio: ps.monto_servicio,
     comision: ps.comision,
+    compensacion_mp: ps.compensacion_mp,
+    costo_liquidacion: ps.costo_liquidacion,
+    referencia_externa: ps.referencia_externa,
     liquidado_point: ps.liquidado_point,
   };
 }
@@ -379,7 +381,9 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
 
   const abrirEditar = (p) => {
     setModalEdit(p);
-    const mp = p.metodo_pago === "spei" || p.metodo_pago === "mercadopago" ? "tarjeta" : (p.metodo_pago || "efectivo");
+    const mp = esPagoServicio(p)
+      ? (p.metodo_pago === "efectivo" ? "efectivo" : "tarjeta")
+      : (p.metodo_pago || "efectivo");
     setEditForm({
       estado: p.estado || "completado",
       metodo_pago: mp,
@@ -411,6 +415,13 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
     const tok = sessionStorage.getItem("farmacapital_session_token");
     try {
       if (esPagoServicio(modalEditar)) {
+        if (!recargoEsValido(editForm.comision, modalEditar.categoria)) {
+          throw new Error(
+            modalEditar.categoria === "recarga"
+              ? "Las recargas no llevan recargo de farmacia. Déjalo en 0."
+              : "El recargo de farmacia es obligatorio en recibos. No se guarda en cero."
+          );
+        }
         await guardarPagoServicioAdmin("editar", {
           id: modalEditar.servicioId,
           metodo_pago: editForm.metodo_pago,
@@ -538,6 +549,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
     <button
       type="button"
       title={title}
+      aria-label={title}
       onClick={onClick}
       disabled={disabled}
       style={{
@@ -564,7 +576,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
 
   return (
     <div style={{ colorScheme: "light" }}>
-      <div className="fc-toolbar-filters" style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
         <input placeholder="🔍 ID o cliente…" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} style={{ ...inpS, maxWidth: 180 }} />
         <select value={filtroFecha} onChange={(e) => setFiltroF(e.target.value)} style={inpS}>
           <option value="hoy">Hoy</option>
@@ -601,7 +613,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
 
       {loading ? <SkeletonTable rows={5} cols={9} /> : (
         <div style={{ overflowX: "auto", borderRadius: 12, border: `1px solid ${C.border}`, marginBottom: 16 }}>
-          <table className="fc-tabla-cards" style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+          <table className="fc-tabla-cards" style={{ width: "100%", minWidth: 1080, borderCollapse: "collapse", fontSize: 12 }}>
             <thead>
               <tr style={{ background: C.cardDark }}>
                 {["ID", "Fecha/Hora", "Cliente", "Vendedor", "Total", "Método", "Tipo", "Estado", "Acciones"].map((h) => (
@@ -627,16 +639,15 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                     <div style={{ fontSize: 9, color: C.textDim, marginTop: 2 }}>{esPagoServicio(p) ? "Recarga / servicio" : folioPedido(p)}</div>
                   </td>
                   <td data-label="Fecha" style={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap" }}>{fmtDT(p.created_at)}</td>
-                  <td data-label="Cliente" data-wide style={{ padding: "8px 12px", color: C.text, fontWeight: 600, borderBottom: `1px solid ${C.border}` }}>
-                    {p.clientes?.nombre || "—"}
-                    {p.clientes?.telefono ? <div style={{ fontSize: 10, color: C.textMid, fontWeight: 500, marginTop: 2 }}>{p.clientes.telefono}</div> : null}
+                  <td data-label="Cliente" data-wide style={{ padding: "8px 12px", color: C.text, fontWeight: 600, borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 180 }}>
+                    {esPagoServicio(p) ? "—" : (p.clientes?.nombre || "—")}
                   </td>
                   <td
                     data-label="Vendedor"
                     style={{ padding: "8px 12px", color: C.text, fontWeight: 600, borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap", minWidth: 140 }}
                     onClick={(e) => e.stopPropagation()}
                   >
-                    {usuario?.rol === "admin" ? (
+                    {rolEsAdmin(usuario?.rol) ? (
                       <button
                         type="button"
                         onClick={(e) => {
@@ -666,9 +677,9 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                       nombreVendedor(p, vendedores)
                     )}
                   </td>
-                  <td data-label="Total" className="fc-nowrap-money" style={{ padding: "8px 12px", color: C.green, fontWeight: 700, borderBottom: `1px solid ${C.border}` }}>{fmtM(p.total)}</td>
+                  <td data-label="Total" style={{ padding: "8px 12px", color: C.green, fontWeight: 700, borderBottom: `1px solid ${C.border}` }}>{fmtM(p.total)}</td>
                   <td data-label="Método" style={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}` }}>{p.metodo_pago || "—"}</td>
-                  <td data-label="Tipo" style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, verticalAlign: "top" }}>
+                  <td data-label="Tipo" style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, verticalAlign: "middle" }}>
                     <span style={{ padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 700,
                       background: p.tipo === "online" ? "#ede9fe" : p.tipo === "consulta" ? "#dcfce7" : pedidoEsTipoServicio(p.tipo) ? "#fef3c7" : "#eff6ff",
                       color: p.tipo === "online" ? C.purple : p.tipo === "consulta" ? C.green : pedidoEsTipoServicio(p.tipo) ? C.amber : C.blue }}>
@@ -686,8 +697,8 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                   <td data-label="Estado" style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}` }}>
                     <span style={{ padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 700, background: estCol(p.estado) + "20", color: estCol(p.estado) }}>{p.estado || "—"}</span>
                   </td>
-                  <td data-label="Acciones" data-actions style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap" }} onClick={(e) => e.stopPropagation()}>
-                    <div style={{ display: "inline-flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
+                  <td data-label="Acciones" data-actions style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap", width: 1 }} onClick={(e) => e.stopPropagation()}>
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: 4, flexWrap: "nowrap" }}>
                       <button type="button" onClick={() => abrirDetalle(p)} title="Ver detalle" style={{ padding: "3px 8px", borderRadius: 5, border: `1px solid ${C.blue}30`, background: "#eff6ff", color: C.blue, cursor: "pointer", fontSize: 10, fontWeight: 700 }}>Detalle</button>
                       {!esPagoServicio(p) && <>
                       {btnAccionIcono({
@@ -709,7 +720,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                         children: "🖨️",
                       })}
                       </>}
-                      {usuario?.rol === "admin" && <>
+                      {rolEsAdmin(usuario?.rol) && <>
                         {btnAccionIcono({ col: C.amber, bg: "#fef3c7", border: `${C.amber}30`, title: "Editar", onClick: () => abrirEditar(p), children: "✏️" })}
                         {!esPagoServicio(p) && p.estado !== "cancelado" && btnAccionIcono({ col: C.textMid, bg: "#f1f5f9", border: "#94a3b830", title: "Cancelar pedido", onClick: () => cancelarPed(p), children: "❌" })}
                         {btnAccionIcono({ col: C.red, bg: "#fee2e2", border: `${C.red}30`, title: "Eliminar", onClick: () => eliminarPed(p), children: "🗑️" })}
@@ -793,7 +804,9 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 160px), 1fr))", gap: 12, marginBottom: 16, fontSize: 12 }}>
               <div><span style={{ color: C.textMid }}>Folio: </span><strong style={{ color: C.text }}>{folioPedido(modalDetalle)}</strong></div>
+              {!esPagoServicio(modalDetalle) && (
               <div><span style={{ color: C.textMid }}>Cliente: </span><strong style={{ color: C.text }}>{modalDetalle.clientes?.nombre || "—"}</strong></div>
+              )}
               <div><span style={{ color: C.textMid }}>Fecha: </span><strong style={{ color: C.text }}>{fmtDT(modalDetalle.created_at)}</strong></div>
               <div><span style={{ color: C.textMid }}>Total: </span><strong style={{ color: C.green }}>{fmtM(modalDetalle.total)}</strong></div>
               <div><span style={{ color: C.textMid }}>Método: </span><strong style={{ color: C.text }}>{modalDetalle.metodo_pago || "—"}</strong></div>
@@ -803,9 +816,13 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
               {esPagoServicio(modalDetalle) && (
                 <>
                   <div><span style={{ color: C.textMid }}>Proveedor: </span><strong style={{ color: C.text }}>{modalDetalle.proveedor || "—"}</strong></div>
-                  <div><span style={{ color: C.textMid }}>Referencia: </span><strong style={{ color: C.text }}>{modalDetalle.referencia || "—"}</strong></div>
+                  <div><span style={{ color: C.textMid }}>Teléfono / referencia: </span><strong style={{ color: C.text }}>{modalDetalle.referencia || "—"}</strong></div>
                   <div><span style={{ color: C.textMid }}>Monto recarga: </span><strong style={{ color: C.text }}>{fmtM(modalDetalle.monto_servicio)}</strong></div>
-                  <div><span style={{ color: C.textMid }}>Comisión: </span><strong style={{ color: C.amber }}>{fmtM(modalDetalle.comision)}</strong></div>
+                  <div><span style={{ color: C.textMid }}>Recargo farmacia: </span><strong style={{ color: C.amber }}>{fmtM(modalDetalle.comision)}</strong></div>
+                  <div><span style={{ color: C.textMid }}>Compensación MP (1%): </span><strong style={{ color: C.text }}>{fmtM(modalDetalle.compensacion_mp)}</strong></div>
+                  {modalDetalle.costo_liquidacion != null && (
+                    <div><span style={{ color: C.textMid }}>Costo saldo MP: </span><strong style={{ color: C.text }}>{fmtM(modalDetalle.costo_liquidacion)}</strong></div>
+                  )}
                 </>
               )}
               {pedidoEsTipoOnline(modalDetalle.tipo) && modalDetalle.tipo_entrega && (
@@ -819,13 +836,13 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
 
             {esPagoServicio(modalDetalle) ? (
               <div style={{ background: C.cardDark, borderRadius: 8, padding: 14, fontSize: 12, color: C.textMid, lineHeight: 1.5 }}>
-                Recarga registrada en POS → Servicios. No es una venta de producto, por eso no tenía folio VTA ni aparecía aquí antes.
+                Recarga registrada en POS → Servicios. En tiempo aire el recargo va en 0; en recibos es lo que le cobraste al cliente. La compensación MP (1%) entra al saldo de Mercado Pago, no al cajón. No es una venta de producto: no tiene folio VTA.
               </div>
             ) : (
             <>
             <div style={{ fontWeight: 700, color: C.text, fontSize: 13, marginBottom: 10 }}>Productos vendidos:</div>
             {loadDet ? <SkeletonTable rows={3} cols={4} /> : (
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+              <table className="fc-tabla-cards" style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                 <thead><tr style={{ background: C.cardDark }}>{["Producto", "SKU", "Cant.", "Precio", "Subtotal"].map((h) => <th key={h} style={{ padding: "7px 10px", textAlign: "left", color: C.textMid, fontWeight: 700, borderBottom: `1px solid ${C.border}` }}>{h}</th>)}</tr></thead>
                 <tbody>
                   {detItems.length === 0 && !loadDet && (
@@ -833,14 +850,14 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                   )}
                   {detItems.map((it, i) => (
                     <tr key={i}>
-                      <td style={{ padding: "7px 10px", color: C.text, fontWeight: 600, borderBottom: `1px solid ${C.border}` }}>
+                      <td data-label="Producto" data-primary style={{ padding: "7px 10px", color: C.text, fontWeight: 600, borderBottom: `1px solid ${C.border}` }}>
                         {it.productos?.nombre || it.nombre || "—"}
                         {it.lotes?.numero_lote && <div style={{ fontSize: 9, color: C.textDim, marginTop: 1 }}>Lote: {it.lotes.numero_lote}{it.lotes.fecha_caducidad ? ` | Cad: ${it.lotes.fecha_caducidad}` : ""}</div>}
                       </td>
-                      <td style={{ padding: "7px 10px", color: C.textMid, fontSize: 10, borderBottom: `1px solid ${C.border}`, fontFamily: "monospace" }}>{it.productos?.sku || "—"}</td>
-                      <td style={{ padding: "7px 10px", color: C.amber, fontWeight: 700, borderBottom: `1px solid ${C.border}` }}>{it.cantidad}</td>
-                      <td style={{ padding: "7px 10px", color: C.textMid, borderBottom: `1px solid ${C.border}` }}>{fmtM(it.precio_unitario || it.precio || 0)}</td>
-                      <td style={{ padding: "7px 10px", color: C.green, fontWeight: 700, borderBottom: `1px solid ${C.border}` }}>{fmtM((it.precio_unitario || it.precio || 0) * (it.cantidad || 1))}</td>
+                      <td data-label="SKU" style={{ padding: "7px 10px", color: C.textMid, fontSize: 10, borderBottom: `1px solid ${C.border}`, fontFamily: "monospace" }}>{it.productos?.sku || "—"}</td>
+                      <td data-label="Cant." style={{ padding: "7px 10px", color: C.amber, fontWeight: 700, borderBottom: `1px solid ${C.border}` }}>{it.cantidad}</td>
+                      <td data-label="Precio" style={{ padding: "7px 10px", color: C.textMid, borderBottom: `1px solid ${C.border}` }}>{fmtM(it.precio_unitario || it.precio || 0)}</td>
+                      <td data-label="Subtotal" style={{ padding: "7px 10px", color: C.green, fontWeight: 700, borderBottom: `1px solid ${C.border}` }}>{fmtM((it.precio_unitario || it.precio || 0) * (it.cantidad || 1))}</td>
                     </tr>
                   ))}
                   <tr><td colSpan={4} style={{ padding: "8px 10px", textAlign: "right", fontWeight: 800, color: C.text }}>TOTAL</td><td style={{ padding: "8px 10px", color: C.green, fontWeight: 900, fontSize: 14 }}>{fmtM(modalDetalle.total)}</td></tr>
@@ -949,8 +966,16 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                     <input value={editForm.monto_servicio || ""} onChange={(e) => setEditForm((f) => ({ ...f, monto_servicio: e.target.value }))} inputMode="decimal" style={inpForm} />
                   </div>
                   <div>
-                    <label style={{ color: C.textMid, fontSize: 10, fontWeight: 700, display: "block", marginBottom: 4 }}>COMISIÓN</label>
-                    <input value={editForm.comision || ""} onChange={(e) => setEditForm((f) => ({ ...f, comision: e.target.value }))} inputMode="decimal" style={inpForm} />
+                    <label style={{ color: C.textMid, fontSize: 10, fontWeight: 700, display: "block", marginBottom: 4 }}>
+                      {modalEditar.categoria === "recarga" ? "RECARGO (SIEMPRE 0)" : "RECARGO FARMACIA"}
+                    </label>
+                    <input
+                      value={editForm.comision || ""}
+                      onChange={(e) => setEditForm((f) => ({ ...f, comision: e.target.value }))}
+                      inputMode="decimal"
+                      disabled={modalEditar.categoria === "recarga"}
+                      style={inpForm}
+                    />
                   </div>
                 </div>
               </>
@@ -960,6 +985,12 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
               <select value={editForm.metodo_pago} onChange={(e) => setEditForm((f) => ({ ...f, metodo_pago: e.target.value }))} style={inpForm}>
                 <option value="efectivo">Efectivo</option>
                 <option value="tarjeta">Tarjeta</option>
+                {!esPagoServicio(modalEditar) && (
+                  <>
+                    <option value="spei">SPEI / Transferencia</option>
+                    <option value="mercadopago">Mercado Pago</option>
+                  </>
+                )}
               </select>
             </div>
             <div style={{ marginBottom: 16 }}>

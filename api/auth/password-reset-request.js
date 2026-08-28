@@ -92,7 +92,6 @@ module.exports = async function handler(req, res) {
       ok: true,
       message:
         'Si tu correo o teléfono está registrado, recibirás un enlace por WhatsApp en unos minutos.',
-      whatsapp,
     });
   } catch (e) {
     console.error('[password-reset-request]', e);

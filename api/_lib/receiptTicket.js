@@ -29,6 +29,15 @@ html, body { margin: 0; padding: 0; background: #fff; font-family: 'Courier New'
 .ticket-link { display: block; margin-top: 12px; padding: 10px; background: #0D1B2A; color: #fff; text-align: center; text-decoration: none; border-radius: 8px; font-weight: 700; }
 `;
 
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function getPublicSiteBase() {
   return String(process.env.PUBLIC_SITE_URL || 'https://www.farmacapital.mx').replace(/\/+$/, '');
 }
@@ -150,7 +159,7 @@ function generatePickupPassHTML({ pedido, ticketUrl, mode = 'pickup' }) {
   const cfg = FARMACIA_FISCAL;
   const folio = formatFolioOnline(pedido?.id) || `#FC-${pedido?.id || '?'}`;
   const total = formatMoneyMx(pedido?.total);
-  const nombre = pedido?.clientes?.nombre ? String(pedido.clientes.nombre).trim() : '';
+  const nombre = pedido?.clientes?.nombre ? escapeHtml(String(pedido.clientes.nombre).trim()) : '';
   const qrSrc = ticketUrl
     ? `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(ticketUrl)}`
     : null;
@@ -180,7 +189,7 @@ function generatePickupPassHTML({ pedido, ticketUrl, mode = 'pickup' }) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>${folio} — FarmaCapital</title>
+  <title>${escapeHtml(folio)} — FarmaCapital</title>
   <style>${PASS_CSS}</style>
 </head>
 <body>
@@ -250,7 +259,7 @@ function generateTicketHTML({ pedido, ticketUrl }) {
     .map(
       (p) => `
     <div style="margin-bottom:4px">
-      <div style="font-weight:bold">${String(p.nombre || 'Producto').slice(0, 28)}</div>
+      <div style="font-weight:bold">${escapeHtml(String(p.nombre || 'Producto').slice(0, 28))}</div>
       <div style="display:flex;justify-content:space-between;font-size:12px">
         <span>${p.qty} x ${fmt(p.precio)}</span>
         <span style="font-weight:bold">${fmt(p.precio * p.qty)}</span>
@@ -286,7 +295,7 @@ function generateTicketHTML({ pedido, ticketUrl }) {
       <div>Fecha: ${fechaStr}</div>
       <div>Hora: ${horaStr}</div>
       <div>Folio: ${folio}</div>
-      ${cliente?.nombre ? `<div>Cliente: ${cliente.nombre}</div>` : ''}
+      ${cliente?.nombre ? `<div>Cliente: ${escapeHtml(cliente.nombre)}</div>` : ''}
     </div>
     <hr class="separator">
     ${rows || '<div>Sin detalle de productos</div>'}
@@ -300,7 +309,7 @@ function generateTicketHTML({ pedido, ticketUrl }) {
       <div style="font-weight:bold">Gracias por su compra</div>
       <div>farmacapital.mx</div>
     </div>
-    ${ticketUrl ? `<a class="ticket-link" href="${ticketUrl}">Guardar este ticket</a>` : ''}
+    ${ticketUrl ? `<a class="ticket-link" href="${escapeHtml(ticketUrl)}">Guardar este ticket</a>` : ''}
   </div>
 </body>
 </html>`;

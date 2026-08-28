@@ -35,11 +35,14 @@ begin
         and p.created_at >= p_desde
     ), '[]'::jsonb),
     'cons', coalesce((
-      select jsonb_agg(jsonb_build_object('id', c.id))
+      select jsonb_agg(jsonb_build_object(
+        'id', c.id,
+        'precio_consulta_cobrado', c.precio_consulta_cobrado
+      ))
       from public.citas c
       where c.fecha >= p_desde_fecha
         and coalesce(c.estado,'') <> 'cancelada'
-        and ((c.estado)::text = any(array['completada','pagada']) or coalesce(c.pago_estado,'')='pagada')
+        and c.pedido_consulta_id is not null
     ), '[]'::jsonb),
     'ponl', coalesce((select jsonb_agg(jsonb_build_object('total', p.total)) from public.pedidos p where (p.estado)::text='completado' and (p.tipo)::text='online' and p.created_at >= p_desde), '[]'::jsonb),
     'devs', coalesce((select jsonb_agg(jsonb_build_object('total_devuelto', d.total_devuelto)) from public.devoluciones d where (d.estado)::text='aprobada' and d.created_at >= p_desde), '[]'::jsonb),

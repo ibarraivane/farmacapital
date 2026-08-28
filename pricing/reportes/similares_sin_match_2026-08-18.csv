@@ -1,0 +1,250 @@
+sku,nombre,principio_activo,costo,precio_fc,mejor_confianza,mejor_candidato,motivo
+FC-75710113,Alu-Mag suspensión hidróxido de aluminio/magnesio 3.70/4.00 g,,23.77,39,1,ALUMINIO 3.7 GR / MAGNESIO 4 GR / SIMETICONA .5 GR SUSPENSION 320 ML 1 PIEZA,"no comparable: concentracion difiere en parte ['240ml', '4000mg']≠['320ml', '3700mg', '4000mg', '5000mg']"
+FC-62746612,Ajolotius Jarabe Sin azucar,Mezcla Herbal con vitamina C yA,87.42,119.0,5,SIMIBROX D MALTITOL Y MEZCLA DE HIERBAS SIN AZUCAR JARABE 240 ML 1 PIEZA,no comparable: al competidor le faltan 1/2 principios activos (vitamina)
+FC-52400267,Ajolotius Jarabe Elderberry,Mezcla Herbal y vitaminas C y A,73.21,99.0,0,SIMIFILA CLOROFILA LIQUIDA SOLUCION 250 ML 1 PIEZA,confianza 0 < 85
+FC-53601247,Rinomar Agua Isotonica,,86.9,105,0,,sin resultados VTEX
+FC-01166578,Baby Son's pomada dexpantenol 5 g/100 g,,21.55,35,0,SACCHAROMYCES BOULARDI POLVO 6 SOBRES SIMI BABY,no comparable: candidato sin tamano declarado
+FC-25304555,Braxigort (Nifuroxazida) suspensión 4.4 g/100 mL,Nifuroxazida,39.45,64,82,NIFUROXAZIDA SUSPENSION 1 PIEZA,no comparable: candidato sin tamano declarado
+FC-36003621,Precicol hioscina/paracetamol gotas 20 mL,Hioscina + Paracetamol,37.22,60,72,PARACETAMOL / BUTILHIOSCINA 100/2 MG SOLUCION GOTAS 20 ML 1 PIEZA,no comparable: forma difiere gotas≠solucion
+FC-71829601,Tribedoce 50000 UI,Hidroxocobalamina + Tiamina + Piridoxina,73.11,98.7,70,HIDROXOCOBALAMINA 10000 MCG / TIAMINA 100 MG / PIRIDOXINA 50 MG SOLUCION INYECTABLE 5 AMPOLLETAS,"no comparable: concentracion difiere ['50000ui']≠['10000mcg', '100mg', '50mg']"
+FC-37103354,Brunadol Infantil paracetamol/naproxeno 100-125 mg/5 mL,,30.57,49,20,NAPROXENO/PARACETAMOL 125/100MG/5ML SUSPENSION 100ML,"no comparable: concentracion difiere en parte ['100ml', '125mg', '5ml']≠['100mg', '100ml', '5ml']"
+FC-08100099,Caltrón 600+D calcio 600 mg / vitamina D 125 UI,,106.37,171,0,BLOQUEADOR FACIAL/CORPORAL FPS50+125GR ETERNAL,"no comparable: concentracion difiere ['125ui', '600mg']≠['125000mg']"
+FC-11788928,Desyn-N (Lidocaína/Hidrocortisona) 60/5 mg,Lidocaína/Hidrocortisona,31.62,51,70,HIDROCORTISONA / LIDOCAINA  5/60MG 6 SUPOSITORIOS,no comparable: concentracion difiere ['5mg']≠['60mg']
+FC-12250181,Rocainol Ung,Salicilato de metilo + Mentol,53.12,71.72,47,ALCANFOR / MENTOL / EUCALIPTO / TREMENTINA / SALICILATO DE METILO UNGÜENTO 1 PIEZA,"no comparable: al competidor le sobran principios activos (alcanfor, eucalipto, trementina)"
+FC-27424995,Difenhidramina 25 mg,,19.59,32,55,DIFENHIDRAMINA 25 MG 30 CAPSULAS,confianza 55 < 85
+FC-25100123,Solucion CS PiSA cloruro de sodio 0.9% 500 mL,Cloruro de sodio 0.9%,35.21,73.78,82,AGUA DE MAR ISOTONICA (EQUIVALENTE 0.9% CLORURO DE SODIO) 100 MLL 1 PIEZA,no comparable: candidato sin tamano declarado
+FC-25300366,Espabion (Trimebutina) 20 mg/mL gotas,Trimebutina,25.67,42,72,TRIMEBUTINA 20MG/1M PEDIATRICO SUSPENSION GOTAS 30 ML 1 PIEZA,no comparable: forma difiere gotas≠suspension
+FC-22300881,Jeringa insulina SensiMedical 1 mL 27G x 13 mm,,1.37,3,21,JERINGA PARA INSULINA 1ML 31X6 10 PIEZAS ULTRA FINE,confianza 21 < 85
+FC-11783282,Erbitrax (Terbinafina) crema 1%,Terbinafina,28.62,46,70,TERBINAFINA 250 MG 28 TABLETAS,no comparable: concentracion difiere ['30000mg']≠['250mg']
+FC-01165298,Exhantil suspensión antiácido/antiflatulento,,33.0,53,8,ALUMINIO 3.7 GR / MAGNESIO 4 GR / SIMETICONA .5 GR SUSPENSION 320 ML 1 PIEZA,confianza 8 < 85
+FC-22300775,Jeringa Sensi Medical 3 mL 22G x 32 mm negra,,1.4,3,24,RASTRILLO CABALLERO TRIPLE HOJA CON BANDA LUBRICANTE PIEL SENSIBLE COLOR VERDE 1 PIEZA,no comparable: candidato sin tamano declarado
+FC-47521025,Hemoger (Sulfato ferroso) 300 mg,Sulfato ferroso,56.3,91,70,SULFATO FERROSO 75MG/ML SOLUCION PEDIATRICA 50ML FERINSOL,"no comparable: concentracion difiere ['300mg']≠['50ml', '75mg']"
+FC-01007656,Wamindel (Paracetamol) gotas 100 mg/mL,Paracetamol,12.02,20,72,PARACETAMOL 100 MG/ML SOLUCION PEDIATRICA SABOR UVA TEMPRA 30 ML 1 PIEZA,no comparable: forma difiere gotas≠solucion
+FC-08344495,Lactopram infantil 150 mg sabor chocolate,Lactobacillus,27.24,39,82,GOMITAS LACTOBACILLUS ESPORULADOS 60 GOMITAS,no comparable: candidato sin tamano declarado
+FC-07535494,Motrin Infantil Suspension 120 ml,Ibuprofeno 2 g/100 ml,186.4,252.0,100,IBUPROFENO  2GR/100ML SUSPENSION 120 ML 1 PIEZA,precio 0.17x el costo
+FC-50003314,Unguento Bronco Rub 40 g,Herbolario topico,29.01,39.16,0,,sin resultados VTEX
+FC-25304142,Hidrigort (Difenhidramina) 50 mg,Difenhidramina,10.11,17,70,DIFENHIDRAMINA 25 MG 30 CAPSULAS,no comparable: concentracion difiere ['50mg']≠['25mg']
+FC-08344303,Ladexgel 300/2/10 mg,,20.55,33,0,,sin resultados VTEX
+FC-64560163,Iodex Cristal,Mentol + eucalipto,70.07,94.6,72,PALETAS SIMILYPTUS MENTOL / MIEL / EUCALIPTO CON PROPOLEO 16 PIEZAS,no comparable: candidato sin tamano declarado
+FC-12225027,Derman Crema 50 g,Ácido undecilénico + Undecilenato de zinc,44.69,60.34,0,ACIDO ACETILSALICILICO/BICARBONATO DE SODIO/ACIDO CITRICO 10 TABLETAS ALKA SELTZER,no comparable: al competidor le faltan 1/2 principios activos (undecilenato)
+FC-18752637,Itamol (Subsalicilato de bismuto) 262 mg,Subsalicilato de bismuto,34.09,55,82,SUBSALICILATO DE BISMUTO 24 TABLETAS MASTICABLES,no comparable: candidato sin tamano declarado
+EQ-MAV182,Laritol D 10 Tab 30/5 Mg,Fenilefrina / Loratadina,38.59,62,70,LORATADINA / FENILEFRINA 50/100MG JARABE INFANTIL 60 ML 1 PIEZA,"no comparable: concentracion difiere ['5mg']≠['100mg', '60ml']"
+FC-04908714,Miconazol crema 2%,,10.87,18,55,MICONAZOL 2 GR CREMA 20 GR 1 PIEZA,confianza 55 < 85
+FC-5112881,Pisacaina 2% 20 mg/ml Sol 50 ml,Lidocaina,85.0,114.75,70,LIDOCAINA  5/100GR (5%) UNGÜENTO 1 PIEZA,"no comparable: concentracion difiere ['20mg', '50ml']≠['100000mg']"
+FC-09790739,Normex leche de magnesia 8.5 g/100 mL,,14.06,23,0,,sin resultados VTEX
+EQ-SON024,Bentix 1 Cma 40g 3/0.0 %,Clioquinol / Fluocinolona,28.12,45,70,FLUOCINOLONA / CLIOQUINOL .01/3 GR CREMA 1 PIEZA,no comparable: concentracion difiere ['40000mg']≠['3000mg']
+FC-04908738,Lidocaina unguento 5% tubo 35 g,Lidocaina 5%,23.3,38,70,LIDOCAINA  5/100GR (5%) UNGÜENTO 1 PIEZA,no comparable: concentracion difiere ['35000mg']≠['100000mg']
+FC-09760541,Normex leche de magnesia 8.5 g/100 mL,,41.82,67,0,,sin resultados VTEX
+FC-5145497,NyQuil Z difenhidramina 25 mg C/30,Difenhidramina 25 mg,265.0,358.0,100,DIFENHIDRAMINA 25 MG 30 CAPSULAS,precio 0.12x el costo
+EQ-BRU016,Brulin (Dexametasona) 3 Fa 8mg/2 Ml,Dexametasona,24.28,39,72,DEXAMETASONA SOLUCION INYECTABLE 8MG/2ML 1 PIEZA,no comparable: forma difiere inyectable≠solucion
+FC-08344150,Prugnex Senósidos A-B 12 mg + ciruela 50 mg,,37.07,60,25,SENOSIDOS AB / CIRUELA 30 PERLAS,no comparable: candidato sin tamano declarado
+FC-03405381,Vitacilina Ungüento,Neomicina + Bacitracina zinc,23.06,31.14,47,POLIMIXINA B / NEOMICINA / BACITRACINA UNGÜENTO 3.5GR 1 PIEZA,no comparable: al competidor le sobran principios activos (polimixina)
+FC-73902584,Sarox (Omeprazol) 20 mg,Omeprazol,8.42,14,100,OMEPRAZOL 20 MG 14 CAPSULAS,precio 7.0x el costo
+FC-40450230,Rosel solución infantil 0.5/0.02/3 g,,26.88,44,18,AMANTADINA .5 GR / CLORFENAMINA .02 GR/ PARACETAMOL 3 GR  SOLUCION INFANTIL 60 ML 1 PIEZA,confianza 18 < 85
+FC-90287992,Redbelgy (Cianocobalamina) 1000 mcg masticable,Cianocobalamina,34.69,56,82,SIMI B12 CIANOCOBALAMINA (VITAMINA B12) 30 TABLETAS MASTICABLES,no comparable: candidato sin tamano declarado
+FC-03430721,Vitacilina 28 Crema,Neomicina + Bacitracina zinc,38.12,51.47,47,POLIMIXINA B / NEOMICINA / BACITRACINA UNGÜENTO 3.5GR 1 PIEZA,no comparable: al competidor le sobran principios activos (polimixina)
+FC-49024151,Metoclopramida inyectable 10 mg/2 mL C/6 AMSA,,21.0,34,72,METOCLOPRAMIDA 10 MG 20 TABLETAS,no comparable: forma difiere inyectable≠tableta
+FC-49020337,Sulindaco 200 mg,,47.3,76,55,SULINDACO 200 MG 20 TABLETAS,confianza 55 < 85
+FC-00005823,Tobramicina / Dexametasona solución oftálmica 3-1 mg/mL,,54.22,87,55,TOBRAMICINA / DEXAMETASONA 3/1 MG SOLUCION OFTALMICA 5 ML 1 PIEZA,confianza 55 < 85
+EQ-AMS209,Hipromelosa Oft 1 Sol 5mg/10 Ml,Hipromelosa,24.86,40,70,HIPROMELOSA 0.5% SOLUCION OFTALMICA 15 ML 1 PIEZA,"no comparable: concentracion difiere ['10ml', '5mg']≠['15ml']"
+EQ-ALP0628,Metamizol Sódico 3 Amp 1g/2 Ml,Metamizol sódico,14.68,24,72,METAMIZOL 1 GR SOLUCION INYECTABLE 3 AMPOLLETAS,no comparable: forma difiere inyectable≠solucion
+EQ-AMS428,Cisaprida 30 Tab 5 Mg,Cisaprida,23.91,39,70,CISAPRIDA 10 MG 30 TABLETAS,no comparable: concentracion difiere ['5mg']≠['10mg']
+EQ-QUM014,Pharmacaine 1 Aer 10g/100ml/115 Ml,Lidocaína,101.3,163,70,LIDOCAINA  5/100GR (5%) UNGÜENTO 1 PIEZA,"no comparable: concentracion difiere ['10000mg', '100ml', '115ml']≠['100000mg']"
+EQ-COL073,Otilin 1 Got 350mg/2g De 20 Ml,Lidocaína / Neomicina,25.01,41,72,NEOMICINA / LIDOCAINA 0.350/2GR SOLUCION GOTAS 20 ML 1 PIEZA,no comparable: forma difiere gotas≠solucion
+EQ-MAV142,Cefabroxil 15 Tab 500/30 Mg,Cefalexina / Ambroxol,44.44,72,65,AMBROXOL 30 MG 20 COMPRIMIDOS,no comparable: al competidor le faltan 1/2 principios activos (cefalexina)
+EQ-AMS328,Ketorolaco 3 Amp 30 Mg,Ketorolaco,11.33,19,72,KETOROLACO 30 MG TABLETAS SUBLINGUALES 4 TABLETAS,no comparable: forma difiere inyectable≠tableta
+FC-83142308,Tempire (Paracetamol) gotas 100 mg/mL,Paracetamol,20.0,32,72,PARACETAMOL 100 MG/ML SOLUCION PEDIATRICA SABOR UVA TEMPRA 30 ML 1 PIEZA,no comparable: forma difiere gotas≠solucion
+EQ-AMS398,Bencil/Benz Comp 1 Fa 1.2 U 3 Ml,Benzatina / procaína / cristalina,18.07,29,26,BENCILPENICILINA / BENZATINA SUSPENSION INYECTABLE 1 PIEZA,"no comparable: al competidor le faltan 2/3 principios activos (procaina, cristalina)"
+EQ-SON264,Laur Solución Inyectable,"Ampicilina, Metamizol, Guaifenesina, Lidocaína, Clorfenamina. 500mg/500mg/100mg/30mg/4mg",59.63,96,46,AMPICILINA 500 MG 20 CAPSULAS,"no comparable: al competidor le faltan 4/5 principios activos (metamizol, guaifenesina, lidocaina)"
+EQ-MAV065,Presistin 1 Susp 0.1g/60ml,Cisaprida,24.47,40,70,CISAPRIDA 10 MG 30 TABLETAS,"no comparable: concentracion difiere ['100mg', '60ml']≠['10mg']"
+EQ-AMS288,Dexam/Neomi 1 Gotas 1/3.5mg/5 Ml,Dexanetasona/Neomicina,23.15,38,41,DEXAMETASONA / NEOMICINA 1/3.5 MG SOLUCION GOTAS OFTALMICAS 5 ML 1 PIEZA,no comparable: al competidor le sobran principios activos (oftalmicas)
+FC-47624171,Nailex Desenterrador Unas Desenterrador Unas,,54.49,87.19,0,,sin resultados VTEX
+FC-54221482,Deeflamox Plus,Amoxicilina + Acido clavulanico,42.41,58.0,70,AMOXICILINA / ACIDO CLAVULANICO 875MG 10 TABLETAS,no comparable: concentracion difiere ['5ml']≠['875mg']
+FC-75717914,Nineka suspensión neomicina/caolín/pectina,Neomicina + Caolin + Pectina,23.45,38,82,NEOMICINA / CAOLIN / PECTINA SUSPENSION 1 PZA,no comparable: candidato sin tamano declarado
+FC-71800210,Floroglucinol / Trimetilfloroglucinol 80/80 mg,,152.51,245,55,FLOROGLUCINOL / TRIMETILFLOROGLUCINOL 80/80MG 20 CAPSULAS,confianza 55 < 85
+FC-08895042,Bruluaquil AAS/paracetamol/cafeína 250/250/65 mg,,42.35,68,0,,sin resultados VTEX
+EQ-SON160,Disons Dex 1 Fa 5/2 Mg,Betametasona,36.86,59,72,BETAMETASONA DE DIPROPIONATO / BETAMETASONA DE FOSFATO SODICO SUSPENSION INYECTABLE 1 AMPOLLETA,no comparable: candidato sin tamano declarado
+EQ-RAD096,Calcio Efe 12 Comp 500 Mg,Calcio,39.07,63,82,CARBONATO DE CALCIO 12 TABLETAS MASTICABLES SABOR MENTA,no comparable: candidato sin tamano declarado
+FC-09790029,Normex leche de magnesia 8.5 g/100 mL,,26.67,43,0,,sin resultados VTEX
+EQ-HIS076,Fhaspem 3 Amp 20 Mg/1 Ml,Hioscina,23.53,38,72,BUTILHIOSCINA  20MG/1ML SOLUCION INYECTABLE 3 AMPOLLETAS,no comparable: forma difiere inyectable≠solucion
+FC-00001292,Aceite de ricino Frasco 50 mL Mercurio,Aceite de ricino,9.5,16,0,,sin resultados VTEX
+EQ-MAV174,Flexiver Compuesto 10 Caps 215/15 Mg,Meloxicam / Metocarbamol,40.06,65,70,MELOXICAM / METOCARBAMOL 15/215MG 10 CAPSULAS,no comparable: concentracion difiere ['15mg']≠['215mg']
+FC-00001612,Jarabe de granada Frasco 50 mL Mercurio,Jarabe de granada,7.0,12,0,,sin resultados VTEX
+FC-2225010,Derman Crema 25 g,Acido undecilenico + Undecilenato de zinc,27.8,37.53,0,ACIDO ACETILSALICILICO/BICARBONATO DE SODIO/ACIDO CITRICO 10 TABLETAS ALKA SELTZER,no comparable: al competidor le faltan 1/2 principios activos (undecilenato)
+FC-06922728,Motilaxil solución (Picosulfato de sodio) 5 mg/5 mL,Picosulfato de sodio,25.04,41,72,PICOSULFATO DE SODIO 5 MG 20 TABLETAS,no comparable: forma difiere solucion≠tableta
+FC-01163232,Ridin Pediátrica jarabe dextrometorfano/guaifenesina/clorfenamina,,26.62,43,0,FENAZOPIRIDINA 100 MG 20 TABLETAS,no comparable: concentracion difiere ['120ml']≠['100mg']
+EQ-SON039,Dicleophen 12 Caps 500 Mg,Dicloxacilina,26.82,43,82,DICLOXACILINA 12 CAPSULAS,no comparable: candidato sin tamano declarado
+EQ-SON193,Poral Otico 1 Got 10 Ml,Hidrocortisona / Cloranfenicol / Benzocaína,34.41,56,72,HIDROCORTISONA / CLORANFENICOL / BENZOCAINA SOLUCION OTICA 10 ML 1 PIEZA,no comparable: forma difiere gotas≠solucion
+EQ-MAV140,Doltrix 3 Amp 100/20mg/2 Ml,Clonixinato / Hioscina,61.88,100,70,CLONIXINATO DE LISINA / BUTILHIOSCINA 125/10MG 20 TABLETAS,"no comparable: concentracion difiere ['20mg', '2ml']≠['10mg']"
+FC-002663,Lomotil Loperamida,Loperamida,119.56,162.0,90,LOPERAMIDA 2 MG 12 TABLETAS,precio 0.10x el costo
+FC-40015366,Nasalub Sol,Cloruro de sodio + Glicerol,83.32,112.49,39,CLORURO DE SODIO 6.5MG/1ML SOLUCION NASAL 30 ML 1 PIEZA,no comparable: al competidor le faltan 1/2 principios activos (glicerol)
+FC-06922711,Motilaxil gotas (Picosulfato de sodio) 7.5 mg/mL,Picosulfato de sodio,27.53,45,72,PICOSULFATO DE SODIO SOLUCION GOTAS 30 ML 1 PIEZA,no comparable: forma difiere gotas≠solucion
+EQ-MAV378,Flausiver 1 Gel 100 G,,37.55,61,0,DIOSMINA / HESPERIDINA 450/50MG 20 TABLETAS,no comparable: concentracion difiere ['100000mg']≠['50mg']
+EQ-BIO003,Biomesina Compuesta 10 Grag 250/10 Mg,,28.57,46,18,METAMIZOL / BUTILHIOSCINA  250/10MG 10 GRAGEAS,confianza 18 < 85
+FC-85278507,Manzanilla Sophia Solucion 15 ml,Manzanilla (Matricaria chamomilla),63.41,86.0,14,BALSAMO FRIO CON EXTRACTO AISLADO DE CANNABIDIOL CBD / ALOE VERA /ARNICA / MANZANILLA 90 GR 1 PIEZA,"no comparable: al competidor le sobran principios activos (balsamo, arnica)"
+FC-49025844,Telmisartán 40 mg,,35.1,57,55,TELMISARTAN 40 MG 14 TABLETAS,confianza 55 < 85
+EQ-HIS085,Protaisol 1 Susp/Aer 200 Dos/5 12.80 G,Ipratropio,96.21,154,70,IPRATROPIO 20 MCG AEROSOL PARA INHALACION 200 DOSIS 1 PIEZA,no comparable: concentracion difiere ['12800mg']≠['20mcg']
+EQ-SON096,Fenimeth V 12 Ovs 500mg/100000 Ui,,34.15,55,0,METRONIDAZOL / NISTATINA 12 OVULOS,no comparable: candidato sin tamano declarado
+FC-09747168,Fedrimin (Teofilina/Ambroxol) 0.700-0.150 g/100 mL,Teofilina/Ambroxol,34.25,55,70,TEOFILINA / AMBROXOL .7/.15 GR SOLUCION 150 ML 1 PIEZA,"no comparable: concentracion difiere en parte ['100ml', '150mg', '150ml']≠['15000mg', '150ml']"
+EQ-MAV187,Erispan Compuesto 1 Sol 5/100mg/60 Ml,Loratadina / Betametasona,22.53,37,70,LORATADINA / BETAMETASONA 100/5 MG SOLUCION 60 ML 1 PIEZA,"no comparable: concentracion difiere en parte ['100mg', '60ml']≠['5mg', '60ml']"
+FC-09745393,Siracux Adulto (Oxeladina/Ambroxol) 0.200-0.225 g/100 mL,Oxeladina/Ambroxol,42.66,69,0,LEVODROPROPIZINA / AMBROXOL 0.6/0.3GR/100ML SOLUCION 120ML,no comparable: al competidor le faltan 1/2 principios activos (oxeladina)
+EQ-AMS406,Cinitaprida 25 Comp 1 Mg,Cinitaprida,17.58,29,100,CINITAPRIDA 1MG 25 COMPRIMIDOS,precio 6.8x el costo
+EQ-SON225,Norkin 7 Caps 40 Mg,,13.95,23,0,,sin resultados VTEX
+EQ-MAV295,Erispan Comp 10 Tab 5/0.25 Mg,Loratadina / Betametasona,8.27,14,70,LORATADINA / BETAMETASONA  5 /.25 MG 10 TABLETAS,no comparable: concentracion difiere ['0.25mg']≠['25mg']
+EQ-SON033,Busconet 1 Fa 250/20mg/5 Ml,Hioscina / Metamizol sódico,33.38,54,70,METAMIZOL SODICO / BUTILHIOSCINA 2.5G/20MG SOLUCION INYECTABLE 1 AMPOLLETA,"no comparable: concentracion difiere en parte ['20mg', '5ml']≠['20mg', '2500mg']"
+EQ-EXA042,Cromoglicato Sodio 1 Sol 40 Mg/5 Ml,Cromoglicato de sodio,45.61,73,72,CROMOGLICATO DE SODIO SOLUCION OFTALMICA 5 ML 1 PIEZA,no comparable: forma difiere gotas≠solucion
+FC-23111387,Jarabe dropropizina/bromhexina Quimpharma 100 mL,Dropropizina + Bromhexina,70.37,113,70,DROPROPIZINA / BROMHEXINA 0.300/0.160GR 200ML SOLUCION ADULTO,"no comparable: concentracion difiere ['100ml']≠['160mg', '200ml']"
+EQ-SON153,Nysmosons-V 10 Ovs 500/0.5mg/100000 Ui,,43.06,69,0,,sin resultados VTEX
+EQ-NOV165,Budenova Susp .125 Mg/Ml 5 Amp 2ml,Budesonida,130.24,209,70,BUDESONIDA SUSPENSION 0.250MG/2ML O 0.125MG/ML PARA NEBULIZACION 5 AMPOLLETAS,"no comparable: concentracion difiere en parte ['125mg', '2ml']≠['0.125mg', '0.25mg', '2ml']"
+FC-75723830,Atroxolam (Teofilina/Ambroxol) 7.0-1.5 mg/mL jarabe,Teofilina/Ambroxol,29.77,48,70,TEOFILINA / AMBROXOL .7/.15 GR SOLUCION 150 ML 1 PIEZA,"no comparable: concentracion difiere en parte ['1.5mg', '150ml']≠['15000mg', '150ml']"
+FC-75710465,Benciefedril jarabe dextrometorfano/guaifenesina,,22.74,37,43,DEXTROMETORFANO / GUAIFENESINA  .2/2 GR ADULTO SOLUCION 120 ML 1 PIEZA,confianza 43 < 85
+FC-73903260,Bromhexina Adulto solución 160 mg/100 mL,,17.59,29,55,BROMHEXINA 160MG/100ML ADULTO SOLUCION 1 PIEZA,confianza 55 < 85
+FC-73903246,Bromhexina Infantil solución 80 mg/100 mL,,17.11,28,55,BROMHEXINA 80MG/100ML SOLUCION INFANTIL 1 PIEZA,confianza 55 < 85
+EQ-MAV322,"Traditor Indometacina, Betametasona","Indometacina / Betametasona, 500mg/50mg",47.47,76,53,INDOMETACINA / BETAMETASONA / METOCARBAMOL 20 CAPSULAS,no comparable: al competidor le sobran principios activos (metocarbamol)
+EQ-LOE135,Rosanil 7 Tab 500 Mg,,51.43,83,22,NITAZOXANIDA 500 MG 7 TABLETAS,confianza 22 < 85
+EQ-MAV307,Veratrin 20 Caps 215/25/0.75 Mg,,33.36,54,0,INDOMETACINA / BETAMETASONA / METOCARBAMOL 20 CAPSULAS,no comparable: candidato sin tamano declarado
+FC-9525015,Eucaliptine Jarabe 140 ml,Dextrometorfano + Sulfoguayacol,107.0,145.0,43,DEXTROMETORFANO 300 MG JARABE 120 ML 1 PIEZA,no comparable: al competidor le faltan 1/2 principios activos (sulfoguayacol)
+FC-36006028,Virindrez Infantil (Oximetazolina) 0.025%,Oximetazolina,20.7,34,72,OXIMETAZOLINA ADULTO 50MG/100ML SOLUCION NASAL 20 ML 1 PIEZA,no comparable: forma difiere spray≠solucion
+EQ-SON214,Dexametasona/Ciprofloxacino Sol,Ciprofloxacino / Dexametasona,43.08,69,72,CIPROFLOXACINO / DEXAMETASONA 3.5/1 MG SOLUCION OFTALMICA 5 ML 1 PIEZA,no comparable: forma difiere gotas≠solucion
+FC-69200016,Estomaquil Polvo C/20,Bismuto subsalicilato; Hidróxido de magnesio; Carbonato de calcio,98.79,133.37,72,SUBSALICILATO DE BISMUTO 24 TABLETAS MASTICABLES,no comparable: candidato sin tamano declarado
+EQ-DEG011,Convifer C/Hierro 1 Sol 3/2/.1mg/110,,33.94,55,0,,sin resultados VTEX
+FC-36006042,Virindrez Adulto (Oximetazolina) 0.050%,Oximetazolina,23.85,39,72,OXIMETAZOLINA ADULTO 50MG/100ML SOLUCION NASAL 20 ML 1 PIEZA,no comparable: forma difiere spray≠solucion
+EQ-OFF009,Dexne Otico 1 Got 1/3.5/15/10 Ml,Dexametasona / Neomicina / Lidocaína,42.69,69,37,DEXAMETASONA/LIDOCAINA/VITAMINA B1 B6 B12 6 AMPOLLETAS,no comparable: al competidor le faltan 1/3 principios activos (neomicina)
+EQ-NOV054,Lambliquin 30 Tab 400/200 Mg,,42.73,69,2,METRONIDAZOL / DIYODOHIDROXIQUINOLEINA 400/200MG 30 TABLETAS,confianza 2 < 85
+EQ-SON098,Metroson 1 Susp 250mg/5/120 Ml,,21.66,35,0,METRONIDAZOL 2.5GR/100ML SUSPENSION 1 PIEZA,"no comparable: concentracion difiere ['120ml', '250mg']≠['100ml', '2500mg']"
+FC-0287855,Vita Kid-C jarabe vitamina C naranja 240 ml,Vitamina c,29.14,69.0,72,VITAMINA D3+VITAMINA K2 30 CAPSULAS,no comparable: candidato sin tamano declarado
+EQ-MAI163,Crostox 30 Tab 20 Mg,,76.84,123,0,,sin resultados VTEX
+FMX-506779,Catéter Sumitex 20G x 33 mm rosa,,9.26,15,0,,sin resultados VTEX
+EQ-LOE132,Faribrox Tm Adulto 1 Jbe 150 Ml,Ambroxol / Dextrometorfano,23.19,38,70,AMBROXOL/ DEXTROMETORFANO 150/113MG JARABE INFANTIL 120ML,"no comparable: concentracion difiere ['150ml']≠['113mg', '120ml']"
+EQ-VIC030,Tofel 10 Tab 50/500 Mg,Diclofenaco / Paracetamol,37.55,61,65,PARACETAMOL 500 MG 10 TABLETAS,no comparable: al competidor le faltan 1/2 principios activos (diclofenaco)
+EQ-BIO017,Colpragin 30 Tab 10 Mg,Pravastatina,14.6,24,100,PRAVASTATINA 10 MG 30 TABLETAS,precio 8.2x el costo
+FC-MULIER30,Gelcavit Mulier capsulas 1.54 g C/30,"Isoflavonas de soya, lecitina de soya, vitaminas y minerales",78.55,125.0,46,ISOFLAVONAS SOYA DR SIMI 30 TABLETAS,"no comparable: al competidor le faltan 3/4 principios activos (lecitina, vitaminas, minerales)"
+FC-28833707,Levofloxacino 500 mg Caja con 7 tabletas beadvance,Levofloxacino,18.77,31,100,LEVOFLOXACINO 500 MG 7 TABLETAS,precio 7.9x el costo
+FC-49021044,Clindamicina 600 mg/4 mL Caja con 5 ampolletas AMSA,Clindamicina,88.42,142,72,CLINDAMICINA 600MG/4ML SOLUCION INYECTABLE 1 AMPOLLETA,no comparable: forma difiere inyectable≠solucion
+FC-00001049,Pomada de árnica Tarro 50 g Mercurio,Árnica,10.5,17,72,ARNICA 6C 30 TABLETAS,no comparable: candidato sin tamano declarado
+FC-52200809,Cina 750 mg Caja con 7 tabletas Landsteiner,Levofloxacino 750 mg,28.87,47,100,LEVOFLOXACINO 750 MG 7 TABLETAS,precio 7.9x el costo
+EQ-LOE066,Pensodil-S 5 Sup 200/100 Mg,,37.16,60,9,NAPROXENO SODICO/PARACETAMOL 100MG/200MG 5 SUPOSITORIOS,confianza 9 < 85
+EQ-BIO138,Lozamir-C 1 Cma 1/30 G,,15.08,25,3,CLOTRIMAZOL 1/100GR 30GR CREMA,confianza 3 < 85
+EQ-SON089,Magnil 1 Jbe 250mg/5/100 Ml,,24.05,39,0,METAMIZOL SODICO  5G/100ML JARABE 120ML  1 PIEZA,"no comparable: concentracion difiere en parte ['100ml', '250mg']≠['100ml', '120ml', '5000mg']"
+EQ-QUI096,Levonorgestrel / Etinilestradiol 0.15/0.03 mg C/21,Levonorgestrel / Etinilestradiol,22.72,37,70,LEVONORGESTREL / ETINILESTRADIOL .15/.03 MG 28 TABLETAS,no comparable: concentracion difiere ['0.03mg']≠['3mg']
+EQ-ULT145,Sildenafil 4 Tab 100 Mg,,24.21,39,100,SILDENAFIL 100 MG 4 TABLETAS,precio 6.2x el costo
+EQ-MAV331,Lonvitol 10 Amp .05/2.5 Mg/ 2.5 Ml,,69.83,112,0,IPRATROPIO / SALBUTAMOL SOLUCION PARA NEBULIZACION 10 AMPOLLETAS,no comparable: candidato sin tamano declarado
+EQ-AVT216,Soltadol 10 Tab 750 Mg,,5.04,9,22,PARACETAMOL 750MG 10 TABLETAS,confianza 22 < 85
+FC-30713851,Gelcavit Platinum capsulas 1.39 g C/30,"Coenzima Q-10, aceite de primula, aceite de germen de trigo, vitaminas y minerales",71.49,115.0,17,NAD/RESVERATROL/COENZIMA Q10 30 CAPSULAS,"no comparable: al competidor le faltan 4/5 principios activos (primula, germen, vitaminas)"
+EQ-LOE096,Vidalol Plus 20 Tab 10/500 Mg,,47.53,77,0,,sin resultados VTEX
+FC-08100013,Eucalín jarabe miel y propóleo 120 ml,Mezcla de Plantas y propoleo,44.46,72.0,7,SIMILYPTUS / PROPOLEO / GORDOLOBO / EUCALIPTO JARABE 240 ML 1 PIEZA,no comparable: al competidor le faltan 1/2 principios activos (mezcla)
+EQ-QUM068,Quimunex 1 Sol 100 Mg/100 Ml,,68.48,110,0,,sin resultados VTEX
+EQ-PGE061,Esterinol 40 Caps 50000ui,,24.91,40,0,,sin resultados VTEX
+EQ-COL133,Nosipren 30 Tab 20 Mg,,35.71,58,24,PREDNISONA 20 MG 30 TABLETAS,confianza 24 < 85
+EQ-MAV407,Daimant 14 Caps 100 Mg,,52.59,85,0,,sin resultados VTEX
+EQ-SER116,Cyrux 28 Tab 200 Mcg,,222.22,356,0,MISOPROSTOL 200 MCG 28 TABLETAS,confianza 0 < 85
+EQ-AMS498,Popram 28 Tab 40 Mg,,37.54,61,39,PANTOPRAZOL 40 MG 28 TABLETAS,confianza 39 < 85
+EQ-ALP0410,Nistatina 1 Susp 1 Ui /24 Ml,,34.07,55,48,METRONIDAZOL / NISTATINA 12 OVULOS,no comparable: candidato sin tamano declarado
+EQ-MAV198,Oxatech 14 Tab 10 Mg,,26.46,43,4,OLANZAPINA 10 MG 14 TABLETAS,confianza 4 < 85
+EQ-BRL072-1,Lo Bruquin 2 Tab 150/200 Mg,,15.4,25,0,,sin resultados VTEX
+EQ-NOV176,Pirinovag 10 Tab 500 Mg,,7.18,12,2,METAMIZOL 500MG 10 COMPRIMIDOS,confianza 2 < 85
+EQ-MAV162,Dolxen 10 Tab 500 Mg,,18.94,31,13,NAPROXENO 500 MG 45 TABLETAS,confianza 13 < 85
+EQ-NOV092,Ixicorl 10 Tab 20 Mg,,21.72,35,0,,sin resultados VTEX
+EQ-SON104,Neoderm-F 1 Cma 40g,,25.85,42,9,FLUOCINOLONA / NEOMICINA .01/.35 GR CREMA 40 GR 1 PIEZA,confianza 9 < 85
+EQ-QUM006,Mitafar 1 Susp 100mg/5/60 Ml,,38.29,62,0,NITAZOXANIDA 1200MG SUSPENSION 60 ML 1 PIEZA,"no comparable: concentracion difiere en parte ['100mg', '60ml']≠['1200mg', '60ml']"
+EQ-MAV266,Berniver 2% 1 Ung 15 G,,76.86,123,0,MUPIROCINA 2% UNGÜENTO 15 GR 1 PIEZA,confianza 0 < 85
+EQ-SER165,Estranim 10 Caps 75 Mg,,116.19,186,0,,sin resultados VTEX
+EQ-MAI150,Maviglin 60 Grag 500/5 Mg,,61.53,99,0,METFORMINA / GLIBENCLAMIDA 500/5MG 60 TABLETAS,confianza 0 < 85
+EQ-NOV004,Cirulan 20 Tab 10 Mg,,7.62,13,9,METOCLOPRAMIDA 10 MG 20 TABLETAS,confianza 9 < 85
+EQ-BRL053,Direpasid (Metoclopramida) 20 Tab 10 Mg,,7.55,13,0,,sin resultados VTEX
+EQ-AVT213,Menflixil 14 Tab 7.5 Mg,Meloxicam,5.28,9,100,MELOXICAM 7.5 MG 14 TABLETAS,precio 7.6x el costo
+EQ-MAV392,Cetilver 1 Gel 8% C/10 G,,45.31,73,0,,sin resultados VTEX
+EQ-NOV157,Glunovag 60 Tab 500 Mg,,19.38,32,2,METFORMINA 500 MG 60 TABLETAS,confianza 2 < 85
+EQ-BIO058,Wadil 30 Tab 500/5 Mg,,28.85,47,0,METFORMINA / GLIBENCLAMIDA 500/5MG 60 TABLETAS,confianza 0 < 85
+EQ-LIF006,Carbafen 30 Tab 400/350mg,,41.47,67,18,METOCARBAMOL / PARACETAMOL 400/350MG 30 TABLETAS,confianza 18 < 85
+EQ-ULT056,Retoflam-F 10 Tab 215/15 Mg,,19.15,31,27,MELOXICAM 15 MG 10 TABLETAS,confianza 27 < 85
+EQ-WER040,Punab 30 Tab 50 Mg,,12.33,20,0,LOSARTAN POTASICO 100 MG 15 TABLETAS,no comparable: concentracion difiere ['50mg']≠['100mg']
+EQ-SON034,Busconet 10 Tab 250/10 Mg,,24.92,40,25,METAMIZOL / BUTILHIOSCINA  250/10MG 10 GRAGEAS,confianza 25 < 85
+EQ-COL016,"Bonazin Meclozina, Piridoxina, Lidocaína","Meclozina, Piridoxina, Lidocaína",26.28,43,60,MECLOZINA / PIRIDOXINA SOLUCION INYECTABLE 1 AMPOLLETA,no comparable: al competidor le faltan 1/3 principios activos (lidocaina)
+EQ-MAV175,Flexiver Compuesto 20 Caps 215/7.5 Mg,,43.87,71,0,MELOXICAM / METOCARBAMOL 7.5/215MG 20 CAPSULAS,no comparable: concentracion difiere ['7.5mg']≠['215mg']
+EQ-SON091,Meclison 20 Tab 50/25 Mg,,22.27,36,0,MECLOZINA / PIRIDOXINA SOLUCION INYECTABLE 1 AMPOLLETA,no comparable: candidato sin tamano declarado
+EQ-SON175,Ardosons 20 Caps 215/25/0.75 Mg,,60.33,97,0,INDOMETACINA / BETAMETASONA / METOCARBAMOL 20 CAPSULAS,no comparable: candidato sin tamano declarado
+EQ-BEA426,Oxido De Zinc 1 Pasta 30 G,,10.38,17,70,OXIDO DE ZINC 25GR/100GR PASTA 1 PIEZA,"no comparable: concentracion difiere ['30000mg']≠['100000mg', '25000mg']"
+EQ-NOV137,Nineka 20 Tab 129/280/30 Mg,,37.67,61,0,NEOMICINA / CAOLIN / PECTINA 20 TABLETAS,no comparable: candidato sin tamano declarado
+EQ-APO142,Espadiva 10 Tab 20/400 Mg,,81.79,131,0,BUTILHIOSCINA HIOSCINA / IBUPROFENO 20/400 MG 10 TABLETAS,confianza 0 < 85
+EQ-LIF153,Realdrax Mxd 10 Tab 20/400 Mg,,40.6,65,0,BUTILHIOSCINA HIOSCINA / IBUPROFENO 20/400 MG 10 TABLETAS,confianza 0 < 85
+EQ-COL239,Volfenac Gel 1 Gel 2.32g/100 G,,48.65,78,0,DICLOFENACO 100MG 20 TABLETAS,"no comparable: concentracion difiere ['100000mg', '2320mg']≠['100mg']"
+EQ-VIT055,Rotumal 1 Gel 60g/1.16 %,,22.93,37,0,,sin resultados VTEX
+EQ-BEA336,Neomi/Cao/Pecti 20tab 129/280/30 Mg,,36.89,60,67,NEOMICINA / CAOLIN / PECTINA 20 TABLETAS,no comparable: candidato sin tamano declarado
+EQ-VIT073,Bocetix 1 Sol 50 Mg 150 Ml,,73.19,118,0,,sin resultados VTEX
+EQ-PGE046,Progelben 20 Caps 100 Mg,,19.66,32,10,BENZONATATO 100 MG 20 CAPSULAS,confianza 10 < 85
+EQ-STR008,Trociletas-B Limon. 12 Tab 2.5/10 Mg,,32.11,52,0,,sin resultados VTEX
+EQ-BIO021,Docsi 20 Tab 4 Mg,,9.6,16,4,CLORFENAMINA 4 MG 20 TABLETAS,confianza 4 < 85
+EQ-BRL072,Lo Bruquin 2 Tab 150/200 Mg,,15.4,25,0,,sin resultados VTEX
+EQ-COD060,Maracina 1 Spray 30 Ml 150 Mg /100 Ml,,25.02,41,0,BENCIDAMINA SOLUCION 360 ML 1 PIEZA,"no comparable: concentracion difiere ['100ml', '150mg', '30ml']≠['360ml']"
+EQ-BIO188,Broxtorfan Inf 1 Jbe 150/113 Mg/120 Ml,,15.85,26,22,AMBROXOL/ DEXTROMETORFANO 150/113MG JARABE INFANTIL 120ML,confianza 22 < 85
+EQ-SON164,Clotrinazol Dual 3 Ovs 200mg 1cma 10g,,50.07,81,0,,sin resultados VTEX
+EQ-CMD015,Materfol 90 Comp 0.4 Mg,,21.41,35,0,SIMIFOL ACIDO FOLICO 400 MCG 180 TABLETAS,no comparable: concentracion difiere ['0.4mg']≠['400mcg']
+EQ-FAC0057,Farmiver Infantil 1 Susp 100/400mg/10,,22.93,37,8,QUINFAMIDA / ALBENDAZOL 200/400MG JUNIOR SUSPENSION 20 ML 1 PIEZA,confianza 8 < 85
+EQ-HIS045,Cifhir 1 Gel 60g/5 %,,45.68,74,6,BENCIDAMINA CLORHIDRATO GEL 60 GR 1 PIEZA,confianza 6 < 85
+EQ-MAV387,Trimebut/Simetic Sup Ped 0.60g/0.60g,,71.95,116,82,TRIMEBUTINA/SIMETICONA 0.600/0.600 GR SUSPENSION 26 ML,confianza 82 < 85
+EQ-SER183,Murreolak 20 Tab Efervecentes 600 Mg,,128.64,206,0,,sin resultados VTEX
+EQ-LOE131,Faribrox Tm Inf 1 Jbe 150/113mg/100/150,,22.89,37,4,AMBROXOL/ DEXTROMETORFANO 150/113MG JARABE INFANTIL 120ML,confianza 4 < 85
+EQ-WER025,Amantadina(Rosel) 24 Caps 50/3/300 Mg,,27.44,44,82,AMANTADINA / CLORFENAMINA / PARACETAMOL 24 CAPSULAS,no comparable: candidato sin tamano declarado
+EQ-QUM052,Quimikan 1 Sol C/ Apli 10 Ml 200mg/ 1 Ml,,63.68,102,9,BENZOCAINA 200 MG SOLUCION BUCAL CON APLICADOR 1 PIEZA,confianza 9 < 85
+EQ-AVT135,Tusilen pediátrico jarabe 118 mL,Dextrometorfano / Guaifenesina / Paracetamol,24.89,33,43,DEXTROMETORFANO 300 MG JARABE 120 ML 1 PIEZA,"no comparable: al competidor le faltan 2/3 principios activos (guaifenesina, paracetamol)"
+EQ-MAI144,Figral 10 Tab 100 Mg,,80.04,129,18,SILDENAFIL 100 MG 10 TABLETAS,confianza 18 < 85
+EQ-DEN074,Delaphil 14 Tab 5 Mg,,36.27,59,0,,sin resultados VTEX
+EQ-NUC034,Tefilinb 28 Tab 2 Mg,,35.29,57,0,,sin resultados VTEX
+EQ-MAV208,Versalver 30 Comp 80 Mg,,76.3,123,2,VALSARTAN 80 MG 30 COMPRIMIDOS,confianza 2 < 85
+EQ-LIF064,Cineprac 20 Tab 200 Mg,,41.49,67,0,TRIMEBUTINA SUSPENSION  2G/100ML 1 PIEZA,"no comparable: concentracion difiere ['200mg']≠['100ml', '2000mg']"
+EQ-SER117,Lisertil 30 Tab 2.5 Mg,,256.42,411,18,TIBOLONA 30 TABLETAS 2.5 MG,confianza 18 < 85
+EQ-COL258,Alzocid Tadalafil,Tadalafil,23.78,39,100,TADALAFIL 20 MG 4 TABLETAS,precio 7.1x el costo
+EQ-GEP049,X-Trid 12 Caps 15mg/5mg/2mg/250mg,,23.17,38,0,,sin resultados VTEX
+EQ-SON233,Zimeton 20 Tab 130/50/40 Mg,Pancreatina / Extracto de bilis / Dimeticona,56.59,91,47,PANCREATINA / SIMETICONA / EXTRACTO DE BILIS DE BUEY / CELULOSA 50 TABLETAS,no comparable: al competidor le sobran principios activos (celulosa)
+EQ-QUI091,Magsokon 1 Caja 26 G,Sulfato de magnesio,15.61,25,70,SULFATO FERROSO 75MG/ML SOLUCION PEDIATRICA 50ML FERINSOL,"no comparable: concentracion difiere ['26000mg']≠['50ml', '75mg']"
+EQ-PYG016,Metanucil 1 Polvo Sabor Natural 504 G,Plantago psyllium,545.81,874,70,PSYLLIUM PLANTAGO POLVO NATURAL 400 GR 1 PIEZA,no comparable: concentracion difiere ['504000mg']≠['400000mg']
+FMX-501619,Eucalin-Miel Jarabe C/120 Ml,,44.46,72,0,,sin resultados VTEX
+FMX-301721,Vita/Kid/C Jarabe C/240 Ml,,29.14,47,11,GOMITAS VITAMINA C/ZINC/VITAMINA D 60 PIEZAS MULTIGOMI,no comparable: candidato sin tamano declarado
+FMX-504851,Pioklean Spray C/130 Ml,Mezcla de Hierbas,60.85,98,70,SIMIBROX D MALTITOL Y MEZCLA DE HIERBAS SIN AZUCAR JARABE 240 ML 1 PIEZA,no comparable: concentracion difiere ['130ml']≠['240ml']
+FMX-500999,Gelcavit-Ho Capsulas C/30,"Cápsulas con L Arginina, Lecitina y Vitaminas",72.56,117,42,SIMIPOWER PLUS VITAMINAS / MINERALES / ARGININA 60 CAPSULAS,no comparable: al competidor le faltan 1/3 principios activos (lecitina)
+FMX-502046,Calazin Suspension Topica C/180 Ml,Calamina,36.85,59,0,,sin resultados VTEX
+FMX-302287,Belapiel/Piernas-Cansadas Crema C/200 Gr,"CENTELLA ASIATICA, CASTAÑA DE INDIAS",53.55,86,0,METRONIDAZOL / CENTELLA ASIATICA / NITROFURAL 12 OVULOS,no comparable: al competidor le faltan 1/2 principios activos (castana)
+FMX-507495,Senloir Tabletas 10 Mg C/20,MONTELUKAST,31.0,56,100,MONTELUKAST 10 MG 20 TABLETAS,precio 6.4x el costo
+FMX-302206,Belapiel/Golpes Ungüento C/75 Gr,ARNICA/CANEDULA/ALOE VERA,20.4,33,26,ARNICA 6C 30 TABLETAS,"no comparable: al competidor le faltan 2/3 principios activos (canedula, aloe)"
+FMX-505399,Saludol-Corporal Gel C/100 Gr,"MENTOL, CANEDULA,ARNICA,SABILA",49.69,80,65,GEL TOPICO MENTOL / ARNICA / CALENDULA / SABILA 100 GR 1 PIEZA,no comparable: al competidor le faltan 1/4 principios activos (canedula)
+FMX-503320,Solucion-Pisa Cs 0.9 C/1000 Ml,,43.71,70,0,CLORURO DE SODIO 0.9% SOLUCION INYECTABLE 250 ML 1 PIEZA,no comparable: concentracion difiere ['1000ml']≠['250ml']
+FMX-506781,Cateter/Intravenoso-Sumitex Pu 24 G X 19 Mm C/1 Amarillo,,9.26,15,0,,sin resultados VTEX
+FMX-501200,Laritol loratadina solución 1 mg/ml 60 ml,LORATADINA 1MG /1ML,20.67,34,70,LORATADINA 100MG/100ML JARABE 1 PIEZA,"no comparable: concentracion difiere ['1mg', '1ml', '60ml']≠['100mg', '100ml']"
+FMX-301565,Jeringa-Sensimedical 60 Ml Pivote/Concentrico,,8.56,14,5,JERINGA PERA NO. 3 1 PIEZA SIMI BABY,no comparable: candidato sin tamano declarado
+FMX-504321,Aguja-Hipodermica-Sensimedical 22 G X 32 Mm C/1 Negro,,0.55,1,0,AGUJA PARA PLUMA 31 G X 5 MM 10 PIEZAS ULTRA FINE,no comparable: concentracion difiere ['22000mg']≠['31000mg']
+FMX-506386,Jeringa SensiMedical 5 mL 22G x 32 mm negra,,1.48,3,0,JERINGA DESECHABLE 5ML 21G X 32MM 3 PIEZAS,"no comparable: concentracion difiere en parte ['22000mg', '5ml']≠['21000mg', '5ml']"
+FMX-307657,Jeringa SensiMedical 10 mL 22G x 32 mm negra,,2.18,4,0,JERINGA DESECHABLE 5ML 21G X 32MM 3 PIEZAS,"no comparable: concentracion difiere ['10ml', '22000mg']≠['21000mg', '5ml']"
+FMX-307658,Jeringa SensiMedical 20 mL 21G x 32 mm verde,,4.1,7,0,JERINGA DESECHABLE 5ML 21G X 32MM 3 PIEZAS,"no comparable: concentracion difiere en parte ['20ml', '21000mg']≠['21000mg', '5ml']"
+FMX-506388,Jeringa SensiMedical 3 mL 21G x 32 mm verde,,1.4,3,11,JERINGA DESECHABLE 3ML 21G X 32MM 4 PIEZAS,confianza 11 < 85
+FMX-506389,Jeringa SensiMedical 5 mL 21G x 32 mm verde,,1.48,3,11,JERINGA DESECHABLE 5ML 21G X 32MM 3 PIEZAS,confianza 11 < 85
+EQ-BEA342,Dexametasona 20 Tab 0.5 Mg,Dexametasona,4.41,8,90,DEXAMETASONA 0.50MG 30 TABLETAS,precio 6.6x el costo
+FC-76000277,Vitacilina crema humectante,,77.03,104,0,NEOMICINA / RETINOL (VITAMINA A) UNGÜENTO 28 GR 1 PIEZA,no comparable: concentracion difiere ['100000mg']≠['28000mg']
+EQ-AMS424,Irbesartán 300 mg C/14 AMSA,Irbesartán,76.49,123,0,,sin resultados VTEX
+EQ-AMS253,Dexametasona 1 Fa 8mg/2 Ml,Dexametasona,8.55,14,72,DEXAMETASONA SOLUCION INYECTABLE 8MG/2ML 1 PIEZA,no comparable: forma difiere inyectable≠solucion
+FC-85097661,Antiflu-Des Jr Antigripal,Clorhidrato de amantadina/Maleato de clorfenamina/Paracetamol,125.34,204,38,AMANTADINA / CLORFENAMINA / PARACETAMOL 24 CAPSULAS,"no comparable: al competidor le faltan 2/3 principios activos (clorhidrato, maleato)"
+EQ-BEA313,Dexametasona 20 Tab 1 Mg,Dexametasona,22.25,36,70,DEXAMETASONA SOLUCION INYECTABLE 8MG/2ML 1 PIEZA,"no comparable: concentracion difiere ['1mg']≠['2ml', '8mg']"
+EQ-AMS362,Diclofenaco 2 Fa 75mg/3 Ml,Diclofenaco,15.8,26,72,DICLOFENACO SODICO 75MG/3ML SOLUCION INYECTABLE 2 AMPOLLETAS,no comparable: forma difiere inyectable≠solucion
+EQ-OFF010,Dexne Oftálmico 1 Got 5 Ml,Dexametasona / Neomicina,33.74,54,51,DEXAMETASONA / NEOMICINA 1/3.5 MG SOLUCION GOTAS OFTALMICAS 5 ML 1 PIEZA,no comparable: al competidor le sobran principios activos (oftalmicas)
+EQ-LOE155,Indometacina 6 Supositorios 100 Mg,Indometacina,92.35,148,70,INDOMETACINA 25MG 30 CAPSULAS,no comparable: concentracion difiere ['100mg']≠['25mg']
+EQ-AVT205,Elaphterón 28 Tab 25 Mg,Lamotrigina,25.4,41,70,LAMOTRIGINA 100 MG TABLETAS MASTICABLES 28 TABLETAS,no comparable: concentracion difiere ['25mg']≠['100mg']
+FC-20089077,Exzon tabletas masticables 490 mg C/90 sabor uva,"Fibra soluble de maiz, bioflavonoides citricos, Bacillus coagulans, vitaminas A, C y D3",77.28,125.0,0,SIMICOF DIAB HEDERA HELIX / BUGAMBILIA / FIBRA SOLUBLE Y JUGO DE ARANDANO JARABE 120 ML 1 PIEZA,"no comparable: al competidor le faltan 3/4 principios activos (bioflavonoides, bacillus, vitaminas)"
+FC-30713547,Gelcavit Colors capsulas 0.62 g C/30,"Aceite de germen de trigo, vitaminas y minerales",42.43,68.0,0,,sin resultados VTEX
+FC-C4530823,Mercurio óxido de zinc C/50,Producto homeopatico / natural,9.0,54.0,0,,sin resultados VTEX
+FC-9303047,Cicloferon Crema 5% 2 g,Aciclovir 5%,48.61,65.62,70,ACICLOVIR 200 MG 25 TABLETAS,no comparable: concentracion difiere ['2000mg']≠['200mg']
+FC-83141226,Perludil 150 mg / 10 mg Caja con 1 ampolleta Collins,Algestona / Estradiol,48.65,80.0,70,ALGESTONA / ESTRADIOL SOLUCION INYECTABLE 1 ML 1 AMPOLLETA,"no comparable: concentracion difiere ['10mg', '150mg']≠['1ml']"
+FC-79400556,Syncol (Paracetamol),Paracetamol/Pamabrom/Pirilamina,98.81,134.0,65,PARACETAMOL 500 MG 10 TABLETAS,"no comparable: al competidor le faltan 2/3 principios activos (pamabrom, pirilamina)"
+FC-09741043,Fasiclor 125 mg/5 mL Frasco 75 mL Maver,Cefaclor,49.85,75.0,70,CEFACLOR 500 MG 15 CAPSULAS,"no comparable: concentracion difiere ['125mg', '5ml', '75ml']≠['500mg']"
+EQ-OFF008,Dexne Nasal 1 Got 10 Ml,Fenilefrina / Dexametasona / Neomicina,37.87,61,70,DEXAMETASONA/FENILEFRINA/NEOMICINA 15ML NASAL,no comparable: concentracion difiere ['10ml']≠['15ml']
+FC-06247327,Afrin No Drip Descongestivo Nasal spray,Clrhidrato de oximetazolina,109.76,149.0,0,OXIMETAZOLINA ADULTO 50MG/100ML SOLUCION NASAL 20 ML 1 PIEZA,"no comparable: concentracion difiere ['0.5mg', '15ml']≠['100ml', '20ml', '50mg']"
+EQ-MAV115,Laritol Ex 10 Tab 30/5 Mg,Loratadina / Ambroxol,21.66,35,70,LORATADINA / AMBROXOL 5/30 MG 10 TABLETAS,no comparable: concentracion difiere ['5mg']≠['30mg']
+FC-F7A2CACF,Indarzona,Indometacina / Dexametasona 25mg/0.5 mg,56.3,77.0,65,INDOMETACINA 25MG 30 CAPSULAS,no comparable: al competidor le faltan 1/2 principios activos (dexametasona)
+FC-40010712,Tukol-D jarabe Adulto,Guaifenesina + Dextrometorfano,117.42,158.52,70,DEXTROMETORFANO / GUAIFENESINA .1/1 GR INFANTIL SOLUCION 1 PIEZA,no comparable: concentracion difiere ['125ml']≠['1000mg']
+EQ-BIO112,Gristalit 1 Jbe 600/100mg/30 Ml,,9.38,16,0,LORATADINA / AMBROXOL 100/600 MG SOLUCION PEDIATRICA GOTAS 30 ML 1 PIEZA,"no comparable: concentracion difiere en parte ['100mg', '30ml']≠['30ml', '600mg']"
+FC-7048853,Melox Plus,Hidroxido de aluminio + Hidroxido de magnesio + Simeticona,132.3,179.0,35,ALUMINIO 200 MG / MAGNESIO 200 MG / DIMETICONA 20 MG 50 TABLETAS MASTICABLES,"no comparable: al competidor le faltan 2/3 principios activos (hidroxido, hidroxido)"
+FC-70100307,Broncolin Etiqueta Azul jarabe oral 140 ml,Miel,64.19,87.0,72,PALETAS DE MIEL DE ABEJA SABOR MIEL / LIMON / HERBAL PALETOSIMI 16 PIEZAS,no comparable: candidato sin tamano declarado
+FC-76040610,Desenfriolito Plus Masticables,Clorfenamina/Fenilefrina/Paracetamol,45.96,63.0,82,CLORFENAMINA / FENILEFRINA / PARACETAMOL 24 TABLETAS,no comparable: candidato sin tamano declarado
+FC-7907117,Bisolvon Solucion Adulto 120 ml,Bromhexina,141.94,192.0,70,BROMHEXINA 160MG/100ML ADULTO SOLUCION 1 PIEZA,"no comparable: concentracion difiere ['120ml']≠['100ml', '160mg']"
+FC-83146207,Fazolin F,Nafazolina,26.85,37.0,72,NAFAZOLINA SOLUCION OFTALMICA 15 ML 1 PIEZA,no comparable: forma difiere gotas≠solucion
+FC-8505003,Alin Dexametasona 8 mg/2 mL amp,Dexametasona,68.8,86.0,72,DEXAMETASONA SOLUCION INYECTABLE 8MG/2ML 1 PIEZA,no comparable: forma difiere inyectable≠solucion
+EQ-QUI127,Levonorgestrel / Etinilestradiol 0.15/0.03 mg C/28,Levonorgestrel / Etinilestradiol,24.03,39,70,LEVONORGESTREL / ETINILESTRADIOL .15/.03 MG 28 TABLETAS,no comparable: concentracion difiere ['0.03mg']≠['3mg']

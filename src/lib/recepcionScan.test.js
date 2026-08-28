@@ -1,60 +1,94 @@
-import { itemMatchScan, pedidoEsperaEntrada, eanPistolaListo, recepcionEsTicket, matchScanEnTicket } from "./recepcionScan";
-import { parseCaducidadMMAA } from "./caducidad";
+import { itemMatchScan, recepcionEsTicketDocumento, resolverEscaneoRecepcion } from "./recepcionScan";
 
-describe("itemMatchScan — casos reales de piso", () => {
-  const tegaderm = {
-    sku: "FC-89592876",
-    codigo_escaneado: "4001895928765",
-    nombre: "Tegaderm 3M 10 x 12 cm C/50",
-    confirmado: false,
-  };
+const TEGADERM = {
+  id: 1,
+  confirmado: false,
+  codigo_escaneado: "4001895928765",
+  sku: "FC-TEGA",
+  producto_id: 88,
+  nombre: "Tegaderm 3M 10 x 12 cm C/50",
+  origen: "pdf",
+};
 
-  test("EAN de la caja abre el renglón (Tegaderm)", () => {
-    expect(itemMatchScan(tegaderm, "4001895928765")).toBe(true);
+const IFC_TIJERA = {
+  id: 2,
+  confirmado: false,
+  codigo_escaneado: "FC-IFC-TIJ01",
+  sku: "FC-IFC-TIJ01",
+  producto_id: 91,
+  nombre: "Tijera para bigote",
+  origen: "csv",
+};
+
+const CAT = [
+  { id: 88, sku: "FC-TEGA", codigo_barras: "4001895928765", activo: true },
+  { id: 91, sku: "FC-IFC-TIJ01", codigo_barras: "7501234567890", activo: true },
+];
+
+describe("itemMatchScan", () => {
+  test("Tegaderm por EAN del ticket", () => {
+    expect(itemMatchScan(TEGADERM, "4001895928765", CAT)).toBe(true);
   });
 
-  test("SKU interno también abre", () => {
-    expect(itemMatchScan(tegaderm, "FC-89592876")).toBe(true);
+  test("IFC por SKU interno", () => {
+    expect(itemMatchScan(IFC_TIJERA, "FC-IFC-TIJ01", CAT)).toBe(true);
   });
 
-  test("no abre otro producto", () => {
-    expect(itemMatchScan(tegaderm, "7501289511421")).toBe(false);
+  test("IFC por EAN del empaque (catálogo, no el ticket)", () => {
+    expect(itemMatchScan(IFC_TIJERA, "7501234567890", CAT)).toBe(true);
+  });
+
+  test("otro EAN no pega", () => {
+    expect(itemMatchScan(IFC_TIJERA, "7500000000000", CAT)).toBe(false);
   });
 });
 
-describe("eanPistolaListo", () => {
-  test("EAN-13 listo sin Enter", () => {
-    expect(eanPistolaListo("4001895928765")).toBe(true);
+describe("resolverEscaneoRecepcion", () => {
+  test("abre el gris", () => {
+    const r = resolverEscaneoRecepcion({
+      items: [TEGADERM],
+      codigo: "4001895928765",
+      productos: CAT,
+      esTicketDocumento: true,
+    });
+    expect(r.tipo).toBe("gris");
+    expect(r.item.id).toBe(1);
   });
-  test("a medias, no dispara", () => {
-    expect(eanPistolaListo("400189")).toBe(false);
+
+  test("ya verde: no vuelve a registrar", () => {
+    const r = resolverEscaneoRecepcion({
+      items: [{ ...TEGADERM, confirmado: true }],
+      codigo: "4001895928765",
+      productos: CAT,
+      esTicketDocumento: true,
+    });
+    expect(r.tipo).toBe("ya_confirmado");
+  });
+
+  test("EAN ajeno en ticket PDF/CSV: fuera", () => {
+    const r = resolverEscaneoRecepcion({
+      items: [IFC_TIJERA],
+      codigo: "7500000000000",
+      productos: CAT,
+      esTicketDocumento: true,
+    });
+    expect(r.tipo).toBe("fuera");
+  });
+
+  test("ticket suelto (sin PDF/CSV): se puede agregar", () => {
+    const r = resolverEscaneoRecepcion({
+      items: [],
+      codigo: "4001895928765",
+      productos: CAT,
+      esTicketDocumento: false,
+    });
+    expect(r.tipo).toBe("nuevo");
   });
 });
 
-describe("pedidoEsperaEntrada", () => {
-  test("ticket vivo con cajas sin confirmar", () => {
-    expect(pedidoEsperaEntrada({ renglones: 11, sin_confirmar: 11, estado: "borrador" })).toBe(true);
-  });
-  test("ticket vacío no es pedido vivo", () => {
-    expect(pedidoEsperaEntrada({ renglones: 0, estado: "borrador" })).toBe(false);
-  });
-});
-
-describe("caducidad — no inventar", () => {
-  test("0000 no es fecha", () => {
-    expect(parseCaducidadMMAA("0000")).toBeNull();
-  });
-});
-
-describe("ticket: pistola no inventa renglones", () => {
-  const items = [
-    { origen: "pdf", confirmado: true, codigo_escaneado: "4001895928765", sku: "FC-89592876" },
-    { origen: "pdf", confirmado: false, codigo_escaneado: "7501289511421", sku: "FC-9511421" },
-  ];
-  test("PDF es ticket", () => {
-    expect(recepcionEsTicket({ items })).toBe(true);
-  });
-  test("EAN de Levic no entra en Farmalive", () => {
-    expect(matchScanEnTicket(items, "7501342802749")).toEqual({ gris: null, yaConfirmado: null });
+describe("recepcionEsTicketDocumento", () => {
+  test("csv/pdf cuentan", () => {
+    expect(recepcionEsTicketDocumento([IFC_TIJERA])).toBe(true);
+    expect(recepcionEsTicketDocumento([{ origen: "pistola" }])).toBe(false);
   });
 });

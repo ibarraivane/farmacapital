@@ -5,6 +5,7 @@ import { RADIO, SOMBRA } from "./theme/tokens";
 import { logoFullStyle, logoIconStyle, logoFullSrc, logoFullSrcSet, logoAspect } from "./brand";
 import { useLogoOnDark } from "./hooks/useLogoOnDark";
 import { productMatchesSearchQuery, tiendaProductMatchesBusqueda, tiendaSearchRelevanceRank, inventarioProductMatchesBusqueda, inventarioSearchRelevanceRank } from "./utils/fuzzySearch";
+import { unlockInputForTouchKeyboard, lockInputAfterTouchKeyboard, armInputForTouchKeyboard } from "./utils/touchKeyboard";
 
 export function Logo({ size = 36, showText = true, light, sub = "", iconOnly = false, variant = "default", auto = true }) {
   const autoDetect = auto && light === undefined;
@@ -110,16 +111,18 @@ export function Tag({col,children,sm}){
   );
 };
 
-export function Btn({children,onClick,col,sm,ol,dis,full,style,type="button"}){
+export function Btn({children,onClick,col,sm,ol,outline,dis,disabled,full,style,type="button"}){
   const C = C_LIGHT;
+  const isOutline = Boolean(ol || outline);
+  const isDisabled = Boolean(dis || disabled);
   return(
 
-  <button type={type} onClick={onClick} disabled={dis} style={{padding:sm?"7px 16px":"10px 22px",borderRadius:RADIO.pill,border:`1px solid ${ol?(col||BRAND.primary):"transparent"}`,background:ol?"transparent":dis?C.border:(col||BRAND.primary),color:ol?(col||BRAND.primary):dis?C.textMid:C.card,fontWeight:700,fontSize:sm?12:14,cursor:dis?"not-allowed":"pointer",fontFamily:"var(--fc-body)",opacity:dis?.5:1,width:full?"100%":undefined,minHeight:sm?36:40,transition:"opacity .15s",...style}}>{children}</button>
+  <button type={type} onClick={onClick} disabled={isDisabled} style={{padding:sm?"7px 16px":"10px 22px",borderRadius:RADIO.pill,border:`1px solid ${isOutline?(col||BRAND.primary):"transparent"}`,background:isOutline?"transparent":isDisabled?C.border:(col||BRAND.primary),color:isOutline?(col||BRAND.primary):isDisabled?C.textMid:C.card,fontWeight:700,fontSize:sm?12:14,cursor:isDisabled?"not-allowed":"pointer",fontFamily:"var(--fc-body)",opacity:isDisabled?.5:1,width:full?"100%":undefined,minHeight:sm?36:40,transition:"opacity .15s",...style}}>{children}</button>
 
   );
 };
 
-export function Inp({value,onChange,placeholder,style,type,onKeyDown,disabled,name,autoComplete,className="",invalid=false}){
+export function Inp({value,onChange,placeholder,style,type,onKeyDown,onBlur,disabled,name,autoComplete,className="",invalid=false}){
   const C = C_LIGHT;
   return(
 
@@ -151,10 +154,11 @@ export function Inp({value,onChange,placeholder,style,type,onKeyDown,disabled,na
       minHeight:44,
       boxSizing:"border-box",
       width:"100%",
+      touchAction:"manipulation",
       ...style,
     }}
     onFocus={e=>{e.target.style.borderColor=invalid?C.red:C.blue;e.target.style.boxShadow="0 0 0 3px "+C.blueDim;}}
-    onBlur={e=>{e.target.style.borderColor=invalid?C.red:C.border;e.target.style.boxShadow="none";}}
+    onBlur={e=>{e.target.style.borderColor=invalid?C.red:C.border;e.target.style.boxShadow="none";onBlur?.(e);}}
   />
 
   );
@@ -567,7 +571,7 @@ export function SkeletonKPIs({ count=4 }) {
   return (
     <div style={KPI_ROW}>
       {Array(count).fill(0).map((_,i)=>(
-        <div key={i} style={{flex:"1 1 160px",minWidth:0,borderRadius:14,border:"1px solid #e2e8f0",padding:"18px 20px",background:C.card}}>
+        <div key={i} style={{minWidth:0,borderRadius:14,border:"1px solid #e2e8f0",padding:"16px",background:C.card}}>
           <div style={{height:10,borderRadius:4,background:"linear-gradient(90deg,#f0f4f9 25%,#e2e8f0 50%,#f0f4f9 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite",width:"60%",marginBottom:12}}/>
           <div style={{height:24,borderRadius:4,background:"linear-gradient(90deg,#f0f4f9 25%,#e2e8f0 50%,#f0f4f9 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite",width:"80%"}}/>
           <style>{`@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
@@ -671,6 +675,10 @@ export function SearchDropdown({
   }, [open, value, filtered.length, measurePanel]);
 
   React.useEffect(()=>{
+    armInputForTouchKeyboard(inputRef.current);
+  },[]);
+
+  React.useEffect(()=>{
     const handler = e => { if(ref.current&&!ref.current.contains(e.target)) setOpen(false); };
     document.addEventListener("mousedown", handler);
     return ()=>document.removeEventListener("mousedown", handler);
@@ -719,12 +727,23 @@ export function SearchDropdown({
       <input
         ref={inputRef}
         value={value}
+        inputMode="search"
+        enterKeyHint="search"
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="off"
+        spellCheck={false}
+        onTouchStart={(e)=>unlockInputForTouchKeyboard(e.currentTarget)}
+        onMouseDown={(e)=>unlockInputForTouchKeyboard(e.currentTarget)}
         onChange={e=>{ onChange(e.target.value); setOpen(true); setIdx(-1); }}
-        onFocus={()=>{ setOpen(!!value?.trim()); measurePanel(); }}
+        onFocus={(e)=>{ unlockInputForTouchKeyboard(e.currentTarget); setOpen(!!value?.trim()); measurePanel(); }}
         onKeyDown={handleKey}
         placeholder={placeholder}
-        style={{width:"100%",boxSizing:"border-box",padding:"10px 14px",borderRadius:8,border:"1px solid #e2e8f0",background:"#f7f9fc",color:C.text,fontSize:16,lineHeight:1.25,minHeight:44,outline:"none",fontFamily:"var(--fc-body)"}}
-        onBlur={e=>{ if(ref.current&&!ref.current.contains(e.relatedTarget)) setTimeout(()=>setOpen(false),150); }}
+        style={{width:"100%",boxSizing:"border-box",padding:"10px 14px",borderRadius:8,border:"1px solid #e2e8f0",background:"#f7f9fc",color:C.text,fontSize:16,lineHeight:1.25,minHeight:44,outline:"none",fontFamily:"var(--fc-body)",touchAction:"manipulation"}}
+        onBlur={e=>{
+          lockInputAfterTouchKeyboard(e.currentTarget);
+          if(ref.current&&!ref.current.contains(e.relatedTarget)) setTimeout(()=>setOpen(false),150);
+        }}
       />
       {open&&filtered.length>0&&(
         <div style={panelStyle}>

@@ -112,15 +112,26 @@ security definer
 set search_path = public, pg_temp
 as $$
 declare
-  v_actor_id bigint;
-  v_item     record;
-  v_cnt      int := 0;
+  v_actor_id    bigint;
+  v_item        record;
+  v_cnt         int := 0;
+  v_pedido_snap jsonb;
+  v_items_snap  jsonb;
 begin
   v_actor_id := public.fn_require_admin(p_session_token);
 
   if not exists (select 1 from public.pedidos where id = p_pedido_id) then
     raise exception 'Pedido % no encontrado', p_pedido_id;
   end if;
+
+  select to_jsonb(p.*) into v_pedido_snap
+  from public.pedidos p
+  where p.id = p_pedido_id;
+
+  select coalesce(jsonb_agg(to_jsonb(i.*) order by i.id), '[]'::jsonb)
+    into v_items_snap
+  from public.pedido_items i
+  where i.pedido_id = p_pedido_id;
 
   -- Restaurar stock de cada item
   for v_item in
@@ -153,7 +164,11 @@ begin
       v_actor_id,
       (select nombre from public.usuarios where id = v_actor_id),
       'eliminar_pedido', 'pedidos', p_pedido_id::text,
-      jsonb_build_object('items_restaurados', v_cnt)
+      jsonb_build_object(
+        'items_restaurados', v_cnt,
+        'pedido', v_pedido_snap,
+        'items', v_items_snap
+      )
     );
   exception when others then null;
   end;

@@ -3,35 +3,31 @@ import { useMediaQuery } from "./hooks/useMediaQuery";
 import useSidebarBadges from "./hooks/useSidebarBadges";
 import { supabase, isSupabaseLocalMisconfigured } from "./supabase";
 import { C as _C, C_LIGHT, BRAND, NEG, NAV_ADMIN, NAV_VENDEDOR, NAV_DOCTORA, NAV_ITEMS, ADMIN_NAV_SECTIONS } from "./constants";
-import { $, dC, cC, abc, aCol, nCol, hashPwd, hashPwdLegacy, generateSalt, primerNombre, saludoUsuario, normalizarSesionLoginResp, getSessionToken, telefonoMxValido, normalizarTelefonoMxGuardar } from "./utils";
+import { $, dC, cC, abc, aCol, nCol, hashPwd, hashPwdLegacy, generateSalt, primerNombre, saludoUsuario, normalizarSesionLoginResp, getSessionToken, setSessionToken, writeAdminUser, readAdminUser, clearEmpleadoSession, esErrorSesionEmpleado, onSesionEmpleadoInvalida, telefonoMxValido, normalizarTelefonoMxGuardar } from "./utils";
 import { validarPasswordTienda, PASSWORD_RULES_TEXT } from "./utils/passwordPolicy";
 import { Logo, Box, Tag, Btn, Inp, KPI, KPI_ROW, Modal, NotificacionesToast, showToast, ToastProvider, ConfirmDialog, SkeletonTable, SkeletonKPIs, SkeletonCard, Paginador, GlobalHoverStyles } from "./ui";
 import { sincronizarVentasPendientes, contarVentasPendientes } from "./utils/offlineQueue";
+import { ymdMexico, ymdFarmaciaMas, rangoDiaFarmacia, inicioDiaFarmacia, inicioMesFarmaciaYmd } from "./lib/ventasVsMeta";
 import { esPedidoTiendaWebPendiente, fetchPedidosTiendaPendientesMerged } from "./utils/pedidosTiendaWeb";
 import AgendaConsultasModule from "./modules/clinical/AgendaConsultasModule";
 import ExpedientesDoctora from "./modules/clinical/patients/ExpedientesDoctora";
+import RecepcionModule from "./RecepcionModule";
 import { loadAdminNavOrder } from "./utils/adminNavOrder";
 import { puedeVerModulo, modulosPermitidosParaRol, rolEsAdmin, inyectarNavOperacionPiso } from "./utils/permissions";
 import { adminPathnameToPageId, pageIdToAdminPath, pathnameSuggestsPosTab, pathnameSuggestsDashTab } from "./shared/adminRoutes";
 import { TIENDA_BANNER_DESTINOS, resolveTiendaPage } from "./shared/tiendaRoutes";
 import { initBillingListeners } from "./modules/billing/core/initBillingListeners";
 import { canAccessRoute } from "./core/security/routeGuard";
+import { CLAVES_SALDO_MP, fechaLocalMexico, parseSaldoConfig } from "./lib/pagoServicio";
 import ImageUploader from "./components/ImageUploader";
-import { hoyISOMexico } from "./lib/fecha";
+import { GRID_STACK_2COL } from "./constants/layout";
 
 // Fallback estático para estilos fuera de componentes (evita undefined en import).
 const C = C_LIGHT;
 
-function tituloPaginaMovil(page) {
-  const aliases = { inventario: "inv", cons_cobro: "pos", trans: "dash" };
-  const id = aliases[page] || page;
-  return NAV_ITEMS.find((n) => n.id === id)?.label || "FarmaCapital";
-}
-
 // ── Lazy loading — módulos se cargan solo cuando se necesitan ──
 const RRHHModule       = lazy(()=>import("./RRHHModule"));
 const InventarioHub    = lazy(()=>import("./InventarioHub"));
-const RecepcionModule  = lazy(()=>import("./RecepcionModule"));
 const MiDia            = lazy(()=>import("./modules/sales/MiDia"));
 const POS              = lazy(()=>import("./modules/sales/pos/POS"));
 const CorteCajaModule  = lazy(()=>import("./CorteCajaModule"));
@@ -57,11 +53,7 @@ class ModuleErrorBoundary extends React.Component {
       <div style={{padding:40,textAlign:"center"}}>
         <div style={{fontSize:48,marginBottom:16}}>⚠️</div>
         <div style={{color:"#0f172a",fontWeight:700,fontSize:16,marginBottom:8}}>Error al cargar este módulo</div>
-        <div style={{color:"#475569",fontSize:12,marginBottom:20,maxWidth:400,margin:"0 auto 20px",fontFamily:"monospace",background:"#f8fafc",padding:"8px 12px",borderRadius:6}}>{
-          /object can not be found/i.test(this.state.error?.message || "")
-            ? "La tablet se quedó con una pantalla vieja. Toca Recargar página."
-            : this.state.error?.message
-        }</div>
+        <div style={{color:"#475569",fontSize:12,marginBottom:20,maxWidth:400,margin:"0 auto 20px",fontFamily:"monospace",background:"#f8fafc",padding:"8px 12px",borderRadius:6}}>{this.state.error?.message}</div>
         <button onClick={()=>{
           try {
             const u = new URL(window.location.href);
@@ -135,7 +127,7 @@ function LoginScreen({onLogin}){
 
   const entrar = async () => {
     if(!email||!pwd) return;
-    if(pwd.length < 8) { setError("La contraseña debe tener al menos 8 caracteres."); return; }
+    if(pwd.length < 6) { setError("La contraseña debe tener al menos 6 caracteres."); return; }
     const idRaw = email.trim();
     const idNorm = idRaw.includes("@") ? idRaw.toLowerCase() : idRaw;
 
@@ -244,8 +236,8 @@ function LoginScreen({onLogin}){
         loginTimestamp: Date.now(),
       };
 
-      sessionStorage.setItem("farmacapital_session_token", String(resp.session_token));
-      sessionStorage.setItem("farmacapital_admin_user", JSON.stringify(data));
+      setSessionToken(String(resp.session_token));
+      writeAdminUser(data);
       localStorage.setItem("farmacapital_last_login_"+data.id, new Date().toLocaleString("es-MX"));
       onLogin(data);
     } catch(e) {
@@ -418,7 +410,7 @@ function AdminNavSidebar({active,setActive,negocio,setNegocio,usuario,onLogout,a
       width:220,flexShrink:0,background:C.card,borderRight:`1px solid ${C.border}`,
       boxShadow: mobile?"4px 0 24px rgba(0,0,0,.12)":"2px 0 8px rgba(0,0,0,.06)",
       display:"flex",flexDirection:"column",position:"fixed",left:mobile?(navOpen?0:-220):0,top:0,
-      height:"100vh",maxHeight:"100dvh",zIndex:mobile?1200:100,overflow:"hidden",transition:"left .22s ease",
+      height:"100vh",maxHeight:"100dvh",zIndex:mobile?1001:100,overflow:"hidden",transition:"left .22s ease",
     }}>
       <div style={{flexShrink:0,padding:"18px 14px 14px",borderBottom:`1px solid ${C.border}`}}>
         <Logo size={32} showText={true}/>
@@ -586,13 +578,14 @@ function Dashboard({negocio,alertas,setPage}){
     const cargar = async () => {
       setLoad(true);
       try {
-        const hoyLocal = hoyISOMexico();
-        const t0 = new Date();
-        t0.setHours(0, 0, 0, 0);
-        const t1 = new Date();
-        t1.setHours(23, 59, 59, 999);
-        const weekAgo = new Date(Date.now() - 7 * 86400000);
-        const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+        // Cortes de dia en el calendario de la farmacia (CDMX), no en el del
+        // navegador: desde otro huso "hoy" arrancaria el dia anterior.
+        const hoyLocal = ymdMexico();
+        const _hoyRango = rangoDiaFarmacia(hoyLocal);
+        const t0 = new Date(_hoyRango.start);
+        const t1 = new Date(_hoyRango.end);
+        const weekAgo = inicioDiaFarmacia(ymdFarmaciaMas(-6));
+        const monthStart = inicioDiaFarmacia(inicioMesFarmaciaYmd());
 
         const pedidosTiendaSelect = `
             id,total,created_at,tipo,metodo_pago,estado,
@@ -666,7 +659,7 @@ function Dashboard({negocio,alertas,setPage}){
         {alertas.stock>0&&<KPI label="Bajo stock" value={alertas.stock} col={C.red} icon="⚠️" sub="productos"/>}
       </div>
 
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}>
+      <div style={{display:"grid",gridTemplateColumns:GRID_STACK_2COL,gap:16,marginBottom:16}}>
         {/* Pedidos online pendientes */}
         <Box style={{padding:20}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
@@ -739,30 +732,26 @@ function BannersAdmin(){
 
   const guardar = async()=>{
     setSaving(true);
-    try {
-      const tok = sessionStorage.getItem("farmacapital_session_token");
-      const payload = {
-        ...form,
-        pagina: resolveTiendaPage(form.pagina) || "catalogo",
-        imagen_mobile_url: form.imagen_url_mobile || "",
-        imagen_url_mobile: form.imagen_url_mobile || "",
-      };
-      const { error } = await supabase.rpc("admin_upsert_banner", {
-        p_session_token: tok,
-        p_id:            modal === "new" ? null : modal.id,
-        p_payload:       payload,
-      });
-      if (error) {
-        showToast("Error: "+error.message, "error");
-        return;
-      }
-      setModal(null); fetch();
-      showToast("Banner guardado correctamente","success");
-    } catch (e) {
-      showToast(e?.message || "Se cayó la conexión. Intenta de nuevo.", "error");
-    } finally {
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    const payload = {
+      ...form,
+      pagina: resolveTiendaPage(form.pagina) || "catalogo",
+      imagen_mobile_url: form.imagen_url_mobile || "",
+      imagen_url_mobile: form.imagen_url_mobile || "",
+    };
+    const { error } = await supabase.rpc("admin_upsert_banner", {
+      p_session_token: tok,
+      p_id:            modal === "new" ? null : modal.id,
+      p_payload:       payload,
+    });
+    if (error) {
       setSaving(false);
+      showToast("Error: "+error.message, "error");
+      return;
     }
+    setSaving(false);
+    setModal(null); fetch();
+    showToast("Banner guardado correctamente","success");
   };
 
   const eliminar = async(id)=>{
@@ -1713,17 +1702,17 @@ function GestionUsuarios({ showConfirm }){
 
       {loading?<SkeletonTable rows={4} cols={5}/>:(
         <Box>
-          <table style={{width:"100%",borderCollapse:"collapse"}}>
+          <table className="fc-tabla-cards" style={{width:"100%",borderCollapse:"collapse"}}>
             <thead><tr>{["Nombre","Acceso","Perfil","Notas","Estado","Acciones"].map(h=><th key={h} style={{padding:"8px 14px",color:C.textDim,fontSize:9,textAlign:"left",letterSpacing:1.5,textTransform:"uppercase",borderBottom:`1px solid ${C.border}`}}>{h}</th>)}</tr></thead>
             <tbody>
               {usuarios.map(u=>(
                 <tr key={u.id}>
-                  <td style={{padding:"10px 14px",color:C.text,fontWeight:700,fontSize:13}}>{u.nombre}</td>
-                  <td style={{padding:"10px 14px",color:C.textMid,fontSize:12}}>{etiquetaAcceso(u)}</td>
-                  <td style={{padding:"10px 14px"}}><Tag col={rolColor(u.rol)} sm>{u.rol}</Tag></td>
-                  <td style={{padding:"10px 14px",color:C.textMid,fontSize:12}}>{u.notas||"—"}</td>
-                  <td style={{padding:"10px 14px"}}><Tag col={u.activo?C.green:C.red} sm>{u.activo?"Activo":"Inactivo"}</Tag></td>
-                  <td style={{padding:"10px 14px"}}>
+                  <td data-label="Nombre" data-primary style={{padding:"10px 14px",color:C.text,fontWeight:700,fontSize:13}}>{u.nombre}</td>
+                  <td data-label="Acceso" style={{padding:"10px 14px",color:C.textMid,fontSize:12}}>{etiquetaAcceso(u)}</td>
+                  <td data-label="Perfil" style={{padding:"10px 14px"}}><Tag col={rolColor(u.rol)} sm>{u.rol}</Tag></td>
+                  <td data-label="Notas" data-wide style={{padding:"10px 14px",color:C.textMid,fontSize:12}}>{u.notas||"—"}</td>
+                  <td data-label="Estado" style={{padding:"10px 14px"}}><Tag col={u.activo?C.green:C.red} sm>{u.activo?"Activo":"Inactivo"}</Tag></td>
+                  <td data-label="Acciones" data-actions style={{padding:"10px 14px"}}>
                     <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
                     <button
                       type="button"
@@ -1811,16 +1800,7 @@ export default function FarmaCapitalAdmin(){
   const C = C_LIGHT;
   const [usuario,setUsuario] = useState(()=>{
     try{
-      const u = sessionStorage.getItem("farmacapital_admin_user");
-      if (!u) return null;
-      const data = JSON.parse(u);
-      // Verificar expiración (8 horas)
-      if (data.loginTimestamp && Date.now() - data.loginTimestamp > 8*60*60*1000) {
-        sessionStorage.removeItem("farmacapital_admin_user");
-        sessionStorage.removeItem("farmacapital_session_token");
-        return null;
-      }
-      return data;
+      return readAdminUser();
     } catch{ return null; }
   });
   // Migración: ids antiguos "rea" y "lotes" ahora son tabs dentro de "inv".
@@ -1861,6 +1841,13 @@ export default function FarmaCapitalAdmin(){
         sessionStorage.setItem("farmacapital_active_page", p);
       } catch (_) { /* noop */ }
     }
+    try {
+      if (p === "inv" && sessionStorage.getItem("farmacapital_inv_tab") === "recibir") {
+        sessionStorage.setItem("farmacapital_active_page", "recibir");
+        sessionStorage.setItem("farmacapital_inv_tab", "catalogo");
+        return "recibir";
+      }
+    } catch (_) { /* noop */ }
     return p;
   });
   const [invInitialTab, setInvInitialTab] = useState(() => {
@@ -1883,7 +1870,24 @@ export default function FarmaCapitalAdmin(){
     if (dashTab) applyDashTabHint(dashTab);
     try {
       sessionStorage.setItem("farmacapital_active_page", next);
-      if (next === "inv" && tabHint) {
+      if (next === "inv" && tabHint === "recibir") {
+        sessionStorage.setItem("farmacapital_active_page", "recibir");
+        sessionStorage.setItem("farmacapital_inv_tab", "catalogo");
+        setInvInitialTab("catalogo");
+        setPage("recibir");
+        try {
+          const url = pageIdToAdminPath("recibir");
+          if (window.location.pathname !== url) {
+            window.history.pushState({ farmacapitalPage: "recibir" }, "", url);
+          }
+        } catch (_) { /* noop */ }
+        if (isMobileLayout) setMobileNavOpen(false);
+        return;
+      }
+      if (next === "inv" && !tabHint) {
+        sessionStorage.setItem("farmacapital_inv_tab", "catalogo");
+        setInvInitialTab("catalogo");
+      } else if (next === "inv" && tabHint) {
         sessionStorage.setItem("farmacapital_inv_tab", tabHint);
         setInvInitialTab(tabHint);
       } else if (next === "inv") {
@@ -2047,28 +2051,49 @@ export default function FarmaCapitalAdmin(){
     };
   },[usuario]);
 
-  // ── E5: Guard de sesión — verificar expiración cada minuto ──
+  // ── Guard de sesión: 16 h en el iPad; token muerto → login (nunca “abrir caja”).
   useEffect(()=>{
     const check = () => {
-      const u = sessionStorage.getItem("farmacapital_admin_user");
-      if (!u) return;
+      let hadUser = false;
       try {
-        const data = JSON.parse(u);
-        if (data.loginTimestamp && Date.now() - data.loginTimestamp > 8*60*60*1000) {
-          sessionStorage.removeItem("farmacapital_admin_user");
-          sessionStorage.removeItem("farmacapital_session_token");
-          setUsuario(null);
-          showToast("Tu sesión expiró. Por favor inicia sesión de nuevo.", "warning");
-        }
-      } catch(e) {
-        sessionStorage.removeItem("farmacapital_admin_user");
-        sessionStorage.removeItem("farmacapital_session_token");
+        hadUser = !!(sessionStorage.getItem("farmacapital_admin_user") || localStorage.getItem("farmacapital_admin_user"));
+      } catch (_) { /* noop */ }
+      const data = readAdminUser();
+      if (hadUser && !data) {
         setUsuario(null);
+        showToast("Tu sesión expiró. Entra de nuevo — la caja no se cierra.", "warning");
       }
     };
-    const interval = setInterval(check, 60*1000); // cada minuto
+    const interval = setInterval(check, 60*1000);
     return () => clearInterval(interval);
   },[]);
+
+  useEffect(() => {
+    if (!usuario) return;
+    const tok = getSessionToken();
+    if (!tok) {
+      clearEmpleadoSession();
+      setUsuario(null);
+      showToast("Tu sesión caducó. Entra de nuevo — la caja no se cierra.", "warning");
+      return;
+    }
+    let cancel = false;
+    supabase.rpc("empleado_jornada_hoy", { p_session_token: tok }).then(({ error }) => {
+      if (cancel || !error) return;
+      if (esErrorSesionEmpleado(error.message)) {
+        clearEmpleadoSession();
+        setUsuario(null);
+        showToast("Tu sesión caducó. Entra de nuevo — la caja no se cierra.", "warning");
+      }
+    });
+    return () => { cancel = true; };
+  }, [usuario]);
+
+  useEffect(() => onSesionEmpleadoInvalida(() => {
+    clearEmpleadoSession();
+    setUsuario(null);
+    showToast("Tu sesión caducó. Entra de nuevo con tu usuario — la caja no se cierra.", "warning");
+  }), []);
   const notifId = useRef(0);
 
   const addNotif = useCallback((titulo,mensaje,icon="🔔",col="#0D1B2A",action=null)=>{
@@ -2078,11 +2103,37 @@ export default function FarmaCapitalAdmin(){
     setTimeout(()=>setNotifs(p=>p.filter(n=>n.id!==id)),8000);
   },[]);
 
+  useEffect(() => {
+    if (!usuario || !rolEsAdmin(usuario.rol)) return;
+    let cancelled = false;
+    const checkSaldo = async () => {
+      const { data } = await supabase.from("configuracion").select("clave,valor").in("clave", CLAVES_SALDO_MP);
+      if (cancelled) return;
+      const st = parseSaldoConfig(data);
+      if (!st.bajo) return;
+      const key = `fc_alerta_saldo_mp_${fechaLocalMexico()}`;
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, "1");
+      addNotif(
+        "Saldo de recargas bajo",
+        `Quedan ${$(st.saldo)}. Fondea Mercado Pago (mínimo ${$(st.minimo)}).`,
+        "📱",
+        "#d97706",
+        "recargas"
+      );
+      pushNotif("Saldo de recargas bajo", `Quedan ${$(st.saldo)} para recargas. Fondea Mercado Pago.`);
+    };
+    checkSaldo();
+    const iv = setInterval(checkSaldo, 5 * 60 * 1000);
+    return () => { cancelled = true; clearInterval(iv); };
+  }, [usuario, addNotif, pushNotif]);
+
   const dismissNotif = useCallback(id=>setNotifs(p=>p.filter(n=>n.id!==id)),[]);
 
   const handleNotifAction = useCallback((n)=>{
     if(n.action==="password_reset") setPasswordResetOpen(true);
     if(n.action==="ped_online") setPageAndSave("pos", { posTab: "online" });
+    if(n.action==="recargas") setPageAndSave("pos", { posTab: "servicios" });
     setNotifs(p=>p.filter(x=>x.id!==n.id));
   },[setPageAndSave]);
 
@@ -2112,7 +2163,7 @@ export default function FarmaCapitalAdmin(){
   useEffect(()=>{
     if(!usuario) return;
     const cargar = async () => {
-      const hoy = hoyISOMexico();
+      const hoy = new Date().toISOString().split("T")[0];
       const tok = sessionStorage.getItem("farmacapital_session_token");
       const { data: snap } = tok
         ? await supabase.rpc("empleado_admin_alertas_snapshot", { p_session_token: tok, p_hoy: hoy })
@@ -2179,8 +2230,7 @@ export default function FarmaCapitalAdmin(){
     if (tok) {
       try { await supabase.rpc("logout_empleado", { p_token: tok }); } catch(e) {}
     }
-    sessionStorage.removeItem("farmacapital_session_token");
-    sessionStorage.removeItem("farmacapital_admin_user");
+    clearEmpleadoSession();
     localStorage.removeItem("farmacapital_pos_favs");
     localStorage.removeItem("farmacapital_busqs");
     localStorage.removeItem("farmacapital_last_login_"+usuario?.id);
@@ -2188,11 +2238,16 @@ export default function FarmaCapitalAdmin(){
     showToast("Sesión cerrada correctamente","info");
   };
 
+  const forzarLoginPorSesion = useCallback(() => {
+    clearEmpleadoSession();
+    setUsuario(null);
+  }, []);
+
   if (!usuario) {
     return (
       <>
         <DevSupabaseEnvBanner />
-        <LoginScreen onLogin={u=>{ sessionStorage.setItem("farmacapital_admin_user",JSON.stringify(u)); setUsuario(u); }}/>
+        <LoginScreen onLogin={u=>{ writeAdminUser(u); setUsuario(u); }}/>
       </>
     );
   }
@@ -2227,21 +2282,20 @@ export default function FarmaCapitalAdmin(){
         if (!canAccessRoute(usuario.rol, "/pos")) {
           return <div>No autorizado</div>;
         }
-        return <POS negocio={neg} usuario={usuario} initialTab="venta" onNavigate={setPageAndSave}/>;
+        return <POS negocio={neg} usuario={usuario} initialTab="venta" onNavigate={setPageAndSave} onSesionExpirada={forzarLoginPorSesion}/>;
       case "cons":      return <ConsultorioModule usuario={usuario}/>;
       case "config_cons": return <ConfigConsultorioModule />;
-      case "cons_cobro":return <POS negocio={neg} usuario={usuario} initialTab="consultas" onNavigate={setPageAndSave}/>;
+      case "cons_cobro":return <POS negocio={neg} usuario={usuario} initialTab="consultas" onNavigate={setPageAndSave} onSesionExpirada={forzarLoginPorSesion}/>;
       case "agenda":
       case "cons_dr":
         return <AgendaConsultasModule usuario={usuario} onNavigate={setPageAndSave} />;
       case "exp_dr":    return <ExpedientesDoctora />;
       case "ped_online":
-        return <POS negocio={neg} usuario={usuario} initialTab="online" onNavigate={setPageAndSave} />;
+        return <POS negocio={neg} usuario={usuario} initialTab="online" onNavigate={setPageAndSave} onSesionExpirada={forzarLoginPorSesion} />;
       case "inventario":
       case "inv":
         return <InventarioHub initialTab={invInitialTab} usuario={usuario} onNavigate={setPageAndSave}/>;
       case "recibir":
-        // Recibir es su propia pantalla: no lleva las pestañas de Inventario.
         return <RecepcionModule ocultarMontos={usuario?.rol === "vendedor"} />;
       case "rrhh": return <RRHHModule/>;
       case "caja":  return <CorteCajaModule usuario={usuario}/>;
@@ -2319,18 +2373,27 @@ body{
         />
       )}
       {isMobileLayout && (
-        <header className="fc-mobile-topbar">
-          <button
-            type="button"
-            className="fc-mobile-topbar-btn"
-            aria-label={mobileNavOpen ? "Cerrar menú de navegación" : "Abrir menú de navegación"}
-            aria-expanded={mobileNavOpen}
-            onClick={()=>setMobileNavOpen(o=>!o)}
-          >
-            {mobileNavOpen ? "✕" : "☰"}
-          </button>
-          <div className="fc-mobile-topbar-title">{tituloPaginaMovil(page)}</div>
-        </header>
+        <button
+          type="button"
+          aria-label="Abrir menú de navegación"
+          aria-expanded={mobileNavOpen}
+          onClick={()=>setMobileNavOpen(o=>!o)}
+          style={{
+            position:"fixed",
+            top:"calc(12px + env(safe-area-inset-top, 0px))",
+            left:"calc(12px + env(safe-area-inset-left, 0px))",
+            zIndex:40,
+            width:48,height:48,borderRadius:12,
+            border:`1px solid ${C.border}`,background:C.card,
+            boxShadow:"0 4px 20px rgba(0,0,0,.08)",cursor:"pointer",
+            fontSize:20,lineHeight:1,display:"flex",alignItems:"center",justifyContent:"center",
+            color:C.text,
+            pointerEvents:"auto",
+            touchAction:"manipulation",
+          }}
+        >
+          ☰
+        </button>
       )}
       <AdminNavSidebar
         active={page} setActive={setPageAndSave}
@@ -2346,13 +2409,13 @@ body{
       <main className="farmacapital-admin-main" style={{
         marginLeft:isMobileLayout?0:220,
         padding:isMobileLayout
-          ? "calc(64px + env(safe-area-inset-top, 0px)) max(14px, env(safe-area-inset-right, 0px)) calc(20px + env(safe-area-inset-bottom, 0px)) max(14px, env(safe-area-inset-left, 0px))"
+          ? "calc(72px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) calc(24px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px))"
           : "clamp(16px, 3vw, 28px)",
         /* En escritorio: NO usar width:100% con marginLeft (provoca overflow horizontal al redimensionar). */
         ...(isMobileLayout
           ? { width: "100%", maxWidth: "100%" }
           : { width: "auto", maxWidth: "none", minWidth: 0 }),
-        overflowX:"hidden",
+        overflowX: isMobileLayout ? "visible" : "hidden",
         touchAction:"pan-y",
         boxSizing:"border-box",
       }}>

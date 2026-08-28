@@ -94,21 +94,27 @@ async function handleCitaConfirmacion(req, res, body) {
   if (supabaseUrl && serviceKey) {
     try {
       cita = await fetchCita(supabaseUrl, serviceKey, citaId);
-      if (cita && sessionToken) {
-        const clienteId = await validateClienteToken(supabaseUrl, serviceKey, sessionToken);
-        if (!clienteId) {
-          return res.status(403).json({ ok: false, error: 'invalid_session' });
-        }
-        if (cita.cliente_id != null && Number(cita.cliente_id) !== Number(clienteId)) {
-          return res.status(403).json({ ok: false, error: 'cita_not_owned' });
-        }
-      }
     } catch (e) {
       console.warn('[notifications/send:cita] fetch cita:', e?.message);
     }
   }
 
-  const telefono = String(cita?.telefono || body?.telefono || '').trim();
+  const employeeToken = String(body?.employeeSessionToken || body?.sessionTokenEmpleado || '').trim();
+  let authorized = false;
+  if (employeeToken && supabaseUrl && serviceKey) {
+    authorized = await validateEmployeeSession(supabaseUrl, serviceKey, employeeToken);
+  } else if (sessionToken && cita && supabaseUrl && serviceKey) {
+    const clienteId = await validateClienteToken(supabaseUrl, serviceKey, sessionToken);
+    if (clienteId && (cita.cliente_id == null || Number(cita.cliente_id) === Number(clienteId))) {
+      authorized = true;
+    }
+  }
+
+  if (!authorized) {
+    return res.status(403).json({ ok: false, error: 'unauthorized' });
+  }
+
+  const telefono = String(cita?.telefono || '').trim();
   if (!telefono) {
     return res.status(200).json({ ok: true, whatsapp: { sent: false, reason: 'missing_phone' } });
   }
@@ -201,11 +207,11 @@ async function fetchClienteTelefono(supabaseUrl, serviceKey, clienteId) {
   return cli?.telefono ? String(cli.telefono) : null;
 }
 
-function phoneTailMatches(storedPhone, verifyDigits) {
+function phoneMatchesStored(storedPhone, verifyDigits) {
   const stored = digitsOnly(storedPhone);
   const verify = digitsOnly(verifyDigits);
-  if (!stored || verify.length < 4) return false;
-  return stored.endsWith(verify.slice(-4));
+  if (stored.length < 10 || verify.length < 10) return false;
+  return stored.slice(-10) === verify.slice(-10);
 }
 
 function pedidoReciente(createdAt, maxMinutes = 15) {
@@ -266,7 +272,7 @@ async function handleOrderReceipt(req, res, body) {
     }
   } else if (phoneVerify && pedidoReciente(pedido.created_at)) {
     const telPedido = await resolvePedidoTelefono(supabaseUrl, serviceKey, pedido);
-    if (phoneTailMatches(telPedido, phoneVerify)) {
+    if (phoneMatchesStored(telPedido, phoneVerify)) {
       authorized = true;
     }
   }

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { C_LIGHT } from "../../constants";
+import { GRID_STACK_2COL } from "../../constants/layout";
 import { supabase } from "../../supabase";
 import { showToast } from "../../ui";
 import { fetchProductosConsumiblesConsultorio } from "../../utils/consumiblesConsultorio";
@@ -131,7 +132,7 @@ function MedicoModal({ initial, onClose, onSaved }) {
           <h3 style={{margin:0,color:C.text,fontSize:15,fontWeight:800}}>{form.id?"✏️ Editar":"➕ Nuevo"} médico</h3>
           <button onClick={onClose} style={{background:"none",border:"none",color:C.textMid,fontSize:18,cursor:"pointer"}}>✕</button>
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 16px"}}>
+        <div style={{display:"grid",gridTemplateColumns:GRID_STACK_2COL,gap:"0 16px"}}>
           <div style={{marginBottom:12}}><label style={labelStyle}>NOMBRE *</label><input value={form.nombre} onChange={e=>set("nombre",e.target.value)} style={inputStyle}/></div>
           <div style={{marginBottom:12}}><label style={labelStyle}>ESPECIALIDAD</label><input value={form.especialidad} onChange={e=>set("especialidad",e.target.value)} style={inputStyle}/></div>
           <div style={{marginBottom:12}}><label style={labelStyle}>CÉDULA PROFESIONAL</label><input value={form.cedula} onChange={e=>set("cedula",e.target.value)} style={inputStyle}/></div>
@@ -263,7 +264,7 @@ function ListaEspera({ onLlamoPaciente }) {
       </div>
       {loading ? <div style={{color:C.textMid,textAlign:"center",padding:40}}>Cargando…</div> : (
         <div data-tour="cons-lista" style={{overflowX:"auto",borderRadius:12,border:`1px solid ${C.border}`}}>
-          <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+          <table className="fc-tabla-cards" style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
             <thead>
               <tr style={{background:C.card}}>
                 {["Hora","Nombre","Teléfono","Motivo","Estado","Pago","Acciones"].map(h=>(
@@ -277,20 +278,20 @@ function ListaEspera({ onLlamoPaciente }) {
                 const s = badgeListaEspera(c);
                 return (
                   <tr key={c.id||i} style={{background:i%2===0?"transparent":C.card+"60"}}>
-                    <td style={{padding:"10px 14px",color:C.text,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{horaVista(c.hora)}</td>
-                    <td style={{padding:"10px 14px",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>
+                    <td data-label="Hora" data-primary style={{padding:"10px 14px",color:C.text,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{horaVista(c.hora)}</td>
+                    <td data-label="Nombre" data-wide style={{padding:"10px 14px",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>
                       {c.nombre||c.paciente||"—"}
                       {historialMap[c.telefono]&&<span style={{marginLeft:6,fontSize:9,background:C.blueDim,color:C.blue,borderRadius:4,padding:"1px 5px",fontWeight:700}}>{historialMap[c.telefono].count} visita{historialMap[c.telefono].count>1?"s":""}</span>}
                     </td>
-                    <td style={{padding:"10px 14px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{c.telefono||"—"}</td>
-                    <td style={{padding:"10px 14px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{c.motivo||"—"}</td>
-                    <td style={{padding:"10px 14px",borderBottom:`1px solid ${C.border}`}}>
+                    <td data-label="Teléfono" style={{padding:"10px 14px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{c.telefono||"—"}</td>
+                    <td data-label="Motivo" data-wide style={{padding:"10px 14px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{c.motivo||"—"}</td>
+                    <td data-label="Estado" style={{padding:"10px 14px",borderBottom:`1px solid ${C.border}`}}>
                       <span style={{padding:"3px 10px",borderRadius:20,fontSize:10,fontWeight:700,background:s.bg,color:s.col}}>{s.txt}</span>
                     </td>
-                    <td style={{padding:"10px 14px",borderBottom:`1px solid ${C.border}`}}>
+                    <td data-label="Pago" style={{padding:"10px 14px",borderBottom:`1px solid ${C.border}`}}>
                       <span style={{padding:"3px 10px",borderRadius:20,fontSize:10,fontWeight:700,background:`${s.pago.col}18`,color:s.pago.col}}>{s.pago.label}</span>
                     </td>
-                    <td style={{padding:"10px 14px",borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>
+                    <td data-label="Acciones" data-actions style={{padding:"10px 14px",borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>
                       {(c.estado === "confirmada" || (c.estado === "agendada" && citaPagoOk(c))) && (
                         <button onClick={()=>{
                           const resumen = historialMap[c.telefono];
@@ -712,7 +713,7 @@ function Procedimientos({ readOnly }) {
       </div>
       {loading ? <div style={{color:C.textMid,textAlign:"center",padding:40}}>Cargando…</div> : (
         <div style={{overflowX:"auto",borderRadius:12,border:`1px solid ${C.border}`}}>
-          <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+          <table className="fc-tabla-cards" style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
             <thead>
               <tr style={{background:C.card}}>
                 {(readOnly
@@ -726,14 +727,14 @@ function Procedimientos({ readOnly }) {
             <tbody>
               {procs.map((p,i)=>(
                 <tr key={p.id||i} style={{background:i%2===0?"transparent":C.card+"60",opacity:p.activo?1:.5}}>
-                  <td style={{padding:"9px 14px",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>{p.nombre}</td>
-                  <td style={{padding:"9px 14px",color:C.green,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{fmt(p.precio)}</td>
-                  <td style={{padding:"9px 14px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{p.descripcion||"—"}</td>
-                  <td style={{padding:"9px 14px",borderBottom:`1px solid ${C.border}`}}>
+                  <td data-label="Nombre" data-primary style={{padding:"9px 14px",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>{p.nombre}</td>
+                  <td data-label="Precio" style={{padding:"9px 14px",color:C.green,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{fmt(p.precio)}</td>
+                  <td data-label="Descripción" data-wide style={{padding:"9px 14px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{p.descripcion||"—"}</td>
+                  <td data-label="Estado" style={{padding:"9px 14px",borderBottom:`1px solid ${C.border}`}}>
                     <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:p.activo?C.greenDim:C.redDim,color:p.activo?C.green:C.red}}>{p.activo?"Activo":"Inactivo"}</span>
                   </td>
                   {!readOnly && (
-                  <td style={{padding:"9px 14px",borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>
+                  <td data-label="Acciones" data-actions style={{padding:"9px 14px",borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>
                     <button onClick={()=>setModal(p)} style={{...mkBtnSmBlue(C),marginRight:6}}>✏️ Editar</button>
                     <button onClick={()=>toggleActivo(p)} style={p.activo?mkBtnSmRed(C):mkBtnSmGreen(C)}>{p.activo?"Desactivar":"Reactivar"}</button>
                   </td>
@@ -789,7 +790,7 @@ function Medicos() {
         medicos.length===0
           ? <div style={{color:C.textMid,textAlign:"center",padding:40}}>Sin médicos. Agrega el primero.</div>
           : <div style={{overflowX:"auto",borderRadius:12,border:`1px solid ${C.border}`}}>
-              <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+              <table className="fc-tabla-cards" style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                 <thead>
                   <tr style={{background:C.card}}>
                     {["Nombre","Especialidad","Cédula","Turno","Modelo pago","Estado","Acciones"].map(h=>(
@@ -800,19 +801,19 @@ function Medicos() {
                 <tbody>
                   {medicos.map((m,i)=>(
                     <tr key={m.id||i} style={{background:i%2===0?"transparent":C.card+"60",opacity:m.activo?1:.5}}>
-                      <td style={{padding:"9px 14px",color:C.text,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{m.nombre}</td>
-                      <td style={{padding:"9px 14px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{m.especialidad}</td>
-                      <td style={{padding:"9px 14px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{m.cedula||"—"}</td>
-                      <td style={{padding:"9px 14px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{m.turno||"—"}</td>
-                      <td style={{padding:"9px 14px",borderBottom:`1px solid ${C.border}`}}>
+                      <td data-label="Nombre" data-primary style={{padding:"9px 14px",color:C.text,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{m.nombre}</td>
+                      <td data-label="Especialidad" style={{padding:"9px 14px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{m.especialidad}</td>
+                      <td data-label="Cédula" style={{padding:"9px 14px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{m.cedula||"—"}</td>
+                      <td data-label="Turno" style={{padding:"9px 14px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{m.turno||"—"}</td>
+                      <td data-label="Pago" style={{padding:"9px 14px",borderBottom:`1px solid ${C.border}`}}>
                         {m.modelo_pago==="fijo"
                           ? <span style={{color:C.blue,fontWeight:700}}>Fijo ${m.monto_fijo}</span>
                           : <span style={{color:C.purple,fontWeight:700}}>{m.porcentaje}% consulta</span>}
                       </td>
-                      <td style={{padding:"9px 14px",borderBottom:`1px solid ${C.border}`}}>
+                      <td data-label="Estado" style={{padding:"9px 14px",borderBottom:`1px solid ${C.border}`}}>
                         <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:m.activo?C.greenDim:C.redDim,color:m.activo?C.green:C.red}}>{m.activo?"Activo":"Inactivo"}</span>
                       </td>
-                      <td style={{padding:"9px 14px",borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>
+                      <td data-label="Acciones" data-actions style={{padding:"9px 14px",borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>
                         <button onClick={()=>setModal(m)} style={{...mkBtnSmBlue(C),marginRight:6}}>✏️ Editar</button>
                         <button onClick={()=>toggleActivo(m)} style={m.activo?mkBtnSmRed(C):mkBtnSmGreen(C)}>{m.activo?"Desactivar":"Reactivar"}</button>
                       </td>
@@ -848,7 +849,7 @@ export default function ConsultorioModule({ usuario }) {
     if (isDoctora && tab === "medicos") setTab("espera");
   }, [isDoctora, tab]);
   return (
-    <div style={{padding:24,background:C.bg,minHeight:"100dvh",fontFamily:"var(--fc-body)"}}>
+    <div style={{padding:isMobile?0:24,background:C.bg,minHeight:"100dvh",fontFamily:"var(--fc-body)"}}>
       <div style={{marginBottom:20}}>
         <h1 style={{margin:0,color:C.text,fontSize:20,fontWeight:800}}>♥ Consultorio</h1>
         <p style={{margin:"4px 0 0",color:C.textMid,fontSize:12}}>Gestión médica · FarmaCapital</p>

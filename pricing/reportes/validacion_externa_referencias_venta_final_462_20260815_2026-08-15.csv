@@ -1,0 +1,3 @@
+sku,nombre,precio,confianza_verificada,etiqueta_externa,score_externo,nombre_fuente,razones
+FC-08DB70CB,Bicarbonato Velazquez Grande 200G,18.0,70,dudoso,64,BICARBONATO DE SODIO 100GR,principios activos completos; concentracion difiere ['200000mg']≠['100000mg']
+FC-10974329,Enjuague Buc Listerine Cool Mint,49.0,70,dudoso,58,ENJUAGUE BUCAL COOL MINT 180ML LISTERINE,marca coincide; concentracion difiere ['250ml']≠['180ml']

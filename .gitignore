@@ -38,6 +38,9 @@ backups/
 # Catálogo masivo regenerado localmente (ver scripts/import-farmac-os-xlsx.js)
 sql/generated/*.sql
 
+# Progreso local del cruce Nadro (sesión)
+scripts/.nadro_sync_progress.json
+
 # Playwright
 /test-results/
 /playwright-report/
@@ -45,3 +48,24 @@ e2e/artifacts/screenshots/*.png.env
 
 # Cursor / Claude local (no subir a producción)
 .claude/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Caché cruda de scrapers de pricing (HTML/JSON por fecha)
+pricing/importados/mayoreototal/
+pricing/importados/scorpion/
+pricing/importados/abarrotero/
+pricing/importados/chedraui/
+pricing/importados/walmart/
+
+# Artefactos de trabajo pesados: no van al repo (165 MB)
+# catalogo-imagenes: packshots descargados, se regeneran desde Supabase
+# _to_delete, _fc_check*.tgz: respaldos y comparaciones de una sesión
+# .tmp_ocr_vision: recortes temporales del OCR de tickets
+/catalogo-imagenes/
+/_to_delete/
+/.tmp_ocr_vision/
+/_fc_check*.tgz

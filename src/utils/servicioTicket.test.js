@@ -24,6 +24,23 @@ describe("ticket de recarga", () => {
     expect(html.toLowerCase()).not.toContain("compensaci");
   });
 
+  test("una recarga sin recargo imprime total igual al monto", () => {
+    const html = servicioTicketInner({
+      folio: "SRV-20260826-000050",
+      proveedor: "AT&T",
+      categoria: "recarga",
+      referencia: "5536604799",
+      montoServicio: 50,
+      comision: 0,
+      total: 50,
+      metodoPago: "efectivo",
+    }, {});
+    expect(html).toContain("RECARGA AT&amp;T");
+    expect(html).toContain("$50.00");
+    expect(html).toContain("Recargo:");
+    expect(html).toContain("$0.00");
+  });
+
   test("escapa la referencia para no romper el HTML", () => {
     const html = servicioTicketInner({
       folio: "SRV-1",

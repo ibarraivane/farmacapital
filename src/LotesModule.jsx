@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useCatalogoVivo } from "./hooks/useCatalogoVivo";
+import { avisarCatalogoCambio } from "./utils/catalogoVivo";
 import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
 import { showToast, HorizontalScrollSync } from "./ui";
@@ -14,7 +16,6 @@ import {
   PRODUCTOS_SELECT_LOTES,
 } from "./lib/inventarioHubData";
 import { DIAS_CADUCIDAD_ALERTA, DIAS_CADUCIDAD_CRITICO } from "./lib/caducidad";
-import { hoyISOMexico } from "./lib/fecha";
 
 const BRAND = { primary:"#0D1B2A", secondary:"#1E3ABA", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
 const fmt = n => `$${parseFloat(n||0).toFixed(2)}`;
@@ -61,7 +62,7 @@ export default function LotesModule() {
   const [form,        setForm]        = useState({
     producto_id:"", numero_lote:"", fecha_caducidad:"",
     cantidad_inicial:"", costo_unitario:"", proveedor_id:"",
-    fecha_recepcion: hoyISOMexico(),
+    fecha_recepcion: new Date().toLocaleDateString("sv-SE"),
   });
   const [prodBusq, setProdBusq] = useState("");
   const [scanErr, setScanErr] = useState("");
@@ -70,14 +71,17 @@ export default function LotesModule() {
   const caducidadRef = useRef(null);
   const [saving, setSaving] = useState(false);
 
-  const fetchData = useCallback(async()=>{
-    setLoading(true);
+  const fetchData = useCallback(async (opts) => {
+    const silencioso = !!(opts && typeof opts === "object" && opts.silencioso);
+    if (!silencioso) setLoading(true);
     const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) {
-      setLotes([]);
-      setProductos([]);
-      setProveedores([]);
-      setLoading(false);
+      if (!silencioso) {
+        setLotes([]);
+        setProductos([]);
+        setProveedores([]);
+        setLoading(false);
+      }
       return;
     }
     const [lsRes, psRes, pvRes] = await Promise.all([
@@ -85,17 +89,22 @@ export default function LotesModule() {
       fetchProductosPaginados({ select: PRODUCTOS_SELECT_LOTES, activosSolo: false, order: "nombre" }),
       supabase.rpc("empleado_listar_proveedores_catalogo", { p_session_token: tok }),
     ]);
-    if (lsRes.error) showToast("No se pudieron cargar lotes: " + lsRes.error.message, "error");
-    if (psRes.error) showToast("No se pudo cargar catálogo: " + psRes.error.message, "error");
+    if (!silencioso) {
+      if (lsRes.error) showToast("No se pudieron cargar lotes: " + lsRes.error.message, "error");
+      if (psRes.error) showToast("No se pudo cargar catálogo: " + psRes.error.message, "error");
+    } else if (lsRes.error || psRes.error) {
+      return;
+    }
     const lotRows = Array.isArray(lsRes.data) ? [...lsRes.data] : [];
     lotRows.sort(compararLotesPeps);
     setLotes(lotRows);
     setProductos(Array.isArray(psRes.data) ? psRes.data : []);
     setProveedores(Array.isArray(pvRes.data) ? pvRes.data : []);
-    setLoading(false);
+    if (!silencioso) setLoading(false);
   },[]);
 
   useEffect(()=>{ fetchData(); },[fetchData]);
+  useCatalogoVivo(() => fetchData({ silencioso: true }));
 
   const diasRestantes = fecha => {
     if(!fecha) return null;
@@ -179,7 +188,7 @@ export default function LotesModule() {
       cantidad_inicial: "",
       costo_unitario: "",
       proveedor_id: "",
-      fecha_recepcion: hoyISOMexico(),
+      fecha_recepcion: new Date().toLocaleDateString("sv-SE"),
     });
     setProdBusq("");
     setScanErr("");
@@ -190,41 +199,37 @@ export default function LotesModule() {
   const guardar = async()=>{
     if(!form.producto_id||!form.numero_lote||!form.cantidad_inicial){ showToast("Completa producto, lote y cantidad","warning"); return; }
     setSaving(true);
-    try {
-      const qty = parseInt(form.cantidad_inicial)||0;
-      const tok = sessionStorage.getItem("farmacapital_session_token");
-      if (!tok) { showToast("Sesión expirada","error"); return; }
-      const { error } = await supabase.rpc("admin_crear_lote", {
-        p_session_token:  tok,
-        p_producto_id:    parseInt(form.producto_id),
-        p_numero_lote:    form.numero_lote.trim(),
-        p_cantidad:       qty,
-        p_fecha_caducidad: form.fecha_caducidad || null,
-        p_costo_unitario: parseFloat(form.costo_unitario) || null,
-        p_proveedor_id:   form.proveedor_id ? parseInt(form.proveedor_id) : null,
+    const qty = parseInt(form.cantidad_inicial)||0;
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    if (!tok) { showToast("Sesión expirada","error"); setSaving(false); return; }
+    const { error } = await supabase.rpc("admin_crear_lote", {
+      p_session_token:  tok,
+      p_producto_id:    parseInt(form.producto_id),
+      p_numero_lote:    form.numero_lote.trim(),
+      p_cantidad:       qty,
+      p_fecha_caducidad: form.fecha_caducidad || null,
+      p_costo_unitario: parseFloat(form.costo_unitario) || null,
+      p_proveedor_id:   form.proveedor_id ? parseInt(form.proveedor_id) : null,
+    });
+    if(error){ showToast("Error: "+error.message,"error"); }
+    else {
+      showToast("✅ Lote registrado","success");
+      avisarCatalogoCambio({ origen: "lotes" });
+      setForm({
+        producto_id: "",
+        numero_lote: "",
+        fecha_caducidad: "",
+        cantidad_inicial: "",
+        costo_unitario: "",
+        proveedor_id: form.proveedor_id,
+        fecha_recepcion: new Date().toLocaleDateString("sv-SE"),
       });
-      if(error){ showToast("Error: "+error.message,"error"); }
-      else {
-        showToast("✅ Lote registrado","success");
-        setForm({
-          producto_id: "",
-          numero_lote: "",
-          fecha_caducidad: "",
-          cantidad_inicial: "",
-          costo_unitario: "",
-          proveedor_id: form.proveedor_id,
-          fecha_recepcion: hoyISOMexico(),
-        });
-        setProdBusq("");
-        setScanErr("");
-        fetchData();
-        setTimeout(() => prodBusqRef.current?.focus(), 80);
-      }
-    } catch (e) {
-      showToast(e?.message || "Se cayó la conexión. Intenta de nuevo.", "error");
-    } finally {
-      setSaving(false);
+      setProdBusq("");
+      setScanErr("");
+      fetchData();
+      setTimeout(() => prodBusqRef.current?.focus(), 80);
     }
+    setSaving(false);
   };
 
   const desactivar = async(id)=>{
@@ -234,7 +239,7 @@ export default function LotesModule() {
       p_session_token: tok, p_lote_id: id, p_motivo: "Desactivación manual",
     });
     if (error) showToast("Error: "+error.message, "error");
-    else { showToast("Lote desactivado","info"); fetchData(); }
+    else { showToast("Lote desactivado","info"); avisarCatalogoCambio({ origen: "lotes" }); fetchData(); }
   };
 
   const vencidos  = lotes.filter(l=>{ const d=diasRestantes(l.fecha_caducidad); return typeof d==="number"&&d<0; }).length;
@@ -351,7 +356,7 @@ export default function LotesModule() {
                         Sin lotes para «{filtroP.trim()}».
                         <br />
                         <span style={{ fontSize: 11 }}>
-                          Si el producto está en <strong>Catálogo</strong> pero no aparece aquí, aún no tiene lote PEPS — usa <strong>+ Registrar lote</strong> o la pestaña <strong>Recibir</strong>.
+                          Si el producto está en <strong>Catálogo</strong> pero no aparece aquí, aún no tiene lote PEPS — usa <strong>+ Registrar lote</strong> o el menú <strong>Recibir</strong>.
                         </span>
                       </>
                     ) : (

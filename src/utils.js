@@ -4,11 +4,7 @@ import { C } from "./constants";
 
 export const dC   = f => Math.floor((new Date(f)-new Date())/86400000);
 export const cC   = d => d<0?C.red:d<15?C.red:d<30?C.amber:C.green;
-export const $    = n => {
-  const v = Number(n);
-  const x = Number.isFinite(v) ? v : 0;
-  return `$${x.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-};
+export const $    = n => `$${Number(n ?? 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 export const abc  = i => { const v=i.stock*i.price; return v>800?"A":v>300?"B":"C"; };
 export const aCol = a => ({A:C.green,B:C.amber,C:C.red}[a]);
 export const nCol = n => ({Gold:C.amber,Silver:C.textMid,Bronze:"#cd7f32"}[n]||C.textMid);
@@ -160,10 +156,74 @@ export const hashPwdLegacy = async pwd => {
 // ────────────────────────────────────────────────────────────────
 
 /** Token de sesión de empleado (null si no hay sesión admin). */
-export const getSessionToken = () => {
-  try { return sessionStorage.getItem("farmacapital_session_token") || null; }
-  catch { return null; }
-};
+const EMPLEADO_TOKEN_KEY = "farmacapital_session_token";
+const EMPLEADO_USER_KEY = "farmacapital_admin_user";
+/** Cubre matutino + vespertino + corte. El servidor alarga el token si siguen vendiendo. */
+export const SESION_EMPLEADO_MAX_MS = 16 * 60 * 60 * 1000;
+
+function storageRead(key) {
+  try {
+    const s = sessionStorage.getItem(key);
+    if (s) return s;
+  } catch (_) { /* noop */ }
+  try {
+    const l = localStorage.getItem(key);
+    if (l) {
+      try { sessionStorage.setItem(key, l); } catch (_) { /* noop */ }
+      return l;
+    }
+  } catch (_) { /* noop */ }
+  return null;
+}
+
+function storageWrite(key, val) {
+  try { sessionStorage.setItem(key, val); } catch (_) { /* noop */ }
+  try { localStorage.setItem(key, val); } catch (_) { /* noop */ }
+}
+
+function storageClear(key) {
+  try { sessionStorage.removeItem(key); } catch (_) { /* noop */ }
+  try { localStorage.removeItem(key); } catch (_) { /* noop */ }
+}
+
+export const getSessionToken = () => storageRead(EMPLEADO_TOKEN_KEY);
+
+export function setSessionToken(tok) {
+  if (!tok) {
+    storageClear(EMPLEADO_TOKEN_KEY);
+    return;
+  }
+  storageWrite(EMPLEADO_TOKEN_KEY, String(tok));
+}
+
+export function readAdminUser() {
+  const raw = storageRead(EMPLEADO_USER_KEY);
+  if (!raw) return null;
+  try {
+    const data = JSON.parse(raw);
+    if (data.loginTimestamp && Date.now() - data.loginTimestamp > SESION_EMPLEADO_MAX_MS) {
+      clearEmpleadoSession();
+      return null;
+    }
+    return data;
+  } catch (_) {
+    clearEmpleadoSession();
+    return null;
+  }
+}
+
+export function writeAdminUser(data) {
+  if (!data) {
+    storageClear(EMPLEADO_USER_KEY);
+    return;
+  }
+  storageWrite(EMPLEADO_USER_KEY, JSON.stringify(data));
+}
+
+export function clearEmpleadoSession() {
+  storageClear(EMPLEADO_TOKEN_KEY);
+  storageClear(EMPLEADO_USER_KEY);
+}
 
 export { esErrorSesionEmpleado, onSesionEmpleadoInvalida } from "./utils/sesionEmpleadoAuth";
 

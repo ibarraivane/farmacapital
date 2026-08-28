@@ -24,7 +24,7 @@ begin
     if v_id is null then
       insert into public.recepciones (proveedor, folio, fecha, total_ticket, estado, notas)
       values ('Cityfarma Iztapalapa', '6315912', '2026-08-21', 2570.99, 'borrador',
-              'Ticket Cityfarma 6315912 · stock ya recibido; falta caducidad de caja')
+              'Ticket Cityfarma 6315912 · cola Recibir; stock al confirmar pistola')
       returning id into v_id;
     else
       delete from public.recepcion_items where recepcion_id = v_id;
@@ -75,7 +75,7 @@ begin
         where l.producto_id = v_pid and coalesce(l.activo, true) and coalesce(l.cantidad_actual, 0) > 0
           and l.numero_lote is distinct from r.lote
       )),
-      v_lid
+      null
     );
   end loop;
 

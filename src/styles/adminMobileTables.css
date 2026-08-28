@@ -1,0 +1,190 @@
+/* Admin en celular: las tablas no se cortan ni se aplastan.
+   Inventario/lotes (muchas columnas) se deslizan.
+   Listas operativas (.fc-tabla-cards) se leen como fichas. */
+
+.farmacapital-admin-main {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.fc-tabla-scroll {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+@media (max-width: 767px) {
+  .farmacapital-admin-root table {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Contenedor real de scroll: el padre directo de una tabla ancha. */
+  .farmacapital-admin-root *:has(> table:not(.fc-tabla-cards)) {
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+  }
+
+  .farmacapital-admin-root .fc-tabla-scroll *:has(> table) {
+    overflow: visible;
+    max-width: none;
+  }
+
+  .farmacapital-admin-root table:not(.fc-tabla-cards) {
+    width: max-content;
+    min-width: 100%;
+    border-collapse: collapse;
+  }
+
+  .farmacapital-admin-root table:not(.fc-tabla-cards) th,
+  .farmacapital-admin-root table:not(.fc-tabla-cards) td {
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+
+  .farmacapital-admin-root table:not(.fc-tabla-cards) th:first-child,
+  .farmacapital-admin-root table:not(.fc-tabla-cards) td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: #ffffff;
+    box-shadow: 4px 0 8px -6px rgba(15, 23, 42, 0.28);
+  }
+
+  .farmacapital-admin-root table:not(.fc-tabla-cards) thead th:first-child {
+    z-index: 3;
+    background: #f0f4f9;
+  }
+
+  .fc-tabla-scroll::before {
+    content: "Desliza para ver más →";
+    display: block;
+    padding: 8px 12px 6px;
+    color: #475569;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    border-bottom: 1px solid #e2e8f0;
+    background: #f8fafc;
+  }
+
+  /* Listas del día: ficha, no excel en 390 px. */
+  .farmacapital-admin-root *:has(> table.fc-tabla-cards) {
+    overflow: visible !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .farmacapital-admin-root *:has(> table.fc-tabla-cards)::before {
+    content: none;
+  }
+
+  table.fc-tabla-cards {
+    display: block;
+    width: 100%;
+    min-width: 0 !important;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  table.fc-tabla-cards thead {
+    display: none;
+  }
+
+  table.fc-tabla-cards tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  table.fc-tabla-cards tr {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 12px;
+    padding: 14px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+  }
+
+  table.fc-tabla-cards td {
+    display: block;
+    padding: 0 !important;
+    border: none !important;
+    white-space: normal !important;
+    min-width: 0;
+    max-width: none !important;
+    background: transparent !important;
+    font-size: 13px;
+    line-height: 1.35;
+    color: #0f172a;
+    overflow-wrap: anywhere;
+  }
+
+  table.fc-tabla-cards td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 3px;
+    color: #475569;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  table.fc-tabla-cards td[data-label=" "]::before,
+  table.fc-tabla-cards td[data-label=""]::before {
+    content: none;
+    display: none;
+  }
+
+  table.fc-tabla-cards td[data-primary] {
+    grid-column: 1 / -1;
+    font-size: 15px;
+    font-weight: 800;
+  }
+
+  table.fc-tabla-cards td[data-wide],
+  table.fc-tabla-cards td[data-actions] {
+    grid-column: 1 / -1;
+  }
+
+  table.fc-tabla-cards td[colspan] {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 20px 8px !important;
+    color: #475569;
+  }
+
+  table.fc-tabla-cards td[colspan]::before {
+    content: none;
+  }
+
+  table.fc-tabla-cards td[data-actions] > div,
+  table.fc-tabla-cards td[data-actions] {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: stretch;
+  }
+
+  table.fc-tabla-cards td[data-actions] button,
+  table.fc-tabla-cards td[data-actions] a {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 8px 12px;
+    box-sizing: border-box;
+    touch-action: manipulation;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .farmacapital-admin-root *:has(> table:not(.fc-tabla-cards)) {
+    scroll-behavior: auto;
+  }
+}

@@ -153,6 +153,10 @@ async function scaleOnce(drawable, box, outputMime, nameBase) {
   if (!ctx) throw new Error("Canvas no disponible");
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
+  if (outputMime === "image/jpeg") {
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, tw, th);
+  }
   drawable.draw(ctx, 0, 0, tw, th);
   const blob = await canvasToBlob(canvas, outputMime);
   const ext = extFromContentType(outputMime);

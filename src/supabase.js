@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { normalizeSupabaseProjectUrl } from './utils/supabaseProjectUrl';
+import { notifySesionEmpleadoInvalida, rpcIndicaSesionEmpleadoMuerta } from './utils/sesionEmpleadoAuth';
 
 const runtimeEnv =
   typeof window !== "undefined" && window.__FARMACAPITAL_ENV ? window.__FARMACAPITAL_ENV : {};
@@ -78,3 +79,13 @@ export const isSupabaseProductionMisconfigured =
     !supabaseAnonKey);
 
 export const supabase = createClient(supabaseProjectUrl, supabaseAnonKey);
+
+const _rpc = supabase.rpc.bind(supabase);
+supabase.rpc = (fn, args, options) =>
+  Promise.resolve(_rpc(fn, args, options)).then((res) => {
+    if (res && res.error && rpcIndicaSesionEmpleadoMuerta(fn, args, res.error)) {
+      notifySesionEmpleadoInvalida();
+    }
+    return res;
+  });
+

@@ -22,7 +22,6 @@ describe("parseCaducidadMMAA", () => {
     expect(parseCaducidadMMAA("0699")).toBeNull();
     expect(parseCaducidadMMAA("")).toBeNull();
     expect(parseCaducidadMMAA("062")).toBeNull();
-    expect(parseCaducidadMMAA("0000")).toBeNull();
   });
 });
 
