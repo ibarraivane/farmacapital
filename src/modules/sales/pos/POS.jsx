@@ -121,6 +121,70 @@ async function fetchLotesMapPos(sessionToken) {
   return byProducto;
 }
 
+const POS_PRODUCTOS_PAGE = 500;
+/** Campos que el mostrador necesita para buscar (marca/nombre) y cobrar. */
+const POS_PRODUCTOS_SELECT = [
+  "id", "nombre", "sku", "codigo_barras", "categoria", "stock", "stock_minimo",
+  "stock_unidades", "activo", "marca", "presentacion", "principio_activo",
+  "forma_farmaceutica", "precio", "precio_unidad", "venta_unidad", "unidades_por_caja",
+  "imagen_url", "imagen_mobile_url", "ubicacion_texto", "descripcion", "tipo",
+  "denominacion_generica", "denominacion_distintiva", "concentracion",
+].join(",");
+
+function normalizarListaProductosPos(data) {
+  if (Array.isArray(data)) return data;
+  if (typeof data === "string") {
+    try {
+      const parsed = JSON.parse(data);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
+/** Igual que Inventario: si el RPC enorme falla o viene vacío, pagina la tabla. */
+async function fetchProductosPosPaginado() {
+  const filas = [];
+  for (let desde = 0; ; desde += POS_PRODUCTOS_PAGE) {
+    const { data, error } = await supabase
+      .from("productos")
+      .select(POS_PRODUCTOS_SELECT)
+      .eq("activo", true)
+      .order("nombre")
+      .order("id")
+      .range(desde, desde + POS_PRODUCTOS_PAGE - 1);
+    if (error) return { data: null, error };
+    filas.push(...(data || []));
+    if ((data || []).length < POS_PRODUCTOS_PAGE) break;
+  }
+  return { data: filas, error: null };
+}
+
+/**
+ * Catálogo del POS para búsqueda (Huggies, marcas, etc.).
+ * El RPC anida lotes y con ~1200 SKU a veces trunca/falla; sin fallback
+ * el buscador queda vacío aunque Inventario sí encuentre el producto.
+ */
+async function fetchProductosCatalogoPos(sessionToken) {
+  if (sessionToken) {
+    const { data, error } = await supabase.rpc("empleado_listar_productos_con_lotes_pos", {
+      p_session_token: sessionToken,
+    });
+    const list = normalizarListaProductosPos(data);
+    if (!error && list.length > 0) {
+      return { data: list, error: null };
+    }
+    if (error) console.warn("[POS] RPC catálogo:", error.message || error);
+  }
+  const fallback = await fetchProductosPosPaginado();
+  if (fallback.error) {
+    return { data: [], error: fallback.error };
+  }
+  return { data: fallback.data || [], error: null };
+}
+
 function enrichPosProductosConLotes(prodsRaw, lotesByProducto = {}) {
   return (prodsRaw || []).map((p) => {
     const nested = Array.isArray(p.lotes) ? p.lotes : [];
@@ -946,7 +1010,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
         const tok = sessionStorage.getItem("farmacapital_session_token");
         const [prodsRes, pedsRes, histRes, lotesMap, especialesMap] = await Promise.all([
           tok
-            ? supabase.rpc("empleado_listar_productos_con_lotes_pos", { p_session_token: tok })
+            ? fetchProductosCatalogoPos(tok)
             : Promise.resolve({ data: [], error: { message: "Sin sesión" } }),
           fetchPedidosTiendaPendientesMerged(supabase, PEDIDOS_TIENDA_SELECT_POS, {
             perBranchLimit: 100,
@@ -995,7 +1059,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
     if (!tok) return;
     try {
       const [prodsRes, lotesMap, especialesMap] = await Promise.all([
-        supabase.rpc("empleado_listar_productos_con_lotes_pos", { p_session_token: tok }),
+        fetchProductosCatalogoPos(tok),
         fetchLotesMapPos(tok),
         fetchEspecialesCaducidadPos(tok),
       ]);
@@ -1747,15 +1811,13 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
         // Sincroniza existencias visibles con BD tras un rechazo por stock.
         try {
           const tokRf = sessionStorage.getItem("farmacapital_session_token");
-          const [{ data }, lotesMap, especialesMap] = await Promise.all([
-            tokRf
-              ? supabase.rpc("empleado_listar_productos_con_lotes_pos", { p_session_token: tokRf })
-              : Promise.resolve({ data: [] }),
+          const [prodsRes, lotesMap, especialesMap] = await Promise.all([
+            fetchProductosCatalogoPos(tokRf),
             fetchLotesMapPos(tokRf),
             fetchEspecialesCaducidadPos(tokRf),
           ]);
           especialesRef.current = especialesMap || {};
-          setProds(enrichPosProductosConLotes(Array.isArray(data) ? data : [], lotesMap));
+          setProds(enrichPosProductosConLotes(Array.isArray(prodsRes?.data) ? prodsRes.data : [], lotesMap));
         } catch (_) {
           // noop: no bloquear el flujo por un refresh fallido
         }
