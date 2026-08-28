@@ -16,6 +16,8 @@ import { costoLineaVenta, ingresoLineaVenta } from "./utils/margenVenta";
 import { DIAS_CADUCIDAD_ALERTA } from "./lib/caducidad";
 import { categoriaCanon } from "./constants/categoriasProducto";
 import VentasVsMetaChart from "./VentasVsMetaChart";
+import CostoVsGananciaChart from "./CostoVsGananciaChart";
+import { agruparCostoGananciaPorDia, totalesCostoGanancia } from "./lib/margenPorDia";
 import InsightKpiCard from "./components/InsightKpiCard";
 import {
   agruparVentasPorDia,
@@ -645,6 +647,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
       margen: v.ingreso > 0 ? ((v.ingreso - v.costo) / v.ingreso * 100).toFixed(1) : 0,
       ganancia: v.ingreso - v.costo,
     })).sort((a, b) => b.ingreso - a.ingreso);
+    const porDiaMargen = agruparCostoGananciaPorDia(pedsCat, peds);
     let precioConsulta = CONSULTA_PRECIO_DEFAULT;
     let estimadoRecetaExternaCfg = 350;
     const { data: cfgRows } = await supabase.from("configuracion").select("clave,valor").in("clave", ["precio_consulta", "estimado_receta_externa"]);
@@ -667,7 +670,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
       consultas: pedsConsulta.length,
       ingresoConsultas: ingresoConsultasPeriod,
       online: (ponl || []).reduce((a, p) => a + parseFloat(p.total || 0), 0),
-      totalDevoluciones, margenPorCat, precioConsulta,
+      totalDevoluciones, margenPorCat, porDiaMargen, precioConsulta,
       ventasRecetaFarmaCapitalPeriod,
       nRecetasExternasPeriod: nExt,
       oportunidadPerdidaRecetaPeriod: nExt * estimadoRecetaExternaCfg,
@@ -744,6 +747,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
   const inpCapex = { width: "100%", maxWidth: "100%", padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 12, color: C.text, background: C.card, boxSizing: "border-box" };
 
   const totalVentas = rep ? (rep.ventas||[]).reduce((a,p)=>a+parseFloat(p.total||0),0) : 0;
+  const totMargen = totalesCostoGanancia(rep?.porDiaMargen);
   const totalOnline = rep ? rep.online : 0;
   const ticketPromedio = rep && rep.ventas?.length ? totalVentas/rep.ventas.length : 0;
   const ingresoConsultas = rep ? Number(rep.ingresoConsultas || 0) : 0;
@@ -1051,10 +1055,16 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
             <div>
               <div style={KPI_ROW}>
                 <KPI label="Ventas brutas" value={$(totalVentas)} col={C.blue} icon="💵"/>
+                <KPI label="Costo de compra" value={$(totMargen.costo)} col={C.textMid} icon="📦"/>
+                <KPI label="Ganancia" value={$(totMargen.ganancia)} col={C.green} icon="💰"/>
+                <KPI label="Margen" value={`${totMargen.margenPct}%`} col={C.green} icon="📊"/>
                 <KPI label="Devoluciones" value={$(rep.totalDevoluciones||0)} col={C.red} icon="↩️"/>
-                <KPI label="Ventas netas" value={$(totalVentas-(rep.totalDevoluciones||0))} col={C.green} icon="✅"/>
-                <KPI label="% devuelto" value={totalVentas>0?((rep.totalDevoluciones||0)/totalVentas*100).toFixed(1)+"%":"0%"} col={C.amber} icon="📊"/>
               </div>
+              <CostoVsGananciaChart
+                porDia={rep.porDiaMargen}
+                dias={periodo === "dia" ? 1 : periodo === "semana" ? 7 : 30}
+                hoyYmd={ymdMexico()}
+              />
               <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,overflow:"hidden"}}>
                 <div style={{padding:"14px 16px",borderBottom:`1px solid ${C.border}`,fontWeight:700,color:C.text,fontSize:14}}>📈 Margen por categoría</div>
                 <table className="fc-tabla-cards" style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
