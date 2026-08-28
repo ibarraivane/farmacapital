@@ -60,6 +60,9 @@ jobs:
         with:
           node-version: "24.x"
 
+      - name: Gate de secretos — tests
+        run: node scripts/backup-schema-secrets.test.js
+
       - name: Validar secretos requeridos
         env:
           SUPABASE_DB_URL:     ${{ secrets.SUPABASE_DB_URL }}
@@ -94,7 +97,11 @@ jobs:
           BACKUP_RETENTION_DAYS: "30"
         run: |
           set -euo pipefail
+          # Datos primero: si schema/gate falla después, el .backup ya está en el repo privado.
+          set +e
           node scripts/backup-db.js | tee backup.log
+          backup_rc=${PIPESTATUS[0]}
+          set -e
           if [ ! -f backup.log ]; then
             echo "backup.log no existe tras ejecutar backup-db.js"
             exit 1
@@ -110,10 +117,16 @@ jobs:
             echo "backup_path=$BACKUP_PATH"
             echo "backup_filename=$BACKUP_FILENAME"
             echo "backup_size_bytes=$BACKUP_SIZE_BYTES"
+            echo "backup_rc=$backup_rc"
           } >> "$GITHUB_OUTPUT"
+          if [ "$backup_rc" -ne 0 ]; then
+            echo "::warning::backup-db.js salió con código $backup_rc (revisar schema/gate). El dump de datos debería estar pusheado."
+            exit "$backup_rc"
+          fi
 
       - name: Validar integridad del dump
-        if: success()
+        # Corre aunque el paso anterior falló por schema (exit 8), si el dump existe.
+        if: always() && steps.run_backup.outputs.backup_path != ''
         run: |
           BACKUP_PATH="${{ steps.run_backup.outputs.backup_path }}"
           if [ -z "$BACKUP_PATH" ] || [ ! -f "$BACKUP_PATH" ]; then
@@ -133,3 +146,5 @@ jobs:
             echo "- Archivo: ${{ steps.run_backup.outputs.backup_filename }}" >> "$GITHUB_STEP_SUMMARY"
             echo "- Tamaño: ${{ steps.run_backup.outputs.backup_size_bytes }} bytes" >> "$GITHUB_STEP_SUMMARY"
           fi
+          echo "- Orden: datos primero, después schema + gate (un fallo de schema no tumba el .backup)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Schema: \`schema/schema.sql\` en el repo privado (pg_dump --schema-only + gate de secretos literales)" >> "$GITHUB_STEP_SUMMARY"

@@ -16,6 +16,7 @@ Vercel Cron (0 6 * * *)
                      └─> node scripts/backup-db.js
                            ├─> pg_dump --format=custom (con timeout 15min)
                            ├─> validación tamaño (min 10KB, max 500MB)
+                           ├─> pg_dump --schema-only → gate secretos literales → schema/
                            ├─> git clone farmacapital-backups (shallow, con token HTTPS)
                            ├─> copy /tmp/backups/farmacapital-backup-YYYY-MM-DD.backup → backups/
                            ├─> git add + commit + push
@@ -41,7 +42,8 @@ Por eso `/api/backup.js` actúa como **trigger ligero** y el workflow como **eje
 
 | Ruta | Responsabilidad |
 |---|---|
-| `scripts/backup-db.js` | Script end-to-end: pg_dump → validación → git clone/commit/push → rotación |
+| `scripts/backup-db.js` | Script end-to-end: pg_dump → validación → schema-only + gate → git clone/commit/push → rotación |
+| `scripts/backup-schema-secrets.js` | Gate: detecta secretos **literales** en el schema dump (no nombres tipo `password`) |
 | `scripts/upload-r2.js` | Stub para Cloudflare R2 (desactivado) |
 | `scripts/README-backups.md` | Este archivo |
 | `api/backup.js` | Endpoint que Vercel Cron llama; dispara GitHub Actions |
