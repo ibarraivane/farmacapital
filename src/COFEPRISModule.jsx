@@ -3,6 +3,7 @@ import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
 import { productMatchesSearchQuery } from "./utils/fuzzySearch";
 import { fixLegacyFarmaxBrand } from "./utils/brandText";
+import { showToast } from "./ui";
 
 const BRAND = { primary:"#0D1B2A", secondary:"#1E3ABA", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
 
@@ -97,13 +98,19 @@ function AlertasLegales() {
   const actualizarFecha = async (id) => {
     if (!editFecha) return;
     setSaving(true);
-    const tok = sessionStorage.getItem("farmacapital_session_token");
-    await supabase.rpc("admin_actualizar_alerta_legal", {
-      p_session_token:     tok,
-      p_id:                id,
-      p_fecha_vencimiento: editFecha,
-    });
-    setSaving(false); setEditId(null); setEditFecha(""); fetchAlertas();
+    try {
+      const tok = sessionStorage.getItem("farmacapital_session_token");
+      await supabase.rpc("admin_actualizar_alerta_legal", {
+        p_session_token:     tok,
+        p_id:                id,
+        p_fecha_vencimiento: editFecha,
+      });
+      setEditId(null); setEditFecha(""); fetchAlertas();
+    } catch (e) {
+      showToast(e?.message || "Se cayó la conexión. Intenta de nuevo.", "error");
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (loading) return <div style={{color:C.textMid,textAlign:"center",padding:40}}>Cargando…</div>;

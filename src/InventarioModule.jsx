@@ -1434,22 +1434,27 @@ function RecibirModal({ productos, onClose, onReceived, initialProductId = null 
     if (!cantidad || parseInt(cantidad, 10) <= 0) { setError("Cantidad inválida"); return; }
     setSaving(true);
     setError("");
-    const tok = sessionStorage.getItem("farmacapital_session_token");
-    if (!tok) { setSaving(false); setError("Sesión expirada."); return; }
-    const { error: err } = await supabase.rpc("receive_merchandise_secure", {
-      p_session_token: tok,
-      p_producto_id: selProd.id,
-      p_cantidad: parseInt(cantidad, 10),
-      p_numero_lote: lote.trim() || null,
-      p_fecha_caducidad: caducidad || null,
-      p_costo_unitario: costo ? parseFloat(costo) : null,
-      p_proveedor: proveedor.trim() || null,
-    });
-    setSaving(false);
-    if (err) { setError("Error: " + err.message); return; }
-    showToast(`✅ +${cantidad} · ${selProd.nombre}`, "success");
-    resetScanForm();
-    onReceived?.();
+    try {
+      const tok = sessionStorage.getItem("farmacapital_session_token");
+      if (!tok) { setError("Sesión expirada."); return; }
+      const { error: err } = await supabase.rpc("receive_merchandise_secure", {
+        p_session_token: tok,
+        p_producto_id: selProd.id,
+        p_cantidad: parseInt(cantidad, 10),
+        p_numero_lote: lote.trim() || null,
+        p_fecha_caducidad: caducidad || null,
+        p_costo_unitario: costo ? parseFloat(costo) : null,
+        p_proveedor: proveedor.trim() || null,
+      });
+      if (err) { setError("Error: " + err.message); return; }
+      showToast(`✅ +${cantidad} · ${selProd.nombre}`, "success");
+      resetScanForm();
+      onReceived?.();
+    } catch (e) {
+      setError(e?.message || "Se cayó la conexión. Intenta de nuevo.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (

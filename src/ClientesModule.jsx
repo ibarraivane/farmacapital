@@ -48,22 +48,27 @@ function AgregarCliente({ onSaved, onCancel }) {
     else if (!telefonoMxValido(form.telefono)) e.telefono = "Mínimo 10 dígitos";
     if (Object.keys(e).length) { setErrors(e); return; }
     setSaving(true);
-    const tok = sessionStorage.getItem("farmacapital_session_token");
-    if (!tok) { setSaving(false); showToast("Sesión expirada.","error"); return; }
-    const telGuardado = normalizarTelefonoMxGuardar(form.telefono);
-    const { data: resp, error } = await supabase.rpc("admin_crear_cliente_manual", {
-      p_session_token: tok,
-      p_nombre:   form.nombre.trim(),
-      p_telefono: telGuardado,
-      p_email:    form.email.trim() || null,
-      p_notas:    form.notas.trim() || null,
-    });
-    setSaving(false);
-    if (error || !resp?.success) {
-      showToast("Error al guardar cliente: "+(resp?.error||error?.message),"error");
-      return;
+    try {
+      const tok = sessionStorage.getItem("farmacapital_session_token");
+      if (!tok) { showToast("Sesión expirada.","error"); return; }
+      const telGuardado = normalizarTelefonoMxGuardar(form.telefono);
+      const { data: resp, error } = await supabase.rpc("admin_crear_cliente_manual", {
+        p_session_token: tok,
+        p_nombre:   form.nombre.trim(),
+        p_telefono: telGuardado,
+        p_email:    form.email.trim() || null,
+        p_notas:    form.notas.trim() || null,
+      });
+      if (error || !resp?.success) {
+        showToast("Error al guardar cliente: "+(resp?.error||error?.message),"error");
+        return;
+      }
+      onSaved(resp.cliente || resp);
+    } catch (e) {
+      showToast(e?.message || "Se cayó la conexión. Intenta de nuevo.", "error");
+    } finally {
+      setSaving(false);
     }
-    onSaved(resp.cliente || resp);
   };
   const field = (label, key, type="text", required=false, multiline=false) => (
     <div style={{ marginBottom:14 }}>
@@ -154,30 +159,40 @@ function ClienteDetalle({ cliente, onReload, onDeleted }) {
   const aplicarAjuste = async () => {
     if (!ajuste || !motivo.trim()) { setMsg("⚠ Ingresa cantidad y motivo"); return; }
     setSaving(true);
-    const tok = sessionStorage.getItem("farmacapital_session_token");
-    const { data: resp, error } = await supabase.rpc("admin_ajustar_puntos", {
-      p_session_token: tok,
-      p_cliente_id:    cliente.id,
-      p_delta:         parseInt(ajuste),
-      p_motivo:        motivo.trim(),
-    });
-    setSaving(false);
-    if (error || !resp?.success) { setMsg("Error: "+(resp?.error||error?.message)); return; }
-    setMsg("✅ Puntos actualizados"); setAjuste(""); setMotivo("");
-    setTimeout(()=>setMsg(""), 3000); onReload();
+    try {
+      const tok = sessionStorage.getItem("farmacapital_session_token");
+      const { data: resp, error } = await supabase.rpc("admin_ajustar_puntos", {
+        p_session_token: tok,
+        p_cliente_id:    cliente.id,
+        p_delta:         parseInt(ajuste),
+        p_motivo:        motivo.trim(),
+      });
+      if (error || !resp?.success) { setMsg("Error: "+(resp?.error||error?.message)); return; }
+      setMsg("✅ Puntos actualizados"); setAjuste(""); setMotivo("");
+      setTimeout(()=>setMsg(""), 3000); onReload();
+    } catch (e) {
+      setMsg(e?.message || "Se cayó la conexión. Intenta de nuevo.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const guardarNota = async () => {
     setSaving(true);
-    const tok = sessionStorage.getItem("farmacapital_session_token");
-    const { data: resp, error } = await supabase.rpc("admin_ajustar_nota_cliente", {
-      p_session_token: tok,
-      p_cliente_id:    cliente.id,
-      p_nota:          nota.trim() || null,
-    });
-    setSaving(false);
-    if (error || !resp?.success) { setMsg("Error: "+(resp?.error||error?.message)); return; }
-    setMsg("✅ Nota guardada"); setTimeout(()=>setMsg(""), 3000); onReload();
+    try {
+      const tok = sessionStorage.getItem("farmacapital_session_token");
+      const { data: resp, error } = await supabase.rpc("admin_ajustar_nota_cliente", {
+        p_session_token: tok,
+        p_cliente_id:    cliente.id,
+        p_nota:          nota.trim() || null,
+      });
+      if (error || !resp?.success) { setMsg("Error: "+(resp?.error||error?.message)); return; }
+      setMsg("✅ Nota guardada"); setTimeout(()=>setMsg(""), 3000); onReload();
+    } catch (e) {
+      setMsg(e?.message || "Se cayó la conexión. Intenta de nuevo.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const asignarPasswordTienda = async () => {
@@ -185,19 +200,24 @@ function ClienteDetalle({ cliente, onReload, onDeleted }) {
     if (nueva == null) return;
     if (String(nueva).length < 6) { setMsg("⚠ La contraseña debe tener al menos 6 caracteres"); return; }
     setSaving(true);
-    const tok = sessionStorage.getItem("farmacapital_session_token");
-    const { data: resp, error } = await supabase.rpc("admin_asignar_password_cliente", {
-      p_session_token: tok,
-      p_cliente_id: cliente.id,
-      p_nueva_password: String(nueva),
-    });
-    setSaving(false);
-    if (error || !resp?.success) {
-      setMsg("Error: " + (resp?.error || error?.message || "No se pudo asignar la contraseña"));
-      return;
+    try {
+      const tok = sessionStorage.getItem("farmacapital_session_token");
+      const { data: resp, error } = await supabase.rpc("admin_asignar_password_cliente", {
+        p_session_token: tok,
+        p_cliente_id: cliente.id,
+        p_nueva_password: String(nueva),
+      });
+      if (error || !resp?.success) {
+        setMsg("Error: " + (resp?.error || error?.message || "No se pudo asignar la contraseña"));
+        return;
+      }
+      setMsg("✅ Contraseña de tienda asignada. El cliente ya puede iniciar sesión en la web.");
+      setTimeout(() => setMsg(""), 4000);
+    } catch (e) {
+      setMsg(e?.message || "Se cayó la conexión. Intenta de nuevo.");
+    } finally {
+      setSaving(false);
     }
-    setMsg("✅ Contraseña de tienda asignada. El cliente ya puede iniciar sesión en la web.");
-    setTimeout(() => setMsg(""), 4000);
   };
 
   const eliminarCliente = async () => {
@@ -209,22 +229,27 @@ function ClienteDetalle({ cliente, onReload, onDeleted }) {
     );
     if (!ok) return;
     setSaving(true);
-    const tok = sessionStorage.getItem("farmacapital_session_token");
-    const { data: resp, error } = await supabase.rpc("admin_eliminar_cliente", {
-      p_session_token: tok,
-      p_cliente_id: cliente.id,
-    });
-    setSaving(false);
-    if (error || !resp?.success) {
-      showToast("No se pudo eliminar: " + (resp?.error || error?.message || "error"), "error");
-      return;
+    try {
+      const tok = sessionStorage.getItem("farmacapital_session_token");
+      const { data: resp, error } = await supabase.rpc("admin_eliminar_cliente", {
+        p_session_token: tok,
+        p_cliente_id: cliente.id,
+      });
+      if (error || !resp?.success) {
+        showToast("No se pudo eliminar: " + (resp?.error || error?.message || "error"), "error");
+        return;
+      }
+      if (resp.modo === "soft") {
+        showToast(resp.mensaje || "Cliente eliminado (historial conservado)", "success");
+      } else {
+        showToast("Cliente eliminado", "success");
+      }
+      onDeleted?.();
+    } catch (e) {
+      showToast(e?.message || "Se cayó la conexión. Intenta de nuevo.", "error");
+    } finally {
+      setSaving(false);
     }
-    if (resp.modo === "soft") {
-      showToast(resp.mensaje || "Cliente eliminado (historial conservado)", "success");
-    } else {
-      showToast("Cliente eliminado", "success");
-    }
-    onDeleted?.();
   };
 
   return (

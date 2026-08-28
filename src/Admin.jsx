@@ -738,26 +738,30 @@ function BannersAdmin(){
 
   const guardar = async()=>{
     setSaving(true);
-    const tok = sessionStorage.getItem("farmacapital_session_token");
-    const payload = {
-      ...form,
-      pagina: resolveTiendaPage(form.pagina) || "catalogo",
-      imagen_mobile_url: form.imagen_url_mobile || "",
-      imagen_url_mobile: form.imagen_url_mobile || "",
-    };
-    const { error } = await supabase.rpc("admin_upsert_banner", {
-      p_session_token: tok,
-      p_id:            modal === "new" ? null : modal.id,
-      p_payload:       payload,
-    });
-    if (error) {
+    try {
+      const tok = sessionStorage.getItem("farmacapital_session_token");
+      const payload = {
+        ...form,
+        pagina: resolveTiendaPage(form.pagina) || "catalogo",
+        imagen_mobile_url: form.imagen_url_mobile || "",
+        imagen_url_mobile: form.imagen_url_mobile || "",
+      };
+      const { error } = await supabase.rpc("admin_upsert_banner", {
+        p_session_token: tok,
+        p_id:            modal === "new" ? null : modal.id,
+        p_payload:       payload,
+      });
+      if (error) {
+        showToast("Error: "+error.message, "error");
+        return;
+      }
+      setModal(null); fetch();
+      showToast("Banner guardado correctamente","success");
+    } catch (e) {
+      showToast(e?.message || "Se cayó la conexión. Intenta de nuevo.", "error");
+    } finally {
       setSaving(false);
-      showToast("Error: "+error.message, "error");
-      return;
     }
-    setSaving(false);
-    setModal(null); fetch();
-    showToast("Banner guardado correctamente","success");
   };
 
   const eliminar = async(id)=>{

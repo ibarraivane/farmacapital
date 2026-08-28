@@ -388,18 +388,23 @@ export default function RecepcionModule({ ocultarMontos = false }) {
       return;
     }
     setSaving(true);
-    const total = totalTicket.trim() === "" ? null : Number(String(totalTicket).replace(/,/g, ""));
-    const { data, error } = await supabase.rpc("recepcion_abrir", {
-      p_session_token: tok,
-      p_proveedor: proveedor.trim() || null,
-      p_folio: folioN || null,
-      p_total_ticket: Number.isFinite(total) ? total : null,
-    });
-    setSaving(false);
-    if (error) { rpcError(error, "No se pudo empezar la recepción"); return; }
-    setVistaNuevo(false);
-    aplicarDoc(data);
-    setTimeout(() => scanRef.current?.focus(), 40);
+    try {
+      const total = totalTicket.trim() === "" ? null : Number(String(totalTicket).replace(/,/g, ""));
+      const { data, error } = await supabase.rpc("recepcion_abrir", {
+        p_session_token: tok,
+        p_proveedor: proveedor.trim() || null,
+        p_folio: folioN || null,
+        p_total_ticket: Number.isFinite(total) ? total : null,
+      });
+      if (error) { rpcError(error, "No se pudo empezar la recepción"); return; }
+      setVistaNuevo(false);
+      aplicarDoc(data);
+      setTimeout(() => scanRef.current?.focus(), 40);
+    } catch (e) {
+      showToast(e?.message || "Se cayó la conexión. Intenta de nuevo.", "error");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const cargarRenglones = async (renglones, meta = {}) => {
@@ -730,34 +735,38 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     if (!iso) { setErrorLinea("Caducidad MMAA — ej. 0629"); cadRef.current?.focus(); return; }
     setSaving(true);
     setErrorLinea("");
-    const tok = sessionTok();
-    let data;
-    let error;
-    if (recepcionEsTicket(doc) && !pendiente.itemId) {
-      setErrorLinea(MSG_SCAN_FUERA_TICKET);
+    try {
+      const tok = sessionTok();
+      let data;
+      let error;
+      if (recepcionEsTicket(doc) && !pendiente.itemId) {
+        setErrorLinea(MSG_SCAN_FUERA_TICKET);
+        return;
+      }
+      if (pendiente.itemId) {
+        ({ data, error } = await supabase.rpc("recepcion_confirmar_item", {
+          p_session_token: tok,
+          p_item_id: pendiente.itemId,
+          p_fecha_caducidad: iso,
+          p_cantidad: n,
+        }));
+      } else {
+        ({ data, error } = await supabase.rpc("recepcion_agregar_item", {
+          p_session_token: tok,
+          p_recepcion_id: doc.id,
+          p_codigo: pendiente.codigo,
+          p_cantidad: n,
+          p_fecha_caducidad: iso,
+        }));
+      }
+      if (error) { setErrorLinea(error.message); return; }
+      aplicarDoc(data);
+      resetLinea();
+    } catch (e) {
+      setErrorLinea(e?.message || "Se cayó la conexión. Intenta de nuevo.");
+    } finally {
       setSaving(false);
-      return;
     }
-    if (pendiente.itemId) {
-      ({ data, error } = await supabase.rpc("recepcion_confirmar_item", {
-        p_session_token: tok,
-        p_item_id: pendiente.itemId,
-        p_fecha_caducidad: iso,
-        p_cantidad: n,
-      }));
-    } else {
-      ({ data, error } = await supabase.rpc("recepcion_agregar_item", {
-        p_session_token: tok,
-        p_recepcion_id: doc.id,
-        p_codigo: pendiente.codigo,
-        p_cantidad: n,
-        p_fecha_caducidad: iso,
-      }));
-    }
-    setSaving(false);
-    if (error) { setErrorLinea(error.message); return; }
-    aplicarDoc(data);
-    resetLinea();
   };
 
   const onCadKey = (e) => {
