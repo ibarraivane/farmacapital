@@ -1,16 +1,20 @@
 /**
  * Import genérico de referencias de precio (CSV en browser).
- * Match: SKU exacto → fuzzy nombre+marca (token overlap).
+ * Match: SKU exacto → EAN/código de barras → fuzzy nombre+marca.
  */
 
 import { normalizeForSearch } from "../utils";
 
 export const FUENTES_IMPORT = [
-  { id: "exprezo", label: "Exprezo (compra)", tipo: "compra", adapter: "exprezo" },
-  { id: "marzam", label: "Marzam (compra)", tipo: "compra", adapter: "generico" },
-  { id: "nadro", label: "Nadro (compra)", tipo: "compra", adapter: "generico" },
-  { id: "levic", label: "Levic (compra)", tipo: "compra", adapter: "generico" },
-  { id: "farmalive", label: "Farmalive (compra / mayorista)", tipo: "compra", adapter: "generico" },
+  { id: "exprezo", label: "Exprezo / Zorro (piso barato: higiene y abarrotes)", tipo: "compra", adapter: "exprezo" },
+  { id: "scorpion", label: "Scorpion (higiene / pañales)", tipo: "compra", adapter: "generico" },
+  { id: "abarrotero", label: "Abarrotero (OTC / cuidado personal)", tipo: "compra", adapter: "generico" },
+  { id: "mayoreototal", label: "MayoreoTotal", tipo: "compra", adapter: "generico" },
+  { id: "otros_compra", label: "Otro abarrotero barato (no City Club / Sam's)", tipo: "compra", adapter: "generico" },
+  { id: "marzam", label: "Marzam (medicamento)", tipo: "compra", adapter: "generico" },
+  { id: "nadro", label: "Nadro (medicamento)", tipo: "compra", adapter: "generico" },
+  { id: "levic", label: "Levic (medicamento)", tipo: "compra", adapter: "generico" },
+  { id: "farmalive", label: "Farmalive (lista Club Iztapalapa)", tipo: "compra", adapter: "generico" },
   { id: "fahorro", label: "Del Ahorro (venta)", tipo: "venta", adapter: "generico" },
 ];
 
@@ -87,8 +91,9 @@ export function parseGenericoRows(rows, headers) {
     return i >= 0 ? headers[i] : null;
   };
   const skuH = findCol(["sku", "sku_farmacapital"]);
+  const eanH = findCol(["ean", "codigo", "codigo_barras", "codigobarras", "barcode", "upc"]);
   const nomH = findCol(["nombre", "producto", "descripcion"]);
-  const preH = findCol(["precio", "precio_ref", "precio_mayoreo", "precio_similares", "precio_del_ahorro"]);
+  const preH = findCol(["precio", "precio_ref", "precio_mayoreo", "precio_similares", "precio_del_ahorro", "precio 2%"]);
   if (!preH) throw new Error("Falta columna de precio (precio, precio_ref, …)");
   return rows.map((row) => {
     const precio = parseMoney(row[preH]);
@@ -96,16 +101,33 @@ export function parseGenericoRows(rows, headers) {
     return {
       line: row._line,
       sku: skuH ? String(row[skuH] || "").trim() : "",
+      ean: eanH ? String(row[eanH] || "").replace(/\D/g, "") : "",
       nombre_fuente: nomH ? String(row[nomH] || "").trim() : "",
       precio,
     };
   }).filter(Boolean);
 }
 
+/** Variantes EAN/UPC para cruzar lista vs catálogo (ceros a la izquierda). */
+export function eanLookupKeys(raw) {
+  const d = String(raw || "").replace(/\D/g, "");
+  if (!d) return [];
+  const keys = new Set([d, d.replace(/^0+/, "") || "0"]);
+  if (d.length < 12) keys.add(d.padStart(12, "0"));
+  if (d.length < 13) keys.add(d.padStart(13, "0"));
+  if (d.length === 12) keys.add(`0${d}`);
+  if (d.length === 13 && d.startsWith("0")) keys.add(d.slice(1));
+  return [...keys];
+}
+
 export function matchImportRows(parsedRows, productos, { minScore = 70 } = {}) {
   const bySku = {};
+  const byEan = {};
   for (const p of productos) {
     if (p.sku) bySku[p.sku.trim()] = p;
+    for (const key of eanLookupKeys(p.codigo_barras)) {
+      if (!byEan[key]) byEan[key] = p;
+    }
   }
 
   const matched = [];
@@ -118,7 +140,16 @@ export function matchImportRows(parsedRows, productos, { minScore = 70 } = {}) {
     if (row.sku && bySku[row.sku]) {
       producto = bySku[row.sku];
       confianza = 100;
-    } else if (row.nombre_fuente) {
+    } else if (row.ean) {
+      for (const key of eanLookupKeys(row.ean)) {
+        if (byEan[key]) {
+          producto = byEan[key];
+          confianza = 100;
+          break;
+        }
+      }
+    }
+    if (!producto && row.nombre_fuente) {
       let best = null;
       let bestScore = 0;
       for (const p of productos) {

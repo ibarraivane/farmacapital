@@ -2,7 +2,7 @@
  *  Recibir solo lo reemplaza si el ticket nuevo es más barato.
  */
 
-import { hoyISOMexico } from "./fecha";
+import { proveedorDesdeLotes } from "./inventarioHubData";
 
 export const FUENTE_ULTIMA_COMPRA = "ultima_compra";
 
@@ -90,12 +90,16 @@ export function elegirCompraVigente(eventos) {
 export function compraVigenteDe(producto, refsMap) {
   const ref = refsMap?.ultima_compra;
   const precioRef = parseCostoTicket(ref?.precio);
+  const quienLote = proveedorCompraVisible(
+    producto?.proveedor
+    || producto?.proveedor_nombre
+    || proveedorDesdeLotes(producto?.lotes_activos)
+    || proveedorDesdeLotes(producto?.lotes)
+  );
   if (precioRef) {
     return {
       precio: precioRef,
-      proveedor: proveedorCompraVisible(ref.nombre_fuente)
-        || proveedorCompraVisible(producto?.proveedor)
-        || "",
+      proveedor: proveedorCompraVisible(ref.nombre_fuente) || quienLote || "",
       fecha: ref.fecha || null,
       origen: "compra",
     };
@@ -104,7 +108,7 @@ export function compraVigenteDe(producto, refsMap) {
   if (costo) {
     return {
       precio: costo,
-      proveedor: proveedorCompraVisible(producto?.proveedor) || "",
+      proveedor: quienLote || "",
       fecha: null,
       origen: "catalogo",
     };
@@ -120,7 +124,7 @@ export function filasCompraVigenteDesdeRecepcion(rec, actualesPorProducto = {}) 
   const proveedor = proveedorCompraVisible(rec?.proveedor)
     || String(rec?.proveedor || "").trim();
   // La vista actual es DISTINCT ON fecha DESC: hay que estampar hoy para que se vea.
-  const fecha = hoyISOMexico();
+  const fecha = new Date().toISOString().slice(0, 10);
   const fechaTicket = rec?.fecha || fecha;
   const folio = rec?.folio ? String(rec.folio) : "";
   const byProd = new Map();
