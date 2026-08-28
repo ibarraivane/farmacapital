@@ -453,7 +453,7 @@ async function main() {
 
   // -------- 1. Dump datos --------
   try {
-    log('--- Paso 1/4: pg_dump (custom) ---');
+    log('--- Paso 1/5: pg_dump (custom) ---');
     await runPgDump({ dbUrl, outPath, timeoutSec });
   } catch (err) {
     errlog('pg_dump falló', err.message);
@@ -461,104 +461,114 @@ async function main() {
   }
 
   // -------- 2. Validación --------
-  log('--- Paso 2/4: validación dump custom ---');
+  log('--- Paso 2/5: validación dump custom ---');
   const meta = validateDump({ outPath, minKB, maxMB });
 
-  // -------- 3. Schema-only + gate de secretos literales --------
-  let schemaCommitted = false;
-  if (!skipSchema) {
+  // -------- 3. Push del respaldo de DATOS primero (nunca bloqueado por schema) --------
+  let committed = false;
+  let rotated = 0;
+  let workdir = null;
+
+  if (skipGit) {
+    log('--- Paso 3/5: BACKUP_SKIP_GIT=true (dump de datos listo en disco) ---');
+  } else {
+    log('--- Paso 3/5: git push del respaldo de datos ---');
+    workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'farmacapital-backup-repo-'));
     try {
-      log('--- Paso 3/4: pg_dump --schema-only ---');
+      cloneBackupRepo({ repo, token, workdir });
+      const r1 = commitAndPush({
+        workdir, subdir, srcFile: outPath, filename, sizeBytes: meta.size,
+      });
+      committed = r1.committed;
+
+      const r2 = rotateOldBackups({ workdir, subdir, retentionDays });
+      rotated = r2.rotated;
+    } catch (err) {
+      errlog('git falló al guardar el respaldo de datos', err.message);
+      if (workdir) rmrf(workdir);
+      process.exit(err.code || 7);
+    }
+  }
+
+  // -------- 4–5. Schema-only + gate + push (después del backup de datos) --------
+  let schemaCommitted = false;
+  /** @type {number|null} Código de salida diferido: el dump de datos ya está a salvo. */
+  let deferredExit = null;
+
+  if (skipSchema) {
+    log('--- Paso 4/5: schema omitido (BACKUP_SKIP_SCHEMA=true) ---');
+  } else {
+    try {
+      log('--- Paso 4/5: pg_dump --schema-only ---');
       await runPgDump({
         dbUrl,
         outPath: schemaPath,
         timeoutSec: Math.min(timeoutSec, 300),
         extraArgs: ['--schema-only', '--schema=public'],
       });
-    } catch (err) {
-      errlog('pg_dump --schema-only falló', err.message);
-      process.exit(err.code === 6 ? 6 : 1);
-    }
 
-    const { findLiteralSecrets } = require('./backup-schema-secrets');
-    const schemaSql = fs.readFileSync(schemaPath, 'utf8');
-    const findings = findLiteralSecrets(schemaSql);
-    if (findings.length) {
-      errlog(
-        `Schema dump contiene ${findings.length} posible(s) secreto(s) literal(es). ` +
-          'No se pushea. Hallazgo de seguridad aparte.'
-      );
-      for (const f of findings) {
-        errlog(`  línea ${f.line}: [${f.name}] ${f.sample}`);
+      const { findLiteralSecrets } = require('./backup-schema-secrets');
+      const schemaSql = fs.readFileSync(schemaPath, 'utf8');
+      const findings = findLiteralSecrets(schemaSql);
+      if (findings.length) {
+        errlog(
+          `Schema dump contiene ${findings.length} posible(s) secreto(s) literal(es). ` +
+            'El respaldo de datos YA se guardó. No se pushea el schema.'
+        );
+        for (const f of findings) {
+          errlog(`  línea ${f.line}: [${f.name}] ${f.sample}`);
+        }
+        deferredExit = 8;
+      } else {
+        log('Gate de secretos literales: OK');
+        if (!skipGit && workdir) {
+          log('--- Paso 5/5: git push de schema/ ---');
+          const readmeBody = [
+            '# schema.sql — estado real de producción',
+            '',
+            'Se regenera en cada corrida del workflow `backup.yml` (`pg_dump --schema-only`).',
+            '**No editar a mano.** El diff de cada commit es la deriva del DDL en vivo.',
+            '',
+            `- Última sync: ${dayIso}`,
+            '- Origen: `public` en Supabase (solo lectura vía `pg_dump --schema-only`)',
+            '- Destino: repo **privado** de respaldos (nunca el repo público de la app)',
+            '',
+            'Antes del push corre un gate que busca valores literales tipo',
+            '`postgres://user:pass@`, JWT `eyJ…`, `sk-…`, `Bearer …` — no nombres de',
+            'parámetros como `p_nueva_password`.',
+            '',
+          ].join('\n');
+
+          try {
+            const rSchema = commitSchemaSnapshot({
+              workdir,
+              schemaSrc: schemaPath,
+              readmeBody,
+              dayIso,
+            });
+            schemaCommitted = rSchema.committed;
+          } catch (err) {
+            errlog('git falló al pushear schema (datos ya guardados)', err.message);
+            deferredExit = err.code || 7;
+          }
+        } else {
+          log('--- Paso 5/5: schema en disco (sin git) ---');
+        }
       }
-      process.exit(8);
+    } catch (err) {
+      errlog(
+        'pg_dump --schema-only falló (el respaldo de datos YA se guardó)',
+        err.message
+      );
+      deferredExit = err.code === 6 ? 6 : 1;
     }
-    log('Gate de secretos literales: OK');
-  } else {
-    log('--- Paso 3/4: schema omitido (BACKUP_SKIP_SCHEMA=true) ---');
   }
 
-  if (skipGit) {
-    log('BACKUP_SKIP_GIT=true → saltando git push.');
-    log(`::backup-path::${outPath}`);
-    log(`::backup-size-bytes::${meta.size}`);
-    log(`::backup-filename::${filename}`);
-    if (!skipSchema) log(`::schema-path::${schemaPath}`);
-    log(`Duración total: ${Math.round((Date.now() - startedAt) / 1000)}s`);
-    return;
-  }
-
-  // -------- 4. Git clone + copy + commit + push --------
-  log('--- Paso 4/4: git clone + commit + push ---');
-  const workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'farmacapital-backup-repo-'));
-  let committed = false;
-  let rotated = 0;
-  try {
-    cloneBackupRepo({ repo, token, workdir });
-    const r1 = commitAndPush({
-      workdir, subdir, srcFile: outPath, filename, sizeBytes: meta.size,
-    });
-    committed = r1.committed;
-
-    if (!skipSchema) {
-      const readmeBody = [
-        '# schema.sql — estado real de producción',
-        '',
-        'Se regenera en cada corrida del workflow `backup.yml` (`pg_dump --schema-only`).',
-        '**No editar a mano.** El diff de cada commit es la deriva del DDL en vivo.',
-        '',
-        `- Última sync: ${dayIso}`,
-        '- Origen: `public` en Supabase (solo lectura vía `pg_dump --schema-only`)',
-        '- Destino: repo **privado** de respaldos (nunca el repo público de la app)',
-        '',
-        'Antes del push corre un gate que busca valores literales tipo',
-        '`postgres://user:pass@`, JWT `eyJ…`, `sk-…`, `Bearer …` — no nombres de',
-        'parámetros como `p_nueva_password`.',
-        '',
-      ].join('\n');
-
-      const rSchema = commitSchemaSnapshot({
-        workdir,
-        schemaSrc: schemaPath,
-        readmeBody,
-        dayIso,
-      });
-      schemaCommitted = rSchema.committed;
-    }
-
-    const r2 = rotateOldBackups({ workdir, subdir, retentionDays });
-    rotated = r2.rotated;
-  } catch (err) {
-    errlog('git falló', err.message);
-    rmrf(workdir);
-    process.exit(err.code || 7);
-  } finally {
-    rmrf(workdir);
-  }
+  if (workdir) rmrf(workdir);
 
   // -------- Resumen machine-readable --------
   log('');
-  log('=== BACKUP OK ===');
+  log(deferredExit ? '=== BACKUP DATOS OK (schema con problema) ===' : '=== BACKUP OK ===');
   log(`::backup-path::${outPath}`);
   log(`::backup-size-bytes::${meta.size}`);
   log(`::backup-filename::${filename}`);
@@ -567,6 +577,8 @@ async function main() {
   log(`::schema-committed::${schemaCommitted}`);
   if (!skipSchema) log(`::schema-path::${schemaPath}`);
   log(`Duración total: ${Math.round((Date.now() - startedAt) / 1000)}s`);
+
+  if (deferredExit) process.exit(deferredExit);
 }
 
 main().catch((err) => {
