@@ -428,16 +428,46 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
       }
     }
 
-    // Totales desde el bundle (sin límite). ped_mes en vivo aún no trae
-    // usuarios.nombre hasta aplicar sql/migrations/20260828_t3_ped_mes_empleado.sql
-    const pedHoy = ventasRowsOrFallback(B, "ped_hoy", H, "ventas_hoy");
-    const pedAyer = rpcBundleRows(B, "ped_ayer");
-    const pedSemana = ventasRowsOrFallback(B, "ped_semana", H, "ventas_semana");
-    const pedSemanaAnt = rpcBundleRows(B, "ped_semana_ant");
-    const pedMes = ventasRowsOrFallback(B, "ped_mes", H, "ventas_mes");
+    // Totales desde el bundle (sin límite). Si el bundle/home fallan, listar
+    // transacciones es respaldo de emergencia — nunca gana sobre un bundle OK.
+    let pedHoy = ventasRowsOrFallback(B, "ped_hoy", H, "ventas_hoy");
+    let pedAyer = rpcBundleRows(B, "ped_ayer");
+    let pedSemana = ventasRowsOrFallback(B, "ped_semana", H, "ventas_semana");
+    let pedSemanaAnt = rpcBundleRows(B, "ped_semana_ant");
+    let pedMes = ventasRowsOrFallback(B, "ped_mes", H, "ventas_mes");
     const pedTodos = rpcBundleRows(B, "ped_todos");
-    const pedMesAnt = rpcBundleRows(B, "ped_mes_ant");
-    const pedMesTipo = rpcBundleRows(B, "ped_mes_tipo");
+    let pedMesAnt = rpcBundleRows(B, "ped_mes_ant");
+    let pedMesTipo = rpcBundleRows(B, "ped_mes_tipo");
+
+    const bundleErr = bundleRes.error;
+    const homeErr = homeRes.error;
+    if (bundleErr) console.warn("[Dashboard] bundle operación:", bundleErr.message);
+    if (homeErr) console.warn("[Dashboard] home snapshot:", homeErr.message);
+
+    if (adminTok && !pedMes.length && (bundleErr || homeErr)) {
+      const { data: rawVentasMes, error: errVentasMes } = await supabase.rpc("empleado_listar_pedidos_transacciones", {
+        p_session_token: adminTok,
+        p_created_desde: month.start,
+        p_limite: 2000,
+      });
+      if (errVentasMes) {
+        console.warn("[Dashboard] ventas fallback listar:", errVentasMes.message);
+      } else {
+        const all = pedidosCompletados(rawVentasMes);
+        const inRange = (p, startIso, endIso) => {
+          const t = new Date(p.created_at).getTime();
+          return t >= new Date(startIso).getTime() && t <= new Date(endIso).getTime();
+        };
+        pedMes = all;
+        pedHoy = all.filter((p) => inRange(p, today.start, today.end));
+        pedAyer = all.filter((p) => inRange(p, yesterday.start, yesterday.end));
+        pedSemana = all.filter((p) => new Date(p.created_at).getTime() >= new Date(week.start).getTime());
+        pedSemanaAnt = all.filter((p) => inRange(p, weekPrev.start, weekPrev.end));
+        pedMesAnt = [];
+        pedMesTipo = all.map((p) => ({ total: p.total, tipo: p.tipo }));
+      }
+    }
+
     const pedItems = rpcBundleRows(B, "ped_items_top");
     const bajoStock = rpcBundleRows(B, "bajo_stock");
     const caducarJs = parseRpcJsonObject(caducarRes?.data);
@@ -453,20 +483,15 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
     const citasHoyRaw = rpcBundleRows(B, "citas_hoy");
     const citasHoy = citasHoyRaw.length ? citasHoyRaw : rpcBundleRows(H, "citas_completadas_hoy");
     const citasAyer = rpcBundleRows(B, "citas_ayer");
-    const bundleErr = bundleRes.error;
-    const homeErr = homeRes.error;
-    if (bundleErr) console.warn("[Dashboard] bundle operación:", bundleErr.message);
-    if (homeErr) console.warn("[Dashboard] home snapshot:", homeErr.message);
 
     const ventasMesTotal = (pedMes || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
     const ventasCargadas = (pedMes || []).length > 0 && ventasMesTotal > 0;
+    const rpcDetail = [bundleErr?.message, homeErr?.message].filter(Boolean).join(" · ");
     const dashboardLoadWarning = !adminTok
       ? "Sesión expirada. Vuelve a iniciar sesión."
-      : !ventasCargadas && bundleErr && homeErr
-        ? "No se pudieron cargar ventas del dashboard. Revisa que los RPC estén aplicados en Supabase."
-        : !ventasCargadas && (bundleErr || homeErr)
-          ? "No se pudieron cargar ventas. Revisa la sesión o el listado de transacciones."
-          : null;
+      : !ventasCargadas && (bundleErr || homeErr)
+        ? `No se pudieron cargar ventas del dashboard.${rpcDetail ? ` ${rpcDetail}` : " Revisa sesión o RPCs en Supabase."}`
+        : null;
     if (errOnlinePend) console.warn("[Dashboard] online pendientes:", errOnlinePend.message);
     if (errAlertasCof) console.warn("[Dashboard] alertas legales cofepris:", errAlertasCof.message);
 

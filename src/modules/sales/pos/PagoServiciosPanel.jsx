@@ -4,21 +4,11 @@ import { C_LIGHT, BRAND } from "../../../constants";
 import { $ } from "../../../utils";
 import { Box, Btn, Inp, Tag, showToast } from "../../../ui";
 import { printServicioTicket } from "../../../utils/servicioTicket";
-
-const CATALOGO_SERVICIOS = [
-  { id: "telcel", categoria: "recarga", proveedor: "Telcel", comision: 5, emoji: "📱" },
-  { id: "movistar", categoria: "recarga", proveedor: "Movistar", comision: 5, emoji: "📱" },
-  { id: "att", categoria: "recarga", proveedor: "AT&T", comision: 5, emoji: "📱" },
-  { id: "unefon", categoria: "recarga", proveedor: "Unefon", comision: 5, emoji: "📱" },
-  { id: "cfe", categoria: "luz", proveedor: "CFE", comision: 8, emoji: "💡" },
-  { id: "telmex", categoria: "telefonia", proveedor: "Telmex", comision: 8, emoji: "☎️" },
-  { id: "totalplay", categoria: "telefonia", proveedor: "Totalplay", comision: 8, emoji: "📺" },
-  { id: "izzi", categoria: "telefonia", proveedor: "Izzi", comision: 8, emoji: "📺" },
-  { id: "sky", categoria: "tv", proveedor: "Sky", comision: 10, emoji: "📡" },
-  { id: "agua", categoria: "agua", proveedor: "Agua (local)", comision: 8, emoji: "💧" },
-  { id: "gas", categoria: "gas", proveedor: "Gas Natural", comision: 8, emoji: "🔥" },
-  { id: "otro", categoria: "otro", proveedor: "Otro servicio", comision: 10, emoji: "📋" },
-];
+import {
+  CATALOGO_SERVICIOS,
+  recargoCatalogoDe,
+  recargoEsValido,
+} from "../../../lib/pagoServicio";
 
 const parseMonto = (s) => {
   const n = parseFloat(String(s || "").replace(/,/g, "").trim());
@@ -62,7 +52,7 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
   );
 
   const monto = parseMonto(montoStr);
-  const comision = Number(servicio.comision);
+  const comision = recargoCatalogoDe(servicio.id);
   const total = Number.isFinite(monto) && Number.isFinite(comision) ? Math.round((monto + comision) * 100) / 100 : 0;
 
   const fetchHistorial = useCallback(async () => {
@@ -117,8 +107,13 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
       showToast("Ingresa el monto del servicio o recarga", "error");
       return false;
     }
-    if (!Number.isFinite(comision) || comision < 0) {
-      showToast("Comisión inválida", "error");
+    if (!recargoEsValido(comision, servicio.categoria)) {
+      showToast(
+        servicio.categoria === "recarga"
+          ? "Las recargas no llevan recargo de farmacia. Solo el monto de tiempo aire."
+          : `El recargo de ${servicio.proveedor} va automático ($${servicio.comision}).`,
+        "error",
+      );
       return false;
     }
     if (!liquidado) {
@@ -171,10 +166,14 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
     <div>
       <div style={{ background: C.blueDim, border: `1px solid ${C.blue}30`, borderRadius: 10, padding: "12px 16px", marginBottom: 16 }}>
         <div style={{ color: C.blue, fontSize: 13, fontWeight: 700, lineHeight: 1.5 }}>
-          <strong>Pago de servicios y recargas.</strong> Aquí solo pones el monto: el recargo ({$(servicio.comision)}) se suma solo. La liquidación del recibo se hace en la terminal Point: menú <strong>Smart Launcher → Pago de servicios</strong> (mismo proveedor y referencia).
+          {servicio.categoria === "recarga" ? (
+            <><strong>Recargas.</strong> Primero el tiempo aire en la Point. Aquí solo anotas el monto: <strong>sin recargo</strong> de farmacia.</>
+          ) : (
+            <><strong>Pago de recibos.</strong> Aquí pones el monto: el recargo ({$(servicio.comision)}) se suma solo. La liquidación va en la Point (Smart Launcher → Pago de servicios).</>
+          )}
         </div>
         <div style={{ color: C.textMid, fontSize: 11, marginTop: 8, lineHeight: 1.45 }}>
-          La Point en modo PDV solo cobra tarjeta por API. Para CFE, Telcel, etc. usa Smart Launcher en la misma terminal (puede pedir salir del modo integrado un momento). Sin Prontipagos: la comisión de MP va a Mercado Pago, no se desglosa en FarmaCapital.
+          La Point en modo PDV solo cobra tarjeta por API. Para CFE, Telcel, etc. usa Smart Launcher en la misma terminal.
         </div>
       </div>
 
@@ -213,7 +212,7 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
                   color: selId === s.id ? BRAND.secondary : C.textMid,
                 }}
               >
-                {s.emoji} {s.proveedor} +{$(s.comision)}
+                {s.emoji} {s.proveedor}{s.comision > 0 ? ` +${$(s.comision)}` : " sin recargo"}
               </button>
             ))}
           </div>
@@ -235,12 +234,14 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
 
           <div style={{ background: C.bg, borderRadius: 8, padding: "10px 12px", marginBottom: 12 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-              <span style={{ color: C.textMid, fontSize: 12 }}>Recarga</span>
+              <span style={{ color: C.textMid, fontSize: 12 }}>{servicio.categoria === "recarga" ? "Recarga" : "Servicio"}</span>
               <span style={{ color: C.text, fontWeight: 700, fontSize: 13 }}>{Number.isFinite(monto) && monto > 0 ? $(monto) : "—"}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <span style={{ color: C.textMid, fontSize: 12 }}>Recargo {servicio.proveedor} (automático)</span>
-              <span style={{ color: C.text, fontWeight: 700, fontSize: 13 }}>+{$(comision)}</span>
+              <span style={{ color: C.textMid, fontSize: 12 }}>
+                {servicio.categoria === "recarga" ? "Recargo farmacia" : `Recargo ${servicio.proveedor} (automático)`}
+              </span>
+              <span style={{ color: C.text, fontWeight: 700, fontSize: 13 }}>{comision > 0 ? `+${$(comision)}` : "Sin recargo"}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span style={{ color: C.textMid, fontSize: 12 }}>Total a cobrar</span>
