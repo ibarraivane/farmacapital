@@ -431,8 +431,9 @@ export function SkeletonCard({ height=80, style={} }) {
 
 /**
  * Contenedor con scroll horizontal sincronizado: barra arriba y abajo (misma posición).
+ * Con bodyMaxHeight el cuerpo hace scroll vertical y el thead sticky (Referencias de precio) se congela.
  */
-export function HorizontalScrollSync({ children, style = {}, topBarHeight = 12, ...rest }) {
+export function HorizontalScrollSync({ children, style = {}, topBarHeight = 12, bodyMaxHeight, className, ...rest }) {
   const C = C_LIGHT;
   const topRef = useRef(null);
   const bottomRef = useRef(null);
@@ -488,7 +489,20 @@ export function HorizontalScrollSync({ children, style = {}, topBarHeight = 12, 
   };
 
   return (
-    <div {...rest} style={{ borderRadius: 12, border: `1px solid ${C.border}`, overflow: "hidden", ...style }}>
+    <div
+      {...rest}
+      className={["fc-tabla-scroll", className].filter(Boolean).join(" ")}
+      style={{
+        borderRadius: 12,
+        border: `1px solid ${C.border}`,
+        overflow: "hidden",
+        width: "100%",
+        maxWidth: "100%",
+        minWidth: 0,
+        boxSizing: "border-box",
+        ...style,
+      }}
+    >
       <div
         ref={topRef}
         onScroll={onTopScroll}
@@ -512,7 +526,8 @@ export function HorizontalScrollSync({ children, style = {}, topBarHeight = 12, 
         onScroll={onBottomScroll}
         style={{
           overflowX: "auto",
-          overflowY: "hidden",
+          overflowY: bodyMaxHeight ? "auto" : "hidden",
+          maxHeight: bodyMaxHeight,
           WebkitOverflowScrolling: "touch",
           scrollbarWidth: "thin",
         }}
