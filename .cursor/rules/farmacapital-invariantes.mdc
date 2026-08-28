@@ -1,0 +1,71 @@
+---
+description: Invariantes de dinero, stock, fechas y navegación. Revisar antes de tocar POS, Caja, Inventario, Devoluciones o Dashboard.
+alwaysApply: true
+---
+
+# FarmaCapital — invariantes que no se rompen
+
+Salieron de la auditoría de `AUDITORIA_MODULOS.md`. Si un cambio contradice alguno,
+para y explica por qué antes de escribirlo.
+
+## Dinero
+
+1. **El precio que cobra el POS y el que valida la base tienen que salir de la misma fórmula.**
+   `create_sale_transaction_v2` recalcula el total desde `productos` y aborta con
+   `Total mismatch detected` si no coincide con lo que mandó el cliente. Si tocas
+   `cobroLinea` / `pesoPublico` (`src/utils/pesoPublico.js`) o metes un descuento,
+   promoción o precio especial nuevo, **tienes que reflejarlo en el RPC en el mismo commit**.
+   Nunca sumes un descuento solo en el front.
+
+2. **`pedidos.total` es venta bruta, no ingreso.** El ingreso real descuenta
+   `monto_credito` (crédito canjeado) y devoluciones, y suma `pagos_servicio`.
+   `reconcile_cash_rango` ya lo hace bien; el Dashboard no. Si escribes un KPI de
+   ingresos, di en la UI cuál de los dos es.
+
+3. **Una devolución no cambia `pedidos.estado` ni `pedidos.total`.** Los cortes de caja
+   históricos dependen de eso. Para descontarla del reporting usa `total_devuelto`.
+
+## Stock
+
+4. **`productos.stock` es campo derivado**, lo mantiene `trg_sync_productos_stock` desde
+   `sum(lotes.cantidad_actual)`. No escribas `update productos set stock = ...` en código
+   que ya movió lotes.
+
+5. **Descontar stock es FEFO y nunca toma lotes vencidos.** Usa `get_lote_fefo`. No escribas
+   otro bucle de lotes: ya hay cuatro implementaciones y dos están mal.
+
+6. **Reintegrar stock (devolución) va al lote de origen.** Si `devolucion_items.lote_id`
+   existe, úsalo. Nunca `activo = true` sin comprobar `fecha_caducidad >= current_date`:
+   resucita mercancía caducada.
+
+## Fechas
+
+7. **`new Date().toISOString().slice(0,10)` está prohibido para calcular "hoy".**
+   En CDMX devuelve *mañana* a partir de las 18:00, y la farmacia vende en turno vespertino.
+   Usa `hoyISOMexico()` de `src/lib/fecha.js`. Tampoco uses `toLocaleDateString("sv-SE")`:
+   depende del reloj del equipo.
+
+   (Sí es válido `toISOString()` sobre una fecha construida con `Date.UTC(y,m,d)` para
+   aritmética de fechas puras — así trabaja `addDaysISO`.)
+
+## SQL
+
+8. **Todo SQL que el front invoque vive en el repo.** Si agregas un `supabase.rpc("x")`,
+   `x` tiene que existir en `sql/`. Hoy hay 11 RPCs llamados que no están: por eso dos
+   pestañas de Inventario no funcionan en un entorno nuevo.
+
+9. **Una función, un archivo.** No re-declares una función existente en un patch nuevo sin
+   borrar o marcar la anterior. `create_producto_with_lote` está definida 19 veces y nadie
+   sabe cuál corre.
+
+## UI
+
+10. **Un botón que dispara `await` resetea su estado en `finally`.** Sin eso, un corte de red
+    lo deja deshabilitado hasta recargar. Pasa en la apertura de caja y deja a la cajera sin vender.
+
+11. **Toda `id` de `NAV_ITEMS` necesita su `case` en `Admin.renderPage`**, si no cae en
+    "Módulo en construcción". Hoy están cuadrados: no lo rompas.
+
+12. **No borres el contador de reintentos de chunk al montar.** `src/index.js` corta el bucle
+    de recarga a los 4 intentos; si algo lo resetea antes, la app recarga para siempre tras
+    un deploy.

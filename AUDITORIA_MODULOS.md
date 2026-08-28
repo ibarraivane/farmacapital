@@ -2,6 +2,10 @@
 
 > Documento para trabajar con Cursor. Cada hallazgo trae archivo:línea, qué pasa y qué cambiar.
 > Auditado sobre el código del repo (`src/` + `sql/`). **No se verificó contra la base en vivo.**
+>
+> **Para ejecutar los arreglos, usa [`CURSOR_TAREAS.md`](./CURSOR_TAREAS.md)**: trae los
+> paquetes de trabajo ordenados, con diffs exactos, verificación y criterios de aceptación.
+> Este archivo es el diagnóstico; aquél es el plan.
 
 **Índice**
 
