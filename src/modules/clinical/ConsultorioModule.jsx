@@ -8,6 +8,7 @@ import { citaPagoOk, citaEstaPagada, labelEstadoPagoCita } from "../../utils/con
 import OnboardingTour from "../../components/OnboardingTour";
 import { FARMACIA_FISCAL } from "../../constants/farmaciaFiscal";
 import { Historial } from "./Historial";
+import { hoyISOMexico } from "../../lib/fecha";
 
 const BRAND = { primary:"#0D1B2A", secondary:"#1E3ABA", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
 
@@ -20,7 +21,6 @@ const horaVista = (h) => {
   if (!m) return s;
   return `${String(parseInt(m[1], 10)).padStart(2, "0")}:${m[2]}`;
 };
-const todaySvLocal = () => new Date().toLocaleDateString("sv-SE");
 
 const mkInputStyle = (C) => ({ width:"100%", padding:"8px 11px", borderRadius:7, border:`1px solid ${C.border}`, background:C.bg, color:C.text, fontSize:12, outline:"none", boxSizing:"border-box" });
 const mkLabelStyle = (C) => ({ color:C.textMid, fontSize:10, fontWeight:700, marginBottom:3, display:"block", letterSpacing:.4 });
@@ -175,7 +175,7 @@ function ListaEspera({ onLlamoPaciente }) {
   const [historialMap, setHistorialMap] = useState({});
 
   const fetchCitas = useCallback(async () => {
-    const hoy = todaySvLocal();
+    const hoy = hoyISOMexico();
     // crear_cita / tienda guardan estado "agendada"; al cobrar en POS solo cambia pago_estado (no a "confirmada").
     // Sin incluir "agendada" las citas pagadas desaparecían de esta lista.
     const { data, error } = await supabase
@@ -340,7 +340,7 @@ function EnConsulta() {
 
   const fetchActual = useCallback(async () => {
     setLoading(true);
-    const hoy = todaySvLocal();
+    const hoy = hoyISOMexico();
     const tok = sessionStorage.getItem("farmacapital_session_token");
     let cita = null;
     if (tok) {

@@ -15,6 +15,7 @@ import {
 } from "../../utils/turnosMetas";
 import { fetchJornadaHoy } from "../../utils/cajaSesion";
 import { formatFolioPOS } from "../../utils/orderReceiptWhatsApp";
+import { ymdMexico } from "../../lib/fecha";
 
 const C = C_LIGHT;
 
@@ -267,7 +268,7 @@ export default function MiDia({ usuario, setPage }) {
               p_turno_start: inicioTurno,
               p_turno_end: finTurno,
               p_mes_start: inicioMes,
-              p_fecha_citas: hoy.toISOString().slice(0, 10),
+              p_fecha_citas: ymdMexico(hoy),
             })
           : Promise.resolve({ data: null, error: { message: "sin sesión" } }),
       ]);
@@ -314,7 +315,7 @@ export default function MiDia({ usuario, setPage }) {
       const ventasPorDia = new Map();
       pedMes.forEach((p) => {
         const d = new Date(p.created_at);
-        const k = d.toISOString().slice(0, 10);
+        const k = ymdMexico(d);
         ventasPorDia.set(k, (ventasPorDia.get(k) || 0) + parseFloat(p.total || 0));
       });
       const diasTrabajados = ventasPorDia.size;

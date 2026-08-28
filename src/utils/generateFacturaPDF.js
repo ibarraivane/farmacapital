@@ -5,6 +5,7 @@
 // ═══════════════════════════════════════════════════════════
 import { jsPDF } from "jspdf";
 import { FARMACIA_FISCAL, mergeFarmaciaConfig } from "../constants/farmaciaFiscal";
+import { hoyISOMexico } from "../lib/fecha";
 
 /**
  * Genera factura PDF formato CFDI oficial SAT México
@@ -304,7 +305,7 @@ export function generateFacturaPDF({
 export function downloadFacturaPDF(opts) {
   const doc = generateFacturaPDF(opts);
   const folio = String(opts.venta?.id||"0").padStart(8,"0");
-  doc.save(`Factura_CFDI_FarmaCapital_${folio}_${new Date().toISOString().slice(0,10)}.pdf`);
+  doc.save(`Factura_CFDI_FarmaCapital_${folio}_${hoyISOMexico()}.pdf`);
 }
 
 export function printFacturaPDF(opts) {

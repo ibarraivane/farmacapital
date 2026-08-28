@@ -6,6 +6,7 @@ import {
   costoComparacionDe,
   filasCompraVigenteDesdeRecepcion,
 } from "./ultimaCompra";
+import { hoyISOMexico } from "./fecha";
 
 describe("compra vigente", () => {
   test("normaliza mayoristas del ticket", () => {
@@ -56,7 +57,7 @@ describe("compra vigente", () => {
     expect(filas[0].producto_id).toBe(10);
     expect(filas[0].precio).toBe(64.44);
     expect(filas[0].nombre_fuente).toBe("Farmalive");
-    expect(filas[0].fecha).toBe(new Date().toISOString().slice(0, 10));
+    expect(filas[0].fecha).toBe(hoyISOMexico());
   });
 
   test("lote anónimo más barato se queda el precio y toma el quién del ticket", () => {

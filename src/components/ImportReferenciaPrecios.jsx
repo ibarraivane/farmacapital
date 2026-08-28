@@ -2,6 +2,7 @@ import { useState } from "react";
 import { C_LIGHT } from "../constants";
 import { supabase } from "../supabase";
 import { showToast } from "../ui";
+import { hoyISOMexico } from "../lib/fecha";
 import {
   FUENTES_IMPORT,
   parseCsvText,
@@ -18,7 +19,7 @@ export default function ImportReferenciaPrecios({ productos, onImported }) {
   const [open, setOpen] = useState(false);
   const [fuente, setFuente] = useState("exprezo");
   const [precioCol, setPrecioCol] = useState("mayoreo");
-  const [fecha, setFecha] = useState(() => new Date().toISOString().slice(0, 10));
+  const [fecha, setFecha] = useState(() => hoyISOMexico());
   const [fileName, setFileName] = useState("");
   const [preview, setPreview] = useState(null);
   const [saving, setSaving] = useState(false);

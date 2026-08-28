@@ -54,6 +54,7 @@ import {
 } from "../../../utils/orderReceiptWhatsApp";
 import { formatTelefonoDisplay } from "../../../utils/citaWhatsApp";
 import { configRowsToMap, mergeFarmaciaConfig, FARMACIA_FISCAL } from "../../../constants/farmaciaFiscal";
+import { hoyISOMexico } from "../../../lib/fecha";
 
 const PEDIDOS_TIENDA_SELECT_POS = `
             id,total,created_at,tipo,metodo_pago,estado,tipo_entrega,direccion,
@@ -352,6 +353,7 @@ function PosProductoFichaPanel({
             <div>
               <div style={{ fontSize: 11, color: C.textDim, marginBottom: 2 }}>Precio</div>
               <div style={{ fontSize: stack ? 22 : 26, fontWeight: 900, color: C.blue, lineHeight: 1 }}>
+                {/* Etiqueta visual si hay descuento_pct legacy; el cobro del carrito no lo usa. */}
                 {item.descuento_pct > 0 ? (
                   <>
                     <span style={{ fontSize: 14, color: C.textDim, textDecoration: "line-through", marginRight: 8 }}>{$(item.precio)}</span>
@@ -653,7 +655,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
   }, []);
 
   const hoySvPos = useMemo(
-    () => new Date().toLocaleDateString("sv-SE"),
+    () => hoyISOMexico(),
     []
   );
 
@@ -1036,7 +1038,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     }
     // Validar que el lote FEFO activo más próximo no esté vencido
     if(item.min_caducidad_lotes) {
-      const hoy = new Date().toLocaleDateString("sv-SE");
+      const hoy = hoyISOMexico();
       if(item.min_caducidad_lotes < hoy) {
         showToast(`⚠️ ${item.nombre} tiene lote VENCIDO (${item.min_caducidad_lotes}). No se puede vender.`, "error");
         return;
@@ -1331,9 +1333,10 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
     setRxM(null); setRx({receta:"",medico:"",cedula:"",paciente:"",indicaciones:""});
   };
 
-  // P2.2: Calcular total con promociones activas aplicadas
+  // Total de cobro: precio de lista → pesoPublico. El descuento real va por lote
+  // (precio_caja_cobro_pos / importe_cajas_fefo), no por productos.descuento_pct.
   const calcularTotalConPromos = () => {
-    return cart.reduce((a,c) => a + cobroLinea(c.precio, c.qty, c.descuento_pct), 0);
+    return cart.reduce((a, c) => a + cobroLinea(c.precio, c.qty), 0);
   };
   const sub   = calcularTotalConPromos();
   const ptsG  = Math.floor(sub/10);
@@ -1422,7 +1425,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       const cartItemsMapped = cart.map(c=>({
         producto_id: c.producto_id ?? c.id,
         cantidad: c.qty,
-        precio_unitario: cobroLinea(c.precio, 1, c.descuento_pct),
+        // Sin descuento_pct: el cobro por caducidad/lote lo resuelve el RPC vía FEFO.
+        precio_unitario: cobroLinea(c.precio, 1),
         modo_venta: c.esUnidad ? "unidad" : "caja",
       }));
 
@@ -1458,7 +1462,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate}){
       }
 
       if (ro === "medico_farmacapital") {
-        const fechaSv = new Date().toLocaleDateString("sv-SE");
+        const fechaSv = hoyISOMexico();
         try {
           await marcarMedicamentosRecetaFarmaCapitalSurtidos(supabase, {
             p_session_token: tokRo,

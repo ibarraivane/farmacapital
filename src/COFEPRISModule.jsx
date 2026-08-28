@@ -4,6 +4,7 @@ import { supabase } from "./supabase";
 import { productMatchesSearchQuery } from "./utils/fuzzySearch";
 import { fixLegacyFarmaxBrand } from "./utils/brandText";
 import { showToast } from "./ui";
+import { hoyISOMexico } from "./lib/fecha";
 
 const BRAND = { primary:"#0D1B2A", secondary:"#1E3ABA", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
 
@@ -194,7 +195,7 @@ function BitacoraAntibioticos() {
 
   const handleExport = () => {
     const rows = filtrados.map(r=>({...r, fecha_str:r.created_at?new Date(r.created_at).toLocaleString("es-MX"):""}));
-    exportarCSV(rows, cols, `bitacora_cofepris_${new Date().toISOString().slice(0,10)}.csv`);
+    exportarCSV(rows, cols, `bitacora_cofepris_${hoyISOMexico()}.csv`);
   };
 
   return (

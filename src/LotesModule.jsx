@@ -14,6 +14,7 @@ import {
   PRODUCTOS_SELECT_LOTES,
 } from "./lib/inventarioHubData";
 import { DIAS_CADUCIDAD_ALERTA, DIAS_CADUCIDAD_CRITICO } from "./lib/caducidad";
+import { hoyISOMexico } from "./lib/fecha";
 
 const BRAND = { primary:"#0D1B2A", secondary:"#1E3ABA", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
 const fmt = n => `$${parseFloat(n||0).toFixed(2)}`;
@@ -60,7 +61,7 @@ export default function LotesModule() {
   const [form,        setForm]        = useState({
     producto_id:"", numero_lote:"", fecha_caducidad:"",
     cantidad_inicial:"", costo_unitario:"", proveedor_id:"",
-    fecha_recepcion: new Date().toLocaleDateString("sv-SE"),
+    fecha_recepcion: hoyISOMexico(),
   });
   const [prodBusq, setProdBusq] = useState("");
   const [scanErr, setScanErr] = useState("");
@@ -178,7 +179,7 @@ export default function LotesModule() {
       cantidad_inicial: "",
       costo_unitario: "",
       proveedor_id: "",
-      fecha_recepcion: new Date().toLocaleDateString("sv-SE"),
+      fecha_recepcion: hoyISOMexico(),
     });
     setProdBusq("");
     setScanErr("");
@@ -212,7 +213,7 @@ export default function LotesModule() {
           cantidad_inicial: "",
           costo_unitario: "",
           proveedor_id: form.proveedor_id,
-          fecha_recepcion: new Date().toLocaleDateString("sv-SE"),
+          fecha_recepcion: hoyISOMexico(),
         });
         setProdBusq("");
         setScanErr("");
