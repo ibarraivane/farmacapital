@@ -40,20 +40,6 @@ function pedidosCompletados(rows) {
   return parseRpcJsonArray(rows).filter((p) => String(p.estado || "").toLowerCase() === "completado");
 }
 
-function filtrarPedidosDesde(pedidos, desdeIso) {
-  const t0 = new Date(desdeIso).getTime();
-  return (pedidos || []).filter((p) => new Date(p.created_at).getTime() >= t0);
-}
-
-function filtrarPedidosRango(pedidos, startIso, endIso) {
-  const t0 = new Date(startIso).getTime();
-  const t1 = new Date(endIso).getTime();
-  return (pedidos || []).filter((p) => {
-    const t = new Date(p.created_at).getTime();
-    return t >= t0 && t <= t1;
-  });
-}
-
 function sumPedidosTotal(pedidos) {
   return (pedidos || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
 }
@@ -432,17 +418,6 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
     const B = parseRpcJsonObject(bundleRes.data);
     const H = parseRpcJsonObject(homeRes.data);
 
-    let pedVentasMes = [];
-    if (adminTok) {
-      const { data: rawVentasMes, error: errVentasMes } = await supabase.rpc("empleado_listar_pedidos_transacciones", {
-        p_session_token: adminTok,
-        p_created_desde: month.start,
-        p_limite: 500,
-      });
-      if (errVentasMes) console.warn("[Dashboard] ventas transacciones:", errVentasMes.message);
-      pedVentasMes = pedidosCompletados(rawVentasMes);
-    }
-
     let ventasPorDia = porDiaDesdeSerieRpc(parseRpcJsonArray(serieRes?.data));
     if (!Object.keys(ventasPorDia).length) {
       if (serieRes?.error) console.warn("[Dashboard] ventas serie:", serieRes.error.message);
@@ -455,36 +430,18 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
         if (err90) console.warn("[Dashboard] ventas serie fallback:", err90.message);
         ventasPorDia = agruparVentasPorDia(pedidosCompletados(raw90));
       }
-      if (!Object.keys(ventasPorDia).length) {
-        ventasPorDia = agruparVentasPorDia(pedVentasMes);
-      }
     }
 
-    const monthPrevStart = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toISOString();
-    const monthPrevEnd = new Date(new Date().getFullYear(), new Date().getMonth(), 0, 23, 59, 59).toISOString();
-
-    let pedHoy = pedVentasMes.length
-      ? filtrarPedidosRango(pedVentasMes, today.start, today.end)
-      : ventasRowsOrFallback(B, "ped_hoy", H, "ventas_hoy");
-    let pedAyer = pedVentasMes.length
-      ? filtrarPedidosRango(pedVentasMes, yesterday.start, yesterday.end)
-      : rpcBundleRows(B, "ped_ayer");
-    let pedSemana = pedVentasMes.length
-      ? filtrarPedidosDesde(pedVentasMes, week.start)
-      : ventasRowsOrFallback(B, "ped_semana", H, "ventas_semana");
-    let pedSemanaAnt = pedVentasMes.length
-      ? filtrarPedidosRango(pedVentasMes, weekPrev.start, weekPrev.end)
-      : rpcBundleRows(B, "ped_semana_ant");
-    let pedMes = pedVentasMes.length
-      ? pedVentasMes
-      : ventasRowsOrFallback(B, "ped_mes", H, "ventas_mes");
+    // Totales desde el bundle (sin límite). ped_mes en vivo aún no trae
+    // usuarios.nombre hasta aplicar sql/migrations/20260828_t3_ped_mes_empleado.sql
+    const pedHoy = ventasRowsOrFallback(B, "ped_hoy", H, "ventas_hoy");
+    const pedAyer = rpcBundleRows(B, "ped_ayer");
+    const pedSemana = ventasRowsOrFallback(B, "ped_semana", H, "ventas_semana");
+    const pedSemanaAnt = rpcBundleRows(B, "ped_semana_ant");
+    const pedMes = ventasRowsOrFallback(B, "ped_mes", H, "ventas_mes");
     const pedTodos = rpcBundleRows(B, "ped_todos");
-    let pedMesAnt = pedVentasMes.length
-      ? filtrarPedidosRango(pedVentasMes, monthPrevStart, monthPrevEnd)
-      : rpcBundleRows(B, "ped_mes_ant");
-    let pedMesTipo = pedVentasMes.length
-      ? pedVentasMes.map((p) => ({ total: p.total, tipo: p.tipo }))
-      : rpcBundleRows(B, "ped_mes_tipo");
+    const pedMesAnt = rpcBundleRows(B, "ped_mes_ant");
+    const pedMesTipo = rpcBundleRows(B, "ped_mes_tipo");
     const pedItems = rpcBundleRows(B, "ped_items_top");
     const bajoStock = rpcBundleRows(B, "bajo_stock");
     const caducarJs = parseRpcJsonObject(caducarRes?.data);

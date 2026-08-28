@@ -373,7 +373,16 @@ begin
     'ped_ayer', coalesce((select jsonb_agg(jsonb_build_object('total', p.total)) from public.pedidos p where (p.estado)::text='completado' and p.created_at >= v_ys and p.created_at <= v_ye), '[]'::jsonb),
     'ped_semana', coalesce((select jsonb_agg(jsonb_build_object('total', p.total)) from public.pedidos p where (p.estado)::text='completado' and p.created_at >= v_ws), '[]'::jsonb),
     'ped_semana_ant', coalesce((select jsonb_agg(jsonb_build_object('total', p.total)) from public.pedidos p where (p.estado)::text='completado' and p.created_at >= v_ps and p.created_at <= v_pe), '[]'::jsonb),
-    'ped_mes', coalesce((select jsonb_agg(jsonb_build_object('total', p.total,'atendido_por', p.atendido_por)) from public.pedidos p where (p.estado)::text='completado' and p.created_at >= v_ms), '[]'::jsonb),
+    'ped_mes', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'total', p.total,
+        'atendido_por', p.atendido_por,
+        'usuarios', jsonb_build_object('nombre', u.nombre)
+      ))
+      from public.pedidos p
+      left join public.usuarios u on u.id = p.atendido_por
+      where (p.estado)::text = 'completado' and p.created_at >= v_ms
+    ), '[]'::jsonb),
     'ped_todos', coalesce((select jsonb_agg(jsonb_build_object('total', p.total)) from public.pedidos p where (p.estado)::text='completado'), '[]'::jsonb),
     'ped_mes_ant', coalesce((select jsonb_agg(jsonb_build_object('total', p.total)) from public.pedidos p where (p.estado)::text='completado' and p.created_at >= (p_ctx->>'month_prev_start')::timestamptz and p.created_at <= v_me), '[]'::jsonb),
 
