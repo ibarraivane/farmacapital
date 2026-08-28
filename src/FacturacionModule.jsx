@@ -322,8 +322,8 @@ export default function FacturacionModule() {
       {/* Tab: Facturas */}
       {tab==="facturas"&&(
         loading?<div style={{color:C.textMid,textAlign:"center",padding:40}}>Cargando…</div>:(
-          <div style={{overflowX:"auto",borderRadius:12,border:`1px solid ${C.border}`}}>
-            <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+          <div className="fc-tabla-scroll fc-tabla-pane" style={{borderRadius:12,border:`1px solid ${C.border}`}}>
+            <table className="fc-tabla-sticky" style={{width:"100%",borderCollapse:"separate",borderSpacing:0,fontSize:12}}>
               <thead>
                 <tr style={{background:C.cardDark}}>
                   {["ID","Fecha","RFC","Razón social","Pedido","Total","PAC","Estado","Acciones"].map(h=>(

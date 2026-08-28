@@ -183,7 +183,7 @@ export default function RecepcionHistorial({ ocultarMontos = false }) {
 
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden" }}>
         <HorizontalScrollSync bodyMaxHeight={SCROLL_MAX}>
-          <table style={{
+          <table className="fc-tabla-sticky" style={{
             borderCollapse: "separate", borderSpacing: 0, fontSize: 12,
             tableLayout: "fixed",
             width: ANCHO_PRODUCTO + fechas.length * ANCHO_FECHA,

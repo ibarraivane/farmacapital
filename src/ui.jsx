@@ -429,10 +429,13 @@ export function SkeletonCard({ height=80, style={} }) {
   );
 }
 
+/** Altura del cuerpo de tablas largas: el thead se queda fijo al bajar. */
+export const TABLA_SCROLL_MAX = "min(70dvh, 740px)";
+
 /**
  * Contenedor con scroll horizontal sincronizado: barra arriba y abajo (misma posición).
  */
-export function HorizontalScrollSync({ children, style = {}, topBarHeight = 12, ...rest }) {
+export function HorizontalScrollSync({ children, style = {}, topBarHeight = 12, bodyMaxHeight, ...rest }) {
   const C = C_LIGHT;
   const topRef = useRef(null);
   const bottomRef = useRef(null);
@@ -510,9 +513,11 @@ export function HorizontalScrollSync({ children, style = {}, topBarHeight = 12, 
       <div
         ref={bottomRef}
         onScroll={onBottomScroll}
+        data-fc-table-scroll={bodyMaxHeight ? "xy" : "x"}
         style={{
           overflowX: "auto",
-          overflowY: "hidden",
+          overflowY: bodyMaxHeight ? "auto" : "hidden",
+          maxHeight: bodyMaxHeight || undefined,
           WebkitOverflowScrolling: "touch",
           scrollbarWidth: "thin",
         }}

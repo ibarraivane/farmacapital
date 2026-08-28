@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
-import { showToast, HorizontalScrollSync } from "./ui";
+import { showToast, HorizontalScrollSync, TABLA_SCROLL_MAX } from "./ui";
 import { inventarioProductMatchesBusqueda, inventarioSearchRelevanceRank, normalizeCatalogSearchQuery } from "./utils/fuzzySearch";
 import { normalizeForSearch } from "./utils";
 import { findProductExactScan } from "./utils/barcodeProductLookup";
@@ -327,12 +327,12 @@ export default function LotesModule() {
 
       {/* Tabla */}
       {loading?<div style={{color:C.textMid,textAlign:"center",padding:40}}>Cargando…</div>:(
-        <HorizontalScrollSync>
-          <table style={{width:"100%",minWidth:980,borderCollapse:"collapse",fontSize:12}}>
+        <HorizontalScrollSync bodyMaxHeight={TABLA_SCROLL_MAX}>
+          <table className="fc-tabla-sticky" style={{width:"100%",minWidth:980,borderCollapse:"separate",borderSpacing:0,fontSize:12}}>
             <thead>
               <tr style={{background:C.cardDark}}>
-                {["Producto","SKU","Lote","Caducidad","Días","Stock actual","Costo","Proveedor","Acciones"].map(h=>(
-                  <th key={h} style={{padding:"9px 12px",textAlign:"left",color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>{h}</th>
+                {["Producto","SKU","Lote","Caducidad","Días","Stock actual","Costo","Proveedor","Acciones"].map((h, hi)=>(
+                  <th key={h} data-sticky-col={hi===0?"":undefined} style={{padding:"9px 12px",textAlign:"left",color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -360,8 +360,8 @@ export default function LotesModule() {
                 const prod = loteRowProducto(l, prodById);
                 const etiqueta = etiquetaProductoInventario(prod);
                 return(
-                  <tr key={l.id} style={{background:dias!==null&&dias<0?"#fff5f5":i%2===0?"transparent":"#f8fafc"}}>
-                    <td style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`,maxWidth:280}}>
+                  <tr key={l.id} style={{background:dias!==null&&dias<0?"#fff5f5":i%2===0?"#ffffff":"#f8fafc"}}>
+                    <td data-sticky-col="" style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`,maxWidth:280,background:dias!==null&&dias<0?"#fff5f5":i%2===0?"#ffffff":"#f8fafc"}}>
                       <div style={{color:C.text,fontWeight:600,lineHeight:1.35}} title={prod.nombre}>{prod.nombre || etiqueta || "—"}</div>
                       {(prod.marca || prod.presentacion || prod.forma_farmaceutica) && (
                         <div style={{color:C.textMid,fontSize:10,marginTop:2}}>

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
-import { showToast, HorizontalScrollSync, SkeletonTable } from "./ui";
+import { showToast, HorizontalScrollSync, SkeletonTable, TABLA_SCROLL_MAX } from "./ui";
 import { useMediaQuery } from "./hooks/useMediaQuery";
 import {
   buildReferenciasPorProducto,
@@ -435,8 +435,8 @@ export default function ReabastoModule() {
                   ))}
                 </div>
               ) : (
-              <HorizontalScrollSync bodyMaxHeight="min(62dvh, 560px)">
-                <table style={{width:"100%",minWidth:980,borderCollapse:"collapse",fontSize:12}}>
+              <HorizontalScrollSync bodyMaxHeight={TABLA_SCROLL_MAX}>
+                <table className="fc-tabla-sticky" style={{width:"100%",minWidth:980,borderCollapse:"separate",borderSpacing:0,fontSize:12}}>
                   <thead>
                     <tr>
                       <th style={{padding:"9px 12px",textAlign:"left",color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`,position:"sticky",top:0,zIndex:4,background:C.cardDark,boxShadow:`0 1px 0 ${C.border}`}}>
@@ -537,8 +537,8 @@ export default function ReabastoModule() {
                     </button>
                   </div>
                 </div>
-                <HorizontalScrollSync>
-                  <table style={{width:"100%",minWidth:640,borderCollapse:"collapse",fontSize:12}}>
+                <HorizontalScrollSync bodyMaxHeight={TABLA_SCROLL_MAX}>
+                  <table className="fc-tabla-sticky" style={{width:"100%",minWidth:640,borderCollapse:"separate",borderSpacing:0,fontSize:12}}>
                   <thead><tr style={{background:C.cardDark}}>{["Producto","SKU","Stock","Caducidad","Cantidad","Costo est."].map(h=><th key={h} style={{padding:"8px 12px",textAlign:"left",color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{h}</th>)}</tr></thead>
                   <tbody>
                     {orden.productos.map((p,j)=>(

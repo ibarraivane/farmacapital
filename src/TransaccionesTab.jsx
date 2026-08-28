@@ -600,8 +600,8 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
       </div>
 
       {loading ? <SkeletonTable rows={5} cols={9} /> : (
-        <div style={{ overflowX: "auto", borderRadius: 12, border: `1px solid ${C.border}`, marginBottom: 16 }}>
-          <table className="fc-tabla-cards" style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+        <div className="fc-tabla-scroll fc-tabla-pane" style={{ borderRadius: 12, border: `1px solid ${C.border}`, marginBottom: 16 }}>
+          <table className="fc-tabla-cards fc-tabla-sticky" style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: 12 }}>
             <thead>
               <tr style={{ background: C.cardDark }}>
                 {["ID", "Fecha/Hora", "Cliente", "Vendedor", "Total", "Método", "Tipo", "Estado", "Acciones"].map((h) => (
