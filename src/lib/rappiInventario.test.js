@@ -11,6 +11,7 @@ import {
   productoEligibleRappi,
   rappiSkuFromInternal,
   resumirCruce,
+  resumirFamiliaPioglitazona,
 } from "./rappiInventario";
 
 test("SKU Rappi FARMACAPITALmt_ + sku en minúsculas", () => {
@@ -110,6 +111,23 @@ test("resumen y CSV de carga segura usan stock publicado", () => {
   const csv = csvCargaSegura(filas);
   expect(csv).toContain("FARMACAPITALmt_eq-ult146,7502216796737,0,false");
   expect(csv).toContain("FARMACAPITALmt_fc-07521317,111,98,true");
+});
+
+test("4 cajas de pioglitazona no son 4 del Ultra 15 mg", () => {
+  const { filas } = buildFilasInventario({
+    productos: [
+      { id: 953, sku: "EQ-ULT146", nombre: "Pioglitazona", codigo_barras: "7502216796737", stock: 2, activo: true, requiere_receta: false },
+      { id: 1168, sku: "FC-49024175", nombre: "Pioglitazona 30 mg AMSA", codigo_barras: "7501349024175", stock: 2, activo: true, requiere_receta: false },
+    ],
+  });
+  const fam = resumirFamiliaPioglitazona(filas);
+  expect(fam.stockFamilia).toBe(4);
+  expect(fam.stockPedido).toBe(2);
+  expect(fam.stockHermano).toBe(2);
+  expect(fam.mismoSkuAlcanza).toBe(false);
+  expect(filas.find((f) => f.sku === "EQ-ULT146").incidente).toBe(true);
+  expect(filas.find((f) => f.sku === "FC-49024175").familiaIncidente).toBe(true);
+  expect(filas.find((f) => f.sku === "FC-49024175").incidente).toBe(false);
 });
 
 test("alertaDeFila: Rappi disponible con stock publicado 0", () => {

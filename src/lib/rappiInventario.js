@@ -9,7 +9,11 @@
 export const RAPPI_SKU_PREFIX = "FARMACAPITALmt_";
 export const DEFAULT_RESERVA = 2;
 
-/** Pedido Rappi 2468274038 · 28 ago 2026 · Mercado Leyes De Reforma */
+/**
+ * Pedido Rappi 2468274038 · 28 ago 2026 · Mercado Leyes De Reforma.
+ * Había 4 cajas de pioglitazona, pero no del mismo gramaje/marca:
+ * 2 Ultra 15 mg (lo que Rappi vendió) + 2 AMSA 30 mg.
+ */
 export const INCIDENTE_PIOGLITAZONA = {
   orderId: "2468274038",
   sku: "EQ-ULT146",
@@ -18,7 +22,38 @@ export const INCIDENTE_PIOGLITAZONA = {
   fecha: "2026-08-28",
   precioRappi: 30,
   tienda: "Mercado Leyes De Reforma",
+  variantes: [
+    { sku: "EQ-ULT146", ean: "7502216796737", marca: "Ultra", concentracion: "15 mg", rol: "pedido" },
+    { sku: "FC-49024175", ean: "7501349024175", marca: "AMSA", concentracion: "30 mg", rol: "hermano" },
+  ],
 };
+
+export function rolIncidentePioglitazona(producto) {
+  const sku = skuKey(producto?.sku);
+  const ean = digitsOnly(producto?.codigo_barras);
+  for (const v of INCIDENTE_PIOGLITAZONA.variantes) {
+    if (sku && sku === skuKey(v.sku)) return v.rol;
+    if (ean && ean === v.ean) return v.rol;
+  }
+  return null;
+}
+
+export function resumirFamiliaPioglitazona(filas) {
+  const miembros = (filas || []).filter((f) => f.rolIncidente);
+  const pedido = miembros.find((f) => f.rolIncidente === "pedido") || null;
+  const hermano = miembros.find((f) => f.rolIncidente === "hermano") || null;
+  const stockPedido = pedido ? pedido.stockLocal : 0;
+  const stockHermano = hermano ? hermano.stockLocal : 0;
+  return {
+    pedido,
+    hermano,
+    stockPedido,
+    stockHermano,
+    stockFamilia: stockPedido + stockHermano,
+    qtyPedida: INCIDENTE_PIOGLITAZONA.qtyPedida,
+    mismoSkuAlcanza: stockPedido >= INCIDENTE_PIOGLITAZONA.qtyPedida,
+  };
+}
 
 export function digitsOnly(value) {
   return String(value || "").replace(/\D/g, "");
@@ -250,8 +285,8 @@ export function buildFilasInventario({
     const q = queueBySku.get(skuKey(p.sku));
     const payload = q?.payload || {};
     const rappi = rappiByProductoId.get(p.id) || null;
-    const incidente = skuKey(p.sku) === skuKey(INCIDENTE_PIOGLITAZONA.sku)
-      || digitsOnly(p.codigo_barras) === INCIDENTE_PIOGLITAZONA.ean;
+    const rolIncidente = rolIncidentePioglitazona(p);
+    const incidente = rolIncidente === "pedido";
     const fila = {
       id: p.id,
       sku: p.sku || "",
@@ -275,6 +310,8 @@ export function buildFilasInventario({
       rappiDisponible: rappi?.disponible ?? null,
       rappiNombre: rappi?.nombre || null,
       rappiSku: rappi?.sku || null,
+      rolIncidente,
+      familiaIncidente: Boolean(rolIncidente),
       incidente,
     };
     fila.alerta = alertaDeFila(fila);
@@ -286,6 +323,9 @@ export function buildFilasInventario({
     const ra = rank[a.alerta] ?? 9;
     const rb = rank[b.alerta] ?? 9;
     if (ra !== rb) return ra - rb;
+    if (Boolean(a.familiaIncidente) !== Boolean(b.familiaIncidente)) {
+      return a.familiaIncidente ? -1 : 1;
+    }
     if (a.incidente !== b.incidente) return a.incidente ? -1 : 1;
     return String(a.nombre).localeCompare(String(b.nombre), "es");
   });

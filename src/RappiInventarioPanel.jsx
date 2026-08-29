@@ -13,6 +13,7 @@ import {
   csvCruceCompleto,
   parseRappiInventarioCsv,
   resumirCruce,
+  resumirFamiliaPioglitazona,
 } from "./lib/rappiInventario";
 
 const C = C_LIGHT;
@@ -109,13 +110,14 @@ export default function RappiInventarioPanel() {
   }, [productos, queueRows, rappiRows, reserva]);
 
   const incidente = filas.find((f) => f.incidente) || null;
+  const familia = useMemo(() => resumirFamiliaPioglitazona(filas), [filas]);
 
   const visibles = useMemo(() => {
     return filas.filter((f) => {
       if (filtro === "peligro" && f.alerta !== "peligro" && f.alerta !== "incidente" && f.alerta !== "desfase") {
         return false;
       }
-      if (filtro === "incidente" && !f.incidente) return false;
+      if (filtro === "incidente" && !f.familiaIncidente) return false;
       if (filtro === "publicables" && !f.disponible) return false;
       if (q && !inventarioProductMatchesBusqueda({
         nombre: f.nombre,
@@ -200,11 +202,12 @@ export default function RappiInventarioPanel() {
               {" · "}{INCIDENTE_PIOGLITAZONA.fecha.slice(8)}/{INCIDENTE_PIOGLITAZONA.fecha.slice(5, 7)}
               {" · "}{INCIDENTE_PIOGLITAZONA.tienda}
               <div style={{ marginTop: 6 }}>
-                Pedían <strong>{INCIDENTE_PIOGLITAZONA.qtyPedida}</strong> de {incidente.nombre}
-                {" "}(<code>{incidente.sku}</code> / EAN {incidente.ean}) a ${INCIDENTE_PIOGLITAZONA.precioRappi}.
-                Hoy hay <strong>{incidente.stockLocal}</strong> en inventario; con colchón de {reserva}
-                {" "}Rappi debería tener <strong>{incidente.stockPublicado}</strong> (apagado).
-                El 19 ago la cola ya pidió apagarlo y <strong>sigue pendiente</strong>: Rappi nunca se enteró.
+                Sí hay <strong>{familia.stockFamilia}</strong> cajas de pioglitazona, pero no son el mismo producto.
+                Rappi vendió <strong>{familia.qtyPedida}</strong> de Ultra 15 mg
+                {" "}(<code>{INCIDENTE_PIOGLITAZONA.sku}</code> · EAN {INCIDENTE_PIOGLITAZONA.ean} · ${INCIDENTE_PIOGLITAZONA.precioRappi}).
+                En anaquel: <strong>{familia.stockPedido}</strong> Ultra 15 mg
+                {familia.hermano ? <> + <strong>{familia.stockHermano}</strong> AMSA 30 mg (<code>{familia.hermano.sku}</code>)</> : null}.
+                No se pueden mezclar gramaje ni marca. De Ultra 15 mg solo hay {familia.stockPedido}; con colchón de {reserva} Rappi debería mostrar <strong>0</strong>.
               </div>
             </div>
           </div>
@@ -304,12 +307,14 @@ export default function RappiInventarioPanel() {
                   </td>
                 </tr>
               ) : visibles.map((f) => (
-                <tr key={f.id} style={{ borderTop: `1px solid ${C.border}`, background: f.incidente ? "rgba(220,38,38,0.04)" : undefined }}>
-                  <td data-label="Alerta" style={td}><AlertaTag alerta={f.alerta} /></td>
+                <tr key={f.id} style={{ borderTop: `1px solid ${C.border}`, background: f.familiaIncidente ? "rgba(220,38,38,0.04)" : undefined }}>
+                  <td data-label="Alerta" style={td}><AlertaTag alerta={f.alerta} rol={f.rolIncidente} /></td>
                   <td data-label="Producto" data-primary style={{ ...td, minWidth: 180 }}>
                     <div style={{ fontWeight: 700 }}>{f.nombre}</div>
                     <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>
                       {f.sku} · {f.ean || "sin EAN"}
+                      {f.rolIncidente === "pedido" ? " · Ultra 15 mg (lo que pedían)" : ""}
+                      {f.rolIncidente === "hermano" ? " · AMSA 30 mg (otra ficha)" : ""}
                     </div>
                   </td>
                   <td data-label="Local" style={td}>{f.stockLocal}</td>
@@ -348,7 +353,8 @@ function Stat({ label, value, hint, col }) {
   );
 }
 
-function AlertaTag({ alerta }) {
+function AlertaTag({ alerta, rol }) {
+  if (rol === "hermano") return <Tag col={C.amber} sm>Otra ficha</Tag>;
   if (alerta === "incidente") return <Tag col={C.red} sm>Pedido</Tag>;
   if (alerta === "peligro") return <Tag col={C.red} sm>Peligro</Tag>;
   if (alerta === "desfase") return <Tag col={C.amber} sm>Desfase</Tag>;
