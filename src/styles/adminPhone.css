@@ -1,7 +1,8 @@
 /* Solo iPhone / teléfono angosto. No corre en tablet ni laptop.
    No aplica a POS (.farmacapital-pos-root) ni a la tienda. */
 
-@media (max-width: 430px) {
+/* Mismo tope que las fichas (767). 430px no cubría varios iPhone. iPad 768+ no entra. */
+@media (max-width: 767px) {
   .farmacapital-admin-root .fc-mobile-topbar {
     position: fixed;
     top: 0;

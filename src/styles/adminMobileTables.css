@@ -123,7 +123,7 @@
     font-size: 13px;
     line-height: 1.35;
     color: #0f172a;
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
   }
 
   table.fc-tabla-cards td[data-label]::before {
@@ -152,6 +152,14 @@
   table.fc-tabla-cards td[data-wide],
   table.fc-tabla-cards td[data-actions] {
     grid-column: 1 / -1;
+    writing-mode: horizontal-tb;
+    overflow-wrap: normal;
+    word-break: normal;
+  }
+
+  table.fc-tabla-cards td[data-actions]::before {
+    content: none !important;
+    display: none !important;
   }
 
   table.fc-tabla-cards td[colspan] {
@@ -180,6 +188,7 @@
     padding: 8px 12px;
     box-sizing: border-box;
     touch-action: manipulation;
+    white-space: nowrap;
   }
 }
 

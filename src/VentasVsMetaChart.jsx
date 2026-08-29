@@ -69,7 +69,7 @@ export default function VentasVsMetaChart({ porDia, cfg, hoyYmd, onEditarMetas }
   const [grano, setGrano] = useState("dia");
   const [selKey, setSelKey] = useState(null);
   const isPhone = useMediaQuery("(max-width: 768px)");
-  const isIphone = useMediaQuery("(max-width: 430px)");
+  const isIphone = useMediaQuery("(max-width: 767px)");
   const isLandscapePhone = useMediaQuery("(max-width: 900px) and (orientation: landscape)");
 
   const hoy = hoyYmd || ymdMexico();
