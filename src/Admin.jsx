@@ -2151,6 +2151,16 @@ export default function FarmaCapitalAdmin(){
           );
           showToast(`🔑 Solicitud de reset: ${req.email_o_telefono}`,"warning");
         })
+      .on("postgres_changes",{event:"INSERT",schema:"public",table:"pedidos"},
+        pl=>{
+          const meta = pl.new?.logistics_meta || {};
+          const esRappi = meta.logistics_provider === "rappi" || meta.order_channel === "rappi_marketplace" || pl.new?.metodo_pago === "rappi";
+          if (!esRappi) return;
+          const ext = meta.external_order_id || pl.new.id;
+          addNotif("🛒 Pedido Rappi", `Orden ${ext} — toca para ver y armar`, "🛒", "#C9451F", "ped_online");
+          pushNotif("Pedido Rappi", `Orden ${ext}. Revisá anaquel y aceptalo en Aliados.`, "/admin");
+          showToast(`🛒 Pedido Rappi ${ext}`, "warning");
+        })
       .on("postgres_changes",{event:"UPDATE",schema:"public",table:"pedidos"},
         pl=>{ if(pl.new?.estado==="listo") addNotif("✅ Pedido listo",`Pedido #${pl.new.id} listo para entrega — toca para ver`,"✅","#16a34a","ped_online"); })
       .subscribe();

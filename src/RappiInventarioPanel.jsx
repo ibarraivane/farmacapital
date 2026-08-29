@@ -67,6 +67,9 @@ export default function RappiInventarioPanel() {
   const [rappiFile, setRappiFile] = useState("");
   const [q, setQ] = useState("");
   const [filtro, setFiltro] = useState("peligro");
+  const [alertaWa, setAlertaWa] = useState("");
+  const [alertaMail, setAlertaMail] = useState("");
+  const [savingAlerta, setSavingAlerta] = useState(false);
   const fileRef = useRef(null);
 
   const load = useCallback(async () => {
@@ -79,13 +82,20 @@ export default function RappiInventarioPanel() {
           .select("id,sku,estado,payload,created_at,processed_at")
           .order("created_at", { ascending: false })
           .limit(500),
-        supabase.from("configuracion").select("clave,valor").eq("clave", "rappi_reserva_mostrador"),
+        supabase.from("configuracion").select("clave,valor").in("clave", [
+          "rappi_reserva_mostrador",
+          "rappi_alerta_whatsapp",
+          "rappi_alerta_email",
+        ]),
       ]);
       setProductos(prods);
       setQueueRows(queueRes.data || []);
-      const raw = cfgRes.data?.[0]?.valor;
-      const n = Number(raw);
+      const cfg = {};
+      for (const row of cfgRes.data || []) cfg[row.clave] = row.valor;
+      const n = Number(cfg.rappi_reserva_mostrador);
       setReserva(Number.isFinite(n) && n >= 0 ? Math.trunc(n) : DEFAULT_RESERVA);
+      setAlertaWa(cfg.rappi_alerta_whatsapp || "");
+      setAlertaMail(cfg.rappi_alerta_email || "");
       if (queueRes.error && /rappi_sync_queue/.test(queueRes.error.message || "")) {
         showToast("Falta sql/patch_rappi_sync_20260819.sql en Supabase.", "error");
       }
@@ -195,6 +205,62 @@ export default function RappiInventarioPanel() {
         </div>
       </div>
       <input ref={fileRef} type="file" accept=".csv,.txt,text/csv" hidden onChange={onCsv} />
+
+      <Box style={{ padding: 16, marginBottom: 14, background: C.blueDim, border: `1px solid ${C.blue}` }}>
+        <div style={{ fontWeight: 800, fontSize: 13, color: C.text, marginBottom: 8 }}>
+          El cruce es de todo el catálogo ({loading ? "…" : filas.length} fichas), no solo la Pioglitazona.
+        </div>
+        <ol style={{ margin: 0, paddingLeft: 18, fontSize: 13, lineHeight: 1.5, color: C.text }}>
+          <li>Tocá <strong>Carga segura</strong> y subí ese CSV en Rappi Partner → Productos (actualizar inventario). Eso apaga lo que no debe venderse.</li>
+          <li>En el celular: app <strong>Rappi Aliados</strong> → notificaciones ON. Rappi no manda correo de cada pedido; si no tenés el partner abierto, la app es el aviso oficial (hay que aceptar en minutos).</li>
+          <li>Abajo, el WhatsApp/correo de la farmacia. Cuando Rappi nos mande el webhook, te llega el pedido aunque nadie esté en la computadora.</li>
+        </ol>
+      </Box>
+
+      <Box style={{ padding: 16, marginBottom: 14 }}>
+        <div style={{ fontWeight: 800, fontSize: 13, color: C.text, marginBottom: 6 }}>Aviso de pedido (si no está el partner abierto)</div>
+        <p style={{ margin: "0 0 10px", fontSize: 12, color: C.textMid, lineHeight: 1.45 }}>
+          Hoy Rappi solo avisa en <strong>Rappi Aliados</strong> (push del celular). El portal no manda un mail de cada orden.
+          Si el KAM activa el webhook <code>NEW_ORDER</code> hacia FarmaCapital, usamos estos destinos.
+        </p>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          <input
+            value={alertaWa}
+            onChange={(e) => setAlertaWa(e.target.value)}
+            placeholder="WhatsApp 55… (varios con coma)"
+            style={inp}
+          />
+          <input
+            value={alertaMail}
+            onChange={(e) => setAlertaMail(e.target.value)}
+            placeholder="correo@farmacia…"
+            style={inp}
+          />
+          <Btn sm col={BRAND.primary} dis={savingAlerta} onClick={async () => {
+            setSavingAlerta(true);
+            const tok = sessionStorage.getItem("farmacapital_session_token");
+            if (!tok) {
+              showToast("Sesión no iniciada", "error");
+              setSavingAlerta(false);
+              return;
+            }
+            const a = await supabase.rpc("empleado_upsert_configuracion", {
+              p_session_token: tok, p_clave: "rappi_alerta_whatsapp", p_valor: String(alertaWa || ""),
+            });
+            const b = await supabase.rpc("empleado_upsert_configuracion", {
+              p_session_token: tok, p_clave: "rappi_alerta_email", p_valor: String(alertaMail || ""),
+            });
+            setSavingAlerta(false);
+            if (a.error || b.error || a.data?.success === false || b.data?.success === false) {
+              showToast(a.error?.message || b.error?.message || "No se guardó el aviso", "error");
+              return;
+            }
+            showToast("Destinos de aviso Rappi guardados.", "success");
+          }}>
+            Guardar aviso
+          </Btn>
+        </div>
+      </Box>
 
       {incidente ? (
         <Box style={{ padding: 16, marginBottom: 14, border: `1px solid ${C.red}`, background: C.redDim || "#fef2f2" }}>
@@ -381,3 +447,11 @@ function AlertaTag({ alerta, rol }) {
 
 const th = { padding: "6px 8px 8px 0", fontWeight: 700, fontSize: 11, letterSpacing: 0.3, textTransform: "uppercase" };
 const td = { padding: "8px 8px 8px 0", color: C.text, verticalAlign: "top" };
+const inp = {
+  flex: "1 1 180px",
+  minWidth: 160,
+  padding: "7px 10px",
+  borderRadius: 8,
+  border: `1px solid ${C.border}`,
+  fontSize: 13,
+};

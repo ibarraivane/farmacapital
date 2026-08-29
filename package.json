@@ -25,7 +25,7 @@
     "start": "node scripts/start-dev.js",
     "build": "node scripts/build-cra.js",
     "test": "react-scripts test",
-    "test:rappi": "node --test api/_lib/rappiAvailability.test.js api/_lib/rappiSync.test.js",
+    "test:rappi": "node --test api/_lib/rappiAvailability.test.js api/_lib/rappiSync.test.js api/_lib/rappiAlerta.test.js",
     "playwright:install": "PLAYWRIGHT_BROWSERS_PATH=0 npx playwright install chromium",
     "test:e2e:mobile": "npm run build && PLAYWRIGHT_BROWSERS_PATH=0 playwright test e2e/mobile-responsive.spec.js",
     "test:e2e:routes": "npm run build && PLAYWRIGHT_BROWSERS_PATH=0 playwright test e2e/tienda-scroll-routes.spec.js",
