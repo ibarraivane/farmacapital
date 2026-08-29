@@ -340,7 +340,7 @@ export default function COFEPRISModule() {
   return (
     <div style={{padding:24,background:C.bg,minHeight:"100dvh",fontFamily:"var(--fc-body)"}}>
       <div style={{marginBottom:20}}>
-        <h1 style={{margin:0,color:C.text,fontSize:20,fontWeight:800}}>⚕ COFEPRIS</h1>
+        <h1 className="fc-page-hero" style={{margin:0,color:C.text,fontSize:20,fontWeight:800}}>⚕ COFEPRIS</h1>
         <p style={{margin:"4px 0 0",color:C.textMid,fontSize:12}}>Cumplimiento regulatorio · FarmaCapital</p>
       </div>
       <div style={{display:"flex",gap:4,marginBottom:24,borderBottom:`1px solid ${C.border}`}}>

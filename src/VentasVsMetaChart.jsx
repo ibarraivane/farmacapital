@@ -69,6 +69,7 @@ export default function VentasVsMetaChart({ porDia, cfg, hoyYmd, onEditarMetas }
   const [grano, setGrano] = useState("dia");
   const [selKey, setSelKey] = useState(null);
   const isPhone = useMediaQuery("(max-width: 768px)");
+  const isIphone = useMediaQuery("(max-width: 430px)");
   const isLandscapePhone = useMediaQuery("(max-width: 900px) and (orientation: landscape)");
 
   const hoy = hoyYmd || ymdMexico();
@@ -200,8 +201,8 @@ export default function VentasVsMetaChart({ porDia, cfg, hoyYmd, onEditarMetas }
                   )}
                 </span>
                 <span className="fc-ventas-meta-xlabel">
-                  <strong>{p.label}</strong>
-                  {grano === "dia" && p.labelDia ? <em>{p.labelDia}</em> : null}
+                  <strong>{isIphone && p.labelDia ? p.labelDia : p.label}</strong>
+                  {!isIphone && grano === "dia" && p.labelDia ? <em>{p.labelDia}</em> : null}
                 </span>
               </button>
             );

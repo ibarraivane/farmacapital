@@ -89,7 +89,7 @@ export default function InventarioHub({ initialTab, usuario, onNavigate }) {
           top: isMobile ? "calc(60px + env(safe-area-inset-top, 0px))" : 0,
           zIndex: 20,
         }}>
-          <div style={{display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap"}}>
+          <div className="fc-hub-heading" style={{display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap"}}>
             <h1 style={{margin: 0, color: C.text, fontSize: 20, fontWeight: 800}}>◆ Inventario</h1>
             <span style={{color: C.textDim, fontSize: 11}}>
               {isMobile ? "27 ago" : "27 ago · Catálogo · reabasto · lotes · referencias · caducar · Rappi"}

@@ -576,7 +576,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
 
   return (
     <div style={{ colorScheme: "light" }}>
-      <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
+      <div className="fc-toolbar-filters" style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
         <input placeholder="🔍 ID o cliente…" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} style={{ ...inpS, maxWidth: 180 }} />
         <select value={filtroFecha} onChange={(e) => setFiltroF(e.target.value)} style={inpS}>
           <option value="hoy">Hoy</option>
@@ -601,11 +601,11 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
           <option value="pendiente">Pendiente</option>
           <option value="cancelado">Cancelado</option>
         </select>
-        <span style={{ color: C.textMid, fontSize: 11, marginLeft: "auto" }}>{filtradosTodos.length} transacciones</span>
-        <button type="button" onClick={fetchPedidos} style={{ padding: "7px 12px", borderRadius: 7, border: `1px solid ${C.border}`, background: "transparent", color: C.textMid, cursor: "pointer", fontSize: 11, fontWeight: 700 }}>🔄 Actualizar</button>
+        <span className="fc-toolbar-count" style={{ color: C.textMid, fontSize: 11, marginLeft: "auto" }}>{filtradosTodos.length} transacciones</span>
+        <button type="button" className="fc-toolbar-refresh" onClick={fetchPedidos} style={{ padding: "7px 12px", borderRadius: 7, border: `1px solid ${C.border}`, background: "transparent", color: C.textMid, cursor: "pointer", fontSize: 11, fontWeight: 700 }}>🔄 Actualizar</button>
       </div>
 
-      <div style={{ fontSize: 11, color: C.textMid, marginBottom: 12, padding: "8px 12px", background: "#f8fafc", borderRadius: 8, border: `1px solid ${C.border}`, lineHeight: 1.45 }}>
+      <div className="fc-wa-note" style={{ fontSize: 11, color: C.textMid, marginBottom: 12, padding: "8px 12px", background: "#f8fafc", borderRadius: 8, border: `1px solid ${C.border}`, lineHeight: 1.45 }}>
         📱 <strong>WhatsApp (Meta — modo prueba):</strong> usa el 📱 en Acciones.
         El mensaje llega al celular del cliente desde el <strong>número de prueba Meta (+1 555…)</strong>, no desde +52 FarmaCapital.
         El teléfono del cliente debe estar en Meta → API Setup → «Números de prueba».

@@ -794,7 +794,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
 
   return (
     <div style={{padding:"clamp(12px, 3vw, 24px)",background:C.bg,minHeight:"100dvh",fontFamily:"var(--fc-body)",overflowX:"hidden",overflowWrap:"break-word"}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16,flexWrap:"wrap",gap:12}}>
+      <div className="fc-dash-hero" style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16,flexWrap:"wrap",gap:12}}>
         <div style={{minWidth:0,flex:"1 1 200px"}}>
           <h1 style={{margin:0,color:C.text,fontSize:"clamp(17px, 2.5vw, 20px)",fontWeight:800,lineHeight:1.2}}>
             {soloTransacciones ? "◈ Transacciones" : "◈ Dashboard y reportes"}
@@ -802,7 +802,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
           <p style={{margin:"4px 0 0",color:C.textMid,fontSize:12,textTransform:"capitalize"}}>{fmtDate()}</p>
         </div>
         <div style={{display:"flex",gap:10,alignItems:"center",flexShrink:0,flexWrap:"wrap"}}>
-          <div style={{color:C.textMid,fontSize:12}}><strong style={{color:C.text}}>{saludoUsuario(usuario?.nombre)}</strong> 👋</div>
+          <div className="fc-dash-greet" style={{color:C.textMid,fontSize:12}}><strong style={{color:C.text}}>{saludoUsuario(usuario?.nombre)}</strong> 👋</div>
           <button type="button" onClick={()=>{ fetchAll(); if(panelTab==="resumen"||panelTab==="margen") fetchRep(); }} style={{padding:"7px 14px",borderRadius:8,border:`1px solid ${C.border}`,background:"transparent",color:C.textMid,cursor:"pointer",fontWeight:700,fontSize:12}}>🔄 Actualizar</button>
         </div>
       </div>

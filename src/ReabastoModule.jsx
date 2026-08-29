@@ -331,7 +331,7 @@ export default function ReabastoModule() {
     <div style={{padding: isMobile ? "12px 16px 24px" : "16px 24px 24px", maxWidth: "100%", overflow: "hidden", colorScheme:"light"}}>
       <div style={{display:"flex",flexDirection:isMobile?"column":"row",justifyContent:"space-between",alignItems:isMobile?"stretch":"flex-start",marginBottom:16,gap:12}}>
         <div>
-          <h1 style={{color:C.text,fontSize:isMobile?18:20,fontWeight:800,margin:0}}>Reabasto</h1>
+          <h1 className="fc-page-hero" style={{color:C.text,fontSize:isMobile?18:20,fontWeight:800,margin:0}}>Reabasto</h1>
         </div>
         <div style={{display:"flex",flexDirection:isMobile?"column":"row",gap:8,width:isMobile?"100%":"auto"}}>
           <button onClick={generarOrden} disabled={generando || nMarcados===0}

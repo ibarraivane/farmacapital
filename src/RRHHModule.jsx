@@ -433,7 +433,7 @@ export default function RRHHModule() {
     <>
     <div style={S.wrap}>
       <div style={{ marginBottom:24 }}>
-        <h1 style={{ fontSize:22, fontWeight:800, color:C.text, margin:0 }}>◑ Recursos Humanos</h1>
+        <h1 className="fc-page-hero" style={{ fontSize:22, fontWeight:800, color:C.text, margin:0 }}>◑ Recursos Humanos</h1>
         <p style={{ color:C.textMid, margin:'4px 0 0', fontSize:13 }}>Empleados · Horarios · Nómina quincenal — FarmaCapital</p>
       </div>
 

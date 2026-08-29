@@ -266,7 +266,7 @@ export default function FacturacionModule() {
   return (
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-        <h1 style={{color:C.text,fontSize:20,fontWeight:800,margin:0}}>🧾 Facturación CFDI</h1>
+        <h1 className="fc-page-hero" style={{color:C.text,fontSize:20,fontWeight:800,margin:0}}>🧾 Facturación CFDI</h1>
         {PAC_CONFIG.modo==="simulado"&&(
           <span style={{padding:"4px 12px",borderRadius:20,fontSize:11,fontWeight:700,background:C.amberDim,color:"#92400e"}}>
             ⚠️ Modo prueba — Sin PAC real

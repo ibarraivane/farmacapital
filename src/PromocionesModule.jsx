@@ -313,7 +313,7 @@ export default function PromocionesModule({ onNavigate }) {
   return (
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-        <h1 style={{color:C.text,fontSize:20,fontWeight:800,margin:0}}>🏷️ Promociones</h1>
+        <h1 className="fc-page-hero" style={{color:C.text,fontSize:20,fontWeight:800,margin:0}}>🏷️ Promociones</h1>
       </div>
 
       <div style={{display:"flex",gap:4,marginBottom:20,borderBottom:`1px solid ${C.border}`}}>

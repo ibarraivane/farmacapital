@@ -501,7 +501,7 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
         }}
       >
         <div>
-          <h1 style={{ color: C.text, fontSize: 22, fontWeight: 800, margin: 0 }}>{titulo}</h1>
+          <h1 className="fc-page-hero" style={{ color: C.text, fontSize: 22, fontWeight: 800, margin: 0 }}>{titulo}</h1>
           <p style={{ color: C.textMid, fontSize: 13, margin: "6px 0 0" }}>
             {mode === "vendedor"
               ? "Consultas del día y cobros en mostrador; sin detalle clínico completo."

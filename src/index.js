@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import "./index.css";
 import "./styles/adminMobileTables.css";
+import "./styles/adminPhone.css";
 import App from "./App";
 import { initEventStore } from "./core/eventStore/initEventStore";
 import { aplicarTokensCSS } from "./theme/tokens";

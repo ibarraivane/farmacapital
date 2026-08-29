@@ -343,7 +343,7 @@ export default function ConfigConsultorioModule() {
   // ═══════════════════════════════════════════════════════════
   return (
     <div style={{ padding: 24, maxWidth: 960 }}>
-      <h1 style={{ color: C.text, fontSize: 20, fontWeight: 800, margin: "0 0 8px" }}>🎯 Metas y Precios</h1>
+      <h1 className="fc-page-hero" style={{ color: C.text, fontSize: 20, fontWeight: 800, margin: "0 0 8px" }}>🎯 Metas y Precios</h1>
       <p style={{ color: C.textMid, fontSize: 13, marginBottom: 20, lineHeight: 1.5 }}>
         Centro de control de <strong>precios, metas y bonos</strong> de la farmacia. Cada tab se guarda por separado.
       </p>
