@@ -199,9 +199,34 @@
   .farmacapital-admin-root table.fc-tabla-cards td[data-label="Cajero"],
   .farmacapital-admin-root table.fc-tabla-cards td[data-label="Turno"],
   .farmacapital-admin-root table.fc-tabla-cards td[data-wide] {
-    grid-column: 1 / -1;
+    grid-column: auto;
+    align-self: start;
     color: #334155;
     font-size: 12px;
+  }
+
+  .farmacapital-admin-root table.fc-tabla-cards td[data-label="Cliente"] {
+    grid-column: 1 / -1;
+  }
+
+  .farmacapital-admin-root table.fc-tabla-cards td[data-label="Vendedor"],
+  .farmacapital-admin-root table.fc-tabla-cards td[data-label="Cajero"] {
+    grid-column: 1;
+  }
+
+  .farmacapital-admin-root table.fc-tabla-cards td[data-label="Método"],
+  .farmacapital-admin-root table.fc-tabla-cards td[data-label="Turno"] {
+    grid-column: 2;
+    text-align: right;
+  }
+
+  .farmacapital-admin-root table.fc-tabla-cards td[data-label="Tipo"],
+  .farmacapital-admin-root table.fc-tabla-cards td[data-label="Estado"] {
+    grid-column: auto;
+  }
+
+  .farmacapital-admin-root table.fc-tabla-cards td[data-wide] {
+    grid-column: 1 / -1;
   }
 
   .farmacapital-admin-root table.fc-tabla-cards td[data-actions] {
