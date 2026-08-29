@@ -220,9 +220,13 @@
     text-align: right;
   }
 
-  .farmacapital-admin-root table.fc-tabla-cards td[data-label="Tipo"],
+  .farmacapital-admin-root table.fc-tabla-cards td[data-label="Tipo"] {
+    grid-column: 1;
+  }
+
   .farmacapital-admin-root table.fc-tabla-cards td[data-label="Estado"] {
-    grid-column: auto;
+    grid-column: 2;
+    text-align: right;
   }
 
   .farmacapital-admin-root table.fc-tabla-cards td[data-wide] {
