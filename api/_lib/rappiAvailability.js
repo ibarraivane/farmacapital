@@ -31,11 +31,32 @@ function calcDisponibleRappi(stock, reserva = DEFAULT_RESERVA, eligible = true) 
   return Boolean(eligible) && calcStockRappi(stock, reserva) > 0;
 }
 
+/** C/40+ vendido por pieza (Alka C/100, Aspirina 80): no va a Rappi. */
+const UMBRAL_CAJA_MOSTRADOR = 40;
+
+function esSiempreVentaUnidad(producto) {
+  if (!producto || !producto.venta_unidad) return false;
+  return toInt(producto.unidades_por_caja, 0) >= UMBRAL_CAJA_MOSTRADOR;
+}
+
+function cajaAbiertaMostrador(producto) {
+  if (!producto || !producto.venta_unidad) return false;
+  return toInt(producto.stock_unidades, 0) > 0;
+}
+
+function cajasCerradasParaRappi(producto) {
+  const stock = Math.max(0, toInt(producto && producto.stock, 0));
+  if (esSiempreVentaUnidad(producto)) return 0;
+  if (cajaAbiertaMostrador(producto)) return Math.max(stock - 1, 0);
+  return stock;
+}
+
 function productoEligibleRappi(producto) {
   if (!producto) return false;
   if (producto.activo === false) return false;
   if (producto.requiere_receta) return false;
   if (producto.controlado) return false;
+  if (esSiempreVentaUnidad(producto)) return false;
   return true;
 }
 
@@ -89,9 +110,11 @@ function shouldEnqueueDisponibilidad(args) {
   };
 }
 
-function buildDisponibilidadPayload({ sku, productoId, stock, reserva, eligible }) {
-  const stockRappi = calcStockRappi(stock, reserva);
-  const disponible = calcDisponibleRappi(stock, reserva, eligible);
+function buildDisponibilidadPayload({ sku, productoId, stock, reserva, eligible, producto }) {
+  const cajas = producto ? cajasCerradasParaRappi({ ...producto, stock }) : Math.max(0, toInt(stock, 0));
+  const elig = producto ? productoEligibleRappi(producto) : Boolean(eligible);
+  const stockRappi = elig ? calcStockRappi(cajas, reserva) : 0;
+  const disponible = Boolean(elig) && stockRappi > 0;
   return {
     sku: String(sku || '').trim(),
     producto_id: productoId ?? null,
@@ -99,7 +122,7 @@ function buildDisponibilidadPayload({ sku, productoId, stock, reserva, eligible 
     reserva_mostrador: Math.max(0, toInt(reserva, DEFAULT_RESERVA)),
     stock_rappi: stockRappi,
     disponible,
-    eligible: Boolean(eligible),
+    eligible: Boolean(elig),
   };
 }
 
@@ -109,6 +132,10 @@ module.exports = {
   calcStockRappi,
   calcDisponibleRappi,
   productoEligibleRappi,
+  esSiempreVentaUnidad,
+  cajaAbiertaMostrador,
+  cajasCerradasParaRappi,
+  UMBRAL_CAJA_MOSTRADOR,
   crossedThreshold,
   shouldEnqueueDisponibilidad,
   buildDisponibilidadPayload,

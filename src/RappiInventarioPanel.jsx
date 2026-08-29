@@ -25,7 +25,7 @@ async function fetchAllProductos() {
   for (;;) {
     const { data, error } = await supabase
       .from("productos")
-      .select("id,sku,nombre,codigo_barras,stock,precio,activo,requiere_receta,categoria")
+      .select("id,sku,nombre,codigo_barras,stock,precio,activo,requiere_receta,categoria,venta_unidad,unidades_por_caja,stock_unidades,presentacion")
       .order("id")
       .range(from, from + PAGE - 1);
     if (error) throw error;
@@ -52,6 +52,7 @@ function hoyISO() {
 
 const FILTROS = [
   { id: "peligro", label: "Peligro" },
+  { id: "mostrador", label: "Mostrador" },
   { id: "incidente", label: "Este pedido" },
   { id: "publicables", label: "Sí publicar" },
   { id: "todos", label: "Todos" },
@@ -114,9 +115,10 @@ export default function RappiInventarioPanel() {
 
   const visibles = useMemo(() => {
     return filas.filter((f) => {
-      if (filtro === "peligro" && f.alerta !== "peligro" && f.alerta !== "incidente" && f.alerta !== "desfase") {
+      if (filtro === "peligro" && f.alerta !== "peligro" && f.alerta !== "incidente" && f.alerta !== "desfase" && f.alerta !== "mostrador") {
         return false;
       }
+      if (filtro === "mostrador" && f.alerta !== "mostrador") return false;
       if (filtro === "incidente" && !f.familiaIncidente) return false;
       if (filtro === "publicables" && !f.disponible) return false;
       if (q && !inventarioProductMatchesBusqueda({
@@ -162,6 +164,7 @@ export default function RappiInventarioPanel() {
           <p style={{ margin: "6px 0 0", color: C.textMid, fontSize: 13, maxWidth: 640, lineHeight: 1.45 }}>
             Tres columnas: lo que hay en FarmaCapital, lo que <strong>debemos</strong> publicar
             (stock − {reserva} de colchón) y lo que Rappi tiene si pegás el CSV del partner.
+            Cajas de mostrador (Alka C/100, Aspirina 80) y cajas ya abiertas no se publican.
             La cola automática no está pegando a Rappi: esos cambios se quedan pendientes.
           </p>
         </div>
@@ -216,6 +219,7 @@ export default function RappiInventarioPanel() {
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10, marginBottom: 14 }}>
         <Stat label="Peligro" value={resumen.peligro + resumen.incidente} col={(resumen.peligro || resumen.incidente) ? C.red : C.text} hint="Apagar pendiente o Rappi vende de más" />
+        <Stat label="Mostrador" value={resumen.mostrador} col={resumen.mostrador ? C.amber : C.text} hint="Caja enorme o ya abierta" />
         <Stat label="Cola apagar" value={resumen.colaApagar} col={resumen.colaApagar ? C.amber : C.text} hint="Cambio local que no salió" />
         <Stat label="Sí publicar" value={resumen.publicables} hint={`stock − ${reserva} > 0`} />
         <Stat label="Rappi CSV" value={rappiRows.length ? resumen.conRappi : "—"} hint={rappiFile || "Partner → Productos → exportar"} />
@@ -317,9 +321,12 @@ export default function RappiInventarioPanel() {
                       {f.rolIncidente === "hermano" ? " · AMSA 30 mg (otra ficha)" : ""}
                     </div>
                   </td>
-                  <td data-label="Local" style={td}>{f.stockLocal}</td>
+                  <td data-label="Local" style={td}>
+                    {f.stockLocal}
+                    {f.stockUnidades > 0 ? <div style={{ fontSize: 10, color: C.textDim }}>{f.stockUnidades} sueltas</div> : null}
+                  </td>
                   <td data-label="Publicar" style={td}>
-                    {f.disponible ? f.stockPublicado : <span style={{ color: C.textDim }}>0 · off</span>}
+                    {f.disponible ? f.stockPublicado : <span style={{ color: C.textDim }}>0 · {labelMotivo(f.motivo)}</span>}
                   </td>
                   <td data-label="Cola" style={td}>
                     {f.colaPendiente
@@ -353,9 +360,19 @@ function Stat({ label, value, hint, col }) {
   );
 }
 
+function labelMotivo(motivo) {
+  if (motivo === "siempre_unidad") return "mostrador";
+  if (motivo === "caja_abierta") return "abierta";
+  if (motivo === "receta") return "receta";
+  if (motivo === "colchon") return "colchón";
+  if (motivo === "inactivo") return "off";
+  return "off";
+}
+
 function AlertaTag({ alerta, rol }) {
   if (rol === "hermano") return <Tag col={C.amber} sm>Otra ficha</Tag>;
   if (alerta === "incidente") return <Tag col={C.red} sm>Pedido</Tag>;
+  if (alerta === "mostrador") return <Tag col={C.amber} sm>Mostrador</Tag>;
   if (alerta === "peligro") return <Tag col={C.red} sm>Peligro</Tag>;
   if (alerta === "desfase") return <Tag col={C.amber} sm>Desfase</Tag>;
   if (alerta === "catalogo") return <Tag col={C.amber} sm>Catálogo</Tag>;

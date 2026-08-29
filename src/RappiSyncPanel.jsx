@@ -163,7 +163,8 @@ function RappiDisponibilidadPanel() {
             Rappi · disponibilidad
           </h2>
           <p style={{ margin: "6px 0 0", color: C.textMid, fontSize: 13, maxWidth: 560, lineHeight: 1.45 }}>
-            Se publica <code>stock − {reserva}</code> piezas de colchón. Receta y controlados no salen.
+            Se publica <code>stock − {reserva}</code> de colchón. Receta, cajas enormes de mostrador
+            (Alka C/100, Aspirina 80) y cajas ya abiertas no salen.
             Sin <code>RAPPI_CLIENT_ID</code> el worker no llama a Rappi: queda inerte.
           </p>
         </div>

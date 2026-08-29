@@ -3,8 +3,11 @@ import {
   RAPPI_SKU_PREFIX,
   alertaDeFila,
   buildFilasInventario,
+  cajaAbiertaMostrador,
+  cajasCerradasParaRappi,
   calcStockPublicado,
   csvCargaSegura,
+  esSiempreVentaUnidad,
   internalSkuFromRappi,
   matchRappiRow,
   parseRappiInventarioCsv,
@@ -128,6 +131,53 @@ test("4 cajas de pioglitazona no son 4 del Ultra 15 mg", () => {
   expect(filas.find((f) => f.sku === "EQ-ULT146").incidente).toBe(true);
   expect(filas.find((f) => f.sku === "FC-49024175").familiaIncidente).toBe(true);
   expect(filas.find((f) => f.sku === "FC-49024175").incidente).toBe(false);
+});
+
+test("Alka C/100 y Aspirina 80 no van a Rappi", () => {
+  const alka = {
+    venta_unidad: true, unidades_por_caja: 100, stock: 35, stock_unidades: 100,
+    activo: true, requiere_receta: false,
+  };
+  const asp = {
+    venta_unidad: true, unidades_por_caja: 80, stock: 2, stock_unidades: 80,
+    activo: true, requiere_receta: false,
+  };
+  expect(esSiempreVentaUnidad(alka)).toBe(true);
+  expect(productoEligibleRappi(alka)).toBe(false);
+  expect(cajasCerradasParaRappi(alka)).toBe(0);
+  expect(productoEligibleRappi(asp)).toBe(false);
+});
+
+test("caja abierta descuenta 1; un pack chico cerrado sí puede ir", () => {
+  const sabaAbierta = {
+    venta_unidad: true, unidades_por_caja: 8, stock: 5, stock_unidades: 8,
+    activo: true, requiere_receta: false,
+  };
+  const alka12 = {
+    venta_unidad: true, unidades_por_caja: 12, stock: 10, stock_unidades: 0,
+    activo: true, requiere_receta: false,
+  };
+  expect(esSiempreVentaUnidad(sabaAbierta)).toBe(false);
+  expect(cajaAbiertaMostrador(sabaAbierta)).toBe(true);
+  expect(cajasCerradasParaRappi(sabaAbierta)).toBe(4);
+  expect(calcStockPublicado(cajasCerradasParaRappi(sabaAbierta), 2)).toBe(2);
+  expect(cajasCerradasParaRappi(alka12)).toBe(10);
+  expect(calcStockPublicado(10, 2)).toBe(8);
+});
+
+test("carga segura apaga Alka C/100 aunque tenga 35 cajas", () => {
+  const { filas } = buildFilasInventario({
+    productos: [{
+      id: 465, sku: "FC-08443026", nombre: "Alka-Seltzer", codigo_barras: "7501008443026",
+      stock: 35, stock_unidades: 100, venta_unidad: true, unidades_por_caja: 100,
+      activo: true, requiere_receta: false,
+    }],
+  });
+  expect(filas[0].disponible).toBe(false);
+  expect(filas[0].stockPublicado).toBe(0);
+  expect(filas[0].motivo).toBe("siempre_unidad");
+  expect(filas[0].alerta).toBe("mostrador");
+  expect(csvCargaSegura(filas)).toContain("FARMACAPITALmt_fc-08443026,7501008443026,0,false");
 });
 
 test("alertaDeFila: Rappi disponible con stock publicado 0", () => {

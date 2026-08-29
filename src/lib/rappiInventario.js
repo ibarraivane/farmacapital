@@ -8,6 +8,8 @@
 
 export const RAPPI_SKU_PREFIX = "FARMACAPITALmt_";
 export const DEFAULT_RESERVA = 2;
+/** C/40+ con venta_unidad = caja de mostrador (Alka C/100, Aspirina 80). No va a Rappi. */
+export const UMBRAL_CAJA_MOSTRADOR = 40;
 
 /**
  * Pedido Rappi 2468274038 · 28 ago 2026 · Mercado Leyes De Reforma.
@@ -80,11 +82,41 @@ export function calcStockPublicado(stock, reserva = DEFAULT_RESERVA) {
   return Math.max(s - r, 0);
 }
 
+export function esSiempreVentaUnidad(producto) {
+  if (!producto?.venta_unidad) return false;
+  return toInt(producto.unidades_por_caja, 0) >= UMBRAL_CAJA_MOSTRADOR;
+}
+
+/** Hay piezas sueltas: esa caja ya se abrió en mostrador. */
+export function cajaAbiertaMostrador(producto) {
+  if (!producto?.venta_unidad) return false;
+  return toInt(producto.stock_unidades, 0) > 0;
+}
+
+/** Cajas cerradas que sí podrían ir a Rappi (0 si es caja enorme de mostrador). */
+export function cajasCerradasParaRappi(producto) {
+  const stock = Math.max(0, toInt(producto?.stock, 0));
+  if (esSiempreVentaUnidad(producto)) return 0;
+  if (cajaAbiertaMostrador(producto)) return Math.max(stock - 1, 0);
+  return stock;
+}
+
 export function productoEligibleRappi(producto) {
   if (!producto) return false;
   if (producto.activo === false) return false;
   if (producto.requiere_receta) return false;
+  if (esSiempreVentaUnidad(producto)) return false;
   return true;
+}
+
+export function motivoFueraRappi(producto, reserva = DEFAULT_RESERVA) {
+  if (!producto || producto.activo === false) return "inactivo";
+  if (producto.requiere_receta) return "receta";
+  if (esSiempreVentaUnidad(producto)) return "siempre_unidad";
+  const pub = calcStockPublicado(cajasCerradasParaRappi(producto), reserva);
+  if (pub > 0) return null;
+  if (cajaAbiertaMostrador(producto)) return "caja_abierta";
+  return "colchon";
 }
 
 export function rappiSkuFromInternal(sku, prefix = RAPPI_SKU_PREFIX) {
@@ -235,13 +267,14 @@ function lastQueueBySku(queueRows) {
 }
 
 /**
- * @returns {'incidente'|'peligro'|'desfase'|'ok'|'catalogo'}
+ * @returns {'incidente'|'peligro'|'mostrador'|'desfase'|'ok'|'catalogo'}
  */
 export function alertaDeFila(fila) {
   if (fila?.incidente) return "incidente";
   if (fila?.rappiStock != null && fila.rappiStock > fila.stockPublicado) return "peligro";
   if (fila?.rappiDisponible === true && !fila.disponible) return "peligro";
   if (fila?.colaQuiereApagar && fila.colaPendiente) return "peligro";
+  if (fila?.motivo === "siempre_unidad" || fila?.motivo === "caja_abierta") return "mostrador";
   if (fila?.rappiStock != null && fila.rappiStock !== fila.stockPublicado) return "desfase";
   if (fila?.elig && fila.stockLocal > 0 && fila.stockPublicado === 0 && fila.rappiStock == null) {
     return "catalogo";
@@ -279,9 +312,12 @@ export function buildFilasInventario({
 
   const filas = productos.map((p) => {
     const stockLocal = Math.max(0, toInt(p.stock, 0));
+    const stockUnidades = Math.max(0, toInt(p.stock_unidades, 0));
+    const cajasCerradas = cajasCerradasParaRappi(p);
     const elig = productoEligibleRappi(p);
-    const stockPublicado = elig ? calcStockPublicado(stockLocal, reserva) : 0;
+    const stockPublicado = elig ? calcStockPublicado(cajasCerradas, reserva) : 0;
     const disponible = elig && stockPublicado > 0;
+    const motivo = disponible ? null : motivoFueraRappi(p, reserva);
     const q = queueBySku.get(skuKey(p.sku));
     const payload = q?.payload || {};
     const rappi = rappiByProductoId.get(p.id) || null;
@@ -297,10 +333,15 @@ export function buildFilasInventario({
       requiereReceta: Boolean(p.requiere_receta),
       activo: p.activo !== false,
       stockLocal,
+      stockUnidades,
+      cajasCerradas,
+      ventaUnidad: Boolean(p.venta_unidad),
+      unidadesPorCaja: toInt(p.unidades_por_caja, 0),
       reserva: toInt(reserva, DEFAULT_RESERVA),
       stockPublicado,
       elig,
       disponible,
+      motivo,
       cola: q || null,
       colaEstado: q?.estado || null,
       colaPendiente: q?.estado === "pendiente",
@@ -318,7 +359,7 @@ export function buildFilasInventario({
     return fila;
   });
 
-  const rank = { incidente: 0, peligro: 1, desfase: 2, catalogo: 3, ok: 4 };
+  const rank = { incidente: 0, peligro: 1, mostrador: 2, desfase: 3, catalogo: 4, ok: 5 };
   filas.sort((a, b) => {
     const ra = rank[a.alerta] ?? 9;
     const rb = rank[b.alerta] ?? 9;
@@ -342,6 +383,7 @@ export function resumirCruce(filas, rappiSinMatch = []) {
     catalogo: 0,
     colaApagar: 0,
     colaPrender: 0,
+    mostrador: 0,
     incidente: 0,
     rappiSinMatch: rappiSinMatch.length,
     conRappi: 0,
@@ -352,6 +394,7 @@ export function resumirCruce(filas, rappiSinMatch = []) {
     if (f.alerta === "peligro") out.peligro += 1;
     if (f.alerta === "desfase") out.desfase += 1;
     if (f.alerta === "catalogo") out.catalogo += 1;
+    if (f.alerta === "mostrador") out.mostrador += 1;
     if (f.incidente) out.incidente += 1;
     if (f.colaPendiente && f.colaQuiereApagar) out.colaApagar += 1;
     if (f.colaPendiente && f.disponible) out.colaPrender += 1;
@@ -384,8 +427,8 @@ export function csvCargaSegura(filas) {
 
 export function csvCruceCompleto(filas) {
   const header = [
-    "alerta", "sku", "sku_rappi", "ean", "nombre",
-    "stock_local", "reserva", "stock_publicado", "disponible",
+    "alerta", "motivo", "sku", "sku_rappi", "ean", "nombre",
+    "stock_local", "stock_unidades", "cajas_cerradas", "reserva", "stock_publicado", "disponible",
     "cola_estado", "cola_quiere_apagar",
     "rappi_stock", "rappi_disponible",
   ];
@@ -393,11 +436,14 @@ export function csvCruceCompleto(filas) {
   for (const f of filas) {
     lines.push([
       f.alerta,
+      csvEscape(f.motivo || ""),
       csvEscape(f.sku),
       csvEscape(f.skuRappi),
       csvEscape(f.ean),
       csvEscape(f.nombre),
       f.stockLocal,
+      f.stockUnidades,
+      f.cajasCerradas,
       f.reserva,
       f.stockPublicado,
       f.disponible,
