@@ -51,6 +51,18 @@ it("cada tarjeta identifica sus activos sin inferirlos", () => {
   expect(screen.queryByText(/Activos:\s*$/)).not.toBeInTheDocument();
 });
 
+it("si hay dos caducidades, la tarjeta dice cuál tomar", () => {
+  const conLotes = {
+    ...treda,
+    lotes: [
+      { id: 11, cantidad_actual: 2, fecha_caducidad: "2029-06-30", activo: true },
+      { id: 12, cantidad_actual: 5, fecha_caducidad: "2030-12-31", activo: true },
+    ],
+  };
+  render(<TableroResultados productos={[conLotes]} titulo="1 resultado" onSelect={() => {}} onAdd={() => {}} estadoStock={() => ({ agotado: false, etiqueta: "7 disp." })} />);
+  expect(screen.getByTestId("pos-aviso-lotes-tarjeta")).toHaveTextContent("Toma jun 2029");
+});
+
 it("sin grupo no pinta nada", () => {
   const { container } = render(<TableroEquivalentes grupo={null} onSelect={() => {}} onAdd={() => {}} />);
   expect(container).toBeEmptyDOMElement();

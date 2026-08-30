@@ -4,6 +4,8 @@ import { $ } from "../../../utils";
 import { posDestacadoTarjeta, posSubtituloProducto, posTituloProducto } from "../../../utils/posProductDisplay";
 import { etiquetaTipoProducto } from "../../../utils/equivalentesPos";
 import { useImagenesPrincipales } from "../../../hooks/useProductoImagenes";
+import { PosAvisoLotesTarjeta } from "./PosAvisoLotes";
+import { hoyISOMexico } from "../../../lib/fecha";
 
 function etiquetaSustanciaVisible(value) {
   return String(value || "")
@@ -46,6 +48,7 @@ function TarjetaProducto({ producto, onSelect, onAdd, estadoStock, diferencia, f
             {destacado}
           </div>
         ) : null}
+        <PosAvisoLotesTarjeta producto={producto} hoy={hoyISOMexico()} C={C} />
         {subtitulo ? (
           <div style={{ fontSize: 12, color: C.textMid, lineHeight: 1.3 }}>{subtitulo}</div>
         ) : null}

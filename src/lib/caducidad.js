@@ -41,9 +41,27 @@ export function formatCaducidadMesAnio(iso) {
 export function etiquetaCaducidadMMAA(raw) {
   const iso = parseCaducidadMMAA(raw);
   if (!iso) return "";
-  const [y, m] = iso.split("-");
+  return etiquetaCaducidadIso(iso);
+}
+
+/** ISO → "jun 2029" (lo que se lee en la caja). */
+export function etiquetaCaducidadIso(iso) {
+  if (!iso) return "";
+  const [y, m] = String(iso).split("-");
   const mi = parseInt(m, 10);
+  if (!mi || mi < 1 || mi > 12 || !y) return "";
   return `${MESES_CORTOS[mi - 1]} ${y}`;
+}
+
+/** Días hasta el último día del mes (fechas ISO, sin zona). */
+export function diasHastaCaducidad(iso, hoy) {
+  if (!iso) return null;
+  const cad = String(iso).slice(0, 10);
+  const dia = String(hoy || new Date().toISOString().slice(0, 10)).slice(0, 10);
+  const a = Date.parse(`${cad}T00:00:00Z`);
+  const b = Date.parse(`${dia}T00:00:00Z`);
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
+  return Math.round((a - b) / 86400000);
 }
 
 export function esPorCaducar(dias) {
