@@ -62,18 +62,22 @@ test("Ensure 236 ml no toma el 6-pack ni el polvo", () => {
   const { matchOfertaRappi } = require("./rappi");
   const producto = {
     nombre: "Ensure vainilla",
+    marca: "Ensure",
     presentacion: "236 ML",
     precio: 65,
   };
   const hit = matchOfertaRappi(producto, [
     { fuente: "rappi_gdl", nombre: "Ensure Regular Vainilla 6 Pack 237 ml", precio: 393, tienda: "GDL" },
     { fuente: "rappi_gdl", nombre: "Ensure Advance Polvo Vainilla 400 g", precio: 405, tienda: "GDL" },
+    { fuente: "rappi_gdl", nombre: "Ensure Advance Vanilla 237Ml", precio: 72, tienda: "GDL" },
     { fuente: "rappi_gdl", nombre: "Ensure Regular Líquido Vainilla 237 ml", precio: 66, tienda: "GDL" },
     { fuente: "rappi_super", nombre: "Ensure Clinical 16 pack", precio: 542.99, tienda: "Chedraui" },
+    { fuente: "rappi_super", nombre: "Ensure Vainilla Next Gen 400G", precio: 324, tienda: "Chedraui" },
   ]);
   expect(hit).toBeTruthy();
   expect(hit.precio).toBe(66);
   expect(hit.nombre).toMatch(/237 ml/i);
+  expect(hit.nombre).not.toMatch(/advance/i);
 });
 
 test("si Rappi solo tiene packs, no inventa precio de botella", () => {

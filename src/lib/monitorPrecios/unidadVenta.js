@@ -39,8 +39,38 @@ function extraerGramos(norm) {
   return n > 0 && n < 20000 ? n : null;
 }
 
+const SABOR_GRUPOS = [
+  ["vainilla", "vanilla", "vnlla"],
+  ["chocolate", "chte", "choco"],
+  ["fresa", "fsa", "strawberry"],
+  ["cafe", "coffee"],
+  ["coco"],
+  ["uva"],
+  ["kiwi"],
+  ["manzana"],
+  ["naranja"],
+  ["limon", "lima"],
+  ["mora"],
+  ["mango"],
+];
+
+function extraerSabor(norm) {
+  for (const grupo of SABOR_GRUPOS) {
+    if (grupo.some((w) => new RegExp(`(?:^|\\s)${w}(?:\\s|$)`).test(norm))) return grupo[0];
+  }
+  return null;
+}
+
+function extraerLinea(norm, ml, g) {
+  if (/\b(polvo|powder|next gen)\b/.test(norm) || (g != null && ml == null)) return "polvo";
+  if (/\b(advance|hmb)\b/.test(norm)) return "advance";
+  if (/\bclinical\b/.test(norm)) return "clinical";
+  if (/\bplus\b/.test(norm) || /\b10\s*plus\b/.test(norm)) return "plus";
+  return "regular";
+}
+
 function extraerPiezasPack(norm) {
-  const reglas = [
+  const reglasPack = [
     /\b(\d{1,2})\s*-?\s*packs?\b/,
     /\bpacks?\s*(?:de\s+)?(\d{1,2})\b/,
     /\bcaja\s+con\s+(\d{1,2})\b/,
@@ -48,34 +78,40 @@ function extraerPiezasPack(norm) {
     /\b(\d{1,2})\s*x\s*\d+(?:[.,]\d+)?\s*m(?:l|ls)\b/,
     /\bx\s*(\d{1,2})(?:\b|$)/,
   ];
-  for (const re of reglas) {
+  for (const re of reglasPack) {
     const m = norm.match(re);
     if (!m) continue;
     const n = parseInt(m[1], 10);
-    if (n >= PACK_MIN && n <= PACK_MAX) return n;
+    if (n >= PACK_MIN && n <= PACK_MAX) return { piezas: n, origenPiezas: "pack" };
   }
   if (!extraerMl(norm)) {
     const tabs = norm.match(/\b(\d{1,3})\s*(?:tabs?|tabletas?|capsulas?|caps?|comprimidos?)\b/);
     if (tabs) {
       const n = parseInt(tabs[1], 10);
-      if (n >= PACK_MIN && n <= 200) return n;
+      if (n >= PACK_MIN && n <= 200) return { piezas: n, origenPiezas: "caja_med" };
     }
     const caja = norm.match(/\bc\s*\/\s*(\d{1,3})\b/);
     if (caja) {
       const n = parseInt(caja[1], 10);
-      if (n >= PACK_MIN && n <= 200) return n;
+      if (n >= PACK_MIN && n <= 200) return { piezas: n, origenPiezas: "caja_med" };
     }
   }
-  return null;
+  return { piezas: null, origenPiezas: null };
 }
 
 function extraerUnidadVenta(texto) {
-  const norm = colapsar(texto);
+  const norm = colapsar(String(texto || "").replace(/\+/g, " plus "));
+  const ml = extraerMl(norm);
+  const g = extraerGramos(norm);
+  const pack = extraerPiezasPack(norm);
   return {
     texto: norm,
-    ml: extraerMl(norm),
-    g: extraerGramos(norm),
-    piezas: extraerPiezasPack(norm),
+    ml,
+    g,
+    piezas: pack.piezas,
+    origenPiezas: pack.origenPiezas,
+    sabor: extraerSabor(norm),
+    linea: extraerLinea(norm, ml, g),
   };
 }
 
@@ -104,9 +140,25 @@ function mismaUnidadVenta(a, b) {
   const pa = a.piezas;
   const pb = b.piezas;
   if (pa != null && pb != null && pa !== pb) return false;
+  if (b.origenPiezas === "pack" && a.origenPiezas !== "pack") return false;
+  if (a.origenPiezas === "pack" && b.origenPiezas !== "pack") return false;
   if (pb >= PACK_MIN && (pa == null || pa === 1) && (aLiq || aSol)) return false;
   if (pa >= PACK_MIN && (pb == null || pb === 1) && (bLiq || bSol)) return false;
+  if (a.sabor && b.sabor && a.sabor !== b.sabor) return false;
+  if (a.linea && b.linea && a.linea !== b.linea) return false;
   return true;
+}
+
+function marcaBusqueda(producto) {
+  const marca = colapsar(producto && producto.marca);
+  if (marca && marca.length >= 4) return marca.split(/\s+/)[0];
+  const nom = colapsar(producto && producto.nombre);
+  return (nom && nom.split(/\s+/).find((t) => t.length >= 4)) || null;
+}
+
+function ofertaTieneMarca(normOferta, marca) {
+  if (!marca) return true;
+  return new RegExp(`(?:^|\\s)${marca}(?:\\s|$)`).test(normOferta || "");
 }
 
 function diagnosticoRefRappi(producto, refRow) {
@@ -118,6 +170,10 @@ function diagnosticoRefRappi(producto, refRow) {
   const theirs = extraerUnidadVenta((refRow && (refRow.nombre_fuente || refRow.nombre)) || "");
   const nombre = (refRow && (refRow.nombre_fuente || refRow.nombre)) || "";
 
+  const marca = marcaBusqueda(producto);
+  if (marca && theirs.texto && !ofertaTieneMarca(theirs.texto, marca)) {
+    return { ok: false, motivo: "otra_marca", nombre, ours, theirs };
+  }
   if (theirs.texto && !mismaUnidadVenta(ours, theirs)) {
     return { ok: false, motivo: "otro_empaque", nombre, ours, theirs };
   }
@@ -146,6 +202,9 @@ module.exports = {
   RATIO_ABSURDO,
   extraerUnidadVenta,
   extraerUnidadProducto,
+  extraerSabor,
+  extraerLinea,
+  marcaBusqueda,
   mismaUnidadVenta,
   diagnosticoRefRappi,
   ofertaRappiComparable,

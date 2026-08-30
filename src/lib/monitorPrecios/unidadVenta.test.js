@@ -64,7 +64,7 @@ test("sin la palabra pack, $542 contra $65 es otro empaque", () => {
     precio: 542.99,
   });
   expect(d.ok).toBe(false);
-  expect(d.motivo).toBe("precio_otro_empaque");
+  expect(["otro_empaque", "precio_otro_empaque"]).toContain(d.motivo);
 });
 
 test("Agrifen C/10 no se tira por el precio si el empaque coincide", () => {
@@ -77,4 +77,66 @@ test("Agrifen C/10 no se tira por el precio si el empaque coincide", () => {
     nombre: "Agrifen Antigripal 20 Tabletas",
     precio: 90,
   })).toBe(false);
+});
+
+test("Ensure Regular no cruza con Advance, polvo, otro sabor ni Pediasure", () => {
+  const ensure = { ...ensureBotella, marca: "Ensure" };
+  expect(ofertaRappiComparable(ensure, {
+    nombre: "Abbott Ensure Vainilla Liquido 237 Ml",
+    precio: 57,
+  })).toBe(true);
+  expect(ofertaRappiComparable(ensure, {
+    nombre: "Ensure Advance Vanilla 237Ml",
+    precio: 72,
+  })).toBe(false);
+  expect(ofertaRappiComparable(ensure, {
+    nombre: "Ensure Vainilla Next Gen 400G",
+    precio: 405,
+  })).toBe(false);
+  expect(ofertaRappiComparable(ensure, {
+    nombre: "Ensure Liquido Fresa 237 ml",
+    precio: 57.5,
+  })).toBe(false);
+  expect(ofertaRappiComparable(ensure, {
+    nombre: "Abbott Pediasure Plus Vainilla 237 Ml",
+    precio: 57,
+  })).toBe(false);
+});
+
+test("Pediasure / Glucerna / Electrolit se venden sueltos, no el pack", () => {
+  expect(ofertaRappiComparable(
+    { nombre: "Pediasure vainilla", marca: "Pediasure", presentacion: "237 ML", precio: 69 },
+    { nombre: "Pediasure Suplemento Alimenticio Vainilla", precio: 866 }
+  )).toBe(false);
+  expect(ofertaRappiComparable(
+    { nombre: "Pediasure vainilla", marca: "Pediasure", presentacion: "237 ML", precio: 69 },
+    { nombre: "Abbott Pediasure Plus Vainilla 237 Ml", precio: 57 }
+  )).toBe(false);
+  expect(ofertaRappiComparable(
+    { nombre: "Pediasure vainilla", marca: "Pediasure", presentacion: "237 ML", precio: 69 },
+    { nombre: "Pediasure Suplemento Alimenticio 10 + Vainilla", precio: 57 }
+  )).toBe(false);
+  expect(ofertaRappiComparable(
+    { nombre: "Glucerna fresa", marca: "Glucerna", presentacion: "237 ML", precio: 69 },
+    { nombre: "Glucerna Fresa 237 Ml", precio: 60.5 }
+  )).toBe(true);
+  expect(ofertaRappiComparable(
+    { nombre: "Glucerna fresa", marca: "Glucerna", presentacion: "237 ML", precio: 69 },
+    { nombre: "Glucerna Polvo Vainilla 400 gr", precio: 362 }
+  )).toBe(false);
+  expect(ofertaRappiComparable(
+    { nombre: "Electrolit Fresa", marca: "Electrolit", presentacion: "625 ML", precio: 28 },
+    { nombre: "Electrolit Fresa 4 pack 625 ml", precio: 96 }
+  )).toBe(false);
+  expect(ofertaRappiComparable(
+    { nombre: "Electrolit Fresa", marca: "Electrolit", presentacion: "625 ML", precio: 28 },
+    { nombre: "Electrolit Suero Oral Fresa 625 ml", precio: 27 }
+  )).toBe(true);
+});
+
+test("Dibar 125 ml no se compara con el de 500 ml", () => {
+  expect(ofertaRappiComparable(
+    { nombre: "Alcohol Etilico Rojo 96°", marca: "Dibar", presentacion: "125 ML", precio: 22 },
+    { nombre: "Alcohol Dibar Rojo 96 500 ml", precio: 48 }
+  )).toBe(false);
 });

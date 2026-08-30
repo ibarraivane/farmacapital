@@ -423,7 +423,7 @@ export default function RappiPreciosPanel() {
           <p style={{ margin: "6px 0 0", color: C.textMid, fontSize: 12, maxWidth: 720, lineHeight: 1.45 }}>
             Qué cobran otras tiendas en Rappi, mezclado con Del Ahorro / Similares (columna <strong>Calle</strong>).
             El <strong>sugerido</strong> es el mismo de Referencias: ~2% bajo la farmacia o calle más barata.
-            Un <strong>pack</strong> (6×237 ml, caja, polvo) no se compara con la botella suelta.
+            Un <strong>pack</strong>, el polvo o otra línea (Advance / Plus) no se compara con la botella suelta.
             El <strong>súper</strong> (Chedraui, Soriana) se ve y no mueve el precio: envío otro y piso otro.
             Clic en un precio para editarlo. <strong>Aplicar</strong> cambia mostrador y línea.
           </p>
