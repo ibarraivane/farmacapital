@@ -8,9 +8,20 @@ function asPositiveQty(value) {
   return Math.trunc(n);
 }
 
+/** FARMACAPITALmt_eq-ult146 → eq-ult146 (el RPC busca case-insensitive). */
+function skuInternoDesdeRappi(sku) {
+  const raw = String(sku || '').trim();
+  if (!raw) return '';
+  const low = raw.toLowerCase();
+  if (low.startsWith('farmacapitalmt_')) return raw.slice('FARMACAPITALmt_'.length);
+  const mt = low.indexOf('mt_');
+  if (mt >= 0 && mt <= 20) return raw.slice(mt + 3);
+  return raw;
+}
+
 function itemFromUnknown(raw) {
   if (!raw || typeof raw !== 'object') return null;
-  const sku = String(raw.sku || raw.SKU || raw.product_sku || raw.sku_id || '').trim();
+  const sku = skuInternoDesdeRappi(raw.sku || raw.SKU || raw.product_sku || raw.sku_id);
   const qty = asPositiveQty(raw.qty ?? raw.quantity ?? raw.cantidad ?? raw.units);
   if (!sku || qty == null) return null;
   return { sku, qty };
@@ -90,21 +101,76 @@ async function ingestRappiOrder(payload, options = {}) {
 
   const rpcFn = options.rpcFn || rpc;
   try {
+    const doResolve = options.resolveSkus === true || (options.resolveSkus !== false && !options.rpcFn);
+    const resolved = doResolve
+      ? await resolveItemsSkus(normalized.order.items, cfg, options.fetchFn)
+      : { items: normalized.order.items };
+    const order = { ...normalized.order, items: resolved.items };
     const result = await rpcFn(
       cfg.serviceKey,
       cfg.supabaseUrl,
       'ingest_rappi_order',
-      { p_payload: normalized.order }
+      { p_payload: order }
     );
     if (result && result.ok === false) return result;
-    return result && typeof result === 'object' ? result : { ok: true, result };
+    const out = result && typeof result === 'object' ? result : { ok: true, result };
+    const shouldNotify = options.notify === true || (options.notify !== false && !options.rpcFn);
+    if (out.ok && !out.already_ingested && shouldNotify) {
+      const { notifyRappiStaff } = options.notifyFn
+        ? { notifyRappiStaff: options.notifyFn }
+        : require('./rappiAlerta');
+      try {
+        out.alerta = await notifyRappiStaff({
+          order,
+          pedidoId: out.pedido_id,
+          supabase: cfg,
+        });
+      } catch (alertErr) {
+        out.alerta = { ok: false, error: String(alertErr.message || alertErr).slice(0, 200) };
+      }
+    }
+    return out;
   } catch (err) {
     return { ok: false, error: String(err.message || err).slice(0, 300) };
   }
 }
 
+async function resolveItemsSkus(items, cfg, fetchFn = fetch) {
+  const out = [];
+  for (const item of items || []) {
+    const sku = await resolveOneSku(item.sku, cfg, fetchFn);
+    out.push({ sku: sku || item.sku, qty: item.qty });
+  }
+  return { items: out };
+}
+
+async function resolveOneSku(sku, cfg, fetchFn) {
+  const raw = String(sku || '').trim();
+  if (!raw || !cfg?.supabaseUrl || !cfg?.serviceKey) return raw;
+  const tryVals = [raw];
+  const stripped = skuInternoDesdeRappi(raw);
+  if (stripped && stripped !== raw) tryVals.push(stripped);
+  for (const val of tryVals) {
+    const url = `${cfg.supabaseUrl}/rest/v1/productos?select=sku&sku=ilike.${encodeURIComponent(val)}&limit=1`;
+    try {
+      const resp = await fetchFn(url, {
+        headers: {
+          apikey: cfg.serviceKey,
+          Authorization: `Bearer ${cfg.serviceKey}`,
+        },
+      });
+      const rows = await resp.json().catch(() => []);
+      if (Array.isArray(rows) && rows[0]?.sku) return rows[0].sku;
+    } catch {
+      /* seguir */
+    }
+  }
+  return stripped || raw;
+}
+
 module.exports = {
   normalizeRappiInboundOrder,
+  skuInternoDesdeRappi,
   rappiWebhookSecretConfigured,
   isRappiWebhookAuthorized,
   ingestRappiOrder,

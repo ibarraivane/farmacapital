@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { Pause, Play, RefreshCw, ShoppingBag, TrendingUp } from "lucide-react";
+import { Layers, Pause, Play, RefreshCw, ShoppingBag, TrendingUp } from "lucide-react";
 import { C_LIGHT, BRAND } from "./constants";
 import { supabase } from "./supabase";
 import { Box, Btn, Tag, showToast, SkeletonTable } from "./ui";
 import RappiPreciosPanel from "./RappiPreciosPanel";
+import RappiInventarioPanel from "./RappiInventarioPanel";
 
 const C = C_LIGHT;
 const STALE_MS = 10 * 60 * 1000;
@@ -35,7 +36,9 @@ const SUB_KEY = "farmacapital_rappi_subtab";
 function loadSubTab() {
   try {
     const saved = sessionStorage.getItem(SUB_KEY);
-    return saved === "precios" || saved === "disponibilidad" ? saved : "precios";
+    return saved === "precios" || saved === "disponibilidad" || saved === "inventario"
+      ? saved
+      : "inventario";
   } catch {
     return "precios";
   }
@@ -58,6 +61,7 @@ export default function RappiSyncPanel() {
         background: C.card,
       }}>
         {[
+          { id: "inventario", label: "Inventario vs Rappi", icon: Layers },
           { id: "precios", label: "Precios en línea", icon: TrendingUp },
           { id: "disponibilidad", label: "Disponibilidad", icon: ShoppingBag },
         ].map((t) => {
@@ -83,7 +87,7 @@ export default function RappiSyncPanel() {
           );
         })}
       </div>
-      {sub === "precios" ? <RappiPreciosPanel /> : <RappiDisponibilidadPanel />}
+      {sub === "inventario" ? <RappiInventarioPanel /> : sub === "precios" ? <RappiPreciosPanel /> : <RappiDisponibilidadPanel />}
     </div>
   );
 }
@@ -159,7 +163,8 @@ function RappiDisponibilidadPanel() {
             Rappi · disponibilidad
           </h2>
           <p style={{ margin: "6px 0 0", color: C.textMid, fontSize: 13, maxWidth: 560, lineHeight: 1.45 }}>
-            Se publica <code>stock − {reserva}</code> piezas de colchón. Receta y controlados no salen.
+            Se publica <code>stock − {reserva}</code> de colchón. Receta, cajas enormes de mostrador
+            (Alka C/100, Aspirina 80) y cajas ya abiertas no salen.
             Sin <code>RAPPI_CLIENT_ID</code> el worker no llama a Rappi: queda inerte.
           </p>
         </div>

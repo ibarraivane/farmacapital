@@ -41,6 +41,20 @@ describe('rappiAvailability', () => {
     assert.equal(r.newStockRappi, 5);
   });
 
+  it('no publica Alka C/100 ni Aspirina 80 (mostrador por pieza)', () => {
+    const { productoEligibleRappi, cajasCerradasParaRappi } = require('./rappiAvailability');
+    const alka = { activo: true, venta_unidad: true, unidades_por_caja: 100, stock: 35, stock_unidades: 100 };
+    assert.equal(productoEligibleRappi(alka), false);
+    assert.equal(cajasCerradasParaRappi(alka), 0);
+  });
+
+  it('caja abierta descuenta 1 del stock publicado', () => {
+    const { cajasCerradasParaRappi, calcStockRappi } = require('./rappiAvailability');
+    const saba = { venta_unidad: true, unidades_por_caja: 8, stock: 5, stock_unidades: 8 };
+    assert.equal(cajasCerradasParaRappi(saba), 4);
+    assert.equal(calcStockRappi(4, 2), 2);
+  });
+
   it('no publica receta/controlado aunque haya stock', () => {
     const r = shouldEnqueueDisponibilidad({
       oldStock: 10,
