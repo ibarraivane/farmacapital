@@ -28,6 +28,9 @@ import { productoEsVendible } from "./utils/productoVendible";
 import { CATEGORIAS_PRODUCTO, categoriaCanon, categoriaPasaFiltro, categoriasCoinciden, esCategoriaAntibiotico } from "./constants/categoriasProducto";
 import { showToast, Logo, BrandSplash } from "./ui";
 import GaleriaProducto from "./components/GaleriaProducto";
+import PrecioOferta from "./components/PrecioOferta";
+import { mapaPromosPorProducto, ofertaDeProducto } from "./lib/precioOferta";
+import { hoyISOMexico } from "./lib/fecha";
 import { useImagenesPrincipales, useProductoImagenes } from "./hooks/useProductoImagenes";
 import { useCatalogoVivo } from "./hooks/useCatalogoVivo";
 import { setBloqueaReloadApp } from "./utils/appUpdate";
@@ -284,6 +287,12 @@ function BannerLoopVideo({ src, poster, style, "aria-label": ariaLabel }){
 }
 
 const TiendaPlaceholderCtx = createContext("");
+const TiendaPromosCtx = createContext(new Map());
+
+function usePromosProducto(productoId) {
+  const mapa = useContext(TiendaPromosCtx);
+  return mapa.get(productoId) || null;
+}
 
 /**
  * Imagen de producto en catálogo / carrito. La principal de producto_imagenes
@@ -1749,6 +1758,8 @@ function ProductCard({prod,addToCart,onClick}){
   const C = useTheme();
   const narrow = useMediaQuery("(max-width: 768px)");
   const [added,setAdded]=useState(false);
+  const promosProd = usePromosProducto(prod?.id);
+  const oferta = ofertaDeProducto(prod, promosProd);
   const agotado = productoAgotadoTienda(prod);
   const d=prod.disponible||(prod.stock>0?"inmediato":"48hrs");
   const placeholderUrl = useContext(TiendaPlaceholderCtx);
@@ -1829,18 +1840,19 @@ function ProductCard({prod,addToCart,onClick}){
           }
           {prod.tipo==="generico"&&<Tag col={BRAND.secondary} sm>Genérico</Tag>}
           {prod.requiere_receta&&<Tag col={C.red} sm>Rx</Tag>}
-          {prod.descuento_pct>0&&<span style={{background:C.red,color:"#fff",fontSize:9,fontWeight:800,borderRadius:4,padding:"2px 6px"}}>-{prod.descuento_pct}% OFF</span>}
         </div>
         <div style={{color:C.dark,fontWeight:700,fontSize:14,marginBottom:4,lineHeight:1.3,pointerEvents:"none"}}>{prod.nombre}</div>
         <div style={{color:C.dim,fontSize:11,marginBottom:8,flex:1}}>{prod.descripcion}</div>
         <div style={{marginBottom:10}}>
-          <div style={{display:"flex",alignItems:"baseline",gap:8}}>
-            <span style={{color:BRAND.primary,fontWeight:900,fontSize:20}}>{$(prod.precio||prod.precio||0)}</span>
-            {prod.precio_marca&&<span style={{color:C.dim,fontSize:11,textDecoration:"line-through"}}>{$(prod.precio_marca)}</span>}
-          </div>
-          {prod.tipo==="generico"&&prod.precio_marca&&<div style={{color:BRAND.accent,fontSize:11,fontWeight:600}}>Ahorras {$(prod.precio_marca-prod.precio)}</div>}
+          <PrecioOferta prod={prod} promos={promosProd} size="sm" />
+          {!oferta.hayOferta && prod.precio_marca ? (
+            <div style={{display:"flex",alignItems:"baseline",gap:8,marginTop:4}}>
+              <span style={{color:C.dim,fontSize:11,textDecoration:"line-through"}}>{$(prod.precio_marca)} marca</span>
+            </div>
+          ) : null}
+          {!oferta.hayOferta && prod.tipo==="generico"&&prod.precio_marca&&<div style={{color:BRAND.accent,fontSize:11,fontWeight:600}}>Ahorras {$(prod.precio_marca-prod.precio)} vs marca</div>}
         </div>
-        <div style={{color:C.dim,fontSize:10,marginBottom:10}}>+{labelPts(ptsGana(prod.precio||prod.precio||0))}</div>
+        <div style={{color:C.dim,fontSize:10,marginBottom:10}}>+{labelPts(ptsGana(oferta.oferta))}</div>
         <div style={{display:"flex",gap:8}}>
           <Btn onClick={handleDetailClick} outline col={BRAND.primary} sm style={{flex:1}}>Ver detalle</Btn>
           <Btn onClick={handleAddClick} col={agotado||!productoPermitidoEnTiendaFarmaciaWeb(prod)?"#9A9184":added?BRAND.secondary:BRAND.primary} sm style={{flex:1,opacity:(agotado||!productoPermitidoEnTiendaFarmaciaWeb(prod))?0.6:1,cursor:agotado||!productoPermitidoEnTiendaFarmaciaWeb(prod)?"not-allowed":"pointer"}}>{agotado?"Agotado":!productoPermitidoEnTiendaFarmaciaWeb(prod)?(productoEsCategoriaMinisuperTienda(prod)?"Solo minisuper":"Solo en mostrador"):added?"✓ Listo":"+ Carrito"}</Btn>
@@ -1879,6 +1891,8 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
   // Antes del early return: los hooks deben correr en el mismo orden siempre.
   const imgSrc = productImageUrl(prod, stack, placeholderUrl, fotoCatalogoDe(prod?.id));
   const { imagenes: galeria } = useProductoImagenes(prod?.id, imgSrc);
+  const promosProd = usePromosProducto(prod?.id);
+  const oferta = ofertaDeProducto(prod, promosProd);
   if(!prod) return (
     <div style={{maxWidth:560,margin:"80px auto",padding:"0 24px",textAlign:"center"}}>
       <h2 style={{color:C.dark,fontSize:22,fontWeight:800,marginBottom:12}}>Producto no disponible</h2>
@@ -1952,18 +1966,18 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
           <h1 style={{color:C.dark,fontSize:"clamp(20px, 5vw, 28px)",fontWeight:800,marginBottom:8,lineHeight:1.25}}>{prod.nombre}</h1>
           {prod.marca&&<div style={{color:C.mid,fontSize:14,marginBottom:16}}>Marca de referencia: {prod.marca}</div>}
           <div style={{marginBottom:20}}>
-            <div style={{display:"flex",alignItems:"baseline",gap:12,flexWrap:"wrap"}}>
-              <span style={{color:BRAND.primary,fontWeight:900,fontSize:"clamp(26px, 7vw, 36px)"}}>{$(prod.precio||prod.precio||0)}</span>
-              {prod.precio_marca&&<span style={{color:C.dim,fontSize:16,textDecoration:"line-through"}}>{$(prod.precio_marca)} marca</span>}
-            </div>
-            {prod.tipo==="generico"&&prod.precio_marca&&(
+            <PrecioOferta prod={prod} promos={promosProd} size="lg" />
+            {!oferta.hayOferta && prod.precio_marca ? (
+              <div style={{color:C.dim,fontSize:16,textDecoration:"line-through",marginTop:6}}>{$(prod.precio_marca)} marca</div>
+            ) : null}
+            {!oferta.hayOferta && prod.tipo==="generico"&&prod.precio_marca&&(
               <div style={{background:BRAND.accent+"18",border:`1px solid ${BRAND.accent}30`,borderRadius:8,padding:"8px 12px",marginTop:8,display:"inline-block"}}>
                 <span style={{color:BRAND.accent,fontWeight:700}}>Ahorras {$(prod.precio_marca-(prod.precio||prod.precio||0))} vs marca</span>
               </div>
             )}
           </div>
           <div style={{background:"#fef3c7",border:"1px solid #f59e0b30",borderRadius:10,padding:"10px 14px",marginBottom:20}}>
-            <div style={{color:"#92400e",fontWeight:700}}>Ganas {labelPts(ptsGana(prod.precio))} con esta compra</div>
+            <div style={{color:"#92400e",fontWeight:700}}>Ganas {labelPts(ptsGana(oferta.oferta))} con esta compra</div>
           </div>
           {prod.descripcion&&(
             <div style={{background:C.cardDark,borderRadius:12,padding:16,marginBottom:20}}>
@@ -3119,11 +3133,13 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
   const C = useTheme();
   const stack = useMediaQuery("(max-width: 768px)");
   const placeholderUrl = useContext(TiendaPlaceholderCtx);
+  const mapaPromos = useContext(TiendaPromosCtx);
   const fotoCatalogoDe = useImagenesPrincipales();
   const [entrega,setEntrega]=useState("pickup");
   const [, setCanjeTick] = useState(0);
   useEffect(()=>{ setEntregaGlobal?.(entrega); },[entrega,setEntregaGlobal]);
-  const sub=cart.reduce((a,c)=>a+c.precio*c.qty,0);
+  const cobroDe=(c)=>ofertaDeProducto(c, mapaPromos.get(c.id)).oferta * c.qty;
+  const sub=cart.reduce((a,c)=>a+cobroDe(c),0);
   const qtyTouch = stack ? 44 : 28;
   const qtyBtnStyle = {
     width: qtyTouch,
@@ -3168,14 +3184,19 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
                   <span style={{fontSize:28}}>💊</span>
                 )}
               </div>
-              <div style={{flex:1}}><div style={{color:C.dark,fontWeight:700,fontSize:15}}>{item.nombre}</div><div style={{color:C.dim,fontSize:11,marginTop:4}}>+{labelPts(ptsGana(item.precio*item.qty))}</div></div>
+              <div style={{flex:1}}><div style={{color:C.dark,fontWeight:700,fontSize:15}}>{item.nombre}</div><div style={{color:C.dim,fontSize:11,marginTop:4}}>+{labelPts(ptsGana(cobroDe(item)))}</div></div>
               <div style={{display:"flex",alignItems:"center",gap:10,flexShrink:0,flexWrap:"wrap",marginLeft:"auto"}}>
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
                   <button type="button" aria-label="Disminuir cantidad" onClick={()=>upd(item.id,-1)} style={qtyBtnStyle}>-</button>
                   <span style={{color:C.dark,fontWeight:700,fontSize:15,minWidth:24,textAlign:"center"}}>{item.qty}</span>
                   <button type="button" aria-label="Aumentar cantidad" onClick={()=>upd(item.id,1)} style={qtyBtnStyle}>+</button>
                 </div>
-                <div style={{color:BRAND.primary,fontWeight:800,fontSize:18,minWidth:60,textAlign:"right"}}>{$(item.precio*item.qty)}</div>
+                <div style={{minWidth:88,textAlign:"right"}}>
+                  <PrecioOferta prod={item} promos={mapaPromos.get(item.id)} size="md" showAhorro={false} align="end" />
+                  {item.qty > 1 && (
+                    <div style={{color:BRAND.primary,fontWeight:800,fontSize:13,marginTop:4}}>{$(cobroDe(item))}</div>
+                  )}
+                </div>
                 <button type="button" onClick={()=>rm(item.id)} style={{background:"none",border:"none",color:C.dim,cursor:"pointer",fontSize:18}}>🗑️</button>
               </div>
             </div>
@@ -3235,6 +3256,8 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
 function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoProductos=[]}){
   const C = useTheme();
   const stack = useMediaQuery("(max-width: 768px)");
+  const mapaPromos = useContext(TiendaPromosCtx);
+  const cobroDe=(c)=>ofertaDeProducto(c, mapaPromos.get(c.id)).oferta * (Number(c.qty)||0);
   useEffect(() => {
     setBloqueaReloadApp(true, "tienda-checkout");
     return () => setBloqueaReloadApp(false, "tienda-checkout");
@@ -3262,7 +3285,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
     }
   });
   const [, setCanjeTick] = useState(0);
-  const sub=cart.reduce((a,c)=>a+(Number(c.precio)||0)*(Number(c.qty)||0),0);
+  const sub=cart.reduce((a,c)=>a+cobroDe(c),0);
   const ptsG=Math.floor(sub/10);
   const canjeActivo = leerCanjeActivo();
 
@@ -3419,7 +3442,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
       const [{ data: stockRows }, { data: lotesRowsRaw }] = await Promise.all([
         supabase
           .from("productos")
-          .select("id,stock,precio,activo,requiere_receta,categoria")
+          .select("id,stock,precio,descuento_pct,activo,requiere_receta,categoria")
           .in("id", productIds),
         supabase.rpc("tienda_public_lotes_resumen_checkout", { p_producto_ids: numericIds }),
       ]);
@@ -3456,6 +3479,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
           qty: Math.min(qtyReq, eff),
           stock: eff,
           precio: Number(dbp.precio ?? c.precio ?? 0),
+          descuento_pct: Number(dbp.descuento_pct ?? c.descuento_pct ?? 0),
           activo: dbp.activo,
         });
       }
@@ -3549,7 +3573,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
         setG(false); return;
       }
 
-      const subSnap = reconciled.reduce((a,c)=>a+(Number(c.precio)||0)*(Number(c.qty)||0),0);
+      const subSnap = reconciled.reduce((a,c)=>a+cobroDe(c),0);
 
       if (metodo === "mercadopago") {
         const baseUrl = window.location.origin;
@@ -3572,7 +3596,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
             items: reconciled.map((c) => ({
               title: c.nombre || "Producto",
               quantity: Number(c.qty) || 1,
-              unit_price: Number(c.precio) || 0,
+              unit_price: ofertaDeProducto(c, mapaPromos.get(c.id)).oferta || 0,
             })),
           }),
         });
@@ -3585,7 +3609,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
           setLastOrder({
             sub: subSnap,
             ptsG: Math.floor(subSnap/10),
-            lines: reconciled.map(c=>({ nombre:c.nombre, qty:c.qty, precio:c.precio })),
+            lines: reconciled.map(c=>({ nombre:c.nombre, qty:c.qty, precio: ofertaDeProducto(c, mapaPromos.get(c.id)).oferta })),
             entregaUi: entrega,
             tipo_entrega,
             order_channel,
@@ -3611,7 +3635,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
       setLastOrder({
         sub: subSnap,
         ptsG: Math.floor(subSnap/10),
-        lines: reconciled.map(c=>({ nombre:c.nombre, qty:c.qty, precio:c.precio })),
+        lines: reconciled.map(c=>({ nombre:c.nombre, qty:c.qty, precio: ofertaDeProducto(c, mapaPromos.get(c.id)).oferta })),
         entregaUi: entrega,
         tipo_entrega,
         order_channel,
@@ -3861,7 +3885,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
               {cart.map(item=>(
                 <div key={item.id} style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,padding:"8px 0",borderBottom:`1px solid ${C.border}`}}>
                   <span style={{color:C.dark,fontSize:13,fontWeight:600,flex:1,minWidth:0,wordBreak:"break-word"}}>{item.nombre} ×{item.qty}</span>
-                  <span style={{color:BRAND.primary,fontWeight:700,flexShrink:0}}>{$(item.precio*item.qty)}</span>
+                  <span style={{color:BRAND.primary,fontWeight:700,flexShrink:0}}>{$(cobroDe(item))}</span>
                 </div>
               ))}
               {!cart.length&&<div style={{fontSize:12,color:C.textMid,padding:"6px 0"}}>Tu carrito está vacío.</div>}
@@ -3880,7 +3904,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
         </div>
         <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:20,position:stack?"relative":"sticky",top:"calc(env(safe-area-inset-top, 0px) + 100px)"}}>
           <div style={{color:C.dark,fontWeight:700,fontSize:15,marginBottom:14}}>Tu pedido</div>
-          {cart.map(item=>(<div key={item.id} style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><span style={{color:C.mid,fontSize:13}}>{item.nombre} ×{item.qty}</span><span style={{color:C.dark,fontSize:13,fontWeight:600}}>{$(item.precio*item.qty)}</span></div>))}
+          {cart.map(item=>(<div key={item.id} style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><span style={{color:C.mid,fontSize:13}}>{item.nombre} ×{item.qty}</span><span style={{color:C.dark,fontSize:13,fontWeight:600}}>{$(cobroDe(item))}</span></div>))}
           <div style={{borderTop:`1px solid ${C.border}`,marginTop:12,paddingTop:12}}><div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:C.dark,fontWeight:800}}>Total</span><span style={{color:BRAND.primary,fontWeight:900,fontSize:20}}>{$(sub)}</span></div></div>
         </div>
       </div>
@@ -5371,6 +5395,7 @@ export default function TiendaFarmaCapital(){
   const [entregaCheckout,setEntregaCheckout] = useState("pickup");
   const [precioConsultaCfg,setPrecioConsultaCfg] = useState(CONSULTA_PRECIO_DEFAULT);
   const [placeholderProductoUrl, setPlaceholderProductoUrl] = useState("");
+  const [mapaPromos, setMapaPromos] = useState(() => new Map());
 
   useEffect(() => {
     if (page !== "detalle") return;
@@ -5444,6 +5469,7 @@ export default function TiendaFarmaCapital(){
         return {
           ...c,
           precio: next.precio ?? c.precio,
+          descuento_pct: next.descuento_pct ?? c.descuento_pct,
           stock: next.stock ?? c.stock,
           nombre: next.nombre || c.nombre,
           imagen_url: next.imagen_url || c.imagen_url,
@@ -5520,6 +5546,21 @@ export default function TiendaFarmaCapital(){
     const onVis = ()=>{ if (document.visibilityState==="visible") loadPopupBanner(); };
     document.addEventListener("visibilitychange", onVis);
     return ()=>{ cancelled = true; document.removeEventListener("visibilitychange", onVis); };
+  },[]);
+
+  useEffect(()=>{
+    let cancelled = false;
+    const hoy = hoyISOMexico();
+    Promise.all([
+      supabase.from("promociones").select("id,nombre,tipo,valor,activa,fecha_inicio,fecha_fin"),
+      supabase.from("promocion_productos").select("promocion_id,producto_id"),
+    ]).then(([a, b]) => {
+      if (cancelled) return;
+      setMapaPromos(mapaPromosPorProducto(a.data, b.data, hoy));
+    }).catch(() => {
+      if (!cancelled) setMapaPromos(new Map());
+    });
+    return ()=>{ cancelled = true; };
   },[]);
 
   const addToCart=prod=>{
@@ -5632,6 +5673,7 @@ export default function TiendaFarmaCapital(){
 
   return(
     <TiendaPlaceholderCtx.Provider value={placeholderProductoUrl}>
+    <TiendaPromosCtx.Provider value={mapaPromos}>
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
@@ -5687,6 +5729,7 @@ export default function TiendaFarmaCapital(){
       </div>
       <WhatsAppFloatingButton />
     </>
+    </TiendaPromosCtx.Provider>
     </TiendaPlaceholderCtx.Provider>
   );
 }

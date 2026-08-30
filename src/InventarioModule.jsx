@@ -15,6 +15,7 @@ import OnboardingTour from "./components/OnboardingTour";
 import { idEmpleadoUsuarios } from "./utils/usuarioId";
 import ImageUploader from "./components/ImageUploader";
 import GaleriaProducto from "./components/GaleriaProducto";
+import PrecioOferta from "./components/PrecioOferta";
 import { useImagenesPrincipales, useProductoImagenes } from "./hooks/useProductoImagenes";
 import { useCatalogoVivo } from "./hooks/useCatalogoVivo";
 import { avisarCatalogoCambio } from "./utils/catalogoVivo";
@@ -1355,6 +1356,12 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
             {field("Stock actual","stock","number",true)}
             {field("Stock mínimo","stock_minimo","number")}
             {field("Descuento %","descuento_pct","number")}
+            {Number(form.descuento_pct) > 0 && Number(form.precio) > 0 && (
+              <div style={{marginBottom:12,padding:"10px 12px",background:C.card,border:`1px solid ${C.border}`,borderRadius:8}}>
+                <div style={{fontSize:10,fontWeight:800,color:C.textMid,marginBottom:6,letterSpacing:0.3}}>ASÍ LO VE EL CLIENTE EN LA TIENDA</div>
+                <PrecioOferta prod={{ precio: form.precio, descuento_pct: form.descuento_pct }} size="sm" />
+              </div>
+            )}
             {field("Concentración","concentracion")}
             {field("Presentación","presentacion")}
             {field("Forma farmacéutica","forma_farmaceutica")}
