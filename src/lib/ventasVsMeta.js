@@ -8,6 +8,7 @@ import {
   ymdLocalDate,
   ymdMexico as ymdMexicoFecha,
 } from "./fecha";
+import { serieVentasDesdeRpc } from "./dashboardVentas";
 import { metasDelPeriodo } from "./metasDelPeriodo";
 
 export { TZ_FARMACIA };
@@ -87,14 +88,7 @@ export function agruparVentasPorDia(pedidos) {
 }
 
 export function porDiaDesdeSerieRpc(raw) {
-  const rows = Array.isArray(raw) ? raw : [];
-  const out = {};
-  for (const r of rows) {
-    const dia = String(r.dia || r.fecha || "").slice(0, 10);
-    if (!dia) continue;
-    out[dia] = (out[dia] || 0) + (parseFloat(r.total) || 0);
-  }
-  return out;
+  return serieVentasDesdeRpc(raw).porDia;
 }
 
 function lunesDe(d) {

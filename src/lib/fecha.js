@@ -42,6 +42,13 @@ export function dowISO(iso) {
   return new Date(Date.UTC(y, m - 1, d)).getUTCDay();
 }
 
+/** Lunes de la semana ISO (lun–dom) que contiene `iso` (YYYY-MM-DD). */
+export function lunesISODe(iso) {
+  const dow = dowISO(iso); // 0=dom … 6=sáb
+  const back = dow === 0 ? 6 : dow - 1;
+  return addDaysISO(iso, -back);
+}
+
 function mexicoMidnightUtcMs(day) {
   const ymdAt = (ms) =>
     new Intl.DateTimeFormat("en-CA", {

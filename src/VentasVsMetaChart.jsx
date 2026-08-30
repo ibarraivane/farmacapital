@@ -86,10 +86,10 @@ export default function VentasVsMetaChart({ porDia, cfg, hoyYmd, onEditarMetas }
   const max = Math.max(...serie.map((p) => Math.max(p.actual || 0, p.meta || 0)), 1);
 
   const sub = grano === "dia"
-    ? "Cada barra es un día. La raya punteada es la meta de ese día (domingo no es lo mismo que viernes)."
+    ? "Cada barra es el día civil en México (tickets completados menos devoluciones de ese día). La raya punteada es la meta (domingo no es lo mismo que viernes)."
     : grano === "semana"
-      ? "Lunes a domingo. La raya punteada es la meta de esos 7 días."
-      : "La raya punteada es la meta mensual que configuraste.";
+      ? "Lunes a domingo del calendario de la farmacia. La raya punteada es la meta de esos 7 días."
+      : "Mes calendario. La raya punteada es la meta mensual que configuraste.";
 
   return (
     <section className="fc-ventas-meta" style={{

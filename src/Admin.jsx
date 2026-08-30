@@ -7,7 +7,8 @@ import { $, dC, cC, abc, aCol, nCol, hashPwd, hashPwdLegacy, generateSalt, prime
 import { validarPasswordTienda, PASSWORD_RULES_TEXT } from "./utils/passwordPolicy";
 import { Logo, Box, Tag, Btn, Inp, KPI, KPI_ROW, Modal, NotificacionesToast, showToast, ToastProvider, ConfirmDialog, SkeletonTable, SkeletonKPIs, SkeletonCard, Paginador, GlobalHoverStyles } from "./ui";
 import { sincronizarVentasPendientes, contarVentasPendientes } from "./utils/offlineQueue";
-import { ymdMexico, ymdFarmaciaMas, rangoDiaFarmacia, inicioDiaFarmacia, inicioMesFarmaciaYmd } from "./lib/ventasVsMeta";
+import { ymdMexico, rangoDiaFarmacia, inicioDiaFarmacia, inicioMesFarmaciaYmd } from "./lib/ventasVsMeta";
+import { lunesISODe } from "./lib/fecha";
 import { esPedidoTiendaWebPendiente, fetchPedidosTiendaPendientesMerged } from "./utils/pedidosTiendaWeb";
 import AgendaConsultasModule from "./modules/clinical/AgendaConsultasModule";
 import ExpedientesDoctora from "./modules/clinical/patients/ExpedientesDoctora";
@@ -584,7 +585,7 @@ function Dashboard({negocio,alertas,setPage}){
         const _hoyRango = rangoDiaFarmacia(hoyLocal);
         const t0 = new Date(_hoyRango.start);
         const t1 = new Date(_hoyRango.end);
-        const weekAgo = inicioDiaFarmacia(ymdFarmaciaMas(-6));
+        const weekAgo = inicioDiaFarmacia(lunesISODe(hoyLocal));
         const monthStart = inicioDiaFarmacia(inicioMesFarmaciaYmd());
 
         const pedidosTiendaSelect = `
