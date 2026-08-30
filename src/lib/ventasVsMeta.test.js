@@ -127,6 +127,12 @@ describe("porDiaDesdeSerieRpc", () => {
       "2026-08-23": 12,
     });
   });
+
+  test("resta devoluciones si el RPC las manda", () => {
+    expect(porDiaDesdeSerieRpc([
+      { dia: "2026-08-23", total: "100", devoluciones: "15" },
+    ])).toEqual({ "2026-08-23": 85 });
+  });
 });
 
 describe("ymdFromLocalDate", () => {

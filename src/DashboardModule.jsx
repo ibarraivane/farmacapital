@@ -11,12 +11,19 @@ import { countPedidosTiendaPendientesHead } from "./utils/pedidosTiendaWeb";
 import { rolEsAdmin } from "./utils/permissions";
 import { fixLegacyFarmaxBrand } from "./utils/brandText";
 import { parseRpcJsonArray, parseRpcJsonObject } from "./utils/rpcJson";
-import { pedidoEsTipoFisica, pedidoEsTipoOnline, pedidoEsTipoConsulta } from "./utils/orderChannels";
+import { canalIngresoPedido } from "./utils/orderChannels";
 import { costoLineaVenta, ingresoLineaVenta } from "./utils/margenVenta";
 import { DIAS_CADUCIDAD_ALERTA } from "./lib/caducidad";
 import VentasVsMetaChart from "./VentasVsMetaChart";
-import { agruparVentasPorDia, parseYmdLocal, porDiaDesdeSerieRpc, ymdMexico } from "./lib/ventasVsMeta";
-import { addDaysISO, dowISO, hoyISOMexico, rangoDiaMexico } from "./lib/fecha";
+import { agruparVentasPorDia, parseYmdLocal, ymdMexico } from "./lib/ventasVsMeta";
+import { addDaysISO, hoyISOMexico } from "./lib/fecha";
+import {
+  finInclusivoIso,
+  rangoReporteMexico,
+  rangosDashboardMexico,
+  serieVentasDesdeRpc,
+  sumPorDiaYmd,
+} from "./lib/dashboardVentas";
 import { cargarConfigMetas, invalidarCacheMetas, mezclarCfgMetas } from "./utils/turnosMetas";
 import { metasDelPeriodo } from "./lib/metasDelPeriodo";
 
@@ -40,10 +47,6 @@ function ventasRowsOrFallback(primaryBundle, primaryKey, fallbackBundle, fallbac
 
 function pedidosCompletados(rows) {
   return parseRpcJsonArray(rows).filter((p) => String(p.estado || "").toLowerCase() === "completado");
-}
-
-function sumPedidosTotal(pedidos) {
-  return (pedidos || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
 }
 
 function loadDashboardInitialTab(fallback = "operacion") {
@@ -145,20 +148,7 @@ const fmtDate = () => new Date().toLocaleDateString("es-MX",{weekday:"long",day:
 /** Grilla 2 columnas que en ventanas estrechas pasa a 1 columna (Chrome / escritorio redimensionado). */
 const GRID_RESP_2COL = "repeat(auto-fit, minmax(min(100%, 280px), 1fr))";
 
-/** Ventanas del dashboard en calendario de la farmacia (CDMX), no del navegador. */
-function lunesISODe(iso) {
-  const dow = dowISO(iso); // 0=dom … 6=sáb
-  const back = dow === 0 ? 6 : dow - 1;
-  return addDaysISO(iso, -back);
-}
-
-function sumPorDiaYmd(porDia, desdeYmd, hastaYmd) {
-  let t = 0;
-  for (const [dia, tot] of Object.entries(porDia || {})) {
-    if (dia >= desdeYmd && dia <= hastaYmd) t += tot;
-  }
-  return t;
-}
+/** Ventanas del dashboard: ver `rangosDashboardMexico` (día civil CDMX). */
 
 function parseMeta(rows, clave, def) {
   const r = (rows || []).find(x => x.clave === clave);
@@ -349,23 +339,27 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
     // Día / semana / mes en America/Mexico_City. Si el admin abre desde Europa
     // de noche, el reloj local ya es "mañana" y ped_hoy salía en $0 mientras
     // la gráfica (ymdMexico) seguía mostrando el viernes con ventas.
-    const hoyLocal = hoyISOMexico();
-    const ayerLocal = addDaysISO(hoyLocal, -1);
-    const today = rangoDiaMexico(hoyLocal);
-    const yesterday = rangoDiaMexico(ayerLocal);
-    const lunes = lunesISODe(hoyLocal);
-    const lunesAnt = addDaysISO(lunes, -7);
-    const week = { start: rangoDiaMexico(lunes).start, end: today.end };
-    const weekPrev = {
-      start: rangoDiaMexico(lunesAnt).start,
-      end: rangoDiaMexico(addDaysISO(lunes, -1)).end,
-    };
-    const inicioMesLocal = `${hoyLocal.slice(0, 7)}-01`;
-    const finMesAnt = addDaysISO(inicioMesLocal, -1);
-    const inicioMesAnt = `${finMesAnt.slice(0, 7)}-01`;
-    const month = { start: rangoDiaMexico(inicioMesLocal).start, end: today.end };
-    const monthPrevStart = rangoDiaMexico(inicioMesAnt).start;
-    const monthPrevEnd = rangoDiaMexico(finMesAnt).end;
+    const R = rangosDashboardMexico();
+    const hoyLocal = R.hoy;
+    const ayerLocal = R.ayer;
+    const today = R.today;
+    const yesterday = R.yesterday;
+    const lunes = R.lunes;
+    const lunesAnt = R.lunesAnt;
+    const week = R.week;
+    const weekPrev = R.weekPrev;
+    const inicioMesLocal = R.inicioMes;
+    const finMesAnt = R.finMesAnt;
+    const inicioMesAnt = R.inicioMesAnt;
+    const month = R.month;
+    const monthPrevStart = R.monthPrev.start;
+    const monthPrevEnd = R.monthPrev.end;
+    // Los RPC del bundle usan `created_at <= fin`. El rango JS es [start, end);
+    // mandamos el último ms para no colar la medianoche del día siguiente.
+    const todayEndIncl = finInclusivoIso(today.end);
+    const yesterdayEndIncl = finInclusivoIso(yesterday.end);
+    const weekPrevEndIncl = finInclusivoIso(weekPrev.end);
+    const monthPrevEndIncl = finInclusivoIso(monthPrevEnd);
 
     const cofeprisLimite = addDaysISO(hoyLocal, 30);
     const adminTok = sessionStorage.getItem("farmacapital_session_token");
@@ -378,15 +372,15 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
       : Promise.resolve({ data: null, error: { message: "sin sesión" } });
     const bundleCtx = {
       today_start: today.start,
-      today_end: today.end,
+      today_end: todayEndIncl,
       yesterday_start: yesterday.start,
-      yesterday_end: yesterday.end,
+      yesterday_end: yesterdayEndIncl,
       week_start: week.start,
       week_prev_start: weekPrev.start,
-      week_prev_end: weekPrev.end,
+      week_prev_end: weekPrevEndIncl,
       month_start: month.start,
       month_prev_start: monthPrevStart,
-      month_prev_end: monthPrevEnd,
+      month_prev_end: monthPrevEndIncl,
       hoy_local: hoyLocal,
       ayer_local: ayerLocal,
       inicio_mes_local: inicioMesLocal,
@@ -412,7 +406,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
             p_session_token: adminTok,
             p_hoy_local: hoyLocal,
             p_today_start: today.start,
-            p_today_end: today.end,
+            p_today_end: todayEndIncl,
             p_week_start: week.start,
             p_month_start: month.start,
           })
@@ -436,7 +430,9 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
     const B = parseRpcJsonObject(bundleRes.data);
     const H = parseRpcJsonObject(homeRes.data);
 
-    let ventasPorDia = porDiaDesdeSerieRpc(parseRpcJsonArray(serieRes?.data));
+    const serieParsed = serieVentasDesdeRpc(parseRpcJsonArray(serieRes?.data));
+    let ventasPorDia = serieParsed.porDia;
+    let ticketsPorDia = serieParsed.tickets;
     if (!Object.keys(ventasPorDia).length) {
       if (serieRes?.error) console.warn("[Dashboard] ventas serie:", serieRes.error.message);
       if (adminTok) {
@@ -446,7 +442,16 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
           p_limite: 800,
         });
         if (err90) console.warn("[Dashboard] ventas serie fallback:", err90.message);
-        ventasPorDia = agruparVentasPorDia(pedidosCompletados(raw90));
+        const rawOk = pedidosCompletados(raw90);
+        ventasPorDia = agruparVentasPorDia(rawOk);
+        ticketsPorDia = {};
+        for (const p of rawOk) {
+          const dia = ymdMexico(p.created_at);
+          ticketsPorDia[dia] = (ticketsPorDia[dia] || 0) + 1;
+        }
+        if (rawOk.length >= 800) {
+          console.warn("[Dashboard] serie fallback topó 800 tickets; corre sql/patch_dashboard_ventas_suma_20260830.sql");
+        }
       }
     }
 
@@ -537,6 +542,9 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
     const ventasSemanaSerie = sumPorDiaYmd(ventasPorDia, lunes, hoyLocal);
     const ventasSemanaAntSerie = sumPorDiaYmd(ventasPorDia, lunesAnt, addDaysISO(lunes, -1));
     const ventasMesSerie = sumPorDiaYmd(ventasPorDia, inicioMesLocal, hoyLocal);
+    const ventasMesAntSerie = sumPorDiaYmd(ventasPorDia, inicioMesAnt, finMesAnt);
+    const ticketsMesSerie = sumPorDiaYmd(ticketsPorDia, inicioMesLocal, hoyLocal);
+    const ticketsMesAntSerie = sumPorDiaYmd(ticketsPorDia, inicioMesAnt, finMesAnt);
 
     const ventasHoyPed = (pedHoy || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
     const ventasAyerPed = (pedAyer || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
@@ -550,12 +558,14 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
     const ventasSemana = tieneSerie ? ventasSemanaSerie : ventasSemanaPed;
     const ventasSemanaAnt = tieneSerie ? ventasSemanaAntSerie : ventasSemanaAntPed;
     const ventasMes = tieneSerie ? ventasMesSerie : ventasMesPed;
-    const totalPedMes = (pedMes || []).length;
-    const ticketProm = totalPedMes > 0 ? ventasMesPed / totalPedMes : 0;
+    const totalPedMes = tieneSerie ? ticketsMesSerie : (pedMes || []).length;
+    const ticketProm = totalPedMes > 0 ? ventasMes / totalPedMes : 0;
     const recuperado = (pedTodos || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
     const gananciaMes = ventasMes * 0.55;
-    const ventasMesAnt = (pedMesAnt || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
-    const ticketPromMesAnt = (pedMesAnt || []).length > 0 ? ventasMesAnt / (pedMesAnt || []).length : 0;
+    const ventasMesAnt = tieneSerie ? ventasMesAntSerie : (pedMesAnt || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
+    const ticketPromMesAnt = (tieneSerie ? ticketsMesAntSerie : (pedMesAnt || []).length) > 0
+      ? ventasMesAnt / (tieneSerie ? ticketsMesAntSerie : (pedMesAnt || []).length)
+      : 0;
     const crecimiento = ventasMesAnt > 0 ? ((ventasMes - ventasMesAnt) / ventasMesAnt * 100).toFixed(1) : null;
 
     const metas = {
@@ -582,9 +592,14 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
     const cofeprisVencidas = cofeprisItems.filter(c => c.vencida).length;
     const cofeprisPorVencer = cofeprisItems.length;
 
-    const fisica = (pedMesTipo || []).filter((p) => pedidoEsTipoFisica(p.tipo)).reduce((a, p) => a + parseFloat(p.total || 0), 0);
-    const online2 = (pedMesTipo || []).filter((p) => pedidoEsTipoOnline(p.tipo)).reduce((a, p) => a + parseFloat(p.total || 0), 0);
-    const consult = (pedMesTipo || []).filter((p) => pedidoEsTipoConsulta(p.tipo)).reduce((a, p) => a + parseFloat(p.total || 0), 0);
+    const byCanalMes = { fisica: 0, online: 0, consulta: 0, servicio: 0 };
+    (pedMesTipo || []).forEach((p) => {
+      const c = canalIngresoPedido(p.tipo);
+      byCanalMes[c] = (byCanalMes[c] || 0) + parseFloat(p.total || 0);
+    });
+    const fisica = byCanalMes.fisica;
+    const online2 = byCanalMes.online;
+    const consult = byCanalMes.consulta;
 
     const byEmp = {};
     (pedMes || []).forEach((p) => {
@@ -623,7 +638,12 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
       recuperado, gananciaMes,
       dashboardLoadWarning,
       metas, trends,
-      fuentes: [{ label: "Farmacia física", value: fisica }, { label: "Tienda online", value: online2 }, { label: "Consultorio", value: consult }],
+      fuentes: [
+        { label: "Farmacia física", value: fisica },
+        { label: "Tienda online", value: online2 },
+        { label: "Consultorio", value: consult },
+        ...(byCanalMes.servicio ? [{ label: "Servicios", value: byCanalMes.servicio }] : []),
+      ],
       empleados, topProductos,
       ventasRecetaMedicoFarmaCapitalMes,
       nRecetasExternasMes,
@@ -650,9 +670,9 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
 
   const fetchRep = useCallback(async () => {
     setRepLoading(true);
-    const dias = periodo === "dia" ? 1 : periodo === "semana" ? 7 : 30;
-    const desde = new Date(Date.now() - dias * 86400000).toISOString();
-    const desdeFecha = addDaysISO(hoyISOMexico(), -dias);
+    const repRango = rangoReporteMexico(periodo);
+    const desde = repRango.desde;
+    const desdeFecha = repRango.desdeFecha;
     const sessionTok = sessionStorage.getItem("farmacapital_session_token");
     const [
       repBundleRes,
@@ -780,10 +800,15 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
   };
   const inpCapex = { width: "100%", maxWidth: "100%", padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 12, color: C.text, background: C.card, boxSizing: "border-box" };
 
-  const totalVentas = rep ? (rep.ventas||[]).reduce((a,p)=>a+parseFloat(p.total||0),0) : 0;
-  const totalOnline = rep ? rep.online : 0;
+  const ventasPorCanal = { fisica: 0, online: 0, consulta: 0, servicio: 0 };
+  for (const p of rep?.ventas || []) {
+    const c = canalIngresoPedido(p.tipo);
+    ventasPorCanal[c] = (ventasPorCanal[c] || 0) + parseFloat(p.total || 0);
+  }
+  const totalVentas = ventasPorCanal.fisica + ventasPorCanal.online + ventasPorCanal.consulta + ventasPorCanal.servicio;
+  const totalOnline = ventasPorCanal.online;
   const ticketPromedio = rep && rep.ventas?.length ? totalVentas/rep.ventas.length : 0;
-  const ingresoConsultas = rep ? rep.consultas * (rep.precioConsulta || CONSULTA_PRECIO_DEFAULT) : 0;
+  const ingresoConsultas = ventasPorCanal.consulta;
   const porEmpleado = rep ? rep.ventas.reduce((acc,p)=>{
     const nombre = p.usuarios?.nombre||"Sin asignar";
     acc[nombre]=(acc[nombre]||0)+parseFloat(p.total||0);
@@ -1018,7 +1043,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
       {panelTab==="resumen" && (
         <div>
           <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap"}}>
-            {[["dia","Hoy"],["semana","7 días"],["mes","30 días"]].map(([v,l])=>(
+            {[["dia","Hoy"],["semana","Esta semana"],["mes","Este mes"]].map(([v,l])=>(
               <button key={v} type="button" onClick={()=>setPeriodo(v)} style={{padding:"6px 14px",borderRadius:8,border:`1px solid ${periodo===v?BRAND.primary:C.border}`,background:periodo===v?BRAND.primary+"18":"transparent",color:periodo===v?BRAND.secondary:C.textMid,fontSize:12,fontWeight:700,cursor:"pointer"}}>{l}</button>
             ))}
           </div>
@@ -1027,7 +1052,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
               <div style={KPI_ROW}>
                 <KPI label="Ventas totales" value={$(totalVentas)} col={C.blue} icon="💵"/>
                 <KPI label="Ventas online" value={$(totalOnline)} col={C.teal} icon="🌐"/>
-                <KPI label="Consultas" value={$(ingresoConsultas)} col={C.purple} icon="🏥" sub={`${rep.consultas} citas`}/>
+                <KPI label="Consultas" value={$(ingresoConsultas)} col={C.purple} icon="🏥" sub={`${rep.consultas} citas (cobrado en POS)`}/>
                 <KPI label="Ventas receta médico FarmaCapital" value={$(rep.ventasRecetaFarmaCapitalPeriod || 0)} col={C.purple} icon="📋" sub="POS en el período"/>
                 <KPI label="Oportunidad perdida (est.)" value={$(rep.oportunidadPerdidaRecetaPeriod || 0)} col={(rep.nRecetasExternasPeriod || 0) > 0 ? C.amber : C.green} icon="📤" sub={`${rep.nRecetasExternasPeriod || 0} recetas fuera × ${fmt(rep.estimadoRecetaExternaUnit || 350)}`}/>
                 <KPI label="Ticket promedio" value={$(ticketPromedio)} col={C.green} icon="🧾"/>
@@ -1036,11 +1061,12 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
               <Box style={{padding:20,minWidth:0,marginBottom:16}}>
                 <div style={{color:C.text,fontWeight:700,fontSize:14,marginBottom:16}}>📊 Ingresos por fuente</div>
                 {[
-                  ["Farmacia física", Math.max(0, totalVentas - totalOnline), C.blue],
-                  ["Tienda en línea", totalOnline, C.teal],
-                  ["Consultorio", ingresoConsultas, C.purple],
+                  ["Farmacia física", ventasPorCanal.fisica, C.blue],
+                  ["Tienda en línea", ventasPorCanal.online, C.teal],
+                  ["Consultorio", ventasPorCanal.consulta, C.purple],
+                  ...(ventasPorCanal.servicio ? [["Servicios", ventasPorCanal.servicio, C.amber]] : []),
                 ].map(([l,v,col])=>{
-                  const totalFuentes = Math.max(0, totalVentas - totalOnline) + totalOnline + ingresoConsultas;
+                  const totalFuentes = totalVentas;
                   const pct = totalFuentes > 0 ? Math.round((v / totalFuentes) * 100) : 0;
                   return(
                     <div key={l} style={{marginBottom:12}}>
@@ -1077,7 +1103,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
       {panelTab==="margen" && (
         <div>
           <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap"}}>
-            {[["dia","Hoy"],["semana","7 días"],["mes","30 días"]].map(([v,l])=>(
+            {[["dia","Hoy"],["semana","Esta semana"],["mes","Este mes"]].map(([v,l])=>(
               <button key={v} type="button" onClick={()=>setPeriodo(v)} style={{padding:"6px 14px",borderRadius:8,border:`1px solid ${periodo===v?BRAND.primary:C.border}`,background:periodo===v?BRAND.primary+"18":"transparent",color:periodo===v?BRAND.secondary:C.textMid,fontSize:12,fontWeight:700,cursor:"pointer"}}>{l}</button>
             ))}
           </div>
@@ -1188,7 +1214,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
       <div style={{display:"grid",gridTemplateColumns:GRID_RESP_2COL,gap:20,marginBottom:24}}>
         <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:20,minWidth:0}}>
           <div style={{color:C.textDim,fontSize:10,fontWeight:700,letterSpacing:1.5,marginBottom:16}}>INGRESOS POR FUENTE — ESTE MES</div>
-          <BarChart data={fuentes} colorFn={(i)=>[`linear-gradient(90deg,${C.blue},${C.blueDark})`,`linear-gradient(90deg,${C.purple},#b57aff)`,`linear-gradient(90deg,${C.green},#00e87d)`][i]}/>
+          <BarChart data={fuentes} colorFn={(i)=>[`linear-gradient(90deg,${C.blue},${C.blueDark})`,`linear-gradient(90deg,${C.purple},#b57aff)`,`linear-gradient(90deg,${C.green},#00e87d)`,`linear-gradient(90deg,${C.amber},#fbbf24)`][i]}/>
           <div style={{marginTop:14,borderTop:`1px solid ${C.border}`,paddingTop:12,display:"flex",justifyContent:"space-between"}}>
             <span style={{color:C.textMid,fontSize:11}}>Total mes</span>
             <span style={{color:C.text,fontWeight:800,fontSize:13}}>{fmt(fuentes.reduce((a,f)=>a+f.value,0))}</span>

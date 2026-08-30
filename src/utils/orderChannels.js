@@ -170,6 +170,14 @@ export function pedidoEsTipoServicio(tipo) {
   return t === "servicio" || t === "recarga";
 }
 
+/** Cubeta de ingresos para el Dashboard. Rappi entra como online (`tipo=online`). */
+export function canalIngresoPedido(tipo) {
+  if (pedidoEsTipoOnline(tipo)) return "online";
+  if (pedidoEsTipoConsulta(tipo)) return "consulta";
+  if (pedidoEsTipoServicio(tipo)) return "servicio";
+  return "fisica";
+}
+
 export function pedidoCoincideFiltroTipo(pedidoTipo, filtro) {
   if (!filtro || filtro === "todos") return true;
   if (filtro === "fisica") return pedidoEsTipoFisica(pedidoTipo);
