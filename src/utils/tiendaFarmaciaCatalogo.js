@@ -1,4 +1,7 @@
 import { productoPermitidoEnTiendaWeb } from "./orderChannels";
+import { productoEsCajaAbiertaMostrador } from "./cajaAbiertaMostrador";
+
+export { descripcionPublicaTienda, productoEsCajaAbiertaMostrador } from "./cajaAbiertaMostrador";
 
 /**
  * Categorías cargadas como minisuper / abarrotes en inventario.
@@ -30,10 +33,11 @@ export function productoEsCategoriaMinisuperTienda(p) {
   return SET_MINISUPER_NORM.has(normalizeCategoriaKey(p?.categoria));
 }
 
-/** Misma regla que tienda web, pero sin artículos de categoría minisuper (hasta app dedicada). */
+/** Misma regla que tienda web, pero sin minisuper ni cajas que se venden por pieza en mostrador. */
 export function productoPermitidoEnTiendaFarmaciaWeb(p) {
   if (!productoPermitidoEnTiendaWeb(p)) return false;
   if (productoEsCategoriaMinisuperTienda(p)) return false;
+  if (productoEsCajaAbiertaMostrador(p)) return false;
   return true;
 }
 
@@ -41,6 +45,9 @@ export function productoPermitidoEnTiendaFarmaciaWeb(p) {
 export function razonBloqueoProductoTiendaFarmacia(row) {
   if (productoEsCategoriaMinisuperTienda(row)) {
     return "Artículo de minisuper: no está en la tienda farmacia en línea por ahora. Disponible en sucursal.";
+  }
+  if (productoEsCajaAbiertaMostrador(row)) {
+    return "Se vende por pieza en la farmacia, no por caja en línea.";
   }
   return "No disponible en tienda en línea (receta, controlado u oculto).";
 }

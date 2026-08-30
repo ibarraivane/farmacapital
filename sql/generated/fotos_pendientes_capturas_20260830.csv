@@ -1,0 +1,11 @@
+id,sku,ean,nombre,precio,motivo
+117,FC-44B6751A,,Aquito 500/100/30/4 Mg,77.52,Sin EAN — no se busca packshot a ciegas
+1012,EQ-VIT073,7501478317421,Bocetix 1 Sol 50 Mg 150 Ml,118,EAN en Levic/Nadro sin packshot público usable
+1099,FMX-502046,637420223803,Calazin Suspension Topica C/180 Ml,59,EAN no aparece en Nadro; Sufarmed usa otro código
+1083,FMX-502465,,Colageno-Naturex Tabletas C/60,66,Sin EAN
+924,EQ-BIO212,7501573909958,Colchicina 30 Tab 1 Mg,50,EAN Biomep; sin packshot Nadro
+288,FC-36040450,0378360404500,Crema Grisi concha nácar para manos,62,Nadro no tiene este GTIN (no usar jabón ni 7501022104934)
+475,FC-08491096,7501008491096,Cafiaspirina tartrato C/100,294,El packshot C/100 de Nadro es EAN 7501008433515 (otra presentación)
+467,FC-08491074,7501008491074,Aspirina 80 TABLETAS,169,Posible duplicado de id 651; se oculta en web; foto cuando confirmes
+337,FC-68900264,7501868900264,Alcohol Etilico Rojo 96° 125 ml,14,Foto de mostrador (mismo estilo que el rojo 500)
+339,FC-68900226,7501868900226,Alcohol Etilico Rojo 96° 250 ml,22,Foto de mostrador
