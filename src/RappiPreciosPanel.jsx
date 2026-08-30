@@ -49,6 +49,7 @@ import {
 } from "./lib/preciosRevision";
 import AccionesPrecioRevision from "./components/AccionesPrecioRevision";
 import { inventarioProductMatchesBusqueda } from "./utils/fuzzySearch";
+import { filasPartnerComoCatalogo } from "./lib/rappiPlantilla";
 
 function botTsFilaRappi(refs) {
   return botTsMasReciente(instanteBotRappiDe(refs), instanteBotVentaDe(refs));
@@ -237,7 +238,7 @@ export default function RappiPreciosPanel() {
     }
     const list = prodRes.data || [];
     setProductos(list);
-    setEnRappi(idsEnCatalogoRappi(list, filasCatalogo));
+    setEnRappi(idsEnCatalogoRappi(list, [...filasCatalogo, ...filasPartnerComoCatalogo()]));
 
     let refRows = [];
     const viewRes = await supabase.from("producto_precios_referencia_actual").select("*");
@@ -539,10 +540,10 @@ export default function RappiPreciosPanel() {
             El <strong>sugerido</strong> es el mismo de Referencias: ~2% bajo la farmacia o calle más barata.
             Un <strong>pack</strong>, el polvo o otra línea (Advance / Plus) no se compara con la botella suelta.
             El <strong>súper</strong> (Chedraui, Soriana) se ve y no mueve el precio: envío otro y piso otro.
-            <strong>En Rappi</strong> no es tu tienda Partner (los 68). Son los que ya tienen foto o un precio scrapeado. Si lo ves en Partner y aquí no, busca el nombre o cambia a <strong>Todos</strong>.
+            <strong>En Rappi</strong> son los 68 de tu plantilla Partner (Mercado leyes de reforma), más foto o precio scrapeado.
             Clic en un precio para editarlo. <strong>Aplicar subidas</strong> solo sube. Las bajadas las aceptas tú, con el botón Bajar de cada fila.
             El bot compara sin packs. Si después actualiza una referencia, vuelven Subir / Bajar / Aceptar.
-            {" "}<strong>Descargar CSV Rappi</strong> arma el archivo de Partner (SKU, EAN, stock − 2, AVAILABLE y PRICE) para Subir plantilla.
+            {" "}<strong>Rellenar plantilla Rappi</strong> toma el Excel oficial (Precio, Descuento, Disponibilidad SI/NO). No se edita stock por piezas. SI = existencias − 2.
           </AyudaDesplegable>
           {chipsFuente.length > 0 && (
             <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 6 }}>

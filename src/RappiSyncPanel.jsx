@@ -1,15 +1,19 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Download, Pause, Play, RefreshCw, ShoppingBag, TrendingUp } from "lucide-react";
 import { C_LIGHT, BRAND } from "./constants";
 import { supabase } from "./supabase";
 import { AyudaDesplegable, Box, Btn, Tag, showToast, SkeletonTable } from "./ui";
 import RappiPreciosPanel from "./RappiPreciosPanel";
+import { reservaMostradorDe } from "./lib/rappiCargaCsv";
 import {
-  csvCargaRappi,
-  descargarTextoCsv,
-  nombreArchivoCargaRappi,
-  reservaMostradorDe,
-} from "./lib/rappiCargaCsv";
+  RAPPI_PLANTILLA_PUBLIC_PATH,
+  descargarBufferXlsx,
+  filasDesdeBufferPlantillaRappi,
+  nombreArchivoPlantillaRappi,
+  parchesPlantillaRappi,
+  rellenarBufferPlantillaRappi,
+  resumenParchesRappi,
+} from "./lib/rappiPlantilla";
 
 const PAGE_CARGA = 1000;
 const SELECT_CARGA = [
@@ -39,17 +43,29 @@ async function fetchProductosCargaRappi() {
   }
 }
 
-async function descargarCsvPartnerRappi() {
-  const [cfgRes, productos] = await Promise.all([
+async function bufferPlantillaRappi(file) {
+  if (file) {
+    const buf = await file.arrayBuffer();
+    return new Uint8Array(buf);
+  }
+  const r = await fetch(RAPPI_PLANTILLA_PUBLIC_PATH);
+  if (!r.ok) throw new Error("No se encontró la plantilla ProductosActualizacion de Rappi.");
+  return new Uint8Array(await r.arrayBuffer());
+}
+
+async function rellenarYDescargarPlantillaRappi(file) {
+  const [cfgRes, productos, buffer] = await Promise.all([
     supabase.from("configuracion").select("valor").eq("clave", "rappi_reserva_mostrador").maybeSingle(),
     fetchProductosCargaRappi(),
+    bufferPlantillaRappi(file),
   ]);
   const reserva = reservaMostradorDe(cfgRes.data?.valor);
-  const csv = csvCargaRappi(productos, reserva);
-  const filas = Math.max(0, csv.trim().split("\n").length - 1);
-  if (!filas) throw new Error("No hay productos con SKU para armar el CSV");
-  descargarTextoCsv(nombreArchivoCargaRappi(), csv);
-  return { filas, reserva };
+  const filas = filasDesdeBufferPlantillaRappi(buffer);
+  if (!filas.length) throw new Error("La plantilla no trae productos.");
+  const parches = parchesPlantillaRappi(filas, productos, reserva);
+  const out = rellenarBufferPlantillaRappi(buffer, parches);
+  descargarBufferXlsx(nombreArchivoPlantillaRappi(), out);
+  return { reserva, ...resumenParchesRappi(parches) };
 }
 
 const C = C_LIGHT;
@@ -91,18 +107,22 @@ function loadSubTab() {
 export default function RappiSyncPanel() {
   const [sub, setSub] = useState(loadSubTab);
   const [descargando, setDescargando] = useState(false);
+  const fileRef = useRef(null);
   const selectSub = (id) => {
     setSub(id);
     try { sessionStorage.setItem(SUB_KEY, id); } catch { /* noop */ }
   };
 
-  const onDescargarCsv = async () => {
+  const onRellenarPlantilla = async (file) => {
     setDescargando(true);
     try {
-      const { filas, reserva } = await descargarCsvPartnerRappi();
-      showToast(`CSV listo: ${filas} SKUs · stock − ${reserva}. Súbelo en Rappi Partner → Subir plantilla.`, "success");
+      const { filas, matched, si, no, reserva } = await rellenarYDescargarPlantillaRappi(file || null);
+      showToast(
+        `Plantilla lista: ${filas} de Partner · ${matched} con precio/stock de aquí · ${si} SI · ${no} NO (colchón ${reserva}). Súbela en Partner → Inventario por tienda.`,
+        "success",
+      );
     } catch (err) {
-      showToast(err.message || "No se pudo armar el CSV de Rappi", "error");
+      showToast(err.message || "No se pudo rellenar la plantilla de Rappi", "error");
     }
     setDescargando(false);
   };
@@ -146,17 +166,39 @@ export default function RappiSyncPanel() {
             );
           })}
         </div>
-        <div style={{ paddingBottom: 8 }}>
+        <div style={{ paddingBottom: 8, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            hidden
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              e.target.value = "";
+              if (file) onRellenarPlantilla(file);
+            }}
+          />
           <Btn
             sm
             col={BRAND.primary}
-            onClick={onDescargarCsv}
+            onClick={() => onRellenarPlantilla(null)}
             dis={descargando}
             style={{ display: "inline-flex", gap: 6, alignItems: "center" }}
           >
             <Download size={14} aria-hidden />
-            {descargando ? "Armando CSV…" : "Descargar CSV Rappi"}
+            {descargando ? "Rellenando…" : "Rellenar plantilla Rappi"}
           </Btn>
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={descargando}
+            style={{
+              border: "none", background: "transparent", color: C.textMid,
+              fontSize: 11, fontWeight: 700, cursor: "pointer", textDecoration: "underline",
+            }}
+          >
+            Usar otra de Partner
+          </button>
         </div>
       </div>
       {sub === "precios" ? <RappiPreciosPanel /> : <RappiDisponibilidadPanel />}
@@ -235,7 +277,10 @@ function RappiDisponibilidadPanel() {
             Rappi · disponibilidad
           </h2>
           <AyudaDesplegable>
-            Se publica <code>stock − {reserva}</code> piezas de colchón. Receta y controlados no salen.
+            La plantilla oficial no lleva piezas: <strong>Precio</strong>, <strong>Descuento</strong> y <strong>Disponibilidad SI/NO</strong>.
+            SI = existencias − {reserva} (colchón de mostrador). Receta y controlados salen en NO.
+            <strong>Rellenar plantilla Rappi</strong> usa el Excel de Partner y lo deja listo para subir.
+            Si descargas uno nuevo en Partner, pulsa «Usar otra de Partner».
             Sin <code>RAPPI_CLIENT_ID</code> el worker no llama a Rappi: queda inerte.
           </AyudaDesplegable>
         </div>

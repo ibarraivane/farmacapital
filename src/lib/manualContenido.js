@@ -245,7 +245,7 @@ export const TEMAS = [
     titulo: "Rappi",
     resumen: "Disponibilidad hacia Rappi y precios de otras tiendas en línea. El piso no opera esto.",
     pasos: [
-      "Inventario → Rappi → Disponibilidad: cola y colchón de stock.",
+      "Inventario → Rappi → Disponibilidad: cola y colchón. El Excel de Partner se rellena con Precio y SI/NO (no piezas).",
       "Inventario → Rappi → Precios en línea: qué cobran GDL, Farmatodo, Benavides y el súper.",
       "El sugerido usa farmacias + Del Ahorro / Similares. El súper no lo mueve.",
       "No sustituye Recibir ni el POS de mostrador.",

@@ -169,8 +169,7 @@ function clavesEan(value) {
 }
 
 /**
- * «En Rappi» del panel no es la tienda Partner (68 SKUs).
- * Son foto ligada (catalogo_imagenes_rappi) o match por EAN/SKU.
+ * «En Rappi»: plantilla Partner (SKU/EAN) + foto ligada + scrape.
  */
 export function idsEnCatalogoRappi(productos, filas) {
   const byId = new Set();
@@ -208,10 +207,10 @@ export function pasaFiltroListaRappi({ filtro, busq, linked, hasRef }) {
 export function mensajeVacioListaRappi({ filtro, busq } = {}) {
   const q = String(busq || "").trim();
   if (q) {
-    return `Nada para «${q}» en este filtro. En Rappi no es tu tienda Partner: son foto o precio scrapeado. Cambia a Todos.`;
+    return `Nada para «${q}» en este filtro. Cambia a Todos o pulsa «Rellenar plantilla Rappi» con el Excel de Partner.`;
   }
   if (filtro === "en_rappi") {
-    return "Nada en En Rappi. Ese filtro no lista los 68 de Partner: son foto o precio scrapeado. Pulsa «Actualizar Rappi» o cambia a Todos.";
+    return "Nada en En Rappi. Ese filtro son los 68 de tu plantilla Partner, más foto o precio scrapeado. Cambia a Todos.";
   }
   return "Nada en este filtro. Pulsa «Actualizar Rappi» o cambia a Todos.";
 }

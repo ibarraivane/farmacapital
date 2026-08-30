@@ -155,8 +155,8 @@ test("EAN del catálogo liga el producto aunque falte producto_id", () => {
   expect([...ids]).toEqual([9]);
 });
 
-test("el vacío de En Rappi aclara que no es Partner", () => {
-  expect(mensajeVacioListaRappi({ filtro: "en_rappi", busq: "lizovag" })).toMatch(/Partner/i);
+test("el vacío de En Rappi menciona la plantilla Partner", () => {
+  expect(mensajeVacioListaRappi({ filtro: "en_rappi", busq: "lizovag" })).toMatch(/plantilla|Todos/i);
   expect(mensajeVacioListaRappi({ filtro: "en_rappi" })).toMatch(/Partner/i);
 });
 
