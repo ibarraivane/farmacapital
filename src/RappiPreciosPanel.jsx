@@ -23,12 +23,16 @@ import {
   COL_LABELS_RAPPI,
   FUENTES_RAPPI,
   calcPrecioSugeridoRappi,
+  diagnosticoCeldaRappi,
+  listarSubidasRappi,
   instanteBotRappiDe,
   instanteBotRappiGlobal,
   parseProgresoBackfill,
   precioCalleDe,
   precioFarmaciaRappiMin,
+  tienePackRappiDistinto,
   tieneRefRappi,
+  tieneRefRappiComparable,
 } from "./lib/rappiPrecios";
 import { inventarioProductMatchesBusqueda } from "./utils/fuzzySearch";
 
@@ -66,6 +70,18 @@ function DiffBadge({ pct }) {
   return (
     <div style={{ padding: "1px 5px", borderRadius: 20, fontSize: 9, fontWeight: 700, color: col, background: bg, marginTop: 2, display: "inline-block" }}>
       {prefix}{pct}%
+    </div>
+  );
+}
+
+function EmpaqueBadge({ diag }) {
+  if (!diag || diag.ok) return null;
+  return (
+    <div style={{
+      padding: "1px 5px", borderRadius: 20, fontSize: 9, fontWeight: 700,
+      color: C.amber, background: C.amberDim, marginTop: 2, display: "inline-block",
+    }}>
+      otro empaque
     </div>
   );
 }
@@ -336,6 +352,41 @@ export default function RappiPreciosPanel() {
     setProductos((prev) => prev.map((x) => (x.id === producto.id ? { ...x, precio: sugerido } : x)));
   };
 
+  const subidas = useMemo(
+    () => listarSubidasRappi(productos, refsByProduct),
+    [productos, refsByProduct]
+  );
+
+  const aplicarSubidas = async () => {
+    if (!subidas.length) return;
+    const preview = subidas.slice(0, 12).map((s) => `${s.producto.nombre}: ${fmtPrecioVenta(s.de)} → ${fmtPrecioVenta(s.a)}`).join("\n");
+    const extra = subidas.length > 12 ? `\n… y ${subidas.length - 12} más` : "";
+    const ok = window.confirm(
+      `¿Subir ${subidas.length} precio${subidas.length === 1 ? "" : "s"}?\nSolo subidas. Las bajadas no se tocan.\n\n${preview}${extra}`
+    );
+    if (!ok) return;
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    if (!tok) { showToast("Sesión expirada", "error"); return; }
+    setApplyingId("subidas");
+    let okN = 0;
+    let errN = 0;
+    for (const s of subidas) {
+      const { error } = await supabase.rpc("admin_editar_producto", {
+        p_session_token: tok,
+        p_producto_id: s.producto.id,
+        p_patch: { precio: s.a },
+      });
+      if (error) errN += 1;
+      else {
+        okN += 1;
+        setProductos((prev) => prev.map((x) => (x.id === s.producto.id ? { ...x, precio: s.a } : x)));
+      }
+    }
+    setApplyingId(null);
+    if (errN) showToast(`Se subieron ${okN}. Fallaron ${errN}.`, "warning");
+    else showToast(`Se subieron ${okN} precio${okN === 1 ? "" : "s"}. Las bajadas no se tocaron.`, "success");
+  };
+
   const actualizarRappi = async () => {
     const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) { showToast("Sesión expirada", "error"); return; }
@@ -364,17 +415,19 @@ export default function RappiPreciosPanel() {
     let conRef = 0;
     let caro = 0;
     let sinRef = 0;
+    let packs = 0;
     for (const p of productos) {
       const refs = refsByProduct[p.id] || {};
-      if (tieneRefRappi(refs)) {
+      if (tienePackRappiDistinto(p, refs)) packs += 1;
+      if (tieneRefRappiComparable(p, refs)) {
         conRef += 1;
-        const minFarm = precioFarmaciaRappiMin(refs);
+        const minFarm = precioFarmaciaRappiMin(p, refs);
         if (minFarm != null && (parseFloat(p.precio) || 0) > minFarm + 0.5) caro += 1;
-      } else if (enRappi.has(p.id)) {
+      } else if (enRappi.has(p.id) && !tieneRefRappi(refs)) {
         sinRef += 1;
       }
     }
-    return { conRef, caro, sinRef };
+    return { conRef, caro, sinRef, packs };
   }, [productos, refsByProduct, enRappi]);
 
   const filas = useMemo(() => {
@@ -384,12 +437,13 @@ export default function RappiPreciosPanel() {
       const linked = enRappi.has(p.id);
       const hasRef = tieneRefRappi(refs);
       if (filtro === "en_rappi") return linked || hasRef;
-      if (filtro === "con_ref") return hasRef;
+      if (filtro === "con_ref") return tieneRefRappiComparable(p, refs);
+      if (filtro === "packs") return tienePackRappiDistinto(p, refs);
       if (filtro === "caro") {
-        const minFarm = precioFarmaciaRappiMin(refs);
+        const minFarm = precioFarmaciaRappiMin(p, refs);
         return minFarm != null && (parseFloat(p.precio) || 0) > minFarm + 0.5;
       }
-      if (filtro === "sin_ref") return linked && !hasRef;
+      if (filtro === "sin_ref") return linked && !tieneRefRappi(refs);
       return true;
     });
   }, [productos, refsByProduct, enRappi, busq, filtro]);
@@ -405,8 +459,9 @@ export default function RappiPreciosPanel() {
           <p style={{ margin: "6px 0 0", color: C.textMid, fontSize: 12, maxWidth: 720, lineHeight: 1.45 }}>
             Qué cobran otras tiendas en Rappi, mezclado con Del Ahorro / Similares (columna <strong>Calle</strong>).
             El <strong>sugerido</strong> es el mismo de Referencias: ~2% bajo la farmacia o calle más barata.
+            Un <strong>pack</strong>, el polvo o otra línea (Advance / Plus) no se compara con la botella suelta.
             El <strong>súper</strong> (Chedraui, Soriana) se ve y no mueve el precio: envío otro y piso otro.
-            Clic en un precio para editarlo. <strong>Aplicar</strong> cambia mostrador y línea.
+            Clic en un precio para editarlo. <strong>Aplicar subidas</strong> solo sube; las bajadas las dejas a mano.
           </p>
           {chipsFuente.length > 0 && (
             <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 6 }}>
@@ -428,16 +483,27 @@ export default function RappiPreciosPanel() {
             </div>
           )}
         </div>
-        <Btn
-          sm
-          col={BRAND.primary}
-          onClick={actualizarRappi}
-          dis={actualizando}
-          style={{ display: "inline-flex", gap: 6, alignItems: "center" }}
-        >
-          <RefreshCw size={14} aria-hidden />
-          {actualizando ? "Buscando…" : "Actualizar Rappi"}
-        </Btn>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <Btn
+            sm
+            col={C.green}
+            onClick={aplicarSubidas}
+            dis={actualizando || applyingId != null || !subidas.length}
+            style={{ display: "inline-flex", gap: 6, alignItems: "center" }}
+          >
+            {applyingId === "subidas" ? "Subiendo…" : `Aplicar ${subidas.length} subida${subidas.length === 1 ? "" : "s"}`}
+          </Btn>
+          <Btn
+            sm
+            col={BRAND.primary}
+            onClick={actualizarRappi}
+            dis={actualizando}
+            style={{ display: "inline-flex", gap: 6, alignItems: "center" }}
+          >
+            <RefreshCw size={14} aria-hidden />
+            {actualizando ? "Buscando…" : "Actualizar Rappi"}
+          </Btn>
+        </div>
       </div>
 
       <BarraProgresoRappi progreso={progreso} />
@@ -454,6 +520,9 @@ export default function RappiPreciosPanel() {
         </span>
         <span style={{ padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: C.redDim, color: C.red }}>
           Más caro que farmacia: {stats.caro}
+        </span>
+        <span style={{ padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: C.amberDim, color: C.amber }}>
+          Otro empaque: {stats.packs}
         </span>
         <span style={{ padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: C.cardDark, color: C.textMid }}>
           En Rappi sin precio: {stats.sinRef}
@@ -473,6 +542,7 @@ export default function RappiPreciosPanel() {
         {[
           ["en_rappi", "En Rappi"],
           ["con_ref", "Con precio"],
+          ["packs", "Otro empaque"],
           ["caro", "Más caro"],
           ["sin_ref", "Sin precio"],
           ["todos", "Todos"],
@@ -523,17 +593,17 @@ export default function RappiPreciosPanel() {
                 const refs = refsByProduct[p.id] || {};
                 const margen = calcMargenVenta(p.precio, p);
                 const { sugerido, nota, alerta, accion } = calcPrecioSugeridoRappi(p, refs);
-                const calle = precioCalleDe(refs);
+                const calle = precioCalleDe(p, refs);
                 const botLabel = fmtBotCuando(instanteBotRappiDe(refs));
                 const rowBg = i % 2 ? "#f8fafc" : "transparent";
-                const puedeAplicar = sugerido != null && roundPrecioVenta(p.precio) !== sugerido;
+                const puedeAplicar = accion === "subir" && sugerido != null && roundPrecioVenta(p.precio) !== sugerido;
+                const puedeBajarAMano = accion === "bajar" && sugerido != null;
                 const toneM = margen.pct != null ? margenToneColors(margen.tone, C) : null;
                 const sugeridoCol =
                   alerta === "debajo_costo" ? C.red :
                   alerta === "debajo_piso" ? C.amber :
                   accion === "bajar" ? C.amber :
                   C.green;
-                const btnAplicar = applyingId === p.id ? "…" : accion === "subir" ? "Subir" : accion === "bajar" ? "Bajar" : "Aplicar";
 
                 return (
                   <tr key={p.id} style={{ background: rowBg }}>
@@ -562,8 +632,11 @@ export default function RappiPreciosPanel() {
                       ) : <span style={{ color: C.textDim }}>—</span>}
                     </td>
                     {COLS_PRECIO.map((id) => {
-                      const precio = refs[id]?.precio;
-                      const d = diffPctVenta(p.precio, precio);
+                      const row = refs[id];
+                      const precio = row?.precio;
+                      const diag = diagnosticoCeldaRappi(p, row);
+                      const d = (!diag || diag.ok) ? diffPctVenta(p.precio, precio) : null;
+                      const nombreHit = (row?.nombre_fuente || "").trim();
                       return (
                         <EditableCell
                           key={id}
@@ -575,12 +648,17 @@ export default function RappiPreciosPanel() {
                           onDraft={(v) => setInlineEdit((e) => (e ? { ...e, draft: v } : e))}
                           onCommit={commitEdit}
                           onCancel={cancelEdit}
-                          title={FUENTE_META[id]?.hint || "Clic para editar"}
+                          title={nombreHit || FUENTE_META[id]?.hint || "Clic para editar"}
                           display={precio != null ? (
-                            <>
-                              <div>{fmtPrecioRef(precio)}</div>
-                              <DiffBadge pct={d} />
-                            </>
+                            <div>
+                              <div style={{ color: diag && !diag.ok ? C.textDim : C.text }}>{fmtPrecioRef(precio)}</div>
+                              {diag && !diag.ok ? <EmpaqueBadge diag={diag} /> : <DiffBadge pct={d} />}
+                              {nombreHit ? (
+                                <div style={{ fontSize: 9, color: C.textDim, marginTop: 2, lineHeight: 1.25, maxWidth: 92 }}>
+                                  {nombreHit}
+                                </div>
+                              ) : null}
+                            </div>
                           ) : <span style={{ color: C.textDim }}>—</span>}
                         />
                       );
@@ -596,15 +674,30 @@ export default function RappiPreciosPanel() {
                       {puedeAplicar ? (
                         <button
                           type="button"
-                          disabled={applyingId === p.id}
+                          disabled={applyingId != null}
                           onClick={() => aplicarPrecio(p, sugerido)}
                           style={{
                             padding: "4px 10px", borderRadius: 6, border: "none",
                             background: BRAND.gradient, color: "#fff", cursor: "pointer",
-                            fontSize: 11, fontWeight: 700, opacity: applyingId === p.id ? 0.6 : 1,
+                            fontSize: 11, fontWeight: 700, opacity: applyingId != null ? 0.6 : 1,
                           }}
                         >
-                          {btnAplicar}
+                          {applyingId === p.id ? "…" : "Subir"}
+                        </button>
+                      ) : puedeBajarAMano ? (
+                        <button
+                          type="button"
+                          disabled={applyingId != null}
+                          onClick={() => aplicarPrecio(p, sugerido)}
+                          title="Bajada manual. El lote de subidas no toca esta fila."
+                          style={{
+                            padding: "4px 10px", borderRadius: 6,
+                            border: `1px solid ${C.border}`,
+                            background: C.card, color: C.textMid, cursor: "pointer",
+                            fontSize: 11, fontWeight: 700,
+                          }}
+                        >
+                          Bajar a mano
                         </button>
                       ) : (
                         <span style={{ color: C.textDim, fontSize: 10 }}>—</span>

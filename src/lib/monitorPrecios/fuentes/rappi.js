@@ -8,6 +8,7 @@
 const { colapsar } = require("../normalizador");
 const { scoreNombre } = require("../similitud");
 const { matchMejorCandidato } = require("../matchCatalogo");
+const { ofertaRappiComparable } = require("../unidadVenta");
 
 const UA = "FarmaCapitalPricingBot/1.0 (+https://www.farmacapital.mx)";
 
@@ -119,9 +120,14 @@ function terminoBusquedaRappi(producto) {
   return String(producto && (producto.codigo_barras || producto.ean) || "").replace(/\D/g, "").slice(0, 14);
 }
 
+function candidatosMismaUnidad(producto, candidatos) {
+  return (candidatos || []).filter((c) => ofertaRappiComparable(producto, c));
+}
+
 /** Si el job ya busca este SKU, no descartar por umbral de catálogo. */
 function matchOfertaRappi(producto, candidatos) {
-  const hit = matchMejorCandidato(producto, candidatos);
+  const comparables = candidatosMismaUnidad(producto, candidatos);
+  const hit = matchMejorCandidato(producto, comparables);
   if (hit) return hit;
   const token = colapsar(producto && producto.nombre)
     .split(/\s+/)
@@ -129,7 +135,7 @@ function matchOfertaRappi(producto, candidatos) {
   if (!token) return null;
   let best = null;
   let bestScore = 0;
-  for (const c of candidatos || []) {
+  for (const c of comparables) {
     const hay = colapsar(c.nombre || "");
     if (!hay.includes(token)) continue;
     const s = Math.max(scoreNombre(producto.nombre, c.nombre), 0.55);

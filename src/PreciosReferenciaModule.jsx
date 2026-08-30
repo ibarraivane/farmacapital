@@ -15,6 +15,7 @@ import {
   diffPctVenta,
   calcMejorCompra,
   calcPrecioSugeridoVenta,
+  listarSubidasSugeridas,
   accionPrecioSugerido,
   calcMargenVenta,
   precioDesdeMargen,
@@ -627,17 +628,14 @@ function TablaVenta({
             const {
               sugerido, refMin, nota, alerta, margenActual, margenSugerido, esAjusteManual, accion,
             } = resolveSugeridoFila(p, refs, sugeridoOverrides);
-            const puedeAplicar = sugerido != null && roundPrecioVenta(p.precio) !== sugerido;
+            const puedeAplicar = accion === "subir" && sugerido != null && roundPrecioVenta(p.precio) !== sugerido;
+            const puedeBajarAMano = accion === "bajar" && sugerido != null;
             const sugeridoCol =
               alerta === "debajo_costo" ? C.red :
               alerta === "debajo_piso" ? C.amber :
               esAjusteManual ? C.blue :
               accion === "subir" ? C.green :
               accion === "bajar" ? C.amber : C.green;
-            const btnAplicar =
-              applyingId === p.id ? "…" :
-              accion === "subir" ? "Subir" :
-              accion === "bajar" ? "Bajar" : "Aplicar";
             const rowBg = i % 2 ? "#f8fafc" : "transparent";
             const sinCosto = !(parseFloat(p.costo) > 0);
             const botTs = instanteBotVentaDe(refs);
@@ -786,15 +784,30 @@ function TablaVenta({
                     {puedeAplicar ? (
                       <button
                         type="button"
-                        disabled={applyingId === p.id}
+                        disabled={applyingId != null}
                         onClick={() => onAplicar(p, sugerido)}
                         style={{
                           padding: "4px 10px", borderRadius: 6, border: "none",
                           background: BRAND.gradient, color: "#fff", cursor: "pointer",
-                          fontSize: 11, fontWeight: 700, opacity: applyingId === p.id ? 0.6 : 1,
+                          fontSize: 11, fontWeight: 700, opacity: applyingId != null ? 0.6 : 1,
                         }}
                       >
-                        {applyingId === p.id ? "…" : btnAplicar}
+                        {applyingId === p.id ? "…" : "Subir"}
+                      </button>
+                    ) : puedeBajarAMano ? (
+                      <button
+                        type="button"
+                        disabled={applyingId != null}
+                        onClick={() => onAplicar(p, sugerido)}
+                        title="Bajada manual. El lote de subidas no toca esta fila."
+                        style={{
+                          padding: "4px 10px", borderRadius: 6,
+                          border: `1px solid ${C.border}`,
+                          background: C.card, color: C.textMid, cursor: "pointer",
+                          fontSize: 11, fontWeight: 700,
+                        }}
+                      >
+                        Bajar a mano
                       </button>
                     ) : (
                       <span style={{ color: C.textDim, fontSize: 10 }}>—</span>
@@ -1189,6 +1202,41 @@ export default function PreciosReferenciaModule() {
     });
   };
 
+  const subidas = useMemo(
+    () => listarSubidasSugeridas(productos, refsByProduct, calcPrecioSugeridoVenta),
+    [productos, refsByProduct]
+  );
+
+  const aplicarSubidas = async () => {
+    if (!subidas.length) return;
+    const preview = subidas.slice(0, 12).map((s) => `${s.producto.nombre}: ${fmtPrecioVenta(s.de)} → ${fmtPrecioVenta(s.a)}`).join("\n");
+    const extra = subidas.length > 12 ? `\n… y ${subidas.length - 12} más` : "";
+    const ok = window.confirm(
+      `¿Subir ${subidas.length} precio${subidas.length === 1 ? "" : "s"}?\nSolo subidas. Las bajadas no se tocan.\n\n${preview}${extra}`
+    );
+    if (!ok) return;
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    if (!tok) { showToast("Sesión expirada", "error"); return; }
+    setApplyingId("subidas");
+    let okN = 0;
+    let errN = 0;
+    for (const s of subidas) {
+      const { error } = await supabase.rpc("admin_editar_producto", {
+        p_session_token: tok,
+        p_producto_id: s.producto.id,
+        p_patch: { precio: s.a },
+      });
+      if (error) errN += 1;
+      else {
+        okN += 1;
+        setProductos((prev) => prev.map((x) => (x.id === s.producto.id ? { ...x, precio: s.a } : x)));
+      }
+    }
+    setApplyingId(null);
+    if (errN) showToast(`Se subieron ${okN}. Fallaron ${errN}.`, "warning");
+    else showToast(`Se subieron ${okN} precio${okN === 1 ? "" : "s"}. Las bajadas no se tocaron.`, "success");
+  };
+
   const inpS = {
     padding: "8px 12px",
     borderRadius: 8,
@@ -1231,6 +1279,21 @@ export default function PreciosReferenciaModule() {
           )}
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {tab === "venta" ? (
+            <button
+              type="button"
+              disabled={applyingId != null || !subidas.length}
+              onClick={aplicarSubidas}
+              style={{
+                padding: "8px 14px", borderRadius: 8, border: "none",
+                background: C.green, color: "#fff", fontWeight: 700, fontSize: 12,
+                cursor: applyingId != null || !subidas.length ? "default" : "pointer",
+                opacity: applyingId != null || !subidas.length ? 0.6 : 1,
+              }}
+            >
+              {applyingId === "subidas" ? "Subiendo…" : `Aplicar ${subidas.length} subida${subidas.length === 1 ? "" : "s"}`}
+            </button>
+          ) : null}
           <ImportReferenciaPrecios productos={productos} onImported={fetchAll} />
           <button
             type="button"

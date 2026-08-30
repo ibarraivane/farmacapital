@@ -8,8 +8,11 @@ import {
   calcPrecioSugeridoVenta,
   esActualizacionBot,
   instanteDeRef,
+  listarSubidasSugeridas,
   refsDeFuentes,
+  refsVentaComparables,
 } from "./preciosReferencia";
+import { diagnosticoRefRappi } from "./monitorPrecios/unidadVenta";
 
 export const FUENTES_RAPPI_FARMACIA = [
   "rappi_gdl",
@@ -36,18 +39,55 @@ export const COL_LABELS_RAPPI = {
   accion: "Acción",
 };
 
-export function calcPrecioSugeridoRappi(producto, refsMap) {
-  return calcPrecioSugeridoVenta(producto, refsMap, FUENTES_SUGERIDO_RAPPI);
+export function diagnosticoCeldaRappi(producto, refRow) {
+  if (!refRow || !(parseFloat(refRow.precio) > 0)) return null;
+  return diagnosticoRefRappi(producto, refRow);
 }
 
-export function precioCalleDe(refsMap) {
-  const vals = Object.values(refsDeFuentes(refsMap, FUENTES_VENTA));
+export function refsRappiUsables(producto, refsMap) {
+  const out = { ...(refsMap || {}) };
+  for (const id of FUENTES_RAPPI) {
+    const row = out[id];
+    if (!row) continue;
+    if (!diagnosticoRefRappi(producto, row).ok) delete out[id];
+  }
+  return out;
+}
+
+export function calcPrecioSugeridoRappi(producto, refsMap) {
+  const packs = FUENTES_RAPPI.filter((id) => {
+    const row = refsMap?.[id];
+    return row && parseFloat(row.precio) > 0 && !diagnosticoRefRappi(producto, row).ok;
+  }).length;
+  const out = calcPrecioSugeridoVenta(producto, refsRappiUsables(producto, refsMap), FUENTES_SUGERIDO_RAPPI);
+  if (packs && !out.sugerido) {
+    return {
+      ...out,
+      nota: "Rappi trajo packs u otro empaque. No sirven para esta presentación.",
+    };
+  }
+  if (packs && out.nota) {
+    return {
+      ...out,
+      nota: `${out.nota} (${packs} de Rappi son otro empaque.)`,
+    };
+  }
+  return out;
+}
+
+export function precioCalleDe(producto, refsMap) {
+  const vals = Object.values(refsDeFuentes(refsVentaComparables(producto, refsMap, FUENTES_VENTA), FUENTES_VENTA));
   if (!vals.length) return null;
   return Math.min(...vals);
 }
 
-export function precioFarmaciaRappiMin(refsMap) {
-  const vals = Object.values(refsDeFuentes(refsMap, FUENTES_RAPPI_FARMACIA));
+export function listarSubidasRappi(productos, refsByProduct) {
+  return listarSubidasSugeridas(productos, refsByProduct, calcPrecioSugeridoRappi);
+}
+
+export function precioFarmaciaRappiMin(producto, refsMap) {
+  const mapa = refsDeFuentes(refsRappiUsables(producto, refsMap), FUENTES_RAPPI_FARMACIA);
+  const vals = Object.values(mapa);
   if (!vals.length) return null;
   return Math.min(...vals);
 }
@@ -56,6 +96,18 @@ export function tieneRefRappi(refsMap) {
   return FUENTES_RAPPI.some((id) => {
     const n = parseFloat(refsMap?.[id]?.precio);
     return Number.isFinite(n) && n > 0;
+  });
+}
+
+export function tieneRefRappiComparable(producto, refsMap) {
+  return FUENTES_RAPPI.some((id) => diagnosticoRefRappi(producto, refsMap?.[id] || {}).ok);
+}
+
+export function tienePackRappiDistinto(producto, refsMap) {
+  return FUENTES_RAPPI.some((id) => {
+    const row = refsMap?.[id];
+    if (!row || !(parseFloat(row.precio) > 0)) return false;
+    return !diagnosticoRefRappi(producto, row).ok;
   });
 }
 
