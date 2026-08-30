@@ -3,6 +3,8 @@
  * Espejo simplificado de scripts/pricing_preview.py (classify + piso de margen).
  */
 
+import { diagnosticoRefRappi } from "./monitorPrecios/unidadVenta";
+
 /** Columnas visibles en la tabla Compra (no inflar con fuentes de pocos matches). */
 export const FUENTES_COMPRA_TABLA = ["exprezo", "marzam", "nadro", "levic", "farmalive", "otros_compra"];
 /** Entran a «Comprar en» / mejor precio, sin columna propia. */
@@ -359,6 +361,17 @@ export function refsDeFuentes(refsMap, fuentes) {
   return out;
 }
 
+/** Quita refs de otro empaque / otra marca / otra línea. No inventa precios. */
+export function refsVentaComparables(producto, refsMap, fuentes = FUENTES_VENTA) {
+  const out = { ...(refsMap || {}) };
+  for (const id of fuentes) {
+    const row = out[id];
+    if (!row) continue;
+    if (!diagnosticoRefRappi(producto, row).ok) delete out[id];
+  }
+  return out;
+}
+
 export function refsVentaDeProducto(refsMap) {
   return refsDeFuentes(refsMap, FUENTES_VENTA);
 }
@@ -491,7 +504,7 @@ export function calcPrecioSugeridoVenta(producto, refsMap, fuentes = FUENTES_VEN
   const margenActual = calcMargenVenta(precioActual, producto);
   const margenSugeridoEmpty = { pct: null, utilidad: null, tone: null };
 
-  const refs = refsDeFuentes(refsMap, fuentes);
+  const refs = refsDeFuentes(refsVentaComparables(producto, refsMap, fuentes), fuentes);
   const vals = Object.values(refs).filter((v) => Number.isFinite(v) && v > 0);
   if (!vals.length) {
     return {
@@ -585,4 +598,18 @@ export function accionPrecioSugerido(precioActual, sugerido) {
   if (s - a >= 2) return "subir";
   if (a - s >= 2) return "bajar";
   return "mantener";
+}
+
+/** Solo subidas. Las bajadas no se aplican en lote. */
+export function listarSubidasSugeridas(productos, refsByProduct, calcFn) {
+  const out = [];
+  for (const p of productos || []) {
+    if (typeof calcFn !== "function") continue;
+    const r = calcFn(p, refsByProduct?.[p.id] || {});
+    if (r.accion !== "subir" || r.sugerido == null) continue;
+    const de = roundPrecioVenta(p.precio);
+    if (de == null || r.sugerido <= de) continue;
+    out.push({ producto: p, de, a: r.sugerido, refMin: r.refMin });
+  }
+  return out;
 }

@@ -8,7 +8,9 @@ import {
   calcPrecioSugeridoVenta,
   esActualizacionBot,
   instanteDeRef,
+  listarSubidasSugeridas,
   refsDeFuentes,
+  refsVentaComparables,
 } from "./preciosReferencia";
 import { diagnosticoRefRappi } from "./monitorPrecios/unidadVenta";
 
@@ -73,10 +75,14 @@ export function calcPrecioSugeridoRappi(producto, refsMap) {
   return out;
 }
 
-export function precioCalleDe(refsMap) {
-  const vals = Object.values(refsDeFuentes(refsMap, FUENTES_VENTA));
+export function precioCalleDe(producto, refsMap) {
+  const vals = Object.values(refsDeFuentes(refsVentaComparables(producto, refsMap, FUENTES_VENTA), FUENTES_VENTA));
   if (!vals.length) return null;
   return Math.min(...vals);
+}
+
+export function listarSubidasRappi(productos, refsByProduct) {
+  return listarSubidasSugeridas(productos, refsByProduct, calcPrecioSugeridoRappi);
 }
 
 export function precioFarmaciaRappiMin(producto, refsMap) {

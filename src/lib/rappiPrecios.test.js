@@ -1,5 +1,6 @@
 import {
   calcPrecioSugeridoRappi,
+  listarSubidasRappi,
   precioCalleDe,
   precioFarmaciaRappiMin,
   tienePackRappiDistinto,
@@ -47,7 +48,7 @@ test("mezcla Del Ahorro / Similares con farmacias Rappi", () => {
   });
   const out = calcPrecioSugeridoRappi(otc, r);
   expect(out.refMin).toBe(28);
-  expect(precioCalleDe(r)).toBe(28);
+  expect(precioCalleDe(otc, r)).toBe(28);
   expect(tieneRefRappi(r)).toBe(true);
 });
 
@@ -77,6 +78,39 @@ test("Ensure: el 6-pack de Rappi no mueve el sugerido", () => {
   expect(out.refMin).toBe(66);
   expect(out.sugerido).toBe(65);
   expect(out.nota).toMatch(/otro empaque/i);
+});
+
+test("Calle Advance o dieta genérica no cuentan para Ensure Regular", () => {
+  const ensure = {
+    nombre: "Ensure vainilla",
+    marca: "Ensure",
+    presentacion: "236 ML",
+    categoria: "suplemento",
+    tipo: "marca",
+    costo: 42,
+    precio: 65,
+  };
+  const r = refs({
+    otros_venta: 66,
+    similares: 38.62,
+  });
+  r.otros_venta.notas = "Vitau.mx - Ensure Advance 237ml (referencia similar)";
+  r.similares.notas = "No se encontro marca Ensure; Similares maneja DIETA POLIMERICA chocolate 236ML";
+  const out = calcPrecioSugeridoRappi(ensure, r);
+  expect(precioCalleDe(ensure, r)).toBeNull();
+  expect(out.sugerido).toBeNull();
+});
+
+test("el lote solo lista subidas, nunca bajadas", () => {
+  const barato = { ...otc, id: 1, precio: 20 };
+  const caro = { ...otc, id: 2, precio: 80 };
+  const subidas = listarSubidasRappi([barato, caro], {
+    1: refs({ similares: 40 }),
+    2: refs({ similares: 40 }),
+  });
+  expect(subidas).toHaveLength(1);
+  expect(subidas[0].producto.id).toBe(1);
+  expect(subidas[0].a).toBeGreaterThan(20);
 });
 
 test("sin refs de farmacia ni calle no sugiere", () => {

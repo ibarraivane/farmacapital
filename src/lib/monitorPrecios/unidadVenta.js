@@ -167,10 +167,13 @@ function diagnosticoRefRappi(producto, refRow) {
     return { ok: false, motivo: "sin_precio" };
   }
   const ours = extraerUnidadProducto(producto);
-  const theirs = extraerUnidadVenta((refRow && (refRow.nombre_fuente || refRow.nombre)) || "");
-  const nombre = (refRow && (refRow.nombre_fuente || refRow.nombre)) || "";
+  const nombre = (refRow && (refRow.nombre_fuente || refRow.nombre || refRow.notas)) || "";
+  const theirs = extraerUnidadVenta(nombre);
 
   const marca = marcaBusqueda(producto);
+  if (marca && theirs.texto && new RegExp(`no se encontro marca\\s+${marca}`).test(theirs.texto)) {
+    return { ok: false, motivo: "otra_marca", nombre, ours, theirs };
+  }
   if (marca && theirs.texto && !ofertaTieneMarca(theirs.texto, marca)) {
     return { ok: false, motivo: "otra_marca", nombre, ours, theirs };
   }

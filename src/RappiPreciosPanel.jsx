@@ -24,6 +24,7 @@ import {
   FUENTES_RAPPI,
   calcPrecioSugeridoRappi,
   diagnosticoCeldaRappi,
+  listarSubidasRappi,
   instanteBotRappiDe,
   instanteBotRappiGlobal,
   parseProgresoBackfill,
@@ -351,6 +352,41 @@ export default function RappiPreciosPanel() {
     setProductos((prev) => prev.map((x) => (x.id === producto.id ? { ...x, precio: sugerido } : x)));
   };
 
+  const subidas = useMemo(
+    () => listarSubidasRappi(productos, refsByProduct),
+    [productos, refsByProduct]
+  );
+
+  const aplicarSubidas = async () => {
+    if (!subidas.length) return;
+    const preview = subidas.slice(0, 12).map((s) => `${s.producto.nombre}: ${fmtPrecioVenta(s.de)} → ${fmtPrecioVenta(s.a)}`).join("\n");
+    const extra = subidas.length > 12 ? `\n… y ${subidas.length - 12} más` : "";
+    const ok = window.confirm(
+      `¿Subir ${subidas.length} precio${subidas.length === 1 ? "" : "s"}?\nSolo subidas. Las bajadas no se tocan.\n\n${preview}${extra}`
+    );
+    if (!ok) return;
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    if (!tok) { showToast("Sesión expirada", "error"); return; }
+    setApplyingId("subidas");
+    let okN = 0;
+    let errN = 0;
+    for (const s of subidas) {
+      const { error } = await supabase.rpc("admin_editar_producto", {
+        p_session_token: tok,
+        p_producto_id: s.producto.id,
+        p_patch: { precio: s.a },
+      });
+      if (error) errN += 1;
+      else {
+        okN += 1;
+        setProductos((prev) => prev.map((x) => (x.id === s.producto.id ? { ...x, precio: s.a } : x)));
+      }
+    }
+    setApplyingId(null);
+    if (errN) showToast(`Se subieron ${okN}. Fallaron ${errN}.`, "warning");
+    else showToast(`Se subieron ${okN} precio${okN === 1 ? "" : "s"}. Las bajadas no se tocaron.`, "success");
+  };
+
   const actualizarRappi = async () => {
     const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) { showToast("Sesión expirada", "error"); return; }
@@ -425,7 +461,7 @@ export default function RappiPreciosPanel() {
             El <strong>sugerido</strong> es el mismo de Referencias: ~2% bajo la farmacia o calle más barata.
             Un <strong>pack</strong>, el polvo o otra línea (Advance / Plus) no se compara con la botella suelta.
             El <strong>súper</strong> (Chedraui, Soriana) se ve y no mueve el precio: envío otro y piso otro.
-            Clic en un precio para editarlo. <strong>Aplicar</strong> cambia mostrador y línea.
+            Clic en un precio para editarlo. <strong>Aplicar subidas</strong> solo sube; las bajadas las dejas a mano.
           </p>
           {chipsFuente.length > 0 && (
             <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 6 }}>
@@ -447,16 +483,27 @@ export default function RappiPreciosPanel() {
             </div>
           )}
         </div>
-        <Btn
-          sm
-          col={BRAND.primary}
-          onClick={actualizarRappi}
-          dis={actualizando}
-          style={{ display: "inline-flex", gap: 6, alignItems: "center" }}
-        >
-          <RefreshCw size={14} aria-hidden />
-          {actualizando ? "Buscando…" : "Actualizar Rappi"}
-        </Btn>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <Btn
+            sm
+            col={C.green}
+            onClick={aplicarSubidas}
+            dis={actualizando || applyingId != null || !subidas.length}
+            style={{ display: "inline-flex", gap: 6, alignItems: "center" }}
+          >
+            {applyingId === "subidas" ? "Subiendo…" : `Aplicar ${subidas.length} subida${subidas.length === 1 ? "" : "s"}`}
+          </Btn>
+          <Btn
+            sm
+            col={BRAND.primary}
+            onClick={actualizarRappi}
+            dis={actualizando}
+            style={{ display: "inline-flex", gap: 6, alignItems: "center" }}
+          >
+            <RefreshCw size={14} aria-hidden />
+            {actualizando ? "Buscando…" : "Actualizar Rappi"}
+          </Btn>
+        </div>
       </div>
 
       <BarraProgresoRappi progreso={progreso} />
@@ -546,17 +593,17 @@ export default function RappiPreciosPanel() {
                 const refs = refsByProduct[p.id] || {};
                 const margen = calcMargenVenta(p.precio, p);
                 const { sugerido, nota, alerta, accion } = calcPrecioSugeridoRappi(p, refs);
-                const calle = precioCalleDe(refs);
+                const calle = precioCalleDe(p, refs);
                 const botLabel = fmtBotCuando(instanteBotRappiDe(refs));
                 const rowBg = i % 2 ? "#f8fafc" : "transparent";
-                const puedeAplicar = sugerido != null && roundPrecioVenta(p.precio) !== sugerido;
+                const puedeAplicar = accion === "subir" && sugerido != null && roundPrecioVenta(p.precio) !== sugerido;
+                const puedeBajarAMano = accion === "bajar" && sugerido != null;
                 const toneM = margen.pct != null ? margenToneColors(margen.tone, C) : null;
                 const sugeridoCol =
                   alerta === "debajo_costo" ? C.red :
                   alerta === "debajo_piso" ? C.amber :
                   accion === "bajar" ? C.amber :
                   C.green;
-                const btnAplicar = applyingId === p.id ? "…" : accion === "subir" ? "Subir" : accion === "bajar" ? "Bajar" : "Aplicar";
 
                 return (
                   <tr key={p.id} style={{ background: rowBg }}>
@@ -627,15 +674,30 @@ export default function RappiPreciosPanel() {
                       {puedeAplicar ? (
                         <button
                           type="button"
-                          disabled={applyingId === p.id}
+                          disabled={applyingId != null}
                           onClick={() => aplicarPrecio(p, sugerido)}
                           style={{
                             padding: "4px 10px", borderRadius: 6, border: "none",
                             background: BRAND.gradient, color: "#fff", cursor: "pointer",
-                            fontSize: 11, fontWeight: 700, opacity: applyingId === p.id ? 0.6 : 1,
+                            fontSize: 11, fontWeight: 700, opacity: applyingId != null ? 0.6 : 1,
                           }}
                         >
-                          {btnAplicar}
+                          {applyingId === p.id ? "…" : "Subir"}
+                        </button>
+                      ) : puedeBajarAMano ? (
+                        <button
+                          type="button"
+                          disabled={applyingId != null}
+                          onClick={() => aplicarPrecio(p, sugerido)}
+                          title="Bajada manual. El lote de subidas no toca esta fila."
+                          style={{
+                            padding: "4px 10px", borderRadius: 6,
+                            border: `1px solid ${C.border}`,
+                            background: C.card, color: C.textMid, cursor: "pointer",
+                            fontSize: 11, fontWeight: 700,
+                          }}
+                        >
+                          Bajar a mano
                         </button>
                       ) : (
                         <span style={{ color: C.textDim, fontSize: 10 }}>—</span>

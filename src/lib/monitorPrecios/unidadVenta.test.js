@@ -134,6 +134,18 @@ test("Pediasure / Glucerna / Electrolit se venden sueltos, no el pack", () => {
   )).toBe(true);
 });
 
+test("notas de Advance o 'no se encontró marca' no sirven de calle", () => {
+  const ensure = { ...ensureBotella, marca: "Ensure" };
+  expect(diagnosticoRefRappi(ensure, {
+    precio: 66,
+    notas: "Vitau.mx - Ensure Advance 237ml (referencia similar)",
+  }).ok).toBe(false);
+  expect(diagnosticoRefRappi(ensure, {
+    precio: 38.62,
+    notas: "No se encontro marca Ensure; Similares maneja DIETA POLIMERICA",
+  }).ok).toBe(false);
+});
+
 test("Dibar 125 ml no se compara con el de 500 ml", () => {
   expect(ofertaRappiComparable(
     { nombre: "Alcohol Etilico Rojo 96°", marca: "Dibar", presentacion: "125 ML", precio: 22 },
