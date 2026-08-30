@@ -1,0 +1,484 @@
+{
+  "tiendaId": "1930472595",
+  "tienda": "Mercado leyes de reforma",
+  "archivo": "ProductosActualizacion-es.xlsx",
+  "actualizado": "2026-08-30",
+  "productos": [
+    {
+      "sku": "FARMACAPITALmt_eq-nov032",
+      "ean": "7501075717150",
+      "nombre": "Lizovag (200 mg)",
+      "precio": 26.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_eq-loe058",
+      "ean": "7502211784005",
+      "nombre": "Feniffler-T (100 mg)",
+      "precio": 40.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_fc-75723137",
+      "ean": "7501075723137",
+      "nombre": "Novakosid Laxante Natural (8.6 mg)",
+      "precio": 28.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_fc-11780359",
+      "ean": "7502211780359",
+      "nombre": "Aflusil (2 g / 100 mL)",
+      "precio": 39.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_fc-09749209",
+      "ean": "7502009749209",
+      "nombre": "Lumboxen Parche",
+      "precio": 28.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_fc-24227339",
+      "ean": "7502224227339",
+      "nombre": "Loxcell NF Antiparasitario Albendazol Quinfamida 400mg/300mg Caja x1 Tableta",
+      "precio": 129.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_fmx-300936",
+      "ean": "7502009747144",
+      "nombre": "Lady Femm Parche Térmico",
+      "precio": 37.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_fc-27427392",
+      "ean": "7502227426982",
+      "nombre": "Ml-Prim (375 mg / 200 mg)",
+      "precio": 93.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_fc-21042481",
+      "ean": "7501022104248",
+      "nombre": "Ricitos De Oro Crema Corporal con Manzanilla",
+      "precio": 60.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_fc-09745560",
+      "ean": "7502009745560",
+      "nombre": "Bioxover Jarabe (300 mg/ 100 mL)",
+      "precio": 57.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_fc-09749421",
+      "ean": "7502009749421",
+      "nombre": "Dexpantenol 5% Pomada Tubo 30 g",
+      "precio": 28.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_fc-09747236",
+      "ean": "7502009747236",
+      "nombre": "Exaliv Tabletas (325 mg / 5 mg / 2 mg)",
+      "precio": 39.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_fc-09745539",
+      "ean": "7502009745539",
+      "nombre": "Lumboxen Gel (10 g/2 g) 35 g",
+      "precio": 78.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_eq-mav263",
+      "ean": "7502009745522",
+      "nombre": "Galaver Gel Magaldrato Dimeticona 80mg/10mg 10 Unidades",
+      "precio": 74.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_fc-09745027",
+      "ean": "7502009745027",
+      "nombre": "Galaver Gel Magaldrato Dimeticona 8g/1g 250ml",
+      "precio": 95.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_fc-99428024",
+      "ean": "7501199428024",
+      "nombre": "Gel Infantil Para Cabello Punk Mini Moco De Gorila 80 grs",
+      "precio": 49.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_fc-7426449",
+      "ean": "7502227426449",
+      "nombre": "Nesajar Cápsulas Pinaverio Dimeticona 100mg/300mg Caja x16",
+      "precio": 188.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_fc-86708021",
+      "ean": "7501048670802",
+      "nombre": "Protec Termómetro Digital",
+      "precio": 76.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_fc-83510531",
+      "ean": "7501048351053",
+      "nombre": "Protec Gel Antibacterial",
+      "precio": 39.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_fc-3d0f54b7",
+      "ean": "7501478316813",
+      "nombre": "Ibuprofeno/Cafeína 400/100 mg 10 Cápsulas",
+      "precio": 50.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_eq-vit055",
+      "ean": "7502227426869",
+      "nombre": "Diclofenaco Gel 1.16% 60 Grs -rotumal",
+      "precio": 45.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_fc-58715517",
+      "ean": "7501095409004",
+      "nombre": "Graneodin B Frambuesa Benzocaina 24 Tabs",
+      "precio": 70.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_fc-87154871",
+      "ean": "7501058715487",
+      "nombre": "Graneodín F, Pastillas de Flurbiprofeno sabor Naranja de 16 pzas",
+      "precio": 222.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_eq-his081",
+      "ean": "7502213042738",
+      "nombre": "Farmarest Salbutamol Aerosol para Inhalación",
+      "precio": 67.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_fc-5bc5f234",
+      "ean": "7501349012943",
+      "nombre": "Amsa Fluconazol 150 mg 1 pza",
+      "precio": 26.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_fc-5008473",
+      "ean": "7501065008473",
+      "nombre": "Theraflu noche limon caja c/10 sobres",
+      "precio": 279.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_eq-tem009",
+      "ean": "7501249600813",
+      "nombre": "Tempus Pharma Levotiroxina (100 mcg)",
+      "precio": 89.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_fc-86a95d07",
+      "ean": "7503003134268",
+      "nombre": "Pharma Tro Antibiotico En Tabletas",
+      "precio": 74.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_eq-ult146",
+      "ean": "7502216796737",
+      "nombre": "Pioglitazona Ultra Laboratorios (15 Mg)",
+      "precio": 30.0,
+      "disponibilidad": "NO"
+    },
+    {
+      "sku": "FARMACAPITALmt_fc-03388008",
+      "ean": "7502003388008",
+      "nombre": "Velatuss Levodropropizina 600 Mg Solucion 120 ml",
+      "precio": 68.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_fc-01007663",
+      "ean": "7503001007663",
+      "nombre": "Wamindel Solución Oral Infantil (3.2 g)",
+      "precio": 31.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_fc-40450230",
+      "ean": "7502240450230",
+      "nombre": "Rosel Infantil 3 g",
+      "precio": 54.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_fc-759a5ef9",
+      "ean": "7502240450773",
+      "nombre": "Wermy Anticonvulsivo (300 mg) Cápsulas",
+      "precio": 79.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_fc-50d044ff",
+      "ean": "7502240450780",
+      "nombre": "Wermy (300 mg)",
+      "precio": 42.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_fc-99425580",
+      "ean": "7501199425580",
+      "nombre": "Gel Fijador Xtreme Titan 250 g",
+      "precio": 39.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_fc-aca2a2f6",
+      "ean": "7501342804309",
+      "nombre": "Alopurinol 300 Mg 20 Tab Beadvance",
+      "precio": 43.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_fc-28833707",
+      "ean": "7501342802954",
+      "nombre": "Levofloxacino 7 Tab 500 Mg",
+      "precio": 38.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_eq-ifa001",
+      "ean": "7501249606778",
+      "nombre": "Postday Comprimido 1.5 Mg 1 Pza",
+      "precio": 120.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_fc-53601247",
+      "ean": "7502253601247",
+      "nombre": "Rinomar Agua de Mar Nasal",
+      "precio": 128.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_fc-03738879",
+      "ean": "7503003738879",
+      "nombre": "Rosel-T (50 mg / 3 mg / 300 mg)",
+      "precio": 43.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_fmx-303280",
+      "ean": "7502274792115",
+      "nombre": "Melnotex Sublingual 5 Mg C/20 Tabletas",
+      "precio": 78.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_eq-son039",
+      "ean": "7502001163782",
+      "nombre": "Dicleophen Son's Dicloxacilina 12 Pieza(s)",
+      "precio": 53.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_fc-e6112f15",
+      "ean": "7502001165533",
+      "nombre": "Nalixone Tabletas (500 mg / 50 mg)",
+      "precio": 124.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_eq-son204",
+      "ean": "7502001162693",
+      "nombre": "Phendex Suspensión Ótica (2 mg / 10 mg / 50 mg)",
+      "precio": 60.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_fc-01163232",
+      "ean": "7502001163232",
+      "nombre": "Ridin Solución Infantil (0.100 g / 1.0 g / 0.010 g)",
+      "precio": 53.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_fc-6074bb64",
+      "ean": "7503000422498",
+      "nombre": "Redalip (200 Mg)",
+      "precio": 37.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_eq-rad092",
+      "ean": "7501563380408",
+      "nombre": "Dextrometorfano 120 mL",
+      "precio": 27.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_eq-nov157",
+      "ean": "7501075717013",
+      "nombre": "Glunovag 500 Mg",
+      "precio": 39.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_eq-nov092",
+      "ean": "7501075718041",
+      "nombre": "Ixicrol (20 mg)",
+      "precio": 43.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_eq-cod060",
+      "ean": "7503028771400",
+      "nombre": "Maracina Solución Bucal (150 mg)",
+      "precio": 50.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_fc-09749063",
+      "ean": "7502009749063",
+      "nombre": "Sol Sun Protector Solar Cara Face 50fps+ Crema Facial 50g",
+      "precio": 91.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_fc-01165298",
+      "ean": "7502001165298",
+      "nombre": "Exhantil Son's Aluminio Magnesio Simeticona",
+      "precio": 65.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_eq-son034",
+      "ean": "7502001160026",
+      "nombre": "Busconet Tabletas (250 mg / 10 mg)",
+      "precio": 49.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_fc-01162365",
+      "ean": "7502001162365",
+      "nombre": "Mornin (40 mg)",
+      "precio": 39.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_eq-son096",
+      "ean": "7502001164697",
+      "nombre": "Fenimeth-V Óvulos Vaginales (500 mg / 100.000 UI)",
+      "precio": 67.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_eq-son153",
+      "ean": "7502001164086",
+      "nombre": "Nysmoson´s-V Óvulos Metronidazol, Nistatina ,Fluocinolona 500 mg,100.000 u, 0.5 mg",
+      "precio": 84.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_fc-f7a2cacf",
+      "ean": "7501547509016",
+      "nombre": "Indarzona (25 Mg/0.5 Mg)",
+      "precio": 94.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_eq-cod086",
+      "ean": "7503028771684",
+      "nombre": "Bano Colloide Sobre C/90 G (suanca)",
+      "precio": 37.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_eq-str008",
+      "ean": "7501547522145",
+      "nombre": "Trociletas B Tableta (2.5 mg/10 mg)",
+      "precio": 63.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_fc-f817bc3a",
+      "ean": "7502009746093",
+      "nombre": "Sibicos Crema (1 G/100 G)",
+      "precio": 53.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_eq-son233",
+      "ean": "7502001165397",
+      "nombre": "Zimeton (130 mg / 50 mg / 40 mg)",
+      "precio": 111.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_eq-son193",
+      "ean": "7502001162600",
+      "nombre": "Poral (10 mg / 25 mg / 20 mg)",
+      "precio": 68.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_eq-ser025",
+      "ean": "7501258203586",
+      "nombre": "Lonixer Analgésico Tabletas 250mg 10 pza",
+      "precio": 65.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_fc-01165953",
+      "ean": "7502001165953",
+      "nombre": "Rexurdir Nifuroxazida (400 mg)",
+      "precio": 59.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_fc-22130063",
+      "ean": "7501022130063",
+      "nombre": "Ricitos De Oro Similac Baby Shampoo Miel",
+      "precio": 55.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_FC-06134531",
+      "ean": "7501050613453",
+      "nombre": "Afrin Descongestivo Nasal Adulto (0.050 %)",
+      "precio": 173.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_FC-09740657",
+      "ean": "7502009740657",
+      "nombre": "Laritol (100 mg/600 mg/100 mL)",
+      "precio": 45.0,
+      "disponibilidad": "SI"
+    },
+    {
+      "sku": "FARMACAPITALmt_FC-3406723",
+      "ean": "7503003406723",
+      "nombre": "Quirmex Venda Elástica",
+      "precio": 12.0,
+      "disponibilidad": "SI"
+    }
+  ]
+}

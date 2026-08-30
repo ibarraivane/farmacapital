@@ -14,6 +14,7 @@ import {
   refsVentaComparables,
 } from "./preciosReferencia";
 import { diagnosticoRefRappi } from "./monitorPrecios/unidadVenta";
+import { digitsEan, skuInternoDesdeRappi } from "./rappiCargaCsv";
 
 export const FUENTES_RAPPI_FARMACIA = [
   "rappi_gdl",
@@ -158,4 +159,58 @@ export function instanteBotRappiGlobal(refsByProduct) {
     if (t != null && (best == null || t > best)) best = t;
   }
   return best;
+}
+
+function clavesEan(value) {
+  const d = digitsEan(value);
+  if (d.length < 8) return [];
+  const trimmed = d.replace(/^0+/, "") || "0";
+  return [...new Set([d, trimmed, d.padStart(13, "0")])];
+}
+
+/**
+ * «En Rappi»: plantilla Partner (SKU/EAN) + foto ligada + scrape.
+ */
+export function idsEnCatalogoRappi(productos, filas) {
+  const byId = new Set();
+  const bySku = new Set();
+  const byEan = new Set();
+  for (const row of filas || []) {
+    if (row?.producto_id != null) byId.add(row.producto_id);
+    const sku = skuInternoDesdeRappi(row?.sku_local || row?.sku);
+    if (sku) bySku.add(sku);
+    for (const e of clavesEan(row?.ean)) byEan.add(e);
+  }
+  const out = new Set();
+  for (const p of productos || []) {
+    if (byId.has(p.id)) {
+      out.add(p.id);
+      continue;
+    }
+    const sku = skuInternoDesdeRappi(p.sku);
+    if (sku && bySku.has(sku)) {
+      out.add(p.id);
+      continue;
+    }
+    if (clavesEan(p.codigo_barras).some((e) => byEan.has(e))) out.add(p.id);
+  }
+  return out;
+}
+
+/** Con búsqueda, En Rappi no esconde el renglón del inventario. */
+export function pasaFiltroListaRappi({ filtro, busq, linked, hasRef }) {
+  const hayBusq = Boolean(String(busq || "").trim());
+  if (filtro === "en_rappi") return linked || hasRef || hayBusq;
+  return true;
+}
+
+export function mensajeVacioListaRappi({ filtro, busq } = {}) {
+  const q = String(busq || "").trim();
+  if (q) {
+    return `Nada para «${q}» en este filtro. Cambia a Todos o pulsa «Rellenar plantilla Rappi» con el Excel de Partner.`;
+  }
+  if (filtro === "en_rappi") {
+    return "Nada en En Rappi. Ese filtro son los 68 de tu plantilla Partner, más foto o precio scrapeado. Cambia a Todos.";
+  }
+  return "Nada en este filtro. Pulsa «Actualizar Rappi» o cambia a Todos.";
 }

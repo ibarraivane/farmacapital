@@ -34,6 +34,7 @@ backups/
 # Excel locales (inventario/pricing) — no versionar
 *.xlsx
 ~$*.xlsx
+!public/catalogo-propia/ProductosActualizacion-es.xlsx
 
 # Catálogo masivo regenerado localmente (ver scripts/import-farmac-os-xlsx.js)
 sql/generated/*.sql
