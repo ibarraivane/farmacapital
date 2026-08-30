@@ -31,6 +31,15 @@ import {
   fmtBotCuando,
   productoSubtituloReferencia,
 } from "./lib/preciosReferencia";
+import {
+  accionesRevisionFila,
+  cargarRevisionPrecios,
+  esPendienteRevision,
+  guardarRevisionPrecios,
+  huellaMercado,
+  marcarRevisados,
+} from "./lib/preciosRevision";
+import AccionesPrecioRevision from "./components/AccionesPrecioRevision";
 import { costoComparacionDe, compraVigenteDe } from "./lib/ultimaCompra";
 import {
   agruparLotesPorProducto,
@@ -583,7 +592,8 @@ function TablaCompra({
 function TablaVenta({
   productos, refsByProduct, C, busq, colWidths,
   inlineEdit, savingKey, onStartEdit, onDraft, onCommit, onCancel,
-  onAplicar, applyingId, sugeridoOverrides, onResetCompetir,
+  onAplicar, onAceptar, applyingId, sugeridoOverrides, onResetCompetir,
+  revision,
 }) {
   const fil = productos.filter((p) => inventarioProductMatchesBusqueda(p, busq));
   const thS = (colId) => ({ ...th(C), ...colStyle(colWidths, colId) });
@@ -628,7 +638,12 @@ function TablaVenta({
             const {
               sugerido, refMin, nota, alerta, margenActual, margenSugerido, esAjusteManual, accion,
             } = resolveSugeridoFila(p, refs, sugeridoOverrides);
-            const puedeAplicar = accion === "subir" && sugerido != null && roundPrecioVenta(p.precio) !== sugerido;
+            const pendiente = esPendienteRevision({
+              botTs: instanteBotVentaDe(refs),
+              revisado: revision?.porId?.[p.id],
+              epoch: revision?.epoch,
+            });
+            const botones = accionesRevisionFila({ pendiente, accion, sugerido });
             const sugeridoCol =
               alerta === "debajo_costo" ? C.red :
               alerta === "debajo_piso" ? C.amber :
@@ -780,22 +795,13 @@ function TablaVenta({
                 <td style={{ ...tdS("nota", { fontSize: 10, color: C.textMid, background: rowBg }) }}>{nota}</td>
                 <td style={{ ...tdS("accion", { background: rowBg }) }}>
                   <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-start" }}>
-                    {puedeAplicar ? (
-                      <button
-                        type="button"
-                        disabled={applyingId != null}
-                        onClick={() => onAplicar(p, sugerido)}
-                        style={{
-                          padding: "4px 10px", borderRadius: 6, border: "none",
-                          background: BRAND.gradient, color: "#fff", cursor: "pointer",
-                          fontSize: 11, fontWeight: 700, opacity: applyingId != null ? 0.6 : 1,
-                        }}
-                      >
-                        {applyingId === p.id ? "…" : "Subir"}
-                      </button>
-                    ) : (
-                      <span style={{ color: C.textDim, fontSize: 10 }}>—</span>
-                    )}
+                    <AccionesPrecioRevision
+                      botones={botones}
+                      applying={applyingId != null}
+                      onSubir={() => onAplicar(p, sugerido)}
+                      onBajar={() => onAplicar(p, sugerido)}
+                      onAceptar={() => onAceptar(p)}
+                    />
                     {esAjusteManual && sugerido != null ? (
                       <button
                         type="button"
@@ -865,6 +871,7 @@ export default function PreciosReferenciaModule() {
   const [sugeridoOverrides, setSugeridoOverrides] = useState(() => loadSugeridoOverrides());
   const [buscandoSimilares, setBuscandoSimilares] = useState(false);
   const [actualizandoCompra, setActualizandoCompra] = useState(false);
+  const [revision, setRevision] = useState({ epoch: null, porId: {} });
 
   const colWidths = tab === "compra" ? colWidthsCompra : colWidthsVenta;
   const setColWidths = tab === "compra" ? setColWidthsCompra : setColWidthsVenta;
@@ -939,6 +946,9 @@ export default function PreciosReferenciaModule() {
       lotesByProducto = agruparLotesPorProducto(lotes);
     }
     setProductos((prodRes.data || []).map((p) => enriquecerProductoConLotes(p, lotesByProducto[p.id])));
+    const loaded = await cargarRevisionPrecios(supabase);
+    setRevision(loaded.state);
+    if (loaded.persistirEpoch) await guardarRevisionPrecios(supabase, loaded.state);
     setLoading(false);
     return true;
   }, []);
@@ -1174,6 +1184,10 @@ export default function PreciosReferenciaModule() {
       showToast("Error: " + error.message, "error");
       return;
     }
+    const calc = calcPrecioSugeridoVenta(producto, refsByProduct[producto.id] || {});
+    const next = marcarRevisados(revision, [producto.id], { [producto.id]: { huella: huellaMercado(calc) } });
+    setRevision(next);
+    await guardarRevisionPrecios(supabase, next);
     showToast("Precio actualizado", "success");
     setProductos((prev) =>
       prev.map((x) => (x.id === producto.id ? { ...x, precio: sugerido } : x))
@@ -1187,22 +1201,36 @@ export default function PreciosReferenciaModule() {
   };
 
   const subidas = useMemo(
-    () => listarSubidasSugeridas(productos, refsByProduct, calcPrecioSugeridoVenta),
-    [productos, refsByProduct]
+    () => listarSubidasSugeridas(productos, refsByProduct, calcPrecioSugeridoVenta).filter((s) => (
+      esPendienteRevision({
+        botTs: instanteBotVentaDe(refsByProduct[s.producto.id] || {}),
+        revisado: revision.porId[s.producto.id],
+        epoch: revision.epoch,
+      })
+    )),
+    [productos, refsByProduct, revision]
   );
+
+  const aceptarPrecio = async (producto) => {
+    const calc = calcPrecioSugeridoVenta(producto, refsByProduct[producto.id] || {});
+    const next = marcarRevisados(revision, [producto.id], { [producto.id]: { huella: huellaMercado(calc) } });
+    setRevision(next);
+    await guardarRevisionPrecios(supabase, next);
+    showToast("Listo. Si el bot cambia el mercado, vuelven los botones.", "success");
+  };
 
   const aplicarSubidas = async () => {
     if (!subidas.length) return;
     const preview = subidas.slice(0, 12).map((s) => `${s.producto.nombre}: ${fmtPrecioVenta(s.de)} → ${fmtPrecioVenta(s.a)}`).join("\n");
     const extra = subidas.length > 12 ? `\n… y ${subidas.length - 12} más` : "";
     const ok = window.confirm(
-      `¿Subir ${subidas.length} precio${subidas.length === 1 ? "" : "s"}?\nSolo subidas. Las bajadas no se tocan.\n\n${preview}${extra}`
+      `¿Subir ${subidas.length} precio${subidas.length === 1 ? "" : "s"}?\n\n${preview}${extra}`
     );
     if (!ok) return;
     const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) { showToast("Sesión expirada", "error"); return; }
     setApplyingId("subidas");
-    let okN = 0;
+    const okIds = [];
     let errN = 0;
     for (const s of subidas) {
       const { error } = await supabase.rpc("admin_editar_producto", {
@@ -1212,13 +1240,22 @@ export default function PreciosReferenciaModule() {
       });
       if (error) errN += 1;
       else {
-        okN += 1;
+        okIds.push(s.producto.id);
         setProductos((prev) => prev.map((x) => (x.id === s.producto.id ? { ...x, precio: s.a } : x)));
       }
     }
     setApplyingId(null);
-    if (errN) showToast(`Se subieron ${okN}. Fallaron ${errN}.`, "warning");
-    else showToast(`Se subieron ${okN} precio${okN === 1 ? "" : "s"}. Las bajadas no se tocaron.`, "success");
+    if (okIds.length) {
+      const extra = {};
+      for (const s of subidas) {
+        if (okIds.includes(s.producto.id)) extra[s.producto.id] = { huella: huellaMercado({ refMin: s.refMin, sugerido: s.a }) };
+      }
+      const next = marcarRevisados(revision, okIds, extra);
+      setRevision(next);
+      await guardarRevisionPrecios(supabase, next);
+    }
+    if (errN) showToast(`Se subieron ${okIds.length}. Fallaron ${errN}.`, "warning");
+    else showToast(`Se subieron ${okIds.length} precio${okIds.length === 1 ? "" : "s"}.`, "success");
   };
 
   const inpS = {
@@ -1242,7 +1279,8 @@ export default function PreciosReferenciaModule() {
             Higiene y abarrotes: <strong>Exprezo (Zorro)</strong> es el piso barato; no se compara con City Club ni Sam's (otro tipo de precio y empaque).
             Si un abarrotero te da lista igual de barata, impórtala en <strong>Otros</strong>.
             Scorpion y Abarrotero no tienen columna: ganan en <strong>Mejor opción</strong>.
-            <strong> Actualizar</strong> baja listas públicas y recarga. El pedido de resurtido está en Reabasto.
+            <strong> Actualizar</strong> baja listas públicas y recarga. Si el bot cambia una referencia, vuelven <strong>Subir / Bajar / Aceptar</strong>.
+            El pedido de resurtido está en Reabasto.
           </p>
           {Object.keys(fechasFuente).length > 0 && (
             <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 6 }}>
@@ -1479,9 +1517,11 @@ export default function PreciosReferenciaModule() {
           onCommit={commitEdit}
           onCancel={cancelEdit}
           onAplicar={aplicarPrecio}
+          onAceptar={aceptarPrecio}
           applyingId={applyingId}
           sugeridoOverrides={sugeridoOverrides}
           onResetCompetir={resetSugeridoCompetir}
+          revision={revision}
         />
       )}
     </div>

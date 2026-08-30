@@ -1,5 +1,6 @@
 import {
   calcPrecioSugeridoRappi,
+  listarSugerenciasRappi,
   listarSubidasRappi,
   precioCalleDe,
   precioFarmaciaRappiMin,
@@ -101,16 +102,20 @@ test("Calle Advance o dieta genérica no cuentan para Ensure Regular", () => {
   expect(out.sugerido).toBeNull();
 });
 
-test("el lote solo lista subidas, nunca bajadas", () => {
+test("el lote de sugerencias incluye subidas y bajadas", () => {
   const barato = { ...otc, id: 1, precio: 20 };
   const caro = { ...otc, id: 2, precio: 80 };
-  const subidas = listarSubidasRappi([barato, caro], {
+  const mapa = {
     1: refs({ similares: 40 }),
     2: refs({ similares: 40 }),
-  });
+  };
+  const todas = listarSugerenciasRappi([barato, caro], mapa);
+  expect(todas.map((s) => s.producto.id).sort()).toEqual([1, 2]);
+  expect(todas.find((s) => s.producto.id === 1).accion).toBe("subir");
+  expect(todas.find((s) => s.producto.id === 2).accion).toBe("bajar");
+  const subidas = listarSubidasRappi([barato, caro], mapa);
   expect(subidas).toHaveLength(1);
   expect(subidas[0].producto.id).toBe(1);
-  expect(subidas[0].a).toBeGreaterThan(20);
 });
 
 test("sin refs de farmacia ni calle no sugiere", () => {
