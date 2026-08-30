@@ -73,6 +73,19 @@
       ]
     },
     {
+      "source": "/catalogo-propia/rappi_carga_stock0.csv",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "text/csv; charset=utf-8"
+        },
+        {
+          "key": "Content-Disposition",
+          "value": "attachment; filename=\"rappi_carga_stock0.csv\""
+        }
+      ]
+    },
+    {
       "source": "/static/(.*)",
       "headers": [
         {
