@@ -19,6 +19,7 @@ import { precioMostradorPos, productoCajaEsFalsa, stockMostradorPos } from "../.
 import { productoEsVendible } from "../../../utils/productoVendible";
 import { IconoAnaquel, IconoBolsa, IconoBuscar, IconoCaja, IconoChevron, IconoPieza, filaIconoBtn } from "../../../components/pos/PosIconos";
 import { cobroLinea, pesoPublico } from "../../../utils/pesoPublico";
+import PrecioOferta from "../../../components/PrecioOferta";
 import { precioLineaCajaPos } from "../../../lib/precioVentaExclusivo";
 import { fechaLocalMexico } from "../../../lib/pagoServicio";
 import { hoyISOMexico } from "../../../lib/fecha";
@@ -538,10 +539,7 @@ function PosProductoFichaPanel({
               <div style={{ fontSize: 11, color: C.textDim, marginBottom: 2 }}>Precio</div>
               <div style={{ fontSize: stack ? 22 : 26, fontWeight: 900, color: C.blue, lineHeight: 1 }}>
                 {item.descuento_pct > 0 && !cajaFalsa ? (
-                  <>
-                    <span style={{ fontSize: 14, color: C.textDim, textDecoration: "line-through", marginRight: 8 }}>{$(item.precio)}</span>
-                    {$(cobroLinea(item.precio, 1, item.descuento_pct))}
-                  </>
+                  <PrecioOferta prod={item} size="md" showAhorro={false} />
                 ) : (
                   $(pesoPublico(precioFicha))
                 )}
