@@ -1,9 +1,56 @@
 import { useCallback, useEffect, useState } from "react";
-import { Pause, Play, RefreshCw, ShoppingBag, TrendingUp } from "lucide-react";
+import { Download, Pause, Play, RefreshCw, ShoppingBag, TrendingUp } from "lucide-react";
 import { C_LIGHT, BRAND } from "./constants";
 import { supabase } from "./supabase";
 import { Box, Btn, Tag, showToast, SkeletonTable } from "./ui";
 import RappiPreciosPanel from "./RappiPreciosPanel";
+import {
+  csvCargaRappi,
+  descargarTextoCsv,
+  nombreArchivoCargaRappi,
+  reservaMostradorDe,
+} from "./lib/rappiCargaCsv";
+
+const PAGE_CARGA = 1000;
+const SELECT_CARGA = [
+  "id", "sku", "nombre", "codigo_barras", "stock", "precio", "activo",
+  "requiere_receta", "controlado", "categoria", "venta_unidad",
+  "unidades_por_caja", "presentacion", "forma_farmaceutica",
+].join(",");
+
+async function fetchProductosCargaRappi() {
+  const all = [];
+  let from = 0;
+  let select = SELECT_CARGA;
+  for (;;) {
+    const { data, error } = await supabase
+      .from("productos")
+      .select(select)
+      .order("id")
+      .range(from, from + PAGE_CARGA - 1);
+    if (error && /controlado/i.test(error.message || "") && select.includes("controlado")) {
+      select = SELECT_CARGA.replace(",controlado", "");
+      continue;
+    }
+    if (error) throw error;
+    all.push(...(data || []));
+    if (!data || data.length < PAGE_CARGA) return all;
+    from += PAGE_CARGA;
+  }
+}
+
+async function descargarCsvPartnerRappi() {
+  const [cfgRes, productos] = await Promise.all([
+    supabase.from("configuracion").select("valor").eq("clave", "rappi_reserva_mostrador").maybeSingle(),
+    fetchProductosCargaRappi(),
+  ]);
+  const reserva = reservaMostradorDe(cfgRes.data?.valor);
+  const csv = csvCargaRappi(productos, reserva);
+  const filas = Math.max(0, csv.trim().split("\n").length - 1);
+  if (!filas) throw new Error("No hay productos con SKU para armar el CSV");
+  descargarTextoCsv(nombreArchivoCargaRappi(), csv);
+  return { filas, reserva };
+}
 
 const C = C_LIGHT;
 const STALE_MS = 10 * 60 * 1000;
@@ -43,9 +90,21 @@ function loadSubTab() {
 
 export default function RappiSyncPanel() {
   const [sub, setSub] = useState(loadSubTab);
+  const [descargando, setDescargando] = useState(false);
   const selectSub = (id) => {
     setSub(id);
     try { sessionStorage.setItem(SUB_KEY, id); } catch { /* noop */ }
+  };
+
+  const onDescargarCsv = async () => {
+    setDescargando(true);
+    try {
+      const { filas, reserva } = await descargarCsvPartnerRappi();
+      showToast(`CSV listo: ${filas} SKUs · stock − ${reserva}. Súbelo en Rappi Partner → Subir plantilla.`, "success");
+    } catch (err) {
+      showToast(err.message || "No se pudo armar el CSV de Rappi", "error");
+    }
+    setDescargando(false);
   };
 
   return (
@@ -53,35 +112,52 @@ export default function RappiSyncPanel() {
       <div style={{
         padding: "12px 24px 0",
         display: "flex",
-        gap: 6,
+        alignItems: "flex-end",
+        justifyContent: "space-between",
+        gap: 12,
+        flexWrap: "wrap",
         borderBottom: `1px solid ${C.border}`,
         background: C.card,
       }}>
-        {[
-          { id: "precios", label: "Precios en línea", icon: TrendingUp },
-          { id: "disponibilidad", label: "Disponibilidad", icon: ShoppingBag },
-        ].map((t) => {
-          const active = sub === t.id;
-          const Icon = t.icon;
-          return (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => selectSub(t.id)}
-              style={{
-                display: "inline-flex", alignItems: "center", gap: 6,
-                padding: "10px 14px", marginBottom: -1,
-                background: "transparent", border: "none",
-                borderBottom: `2px solid ${active ? BRAND.primary : "transparent"}`,
-                color: active ? BRAND.primary : C.textMid,
-                fontWeight: 700, fontSize: 13, cursor: "pointer",
-              }}
-            >
-              <Icon size={15} strokeWidth={2.1} aria-hidden />
-              {t.label}
-            </button>
-          );
-        })}
+        <div style={{ display: "flex", gap: 6 }}>
+          {[
+            { id: "precios", label: "Precios en línea", icon: TrendingUp },
+            { id: "disponibilidad", label: "Disponibilidad", icon: ShoppingBag },
+          ].map((t) => {
+            const active = sub === t.id;
+            const Icon = t.icon;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => selectSub(t.id)}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                  padding: "10px 14px", marginBottom: -1,
+                  background: "transparent", border: "none",
+                  borderBottom: `2px solid ${active ? BRAND.primary : "transparent"}`,
+                  color: active ? BRAND.primary : C.textMid,
+                  fontWeight: 700, fontSize: 13, cursor: "pointer",
+                }}
+              >
+                <Icon size={15} strokeWidth={2.1} aria-hidden />
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+        <div style={{ paddingBottom: 8 }}>
+          <Btn
+            sm
+            col={BRAND.primary}
+            onClick={onDescargarCsv}
+            dis={descargando}
+            style={{ display: "inline-flex", gap: 6, alignItems: "center" }}
+          >
+            <Download size={14} aria-hidden />
+            {descargando ? "Armando CSV…" : "Descargar CSV Rappi"}
+          </Btn>
+        </div>
       </div>
       {sub === "precios" ? <RappiPreciosPanel /> : <RappiDisponibilidadPanel />}
     </div>

@@ -462,6 +462,7 @@ export default function RappiPreciosPanel() {
             Un <strong>pack</strong>, el polvo o otra línea (Advance / Plus) no se compara con la botella suelta.
             El <strong>súper</strong> (Chedraui, Soriana) se ve y no mueve el precio: envío otro y piso otro.
             Clic en un precio para editarlo. <strong>Aplicar subidas</strong> solo sube; las bajadas las dejas a mano.
+            {" "}<strong>Descargar CSV Rappi</strong> arma el archivo de Partner (SKU, EAN, stock − 2, AVAILABLE y PRICE) para Subir plantilla.
           </p>
           {chipsFuente.length > 0 && (
             <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 6 }}>
