@@ -25,10 +25,38 @@ export function isAllDigitsInput(raw) {
   return t.length > 0 && /^\d+$/.test(t);
 }
 
+/** Longitudes de un beep ya armado (EAN-8 / UPC-A / EAN-13 / GTIN-14). */
+export const COMPLETE_BARCODE_LENGTHS = [8, 12, 13, 14];
+
 /** Entrada típica de pistola (solo dígitos, EAN/UPC). */
 export function looksLikeBarcodeInput(raw) {
   const t = normalizeBarcodeRaw(raw);
   return t.length >= 8 && /^\d+$/.test(t);
+}
+
+/** El recuadro ya tiene un EAN/UPC de longitud legal — no un prefijo a medias. */
+export function isCompleteBarcodeLength(raw) {
+  const t = normalizeBarcodeRaw(raw);
+  return COMPLETE_BARCODE_LENGTHS.includes(t.length) && /^\d+$/.test(t);
+}
+
+/** Beep listo para buscar: EAN completo o SKU interno (FC-…). */
+export function looksLikeCompleteScanInput(raw) {
+  return isCompleteBarcodeLength(raw) || looksLikeInternalSku(raw);
+}
+
+/**
+ * Tras un miss: borrar el recuadro solo si el beep ya cerró.
+ * 8 o 12 dígitos en idle pueden ser el arranque de un EAN-13 (Bluetooth / iPad).
+ * Enter sí cierra: la pistola mandó el sufijo.
+ */
+export function shouldClearScanMiss(raw, { fromEnter = false } = {}) {
+  const trimmed = String(raw ?? "").trim();
+  if (looksLikeInternalSku(trimmed)) return true;
+  const t = normalizeBarcodeRaw(raw);
+  if (!t || !/^\d+$/.test(t)) return false;
+  if (fromEnter) return t.length >= 8;
+  return t.length === 13 || t.length === 14;
 }
 
 /** SKU interno (FC-…, EQ-…, FMX-…). No es búsqueda por nombre. */
@@ -71,15 +99,19 @@ export function codigosBarrasDeProducto(product) {
 }
 
 /** Coincidencia flexible EAN-13 / UPC-A (pistola vs BD con dígito extra). */
-export function barcodeDigitsMatch(scanRaw, storedRaw) {
+export function barcodeDigitsMatch(scanRaw, storedRaw, { allowNearPrefix = true } = {}) {
   const scan = normalizeBarcodeRaw(scanRaw);
   const stored = normalizeBarcodeRaw(storedRaw);
   if (!scan || !stored) return false;
   if (scan === stored) return true;
-  if (stored.startsWith(scan) && stored.length - scan.length <= 1) return true;
-  if (scan.startsWith(stored) && scan.length - stored.length <= 1) return true;
   if (scan.length === 12 && stored.length === 13 && stored === `0${scan}`) return true;
   if (stored.length === 12 && scan.length === 13 && scan === `0${stored}`) return true;
+  // Prefijo ±1: Enter ya cerró el beep. En idle a 12 dígitos NO: aún puede
+  // llegar el dígito 13 del EAN y no hay que agregar ni borrar el recuadro.
+  if (allowNearPrefix) {
+    if (stored.startsWith(scan) && stored.length - scan.length <= 1) return true;
+    if (scan.startsWith(stored) && scan.length - stored.length <= 1) return true;
+  }
   return false;
 }
 
@@ -108,9 +140,9 @@ export function splitBarcodeCandidates(raw) {
   return out;
 }
 
-function productMatchesScan(product, candidate, qN) {
+function productMatchesScan(product, candidate, qN, matchOpts) {
   if (!product) return false;
-  if (codigosBarrasDeProducto(product).some((cb) => barcodeDigitsMatch(candidate, cb))) return true;
+  if (codigosBarrasDeProducto(product).some((cb) => barcodeDigitsMatch(candidate, cb, matchOpts))) return true;
   if (product.sku && normalizeForSearch(product.sku) === qN) return true;
   return false;
 }
@@ -119,16 +151,17 @@ function productMatchesScan(product, candidate, qN) {
  * Coincidencia exacta por código de barras (EAN/UPC) o SKU interno.
  * Tolera EAN-13 vs 14 dígitos en BD y doble escaneo concatenado.
  */
-export function findProductExactScan(products, raw, { activeOnly = true } = {}) {
+export function findProductExactScan(products, raw, { activeOnly = true, allowNearPrefix = true } = {}) {
   const trimmed = normalizeBarcodeRaw(raw);
   if (!trimmed || !Array.isArray(products)) return null;
   const candidates = splitBarcodeCandidates(trimmed);
   const qN = normalizeForSearch(trimmed);
+  const matchOpts = { allowNearPrefix };
 
   for (const cand of candidates) {
     const hit = products.find((p) => {
       if (activeOnly && p?.activo === false) return false;
-      return productMatchesScan(p, cand, normalizeForSearch(cand));
+      return productMatchesScan(p, cand, normalizeForSearch(cand), matchOpts);
     });
     if (hit) return hit;
   }
@@ -136,7 +169,7 @@ export function findProductExactScan(products, raw, { activeOnly = true } = {}) 
   return (
     products.find((p) => {
       if (activeOnly && p?.activo === false) return false;
-      return productMatchesScan(p, trimmed, qN);
+      return productMatchesScan(p, trimmed, qN, matchOpts);
     }) || null
   );
 }
@@ -148,15 +181,15 @@ export function scanDedupeKey(raw, product) {
 }
 
 /**
- * Nueva ráfaga de escaneo: reemplazar campo en lugar de concatenar.
- * Las pistolas envían dígitos muy rápido; pausa >120ms tras código completo = nuevo scan.
+ * Nueva ráfaga: reemplazar el campo en lugar de concatenar.
+ * Bluetooth en iPad mete pausas de 200–350 ms a mitad de un EAN-13;
+ * a los 8 dígitos eso pisaba el código y el POS “se borraba”.
  */
 export function shouldReplaceScanInput(prevRaw, lastKeyTs, now = Date.now()) {
   const current = normalizeBarcodeRaw(prevRaw);
   if (!current) return false;
   const gap = now - (lastKeyTs || 0);
-  // Pistola: dígitos <50ms entre sí; pausa larga solo tras código completo
-  if (gap <= 200) return false;
-  if ([8, 12, 13, 14].includes(current.length)) return true;
-  return false;
+  if (gap <= 400) return false;
+  // 8 dígitos suele ser el arranque de un EAN-13; no pises.
+  return current.length === 12 || current.length === 13 || current.length === 14;
 }

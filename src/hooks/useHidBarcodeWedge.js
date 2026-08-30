@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { looksLikeBarcodeInput, looksLikeInternalSku, normalizeBarcodeRaw } from "../utils/barcodeProductLookup";
+import { looksLikeCompleteScanInput, looksLikeInternalSku, normalizeBarcodeRaw } from "../utils/barcodeProductLookup";
 
 function esCampoEditable(el) {
   if (!el || el === document.body || el === document.documentElement) return false;
@@ -38,7 +38,7 @@ export function useHidBarcodeWedge({ enabled, onScan }) {
       const raw = normalizeBarcodeRaw(buf) || buf.trim();
       reset();
       if (!raw) return;
-      if (looksLikeBarcodeInput(raw) || looksLikeInternalSku(raw)) {
+      if (looksLikeCompleteScanInput(raw) || looksLikeInternalSku(raw)) {
         onScanRef.current?.(raw);
       }
     };
@@ -87,7 +87,7 @@ export function useHidBarcodeWedge({ enabled, onScan }) {
       if (buf.length > 40) buf = buf.slice(-40);
       if (idleTimer) window.clearTimeout(idleTimer);
       idleTimer = window.setTimeout(() => {
-        if (looksLikeBarcodeInput(buf) || looksLikeInternalSku(buf)) commit();
+        if (looksLikeCompleteScanInput(buf) || looksLikeInternalSku(buf)) commit();
         else reset();
       }, 140);
     };

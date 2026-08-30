@@ -10,7 +10,7 @@ import { C_LIGHT, BRAND } from "../../../constants";
 import { $, logAudit, soloDigitosTel, telefonosMxEquivalentes, normalizeForSearch } from "../../../utils";
 import { tiendaProductMatchesBusqueda, tiendaSearchRelevanceRank } from "../../../utils/fuzzySearch";
 import { etiquetaIntencionMostrador } from "../../../utils/intencionMostrador";
-import { findProductExactScan, looksLikeBarcodeInput, looksLikeInternalSku, isAllDigitsInput, normalizeBarcodeRaw, queryCatalogoDesdeInputPos, shouldReplaceScanInput } from "../../../utils/barcodeProductLookup";
+import { findProductExactScan, looksLikeBarcodeInput, looksLikeInternalSku, looksLikeCompleteScanInput, isCompleteBarcodeLength, isAllDigitsInput, normalizeBarcodeRaw, queryCatalogoDesdeInputPos, shouldClearScanMiss, shouldReplaceScanInput } from "../../../utils/barcodeProductLookup";
 import { posTituloProducto, posSubtituloProducto, posEtiquetaVariante } from "../../../utils/posProductDisplay";
 import { grupoEquivalentesDeBusqueda, claveSustancia } from "../../../utils/equivalentesPos";
 import TableroEquivalentes, { TableroResultados } from "./TableroEquivalentes";
@@ -744,6 +744,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
   const scanAddTimerRef = useRef(null);
   const lastScanBurstRef = useRef({ raw: "", ts: 0 });
   const scanLastKeyTsRef = useRef(0);
+  const escaneoOkRef = useRef(false);
   const addRef = useRef(null);
   const [promoTicket,setPromoTicket] = useState(null);
   const [loadErr,setLoadErr] = useState("");
@@ -1166,7 +1167,10 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
     srchAnteriorRef.current = srch;
     const s = queryCatalogoDesdeInputPos(srch);
     if (!s) {
-      if (cambioBusqueda) setFichaProd(null);
+      // Tras un beep bueno vaciamos el recuadro pero la ficha se queda.
+      // Si no, el efecto ve "" y borra lo que acaba de abrir.
+      if (cambioBusqueda && !escaneoOkRef.current) setFichaProd(null);
+      escaneoOkRef.current = false;
       return;
     }
     const exact = findProductExactScan(productos, normalizeBarcodeRaw(srch) || s);
@@ -1339,6 +1343,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
     const prev = lastScanBurstRef.current;
     // Evitar doble add solo cuando timer + Enter disparan el mismo escaneo
     const mismoEscaneo = prev.raw === raw && now - prev.ts < 400;
+    escaneoOkRef.current = true;
     setFichaProd(exact);
     setSrch("");
     srchRef.current?.focus();
@@ -1367,19 +1372,22 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
     if (tab !== "venta") return;
     clearTimeout(scanAddTimerRef.current);
     const raw = normalizeBarcodeRaw(srch);
-    if (!raw || !looksLikeBarcodeInput(raw)) return;
+    // Igual que Recibir: no busques hasta EAN-8/12/13/14 (o SKU FC-…).
+    // A los 9–11 dígitos el código aún se está armando; a los 12 no borres
+    // si no hay match — puede faltar el dígito del EAN-13.
+    if (!raw || !looksLikeCompleteScanInput(raw)) return;
 
     scanAddTimerRef.current = setTimeout(() => {
-      const exact = findProductExactScan(productos, raw);
+      const exact = findProductExactScan(productos, raw, { allowNearPrefix: false });
       if (!exact) {
-        if (raw.length >= 12) {
+        if (shouldClearScanMiss(raw, { fromEnter: false })) {
           showToast("Código de barras no encontrado en inventario.", "warning");
           setSrch("");
         }
         return;
       }
       finalizarEscaneoExitoso(exact, raw);
-    }, 180);
+    }, 140);
 
     return () => clearTimeout(scanAddTimerRef.current);
   }, [srch, productos, tab, finalizarEscaneoExitoso]);
@@ -2914,7 +2922,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                 onTouchStart={(e)=>unlockInputForTouchKeyboard(e.currentTarget)}
                 onMouseDown={(e)=>unlockInputForTouchKeyboard(e.currentTarget)}
                 onChange={e=>{
-                  const v = e.target.value;
+                  const v = e.currentTarget.value;
                   setSrch(v);
                   if (!v.trim()) {
                     setFichaProd(null);
@@ -2924,13 +2932,13 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                   const exact = findProductExactScan(productos, scanKey);
                   if (exact) {
                     setFichaProd(exact);
-                  } else {
+                  } else if (!isAllDigitsInput(v) || isCompleteBarcodeLength(v) || looksLikeInternalSku(v)) {
                     setFichaProd(null);
                   }
                 }}
                 onFocus={(e)=>{
                   unlockInputForTouchKeyboard(e.currentTarget);
-                  if (isAllDigitsInput(srch)) e.target.select();
+                  if (isAllDigitsInput(srch)) e.currentTarget.select();
                 }}
                 onBlur={(e)=>{
                   lockInputAfterTouchKeyboard(e.currentTarget);
@@ -2938,7 +2946,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                 onKeyDown={e=>{
                   if (e.key.length === 1 && /\d/.test(e.key)) {
                     const now = Date.now();
-                    if (shouldReplaceScanInput(srch, scanLastKeyTsRef.current, now)) {
+                    const enCaja = e.currentTarget.value;
+                    if (shouldReplaceScanInput(enCaja, scanLastKeyTsRef.current, now)) {
                       e.preventDefault();
                       setSrch(e.key);
                       setFichaProd(null);
@@ -2950,7 +2959,9 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                   if(e.key==="Enter"){
                     e.preventDefault();
                     e.stopPropagation();
-                    const raw = normalizeBarcodeRaw(srch) || srch.trim();
+                    // Tablet: Enter de la pistola llega antes de que React tenga srch.
+                    const vivo = e.currentTarget.value;
+                    const raw = normalizeBarcodeRaw(vivo) || String(vivo || "").trim();
                     if (!raw) return;
                     // Nombre ("levo") nunca se trata como escaneo: no agrega ni borra.
                     if (looksLikeBarcodeInput(raw) || looksLikeInternalSku(raw)) {
@@ -2959,7 +2970,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                         finalizarEscaneoExitoso(exact, raw);
                         return;
                       }
-                      if (looksLikeBarcodeInput(raw)) {
+                      if (shouldClearScanMiss(raw, { fromEnter: true })) {
                         showToast("Código de barras no encontrado en inventario.","warning");
                         setSrch("");
                       }
