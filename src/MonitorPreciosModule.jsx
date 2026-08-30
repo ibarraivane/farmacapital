@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { C_LIGHT, BRAND } from "./constants";
 import { supabase } from "./supabase";
-import { showToast } from "./ui";
+import { AyudaDesplegable, showToast } from "./ui";
 
 const C = C_LIGHT;
 const money = (n) => {
@@ -217,13 +217,13 @@ export default function MonitorPreciosModule() {
       <h2 style={{ margin: "0 0 6px", fontSize: 18, color: C.text }}>
         Precios que se buscan solos
       </h2>
-      <p style={{ margin: "0 0 16px", fontSize: 13, color: C.textMid, lineHeight: 1.45, maxWidth: 760 }}>
+      <AyudaDesplegable style={{ margin: "0 0 16px" }}>
         Dos veces al día llena Referencias: Abarrotero, Scorpion y MayoreoTotal en compra;
         Similares y Del Ahorro en venta si la tienda responde.
         <strong> Otros</strong> es el promedio cuando hay más de una cadena.
         Exprezo / Zorro no tiene lista pública: se actualiza importando el CSV.
         Un PVP no cambia hasta que lo apruebes aquí.
-      </p>
+      </AyudaDesplegable>
 
       <div style={{
         display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center",

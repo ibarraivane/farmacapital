@@ -3,7 +3,7 @@ import { useMediaQuery } from "./hooks/useMediaQuery";
 import { C_LIGHT, BRAND } from "./constants";
 import { supabase } from "./supabase";
 import { saludoUsuario, $ } from "./utils";
-import { SkeletonKPIs, SkeletonTable, SkeletonCard, KPI, KPI_ROW, Box, Tag, Btn } from "./ui";
+import { AyudaDesplegable, SkeletonKPIs, SkeletonTable, SkeletonCard, KPI, KPI_ROW, Box, Tag, Btn } from "./ui";
 import { CONSULTA_PRECIO_DEFAULT } from "./utils/consultaConstants";
 import { resumenLineasReceta } from "./utils/recetaLineas";
 import TransaccionesTab from "./TransaccionesTab";
@@ -911,10 +911,10 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
 
       {panelTab==="proyecto" && (
         <div>
-          <p style={{ margin: "0 0 20px", color: C.textMid, fontSize: 13, lineHeight: 1.55, maxWidth: 720 }}>
+          <AyudaDesplegable style={{ margin: "0 0 20px" }}>
             Indicadores <strong style={{ color: C.text }}>macro del proyecto</strong>: capital invertido en apertura (obra, mobiliario, stock inicial, trámites) y recuperación frente a ventas acumuladas.
             Para el día a día de mostrador, consultorio y metas, usa <strong style={{ color: C.text }}>Operación</strong> y <strong style={{ color: C.text }}>Resumen</strong>.
-          </p>
+          </AyudaDesplegable>
 
           <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, letterSpacing: 1.2, marginBottom: 10 }}>DESGLOSE DE INVERSIÓN (CAPEX APERTURA)</div>
           {puedeEditarCapex ? (

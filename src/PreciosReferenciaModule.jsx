@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
-import { showToast, HorizontalScrollSync, SkeletonTable } from "./ui";
+import { AyudaDesplegable, showToast, HorizontalScrollSync, SkeletonTable } from "./ui";
 import {
   FUENTES_COMPRA,
   FUENTES_COMPRA_TABLA,
@@ -1273,7 +1273,7 @@ export default function PreciosReferenciaModule() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12, marginBottom: 16 }}>
         <div>
           <h2 style={{ margin: 0, color: C.text, fontSize: 18, fontWeight: 800 }}>Referencias de precio</h2>
-          <p style={{ margin: "6px 0 0", color: C.textMid, fontSize: 12, maxWidth: 720, lineHeight: 1.45 }}>
+          <AyudaDesplegable>
             Precios de mercado (compra y venta). Clic en un precio para editarlo. Tu <strong>costo</strong> y <strong>venta</strong> usan el mismo guardado que Inventario.
             No hace falta darnos usuario ni contraseña. Medicamento: Nadro, Marzam, Levic.
             Higiene y abarrotes: <strong>Exprezo (Zorro)</strong> es el piso barato; no se compara con City Club ni Sam's (otro tipo de precio y empaque).
@@ -1281,7 +1281,7 @@ export default function PreciosReferenciaModule() {
             Scorpion y Abarrotero no tienen columna: ganan en <strong>Mejor opción</strong>.
             <strong> Actualizar</strong> baja listas públicas y recarga. Si el bot cambia una referencia, vuelven <strong>Subir / Bajar / Aceptar</strong>.
             El pedido de resurtido está en Reabasto.
-          </p>
+          </AyudaDesplegable>
           {Object.keys(fechasFuente).length > 0 && (
             <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 6 }}>
               {[...FUENTES_COMPRA, ...FUENTES_VENTA].filter((f) => fechasFuente[f]).map((f) => {

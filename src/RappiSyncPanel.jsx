@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Download, Pause, Play, RefreshCw, ShoppingBag, TrendingUp } from "lucide-react";
 import { C_LIGHT, BRAND } from "./constants";
 import { supabase } from "./supabase";
-import { Box, Btn, Tag, showToast, SkeletonTable } from "./ui";
+import { AyudaDesplegable, Box, Btn, Tag, showToast, SkeletonTable } from "./ui";
 import RappiPreciosPanel from "./RappiPreciosPanel";
 import {
   csvCargaRappi,
@@ -234,10 +234,10 @@ function RappiDisponibilidadPanel() {
             <ShoppingBag size={18} strokeWidth={2.2} aria-hidden />
             Rappi · disponibilidad
           </h2>
-          <p style={{ margin: "6px 0 0", color: C.textMid, fontSize: 13, maxWidth: 560, lineHeight: 1.45 }}>
+          <AyudaDesplegable>
             Se publica <code>stock − {reserva}</code> piezas de colchón. Receta y controlados no salen.
             Sin <code>RAPPI_CLIENT_ID</code> el worker no llama a Rappi: queda inerte.
-          </p>
+          </AyudaDesplegable>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <Btn sm ol onClick={load} dis={loading} style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>

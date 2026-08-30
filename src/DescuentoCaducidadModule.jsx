@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { C_LIGHT, BRAND } from "./constants";
 import { supabase } from "./supabase";
-import { showToast } from "./ui";
+import { AyudaDesplegable, showToast } from "./ui";
 import { formatCaducidadMesAnio } from "./lib/caducidad";
 import { textoEtiquetaPrecioEspecial } from "./lib/descuentoCaducidad";
 import { fechaLocalMexico } from "./lib/pagoServicio";
@@ -178,10 +178,10 @@ export default function DescuentoCaducidadModule() {
       <h2 style={{ margin: "0 0 6px", fontSize: 18, color: C.text }}>
         Precio especial por caducidad
       </h2>
-      <p style={{ margin: "0 0 16px", fontSize: 13, color: C.textMid, lineHeight: 1.45, maxWidth: 720 }}>
+      <AyudaDesplegable style={{ margin: "0 0 16px" }}>
         El job diario propone. Nada baja de precio en el mostrador hasta que
         el POS lea estas aprobaciones (otra tarea). Orden: más capital en riesgo primero.
-      </p>
+      </AyudaDesplegable>
 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
         <Stat label="Filas" value={String(rows.length)} />

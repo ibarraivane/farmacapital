@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { C_LIGHT, BRAND } from "./constants";
 import { supabase } from "./supabase";
-import { Btn, HorizontalScrollSync, SkeletonTable, showToast } from "./ui";
+import { AyudaDesplegable, Btn, HorizontalScrollSync, SkeletonTable, showToast } from "./ui";
 import {
   FUENTE_META,
   REFERENCIA_ANULADA_NOTA,
@@ -516,7 +516,7 @@ export default function RappiPreciosPanel() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap", marginBottom: 14 }}>
         <div>
           <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: C.text }}>Precios en línea</h2>
-          <p style={{ margin: "6px 0 0", color: C.textMid, fontSize: 12, maxWidth: 720, lineHeight: 1.45 }}>
+          <AyudaDesplegable>
             Qué cobran otras tiendas en Rappi, mezclado con Del Ahorro / Similares (columna <strong>Calle</strong>).
             El <strong>sugerido</strong> es el mismo de Referencias: ~2% bajo la farmacia o calle más barata.
             Un <strong>pack</strong>, el polvo o otra línea (Advance / Plus) no se compara con la botella suelta.
@@ -524,7 +524,7 @@ export default function RappiPreciosPanel() {
             Clic en un precio para editarlo. <strong>Aplicar subidas</strong> solo sube. Las bajadas las aceptas tú, con el botón Bajar de cada fila.
             El bot compara sin packs. Si después actualiza una referencia, vuelven Subir / Bajar / Aceptar.
             {" "}<strong>Descargar CSV Rappi</strong> arma el archivo de Partner (SKU, EAN, stock − 2, AVAILABLE y PRICE) para Subir plantilla.
-          </p>
+          </AyudaDesplegable>
           {chipsFuente.length > 0 && (
             <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 6 }}>
               {chipsFuente.map((f) => {
