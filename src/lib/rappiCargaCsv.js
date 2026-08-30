@@ -19,6 +19,15 @@ export function rappiSkuFromInternal(sku) {
   return `${RAPPI_SKU_PREFIX}${inner.toLowerCase()}`;
 }
 
+/** Partner: FARMACAPITALmt_eq-nov032 → eq-nov032 */
+export function skuInternoDesdeRappi(value) {
+  let s = String(value || "").trim().toLowerCase();
+  if (!s) return "";
+  const prefix = RAPPI_SKU_PREFIX.toLowerCase();
+  if (s.startsWith(prefix)) s = s.slice(prefix.length);
+  return s;
+}
+
 export function digitsEan(value) {
   return String(value || "").replace(/\D/g, "");
 }

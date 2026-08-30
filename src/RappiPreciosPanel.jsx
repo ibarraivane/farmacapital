@@ -25,10 +25,13 @@ import {
   FUENTES_RAPPI,
   calcPrecioSugeridoRappi,
   diagnosticoCeldaRappi,
+  idsEnCatalogoRappi,
   listarSubidasRappi,
   instanteBotRappiDe,
   instanteBotRappiGlobal,
+  mensajeVacioListaRappi,
   parseProgresoBackfill,
+  pasaFiltroListaRappi,
   precioCalleDe,
   precioFarmaciaRappiMin,
   tienePackRappiDistinto,
@@ -49,6 +52,20 @@ import { inventarioProductMatchesBusqueda } from "./utils/fuzzySearch";
 
 function botTsFilaRappi(refs) {
   return botTsMasReciente(instanteBotRappiDe(refs), instanteBotVentaDe(refs));
+}
+
+async function cargarFilasCatalogoRappi() {
+  const tries = [
+    "producto_id,ean,sku_local,nombre_rappi",
+    "producto_id,ean,nombre_rappi",
+    "producto_id,ean",
+    "producto_id",
+  ];
+  for (const select of tries) {
+    const res = await supabase.from("catalogo_imagenes_rappi").select(select);
+    if (!res.error) return res.data || [];
+  }
+  return [];
 }
 
 const C = C_LIGHT;
@@ -205,21 +222,22 @@ export default function RappiPreciosPanel() {
   const fetchAll = useCallback(async (opts = {}) => {
     const silent = opts.silent === true;
     if (!silent) setLoading(true);
-    const [prodRes, imgRes] = await Promise.all([
+    const [prodRes, filasCatalogo] = await Promise.all([
       supabase
         .from("productos")
-        .select("id,sku,nombre,categoria,tipo,costo,precio,principio_activo,concentracion,presentacion,forma_farmaceutica,requiere_receta")
+        .select("id,sku,nombre,categoria,tipo,costo,precio,principio_activo,concentracion,presentacion,forma_farmaceutica,requiere_receta,codigo_barras")
         .eq("activo", true)
         .order("nombre"),
-      supabase.from("catalogo_imagenes_rappi").select("producto_id").not("producto_id", "is", null),
+      cargarFilasCatalogoRappi(),
     ]);
     if (prodRes.error) {
       showToast("Error cargando productos: " + prodRes.error.message, "error");
       setLoading(false);
       return false;
     }
-    setProductos(prodRes.data || []);
-    setEnRappi(new Set((imgRes.data || []).map((r) => r.producto_id).filter(Boolean)));
+    const list = prodRes.data || [];
+    setProductos(list);
+    setEnRappi(idsEnCatalogoRappi(list, filasCatalogo));
 
     let refRows = [];
     const viewRes = await supabase.from("producto_precios_referencia_actual").select("*");
@@ -488,7 +506,7 @@ export default function RappiPreciosPanel() {
       const refs = refsByProduct[p.id] || {};
       const linked = enRappi.has(p.id);
       const hasRef = tieneRefRappi(refs);
-      if (filtro === "en_rappi") return linked || hasRef;
+      if (filtro === "en_rappi") return pasaFiltroListaRappi({ filtro, busq, linked, hasRef });
       if (filtro === "con_ref") return tieneRefRappiComparable(p, refs);
       if (filtro === "packs") return tienePackRappiDistinto(p, refs);
       if (filtro === "caro") {
@@ -521,6 +539,7 @@ export default function RappiPreciosPanel() {
             El <strong>sugerido</strong> es el mismo de Referencias: ~2% bajo la farmacia o calle más barata.
             Un <strong>pack</strong>, el polvo o otra línea (Advance / Plus) no se compara con la botella suelta.
             El <strong>súper</strong> (Chedraui, Soriana) se ve y no mueve el precio: envío otro y piso otro.
+            <strong>En Rappi</strong> no es tu tienda Partner (los 68). Son los que ya tienen foto o un precio scrapeado. Si lo ves en Partner y aquí no, busca el nombre o cambia a <strong>Todos</strong>.
             Clic en un precio para editarlo. <strong>Aplicar subidas</strong> solo sube. Las bajadas las aceptas tú, con el botón Bajar de cada fila.
             El bot compara sin packs. Si después actualiza una referencia, vuelven Subir / Bajar / Aceptar.
             {" "}<strong>Descargar CSV Rappi</strong> arma el archivo de Partner (SKU, EAN, stock − 2, AVAILABLE y PRICE) para Subir plantilla.
@@ -651,7 +670,7 @@ export default function RappiPreciosPanel() {
               {!filas.length && (
                 <tr>
                   <td colSpan={12} style={{ textAlign: "center", padding: 32, color: C.textMid }}>
-                    Nada en este filtro. Pulsa «Actualizar Rappi» o cambia a Todos.
+                    {mensajeVacioListaRappi({ filtro, busq })}
                   </td>
                 </tr>
               )}

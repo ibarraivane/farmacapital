@@ -1,7 +1,10 @@
 import {
   calcPrecioSugeridoRappi,
+  idsEnCatalogoRappi,
   listarSugerenciasRappi,
   listarSubidasRappi,
+  mensajeVacioListaRappi,
+  pasaFiltroListaRappi,
   precioCalleDe,
   precioFarmaciaRappiMin,
   tienePackRappiDistinto,
@@ -116,6 +119,45 @@ test("el lote de sugerencias incluye subidas y bajadas", () => {
   const subidas = listarSubidasRappi([barato, caro], mapa);
   expect(subidas).toHaveLength(1);
   expect(subidas[0].producto.id).toBe(1);
+});
+
+test("Lizovag sin foto ni scrape no entra a En Rappi", () => {
+  expect(pasaFiltroListaRappi({
+    filtro: "en_rappi",
+    busq: "",
+    linked: false,
+    hasRef: false,
+  })).toBe(false);
+});
+
+test("buscar lizovag muestra el renglón aunque En Rappi esté activo", () => {
+  expect(pasaFiltroListaRappi({
+    filtro: "en_rappi",
+    busq: "lizovag",
+    linked: false,
+    hasRef: false,
+  })).toBe(true);
+});
+
+test("SKU Partner FARMACAPITALmt_eq-nov032 liga EQ-NOV032", () => {
+  const ids = idsEnCatalogoRappi(
+    [{ id: 9, sku: "EQ-NOV032", codigo_barras: "7501075717150" }],
+    [{ sku_local: "FARMACAPITALmt_eq-nov032" }],
+  );
+  expect([...ids]).toEqual([9]);
+});
+
+test("EAN del catálogo liga el producto aunque falte producto_id", () => {
+  const ids = idsEnCatalogoRappi(
+    [{ id: 9, sku: "EQ-NOV032", codigo_barras: "7501075717150" }],
+    [{ ean: "07501075717150" }],
+  );
+  expect([...ids]).toEqual([9]);
+});
+
+test("el vacío de En Rappi aclara que no es Partner", () => {
+  expect(mensajeVacioListaRappi({ filtro: "en_rappi", busq: "lizovag" })).toMatch(/Partner/i);
+  expect(mensajeVacioListaRappi({ filtro: "en_rappi" })).toMatch(/Partner/i);
 });
 
 test("sin refs de farmacia ni calle no sugiere", () => {

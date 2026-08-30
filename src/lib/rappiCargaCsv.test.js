@@ -5,6 +5,7 @@ import {
   precioCsvRappi,
   rappiSkuFromInternal,
   reservaMostradorDe,
+  skuInternoDesdeRappi,
   stockPublicadoRappi,
 } from "./rappiCargaCsv";
 
@@ -21,6 +22,12 @@ const otc = {
 test("SKU de Rappi es prefijo + sku en minúsculas", () => {
   expect(rappiSkuFromInternal("FC-ENSURE-VAN")).toBe("FARMACAPITALmt_fc-ensure-van");
   expect(rappiSkuFromInternal("")).toBe("");
+});
+
+test("SKU Partner vuelve al sku interno", () => {
+  expect(skuInternoDesdeRappi("FARMACAPITALmt_eq-nov032")).toBe("eq-nov032");
+  expect(skuInternoDesdeRappi("EQ-NOV032")).toBe("eq-nov032");
+  expect(skuInternoDesdeRappi("")).toBe("");
 });
 
 test("stock publicado resta el colchón de 2", () => {
