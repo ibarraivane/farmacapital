@@ -1,6 +1,7 @@
 -- ============================================================================
 -- Fotos Nadro + Levic para productos activos sin ninguna imagen
 -- Fecha: 2026-08-30
+-- YA APLICADO en producción (SQL Editor, 30 ago 2026). Idempotente si se reejecuta.
 --
 -- Cruce por EAN exacto (también acepta el mismo GTIN con/sin ceros a la
 -- izquierda, p. ej. GUM 070942307109 = 70942307109).
