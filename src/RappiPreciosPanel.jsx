@@ -15,6 +15,7 @@ import {
   fmtBotCuando,
   fmtPrecioRef,
   fmtPrecioVenta,
+  instanteBotVentaDe,
   margenToneColors,
   productoSubtituloReferencia,
   roundPrecioVenta,
@@ -34,7 +35,21 @@ import {
   tieneRefRappi,
   tieneRefRappiComparable,
 } from "./lib/rappiPrecios";
+import {
+  accionesRevisionFila,
+  botTsMasReciente,
+  cargarRevisionPrecios,
+  esPendienteRevision,
+  guardarRevisionPrecios,
+  huellaMercado,
+  marcarRevisados,
+} from "./lib/preciosRevision";
+import AccionesPrecioRevision from "./components/AccionesPrecioRevision";
 import { inventarioProductMatchesBusqueda } from "./utils/fuzzySearch";
+
+function botTsFilaRappi(refs) {
+  return botTsMasReciente(instanteBotRappiDe(refs), instanteBotVentaDe(refs));
+}
 
 const C = C_LIGHT;
 const CLAVE_PROGRESO = "rappi_precios_backfill";
@@ -185,6 +200,7 @@ export default function RappiPreciosPanel() {
   const [inlineEdit, setInlineEdit] = useState(null);
   const [savingKey, setSavingKey] = useState(null);
   const [progreso, setProgreso] = useState(null);
+  const [revision, setRevision] = useState({ epoch: null, porId: {} });
 
   const fetchAll = useCallback(async (opts = {}) => {
     const silent = opts.silent === true;
@@ -227,6 +243,11 @@ export default function RappiPreciosPanel() {
     setSchemaOk(true);
     setRefsByProduct(buildReferenciasPorProducto(refRows));
     setFechasFuente(fechasActualizacionPorFuente(refRows));
+    const loaded = await cargarRevisionPrecios(supabase);
+    setRevision(loaded.state);
+    if (loaded.persistirEpoch) {
+      await guardarRevisionPrecios(supabase, loaded.state);
+    }
     setLoading(false);
     return true;
   }, []);
@@ -329,6 +350,22 @@ export default function RappiPreciosPanel() {
     }
   };
 
+  const persistirRevision = async (next) => {
+    setRevision(next);
+    const { error } = await guardarRevisionPrecios(supabase, next);
+    if (error) showToast(error.message || "No se guardó la revisión", "warning");
+  };
+
+  const marcarFilasRevisadas = async (items) => {
+    const extra = {};
+    const ids = [];
+    for (const it of items) {
+      ids.push(it.id);
+      extra[it.id] = { huella: it.huella || "" };
+    }
+    await persistirRevision(marcarRevisados(revision, ids, extra));
+  };
+
   const aplicarPrecio = async (producto, sugerido) => {
     const margen = calcMargenVenta(sugerido, producto);
     const margenTxt = margen.pct != null ? ` · margen ${margen.pct}%` : "";
@@ -348,27 +385,40 @@ export default function RappiPreciosPanel() {
       showToast("Error: " + error.message, "error");
       return;
     }
+    const calc = calcPrecioSugeridoRappi(producto, refsByProduct[producto.id] || {});
+    await marcarFilasRevisadas([{ id: producto.id, huella: huellaMercado(calc) }]);
     showToast("Precio actualizado", "success");
     setProductos((prev) => prev.map((x) => (x.id === producto.id ? { ...x, precio: sugerido } : x)));
   };
 
-  const subidas = useMemo(
-    () => listarSubidasRappi(productos, refsByProduct),
-    [productos, refsByProduct]
-  );
+  const aceptarPrecio = async (producto, calc) => {
+    await marcarFilasRevisadas([{ id: producto.id, huella: huellaMercado(calc) }]);
+    showToast("Listo. Si el bot cambia el mercado, vuelven los botones.", "success");
+  };
+
+  const subidas = useMemo(() => {
+    return listarSubidasRappi(productos, refsByProduct).filter((s) => {
+      const refs = refsByProduct[s.producto.id] || {};
+      return esPendienteRevision({
+        botTs: botTsFilaRappi(refs),
+        revisado: revision.porId[s.producto.id],
+        epoch: revision.epoch,
+      });
+    });
+  }, [productos, refsByProduct, revision]);
 
   const aplicarSubidas = async () => {
     if (!subidas.length) return;
     const preview = subidas.slice(0, 12).map((s) => `${s.producto.nombre}: ${fmtPrecioVenta(s.de)} → ${fmtPrecioVenta(s.a)}`).join("\n");
     const extra = subidas.length > 12 ? `\n… y ${subidas.length - 12} más` : "";
     const ok = window.confirm(
-      `¿Subir ${subidas.length} precio${subidas.length === 1 ? "" : "s"}?\nSolo subidas. Las bajadas no se tocan.\n\n${preview}${extra}`
+      `¿Subir ${subidas.length} precio${subidas.length === 1 ? "" : "s"}?\n\n${preview}${extra}`
     );
     if (!ok) return;
     const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) { showToast("Sesión expirada", "error"); return; }
     setApplyingId("subidas");
-    let okN = 0;
+    const okItems = [];
     let errN = 0;
     for (const s of subidas) {
       const { error } = await supabase.rpc("admin_editar_producto", {
@@ -378,13 +428,14 @@ export default function RappiPreciosPanel() {
       });
       if (error) errN += 1;
       else {
-        okN += 1;
+        okItems.push({ id: s.producto.id, huella: huellaMercado({ refMin: s.refMin, sugerido: s.a }) });
         setProductos((prev) => prev.map((x) => (x.id === s.producto.id ? { ...x, precio: s.a } : x)));
       }
     }
     setApplyingId(null);
-    if (errN) showToast(`Se subieron ${okN}. Fallaron ${errN}.`, "warning");
-    else showToast(`Se subieron ${okN} precio${okN === 1 ? "" : "s"}. Las bajadas no se tocaron.`, "success");
+    if (okItems.length) await marcarFilasRevisadas(okItems);
+    if (errN) showToast(`Se subieron ${okItems.length}. Fallaron ${errN}.`, "warning");
+    else showToast(`Se subieron ${okItems.length} precio${okItems.length === 1 ? "" : "s"}.`, "success");
   };
 
   const actualizarRappi = async () => {
@@ -416,8 +467,15 @@ export default function RappiPreciosPanel() {
     let caro = 0;
     let sinRef = 0;
     let packs = 0;
+    let pendientes = 0;
     for (const p of productos) {
       const refs = refsByProduct[p.id] || {};
+      const calc = calcPrecioSugeridoRappi(p, refs);
+      if (esPendienteRevision({
+        botTs: botTsFilaRappi(refs),
+        revisado: revision.porId[p.id],
+        epoch: revision.epoch,
+      }) && calc.sugerido != null) pendientes += 1;
       if (tienePackRappiDistinto(p, refs)) packs += 1;
       if (tieneRefRappiComparable(p, refs)) {
         conRef += 1;
@@ -427,8 +485,8 @@ export default function RappiPreciosPanel() {
         sinRef += 1;
       }
     }
-    return { conRef, caro, sinRef, packs };
-  }, [productos, refsByProduct, enRappi]);
+    return { conRef, caro, sinRef, packs, pendientes };
+  }, [productos, refsByProduct, enRappi, revision]);
 
   const filas = useMemo(() => {
     return productos.filter((p) => {
@@ -444,9 +502,17 @@ export default function RappiPreciosPanel() {
         return minFarm != null && (parseFloat(p.precio) || 0) > minFarm + 0.5;
       }
       if (filtro === "sin_ref") return linked && !tieneRefRappi(refs);
+      if (filtro === "pendientes") {
+        const calc = calcPrecioSugeridoRappi(p, refs);
+        return esPendienteRevision({
+          botTs: botTsFilaRappi(refs),
+          revisado: revision.porId[p.id],
+          epoch: revision.epoch,
+        }) && calc.sugerido != null;
+      }
       return true;
     });
-  }, [productos, refsByProduct, enRappi, busq, filtro]);
+  }, [productos, refsByProduct, enRappi, busq, filtro, revision]);
 
   const botCuando = fmtBotCuando(instanteBotRappiGlobal(refsByProduct));
   const chipsFuente = FUENTES_RAPPI.filter((f) => fechasFuente[f]);
@@ -461,7 +527,8 @@ export default function RappiPreciosPanel() {
             El <strong>sugerido</strong> es el mismo de Referencias: ~2% bajo la farmacia o calle más barata.
             Un <strong>pack</strong>, el polvo o otra línea (Advance / Plus) no se compara con la botella suelta.
             El <strong>súper</strong> (Chedraui, Soriana) se ve y no mueve el precio: envío otro y piso otro.
-            Clic en un precio para editarlo. <strong>Aplicar subidas</strong> solo sube los que están baratos. Si ya estás arriba, no se toca.
+            Clic en un precio para editarlo. El bot compara con el mercado (sin packs).
+            Si actualiza una referencia, vuelven <strong>Subir / Bajar / Aceptar</strong>. Aceptar deja tu precio.
             {" "}<strong>Descargar CSV Rappi</strong> arma el archivo de Partner (SKU, EAN, stock − 2, AVAILABLE y PRICE) para Subir plantilla.
           </p>
           {chipsFuente.length > 0 && (
@@ -528,6 +595,9 @@ export default function RappiPreciosPanel() {
         <span style={{ padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: C.cardDark, color: C.textMid }}>
           En Rappi sin precio: {stats.sinRef}
         </span>
+        <span style={{ padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: "#dbeafe", color: C.blue }}>
+          Por revisar: {stats.pendientes}
+        </span>
       </div>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
@@ -542,6 +612,7 @@ export default function RappiPreciosPanel() {
         />
         {[
           ["en_rappi", "En Rappi"],
+          ["pendientes", "Por revisar"],
           ["con_ref", "Con precio"],
           ["packs", "Otro empaque"],
           ["caro", "Más caro"],
@@ -593,11 +664,17 @@ export default function RappiPreciosPanel() {
               {filas.map((p, i) => {
                 const refs = refsByProduct[p.id] || {};
                 const margen = calcMargenVenta(p.precio, p);
-                const { sugerido, nota, alerta, accion } = calcPrecioSugeridoRappi(p, refs);
+                const calc = calcPrecioSugeridoRappi(p, refs);
+                const { sugerido, nota, alerta, accion } = calc;
                 const calle = precioCalleDe(p, refs);
                 const botLabel = fmtBotCuando(instanteBotRappiDe(refs));
                 const rowBg = i % 2 ? "#f8fafc" : "transparent";
-                const puedeAplicar = accion === "subir" && sugerido != null && roundPrecioVenta(p.precio) !== sugerido;
+                const pendiente = esPendienteRevision({
+                  botTs: botTsFilaRappi(refs),
+                  revisado: revision.porId[p.id],
+                  epoch: revision.epoch,
+                });
+                const botones = accionesRevisionFila({ pendiente, accion, sugerido });
                 const toneM = margen.pct != null ? margenToneColors(margen.tone, C) : null;
                 const sugeridoCol =
                   alerta === "debajo_costo" ? C.red :
@@ -671,22 +748,13 @@ export default function RappiPreciosPanel() {
                     </td>
                     <td style={{ ...td, fontSize: 10, color: C.textMid, maxWidth: 220 }}>{nota}</td>
                     <td style={td}>
-                      {puedeAplicar ? (
-                        <button
-                          type="button"
-                          disabled={applyingId != null}
-                          onClick={() => aplicarPrecio(p, sugerido)}
-                          style={{
-                            padding: "4px 10px", borderRadius: 6, border: "none",
-                            background: BRAND.gradient, color: "#fff", cursor: "pointer",
-                            fontSize: 11, fontWeight: 700, opacity: applyingId != null ? 0.6 : 1,
-                          }}
-                        >
-                          {applyingId === p.id ? "…" : "Subir"}
-                        </button>
-                      ) : (
-                        <span style={{ color: C.textDim, fontSize: 10 }}>—</span>
-                      )}
+                      <AccionesPrecioRevision
+                        botones={botones}
+                        applying={applyingId != null}
+                        onSubir={() => aplicarPrecio(p, sugerido)}
+                        onBajar={() => aplicarPrecio(p, sugerido)}
+                        onAceptar={() => aceptarPrecio(p, calc)}
+                      />
                     </td>
                   </tr>
                 );
