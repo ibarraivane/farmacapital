@@ -461,7 +461,7 @@ export default function RappiPreciosPanel() {
             El <strong>sugerido</strong> es el mismo de Referencias: ~2% bajo la farmacia o calle más barata.
             Un <strong>pack</strong>, el polvo o otra línea (Advance / Plus) no se compara con la botella suelta.
             El <strong>súper</strong> (Chedraui, Soriana) se ve y no mueve el precio: envío otro y piso otro.
-            Clic en un precio para editarlo. <strong>Aplicar subidas</strong> solo sube; las bajadas las dejas a mano.
+            Clic en un precio para editarlo. <strong>Aplicar subidas</strong> solo sube los que están baratos. Si ya estás arriba, no se toca.
             {" "}<strong>Descargar CSV Rappi</strong> arma el archivo de Partner (SKU, EAN, stock − 2, AVAILABLE y PRICE) para Subir plantilla.
           </p>
           {chipsFuente.length > 0 && (
@@ -598,7 +598,6 @@ export default function RappiPreciosPanel() {
                 const botLabel = fmtBotCuando(instanteBotRappiDe(refs));
                 const rowBg = i % 2 ? "#f8fafc" : "transparent";
                 const puedeAplicar = accion === "subir" && sugerido != null && roundPrecioVenta(p.precio) !== sugerido;
-                const puedeBajarAMano = accion === "bajar" && sugerido != null;
                 const toneM = margen.pct != null ? margenToneColors(margen.tone, C) : null;
                 const sugeridoCol =
                   alerta === "debajo_costo" ? C.red :
@@ -684,21 +683,6 @@ export default function RappiPreciosPanel() {
                           }}
                         >
                           {applyingId === p.id ? "…" : "Subir"}
-                        </button>
-                      ) : puedeBajarAMano ? (
-                        <button
-                          type="button"
-                          disabled={applyingId != null}
-                          onClick={() => aplicarPrecio(p, sugerido)}
-                          title="Bajada manual. El lote de subidas no toca esta fila."
-                          style={{
-                            padding: "4px 10px", borderRadius: 6,
-                            border: `1px solid ${C.border}`,
-                            background: C.card, color: C.textMid, cursor: "pointer",
-                            fontSize: 11, fontWeight: 700,
-                          }}
-                        >
-                          Bajar a mano
                         </button>
                       ) : (
                         <span style={{ color: C.textDim, fontSize: 10 }}>—</span>

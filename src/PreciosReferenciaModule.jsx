@@ -629,7 +629,6 @@ function TablaVenta({
               sugerido, refMin, nota, alerta, margenActual, margenSugerido, esAjusteManual, accion,
             } = resolveSugeridoFila(p, refs, sugeridoOverrides);
             const puedeAplicar = accion === "subir" && sugerido != null && roundPrecioVenta(p.precio) !== sugerido;
-            const puedeBajarAMano = accion === "bajar" && sugerido != null;
             const sugeridoCol =
               alerta === "debajo_costo" ? C.red :
               alerta === "debajo_piso" ? C.amber :
@@ -793,21 +792,6 @@ function TablaVenta({
                         }}
                       >
                         {applyingId === p.id ? "…" : "Subir"}
-                      </button>
-                    ) : puedeBajarAMano ? (
-                      <button
-                        type="button"
-                        disabled={applyingId != null}
-                        onClick={() => onAplicar(p, sugerido)}
-                        title="Bajada manual. El lote de subidas no toca esta fila."
-                        style={{
-                          padding: "4px 10px", borderRadius: 6,
-                          border: `1px solid ${C.border}`,
-                          background: C.card, color: C.textMid, cursor: "pointer",
-                          fontSize: 11, fontWeight: 700,
-                        }}
-                      >
-                        Bajar a mano
                       </button>
                     ) : (
                       <span style={{ color: C.textDim, fontSize: 10 }}>—</span>
