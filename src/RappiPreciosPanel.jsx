@@ -25,7 +25,7 @@ import {
   FUENTES_RAPPI,
   calcPrecioSugeridoRappi,
   diagnosticoCeldaRappi,
-  listarSubidasRappi,
+  listarSugerenciasRappi,
   instanteBotRappiDe,
   instanteBotRappiGlobal,
   parseProgresoBackfill,
@@ -396,31 +396,27 @@ export default function RappiPreciosPanel() {
     showToast("Listo. Si el bot cambia el mercado, vuelven los botones.", "success");
   };
 
-  const subidas = useMemo(() => {
-    return listarSubidasRappi(productos, refsByProduct).filter((s) => {
-      const refs = refsByProduct[s.producto.id] || {};
-      return esPendienteRevision({
-        botTs: botTsFilaRappi(refs),
-        revisado: revision.porId[s.producto.id],
-        epoch: revision.epoch,
-      });
-    });
-  }, [productos, refsByProduct, revision]);
+  const sugerencias = useMemo(
+    () => listarSugerenciasRappi(productos, refsByProduct),
+    [productos, refsByProduct]
+  );
 
-  const aplicarSubidas = async () => {
-    if (!subidas.length) return;
-    const preview = subidas.slice(0, 12).map((s) => `${s.producto.nombre}: ${fmtPrecioVenta(s.de)} → ${fmtPrecioVenta(s.a)}`).join("\n");
-    const extra = subidas.length > 12 ? `\n… y ${subidas.length - 12} más` : "";
+  const aplicarSugerencias = async () => {
+    if (!sugerencias.length) return;
+    const nSubir = sugerencias.filter((s) => s.accion === "subir").length;
+    const nBajar = sugerencias.filter((s) => s.accion === "bajar").length;
+    const preview = sugerencias.slice(0, 12).map((s) => `${s.producto.nombre}: ${fmtPrecioVenta(s.de)} → ${fmtPrecioVenta(s.a)}`).join("\n");
+    const extra = sugerencias.length > 12 ? `\n… y ${sugerencias.length - 12} más` : "";
     const ok = window.confirm(
-      `¿Subir ${subidas.length} precio${subidas.length === 1 ? "" : "s"}?\n\n${preview}${extra}`
+      `¿Aplicar ${sugerencias.length} sugerencia${sugerencias.length === 1 ? "" : "s"} de Rappi?\n${nSubir} a subir · ${nBajar} a bajar.\n\n${preview}${extra}`
     );
     if (!ok) return;
     const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) { showToast("Sesión expirada", "error"); return; }
-    setApplyingId("subidas");
+    setApplyingId("sugerencias");
     const okItems = [];
     let errN = 0;
-    for (const s of subidas) {
+    for (const s of sugerencias) {
       const { error } = await supabase.rpc("admin_editar_producto", {
         p_session_token: tok,
         p_producto_id: s.producto.id,
@@ -434,8 +430,8 @@ export default function RappiPreciosPanel() {
     }
     setApplyingId(null);
     if (okItems.length) await marcarFilasRevisadas(okItems);
-    if (errN) showToast(`Se subieron ${okItems.length}. Fallaron ${errN}.`, "warning");
-    else showToast(`Se subieron ${okItems.length} precio${okItems.length === 1 ? "" : "s"}.`, "success");
+    if (errN) showToast(`Se aplicaron ${okItems.length}. Fallaron ${errN}.`, "warning");
+    else showToast(`Se aplicaron ${okItems.length} precio${okItems.length === 1 ? "" : "s"} de la lista Rappi.`, "success");
   };
 
   const actualizarRappi = async () => {
@@ -527,8 +523,8 @@ export default function RappiPreciosPanel() {
             El <strong>sugerido</strong> es el mismo de Referencias: ~2% bajo la farmacia o calle más barata.
             Un <strong>pack</strong>, el polvo o otra línea (Advance / Plus) no se compara con la botella suelta.
             El <strong>súper</strong> (Chedraui, Soriana) se ve y no mueve el precio: envío otro y piso otro.
-            Clic en un precio para editarlo. El bot compara con el mercado (sin packs).
-            Si actualiza una referencia, vuelven <strong>Subir / Bajar / Aceptar</strong>. Aceptar deja tu precio.
+            Clic en un precio para editarlo. <strong>Aplicar sugerencias</strong> pone el precio de mercado en mostrador y en línea (sube y baja).
+            El bot compara sin packs. Si después actualiza una referencia, vuelven Subir / Bajar / Aceptar.
             {" "}<strong>Descargar CSV Rappi</strong> arma el archivo de Partner (SKU, EAN, stock − 2, AVAILABLE y PRICE) para Subir plantilla.
           </p>
           {chipsFuente.length > 0 && (
@@ -555,11 +551,11 @@ export default function RappiPreciosPanel() {
           <Btn
             sm
             col={C.green}
-            onClick={aplicarSubidas}
-            dis={actualizando || applyingId != null || !subidas.length}
+            onClick={aplicarSugerencias}
+            dis={actualizando || applyingId != null || !sugerencias.length}
             style={{ display: "inline-flex", gap: 6, alignItems: "center" }}
           >
-            {applyingId === "subidas" ? "Subiendo…" : `Aplicar ${subidas.length} subida${subidas.length === 1 ? "" : "s"}`}
+            {applyingId === "sugerencias" ? "Aplicando…" : `Aplicar ${sugerencias.length} sugerencia${sugerencias.length === 1 ? "" : "s"}`}
           </Btn>
           <Btn
             sm

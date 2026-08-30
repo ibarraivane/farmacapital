@@ -8,6 +8,7 @@ import {
   calcPrecioSugeridoVenta,
   esActualizacionBot,
   instanteDeRef,
+  listarSugerenciasAplicables,
   listarSubidasSugeridas,
   refsDeFuentes,
   refsVentaComparables,
@@ -83,6 +84,10 @@ export function precioCalleDe(producto, refsMap) {
 
 export function listarSubidasRappi(productos, refsByProduct) {
   return listarSubidasSugeridas(productos, refsByProduct, calcPrecioSugeridoRappi);
+}
+
+export function listarSugerenciasRappi(productos, refsByProduct) {
+  return listarSugerenciasAplicables(productos, refsByProduct, calcPrecioSugeridoRappi);
 }
 
 export function precioFarmaciaRappiMin(producto, refsMap) {

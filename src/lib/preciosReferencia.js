@@ -600,16 +600,22 @@ export function accionPrecioSugerido(precioActual, sugerido) {
   return "mantener";
 }
 
-/** Solo subidas. Las bajadas no se aplican en lote. */
-export function listarSubidasSugeridas(productos, refsByProduct, calcFn) {
+/** Subidas y bajadas: aplicar el sugerido al PVP. */
+export function listarSugerenciasAplicables(productos, refsByProduct, calcFn) {
   const out = [];
   for (const p of productos || []) {
     if (typeof calcFn !== "function") continue;
     const r = calcFn(p, refsByProduct?.[p.id] || {});
-    if (r.accion !== "subir" || r.sugerido == null) continue;
+    if ((r.accion !== "subir" && r.accion !== "bajar") || r.sugerido == null) continue;
     const de = roundPrecioVenta(p.precio);
-    if (de == null || r.sugerido <= de) continue;
-    out.push({ producto: p, de, a: r.sugerido, refMin: r.refMin });
+    if (de == null || r.sugerido === de) continue;
+    out.push({ producto: p, de, a: r.sugerido, refMin: r.refMin, accion: r.accion });
   }
   return out;
+}
+
+/** Solo subidas. */
+export function listarSubidasSugeridas(productos, refsByProduct, calcFn) {
+  return listarSugerenciasAplicables(productos, refsByProduct, calcFn)
+    .filter((s) => s.accion === "subir" && s.a > s.de);
 }
