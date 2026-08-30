@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Packshots oficiales de jaloma.com.mx para SKUs confirmados.
+"""Packshots oficiales (Jaloma, Hinds, Nivea, Labello, Garnier) para SKUs confirmados.
 
 No adivina ni cruza marcas. La lista curada está en
-sql/generated/jaloma_fotos_confirmadas_20260830.csv: solo entra un renglón
-si el nombre y la presentación coinciden con la ficha de Jaloma (o el EAN
-está documentado como esa presentación).
+sql/generated/fotos_oficiales_confirmadas_20260830.csv: solo entra un renglón
+si la ficha oficial coincide en producto y presentación, o el EAN va en la URL.
 
 Uso:
     python3 scripts/cargar_imagenes_oficiales_jaloma.py --check
@@ -24,8 +23,17 @@ import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-CURADAS = ROOT / "sql/generated/jaloma_fotos_confirmadas_20260830.csv"
-UA = "FarmaCapitalCatalog/1.0 (fotos oficiales Jaloma)"
+CURADAS = ROOT / "sql/generated/fotos_oficiales_confirmadas_20260830.csv"
+SITIOS_OK = (
+    "jaloma.com.mx",
+    "hinds.com.mx",
+    "nivea.com.mx",
+    "nivea.com",
+    "labello.com.mx",
+    "img.nivea.com",
+    "garnier.com.mx",
+)
+UA = "FarmaCapitalCatalog/1.0 (fotos oficiales)"
 CTX = ssl.create_default_context()
 
 
@@ -67,12 +75,15 @@ def foto_ok(url: str) -> tuple[int, str]:
 
 def check():
     filas = filas_curadas()
-    if len(filas) != 5:
-        raise SystemExit(f"se esperaban 5 matches curados, hay {len(filas)}")
+    if len(filas) < 5:
+        raise SystemExit(f"lista curada vacía o incompleta: {len(filas)}")
     fallos = []
     for row in filas:
-        if "jaloma.com.mx" not in row["permalink"] or "jaloma.com.mx" not in row["foto"]:
-            fallos.append(f"{row['sku']}: URL no es jaloma.com.mx")
+        if not any(d in row["permalink"] for d in SITIOS_OK):
+            fallos.append(f"{row['sku']}: permalink no es sitio oficial")
+            continue
+        if not any(d in row["foto"] for d in SITIOS_OK):
+            fallos.append(f"{row['sku']}: foto no es CDN oficial")
             continue
         code, ctype = foto_ok(row["foto"])
         if code != 200 or "image/" not in (ctype or ""):
@@ -113,7 +124,7 @@ def aplicar():
     if not base or not key:
         raise SystemExit(
             "falta SUPABASE_SERVICE_ROLE_KEY en .env. "
-            "Mientras tanto corre sql/patch_fotos_jaloma_oficial_20260830.sql "
+            "Mientras tanto corre sql/patch_fotos_oficiales_20260830.sql "
             "en el editor SQL de Supabase."
         )
     for row in filas_curadas():
