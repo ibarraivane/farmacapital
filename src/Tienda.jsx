@@ -23,6 +23,8 @@ import {
   productoPermitidoEnTiendaFarmaciaWeb,
   razonBloqueoProductoTiendaFarmacia,
   productoEsCategoriaMinisuperTienda,
+  productoEsCajaAbiertaMostrador,
+  descripcionPublicaTienda,
 } from "./utils/tiendaFarmaciaCatalogo";
 import { productoEsVendible } from "./utils/productoVendible";
 import { CATEGORIAS_PRODUCTO, categoriaCanon, categoriaPasaFiltro, categoriasCoinciden, esCategoriaAntibiotico } from "./constants/categoriasProducto";
@@ -1759,7 +1761,7 @@ function ProductCard({prod,addToCart,onClick}){
     e.stopPropagation();
     if(agotado)return;
     if(!productoPermitidoEnTiendaFarmaciaWeb(prod)){
-      alert(productoEsCategoriaMinisuperTienda(prod)?"Artículo de minisuper: no está en la tienda farmacia en línea. Disponible en sucursal.":"Este producto no está disponible para compra en línea (receta, controlado o no publicado en tienda).");
+      alert(razonBloqueoProductoTiendaFarmacia(prod));
       return;
     }
     addToCart(prod);
@@ -1832,7 +1834,7 @@ function ProductCard({prod,addToCart,onClick}){
           {prod.descuento_pct>0&&<span style={{background:C.red,color:"#fff",fontSize:9,fontWeight:800,borderRadius:4,padding:"2px 6px"}}>-{prod.descuento_pct}% OFF</span>}
         </div>
         <div style={{color:C.dark,fontWeight:700,fontSize:14,marginBottom:4,lineHeight:1.3,pointerEvents:"none"}}>{prod.nombre}</div>
-        <div style={{color:C.dim,fontSize:11,marginBottom:8,flex:1}}>{prod.descripcion}</div>
+        <div style={{color:C.dim,fontSize:11,marginBottom:8,flex:1}}>{descripcionPublicaTienda(prod) || prod.presentacion || ""}</div>
         <div style={{marginBottom:10}}>
           <div style={{display:"flex",alignItems:"baseline",gap:8}}>
             <span style={{color:BRAND.primary,fontWeight:900,fontSize:20}}>{$(prod.precio||prod.precio||0)}</span>
@@ -1965,10 +1967,10 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
           <div style={{background:"#fef3c7",border:"1px solid #f59e0b30",borderRadius:10,padding:"10px 14px",marginBottom:20}}>
             <div style={{color:"#92400e",fontWeight:700}}>Ganas {labelPts(ptsGana(prod.precio))} con esta compra</div>
           </div>
-          {prod.descripcion&&(
+          {descripcionPublicaTienda(prod)&&(
             <div style={{background:C.cardDark,borderRadius:12,padding:16,marginBottom:20}}>
               <div style={{color:C.dark,fontWeight:700,fontSize:14,marginBottom:6}}>Descripción</div>
-              <div style={{color:C.mid,fontSize:14,lineHeight:1.7}}>{prod.descripcion}</div>
+              <div style={{color:C.mid,fontSize:14,lineHeight:1.7}}>{descripcionPublicaTienda(prod)}</div>
             </div>
           )}
           {prod.requiere_receta&&(
@@ -5529,11 +5531,7 @@ export default function TiendaFarmaCapital(){
       return;
     }
     if (!productoPermitidoEnTiendaFarmaciaWeb(prod)) {
-      alert(
-        productoEsCategoriaMinisuperTienda(prod)
-          ? "Artículo de minisuper: no está en la tienda farmacia en línea. Disponible en sucursal."
-          : "Este producto no está disponible para compra en línea (receta, controlado o no publicado en tienda). Pásate por la farmacia."
-      );
+      alert(razonBloqueoProductoTiendaFarmacia(prod));
       return;
     }
     setCart(p=>{
@@ -5547,9 +5545,9 @@ export default function TiendaFarmaCapital(){
     });
   };
 
-  /** Catálogo visible en la tienda web de farmacia (sin líneas minisuper; ver `tiendaFarmaciaCatalogo.js`). */
+  /** Catálogo visible en la tienda web (sin minisuper ni cajas de granel; ver `tiendaFarmaciaCatalogo.js`). */
   const productosVistaTiendaFarmacia = useMemo(
-    () => productos.filter((p) => !productoEsCategoriaMinisuperTienda(p)),
+    () => productos.filter((p) => !productoEsCategoriaMinisuperTienda(p) && !productoEsCajaAbiertaMostrador(p)),
     [productos]
   );
 
