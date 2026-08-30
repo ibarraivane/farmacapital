@@ -59,7 +59,8 @@ function esFormaOralSuelta(t, categoria) {
 
 /**
  * True si la caja no debe listarse ni venderse en farmacapital.mx.
- * El POS sigue cobrando la pieza.
+ * Solo filtra la tienda web. Nunca pone activo=false:
+ * el POS, el inventario y el cobro por pieza siguen igual.
  */
 export function productoEsCajaAbiertaMostrador(p) {
   if (!p) return false;

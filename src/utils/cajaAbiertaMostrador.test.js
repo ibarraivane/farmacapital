@@ -198,6 +198,22 @@ test("cuenta piezas desde presentacion si falta unidades_por_caja", () => {
   expect(cuentaPiezasCajaMostrador({ presentacion: "C/40 tabletas", unidades_por_caja: 0 })).toBe(40);
 });
 
+test("ocultar en web no implica bajar el SKU del POS", () => {
+  const p = caja({
+    activo: true,
+    nombre: "Aspirina 500 mg C/40",
+    presentacion: "C/40 tabletas",
+    unidades_por_caja: 40,
+    categoria: "Analgésico",
+    venta_unidad: true,
+    precio_unidad: 7,
+  });
+  expect(productoEsCajaAbiertaMostrador(p)).toBe(true);
+  expect(p.activo).toBe(true);
+  expect(p.venta_unidad).toBe(true);
+  expect(p.precio_unidad).toBe(7);
+});
+
 test("descripcionPublicaTienda oculta notas de ticket", () => {
   expect(
     descripcionPublicaTienda({

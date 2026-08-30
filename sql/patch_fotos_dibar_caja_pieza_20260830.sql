@@ -12,7 +12,8 @@
 --
 -- No inventa foto si el EAN no coincide (Grisi concha, Bocetix, Calazin,
 -- Colágeno-Naturex, Colchicina, Cafiaspirina tartrato, Aquito).
--- No toca stock ni caducidad.
+-- No toca stock, caducidad ni activo. Las cajas de granel se ocultan
+-- solo en la tienda web (código); el POS sigue vendiendo por pieza.
 -- ============================================================================
 
 begin;
