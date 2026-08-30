@@ -23,12 +23,15 @@ import {
   COL_LABELS_RAPPI,
   FUENTES_RAPPI,
   calcPrecioSugeridoRappi,
+  diagnosticoCeldaRappi,
   instanteBotRappiDe,
   instanteBotRappiGlobal,
   parseProgresoBackfill,
   precioCalleDe,
   precioFarmaciaRappiMin,
+  tienePackRappiDistinto,
   tieneRefRappi,
+  tieneRefRappiComparable,
 } from "./lib/rappiPrecios";
 import { inventarioProductMatchesBusqueda } from "./utils/fuzzySearch";
 
@@ -66,6 +69,18 @@ function DiffBadge({ pct }) {
   return (
     <div style={{ padding: "1px 5px", borderRadius: 20, fontSize: 9, fontWeight: 700, color: col, background: bg, marginTop: 2, display: "inline-block" }}>
       {prefix}{pct}%
+    </div>
+  );
+}
+
+function EmpaqueBadge({ diag }) {
+  if (!diag || diag.ok) return null;
+  return (
+    <div style={{
+      padding: "1px 5px", borderRadius: 20, fontSize: 9, fontWeight: 700,
+      color: C.amber, background: C.amberDim, marginTop: 2, display: "inline-block",
+    }}>
+      otro empaque
     </div>
   );
 }
@@ -364,17 +379,19 @@ export default function RappiPreciosPanel() {
     let conRef = 0;
     let caro = 0;
     let sinRef = 0;
+    let packs = 0;
     for (const p of productos) {
       const refs = refsByProduct[p.id] || {};
-      if (tieneRefRappi(refs)) {
+      if (tienePackRappiDistinto(p, refs)) packs += 1;
+      if (tieneRefRappiComparable(p, refs)) {
         conRef += 1;
-        const minFarm = precioFarmaciaRappiMin(refs);
+        const minFarm = precioFarmaciaRappiMin(p, refs);
         if (minFarm != null && (parseFloat(p.precio) || 0) > minFarm + 0.5) caro += 1;
-      } else if (enRappi.has(p.id)) {
+      } else if (enRappi.has(p.id) && !tieneRefRappi(refs)) {
         sinRef += 1;
       }
     }
-    return { conRef, caro, sinRef };
+    return { conRef, caro, sinRef, packs };
   }, [productos, refsByProduct, enRappi]);
 
   const filas = useMemo(() => {
@@ -384,12 +401,13 @@ export default function RappiPreciosPanel() {
       const linked = enRappi.has(p.id);
       const hasRef = tieneRefRappi(refs);
       if (filtro === "en_rappi") return linked || hasRef;
-      if (filtro === "con_ref") return hasRef;
+      if (filtro === "con_ref") return tieneRefRappiComparable(p, refs);
+      if (filtro === "packs") return tienePackRappiDistinto(p, refs);
       if (filtro === "caro") {
-        const minFarm = precioFarmaciaRappiMin(refs);
+        const minFarm = precioFarmaciaRappiMin(p, refs);
         return minFarm != null && (parseFloat(p.precio) || 0) > minFarm + 0.5;
       }
-      if (filtro === "sin_ref") return linked && !hasRef;
+      if (filtro === "sin_ref") return linked && !tieneRefRappi(refs);
       return true;
     });
   }, [productos, refsByProduct, enRappi, busq, filtro]);
@@ -405,6 +423,7 @@ export default function RappiPreciosPanel() {
           <p style={{ margin: "6px 0 0", color: C.textMid, fontSize: 12, maxWidth: 720, lineHeight: 1.45 }}>
             Qué cobran otras tiendas en Rappi, mezclado con Del Ahorro / Similares (columna <strong>Calle</strong>).
             El <strong>sugerido</strong> es el mismo de Referencias: ~2% bajo la farmacia o calle más barata.
+            Un <strong>pack</strong> (6×237 ml, caja, polvo) no se compara con la botella suelta.
             El <strong>súper</strong> (Chedraui, Soriana) se ve y no mueve el precio: envío otro y piso otro.
             Clic en un precio para editarlo. <strong>Aplicar</strong> cambia mostrador y línea.
           </p>
@@ -455,6 +474,9 @@ export default function RappiPreciosPanel() {
         <span style={{ padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: C.redDim, color: C.red }}>
           Más caro que farmacia: {stats.caro}
         </span>
+        <span style={{ padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: C.amberDim, color: C.amber }}>
+          Otro empaque: {stats.packs}
+        </span>
         <span style={{ padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: C.cardDark, color: C.textMid }}>
           En Rappi sin precio: {stats.sinRef}
         </span>
@@ -473,6 +495,7 @@ export default function RappiPreciosPanel() {
         {[
           ["en_rappi", "En Rappi"],
           ["con_ref", "Con precio"],
+          ["packs", "Otro empaque"],
           ["caro", "Más caro"],
           ["sin_ref", "Sin precio"],
           ["todos", "Todos"],
@@ -562,8 +585,11 @@ export default function RappiPreciosPanel() {
                       ) : <span style={{ color: C.textDim }}>—</span>}
                     </td>
                     {COLS_PRECIO.map((id) => {
-                      const precio = refs[id]?.precio;
-                      const d = diffPctVenta(p.precio, precio);
+                      const row = refs[id];
+                      const precio = row?.precio;
+                      const diag = diagnosticoCeldaRappi(p, row);
+                      const d = (!diag || diag.ok) ? diffPctVenta(p.precio, precio) : null;
+                      const nombreHit = (row?.nombre_fuente || "").trim();
                       return (
                         <EditableCell
                           key={id}
@@ -575,12 +601,17 @@ export default function RappiPreciosPanel() {
                           onDraft={(v) => setInlineEdit((e) => (e ? { ...e, draft: v } : e))}
                           onCommit={commitEdit}
                           onCancel={cancelEdit}
-                          title={FUENTE_META[id]?.hint || "Clic para editar"}
+                          title={nombreHit || FUENTE_META[id]?.hint || "Clic para editar"}
                           display={precio != null ? (
-                            <>
-                              <div>{fmtPrecioRef(precio)}</div>
-                              <DiffBadge pct={d} />
-                            </>
+                            <div>
+                              <div style={{ color: diag && !diag.ok ? C.textDim : C.text }}>{fmtPrecioRef(precio)}</div>
+                              {diag && !diag.ok ? <EmpaqueBadge diag={diag} /> : <DiffBadge pct={d} />}
+                              {nombreHit ? (
+                                <div style={{ fontSize: 9, color: C.textDim, marginTop: 2, lineHeight: 1.25, maxWidth: 92 }}>
+                                  {nombreHit}
+                                </div>
+                              ) : null}
+                            </div>
                           ) : <span style={{ color: C.textDim }}>—</span>}
                         />
                       );
