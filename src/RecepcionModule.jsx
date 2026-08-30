@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { ScanLine, History, ArrowLeft, AlertTriangle } from "lucide-react";
 import { C_LIGHT, BRAND } from "./constants";
 import { supabase } from "./supabase";
-import { showToast } from "./ui";
+import { AyudaDesplegable, showToast } from "./ui";
 import { useMediaQuery } from "./hooks/useMediaQuery";
 import {
   barcodeDigitsMatch,
@@ -974,9 +974,9 @@ export default function RecepcionModule({ ocultarMontos = false }) {
           <h2 style={{ margin: 0, color: C.text, fontSize: 20, fontWeight: 800, display: "flex", alignItems: "center", gap: 8 }}>
             <ScanLine size={22} strokeWidth={2.2} /> Recibir
           </h2>
-          <p style={{ margin: "4px 0 0", color: C.textMid, fontSize: 13 }}>
+          <AyudaDesplegable>
             Todo lo que has comprado, ticket por ticket. Cada columna es una entrada; el color dice si esa vez salió más barato o más caro que la compra anterior.
-          </p>
+          </AyudaDesplegable>
         </div>
         {tabBar}
         <RecepcionHistorial ocultarMontos={ocultarMontos} />
@@ -1036,9 +1036,9 @@ export default function RecepcionModule({ ocultarMontos = false }) {
             <h2 style={{ margin: 0, color: C.text, fontSize: 20, fontWeight: 800, display: "flex", alignItems: "center", gap: 8 }}>
               <ScanLine size={22} strokeWidth={2.2} /> Recibir
             </h2>
-            <p style={{ margin: "4px 0 0", color: C.textMid, fontSize: 13 }}>
+            <AyudaDesplegable>
               Si hay un pedido vivo, tócalo (sale el nombre de la tienda). Si son pocas piezas, llena el ticket abajo y escanea.
-            </p>
+            </AyudaDesplegable>
           </div>
         )}
       </div>

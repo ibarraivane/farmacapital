@@ -111,6 +111,21 @@ export function Tag({col,children,sm}){
   );
 };
 
+/** Texto de ayuda del módulo: cerrado por defecto, clic para leer. */
+export function AyudaDesplegable({ titulo = "Cómo funciona", children, style }) {
+  const C = C_LIGHT;
+  return (
+    <details className="fc-ayuda-desplegable" style={{ margin: "6px 0 0", maxWidth: 720, ...style }}>
+      <summary>
+        {titulo}
+      </summary>
+      <div style={{ marginTop: 8, color: C.textMid, fontSize: 12, lineHeight: 1.45 }}>
+        {children}
+      </div>
+    </details>
+  );
+}
+
 export function Btn({children,onClick,col,sm,ol,outline,dis,disabled,full,style,type="button"}){
   const C = C_LIGHT;
   const isOutline = Boolean(ol || outline);
@@ -813,6 +828,27 @@ export const hoverStyles = `
 
   /* Tooltip PEPS */
   .peps-tooltip-container:hover .peps-tooltip { display:block !important; }
+
+  /* Ayuda de módulo: plegada hasta el clic */
+  .fc-ayuda-desplegable > summary {
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 700;
+    color: #1E3ABA;
+    list-style: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    user-select: none;
+    min-height: 28px;
+  }
+  .fc-ayuda-desplegable > summary::-webkit-details-marker { display: none; }
+  .fc-ayuda-desplegable > summary::before {
+    content: "▸";
+    font-size: 11px;
+    line-height: 1;
+  }
+  .fc-ayuda-desplegable[open] > summary::before { content: "▾"; }
 
   /* Scrollbar global */
   ::-webkit-scrollbar { width: 5px; height: 5px; }
