@@ -64,6 +64,15 @@
       ]
     },
     {
+      "source": "/catalogo-propia/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=604800, stale-while-revalidate=86400"
+        }
+      ]
+    },
+    {
       "source": "/static/(.*)",
       "headers": [
         {
@@ -135,7 +144,7 @@
       "destination": "/api/health?token=:token"
     },
     {
-      "source": "/((?!api/|static/|icons/|manifest\\.json|service-worker\\.js|version\\.json|favicon\\.ico|asset-manifest\\.json|robots\\.txt).*)",
+      "source": "/((?!api/|static/|icons/|catalogo-propia/|brand/|manifest\\.json|service-worker\\.js|version\\.json|favicon\\.ico|asset-manifest\\.json|robots\\.txt).*)",
       "destination": "/index.html"
     }
   ],
