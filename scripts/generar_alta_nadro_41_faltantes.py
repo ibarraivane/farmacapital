@@ -127,11 +127,11 @@ begin
 
       insert into public.productos (
         nombre, sku, codigo_barras, categoria, tipo, descripcion,
-        costo, precio, stock, stock_minimo, activo, requiere_receta, proveedor
+        costo, precio, stock, stock_minimo, activo, requiere_receta
       ) values (
         r.nombre, v_sku, r.ean, r.categoria, r.tipo,
         'Alta Nadro 1658128647824-01 · 2026-08-31 · listo para pistola',
-        r.costo, r.precio, 0, 1, true, r.receta, 'Nadro'
+        r.costo, r.precio, 0, 1, true, r.receta
       )
       returning id into v_pid;
       v_creados := v_creados + 1;

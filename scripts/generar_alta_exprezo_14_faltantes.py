@@ -126,11 +126,11 @@ begin
       end if;
       insert into public.productos (
         nombre, sku, codigo_barras, categoria, tipo, descripcion,
-        costo, precio, stock, stock_minimo, activo, requiere_receta, proveedor
+        costo, precio, stock, stock_minimo, activo, requiere_receta
       ) values (
         r.nombre, v_sku, r.ean, r.categoria, r.tipo,
         'Alta Exprezo 1279718 · 2026-08-31 · listo para pistola',
-        r.costo, r.precio, 0, 1, true, r.receta, 'Exprezo'
+        r.costo, r.precio, 0, 1, true, r.receta
       )
       returning id into v_pid;
       v_creados := v_creados + 1;
@@ -148,11 +148,11 @@ begin
     else
       insert into public.productos (
         nombre, sku, codigo_barras, categoria, tipo, descripcion,
-        costo, precio, stock, stock_minimo, activo, requiere_receta, proveedor
+        costo, precio, stock, stock_minimo, activo, requiere_receta
       ) values (
         r.nombre, r.sku, null, 'Cuidado personal', 'marca',
         'Alta Exprezo 1279718 · pack sin EAN de caja · tocar renglón',
-        r.costo, r.precio, 0, 1, true, false, 'Exprezo'
+        r.costo, r.precio, 0, 1, true, false
       )
       returning id into v_pid;
       v_creados := v_creados + 1;
