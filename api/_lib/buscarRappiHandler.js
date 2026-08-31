@@ -43,10 +43,10 @@ async function buscarRappiHandler(req, res) {
       ok: true,
       ...out,
       message: out.actualizados
-        ? `Se actualizaron ${out.actualizados} de tu inventario Partner.`
+        ? `Se actualizaron ${out.actualizados} de tu inventario Partner con comparables reales.`
           + (out.pendientes ? ` Quedan ${out.pendientes}: pulsa «Actualizar Rappi» otra vez.` : '')
         : (out.buscados
-          ? 'Rappi no devolvió coincidencias en este lote. Intenta de nuevo.'
+          ? 'Rappi no devolvió coincidencias comparables en este lote. Intenta de nuevo.'
           : 'No hay productos Partner pendientes de buscar.'),
     });
   } catch (err) {

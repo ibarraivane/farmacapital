@@ -34,6 +34,12 @@ test("botones: Subir+Aceptar, Bajar+Aceptar, o solo Aceptar", () => {
     .toEqual({ subir: false, bajar: false, aceptar: true });
   expect(accionesRevisionFila({ pendiente: true, accion: "subir", sugerido: null }))
     .toEqual({ subir: false, bajar: false, aceptar: false });
+  expect(accionesRevisionFila({
+    pendiente: false, accion: "subir", sugerido: 40, exigirPendiente: false,
+  })).toEqual({ subir: true, bajar: false, aceptar: true });
+  expect(accionesRevisionFila({
+    pendiente: false, accion: "bajar", sugerido: 40, exigirPendiente: false,
+  })).toEqual({ subir: false, bajar: true, aceptar: true });
 });
 
 test("huella y persistencia redondean el mercado", () => {

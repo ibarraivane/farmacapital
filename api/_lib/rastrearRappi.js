@@ -4,9 +4,11 @@ const {
   extraerOfertasRappi,
   fetchHtmlRappi,
   matchOfertaRappi,
+  consultasBusquedaRappi,
   terminoBusquedaRappi,
   terminoCortoRappi,
 } = require('../../src/lib/monitorPrecios/fuentes/rappi');
+const { diagnosticoRefRappi } = require('../../src/lib/monitorPrecios/unidadVenta');
 
 const FUENTES = [
   { id: 'rappi_gdl', nombre: 'Rappi · Guadalajara', tipo: 'venta', metodo: 'job_api' },
@@ -145,15 +147,16 @@ function seleccionarCandidatos(productos, opts) {
   const soloPartner = opts.soloPartner === true;
   const partnerIds = opts.partnerIds || new Set();
   const diasStale = opts.diasStale || DIAS_STALE;
+  const forzarIds = opts.forzarIds || new Set();
 
   return (productos || [])
-    .filter((p) => terminoBusquedaRappi(p).length >= 4)
+    .filter((p) => terminoBusquedaRappi(p).length >= 4 || consultasBusquedaRappi(p).length)
     .filter((p) => {
       if (soloPartner) return partnerIds.has(p.id);
       if (soloLinked) return linked.has(p.id) || partnerIds.has(p.id);
       return true;
     })
-    .filter((p) => esStale(ultima[p.id], ahora, diasStale))
+    .filter((p) => forzarIds.has(p.id) || esStale(ultima[p.id], ahora, diasStale))
     .sort((a, b) => {
       const pa = partnerIds.has(a.id) ? 2 : 0;
       const pb = partnerIds.has(b.id) ? 2 : 0;
@@ -164,15 +167,22 @@ function seleccionarCandidatos(productos, opts) {
 }
 
 async function rastrearUno(producto, fetchImpl, timeoutMs, opts) {
-  const term = opts && opts.corto
-    ? terminoCortoRappi(producto)
-    : terminoBusquedaRappi(producto);
-  const html = await fetchHtmlRappi(fetchImpl || fetch, term, timeoutMs || 4000);
-  if (!html) return { filas: [], error: 'sin_html', term };
-  const ofertas = extraerOfertasRappi(html);
-  const filas = filasDesdeOfertas(producto, ofertas);
-  if (!filas.length) return { filas: [], error: 'sin_match', term, ofertas: ofertas.length };
-  return { filas, term, ofertas: ofertas.length };
+  const consultas = opts && opts.corto
+    ? [terminoCortoRappi(producto)]
+    : consultasBusquedaRappi(producto);
+  let last = { filas: [], error: 'sin_html', term: consultas[0] || terminoBusquedaRappi(producto) };
+  for (const term of consultas) {
+    const html = await fetchHtmlRappi(fetchImpl || fetch, term, timeoutMs || 4000);
+    if (!html) {
+      last = { filas: [], error: 'sin_html', term };
+      continue;
+    }
+    const ofertas = extraerOfertasRappi(html);
+    const filas = filasDesdeOfertas(producto, ofertas);
+    if (filas.length) return { filas, term, ofertas: ofertas.length };
+    last = { filas: [], error: 'sin_match', term, ofertas: ofertas.length };
+  }
+  return last;
 }
 
 async function escribirProgreso(supabaseUrl, headers, payload) {
@@ -220,6 +230,22 @@ async function persistirFilas(supabaseUrl, headers, filas) {
   return filas.length;
 }
 
+async function borrarRefsRappiProducto(supabaseUrl, headers, productoId) {
+  const id = Number(productoId);
+  if (!Number.isFinite(id)) return;
+  const src = FUENTES_IDS.join(',');
+  await fetch(
+    `${supabaseUrl}/rest/v1/producto_precios_referencia?producto_id=eq.${id}&fuente=in.(${src})&notas=eq.rastreo_automatico`,
+    { method: 'DELETE', headers: { ...headers, Prefer: 'return=minimal' } },
+  ).catch(() => {});
+}
+
+async function reemplazarRefsRappiProducto(supabaseUrl, headers, productoId, filas) {
+  await borrarRefsRappiProducto(supabaseUrl, headers, productoId);
+  if (filas && filas.length) await persistirFilas(supabaseUrl, headers, filas);
+  return (filas && filas.length) || 0;
+}
+
 async function cargarContextoRappi(supabaseUrl, serviceKey) {
   const headers = headersDe(serviceKey);
   await ensureFuentes(supabaseUrl, headers);
@@ -227,12 +253,12 @@ async function cargarContextoRappi(supabaseUrl, serviceKey) {
     restGetAll(
       supabaseUrl,
       headers,
-      'productos?select=id,sku,nombre,principio_activo,presentacion,marca,codigo_barras,activo&activo=eq.true&order=nombre.asc'
+      'productos?select=id,sku,nombre,principio_activo,presentacion,marca,codigo_barras,tipo,concentracion,forma_farmaceutica,precio,activo&activo=eq.true&order=nombre.asc'
     ),
     restGetAll(
       supabaseUrl,
       headers,
-      `producto_precios_referencia_actual?select=producto_id,fuente,fecha&fuente=in.(${FUENTES_IDS.join(',')})`
+      `producto_precios_referencia_actual?select=producto_id,fuente,fecha,precio,nombre_fuente,notas&fuente=in.(${FUENTES_IDS.join(',')})`
     ),
     restGetAll(
       supabaseUrl,
@@ -260,12 +286,54 @@ async function cargarContextoRappi(supabaseUrl, serviceKey) {
   const partnerIds = idsPartnerEnProductos(productos, partnerCatalogo);
   for (const id of partnerIds) linked.add(id);
 
-  const enriquecidos = (productos || []).map((p) => ({
-    ...p,
-    nombre_rappi: nombreRappi[p.id] || '',
-  }));
+  const partnerRow = partnerRowPorProducto(productos, partnerCatalogo);
+  const enriquecidos = (productos || []).map((p) => {
+    const row = partnerRow.get(p.id);
+    return {
+      ...p,
+      nombre_rappi: nombreRappi[p.id] || (row && row.nombre) || '',
+      nombre_partner: (row && row.nombre) || '',
+      ean: (row && row.ean) || p.codigo_barras,
+    };
+  });
 
-  return { headers, productos: enriquecidos, linked, ultima, partnerIds };
+  const incomparables = idsConRefsIncomparables(enriquecidos, refs);
+
+  return { headers, productos: enriquecidos, linked, ultima, partnerIds, incomparables };
+}
+
+function partnerRowPorProducto(productos, catalogo = partnerCatalogo) {
+  const bySku = new Map();
+  const byEan = new Map();
+  for (const row of catalogo?.productos || []) {
+    const sku = skuInternoDesdeRappi(row.sku);
+    if (sku) bySku.set(sku, row);
+    for (const e of eanClaves(row.ean)) byEan.set(e, row);
+  }
+  const out = new Map();
+  for (const p of productos || []) {
+    const sku = skuInternoDesdeRappi(p.sku);
+    const row = (sku && bySku.get(sku))
+      || eanClaves(p.codigo_barras).map((e) => byEan.get(e)).find(Boolean);
+    if (row) out.set(p.id, row);
+  }
+  return out;
+}
+
+function idsConRefsIncomparables(productos, refs) {
+  const byProd = new Map();
+  for (const row of refs || []) {
+    if (!byProd.has(row.producto_id)) byProd.set(row.producto_id, []);
+    byProd.get(row.producto_id).push(row);
+  }
+  const bad = new Set();
+  for (const p of productos || []) {
+    const rows = byProd.get(p.id) || [];
+    if (!rows.length) continue;
+    const anyOk = rows.some((row) => diagnosticoRefRappi(p, row).ok);
+    if (!anyOk) bad.add(p.id);
+  }
+  return bad;
 }
 
 async function mapPool(items, concurrency, worker) {
@@ -297,6 +365,7 @@ async function runRastreoRappi(input) {
     linked: ctx.linked,
     ultima: ctx.ultima,
     partnerIds: ctx.partnerIds,
+    forzarIds: ctx.incomparables,
     soloLinked: input.soloLinked !== false,
     soloPartner: input.soloPartner === true && ctx.partnerIds && ctx.partnerIds.size > 0,
     diasStale: input.diasStale || DIAS_STALE,
@@ -326,7 +395,7 @@ async function runRastreoRappi(input) {
       stats.actualizados += 1;
       stats.filas += r.filas.length;
       if (!dryRun && r.filas.length) {
-        await persistirFilas(supabaseUrl, ctx.headers, r.filas);
+        await reemplazarRefsRappiProducto(supabaseUrl, ctx.headers, p.id, r.filas);
       }
     }
     stats.done += 1;
@@ -379,8 +448,10 @@ module.exports = {
   filasDesdeOfertas,
   seleccionarCandidatos,
   idsPartnerEnProductos,
+  idsConRefsIncomparables,
   rastrearUno,
   persistirFilas,
+  reemplazarRefsRappiProducto,
   cargarContextoRappi,
   runRastreoRappi,
   escribirProgreso,

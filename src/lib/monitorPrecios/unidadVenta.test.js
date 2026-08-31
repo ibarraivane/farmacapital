@@ -152,3 +152,70 @@ test("Dibar 125 ml no se compara con el de 500 ml", () => {
     { nombre: "Alcohol Dibar Rojo 96 500 ml", precio: 48 }
   )).toBe(false);
 });
+
+test("10Und y 10 Unidades son caja médica, no pack de botellas", () => {
+  expect(extraerUnidadVenta("Lizovag 10Und")).toMatchObject({ piezas: 10, origenPiezas: "caja_med" });
+  expect(extraerUnidadVenta("Galaver Gel 10 Unidades")).toMatchObject({
+    piezas: 10,
+    origenPiezas: "caja_med",
+  });
+  expect(extraerUnidadVenta("Ketoconazol 200 mg 10 tabletas")).toMatchObject({
+    piezas: 10,
+    origenPiezas: "caja_med",
+  });
+});
+
+test("Lizovag genérico sí compara con ketoconazol 200 mg 10 tabletas", () => {
+  const lizovag = {
+    nombre: "Lizovag",
+    tipo: "generico",
+    principio_activo: "Ketoconazol",
+    presentacion: "10Und",
+    concentracion: "200 mg",
+    precio: 26,
+    nombre_partner: "Lizovag (200 mg)",
+  };
+  expect(ofertaRappiComparable(lizovag, {
+    nombre: "Ketoconazol 200 mg 10 tabletas",
+    precio: 28,
+  })).toBe(true);
+  expect(ofertaRappiComparable(lizovag, {
+    nombre: "Ketoconazol 400 mg 10 tabletas",
+    precio: 45,
+  })).toBe(false);
+  expect(ofertaRappiComparable(lizovag, {
+    nombre: "Ketoconazol 200 mg 20 tabletas",
+    precio: 48,
+  })).toBe(false);
+});
+
+test("tableta no se compara con crema ni suspensión del mismo PA", () => {
+  const lizovag = {
+    nombre: "Lizovag",
+    tipo: "generico",
+    principio_activo: "Ketoconazol",
+    presentacion: "10Und",
+    concentracion: "200 mg",
+    forma_farmaceutica: "tableta",
+    precio: 26,
+  };
+  expect(ofertaRappiComparable(lizovag, {
+    nombre: "Pharmalife Crema Ketoconazol",
+    precio: 38,
+  })).toBe(false);
+  expect(ofertaRappiComparable(lizovag, {
+    nombre: "Keto Conazol Suspension (2 G)",
+    precio: 112,
+  })).toBe(false);
+  expect(ofertaRappiComparable(lizovag, {
+    nombre: "Ketoconazol (200 mg)",
+    precio: 37,
+  })).toBe(true);
+});
+
+test("el mismo EAN es comparable aunque el nombre no traiga la marca", () => {
+  expect(ofertaRappiComparable(
+    { nombre: "Lizovag", codigo_barras: "7501075717150", precio: 26 },
+    { nombre: "Ketoconazol 200 mg", ean: "7501075717150", precio: 29 },
+  )).toBe(true);
+});

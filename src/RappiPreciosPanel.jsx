@@ -25,6 +25,7 @@ import {
   FUENTES_RAPPI,
   calcPrecioSugeridoRappi,
   diagnosticoCeldaRappi,
+  enriquecerListaConPartner,
   idsEnCatalogoRappi,
   listarLotePartnerRappi,
   instanteBotRappiDe,
@@ -109,12 +110,16 @@ function DiffBadge({ pct }) {
 
 function EmpaqueBadge({ diag }) {
   if (!diag || diag.ok) return null;
+  const label =
+    diag.motivo === "otra_marca" ? "otra marca" :
+    diag.motivo === "otra_concentracion" ? "otra dosis" :
+    "otro empaque";
   return (
     <div style={{
       padding: "1px 5px", borderRadius: 20, fontSize: 9, fontWeight: 700,
       color: C.amber, background: C.amberDim, marginTop: 2, display: "inline-block",
     }}>
-      otro empaque
+      {label}
     </div>
   );
 }
@@ -236,7 +241,7 @@ export default function RappiPreciosPanel() {
       setLoading(false);
       return false;
     }
-    const list = prodRes.data || [];
+    const list = enriquecerListaConPartner(prodRes.data || []);
     setProductos(list);
     setEnRappi(idsEnCatalogoRappi(list, [...filasCatalogo, ...filasPartnerComoCatalogo()]));
 
@@ -412,7 +417,7 @@ export default function RappiPreciosPanel() {
 
   const aceptarPrecio = async (producto, calc) => {
     await marcarFilasRevisadas([{ id: producto.id, huella: huellaMercado(calc) }]);
-    showToast("Listo. Si el bot cambia el mercado, vuelven los botones.", "success");
+    showToast("Listo. Quedó anotado que ya viste este sugerido.", "success");
   };
 
   const idsPartner = useMemo(
@@ -548,9 +553,10 @@ export default function RappiPreciosPanel() {
           <AyudaDesplegable>
             Qué cobran otras tiendas en Rappi, mezclado con Del Ahorro / Similares (columna <strong>Calle</strong>).
             El <strong>sugerido</strong> usa el <strong>promedio</strong> de farmacia/calle (no el más barato) y no baja del margen: patente ≥20%, genérico ≥40% sobre venta.
-            Un <strong>pack</strong>, el polvo o otra línea (Advance / Plus) no se compara con la botella suelta.
+            Un <strong>pack</strong>, el polvo o otra línea (Advance / Plus) no se compara con la botella suelta. El genérico sí se compara con el mismo principio activo y la misma caja (10 tabletas ≠ 20).
+            Si hay sugerido, <strong>Subir / Bajar / Aceptar</strong> quedan a la mano.
             El <strong>súper</strong> (Chedraui, Soriana) se ve y no mueve el precio.
-            Los lotes <strong>Aplicar subidas / bajadas</strong> solo tocan tus 68 de Partner. «Actualizar Rappi» busca de 10 en 10 esos SKUs.
+            Los lotes <strong>Aplicar subidas / bajadas</strong> solo tocan tus 68 de Partner. «Actualizar Rappi» busca de 10 en 10 esos SKUs y vuelve a buscar los que tenían otro empaque.
             {" "}<strong>Rellenar plantilla Rappi</strong> toma el Excel oficial (Precio, Descuento, Disponibilidad SI/NO). No se edita stock por piezas. SI = existencias − 2.
           </AyudaDesplegable>
           {chipsFuente.length > 0 && (
@@ -705,7 +711,9 @@ export default function RappiPreciosPanel() {
                   revisado: revision.porId[p.id],
                   epoch: revision.epoch,
                 });
-                const botones = accionesRevisionFila({ pendiente, accion, sugerido });
+                const botones = accionesRevisionFila({
+                  pendiente, accion, sugerido, exigirPendiente: false,
+                });
                 const toneM = margen.pct != null ? margenToneColors(margen.tone, C) : null;
                 const sugeridoCol =
                   alerta === "debajo_costo" ? C.red :
