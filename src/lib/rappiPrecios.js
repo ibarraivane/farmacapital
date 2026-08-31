@@ -14,8 +14,9 @@ import {
   refsDeFuentes,
   refsVentaComparables,
 } from "./preciosReferencia";
-import { diagnosticoRefRappi } from "./monitorPrecios/unidadVenta";
+import { diagnosticoRefRappi, motivoEsOtroEmpaque } from "./monitorPrecios/unidadVenta";
 import { digitsEan, skuInternoDesdeRappi } from "./rappiCargaCsv";
+import { catalogoPartnerActual } from "./rappiPlantilla";
 
 export const FUENTES_RAPPI_FARMACIA = [
   "rappi_gdl",
@@ -57,10 +58,33 @@ export function refsRappiUsables(producto, refsMap) {
   return out;
 }
 
+export function enriquecerListaConPartner(productos, catalogo = catalogoPartnerActual()) {
+  const bySku = new Map();
+  const byEan = new Map();
+  for (const row of catalogo?.productos || []) {
+    const sku = skuInternoDesdeRappi(row.sku);
+    if (sku) bySku.set(sku, row);
+    for (const e of clavesEan(row.ean)) byEan.set(e, row);
+  }
+  return (productos || []).map((p) => {
+    const sku = skuInternoDesdeRappi(p.sku);
+    const row = (sku && bySku.get(sku))
+      || clavesEan(p.codigo_barras).map((e) => byEan.get(e)).find(Boolean);
+    if (!row) return p;
+    return {
+      ...p,
+      nombre_rappi: p.nombre_rappi || row.nombre || "",
+      nombre_partner: row.nombre || "",
+      ean: p.ean || row.ean || p.codigo_barras,
+    };
+  });
+}
+
 export function calcPrecioSugeridoRappi(producto, refsMap) {
   const packs = FUENTES_RAPPI.filter((id) => {
     const row = refsMap?.[id];
-    return row && parseFloat(row.precio) > 0 && !diagnosticoRefRappi(producto, row).ok;
+    if (!row || !(parseFloat(row.precio) > 0)) return false;
+    return motivoEsOtroEmpaque(diagnosticoRefRappi(producto, row).motivo);
   }).length;
   const out = calcPrecioSugeridoVenta(
     producto,
@@ -130,7 +154,7 @@ export function tienePackRappiDistinto(producto, refsMap) {
   return FUENTES_RAPPI.some((id) => {
     const row = refsMap?.[id];
     if (!row || !(parseFloat(row.precio) > 0)) return false;
-    return !diagnosticoRefRappi(producto, row).ok;
+    return motivoEsOtroEmpaque(diagnosticoRefRappi(producto, row).motivo);
   });
 }
 

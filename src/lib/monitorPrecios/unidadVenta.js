@@ -16,7 +16,14 @@ const RATIO_ABSURDO = 4.5;
 const VOL_TOL = 1.08;
 
 function textoProductoUnidad(producto) {
-  return [producto && producto.nombre, producto && producto.presentacion, producto && producto.concentracion]
+  return [
+    producto && producto.nombre,
+    producto && producto.nombre_rappi,
+    producto && producto.nombre_partner,
+    producto && producto.presentacion,
+    producto && producto.concentracion,
+    producto && producto.forma_farmaceutica,
+  ]
     .filter(Boolean)
     .join(" ");
 }
@@ -69,14 +76,33 @@ function extraerLinea(norm, ml, g) {
   return "regular";
 }
 
+function extraerMgs(texto) {
+  const t = colapsar(String(texto || ""));
+  const out = [];
+  const re = /(\d+(?:[.,]\d+)?)\s*mg\b/g;
+  let m;
+  while ((m = re.exec(t))) {
+    const n = Number(String(m[1]).replace(",", "."));
+    if (Number.isFinite(n) && n > 0) out.push(n);
+  }
+  return out;
+}
+
+function mismaConcentracionMg(oursTexto, theirsTexto) {
+  const a = extraerMgs(oursTexto);
+  const b = extraerMgs(theirsTexto);
+  if (!a.length || !b.length) return true;
+  if (a.length === 1 && b.length === 1) return Math.abs(a[0] - b[0]) <= 0.51;
+  const big = a.length >= b.length ? a : b;
+  const small = a.length >= b.length ? b : a;
+  return small.every((x) => big.some((y) => Math.abs(x - y) <= 0.51));
+}
+
 function extraerPiezasPack(norm) {
   const reglasPack = [
     /\b(\d{1,2})\s*-?\s*packs?\b/,
     /\bpacks?\s*(?:de\s+)?(\d{1,2})\b/,
-    /\bcaja\s+con\s+(\d{1,2})\b/,
-    /\b(\d{1,2})\s*(?:pzas?|piezas?|unidades|uds)\b/,
     /\b(\d{1,2})\s*x\s*\d+(?:[.,]\d+)?\s*m(?:l|ls)\b/,
-    /\bx\s*(\d{1,2})(?:\b|$)/,
   ];
   for (const re of reglasPack) {
     const m = norm.match(re);
@@ -84,19 +110,36 @@ function extraerPiezasPack(norm) {
     const n = parseInt(m[1], 10);
     if (n >= PACK_MIN && n <= PACK_MAX) return { piezas: n, origenPiezas: "pack" };
   }
-  if (!extraerMl(norm)) {
-    const tabs = norm.match(/\b(\d{1,3})\s*(?:tabs?|tabletas?|capsulas?|caps?|comprimidos?)\b/);
-    if (tabs) {
-      const n = parseInt(tabs[1], 10);
-      if (n >= PACK_MIN && n <= 200) return { piezas: n, origenPiezas: "caja_med" };
+  if (extraerMl(norm)) {
+    const pzasLiq = norm.match(/\b(\d{1,2})\s*(?:pzas?|piezas?|unidades|unds?|uds)\b/);
+    if (pzasLiq) {
+      const n = parseInt(pzasLiq[1], 10);
+      if (n >= PACK_MIN && n <= PACK_MAX) return { piezas: n, origenPiezas: "pack" };
     }
-    const caja = norm.match(/\bc\s*\/\s*(\d{1,3})\b/);
-    if (caja) {
-      const n = parseInt(caja[1], 10);
-      if (n >= PACK_MIN && n <= 200) return { piezas: n, origenPiezas: "caja_med" };
-    }
+    return { piezas: null, origenPiezas: null };
+  }
+  const reglasCaja = [
+    /\bcaja\s+con\s+(\d{1,3})\b/,
+    /\bcaja\s+x\s*(\d{1,3})\b/,
+    /\bx\s*(\d{1,3})\b/,
+    /\b(\d{1,3})\s*(?:pzas?|piezas?|unidades|unds?|uds)\b/,
+    /\b(\d{1,3})\s*(?:tabs?|tabletas?|capsulas?|caps?|comprimidos?)\b/,
+    /\bc\s*\/\s*(\d{1,3})\b/,
+  ];
+  for (const re of reglasCaja) {
+    const m = norm.match(re);
+    if (!m) continue;
+    const n = parseInt(m[1], 10);
+    if (n >= PACK_MIN && n <= 200) return { piezas: n, origenPiezas: "caja_med" };
   }
   return { piezas: null, origenPiezas: null };
+}
+
+function extraerForma(norm) {
+  if (/\b(cremas?|geles?|\bgel\b|unguentos?|pomadas?|parches?)\b/.test(norm)) return "topico";
+  if (/\b(suspensiones?|jarabes?|soluciones?|gotas|aerosol|inhal)\b/.test(norm)) return "liquido";
+  if (/\b(tabs?|tabletas?|comprimidos?|capsulas?|caps?|ovulos?|unds?)\b/.test(norm)) return "solido";
+  return null;
 }
 
 function extraerUnidadVenta(texto) {
@@ -112,6 +155,7 @@ function extraerUnidadVenta(texto) {
     origenPiezas: pack.origenPiezas,
     sabor: extraerSabor(norm),
     linea: extraerLinea(norm, ml, g),
+    forma: extraerForma(norm),
   };
 }
 
@@ -146,6 +190,7 @@ function mismaUnidadVenta(a, b) {
   if (pa >= PACK_MIN && (pb == null || pb === 1) && (bLiq || bSol)) return false;
   if (a.sabor && b.sabor && a.sabor !== b.sabor) return false;
   if (a.linea && b.linea && a.linea !== b.linea) return false;
+  if (a.forma && b.forma && a.forma !== b.forma) return false;
   return true;
 }
 
@@ -161,6 +206,36 @@ function ofertaTieneMarca(normOferta, marca) {
   return new RegExp(`(?:^|\\s)${marca}(?:\\s|$)`).test(normOferta || "");
 }
 
+function tokensPrincipioActivo(producto) {
+  const raw = colapsar(producto && producto.principio_activo);
+  if (!raw) return [];
+  return raw.split(/[^a-z0-9]+/).filter((w) => w.length >= 5);
+}
+
+function ofertaTienePrincipio(normOferta, producto) {
+  const hay = normOferta || "";
+  return tokensPrincipioActivo(producto).some((w) => new RegExp(`(?:^|\\s)${w}(?:\\s|$)`).test(hay));
+}
+
+function esMarcaPatente(producto) {
+  const t = String((producto && producto.tipo) || "").toLowerCase();
+  if (t === "generico" || t === "genérico") return false;
+  const marca = marcaBusqueda(producto);
+  if (marca && /\b(ensure|pediasure|glucerna|electrolit)\b/.test(marca)) return true;
+  return t === "marca" || t === "patente";
+}
+
+function eanNorm(value) {
+  return String(value || "").replace(/\D/g, "");
+}
+
+function mismoEanProductoOferta(producto, refRow) {
+  const local = eanNorm(producto && (producto.codigo_barras || producto.ean));
+  const oferta = eanNorm(refRow && (refRow.ean || refRow.codigo_barras));
+  if (local.length < 8 || oferta.length < 8) return false;
+  return local === oferta;
+}
+
 function diagnosticoRefRappi(producto, refRow) {
   const precio = parseFloat(refRow && refRow.precio);
   if (!Number.isFinite(precio) || precio <= 0) {
@@ -170,12 +245,23 @@ function diagnosticoRefRappi(producto, refRow) {
   const nombre = (refRow && (refRow.nombre_fuente || refRow.nombre || refRow.notas)) || "";
   const theirs = extraerUnidadVenta(nombre);
 
+  if (mismoEanProductoOferta(producto, refRow)) {
+    return { ok: true, motivo: null, nombre, ours, theirs };
+  }
+
   const marca = marcaBusqueda(producto);
   if (marca && theirs.texto && new RegExp(`no se encontro marca\\s+${marca}`).test(theirs.texto)) {
     return { ok: false, motivo: "otra_marca", nombre, ours, theirs };
   }
-  if (marca && theirs.texto && !ofertaTieneMarca(theirs.texto, marca)) {
-    return { ok: false, motivo: "otra_marca", nombre, ours, theirs };
+  const tieneMarca = ofertaTieneMarca(theirs.texto, marca);
+  const tienePa = ofertaTienePrincipio(theirs.texto, producto);
+  if (marca && theirs.texto && !tieneMarca) {
+    if (esMarcaPatente(producto) || !tienePa) {
+      return { ok: false, motivo: "otra_marca", nombre, ours, theirs };
+    }
+  }
+  if (theirs.texto && !mismaConcentracionMg(textoProductoUnidad(producto), nombre)) {
+    return { ok: false, motivo: "otra_concentracion", nombre, ours, theirs };
   }
   if (theirs.texto && !mismaUnidadVenta(ours, theirs)) {
     return { ok: false, motivo: "otro_empaque", nombre, ours, theirs };
@@ -200,6 +286,10 @@ function ofertaRappiComparable(producto, oferta) {
   return diagnosticoRefRappi(producto, oferta).ok;
 }
 
+function motivoEsOtroEmpaque(motivo) {
+  return motivo === "otro_empaque" || motivo === "precio_otro_empaque";
+}
+
 module.exports = {
   RATIO_OTRO_EMPAQUE,
   RATIO_ABSURDO,
@@ -207,9 +297,15 @@ module.exports = {
   extraerUnidadProducto,
   extraerSabor,
   extraerLinea,
+  extraerForma,
+  extraerMgs,
   marcaBusqueda,
+  tokensPrincipioActivo,
+  esMarcaPatente,
   mismaUnidadVenta,
+  mismaConcentracionMg,
   diagnosticoRefRappi,
   ofertaRappiComparable,
+  motivoEsOtroEmpaque,
   textoProductoUnidad,
 };

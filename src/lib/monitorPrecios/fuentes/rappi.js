@@ -8,7 +8,7 @@
 const { colapsar } = require("../normalizador");
 const { scoreNombre } = require("../similitud");
 const { matchMejorCandidato } = require("../matchCatalogo");
-const { ofertaRappiComparable } = require("../unidadVenta");
+const { ofertaRappiComparable, esMarcaPatente } = require("../unidadVenta");
 
 const UA = "FarmaCapitalPricingBot/1.0 (+https://www.farmacapital.mx)";
 
@@ -120,32 +120,75 @@ function terminoBusquedaRappi(producto) {
   return String(producto && (producto.codigo_barras || producto.ean) || "").replace(/\D/g, "").slice(0, 14);
 }
 
+function eanDigits(value) {
+  return String(value || "").replace(/\D/g, "");
+}
+
 function candidatosMismaUnidad(producto, candidatos) {
   return (candidatos || []).filter((c) => ofertaRappiComparable(producto, c));
 }
 
+function matchPorEan(producto, candidatos) {
+  const local = eanDigits(producto && (producto.codigo_barras || producto.ean));
+  if (local.length < 8) return null;
+  const porEan = (candidatos || []).filter((c) => eanDigits(c && c.ean) === local);
+  if (!porEan.length) return null;
+  const ok = porEan.filter((c) => ofertaRappiComparable(producto, c));
+  const pool = ok.length ? ok : porEan;
+  const best = pool.slice().sort((a, b) => Number(a.precio) - Number(b.precio))[0];
+  return best ? { ...best, confianza: 0.99, metodo: "GTIN" } : null;
+}
+
+/** EAN, nombre Partner, principio activo, luego nombre local. */
+function consultasBusquedaRappi(producto) {
+  const out = [];
+  const ean = eanDigits(producto && (producto.codigo_barras || producto.ean));
+  if (ean.length >= 8) out.push(ean);
+  const rappi = String((producto && producto.nombre_rappi) || "").replace(/\s+/g, " ").trim();
+  const pa = String((producto && producto.principio_activo) || "").replace(/\s+/g, " ").trim();
+  const conc = String((producto && producto.concentracion) || "").replace(/\s+/g, " ").trim();
+  let paQ = "";
+  if (pa.length >= 5) {
+    const cabeza = pa.split(/[+/,]/)[0].trim();
+    const q = [cabeza, conc].filter(Boolean).join(" ");
+    if (q.length >= 5) paQ = q.slice(0, 80);
+  }
+  if (paQ && !esMarcaPatente(producto)) out.push(paQ);
+  if (rappi.length >= 4) out.push(rappi.slice(0, 80));
+  if (paQ && esMarcaPatente(producto)) out.push(paQ);
+  const nom = String((producto && producto.nombre) || "").replace(/\s+/g, " ").trim();
+  if (nom.length >= 4) out.push(nom.split(" ").slice(0, 4).join(" ").slice(0, 80));
+  return [...new Set(out.filter(Boolean))].slice(0, 3);
+}
+
 /** Si el job ya busca este SKU, no descartar por umbral de catálogo. */
 function matchOfertaRappi(producto, candidatos) {
+  const porEan = matchPorEan(producto, candidatos);
+  if (porEan) return porEan;
   const comparables = candidatosMismaUnidad(producto, candidatos);
   const hit = matchMejorCandidato(producto, comparables);
   if (hit) return hit;
   const token = colapsar(producto && producto.nombre)
     .split(/\s+/)
     .find((t) => t.length >= 4);
-  if (!token) return null;
   let best = null;
   let bestScore = 0;
   for (const c of comparables) {
     const hay = colapsar(c.nombre || "");
-    if (!hay.includes(token)) continue;
-    const s = Math.max(scoreNombre(producto.nombre, c.nombre), 0.55);
-    if (s > bestScore) {
-      bestScore = s;
-      best = c;
+    if (token && hay.includes(token)) {
+      const s = Math.max(scoreNombre(producto.nombre, c.nombre), 0.55);
+      if (s > bestScore) {
+        bestScore = s;
+        best = c;
+      }
     }
   }
-  if (!best) return null;
-  return { ...best, confianza: bestScore, metodo: "NOMBRE_RAPPI" };
+  if (best) return { ...best, confianza: bestScore, metodo: "NOMBRE_RAPPI" };
+  if (comparables.length) {
+    const barato = comparables.slice().sort((a, b) => Number(a.precio) - Number(b.precio))[0];
+    return { ...barato, confianza: 0.7, metodo: "UNIDAD_PA" };
+  }
+  return null;
 }
 
 function urlBusquedaRappi(query) {
@@ -181,6 +224,7 @@ module.exports = {
   agruparOfertasRappi,
   terminoBusquedaRappi,
   terminoCortoRappi,
+  consultasBusquedaRappi,
   matchOfertaRappi,
   urlBusquedaRappi,
   fetchHtmlRappi,

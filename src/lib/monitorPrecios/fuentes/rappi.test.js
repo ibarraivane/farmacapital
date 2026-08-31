@@ -144,3 +144,73 @@ test("busca por nombre comercial, no por EAN", () => {
   expect(terminoBusquedaRappi({ nombre: "Agrifen C/10 tabletas", nombre_rappi: "" }))
     .toBe("Agrifen C/10 tabletas");
 });
+
+test("consultas Rappi: EAN, nombre Partner y principio activo", () => {
+  const { consultasBusquedaRappi } = require("./rappi");
+  expect(consultasBusquedaRappi({
+    nombre: "Lizovag",
+    tipo: "generico",
+    codigo_barras: "7501075717150",
+    nombre_rappi: "Lizovag (200 mg)",
+    principio_activo: "Ketoconazol",
+    concentracion: "200 mg",
+  })).toEqual([
+    "7501075717150",
+    "Ketoconazol 200 mg",
+    "Lizovag (200 mg)",
+  ]);
+});
+
+test("match Rappi por EAN gana aunque el nombre no coincida", () => {
+  const { matchOfertaRappi } = require("./rappi");
+  const hit = matchOfertaRappi(
+    { nombre: "Lizovag", codigo_barras: "7501075717150", precio: 26 },
+    [
+      { fuente: "rappi_gdl", nombre: "Otro producto 10 tabletas", precio: 10, ean: "111" },
+      { fuente: "rappi_gdl", nombre: "Ketoconazol 200 mg 10 tabletas", precio: 29, ean: "7501075717150" },
+    ],
+  );
+  expect(hit).toBeTruthy();
+  expect(hit.precio).toBe(29);
+  expect(hit.metodo).toBe("GTIN");
+});
+
+test("genérico sin la marca en Rappi igual toma el mismo PA y caja", () => {
+  const { matchOfertaRappi } = require("./rappi");
+  const hit = matchOfertaRappi(
+    {
+      nombre: "Lizovag",
+      tipo: "generico",
+      principio_activo: "Ketoconazol",
+      presentacion: "10Und",
+      concentracion: "200 mg",
+      precio: 26,
+    },
+    [
+      { fuente: "rappi_gdl", nombre: "Ketoconazol 200 mg 20 tabletas", precio: 48, tienda: "GDL" },
+      { fuente: "rappi_gdl", nombre: "Ketoconazol 200 mg 10 tabletas", precio: 28, tienda: "GDL" },
+      { fuente: "rappi_gdl", nombre: "Ensure Regular Vainilla 237 ml", precio: 66, tienda: "GDL" },
+    ],
+  );
+  expect(hit).toBeTruthy();
+  expect(hit.precio).toBe(28);
+  expect(hit.nombre).toMatch(/10 tabletas/i);
+});
+
+test("Partner con refs de otro empaque se vuelve a buscar", () => {
+  const { seleccionarCandidatos } = require("../../../../api/_lib/rastrearRappi");
+  const ahora = new Date("2026-08-31T18:00:00.000Z");
+  const productos = [
+    { id: 9, nombre: "Lizovag 10 Tab", sku: "EQ-NOV032", codigo_barras: "7501075717150" },
+  ];
+  const out = seleccionarCandidatos(productos, {
+    ahora,
+    linked: new Set([9]),
+    partnerIds: new Set([9]),
+    soloPartner: true,
+    ultima: { 9: "2026-08-31" },
+    forzarIds: new Set([9]),
+    diasStale: 7,
+  });
+  expect(out.map((p) => p.id)).toEqual([9]);
+});

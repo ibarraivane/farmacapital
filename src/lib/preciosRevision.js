@@ -66,8 +66,16 @@ export function esPendienteRevision({ botTs, revisado } = {}) {
   return Number(botTs) > corte;
 }
 
-export function accionesRevisionFila({ pendiente, accion, sugerido } = {}) {
-  if (!pendiente || sugerido == null) {
+export function accionesRevisionFila({
+  pendiente,
+  accion,
+  sugerido,
+  exigirPendiente = true,
+} = {}) {
+  if (sugerido == null) {
+    return { subir: false, bajar: false, aceptar: false };
+  }
+  if (exigirPendiente && !pendiente) {
     return { subir: false, bajar: false, aceptar: false };
   }
   return {

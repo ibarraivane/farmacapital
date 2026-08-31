@@ -1,5 +1,6 @@
 import {
   calcPrecioSugeridoRappi,
+  enriquecerListaConPartner,
   idsEnCatalogoRappi,
   listarSugerenciasRappi,
   listarBajadasRappi,
@@ -192,4 +193,24 @@ test("sin refs de farmacia ni calle no sugiere", () => {
   expect(out.sugerido).toBeNull();
   expect(out.nota).toMatch(/sin referencias/i);
   expect(tieneRefRappi(r)).toBe(true);
+});
+
+test("otra marca no se etiqueta como otro empaque", () => {
+  const gen = {
+    nombre: "Lizovag",
+    tipo: "generico",
+    principio_activo: "ketoconazol",
+    precio: 26,
+  };
+  const r = refs({ rappi_gdl: 40 });
+  r.rappi_gdl.nombre_fuente = "Ibuprofeno 400 mg 10 tabletas";
+  expect(tienePackRappiDistinto(gen, r)).toBe(false);
+});
+
+test("enriquece el renglón con el nombre Partner", () => {
+  const out = enriquecerListaConPartner([
+    { id: 9, sku: "EQ-NOV032", codigo_barras: "7501075717150", nombre: "Lizovag" },
+  ]);
+  expect(out[0].nombre_partner).toMatch(/Lizovag/i);
+  expect(out[0].nombre_rappi).toMatch(/Lizovag/i);
 });
