@@ -2,6 +2,8 @@ import {
   calcPrecioSugeridoRappi,
   idsEnCatalogoRappi,
   listarSugerenciasRappi,
+  listarBajadasRappi,
+  listarLotePartnerRappi,
   listarSubidasRappi,
   mensajeVacioListaRappi,
   pasaFiltroListaRappi,
@@ -39,7 +41,8 @@ test("el súper no baja el sugerido de Rappi", () => {
   });
   const out = calcPrecioSugeridoRappi(otc, r);
   expect(out.refMin).toBe(27);
-  expect(out.sugerido).toBe(27);
+  expect(out.refPromedio).toBeCloseTo((50 + 45 + 27) / 3, 5);
+  expect(out.sugerido).toBe(40);
   expect(precioFarmaciaRappiMin(otc, r)).toBe(27);
 });
 
@@ -119,6 +122,29 @@ test("el lote de sugerencias incluye subidas y bajadas", () => {
   const subidas = listarSubidasRappi([barato, caro], mapa);
   expect(subidas).toHaveLength(1);
   expect(subidas[0].producto.id).toBe(1);
+  const bajadas = listarBajadasRappi([barato, caro], mapa);
+  expect(bajadas).toHaveLength(1);
+  expect(bajadas[0].producto.id).toBe(2);
+  const lotePartner = listarLotePartnerRappi([barato, caro], mapa, new Set([1]), "subir");
+  expect(lotePartner).toHaveLength(1);
+  expect(listarLotePartnerRappi([barato, caro], mapa, new Set([1]), "bajar")).toHaveLength(0);
+});
+
+test("el promedio no persigue al más barato; el piso de patente es 20%", () => {
+  const patente = { ...otc, tipo: "marca", costo: 80, precio: 90 };
+  const r = refs({ rappi_gdl: 88, rappi_farmatodo: 92, similares: 90 });
+  const out = calcPrecioSugeridoRappi(patente, r);
+  expect(out.refPromedio).toBeCloseTo(90, 5);
+  expect(out.sugerido).toBe(100);
+  expect(out.nota).toMatch(/20%/);
+});
+
+test("genérico no baja de 40% de margen sobre venta", () => {
+  const gen = { ...otc, tipo: "generico", costo: 50, precio: 70, principio_activo: "ketoconazol" };
+  const r = refs({ rappi_gdl: 60, similares: 62 });
+  const out = calcPrecioSugeridoRappi(gen, r);
+  expect(out.sugerido).toBe(84);
+  expect(out.nota).toMatch(/40%/);
 });
 
 test("Lizovag sin foto ni scrape no entra a En Rappi", () => {
