@@ -1,0 +1,51 @@
+linea,folio,fecha,proveedor,ean,descripcion_ticket,cantidad,precio_unitario,subtotal,lote,caducidad,sku_farmacapital,total_ticket,match
+1,1658128647824-01,2026-08-30,Nadro,,OMEPRAZOL 20 MG FCO 60 CAPS LGEN,2,26.82,53.64,,,,5617.17,sin_ean
+2,1658128647824-01,2026-08-30,Nadro,,OMEPRAZOL 20 MG 14 CAPS LGEN,2,9.50,19.00,,,,5617.17,sin_ean
+3,1658128647824-01,2026-08-30,Nadro,,OMEPRAZOL 20MG 30 CAPS LGEN,2,16.13,32.26,,,,5617.17,sin_ean
+4,1658128647824-01,2026-08-30,Nadro,,IRBES (nombre cortado en el PDF),3,59.66,178.98,,,,5617.17,nombre_cortado
+5,1658128647824-01,2026-08-30,Nadro,,IRBESARTAN 150MG 14 TAB LGEN,2,50.00,100.00,,,,5617.17,sin_ean
+6,1658128647824-01,2026-08-30,Nadro,,IRBESARTAN 150MG FCO 28 TAB LGEN,2,97.42,194.84,,,,5617.17,sin_ean
+7,1658128647824-01,2026-08-30,Nadro,,IRBESARTAN 150MG 28 TAB LGEN,2,92.36,184.72,,,,5617.17,sin_ean
+8,1658128647824-01,2026-08-30,Nadro,,Irbesartán + Hidroclorotiazida Camber 150/12.5 mg C/28,1,91.86,91.86,,,,5617.17,sin_ean
+9,1658128647824-01,2026-08-30,Nadro,7501361124013,Talco Odolex Fresh 150 g,1,15.82,15.82,,,FC-61124013,5617.17,catalogo
+10,1658128647824-01,2026-08-30,Nadro,,DOXICICLIN 100MG 10CAPS KEN LGEN,1,23.86,23.86,,,,5617.17,sin_ean
+11,1658128647824-01,2026-08-30,Nadro,,Roxidolin Doxiciclina 100 mg C/10,1,21.15,21.15,,,,5617.17,sin_ean
+12,1658128647824-01,2026-08-30,Nadro,,Oxitetraciclina 500 mg C/16 cápsulas,2,70.00,140.00,,,,5617.17,sin_ean
+13,1658128647824-01,2026-08-30,Nadro,,Klarix Claritromicina 250 mg C/10,2,44.88,89.76,,,,5617.17,sin_ean
+14,1658128647824-01,2026-08-30,Nadro,,Cefuroxima 750 mg FA + ampolleta 5 ml,2,42.56,85.12,,,,5617.17,sin_ean
+15,1658128647824-01,2026-08-30,Nadro,,CEFALOTINA 1G S INY FA 5ML LGEN,2,56.28,112.56,,,,5617.17,sin_ean
+16,1658128647824-01,2026-08-30,Nadro,,PIOGLITAZONA 15 MG 7 TAB LGEN,3,13.35,40.05,,,,5617.17,sin_ean
+17,1658128647824-01,2026-08-30,Nadro,,Bactrim F 800/160 mg 15 tabletas,1,331.87,331.87,,,,5617.17,sin_ean
+18,1658128647824-01,2026-08-30,Nadro,,OMEPRAZOL 40MG S.INY. AMP LGEN,1,29.06,29.06,,,,5617.17,sin_ean
+19,1658128647824-01,2026-08-30,Nadro,,Bactrim 200/40 mg suspensión 100 ml,1,188.44,188.44,,,,5617.17,sin_ean
+20,1658128647824-01,2026-08-30,Nadro,7501054507901,Labello Fresa 4.8 g,2,54.87,109.74,,,FC-45079011,5617.17,catalogo
+21,1658128647824-01,2026-08-30,Nadro,7501054504870,Labello Clásico 4.8 g,2,54.87,109.74,,,FC-54504870,5617.17,catalogo
+22,1658128647824-01,2026-08-30,Nadro,,CeraVe gel limpiador control imperfecciones 236 ml,1,273.91,273.91,,,,5617.17,sin_ean
+23,1658128647824-01,2026-08-30,Nadro,,Oxímetro Inhala Care pulso dedo FS10E,1,303.80,303.80,,,,5617.17,sin_ean
+24,1658128647824-01,2026-08-30,Nadro,,Toallas húmedas Tena para adulto,1,55.00,55.00,,,,5617.17,sin_ean
+25,1658128647824-01,2026-08-30,Nadro,7501054558682,Crema corporal Nivea Milk,4,25.86,103.44,,,FC-54558682,5617.17,catalogo
+26,1658128647824-01,2026-08-30,Nadro,,Labello Med Protection 4.8 g,1,54.87,54.87,,,,5617.17,sin_ean
+27,1658128647824-01,2026-08-30,Nadro,,Labello Caring Beauty Red 4.8 g,1,79.58,79.58,,,,5617.17,sin_ean
+28,1658128647824-01,2026-08-30,Nadro,,DEFLAZACORT 30 MG 10 TAB LGEN,1,110.89,110.89,,,,5617.17,sin_ean
+29,1658128647824-01,2026-08-30,Nadro,75073114,Rexona Men Clinical Clean stick 46 g,7,55.68,389.76,,,,5617.17,ean_publico
+30,1658128647824-01,2026-08-30,Nadro,6502400323252,Suerox 8 iones Lima-Limón 630 ml,1,12.42,12.42,,,FC-40032325,5617.17,catalogo
+31,1658128647824-01,2026-08-30,Nadro,,Rexona Women Clinical Classic stick 46 g,3,55.68,167.04,,,,5617.17,sin_ean
+32,1658128647824-01,2026-08-30,Nadro,,Electrolife Zero Uva 625 ml,2,19.36,38.72,,,,5617.17,sin_ean
+33,1658128647824-01,2026-08-30,Nadro,,Tampones Saba Compactos Super,1,31.39,31.39,,,,5617.17,sin_ean
+34,1658128647824-01,2026-08-30,Nadro,,Alli Triple 50/.25/50/50 mg C/6,3,79.87,239.61,,,,5617.17,sin_ean
+35,1658128647824-01,2026-08-30,Nadro,,Eucerin pH5 (nombre cortado en el PDF),1,85.20,85.20,,,,5617.17,nombre_cortado
+36,1658128647824-01,2026-08-30,Nadro,,COMP B (nombre cortado en el PDF),1,55.76,55.76,,,,5617.17,nombre_cortado
+37,1658128647824-01,2026-08-30,Nadro,,Parches Saba térmicos C/3,1,57.41,57.41,,,,5617.17,sin_ean
+38,1658128647824-01,2026-08-30,Nadro,,Picot-Plus 9 sobres polvo efervescente,1,46.12,46.12,,,,5617.17,sin_ean
+39,1658128647824-01,2026-08-30,Nadro,,Panty protector Saba largo C/28,1,27.28,27.28,,,,5617.17,sin_ean
+40,1658128647824-01,2026-08-30,Nadro,,PIOGLITAZONA 30MG 7 TAB LGEN,6,17.76,106.56,,,,5617.17,sin_ean
+41,1658128647824-01,2026-08-30,Nadro,,Gentamicina 160 mg solución inyectable 2 ml Amsa,1,12.71,12.71,,,,5617.17,sin_ean
+42,1658128647824-01,2026-08-30,Nadro,7501165011649,Buscapina 10 mg 24 grageas,2,172.04,344.08,,,,5617.17,ean_publico
+43,1658128647824-01,2026-08-30,Nadro,,Buscapina Duo 10/500 mg C/10,1,122.36,122.36,,,,5617.17,sin_ean
+44,1658128647824-01,2026-08-30,Nadro,,Vitacilina ungüento 16 g,2,25.19,50.38,,,,5617.17,sin_ean
+45,1658128647824-01,2026-08-30,Nadro,,Vitacilina ungüento 28 g,3,37.57,112.71,,,,5617.17,sin_ean
+46,1658128647824-01,2026-08-30,Nadro,,Syncol 500/25/15 mg 12 comprimidos,1,97.12,97.12,,,,5617.17,sin_ean
+47,1658128647824-01,2026-08-30,Nadro,7501008498866,Flanax 550 mg 6 tabletas,1,105.00,105.00,,,,5617.17,ean_publico
+48,1658128647824-01,2026-08-30,Nadro,7502001166066,Barmicil compuesto crema 40 g,1,21.08,21.08,,,FC-01166066,5617.17,catalogo
+49,1658128647824-01,2026-08-30,Nadro,,Flanax Nocto 220/25 mg 20 comprimidos,1,130.50,130.50,,,,5617.17,sin_ean
+50,1658128647824-01,2026-08-30,Nadro,,Flanax 660 mg 8 tabletas,1,230.00,230.00,,,,5617.17,sin_ean

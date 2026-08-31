@@ -1,3 +1,5 @@
+import { readFileSync } from "fs";
+import { join } from "path";
 import { parseTicketCsv } from "./recepcionTicketCsv";
 
 describe("parseTicketCsv", () => {
@@ -29,5 +31,27 @@ describe("parseTicketCsv", () => {
     expect(renglones[0].numero_lote).toBe("ECM297C");
     expect(renglones[0].costo).toBe(4.9);
     expect(renglones[1].sku).toBe("EQ-QUI139");
+  });
+
+  test("Exprezo 1279718 generado", () => {
+    const csv = readFileSync(join(__dirname, "../../sql/generated/ticket_exprezo_1279718.csv"), "utf8");
+    const { renglones, folio, proveedor, total } = parseTicketCsv(csv);
+    expect(folio).toBe("1279718");
+    expect(proveedor).toBe("Exprezo");
+    expect(total).toBe(1981.55);
+    expect(renglones).toHaveLength(17);
+    expect(renglones.some((r) => r.codigo === "7501008497340" && r.cantidad === 3)).toBe(true);
+    expect(renglones.every((r) => !r.numero_lote)).toBe(true);
+  });
+
+  test("Nadro 1658128647824-01 generado", () => {
+    const csv = readFileSync(join(__dirname, "../../sql/generated/ticket_nadro_1658128647824.csv"), "utf8");
+    const { renglones, folio, proveedor, total } = parseTicketCsv(csv);
+    expect(folio).toBe("1658128647824-01");
+    expect(proveedor).toBe("Nadro");
+    expect(total).toBe(5617.17);
+    expect(renglones).toHaveLength(50);
+    expect(renglones.reduce((a, r) => a + r.cantidad, 0)).toBe(89);
+    expect(renglones.every((r) => !r.numero_lote)).toBe(true);
   });
 });
