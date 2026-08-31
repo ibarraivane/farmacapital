@@ -52,6 +52,7 @@ describe("parseTicketCsv", () => {
     expect(total).toBe(5617.17);
     expect(renglones).toHaveLength(50);
     expect(renglones.reduce((a, r) => a + r.cantidad, 0)).toBe(89);
+    expect(renglones.every((r) => r.codigo && r.codigo.length >= 8)).toBe(true);
     expect(renglones.every((r) => !r.numero_lote)).toBe(true);
   });
 });
