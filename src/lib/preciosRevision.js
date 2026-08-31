@@ -1,8 +1,8 @@
 /**
  * Revisión de precios tras el bot.
- * Si el bot escribe una ref más nueva que la última decisión (o que el
- * epoch al estrenar la feature), vuelven Subir / Bajar / Aceptar.
- * Aceptar no cambia el PVP: solo guarda que ya se vio esa corrida.
+ * El bot solo escribe referencias de mercado. Nunca acepta.
+ * Subir / Bajar / Aceptar aparecen mientras haya un toque del bot
+ * más nuevo que la última decisión humana de ese SKU.
  */
 
 export const CLAVE_REVISION_PRECIOS = "precios_revision_venta";
@@ -12,7 +12,7 @@ export function parseRevisionState(raw) {
   if (typeof raw === "string") {
     try { o = JSON.parse(raw); } catch { o = null; }
   }
-  if (!o || typeof o !== "object") return { epoch: null, porId: {} };
+  if (!o || typeof o !== "object") return { epoch: 0, porId: {} };
   const epoch = Number(o.epoch);
   const src = o.porId && typeof o.porId === "object" ? o.porId : o;
   const porId = {};
@@ -28,21 +28,25 @@ export function parseRevisionState(raw) {
     };
   }
   return {
-    epoch: Number.isFinite(epoch) ? epoch : null,
+    epoch: Number.isFinite(epoch) ? epoch : 0,
     porId,
   };
 }
 
 export function serializeRevisionState(state) {
   return JSON.stringify({
-    epoch: state?.epoch ?? null,
+    epoch: Number.isFinite(Number(state?.epoch)) ? Number(state.epoch) : 0,
     porId: state?.porId || {},
   });
 }
 
-export function asegurarEpoch(state, now = Date.now()) {
-  if (state?.epoch) return state;
-  return { epoch: now, porId: { ...(state?.porId || {}) } };
+/** No sella Date.now(): eso escondía todas las refs del bot. */
+export function asegurarEpoch(state, _now = Date.now()) {
+  const epoch = Number(state?.epoch);
+  return {
+    epoch: Number.isFinite(epoch) ? epoch : 0,
+    porId: { ...(state?.porId || {}) },
+  };
 }
 
 export function huellaMercado({ refMin, sugerido } = {}) {
@@ -55,11 +59,11 @@ export function huellaMercado({ refMin, sugerido } = {}) {
   return `${r}|${s}`;
 }
 
-/** ¿El bot tocó este SKU después de la última decisión (o del epoch)? */
-export function esPendienteRevision({ botTs, revisado, epoch } = {}) {
+/** Pendiente si el bot tocó el SKU y nadie lo decidió después. El epoch global no cuenta. */
+export function esPendienteRevision({ botTs, revisado } = {}) {
   if (botTs == null || !Number.isFinite(Number(botTs))) return false;
-  const corte = revisado?.at != null ? revisado.at : (epoch ?? 0);
-  return Number(botTs) > Number(corte);
+  const corte = revisado?.at != null ? Number(revisado.at) : 0;
+  return Number(botTs) > corte;
 }
 
 export function accionesRevisionFila({ pendiente, accion, sugerido } = {}) {
@@ -85,11 +89,10 @@ export async function cargarRevisionPrecios(client) {
     .eq("clave", CLAVE_REVISION_PRECIOS)
     .maybeSingle();
   if (error && !/configuracion/.test(error.message || "")) {
-    return { state: asegurarEpoch(parseRevisionState(null)), persistirEpoch: true };
+    return { state: { epoch: 0, porId: {} }, persistirEpoch: false };
   }
   const parsed = parseRevisionState(data?.valor);
-  const neededEpoch = !parsed.epoch;
-  return { state: asegurarEpoch(parsed), persistirEpoch: neededEpoch };
+  return { state: asegurarEpoch(parsed), persistirEpoch: false };
 }
 
 export async function guardarRevisionPrecios(client, state) {
@@ -105,8 +108,9 @@ export async function guardarRevisionPrecios(client, state) {
 }
 
 export function marcarRevisados(state, ids, extra = {}, now = Date.now()) {
+  const epoch = Number(state?.epoch);
   const next = {
-    epoch: state?.epoch ?? now,
+    epoch: Number.isFinite(epoch) ? epoch : 0,
     porId: { ...(state?.porId || {}) },
   };
   for (const id of ids || []) {

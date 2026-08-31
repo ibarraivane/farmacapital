@@ -9,16 +9,21 @@ import {
   serializeRevisionState,
 } from "./preciosRevision";
 
-test("el epoch abuelo: refs viejas no piden decisión", () => {
+test("abrir el módulo no acepta refs del bot", () => {
   const state = asegurarEpoch({ epoch: null, porId: {} }, 1_000);
-  expect(state.epoch).toBe(1_000);
-  expect(esPendienteRevision({ botTs: 900, epoch: state.epoch })).toBe(false);
-  expect(esPendienteRevision({ botTs: 1_001, epoch: state.epoch })).toBe(true);
+  expect(state.epoch).toBe(0);
+  expect(esPendienteRevision({ botTs: 900, epoch: 1_700_000_000_000 })).toBe(true);
+  expect(esPendienteRevision({ botTs: 900, epoch: state.epoch })).toBe(true);
+});
+
+test("un epoch global no esconde sugerencias", () => {
+  expect(esPendienteRevision({ botTs: 500, epoch: 999_999 })).toBe(true);
 });
 
 test("tras Aceptar/Subir no vuelve hasta que el bot escriba de nuevo", () => {
   let state = asegurarEpoch({ epoch: 100, porId: {} }, 100);
   state = marcarRevisados(state, [7], { 7: { huella: "66|65" } }, 500);
+  expect(state.epoch).toBe(100);
   expect(esPendienteRevision({ botTs: 400, revisado: state.porId[7], epoch: state.epoch })).toBe(false);
   expect(esPendienteRevision({ botTs: 600, revisado: state.porId[7], epoch: state.epoch })).toBe(true);
 });
