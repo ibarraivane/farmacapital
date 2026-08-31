@@ -5,13 +5,13 @@ linea,folio,fecha,proveedor,ean,descripcion_ticket,cantidad,precio_unitario,subt
 4,1279718,2026-08-30,Exprezo,,Pack 48 sobres Shampoo Palmolive Optims 10 ml,1,75.30,75.30,,,,1981.55,sin_ean
 5,1279718,2026-08-30,Exprezo,7501008497340,Flanax 550 mg 12 Tabs,3,189.65,568.96,,,FC-84973401,1981.55,catalogo
 6,1279718,2026-08-30,Exprezo,7506475102421,Gerber Etapa 2 Manzana 100 g,3,10.68,32.04,,,,1981.55,ean_publico
-7,1279718,2026-08-30,Exprezo,,Gerber Etapa 2 Mango 100 g,3,10.68,32.04,,,,1981.55,sin_ean
-8,1279718,2026-08-30,Exprezo,,Gerber Etapa 2 Pera 100 g,3,10.68,32.04,,,,1981.55,sin_ean
-9,1279718,2026-08-30,Exprezo,,Gerber Etapa 2 Durazno 100 g,3,10.68,32.04,,,,1981.55,sin_ean
-10,1279718,2026-08-30,Exprezo,,Gerber Etapa 2 Comida Casera Pollo 100 g,4,10.68,42.72,,,,1981.55,sin_ean
-11,1279718,2026-08-30,Exprezo,,Gerber Etapa 2 Comida Casera Res 100 g,4,10.68,42.72,,,,1981.55,sin_ean
-12,1279718,2026-08-30,Exprezo,,Papilla Heinz Pouch Manzana 113 g,3,14.40,43.19,,,,1981.55,sin_ean
-13,1279718,2026-08-30,Exprezo,,GERBER POUCH JR FRUT MIXT 95 g,3,12.79,38.38,,,,1981.55,sin_ean
+7,1279718,2026-08-30,Exprezo,7506475102469,Gerber Etapa 2 Mango 100 g,3,10.68,32.04,,,,1981.55,ean_publico
+8,1279718,2026-08-30,Exprezo,7506475102452,Gerber Etapa 2 Pera 100 g,3,10.68,32.04,,,,1981.55,ean_publico
+9,1279718,2026-08-30,Exprezo,7506475102476,Gerber Etapa 2 Durazno 100 g,3,10.68,32.04,,,,1981.55,ean_publico
+10,1279718,2026-08-30,Exprezo,7506475102537,Gerber Etapa 2 Comida Casera Pollo 100 g,4,10.68,42.72,,,,1981.55,ean_publico
+11,1279718,2026-08-30,Exprezo,7506475102520,Gerber Etapa 2 Comida Casera Res 100 g,4,10.68,42.72,,,,1981.55,ean_publico
+12,1279718,2026-08-30,Exprezo,0608875005092,Papilla Heinz Pouch Manzana 113 g,3,14.40,43.19,,,,1981.55,ean_publico
+13,1279718,2026-08-30,Exprezo,7501058651129,GERBER POUCH JR FRUT MIXT 95 g,3,12.79,38.38,,,,1981.55,ean_publico
 14,1279718,2026-08-30,Exprezo,7506205809248,Enfagrow Premium Etapa 3 lata 800 g,1,306.00,306.00,,,,1981.55,ean_publico
 15,1279718,2026-08-30,Exprezo,650240013805,Alliviax Desinflamatorio 550 mg C/10,3,100.50,301.50,,,,1981.55,ean_publico
 16,1279718,2026-08-30,Exprezo,7506306246652,Jabón Dove blanco 90 g,6,18.63,111.80,,,,1981.55,ean_publico
