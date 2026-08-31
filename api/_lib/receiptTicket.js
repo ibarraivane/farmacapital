@@ -181,7 +181,7 @@ function generatePickupPassHTML({ pedido, ticketUrl, mode = 'pickup' }) {
     badgeText = 'Listo para envío';
     headline = 'Tu pedido está listo para salir';
     detail =
-      'Coordinaremos la entrega (Rappi / Uber). Te contactamos por WhatsApp para confirmar horario.';
+      'Envío Uber Direct (pagado en el checkout). Te avisamos cuando el motorizado esté en camino.';
   }
 
   return `<!DOCTYPE html>

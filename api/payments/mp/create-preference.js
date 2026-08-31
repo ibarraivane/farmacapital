@@ -67,11 +67,20 @@ module.exports = async function handler(req, res) {
       if (!validTokResp.ok || !clienteId) return res.status(401).json({ ok: false, error: 'invalid_cliente_token' });
     }
 
-    const pedidoResp = await fetch(
-      `${SUPABASE_URL}/rest/v1/pedidos?id=eq.${pedidoId}&select=id,cliente_id,total,estado,tipo,metodo_pago,tipo_entrega,created_at,guest_telefono`,
+    const selectFull = 'id,cliente_id,total,estado,tipo,metodo_pago,tipo_entrega,created_at,guest_telefono,logistics_meta,delivery_provider';
+    const selectMin = 'id,cliente_id,total,estado,tipo,metodo_pago,tipo_entrega,created_at,guest_telefono,delivery_provider';
+    let pedidoResp = await fetch(
+      `${SUPABASE_URL}/rest/v1/pedidos?id=eq.${pedidoId}&select=${selectFull}`,
       { headers: serviceHeaders }
     );
-    const pedidoRows = await pedidoResp.json();
+    let pedidoRows = await pedidoResp.json();
+    if (!pedidoResp.ok) {
+      pedidoResp = await fetch(
+        `${SUPABASE_URL}/rest/v1/pedidos?id=eq.${pedidoId}&select=${selectMin}`,
+        { headers: serviceHeaders }
+      );
+      pedidoRows = await pedidoResp.json();
+    }
     const pedido = Array.isArray(pedidoRows) ? pedidoRows[0] : null;
     if (!pedidoResp.ok || !pedido) return res.status(404).json({ ok: false, error: 'pedido_not_found' });
     if (!isGuest && Number(pedido.cliente_id) !== clienteId) return res.status(403).json({ ok: false, error: 'pedido_not_owned' });
@@ -101,6 +110,18 @@ module.exports = async function handler(req, res) {
     const totalDb = Number(pedido.total || 0);
     if (!Number.isFinite(totalDb) || totalDb <= 0) return res.status(400).json({ ok: false, error: 'invalid_db_total' });
     if (Math.abs(totalDb - amount) > 0.01) return res.status(409).json({ ok: false, error: 'amount_mismatch' });
+
+    const uberSecret = String(process.env.UBER_DIRECT_CLIENT_SECRET || '').trim();
+    if (pedido.tipo_entrega === 'envio' && uberSecret) {
+      const meta = pedido.logistics_meta && typeof pedido.logistics_meta === 'object' ? pedido.logistics_meta : {};
+      const fee = Number(meta?.uber_direct?.fee_mxn);
+      const provider = String(pedido.delivery_provider || meta.logistics_provider || '').toLowerCase();
+      const hasMetaFee = Number.isFinite(fee) && fee >= 0 && provider === 'uber_direct';
+      const hasProviderOnly = pedido.logistics_meta == null && provider === 'uber_direct';
+      if (!hasMetaFee && !hasProviderOnly) {
+        return res.status(409).json({ ok: false, error: 'uber_quote_required' });
+      }
+    }
 
     const siteDefault = String(process.env.PUBLIC_SITE_URL || 'https://www.farmacapital.mx').replace(/\/+$/, '');
     const safeBase = isAllowedReturnBase(baseUrl) ? String(baseUrl).replace(/\/+$/, '') : siteDefault;

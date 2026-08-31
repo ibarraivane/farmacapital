@@ -1,4 +1,4 @@
-import { canalIngresoPedido } from "./orderChannels";
+import { canalIngresoPedido, mapUiEntregaToRpc, FULFILLMENT_TYPE } from "./orderChannels";
 
 describe("canalIngresoPedido", () => {
   test("Rappi y tienda web son online", () => {
@@ -12,5 +12,16 @@ describe("canalIngresoPedido", () => {
   test("consulta y recarga no se mezclan con mostrador", () => {
     expect(canalIngresoPedido("consulta")).toBe("consulta");
     expect(canalIngresoPedido("recarga")).toBe("servicio");
+  });
+});
+
+describe("mapUiEntregaToRpc", () => {
+  test("CDMX usa Uber Direct", () => {
+    const m = mapUiEntregaToRpc("cdmx");
+    expect(m.tipo_entrega).toBe("envio");
+    expect(m.fulfillment_type).toBe(FULFILLMENT_TYPE.UBER_DIRECT);
+  });
+  test("pick-up sigue en tienda", () => {
+    expect(mapUiEntregaToRpc("pickup").tipo_entrega).toBe("recoger");
   });
 });

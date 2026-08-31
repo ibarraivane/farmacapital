@@ -47,6 +47,7 @@ import {
   buildCustomerToFarmaciaMessage,
 } from "./utils/orderReceiptWhatsApp";
 import { notifyCitaConfirmacion, formatTelefonoDisplay, formatCitaFecha } from "./utils/citaWhatsApp";
+import { fetchUberDirectQuote, attachUberDirectQuote, formatUberFee, formatUberEta } from "./lib/uberDirectClient";
 import { FARMACIA_FISCAL } from "./constants/farmaciaFiscal";
 import { HORARIO_FARMACIA } from "./constants/turnos";
 import { validarPasswordTienda, PASSWORD_RULES_TEXT, PASSWORD_MIN_LENGTH } from "./utils/passwordPolicy";
@@ -311,7 +312,7 @@ function productImageUrl(prod, narrow, placeholderFallback = "", fotoCatalogo = 
 // ── FAQ ───────────────────────────────────────────────────────
 const FAQ_ITEMS = [
   { p:"¿Cómo hago un pedido en línea?", r:"Agrega los productos al carrito, selecciona tu tipo de entrega (pick-up o envío), ingresa tus datos y elige tu método de pago. Recibirás confirmación por WhatsApp." },
-  { p:"¿Cuánto tarda el envío?", r:"En CDMX puedes elegir entrega express vía Rappi o Uber (al costo del servicio). Por el momento solo hacemos entregas dentro de CDMX." },
+  { p:"¿Cuánto tarda el envío?", r:"En CDMX eliges entrega express con Uber Direct. El costo y el tiempo salen en el checkout (los paga el comprador). Por el momento solo hacemos entregas dentro de CDMX." },
   { p:"¿Puedo recoger mi pedido en la farmacia?", r:"Sí. El pick-up es gratis y el mismo día. Recibirás un mensaje cuando tu pedido esté listo." },
   { p:"¿Cómo funcionan los Puntos FarmaCapital?", r:"Ganas 1 punto por cada $10 de compra. 1 punto equivale a $0.50 de descuento. Puedes usarlos en farmacia, minisuper y consultorio." },
   { p:"¿Qué hago si necesito un medicamento con receta?", r:"Agrégalo al carrito normalmente. En antibióticos te recomendamos traer receta al recoger; no es obligatoria. Los medicamentos controlados sí requieren receta original vigente." },
@@ -2162,12 +2163,12 @@ function ContenidoCDMX({ color }){
       <ol style={sList}>
         <li style={sListItem}>Haz tu pedido en línea y elige &quot;Entrega CDMX express&quot;</li>
         <li style={sListItem}>El costo de envío se calcula según tu zona y peso (lo verás antes de pagar)</li>
-        <li style={sListItem}>Un repartidor de Rappi o Uber recoge tu pedido en la farmacia</li>
+        <li style={sListItem}>Un motorizado de Uber Direct recoge tu pedido en la farmacia</li>
         <li style={sListItem}>Llega a tu domicilio en 30–60 minutos</li>
       </ol>
       <h4 style={sH4(color)}>Cobertura</h4>
       <p style={{margin:"0 0 12px"}}>
-        Toda la Ciudad de México y zonas metropolitanas cubiertas por Rappi y Uber Connect.
+        Toda la Ciudad de México y zonas cubiertas por Uber Direct.
       </p>
       <h4 style={sH4(color)}>Costo</h4>
       <p style={{margin:"0 0 12px"}}>
@@ -2335,7 +2336,7 @@ function HomeServices({setPage}){
   const [modalAbierto,setModalAbierto]=useState(null);
   const servicios = [
     { key:"pickup", titulo:"Pick-up gratis", desc:"Recoge hoy", color:BRAND.primary, tipo:"modal", icon:Store },
-    { key:"cdmx", titulo:"CDMX express", desc:"Rappi & Uber", color:BRAND.secondary, tipo:"modal", icon:Bike },
+    { key:"cdmx", titulo:"CDMX express", desc:"Uber Direct", color:BRAND.secondary, tipo:"modal", icon:Bike },
 
     { key:"puntos", titulo:"Tus puntos", desc:"Acumula y canjea", color:BRAND.cta, tipo:"page", destino:"puntos", icon:Trophy },
     { key:"pago", titulo:"Pago online", desc:"Mercado Pago", color:T.amber, tipo:"modal", icon:CreditCard },
@@ -3208,7 +3209,7 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
         <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:24,position:stack?"relative":"sticky",top:"calc(env(safe-area-inset-top, 0px) + 100px)"}}>
           <div style={{color:C.dark,fontWeight:800,fontSize:16,marginBottom:14}}>Tipo de entrega</div>
           <div role="radiogroup" aria-label="Tipo de entrega">
-          {[["pickup","🏪 Pick-up en FarmaCapital","Gratis · Mismo día"],["cdmx","🛵 Reparto CDMX","Rappi/Uber · Costo del servicio"]].map(([v,l,s])=>(
+          {[["pickup","🏪 Pick-up en FarmaCapital","Gratis · Mismo día"],["cdmx","🛵 Reparto CDMX","Uber Direct · Lo pagas en el checkout"]].map(([v,l,s])=>(
             <button
               key={v}
               type="button"
@@ -3222,7 +3223,7 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
             </button>
           ))}
           </div>
-          {entrega==="cdmx"&&(<div style={{background:"#fef3c7",border:"1px solid #f59e0b30",borderRadius:8,padding:"10px 12px",marginBottom:8}}><div style={{color:"#92400e",fontSize:12}}>🛵 El repartidor irá a FarmaCapital y entregará en tu domicilio al costo que muestre la app de Rappi o Uber.</div></div>)}
+          {entrega==="cdmx"&&(<div style={{background:"#fef3c7",border:"1px solid #f59e0b30",borderRadius:8,padding:"10px 12px",marginBottom:8}}><div style={{color:"#92400e",fontSize:12}}>🛵 En el checkout verás el precio de Uber Direct (tú lo pagas). El motorizado recoge en FarmaCapital y lleva tu pedido a domicilio.</div></div>)}
           {entrega==="cdmx"&&(
             <div style={{background:"#EAF0FB",border:`1px solid ${BRAND.secondary}35`,borderRadius:8,padding:"10px 12px",marginBottom:8}}>
               <div style={{color:BRAND.primary,fontSize:11,lineHeight:1.45}}>
@@ -3278,6 +3279,8 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
   const [lastOrder,setLastOrder]=useState(null);
   const [guardando,setG]=useState(false);
   const [checkoutMsg,setCheckoutMsg]=useState(null);
+  const [uberQuote,setUberQuote]=useState(null);
+  const [uberQuoteStatus,setUberQuoteStatus]=useState("idle");
   const [enviarReciboWhatsApp,setEnviarReciboWhatsApp]=useState(()=>{
     try {
       const saved = localStorage.getItem("farmacapital_whatsapp_recibo_optin");
@@ -3288,6 +3291,8 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
   });
   const [, setCanjeTick] = useState(0);
   const sub=cart.reduce((a,c)=>a+cobroDe(c),0);
+  const envioFee = entrega !== "pickup" && uberQuote?.ok ? Number(uberQuote.fee_mxn) || 0 : 0;
+  const totalPagar = Math.round((sub + envioFee) * 100) / 100;
   const ptsG=Math.floor(sub/10);
   const canjeActivo = leerCanjeActivo();
 
@@ -3412,6 +3417,36 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
     String(datos.cp || "").trim().length >= 5
   );
   const datosCheckoutCompletos = nombreOk && telOk && emailOk && direccionOk;
+  const envioListoParaPagar = entrega === "pickup" || (uberQuoteStatus === "ok" && uberQuote?.ok && envioFee > 0);
+
+  useEffect(() => {
+    if (entrega === "pickup" || !direccionOk) {
+      setUberQuote(null);
+      setUberQuoteStatus("idle");
+      return undefined;
+    }
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      setUberQuoteStatus("loading");
+      const q = await fetchUberDirectQuote({
+        calle: datos.calle,
+        colonia: datos.colonia,
+        cp: datos.cp,
+      });
+      if (cancelled) return;
+      if (q.ok) {
+        setUberQuote(q);
+        setUberQuoteStatus("ok");
+      } else {
+        setUberQuote(q);
+        setUberQuoteStatus("error");
+      }
+    }, 550);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [entrega, direccionOk, datos.calle, datos.colonia, datos.cp]);
   const faltantesCheckout = useMemo(() => {
     const f = [];
     if (!nombreOk) f.push("nombre completo (mín. 3 letras)");
@@ -3518,6 +3553,11 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
         setG(false);
         return;
       }
+      if (tipo_entrega === "envio" && !envioListoParaPagar) {
+        notifyCheckout("Espera la cotización de Uber Direct o revisa la dirección. El envío lo pagas tú en este mismo pago.", "warning");
+        setG(false);
+        return;
+      }
 
       const tokCli = getClienteToken();
       const esInvitado = !tokCli;
@@ -3576,6 +3616,44 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
       }
 
       const subSnap = reconciled.reduce((a,c)=>a+cobroDe(c),0);
+      let totalSnap = subSnap;
+      let envioSnap = 0;
+
+      if (tipo_entrega === "envio") {
+        const attached = await attachUberDirectQuote({
+          pedidoId: resp.pedido_id,
+          sessionToken: tokCli || null,
+          guest: esInvitado,
+          guestPhone: esInvitado ? soloDigitosTel(datos.tel) : undefined,
+          calle: datos.calle,
+          colonia: datos.colonia,
+          cp: datos.cp,
+          displayedFeeMxn: uberQuote?.fee_mxn,
+        });
+        if (!attached.ok && attached.error === "quote_changed" && attached.quote?.ok) {
+          setUberQuote(attached.quote);
+          setUberQuoteStatus("ok");
+          notifyCheckout(
+            `El envío Uber cambió a ${formatUberFee(attached.quote.fee_mxn)}. Revisa el total y confirma de nuevo.`,
+            "warning"
+          );
+          setG(false);
+          return;
+        }
+        if (!attached.ok) {
+          notifyCheckout(
+            attached.error === "not_configured"
+              ? "Uber Direct aún no está configurado en el servidor. Elige pick-up o inténtalo más tarde."
+              : "No se pudo cotizar el envío Uber para cobrarlo. Revisa la dirección o elige pick-up.",
+            "error"
+          );
+          setG(false);
+          return;
+        }
+        totalSnap = Number(attached.total);
+        envioSnap = Number(attached.quote?.fee_mxn || 0);
+        if (attached.quote?.ok) setUberQuote(attached.quote);
+      }
 
       if (metodo === "mercadopago") {
         const baseUrl = window.location.origin;
@@ -3587,7 +3665,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
           },
           body: JSON.stringify({
             pedidoId: resp.pedido_id,
-            amount: subSnap,
+            amount: totalSnap,
             baseUrl,
             guest: esInvitado,
             guestPhone: esInvitado ? soloDigitosTel(datos.tel) : undefined,
@@ -3609,7 +3687,9 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
             "warning"
           );
           setLastOrder({
-            sub: subSnap,
+            sub: totalSnap,
+            productos: subSnap,
+            envioFee: envioSnap,
             ptsG: Math.floor(subSnap/10),
             lines: reconciled.map(c=>({ nombre:c.nombre, qty:c.qty, precio: ofertaDeProducto(c, mapaPromos.get(c.id)).oferta })),
             entregaUi: entrega,
@@ -3635,7 +3715,9 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
       }
 
       setLastOrder({
-        sub: subSnap,
+        sub: totalSnap,
+        productos: subSnap,
+        envioFee: envioSnap,
         ptsG: Math.floor(subSnap/10),
         lines: reconciled.map(c=>({ nombre:c.nombre, qty:c.qty, precio: ofertaDeProducto(c, mapaPromos.get(c.id)).oferta })),
         entregaUi: entrega,
@@ -3682,7 +3764,9 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
     };
     const instruccionEntrega = esPickup
       ? `Muestra este folio en farmacia o menciona tu teléfono. Prepararemos tu pedido y te avisamos cuando esté listo.`
-      : "Coordinaremos el reparto con Rappi o Uber. Te contactamos por WhatsApp para confirmar hora y dirección.";
+      : lastOrder.envioFee
+        ? `Ya pagaste el envío Uber Direct (${formatUberFee(lastOrder.envioFee)}). Cuando el pedido esté listo, un motorizado lo recoge en FarmaCapital. Te mandamos el seguimiento por WhatsApp.`
+        : "Cuando el pedido esté listo pedimos un Uber Direct. Te mandamos el seguimiento por WhatsApp.";
     const iconoEntrega = esPickup ? "🏪" : "🛵";
     return(
       <div style={{maxWidth:560,margin:"clamp(32px,10vw,72px) auto",padding:"0 16px",textAlign:"center"}}>
@@ -3699,7 +3783,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
             <span style={{fontSize:24,flexShrink:0}}>{iconoEntrega}</span>
             <div>
               <div style={{color:C.dark,fontWeight:700,fontSize:14,marginBottom:4}}>
-                {esPickup?"Pick-up en FarmaCapital":"Reparto CDMX (Rappi/Uber)"}
+                {esPickup?"Pick-up en FarmaCapital":"Reparto CDMX · Uber Direct"}
               </div>
               <div style={{color:C.mid,fontSize:13,lineHeight:1.5}}>{instruccionEntrega}</div>
               {esPickup && (
@@ -3816,6 +3900,21 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                       ))}
                     </div>
                     <div style={{marginTop:8,fontSize:11,color:C.textMid}}>Tu dirección se guarda localmente para tu próxima compra.</div>
+                    {entrega==="cdmx"&&(
+                      <div style={{marginTop:12,padding:"10px 12px",borderRadius:8,border:`1px solid ${uberQuoteStatus==="ok"?"#86efac":uberQuoteStatus==="error"?"#fca5a5":C.border}`,background:uberQuoteStatus==="ok"?"#f0fdf4":uberQuoteStatus==="error"?"#fef2f2":C.bg}}>
+                        <div style={{color:C.dark,fontWeight:700,fontSize:13,marginBottom:4}}>🛵 Envío Uber Direct</div>
+                        {uberQuoteStatus==="loading"&&<div style={{fontSize:12,color:C.mid}}>Cotizando a tu dirección…</div>}
+                        {uberQuoteStatus==="idle"&&<div style={{fontSize:12,color:C.mid}}>Completa calle, colonia y CP para ver el precio.</div>}
+                        {uberQuoteStatus==="error"&&<div style={{fontSize:12,color:"#991b1b"}}>No pudimos cotizar esta dirección. Revísala o elige pick-up. {uberQuote?.error==="not_configured"?"(Falta configurar Uber en el servidor.)":""}</div>}
+                        {uberQuoteStatus==="ok"&&uberQuote?.ok&&(
+                          <div style={{fontSize:13,color:"#166534",lineHeight:1.45}}>
+                            <strong>{formatUberFee(uberQuote.fee_mxn)}</strong>
+                            {formatUberEta(uberQuote) ? ` · ${formatUberEta(uberQuote)}` : ""}
+                            <div style={{fontSize:11,marginTop:4,fontWeight:500}}>Lo pagas junto con tu pedido. El motorizado recoge en FarmaCapital.</div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </>
                 )}
                 {!necesitaDireccion&&(
@@ -3877,8 +3976,20 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                 <div><strong style={{color:C.dark}}>{datos.nombre}</strong> · {datos.tel} · {datos.email}</div>
                 {entrega!=="pickup"&&datos.calle&&<div style={{marginTop:3}}>{datos.calle}, {datos.colonia}, CP {datos.cp}</div>}
                 <div style={{marginTop:3}}>
-                  {entrega==="pickup"?"🏪 Pick-up en FarmaCapital":"🛵 Reparto CDMX"}
+                  {entrega==="pickup"?"🏪 Pick-up en FarmaCapital":"🛵 Reparto CDMX · Uber Direct"}
                 </div>
+                {entrega!=="pickup"&&uberQuoteStatus==="ok"&&uberQuote?.ok&&(
+                  <div style={{marginTop:6,color:"#166534",fontWeight:700}}>
+                    Envío Uber Direct {formatUberFee(uberQuote.fee_mxn)}
+                    {formatUberEta(uberQuote) ? ` · ${formatUberEta(uberQuote)}` : ""}
+                  </div>
+                )}
+                {entrega!=="pickup"&&uberQuoteStatus==="error"&&(
+                  <div style={{marginTop:6,color:"#991b1b"}}>No hay cotización Uber. Regresa y revisa la dirección.</div>
+                )}
+                {entrega!=="pickup"&&uberQuoteStatus==="loading"&&(
+                  <div style={{marginTop:6}}>Cotizando envío Uber Direct…</div>
+                )}
                 <div style={{marginTop:6,color:BRAND.primary,fontWeight:600}}>💳 Mercado Pago (tarjeta, transferencia o efectivo)</div>
                 {enviarReciboWhatsApp && (
                   <div style={{marginTop:4,color:"#166534",fontWeight:600}}>📱 Recibo por WhatsApp a {datos.tel}</div>
@@ -3891,14 +4002,20 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                 </div>
               ))}
               {!cart.length&&<div style={{fontSize:12,color:C.textMid,padding:"6px 0"}}>Tu carrito está vacío.</div>}
+              {envioFee>0&&(
+                <div style={{display:"flex",justifyContent:"space-between",marginTop:8}}>
+                  <span style={{color:C.mid,fontSize:13}}>Envío Uber Direct</span>
+                  <span style={{color:C.dark,fontWeight:700}}>{$(envioFee)}</span>
+                </div>
+              )}
               <div style={{display:"flex",justifyContent:"space-between",marginTop:12,paddingTop:10,borderTop:`1px solid ${C.border}`}}>
                 <span style={{color:C.dark,fontWeight:800}}>Total</span>
-                <span style={{color:BRAND.primary,fontWeight:900,fontSize:18}}>{$(sub)}</span>
+                <span style={{color:BRAND.primary,fontWeight:900,fontSize:18}}>{$(totalPagar)}</span>
               </div>
               <div style={{display:"flex",gap:10,marginTop:16,flexWrap:"wrap"}}>
                 <Btn onClick={()=>setStep(1)} outline col={C.mid} sm>← Atrás</Btn>
-                <Btn onClick={confirmar} col={BRAND.primary} disabled={guardando||!cart.length||sub<=0||!datosCheckoutCompletos} style={{flex:stack?1:undefined,minWidth:0}}>
-                  {guardando?"Procesando pago...":"💳 Pagar y confirmar "+$(sub)}
+                <Btn onClick={confirmar} col={BRAND.primary} disabled={guardando||!cart.length||sub<=0||!datosCheckoutCompletos||!envioListoParaPagar} style={{flex:stack?1:undefined,minWidth:0}}>
+                  {guardando?"Procesando pago...":"💳 Pagar y confirmar "+$(totalPagar)}
                 </Btn>
               </div>
             </div>
@@ -3907,7 +4024,13 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
         <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:20,position:stack?"relative":"sticky",top:"calc(env(safe-area-inset-top, 0px) + 100px)"}}>
           <div style={{color:C.dark,fontWeight:700,fontSize:15,marginBottom:14}}>Tu pedido</div>
           {cart.map(item=>(<div key={item.id} style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><span style={{color:C.mid,fontSize:13}}>{item.nombre} ×{item.qty}</span><span style={{color:C.dark,fontSize:13,fontWeight:600}}>{$(cobroDe(item))}</span></div>))}
-          <div style={{borderTop:`1px solid ${C.border}`,marginTop:12,paddingTop:12}}><div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:C.dark,fontWeight:800}}>Total</span><span style={{color:BRAND.primary,fontWeight:900,fontSize:20}}>{$(sub)}</span></div></div>
+          {envioFee>0&&(
+            <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
+              <span style={{color:C.mid,fontSize:13}}>Envío Uber Direct</span>
+              <span style={{color:C.dark,fontSize:13,fontWeight:700}}>{$(envioFee)}</span>
+            </div>
+          )}
+          <div style={{borderTop:`1px solid ${C.border}`,marginTop:12,paddingTop:12}}><div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:C.dark,fontWeight:800}}>Total</span><span style={{color:BRAND.primary,fontWeight:900,fontSize:20}}>{$(totalPagar)}</span></div></div>
         </div>
       </div>
     </div>
@@ -4367,7 +4490,7 @@ function PoliticaEnvios({setPage}){
   return(
     <PaginaLegal titulo="📦 Política de Envíos y Devoluciones" setPage={setPage}>
       {[
-        ["Tipos de entrega disponibles","• Pick-up en FarmaCapital: Gratis. Disponible el mismo día. Te avisamos cuando tu pedido esté listo.\n• Reparto express CDMX: Mediante Rappi o Uber Connect. El costo es el que muestre la aplicación al momento del servicio."],
+        ["Tipos de entrega disponibles","• Pick-up en FarmaCapital: Gratis. Disponible el mismo día. Te avisamos cuando tu pedido esté listo.\n• Reparto express CDMX: Uber Direct. El costo y el tiempo se muestran en el checkout y los paga el comprador junto con el pedido. Un motorizado recoge en la farmacia y entrega en tu domicilio."],
         ["Política de devoluciones","Aceptamos devoluciones dentro de las 72 horas siguientes a la entrega, siempre que el producto esté en perfecto estado, sin abrir y con su empaque original. No se aceptan devoluciones de: medicamentos controlados, productos refrigerados, ni artículos de uso personal."],
         ["Proceso de devolución","Para iniciar una devolución, contáctanos a contacto@farmacapital.mx dentro del plazo indicado. Una vez aprobada la devolución, el reembolso se realizará en un plazo máximo de 5 días hábiles al mismo método de pago utilizado."],
         ["Productos dañados o incorrectos","Si recibes un producto dañado o diferente al solicitado, contáctanos de inmediato. Haremos el reemplazo o reembolso sin costo adicional para ti."],
@@ -4958,7 +5081,8 @@ function etiquetaLogisticaPedido(p) {
   const danger = "#C62828";
   const ds = String(p?.delivery_status || "").toLowerCase();
   if (ds === "ready_for_pickup") return { label: "Listo para recoger", col: BRAND.accent };
-  if (ds === "in_route") return { label: "En ruta", col: "#0ea5e9" };
+  if (ds === "quoted" || ds === "courier_requested") return { label: "Uber solicitado", col: "#0ea5e9" };
+  if (ds === "in_route") return { label: "En ruta · Uber", col: "#0ea5e9" };
   if (ds === "delivered") return { label: "Entregado", col: BRAND.primary };
   if (ds === "cancelled") return { label: "Entrega cancelada", col: danger };
   if (p?.tipo_entrega === "envio") {
