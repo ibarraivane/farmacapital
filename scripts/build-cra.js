@@ -56,6 +56,14 @@ if (recibirCheck.status !== 0) {
   process.exit(recibirCheck.status === null ? 1 : recibirCheck.status);
 }
 
+const ventasMetaCheck = spawnSync(process.execPath, [path.join(__dirname, "check-ventas-meta-desktop.js")], {
+  stdio: "inherit",
+  cwd: appRoot,
+});
+if (ventasMetaCheck.status !== 0) {
+  process.exit(ventasMetaCheck.status === null ? 1 : ventasMetaCheck.status);
+}
+
 const buildScript = require.resolve("react-scripts/scripts/build.js");
 const result = spawnSync(process.execPath, [buildScript], {
   stdio: "inherit",

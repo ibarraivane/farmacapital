@@ -3,6 +3,7 @@ import { C_LIGHT, BRAND } from "./constants";
 import { useMediaQuery } from "./hooks/useMediaQuery";
 import { construirSerie, resumenMetasActuales, resumenPunto, ymdMexico } from "./lib/ventasVsMeta";
 import { mezclarCfgMetas } from "./utils/turnosMetas";
+import "./styles/ventasMeta.css";
 
 const GRAINS = [
   { id: "dia", label: "Día" },

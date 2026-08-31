@@ -264,7 +264,7 @@
     grid-column: 1 / -1;
   }
 
-  /* Gráfica: 7 columnas caben; etiqueta solo el número. */
+  /* Gráfica: solo AJUSTA el celular. La base (barras en computadora) es ventasMeta.css. */
   .farmacapital-admin-root .fc-metas-strip {
     display: grid;
     grid-template-columns: 1fr;

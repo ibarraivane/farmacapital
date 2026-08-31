@@ -37,5 +37,7 @@ describe("VentasVsMetaChart", () => {
     expect(screen.getByRole("tab", { name: "Día" })).toHaveAttribute("aria-selected", "true");
     expect(document.querySelector("figure.fc-ventas-meta-scroll")).toBeInTheDocument();
     expect(document.querySelectorAll(".fc-ventas-meta-tick").length).toBeGreaterThan(0);
+    expect(document.querySelectorAll(".fc-ventas-meta-col").length).toBeGreaterThan(3);
+    expect(document.querySelectorAll(".fc-ventas-meta-track").length).toBeGreaterThan(3);
   });
 });
