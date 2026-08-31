@@ -18,6 +18,46 @@ const FUENTES = [
 
 const FUENTES_IDS = FUENTES.map((f) => f.id);
 const DIAS_STALE = 7;
+const RAPPI_SKU_PREFIX = 'farmacapitalmt_';
+let partnerCatalogo = null;
+try {
+  partnerCatalogo = require('../../src/data/rappiPartnerActual.json');
+} catch {
+  partnerCatalogo = { productos: [] };
+}
+
+function skuInternoDesdeRappi(value) {
+  let s = String(value || '').trim().toLowerCase();
+  if (s.startsWith(RAPPI_SKU_PREFIX)) s = s.slice(RAPPI_SKU_PREFIX.length);
+  return s;
+}
+
+function eanClaves(value) {
+  const d = String(value || '').replace(/\D/g, '');
+  if (d.length < 8) return [];
+  const trimmed = d.replace(/^0+/, '') || '0';
+  return [...new Set([d, trimmed, d.padStart(13, '0')])];
+}
+
+function idsPartnerEnProductos(productos, catalogo = partnerCatalogo) {
+  const bySku = new Set();
+  const byEan = new Set();
+  for (const row of catalogo?.productos || []) {
+    const sku = skuInternoDesdeRappi(row.sku);
+    if (sku) bySku.add(sku);
+    for (const e of eanClaves(row.ean)) byEan.add(e);
+  }
+  const ids = new Set();
+  for (const p of productos || []) {
+    const sku = skuInternoDesdeRappi(p.sku);
+    if (sku && bySku.has(sku)) {
+      ids.add(p.id);
+      continue;
+    }
+    if (eanClaves(p.codigo_barras).some((e) => byEan.has(e))) ids.add(p.id);
+  }
+  return ids;
+}
 const CLAVE_PROGRESO = 'rappi_precios_backfill';
 const HOY = () => new Date().toISOString().slice(0, 10);
 
@@ -102,16 +142,24 @@ function seleccionarCandidatos(productos, opts) {
   const linked = opts.linked || new Set();
   const ultima = opts.ultima || {};
   const soloLinked = opts.soloLinked !== false;
+  const soloPartner = opts.soloPartner === true;
+  const partnerIds = opts.partnerIds || new Set();
   const diasStale = opts.diasStale || DIAS_STALE;
 
   return (productos || [])
     .filter((p) => terminoBusquedaRappi(p).length >= 4)
-    .filter((p) => !soloLinked || linked.has(p.id))
+    .filter((p) => {
+      if (soloPartner) return partnerIds.has(p.id);
+      if (soloLinked) return linked.has(p.id) || partnerIds.has(p.id);
+      return true;
+    })
     .filter((p) => esStale(ultima[p.id], ahora, diasStale))
     .sort((a, b) => {
+      const pa = partnerIds.has(a.id) ? 2 : 0;
+      const pb = partnerIds.has(b.id) ? 2 : 0;
       const la = linked.has(a.id) ? 1 : 0;
       const lb = linked.has(b.id) ? 1 : 0;
-      return lb - la || a.id - b.id;
+      return (pb + lb) - (pa + la) || a.id - b.id;
     });
 }
 
@@ -209,12 +257,15 @@ async function cargarContextoRappi(supabaseUrl, serviceKey) {
     if (!prev || String(row.fecha || '') > String(prev || '')) ultima[row.producto_id] = row.fecha;
   }
 
+  const partnerIds = idsPartnerEnProductos(productos, partnerCatalogo);
+  for (const id of partnerIds) linked.add(id);
+
   const enriquecidos = (productos || []).map((p) => ({
     ...p,
     nombre_rappi: nombreRappi[p.id] || '',
   }));
 
-  return { headers, productos: enriquecidos, linked, ultima };
+  return { headers, productos: enriquecidos, linked, ultima, partnerIds };
 }
 
 async function mapPool(items, concurrency, worker) {
@@ -245,7 +296,9 @@ async function runRastreoRappi(input) {
   let candidatos = seleccionarCandidatos(ctx.productos, {
     linked: ctx.linked,
     ultima: ctx.ultima,
+    partnerIds: ctx.partnerIds,
     soloLinked: input.soloLinked !== false,
+    soloPartner: input.soloPartner === true && ctx.partnerIds && ctx.partnerIds.size > 0,
     diasStale: input.diasStale || DIAS_STALE,
   });
   if (Array.isArray(input.ids) && input.ids.length) {
@@ -325,6 +378,7 @@ module.exports = {
   DIAS_STALE,
   filasDesdeOfertas,
   seleccionarCandidatos,
+  idsPartnerEnProductos,
   rastrearUno,
   persistirFilas,
   cargarContextoRappi,

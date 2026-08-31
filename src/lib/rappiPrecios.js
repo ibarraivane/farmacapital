@@ -8,6 +8,7 @@ import {
   calcPrecioSugeridoVenta,
   esActualizacionBot,
   instanteDeRef,
+  listarBajadasSugeridas,
   listarSugerenciasAplicables,
   listarSubidasSugeridas,
   refsDeFuentes,
@@ -61,7 +62,12 @@ export function calcPrecioSugeridoRappi(producto, refsMap) {
     const row = refsMap?.[id];
     return row && parseFloat(row.precio) > 0 && !diagnosticoRefRappi(producto, row).ok;
   }).length;
-  const out = calcPrecioSugeridoVenta(producto, refsRappiUsables(producto, refsMap), FUENTES_SUGERIDO_RAPPI);
+  const out = calcPrecioSugeridoVenta(
+    producto,
+    refsRappiUsables(producto, refsMap),
+    FUENTES_SUGERIDO_RAPPI,
+    { usarPromedio: true, respetarPisoMargen: true },
+  );
   if (packs && !out.sugerido) {
     return {
       ...out,
@@ -87,8 +93,19 @@ export function listarSubidasRappi(productos, refsByProduct) {
   return listarSubidasSugeridas(productos, refsByProduct, calcPrecioSugeridoRappi);
 }
 
+export function listarBajadasRappi(productos, refsByProduct) {
+  return listarBajadasSugeridas(productos, refsByProduct, calcPrecioSugeridoRappi);
+}
+
 export function listarSugerenciasRappi(productos, refsByProduct) {
   return listarSugerenciasAplicables(productos, refsByProduct, calcPrecioSugeridoRappi);
+}
+
+/** Lote solo de los SKUs de tu tienda Partner (no todo el catálogo). */
+export function listarLotePartnerRappi(productos, refsByProduct, idsPartner, accion) {
+  const universo = (productos || []).filter((p) => idsPartner?.has(p.id));
+  if (accion === "bajar") return listarBajadasRappi(universo, refsByProduct);
+  return listarSubidasRappi(universo, refsByProduct);
 }
 
 export function precioFarmaciaRappiMin(producto, refsMap) {

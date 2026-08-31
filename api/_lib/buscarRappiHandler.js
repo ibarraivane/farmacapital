@@ -34,19 +34,20 @@ async function buscarRappiHandler(req, res) {
     const out = await runRastreoRappi({
       supabaseUrl,
       serviceKey,
-      max: 3,
-      concurrency: 1,
+      max: 10,
+      concurrency: 2,
       soloLinked: true,
+      soloPartner: true,
     });
     return res.status(200).json({
       ok: true,
       ...out,
       message: out.actualizados
-        ? `Se actualizaron ${out.actualizados} producto(s) en Rappi.`
-          + (out.pendientes ? ` Quedan ${out.pendientes} por buscar: pulsa otra vez.` : '')
+        ? `Se actualizaron ${out.actualizados} de tu inventario Partner.`
+          + (out.pendientes ? ` Quedan ${out.pendientes}: pulsa «Actualizar Rappi» otra vez.` : '')
         : (out.buscados
           ? 'Rappi no devolvió coincidencias en este lote. Intenta de nuevo.'
-          : 'No hay productos para buscar.'),
+          : 'No hay productos Partner pendientes de buscar.'),
     });
   } catch (err) {
     return res.status(502).json({

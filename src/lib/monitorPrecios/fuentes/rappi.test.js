@@ -89,6 +89,24 @@ test("si Rappi solo tiene packs, no inventa precio de botella", () => {
   expect(hit).toBeNull();
 });
 
+test("el lote de Partner incluye Lizovag aunque no tenga foto", () => {
+  const { seleccionarCandidatos } = require("../../../../api/_lib/rastrearRappi");
+  const ahora = new Date("2026-08-31T18:00:00.000Z");
+  const productos = [
+    { id: 1, nombre: "Agrifen", sku: "FC-1" },
+    { id: 9, nombre: "Lizovag 10 Tab", sku: "EQ-NOV032", codigo_barras: "7501075717150" },
+  ];
+  const out = seleccionarCandidatos(productos, {
+    ahora,
+    linked: new Set(),
+    partnerIds: new Set([9]),
+    soloPartner: true,
+    ultima: {},
+    diasStale: 7,
+  });
+  expect(out.map((p) => p.id)).toEqual([9]);
+});
+
 test("el lote prioriza foto Rappi y se salta lo fresco", () => {
   const { seleccionarCandidatos } = require("../../../../api/_lib/rastrearRappi");
   const ahora = new Date("2026-08-26T18:00:00.000Z");

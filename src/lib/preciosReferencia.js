@@ -222,11 +222,25 @@ export function precioDesdeMargen(costo, margenPct) {
   return roundPrecioVenta(c / (1 - m / 100));
 }
 
-/** Sugerido competitivo: ~2% bajo ref. mínima, peso entero. */
+/** Sugerido competitivo: ~2% bajo el ancla (mínimo o promedio), peso entero. */
 export function calcPrecioCompetitivo(refMin) {
   const r = parseFloat(refMin);
   if (!Number.isFinite(r) || r <= 0) return null;
   return roundPrecioVenta(r * 0.98);
+}
+
+export function promedioRefs(vals) {
+  const nums = (vals || []).filter((v) => Number.isFinite(v) && v > 0);
+  if (!nums.length) return null;
+  return nums.reduce((a, b) => a + b, 0) / nums.length;
+}
+
+/** Margen bruto mínimo sobre venta. Patente 20%, genérico 40%. */
+export function margenMinimoSobreVentaPct(producto) {
+  const tipo = String(producto?.tipo || "").toLowerCase();
+  if (tipo === "generico" || tipo === "genérico") return 40;
+  if (tipo === "marca" || tipo === "patente") return 20;
+  return null;
 }
 
 export function margenToneColors(tone, C) {
@@ -494,15 +508,17 @@ export function classifyProductoMargen(p) {
 }
 
 /**
- * Precio de venta sugerido = ~2% bajo la ref. más barata (FDA / Similares / Otros).
- * Si hoy vendes más barato que eso, la acción es SUBIR (estabas dejando margen).
- * Si vendes más caro, la acción es BAJAR para no quedarte fuera.
- * El piso de margen no infla el precio; solo avisa si el competitivo queda bajo costo.
+ * Precio de venta sugerido.
+ * Por defecto: ~2% bajo la ref. más barata (Referencias).
+ * Rappi: promedio de farmacia/calle y el piso de margen sí sube el precio
+ * (patente ≥20% sobre venta, genérico ≥40%).
  */
-export function calcPrecioSugeridoVenta(producto, refsMap, fuentes = FUENTES_VENTA) {
+export function calcPrecioSugeridoVenta(producto, refsMap, fuentes = FUENTES_VENTA, opts = {}) {
   const precioActual = parseFloat(producto.precio) || 0;
   const margenActual = calcMargenVenta(precioActual, producto);
   const margenSugeridoEmpty = { pct: null, utilidad: null, tone: null };
+  const usarPromedio = opts.usarPromedio === true;
+  const respetarPiso = opts.respetarPisoMargen === true;
 
   const refs = refsDeFuentes(refsVentaComparables(producto, refsMap, fuentes), fuentes);
   const vals = Object.values(refs).filter((v) => Number.isFinite(v) && v > 0);
@@ -511,6 +527,7 @@ export function calcPrecioSugeridoVenta(producto, refsMap, fuentes = FUENTES_VEN
       sugerido: null,
       sugeridoCompetitivo: null,
       refMin: null,
+      refPromedio: null,
       piso: null,
       nota: "Sin referencias de venta",
       alerta: null,
@@ -521,27 +538,41 @@ export function calcPrecioSugeridoVenta(producto, refsMap, fuentes = FUENTES_VEN
   }
 
   const refMin = Math.min(...vals);
+  const refPromedio = promedioRefs(vals);
   const costo = parseFloat(producto.costo) || 0;
   const { markup } = classifyProductoMargen(producto);
-  const piso = costo > 0 ? calcPriceFloor(costo, markup) : 0;
-  const sugeridoCompetitivo = calcPrecioCompetitivo(refMin);
-  const sugerido = sugeridoCompetitivo;
+  const pisoClasico = costo > 0 ? calcPriceFloor(costo, markup) : 0;
+  const margenMin = respetarPiso ? margenMinimoSobreVentaPct(producto) : null;
+  const pisoMargen = margenMin != null && costo > 0 ? precioDesdeMargen(costo, margenMin) : null;
+  const piso = (respetarPiso ? (pisoMargen || pisoClasico) : pisoClasico) || null;
+  const ancla = usarPromedio && refPromedio != null ? refPromedio : refMin;
+  const sugeridoCompetitivo = calcPrecioCompetitivo(ancla);
+  let sugerido = sugeridoCompetitivo;
+  let usoPiso = false;
+  if (respetarPiso && piso && (sugerido == null || sugerido < piso)) {
+    sugerido = roundPrecioVenta(piso);
+    usoPiso = true;
+  }
   const margenSugerido = sugerido != null ? calcMargenVenta(sugerido, producto) : margenSugeridoEmpty;
   const accion = accionPrecioSugerido(precioActual, sugerido);
+  const anclaTxt = usarPromedio ? "promedio" : "ref. más barata";
 
-  let nota = "Al nivel del mercado (~2% bajo la ref. más barata)";
+  let nota = `Al nivel del mercado (~2% bajo el ${anclaTxt})`;
   let alerta = margenSugerido.tone === "debajo_costo" ? "debajo_costo"
     : margenSugerido.tone === "debajo_piso" ? "debajo_piso"
     : null;
 
   if (alerta === "debajo_costo") {
     nota = `A ${fmtPrecioVenta(sugerido)} no cubres tu costo (${fmtPrecioRef(costo)}). Revisa costo o decide margen.`;
+  } else if (usoPiso && margenMin != null) {
+    nota = `El ${anclaTxt} del mercado es ${fmtPrecioRef(ancla)}. Subimos a ${fmtPrecioVenta(sugerido)} para dejar ${margenMin}% de margen.`;
+    alerta = null;
   } else if (alerta === "debajo_piso") {
     nota = `El mercado pide ${fmtPrecioVenta(sugerido)}, bajo tu piso habitual (${fmtPrecioVenta(piso)}).`;
   } else if (accion === "subir") {
-    nota = `Subir: vendes ${fmtPrecioVenta(precioActual)} y el mercado más barato está en ${fmtPrecioRef(refMin)}. Puedes ir a ${fmtPrecioVenta(sugerido)} sin quedar caro.`;
+    nota = `Subir: vendes ${fmtPrecioVenta(precioActual)} y el ${anclaTxt} está en ${fmtPrecioRef(ancla)}. Puedes ir a ${fmtPrecioVenta(sugerido)}.`;
   } else if (accion === "bajar") {
-    nota = `Bajar: estás arriba del mercado (${fmtPrecioRef(refMin)}). Competir a ${fmtPrecioVenta(sugerido)}.`;
+    nota = `Bajar: estás arriba del ${anclaTxt} (${fmtPrecioRef(ancla)}). Competir a ${fmtPrecioVenta(sugerido)}.`;
   } else if (accion === "mantener") {
     nota = "Tu precio ya está al nivel del mercado";
   }
@@ -550,6 +581,7 @@ export function calcPrecioSugeridoVenta(producto, refsMap, fuentes = FUENTES_VEN
     sugerido,
     sugeridoCompetitivo,
     refMin,
+    refPromedio,
     piso,
     nota,
     alerta,
@@ -618,4 +650,10 @@ export function listarSugerenciasAplicables(productos, refsByProduct, calcFn) {
 export function listarSubidasSugeridas(productos, refsByProduct, calcFn) {
   return listarSugerenciasAplicables(productos, refsByProduct, calcFn)
     .filter((s) => s.accion === "subir" && s.a > s.de);
+}
+
+/** Solo bajadas. */
+export function listarBajadasSugeridas(productos, refsByProduct, calcFn) {
+  return listarSugerenciasAplicables(productos, refsByProduct, calcFn)
+    .filter((s) => s.accion === "bajar" && s.a < s.de);
 }
