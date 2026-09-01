@@ -50,7 +50,6 @@ import { notifyCitaConfirmacion, formatTelefonoDisplay, formatCitaFecha } from "
 import { fetchUberDirectQuote, attachUberDirectQuote, formatUberFee, formatUberEta, explainUberQuoteError } from "./lib/uberDirectClient";
 import DestinationPicker from "./components/DestinationPicker";
 import RecompraStrip from "./components/RecompraStrip";
-import AddressAutocomplete from "./components/AddressAutocomplete";
 import SocialLoginButtons from "./components/SocialLoginButtons";
 import {
   cleanCheckoutColonia,
