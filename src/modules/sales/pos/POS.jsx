@@ -890,6 +890,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
         nombre: ri.medico_nombre || config?.nombre_doctor || "Médico(a) en turno",
         especialidad: ri.medico_especialidad || "Medicina general",
         cedula: ri.medico_cedula || "",
+        institucion: ri.medico_institucion || "",
       },
       firmaModo: ri.firma_modo === "digital" ? "digital" : "fisica",
       firmaDataUrl: ri.firma_modo === "digital" ? ri.firma_data_url : null,

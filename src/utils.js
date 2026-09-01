@@ -1,6 +1,7 @@
 // FARMACAPITAL — Utilidades globales
 import { supabase } from "./supabase";
 import { C } from "./constants";
+import { getClienteToken } from "./utils/clienteSession.js";
 
 export const dC   = f => Math.floor((new Date(f)-new Date())/86400000);
 export const cC   = d => d<0?C.red:d<15?C.red:d<30?C.amber:C.green;

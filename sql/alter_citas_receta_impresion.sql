@@ -39,6 +39,7 @@ BEGIN
     'medico_nombre', coalesce(p_payload->>'medico_nombre', ''),
     'medico_especialidad', coalesce(p_payload->>'medico_especialidad', ''),
     'medico_cedula', coalesce(p_payload->>'medico_cedula', ''),
+    'medico_institucion', coalesce(p_payload->>'medico_institucion', ''),
     'firma_modo', CASE WHEN p_payload->>'firma_modo' = 'digital' THEN 'digital' ELSE 'fisica' END,
     'firma_data_url', CASE
       WHEN p_payload->>'firma_modo' = 'digital' AND coalesce(p_payload->>'firma_data_url', '') <> ''

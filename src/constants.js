@@ -1,4 +1,12 @@
 // FARMACAPITAL — Constantes globales
+import {
+  LayoutDashboard, ShoppingCart, Package,
+  Wallet, Stethoscope, Users, UserCog, ShieldCheck,
+  Target, Undo2, Receipt, Image as ImageIcon, Sparkles,
+  Download, UserPlus, HeartPulse,
+  SlidersHorizontal, Gauge, FolderOpen, CalendarDays, Globe, BookOpen, ScanLine,
+} from "lucide-react";
+
 export const C_LIGHT = {
   bg:"#f7f9fc",     card:"#ffffff",     cardDark:"#f0f4f9",
   border:"#e2e8f0", borderHi:"#c7d4f5",
@@ -66,15 +74,6 @@ export const NAV_VENDEDOR = [
 ];
 export const NAV_DOCTORA = ["cons_dr", "exp_dr", "ayuda"];
 
-// Iconos: usamos lucide-react (componentes) en vez de emojis para look consistente.
-// El render del Sidebar acepta tanto componentes como strings (compatibilidad).
-import {
-  LayoutDashboard, ShoppingCart, Package,
-  Wallet, Stethoscope, Users, UserCog, ShieldCheck,
-  Target, Undo2, Receipt, Image as ImageIcon, Sparkles,
-  Download, UserPlus, HeartPulse,
-  SlidersHorizontal, Gauge, FolderOpen, CalendarDays, Globe, BookOpen, ScanLine,
-} from "lucide-react";
 
 export const NAV_ITEMS = [
   // ══ INICIO VENDEDOR ════════════════════════

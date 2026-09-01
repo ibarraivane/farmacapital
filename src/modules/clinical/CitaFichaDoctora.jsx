@@ -4,7 +4,13 @@ import { C_LIGHT, BRAND } from "../../constants";
 import { $ } from "../../utils";
 import { Btn, Modal, Box, Tag, Inp, showToast, SearchDropdown } from "../../ui";
 import { citaPagoOk } from "../../utils/consultaConstants";
-import { buildRecetaHtml, openRecetaPrint, folioFromCita, stockBadgeLabel } from "../../utils/recetaPrint";
+import {
+  buildRecetaHtml,
+  openRecetaPrint,
+  folioFromCita,
+  stockBadgeLabel,
+  validarRecetaMx,
+} from "../../utils/recetaPrint";
 
 const C = C_LIGHT;
 
@@ -25,7 +31,12 @@ const fieldTextareaStyle = {
 };
 
 function uid() {
-  return globalThis.crypto?.randomUUID?.() || `m_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+  try {
+    if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+  } catch {
+    /* noop */
+  }
+  return `m_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 }
 
 /** Normaliza medicamentos_prescritos (JSON, texto legacy o array) a filas de UI. */
@@ -39,6 +50,9 @@ function parseMedsPrescritos(mp) {
         medicamento: String(m.medicamento || m.nombre || "").trim(),
         cantidad: Math.max(1, Number(m.cantidad) || 1),
         dosis: m.dosis != null ? String(m.dosis) : "",
+        via: m.via != null ? String(m.via) : "",
+        frecuencia: m.frecuencia != null ? String(m.frecuencia) : "",
+        duracion: m.duracion != null ? String(m.duracion) : "",
         indicaciones: m.indicaciones != null ? String(m.indicaciones) : "",
         surtido: m.surtido === "farmacapital" || m.surtido === "externa" ? m.surtido : "pendiente",
       }))
@@ -58,7 +72,18 @@ function parseMedsPrescritos(mp) {
       .split("\n")
       .map((line) => line.trim())
       .filter(Boolean)
-      .map((line) => ({ _uid: uid(), producto_id: null, medicamento: line, cantidad: 1, dosis: "", indicaciones: "", surtido: "pendiente" }));
+      .map((line) => ({
+        _uid: uid(),
+        producto_id: null,
+        medicamento: line,
+        cantidad: 1,
+        dosis: "",
+        via: "",
+        frecuencia: "",
+        duracion: "",
+        indicaciones: "",
+        surtido: "pendiente",
+      }));
   }
   return [];
 }
@@ -70,6 +95,9 @@ function serializeMeds(rows) {
       medicamento: String(rest.medicamento || "").trim(),
       cantidad: Math.max(1, Number(rest.cantidad) || 1),
       dosis: rest.dosis != null ? String(rest.dosis) : "",
+      via: rest.via != null ? String(rest.via) : "",
+      frecuencia: rest.frecuencia != null ? String(rest.frecuencia) : "",
+      duracion: rest.duracion != null ? String(rest.duracion) : "",
       indicaciones: rest.indicaciones != null ? String(rest.indicaciones) : "",
       surtido: rest.surtido === "farmacapital" || rest.surtido === "externa" ? rest.surtido : "pendiente",
     }))
@@ -377,31 +405,46 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
     medico_nombre: medicoSel?.nombre || "",
     medico_especialidad: medicoSel?.especialidad || "",
     medico_cedula: medicoSel?.cedula || "",
+    medico_institucion: medicoSel?.institucion || medicoSel?.universidad || "",
   });
+
+  const medicoRecetaPayload = () => ({
+    nombre: medicoSel?.nombre || "",
+    especialidad: medicoSel?.especialidad || "",
+    cedula: medicoSel?.cedula || "",
+    institucion: medicoSel?.institucion || medicoSel?.universidad || "",
+  });
+
+  const assertRecetaLista = (medsArr, { exigirFirmaDigital = true } = {}) => {
+    const v = validarRecetaMx({
+      medico: medicoRecetaPayload(),
+      medicamentos: medsArr,
+      diagnostico,
+    });
+    if (!v.ok) {
+      showToast(v.errores[0], "warning");
+      return false;
+    }
+    if (exigirFirmaDigital && firmaModo === "digital" && !firmaDataUrl) {
+      showToast("Firma en el recuadro o elige firma física (línea en blanco).", "warning");
+      return false;
+    }
+    return true;
+  };
 
   const vistaPreviaReceta = () => {
     const medsArr = serializeMeds(medsRows);
-    if (!diagnostico.trim() && !medsArr.length) {
-      showToast("Agrega diagnóstico o medicamentos para la receta.", "warning");
-      return;
-    }
-    if (firmaModo === "digital" && !firmaDataUrl) {
-      showToast("Firma en el recuadro o elige firma física (línea en blanco).", "warning");
-      return;
-    }
+    if (!assertRecetaLista(medsArr)) return;
     const html = buildRecetaHtml({
       cita: citaLocal || cita,
       diagnostico,
       notas,
       medicamentos: medsArr,
-      medico: {
-        nombre: medicoSel?.nombre,
-        especialidad: medicoSel?.especialidad,
-        cedula: medicoSel?.cedula,
-      },
+      medico: medicoRecetaPayload(),
       firmaModo,
       firmaDataUrl: firmaModo === "digital" ? firmaDataUrl : null,
       folio: folioFromCita((citaLocal || cita)?.id),
+      pacienteExtra: { edad: exp.edad, sexo: exp.sexo },
     });
     openRecetaPrint(html);
   };
@@ -409,22 +452,7 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
   const enviarRecetaACaja = async () => {
     if (readOnly || !citaLocal?.id) return;
     const medsArr = serializeMeds(medsRows);
-    if (!diagnostico.trim()) {
-      showToast("El diagnóstico es requerido para enviar la receta.", "warning");
-      return;
-    }
-    if (!medsArr.length) {
-      showToast("Agrega al menos un medicamento a la receta.", "warning");
-      return;
-    }
-    if (!medicoSel?.nombre) {
-      showToast("Elige el médico en turno (catálogo Médicos).", "warning");
-      return;
-    }
-    if (firmaModo === "digital" && !firmaDataUrl) {
-      showToast("Falta la firma digital, o cambia a firma física.", "warning");
-      return;
-    }
+    if (!assertRecetaLista(medsArr)) return;
     setGuard(true);
     try {
       const tok = sessionStorage.getItem("farmacapital_session_token");
@@ -553,6 +581,9 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
         medicamento: prod.nombre,
         cantidad: 1,
         dosis: "",
+        via: "",
+        frecuencia: "",
+        duracion: "",
         indicaciones: "",
         surtido: "pendiente",
       },
@@ -561,7 +592,7 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
   };
 
   const agregarLineaLibre = () => {
-    setMedsRows((rows) => [...rows, { _uid: uid(), producto_id: null, medicamento: "", cantidad: 1, dosis: "", indicaciones: "", surtido: "pendiente" }]);
+    setMedsRows((rows) => [...rows, { _uid: uid(), producto_id: null, medicamento: "", cantidad: 1, dosis: "", via: "", frecuencia: "", duracion: "", indicaciones: "", surtido: "pendiente" }]);
   };
 
   const quitarMed = (_uid) => setMedsRows((rows) => rows.filter((r) => r._uid !== _uid));
@@ -721,17 +752,24 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
                 No hay médicos activos en catálogo. Un admin debe darlos de alta en Consultorio → Médicos (nombre y cédula).
               </div>
             ) : (
-              <select
-                value={medicoId}
-                onChange={(e) => setMedicoId(e.target.value)}
-                style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 12, background: "#fff" }}
-              >
-                {medicos.map((m) => (
-                  <option key={m.id} value={String(m.id)}>
-                    {m.nombre}{m.cedula ? ` · Céd. ${m.cedula}` : ""}{m.especialidad ? ` · ${m.especialidad}` : ""}
-                  </option>
-                ))}
-              </select>
+              <>
+                <select
+                  value={medicoId}
+                  onChange={(e) => setMedicoId(e.target.value)}
+                  style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 12, background: "#fff" }}
+                >
+                  {medicos.map((m) => (
+                    <option key={m.id} value={String(m.id)}>
+                      {m.nombre}{m.cedula ? ` · Céd. ${m.cedula}` : " · SIN CÉDULA"}{m.especialidad ? ` · ${m.especialidad}` : ""}
+                    </option>
+                  ))}
+                </select>
+                {medicoSel && !String(medicoSel.cedula || "").trim() && (
+                  <div style={{ marginTop: 8, color: C.amber, fontSize: 11, lineHeight: 1.45, fontWeight: 600 }}>
+                    Esta doctora aún no tiene cédula en el catálogo. Un admin debe capturarla en Consultorio → Médicos antes de emitir receta válida en México.
+                  </div>
+                )}
+              </>
             )}
           </Box>
         )}
@@ -908,13 +946,25 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
                         style={{ width: "100%" }}
                       />
                     </div>
-                    <div style={{ flex: 1, minWidth: 100 }}>
+                    <div style={{ flex: 1, minWidth: 90 }}>
                       <div style={{ fontSize: 9, color: C.textDim, marginBottom: 2 }}>Dosis</div>
-                      <Inp value={row.dosis} onChange={(e) => setMedRow(row._uid, { dosis: e.target.value })} disabled={!puedeEditar} style={{ width: "100%" }} />
+                      <Inp value={row.dosis} onChange={(e) => setMedRow(row._uid, { dosis: e.target.value })} disabled={!puedeEditar} placeholder="1 tab" style={{ width: "100%" }} />
                     </div>
-                    <div style={{ flex: 1, minWidth: 120 }}>
+                    <div style={{ flex: 1, minWidth: 80 }}>
+                      <div style={{ fontSize: 9, color: C.textDim, marginBottom: 2 }}>Vía</div>
+                      <Inp value={row.via || ""} onChange={(e) => setMedRow(row._uid, { via: e.target.value })} disabled={!puedeEditar} placeholder="Oral" style={{ width: "100%" }} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 90 }}>
+                      <div style={{ fontSize: 9, color: C.textDim, marginBottom: 2 }}>Frecuencia</div>
+                      <Inp value={row.frecuencia || ""} onChange={(e) => setMedRow(row._uid, { frecuencia: e.target.value })} disabled={!puedeEditar} placeholder="c/8 h" style={{ width: "100%" }} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 80 }}>
+                      <div style={{ fontSize: 9, color: C.textDim, marginBottom: 2 }}>Duración</div>
+                      <Inp value={row.duracion || ""} onChange={(e) => setMedRow(row._uid, { duracion: e.target.value })} disabled={!puedeEditar} placeholder="5 días" style={{ width: "100%" }} />
+                    </div>
+                    <div style={{ flex: 1.2, minWidth: 120 }}>
                       <div style={{ fontSize: 9, color: C.textDim, marginBottom: 2 }}>Indicaciones</div>
-                      <Inp value={row.indicaciones} onChange={(e) => setMedRow(row._uid, { indicaciones: e.target.value })} disabled={!puedeEditar} style={{ width: "100%" }} />
+                      <Inp value={row.indicaciones} onChange={(e) => setMedRow(row._uid, { indicaciones: e.target.value })} disabled={!puedeEditar} placeholder="Con alimentos" style={{ width: "100%" }} />
                     </div>
                     {!readOnly && (
                       <div style={{ minWidth: 130 }}>

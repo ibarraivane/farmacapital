@@ -19,7 +19,7 @@ const MP_DEVICE_ID    = process.env.REACT_APP_MP_DEVICE_ID    || "NEWLAND_N950__
 const MP_PROXY_URL    = process.env.REACT_APP_MP_PROXY_URL    || "/api/payments/mp/point";
 const MP_BASE_URL     = "https://api.mercadopago.com";
 const SANDBOX_MODE    = !MP_ACCESS_TOKEN?.startsWith("APP_USR");
-const HOSTNAME        = globalThis?.location?.hostname || "";
+const HOSTNAME        = (typeof window !== "undefined" ? window.location?.hostname : "") || "";
 const IS_LOCAL_DEV    = HOSTNAME === "localhost" || HOSTNAME === "127.0.0.1";
 
 function employeeAuthHeaders(extra = {}) {
@@ -37,7 +37,7 @@ function employeeAuthHeaders(extra = {}) {
 }
 
 function newIdempotencyKey() {
-  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  if (typeof window !== "undefined" && window.crypto?.randomUUID) return window.crypto.randomUUID();
   return `fc-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
