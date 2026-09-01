@@ -51,6 +51,7 @@ import { puedeCancelarCitaCaja, esCitaNoShow } from "../../../utils/citasAgenda"
 import { esPedidoTiendaWebPendiente, fetchPedidosTiendaPendientesMerged } from "../../../utils/pedidosTiendaWeb";
 import { desgloseCambioMN, sugerenciasPagoCliente } from "../../../utils/cambioCaja";
 import { marcarMedicamentosRecetaFarmaCapitalSurtidos } from "../../../utils/recetaCitaSync";
+import { openRecetaPdf, recetaOptsDesdeFila } from "../../../utils/recetaPrint";
 import OnboardingTour from "../../../components/OnboardingTour";
 import { TOURS } from "../../../utils/tours";
 import { labelTipoEntregaPedido } from "../../../utils/orderChannels";
@@ -696,6 +697,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
   const [citasVentana, setCitasVentana] = useState([]);
   /** Citas con consulta o consumibles pendientes de cobro en caja (agendadas en línea o en Agenda de consultas). */
   const [consxCobrar,setConsCobrar] = useState([]);
+  /** Recetas del consultorio en cola para imprimir / surtir (planta baja). */
+  const [recetasPorSurtir, setRecetasPorSurtir] = useState([]);
   const [consultaTelById, setConsultaTelById] = useState({});
   const [consultaCliById, setConsultaCliById] = useState({});
   const [consultaPayById, setConsultaPayById] = useState({});
@@ -813,6 +816,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
     if (!tok) {
       setCitasVentana([]);
       setConsCobrar([]);
+      setRecetasPorSurtir([]);
       return;
     }
     const hoy = new Date();
@@ -833,8 +837,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       console.error("[POS] Citas:", error);
       setCitasVentana([]);
       setConsCobrar([]);
-      return;
-    }
+    } else {
     const citas = Array.isArray(data) ? data : [];
     setCitasVentana(citas);
     setConsCobrar(
@@ -846,6 +849,21 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
         return pendientePago || consumiblesPend;
       })
     );
+    }
+    try {
+      const { data: recs, error: recErr } = await supabase.rpc("empleado_listar_recetas_por_surtir", {
+        p_session_token: tok,
+      });
+      if (recErr) {
+        console.warn("[POS] recetas cola:", recErr);
+        setRecetasPorSurtir([]);
+      } else {
+        setRecetasPorSurtir(Array.isArray(recs) ? recs : []);
+      }
+    } catch (e) {
+      console.warn("[POS] recetas cola:", e);
+      setRecetasPorSurtir([]);
+    }
   }, []);
 
   const hoySvPos = useMemo(
@@ -1046,7 +1064,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       } catch (e) {
         console.error("[POS] Excepción cargando datos:", e);
         if (typeof setLoadErr === "function") setLoadErr("Error inesperado cargando datos. Revisa consola.");
-        setProds([]); setPedOn([]); setPedOnHist([]); setCitasVentana([]); setConsCobrar([]);
+        setProds([]); setPedOn([]); setPedOnHist([]); setCitasVentana([]); setConsCobrar([]); setRecetasPorSurtir([]);
       } finally {
         setLoad(false);
       }
@@ -3427,6 +3445,44 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
               </div>
             ))}
           </div>
+
+          {!!recetasPorSurtir.length && (
+            <Box style={{padding:16,marginBottom:16,border:`1px solid ${C.green}40`,background:C.greenDim}}>
+              <div style={{color:C.text,fontWeight:800,fontSize:14,marginBottom:6}}>Recetas del consultorio por imprimir</div>
+              <div style={{color:C.textMid,fontSize:12,marginBottom:12,lineHeight:1.45}}>
+                La doctora envió estas recetas desde el 2.º piso. Imprimí carta, entregá al paciente y surtí con origen «médico FarmaCapital».
+              </div>
+              {recetasPorSurtir.map((rxRow) => (
+                <div key={rxRow.id} style={{display:"flex",justifyContent:"space-between",gap:10,flexWrap:"wrap",alignItems:"center",padding:"10px 0",borderTop:`1px solid ${C.border}`}}>
+                  <div>
+                    <div style={{fontWeight:800,color:C.text}}>{rxRow.folio} · {rxRow.paciente_nombre || "Paciente"}</div>
+                    <div style={{fontSize:12,color:C.textMid,marginTop:2}}>
+                      {rxRow.medico_nombre || "Médico"} · {rxRow.estado === "impresa" ? "Ya impresa · surtir" : "Pendiente de imprimir"}
+                    </div>
+                  </div>
+                  <Btn
+                    sm
+                    col={BRAND.primary}
+                    onClick={async () => {
+                      openRecetaPdf(recetaOptsDesdeFila(rxRow));
+                      const tokRx = sessionStorage.getItem("farmacapital_session_token");
+                      if (tokRx) {
+                        const { error: mErr } = await supabase.rpc("empleado_marcar_receta_impresa", {
+                          p_session_token: tokRx,
+                          p_receta_id: rxRow.id,
+                        });
+                        if (mErr) console.warn("[POS] marcar impresa:", mErr);
+                      }
+                      showToast("Receta impresa · lista para surtir.", "success");
+                      refrescarCitasPOS();
+                    }}
+                  >
+                    Imprimir receta
+                  </Btn>
+                </div>
+              ))}
+            </Box>
+          )}
 
           <div style={{color:C.text,fontWeight:800,fontSize:14,marginBottom:10}}>💳 Cobrar en caja</div>
           <div style={{color:C.textMid,fontSize:12,marginBottom:14}}>Citas con consulta o consumibles pendientes de cobro. Al pagar, el estado cambia a <strong style={{color:C.green}}>Pagada</strong>. Si no vinieron o hay que anular, usa <em>No se presentó</em> o <em>Cancelar cita</em>.</div>

@@ -1,9 +1,17 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../../supabase";
 import { C_LIGHT, BRAND } from "../../constants";
 import { $ } from "../../utils";
 import { Btn, Modal, Box, Tag, Inp, showToast, SearchDropdown } from "../../ui";
 import { citaPagoOk } from "../../utils/consultaConstants";
+import { alergiasQueCruzan, mensajeAlertaAlergia } from "../../utils/alergiaAlerta";
+import { SEGUIMIENTO_OPCIONES, fechaSeguimiento, etiquetaSeguimiento } from "../../utils/seguimientoCita";
+import {
+  validarRecetaMx,
+  buildRecetaHtml,
+  openRecetaPrint,
+  openRecetaPdf,
+} from "../../utils/recetaPrint";
 
 const C = C_LIGHT;
 
@@ -24,7 +32,8 @@ const fieldTextareaStyle = {
 };
 
 function uid() {
-  return globalThis.crypto?.randomUUID?.() || `m_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+  const c = typeof window !== "undefined" ? window.crypto : undefined;
+  return c?.randomUUID?.() || `m_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 }
 
 /** Normaliza medicamentos_prescritos (JSON, texto legacy o array) a filas de UI. */
@@ -38,6 +47,9 @@ function parseMedsPrescritos(mp) {
         medicamento: String(m.medicamento || m.nombre || "").trim(),
         cantidad: Math.max(1, Number(m.cantidad) || 1),
         dosis: m.dosis != null ? String(m.dosis) : "",
+        via: m.via != null ? String(m.via) : "",
+        frecuencia: m.frecuencia != null ? String(m.frecuencia) : "",
+        duracion: m.duracion != null ? String(m.duracion) : "",
         indicaciones: m.indicaciones != null ? String(m.indicaciones) : "",
         surtido: m.surtido === "farmacapital" || m.surtido === "externa" ? m.surtido : "pendiente",
       }))
@@ -57,7 +69,7 @@ function parseMedsPrescritos(mp) {
       .split("\n")
       .map((line) => line.trim())
       .filter(Boolean)
-      .map((line) => ({ _uid: uid(), producto_id: null, medicamento: line, cantidad: 1, dosis: "", indicaciones: "", surtido: "pendiente" }));
+      .map((line) => ({ _uid: uid(), producto_id: null, medicamento: line, cantidad: 1, dosis: "", via: "", frecuencia: "", duracion: "", indicaciones: "", surtido: "pendiente" }));
   }
   return [];
 }
@@ -69,6 +81,9 @@ function serializeMeds(rows) {
       medicamento: String(rest.medicamento || "").trim(),
       cantidad: Math.max(1, Number(rest.cantidad) || 1),
       dosis: rest.dosis != null ? String(rest.dosis) : "",
+      via: rest.via != null ? String(rest.via) : "",
+      frecuencia: rest.frecuencia != null ? String(rest.frecuencia) : "",
+      duracion: rest.duracion != null ? String(rest.duracion) : "",
       indicaciones: rest.indicaciones != null ? String(rest.indicaciones) : "",
       surtido: rest.surtido === "farmacapital" || rest.surtido === "externa" ? rest.surtido : "pendiente",
     }))
@@ -91,6 +106,89 @@ function emptyVitals() {
 
 function emptyExp() {
   return { alergias: "", antecedentes: "", sexo: "", edad: "" };
+}
+
+function FirmaPad({ value, onChange, disabled }) {
+  const canvasRef = useRef(null);
+  const drawing = useRef(false);
+
+  const pos = (e) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const r = canvas.getBoundingClientRect();
+    const t = e.touches?.[0];
+    const x = (t ? t.clientX : e.clientX) - r.left;
+    const y = (t ? t.clientY : e.clientY) - r.top;
+    return { x: x * (canvas.width / r.width), y: y * (canvas.height / r.height) };
+  };
+
+  const start = (e) => {
+    if (disabled) return;
+    drawing.current = true;
+    const ctx = canvasRef.current?.getContext("2d");
+    if (!ctx) return;
+    const { x, y } = pos(e);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+  };
+  const move = (e) => {
+    if (!drawing.current || disabled) return;
+    e.preventDefault();
+    const ctx = canvasRef.current?.getContext("2d");
+    if (!ctx) return;
+    const { x, y } = pos(e);
+    ctx.lineWidth = 2;
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "#0f172a";
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  };
+  const end = () => {
+    if (!drawing.current) return;
+    drawing.current = false;
+    const data = canvasRef.current?.toDataURL("image/png");
+    if (data) onChange?.(data);
+  };
+
+  return (
+    <div>
+      <canvas
+        ref={canvasRef}
+        width={320}
+        height={90}
+        onMouseDown={start}
+        onMouseMove={move}
+        onMouseUp={end}
+        onMouseLeave={end}
+        onTouchStart={start}
+        onTouchMove={move}
+        onTouchEnd={end}
+        style={{
+          width: "100%",
+          maxWidth: 320,
+          height: 90,
+          border: "1px solid #e2e8f0",
+          borderRadius: 8,
+          background: "#fff",
+          touchAction: "none",
+          cursor: disabled ? "not-allowed" : "crosshair",
+        }}
+      />
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => {
+          const ctx = canvasRef.current?.getContext("2d");
+          if (ctx && canvasRef.current) ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+          onChange?.("");
+        }}
+        style={{ marginTop: 6, fontSize: 11, border: "none", background: "transparent", color: "#64748b", cursor: "pointer" }}
+      >
+        Borrar firma
+      </button>
+      {value ? <span style={{ fontSize: 10, color: "#16a34a", marginLeft: 8 }}>Firma capturada</span> : null}
+    </div>
+  );
 }
 
 /** Acepta objeto o JSON string (PostgREST a veces devuelve texto). */
@@ -147,6 +245,15 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
   const [procSel, setProcSel] = useState([]);
   const [guardando, setGuard] = useState(false);
   const [citaLocal, setCitaLocal] = useState(null);
+  const [medicos, setMedicos] = useState([]);
+  const [medicoId, setMedicoId] = useState("");
+  const [firmaModo, setFirmaModo] = useState("fisica");
+  const [firmaDataUrl, setFirmaDataUrl] = useState("");
+  const [seguimientoDias, setSeguimientoDias] = useState(null);
+  const [seguimientoNota, setSeguimientoNota] = useState("");
+  const [alertaAlergia, setAlertaAlergia] = useState("");
+  const [recetaEmitida, setRecetaEmitida] = useState(null);
+  const [enviandoReceta, setEnviandoReceta] = useState(false);
 
   const reload = useCallback(async () => {
     if (!cita?.id) return;
@@ -181,6 +288,9 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
     setNotas(data.notas_medico || "");
     setMedsRows(parseMedsPrescritos(data.medicamentos_prescritos));
     setRecetaSurtido(data.receta_surtido_en || "pendiente");
+    setSeguimientoDias(data.seguimiento_dias != null ? Number(data.seguimiento_dias) : null);
+    setSeguimientoNota(data.seguimiento_nota || "");
+    setRecetaEmitida(data.receta_id ? { id: data.receta_id, folio: data.receta_folio || null } : null);
     const pr = parseJsonArray(data.procedimientos_realizados);
     if (pr.length && typeof pr[0] === "object") {
       setProcSel(pr);
@@ -204,6 +314,27 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
       cancelled = true;
     };
   }, [open, cita?.id, readOnly]);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    (async () => {
+      const tok = sessionStorage.getItem("farmacapital_session_token");
+      if (!tok) return;
+      const { data } = await supabase.rpc("empleado_listar_medicos_consultorio", { p_session_token: tok });
+      if (cancelled) return;
+      const list = Array.isArray(data) ? data.filter((m) => m.activo !== false) : [];
+      setMedicos(list);
+      setMedicoId((prev) => {
+        if (prev) return prev;
+        const conCedula = list.find((m) => String(m.cedula || "").trim());
+        return String((conCedula || list[0])?.id || "");
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
 
   const toggleProc = (p) => {
     setProcSel((prev) => {
@@ -254,12 +385,23 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
     await reload();
   };
 
+  const medicoSel = medicos.find((m) => String(m.id) === String(medicoId)) || null;
+
+  const avisarAlergia = (nombreMed) => {
+    const cruces = alergiasQueCruzan(exp.alergias, nombreMed);
+    const msg = mensajeAlertaAlergia(cruces);
+    setAlertaAlergia(msg);
+    if (msg) showToast(msg, "warning");
+    return cruces;
+  };
+
   const agregarMedCatalogo = (prod) => {
     if (!prod?.id) return;
     if (medsRows.some((r) => r.producto_id === prod.id)) {
       showToast("Ese producto ya está en la receta.", "warning");
       return;
     }
+    avisarAlergia(prod.nombre);
     setMedsRows((rows) => [
       ...rows,
       {
@@ -268,6 +410,9 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
         medicamento: prod.nombre,
         cantidad: 1,
         dosis: "",
+        via: "",
+        frecuencia: "",
+        duracion: "",
         indicaciones: "",
         surtido: "pendiente",
       },
@@ -276,7 +421,96 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
   };
 
   const agregarLineaLibre = () => {
-    setMedsRows((rows) => [...rows, { _uid: uid(), producto_id: null, medicamento: "", cantidad: 1, dosis: "", indicaciones: "", surtido: "pendiente" }]);
+    setMedsRows((rows) => [...rows, { _uid: uid(), producto_id: null, medicamento: "", cantidad: 1, dosis: "", via: "", frecuencia: "", duracion: "", indicaciones: "", surtido: "pendiente" }]);
+  };
+
+  const recetaOptsActuales = (folio) => ({
+    folio,
+    cita: citaLocal || cita,
+    medico: medicoSel || {},
+    medicamentos: serializeMeds(medsRows),
+    diagnostico,
+    notas,
+    alergias: exp.alergias,
+    pacienteExtra: { edad: exp.edad, sexo: exp.sexo },
+    firmaModo,
+    firmaDataUrl,
+    seguimiento: etiquetaSeguimiento(seguimientoDias, fechaSeguimiento(seguimientoDias, (citaLocal || cita)?.fecha)),
+  });
+
+  const vistaPreviaReceta = () => {
+    const v = validarRecetaMx({
+      medico: medicoSel,
+      medicamentos: serializeMeds(medsRows),
+      diagnostico,
+      firmaModo,
+      firmaDataUrl,
+    });
+    if (!v.ok) {
+      showToast(v.errores[0], "warning");
+      return;
+    }
+    const opts = recetaOptsActuales(recetaEmitida?.folio);
+    openRecetaPdf(opts);
+  };
+
+  const emitirRecetaACaja = async () => {
+    const v = validarRecetaMx({
+      medico: medicoSel,
+      medicamentos: serializeMeds(medsRows),
+      diagnostico,
+      firmaModo,
+      firmaDataUrl,
+    });
+    if (!v.ok) {
+      showToast(v.errores[0], "warning");
+      return;
+    }
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    if (!tok || !citaLocal?.id) {
+      showToast("Sesión expirada.", "error");
+      return;
+    }
+    setEnviandoReceta(true);
+    try {
+      const { data: resp, error } = await supabase.rpc("empleado_emitir_receta", {
+        p_session_token: tok,
+        p_cita_id: citaLocal.id,
+        p_payload: {
+          medico_id: medicoSel?.id || null,
+          medico_nombre: medicoSel?.nombre,
+          medico_cedula: medicoSel?.cedula,
+          medico_especialidad: medicoSel?.especialidad,
+          medico_institucion: medicoSel?.institucion,
+          paciente_edad: exp.edad,
+          paciente_sexo: exp.sexo,
+          diagnostico: diagnostico.trim(),
+          notas: notas.trim(),
+          alergias_snapshot: exp.alergias,
+          medicamentos: serializeMeds(medsRows),
+          firma_modo: firmaModo,
+          firma_data_url: firmaModo === "digital" ? firmaDataUrl : null,
+          seguimiento_dias: seguimientoDias,
+          seguimiento_nota: seguimientoNota,
+        },
+      });
+      if (error) throw error;
+      if (!resp?.success) throw new Error(resp?.error || "No se pudo emitir");
+      setRecetaEmitida({ id: resp.receta_id, folio: resp.folio });
+      showToast(`Receta ${resp.folio} enviada a caja para imprimir y surtir.`, "success");
+      openRecetaPdf(recetaOptsActuales(resp.folio));
+      onSaved?.();
+    } catch (e) {
+      const msg = String(e.message || e);
+      if (/empleado_emitir_receta|does not exist|404|PGRST/i.test(msg)) {
+        showToast("SQL de recetas pendiente. Vista previa local — corre sql/patch_recetas_doctora_20260901.sql para la cola de caja.", "warning");
+        openRecetaPrint(buildRecetaHtml(recetaOptsActuales()));
+      } else {
+        showToast(msg, "error");
+      }
+    } finally {
+      setEnviandoReceta(false);
+    }
   };
 
   const quitarMed = (_uid) => setMedsRows((rows) => rows.filter((r) => r._uid !== _uid));
@@ -368,6 +602,19 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
       if (error) throw error;
       if (!resp?.success) throw new Error(resp?.error || "No se pudo terminar");
 
+      if (seguimientoDias) {
+        try {
+          await supabase.rpc("empleado_guardar_seguimiento_cita", {
+            p_session_token: tok,
+            p_cita_id: citaLocal.id,
+            p_dias: seguimientoDias,
+            p_nota: seguimientoNota || null,
+          });
+        } catch (segErr) {
+          console.warn("[ficha] seguimiento:", segErr);
+        }
+      }
+
       showToast("Consulta terminada y registrada como concluida.", "success");
       onSaved?.();
       onClose?.();
@@ -400,6 +647,11 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
         <div style={{ color: C.textMid, fontSize: 13, marginBottom: 16 }}>
           <strong style={{ color: C.text }}>{(citaLocal || cita).nombre}</strong> · {(citaLocal || cita).telefono || "—"} · {(citaLocal || cita).hora}
         </div>
+        {String(exp.alergias || "").trim() && (
+          <div style={{ background: C.redDim, border: `1px solid ${C.red}45`, borderRadius: 10, padding: 10, marginBottom: 14, color: C.red, fontSize: 12, fontWeight: 800 }}>
+            Alergias en expediente: {exp.alergias}
+          </div>
+        )}
 
         <Box style={{ padding: 14, marginBottom: 12 }}>
           <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, letterSpacing: 0.5, marginBottom: 10 }}>
@@ -439,8 +691,14 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
               onChange={(e) => setExp((x) => ({ ...x, alergias: e.target.value }))}
               disabled={!puedeEditar}
               rows={2}
+              placeholder="Ej: Penicilina, AINES, látex…"
               style={fieldTextareaStyle}
             />
+            {alertaAlergia && (
+              <div style={{ marginTop: 8, padding: 8, background: C.redDim, border: `1px solid ${C.red}40`, borderRadius: 8, color: C.red, fontSize: 11, fontWeight: 700 }}>
+                {alertaAlergia}
+              </div>
+            )}
           </div>
           <div>
             <div style={{ color: C.amber, fontSize: 10, fontWeight: 700 }}>Antecedentes</div>
@@ -535,7 +793,11 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
                     ) : (
                       <Inp
                         value={row.medicamento}
-                        onChange={(e) => setMedRow(row._uid, { medicamento: e.target.value })}
+                        onChange={(e) => {
+                          const nombre = e.target.value;
+                          setMedRow(row._uid, { medicamento: nombre });
+                          if (nombre.trim().length >= 4) avisarAlergia(nombre);
+                        }}
                         disabled={!puedeEditar}
                         placeholder="Nombre del medicamento"
                         style={{ flex: 1, minWidth: 160 }}
@@ -564,9 +826,21 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
                         style={{ width: "100%" }}
                       />
                     </div>
-                    <div style={{ flex: 1, minWidth: 100 }}>
+                    <div style={{ flex: 1, minWidth: 90 }}>
                       <div style={{ fontSize: 9, color: C.textDim, marginBottom: 2 }}>Dosis</div>
                       <Inp value={row.dosis} onChange={(e) => setMedRow(row._uid, { dosis: e.target.value })} disabled={!puedeEditar} style={{ width: "100%" }} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 80 }}>
+                      <div style={{ fontSize: 9, color: C.textDim, marginBottom: 2 }}>Vía</div>
+                      <Inp value={row.via || ""} onChange={(e) => setMedRow(row._uid, { via: e.target.value })} disabled={!puedeEditar} placeholder="oral" style={{ width: "100%" }} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 80 }}>
+                      <div style={{ fontSize: 9, color: C.textDim, marginBottom: 2 }}>Frecuencia</div>
+                      <Inp value={row.frecuencia || ""} onChange={(e) => setMedRow(row._uid, { frecuencia: e.target.value })} disabled={!puedeEditar} placeholder="c/8 h" style={{ width: "100%" }} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 80 }}>
+                      <div style={{ fontSize: 9, color: C.textDim, marginBottom: 2 }}>Duración</div>
+                      <Inp value={row.duracion || ""} onChange={(e) => setMedRow(row._uid, { duracion: e.target.value })} disabled={!puedeEditar} placeholder="7 días" style={{ width: "100%" }} />
                     </div>
                     <div style={{ flex: 1, minWidth: 120 }}>
                       <div style={{ fontSize: 9, color: C.textDim, marginBottom: 2 }}>Indicaciones</div>
@@ -597,6 +871,116 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
               </div>
             ))}
           </div>
+        </Box>
+
+        <Box style={{ padding: 14, marginBottom: 12 }}>
+          <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, marginBottom: 8 }}>RECETA MÉXICO · FOLIO + CAJA</div>
+          <p style={{ color: C.textMid, fontSize: 11, lineHeight: 1.45, margin: "0 0 10px" }}>
+            Formato carta (consultorio, no ticket). Cédula obligatoria. Al enviar, baja a POS → Consultas para imprimir y surtir.
+          </p>
+          {puedeEditar && (
+            <>
+              <div style={{ fontSize: 10, color: C.textMid, marginBottom: 4 }}>Médico en turno</div>
+              <select
+                value={medicoId}
+                onChange={(e) => setMedicoId(e.target.value)}
+                style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 12, marginBottom: 8 }}
+              >
+                <option value="">Selecciona médico…</option>
+                {medicos.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.nombre} {m.cedula ? `· Céd. ${m.cedula}` : "· SIN CÉDULA"}
+                  </option>
+                ))}
+              </select>
+              {medicoSel && !String(medicoSel.cedula || "").trim() && (
+                <div style={{ fontSize: 11, color: C.red, fontWeight: 700, marginBottom: 8 }}>
+                  Este médico no tiene cédula. Captúrala en Consultorio → Médicos (admin).
+                </div>
+              )}
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+                {[
+                  ["fisica", "Firma física (papel)"],
+                  ["digital", "Firma digital (tablet)"],
+                ].map(([v, lab]) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => setFirmaModo(v)}
+                    style={{
+                      padding: "6px 10px",
+                      borderRadius: 8,
+                      border: `1px solid ${firmaModo === v ? BRAND.primary : C.border}`,
+                      background: firmaModo === v ? BRAND.primary + "18" : "transparent",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {lab}
+                  </button>
+                ))}
+              </div>
+              {firmaModo === "digital" && <FirmaPad value={firmaDataUrl} onChange={setFirmaDataUrl} disabled={!puedeEditar} />}
+              {recetaEmitida?.folio && (
+                <div style={{ margin: "8px 0", fontSize: 12, fontWeight: 700, color: C.green }}>
+                  En cola de caja · folio {recetaEmitida.folio}
+                </div>
+              )}
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
+                <Btn ol col={C.blue} onClick={vistaPreviaReceta}>
+                  Vista previa PDF carta
+                </Btn>
+                <Btn col={BRAND.primary} onClick={emitirRecetaACaja} dis={enviandoReceta}>
+                  {enviandoReceta ? "Enviando…" : "Enviar a caja para imprimir"}
+                </Btn>
+              </div>
+            </>
+          )}
+          {readOnly && recetaEmitida?.folio && (
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.green }}>Folio {recetaEmitida.folio}</div>
+          )}
+        </Box>
+
+        <Box style={{ padding: 14, marginBottom: 12 }}>
+          <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, marginBottom: 8 }}>SEGUIMIENTO SUGERIDO</div>
+          <p style={{ color: C.textMid, fontSize: 11, margin: "0 0 8px", lineHeight: 1.4 }}>
+            No agenda sola: anota cuándo conviene volver. Mostrador o el paciente agendan.
+          </p>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+            {SEGUIMIENTO_OPCIONES.map((o) => (
+              <button
+                key={o.dias}
+                type="button"
+                disabled={!puedeEditar}
+                onClick={() => setSeguimientoDias(seguimientoDias === o.dias ? null : o.dias)}
+                style={{
+                  padding: "6px 12px",
+                  borderRadius: 20,
+                  border: `1px solid ${seguimientoDias === o.dias ? BRAND.primary : C.border}`,
+                  background: seguimientoDias === o.dias ? BRAND.primary + "18" : "transparent",
+                  color: seguimientoDias === o.dias ? BRAND.primary : C.textMid,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  cursor: puedeEditar ? "pointer" : "default",
+                }}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+          {seguimientoDias ? (
+            <div style={{ fontSize: 12, color: C.green, fontWeight: 700, marginBottom: 8 }}>
+              {etiquetaSeguimiento(seguimientoDias, fechaSeguimiento(seguimientoDias, (citaLocal || cita)?.fecha))}
+            </div>
+          ) : null}
+          <Inp
+            value={seguimientoNota}
+            onChange={(e) => setSeguimientoNota(e.target.value)}
+            disabled={!puedeEditar}
+            placeholder="Nota (ej. control de TA, revalorar antibiótico)"
+            style={{ width: "100%" }}
+          />
         </Box>
 
         <Box style={{ padding: 14, marginBottom: 12 }}>

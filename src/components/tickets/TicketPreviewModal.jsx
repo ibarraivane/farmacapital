@@ -377,12 +377,13 @@ export default function TicketPreviewModal({
     if (open && autoWhatsApp) setMostrarWaPanel(true);
   }, [open, autoWhatsApp]);
 
+  const pedidoId = venta?.id;
+  const { ticketUrl, loading: ticketUrlLoading } = usePedidoTicketUrl(pedidoId, open);
+
   if (!open) return null;
 
   const handlePrint = () => printTicket("farmacapital-ticket");
   const esTienda = origen === "tienda" || origen === "consulta";
-  const pedidoId = venta?.id;
-  const { ticketUrl, loading: ticketUrlLoading } = usePedidoTicketUrl(pedidoId, open);
   const esInvitado = !clienteLocal?.id && !clienteLocal?.telefono;
 
   const omitirWhatsApp = () => {

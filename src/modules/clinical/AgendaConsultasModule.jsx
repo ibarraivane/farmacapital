@@ -87,7 +87,7 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
   const now = new Date();
   const [y, setY] = useState(now.getFullYear());
   const [m, setM] = useState(now.getMonth());
-  const [vista, setVista] = useState(() => (usuario?.rol === "doctora" ? "dia" : "mes")); // mes | dia
+  const [vista, setVista] = useState(() => (usuario?.rol === "doctora" ? "dia" : "mes")); // mes | dia; doctora solo día
   const [diaSel, setDiaSel] = useState(() => hoyISOMexico());
   const [citasMes, setCitasMes] = useState([]);
   const [loadMes, setLoadMes] = useState(true);
@@ -211,6 +211,10 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
   useEffect(() => {
     cargarMes();
   }, [cargarMes]);
+
+  useEffect(() => {
+    if (mode === "doctora" && vista !== "dia") setVista("dia");
+  }, [mode, vista]);
 
   useEffect(() => {
     if (mode !== "doctora") return;
@@ -506,9 +510,7 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
             {mode === "vendedor"
               ? "Consultas del día y cobros en mostrador; sin detalle clínico completo."
               : mode === "doctora"
-                ? vista === "mes"
-                  ? "Citas las agenda el equipo. Para atender, usá «Ver mi día (hoy)» o elegí un día con citas. Sin cobro ni POS desde acá: solo cita paga, ficha y expediente."
-                  : "Hoy: consultas ordenadas por hora, próxima acción arriba. Entrás a la ficha con «Entrar a consulta»; sin pago, bloqueo claro."
+                ? "Consultas del día, ordenadas por hora. Entrá a la ficha con «Entrar a consulta». Sin cobro, sin agendar y sin calendario de huecos: eso lo hace mostrador."
                 : "Vista completa del consultorio: calendario, horarios y expediente."}
           </p>
         </div>
@@ -538,34 +540,29 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
               Ir a hoy
             </button>
           )}
-          <button
-            type="button"
-            onClick={() => {
-              if (vista === "mes") {
-                if (mode === "doctora") {
-                  const h = hoyISOMexico();
-                  setDiaSel(h);
-                  const d = new Date();
-                  setY(d.getFullYear());
-                  setM(d.getMonth());
+          {mode !== "doctora" && (
+            <button
+              type="button"
+              onClick={() => {
+                if (vista === "mes") {
+                  setVista("dia");
+                } else {
+                  setVista("mes");
                 }
-                setVista("dia");
-              } else {
-                setVista("mes");
-              }
-            }}
-            style={{
-              padding: "8px 14px",
-              borderRadius: 8,
-              border: `1px solid ${C.border}`,
-              background: C.card,
-              fontWeight: 700,
-              fontSize: 12,
-              cursor: "pointer",
-            }}
-          >
-            {vista === "mes" ? (mode === "doctora" ? "Ver mi día (hoy)" : "Ver día seleccionado") : "Ver calendario (mes)"}
-          </button>
+              }}
+              style={{
+                padding: "8px 14px",
+                borderRadius: 8,
+                border: `1px solid ${C.border}`,
+                background: C.card,
+                fontWeight: 700,
+                fontSize: 12,
+                cursor: "pointer",
+              }}
+            >
+              {vista === "mes" ? "Ver día seleccionado" : "Ver calendario (mes)"}
+            </button>
+          )}
         </div>
       </div>
 
@@ -594,7 +591,7 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
           </div>
           {loadMes && <div style={{ color: C.textMid, fontSize: 13 }}>Cargando citas del día…</div>}
           {!loadMes && accionPrincipalDoctora?.tipo === "vacio" && (
-            <p style={{ color: C.textMid, fontSize: 14, margin: 0 }}>No hay citas este día. Elegí otro en el calendario o en «Día anterior / siguiente».</p>
+            <p style={{ color: C.textMid, fontSize: 14, margin: 0 }}>No hay consultas este día. Pasá al día anterior o siguiente si necesitás un historial reciente.</p>
           )}
           {!loadMes && accionPrincipalDoctora?.tipo === "todo_ok" && (
             <p style={{ color: C.green, fontSize: 14, fontWeight: 700, margin: 0 }}>
@@ -813,7 +810,7 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
         </div>
       </Modal>
 
-      {vista === "mes" && (
+      {vista === "mes" && mode !== "doctora" && (
         <Box style={{ padding: 16 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
             <button
@@ -953,7 +950,7 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
               </Btn>
             </div>
           </div>
-          {diaSel < hoyISOMexico() && (
+          {diaSel < hoyISOMexico() && mode !== "doctora" && (
             <div
               style={{
                 marginBottom: 12,
@@ -969,6 +966,85 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
               Día pasado — historial de consultas; no se pueden agendar citas nuevas.
             </div>
           )}
+          {mode === "doctora" ? (
+            <div style={{ display: "grid", gap: 8 }}>
+              {loadMes && <div style={{ color: C.textMid, fontSize: 13 }}>Cargando consultas…</div>}
+              {!loadMes && !citasDiaOrdenadas.length && (
+                <div style={{ padding: 20, textAlign: "center", color: C.textMid, fontSize: 13, background: C.bg, borderRadius: 10, border: `1px solid ${C.border}` }}>
+                  Sin consultas este día.
+                </div>
+              )}
+              {citasDiaOrdenadas.map((ocupada) => {
+                const ev = etiquetaEstadoVisual(ocupada);
+                const focoAccion =
+                  accionPrincipalDoctora?.cita?.id != null &&
+                  Number(accionPrincipalDoctora.cita.id) === Number(ocupada.id);
+                const franja = franjaAgendaStyle(ocupada, { libre: false, focoAccion, C, BRAND });
+                return (
+                  <div
+                    key={ocupada.id}
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "minmax(0, 72px) 1fr",
+                      gap: 10,
+                      alignItems: "stretch",
+                      padding: 12,
+                      borderRadius: 10,
+                      background: franja.background,
+                      border: franja.border,
+                      boxShadow: franja.boxShadow,
+                    }}
+                  >
+                    <div style={{ fontWeight: 800, color: BRAND.primary, fontSize: 15 }}>{horaKey(ocupada.hora) || "—"}</div>
+                    <div>
+                      <div style={{ color: BRAND.primary, fontWeight: 700, fontSize: 15 }}>{ocupada.nombre}</div>
+                      <div style={{ fontSize: 12, color: C.textMid, marginTop: 4 }}>{ocupada.motivo || "Consulta"}</div>
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+                        <Tag col={ev.col} sm>{ev.label}</Tag>
+                        {(() => {
+                          const ep = labelEstadoPagoCita(ocupada);
+                          return <Tag col={ep.col} sm>{ep.label}</Tag>;
+                        })()}
+                        {ocupada.canal && (
+                          <Tag col={C.blue} sm>{labelCanal(ocupada)}</Tag>
+                        )}
+                      </div>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12, alignItems: "center" }}>
+                        {citaPagoOk(ocupada) &&
+                          ocupada.estado !== "completada" &&
+                          ocupada.estado !== "cancelada" &&
+                          ocupada.estado !== "no_asistio" &&
+                          ocupada.estado !== "en_consulta" && (
+                            <Btn
+                              sm
+                              col={BRAND.primary}
+                              dis={iniciandoCitaId === ocupada.id}
+                              onClick={() => iniciarConsultaDoctora(ocupada)}
+                            >
+                              {iniciandoCitaId === ocupada.id ? "Abriendo…" : "Entrar a consulta"}
+                            </Btn>
+                          )}
+                        {ocupada.estado === "en_consulta" && (
+                          <Btn sm col={BRAND.primary} onClick={() => continuarConsultaDoctora(ocupada)}>
+                            Continuar consulta
+                          </Btn>
+                        )}
+                        {(ocupada.estado === "completada" || ocupada.estado === "no_asistio") && (
+                          <Btn sm ol col={C.textMid} onClick={() => verResumenConsultaDoctora(ocupada)}>
+                            Ver resumen
+                          </Btn>
+                        )}
+                        {!citaPagoOk(ocupada) && ocupada.estado !== "completada" && ocupada.estado !== "cancelada" && (
+                          <span style={{ fontSize: 12, color: C.amber, fontWeight: 600 }}>Pendiente de pago en caja</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+          <>
           <div style={{ display: "grid", gap: 8 }}>
             {TODOS_HORARIOS_CITA.map((hora) => {
               const ocupada = citaPorHora[hora];
@@ -1100,9 +1176,6 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
           {!!citasDelDia.length && (
             <Box style={{ marginTop: 16, padding: 12, background: C.bg }}>
               <div style={{ fontSize: 11, fontWeight: 800, color: C.textDim, marginBottom: 4 }}>LISTA DEL DÍA</div>
-              {mode === "doctora" && (
-                <div style={{ fontSize: 10, color: C.textDim, marginBottom: 8 }}>Orden por hora · estado en cada turno</div>
-              )}
               <div style={{ display: "grid", gap: 8 }}>
                 {citasDelDia
                   .slice()
@@ -1118,6 +1191,8 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
                   ))}
               </div>
             </Box>
+          )}
+          </>
           )}
         </Box>
       )}

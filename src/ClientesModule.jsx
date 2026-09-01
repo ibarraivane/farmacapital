@@ -36,6 +36,10 @@ function Avatar({nombre, puntos, size=36 }) {
 
 function AgregarCliente({ onSaved, onCancel }) {
   const C = C_LIGHT;
+  const inputStyle = mkInputStyle(C);
+  const labelStyle = mkLabelStyle(C);
+  const btnSecondary = mkBtnSecondary(C);
+  const btnPrimary = mkBtnPrimary(C);
   const [form, setForm]     = useState({ nombre:"", telefono:"", email:"", notas:"" });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);

@@ -9,6 +9,7 @@ import { citaPagoOk, citaEstaPagada, labelEstadoPagoCita } from "../../utils/con
 import OnboardingTour from "../../components/OnboardingTour";
 import { FARMACIA_FISCAL } from "../../constants/farmaciaFiscal";
 import { Historial } from "./Historial";
+import { Paciente } from "./Paciente";
 import { hoyISOMexico } from "../../lib/fecha";
 
 const BRAND = { primary:"#0D1B2A", secondary:"#1E3ABA", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
@@ -102,7 +103,7 @@ function MedicoModal({ initial, onClose, onSaved }) {
   const labelStyle = mkLabelStyle(C);
   const btnSecondary = mkBtnSecondary(C);
   const btnPrimary = mkBtnPrimary(C);
-  const empty = { nombre:"", especialidad:"Medicina General", cedula:"", turno:"", modelo_pago:"porcentaje", monto_fijo:"", porcentaje:"70", activo:true };
+  const empty = { nombre:"", especialidad:"Medicina General", cedula:"", institucion:"", turno:"", modelo_pago:"porcentaje", monto_fijo:"", porcentaje:"70", activo:true };
   const [form, setForm] = useState(initial||empty);
   const [saving, setSaving] = useState(false);
   const set = (k,v) => setForm(f=>({...f,[k]:v}));
@@ -110,7 +111,7 @@ function MedicoModal({ initial, onClose, onSaved }) {
     if (!form.nombre.trim()) { showToast("El nombre del médico es requerido.", "warning"); return; }
     setSaving(true);
     try {
-      const payload = { nombre:form.nombre.trim(), especialidad:form.especialidad||"Medicina General", cedula:form.cedula.trim()||null, turno:form.turno.trim()||null, modelo_pago:form.modelo_pago, monto_fijo:parseFloat(form.monto_fijo)||0, porcentaje:parseFloat(form.porcentaje)||70, activo:form.activo };
+      const payload = { nombre:form.nombre.trim(), especialidad:form.especialidad||"Medicina General", cedula:form.cedula.trim()||null, institucion:form.institucion?.trim()||null, turno:form.turno.trim()||null, modelo_pago:form.modelo_pago, monto_fijo:parseFloat(form.monto_fijo)||0, porcentaje:parseFloat(form.porcentaje)||70, activo:form.activo };
       const tok = sessionStorage.getItem("farmacapital_session_token");
       const { error: err } = await supabase.rpc("admin_upsert_medico", {
         p_session_token: tok,
@@ -135,7 +136,8 @@ function MedicoModal({ initial, onClose, onSaved }) {
         <div style={{display:"grid",gridTemplateColumns:GRID_STACK_2COL,gap:"0 16px"}}>
           <div style={{marginBottom:12}}><label style={labelStyle}>NOMBRE *</label><input value={form.nombre} onChange={e=>set("nombre",e.target.value)} style={inputStyle}/></div>
           <div style={{marginBottom:12}}><label style={labelStyle}>ESPECIALIDAD</label><input value={form.especialidad} onChange={e=>set("especialidad",e.target.value)} style={inputStyle}/></div>
-          <div style={{marginBottom:12}}><label style={labelStyle}>CÉDULA PROFESIONAL</label><input value={form.cedula} onChange={e=>set("cedula",e.target.value)} style={inputStyle}/></div>
+          <div style={{marginBottom:12}}><label style={labelStyle}>CÉDULA PROFESIONAL *</label><input value={form.cedula} onChange={e=>set("cedula",e.target.value)} style={inputStyle} placeholder="Obligatoria para emitir receta"/></div>
+          <div style={{marginBottom:12}}><label style={labelStyle}>INSTITUCIÓN (título)</label><input value={form.institucion||""} onChange={e=>set("institucion",e.target.value)} placeholder="Universidad que expidió el título" style={inputStyle}/></div>
           <div style={{marginBottom:12}}><label style={labelStyle}>TURNO</label><input value={form.turno} onChange={e=>set("turno",e.target.value)} placeholder="Ej: Lun-Vie 9-14h" style={inputStyle}/></div>
           <div style={{marginBottom:12}}>
             <label style={labelStyle}>MODELO DE PAGO</label>

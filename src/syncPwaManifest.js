@@ -42,10 +42,11 @@ export function syncPwaManifestLink() {
  * Engancha pushState/replaceState/popstate para mantener el manifest alineado con la URL.
  */
 export function attachPwaManifestHistorySync() {
-  if (typeof window === "undefined" || typeof history === "undefined") return () => {};
+  if (typeof window === "undefined" || !window.history) return () => {};
 
   syncPwaManifestLink();
 
+  const hist = window.history;
   const wrap = (orig) =>
     function patched(...args) {
       const ret = orig.apply(this, args);
@@ -53,17 +54,17 @@ export function attachPwaManifestHistorySync() {
       return ret;
     };
 
-  const push = history.pushState;
-  const rep = history.replaceState;
-  history.pushState = wrap(push);
-  history.replaceState = wrap(rep);
+  const push = hist.pushState;
+  const rep = hist.replaceState;
+  hist.pushState = wrap(push);
+  hist.replaceState = wrap(rep);
 
   const onPop = () => syncPwaManifestLink();
   window.addEventListener("popstate", onPop);
 
   return () => {
-    history.pushState = push;
-    history.replaceState = rep;
+    hist.pushState = push;
+    hist.replaceState = rep;
     window.removeEventListener("popstate", onPop);
   };
 }
