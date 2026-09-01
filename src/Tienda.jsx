@@ -4630,7 +4630,7 @@ function TerminosPuntos({setPage}){
     <PaginaLegal titulo="⭐ Términos del Programa Puntos FarmaCapital" setPage={setPage}>
       {[
         ["¿Qué son los Puntos FarmaCapital?","Los Puntos FarmaCapital son un beneficio exclusivo para clientes registrados en la plataforma de FarmaCapital. No tienen valor monetario en efectivo y solo pueden canjearse bajo los términos aquí descritos."],
-        ["Acumulación de puntos","Se otorga 1 punto por cada $10 de compra en precio normal (no aplica en productos con descuento previo). Las consultas médicas otorgan 5 puntos. El registro nuevo otorga 10 puntos de bienvenida. Las compras en línea otorgan 1.5× puntos. En el mes de cumpleaños se otorga 2× puntos."],
+        ["Acumulación de puntos","Se otorga 1 punto por cada $10 de compra en precio normal (no aplica en productos con descuento previo). Las consultas médicas otorgan 5 puntos. Las compras en línea otorgan 1.5× puntos. En el mes de cumpleaños se otorga 2× puntos."],
         ["Canje de puntos","20 puntos = $10 de descuento en FarmaCapital. 50 puntos = envío gratis en compra en línea. 100 puntos = $50 de descuento. 160 puntos = consulta médica gratis. 200 puntos = producto gratis (sujeto a catálogo disponible). 1 punto equivale a $0.50 de valor de descuento."],
         ["Vigencia","Los puntos vencen a los 12 meses de inactividad en la cuenta. FarmaCapital se reserva el derecho de modificar las condiciones del programa con previo aviso de 30 días."],
         ["Restricciones","Los puntos no son transferibles entre cuentas, no se pueden convertir en efectivo, y no aplican en combinación con otras promociones salvo indicación expresa. FarmaCapital se reserva el derecho de cancelar cuentas o puntos obtenidos de forma fraudulenta."],
@@ -4707,7 +4707,7 @@ function Registro({setUser,setPage}){
             Creá tu cuenta para <strong style={{color:BRAND.primary}}>agendar tu cita médica</strong>.
           </p>
         ) : (
-          <p style={{color:C.mid,fontSize:14,marginBottom:28,textAlign:"center"}}>Regístrate y gana <strong style={{color:BRAND.accent}}>10 puntos de bienvenida ⭐</strong></p>
+          <p style={{color:C.mid,fontSize:14,marginBottom:28,textAlign:"center"}}>Creá tu cuenta para guardar pedidos, citas y puntos.</p>
         )}
         {enabledSocialProviders().length > 0 && (
           <SocialLoginButtons colors={C} onError={setError} disabled={creando} />
@@ -5963,39 +5963,10 @@ export default function TiendaFarmaCapital(){
   },[]);
   useCatalogoVivo(() => recargarProductosRef.current());
 
-  // Popup de bienvenida: solo en inicio, una vez por pestaña, si no hay sesión.
+  // Popup de bienvenida / incentivo de registro: apagado por ahora.
   useEffect(()=>{
-    if (user || page !== "home") return;
-    try { if (sessionStorage.getItem("farmacapital_popup_visto") === "1") return; } catch (_) { /* noop */ }
-    const t=setTimeout(()=>{setShowPopup(true);},2000);
-    return ()=>clearTimeout(t);
-  },[user, page]);
-
-  useEffect(()=>{
-    let cancelled = false;
-    const loadPopupBanner = ()=>{
-      supabase
-        .from("banners")
-        .select("*")
-        .eq("activo", true)
-        .eq("slot", "popup")
-        .order("orden")
-        .limit(1)
-        .then(({data, error})=>{
-          if (cancelled) return;
-          if (error) {
-            console.warn("[Tienda] popup banner:", error.message);
-            setPopupBanner(null);
-            return;
-          }
-          const row = Array.isArray(data) && data.length ? mapBannerFromRow(data[0]) : null;
-          setPopupBanner(row);
-        });
-    };
-    loadPopupBanner();
-    const onVis = ()=>{ if (document.visibilityState==="visible") loadPopupBanner(); };
-    document.addEventListener("visibilitychange", onVis);
-    return ()=>{ cancelled = true; document.removeEventListener("visibilitychange", onVis); };
+    setShowPopup(false);
+    setPopupBanner(null);
   },[]);
 
   useEffect(()=>{
@@ -6108,7 +6079,7 @@ export default function TiendaFarmaCapital(){
           </div>
         ):(
           <div style={{display:"flex",gap:12,justifyContent:"center"}}>
-            <Btn onClick={()=>setPage("registro")} col={BRAND.primary}>Crear cuenta y ganar puntos →</Btn>
+            <Btn onClick={()=>setPage("registro")} col={BRAND.primary}>Crear cuenta →</Btn>
             <Btn onClick={()=>setPage("login")} outline col={BRAND.primary}>Ya tengo cuenta</Btn>
           </div>
         )}
@@ -6116,7 +6087,7 @@ export default function TiendaFarmaCapital(){
       <div style={{background:C.white,borderRadius:16,border:`1px solid ${C.border}`,padding:28,marginBottom:20}}>
         <h2 style={{color:C.dark,fontSize:18,fontWeight:800,marginBottom:20}}>💰 ¿Cómo ganar puntos?</h2>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(100%,160px),1fr))",gap:14}}>
-          {[{icon:"🛒",t:"Compras farmacia",d:"1 punto / $10"},{icon:"💻",t:"Compras en línea",d:"1.5 puntos / $10"},{icon:"🏥",t:"Consulta médica",d:"5 puntos"},{icon:"🎂",t:"Mes cumpleaños",d:"2× puntos"},{icon:"👋",t:"Registro nuevo",d:"10 pts bienvenida"}].map(r=>(
+          {[{icon:"🛒",t:"Compras farmacia",d:"1 punto / $10"},{icon:"💻",t:"Compras en línea",d:"1.5 puntos / $10"},{icon:"🏥",t:"Consulta médica",d:"5 puntos"},{icon:"🎂",t:"Mes cumpleaños",d:"2× puntos"}].map(r=>(
             <div key={r.t} style={{background:"#FBFAF8",borderRadius:12,padding:16,textAlign:"center"}}>
               <div style={{fontSize:28,marginBottom:8}}>{r.icon}</div>
               <div style={{color:C.dark,fontWeight:700,fontSize:13,marginBottom:4}}>{r.t}</div>
