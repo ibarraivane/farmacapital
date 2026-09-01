@@ -7,6 +7,7 @@ const {
   extractUberWebhookDelivery,
   mapUberDeliveryStatus,
 } = require('../_lib/uberDirect');
+const handleUberDirectHttp = require('../_lib/uberDirectHttp');
 
 function normalizeSupabaseProjectUrl(url) {
   if (url == null || typeof url !== 'string') return url;
@@ -182,12 +183,17 @@ async function handleUberDirect(req, res, body) {
 }
 
 module.exports = async function handler(req, res) {
+  const typeEarly = String(getQuery(req).type || '').toLowerCase();
+  if (typeEarly === 'uber-api' || typeEarly === 'uber_api') {
+    return handleUberDirectHttp(req, res);
+  }
+
   if (!['POST', 'PUT'].includes(req.method)) {
     return res.status(405).json({ ok: false, error: 'method_not_allowed' });
   }
 
   const body = await safeJson(req);
-  const type = String(getQuery(req).type || body?.type || '').toLowerCase();
+  const type = String(typeEarly || body?.type || '').toLowerCase();
   if (type === 'rappi-order' || type === 'rappi_order') {
     return handleRappiOrder(req, res, body);
   }

@@ -4,7 +4,7 @@
  */
 "use strict";
 
-const uberDirectHandler = require("../api/logistics/uber-direct");
+const uberDirectHandler = require("../api/_lib/uberDirectHttp");
 
 function readJsonBody(req) {
   return new Promise((resolve) => {

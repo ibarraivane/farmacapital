@@ -1,11 +1,11 @@
 'use strict';
 
-const { applyRestrictiveCors } = require('../_lib/allowedOrigins');
+const { applyRestrictiveCors } = require('./allowedOrigins');
 const {
   getSupabaseAdminConfig,
   validateEmployeeSession,
   rpc,
-} = require('../_lib/supabaseAdmin');
+} = require('./supabaseAdmin');
 const {
   getUberDirectConfig,
   parseDireccionCheckout,
@@ -14,7 +14,7 @@ const {
   createUberDelivery,
   quoteChangedTooMuch,
   mapUberDeliveryStatus,
-} = require('../_lib/uberDirect');
+} = require('./uberDirect');
 
 function getQuery(req) {
   try {
