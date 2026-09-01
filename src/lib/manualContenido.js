@@ -356,8 +356,9 @@ export const TEMAS = [
     titulo: "Expedientes",
     resumen: "Historia clínica. No es inventario ni puntos de farmacia.",
     pasos: [
-      "Expedientes → busca al paciente.",
-      "Registra nota, receta clínica y seguimiento.",
+      "Expedientes → busca al paciente → Ver expediente.",
+      "Arriba ves alergias, un resumen y las gráficas de peso, talla, IMC y signos (cómo ha ido evolucionando).",
+      "Abajo está el historial de citas. Si abres una ficha, «Volver a citas» te regresa a ese expediente, no a la lista.",
       "La receta de mostrador (venta de medicamento) se cobra en el POS de farmacia, no aquí.",
     ],
   },

@@ -135,7 +135,7 @@ function getPlantilla(proc) {
 /**
  * Ficha clínica por cita: signos vitales, expediente, diagnóstico, medicamentos, receta surtida, procedimientos, consumibles.
  */
-export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSaved, readOnly = false }) {
+export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSaved, readOnly = false, closeLabel }) {
   const [vit, setVit] = useState(emptyVitals);
   const [exp, setExp] = useState(emptyExp);
   const [diagnostico, setDx] = useState("");
@@ -394,6 +394,7 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
         {readOnly && (
           <div style={{ background: C.blueDim, border: `1px solid ${C.blue}35`, borderRadius: 10, padding: 10, marginBottom: 14, color: C.blue, fontSize: 12, fontWeight: 700 }}>
             Solo lectura — expediente / historial. No se pueden guardar cambios.
+            {closeLabel ? " Al cerrar vuelves a las citas de este paciente." : ""}
           </div>
         )}
 
@@ -699,7 +700,7 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
 
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap", marginTop: 8 }}>
           <Btn ol col={C.textMid} onClick={onClose}>
-            Cerrar
+            {closeLabel || "Cerrar"}
           </Btn>
           {puedeEditar && (
             <>
