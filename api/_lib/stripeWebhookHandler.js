@@ -1,13 +1,13 @@
 'use strict';
 
 const Stripe = require('stripe');
-const { readRawBody } = require('../../_lib/supabaseAdmin');
-const { sendOrderNotifications } = require('../../_lib/orderNotifications');
+const { readRawBody } = require('./supabaseAdmin');
+const { sendOrderNotifications } = require('./orderNotifications');
 const {
   mapStripePaymentIntentStatus,
   stripeCentsToMxn,
   pedidoIdFromStripePaymentIntent,
-} = require('../../_lib/stripePaymentStatus');
+} = require('./stripePaymentStatus');
 
 function normalizeSupabaseProjectUrl(url) {
   if (url == null || typeof url !== 'string') return url;
@@ -16,7 +16,7 @@ function normalizeSupabaseProjectUrl(url) {
   return u;
 }
 
-async function handler(req, res) {
+async function stripeWebhookHandler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'method_not_allowed' });
 
   const STRIPE_SECRET_KEY = (process.env.STRIPE_SECRET_KEY || '').trim();
@@ -204,9 +204,4 @@ async function handler(req, res) {
   }
 }
 
-module.exports = handler;
-module.exports.config = {
-  api: {
-    bodyParser: false,
-  },
-};
+module.exports = { stripeWebhookHandler };

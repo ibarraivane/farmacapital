@@ -1,0 +1,18 @@
+---
+description: Tras cada push/deploy, verificar que Vercel y checks hayan quedado bien.
+alwaysApply: true
+---
+
+# Verificar deploy
+
+Cuando hagas `git push`, abras/actualices un PR, o el usuario hable de deploy/producción:
+
+1. **No des por bueno el deploy solo porque el push salió bien.** Revisa el resultado real.
+2. Suscríbete a CI de la rama (`subscribe_github_ci`) y, si hay PR, también a la PR. Al despertar, lee el estado actual con `gh pr checks` / statuses — no te fíes solo del texto de la notificación.
+3. Checklist mínimo:
+   - [ ] Checks de Vercel (`Vercel – farmacapital`, y `fc-deploy-inv` si aplica) en **success**
+   - [ ] Build local coherente si falló el deploy: `node scripts/check-api-syntax.js` (Hobby: **máx. 12** Serverless Functions en `api/**`; lo nuevo va en `api/_lib` + rewrite en `vercel.json`)
+   - [ ] Si el cambio toca pagos/CSP: confirma que `vercel.json` CSP permite lo necesario y que las rutas `/api/...` existen o están reescritas
+   - [ ] Si falló: baja logs (`npx vercel inspect <dpl_…> --logs` o el enlace del check), **arregla, commit, push** y vuelve a verificar
+4. **No digas “listo / desplegado”** hasta ver checks verdes, o explica con claridad qué falló y qué falta.
+5. Respeta también `no-perder-ui-produccion.mdc` antes de mergear a `main`.

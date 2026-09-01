@@ -1,6 +1,7 @@
 'use strict';
 
 const { isAllowedReturnBase } = require('../../_lib/allowedOrigins');
+const { stripeCreateIntentHandler } = require('../../_lib/stripeCreateIntentHandler');
 
 function normalizeSupabaseProjectUrl(url) {
   if (url == null || typeof url !== 'string') return url;
@@ -20,6 +21,10 @@ async function safeJson(req) {
 }
 
 module.exports = async function handler(req, res) {
+  const provider = String(req.query?.provider || req.query?.type || '').toLowerCase();
+  if (provider === 'stripe' || provider === 'stripe-create-intent') {
+    return stripeCreateIntentHandler(req, res);
+  }
   if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'method_not_allowed' });
 
   const MP_ACCESS_TOKEN = (process.env.MP_ACCESS_TOKEN || process.env.MERCADOPAGO_ACCESS_TOKEN || '').trim();

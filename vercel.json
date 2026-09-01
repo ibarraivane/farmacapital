@@ -178,6 +178,14 @@
       "destination": "/api/health?token=:token"
     },
     {
+      "source": "/api/payments/stripe/create-intent",
+      "destination": "/api/payments/mp/create-preference?provider=stripe"
+    },
+    {
+      "source": "/api/payments/stripe/webhook",
+      "destination": "/api/health?type=stripe-webhook"
+    },
+    {
       "source": "/((?!api/|static/|icons/|catalogo-propia/|brand/|manifest\\.json|service-worker\\.js|version\\.json|favicon\\.ico|asset-manifest\\.json|robots\\.txt).*)",
       "destination": "/index.html"
     }

@@ -1,8 +1,8 @@
 'use strict';
 
 const Stripe = require('stripe');
-const { loadOnlinePedidoForPayment } = require('../../_lib/loadOnlinePedidoForPayment');
-const { amountToStripeCents } = require('../../_lib/stripePaymentStatus');
+const { loadOnlinePedidoForPayment } = require('./loadOnlinePedidoForPayment');
+const { amountToStripeCents } = require('./stripePaymentStatus');
 
 function normalizeSupabaseProjectUrl(url) {
   if (url == null || typeof url !== 'string') return url;
@@ -21,7 +21,7 @@ async function safeJson(req) {
   }
 }
 
-module.exports = async function handler(req, res) {
+async function stripeCreateIntentHandler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'method_not_allowed' });
 
   const STRIPE_SECRET_KEY = (process.env.STRIPE_SECRET_KEY || '').trim();
@@ -154,3 +154,5 @@ module.exports = async function handler(req, res) {
     });
   }
 };
+
+module.exports = { stripeCreateIntentHandler };
