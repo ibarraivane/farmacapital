@@ -135,15 +135,19 @@ export function formatDestinoLabel({ calle, numero, colonia, cp } = {}) {
   return [street, col, zip.length === 5 ? zip : ""].filter(Boolean).join(", ");
 }
 
-/** Destino listo para cotizar: calle+número, colonia y CP. */
-export function isCheckoutDestinoListo({ calle, numero, colonia, cp } = {}) {
+/** Qué falta para cotizar: calle+número, colonia y CP. */
+export function checkoutDestinoFaltantes({ calle, numero, colonia, cp } = {}) {
+  const f = [];
   const street = composeCheckoutCalle(calle, numero);
-  return (
-    street.length >= 5 &&
-    checkoutNumeroOk(numero) &&
-    cleanCheckoutColonia(colonia).length >= 3 &&
-    String(cp || "").replace(/\D/g, "").length === 5
-  );
+  if (street.length < 5 || !checkoutNumeroOk(numero)) f.push("calle y número");
+  if (String(cp || "").replace(/\D/g, "").length !== 5) f.push("código postal");
+  if (cleanCheckoutColonia(colonia).length < 3) f.push("colonia");
+  return f;
+}
+
+/** Destino listo para cotizar: calle+número, colonia y CP. */
+export function isCheckoutDestinoListo(dest = {}) {
+  return checkoutDestinoFaltantes(dest).length === 0;
 }
 
 function coordsFromSug(sug) {

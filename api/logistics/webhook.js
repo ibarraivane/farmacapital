@@ -9,6 +9,7 @@ const {
 } = require('../_lib/uberDirect');
 const handleUberDirectHttp = require('../_lib/uberDirectHttp');
 const handleAddressSuggestHttp = require('../_lib/addressSuggestHttp');
+const handleAddressColoniasHttp = require('../_lib/addressColoniasHttp');
 
 function normalizeSupabaseProjectUrl(url) {
   if (url == null || typeof url !== 'string') return url;
@@ -192,6 +193,9 @@ module.exports = async function handler(req, res) {
   // (no crear api/address/*.js — Hobby de Vercel = máx. 12 Serverless Functions).
   if (typeEarly === 'address-suggest' || typeEarly === 'address_suggest') {
     return handleAddressSuggestHttp(req, res);
+  }
+  if (typeEarly === 'address-colonias' || typeEarly === 'address_colonias') {
+    return handleAddressColoniasHttp(req, res);
   }
 
   if (!['POST', 'PUT'].includes(req.method)) {

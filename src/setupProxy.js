@@ -1,11 +1,12 @@
 /**
  * En `npm start` CRA no ejecuta las funciones de /api.
- * Este proxy monta Uber Direct y el buscador de destino para probar en local.
+ * Este proxy monta Uber Direct, el buscador de destino y colonias por CP.
  */
 "use strict";
 
 const uberDirectHandler = require("../api/_lib/uberDirectHttp");
 const addressSuggestHandler = require("../api/_lib/addressSuggestHttp");
+const addressColoniasHandler = require("../api/_lib/addressColoniasHttp");
 const logisticsWebhook = require("../api/logistics/webhook");
 
 function readJsonBody(req) {
@@ -42,6 +43,7 @@ function mount(app, path, handler) {
 
 module.exports = function setupProxy(app) {
   mount(app, "/api/address/suggest", addressSuggestHandler);
+  mount(app, "/api/address/colonias", addressColoniasHandler);
   mount(app, "/api/logistics/webhook", logisticsWebhook);
   mount(app, "/api/logistics/uber-direct", uberDirectHandler);
 };

@@ -56,7 +56,9 @@ import {
   composeCheckoutCalle,
   checkoutNumeroOk,
   isCheckoutDestinoListo,
+  checkoutDestinoFaltantes,
 } from "./lib/checkoutAddress";
+import { checkoutAddressDraftKey } from "./lib/savedCheckoutAddresses";
 import {
   loadStoredCart,
   saveStoredCart,
@@ -111,13 +113,6 @@ function tiendaSumLotesByProduct(lotesRows) {
     m.set(pid, (m.get(pid) || 0) + add);
   }
   return m;
-}
-
-function checkoutAddressStorageKey(user) {
-  const id = user?.id != null ? String(user.id) : "";
-  const tel = user?.telefono ? String(user.telefono).replace(/\D/g, "") : "";
-  const suffix = id || tel || "guest";
-  return `farmacapital_checkout_address_${suffix}`;
 }
 
 /** Stock vendible: max(columna productos.stock, suma lotes) por si el trigger no sincronizó. */
@@ -3444,7 +3439,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",setEntrega
     };
     let merged = { ...fallback };
     try {
-      const raw = localStorage.getItem(checkoutAddressStorageKey(user));
+      const raw = localStorage.getItem(checkoutAddressDraftKey(user));
       if (raw) {
         const saved = JSON.parse(raw);
         const savedCalle = String(saved?.calle || "");
@@ -3478,7 +3473,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",setEntrega
       lng: Number.isFinite(Number(datos.lng)) ? Number(datos.lng) : null,
     };
     try {
-      localStorage.setItem(checkoutAddressStorageKey(user), JSON.stringify(payload));
+      localStorage.setItem(checkoutAddressDraftKey(user), JSON.stringify(payload));
     } catch (_) { /* noop */ }
   }, [datos.calle, datos.numero, datos.colonia, datos.cp, datos.referencia, datos.lat, datos.lng, user?.id, user?.telefono]);
 
@@ -3532,7 +3527,10 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",setEntrega
     if (!nombreOk) f.push("nombre completo (mín. 3 letras)");
     if (!telOk) f.push("teléfono de 10 dígitos");
     if (!emailOk) f.push("correo válido");
-    if (!direccionOk && tipoEntregaRpc === "envio") f.push("un destino (pulsa Usar esta dirección)");
+    if (!direccionOk && tipoEntregaRpc === "envio") {
+      const destFaltan = checkoutDestinoFaltantes(datos);
+      f.push(destFaltan.length ? destFaltan.join(", ") : "destino de entrega");
+    }
     return f;
   }, [nombreOk, telOk, emailOk, direccionOk, tipoEntregaRpc]);
 
@@ -3978,6 +3976,8 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",setEntrega
                         cp={datos.cp}
                         lat={datos.lat}
                         lng={datos.lng}
+                        referencia={datos.referencia}
+                        user={user}
                         inputStyle={tiendaFieldStyle({width:"100%",boxSizing:"border-box",fontSize:16})}
                         fieldStyle={tiendaFieldStyle({width:"100%",boxSizing:"border-box",fontSize:16})}
                         onConfirm={(next)=>setDatos((p)=>({...p, ...next}))}
