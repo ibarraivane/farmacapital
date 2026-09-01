@@ -17,6 +17,13 @@ beforeEach(() => {
   fetchColoniasByCp.mockResolvedValue({ ok: true, cp: "06700", colonias: ["Roma Norte"] });
 });
 
+test("sin calle ya muestra CP y colonia con placeholders de ejemplo", () => {
+  render(<DestinationPicker calle="" onConfirm={jest.fn()} />);
+  expect(screen.getByPlaceholderText(/ej\. tu calle y número/i)).toBeInTheDocument();
+  expect(screen.getByPlaceholderText(/ej\. 06700/i)).toBeInTheDocument();
+  expect(screen.getByPlaceholderText(/ej\. tu colonia/i)).toBeInTheDocument();
+});
+
 test("usa lo escrito aunque el mapa traiga otra calle", async () => {
   fetchAddressSuggestions.mockResolvedValue({
     ok: true,
@@ -36,8 +43,9 @@ test("usa lo escrito aunque el mapa traiga otra calle", async () => {
   const onConfirm = jest.fn();
   render(<DestinationPicker calle="" onConfirm={onConfirm} inputStyle={{}} />);
 
-  expect(screen.getByPlaceholderText(/insurgentes/i)).toBeInTheDocument();
-  expect(screen.queryByLabelText(/código postal/i)).not.toBeInTheDocument();
+  expect(screen.getByPlaceholderText(/ej\. tu calle y número/i)).toBeInTheDocument();
+  expect(screen.getByLabelText(/código postal/i)).toBeInTheDocument();
+  expect(screen.getByLabelText(/^colonia$/i)).toBeInTheDocument();
 
   fireEvent.change(screen.getByRole("combobox"), {
     target: { value: "Av Insurgentes Sur 300 roma norte 06700" },
@@ -72,7 +80,7 @@ test("con destino ya elegido muestra tarjeta, CP editable y colonia del CP", asy
   );
   expect(screen.getByText(/insurgentes sur 300/i)).toBeInTheDocument();
   expect(screen.getByRole("button", { name: /cambiar/i })).toBeInTheDocument();
-  expect(screen.queryByPlaceholderText(/insurgentes/i)).not.toBeInTheDocument();
+  expect(screen.queryByPlaceholderText(/ej\. tu calle y número/i)).not.toBeInTheDocument();
   expect(screen.getByLabelText(/código postal/i)).toHaveValue("06700");
   const colonia = await waitFor(() => {
     const el = screen.getByLabelText(/^colonia$/i);

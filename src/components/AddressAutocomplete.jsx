@@ -6,7 +6,7 @@ import {
   parseTypedMxAddress,
 } from "../lib/checkoutAddress";
 
-const DESTINO_PLACEHOLDER = "Av. Insurgentes Sur 300, Roma Norte";
+export const DESTINO_PLACEHOLDER = "Ej. tu calle y número";
 
 function typedFromQuery(q) {
   const p = parseTypedMxAddress(q);
@@ -57,6 +57,7 @@ export default function AddressAutocomplete({
   const [apiItems, setApiItems] = useState([]);
   const [active, setActive] = useState(-1);
   const skipSuggestRef = useRef(false);
+  const pickedRef = useRef(false);
 
   const items = useMemo(() => mergeSuggestions(value, apiItems), [value, apiItems]);
 
@@ -101,6 +102,7 @@ export default function AddressAutocomplete({
 
   const pick = (item) => {
     if (!item) return;
+    pickedRef.current = true;
     skipSuggestRef.current = true;
     setOpen(false);
     setApiItems([]);
@@ -133,9 +135,20 @@ export default function AddressAutocomplete({
         aria-expanded={open}
         aria-controls={listId}
         aria-autocomplete="list"
+        className="farmacapital-field-input"
         placeholder={placeholder}
-        onChange={(e) => onChange?.(e.target.value)}
+        onChange={(e) => {
+          pickedRef.current = false;
+          onChange?.(e.target.value);
+        }}
         onFocus={() => items.length && setOpen(true)}
+        onBlur={() => {
+          window.setTimeout(() => {
+            if (pickedRef.current) return;
+            const typed = typedFromQuery(value);
+            if (typed) pick(typed);
+          }, 180);
+        }}
         onKeyDown={onKeyDown}
         style={inputStyle}
       />

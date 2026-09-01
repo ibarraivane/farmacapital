@@ -3986,7 +3986,11 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",setEntrega
         <div style={{minWidth:0}}>
           {step===1&&(()=>{
             const necesitaDireccion = entrega !== "pickup";
-            const camposContacto = [["Nombre completo","nombre"],["Teléfono","tel"],["Correo electrónico","email"]];
+            const camposContacto = [
+              ["Nombre completo","nombre","Ej. tu nombre"],
+              ["Teléfono","tel","Ej. 55 1234 5678"],
+              ["Correo electrónico","email","Ej. tu@correo.com"],
+            ];
             const esInvitadoUI = !getClienteToken();
             return(
               <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}>
@@ -3999,10 +4003,10 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",setEntrega
                   <IconLabel Icon={ClipboardList} color={BRAND.primary} size={18}>Datos de contacto</IconLabel>
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:14,marginBottom:14}}>
-                  {camposContacto.map(([l,k])=>(
+                  {camposContacto.map(([l,k,ph])=>(
                     <div key={k} style={{gridColumn:!stack&&k==="email"?"1/-1":undefined}}>
                       <div style={{color:C.mid,fontSize:12,marginBottom:6,fontWeight:600}}>{l} <span style={{color:C.red}}>*</span></div>
-                      <Inp value={datos[k]} onChange={e=>setDatos(p=>({...p,[k]:e.target.value}))} placeholder={l} style={{width:"100%",boxSizing:"border-box",fontSize:16}}/>
+                      <Inp value={datos[k]} onChange={e=>setDatos(p=>({...p,[k]:e.target.value}))} placeholder={ph} style={{width:"100%",boxSizing:"border-box",fontSize:16}}/>
                     </div>
                   ))}
                 </div>
@@ -4035,7 +4039,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",setEntrega
                       <Inp
                         value={datos.referencia || ""}
                         onChange={e=>setDatos(p=>({...p, referencia:e.target.value}))}
-                        placeholder="Portón blanco, depto 4, entre calles…"
+                        placeholder="Ej. depto 4, portón blanco…"
                         style={{width:"100%",boxSizing:"border-box",fontSize:16}}
                       />
                     </div>
@@ -4045,7 +4049,13 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",setEntrega
                           <IconLabel Icon={Bike} color={BRAND.primary} size={15}>Envío Uber Direct</IconLabel>
                         </div>
                         {uberQuoteStatus==="loading"&&<div style={{fontSize:12,color:C.mid}}>Cotizando a tu destino…</div>}
-                        {uberQuoteStatus==="idle"&&<div style={{fontSize:12,color:C.mid}}>Elige un destino para ver el precio.</div>}
+                        {uberQuoteStatus==="idle"&&(
+                          <div style={{fontSize:12,color:C.mid}}>
+                            {checkoutDestinoFaltantes(datos).length
+                              ? `Para cotizar Uber completa: ${checkoutDestinoFaltantes(datos).join(", ")}.`
+                              : "Escribe tu calle, el CP y elige la colonia para ver el precio."}
+                          </div>
+                        )}
                         {uberQuoteStatus==="error"&&(
                           <div>
                             <div style={{fontSize:12,color:"#991b1b",lineHeight:1.45}}>
