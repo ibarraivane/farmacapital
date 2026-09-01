@@ -49,6 +49,7 @@ import {
 import { notifyCitaConfirmacion, formatTelefonoDisplay, formatCitaFecha } from "./utils/citaWhatsApp";
 import { fetchUberDirectQuote, attachUberDirectQuote, formatUberFee, formatUberEta, explainUberQuoteError } from "./lib/uberDirectClient";
 import AddressAutocomplete from "./components/AddressAutocomplete";
+import { cleanCheckoutColonia } from "./lib/checkoutAddress";
 import { FARMACIA_FISCAL } from "./constants/farmaciaFiscal";
 import { HORARIO_FARMACIA } from "./constants/turnos";
 import { validarPasswordTienda, PASSWORD_RULES_TEXT, PASSWORD_MIN_LENGTH } from "./utils/passwordPolicy";
@@ -3386,7 +3387,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
         merged = {
           ...merged,
           calle: String(saved?.calle || merged.calle || ""),
-          colonia: String(saved?.colonia || merged.colonia || ""),
+          colonia: cleanCheckoutColonia(saved?.colonia || merged.colonia || ""),
           cp: String(saved?.cp || merged.cp || ""),
           referencia: String(saved?.referencia || merged.referencia || ""),
         };
@@ -3398,7 +3399,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
   useEffect(() => {
     const payload = {
       calle: String(datos.calle || "").trim(),
-      colonia: String(datos.colonia || "").trim(),
+      colonia: cleanCheckoutColonia(datos.colonia || ""),
       cp: String(datos.cp || "").trim(),
       referencia: String(datos.referencia || "").trim(),
     };
@@ -3436,7 +3437,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
       setUberQuoteStatus("loading");
       const q = await fetchUberDirectQuote({
         calle: datos.calle,
-        colonia: datos.colonia,
+        colonia: cleanCheckoutColonia(datos.colonia),
         cp: datos.cp,
         referencia: datos.referencia,
         lat: datos.lat,
@@ -3939,6 +3940,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                               [k]:e.target.value,
                               ...(k==="colonia"||k==="cp"?{lat:null,lng:null}:{}),
                             }))}
+                            onBlur={k==="colonia" ? (e)=>setDatos(p=>({...p, colonia: cleanCheckoutColonia(e.target.value)})) : undefined}
                             placeholder={ph||l}
                             style={{width:"100%",boxSizing:"border-box",fontSize:16}}
                           />

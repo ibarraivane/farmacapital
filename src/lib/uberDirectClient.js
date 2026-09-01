@@ -14,6 +14,14 @@ export function explainUberQuoteError(err, detail) {
   if (blob.includes("invalid_dropoff")) {
     return "Falta calle, colonia o un CP de 5 dígitos.";
   }
+  if (
+    blob.includes("not in a deliverable area") ||
+    blob.includes("undeliverable") ||
+    blob.includes("outside of the delivery") ||
+    blob.includes("no delivery options")
+  ) {
+    return "Uber Direct no tiene cobertura para esta zona o la farmacia aún no está activada como punto de recolección en direct.uber.com. Mientras tanto elige pick-up.";
+  }
   if (blob.includes("uber_api_failed") || blob.includes("address") || blob.includes("geocod")) {
     return "Uber no pudo ubicar la dirección. Pon calle con número, solo la colonia (sin alcaldía) y una referencia (edificio, negocio).";
   }
