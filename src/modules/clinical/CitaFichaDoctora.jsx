@@ -321,7 +321,7 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
     } else {
       setProcSel([]);
     }
-  }, [cita?.id, cita]);
+  }, [cita]);
 
   useEffect(() => {
     if (open && cita?.id) reload();
