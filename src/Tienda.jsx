@@ -3690,7 +3690,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
             sub: totalSnap,
             productos: subSnap,
             envioFee: envioSnap,
-            ptsG: Math.floor(subSnap/10),
+            ptsG,
             lines: reconciled.map(c=>({ nombre:c.nombre, qty:c.qty, precio: ofertaDeProducto(c, mapaPromos.get(c.id)).oferta })),
             entregaUi: entrega,
             tipo_entrega,
