@@ -116,6 +116,14 @@ describe("resolverVentasAcumuladas", () => {
   test("sin datos queda en 0", () => {
     expect(resolverVentasAcumuladas({})).toBe(0);
   });
+
+  test("si todo falla usa el piso (ventas del mes de Operación)", () => {
+    expect(resolverVentasAcumuladas({
+      pedTodos: [],
+      ventasPorDia: {},
+      piso: 4200,
+    })).toBe(4200);
+  });
 });
 
 describe("gananciaNetaEstMes", () => {

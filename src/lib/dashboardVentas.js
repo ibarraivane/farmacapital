@@ -76,19 +76,23 @@ export function sumSeriePorDia(porDia) {
 
 /**
  * Ventas acumuladas para la pestaña Proyecto (barra de recuperación / payback).
- * Prefiere el SUM del servidor; si falta, cae a ped_todos o a la serie diaria del POS.
+ * Prefiere el SUM del servidor; si falta, cae a ped_todos, serie diaria del POS
+ * o un piso (p. ej. ventas del mes ya cargadas en Operación).
  */
 export function resolverVentasAcumuladas({
   ventasAcumuladasRpc,
   pedTodos,
   ventasPorDia,
+  piso = 0,
 } = {}) {
   const fromRpc = Number(ventasAcumuladasRpc);
   if (Number.isFinite(fromRpc) && fromRpc > 0) return fromRpc;
   const fromPedidos = sumPedidosTotal(pedTodos);
   if (fromPedidos > 0) return fromPedidos;
   const fromSerie = sumSeriePorDia(ventasPorDia);
-  return fromSerie > 0 ? fromSerie : 0;
+  if (fromSerie > 0) return fromSerie;
+  const floor = Number(piso) || 0;
+  return floor > 0 ? floor : 0;
 }
 
 /** Estimación operativa usada en Proyecto (misma que el subtítulo del KPI). */

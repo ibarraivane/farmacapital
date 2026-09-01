@@ -24,6 +24,7 @@ import {
   rangosDashboardMexico,
   resolverVentasAcumuladas,
   serieVentasDesdeRpc,
+  sumPedidosTotal,
   sumPorDiaYmd,
 } from "./lib/dashboardVentas";
 import { cargarConfigMetas, invalidarCacheMetas, mezclarCfgMetas } from "./utils/turnosMetas";
@@ -447,21 +448,21 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
     if (!Object.keys(ventasPorDia).length) {
       if (serieRes?.error) console.warn("[Dashboard] ventas serie:", serieRes.error.message);
       if (adminTok) {
-        const { data: raw90, error: err90 } = await supabase.rpc("empleado_listar_pedidos_transacciones", {
+        const { data: rawHist, error: errHist } = await supabase.rpc("empleado_listar_pedidos_transacciones", {
           p_session_token: adminTok,
-          p_created_desde: new Date(Date.now() - 92 * 86400000).toISOString(),
-          p_limite: 800,
+          p_created_desde: new Date(Date.now() - 800 * 86400000).toISOString(),
+          p_limite: 2000,
         });
-        if (err90) console.warn("[Dashboard] ventas serie fallback:", err90.message);
-        const rawOk = pedidosCompletados(raw90);
+        if (errHist) console.warn("[Dashboard] ventas serie fallback:", errHist.message);
+        const rawOk = pedidosCompletados(rawHist);
         ventasPorDia = agruparVentasPorDia(rawOk);
         ticketsPorDia = {};
         for (const p of rawOk) {
           const dia = ymdMexico(p.created_at);
           ticketsPorDia[dia] = (ticketsPorDia[dia] || 0) + 1;
         }
-        if (rawOk.length >= 800) {
-          console.warn("[Dashboard] serie fallback topó 800 tickets; corre sql/patch_dashboard_ventas_suma_20260830.sql");
+        if (rawOk.length >= 2000) {
+          console.warn("[Dashboard] serie fallback topó 2000 tickets; corre sql/patch_dashboard_ventas_suma_20260830.sql y patch_dashboard_proyecto_ventas_acum_20260901.sql");
         }
       }
     }
@@ -571,12 +572,22 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
     const ventasMes = tieneSerie ? ventasMesSerie : ventasMesPed;
     const totalPedMes = tieneSerie ? ticketsMesSerie : (pedMes || []).length;
     const ticketProm = totalPedMes > 0 ? ventasMes / totalPedMes : 0;
-    // Proyecto: mismas ventas del POS (SUM server → ped_todos → serie diaria).
-    const recuperado = resolverVentasAcumuladas({
+    // Proyecto: mismas ventas del POS (SUM server → ped_todos → serie → listar → piso mes).
+    let recuperado = resolverVentasAcumuladas({
       ventasAcumuladasRpc: acumJs.ventas_acumuladas ?? B.ventas_acumuladas,
       pedTodos,
       ventasPorDia,
+      piso: Math.max(ventasMes, sumPedidosTotal(pedMes), sumPedidosTotal(pedHoy)),
     });
+    if (recuperado <= 0 && adminTok) {
+      const { data: rawAcum, error: errAcumList } = await supabase.rpc("empleado_listar_pedidos_transacciones", {
+        p_session_token: adminTok,
+        p_created_desde: new Date("2024-01-01T00:00:00.000Z").toISOString(),
+        p_limite: 2000,
+      });
+      if (errAcumList) console.warn("[Dashboard] recuperado listar fallback:", errAcumList.message);
+      else recuperado = sumPedidosTotal(pedidosCompletados(rawAcum));
+    }
     const gananciaMes = gananciaNetaEstMes(ventasMes);
     const ventasMesAnt = tieneSerie ? ventasMesAntSerie : (pedMesAnt || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
     const ticketPromMesAnt = (tieneSerie ? ticketsMesAntSerie : (pedMesAnt || []).length) > 0
