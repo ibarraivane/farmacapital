@@ -83,7 +83,7 @@ export function mapUiEntregaToRpc(entregaUi) {
   return {
     tipo_entrega: "envio",
     order_channel: ORDER_CHANNEL.WEB_DELIVERY,
-    fulfillment_type: FULFILLMENT_TYPE.OWN_DELIVERY,
+    fulfillment_type: FULFILLMENT_TYPE.UBER_DIRECT,
     ui_entrega: u,
   };
 }

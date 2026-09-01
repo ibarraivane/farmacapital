@@ -59,10 +59,15 @@ export async function ingestUberEatsOrderPlaceholder(_payload) {
   };
 }
 
-/** Placeholder: solicitar recolección Uber Direct (requiere cuenta + OAuth/API). */
+/**
+ * Solicitar recolección Uber Direct.
+ * El navegador no lleva el secreto: usar POST /api/logistics/uber-direct
+ * `{ action: "create", pedidoId }` con sesión de empleado.
+ */
 export async function requestUberDirectDeliveryPlaceholder(_args) {
   return {
     ok: false,
-    error: "Uber Direct no configurado. Definir credenciales y flujo de cotización.",
+    error: "use_server",
+    hint: "POST /api/logistics/uber-direct action=create con UBER_DIRECT_CLIENT_SECRET. Cotización visible en checkout (la paga el comprador).",
   };
 }

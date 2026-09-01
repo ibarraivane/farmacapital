@@ -214,7 +214,7 @@ export function buildOnlineOrderReceiptMessage({
   const pickupNote =
     tipoEntrega === "recoger"
       ? `\n\n🏪 Muestra tu folio *${folio}* o menciona tu teléfono al llegar.\n📍 ${FARMACIA_MAPS_URL}`
-      : "\n\n📞 Te contactamos para coordinar tu entrega.";
+      : "\n\n🛵 Envío Uber Direct (lo pagaste en el checkout). Te mandamos el seguimiento cuando salga el motorizado.";
   const pagoTxt = metodoPago
     ? `\n💳 *Pago:* ${String(metodoPago).replace(/_/g, " ")}`
     : "";

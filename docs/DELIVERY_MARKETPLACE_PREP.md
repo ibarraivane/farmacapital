@@ -73,7 +73,7 @@ Campos lógicos (guardar en `logistics_meta` tras el patch):
 |---------|-----|--------|
 | Rappi marketplace | Disponibilidad (cola) + pedidos entrantes | SQL `patch_rappi_sync_20260819.sql` + `/api/webhooks/rappi-sync` y `/api/webhooks/rappi-order`. Worker inerte sin `RAPPI_*`. No inventar la URL: pide `RAPPI_API_BASE` al KAM. Hobby de Vercel no corre cron cada 2 min — usa Database Webhook o cron externo. |
 | Uber Eats | Idem | Stub `ingestUberEatsOrderPlaceholder` |
-| Uber Direct | Última milla desde tienda | Stub `requestUberDirectDeliveryPlaceholder` |
+| Uber Direct | Última milla desde tienda | Cotización + cobro al comprador en checkout; despacho al surtir en POS. API `/api/logistics/uber-direct`. Webhook `/api/logistics/webhook?type=uber-direct`. Requiere `UBER_DIRECT_CLIENT_SECRET` en Vercel. |
 
 Cola: trigger en `productos.stock` encola solo cambios de `disponible_rappi` (`stock − reserva_mostrador`, default 2) o cruce del umbral 5. El worker hace PATCH cuando hay URL. Pedido Rappi → RPC `ingest_rappi_order` (idempotente por `external_order_id` en `logistics_meta`). Panel: Inventario → Rappi.
 
@@ -99,6 +99,7 @@ Cola: trigger en `productos.stock` encola solo cambios de `disponible_rappi` (`s
 - Validación server-side de `controlado` en el mismo RPC que `requiere_receta`.
 - Estados intermedios (`preparing`, `courier_requested`) si el negocio los necesita en reportes.
 - Integraciones reales: API keys, webhooks, idempotencia, pruebas en sandbox.
+- **Uber Direct (en curso):** poner `UBER_DIRECT_CLIENT_SECRET` (y opcional webhook signing key) en Vercel. En [direct.uber.com](https://direct.uber.com) → Ubicaciones, cargar FarmaCapital (Radiodifusora 100). Webhook: `https://www.farmacapital.mx/api/logistics/webhook?type=uber-direct`. El comprador ve y paga la cotización en el checkout; el POS pide el Uber al surtir.
 - Rappi: ejecutar `sql/patch_rappi_sync_20260819.sql`; pedir al KAM `client_id` / `client_secret` / `store_id` y la URL de Disponibilidad; Database Webhook en `rappi_sync_queue` → `POST /api/webhooks/rappi-sync` con `CRON_SECRET`.
 
 ## 6. Build

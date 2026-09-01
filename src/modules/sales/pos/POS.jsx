@@ -68,6 +68,7 @@ import {
 } from "../../../utils/orderReceiptWhatsApp";
 import { formatTelefonoDisplay } from "../../../utils/citaWhatsApp";
 import { configRowsToMap, mergeFarmaciaConfig, FARMACIA_FISCAL } from "../../../constants/farmaciaFiscal";
+import { dispatchUberDirectDelivery } from "../../../lib/uberDirectClient";
 
 const PEDIDOS_TIENDA_SELECT_POS = `
             id,total,created_at,tipo,metodo_pago,estado,tipo_entrega,direccion,
@@ -1875,21 +1876,35 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       if (!resp?.success) throw new Error(resp?.error || "No se pudo surtir");
       setPedOn(p=>p.filter(x=>x.id!==pedido.id));
       setPedOnHist((prev) => [{ ...pedido, estado: "listo" }, ...prev.filter((x) => x.id !== pedido.id)].slice(0, 20));
+      let uberHint = "";
+      let uberOk = true;
+      if (pedido.tipo_entrega === "envio") {
+        const uber = await dispatchUberDirectDelivery({ pedidoId: pedido.id, sessionToken: tok });
+        uberOk = Boolean(uber.ok);
+        if (uber.ok) {
+          uberHint = uber.tracking_url ? " · Uber pedido (tracking listo)" : " · Uber pedido";
+        } else {
+          uberHint = " · Uber no se pudo pedir (reintenta)";
+        }
+      }
       const telCli = pedido.clientes?.telefono || pedido.guest_telefono;
       if (telCli) {
         const wa = await notifyOrderReady({ pedidoId: pedido.id, telefono: telCli });
         if (wa?.sent) {
-          showToast("Pedido listo · pase de recogida enviado por WhatsApp", "success");
+          showToast(
+            (pedido.tipo_entrega === "envio" ? "Pedido listo" : "Pedido listo · pase de recogida enviado por WhatsApp") + uberHint,
+            uberOk ? "success" : "warning"
+          );
         } else {
           const hint = formatWhatsAppSendError({
             reason: wa?.reason,
             detail: wa?.detail,
             telefono: telCli,
           });
-          showToast(hint || "Pedido listo (WhatsApp no enviado)", "warning");
+          showToast((hint || "Pedido listo (WhatsApp no enviado)") + uberHint, "warning");
         }
       } else {
-        showToast("Pedido marcado como listo", "success");
+        showToast("Pedido marcado como listo" + uberHint, uberOk ? "success" : "warning");
       }
     } catch(e) { console.error(e); }
     setGuard(false);
@@ -3355,9 +3370,24 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                         <div style={{color:C.text,fontWeight:700,fontSize:13}}>Pedido #{p.id} · {formatFolioOnline(p.id)}</div>
                         <div style={{color:C.textMid,fontSize:11,marginTop:2}}>{p.clientes?.nombre} · {new Date(p.created_at).toLocaleString("es-MX")}</div>
                       </div>
-                      <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                      <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
                         <Tag col={p.estado==="completado"?C.green:BRAND.accent} sm>{p.estado==="completado"?"Entregado":"Listo"}</Tag>
                         <span style={{color:C.blue,fontWeight:800,fontSize:13}}>{$(p.total)}</span>
+                        {p.tipo_entrega==="envio" && !p.delivery_tracking_url && (
+                          <Btn sm col={C.teal} dis={guardando} onClick={async()=>{
+                            const tokU = sessionStorage.getItem("farmacapital_session_token");
+                            const uber = await dispatchUberDirectDelivery({ pedidoId: p.id, sessionToken: tokU });
+                            if (uber.ok) {
+                              showToast(uber.tracking_url ? "Uber pedido · tracking listo" : "Uber pedido", "success");
+                              setPedOnHist((prev)=>prev.map((x)=>x.id===p.id ? { ...x, delivery_tracking_url: uber.tracking_url || x.delivery_tracking_url } : x));
+                            } else {
+                              showToast("No se pudo pedir Uber: " + (uber.detail || uber.error || "intenta de nuevo"), "warning");
+                            }
+                          }}>Pedir Uber</Btn>
+                        )}
+                        {p.delivery_tracking_url && (
+                          <a href={p.delivery_tracking_url} target="_blank" rel="noreferrer" style={{fontSize:11,fontWeight:700,color:C.blue}}>Tracking</a>
+                        )}
                       </div>
                     </div>
                   </Box>
