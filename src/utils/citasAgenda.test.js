@@ -40,3 +40,34 @@ describe("cancelar cita en caja", () => {
     expect(esCitaNoShow(cita, 10, now)).toBe(false);
   });
 });
+
+import {
+  horariosDisponiblesCita,
+  motivoSinHorariosCita,
+  normalizarHoraCita,
+  HORARIOS_CITA_SABADO,
+} from "./citasAgenda";
+
+describe("horarios disponibles consultorio", () => {
+  test("sin fecha no ofrece slots (hay que elegir día)", () => {
+    expect(horariosDisponiblesCita("")).toEqual([]);
+    expect(motivoSinHorariosCita("")).toMatch(/fecha/i);
+  });
+
+  test("domingo cerrado", () => {
+    // 2026-09-06 es domingo
+    expect(horariosDisponiblesCita("2026-09-06")).toEqual([]);
+    expect(motivoSinHorariosCita("2026-09-06")).toMatch(/Domingo/i);
+  });
+
+  test("sábado solo matutino", () => {
+    // 2026-09-05 es sábado
+    expect(horariosDisponiblesCita("2026-09-05")).toEqual(HORARIOS_CITA_SABADO);
+    expect(horariosDisponiblesCita("2026-09-05").some((h) => h > "14:00")).toBe(false);
+  });
+
+  test("normaliza hora con segundos", () => {
+    expect(normalizarHoraCita("09:00:00")).toBe("09:00");
+    expect(normalizarHoraCita("9:30")).toBe("09:30");
+  });
+});

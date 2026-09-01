@@ -29,8 +29,14 @@ export const FARMACIA_FISCAL = {
   inicio_operaciones: "2016-05-18",
   /** Listado oficial Google Maps — FarmaCapital */
   maps_url: "https://maps.app.goo.gl/qmSixa2qVSM5DD3QA",
+  /**
+   * Embed del mapa (OpenStreetMap): no requiere API key y pasa CSP.
+   * El botón “Abrir en Google Maps” sigue usando maps_url.
+   */
   maps_embed:
-    "https://www.google.com/maps?q=19.3714047,-99.0526916&hl=es&z=17&output=embed",
+    "https://www.openstreetmap.org/export/embed.html?bbox=-99.0576916%2C19.3664047%2C-99.0476916%2C19.3764047&layer=mapnik&marker=19.3714047%2C-99.0526916",
+  maps_lat: 19.3714047,
+  maps_lng: -99.0526916,
 };
 
 /** Claves en tabla `configuracion` (Supabase) */
