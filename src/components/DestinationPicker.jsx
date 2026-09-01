@@ -195,16 +195,17 @@ export default function DestinationPicker({
       </div>
     ) : null;
 
-  const cpColoniaFields = tieneCalle ? (
+  const cpColoniaFields = (
     <div style={{ display: "grid", gridTemplateColumns: "110px 1fr", gap: 10, marginTop: 10 }}>
       <div>
         <div style={{ color: "#64748b", fontSize: 12, marginBottom: 6, fontWeight: 600 }}>
           Código postal <span style={{ color: "#dc2626" }}>*</span>
         </div>
         <input
+          className="farmacapital-field-input"
           value={cp || ""}
           onChange={(e) => onCpChange?.(e.target.value.replace(/\D/g, "").slice(0, 5))}
-          placeholder="06700"
+          placeholder="Ej. 06700"
           inputMode="numeric"
           autoComplete="postal-code"
           maxLength={5}
@@ -218,6 +219,7 @@ export default function DestinationPicker({
         </div>
         {useSelect ? (
           <select
+            className="farmacapital-field-input farmacapital-field-select"
             value={selectValue}
             onChange={(e) => {
               const v = e.target.value;
@@ -226,9 +228,9 @@ export default function DestinationPicker({
             }}
             aria-label="Colonia"
             disabled={coloniasLoading}
-            style={{ ...fieldStyle, appearance: "auto" }}
+            style={{ ...fieldStyle, appearance: "auto", color: selectValue ? undefined : "#b8b0a6" }}
           >
-            <option value="">{coloniasLoading ? "Cargando…" : "Elige colonia"}</option>
+            <option value="">{coloniasLoading ? "Cargando…" : "Ej. elige tu colonia"}</option>
             {colonias.map((c) => (
               <option key={c} value={c}>
                 {c}
@@ -240,16 +242,17 @@ export default function DestinationPicker({
           </select>
         ) : (
           <input
+            className="farmacapital-field-input"
             value={colonia || ""}
             onChange={(e) => onColoniaChange?.(e.target.value)}
-            placeholder={coloniasLoading ? "Buscando colonias…" : "Elige o escribe la colonia"}
+            placeholder={coloniasLoading ? "Buscando colonias…" : "Ej. tu colonia"}
             aria-label="Colonia"
             style={fieldStyle}
           />
         )}
       </div>
     </div>
-  ) : null;
+  );
 
   const saveRow = listo ? (
     <div style={{ marginTop: 10 }}>
@@ -263,7 +266,8 @@ export default function DestinationPicker({
             setSaveName(e.target.value);
             setSaveMsg("");
           }}
-          placeholder="Nombre: Casa, Trabajo…"
+          className="farmacapital-field-input"
+          placeholder="Ej. Casa, Trabajo…"
           aria-label="Nombre de la dirección"
           style={{ ...fieldStyle, flex: 1 }}
         />
@@ -352,9 +356,10 @@ export default function DestinationPicker({
               Número exterior <span style={{ color: "#dc2626" }}>*</span>
             </div>
             <input
+              className="farmacapital-field-input"
               value={numero || ""}
               onChange={(e) => onNumeroChange?.(e.target.value)}
-              placeholder="Ej. 300"
+              placeholder="Ej. 12"
               inputMode="text"
               autoComplete="address-line2"
               style={fieldStyle}
@@ -374,9 +379,9 @@ export default function DestinationPicker({
         value={query}
         onChange={setQuery}
         onPick={pick}
-        placeholder="Av. Insurgentes Sur 300, Roma Norte"
         inputStyle={inputStyle}
       />
+      {cpColoniaFields}
     </div>
   );
 }
