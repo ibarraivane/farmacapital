@@ -75,7 +75,9 @@ import {
   X, ShoppingCart, Pill, Tag as TagIcon, Stethoscope, Star,
   MapPin, Clock, Phone, Mail, HelpCircle, FileText,
   LogIn, UserPlus, User, ChevronRight, Menu, Package,
-  Store, Bike, PackageCheck, Trophy, CreditCard, Search, Calendar
+  Store, Bike, PackageCheck, Trophy, CreditCard, Search, Calendar,
+  Gift, Truck, Cake, LogOut, Key, Trash2,
+  MessageCircle, Lock, ClipboardList, CircleCheck,
 } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════
@@ -357,6 +359,31 @@ const Btn=({children,onClick,col,outline,sm,full,disabled,style,type="button"})=
 const Tag=({children,col,sm})=>(
   <span style={{background:col+"18",color:col,border:`1px solid ${col}30`,borderRadius:20,padding:sm?"2px 8px":"4px 12px",fontSize:sm?10:12,fontWeight:700,whiteSpace:"nowrap",display:"inline-block"}}>{children}</span>
 );
+function TiendaIconWell({ Icon, size = 32, well = 64, color = BRAND.primary, radius = 18, mb = 16 }) {
+  return (
+    <div style={{
+      width: well,
+      height: well,
+      borderRadius: radius,
+      background: `${color}10`,
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: mb,
+      flexShrink: 0,
+    }}>
+      <Icon size={size} strokeWidth={1.75} color={color} aria-hidden />
+    </div>
+  );
+}
+function IconLabel({ Icon, children, color, size = 15, gap = 8, weight }) {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap, fontWeight: weight }}>
+      <Icon size={size} strokeWidth={1.75} color={color} aria-hidden />
+      {children}
+    </span>
+  );
+}
 const tiendaFieldStyle=(overrides={},invalid=false)=>({
   background:C.white,
   border:`1px solid ${invalid?C.red:C.border}`,
@@ -1957,7 +1984,7 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
           <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
             {agotado
               ? <Tag col={C.red}>Agotado</Tag>
-              : <Tag col={d==="inmediato"?BRAND.accent:"#f59e0b"}>{d==="inmediato"?"✓ Disponible hoy":"📦 24-48 hrs"}</Tag>
+              : <Tag col={d==="inmediato"?BRAND.accent:"#f59e0b"}>{d==="inmediato"?"Disponible hoy":"24-48 hrs"}</Tag>
             }
             {prod.tipo==="generico"&&<Tag col={BRAND.secondary}>Genérico</Tag>}
             {prod.requiere_receta&&<Tag col={C.red}>Requiere receta</Tag>}
@@ -1987,7 +2014,9 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
           )}
           {prod.requiere_receta&&(
             <div style={{background:C.red+"10",border:`1px solid ${C.red}30`,borderRadius:10,padding:"10px 14px",marginBottom:16}}>
-              <div style={{color:C.red,fontWeight:700,fontSize:13}}>⚕ Requiere receta médica. Se solicitará al entregar.</div>
+              <div style={{color:C.red,fontWeight:700,fontSize:13}}>
+                <IconLabel Icon={FileText} color={C.red} size={14}>Requiere receta médica. Se solicitará al entregar.</IconLabel>
+              </div>
             </div>
           )}
           {agotado&&(
@@ -2046,7 +2075,7 @@ function Footer({setPage}){
           <p style={{color:"rgba(255,255,255,.6)",fontSize:13,lineHeight:1.7,marginBottom:16}}>Tu farmacia de confianza en Chinampac de Juárez. Medicamentos genéricos y de marca certificados por COFEPRIS.</p>
           <div style={{color:"rgba(255,255,255,.5)",fontSize:12,marginBottom:8}}>{CONTACTO.direccion}</div>
           <a href={CONTACTO.maps_url} target="_blank" rel="noopener noreferrer" style={{color:"rgba(255,255,255,.75)",fontSize:12,fontWeight:700,textDecoration:"none"}}>
-            📍 Ver en Google Maps →
+            <IconLabel Icon={MapPin} color="rgba(255,255,255,.75)" size={13}>Ver en Google Maps →</IconLabel>
           </a>
         </div>
         {/* Atención a clientes */}
@@ -3200,10 +3229,21 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
     return {...c,qty:Math.min(next,max)};
   }));
   const rm=id=>setCart(p=>p.filter(c=>c.id!==id));
-  if(!cart.length) return(<div style={{maxWidth:600,margin:"80px auto",padding:"0 24px",textAlign:"center"}}><div style={{fontSize:64,marginBottom:16}}>🛒</div><h2 style={{color:C.dark,fontSize:24,fontWeight:800,marginBottom:16}}>Carrito vacío</h2><Btn onClick={()=>setPage("catalogo",{rx:false})} col={BRAND.primary}>Ver catálogo</Btn></div>);
+  if(!cart.length) return(
+    <div style={{maxWidth:600,margin:"80px auto",padding:"0 24px",textAlign:"center"}}>
+      <div style={{width:64,height:64,borderRadius:18,background:BRAND.primary+"10",display:"inline-flex",alignItems:"center",justifyContent:"center",marginBottom:16}}>
+        <ShoppingCart size={32} strokeWidth={1.75} color={BRAND.primary} aria-hidden />
+      </div>
+      <h2 style={{color:C.dark,fontSize:24,fontWeight:800,marginBottom:16}}>Carrito vacío</h2>
+      <Btn onClick={()=>setPage("catalogo",{rx:false})} col={BRAND.primary}>Ver catálogo</Btn>
+    </div>
+  );
   return(
     <div style={{maxWidth:1100,margin:"0 auto",padding:"clamp(20px,4vw,32px) 16px"}}>
-      <h1 style={{color:C.dark,fontSize:"clamp(22px,5vw,26px)",fontWeight:800,marginBottom:24}}>🛒 Tu carrito</h1>
+      <h1 style={{color:C.dark,fontSize:"clamp(22px,5vw,26px)",fontWeight:800,marginBottom:24,display:"flex",alignItems:"center",gap:10}}>
+        <ShoppingCart size={24} strokeWidth={2} color={BRAND.primary} aria-hidden />
+        Tu carrito
+      </h1>
       <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr min(340px, 100%)",gap:24,alignItems:"start"}}>
         <div style={{minWidth:0}}>
           {cart.map(item=>{
@@ -3214,7 +3254,7 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
                 {lineImg ? (
                   <img src={lineImg} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
                 ) : (
-                  <span style={{fontSize:28}}>💊</span>
+                  <Pill size={24} strokeWidth={1.75} color={BRAND.primary} aria-hidden />
                 )}
               </div>
               <div style={{flex:1}}><div style={{color:C.dark,fontWeight:700,fontSize:15}}>{item.nombre}</div><div style={{color:C.dim,fontSize:11,marginTop:4}}>+{labelPts(ptsGana(cobroDe(item)))}</div></div>
@@ -3230,7 +3270,7 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
                     <div style={{color:BRAND.primary,fontWeight:800,fontSize:13,marginTop:4}}>{$(cobroDe(item))}</div>
                   )}
                 </div>
-                <button type="button" onClick={()=>rm(item.id)} style={{background:"none",border:"none",color:C.dim,cursor:"pointer",fontSize:18}}>🗑️</button>
+                <button type="button" aria-label="Quitar del carrito" onClick={()=>rm(item.id)} style={{background:"none",border:"none",color:C.dim,cursor:"pointer",padding:4,display:"inline-flex"}}><Trash2 size={18} strokeWidth={1.75} aria-hidden /></button>
               </div>
             </div>
           );})}
@@ -3239,21 +3279,26 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
         <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:24,position:stack?"relative":"sticky",top:"calc(env(safe-area-inset-top, 0px) + 100px)"}}>
           <div style={{color:C.dark,fontWeight:800,fontSize:16,marginBottom:14}}>Tipo de entrega</div>
           <div role="radiogroup" aria-label="Tipo de entrega">
-          {[["pickup","🏪 Pick-up en FarmaCapital","Gratis · Mismo día"],["cdmx","🛵 Reparto CDMX","Uber Direct · Lo pagas en el checkout"]].map(([v,l,s])=>(
+          {[{id:"pickup",label:"Pick-up en FarmaCapital",sub:"Gratis · Mismo día",Icon:Store},{id:"cdmx",label:"Reparto CDMX",sub:"Uber Direct · Lo pagas en el checkout",Icon:Bike}].map(({id,label,sub,Icon})=>(
             <button
-              key={v}
+              key={id}
               type="button"
               role="radio"
-              aria-checked={entrega===v}
-              onClick={()=>setEntrega(v)}
-              style={{width:"100%",textAlign:"left",padding:"12px 14px",borderRadius:10,border:`2px solid ${entrega===v?BRAND.primary:C.border}`,background:entrega===v?BRAND.primary+"18":C.white,cursor:"pointer",marginBottom:8}}
+              aria-checked={entrega===id}
+              onClick={()=>setEntrega(id)}
+              style={{width:"100%",textAlign:"left",padding:"12px 14px",borderRadius:10,border:`2px solid ${entrega===id?BRAND.primary:C.border}`,background:entrega===id?BRAND.primary+"18":C.white,cursor:"pointer",marginBottom:8,display:"flex",alignItems:"center",gap:12}}
             >
-              <div style={{color:entrega===v?BRAND.primary:C.dark,fontWeight:700,fontSize:14}}>{l}</div>
-              <div style={{color:C.dim,fontSize:12,marginTop:2}}>{s}</div>
+              <div style={{width:36,height:36,borderRadius:10,background:entrega===id?BRAND.primary+"20":"#FBFAF8",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                <Icon size={18} strokeWidth={1.75} color={entrega===id?BRAND.primary:C.mid} aria-hidden />
+              </div>
+              <div style={{minWidth:0}}>
+                <div style={{color:entrega===id?BRAND.primary:C.dark,fontWeight:700,fontSize:14}}>{label}</div>
+                <div style={{color:C.dim,fontSize:12,marginTop:2}}>{sub}</div>
+              </div>
             </button>
           ))}
           </div>
-          {entrega==="cdmx"&&(<div style={{background:"#fef3c7",border:"1px solid #f59e0b30",borderRadius:8,padding:"10px 12px",marginBottom:8}}><div style={{color:"#92400e",fontSize:12}}>🛵 En el checkout verás el precio de Uber Direct (tú lo pagas). El motorizado recoge en FarmaCapital y lleva tu pedido a domicilio.</div></div>)}
+          {entrega==="cdmx"&&(<div style={{background:"#fef3c7",border:"1px solid #f59e0b30",borderRadius:8,padding:"10px 12px",marginBottom:8}}><div style={{color:"#92400e",fontSize:12,display:"flex",alignItems:"flex-start",gap:8}}><Bike size={14} strokeWidth={1.75} color="#92400e" aria-hidden style={{marginTop:2,flexShrink:0}}/>En el checkout verás el precio de Uber Direct (tú lo pagas). El motorizado recoge en FarmaCapital y lleva tu pedido a domicilio.</div></div>)}
           {entrega==="cdmx"&&(
             <div style={{background:"#EAF0FB",border:`1px solid ${BRAND.secondary}35`,borderRadius:8,padding:"10px 12px",marginBottom:8}}>
               <div style={{color:BRAND.primary,fontSize:11,lineHeight:1.45}}>
@@ -3275,10 +3320,14 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
           })()}
           <div style={{borderTop:`1px solid ${C.border}`,paddingTop:14,marginTop:8,marginBottom:14}}>
             <div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:C.dark,fontWeight:800,fontSize:16}}>Total</span><span style={{color:BRAND.primary,fontWeight:900,fontSize:22}}>{$(sub)}</span></div>
-            <div style={{color:"#92400e",fontSize:12,fontWeight:700,marginTop:6}}>⭐ +{labelPts(Math.floor(sub/10))}</div>
+            <div style={{color:"#92400e",fontSize:12,fontWeight:700,marginTop:6}}>
+              <IconLabel Icon={Star} color="#92400e" size={13}>+{labelPts(Math.floor(sub/10))}</IconLabel>
+            </div>
           </div>
           <Btn onClick={()=>setPage("checkout")} col={BRAND.primary} full>Proceder al pago →</Btn>
-          <div style={{color:C.dim,fontSize:11,textAlign:"center",marginTop:10}}>🔒 Pago 100% seguro · SSL</div>
+          <div style={{color:C.dim,fontSize:11,textAlign:"center",marginTop:10}}>
+            <IconLabel Icon={Lock} color={C.dim} size={12}>Pago 100% seguro · SSL</IconLabel>
+          </div>
         </div>
       </div>
     </div>
@@ -3835,10 +3884,10 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",setEntrega
       : lastOrder.envioFee
         ? `Ya pagaste el envío Uber Direct (${formatUberFee(lastOrder.envioFee)}). Cuando el pedido esté listo, un motorizado lo recoge en FarmaCapital. Te mandamos el seguimiento por WhatsApp.`
         : "Cuando el pedido esté listo pedimos un Uber Direct. Te mandamos el seguimiento por WhatsApp.";
-    const iconoEntrega = esPickup ? "🏪" : "🛵";
+    const IconoEntrega = esPickup ? Store : Bike;
     return(
       <div style={{maxWidth:560,margin:"clamp(32px,10vw,72px) auto",padding:"0 16px",textAlign:"center"}}>
-        <div style={{fontSize:"clamp(48px,14vw,68px)",marginBottom:12}}>✅</div>
+        <TiendaIconWell Icon={CircleCheck} color={BRAND.accent} />
         <h1 style={{color:C.dark,fontSize:"clamp(20px,5vw,26px)",fontWeight:800,marginBottom:8,lineHeight:1.2}}>¡Pedido confirmado!</h1>
         {folio&&(
           <div style={{background:BRAND.primary,borderRadius:14,padding:"18px 24px",margin:"18px 0",display:"inline-block",minWidth:200}}>
@@ -3848,15 +3897,18 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",setEntrega
         )}
         <div style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:12,padding:"16px 20px",marginBottom:16,textAlign:"left"}}>
           <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
-            <span style={{fontSize:24,flexShrink:0}}>{iconoEntrega}</span>
+            <div style={{width:40,height:40,borderRadius:10,background:BRAND.primary+"10",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+              <IconoEntrega size={20} strokeWidth={1.75} color={BRAND.primary} aria-hidden />
+            </div>
             <div>
               <div style={{color:C.dark,fontWeight:700,fontSize:14,marginBottom:4}}>
                 {esPickup?"Pick-up en FarmaCapital":"Reparto CDMX · Uber Direct"}
               </div>
               <div style={{color:C.mid,fontSize:13,lineHeight:1.5}}>{instruccionEntrega}</div>
               {esPickup && (
-                <a href={CONTACTO.maps_url} target="_blank" rel="noopener noreferrer" style={{display:"inline-block",marginTop:8,color:BRAND.primary,fontWeight:700,fontSize:13,textDecoration:"none"}}>
-                  📍 Cómo llegar (Google Maps) →
+                <a href={CONTACTO.maps_url} target="_blank" rel="noopener noreferrer" style={{display:"inline-flex",alignItems:"center",gap:6,marginTop:8,color:BRAND.primary,fontWeight:700,fontSize:13,textDecoration:"none"}}>
+                  <MapPin size={14} strokeWidth={1.75} aria-hidden />
+                  Cómo llegar (Google Maps) →
                 </a>
               )}
             </div>
@@ -3880,13 +3932,16 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",setEntrega
           <Btn onClick={()=>setPage("home")} col={BRAND.primary}>Ir al inicio</Btn>
           {user&&<Btn onClick={()=>setPage("cuenta")} outline col={BRAND.primary}>Ver mis pedidos</Btn>}
           {lastOrder.datosTel && (
-            <Btn onClick={reenviarReciboWhatsApp} outline col="#25D366">💬 Contactar por WhatsApp</Btn>
+            <Btn onClick={reenviarReciboWhatsApp} outline col="#25D366" style={{display:"inline-flex",alignItems:"center",gap:8}}>
+              <MessageCircle size={16} strokeWidth={1.75} aria-hidden />
+              Contactar por WhatsApp
+            </Btn>
           )}
         </div>
         <div style={{background:"#f0fdf4",border:"1px solid #86efac",borderRadius:10,padding:"12px 16px",fontSize:13,color:"#166534",lineHeight:1.6}}>
           {lastOrder.whatsappRecibo !== false ? (
             <>
-              📱 Enviaremos el recibo a <strong>{lastOrder.datosTel}</strong> por WhatsApp desde la farmacia ({FARMACIA_WHATSAPP_DISPLAY}).
+              Enviaremos el recibo a <strong>{lastOrder.datosTel}</strong> por WhatsApp desde la farmacia ({FARMACIA_WHATSAPP_DISPLAY}).
               {" "}Si no lo recibes en unos minutos, usa el botón de arriba o escríbenos con tu folio {folio}.
             </>
           ) : (
@@ -3940,7 +3995,9 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",setEntrega
                     Compra como invitado · no necesitas cuenta.
                   </div>
                 )}
-                <div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:18}}>📋 Datos de contacto</div>
+                <div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:18}}>
+                  <IconLabel Icon={ClipboardList} color={BRAND.primary} size={18}>Datos de contacto</IconLabel>
+                </div>
                 <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:14,marginBottom:14}}>
                   {camposContacto.map(([l,k])=>(
                     <div key={k} style={{gridColumn:!stack&&k==="email"?"1/-1":undefined}}>
@@ -3952,7 +4009,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",setEntrega
                 {necesitaDireccion&&(
                   <>
                     <div style={{color:C.dark,fontWeight:700,fontSize:15,margin:"4px 0 14px",paddingTop:14,borderTop:`1px solid ${C.border}`}}>
-                      📍 Dirección de entrega
+                      <IconLabel Icon={MapPin} color={BRAND.primary} size={16}>Dirección de entrega</IconLabel>
                     </div>
                     <div style={{marginBottom:14}}>
                       <div style={{color:C.mid,fontSize:12,marginBottom:6,fontWeight:600}}>¿A dónde entregamos? <span style={{color:C.red}}>*</span></div>
@@ -3984,7 +4041,9 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",setEntrega
                     </div>
                     {entrega==="cdmx"&&(
                       <div style={{marginTop:12,padding:"10px 12px",borderRadius:8,border:`1px solid ${uberQuoteStatus==="ok"?"#86efac":uberQuoteStatus==="error"?"#fca5a5":C.border}`,background:uberQuoteStatus==="ok"?"#f0fdf4":uberQuoteStatus==="error"?"#fef2f2":C.bg}}>
-                        <div style={{color:C.dark,fontWeight:700,fontSize:13,marginBottom:4}}>🛵 Envío Uber Direct</div>
+                        <div style={{color:C.dark,fontWeight:700,fontSize:13,marginBottom:4}}>
+                          <IconLabel Icon={Bike} color={BRAND.primary} size={15}>Envío Uber Direct</IconLabel>
+                        </div>
                         {uberQuoteStatus==="loading"&&<div style={{fontSize:12,color:C.mid}}>Cotizando a tu destino…</div>}
                         {uberQuoteStatus==="idle"&&<div style={{fontSize:12,color:C.mid}}>Elige un destino para ver el precio.</div>}
                         {uberQuoteStatus==="error"&&(
@@ -4275,16 +4334,18 @@ function AgendarCita({setPage,user}){
   if (!getClienteToken()) return null;
   if(conf) return(
     <div style={{maxWidth:500,margin:"clamp(40px,12vw,80px) auto",padding:"0 16px",textAlign:"center"}}>
-      <div style={{fontSize:"clamp(48px,14vw,64px)",marginBottom:16}}>📅</div>
+      <div style={{width:64,height:64,borderRadius:18,background:BRAND.primary+"10",display:"inline-flex",alignItems:"center",justifyContent:"center",marginBottom:16}}>
+        <Calendar size={32} strokeWidth={1.75} color={BRAND.primary} aria-hidden />
+      </div>
       <h1 style={{color:C.dark,fontSize:"clamp(22px,5vw,26px)",fontWeight:800,marginBottom:16,lineHeight:1.2}}>¡Cita confirmada!</h1>
       {waStatus === "sending" && (
         <p style={{color:C.mid,marginBottom:24,fontSize:"clamp(14px,3.5vw,16px)",lineHeight:1.5}}>
-          📲 Enviando confirmación a tu WhatsApp…
+          Enviando confirmación a tu WhatsApp…
         </p>
       )}
       {waStatus === "sent" && (
         <p style={{color:C.mid,marginBottom:24,fontSize:"clamp(14px,3.5vw,16px)",lineHeight:1.5}}>
-          ✅ Confirmación enviada a <strong style={{color:C.text}}>{formatTelefonoDisplay(tel || user?.telefono)}</strong> por WhatsApp.
+          Confirmación enviada a <strong style={{color:C.text}}>{formatTelefonoDisplay(tel || user?.telefono)}</strong> por WhatsApp.
           <br />
           <span style={{fontSize:14,color:C.textMid}}>Te recordaremos 24 hrs antes de tu cita.</span>
         </p>
@@ -4296,7 +4357,7 @@ function AgendarCita({setPage,user}){
             : "Tu cita quedó registrada. Te contactaremos por WhatsApp desde la farmacia."}
           <br />
           <span style={{fontSize:14,color:C.textMid}}>
-            🗓 {formatCitaFecha(fecha) || fecha} · 🕐 {hora}
+            {formatCitaFecha(fecha) || fecha} · {hora}
             {citaId ? ` · #CITA-${String(citaId).padStart(4, "0")}` : ""}
           </span>
         </p>
@@ -4316,7 +4377,10 @@ function AgendarCita({setPage,user}){
           col="#25D366"
           sm
         >
-          💬 Escribir a la farmacia
+          <span style={{display:"inline-flex",alignItems:"center",gap:8}}>
+            <MessageCircle size={16} strokeWidth={1.75} aria-hidden />
+            Escribir a la farmacia
+          </span>
         </Btn>
       )}
     </div>
@@ -4324,7 +4388,7 @@ function AgendarCita({setPage,user}){
   return(
     <div style={{maxWidth:900,margin:"0 auto",padding:"clamp(24px,5vw,40px) 16px"}}>
       <div style={{textAlign:"center",marginBottom:32}}>
-        <div style={{fontSize:"clamp(40px,11vw,48px)",marginBottom:12}}>🏥</div>
+        <TiendaIconWell Icon={Stethoscope} />
         <h1 style={{color:C.dark,fontSize:"clamp(22px,5vw,28px)",fontWeight:800,marginBottom:8,lineHeight:1.2}}>Consultorio FarmaCapital</h1>
         <p style={{color:C.mid,fontSize:"clamp(14px,3.5vw,15px)",lineHeight:1.5}}>Médico general · $80 por consulta (pago en farmacia el día de la cita) · O gratis con 160 puntos FarmaCapital</p>
       </div>
@@ -4332,7 +4396,9 @@ function AgendarCita({setPage,user}){
         {/* Info doctora */}
         <div style={{background:C.white,borderRadius:16,border:`1px solid ${C.border}`,padding:24}}>
           <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:16}}>
-            <div style={{width:56,height:56,borderRadius:"50%",background:BRAND.gradient,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28}}>👩‍⚕️</div>
+            <div style={{width:56,height:56,borderRadius:"50%",background:BRAND.gradient,display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <Stethoscope size={26} strokeWidth={1.75} color="#fff" aria-hidden />
+            </div>
             <div><div style={{color:C.dark,fontWeight:800,fontSize:16}}>Médico general en turno</div><div style={{color:C.mid,fontSize:13,marginTop:2}}>Consultorio adyacente a FarmaCapital</div></div>
           </div>
           <div style={{display:"grid",gap:10,marginBottom:16}}>
@@ -4344,13 +4410,18 @@ function AgendarCita({setPage,user}){
             ))}
           </div>
           <div style={{background:"#fef3c7",border:"1px solid #f59e0b30",borderRadius:8,padding:"10px 12px"}}>
-            <div style={{color:"#92400e",fontSize:12}}>💊 Surte tu receta en FarmaCapital con <strong>10% de descuento especial</strong> tras tu consulta.</div>
+            <div style={{color:"#92400e",fontSize:12,display:"flex",alignItems:"flex-start",gap:8}}>
+              <Pill size={14} strokeWidth={1.75} color="#92400e" aria-hidden style={{marginTop:1,flexShrink:0}}/>
+              <span>Surte tu receta en FarmaCapital con <strong>10% de descuento especial</strong> tras tu consulta.</span>
+            </div>
           </div>
         </div>
         {/* Mapa */}
         <div style={{background:C.white,borderRadius:16,border:`1px solid ${C.border}`,overflow:"hidden"}}>
           <div style={{padding:"16px 20px",borderBottom:`1px solid ${C.border}`}}>
-            <div style={{color:C.dark,fontWeight:700,fontSize:14}}>📍 Cómo llegar</div>
+            <div style={{color:C.dark,fontWeight:700,fontSize:14}}>
+              <IconLabel Icon={MapPin} color={BRAND.primary} size={15}>Cómo llegar</IconLabel>
+            </div>
             <div style={{color:C.mid,fontSize:12,marginTop:4}}>{CONTACTO.direccion}</div>
           </div>
           <iframe
@@ -4366,7 +4437,7 @@ function AgendarCita({setPage,user}){
           <div style={{padding:"12px 16px"}}>
             <a href={CONTACTO.maps_url} target="_blank" rel="noopener noreferrer"
               style={{color:BRAND.primary,fontSize:13,fontWeight:700,textDecoration:"none"}}>
-              📱 Abrir en Google Maps →
+              <IconLabel Icon={MapPin} color={BRAND.primary} size={14}>Abrir en Google Maps →</IconLabel>
             </a>
           </div>
         </div>
@@ -4448,7 +4519,7 @@ function AgendarCita({setPage,user}){
           </div>
           <div style={{gridColumn:stack?undefined:"1/-1"}}><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Motivo de consulta (opcional)</div><Inp value={motivo} onChange={e=>setMotivo(e.target.value)} placeholder="Ej: revisión general, control de presión..." style={{width:"100%",boxSizing:"border-box"}}/></div>
         </div>
-        <Btn onClick={confirmar} col={BRAND.primary} full disabled={!nombre?.trim()||!telefonoMxValido(tel)||!nombreCompletoPacienteValido(nombre)||!fecha||!hora||guardando}>{guardando?"Guardando...":"📅 Confirmar cita"}</Btn>
+        <Btn onClick={confirmar} col={BRAND.primary} full disabled={!nombre?.trim()||!telefonoMxValido(tel)||!nombreCompletoPacienteValido(nombre)||!fecha||!hora||guardando}>{guardando?"Guardando...":"Confirmar cita"}</Btn>
       </div>
     </div>
   );
@@ -4495,7 +4566,7 @@ function PromocionesPage({setPage}){
                 </span>
               </div>
               {p.descripcion&&<p style={{color:C.mid,fontSize:13,margin:0,lineHeight:1.5}}>{p.descripcion}</p>}
-              {p.fecha_fin&&<div style={{color:C.dim,fontSize:11}}>⏰ Válido hasta: {p.fecha_fin}</div>}
+              {p.fecha_fin&&<div style={{color:C.dim,fontSize:11}}><IconLabel Icon={Clock} color={C.dim} size={12}>Válido hasta: {p.fecha_fin}</IconLabel></div>}
               <Btn onClick={()=>setPage("catalogo",{rx:false})} col={BRAND.primary} sm style={{marginTop:4}}>Ver productos →</Btn>
             </div>
           ))}
@@ -4512,7 +4583,7 @@ function FAQPage({setPage}){
   return(
     <div style={{maxWidth:800,margin:"0 auto",padding:"clamp(24px,5vw,40px) 16px"}}>
       <div style={{textAlign:"center",marginBottom:32}}>
-        <div style={{fontSize:"clamp(40px,12vw,48px)",marginBottom:12}}>❓</div>
+        <TiendaIconWell Icon={HelpCircle} />
         <h1 style={{color:C.dark,fontSize:"clamp(22px,5vw,28px)",fontWeight:800,marginBottom:8,lineHeight:1.2}}>Preguntas frecuentes</h1>
         <p style={{color:C.mid,fontSize:"clamp(14px,3.5vw,15px)",lineHeight:1.5}}>Todo lo que necesitas saber sobre FarmaCapital</p>
       </div>
@@ -4535,8 +4606,12 @@ function FAQPage({setPage}){
         <div style={{color:C.dark,fontWeight:700,fontSize:"clamp(15px,3.8vw,16px)",marginBottom:8}}>¿No encontraste tu respuesta?</div>
         <div style={{color:C.mid,fontSize:"clamp(13px,3.2vw,14px)",marginBottom:16,lineHeight:1.5}}>Escríbenos y te respondemos a la brevedad.</div>
         <div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap"}}>
-          <a href="mailto:contacto@farmacapital.mx" style={{color:BRAND.primary,fontWeight:700,fontSize:14,textDecoration:"none"}}>📧 contacto@farmacapital.mx</a>
-          <a href={CONTACTO.whatsapp_link} target="_blank" rel="noopener noreferrer" style={{color:"#25D366",fontWeight:700,fontSize:14,textDecoration:"none"}}>💬 WhatsApp {CONTACTO.whatsapp_display}</a>
+          <a href="mailto:contacto@farmacapital.mx" style={{color:BRAND.primary,fontWeight:700,fontSize:14,textDecoration:"none"}}>
+            <IconLabel Icon={Mail} color={BRAND.primary} size={15}>contacto@farmacapital.mx</IconLabel>
+          </a>
+          <a href={CONTACTO.whatsapp_link} target="_blank" rel="noopener noreferrer" style={{color:"#25D366",fontWeight:700,fontSize:14,textDecoration:"none"}}>
+            <IconLabel Icon={MessageCircle} color="#25D366" size={15}>WhatsApp {CONTACTO.whatsapp_display}</IconLabel>
+          </a>
         </div>
       </div>
     </div>
@@ -4561,7 +4636,7 @@ function PaginaLegal({titulo,children,setPage}){
 function AvisoPrivacidad({setPage}){
   const C = useTheme();
   return(
-    <PaginaLegal titulo="📄 Aviso de Privacidad" setPage={setPage}>
+    <PaginaLegal titulo="Aviso de Privacidad" setPage={setPage}>
       <p style={{color:C.dark,fontWeight:700,marginBottom:16}}>De conformidad con la Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP) y su Reglamento, FarmaCapital pone a su disposición el presente Aviso de Privacidad.</p>
       {[
         ["1. Responsable del tratamiento de sus datos","Luis Angel Palillero Ventura (RFC PAVL911030NC8), operando bajo el nombre comercial FarmaCapital, con domicilio en Radiodifusora 100, Chinampac de Juárez, Iztapalapa, Ciudad de México, C.P. 09208, es responsable del uso y protección de sus datos personales."],
@@ -4583,7 +4658,7 @@ function AvisoPrivacidad({setPage}){
 function TerminosCondiciones({setPage}){
   const C = useTheme();
   return(
-    <PaginaLegal titulo="📋 Términos y Condiciones" setPage={setPage}>
+    <PaginaLegal titulo="Términos y Condiciones" setPage={setPage}>
       {[
         ["1. Aceptación","Al utilizar la plataforma de FarmaCapital, el usuario acepta los presentes Términos y Condiciones. Si no está de acuerdo, le pedimos que no utilice nuestros servicios."],
         ["2. Productos y precios","Los precios mostrados en la plataforma incluyen IVA y están sujetos a disponibilidad. FarmaCapital se reserva el derecho de modificar precios sin previo aviso, respetando siempre el precio vigente al momento de confirmar el pedido."],
@@ -4605,7 +4680,7 @@ function TerminosCondiciones({setPage}){
 function PoliticaEnvios({setPage}){
   const C = useTheme();
   return(
-    <PaginaLegal titulo="📦 Política de Envíos y Devoluciones" setPage={setPage}>
+    <PaginaLegal titulo="Política de Envíos y Devoluciones" setPage={setPage}>
       {[
         ["Tipos de entrega disponibles","• Pick-up en FarmaCapital: Gratis. Disponible el mismo día. Te avisamos cuando tu pedido esté listo.\n• Reparto express CDMX: solo Uber Direct. El costo y el tiempo se muestran en el checkout y los paga el comprador. Un motorizado de Uber recoge en la farmacia.\n• Rappi no es un envío de esta página: los pedidos Rappi se hacen en la app de Rappi."],
         ["Política de devoluciones","Aceptamos devoluciones dentro de las 72 horas siguientes a la entrega, siempre que el producto esté en perfecto estado, sin abrir y con su empaque original. No se aceptan devoluciones de: medicamentos controlados, productos refrigerados, ni artículos de uso personal."],
@@ -4625,7 +4700,7 @@ function PoliticaEnvios({setPage}){
 function TerminosPuntos({setPage}){
   const C = useTheme();
   return(
-    <PaginaLegal titulo="⭐ Términos del Programa Puntos FarmaCapital" setPage={setPage}>
+    <PaginaLegal titulo="Términos del Programa Puntos FarmaCapital" setPage={setPage}>
       {[
         ["¿Qué son los Puntos FarmaCapital?","Los Puntos FarmaCapital son un beneficio exclusivo para clientes registrados en la plataforma de FarmaCapital. No tienen valor monetario en efectivo y solo pueden canjearse bajo los términos aquí descritos."],
         ["Acumulación de puntos","Se otorga 1 punto por cada $10 de compra en precio normal (no aplica en productos con descuento previo). Las consultas médicas otorgan 5 puntos. Las compras en línea otorgan 1.5× puntos. En el mes de cumpleaños se otorga 2× puntos."],
@@ -4800,7 +4875,7 @@ function RestablecerPassword({ token, setPage }) {
         setGuardando(false);
         return;
       }
-      setMsg({ ok: true, txt: "✅ Contraseña actualizada. Ya puedes iniciar sesión." });
+      setMsg({ ok: true, txt: "Contraseña actualizada. Ya puedes iniciar sesión." });
       setTimeout(() => {
         try {
           const u = new URL(window.location.href);
@@ -4892,7 +4967,7 @@ function AuthCallback({ setUser, setPage }) {
           setMsg("");
           return;
         }
-        setMsg(result.created ? "Cuenta lista. Bienvenido/a ⭐" : "¡Listo! Entrando…");
+        setMsg(result.created ? "Cuenta lista. Bienvenido/a." : "¡Listo! Entrando…");
         setTimeout(() => {
           if (!cancelled) setPage(consumePostLoginPage() || "cuenta");
         }, 500);
@@ -5233,7 +5308,7 @@ function CambiarPwdCliente({user}) {
       });
       if (err) throw err;
       if (!resp?.success) { setMsg({ok:false,txt:resp?.error || "No se pudo cambiar"}); setCarg(false); return; }
-      setMsg({ok:true,txt:"✅ Contraseña cambiada correctamente"});
+      setMsg({ok:true,txt:"Contraseña cambiada correctamente"});
       setPwdA(""); setPwdN(""); setPwdN2("");
     } catch(e) { setMsg({ok:false,txt:"Error: "+e.message}); }
     setCarg(false);
@@ -5467,7 +5542,18 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
     }),
     [recompras, productos]
   );
-  if(!user) return(<div style={{maxWidth:500,margin:"80px auto",padding:"0 24px",textAlign:"center"}}><div style={{fontSize:48,marginBottom:16}}>👤</div><h2 style={{color:C.dark,fontSize:22,fontWeight:800,marginBottom:16}}>Inicia sesión para ver tu cuenta</h2><div style={{display:"flex",gap:12,justifyContent:"center"}}><Btn onClick={()=>setPage("login")} col={BRAND.primary}>Iniciar sesión</Btn><Btn onClick={()=>setPage("registro")} outline col={BRAND.primary}>Crear cuenta</Btn></div></div>);
+  if(!user) return(
+    <div style={{maxWidth:500,margin:"80px auto",padding:"0 24px",textAlign:"center"}}>
+      <div style={{width:56,height:56,borderRadius:16,background:BRAND.primary+"10",display:"inline-flex",alignItems:"center",justifyContent:"center",marginBottom:16}}>
+        <User size={28} strokeWidth={1.75} color={BRAND.primary} aria-hidden />
+      </div>
+      <h2 style={{color:C.dark,fontSize:22,fontWeight:800,marginBottom:16}}>Inicia sesión para ver tu cuenta</h2>
+      <div style={{display:"flex",gap:12,justifyContent:"center"}}>
+        <Btn onClick={()=>setPage("login")} col={BRAND.primary}>Iniciar sesión</Btn>
+        <Btn onClick={()=>setPage("registro")} outline col={BRAND.primary}>Crear cuenta</Btn>
+      </div>
+    </div>
+  );
   const eCol=e=>({pendiente:"#f59e0b",confirmado:BRAND.accent,entregado:BRAND.primary,cancelado:C.red}[e]||C.mid);
   const citaPuedeGestionar = (c) =>
     c &&
@@ -5475,6 +5561,12 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
     c.estado !== "completada" &&
     c.estado !== "no_asistio" &&
     c.estado !== "en_consulta";
+  const cuentaTabs = [
+    { id: "pedidos", label: "Pedidos", Icon: Package },
+    { id: "citas", label: "Citas", Icon: Calendar },
+    { id: "canjear", label: "Canjear", Icon: Star },
+    { id: "datos", label: "Mis datos", Icon: User },
+  ];
   return(
     <div style={{maxWidth:900,margin:"0 auto",padding:"32px 24px"}}>
       <div style={{background:BRAND.gradient,borderRadius:16,padding:28,marginBottom:24,display:"flex",alignItems:"center",gap:20}}>
@@ -5482,16 +5574,64 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
         <div style={{flex:1}}><div style={{color:C.white,fontWeight:800,fontSize:22}}>{saludoUsuario(user.nombre)}</div><div style={{color:"rgba(255,255,255,.8)",fontSize:14,marginTop:2}}>{user.telefono}</div></div>
         <div style={{textAlign:"center"}}><div style={{color:"#ffaa00",fontWeight:900,fontSize:36}}>{user.puntos||0}</div><div style={{color:"rgba(255,255,255,.8)",fontSize:13}}>puntos FarmaCapital</div><div style={{color:"rgba(255,255,255,.6)",fontSize:11}}>= ${((user.puntos||0)*0.5).toFixed(0)} en descuentos</div></div>
       </div>
-      <div style={{display:"flex",gap:6,marginBottom:20,background:C.white,borderRadius:12,padding:6,border:`1px solid ${C.border}`}}>
-        {[["pedidos","📦 Mis pedidos"],["citas","📅 Mis citas"],["canjear","⭐ Canjear"],["datos","👤 Mis datos"]].map(([v,l])=>(
-          <button key={v} onClick={()=>setTab(v)} style={{flex:1,padding:"10px",borderRadius:8,border:"none",background:tab===v?BRAND.primary:"transparent",color:tab===v?C.white:C.mid,fontWeight:tab===v?700:500,cursor:"pointer",fontSize:13,transition:"all .15s"}}>{l}</button>
-        ))}
-      </div>
+      <nav
+        aria-label="Secciones de mi cuenta"
+        style={{
+          display:"grid",
+          gridTemplateColumns:"repeat(4,minmax(0,1fr))",
+          gap:4,
+          marginBottom:20,
+          background:C.white,
+          borderRadius:14,
+          padding:6,
+          border:`1px solid ${C.border}`,
+        }}
+      >
+        {cuentaTabs.map(({ id, label, Icon }) => {
+          const active = tab === id;
+          return (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setTab(id)}
+              aria-current={active ? "page" : undefined}
+              style={{
+                display:"flex",
+                flexDirection:"column",
+                alignItems:"center",
+                justifyContent:"center",
+                gap:6,
+                minHeight:64,
+                padding:"10px 6px",
+                borderRadius:10,
+                border:"none",
+                background: active ? BRAND.primary + "12" : "transparent",
+                color: active ? BRAND.primary : C.mid,
+                boxShadow: active ? `inset 0 -2px 0 ${BRAND.primary}` : "none",
+                fontWeight: active ? 700 : 500,
+                cursor:"pointer",
+                fontSize:11,
+                lineHeight:1.2,
+                transition:"background .15s, color .15s",
+              }}
+            >
+              <Icon size={20} strokeWidth={active ? 2.25 : 1.75} aria-hidden />
+              <span>{label}</span>
+            </button>
+          );
+        })}
+      </nav>
       {tab==="pedidos" && (
         cargando ? (
           <div style={{textAlign:"center",padding:40,color:C.mid}}>Cargando pedidos...</div>
         ) : !pedidos.length ? (
-          <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:40,textAlign:"center"}}><div style={{fontSize:40,marginBottom:12}}>📦</div><div style={{color:C.mid,fontSize:15}}>Aún no tienes pedidos en FarmaCapital</div><Btn onClick={()=>setPage("catalogo",{rx:false})} col={BRAND.primary} sm style={{marginTop:16}}>Hacer mi primer pedido</Btn></div>
+          <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:40,textAlign:"center"}}>
+            <div style={{width:52,height:52,borderRadius:14,background:BRAND.primary+"10",display:"inline-flex",alignItems:"center",justifyContent:"center",marginBottom:14}}>
+              <Package size={26} strokeWidth={1.75} color={BRAND.primary} aria-hidden />
+            </div>
+            <div style={{color:C.mid,fontSize:15}}>Aún no tienes pedidos en FarmaCapital</div>
+            <Btn onClick={()=>setPage("catalogo",{rx:false})} col={BRAND.primary} sm style={{marginTop:16}}>Hacer mi primer pedido</Btn>
+          </div>
         ) : (
           <div>
             {addToCart ? (
@@ -5559,7 +5699,13 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
         )
       )}
       {tab==="citas"&&(cargando?<div style={{textAlign:"center",padding:40,color:C.mid}}>Cargando citas...</div>:!citas.length?(
-        <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:40,textAlign:"center"}}><div style={{fontSize:40,marginBottom:12}}>📅</div><div style={{color:C.mid,fontSize:15}}>No tienes citas agendadas</div><Btn onClick={()=>navigateToCita(setPage)} col={BRAND.primary} sm style={{marginTop:16}}>Agendar consulta médica</Btn></div>
+        <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:40,textAlign:"center"}}>
+          <div style={{width:52,height:52,borderRadius:14,background:BRAND.primary+"10",display:"inline-flex",alignItems:"center",justifyContent:"center",marginBottom:14}}>
+            <Calendar size={26} strokeWidth={1.75} color={BRAND.primary} aria-hidden />
+          </div>
+          <div style={{color:C.mid,fontSize:15}}>No tienes citas agendadas</div>
+          <Btn onClick={()=>navigateToCita(setPage)} col={BRAND.primary} sm style={{marginTop:16}}>Agendar consulta médica</Btn>
+        </div>
       ):citas.map(c=>{
         const ev = etiquetaEstadoCitaCliente(c);
         const pagoEv = labelEstadoPagoCita(c);
@@ -5569,7 +5715,7 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
         return (
         <div key={c.id} style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:20,marginBottom:12}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
-            <div><div style={{color:C.dark,fontWeight:700,fontSize:15}}>📅 Consulta médica</div><div style={{color:BRAND.primary,fontWeight:700,fontSize:14,marginTop:4}}>{c.fecha} · {c.hora} hrs</div></div>
+            <div><div style={{color:C.dark,fontWeight:700,fontSize:15,display:"flex",alignItems:"center",gap:8}}><Stethoscope size={16} strokeWidth={2} color={BRAND.primary} aria-hidden />Consulta médica</div><div style={{color:BRAND.primary,fontWeight:700,fontSize:14,marginTop:4}}>{c.fecha} · {c.hora} hrs</div></div>
             <div style={{display:"flex",flexDirection:"column",gap:6,alignItems:"flex-end"}}>
               <Tag col={ev.col} sm>{ev.label}</Tag>
               {c.estado !== "completada" && c.estado !== "cancelada" && c.estado !== "no_asistio" && (
@@ -5618,14 +5764,14 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
       {tab==="canjear"&&(
         <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:24}}>
           <div style={{color:C.dark,fontWeight:700,fontSize:16,marginBottom:16}}>Tienes {user.puntos||0} puntos = ${((user.puntos||0)*0.5).toFixed(0)} en valor</div>
-          {[{pts:20,ben:"$10 descuento en FarmaCapital",col:BRAND.accent,icon:"💊"},{pts:50,ben:"Envío gratis",col:BRAND.secondary,icon:"📦"},{pts:100,ben:"$50 descuento",col:BRAND.primary,icon:"🎁"},{pts:160,ben:"Consulta médica gratis",col:"#f59e0b",icon:"🏥"},{pts:200,ben:"Producto gratis",col:C.red,icon:"⭐"}].map(r=>(
-            <div key={r.pts} style={{display:"flex",alignItems:"center",gap:14,padding:16,borderRadius:12,border:`1px solid ${(user.puntos||0)>=r.pts?r.col+"40":C.border}`,background:(user.puntos||0)>=r.pts?r.col+"08":C.cardDark,marginBottom:10}}>
-              <div style={{fontSize:28}}>{r.icon}</div>
-              <div style={{flex:1}}><div style={{color:C.dark,fontWeight:700,fontSize:14}}>{r.ben}</div><div style={{color:r.col,fontSize:12,fontWeight:700,marginTop:2}}>{r.pts} puntos</div></div>
-              <Btn sm col={r.col} disabled={(user.puntos||0)<r.pts} onClick={async()=>{
-                if ((user.puntos||0)<r.pts) return;
-                const reward = canjePorPuntos(r.pts) || { pts: r.pts, ben: r.ben, tipo: "descuento" };
-                if (reward.tipo === "consulta" || r.pts === 160) {
+          {[{pts:20,ben:"$10 descuento en FarmaCapital",col:BRAND.accent,Icon:Pill},{pts:50,ben:"Envío gratis",col:BRAND.secondary,Icon:Truck},{pts:100,ben:"$50 descuento",col:BRAND.primary,Icon:Gift},{pts:160,ben:"Consulta médica gratis",col:"#f59e0b",Icon:Stethoscope},{pts:200,ben:"Producto gratis",col:C.red,Icon:Star}].map(({pts,ben,col,Icon})=>(
+            <div key={pts} style={{display:"flex",alignItems:"center",gap:14,padding:16,borderRadius:12,border:`1px solid ${(user.puntos||0)>=pts?col+"40":C.border}`,background:(user.puntos||0)>=pts?col+"08":C.cardDark,marginBottom:10}}>
+              <div style={{width:40,height:40,borderRadius:10,background:col+"15",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Icon size={20} strokeWidth={1.75} color={col} aria-hidden /></div>
+              <div style={{flex:1}}><div style={{color:C.dark,fontWeight:700,fontSize:14}}>{ben}</div><div style={{color:col,fontSize:12,fontWeight:700,marginTop:2}}>{pts} puntos</div></div>
+              <Btn sm col={col} disabled={(user.puntos||0)<pts} onClick={async()=>{
+                if ((user.puntos||0)<pts) return;
+                const reward = canjePorPuntos(pts) || { pts, ben, tipo: "descuento" };
+                if (reward.tipo === "consulta" || pts === 160) {
                   try { sessionStorage.setItem("farmacapital_consulta_puntos", "1"); } catch (_) { /* noop */ }
                   navigateToCita(setPage);
                   return;
@@ -5636,13 +5782,13 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
                   try {
                     const { data } = await supabase.rpc("cliente_canjear_puntos_tienda", {
                       p_session_token: tok,
-                      p_puntos: r.pts,
+                      p_puntos: pts,
                     });
                     if (data?.success) {
                       codigo = data.codigo;
                       const nextPts = Number(data.puntos);
                       setUser((u) => {
-                        const nu = { ...(u || {}), puntos: Number.isFinite(nextPts) ? nextPts : Math.max(0, (u?.puntos || 0) - r.pts) };
+                        const nu = { ...(u || {}), puntos: Number.isFinite(nextPts) ? nextPts : Math.max(0, (u?.puntos || 0) - pts) };
                         try { localStorage.setItem("farmacapital_user", JSON.stringify(nu)); } catch (_) { /* noop */ }
                         return nu;
                       });
@@ -5651,16 +5797,16 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
                     console.warn("[Canje] RPC:", e);
                   }
                 }
-                guardarCanjeActivo({ ...reward, codigo, pts: r.pts, ben: r.ben });
+                guardarCanjeActivo({ ...reward, codigo, pts, ben });
                 if (codigo) {
-                  showToast(`Canje ${codigo}: ${r.ben}. Preséntalo en sucursal.`, "success");
+                  showToast(`Canje ${codigo}: ${ben}. Preséntalo en sucursal.`, "success");
                 } else {
-                  const msg = `Hola, soy ${user.nombre || "cliente"} (${user.telefono || ""}). Quiero canjear ${r.pts} puntos por: ${r.ben}.`;
+                  const msg = `Hola, soy ${user.nombre || "cliente"} (${user.telefono || ""}). Quiero canjear ${pts} puntos por: ${ben}.`;
                   window.open(`${CONTACTO.whatsapp_link}?text=${encodeURIComponent(msg)}`, "_blank", "noopener,noreferrer");
                   showToast("WhatsApp abierto para confirmar el canje en farmacia.", "info");
                 }
                 setPage(reward.tipo === "envio" ? "carrito" : "catalogo");
-              }}>{(user.puntos||0)>=r.pts?(r.pts===160?"Agendar consulta":"Canjear"):"Faltan "+(r.pts-(user.puntos||0))}</Btn>
+              }}>{(user.puntos||0)>=pts?(pts===160?"Agendar consulta":"Canjear"):"Faltan "+(pts-(user.puntos||0))}</Btn>
             </div>
           ))}
         </div>
@@ -5669,7 +5815,10 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
         <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:24}}>
           {[["Nombre",user.nombre],["Teléfono",user.telefono],["Correo",user.email||"No registrado"],["Puntos",`${user.puntos||0} pts FarmaCapital`]].map(([l,v])=>(<div key={l} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 0",borderBottom:`1px solid ${C.border}`}}><span style={{color:C.mid,fontSize:13}}>{l}</span><span style={{color:C.dark,fontSize:14,fontWeight:700}}>{v}</span></div>))}
           <div style={{marginTop:16,padding:16,background:"#FBFAF8",borderRadius:10,border:`1px solid ${C.border}`}}>
-            <div style={{color:C.dark,fontWeight:700,fontSize:13,marginBottom:12}}>🔑 Cambiar contraseña</div>
+            <div style={{color:C.dark,fontWeight:700,fontSize:13,marginBottom:12,display:"flex",alignItems:"center",gap:8}}>
+              <Key size={15} strokeWidth={2} color={BRAND.primary} aria-hidden />
+              Cambiar contraseña
+            </div>
             <CambiarPwdCliente user={user}/>
           </div>
           <div style={{marginTop:16}}><Btn sm col={C.red} outline onClick={async()=>{
@@ -5677,7 +5826,10 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
             if (tok) { try { await supabase.rpc("logout_cliente", { p_session_token: tok }); } catch(e){} }
             clearClienteSession();
             setUser(null); setPage("home");
-          }}>⎋ Cerrar sesión</Btn></div>
+          }} style={{display:"inline-flex",alignItems:"center",gap:8}}>
+            <LogOut size={14} strokeWidth={2} aria-hidden />
+            Cerrar sesión
+          </Btn></div>
         </div>
       )}
     </div>
@@ -6064,7 +6216,9 @@ export default function TiendaFarmaCapital(){
   const puntosPage=(
     <div style={{maxWidth:700,margin:"0 auto",padding:"40px 24px"}}>
       <div style={{textAlign:"center",marginBottom:40}}>
-        <div style={{fontSize:56,marginBottom:12}}>⭐</div>
+        <div style={{width:64,height:64,borderRadius:18,background:BRAND.primary+"10",display:"inline-flex",alignItems:"center",justifyContent:"center",marginBottom:14}}>
+          <Star size={32} strokeWidth={1.75} color={BRAND.primary} aria-hidden />
+        </div>
         <h1 style={{color:C.dark,fontSize:32,fontWeight:800,marginBottom:12}}>Programa Puntos FarmaCapital</h1>
         <p style={{color:C.mid,fontSize:16,lineHeight:1.7,maxWidth:500,margin:"0 auto 24px"}}>Gana puntos en cada compra y canjéalos por descuentos, envíos gratis o consultas médicas.</p>
         {user?(
@@ -6083,28 +6237,32 @@ export default function TiendaFarmaCapital(){
         )}
       </div>
       <div style={{background:C.white,borderRadius:16,border:`1px solid ${C.border}`,padding:28,marginBottom:20}}>
-        <h2 style={{color:C.dark,fontSize:18,fontWeight:800,marginBottom:20}}>💰 ¿Cómo ganar puntos?</h2>
+        <h2 style={{color:C.dark,fontSize:18,fontWeight:800,marginBottom:20}}>¿Cómo ganar puntos?</h2>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(100%,160px),1fr))",gap:14}}>
-          {[{icon:"🛒",t:"Compras farmacia",d:"1 punto / $10"},{icon:"💻",t:"Compras en línea",d:"1.5 puntos / $10"},{icon:"🏥",t:"Consulta médica",d:"5 puntos"},{icon:"🎂",t:"Mes cumpleaños",d:"2× puntos"}].map(r=>(
-            <div key={r.t} style={{background:"#FBFAF8",borderRadius:12,padding:16,textAlign:"center"}}>
-              <div style={{fontSize:28,marginBottom:8}}>{r.icon}</div>
-              <div style={{color:C.dark,fontWeight:700,fontSize:13,marginBottom:4}}>{r.t}</div>
-              <div style={{color:BRAND.primary,fontSize:12,fontWeight:700}}>{r.d}</div>
+          {[{Icon:Store,t:"Compras farmacia",d:"1 punto / $10"},{Icon:ShoppingCart,t:"Compras en línea",d:"1.5 puntos / $10"},{Icon:Stethoscope,t:"Consulta médica",d:"5 puntos"},{Icon:Cake,t:"Mes cumpleaños",d:"2× puntos"}].map(({Icon,t:title,d})=>(
+            <div key={title} style={{background:"#FBFAF8",borderRadius:12,padding:16,textAlign:"center"}}>
+              <div style={{width:40,height:40,borderRadius:10,background:BRAND.primary+"10",display:"inline-flex",alignItems:"center",justifyContent:"center",marginBottom:10}}>
+                <Icon size={20} strokeWidth={1.75} color={BRAND.primary} aria-hidden />
+              </div>
+              <div style={{color:C.dark,fontWeight:700,fontSize:13,marginBottom:4}}>{title}</div>
+              <div style={{color:BRAND.primary,fontSize:12,fontWeight:700}}>{d}</div>
             </div>
           ))}
         </div>
       </div>
       <div style={{background:C.white,borderRadius:16,border:`1px solid ${C.border}`,padding:28,marginBottom:20}}>
-        <h2 style={{color:C.dark,fontSize:18,fontWeight:800,marginBottom:20}}>🎁 ¿Qué puedes canjear?</h2>
+        <h2 style={{color:C.dark,fontSize:18,fontWeight:800,marginBottom:20}}>¿Qué puedes canjear?</h2>
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          {[{pts:20,ben:"$10 de descuento",icon:"💊",col:BRAND.secondary},{pts:50,ben:"Envío gratis",icon:"📦",col:BRAND.accent},{pts:100,ben:"$50 de descuento",icon:"🎁",col:BRAND.primary},{pts:160,ben:"Consulta médica gratis",icon:"🏥",col:"#f59e0b"},{pts:200,ben:"Producto gratis",icon:"⭐",col:"#9d6fff"}].map(r=>(
-            <div key={r.pts} style={{display:"flex",alignItems:"center",gap:14,padding:14,borderRadius:12,border:`1px solid ${(user?.puntos||0)>=r.pts?r.col+"40":C.border}`,background:(user?.puntos||0)>=r.pts?r.col+"08":"#FBFAF8"}}>
-              <span style={{fontSize:28}}>{r.icon}</span>
-              <div style={{flex:1}}>
-                <div style={{color:C.dark,fontWeight:700,fontSize:14}}>{r.ben}</div>
-                <div style={{color:r.col,fontSize:12,fontWeight:700,marginTop:2}}>{r.pts} puntos</div>
+          {[{pts:20,ben:"$10 de descuento",Icon:Pill,col:BRAND.secondary},{pts:50,ben:"Envío gratis",Icon:Truck,col:BRAND.accent},{pts:100,ben:"$50 de descuento",Icon:Gift,col:BRAND.primary},{pts:160,ben:"Consulta médica gratis",Icon:Stethoscope,col:"#f59e0b"},{pts:200,ben:"Producto gratis",Icon:Star,col:"#9d6fff"}].map(({pts,ben,Icon,col})=>(
+            <div key={pts} style={{display:"flex",alignItems:"center",gap:14,padding:14,borderRadius:12,border:`1px solid ${(user?.puntos||0)>=pts?col+"40":C.border}`,background:(user?.puntos||0)>=pts?col+"08":"#FBFAF8"}}>
+              <div style={{width:40,height:40,borderRadius:10,background:col+"15",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                <Icon size={20} strokeWidth={1.75} color={col} aria-hidden />
               </div>
-              {user&&<span style={{padding:"4px 12px",borderRadius:20,fontSize:11,fontWeight:700,background:(user.puntos||0)>=r.pts?r.col+"20":"#E4D9CA",color:(user.puntos||0)>=r.pts?r.col:"#9A9184"}}>{(user.puntos||0)>=r.pts?"✓ Disponible":`Faltan ${r.pts-(user.puntos||0)}`}</span>}
+              <div style={{flex:1}}>
+                <div style={{color:C.dark,fontWeight:700,fontSize:14}}>{ben}</div>
+                <div style={{color:col,fontSize:12,fontWeight:700,marginTop:2}}>{pts} puntos</div>
+              </div>
+              {user&&<span style={{padding:"4px 12px",borderRadius:20,fontSize:11,fontWeight:700,background:(user.puntos||0)>=pts?col+"20":"#E4D9CA",color:(user.puntos||0)>=pts?col:"#9A9184"}}>{(user.puntos||0)>=pts?"Disponible":`Faltan ${pts-(user.puntos||0)}`}</span>}
             </div>
           ))}
         </div>
