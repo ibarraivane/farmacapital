@@ -14,6 +14,7 @@ export const TIENDA_PAGE_IDS = [
   "login",
   "registro",
   "reset-password",
+  "auth-callback",
   "cuenta",
   "puntos",
   "faq",
@@ -52,6 +53,7 @@ const PAGE_TO_SLUG = {
   login: "login",
   registro: "registro",
   "reset-password": "recuperar",
+  "auth-callback": "auth/callback",
   cuenta: "cuenta",
   puntos: "puntos",
   faq: "preguntas",
@@ -82,6 +84,8 @@ const SLUG_TO_PAGE = {
   entrar: "login",
   registro: "registro",
   recuperar: "reset-password",
+  "auth/callback": "auth-callback",
+  auth: "auth-callback",
   cuenta: "cuenta",
   puntos: "puntos",
   preguntas: "faq",
@@ -116,8 +120,13 @@ export function tiendaPathnameToPageId(pathname) {
   const p = String(pathname || "").replace(/\/+$/, "") || "/";
   if (/^\/admin(\/|$)/i.test(p)) return null;
   if (/^\/r(\/|$)/i.test(p)) return null;
-  const seg = p.split("/").filter(Boolean)[0]?.toLowerCase() || "";
-  if (!seg) return "home";
+  const parts = p.split("/").filter(Boolean).map((s) => s.toLowerCase());
+  if (!parts.length) return "home";
+  // OAuth: /auth/callback (dos segmentos)
+  if (parts[0] === "auth" && (parts[1] === "callback" || !parts[1])) {
+    return "auth-callback";
+  }
+  const seg = parts[0] || "";
   return resolveTiendaPage(seg) || "home";
 }
 

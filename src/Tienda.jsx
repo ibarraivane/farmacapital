@@ -50,6 +50,8 @@ import { notifyCitaConfirmacion, formatTelefonoDisplay, formatCitaFecha } from "
 import { fetchUberDirectQuote, attachUberDirectQuote, formatUberFee, formatUberEta, explainUberQuoteError } from "./lib/uberDirectClient";
 import DestinationPicker from "./components/DestinationPicker";
 import RecompraStrip from "./components/RecompraStrip";
+import AddressAutocomplete from "./components/AddressAutocomplete";
+import SocialLoginButtons from "./components/SocialLoginButtons";
 import {
   cleanCheckoutColonia,
   splitCalleYNumero,
@@ -66,6 +68,7 @@ import { recomprasFromPedidos, sugeridosFromRecompras } from "./lib/tiendaRecomp
 import { FARMACIA_FISCAL } from "./constants/farmaciaFiscal";
 import { HORARIO_FARMACIA } from "./constants/turnos";
 import { validarPasswordTienda, PASSWORD_RULES_TEXT, PASSWORD_MIN_LENGTH } from "./utils/passwordPolicy";
+import { completeClienteOAuth, enabledSocialProviders } from "./utils/clienteOAuth";
 import {
   X, ShoppingCart, Pill, Tag as TagIcon, Stethoscope, Star,
   MapPin, Clock, Phone, Mail, HelpCircle, FileText,
@@ -4707,6 +4710,9 @@ function Registro({setUser,setPage}){
         ) : (
           <p style={{color:C.mid,fontSize:14,marginBottom:28,textAlign:"center"}}>Regístrate y gana <strong style={{color:BRAND.accent}}>10 puntos de bienvenida ⭐</strong></p>
         )}
+        {enabledSocialProviders().length > 0 && (
+          <SocialLoginButtons colors={C} onError={setError} disabled={creando} />
+        )}
         <p style={{color:C.textMid,fontSize:12,marginBottom:20,textAlign:"center",lineHeight:1.5}}>Usá <strong style={{color:C.text}}>correo</strong>, <strong style={{color:C.text}}>teléfono</strong> o <strong style={{color:C.text}}>ambos</strong> para tu cuenta (necesitamos al menos uno).</p>
         <form className="farmacapital-login-form" autoComplete="on" onSubmit={(e)=>{ e.preventDefault(); registrar(); }}>
         <div style={{marginBottom:14}}><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Nombre completo <span style={{color:C.red}}>*</span></div><Inp name="name" autoComplete="name" value={nombre} onChange={e=>setNombre(e.target.value)} placeholder="Tu nombre"/></div>
@@ -4856,6 +4862,56 @@ function RestablecerPassword({ token, setPage }) {
   );
 }
 
+// ── OAUTH CALLBACK (Google / Facebook / Apple) ────────────────
+function AuthCallback({ setUser, setPage }) {
+  const C = useTheme();
+  const [msg, setMsg] = useState("Confirmando tu cuenta…");
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const result = await completeClienteOAuth(supabase);
+        if (cancelled) return;
+        if (!result.ok) {
+          setErr(result.error || "No se pudo completar el inicio de sesión.");
+          setMsg("");
+          return;
+        }
+        setClienteSession(result.token, result.user || {});
+        setUser(result.user || {});
+        setMsg(result.created ? "Cuenta lista. Bienvenido/a ⭐" : "¡Listo! Entrando…");
+        setTimeout(() => {
+          if (!cancelled) setPage(consumePostLoginPage() || "cuenta");
+        }, 500);
+      } catch (_) {
+        if (!cancelled) {
+          setErr("Error de conexión al completar el login social.");
+          setMsg("");
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [setUser, setPage]);
+
+  return (
+    <div style={{ maxWidth: 420, margin: "80px auto", padding: "0 24px" }}>
+      <div style={{ background: C.white, borderRadius: 20, border: `1px solid ${C.border}`, padding: 40, textAlign: "center" }}>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}><Logo size={40} /></div>
+        <h1 style={{ color: C.dark, fontSize: 22, fontWeight: 800, marginBottom: 12 }}>Iniciar sesión</h1>
+        {msg && !err && <p style={{ color: C.mid, fontSize: 14, lineHeight: 1.5 }}>{msg}</p>}
+        {err && (
+          <>
+            <p style={{ color: C.red, fontSize: 14, lineHeight: 1.5, marginBottom: 20 }}>{err}</p>
+            <Btn onClick={() => setPage("login")} col={BRAND.primary} full>Volver al inicio de sesión</Btn>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── LOGIN ─────────────────────────────────────────────────────
 function Login({setUser,setPage}){
   const C = useTheme();
@@ -4944,6 +5000,14 @@ function Login({setUser,setPage}){
           </p>
         ) : (
           <p style={{color:C.mid,fontSize:14,marginBottom:28,textAlign:"center"}}>Accede a tus puntos, pedidos e historial</p>
+        )}
+
+        {!recMode && enabledSocialProviders().length > 0 && (
+          <SocialLoginButtons
+            colors={C}
+            disabled={buscando}
+            onError={(msg) => { setError(msg); }}
+          />
         )}
 
         {recMode ? (
@@ -5998,6 +6062,7 @@ export default function TiendaFarmaCapital(){
     cita:          <AgendarCita setPage={setPage} user={user}/>,
     login:         <Login setUser={setUser} setPage={setPage}/>,
     registro:      <Registro setUser={setUser} setPage={setPage}/>,
+    "auth-callback": <AuthCallback setUser={setUser} setPage={setPage}/>,
     "reset-password": <RestablecerPassword token={resetToken} setPage={setPage}/>,
     cuenta:        <Cuenta user={user} setPage={setPage} setUser={setUser} addToCart={addToCart} productos={productosVistaTiendaFarmacia} setProdDetalle={setProdD}/>,
     puntos:        puntosPage,
