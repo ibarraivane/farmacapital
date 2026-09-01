@@ -1,10 +1,12 @@
 /**
  * En `npm start` CRA no ejecuta las funciones de /api.
- * Este proxy invoca el handler de Uber Direct para cotizar en local.
+ * Este proxy monta Uber Direct y el buscador de destino para probar en local.
  */
 "use strict";
 
 const uberDirectHandler = require("../api/_lib/uberDirectHttp");
+const addressSuggestHandler = require("../api/_lib/addressSuggestHttp");
+const logisticsWebhook = require("../api/logistics/webhook");
 
 function readJsonBody(req) {
   return new Promise((resolve) => {
@@ -26,14 +28,20 @@ function readJsonBody(req) {
   });
 }
 
-module.exports = function setupProxy(app) {
-  app.use("/api/logistics/uber-direct", (req, res) => {
+function mount(app, path, handler) {
+  app.use(path, (req, res) => {
     readJsonBody(req)
-      .then(() => uberDirectHandler(req, res))
+      .then(() => handler(req, res))
       .catch((err) => {
         if (!res.headersSent) {
           res.status(500).json({ ok: false, error: "proxy_error", message: err?.message || "unknown" });
         }
       });
   });
+}
+
+module.exports = function setupProxy(app) {
+  mount(app, "/api/address/suggest", addressSuggestHandler);
+  mount(app, "/api/logistics/webhook", logisticsWebhook);
+  mount(app, "/api/logistics/uber-direct", uberDirectHandler);
 };
