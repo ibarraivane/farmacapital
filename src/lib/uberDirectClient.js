@@ -21,7 +21,7 @@ export function explainUberQuoteError(err, detail) {
     blob.includes("outside of the delivery") ||
     blob.includes("no delivery options")
   ) {
-    return "Uber Direct no tiene cobertura para esta zona o la farmacia aún no está activada como punto de recolección en direct.uber.com. Mientras tanto elige pick-up.";
+    return "Uber no puede entregar en esta dirección ahora. Elige pick-up en FarmaCapital.";
   }
   if (blob.includes("uber_api_failed") || blob.includes("address") || blob.includes("geocod")) {
     return "Uber no pudo ubicar la dirección. Pon calle con número, solo la colonia (sin alcaldía) y una referencia (edificio, negocio).";

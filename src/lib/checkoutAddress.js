@@ -78,3 +78,37 @@ export function checkoutNumeroOk(numero) {
   if (/^s\/?n$/i.test(n)) return true;
   return /\d/.test(n) && n.length <= 12;
 }
+
+/** Una línea, como en Uber: "Bartolache 1750, Del Valle Sur, 03104". */
+export function formatDestinoLabel({ calle, numero, colonia, cp } = {}) {
+  const street = composeCheckoutCalle(calle, numero);
+  const col = cleanCheckoutColonia(colonia);
+  const zip = String(cp || "").replace(/\D/g, "").slice(0, 5);
+  return [street, col, zip.length === 5 ? zip : ""].filter(Boolean).join(", ");
+}
+
+/** Destino listo para cotizar: calle+número, colonia y CP. */
+export function isCheckoutDestinoListo({ calle, numero, colonia, cp } = {}) {
+  const street = composeCheckoutCalle(calle, numero);
+  return (
+    street.length >= 5 &&
+    checkoutNumeroOk(numero) &&
+    cleanCheckoutColonia(colonia).length >= 3 &&
+    String(cp || "").replace(/\D/g, "").length === 5
+  );
+}
+
+/** Aplica una sugerencia del buscador al estado del checkout. */
+export function applyDestinoSuggestion(sug, prev = {}) {
+  const rawCalle = String(sug?.calle || sug?.label || "").replace(/\s+/g, " ").trim();
+  const split = splitCalleYNumero(rawCalle);
+  return {
+    ...prev,
+    calle: split.calle || rawCalle || prev.calle || "",
+    numero: split.numero || prev.numero || "",
+    colonia: cleanCheckoutColonia(sug?.colonia || prev.colonia || ""),
+    cp: String(sug?.cp || prev.cp || "").replace(/\D/g, "").slice(0, 5),
+    lat: Number.isFinite(Number(sug?.lat)) ? Number(sug.lat) : null,
+    lng: Number.isFinite(Number(sug?.lng)) ? Number(sug.lng) : null,
+  };
+}
