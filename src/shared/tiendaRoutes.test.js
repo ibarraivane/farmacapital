@@ -26,6 +26,8 @@ describe("tiendaRoutes", () => {
     expect(tiendaPathnameToPageId("/catalogo")).toBe("catalogo");
     expect(tiendaPathnameToPageId("/promociones/")).toBe("promo");
     expect(tiendaPathnameToPageId("/cuenta")).toBe("cuenta");
+    expect(tiendaPathnameToPageId("/auth/callback")).toBe("auth-callback");
+    expect(tiendaPathnameToPageId("/auth/callback/")).toBe("auth-callback");
     expect(tiendaPathnameToPageId("/admin/ventas")).toBeNull();
   });
 
@@ -36,5 +38,6 @@ describe("tiendaRoutes", () => {
     expect(pageIdToTiendaPath("promo")).toBe("/promociones");
     expect(pageIdToTiendaPath("faq")).toBe("/preguntas");
     expect(pageIdToTiendaPath("detalle", { productId: "abc-1" })).toBe("/producto?id=abc-1");
+    expect(pageIdToTiendaPath("auth-callback")).toBe("/auth/callback");
   });
 });

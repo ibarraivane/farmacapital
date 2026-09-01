@@ -1,5 +1,12 @@
 'use strict';
 
+/**
+ * Auth tienda — un solo Serverless Function (Hobby máx. 12):
+ * - POST /api/auth/password-reset-request
+ * - POST /api/auth/oauth-bridge  (rewrite → ?type=oauth-bridge)
+ */
+
+const oauthBridgeHandler = require('../_lib/oauthBridgeHandler');
 const { sendWhatsapp } = require('../_lib/orderNotifications');
 
 function normalizeSupabaseProjectUrl(url) {
@@ -46,7 +53,25 @@ async function rpc(serviceKey, supabaseUrl, fn, payload) {
   return data;
 }
 
+function requestType(req) {
+  const q = String(req?.query?.type || req?.query?.action || '').trim().toLowerCase();
+  if (q) return q;
+  try {
+    const url = new URL(req.url || '', 'http://localhost');
+    return String(url.searchParams.get('type') || url.searchParams.get('action') || '')
+      .trim()
+      .toLowerCase();
+  } catch {
+    return '';
+  }
+}
+
 module.exports = async function handler(req, res) {
+  const type = requestType(req);
+  if (type === 'oauth-bridge' || type === 'oauth') {
+    return oauthBridgeHandler(req, res);
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ ok: false, error: 'method_not_allowed' });
   }
