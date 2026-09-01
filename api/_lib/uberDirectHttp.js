@@ -186,7 +186,12 @@ async function handleQuote(body) {
   if (!quote.ok) {
     return {
       status: quote.status && quote.status < 500 ? quote.status : 502,
-      json: { ok: false, error: quote.error || 'quote_failed', detail: quote.detail || null },
+      json: {
+        ok: false,
+        error: quote.error || 'quote_failed',
+        detail: quote.detail || null,
+        code: quote.code || null,
+      },
     };
   }
   return { status: 200, json: quote };
@@ -218,7 +223,15 @@ async function handleAttach(req, body) {
 
   const quote = await createUberQuote({ dropoffAddress: dropoff });
   if (!quote.ok) {
-    return { status: 502, json: { ok: false, error: quote.error || 'quote_failed', detail: quote.detail || null } };
+    return {
+      status: 502,
+      json: {
+        ok: false,
+        error: quote.error || 'quote_failed',
+        detail: quote.detail || null,
+        code: quote.code || null,
+      },
+    };
   }
 
   const displayed = body.displayed_fee_mxn != null ? Number(body.displayed_fee_mxn) : null;
@@ -314,7 +327,15 @@ async function handleCreate(req, body) {
 
   const quote = await createUberQuote({ dropoffAddress: dropoff });
   if (!quote.ok) {
-    return { status: 502, json: { ok: false, error: quote.error || 'quote_failed', detail: quote.detail || null } };
+    return {
+      status: 502,
+      json: {
+        ok: false,
+        error: quote.error || 'quote_failed',
+        detail: quote.detail || null,
+        code: quote.code || null,
+      },
+    };
   }
 
   const created = await createUberDelivery({

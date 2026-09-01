@@ -17,7 +17,9 @@ const {
   getUberAccessToken,
   resetUberTokenCache,
   pickupAddressFromConfig,
+  pickupContact,
   geocodeQueryFromAddress,
+  createUberQuote,
 } = require('./uberDirect');
 
 describe('uberDirect helpers', () => {
@@ -128,6 +130,40 @@ describe('uberDirect helpers', () => {
     assert.equal(pickup.country, 'MX');
     assert.equal(pickup.zip_code, '09208');
     assert.match(pickup.street_address[0], /Radiodifusora/);
+    assert.equal(pickupContact().phone, '+525562530631');
+  });
+
+  it('la cotización manda teléfono de la farmacia', async () => {
+    let captured;
+    const res = await createUberQuote({
+      dropoffAddress: dropoffAddressFromParts({
+        street: 'Radiodifusora 80',
+        colonia: 'Chinampac de Juárez',
+        zip: '09208',
+      }),
+      dropoffCoords: { lat: 19.3715, lng: -99.0528 },
+      deps: {
+        config: {
+          customerId: 'cust',
+          clientId: 'id',
+          clientSecret: 'secret',
+          configured: true,
+        },
+        fetchFn: async (url, opts) => {
+          if (String(url).includes('/oauth/')) {
+            return { ok: true, json: async () => ({ access_token: 'tok', expires_in: 3600 }) };
+          }
+          captured = JSON.parse(opts.body);
+          return {
+            ok: true,
+            json: async () => ({ id: 'dqt_1', fee: 4900, currency: 'MXN', duration: 25 }),
+          };
+        },
+      },
+    });
+    assert.equal(res.ok, true);
+    assert.equal(captured.pickup_phone_number, '+525562530631');
+    assert.equal(captured.pickup_latitude, 19.3714047);
   });
 });
 

@@ -14,10 +14,20 @@ export function explainUberQuoteError(err, detail) {
   if (blob.includes("invalid_dropoff")) {
     return "Falta calle, colonia o un CP de 5 dígitos.";
   }
-  if (blob.includes("uber_api_failed") || blob.includes("address") || blob.includes("geocod")) {
+  if (
+    blob.includes("address_undeliverable") ||
+    blob.includes("not in a deliverable") ||
+    blob.includes("deliverable area")
+  ) {
+    return "Uber no entrega en esta zona (o la cuenta sigue en modo prueba). Elige pick-up o pide a Uber que active Production y la ubicación de FarmaCapital.";
+  }
+  if (blob.includes("unknown_location") || blob.includes("geocod")) {
     return "Uber no pudo ubicar la dirección. Agrega número, colonia y una referencia (edificio, negocio).";
   }
   if (detail) return `No se pudo cotizar: ${String(detail).slice(0, 160)}`;
+  if (blob.includes("uber_api_failed")) {
+    return "Uber no pudo cotizar este envío. Revisa la dirección o elige pick-up.";
+  }
   if (code && code !== "undefined") return `No se pudo cotizar (${code}).`;
   return "No se pudo cotizar el envío Uber. Revisa la dirección o elige pick-up.";
 }
@@ -57,7 +67,7 @@ export async function fetchUberDirectQuote({ calle, colonia, cp, referencia }) {
       ok: false,
       error: err,
       detail: data?.detail || data?.error?.message || null,
-      hint: explainUberQuoteError(err, data?.detail),
+      hint: explainUberQuoteError(data?.code || err, data?.detail),
     };
   }
   return data;
