@@ -1,6 +1,7 @@
 import {
   enabledSocialProviders,
   isOAuthCallbackLocation,
+  readOAuthRedirectError,
   SOCIAL_PROVIDERS,
 } from "./clienteOAuth";
 
@@ -13,11 +14,11 @@ describe("clienteOAuth helpers", () => {
     delete process.env.REACT_APP_OAUTH_PROVIDERS;
   });
 
-  test("default providers = google + apple", () => {
+  test("default providers = solo google", () => {
     delete process.env.REACT_APP_SOCIAL_LOGIN;
     delete process.env.REACT_APP_OAUTH_PROVIDERS;
     const list = enabledSocialProviders();
-    expect(list.map((p) => p.id)).toEqual(["google", "apple"]);
+    expect(list.map((p) => p.id)).toEqual(["google"]);
   });
 
   test("parsea lista coma-separada y filtra inválidos", () => {
@@ -34,5 +35,16 @@ describe("clienteOAuth helpers", () => {
     expect(isOAuthCallbackLocation("/", "?code=abc", "")).toBe(true);
     expect(isOAuthCallbackLocation("/", "", "#access_token=x")).toBe(true);
     expect(isOAuthCallbackLocation("/login", "", "")).toBe(false);
+  });
+
+  test("lee error del redirect OAuth", () => {
+    expect(readOAuthRedirectError("?error=access_denied", "")).toMatch(/Cancelaste/i);
+    expect(
+      readOAuthRedirectError(
+        "?error=server_error&error_description=Unable+to+exchange",
+        ""
+      )
+    ).toMatch(/Unable to exchange/i);
+    expect(readOAuthRedirectError("", "")).toBeNull();
   });
 });

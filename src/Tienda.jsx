@@ -4906,7 +4906,9 @@ function AuthCallback({ setUser, setPage }) {
       }
     })();
     return () => { cancelled = true; };
-  }, [setUser, setPage]);
+    // setUser/setPage se recrean en cada render del padre; correr una sola vez.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const guardarTelefono = async () => {
     if (!telefonoMxValido(tel)) {
@@ -5773,7 +5775,19 @@ export default function TiendaFarmaCapital(){
           try { sessionStorage.setItem("farmacapital_rx", "1"); } catch (_) { /* noop */ }
         }
         setPageRaw(id);
-        writeTiendaHistory(id, { replace: true, rx: rx && id === "catalogo" });
+        // OAuth PKCE: no reescribir la URL — hay que conservar ?code= (y errores)
+        // para que supabase-js pueda canjear la sesión.
+        if (id === "auth-callback") {
+          try {
+            window.history.replaceState(
+              { page: id },
+              "",
+              `${window.location.pathname}${window.location.search}${window.location.hash}`
+            );
+          } catch (_) { /* noop */ }
+        } else {
+          writeTiendaHistory(id, { replace: true, rx: rx && id === "catalogo" });
+        }
       }
     } catch {
       try { window.history.replaceState({ page: "home" }, "", "/"); } catch (_) { /* noop */ }

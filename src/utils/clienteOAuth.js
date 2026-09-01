@@ -5,58 +5,65 @@
  */
 
 export const SOCIAL_PROVIDERS = [
-  {
-    id: "google",
-    label: "Continuar con Google",
-    short: "Google",
-  },
-  {
-    id: "facebook",
-    label: "Continuar con Facebook",
-    short: "Facebook",
-  },
-  {
-    id: "apple",
-    label: "Continuar con Apple",
-    short: "Apple",
-  },
+  { id: "google", label: "Continuar con Google", short: "Google" },
+  { id: "facebook", label: "Continuar con Facebook", short: "Facebook" },
+  { id: "apple", label: "Continuar con Apple", short: "Apple" },
 ];
 
 const PROVIDER_IDS = new Set(SOCIAL_PROVIDERS.map((p) => p.id));
+const OAUTH_PROVIDER_KEY = "farmacapital_oauth_provider";
 
 /**
- * Lista habilitada por env (coma-separada). Default: google + apple.
- * Ej: REACT_APP_SOCIAL_LOGIN=google,facebook,apple
+ * Lista habilitada por env (coma-separada). Default: solo Google.
+ * Apple requiere Apple Developer Program; actívalo con
+ * REACT_APP_SOCIAL_LOGIN=google,apple cuando esté listo.
  */
 export function enabledSocialProviders() {
   const raw =
     process.env.REACT_APP_SOCIAL_LOGIN ||
     process.env.REACT_APP_OAUTH_PROVIDERS ||
-    "google,apple";
+    "google";
   const wanted = String(raw)
     .split(/[,;\s]+/)
     .map((s) => s.trim().toLowerCase())
     .filter((id) => PROVIDER_IDS.has(id));
-  const unique = [...new Set(wanted.length ? wanted : ["google", "apple"])];
+  const unique = [...new Set(wanted.length ? wanted : ["google"])];
   return SOCIAL_PROVIDERS.filter((p) => unique.includes(p.id));
 }
 
 export function oauthCallbackUrl() {
   if (typeof window === "undefined") return "";
-  const origin = window.location.origin.replace(/\/+$/, "");
-  return `${origin}/auth/callback`;
+  return `${window.location.origin.replace(/\/+$/, "")}/auth/callback`;
 }
 
 export function isOAuthCallbackLocation(pathname, search, hash) {
-  const path = String(pathname || "");
-  if (/\/auth\/callback\/?$/i.test(path)) return true;
+  if (/\/auth\/callback\/?$/i.test(String(pathname || ""))) return true;
   try {
     const q = new URLSearchParams(search || "");
     if (q.get("oauth") === "1" || q.get("code")) return true;
   } catch (_) { /* noop */ }
-  const h = String(hash || "");
-  if (/access_token=|refresh_token=|error=/.test(h)) return true;
-  return false;
+  return /access_token=|refresh_token=|error=/.test(String(hash || ""));
+}
+
+/**
+ * Errores que Google/Supabase ponen en ?error= o #error= al volver del OAuth.
+ */
+export function readOAuthRedirectError(search, hash) {
+  const fromParams = (raw) => {
+    try {
+      const q = new URLSearchParams(String(raw || "").replace(/^[?#]/, ""));
+      const code = q.get("error") || q.get("error_code");
+      if (!code) return null;
+      const desc = q.get("error_description") || "";
+      const pretty = decodeURIComponent(String(desc).replace(/\+/g, " ")).trim();
+      if (pretty) return pretty;
+      if (code === "access_denied") return "Cancelaste el acceso con Google.";
+      return `El proveedor rechazó el acceso (${code}).`;
+    } catch (_) {
+      return null;
+    }
+  };
+  return fromParams(search) || fromParams(hash);
 }
 
 /**
@@ -70,7 +77,7 @@ export async function startClienteOAuth(supabase, provider) {
     return { ok: false, error: "Proveedor no soportado." };
   }
   try {
-    sessionStorage.setItem("farmacapital_oauth_provider", id);
+    sessionStorage.setItem(OAUTH_PROVIDER_KEY, id);
   } catch (_) { /* noop */ }
 
   const { data, error } = await supabase.auth.signInWithOAuth({
@@ -78,7 +85,6 @@ export async function startClienteOAuth(supabase, provider) {
     options: {
       redirectTo: oauthCallbackUrl(),
       skipBrowserRedirect: false,
-      // Apple: pedir nombre + email en el primer acceso (luego Apple puede ocultarlos).
       scopes: id === "apple" ? "name email" : undefined,
       queryParams:
         id === "google"
@@ -98,6 +104,50 @@ export async function startClienteOAuth(supabase, provider) {
   return { ok: true, url: data?.url || null };
 }
 
+async function waitForAuthSession(supabase, ms = 4000) {
+  try {
+    const existing = await supabase.auth.getSession();
+    if (existing?.data?.session?.access_token) {
+      return existing.data.session;
+    }
+  } catch (_) { /* noop */ }
+
+  return new Promise((resolve) => {
+    let done = false;
+    let sub = null;
+    const finish = (session) => {
+      if (done) return;
+      done = true;
+      try {
+        sub?.data?.subscription?.unsubscribe?.();
+      } catch (_) { /* noop */ }
+      resolve(session || null);
+    };
+
+    try {
+      sub = supabase.auth.onAuthStateChange((event, session) => {
+        if (
+          session?.access_token &&
+          (event === "SIGNED_IN" ||
+            event === "INITIAL_SESSION" ||
+            event === "TOKEN_REFRESHED")
+        ) {
+          finish(session);
+        }
+      });
+    } catch (_) { /* noop */ }
+
+    setTimeout(async () => {
+      try {
+        const again = await supabase.auth.getSession();
+        finish(again?.data?.session || null);
+      } catch (_) {
+        finish(null);
+      }
+    }, ms);
+  });
+}
+
 /**
  * Tras el redirect: obtiene sesión Auth y la canjea por token FarmaCapital.
  * @param {import('@supabase/supabase-js').SupabaseClient} supabase
@@ -105,19 +155,49 @@ export async function startClienteOAuth(supabase, provider) {
 export async function completeClienteOAuth(supabase) {
   let providerHint = null;
   try {
-    providerHint = sessionStorage.getItem("farmacapital_oauth_provider");
+    providerHint = sessionStorage.getItem(OAUTH_PROVIDER_KEY);
   } catch (_) { /* noop */ }
 
-  // PKCE (?code=) o hash implícito — supabase-js hidrata la sesión.
-  const { data: sessData, error: sessErr } = await supabase.auth.getSession();
-  if (sessErr) {
-    return { ok: false, error: sessErr.message || "Sesión OAuth inválida." };
+  const redirectErr =
+    typeof window !== "undefined"
+      ? readOAuthRedirectError(window.location.search, window.location.hash)
+      : null;
+  if (redirectErr) {
+    return { ok: false, error: redirectErr };
   }
 
-  let session = sessData?.session || null;
+  let code = null;
+  try {
+    code = new URLSearchParams(window.location.search || "").get("code");
+  } catch (_) { /* noop */ }
+
+  // Primero: sesión que supabase-js pudo hidratar en initialize().
+  let session = await waitForAuthSession(supabase, code ? 1200 : 3500);
+
+  // PKCE: si aún no hay sesión y sigue el ?code=, canje explícito
+  // (cubre la carrera donde history.replaceState borraba el query).
+  if (!session?.access_token && code) {
+    const { data, error: exchangeErr } =
+      await supabase.auth.exchangeCodeForSession(code);
+    if (data?.session?.access_token) {
+      session = data.session;
+    } else if (exchangeErr) {
+      // Si initialize() ya canjeó el code, el segundo canje falla: reintentar getSession.
+      const again = await supabase.auth.getSession();
+      session = again?.data?.session || null;
+      if (!session?.access_token) {
+        return {
+          ok: false,
+          error:
+            exchangeErr.message ||
+            "No se pudo validar el acceso de Google. Intentá de nuevo desde Iniciar sesión.",
+        };
+      }
+    }
+  }
+
   if (!session?.access_token) {
-    // Reintento corto: a veces el exchange del code aún no terminó.
-    await new Promise((r) => setTimeout(r, 350));
+    await new Promise((r) => setTimeout(r, 400));
     const again = await supabase.auth.getSession();
     session = again?.data?.session || null;
   }
@@ -142,12 +222,11 @@ export async function completeClienteOAuth(supabase) {
 
   const payload = await resp.json().catch(() => ({}));
 
-  // Limpiar sesión Auth de Supabase: FarmaCapital usa su propio token.
   try {
     await supabase.auth.signOut({ scope: "local" });
   } catch (_) { /* noop */ }
   try {
-    sessionStorage.removeItem("farmacapital_oauth_provider");
+    sessionStorage.removeItem(OAUTH_PROVIDER_KEY);
   } catch (_) { /* noop */ }
 
   if (!resp.ok || !payload?.ok || !payload?.token) {
