@@ -130,6 +130,22 @@ def make_light_variant(im):
     return Image.fromarray(arr)
 
 
+def make_og_share(full_im, path, *, canvas=(244, 236, 226), size=(1200, 630)):
+    """Tarjeta Open Graph / WhatsApp: logo horizontal sobre fondo marca."""
+    w, h = size
+    bg = Image.new("RGBA", (w, h), (*canvas, 255))
+    logo = trim_content(full_im)
+    lw, lh = logo.size
+    pad_x, pad_y = 0.08, 0.18
+    max_w = int(w * (1 - 2 * pad_x))
+    max_h = int(h * (1 - 2 * pad_y))
+    scale = min(max_w / lw, max_h / lh)
+    nw, nh = max(1, int(lw * scale)), max(1, int(lh * scale))
+    logo = logo.resize((nw, nh), Image.Resampling.LANCZOS)
+    bg.paste(logo, ((w - nw) // 2, (h - nh) // 2), logo)
+    save_png(bg, path)
+
+
 def main():
     if not os.path.exists(MASTER):
         alt = os.path.expanduser("~/Downloads/Logo FarmaCapital.png")
@@ -145,6 +161,7 @@ def main():
 
     save_png(full, os.path.join(OUT_BRAND, "farmacapital-logo-full.png"))
     save_png(full, os.path.join(OUT_BRAND, "farmacapital-logo-admin.png"))
+    make_og_share(full, os.path.join(OUT_BRAND, "og-share.png"))
 
     light = make_light_variant(full)
     save_png(light, os.path.join(OUT_BRAND, "farmacapital-logo-full-light.png"))
