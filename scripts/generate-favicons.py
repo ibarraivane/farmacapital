@@ -1,15 +1,12 @@
 #!/usr/bin/env python3
 """
-Genera favicons e iconos PWA de FarmaCapital optimizados para pestañas del navegador.
+Genera favicons e iconos PWA de FarmaCapital.
 
-Diseño: badge azul marca (#1E3ABA) con cruz médica blanca y acento verde.
-Zona segura ~18% para que no se recorte en tabs 16×16.
+iOS (apple-touch-icon) y maskable requieren fondo OPACO a todo el canvas.
+Si hay transparencia, Safari la pinta de negro y el icono se ve con marco feo.
 """
 from __future__ import annotations
 
-import math
-import struct
-import zlib
 from pathlib import Path
 
 try:
@@ -21,9 +18,10 @@ ROOT = Path(__file__).resolve().parents[1]
 PUBLIC = ROOT / "public"
 
 # Paleta FarmaCapital
+INK = (0, 21, 52)              # #001534
 BLUE_DARK = (13, 27, 42)       # #0D1B2A
 BLUE_BRAND = (30, 58, 186)     # #1E3ABA
-GREEN_ACCENT = (34, 197, 94)   # #22C55E — legible en badge azul
+GREEN_ACCENT = (34, 197, 94)   # #22C55E
 WHITE = (255, 255, 255)
 
 
@@ -31,7 +29,7 @@ def lerp(a: float, b: float, t: float) -> float:
     return a + (b - a) * t
 
 
-def blend(c1: tuple[int, int, int], c2: tuple[int, int, int], t: float) -> tuple[int, int, int]:
+def blend(c1, c2, t: float):
     return (
         int(lerp(c1[0], c2[0], t)),
         int(lerp(c1[1], c2[1], t)),
@@ -39,58 +37,28 @@ def blend(c1: tuple[int, int, int], c2: tuple[int, int, int], t: float) -> tuple
     )
 
 
-def draw_rounded_rect(draw: ImageDraw.ImageDraw, box, radius: float, fill):
-    x0, y0, x1, y1 = box
-    draw.rounded_rectangle(box, radius=radius, fill=fill)
-
-
-def draw_favicon(size: int, *, dark_tab: bool = False) -> Image.Image:
-    """Renderiza icono cuadrado con zona segura."""
-    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(img)
-
-    # Zona segura: contenido dentro del 16%–84% del canvas
-    margin = size * 0.08
-    inner = size - margin * 2
-    x0, y0 = margin, margin
-    x1, y1 = margin + inner, margin + inner
-    radius = inner * 0.22
-
-    # Fondo: gradiente diagonal azul oscuro → azul marca (más contraste que outline)
-    bg = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    bg_draw = ImageDraw.Draw(bg)
-    for y in range(int(y0), int(y1)):
-        for x in range(int(x0), int(x1)):
-            t = ((x - x0) / inner * 0.55 + (y - y0) / inner * 0.45)
+def fill_gradient(img: Image.Image, box, c1, c2):
+    x0, y0, x1, y1 = (int(v) for v in box)
+    w = max(1, x1 - x0)
+    h = max(1, y1 - y0)
+    px = img.load()
+    for y in range(y0, y1):
+        for x in range(x0, x1):
+            t = ((x - x0) / w * 0.55 + (y - y0) / h * 0.45)
             t = max(0.0, min(1.0, t))
-            col = blend(BLUE_DARK, BLUE_BRAND, t)
-            bg.putpixel((x, y), (*col, 255))
-    # Enmascarar con rounded rect
-    mask = Image.new("L", (size, size), 0)
-    ImageDraw.Draw(mask).rounded_rectangle((x0, y0, x1, y1), radius=radius, fill=255)
-    img = Image.composite(bg, img, mask)
+            px[x, y] = (*blend(c1, c2, t), 255)
 
-    draw = ImageDraw.Draw(img)
 
-    # Borde sutil para separar de tabs oscuros (solo variante dark_tab ligeramente más clara)
-    if dark_tab:
-        border = tuple(min(255, c + 18) for c in BLUE_BRAND)
-        draw.rounded_rectangle((x0, y0, x1, y1), radius=radius, outline=(*border, 200), width=max(1, size // 32))
-
-    cx = size / 2
-    cy = size / 2
-    arm_w = size * 0.19
-    arm_h = size * 0.42
+def draw_cross(draw: ImageDraw.ImageDraw, size: int, cx: float, cy: float, scale: float):
+    arm_w = size * 0.19 * scale
+    arm_h = size * 0.42 * scale
     cross_radius = arm_w / 2
-
-    # Cruz blanca gruesa con esquinas redondeadas
     v_box = (cx - arm_w / 2, cy - arm_h / 2, cx + arm_w / 2, cy + arm_h / 2)
     h_box = (cx - arm_h / 2, cy - arm_w / 2, cx + arm_h / 2, cy + arm_w / 2)
     draw.rounded_rectangle(v_box, radius=cross_radius, fill=(*WHITE, 255))
     draw.rounded_rectangle(h_box, radius=cross_radius, fill=(*WHITE, 255))
 
-    # Acento verde: arco en cuadrante inferior-izquierdo (marca reconocible a 16px)
-    stroke = max(2, int(size * 0.09))
+    stroke = max(2, int(size * 0.09 * scale))
     arc_box = (
         cx - arm_h * 0.55,
         cy - arm_h * 0.05,
@@ -99,6 +67,56 @@ def draw_favicon(size: int, *, dark_tab: bool = False) -> Image.Image:
     )
     draw.arc(arc_box, start=200, end=320, fill=(*GREEN_ACCENT, 255), width=stroke)
 
+
+def draw_tab_favicon(size: int, *, dark_tab: bool = False) -> Image.Image:
+    """Favicon de pestaña: badge redondeado (transparencia OK en tabs)."""
+    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    margin = size * 0.08
+    inner = size - margin * 2
+    x0, y0 = margin, margin
+    x1, y1 = margin + inner, margin + inner
+    radius = inner * 0.22
+
+    bg = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    fill_gradient(bg, (x0, y0, x1, y1), BLUE_DARK, BLUE_BRAND)
+    mask = Image.new("L", (size, size), 0)
+    ImageDraw.Draw(mask).rounded_rectangle((x0, y0, x1, y1), radius=radius, fill=255)
+    img = Image.composite(bg, img, mask)
+
+    draw = ImageDraw.Draw(img)
+    if dark_tab:
+        border = tuple(min(255, c + 18) for c in BLUE_BRAND)
+        draw.rounded_rectangle(
+            (x0, y0, x1, y1),
+            radius=radius,
+            outline=(*border, 200),
+            width=max(1, size // 32),
+        )
+    draw_cross(draw, size, size / 2, size / 2, scale=1.0)
+    return img
+
+
+def draw_app_icon(size: int, *, maskable: bool = False) -> Image.Image:
+    """
+    Icono de app / apple-touch: canvas 100% opaco.
+    iOS aplica su propia máscara squircle; no dejar alpha en las esquinas.
+    """
+    img = Image.new("RGBA", (size, size), (*INK, 255))
+    fill_gradient(img, (0, 0, size, size), INK, BLUE_BRAND)
+
+    pad = 0.20 if maskable else 0.12
+    usable = 1.0 - 2 * pad
+    scale = usable / 0.84
+
+    draw = ImageDraw.Draw(img)
+    draw_cross(draw, size, size / 2, size / 2, scale=scale)
+
+    px = img.load()
+    for y in range(size):
+        for x in range(size):
+            r, g, b, a = px[x, y]
+            if a < 255:
+                px[x, y] = (r, g, b, 255)
     return img
 
 
@@ -109,9 +127,7 @@ def save_png(img: Image.Image, path: Path):
 
 
 def save_ico(images: list[tuple[int, Image.Image]], path: Path):
-    """ICO multi-resolución."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    # Pillow guarda ICO con la imagen más grande; para multi-size usamos save con append_images
     sizes = sorted(images, key=lambda x: x[0], reverse=True)
     base = sizes[0][1]
     rest = [im for _, im in sizes[1:]]
@@ -124,16 +140,13 @@ def write_svg(path: Path):
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="FarmaCapital">
   <defs>
     <linearGradient id="fc-bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#0D1B2A"/>
+      <stop offset="0%" stop-color="#001534"/>
       <stop offset="100%" stop-color="#1E3ABA"/>
     </linearGradient>
   </defs>
-  <!-- Zona segura 18%: contenido en 2.5–29.5 -->
-  <rect x="2.5" y="2.5" width="27" height="27" rx="6" fill="url(#fc-bg)"/>
-  <!-- Cruz médica -->
+  <rect width="32" height="32" fill="url(#fc-bg)"/>
   <rect x="13" y="8.5" width="6" height="15" rx="3" fill="#FFFFFF"/>
   <rect x="8.5" y="13" width="15" height="6" rx="3" fill="#FFFFFF"/>
-  <!-- Acento verde marca -->
   <path d="M 11.5 20.5 A 5 5 0 0 1 14.5 14.5" fill="none" stroke="#22C55E" stroke-width="2.2" stroke-linecap="round"/>
 </svg>
 """
@@ -142,29 +155,34 @@ def write_svg(path: Path):
 
 
 def main():
-    print("Generando favicons FarmaCapital…")
+    print("Generando favicons / iconos PWA FarmaCapital…")
     write_svg(PUBLIC / "favicon.svg")
 
-    light_32 = draw_favicon(32, dark_tab=False)
-    dark_32 = draw_favicon(32, dark_tab=True)
-    save_png(light_32, PUBLIC / "favicon-32.png")
-    save_png(dark_32, PUBLIC / "favicon-32-dark.png")
+    save_png(draw_tab_favicon(32, dark_tab=False), PUBLIC / "favicon-32.png")
+    save_png(draw_tab_favicon(32, dark_tab=True), PUBLIC / "favicon-32-dark.png")
 
-    icon_sizes = [16, 32, 48, 72, 96, 128, 192, 512]
+    tab_sizes = [16, 32, 48, 72, 96, 128]
     ico_images: list[tuple[int, Image.Image]] = []
-
-    for sz in icon_sizes:
-        im_light = draw_favicon(sz, dark_tab=False)
-        im_dark = draw_favicon(sz, dark_tab=True)
+    for sz in tab_sizes:
+        im_light = draw_tab_favicon(sz, dark_tab=False)
+        im_dark = draw_tab_favicon(sz, dark_tab=True)
         save_png(im_light, PUBLIC / "icons" / f"farmacapital-{sz}.png")
         save_png(im_dark, PUBLIC / "icons" / f"farmacapital-{sz}-dark.png")
         if sz in (16, 32, 48):
             ico_images.append((sz, im_light))
 
-    save_png(draw_favicon(180, dark_tab=False), PUBLIC / "apple-touch-icon.png")
+    for sz in (192, 512):
+        any_icon = draw_app_icon(sz, maskable=False)
+        mask_icon = draw_app_icon(sz, maskable=True)
+        save_png(any_icon, PUBLIC / "icons" / f"farmacapital-{sz}.png")
+        save_png(mask_icon, PUBLIC / "icons" / f"farmacapital-{sz}-maskable.png")
+        save_png(any_icon, PUBLIC / "icons" / f"farmacapital-{sz}-dark.png")
+
+    # Safari / Agregar a Inicio: 180×180 full-bleed opaco
+    save_png(draw_app_icon(180, maskable=False), PUBLIC / "apple-touch-icon.png")
+
     save_ico(ico_images, PUBLIC / "favicon.ico")
     save_ico(ico_images, PUBLIC / "favicon-light.ico")
-
     print("Listo.")
 
 

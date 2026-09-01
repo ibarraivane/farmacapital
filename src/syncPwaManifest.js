@@ -33,7 +33,8 @@ export function syncPwaManifestLink() {
     link.setAttribute("href", href);
   }
 
-  const title = adminShell ? "FarmaCapital Admin" : "FarmaCapital Tienda";
+  // iOS trunca nombres largos en "Agregar a Inicio"; cortos se ven limpios.
+  const title = adminShell ? "FC Admin" : "FarmaCapital";
   document.querySelector('meta[name="apple-mobile-web-app-title"]')?.setAttribute("content", title);
   document.querySelector('meta[name="application-name"]')?.setAttribute("content", title);
 }

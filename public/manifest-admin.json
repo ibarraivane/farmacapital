@@ -1,13 +1,13 @@
 {
   "id": "/admin",
-  "name": "FarmaCapital — Admin",
-  "short_name": "FarmaCapital Admin",
+  "name": "FarmaCapital Admin",
+  "short_name": "FC Admin",
   "description": "Panel administrativo FarmaCapital: punto de venta, inventario, consultorio y reportes.",
   "start_url": "/admin",
   "scope": "/admin",
   "display": "standalone",
-  "background_color": "#f7f9fc",
-  "theme_color": "#0052cc",
+  "background_color": "#001534",
+  "theme_color": "#0052CC",
   "orientation": "portrait-primary",
   "lang": "es-MX",
   "categories": ["business", "medical", "health"],
@@ -34,13 +34,25 @@
       "src": "/icons/farmacapital-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/icons/farmacapital-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/farmacapital-192-maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/farmacapital-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "shortcuts": [
