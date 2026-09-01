@@ -21,14 +21,14 @@ export function explainUberQuoteError(err, detail) {
     blob.includes("outside of the delivery") ||
     blob.includes("no delivery options")
   ) {
-    return "Uber no puede entregar en esta dirección ahora. Elige pick-up en FarmaCapital.";
+    return "Uber Direct no cubre esta dirección desde FarmaCapital (Iztapalapa). Cambia el destino o escríbenos por WhatsApp.";
   }
   if (blob.includes("uber_api_failed") || blob.includes("address") || blob.includes("geocod")) {
     return "Uber no pudo ubicar la dirección. Pon calle con número, solo la colonia (sin alcaldía) y una referencia (edificio, negocio).";
   }
   if (detail) return `No se pudo cotizar: ${String(detail).slice(0, 160)}`;
   if (code && code !== "undefined") return `No se pudo cotizar (${code}).`;
-  return "No se pudo cotizar el envío Uber. Revisa la dirección o elige pick-up.";
+  return "No se pudo cotizar el envío Uber. Revisa la dirección o escríbenos por WhatsApp.";
 }
 
 export function formatUberFee(mxn) {

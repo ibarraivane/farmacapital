@@ -20,9 +20,18 @@ describe("uberDirectClient display", () => {
     expect(explainUberQuoteError("uber_api_failed", "address not found")).toMatch(/sin alcaldía/i);
   });
 
-  test("explica zona no entregable de Uber Direct", () => {
-    expect(
-      explainUberQuoteError("uber_api_failed", "The specified location is not in a deliverable area.")
-    ).toMatch(/no puede entregar|pick-up/i);
+  test("explica zona no entregable de Uber Direct sin empujar pick-up", () => {
+    const msg = explainUberQuoteError(
+      "uber_api_failed",
+      "The specified location is not in a deliverable area."
+    );
+    expect(msg).toMatch(/no cubre|Iztapalapa|WhatsApp/i);
+    expect(msg).not.toMatch(/pick-up|recoger/i);
+  });
+
+  test("el fallo genérico no ofrece recoger en farmacia", () => {
+    const msg = explainUberQuoteError("");
+    expect(msg).toMatch(/WhatsApp/i);
+    expect(msg).not.toMatch(/pick-up|recoger/i);
   });
 });
