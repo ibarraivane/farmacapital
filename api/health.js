@@ -10,6 +10,7 @@ const {
   diagnoseWhatsAppTemplates,
 } = require('./_lib/whatsappCloud');
 const { getSupabaseAdminConfig } = require('./_lib/supabaseAdmin');
+const { stripeWebhookHandler } = require('./_lib/stripeWebhookHandler');
 const {
   fetchPedidoByReciboToken,
   generateReciboHTML,
@@ -83,6 +84,13 @@ async function handler(req, res) {
   const hubMode = req.query?.['hub.mode'];
   const hasMetaSignature =
     req.headers['x-hub-signature-256'] || req.headers['X-Hub-Signature-256'];
+
+  // Stripe Apple/Google Pay webhook (rewrite /api/payments/stripe/webhook).
+  // health.js ya tiene bodyParser:false — necesario para verificar la firma.
+  const stripeType = String(req.query?.type || req.query?.provider || '').toLowerCase();
+  if (req.method === 'POST' && (stripeType === 'stripe-webhook' || stripeType === 'stripe')) {
+    return stripeWebhookHandler(req, res);
+  }
 
   if (hubMode || (req.method === 'POST' && hasMetaSignature)) {
     return whatsappWebhookHandler(req, res);

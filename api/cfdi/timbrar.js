@@ -139,6 +139,7 @@ function formaPagoSAT(metodoPosStr) {
   if (m.includes("tarjeta"))       return "04"; // Tarjeta de crédito (genérico)
   if (m.includes("bbva"))          return "04"; // Tarjeta de débito/crédito BBVA
   if (m.includes("mercadopago") || m.includes("point")) return "04";
+  if (m.includes("stripe") || m.includes("apple") || m.includes("google")) return "04";
   if (m === "spei" || m.includes("transfer")) return "03"; // Transferencia
   return "99"; // Otros
 }

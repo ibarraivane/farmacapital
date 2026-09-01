@@ -29,11 +29,11 @@
         },
         {
           "key": "Permissions-Policy",
-          "value": "camera=(), microphone=(), geolocation=()"
+          "value": "camera=(), microphone=(), geolocation=(), payment=(self)"
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://sdk.mercadopago.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://accounts.google.com https://appleid.apple.com https://www.facebook.com https://graph.facebook.com https://api.mercadopago.com https://www.mercadopago.com https://www.mercadopago.com.mx; frame-src https://*.supabase.co https://accounts.google.com https://appleid.apple.com https://www.facebook.com https://www.mercadopago.com https://www.mercadopago.com.mx https://www.mercadolibre.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://*.supabase.co https://accounts.google.com https://appleid.apple.com https://www.facebook.com https://www.mercadopago.com https://www.mercadopago.com.mx"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://sdk.mercadopago.com https://js.stripe.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://accounts.google.com https://appleid.apple.com https://www.facebook.com https://graph.facebook.com https://api.mercadopago.com https://www.mercadopago.com https://www.mercadopago.com.mx https://api.stripe.com https://*.stripe.com; frame-src https://*.supabase.co https://accounts.google.com https://appleid.apple.com https://www.facebook.com https://www.mercadopago.com https://www.mercadopago.com.mx https://www.mercadolibre.com https://js.stripe.com https://hooks.stripe.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://*.supabase.co https://accounts.google.com https://appleid.apple.com https://www.facebook.com https://www.mercadopago.com https://www.mercadopago.com.mx"
         }
       ]
     },
@@ -176,6 +176,14 @@
     {
       "source": "/r/:token",
       "destination": "/api/health?token=:token"
+    },
+    {
+      "source": "/api/payments/stripe/create-intent",
+      "destination": "/api/payments/mp/create-preference?provider=stripe"
+    },
+    {
+      "source": "/api/payments/stripe/webhook",
+      "destination": "/api/health?type=stripe-webhook"
     },
     {
       "source": "/((?!api/|static/|icons/|catalogo-propia/|brand/|manifest\\.json|service-worker\\.js|version\\.json|favicon\\.ico|asset-manifest\\.json|robots\\.txt).*)",
