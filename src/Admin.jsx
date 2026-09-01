@@ -1195,6 +1195,7 @@ function GestionUsuarios({ showConfirm }){
   const [pwdModal, setPwdModal] = useState(null);
   const [pwdNueva, setPwdNueva] = useState("");
   const [guardandoPwd, setGuardandoPwd] = useState(false);
+  const [detalleModal, setDetalleModal] = useState(null);
 
   const sesionId = () => {
     try { return Number(JSON.parse(sessionStorage.getItem("farmacapital_admin_user") || "{}").id); }
@@ -1496,20 +1497,29 @@ function GestionUsuarios({ showConfirm }){
 
   const rolColor = r => r==="admin"?C.purple:r==="vendedor"?C.blue:C.green;
   const actionBtnBase = {
-    minHeight: 36,
+    minHeight: 32,
     borderRadius: 8,
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
     cursor: "pointer",
-    padding: "6px 10px",
+    padding: "5px 10px",
     marginLeft: 0,
     fontSize: 11,
     fontWeight: 700,
     fontFamily: "var(--fc-body)",
     whiteSpace: "nowrap",
+    flex: "0 0 auto",
   };
+  const campoDetalle = (label, value) => (
+    <div>
+      <div style={{color:C.textDim,fontSize:10,fontWeight:700,letterSpacing:1.2,textTransform:"uppercase",marginBottom:4}}>{label}</div>
+      {typeof value === "string" || typeof value === "number"
+        ? <div style={{color:C.text,fontSize:13,lineHeight:1.45,whiteSpace:"pre-wrap"}}>{value}</div>
+        : value}
+    </div>
+  );
 
   return(
     <div>
@@ -1615,6 +1625,23 @@ function GestionUsuarios({ showConfirm }){
         </div>
       </Modal>
 
+      <Modal open={!!detalleModal} onClose={()=>setDetalleModal(null)} title={detalleModal ? `Detalle · ${detalleModal.nombre}` : "Detalle"}>
+        {detalleModal && (
+          <>
+            <div style={{display:"grid",gap:14,marginBottom:18}}>
+              {campoDetalle("Acceso", etiquetaAcceso(detalleModal))}
+              {campoDetalle("Perfil", <Tag col={rolColor(detalleModal.rol)} sm>{detalleModal.rol}</Tag>)}
+              {campoDetalle("Estado", <Tag col={detalleModal.activo?C.green:C.red} sm>{detalleModal.activo?"Activo":"Inactivo"}</Tag>)}
+              {campoDetalle("Notas", detalleModal.notas?.trim() || "Sin notas.")}
+            </div>
+            <div style={{display:"flex",gap:8,justifyContent:"flex-end",flexWrap:"wrap"}}>
+              <Btn onClick={()=>setDetalleModal(null)} ol col={C.textMid}>Cerrar</Btn>
+              <Btn col={C.amber} onClick={()=>{ const u = detalleModal; setDetalleModal(null); abrirEditar(u); }}>Editar</Btn>
+            </div>
+          </>
+        )}
+      </Modal>
+
       <Modal open={!!pwdModal} onClose={()=>{ if(!guardandoPwd){ setPwdModal(null); setPwdNueva(""); } }} title={pwdModal ? `Nueva contraseña · ${pwdModal.nombre}` : "Nueva contraseña"} closeOnBackdrop={!guardandoPwd}>
         <div style={{marginBottom:12}}>
           <div style={{color:C.textMid,fontSize:11,marginBottom:4}}>Contraseña (mínimo 6 caracteres) *</div>
@@ -1703,7 +1730,8 @@ function GestionUsuarios({ showConfirm }){
 
       {loading?<SkeletonTable rows={4} cols={5}/>:(
         <Box>
-          <table className="fc-tabla-cards" style={{width:"100%",borderCollapse:"collapse"}}>
+          <div style={{overflowX:"auto"}}>
+          <table className="fc-tabla-cards" style={{width:"100%",minWidth:760,borderCollapse:"collapse"}}>
             <thead><tr>{["Nombre","Acceso","Perfil","Notas","Estado","Acciones"].map(h=><th key={h} style={{padding:"8px 14px",color:C.textDim,fontSize:9,textAlign:"left",letterSpacing:1.5,textTransform:"uppercase",borderBottom:`1px solid ${C.border}`}}>{h}</th>)}</tr></thead>
             <tbody>
               {usuarios.map(u=>(
@@ -1711,10 +1739,22 @@ function GestionUsuarios({ showConfirm }){
                   <td data-label="Nombre" data-primary style={{padding:"10px 14px",color:C.text,fontWeight:700,fontSize:13}}>{u.nombre}</td>
                   <td data-label="Acceso" style={{padding:"10px 14px",color:C.textMid,fontSize:12}}>{etiquetaAcceso(u)}</td>
                   <td data-label="Perfil" style={{padding:"10px 14px"}}><Tag col={rolColor(u.rol)} sm>{u.rol}</Tag></td>
-                  <td data-label="Notas" data-wide style={{padding:"10px 14px",color:C.textMid,fontSize:12}}>{u.notas||"—"}</td>
+                  <td data-label="Notas" style={{padding:"10px 14px",whiteSpace:"nowrap",width:1}}>
+                    {String(u.notas||"").trim() ? (
+                      <button
+                        type="button"
+                        onClick={()=>setDetalleModal(u)}
+                        title="Ver notas y detalle"
+                        aria-label={`Ver detalle de ${u.nombre}`}
+                        style={{...actionBtnBase, border:`1px solid ${C.blue}30`, background:C.blueDim, color:C.blue}}
+                      >Detalle</button>
+                    ) : (
+                      <span style={{color:C.textDim,fontSize:12}}>—</span>
+                    )}
+                  </td>
                   <td data-label="Estado" style={{padding:"10px 14px"}}><Tag col={u.activo?C.green:C.red} sm>{u.activo?"Activo":"Inactivo"}</Tag></td>
-                  <td data-label="Acciones" data-actions style={{padding:"10px 14px"}}>
-                    <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                  <td data-label="Acciones" data-actions style={{padding:"10px 14px",whiteSpace:"nowrap",width:1,verticalAlign:"middle"}}>
+                    <div style={{display:"inline-flex",alignItems:"center",gap:6,flexWrap:"nowrap"}}>
                     <button
                       type="button"
                       onClick={()=>abrirEditar(u)}
@@ -1758,6 +1798,7 @@ function GestionUsuarios({ showConfirm }){
               ))}
             </tbody>
           </table>
+          </div>
         </Box>
       )}
     </div>
