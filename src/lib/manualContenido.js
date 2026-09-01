@@ -343,11 +343,12 @@ export const TEMAS = [
     moduloId: "cons_dr",
     roles: ["doctora"],
     titulo: "Agenda médica",
-    resumen: "Tu calendario de pacientes. Sin POS ni caja.",
+    resumen: "Tus consultas del día. Sin POS, sin caja y sin agendar.",
     pasos: [
-      "Agenda médica es tu inicio.",
-      "Revisa citas del día. Marca [[no-show]] si no llegaron.",
-      "Abre el [[expediente]] desde la cita cuando vayas a atender.",
+      "Agenda médica es tu inicio: ves las consultas del día, no un calendario de huecos.",
+      "Entrá a la siguiente consulta pagada. Si falta el pago, el botón no avanza.",
+      "En la ficha: signos, diagnóstico, receta con folio y seguimiento. La receta baja a caja para surtirse.",
+      "Quien anula o marca [[no-show]] es mostrador, no vos.",
     ],
   },
   {

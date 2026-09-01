@@ -59,6 +59,7 @@ export function ExpedientePaciente({ telefono, nombre, onVerCita }) {
           .select(`
             id, nombre, telefono, fecha, hora, motivo, estado, pago_estado,
             diagnostico, notas_medico, medicamentos_prescritos,
+            seguimiento_dias, seguimiento_fecha, seguimiento_nota,
             signos_vitales, expediente_json, procedimientos_realizados,
             duracion_consulta_segundos, confirmada_inicio_at, consulta_fin_at,
             ingreso_doctor, precio_consulta_cobrado,
@@ -358,6 +359,12 @@ export function ExpedientePaciente({ telefono, nombre, onVerCita }) {
               {c.diagnostico && (
                 <div style={{ color: C.textDim, fontSize: 11, marginBottom: 6 }}>
                   <strong>Dx:</strong> {c.diagnostico}
+                </div>
+              )}
+              {c.seguimiento_fecha && (
+                <div style={{ color: C.purple, fontSize: 11, fontWeight: 700, marginBottom: 6 }}>
+                  Seguimiento sugerido: {c.seguimiento_fecha}
+                  {c.seguimiento_nota ? ` · ${c.seguimiento_nota}` : ""}
                 </div>
               )}
               <button

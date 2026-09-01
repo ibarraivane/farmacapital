@@ -18,7 +18,7 @@ export async function marcarMedicamentosRecetaFarmaCapitalSurtidos(supabase, {
 
   const { data: citas, error } = await supabase
     .from("citas")
-    .select("id, medicamentos_prescritos, telefono, cliente_id, confirmada_inicio_at")
+    .select("id, medicamentos_prescritos, telefono, cliente_id, confirmada_inicio_at, receta_id")
     .eq("fecha", fechaCitaLocal)
     .neq("estado", "cancelada")
     .order("id", { ascending: false })
@@ -77,5 +77,16 @@ export async function marcarMedicamentosRecetaFarmaCapitalSurtidos(supabase, {
     console.warn("[recetaCitaSync]", patchData.error);
   }
   const ok = !uErr && patchData?.success !== false;
-  return { ok, citaId: match.id };
+  if (ok && match.receta_id) {
+    try {
+      await supabase.rpc("empleado_marcar_receta_surtida", {
+        p_session_token,
+        p_receta_id: match.receta_id,
+        p_pedido_id: pedidoId || null,
+      });
+    } catch (e) {
+      console.warn("[recetaCitaSync] marcar receta surtida:", e);
+    }
+  }
+  return { ok, citaId: match.id, recetaId: match.receta_id || null };
 }
