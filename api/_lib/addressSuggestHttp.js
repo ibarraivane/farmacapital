@@ -1,9 +1,14 @@
 'use strict';
 
-const { applyRestrictiveCors } = require('../_lib/allowedOrigins');
-const { suggestAddresses } = require('../_lib/addressSuggest');
+const { applyRestrictiveCors } = require('./allowedOrigins');
+const { suggestAddresses } = require('./addressSuggest');
 
-module.exports = async function handler(req, res) {
+/**
+ * Handler HTTP de sugerencias de dirección (Google Places / Photon).
+ * Vive en _lib (no cuenta como Serverless Function) y se monta desde
+ * logistics/webhook para no pasar el límite Hobby de 12 funciones.
+ */
+module.exports = async function handleAddressSuggestHttp(req, res) {
   applyRestrictiveCors(req, res);
   if (req.method === 'OPTIONS') {
     res.statusCode = 204;
