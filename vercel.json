@@ -126,6 +126,10 @@
       "destination": "/api/logistics/webhook?type=address-suggest"
     },
     {
+      "source": "/api/address/colonias",
+      "destination": "/api/logistics/webhook?type=address-colonias"
+    },
+    {
       "source": "/api/rh/documento",
       "destination": "/api/admin/storage-upload?type=rh-documento"
     },

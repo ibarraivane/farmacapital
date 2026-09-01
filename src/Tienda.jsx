@@ -57,7 +57,9 @@ import {
   composeCheckoutCalle,
   checkoutNumeroOk,
   isCheckoutDestinoListo,
+  checkoutDestinoFaltantes,
 } from "./lib/checkoutAddress";
+import { checkoutAddressDraftKey } from "./lib/savedCheckoutAddresses";
 import {
   loadStoredCart,
   saveStoredCart,
@@ -113,13 +115,6 @@ function tiendaSumLotesByProduct(lotesRows) {
     m.set(pid, (m.get(pid) || 0) + add);
   }
   return m;
-}
-
-function checkoutAddressStorageKey(user) {
-  const id = user?.id != null ? String(user.id) : "";
-  const tel = user?.telefono ? String(user.telefono).replace(/\D/g, "") : "";
-  const suffix = id || tel || "guest";
-  return `farmacapital_checkout_address_${suffix}`;
 }
 
 /** Stock vendible: max(columna productos.stock, suma lotes) por si el trigger no sincronizó. */
@@ -3446,7 +3441,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",setEntrega
     };
     let merged = { ...fallback };
     try {
-      const raw = localStorage.getItem(checkoutAddressStorageKey(user));
+      const raw = localStorage.getItem(checkoutAddressDraftKey(user));
       if (raw) {
         const saved = JSON.parse(raw);
         const savedCalle = String(saved?.calle || "");
@@ -3480,7 +3475,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",setEntrega
       lng: Number.isFinite(Number(datos.lng)) ? Number(datos.lng) : null,
     };
     try {
-      localStorage.setItem(checkoutAddressStorageKey(user), JSON.stringify(payload));
+      localStorage.setItem(checkoutAddressDraftKey(user), JSON.stringify(payload));
     } catch (_) { /* noop */ }
   }, [datos.calle, datos.numero, datos.colonia, datos.cp, datos.referencia, datos.lat, datos.lng, user?.id, user?.telefono]);
 
@@ -3534,7 +3529,10 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",setEntrega
     if (!nombreOk) f.push("nombre completo (mín. 3 letras)");
     if (!telOk) f.push("teléfono de 10 dígitos");
     if (!emailOk) f.push("correo válido");
-    if (!direccionOk && tipoEntregaRpc === "envio") f.push("un destino (pulsa Usar esta dirección)");
+    if (!direccionOk && tipoEntregaRpc === "envio") {
+      const destFaltan = checkoutDestinoFaltantes(datos);
+      f.push(destFaltan.length ? destFaltan.join(", ") : "destino de entrega");
+    }
     return f;
   }, [nombreOk, telOk, emailOk, direccionOk, tipoEntregaRpc]);
 
@@ -3980,6 +3978,8 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",setEntrega
                         cp={datos.cp}
                         lat={datos.lat}
                         lng={datos.lng}
+                        referencia={datos.referencia}
+                        user={user}
                         inputStyle={tiendaFieldStyle({width:"100%",boxSizing:"border-box",fontSize:16})}
                         fieldStyle={tiendaFieldStyle({width:"100%",boxSizing:"border-box",fontSize:16})}
                         onConfirm={(next)=>setDatos((p)=>({...p, ...next}))}
@@ -5487,12 +5487,15 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
           <button key={v} onClick={()=>setTab(v)} style={{flex:1,padding:"10px",borderRadius:8,border:"none",background:tab===v?BRAND.primary:"transparent",color:tab===v?C.white:C.mid,fontWeight:tab===v?700:500,cursor:"pointer",fontSize:13,transition:"all .15s"}}>{l}</button>
         ))}
       </div>
-      {tab==="pedidos"&&(cargando?<div style={{textAlign:"center",padding:40,color:C.mid}}>Cargando pedidos...</div>:!pedidos.length?(
-        <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:40,textAlign:"center"}}><div style={{fontSize:40,marginBottom:12}}>📦</div><div style={{color:C.mid,fontSize:15}}>Aún no tienes pedidos en FarmaCapital</div><Btn onClick={()=>setPage("catalogo",{rx:false})} col={BRAND.primary} sm style={{marginTop:16}}>Hacer mi primer pedido</Btn></div>
-      ):(
-      <>
-      {addToCart && (
-        <>
+      {tab==="pedidos" && (
+        cargando ? (
+          <div style={{textAlign:"center",padding:40,color:C.mid}}>Cargando pedidos...</div>
+        ) : !pedidos.length ? (
+          <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:40,textAlign:"center"}}><div style={{fontSize:40,marginBottom:12}}>📦</div><div style={{color:C.mid,fontSize:15}}>Aún no tienes pedidos en FarmaCapital</div><Btn onClick={()=>setPage("catalogo",{rx:false})} col={BRAND.primary} sm style={{marginTop:16}}>Hacer mi primer pedido</Btn></div>
+        ) : (
+          <div>
+            {addToCart ? (
+              <div>
           <RecompraStrip
             title="Comprar de nuevo"
             subtitle="Tus compras anteriores. Un toque y vuelven al carrito."
@@ -5521,9 +5524,9 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
               />
             ))}
           </RecompraStrip>
-        </>
-      )}
-      {pedidos.map(p=>(
+              </div>
+            ) : null}
+            {pedidos.map(p=>(
         <div key={p.id} style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:20,marginBottom:12}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
             <div><div style={{color:C.dark,fontWeight:700,fontSize:15}}>Pedido #{p.id}</div><div style={{color:C.dim,fontSize:12,marginTop:2}}>{new Date(p.created_at).toLocaleDateString("es-MX",{year:"numeric",month:"long",day:"numeric"})}</div></div>
@@ -5551,9 +5554,10 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
             {(p.pedido_items||[]).map((item,i)=>(<div key={i} style={{display:"flex",justifyContent:"space-between",marginBottom:4}}><span style={{color:C.dark,fontSize:13}}>{item.productos?.nombre||"Producto"} ×{item.cantidad}</span><span style={{color:BRAND.primary,fontSize:13,fontWeight:600}}>{$(item.precio_unitario*item.cantidad)}</span></div>))}
           </div>
         </div>
-      ))}
-      </>
-      ))}
+            ))}
+          </div>
+        )
+      )}
       {tab==="citas"&&(cargando?<div style={{textAlign:"center",padding:40,color:C.mid}}>Cargando citas...</div>:!citas.length?(
         <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:40,textAlign:"center"}}><div style={{fontSize:40,marginBottom:12}}>📅</div><div style={{color:C.mid,fontSize:15}}>No tienes citas agendadas</div><Btn onClick={()=>navigateToCita(setPage)} col={BRAND.primary} sm style={{marginTop:16}}>Agendar consulta médica</Btn></div>
       ):citas.map(c=>{

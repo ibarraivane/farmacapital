@@ -7,6 +7,7 @@ import {
   cleanCheckoutColonia,
   formatDestinoLabel,
   isCheckoutDestinoListo,
+  checkoutDestinoFaltantes,
   applyDestinoSuggestion,
   parseTypedMxAddress,
 } from "./checkoutAddress.js";
@@ -51,6 +52,10 @@ test("formatDestinoLabel y destino listo", () => {
   assert.equal(
     isCheckoutDestinoListo({ calle: "Bartolache", numero: "", colonia: "Del Valle Sur", cp: "03104" }),
     false
+  );
+  assert.deepEqual(
+    checkoutDestinoFaltantes({ calle: "Insurgentes Sur", numero: "300", colonia: "", cp: "03240" }),
+    ["colonia"]
   );
 });
 
