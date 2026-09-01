@@ -15,4 +15,14 @@ describe("uberDirectClient display", () => {
     expect(explainUberQuoteError("not_configured")).toMatch(/Client Secret/i);
     expect(explainUberQuoteError({ message: "Protected deployment", code: "401" })).toMatch(/protegido/i);
   });
+
+  test("explica zona no entregable de Uber, no 'no pudo ubicar'", () => {
+    const msg = explainUberQuoteError(
+      "uber_api_failed",
+      "The specified location is not in a deliverable area."
+    );
+    expect(msg).toMatch(/no entrega en esta zona/i);
+    expect(msg).not.toMatch(/no pudo ubicar/i);
+    expect(explainUberQuoteError("address_undeliverable")).toMatch(/no entrega en esta zona/i);
+  });
 });

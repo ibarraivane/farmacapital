@@ -305,6 +305,7 @@ async function uberApi(path, { method = 'POST', body, deps = {} } = {}) {
       ok: false,
       error: 'uber_api_failed',
       status: resp.status,
+      code: data.code || data.error || null,
       detail: data.message || data.error || data.code || null,
       raw: data,
     };
@@ -320,12 +321,16 @@ async function createUberQuote({ dropoffAddress, dropoffCoords, deps = {} } = {}
   if (!dest || !Number.isFinite(dest.lat) || !Number.isFinite(dest.lng)) {
     dest = await geocodeMxAddress(dropoffAddress, deps);
   }
+  const contact = pickupContact();
+  const storeId = envTrim('UBER_DIRECT_EXTERNAL_STORE_ID');
   const body = {
     pickup_address: stringifyUberAddress(pickup),
     dropoff_address: stringifyUberAddress(dropoffAddress),
     pickup_latitude: coords.lat,
     pickup_longitude: coords.lng,
   };
+  if (contact.phone) body.pickup_phone_number = contact.phone;
+  if (storeId) body.external_store_id = storeId;
   if (dest && Number.isFinite(dest.lat) && Number.isFinite(dest.lng)) {
     body.dropoff_latitude = dest.lat;
     body.dropoff_longitude = dest.lng;
