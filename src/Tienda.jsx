@@ -312,7 +312,7 @@ function productImageUrl(prod, narrow, placeholderFallback = "", fotoCatalogo = 
 // ── FAQ ───────────────────────────────────────────────────────
 const FAQ_ITEMS = [
   { p:"¿Cómo hago un pedido en línea?", r:"Agrega los productos al carrito, selecciona tu tipo de entrega (pick-up o envío), ingresa tus datos y elige tu método de pago. Recibirás confirmación por WhatsApp." },
-  { p:"¿Cuánto tarda el envío?", r:"En CDMX eliges entrega express con Uber Direct. El costo y el tiempo salen en el checkout (los paga el comprador). Por el momento solo hacemos entregas dentro de CDMX." },
+  { p:"¿Cuánto tarda el envío?", r:"En CDMX el envío de esta tienda es solo Uber Direct. El costo y el tiempo salen en el checkout (los paga el comprador). Rappi es otra página/app, no un mensajero de farmacapital.mx. Por el momento solo entregamos dentro de CDMX." },
   { p:"¿Puedo recoger mi pedido en la farmacia?", r:"Sí. El pick-up es gratis y el mismo día. Recibirás un mensaje cuando tu pedido esté listo." },
   { p:"¿Cómo funcionan los Puntos FarmaCapital?", r:"Ganas 1 punto por cada $10 de compra. 1 punto equivale a $0.50 de descuento. Puedes usarlos en farmacia, minisuper y consultorio." },
   { p:"¿Qué hago si necesito un medicamento con receta?", r:"Agrégalo al carrito normalmente. En antibióticos te recomendamos traer receta al recoger; no es obligatoria. Los medicamentos controlados sí requieren receta original vigente." },
@@ -2157,14 +2157,14 @@ function ContenidoCDMX({ color }){
   return (
     <>
       <p style={{margin:"0 0 12px"}}>
-        Recibe tu pedido en tu domicilio en menos de 60 minutos dentro de la Ciudad de México con nuestros aliados de mensajería.
+        Recibe tu pedido en domicilio dentro de la Ciudad de México con Uber Direct. El precio del envío lo ves y lo pagas en el checkout. Rappi no entrega pedidos de esta tienda: si pides en Rappi, es en su propia app.
       </p>
       <h4 style={sH4(color)}>¿Cómo funciona?</h4>
       <ol style={sList}>
         <li style={sListItem}>Haz tu pedido en línea y elige &quot;Entrega CDMX express&quot;</li>
-        <li style={sListItem}>El costo de envío se calcula según tu zona y peso (lo verás antes de pagar)</li>
-        <li style={sListItem}>Un motorizado de Uber Direct recoge tu pedido en la farmacia</li>
-        <li style={sListItem}>Llega a tu domicilio en 30–60 minutos</li>
+        <li style={sListItem}>Elige &quot;Reparto CDMX&quot; y paga el envío Uber Direct que salga en el checkout</li>
+        <li style={sListItem}>Preparamos el pedido en FarmaCapital</li>
+        <li style={sListItem}>Un motorizado de Uber recoge en la farmacia y lo lleva a tu domicilio</li>
       </ol>
       <h4 style={sH4(color)}>Cobertura</h4>
       <p style={{margin:"0 0 12px"}}>
@@ -2172,7 +2172,7 @@ function ContenidoCDMX({ color }){
       </p>
       <h4 style={sH4(color)}>Costo</h4>
       <p style={{margin:"0 0 12px"}}>
-        Variable según distancia. Lo calculamos automáticamente al confirmar tu pedido.
+        Lo cotiza Uber Direct según tu dirección. Lo pagas tú, junto con los productos. No es Rappi.
       </p>
       <h4 style={sH4(color)}>Horario de servicio</h4>
       <p style={{margin:"0 0 12px"}}>
@@ -4490,7 +4490,7 @@ function PoliticaEnvios({setPage}){
   return(
     <PaginaLegal titulo="📦 Política de Envíos y Devoluciones" setPage={setPage}>
       {[
-        ["Tipos de entrega disponibles","• Pick-up en FarmaCapital: Gratis. Disponible el mismo día. Te avisamos cuando tu pedido esté listo.\n• Reparto express CDMX: Uber Direct. El costo y el tiempo se muestran en el checkout y los paga el comprador junto con el pedido. Un motorizado recoge en la farmacia y entrega en tu domicilio."],
+        ["Tipos de entrega disponibles","• Pick-up en FarmaCapital: Gratis. Disponible el mismo día. Te avisamos cuando tu pedido esté listo.\n• Reparto express CDMX: solo Uber Direct. El costo y el tiempo se muestran en el checkout y los paga el comprador. Un motorizado de Uber recoge en la farmacia.\n• Rappi no es un envío de esta página: los pedidos Rappi se hacen en la app de Rappi."],
         ["Política de devoluciones","Aceptamos devoluciones dentro de las 72 horas siguientes a la entrega, siempre que el producto esté en perfecto estado, sin abrir y con su empaque original. No se aceptan devoluciones de: medicamentos controlados, productos refrigerados, ni artículos de uso personal."],
         ["Proceso de devolución","Para iniciar una devolución, contáctanos a contacto@farmacapital.mx dentro del plazo indicado. Una vez aprobada la devolución, el reembolso se realizará en un plazo máximo de 5 días hábiles al mismo método de pago utilizado."],
         ["Productos dañados o incorrectos","Si recibes un producto dañado o diferente al solicitado, contáctanos de inmediato. Haremos el reemplazo o reembolso sin costo adicional para ti."],
