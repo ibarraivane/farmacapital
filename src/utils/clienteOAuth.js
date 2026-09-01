@@ -25,19 +25,21 @@ export const SOCIAL_PROVIDERS = [
 const PROVIDER_IDS = new Set(SOCIAL_PROVIDERS.map((p) => p.id));
 
 /**
- * Lista habilitada por env (coma-separada). Default: google + apple.
+ * Lista habilitada por env (coma-separada). Default: solo Google.
+ * Apple requiere Apple Developer Program; actívalo con
+ * REACT_APP_SOCIAL_LOGIN=google,apple cuando esté listo.
  * Ej: REACT_APP_SOCIAL_LOGIN=google,facebook,apple
  */
 export function enabledSocialProviders() {
   const raw =
     process.env.REACT_APP_SOCIAL_LOGIN ||
     process.env.REACT_APP_OAUTH_PROVIDERS ||
-    "google,apple";
+    "google";
   const wanted = String(raw)
     .split(/[,;\s]+/)
     .map((s) => s.trim().toLowerCase())
     .filter((id) => PROVIDER_IDS.has(id));
-  const unique = [...new Set(wanted.length ? wanted : ["google", "apple"])];
+  const unique = [...new Set(wanted.length ? wanted : ["google"])];
   return SOCIAL_PROVIDERS.filter((p) => unique.includes(p.id));
 }
 
