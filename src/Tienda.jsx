@@ -49,6 +49,7 @@ import {
 import { notifyCitaConfirmacion, formatTelefonoDisplay, formatCitaFecha } from "./utils/citaWhatsApp";
 import { fetchUberDirectQuote, attachUberDirectQuote, formatUberFee, formatUberEta, explainUberQuoteError } from "./lib/uberDirectClient";
 import DestinationPicker from "./components/DestinationPicker";
+import RecompraStrip from "./components/RecompraStrip";
 import {
   cleanCheckoutColonia,
   splitCalleYNumero,
@@ -56,6 +57,12 @@ import {
   checkoutNumeroOk,
   isCheckoutDestinoListo,
 } from "./lib/checkoutAddress";
+import {
+  loadStoredCart,
+  saveStoredCart,
+  mergeCartLines,
+} from "./lib/tiendaCartStorage";
+import { recomprasFromPedidos, sugeridosFromRecompras } from "./lib/tiendaRecompras";
 import { FARMACIA_FISCAL } from "./constants/farmaciaFiscal";
 import { HORARIO_FARMACIA } from "./constants/turnos";
 import { validarPasswordTienda, PASSWORD_RULES_TEXT, PASSWORD_MIN_LENGTH } from "./utils/passwordPolicy";
@@ -2719,7 +2726,7 @@ function TiendaBusquedaBar({
 }
 
 // ── HOME ──────────────────────────────────────────────────────
-function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,precioConsulta,loadingProductos}){
+function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,precioConsulta,loadingProductos,recompras=[],sugeridos=[]}){
   const C = useTheme();
   const stack = useMediaQuery("(max-width: 768px)");
   const [promos, setPromos] = useState([]);
@@ -2822,6 +2829,39 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
       <HomeBannersTiles setPage={setPage} items={bannerZones.tile} stack={stack}/>
 
       <HomePromociones promos={promos} setPage={setPage}/>
+
+      {(recompras.length > 0 || sugeridos.length > 0) && (
+        <div style={{maxWidth:1200,margin:"0 auto",padding:"0 16px 32px"}}>
+          <RecompraStrip
+            title="Comprar de nuevo"
+            subtitle="Lo que ya pediste en FarmaCapital, listo para agregar."
+            empty={recompras.length === 0}
+          >
+            {recompras.slice(0, 6).map((r) => (
+              <ProductCard
+                key={r.prod.id}
+                prod={r.prod}
+                addToCart={addToCart}
+                onClick={()=>{setProdDetalle(r.prod);setPage("detalle", { productId: r.prod.id });}}
+              />
+            ))}
+          </RecompraStrip>
+          <RecompraStrip
+            title="Sugerido para ti"
+            subtitle="Según lo que sueles comprar."
+            empty={sugeridos.length === 0}
+          >
+            {sugeridos.map((p) => (
+              <ProductCard
+                key={p.id}
+                prod={p}
+                addToCart={addToCart}
+                onClick={()=>{setProdDetalle(p);setPage("detalle", { productId: p.id });}}
+              />
+            ))}
+          </RecompraStrip>
+        </div>
+      )}
 
       {/* Más vendidos */}
       <div style={{maxWidth:1200,margin:"0 auto",padding:"0 16px 48px"}}>
@@ -5172,7 +5212,7 @@ function etiquetaLogisticaPedido(p) {
   return { label: "En preparacion", col: "#d97706" };
 }
 
-function Cuenta({user,setPage,setUser}){
+function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
   const C = useTheme();
   const [tab,setTab]=useState(()=>{
     try {
@@ -5277,6 +5317,17 @@ function Cuenta({user,setPage,setUser}){
       setBusyPayPedidoId(null);
     }
   };
+  const recompras = useMemo(
+    () => recomprasFromPedidos(pedidos, productos),
+    [pedidos, productos]
+  );
+  const sugeridos = useMemo(
+    () => sugeridosFromRecompras(recompras, productos, {
+      limit: 4,
+      permitido: productoPermitidoEnTiendaFarmaciaWeb,
+    }),
+    [recompras, productos]
+  );
   if(!user) return(<div style={{maxWidth:500,margin:"80px auto",padding:"0 24px",textAlign:"center"}}><div style={{fontSize:48,marginBottom:16}}>👤</div><h2 style={{color:C.dark,fontSize:22,fontWeight:800,marginBottom:16}}>Inicia sesión para ver tu cuenta</h2><div style={{display:"flex",gap:12,justifyContent:"center"}}><Btn onClick={()=>setPage("login")} col={BRAND.primary}>Iniciar sesión</Btn><Btn onClick={()=>setPage("registro")} outline col={BRAND.primary}>Crear cuenta</Btn></div></div>);
   const eCol=e=>({pendiente:"#f59e0b",confirmado:BRAND.accent,entregado:BRAND.primary,cancelado:C.red}[e]||C.mid);
   const citaPuedeGestionar = (c) =>
@@ -5299,7 +5350,41 @@ function Cuenta({user,setPage,setUser}){
       </div>
       {tab==="pedidos"&&(cargando?<div style={{textAlign:"center",padding:40,color:C.mid}}>Cargando pedidos...</div>:!pedidos.length?(
         <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:40,textAlign:"center"}}><div style={{fontSize:40,marginBottom:12}}>📦</div><div style={{color:C.mid,fontSize:15}}>Aún no tienes pedidos en FarmaCapital</div><Btn onClick={()=>setPage("catalogo",{rx:false})} col={BRAND.primary} sm style={{marginTop:16}}>Hacer mi primer pedido</Btn></div>
-      ):pedidos.map(p=>(
+      ):(
+      <>
+      {addToCart && (
+        <>
+          <RecompraStrip
+            title="Comprar de nuevo"
+            subtitle="Tus compras anteriores. Un toque y vuelven al carrito."
+            empty={recompras.length === 0}
+          >
+            {recompras.slice(0, 6).map((r) => (
+              <ProductCard
+                key={r.prod.id}
+                prod={r.prod}
+                addToCart={addToCart}
+                onClick={()=>{ setProdDetalle?.(r.prod); setPage("detalle", { productId: r.prod.id }); }}
+              />
+            ))}
+          </RecompraStrip>
+          <RecompraStrip
+            title="Sugerido para ti"
+            subtitle="Más de lo que sueles pedir."
+            empty={sugeridos.length === 0}
+          >
+            {sugeridos.map((p) => (
+              <ProductCard
+                key={p.id}
+                prod={p}
+                addToCart={addToCart}
+                onClick={()=>{ setProdDetalle?.(p); setPage("detalle", { productId: p.id }); }}
+              />
+            ))}
+          </RecompraStrip>
+        </>
+      )}
+      {pedidos.map(p=>(
         <div key={p.id} style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:20,marginBottom:12}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
             <div><div style={{color:C.dark,fontWeight:700,fontSize:15}}>Pedido #{p.id}</div><div style={{color:C.dim,fontSize:12,marginTop:2}}>{new Date(p.created_at).toLocaleDateString("es-MX",{year:"numeric",month:"long",day:"numeric"})}</div></div>
@@ -5327,7 +5412,9 @@ function Cuenta({user,setPage,setUser}){
             {(p.pedido_items||[]).map((item,i)=>(<div key={i} style={{display:"flex",justifyContent:"space-between",marginBottom:4}}><span style={{color:C.dark,fontSize:13}}>{item.productos?.nombre||"Producto"} ×{item.cantidad}</span><span style={{color:BRAND.primary,fontSize:13,fontWeight:600}}>{$(item.precio_unitario*item.cantidad)}</span></div>))}
           </div>
         </div>
-      )))}
+      ))}
+      </>
+      )}
       {tab==="citas"&&(cargando?<div style={{textAlign:"center",padding:40,color:C.mid}}>Cargando citas...</div>:!citas.length?(
         <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:40,textAlign:"center"}}><div style={{fontSize:40,marginBottom:12}}>📅</div><div style={{color:C.mid,fontSize:15}}>No tienes citas agendadas</div><Btn onClick={()=>navigateToCita(setPage)} col={BRAND.primary} sm style={{marginTop:16}}>Agendar consulta médica</Btn></div>
       ):citas.map(c=>{
@@ -5559,8 +5646,11 @@ export default function TiendaFarmaCapital(){
     const id = window.requestAnimationFrame(()=>{ window.scrollTo(0, 0); });
     return ()=>window.cancelAnimationFrame(id);
   },[page]);
-  const [cart,setCart]           = useState([]);
+  const [cart,setCart]           = useState(() => loadStoredCart(getClienteUser()));
   const [user,setUser]           = useState(()=> getClienteUser());
+  const cartUserIdRef = useRef(user?.id ?? null);
+  const skipCartSaveRef = useRef(false);
+  const [misPedidos, setMisPedidos] = useState([]);
   const [productos,setProductos] = useState(()=>{
     try {
       const cached = localStorage.getItem("farmacapital_productos_cache");
@@ -5766,6 +5856,45 @@ export default function TiendaFarmaCapital(){
     return ()=>{ cancelled = true; };
   },[]);
 
+  useEffect(() => {
+    const nextId = user?.id ?? null;
+    const prevId = cartUserIdRef.current;
+    if (prevId === nextId) return;
+    cartUserIdRef.current = nextId;
+    if (nextId != null && prevId == null) {
+      skipCartSaveRef.current = true;
+      setCart((current) => mergeCartLines(loadStoredCart({ id: nextId }), current));
+    } else if (nextId == null && prevId != null) {
+      skipCartSaveRef.current = true;
+      setCart([]);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (skipCartSaveRef.current) {
+      skipCartSaveRef.current = false;
+      return;
+    }
+    saveStoredCart(user, cart);
+  }, [cart, user]);
+
+  useEffect(() => {
+    if (!user?.id) {
+      setMisPedidos([]);
+      return undefined;
+    }
+    const tok = getClienteToken();
+    if (!tok) {
+      setMisPedidos([]);
+      return undefined;
+    }
+    let cancelled = false;
+    supabase.rpc("cliente_listar_mis_pedidos", { p_session_token: tok, p_limite: 80 }).then(({ data }) => {
+      if (!cancelled) setMisPedidos(Array.isArray(data) ? data : []);
+    });
+    return () => { cancelled = true; };
+  }, [user?.id]);
+
   const addToCart=prod=>{
     if (!prod || !prod.activo || Number(prod.stock||0) <= 0) return;
     if (!productoEsVendible(prod)) {
@@ -5791,6 +5920,17 @@ export default function TiendaFarmaCapital(){
   const productosVistaTiendaFarmacia = useMemo(
     () => productos.filter((p) => !productoEsCategoriaMinisuperTienda(p) && !productoEsCajaAbiertaMostrador(p)),
     [productos]
+  );
+  const recomprasHome = useMemo(
+    () => (user?.id ? recomprasFromPedidos(misPedidos, productosVistaTiendaFarmacia) : []),
+    [user?.id, misPedidos, productosVistaTiendaFarmacia]
+  );
+  const sugeridosHome = useMemo(
+    () => sugeridosFromRecompras(recomprasHome, productosVistaTiendaFarmacia, {
+      limit: 6,
+      permitido: productoPermitidoEnTiendaFarmaciaWeb,
+    }),
+    [recomprasHome, productosVistaTiendaFarmacia]
   );
 
   if(cargando) return <BrandSplash subtitle="Cargando tienda…" size={52} />;
@@ -5849,7 +5989,7 @@ export default function TiendaFarmaCapital(){
   );
 
   const pages={
-    home:          <Home setPage={setPage} addToCart={addToCart} productos={productosVistaTiendaFarmacia} setProdDetalle={setProdD} busqHero={busqHero} setBusqHero={setBusqHero} precioConsulta={precioConsultaCfg} loadingProductos={loadingProductos}/>,
+    home:          <Home setPage={setPage} addToCart={addToCart} productos={productosVistaTiendaFarmacia} setProdDetalle={setProdD} busqHero={busqHero} setBusqHero={setBusqHero} precioConsulta={precioConsultaCfg} loadingProductos={loadingProductos} recompras={recomprasHome} sugeridos={sugeridosHome}/>,
     catalogo:      <Catalogo addToCart={addToCart} productos={productosVistaTiendaFarmacia} setProdDetalle={setProdD} setPage={setPage} busqHero={busqHero} setBusqHero={setBusqHero} loadingProductos={loadingProductos} filtroRx={filtroRx} onClearRx={()=>setPage("catalogo",{rx:false})}/>,
     promo:         <PromocionesPage setPage={setPage}/>,
     detalle:       <DetalleProducto prod={prodDetalle} productos={productosVistaTiendaFarmacia} addToCart={addToCart} setPage={setPage} setProdDetalle={setProdD} busqHero={busqHero} setBusqHero={setBusqHero}/>,
@@ -5859,7 +5999,7 @@ export default function TiendaFarmaCapital(){
     login:         <Login setUser={setUser} setPage={setPage}/>,
     registro:      <Registro setUser={setUser} setPage={setPage}/>,
     "reset-password": <RestablecerPassword token={resetToken} setPage={setPage}/>,
-    cuenta:        <Cuenta user={user} setPage={setPage} setUser={setUser}/>,
+    cuenta:        <Cuenta user={user} setPage={setPage} setUser={setUser} addToCart={addToCart} productos={productosVistaTiendaFarmacia} setProdDetalle={setProdD}/>,
     puntos:        puntosPage,
     faq:           <FAQPage setPage={setPage}/>,
     privacidad:    <AvisoPrivacidad setPage={setPage}/>,
