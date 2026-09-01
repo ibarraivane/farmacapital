@@ -15,6 +15,7 @@ export function explainUberQuoteError(err, detail) {
     return "Falta calle, colonia o un CP de 5 dígitos.";
   }
   if (
+    blob.includes("undeliverable_area") ||
     blob.includes("not in a deliverable area") ||
     blob.includes("undeliverable") ||
     blob.includes("outside of the delivery") ||
