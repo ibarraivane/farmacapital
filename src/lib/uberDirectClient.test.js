@@ -15,4 +15,8 @@ describe("uberDirectClient display", () => {
     expect(explainUberQuoteError("not_configured")).toMatch(/Client Secret/i);
     expect(explainUberQuoteError({ message: "Protected deployment", code: "401" })).toMatch(/protegido/i);
   });
+
+  test("explica fallo de dirección sin pedir alcaldía", () => {
+    expect(explainUberQuoteError("uber_api_failed", "address_undeliverable")).toMatch(/sin alcaldía/i);
+  });
 });

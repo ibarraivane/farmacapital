@@ -15,7 +15,7 @@ export function explainUberQuoteError(err, detail) {
     return "Falta calle, colonia o un CP de 5 dígitos.";
   }
   if (blob.includes("uber_api_failed") || blob.includes("address") || blob.includes("geocod")) {
-    return "Uber no pudo ubicar la dirección. Agrega número, colonia y una referencia (edificio, negocio).";
+    return "Uber no pudo ubicar la dirección. Pon calle con número, solo la colonia (sin alcaldía) y una referencia (edificio, negocio).";
   }
   if (detail) return `No se pudo cotizar: ${String(detail).slice(0, 160)}`;
   if (code && code !== "undefined") return `No se pudo cotizar (${code}).`;

@@ -93,6 +93,60 @@ function pickupContact() {
   };
 }
 
+/** Alcaldías CDMX — la gente las mete en “colonia” y Uber/Nominatim se pierden. */
+const CDMX_ALCALDIAS = [
+  'alvaro obregon',
+  'azcapotzalco',
+  'benito juarez',
+  'coyoacan',
+  'cuajimalpa',
+  'cuauhtemoc',
+  'gustavo a madero',
+  'iztacalco',
+  'iztapalapa',
+  'magdalena contreras',
+  'la magdalena contreras',
+  'miguel hidalgo',
+  'milpa alta',
+  'tlahuac',
+  'tlalpan',
+  'venustiano carranza',
+  'xochimilco',
+];
+
+function foldMxText(s) {
+  return String(s || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function normalizeMxStreet(raw) {
+  return String(raw || '').replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Solo el asentamiento: quita "Col." / "Colonia" y alcaldía/municipio tras la coma.
+ * Ej. "Col del Valle Sur, Benito Juárez" → "Del Valle Sur"
+ */
+function normalizeMxColonia(raw) {
+  let s = String(raw || '').replace(/\s+/g, ' ').trim();
+  if (!s) return '';
+  const parts = s.split(',').map((p) => p.trim()).filter(Boolean);
+  if (parts.length >= 2) {
+    const restFold = foldMxText(parts.slice(1).join(' '));
+    const looksLikeAlcaldia =
+      /ciudad de mexico|\bcdmx\b|\bdf\b/.test(restFold) ||
+      CDMX_ALCALDIAS.some((a) => restFold.includes(a) || a.includes(restFold));
+    if (looksLikeAlcaldia) s = parts[0];
+  }
+  s = s.replace(/^(colonia|col\.?)\s+/i, '').trim();
+  if (s) s = s.charAt(0).toUpperCase() + s.slice(1);
+  return s;
+}
+
 /**
  * Checkout guarda "calle, colonia, cp".
  * @param {string} direccion
@@ -108,7 +162,7 @@ function parseDireccionCheckout(direccion) {
   const zipMatch = raw.match(/\b(\d{5})\b/);
   if (zipMatch) zip = zipMatch[1];
   if (parts.length >= 3) {
-    colonia = parts[1];
+    colonia = parts.slice(1, -1).join(', ');
     if (!zip) {
       const last = parts[parts.length - 1].replace(/\D/g, '');
       if (last.length === 5) zip = last;
@@ -119,14 +173,22 @@ function parseDireccionCheckout(direccion) {
     colonia = second.replace(/\bC\.?P\.?\b/i, '').replace(/\b\d{5}\b/, '').trim();
     if (z) zip = z[1];
   }
+  street = normalizeMxStreet(street);
+  colonia = normalizeMxColonia(colonia);
   if (street.length < 5 || zip.length !== 5) return null;
   return { street, colonia, zip };
 }
 
+/**
+ * Formato estructurado que Uber recomienda:
+ * street_address[0] = calle y número (+ colonia limpia en MX)
+ * street_address[1] = depto / referencia
+ * Sin alcaldía ni "Col." en la línea de calle.
+ */
 function dropoffAddressFromParts({ street, colonia, zip, city, referencia } = {}) {
-  const streetLine = [String(street || '').trim(), String(colonia || '').trim()]
-    .filter(Boolean)
-    .join(', ');
+  const streetClean = normalizeMxStreet(street);
+  const coloniaClean = normalizeMxColonia(colonia);
+  const streetLine = [streetClean, coloniaClean].filter(Boolean).join(', ');
   if (streetLine.length < 5) return null;
   const zipCode = String(zip || '').replace(/\D/g, '').slice(0, 5);
   if (zipCode.length !== 5) return null;
@@ -143,33 +205,57 @@ function dropoffAddressFromParts({ street, colonia, zip, city, referencia } = {}
 
 const geocodeCache = new Map();
 
+/** Varias queries: la completa falla si trae ruido; calle+CP suele bastar. */
+function geocodeQueriesFromAddress(addr) {
+  if (!addr) return [];
+  const line0 = Array.isArray(addr.street_address) ? String(addr.street_address[0] || '') : '';
+  const streetOnly = line0.split(',')[0].trim();
+  const coloniaPart = line0.includes(',')
+    ? line0.slice(line0.indexOf(',') + 1).trim()
+    : '';
+  const zip = addr.zip_code;
+  const city = addr.city || 'Ciudad de México';
+  const queries = [
+    [streetOnly, zip, city, 'México'].filter(Boolean).join(', '),
+    [streetOnly, coloniaPart, zip, city, 'México'].filter(Boolean).join(', '),
+    [line0, zip, city, 'México'].filter(Boolean).join(', '),
+    [streetOnly, city, 'México'].filter(Boolean).join(', '),
+  ];
+  return [...new Set(queries.filter((q) => q.replace(/\s/g, '').length >= 12))];
+}
+
 function geocodeQueryFromAddress(addr) {
-  if (!addr) return '';
-  const street = Array.isArray(addr.street_address) ? addr.street_address[0] : '';
-  return [street, addr.zip_code, addr.city, addr.state, 'México'].filter(Boolean).join(', ');
+  return geocodeQueriesFromAddress(addr)[0] || '';
 }
 
 async function geocodeMxAddress(addr, deps = {}) {
-  const q = geocodeQueryFromAddress(addr);
-  if (!q) return null;
-  if (geocodeCache.has(q)) return geocodeCache.get(q);
+  const queries = geocodeQueriesFromAddress(addr);
+  if (!queries.length) return null;
   const fetchFn = deps.fetchFn || fetch;
-  const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=mx&q=${encodeURIComponent(q)}`;
-  try {
-    const resp = await fetchFn(url, {
-      headers: { 'User-Agent': 'FarmaCapital/1.0 (contacto@farmacapital.mx)' },
-    });
-    const rows = await resp.json().catch(() => []);
-    const hit = Array.isArray(rows) ? rows[0] : null;
-    const lat = Number(hit?.lat);
-    const lng = Number(hit?.lon);
-    const coords = Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
-    geocodeCache.set(q, coords);
-    return coords;
-  } catch {
-    geocodeCache.set(q, null);
-    return null;
+  const useCache = !deps.fetchFn;
+  for (const q of queries) {
+    if (useCache && geocodeCache.has(q)) {
+      const cached = geocodeCache.get(q);
+      if (cached) return cached;
+      continue;
+    }
+    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=mx&q=${encodeURIComponent(q)}`;
+    try {
+      const resp = await fetchFn(url, {
+        headers: { 'User-Agent': 'FarmaCapital/1.0 (contacto@farmacapital.mx)' },
+      });
+      const rows = await resp.json().catch(() => []);
+      const hit = Array.isArray(rows) ? rows[0] : null;
+      const lat = Number(hit?.lat);
+      const lng = Number(hit?.lon);
+      const coords = Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+      if (useCache) geocodeCache.set(q, coords);
+      if (coords) return coords;
+    } catch {
+      if (useCache) geocodeCache.set(q, null);
+    }
   }
+  return null;
 }
 
 function mapUberDeliveryStatus(raw) {
@@ -353,6 +439,7 @@ async function createUberDelivery({
   dropoffAddress,
   dropoffName,
   dropoffPhone,
+  dropoffCoords,
   items,
   externalId,
   pickupNotes,
@@ -365,6 +452,10 @@ async function createUberDelivery({
   const contact = pickupContact();
   const phone = mxPhoneE164(dropoffPhone);
   if (!phone) return { ok: false, error: 'missing_dropoff_phone' };
+  let dest = dropoffCoords;
+  if (!dest || !Number.isFinite(dest.lat) || !Number.isFinite(dest.lng)) {
+    dest = await geocodeMxAddress(dropoffAddress, deps);
+  }
   const body = {
     pickup_address: stringifyUberAddress(pickup),
     pickup_name: contact.name,
@@ -379,6 +470,10 @@ async function createUberDelivery({
     manifest_items: buildManifestItems(items),
     external_id: externalId ? String(externalId) : undefined,
   };
+  if (dest && Number.isFinite(dest.lat) && Number.isFinite(dest.lng)) {
+    body.dropoff_latitude = dest.lat;
+    body.dropoff_longitude = dest.lng;
+  }
   if (quoteId) body.quote_id = quoteId;
   const result = await uberApi('/deliveries', { method: 'POST', body, deps });
   if (!result.ok) return result;
@@ -416,6 +511,8 @@ module.exports = {
   pickupContact,
   parseDireccionCheckout,
   dropoffAddressFromParts,
+  normalizeMxColonia,
+  normalizeMxStreet,
   mapUberDeliveryStatus,
   normalizeQuoteResponse,
   verifyUberWebhookSignature,
@@ -428,4 +525,5 @@ module.exports = {
   stringifyUberAddress,
   geocodeMxAddress,
   geocodeQueryFromAddress,
+  geocodeQueriesFromAddress,
 };
