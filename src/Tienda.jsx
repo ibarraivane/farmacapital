@@ -5348,12 +5348,15 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
           <button key={v} onClick={()=>setTab(v)} style={{flex:1,padding:"10px",borderRadius:8,border:"none",background:tab===v?BRAND.primary:"transparent",color:tab===v?C.white:C.mid,fontWeight:tab===v?700:500,cursor:"pointer",fontSize:13,transition:"all .15s"}}>{l}</button>
         ))}
       </div>
-      {tab==="pedidos"&&(cargando?<div style={{textAlign:"center",padding:40,color:C.mid}}>Cargando pedidos...</div>:!pedidos.length?(
-        <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:40,textAlign:"center"}}><div style={{fontSize:40,marginBottom:12}}>📦</div><div style={{color:C.mid,fontSize:15}}>Aún no tienes pedidos en FarmaCapital</div><Btn onClick={()=>setPage("catalogo",{rx:false})} col={BRAND.primary} sm style={{marginTop:16}}>Hacer mi primer pedido</Btn></div>
-      ):(
-      <>
-      {addToCart && (
-        <>
+      {tab==="pedidos" && (
+        cargando ? (
+          <div style={{textAlign:"center",padding:40,color:C.mid}}>Cargando pedidos...</div>
+        ) : !pedidos.length ? (
+          <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:40,textAlign:"center"}}><div style={{fontSize:40,marginBottom:12}}>📦</div><div style={{color:C.mid,fontSize:15}}>Aún no tienes pedidos en FarmaCapital</div><Btn onClick={()=>setPage("catalogo",{rx:false})} col={BRAND.primary} sm style={{marginTop:16}}>Hacer mi primer pedido</Btn></div>
+        ) : (
+          <div>
+            {addToCart ? (
+              <div>
           <RecompraStrip
             title="Comprar de nuevo"
             subtitle="Tus compras anteriores. Un toque y vuelven al carrito."
@@ -5382,9 +5385,9 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
               />
             ))}
           </RecompraStrip>
-        </>
-      )}
-      {pedidos.map(p=>(
+              </div>
+            ) : null}
+            {pedidos.map(p=>(
         <div key={p.id} style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:20,marginBottom:12}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
             <div><div style={{color:C.dark,fontWeight:700,fontSize:15}}>Pedido #{p.id}</div><div style={{color:C.dim,fontSize:12,marginTop:2}}>{new Date(p.created_at).toLocaleDateString("es-MX",{year:"numeric",month:"long",day:"numeric"})}</div></div>
@@ -5412,8 +5415,9 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
             {(p.pedido_items||[]).map((item,i)=>(<div key={i} style={{display:"flex",justifyContent:"space-between",marginBottom:4}}><span style={{color:C.dark,fontSize:13}}>{item.productos?.nombre||"Producto"} ×{item.cantidad}</span><span style={{color:BRAND.primary,fontSize:13,fontWeight:600}}>{$(item.precio_unitario*item.cantidad)}</span></div>))}
           </div>
         </div>
-      ))}
-      </>
+            ))}
+          </div>
+        )
       )}
       {tab==="citas"&&(cargando?<div style={{textAlign:"center",padding:40,color:C.mid}}>Cargando citas...</div>:!citas.length?(
         <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:40,textAlign:"center"}}><div style={{fontSize:40,marginBottom:12}}>📅</div><div style={{color:C.mid,fontSize:15}}>No tienes citas agendadas</div><Btn onClick={()=>navigateToCita(setPage)} col={BRAND.primary} sm style={{marginTop:16}}>Agendar consulta médica</Btn></div>
