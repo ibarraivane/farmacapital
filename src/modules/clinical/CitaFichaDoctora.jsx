@@ -32,7 +32,8 @@ const fieldTextareaStyle = {
 };
 
 function uid() {
-  return globalThis.crypto?.randomUUID?.() || `m_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+  const c = typeof window !== "undefined" ? window.crypto : undefined;
+  return c?.randomUUID?.() || `m_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 }
 
 /** Normaliza medicamentos_prescritos (JSON, texto legacy o array) a filas de UI. */

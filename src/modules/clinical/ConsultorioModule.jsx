@@ -9,6 +9,7 @@ import { citaPagoOk, citaEstaPagada, labelEstadoPagoCita } from "../../utils/con
 import OnboardingTour from "../../components/OnboardingTour";
 import { FARMACIA_FISCAL } from "../../constants/farmaciaFiscal";
 import { Historial } from "./Historial";
+import { Paciente } from "./Paciente";
 import { hoyISOMexico } from "../../lib/fecha";
 
 const BRAND = { primary:"#0D1B2A", secondary:"#1E3ABA", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
