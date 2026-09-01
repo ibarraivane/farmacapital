@@ -51,6 +51,7 @@ import { fetchUberDirectQuote, attachUberDirectQuote, formatUberFee, formatUberE
 import DestinationPicker from "./components/DestinationPicker";
 import RecompraStrip from "./components/RecompraStrip";
 import SocialLoginButtons from "./components/SocialLoginButtons";
+import StripeWalletPay, { isStripeWalletConfigured } from "./components/StripeWalletPay";
 import {
   cleanCheckoutColonia,
   splitCalleYNumero,
@@ -2103,7 +2104,7 @@ function Footer({setPage}){
         <div style={{maxWidth:1200,margin:"0 auto",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:16}}>
           <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
             <span style={{color:"rgba(255,255,255,.5)",fontSize:12}}>Métodos de pago:</span>
-            {["🔵 Mercado Pago"].map(m=>(
+            {["Apple Pay", "Google Pay", "Mercado Pago"].map(m=>(
               <span key={m} style={{background:"rgba(255,255,255,.1)",color:"rgba(255,255,255,.7)",fontSize:11,padding:"3px 10px",borderRadius:20}}>{m}</span>
             ))}
           </div>
@@ -2204,6 +2205,11 @@ function ContenidoPago({ C, color }){
       <p style={{margin:"0 0 12px"}}>
         En FarmaCapital aceptamos varias formas de pago para tu comodidad.
       </p>
+      <h4 style={sH4(color)}>En línea — Apple Pay y Google Pay</h4>
+      <ul style={sList}>
+        <li style={sListItem}>Apple Pay (iPhone, iPad y Safari)</li>
+        <li style={sListItem}>Google Pay (Android y Chrome)</li>
+      </ul>
       <h4 style={sH4(color)}>En línea (a través de Mercado Pago)</h4>
       <ul style={sList}>
         <li style={sListItem}>Tarjetas de crédito (Visa, Mastercard, American Express)</li>
@@ -2220,7 +2226,7 @@ function ContenidoPago({ C, color }){
       </ul>
       <h4 style={sH4(color)}>Seguridad</h4>
       <p style={{margin:"0 0 12px",color:C.textMid,fontSize:13}}>
-        Mercado Pago es una pasarela externa certificada. Tus datos bancarios nunca se almacenan en FarmaCapital. Todo el proceso de pago en línea es manejado directamente por Mercado Pago con cifrado de extremo a extremo.
+        Mercado Pago y Stripe (Apple Pay / Google Pay) son pasarelas externas certificadas. Tus datos bancarios nunca se almacenan en FarmaCapital; el cobro lo procesan ellos con cifrado de extremo a extremo.
       </p>
       <h4 style={sH4(color)}>Reembolsos</h4>
       <p style={{margin:0,color:C.textMid,fontSize:13}}>
@@ -3328,6 +3334,8 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",setEntrega
   });
   const calleEnvio = composeCheckoutCalle(datos.calle, datos.numero);
   const [metodo,setMetodo]=useState("mercadopago");
+  const stripeWalletsOn = isStripeWalletConfigured();
+  const [walletPay,setWalletPay]=useState(null);
   const [conf,setConf]=useState(false);
   const [lastOrder,setLastOrder]=useState(null);
   const [guardando,setG]=useState(false);
@@ -3797,6 +3805,75 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",setEntrega
         return;
       }
 
+      if (metodo === "tarjeta") {
+        const stripeResp = await fetch("/api/payments/stripe/create-intent", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(tokCli ? { Authorization: `Bearer ${tokCli}` } : {}),
+          },
+          body: JSON.stringify({
+            pedidoId: resp.pedido_id,
+            amount: totalSnap,
+            guest: esInvitado,
+            guestPhone: esInvitado ? soloDigitosTel(datos.tel) : undefined,
+            payer: {
+              name: String(datos.nombre || "").trim() || null,
+              email: String(datos.email || "").trim() || null,
+            },
+          }),
+        });
+        const stripeData = await stripeResp.json().catch(() => ({}));
+        if (!stripeResp.ok || !stripeData?.ok || !stripeData.clientSecret) {
+          notifyCheckout(
+            "Pedido creado, pero no se pudo iniciar Apple Pay / Google Pay. Puedes reintentar desde Mis pedidos o pagar con Mercado Pago.",
+            "warning"
+          );
+          setLastOrder({
+            sub: totalSnap,
+            productos: subSnap,
+            envioFee: envioSnap,
+            ptsG,
+            lines: reconciled.map(c=>({ nombre:c.nombre, qty:c.qty, precio: ofertaDeProducto(c, mapaPromos.get(c.id)).oferta })),
+            entregaUi: entrega,
+            tipo_entrega,
+            order_channel,
+            fulfillment_type,
+            ui_entrega: ui_entrega || null,
+            datosTel: datos.tel,
+            pedidoId: resp.pedido_id,
+            metodoPago: "tarjeta",
+            whatsappRecibo: enviarReciboWhatsApp,
+          });
+          setConf(true);
+          setCart([]);
+          setG(false);
+          return;
+        }
+        try {
+          sessionStorage.setItem(`fc_wa_recibo_${resp.pedido_id}`, enviarReciboWhatsApp ? "1" : "0");
+        } catch (_) { /* noop */ }
+        setWalletPay({
+          pedidoId: resp.pedido_id,
+          clientSecret: stripeData.clientSecret,
+          total: totalSnap,
+          productos: subSnap,
+          envioFee: envioSnap,
+          ptsG,
+          lines: reconciled.map(c=>({ nombre:c.nombre, qty:c.qty, precio: ofertaDeProducto(c, mapaPromos.get(c.id)).oferta })),
+          entregaUi: entrega,
+          tipo_entrega,
+          order_channel,
+          fulfillment_type,
+          ui_entrega: ui_entrega || null,
+          datosTel: datos.tel,
+          whatsappRecibo: enviarReciboWhatsApp,
+        });
+        setCart([]);
+        setG(false);
+        return;
+      }
+
       setLastOrder({
         sub: totalSnap,
         productos: subSnap,
@@ -4046,7 +4123,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",setEntrega
                     <a href={CONTACTO.maps_url} target="_blank" rel="noopener noreferrer" style={{color:BRAND.primary,fontWeight:700}}>Ver mapa</a>
                   </div>
                 )}
-                <div style={{marginTop:14,fontSize:12,color:C.mid}}>Pago con Mercado Pago (tarjeta, transferencia o efectivo).</div>
+                <div style={{marginTop:14,fontSize:12,color:C.mid}}>Paga con Apple Pay, Google Pay o Mercado Pago (tarjeta, SPEI u OXXO).</div>
                 <label
                   style={{
                     display: "flex",
@@ -4081,7 +4158,6 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",setEntrega
                       setPage("carrito");
                       return;
                     }
-                    setMetodo("mercadopago");
                     setStep(2);
                   }}
                   col={BRAND.primary}
@@ -4110,11 +4186,49 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",setEntrega
                     {formatUberEta(uberQuote) ? ` · ${formatUberEta(uberQuote)}` : ""}
                   </div>
                 )}
-                <div style={{marginTop:4,color:C.mid}}>Pago con Mercado Pago</div>
+                <div style={{marginTop:4,color:C.mid}}>
+                  {metodo === "tarjeta" ? "Pago con Apple Pay / Google Pay" : "Pago con Mercado Pago"}
+                </div>
                 {enviarReciboWhatsApp && (
                   <div style={{marginTop:2,color:C.mid}}>Recibo por WhatsApp</div>
                 )}
               </div>
+              {!walletPay && (
+                <div style={{display:"grid",gap:8,marginBottom:14}}>
+                  <button
+                    type="button"
+                    onClick={()=>setMetodo("mercadopago")}
+                    style={{
+                      textAlign:"left",
+                      padding:"12px 14px",
+                      borderRadius:10,
+                      border:`2px solid ${metodo==="mercadopago"?BRAND.primary:C.border}`,
+                      background:metodo==="mercadopago"?"#eff6ff":C.white,
+                      cursor:"pointer",
+                    }}
+                  >
+                    <div style={{fontWeight:700,color:C.dark,fontSize:14}}>Mercado Pago</div>
+                    <div style={{fontSize:12,color:C.mid,marginTop:2}}>Tarjeta, SPEI, OXXO o dinero en cuenta</div>
+                  </button>
+                  {stripeWalletsOn && (
+                    <button
+                      type="button"
+                      onClick={()=>setMetodo("tarjeta")}
+                      style={{
+                        textAlign:"left",
+                        padding:"12px 14px",
+                        borderRadius:10,
+                        border:`2px solid ${metodo==="tarjeta"?BRAND.primary:C.border}`,
+                        background:metodo==="tarjeta"?"#eff6ff":C.white,
+                        cursor:"pointer",
+                      }}
+                    >
+                      <div style={{fontWeight:700,color:C.dark,fontSize:14}}>Apple Pay / Google Pay</div>
+                      <div style={{fontSize:12,color:C.mid,marginTop:2}}>Pago rápido con la billetera de tu teléfono</div>
+                    </button>
+                  )}
+                </div>
+              )}
               {cart.map(item=>(
                 <div key={item.id} style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,padding:"8px 0",borderBottom:`1px solid ${C.border}`}}>
                   <span style={{color:C.dark,fontSize:13,fontWeight:600,flex:1,minWidth:0,wordBreak:"break-word"}}>{item.nombre} ×{item.qty}</span>
@@ -4131,12 +4245,69 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",setEntrega
                 <span style={{color:C.dark,fontWeight:800}}>Total</span>
                 <span style={{color:BRAND.primary,fontWeight:900,fontSize:18}}>{$(totalPagar)}</span>
               </div>
-              <div style={{display:"flex",gap:10,marginTop:16,flexWrap:"wrap"}}>
-                <Btn onClick={()=>setStep(1)} outline col={C.mid} sm>← Atrás</Btn>
-                <Btn onClick={confirmar} col={BRAND.primary} disabled={guardando||!cart.length||sub<=0||!datosCheckoutCompletos||!envioListoParaPagar} style={{flex:stack?1:undefined,minWidth:0}}>
-                  {guardando?"Procesando…":"Pagar "+$(totalPagar)}
-                </Btn>
-              </div>
+              {walletPay?.clientSecret ? (
+                <div style={{marginTop:16,padding:"14px 14px 10px",border:`1px solid ${C.border}`,borderRadius:12,background:C.bg}}>
+                  <div style={{fontWeight:700,color:C.dark,fontSize:14,marginBottom:10}}>
+                    Confirma con Apple Pay o Google Pay
+                  </div>
+                  <StripeWalletPay
+                    clientSecret={walletPay.clientSecret}
+                    pedidoId={walletPay.pedidoId}
+                    totalLabel={$(walletPay.total)}
+                    onPaid={() => {
+                      setLastOrder({
+                        sub: walletPay.total,
+                        productos: walletPay.productos,
+                        envioFee: walletPay.envioFee,
+                        ptsG: walletPay.ptsG,
+                        lines: walletPay.lines,
+                        entregaUi: walletPay.entregaUi,
+                        tipo_entrega: walletPay.tipo_entrega,
+                        order_channel: walletPay.order_channel,
+                        fulfillment_type: walletPay.fulfillment_type,
+                        ui_entrega: walletPay.ui_entrega,
+                        datosTel: walletPay.datosTel,
+                        pedidoId: walletPay.pedidoId,
+                        metodoPago: "tarjeta",
+                        whatsappRecibo: walletPay.whatsappRecibo,
+                      });
+                      if (walletPay.whatsappRecibo) {
+                        notifyOnlineOrderReceipt({
+                          pedidoId: walletPay.pedidoId,
+                          sessionToken: getClienteToken() || null,
+                          phoneVerify: getClienteToken() ? null : soloDigitosTel(walletPay.datosTel),
+                        }).catch((e) => console.warn("[Checkout] WhatsApp recibo:", e));
+                      }
+                      setWalletPay(null);
+                      setConf(true);
+                    }}
+                    onError={(m) => notifyCheckout(m || "No se completó el pago con billetera.", "warning")}
+                    onUnavailable={() => notifyCheckout(
+                      "Apple Pay / Google Pay no está disponible en este dispositivo o navegador. Elige Mercado Pago.",
+                      "info"
+                    )}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setWalletPay(null);
+                      setMetodo("mercadopago");
+                      notifyCheckout("Puedes pagar este pedido desde Mis pedidos o crear uno nuevo con Mercado Pago.", "info");
+                      setPage("cuenta");
+                    }}
+                    style={{marginTop:12,background:"transparent",border:0,color:C.mid,fontSize:12,cursor:"pointer",textDecoration:"underline"}}
+                  >
+                    Cancelar y ver mis pedidos
+                  </button>
+                </div>
+              ) : (
+                <div style={{display:"flex",gap:10,marginTop:16,flexWrap:"wrap"}}>
+                  <Btn onClick={()=>setStep(1)} outline col={C.mid} sm>← Atrás</Btn>
+                  <Btn onClick={confirmar} col={BRAND.primary} disabled={guardando||!cart.length||sub<=0||!datosCheckoutCompletos||!envioListoParaPagar} style={{flex:stack?1:undefined,minWidth:0}}>
+                    {guardando?"Procesando…": (metodo==="tarjeta" ? "Continuar con Apple/Google Pay · " : "Pagar ")+$(totalPagar)}
+                  </Btn>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -5330,6 +5501,9 @@ function etiquetaEstadoPagoPedido(p) {
   if (["pending", "in_process", "initiated"].includes(s)) return { label: "Pago pendiente", col: "#d97706" };
   if (s) return { label: `Pago ${s}`, col: muted };
   if (String(p?.metodo_pago || "").toLowerCase() === "mercadopago") return { label: "Pago por confirmar", col: "#d97706" };
+  if (String(p?.metodo_pago || "").toLowerCase() === "tarjeta" && String(p?.payment_provider || "").toLowerCase() === "stripe") {
+    return { label: "Apple/Google Pay pendiente", col: "#d97706" };
+  }
   return { label: "Sin pago online", col: muted };
 }
 
@@ -5366,6 +5540,7 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
   const [cargando,setC]=useState(true);
   const [busyCitaId,setBusyCitaId]=useState(null);
   const [busyPayPedidoId,setBusyPayPedidoId]=useState(null);
+  const [walletPayPedido, setWalletPayPedido] = useState(null);
   useEffect(()=>{
     if(!user?.id){setC(false);return;}
     const tokCli = getClienteToken();
@@ -5416,6 +5591,39 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
       }));
     } catch (_) { /* noop */ }
     setPage("cita");
+  };
+  const pagarPedidoWalletStripe = async (p) => {
+    const tokCli = getClienteToken();
+    if (!tokCli) { alert("Tu sesión expiró. Inicia sesión nuevamente."); setPage("login"); return; }
+    setBusyPayPedidoId(p.id);
+    try {
+      const stripeResp = await fetch("/api/payments/stripe/create-intent", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${tokCli}`,
+        },
+        body: JSON.stringify({
+          pedidoId: p.id,
+          amount: Number(p.total || 0),
+          payer: {
+            name: String(user?.nombre || "").trim() || null,
+            email: String(user?.email || "").trim() || null,
+          },
+        }),
+      });
+      const stripeData = await stripeResp.json().catch(() => ({}));
+      if (!stripeResp.ok || !stripeData?.ok || !stripeData.clientSecret) {
+        alert(stripeData?.error || "No se pudo iniciar Apple Pay / Google Pay.");
+        setBusyPayPedidoId(null);
+        return;
+      }
+      setWalletPayPedido({ pedidoId: p.id, clientSecret: stripeData.clientSecret, total: Number(p.total || 0) });
+      setBusyPayPedidoId(null);
+    } catch (e) {
+      alert("No se pudo iniciar Apple Pay / Google Pay.");
+      setBusyPayPedidoId(null);
+    }
   };
   const pagarPedidoMercadoPago = async (p) => {
     const tokCli = getClienteToken();
@@ -5547,6 +5755,30 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
               <Btn onClick={()=>pagarPedidoMercadoPago(p)} col={BRAND.primary} sm disabled={busyPayPedidoId===p.id}>
                 {busyPayPedidoId===p.id ? "Abriendo pago..." : "Pagar ahora"}
               </Btn>
+            </div>
+          ) : null}
+          {String(p.metodo_pago || "").toLowerCase() === "tarjeta" && String(p.payment_status || "").toLowerCase() !== "approved" && isStripeWalletConfigured() ? (
+            <div style={{marginBottom:10}}>
+              {walletPayPedido?.pedidoId === p.id ? (
+                <div style={{padding:12,border:`1px solid ${C.border}`,borderRadius:10,background:C.white}}>
+                  <StripeWalletPay
+                    clientSecret={walletPayPedido.clientSecret}
+                    pedidoId={walletPayPedido.pedidoId}
+                    totalLabel={$(walletPayPedido.total)}
+                    onPaid={() => {
+                      setWalletPayPedido(null);
+                      alert("Pago recibido. Actualizaremos el estado en unos segundos.");
+                      // soft reload list
+                      try { window.location.reload(); } catch (_) {}
+                    }}
+                    onError={(m) => alert(m || "No se completó el pago.")}
+                  />
+                </div>
+              ) : (
+                <Btn onClick={()=>pagarPedidoWalletStripe(p)} col={BRAND.primary} sm disabled={busyPayPedidoId===p.id}>
+                  {busyPayPedidoId===p.id ? "Preparando…" : "Pagar con Apple/Google Pay"}
+                </Btn>
+              )}
             </div>
           ) : null}
           <div style={{background:C.cardDark,borderRadius:10,padding:"10px 14px"}}>
