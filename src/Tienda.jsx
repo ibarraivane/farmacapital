@@ -70,6 +70,7 @@ import { FARMACIA_FISCAL } from "./constants/farmaciaFiscal";
 import { HORARIO_FARMACIA } from "./constants/turnos";
 import { validarPasswordTienda, PASSWORD_RULES_TEXT, PASSWORD_MIN_LENGTH } from "./utils/passwordPolicy";
 import { completeClienteOAuth, enabledSocialProviders } from "./utils/clienteOAuth";
+import { horariosDisponiblesCita, motivoSinHorariosCita, normalizarHoraCita } from "./utils/citasAgenda";
 import {
   X, ShoppingCart, Pill, Tag as TagIcon, Stethoscope, Star,
   MapPin, Clock, Phone, Mail, HelpCircle, FileText,
@@ -338,12 +339,6 @@ const HORARIOS_DOCTORA = [
   { dia:"Sábado",          horario:"09:00 – 14:00" },
   { dia:"Domingo",         horario:"Cerrado" },
 ];
-const TODOS_HORARIOS = [
-  "09:00","09:30","10:00","10:30","11:00","11:30",
-  "12:00","12:30","13:00","13:30","14:00",
-  "16:00","16:30","17:00","17:30","18:00","18:30",
-];
-
 function localISODate(d = new Date()) {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -354,16 +349,6 @@ function localISODate(d = new Date()) {
 const ptsGana = p => Math.floor(p/10);
 const labelPts = n => `${n} ${n===1?"punto":"puntos"} FarmaCapital`;
 
-function horariosDisponibles(fecha){
-  if(!fecha) return TODOS_HORARIOS;
-  const hoy = localISODate();
-  if(fecha!==hoy) return TODOS_HORARIOS;
-  const ahora=new Date();
-  return TODOS_HORARIOS.filter(h=>{
-    const [hh,mm]=h.split(":").map(Number);
-    return hh>ahora.getHours()||(hh===ahora.getHours()&&mm>ahora.getMinutes());
-  });
-}
 
 // ── UI BASE ───────────────────────────────────────────────────
 const Btn=({children,onClick,col,outline,sm,full,disabled,style,type="button"})=>(
@@ -4172,7 +4157,7 @@ function AgendarCita({setPage,user}){
   const [horasOcupadas,setHorasOcupadas]=useState([]);
   const [draftMsg, setDraftMsg] = useState("");
   const fechaInputRef = useRef(null);
-  const horarios=horariosDisponibles(fecha);
+  const horarios=horariosDisponiblesCita(fecha);
   const horariosLibres=horarios.filter(h=>!horasOcupadas.includes(h));
 
   useEffect(() => {
@@ -4218,9 +4203,17 @@ function AgendarCita({setPage,user}){
   useEffect(()=>{
     if(!fecha){ setHorasOcupadas([]); return; }
     supabase.rpc("public_listar_horas_ocupadas_citas", { p_fecha: fecha })
-      .then(({ data })=>{
+      .then(({ data, error })=>{
+        if (error) {
+          console.warn("[cita] horas ocupadas:", error.message);
+          setHorasOcupadas([]);
+          return;
+        }
         const rows = Array.isArray(data) ? data : [];
-        setHorasOcupadas(rows.map((c)=> (c && typeof c === "object" && "hora" in c ? c.hora : String(c))));
+        const horas = rows
+          .map((c) => normalizarHoraCita(c && typeof c === "object" && "hora" in c ? c.hora : c))
+          .filter(Boolean);
+        setHorasOcupadas(horas);
       });
   },[fecha]);
 
@@ -4363,8 +4356,13 @@ function AgendarCita({setPage,user}){
           <iframe
             title="Ubicación FarmaCapital"
             src={CONTACTO.maps_embed}
-            width="100%" height="280" style={{border:"none",display:"block"}}
-            allowFullScreen loading="lazy"/>
+            width="100%"
+            height="280"
+            style={{border:"none",display:"block",background:"#e8eef3"}}
+            allowFullScreen
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+          />
           <div style={{padding:"12px 16px"}}>
             <a href={CONTACTO.maps_url} target="_blank" rel="noopener noreferrer"
               style={{color:BRAND.primary,fontSize:13,fontWeight:700,textDecoration:"none"}}>
@@ -4431,7 +4429,7 @@ function AgendarCita({setPage,user}){
             </div>
           </div>
           <div>
-            <div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Horario {fecha&&horarios.length===0?"— Sin disponibilidad hoy":""}</div>
+            <div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Horario {fecha && horarios.length===0 ? "— Sin cupo" : ""}{!fecha ? "— elegí fecha" : ""}</div>
             <select
               className="farmacapital-field-input farmacapital-field-select"
               value={hora}
@@ -4444,9 +4442,9 @@ function AgendarCita({setPage,user}){
               })}
             >
               <option value="">Seleccionar horario</option>
-              {horariosLibres.length===0&&fecha?<option value="">Sin disponibilidad este día</option>:horariosLibres.map(h=><option key={h} value={h}>{h} hrs{horasOcupadas.includes(h)?" (ocupado)":""}</option>)}
+              {!fecha?<option value="">Primero elegí una fecha</option>:horariosLibres.length===0?<option value="">{motivoSinHorariosCita(fecha)}</option>:horariosLibres.map(h=><option key={h} value={h}>{h} hrs</option>)}
             </select>
-            {fecha&&horarios.length===0&&<div style={{color:C.red,fontSize:11,marginTop:4}}>No hay horarios disponibles. Selecciona otra fecha.</div>}
+            {fecha&&horariosLibres.length===0&&<div style={{color:C.red,fontSize:11,marginTop:4}}>{motivoSinHorariosCita(fecha)}</div>}
           </div>
           <div style={{gridColumn:stack?undefined:"1/-1"}}><div style={{color:C.mid,fontSize:12,fontWeight:700,marginBottom:6}}>Motivo de consulta (opcional)</div><Inp value={motivo} onChange={e=>setMotivo(e.target.value)} placeholder="Ej: revisión general, control de presión..." style={{width:"100%",boxSizing:"border-box"}}/></div>
         </div>

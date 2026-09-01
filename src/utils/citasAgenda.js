@@ -1,5 +1,5 @@
 import { citaEstaPagada } from "./consultaConstants";
-import { hoyISOMexico } from "../lib/fecha";
+import { hoyISOMexico, TZ_FARMACIA } from "../lib/fecha";
 
 const pad2 = (n) => String(n).padStart(2, "0");
 
@@ -34,20 +34,74 @@ export const TODOS_HORARIOS_CITA = [
   "16:00", "16:30", "17:00", "17:30", "18:00", "18:30",
 ];
 
+/** Sábado: solo matutino (hasta 14:00). */
+export const HORARIOS_CITA_SABADO = TODOS_HORARIOS_CITA.filter((h) => h <= "14:00");
+
+/** Día de la semana 0=dom … 6=sáb para un YYYY-MM-DD civil. */
+export function dowFromYmd(ymd) {
+  const [y, m, d] = String(ymd || "").slice(0, 10).split("-").map(Number);
+  if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) return null;
+  return new Date(Date.UTC(y, m - 1, d, 12)).getUTCDay();
+}
+
+/** Hora actual en America/Mexico_City → { hh, mm }. */
+export function horaActualMexico(now = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: TZ_FARMACIA,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(now);
+  const hh = Number(parts.find((p) => p.type === "hour")?.value || 0);
+  const mm = Number(parts.find((p) => p.type === "minute")?.value || 0);
+  return { hh, mm };
+}
+
+/** Normaliza "09:00:00" / "9:00" → "09:00". */
+export function normalizarHoraCita(raw) {
+  const s = String(raw || "").trim();
+  const m = s.match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return "";
+  return `${pad2(Number(m[1]))}:${m[2]}`;
+}
+
 /**
- * Horarios futuros si la fecha es hoy; si es otro día, todos los slots.
+ * Slots del consultorio:
+ * - Domingo: cerrado
+ * - Sábado: 09:00–14:00
+ * - L–V: rejilla completa
+ * - Hoy: solo futuros (reloj México)
  * @param {string} fecha YYYY-MM-DD
  */
 export function horariosDisponiblesCita(fecha) {
-  if (!fecha) return TODOS_HORARIOS_CITA;
+  if (!fecha) return [];
   const hoy = hoyISOMexico();
   if (fecha < hoy) return [];
-  if (fecha > hoy) return TODOS_HORARIOS_CITA;
-  const ahora = new Date();
-  return TODOS_HORARIOS_CITA.filter((h) => {
-    const [hh, mm] = h.split(":").map(Number);
-    return hh > ahora.getHours() || (hh === ahora.getHours() && mm > ahora.getMinutes());
+
+  const dow = dowFromYmd(fecha);
+  if (dow === 0) return []; // domingo cerrado
+  const base = dow === 6 ? HORARIOS_CITA_SABADO : TODOS_HORARIOS_CITA;
+  if (fecha > hoy) return base;
+
+  const { hh, mm } = horaActualMexico();
+  return base.filter((h) => {
+    const [H, M] = h.split(":").map(Number);
+    return H > hh || (H === hh && M > mm);
   });
+}
+
+/** Texto de ayuda cuando no hay slots. */
+export function motivoSinHorariosCita(fecha) {
+  if (!fecha) return "Elegí una fecha para ver horarios.";
+  const hoy = hoyISOMexico();
+  if (fecha < hoy) return "Esa fecha ya pasó. Elegí otro día.";
+  if (dowFromYmd(fecha) === 0) {
+    return "Domingo el consultorio está cerrado. Elegí lunes a sábado.";
+  }
+  if (fecha === hoy && horariosDisponiblesCita(fecha).length === 0) {
+    return "Ya no hay horarios libres hoy. Elegí otro día.";
+  }
+  return "No hay horarios disponibles. Elegí otra fecha.";
 }
 
 /**
