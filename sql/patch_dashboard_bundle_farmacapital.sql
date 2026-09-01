@@ -65,7 +65,15 @@ begin
     'ped_semana', coalesce((select jsonb_agg(jsonb_build_object('total', p.total)) from public.pedidos p where (p.estado)::text='completado' and p.created_at >= v_ws), '[]'::jsonb),
     'ped_semana_ant', coalesce((select jsonb_agg(jsonb_build_object('total', p.total)) from public.pedidos p where (p.estado)::text='completado' and p.created_at >= v_ps and p.created_at <= v_pe), '[]'::jsonb),
     'ped_mes', coalesce((select jsonb_agg(jsonb_build_object('total', p.total,'atendido_por', p.atendido_por)) from public.pedidos p where (p.estado)::text='completado' and p.created_at >= v_ms), '[]'::jsonb),
-    'ped_todos', coalesce((select jsonb_agg(jsonb_build_object('total', p.total)) from public.pedidos p where (p.estado)::text='completado'), '[]'::jsonb),
+    -- SUM en vez de jsonb_agg de todos los tickets (hincha/tumba el bundle).
+    'ventas_acumuladas', coalesce((select sum(p.total)::numeric from public.pedidos p where (p.estado)::text='completado'), 0),
+    'ped_todos', coalesce((
+      select case
+        when s.t is null then '[]'::jsonb
+        else jsonb_build_array(jsonb_build_object('total', s.t))
+      end
+      from (select sum(p.total)::numeric as t from public.pedidos p where (p.estado)::text = 'completado') s
+    ), '[]'::jsonb),
     'ped_mes_ant', coalesce((select jsonb_agg(jsonb_build_object('total', p.total)) from public.pedidos p where (p.estado)::text='completado' and p.created_at >= (p_ctx->>'month_prev_start')::timestamptz and p.created_at <= v_me), '[]'::jsonb),
     'citas_hoy', coalesce((select jsonb_agg(jsonb_build_object('id', c.id)) from public.citas c where c.fecha = v_hoy_local and coalesce(c.estado,'') <> 'cancelada' and ((c.estado)::text = any(array['completada','pagada']) or coalesce(c.pago_estado,'')='pagada')), '[]'::jsonb),
     'citas_ayer', coalesce((select jsonb_agg(jsonb_build_object('id', c.id)) from public.citas c where c.fecha = v_ayer_local and coalesce(c.estado,'') <> 'cancelada' and ((c.estado)::text = any(array['completada','pagada']) or coalesce(c.pago_estado,'')='pagada')), '[]'::jsonb),

@@ -19,8 +19,10 @@ import { agruparVentasPorDia, parseYmdLocal, ymdMexico } from "./lib/ventasVsMet
 import { addDaysISO, hoyISOMexico } from "./lib/fecha";
 import {
   finInclusivoIso,
+  gananciaNetaEstMes,
   rangoReporteMexico,
   rangosDashboardMexico,
+  resolverVentasAcumuladas,
   serieVentasDesdeRpc,
   sumPorDiaYmd,
 } from "./lib/dashboardVentas";
@@ -385,7 +387,8 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
       ayer_local: ayerLocal,
       inicio_mes_local: inicioMesLocal,
     };
-    const desdeSerieYmd = addDaysISO(hoyLocal, -92);
+    // Serie amplia: Operación usa mes/semana; Proyecto suma histórico del POS.
+    const desdeSerieYmd = addDaysISO(hoyLocal, -800);
     const [
       bundleRes,
       homeRes,
@@ -393,6 +396,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
       { data: cofeprisRpcData, error: errAlertasCof },
       caducarRes,
       serieRes,
+      acumRes,
       metasTurnoCfg,
     ] = await Promise.all([
       adminTok
@@ -425,10 +429,17 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
             p_desde: desdeSerieYmd,
           })
         : Promise.resolve({ data: null, error: null }),
+      adminTok
+        ? supabase.rpc("empleado_dashboard_ventas_acumuladas", {
+            p_session_token: adminTok,
+          })
+        : Promise.resolve({ data: null, error: null }),
       cargarConfigMetas(),
     ]);
     const B = parseRpcJsonObject(bundleRes.data);
     const H = parseRpcJsonObject(homeRes.data);
+    if (acumRes?.error) console.warn("[Dashboard] ventas acumuladas:", acumRes.error.message);
+    const acumJs = parseRpcJsonObject(acumRes?.data);
 
     const serieParsed = serieVentasDesdeRpc(parseRpcJsonArray(serieRes?.data));
     let ventasPorDia = serieParsed.porDia;
@@ -560,8 +571,13 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
     const ventasMes = tieneSerie ? ventasMesSerie : ventasMesPed;
     const totalPedMes = tieneSerie ? ticketsMesSerie : (pedMes || []).length;
     const ticketProm = totalPedMes > 0 ? ventasMes / totalPedMes : 0;
-    const recuperado = (pedTodos || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
-    const gananciaMes = ventasMes * 0.55;
+    // Proyecto: mismas ventas del POS (SUM server → ped_todos → serie diaria).
+    const recuperado = resolverVentasAcumuladas({
+      ventasAcumuladasRpc: acumJs.ventas_acumuladas ?? B.ventas_acumuladas,
+      pedTodos,
+      ventasPorDia,
+    });
+    const gananciaMes = gananciaNetaEstMes(ventasMes);
     const ventasMesAnt = tieneSerie ? ventasMesAntSerie : (pedMesAnt || []).reduce((a, p) => a + parseFloat(p.total || 0), 0);
     const ticketPromMesAnt = (tieneSerie ? ticketsMesAntSerie : (pedMesAnt || []).length) > 0
       ? ventasMesAnt / (tieneSerie ? ticketsMesAntSerie : (pedMesAnt || []).length)
@@ -1011,13 +1027,13 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
             </table>
           </Box>
 
-          <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, letterSpacing: 1.2, marginBottom: 10 }}>RETORNO Y RECUPERACIÓN (VS. VENTAS ACUMULADAS)</div>
+          <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, letterSpacing: 1.2, marginBottom: 10 }}>RETORNO Y RECUPERACIÓN (VS. VENTAS POS ACUMULADAS)</div>
           <div style={{ background: C.card, border: `1px solid ${roiCol}30`, borderRadius: 14, padding: 24, marginBottom: 16 }}>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,180px),1fr))", gap: 20, marginBottom: 20 }}>
               <div><div style={{ color: C.textMid, fontSize: 11, fontWeight: 700, marginBottom: 4 }}>INVERSIÓN TOTAL</div><div style={{ color: C.text, fontWeight: 800, fontSize: 22 }}>{fmt(inversionTotal)}</div></div>
-              <div><div style={{ color: C.textMid, fontSize: 11, fontWeight: 700, marginBottom: 4 }}>TOTAL RECUPERADO</div><div style={{ color: roiCol, fontWeight: 800, fontSize: 22 }}>{fmt(recuperado)}</div></div>
-              <div><div style={{ color: C.textMid, fontSize: 11, fontWeight: 700, marginBottom: 4 }}>GANANCIA NETA EST. / MES</div><div style={{ color: C.green, fontWeight: 800, fontSize: 18 }}>{fmt(gananciaMes)}</div><div style={{ color: C.textDim, fontSize: 10, marginTop: 4 }}>Aprox. operativa (55% ventas del mes)</div></div>
-              <div><div style={{ color: C.textMid, fontSize: 11, fontWeight: 700, marginBottom: 4 }}>PAYBACK RESTANTE</div><div style={{ color: restante <= 0 ? C.green : C.amber, fontWeight: 800, fontSize: 18 }}>{restante <= 0 ? "✅ Recuperada" : paybackMeses ? `~${paybackMeses} meses` : "Calculando…"}</div></div>
+              <div><div style={{ color: C.textMid, fontSize: 11, fontWeight: 700, marginBottom: 4 }}>TOTAL RECUPERADO</div><div style={{ color: roiCol, fontWeight: 800, fontSize: 22 }}>{fmt(recuperado)}</div><div style={{ color: C.textDim, fontSize: 10, marginTop: 4 }}>Ventas POS completadas (acumulado)</div></div>
+              <div><div style={{ color: C.textMid, fontSize: 11, fontWeight: 700, marginBottom: 4 }}>GANANCIA NETA EST. / MES</div><div style={{ color: C.green, fontWeight: 800, fontSize: 18 }}>{fmt(gananciaMes)}</div><div style={{ color: C.textDim, fontSize: 10, marginTop: 4 }}>Aprox. operativa (55% ventas del mes en Operación)</div></div>
+              <div><div style={{ color: C.textMid, fontSize: 11, fontWeight: 700, marginBottom: 4 }}>PAYBACK RESTANTE</div><div style={{ color: restante <= 0 ? C.green : C.amber, fontWeight: 800, fontSize: 18 }}>{restante <= 0 ? "✅ Recuperada" : paybackMeses ? `~${paybackMeses} meses` : (gananciaMes <= 0 ? "Sin ventas del mes" : "Calculando…")}</div></div>
             </div>
             <div style={{ marginBottom: 8, display: "flex", justifyContent: "space-between" }}>
               <div style={{ color: C.textMid, fontSize: 12 }}>Progreso de recuperación vs. inversión total</div>
