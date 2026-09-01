@@ -8,6 +8,7 @@ import {
   formatDestinoLabel,
   isCheckoutDestinoListo,
   applyDestinoSuggestion,
+  parseTypedMxAddress,
 } from "./checkoutAddress.js";
 
 test("splitCalleYNumero separa número al final", () => {
@@ -51,6 +52,19 @@ test("formatDestinoLabel y destino listo", () => {
     isCheckoutDestinoListo({ calle: "Bartolache", numero: "", colonia: "Del Valle Sur", cp: "03104" }),
     false
   );
+});
+
+test("parseTypedMxAddress arma destino desde lo escrito", () => {
+  const a = parseTypedMxAddress("Av Insurgentes Sur 300 roma norte 06700");
+  assert.equal(a.calle, "Av Insurgentes Sur");
+  assert.equal(a.numero, "300");
+  assert.equal(a.colonia, "Roma norte");
+  assert.equal(a.cp, "06700");
+  const b = parseTypedMxAddress("jose ignacio bartolache 1750 del valle sur 03");
+  assert.equal(b.numero, "1750");
+  assert.match(b.calle, /bartolache/i);
+  assert.match(b.colonia, /valle sur/i);
+  assert.equal(b.cp, "");
 });
 
 test("applyDestinoSuggestion parte calle y número", () => {

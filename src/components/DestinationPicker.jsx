@@ -112,7 +112,7 @@ export default function DestinationPicker({
                 <input
                   value={colonia || ""}
                   onChange={(e) => onColoniaChange?.(e.target.value)}
-                  placeholder="Del Valle Sur"
+                  placeholder="Roma Norte"
                   style={fieldStyle}
                 />
               </div>
@@ -125,7 +125,7 @@ export default function DestinationPicker({
                 <input
                   value={cp || ""}
                   onChange={(e) => onCpChange?.(e.target.value)}
-                  placeholder="03104"
+                  placeholder="06700"
                   inputMode="numeric"
                   autoComplete="postal-code"
                   style={fieldStyle}
@@ -143,7 +143,7 @@ export default function DestinationPicker({
       value={query}
       onChange={setQuery}
       onPick={pick}
-      placeholder="Ej. Bartolache 1750, Del Valle"
+      placeholder="Av. Insurgentes Sur 300, Roma Norte"
       inputStyle={inputStyle}
     />
   );

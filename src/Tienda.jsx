@@ -3492,7 +3492,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",setEntrega
     if (!nombreOk) f.push("nombre completo (mín. 3 letras)");
     if (!telOk) f.push("teléfono de 10 dígitos");
     if (!emailOk) f.push("correo válido");
-    if (!direccionOk && tipoEntregaRpc === "envio") f.push("un destino (elige una dirección de la lista)");
+    if (!direccionOk && tipoEntregaRpc === "envio") f.push("un destino (pulsa Usar esta dirección)");
     return f;
   }, [nombreOk, telOk, emailOk, direccionOk, tipoEntregaRpc]);
 

@@ -7,6 +7,7 @@ const {
   streetFromGoogleComponents,
   coloniaFromGoogleComponents,
   suggestAddresses,
+  rankSuggestions,
 } = require('./addressSuggest');
 
 describe('addressSuggest', () => {
@@ -67,6 +68,15 @@ describe('addressSuggest', () => {
     assert.equal(result.suggestions[0].cp, '03104');
     assert.equal(result.suggestions[0].lat, 19.3846);
     assert.equal(result.suggestions[0].lng, -99.1699);
+  });
+
+  it('no pone primero una Cerrada si el cliente no la escribió', () => {
+    const ranked = rankSuggestions('Jose Ignacio Bartolache 1750 Del Valle', [
+      { calle: 'Cerrada Doctor José Ignacio Bartolache', colonia: '', cp: '03100', label: 'Cerrada' },
+      { calle: 'Doctor José Ignacio Bartolache', colonia: '', cp: '03240', label: 'Avenida' },
+    ]);
+    assert.match(ranked[0].calle, /^Doctor José Ignacio Bartolache 1750/);
+    assert.doesNotMatch(ranked[0].calle, /^Cerrada/);
   });
 
   it('query corta no llama proveedores', async () => {
