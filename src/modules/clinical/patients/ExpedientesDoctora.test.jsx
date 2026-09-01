@@ -1,5 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 import ExpedientesDoctora from "./ExpedientesDoctora";
 import { supabase } from "../../../supabase";
 
@@ -66,22 +65,21 @@ beforeEach(() => {
 });
 
 test("cerrar la ficha vuelve al expediente del paciente, no a la lista", async () => {
-  const user = userEvent.setup();
   render(<ExpedientesDoctora />);
 
   await screen.findByText("Ivan ibarra");
-  await user.click(screen.getByRole("button", { name: /Ver expediente/i }));
+  fireEvent.click(screen.getByRole("button", { name: /Ver expediente/i }));
 
   expect(await screen.findByTestId("evolucion-clinica")).toBeInTheDocument();
   expect(screen.getByText(/Historial de consultas/i)).toBeInTheDocument();
   expect(screen.getByText(/Evolución en el tiempo/i)).toBeInTheDocument();
 
-  await user.click(screen.getByRole("button", { name: /Ver ficha completa/i }));
+  fireEvent.click(screen.getByRole("button", { name: /Ver ficha completa/i }));
   expect(await screen.findByText(/Solo lectura/i)).toBeInTheDocument();
   expect(screen.getByRole("button", { name: /Volver a citas/i })).toBeInTheDocument();
   expect(screen.queryByText(/Historial de consultas/i)).toBeNull();
 
-  await user.click(screen.getByRole("button", { name: /Volver a citas/i }));
+  fireEvent.click(screen.getByRole("button", { name: /Volver a citas/i }));
   expect(await screen.findByText(/Historial de consultas/i)).toBeInTheDocument();
   expect(screen.getByTestId("evolucion-clinica")).toBeInTheDocument();
   const listHeading = screen.getByRole("heading", { name: /Expedientes/i });
