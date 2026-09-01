@@ -4699,7 +4699,7 @@ function Registro({setUser,setPage}){
     <div style={{maxWidth:440,margin:"80px auto",padding:"0 24px"}}>
       <div style={{background:C.white,borderRadius:20,border:`1px solid ${C.border}`,padding:40}}>
         <div style={{display:"flex",justifyContent:"center",marginBottom:20}}><Logo size={40}/></div>
-        <h1 style={{color:C.dark,fontSize:24,fontWeight:800,marginBottom:6,textAlign:"center"}}>Crear cuenta FarmaCapital</h1>
+        <h1 style={{color:C.dark,fontSize:24,fontWeight:800,marginBottom:6,textAlign:"center"}}>Crear cuenta</h1>
         {getPostLoginPage() === "cita" ? (
           <p style={{color:C.textMid,fontSize:14,marginBottom:20,textAlign:"center",lineHeight:1.5}}>
             Creá tu cuenta para <strong style={{color:BRAND.primary}}>agendar tu cita médica</strong>.
