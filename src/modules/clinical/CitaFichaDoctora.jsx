@@ -104,15 +104,6 @@ function serializeMeds(rows) {
     .filter((m) => m.medicamento || m.producto_id);
 }
 
-function patchConsultaFin(citaRow) {
-  const finIso = new Date().toISOString();
-  let durSec = null;
-  const ini = citaRow?.confirmada_inicio_at;
-  if (ini) {
-    durSec = Math.max(0, Math.floor((Date.now() - Date.parse(ini)) / 1000));
-  }
-  return { consulta_fin_at: finIso, duracion_consulta_segundos: durSec };
-}
 
 function emptyVitals() {
   return { ta: "", fc: "", temp: "", sat: "", peso: "", talla: "" };
