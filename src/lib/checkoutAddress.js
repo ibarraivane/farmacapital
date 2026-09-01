@@ -79,7 +79,55 @@ export function checkoutNumeroOk(numero) {
   return /\d/.test(n) && n.length <= 12;
 }
 
-/** Una línea, como en Uber: "Bartolache 1750, Del Valle Sur, 03104". */
+function titleCaseMx(s) {
+  const t = String(s || "").replace(/\s+/g, " ").trim();
+  if (!t) return "";
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
+/**
+ * Arma destino desde lo que el cliente escribió, sin depender del mapa.
+ * "Av Insurgentes Sur 300 roma norte 06700" → calle/número/colonia/CP.
+ */
+export function parseTypedMxAddress(raw) {
+  let s = String(raw || "").replace(/[.,;]+/g, " ").replace(/\s+/g, " ").trim();
+  if (s.length < 8) return null;
+  s = s
+    .replace(/\b(ciudad de m[eé]xico|cdmx|m[eé]xico\s*d\.?\s*f\.?|mexico)\b/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  let cp = "";
+  const cpM = s.match(/\b(\d{5})\b/);
+  if (cpM) {
+    cp = cpM[1];
+    s = s.replace(cpM[0], " ").replace(/\s+/g, " ").trim();
+  }
+
+  const mid = s.match(/^(.{3,}?)\s+(\d+[A-Za-z]?(?:-\d*[A-Za-z]?)?|s\/?n)\s+(.+)$/i);
+  if (mid) {
+    const colonia = cleanCheckoutColonia(mid[3].replace(/\s+\d{1,4}$/g, "").trim());
+    return {
+      calle: titleCaseMx(mid[1]),
+      numero: mid[2].replace(/\s+/g, ""),
+      colonia,
+      cp,
+    };
+  }
+
+  const split = splitCalleYNumero(s);
+  if (split.numero && split.calle.length >= 5) {
+    return {
+      calle: titleCaseMx(split.calle),
+      numero: split.numero,
+      colonia: "",
+      cp,
+    };
+  }
+  return null;
+}
+
+/** Una línea de destino: calle, número, colonia, CP. */
 export function formatDestinoLabel({ calle, numero, colonia, cp } = {}) {
   const street = composeCheckoutCalle(calle, numero);
   const col = cleanCheckoutColonia(colonia);
@@ -98,8 +146,29 @@ export function isCheckoutDestinoListo({ calle, numero, colonia, cp } = {}) {
   );
 }
 
+function coordsFromSug(sug) {
+  if (sug?.lat == null || sug?.lng == null) return { lat: null, lng: null };
+  const lat = Number(sug.lat);
+  const lng = Number(sug.lng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || (lat === 0 && lng === 0)) {
+    return { lat: null, lng: null };
+  }
+  return { lat, lng };
+}
+
 /** Aplica una sugerencia del buscador al estado del checkout. */
 export function applyDestinoSuggestion(sug, prev = {}) {
+  const coords = coordsFromSug(sug);
+  if (sug?.calle && sug?.numero) {
+    return {
+      ...prev,
+      calle: String(sug.calle).replace(/\s+/g, " ").trim(),
+      numero: String(sug.numero).replace(/\s+/g, "").trim(),
+      colonia: cleanCheckoutColonia(sug.colonia || ""),
+      cp: String(sug.cp || "").replace(/\D/g, "").slice(0, 5),
+      ...coords,
+    };
+  }
   const rawCalle = String(sug?.calle || sug?.label || "").replace(/\s+/g, " ").trim();
   const split = splitCalleYNumero(rawCalle);
   return {
@@ -108,7 +177,6 @@ export function applyDestinoSuggestion(sug, prev = {}) {
     numero: split.numero || prev.numero || "",
     colonia: cleanCheckoutColonia(sug?.colonia || prev.colonia || ""),
     cp: String(sug?.cp || prev.cp || "").replace(/\D/g, "").slice(0, 5),
-    lat: Number.isFinite(Number(sug?.lat)) ? Number(sug.lat) : null,
-    lng: Number.isFinite(Number(sug?.lng)) ? Number(sug.lng) : null,
+    ...coords,
   };
 }

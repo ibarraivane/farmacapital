@@ -1,15 +1,52 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { fetchAddressSuggestions } from "../lib/addressSuggestClient";
+import {
+  checkoutNumeroOk,
+  formatDestinoLabel,
+  parseTypedMxAddress,
+} from "../lib/checkoutAddress";
+
+const DESTINO_PLACEHOLDER = "Av. Insurgentes Sur 300, Roma Norte";
+
+function typedFromQuery(q) {
+  const p = parseTypedMxAddress(q);
+  if (!p || !checkoutNumeroOk(p.numero)) return null;
+  return {
+    id: "typed",
+    source: "typed",
+    label: formatDestinoLabel(p) || q,
+    calle: p.calle,
+    numero: p.numero,
+    colonia: p.colonia,
+    cp: p.cp,
+    lat: null,
+    lng: null,
+  };
+}
+
+function mergeSuggestions(query, apiItems) {
+  const typed = typedFromQuery(query);
+  const out = [];
+  if (typed) out.push(typed);
+  for (const it of apiItems || []) {
+    const same =
+      typed &&
+      String(it.calle || "").replace(/\s+/g, " ").toLowerCase() ===
+        `${typed.calle} ${typed.numero}`.toLowerCase();
+    if (same) continue;
+    out.push(it);
+  }
+  return out;
+}
 
 /**
- * Lista de destinos al escribir (calle y número).
- * Al elegir una sugerencia entrega calle / colonia / CP + lat/lng.
+ * Destino al escribir: primero “usar lo que escribiste”, luego el mapa.
  */
 export default function AddressAutocomplete({
   value = "",
   onChange,
   onPick,
-  placeholder = "Ej. Bartolache 1750, Del Valle",
+  placeholder = DESTINO_PLACEHOLDER,
   inputStyle = {},
   disabled = false,
 }) {
@@ -17,9 +54,11 @@ export default function AddressAutocomplete({
   const wrapRef = useRef(null);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [items, setItems] = useState([]);
+  const [apiItems, setApiItems] = useState([]);
   const [active, setActive] = useState(-1);
   const skipSuggestRef = useRef(false);
+
+  const items = useMemo(() => mergeSuggestions(value, apiItems), [value, apiItems]);
 
   useEffect(() => {
     if (disabled) return undefined;
@@ -29,19 +68,21 @@ export default function AddressAutocomplete({
       return undefined;
     }
     if (q.length < 3) {
-      setItems([]);
+      setApiItems([]);
       setOpen(false);
       setLoading(false);
       return undefined;
     }
+    const typed = typedFromQuery(q);
+    if (typed) setOpen(true);
     let cancelled = false;
     setLoading(true);
     const t = setTimeout(async () => {
       const res = await fetchAddressSuggestions(q);
       if (cancelled) return;
       setLoading(false);
-      setItems(res.suggestions || []);
-      setOpen(Boolean(res.suggestions?.length));
+      setApiItems(res.suggestions || []);
+      setOpen(Boolean(typed || res.suggestions?.length));
       setActive(-1);
     }, 280);
     return () => {
@@ -62,7 +103,7 @@ export default function AddressAutocomplete({
     if (!item) return;
     skipSuggestRef.current = true;
     setOpen(false);
-    setItems([]);
+    setApiItems([]);
     onPick?.(item);
   };
 
@@ -74,9 +115,9 @@ export default function AddressAutocomplete({
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setActive((i) => (i <= 0 ? items.length - 1 : i - 1));
-    } else if (e.key === "Enter" && active >= 0) {
+    } else if (e.key === "Enter") {
       e.preventDefault();
-      pick(items[active]);
+      pick(items[active >= 0 ? active : 0]);
     } else if (e.key === "Escape") {
       setOpen(false);
     }
@@ -146,11 +187,11 @@ export default function AddressAutocomplete({
                 }}
               >
                 <div style={{ fontWeight: 600 }}>{item.label || item.calle}</div>
-                {(item.colonia || item.cp) && item.label && (
-                  <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>
-                    {[item.colonia, item.cp].filter(Boolean).join(" · ")}
-                  </div>
-                )}
+                <div style={{ fontSize: 11, color: item.source === "typed" ? "#1d4ed8" : "#64748b", marginTop: 2 }}>
+                  {item.source === "typed"
+                    ? "Usar esta dirección"
+                    : [item.colonia, item.cp].filter(Boolean).join(" · ")}
+                </div>
               </button>
             </li>
           ))}

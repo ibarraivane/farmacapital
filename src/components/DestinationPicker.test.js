@@ -6,64 +6,58 @@ jest.mock("../lib/addressSuggestClient", () => ({
   fetchAddressSuggestions: jest.fn(),
 }));
 
-test("elige un destino de la lista y lo fija, sin pedir 4 campos", async () => {
+test("usa lo escrito aunque el mapa traiga otra calle", async () => {
   fetchAddressSuggestions.mockResolvedValue({
     ok: true,
     suggestions: [
       {
-        id: "1",
-        label: "José Ignacio Bartolache 1750, Del Valle Sur, 03104, Ciudad de México",
-        calle: "José Ignacio Bartolache 1750",
-        colonia: "Del Valle Sur",
-        cp: "03104",
-        lat: 19.3846,
-        lng: -99.1699,
+        id: "cerrada",
+        label: "Cerrada Doctor José Ignacio, 03100, Mexico City",
+        calle: "Cerrada Doctor José Ignacio",
+        colonia: "",
+        cp: "03100",
+        lat: 19.38,
+        lng: -99.17,
       },
     ],
   });
 
   const onConfirm = jest.fn();
-  render(
-    <DestinationPicker
-      calle=""
-      onConfirm={onConfirm}
-      inputStyle={{}}
-    />
-  );
+  render(<DestinationPicker calle="" onConfirm={onConfirm} inputStyle={{}} />);
 
-  expect(screen.getByPlaceholderText(/bartolache 1750/i)).toBeInTheDocument();
+  expect(screen.getByPlaceholderText(/insurgentes/i)).toBeInTheDocument();
   expect(screen.queryByText(/código postal/i)).not.toBeInTheDocument();
-  expect(screen.queryByText(/número exterior/i)).not.toBeInTheDocument();
 
   fireEvent.change(screen.getByRole("combobox"), {
-    target: { value: "Bartolache 1750 Del Valle" },
+    target: { value: "Av Insurgentes Sur 300 roma norte 06700" },
   });
 
-  const option = await screen.findByRole("option");
-  fireEvent.click(option);
+  const usar = await screen.findByText(/usar esta dirección/i);
+  fireEvent.click(usar.closest("button"));
 
   await waitFor(() => expect(onConfirm).toHaveBeenCalled());
   expect(onConfirm.mock.calls[0][0]).toMatchObject({
-    calle: "José Ignacio Bartolache",
-    numero: "1750",
-    colonia: "Del Valle Sur",
-    cp: "03104",
-    lat: 19.3846,
+    calle: "Av Insurgentes Sur",
+    numero: "300",
+    colonia: "Roma norte",
+    cp: "06700",
+    lat: null,
+    lng: null,
   });
 });
 
 test("con destino ya elegido muestra tarjeta y Cambiar", () => {
   render(
     <DestinationPicker
-      calle="José Ignacio Bartolache"
-      numero="1750"
-      colonia="Del Valle Sur"
-      cp="03104"
-      lat={19.38}
-      lng={-99.17}
+      calle="Av Insurgentes Sur"
+      numero="300"
+      colonia="Roma Norte"
+      cp="06700"
+      lat={19.41}
+      lng={-99.16}
     />
   );
-  expect(screen.getByText(/bartolache 1750/i)).toBeInTheDocument();
+  expect(screen.getByText(/insurgentes sur 300/i)).toBeInTheDocument();
   expect(screen.getByRole("button", { name: /cambiar/i })).toBeInTheDocument();
   expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
 });

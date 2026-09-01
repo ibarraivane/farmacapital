@@ -224,7 +224,46 @@ async function suggestWithPhoton(query, deps = {}) {
     });
     if (suggestion) suggestions.push(suggestion);
   }
-  return { ok: true, provider: 'photon', suggestions };
+  return { ok: true, provider: 'photon', suggestions: rankSuggestions(query, suggestions) };
+}
+
+function isAlleyLabel(calle) {
+  return /^(cerrada|privada|andador|callejon|callej[oó]n|retorno)\b/i.test(String(calle || '').trim());
+}
+
+function queryHouseNumber(query) {
+  const parts = String(query || '').match(/\b(\d+[A-Za-z]?)\b/g) || [];
+  const nums = parts.filter((n) => n.replace(/\D/g, '').length !== 5);
+  return nums[0] || '';
+}
+
+function rankSuggestions(query, list) {
+  const q = foldMx(query);
+  const wantAlley = /\bcerrada\b|\bprivada\b|\bandador\b/.test(q);
+  const wantNum = queryHouseNumber(query);
+  const tokens = q.split(' ').filter((t) => t.length > 3 && !/^\d+$/.test(t));
+  const scored = (list || []).map((sug) => {
+    const calle = foldMx(sug.calle || sug.label);
+    let n = 0;
+    if (isAlleyLabel(sug.calle) && !wantAlley) n -= 80;
+    for (const t of tokens) {
+      if (calle.includes(t)) n += 10;
+    }
+    if (wantNum && calle.includes(foldMx(wantNum))) n += 25;
+    const cpM = String(query).match(/\b(\d{5})\b/);
+    if (cpM && sug.cp === cpM[1]) n += 20;
+    let next = sug;
+    if (wantNum && sug.calle && !/\d/.test(sug.calle) && !isAlleyLabel(sug.calle)) {
+      next = {
+        ...sug,
+        calle: `${sug.calle} ${wantNum}`.trim(),
+        label: [(`${sug.calle} ${wantNum}`).trim(), sug.colonia, sug.cp].filter(Boolean).join(', '),
+      };
+    }
+    return { n, sug: next };
+  });
+  scored.sort((a, b) => b.n - a.n);
+  return scored.map((x) => x.sug);
 }
 
 /**
@@ -263,6 +302,7 @@ module.exports = {
   streetFromGoogleComponents,
   coloniaFromGoogleComponents,
   googleMapsApiKey,
+  rankSuggestions,
   BIAS_LAT,
   BIAS_LNG,
 };
