@@ -164,6 +164,10 @@ export async function completeClienteOAuth(supabase) {
     session_token: payload.token,
     user: payload.cliente || payload.user || null,
     created: Boolean(payload.created),
+    needs_phone: Boolean(
+      payload.needs_phone ||
+        !(payload.cliente || payload.user || {})?.telefono
+    ),
     provider: payload.provider || providerHint,
   };
 }

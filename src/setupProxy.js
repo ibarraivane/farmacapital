@@ -7,6 +7,7 @@
 const uberDirectHandler = require("../api/_lib/uberDirectHttp");
 const addressSuggestHandler = require("../api/_lib/addressSuggestHttp");
 const logisticsWebhook = require("../api/logistics/webhook");
+const authRouter = require("../api/auth/password-reset-request");
 
 function readJsonBody(req) {
   return new Promise((resolve) => {
@@ -44,4 +45,9 @@ module.exports = function setupProxy(app) {
   mount(app, "/api/address/suggest", addressSuggestHandler);
   mount(app, "/api/logistics/webhook", logisticsWebhook);
   mount(app, "/api/logistics/uber-direct", uberDirectHandler);
+  mount(app, "/api/auth/oauth-bridge", (req, res) => {
+    req.query = { ...(req.query || {}), type: "oauth-bridge" };
+    return authRouter(req, res);
+  });
+  mount(app, "/api/auth/password-reset-request", authRouter);
 };

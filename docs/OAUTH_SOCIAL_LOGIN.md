@@ -6,15 +6,20 @@ correo-teléfono + contraseña** (acceso de empleados; no conviene OAuth ahí).
 
 ## Cómo funciona
 
-1. El visitante elige Google / Facebook / Apple.
+1. El visitante elige Google (recomendado) / Facebook / Apple.
 2. Supabase Auth abre el OAuth del proveedor y vuelve a `/auth/callback`.
-3. La API `POST /api/auth/oauth-bridge` valida el JWT de Auth.
+3. La API `POST /api/auth/oauth-bridge` (rewrite a la función auth existente)
+   valida el JWT de Auth.
 4. El RPC `service_login_cliente_oauth` crea o vincula la fila en `clientes`
    y emite el mismo `sesiones_cliente.token` que el login con contraseña.
-5. El frontend guarda ese token (como siempre) y entra a Mi cuenta / cita.
+5. Si la cuenta no tiene teléfono, la tienda pide el celular (WhatsApp) una sola vez.
+6. El frontend guarda el token FarmaCapital y entra a Mi cuenta / cita.
 
 Si el correo ya existía (mostrador o registro web), se **vincula** a esa
 cuenta; no se duplica.
+
+**Empezá solo con Google.** Facebook y Apple se habilitan después con
+`REACT_APP_SOCIAL_LOGIN=google,facebook,apple`.
 
 ## Checklist para activarlo en producción
 

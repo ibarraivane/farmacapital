@@ -1,6 +1,13 @@
 'use strict';
 
-const { getSupabaseAdminConfig, rpc } = require('../_lib/supabaseAdmin');
+/**
+ * Canje OAuth (Supabase Auth) → sesión FarmaCapital (sesiones_cliente).
+ * Vive en api/_lib para no consumir un Serverless Function extra (Hobby máx. 12).
+ * Se monta desde api/auth/password-reset-request.js vía ?type=oauth-bridge
+ * y rewrite /api/auth/oauth-bridge.
+ */
+
+const { getSupabaseAdminConfig, rpc } = require('./supabaseAdmin');
 
 const ALLOWED_PROVIDERS = new Set(['google', 'facebook', 'apple']);
 
@@ -14,9 +21,6 @@ async function safeJson(req) {
   }
 }
 
-/**
- * Valida el access_token de Supabase Auth y devuelve el usuario.
- */
 async function fetchAuthUser(supabaseUrl, anonOrServiceKey, accessToken) {
   const resp = await fetch(`${supabaseUrl}/auth/v1/user`, {
     method: 'GET',
@@ -26,9 +30,7 @@ async function fetchAuthUser(supabaseUrl, anonOrServiceKey, accessToken) {
     },
   });
   const data = await resp.json().catch(() => null);
-  if (!resp.ok || !data || !data.id) {
-    return null;
-  }
+  if (!resp.ok || !data || !data.id) return null;
   return data;
 }
 
@@ -36,7 +38,8 @@ function pickIdentity(user, preferredProvider) {
   const identities = Array.isArray(user?.identities) ? user.identities : [];
   let identity = null;
   if (preferredProvider) {
-    identity = identities.find((i) => String(i?.provider || '').toLowerCase() === preferredProvider) || null;
+    identity =
+      identities.find((i) => String(i?.provider || '').toLowerCase() === preferredProvider) || null;
   }
   if (!identity && identities.length === 1) identity = identities[0];
   if (!identity && identities.length > 1) {
@@ -46,27 +49,17 @@ function pickIdentity(user, preferredProvider) {
   }
 
   const provider = String(
-    preferredProvider ||
-      identity?.provider ||
-      user?.app_metadata?.provider ||
-      ''
+    preferredProvider || identity?.provider || user?.app_metadata?.provider || ''
   )
     .trim()
     .toLowerCase();
 
   const subject = String(
-    identity?.id ||
-      identity?.identity_id ||
-      user?.user_metadata?.sub ||
-      user?.id ||
-      ''
+    identity?.id || identity?.identity_id || user?.user_metadata?.sub || user?.id || ''
   ).trim();
 
   const email = String(
-    user?.email ||
-      identity?.identity_data?.email ||
-      user?.user_metadata?.email ||
-      ''
+    user?.email || identity?.identity_data?.email || user?.user_metadata?.email || ''
   )
     .trim()
     .toLowerCase();
@@ -82,16 +75,14 @@ function pickIdentity(user, preferredProvider) {
   return { provider, subject, email: email || null, nombre: nombre || null };
 }
 
-module.exports = async function handler(req, res) {
+module.exports = async function oauthBridgeHandler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ ok: false, error: 'method_not_allowed' });
   }
 
   const { supabaseUrl, serviceKey } = getSupabaseAdminConfig();
   const anonKey = String(
-    process.env.SUPABASE_ANON_KEY ||
-      process.env.REACT_APP_SUPABASE_ANON_KEY ||
-      ''
+    process.env.SUPABASE_ANON_KEY || process.env.REACT_APP_SUPABASE_ANON_KEY || ''
   ).trim();
 
   if (!supabaseUrl || !serviceKey) {
@@ -107,7 +98,6 @@ module.exports = async function handler(req, res) {
   if (!accessToken) {
     return res.status(400).json({ ok: false, error: 'missing_access_token' });
   }
-
   if (preferredProvider && !ALLOWED_PROVIDERS.has(preferredProvider)) {
     return res.status(400).json({ ok: false, error: 'unsupported_provider' });
   }
@@ -162,6 +152,7 @@ module.exports = async function handler(req, res) {
       session_token: result.token,
       cliente: result.cliente || null,
       user: result.cliente || null,
+      needs_phone: !result.cliente?.telefono,
       provider,
     });
   } catch (e) {

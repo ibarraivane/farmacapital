@@ -179,4 +179,89 @@ revoke all on function public.service_login_cliente_oauth(text, text, text, text
 grant execute on function public.service_login_cliente_oauth(text, text, text, text, text, text)
   to service_role;
 
+-- Completar WhatsApp tras OAuth (solo si aún no hay teléfono).
+create or replace function public.cliente_completar_telefono(
+  p_session_token uuid,
+  p_telefono      text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_cliente_id bigint;
+  v_tel        text;
+  v_actual     text;
+begin
+  if p_session_token is null then
+    return jsonb_build_object('success', false, 'error', 'Sesión inválida');
+  end if;
+
+  v_tel := regexp_replace(coalesce(p_telefono, ''), '\D', '', 'g');
+  if length(v_tel) = 11 and left(v_tel, 1) = '1' then
+    v_tel := substr(v_tel, 2);
+  end if;
+  if length(v_tel) = 12 and left(v_tel, 2) = '52' then
+    v_tel := substr(v_tel, 3);
+  end if;
+  if length(v_tel) <> 10 then
+    return jsonb_build_object('success', false, 'error', 'Teléfono inválido (10 dígitos)');
+  end if;
+
+  select sc.cliente_id into v_cliente_id
+  from public.sesiones_cliente sc
+  where sc.token = p_session_token
+    and sc.revoked_at is null
+    and sc.expires_at > now()
+  limit 1;
+
+  if v_cliente_id is null then
+    return jsonb_build_object('success', false, 'error', 'Sesión expirada. Volvé a iniciar sesión.');
+  end if;
+
+  select nullif(trim(c.telefono), '') into v_actual
+  from public.clientes c
+  where c.id = v_cliente_id;
+
+  if v_actual is not null and v_actual <> v_tel then
+    return jsonb_build_object(
+      'success', false,
+      'error', 'Tu cuenta ya tiene un teléfono. Para cambiarlo escribinos por WhatsApp.'
+    );
+  end if;
+
+  if exists (
+    select 1 from public.clientes c
+    where c.id <> v_cliente_id
+      and c.telefono is not null
+      and regexp_replace(c.telefono, '\D', '', 'g') = v_tel
+  ) then
+    return jsonb_build_object(
+      'success', false,
+      'error', 'Ese teléfono ya está en otra cuenta. Entrá con ese método o escribinos.'
+    );
+  end if;
+
+  update public.clientes
+     set telefono = v_tel
+   where id = v_cliente_id;
+
+  update public.sesiones_cliente
+     set last_used_at = now()
+   where token = p_session_token;
+
+  return jsonb_build_object(
+    'success', true,
+    'telefono', v_tel
+  );
+end;
+$$;
+
+comment on function public.cliente_completar_telefono(uuid, text) is
+  'Cliente autenticado: carga WhatsApp/teléfono la primera vez tras login OAuth.';
+
+revoke all on function public.cliente_completar_telefono(uuid, text) from public;
+grant execute on function public.cliente_completar_telefono(uuid, text) to anon, authenticated;
+
 commit;

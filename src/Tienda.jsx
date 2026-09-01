@@ -4866,6 +4866,14 @@ function AuthCallback({ setUser, setPage }) {
   const C = useTheme();
   const [msg, setMsg] = useState("Confirmando tu cuenta…");
   const [err, setErr] = useState("");
+  const [needPhone, setNeedPhone] = useState(false);
+  const [tel, setTel] = useState("");
+  const [savingTel, setSavingTel] = useState(false);
+
+  const finish = (user) => {
+    setMsg(user?.nombre ? `¡Listo, ${primerNombre(user.nombre)}!` : "¡Listo! Entrando…");
+    setTimeout(() => setPage(consumePostLoginPage() || "cuenta"), 450);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -4880,6 +4888,12 @@ function AuthCallback({ setUser, setPage }) {
         }
         setClienteSession(result.token, result.user || {});
         setUser(result.user || {});
+        const phoneOk = telefonoMxValido(result.user?.telefono);
+        if (result.needs_phone || !phoneOk) {
+          setNeedPhone(true);
+          setMsg("");
+          return;
+        }
         setMsg(result.created ? "Cuenta lista. Bienvenido/a ⭐" : "¡Listo! Entrando…");
         setTimeout(() => {
           if (!cancelled) setPage(consumePostLoginPage() || "cuenta");
@@ -4894,13 +4908,75 @@ function AuthCallback({ setUser, setPage }) {
     return () => { cancelled = true; };
   }, [setUser, setPage]);
 
+  const guardarTelefono = async () => {
+    if (!telefonoMxValido(tel)) {
+      setErr("Ingresá un celular de 10 dígitos (WhatsApp).");
+      return;
+    }
+    setSavingTel(true);
+    setErr("");
+    try {
+      const tok = getClienteToken();
+      const telNorm = normalizarTelefonoMxGuardar(tel);
+      const { data, error } = await supabase.rpc("cliente_completar_telefono", {
+        p_session_token: tok,
+        p_telefono: telNorm,
+      });
+      if (error || !data?.success) {
+        setErr(data?.error || error?.message || "No se pudo guardar el teléfono.");
+        setSavingTel(false);
+        return;
+      }
+      setUser((prev) => {
+        const next = { ...(prev || {}), telefono: data.telefono || telNorm };
+        setClienteSession(tok, next);
+        return next;
+      });
+      setNeedPhone(false);
+      finish({ telefono: telNorm });
+    } catch (_) {
+      setErr("Error de conexión. Intentá de nuevo.");
+    }
+    setSavingTel(false);
+  };
+
   return (
     <div style={{ maxWidth: 420, margin: "80px auto", padding: "0 24px" }}>
       <div style={{ background: C.white, borderRadius: 20, border: `1px solid ${C.border}`, padding: 40, textAlign: "center" }}>
         <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}><Logo size={40} /></div>
-        <h1 style={{ color: C.dark, fontSize: 22, fontWeight: 800, marginBottom: 12 }}>Iniciar sesión</h1>
-        {msg && !err && <p style={{ color: C.mid, fontSize: 14, lineHeight: 1.5 }}>{msg}</p>}
-        {err && (
+        <h1 style={{ color: C.dark, fontSize: 22, fontWeight: 800, marginBottom: 12 }}>
+          {needPhone ? "Tu WhatsApp" : "Iniciar sesión"}
+        </h1>
+        {msg && !err && !needPhone && <p style={{ color: C.mid, fontSize: 14, lineHeight: 1.5 }}>{msg}</p>}
+        {needPhone && (
+          <div style={{ textAlign: "left" }}>
+            <p style={{ color: C.textMid, fontSize: 14, lineHeight: 1.5, marginBottom: 16, textAlign: "center" }}>
+              Para avisarte del pedido, la cita y el recibo necesitamos tu celular con WhatsApp.
+            </p>
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ color: C.mid, fontSize: 12, fontWeight: 700, marginBottom: 6 }}>Celular (10 dígitos)</div>
+              <input
+                className="farmacapital-field-input"
+                type="tel"
+                inputMode="numeric"
+                autoComplete="tel"
+                value={tel}
+                onChange={(e) => setTel(e.target.value)}
+                placeholder="55XXXXXXXX"
+                style={tiendaFieldStyle()}
+              />
+            </div>
+            {err && (
+              <div style={{ background: C.red + "10", border: `1px solid ${C.red}30`, borderRadius: 8, padding: "10px 12px", marginBottom: 12, color: C.red, fontSize: 13 }}>
+                {err}
+              </div>
+            )}
+            <Btn onClick={guardarTelefono} col={BRAND.primary} full disabled={savingTel || !tel.trim()}>
+              {savingTel ? "Guardando…" : "Continuar →"}
+            </Btn>
+          </div>
+        )}
+        {err && !needPhone && (
           <>
             <p style={{ color: C.red, fontSize: 14, lineHeight: 1.5, marginBottom: 20 }}>{err}</p>
             <Btn onClick={() => setPage("login")} col={BRAND.primary} full>Volver al inicio de sesión</Btn>
@@ -5477,7 +5553,7 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
         </div>
       ))}
       </>
-      )}
+      ))}
       {tab==="citas"&&(cargando?<div style={{textAlign:"center",padding:40,color:C.mid}}>Cargando citas...</div>:!citas.length?(
         <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:40,textAlign:"center"}}><div style={{fontSize:40,marginBottom:12}}>📅</div><div style={{color:C.mid,fontSize:15}}>No tienes citas agendadas</div><Btn onClick={()=>navigateToCita(setPage)} col={BRAND.primary} sm style={{marginTop:16}}>Agendar consulta médica</Btn></div>
       ):citas.map(c=>{
