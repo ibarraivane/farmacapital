@@ -18,7 +18,7 @@ correo-teléfono + contraseña** (acceso de empleados; no conviene OAuth ahí).
 Si el correo ya existía (mostrador o registro web), se **vincula** a esa
 cuenta; no se duplica.
 
-**Empezá solo con Google.** Facebook y Apple se habilitan después con
+**Activos por default: Google + Apple.** Facebook se suma con
 `REACT_APP_SOCIAL_LOGIN=google,facebook,apple`.
 
 ## Checklist para activarlo en producción
@@ -67,10 +67,18 @@ REACT_APP_SUPABASE_ANON_KEY=...
 PUBLIC_SITE_URL=https://www.farmacapital.mx
 
 # Qué botones mostrar en la tienda (coma-separados)
-REACT_APP_SOCIAL_LOGIN=google,facebook,apple
+REACT_APP_SOCIAL_LOGIN=google,apple
 ```
 
-Sin `REACT_APP_SOCIAL_LOGIN`, el default del código es solo **google**.
+Sin `REACT_APP_SOCIAL_LOGIN`, el default del código es **google + apple**.
+
+### Apple (Supabase → Authentication → Providers → Apple)
+
+1. Apple Developer Program → Identifiers → **Services ID** (Sign in with Apple).
+2. Domains: `www.farmacapital.mx` y Return URL de Supabase:
+   `https://<PROJECT_REF>.supabase.co/auth/v1/callback`
+3. Keys → crear Key con Sign in with Apple → bajar `.p8`.
+4. En Supabase Apple: Services ID, Team ID, Key ID y contenido del `.p8`.
 
 ### 5. Redeploy
 

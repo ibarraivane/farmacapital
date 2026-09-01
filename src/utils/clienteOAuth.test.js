@@ -13,11 +13,11 @@ describe("clienteOAuth helpers", () => {
     delete process.env.REACT_APP_OAUTH_PROVIDERS;
   });
 
-  test("default providers = google", () => {
+  test("default providers = google + apple", () => {
     delete process.env.REACT_APP_SOCIAL_LOGIN;
     delete process.env.REACT_APP_OAUTH_PROVIDERS;
     const list = enabledSocialProviders();
-    expect(list.map((p) => p.id)).toEqual(["google"]);
+    expect(list.map((p) => p.id)).toEqual(["google", "apple"]);
   });
 
   test("parsea lista coma-separada y filtra inválidos", () => {
