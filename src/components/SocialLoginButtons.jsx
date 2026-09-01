@@ -62,9 +62,11 @@ export default function SocialLoginButtons({ colors, onError, disabled = false }
               width: "100%",
               padding: "12px 16px",
               borderRadius: 10,
-              border: `1.5px solid ${C.border || "#e2e8f0"}`,
-              background: C.white || "#fff",
-              color: C.dark || "#0f172a",
+              border: `1.5px solid ${
+                p.id === "apple" ? "#111827" : C.border || "#e2e8f0"
+              }`,
+              background: p.id === "apple" ? "#111827" : C.white || "#fff",
+              color: p.id === "apple" ? "#fff" : C.dark || "#0f172a",
               fontWeight: 700,
               fontSize: 14,
               fontFamily: "var(--fc-body)",

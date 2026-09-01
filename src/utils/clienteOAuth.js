@@ -25,19 +25,19 @@ export const SOCIAL_PROVIDERS = [
 const PROVIDER_IDS = new Set(SOCIAL_PROVIDERS.map((p) => p.id));
 
 /**
- * Lista habilitada por env (coma-separada). Default: google.
+ * Lista habilitada por env (coma-separada). Default: google + apple.
  * Ej: REACT_APP_SOCIAL_LOGIN=google,facebook,apple
  */
 export function enabledSocialProviders() {
   const raw =
     process.env.REACT_APP_SOCIAL_LOGIN ||
     process.env.REACT_APP_OAUTH_PROVIDERS ||
-    "google";
+    "google,apple";
   const wanted = String(raw)
     .split(/[,;\s]+/)
     .map((s) => s.trim().toLowerCase())
     .filter((id) => PROVIDER_IDS.has(id));
-  const unique = [...new Set(wanted.length ? wanted : ["google"])];
+  const unique = [...new Set(wanted.length ? wanted : ["google", "apple"])];
   return SOCIAL_PROVIDERS.filter((p) => unique.includes(p.id));
 }
 
@@ -78,6 +78,8 @@ export async function startClienteOAuth(supabase, provider) {
     options: {
       redirectTo: oauthCallbackUrl(),
       skipBrowserRedirect: false,
+      // Apple: pedir nombre + email en el primer acceso (luego Apple puede ocultarlos).
+      scopes: id === "apple" ? "name email" : undefined,
       queryParams:
         id === "google"
           ? { access_type: "online", prompt: "select_account" }
