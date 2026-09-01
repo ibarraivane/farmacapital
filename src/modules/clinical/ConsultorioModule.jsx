@@ -7,9 +7,10 @@ import { showToast } from "../../ui";
 import { fetchProductosConsumiblesConsultorio } from "../../utils/consumiblesConsultorio";
 import { citaPagoOk, citaEstaPagada, labelEstadoPagoCita } from "../../utils/consultaConstants";
 import OnboardingTour from "../../components/OnboardingTour";
-import { FARMACIA_FISCAL } from "../../constants/farmaciaFiscal";
 import { Historial } from "./Historial";
+import { Paciente } from "./Paciente";
 import { hoyISOMexico } from "../../lib/fecha";
+import { buildRecetaHtml, openRecetaPrint, folioFromCita } from "../../utils/recetaPrint";
 
 const BRAND = { primary:"#0D1B2A", secondary:"#1E3ABA", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
 
@@ -102,15 +103,16 @@ function MedicoModal({ initial, onClose, onSaved }) {
   const labelStyle = mkLabelStyle(C);
   const btnSecondary = mkBtnSecondary(C);
   const btnPrimary = mkBtnPrimary(C);
-  const empty = { nombre:"", especialidad:"Medicina General", cedula:"", turno:"", modelo_pago:"porcentaje", monto_fijo:"", porcentaje:"70", activo:true };
+  const empty = { nombre:"", especialidad:"Medicina General", cedula:"", institucion:"", turno:"", modelo_pago:"porcentaje", monto_fijo:"", porcentaje:"70", activo:true };
   const [form, setForm] = useState(initial||empty);
   const [saving, setSaving] = useState(false);
   const set = (k,v) => setForm(f=>({...f,[k]:v}));
   const handleSave = async () => {
     if (!form.nombre.trim()) { showToast("El nombre del médico es requerido.", "warning"); return; }
+    if (!form.cedula.trim()) { showToast("La cédula profesional es obligatoria para recetar en México.", "warning"); return; }
     setSaving(true);
     try {
-      const payload = { nombre:form.nombre.trim(), especialidad:form.especialidad||"Medicina General", cedula:form.cedula.trim()||null, turno:form.turno.trim()||null, modelo_pago:form.modelo_pago, monto_fijo:parseFloat(form.monto_fijo)||0, porcentaje:parseFloat(form.porcentaje)||70, activo:form.activo };
+      const payload = { nombre:form.nombre.trim(), especialidad:form.especialidad||"Medicina General", cedula:form.cedula.trim(), institucion:form.institucion.trim()||null, turno:form.turno.trim()||null, modelo_pago:form.modelo_pago, monto_fijo:parseFloat(form.monto_fijo)||0, porcentaje:parseFloat(form.porcentaje)||70, activo:form.activo };
       const tok = sessionStorage.getItem("farmacapital_session_token");
       const { error: err } = await supabase.rpc("admin_upsert_medico", {
         p_session_token: tok,
@@ -135,7 +137,8 @@ function MedicoModal({ initial, onClose, onSaved }) {
         <div style={{display:"grid",gridTemplateColumns:GRID_STACK_2COL,gap:"0 16px"}}>
           <div style={{marginBottom:12}}><label style={labelStyle}>NOMBRE *</label><input value={form.nombre} onChange={e=>set("nombre",e.target.value)} style={inputStyle}/></div>
           <div style={{marginBottom:12}}><label style={labelStyle}>ESPECIALIDAD</label><input value={form.especialidad} onChange={e=>set("especialidad",e.target.value)} style={inputStyle}/></div>
-          <div style={{marginBottom:12}}><label style={labelStyle}>CÉDULA PROFESIONAL</label><input value={form.cedula} onChange={e=>set("cedula",e.target.value)} style={inputStyle}/></div>
+          <div style={{marginBottom:12}}><label style={labelStyle}>CÉDULA PROFESIONAL *</label><input value={form.cedula} onChange={e=>set("cedula",e.target.value)} placeholder="Ej. 1234567" style={inputStyle}/></div>
+          <div style={{marginBottom:12}}><label style={labelStyle}>INSTITUCIÓN / UNIVERSIDAD</label><input value={form.institucion||""} onChange={e=>set("institucion",e.target.value)} placeholder="Escuela que expidió el título" style={inputStyle}/></div>
           <div style={{marginBottom:12}}><label style={labelStyle}>TURNO</label><input value={form.turno} onChange={e=>set("turno",e.target.value)} placeholder="Ej: Lun-Vie 9-14h" style={inputStyle}/></div>
           <div style={{marginBottom:12}}>
             <label style={labelStyle}>MODELO DE PAGO</label>
@@ -395,103 +398,21 @@ function EnConsulta() {
 
   const imprimirReceta = () => {
     if (!citaActual) return;
-    const medsHTML = medicamentos.filter(m=>m.medicamento.trim()).map(m=>`
-      <tr>
-        <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;font-weight:600">${m.medicamento}</td>
-        <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0">${m.dosis||"—"}</td>
-        <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0">${m.indicaciones||"—"}</td>
-      </tr>`).join("");
-    const html = `<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8"/>
-  <title>Receta Médica — FarmaCapital</title>
-  <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body { font-family: Arial, sans-serif; font-size: 13px; color: #0f172a; padding: 32px; max-width: 700px; margin: 0 auto; }
-    .header { display:flex; justify-content:space-between; align-items:flex-start; border-bottom: 2px solid #0D1B2A; padding-bottom: 16px; margin-bottom: 20px; }
-    .logo img { height: 36px; width: 36px; max-width: 36px; max-height: 36px; display: block; object-fit: contain; }
-    .clinic { text-align:right; font-size:11px; color:#475569; }
-    .medico { background:#f0f4f9; border-radius:8px; padding:12px 16px; margin-bottom:20px; }
-    .medico h3 { color:#0D1B2A; font-size:14px; margin-bottom:6px; }
-    .paciente { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px; padding:12px 16px; border:1px solid #e2e8f0; border-radius:8px; }
-    .field label { font-size:10px; color:#94a3b8; font-weight:700; text-transform:uppercase; }
-    .field p { font-size:13px; color:#0f172a; font-weight:600; margin-top:2px; }
-    h4 { color:#0D1B2A; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px; }
-    table { width:100%; border-collapse:collapse; margin-bottom:20px; }
-    thead tr { background:#f8fafc; }
-    th { padding:8px 12px; text-align:left; font-size:11px; color:#475569; font-weight:700; border-bottom:1px solid #e2e8f0; }
-    .dx { background:#f8fafc; border-radius:8px; padding:12px 16px; margin-bottom:20px; }
-    .notas { border:1px solid #e2e8f0; border-radius:8px; padding:12px 16px; margin-bottom:32px; }
-    .firma { display:grid; grid-template-columns:1fr 1fr; gap:40px; margin-top:40px; }
-    .firma-box { text-align:center; border-top:1px solid #0f172a; padding-top:8px; font-size:11px; color:#475569; }
-    .footer { text-align:center; font-size:10px; color:#94a3b8; border-top:1px solid #e2e8f0; padding-top:12px; margin-top:20px; }
-    @media print { body { padding:16px; } }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <div>
-      <div class="logo"><img src="/brand/farmacapital-icon.png?v=6" alt="FarmaCapital"/></div>
-      <div style="font-size:11px;color:#475569;margin-top:4px">Farmacia · Consultorio Médico</div>
-    </div>
-    <div class="clinic">
-      <div>Chinampac de Juárez, Iztapalapa</div>
-      <div>${FARMACIA_FISCAL.direccion_comercial}</div>
-      <div style="margin-top:4px"><strong>Fecha:</strong> ${new Date().toLocaleDateString("es-MX",{year:"numeric",month:"long",day:"numeric"})}</div>
-      <div><strong>Folio:</strong> RX-${citaActual.id||Date.now()}</div>
-    </div>
-  </div>
-
-  <div class="medico">
-    <h3>👩‍⚕️ Médico tratante</h3>
-    <div style="font-weight:700;font-size:14px">Dra. Lourdes Lucio Falcón</div>
-    <div style="color:#475569;font-size:12px">Médico General · Cédula profesional: __________________</div>
-  </div>
-
-  <div class="paciente">
-    <div class="field"><label>Paciente</label><p>${citaActual.nombre||"—"}</p></div>
-    <div class="field"><label>Teléfono</label><p>${citaActual.telefono||"—"}</p></div>
-    <div class="field"><label>Fecha consulta</label><p>${citaActual.fecha||new Date().toLocaleDateString("es-MX")}</p></div>
-    <div class="field"><label>Hora</label><p>${horaVista(citaActual.hora)}</p></div>
-    <div class="field" style="grid-column:1/-1"><label>Motivo de consulta</label><p>${citaActual.motivo||"Consulta general"}</p></div>
-  </div>
-
-  <div class="dx">
-    <h4>📋 Diagnóstico</h4>
-    <p style="line-height:1.6">${diagnostico||"—"}</p>
-  </div>
-
-  ${medsHTML ? `
-  <h4>💊 Medicamentos prescritos</h4>
-  <table>
-    <thead><tr><th>Medicamento</th><th>Dosis</th><th>Indicaciones</th></tr></thead>
-    <tbody>${medsHTML}</tbody>
-  </table>` : ""}
-
-  ${notasMedico ? `
-  <div class="notas">
-    <h4>📝 Notas del médico</h4>
-    <p style="line-height:1.6;margin-top:8px">${notasMedico}</p>
-  </div>` : ""}
-
-  <div class="firma">
-    <div class="firma-box">Firma del médico<br/><strong>Dra. Lourdes Lucio Falcón</strong></div>
-    <div class="firma-box">Sello del consultorio<br/><strong>FarmaCapital · Consultorio Médico</strong></div>
-  </div>
-
-  <div class="footer">
-    Este documento es una receta médica oficial. Válida para surtir en FarmaCapital.<br/>
-    ${FARMACIA_FISCAL.direccion_comercial}<br/>
-    farmacapital.mx · ${FARMACIA_FISCAL.maps_url}
-  </div>
-</body>
-</html>`;
-    const win = window.open("","_blank","width=750,height=900");
-    win.document.write(html);
-    win.document.close();
-    win.focus();
-    setTimeout(()=>win.print(), 500);
+    const meds = medicamentos.filter((m) => String(m.medicamento || "").trim());
+    const html = buildRecetaHtml({
+      cita: citaActual,
+      diagnostico,
+      notas: notasMedico,
+      medicamentos: meds,
+      medico: {
+        nombre: "Médico(a) en turno",
+        especialidad: "Medicina general",
+        cedula: "",
+      },
+      firmaModo: "fisica",
+      folio: folioFromCita(citaActual.id),
+    });
+    openRecetaPrint(html);
   };
 
   const guardarConsulta = async () => {

@@ -51,6 +51,7 @@ import { puedeCancelarCitaCaja, esCitaNoShow } from "../../../utils/citasAgenda"
 import { esPedidoTiendaWebPendiente, fetchPedidosTiendaPendientesMerged } from "../../../utils/pedidosTiendaWeb";
 import { desgloseCambioMN, sugerenciasPagoCliente } from "../../../utils/cambioCaja";
 import { marcarMedicamentosRecetaFarmaCapitalSurtidos } from "../../../utils/recetaCitaSync";
+import { buildRecetaHtml, openRecetaPrint } from "../../../utils/recetaPrint";
 import OnboardingTour from "../../../components/OnboardingTour";
 import { TOURS } from "../../../utils/tours";
 import { labelTipoEntregaPedido } from "../../../utils/orderChannels";
@@ -696,6 +697,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
   const [citasVentana, setCitasVentana] = useState([]);
   /** Citas con consulta o consumibles pendientes de cobro en caja (agendadas en línea o en Agenda de consultas). */
   const [consxCobrar,setConsCobrar] = useState([]);
+  const [recetasPorImprimir, setRecetasPorImprimir] = useState([]);
   const [consultaTelById, setConsultaTelById] = useState({});
   const [consultaCliById, setConsultaCliById] = useState({});
   const [consultaPayById, setConsultaPayById] = useState({});
@@ -813,6 +815,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
     if (!tok) {
       setCitasVentana([]);
       setConsCobrar([]);
+      setRecetasPorImprimir([]);
       return;
     }
     const hoy = new Date();
@@ -846,7 +849,71 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
         return pendientePago || consumiblesPend;
       })
     );
+
+    const dRec = new Date(hoy);
+    dRec.setDate(dRec.getDate() - 2);
+    const hRec = new Date(hoy);
+    hRec.setDate(hRec.getDate() + 1);
+    const { data: recData, error: recErr } = await supabase.rpc("empleado_listar_recetas_por_imprimir", {
+      p_session_token: tok,
+      p_desde: toSv(dRec),
+      p_hasta: toSv(hRec),
+    });
+    if (recErr) {
+      // SQL aún no aplicado en Supabase
+      if (!/does not exist|empleado_listar_recetas/i.test(String(recErr.message || ""))) {
+        console.warn("[POS] Recetas por imprimir:", recErr);
+      }
+      setRecetasPorImprimir([]);
+    } else {
+      setRecetasPorImprimir(Array.isArray(recData) ? recData : []);
+    }
   }, []);
+
+  const imprimirRecetaCaja = async (citaRow) => {
+    const ri = citaRow?.receta_impresion && typeof citaRow.receta_impresion === "object"
+      ? citaRow.receta_impresion
+      : {};
+    let meds = ri.medicamentos_snapshot;
+    if (!Array.isArray(meds)) {
+      meds = citaRow.medicamentos_prescritos;
+      if (typeof meds === "string") {
+        try { meds = JSON.parse(meds || "[]"); } catch { meds = []; }
+      }
+    }
+    const html = buildRecetaHtml({
+      cita: citaRow,
+      diagnostico: ri.diagnostico_snapshot || citaRow.diagnostico || "",
+      notas: ri.notas_snapshot || citaRow.notas_medico || "",
+      medicamentos: Array.isArray(meds) ? meds : [],
+      medico: {
+        nombre: ri.medico_nombre || config?.nombre_doctor || "Médico(a) en turno",
+        especialidad: ri.medico_especialidad || "Medicina general",
+        cedula: ri.medico_cedula || "",
+        institucion: ri.medico_institucion || "",
+      },
+      firmaModo: ri.firma_modo === "digital" ? "digital" : "fisica",
+      firmaDataUrl: ri.firma_modo === "digital" ? ri.firma_data_url : null,
+      folio: ri.folio || `RX-${citaRow.id}`,
+    });
+    const ok = openRecetaPrint(html);
+    if (!ok) return;
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    if (!tok) return;
+    try {
+      const { data, error } = await supabase.rpc("empleado_marcar_receta_impresa", {
+        p_session_token: tok,
+        p_cita_id: citaRow.id,
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "No se pudo marcar");
+      showToast("Receta impresa · lista para surtir.", "success");
+      await refrescarCitasPOS();
+    } catch (e) {
+      console.warn("[POS] marcar impresa:", e);
+      showToast("Se abrió la impresión; no se pudo marcar como impresa (¿SQL aplicado?).", "warning");
+    }
+  };
 
   const hoySvPos = useMemo(
     () => hoyISOMexico(),
@@ -3411,6 +3478,54 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
               )}
             </div>
           </div>
+
+          {recetasPorImprimir.length > 0 && (
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ color: C.text, fontWeight: 800, fontSize: 14, marginBottom: 8 }}>
+                Recetas del consultorio por imprimir ({recetasPorImprimir.length})
+              </div>
+              <div style={{ color: C.textMid, fontSize: 12, marginBottom: 12, lineHeight: 1.45 }}>
+                La doctora envió la receta desde el 2.º piso. Imprímela aquí, entrégala al paciente y surte con origen «médico FarmaCapital».
+              </div>
+              {recetasPorImprimir.map((cita) => {
+                const ri = cita.receta_impresion || {};
+                let meds = ri.medicamentos_snapshot;
+                if (!Array.isArray(meds)) {
+                  meds = cita.medicamentos_prescritos;
+                  if (typeof meds === "string") {
+                    try { meds = JSON.parse(meds || "[]"); } catch { meds = []; }
+                  }
+                }
+                const medNames = (Array.isArray(meds) ? meds : [])
+                  .map((m) => m.medicamento || m.nombre)
+                  .filter(Boolean)
+                  .slice(0, 4)
+                  .join(", ");
+                return (
+                  <Box key={`rx-${cita.id}`} style={{ padding: isNarrow ? 14 : 16, marginBottom: 10 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "flex-start" }}>
+                      <div>
+                        <div style={{ color: C.text, fontWeight: 800, fontSize: 14 }}>
+                          {cita.nombre} · {ri.folio || `RX-${cita.id}`}
+                        </div>
+                        <div style={{ color: C.textMid, fontSize: 12, marginTop: 4 }}>
+                          {cita.fecha}{cita.hora ? ` · ${cita.hora}` : ""} · {ri.medico_nombre || "Médico en turno"}
+                        </div>
+                        {medNames && (
+                          <div style={{ color: C.textDim, fontSize: 11, marginTop: 6, lineHeight: 1.4 }}>
+                            {medNames}
+                          </div>
+                        )}
+                      </div>
+                      <Btn sm col={BRAND.primary} onClick={() => imprimirRecetaCaja(cita)}>
+                        Imprimir receta
+                      </Btn>
+                    </div>
+                  </Box>
+                );
+              })}
+            </div>
+          )}
 
           <div style={{background:C.bg,border:`1px solid ${C.border}`,borderRadius:10,padding:"12px 14px",marginBottom:16,display:"flex",flexWrap:"wrap",alignItems:"center",gap:10,justifyContent:"space-between"}}>
             <div style={{color:C.textMid,fontSize:12,lineHeight:1.45,maxWidth:560}}>
