@@ -49,7 +49,12 @@ import {
 import { notifyCitaConfirmacion, formatTelefonoDisplay, formatCitaFecha } from "./utils/citaWhatsApp";
 import { fetchUberDirectQuote, attachUberDirectQuote, formatUberFee, formatUberEta, explainUberQuoteError } from "./lib/uberDirectClient";
 import AddressAutocomplete from "./components/AddressAutocomplete";
-import { cleanCheckoutColonia } from "./lib/checkoutAddress";
+import {
+  cleanCheckoutColonia,
+  splitCalleYNumero,
+  composeCheckoutCalle,
+  checkoutNumeroOk,
+} from "./lib/checkoutAddress";
 import { FARMACIA_FISCAL } from "./constants/farmaciaFiscal";
 import { HORARIO_FARMACIA } from "./constants/turnos";
 import { validarPasswordTienda, PASSWORD_RULES_TEXT, PASSWORD_MIN_LENGTH } from "./utils/passwordPolicy";
@@ -3268,17 +3273,22 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
     return () => setBloqueaReloadApp(false, "tienda-checkout");
   }, []);
   const [step,setStep]=useState(1);
-  const [datos,setDatos]=useState(()=>({
-    nombre:user?.nombre||"",
-    tel:user?.telefono||"",
-    email:user?.email||"",
-    calle:user?.calle||"",
-    colonia:user?.colonia||"",
-    cp:user?.cp||"",
-    referencia:"",
-    lat:null,
-    lng:null,
-  }));
+  const [datos,setDatos]=useState(()=>{
+    const split = splitCalleYNumero(user?.calle || "");
+    return {
+      nombre:user?.nombre||"",
+      tel:user?.telefono||"",
+      email:user?.email||"",
+      calle:split.calle||"",
+      numero:split.numero||"",
+      colonia:user?.colonia||"",
+      cp:user?.cp||"",
+      referencia:"",
+      lat:null,
+      lng:null,
+    };
+  });
+  const calleEnvio = composeCheckoutCalle(datos.calle, datos.numero);
   const [metodo,setMetodo]=useState("mercadopago");
   const [conf,setConf]=useState(false);
   const [lastOrder,setLastOrder]=useState(null);
@@ -3381,11 +3391,13 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
   };
 
   useEffect(() => {
+    const splitUser = splitCalleYNumero(user?.calle || "");
     const fallback = {
       nombre: user?.nombre || "",
       tel: user?.telefono || "",
       email: user?.email || "",
-      calle: user?.calle || "",
+      calle: splitUser.calle || "",
+      numero: splitUser.numero || "",
       colonia: user?.colonia || "",
       cp: user?.cp || "",
     };
@@ -3394,9 +3406,15 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
       const raw = localStorage.getItem(checkoutAddressStorageKey(user));
       if (raw) {
         const saved = JSON.parse(raw);
+        const savedCalle = String(saved?.calle || "");
+        const savedNumero = String(saved?.numero || "").trim();
+        const splitSaved = savedNumero
+          ? { calle: savedCalle, numero: savedNumero }
+          : splitCalleYNumero(savedCalle || fallback.calle);
         merged = {
           ...merged,
-          calle: String(saved?.calle || merged.calle || ""),
+          calle: String(splitSaved.calle || merged.calle || ""),
+          numero: String(splitSaved.numero || merged.numero || ""),
           colonia: cleanCheckoutColonia(saved?.colonia || merged.colonia || ""),
           cp: String(saved?.cp || merged.cp || ""),
           referencia: String(saved?.referencia || merged.referencia || ""),
@@ -3409,6 +3427,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
   useEffect(() => {
     const payload = {
       calle: String(datos.calle || "").trim(),
+      numero: String(datos.numero || "").trim(),
       colonia: cleanCheckoutColonia(datos.colonia || ""),
       cp: String(datos.cp || "").trim(),
       referencia: String(datos.referencia || "").trim(),
@@ -3416,7 +3435,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
     try {
       localStorage.setItem(checkoutAddressStorageKey(user), JSON.stringify(payload));
     } catch (_) { /* noop */ }
-  }, [datos.calle, datos.colonia, datos.cp, datos.referencia, user?.id, user?.telefono]);
+  }, [datos.calle, datos.numero, datos.colonia, datos.cp, datos.referencia, user?.id, user?.telefono]);
 
   useEffect(() => {
     try {
@@ -3430,6 +3449,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
   const tipoEntregaRpc = mapUiEntregaToRpc(entrega).tipo_entrega;
   const direccionOk = tipoEntregaRpc !== "envio" || (
     String(datos.calle || "").trim().length >= 5 &&
+    checkoutNumeroOk(datos.numero) &&
     String(datos.colonia || "").trim().length >= 3 &&
     String(datos.cp || "").trim().length >= 5
   );
@@ -3446,7 +3466,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
     const t = setTimeout(async () => {
       setUberQuoteStatus("loading");
       const q = await fetchUberDirectQuote({
-        calle: datos.calle,
+        calle: calleEnvio,
         colonia: cleanCheckoutColonia(datos.colonia),
         cp: datos.cp,
         referencia: datos.referencia,
@@ -3466,15 +3486,18 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
       cancelled = true;
       clearTimeout(t);
     };
-  }, [entrega, direccionOk, datos.calle, datos.colonia, datos.cp, datos.referencia, datos.lat, datos.lng]);
+  }, [entrega, direccionOk, calleEnvio, datos.colonia, datos.cp, datos.referencia, datos.lat, datos.lng]);
   const faltantesCheckout = useMemo(() => {
     const f = [];
     if (!nombreOk) f.push("nombre completo (mín. 3 letras)");
     if (!telOk) f.push("teléfono de 10 dígitos");
     if (!emailOk) f.push("correo válido");
-    if (!direccionOk && tipoEntregaRpc === "envio") f.push("dirección (calle, colonia y CP)");
+    if (!direccionOk && tipoEntregaRpc === "envio") {
+      if (!checkoutNumeroOk(datos.numero)) f.push("número exterior de la casa");
+      else f.push("dirección (calle, número, colonia y CP)");
+    }
     return f;
-  }, [nombreOk, telOk, emailOk, direccionOk, tipoEntregaRpc]);
+  }, [nombreOk, telOk, emailOk, direccionOk, tipoEntregaRpc, datos.numero]);
 
   const confirmar=async()=>{
     if (!cart.length) return;
@@ -3567,9 +3590,9 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
       }
 
       const { tipo_entrega, order_channel, fulfillment_type, ui_entrega } = mapUiEntregaToRpc(entrega);
-      const direccionStr = [datos.calle, datos.colonia, datos.cp].filter(Boolean).join(", ").trim() || null;
-      if (tipo_entrega === "envio" && (!direccionStr || direccionStr.length < 8)) {
-        notifyCheckout("Para envío a domicilio completa calle, colonia y código postal.", "warning");
+      const direccionStr = [calleEnvio, datos.colonia, datos.cp].filter(Boolean).join(", ").trim() || null;
+      if (tipo_entrega === "envio" && (!direccionStr || direccionStr.length < 8 || !checkoutNumeroOk(datos.numero))) {
+        notifyCheckout("Para envío a domicilio completa calle, número exterior, colonia y código postal.", "warning");
         setG(false);
         return;
       }
@@ -3589,7 +3612,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
             p_session_token: tokCli,
             p_nombre: String(datos.nombre || "").trim() || null,
             p_email: String(datos.email || "").trim() || null,
-            p_calle: String(datos.calle || "").trim() || null,
+            p_calle: calleEnvio || null,
             p_colonia: String(datos.colonia || "").trim() || null,
             p_cp: String(datos.cp || "").trim() || null,
             p_rfc: null,
@@ -3600,7 +3623,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
               ...(prev || {}),
               nombre: String(datos.nombre || "").trim() || prev?.nombre || "",
               email: String(datos.email || "").trim() || prev?.email || "",
-              calle: String(datos.calle || "").trim() || prev?.calle || "",
+              calle: calleEnvio || prev?.calle || "",
               colonia: String(datos.colonia || "").trim() || prev?.colonia || "",
               cp: String(datos.cp || "").trim() || prev?.cp || "",
             }));
@@ -3916,27 +3939,59 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                       📍 Dirección de entrega
                     </div>
                     <div style={{marginBottom:14}}>
-                      <div style={{color:C.mid,fontSize:12,marginBottom:6,fontWeight:600}}>Buscar dirección <span style={{color:C.red}}>*</span></div>
+                      <div style={{color:C.mid,fontSize:12,marginBottom:6,fontWeight:600}}>Buscar calle <span style={{color:C.red}}>*</span></div>
                       <AddressAutocomplete
                         value={datos.calle}
-                        placeholder="Empieza a escribir calle y número (ej. Bartolache 1750)"
+                        placeholder="Calle o avenida (ej. Cerrada Bartolache)"
                         inputStyle={tiendaFieldStyle({width:"100%",boxSizing:"border-box",fontSize:16})}
                         onChange={(val)=>setDatos(p=>({...p,calle:val,lat:null,lng:null}))}
-                        onPick={(sug)=>setDatos(p=>({
-                          ...p,
-                          calle: sug.calle || sug.label || p.calle,
-                          colonia: sug.colonia || p.colonia,
-                          cp: sug.cp || p.cp,
-                          lat: sug.lat,
-                          lng: sug.lng,
-                        }))}
+                        onPick={(sug)=>{
+                          const rawCalle = sug.calle || sug.label || "";
+                          const split = splitCalleYNumero(rawCalle);
+                          setDatos(p=>({
+                            ...p,
+                            calle: split.calle || rawCalle || p.calle,
+                            numero: split.numero || p.numero || "",
+                            colonia: sug.colonia || p.colonia,
+                            cp: sug.cp || p.cp,
+                            lat: sug.lat,
+                            lng: sug.lng,
+                          }));
+                        }}
                       />
                       {datos.lat!=null&&datos.lng!=null&&(
-                        <div style={{marginTop:6,fontSize:11,color:"#166534"}}>📍 Dirección ubicada en mapa — Uber usará estas coordenadas.</div>
+                        <div style={{marginTop:6,fontSize:11,color:"#166534"}}>📍 Calle ubicada en mapa — Uber usará estas coordenadas.</div>
                       )}
                     </div>
+                    <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:14,marginBottom:14}}>
+                      <div>
+                        <div style={{color:C.mid,fontSize:12,marginBottom:6,fontWeight:600}}>Número exterior <span style={{color:C.red}}>*</span></div>
+                        <Inp
+                          value={datos.numero || ""}
+                          onChange={e=>setDatos(p=>({...p, numero: e.target.value}))}
+                          placeholder="Ej. 1750"
+                          inputMode="text"
+                          autoComplete="address-line2"
+                          style={{width:"100%",boxSizing:"border-box",fontSize:16}}
+                        />
+                        {!checkoutNumeroOk(datos.numero) && String(datos.calle||"").trim().length>=5 && (
+                          <div style={{marginTop:4,fontSize:11,color:"#b45309"}}>Escribe el número de la casa o depto. (o S/N).</div>
+                        )}
+                      </div>
+                      <div>
+                        <div style={{color:C.mid,fontSize:12,marginBottom:6,fontWeight:600}}>Código postal <span style={{color:C.red}}>*</span></div>
+                        <Inp
+                          value={datos.cp || ""}
+                          onChange={e=>setDatos(p=>({...p, cp: e.target.value, lat:null, lng:null}))}
+                          placeholder="03100"
+                          inputMode="numeric"
+                          autoComplete="postal-code"
+                          style={{width:"100%",boxSizing:"border-box",fontSize:16}}
+                        />
+                      </div>
+                    </div>
                     <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:14}}>
-                      {camposDireccion.filter(([,k])=>k!=="calle").map(([l,k,ph])=>(
+                      {camposDireccion.filter(([,k])=>k!=="calle" && k!=="cp").map(([l,k,ph])=>(
                         <div key={k} style={{gridColumn:!stack&&k==="referencia"?"1/-1":undefined}}>
                           <div style={{color:C.mid,fontSize:12,marginBottom:6,fontWeight:600}}>{l}{k!=="referencia" && <span style={{color:C.red}}> *</span>}</div>
                           <Inp
@@ -3944,7 +3999,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                             onChange={e=>setDatos(p=>({
                               ...p,
                               [k]:e.target.value,
-                              ...(k==="colonia"||k==="cp"?{lat:null,lng:null}:{}),
+                              ...(k==="colonia"?{lat:null,lng:null}:{}),
                             }))}
                             onBlur={k==="colonia" ? (e)=>setDatos(p=>({...p, colonia: cleanCheckoutColonia(e.target.value)})) : undefined}
                             placeholder={ph||l}
@@ -3953,7 +4008,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                         </div>
                       ))}
                     </div>
-                    <div style={{marginTop:8,fontSize:11,color:C.textMid}}>Elige una sugerencia del buscador. Colonia sin alcaldía.</div>
+                    <div style={{marginTop:8,fontSize:11,color:C.textMid}}>Elige la calle en el buscador y escribe el número de casa aparte.</div>
                     {entrega==="cdmx"&&(
                       <div style={{marginTop:12,padding:"10px 12px",borderRadius:8,border:`1px solid ${uberQuoteStatus==="ok"?"#86efac":uberQuoteStatus==="error"?"#fca5a5":C.border}`,background:uberQuoteStatus==="ok"?"#f0fdf4":uberQuoteStatus==="error"?"#fef2f2":C.bg}}>
                         <div style={{color:C.dark,fontWeight:700,fontSize:13,marginBottom:4}}>🛵 Envío Uber Direct</div>
@@ -4040,7 +4095,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                 <div style={{marginTop:6}}>
                   {entrega==="pickup"
                     ? "Pick-up en FarmaCapital"
-                    : `Envío a ${[datos.calle, datos.colonia, datos.cp].filter(Boolean).join(", ")}`}
+                    : `Envío a ${[calleEnvio, datos.colonia, datos.cp].filter(Boolean).join(", ")}`}
                 </div>
                 {entrega!=="pickup"&&uberQuoteStatus==="ok"&&uberQuote?.ok&&(
                   <div style={{marginTop:4,color:"#166534",fontWeight:600}}>
