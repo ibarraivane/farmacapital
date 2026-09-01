@@ -17,6 +17,12 @@ describe("uberDirectClient display", () => {
   });
 
   test("explica fallo de dirección sin pedir alcaldía", () => {
-    expect(explainUberQuoteError("uber_api_failed", "address_undeliverable")).toMatch(/sin alcaldía/i);
+    expect(explainUberQuoteError("uber_api_failed", "address not found")).toMatch(/sin alcaldía/i);
+  });
+
+  test("explica zona no entregable de Uber Direct", () => {
+    expect(
+      explainUberQuoteError("uber_api_failed", "The specified location is not in a deliverable area.")
+    ).toMatch(/cobertura|pick-up|direct\.uber\.com/i);
   });
 });

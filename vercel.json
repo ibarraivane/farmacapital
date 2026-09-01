@@ -1,4 +1,5 @@
 {
+  "installCommand": "npm install --no-audit --no-fund",
   "buildCommand": "CI=false DISABLE_ESLINT_PLUGIN=true GENERATE_SOURCEMAP=false NODE_OPTIONS=--max-old-space-size=4096 npm run build",
   "outputDirectory": "build",
   "framework": "create-react-app",

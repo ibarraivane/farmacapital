@@ -66,6 +66,25 @@ function coordsFromBody(body) {
   return { lat, lng };
 }
 
+function mapUberQuoteError(quote) {
+  const detail = String(quote?.detail || '');
+  const low = detail.toLowerCase();
+  if (low.includes('not in a deliverable area') || low.includes('undeliverable')) {
+    return {
+      status: 422,
+      json: {
+        ok: false,
+        error: 'undeliverable_area',
+        detail,
+      },
+    };
+  }
+  return {
+    status: quote?.status && quote.status < 500 ? quote.status : 502,
+    json: { ok: false, error: quote?.error || 'quote_failed', detail: detail || null },
+  };
+}
+
 function serviceHeaders(serviceKey) {
   return {
     apikey: serviceKey,
@@ -196,10 +215,7 @@ async function handleQuote(body) {
     dropoffCoords: coordsFromBody(body),
   });
   if (!quote.ok) {
-    return {
-      status: quote.status && quote.status < 500 ? quote.status : 502,
-      json: { ok: false, error: quote.error || 'quote_failed', detail: quote.detail || null },
-    };
+    return mapUberQuoteError(quote);
   }
   return { status: 200, json: quote };
 }
