@@ -3335,7 +3335,7 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
 }
 
 // ── CHECKOUT ──────────────────────────────────────────────────
-function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",setEntrega,catalogoProductos=[]}){
+function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoProductos=[]}){
   const C = useTheme();
   const stack = useMediaQuery("(max-width: 768px)");
   const mapaPromos = useContext(TiendaPromosCtx);
@@ -3760,8 +3760,8 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",setEntrega
         if (!attached.ok) {
           notifyCheckout(
             attached.error === "not_configured"
-              ? "Uber Direct aún no está configurado en el servidor. Elige pick-up o inténtalo más tarde."
-              : "No se pudo cotizar el envío Uber para cobrarlo. Revisa la dirección o elige pick-up.",
+              ? "Uber Direct aún no está configurado en el servidor. Inténtalo más tarde o escríbenos por WhatsApp."
+              : "No se pudo cotizar el envío Uber para cobrarlo. Revisa la dirección o escríbenos por WhatsApp.",
             "error"
           );
           setG(false);
@@ -4061,26 +4061,21 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",setEntrega
                             <div style={{fontSize:12,color:"#991b1b",lineHeight:1.45}}>
                               {uberQuote?.hint || explainUberQuoteError(uberQuote?.error, uberQuote?.detail)}
                             </div>
-                            {typeof setEntrega === "function" && (
-                              <button
-                                type="button"
-                                onClick={()=>setEntrega("pickup")}
-                                style={{
-                                  marginTop:10,
-                                  width:"100%",
-                                  border:0,
-                                  borderRadius:8,
-                                  padding:"10px 12px",
-                                  background:BRAND.primary,
-                                  color:"#fff",
-                                  fontWeight:700,
-                                  fontSize:13,
-                                  cursor:"pointer",
-                                }}
-                              >
-                                Recoger en FarmaCapital — gratis
-                              </button>
-                            )}
+                            <a
+                              href={`${CONTACTO.whatsapp_link}?text=${encodeURIComponent("Hola, Uber Direct no cubre mi dirección en el checkout. ¿Me pueden ayudar?")}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                display:"inline-block",
+                                marginTop:10,
+                                color:"#166534",
+                                fontWeight:700,
+                                fontSize:12,
+                                textDecoration:"none",
+                              }}
+                            >
+                              Escribir por WhatsApp →
+                            </a>
                           </div>
                         )}
                         {uberQuoteStatus==="ok"&&uberQuote?.ok&&(
@@ -6288,7 +6283,7 @@ export default function TiendaFarmaCapital(){
     promo:         <PromocionesPage setPage={setPage}/>,
     detalle:       <DetalleProducto prod={prodDetalle} productos={productosVistaTiendaFarmacia} addToCart={addToCart} setPage={setPage} setProdDetalle={setProdD} busqHero={busqHero} setBusqHero={setBusqHero}/>,
     carrito:       <Carrito cart={cart} setCart={setCart} setPage={setPage} setEntregaGlobal={setEntregaCheckout}/>,
-    checkout:      <Checkout cart={cart} setCart={setCart} setPage={setPage} user={user} setUser={setUser} entrega={entregaCheckout} setEntrega={setEntregaCheckout} catalogoProductos={productosVistaTiendaFarmacia}/>,
+    checkout:      <Checkout cart={cart} setCart={setCart} setPage={setPage} user={user} setUser={setUser} entrega={entregaCheckout} catalogoProductos={productosVistaTiendaFarmacia}/>,
     cita:          <AgendarCita setPage={setPage} user={user}/>,
     login:         <Login setUser={setUser} setPage={setPage}/>,
     registro:      <Registro setUser={setUser} setPage={setPage}/>,
