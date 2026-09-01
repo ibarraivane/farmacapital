@@ -3,7 +3,7 @@
 Regenera assets FarmaCapital desde PNG maestro en alta definición.
 Fuente: public/brand/farmacapital-logo-master.png (1754×897)
 """
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 import numpy as np
 import os
 import shutil
@@ -130,20 +130,51 @@ def make_light_variant(im):
     return Image.fromarray(arr)
 
 
-def make_og_share(full_im, path, *, canvas=(244, 236, 226), size=(1200, 630)):
-    """Tarjeta Open Graph / WhatsApp: logo horizontal sobre fondo marca."""
+def _og_font(size):
+    for path in (
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+        "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+    ):
+        if os.path.exists(path):
+            return ImageFont.truetype(path, size)
+    return ImageFont.load_default()
+
+
+def make_og_share(full_im, light_im, path, *, size=(1200, 630)):
+    """Tarjeta Open Graph / WhatsApp: logo grande sobre fondo azul marca (como el header)."""
     w, h = size
-    bg = Image.new("RGBA", (w, h), (*canvas, 255))
-    logo = trim_content(full_im)
+    ink = (0, 21, 52)  # #001534
+    canvas_color = (244, 236, 226)  # #F4ECE2
+    accent = (201, 69, 31)  # #C9451F
+
+    bg = Image.new("RGB", (w, h), ink)
+    draw = ImageDraw.Draw(bg)
+
+    # Franja inferior crema + acento (marca tienda)
+    band_h = int(h * 0.12)
+    draw.rectangle((0, h - band_h, w, h), fill=canvas_color)
+    draw.rectangle((0, h - band_h, w, h - band_h + 6), fill=accent)
+
+    logo = trim_content(light_im)
     lw, lh = logo.size
-    pad_x, pad_y = 0.08, 0.18
-    max_w = int(w * (1 - 2 * pad_x))
-    max_h = int(h * (1 - 2 * pad_y))
+    max_w = int(w * 0.88)
+    max_h = int(h * 0.52)
     scale = min(max_w / lw, max_h / lh)
     nw, nh = max(1, int(lw * scale)), max(1, int(lh * scale))
     logo = logo.resize((nw, nh), Image.Resampling.LANCZOS)
-    bg.paste(logo, ((w - nw) // 2, (h - nh) // 2), logo)
-    save_png(bg, path)
+    logo_rgb = Image.new("RGB", (nw, nh), ink)
+    logo_rgb.paste(logo, mask=logo.split()[3] if logo.mode == "RGBA" else None)
+    y_logo = int((h - band_h - nh) * 0.42)
+    bg.paste(logo_rgb, ((w - nw) // 2, y_logo))
+
+    tagline = "Farmacia & Salud"
+    font = _og_font(44)
+    bbox = draw.textbbox((0, 0), tagline, font=font)
+    tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
+    draw.text(((w - tw) // 2, h - band_h + (band_h - th) // 2 - 2), tagline, fill=ink, font=font)
+
+    save_png(bg.convert("RGB"), path)
 
 
 def main():
@@ -161,10 +192,10 @@ def main():
 
     save_png(full, os.path.join(OUT_BRAND, "farmacapital-logo-full.png"))
     save_png(full, os.path.join(OUT_BRAND, "farmacapital-logo-admin.png"))
-    make_og_share(full, os.path.join(OUT_BRAND, "og-share.png"))
 
     light = make_light_variant(full)
     save_png(light, os.path.join(OUT_BRAND, "farmacapital-logo-full-light.png"))
+    make_og_share(full, light, os.path.join(OUT_ICONS, "og-social.png"))
 
     w, h = full.size
     save_png(full.resize((w // 2, max(1, h // 2)), Image.Resampling.LANCZOS),
