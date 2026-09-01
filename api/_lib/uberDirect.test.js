@@ -7,6 +7,7 @@ const {
   mxPhoneE164,
   parseDireccionCheckout,
   dropoffAddressFromParts,
+  normalizeMxColonia,
   mapUberDeliveryStatus,
   normalizeQuoteResponse,
   verifyUberWebhookSignature,
@@ -18,6 +19,8 @@ const {
   resetUberTokenCache,
   pickupAddressFromConfig,
   geocodeQueryFromAddress,
+  geocodeQueriesFromAddress,
+  geocodeMxAddress,
 } = require('./uberDirect');
 
 describe('uberDirect helpers', () => {
@@ -119,8 +122,47 @@ describe('uberDirect helpers', () => {
       zip: '03104',
       referencia: 'Edificio gris, portero',
     });
+    assert.equal(addr.street_address[0], 'José Ignacio Bartolache 1750, Del Valle Sur');
     assert.equal(addr.street_address[1], 'Edificio gris, portero');
     assert.match(geocodeQueryFromAddress(addr), /Bartolache/);
+  });
+
+  it('limpia colonia con Col. y alcaldía (caso checkout real)', () => {
+    assert.equal(normalizeMxColonia('Col del Valle Sur, Benito Juárez'), 'Del Valle Sur');
+    assert.equal(normalizeMxColonia('Colonia Roma Norte'), 'Roma Norte');
+    const addr = dropoffAddressFromParts({
+      street: 'José Ignacio bartolache 1750',
+      colonia: 'Col del Valle Sur, Benito Juárez',
+      zip: '03104',
+      referencia: 'Portón blanco',
+    });
+    assert.equal(addr.street_address[0], 'José Ignacio bartolache 1750, Del Valle Sur');
+    assert.equal(addr.street_address[1], 'Portón blanco');
+    const queries = geocodeQueriesFromAddress(addr);
+    assert.ok(queries.some((q) => /^José Ignacio bartolache 1750, 03104/.test(q)));
+    assert.ok(!queries.some((q) => /Benito/.test(q)));
+  });
+
+  it('geocodeMxAddress prueba fallbacks hasta hallar coords', async () => {
+    const addr = dropoffAddressFromParts({
+      street: 'José Ignacio bartolache 1750',
+      colonia: 'Col del Valle Sur, Benito Juárez',
+      zip: '03104',
+    });
+    let calls = 0;
+    const coords = await geocodeMxAddress(addr, {
+      fetchFn: async () => {
+        calls += 1;
+        if (calls === 1) {
+          return { json: async () => [] };
+        }
+        return {
+          json: async () => [{ lat: '19.37', lon: '-99.17' }],
+        };
+      },
+    });
+    assert.deepEqual(coords, { lat: 19.37, lng: -99.17 });
+    assert.ok(calls >= 2);
   });
 
   it('pickup de FarmaCapital queda en CDMX', () => {
