@@ -118,6 +118,10 @@
       "destination": "/api/logistics/webhook?type=uber-api"
     },
     {
+      "source": "/api/address/suggest",
+      "destination": "/api/logistics/webhook?type=address-suggest"
+    },
+    {
       "source": "/api/rh/documento",
       "destination": "/api/admin/storage-upload?type=rh-documento"
     },

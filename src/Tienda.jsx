@@ -3283,6 +3283,16 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
   const [conf,setConf]=useState(false);
   const [lastOrder,setLastOrder]=useState(null);
   const [guardando,setG]=useState(false);
+
+  // Si el carrito se vacía (stock, reconciliación, etc.), no dejes "Confirmar" a $0.
+  useEffect(() => {
+    if (conf || guardando) return;
+    if (!cart.length) {
+      setStep(1);
+      setPage("carrito");
+    }
+  }, [cart.length, conf, guardando, setPage]);
+
   const [checkoutMsg,setCheckoutMsg]=useState(null);
   const [uberQuote,setUberQuote]=useState(null);
   const [uberQuoteStatus,setUberQuoteStatus]=useState("idle");
@@ -3887,12 +3897,8 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
             return(
               <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}>
                 {esInvitadoUI&&(
-                  <div style={{background:"#f0fdf4",border:"1px solid #86efac",borderRadius:10,padding:"10px 14px",marginBottom:18,display:"flex",alignItems:"center",gap:10}}>
-                    <span style={{fontSize:18}}>👤</span>
-                    <div>
-                      <div style={{color:"#166534",fontWeight:700,fontSize:13}}>Comprando como invitado</div>
-                      <div style={{color:"#166534",fontSize:12,marginTop:2,opacity:0.85}}>No necesitas cuenta. Solo llena tus datos y paga.</div>
-                    </div>
+                  <div style={{background:"#f0fdf4",border:"1px solid #86efac",borderRadius:10,padding:"8px 12px",marginBottom:14,fontSize:12,color:"#166534"}}>
+                    Compra como invitado · no necesitas cuenta.
                   </div>
                 )}
                 <div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:18}}>📋 Datos de contacto</div>
@@ -3947,7 +3953,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                         </div>
                       ))}
                     </div>
-                    <div style={{marginTop:8,fontSize:11,color:C.textMid}}>Elige una sugerencia del buscador para que calle, colonia y CP coincidan. Colonia sin alcaldía. Tu dirección se guarda localmente.</div>
+                    <div style={{marginTop:8,fontSize:11,color:C.textMid}}>Elige una sugerencia del buscador. Colonia sin alcaldía.</div>
                     {entrega==="cdmx"&&(
                       <div style={{marginTop:12,padding:"10px 12px",borderRadius:8,border:`1px solid ${uberQuoteStatus==="ok"?"#86efac":uberQuoteStatus==="error"?"#fca5a5":C.border}`,background:uberQuoteStatus==="ok"?"#f0fdf4":uberQuoteStatus==="error"?"#fef2f2":C.bg}}>
                         <div style={{color:C.dark,fontWeight:700,fontSize:13,marginBottom:4}}>🛵 Envío Uber Direct</div>
@@ -3966,30 +3972,24 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                   </>
                 )}
                 {!necesitaDireccion&&(
-                  <div style={{background:"#EAF0FB",border:`1px solid ${BRAND.secondary}30`,borderRadius:8,padding:"9px 12px",fontSize:12,color:BRAND.primary,lineHeight:1.5}}>
-                    🏪 <strong>Pick-up en farmacia:</strong> Al confirmar el pago recibirás un folio. Preséntalo en farmacia para recoger tu pedido.
-                    <a href={CONTACTO.maps_url} target="_blank" rel="noopener noreferrer" style={{display:"block",marginTop:6,color:BRAND.primary,fontWeight:700,textDecoration:"none"}}>
-                      📍 {CONTACTO.direccion} · Ver en Google Maps →
-                    </a>
+                  <div style={{background:"#EAF0FB",border:`1px solid ${BRAND.secondary}30`,borderRadius:8,padding:"9px 12px",fontSize:12,color:BRAND.primary,lineHeight:1.45}}>
+                    Pick-up en farmacia · Te damos un folio al pagar.{" "}
+                    <a href={CONTACTO.maps_url} target="_blank" rel="noopener noreferrer" style={{color:BRAND.primary,fontWeight:700}}>Ver mapa</a>
                   </div>
                 )}
-                <div style={{background:C.bg,borderRadius:10,padding:"12px 14px",marginTop:16,fontSize:12,color:C.mid,lineHeight:1.5}}>
-                  <div style={{color:C.dark,fontWeight:700,marginBottom:4}}>💳 Pago con Mercado Pago</div>
-                  Tarjeta, transferencia o efectivo · Checkout seguro. FarmaCapital no captura datos de tarjeta.
-                </div>
+                <div style={{marginTop:14,fontSize:12,color:C.mid}}>Pago con Mercado Pago (tarjeta, transferencia o efectivo).</div>
                 <label
                   style={{
                     display: "flex",
-                    alignItems: "flex-start",
+                    alignItems: "center",
                     gap: 10,
-                    marginTop: 16,
-                    padding: "12px 14px",
+                    marginTop: 12,
+                    padding: "10px 12px",
                     borderRadius: 10,
                     border: `1px solid ${enviarReciboWhatsApp ? "#86efac" : C.border}`,
                     background: enviarReciboWhatsApp ? "#f0fdf4" : C.bg,
                     cursor: "pointer",
                     fontSize: 13,
-                    lineHeight: 1.5,
                     color: C.dark,
                   }}
                 >
@@ -3997,14 +3997,9 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                     type="checkbox"
                     checked={enviarReciboWhatsApp}
                     onChange={(e) => setEnviarReciboWhatsApp(e.target.checked)}
-                    style={{ marginTop: 3, accentColor: "#25D366", width: 16, height: 16, flexShrink: 0 }}
+                    style={{ accentColor: "#25D366", width: 16, height: 16, flexShrink: 0 }}
                   />
-                  <span>
-                    <strong style={{ color: "#166534" }}>📱 Enviar recibo por WhatsApp</strong>
-                    <span style={{ display: "block", color: C.mid, fontSize: 12, marginTop: 2 }}>
-                      Al número {datos.tel || "que indiques"} · Confirmación y folio de tu pedido ({FARMACIA_WHATSAPP_DISPLAY})
-                    </span>
-                  </span>
+                  <span>Recibo por WhatsApp{datos.tel ? ` · ${datos.tel}` : ""}</span>
                 </label>
                 {!datosCheckoutCompletos && faltantesCheckout.length > 0 && (
                   <div style={{marginTop:12,padding:"10px 12px",background:"#fef3c7",border:"1px solid #fcd34d",borderRadius:8,fontSize:12,color:"#92400e",lineHeight:1.45}}>
@@ -4018,7 +4013,19 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                       : (uberQuote?.hint || explainUberQuoteError(uberQuote?.error, uberQuote?.detail))}
                   </div>
                 )}
-                <Btn onClick={()=>{ setMetodo("mercadopago"); setStep(2); }} col={BRAND.primary} style={{marginTop:20,width:stack?"100%":undefined}} disabled={!datosCheckoutCompletos || !envioListoParaPagar}>
+                <Btn
+                  onClick={()=>{
+                    if (!cart.length) {
+                      setPage("carrito");
+                      return;
+                    }
+                    setMetodo("mercadopago");
+                    setStep(2);
+                  }}
+                  col={BRAND.primary}
+                  style={{marginTop:20,width:stack?"100%":undefined}}
+                  disabled={!cart.length || !datosCheckoutCompletos || !envioListoParaPagar}
+                >
                   {entrega==="cdmx" && uberQuoteStatus==="loading" ? "Cotizando envío…" : "Revisar y pagar →"}
                 </Btn>
               </div>
@@ -4026,28 +4033,24 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
           })()}
           {step===2&&(
             <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}>
-              <div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:16}}>✅ Confirmar pedido</div>
-              <div style={{background:C.bg,borderRadius:10,padding:"10px 14px",marginBottom:14,fontSize:12,color:C.mid}}>
-                <div><strong style={{color:C.dark}}>{datos.nombre}</strong> · {datos.tel} · {datos.email}</div>
-                {entrega!=="pickup"&&datos.calle&&<div style={{marginTop:3}}>{datos.calle}, {datos.colonia}, CP {datos.cp}</div>}
-                <div style={{marginTop:3}}>
-                  {entrega==="pickup"?"🏪 Pick-up en FarmaCapital":"🛵 Reparto CDMX · Uber Direct"}
+              <div style={{color:C.dark,fontWeight:700,fontSize:"clamp(16px,4vw,18px)",marginBottom:14}}>Confirmar pedido</div>
+              <div style={{fontSize:13,color:C.dark,lineHeight:1.55,marginBottom:14}}>
+                <div style={{fontWeight:700}}>{datos.nombre}</div>
+                <div style={{color:C.mid}}>{datos.tel} · {datos.email}</div>
+                <div style={{marginTop:6}}>
+                  {entrega==="pickup"
+                    ? "Pick-up en FarmaCapital"
+                    : `Envío a ${[datos.calle, datos.colonia, datos.cp].filter(Boolean).join(", ")}`}
                 </div>
                 {entrega!=="pickup"&&uberQuoteStatus==="ok"&&uberQuote?.ok&&(
-                  <div style={{marginTop:6,color:"#166534",fontWeight:700}}>
-                    Envío Uber Direct {formatUberFee(uberQuote.fee_mxn)}
+                  <div style={{marginTop:4,color:"#166534",fontWeight:600}}>
+                    Uber Direct {formatUberFee(uberQuote.fee_mxn)}
                     {formatUberEta(uberQuote) ? ` · ${formatUberEta(uberQuote)}` : ""}
                   </div>
                 )}
-                {entrega!=="pickup"&&uberQuoteStatus==="error"&&(
-                  <div style={{marginTop:6,color:"#991b1b"}}>{uberQuote?.hint || explainUberQuoteError(uberQuote?.error, uberQuote?.detail)}</div>
-                )}
-                {entrega!=="pickup"&&uberQuoteStatus==="loading"&&(
-                  <div style={{marginTop:6}}>Cotizando envío Uber Direct…</div>
-                )}
-                <div style={{marginTop:6,color:BRAND.primary,fontWeight:600}}>💳 Mercado Pago (tarjeta, transferencia o efectivo)</div>
+                <div style={{marginTop:4,color:C.mid}}>Pago con Mercado Pago</div>
                 {enviarReciboWhatsApp && (
-                  <div style={{marginTop:4,color:"#166534",fontWeight:600}}>📱 Recibo por WhatsApp a {datos.tel}</div>
+                  <div style={{marginTop:2,color:C.mid}}>Recibo por WhatsApp</div>
                 )}
               </div>
               {cart.map(item=>(
@@ -4056,10 +4059,9 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                   <span style={{color:BRAND.primary,fontWeight:700,flexShrink:0}}>{$(cobroDe(item))}</span>
                 </div>
               ))}
-              {!cart.length&&<div style={{fontSize:12,color:C.textMid,padding:"6px 0"}}>Tu carrito está vacío.</div>}
               {envioFee>0&&(
                 <div style={{display:"flex",justifyContent:"space-between",marginTop:8}}>
-                  <span style={{color:C.mid,fontSize:13}}>Envío Uber Direct</span>
+                  <span style={{color:C.mid,fontSize:13}}>Envío</span>
                   <span style={{color:C.dark,fontWeight:700}}>{$(envioFee)}</span>
                 </div>
               )}
@@ -4070,7 +4072,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
               <div style={{display:"flex",gap:10,marginTop:16,flexWrap:"wrap"}}>
                 <Btn onClick={()=>setStep(1)} outline col={C.mid} sm>← Atrás</Btn>
                 <Btn onClick={confirmar} col={BRAND.primary} disabled={guardando||!cart.length||sub<=0||!datosCheckoutCompletos||!envioListoParaPagar} style={{flex:stack?1:undefined,minWidth:0}}>
-                  {guardando?"Procesando pago...":"💳 Pagar y confirmar "+$(totalPagar)}
+                  {guardando?"Procesando…":"Pagar "+$(totalPagar)}
                 </Btn>
               </div>
             </div>
