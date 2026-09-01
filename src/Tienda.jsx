@@ -48,6 +48,7 @@ import {
 } from "./utils/orderReceiptWhatsApp";
 import { notifyCitaConfirmacion, formatTelefonoDisplay, formatCitaFecha } from "./utils/citaWhatsApp";
 import { fetchUberDirectQuote, attachUberDirectQuote, formatUberFee, formatUberEta, explainUberQuoteError } from "./lib/uberDirectClient";
+import AddressAutocomplete from "./components/AddressAutocomplete";
 import { FARMACIA_FISCAL } from "./constants/farmaciaFiscal";
 import { HORARIO_FARMACIA } from "./constants/turnos";
 import { validarPasswordTienda, PASSWORD_RULES_TEXT, PASSWORD_MIN_LENGTH } from "./utils/passwordPolicy";
@@ -3274,6 +3275,8 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
     colonia:user?.colonia||"",
     cp:user?.cp||"",
     referencia:"",
+    lat:null,
+    lng:null,
   }));
   const [metodo,setMetodo]=useState("mercadopago");
   const [conf,setConf]=useState(false);
@@ -3436,6 +3439,8 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
         colonia: datos.colonia,
         cp: datos.cp,
         referencia: datos.referencia,
+        lat: datos.lat,
+        lng: datos.lng,
       });
       if (cancelled) return;
       if (q.ok) {
@@ -3450,7 +3455,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
       cancelled = true;
       clearTimeout(t);
     };
-  }, [entrega, direccionOk, datos.calle, datos.colonia, datos.cp, datos.referencia]);
+  }, [entrega, direccionOk, datos.calle, datos.colonia, datos.cp, datos.referencia, datos.lat, datos.lng]);
   const faltantesCheckout = useMemo(() => {
     const f = [];
     if (!nombreOk) f.push("nombre completo (mín. 3 letras)");
@@ -3634,6 +3639,8 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
           cp: datos.cp,
           referencia: datos.referencia,
           displayedFeeMxn: uberQuote?.fee_mxn,
+          lat: datos.lat,
+          lng: datos.lng,
         });
         if (!attached.ok && attached.error === "quote_changed" && attached.quote?.ok) {
           setUberQuote(attached.quote);
@@ -3901,15 +3908,44 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                     <div style={{color:C.dark,fontWeight:700,fontSize:15,margin:"4px 0 14px",paddingTop:14,borderTop:`1px solid ${C.border}`}}>
                       📍 Dirección de entrega
                     </div>
+                    <div style={{marginBottom:14}}>
+                      <div style={{color:C.mid,fontSize:12,marginBottom:6,fontWeight:600}}>Buscar dirección <span style={{color:C.red}}>*</span></div>
+                      <AddressAutocomplete
+                        value={datos.calle}
+                        placeholder="Empieza a escribir calle y número (ej. Bartolache 1750)"
+                        inputStyle={tiendaFieldStyle({width:"100%",boxSizing:"border-box",fontSize:16})}
+                        onChange={(val)=>setDatos(p=>({...p,calle:val,lat:null,lng:null}))}
+                        onPick={(sug)=>setDatos(p=>({
+                          ...p,
+                          calle: sug.calle || sug.label || p.calle,
+                          colonia: sug.colonia || p.colonia,
+                          cp: sug.cp || p.cp,
+                          lat: sug.lat,
+                          lng: sug.lng,
+                        }))}
+                      />
+                      {datos.lat!=null&&datos.lng!=null&&(
+                        <div style={{marginTop:6,fontSize:11,color:"#166534"}}>📍 Dirección ubicada en mapa — Uber usará estas coordenadas.</div>
+                      )}
+                    </div>
                     <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:14}}>
-                      {camposDireccion.map(([l,k,ph])=>(
-                        <div key={k} style={{gridColumn:!stack&&(k==="calle"||k==="referencia")?"1/-1":undefined}}>
+                      {camposDireccion.filter(([,k])=>k!=="calle").map(([l,k,ph])=>(
+                        <div key={k} style={{gridColumn:!stack&&k==="referencia"?"1/-1":undefined}}>
                           <div style={{color:C.mid,fontSize:12,marginBottom:6,fontWeight:600}}>{l}{k!=="referencia" && <span style={{color:C.red}}> *</span>}</div>
-                          <Inp value={datos[k]} onChange={e=>setDatos(p=>({...p,[k]:e.target.value}))} placeholder={ph||l} style={{width:"100%",boxSizing:"border-box",fontSize:16}}/>
+                          <Inp
+                            value={datos[k]}
+                            onChange={e=>setDatos(p=>({
+                              ...p,
+                              [k]:e.target.value,
+                              ...(k==="colonia"||k==="cp"?{lat:null,lng:null}:{}),
+                            }))}
+                            placeholder={ph||l}
+                            style={{width:"100%",boxSizing:"border-box",fontSize:16}}
+                          />
                         </div>
                       ))}
                     </div>
-                    <div style={{marginTop:8,fontSize:11,color:C.textMid}}>En colonia escribe solo el nombre (ej. Del Valle Sur), sin Benito Juárez ni CDMX. Tu dirección se guarda localmente.</div>
+                    <div style={{marginTop:8,fontSize:11,color:C.textMid}}>Elige una sugerencia del buscador para que calle, colonia y CP coincidan. Colonia sin alcaldía. Tu dirección se guarda localmente.</div>
                     {entrega==="cdmx"&&(
                       <div style={{marginTop:12,padding:"10px 12px",borderRadius:8,border:`1px solid ${uberQuoteStatus==="ok"?"#86efac":uberQuoteStatus==="error"?"#fca5a5":C.border}`,background:uberQuoteStatus==="ok"?"#f0fdf4":uberQuoteStatus==="error"?"#fef2f2":C.bg}}>
                         <div style={{color:C.dark,fontWeight:700,fontSize:13,marginBottom:4}}>🛵 Envío Uber Direct</div>

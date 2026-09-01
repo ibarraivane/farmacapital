@@ -37,7 +37,7 @@ export function formatUberEta(quote) {
   return `${lo}–${hi} min`;
 }
 
-export async function fetchUberDirectQuote({ calle, colonia, cp, referencia }) {
+export async function fetchUberDirectQuote({ calle, colonia, cp, referencia, lat, lng }) {
   const resp = await fetch(UBER_QUOTE_URL, {
     method: "POST",
     credentials: "include",
@@ -48,6 +48,8 @@ export async function fetchUberDirectQuote({ calle, colonia, cp, referencia }) {
       colonia: String(colonia || "").trim(),
       cp: String(cp || "").trim(),
       referencia: String(referencia || "").trim(),
+      lat: lat != null && Number.isFinite(Number(lat)) ? Number(lat) : undefined,
+      lng: lng != null && Number.isFinite(Number(lng)) ? Number(lng) : undefined,
     }),
   });
   const data = await resp.json().catch(() => ({}));
@@ -73,6 +75,8 @@ export async function attachUberDirectQuote({
   cp,
   referencia,
   displayedFeeMxn,
+  lat,
+  lng,
 }) {
   const resp = await fetch(UBER_QUOTE_URL, {
     method: "POST",
@@ -91,6 +95,8 @@ export async function attachUberDirectQuote({
       cp: String(cp || "").trim(),
       referencia: String(referencia || "").trim(),
       displayed_fee_mxn: displayedFeeMxn,
+      lat: lat != null && Number.isFinite(Number(lat)) ? Number(lat) : undefined,
+      lng: lng != null && Number.isFinite(Number(lng)) ? Number(lng) : undefined,
     }),
   });
   const data = await resp.json().catch(() => ({}));

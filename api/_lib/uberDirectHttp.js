@@ -57,6 +57,15 @@ function dropoffFromBody(body) {
   return parsed ? dropoffAddressFromParts({ ...parsed, referencia: body?.referencia }) : null;
 }
 
+/** Coords del autocomplete (Google/Photon). Solo acepta lat/lng en territorio MX aprox. */
+function coordsFromBody(body) {
+  const lat = Number(body?.lat ?? body?.latitude ?? body?.dropoff_lat);
+  const lng = Number(body?.lng ?? body?.longitude ?? body?.dropoff_lng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  if (lat < 14 || lat > 33 || lng < -118 || lng > -86) return null;
+  return { lat, lng };
+}
+
 function serviceHeaders(serviceKey) {
   return {
     apikey: serviceKey,
@@ -182,7 +191,10 @@ async function handleQuote(body) {
   if (!dropoff) {
     return { status: 400, json: { ok: false, error: 'invalid_dropoff', hint: 'calle, colonia y CP de 5 dígitos' } };
   }
-  const quote = await createUberQuote({ dropoffAddress: dropoff });
+  const quote = await createUberQuote({
+    dropoffAddress: dropoff,
+    dropoffCoords: coordsFromBody(body),
+  });
   if (!quote.ok) {
     return {
       status: quote.status && quote.status < 500 ? quote.status : 502,
@@ -216,7 +228,7 @@ async function handleAttach(req, body) {
   });
   if (!dropoff) return { status: 400, json: { ok: false, error: 'invalid_dropoff' } };
 
-  const quote = await createUberQuote({ dropoffAddress: dropoff });
+  const quote = await createUberQuote({ dropoffAddress: dropoff, dropoffCoords: coordsFromBody(body) });
   if (!quote.ok) {
     return { status: 502, json: { ok: false, error: quote.error || 'quote_failed', detail: quote.detail || null } };
   }
@@ -237,6 +249,7 @@ async function handleAttach(req, body) {
   }
   const newTotal = Math.round((itemsTotal + quote.fee_mxn) * 100) / 100;
 
+  const dropoffCoords = coordsFromBody(body);
   const logistics_meta = mergeLogisticsMeta(pedido, {
     external_delivery_id: prevMeta.external_delivery_id || null,
     uber_direct: {
@@ -248,6 +261,8 @@ async function handleAttach(req, body) {
       expires_at: quote.expires_at,
       charged_at: new Date().toISOString(),
       dropoff_summary: dropoff.street_address?.[0] || null,
+      dropoff_lat: dropoffCoords?.lat ?? null,
+      dropoff_lng: dropoffCoords?.lng ?? null,
     },
   });
 
@@ -312,7 +327,14 @@ async function handleCreate(req, body) {
   const dropoffName = pedido.guest_nombre || cliente?.nombre || 'Cliente FarmaCapital';
   const dropoffPhone = pedido.guest_telefono || cliente?.telefono || '';
 
-  const quote = await createUberQuote({ dropoffAddress: dropoff });
+  const savedCoords = (() => {
+    const lat = Number(pedido.logistics_meta?.uber_direct?.dropoff_lat);
+    const lng = Number(pedido.logistics_meta?.uber_direct?.dropoff_lng);
+    if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
+    return coordsFromBody(body);
+  })();
+
+  const quote = await createUberQuote({ dropoffAddress: dropoff, dropoffCoords: savedCoords });
   if (!quote.ok) {
     return { status: 502, json: { ok: false, error: quote.error || 'quote_failed', detail: quote.detail || null } };
   }
@@ -322,6 +344,7 @@ async function handleCreate(req, body) {
     dropoffAddress: dropoff,
     dropoffName,
     dropoffPhone,
+    dropoffCoords: savedCoords,
     items,
     externalId: String(pedidoId),
     pickupNotes: `Pedido FarmaCapital ${pedidoId}. Recoger en mostrador.`,
