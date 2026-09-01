@@ -23,6 +23,6 @@ describe("uberDirectClient display", () => {
   test("explica zona no entregable de Uber Direct", () => {
     expect(
       explainUberQuoteError("uber_api_failed", "The specified location is not in a deliverable area.")
-    ).toMatch(/cobertura|pick-up|direct\.uber\.com/i);
+    ).toMatch(/no puede entregar|pick-up/i);
   });
 });

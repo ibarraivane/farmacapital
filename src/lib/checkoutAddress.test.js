@@ -5,6 +5,9 @@ import {
   composeCheckoutCalle,
   checkoutNumeroOk,
   cleanCheckoutColonia,
+  formatDestinoLabel,
+  isCheckoutDestinoListo,
+  applyDestinoSuggestion,
 } from "./checkoutAddress.js";
 
 test("splitCalleYNumero separa número al final", () => {
@@ -33,4 +36,33 @@ test("checkoutNumeroOk", () => {
 
 test("cleanCheckoutColonia quita alcaldía", () => {
   assert.equal(cleanCheckoutColonia("Del Valle Sur, Benito Juárez"), "Del Valle Sur");
+});
+
+test("formatDestinoLabel y destino listo", () => {
+  assert.equal(
+    formatDestinoLabel({ calle: "Bartolache", numero: "1750", colonia: "Del Valle Sur", cp: "03104" }),
+    "Bartolache 1750, Del Valle Sur, 03104"
+  );
+  assert.equal(
+    isCheckoutDestinoListo({ calle: "Bartolache", numero: "1750", colonia: "Del Valle Sur", cp: "03104" }),
+    true
+  );
+  assert.equal(
+    isCheckoutDestinoListo({ calle: "Bartolache", numero: "", colonia: "Del Valle Sur", cp: "03104" }),
+    false
+  );
+});
+
+test("applyDestinoSuggestion parte calle y número", () => {
+  const next = applyDestinoSuggestion({
+    calle: "José Ignacio Bartolache 1750",
+    colonia: "Del Valle Sur",
+    cp: "03104",
+    lat: 19.38,
+    lng: -99.17,
+  });
+  assert.equal(next.calle, "José Ignacio Bartolache");
+  assert.equal(next.numero, "1750");
+  assert.equal(next.colonia, "Del Valle Sur");
+  assert.equal(next.lat, 19.38);
 });

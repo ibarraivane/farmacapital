@@ -2,14 +2,14 @@ import { useEffect, useId, useRef, useState } from "react";
 import { fetchAddressSuggestions } from "../lib/addressSuggestClient";
 
 /**
- * Buscador predictivo de dirección CDMX.
- * Al elegir una sugerencia rellena calle / colonia / CP + lat/lng.
+ * Lista de destinos al escribir (calle y número).
+ * Al elegir una sugerencia entrega calle / colonia / CP + lat/lng.
  */
 export default function AddressAutocomplete({
   value = "",
   onChange,
   onPick,
-  placeholder = "Empieza a escribir calle y número…",
+  placeholder = "Ej. Bartolache 1750, Del Valle",
   inputStyle = {},
   disabled = false,
 }) {
@@ -19,7 +19,6 @@ export default function AddressAutocomplete({
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState([]);
   const [active, setActive] = useState(-1);
-  const [provider, setProvider] = useState(null);
   const skipSuggestRef = useRef(false);
 
   useEffect(() => {
@@ -41,7 +40,6 @@ export default function AddressAutocomplete({
       const res = await fetchAddressSuggestions(q);
       if (cancelled) return;
       setLoading(false);
-      setProvider(res.provider || null);
       setItems(res.suggestions || []);
       setOpen(Boolean(res.suggestions?.length));
       setActive(-1);
@@ -147,18 +145,15 @@ export default function AddressAutocomplete({
                   lineHeight: 1.35,
                 }}
               >
-                <div style={{ fontWeight: 600 }}>{item.calle || item.label}</div>
-                <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>
-                  {[item.colonia, item.cp].filter(Boolean).join(" · ") || item.label}
-                </div>
+                <div style={{ fontWeight: 600 }}>{item.label || item.calle}</div>
+                {(item.colonia || item.cp) && item.label && (
+                  <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>
+                    {[item.colonia, item.cp].filter(Boolean).join(" · ")}
+                  </div>
+                )}
               </button>
             </li>
           ))}
-          {provider && (
-            <li style={{ padding: "6px 12px", fontSize: 10, color: "#94a3b8" }}>
-              {provider === "google" ? "Sugerencias Google Maps" : "Sugerencias mapa (OSM)"}
-            </li>
-          )}
         </ul>
       )}
     </div>

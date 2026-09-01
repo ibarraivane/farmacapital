@@ -113,6 +113,7 @@ async function suggestWithGoogle(query, deps = {}) {
     `https://maps.googleapis.com/maps/api/place/autocomplete/json` +
     `?input=${encodeURIComponent(query)}` +
     `&components=country:mx` +
+    `&types=address` +
     `&language=es` +
     `&location=${BIAS_LAT},${BIAS_LNG}` +
     `&radius=35000` +
