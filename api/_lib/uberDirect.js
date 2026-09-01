@@ -123,20 +123,53 @@ function parseDireccionCheckout(direccion) {
   return { street, colonia, zip };
 }
 
-function dropoffAddressFromParts({ street, colonia, zip, city } = {}) {
+function dropoffAddressFromParts({ street, colonia, zip, city, referencia } = {}) {
   const streetLine = [String(street || '').trim(), String(colonia || '').trim()]
     .filter(Boolean)
     .join(', ');
   if (streetLine.length < 5) return null;
   const zipCode = String(zip || '').replace(/\D/g, '').slice(0, 5);
   if (zipCode.length !== 5) return null;
+  const ref = String(referencia || '').trim();
+  const street_address = ref ? [streetLine, ref.slice(0, 80)] : [streetLine];
   return {
-    street_address: [streetLine],
+    street_address,
     city: String(city || 'Ciudad de México').trim() || 'Ciudad de México',
     state: 'CDMX',
     zip_code: zipCode,
     country: 'MX',
   };
+}
+
+const geocodeCache = new Map();
+
+function geocodeQueryFromAddress(addr) {
+  if (!addr) return '';
+  const street = Array.isArray(addr.street_address) ? addr.street_address[0] : '';
+  return [street, addr.zip_code, addr.city, addr.state, 'México'].filter(Boolean).join(', ');
+}
+
+async function geocodeMxAddress(addr, deps = {}) {
+  const q = geocodeQueryFromAddress(addr);
+  if (!q) return null;
+  if (geocodeCache.has(q)) return geocodeCache.get(q);
+  const fetchFn = deps.fetchFn || fetch;
+  const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=mx&q=${encodeURIComponent(q)}`;
+  try {
+    const resp = await fetchFn(url, {
+      headers: { 'User-Agent': 'FarmaCapital/1.0 (contacto@farmacapital.mx)' },
+    });
+    const rows = await resp.json().catch(() => []);
+    const hit = Array.isArray(rows) ? rows[0] : null;
+    const lat = Number(hit?.lat);
+    const lng = Number(hit?.lon);
+    const coords = Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+    geocodeCache.set(q, coords);
+    return coords;
+  } catch {
+    geocodeCache.set(q, null);
+    return null;
+  }
 }
 
 function mapUberDeliveryStatus(raw) {
@@ -279,23 +312,25 @@ async function uberApi(path, { method = 'POST', body, deps = {} } = {}) {
   return { ok: true, data };
 }
 
-async function createUberQuote({ dropoffAddress, deps = {} } = {}) {
+async function createUberQuote({ dropoffAddress, dropoffCoords, deps = {} } = {}) {
   if (!dropoffAddress) return { ok: false, error: 'missing_dropoff' };
   const pickup = pickupAddressFromConfig();
   const coords = pickupCoords();
-  const result = await uberApi(
-    '/delivery_quotes',
-    {
-      method: 'POST',
-      body: {
-        pickup_address: stringifyUberAddress(pickup),
-        dropoff_address: stringifyUberAddress(dropoffAddress),
-        pickup_latitude: coords.lat,
-        pickup_longitude: coords.lng,
-      },
-      deps,
-    }
-  );
+  let dest = dropoffCoords;
+  if (!dest || !Number.isFinite(dest.lat) || !Number.isFinite(dest.lng)) {
+    dest = await geocodeMxAddress(dropoffAddress, deps);
+  }
+  const body = {
+    pickup_address: stringifyUberAddress(pickup),
+    dropoff_address: stringifyUberAddress(dropoffAddress),
+    pickup_latitude: coords.lat,
+    pickup_longitude: coords.lng,
+  };
+  if (dest && Number.isFinite(dest.lat) && Number.isFinite(dest.lng)) {
+    body.dropoff_latitude = dest.lat;
+    body.dropoff_longitude = dest.lng;
+  }
+  const result = await uberApi('/delivery_quotes', { method: 'POST', body, deps });
   if (!result.ok) return result;
   return normalizeQuoteResponse(result.data);
 }
@@ -391,4 +426,6 @@ module.exports = {
   buildManifestItems,
   quoteChangedTooMuch,
   stringifyUberAddress,
+  geocodeMxAddress,
+  geocodeQueryFromAddress,
 };

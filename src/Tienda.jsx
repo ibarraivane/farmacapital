@@ -47,7 +47,7 @@ import {
   buildCustomerToFarmaciaMessage,
 } from "./utils/orderReceiptWhatsApp";
 import { notifyCitaConfirmacion, formatTelefonoDisplay, formatCitaFecha } from "./utils/citaWhatsApp";
-import { fetchUberDirectQuote, attachUberDirectQuote, formatUberFee, formatUberEta } from "./lib/uberDirectClient";
+import { fetchUberDirectQuote, attachUberDirectQuote, formatUberFee, formatUberEta, explainUberQuoteError } from "./lib/uberDirectClient";
 import { FARMACIA_FISCAL } from "./constants/farmaciaFiscal";
 import { HORARIO_FARMACIA } from "./constants/turnos";
 import { validarPasswordTienda, PASSWORD_RULES_TEXT, PASSWORD_MIN_LENGTH } from "./utils/passwordPolicy";
@@ -3273,6 +3273,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
     calle:user?.calle||"",
     colonia:user?.colonia||"",
     cp:user?.cp||"",
+    referencia:"",
   }));
   const [metodo,setMetodo]=useState("mercadopago");
   const [conf,setConf]=useState(false);
@@ -3384,6 +3385,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
           calle: String(saved?.calle || merged.calle || ""),
           colonia: String(saved?.colonia || merged.colonia || ""),
           cp: String(saved?.cp || merged.cp || ""),
+          referencia: String(saved?.referencia || merged.referencia || ""),
         };
       }
     } catch (_) { /* noop */ }
@@ -3395,11 +3397,12 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
       calle: String(datos.calle || "").trim(),
       colonia: String(datos.colonia || "").trim(),
       cp: String(datos.cp || "").trim(),
+      referencia: String(datos.referencia || "").trim(),
     };
     try {
       localStorage.setItem(checkoutAddressStorageKey(user), JSON.stringify(payload));
     } catch (_) { /* noop */ }
-  }, [datos.calle, datos.colonia, datos.cp, user?.id, user?.telefono]);
+  }, [datos.calle, datos.colonia, datos.cp, datos.referencia, user?.id, user?.telefono]);
 
   useEffect(() => {
     try {
@@ -3432,6 +3435,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
         calle: datos.calle,
         colonia: datos.colonia,
         cp: datos.cp,
+        referencia: datos.referencia,
       });
       if (cancelled) return;
       if (q.ok) {
@@ -3446,7 +3450,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
       cancelled = true;
       clearTimeout(t);
     };
-  }, [entrega, direccionOk, datos.calle, datos.colonia, datos.cp]);
+  }, [entrega, direccionOk, datos.calle, datos.colonia, datos.cp, datos.referencia]);
   const faltantesCheckout = useMemo(() => {
     const f = [];
     if (!nombreOk) f.push("nombre completo (mín. 3 letras)");
@@ -3628,6 +3632,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
           calle: datos.calle,
           colonia: datos.colonia,
           cp: datos.cp,
+          referencia: datos.referencia,
           displayedFeeMxn: uberQuote?.fee_mxn,
         });
         if (!attached.ok && attached.error === "quote_changed" && attached.quote?.ok) {
@@ -3864,7 +3869,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
           {step===1&&(()=>{
             const necesitaDireccion = entrega !== "pickup";
             const camposContacto = [["Nombre completo","nombre"],["Teléfono","tel"],["Correo electrónico","email"]];
-            const camposDireccion = [["Calle y número","calle"],["Colonia","colonia"],["Código postal","cp"]];
+            const camposDireccion = [["Calle y número","calle"],["Colonia","colonia"],["Código postal","cp"],["Referencia (edificio, negocio, entre calles)","referencia"]];
             const esInvitadoUI = !getClienteToken();
             return(
               <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:stack?20:24}}>
@@ -3893,8 +3898,8 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                     </div>
                     <div style={{display:"grid",gridTemplateColumns:stack?"1fr":"1fr 1fr",gap:14}}>
                       {camposDireccion.map(([l,k])=>(
-                        <div key={k} style={{gridColumn:!stack&&k==="calle"?"1/-1":undefined}}>
-                          <div style={{color:C.mid,fontSize:12,marginBottom:6,fontWeight:600}}>{l} <span style={{color:C.red}}>*</span></div>
+                        <div key={k} style={{gridColumn:!stack&&(k==="calle"||k==="referencia")?"1/-1":undefined}}>
+                          <div style={{color:C.mid,fontSize:12,marginBottom:6,fontWeight:600}}>{l}{k!=="referencia" && <span style={{color:C.red}}> *</span>}</div>
                           <Inp value={datos[k]} onChange={e=>setDatos(p=>({...p,[k]:e.target.value}))} placeholder={l} style={{width:"100%",boxSizing:"border-box",fontSize:16}}/>
                         </div>
                       ))}
@@ -3905,7 +3910,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                         <div style={{color:C.dark,fontWeight:700,fontSize:13,marginBottom:4}}>🛵 Envío Uber Direct</div>
                         {uberQuoteStatus==="loading"&&<div style={{fontSize:12,color:C.mid}}>Cotizando a tu dirección…</div>}
                         {uberQuoteStatus==="idle"&&<div style={{fontSize:12,color:C.mid}}>Completa calle, colonia y CP para ver el precio.</div>}
-                        {uberQuoteStatus==="error"&&<div style={{fontSize:12,color:"#991b1b"}}>No pudimos cotizar esta dirección. Revísala o elige pick-up. {uberQuote?.error==="not_configured"?"(Falta configurar Uber en el servidor.)":""}</div>}
+                        {uberQuoteStatus==="error"&&<div style={{fontSize:12,color:"#991b1b"}}>{uberQuote?.hint || explainUberQuoteError(uberQuote?.error, uberQuote?.detail)}</div>}
                         {uberQuoteStatus==="ok"&&uberQuote?.ok&&(
                           <div style={{fontSize:13,color:"#166534",lineHeight:1.45}}>
                             <strong>{formatUberFee(uberQuote.fee_mxn)}</strong>
@@ -3963,8 +3968,15 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                     Para continuar completa: <strong>{faltantesCheckout.join(", ")}</strong>
                   </div>
                 )}
-                <Btn onClick={()=>{ setMetodo("mercadopago"); setStep(2); }} col={BRAND.primary} style={{marginTop:20,width:stack?"100%":undefined}} disabled={!datosCheckoutCompletos}>
-                  Revisar y pagar →
+                {entrega==="cdmx" && !envioListoParaPagar && datosCheckoutCompletos && (
+                  <div style={{marginTop:12,padding:"10px 12px",background:"#fef2f2",border:"1px solid #fca5a5",borderRadius:8,fontSize:12,color:"#991b1b",lineHeight:1.45}}>
+                    {uberQuoteStatus==="loading"
+                      ? "Espera la cotización de Uber para continuar."
+                      : (uberQuote?.hint || explainUberQuoteError(uberQuote?.error, uberQuote?.detail))}
+                  </div>
+                )}
+                <Btn onClick={()=>{ setMetodo("mercadopago"); setStep(2); }} col={BRAND.primary} style={{marginTop:20,width:stack?"100%":undefined}} disabled={!datosCheckoutCompletos || !envioListoParaPagar}>
+                  {entrega==="cdmx" && uberQuoteStatus==="loading" ? "Cotizando envío…" : "Revisar y pagar →"}
                 </Btn>
               </div>
             );
@@ -3985,7 +3997,7 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                   </div>
                 )}
                 {entrega!=="pickup"&&uberQuoteStatus==="error"&&(
-                  <div style={{marginTop:6,color:"#991b1b"}}>No hay cotización Uber. Regresa y revisa la dirección.</div>
+                  <div style={{marginTop:6,color:"#991b1b"}}>{uberQuote?.hint || explainUberQuoteError(uberQuote?.error, uberQuote?.detail)}</div>
                 )}
                 {entrega!=="pickup"&&uberQuoteStatus==="loading"&&(
                   <div style={{marginTop:6}}>Cotizando envío Uber Direct…</div>

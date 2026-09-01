@@ -50,10 +50,11 @@ function dropoffFromBody(body) {
       colonia: body.colonia,
       zip: body.zip || body.cp,
       city: body.city || body.ciudad,
+      referencia: body.referencia || body.referencias,
     });
   }
   const parsed = parseDireccionCheckout(body?.direccion || body?.address || '');
-  return parsed ? dropoffAddressFromParts(parsed) : null;
+  return parsed ? dropoffAddressFromParts({ ...parsed, referencia: body?.referencia }) : null;
 }
 
 function serviceHeaders(serviceKey) {
@@ -376,6 +377,10 @@ async function handleCreate(req, body) {
 module.exports = async function handler(req, res) {
   applyRestrictiveCors(req, res);
   if (req.method === 'OPTIONS') return res.status(204).end();
+  if (req.method === 'GET') {
+    const cfg = getUberDirectConfig();
+    return res.status(200).json({ ok: true, configured: cfg.configured });
+  }
   if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'method_not_allowed' });
 
   const body = await safeJson(req);

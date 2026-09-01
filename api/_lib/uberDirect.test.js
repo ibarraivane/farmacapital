@@ -17,6 +17,7 @@ const {
   getUberAccessToken,
   resetUberTokenCache,
   pickupAddressFromConfig,
+  geocodeQueryFromAddress,
 } = require('./uberDirect');
 
 describe('uberDirect helpers', () => {
@@ -109,6 +110,17 @@ describe('uberDirect helpers', () => {
   it('arma manifiesto con fallback', () => {
     assert.equal(buildManifestItems([]).length, 1);
     assert.equal(buildManifestItems([{ nombre: 'Paracetamol', cantidad: 2 }])[0].quantity, 2);
+  });
+
+  it('incluye referencia en la segunda línea de calle', () => {
+    const addr = dropoffAddressFromParts({
+      street: 'José Ignacio Bartolache 1750',
+      colonia: 'Del Valle Sur',
+      zip: '03104',
+      referencia: 'Edificio gris, portero',
+    });
+    assert.equal(addr.street_address[1], 'Edificio gris, portero');
+    assert.match(geocodeQueryFromAddress(addr), /Bartolache/);
   });
 
   it('pickup de FarmaCapital queda en CDMX', () => {
