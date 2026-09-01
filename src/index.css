@@ -54,6 +54,15 @@ textarea.farmacapital-field-input {
   color-scheme: light;
 }
 
+/* El placeholder debe verse de ejemplo, no como si el cliente ya hubiera escrito. */
+.farmacapital-field-input::placeholder,
+.farmacapital-field-select::placeholder,
+textarea.farmacapital-field-input::placeholder {
+  color: #b8b0a6 !important;
+  -webkit-text-fill-color: #b8b0a6 !important;
+  opacity: 1;
+}
+
 .farmacapital-field-input:-webkit-autofill,
 .farmacapital-field-input:-webkit-autofill:hover,
 .farmacapital-field-input:-webkit-autofill:focus,
