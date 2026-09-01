@@ -1,6 +1,8 @@
 import {
   enabledSocialProviders,
   isOAuthCallbackLocation,
+  oauthCallbackUrl,
+  oauthCanonicalOrigin,
   readOAuthRedirectError,
   SOCIAL_PROVIDERS,
 } from "./clienteOAuth";
@@ -46,5 +48,17 @@ describe("clienteOAuth helpers", () => {
       )
     ).toMatch(/Unable to exchange/i);
     expect(readOAuthRedirectError("", "")).toBeNull();
+  });
+
+  test("callback OAuth usa www en producción", () => {
+    const prev = window.location;
+    delete window.location;
+    window.location = {
+      hostname: "farmacapital.mx",
+      origin: "https://farmacapital.mx",
+    };
+    expect(oauthCanonicalOrigin()).toBe("https://www.farmacapital.mx");
+    expect(oauthCallbackUrl()).toBe("https://www.farmacapital.mx/auth/callback");
+    window.location = prev;
   });
 });

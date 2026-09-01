@@ -31,9 +31,33 @@ export function enabledSocialProviders() {
   return SOCIAL_PROVIDERS.filter((p) => unique.includes(p.id));
 }
 
+/** Origen canónico para OAuth (PKCE vive en localStorage por host). */
+export function oauthCanonicalOrigin() {
+  if (typeof window === "undefined") return "";
+  const host = String(window.location.hostname || "").toLowerCase();
+  if (host === "farmacapital.mx" || host === "www.farmacapital.mx") {
+    return "https://www.farmacapital.mx";
+  }
+  return window.location.origin.replace(/\/+$/, "");
+}
+
 export function oauthCallbackUrl() {
   if (typeof window === "undefined") return "";
-  return `${window.location.origin.replace(/\/+$/, "")}/auth/callback`;
+  return `${oauthCanonicalOrigin()}/auth/callback`;
+}
+
+/**
+ * PKCE se guarda en localStorage del host actual. Si el usuario entra sin www
+ * y Vercel redirige a www, se pierde el verifier → ir a www antes del OAuth.
+ * @returns {boolean} true si redirigió (no continuar OAuth en este tick)
+ */
+export function ensureOAuthCanonicalOrigin() {
+  if (typeof window === "undefined") return false;
+  const host = String(window.location.hostname || "").toLowerCase();
+  if (host !== "farmacapital.mx") return false;
+  const target = `https://www.farmacapital.mx${window.location.pathname}${window.location.search}${window.location.hash}`;
+  window.location.replace(target);
+  return true;
 }
 
 export function isOAuthCallbackLocation(pathname, search, hash) {
@@ -75,6 +99,9 @@ export async function startClienteOAuth(supabase, provider) {
   const id = String(provider || "").toLowerCase();
   if (!PROVIDER_IDS.has(id)) {
     return { ok: false, error: "Proveedor no soportado." };
+  }
+  if (ensureOAuthCanonicalOrigin()) {
+    return { ok: true, url: null };
   }
   try {
     sessionStorage.setItem(OAUTH_PROVIDER_KEY, id);
@@ -165,6 +192,10 @@ export async function completeClienteOAuth(supabase) {
   if (redirectErr) {
     return { ok: false, error: redirectErr };
   }
+
+  try {
+    await supabase.auth.initialize();
+  } catch (_) { /* noop */ }
 
   let code = null;
   try {
