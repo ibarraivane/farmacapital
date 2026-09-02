@@ -8,6 +8,8 @@ const {
 } = require('./supabaseAdmin');
 const {
   getUberDirectConfig,
+  pickupDebugSnapshot,
+  sanitizeUberRaw,
   parseDireccionCheckout,
   dropoffAddressFromParts,
   createUberQuote,
@@ -69,6 +71,10 @@ function coordsFromBody(body) {
 function mapUberQuoteError(quote) {
   const detail = String(quote?.detail || '');
   const low = detail.toLowerCase();
+  const extra = {
+    uber: sanitizeUberRaw(quote?.raw),
+    pickup: pickupDebugSnapshot(),
+  };
   if (low.includes('not in a deliverable area') || low.includes('undeliverable')) {
     return {
       status: 422,
@@ -76,12 +82,13 @@ function mapUberQuoteError(quote) {
         ok: false,
         error: 'undeliverable_area',
         detail,
+        ...extra,
       },
     };
   }
   return {
     status: quote?.status && quote.status < 500 ? quote.status : 502,
-    json: { ok: false, error: quote?.error || 'quote_failed', detail: detail || null },
+    json: { ok: false, error: quote?.error || 'quote_failed', detail: detail || null, ...extra },
   };
 }
 
@@ -418,7 +425,11 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method === 'GET') {
     const cfg = getUberDirectConfig();
-    return res.status(200).json({ ok: true, configured: cfg.configured });
+    return res.status(200).json({
+      ok: true,
+      configured: cfg.configured,
+      pickup: pickupDebugSnapshot(),
+    });
   }
   if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'method_not_allowed' });
 

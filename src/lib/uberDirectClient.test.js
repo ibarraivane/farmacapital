@@ -1,4 +1,10 @@
-import { formatUberEta, formatUberFee, explainUberQuoteError } from "./uberDirectClient";
+import {
+  formatUberEta,
+  formatUberFee,
+  explainUberQuoteError,
+  isUberCoverageError,
+  checkoutPuedePagarEnvio,
+} from "./uberDirectClient";
 
 describe("uberDirectClient display", () => {
   test("formatea pesos", () => {
@@ -20,9 +26,42 @@ describe("uberDirectClient display", () => {
     expect(explainUberQuoteError("uber_api_failed", "address not found")).toMatch(/sin alcaldía/i);
   });
 
-  test("explica zona no entregable de Uber Direct", () => {
+  test("explica zona no entregable de Uber Direct sin empujar pick-up", () => {
+    const msg = explainUberQuoteError(
+      "uber_api_failed",
+      "The specified location is not in a deliverable area."
+    );
+    expect(msg).toMatch(/coordinamos el envío|WhatsApp|Iztapalapa/i);
+    expect(msg).not.toMatch(/pick-up|recoger/i);
+  });
+
+  test("el fallo genérico no ofrece recoger en farmacia", () => {
+    const msg = explainUberQuoteError("");
+    expect(msg).toMatch(/WhatsApp/i);
+    expect(msg).not.toMatch(/pick-up|recoger/i);
+  });
+
+  test("cobertura Uber no bloquea el pago si el destino está listo", () => {
+    expect(isUberCoverageError("undeliverable_area", "The specified location is not in a deliverable area.")).toBe(
+      true
+    );
     expect(
-      explainUberQuoteError("uber_api_failed", "The specified location is not in a deliverable area.")
-    ).toMatch(/no puede entregar|pick-up/i);
+      checkoutPuedePagarEnvio({
+        entrega: "cdmx",
+        direccionOk: true,
+        uberQuoteStatus: "error",
+        uberQuote: { error: "undeliverable_area", detail: "not in a deliverable area" },
+        envioFee: 0,
+      })
+    ).toBe(true);
+    expect(
+      checkoutPuedePagarEnvio({
+        entrega: "cdmx",
+        direccionOk: true,
+        uberQuoteStatus: "error",
+        uberQuote: { error: "not_configured" },
+        envioFee: 0,
+      })
+    ).toBe(false);
   });
 });

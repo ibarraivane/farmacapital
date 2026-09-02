@@ -68,7 +68,7 @@ export const WORKFLOW_TO_DB_ESTADO = {
  * UI carrito (Tienda.jsx) → RPC `cliente_crear_pedido_online` (solo recoger|envio).
  * @param {string} entregaUi - pickup | cdmx | foraneo
  */
-export function mapUiEntregaToRpc(entregaUi) {
+export function mapUiEntregaToRpc(entregaUi, opts = {}) {
   const u = String(entregaUi || "pickup").toLowerCase();
   if (u === "foraneo" && !ENABLE_FORANEO) {
     throw new Error("Envío foráneo no disponible");
@@ -80,10 +80,11 @@ export function mapUiEntregaToRpc(entregaUi) {
       fulfillment_type: FULFILLMENT_TYPE.PICKUP_STORE,
     };
   }
+  const uberQuoted = opts.uberQuoted !== false && opts.uberQuoted !== 0;
   return {
     tipo_entrega: "envio",
     order_channel: ORDER_CHANNEL.WEB_DELIVERY,
-    fulfillment_type: FULFILLMENT_TYPE.UBER_DIRECT,
+    fulfillment_type: uberQuoted ? FULFILLMENT_TYPE.UBER_DIRECT : FULFILLMENT_TYPE.OWN_DELIVERY,
     ui_entrega: u,
   };
 }

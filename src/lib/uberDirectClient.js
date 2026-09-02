@@ -2,9 +2,42 @@
 
 const UBER_QUOTE_URL = "/api/logistics/webhook?type=uber-api";
 
-export function explainUberQuoteError(err, detail) {
+function errorBlob(err, detail) {
   const code = typeof err === "object" && err ? String(err.code || err.message || "") : String(err || "");
-  const blob = `${code} ${detail || ""} ${typeof err === "object" ? JSON.stringify(err) : ""}`.toLowerCase();
+  return `${code} ${detail || ""} ${typeof err === "object" && err ? JSON.stringify(err) : ""}`.toLowerCase();
+}
+
+/** Uber rechaza la zona (incluso la sucursal). No es un CP mal escrito. */
+export function isUberCoverageError(err, detail) {
+  const blob = errorBlob(err, detail);
+  return (
+    blob.includes("undeliverable_area") ||
+    blob.includes("not in a deliverable area") ||
+    blob.includes("undeliverable") ||
+    blob.includes("outside of the delivery") ||
+    blob.includes("no delivery options")
+  );
+}
+
+/** Se puede pagar envío: cotización Uber o, si Uber no cubre, envío coordinado por la farmacia. */
+export function checkoutPuedePagarEnvio({
+  entrega,
+  direccionOk,
+  uberQuoteStatus,
+  uberQuote,
+  envioFee,
+} = {}) {
+  if (entrega === "pickup") return true;
+  if (!direccionOk) return false;
+  if (uberQuoteStatus === "ok" && uberQuote?.ok && Number(envioFee) > 0) return true;
+  if (uberQuoteStatus === "error" && isUberCoverageError(uberQuote?.error, uberQuote?.detail)) {
+    return true;
+  }
+  return false;
+}
+
+export function explainUberQuoteError(err, detail) {
+  const blob = errorBlob(err, detail);
   if (blob.includes("not_configured") || blob.includes("503")) {
     return "Falta el Client Secret de Uber en Vercel (Preview y Production). Sin eso no se puede cotizar.";
   }
@@ -14,21 +47,16 @@ export function explainUberQuoteError(err, detail) {
   if (blob.includes("invalid_dropoff")) {
     return "Falta calle, colonia o un CP de 5 dígitos.";
   }
-  if (
-    blob.includes("undeliverable_area") ||
-    blob.includes("not in a deliverable area") ||
-    blob.includes("undeliverable") ||
-    blob.includes("outside of the delivery") ||
-    blob.includes("no delivery options")
-  ) {
-    return "Uber no puede entregar en esta dirección ahora. Elige pick-up en FarmaCapital.";
+  if (isUberCoverageError(err, detail)) {
+    return "Uber aún no tiene cobertura desde FarmaCapital (Iztapalapa), ni a una cuadra. Puedes pagar el pedido: te coordinamos el envío por WhatsApp.";
   }
   if (blob.includes("uber_api_failed") || blob.includes("address") || blob.includes("geocod")) {
     return "Uber no pudo ubicar la dirección. Pon calle con número, solo la colonia (sin alcaldía) y una referencia (edificio, negocio).";
   }
   if (detail) return `No se pudo cotizar: ${String(detail).slice(0, 160)}`;
+  const code = typeof err === "object" && err ? String(err.code || err.message || "") : String(err || "");
   if (code && code !== "undefined") return `No se pudo cotizar (${code}).`;
-  return "No se pudo cotizar el envío Uber. Revisa la dirección o elige pick-up.";
+  return "No se pudo cotizar el envío Uber. Revisa la dirección o escríbenos por WhatsApp.";
 }
 
 export function formatUberFee(mxn) {

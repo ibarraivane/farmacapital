@@ -18,6 +18,8 @@ const {
   getUberAccessToken,
   resetUberTokenCache,
   pickupAddressFromConfig,
+  pickupDebugSnapshot,
+  sanitizeUberRaw,
   geocodeQueryFromAddress,
   geocodeQueriesFromAddress,
   geocodeMxAddress,
@@ -170,6 +172,10 @@ describe('uberDirect helpers', () => {
     assert.equal(pickup.country, 'MX');
     assert.equal(pickup.zip_code, '09208');
     assert.match(pickup.street_address[0], /Radiodifusora/);
+    assert.match(pickup.street_address[0], /Chinampac/i);
+    const snap = pickupDebugSnapshot();
+    assert.equal(snap.has_store_id, false);
+    assert.equal(sanitizeUberRaw({ code: 'address_undeliverable', metadata: { details: 'pickup' } }).code, 'address_undeliverable');
   });
 });
 

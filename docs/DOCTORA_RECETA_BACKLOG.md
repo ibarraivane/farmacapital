@@ -36,6 +36,6 @@ Hoy el login es el perfil; la cédula vive en Consultorio → Médicos. Un FK ev
 
 ## SQL obligatorio en Supabase
 
-`sql/patch_recetas_doctora_20260901.sql`
+`sql/patch_recetas_doctora_20260902.sql` (no el 20260901: chocaba con `public.recetas` de COFEPRIS).
 
 Sin ese parche: la ficha permite vista previa local y avisa. La cola de POS queda vacía.
