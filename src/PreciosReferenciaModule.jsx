@@ -32,6 +32,10 @@ import {
   productoSubtituloReferencia,
 } from "./lib/preciosReferencia";
 import {
+  coherenciaSugeridosPorTamano,
+  detectarInversionesPrecioPorTamano,
+} from "./lib/preciosPorTamano";
+import {
   accionesRevisionFila,
   cargarRevisionPrecios,
   esPendienteRevision,
@@ -152,11 +156,19 @@ const COL_LABELS_VENTA = {
   accion: "Acción",
 };
 
-function resolveSugeridoFila(producto, refs, overrides) {
+function resolveSugeridoFila(producto, refs, overrides, sugeridoFamilia = null) {
   const base = calcPrecioSugeridoVenta(producto, refs);
   const ov = overrides[producto.id];
-  const sugerido = ov?.precio ?? base.sugeridoCompetitivo ?? base.sugerido;
+  let sugerido = ov?.precio ?? base.sugeridoCompetitivo ?? base.sugerido;
+  if (ov == null && sugeridoFamilia != null && Number.isFinite(sugeridoFamilia)) {
+    sugerido = Math.max(sugerido ?? 0, sugeridoFamilia) || sugeridoFamilia;
+  }
   const esAjusteManual = ov != null && sugerido != null;
+  const coherenciaTamano =
+    !esAjusteManual
+    && sugeridoFamilia != null
+    && base.sugerido != null
+    && sugerido > base.sugerido;
   const margenSugerido = sugerido != null
     ? calcMargenVenta(sugerido, producto)
     : base.margenSugerido;
@@ -167,7 +179,9 @@ function resolveSugeridoFila(producto, refs, overrides) {
 
   let nota = base.nota;
   const accion = accionPrecioSugerido(producto.precio, sugerido) ?? base.accion;
-  if (esAjusteManual) {
+  if (coherenciaTamano) {
+    nota = `Subimos a ${fmtPrecioVenta(sugerido)} para no vender la botella grande más barata que un tamaño menor de la misma línea.`;
+  } else if (esAjusteManual) {
     nota = `Ajuste manual · competir: ${base.sugeridoCompetitivo != null ? fmtPrecioVenta(base.sugeridoCompetitivo) : "—"}`;
     if (alerta === "debajo_costo") {
       nota = `Manual ${fmtPrecioVenta(sugerido)} no cubre costo. Competir: ${fmtPrecioVenta(base.sugeridoCompetitivo)}`;
@@ -179,12 +193,28 @@ function resolveSugeridoFila(producto, refs, overrides) {
   return {
     ...base,
     sugerido,
-    margenSugerido,
+    accion,
     alerta,
     nota,
+    margenSugerido,
     esAjusteManual,
-    accion,
+    coherenciaTamano,
   };
+}
+
+/** Sugeridos de venta alineados por tamaño dentro de cada familia (ml/g). */
+function mapaSugeridosPorTamano(productos, refsByProduct, overrides) {
+  const filas = (productos || []).map((p) => {
+    const base = calcPrecioSugeridoVenta(p, refsByProduct?.[p.id] || {});
+    const ov = overrides?.[p.id];
+    const sugerido = ov?.precio ?? base.sugeridoCompetitivo ?? base.sugerido;
+    return { producto: p, sugerido };
+  });
+  const out = new Map();
+  for (const f of coherenciaSugeridosPorTamano(filas)) {
+    out.set(f.producto.id, f.sugerido);
+  }
+  return out;
 }
 
 function loadColWidths(tab) {
@@ -596,11 +626,45 @@ function TablaVenta({
   revision,
 }) {
   const fil = productos.filter((p) => inventarioProductMatchesBusqueda(p, busq));
+  const sugeridosFamilia = useMemo(
+    () => mapaSugeridosPorTamano(productos, refsByProduct, sugeridoOverrides),
+    [productos, refsByProduct, sugeridoOverrides]
+  );
+  const inversiones = useMemo(
+    () => detectarInversionesPrecioPorTamano(productos),
+    [productos]
+  );
   const thS = (colId) => ({ ...th(C), ...colStyle(colWidths, colId) });
   const tdS = (colId, extra = {}) => ({ ...td(C), ...colStyle(colWidths, colId), ...extra });
   const colSpan = 11;
 
   return (
+    <>
+      {inversiones.length > 0 && (
+        <div
+          style={{
+            marginBottom: 10,
+            padding: "10px 12px",
+            borderRadius: 8,
+            background: C.amberDim || "#fff7ed",
+            color: C.amber || "#c2410c",
+            fontSize: 12,
+            lineHeight: 1.4,
+          }}
+        >
+          Hay {inversiones.length} precio{inversiones.length === 1 ? "" : "s"} de venta
+          que no cuadran por tamaño: una presentación más grande sale más barata que una
+          chica de la misma línea
+          {inversiones.slice(0, 2).map((inv) => (
+            <div key={`${inv.chico.id}-${inv.grande.id}`} style={{ marginTop: 4 }}>
+              · {inv.grande.presentacion || inv.grande.nombre} a {fmtPrecioVenta(inv.precioGrande)}
+              {" < "}
+              {inv.chico.presentacion || inv.chico.nombre} a {fmtPrecioVenta(inv.precioChico)}
+            </div>
+          ))}
+          . Usa el sugerido (ya respeta el orden por tamaño).
+        </div>
+      )}
     <HorizontalScrollSync bodyMaxHeight={TABLE_SCROLL_MAX}>
       <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: 12, tableLayout: "fixed" }}>
         <thead>
@@ -637,7 +701,7 @@ function TablaVenta({
             const dOtr = diffPctVenta(p.precio, otr);
             const {
               sugerido, refMin, nota, alerta, margenActual, margenSugerido, esAjusteManual, accion,
-            } = resolveSugeridoFila(p, refs, sugeridoOverrides);
+            } = resolveSugeridoFila(p, refs, sugeridoOverrides, sugeridosFamilia.get(p.id));
             const pendiente = esPendienteRevision({
               botTs: instanteBotVentaDe(refs),
               revisado: revision?.porId?.[p.id],
@@ -824,6 +888,7 @@ function TablaVenta({
         </tbody>
       </table>
     </HorizontalScrollSync>
+    </>
   );
 }
 
