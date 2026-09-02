@@ -203,135 +203,153 @@ order by p.nombre;
 
 
 def write_unified_sql(path: Path, ticket_rows: list, items: list) -> None:
-    """Una sola pasta: altas + cola Recibir. No suma stock."""
-    alta_vals = []
-    for i, r in enumerate(items):
-        costo = f"{r['costo']:.2f}::numeric" if i == 0 else f"{r['costo']:.2f}"
-        alta_vals.append(
-            "        ({ean}, {sku}, {nombre}, {costo}, {precio}, {tipo}, {cat}, {receta})".format(
-                ean=sql_str(r["ean"]),
-                sku=sql_str(r["sku"]),
-                nombre=sql_str(r["nombre"]),
+    """Una sola pasta SIN bloques $$ (el SQL Editor de Supabase los trunca)."""
+    by_ean = {r["ean"]: r for r in items}
+    vals = []
+    for i, row in enumerate(ticket_rows):
+        meta = by_ean[row["ean"]]
+        costo = f"{row['pu']:.2f}"
+        vals.append(
+            "  ({linea}, {ean}, {sku}, {pos}, {snap}, {qty}, {costo}, {precio}, {tipo}, {cat}, {receta})".format(
+                linea=i + 1,
+                ean=sql_str(row["ean"]),
+                sku=sql_str(row["sku"]),
+                pos=sql_str(meta["nombre"]),
+                snap=sql_str(row["nombre"]),
+                qty=int(row["qty"]),
                 costo=costo,
-                precio=r["precio"],
-                tipo=sql_str(r["tipo"]),
-                cat=sql_str(r["categoria"]),
-                receta="true" if r["receta"] else "false",
+                precio=meta["precio"],
+                tipo=sql_str(meta["tipo"]),
+                cat=sql_str(meta["categoria"]),
+                receta="true" if meta["receta"] else "false",
             )
         )
 
-    recv_vals = []
-    for i, row in enumerate(ticket_rows):
-        costo = f"{row['pu']:.2f}::numeric" if i == 0 else f"{row['pu']:.2f}"
-        recv_vals.append(
-            f"        ({sql_str(row['ean'])}, {sql_str(row['nombre'])}, {int(row['qty'])}, {costo}, {sql_str(row['sku'])})"
-        )
-
-    eans = [sql_str(r["ean"]) for r in items]
-    body = f"""-- Pedido Nadro {FOLIO} ({FECHA}) — altas + cola Recibir, una sola pasta.
--- Folio de trabajo {FOLIO} (PDF NADRO 01-09-26; si tienes el folio iNadro, avísame).
--- 10 altas stock 0. 3 ya estaban: solo costo. Ticket en borrador.
--- No suma stock: pistola + MMAA de la caja. No inventar 0000.
--- Idempotente. Pegar en Supabase → SQL Editor → Run.
--- No lo vuelvas a pegar después de escanear: borra el avance de la pistola.
+    body = f"""-- Pedido Nadro {FOLIO} ({FECHA}) — altas + cola Recibir.
+-- SIN bloques dollar-quote (do $$). El SQL Editor de Supabase los corta.
+-- 10 altas stock 0. 3 ya estaban: solo costo, no PVP.
+-- Ticket borrador. Stock al escanear + MMAA de la caja. No inventar 0000.
+-- Idempotente mientras el ticket siga en borrador.
+-- Pegar TODO este archivo en Supabase → SQL Editor → Run.
 
 begin;
 
-do $$
-declare
-  r record;
-  v_pid bigint;
-  v_sku text;
-  v_id bigint;
-  v_creados int := 0;
-  v_existian int := 0;
-begin
-  for r in
-    select * from (values
-{chr(10).join(v + ("," if i < len(alta_vals) - 1 else "") for i, v in enumerate(alta_vals))}
-    ) as t(ean, sku, nombre, costo, precio, tipo, categoria, receta)
-  loop
-    v_pid := public.fc_buscar_producto_escaneo(r.ean);
-    if v_pid is not null then
-      v_existian := v_existian + 1;
-      update public.productos
-      set costo = r.costo, updated_at = now()
-      where id = v_pid and (costo is distinct from r.costo);
-    else
-      v_sku := r.sku;
-      if exists (
-        select 1 from public.productos p
-        where p.sku = v_sku
-          and coalesce(p.codigo_barras, '') <> r.ean
-      ) then
-        v_sku := 'FC-ND-' || right(r.ean, 8);
-      end if;
-      insert into public.productos (
-        nombre, sku, codigo_barras, categoria, tipo, descripcion,
-        costo, precio, stock, stock_minimo, activo, requiere_receta
-      ) values (
-        r.nombre, v_sku, r.ean, r.categoria, r.tipo,
-        'Alta Nadro {FOLIO} · {FECHA} · listo para pistola',
-        r.costo, r.precio, 0, 1, true, r.receta
-      );
-      v_creados := v_creados + 1;
-    end if;
-  end loop;
+create temp table _fc_nd20260901 (
+  linea integer primary key,
+  ean text not null,
+  sku text not null,
+  nombre text not null,
+  snap text not null,
+  qty integer not null,
+  costo numeric(12,2) not null,
+  precio numeric(12,2) not null,
+  tipo text not null,
+  categoria text not null,
+  receta boolean not null
+) on commit drop;
 
-  select id into v_id
-  from public.recepciones
+insert into _fc_nd20260901 (linea, ean, sku, nombre, snap, qty, costo, precio, tipo, categoria, receta) values
+{chr(10).join(v + ("," if i < len(vals) - 1 else ";") for i, v in enumerate(vals))}
+
+insert into public.productos (
+  nombre, sku, codigo_barras, categoria, tipo, descripcion,
+  costo, precio, stock, stock_minimo, activo, requiere_receta
+)
+select
+  t.nombre,
+  case
+    when exists (
+      select 1 from public.productos p
+      where p.sku = t.sku and coalesce(p.codigo_barras, '') <> t.ean
+    ) then 'FC-ND-' || right(t.ean, 8)
+    else t.sku
+  end,
+  t.ean,
+  t.categoria,
+  t.tipo,
+  'Alta Nadro {FOLIO} · {FECHA} · listo para pistola',
+  t.costo,
+  t.precio,
+  0,
+  1,
+  true,
+  t.receta
+from _fc_nd20260901 t
+where public.fc_buscar_producto_escaneo(t.ean) is null;
+
+update public.productos p
+set costo = t.costo
+from _fc_nd20260901 t
+where p.id = public.fc_buscar_producto_escaneo(t.ean)
+  and p.costo is distinct from t.costo;
+
+insert into public.recepciones (proveedor, folio, fecha, total_ticket, estado, notas)
+select
+  {sql_str(PROVEEDOR)},
+  {sql_str(FOLIO)},
+  {sql_str(FECHA)},
+  {TOTAL_TICKET:.2f},
+  'borrador',
+  {sql_str(f"Pedido Nadro {FOLIO} · PDF 01-09-26 · EAN iNadro · cola Recibir; stock al confirmar pistola")}
+where not exists (
+  select 1 from public.recepciones
   where folio = {sql_str(FOLIO)} and coalesce(proveedor, '') ilike '%nadro%'
-  order by id desc
-  limit 1;
+);
 
-  if v_id is not null and (select estado from public.recepciones where id = v_id) <> 'borrador' then
-    raise notice 'Recepcion Nadro {FOLIO} ya cerrada (id %)', v_id;
-  else
-    if v_id is null then
-      insert into public.recepciones (proveedor, folio, fecha, total_ticket, estado, notas)
-      values ({sql_str(PROVEEDOR)}, {sql_str(FOLIO)}, {sql_str(FECHA)}, {TOTAL_TICKET:.2f}, 'borrador',
-              {sql_str(f"Pedido Nadro {FOLIO} · PDF 01-09-26 · EAN iNadro · cola Recibir; stock al confirmar pistola")})
-      returning id into v_id;
-    else
-      delete from public.recepcion_items where recepcion_id = v_id;
-      update public.recepciones
-      set total_ticket = {TOTAL_TICKET:.2f}, fecha = {sql_str(FECHA)}, proveedor = {sql_str(PROVEEDOR)}, updated_at = now()
-      where id = v_id;
-    end if;
+update public.recepciones
+set
+  total_ticket = {TOTAL_TICKET:.2f},
+  fecha = {sql_str(FECHA)},
+  proveedor = {sql_str(PROVEEDOR)}
+where folio = {sql_str(FOLIO)}
+  and coalesce(proveedor, '') ilike '%nadro%'
+  and estado = 'borrador';
 
-    for r in
-      select * from (values
-{chr(10).join(v + ("," if i < len(recv_vals) - 1 else "") for i, v in enumerate(recv_vals))}
-      ) as t(ean, nombre, qty, costo, sku)
-    loop
-      v_pid := null;
-      if r.ean is not null and btrim(r.ean) <> '' then
-        v_pid := public.fc_buscar_producto_escaneo(r.ean);
-      end if;
-      if v_pid is null and r.sku is not null then
-        v_pid := public.fc_buscar_producto_escaneo(r.sku);
-      end if;
+delete from public.recepcion_items i
+using public.recepciones r
+where i.recepcion_id = r.id
+  and r.folio = {sql_str(FOLIO)}
+  and coalesce(r.proveedor, '') ilike '%nadro%'
+  and r.estado = 'borrador';
 
-      insert into public.recepcion_items (
-        recepcion_id, producto_id, codigo_escaneado, nombre_snapshot,
-        cantidad, fecha_caducidad, numero_lote, costo_estimado, pendiente_alta,
-        origen, confirmado, lote_distinto, lote_id
-      ) values (
-        v_id, v_pid, nullif(btrim(r.ean), ''), r.nombre, r.qty, null, null, r.costo,
-        (v_pid is null), 'pdf', false,
-        (v_pid is not null and exists (
-          select 1 from public.lotes l
-          where l.producto_id = v_pid and coalesce(l.activo, true)
-            and coalesce(l.cantidad_actual, 0) > 0
-        )),
-        null
-      );
-    end loop;
-
-    raise notice 'Nadro {FOLIO}: altas=% ya=% recepcion id=% — escanear caja por caja',
-      v_creados, v_existian, v_id;
-  end if;
-end $$;
+insert into public.recepcion_items (
+  recepcion_id, producto_id, codigo_escaneado, nombre_snapshot,
+  cantidad, fecha_caducidad, numero_lote, costo_estimado, pendiente_alta,
+  origen, confirmado, lote_distinto, lote_id
+)
+select
+  r.id,
+  v.pid,
+  t.ean,
+  t.snap,
+  t.qty,
+  null,
+  null,
+  t.costo,
+  (v.pid is null),
+  'pdf',
+  false,
+  (
+    v.pid is not null and exists (
+      select 1 from public.lotes l
+      where l.producto_id = v.pid
+        and coalesce(l.activo, true)
+        and coalesce(l.cantidad_actual, 0) > 0
+    )
+  ),
+  null
+from _fc_nd20260901 t
+join public.recepciones r
+  on r.folio = {sql_str(FOLIO)}
+ and coalesce(r.proveedor, '') ilike '%nadro%'
+ and r.estado = 'borrador'
+left join lateral (
+  select coalesce(
+    public.fc_buscar_producto_escaneo(t.ean),
+    public.fc_buscar_producto_escaneo(t.sku)
+  ) as pid
+) v on true
+order by t.linea;
 
 commit;
 
@@ -360,18 +378,19 @@ if __name__ == "__main__":
     assert abs(suma - TOTAL_TICKET) < 0.02, (suma, TOTAL_TICKET)
 
     write_ticket_csv(OUT_TICKET, folio=FOLIO, fecha=FECHA, proveedor=PROVEEDOR, total=TOTAL_TICKET, rows=r)
-    write_recepcion_sql(
-        ROOT / "sql" / "patch_recepcion_nadro_20260901_corroborar.sql",
-        folio=FOLIO,
-        proveedor=PROVEEDOR,
-        proveedor_ilike="nadro",
-        fecha=FECHA,
-        total=TOTAL_TICKET,
-        notas=f"Pedido Nadro {FOLIO} · PDF 01-09-26 · EAN iNadro · cola Recibir; stock al confirmar pistola",
-        rows=r,
-    )
-    write_alta_sql(OUT_ALTA, a)
     write_unified_sql(OUT_SQL, r, a)
+    # El SQL Editor de Supabase trunca do $$; no generar companions con $$.
+    if OUT_ALTA.exists():
+        OUT_ALTA.write_text(
+            f"-- NO USAR. Pega sql/patch_carga_nadro_{FOLIO}.sql (sin bloques $$).\n",
+            encoding="utf-8",
+        )
+    old_corr = ROOT / "sql" / "patch_recepcion_nadro_20260901_corroborar.sql"
+    if old_corr.exists():
+        old_corr.write_text(
+            f"-- NO USAR. Pega sql/patch_carga_nadro_{FOLIO}.sql (sin bloques $$).\n",
+            encoding="utf-8",
+        )
     print(f"csv   {OUT_TICKET}")
     print(f"sql   {OUT_SQL}")
     print(f"alta  {OUT_ALTA}")
