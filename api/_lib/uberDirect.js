@@ -65,15 +65,50 @@ function stringifyUberAddress(addr) {
 
 function pickupAddressFromConfig() {
   const street = envTrim('UBER_DIRECT_PICKUP_STREET', 'Radiodifusora 100');
+  const colonia = envTrim('UBER_DIRECT_PICKUP_COLONIA', 'Chinampac de Juárez');
   const city = envTrim('UBER_DIRECT_PICKUP_CITY', 'Ciudad de México');
   const state = envTrim('UBER_DIRECT_PICKUP_STATE', 'CDMX');
   const zip = envTrim('UBER_DIRECT_PICKUP_ZIP', FARMACIA_FISCAL.codigo_postal || '09208');
+  const streetLine = colonia && !foldMxText(street).includes(foldMxText(colonia))
+    ? `${street}, ${colonia}`
+    : street;
   return {
-    street_address: [street],
+    street_address: [streetLine],
     city,
     state,
     zip_code: zip,
     country: 'MX',
+  };
+}
+
+function pickupDebugSnapshot() {
+  const cfg = getUberDirectConfig();
+  const pickup = pickupAddressFromConfig();
+  const coords = pickupCoords();
+  const storeId = envTrim('UBER_DIRECT_STORE_ID');
+  return {
+    street: pickup.street_address[0] || '',
+    city: pickup.city,
+    state: pickup.state,
+    zip: pickup.zip_code,
+    country: pickup.country,
+    lat: coords.lat,
+    lng: coords.lng,
+    has_store_id: Boolean(storeId),
+    customer_id: cfg.customerId || null,
+    client_id: cfg.clientId || null,
+    configured: cfg.configured,
+  };
+}
+
+function sanitizeUberRaw(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const metadata = raw.metadata && typeof raw.metadata === 'object' ? raw.metadata : null;
+  return {
+    code: raw.code || raw.error || null,
+    kind: raw.kind || null,
+    message: raw.message || null,
+    metadata,
   };
 }
 
@@ -511,6 +546,8 @@ module.exports = {
   feeCentsToMxn,
   mxnToDisplay,
   pickupAddressFromConfig,
+  pickupDebugSnapshot,
+  sanitizeUberRaw,
   pickupCoords,
   pickupContact,
   parseDireccionCheckout,
