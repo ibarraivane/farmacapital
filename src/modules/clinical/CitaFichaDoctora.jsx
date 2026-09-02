@@ -503,7 +503,7 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
     } catch (e) {
       const msg = String(e.message || e);
       if (/empleado_emitir_receta|does not exist|404|PGRST/i.test(msg)) {
-        showToast("SQL de recetas pendiente. Vista previa local — corre sql/patch_recetas_doctora_20260901.sql para la cola de caja.", "warning");
+        showToast("SQL de recetas pendiente. Vista previa local — corre sql/patch_recetas_doctora_20260902.sql para la cola de caja.", "warning");
         openRecetaPrint(buildRecetaHtml(recetaOptsActuales()));
       } else {
         showToast(msg, "error");

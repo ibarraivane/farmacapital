@@ -1,32 +1,21 @@
 -- =============================================================================
--- OBSOLETO — no correr.
--- Choca con public.recetas (bitácora POS/COFEPRIS, sin columna estado) → ERROR 42703.
--- Usar: sql/patch_recetas_doctora_20260902.sql
--- =============================================================================
 -- FARMACAPITAL — Receta de consultorio (perfil DOCTORA)
--- Fecha: 2026-09-01
--- Idempotente. Correr en Supabase SQL Editor.
+-- Fecha: 2026-09-02
+-- CORRE ESTE ARCHIVO (reemplaza al 20260901, que chocaba con public.recetas).
 --
--- Qué agrega (sin romper citas / medicamentos_prescritos / doctora_completar_consulta):
---   1. Folio secuencial FC-RX-AAAA-NNNNNN
---   2. Tabla recetas (documento legal + cola de caja)
---   3. Seguimiento sugerido en la cita (C1)
---   4. institucion en medicos (título / universidad)
---   5. RPCs de emitir, listar para POS, marcar impresa / surtida, guardar seguimiento
+-- Por qué falló el anterior:
+--   public.recetas YA EXISTE (bitácora POS / COFEPRIS) y NO tiene columna "estado".
+--   CREATE TABLE IF NOT EXISTS no hizo nada → el índice sobre estado tronó (42703).
 --
--- NO reemplaza:
---   - citas.medicamentos_prescritos (sigue siendo el snapshot de la ficha)
---   - recetaCitaSync / empleado_patch_cita_medicamentos
---   - doctora_completar_consulta
+-- Este parche usa public.recetas_consultorio y NO toca public.recetas.
+-- Idempotente. Correr entero en Supabase SQL Editor.
 -- =============================================================================
 
 begin;
 
--- ── Médico: institución que expidió el título (art. 29 / buena práctica) ────
 alter table public.medicos
   add column if not exists institucion text;
 
--- ── Cita: receta emitida + seguimiento sugerido (C1) ────────────────────────
 alter table public.citas
   add column if not exists receta_id bigint,
   add column if not exists seguimiento_dias integer,
@@ -38,7 +27,6 @@ comment on column public.citas.seguimiento_dias is
 comment on column public.citas.seguimiento_fecha is
   'Fecha calculada = fecha de consulta + seguimiento_dias.';
 
--- ── Folio secuencial ────────────────────────────────────────────────────────
 create sequence if not exists public.receta_folio_seq;
 
 create or replace function public.fn_siguiente_folio_receta()
@@ -53,8 +41,7 @@ begin
 end;
 $$;
 
--- ── Tabla recetas ───────────────────────────────────────────────────────────
-create table if not exists public.recetas (
+create table if not exists public.recetas_consultorio (
   id                   bigserial primary key,
   folio                text not null unique,
   cita_id              bigint references public.citas(id) on delete set null,
@@ -83,48 +70,46 @@ create table if not exists public.recetas (
   pedido_surtido_id    bigint
 );
 
-create index if not exists recetas_estado_idx on public.recetas (estado, created_at desc);
-create index if not exists recetas_cita_idx on public.recetas (cita_id);
+create index if not exists recetas_consultorio_estado_idx
+  on public.recetas_consultorio (estado, created_at desc);
+create index if not exists recetas_consultorio_cita_idx
+  on public.recetas_consultorio (cita_id);
 
-comment on table public.recetas is
-  'Receta ordinaria del consultorio FarmaCapital. Folio único. Cola POS: en_caja → impresa → surtida.';
-comment on column public.recetas.estado is
+comment on table public.recetas_consultorio is
+  'Receta ordinaria del consultorio. Folio único. Cola POS: en_caja → impresa → surtida. Distinta de public.recetas (COFEPRIS/POS).';
+comment on column public.recetas_consultorio.estado is
   'en_caja | impresa | surtida | cancelada';
-comment on column public.recetas.medicamentos is
-  'Snapshot: [{producto_id, medicamento, cantidad, dosis, via, frecuencia, duracion, indicaciones}]';
 
--- FK cita → receta (después de crear la tabla)
 do $$
 begin
   if not exists (
-    select 1 from pg_constraint where conname = 'citas_receta_id_fkey'
+    select 1 from pg_constraint where conname = 'citas_receta_consultorio_id_fkey'
   ) then
     alter table public.citas
-      add constraint citas_receta_id_fkey
-      foreign key (receta_id) references public.recetas(id) on delete set null;
+      add constraint citas_receta_consultorio_id_fkey
+      foreign key (receta_id) references public.recetas_consultorio(id) on delete set null;
   end if;
 end $$;
 
--- RLS: solo RPCs SECURITY DEFINER (mismo patrón que citas clínicas)
-alter table public.recetas enable row level security;
+alter table public.recetas_consultorio enable row level security;
 
 do $$
 begin
   if not exists (
-    select 1 from pg_policies where schemaname = 'public' and tablename = 'recetas' and policyname = 'recetas_sin_acceso_directo'
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and tablename = 'recetas_consultorio'
+      and policyname = 'recetas_consultorio_sin_acceso_directo'
   ) then
-    create policy recetas_sin_acceso_directo on public.recetas
+    create policy recetas_consultorio_sin_acceso_directo on public.recetas_consultorio
       for all using (false) with check (false);
   end if;
 end $$;
 
-grant select, insert, update on public.recetas to authenticated;
+revoke all on table public.recetas_consultorio from anon, authenticated;
 grant usage, select on sequence public.receta_folio_seq to authenticated;
-grant usage, select on sequence public.recetas_id_seq to authenticated;
+grant usage, select on sequence public.recetas_consultorio_id_seq to authenticated;
 
--- =============================================================================
--- RPC: emitir receta (doctora) → queda en cola de caja
--- =============================================================================
 create or replace function public.empleado_emitir_receta(
   p_session_token uuid,
   p_cita_id       bigint,
@@ -184,7 +169,7 @@ begin
 
   v_folio := public.fn_siguiente_folio_receta();
 
-  insert into public.recetas (
+  insert into public.recetas_consultorio (
     folio, cita_id, medico_id, medico_nombre, medico_cedula,
     medico_especialidad, medico_institucion,
     paciente_nombre, paciente_telefono, paciente_edad, paciente_sexo,
@@ -230,7 +215,7 @@ begin
     values (
       v_actor,
       (select nombre from public.usuarios where id = v_actor),
-      'emitir_receta', 'recetas', v_id::text,
+      'emitir_receta', 'recetas_consultorio', v_id::text,
       jsonb_build_object('folio', v_folio, 'cita_id', p_cita_id)
     );
   exception when others then null;
@@ -246,9 +231,6 @@ begin
 end;
 $$;
 
--- =============================================================================
--- RPC: listar recetas en cola de caja (POS → Consultas)
--- =============================================================================
 create or replace function public.empleado_listar_recetas_por_surtir(
   p_session_token uuid,
   p_desde         date default (current_date - 2),
@@ -265,7 +247,7 @@ begin
   v_dummy := public.fn_require_empleado(p_session_token);
   return coalesce((
     select jsonb_agg(to_jsonb(r) order by r.created_at desc)
-    from public.recetas r
+    from public.recetas_consultorio r
     where r.estado in ('en_caja', 'impresa')
       and (r.created_at)::date >= coalesce(p_desde, current_date - 2)
       and (r.created_at)::date <= coalesce(p_hasta, current_date)
@@ -273,9 +255,6 @@ begin
 end;
 $$;
 
--- =============================================================================
--- RPC: marcar impresa (caja ya imprimió carta)
--- =============================================================================
 create or replace function public.empleado_marcar_receta_impresa(
   p_session_token uuid,
   p_receta_id     bigint
@@ -290,11 +269,11 @@ declare
   v_row   record;
 begin
   v_dummy := public.fn_require_empleado(p_session_token);
-  select id, estado into v_row from public.recetas where id = p_receta_id;
+  select id, estado into v_row from public.recetas_consultorio where id = p_receta_id;
   if v_row.id is null then
     return jsonb_build_object('success', false, 'error', 'Receta no encontrada');
   end if;
-  update public.recetas
+  update public.recetas_consultorio
     set estado = case when estado = 'surtida' then estado else 'impresa' end,
         impresa_at = coalesce(impresa_at, now())
     where id = p_receta_id;
@@ -302,9 +281,6 @@ begin
 end;
 $$;
 
--- =============================================================================
--- RPC: marcar surtida (tras venta POS con origen médico FarmaCapital)
--- =============================================================================
 create or replace function public.empleado_marcar_receta_surtida(
   p_session_token uuid,
   p_receta_id     bigint,
@@ -320,11 +296,11 @@ declare
   v_row   record;
 begin
   v_dummy := public.fn_require_empleado(p_session_token);
-  select id into v_row from public.recetas where id = p_receta_id;
+  select id into v_row from public.recetas_consultorio where id = p_receta_id;
   if v_row.id is null then
     return jsonb_build_object('success', false, 'error', 'Receta no encontrada');
   end if;
-  update public.recetas
+  update public.recetas_consultorio
     set estado = 'surtida',
         surtida_at = now(),
         pedido_surtido_id = coalesce(p_pedido_id, pedido_surtido_id)
@@ -333,9 +309,6 @@ begin
 end;
 $$;
 
--- =============================================================================
--- RPC: seguimiento sugerido (C1) — no agenda, solo anota
--- =============================================================================
 create or replace function public.empleado_guardar_seguimiento_cita(
   p_session_token uuid,
   p_cita_id       bigint,
