@@ -83,6 +83,15 @@ function ubicacionPedidoItem(item) {
   return String(raw || "").trim() || "Sin ubicación";
 }
 
+function mlDePresentacion(producto) {
+  const t = `${producto?.presentacion || ""} ${producto?.nombre || ""} ${producto?.concentracion || ""}`;
+  const ml = t.match(/(\d+(?:[.,]\d+)?)\s*m(?:l|ls)\b/i);
+  if (ml) return parseFloat(String(ml[1]).replace(",", "."));
+  const lit = t.match(/(\d+(?:[.,]\d+)?)\s*(?:litros?|l)\b/i);
+  if (lit) return parseFloat(String(lit[1]).replace(",", ".")) * 1000;
+  return null;
+}
+
 function posVariantesDeProducto(productos, item) {
   if (!item) return [];
   // Clave normalizada: "Neomicina + Caolin + Pectina" y "Neomicina / Caolín y
@@ -91,9 +100,17 @@ function posVariantesDeProducto(productos, item) {
   if (!clave) return [item];
   const matches = productos.filter((p) => p.activo !== false && claveSustancia(p) === clave);
   const list = matches.length > 1 ? matches : [item];
-  return [...list].sort((a, b) =>
-    String(a.concentracion || "").localeCompare(String(b.concentracion || ""), "es")
-  );
+  // Agua oxigenada / frascos: ordenar por ml para que 100 < 230 < 480 se lea claro.
+  return [...list].sort((a, b) => {
+    const ma = mlDePresentacion(a);
+    const mb = mlDePresentacion(b);
+    if (ma != null && mb != null && ma !== mb) return ma - mb;
+    const ca = String(a.concentracion || "");
+    const cb = String(b.concentracion || "");
+    const byConc = ca.localeCompare(cb, "es");
+    if (byConc) return byConc;
+    return (parseFloat(a.precio) || 0) - (parseFloat(b.precio) || 0);
+  });
 }
 
 function posFichaLinea(item) {
