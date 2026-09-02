@@ -4,7 +4,7 @@
  */
 
 import { diagnosticoRefRappi } from "./monitorPrecios/unidadVenta";
-import { coherenciaSugeridosPorTamano } from "./preciosPorTamano";
+import { coherenciaSugeridosPorTamano, proponerPreciosVentaPorTamano } from "./preciosPorTamano";
 
 /** Columnas visibles en la tabla Compra (no inflar con fuentes de pocos matches). */
 export const FUENTES_COMPRA_TABLA = ["exprezo", "marzam", "nadro", "levic", "farmalive", "otros_compra"];
@@ -644,14 +644,14 @@ export function listarSugerenciasAplicables(productos, refsByProduct, calcFn) {
   }
   // No sugerir bajar la botella grande por debajo de la chica (agua oxigenada, etc.).
   const ajustadas = coherenciaSugeridosPorTamano(filas);
-  const out = [];
+  const byId = new Map();
   for (const f of ajustadas) {
     const de = roundPrecioVenta(f.producto.precio);
     const a = roundPrecioVenta(f.sugerido);
     if (de == null || a == null || a === de) continue;
     const accion = accionPrecioSugerido(de, a);
     if (accion !== "subir" && accion !== "bajar") continue;
-    out.push({
+    byId.set(f.producto.id, {
       producto: f.producto,
       de,
       a,
@@ -660,7 +660,44 @@ export function listarSugerenciasAplicables(productos, refsByProduct, calcFn) {
       coherenciaTamano: Boolean(f.coherenciaTamano),
     });
   }
-  return out;
+
+  // Si el PVP actual ya está invertido por tamaño, forzar subida aunque no haya ref de mercado.
+  for (const corr of listarCorreccionesPorTamano(productos)) {
+    const prev = byId.get(corr.producto.id);
+    if (!prev || (prev.accion === "subir" && corr.a > prev.a) || prev.accion === "bajar") {
+      byId.set(corr.producto.id, {
+        producto: corr.producto,
+        de: corr.de,
+        a: corr.a,
+        refMin: prev?.refMin ?? null,
+        accion: "subir",
+        coherenciaTamano: true,
+      });
+    }
+  }
+
+  return [...byId.values()];
+}
+
+/**
+ * PVP que hay que subir para que tamaño y precio de venta cuadren
+ * (botella más grande ≥ botella más chica, y no bajo el piso de margen).
+ */
+export function listarCorreccionesPorTamano(productos) {
+  return proponerPreciosVentaPorTamano(productos, {
+    pisoDe: (p) => {
+      const m = calcMargenVenta(p.precio, p);
+      return m.piso || 0;
+    },
+    redondear: (n) => roundPrecioVenta(n) || Math.ceil(n),
+  }).map((c) => ({
+    producto: c.producto,
+    de: roundPrecioVenta(c.de) ?? c.de,
+    a: roundPrecioVenta(c.a) ?? c.a,
+    motivo: c.motivo,
+    accion: "subir",
+    coherenciaTamano: true,
+  }));
 }
 
 /** Solo subidas. */

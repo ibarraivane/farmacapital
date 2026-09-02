@@ -34,6 +34,7 @@ import {
 import {
   coherenciaSugeridosPorTamano,
   detectarInversionesPrecioPorTamano,
+  proponerPreciosVentaPorTamano,
 } from "./lib/preciosPorTamano";
 import {
   accionesRevisionFila,
@@ -623,7 +624,7 @@ function TablaVenta({
   productos, refsByProduct, C, busq, colWidths,
   inlineEdit, savingKey, onStartEdit, onDraft, onCommit, onCancel,
   onAplicar, onAceptar, applyingId, sugeridoOverrides, onResetCompetir,
-  revision,
+  revision, onCorregirPorTamano,
 }) {
   const fil = productos.filter((p) => inventarioProductMatchesBusqueda(p, busq));
   const sugeridosFamilia = useMemo(
@@ -650,19 +651,47 @@ function TablaVenta({
             color: C.amber || "#c2410c",
             fontSize: 12,
             lineHeight: 1.4,
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 10,
+            alignItems: "flex-start",
+            justifyContent: "space-between",
           }}
         >
-          Hay {inversiones.length} precio{inversiones.length === 1 ? "" : "s"} de venta
-          que no cuadran por tamaño: una presentación más grande sale más barata que una
-          chica de la misma línea
-          {inversiones.slice(0, 2).map((inv) => (
-            <div key={`${inv.chico.id}-${inv.grande.id}`} style={{ marginTop: 4 }}>
-              · {inv.grande.presentacion || inv.grande.nombre} a {fmtPrecioVenta(inv.precioGrande)}
-              {" < "}
-              {inv.chico.presentacion || inv.chico.nombre} a {fmtPrecioVenta(inv.precioChico)}
-            </div>
-          ))}
-          . Usa el sugerido (ya respeta el orden por tamaño).
+          <div style={{ flex: "1 1 220px" }}>
+            Hay {inversiones.length} precio{inversiones.length === 1 ? "" : "s"} de venta
+            que no cuadran por tamaño: una presentación más grande sale más barata que una
+            chica de la misma línea
+            {inversiones.slice(0, 2).map((inv) => (
+              <div key={`${inv.chico.id}-${inv.grande.id}`} style={{ marginTop: 4 }}>
+                · {inv.grande.presentacion || inv.grande.nombre} a {fmtPrecioVenta(inv.precioGrande)}
+                {" < "}
+                {inv.chico.presentacion || inv.chico.nombre} a {fmtPrecioVenta(inv.precioChico)}
+              </div>
+            ))}
+            . Los tamaños y los precios de venta tienen que hacer sentido.
+          </div>
+          {typeof onCorregirPorTamano === "function" && (
+            <button
+              type="button"
+              disabled={applyingId != null}
+              onClick={onCorregirPorTamano}
+              style={{
+                flex: "0 0 auto",
+                padding: "8px 12px",
+                borderRadius: 8,
+                border: "none",
+                background: C.amber || "#c2410c",
+                color: "#fff",
+                fontWeight: 700,
+                fontSize: 12,
+                cursor: applyingId != null ? "default" : "pointer",
+                opacity: applyingId != null ? 0.6 : 1,
+              }}
+            >
+              {applyingId === "tamano" ? "Corrigiendo…" : "Ordenar precios por tamaño"}
+            </button>
+          )}
         </div>
       )}
     <HorizontalScrollSync bodyMaxHeight={TABLE_SCROLL_MAX}>
@@ -1323,6 +1352,47 @@ export default function PreciosReferenciaModule() {
     else showToast(`Se subieron ${okIds.length} precio${okIds.length === 1 ? "" : "s"}.`, "success");
   };
 
+  const corregirPorTamano = async () => {
+    const correcciones = proponerPreciosVentaPorTamano(productos, {
+      pisoDe: (p) => calcMargenVenta(p.precio, p).piso || 0,
+      redondear: (n) => roundPrecioVenta(n) || Math.ceil(n),
+    });
+    if (!correcciones.length) {
+      showToast("Los precios por tamaño ya cuadran.", "success");
+      return;
+    }
+    const preview = correcciones
+      .slice(0, 12)
+      .map((c) => `${c.producto.presentacion || c.producto.nombre}: ${fmtPrecioVenta(c.de)} → ${fmtPrecioVenta(c.a)}`)
+      .join("\n");
+    const extra = correcciones.length > 12 ? `\n… y ${correcciones.length - 12} más` : "";
+    const ok = window.confirm(
+      `¿Ordenar ${correcciones.length} precio${correcciones.length === 1 ? "" : "s"} por tamaño?\n` +
+        `La botella más grande no puede venderse más barata que una más chica.\n\n${preview}${extra}`
+    );
+    if (!ok) return;
+    const tok = sessionStorage.getItem("farmacapital_session_token");
+    if (!tok) { showToast("Sesión expirada", "error"); return; }
+    setApplyingId("tamano");
+    let okN = 0;
+    let errN = 0;
+    for (const c of correcciones) {
+      const { error } = await supabase.rpc("admin_editar_producto", {
+        p_session_token: tok,
+        p_producto_id: c.producto.id,
+        p_patch: { precio: c.a },
+      });
+      if (error) errN += 1;
+      else {
+        okN += 1;
+        setProductos((prev) => prev.map((x) => (x.id === c.producto.id ? { ...x, precio: c.a } : x)));
+      }
+    }
+    setApplyingId(null);
+    if (errN) showToast(`Se corrigieron ${okN}. Fallaron ${errN}.`, "warning");
+    else showToast(`Precios ordenados por tamaño (${okN}).`, "success");
+  };
+
   const inpS = {
     padding: "8px 12px",
     borderRadius: 8,
@@ -1587,6 +1657,7 @@ export default function PreciosReferenciaModule() {
           sugeridoOverrides={sugeridoOverrides}
           onResetCompetir={resetSugeridoCompetir}
           revision={revision}
+          onCorregirPorTamano={corregirPorTamano}
         />
       )}
     </div>

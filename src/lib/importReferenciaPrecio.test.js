@@ -3,6 +3,7 @@ import {
   detectarInversionesPrecioPorTamano,
   coherenciaSugeridosPorTamano,
   extraerTamanoConsumo,
+  proponerPreciosVentaPorTamano,
 } from "./preciosPorTamano";
 
 const productos = [
@@ -103,6 +104,13 @@ describe("precios por tamaño", () => {
     expect(inv.some((x) => x.grande.sku === "FC-48335305" && x.precioGrande < x.precioChico)).toBe(true);
   });
 
+  test("proponer precios ordena 100 < 230 < 480 ml", () => {
+    const corr = proponerPreciosVentaPorTamano(oxigenadas);
+    const porSku = Object.fromEntries(corr.map((c) => [c.producto.sku, c.a]));
+    // 480 ml estaba a $15; debe subir al menos a $16 (precio de 230 ml)
+    expect(porSku["FC-48335305"]).toBeGreaterThanOrEqual(16);
+  });
+
   test("coherencia sube el sugerido de la botella grande", () => {
     const filas = oxigenadas.map((p) => ({
       producto: p,
@@ -112,5 +120,11 @@ describe("precios por tamaño", () => {
     const grande = out.find((f) => f.producto.sku === "FC-48335305");
     expect(grande.sugerido).toBeGreaterThanOrEqual(16);
     expect(grande.coherenciaTamano).toBe(true);
+  });
+
+  test("agrupa agua oxigenada aunque falte forma_farmaceutica", () => {
+    const sinForma = oxigenadas.map((p) => ({ ...p, forma_farmaceutica: "" }));
+    const inv = detectarInversionesPrecioPorTamano(sinForma);
+    expect(inv.length).toBeGreaterThanOrEqual(1);
   });
 });
