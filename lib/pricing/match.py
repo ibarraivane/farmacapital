@@ -23,6 +23,8 @@ from lib.pricing.normalize import (
 ROOT = Path(__file__).resolve().parents[2]
 MATCHES_CONFIRMADOS = ROOT / "pricing" / "matches_confirmados.csv"
 UMBRAL_B = 85
+# Nivel B: mismo producto con OCR/lista cercana (480↔500 ml). No 100↔250 ni 230↔250.
+TOL_TAMANO_B = 0.05
 TOP_C = 3
 
 
@@ -169,15 +171,25 @@ def matchear_sku(
             if score >= 70:
                 return Match(cat.sku, fuente, "A", max(score, 90.0), p, cand_a[:TOP_C])
 
-    # B: misma marca + token_set_ratio ≥ 85 (solo dentro de la marca)
+    # B: misma marca + nombre ≥ 85. Si ambos declaran tamaño, debe ser comparable
+    # (±5%): sin esto, Agua oxigenada 100/230 ml tomaba el precio de 250/500 ml.
     if cat.marca_norm and mismos:
         ranked: list[tuple[ProductoProveedor, float]] = []
         for p in mismos:
+            if cat.tamano is not None and p.tamano is not None:
+                if not tamanos_equivalentes(cat.tamano, p.tamano, TOL_TAMANO_B):
+                    continue
             ranked.append((p, _score_nombre(cat.nombre_norm, p.nombre_norm)))
         ranked.sort(key=lambda x: x[1], reverse=True)
         if ranked and ranked[0][1] >= UMBRAL_B:
             return Match(cat.sku, fuente, "B", ranked[0][1], ranked[0][0], ranked[:TOP_C])
-        return Match(cat.sku, fuente, "C", ranked[0][1] if ranked else 0.0, None, ranked[:TOP_C])
+        # Candidatos C: mostrar también los de otro tamaño (revisión manual).
+        ranked_c: list[tuple[ProductoProveedor, float]] = []
+        for p in mismos:
+            ranked_c.append((p, _score_nombre(cat.nombre_norm, p.nombre_norm)))
+        ranked_c.sort(key=lambda x: x[1], reverse=True)
+        pool = ranked if ranked else ranked_c
+        return Match(cat.sku, fuente, "C", pool[0][1] if pool else 0.0, None, pool[:TOP_C])
 
     # C: sin marca en común → NO auto-matchear
     ranked = []

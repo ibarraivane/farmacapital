@@ -4,6 +4,7 @@
  */
 
 import { diagnosticoRefRappi } from "./monitorPrecios/unidadVenta";
+import { coherenciaSugeridosPorTamano } from "./preciosPorTamano";
 
 /** Columnas visibles en la tabla Compra (no inflar con fuentes de pocos matches). */
 export const FUENTES_COMPRA_TABLA = ["exprezo", "marzam", "nadro", "levic", "farmalive", "otros_compra"];
@@ -634,14 +635,30 @@ export function accionPrecioSugerido(precioActual, sugerido) {
 
 /** Subidas y bajadas: aplicar el sugerido al PVP. */
 export function listarSugerenciasAplicables(productos, refsByProduct, calcFn) {
-  const out = [];
+  const filas = [];
   for (const p of productos || []) {
     if (typeof calcFn !== "function") continue;
     const r = calcFn(p, refsByProduct?.[p.id] || {});
-    if ((r.accion !== "subir" && r.accion !== "bajar") || r.sugerido == null) continue;
-    const de = roundPrecioVenta(p.precio);
-    if (de == null || r.sugerido === de) continue;
-    out.push({ producto: p, de, a: r.sugerido, refMin: r.refMin, accion: r.accion });
+    if (r.sugerido == null) continue;
+    filas.push({ producto: p, sugerido: r.sugerido, refMin: r.refMin, calc: r });
+  }
+  // No sugerir bajar la botella grande por debajo de la chica (agua oxigenada, etc.).
+  const ajustadas = coherenciaSugeridosPorTamano(filas);
+  const out = [];
+  for (const f of ajustadas) {
+    const de = roundPrecioVenta(f.producto.precio);
+    const a = roundPrecioVenta(f.sugerido);
+    if (de == null || a == null || a === de) continue;
+    const accion = accionPrecioSugerido(de, a);
+    if (accion !== "subir" && accion !== "bajar") continue;
+    out.push({
+      producto: f.producto,
+      de,
+      a,
+      refMin: f.refMin,
+      accion,
+      coherenciaTamano: Boolean(f.coherenciaTamano),
+    });
   }
   return out;
 }

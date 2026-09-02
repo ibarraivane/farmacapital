@@ -51,16 +51,27 @@ class TestCascada(unittest.TestCase):
         self.assertEqual(m.nivel, "A")
         self.assertEqual(m.proveedor.id_producto_proveedor, "X1")
 
-    def test_nivel_b_misma_marca_nombre(self):
+    def test_nivel_b_misma_marca_nombre_tamano_cercano(self):
         cat = _cat(presentacion="100 G")
-        # mismo jabón, tamaño distinto → no A; nombre muy parecido → B
+        # ±5%: 100 g ↔ 104 g pasa B aunque no sea A (±2%)
+        p = _prov(
+            id_producto_proveedor="X2",
+            producto_raw="Jabón Asepxia Bicarbonato de Sodio 104 g",
+        )
+        m = matchear_fuente([cat], [p], "MayoreoTotal", {})[0]
+        self.assertEqual(m.nivel, "B")
+        self.assertGreaterEqual(m.score, 85)
+
+    def test_nivel_b_rechaza_tamano_distinto(self):
+        # Agua oxigenada / jabón: 100 g no puede tomar precio de 150 g.
+        cat = _cat(presentacion="100 G")
         p = _prov(
             id_producto_proveedor="X2",
             producto_raw="Jabón Asepxia Bicarbonato de Sodio 150 g",
         )
         m = matchear_fuente([cat], [p], "MayoreoTotal", {})[0]
-        self.assertEqual(m.nivel, "B")
-        self.assertGreaterEqual(m.score, 85)
+        self.assertEqual(m.nivel, "C")
+        self.assertIsNone(m.proveedor)
 
     def test_nivel_c_sin_marca_no_automatch(self):
         cat = _cat()

@@ -46,6 +46,11 @@ try:
 except ImportError:
     sys.exit("Falta rapidfuzz. Instala: pip install rapidfuzz")
 
+sys.path.insert(0, str(ROOT))
+from lib.pricing.normalize import extraer_tamano, tamanos_equivalentes  # noqa: E402
+
+TOL_TAMANO_IMPORT = 0.05
+
 
 FUENTE_TIPO = {
     "exprezo": "compra",
@@ -154,7 +159,26 @@ def fuzzy_match_producto(
         if filtered:
             pool = filtered
 
-    choices = [(p["id"], norm(f"{p.get('marca') or ''} {p.get('nombre') or ''}")) for p in pool]
+    tam_fuente = extraer_tamano(nombre_fuente)
+    if tam_fuente is not None:
+        mismos = []
+        for p in pool:
+            tam_cat = extraer_tamano(
+                f"{p.get('presentacion') or ''} {p.get('nombre') or ''}"
+            )
+            if tam_cat is None:
+                mismos.append(p)
+            elif tamanos_equivalentes(tam_fuente, tam_cat, TOL_TAMANO_IMPORT):
+                mismos.append(p)
+        pool = mismos
+
+    choices = [
+        (
+            p["id"],
+            norm(f"{p.get('marca') or ''} {p.get('nombre') or ''} {p.get('presentacion') or ''}"),
+        )
+        for p in pool
+    ]
     if not choices:
         return None, 0
 
