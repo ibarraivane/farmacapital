@@ -9,6 +9,10 @@
 --
 -- Este parche usa public.recetas_consultorio y NO toca public.recetas.
 -- Idempotente. Correr entero en Supabase SQL Editor.
+--
+-- Si ves 42P13 (cannot change name of input parameter "p_cita_id"):
+--   este archivo ya hace DROP FUNCTION de las firmas viejas antes de recrear.
+--   Vuelve a correr ESTE archivo completo (no el 20260901).
 -- =============================================================================
 
 begin;
@@ -109,6 +113,19 @@ end $$;
 revoke all on table public.recetas_consultorio from anon, authenticated;
 grant usage, select on sequence public.receta_folio_seq to authenticated;
 grant usage, select on sequence public.recetas_consultorio_id_seq to authenticated;
+
+-- CREATE OR REPLACE no puede renombrar argumentos (42P13).
+-- Producción ya tiene empleado_marcar_receta_impresa(uuid,bigint) con p_cita_id
+-- (sql/alter_citas_receta_impresion.sql / PR #57). Este parche usa p_receta_id.
+drop function if exists public.empleado_marcar_receta_impresa(uuid, bigint);
+drop function if exists public.empleado_solicitar_impresion_receta(uuid, bigint, jsonb);
+drop function if exists public.empleado_listar_recetas_por_imprimir(uuid, date, date);
+drop function if exists public.empleado_listar_recetas_por_surtir(uuid, date, date);
+drop function if exists public.empleado_listar_recetas_por_surtir(uuid);
+drop function if exists public.empleado_emitir_receta(uuid, bigint, jsonb);
+drop function if exists public.empleado_marcar_receta_surtida(uuid, bigint, bigint);
+drop function if exists public.empleado_marcar_receta_surtida(uuid, uuid, text);
+drop function if exists public.empleado_guardar_seguimiento_cita(uuid, bigint, integer, text);
 
 create or replace function public.empleado_emitir_receta(
   p_session_token uuid,
