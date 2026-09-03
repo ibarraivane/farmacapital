@@ -48,6 +48,49 @@ describe("posTituloProducto", () => {
     ).toMatch(/Leche En Polvo/i);
     expect(nombreComercialPos("Leche En Polvo Nan 1 Optimal Pro 120 G")).not.toBe("Leche En");
   });
+
+  test("Anthelios no colapsa variantes distintas a La Roche Anthelios", () => {
+    const marca = "La Roche-Posay";
+    const invisible = {
+      nombre: "La Roche Anthelios UV Mune 400 fluido invisible FPS50+ 50 ml",
+      marca,
+      presentacion: "50 ml",
+      forma_farmaceutica: "Fluido",
+    };
+    const color = {
+      nombre: "La Roche Anthelios UV Mune 400 fluido con color FPS50+ 50 ml",
+      marca,
+      presentacion: "50 ml",
+      forma_farmaceutica: "Fluido",
+    };
+    const oil = {
+      nombre: "La Roche Anthelios UV Mune 400 oil control FPS50+ 50 ml",
+      marca,
+      presentacion: "50 ml",
+      forma_farmaceutica: "Fluido",
+    };
+    const oilColor = {
+      nombre: "La Roche Anthelios UV Mune 400 oil control con color FPS50+ 50 ml",
+      marca,
+      presentacion: "50 ml",
+      forma_farmaceutica: "Fluido",
+    };
+    const uvAir = {
+      nombre: "La Roche-Posay Anthelios UV Air FPS 50+ Protector Solar Ligero 40 ml",
+      marca,
+      presentacion: "40 ml",
+      forma_farmaceutica: "Fluido",
+    };
+    expect(posTituloProducto(invisible)).toMatch(/invisible/i);
+    expect(posTituloProducto(color)).toMatch(/color/i);
+    expect(posTituloProducto(oil)).toMatch(/oil control/i);
+    expect(posTituloProducto(oilColor)).toMatch(/oil control/i);
+    expect(posTituloProducto(oilColor)).toMatch(/color/i);
+    expect(posTituloProducto(uvAir)).toMatch(/uv air/i);
+    const titulos = [invisible, color, oil, oilColor, uvAir].map(posTituloProducto);
+    expect(new Set(titulos).size).toBe(5);
+    expect(titulos.every((t) => t === "La Roche Anthelios")).toBe(false);
+  });
 });
 
 describe("posEtiquetaVariante", () => {
