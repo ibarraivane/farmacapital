@@ -80,6 +80,8 @@ export function readOAuthRedirectError(search, hash) {
       if (!code) return null;
       const desc = q.get("error_description") || "";
       const pretty = decodeURIComponent(String(desc).replace(/\+/g, " ")).trim();
+      const human = humanizeOAuthRedirectError(pretty, code);
+      if (human) return human;
       if (pretty) return pretty;
       if (code === "access_denied") return "Cancelaste el acceso con Google.";
       return `El proveedor rechazó el acceso (${code}).`;
@@ -88,6 +90,17 @@ export function readOAuthRedirectError(search, hash) {
     }
   };
   return fromParams(search) || fromParams(hash);
+}
+
+/** Traduce errores crudos de Supabase/Google a texto para el cliente. */
+export function humanizeOAuthRedirectError(description, code) {
+  const text = String(description || "").toLowerCase();
+  const err = String(code || "").toLowerCase();
+  if (text.includes("database error saving new user")) {
+    return "Google te reconoció, pero no pudimos crear la cuenta. Intentá de nuevo o inscribite con correo y teléfono.";
+  }
+  if (err === "access_denied") return "Cancelaste el acceso con Google.";
+  return null;
 }
 
 /**

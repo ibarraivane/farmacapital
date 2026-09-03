@@ -97,6 +97,18 @@ Tras guardar env vars y el SQL, redeploy en Vercel. Probá en
 - `src/shared/tiendaRoutes.js` — ruta `auth-callback`
 - `vercel.json` — CSP para dominios OAuth
 
+## Trigger legado (no tocar perfiles)
+
+En producción existía `public.handle_new_auth_user`, disparado al insertar
+en `auth.users`. Copiaba al usuario a `perfiles` como `vendedor`. Eso
+rompe **Continuar con Google** de un cliente (`Database error saving new
+user`) y, si pasara, le daría perfil de empleado.
+
+El personal se crea con `admin_crear_usuario`. Los clientes, con
+`service_login_cliente_oauth`. Neutralizar el trigger:
+
+- `sql/patch_oauth_no_perfil_staff_20260901.sql` (SQL Editor de Supabase)
+
 ## Notas
 
 - Cuentas solo-OAuth no tienen `password_hash`; pueden seguir entrando por

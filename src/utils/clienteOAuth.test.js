@@ -1,5 +1,6 @@
 import {
   enabledSocialProviders,
+  humanizeOAuthRedirectError,
   isOAuthCallbackLocation,
   oauthCallbackUrl,
   oauthCanonicalOrigin,
@@ -47,7 +48,20 @@ describe("clienteOAuth helpers", () => {
         ""
       )
     ).toMatch(/Unable to exchange/i);
+    expect(
+      readOAuthRedirectError(
+        "?error=server_error&error_description=Database+error+saving+new+user",
+        ""
+      )
+    ).toMatch(/Google te reconoció/i);
     expect(readOAuthRedirectError("", "")).toBeNull();
+  });
+
+  test("humaniza Database error saving new user", () => {
+    expect(
+      humanizeOAuthRedirectError("Database error saving new user", "server_error")
+    ).toMatch(/correo y teléfono/i);
+    expect(humanizeOAuthRedirectError("Unable to exchange", "server_error")).toBeNull();
   });
 
   test("callback OAuth usa www en producción", () => {
