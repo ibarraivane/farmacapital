@@ -1,0 +1,1 @@
+-- NO USAR. Pega sql/patch_carga_nadro_20260901.sql (sin bloques $$).

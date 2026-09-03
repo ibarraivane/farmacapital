@@ -55,4 +55,19 @@ describe("parseTicketCsv", () => {
     expect(renglones.every((r) => r.codigo && r.codigo.length >= 8)).toBe(true);
     expect(renglones.every((r) => !r.numero_lote)).toBe(true);
   });
+
+  test("Nadro 20260901 generado", () => {
+    const csv = readFileSync(join(__dirname, "../../sql/generated/ticket_nadro_20260901.csv"), "utf8");
+    const { renglones, folio, proveedor, total } = parseTicketCsv(csv);
+    expect(folio).toBe("20260901");
+    expect(proveedor).toBe("Nadro");
+    expect(total).toBe(848.05);
+    expect(renglones).toHaveLength(13);
+    expect(renglones.reduce((a, r) => a + r.cantidad, 0)).toBe(15);
+    expect(renglones.every((r) => r.codigo && r.codigo.length >= 8)).toBe(true);
+    expect(renglones.every((r) => !r.numero_lote)).toBe(true);
+    expect(renglones.some((r) => r.codigo === "7506494600038" && r.cantidad === 1)).toBe(true);
+    expect(renglones.some((r) => r.codigo === "037836051227")).toBe(true);
+    expect(renglones.some((r) => r.codigo === "3337875917810" && r.costo === 372.2)).toBe(true);
+  });
 });
