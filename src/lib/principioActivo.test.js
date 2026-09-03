@@ -1,6 +1,7 @@
 import {
   completarPrincipioActivo,
   esSoloConcentracionPrincipio,
+  inferirPrincipioActivo,
   inferirPrincipioActivoDesdeNombre,
   opcionesPrincipioActivo,
   productoPasaFiltroPrincipioActivo,
@@ -19,6 +20,15 @@ test("infiere el genérico entre paréntesis y no toma público ni dosis", () =>
   expect(inferirPrincipioActivoDesdeNombre("Desodorante Axe (Hombre)")).toBe("");
   expect(inferirPrincipioActivoDesdeNombre("Tempra (500 mg)")).toBe("");
   expect(inferirPrincipioActivoDesdeNombre("Ampicilina (inyectable)")).toBe("");
+});
+
+test("infiere marcas conocidas y nombres que ya son el genérico", () => {
+  expect(inferirPrincipioActivo({ nombre: "Tylenol", marca: "Tylenol" })).toBe("Paracetamol");
+  expect(inferirPrincipioActivo({ nombre: "Flanax", marca: "Flanax" })).toBe("Naproxeno");
+  expect(inferirPrincipioActivo({ nombre: "Amlodipino" })).toBe("Amlodipino");
+  expect(inferirPrincipioActivo({ nombre: "Aciclovir" })).toBe("Aciclovir");
+  expect(inferirPrincipioActivo({ nombre: "Shampoo Pantene", marca: "Pantene" })).toBe("");
+  expect(textoPrincipioActivo({ nombre: "Tylenol", marca: "Tylenol" })).toBe("Paracetamol");
 });
 
 test("texto usa el campo, luego denominación, luego el nombre", () => {

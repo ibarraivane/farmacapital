@@ -29,7 +29,7 @@ import {
   productoFaltaPrincipioActivo,
   productoRequierePrincipioActivo,
 } from "./constants/categoriasProducto";
-import { completarPrincipioActivo, inferirPrincipioActivoDesdeNombre } from "./lib/principioActivo";
+import { completarPrincipioActivo, inferirPrincipioActivoDesdeNombre, textoPrincipioActivo } from "./lib/principioActivo";
 import {
   PRODUCTOS_POR_PAGINA,
   agruparLotesPorProducto,
@@ -237,7 +237,7 @@ function productoSinFoto(p, fotoCatalogoDe) {
 }
 
 function productoSinPrincipioActivo(p) {
-  return productoFaltaPrincipioActivo(p);
+  return productoFaltaPrincipioActivo(p) && !textoPrincipioActivo(p);
 }
 
 /** Parte nombre/presentación y mueve dosis suelta de principio → concentración al importar CSV. */
@@ -265,6 +265,8 @@ function normalizarCamposFarmaceuticosImport(row) {
 }
 
 function lineaPrincipioQuimicoTabla(p) {
+  const txt = textoPrincipioActivo(p);
+  if (txt) return txt;
   const dg = String(p.denominacion_generica ?? "").trim();
   const pa = String(p.principio_activo ?? "").trim();
   if (dg) return dg;
