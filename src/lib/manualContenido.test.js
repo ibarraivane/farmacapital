@@ -13,6 +13,14 @@ describe("manualContenido", () => {
     expect(ids).toContain("midia");
   });
 
+  test("Expedientes explica gráficas y volver a citas", () => {
+    const t = TEMAS.find((x) => x.id === "expedientes");
+    const blob = [t.resumen, ...(t.pasos || [])].join(" ");
+    expect(blob).toMatch(/gráficas|graficas/i);
+    expect(blob).toMatch(/peso/i);
+    expect(blob).toMatch(/Volver a citas/);
+  });
+
   test("doctora solo clínica", () => {
     const u = { rol: "doctora" };
     const temas = temasParaUsuario(u, (_user, id) => ["cons_dr", "exp_dr", "ayuda"].includes(id));

@@ -184,15 +184,17 @@ export default function ExpedientesDoctora() {
         </Box>
       )}
 
-      <Modal open={!!pacienteModal} onClose={() => setPacienteModal(null)} title={`📂 Expediente clínico · ${pacienteModal?.nombre || ""}`} ac={BRAND.primary}>
+      <Modal
+        open={!!pacienteModal && !citaVerModal}
+        onClose={() => setPacienteModal(null)}
+        title={`📂 Expediente clínico · ${pacienteModal?.nombre || ""}`}
+        ac={BRAND.primary}
+      >
         {pacienteModal && (
           <ExpedientePaciente
             telefono={pacienteModal.telefono}
             nombre={pacienteModal.nombre}
-            onVerCita={(cita) => {
-              setPacienteModal(null);
-              setCitaVerModal(cita);
-            }}
+            onVerCita={(cita) => setCitaVerModal(cita)}
           />
         )}
       </Modal>
@@ -205,6 +207,7 @@ export default function ExpedientesDoctora() {
         procsList={[]}
         onSaved={() => setCitaVerModal(null)}
         readOnly={true}
+        closeLabel="← Volver a citas"
       />
     </div>
   );

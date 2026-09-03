@@ -1,7 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { C_LIGHT, BRAND } from "../../../constants";
 import { supabase } from "../../../supabase";
 import { Box, Tag } from "../../../ui";
+import { EvolucionClinica } from "./EvolucionClinica";
+import {
+  promedioCampo,
+  promedioTA,
+  puntosDesdeCitas,
+  tendenciaCampo,
+} from "../../../lib/evolucionClinica";
 
 const C = C_LIGHT;
 
@@ -21,19 +28,6 @@ export function ExpedientePaciente({ telefono, nombre, onVerCita }) {
       }
     }
     return {};
-  };
-
-  const normSignos = (raw) => {
-    if (raw && typeof raw === "object") return raw;
-    if (typeof raw === "string") {
-      try {
-        const p = JSON.parse(raw);
-        return typeof p === "object" && p !== null ? p : null;
-      } catch {
-        return null;
-      }
-    }
-    return null;
   };
 
   useEffect(() => {
@@ -77,6 +71,8 @@ export function ExpedientePaciente({ telefono, nombre, onVerCita }) {
     })();
   }, [telefono]);
 
+  const serieVitales = useMemo(() => puntosDesdeCitas(citas), [citas]);
+
   if (loading) {
     return <div style={{ color: C.textMid, padding: 30, textAlign: "center" }}>Cargando expediente…</div>;
   }
@@ -116,56 +112,13 @@ export function ExpedientePaciente({ telefono, nombre, onVerCita }) {
     else frecuenciaTxt = "ocasional";
   }
 
-  const conVitalesRaw = completadas
-    .map((c) => ({ c, sv: normSignos(c.signos_vitales) }))
-    .filter((x) => x.sv)
-    .slice(0, 5);
-  const conVitales = conVitalesRaw.map((x) => ({ ...x.c, _sv: x.sv }));
-
-  const calcPromNum = (campo) => {
-    const valores = conVitales
-      .map((c) => parseFloat(c._sv[campo]))
-      .filter((v) => Number.isFinite(v));
-    if (!valores.length) return null;
-    return (valores.reduce((a, b) => a + b, 0) / valores.length).toFixed(1);
-  };
-
-  const promTA = (() => {
-    const valores = conVitales.map((c) => c._sv.ta).filter(Boolean);
-    if (!valores.length) return null;
-    const sis = [];
-    const dia = [];
-    valores.forEach((v) => {
-      const [s, d] = String(v).split("/").map((x) => parseFloat(x));
-      if (Number.isFinite(s)) sis.push(s);
-      if (Number.isFinite(d)) dia.push(d);
-    });
-    if (!sis.length) return null;
-    const pSis = Math.round(sis.reduce((a, b) => a + b, 0) / sis.length);
-    const pDia = dia.length ? Math.round(dia.reduce((a, b) => a + b, 0) / dia.length) : null;
-    return pDia !== null ? `${pSis}/${pDia}` : String(pSis);
-  })();
-
-  const promFC = calcPromNum("fc");
-  const promTemp = calcPromNum("temp");
-  const promSat = calcPromNum("sat");
-  const promPeso = calcPromNum("peso");
-
-  let tendenciaPeso = null;
-  if (conVitales.length >= 2) {
-    const pesos = conVitales
-      .map((c) => ({ fecha: c.fecha, peso: parseFloat(c._sv.peso) }))
-      .filter((p) => Number.isFinite(p.peso));
-    if (pesos.length >= 2) {
-      const diffNum = pesos[0].peso - pesos[pesos.length - 1].peso;
-      const diff = diffNum.toFixed(1);
-      if (Math.abs(parseFloat(diff)) > 0.5) {
-        tendenciaPeso = diffNum > 0
-          ? `↑ ${diff} kg desde ${pesos[pesos.length - 1].fecha}`
-          : `↓ ${Math.abs(parseFloat(diff))} kg desde ${pesos[pesos.length - 1].fecha}`;
-      }
-    }
-  }
+  const promTA = promedioTA(serieVitales)?.texto || null;
+  const promFC = promedioCampo(serieVitales, "fc", 1);
+  const promTemp = promedioCampo(serieVitales, "temp", 1);
+  const promSat = promedioCampo(serieVitales, "sat", 1);
+  const promPeso = promedioCampo(serieVitales, "peso", 1);
+  const promTalla = promedioCampo(serieVitales, "tallaEfectiva", 1);
+  const tendenciaPeso = tendenciaCampo(serieVitales, "peso", { umbral: 0.5, decimales: 1, unidad: " kg" });
 
   const dxCount = {};
   completadas.forEach((c) => {
@@ -257,9 +210,11 @@ export function ExpedientePaciente({ telefono, nombre, onVerCita }) {
         </div>
       </Box>
 
-      {conVitales.length > 0 && (
+      <EvolucionClinica puntos={serieVitales} />
+
+      {serieVitales.length > 0 && (
         <Box style={{ padding: 14, marginBottom: 12 }}>
-          <div style={sectionTitle}>💓 Signos vitales (promedio últimas {conVitales.length})</div>
+          <div style={sectionTitle}>💓 Promedio de signos ({serieVitales.length} {serieVitales.length === 1 ? "consulta" : "consultas"})</div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 10 }}>
             {promTA && (
               <div>
@@ -267,30 +222,36 @@ export function ExpedientePaciente({ telefono, nombre, onVerCita }) {
                 <div style={{ color: C.textMid, fontSize: 11 }}>Presión arterial</div>
               </div>
             )}
-            {promFC && (
+            {promFC != null && (
               <div>
-                <div style={{ color: C.blue, fontWeight: 700, fontSize: 16 }}>{promFC} bpm</div>
+                <div style={{ color: C.blue, fontWeight: 700, fontSize: 16 }}>{promFC} lpm</div>
                 <div style={{ color: C.textMid, fontSize: 11 }}>Frec. cardíaca</div>
               </div>
             )}
-            {promTemp && (
+            {promTemp != null && (
               <div>
                 <div style={{ color: C.amber, fontWeight: 700, fontSize: 16 }}>{promTemp}°C</div>
                 <div style={{ color: C.textMid, fontSize: 11 }}>Temperatura</div>
               </div>
             )}
-            {promSat && (
+            {promSat != null && (
               <div>
                 <div style={{ color: C.green, fontWeight: 700, fontSize: 16 }}>{promSat}%</div>
                 <div style={{ color: C.textMid, fontSize: 11 }}>Saturación O₂</div>
               </div>
             )}
-            {promPeso && (
+            {promPeso != null && (
               <div>
                 <div style={{ color: C.purple, fontWeight: 700, fontSize: 16 }}>{promPeso} kg</div>
                 <div style={{ color: C.textMid, fontSize: 11 }}>
-                  Peso {tendenciaPeso && <span style={{ color: C.amber, fontSize: 10 }}> {tendenciaPeso}</span>}
+                  Peso {tendenciaPeso && <span style={{ color: C.amber, fontSize: 10 }}> {tendenciaPeso.texto}</span>}
                 </div>
+              </div>
+            )}
+            {promTalla != null && (
+              <div>
+                <div style={{ color: C.teal, fontWeight: 700, fontSize: 16 }}>{promTalla} cm</div>
+                <div style={{ color: C.textMid, fontSize: 11 }}>Talla</div>
               </div>
             )}
           </div>
