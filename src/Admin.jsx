@@ -4,7 +4,7 @@ import useSidebarBadges from "./hooks/useSidebarBadges";
 import { supabase, isSupabaseLocalMisconfigured } from "./supabase";
 import { C as _C, C_LIGHT, BRAND, NEG, NAV_ADMIN, NAV_VENDEDOR, NAV_DOCTORA, NAV_ITEMS, ADMIN_NAV_SECTIONS } from "./constants";
 import { $, dC, cC, abc, aCol, nCol, hashPwd, hashPwdLegacy, generateSalt, primerNombre, saludoUsuario, normalizarSesionLoginResp, getSessionToken, setSessionToken, writeAdminUser, readAdminUser, clearEmpleadoSession, esErrorSesionEmpleado, onSesionEmpleadoInvalida, telefonoMxValido, normalizarTelefonoMxGuardar } from "./utils";
-import { validarPasswordTienda, PASSWORD_RULES_TEXT } from "./utils/passwordPolicy";
+import { validarPasswordTienda, PASSWORD_RULES_TEXT, PASSWORD_MIN_LENGTH } from "./utils/passwordPolicy";
 import { Logo, Box, Tag, Btn, Inp, KPI, KPI_ROW, Modal, NotificacionesToast, showToast, ToastProvider, ConfirmDialog, SkeletonTable, SkeletonKPIs, SkeletonCard, Paginador, GlobalHoverStyles } from "./ui";
 import { sincronizarVentasPendientes, contarVentasPendientes } from "./utils/offlineQueue";
 import { ymdMexico, rangoDiaFarmacia, inicioDiaFarmacia, inicioMesFarmaciaYmd } from "./lib/ventasVsMeta";
@@ -1253,8 +1253,8 @@ function GestionUsuarios({ showConfirm }){
       setError("Indica un correo o un teléfono de 10 dígitos para el acceso.");
       return;
     }
-    if((form.password || "").length < 6) {
-      setError("La contraseña debe tener al menos 6 caracteres.");
+    if((form.password || "").length < PASSWORD_MIN_LENGTH) {
+      setError(`La contraseña debe tener al menos ${PASSWORD_MIN_LENGTH} caracteres.`);
       return;
     }
     setGuard(true); setError("");
@@ -1424,8 +1424,8 @@ function GestionUsuarios({ showConfirm }){
     if (!tok) { showToast("Sesión expirada. Entra de nuevo.", "error"); return; }
     const actual = prompt("Contraseña actual:");
     if (!actual) return;
-    const nueva = prompt("Nueva contraseña (mínimo 6 caracteres):");
-    if (!nueva || nueva.length < 6) { showToast("La contraseña debe tener al menos 6 caracteres","warning"); return; }
+    const nueva = prompt(`Nueva contraseña (mínimo ${PASSWORD_MIN_LENGTH} caracteres):`);
+    if (!nueva || nueva.length < PASSWORD_MIN_LENGTH) { showToast(`La contraseña debe tener al menos ${PASSWORD_MIN_LENGTH} caracteres`,"warning"); return; }
     const nueva2 = prompt("Confirma la nueva contraseña:");
     if (nueva !== nueva2) { showToast("Las contraseñas no coinciden","error"); return; }
 
@@ -1448,8 +1448,8 @@ function GestionUsuarios({ showConfirm }){
 
   const guardarPwd = async () => {
     if (!pwdModal) return;
-    if (!pwdNueva || pwdNueva.length < 6) {
-      showToast("La contraseña debe tener al menos 6 caracteres", "warning");
+    if (!pwdNueva || pwdNueva.length < PASSWORD_MIN_LENGTH) {
+      showToast(`La contraseña debe tener al menos ${PASSWORD_MIN_LENGTH} caracteres`, "warning");
       return;
     }
     setGuardandoPwd(true);
@@ -1536,7 +1536,7 @@ function GestionUsuarios({ showConfirm }){
         </div>
         <div style={{marginBottom:12}}>
           <div style={{color:C.textMid,fontSize:11,marginBottom:4}}>Contraseña *</div>
-          <Inp value={form.password} onChange={e=>setForm(p=>({...p,password:e.target.value}))} placeholder="Mínimo 6 caracteres" type="password" style={{width:"100%",boxSizing:"border-box"}}/>
+          <Inp value={form.password} onChange={e=>setForm(p=>({...p,password:e.target.value}))} placeholder={`Mínimo ${PASSWORD_MIN_LENGTH} caracteres`} type="password" style={{width:"100%",boxSizing:"border-box"}}/>
         </div>
         <div style={{marginBottom:12}}>
           <div style={{color:C.textMid,fontSize:11,marginBottom:4}}>Perfil *</div>
@@ -1560,7 +1560,7 @@ function GestionUsuarios({ showConfirm }){
           <Btn
             onClick={crear}
             col={BRAND.primary}
-            dis={!form.nombre||!form.password||form.password.length<6||!accesoEmpleadoValido(form.email, form.telefono)||guardando}
+            dis={!form.nombre||!form.password||form.password.length<PASSWORD_MIN_LENGTH||!accesoEmpleadoValido(form.email, form.telefono)||guardando}
           >
             {guardando?"Creando...":"Crear usuario"}
           </Btn>
@@ -1617,12 +1617,12 @@ function GestionUsuarios({ showConfirm }){
 
       <Modal open={!!pwdModal} onClose={()=>{ if(!guardandoPwd){ setPwdModal(null); setPwdNueva(""); } }} title={pwdModal ? `Nueva contraseña · ${pwdModal.nombre}` : "Nueva contraseña"} closeOnBackdrop={!guardandoPwd}>
         <div style={{marginBottom:12}}>
-          <div style={{color:C.textMid,fontSize:11,marginBottom:4}}>Contraseña (mínimo 6 caracteres) *</div>
+          <div style={{color:C.textMid,fontSize:11,marginBottom:4}}>Contraseña (mínimo {PASSWORD_MIN_LENGTH} caracteres) *</div>
           <Inp value={pwdNueva} onChange={e=>setPwdNueva(e.target.value)} placeholder="Nueva contraseña" type="password" style={{width:"100%",boxSizing:"border-box"}}/>
         </div>
         <div style={{display:"flex",gap:8}}>
           <Btn onClick={()=>{ setPwdModal(null); setPwdNueva(""); }} ol col={C.textMid} dis={guardandoPwd}>Cancelar</Btn>
-          <Btn onClick={guardarPwd} col={BRAND.primary} dis={!pwdNueva||pwdNueva.length<6||guardandoPwd}>
+          <Btn onClick={guardarPwd} col={BRAND.primary} dis={!pwdNueva||pwdNueva.length<PASSWORD_MIN_LENGTH||guardandoPwd}>
             {guardandoPwd?"Guardando...":"Guardar contraseña"}
           </Btn>
         </div>

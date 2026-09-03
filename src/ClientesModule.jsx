@@ -5,6 +5,7 @@ import { supabase } from "./supabase";
 import { SkeletonTable, Paginador, SearchDropdown, showToast } from "./ui";
 import { nombreCompletoPacienteValido, telefonoMxValido, soloDigitosTel, normalizarTelefonoMxGuardar } from "./utils";
 import { productMatchesSearchQuery } from "./utils/fuzzySearch";
+import { validarPasswordTienda, PASSWORD_MIN_LENGTH } from "./utils/passwordPolicy";
 
 const BRAND = { primary:"#0D1B2A", secondary:"#1E3ABA", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
 
@@ -200,9 +201,10 @@ function ClienteDetalle({ cliente, onReload, onDeleted }) {
   };
 
   const asignarPasswordTienda = async () => {
-    const nueva = window.prompt("Nueva contraseña para que el cliente entre a la tienda en línea (mínimo 6 caracteres):");
+    const nueva = window.prompt(`Nueva contraseña para que el cliente entre a la tienda en línea (mínimo ${PASSWORD_MIN_LENGTH} caracteres):`);
     if (nueva == null) return;
-    if (String(nueva).length < 6) { setMsg("⚠ La contraseña debe tener al menos 6 caracteres"); return; }
+    const valPwd = validarPasswordTienda(nueva);
+    if (!valPwd.ok) { setMsg(`⚠ ${valPwd.error}`); return; }
     setSaving(true);
     try {
       const tok = sessionStorage.getItem("farmacapital_session_token");
