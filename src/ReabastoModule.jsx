@@ -20,25 +20,28 @@ import {
   fetchProductosPaginados,
 } from "./lib/inventarioHubData";
 import { DIAS_CADUCIDAD_ALERTA } from "./lib/caducidad";
-import { inventarioProductMatchesBusqueda } from "./utils/fuzzySearch";
+import {
+  VISTA_REABASTO,
+  agruparReabastoPorActivo,
+  calcStockUrgencia,
+  idParaPedir,
+  leyendaCoberturaGrupo,
+  reabastoFilaMatchesBusqueda,
+  stockDe,
+  stockMinimoEfectivo,
+} from "./lib/reabastoPorActivo";
 
 const BRAND = { primary:"#0D1B2A", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
 const fmt = n => `$${parseFloat(n||0).toLocaleString("es-MX",{minimumFractionDigits:2})}`;
-const STOCK_MIN_DEFAULT = 5;
+const VISTA_STORAGE = "farmacapital_reabasto_vista";
 
-const stockDe = (p) => Number(p.stock_peps ?? p.stock) || 0;
-const stockMinimoEfectivo = (p) => (Number(p.stock_minimo) > 0 ? Number(p.stock_minimo) : STOCK_MIN_DEFAULT);
-
-const calcStockUrgencia = (p, C) => {
-  const min = stockMinimoEfectivo(p);
-  const stock = stockDe(p);
-  const pct = stock / min;
-  if (stock === 0) return { nivel:"AGOTADO", col:C.red, bg:C.redDim, icon:"🚨" };
-  if (pct <= 0.5)    return { nivel:"CRÍTICO", col:C.red, bg:C.redDim, icon:"🔴" };
-  if (pct <= 1)      return { nivel:"BAJO",    col:C.amber, bg:C.amberDim, icon:"🟡" };
-  if (pct <= 1.5)    return { nivel:"PRONTO",  col:"#0891b2", bg:"#cffafe", icon:"🔵" };
-  return null;
-};
+function leerVistaReabasto() {
+  try {
+    const saved = sessionStorage.getItem(VISTA_STORAGE);
+    if (saved === VISTA_REABASTO.MARCA || saved === VISTA_REABASTO.ACTIVO) return saved;
+  } catch (_) { /* storage bloqueado */ }
+  return VISTA_REABASTO.ACTIVO;
+}
 
 const calcCaducidadUrgencia = (p, C) => {
   const dias = p.diasCaducidad;
@@ -61,6 +64,8 @@ export default function ReabastoModule() {
   const [busqueda,    setBusqueda]    = useState("");
   const [filtroTienda, setFiltroTienda] = useState("todas");
   const [filtroUrgencia, setFiltroUrgencia] = useState("");
+  const [vista, setVista] = useState(leerVistaReabasto);
+  const [pedidoMarca, setPedidoMarca] = useState({});
 
   const fetchProductos = useCallback(async (opts) => {
     const silencioso = !!(opts && typeof opts === "object" && opts.silencioso);
@@ -119,15 +124,20 @@ export default function ReabastoModule() {
   useEffect(()=>{ fetchProductos(); },[fetchProductos]);
   useCatalogoVivo(() => fetchProductos({ silencioso: true }));
 
+  const filasVista = useMemo(
+    () => (vista === VISTA_REABASTO.ACTIVO ? agruparReabastoPorActivo(productos) : productos),
+    [productos, vista]
+  );
+
   const alertas = useMemo(() => (
-    productos
+    filasVista
       .map(p=>({...p, urgencia: calcStockUrgencia(p, C)}))
       .filter(p=>p.urgencia)
       .sort((a,b)=>{
         const ord={AGOTADO:0,CRÍTICO:1,BAJO:2,PRONTO:3};
         return (ord[a.urgencia.nivel]??9)-(ord[b.urgencia.nivel]??9);
       })
-  ), [productos, C]);
+  ), [filasVista, C]);
 
   const colaCaduca = useMemo(() => (
     productos
@@ -141,8 +151,8 @@ export default function ReabastoModule() {
   ), [productos, C]);
 
   const menores = useMemo(() => (
-    [...productos].sort((a,b)=>stockDe(a)-stockDe(b)).slice(0, 40)
-  ), [productos]);
+    [...filasVista].sort((a,b)=>stockDe(a)-stockDe(b)).slice(0, 40)
+  ), [filasVista]);
   const filasStock = useMemo(() => (
     alertas.length
       ? alertas
@@ -151,25 +161,27 @@ export default function ReabastoModule() {
   const filasFuente = filtroUrgencia === "CADUCA" ? colaCaduca : filasStock;
   const filasTienda = useMemo(() => {
     const q = busqueda.trim();
-    let list = q ? filasFuente.filter((p) => inventarioProductMatchesBusqueda(p, q)) : filasFuente;
+    let list = q ? filasFuente.filter((p) => reabastoFilaMatchesBusqueda(p, q)) : filasFuente;
     if (filtroTienda === "levic") list = list.filter((p) => p.mejorTienda?.fuente === "levic");
     else if (filtroTienda === "otras") list = list.filter((p) => p.mejorTienda && p.mejorTienda.fuente !== "levic");
     else if (filtroTienda === "sin") list = list.filter((p) => !p.mejorTienda);
     return list;
   }, [filasFuente, busqueda, filtroTienda]);
   const filasAlertas = useMemo(() => {
-    if (filtroUrgencia === "elegidos") return filasTienda.filter((p) => selProds[p.id] > 0);
+    if (filtroUrgencia === "elegidos") return filasTienda.filter((p) => selProds[idParaPedir(p, pedidoMarca)] > 0);
     if (filtroUrgencia === "CADUCA") return filasTienda;
     if (filtroUrgencia) return filasTienda.filter((p) => p.urgencia?.nivel === filtroUrgencia);
     return filasTienda;
-  }, [filasTienda, filtroUrgencia, selProds]);
+  }, [filasTienda, filtroUrgencia, selProds, pedidoMarca]);
   const listaVacia = !loading && !productos.length;
   const nMarcados = Object.values(selProds).filter((v) => v > 0).length;
-  const nAgotados = productos.filter((p) => calcStockUrgencia(p, C)?.nivel === "AGOTADO").length;
-  const nCriticos = productos.filter((p) => calcStockUrgencia(p, C)?.nivel === "CRÍTICO").length;
+  const nAgotados = filasVista.filter((p) => calcStockUrgencia(p, C)?.nivel === "AGOTADO").length;
+  const nCriticos = filasVista.filter((p) => calcStockUrgencia(p, C)?.nivel === "CRÍTICO").length;
   const nCaduca = colaCaduca.length;
-  const nBajo = productos.filter((p) => calcStockUrgencia(p, C)?.nivel === "BAJO").length;
-  const nPronto = productos.filter((p) => calcStockUrgencia(p, C)?.nivel === "PRONTO").length;
+  const nBajo = filasVista.filter((p) => calcStockUrgencia(p, C)?.nivel === "BAJO").length;
+  const nPronto = filasVista.filter((p) => calcStockUrgencia(p, C)?.nivel === "PRONTO").length;
+
+  const idFila = (p) => idParaPedir(p, pedidoMarca);
 
   const cantidadSugerida = (p) => {
     const min = stockMinimoEfectivo(p);
@@ -177,8 +189,24 @@ export default function ReabastoModule() {
     return Math.max(base, 1);
   };
 
-  const toggleSel = (id) => {
-    const fila = filasAlertas.find(p=>p.id===id) || productos.find(p=>p.id===id) || {};
+  const elegirMarcaGrupo = (fila, productoId) => {
+    if (!fila?.esGrupoActivo) return;
+    const prevId = idFila(fila);
+    setPedidoMarca((prev) => ({ ...prev, [fila.claveGrupo]: productoId }));
+    setSelProds((prev) => {
+      if (!(prev[prevId] > 0) || prevId === productoId) return prev;
+      const next = { ...prev };
+      next[productoId] = next[prevId];
+      delete next[prevId];
+      return next;
+    });
+  };
+
+  const toggleSel = (filaOId) => {
+    const fila = typeof filaOId === "object"
+      ? filaOId
+      : (filasAlertas.find(p=>p.id===filaOId) || productos.find(p=>p.id===filaOId) || {});
+    const id = idFila(fila);
     setSelProds((prev) => {
       if (prev[id] > 0) {
         const next = { ...prev };
@@ -195,8 +223,8 @@ export default function ReabastoModule() {
       min="1"
       inputMode="numeric"
       placeholder={String(cantidadSugerida(p))}
-      value={selProds[p.id] ?? ""}
-      onChange={(e) => setCantidad(p.id, e.target.value)}
+      value={selProds[idFila(p)] ?? ""}
+      onChange={(e) => setCantidad(idFila(p), e.target.value)}
       onClick={(e) => e.stopPropagation()}
       style={inpS}
       aria-label={`Piezas a pedir de ${p.nombre}`}
@@ -332,6 +360,11 @@ export default function ReabastoModule() {
       <div style={{display:"flex",flexDirection:isMobile?"column":"row",justifyContent:"space-between",alignItems:isMobile?"stretch":"flex-start",marginBottom:16,gap:12}}>
         <div>
           <h1 className="fc-page-hero" style={{color:C.text,fontSize:isMobile?18:20,fontWeight:800,margin:0}}>Reabasto</h1>
+          {vista === VISTA_REABASTO.ACTIVO && (
+            <div style={{color:C.textMid,fontSize:12,marginTop:4,maxWidth:520,lineHeight:1.4}}>
+              Por principio activo: si compraste otra marca del mismo medicamento (Busconet → Pasmodil), el stock se suma y no sale agotado.
+            </div>
+          )}
         </div>
         <div style={{display:"flex",flexDirection:isMobile?"column":"row",gap:8,width:isMobile?"100%":"auto"}}>
           <button onClick={generarOrden} disabled={generando || nMarcados===0}
@@ -390,7 +423,7 @@ export default function ReabastoModule() {
                 <input
                   value={busqueda}
                   onChange={(e)=>setBusqueda(e.target.value)}
-                  placeholder="Producto, SKU o código…"
+                  placeholder="Producto, principio activo, SKU…"
                   style={{
                     flex:"1 1 220px", maxWidth:320, padding:"8px 12px", borderRadius:8,
                     border:`1px solid ${C.border}`, background:"#fff", color:C.text,
@@ -398,6 +431,20 @@ export default function ReabastoModule() {
                     fontSize:13, outline:"none",
                   }}
                 />
+                {[
+                  [VISTA_REABASTO.ACTIVO, "Por principio activo"],
+                  [VISTA_REABASTO.MARCA, "Por marca"],
+                ].map(([id, label]) => (
+                  <button key={id} type="button" onClick={()=>{
+                    setVista(id);
+                    try { sessionStorage.setItem(VISTA_STORAGE, id); } catch (_) { /* noop */ }
+                  }} style={{
+                    padding:"6px 12px",borderRadius:20,fontSize:11,fontWeight:700,cursor:"pointer",
+                    border:`1px solid ${vista===id?BRAND.primary:C.border}`,
+                    background:vista===id?BRAND.primary+"18":"#fff",
+                    color:vista===id?BRAND.primary:C.textMid,
+                  }}>{label}</button>
+                ))}
                 <div style={{color:C.textMid,fontSize:12,flex:"1 1 80px"}}>
                   {filasAlertas.length} producto{filasAlertas.length===1?"":"s"}
                 </div>
@@ -418,16 +465,33 @@ export default function ReabastoModule() {
               {isMobile ? (
                 <div style={{display:"flex",flexDirection:"column",gap:10,maxHeight:"min(70dvh, 640px)",overflowY:"auto",WebkitOverflowScrolling:"touch",paddingRight:2}}>
                   {filasAlertas.map((p)=>(
-                    <div key={p.id} style={{
-                      background:C.card,border:`1px solid ${selProds[p.id]>0?C.blue:C.border}`,
+                    <div key={p.esGrupoActivo ? p.claveGrupo : p.id} style={{
+                      background:C.card,border:`1px solid ${selProds[idFila(p)]>0?C.blue:C.border}`,
                       borderRadius:12,padding:12,
                     }}>
                       <div style={{display:"flex",justifyContent:"space-between",gap:8,alignItems:"flex-start"}}>
                         <label style={{display:"flex",gap:8,minWidth:0,flex:1,alignItems:"flex-start",cursor:"pointer"}}>
-                          <Caja checked={selProds[p.id]>0} onChange={()=>toggleSel(p.id)} style={{marginTop:3}}/>
+                          <Caja checked={selProds[idFila(p)]>0} onChange={()=>toggleSel(p)} style={{marginTop:3}}/>
                           <div style={{minWidth:0}}>
                             <div style={{color:C.text,fontWeight:700,fontSize:14,lineHeight:1.3}}>{p.nombre}</div>
-                            <div style={{color:C.textMid,fontSize:11,marginTop:3}}>{p.sku||"sin SKU"}</div>
+                            <div style={{color:C.textMid,fontSize:11,marginTop:3}}>
+                              {p.esGrupoActivo ? leyendaCoberturaGrupo(p) : (p.sku||"sin SKU")}
+                            </div>
+                            {p.esGrupoActivo && (
+                              <div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:8}}>
+                                {(p.marcas || []).map((m) => (
+                                  <button key={m.id} type="button" onClick={(e)=>{ e.preventDefault(); e.stopPropagation(); elegirMarcaGrupo(p, m.id); }}
+                                    style={{
+                                      padding:"4px 8px",borderRadius:16,fontSize:10,fontWeight:700,cursor:"pointer",
+                                      border:`1px solid ${idFila(p)===m.id?BRAND.primary:C.border}`,
+                                      background:m.stock>0?"#dcfce7":idFila(p)===m.id?BRAND.primary+"18":"#fff",
+                                      color:m.stock>0?"#166534":C.textMid,
+                                    }}>
+                                    {m.marca || m.nombre} · {m.stock}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </label>
                         <span style={{padding:"3px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:p.urgencia.bg,color:p.urgencia.col,flexShrink:0}}>
@@ -452,6 +516,13 @@ export default function ReabastoModule() {
                         <div>
                           <div style={{fontSize:10,color:C.textDim,fontWeight:700}}>PEDIR</div>
                           {inputPedir(p)}
+                          {p.esGrupoActivo && (
+                            <div style={{fontSize:10,color:C.textMid,marginTop:4}}>
+                              Se pediría {(p.marcas || []).find((m) => m.id === idFila(p))?.marca
+                                || (p.marcas || []).find((m) => m.id === idFila(p))?.nombre
+                                || p.representativo?.nombre}
+                            </div>
+                          )}
                         </div>
                         <div style={{fontSize:12,minWidth:0,flex:1}}>{renderComprarEn(p)}</div>
                       </div>
@@ -465,18 +536,21 @@ export default function ReabastoModule() {
                     <tr>
                       <th style={{padding:"9px 12px",textAlign:"left",color:C.textMid,fontWeight:700,borderBottom:`1px solid ${C.border}`,position:"sticky",top:0,zIndex:4,background:C.cardDark,boxShadow:`0 1px 0 ${C.border}`}}>
                         <Caja
-                          checked={filasAlertas.length>0 && filasAlertas.every(p=>selProds[p.id]>0)}
+                          checked={filasAlertas.length>0 && filasAlertas.every(p=>selProds[idFila(p)]>0)}
                           onChange={()=>{
-                          const allOn = filasAlertas.length>0 && filasAlertas.every(p=>selProds[p.id]>0);
+                          const allOn = filasAlertas.length>0 && filasAlertas.every(p=>selProds[idFila(p)]>0);
                           if(!allOn) {
                             setSelProds((prev) => ({
                               ...prev,
-                              ...Object.fromEntries(filasAlertas.map((p) => [p.id, prev[p.id] > 0 ? prev[p.id] : cantidadSugerida(p)])),
+                              ...Object.fromEntries(filasAlertas.map((p) => {
+                                const id = idFila(p);
+                                return [id, prev[id] > 0 ? prev[id] : cantidadSugerida(p)];
+                              })),
                             }));
                           } else {
                             setSelProds((prev) => {
                               const next = { ...prev };
-                              filasAlertas.forEach((p) => { delete next[p.id]; });
+                              filasAlertas.forEach((p) => { delete next[idFila(p)]; });
                               return next;
                             });
                           }
@@ -489,11 +563,33 @@ export default function ReabastoModule() {
                   </thead>
                   <tbody>
                     {filasAlertas.map((p,i)=>(
-                      <tr key={p.id} style={{background:i%2===0?"transparent":"#f8fafc"}}>
+                      <tr key={p.esGrupoActivo ? p.claveGrupo : p.id} style={{background:i%2===0?"transparent":"#f8fafc"}}>
                         <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`}}>
-                          <Caja checked={selProds[p.id]>0} onChange={()=>toggleSel(p.id)}/>
+                          <Caja checked={selProds[idFila(p)]>0} onChange={()=>toggleSel(p)}/>
                         </td>
-                        <td style={{padding:"9px 12px",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>{p.nombre}</td>
+                        <td style={{padding:"9px 12px",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>
+                          <div>{p.nombre}</div>
+                          {p.esGrupoActivo && (
+                            <div style={{fontSize:10,color:C.textMid,fontWeight:500,marginTop:3}}>
+                              {leyendaCoberturaGrupo(p)}
+                            </div>
+                          )}
+                          {p.esGrupoActivo && (
+                            <div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:6}}>
+                              {(p.marcas || []).map((m) => (
+                                <button key={m.id} type="button" onClick={()=>elegirMarcaGrupo(p, m.id)}
+                                  style={{
+                                    padding:"3px 8px",borderRadius:16,fontSize:10,fontWeight:700,cursor:"pointer",
+                                    border:`1px solid ${idFila(p)===m.id?BRAND.primary:C.border}`,
+                                    background:m.stock>0?"#dcfce7":idFila(p)===m.id?BRAND.primary+"18":"#fff",
+                                    color:m.stock>0?"#166534":C.textMid,
+                                  }}>
+                                  {m.marca || m.nombre} · {m.stock}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </td>
                         <td style={{padding:"9px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,fontFamily:"monospace",fontSize:10}}>{p.sku||"—"}</td>
                         <td style={{padding:"9px 12px",color:p.stock===0?C.red:C.amber,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{p.stock}</td>
                         <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`}}>{renderTuCosto(p)}</td>

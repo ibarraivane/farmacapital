@@ -23,6 +23,15 @@ describe("manualContenido", () => {
     expect(ids).not.toContain("pos");
   });
 
+  test("Reabasto explica surtido por principio activo", () => {
+    const t = TEMAS.find((x) => x.id === "reabasto");
+    const blob = [t.resumen, ...(t.pasos || []), ...(t.dudas || []).flatMap((d) => [d.q, d.a])].join(" ");
+    expect(blob).toMatch(/principio activo/i);
+    expect(blob).toMatch(/Pasmodil/);
+    expect(blob).toMatch(/Busconet/);
+    expect(blob).toMatch(/Por marca/);
+  });
+
   test("admin ve Recibir y Reabasto, no Mi Día", () => {
     const u = { rol: "admin" };
     const temas = temasParaUsuario(u, () => true);

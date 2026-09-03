@@ -17,6 +17,12 @@ describe("claveSustancia", () => {
     expect(claveSustancia({ principio_activo: "Surfactantes fórmula capilar" })).toBe("");
     expect(claveSustancia(null)).toBe("");
   });
+
+  it("trata Busconet y Pasmodil como el mismo activo", () => {
+    expect(claveSustancia({ principio_activo: "Bromuro de butil hiocina y metamizol sódico" }))
+      .toBe(claveSustancia({ principio_activo: "Hioscina / Metamizol sódico" }));
+    expect(claveSustancia({ principio_activo: "Butilhioscina / Metamizol" })).toBe("hioscina+metamizol");
+  });
 });
 
 describe("clasificación farmacéutica", () => {

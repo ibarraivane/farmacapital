@@ -2,7 +2,16 @@
 import { normalizeForSearch } from "../utils";
 import { normalizedTextFuzzyMatch } from "./fuzzySearch";
 
-const RUIDO_SUSTANCIA = new Set(["clorhidrato", "hidrocloruro", "maleato", "sulfato", "fosfato", "nitrato", "acetato", "tartrato", "citrato", "succinato", "besilato", "mesilato", "sodico", "sodica", "sodio", "calcico", "calcio", "potasico", "potasio", "magnesico", "acido", "dihidratado", "monohidratado", "trihidrato", "anhidro", "micronizado", "purificado", "del", "con", "mas", "por"]);
+const RUIDO_SUSTANCIA = new Set(["clorhidrato", "hidrocloruro", "maleato", "sulfato", "fosfato", "nitrato", "acetato", "tartrato", "citrato", "succinato", "besilato", "mesilato", "sodico", "sodica", "sodio", "calcico", "calcio", "potasico", "potasio", "magnesico", "acido", "dihidratado", "monohidratado", "trihidrato", "anhidro", "micronizado", "purificado", "del", "con", "mas", "por", "bromuro"]);
+/** Misma molécula escrita distinto en tickets / catálogo (Busconet vs Pasmodil). */
+const SINONIMOS_SUSTANCIA = {
+  hiocina: "hioscina",
+  butilhioscina: "hioscina",
+  butilhiocina: "hioscina",
+  butilescopolamina: "hioscina",
+  dipirona: "metamizol",
+  acetaminofen: "paracetamol",
+};
 const NO_ES_SUSTANCIA = new Set(["producto", "homeopatico", "homeopatica", "natural", "naturales", "material", "curacion", "plastico", "sintetico", "sinteticos", "suplemento", "nutricional", "alimento", "cosmetico", "cosmeticos", "formula", "surfactantes", "tensioactivos", "detergentes", "capilar", "corporal", "facial", "emolientes", "humectantes", "antitranspirante", "desodorante", "jabon", "latex", "absorbente", "celulosa", "limpiadora", "limpiador", "solucion", "higiene", "aseo", "varios", "otros", "generico", "genericos"]);
 const CONSULTAS_AMBIGUAS = new Set(["para", "dolor", "medicina", "medicamento", "pastilla", "pastillas", "jarabe", "crema", "gotas", "adulto", "nino", "nina"]);
 const MAX_OPCIONES_GRUPO = 24;
@@ -14,15 +23,22 @@ export function claveSustancia(producto) {
   const crudo = String(producto?.principio_activo || producto?.denominacion_generica || "");
   let s = normalizeForSearch(crudo);
   if (s) s = s.replace(/\b\d+([.,]\d+)?\s*(mg|mcg|ug|g|gr|kg|ml|l|lt|ui|iu|meq|%)\b/g, " ").replace(/\d+\s*\/\s*\d+/g, " ").replace(/\b\d+([.,]\d+)?\b/g, " ").replace(/[^a-z]+/g, " ");
-  const palabras = s.split(" ").filter((w) => w.length > 2 && !RUIDO_SUSTANCIA.has(w));
-  const clave = !palabras.length || palabras.some((w) => NO_ES_SUSTANCIA.has(w)) ? "" : [...new Set(palabras)].sort().join("+");
+  const palabras = s.split(" ")
+    .filter((w) => w.length > 2 && !RUIDO_SUSTANCIA.has(w))
+    .map((w) => SINONIMOS_SUSTANCIA[w] || w);
+  const unicas = [...new Set(palabras)];
+  if (unicas.includes("hioscina")) {
+    const i = unicas.indexOf("butil");
+    if (i >= 0) unicas.splice(i, 1);
+  }
+  const clave = !unicas.length || unicas.some((w) => NO_ES_SUSTANCIA.has(w)) ? "" : unicas.sort().join("+");
   if (producto && typeof producto === "object") cacheClave.set(producto, clave);
   return clave;
 }
 
 function norm(value) { return normalizeForSearch(String(value || "")).replace(/\s+/g, " ").trim(); }
 
-function formaDe(producto) {
+export function formaFarmaceuticaClave(producto) {
   const s = norm(`${producto?.forma_farmaceutica || ""} ${producto?.presentacion || ""} ${producto?.nombre || ""}`);
   if (/\b(tableta|tabletas|tab|comprimido|comprimidos|gragea|grageas)\b/.test(s)) return "tabletas";
   if (/\b(capsula|capsulas|cap)\b/.test(s)) return "capsulas";
@@ -30,10 +46,12 @@ function formaDe(producto) {
   if (/\b(gota|gotas)\b/.test(s)) return "gotas";
   if (/\b(unguento|pomada)\b/.test(s)) return "unguento";
   if (/\b(crema)\b/.test(s)) return "crema";
-  if (/\b(ampolleta|inyectable|frasco ampula)\b/.test(s)) return "inyectable";
+  // "1 Fa" = frasco ámpula en listas Equilibrium / Levic / Colins.
+  if (/\b(ampolleta|ampollas?|ampulas?|amp|inyectable|frasco ampula|frasco ampolla|fa)\b/.test(s)) return "inyectable";
   if (/\b(polvo|sobre|sobres)\b/.test(s)) return "polvo";
   return norm(producto?.forma_farmaceutica);
 }
+const formaDe = formaFarmaceuticaClave;
 
 function viaDe(producto) {
   const declarada = norm(producto?.via_administracion || producto?.via || "");
@@ -43,7 +61,7 @@ function viaDe(producto) {
   if (/otico|auricular/.test(s)) return "otica";
   if (/nasal/.test(s)) return "nasal";
   if (/topico|topica|crema|unguento|pomada/.test(s)) return "topica";
-  if (/inyectable|ampolleta|intramuscular|intravenosa/.test(s)) return "inyectable";
+  if (/inyectable|ampolleta|intramuscular|intravenosa|\bfa\b/.test(s)) return "inyectable";
   if (/tableta|capsula|comprimido|gragea|suspension|jarabe|solucion oral|sobre/.test(s)) return "oral";
   return "";
 }
