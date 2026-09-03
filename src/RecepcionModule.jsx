@@ -20,7 +20,12 @@ import {
 } from "./lib/recepcionAlta";
 import { fmtPrecioVenta } from "./lib/preciosReferencia";
 import { parseTicketCsv } from "./lib/recepcionTicketCsv";
-import { recepcionEsTicketDocumento, resolverEscaneoRecepcion } from "./lib/recepcionScan";
+import {
+  recepcionEsTicketDocumento,
+  resolverEscaneoRecepcion,
+  recepcionItemVerdeSinStock,
+  recepcionItemsVerdeSinStock,
+} from "./lib/recepcionScan";
 import { $ as fmt, getSessionToken, esErrorSesionEmpleado } from "./utils";
 import { notifySesionEmpleadoInvalida } from "./utils/sesionEmpleadoAuth";
 import { setBloqueaReloadApp } from "./utils/appUpdate";
@@ -796,9 +801,17 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     }
     setSaving(false);
     if (error) { setErrorLinea(error.message); return; }
-    aplicarDoc(data);
+    const applied = aplicarDoc(data);
+    const huerfanos = recepcionItemsVerdeSinStock(applied?.items);
+    if (huerfanos.length > 0) {
+      showToast(
+        `${huerfanos.length} renglón${huerfanos.length === 1 ? "" : "es"} quedó confirmado pero SIN entrar a inventario. Toca Guardar lo confirmado o avisa al dueño.`,
+        "warning",
+      );
+    } else {
+      avisarCatalogoCambio({ origen: "recibir" });
+    }
     resetLinea();
-    avisarCatalogoCambio({ origen: "recibir" });
   };
 
   const onCostoKey = (e) => {
@@ -864,9 +877,12 @@ export default function RecepcionModule({ ocultarMontos = false }) {
       if (!seguir) return;
     }
     const yaEnAnaquel = lista.some((i) => i.lote_id);
+    const verdesSinStock = recepcionItemsVerdeSinStock(lista);
     let msg;
     if (grisPendiente > 0) {
       msg = `Hay ${grisPendiente} sin escanear. ¿Recibir las ${confirmadosOk} confirmadas y dejar ${grisPendiente} pendiente${grisPendiente === 1 ? "" : "s"} en Recibir?`;
+    } else if (verdesSinStock.length > 0) {
+      msg = `Hay ${verdesSinStock.length} confirmado${verdesSinStock.length === 1 ? "" : "s"} sin lote en anaquel. ¿Entrar ese stock a Inventario/POS ahora?`;
     } else if (yaEnAnaquel) {
       msg = "¿Cerrar? Se guardan las caducidades de caja. No se vuelve a sumar lo que ya está en anaquel.";
     } else {
@@ -882,31 +898,39 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     });
     setSaving(false);
     if (error) { rpcError(error, "No se pudo cerrar"); return; }
-    const rec = unwrapJson(data);
+    const applied = aplicarDoc(data);
+    avisarCatalogoCambio({ origen: "recibir-cerrar" });
+    const siguenHuerfanos = recepcionItemsVerdeSinStock(applied?.items);
+    if (siguenHuerfanos.length > 0) {
+      showToast(
+        `${siguenHuerfanos.length} renglón${siguenHuerfanos.length === 1 ? "" : "es"} confirmado sin lote: falta correr el SQL de reparación en Supabase (patch_recepcion_verde_sin_stock). El ticket sigue abierto.`,
+        "warning",
+      );
+      return;
+    }
     try {
       await fetch("/api/inventarioProcesarPdf?type=ultima-compra", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ session_token: tok, recepcion_id: rec?.id || doc.id }),
+        body: JSON.stringify({ session_token: tok, recepcion_id: applied?.id || doc.id }),
       });
     } catch {
       /* la columna se puede rellenar después; el stock ya entró */
     }
-    const estado = rec?.estado;
-    const siguenPendientes = (rec?.sin_confirmar || 0) > 0 && estado === "borrador";
+    const estado = applied?.estado;
+    const siguenPendientes = (applied?.sin_confirmar || 0) > 0 && estado === "borrador";
     if (siguenPendientes) {
-      aplicarDoc(rec);
-      showToast(`Entró lo confirmado. Quedan ${rec.sin_confirmar} pendiente${rec.sin_confirmar === 1 ? "" : "s"} en Recibir.`, "warning");
+      showToast(`Entró lo confirmado. Quedan ${applied.sin_confirmar} pendiente${applied.sin_confirmar === 1 ? "" : "s"} en Recibir.`, "warning");
       return;
     }
     if (estado === "pendiente_alta") {
-      showToast(`Stock recibido. ${rec.pendientes_alta} código(s) no están en catálogo — quedan pendientes de alta.`, "warning");
+      showToast(`Stock recibido. ${applied.pendientes_alta} código(s) no están en catálogo — quedan pendientes de alta.`, "warning");
     } else {
       const quedan = pendientes.filter((t) => t.id !== doc.id).length;
       showToast(
         quedan > 0
           ? "Guardado. Toca el siguiente proveedor."
-          : `Recepción confirmada · ${rec?.piezas || 0} pzas`,
+          : `Recepción confirmada · ${applied?.piezas || 0} pzas`,
         "success",
       );
     }
@@ -926,6 +950,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
   const sinRegistrar = items.filter((i) => i.pendiente_alta);
   const grisPendiente = items.filter((i) => !i.pendiente_alta && !i.confirmado).length;
   const confirmadosOk = items.filter((i) => i.confirmado && i.fecha_caducidad).length;
+  const verdesSinStock = recepcionItemsVerdeSinStock(items);
   const puedeCerrar = confirmadosOk > 0 && anaquelSinCad === 0;
   const cadPreview = etiquetaCaducidadMMAA(cad);
   const costoAnterior = pendiente?.itemId
@@ -1337,9 +1362,26 @@ export default function RecepcionModule({ ocultarMontos = false }) {
             )}
             {items.map((it) => {
               const ok = it.confirmado && it.fecha_caducidad;
+              const verdeMentira = recepcionItemVerdeSinStock(it);
               const activo = pendiente?.itemId === it.id;
-              const bg = it.pendiente_alta ? C.amberDim : ok ? C.greenDim : activo ? `${BRAND.primary}14` : "#f1f5f9";
-              const border = it.pendiente_alta ? "#f5d78a" : ok ? "#86efac" : activo ? BRAND.primary : C.border;
+              const bg = it.pendiente_alta
+                ? C.amberDim
+                : verdeMentira
+                  ? "#fef3c7"
+                  : ok
+                    ? C.greenDim
+                    : activo
+                      ? `${BRAND.primary}14`
+                      : "#f1f5f9";
+              const border = it.pendiente_alta
+                ? "#f5d78a"
+                : verdeMentira
+                  ? "#f59e0b"
+                  : ok
+                    ? "#86efac"
+                    : activo
+                      ? BRAND.primary
+                      : C.border;
               return (
               <div
                 key={it.id}
@@ -1368,7 +1410,11 @@ export default function RecepcionModule({ ocultarMontos = false }) {
                     <div style={{ color: C.textMid, fontSize: 11, marginTop: 2 }}>
                       {it.pendiente_alta ? "Pendiente de alta" : (it.sku || "")}
                       {it.numero_lote ? ` · lote ${it.numero_lote}` : ""}
-                      {ok ? ` · cad ${formatCaducidadMesAnio(it.fecha_caducidad)}` : " · toca para grabar · falta caducidad"}
+                      {verdeMentira
+                        ? " · CONFIRMADO SIN STOCK — toca Guardar lo confirmado"
+                        : ok
+                          ? ` · cad ${formatCaducidadMesAnio(it.fecha_caducidad)}`
+                          : " · toca para grabar · falta caducidad"}
                       {it.lote_distinto && !ok ? " · lote distinto al piso" : ""}
                     </div>
                   </div>
@@ -1413,6 +1459,11 @@ export default function RecepcionModule({ ocultarMontos = false }) {
                 {grisPendiente} sin pistola. Puedes recibir lo confirmado y dejar el resto pendiente aquí, o quitar con × lo que no llegó.
               </div>
             )}
+            {verdesSinStock.length > 0 && (
+              <div style={{ background: "#fef3c7", border: "1px solid #f59e0b", borderRadius: 10, padding: "12px 14px", color: "#92400e", fontSize: 13, lineHeight: 1.45, fontWeight: 700 }}>
+                {verdesSinStock.length} confirmado{verdesSinStock.length === 1 ? "" : "s"} sin lote: se ven listos pero NO están en Inventario/POS. Toca Guardar lo confirmado para meter el stock.
+              </div>
+            )}
             <button
               type="button"
               onClick={cerrar}
@@ -1429,9 +1480,11 @@ export default function RecepcionModule({ ocultarMontos = false }) {
                   ? `Faltan ${anaquelSinCad} caducidad${anaquelSinCad === 1 ? "" : "es"}`
                   : confirmadosOk === 0
                     ? "Escanea para guardar"
-                    : grisPendiente > 0
-                      ? "Guardar lo confirmado"
-                      : "Guardar"}
+                    : verdesSinStock.length > 0
+                      ? "Meter stock a Inventario"
+                      : grisPendiente > 0
+                        ? "Guardar lo confirmado"
+                        : "Guardar"}
             </button>
           </div>
         </div>
