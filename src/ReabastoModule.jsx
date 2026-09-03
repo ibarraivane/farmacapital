@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, Fragment } from "react";
 import { useCatalogoVivo } from "./hooks/useCatalogoVivo";
 import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
@@ -19,8 +19,15 @@ import {
   fetchLotesInventario,
   fetchProductosPaginados,
 } from "./lib/inventarioHubData";
+import {
+  agruparFilasReabasto,
+  etiquetaMarca,
+  etiquetaPrincipioActivo,
+  grupoEstaSeleccionado,
+} from "./lib/reabastoGrupos";
 import { DIAS_CADUCIDAD_ALERTA } from "./lib/caducidad";
 import { inventarioProductMatchesBusqueda } from "./utils/fuzzySearch";
+import { etiquetaTipoProducto } from "./utils/equivalentesPos";
 
 const BRAND = { primary:"#0D1B2A", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
 const fmt = n => `$${parseFloat(n||0).toLocaleString("es-MX",{minimumFractionDigits:2})}`;
@@ -163,6 +170,10 @@ export default function ReabastoModule() {
     if (filtroUrgencia) return filasTienda.filter((p) => p.urgencia?.nivel === filtroUrgencia);
     return filasTienda;
   }, [filasTienda, filtroUrgencia, selProds]);
+  const gruposAlertas = useMemo(
+    () => agruparFilasReabasto(filasAlertas, { catalogo: productos }),
+    [filasAlertas, productos]
+  );
   const listaVacia = !loading && !productos.length;
   const nMarcados = Object.values(selProds).filter((v) => v > 0).length;
   const nAgotados = productos.filter((p) => calcStockUrgencia(p, C)?.nivel === "AGOTADO").length;
@@ -284,6 +295,57 @@ export default function ReabastoModule() {
     background:"#fff", color:C.text, WebkitTextFillColor:C.text, caretColor:C.text,
     colorScheme:"light",
   };
+  const toggleGrupo = (grupo) => {
+    const allOn = grupoEstaSeleccionado(grupo, selProds);
+    setSelProds((prev) => {
+      const next = { ...prev };
+      if (allOn) {
+        grupo.productos.forEach((p) => { delete next[p.id]; });
+        return next;
+      }
+      grupo.productos.forEach((p) => {
+        next[p.id] = next[p.id] > 0 ? next[p.id] : cantidadSugerida(p);
+      });
+      return next;
+    });
+  };
+
+  const mostrarCabeceraGrupo = (grupo) => (
+    grupo.tipo === "medicamento" || grupo.productos.length > 1 || grupo.relacionados.length > 0
+  );
+
+  const renderRelacionados = (grupo) => {
+    if (!grupo.relacionados?.length) return null;
+    return (
+      <div style={{fontSize:11,color:C.teal,fontWeight:600,marginTop:4,lineHeight:1.35}}>
+        También hay stock: {grupo.relacionados.map((p) => `${etiquetaMarca(p) || p.nombre} (${stockDe(p)})`).join(" · ")}
+      </div>
+    );
+  };
+
+  const renderIdentidad = (p, { sku = true, fontSize = 14 } = {}) => {
+    const marca = etiquetaMarca(p);
+    const pa = etiquetaPrincipioActivo(p);
+    const tipo = etiquetaTipoProducto(p);
+    return (
+      <div style={{minWidth:0}}>
+        <div style={{color:C.text,fontWeight:700,fontSize,lineHeight:1.3}}>{p.nombre}</div>
+        <div style={{display:"flex",flexWrap:"wrap",gap:6,alignItems:"center",marginTop:4}}>
+          {marca ? <span style={{fontSize:11,fontWeight:800,color:C.blue}}>{marca}</span> : null}
+          {tipo ? (
+            <span style={{
+              fontSize:10,fontWeight:800,borderRadius:6,padding:"2px 6px",
+              background:tipo === "Patente" ? C.purpleDim : C.tealDim,
+              color:tipo === "Patente" ? C.purple : C.teal,
+            }}>{tipo}</span>
+          ) : null}
+          {pa ? <span style={{fontSize:11,color:C.textMid}}>PA: {pa}</span> : null}
+        </div>
+        {sku ? <div style={{color:C.textMid,fontSize:11,marginTop:3}}>{p.sku || "sin SKU"}</div> : null}
+      </div>
+    );
+  };
+
   const Caja = ({ checked, onChange, style }) => (
     <button type="button" role="checkbox" aria-checked={!!checked} onClick={onChange} style={{
       width:18, height:18, borderRadius:4, flexShrink:0, padding:0, cursor:"pointer",
@@ -332,6 +394,9 @@ export default function ReabastoModule() {
       <div style={{display:"flex",flexDirection:isMobile?"column":"row",justifyContent:"space-between",alignItems:isMobile?"stretch":"flex-start",marginBottom:16,gap:12}}>
         <div>
           <h1 className="fc-page-hero" style={{color:C.text,fontSize:isMobile?18:20,fontWeight:800,margin:0}}>Reabasto</h1>
+          <div style={{color:C.textMid,fontSize:12,marginTop:4,maxWidth:520,lineHeight:1.4}}>
+            Agrupado por principio activo (mismo medicamento) y marca.
+          </div>
         </div>
         <div style={{display:"flex",flexDirection:isMobile?"column":"row",gap:8,width:isMobile?"100%":"auto"}}>
           <button onClick={generarOrden} disabled={generando || nMarcados===0}
@@ -390,7 +455,7 @@ export default function ReabastoModule() {
                 <input
                   value={busqueda}
                   onChange={(e)=>setBusqueda(e.target.value)}
-                  placeholder="Producto, SKU o código…"
+                  placeholder="Producto, marca, principio activo o SKU…"
                   style={{
                     flex:"1 1 220px", maxWidth:320, padding:"8px 12px", borderRadius:8,
                     border:`1px solid ${C.border}`, background:"#fff", color:C.text,
@@ -400,6 +465,7 @@ export default function ReabastoModule() {
                 />
                 <div style={{color:C.textMid,fontSize:12,flex:"1 1 80px"}}>
                   {filasAlertas.length} producto{filasAlertas.length===1?"":"s"}
+                  {gruposAlertas.length !== filasAlertas.length ? ` · ${gruposAlertas.length} grupo${gruposAlertas.length===1?"":"s"}` : ""}
                 </div>
                 {[
                   ["todas", "Todas"],
@@ -416,45 +482,64 @@ export default function ReabastoModule() {
                 ))}
               </div>
               {isMobile ? (
-                <div style={{display:"flex",flexDirection:"column",gap:10,maxHeight:"min(70dvh, 640px)",overflowY:"auto",WebkitOverflowScrolling:"touch",paddingRight:2}}>
-                  {filasAlertas.map((p)=>(
-                    <div key={p.id} style={{
-                      background:C.card,border:`1px solid ${selProds[p.id]>0?C.blue:C.border}`,
-                      borderRadius:12,padding:12,
+                <div style={{display:"flex",flexDirection:"column",gap:14,maxHeight:"min(70dvh, 640px)",overflowY:"auto",WebkitOverflowScrolling:"touch",paddingRight:2}}>
+                  {gruposAlertas.map((grupo) => (
+                    <div key={grupo.clave} style={{
+                      display:"flex",flexDirection:"column",gap:8,
+                      padding: mostrarCabeceraGrupo(grupo) ? 10 : 0,
+                      borderRadius:14,
+                      border: mostrarCabeceraGrupo(grupo) ? `1px solid ${C.borderHi}` : "none",
+                      background: mostrarCabeceraGrupo(grupo) ? C.blueDim : "transparent",
                     }}>
-                      <div style={{display:"flex",justifyContent:"space-between",gap:8,alignItems:"flex-start"}}>
-                        <label style={{display:"flex",gap:8,minWidth:0,flex:1,alignItems:"flex-start",cursor:"pointer"}}>
-                          <Caja checked={selProds[p.id]>0} onChange={()=>toggleSel(p.id)} style={{marginTop:3}}/>
-                          <div style={{minWidth:0}}>
-                            <div style={{color:C.text,fontWeight:700,fontSize:14,lineHeight:1.3}}>{p.nombre}</div>
-                            <div style={{color:C.textMid,fontSize:11,marginTop:3}}>{p.sku||"sin SKU"}</div>
+                      {mostrarCabeceraGrupo(grupo) && (
+                        <div style={{display:"flex",gap:8,alignItems:"flex-start"}}>
+                          <Caja checked={grupoEstaSeleccionado(grupo, selProds)} onChange={()=>toggleGrupo(grupo)} style={{marginTop:3}}/>
+                          <div style={{minWidth:0,flex:1}}>
+                            <div style={{fontSize:13,fontWeight:900,color:C.text,lineHeight:1.25}}>{grupo.etiqueta}</div>
+                            <div style={{fontSize:11,color:C.blue,fontWeight:700,marginTop:2}}>
+                              {grupo.subtitulo}{grupo.marcas.length ? ` · ${grupo.marcas.join(" · ")}` : ""}
+                            </div>
+                            {renderRelacionados(grupo)}
                           </div>
-                        </label>
-                        <span style={{padding:"3px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:p.urgencia.bg,color:p.urgencia.col,flexShrink:0}}>
-                          {p.urgencia.icon} {p.urgencia.nivel}
-                        </span>
-                      </div>
-                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginTop:12}}>
-                        <div>
-                          <div style={{fontSize:10,color:C.textDim,fontWeight:700}}>STOCK ACTUAL</div>
-                          <div style={{fontSize:16,fontWeight:800,color:p.stock===0?C.red:C.text}}>{p.stock}</div>
                         </div>
-                        <div>
-                          <div style={{fontSize:10,color:C.textDim,fontWeight:700}}>TU COSTO</div>
-                          <div style={{fontSize:16,fontWeight:800,color:C.text}}>{costoCompra(p) ? fmt(costoCompra(p)) : "—"}</div>
+                      )}
+                      {grupo.productos.map((p)=>(
+                        <div key={p.id} style={{
+                          background:C.card,border:`1px solid ${selProds[p.id]>0?C.blue:C.border}`,
+                          borderRadius:12,padding:12,
+                        }}>
+                          <div style={{display:"flex",justifyContent:"space-between",gap:8,alignItems:"flex-start"}}>
+                            <label style={{display:"flex",gap:8,minWidth:0,flex:1,alignItems:"flex-start",cursor:"pointer"}}>
+                              <Caja checked={selProds[p.id]>0} onChange={()=>toggleSel(p.id)} style={{marginTop:3}}/>
+                              {renderIdentidad(p)}
+                            </label>
+                            <span style={{padding:"3px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:p.urgencia.bg,color:p.urgencia.col,flexShrink:0}}>
+                              {p.urgencia.icon} {p.urgencia.nivel}
+                            </span>
+                          </div>
+                          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginTop:12}}>
+                            <div>
+                              <div style={{fontSize:10,color:C.textDim,fontWeight:700}}>STOCK ACTUAL</div>
+                              <div style={{fontSize:16,fontWeight:800,color:p.stock===0?C.red:C.text}}>{p.stock}</div>
+                            </div>
+                            <div>
+                              <div style={{fontSize:10,color:C.textDim,fontWeight:700}}>TU COSTO</div>
+                              <div style={{fontSize:16,fontWeight:800,color:C.text}}>{costoCompra(p) ? fmt(costoCompra(p)) : "—"}</div>
+                            </div>
+                            <div>
+                              <div style={{fontSize:10,color:C.textDim,fontWeight:700}}>SUGERIDO</div>
+                              <div style={{fontSize:16,fontWeight:800,color:C.textMid}}>{cantidadSugerida(p)}</div>
+                            </div>
+                          </div>
+                          <div style={{display:"flex",alignItems:"center",gap:12,marginTop:10}}>
+                            <div>
+                              <div style={{fontSize:10,color:C.textDim,fontWeight:700}}>PEDIR</div>
+                              {inputPedir(p)}
+                            </div>
+                            <div style={{fontSize:12,minWidth:0,flex:1}}>{renderComprarEn(p)}</div>
+                          </div>
                         </div>
-                        <div>
-                          <div style={{fontSize:10,color:C.textDim,fontWeight:700}}>SUGERIDO</div>
-                          <div style={{fontSize:16,fontWeight:800,color:C.textMid}}>{cantidadSugerida(p)}</div>
-                        </div>
-                      </div>
-                      <div style={{display:"flex",alignItems:"center",gap:12,marginTop:10}}>
-                        <div>
-                          <div style={{fontSize:10,color:C.textDim,fontWeight:700}}>PEDIR</div>
-                          {inputPedir(p)}
-                        </div>
-                        <div style={{fontSize:12,minWidth:0,flex:1}}>{renderComprarEn(p)}</div>
-                      </div>
+                      ))}
                     </div>
                   ))}
                 </div>
@@ -488,24 +573,42 @@ export default function ReabastoModule() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filasAlertas.map((p,i)=>(
-                      <tr key={p.id} style={{background:i%2===0?"transparent":"#f8fafc"}}>
-                        <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`}}>
-                          <Caja checked={selProds[p.id]>0} onChange={()=>toggleSel(p.id)}/>
-                        </td>
-                        <td style={{padding:"9px 12px",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>{p.nombre}</td>
-                        <td style={{padding:"9px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,fontFamily:"monospace",fontSize:10}}>{p.sku||"—"}</td>
-                        <td style={{padding:"9px 12px",color:p.stock===0?C.red:C.amber,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{p.stock}</td>
-                        <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`}}>{renderTuCosto(p)}</td>
-                        <td style={{padding:"9px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{cantidadSugerida(p)}</td>
-                        <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`}}>{inputPedir(p)}</td>
-                        <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`}}>{renderComprarEn(p)}</td>
-                        <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`}}>
-                          <span style={{padding:"3px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:p.urgencia.bg,color:p.urgencia.col}}>
-                            {p.urgencia.icon} {p.urgencia.nivel}
-                          </span>
-                        </td>
-                      </tr>
+                    {gruposAlertas.map((grupo) => (
+                      <Fragment key={grupo.clave}>
+                        {mostrarCabeceraGrupo(grupo) && (
+                          <tr style={{background:C.blueDim}}>
+                            <td style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`}}>
+                              <Caja checked={grupoEstaSeleccionado(grupo, selProds)} onChange={()=>toggleGrupo(grupo)}/>
+                            </td>
+                            <td colSpan={8} style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`}}>
+                              <div style={{fontSize:13,fontWeight:900,color:C.text}}>{grupo.etiqueta}</div>
+                              <div style={{fontSize:11,color:C.blue,fontWeight:700,marginTop:2}}>
+                                {grupo.subtitulo}{grupo.marcas.length ? ` · ${grupo.marcas.join(" · ")}` : ""}
+                              </div>
+                              {renderRelacionados(grupo)}
+                            </td>
+                          </tr>
+                        )}
+                        {grupo.productos.map((p,i)=>(
+                          <tr key={p.id} style={{background:i%2===0?"transparent":"#f8fafc"}}>
+                            <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`}}>
+                              <Caja checked={selProds[p.id]>0} onChange={()=>toggleSel(p.id)}/>
+                            </td>
+                            <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`}}>{renderIdentidad(p, { sku: false, fontSize: 13 })}</td>
+                            <td style={{padding:"9px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,fontFamily:"monospace",fontSize:10}}>{p.sku||"—"}</td>
+                            <td style={{padding:"9px 12px",color:p.stock===0?C.red:C.amber,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{p.stock}</td>
+                            <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`}}>{renderTuCosto(p)}</td>
+                            <td style={{padding:"9px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`}}>{cantidadSugerida(p)}</td>
+                            <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`}}>{inputPedir(p)}</td>
+                            <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`}}>{renderComprarEn(p)}</td>
+                            <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`}}>
+                              <span style={{padding:"3px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:p.urgencia.bg,color:p.urgencia.col}}>
+                                {p.urgencia.icon} {p.urgencia.nivel}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </Fragment>
                     ))}
                   </tbody>
                 </table>
