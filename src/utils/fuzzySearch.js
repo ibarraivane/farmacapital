@@ -248,6 +248,23 @@ const CATALOG_VERNACULAR_GROUPS = [
     query: ["paleta", "paletas", "paleto", "paletos"],
     catalog: ["paleta", "broncolin"],
   },
+  {
+    query: ["bloqueador", "bloqueadores", "solar", "anthelios"],
+    catalog: [
+      "bloqueador",
+      "protector solar",
+      "fotosun",
+      "solsun",
+      "sol sun",
+      "fps",
+      "spf",
+      "fotoprotector",
+      "anthelios",
+      "nivea sun",
+      "la roche",
+      "roche posay",
+    ],
+  },
 ];
 
 function vernacularAltsForToken(tok) {
@@ -281,7 +298,8 @@ const CATALOG_QUERY_REPLACEMENTS = [
   [/\bomeprazols?\b/g, "omeprazol"],
   [/\bantibioticos?\b/g, "antibiotico"],
   [/\bvitaminas?\b/g, "vitamina"],
-  [/\bprotector\s+solars?\b/g, "protector solar"],
+  [/\bbloqueador(?:es)?(?:\s+solars?)?\b/g, "bloqueador"],
+  [/\bprotector\s+solars?\b/g, "bloqueador"],
   [/\btoallitas?\s+humedas?\b/g, "toallitas humedas"],
   [/\btoa\s*hum\b/g, "toallitas humedas"],
   [/\bpanales?\s+(?:desechables?\s+)?(?:para\s+)?adultos?\b/g, "panal"],

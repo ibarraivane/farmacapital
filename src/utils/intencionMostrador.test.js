@@ -61,6 +61,13 @@ describe("lenguaje controlado de mostrador", () => {
     expect(suggestions.map((item) => item.nombre)).toEqual(["Vomisin 50 mg"]);
   });
 
+  test("bloqueador abre protección solar aunque el nombre sea Fotosun", () => {
+    const fotosun = producto({ nombre: "Fotosun UV100", marca: "Fotosun", categoria: "Cuidado personal" });
+    expect(tiendaProductMatchesBusqueda(fotosun, "bloqueador")).toBe(true);
+    expect(etiquetaIntencionMostrador("bloqueador")).toBe("protección solar");
+    expect(etiquetaIntencionMostrador("bloqueador solar")).toBe("protección solar");
+  });
+
   test("no activa intención con texto corto, numérico o desconocido", () => {
     expect(intencionesParaConsulta("do")).toEqual([]);
     expect(intencionesParaConsulta("7501234567890")).toEqual([]);
