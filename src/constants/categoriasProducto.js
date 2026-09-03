@@ -108,3 +108,65 @@ export function recargoCategoriaEsHigiene(raw) {
   const c = categoriaCanon(raw);
   return c === "Higiene" || c === "Cuidado personal";
 }
+
+/** Categorías clínicas: el principio activo es el rubro de compra / reabasto. */
+export const CATEGORIAS_CON_PRINCIPIO_ACTIVO = Object.freeze([
+  "Analgésico",
+  "Antiinflamatorio",
+  "Antibiótico",
+  "Gastro",
+  "Diabetes",
+  "Hipertensión",
+  "Alergia",
+  "Vitaminas",
+  "Suplemento",
+  "Herbolario",
+  "Hidratación",
+  "Cardiovascular",
+  "Hormonales",
+  "Respiratorio",
+]);
+
+const CATEGORIAS_SIN_PRINCIPIO_ACTIVO = new Set([
+  "Dispositivo médico",
+  "Botiquín",
+  "Higiene",
+  "Bebidas",
+  "Básicos",
+  "Abarrotes",
+  "Minisuper",
+  "Cuidado personal",
+]);
+
+/** Medicamento / suplemento: hay que capturar principio activo. Jabón y abarrotes no. */
+export function categoriaRequierePrincipioActivo(raw) {
+  const c = categoriaCanon(raw);
+  if (!c || CATEGORIAS_SIN_PRINCIPIO_ACTIVO.has(c)) return false;
+  return CATEGORIAS_CON_PRINCIPIO_ACTIVO.includes(c);
+}
+
+export function productoTienePrincipioActivo(p) {
+  if (String(p?.principio_activo || "").trim()) return true;
+  return Boolean(String(p?.denominacion_generica || "").trim());
+}
+
+/**
+ * ¿Este renglón debe llevar principio activo?
+ * Sí en categorías clínicas. En «Otro», sí si es genérico o ya tiene forma farmacéutica.
+ */
+export function productoRequierePrincipioActivo(p) {
+  if (!p || typeof p !== "object") return false;
+  if (categoriaRequierePrincipioActivo(p.categoria)) return true;
+  const cat = categoriaCanon(p.categoria);
+  if (CATEGORIAS_SIN_PRINCIPIO_ACTIVO.has(cat)) return false;
+  const tipo = String(p.tipo || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  if (tipo === "generico") return true;
+  return Boolean(String(p.forma_farmaceutica || "").trim());
+}
+
+export function productoFaltaPrincipioActivo(p) {
+  return productoRequierePrincipioActivo(p) && !productoTienePrincipioActivo(p);
+}

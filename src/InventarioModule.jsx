@@ -26,7 +26,10 @@ import {
   categoriaCanon,
   categoriaPasaFiltro,
   opcionesCategoriaSelect,
+  productoFaltaPrincipioActivo,
+  productoRequierePrincipioActivo,
 } from "./constants/categoriasProducto";
+import { completarPrincipioActivo, inferirPrincipioActivoDesdeNombre, textoPrincipioActivo } from "./lib/principioActivo";
 import {
   PRODUCTOS_POR_PAGINA,
   agruparLotesPorProducto,
@@ -233,6 +236,10 @@ function productoSinFoto(p, fotoCatalogoDe) {
   return true;
 }
 
+function productoSinPrincipioActivo(p) {
+  return productoFaltaPrincipioActivo(p) && !textoPrincipioActivo(p);
+}
+
 /** Parte nombre/presentación y mueve dosis suelta de principio → concentración al importar CSV. */
 function normalizarCamposFarmaceuticosImport(row) {
   const out = { ...row };
@@ -258,6 +265,8 @@ function normalizarCamposFarmaceuticosImport(row) {
 }
 
 function lineaPrincipioQuimicoTabla(p) {
+  const txt = textoPrincipioActivo(p);
+  if (txt) return txt;
   const dg = String(p.denominacion_generica ?? "").trim();
   const pa = String(p.principio_activo ?? "").trim();
   if (dg) return dg;
@@ -445,7 +454,7 @@ const INV_COLUMN_DEFS = {
   nombre: { label: "Nombre", hint: "" },
   marca: { label: "Marca", hint: "" },
   presentacion: { label: "Presentación", hint: "" },
-  principio: { label: "Principio activo", hint: "" },
+  principio: { label: "Principio activo", hint: "Obligatorio en medicamentos. Compras y reabasto buscan por este rubro." },
   ubicacion: { label: "Ubicación", hint: "" },
   categoria: { label: "Categoría", hint: "" },
   tipo: { label: "Tipo", hint: "" },
@@ -1017,6 +1026,10 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
     if (cb && (cb.length < 8 || cb.length > 14)) {
       e.codigo_barras = "Usa 8–14 dígitos (EAN/UPC)";
     }
+    const paListo = completarPrincipioActivo(form);
+    if (productoRequierePrincipioActivo(form) && !paListo) {
+      e.principio_activo = "Obligatorio en medicamentos (compras y reabasto buscan por este rubro)";
+    }
     return e;
   };
   const handleSave = async () => {
@@ -1039,7 +1052,7 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
         tipo: form.tipo,
         proveedor: (form.proveedor ?? "").trim() || null,
         descuento_pct: parseFloat(form.descuento_pct) || 0,
-        principio_activo: (form.principio_activo ?? "").trim() || null,
+        principio_activo: completarPrincipioActivo(form) || null,
         denominacion_generica: (form.denominacion_generica ?? "").trim() || null,
         denominacion_distintiva: (form.denominacion_distintiva ?? "").trim() || null,
         concentracion: (form.concentracion ?? "").trim() || null,
@@ -1236,7 +1249,27 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
               </select>
             </div>
             {field("Proveedor","proveedor")}
-            {field("Principio activo","principio_activo")}
+            <div style={{ marginBottom: 12 }}>
+              <label style={labelStyle}>
+                Principio activo
+                {productoRequierePrincipioActivo(form) ? <span style={{ color: C.red }}> *</span> : null}
+              </label>
+              <input
+                value={form.principio_activo || ""}
+                onChange={(e) => set("principio_activo", e.target.value)}
+                placeholder={inferirPrincipioActivoDesdeNombre(form.nombre) || "Ej. Paracetamol"}
+                style={{ ...inputStyle, borderColor: errors.principio_activo ? C.red : C.border }}
+              />
+              {errors.principio_activo ? (
+                <span style={{ color: C.red, fontSize: 10 }}>{errors.principio_activo}</span>
+              ) : (
+                <div style={{ fontSize: 11, color: C.textDim, marginTop: 6, lineHeight: 1.45 }}>
+                  {productoRequierePrincipioActivo(form)
+                    ? "Obligatorio en medicamentos. Compras y reabasto buscan por este rubro."
+                    : "Si aplica (vitamina, suplemento, fórmula), captúralo para buscarlo en reabasto."}
+                </div>
+              )}
+            </div>
             {field("Marca comercial","marca")}
             {field("Denominación genérica","denominacion_generica")}
             {field("Denominación distintiva / marca clínica","denominacion_distintiva")}
@@ -3171,6 +3204,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
       filtroAlerta === "sin_codigo_barras" ? productoSinCodigoBarras(p) :
       filtroAlerta === "sin_precio" ? productoSinPrecioVenta(p) :
       filtroAlerta === "sin_foto" ? productoSinFoto(p, fotoCatalogoDe) :
+      filtroAlerta === "sin_principio" ? productoSinPrincipioActivo(p) :
       true;
     return cat && alerta;
   }), [productos, filtroCategoria, filtroAlerta, fotoCatalogoDe]);
@@ -3229,6 +3263,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
   const sinCodigoBarras = productos.filter(p => p.activo && productoSinCodigoBarras(p)).length;
   const sinPrecioVenta = productos.filter(p => p.activo && productoSinPrecioVenta(p)).length;
   const sinFoto = productos.filter(p => p.activo && productoSinFoto(p, fotoCatalogoDe)).length;
+  const sinPrincipioActivo = productos.filter(p => p.activo && productoSinPrincipioActivo(p)).length;
   const inactivos  = productos.filter(p => !p.activo).length;
 
   const abrirEdicionProducto = useCallback((p, { focusBarcode = false } = {}) => {
@@ -3891,6 +3926,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
           {label:"Bajo stock",  val:bajoStock,  col:C.amber, click:()=>setFiltroAlerta(filtroAlerta==="bajo_stock"?"todos":"bajo_stock"), on: filtroAlerta==="bajo_stock"},
           {label:"Por caducar", val:porCaducar, col:C.red,   click:()=>setFiltroAlerta(filtroAlerta==="por_caducar"?"todos":"por_caducar"), on: filtroAlerta==="por_caducar"},
           {label:"Sin cód. barras", val:sinCodigoBarras, col:C.blue, click:()=>setFiltroAlerta(filtroAlerta==="sin_codigo_barras"?"todos":"sin_codigo_barras"), on: filtroAlerta==="sin_codigo_barras"},
+          {label:"Sin principio activo", val:sinPrincipioActivo, col:C.amber, click:()=>setFiltroAlerta(filtroAlerta==="sin_principio"?"todos":"sin_principio"), on: filtroAlerta==="sin_principio"},
           ...(!modoConsulta ? [
             {label:"Sin foto", val:sinFoto, col:C.amber, click:()=>setFiltroAlerta(filtroAlerta==="sin_foto"?"todos":"sin_foto"), on: filtroAlerta==="sin_foto"},
             {label:"Sin precio", val:sinPrecioVenta, col:C.red, click:()=>setFiltroAlerta(filtroAlerta==="sin_precio"?"todos":"sin_precio"), on: filtroAlerta==="sin_precio"},
@@ -3940,6 +3976,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
           <option value="bajo_stock">⚠ Bajo stock</option>
           <option value="por_caducar">⏰ Por caducar ({DIAS_CADUCIDAD_ALERTA}d)</option>
           <option value="sin_codigo_barras">🏷️ Sin código de barras</option>
+          <option value="sin_principio">💊 Sin principio activo</option>
           <option value="sin_foto">🖼 Sin foto</option>
           {!modoConsulta && <option value="sin_precio">Sin precio de venta</option>}
         </select>

@@ -226,6 +226,7 @@ describe("catalog search dimensions", () => {
       tiendaSearchRelevanceRank(affective, "pañal")
     );
     expect(tiendaProductMatchesBusqueda(tempra, "paracetamol")).toBe(true);
+    expect(inventarioProductMatchesBusqueda(tempra, "paracetamol")).toBe(true);
     expect(tiendaProductMatchesBusqueda(paraGeneric, "tempra")).toBe(true);
     expect(tiendaSearchRelevanceRank(tempra, "tempra")).toBeLessThan(
       tiendaSearchRelevanceRank(paraGeneric, "tempra")

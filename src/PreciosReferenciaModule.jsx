@@ -48,6 +48,8 @@ import {
 } from "./lib/inventarioHubData";
 import { inventarioProductMatchesBusqueda } from "./utils/fuzzySearch";
 import ImportReferenciaPrecios from "./components/ImportReferenciaPrecios";
+import FiltroPrincipioActivo from "./components/FiltroPrincipioActivo";
+import { productoPasaFiltroPrincipioActivo } from "./lib/principioActivo";
 
 const BRAND = { primary: "#0D1B2A", gradient: "linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
 
@@ -458,10 +460,12 @@ function ColumnSizer({ tab, colWidths, setColWidths, C }) {
 }
 
 function TablaCompra({
-  productos, refsByProduct, C, busq, colWidths,
+  productos, refsByProduct, C, busq, filtroPa, colWidths,
   inlineEdit, savingKey, onStartEdit, onDraft, onCommit, onCancel,
 }) {
-  const fil = productos.filter((p) => inventarioProductMatchesBusqueda(p, busq));
+  const fil = productos.filter((p) =>
+    inventarioProductMatchesBusqueda(p, busq) && productoPasaFiltroPrincipioActivo(p, filtroPa)
+  );
   const thS = (colId) => ({ ...th(C), ...colStyle(colWidths, colId) });
   const tdS = (colId, extra = {}) => ({ ...td(C), ...colStyle(colWidths, colId), ...extra });
 
@@ -590,12 +594,14 @@ function TablaCompra({
 }
 
 function TablaVenta({
-  productos, refsByProduct, C, busq, colWidths,
+  productos, refsByProduct, C, busq, filtroPa, colWidths,
   inlineEdit, savingKey, onStartEdit, onDraft, onCommit, onCancel,
   onAplicar, onAceptar, applyingId, sugeridoOverrides, onResetCompetir,
   revision,
 }) {
-  const fil = productos.filter((p) => inventarioProductMatchesBusqueda(p, busq));
+  const fil = productos.filter((p) =>
+    inventarioProductMatchesBusqueda(p, busq) && productoPasaFiltroPrincipioActivo(p, filtroPa)
+  );
   const thS = (colId) => ({ ...th(C), ...colStyle(colWidths, colId) });
   const tdS = (colId, extra = {}) => ({ ...td(C), ...colStyle(colWidths, colId), ...extra });
   const colSpan = 11;
@@ -862,6 +868,7 @@ export default function PreciosReferenciaModule() {
   const [loading, setLoading] = useState(true);
   const [schemaOk, setSchemaOk] = useState(true);
   const [busq, setBusq] = useState("");
+  const [filtroPa, setFiltroPa] = useState("todos");
   const [applyingId, setApplyingId] = useState(null);
   const [showColSizer, setShowColSizer] = useState(false);
   const [colWidthsCompra, setColWidthsCompra] = useState(() => loadColWidths("compra"));
@@ -1439,10 +1446,16 @@ export default function PreciosReferenciaModule() {
 
       <div style={{ marginBottom: 12, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
         <input
-          placeholder="🔍 Buscar nombre, PA, SKU…"
+          placeholder="🔍 Buscar nombre, principio activo, SKU…"
           value={busq}
           onChange={(e) => setBusq(e.target.value)}
           style={{ ...inpS, maxWidth: 280 }}
+        />
+        <FiltroPrincipioActivo
+          value={filtroPa}
+          onChange={setFiltroPa}
+          productos={productos}
+          style={{ ...inpS, maxWidth: 260 }}
         />
       </div>
 
@@ -1495,6 +1508,7 @@ export default function PreciosReferenciaModule() {
           refsByProduct={refsByProduct}
           C={C}
           busq={busq}
+          filtroPa={filtroPa}
           colWidths={colWidthsCompra}
           inlineEdit={inlineEdit}
           savingKey={savingKey}
@@ -1509,6 +1523,7 @@ export default function PreciosReferenciaModule() {
           refsByProduct={refsByProduct}
           C={C}
           busq={busq}
+          filtroPa={filtroPa}
           colWidths={colWidthsVenta}
           inlineEdit={inlineEdit}
           savingKey={savingKey}

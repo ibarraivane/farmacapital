@@ -10,10 +10,10 @@ export const PRODUCTOS_POR_PAGINA = 1000;
 
 /** Columnas que sí existen en `productos`. No incluir `proveedor`. */
 export const PRODUCTOS_SELECT_HUB =
-  "id,nombre,sku,codigo_barras,categoria,stock,stock_minimo,costo,activo,marca,presentacion,forma_farmaceutica";
+  "id,nombre,sku,codigo_barras,categoria,stock,stock_minimo,costo,activo,marca,presentacion,forma_farmaceutica,principio_activo,denominacion_generica,concentracion";
 
 export const PRODUCTOS_SELECT_LOTES =
-  "id,nombre,sku,codigo_barras,marca,presentacion,forma_farmaceutica,categoria,activo";
+  "id,nombre,sku,codigo_barras,marca,presentacion,forma_farmaceutica,categoria,activo,principio_activo,denominacion_generica";
 
 export function fechaCaducidadInvalida(fecha) {
   if (!fecha) return false;
