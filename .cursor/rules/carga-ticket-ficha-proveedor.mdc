@@ -1,0 +1,22 @@
+---
+description: Al cargar un ticket o dar de alta un producto, completar la ficha desde la página del proveedor. Nunca dejar el código del PDF como nombre de mostrador.
+alwaysApply: true
+---
+
+# Carga nueva: ficha desde el proveedor
+
+Cuando armes un ticket, un alta o un SQL de Recibir, **no copies el nombre del PDF**. Ese texto es un código interno (`BLOQ ANTHE UVAIR 50+ FLU INV 40ML`). En mostrador tiene que decir la marca y el producto reales.
+
+## Obligatorio por cada EAN nuevo
+
+1. Abre la ficha del proveedor con el EAN (Nadro i22 / `buscarNadroPorEan`, Levic/Visoti, Farma MX, etc.).
+2. Toma nombre, marca, presentación, categoría, foto y descripción de **esa página**, no del renglón del ticket.
+3. En Nadro el `productName` suele ser el mismo código. El nombre bueno está en `metaTagDescription` o en el slug (`linkText`). Usa `fichaCatalogoDesdeNadro` en `src/lib/fichaProveedor.js`.
+4. No uses marcas casa del mayorista (`FRABEL 2`, `LGEN`) como `marca`. Anthelios → La Roche-Posay; CeraVe → CeraVe.
+5. Si un rubro no está en la página, déjalo vacío. No inventes FPS, gramaje, lote ni caducidad.
+6. El SQL de alta tiene que llevar: `nombre`, `marca`, `presentacion`, `categoria`, `subcategoria`, `forma_farmaceutica`, `imagen_url` cuando el proveedor las tenga.
+7. Antes de commitear: busca «bloqueador» / la marca y tiene que salir. Un nombre `BLOQ ANTHE…` no pasa.
+
+## Caso que no se repite
+
+Nadro 01-sep-2026, EAN `3337875917810`: el ticket dice `BLOQ ANTHE UVAIR…`. La página dice **La Roche-Posay Anthelios UV Air FPS 50+ protector solar ligero 40 ml**.

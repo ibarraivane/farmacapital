@@ -7,6 +7,8 @@
 
 "use strict";
 
+const { fichaCatalogoDesdeNadro } = require("../../fichaProveedor");
+
 const UA = "FarmaCapitalPricingBot/1.0 (+https://www.farmacapital.mx)";
 const SEARCH = "https://i22.nadro.mx/api/io/_v/api/intelligent-search/product_search";
 const PRODUCT = "https://i22.nadro.mx/v1/api/proxy/getproductbyid";
@@ -94,7 +96,7 @@ function extraerProductoNadro(prod) {
   const ean = eanDe(prod);
   const nombre = String(prod.productName || prod.productTitle || "").trim();
   if (!nombre) return null;
-  return {
+  const hit = {
     fuente: "nadro",
     tipo: "compra",
     productId: String(prod.productId || ""),
@@ -106,7 +108,13 @@ function extraerProductoNadro(prod) {
     precioPublico: precioPublicoDe(prod),
     marca: String(prod.brand || "").trim() || null,
     link: String(prod.link || "").trim() || null,
+    linkText: String(prod.linkText || "").trim() || null,
+    description: String(prod.description || "").trim() || null,
+    metaTagDescription: String(prod.metaTagDescription || "").trim() || null,
+    categories: Array.isArray(prod.categories) ? prod.categories : [],
   };
+  hit.ficha = fichaCatalogoDesdeNadro(hit);
+  return hit;
 }
 
 function elegirPorEan(products, ean) {
@@ -150,6 +158,17 @@ async function buscarNadroPorEan(fetchImpl, ean) {
     if (row) {
       hit.precioPublico = precioPublicoDe(row) || hit.precioPublico;
       if (!hit.marca && row.brand) hit.marca = String(row.brand).trim();
+      if (!hit.metaTagDescription && row.metaTagDescription) {
+        hit.metaTagDescription = String(row.metaTagDescription).trim();
+      }
+      if (!hit.description && row.description) {
+        hit.description = String(row.description).trim();
+      }
+      if ((!hit.categories || !hit.categories.length) && Array.isArray(row.categories)) {
+        hit.categories = row.categories;
+      }
+      if (!hit.linkText && row.linkText) hit.linkText = String(row.linkText).trim();
+      hit.ficha = fichaCatalogoDesdeNadro(hit);
     }
   }
   return hit;
