@@ -14,6 +14,7 @@ import { findProductExactScan, looksLikeBarcodeInput, looksLikeInternalSku, look
 import { posTituloProducto, posSubtituloProducto, posEtiquetaVariante } from "../../../utils/posProductDisplay";
 import { grupoEquivalentesDeBusqueda, claveSustancia } from "../../../utils/equivalentesPos";
 import TableroEquivalentes, { TableroResultados } from "./TableroEquivalentes";
+import { PosAvisoLotesCarrito, PosAvisoLotesFicha } from "./PosAvisoLotes";
 import { precioUnidadParaVenta } from "../../../utils/precioUnidad";
 import { precioMostradorPos, productoCajaEsFalsa, stockMostradorPos } from "../../../utils/productoCajaFalsa";
 import { productoEsVendible } from "../../../utils/productoVendible";
@@ -479,6 +480,8 @@ function PosProductoFichaPanel({
               </div>
             )}
           </div>
+
+          <PosAvisoLotesFicha producto={item} hoy={hoyISOMexico()} C={C} />
 
           <div style={{ display: "grid", gridTemplateColumns: stack ? "1fr 1fr" : "repeat(3, minmax(0, 1fr))", gap: 8 }}>
             {metaCell("Gramaje / dosis", item.concentracion || null)}
@@ -2153,6 +2156,11 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:6,marginBottom:8}}>
               <div style={{flex:1,lineHeight:1.3}}>
                 <div style={{color:C.text,fontSize:14,fontWeight:700}}>{item.nombre}</div>
+                <PosAvisoLotesCarrito
+                  producto={productos.find((x) => String(x.id) === String(item.producto_id ?? item.id)) || item}
+                  hoy={hoyISOMexico()}
+                  C={C}
+                />
                 {item.fuentePrecio === "caducidad" && (
                   <div style={{color:C.amber,fontSize:11,fontWeight:700,marginTop:2}}>Precio especial por caducar</div>
                 )}

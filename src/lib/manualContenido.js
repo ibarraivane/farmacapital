@@ -15,7 +15,7 @@ export const GLOSARIO = [
   { id: "pvp", term: "PVP", aliases: ["precio de venta", "precio al público"], def: "Precio al público. La vendedora lo consulta en el POS al escanear, no en el Catálogo. No se captura al recibir. Lo define el dueño." },
   { id: "costo", term: "Costo", aliases: ["precio de compra", "en cuánto compramos"], def: "Lo que se pagó al proveedor. El piso no lo ve: ni en Catálogo, ni en Recibir (estimado). Vive en el lote y lo ve el dueño." },
   { id: "reabasto", term: "Reabasto", aliases: ["qué comprar", "sugerido"], def: "Qué conviene pedir según rotación y existencia. No es la pantalla para recibir cajas." },
-  { id: "pos", term: "POS", aliases: ["punto de venta", "caja registradora"], def: "Punto de venta: escanear, cobrar, receta. En el POS no se elige lote: el sistema descuenta por FEFO." },
+  { id: "pos", term: "POS", aliases: ["punto de venta", "caja registradora"], def: "Punto de venta: escanear, cobrar, receta. En el POS no se elige lote: el sistema descuenta por FEFO y la ficha indica qué fecha tomar del anaquel." },
   { id: "receta", term: "Receta", aliases: ["requiere receta", "controlado"], def: "En antibióticos se recomienda receta, pero no detiene la venta. Solo los controlados exigen receta en el POS (médico, cédula, paciente)." },
   { id: "corte", term: "Corte de caja", aliases: ["fondo", "arqueo"], def: "Cierre del turno: se cuenta el efectivo y se compara con lo que el sistema dice que debió haber." },
   { id: "fondo", term: "Fondo de caja", aliases: ["apertura", "efectivo inicial"], def: "Dinero con el que abres el turno. Lo entregaron; hay que contarlo antes de vender." },
@@ -86,7 +86,7 @@ export const TEMAS = [
       "No entres a Recibir desde aquí para «arreglar» un lote: eso es otra pantalla.",
     ],
     dudas: [
-      { q: "¿Puedo elegir qué lote descontar?", a: "No. Se descuenta el que caduca primero. Si la fecha está mal, corrígela en Recibir/Lotes, no en el POS." },
+      { q: "¿Puedo elegir qué lote descontar?", a: "No. Se descuenta el que caduca primero. En la ficha ves las fechas del anaquel y cuál tomar (ej. «Toma el de jun 2029»). Si la fecha está mal, corrígela en Recibir/Lotes, no en el POS." },
       { q: "El código no existe", a: "No lo inventes. Avísale al dueño. Si acaba de llegar, primero Recibir." },
       { q: "¿Dónde anoto una recarga de Telcel?", a: "Pestaña Servicios. El paso a paso está en el tema Recargas y pago de servicios." },
     ],
