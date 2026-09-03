@@ -14,7 +14,7 @@ export const GLOSARIO = [
   { id: "anaquel", term: "Anaquel", aliases: ["piso", "mostrador"], def: "Lo que está en el piso de venta, no en un papel ni en un PDF." },
   { id: "pvp", term: "PVP", aliases: ["precio de venta", "precio al público"], def: "Precio al público. La vendedora lo consulta en el POS al escanear, no en el Catálogo. No se captura al recibir. Lo define el dueño." },
   { id: "costo", term: "Costo", aliases: ["precio de compra", "en cuánto compramos"], def: "Lo que se pagó al proveedor. El piso no lo ve: ni en Catálogo, ni en Recibir (estimado). Vive en el lote y lo ve el dueño." },
-  { id: "reabasto", term: "Reabasto", aliases: ["qué comprar", "sugerido"], def: "Qué conviene pedir según rotación y existencia. No es la pantalla para recibir cajas." },
+  { id: "reabasto", term: "Reabasto", aliases: ["qué comprar", "sugerido", "principio activo"], def: "Qué conviene pedir según rotación y existencia. Por principio activo suma marcas equivalentes (Busconet y Pasmodil). No es la pantalla para recibir cajas." },
   { id: "pos", term: "POS", aliases: ["punto de venta", "caja registradora"], def: "Punto de venta: escanear, cobrar, receta. En el POS no se elige lote: el sistema descuenta por FEFO." },
   { id: "receta", term: "Receta", aliases: ["requiere receta", "controlado"], def: "En antibióticos se recomienda receta, pero no detiene la venta. Solo los controlados exigen receta en el POS (médico, cédula, paciente)." },
   { id: "corte", term: "Corte de caja", aliases: ["fondo", "arqueo"], def: "Cierre del turno: se cuenta el efectivo y se compara con lo que el sistema dice que debió haber." },
@@ -203,12 +203,17 @@ export const TEMAS = [
     invTab: "reabasto",
     roles: ["admin", "gerente"],
     titulo: "Reabasto (qué comprar)",
-    resumen: "Sugerido de compra por rotación. No mezclar con caducidad ni con Recibir.",
+    resumen: "Sugerido de compra por rotación. Por principio activo no marca agotado si ya hay otra marca del mismo medicamento. No mezclar con caducidad ni con Recibir.",
     pasos: [
       "Inventario → Reabasto.",
+      "Por principio activo: Busconet y Pasmodil (mismo activo) se ven juntos; si hay Pasmodil, no está agotado.",
+      "Por marca: cada SKU por separado, si quieres pedir esa caja exacta.",
       "Revisa qué está bajo el mínimo. Eso es «qué pedir», no «qué acaba de llegar».",
       "Caduca 90 días es otra alerta: no la uses como lista de compra.",
       "Cuando llegue el pedido: Recibir, no sumar a mano en Reabasto.",
+    ],
+    dudas: [
+      { q: "Compré otra marca del mismo activo y sigue agotado", a: "Cambia a Por principio activo. Si el catálogo tiene el principio activo en ambas fichas, el stock se suma. Si una ficha no tiene principio activo, no se agrupa: complétalo en Catálogo." },
     ],
   },
   {
