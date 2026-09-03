@@ -3949,7 +3949,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
         <select value={filtroAlerta} onChange={e=>setFiltroAlerta(e.target.value)} style={{...inputStyle,maxWidth:180}}>
           <option value="todos">Todas las alertas</option>
           <option value="agotados">🚨 Agotados</option>
-          <option value="bajo_stock">⚠ Bajo stock</option
+          <option value="bajo_stock">⚠ Bajo stock</option>
           <option value="por_caducar">⏰ Por caducar ({DIAS_CADUCIDAD_ALERTA}d)</option>
           <option value="sin_codigo_barras">🏷️ Sin código de barras</option>
           <option value="sin_foto">🖼 Sin foto</option>
