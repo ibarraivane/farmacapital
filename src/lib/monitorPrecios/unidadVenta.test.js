@@ -213,6 +213,26 @@ test("tableta no se compara con crema ni suspensión del mismo PA", () => {
   })).toBe(true);
 });
 
+test("Cafiaspirina C/100 se compara con Guadalajara 100 tabletas, no con Fahorro C/40", () => {
+  const caja100 = {
+    nombre: "Cafiaspirina tartrato C/100",
+    marca: "Cafiaspirina",
+    tipo: "marca",
+    principio_activo: "Acido acetilsalicilico + Caffeina",
+    presentacion: "C/100",
+    forma_farmaceutica: "TABLETAS",
+    precio: 294,
+  };
+  expect(diagnosticoRefRappi(caja100, {
+    nombre_fuente: "Cafiaspirina 500 mg/30 mg 100 tabletas — Farmacias Guadalajara",
+    precio: 190.19,
+  }).ok).toBe(true);
+  expect(diagnosticoRefRappi(caja100, {
+    nombre_fuente: "Cafiaspirina analgésico 40 tabletas — Farmacias del Ahorro",
+    precio: 66,
+  }).ok).toBe(false);
+});
+
 test("el mismo EAN es comparable aunque el nombre no traiga la marca", () => {
   expect(ofertaRappiComparable(
     { nombre: "Lizovag", codigo_barras: "7501075717150", precio: 26 },
