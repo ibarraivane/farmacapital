@@ -1,12 +1,12 @@
 {
   "id": "/",
-  "name": "FarmaCapital — Tienda",
-  "short_name": "FarmaCapital Tienda",
+  "name": "FarmaCapital",
+  "short_name": "FarmaCapital",
   "description": "Tienda en línea FarmaCapital: medicamentos, consultorio y envíos. Chinampac de Juárez, CDMX.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#0D1B2A",
+  "background_color": "#001534",
   "theme_color": "#1E3ABA",
   "orientation": "portrait-primary",
   "lang": "es-MX",
@@ -16,12 +16,6 @@
     "health"
   ],
   "icons": [
-    {
-      "src": "/icons/farmacapital-16.png",
-      "sizes": "16x16",
-      "type": "image/png",
-      "purpose": "any"
-    },
     {
       "src": "/icons/farmacapital-72.png",
       "sizes": "72x72",
@@ -44,13 +38,25 @@
       "src": "/icons/farmacapital-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/icons/farmacapital-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/farmacapital-192-maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/farmacapital-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "shortcuts": [
