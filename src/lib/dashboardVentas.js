@@ -69,6 +69,40 @@ export function sumPedidosTotal(pedidos) {
   return (pedidos || []).reduce((a, p) => a + (parseFloat(p.total || p.suma || 0) || 0), 0);
 }
 
+/** Suma de todos los días de la serie (ventas netas si el RPC manda devoluciones). */
+export function sumSeriePorDia(porDia) {
+  return Object.values(porDia || {}).reduce((a, v) => a + (Number(v) || 0), 0);
+}
+
+/**
+ * Ventas acumuladas para la pestaña Proyecto (barra de recuperación / payback).
+ * Prefiere el SUM del servidor; si falta, cae a ped_todos, serie diaria del POS
+ * o un piso (p. ej. ventas del mes ya cargadas en Operación).
+ */
+export function resolverVentasAcumuladas({
+  ventasAcumuladasRpc,
+  pedTodos,
+  ventasPorDia,
+  piso = 0,
+} = {}) {
+  const fromRpc = Number(ventasAcumuladasRpc);
+  if (Number.isFinite(fromRpc) && fromRpc > 0) return fromRpc;
+  const fromPedidos = sumPedidosTotal(pedTodos);
+  if (fromPedidos > 0) return fromPedidos;
+  const fromSerie = sumSeriePorDia(ventasPorDia);
+  if (fromSerie > 0) return fromSerie;
+  const floor = Number(piso) || 0;
+  return floor > 0 ? floor : 0;
+}
+
+/** Estimación operativa usada en Proyecto (misma que el subtítulo del KPI). */
+export function gananciaNetaEstMes(ventasMes, ratio = 0.55) {
+  const v = Number(ventasMes) || 0;
+  const r = Number(ratio);
+  const factor = Number.isFinite(r) && r > 0 ? r : 0.55;
+  return v > 0 ? v * factor : 0;
+}
+
 /**
  * Serie RPC → totales por día civil.
  * `porDia` es neto (bruto − devoluciones del mismo día) si el RPC manda `devoluciones`.

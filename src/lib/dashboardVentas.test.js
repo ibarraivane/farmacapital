@@ -1,10 +1,13 @@
 import {
   finInclusivoIso,
+  gananciaNetaEstMes,
   rangoReporteMexico,
   rangosDashboardMexico,
+  resolverVentasAcumuladas,
   serieVentasDesdeRpc,
   sumPedidosTotal,
   sumPorDiaYmd,
+  sumSeriePorDia,
 } from "./dashboardVentas";
 import { rangoDiaMexico } from "./fecha";
 
@@ -76,9 +79,56 @@ describe("sumas", () => {
     expect(sumPedidosTotal([{ total: "10" }, { suma: 5 }])).toBe(15);
   });
 
+  test("sumSeriePorDia suma todo el mapa", () => {
+    expect(sumSeriePorDia({ "2026-08-01": 100, "2026-08-28": 50.5 })).toBe(150.5);
+  });
+
   test("finInclusivoIso no incluye el instante de cierre exclusivo", () => {
     const { end } = rangoDiaMexico("2026-08-28");
     const incl = finInclusivoIso(end);
     expect(new Date(incl).getTime()).toBe(new Date(end).getTime() - 1);
+  });
+});
+
+describe("resolverVentasAcumuladas", () => {
+  test("prefiere el SUM del RPC sobre ped_todos y la serie", () => {
+    expect(resolverVentasAcumuladas({
+      ventasAcumuladasRpc: 9000,
+      pedTodos: [{ total: 100 }],
+      ventasPorDia: { "2026-08-28": 50 },
+    })).toBe(9000);
+  });
+
+  test("si no hay RPC usa ped_todos (compat bundle viejo)", () => {
+    expect(resolverVentasAcumuladas({
+      pedTodos: [{ total: "120" }, { total: 30 }],
+      ventasPorDia: { "2026-08-28": 999 },
+    })).toBe(150);
+  });
+
+  test("si ped_todos viene vacío usa la serie del POS", () => {
+    expect(resolverVentasAcumuladas({
+      pedTodos: [],
+      ventasPorDia: { "2026-08-27": 200, "2026-08-28": 300 },
+    })).toBe(500);
+  });
+
+  test("sin datos queda en 0", () => {
+    expect(resolverVentasAcumuladas({})).toBe(0);
+  });
+
+  test("si todo falla usa el piso (ventas del mes de Operación)", () => {
+    expect(resolverVentasAcumuladas({
+      pedTodos: [],
+      ventasPorDia: {},
+      piso: 4200,
+    })).toBe(4200);
+  });
+});
+
+describe("gananciaNetaEstMes", () => {
+  test("55% de ventas del mes (misma fórmula del KPI Proyecto)", () => {
+    expect(gananciaNetaEstMes(1000)).toBe(550);
+    expect(gananciaNetaEstMes(0)).toBe(0);
   });
 });
