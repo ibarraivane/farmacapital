@@ -1,12 +1,14 @@
 /**
- * Agrupa el resurtido en pedidos por tienda real.
+ * Agrupa el resurtido en pedidos por surtidor real.
  *
- * El destino es dónde pides (Levic, Exprezo, Scorpion…), no «tu último costo».
+ * Destino = quién tiene el mejor precio (listas B2B + última compra con nombre).
  * Medicamento cae en Levic y abarrotes en Exprezo, salvo que otra tienda de la
  * misma familia ahorre lo suficiente para pagar el viaje extra.
+ * El Surtidor / Farma City / Equilibrio no se mezclan con el portal de Levic.
  */
 
 import { FUENTE_META } from "./preciosReferencia";
+import { esFamiliaSurtidor } from "./reporteReabasto";
 
 export const AHORRO_MIN_LINEA_MXN = 8;
 export const AHORRO_MIN_LINEA_PCT = 0.04;
@@ -38,6 +40,7 @@ export const HUB_FAMILIA = {
 
 export function familiaDeFuente(fuenteId) {
   if (!fuenteId || fuenteId === SIN_TIENDA_ID) return "otro";
+  if (esFamiliaSurtidor(fuenteId)) return "surtidor";
   return FAMILIA[fuenteId] || "otro";
 }
 
@@ -103,7 +106,7 @@ export function elegirDestinoLinea(producto, cantidad) {
 
   return {
     destId: elegido.fuente,
-    destLabel: labelDe(elegido.fuente),
+    destLabel: elegido.label || labelDe(elegido.fuente),
     destFuente: elegido.fuente,
     familia: familiaDeFuente(elegido.fuente),
     precioUnit: elegido.precio,
@@ -149,6 +152,7 @@ export function asignarPedidosPorTienda(items) {
 
   const valeViaje = (d) => {
     if (esHub(d.fuente) || d.fuente === SIN_TIENDA_ID) return true;
+    if (d.familia === "surtidor") return true;
     const ahorro = d.productos.reduce((a, p) => a + (p.ahorroLinea || 0), 0);
     return d.productos.length >= VIAJE_MIN_LINEAS || ahorro >= VIAJE_MIN_AHORRO_MXN;
   };

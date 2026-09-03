@@ -23,6 +23,15 @@ describe("manualContenido", () => {
     expect(ids).not.toContain("pos");
   });
 
+  test("Reabasto explica reporte y surtidor", () => {
+    const t = TEMAS.find((x) => x.id === "reabasto");
+    const blob = [t.resumen, ...(t.pasos || [])].join(" ");
+    expect(blob).toMatch(/agotad/i);
+    expect(blob).toMatch(/surtidor/i);
+    expect(blob).toMatch(/reporte/i);
+    expect(blob).toMatch(/mejor precio|más barato/i);
+  });
+
   test("admin ve Recibir y Reabasto, no Mi Día", () => {
     const u = { rol: "admin" };
     const temas = temasParaUsuario(u, () => true);
