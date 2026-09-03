@@ -1,9 +1,10 @@
 /**
  * Import genérico de referencias de precio (CSV en browser).
- * Match: SKU exacto → EAN/código de barras → fuzzy nombre+marca.
+ * Match: SKU exacto → EAN/código de barras → fuzzy nombre+marca (mismo tamaño).
  */
 
 import { normalizeForSearch } from "../utils";
+import { extraerTamanoConsumo, tamanosComparables, textoProductoTamano } from "./preciosPorTamano";
 
 export const FUENTES_IMPORT = [
   { id: "exprezo", label: "Exprezo / Zorro (piso barato: higiene y abarrotes)", tipo: "compra", adapter: "exprezo" },
@@ -150,11 +151,16 @@ export function matchImportRows(parsedRows, productos, { minScore = 70 } = {}) {
       }
     }
     if (!producto && row.nombre_fuente) {
+      const tamFuente = extraerTamanoConsumo(row.nombre_fuente);
       let best = null;
       let bestScore = 0;
       for (const p of productos) {
+        if (tamFuente) {
+          const tamCat = extraerTamanoConsumo(textoProductoTamano(p));
+          if (tamCat && !tamanosComparables(tamFuente, tamCat)) continue;
+        }
         const score = tokenMatchScore(
-          `${p.marca || ""} ${p.nombre || ""}`,
+          `${p.marca || ""} ${p.nombre || ""} ${p.presentacion || ""}`,
           row.nombre_fuente
         );
         if (score > bestScore) {

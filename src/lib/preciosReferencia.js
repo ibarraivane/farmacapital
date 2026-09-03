@@ -4,6 +4,7 @@
  */
 
 import { diagnosticoRefRappi } from "./monitorPrecios/unidadVenta";
+import { coherenciaSugeridosPorTamano, proponerPreciosVentaPorTamano } from "./preciosPorTamano";
 
 /** Columnas visibles en la tabla Compra (no inflar con fuentes de pocos matches). */
 export const FUENTES_COMPRA_TABLA = ["exprezo", "marzam", "nadro", "levic", "farmalive", "otros_compra"];
@@ -634,16 +635,69 @@ export function accionPrecioSugerido(precioActual, sugerido) {
 
 /** Subidas y bajadas: aplicar el sugerido al PVP. */
 export function listarSugerenciasAplicables(productos, refsByProduct, calcFn) {
-  const out = [];
+  const filas = [];
   for (const p of productos || []) {
     if (typeof calcFn !== "function") continue;
     const r = calcFn(p, refsByProduct?.[p.id] || {});
-    if ((r.accion !== "subir" && r.accion !== "bajar") || r.sugerido == null) continue;
-    const de = roundPrecioVenta(p.precio);
-    if (de == null || r.sugerido === de) continue;
-    out.push({ producto: p, de, a: r.sugerido, refMin: r.refMin, accion: r.accion });
+    if (r.sugerido == null) continue;
+    filas.push({ producto: p, sugerido: r.sugerido, refMin: r.refMin, calc: r });
   }
-  return out;
+  // No sugerir bajar la botella grande por debajo de la chica (agua oxigenada, etc.).
+  const ajustadas = coherenciaSugeridosPorTamano(filas);
+  const byId = new Map();
+  for (const f of ajustadas) {
+    const de = roundPrecioVenta(f.producto.precio);
+    const a = roundPrecioVenta(f.sugerido);
+    if (de == null || a == null || a === de) continue;
+    const accion = accionPrecioSugerido(de, a);
+    if (accion !== "subir" && accion !== "bajar") continue;
+    byId.set(f.producto.id, {
+      producto: f.producto,
+      de,
+      a,
+      refMin: f.refMin,
+      accion,
+      coherenciaTamano: Boolean(f.coherenciaTamano),
+    });
+  }
+
+  // Si el PVP actual ya está invertido por tamaño, forzar subida aunque no haya ref de mercado.
+  for (const corr of listarCorreccionesPorTamano(productos)) {
+    const prev = byId.get(corr.producto.id);
+    if (!prev || (prev.accion === "subir" && corr.a > prev.a) || prev.accion === "bajar") {
+      byId.set(corr.producto.id, {
+        producto: corr.producto,
+        de: corr.de,
+        a: corr.a,
+        refMin: prev?.refMin ?? null,
+        accion: "subir",
+        coherenciaTamano: true,
+      });
+    }
+  }
+
+  return [...byId.values()];
+}
+
+/**
+ * PVP que hay que subir para que tamaño y precio de venta cuadren
+ * (botella más grande ≥ botella más chica, y no bajo el piso de margen).
+ */
+export function listarCorreccionesPorTamano(productos) {
+  return proponerPreciosVentaPorTamano(productos, {
+    pisoDe: (p) => {
+      const m = calcMargenVenta(p.precio, p);
+      return m.piso || 0;
+    },
+    redondear: (n) => roundPrecioVenta(n) || Math.ceil(n),
+  }).map((c) => ({
+    producto: c.producto,
+    de: roundPrecioVenta(c.de) ?? c.de,
+    a: roundPrecioVenta(c.a) ?? c.a,
+    motivo: c.motivo,
+    accion: "subir",
+    coherenciaTamano: true,
+  }));
 }
 
 /** Solo subidas. */
