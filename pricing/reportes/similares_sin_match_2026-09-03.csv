@@ -1,0 +1,552 @@
+sku,nombre,tipo,principio_activo,costo,precio_fc,stock,tenia_ref,mejor_confianza,mejor_candidato,motivo
+FC-DE106642,AMPIGRIM INFANTIL(Metamizol + Dexametasona + Vit. B),generico,Ampicilina,73.57,95.65,1.0,False,72,AMPICILINA 500 MG 20 CAPSULAS,no comparable: nuestro catalogo sin concentracion
+FC-C9F4ACCC,Acemetacina,generico,Acemetacina,51.43,108.0,3.0,True,80,ACEMETACINA 90 MG  LIBERACION PROLONGADA 14 CAPSULAS,no comparable: nuestro catalogo sin concentracion
+FC-FD845E68,Aciclovir,generico,Aciclovir,64.09,176.0,1.0,True,80,ACICLOVIR 200 MG 25 TABLETAS,no comparable: nuestro catalogo sin concentracion
+FC-05965071,Acroxil-C,generico,Amoxicilina / Bromhexina,24.05,36.0,1.0,True,80,AMOXICILINA / BROMHEXINA 500/8MG 12 CAPSULAS,no comparable: nuestro catalogo sin concentracion
+FC-85BDBD3D,Acroxil-C,generico,Amoxicilina / Bromhexina,25.42,53.0,1.0,False,72,AMOXICILINA / BROMHEXINA 250/8 MG POLVO PARA SUSPENSION 1 PIEZA,no comparable: forma difiere suspension≠polvo
+FMX-500311,Ali-Gomitas Gomitas C/60,generico,INULINA/INOSITOL/COLINA,62.96,101.0,1.0,False,0,,sin resultados VTEX
+FC-75710113,Alu-Mag suspensión hidróxido de aluminio/magnesio 3.70/4.00 g,generico,,23.77,94.0,2.0,False,1,ALUMINIO 3.7 GR / MAGNESIO 4 GR / SIMETICONA .5 GR SUSPENSION 320 ML 1 PIEZA,"no comparable: concentracion difiere en parte ['240ml', '4000mg']≠['320ml', '3700mg', '4000mg', '5000mg']"
+EQ-COL258,Alzocid Tadalafil,generico,Tadalafil,23.78,39.0,3.0,False,100,TADALAFIL 20 MG 4 TABLETAS,precio 7.1x el costo
+FC-BE76D409,Amcef IM 1 g (Inyectable),generico,Ceftriaxona,19.72,25.64,10.0,True,72,CEFTRIAXONA SOLUCION INYECTABLE 1 GR  1 AMPOLLETA,no comparable: forma difiere inyectable≠solucion
+FC-07F04F88,Amcef IM 500 mg (Inyectable),generico,Ceftriaxona,19.43,25.26,2.0,True,72,CEFTRIAXONA 500 MG SOLUCION INYECTABLE 1 PIEZA,no comparable: forma difiere inyectable≠solucion
+FC-9A37D44A,Amdoryl,generico,LANSOPRAZOL,28.11,36.0,2.0,True,80,LANSOPRAZOL 30 MG 14 CAPSULAS,no comparable: nuestro catalogo sin concentracion
+FC-9F67BB73,Amifarin,generico,DICLOXACILINA,27.0,38.0,1.0,True,80,DICLOXACILINA SUSPENSION 60 ML 1 PIEZA,no comparable: nuestro catalogo sin concentracion
+FC-11294615,Amikacina,generico,AMIKACINA,29.21,47.0,1.0,True,72,AMIKACINA 100MG/2ML SOLUCION INYECTABLE 1 AMPOLLETA,no comparable: nuestro catalogo sin concentracion
+FC-347A49C7,Amikacina,generico,AMIKACINA,8.46,28.0,1.0,True,72,AMIKACINA 100MG/2ML SOLUCION INYECTABLE 1 AMPOLLETA,no comparable: nuestro catalogo sin concentracion
+FC-1FEA2FB7,Amikacina,generico,AMIKACINA,16.11,38.0,1.0,True,72,AMIKACINA 100MG/2ML SOLUCION INYECTABLE 1 AMPOLLETA,no comparable: nuestro catalogo sin concentracion
+FC-4A0245DA,Amlodipino,generico,Amlodipino,32.52,44.0,0,True,80,AMLODIPINO 5MG 10 TABLETAS,no comparable: nuestro catalogo sin concentracion
+FC-3B001F9B,Amlodipino,generico,Amlodipino,9.04,78.0,3.0,False,80,AMLODIPINO 5MG 10 TABLETAS,no comparable: nuestro catalogo sin concentracion
+FC-F4E9C71F,Amoxicilina,generico,AMOXICILINA,23.57,98.0,1.0,False,80,AMOXICILINA 250 MG SUSPENSION 75 ML 1 PIEZA,no comparable: nuestro catalogo sin concentracion
+FC-A0D320D1,Amoxicilina,generico,AMOXICILINA,18.37,30.0,5.0,True,80,AMOXICILINA 500 MG 12 CAPSULAS,no comparable: nuestro catalogo sin concentracion
+FC-F82A6E4B,Ampicilina,generico,AMPICILINA,27.05,49.0,2.0,True,80,AMPICILINA 500 MG 20 CAPSULAS,no comparable: nuestro catalogo sin concentracion
+FC-D210172A,Ampicilina,generico,AMPICILINA,25.48,40.77,3.0,False,80,AMPICILINA 500 MG 20 CAPSULAS,no comparable: nuestro catalogo sin concentracion
+FC-7F90064A,Ampicilina,generico,Ampicilina,20.37,33.0,3.0,False,80,AMPICILINA 500 MG 20 CAPSULAS,no comparable: nuestro catalogo sin concentracion
+FC-2001A890,Ampigrin AD (Ampicilina + Dicloxacilina),generico,Ampicilina,81.71,106.23,2.0,False,72,AMPICILINA 500 MG 20 CAPSULAS,no comparable: nuestro catalogo sin concentracion
+FC-D751525D,Animalin fórmula líquida 30 mL,generico,,22.65,56.0,1.0,False,0,GOMITAS LTEANINA 50 PIEZAS MULTIGOMI INFANTIL,no comparable: candidato sin tamano declarado
+EQ-SON175,Ardosons 20 Caps 215/25/0.75 Mg,generico,Indometacina / Betametasona / Metocarbamol,60.33,97.0,0,False,82,INDOMETACINA / BETAMETASONA / METOCARBAMOL 20 CAPSULAS,no comparable: candidato sin tamano declarado
+EQ-SER001,Asmaral-K Ketotifeno,generico,Ketotifeno,61.07,98.0,1.0,True,80,KETOTIFENO 1 MG 30 TABLETAS,no comparable: nuestro catalogo sin concentracion
+FC-17376CAE,Aspitak-P,generico,Ácido acetilsalicílico,19.72,27.0,2.0,True,80,ACIDO ACETILSALICILICO 100MG ADULTO 30 COMPRIMIDOS,no comparable: nuestro catalogo sin concentracion
+FC-E4BE37BE,Atorvastatina,generico,ATORVASTATINA,26.35,43.0,2.0,True,80,ATORVASTATINA 80MG 30 TABLETAS,no comparable: nuestro catalogo sin concentracion
+FC-75723830,Atroxolam (Teofilina/Ambroxol) 7.0-1.5 mg/mL jarabe,generico,Teofilina/Ambroxol,29.77,48.0,1.0,False,70,TEOFILINA / AMBROXOL .7/.15 GR SOLUCION 150 ML 1 PIEZA,"no comparable: concentracion difiere en parte ['1.5mg', '150ml']≠['15000mg', '150ml']"
+FC-D9391288,Azitromicina,generico,AZITROMICINA,68.5,110.0,1.0,True,80,AZITROMICINA 200MG SUSPENSION 15 ML 1 PIEZA,no comparable: nuestro catalogo sin concentracion
+FC-01166578,Baby Son's pomada dexpantenol 5 g/100 g,generico,,21.55,35.0,1.0,False,0,SACCHAROMYCES BOULARDI POLVO 6 SOBRES SIMI BABY,no comparable: candidato sin tamano declarado
+FC-AE5EEDF7,Bactiver,generico,SULFAMETOXAZOL + TRIMETOPRIMA,16.89,28.0,2.0,False,80,TRIMETOPRIMA / SULFAMETOXAZOL 80/400MG 20 TABLETAS,no comparable: nuestro catalogo sin concentracion
+FC-F8691496,Bactiver F (Sulfametoxazol/Trimetoprima),generico,SULFAMETOXAZOL + TRIMETOPRIMA,21.01,35.0,3.0,False,80,TRIMETOPRIMA / SULFAMETOXAZOL 80/400MG 20 TABLETAS,no comparable: nuestro catalogo sin concentracion
+EQ-COD086,Bano Coloide 1 Pvo,generico,Polividona,18.15,30.0,2.0,True,47,BAÑO COLOIDE POLVO EN SOBRE 90 GR 1 PIEZA,confianza 47 < 85
+FMX-302206,Belapiel/Golpes Ungüento C/75 Gr,generico,ARNICA/CANEDULA/ALOE VERA,20.4,33.0,1.0,False,26,ARNICA 6C 30 TABLETAS,"no comparable: al competidor le faltan 2/3 principios activos (canedula, aloe)"
+FMX-302287,Belapiel/Piernas-Cansadas Crema C/200 Gr,generico,"CENTELLA ASIATICA, CASTAÑA DE INDIAS",53.55,86.0,1.0,False,0,METRONIDAZOL / CENTELLA ASIATICA / NITROFURAL 12 OVULOS,no comparable: al competidor le faltan 1/2 principios activos (castana)
+FC-75710465,Benciefedril jarabe dextrometorfano/guaifenesina,generico,,22.74,49.0,2.0,False,43,DEXTROMETORFANO / GUAIFENESINA  .2/2 GR ADULTO SOLUCION 120 ML 1 PIEZA,confianza 43 < 85
+EQ-AMS398,Bencil/Benz Comp 1 Fa 1.2 U 3 Ml,generico,Benzatina / procaína / cristalina,18.07,29.0,5.0,False,26,BENCILPENICILINA / BENZATINA SUSPENSION INYECTABLE 1 PIEZA,"no comparable: al competidor le faltan 2/3 principios activos (procaina, cristalina)"
+FC-9B93AC4C,Beneventol,generico,BENEVENTOL,97.6,157.0,1.0,True,0,CEFIXIMA 100MG/5ML SUSPENSION ORAL 1 PIEZA,no comparable: nuestro catalogo sin concentracion
+FC-4BD80686,Beneventol,generico,BENEVENTOL,88.17,147.0,1.0,True,0,CEFIXIMA 100MG/5ML SUSPENSION ORAL 1 PIEZA,no comparable: nuestro catalogo sin concentracion
+FC-369D1689,Beneventol,generico,BENEVENTOL,146.11,220.0,1.0,False,0,CEFIXIMA 100MG/5ML SUSPENSION ORAL 1 PIEZA,no comparable: nuestro catalogo sin concentracion
+EQ-SON024,Bentix 1 Cma 40g 3/0.0 %,generico,Clioquinol / Fluocinolona,28.12,45.0,1.0,False,70,FLUOCINOLONA / CLIOQUINOL .01/3 GR CREMA 1 PIEZA,no comparable: concentracion difiere ['40000mg']≠['3000mg']
+FC-B8D7C997,Bicarbonato Sobres,generico,Bicarbonato de sodio,48.0,72.0,1.0,True,72,BICARBONATO DE SODIO POLVO 100 GR 1 PIEZA,no comparable: nuestro catalogo sin concentracion
+FC-08DB70CB,Bicarbonato Velazquez Grande 200G,generico,Bicarbonato de sodio,11.5,18.41,5.0,True,70,BICARBONATO DE SODIO POLVO 100 GR 1 PIEZA,no comparable: concentracion difiere ['200000mg']≠['100000mg']
+EQ-BIO003,Biomesina Compuesta,generico,Butilbromuro de hioscina / Metamizol sódico,28.57,46.0,2.0,False,32,METAMIZOL / BUTILHIOSCINA  250/10MG 10 GRAGEAS,no comparable: al competidor le faltan 1/2 principios activos (butilbromuro)
+FC-1041884,Biomiral Pleniform 40 isoflavonas soya C/30,generico,,74.27,101.0,1.0,False,0,,sin resultados VTEX
+FMX-302138,Biotina-Naturex Capsulas C/30,generico,Vitamina E/ ACEITE DE GERMEN DE TRIGO,71.85,120.0,1.0,False,65,VITAMINA D3+VITAMINA K2 30 CAPSULAS,no comparable: al competidor le faltan 1/2 principios activos (germen)
+FC-C101D5B1,Bisoprolol,generico,BISOPROLOL,97.51,157.0,1.0,True,80,BISOPROLOL  2.5MG 30 TABLETAS,no comparable: nuestro catalogo sin concentracion
+FC-58DB24C4,Bitenver,generico,Betahistina,62.78,88.0,1.0,False,80,BETAHISTINA 24 MG 30 TABLETAS,no comparable: nuestro catalogo sin concentracion
+EQ-VIT073,Bocetix 1 Sol 50 Mg 150 Ml,generico,Levocetirizina,73.19,118.0,1.0,False,70,LEVOCETIRIZINA 5MG 10TABLETAS,"no comparable: concentracion difiere ['150ml', '50mg']≠['5mg']"
+EQ-COL016,"Bonazin Meclozina, Piridoxina, Lidocaína",generico,"Meclozina, Piridoxina, Lidocaína",26.28,43.0,1.0,False,60,MECLOZINA / PIRIDOXINA SOLUCION INYECTABLE 1 AMPOLLETA,no comparable: al competidor le faltan 1/3 principios activos (lidocaina)
+FC-25304555,Braxigort (Nifuroxazida) suspensión 4.4 g/100 mL,generico,Nifuroxazida,39.45,64.0,1.0,False,82,NIFUROXAZIDA SUSPENSION 1 PIEZA,no comparable: candidato sin tamano declarado
+FC-73903260,Bromhexina Adulto solución 160 mg/100 mL,generico,,17.59,34.0,1.0,False,55,BROMHEXINA 160MG/100ML ADULTO SOLUCION 1 PIEZA,confianza 55 < 85
+FC-73903246,Bromhexina Infantil solución 80 mg/100 mL,generico,,17.11,49.0,1.0,False,55,BROMHEXINA 80MG/100ML SOLUCION INFANTIL 1 PIEZA,confianza 55 < 85
+EQ-BRU016,Brulin (Dexametasona) 3 Fa 8mg/2 Ml,generico,Dexametasona,24.28,39.0,2.0,False,72,DEXAMETASONA SOLUCION INYECTABLE 8MG/2ML 1 PIEZA,no comparable: forma difiere inyectable≠solucion
+EQ-NOV165,Budenova Susp .125 Mg/Ml 5 Amp 2ml,generico,Budesonida,130.24,209.0,1.0,False,70,BUDESONIDA SUSPENSION 0.250MG/2ML O 0.125MG/ML PARA NEBULIZACION 5 AMPOLLETAS,"no comparable: concentracion difiere en parte ['125mg', '2ml']≠['0.125mg', '0.25mg', '2ml']"
+FC-447B30F9,Budesonida,generico,Budesonida,131.38,170.8,2.0,True,72,BUDESONIDA SUSPENSION 0.500MG/2ML O 0.250MG/ML SUSPENSION PARA NEBULIZACION 5 AMPOLLETAS,no comparable: nuestro catalogo sin concentracion
+FC-281E0F22,Budesonida,generico,Budesonida,153.72,208.0,1.0,True,80,BUDESONIDA SUSPENSION 0.500MG/2ML O 0.250MG/ML SUSPENSION PARA NEBULIZACION 5 AMPOLLETAS,no comparable: nuestro catalogo sin concentracion
+FC-C6C20517,Budimin,generico,Bumetanida,31.31,43.0,1.0,False,80,BUMETANIDA 1 MG 20 TABLETAS,no comparable: nuestro catalogo sin concentracion
+EQ-SON033,Busconet 1 Fa 250/20mg/5 Ml,generico,Hioscina / Metamizol sódico,33.38,54.0,0,False,70,METAMIZOL SODICO / BUTILHIOSCINA 2.5G/20MG SOLUCION INYECTABLE 1 AMPOLLETA,"no comparable: concentracion difiere en parte ['20mg', '5ml']≠['20mg', '2500mg']"
+EQ-SON034,"Busconet Metamizol sodico, Hioscina",generico,Metamizol sódico / Hioscina,24.92,40.0,2.0,False,80,METAMIZOL / BUTILHIOSCINA  250/10MG 10 GRAGEAS,no comparable: nuestro catalogo sin concentracion
+EQ-AMS463,Butilhioscina,generico,Butilhioscina,12.13,20.0,3.0,True,80,BUTILHIOSCINA 10 MG 10 TABLETAS,no comparable: nuestro catalogo sin concentracion
+EQ-AMS075,Butilhioscina 3 Amp 20 Mg/1 Ml,generico,Butilhioscina,31.88,52.0,1.0,False,72,BUTILHIOSCINA  20MG/1ML SOLUCION INYECTABLE 3 AMPOLLETAS,no comparable: forma difiere inyectable≠solucion
+FMX-502046,Calazin Suspension Topica C/180 Ml,generico,Calamina,36.85,59.0,2.0,False,0,,sin resultados VTEX
+EQ-RAD096,Calcio Efe 12 Comp 500 Mg,generico,Calcio,39.07,63.0,1.0,False,82,CARBONATO DE CALCIO 12 TABLETAS MASTICABLES SABOR MENTA,no comparable: candidato sin tamano declarado
+FC-08100099,Caltrón 600+D calcio 600 mg / vitamina D 125 UI,generico,,106.37,171.0,1.0,False,0,FIJADOR DE CEJAS 10ML GEL GELASIMI,"no comparable: concentracion difiere ['125ui', '600mg']≠['10ml']"
+FC-82F88FED,Captopril,generico,CAPTOPRIL,7.95,13.0,5.0,True,80,CAPTOPRIL 25 MG 30 TABLETAS,no comparable: nuestro catalogo sin concentracion
+FC-885F2723,Carbamazepina,generico,CARBAMAZEPINA,18.11,34.0,3.0,True,80,CARBAMAZEPINA 200 MG 20 TABLETAS,no comparable: nuestro catalogo sin concentracion
+EQ-MAV142,Cefabroxil 15 Tab 500/30 Mg,generico,Cefalexina / Ambroxol,44.44,72.0,1.0,False,65,AMBROXOL 30 MG 20 COMPRIMIDOS,no comparable: al competidor le faltan 1/2 principios activos (cefalexina)
+FC-A455EE80,Cefagen,generico,CEFALEXINA,74.58,126.0,1.0,True,80,CEFALEXINA 250MG/5ML SUSPENSION 100 ML 1 PIEZA,no comparable: nuestro catalogo sin concentracion
+FC-2EDC6E3B,Cefagen,generico,CEFALEXINA,82.09,125.0,1.0,True,80,CEFALEXINA 500 MG 20 CAPSULAS,no comparable: nuestro catalogo sin concentracion
+FC-E374F23E,Cefagen pediátrico,generico,CEFALEXINA,48.48,95.0,1.0,False,80,CEFALEXINA 250MG/5ML SUSPENSION 100 ML 1 PIEZA,no comparable: nuestro catalogo sin concentracion
+FC-2005DD57,Cefalexina,generico,CEFALEXINA,39.84,83.0,2.0,True,80,CEFALEXINA 500 MG 20 CAPSULAS,no comparable: nuestro catalogo sin concentracion
+FC-49022768,Cefalotina 1 g solución inyectable FA 5 ml LGEN,generico,,56.28,141.0,2.0,False,0,,sin resultados VTEX
+FC-40CE757D,Cefalver,generico,Cefalexina,62.48,89.0,1.0,True,80,CEFALEXINA 500 MG 20 CAPSULAS,no comparable: nuestro catalogo sin concentracion
+FC-492D652F,Cefalver,generico,Cefalexina,43.35,116.0,1.0,True,80,CEFALEXINA 500 MG 20 CAPSULAS,no comparable: nuestro catalogo sin concentracion
+FC-22B18244,Cefotaxima IM (Inyectable),generico,1g / 4 mL,31.06,40.38,3.0,True,72,CEFOTAXIMA 1 GR SOLUCION INYECTABLE 1 PIEZA,no comparable: forma difiere inyectable≠solucion
+FC-357D4A17,Ceftazidima,generico,Ceftazidima,45.42,59.05,2.0,True,80,CEFTAZIDIMA 1 GR SOLUCION INYECTABLE 1 PIEZA,no comparable: nuestro catalogo sin concentracion
+FC-C636D8EA,Ceftriaxona IM 1 g (Inyectable),generico,Ceftriaxona,9.8,15.0,1.0,True,72,CEFTRIAXONA SOLUCION INYECTABLE 1 GR  1 AMPOLLETA,no comparable: forma difiere inyectable≠solucion
+FC-25195105,Cefuroxima 750 mg FA + ampolleta 5 ml,generico,,42.56,107.0,2.0,False,72,CEFUROXIMA  750MG/5ML SOLUCION INYECTABLE 1 AMPOLLETA,no comparable: forma difiere inyectable≠solucion
+FC-E6B50AC3,Celecoxib,generico,Celecoxib,34.82,48.0,2.0,True,80,CELECOXIB 200 MG 10 CAPSULAS,no comparable: nuestro catalogo sin concentracion
+FC-6EAD98A9,Cepobrom,generico,CEFADROXIL,47.97,71.0,1.0,True,0,CEFALEXINA / BROMHEXINA 500/8.782MG 12 CAPSULAS,no comparable: nuestro catalogo sin concentracion
+EQ-MAV392,Cetilver 1 Gel 8% C/10 G,generico,Pirfenidona,45.31,73.0,1.0,False,70,CREMA CICATRIZANTE PIRFENIDONA 3.5GR KITOCREAM,no comparable: concentracion difiere ['10000mg']≠['3500mg']
+FC-9303047,Cicloferon Crema 5% 2 g,generico,Aciclovir 5%,48.61,65.62,1.0,False,70,ACICLOVIR 200 MG 25 TABLETAS,no comparable: concentracion difiere ['2000mg']≠['200mg']
+FC-B25B4654,Cina (Ciprofloxacino),generico,,28.87,39.0,2.0,False,43,CINARIZINA 75 MG 60 TABLETAS,no comparable: nuestro catalogo sin concentracion
+FC-52200809,Cina 750 mg Caja con 7 tabletas Landsteiner,generico,Levofloxacino 750 mg,28.87,76.0,2.0,False,100,LEVOFLOXACINO 750 MG 7 TABLETAS,precio 7.9x el costo
+FC-3CAA7C5C,Cinarizina,generico,CINARIZINA,35.05,57.0,2.0,True,80,CINARIZINA 75 MG 60 TABLETAS,no comparable: nuestro catalogo sin concentracion
+EQ-AMS406,Cinitaprida 25 Comp 1 Mg,generico,Cinitaprida,17.58,119.0,3.0,False,100,CINITAPRIDA 1MG 25 COMPRIMIDOS,precio 6.8x el costo
+FC-74A5ABEE,Ciprofloxacino,generico,CIPROFLOXACINO,13.69,33.0,1.0,True,0,,sin resultados VTEX
+FC-E9C38DC4,Ciprofloxacino G.I,generico,CIPROFLOXACINO G.I,22.92,37.0,5.0,False,0,,sin resultados VTEX
+EQ-NOV005,Cirulan solución oral 400 mg / 20 mL,generico,Metoclopramida,14.38,28.0,2.0,False,82,METOCLOPRAMIDA SOLUCION ORAL GOTAS 1 PIEZA,no comparable: candidato sin tamano declarado
+EQ-AMS428,Cisaprida 30 Tab 5 Mg,generico,Cisaprida,23.91,39.0,1.0,False,70,CISAPRIDA 10 MG 30 TABLETAS,no comparable: concentracion difiere ['5mg']≠['10mg']
+FMX-302947,Citrato Magnesio/Lecitina Soya-Naturex Capsulas C/30,generico,,45.3,73.0,1.0,False,80,MAGNESIO CITRATO 400MG 60 CAPSULAS,no comparable: nuestro catalogo sin concentracion
+FC-6519183A,Clamoxin (Amoxicilina/Clavulánico 500/125 mg),generico,AMOXICILINA/AC. CLAVULANICO,27.89,38.0,1.0,True,43,AMOXICILINA 250 MG SUSPENSION 75 ML 1 PIEZA,no comparable: al competidor le faltan 1/2 principios activos (ac.)
+FC-5F30F9D4,Clamoxin (Amoxicilina/Clavulánico 500/125 mg),generico,AMOXICILINA/AC. CLAVULANICO,48.48,83.0,2.0,True,39,AMOXICILINA / ACIDO CLAVULANICO 875MG 10 TABLETAS,no comparable: al competidor le faltan 1/2 principios activos (ac.)
+FC-F48FF7EF,Clamoxin (Amoxicilina/Clavulánico susp. 250/62.5),generico,AMOXICILINA/AC. CLAVULANICO,35.62,63.0,1.0,True,65,AMOXICILINA 250 MG SUSPENSION 75 ML 1 PIEZA,no comparable: al competidor le faltan 1/2 principios activos (ac.)
+FC-F22C72BE,Clamoxin 12H (Amoxicilina/Clavulánico),generico,AMOXICILINA/AC. CLAVULANICO,55.03,75.0,5.0,True,63,AMOXICILINA / ACIDO CLAVULANICO 875MG 10 TABLETAS,no comparable: al competidor le faltan 1/2 principios activos (ac.)
+FC-516C2E89,Clamoxin 12H Jr (Amoxicilina/Clavulánico susp.),generico,AMOXICILINA/AC. CLAVULANICO,36.79,63.0,3.0,True,65,AMOXICILINA 250 MG SUSPENSION 75 ML 1 PIEZA,no comparable: al competidor le faltan 1/2 principios activos (ac.)
+FC-DDFBABDF,Clamoxin 12H Ped (Amoxicilina/Clavulánico susp.),generico,AMOXICILINA/AC. CLAVULANICO,25.94,40.0,1.0,True,65,AMOXICILINA 250 MG SUSPENSION 75 ML 1 PIEZA,no comparable: al competidor le faltan 1/2 principios activos (ac.)
+FC-41339950,Claritromicina,generico,CLARITROMICINA,59.45,96.0,2.0,True,0,,sin resultados VTEX
+FC-CF18C740,Clindamicina,generico,CLINDAMICINA,30.54,120.0,3.0,True,80,CLINDAMICINA 300 MG 16 CAPSULAS,no comparable: nuestro catalogo sin concentracion
+FC-9A4E4C31,Clindamicina,generico,CLINDAMICINA,88.42,141.48,2.0,True,80,CLINDAMICINA 300 MG 16 CAPSULAS,no comparable: nuestro catalogo sin concentracion
+FC-49021044,Clindamicina 600 mg/4 mL Caja con 5 ampolletas AMSA,generico,Clindamicina,88.42,142.0,2.0,False,72,CLINDAMICINA 600MG/4ML SOLUCION INYECTABLE 1 AMPOLLETA,no comparable: forma difiere inyectable≠solucion
+EQ-SON164,Clotrinazol Dual,generico,"Clotrimazol, 200 mg, 1%",50.07,81.0,1.0,False,72,CLOTRIMAZOL V 3 OVULOS 200 MG,no comparable: forma difiere crema≠ovulo
+FC-4F737E93,Cloxan,generico,AMBROXOL,12.29,25.0,1.0,True,80,AMBROXOL SOLUCION 120 ML 1 PIEZA,no comparable: nuestro catalogo sin concentracion
+FMX-502465,Colageno-Naturex Tabletas C/60,generico,,41.06,66.0,1.0,False,76,SIMI COLAGENO TOPICO 60 CAPSULAS,confianza 76 < 85
+EQ-BIO017,Colpragin 30 Tab 10 Mg,generico,Pravastatina,14.6,24.0,1.0,False,100,PRAVASTATINA 10 MG 30 TABLETAS,precio 8.2x el costo
+FC-49029613,Combedi DX Complejo B / Dexametasona 6 amp AMSA,generico,,55.76,140.0,1.0,False,7,DEXAMETASONA/LIDOCAINA/VITAMINA B1 B6 B12 6 AMPOLLETAS,confianza 7 < 85
+EQ-DEG011,Convifer C/Hierro 1 Sol 3/2/.1mg/110,generico,Ciproheptadina + vitaminas + hierro,33.94,55.0,1.0,False,7,CIPROHEPTADINA 40 MG / CIANOCOBALAMINA 300 MCG SOLUCION 1 PIEZA,"no comparable: al competidor le faltan 2/3 principios activos (vitaminas, hierro)"
+EQ-EXA042,Cromoglicato Sodio 1 Sol 40 Mg/5 Ml,generico,Cromoglicato de sodio,45.61,73.0,1.0,False,72,CROMOGLICATO DE SODIO SOLUCION OFTALMICA 5 ML 1 PIEZA,no comparable: forma difiere gotas≠solucion
+FC-00100013,Cubrebocas tricapa desechable C/100,generico,,80.0,128.0,1.0,False,68,CUBREBOCAS KN95 1 PIEZA,confianza 68 < 85
+FC-09747786,Culminax Pediátrico (Carbocisteína) 250 mg/5 mL,generico,Carbocisteína,40.24,65.0,1.0,False,70,CARBOCISTEINA 375MG/5ML SOLUCION 150 ML 1 PIEZA,"no comparable: concentracion difiere en parte ['150ml', '250mg', '5ml']≠['150ml', '375mg', '5ml']"
+EQ-MAV407,Daimant 14 Caps 100 Mg,generico,Rimantadina,52.59,85.0,1.0,False,0,,sin resultados VTEX
+FC-54221482,Deeflamox Plus,generico,Amoxicilina + Acido clavulanico,42.41,58.0,1.0,False,70,AMOXICILINA / ACIDO CLAVULANICO 875MG 10 TABLETAS,no comparable: concentracion difiere ['5ml']≠['875mg']
+FC-29670370,Degortzin,generico,Cetirizina,35.71,49.0,2.0,True,80,CETIRIZINA 100 MG SOLUCION 50 ML 1 PIEZA,no comparable: nuestro catalogo sin concentracion
+FC-1FBF5206,Del Viejito Reomatolum,generico,Reomatolum,20.0,28.0,0,False,0,,sin resultados VTEX
+FC-2225010,Derman Crema 25 g,generico,Acido undecilenico + Undecilenato de zinc,27.8,37.53,1.0,False,0,ACIDO ACETILSALICILICO/BICARBONATO DE SODIO/ACIDO CITRICO 10 TABLETAS ALKA SELTZER,no comparable: al competidor le faltan 1/2 principios activos (undecilenato)
+FC-12225027,Derman Crema 50 g,generico,Ácido undecilénico + Undecilenato de zinc,44.69,60.34,1.0,False,0,ACIDO ACETILSALICILICO/BICARBONATO DE SODIO/ACIDO CITRICO 10 TABLETAS ALKA SELTZER,no comparable: al competidor le faltan 1/2 principios activos (undecilenato)
+EQ-AMS288,Dexam/Neomi 1 Gotas 1/3.5mg/5 Ml,generico,Dexanetasona/Neomicina,23.15,38.0,1.0,False,41,DEXAMETASONA / NEOMICINA 1/3.5 MG SOLUCION GOTAS OFTALMICAS 5 ML 1 PIEZA,no comparable: al competidor le sobran principios activos (oftalmicas)
+EQ-AMS253,Dexametasona 1 Fa 8mg/2 Ml,generico,Dexametasona,9.28,14.0,11.0,False,72,DEXAMETASONA SOLUCION INYECTABLE 8MG/2ML 1 PIEZA,no comparable: forma difiere inyectable≠solucion
+EQ-BEA342,Dexametasona 20 Tab 0.5 Mg,generico,Dexametasona,4.41,8.0,1.0,False,90,DEXAMETASONA 0.50MG 30 TABLETAS,precio 6.6x el costo
+EQ-BEA313,Dexametasona 20 Tab 1 Mg,generico,Dexametasona,22.25,36.0,1.0,False,70,DEXAMETASONA SOLUCION INYECTABLE 8MG/2ML 1 PIEZA,"no comparable: concentracion difiere ['1mg']≠['2ml', '8mg']"
+EQ-SON214,Dexametasona/Ciprofloxacino Sol,generico,Ciprofloxacino / Dexametasona,43.08,69.0,1.0,False,72,CIPROFLOXACINO / DEXAMETASONA 3.5/1 MG SOLUCION OFTALMICA 5 ML 1 PIEZA,no comparable: forma difiere gotas≠solucion
+EQ-OFF008,Dexne Nasal 1 Got 10 Ml,generico,Fenilefrina / Dexametasona / Neomicina,37.87,61.0,1.0,False,70,DEXAMETASONA/FENILEFRINA/NEOMICINA 15ML NASAL,no comparable: concentracion difiere ['10ml']≠['15ml']
+EQ-OFF010,Dexne Oftálmico 1 Got 5 Ml,generico,Dexametasona / Neomicina,33.74,54.0,1.0,False,51,DEXAMETASONA / NEOMICINA 1/3.5 MG SOLUCION GOTAS OFTALMICAS 5 ML 1 PIEZA,no comparable: al competidor le sobran principios activos (oftalmicas)
+EQ-OFF009,Dexne Otico 1 Got 1/3.5/15/10 Ml,generico,Dexametasona / Neomicina / Lidocaína,42.69,84.0,1.0,False,37,DEXAMETASONA/LIDOCAINA/VITAMINA B1 B6 B12 6 AMPOLLETAS,no comparable: al competidor le faltan 1/3 principios activos (neomicina)
+FC-0211225,Dibenel cápsulas vitaminas omega 3 C/30,generico,,47.08,127.0,1.0,True,6,SIMI DIAB PLUS 30 CAPSULAS,confianza 6 < 85
+FMX-502473,Dibenel-Max Capsulas C/30,generico,"QUERCITINA, OMEGA 3 Y 6, VIT Y MIN",62.12,100.0,1.0,False,0,,sin resultados VTEX
+EQ-SON039,Dicleophen 12 Caps 500 Mg,generico,Dicloxacilina,29.76,43.0,5.0,False,82,DICLOXACILINA 12 CAPSULAS,no comparable: candidato sin tamano declarado
+EQ-AMS362,Diclofenaco 2 Fa 75mg/3 Ml,generico,Diclofenaco,15.8,26.0,1.0,False,72,DICLOFENACO SODICO 75MG/3ML SOLUCION INYECTABLE 2 AMPOLLETAS,no comparable: forma difiere inyectable≠solucion
+FMX-505289,Diclofenaco/Complejo-B-Ultra Grageas C/30,generico,DICLOFENACO C/COMPLEJO B,32.74,53.0,3.0,False,55,DICLOFENACO 100MG 20 TABLETAS,no comparable: al competidor le faltan 1/2 principios activos (complejo)
+FC-27424995,Difenhidramina 25 mg,generico,,19.59,32.0,2.0,False,55,DIFENHIDRAMINA 25 MG 30 CAPSULAS,confianza 55 < 85
+FC-EADF1484,Diosmina Hesperidina,generico,DIOSMINA HESPERIDINA,39.41,176.0,3.0,False,80,DIOSMINA 600 MG 15 COMPRIMIDOS,no comparable: nuestro catalogo sin concentracion
+EQ-SON160,Disons Dex 1 Fa 5/2 Mg,generico,Betametasona,36.86,59.0,1.0,False,72,BETAMETASONA DE DIPROPIONATO / BETAMETASONA DE FOSFATO SODICO SUSPENSION INYECTABLE 1 AMPOLLETA,no comparable: candidato sin tamano declarado
+FC-E535DE28,Diurmessel,generico,FUROSEMIDA,9.31,15.0,4.0,True,80,FUROSEMIDA 40 MG 20 TABLETAS,no comparable: nuestro catalogo sin concentracion
+FC-830BF3FB,Diviltac,generico,Algestona / Estradiol,34.45,62.0,1.0,False,80,ALGESTONA / ESTRADIOL SOLUCION INYECTABLE 1 ML 1 AMPOLLETA,no comparable: nuestro catalogo sin concentracion
+FC-28A424E5,Diziver,generico,HIDROCLOROTIAZIDA,8.15,14.0,3.0,True,80,HIDROCLOROTIAZIDA 25 MG 20 TABLETAS,no comparable: nuestro catalogo sin concentracion
+EQ-BIO021,Docsi Clorfenamina,generico,Clorfenamina,9.6,16.0,2.0,False,80,CLORFENAMINA 4 MG 20 TABLETAS,no comparable: nuestro catalogo sin concentracion
+EQ-MAV140,Doltrix 3 Amp 100/20mg/2 Ml,generico,Clonixinato / Hioscina,61.88,100.0,1.0,False,70,CLONIXINATO DE LISINA / BUTILHIOSCINA 125/10MG 20 TABLETAS,"no comparable: concentracion difiere ['20mg', '2ml']≠['10mg']"
+FC-93888302,Doxiciclina 100 mg 10 cápsulas Ken LGEN,generico,,23.86,60.0,1.0,False,0,,sin resultados VTEX
+FC-36009661,Dualgos (Paracetamol/Ibuprofeno),generico,Paracetamol/Ibuprofeno,29.02,47.0,1.0,True,80,PARACETAMOL/IBUPROFENO 325MG/200MG 20TABLETAS,no comparable: nuestro catalogo sin concentracion
+FC-DB4A39AE,Eferox (Cefalexina),generico,Cefalexina,39.07,53.0,1.0,False,80,CEFALEXINA 500 MG 20 CAPSULAS,no comparable: nuestro catalogo sin concentracion
+EQ-AVT205,Elaphterón 28 Tab 25 Mg,generico,Lamotrigina,25.4,41.0,1.0,False,70,LAMOTRIGINA 100 MG TABLETAS MASTICABLES 28 TABLETAS,no comparable: concentracion difiere ['25mg']≠['100mg']
+FC-53506FA4,Enalapril,generico,ENALAPRIL,8.09,14.0,5.0,False,80,ENALAPRIL 10 MG 30 TABLETAS,no comparable: nuestro catalogo sin concentracion
+FC-11783282,Erbitrax (Terbinafina) crema,generico,Terbinafina 1%,28.62,46.0,2.0,False,70,TERBINAFINA 250 MG 28 TABLETAS,no comparable: concentracion difiere ['30000mg']≠['250mg']
+EQ-MAV295,Erispan Comp 10 Tab 5/0.25 Mg,generico,Loratadina / Betametasona,8.27,14.0,2.0,False,70,LORATADINA / BETAMETASONA  5 /.25 MG 10 TABLETAS,no comparable: concentracion difiere ['0.25mg']≠['25mg']
+EQ-MAV187,Erispan Compuesto 1 Sol 5/100mg/60 Ml,generico,Loratadina / Betametasona,22.53,37.0,1.0,False,70,LORATADINA / BETAMETASONA 100/5 MG SOLUCION 60 ML 1 PIEZA,"no comparable: concentracion difiere en parte ['100mg', '60ml']≠['5mg', '60ml']"
+FC-02045312,Esencia de clavo Frasco gotero Herbotec,generico,Aceite de clavo,10.0,16.0,3.0,False,0,,sin resultados VTEX
+FC-25300366,Espabion (Trimebutina)  gotas,generico,Trimebutina,25.67,75.0,1.0,False,72,TRIMEBUTINA 20MG/1M PEDIATRICO SUSPENSION GOTAS 30 ML 1 PIEZA,no comparable: forma difiere gotas≠suspension
+EQ-PGE061,Esterinol 40 Caps 50000ui,generico,Retinol,24.91,40.0,1.0,False,70,PALMITATO RETINOL 50 MG 40 CAPSULAS,no comparable: concentracion difiere ['50000ui']≠['50mg']
+FC-69200016,Estomaquil Polvo C/20,generico,Bismuto subsalicilato; Hidróxido de magnesio; Carbonato de calcio,98.79,133.37,1.0,False,72,SUBSALICILATO DE BISMUTO 24 TABLETAS MASTICABLES,no comparable: candidato sin tamano declarado
+FMX-501619,Eucalin-Miel Jarabe C/120 Ml,generico,,44.46,72.0,1.0,False,0,,sin resultados VTEX
+FC-9525015,Eucaliptine Jarabe 140 ml,generico,Dextrometorfano + Sulfoguayacol,107.0,195.0,1.0,False,43,DEXTROMETORFANO 300 MG JARABE 120 ML 1 PIEZA,no comparable: al competidor le faltan 1/2 principios activos (sulfoguayacol)
+FC-08100013,Eucalín jarabe miel y propóleo 120 ml,generico,Mezcla de Plantas y propoleo,44.46,72.0,1.0,False,7,SIMILYPTUS / PROPOLEO / GORDOLOBO / EUCALIPTO JARABE 240 ML 1 PIEZA,no comparable: al competidor le faltan 1/2 principios activos (mezcla)
+FC-01165298,Exhantil suspensión,generico,"Aluminio, magnesio, simeticona/ 3.4mg, 4mg, 0.5mg/100 mL",33.0,55.0,2.0,False,70,ALUMINIO 200 MG / MAGNESIO 200 MG / DIMETICONA 20 MG 50 TABLETAS MASTICABLES,"no comparable: concentracion difiere ['0.5mg', '100ml', '3.4mg', '320ml', '4mg']≠['200mg', '20mg']"
+FC-20089077,Exzon tabletas masticables 490 mg C/90 sabor uva,generico,"Fibra soluble de maiz, bioflavonoides citricos, Bacillus coagulans, vitaminas A, C y D3",77.28,125.0,1.0,False,0,SIMICOF DIAB HEDERA HELIX / BUGAMBILIA / FIBRA SOLUBLE Y JUGO DE ARANDANO JARABE 120 ML 1 PIEZA,"no comparable: al competidor le faltan 3/4 principios activos (bioflavonoides, bacillus, vitaminas)"
+EQ-LOE132,Faribrox Tm Adulto 1 Jbe 150 Ml,generico,Ambroxol / Dextrometorfano,23.19,56.0,1.0,False,70,AMBROXOL/ DEXTROMETORFANO 150/113MG JARABE INFANTIL 120ML,"no comparable: concentracion difiere ['150ml']≠['113mg', '120ml']"
+EQ-HIS081,Farmarest Salbut 1 Susp/Aer 200do/125,generico,Salbutamol,33.99,55.0,2.0,False,80,SALBUTAMOL 5MG/1ML SOLUCION PARA NEBULIZACION 1 PIEZA,no comparable: nuestro catalogo sin concentracion
+FC-09741043,Fasiclor 125 mg/5 mL Frasco 75 mL Maver,generico,Cefaclor,49.85,116.0,1.0,False,70,CEFACLOR 500 MG 15 CAPSULAS,"no comparable: concentracion difiere ['125mg', '5ml', '75ml']≠['500mg']"
+FC-01B2F362,Fasiclor 250 mg/ 5 mL,generico,CEFACLOR 250 mg/ 5 mL,81.18,127.0,1.0,False,70,CEFACLOR 250 MG SUSPENSION 75 ML 1 PIEZA,"no comparable: concentracion difiere en parte ['250mg', '5ml']≠['250mg', '75ml']"
+FC-83146207,Fazolin F,generico,Nafazolina,26.85,37.0,2.0,False,72,NAFAZOLINA SOLUCION OFTALMICA 15 ML 1 PIEZA,no comparable: forma difiere gotas≠solucion
+FC-09747168,Fedrimin (Teofilina/Ambroxol) 0.700-0.150 g/100 mL,generico,Teofilina/Ambroxol,34.25,58.0,1.0,False,70,TEOFILINA / AMBROXOL .7/.15 GR SOLUCION 150 ML 1 PIEZA,"no comparable: concentracion difiere en parte ['100ml', '150mg', '150ml']≠['15000mg', '150ml']"
+EQ-SON096,Fenimeth V 12 Ovs 500mg/100000 Ui,generico,Metronidazol / Nistatina,34.15,55.0,2.0,False,82,METRONIDAZOL / NISTATINA 12 OVULOS,no comparable: candidato sin tamano declarado
+EQ-RAM014,Fermig Sumatriptan,generico,Sumatriptán,62.03,100.0,1.0,True,80,SUMATRIPTAN 100 MG 2 COMPRIMIDOS,no comparable: nuestro catalogo sin concentracion
+EQ-HIS076,Fhaspem 3 Amp 20 Mg/1 Ml,generico,Hioscina,23.53,44.0,1.0,False,72,BUTILHIOSCINA  20MG/1ML SOLUCION INYECTABLE 3 AMPOLLETAS,no comparable: forma difiere inyectable≠solucion
+EQ-MAV378,Flausiver 1 Gel 100 G,generico,,37.55,61.0,1.0,False,0,DIOSMINA / HESPERIDINA 450/50MG 20 TABLETAS,no comparable: concentracion difiere ['100000mg']≠['50mg']
+EQ-MAV174,Flexiver Compuesto 10 Caps 215/15 Mg,generico,Meloxicam / Metocarbamol,40.06,65.0,1.0,False,70,MELOXICAM / METOCARBAMOL 15/215MG 10 CAPSULAS,no comparable: concentracion difiere ['15mg']≠['215mg']
+EQ-MAV175,Flexiver Compuesto 20 Caps 215/7.5 Mg,generico,Meloxicam / Metocarbamol,43.87,71.0,1.0,False,70,MELOXICAM / METOCARBAMOL 15/215MG 10 CAPSULAS,no comparable: concentracion difiere ['7.5mg']≠['215mg']
+FC-71800210,Floroglucinol / Trimetilfloroglucinol 80/80 mg,generico,,152.51,245.0,1.0,False,55,FLOROGLUCINOL / TRIMETILFLOROGLUCINOL 80/80MG 20 CAPSULAS,confianza 55 < 85
+FC-5BC5F234,Fluconazol,generico,FLUCONAZOL,12.92,35.0,3.0,False,80,FLUCONAZOL 150MG 1 CAPSULA,no comparable: nuestro catalogo sin concentracion
+FC-LV-AMS495,Fluconazol 10 cáps 100 mg,generico,Fluconazol,18.29,30.0,1.0,False,100,FLUCONAZOL 100 MG 10 CAPSULAS,precio 9.8x el costo
+FC-LV-BEA420,Fluconazol 10 cáps 100 mg beadvance,generico,Fluconazol,17.35,28.0,1.0,False,100,FLUCONAZOL 100 MG 10 CAPSULAS,precio 10.3x el costo
+FC-30713547,Gelcavit Colors capsulas 0.62 g C/30,generico,"Aceite de germen de trigo, vitaminas y minerales",42.43,68.0,1.0,False,0,,sin resultados VTEX
+FC-MULIER30,Gelcavit Mulier capsulas 1.54 g C/30,generico,"Isoflavonas de soya, lecitina de soya, vitaminas y minerales",78.55,125.0,1.0,False,46,ISOFLAVONAS SOYA DR SIMI 30 TABLETAS,"no comparable: al competidor le faltan 3/4 principios activos (lecitina, vitaminas, minerales)"
+FC-30713851,Gelcavit Platinum capsulas 1.39 g C/30,generico,"Coenzima Q-10, aceite de primula, aceite de germen de trigo, vitaminas y minerales",71.49,115.0,1.0,False,17,NAD/RESVERATROL/COENZIMA Q10 30 CAPSULAS,"no comparable: al competidor le faltan 4/5 principios activos (primula, germen, vitaminas)"
+FC-13071164,Gelcavit Q-10 coenzima Q10 jalea real C/30,generico,coenzima Q10 jalea real,88.66,120.0,1.0,False,31,NAD/RESVERATROL/COENZIMA Q10 30 CAPSULAS,no comparable: al competidor le sobran principios activos (resveratrol)
+FC-4F05124E,Gelcavit-9M cápsulas C/30,generico,,66.3,143.0,1.0,False,0,,sin resultados VTEX
+FMX-501000,Gelcavit-Colors Capsulas C/30,generico,,42.43,68.0,1.0,False,0,,sin resultados VTEX
+FMX-504790,Gelcavit-Gem Capsulas C/30,generico,,94.83,152.0,1.0,False,0,,sin resultados VTEX
+FMX-500999,Gelcavit-Ho Capsulas C/30,generico,"Cápsulas con L Arginina, Lecitina y Vitaminas",72.56,117.0,1.0,False,42,SIMIPOWER PLUS VITAMINAS / MINERALES / ARGININA 60 CAPSULAS,no comparable: al competidor le faltan 1/3 principios activos (lecitina)
+FMX-500998,Gelcavit-Platinum Capsulas C/30,generico,,71.49,115.0,1.0,False,0,,sin resultados VTEX
+FMX-501003,Gelcavit-Q-10 Capsulas C/30,generico,,88.66,142.0,1.0,False,0,,sin resultados VTEX
+FC-5C8C9C11,Gelubrin,generico,IBUPROFENO,15.21,30.0,3.0,False,80,IBUPROFENO 400 MG 10 CAPSULAS,no comparable: nuestro catalogo sin concentracion
+FC-40036354,Genoprazol tabletas C/7,generico,Omeprazol,24.5,34.0,2.0,False,80,OMEPRAZOL 20 MG 120 CAPSULAS,no comparable: nuestro catalogo sin concentracion
+FC-60F627D5,Gentamicina,generico,GENTAMICINA,52.57,84.12,2.0,False,0,,sin resultados VTEX
+FC-63975795,Gentamicina,generico,GENTAMICINA,17.58,29.0,3.0,False,0,,sin resultados VTEX
+FC-49026377,Gentamicina 160 mg solución inyectable 2 ml AMSA,generico,,12.71,32.0,1.0,False,0,,sin resultados VTEX
+FC-428A228F,Gimalxina,generico,GIMALXINA,23.68,38.0,2.0,False,12,AMOXICILINA 500 MG 12 CAPSULAS,no comparable: nuestro catalogo sin concentracion
+FC-974EE5FD,Gimalxina 250 mg/ 5 mL,generico,amoxicilina,27.09,44.0,1.0,True,70,AMOXICILINA 250 MG SUSPENSION 75 ML 1 PIEZA,"no comparable: concentracion difiere en parte ['250mg', '5ml']≠['250mg', '75ml']"
+EQ-BIO112,Gristalit 1 Jbe 600/100mg/30 Ml,generico,Loratadina / Ambroxol,9.38,16.0,1.0,False,70,LORATADINA / AMBROXOL 100/600 MG SOLUCION 120 ML 1 PIEZA,"no comparable: concentracion difiere ['100mg', '30ml']≠['120ml', '600mg']"
+FC-47521025,Hemoger (Sulfato ferroso) 300 mg,generico,Sulfato ferroso,56.3,91.0,1.0,False,70,SULFATO FERROSO 75MG/ML SOLUCION PEDIATRICA 50ML FERINSOL,"no comparable: concentracion difiere ['300mg']≠['50ml', '75mg']"
+FC-A2B284E0,Hialuronato De Sodio 4Mg,generico,Hialuronato de sodio,113.89,148.06,1.0,True,72,HIALURONATO DE SODIO 4MG/ML SOLUCION OFTALMICA 1 PIEZA,no comparable: forma difiere gotas≠solucion
+FC-25304142,Hidrigort (Difenhidramina) 50 mg,generico,Difenhidramina,10.11,17.0,2.0,False,70,DIFENHIDRAMINA 25 MG 30 CAPSULAS,no comparable: concentracion difiere ['50mg']≠['25mg']
+FC-2E79C2D8,Hierro Dex,generico,Hierro dextrán,61.33,79.73,1.0,True,72,HIERRO DEXTRAN 100MG/2ML SOLUCION INYECTABLE 3 AMPOLLETAS,no comparable: nuestro catalogo sin concentracion
+EQ-AMS209,Hipromelosa Oft 1 Sol 5mg/10 Ml,generico,Hipromelosa,24.86,40.0,2.0,False,70,HIPROMELOSA 0.5% SOLUCION OFTALMICA 15 ML 1 PIEZA,"no comparable: concentracion difiere ['10ml', '5mg']≠['15ml']"
+FC-1812D26D,Hucius cápsulas,generico,,78.16,137.0,1.0,True,0,CASTAÑO INDIAS / RUSCUS 250MG/70MG ACULEATUS 30 CAPSULAS,no comparable: nuestro catalogo sin concentracion
+EQ-MAV236,Ideliver Pro Duloxetina,generico,Duloxetina,59.45,102.0,5.0,True,80,DULOXETINA 30 MG 7 CAPSULAS LIBERACION RETARDADA,no comparable: nuestro catalogo sin concentracion
+FC-F7A2CACF,Indarzona,generico,Indometacina / Dexametasona 25mg/0.5 mg,56.3,135.0,2.0,False,65,INDOMETACINA 25MG 30 CAPSULAS,no comparable: al competidor le faltan 1/2 principios activos (dexametasona)
+EQ-LOE155,Indometacina 6 Supositorios 100 Mg,generico,Indometacina,92.35,148.0,1.0,False,70,INDOMETACINA 25MG 30 CAPSULAS,no comparable: concentracion difiere ['100mg']≠['25mg']
+FC-262F2A30,Irbesartan,generico,IRBESARTAN,50.0,71.0,3.0,False,80,IRBESARTAN 150 MG 14 TABLETAS,no comparable: nuestro catalogo sin concentracion
+FC-42700643,Irbesartán + HCTZ 150/12.5 mg 28 tabletas Camber,generico,,91.86,230.0,1.0,False,68,IRBESARTAN / HIDROCLOROTIAZIDA 150/12.5MG 14 TABLETAS,confianza 68 < 85
+FC-42700629,Irbesartán 300 mg 28 tabletas LGEN,generico,,59.66,150.0,0,False,63,IRBESARTAN 150 MG 14 TABLETAS,no comparable: concentracion difiere ['300mg']≠['150mg']
+EQ-AMS424,Irbesartán 300 mg C/14 AMSA,generico,Irbesartán,76.49,123.0,1.0,False,70,IRBESARTAN 150 MG 14 TABLETAS,no comparable: concentracion difiere ['300mg']≠['150mg']
+FMX-302907,Iverkram Capsulas C/30,generico,PSIDIUM GUAJAVA/ MELISSA OFFICINALIS,66.62,119.0,1.0,False,0,,sin resultados VTEX
+FC-62746605,Jarabe Ajolotiux Orig Con Miel,generico,Mezcla herbal con Vitaminas C & A,28.0,98.0,1.0,False,1,SIMIFILA CLOROFILA LIQUIDA SOLUCION 250 ML 1 PIEZA,confianza 1 < 85
+FC-23111387,Jarabe dropropizina/bromhexina Quimpharma 100 mL,generico,Dropropizina + Bromhexina,70.37,113.0,1.0,False,70,DROPROPIZINA / BROMHEXINA 0.300/0.160GR 200ML SOLUCION ADULTO,"no comparable: concentracion difiere ['100ml']≠['160mg', '200ml']"
+FC-08895196,KY6,generico,CLORFENAMINA COMPUESTA,9.31,15.0,5.0,True,80,CLORFENAMINA 4 MG 20 TABLETAS,no comparable: nuestro catalogo sin concentracion
+EQ-AMS328,Ketorolaco Inyectable,generico,Ketorolaco,11.33,19.0,3.0,False,72,KETOROLACO 10 MG  10 TABLETAS,no comparable: nuestro catalogo sin concentracion
+EQ-AMS160,Ketorolaco Sublingual,generico,Ketorolaco,9.19,15.0,3.0,True,80,KETOROLACO 10 MG  10 TABLETAS,no comparable: nuestro catalogo sin concentracion
+FC-8FB65B79,Klarix,generico,CLARITROMICINA,81.67,111.0,1.0,True,72,CLARITROMICINA 250 MG 10 TABLETAS,no comparable: nuestro catalogo sin concentracion
+FC-09740442,Klarix Claritromicina 250 mg 10 tabletas,generico,,44.88,113.0,2.0,False,80,CLARITROMICINA 250 MG 10 TABLETAS,confianza 80 < 85
+FC-697EEAD0,Kurtosil,generico,Ácido fusídico / Betametasona,62.48,81.23,1.0,False,80,ACIDO FUSIDICO / BETAMETASONA 20/1MG CREMA 15 GR 1 PIEZA,no comparable: nuestro catalogo sin concentracion
+FC-08344716,La Femme vitaminas menopausia C/30,generico,,87.46,127.0,1.0,True,14,CIMICIFUGA RACEMOSA / VITAMINAS / ISOFLAVONAS DE SOYA 30 CAPSULAS GELATINA BLANDA,confianza 14 < 85
+FMX-502700,La-Femme Capsulas C/30,generico,,87.46,140.0,1.0,False,0,CIMICIFUGA RACEMOSA / VITAMINAS / ISOFLAVONAS DE SOYA 30 CAPSULAS GELATINA BLANDA,confianza 0 < 85
+FC-9890331,Lactiv Kids proteína soya probióticos sobres C/6,generico,,33.65,53.84,1.0,False,0,,sin resultados VTEX
+FMX-503473,Lactiv Kids tabletas masticables uva C/30,generico,LACTOBACILLUS / BIFIDOBACTERIUM,28.48,46.0,1.0,False,25,GOMITAS LACTOBACILLUS ESPORULADOS 60 GOMITAS,no comparable: al competidor le faltan 1/2 principios activos (bifidobacterium)
+FC-08344495,Lactopram infantil 150 mg sabor chocolate,generico,Lactobacillus,27.24,45.0,1.0,False,82,GOMITAS LACTOBACILLUS ESPORULADOS 60 GOMITAS,no comparable: candidato sin tamano declarado
+FC-08344303,Ladexgel 300/2/10 mg,generico,,20.55,33.0,2.0,False,0,,sin resultados VTEX
+FMX-300936,Lady-Femm Parche C/1,generico,HIERRO/CARBON ACTIVADO,18.48,30.0,2.0,False,0,,sin resultados VTEX
+EQ-MAV182,Laritol D 10 Tab 30/5 Mg,generico,Fenilefrina / Loratadina,38.59,62.0,2.0,False,70,LORATADINA / FENILEFRINA 50/100MG JARABE INFANTIL 60 ML 1 PIEZA,"no comparable: concentracion difiere ['5mg']≠['100mg', '60ml']"
+EQ-MAV115,Laritol Ex 10 Tab 30/5 Mg,generico,Loratadina / Ambroxol,21.66,35.0,2.0,False,70,LORATADINA / AMBROXOL 5/30 MG 10 TABLETAS,no comparable: concentracion difiere ['5mg']≠['30mg']
+FMX-501200,Laritol loratadina solución 1 mg/ml 60 ml,generico,LORATADINA 1MG /1ML,20.67,34.0,1.0,False,70,LORATADINA 100MG/100ML JARABE 1 PIEZA,"no comparable: concentracion difiere ['1mg', '1ml', '60ml']≠['100mg', '100ml']"
+EQ-SON264,Laur Solución Inyectable,generico,"Ampicilina, Metamizol, Guaifenesina, Lidocaína, Clorfenamina. 500mg/500mg/100mg/30mg/4mg",59.63,96.0,1.0,False,46,AMPICILINA 500 MG 20 CAPSULAS,"no comparable: al competidor le faltan 4/5 principios activos (metamizol, guaifenesina, lidocaina)"
+FC-B69FCBF4,Lesaclor,generico,Aciclovir,72.03,116.0,1.0,True,80,ACICLOVIR 200 MG 25 TABLETAS,no comparable: nuestro catalogo sin concentracion
+FC-B25094C4,Lesaclor,generico,ACICLOVIR,44.43,60.0,1.0,True,80,ACICLOVIR 4GR/100ML SUSPENSION 120 ML 1 PIEZA,no comparable: nuestro catalogo sin concentracion
+FC-C721E8D7,Levofloxacino,generico,LEVOFLOXACINO,18.77,31.0,2.0,False,80,LEVOFLOXACINO 750 MG 7 TABLETAS,no comparable: nuestro catalogo sin concentracion
+FC-28833707,Levofloxacino 500 mg Caja con 7 tabletas beadvance,generico,Levofloxacino,18.77,31.0,2.0,False,100,LEVOFLOXACINO 500 MG 7 TABLETAS,precio 7.9x el costo
+EQ-QUI096,Levonorgestrel / Etinilestradiol 0.15/0.03 mg C/21,generico,Levonorgestrel / Etinilestradiol,22.72,45.0,1.0,False,70,LEVONORGESTREL / ETINILESTRADIOL .15/.03 MG 28 TABLETAS,no comparable: concentracion difiere ['0.03mg']≠['3mg']
+EQ-QUI127,Levonorgestrel / Etinilestradiol 0.15/0.03 mg C/28,generico,Levonorgestrel / Etinilestradiol,24.03,39.0,0,False,70,LEVONORGESTREL / ETINILESTRADIOL .15/.03 MG 28 TABLETAS,no comparable: concentracion difiere ['0.03mg']≠['3mg']
+FC-04908738,Lidocaina unguento 5%,generico,Lidocaina 5%,23.3,38.0,1.0,False,70,LIDOCAINA  5/100GR (5%) UNGÜENTO 1 PIEZA,no comparable: concentracion difiere ['35000mg']≠['100000mg']
+FC-E826D304,Lincomicina /2Ml 6 Ampolletas,generico,Lincomicina,44.04,62.21,2.0,True,72,LINCOMICINA 600MG/2ML SOLUCION INYECTABLE 6 AMPOLLETAS,no comparable: forma difiere inyectable≠solucion
+EQ-SER117,Lisertil Tibolona,generico,Tibolona,256.42,400.0,1.0,False,80,TIBOLONA 30 TABLETAS 2.5 MG,no comparable: nuestro catalogo sin concentracion
+EQ-NOV032,Lizovag Ketoconazol,generico,Ketoconazol,12.98,21.0,2.0,True,80,KETOCONAZOL 200 MG 10 TABLETAS,no comparable: nuestro catalogo sin concentracion
+EQ-BRL072,"Lo Bruquin Quinfamida, Albendazol",generico,Quinfamida / Albendazol,15.4,25.0,10.0,False,80,QUINFAMIDA / ALBENDAZOL 150/200MG 2 TABLETAS,no comparable: nuestro catalogo sin concentracion
+EQ-MAV331,Lonvitol 10 Amp .05/2.5 Mg/ 2.5 Ml,generico,Bromuro De Ipratropio / Salbutamol,69.83,112.0,1.0,False,49,IPRATROPIO / SALBUTAMOL SOLUCION PARA NEBULIZACION 10 AMPOLLETAS,no comparable: al competidor le faltan 1/2 principios activos (bromuro)
+EQ-MAV043,Lorotec Ketorolaco,generico,Ketorolaco,5.96,10.0,4.0,True,80,KETOROLACO 10 MG  10 TABLETAS,no comparable: nuestro catalogo sin concentracion
+FC-09749209,Lumboxen parche capsicum C/1,generico,Capsaicina + Alcanfor + Mentol + Salicilato de metilo,14.37,43.0,2.0,False,0,,sin resultados VTEX
+FC-E69F2E63,Madrid Aceite Eucalipto,generico,Aceite de eucalipto,11.0,17.61,3.0,True,82,PALETAS SIMILYPTUS MENTOL / MIEL / EUCALIPTO CON PROPOLEO 16 PIEZAS,no comparable: candidato sin tamano declarado
+EQ-SON089,Magnil 1 Jbe 250mg/5/100 Ml,generico,Metamizol Sódico,24.05,39.0,1.0,False,70,METAMIZOL SODICO  5G/100ML JARABE 120ML  1 PIEZA,"no comparable: concentracion difiere en parte ['100ml', '250mg']≠['100ml', '120ml', '5000mg']"
+EQ-QUI091,Magsokon 1 Caja 26 G,generico,Sulfato de magnesio,15.61,34.0,1.0,False,70,SULFATO FERROSO 75MG/ML SOLUCION PEDIATRICA 50ML FERINSOL,"no comparable: concentracion difiere ['26000mg']≠['50ml', '75mg']"
+FC-85278507,Manzanilla Sophia Solucion 15 ml,generico,Manzanilla (Matricaria chamomilla),63.41,86.0,1.0,False,14,BALSAMO FRIO CON EXTRACTO AISLADO DE CANNABIDIOL CBD / ALOE VERA /ARNICA / MANZANILLA 90 GR 1 PIEZA,"no comparable: al competidor le sobran principios activos (balsamo, arnica)"
+EQ-COD060,Maracina Bencidamina,generico,Bencidamina 150mg/100 mL,25.02,41.0,2.0,False,70,BENCIDAMINA 45MG/100ML  SOLUCION 30 ML 1 PIEZA,"no comparable: concentracion difiere en parte ['100ml', '150mg', '30ml']≠['100ml', '30ml', '45mg']"
+EQ-CMD015,Materfol 90 Comp 0.4 Mg,generico,Ácido fólico,21.41,35.0,1.0,False,72,SAL DE UVAS PICOT BICARBONATO DE SODIO / ACIDO TARTARICO / ACIDO CITRICOPOLVO EFERVESCENTE 12 SOBRES,no comparable: candidato sin tamano declarado
+EQ-SON091,Meclison 20 Tab 50/25 Mg,generico,Meclizina / Piridoxina,22.27,36.0,3.0,False,72,MECLOZINA / PIRIDOXINA SOLUCION INYECTABLE 1 AMPOLLETA,no comparable: candidato sin tamano declarado
+FC-7048853,Melox Plus,generico,Hidroxido de aluminio + Hidroxido de magnesio + Simeticona,132.3,179.0,1.0,False,35,ALUMINIO 200 MG / MAGNESIO 200 MG / DIMETICONA 20 MG 50 TABLETAS MASTICABLES,"no comparable: al competidor le faltan 2/3 principios activos (hidroxido, hidroxido)"
+EQ-AVT213,Menflixil 14 Tab 7.5 Mg,generico,Meloxicam,5.28,9.0,2.0,False,100,MELOXICAM 7.5 MG 14 TABLETAS,precio 7.6x el costo
+EQ-ALP0628,Metamizol Sódico 3 Amp 1g/2 Ml,generico,Metamizol sódico,14.68,32.0,3.0,False,72,METAMIZOL 1 GR SOLUCION INYECTABLE 3 AMPOLLETAS,no comparable: forma difiere inyectable≠solucion
+EQ-PYG016,Metanucil 1 Polvo Sabor Natural 504 G,generico,Plantago psyllium,0.01,150.0,0,False,70,PSYLLIUM PLANTAGO POLVO NATURAL 400 GR 1 PIEZA,no comparable: concentracion difiere ['504000mg']≠['400000mg']
+FC-49024151,Metoclopramida inyectable 10 mg/2 mL C/6 AMSA,generico,Metoclopramida,21.0,34.0,1.0,False,72,METOCLOPRAMIDA 10 MG 20 TABLETAS,no comparable: forma difiere inyectable≠tableta
+EQ-PHG017,Metronida/Diyohidro 1 Susp,generico,Metronida/Diyohidro,42.53,69.0,1.0,False,38,METRONIDAZOL / DIYODOHIDROXIQUINOLEINA SUSPENSION 120 ML 1 PIEZA,no comparable: al competidor le faltan 1/2 principios activos (diyohidro)
+EQ-SON098,Metroson 1 Susp 250mg/5/120 Ml,generico,Metronidazol,21.66,35.0,1.0,False,70,METRONIDAZOL 5GR/100ML  SUSPENSION 120 ML 1 PIEZA,"no comparable: concentracion difiere en parte ['120ml', '250mg']≠['100ml', '120ml', '5000mg']"
+FC-50587FA6,Mexapin,generico,Ampicilina,13.93,25.0,3.0,True,80,AMPICILINA 1 GR SOLUCION INYECTABLE 1 PIEZA,no comparable: nuestro catalogo sin concentracion
+FC-04908714,Miconazol crema 2%,generico,,10.87,18.0,1.0,False,55,MICONAZOL 2 GR CREMA 20 GR 1 PIEZA,confianza 55 < 85
+FC-58210379,Minociclina 100 mg C/10 Serral,generico,Clorhidrato de minociclina,340.0,400.0,1.0,False,70,TERBINAFINA CLORHIDRATO CREMA 15 GR 1 PIEZA,no comparable: concentracion difiere ['100mg']≠['15000mg']
+EQ-QUM006,Mitafar 1 Susp 100mg/5/60 Ml,generico,Nitazoxanida,38.29,62.0,1.0,False,70,NITAZOXANIDA 500 MG 7 TABLETAS,"no comparable: concentracion difiere ['100mg', '60ml']≠['500mg']"
+FC-06922711,Motilaxil gotas (Picosulfato de sodio) 7.5 mg/mL,generico,Picosulfato de sodio,27.53,45.0,1.0,False,72,PICOSULFATO DE SODIO SOLUCION GOTAS 30 ML 1 PIEZA,no comparable: forma difiere gotas≠solucion
+FC-06922728,Motilaxil solución (Picosulfato de sodio) 5 mg/5 mL,generico,Picosulfato de sodio,25.04,41.0,1.0,False,72,PICOSULFATO DE SODIO 5 MG 20 TABLETAS,no comparable: forma difiere solucion≠tableta
+EQ-SER183,Murreolak Acetilcisteína,generico,Acetilcisteína,128.64,206.0,1.0,False,80,ACETILCISTEINA 600 MG 20 TABLETAS EFERVESCENTES,no comparable: nuestro catalogo sin concentracion
+FC-E6112F15,Nalixone,generico,NALIXONE,63.32,102.0,2.0,False,0,ACIDO NALIDIXICO / FENAZOPIRIDINA 500/50 MG 20 TABLETAS,no comparable: nuestro catalogo sin concentracion
+FC-AEA8C8DA,Namifen,generico,Ácido mefenámico,24.28,56.0,1.0,True,80,ACIDO MEFENAMICO 500 MG 20 TABLETAS,no comparable: nuestro catalogo sin concentracion
+FC-9892403,Naturex citrato de magnesio y lecitina de soya C/30,generico,citrato de magnesio y lecitina de soya,45.3,73.0,1.0,False,55,MAGNESIO CITRATO 400MG 60 CAPSULAS,no comparable: al competidor le faltan 1/2 principios activos (lecitina)
+EQ-SON104,Neoderm-F Cma,generico,"Acetónido de Fluocinolona / Neomicina, 0.01g, 0.35g/100 g",25.85,42.0,1.0,False,0,,sin resultados VTEX
+EQ-BEA336,Neomi/Cao/Pecti 20tab 129/280/30 Mg,generico,Neomicina / Caolín y Pectina,36.89,60.0,3.0,False,82,NEOMICINA / CAOLIN / PECTINA 20 TABLETAS,no comparable: candidato sin tamano declarado
+EQ-EXA045,Neomicina Polimixina-B Bacitracina Ung,generico,Neomicina / Polimixina B / Bacitracina,49.14,79.0,1.0,False,80,POLIMIXINA B / NEOMICINA / BACITRACINA UNGÜENTO 3.5GR 1 PIEZA,no comparable: nuestro catalogo sin concentracion
+FC-7426449,Nesajar 100/300 mg C/16,generico,Pinaverio bromuro; Dimeticona,114.27,155.0,2.0,True,70,BROMURO DE PINAVERIO 100 MG 14 TABLETAS,no comparable: concentracion difiere ['300mg']≠['100mg']
+FC-8505126,Neuralin solucion inyectable,generico,Complejo B + Lidocaina + Dexametasona,148.89,184.0,2.0,False,33,DEXAMETASONA/LIDOCAINA/VITAMINA B1 B6 B12 6 AMPOLLETAS,no comparable: al competidor le faltan 1/3 principios activos (complejo)
+EQ-NOV137,Nineka 20 Tab 129/280/30 Mg,generico,Neomicina / Caolín y Pectina,37.67,61.0,2.0,False,82,NEOMICINA / CAOLIN / PECTINA 20 TABLETAS,no comparable: candidato sin tamano declarado
+FC-75717914,Nineka suspensión neomicina/caolín/pectina,generico,Neomicina + Caolin + Pectina,23.45,38.0,2.0,False,82,NEOMICINA / CAOLIN / PECTINA SUSPENSION 1 PZA,no comparable: candidato sin tamano declarado
+EQ-ALP0410,Nistatina 1 Susp 1 Ui /24 Ml,generico,Nistatina,34.07,55.0,1.0,False,70,NISTATINA 100000UI POLVO PARA SUSPENSION 24 ML 1 PIEZA,"no comparable: concentracion difiere en parte ['1ui', '24ml']≠['100000ui', '24ml']"
+EQ-SON225,Norkin 7 Caps 40 Mg,generico,,13.95,23.0,2.0,False,0,,sin resultados VTEX
+FC-09760541,Normex leche de magnesia 8.5 g/100 mL,generico,,41.82,67.0,1.0,False,0,,sin resultados VTEX
+FC-09790739,Normex leche de magnesia 8.5 g/100 mL,generico,,14.06,23.0,1.0,False,0,,sin resultados VTEX
+FC-09790029,Normex leche de magnesia 8.5 g/100 mL,generico,,26.67,43.0,1.0,False,0,,sin resultados VTEX
+FC-5D9DFA3D,Norquinol,generico,NORQUINOL,47.87,79.0,2.0,True,19,NORFLOXACINO 400 MG 20 TABLETAS,no comparable: nuestro catalogo sin concentracion
+EQ-SON153,Nysmosons-V 10 Ovs 500/0.5mg/100000 Ui,generico,Metronidazol / Nistatina / Fluocinolona,43.06,69.0,2.0,False,82,FLUOCINOLONA / METRONIDAZOL / NISTATINA 10 OVULOS,no comparable: candidato sin tamano declarado
+FC-A909ABC0,Odivitor,generico,Atorvastatina,13.77,19.0,3.0,True,80,ATORVASTATINA 80MG 30 TABLETAS,no comparable: nuestro catalogo sin concentracion
+FC-00204798,Omelina Gel Omega 3-6-9 linaza orgánica C/60,generico,Aceite de linaza organica,74.29,108.0,2.0,False,23,NOPAL / CHIA / LINAZA / PIÑA 350 GR 1 PIEZA,no comparable: al competidor le sobran principios activos (nopal)
+FC-16792555,Omeprazol 20 mg 14 cápsulas LGEN,generico,,9.5,24.0,0,False,100,OMEPRAZOL 20 MG 14 CAPSULAS,precio 6.2x el costo
+FC-16792760,Omeprazol 20 mg 30 cápsulas LGEN,generico,,16.13,41.0,2.0,False,90,OMEPRAZOL 20 MG 120 CAPSULAS,precio 9.1x el costo
+FC-49028234,Omeprazol 40 mg solución inyectable ampolleta LGEN,generico,,29.06,73.0,1.0,False,72,OMEPRAZOL 40 MG 7 CAPSULAS,no comparable: forma difiere solucion≠capsula
+EQ-COL073,Otilin 1 Got 350mg/2g De 20 Ml,generico,Lidocaína / Neomicina,25.01,41.0,2.0,False,72,NEOMICINA / LIDOCAINA 0.350/2GR SOLUCION GOTAS 20 ML 1 PIEZA,no comparable: forma difiere gotas≠solucion
+FC-FD92D114,Ovisen,generico,FLUOXETINA,10.19,13.25,1.0,False,80,FLUOXETINA 20 MG 28 CAPSULAS,no comparable: nuestro catalogo sin concentracion
+FC-F7DB080D,Ovisen,generico,FLUOXETINA,20.33,29.0,1.0,False,80,FLUOXETINA 20 MG 28 CAPSULAS,no comparable: nuestro catalogo sin concentracion
+EQ-BEA426,Oxido De Zinc 1 Pasta 30 G,generico,Óxido de Zinc,10.38,17.0,5.0,False,70,OXIDO DE ZINC 25GR/100GR PASTA 1 PIEZA,"no comparable: concentracion difiere ['30000mg']≠['100000mg', '25000mg']"
+FC-27879597,Oxitetraciclina 500 mg 16 cápsulas,generico,,70.0,175.0,2.0,False,0,,sin resultados VTEX
+FC-B2123139,Oxivag,generico,Ácido alendrónico,31.94,59.0,1.0,False,80,ACIDO ASCORBICO  500MG 30 CAPSULAS,no comparable: nuestro catalogo sin concentracion
+FC-B4477A00,Pentibroxil,generico,AMOXICILINA + AMBROXOL,30.04,57.0,2.0,False,55,AMOXICILINA 500 MG 12 CAPSULAS,no comparable: al competidor le faltan 1/2 principios activos (ambroxol)
+FC-7AA38F97,Pentiver,generico,Ampicilina,31.2,52.0,2.0,True,80,AMPICILINA 1 GR SOLUCION INYECTABLE 1 PIEZA,no comparable: nuestro catalogo sin concentracion
+FC-B72A6420,Pentiver,generico,Ampicilina,27.06,47.0,1.0,True,80,AMPICILINA 1 GR SOLUCION INYECTABLE 1 PIEZA,no comparable: nuestro catalogo sin concentracion
+FC-83141226,Perludil 150 mg / 10 mg Caja con 1 ampolleta Collins,generico,Algestona / Estradiol,48.65,80.0,1.0,False,70,ALGESTONA / ESTRADIOL SOLUCION INYECTABLE 1 ML 1 AMPOLLETA,"no comparable: concentracion difiere ['10mg', '150mg']≠['1ml']"
+EQ-QUM014,Pharmacaine 1 Aer 10g/100ml/115 Ml,generico,Lidocaína,101.3,269.0,1.0,False,70,LIDOCAINA  5/100GR (5%) UNGÜENTO 1 PIEZA,"no comparable: concentracion difiere ['10000mg', '100ml', '115ml']≠['100000mg']"
+EQ-ULT146,Pioglitazona,generico,Pioglitazona,13.35,60.0,5.0,True,80,PIOGLITAZONA 15 MG 7 TABLETAS,no comparable: nuestro catalogo sin concentracion
+FMX-504851,Pioklean Spray C/130 Ml,generico,Mezcla de Hierbas,60.85,98.0,1.0,False,70,SIMIBROX D MALTITOL Y MEZCLA DE HIERBAS SIN AZUCAR JARABE 240 ML 1 PIEZA,no comparable: concentracion difiere ['130ml']≠['240ml']
+FC-5112881,Pisacaina 2% 20 mg/ml Sol 50 ml,generico,Lidocaina,85.0,114.75,1.0,False,70,LIDOCAINA  5/100GR (5%) UNGÜENTO 1 PIEZA,"no comparable: concentracion difiere ['20mg', '50ml']≠['100000mg']"
+FMX-505937,Pleniform-40 Tabletas C/30,generico,,74.27,119.0,1.0,False,0,,sin resultados VTEX
+FC-31405888,Plusgel antiacido C/50 masticables,generico,Hidroxido de aluminio + Hidroxido de magnesio + Dimeticona,48.77,79.0,1.0,True,0,CREMA ACEITE DE ALMENDRAS DULCES E HIDROXIDO DE CALCIO 225 ML 1 PIEZA,no comparable: al competidor le faltan 1/3 principios activos (dimeticona)
+EQ-SON193,Poral Otico 1 Got 10 Ml,generico,Hidrocortisona / Cloranfenicol / Benzocaína,34.41,56.0,2.0,False,72,HIDROCORTISONA / CLORANFENICOL / BENZOCAINA SOLUCION OTICA 10 ML 1 PIEZA,no comparable: forma difiere gotas≠solucion
+FC-04D83B46,Pralex,generico,Escitalopram,42.85,58.0,2.0,True,80,ESCITALOPRAM 10 MG 14TABLETAS,no comparable: nuestro catalogo sin concentracion
+FC-36003621,Precicol hioscina/paracetamol gotas 20 mL,generico,Hioscina + Paracetamol,37.22,60.0,1.0,False,72,PARACETAMOL / BUTILHIOSCINA 100/2 MG SOLUCION GOTAS 20 ML 1 PIEZA,no comparable: forma difiere gotas≠solucion
+EQ-MAV065,Presistin 1 Susp 0.1g/60ml,generico,Cisaprida,24.47,40.0,1.0,False,70,CISAPRIDA 10 MG 30 TABLETAS,"no comparable: concentracion difiere ['100mg', '60ml']≠['10mg']"
+EQ-PGE046,Progelben Benzonatato,generico,Benzonato,19.66,32.0,5.0,False,80,BENZONATATO 100 MG 20 CAPSULAS,no comparable: nuestro catalogo sin concentracion
+FC-08344501,Promega 3 Omega 3,generico,,79.28,115.0,3.0,False,0,,sin resultados VTEX
+EQ-HIS085,Protaisol 1 Susp/Aer 200 Dos/5 12.80 G,generico,Ipratropio,96.21,154.0,1.0,False,70,IPRATROPIO 20 MCG AEROSOL PARA INHALACION 200 DOSIS 1 PIEZA,no comparable: concentracion difiere ['12800mg']≠['20mcg']
+FC-08344150,Prugnex Senósidos A-B 12 mg + ciruela 50 mg,generico,,37.07,60.0,1.0,False,25,SENOSIDOS AB / CIRUELA 30 PERLAS,no comparable: candidato sin tamano declarado
+EQ-LIF033,Queratal Tretinoina,generico,Tretinoina,25.09,41.0,2.0,False,80,TRETINOINA (AC RETINOICO) .05 MG CREMA 30 GR 1 PIEZA,no comparable: nuestro catalogo sin concentracion
+EQ-QUM068,Quimunex 1 Sol 100 Mg/100 Ml,generico,Prednisolona,68.48,110.0,1.0,False,70,PREDNISOLONA 1MG/1ML SOLUCION 100 ML 1 PIEZA,"no comparable: concentracion difiere en parte ['100mg', '100ml']≠['100ml', '1mg', '1ml']"
+FC-26EA40A4,Ramcinet,generico,,19.65,27.0,6.0,False,0,,sin resultados VTEX
+FC-6074BB64,Redalip,generico,Bezafibrato,15.52,30.0,2.0,True,80,BEZAFIBRATO 200 MG 30 TABLETAS,no comparable: nuestro catalogo sin concentracion
+FC-90287992,Redbelgy (Cianocobalamina) 1000 mcg masticable,generico,Cianocobalamina,34.69,56.0,1.0,False,82,SIMI B12 CIANOCOBALAMINA (VITAMINA B12) 30 TABLETAS MASTICABLES,no comparable: candidato sin tamano declarado
+FC-57925EF3,Reglusan,generico,GLIBENCLAMIDA,8.88,11.55,5.0,True,80,GLIBENCLAMIDA 5 MG 50 TABLETAS,no comparable: nuestro catalogo sin concentracion
+EQ-ULT056,Retoflam-F 10 Tab 215/15 Mg,generico,Metocarbamol / Meloxicam,19.15,31.0,1.0,False,70,MELOXICAM / METOCARBAMOL 15/215MG 10 CAPSULAS,no comparable: concentracion difiere ['15mg']≠['215mg']
+FC-2E5B7248,Reumatol,generico,MENTOL + ALCANFOR + METILSALICILATO,11.0,17.61,2.0,False,64,ALCANFOR / MENTOL / EUCALIPTO / TREMENTINA / SALICILATO DE METILO UNGÜENTO 1 PIEZA,no comparable: al competidor le faltan 1/3 principios activos (metilsalicilato)
+EQ-SON112,Ridin Adulto jarabe dextrometorfano/guaifenesina/clorfenamina 120 mL,generico,Dextrometorfano / Guaifenesina / Clorfenamina,30.53,65.0,1.0,False,65,DEXTROMETORFANO / GUAIFENESINA  .2/2 GR ADULTO SOLUCION 120 ML 1 PIEZA,no comparable: al competidor le faltan 1/3 principios activos (clorfenamina)
+FC-01163232,Ridin Pediátrica jarabe dextrometorfano/guaifenesina/clorfenamina,generico,,26.62,43.0,2.0,False,0,FENAZOPIRIDINA 100 MG 20 TABLETAS,no comparable: concentracion difiere ['120ml']≠['100mg']
+FC-53601247,Rinomar Agua Isotonica,generico,,86.9,105.0,2.0,False,0,,sin resultados VTEX
+FC-12250181,Rocainol Ung,generico,Salicilato de metilo + Mentol,53.12,71.72,2.0,False,47,ALCANFOR / MENTOL / EUCALIPTO / TREMENTINA / SALICILATO DE METILO UNGÜENTO 1 PIEZA,"no comparable: al competidor le sobran principios activos (alcanfor, eucalipto, trementina)"
+FC-40450230,Rosel solución infantil 0.5/0.02/3 g,generico,,26.88,44.0,2.0,False,18,AMANTADINA .5 GR / CLORFENAMINA .02 GR/ PARACETAMOL 3 GR  SOLUCION INFANTIL 60 ML 1 PIEZA,confianza 18 < 85
+FC-27870259,Roxidolin Doxiciclina 100 mg 10 cápsulas,generico,,21.15,53.0,1.0,False,80,DOXICICLINA 100 MG 10 CAPSULAS,confianza 80 < 85
+FC-95467264,Sal de Uvas Ixh C/50,generico,,163.5,261.61,1.0,False,76,SAL DE UVAS PICOT BICARBONATO DE SODIO / ACIDO TARTARICO / ACIDO CITRICOPOLVO EFERVESCENTE 12 SOBRES,confianza 76 < 85
+FMX-505399,Saludol-Corporal Gel C/100 Gr,generico,"MENTOL, CANEDULA,ARNICA,SABILA",49.69,80.0,1.0,False,65,GEL TOPICO MENTOL / ARNICA / CALENDULA / SABILA 100 GR 1 PIEZA,no comparable: al competidor le faltan 1/4 principios activos (canedula)
+FC-73902584,Sarox (Omeprazol) 20 mg,generico,Omeprazol,8.42,14.0,3.0,False,100,OMEPRAZOL 20 MG 14 CAPSULAS,precio 7.0x el costo
+FMX-507495,Senloir Tabletas 10 Mg C/20,generico,MONTELUKAST,31.0,56.0,1.0,False,100,MONTELUKAST 10 MG 20 TABLETAS,precio 6.4x el costo
+FC-F817BC3A,Sibicos,generico,Bifonazol,33.65,43.75,2.0,True,80,BIFONAZOL UNGÜENTO 20 GR 1 PIEZA,no comparable: nuestro catalogo sin concentracion
+EQ-ULT145,Sildenafil 4 Tab 100 Mg,generico,Sildenafil,24.21,39.0,6.0,False,100,SILDENAFIL 100 MG 4 TABLETAS,precio 6.2x el costo
+EQ-BEA267,Sildenafil beadvance 50 mg 1 tableta,generico,Sildenafil,4.9,8.0,4.0,False,100,SILDENAFIL 50 MG 1 TABLETA,precio 8.0x el costo
+FC-09745393,Siracux Adulto (Oxeladina/Ambroxol) 0.200-0.225 g/100 mL,generico,Oxeladina/Ambroxol,42.66,69.0,1.0,False,0,LEVODROPROPIZINA / AMBROXOL 0.6/0.3GR/100ML SOLUCION 120ML,no comparable: al competidor le faltan 1/2 principios activos (oxeladina)
+FMX-503320,Solucion-Pisa Cs 0.9 C/1000 Ml,generico,,43.71,70.0,1.0,False,0,CLORURO DE SODIO 0.9% SOLUCION INYECTABLE 250 ML 1 PIEZA,no comparable: concentracion difiere ['1000ml']≠['250ml']
+FC-49020337,Sulindaco 200 mg,generico,,47.3,76.0,1.0,False,55,SULINDACO 200 MG 20 TABLETAS,confianza 55 < 85
+EQ-DEN074,Tadalafil Delaphil,generico,Delaphil 5 mg,36.27,59.0,1.0,False,0,,sin resultados VTEX
+FMX-303355,Taflavix Frasco C/40,generico,VALERIANA,90.23,145.0,1.0,False,80,SIMI PZ VALERIANA 250 MG OFFICINALIS 30 CAPSULAS,no comparable: nuestro catalogo sin concentracion
+FC-49025844,Telmisartán 40 mg,generico,,35.1,57.0,2.0,False,55,TELMISARTAN 40 MG 14 TABLETAS,confianza 55 < 85
+FC-83142308,Tempire (Paracetamol) gotas 100 mg/mL,generico,Paracetamol,20.0,32.0,1.0,False,72,PARACETAMOL 100 MG/ML SOLUCION PEDIATRICA SABOR UVA TEMPRA 30 ML 1 PIEZA,no comparable: forma difiere gotas≠solucion
+FC-00005823,Tobramicina / Dexametasona solución oftálmica 3-1 mg/mL,generico,,54.22,87.0,2.0,False,55,TOBRAMICINA / DEXAMETASONA 3/1 MG SOLUCION OFTALMICA 5 ML 1 PIEZA,confianza 55 < 85
+EQ-EXA040,Tobramicina solución oftálmica 3 mg/mL 15 mL OPKO,generico,Tobramicina,66.34,110.0,2.0,False,46,TOBRAMICINA / DEXAMETASONA 3/1 MG SOLUCION OFTALMICA 5 ML 1 PIEZA,no comparable: al competidor le sobran principios activos (dexametasona)
+EQ-VIC030,Tofel 10 Tab 50/500 Mg,generico,Diclofenaco / Paracetamol,37.55,61.0,2.0,False,65,PARACETAMOL 500 MG 10 TABLETAS,no comparable: al competidor le faltan 1/2 principios activos (diclofenaco)
+EQ-MAV322,"Traditor Indometacina, Betametasona",generico,"Indometacina / Betametasona, 500mg/50mg",47.47,76.0,1.0,False,53,INDOMETACINA / BETAMETASONA / METOCARBAMOL 20 CAPSULAS,no comparable: al competidor le sobran principios activos (metocarbamol)
+FC-71829601,Tribedoce 50000 UI,generico,Hidroxocobalamina + Tiamina + Piridoxina,73.11,98.7,2.0,False,70,HIDROXOCOBALAMINA 10000 MCG / TIAMINA 100 MG / PIRIDOXINA 50 MG SOLUCION INYECTABLE 5 AMPOLLETAS,"no comparable: concentracion difiere ['50000ui']≠['10000mcg', '100mg', '50mg']"
+FC-37163266,Tribedoce Compuesto Dx,generico,"Diclofenaco + Complejo B (Tiamina, Piridoxina, Cianocobalamina)",54.1,68.0,2.0,False,42,DICLOFENACO .18 GR SUSPENSION 120 ML 1 PIEZA,"no comparable: al competidor le faltan 3/4 principios activos (complejo, piridoxina, cianocobalamina)"
+FC-37164713,Tribedoce Compuesto grageas,generico,"Diclofenaco + Complejo B (Tiamina, Piridoxina, Cianocobalamina)",45.0,75.0,5.0,False,55,DICLOFENACO 100MG 20 TABLETAS,"no comparable: al competidor le faltan 3/4 principios activos (complejo, piridoxina, cianocobalamina)"
+FC-88947797,Tribedoce Tabletas,generico,Tiamina/Piridoxina/Cianocobalamina,17.64,26.0,5.0,False,4,HIDROXOCOBALAMINA 10000 MCG / TIAMINA 100 MG / PIRIDOXINA 50 MG SOLUCION INYECTABLE 5 AMPOLLETAS,no comparable: al competidor le faltan 1/3 principios activos (cianocobalamina)
+EQ-MAV387,Trimebut/Simetic Sup Ped 0.60g/0.60g,generico,Trimebutina / Simeticona,71.95,116.0,1.0,False,72,TRIMEBUTINA/SIMETICONA 0.600/0.600 GR SUSPENSION 26 ML,no comparable: forma difiere sobre≠suspension
+EQ-STR008,Trociletas-B,generico,Cloruro de cetilpiridinio / Benzocaína,32.11,52.0,2.0,False,19,CLORURO DE POTASIO 500 MG 50 GRAGEAS,no comparable: al competidor le faltan 1/2 principios activos (benzocaina)
+FC-1DAD5EF1,Tusilen adulto jarabe,generico,Dextrometorfano / Guaifenesina / Fenilefrina,24.22,31.49,1.0,False,70,GUAIFENESINA / FENILEFRINA / DEXTROMETORFANO PEDIATRICO SOLUCION GOTAS 60 ML 1 PIEZA,no comparable: concentracion difiere ['118ml']≠['60ml']
+EQ-AVT135,Tusilen pediátrico jarabe 118 mL,generico,Dextrometorfano / Guaifenesina / Paracetamol,24.89,33.0,1.0,False,43,DEXTROMETORFANO 300 MG JARABE 120 ML 1 PIEZA,"no comparable: al competidor le faltan 2/3 principios activos (guaifenesina, paracetamol)"
+FC-50003314,Unguento Bronco Rub 40 g,generico,Herbolario topico,29.01,39.16,1.0,False,0,,sin resultados VTEX
+FC-405A75E3,Ursodesoxicolico,generico,,217.23,294.0,1.0,False,80,ACIDO URSODEOXICOLICO 250 MG 50 CAPSULAS,no comparable: nuestro catalogo sin concentracion
+FC-022543CD,Valclan,generico,AMOXICILINA/AC. CLAVULANICO,37.22,51.0,3.0,False,63,AMOXICILINA / ACIDO CLAVULANICO 875MG 10 TABLETAS,no comparable: al competidor le faltan 1/2 principios activos (ac.)
+FC-D06E54FE,Valclan,generico,AMOXICILINA/AC. CLAVULANICO,51.18,70.0,3.0,False,63,AMOXICILINA / ACIDO CLAVULANICO 875MG 10 TABLETAS,no comparable: al competidor le faltan 1/2 principios activos (ac.)
+FC-D11D586A,Valgab 3 jarabe 6 mL,generico,Desloratadina,19.41,25.24,1.0,False,70,DESLORATADINA 50 MG SOLUCION 120 ML 1 PIEZA,"no comparable: concentracion difiere en parte ['50mg', '6ml']≠['120ml', '50mg']"
+FC-4C621D07,Vanmoxol,generico,VANMOXOL,18.03,29.0,1.0,False,0,,sin resultados VTEX
+EQ-LOE096,Vidalol Plus 20 Tab 10/500 Mg,generico,Butilhioscina / Paracetamol,47.53,77.0,1.0,False,70,PARACETAMOL / BUTILHIOSCINA 500/10 MG 20 TABLETAS,no comparable: concentracion difiere ['500mg']≠['10mg']
+FC-36006042,Virindrez Adulto (Oximetazolina) 0.050%,generico,Oximetazolina,23.85,39.0,2.0,False,72,OXIMETAZOLINA ADULTO 50MG/100ML SOLUCION NASAL 20 ML 1 PIEZA,no comparable: forma difiere spray≠solucion
+FC-36006028,Virindrez Infantil (Oximetazolina) 0.025%,generico,Oximetazolina,20.7,34.0,1.0,False,72,OXIMETAZOLINA ADULTO 50MG/100ML SOLUCION NASAL 20 ML 1 PIEZA,no comparable: forma difiere spray≠solucion
+FC-0287855,Vita Kid-C jarabe vitamina C naranja 240 ml,generico,Vitamina c,29.14,65.0,1.0,False,72,VITAMINA D3+VITAMINA K2 30 CAPSULAS,no comparable: candidato sin tamano declarado
+FMX-301721,Vita/Kid/C Jarabe C/240 Ml,generico,,29.14,47.0,1.0,False,11,GOMITAS VITAMINA C/ZINC/VITAMINA D 60 PIEZAS MULTIGOMI,no comparable: candidato sin tamano declarado
+FC-01007656,Wamindel (Paracetamol) gotas 100 mg/mL,generico,Paracetamol,12.02,20.0,1.0,False,72,PARACETAMOL 100 MG/ML SOLUCION PEDIATRICA SABOR UVA TEMPRA 30 ML 1 PIEZA,no comparable: forma difiere gotas≠solucion
+FC-50D044FF,Wermy,generico,Gabapentina,24.51,34.0,2.0,True,80,GABAPENTINA 400 MG 15 CAPSULAS,no comparable: nuestro catalogo sin concentracion
+FC-759A5EF9,Wermy,generico,Gabapentina,39.41,65.0,2.0,True,80,GABAPENTINA 400 MG 15 CAPSULAS,no comparable: nuestro catalogo sin concentracion
+FC-69A3C416,Wexpec,generico,Salbutamol / Ambroxol,16.65,23.0,1.0,False,80,AMBROXOL / SALBUTAMOL .15/.04 GR SOLUCION 120 ML 1 PIEZA,no comparable: nuestro catalogo sin concentracion
+EQ-GEP049,X-Trid 12 Caps 15mg/5mg/2mg/250mg,generico,,23.17,38.0,2.0,False,0,,sin resultados VTEX
+EQ-SON233,Zimeton 20 Tab 130/50/40 Mg,generico,Pancreatina / Extracto de bilis / Dimeticona,56.59,91.0,2.0,False,47,PANCREATINA / SIMETICONA / EXTRACTO DE BILIS DE BUEY / CELULOSA 50 TABLETAS,no comparable: al competidor le sobran principios activos (celulosa)
+FC-A23F290E,Zitriasol,generico,ZITRIASOL 100 mg,34.61,56.0,2.0,True,40,ITRACONAZOL 100 MG 15 CAPSULAS,confianza 40 < 85
+FC-3D0ED22B,Zukedib,generico,Glimepirida,27.98,38.0,1.0,True,80,GLIMEPIRIDA 4 MG 30 TABLETAS,no comparable: nuestro catalogo sin concentracion
+FC-00001292,Aceite de ricino Frasco 50 mL Mercurio,marca,Aceite de ricino,9.5,15.0,2.0,False,0,,sin resultados VTEX
+FC-80596011,Aderogyl ampolletas C/4,marca,Vitamina C + Vitamina A + Vitamina D3 + Complejo B,96.92,130.85,2.0,False,56,VITAMINA D3+VITAMINA K2 30 CAPSULAS,no comparable: al competidor le faltan 1/4 principios activos (complejo)
+FC-06134531,Afrin Adulto spray 20 mL,marca,Oximetazolina,75.38,95.0,2.0,False,72,OXIMETAZOLINA ADULTO 50MG/100ML SOLUCION NASAL 20 ML 1 PIEZA,no comparable: forma difiere spray≠solucion
+FC-06247327,Afrin No Drip Descongestivo Nasal spray,marca,Clrhidrato de oximetazolina,109.76,140.0,1.0,False,0,OXIMETAZOLINA ADULTO 50MG/100ML SOLUCION NASAL 20 ML 1 PIEZA,"no comparable: concentracion difiere ['0.5mg', '15ml']≠['100ml', '20ml', '50mg']"
+FC-05062376,Afrin No Drip solución nasal 15 mL,marca,Oximetazolina,115.52,145.0,1.0,False,70,OXIMETAZOLINA ADULTO 50MG/100ML SOLUCION NASAL 20 ML 1 PIEZA,"no comparable: concentracion difiere ['15ml']≠['100ml', '20ml', '50mg']"
+FC-08344747,Afrodit,marca,Emolientes,45.08,72.13,5.0,False,0,VITAMINA E 400 MG 90 CAPSULAS,no comparable: concentracion difiere ['400ui']≠['400mg']
+FMX-504321,Aguja-Hipodermica-Sensimedical 22 G X 32 Mm C/1 Negro,marca,,0.55,1.0,100.0,False,0,AGUJA PARA PLUMA 31 G X 5 MM 10 PIEZAS ULTRA FINE,no comparable: concentracion difiere ['22000mg']≠['31000mg']
+FC-52400267,Ajolotius Jarabe Elderberry,marca,Mezcla Herbal y vitaminas C y A,73.21,99.0,1.0,False,0,SIMIFILA CLOROFILA LIQUIDA SOLUCION 250 ML 1 PIEZA,confianza 0 < 85
+FC-62746612,Ajolotius Jarabe Sin azucar,marca,Mezcla Herbal con vitamina C yA,87.42,119.0,1.0,False,5,SIMIBROX D MALTITOL Y MEZCLA DE HIERBAS SIN AZUCAR JARABE 240 ML 1 PIEZA,no comparable: al competidor le faltan 1/2 principios activos (vitamina)
+FC-62746698,Ajolotius Jarbe con Bioalimentos/propoleo y vitamina C y A,marca,Bioalimentos / propoleo,57.72,80.0,1.0,False,0,,sin resultados VTEX
+FC-52400038,Ajolotius menta eucalipto sin azúcar pastillas,marca,menta /eucalipto,21.36,30.0,8.0,False,4,CARBONATO DE CALCIO 12 TABLETAS MASTICABLES SABOR MENTA,no comparable: al competidor le faltan 1/2 principios activos (eucalipto)
+FC-DF39BB27,Alevarin cápsulas C/45,marca,,68.86,89.55,1.0,False,0,,sin resultados VTEX
+FC-8505003,Alin Dexametasona 8 mg/2 mL amp,marca,Dexametasona,68.8,86.0,1.0,False,72,DEXAMETASONA SOLUCION INYECTABLE 8MG/2ML 1 PIEZA,no comparable: forma difiere inyectable≠solucion
+FC-08443026,Alka-Seltzer,marca,Acido acetilsalicilico + Acido citrico + Bicarbonato de sodio,256.56,347.0,35.0,False,90,ACIDO ACETILSALICILICO/BICARBONATO DE SODIO/ACIDO CITRICO 10 TABLETAS ALKA SELTZER,precio 0.15x el costo
+FC-40053634,Alli Triple 50/.25/50/50 mg 6 tabletas,marca,,79.87,107.0,3.0,False,0,TOALLITAS DESMAQUILLANTES ALOE-VERA 30 PIEZAS,no comparable: candidato sin tamano declarado
+FC-40013805,Alliviax desinflamatorio 550 mg 10 tabletas,marca,,100.5,134.0,0,False,0,NAPROXENO SODICO 550 MG 12 TABLETAS,confianza 0 < 85
+EQ-COL213,Ampigrin PFC jarabe infantil 60 mL,marca,,24.91,40.0,1.0,False,9,AMANTADINA .5 GR / CLORFENAMINA .02 GR/ PARACETAMOL 3 GR  SOLUCION INFANTIL 60 ML 1 PIEZA,confianza 9 < 85
+FC-88508929,Anara,marca,PICOSULFATO SODICO,162.6,220.0,1.0,False,80,PICOSULFATO DE SODIO 5 MG 20 TABLETAS,no comparable: nuestro catalogo sin concentracion
+FC-85097661,Antiflu-Des Jr Antigripal,marca,Clorhidrato de amantadina/Maleato de clorfenamina/Paracetamol,125.34,204.0,1.0,False,38,AMANTADINA / CLORFENAMINA / PARACETAMOL 24 CAPSULAS,"no comparable: al competidor le faltan 2/3 principios activos (clorhidrato, maleato)"
+FC-44B6751A,Aquito 500/100/30/4 Mg,marca,,59.63,77.52,1.0,False,0,,sin resultados VTEX
+FC-08491074,Aspirina,marca,Acido acetilsalicilico,124.8,169.0,16.0,False,80,ACIDO ACETILSALICILICO 100MG ADULTO 30 COMPRIMIDOS,no comparable: nuestro catalogo sin concentracion
+FC-84335531,Aspirina Forte C/24 Caf Iaspirina,marca,Acido acetilsalicilico + Caffeina,71.79,97.0,2.0,False,55,ACIDO ACETILSALICILICO 500 MG 20 TABLETAS,no comparable: al competidor le faltan 1/2 principios activos (caffeina)
+FC-00450227,Bactrim 200/40 mg suspensión 100 ml,marca,,188.44,252.0,1.0,False,0,TRIMETOPRIMA/SULFAMETOXAZOL 800/4000MG SUSPENSION 120ML,"no comparable: concentracion difiere ['100ml', '40mg']≠['120ml', '4000mg']"
+FC-00450210,Bactrim F 800/160 mg 15 tabletas,marca,,331.87,443.0,1.0,False,0,TRIMETOPRIMA/SULFAMETOXAZOL 800/4000MG SUSPENSION 120ML,"no comparable: concentracion difiere ['160mg']≠['120ml', '4000mg']"
+FC-013340,Bedoyecta Capsulas C/30,marca,Complejo B + Acido folico + Vitamina C + Rutina,177.87,258.0,1.0,False,39,SIMI B DIABETICO COMPLEJO B E INOSITOL 30 CAPSULAS,"no comparable: al competidor le faltan 3/4 principios activos (acido, vitamina, rutina)"
+FC-30133021,Bedoyecta Tri,marca,Hidroxocobalamina/Tiamina/Piridoxina,273.42,397.0,1.0,False,72,HIDROXOCOBALAMINA 10000 MCG / TIAMINA 100 MG / PIRIDOXINA 50 MG SOLUCION INYECTABLE 5 AMPOLLETAS,no comparable: forma difiere inyectable≠solucion
+FC-79071241,Bisolvon Infantil,marca,Bromhexina,144.95,196.0,1.0,False,70,BROMHEXINA 160MG/100ML ADULTO SOLUCION 1 PIEZA,"no comparable: concentracion difiere ['120ml', '80mg']≠['100ml', '160mg']"
+FC-7907117,Bisolvon Solucion Adulto 120 ml,marca,Bromhexina,141.94,192.0,1.0,False,70,BROMHEXINA 160MG/100ML ADULTO SOLUCION 1 PIEZA,"no comparable: concentracion difiere ['120ml']≠['100ml', '160mg']"
+FC-06910913,Broncolin Bicoestol pastillas cereza C/16,marca,,27.44,43.9,2.0,False,0,SIMI BROX EUCALIPTO / GORDOLOBO / MIRRA  240 ML JARABE 1 PIEZA,no comparable: nuestro catalogo sin concentracion
+FC-06910487,Broncolin Bicoestol pastillas eucalipto C/16,marca,,27.44,43.9,2.0,False,0,SIMI BROX EUCALIPTO / GORDOLOBO / MIRRA  240 ML JARABE 1 PIEZA,no comparable: nuestro catalogo sin concentracion
+FC-06910906,Broncolin Bicoestol pastillas naranja C/16,marca,,27.44,43.9,2.0,False,0,SIMI BROX EUCALIPTO / GORDOLOBO / MIRRA  240 ML JARABE 1 PIEZA,no comparable: nuestro catalogo sin concentracion
+FC-70100307,Broncolin Etiqueta Azul jarabe oral 140 ml,marca,Miel,64.19,87.0,1.0,False,72,PALETAS DE MIEL DE ABEJA SABOR MIEL / LIMON / HERBAL PALETOSIMI 16 PIEZAS,no comparable: candidato sin tamano declarado
+FC-06910609,Broncolin Etiqueta Verde jarabe oral 140 mL,marca,,74.28,119.0,1.0,False,0,SIMI BROX EUCALIPTO / GORDOLOBO / MIRRA  240 ML JARABE 1 PIEZA,no comparable: concentracion difiere ['140ml']≠['240ml']
+FC-65011649,Buscapina 10 mg 24 grageas,marca,,172.04,230.0,2.0,False,82,BUSCAPINA 12 TABLETAS CON HIOSCINA. AUXILIAR EN EL ALIVIO DEL DOLOR DE PANZA,no comparable: candidato sin tamano declarado
+FC-21440013,Buscapina Duo 10/500 mg 10 tabletas,marca,,122.36,164.0,1.0,False,67,BUSCAPINA 12 TABLETAS CON HIOSCINA. AUXILIAR EN EL ALIVIO DEL DOLOR DE PANZA,no comparable: candidato sin tamano declarado
+FC-08491096,Cafiaspirina tartrato C/100,marca,Acido acetilsalicilico + Caffeina,217.46,294.0,2.0,False,55,ACIDO ACETILSALICILICO 500 MG 20 TABLETAS,no comparable: al competidor le faltan 1/2 principios activos (caffeina)
+FC-06500133,Caltrate 600 + D C/30,marca,Carbonato de calcio + vitamina D,153.59,165.0,2.0,False,65,CALCIO / VITAMINA D3 / MAGNESIO / CALTRATE 600+M 30 TABLETAS,no comparable: al competidor le faltan 1/2 principios activos (carbonato)
+FMX-506781,Cateter/Intravenoso-Sumitex Pu 24 G X 19 Mm C/1 Amarillo,marca,,9.26,15.0,3.0,False,0,,sin resultados VTEX
+FMX-506779,Catéter Sumitex 20G x 33 mm rosa,marca,,9.26,15.0,3.0,False,0,,sin resultados VTEX
+EQ-MAV088,Cefabroxil Susp 250/15 Mg/5/75 Ml,marca,Cefalexina / Ambroxol,46.24,74.0,1.0,False,43,CEFALEXINA 250MG/5ML SUSPENSION 100 ML 1 PIEZA,no comparable: al competidor le faltan 1/2 principios activos (ambroxol)
+EQ-MAV007,Cefalver Susp 125 Mg/5/90 Ml,marca,Cefalexina,26.25,42.0,1.0,False,70,CEFALEXINA 500 MG 20 CAPSULAS,"no comparable: concentracion difiere ['125mg', '90ml']≠['500mg']"
+EQ-MAV008,Cefalver Susp 250 Mg/5/90 Ml,marca,Cefalexina,30.67,50.0,1.0,False,70,CEFALEXINA 250MG/5ML SUSPENSION 100 ML 1 PIEZA,"no comparable: concentracion difiere en parte ['250mg', '90ml']≠['100ml', '250mg', '5ml']"
+FC-65095718,Centrum Balance,marca,Multivitaminico + minerales,152.2,315.0,1.0,False,32,MULTIVITAMINICO MATERNO 30 CAPSULAS SIMIBABY,no comparable: al competidor le faltan 1/2 principios activos (minerales)
+FC-50959781,Centrum Performance,marca,Multivitaminico + minerales,160.72,234.0,1.0,False,32,MULTIVITAMINICO MATERNO 30 CAPSULAS SIMIBABY,no comparable: al competidor le faltan 1/2 principios activos (minerales)
+FC-65095947,Centrum Silver + 50,marca,Multivitaminico + minerales,178.46,232.0,1.0,False,46,MULTIVITAMINAS 50 + 30 TABLETAS CENTRUM SILVER,confianza 46 < 85
+EQ-MAV089,Cepobrom Susp 100 Ml 250/4.39 Mg/5 Ml,marca,Cefadroxilo / Bromhexina,50.62,80.0,1.0,False,50,CEFALEXINA / BROMHEXINA 250/4.39MG SUSPENSION 1 PIEZA,no comparable: al competidor le faltan 1/2 principios activos (cefadroxilo)
+FC-84500607,Cinta micropore blanca 2.5 cm x 9.1 m,marca,,15.21,28.0,8.0,False,77,CINTA MICROPOROSA BLANCA 1.25 X 10MTS 1 PIEZA,confianza 77 < 85
+FMX-301138,Cinta-Microporosa-Codifarma 2.5 Cm X 5 M C/1 Blanco,marca,,9.5,16.0,17.0,False,63,CINTA MICROPOROSA BLANCA 1.25 X 10MTS 1 PIEZA,confianza 63 < 85
+FMX-301135,Cintapore cinta microporosa blanca 1.25 cm x 5 m,marca,,4.75,8.0,5.0,False,0,,sin resultados VTEX
+FMX-301136,Cintapore cinta microporosa piel 2.5 cm x 5 m,marca,,10.45,17.0,2.0,False,0,,sin resultados VTEX
+FC-84500546,Cintapore cinta microporosa piel 2.5 cm x 5m,marca,,10.45,17.0,2.0,False,0,,sin resultados VTEX
+FC-64EB83AA,Compl,marca,,18.07,23.5,5.0,False,41,BENCILPENICILINA BENZATINICA SUSPENSION INYECTABLE 1 PIEZA,confianza 41 < 85
+FC-80950139,Condones Trojan Pro-Tech,marca,Latex,36.13,68.0,1.0,False,0,CONDON AROMA Y SABOR FRESA SIMICONDON 3 PIEZAS,confianza 0 < 85
+FC-85171118,Condón Sico,marca,Latex,71.25,96.19,1.0,False,0,CONDON AROMA Y SABOR UVA SIMICONDON 3 PIEZAS,confianza 0 < 85
+FC-85171113,Condón Sico Invisible C/3,marca,Latex,71.25,102.0,1.0,False,0,CONDON AROMA Y SABOR UVA SIMICONDON 3 PIEZAS,confianza 0 < 85
+FC-58367129,Condón Sico Negro Feel,marca,Latex,54.71,73.86,1.0,False,1,CONDON MAXIMA SEGURIDAD SIMICONDON 3 PIEZAS,confianza 1 < 85
+FC-83683367,Condón Sico Rojo Feel,marca,Latex,54.71,102.0,1.0,False,1,CONDON AROMA Y SABOR FRESA SIMICONDON 3 PIEZAS,confianza 1 < 85
+FC-21042481,Crema Manzanilla ricitos de oro 100 ml,marca,,30.77,59.0,2.0,False,40,BALSAMO FRIO CON EXTRACTO AISLADO DE CANNABIDIOL CBD / ALOE VERA /ARNICA / MANZANILLA 90 GR 1 PIEZA,no comparable: concentracion difiere ['100ml']≠['90000mg']
+FC-85491085,Danzen 10 mg C/20 tabletas,marca,Serratiopeptidasa,373.31,414.0,1.0,False,0,,sin resultados VTEX
+FC-76040610,Desenfriolito Plus Masticables,marca,Clorfenamina/Fenilefrina/Paracetamol,57.76,77.0,2.0,False,82,CLORFENAMINA / FENILEFRINA / PARACETAMOL 24 TABLETAS,no comparable: candidato sin tamano declarado
+FC-98217659,Dolo-Neurobion solucion inyectable C/3,marca,Complejo B + Lidocaina + Diclofenaco sodico,434.3,543.0,1.0,False,0,DEXAMETASONA/LIDOCAINA/VITAMINA B1 B6 B12 6 AMPOLLETAS,"no comparable: al competidor le faltan 2/3 principios activos (complejo, diclofenaco)"
+FC-98223704,Dolo-Neurobion tabletas C/20,marca,Diclofenaco / Complejo B,134.64,182.0,2.0,False,65,DICLOFENACO 100MG 20 TABLETAS,no comparable: al competidor le faltan 1/2 principios activos (complejo)
+FC-82176351,Dolo-Neurobión Forte inyectable prellenado,marca,"Complejo B, Lidocaína, Diclofenaco Sódico",273.24,369.0,3.0,False,0,DEXAMETASONA/LIDOCAINA/VITAMINA B1 B6 B12 6 AMPOLLETAS,"no comparable: al competidor le faltan 2/3 principios activos (complejo, diclofenaco)"
+FC-AA7B0686,Drosquim adulto jarabe 300/160,marca,,70.74,91.97,1.0,False,0,,sin resultados VTEX
+FC-9ABFB996,Elaphteron,marca,Lamotrigina,25.4,42.0,1.0,False,80,LAMOTRIGINA 100 MG TABLETAS MASTICABLES 28 TABLETAS,no comparable: nuestro catalogo sin concentracion
+EQ-VAL129,Eldoquin crema 4% 30 g,marca,Hidroquinona,357.06,572.0,0,False,0,,sin resultados VTEX
+FC-68541491,Electrolife Zero uva 625 ml,marca,,19.36,26.0,2.0,False,0,ELECTROLITO 0% AZUCAR PONCHE 500ML HIDRATASIM,no comparable: concentracion difiere ['625ml']≠['500ml']
+FC-08497623,Elevit 1 comprimidos C/30,marca,,338.0,355.0,1.0,False,0,,sin resultados VTEX
+FC-05809248,Enfagrow Premium etapa 3 lata 800 g,marca,,306.0,408.0,0,False,0,,sin resultados VTEX
+FC-C8B741F6,FC producto botiquín,marca,,10.45,13.59,2.0,False,100,BOTIQUIN DEL DR SIMI CON CAJA 1 PIEZA,precio 17.4x el costo
+FC-LV-SIE060,Febrax 15 tab 275/300 mg,marca,Naproxeno/Paracetamol,204.38,275.0,1.0,False,90,NAPROXENO SODICO/PARACETAMOL 275MG/300MG 10TABLETAS,precio 0.17x el costo
+FC-08498866,Flanax 550 mg 6 tabletas,marca,,105.0,140.0,1.0,False,0,NAPROXENO SODICO 275 MG 20 TABLETAS,no comparable: concentracion difiere ['550mg']≠['275mg']
+FC-08499412,Flanax 660 mg 8 tabletas,marca,,230.0,307.0,1.0,False,0,NAPROXENO SODICO 275 MG 20 TABLETAS,no comparable: concentracion difiere ['660mg']≠['275mg']
+FC-08426944,Flanax Gel Naproxeno Sodico,marca,Naproxeno sodico,117.11,187.38,1.0,False,70,NAPROXENO SODICO 550 MG 12 TABLETAS,no comparable: concentracion difiere ['40000mg']≠['550mg']
+FC-08499092,Flanax Nocto 220/25 mg 20 comprimidos,marca,,130.5,174.0,1.0,False,0,NAPROXENO SODICO 275 MG 20 TABLETAS,no comparable: concentracion difiere ['25mg']≠['275mg']
+FC-68900134,Gasa Lox10 C/100,marca,Material de curacion,108.88,164.0,1.0,False,0,PARCHE DE LEON ARNICA 3% 12X18CM 1 PIEZA,confianza 0 < 85
+FC-75102537,Gerber Etapa 2 comida casera pollo 100 g,marca,,10.68,15.0,0,False,0,,sin resultados VTEX
+FC-75102520,Gerber Etapa 2 comida casera res 100 g,marca,,10.68,15.0,0,False,0,,sin resultados VTEX
+FC-75102476,Gerber Etapa 2 durazno 100 g,marca,,10.68,15.0,0,False,0,,sin resultados VTEX
+FC-75102469,Gerber Etapa 2 mango 100 g,marca,,10.68,15.0,0,False,0,,sin resultados VTEX
+FC-75102421,Gerber Etapa 2 manzana 100 g,marca,,10.68,15.0,0,False,0,,sin resultados VTEX
+FC-75102452,Gerber Etapa 2 pera 100 g,marca,,10.68,15.0,0,False,0,,sin resultados VTEX
+FC-58651129,Gerber Junior pouch frutas mixtas 95 g,marca,,12.79,18.0,0,False,0,,sin resultados VTEX
+FC-33956126,Glucerna Vainilla,marca,Suplemento nutricional,47.5,72.0,1.0,False,0,ALIMENTO EN POLVO SABOR VAINILLA PARA DIABETICOS 400 GR 1 PIEZA,no comparable: concentracion difiere ['237ml']≠['400000mg']
+FC-33956133,Glucerna chocolate,marca,Suplemento nutricional,47.5,74.0,2.0,False,0,,sin resultados VTEX
+FC-33956140,Glucerna fresa,marca,Suplemento nutricional,47.5,70.0,2.0,False,0,,sin resultados VTEX
+FC-58715517,Graneodin B Frambuesa,marca,Benzocaina,42.64,193.0,2.0,False,80,BENZOCAINA 10 MG 24 PASTILLAS GRANEODIN B,no comparable: nuestro catalogo sin concentracion
+FMX-300644,Guante/Esteril-Protec Clasico C/100 Mediano,marca,,160.56,257.0,96.0,False,44,CREMA FACIAL TONO MEDIO FPS 30 PROTECCION ALTA ETERNAL SECRET  75ML 1 PIEZA,no comparable: nuestro catalogo sin concentracion
+FC-75005092,Heinz pouch papilla manzana 113 g,marca,,14.4,20.0,0,False,0,,sin resultados VTEX
+FC-1321B34F,Hidroxon,marca,,34.6,47.0,1.0,False,0,,sin resultados VTEX
+FC-89794961,Histiacil NF Infantil (Jarabe),marca,AMbroxol/Dextrometorfano,123.28,167.0,1.0,False,80,AMBROXOL/ DEXTROMETORFANO 150/113MG JARABE INFANTIL 120ML,no comparable: nuestro catalogo sin concentracion
+FC-64560163,Iodex Cristal,marca,Mentol + eucalipto,70.07,94.6,1.0,False,72,PALETAS SIMILYPTUS MENTOL / MIEL / EUCALIPTO CON PROPOLEO 16 PIEZAS,no comparable: candidato sin tamano declarado
+FC-18752637,Itamol (Subsalicilato de bismuto) 262 mg,marca,Subsalicilato de bismuto,34.09,55.0,1.0,False,82,SUBSALICILATO DE BISMUTO 24 TABLETAS MASTICABLES,no comparable: candidato sin tamano declarado
+FC-00001612,Jarabe de granada Frasco 50 mL Mercurio,marca,Jarabe de granada,7.0,12.0,3.0,False,0,,sin resultados VTEX
+FC-22300775,Jeringa Sensi Medical 3 mL 22G x 32 mm negra,marca,,1.4,3.0,1.0,False,24,RASTRILLO CABALLERO TRIPLE HOJA CON BANDA LUBRICANTE PIEL SENSIBLE COLOR VERDE 1 PIEZA,no comparable: candidato sin tamano declarado
+FMX-307657,Jeringa SensiMedical 10 mL 22G x 32 mm negra,marca,,2.18,4.0,1.0,False,0,JERINGA INFANTIL 3ML 23G X 25MM 4 PIEZAS,"no comparable: concentracion difiere ['10ml', '22000mg']≠['23000mg', '3ml']"
+FMX-307658,Jeringa SensiMedical 20 mL 21G x 32 mm verde,marca,,4.1,6.0,50.0,False,0,JERINGA INFANTIL 3ML 23G X 25MM 4 PIEZAS,"no comparable: concentracion difiere ['20ml', '21000mg']≠['23000mg', '3ml']"
+FMX-506388,Jeringa SensiMedical 3 mL 21G x 32 mm verde,marca,,1.4,3.0,0,False,11,JERINGA DESECHABLE 3ML 21G X 32MM 4 PIEZAS,confianza 11 < 85
+FMX-506389,Jeringa SensiMedical 5 mL 21G x 32 mm verde,marca,,1.48,3.0,97.0,False,11,JERINGA DESECHABLE 5ML 21G X 32MM 3 PIEZAS,confianza 11 < 85
+FMX-506386,Jeringa SensiMedical 5 mL 22G x 32 mm negra,marca,,1.48,3.0,1.0,False,0,JERINGA INFANTIL 3ML 23G X 25MM 4 PIEZAS,"no comparable: concentracion difiere ['22000mg', '5ml']≠['23000mg', '3ml']"
+FC-22300881,Jeringa insulina SensiMedical 1 mL 27G x 13 mm,marca,,1.37,6.0,99.0,False,21,JERINGA PARA INSULINA 1ML 31X6 10 PIEZAS ULTRA FINE,confianza 21 < 85
+FMX-301565,Jeringa-Sensimedical 60 Ml Pivote/Concentrico,marca,,8.56,14.0,11.0,False,5,MEDROXIPROGESTERONA / ESTRADIOL SOLUCION INYECTABLE SIN JERINGA 1 AMPOLLETA,no comparable: candidato sin tamano declarado
+EQ-COL252,Kenzoflex Duo 1 Sol 3.5/1 Mg/5 Ml,marca,Kenzoflex Duo,49.1,79.0,1.0,False,0,CIPROFLOXACINO / DEXAMETASONA 3.5/1 MG SOLUCION OFTALMICA 5 ML 1 PIEZA,confianza 0 < 85
+FC-01167001,LAÜR Infantil solución inyectable C/3,marca,Ampicilina / Metamizol / Guaifenesina / Lidocaína / Clorfenamina,58.0,96.0,1.0,False,53,AMPICILINA / METAMIZOL / GUAIFENESINA / CLORFENAMINA INFANTIL SOLUCIONINYECTABLE 3 AMPOLLETAS,no comparable: al competidor le faltan 1/5 principios activos (lidocaina)
+FC-9890973,Lactiv adulto proinulina bióticos sobres C/6,marca,proinulina bióticos,40.54,64.86,1.0,False,0,,sin resultados VTEX
+FC-08344488,Lactopram 430 mg C/20,marca,Lactobacillus,28.71,39.0,1.0,False,82,GOMITAS LACTOBACILLUS ESPORULADOS 60 GOMITAS,no comparable: candidato sin tamano declarado
+FC-09740435,Laritol (Loratadina) 10 mg,marca,Loratadina,7.01,12.0,5.0,False,90,LORATADINA 10 MG 20 TABLETAS,precio 6.3x el costo
+EQ-MAV118,Laritol D infantil jarabe 50 mL,marca,Loratadina / Fenilefrina,26.44,43.0,1.0,False,70,LORATADINA / FENILEFRINA 50/100MG JARABE INFANTIL 60 ML 1 PIEZA,"no comparable: concentracion difiere ['50ml']≠['100mg', '60ml']"
+EQ-SON084,Lisonin 1 amp 300 mg/1 ml,marca,Lincomicina,26.73,43.0,2.0,False,70,LINCOMICINA 500 MG 18 CAPSULAS,"no comparable: concentracion difiere ['1ml', '300mg']≠['500mg']"
+EQ-SON083,Lisonin 1 amp 600 mg/2 ml,marca,Lincomicina,36.45,59.0,1.0,False,72,LINCOMICINA 600MG/2ML SOLUCION INYECTABLE 6 AMPOLLETAS,no comparable: forma difiere inyectable≠solucion
+FC-002663,Lomotil Loperamida,marca,Loperamida,119.56,155.0,1.0,False,90,LOPERAMIDA 2 MG 12 TABLETAS,precio 0.10x el costo
+FC-24227339,Loxcel adulto,marca,ALBENDAZOL/QUINFAMIDA,78.0,106.0,2.0,False,80,LOXCELL QUINFAMIDA / ALBENDAZOL 300/400MG 1 TABLETA,no comparable: nuestro catalogo sin concentracion
+FMX-301025,Mascarilla-Nebulizacion-Sensimedical Bolsa C/1 Con Nebulizador Pediatrica,marca,,35.1,57.0,1.0,False,9,MASCARILLA FACIAL ORO ETERNAL SECRET 1 PIEZA,confianza 9 < 85
+EQ-PBY008,Max Sens Passion Mix 1 Blister 3+1,marca,,23.21,38.0,1.0,False,0,CONDON ALFA CLIMAX ULTRASENSIBLE 2 PIEZAS,confianza 0 < 85
+EQ-PBY007,Max Sens Tropicana Mix 1 Blister 3+1,marca,,23.17,38.0,1.0,False,0,CONDON ALFA CLIMAX ULTRASENSIBLE 2 PIEZAS,confianza 0 < 85
+FC-DFF99C3F,Mercurio,marca,Arnica montana,7.0,9.1,3.0,False,72,ARNICA 6C 30 TABLETAS,no comparable: forma difiere jarabe≠tableta
+FC-D4AC123B,Mercurio Aceite Almendras,marca,Producto homeopatico / natural,8.0,12.8,3.0,False,0,,sin resultados VTEX
+FC-931B4809,Mercurio Aceite Coco,marca,Producto homeopatico / natural,8.0,12.8,5.0,False,0,,sin resultados VTEX
+FC-69387811,Mercurio Aceite Gomenolado,marca,Producto homeopatico / natural,8.0,12.8,3.0,False,0,,sin resultados VTEX
+FC-5A697CC2,Mercurio Aceite Olivo,marca,Producto homeopatico / natural,8.0,12.8,3.0,False,0,,sin resultados VTEX
+FC-38CAFE6B,Mercurio Aceite Romero,marca,Producto homeopatico / natural,8.0,12.8,3.0,False,0,,sin resultados VTEX
+FC-578F060C,Mercurio Borax Polvo,marca,Producto homeopatico / natural,53.0,84.81,1.0,False,0,,sin resultados VTEX
+FC-5D59ED54,Mercurio Cloruro De Magnesio Cajita,marca,Producto homeopatico / natural,17.0,40.0,2.0,False,0,,sin resultados VTEX
+FC-3676D5DC,Mercurio Espiritus Tomar,marca,Producto homeopatico / natural,6.0,9.61,3.0,False,0,,sin resultados VTEX
+FC-62034164,Mercurio Espiritus Untar,marca,Producto homeopatico / natural,6.0,9.61,3.0,False,0,,sin resultados VTEX
+FC-39036C88,Mercurio Glicerina,marca,Producto homeopatico / natural,12.0,19.21,3.0,False,0,,sin resultados VTEX
+FC-9507CD66,Mercurio Haba Alcanforada,marca,Producto homeopatico / natural,65.0,104.0,1.0,False,0,,sin resultados VTEX
+FC-CB5C11ED,Mercurio Magnesia Anisada,marca,Producto homeopatico / natural,51.5,82.4,1.0,False,0,,sin resultados VTEX
+FC-EFB599B5,Mercurio Pan Puerco,marca,Producto homeopatico / natural,9.5,15.0,5.0,False,0,,sin resultados VTEX
+FC-FBD776D2,Mercurio Perlas De Eter,marca,Producto homeopatico / natural,170.0,272.0,1.0,False,0,,sin resultados VTEX
+FC-FD718DF3,Mercurio Sulfatiazol,marca,Producto homeopatico / natural,11.5,17.0,3.0,False,0,,sin resultados VTEX
+FC-47AAF23B,Mercurio Sulfatiazol Polvo,marca,Producto homeopatico / natural,69.0,110.4,1.0,False,0,,sin resultados VTEX
+FC-FEAECBF1,Mercurio Tepezcohuite,marca,Producto homeopatico / natural,9.5,15.0,3.0,False,0,,sin resultados VTEX
+FC-9827438F,Mercurio Veneno De Abeja,marca,Producto homeopatico / natural,9.5,15.0,3.0,False,0,,sin resultados VTEX
+FC-A680F97E,Mercurio Yodo Tomar,marca,Producto homeopatico / natural,11.0,17.61,3.0,False,0,,sin resultados VTEX
+FC-D3D28E20,Mercurio Yodo Untar,marca,Producto homeopatico / natural,11.5,18.41,3.0,False,0,,sin resultados VTEX
+FC-C4530823,Mercurio óxido de zinc C/50,marca,Producto homeopatico / natural,9.0,54.0,3.0,False,0,,sin resultados VTEX
+EQ-LOE111,Metronidazol Cent Nitro 12 Óvulos 300 Mg,marca,Metronidazol / Centella / Nistatina,144.05,231.0,2.0,False,65,METRONIDAZOL / CENTELLA ASIATICA / NITROFURAL 12 OVULOS,no comparable: al competidor le faltan 1/3 principios activos (nistatina)
+FC-07535494,Motrin Infantil Suspension 120 ml,marca,Ibuprofeno 2 g/100 ml,186.4,252.0,1.0,False,100,IBUPROFENO  2GR/100ML SUSPENSION 120 ML 1 PIEZA,precio 0.17x el costo
+FC-47624171,Nailex Desenterrador Unas Desenterrador Unas,marca,,54.49,87.19,1.0,False,0,,sin resultados VTEX
+FC-40015366,Nasalub Sol,marca,Cloruro de sodio + Glicerol,83.32,112.49,1.0,False,39,CLORURO DE SODIO 6.5MG/1ML SOLUCION NASAL 30 ML 1 PIEZA,no comparable: al competidor le faltan 1/2 principios activos (glicerol)
+FC-40001314,Nikzon 90 tabletas masticables,marca,Ruscus aculeatus / Lactobacillus sporogenes / Ácido ascórbico,380.0,470.0,1.0,False,43,RUSCUS / HESPERIDINA/ ACIDO ASCORBICO 150/150/100MG 30 CAPSULAS,no comparable: al competidor le faltan 1/3 principios activos (lactobacillus)
+FMX-506935,Normogotero-Sensimedical Piezas C/1 S/Aguja,marca,,11.53,19.0,5.0,False,0,,sin resultados VTEX
+FC-5145497,NyQuil Z difenhidramina 25 mg C/30,marca,Difenhidramina 25 mg,281.55,100.0,0,False,100,DIFENHIDRAMINA 25 MG 30 CAPSULAS,precio 0.12x el costo
+EQ-INN022,Optimila-H Grin gotas 15 mL,marca,Manzanilla / Hialuronato,50.82,82.0,0,False,0,BALSAMO FRIO CON EXTRACTO AISLADO DE CANNABIDIOL CBD / ALOE VERA /ARNICA / MANZANILLA 90 GR 1 PIEZA,no comparable: al competidor le faltan 1/2 principios activos (hialuronato)
+FC-52400212,Pastillas Ajolotius Jengibre Hedera,marca,Jengibre/Hedera,20.09,27.0,1.0,False,5,GOMITAS CURCUMA/JENGIBRE 60 PIEZAS MULTIGOMI,no comparable: al competidor le faltan 1/2 principios activos (hedera)
+FC-8062229,Pharmaton Complete,marca,Multivitaminas + Ginseng G115,118.0,160.0,1.0,False,46,MULTIVITAMINAS 50 + 30 TABLETAS CENTRUM SILVER,no comparable: al competidor le faltan 1/2 principios activos (ginseng)
+FC-58715913,Picot Plus 9 sobres efervescentes,marca,,46.12,62.0,1.0,False,38,SAL DE UVAS PICOT BICARBONATO DE SODIO / ACIDO TARTARICO / ACIDO CITRICOPOLVO EFERVESCENTE 12 SOBRES,confianza 38 < 85
+FC-95201021,Pomada Hipoglos Pac,marca,Oxido de zinc,69.58,117.0,1.0,False,70,OXIDO DE ZINC 25GR/100GR PASTA 1 PIEZA,"no comparable: concentracion difiere ['45000mg']≠['100000mg', '25000mg']"
+FC-00001049,Pomada de árnica Tarro 50 g Mercurio,marca,Árnica,10.5,17.0,5.0,False,72,ARNICA 6C 30 TABLETAS,no comparable: candidato sin tamano declarado
+FC-6B2ADEE9,Protect aerosol 200 dosis,marca,Budesonida + Formoterol,96.21,125.08,1.0,False,0,BUDESONIDA SUSPENSION 0.500MG/2ML O 0.250MG/ML SUSPENSION PARA NEBULIZACION 5 AMPOLLETAS,no comparable: al competidor le faltan 1/2 principios activos (formoterol)
+FC-92730451,Riopan Sobres,marca,Magaldrato,268.72,362.78,1.0,False,42,MAGALDRATO/DIMETICONA 80MG/10MG 10SOBRES,no comparable: al competidor le sobran principios activos (dimeticona)
+FC-14704187,Senosiain Supositorios Bebe C/10,marca,Glicerol,58.96,77.0,1.0,False,0,,sin resultados VTEX
+FC-14704156,Senosiain supositorios adulto C/10,marca,GLICEROL,58.96,94.34,1.0,False,0,,sin resultados VTEX
+FC-14704163,Senosiain supositorios infantil C/10,marca,GLICEROL,63.4,102.0,1.0,False,0,,sin resultados VTEX
+FC-60101521,Soft Lub Pleasure 56.7 g,marca,,100.8,161.28,1.0,False,0,NEOMICINA / RETINOL (VITAMINA A) UNGÜENTO 28 GR 1 PIEZA,no comparable: concentracion difiere ['56700mg']≠['28000mg']
+FC-25100123,Solucion CS PiSA cloruro de sodio 0.9% 500 mL,marca,Cloruro de sodio 0.9%,35.21,55.0,2.0,False,82,AGUA DE MAR ISOTONICA (EQUIVALENTE 0.9% CLORURO DE SODIO) 100 MLL 1 PIEZA,no comparable: candidato sin tamano declarado
+FC-54054221,Splash Tears Sol oftálmica,marca,Hipromelosa,140.53,190.0,1.0,False,80,HIPROMELOSA 0.5% SOLUCION OFTALMICA 15 ML 1 PIEZA,no comparable: nuestro catalogo sin concentracion
+FC-23001331,Sr. Ting pomada (ácido bórico),marca,Acido bórico / talco,73.6,117.76,1.0,False,72,SAL DE UVAS PICOT BICARBONATO DE SODIO / ACIDO TARTARICO / ACIDO CITRICOPOLVO EFERVESCENTE 12 SOBRES,no comparable: candidato sin tamano declarado
+FC-33954740,Suero Pedialyte Sr Manzana,marca,,23.81,32.0,2.0,False,18,ELECTROLITOS ORALES MANZANA 500ML 1 PIEZA,confianza 18 < 85
+FC-33961373,Suero Pedialyte Sr fresa,marca,,23.81,32.0,2.0,False,14,ELECTROLITOS ORALES FRESA 500 ML 1 PIEZA,confianza 14 < 85
+FC-79400556,Syncol (Paracetamol),marca,Paracetamol/Pamabrom/Pirilamina,98.81,134.0,1.0,False,65,PARACETAMOL 500 MG 10 TABLETAS,"no comparable: al competidor le faltan 2/3 principios activos (pamabrom, pirilamina)"
+FC-70600709,Syncol 500/25/15 mg 12 comprimidos,marca,,97.12,130.0,1.0,False,0,,sin resultados VTEX
+FC-34092301,Syncol Max tabletas,marca,Naproxeno + Paracetamol,88.69,120.0,1.0,False,80,NAPROXENO SODICO/PARACETAMOL 275MG/300MG 10TABLETAS,no comparable: nuestro catalogo sin concentracion
+FC-08485408,Tabcin 500 C/12,marca,Paracetamol + Amantadina + Clorfenamina + Fenilefrina,46.06,63.0,1.0,False,65,AMANTADINA / CLORFENAMINA / PARACETAMOL 24 CAPSULAS,no comparable: al competidor le faltan 1/4 principios activos (fenilefrina)
+FC-08499689,Tabcin Active C/12,marca,Paracetamol + Fenilefrina + Dextrometorfano + Guaifenesina,70.6,96.0,2.0,False,65,DEXTROMETORFANO / PARACETAMOL / CLORFENAMINA / FENILEFRINA 12 CAPSULAS SIMI 1-2-3,no comparable: al competidor le faltan 1/4 principios activos (guaifenesina)
+FC-08499702,Tabcin Noche C/12,marca,Paracetamol + Fenilefrina + Dextrometorfano + Doxilamina,71.21,97.0,2.0,False,65,DEXTROMETORFANO / PARACETAMOL / CLORFENAMINA / FENILEFRINA 12 CAPSULAS SIMI 1-2-3,no comparable: al competidor le faltan 1/4 principios activos (doxilamina)
+FC-08485316,Tabcin efervescente C/12,marca,Acido acetilsalicilico + Fenilefrina + Clorfenamina,37.73,51.0,2.0,False,64,ACIDO ACETILSALICILICO 500MG 12 TABLETAS EFERVESCENTES ASPIRINA,"no comparable: al competidor le faltan 2/3 principios activos (fenilefrina, clorfenamina)"
+FC-89592876,Tegaderm 3M 10 x 12 cm C/50,marca,,579.55,700.0,1.0,False,0,,sin resultados VTEX
+FC-58792792,Tempra,marca,Paracetamol/fenilefrina/carbinoxamina,58.7,96.0,1.0,False,63,DEXTROMETORFANO / PARACETAMOL / CLORFENAMINA / FENILEFRINA 12 CAPSULAS SIMI 1-2-3,no comparable: al competidor le faltan 1/3 principios activos (carbinoxamina)
+FC-54525051,Tempra Forte C/24,marca,Paracetamol,113.93,140.0,1.0,False,80,PARACETAMOL 750MG 10 TABLETAS,no comparable: nuestro catalogo sin concentracion
+FC-60101231,Tempra XT Noche,marca,Paracetamol/Fenilefrina/Carbinoxamina,59.69,81.0,1.0,False,54,LORATADINA 2.5 MG / FENILEFRINA 5 MG / PARACETAMOL 500 MG 12 TABLETAS,no comparable: al competidor le faltan 1/3 principios activos (carbinoxamina)
+FC-LV-LIV177,Tempra gotas uva 10 g 30 mL,marca,Paracetamol,168.72,270.0,1.0,False,70,PARACETAMOL 750MG 10 TABLETAS,"no comparable: concentracion difiere ['10000mg', '30ml']≠['750mg']"
+FC-5008473,Theraflu TD Limon Resfriado Severo C/10 sobres,marca,Paracetamol + Feniramina + Fenilefrina,170.32,230.16,2.0,False,72,PARACETAMOL / FENIRAMINA / FENILEFRINA SABOR MANZANA CANELA GRANULADO 6 SOBRES,no comparable: forma difiere sobre≠polvo
+FC-3E863E37,Tratidri,marca,,47.47,61.72,1.0,False,0,,sin resultados VTEX
+FC-40010712,Tukol-D jarabe Adulto,marca,Guaifenesina + Dextrometorfano,117.42,158.52,1.0,False,70,DEXTROMETORFANO / GUAIFENESINA .1/1 GR INFANTIL SOLUCION 1 PIEZA,no comparable: concentracion difiere ['125ml']≠['1000mg']
+FC-00315021,Tukol-D jarabe infantil,marca,Dextrometorfano / Guaifenesina,134.08,172.0,1.0,False,70,DEXTROMETORFANO / GUAIFENESINA .1/1 GR INFANTIL SOLUCION 1 PIEZA,no comparable: concentracion difiere ['125ml']≠['1000mg']
+FC-65054029,Tums surtido tabletas masticables C/48,marca,Carbonato de calcio,85.26,105.0,2.0,False,85,CARBONATO DE CALCIO 12 TABLETAS MASTICABLES SABOR MENTA,precio 0.19x el costo
+FC-75354321,Tylenol,marca,PARACETAMOL,49.0,67.0,0,False,80,PARACETAMOL 750MG 10 TABLETAS,no comparable: nuestro catalogo sin concentracion
+FC-40006647,Ultra Bengue Gel,marca,Mentol + Alcanfor,110.3,148.91,1.0,False,43,ALCANFOR / MENTOL / 197/197MG INHALADOR 1 PIEZA,no comparable: al competidor le sobran principios activos (inhalador)
+FC-BE2ACF63,Valnait cápsulas valeriana,marca,,64.91,100.0,1.0,False,26,SIMI PZ VALERIANA 250 MG OFFICINALIS 30 CAPSULAS,no comparable: nuestro catalogo sin concentracion
+FMX-302168,Venda/Stick 5 Cm X 4.5 M C/1 Azul,marca,,25.21,41.0,1.0,False,0,,sin resultados VTEX
+FC-03430721,Vitacilina 28 Crema,marca,Neomicina + Bacitracina zinc,38.12,51.47,0,False,47,POLIMIXINA B / NEOMICINA / BACITRACINA UNGÜENTO 3.5GR 1 PIEZA,no comparable: al competidor le sobran principios activos (polimixina)
+FC-12225164,Vitacilina Bebé Pomada,marca,Neomicina + Bacitracina zinc,53.7,70.0,2.0,False,47,POLIMIXINA B / NEOMICINA / BACITRACINA UNGÜENTO 3.5GR 1 PIEZA,no comparable: al competidor le sobran principios activos (polimixina)
+FC-03405381,Vitacilina Ungüento,marca,Neomicina + Bacitracina zinc,23.06,31.14,0,False,47,POLIMIXINA B / NEOMICINA / BACITRACINA UNGÜENTO 3.5GR 1 PIEZA,no comparable: al competidor le sobran principios activos (polimixina)
+FC-76000277,Vitacilina crema humectante,marca,,77.03,104.0,1.0,False,0,NEOMICINA / RETINOL (VITAMINA A) UNGÜENTO 28 GR 1 PIEZA,no comparable: concentracion difiere ['100000mg']≠['28000mg']
+FC-12225140,Vitacilina ungüento 16 g,marca,,25.19,34.0,2.0,False,0,NEOMICINA / RETINOL (VITAMINA A) UNGÜENTO 28 GR 1 PIEZA,no comparable: concentracion difiere ['16000mg']≠['28000mg']
+FC-12225133,Vitacilina ungüento 28 g,marca,,37.57,51.0,3.0,False,11,NEOMICINA / RETINOL (VITAMINA A) UNGÜENTO 28 GR 1 PIEZA,confianza 11 < 85
