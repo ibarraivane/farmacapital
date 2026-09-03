@@ -222,6 +222,8 @@ describe("catalog search dimensions", () => {
     expect(tiendaProductMatchesBusqueda(diapro, "affective")).toBe(false);
     expect(tiendaProductMatchesBusqueda(solar, "pañal")).toBe(false);
     expect(tiendaProductMatchesBusqueda(solar, "protector")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(solar, "bloqueador")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(solar, "bloqueador solar")).toBe(true);
     expect(tiendaSearchRelevanceRank(diapro, "pañal")).toBeLessThan(
       tiendaSearchRelevanceRank(affective, "pañal")
     );
@@ -230,5 +232,106 @@ describe("catalog search dimensions", () => {
     expect(tiendaSearchRelevanceRank(tempra, "tempra")).toBeLessThan(
       tiendaSearchRelevanceRank(paraGeneric, "tempra")
     );
+  });
+
+  test("bloqueador encuentra el protector solar aunque el SKU no diga bloqueador", () => {
+    const fotosun = {
+      id: 401,
+      activo: true,
+      nombre: "Fotosun UV100",
+      marca: "Fotosun",
+      presentacion: "125 ML",
+      forma_farmaceutica: "Crema",
+      categoria: "Cuidado personal",
+      sku: "FC-00E8A9C7",
+      codigo_barras: "7502253600486",
+    };
+    const lubriderm = {
+      id: 402,
+      activo: true,
+      nombre: "Lubriderm Uv Fps15",
+      marca: "Lubriderm",
+      presentacion: "120 ML",
+      forma_farmaceutica: "Crema",
+      categoria: "Cuidado personal",
+      sku: "FC-35469151",
+      codigo_barras: "7702035469151",
+    };
+    const solsun = {
+      id: 403,
+      activo: true,
+      nombre: "Sol Sun protector solar facial crema hidratacion profunda",
+      marca: "Sol Sun",
+      categoria: "Cuidado personal",
+      sku: "FC-09749063",
+      codigo_barras: "7502009749063",
+    };
+    const panty = {
+      id: 404,
+      activo: true,
+      nombre: "Panty protector Saba largo 28",
+      marca: "Saba",
+      categoria: "Cuidado personal",
+      sku: "FC-19068911",
+    };
+    const anthelios = {
+      id: 405,
+      activo: true,
+      nombre: "La Roche Posay Anthelios UV Mune 400 FPS50",
+      marca: "La Roche-Posay",
+      presentacion: "50 ML",
+      forma_farmaceutica: "Fluido",
+      categoria: "Cuidado personal",
+      sku: "FC-ANTHELIOS",
+    };
+    for (const q of ["bloqueador", "bloqueador solar", "protector solar"]) {
+      expect(tiendaProductMatchesBusqueda(fotosun, q)).toBe(true);
+      expect(inventarioProductMatchesBusqueda(fotosun, q)).toBe(true);
+      expect(tiendaProductMatchesBusqueda(lubriderm, q)).toBe(true);
+      expect(inventarioProductMatchesBusqueda(lubriderm, q)).toBe(true);
+      expect(tiendaProductMatchesBusqueda(solsun, q)).toBe(true);
+      expect(inventarioProductMatchesBusqueda(solsun, q)).toBe(true);
+      expect(tiendaProductMatchesBusqueda(panty, q)).toBe(false);
+      expect(inventarioProductMatchesBusqueda(panty, q)).toBe(false);
+      expect(tiendaProductMatchesBusqueda(centrum, q)).toBe(false);
+    }
+    expect(tiendaProductMatchesBusqueda(fotosun, "pañal")).toBe(false);
+    expect(tiendaProductMatchesBusqueda(panty, "protector")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(anthelios, "bloqueador")).toBe(true);
+    expect(inventarioProductMatchesBusqueda(anthelios, "bloqueador")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(anthelios, "la roche")).toBe(true);
+    expect(inventarioProductMatchesBusqueda(anthelios, "la roche")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(anthelios, "anthelios")).toBe(true);
+    const ticketNadro = {
+      id: 406,
+      activo: true,
+      nombre: "BLOQ ANTHE UVAIR 50+ FLU INV 40ML",
+      marca: "FRABEL 2",
+      presentacion: "40 ml",
+      categoria: "Cuidado personal",
+      subcategoria: "Protector solar",
+      sku: "FC-75917810",
+      codigo_barras: "3337875917810",
+    };
+    const uvAir = {
+      id: 407,
+      activo: true,
+      nombre: "La Roche-Posay Anthelios UV Air FPS 50+ Protector Solar Ligero 40 ml",
+      marca: "La Roche-Posay",
+      presentacion: "40 ml",
+      forma_farmaceutica: "Fluido",
+      categoria: "Cuidado personal",
+      subcategoria: "Protector solar",
+      sku: "FC-75917810",
+      codigo_barras: "3337875917810",
+    };
+    for (const q of ["la roch", "la roche", "anthelios", "bloqueador"]) {
+      expect(tiendaProductMatchesBusqueda(ticketNadro, q)).toBe(true);
+      expect(inventarioProductMatchesBusqueda(ticketNadro, q)).toBe(true);
+      expect(tiendaProductMatchesBusqueda(uvAir, q)).toBe(true);
+      expect(inventarioProductMatchesBusqueda(uvAir, q)).toBe(true);
+    }
+    expect(tiendaProductMatchesBusqueda(fotosun, "la roche")).toBe(false);
+    expect(inventarioProductMatchesBusqueda(fotosun, "la roche")).toBe(false);
   });
 });

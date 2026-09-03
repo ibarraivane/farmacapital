@@ -3139,7 +3139,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                   {productos.filter(p=>favs.includes(p.id)&&p.activo).map(p=>(
                     <button key={p.id} onClick={()=>setFichaProd(p)}
                       style={{padding:"5px 10px",borderRadius:8,border:`1px solid ${C.amber}`,background:C.amberDim,color:"#92400e",fontSize:11,fontWeight:700,cursor:"pointer",maxWidth:130,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                      ⭐ {p.nombre.split(" ").slice(0,3).join(" ")}
+                      ⭐ {posTituloProducto(p)}
                     </button>
                   ))}
                 </div>

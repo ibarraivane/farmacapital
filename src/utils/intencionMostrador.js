@@ -51,7 +51,7 @@ const INTENCIONES_MOSTRADOR = [
   { id: "boca", label: "molestia en boca", q: ["afta", "aftas", "llaga boca", "dolor boca", "encías inflamadas", "encias inflamadas"], pa: ["benzocaina", "bencidamina", "cetilpiridinio"], sub: ["bucal", "oral"] },
   { id: "dormir", label: "apoyo para dormir", q: ["dormir", "no puedo dormir", "insomnio", "sueno", "relajante para dormir"], pa: ["melatonina", "valeriana"], sub: ["sueno", "ayuda para dormir"] },
 
-  { id: "proteccion-solar", label: "protección solar", q: ["bloqueador", "protector solar", "quemadura solar"], name: ["protector solar", "bloqueador", "fps", "sun"], sub: ["protector solar"] },
+  { id: "proteccion-solar", label: "protección solar", q: ["bloqueador", "bloqueador solar", "protector solar", "quemadura solar", "anthelios"], name: ["protector solar", "bloqueador", "fps", "spf", "sun", "fotosun", "solsun", "sol sun", "fotoprotector", "anthelios", "la roche", "uvair", "anthe"], sub: ["protector solar"] },
   { id: "repelente", label: "repelente de insectos", q: ["mosquitos", "repelente", "insectos", "piquetes mosquito"], sub: ["repelente"] },
   { id: "incontinencia", label: "incontinencia", q: ["incontinencia", "panal adulto", "panales adulto", "ropa interior desechable"], name: ["panal", "diapro", "tena", "affective", "depend", "molicare", "indasec"] },
   { id: "curitas", label: "protección de cortadas", q: ["curita", "curitas", "bandita", "banditas", "band aid"], name: ["curita", "aposito", "nexcare", "band aid"] },

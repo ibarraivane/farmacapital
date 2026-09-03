@@ -33,6 +33,8 @@ test("extrae ficha y foto; deja compra vacía si el precio es placeholder", () =
   expect(hit.imagenes[0]).toContain("7501314701957_01.jpg");
   expect(hit.precioCompra).toBe(null);
   expect(hit.precioPublico).toBe(920);
+  expect(hit.ficha.nombre).toMatch(/Adel/i);
+  expect(hit.ficha.marca).toBe("SENOSIAIN");
 });
 
 test("lee Farmacia del PDP y no el público", () => {

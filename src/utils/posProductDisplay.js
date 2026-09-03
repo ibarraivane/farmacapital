@@ -52,6 +52,29 @@ function nombreTipoProducto(nombre) {
 const FORMA_EN_NOMBRE =
   /\s+(?:suspensi[oó]n|tabletas?|tabs?\.?|c[aá]psulas?|c[aá]ps\.?|jarabe|crema|gel|ung[uü]ento|pomada|soluci[oó]n|gotas|aerosol|spray|comprimidos?|ampolletas?|inyectable|frasco|sobres?|polvo|loci[oó]n|emulsi[oó]n|elixir|jalea|[oó]vulos?|supositorios?|parche|inhalador|grageas?)\b/i;
 
+/**
+ * Palabras que distinguen SKUs de la misma línea (Anthelios invisible vs oil control).
+ * Sin esto, el corte a 3 palabras deja cuatro tarjetas como "La Roche Anthelios".
+ */
+const TOKEN_VARIANTE_POS =
+  /^(?:invisible|tinted|color|oil|control|matte|uv|air|mune|fps\d*\+?|spf\d*\+?|plus|forte|kids|baby|mineral|sensitive|dry|hydrating|ligero|toque|seco|\d{3,}|\d{2}\+)$/i;
+
+function esTokenVariantePos(palabra) {
+  return TOKEN_VARIANTE_POS.test(String(palabra || "").replace(/[.,;:()]/g, ""));
+}
+
+function nombreCortoConVariante(palabras, keep) {
+  const base = palabras.slice(0, keep);
+  const extras = palabras.slice(keep).filter(esTokenVariantePos);
+  const merged = [...base];
+  for (const extra of extras) {
+    if (merged[merged.length - 1]?.toLowerCase() !== extra.toLowerCase()) {
+      merged.push(extra);
+    }
+  }
+  return merged.join(" ");
+}
+
 /** Nombre de mostrador: Alu-Mag, no el laboratorio ni la fórmula completa. */
 export function nombreComercialPos(nombre) {
   const limpio = limpiarNombrePosCrudo(nombre);
@@ -65,7 +88,7 @@ export function nombreComercialPos(nombre) {
   const palabras = limpio.split(/\s+/);
   const esLechePolvo = /\bleche\s+en\s+polvo\b/i.test(limpio);
   if (palabras.length > 6 || limpio.length > 56) {
-    return palabras.slice(0, esLechePolvo ? 6 : 3).join(" ");
+    return nombreCortoConVariante(palabras, esLechePolvo ? 6 : 3);
   }
   return limpio;
 }

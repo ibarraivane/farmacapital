@@ -61,6 +61,23 @@ describe("lenguaje controlado de mostrador", () => {
     expect(suggestions.map((item) => item.nombre)).toEqual(["Vomisin 50 mg"]);
   });
 
+  test("bloqueador abre protección solar aunque el nombre sea Fotosun", () => {
+    const fotosun = producto({ nombre: "Fotosun UV100", marca: "Fotosun", categoria: "Cuidado personal" });
+    expect(tiendaProductMatchesBusqueda(fotosun, "bloqueador")).toBe(true);
+    expect(etiquetaIntencionMostrador("bloqueador")).toBe("protección solar");
+    expect(etiquetaIntencionMostrador("bloqueador solar")).toBe("protección solar");
+  });
+
+  test("el código de ticket Nadro sigue saliendo con bloqueador", () => {
+    const ticket = producto({
+      nombre: "BLOQ ANTHE UVAIR 50+ FLU INV 40ML",
+      marca: "FRABEL 2",
+      subcategoria: "Protector solar",
+    });
+    expect(tiendaProductMatchesBusqueda(ticket, "bloqueador")).toBe(true);
+    expect(coincidenciaIntencionMostrador(ticket, "bloqueador")?.id).toBe("proteccion-solar");
+  });
+
   test("no activa intención con texto corto, numérico o desconocido", () => {
     expect(intencionesParaConsulta("do")).toEqual([]);
     expect(intencionesParaConsulta("7501234567890")).toEqual([]);
