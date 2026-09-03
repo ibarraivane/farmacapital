@@ -1,4 +1,11 @@
-import { itemMatchScan, recepcionEsTicketDocumento, resolverEscaneoRecepcion } from "./recepcionScan";
+import {
+  itemMatchScan,
+  recepcionEsTicketDocumento,
+  resolverEscaneoRecepcion,
+  recepcionItemEnAnaquel,
+  recepcionItemVerdeSinStock,
+  recepcionItemsVerdeSinStock,
+} from "./recepcionScan";
 
 const TEGADERM = {
   id: 1,
@@ -90,5 +97,33 @@ describe("recepcionEsTicketDocumento", () => {
   test("csv/pdf cuentan", () => {
     expect(recepcionEsTicketDocumento([IFC_TIJERA])).toBe(true);
     expect(recepcionEsTicketDocumento([{ origen: "pistola" }])).toBe(false);
+  });
+});
+
+describe("recepcionItemVerdeSinStock", () => {
+  test("verde con lote = en anaquel", () => {
+    const it = { confirmado: true, fecha_caducidad: "2027-06-01", lote_id: 9, pendiente_alta: false };
+    expect(recepcionItemEnAnaquel(it)).toBe(true);
+    expect(recepcionItemVerdeSinStock(it)).toBe(false);
+  });
+
+  test("confirmado sin lote = mentira verde (no está en Inventario/POS)", () => {
+    const it = { confirmado: true, fecha_caducidad: "2027-06-01", lote_id: null, pendiente_alta: false };
+    expect(recepcionItemEnAnaquel(it)).toBe(false);
+    expect(recepcionItemVerdeSinStock(it)).toBe(true);
+  });
+
+  test("pendiente de alta no cuenta como verde mentiroso", () => {
+    const it = { confirmado: true, fecha_caducidad: "2027-06-01", lote_id: null, pendiente_alta: true };
+    expect(recepcionItemVerdeSinStock(it)).toBe(false);
+  });
+
+  test("lista filtra huérfanos", () => {
+    const items = [
+      { id: 1, confirmado: true, fecha_caducidad: "2027-01-01", lote_id: 1, pendiente_alta: false },
+      { id: 2, confirmado: true, fecha_caducidad: "2027-01-01", lote_id: null, pendiente_alta: false },
+      { id: 3, confirmado: false, fecha_caducidad: null, lote_id: null, pendiente_alta: false },
+    ];
+    expect(recepcionItemsVerdeSinStock(items).map((i) => i.id)).toEqual([2]);
   });
 });

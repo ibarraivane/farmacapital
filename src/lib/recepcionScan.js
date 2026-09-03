@@ -105,3 +105,23 @@ export function matchScanEnTicket(items, codigo) {
   const gris = lista.find((it) => !it.confirmado && itemMatchScan(it, code, []));
   return { yaConfirmado: !!yaConfirmado, gris: !!gris, item: yaConfirmado || gris || null };
 }
+
+/**
+ * Verde real = confirmado + MMAA + lote en anaquel.
+ * Si está confirmado con caducidad pero sin lote_id y no es pendiente de alta,
+ * el renglón "se ve verde" pero NO está en Inventario/POS (bug histórico).
+ */
+export function recepcionItemEnAnaquel(it) {
+  if (!it) return false;
+  return !!(it.confirmado && it.fecha_caducidad && it.lote_id && !it.pendiente_alta);
+}
+
+/** Confirmado en pantalla pero sin stock en anaquel. */
+export function recepcionItemVerdeSinStock(it) {
+  if (!it) return false;
+  return !!(it.confirmado && it.fecha_caducidad && !it.lote_id && !it.pendiente_alta);
+}
+
+export function recepcionItemsVerdeSinStock(items) {
+  return (Array.isArray(items) ? items : []).filter(recepcionItemVerdeSinStock);
+}
