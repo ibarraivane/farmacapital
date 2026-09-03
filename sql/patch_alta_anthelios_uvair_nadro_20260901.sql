@@ -9,7 +9,8 @@
 -- Esas se quedan apagadas. Este es el de la caja que llegó con Nadro.
 --
 -- Si la fila ya existe (EAN, SKU o nombre de ticket), la reactiva y
--- completa marca/foto. Si no, la crea. Idempotente.
+-- completa marca/foto. Si no, la crea. Stock 0: el lote lo pone Recibir.
+-- Después: sql/patch_recibir_anthelios_uvair_nadro_20260901.sql
 -- Pegar en Supabase → SQL Editor → Run.
 -- ============================================================================
 
