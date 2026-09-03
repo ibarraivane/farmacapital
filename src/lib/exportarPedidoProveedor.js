@@ -5,6 +5,7 @@
  */
 
 import * as XLSX from "xlsx";
+import { textoPrincipioActivo } from "./principioActivo";
 
 export const esLevic = (orden) =>
   String(orden.fuente || "").toLowerCase() === "levic" ||
@@ -83,6 +84,7 @@ function descargarOtrasTiendas(ordenes, levicSinCodigo) {
         barcodeDe(p) || "",
         p.sku || "",
         p.nombre || "",
+        textoPrincipioActivo(p) || "",
         p.cantidadPedida,
         Number(unit.toFixed(2)),
         Number((unit * p.cantidadPedida).toFixed(2)),
@@ -97,6 +99,7 @@ function descargarOtrasTiendas(ordenes, levicSinCodigo) {
       "",
       p.sku || "",
       p.nombre || "",
+      textoPrincipioActivo(p) || "",
       p.cantidadPedida,
       Number(unit.toFixed(2)),
       Number((unit * p.cantidadPedida).toFixed(2)),
@@ -120,12 +123,12 @@ function descargarOtrasTiendas(ordenes, levicSinCodigo) {
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(resumen), "Resumen");
 
   const pedido = [
-    ["Pedir en", "Código de barras", "SKU", "Producto", "Piezas", "Costo unit.", "Total", "Nota"],
+    ["Pedir en", "Código de barras", "SKU", "Producto", "Principio activo", "Piezas", "Costo unit.", "Total", "Nota"],
     ...filas,
   ];
   const ws = XLSX.utils.aoa_to_sheet(pedido);
   ws["!cols"] = [
-    { wch: 22 }, { wch: 16 }, { wch: 14 }, { wch: 42 },
+    { wch: 22 }, { wch: 16 }, { wch: 14 }, { wch: 42 }, { wch: 28 },
     { wch: 8 }, { wch: 12 }, { wch: 12 }, { wch: 40 },
   ];
   XLSX.utils.book_append_sheet(wb, ws, "Pedido");

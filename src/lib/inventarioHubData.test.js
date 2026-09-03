@@ -1,8 +1,16 @@
 import {
   agruparLotesPorProducto,
   filasJson,
+  PRODUCTOS_SELECT_HUB,
+  PRODUCTOS_SELECT_LOTES,
   productoIdDeLote,
 } from "./inventarioHubData";
+
+test("reabasto y lotes cargan principio activo para buscar por ese rubro", () => {
+  expect(PRODUCTOS_SELECT_HUB).toMatch(/principio_activo/);
+  expect(PRODUCTOS_SELECT_HUB).toMatch(/denominacion_generica/);
+  expect(PRODUCTOS_SELECT_LOTES).toMatch(/principio_activo/);
+});
 
 test("agrupa lotes aunque producto_id venga string o anidado", () => {
   const grouped = agruparLotesPorProducto([

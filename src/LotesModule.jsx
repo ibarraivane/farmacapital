@@ -41,6 +41,8 @@ function loteRowMatchesBusqueda(lote, product, queryRaw) {
     product?.codigo_barras,
     product?.categoria,
     product?.presentacion,
+    product?.principio_activo,
+    product?.denominacion_generica,
     lote?.numero_lote,
   ]
     .map((v) => normalizeForSearch(v))

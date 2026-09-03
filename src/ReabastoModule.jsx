@@ -21,10 +21,24 @@ import {
 } from "./lib/inventarioHubData";
 import { DIAS_CADUCIDAD_ALERTA } from "./lib/caducidad";
 import { inventarioProductMatchesBusqueda } from "./utils/fuzzySearch";
+import { productoRequierePrincipioActivo } from "./constants/categoriasProducto";
+import { productoPasaFiltroPrincipioActivo, textoPrincipioActivo } from "./lib/principioActivo";
+import FiltroPrincipioActivo from "./components/FiltroPrincipioActivo";
 
 const BRAND = { primary:"#0D1B2A", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
 const fmt = n => `$${parseFloat(n||0).toLocaleString("es-MX",{minimumFractionDigits:2})}`;
 const STOCK_MIN_DEFAULT = 5;
+
+function lineaPaReabasto(p, C) {
+  const pa = textoPrincipioActivo(p);
+  if (pa) {
+    return <div style={{ color: C.blue, fontSize: 11, fontWeight: 700, marginTop: 2 }}>PA: {pa}</div>;
+  }
+  if (productoRequierePrincipioActivo(p)) {
+    return <div style={{ color: C.amber, fontSize: 10, fontWeight: 600, marginTop: 2 }}>Sin principio activo</div>;
+  }
+  return null;
+}
 
 const stockDe = (p) => Number(p.stock_peps ?? p.stock) || 0;
 const stockMinimoEfectivo = (p) => (Number(p.stock_minimo) > 0 ? Number(p.stock_minimo) : STOCK_MIN_DEFAULT);
@@ -61,6 +75,7 @@ export default function ReabastoModule() {
   const [busqueda,    setBusqueda]    = useState("");
   const [filtroTienda, setFiltroTienda] = useState("todas");
   const [filtroUrgencia, setFiltroUrgencia] = useState("");
+  const [filtroPa, setFiltroPa] = useState("todos");
 
   const fetchProductos = useCallback(async (opts) => {
     const silencioso = !!(opts && typeof opts === "object" && opts.silencioso);
@@ -152,11 +167,12 @@ export default function ReabastoModule() {
   const filasTienda = useMemo(() => {
     const q = busqueda.trim();
     let list = q ? filasFuente.filter((p) => inventarioProductMatchesBusqueda(p, q)) : filasFuente;
+    list = list.filter((p) => productoPasaFiltroPrincipioActivo(p, filtroPa));
     if (filtroTienda === "levic") list = list.filter((p) => p.mejorTienda?.fuente === "levic");
     else if (filtroTienda === "otras") list = list.filter((p) => p.mejorTienda && p.mejorTienda.fuente !== "levic");
     else if (filtroTienda === "sin") list = list.filter((p) => !p.mejorTienda);
     return list;
-  }, [filasFuente, busqueda, filtroTienda]);
+  }, [filasFuente, busqueda, filtroTienda, filtroPa]);
   const filasAlertas = useMemo(() => {
     if (filtroUrgencia === "elegidos") return filasTienda.filter((p) => selProds[p.id] > 0);
     if (filtroUrgencia === "CADUCA") return filasTienda;
@@ -255,7 +271,7 @@ export default function ReabastoModule() {
     const w = window.open("","_blank","width=700,height=800");
     const rows = orden.productos.map(p=>`
       <tr>
-        <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0">${p.nombre}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0">${p.nombre}${textoPrincipioActivo(p) ? `<div style="font-size:11px;color:#1E3ABA;font-weight:700;margin-top:2px">PA: ${textoPrincipioActivo(p)}</div>` : ""}</td>
         <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:center">${p.sku||"—"}</td>
         <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:center">${p.stock}</td>
         <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:center">${p.min_caducidad_lotes||"—"}</td>
@@ -390,12 +406,21 @@ export default function ReabastoModule() {
                 <input
                   value={busqueda}
                   onChange={(e)=>setBusqueda(e.target.value)}
-                  placeholder="Producto, SKU o código…"
+                  placeholder="Producto, principio activo, SKU o código…"
                   style={{
                     flex:"1 1 220px", maxWidth:320, padding:"8px 12px", borderRadius:8,
                     border:`1px solid ${C.border}`, background:"#fff", color:C.text,
                     WebkitTextFillColor:C.text, caretColor:C.text, colorScheme:"light",
                     fontSize:13, outline:"none",
+                  }}
+                />
+                <FiltroPrincipioActivo
+                  value={filtroPa}
+                  onChange={setFiltroPa}
+                  productos={filasFuente}
+                  style={{
+                    flex:"0 1 220px", padding:"8px 12px", borderRadius:8,
+                    border:`1px solid ${C.border}`, background:"#fff", color:C.text, fontSize:13,
                   }}
                 />
                 <div style={{color:C.textMid,fontSize:12,flex:"1 1 80px"}}>
@@ -427,6 +452,7 @@ export default function ReabastoModule() {
                           <Caja checked={selProds[p.id]>0} onChange={()=>toggleSel(p.id)} style={{marginTop:3}}/>
                           <div style={{minWidth:0}}>
                             <div style={{color:C.text,fontWeight:700,fontSize:14,lineHeight:1.3}}>{p.nombre}</div>
+                            {lineaPaReabasto(p, C)}
                             <div style={{color:C.textMid,fontSize:11,marginTop:3}}>{p.sku||"sin SKU"}</div>
                           </div>
                         </label>
@@ -493,7 +519,10 @@ export default function ReabastoModule() {
                         <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`}}>
                           <Caja checked={selProds[p.id]>0} onChange={()=>toggleSel(p.id)}/>
                         </td>
-                        <td style={{padding:"9px 12px",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>{p.nombre}</td>
+                        <td style={{padding:"9px 12px",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>
+                          <div>{p.nombre}</div>
+                          {lineaPaReabasto(p, C)}
+                        </td>
                         <td style={{padding:"9px 12px",color:C.textMid,borderBottom:`1px solid ${C.border}`,fontFamily:"monospace",fontSize:10}}>{p.sku||"—"}</td>
                         <td style={{padding:"9px 12px",color:p.stock===0?C.red:C.amber,fontWeight:700,borderBottom:`1px solid ${C.border}`}}>{p.stock}</td>
                         <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}`}}>{renderTuCosto(p)}</td>
@@ -555,7 +584,7 @@ export default function ReabastoModule() {
                       Imprimir
                     </button>
                     <button onClick={()=>{
-                      const msg = `📦 *Orden de reabasto FARMACAPITAL*\n\nPedir en: ${orden.proveedor}\nFecha: ${orden.fecha}\n\n${orden.productos.map(p=>`• ${p.nombre} × ${p.cantidadPedida}`).join("\n")}\n\nTotal estimado: $${orden.total.toFixed(2)} MXN\n\n_Generado por sistema FarmaCapital_`;
+                      const msg = `📦 *Orden de reabasto FARMACAPITAL*\n\nPedir en: ${orden.proveedor}\nFecha: ${orden.fecha}\n\n${orden.productos.map(p=>`• ${p.nombre}${textoPrincipioActivo(p) ? ` (${textoPrincipioActivo(p)})` : ""} × ${p.cantidadPedida}`).join("\n")}\n\nTotal estimado: $${orden.total.toFixed(2)} MXN\n\n_Generado por sistema FarmaCapital_`;
                       window.open("https://wa.me/?text="+encodeURIComponent(msg),"_blank");
                     }} style={{padding:"7px 14px",borderRadius:8,border:"1px solid #25D366",background:"#dcfce7",color:"#16a34a",fontWeight:700,fontSize:12,cursor:"pointer"}}>
                       📱 WhatsApp
@@ -570,6 +599,7 @@ export default function ReabastoModule() {
                       <tr key={j} style={{background:j%2===0?"transparent":"#f8fafc"}}>
                         <td style={{padding:"8px 12px",color:C.text,fontWeight:600,borderBottom:`1px solid ${C.border}`}}>
                           {p.nombre}
+                          {lineaPaReabasto(p, C)}
                           {p.motivoAgrupado && (
                             <div style={{fontSize:10,color:C.textMid,fontWeight:500,marginTop:2}}>{p.motivoAgrupado}</div>
                           )}

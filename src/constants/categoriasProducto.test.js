@@ -6,6 +6,9 @@ import {
   esCategoriaAntibiotico,
   esMedicamentoControlado,
   opcionesCategoriaSelect,
+  categoriaRequierePrincipioActivo,
+  productoFaltaPrincipioActivo,
+  productoRequierePrincipioActivo,
 } from "./categoriasProducto";
 
 describe("categoriasProducto", () => {
@@ -38,5 +41,13 @@ describe("categoriasProducto", () => {
     const opts = opcionesCategoriaSelect("Producto");
     expect(opts[0]).toBe("Producto");
     expect(opts).toContain("Analgésico");
+  });
+
+  test("el principio activo es obligatorio en medicamento, no en higiene", () => {
+    expect(categoriaRequierePrincipioActivo("Antibiótico")).toBe(true);
+    expect(categoriaRequierePrincipioActivo("Vitaminas")).toBe(true);
+    expect(categoriaRequierePrincipioActivo("Higiene")).toBe(false);
+    expect(productoRequierePrincipioActivo({ categoria: "Otro", tipo: "generico" })).toBe(true);
+    expect(productoFaltaPrincipioActivo({ categoria: "Gastro", principio_activo: "" })).toBe(true);
   });
 });
