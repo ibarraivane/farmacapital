@@ -8,11 +8,20 @@ import {
   buildReferenciasPorProducto,
   dedupeReferenciasActuales,
   calcMejorCompra,
-  calcMejorTienda,
   fmtPrecioRef,
 } from "./lib/preciosReferencia";
 import { asignarPedidosPorTienda } from "./lib/asignarPedidosPorTienda";
-import { descargarPedidoTienda, descargarPedidosWorkbook } from "./lib/exportarPedidoProveedor";
+import { descargarPedidoTienda, descargarPedidosWorkbook, descargarReporteReabasto } from "./lib/exportarPedidoProveedor";
+import {
+  calcMejorTiendaPedido,
+  cantidadSugerida,
+  estiloUrgencia,
+  filasReporte,
+  itemsParaPedir,
+  metaCompraDeProducto,
+  nivelStockUrgencia,
+  stockDe,
+} from "./lib/reporteReabasto";
 import {
   agruparLotesPorProducto,
   enriquecerProductoConLotes,
@@ -24,20 +33,11 @@ import { inventarioProductMatchesBusqueda } from "./utils/fuzzySearch";
 
 const BRAND = { primary:"#0D1B2A", gradient:"linear-gradient(135deg,#0D1B2A,#1E3ABA)" };
 const fmt = n => `$${parseFloat(n||0).toLocaleString("es-MX",{minimumFractionDigits:2})}`;
-const STOCK_MIN_DEFAULT = 5;
-
-const stockDe = (p) => Number(p.stock_peps ?? p.stock) || 0;
-const stockMinimoEfectivo = (p) => (Number(p.stock_minimo) > 0 ? Number(p.stock_minimo) : STOCK_MIN_DEFAULT);
 
 const calcStockUrgencia = (p, C) => {
-  const min = stockMinimoEfectivo(p);
-  const stock = stockDe(p);
-  const pct = stock / min;
-  if (stock === 0) return { nivel:"AGOTADO", col:C.red, bg:C.redDim, icon:"🚨" };
-  if (pct <= 0.5)    return { nivel:"CRÍTICO", col:C.red, bg:C.redDim, icon:"🔴" };
-  if (pct <= 1)      return { nivel:"BAJO",    col:C.amber, bg:C.amberDim, icon:"🟡" };
-  if (pct <= 1.5)    return { nivel:"PRONTO",  col:"#0891b2", bg:"#cffafe", icon:"🔵" };
-  return null;
+  const nivel = nivelStockUrgencia(p);
+  if (!nivel) return null;
+  return estiloUrgencia(nivel, C);
 };
 
 const calcCaducidadUrgencia = (p, C) => {
@@ -102,7 +102,7 @@ export default function ReabastoModule() {
       return {
         ...enriched,
         stock: enriched.stock_peps,
-        mejorTienda: calcMejorTienda(refsByProduct[p.id]),
+        mejorTienda: calcMejorTiendaPedido(refsByProduct[p.id], metaCompraDeProducto(p, refsByProduct[p.id])),
         mejorCompra: calcMejorCompra(
           (refsByProduct[p.id]?.ultima_compra?.precio ?? p.costo),
           refsByProduct[p.id],
@@ -149,12 +149,18 @@ export default function ReabastoModule() {
       : menores.map(p=>({...p, urgencia: calcStockUrgencia(p, C) || { nivel:"OK", col:C.textMid, bg:C.cardDark, icon:"·" }}))
   ), [alertas, menores, C]);
   const filasFuente = filtroUrgencia === "CADUCA" ? colaCaduca : filasStock;
+  const surtidoresFiltro = useMemo(() => {
+    const m = new Map();
+    for (const p of filasFuente) {
+      if (p.mejorTienda?.fuente) m.set(p.mejorTienda.fuente, p.mejorTienda.label);
+    }
+    return [...m.entries()].sort((a, b) => String(a[1]).localeCompare(String(b[1]), "es"));
+  }, [filasFuente]);
   const filasTienda = useMemo(() => {
     const q = busqueda.trim();
     let list = q ? filasFuente.filter((p) => inventarioProductMatchesBusqueda(p, q)) : filasFuente;
-    if (filtroTienda === "levic") list = list.filter((p) => p.mejorTienda?.fuente === "levic");
-    else if (filtroTienda === "otras") list = list.filter((p) => p.mejorTienda && p.mejorTienda.fuente !== "levic");
-    else if (filtroTienda === "sin") list = list.filter((p) => !p.mejorTienda);
+    if (filtroTienda === "sin") list = list.filter((p) => !p.mejorTienda);
+    else if (filtroTienda !== "todas") list = list.filter((p) => p.mejorTienda?.fuente === filtroTienda);
     return list;
   }, [filasFuente, busqueda, filtroTienda]);
   const filasAlertas = useMemo(() => {
@@ -170,12 +176,6 @@ export default function ReabastoModule() {
   const nCaduca = colaCaduca.length;
   const nBajo = productos.filter((p) => calcStockUrgencia(p, C)?.nivel === "BAJO").length;
   const nPronto = productos.filter((p) => calcStockUrgencia(p, C)?.nivel === "PRONTO").length;
-
-  const cantidadSugerida = (p) => {
-    const min = stockMinimoEfectivo(p);
-    const base = Math.max(min * 3 - stockDe(p), 0);
-    return Math.max(base, 1);
-  };
 
   const toggleSel = (id) => {
     const fila = filasAlertas.find(p=>p.id===id) || productos.find(p=>p.id===id) || {};
@@ -241,12 +241,48 @@ export default function ReabastoModule() {
       return;
     }
     const hayLevic = ordenes.some((o) => /levic/i.test(o.proveedor || o.fuente || ""));
-    const nResto = ordenes.filter((o) => !/levic/i.test(o.proveedor || o.fuente || "")).reduce((a, o) => a + o.productos.length, 0);
-    const nLevic = ordenes.filter((o) => /levic/i.test(o.proveedor || o.fuente || "")).reduce((a, o) => a + o.productos.length, 0);
     showToast(
       hayLevic
-        ? `2 archivos: Pedido_Levic_portal (${nLevic} líneas, súbelo a Levic) y Pedido_otras_tiendas (${nResto} líneas).`
-        : `Pedido_otras_tiendas.xlsx · ${nResto} líneas`,
+        ? `Pedidos listos: Pedido_Levic_portal (súbelo a Levic) y Pedidos_por_surtidor (${ordenes.length} surtidor${ordenes.length===1?"":"es"}).`
+        : `Pedidos_por_surtidor.xlsx · ${ordenes.length} surtidor${ordenes.length===1?"":"es"}`,
+      "success"
+    );
+  };
+
+  const bajarReporte = () => {
+    const filas = filasReporte(productos);
+    if (!filas.length) {
+      showToast("No hay agotados ni stock bajo en el catálogo", "warning");
+      return;
+    }
+    descargarReporteReabasto(filas);
+    const nAg = filas.filter((f) => f.urgencia === "AGOTADO").length;
+    const nLo = filas.filter((f) => f.urgencia === "CRÍTICO" || f.urgencia === "BAJO").length;
+    showToast(`Reporte: ${nAg} agotado${nAg===1?"":"s"} · ${nLo} stock bajo`, "success");
+  };
+
+  const pedirAgotadosYBajos = async () => {
+    const items = itemsParaPedir(productos);
+    if (!items.length) {
+      showToast("No hay agotados ni stock bajo para pedir", "warning");
+      return;
+    }
+    const nextSel = {};
+    for (const { producto, cantidad } of items) nextSel[producto.id] = cantidad;
+    setSelProds(nextSel);
+    setGenerando(true);
+    const ordenes = asignarPedidosPorTienda(items);
+    setOrdenesEnv(ordenes);
+    setTab("ordenes");
+    setGenerando(false);
+    try {
+      await descargarPedidosWorkbook(ordenes);
+    } catch (e) {
+      showToast("La orden se armó, pero no se pudo bajar el Excel: " + (e.message || e), "warning");
+      return;
+    }
+    showToast(
+      `Pedidos listos: ${ordenes.length} surtidor${ordenes.length===1?"":"es"} · ${items.length} producto${items.length===1?"":"s"}`,
       "success"
     );
   };
@@ -332,10 +368,21 @@ export default function ReabastoModule() {
       <div style={{display:"flex",flexDirection:isMobile?"column":"row",justifyContent:"space-between",alignItems:isMobile?"stretch":"flex-start",marginBottom:16,gap:12}}>
         <div>
           <h1 className="fc-page-hero" style={{color:C.text,fontSize:isMobile?18:20,fontWeight:800,margin:0}}>Reabasto</h1>
+          <p style={{margin:"6px 0 0",color:C.textMid,fontSize:13,maxWidth:560,lineHeight:1.4}}>
+            Reporte de agotados y stock bajo. Cada pedido se arma con el surtidor más barato y sale en su propia hoja.
+          </p>
         </div>
-        <div style={{display:"flex",flexDirection:isMobile?"column":"row",gap:8,width:isMobile?"100%":"auto"}}>
-          <button onClick={generarOrden} disabled={generando || nMarcados===0}
-            style={{padding:"12px 16px",borderRadius:10,border:"none",background:BRAND.gradient,color:"#fff",fontWeight:700,fontSize:13,cursor:nMarcados? "pointer":"not-allowed",opacity:generando||!nMarcados?0.7:1,width:isMobile?"100%":"auto"}}>
+        <div style={{display:"flex",flexDirection:isMobile?"column":"row",gap:8,width:isMobile?"100%":"auto",flexWrap:"wrap"}}>
+          <button type="button" onClick={bajarReporte} disabled={loading || !productos.length}
+            style={{padding:"12px 16px",borderRadius:10,border:`1px solid ${BRAND.primary}`,background:"#fff",color:BRAND.primary,fontWeight:700,fontSize:13,cursor:loading||!productos.length?"not-allowed":"pointer",width:isMobile?"100%":"auto"}}>
+            Bajar reporte
+          </button>
+          <button type="button" onClick={pedirAgotadosYBajos} disabled={generando || loading || nAgotados+nCriticos+nBajo===0}
+            style={{padding:"12px 16px",borderRadius:10,border:"none",background:BRAND.gradient,color:"#fff",fontWeight:700,fontSize:13,cursor:generando||!(nAgotados+nCriticos+nBajo)?"not-allowed":"pointer",opacity:generando||!(nAgotados+nCriticos+nBajo)?0.7:1,width:isMobile?"100%":"auto"}}>
+            {generando?"Generando…":"Pedir agotados y bajos"}
+          </button>
+          <button type="button" onClick={generarOrden} disabled={generando || nMarcados===0}
+            style={{padding:"12px 16px",borderRadius:10,border:`1px solid ${C.border}`,background:"#fff",color:nMarcados?C.text:C.textMid,fontWeight:700,fontSize:13,cursor:nMarcados? "pointer":"not-allowed",opacity:generando||!nMarcados?0.7:1,width:isMobile?"100%":"auto"}}>
             {generando?"Generando…": nMarcados ? `Descargar ${nMarcados} marcado${nMarcados===1?"":"s"}` : "Marca lo que quieres pedir"}
           </button>
         </div>
@@ -403,8 +450,7 @@ export default function ReabastoModule() {
                 </div>
                 {[
                   ["todas", "Todas"],
-                  ["levic", "Levic"],
-                  ["otras", "Otras tiendas"],
+                  ...surtidoresFiltro,
                   ["sin", "Sin tienda"],
                 ].map(([id, label]) => (
                   <button key={id} type="button" onClick={()=>setFiltroTienda(id)} style={{
@@ -525,11 +571,11 @@ export default function ReabastoModule() {
           <div style={{display:"flex",flexDirection:"column",gap:16}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
               <div style={{color:C.textMid,fontSize:12,lineHeight:1.45,maxWidth:640}}>
-                <strong>Pedido_Levic_portal.xlsx</strong> — súbelo a Levic. <strong>Pedido_otras_tiendas.xlsx</strong> — Exprezo, Scorpion y lo que no va al portal.
+                <strong>Pedido_Levic_portal.xlsx</strong> — súbelo a Levic. <strong>Pedidos_por_surtidor.xlsx</strong> — una hoja por surtidor (El Surtidor, Exprezo, Farma City…).
               </div>
               <button onClick={()=>descargarPedidosWorkbook(ordenesEnv)}
                 style={{padding:"8px 14px",borderRadius:8,border:"none",background:BRAND.gradient,color:"#fff",fontWeight:700,fontSize:12,cursor:"pointer"}}>
-                Bajar los 2 archivos
+                Bajar Excel por surtidor
               </button>
             </div>
             {ordenesEnv.map((orden,i)=>(

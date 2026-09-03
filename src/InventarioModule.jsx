@@ -2704,7 +2704,7 @@ function renderInventarioColumnCell(colId, ctx) {
 
 const INV_COLS_OCULTAS_CONSULTA = ["costo", "margen", "acciones", "precio", "desc"];
 
-export default function InventarioModule({ modoConsulta = false, onIrARecibir }) {
+export default function InventarioModule({ modoConsulta = false, onIrARecibir, onIrAReabasto }) {
   const C = C_LIGHT;
   const inputStyle = mkInputStyle(C);
   const labelStyle = mkLabelStyle(C);
@@ -3166,6 +3166,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
     const dias = diasParaCaducar(p.min_caducidad_lotes);
     const alerta =
       filtroAlerta === "todos"            ? true :
+      filtroAlerta === "agotados"         ? (p.activo && (Number(p.stock_peps ?? p.stock) || 0) === 0) :
       filtroAlerta === "bajo_stock"       ? (p.stock <= (p.stock_minimo??0)) :
       filtroAlerta === "por_caducar"      ? esPorCaducar(dias) :
       filtroAlerta === "sin_codigo_barras" ? productoSinCodigoBarras(p) :
@@ -3224,6 +3225,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
   };
 
   const activos    = productos.filter(p => p.activo).length;
+  const agotadosInv = productos.filter(p => p.activo && (Number(p.stock_peps ?? p.stock) || 0) === 0).length;
   const bajoStock  = productos.filter(p => p.activo && p.stock<=(p.stock_minimo??0)).length;
   const porCaducar = productos.filter(p => esPorCaducar(diasParaCaducar(p.min_caducidad_lotes))).length;
   const sinCodigoBarras = productos.filter(p => p.activo && productoSinCodigoBarras(p)).length;
@@ -3888,6 +3890,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
       <div style={{display:"flex",gap:12,marginBottom:14,flexWrap:"wrap"}}>
         {[
           {label:"Activos",     val:activos,    col:C.blue,  click:()=>{ setFiltroAlerta("todos"); setFiltroCategoria("todas"); setBusqueda(""); setVerInactivos(false); }, on: filtroAlerta==="todos" && filtroCategoria==="todas" && !busqueda && !verInactivos},
+          {label:"Agotados",    val:agotadosInv, col:C.red, click:()=>setFiltroAlerta(filtroAlerta==="agotados"?"todos":"agotados"), on: filtroAlerta==="agotados"},
           {label:"Bajo stock",  val:bajoStock,  col:C.amber, click:()=>setFiltroAlerta(filtroAlerta==="bajo_stock"?"todos":"bajo_stock"), on: filtroAlerta==="bajo_stock"},
           {label:"Por caducar", val:porCaducar, col:C.red,   click:()=>setFiltroAlerta(filtroAlerta==="por_caducar"?"todos":"por_caducar"), on: filtroAlerta==="por_caducar"},
           {label:"Sin cód. barras", val:sinCodigoBarras, col:C.blue, click:()=>setFiltroAlerta(filtroAlerta==="sin_codigo_barras"?"todos":"sin_codigo_barras"), on: filtroAlerta==="sin_codigo_barras"},
@@ -3926,6 +3929,14 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
           📊 Referencias de mercado: Inventario → «Referencias de precio»
         </span>
         )}
+        {!modoConsulta && onIrAReabasto && (filtroAlerta === "bajo_stock" || filtroAlerta === "agotados") && (
+        <button type="button" onClick={onIrAReabasto} style={{
+          padding:"4px 10px",borderRadius:8,border:"none",cursor:"pointer",
+          background:"#fef3c7",color:C.amber,fontWeight:700,
+        }}>
+          Reporte de agotados y pedidos por surtidor → Reabasto
+        </button>
+        )}
       </div>
 
       <div data-tour="inv-buscar" style={{display:"flex",flexDirection:"column",gap:10,marginBottom:0}}>
@@ -3937,7 +3948,8 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir })
         </select>
         <select value={filtroAlerta} onChange={e=>setFiltroAlerta(e.target.value)} style={{...inputStyle,maxWidth:180}}>
           <option value="todos">Todas las alertas</option>
-          <option value="bajo_stock">⚠ Bajo stock</option>
+          <option value="agotados">🚨 Agotados</option>
+          <option value="bajo_stock">⚠ Bajo stock</option
           <option value="por_caducar">⏰ Por caducar ({DIAS_CADUCIDAD_ALERTA}d)</option>
           <option value="sin_codigo_barras">🏷️ Sin código de barras</option>
           <option value="sin_foto">🖼 Sin foto</option>
