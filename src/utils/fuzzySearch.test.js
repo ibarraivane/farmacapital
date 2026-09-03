@@ -302,5 +302,36 @@ describe("catalog search dimensions", () => {
     expect(tiendaProductMatchesBusqueda(anthelios, "la roche")).toBe(true);
     expect(inventarioProductMatchesBusqueda(anthelios, "la roche")).toBe(true);
     expect(tiendaProductMatchesBusqueda(anthelios, "anthelios")).toBe(true);
+    const ticketNadro = {
+      id: 406,
+      activo: true,
+      nombre: "BLOQ ANTHE UVAIR 50+ FLU INV 40ML",
+      marca: "FRABEL 2",
+      presentacion: "40 ml",
+      categoria: "Cuidado personal",
+      subcategoria: "Protector solar",
+      sku: "FC-75917810",
+      codigo_barras: "3337875917810",
+    };
+    const uvAir = {
+      id: 407,
+      activo: true,
+      nombre: "La Roche-Posay Anthelios UV Air FPS 50+ Protector Solar Ligero 40 ml",
+      marca: "La Roche-Posay",
+      presentacion: "40 ml",
+      forma_farmaceutica: "Fluido",
+      categoria: "Cuidado personal",
+      subcategoria: "Protector solar",
+      sku: "FC-75917810",
+      codigo_barras: "3337875917810",
+    };
+    for (const q of ["la roch", "la roche", "anthelios", "bloqueador"]) {
+      expect(tiendaProductMatchesBusqueda(ticketNadro, q)).toBe(true);
+      expect(inventarioProductMatchesBusqueda(ticketNadro, q)).toBe(true);
+      expect(tiendaProductMatchesBusqueda(uvAir, q)).toBe(true);
+      expect(inventarioProductMatchesBusqueda(uvAir, q)).toBe(true);
+    }
+    expect(tiendaProductMatchesBusqueda(fotosun, "la roche")).toBe(false);
+    expect(inventarioProductMatchesBusqueda(fotosun, "la roche")).toBe(false);
   });
 });

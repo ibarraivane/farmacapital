@@ -68,6 +68,16 @@ describe("lenguaje controlado de mostrador", () => {
     expect(etiquetaIntencionMostrador("bloqueador solar")).toBe("protección solar");
   });
 
+  test("el código de ticket Nadro sigue saliendo con bloqueador", () => {
+    const ticket = producto({
+      nombre: "BLOQ ANTHE UVAIR 50+ FLU INV 40ML",
+      marca: "FRABEL 2",
+      subcategoria: "Protector solar",
+    });
+    expect(tiendaProductMatchesBusqueda(ticket, "bloqueador")).toBe(true);
+    expect(coincidenciaIntencionMostrador(ticket, "bloqueador")?.id).toBe("proteccion-solar");
+  });
+
   test("no activa intención con texto corto, numérico o desconocido", () => {
     expect(intencionesParaConsulta("do")).toEqual([]);
     expect(intencionesParaConsulta("7501234567890")).toEqual([]);

@@ -263,7 +263,13 @@ const CATALOG_VERNACULAR_GROUPS = [
       "nivea sun",
       "la roche",
       "roche posay",
+      "uvair",
+      "anthe",
     ],
+  },
+  {
+    query: ["roche", "roch"],
+    catalog: ["la roche", "roche posay", "anthelios", "uvair", "anthe"],
   },
 ];
 
