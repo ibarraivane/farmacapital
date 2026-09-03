@@ -203,10 +203,11 @@ export const TEMAS = [
     invTab: "reabasto",
     roles: ["admin", "gerente"],
     titulo: "Reabasto (qué comprar)",
-    resumen: "Sugerido de compra por rotación. No mezclar con caducidad ni con Recibir.",
+    resumen: "Sugerido de compra por rotación, agrupado por principio activo (mismo medicamento) y marca. No mezclar con caducidad ni con Recibir.",
     pasos: [
       "Inventario → Reabasto.",
-      "Revisa qué está bajo el mínimo. Eso es «qué pedir», no «qué acaba de llegar».",
+      "Revisa qué está bajo el mínimo. Las alertas vienen juntas por principio activo: Tempra y el paracetamol genérico son el mismo medicamento.",
+      "Si una marca está agotada, mira si otra del mismo principio activo todavía tiene stock.",
       "Caduca 90 días es otra alerta: no la uses como lista de compra.",
       "Cuando llegue el pedido: Recibir, no sumar a mano en Reabasto.",
     ],
