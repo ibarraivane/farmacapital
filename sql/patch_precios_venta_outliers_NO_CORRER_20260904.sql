@@ -1,0 +1,43 @@
+-- NO CORRER. Refs de otra presentación (caja vs FA, 10 vs 30 tabs, etc.).
+-- 39 productos. Ejemplo: Amlodipino $12 → $282.
+-- Solo documentación.
+
+-- BLOQUEADO FC-7F90064A Ampicilina $32.60 → $85 · subida_161pct_posible_otra_presentacion · sim= fah=85.0
+-- BLOQUEADO FC-7D1D9857 Acetilsalicilico $19.31 → $33 · subida_71pct_posible_otra_presentacion · sim= fah=32.5
+-- BLOQUEADO FC-EADF1484 Diosmina Hesperidina $63.06 → $364 · subida_477pct_posible_otra_presentacion · sim= fah=364.0
+-- BLOQUEADO FC-3B001F9B Amlodipino $11.76 → $282 · subida_2298pct_posible_otra_presentacion · sim= fah=282.0
+-- BLOQUEADO FC-FD845E68 Aciclovir $30.79 → $334 · subida_985pct_posible_otra_presentacion · sim= fah=334.0
+-- BLOQUEADO FC-75354321 Tylenol $65.00 → $118 · subida_82pct_posible_otra_presentacion · sim= fah=118.0
+-- BLOQUEADO FC-1DA570E3 Cloxan $12.68 → $25 · subida_97pct_posible_otra_presentacion · sim=25.0 fah=
+-- BLOQUEADO FC-357D4A17 Ceftazidima $59.05 → $261 · subida_342pct_posible_otra_presentacion · sim= fah=261.0
+-- BLOQUEADO FC-885F2723 Carbamazepina $28.98 → $80 · subida_176pct_posible_otra_presentacion · sim= fah=80.0
+-- BLOQUEADO FC-50AC2C82 Erispan $31.79 → $56 · subida_76pct_posible_otra_presentacion · sim=56.0 fah=
+-- BLOQUEADO FC-6898B64F Bioerter $62.02 → $84 · subida_35pct_posible_otra_presentacion · sim=84.0 fah=
+-- BLOQUEADO FC-DB3B2584 Celesbitan $21.99 → $56 · subida_155pct_posible_otra_presentacion · sim=56.0 fah=
+-- BLOQUEADO FC-A2B284E0 Hialuronato De Sodio 4Mg $148.06 → $423 · subida_186pct_posible_otra_presentacion · sim= fah=423.0
+-- BLOQUEADO FC-DF8ADDAB Erispan $28.80 → $56 · subida_94pct_posible_otra_presentacion · sim=56.0 fah=
+-- BLOQUEADO FC-DEAF33B0 Bactiver $27.67 → $87 · subida_214pct_posible_otra_presentacion · sim= fah=87.0
+-- BLOQUEADO FC-08895196 Aspirina $13.00 → $43 · subida_231pct_posible_otra_presentacion · sim= fah=43.0
+-- BLOQUEADO FC-5BC5F234 Fluconazol $20.68 → $67 · subida_224pct_posible_otra_presentacion · sim= fah=67.0
+-- BLOQUEADO FC-6519183A Clamoxin (Amoxicilina/Clavulánico 500/125 mg) $36.26 → $143 · subida_294pct_posible_otra_presentacion · sim= fah=143.0
+-- BLOQUEADO FC-E4BE37BE Atorvastatina $42.16 → $217 · subida_415pct_posible_otra_presentacion · sim= fah=217.0
+-- BLOQUEADO FC-BDB2E087 Irbesartan $112.79 → $400 · subida_255pct_posible_otra_presentacion · sim= fah=400.0
+-- BLOQUEADO FC-C721E8D7 Levofloxacino $30.04 → $158 · subida_426pct_posible_otra_presentacion · sim= fah=158.0
+-- BLOQUEADO FC-ACA2A2F6 Alopurinol $34.34 → $73 · subida_113pct_posible_otra_presentacion · sim=33.0 fah=133.0
+-- BLOQUEADO FC-D06E54FE Valclan $66.54 → $143 · subida_115pct_posible_otra_presentacion · sim= fah=143.0
+-- BLOQUEADO FC-E4EFC4C2 Fasiclor $179.30 → $266 · subida_48pct_posible_otra_presentacion · sim= fah=266.0
+-- BLOQUEADO FC-F3E734A0 Fasiclor $82.48 → $159 · subida_93pct_posible_otra_presentacion · sim=159.0 fah=
+-- BLOQUEADO FC-D9391288 Azitromicina $109.60 → $212 · subida_93pct_posible_otra_presentacion · sim= fah=212.0
+-- BLOQUEADO FC-52D2A43A Zukedib $37.81 → $63 · subida_67pct_posible_otra_presentacion · sim=63.0 fah=
+-- BLOQUEADO FC-53506FA4 Enalapril $12.95 → $102 · subida_688pct_posible_otra_presentacion · sim= fah=102.0
+-- BLOQUEADO FC-5885E577 Pabesorag $78.62 → $159 · subida_102pct_posible_otra_presentacion · sim=159.0 fah=
+-- BLOQUEADO FC-C101D5B1 Bisoprolol $156.02 → $366 · subida_135pct_posible_otra_presentacion · sim= fah=366.0
+-- BLOQUEADO FC-C9F4ACCC Acemetacina $63.11 → $151 · subida_139pct_posible_otra_presentacion · sim= fah=151.0
+-- BLOQUEADO FC-2005DD57 Cefalexina $63.75 → $253 · subida_297pct_posible_otra_presentacion · sim= fah=253.0
+-- BLOQUEADO FC-41339950 Claritromicina $95.12 → $236 · subida_148pct_posible_otra_presentacion · sim= fah=236.0
+-- BLOQUEADO FC-74A5ABEE Ciprofloxacino $21.91 → $239 · subida_991pct_posible_otra_presentacion · sim= fah=239.0
+-- BLOQUEADO FC-3A4583F3 Penipot $18.30 → $31 · subida_69pct_posible_otra_presentacion · sim=31.0 fah=
+-- BLOQUEADO FC-405A75E3 Ursodesoxicolico $282.40 → $432 · subida_53pct_posible_otra_presentacion · sim= fah=432.0
+-- BLOQUEADO FC-E6B50AC3 Celecoxib $45.27 → $457 · subida_909pct_posible_otra_presentacion · sim= fah=457.0
+-- BLOQUEADO FC-3CAA7C5C Cinarizina $56.08 → $77 · subida_37pct_posible_otra_presentacion · sim= fah=77.0
+-- BLOQUEADO FC-82F88FED Captopril $12.72 → $58 · subida_356pct_posible_otra_presentacion · sim= fah=58.0

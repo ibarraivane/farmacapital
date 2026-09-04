@@ -104,6 +104,12 @@ Los grupos útiles para laboratorio son los de INN real (ej. paracetamol + fenil
 
 ---
 
+## SQL para aplicar (tú, en Supabase)
+
+Orden y detalle: [`sql/LEERME_AJUSTE_20260904.md`](../sql/LEERME_AJUSTE_20260904.md)
+
+El algoritmo en la app **ya** sugiere bien. El PVP en BD **no** se tocó hasta que corras `patch_precios_venta_aplicar_20260904.sql` (10 SKUs seguros). Los 39 outliers no se aplican.
+
 ## Scripts de export (tú, con `.env` local)
 
 No uses `service_role`. Anon key o SQL Editor.
