@@ -6,8 +6,10 @@
 -- FRABEL 2 / LGEN / UNILEVER mayorista no van como marca de mostrador.
 -- SIN bloques dollar-quote. El SQL Editor de Supabase los corta.
 -- Stock 0 hasta pistola + MMAA de la caja. No inventar 0000.
--- Idempotente: renombra 20260901 → 6089573392 si sigue en borrador;
---   si el pedido ya cerró, no lo reabre (solo enriquece fichas de catálogo).
+-- Idempotente: renombra 20260901 → 6089573392 si sigue en borrador/parcial;
+--   si YA existe cualquier recepción Nadro con folio 6089573392 o 20260901
+--   (aunque esté confirmada/cerrada), NO crea otra. Solo enriquece fichas.
+-- ANTES de pegar esto: corre sql/diag_nadro_6089573392.sql (solo lectura).
 -- Pegar TODO este archivo en Supabase → SQL Editor → Run.
 
 begin;
