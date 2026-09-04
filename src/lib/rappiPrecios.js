@@ -90,7 +90,7 @@ export function calcPrecioSugeridoRappi(producto, refsMap) {
     producto,
     refsRappiUsables(producto, refsMap),
     FUENTES_SUGERIDO_RAPPI,
-    { usarPromedio: true, respetarPisoMargen: true },
+    { usarPromedio: true, respetarPisoMargen: true, factorPosicion: 0.98 },
   );
   if (packs && !out.sugerido) {
     return {

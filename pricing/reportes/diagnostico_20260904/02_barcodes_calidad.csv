@@ -1,0 +1,49 @@
+sku,nombre,ean,longitud,checksum_ok,prefijo,clase,nota
+FC-00525451,XL-3 C/10,6502400525451,13,False,650,prefijo_650_interno,Prefijo 650 no es GS1 país (México=750). Interno Farmalive/Genomma.
+FC-00170941,XL-3 Xtra C/12,6502400170941,13,False,650,prefijo_650_interno,Prefijo 650 no es GS1 país (México=750). Interno Farmalive/Genomma.
+FC-01246730,Vicks Vaporub pomada 12 g,75916565,8,False,759,ean8_o_interno,8 dígitos: EAN-8 real o código interno recortado
+FC-00740024,Silka Medic Gel,6502400074024,13,True,650,prefijo_650_interno,Prefijo 650 no es GS1 país (México=750). Interno Farmalive/Genomma.
+FC-00315021,Tukol-D jarabe infantil,6502400315021,13,False,650,prefijo_650_interno,Prefijo 650 no es GS1 país (México=750). Interno Farmalive/Genomma.
+FC-7D1D9857,Acetilsalicilico,7501008491074,13,False,750,checksum_invalido,Dígito verificador GS1 no cuadra
+FC-01303454,Pantene Control caída anticaída,7501001303454,13,False,750,checksum_invalido,Dígito verificador GS1 no cuadra
+FC-40010712,Tukol-D jarabe,6502400107128,13,True,650,prefijo_650_interno,Prefijo 650 no es GS1 país (México=750). Interno Farmalive/Genomma.
+FC-40036354,Genoprazol Tab,6502400363548,13,True,650,prefijo_650_interno,Prefijo 650 no es GS1 país (México=750). Interno Farmalive/Genomma.
+FC-50071598,Theraflu TD,7503050071598,13,False,750,checksum_invalido,Dígito verificador GS1 no cuadra
+FC-54054221,Splash Tears Sol oftálmica,7509854054221,13,False,750,checksum_invalido,Dígito verificador GS1 no cuadra
+FC-40006647,Ultra Bengue Gel,6502400066470,13,True,650,prefijo_650_interno,Prefijo 650 no es GS1 país (México=750). Interno Farmalive/Genomma.
+FC-40032264,Suerox 8 Iones Eresa-Kiwi 630 ML,6502400322644,13,True,650,prefijo_650_interno,Prefijo 650 no es GS1 país (México=750). Interno Farmalive/Genomma.
+FC-40032271,Suerox 8 Iones Uva 630 ML,6502400322712,13,True,650,prefijo_650_interno,Prefijo 650 no es GS1 país (México=750). Interno Farmalive/Genomma.
+FC-00322571,Suerox 8 Iones Manzana 630 ML,6502400322571,13,False,650,prefijo_650_interno,Prefijo 650 no es GS1 país (México=750). Interno Farmalive/Genomma.
+FC-40032295,Suerox 8 Iones Mora Azul 630 ML,6502400322958,13,True,650,prefijo_650_interno,Prefijo 650 no es GS1 país (México=750). Interno Farmalive/Genomma.
+FC-00323011,Suerox 8 Iones Naranja Mandarina 630 ML,6502400323011,13,False,650,prefijo_650_interno,Prefijo 650 no es GS1 país (México=750). Interno Farmalive/Genomma.
+FC-40066306,Suerox 8 Iones Fresa 630 ML,6502400663068,13,True,650,prefijo_650_interno,Prefijo 650 no es GS1 país (México=750). Interno Farmalive/Genomma.
+FC-40074455,Suerox 8 Iones Uva Mora Azul 630 ML,6502400744552,13,True,650,prefijo_650_interno,Prefijo 650 no es GS1 país (México=750). Interno Farmalive/Genomma.
+FC-00661391,Suerox 8 Iones Frutos Rojos 630 ML,6502400661391,13,False,650,prefijo_650_interno,Prefijo 650 no es GS1 país (México=750). Interno Farmalive/Genomma.
+FC-00721471,Suerox Vitamins Naranja Mango 630 ML,6502400721471,13,False,650,prefijo_650_interno,Prefijo 650 no es GS1 país (México=750). Interno Farmalive/Genomma.
+FC-00721541,Suerox Vitamins Manzana V-Limón 630 ML,6502400721541,13,False,650,prefijo_650_interno,Prefijo 650 no es GS1 país (México=750). Interno Farmalive/Genomma.
+FC-00744481,Suerox 8 Iones Coco Piña 630 ML,6502400744481,13,False,650,prefijo_650_interno,Prefijo 650 no es GS1 país (México=750). Interno Farmalive/Genomma.
+FC-40010538,Next Tab,6502400105384,13,True,650,prefijo_650_interno,Prefijo 650 no es GS1 país (México=750). Interno Farmalive/Genomma.
+FC-50608272,Contac Ultra,75029650608272,14,False,750,gtin14_caja,GTIN-14 de caja; el POS escanea EAN-13/UPC
+FC-54221482,Deeflamox Plus,7503854221482,13,False,750,checksum_invalido,Dígito verificador GS1 no cuadra
+FC-85171118,Condón Sico,7501685171118,13,False,750,checksum_invalido,Dígito verificador GS1 no cuadra
+FC-40017100,Xl-3 Vr,6502400171006,13,True,650,prefijo_650_interno,Prefijo 650 no es GS1 país (México=750). Interno Farmalive/Genomma.
+FC-40015366,Nasalub Sol,6502400153668,13,True,650,prefijo_650_interno,Prefijo 650 no es GS1 país (México=750). Interno Farmalive/Genomma.
+FC-40032325,Suerox 8 Iones Lima Limón 630 ML,6502400323252,13,True,650,prefijo_650_interno,Prefijo 650 no es GS1 país (México=750). Interno Farmalive/Genomma.
+FC-40035395,Suerox 8 Iones Coco 630 ML,6502400353952,13,True,650,prefijo_650_interno,Prefijo 650 no es GS1 país (México=750). Interno Farmalive/Genomma.
+FC-75064938,Desodorante Ego Force 24H roll-on,75064938,8,False,750,ean8_o_interno,8 dígitos: EAN-8 real o código interno recortado
+FC-40013850,Crema Teatrical Lanolina,6502400138504,13,True,650,prefijo_650_interno,Prefijo 650 no es GS1 país (México=750). Interno Farmalive/Genomma.
+FC-42270027,Crema Nivea Facial 7 en 1,42270027,8,False,422,ean8_o_interno,8 dígitos: EAN-8 real o código interno recortado
+FC-68990023,Alcohol Etilico Rojo 96°,7501868990023,13,False,750,checksum_invalido,Dígito verificador GS1 no cuadra
+FC-75069223,Rexona Sport Stick,75069223,8,False,750,ean8_o_interno,8 dígitos: EAN-8 real o código interno recortado
+FC-75076009,Rexona 48H Happy (Mujer),75076009,8,False,750,ean8_o_interno,8 dígitos: EAN-8 real o código interno recortado
+FC-75001865,Brillantina Palmolive,75001865,8,False,750,ean8_o_interno,8 dígitos: EAN-8 real o código interno recortado
+FC-40030338,Jabon Intimo Lomecan V Aclar,6502400303384,13,True,650,prefijo_650_interno,Prefijo 650 no es GS1 país (México=750). Interno Farmalive/Genomma.
+FC-75062927,Desodorante Rexona Pom-Dry 48 H,75062927,8,False,750,ean8_o_interno,8 dígitos: EAN-8 real o código interno recortado
+FC-40030963,Crema Teatrical Cel-Ma Nutrit,6502400309638,13,True,650,prefijo_650_interno,Prefijo 650 no es GS1 país (México=750). Interno Farmalive/Genomma.
+FC-42417644,Crema Nivea Cuidado Int P/Mano,42417644,8,False,424,ean8_o_interno,8 dígitos: EAN-8 real o código interno recortado
+FC-40025839,Jabon Intimo Lomecan V,6502400258394,13,True,650,prefijo_650_interno,Prefijo 650 no es GS1 país (México=750). Interno Farmalive/Genomma.
+FC-75062897,Desodorante Rexona Bamboo 48H,75062897,8,False,750,ean8_o_interno,8 dígitos: EAN-8 real o código interno recortado
+FC-40013898,Crema Teatrical Lanol/Ros,6502400138986,13,True,650,prefijo_650_interno,Prefijo 650 no es GS1 país (México=750). Interno Farmalive/Genomma.
+FC-08491074,Aspirina,7501008491074,13,False,750,checksum_invalido,Dígito verificador GS1 no cuadra
+FC-40004643,Jabon Asepxia Exfoliante,6502400046434,13,True,650,prefijo_650_interno,Prefijo 650 no es GS1 país (México=750). Interno Farmalive/Genomma.
+FC-40036965,Jabon Asepxia Bicarbon,6502400369656,13,True,650,prefijo_650_interno,Prefijo 650 no es GS1 país (México=750). Interno Farmalive/Genomma.
