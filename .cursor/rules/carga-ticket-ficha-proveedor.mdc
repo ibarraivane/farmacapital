@@ -9,13 +9,24 @@ Cuando armes un ticket, un alta o un SQL de Recibir, **no copies el nombre del P
 
 ## Obligatorio por cada EAN nuevo
 
-1. Abre la ficha del proveedor con el EAN (Nadro i22 / `buscarNadroPorEan`, Levic/Visoti, Farma MX, etc.).
+1. Abre la ficha del proveedor con el EAN (Nadro i22 / `buscarNadroPorEan`, Levic/Visoti, Farma MX, Exprezo, etc.).
 2. Toma nombre, marca, presentación, categoría, foto y descripción de **esa página**, no del renglón del ticket.
 3. En Nadro el `productName` suele ser el mismo código. El nombre bueno está en `metaTagDescription` o en el slug (`linkText`). Usa `fichaCatalogoDesdeNadro` en `src/lib/fichaProveedor.js`.
 4. No uses marcas casa del mayorista (`FRABEL 2`, `LGEN`) como `marca`. Anthelios → La Roche-Posay; CeraVe → CeraVe.
 5. Si un rubro no está en la página, déjalo vacío. No inventes FPS, gramaje, lote ni caducidad.
-6. El SQL de alta tiene que llevar: `nombre`, `marca`, `presentacion`, `categoria`, `subcategoria`, `forma_farmaceutica`, `imagen_url` cuando el proveedor las tenga.
+6. El SQL de alta tiene que llevar: `nombre`, `marca`, `presentacion`, `categoria`, `subcategoria`, `forma_farmaceutica`, `imagen_url`.
 7. Antes de commitear: busca «bloqueador» / la marca y tiene que salir. Un nombre `BLOQ ANTHE…` no pasa.
+
+## Foto: no dejar alta sin imagen
+
+Cada producto nuevo **tiene que llevar foto** antes de dar por cerrado el alta.
+
+1. Revisa si ya tiene `imagen_url` / galería. Si sí, no la pises con otra peor.
+2. Si no tiene: búscala primero en la tienda donde se compró (Nadro, Levic, Exprezo, Scorpion, etc.).
+3. Si ahí no hay: búscala en línea (ficha oficial de marca, otro mayoreo, retailers) con el mismo EAN o la misma presentación.
+4. Prefiere packshot de la pieza que se vende en mostrador (no solo la caja/exhibidor, salvo que sea lo único usable).
+5. Si la URL es de terceros frágil, cópiala a `public/catalogo-propia/` y apunta a `https://www.farmacapital.mx/catalogo-propia/…` (como Dibar/Optims). El SQL de foto va **después** del deploy.
+6. Un alta sin foto no está terminada: o la consigues, o dejas el SQL/TODO explícito de foto pendiente — no lo ignores.
 
 ## Caso que no se repite
 

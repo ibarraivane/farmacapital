@@ -20,6 +20,7 @@ import {
 } from "./lib/recepcionAlta";
 import { fmtPrecioVenta } from "./lib/preciosReferencia";
 import { parseTicketCsv } from "./lib/recepcionTicketCsv";
+import { prepararRenglonesPackAPiezas } from "./lib/recepcionPackPiezas";
 import {
   recepcionEsTicketDocumento,
   resolverEscaneoRecepcion,
@@ -383,6 +384,9 @@ export default function RecepcionModule({ ocultarMontos = false }) {
       showToast("El ticket no trajo renglones.", "warning");
       return;
     }
+    // Packs de sobres (Optims, H&S, etc.): el ticket trae 1 exhibidor;
+    // aquí se abren a piezas y se cuelga el EAN de la pieza si ya está en catálogo.
+    const renglonesListos = prepararRenglonesPackAPiezas(renglones, productos);
     const tok = sessionTok();
     if (!tok) return;
     setSubiendo(true);
@@ -414,7 +418,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     const { data, error } = await supabase.rpc("recepcion_cargar_renglones", {
       p_session_token: tok,
       p_recepcion_id: recId,
-      p_items: renglones,
+      p_items: renglonesListos,
     });
     setSubiendo(false);
     if (error) {
@@ -423,8 +427,14 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     }
     aplicarDoc(data);
     ticketListaRef.current = true;
-    const n = renglones.length;
-    showToast(`${n} renglón${n === 1 ? "" : "es"} del ticket. Escanea cada caja y pon MMAA.`, "success");
+    const n = renglonesListos.length;
+    const packs = renglonesListos.filter((r) => r.piezas_por_empaque).length;
+    showToast(
+      packs
+        ? `${n} renglón${n === 1 ? "" : "es"} · ${packs} pack${packs === 1 ? "" : "s"} abierto${packs === 1 ? "" : "s"} a pieza. Escanea y pon MMAA.`
+        : `${n} renglón${n === 1 ? "" : "es"} del ticket. Escanea cada caja y pon MMAA.`,
+      "success",
+    );
     setTimeout(() => scanRef.current?.focus(), 40);
   };
 
