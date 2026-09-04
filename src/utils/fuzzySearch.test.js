@@ -396,6 +396,7 @@ describe("catalog search dimensions", () => {
       expect(tiendaProductMatchesBusqueda(colgate, q)).toBe(false);
       expect(tiendaProductMatchesBusqueda(parches, q)).toBe(false);
     }
+    expect(tiendaProductMatchesBusqueda({ ...corega, principio_activo: "", subcategoria: "" }, "pegamento dental")).toBe(true);
     expect(tiendaProductMatchesBusqueda(corega, "corega")).toBe(true);
     expect(tiendaProductMatchesBusqueda(ibuprofeno, "dolor dental")).toBe(true);
     expect(tiendaProductMatchesBusqueda(corega, "dolor dental")).toBe(false);
