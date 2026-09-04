@@ -37,14 +37,20 @@ export default function useSidebarBadges(currentPage) {
         ? supabase.rpc("empleado_contar_productos_bajo_stock", { p_session_token: tok })
         : Promise.resolve({ data: 0, error: null });
 
+      const mostradorRpc = tok
+        ? supabase.rpc("empleado_contar_solicitudes_mostrador_abiertas", { p_session_token: tok })
+        : Promise.resolve({ data: 0, error: null });
+
       const [
         stockRes,
         cortesRes,
+        mostradorRes,
         { count: onlinePend, error: errOnline },
         { data: cofeprisVentana, error: errCof },
       ] = await Promise.all([
         stockRpc,
         cortesRpc,
+        mostradorRpc,
         countPedidosTiendaPendientesHead(supabase, tok),
         cofeprisRpc,
       ]);
@@ -52,8 +58,11 @@ export default function useSidebarBadges(currentPage) {
       const errBajo = stockRes?.error;
       const cortesDif = Number(cortesRes?.data);
       const errCortes = cortesRes?.error;
+      const mostradorAbiertas = Number(mostradorRes?.data);
+      const errMostrador = mostradorRes?.error;
       if (errBajo) console.warn("[Badges] bajo stock:", errBajo.message);
       if (errCortes) console.warn("[Badges] cortes con diferencia:", errCortes.message);
+      if (errMostrador) console.warn("[Badges] lo que buscan:", errMostrador.message);
       if (errOnline) console.warn("[Badges] pedidos online:", errOnline.message);
       if (errCof) console.warn("[Badges] alertas cofepris:", errCof.message);
 
@@ -67,11 +76,13 @@ export default function useSidebarBadges(currentPage) {
       const nextCounts = {
         pos:  pend,
         ped_online: pend,
+        ped_mostrador: Number.isFinite(mostradorAbiertas) ? mostradorAbiertas : 0,
         inv:  Number.isFinite(bajoStock) ? bajoStock : 0,
         caja: Number.isFinite(cortesDif) ? cortesDif : 0,
         cof:  cofeprisCount,
       };
       const nextCritical = {
+        ped_mostrador: (Number.isFinite(mostradorAbiertas) ? mostradorAbiertas : 0) > 0,
         inv:  (Number.isFinite(bajoStock) ? bajoStock : 0) > 0,
         caja: (Number.isFinite(cortesDif) ? cortesDif : 0) > 0,
         cof:  cofeprisVencidas > 0,

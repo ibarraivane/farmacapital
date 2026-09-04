@@ -33,7 +33,8 @@
     "test:e2e": "npm run build && PLAYWRIGHT_BROWSERS_PATH=0 playwright test e2e/",
     "import:farmac-os": "node scripts/import-farmac-os-xlsx.js",
     "import:farmac-os:supabase": "node scripts/run-farmac-os-via-pg.js",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "test:pedidos-mostrador": "node --test src/lib/pedidosMostrador.node.test.js && node scripts/check-pedidos-mostrador.js"
   },
   "devDependencies": {
     "@playwright/test": "^1.51.0",

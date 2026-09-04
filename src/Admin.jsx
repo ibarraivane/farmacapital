@@ -44,6 +44,7 @@ const FacturacionModule= lazy(()=>import("./FacturacionModule"));
 const DashboardModule  = lazy(()=>import("./DashboardModule"));
 const InstalarPWA      = lazy(()=>import("./InstalarPWA"));
 const ManualModule     = lazy(()=>import("./ManualModule"));
+const PedidosMostradorModule = lazy(()=>import("./PedidosMostradorModule"));
 
 // ── ErrorBoundary para módulos lazy ──────────────────────────
 class ModuleErrorBoundary extends React.Component {
@@ -2237,6 +2238,7 @@ export default function FarmaCapitalAdmin(){
       case "cof":      return <COFEPRISModule/>;
       case "promo":    return <PromocionesModule onNavigate={setPageAndSave}/>;
       case "dev":      return <DevolucionesModule usuario={usuario}/>;
+      case "ped_mostrador": return <PedidosMostradorModule usuario={usuario}/>;
       case "fact":     return <FacturacionModule/>;
       case "banners": return <BannersAdmin/>;
       case "bot":      return <AsistenteIA/>;
