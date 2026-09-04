@@ -55,6 +55,7 @@ test("mezcla Del Ahorro / Similares con farmacias Rappi", () => {
     rappi_super: 20,
   });
   r.similares.nombre_fuente = "Agrifen 10 tabletas";
+  r.fahorro.nombre_fuente = "Agrifen 10 tabletas";
   const out = calcPrecioSugeridoRappi(otc, r);
   expect(out.refMin).toBe(28);
   expect(precioCalleDe(otc, r)).toBe(28);
@@ -64,6 +65,7 @@ test("mezcla Del Ahorro / Similares con farmacias Rappi", () => {
 test("Similares sin la marca no cuenta para Agrifen", () => {
   const r = refs({ fahorro: 30, similares: 28 });
   r.similares.nombre_fuente = "PARACETAMOL / FENILEFRINA / CLORFENAMINA 10 TABLETAS";
+  r.fahorro.nombre_fuente = "Agrifen 10 tabletas";
   expect(precioCalleDe(otc, r)).toBe(30);
 });
 
@@ -83,6 +85,7 @@ test("Ensure: el 6-pack de Rappi no mueve el sugerido", () => {
     rappi_super: 354,
     otros_venta: 66,
   });
+  r.otros_venta.nombre_fuente = "Ensure Regular Líquido Vainilla 237 ml";
   r.rappi_gdl.nombre_fuente = "Ensure Regular Vainilla 6 Pack 237 ml";
   r.rappi_benavides.nombre_fuente = "Ensure 6 pack";
   r.rappi_otros.nombre_fuente = "Ensure Clinical 16 pzas";

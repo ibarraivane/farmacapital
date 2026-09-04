@@ -312,19 +312,31 @@ function ofertaRappiComparable(producto, oferta) {
   return diagnosticoRefRappi(producto, oferta).ok;
 }
 
+function nombreGondola(refRow) {
+  const n = String((refRow && (refRow.nombre_fuente || refRow.nombre)) || "").trim();
+  if (!n) return "";
+  if (/^(promedio mercado|rastreo_automatico)$/i.test(n)) return "";
+  return n;
+}
+
 /**
- * Similares no stockea Contac / XL-3 / Flanax: el match por PA es otro producto.
- * Sin nombre de oferta tampoco se asume que el $ sea esa patente.
- * Del Ahorro / Otros sin nombre sí se dejan (captura manual de la misma ficha).
+ * Un $ suelto no confirma la caja (Gentamicina 5 amp ≠ una ampolleta a $45).
+ * Similares + anaquel: el genérico por PA no cuenta.
  */
 function diagnosticoRefCadena(producto, fuente, refRow) {
   const d = diagnosticoRefRappi(producto, refRow);
   if (!d.ok) return d;
-  if (String(fuente || "") !== "similares") return d;
-  if (!esMarcaPatente(producto)) return d;
-  const marca = marcaBusqueda(producto);
-  if (marca && !ofertaTieneMarca(d.theirs && d.theirs.texto, marca)) {
-    return { ...d, ok: false, motivo: "otra_marca" };
+  const f = String(fuente || "");
+  if (f === "fahorro" || f === "otros_venta") {
+    if (!nombreGondola(refRow) && !mismoEanProductoOferta(producto, refRow)) {
+      return { ...d, ok: false, motivo: "sin_ficha" };
+    }
+  }
+  if (f === "similares" && esMarcaPatente(producto)) {
+    const marca = marcaBusqueda(producto);
+    if (marca && !ofertaTieneMarca(d.theirs && d.theirs.texto, marca)) {
+      return { ...d, ok: false, motivo: "otra_marca" };
+    }
   }
   return d;
 }

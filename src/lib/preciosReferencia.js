@@ -146,7 +146,12 @@ export const FUENTE_META = {
     listaDistribuidor: false,
     hint: "Anaquel (Contac, XL-3, Flanax): mismo nombre. Laboratorio (Amoxicilina, Bactiver): el genérico de la misma presentación.",
   },
-  fahorro: { label: "Del Ahorro", tipo: "venta", listaDistribuidor: false },
+  fahorro: {
+    label: "Del Ahorro",
+    tipo: "venta",
+    listaDistribuidor: false,
+    hint: "Solo cuenta si el nombre es la misma caja (5 amp ≠ 1). Un número suelto no entra al sugerido.",
+  },
   otros_venta: {
     label: "Otros",
     tipo: "venta",
@@ -431,6 +436,9 @@ export function captionRefNoComparable(producto, fuente, row) {
   }
   if (d.motivo === "otra_concentracion") {
     return { texto: "Otra concentración", detalle: d.nombre || "" };
+  }
+  if (d.motivo === "sin_ficha") {
+    return { texto: "Sin ficha de caja", detalle: "Falta el nombre de góndola; no se asume la misma presentación." };
   }
   return null;
 }

@@ -260,7 +260,25 @@ test("Contac mal etiquetado GENERICO no se compara con el genérico de Similares
     precio: 36,
   }).ok).toBe(false);
   expect(diagnosticoRefCadena(contac, "similares", { precio: 36 }).ok).toBe(false);
-  expect(diagnosticoRefCadena(contac, "fahorro", { precio: 89 }).ok).toBe(true);
+  expect(diagnosticoRefCadena(contac, "fahorro", { precio: 89 }).ok).toBe(false);
+  expect(diagnosticoRefCadena(contac, "fahorro", {
+    precio: 89,
+    nombre_fuente: "Contac Ultra 12 tabletas — Farmacias del Ahorro",
+  }).ok).toBe(true);
+});
+
+test("Del Ahorro sin nombre de góndola no compara Gentamicina 5 amp", () => {
+  const caja5 = {
+    nombre: "Gentamicina",
+    tipo: "generico",
+    principio_activo: "Gentamicina",
+    presentacion: "5 AMPOLLETA",
+    concentracion: "160MG/2 ML",
+    forma_farmaceutica: "AMPOLLETA",
+    precio: 84,
+  };
+  expect(diagnosticoRefCadena(caja5, "fahorro", { precio: 45.5 }).ok).toBe(false);
+  expect(diagnosticoRefCadena(caja5, "fahorro", { precio: 45.5 }).motivo).toBe("sin_ficha");
 });
 
 test("XL-3 se reconoce aunque el guion parta el nombre", () => {
