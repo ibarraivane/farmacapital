@@ -164,8 +164,6 @@
         --fc-blue: #054ABC;
         --fc-jade: #02A158;
         --fc-cross-ratio: 0.2107;
-        --fc-logo-w: min(100%, clamp(280px, 58vw, 560px));
-        --fc-logo-h: calc(var(--fc-logo-w) * 358 / 1623);
         position: fixed;
         inset: 0;
         z-index: 9999;
@@ -185,7 +183,7 @@
 
       .fc-intro {
         position: relative;
-        width: min(100%, var(--fc-logo-w));
+        width: min(100%, 560px);
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -196,12 +194,13 @@
         position: absolute;
         left: 50%;
         top: 50%;
-        width: min(72vw, 220px);
-        height: min(72vw, 220px);
-        transform: translate(-50%, calc(-50% - 10px));
+        width: min(42vw, 160px);
+        height: min(42vw, 160px);
+        transform: translate(-50%, calc(-50% - 12px));
         overflow: visible;
         pointer-events: none;
         opacity: 0;
+        z-index: 3;
       }
       .fc-intro-lines .fc-streak {
         fill: none;
@@ -212,34 +211,39 @@
       .fc-intro-core {
         position: relative;
         z-index: 2;
-        width: var(--fc-logo-w);
-        max-width: 100%;
+        width: 100%;
         display: flex;
         flex-direction: column;
         align-items: center;
+        /* Centra la cruz visible al inicio; vuelve a 0 con la cortinilla */
+        transform: translateX(calc((1 - var(--fc-cross-ratio)) * 50%));
+        will-change: transform;
       }
 
       .fc-intro-logo-frame {
         overflow: hidden;
-        width: calc(var(--fc-logo-w) * var(--fc-cross-ratio));
-        height: var(--fc-logo-h);
-        max-width: 100%;
+        width: 100%;
+        line-height: 0;
         opacity: 0;
-        transform: scale(0.94);
-        will-change: width, opacity, transform;
+        transform: scale(0.96);
+        /* Solo la cruz; se abre a la derecha sincronizado con el slide */
+        clip-path: inset(0 calc((1 - var(--fc-cross-ratio)) * 100%) 0 0);
+        will-change: clip-path, opacity, transform;
       }
       .fc-intro-logo {
         display: block;
-        width: var(--fc-logo-w);
-        height: var(--fc-logo-h);
-        max-width: none;
+        width: 100%;
+        height: auto;
+        aspect-ratio: 1623 / 358;
         object-fit: contain;
+        object-position: left center;
         user-select: none;
         -webkit-user-drag: none;
       }
 
       .fc-intro-tag {
         margin-top: 8px;
+        width: 100%;
         color: var(--fc-text-mid);
         font-family: var(--fc-body);
         font-size: clamp(13px, 2.8vw, 17px);
@@ -253,7 +257,7 @@
         will-change: opacity, transform;
       }
 
-      /* Secuencia ~2.55 s hasta logo completo; el fade espera a React */
+      /* Secuencia ~2.5 s hasta logo completo; el fade espera a React */
       .fc-intro--play .fc-intro-lines {
         animation:
           fc-lines-in 0.12s ease-out forwards,
@@ -304,7 +308,10 @@
       .fc-intro--play .fc-intro-logo-frame {
         animation:
           fc-cross-in 0.26s ease-out 0.5s forwards,
-          fc-curtain 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.72s forwards;
+          fc-curtain-clip 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.72s forwards;
+      }
+      .fc-intro--play .fc-intro-core {
+        animation: fc-curtain-slide 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.72s forwards;
       }
       .fc-intro--play .fc-intro-tag {
         animation: fc-tag-in 0.3s ease-out 1.22s forwards;
@@ -318,16 +325,20 @@
         to { opacity: 1; }
       }
       @keyframes fc-lines-out {
-        from { opacity: 1; transform: translate(-50%, calc(-50% - 10px)) scale(1); }
-        to { opacity: 0; transform: translate(-50%, calc(-50% - 10px)) scale(0.86); }
+        from { opacity: 1; transform: translate(-50%, calc(-50% - 12px)) scale(1); }
+        to { opacity: 0; transform: translate(-50%, calc(-50% - 12px)) scale(0.86); }
       }
       @keyframes fc-cross-in {
-        from { opacity: 0; transform: scale(0.94); }
+        from { opacity: 0; transform: scale(0.96); }
         to { opacity: 1; transform: scale(1); }
       }
-      @keyframes fc-curtain {
-        from { width: calc(var(--fc-logo-w) * var(--fc-cross-ratio)); }
-        to { width: var(--fc-logo-w); }
+      @keyframes fc-curtain-clip {
+        from { clip-path: inset(0 calc((1 - var(--fc-cross-ratio)) * 100%) 0 0); }
+        to { clip-path: inset(0 0 0 0); }
+      }
+      @keyframes fc-curtain-slide {
+        from { transform: translateX(calc((1 - var(--fc-cross-ratio)) * 50%)); }
+        to { transform: translateX(0); }
       }
       @keyframes fc-tag-in {
         from { opacity: 0; transform: translateY(6px); }
@@ -337,10 +348,14 @@
       /* Accesibilidad: logo completo sin movimientos fuertes */
       @media (prefers-reduced-motion: reduce) {
         .fc-intro-lines { display: none !important; }
+        .fc-intro-core {
+          transform: none;
+          animation: none !important;
+        }
         .fc-intro-logo-frame {
-          width: var(--fc-logo-w);
           opacity: 1;
           transform: none;
+          clip-path: none;
           animation: none !important;
         }
         .fc-intro-tag {
@@ -351,15 +366,17 @@
         #splash { transition: opacity 0.2s ease; }
       }
       .fc-intro--reduced .fc-intro-lines { display: none; }
+      .fc-intro--reduced .fc-intro-core { transform: none; }
       .fc-intro--reduced .fc-intro-logo-frame {
-        width: var(--fc-logo-w);
         opacity: 1;
         transform: none;
+        clip-path: none;
       }
       .fc-intro--reduced .fc-intro-tag {
         opacity: 1;
         transform: none;
       }
+
       /* Ocultar scrollbar en móvil */
       ::-webkit-scrollbar { width: 4px; height: 4px; }
       ::-webkit-scrollbar-thumb { background: var(--fc-border-hi, #CFC0AC); border-radius: 2px; }
@@ -396,8 +413,8 @@
               fetchpriority="high"
             />
           </div>
-          <div class="fc-intro-tag">Farmacia &amp; Salud</div>
         </div>
+        <div class="fc-intro-tag">Farmacia &amp; Salud</div>
       </div>
     </div>
 
