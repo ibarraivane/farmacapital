@@ -1,0 +1,40 @@
+diagnostico_pricing_20260904
+catalogo=preview_catalogo_campos_y_precios.csv  n=626
+con_ean=478 (76.4%)  sin_ean=148 (23.6%)
+
+markup implicito (precio/costo - 1)
+  p25=30.0%  p50=41.4%  p75=60.0%  p95=60.1%
+  bin 28-45% (marca-ish) = 350
+  bin 55-65% (generico-ish) = 183
+
+ean_clase
+  gs1_mx=381
+  gs1_otro_pais=49
+  prefijo_650_interno=30
+  checksum_invalido=8
+  gtin14_caja=1
+  longitud_rara=0
+  ean8_o_interno=9
+  vacio=148
+duplicados: 7 EAN distintos / 17 SKUs
+
+campos
+  con_principio_activo=429  pa_sucio=106  con_concentracion=171 (27.3%)
+grupos molecula (>=2 SKUs, PA limpio) = 44
+  con dispersion>=25% = 30
+
+refs venta locales (Similares sept-3 + Del Ahorro import)
+  skus_con_alguna_ref=70
+  piso > sugerido (min-2%) = 20
+
+candidatos barcode (NO aplicar en lote)
+  clave/EAN exacto = 110
+  solo fold nombre = 0  (revisar a mano)
+  sin match = 38
+
+tickets con EAN cargados = 623 lineas
+claves Levic portal = 719
+lineas Equilibrio = 481
+
+NO se escribio nada en Supabase.
+Regenerar: python3 scripts/diagnostico_pricing_20260904.py
