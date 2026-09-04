@@ -186,9 +186,10 @@
         align-items: center;
         justify-content: center;
         overflow: hidden;
+        isolation: isolate;
         padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
         touch-action: none;
-        transition: opacity 0.36s ease;
+        transition: opacity 0.32s ease;
       }
       @media (max-width: 480px) {
         #splash { --fc-logo-w: calc(100vw - 2 * var(--fc-gutter)); }
@@ -214,7 +215,7 @@
         transform: translateX(calc(var(--fc-shift) * 100%));
         clip-path: inset(0 var(--fc-clip-r) 0 0);
         -webkit-clip-path: inset(0 var(--fc-clip-r) 0 0);
-        will-change: transform, clip-path, opacity;
+        will-change: transform, clip-path;
       }
       #splash.fc-intro-cross .fc-intro-logo {
         opacity: 1;
@@ -267,7 +268,7 @@
         top: 50%;
         border-radius: 999px;
         opacity: 0;
-        will-change: transform, opacity;
+        will-change: transform;
       }
       .fc-bar-navy { background: var(--fc-ink); }
       .fc-bar-blue { background: var(--fc-blue); }
@@ -441,10 +442,12 @@
           if (!appReady) return;
           hiding = true;
           splash.setAttribute('aria-busy', 'false');
+          var logo = splash.querySelector('.fc-intro-logo');
+          if (logo) logo.style.willChange = 'auto';
           splash.classList.add('hide');
           setTimeout(function () {
             if (splash && splash.parentNode) splash.remove();
-          }, 380);
+          }, 340);
         }
 
         window.__fcOcultarSplash = function () {
@@ -471,7 +474,11 @@
           splash.classList.add('fc-intro-play');
           setTimeout(function () { splash.classList.add('fc-intro-cross'); }, 500);
           setTimeout(function () { splash.classList.add('fc-intro-reveal'); }, 740);
-          setTimeout(function () { splash.classList.add('fc-intro-sub-on'); }, 1320);
+          setTimeout(function () {
+            splash.classList.add('fc-intro-sub-on');
+            var logoEl = splash.querySelector('.fc-intro-logo');
+            if (logoEl) logoEl.style.willChange = 'auto';
+          }, 1320);
           setTimeout(terminarSecuencia, 2260);
         }
 
