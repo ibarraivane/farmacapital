@@ -67,6 +67,13 @@ describe("enriquecerRenglonPackConCatalogo", () => {
       descripcion:
         "Se vende el sobre. Ticket Exprezo: Pack 48 sobres Shampoo Palmolive Optims 10 ml.",
     },
+    {
+      sku: "FC-EXP-HS24",
+      nombre: "Head & Shoulders Limpieza Renovadora sobre 10 ml",
+      codigo_barras: "7590002008898",
+      descripcion:
+        "Ticket Exprezo 1279718: Tira Shampoo Head & Shoulders 24 sachets 10 ml.",
+    },
   ];
 
   test("pone el EAN de la pieza si el ticket trae el alias del pack", () => {
@@ -76,6 +83,15 @@ describe("enriquecerRenglonPackConCatalogo", () => {
     );
     expect(r.codigo).toBe("7509546015699");
     expect(r.sku).toBe("FC-EXP-OPT48");
+  });
+
+  test("H&S tira → EAN del sobre", () => {
+    const r = enriquecerRenglonPackConCatalogo(
+      { nombre: "Tira Shampoo Head & Shoulders 24 sachets 10 ml", cantidad: 24, costo: 2.13 },
+      cat,
+    );
+    expect(r.codigo).toBe("7590002008898");
+    expect(r.sku).toBe("FC-EXP-HS24");
   });
 
   test("no pisa un EAN que ya venía", () => {
