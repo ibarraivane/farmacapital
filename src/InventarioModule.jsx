@@ -534,11 +534,12 @@ function inventarioStickyStyle(colId, colOrder, colWidths, { header, bg, hasChec
   return {
     position: "sticky",
     left,
+    ...(header ? { top: 0 } : {}),
     width: w,
     minWidth: w,
     maxWidth: w,
     boxSizing: "border-box",
-    zIndex: header ? 5 + stickyRank : 2 + stickyRank,
+    zIndex: header ? 30 + stickyRank : 2 + stickyRank,
     background: bg,
     borderRight: !hasStickyAfter ? "1px solid #e2e8f0" : undefined,
   };
@@ -4125,7 +4126,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
         <SkeletonTable rows={8} cols={12}/>
       ) : (
         <>
-        <HorizontalScrollSync data-tour="inv-tabla">
+        <HorizontalScrollSync data-tour="inv-tabla" fillViewport viewportBottomReserve={isMobileInv ? 96 : 80}>
           <table style={{width:"max-content",minWidth:1640,tableLayout:"fixed",borderCollapse:"separate",borderSpacing:0,fontSize:12}}>
             <thead>
               <tr>
@@ -4138,6 +4139,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
                   borderBottom: `1px solid ${C.border}`,
                   verticalAlign: "middle",
                   position: "sticky",
+                  top: 0,
                   left: 0,
                   width: INV_CHECKBOX_COL_WIDTH,
                   minWidth: INV_CHECKBOX_COL_WIDTH,
@@ -4173,6 +4175,9 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
                       whiteSpace: "nowrap",
                       cursor: col.hint ? "help" : undefined,
                       verticalAlign: "middle",
+                      position: "sticky",
+                      top: 0,
+                      zIndex: 12,
                       ...inventarioStickyStyleFor(colId, { header: true, bg: C.card }),
                       ...invColWidthStyle(colId),
                     }}
