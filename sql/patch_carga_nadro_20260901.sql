@@ -62,11 +62,20 @@ select
 from _fc_nd20260901 t
 where public.fc_buscar_producto_escaneo(t.ean) is null;
 
+-- Si el producto ya existía: actualiza costo y PVP (antes solo costo → PVP en 0).
 update public.productos p
-set costo = t.costo
+set
+  costo = t.costo,
+  precio = case
+    when coalesce(p.precio, 0) <= 0 then t.precio
+    else p.precio
+  end
 from _fc_nd20260901 t
 where p.id = public.fc_buscar_producto_escaneo(t.ean)
-  and p.costo is distinct from t.costo;
+  and (
+    p.costo is distinct from t.costo
+    or coalesce(p.precio, 0) <= 0
+  );
 
 insert into public.recepciones (proveedor, folio, fecha, total_ticket, estado, notas)
 select
