@@ -221,17 +221,19 @@
         z-index: 3;
         display: flex;
         flex-direction: column;
-        align-items: center;
+        align-items: stretch;
         width: var(--fc-logo-w);
         max-width: 100%;
         flex-shrink: 0;
       }
       .fc-intro-stage {
         position: relative;
+        z-index: 3;
         width: 100%;
         height: var(--fc-logo-h);
         max-width: 100%;
         aspect-ratio: 1623 / 358;
+        overflow: visible;
       }
       .fc-intro-logo {
         display: block;
@@ -276,11 +278,10 @@
         }
       }
       .fc-intro-sub {
-        position: absolute;
-        left: var(--fc-text-x);
+        position: relative;
+        left: auto;
         width: calc(100% - var(--fc-text-x));
-        top: calc(100% + 6px);
-        margin: 0;
+        margin: 6px 0 0 var(--fc-text-x);
         color: var(--fc-text-mid);
         font-family: var(--fc-body);
         font-size: clamp(13px, 2.4vw, 16px);
@@ -302,7 +303,11 @@
       }
       .fc-intro-lines {
         position: absolute;
-        inset: 0;
+        left: 50%;
+        top: 50%;
+        width: 100vw;
+        height: 100vh;
+        transform: translate(-50%, -50%);
         overflow: hidden;
         pointer-events: none;
         z-index: 4;
@@ -493,14 +498,14 @@
   <body>
     <!-- Intro FarmaCapital: líneas → cruz oficial → cortinilla del wordmark -->
     <div id="splash" role="img" aria-label="FarmaCapital" aria-busy="true">
-      <div class="fc-intro-lines" aria-hidden="true">
-        <span class="fc-hair fc-hair-navy fc-hair-h fc-hair-left"></span>
-        <span class="fc-hair fc-hair-navy fc-hair-v fc-hair-top"></span>
-        <span class="fc-hair fc-hair-blue fc-hair-h fc-hair-right"></span>
-        <span class="fc-hair fc-hair-jade fc-hair-v fc-hair-bot"></span>
-      </div>
       <div class="fc-intro-cluster">
         <div class="fc-intro-stage">
+          <div class="fc-intro-lines" aria-hidden="true">
+            <span class="fc-hair fc-hair-navy fc-hair-h fc-hair-left"></span>
+            <span class="fc-hair fc-hair-navy fc-hair-v fc-hair-top"></span>
+            <span class="fc-hair fc-hair-blue fc-hair-h fc-hair-right"></span>
+            <span class="fc-hair fc-hair-jade fc-hair-v fc-hair-bot"></span>
+          </div>
           <img
             class="fc-intro-logo"
             src="%PUBLIC_URL%/brand/farmacapital-logo-full.png?v=6"
@@ -513,8 +518,8 @@
             fetchpriority="high"
             draggable="false"
           />
-          <p class="fc-intro-sub">Farmacia &amp; Salud</p>
         </div>
+        <p class="fc-intro-sub">Farmacia &amp; Salud</p>
       </div>
     </div>
 
