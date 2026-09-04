@@ -12,7 +12,8 @@ import { iniciarVigilanciaDeploy } from "./utils/appUpdate";
 aplicarTokensCSS();
 initEventStore();
 
-// El splash se va en cuanto React esta listo, sin espera artificial.
+// Avisa al splash de que React ya montó. La intro espera su secuencia
+// mínima; si el bundle tarda, conserva el logo completo y luego desvanece.
 if (typeof window !== "undefined" && typeof window.__fcOcultarSplash === "function") {
   requestAnimationFrame(() => window.__fcOcultarSplash());
 }

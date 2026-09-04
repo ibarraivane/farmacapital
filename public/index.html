@@ -114,6 +114,13 @@
 
     <!-- Manifest -->
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    <link
+      rel="preload"
+      as="image"
+      href="%PUBLIC_URL%/brand/farmacapital-logo-full.png?v=6"
+      imagesrcset="%PUBLIC_URL%/brand/farmacapital-logo-full@1x.png?v=6 812w, %PUBLIC_URL%/brand/farmacapital-logo-full.png?v=6 1623w"
+      imagesizes="(max-width: 480px) calc(100vw - 44px), (max-width: 1100px) 62vw, 680px"
+    />
 
     <!-- Preconnect fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -125,6 +132,8 @@
          estos valores antes de que cargue el bundle de React. */
       :root {
         --fc-ink: #001534;
+        --fc-blue: #054ABC;
+        --fc-jade: #02A158;
         --fc-canvas: #F4ECE2;
         --fc-surface: #FBFAF8;
         --fc-border: #E4D9CA;
@@ -157,46 +166,211 @@
         touch-action: manipulation;
         overscroll-behavior-y: auto;
       }
-      /* Splash screen mientras carga */
+      /* Intro FarmaCapital — HTML/CSS/SVG, logo oficial PNG.
+         Proporciones medidas del maestro 1623×358:
+         cruz 0–21.072%, centro 10.505%, wordmark desde 25.570%. */
       #splash {
-        position: fixed; inset: 0; z-index: 9999;
+        --fc-gutter: max(22px, env(safe-area-inset-left), env(safe-area-inset-right));
+        --fc-logo-w: min(calc(100vw - 2 * var(--fc-gutter)), clamp(300px, 62vw, 680px));
+        --fc-logo-h: calc(var(--fc-logo-w) * 358 / 1623);
+        --fc-cross-w: 0.21072;
+        --fc-cross-c: 0.10505;
+        --fc-shift: 0.39495;
+        --fc-clip-r: 78.928%;
+        --fc-text-x: 25.57%;
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
         background: var(--fc-canvas);
-        display: flex; align-items: center; justify-content: center;
-        flex-direction: column; gap: 20px;
-        transition: opacity 0.32s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+        touch-action: none;
+        transition: opacity 0.36s ease;
+      }
+      @media (max-width: 480px) {
+        #splash { --fc-logo-w: calc(100vw - 2 * var(--fc-gutter)); }
       }
       #splash.hide { opacity: 0; pointer-events: none; }
-      .splash-logo img {
-        height: 56px;
-        width: auto;
-        max-width: min(calc(100vw - 48px), 320px);
+      .fc-intro-stage {
+        position: relative;
+        z-index: 3;
+        width: var(--fc-logo-w);
+        height: var(--fc-logo-h);
+        max-width: 100%;
+        aspect-ratio: 1623 / 358;
+        flex-shrink: 0;
+      }
+      .fc-intro-logo {
         display: block;
-        object-fit: contain;
-      }
-      .splash-sub {
-        color: var(--fc-text-mid);
-        font-size: 12px;
-        letter-spacing: 2px;
-        text-transform: uppercase;
-        font-weight: 600;
-      }
-      .splash-loader {
-        width: 56px;
-        height: 3px;
-        background: var(--fc-border);
-        border-radius: 2px;
-        overflow: hidden;
-      }
-      .splash-loader-bar {
+        width: 100%;
         height: 100%;
-        width: 40%;
-        background: var(--fc-accent);
-        border-radius: 2px;
-        animation: splash-bar 1.2s ease-in-out infinite;
+        max-width: 100%;
+        aspect-ratio: 1623 / 358;
+        object-fit: contain;
+        opacity: 0;
+        transform: translateX(calc(var(--fc-shift) * 100%));
+        clip-path: inset(0 var(--fc-clip-r) 0 0);
+        -webkit-clip-path: inset(0 var(--fc-clip-r) 0 0);
+        will-change: transform, clip-path, opacity;
       }
-      @keyframes splash-bar {
-        0% { transform: translateX(-120%); }
-        100% { transform: translateX(320%); }
+      #splash.fc-intro-cross .fc-intro-logo {
+        opacity: 1;
+        transition: opacity 0.2s ease;
+      }
+      #splash.fc-intro-reveal .fc-intro-logo {
+        opacity: 1;
+        transform: translateX(0);
+        clip-path: inset(0 0 0 0);
+        -webkit-clip-path: inset(0 0 0 0);
+        transition:
+          transform 0.62s cubic-bezier(0.22, 1, 0.36, 1),
+          clip-path 0.62s cubic-bezier(0.22, 1, 0.36, 1),
+          -webkit-clip-path 0.62s cubic-bezier(0.22, 1, 0.36, 1),
+          opacity 0.2s ease;
+      }
+      .fc-intro-sub {
+        position: absolute;
+        left: var(--fc-text-x);
+        width: calc(100% - var(--fc-text-x));
+        top: calc(100% + 6px);
+        margin: 0;
+        color: var(--fc-ink);
+        font-family: var(--fc-body);
+        font-size: clamp(14px, 2.55vw, 18px);
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        line-height: 1.15;
+        text-transform: uppercase;
+        text-align: center;
+        opacity: 0;
+        transform: translateY(6px);
+        pointer-events: none;
+      }
+      #splash.fc-intro-sub-on .fc-intro-sub {
+        opacity: 1;
+        transform: translateY(0);
+        transition: opacity 0.28s ease, transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      .fc-intro-lines {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        pointer-events: none;
+        z-index: 2;
+      }
+      .fc-bar {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        border-radius: 999px;
+        opacity: 0;
+        will-change: transform, opacity;
+      }
+      .fc-bar-navy { background: var(--fc-ink); }
+      .fc-bar-blue { background: var(--fc-blue); }
+      .fc-bar-jade { background: var(--fc-jade); }
+      .fc-bar-h {
+        width: calc(var(--fc-logo-w) * var(--fc-cross-w));
+        height: calc(var(--fc-logo-h) * 0.23);
+        margin: calc(var(--fc-logo-h) * -0.115) 0 0 calc(var(--fc-logo-w) * var(--fc-cross-w) * -0.5);
+      }
+      .fc-bar-v {
+        width: calc(var(--fc-logo-h) * 0.23);
+        height: var(--fc-logo-h);
+        margin: calc(var(--fc-logo-h) * -0.5) 0 0 calc(var(--fc-logo-h) * -0.115);
+      }
+      .fc-bar-thin-h {
+        width: calc(var(--fc-logo-w) * var(--fc-cross-w) * 0.78);
+        height: calc(var(--fc-logo-h) * 0.09);
+        margin: calc(var(--fc-logo-h) * -0.045) 0 0 calc(var(--fc-logo-w) * var(--fc-cross-w) * -0.39);
+      }
+      .fc-bar-thin-v {
+        width: calc(var(--fc-logo-h) * 0.085);
+        height: calc(var(--fc-logo-h) * 0.72);
+        margin: calc(var(--fc-logo-h) * -0.36) 0 0 calc(var(--fc-logo-h) * -0.0425);
+      }
+      .fc-from-left  { transform: translateX(calc(-50vw - 80%)); }
+      .fc-from-right { transform: translateX(calc(50vw + 80%)); }
+      .fc-from-top   { transform: translateY(calc(-50vh - 80%)); }
+      .fc-from-bot   { transform: translateY(calc(50vh + 80%)); }
+      .fc-from-bl    { transform: translate(-55vw, 48vh) rotate(-38deg); }
+      .fc-from-tr    { transform: translate(52vw, -42vh) rotate(-18deg); }
+      #splash.fc-intro-play .fc-bar {
+        animation: fc-bar-in 0.56s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+      #splash.fc-intro-play .fc-s1 { animation-delay: 0.00s; }
+      #splash.fc-intro-play .fc-s2 { animation-delay: 0.04s; }
+      #splash.fc-intro-play .fc-s3 { animation-delay: 0.07s; }
+      #splash.fc-intro-play .fc-s4 { animation-delay: 0.10s; }
+      #splash.fc-intro-play .fc-s5 { animation-delay: 0.11s; }
+      #splash.fc-intro-play .fc-s6 { animation-delay: 0.14s; }
+      #splash.fc-intro-play .fc-s7 { animation-delay: 0.16s; }
+      #splash.fc-intro-play .fc-s8 { animation-delay: 0.19s; }
+      #splash.fc-intro-cross .fc-intro-lines {
+        opacity: 0;
+        transition: opacity 0.2s ease 0.04s;
+      }
+      @keyframes fc-bar-in {
+        0%   { opacity: 0; }
+        16%  { opacity: 1; }
+        100% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+      }
+      #splash.fc-intro-play .fc-s5 {
+        animation-name: fc-bar-in-swoosh-g;
+      }
+      #splash.fc-intro-play .fc-s4 {
+        animation-name: fc-bar-in-swoosh-b;
+      }
+      @keyframes fc-bar-in-swoosh-g {
+        0%   { opacity: 0; }
+        16%  { opacity: 1; }
+        100% { transform: translate(-12%, 22%) rotate(-38deg); opacity: 1; }
+      }
+      @keyframes fc-bar-in-swoosh-b {
+        0%   { opacity: 0; }
+        16%  { opacity: 1; }
+        100% { transform: translate(10%, 8%) rotate(-8deg); opacity: 1; }
+      }
+      .fc-intro-swoosh {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: calc(var(--fc-logo-w) * var(--fc-cross-w));
+        height: var(--fc-logo-h);
+        transform: translate(-50%, -50%);
+        overflow: visible;
+        pointer-events: none;
+      }
+      .fc-swoosh-path {
+        stroke-dasharray: 160;
+        stroke-dashoffset: 160;
+        opacity: 0;
+      }
+      #splash.fc-intro-play .fc-swoosh-path {
+        animation: fc-swoosh-draw 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.12s forwards;
+      }
+      @keyframes fc-swoosh-draw {
+        0%   { stroke-dashoffset: 160; opacity: 0; }
+        20%  { opacity: 1; }
+        100% { stroke-dashoffset: 0; opacity: 1; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .fc-intro-lines { display: none; }
+        .fc-intro-logo {
+          opacity: 1 !important;
+          transform: none !important;
+          clip-path: none !important;
+          -webkit-clip-path: none !important;
+          transition: none !important;
+        }
+        .fc-intro-sub {
+          opacity: 1 !important;
+          transform: none !important;
+          transition: none !important;
+        }
       }
       /* Ocultar scrollbar en móvil */
       ::-webkit-scrollbar { width: 4px; height: 4px; }
@@ -207,13 +381,37 @@
     </style>
   </head>
   <body>
-    <!-- Splash screen -->
-    <div id="splash">
-      <div class="splash-logo">
-        <img src="%PUBLIC_URL%/brand/farmacapital-logo-full.png?v=6" srcset="%PUBLIC_URL%/brand/farmacapital-logo-full@1x.png?v=6 812w, %PUBLIC_URL%/brand/farmacapital-logo-full.png?v=6 1623w" sizes="320px" alt="FarmaCapital" decoding="async" />
+    <!-- Intro FarmaCapital: líneas → cruz oficial → cortinilla del wordmark -->
+    <div id="splash" role="img" aria-label="FarmaCapital" aria-busy="true">
+      <div class="fc-intro-lines" aria-hidden="true">
+        <span class="fc-bar fc-bar-navy fc-bar-h fc-from-left fc-s1"></span>
+        <span class="fc-bar fc-bar-navy fc-bar-h fc-from-right fc-s2"></span>
+        <span class="fc-bar fc-bar-navy fc-bar-v fc-from-top fc-s3"></span>
+        <span class="fc-bar fc-bar-blue fc-bar-thin-h fc-from-right fc-s4"></span>
+        <span class="fc-bar fc-bar-jade fc-bar-thin-h fc-from-bl fc-s5"></span>
+        <span class="fc-bar fc-bar-navy fc-bar-v fc-from-bot fc-s6"></span>
+        <span class="fc-bar fc-bar-blue fc-bar-thin-v fc-from-top fc-s7"></span>
+        <span class="fc-bar fc-bar-jade fc-bar-thin-v fc-from-bot fc-s8"></span>
+        <svg class="fc-intro-swoosh" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" focusable="false">
+          <path class="fc-swoosh-path fc-swoosh-blue" d="M118 61 C 86 57 64 52 50 50" fill="none" stroke="#054ABC" stroke-width="5.2" stroke-linecap="round" />
+          <path class="fc-swoosh-path fc-swoosh-jade" d="M14 112 C 28 84 40 62 50 50" fill="none" stroke="#02A158" stroke-width="5.2" stroke-linecap="round" />
+        </svg>
       </div>
-      <div class="splash-sub">Farmacia & Salud</div>
-      <div class="splash-loader"><div class="splash-loader-bar"></div></div>
+      <div class="fc-intro-stage">
+        <img
+          class="fc-intro-logo"
+          src="%PUBLIC_URL%/brand/farmacapital-logo-full.png?v=6"
+          srcset="%PUBLIC_URL%/brand/farmacapital-logo-full@1x.png?v=6 812w, %PUBLIC_URL%/brand/farmacapital-logo-full.png?v=6 1623w"
+          sizes="(max-width: 480px) calc(100vw - 44px), (max-width: 1100px) 62vw, 680px"
+          alt="FarmaCapital"
+          width="1623"
+          height="358"
+          decoding="sync"
+          fetchpriority="high"
+          draggable="false"
+        />
+        <p class="fc-intro-sub">Farmacia &amp; Salud</p>
+      </div>
     </div>
 
     <noscript>Para usar FarmaCapital necesitas activar JavaScript en tu navegador.</noscript>
@@ -227,16 +425,67 @@
             .catch(e => console.warn('SW error:', e));
         });
       }
-      // Ocultar splash. Antes habia un setTimeout de 1200 ms que hacia
-      // esperar al usuario aunque React ya estuviera listo. Ahora lo
-      // llama React al montar (src/index.js) y 'load' queda de respaldo.
-      window.__fcOcultarSplash = function () {
-        const splash = document.getElementById('splash');
-        if (!splash || splash.classList.contains('hide')) return;
-        splash.classList.add('hide');
-        setTimeout(() => splash.remove(), 320);
-      };
-      window.addEventListener('load', () => window.__fcOcultarSplash());
+      // Intro: React (src/index.js) y 'load' solo avisan que la app está lista.
+      // Si llegan antes, se espera la secuencia mínima. Si tardan, el logo
+      // completo se queda en pantalla y el desvanecido ocurre al estar listos.
+      (function () {
+        var splash = document.getElementById('splash');
+        var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        var appReady = false;
+        var sequenceDone = false;
+        var hiding = false;
+
+        function ocultar() {
+          if (hiding || !splash || splash.classList.contains('hide')) return;
+          if (!sequenceDone) return;
+          if (!appReady) return;
+          hiding = true;
+          splash.setAttribute('aria-busy', 'false');
+          splash.classList.add('hide');
+          setTimeout(function () {
+            if (splash && splash.parentNode) splash.remove();
+          }, 380);
+        }
+
+        window.__fcOcultarSplash = function () {
+          appReady = true;
+          ocultar();
+        };
+
+        function terminarSecuencia() {
+          sequenceDone = true;
+          ocultar();
+        }
+
+        function iniciar() {
+          if (!splash) {
+            sequenceDone = true;
+            return;
+          }
+          if (reduced) {
+            splash.classList.add('fc-intro-reduced', 'fc-intro-cross', 'fc-intro-reveal', 'fc-intro-sub-on');
+            setTimeout(terminarSecuencia, 280);
+            return;
+          }
+          splash.offsetWidth;
+          splash.classList.add('fc-intro-play');
+          setTimeout(function () { splash.classList.add('fc-intro-cross'); }, 500);
+          setTimeout(function () { splash.classList.add('fc-intro-reveal'); }, 740);
+          setTimeout(function () { splash.classList.add('fc-intro-sub-on'); }, 1320);
+          setTimeout(terminarSecuencia, 2260);
+        }
+
+        iniciar();
+
+        window.addEventListener('load', function () {
+          window.__fcOcultarSplash();
+        });
+        setTimeout(function () {
+          appReady = true;
+          sequenceDone = true;
+          ocultar();
+        }, 10000);
+      })();
     </script>
   </body>
 </html>
