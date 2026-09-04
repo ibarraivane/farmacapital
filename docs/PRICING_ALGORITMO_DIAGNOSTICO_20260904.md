@@ -8,7 +8,13 @@ No se aplicó ningún cambio en Supabase.
 
 ---
 
-## 1. Venta sugerida: el mercado (el más barato) manda
+## 1. Venta sugerida (antes / ahora)
+
+**Antes:** ancla = `min` y `ceil(min * 0.98)`. El piso no subía el precio en Referencias.
+
+**Ahora (este PR):** ancla = percentil 40, al mercado (factor 1), piso de markup sí manda. Si piso > techo → `revisar_compra`. Rappi sigue en promedio con factor 0.98.
+
+Detalle del bug que había:
 
 [`src/lib/preciosReferencia.js`](../src/lib/preciosReferencia.js) `calcPrecioSugeridoVenta`:
 

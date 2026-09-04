@@ -699,9 +699,228 @@ lineas Equilibrio = {len(equilibrio)}
 NO se escribio nada en Supabase.
 Regenerar: python3 scripts/diagnostico_pricing_20260904.py
 """
+    # --- diagnóstico accionable + SQL (EAN exactos / duplicados) ----------
+    ean_ocupado = {}
+    for p in catalogo:
+        e = digits(p.get("codigo_barras") or "")
+        if e:
+            ean_ocupado.setdefault(e, []).append(p.get("sku") or "")
+
+    cand_por_sku = {c["sku"]: c for c in candidatos}
+
+    def percentil_py(xs, p=0.4):
+        ys = sorted(x for x in xs if x and x > 0)
+        if not ys:
+            return None
+        if len(ys) == 1:
+            return ys[0]
+        k = (len(ys) - 1) * p
+        lo, hi = math.floor(k), math.ceil(k)
+        if lo == hi:
+            return ys[lo]
+        return ys[lo] * (hi - k) + ys[hi] * (k - lo)
+
+    diag = []
+    sql_ean = []
+    for row in item_rows:
+        sku = row["sku"]
+        cand = cand_por_sku.get(sku, {})
+        ean_prop = digits(cand.get("ean_propuesto") or "")
+        aceptable = cand.get("aceptable") or ""
+        ocupado_por = [s for s in ean_ocupado.get(ean_prop, []) if s and s != sku]
+        clase_prop = clasificar_ean(ean_prop)["clase"] if ean_prop else ""
+
+        accion_ean = "ok"
+        if not row["ean"]:
+            if aceptable in {"candidato_ean_ticket", "candidato_clave_levic"} and ean_prop:
+                if ocupado_por:
+                    accion_ean = "ean_propuesto_ya_usado"
+                elif clase_prop == "prefijo_650_interno":
+                    accion_ean = "revisar_650"
+                elif clase_prop in {"gs1_mx", "gs1_otro_pais"}:
+                    accion_ean = "asignar_ean"
+                else:
+                    accion_ean = "revisar_ean"
+            else:
+                accion_ean = "capturar_al_recibir"
+        elif row["ean_clase"] == "prefijo_650_interno":
+            accion_ean = "marcar_interno_650"
+        elif row["ean_clase"] == "checksum_invalido":
+            accion_ean = "corregir_checksum"
+        elif row["ean_clase"] == "gtin14_caja":
+            accion_ean = "usar_ean13_unidad"
+        elif row["ean"] in {d["ean"] for d in dupes}:
+            accion_ean = "fusionar_duplicado"
+
+        refs = []
+        if fnum(row["precio_similares"]):
+            refs.append(fnum(row["precio_similares"]))
+        if fnum(row["precio_fahorro"]):
+            refs.append(fnum(row["precio_fahorro"]))
+        ancla = percentil_py(refs, 0.4) if refs else None
+        costo = fnum(row["costo"])
+        piso = fnum(row["piso"])
+        precio = fnum(row["precio"])
+        techo = math.ceil(ancla) if ancla else None
+        sugerido_nuevo = None
+        alerta_precio = ""
+        if ancla:
+            sugerido_nuevo = math.ceil(ancla)
+            if piso and sugerido_nuevo < piso:
+                sugerido_nuevo = int(piso)
+                if techo and piso > techo:
+                    alerta_precio = "piso_gt_techo"
+        accion_precio = "sin_ref_mercado"
+        if sugerido_nuevo and precio:
+            if alerta_precio == "piso_gt_techo":
+                accion_precio = "revisar_compra"
+            elif sugerido_nuevo - precio >= 2:
+                accion_precio = "subir"
+            elif precio - sugerido_nuevo >= 2:
+                accion_precio = "bajar"
+            else:
+                accion_precio = "mantener"
+
+        accion_datos = []
+        if row["pa_sucio"] == "si":
+            accion_datos.append("limpiar_pa")
+        if not str(row["concentracion"]).strip() and row["principio_activo"]:
+            accion_datos.append("llenar_concentracion")
+        if not row["laboratorio_inferido"]:
+            accion_datos.append("capturar_laboratorio")
+
+        if accion_ean == "asignar_ean" and ean_prop:
+            sql_ean.append((sku, ean_prop, cand.get("confirmado_por") or "", cand.get("nombre") or row["nombre"]))
+
+        diag.append({
+            **row,
+            "ean_propuesto": ean_prop,
+            "accion_ean": accion_ean,
+            "sugerido_nuevo": sugerido_nuevo if sugerido_nuevo is not None else "",
+            "alerta_precio": alerta_precio,
+            "accion_precio": accion_precio,
+            "accion_datos": "|".join(accion_datos),
+            "accion_principal": (
+                "revisar_compra" if accion_precio == "revisar_compra"
+                else accion_ean if accion_ean not in {"ok", "marcar_interno_650"}
+                else accion_precio if accion_precio != "sin_ref_mercado"
+                else (accion_datos[0] if accion_datos else "ok")
+            ),
+        })
+
+    write_csv(
+        OUT / "07_diagnostico_sku.csv",
+        diag,
+        list(item_rows[0].keys()) + [
+            "ean_propuesto", "accion_ean", "sugerido_nuevo", "alerta_precio",
+            "accion_precio", "accion_datos", "accion_principal",
+        ] if item_rows else [],
+    )
+
+    # SQL EAN exactos
+    sql_path = ROOT / "sql" / "patch_barcodes_exactos_20260904.sql"
+    lines = [
+        "-- EAN exactos: clave Equilibrio→Levic o EAN de ticket.",
+        "-- Solo WHERE codigo_barras IS NULL. No pisa códigos existentes.",
+        "-- Generado por scripts/diagnostico_pricing_20260904.py",
+        "begin;",
+        "",
+    ]
+    for sku, ean, via, nombre in sql_ean:
+        nom = nombre.replace("'", "''")
+        via_s = via.replace("'", "''")
+        lines.append(
+            f"-- {nom} · {via_s}\n"
+            f"update public.productos\n"
+            f"   set codigo_barras = '{ean}'\n"
+            f" where sku = '{sku}'\n"
+            f"   and (codigo_barras is null or btrim(codigo_barras) = '')\n"
+            f"   and not exists (\n"
+            f"     select 1 from public.productos x\n"
+            f"      where x.codigo_barras = '{ean}' and x.sku <> '{sku}'\n"
+            f"   );"
+        )
+    lines += ["", "commit;", ""]
+    sql_path.write_text("\n".join(lines), encoding="utf-8")
+
+    # SQL duplicados: deja el SKU con más stock / nombre más largo
+    dupe_sql = ROOT / "sql" / "patch_barcodes_duplicados_20260904.sql"
+    dlines = [
+        "-- Libera EAN duplicados: se queda el SKU con más stock (empate: nombre más largo).",
+        "begin;",
+        "",
+    ]
+    by_ean = defaultdict(list)
+    for p in catalogo:
+        e = digits(p.get("codigo_barras") or "")
+        if e:
+            by_ean[e].append(p)
+    n_lib = 0
+    for ean, ps in sorted(by_ean.items()):
+        if len(ps) < 2:
+            continue
+        ps_sorted = sorted(
+            ps,
+            key=lambda x: (-(fnum(x.get("stock")) or 0), -len(x.get("nombre") or "")),
+        )
+        keep = ps_sorted[0].get("sku")
+        for extra in ps_sorted[1:]:
+            sku = extra.get("sku")
+            n_lib += 1
+            dlines.append(
+                f"-- {ean} se queda en {keep}; libera {sku} ({extra.get('nombre') or ''})\n"
+                f"update public.productos set codigo_barras = null where sku = '{sku}' and codigo_barras = '{ean}';"
+            )
+    dlines += ["", "commit;", ""]
+    dupe_sql.write_text("\n".join(dlines), encoding="utf-8")
+
+    lab_sql = ROOT / "sql" / "patch_laboratorio_columna_20260904.sql"
+    lab_sql.write_text(
+        """-- Columna laboratorio (distinta de marca). Idempotente.
+begin;
+alter table if exists public.productos
+  add column if not exists laboratorio text;
+
+-- Backfill desde FarmaLive (ticket 9861) por EAN exacto, solo si está vacío.
+"""
+        + "\n".join(
+            f"update public.productos set laboratorio = '{str(t['laboratorio']).replace(chr(39), chr(39)*2)}' "
+            f"where codigo_barras = '{t['ean']}' "
+            f"and (laboratorio is null or btrim(laboratorio) = '');"
+            for t in tickets_ean
+            if t.get("laboratorio") and t.get("ean") and "farmalive" in t["fuente"]
+        )
+        + """
+
+commit;
+""",
+        encoding="utf-8",
+    )
+
+    counts = Counter(d["accion_principal"] for d in diag)
+    md = ["# Diagnóstico SKU por SKU — 2026-09-04", "", "Fuente: `07_diagnostico_sku.csv` (626 filas).", "", "## Acciones", ""]
+    md.append("| accion_principal | SKUs |")
+    md.append("|---|---|")
+    for k, v in counts.most_common():
+        md.append(f"| `{k}` | {v} |")
+    md += [
+        "",
+        f"SQL EAN a aplicar (revisar): `{sql_path.name}` · {len(sql_ean)} updates.",
+        f"SQL duplicados: `{dupe_sql.name}` · {n_lib} liberaciones.",
+        "SQL laboratorio: `patch_laboratorio_columna_20260904.sql`.",
+        "",
+        "No se escribió en Supabase. Corre los SQL en el Editor cuando los aceptes.",
+    ]
+    (OUT / "07_resumen_acciones.md").write_text("\n".join(md), encoding="utf-8")
+
+    resumen += (
+        f"\nacciones principales: {dict(counts)}\n"
+        f"sql_ean_updates={len(sql_ean)}  sql_dupes_libera={n_lib}\n"
+    )
     (OUT / "00_resumen.txt").write_text(resumen, encoding="utf-8")
     print(resumen)
 
 
 if __name__ == "__main__":
     main()
+

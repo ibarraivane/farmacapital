@@ -137,7 +137,8 @@ test("el promedio no persigue al más barato; el piso de patente es 20%", () => 
   const out = calcPrecioSugeridoRappi(patente, r);
   expect(out.refPromedio).toBeCloseTo(90, 5);
   expect(out.sugerido).toBe(100);
-  expect(out.nota).toMatch(/20%/);
+  expect(out.alerta).toBe("piso_gt_techo");
+  expect(out.nota).toMatch(/piso/i);
 });
 
 test("genérico no baja de 40% de margen sobre venta", () => {
@@ -145,7 +146,8 @@ test("genérico no baja de 40% de margen sobre venta", () => {
   const r = refs({ rappi_gdl: 60, similares: 62 });
   const out = calcPrecioSugeridoRappi(gen, r);
   expect(out.sugerido).toBe(84);
-  expect(out.nota).toMatch(/40%/);
+  expect(out.alerta).toBe("piso_gt_techo");
+  expect(out.nota).toMatch(/piso/i);
 });
 
 test("Lizovag sin foto ni scrape no entra a En Rappi", () => {

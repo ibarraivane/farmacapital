@@ -38,3 +38,6 @@ lineas Equilibrio = 481
 
 NO se escribio nada en Supabase.
 Regenerar: python3 scripts/diagnostico_pricing_20260904.py
+
+acciones principales: {'limpiar_pa': 101, 'llenar_concentracion': 170, 'revisar_compra': 18, 'mantener': 3, 'capturar_al_recibir': 38, 'ok': 45, 'capturar_laboratorio': 100, 'asignar_ean': 94, 'subir': 17, 'corregir_checksum': 8, 'bajar': 3, 'revisar_ean': 13, 'fusionar_duplicado': 15, 'ean_propuesto_ya_usado': 1}
+sql_ean_updates=96  sql_dupes_libera=10

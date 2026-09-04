@@ -14,7 +14,7 @@ import {
   diffPctCompra,
   diffPctVenta,
   calcMejorCompra,
-  calcPrecioSugeridoVenta,
+  calcPrecioSugeridoReferencias,
   listarSubidasSugeridas,
   accionPrecioSugerido,
   calcMargenVenta,
@@ -158,9 +158,9 @@ const COL_LABELS_VENTA = {
 };
 
 function resolveSugeridoFila(producto, refs, overrides, sugeridoFamilia = null) {
-  const base = calcPrecioSugeridoVenta(producto, refs);
+  const base = calcPrecioSugeridoReferencias(producto, refs);
   const ov = overrides[producto.id];
-  let sugerido = ov?.precio ?? base.sugeridoCompetitivo ?? base.sugerido;
+  let sugerido = ov?.precio ?? base.sugerido;
   if (ov == null && sugeridoFamilia != null && Number.isFinite(sugeridoFamilia)) {
     sugerido = Math.max(sugerido ?? 0, sugeridoFamilia) || sugeridoFamilia;
   }
@@ -206,9 +206,9 @@ function resolveSugeridoFila(producto, refs, overrides, sugeridoFamilia = null) 
 /** Sugeridos de venta alineados por tamaño dentro de cada familia (ml/g). */
 function mapaSugeridosPorTamano(productos, refsByProduct, overrides) {
   const filas = (productos || []).map((p) => {
-    const base = calcPrecioSugeridoVenta(p, refsByProduct?.[p.id] || {});
+    const base = calcPrecioSugeridoReferencias(p, refsByProduct?.[p.id] || {});
     const ov = overrides?.[p.id];
-    const sugerido = ov?.precio ?? base.sugeridoCompetitivo ?? base.sugerido;
+    const sugerido = ov?.precio ?? base.sugerido;
     return { producto: p, sugerido };
   });
   const out = new Map();
@@ -709,7 +709,7 @@ function TablaVenta({
             >
               Otros
             </th>
-            <th style={{ ...thS("refMin"), textAlign: "right" }}>Ref. mín.</th>
+            <th style={{ ...thS("refMin"), textAlign: "right" }}>Ref. mercado</th>
             <th style={{ ...thS("sugerido"), textAlign: "right" }}>Sugerido</th>
             <th style={{ ...thS("margenEst"), textAlign: "right" }} title="Margen estimado del sugerido">Marg. est.</th>
             <th style={thS("nota")}>Nota</th>
@@ -1062,7 +1062,7 @@ export default function PreciosReferenciaModule() {
       if (mejor?.masBaratoQueTuCosto) compraOportunidad += 1;
       if (!FUENTES_COMPRA.some((f) => refs[f]?.precio != null)) sinRefCompra += 1;
 
-      const { refMin } = calcPrecioSugeridoVenta(p, refs);
+      const { refMin } = calcPrecioSugeridoReferencias(p, refs);
       if (refMin == null) sinRefVenta += 1;
       else if ((parseFloat(p.precio) || 0) > refMin) ventaCaro += 1;
     }
@@ -1278,7 +1278,7 @@ export default function PreciosReferenciaModule() {
       showToast("Error: " + error.message, "error");
       return;
     }
-    const calc = calcPrecioSugeridoVenta(producto, refsByProduct[producto.id] || {});
+    const calc = calcPrecioSugeridoReferencias(producto, refsByProduct[producto.id] || {});
     const next = marcarRevisados(revision, [producto.id], { [producto.id]: { huella: huellaMercado(calc) } });
     setRevision(next);
     await guardarRevisionPrecios(supabase, next);
@@ -1295,7 +1295,7 @@ export default function PreciosReferenciaModule() {
   };
 
   const subidas = useMemo(
-    () => listarSubidasSugeridas(productos, refsByProduct, calcPrecioSugeridoVenta).filter((s) => (
+    () => listarSubidasSugeridas(productos, refsByProduct, calcPrecioSugeridoReferencias).filter((s) => (
       esPendienteRevision({
         botTs: instanteBotVentaDe(refsByProduct[s.producto.id] || {}),
         revisado: revision.porId[s.producto.id],
@@ -1306,7 +1306,7 @@ export default function PreciosReferenciaModule() {
   );
 
   const aceptarPrecio = async (producto) => {
-    const calc = calcPrecioSugeridoVenta(producto, refsByProduct[producto.id] || {});
+    const calc = calcPrecioSugeridoReferencias(producto, refsByProduct[producto.id] || {});
     const next = marcarRevisados(revision, [producto.id], { [producto.id]: { huella: huellaMercado(calc) } });
     setRevision(next);
     await guardarRevisionPrecios(supabase, next);

@@ -54,6 +54,8 @@ python3 scripts/diagnostico_pricing_20260904.py
 | `04_cruce_tickets_ean.csv` | 623 líneas con EAN de Nadro/Levic/FarmaLive/Bodega/Surtidor/Cityfarma/Exprezo |
 | `05_grupos_molecula.csv` | PA+conc+forma; `dispersion_precio_pct` |
 | `06_barcodes_candidatos.csv` | 148 sin código. `aceptado` vacío. **No aplicar en lote.** |
+| `07_diagnostico_sku.csv` | **626 filas** con `accion_ean`, `accion_precio`, `accion_principal` |
+| `07_resumen_acciones.md` | Conteos por acción |
 
 ---
 

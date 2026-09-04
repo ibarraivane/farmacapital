@@ -26,19 +26,25 @@ Función objetivo declarada por el dueño: **vender sobre todo, y ganar lo más 
 
 ---
 
-## Qué no tocar todavía
+## Qué ya se cambió en código (este PR)
 
-- `productos.precio` / `productos.costo`
-- Aplicar `06_barcodes_candidatos.csv` en lote (`aceptado` va vacío a propósito)
-- `cantidadSugerida` en reabasto
-- Borrar códigos `650…` (la pistola sí los lee hoy)
+- Referencias: percentil 40 + piso de markup. Ya no sugiere `min − 2%`.
+- Si piso > mercado → `revisar_compra` (no persigue Similares).
+- Alta Recibir: 60% / 25% **sobre costo**.
+- SQL listo (tú lo corres en Supabase): `sql/patch_barcodes_exactos_20260904.sql` (96 EAN), `patch_barcodes_duplicados_20260904.sql`, `patch_laboratorio_columna_20260904.sql`.
+
+## Qué no se aplicó solo
+
+- `UPDATE productos.precio` masivo (el sugerido vive en la UI; tú das Aplicar)
+- Los 38 IFC sin EAN
+- Borrar códigos `650…`
 
 ---
 
 ## Hallazgos que el código confirma
 
-1. Referencias ancla en `Math.min` de competencia y sugiere `ceil(min * 0.98)`. El piso se calcula pero la UI usa `sugeridoCompetitivo` ([`src/PreciosReferenciaModule.jsx`](../src/PreciosReferenciaModule.jsx) `resolveSugeridoFila`). Rappi sí respeta piso (`respetarPisoMargen: true`).
-2. Hay **tres “60%”**: markup sobre costo (piso clásico), 40% margen sobre venta (Rappi), y **60% sobre venta** en alta de Recibir ([`src/lib/recepcionAlta.js`](../src/lib/recepcionAlta.js)) → $10 de costo se vuelve $16, $16.67 o **$25**.
+1. **Ya corregido:** Referencias ya no usa `min − 2%`. Queda percentil 40 + piso.
+2. **Ya corregido el alta:** Recibir usa 60%/25% sobre costo. Rappi sigue con margen sobre venta (20%/40%).
 3. Dos costos: `ultima_compra` solo baja; Recibir **pisa** `productos.costo` con el ticket.
 4. Catálogo (626 SKUs, snapshot 14-ago): markup p50 = 41.4%, p75 = 60.0%. 350 SKUs en 28–45%, 183 en 55–65%. Eso es fórmula, no mercado.
 5. 148 sin EAN. **110** se pueden proponer con clave Equilibrio → portal Levic o EAN de ticket. **38** quedan (casi todos IFC Mercurio/Perilla + 3 claves Equilibrio que Levic no trae).

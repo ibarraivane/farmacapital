@@ -12,6 +12,17 @@ export const FUENTES_COMPRA_TABLA = ["exprezo", "marzam", "nadro", "levic", "far
 export const FUENTES_COMPRA_EXTRA = ["scorpion", "abarrotero", "mayoreototal"];
 export const FUENTES_COMPRA = [...FUENTES_COMPRA_TABLA, ...FUENTES_COMPRA_EXTRA];
 export const FUENTES_VENTA = ["fahorro", "similares", "otros_venta"];
+/** Referencias: percentil 40, al mercado, piso sí manda. */
+export const OPTS_REFERENCIAS_VENTA = {
+  respetarPisoMargen: true,
+  pisoMarkup: true,
+  percentil: 0.4,
+  factorPosicion: 1,
+};
+
+export function calcPrecioSugeridoReferencias(producto, refsMap, fuentes = FUENTES_VENTA) {
+  return calcPrecioSugeridoVenta(producto, refsMap, fuentes, OPTS_REFERENCIAS_VENTA);
+}
 
 /** Fila tombstone al borrar una referencia manualmente (precio NOT NULL en BD). */
 export const REFERENCIA_ANULADA_NOTA = "__anulado__";
@@ -223,7 +234,7 @@ export function precioDesdeMargen(costo, margenPct) {
   return roundPrecioVenta(c / (1 - m / 100));
 }
 
-/** Sugerido competitivo: ~2% bajo el ancla (mínimo o promedio), peso entero. */
+/** Sugerido competitivo legado: ~2% bajo el ancla. Rappi aún lo usa. */
 export function calcPrecioCompetitivo(refMin) {
   const r = parseFloat(refMin);
   if (!Number.isFinite(r) || r <= 0) return null;
@@ -234,6 +245,18 @@ export function promedioRefs(vals) {
   const nums = (vals || []).filter((v) => Number.isFinite(v) && v > 0);
   if (!nums.length) return null;
   return nums.reduce((a, b) => a + b, 0) / nums.length;
+}
+
+/** Percentil de refs > 0. p=0.4 = no anclarse al mínimo promocional. */
+export function percentilRefs(vals, p = 0.4) {
+  const xs = (vals || []).filter((v) => Number.isFinite(v) && v > 0).sort((a, b) => a - b);
+  if (!xs.length) return null;
+  if (xs.length === 1) return xs[0];
+  const k = (xs.length - 1) * p;
+  const lo = Math.floor(k);
+  const hi = Math.ceil(k);
+  if (lo === hi) return xs[lo];
+  return xs[lo] * (hi - k) + xs[hi] * (k - lo);
 }
 
 /** Margen bruto mínimo sobre venta. Patente 20%, genérico 40%. */
@@ -510,60 +533,88 @@ export function classifyProductoMargen(p) {
 
 /**
  * Precio de venta sugerido.
- * Por defecto: ~2% bajo la ref. más barata (Referencias).
- * Rappi: promedio de farmacia/calle y el piso de margen sí sube el precio
- * (patente ≥20% sobre venta, genérico ≥40%).
+ * Por defecto (Referencias): percentil 40 de refs comparables, al nivel del
+ * mercado (no −2%), y el piso de margen SÍ sube el precio.
+ * Si el piso > techo de mercado → alerta piso_gt_techo / revisar_compra
+ * (no persigue el mínimo de Similares).
+ * Rappi: pasar usarPromedio + factorPosicion 0.98 + respetarPisoMargen.
  */
 export function calcPrecioSugeridoVenta(producto, refsMap, fuentes = FUENTES_VENTA, opts = {}) {
   const precioActual = parseFloat(producto.precio) || 0;
   const margenActual = calcMargenVenta(precioActual, producto);
   const margenSugeridoEmpty = { pct: null, utilidad: null, tone: null };
   const usarPromedio = opts.usarPromedio === true;
-  const respetarPiso = opts.respetarPisoMargen === true;
+  const usarMinimo = opts.usarMinimo === true;
+  const respetarPiso = opts.respetarPisoMargen !== false;
+  const factor = Number.isFinite(Number(opts.factorPosicion)) ? Number(opts.factorPosicion) : 1;
+  const pctl = Number.isFinite(Number(opts.percentil)) ? Number(opts.percentil) : 0.4;
+
+  const empty = {
+    sugerido: null,
+    sugeridoCompetitivo: null,
+    refMin: null,
+    refPromedio: null,
+    refPercentil: null,
+    refAncla: null,
+    techo: null,
+    piso: null,
+    nota: "Sin referencias de venta",
+    alerta: null,
+    accion: null,
+    margenActual,
+    margenSugerido: margenSugeridoEmpty,
+  };
 
   const refs = refsDeFuentes(refsVentaComparables(producto, refsMap, fuentes), fuentes);
   const vals = Object.values(refs).filter((v) => Number.isFinite(v) && v > 0);
-  if (!vals.length) {
-    return {
-      sugerido: null,
-      sugeridoCompetitivo: null,
-      refMin: null,
-      refPromedio: null,
-      piso: null,
-      nota: "Sin referencias de venta",
-      alerta: null,
-      accion: null,
-      margenActual,
-      margenSugerido: margenSugeridoEmpty,
-    };
-  }
+  if (!vals.length) return empty;
 
   const refMin = Math.min(...vals);
   const refPromedio = promedioRefs(vals);
+  const refPercentil = percentilRefs(vals, pctl);
   const costo = parseFloat(producto.costo) || 0;
   const { markup } = classifyProductoMargen(producto);
   const pisoClasico = costo > 0 ? calcPriceFloor(costo, markup) : 0;
   const margenMin = respetarPiso ? margenMinimoSobreVentaPct(producto) : null;
   const pisoMargen = margenMin != null && costo > 0 ? precioDesdeMargen(costo, margenMin) : null;
-  const piso = (respetarPiso ? (pisoMargen || pisoClasico) : pisoClasico) || null;
-  const ancla = usarPromedio && refPromedio != null ? refPromedio : refMin;
+  const usarPisoMarkup = opts.pisoMarkup === true;
+  const piso = (respetarPiso
+    ? (usarPisoMarkup ? (pisoClasico || pisoMargen) : (pisoMargen || pisoClasico))
+    : pisoClasico) || null;
+
+  let ancla = refPercentil ?? refPromedio ?? refMin;
+  let anclaTxt = "percentil de mercado";
+  if (usarMinimo) {
+    ancla = refMin;
+    anclaTxt = "ref. más barata";
+  } else if (usarPromedio && refPromedio != null) {
+    ancla = refPromedio;
+    anclaTxt = "promedio";
+  }
+
+  const techo = roundPrecioVenta(ancla);
   const sugeridoCompetitivo = calcPrecioCompetitivo(ancla);
-  let sugerido = sugeridoCompetitivo;
+  const sugeridoMercado = roundPrecioVenta(ancla * factor);
+  let sugerido = sugeridoMercado;
   let usoPiso = false;
+  let pisoGtTecho = false;
   if (respetarPiso && piso && (sugerido == null || sugerido < piso)) {
     sugerido = roundPrecioVenta(piso);
     usoPiso = true;
+    if (techo != null && piso > techo) pisoGtTecho = true;
   }
   const margenSugerido = sugerido != null ? calcMargenVenta(sugerido, producto) : margenSugeridoEmpty;
-  const accion = accionPrecioSugerido(precioActual, sugerido);
-  const anclaTxt = usarPromedio ? "promedio" : "ref. más barata";
+  let accion = pisoGtTecho ? "revisar_compra" : accionPrecioSugerido(precioActual, sugerido);
 
-  let nota = `Al nivel del mercado (~2% bajo el ${anclaTxt})`;
-  let alerta = margenSugerido.tone === "debajo_costo" ? "debajo_costo"
+  let nota = `Al nivel del mercado (${anclaTxt} ${fmtPrecioRef(ancla)})`;
+  let alerta = pisoGtTecho ? "piso_gt_techo"
+    : margenSugerido.tone === "debajo_costo" ? "debajo_costo"
     : margenSugerido.tone === "debajo_piso" ? "debajo_piso"
     : null;
 
-  if (alerta === "debajo_costo") {
+  if (pisoGtTecho) {
+    nota = `Tu piso (${fmtPrecioVenta(piso)}) está arriba del mercado (${fmtPrecioRef(ancla)}). No bajes a ciegas: renegocia compra, tráficolo o no resurtas.`;
+  } else if (alerta === "debajo_costo") {
     nota = `A ${fmtPrecioVenta(sugerido)} no cubres tu costo (${fmtPrecioRef(costo)}). Revisa costo o decide margen.`;
   } else if (usoPiso && margenMin != null) {
     nota = `El ${anclaTxt} del mercado es ${fmtPrecioRef(ancla)}. Subimos a ${fmtPrecioVenta(sugerido)} para dejar ${margenMin}% de margen.`;
@@ -573,7 +624,7 @@ export function calcPrecioSugeridoVenta(producto, refsMap, fuentes = FUENTES_VEN
   } else if (accion === "subir") {
     nota = `Subir: vendes ${fmtPrecioVenta(precioActual)} y el ${anclaTxt} está en ${fmtPrecioRef(ancla)}. Puedes ir a ${fmtPrecioVenta(sugerido)}.`;
   } else if (accion === "bajar") {
-    nota = `Bajar: estás arriba del ${anclaTxt} (${fmtPrecioRef(ancla)}). Competir a ${fmtPrecioVenta(sugerido)}.`;
+    nota = `Bajar: estás arriba del ${anclaTxt} (${fmtPrecioRef(ancla)}). Mercado a ${fmtPrecioVenta(sugerido)}.`;
   } else if (accion === "mantener") {
     nota = "Tu precio ya está al nivel del mercado";
   }
@@ -583,6 +634,9 @@ export function calcPrecioSugeridoVenta(producto, refsMap, fuentes = FUENTES_VEN
     sugeridoCompetitivo,
     refMin,
     refPromedio,
+    refPercentil,
+    refAncla: ancla,
+    techo,
     piso,
     nota,
     alerta,
