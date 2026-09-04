@@ -332,8 +332,8 @@ No inventes gráficas con librería. `div` + %. Móvil: `useMediaQuery("(max-wid
 
 Con los resultados del SQL delante. Respuesta corta + número que la respalda. Si no puedes, la pregunta sigue abierta y no se escribe código de esa parte.
 
-1. **¿Desde qué fecha `fondo_inicial` es confiable?**  
-   La consulta 2 te da el primer corte con fondo > 0 y el patrón por mes. ¿Cortamos el flujo de caja en esa fecha, o hay un tramo posterior en el que volvieron a dejar 0 y hay que saltárselo?
+1. **¿Desde qué fecha `fondo_inicial` es confiable?** — **CERRADA (Parte 8.6).**  
+   `caja_sesiones.fondo_contado` > 0 desde el **18-ago-2026**. El RPC lo copia al corte. Flujo de caja corta ahí. El fondo que crece ($282 → $3,881) es cambio que se quedó, no venta.
 
 2. **¿Las consultas (`pedidos.tipo = 'consulta'`) van dentro de las ventas brutas del P&L o en un renglón aparte?**  
    Hoy el Resumen las mezcla y a veces las vuelve a sumar (`PROMPT_CURSOR_RENTABILIDAD.md` §1.5). El consultorio no tiene COGS de mercancía. ¿Ingreso operativo aparte, debajo de utilidad bruta de farmacia?
@@ -461,9 +461,21 @@ Al lado de la utilidad operativa (y del “Quedó” del flujo) va un indicador 
 
 Si falta alguno: el número va en gris / ámbar con *“captura incompleta — no es que hayas gastado $0”*. No se publica un % de rentabilidad que parezca limpio.
 
-### 8.6 Sigue faltando (yo no tengo tu Supabase)
+### 8.6 Fondo: la serie de sesiones ya cierra la fecha (pregunta 1)
 
-Las consultas **2** y **4** del mismo archivo. Sin ellas no hay fecha de corte de `fondo_inicial` ni go/no-go del P&L. Quien sacó la 9 puede sacar esas dos. Pégalas; no las pidas a un agente sin acceso a la base.
+Listado vivo de `caja_sesiones` (no es `cortes_caja`; es mejor). Al cortar, `registrar_corte_caja` copia `fondo_contado` → `cortes.fondo_inicial` (`sql/patch_caja_sesiones_vendedor.sql:519`).
+
+- Primera sesión con fondo: **18-ago-2026** (id 3, Erika vespertino, $282, corte 5).
+- Desde entonces **ninguna** sesión tiene fondo 0. Sube casi todos los días: $282 → $3,881.50 (Rene, 4-sep, sesión 32 todavía abierta).
+- El flujo de caja **corta el 18-ago-2026**. Antes de eso, `fondo_inicial` del corte vale 0 y `total_general` cuenta el cambio como venta.
+- Ese crecimiento del fondo **no es venta**. Es efectivo que se quedó en el cajón. `total_general` ya lo resta; no sumes `fondo_contado` como “entró”.
+- Notas sucias, no bloquean: sesión 6 (19-ago, Mary, 22:45–22:50, 5 minutos); sesión 23 (29-ago 15:10 → 31-ago 09:57, fin de semana). Domingo 23 y 30-ago sin sesión.
+
+Pregunta 1: **cerrada**. Piso del flujo = `2026-08-18`.
+
+### 8.7 Sigue faltando: solo la consulta 4
+
+Cobertura de costo de lo **vendido** (`veredicto` / `cobertura_algun_costo_pct`). Sin eso no hay go/no-go del P&L. No pegas tablas markdown en el SQL Editor — por eso salió `syntax error at or near "|"`.
 
 ---
 
