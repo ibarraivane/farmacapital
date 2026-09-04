@@ -9,7 +9,7 @@ Los dos primeros ya los corriste (4-sep). Siguiente: códigos de barras exactos.
    Afrin 113, Amikacina 55, Penipot 31, Clindamicina 135, Listerine 97, Pedialyte 35, Ibupro-Cafe 41, Tropharma 62, Dac 66, Grisi 33.  
    Backup: `productos_precio_backup_20260904`.
 
-1b. **Subidas Similares (misma caja) — 3 SKUs** — acéptalo y córrelo  
+1b. **Subidas Similares (misma caja) — 3 SKUs** — ya corrido  
    `patch_precios_venta_subidas_similares_20260904.sql`  
    Cloxan 15, Alopurinol 35, Zukedib 40.  
    Backup: `productos_precio_backup_20260904_sim`.
@@ -32,7 +32,7 @@ Los dos primeros ya los corriste (4-sep). Siguiente: códigos de barras exactos.
 
 | Lote | SKUs | Qué hacer |
 |---|---|---|
-| Seguro (ya corrido) | 10 | Confirmar en Inventario / POS |
+| Seguro (ya corrido) | 13 | 10 del primer lote + Cloxan 15, Alopurinol 35, Zukedib 40 |
 | Revisar compra | 12 | **No** pegar a ciegas. Piso arriba de Similares (XL-3, Electrolit, Desenfriol, Contac, Flanax…). Decides: renegociar, no resurtir, o dejar el piso y verse caro |
 | Resto del catálogo | ~580 | Siguen en fórmula ×1.30 / ×1.60. Falta mercado de **la misma presentación** y ventas 12 meses para KVI |
 | Outliers | 39 | **No correr** `patch_precios_venta_outliers_NO_CORRER_20260904.sql` (otra presentación: Amlodipino $12→$282) |

@@ -1,4 +1,5 @@
 -- Subidas aceptadas 4-sep-2026: misma caja + nombre de Similares.
+-- Aplicado en Supabase (dueño, 4-sep).
 -- Cloxan $15, Alopurinol $35, Zukedib $40.
 -- Ibupro-Cafe $41 y Tropharma $62 ya estaban en patch_precios_venta_aplicar_20260904.sql
 -- Correr en el Editor de Supabase. No baja ningún precio.
