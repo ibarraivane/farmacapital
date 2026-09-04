@@ -21,7 +21,7 @@ Los dos primeros ya los corriste (4-sep). Siguiente: códigos de barras exactos.
 
 4. **Laboratorio**  
    `patch_laboratorio_columna_20260904.sql`  
-   Columna nueva + backfill desde FarmaLive por EAN.
+   Un bloque (no 276 updates). Crea la columna y llena FarmaLive por EAN, con o sin dígito verificador.
 
 ## Revisión de precios — no es un lote ciego
 

@@ -1,284 +1,309 @@
--- Columna laboratorio (distinta de marca). Idempotente.
-begin;
-alter table if exists public.productos
-  add column if not exists laboratorio text;
+-- Columna laboratorio (distinta de marca) + backfill FarmaLive.
+-- El SQL anterior tumba el Editor: begin + ALTER + 276 updates.
+-- Aquí es UN bloque: crea la columna si falta y llena en un solo update.
+-- FarmaLive a veces manda EAN sin dígito (650240010712 vs 6502400107128).
 
--- Backfill desde FarmaLive (ticket 9861) por EAN exacto, solo si está vacío.
-update public.productos set laboratorio = 'BAYER OTC' where codigo_barras = '7502276040610' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'GENOMMA LAB' where codigo_barras = '650240017100' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'LAB HIGIA' where codigo_barras = '7501369200016' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'RB HEALTH' where codigo_barras = '7506460101231' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'KSK' where codigo_barras = '354312225164' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'RB HEALTH' where codigo_barras = '7501058715487' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'RB HEALTH' where codigo_barras = '7506460101521' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'KSK' where codigo_barras = '7502250343072' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BAYER OTC' where codigo_barras = '7501050613453' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BAYER OTC' where codigo_barras = '7501008427330' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'RB HEALTH' where codigo_barras = '7501058792792' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'KSK' where codigo_barras = '354312225027' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'OPELLA' where codigo_barras = '7501165000230' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'OPELLA' where codigo_barras = '7501328979502' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'OPELLA' where codigo_barras = '7501328979496' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'LAB HORMONA' where codigo_barras = '7501037907124' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'LAB PISA' where codigo_barras = '7502234762417' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'GENOMMA LAB' where codigo_barras = '650240017094' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'CHURCH & DWIGHTND' where codigo_barras = '7501080950139' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BRULUART' where codigo_barras = '7502208894779' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BRULUART' where codigo_barras = '7501537163266' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'PG PERF' where codigo_barras = '7501065095978' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'CHURCH & DWIGHTND' where codigo_barras = '7501080953017' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'GENOMMA LAB' where codigo_barras = '650240015366' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'GENOMMA LAB' where codigo_barras = '650240010538' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'GENOMMA LAB' where codigo_barras = '650240007408' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'HALEON' where codigo_barras = '7501065060891' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'SANFER' where codigo_barras = '7501385491146' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BRULUART' where codigo_barras = '7501537182960' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'TAKEDA' where codigo_barras = '7501092793045' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'GENOMMA LAB' where codigo_barras = '650240052545' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'OPELLA' where codigo_barras = '3664798059601' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'RB HEALTH' where codigo_barras = '7501095452505' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'GENOMMA LAB' where codigo_barras = '650240031502' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'GENOMMA LAB' where codigo_barras = '650240010712' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'KSK' where codigo_barras = '354312625018' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'GENOMMA LAB' where codigo_barras = '650240036354' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'RB HEALTH' where codigo_barras = '7501685171113' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'RB HEALTH' where codigo_barras = '7501095452116' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'KSK' where codigo_barras = '7502250340538' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'ANDROMACO' where codigo_barras = '7501289520102' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BAYER OTC' where codigo_barras = '7501008485316' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'PG PERF' where codigo_barras = '7501065095947' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'RB HEALTH' where codigo_barras = '7501095451096' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'COLLINS' where codigo_barras = '780083146207' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'OPELLA' where codigo_barras = '3664798062229' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'SANFER' where codigo_barras = '7501070600556' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'SANFER' where codigo_barras = '7501070600730' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'RB HEALTH' where codigo_barras = '7501095409004' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BAYER OTC' where codigo_barras = '7501008427347' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'CHINOIN' where codigo_barras = '7501088509810' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'SANFER' where codigo_barras = '7501159525015' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'PROGELA' where codigo_barras = '7503008344495' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'RB HEALTH' where codigo_barras = '7501058367129' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'HALEON' where codigo_barras = '7501065008459' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'LAB SOPHIA' where codigo_barras = '736085405422' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BAYER OTC' where codigo_barras = '7501008497593' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'LAB PISA' where codigo_barras = '7501125112881' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'RB HEALTH' where codigo_barras = '7501058714305' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'HALEON' where codigo_barras = '7501064560163' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BAYER OTC' where codigo_barras = '7501008421321' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'RB HEALTH' where codigo_barras = '7501058368126' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BAYER OTC' where codigo_barras = '7501008499702' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'KENVUE' where codigo_barras = '7501007535494' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'RB HEALTH' where codigo_barras = '7501058793249' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'RB HEALTH' where codigo_barras = '7501095467264' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'RB HEALTH' where codigo_barras = '7501058793232' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'SANFER' where codigo_barras = '7502246642073' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BAYER OTC' where codigo_barras = '7501008443026' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'GENOMMA LAB' where codigo_barras = '650240006647' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'PG HEALTH' where codigo_barras = '7501298215099' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'KENVUE' where codigo_barras = '7501007535432' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BAYER OTC' where codigo_barras = '7501008491072' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'LAB SOPHIA' where codigo_barras = '736085278507' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BAYER OTC' where codigo_barras = '7501008443033' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'SANFER' where codigo_barras = '7501070612368' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BRULUART' where codigo_barras = '7501537103521' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BRULUART' where codigo_barras = '7501537164713' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BAYER OTC' where codigo_barras = '7501008485408' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'CHINOIN' where codigo_barras = '7501088579615' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'MAVER' where codigo_barras = '7502009747366' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'CHINOIN' where codigo_barras = '7501088508929' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BAYER OTC' where codigo_barras = '7501008433553' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'CHINOIN' where codigo_barras = '7501088509773' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'LAB HORMONA' where codigo_barras = '7501072300133' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'CHINOIN' where codigo_barras = '7501088559211' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BAYER OTC' where codigo_barras = '7501008499900' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BAYER OTC' where codigo_barras = '7501008498798' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'LAB HORMONA' where codigo_barras = '7501037907117' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'P&G OTC' where codigo_barras = '020800753067' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BAYER OTC' where codigo_barras = '7501008491096' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'HALEON' where codigo_barras = '7896009490651' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'OPELLA' where codigo_barras = '7501165000315' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BAYER OTC' where codigo_barras = '7501008494226' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BAYER OTC' where codigo_barras = '7501008499689' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'KSK' where codigo_barras = '354312225010' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'ANDROMACO' where codigo_barras = '7501289511421' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'LAB HORMONA' where codigo_barras = '7502224227339' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'ARMSTRONG' where codigo_barras = '7501089810038' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'GENOMMA LAB' where codigo_barras = '650240053610' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'GENOMMA LAB' where codigo_barras = '650240070839' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'SENOSIAIN OTC' where codigo_barras = '7501314704156' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'HALEON' where codigo_barras = '7501065008473' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'SENOSIAIN OTC' where codigo_barras = '7501314704163' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'PROGELA' where codigo_barras = '7503008344488' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'PG PERF' where codigo_barras = '7501065095718' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'RB HEALTH' where codigo_barras = '7506460101514' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'LAB SOPHIA' where codigo_barras = '736085132069' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BAYER OTC' where codigo_barras = '7501008496701' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BRULUAGSA' where codigo_barras = '7502208891549' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'PROGELA' where codigo_barras = '7503008344501' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'PG HEALTH' where codigo_barras = '7500435181402' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BAYER OTC' where codigo_barras = '7501318645080' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'LIOMONT OTC' where codigo_barras = '7501299303047' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'PROGELA' where codigo_barras = '7503008344747' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BRULUART' where codigo_barras = '7502208895196' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BAYER OTC' where codigo_barras = '7501008491966' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'ARMSTRONG' where codigo_barras = '7501089810021' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'RB HEALTH' where codigo_barras = '7506460101378' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BAYER OTC' where codigo_barras = '7502276040351' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BAYER OTC' where codigo_barras = '7502276040368' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'GELPHARMA' where codigo_barras = '7502227426449' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BRULUART' where codigo_barras = '7502208892355' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'SENOSIAIN OTC' where codigo_barras = '7501314704187' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BRULUART' where codigo_barras = '7501537103422' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'LAB PISA' where codigo_barras = '7501125116810' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'PG OTC' where codigo_barras = '7500435246309' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'LAB PISA' where codigo_barras = '7502234764053' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'EUROFARMA' where codigo_barras = '7891317048853' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'CHINOIN' where codigo_barras = '7501088505003' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'PG HEALTH' where codigo_barras = '7501298281209' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'JOHNSON JOHNSON' where codigo_barras = '7501057002663' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BAYER OTC' where codigo_barras = '7501008409541' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'CHINOIN' where codigo_barras = '7501088509766' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BAYER OTC' where codigo_barras = '7501050624732' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BAYER OTC' where codigo_barras = '7501008497340' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'CHINOIN' where codigo_barras = '7501088505126' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BAYER OTC' where codigo_barras = '7501008426944' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'PG HEALTH' where codigo_barras = '7501298217635' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BAUSCH LOMB MEXICO' where codigo_barras = '7501123013302' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BAUSCH LOMB MEXICO' where codigo_barras = '7501123013340' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'PG HEALTH' where codigo_barras = '7501298217659' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'COLGATE PALMOLIVE' where codigo_barras = '7509546688817' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'COLGATE PALMOLIVE' where codigo_barras = '7509546687353' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'DEGASA' where codigo_barras = '7501048670802' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'QUIRMEX' where codigo_barras = '7503003406600' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'QUIRMEX' where codigo_barras = '7503003406501' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'QUIRMEX' where codigo_barras = '7503003406365' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'QUIRMEX' where codigo_barras = '7503003406242' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'COLGATE PALMOLIVE' where codigo_barras = '7509546068909' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'COLGATE PALMOLIVE' where codigo_barras = '7509546657851' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'KIMBERLY CLARK' where codigo_barras = '7501017362998' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'KIMBERLY CLARK' where codigo_barras = '7506425613168' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'KIMBERLY CLARK' where codigo_barras = '7501027573773' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'COLGATE PALMOLIVE' where codigo_barras = '7509546000985' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'JAYOR' where codigo_barras = '7506022327345' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'KIMBERLY CLARK' where codigo_barras = '7501027516305' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'KIMBERLY CLARK' where codigo_barras = '7501027512574' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'KIMBERLY CLARK' where codigo_barras = '7501027512581' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'COLGATE PALMOLIVE' where codigo_barras = '7702010631207' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'QUIRMEX' where codigo_barras = '7503003406785' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'DEGASA' where codigo_barras = '7501048623006' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'JAYOR' where codigo_barras = '7506022327215' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'DIBAR' where codigo_barras = '7501868910041' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'DIBAR' where codigo_barras = '7501868910010' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'QUIRMEX' where codigo_barras = '7503003406730' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'QUIRMEX' where codigo_barras = '7503003406723' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'QUIRMEX' where codigo_barras = '7503003406747' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'QUIRMEX' where codigo_barras = '7503003406778' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'DIBAR' where codigo_barras = '7501868910003' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'DIBAR' where codigo_barras = '7501868910034' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'COLGATE PALMOLIVE' where codigo_barras = '7509546653495' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'DEGASA' where codigo_barras = '7501048351053' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'DIBAR' where codigo_barras = '7501868900127' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'DIBAR' where codigo_barras = '7501868900134' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'DEGASA' where codigo_barras = '7501250882017' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'DEGASA' where codigo_barras = '7501250882000' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'DEGASA' where codigo_barras = '7501250882024' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'KSK' where codigo_barras = '7506376000277' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'PG PERF' where codigo_barras = '7500435144414' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'DEGASA' where codigo_barras = '7501048335169' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'GENOMMA LAB' where codigo_barras = '650240032257' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'GENOMMA LAB' where codigo_barras = '650240032301' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'GENOMMA LAB' where codigo_barras = '650240072147' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'GENOMMA LAB' where codigo_barras = '650240074455' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'DEGASA' where codigo_barras = '7501048335138' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'ABBOTT' where codigo_barras = '7501033956775' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'GENOMMA LAB' where codigo_barras = '650240066139' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'GENOMMA LAB' where codigo_barras = '650240072154' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'ABBOTT' where codigo_barras = '7501033961373' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'GENOMMA LAB' where codigo_barras = '650240032264' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'GENOMMA LAB' where codigo_barras = '650240066306' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'GENOMMA LAB' where codigo_barras = '650240032271' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'DEGASA' where codigo_barras = '7501048335305' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'GENOMMA LAB' where codigo_barras = '650240032295' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'ABBOTT' where codigo_barras = '7501033954740' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'ABBOTT' where codigo_barras = '7501033961366' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'GENOMMA LAB' where codigo_barras = '650240032325' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'GENOMMA LAB' where codigo_barras = '650240035395' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'GENOMMA LAB' where codigo_barras = '650240074448' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'MARCAS NESTLE' where codigo_barras = '7501059225411' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'MARCAS NESTLE' where codigo_barras = '7506475106771' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'MARCAS NESTLE' where codigo_barras = '7501058616715' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'MARCAS NESTLE' where codigo_barras = '7501059282117' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'MARCAS NESTLE' where codigo_barras = '7501058611420' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'MARCAS NESTLE' where codigo_barras = '7501059233072' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'MARCAS NESTLE' where codigo_barras = '7506475107846' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'MARCAS NESTLE' where codigo_barras = '7506475107853' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'MARCAS NESTLE' where codigo_barras = '7506475106788' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'MARCAS NESTLE' where codigo_barras = '7501058616678' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'QUIRMEX' where codigo_barras = '7506552900322' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'LAB PISA' where codigo_barras = '7501125144851' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'LAB PISA' where codigo_barras = '7501125104411' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'LAB PISA' where codigo_barras = '7501125104688' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'LAB PISA' where codigo_barras = '7501125149221' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'LAB PISA' where codigo_barras = '7501125104268' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'LAB PISA' where codigo_barras = '7501125174797' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'KIMBERLY CLARK' where codigo_barras = '7501943454873' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BDF MEXICO' where codigo_barras = '7702003476594' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'KIMBERLY CLARK' where codigo_barras = '7501943471900' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'QUIRMEX' where codigo_barras = '7503003406402' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'GRISI HNOS' where codigo_barras = '037836041389' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'DKT MEXICO' where codigo_barras = '7502214983153' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'DKT MEXICO' where codigo_barras = '7502214983573' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'LAB JALOMA' where codigo_barras = '759684471476' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'SUNSTAR AMERICAS' where codigo_barras = '0070942003469' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BRONCOLIN' where codigo_barras = '714706903205' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'KIMBERLY CLARK' where codigo_barras = '7501943454811' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'DKT MEXICO' where codigo_barras = '7502214982439' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'DKT MEXICO' where codigo_barras = '7502214985348' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'DKT MEXICO' where codigo_barras = '7502214982811' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'DKT MEXICO' where codigo_barras = '7502214985386' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'DKT MEXICO' where codigo_barras = '7502214980275' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'DKT MEXICO' where codigo_barras = '7502214982491' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'DKT MEXICO' where codigo_barras = '7502214985805' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'LAB JALOMA' where codigo_barras = '759684272103' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'DKT MEXICO' where codigo_barras = '7502214983726' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'DKT MEXICO' where codigo_barras = '7502214982477' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'GRISI HNOS' where codigo_barras = '037836041341' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'GRISI HNOS' where codigo_barras = '7501022130063' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'SUNSTAR AMERICAS' where codigo_barras = '070942507240' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'SUNSTAR AMERICAS' where codigo_barras = '7502235820369' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'GRISI HNOS' where codigo_barras = '037836041259' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BRONCOLIN' where codigo_barras = '714706100307' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'DKT MEXICO' where codigo_barras = '7502214980350' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'DKT MEXICO' where codigo_barras = '7502214982514' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'SUNSTAR AMERICAS' where codigo_barras = '070942303194' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BDF MEXICO' where codigo_barras = '4005900314758' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BDF MEXICO' where codigo_barras = '7501054507901' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'SUNSTAR AMERICAS' where codigo_barras = '070942302289' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BRONCOLIN' where codigo_barras = '714706910609' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'DKT MEXICO' where codigo_barras = '7502214980596' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'DKT MEXICO' where codigo_barras = '7502214980015' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'GRISI HNOS' where codigo_barras = '037836041297' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BIOALIMENTOS NAT' where codigo_barras = '7500462746605' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BRONCOLIN' where codigo_barras = '714706910487' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BRONCOLIN' where codigo_barras = '714706910913' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BDF MEXICO' where codigo_barras = '7501054504528' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BDF MEXICO' where codigo_barras = '7501054504870' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BIOALIMENTOS NAT' where codigo_barras = '7506452400212' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BIOALIMENTOS NAT' where codigo_barras = '7506452400458' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'KIMBERLY CLARK' where codigo_barras = '7506425603404' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'GRISI HNOS' where codigo_barras = '7501022104248' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BIOALIMENTOS NAT' where codigo_barras = '7506452400267' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BIOALIMENTOS NAT' where codigo_barras = '7500462746612' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'LAB JALOMA' where codigo_barras = '759684154096' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'LAB JALOMA' where codigo_barras = '759684432071' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'SC JOHNSON' where codigo_barras = '7501032911454' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BIOALIMENTOS NAT' where codigo_barras = '7506452400038' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BIOALIMENTOS NAT' where codigo_barras = '7500462746698' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'LAB JALOMA' where codigo_barras = '759684273094' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BRONCOLIN' where codigo_barras = '714706910906' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BRONCOLIN' where codigo_barras = '714706800900' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BDF MEXICO' where codigo_barras = '7501054530718' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'LAB JALOMA' where codigo_barras = '759684391255' and (laboratorio is null or btrim(laboratorio) = '');
-update public.productos set laboratorio = 'BIOALIMENTOS NAT' where codigo_barras = '7500462746643' and (laboratorio is null or btrim(laboratorio) = '');
+do $$
+begin
+  if not exists (
+    select 1
+      from information_schema.columns
+     where table_schema = 'public'
+       and table_name = 'productos'
+       and column_name = 'laboratorio'
+  ) then
+    alter table public.productos add column laboratorio text;
+  end if;
 
-commit;
+  update public.productos p
+     set laboratorio = v.lab
+    from (values
+      ('7502276040610', 'BAYER OTC'),
+      ('650240017100', 'GENOMMA LAB'),
+      ('7501369200016', 'LAB HIGIA'),
+      ('7506460101231', 'RB HEALTH'),
+      ('354312225164', 'KSK'),
+      ('7501058715487', 'RB HEALTH'),
+      ('7506460101521', 'RB HEALTH'),
+      ('7502250343072', 'KSK'),
+      ('7501050613453', 'BAYER OTC'),
+      ('7501008427330', 'BAYER OTC'),
+      ('7501058792792', 'RB HEALTH'),
+      ('354312225027', 'KSK'),
+      ('7501165000230', 'OPELLA'),
+      ('7501328979502', 'OPELLA'),
+      ('7501328979496', 'OPELLA'),
+      ('7501037907124', 'LAB HORMONA'),
+      ('7502234762417', 'LAB PISA'),
+      ('650240017094', 'GENOMMA LAB'),
+      ('7501080950139', 'CHURCH & DWIGHTND'),
+      ('7502208894779', 'BRULUART'),
+      ('7501537163266', 'BRULUART'),
+      ('7501065095978', 'PG PERF'),
+      ('7501080953017', 'CHURCH & DWIGHTND'),
+      ('650240015366', 'GENOMMA LAB'),
+      ('650240010538', 'GENOMMA LAB'),
+      ('650240007408', 'GENOMMA LAB'),
+      ('7501065060891', 'HALEON'),
+      ('7501385491146', 'SANFER'),
+      ('7501537182960', 'BRULUART'),
+      ('7501092793045', 'TAKEDA'),
+      ('650240052545', 'GENOMMA LAB'),
+      ('3664798059601', 'OPELLA'),
+      ('7501095452505', 'RB HEALTH'),
+      ('650240031502', 'GENOMMA LAB'),
+      ('650240010712', 'GENOMMA LAB'),
+      ('354312625018', 'KSK'),
+      ('650240036354', 'GENOMMA LAB'),
+      ('7501685171113', 'RB HEALTH'),
+      ('7501095452116', 'RB HEALTH'),
+      ('7502250340538', 'KSK'),
+      ('7501289520102', 'ANDROMACO'),
+      ('7501008485316', 'BAYER OTC'),
+      ('7501065095947', 'PG PERF'),
+      ('7501095451096', 'RB HEALTH'),
+      ('780083146207', 'COLLINS'),
+      ('3664798062229', 'OPELLA'),
+      ('7501070600556', 'SANFER'),
+      ('7501070600730', 'SANFER'),
+      ('7501095409004', 'RB HEALTH'),
+      ('7501008427347', 'BAYER OTC'),
+      ('7501088509810', 'CHINOIN'),
+      ('7501159525015', 'SANFER'),
+      ('7503008344495', 'PROGELA'),
+      ('7501058367129', 'RB HEALTH'),
+      ('7501065008459', 'HALEON'),
+      ('736085405422', 'LAB SOPHIA'),
+      ('7501008497593', 'BAYER OTC'),
+      ('7501125112881', 'LAB PISA'),
+      ('7501058714305', 'RB HEALTH'),
+      ('7501064560163', 'HALEON'),
+      ('7501008421321', 'BAYER OTC'),
+      ('7501058368126', 'RB HEALTH'),
+      ('7501008499702', 'BAYER OTC'),
+      ('7501007535494', 'KENVUE'),
+      ('7501058793249', 'RB HEALTH'),
+      ('7501095467264', 'RB HEALTH'),
+      ('7501058793232', 'RB HEALTH'),
+      ('7502246642073', 'SANFER'),
+      ('7501008443026', 'BAYER OTC'),
+      ('650240006647', 'GENOMMA LAB'),
+      ('7501298215099', 'PG HEALTH'),
+      ('7501007535432', 'KENVUE'),
+      ('7501008491072', 'BAYER OTC'),
+      ('736085278507', 'LAB SOPHIA'),
+      ('7501008443033', 'BAYER OTC'),
+      ('7501070612368', 'SANFER'),
+      ('7501537103521', 'BRULUART'),
+      ('7501537164713', 'BRULUART'),
+      ('7501008485408', 'BAYER OTC'),
+      ('7501088579615', 'CHINOIN'),
+      ('7502009747366', 'MAVER'),
+      ('7501088508929', 'CHINOIN'),
+      ('7501008433553', 'BAYER OTC'),
+      ('7501088509773', 'CHINOIN'),
+      ('7501072300133', 'LAB HORMONA'),
+      ('7501088559211', 'CHINOIN'),
+      ('7501008499900', 'BAYER OTC'),
+      ('7501008498798', 'BAYER OTC'),
+      ('7501037907117', 'LAB HORMONA'),
+      ('020800753067', 'P&G OTC'),
+      ('7501008491096', 'BAYER OTC'),
+      ('7896009490651', 'HALEON'),
+      ('7501165000315', 'OPELLA'),
+      ('7501008494226', 'BAYER OTC'),
+      ('7501008499689', 'BAYER OTC'),
+      ('354312225010', 'KSK'),
+      ('7501289511421', 'ANDROMACO'),
+      ('7502224227339', 'LAB HORMONA'),
+      ('7501089810038', 'ARMSTRONG'),
+      ('650240053610', 'GENOMMA LAB'),
+      ('650240070839', 'GENOMMA LAB'),
+      ('7501314704156', 'SENOSIAIN OTC'),
+      ('7501065008473', 'HALEON'),
+      ('7501314704163', 'SENOSIAIN OTC'),
+      ('7503008344488', 'PROGELA'),
+      ('7501065095718', 'PG PERF'),
+      ('7506460101514', 'RB HEALTH'),
+      ('736085132069', 'LAB SOPHIA'),
+      ('7501008496701', 'BAYER OTC'),
+      ('7502208891549', 'BRULUAGSA'),
+      ('7503008344501', 'PROGELA'),
+      ('7500435181402', 'PG HEALTH'),
+      ('7501318645080', 'BAYER OTC'),
+      ('7501299303047', 'LIOMONT OTC'),
+      ('7503008344747', 'PROGELA'),
+      ('7502208895196', 'BRULUART'),
+      ('7501008491966', 'BAYER OTC'),
+      ('7501089810021', 'ARMSTRONG'),
+      ('7506460101378', 'RB HEALTH'),
+      ('7502276040351', 'BAYER OTC'),
+      ('7502276040368', 'BAYER OTC'),
+      ('7502227426449', 'GELPHARMA'),
+      ('7502208892355', 'BRULUART'),
+      ('7501314704187', 'SENOSIAIN OTC'),
+      ('7501537103422', 'BRULUART'),
+      ('7501125116810', 'LAB PISA'),
+      ('7500435246309', 'PG OTC'),
+      ('7502234764053', 'LAB PISA'),
+      ('7891317048853', 'EUROFARMA'),
+      ('7501088505003', 'CHINOIN'),
+      ('7501298281209', 'PG HEALTH'),
+      ('7501057002663', 'JOHNSON JOHNSON'),
+      ('7501008409541', 'BAYER OTC'),
+      ('7501088509766', 'CHINOIN'),
+      ('7501050624732', 'BAYER OTC'),
+      ('7501008497340', 'BAYER OTC'),
+      ('7501088505126', 'CHINOIN'),
+      ('7501008426944', 'BAYER OTC'),
+      ('7501298217635', 'PG HEALTH'),
+      ('7501123013302', 'BAUSCH LOMB MEXICO'),
+      ('7501123013340', 'BAUSCH LOMB MEXICO'),
+      ('7501298217659', 'PG HEALTH'),
+      ('7509546688817', 'COLGATE PALMOLIVE'),
+      ('7509546687353', 'COLGATE PALMOLIVE'),
+      ('7501048670802', 'DEGASA'),
+      ('7503003406600', 'QUIRMEX'),
+      ('7503003406501', 'QUIRMEX'),
+      ('7503003406365', 'QUIRMEX'),
+      ('7503003406242', 'QUIRMEX'),
+      ('7509546068909', 'COLGATE PALMOLIVE'),
+      ('7509546657851', 'COLGATE PALMOLIVE'),
+      ('7501017362998', 'KIMBERLY CLARK'),
+      ('7506425613168', 'KIMBERLY CLARK'),
+      ('7501027573773', 'KIMBERLY CLARK'),
+      ('7509546000985', 'COLGATE PALMOLIVE'),
+      ('7506022327345', 'JAYOR'),
+      ('7501027516305', 'KIMBERLY CLARK'),
+      ('7501027512574', 'KIMBERLY CLARK'),
+      ('7501027512581', 'KIMBERLY CLARK'),
+      ('7702010631207', 'COLGATE PALMOLIVE'),
+      ('7503003406785', 'QUIRMEX'),
+      ('7501048623006', 'DEGASA'),
+      ('7506022327215', 'JAYOR'),
+      ('7501868910041', 'DIBAR'),
+      ('7501868910010', 'DIBAR'),
+      ('7503003406730', 'QUIRMEX'),
+      ('7503003406723', 'QUIRMEX'),
+      ('7503003406747', 'QUIRMEX'),
+      ('7503003406778', 'QUIRMEX'),
+      ('7501868910003', 'DIBAR'),
+      ('7501868910034', 'DIBAR'),
+      ('7509546653495', 'COLGATE PALMOLIVE'),
+      ('7501048351053', 'DEGASA'),
+      ('7501868900127', 'DIBAR'),
+      ('7501868900134', 'DIBAR'),
+      ('7501250882017', 'DEGASA'),
+      ('7501250882000', 'DEGASA'),
+      ('7501250882024', 'DEGASA'),
+      ('7506376000277', 'KSK'),
+      ('7500435144414', 'PG PERF'),
+      ('7501048335169', 'DEGASA'),
+      ('650240032257', 'GENOMMA LAB'),
+      ('650240032301', 'GENOMMA LAB'),
+      ('650240072147', 'GENOMMA LAB'),
+      ('650240074455', 'GENOMMA LAB'),
+      ('7501048335138', 'DEGASA'),
+      ('7501033956775', 'ABBOTT'),
+      ('650240066139', 'GENOMMA LAB'),
+      ('650240072154', 'GENOMMA LAB'),
+      ('7501033961373', 'ABBOTT'),
+      ('650240032264', 'GENOMMA LAB'),
+      ('650240066306', 'GENOMMA LAB'),
+      ('650240032271', 'GENOMMA LAB'),
+      ('7501048335305', 'DEGASA'),
+      ('650240032295', 'GENOMMA LAB'),
+      ('7501033954740', 'ABBOTT'),
+      ('7501033961366', 'ABBOTT'),
+      ('650240032325', 'GENOMMA LAB'),
+      ('650240035395', 'GENOMMA LAB'),
+      ('650240074448', 'GENOMMA LAB'),
+      ('7501059225411', 'MARCAS NESTLE'),
+      ('7506475106771', 'MARCAS NESTLE'),
+      ('7501058616715', 'MARCAS NESTLE'),
+      ('7501059282117', 'MARCAS NESTLE'),
+      ('7501058611420', 'MARCAS NESTLE'),
+      ('7501059233072', 'MARCAS NESTLE'),
+      ('7506475107846', 'MARCAS NESTLE'),
+      ('7506475107853', 'MARCAS NESTLE'),
+      ('7506475106788', 'MARCAS NESTLE'),
+      ('7501058616678', 'MARCAS NESTLE'),
+      ('7506552900322', 'QUIRMEX'),
+      ('7501125144851', 'LAB PISA'),
+      ('7501125104411', 'LAB PISA'),
+      ('7501125104688', 'LAB PISA'),
+      ('7501125149221', 'LAB PISA'),
+      ('7501125104268', 'LAB PISA'),
+      ('7501125174797', 'LAB PISA'),
+      ('7501943454873', 'KIMBERLY CLARK'),
+      ('7702003476594', 'BDF MEXICO'),
+      ('7501943471900', 'KIMBERLY CLARK'),
+      ('7503003406402', 'QUIRMEX'),
+      ('037836041389', 'GRISI HNOS'),
+      ('7502214983153', 'DKT MEXICO'),
+      ('7502214983573', 'DKT MEXICO'),
+      ('759684471476', 'LAB JALOMA'),
+      ('0070942003469', 'SUNSTAR AMERICAS'),
+      ('714706903205', 'BRONCOLIN'),
+      ('7501943454811', 'KIMBERLY CLARK'),
+      ('7502214982439', 'DKT MEXICO'),
+      ('7502214985348', 'DKT MEXICO'),
+      ('7502214982811', 'DKT MEXICO'),
+      ('7502214985386', 'DKT MEXICO'),
+      ('7502214980275', 'DKT MEXICO'),
+      ('7502214982491', 'DKT MEXICO'),
+      ('7502214985805', 'DKT MEXICO'),
+      ('759684272103', 'LAB JALOMA'),
+      ('7502214983726', 'DKT MEXICO'),
+      ('7502214982477', 'DKT MEXICO'),
+      ('037836041341', 'GRISI HNOS'),
+      ('7501022130063', 'GRISI HNOS'),
+      ('070942507240', 'SUNSTAR AMERICAS'),
+      ('7502235820369', 'SUNSTAR AMERICAS'),
+      ('037836041259', 'GRISI HNOS'),
+      ('714706100307', 'BRONCOLIN'),
+      ('7502214980350', 'DKT MEXICO'),
+      ('7502214982514', 'DKT MEXICO'),
+      ('070942303194', 'SUNSTAR AMERICAS'),
+      ('4005900314758', 'BDF MEXICO'),
+      ('7501054507901', 'BDF MEXICO'),
+      ('070942302289', 'SUNSTAR AMERICAS'),
+      ('714706910609', 'BRONCOLIN'),
+      ('7502214980596', 'DKT MEXICO'),
+      ('7502214980015', 'DKT MEXICO'),
+      ('037836041297', 'GRISI HNOS'),
+      ('7500462746605', 'BIOALIMENTOS NAT'),
+      ('714706910487', 'BRONCOLIN'),
+      ('714706910913', 'BRONCOLIN'),
+      ('7501054504528', 'BDF MEXICO'),
+      ('7501054504870', 'BDF MEXICO'),
+      ('7506452400212', 'BIOALIMENTOS NAT'),
+      ('7506452400458', 'BIOALIMENTOS NAT'),
+      ('7506425603404', 'KIMBERLY CLARK'),
+      ('7501022104248', 'GRISI HNOS'),
+      ('7506452400267', 'BIOALIMENTOS NAT'),
+      ('7500462746612', 'BIOALIMENTOS NAT'),
+      ('759684154096', 'LAB JALOMA'),
+      ('759684432071', 'LAB JALOMA'),
+      ('7501032911454', 'SC JOHNSON'),
+      ('7506452400038', 'BIOALIMENTOS NAT'),
+      ('7500462746698', 'BIOALIMENTOS NAT'),
+      ('759684273094', 'LAB JALOMA'),
+      ('714706910906', 'BRONCOLIN'),
+      ('714706800900', 'BRONCOLIN'),
+      ('7501054530718', 'BDF MEXICO'),
+      ('759684391255', 'LAB JALOMA'),
+      ('7500462746643', 'BIOALIMENTOS NAT')
+    ) as v(ean, lab)
+   where (p.laboratorio is null or btrim(p.laboratorio) = '')
+     and (
+       regexp_replace(coalesce(p.codigo_barras, ''), '\D', '', 'g') = v.ean
+       or regexp_replace(coalesce(p.codigo_barras, ''), '\D', '', 'g') like v.ean || '_'
+     );
+end $$;
+
+comment on column public.productos.laboratorio is
+  'Laboratorio fabricante (FarmaLive). Distinto de marca de mostrador.';
+
+select count(*) filter (where laboratorio is not null and btrim(laboratorio) <> '') as con_lab
+from public.productos;

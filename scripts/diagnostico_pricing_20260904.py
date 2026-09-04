@@ -874,25 +874,55 @@ Regenerar: python3 scripts/diagnostico_pricing_20260904.py
     dlines += ["", "commit;", ""]
     dupe_sql.write_text("\n".join(dlines), encoding="utf-8")
 
+    lab_pares = []
+    seen_ean = set()
+    for t in tickets_ean:
+        if not (t.get("laboratorio") and t.get("ean") and "farmalive" in t["fuente"]):
+            continue
+        ean = digits(t["ean"])
+        if not ean or ean in seen_ean:
+            continue
+        seen_ean.add(ean)
+        lab = str(t["laboratorio"]).replace("'", "''")
+        lab_pares.append((ean, lab))
+    vals = ",\n".join(f"      ('{ean}', '{lab}')" for ean, lab in lab_pares)
     lab_sql = ROOT / "sql" / "patch_laboratorio_columna_20260904.sql"
     lab_sql.write_text(
-        """-- Columna laboratorio (distinta de marca). Idempotente.
-begin;
-alter table if exists public.productos
-  add column if not exists laboratorio text;
+        """-- Columna laboratorio (distinta de marca) + backfill FarmaLive.
+-- Un bloque: crea la columna si falta y llena en un solo update.
+-- FarmaLive a veces manda EAN sin dígito (650240010712 vs 6502400107128).
 
--- Backfill desde FarmaLive (ticket 9861) por EAN exacto, solo si está vacío.
+do $$
+begin
+  if not exists (
+    select 1
+      from information_schema.columns
+     where table_schema = 'public'
+       and table_name = 'productos'
+       and column_name = 'laboratorio'
+  ) then
+    alter table public.productos add column laboratorio text;
+  end if;
+
+  update public.productos p
+     set laboratorio = v.lab
+    from (values
 """
-        + "\n".join(
-            f"update public.productos set laboratorio = '{str(t['laboratorio']).replace(chr(39), chr(39)*2)}' "
-            f"where codigo_barras = '{t['ean']}' "
-            f"and (laboratorio is null or btrim(laboratorio) = '');"
-            for t in tickets_ean
-            if t.get("laboratorio") and t.get("ean") and "farmalive" in t["fuente"]
-        )
+        + vals
         + """
+    ) as v(ean, lab)
+   where (p.laboratorio is null or btrim(p.laboratorio) = '')
+     and (
+       regexp_replace(coalesce(p.codigo_barras, ''), '\\D', '', 'g') = v.ean
+       or regexp_replace(coalesce(p.codigo_barras, ''), '\\D', '', 'g') like v.ean || '_'
+     );
+end $$;
 
-commit;
+comment on column public.productos.laboratorio is
+  'Laboratorio fabricante (FarmaLive). Distinto de marca de mostrador.';
+
+select count(*) filter (where laboratorio is not null and btrim(laboratorio) <> '') as con_lab
+from public.productos;
 """,
         encoding="utf-8",
     )
