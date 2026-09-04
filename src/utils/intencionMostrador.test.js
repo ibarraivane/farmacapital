@@ -78,6 +78,26 @@ describe("lenguaje controlado de mostrador", () => {
     expect(coincidenciaIntencionMostrador(ticket, "bloqueador")?.id).toBe("proteccion-solar");
   });
 
+  test("pegamento dental abre adhesivo para dentadura y no se mezcla con dolor dental", () => {
+    const corega = producto({
+      nombre: "Corega Ultra Sin Sabor 40 g",
+      marca: "Corega",
+      subcategoria: "Protesis dental / adhesivo",
+    });
+    const ibuprofeno = producto({
+      nombre: "Ibuprofeno 400 mg",
+      principio_activo: "Ibuprofeno",
+      subcategoria: "Analgésico",
+    });
+    expect(tiendaProductMatchesBusqueda(corega, "pegamento dental")).toBe(true);
+    expect(etiquetaIntencionMostrador("pegamento dental")).toBe("adhesivo para dentadura");
+    expect(etiquetaIntencionMostrador("adhesivo para dentadura")).toBe("adhesivo para dentadura");
+    expect(coincidenciaIntencionMostrador(ibuprofeno, "pegamento dental")).toBeNull();
+    expect(tiendaProductMatchesBusqueda(ibuprofeno, "dolor dental")).toBe(true);
+    expect(etiquetaIntencionMostrador("dolor dental")).toBe("dolor dental");
+    expect(coincidenciaIntencionMostrador(corega, "dolor dental")).toBeNull();
+  });
+
   test("no activa intención con texto corto, numérico o desconocido", () => {
     expect(intencionesParaConsulta("do")).toEqual([]);
     expect(intencionesParaConsulta("7501234567890")).toEqual([]);

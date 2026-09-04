@@ -57,6 +57,11 @@ const INTENCIONES_MOSTRADOR = [
   { id: "curitas", label: "protección de cortadas", q: ["curita", "curitas", "bandita", "banditas", "band aid"], name: ["curita", "aposito", "nexcare", "band aid"] },
   { id: "prueba-embarazo", label: "prueba de embarazo", q: ["prueba embarazo", "test embarazo", "saber si estoy embarazada"], name: ["embarazo"], sub: ["prueba de embarazo"] },
   { id: "condones", label: "preservativos", q: ["condon", "condones", "preservativo", "preservativos", "proteccion sexual"], name: ["condon", "durex", "prudence", "trojan", "sico"] },
+  { id: "adhesivo-dental", label: "adhesivo para dentadura", q: ["pegamento", "pegamento dental", "pegamento dentadura", "adhesivo dental", "adhesivo dentadura", "adhesivo protesis", "crema adhesiva", "dentadura", "dentadura postiza", "dientes postizos", "protesis dental"], name: ["corega", "fixodent", "polident", "protesis"], sub: ["protesis dental", "adhesivo"] },
+  { id: "pasta-dental", label: "pasta de dientes", q: ["pasta dientes", "pasta de dientes", "pasta dental", "dentifrico"], name: ["pasta dent", "pasta dental", "colgate triple", "colgate max", "colgate total", "sensodyne"] },
+  { id: "toallas-femeninas", label: "toallas sanitarias", q: ["toallas sanitarias", "toalla sanitaria", "toallas femeninas", "toalla femenina"], name: ["saba", "kotex", "always"] },
+  { id: "cotonetes", label: "hisopos", q: ["cotonete", "cotonetes", "q tips", "qtips"], name: ["hisopo", "kiuts"] },
+  { id: "formula-infantil", label: "fórmula infantil", q: ["formula", "formula bebe", "leche formula", "leche de formula", "leche para bebe"], name: ["nan", "enfamil", "similac"] },
 ];
 
 function textHas(haystack, needle) {
