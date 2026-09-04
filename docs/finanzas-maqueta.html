@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FarmaCapital — Maqueta Finanzas</title>
+  <style>
+    :root {
+      --bg: #f7f9fc;
+      --card: #ffffff;
+      --cardDark: #f0f4f9;
+      --border: #e2e8f0;
+      --borderHi: #c7d4f5;
+      --blue: #1E3ABA;
+      --blueDark: #0D1B2A;
+      --blueDim: #eef1fb;
+      --green: #22C55E;
+      --greenDark: #16a34a;
+      --greenDim: #dcfce7;
+      --amber: #f59e0b;
+      --amberDim: #fef3c7;
+      --red: #ef4444;
+      --redDim: #fee2e2;
+      --purple: #7c3aed;
+      --purpleDim: #ede9fe;
+      --teal: #0891b2;
+      --tealDim: #cffafe;
+      --text: #0f172a;
+      --textMid: #475569;
+      --textDim: #94a3b8;
+      --sidebar: #0D1B2A;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+    }
+    .app { display: flex; min-height: 100dvh; }
+    .sidebar {
+      width: 220px;
+      background: var(--sidebar);
+      color: #fff;
+      padding: 18px 12px;
+      flex-shrink: 0;
+    }
+    .brand { font-weight: 800; font-size: 14px; letter-spacing: .04em; padding: 4px 10px 18px; }
+    .nav-sec { font-size: 9px; letter-spacing: 1.4px; text-transform: uppercase; color: #64748b; padding: 12px 10px 6px; }
+    .nav-item {
+      display: block; width: 100%; text-align: left; border: 0; background: transparent;
+      color: #cbd5e1; font-size: 13px; font-weight: 600; padding: 8px 10px; border-radius: 8px; cursor: default;
+    }
+    .nav-item.active { background: #1E3ABA; color: #fff; }
+    .main { flex: 1; min-width: 0; padding: 24px 28px 48px; }
+    h1 { margin: 0; font-size: 20px; font-weight: 800; }
+    .sub { margin: 4px 0 0; color: var(--textMid); font-size: 12px; }
+    .note {
+      margin: 16px 0 18px; padding: 12px 14px; border-radius: 10px;
+      background: #eff6ff; border: 1px solid #bfdbfe; font-size: 12px; line-height: 1.5; color: #1e3a8a;
+    }
+    .note strong { color: #1e3aba; }
+    .note code { font-size: 11px; background: #dbeafe; padding: 1px 5px; border-radius: 4px; }
+    .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 20px; flex-wrap: wrap; }
+    .tab {
+      padding: 9px 18px; border: 0; background: transparent; cursor: pointer;
+      font-weight: 700; font-size: 13px; color: var(--textMid); border-radius: 8px 8px 0 0;
+    }
+    .tab.on { background: var(--card); color: var(--blue); border-bottom: 2px solid var(--blue); }
+    .panel { display: none; }
+    .panel.on { display: block; }
+    .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(168px, 1fr)); gap: 12px; margin-bottom: 16px; }
+    .kpi {
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 16px 14px;
+    }
+    .kpi.hero { border-color: #86efac; background: linear-gradient(180deg, #f0fdf4, #fff); grid-column: span 2; }
+    .kpi .lab { color: var(--textDim); font-size: 9px; letter-spacing: 1.2px; text-transform: uppercase; margin-bottom: 8px; font-weight: 700; }
+    .kpi .val { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.15; }
+    .kpi.hero .val { font-size: 32px; }
+    .kpi .hint { color: var(--textMid); font-size: 11px; margin-top: 6px; line-height: 1.35; }
+    .banner {
+      border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; font-size: 12px; line-height: 1.5;
+    }
+    .banner.ok { background: var(--greenDim); border: 1px solid #86efac; color: #166534; }
+    .banner.warn { background: var(--amberDim); border: 1px solid #fcd34d; color: #92400e; }
+    .banner.bad { background: var(--redDim); border: 1px solid #fecaca; color: #991b1b; }
+    .banner .ttl { font-weight: 800; }
+    .card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 16px;
+    }
+    .card h2 {
+      margin: 0; padding: 14px 16px; border-bottom: 1px solid var(--border);
+      font-size: 14px; font-weight: 700;
+    }
+    .card .body { padding: 14px 16px; }
+    .cascade { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+    .cascade td { padding: 7px 0; }
+    .cascade .k { color: var(--textMid); width: 42%; }
+    .cascade .n { text-align: right; font-weight: 700; width: 22%; }
+    .cascade .bar td { padding: 2px 0 10px; }
+    .barfill { height: 8px; background: #f1f5f9; border-radius: 4px; overflow: hidden; }
+    .barfill > i { display: block; height: 100%; border-radius: 4px; }
+    .rule td { border-top: 1px dashed var(--border); padding-top: 10px; }
+    .em .k, .em .n { font-weight: 800; color: var(--text); }
+    table.data { width: 100%; border-collapse: collapse; font-size: 12px; }
+    table.data th {
+      text-align: left; padding: 9px 14px; color: var(--textMid); font-weight: 700;
+      background: var(--cardDark); border-bottom: 1px solid var(--border);
+    }
+    table.data td { padding: 9px 14px; border-bottom: 1px solid var(--border); }
+    table.data tr:nth-child(even) td { background: #f8fafc; }
+    .cov { display: inline-flex; align-items: center; gap: 8px; }
+    .cov i { display: inline-block; width: 52px; height: 6px; background: #f1f5f9; border-radius: 3px; overflow: hidden; }
+    .cov i b { display: block; height: 100%; }
+    .gap {
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;
+    }
+    .gap .box {
+      border: 1px solid var(--border); border-radius: 10px; padding: 12px;
+      background: var(--cardDark);
+    }
+    .gap .box.alert { background: #fff7ed; border-color: #fed7aa; }
+    .muted { color: var(--textDim); font-size: 11px; }
+    .pe {
+      display: grid; grid-template-columns: 1.2fr 1fr; gap: 14px;
+    }
+    .pe-num { font-size: 36px; font-weight: 800; color: var(--blue); font-variant-numeric: tabular-nums; }
+    .progress { height: 10px; background: #e2e8f0; border-radius: 99px; overflow: hidden; margin: 8px 0; }
+    .progress > i { display: block; height: 100%; background: var(--green); }
+    .form { display: grid; grid-template-columns: 110px 140px 1fr 110px 88px; gap: 8px; }
+    .form input, .form select {
+      border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 13px;
+    }
+    .btn {
+      border: 0; border-radius: 8px; background: var(--blue); color: #fff;
+      font-weight: 700; font-size: 13px; cursor: pointer;
+    }
+    .toggle {
+      display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--textMid);
+      margin-left: 12px;
+    }
+    .src-tag {
+      display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: .06em;
+      text-transform: uppercase; padding: 2px 7px; border-radius: 99px; margin-left: 8px;
+      vertical-align: middle;
+    }
+    .src-tag.ped { background: var(--blueDim); color: var(--blue); }
+    .src-tag.cut { background: var(--tealDim); color: var(--teal); }
+    @media (max-width: 860px) {
+      .sidebar { display: none; }
+      .main { padding: 16px; }
+      .kpi.hero { grid-column: span 1; }
+      .pe, .gap, .form { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">FARMACAPITAL</div>
+      <div class="nav-sec">Operación diaria</div>
+      <div class="nav-item">Dashboard</div>
+      <div class="nav-item">Punto de Venta</div>
+      <div class="nav-item">Corte de Caja</div>
+      <div class="nav-sec">Administración</div>
+      <div class="nav-item">RR.HH.</div>
+      <div class="nav-item active">Finanzas</div>
+    </aside>
+
+    <main class="main">
+      <h1>Finanzas</h1>
+      <p class="sub">P&amp;L sobre pedidos · flujo sobre cortes · FarmaCapital</p>
+
+      <div class="note">
+        <strong>Maqueta.</strong> Los montos son de ejemplo, no datos reales.
+        Corrección §2.5: las <strong>ventas brutas del P&amp;L salen de <code>pedidos</code></strong>,
+        no de <code>cortes_caja</code>. El corte es dinero contado (flujo).
+        Mezclarlos inventa un margen que no cuadra. La brecha se muestra abajo, no se esconde.
+        <code>fondo_inicial = 0</code> en cortes viejos sobreestima <code>total_general</code> — el flujo corta en la fecha de la consulta 2.
+        <label class="toggle">
+          <input type="checkbox" id="gateOff" />
+          Ver el estado de la compuerta (&lt; 80% cobertura)
+        </label>
+      </div>
+
+      <div class="tabs">
+        <button class="tab on" data-tab="pl" type="button">P&amp;L</button>
+        <button class="tab" data-tab="flujo" type="button">Flujo de caja</button>
+        <button class="tab" data-tab="gastos" type="button">Gastos</button>
+        <button class="tab" data-tab="proyecto" type="button">Proyecto</button>
+      </div>
+
+      <!-- ═══════════════ P&L ═══════════════ -->
+      <section class="panel on" id="pl">
+        <div class="banner ok" id="covOk">
+          <span class="ttl">Cobertura de costo 91%</span>
+          — el margen se calcula sobre el ingreso que sí tiene lote o catálogo.
+          El 9% restante está marcado <em>sin costo</em>, no como 0.
+        </div>
+        <div class="banner bad" id="covBad" hidden>
+          <span class="ttl">COMPUERTA — cobertura 64%</span>
+          El P&amp;L con costos faltantes reporta márgenes inflados justo cuando peor están los datos.
+          <strong>No se publica un % de margen que parezca confiable.</strong>
+          Primero capturar costos (Recibir / lotes / catálogo). Consulta 4 del SQL.
+        </div>
+
+        <div class="kpis">
+          <div class="kpi">
+            <div class="lab">Ventas brutas <span class="src-tag ped">pedidos</span></div>
+            <div class="val" style="color:var(--blue)">$128,400</div>
+            <div class="hint">SUM(pedidos.total) completados del mes. No es el corte.</div>
+          </div>
+          <div class="kpi">
+            <div class="lab">Devoluciones</div>
+            <div class="val" style="color:var(--red)">−$1,200</div>
+            <div class="hint">devoluciones.total_devuelto, aprobadas</div>
+          </div>
+          <div class="kpi">
+            <div class="lab">Ventas netas</div>
+            <div class="val" style="color:var(--blue)">$127,200</div>
+          </div>
+          <div class="kpi">
+            <div class="lab">COGS</div>
+            <div class="val" style="color:var(--textMid)">$86,500</div>
+            <div class="hint">lote.costo_unitario → productos.costo → null</div>
+          </div>
+          <div class="kpi hero">
+            <div class="lab">Utilidad bruta</div>
+            <div class="val" style="color:var(--green)">$40,700</div>
+            <div class="hint">Después del medicamento. Antes de renta, nómina y luz. Esta es la respuesta a la pregunta original.</div>
+          </div>
+          <div class="kpi">
+            <div class="lab">Margen bruto</div>
+            <div class="val" style="color:var(--green)">31.7%</div>
+            <div class="hint">Solo líneas con costo. No es el 55%.</div>
+          </div>
+          <div class="kpi">
+            <div class="lab">Cobertura</div>
+            <div class="val" style="color:var(--green)">91%</div>
+            <div class="hint">Verde ≥95 · ámbar 80–95 · rojo &lt;80</div>
+          </div>
+          <div class="kpi">
+            <div class="lab">Utilidad / ticket</div>
+            <div class="val" style="color:var(--purple)">$38.40</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Cascada del mes <span class="src-tag ped">mismo universo que el COGS</span></h2>
+          <div class="body">
+            <table class="cascade">
+              <tr><td class="k">Ventas brutas</td><td class="n" style="color:var(--blue)">$128,400</td><td class="n muted">100%</td></tr>
+              <tr class="bar"><td colspan="3"><div class="barfill"><i style="width:100%;background:var(--blue)"></i></div></td></tr>
+              <tr><td class="k">− Devoluciones</td><td class="n" style="color:var(--red)">−$1,200</td><td class="n muted">0.9%</td></tr>
+              <tr class="rule em"><td class="k">= Ventas netas</td><td class="n">$127,200</td><td class="n muted">99.1%</td></tr>
+              <tr class="bar"><td colspan="3"><div class="barfill"><i style="width:99%;background:var(--blue)"></i></div></td></tr>
+              <tr><td class="k">− Costo de mercancía</td><td class="n" style="color:var(--textMid)">−$86,500</td><td class="n muted">67.4%</td></tr>
+              <tr class="rule em"><td class="k">= UTILIDAD BRUTA</td><td class="n" style="color:var(--green)">$40,700</td><td class="n muted">31.7%</td></tr>
+              <tr class="bar"><td colspan="3"><div class="barfill"><i style="width:32%;background:var(--green)"></i></div></td></tr>
+              <tr><td class="k">− Gastos fijos</td><td class="n" style="color:var(--red)">−$28,000</td><td class="n muted">21.8%</td></tr>
+              <tr><td class="k">− Gastos variables</td><td class="n" style="color:var(--red)">−$6,200</td><td class="n muted">4.8%</td></tr>
+              <tr class="rule em"><td class="k">= UTILIDAD OPERATIVA</td><td class="n" style="color:var(--green)">$6,500</td><td class="n muted">5.1%</td></tr>
+              <tr class="bar"><td colspan="3"><div class="barfill"><i style="width:5%;background:var(--green)"></i></div></td></tr>
+            </table>
+            <p class="muted" style="margin:10px 0 0">Cada renglón abre el detalle. Los gastos no existen todavía: hasta la Fase 4, utilidad operativa = “No disponible”, no un estimado.</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Descuadre · pedidos vs. cortes <span class="src-tag cut">control, no se mete al margen</span></h2>
+          <div class="body">
+            <div class="gap">
+              <div class="box">
+                <div class="lab muted">Pedidos del mes (P&amp;L)</div>
+                <div class="val" style="font-size:20px;font-weight:800;color:var(--blue)">$128,400</div>
+                <div class="hint muted">Lo vendido, renglón por renglón</div>
+              </div>
+              <div class="box">
+                <div class="lab muted">Cortes del mes (flujo)</div>
+                <div class="val" style="font-size:20px;font-weight:800;color:var(--teal)">$131,050</div>
+                <div class="hint muted">total_general, desde fondo confiable</div>
+              </div>
+              <div class="box alert">
+                <div class="lab muted">Brecha</div>
+                <div class="val" style="font-size:20px;font-weight:800;color:var(--amber)">+$2,650</div>
+                <div class="hint muted">No se “ajusta”. Causas típicas: fondo 0 histórico, pago de servicio, corte faltante. Consulta 7.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Margen por categoría</h2>
+          <table class="data">
+            <thead>
+              <tr>
+                <th>Categoría</th><th>Ingreso</th><th>Costo</th><th>Utilidad</th>
+                <th>% ing.</th><th>% util.</th><th>Margen</th><th>Cobertura</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Patente</td><td style="color:var(--blue);font-weight:700">$54,200</td><td>$41,100</td>
+                <td style="color:var(--green);font-weight:700">$13,100</td>
+                <td>42%</td><td>32%</td>
+                <td><span class="cov"><i><b style="width:24%;background:var(--amber)"></b></i> 24.2%</span></td>
+                <td>96%</td>
+              </tr>
+              <tr>
+                <td>Genéricos</td><td style="color:var(--blue);font-weight:700">$38,800</td><td>$22,400</td>
+                <td style="color:var(--green);font-weight:700">$16,400</td>
+                <td>30%</td><td>40%</td>
+                <td><span class="cov"><i><b style="width:42%;background:var(--green)"></b></i> 42.3%</span></td>
+                <td>94%</td>
+              </tr>
+              <tr>
+                <td>Dermocosmética</td><td style="color:var(--blue);font-weight:700">$22,100</td><td>$14,200</td>
+                <td style="color:var(--green);font-weight:700">$7,900</td>
+                <td>17%</td><td>19%</td>
+                <td><span class="cov"><i><b style="width:36%;background:var(--green)"></b></i> 35.7%</span></td>
+                <td>88%</td>
+              </tr>
+              <tr>
+                <td>Cuidado personal</td><td style="color:var(--blue);font-weight:700">$12,100</td><td>$8,800</td>
+                <td style="color:var(--green);font-weight:700">$3,300</td>
+                <td>9%</td><td>8%</td>
+                <td><span class="cov"><i><b style="width:27%;background:var(--amber)"></b></i> 27.3%</span></td>
+                <td>71%</td>
+              </tr>
+              <tr style="font-weight:800">
+                <td>TOTAL (ponderado)</td><td style="color:var(--blue)">$127,200</td><td>$86,500</td>
+                <td style="color:var(--green)">$40,700</td>
+                <td>100%</td><td>100%</td>
+                <td>31.7%</td><td>91%</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="body muted">El TOTAL no es el promedio de los % — es ponderado por ingreso con costo. La categoría que más factura no es la que más deja.</div>
+        </div>
+      </section>
+
+      <!-- ═══════════════ FLUJO ═══════════════ -->
+      <section class="panel" id="flujo">
+        <div class="banner warn">
+          <span class="ttl">Serie cortada el 24-ago-2026</span>
+          (ejemplo). <code>fondo_inicial</code> nació después de meses cortando.
+          Antes vale 0 y <code>total_general</code> (GENERATED) cuenta el fondo como venta.
+          La fecha real la da la consulta 2. No se imputa.
+        </div>
+        <div class="kpis">
+          <div class="kpi">
+            <div class="lab">Contado en cortes <span class="src-tag cut">total_general</span></div>
+            <div class="val" style="color:var(--teal)">$131,050</div>
+            <div class="hint">(declarado − fondo) + tarjeta + MP + SPEI</div>
+          </div>
+          <div class="kpi">
+            <div class="lab">Nómina pagada</div>
+            <div class="val" style="color:var(--red)">−$18,400</div>
+            <div class="hint">nomina_empleados.neto_pagar, pagado = true</div>
+          </div>
+          <div class="kpi">
+            <div class="lab">Gastos manuales</div>
+            <div class="val" style="color:var(--red)">−$15,800</div>
+            <div class="hint">renta, luz, limpieza… origen = manual</div>
+          </div>
+          <div class="kpi">
+            <div class="lab">Efectivo generado</div>
+            <div class="val" style="color:var(--green)">$96,850</div>
+            <div class="hint">No es utilidad. No resta COGS. Es caja.</div>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Punto de equilibrio</h2>
+          <div class="body pe">
+            <div>
+              <div class="muted">Hoy llevas</div>
+              <div class="pe-num">$3,200</div>
+              <div class="progress"><i style="width:68%"></i></div>
+              <div class="muted">de $4,688 diarios para no perder. Faltan $1,488.</div>
+            </div>
+            <div>
+              <div class="kpi" style="border:0;padding:0">
+                <div class="lab">PE mensual</div>
+                <div class="val">$140,625</div>
+                <div class="hint">gastos fijos ÷ margen bruto 32%</div>
+              </div>
+              <p class="muted" style="margin-top:12px">Si ya se superó: “Punto de equilibrio alcanzado. Todo lo que vendas hoy es utilidad.”</p>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Qué no va aquí</h2>
+          <div class="body" style="font-size:13px;line-height:1.55;color:var(--textMid)">
+            Una recepción de Nadro/Levic <strong>no</strong> es un gasto del P&amp;L ni se resta de la utilidad bruta.
+            Es cambio de dinero por activo. El pago a proveedor, si se muestra, es captura manual o la respuesta a la pregunta 8 — no <code>recepciones.total_ticket</code> disfrazado.
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════ GASTOS ═══════════════ -->
+      <section class="panel" id="gastos">
+        <div class="card">
+          <h2>Alta rápida — menos de 10 segundos</h2>
+          <div class="body">
+            <div class="form">
+              <input type="date" value="2026-09-04" />
+              <select>
+                <option>renta</option>
+                <option>servicios</option>
+                <option>insumos</option>
+                <option>publicidad</option>
+                <option>otros</option>
+              </select>
+              <input type="text" placeholder="Concepto — ej. Renta septiembre" />
+              <input type="text" placeholder="$ 12,000" />
+              <button class="btn" type="button">Guardar</button>
+            </div>
+            <p class="muted" style="margin:8px 0 0">Nómina, comisión TPV y merma las genera el job (origen derivado). No se teclean. Índice único (origen, ref_id) para no duplicar.</p>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Del período</h2>
+          <table class="data">
+            <thead>
+              <tr><th>Fecha</th><th>Categoría</th><th>Concepto</th><th>Origen</th><th>Monto</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>01-sep</td><td>renta</td><td>Local plaza</td><td>manual</td><td style="font-weight:700">$12,000</td></tr>
+              <tr><td>01-sep</td><td>nomina</td><td>Semana 35</td><td>derivado</td><td style="font-weight:700">$18,400</td></tr>
+              <tr><td>02-sep</td><td>servicios</td><td>CFE</td><td>manual</td><td style="font-weight:700">$2,180</td></tr>
+              <tr><td>03-sep</td><td>comisiones</td><td>TPV 3.5%</td><td>derivado</td><td style="font-weight:700">$1,640</td></tr>
+              <tr><td>03-sep</td><td>mermas</td><td>Lotes vencidos</td><td>derivado</td><td style="font-weight:700">$420</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ═══════════════ PROYECTO ═══════════════ -->
+      <section class="panel" id="proyecto">
+        <div class="kpis">
+          <div class="kpi">
+            <div class="lab">Inversión (CAPEX)</div>
+            <div class="val">$710,433</div>
+            <div class="hint">Sale de localStorage. Fase 4 lo mueve a proyecto_capex.</div>
+          </div>
+          <div class="kpi">
+            <div class="lab">Utilidad acumulada</div>
+            <div class="val" style="color:var(--green)">$48,200</div>
+            <div class="hint">Esto recupera capital. No las ventas.</div>
+          </div>
+          <div class="kpi">
+            <div class="lab">Ventas acumuladas</div>
+            <div class="val" style="color:var(--textMid)">$710,000</div>
+            <div class="hint">Métrica secundaria. Ya no se llama “recuperado”.</div>
+          </div>
+          <div class="kpi">
+            <div class="lab">Payback restante</div>
+            <div class="val" style="color:var(--amber)">~41 meses</div>
+            <div class="hint">Promedio móvil 3 meses. Sin 3 meses: “Datos insuficientes”.</div>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Recuperación sobre utilidad, no sobre venta</h2>
+          <div class="body">
+            <div class="progress"><i style="width:7%;background:var(--green)"></i></div>
+            <p class="muted">$48,200 de $710,433 · 6.8%. El 0.55 de <code>dashboardVentas.js:99</code> no entra aquí.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    document.querySelectorAll(".tab").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".tab").forEach((b) => b.classList.remove("on"));
+        document.querySelectorAll(".panel").forEach((p) => p.classList.remove("on"));
+        btn.classList.add("on");
+        document.getElementById(btn.dataset.tab).classList.add("on");
+      });
+    });
+    document.getElementById("gateOff").addEventListener("change", (e) => {
+      document.getElementById("covOk").hidden = e.target.checked;
+      document.getElementById("covBad").hidden = !e.target.checked;
+    });
+  </script>
+</body>
+</html>
