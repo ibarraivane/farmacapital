@@ -66,12 +66,12 @@ export function inventarioStickyLefts(colOrder, colWidths, { hasCheckbox = true,
   let left = 0;
   if (hasCheckbox) {
     lefts.checkbox = 0;
-    left = widthOf("checkbox");
+    left = Math.ceil(widthOf("checkbox"));
   }
   for (const id of colOrder) {
     if (!INV_STICKY_COL_IDS.includes(id)) continue;
     lefts[id] = left;
-    left += widthOf(id);
+    left += Math.ceil(widthOf(id));
   }
   return lefts;
 }

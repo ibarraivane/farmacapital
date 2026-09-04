@@ -2206,8 +2206,8 @@ function renderInventarioColumnCell(colId, ctx) {
             whiteSpace: "nowrap",
             verticalAlign: "middle",
             background: stickyRowBg,
-            ...sticky(),
             ...w("acciones"),
+            ...sticky(),
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "nowrap", overflow: "hidden", maxWidth: "100%" }}>
@@ -2299,8 +2299,8 @@ function renderInventarioColumnCell(colId, ctx) {
             textAlign: "left",
             verticalAlign: "middle",
             background: stickyRowBg,
-            ...sticky(),
             ...w("skuFarmaCapital"),
+            ...sticky(),
           }}
         />
       );
@@ -2342,7 +2342,7 @@ function renderInventarioColumnCell(colId, ctx) {
               {nombreTabla}
             </span>
           }
-          tdStyle={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, verticalAlign: "middle", background: stickyRowBg, ...sticky(), ...w("nombre") }}
+          tdStyle={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, verticalAlign: "middle", background: stickyRowBg, ...w("nombre"), ...sticky() }}
         />
       );
     case "marca":
@@ -2757,7 +2757,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
     table.querySelectorAll("thead [data-inv-col]").forEach((el) => {
       const id = el.getAttribute("data-inv-col");
       if (!id) return;
-      next[id] = el.getBoundingClientRect().width;
+      next[id] = el.offsetWidth;
     });
     if (!Object.keys(next).length) return;
     setMeasuredStickyWidths((prev) => (stickyWidthsEqual(prev, next) ? prev : next));
@@ -4171,8 +4171,8 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
                       whiteSpace: "nowrap",
                       cursor: col.hint ? "help" : undefined,
                       verticalAlign: "middle",
-                      ...inventarioStickyStyleFor(colId, { header: true, bg: C.card }),
                       ...invColWidthStyle(colId),
+                      ...inventarioStickyStyleFor(colId, { header: true, bg: C.card }),
                     }}
                   >
                     {col.label}

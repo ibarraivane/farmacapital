@@ -39,6 +39,17 @@ describe("inventarioStickyLefts", () => {
     expect(lefts.nombre).toBe(44 + 118);
   });
 
+  test("redondea hacia arriba anchos fraccionarios para no montarse", () => {
+    const lefts = inventarioStickyLefts(ORDER, INV_COL_WIDTHS_DEFAULT, {
+      hasCheckbox: true,
+      measuredWidths: { checkbox: 38.4, foto: 44.6, acciones: 104.2, skuFarmaCapital: 118.8 },
+    });
+    expect(lefts.foto).toBe(39);
+    expect(lefts.acciones).toBe(39 + 45);
+    expect(lefts.skuFarmaCapital).toBe(39 + 45 + 105);
+    expect(lefts.nombre).toBe(39 + 45 + 105 + 119);
+  });
+
   test("usa anchos medidos si vienen del DOM", () => {
     const lefts = inventarioStickyLefts(ORDER, INV_COL_WIDTHS_DEFAULT, {
       hasCheckbox: true,
