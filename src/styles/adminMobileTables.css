@@ -20,7 +20,7 @@
   }
 
   /* Contenedor real de scroll: el padre directo de una tabla ancha. */
-  .farmacapital-admin-root *:has(> table:not(.fc-tabla-cards)) {
+  .farmacapital-admin-root *:has(> table:not(.fc-tabla-cards):not(.fc-inv-tabla)) {
     max-width: 100%;
     min-width: 0;
     overflow-x: auto;
@@ -34,20 +34,20 @@
     max-width: none;
   }
 
-  .farmacapital-admin-root table:not(.fc-tabla-cards) {
+  .farmacapital-admin-root table:not(.fc-tabla-cards):not(.fc-inv-tabla) {
     width: max-content;
     min-width: 100%;
     border-collapse: collapse;
   }
 
-  .farmacapital-admin-root table:not(.fc-tabla-cards) th,
-  .farmacapital-admin-root table:not(.fc-tabla-cards) td {
+  .farmacapital-admin-root table:not(.fc-tabla-cards):not(.fc-inv-tabla) th,
+  .farmacapital-admin-root table:not(.fc-tabla-cards):not(.fc-inv-tabla) td {
     white-space: nowrap;
     vertical-align: middle;
   }
 
-  .farmacapital-admin-root table:not(.fc-tabla-cards) th:first-child,
-  .farmacapital-admin-root table:not(.fc-tabla-cards) td:first-child {
+  .farmacapital-admin-root table:not(.fc-tabla-cards):not(.fc-inv-tabla) th:first-child,
+  .farmacapital-admin-root table:not(.fc-tabla-cards):not(.fc-inv-tabla) td:first-child {
     position: sticky;
     left: 0;
     z-index: 2;
@@ -55,7 +55,7 @@
     box-shadow: 4px 0 8px -6px rgba(15, 23, 42, 0.28);
   }
 
-  .farmacapital-admin-root table:not(.fc-tabla-cards) thead th:first-child {
+  .farmacapital-admin-root table:not(.fc-tabla-cards):not(.fc-inv-tabla) thead th:first-child {
     z-index: 3;
     background: #f0f4f9;
   }
@@ -196,4 +196,14 @@
   .farmacapital-admin-root *:has(> table:not(.fc-tabla-cards)) {
     scroll-behavior: auto;
   }
+}
+
+/* Inventario: varias columnas sticky. collapse + nowrap del móvil las traslapa. */
+.fc-inv-tabla {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.fc-inv-tabla th,
+.fc-inv-tabla td {
+  overflow: hidden;
 }
