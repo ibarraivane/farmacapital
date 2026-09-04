@@ -276,56 +276,62 @@
       .fc-hair {
         position: absolute;
         background: currentColor;
-        opacity: 0;
         border-radius: 0;
+        opacity: 1;
+        transition:
+          width 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+          height 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+          left 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+          top 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+          color 0.32s ease,
+          opacity 0.18s ease;
       }
-      .fc-hair-navy { color: var(--fc-ink); }
-      .fc-hair-blue { color: var(--fc-blue); }
-      .fc-hair-jade { color: var(--fc-jade); }
-      .fc-hair-h { height: 2px; width: min(46vw, 320px); }
-      .fc-hair-v { width: 2px; height: min(38vh, 260px); }
+      .fc-hair-navy { color: #BCC2CE; }
+      .fc-hair-blue { color: #C0D2F2; }
+      .fc-hair-jade { color: #BCE7D9; }
+      #splash.fc-intro-play .fc-hair-navy { color: #2F3C4E; }
+      #splash.fc-intro-play .fc-hair-blue { color: var(--fc-blue); }
+      #splash.fc-intro-play .fc-hair-jade { color: var(--fc-jade); }
+      .fc-hair-h { height: 2px; }
+      .fc-hair-v { width: 2px; }
+      /* Dos L desfasadas: navy arriba-izq, azul/verde abajo-der */
       .fc-hair-left {
-        top: calc(50% - 1px);
-        right: 50%;
-        transform-origin: right center;
-        transform: translate3d(-36vw, calc(var(--fc-logo-h) * -0.42), 0);
+        top: calc(50% - var(--fc-logo-h) * 0.28);
+        left: 0;
+        width: calc(50% - var(--fc-logo-w) * var(--fc-cross-w) * 0.08);
       }
       .fc-hair-top {
-        left: calc(50% - 1px);
-        bottom: 50%;
-        transform-origin: center bottom;
-        transform: translate3d(calc(var(--fc-logo-h) * -0.42), -30vh, 0);
+        left: calc(50% - var(--fc-logo-w) * var(--fc-cross-w) * 0.28);
+        top: 0;
+        height: calc(50% - var(--fc-logo-h) * 0.18);
       }
       .fc-hair-right {
-        top: calc(50% - 1px);
-        left: 50%;
-        transform-origin: left center;
-        transform: translate3d(36vw, calc(var(--fc-logo-h) * 0.42), 0);
+        top: calc(50% + var(--fc-logo-h) * 0.24);
+        left: calc(50% + var(--fc-logo-w) * var(--fc-cross-w) * 0.12);
+        width: calc(50% - var(--fc-logo-w) * var(--fc-cross-w) * 0.12);
       }
       .fc-hair-bot {
-        left: calc(50% - 1px);
-        top: 50%;
-        transform-origin: center top;
-        transform: translate3d(calc(var(--fc-logo-h) * 0.42), 30vh, 0);
+        left: calc(50% + var(--fc-logo-w) * var(--fc-cross-w) * 0.22);
+        top: calc(50% + var(--fc-logo-h) * 0.08);
+        height: calc(50% - var(--fc-logo-h) * 0.08);
       }
-      #splash.fc-intro-play .fc-hair {
-        animation: fc-hair-in 0.52s cubic-bezier(0.18, 0.82, 0.2, 1) forwards;
+      #splash.fc-intro-retract .fc-hair-left {
+        left: calc(50% - var(--fc-logo-w) * var(--fc-cross-w) * 0.72);
+        width: calc(var(--fc-logo-w) * var(--fc-cross-w) * 0.58);
       }
-      #splash.fc-intro-play .fc-hair-left  { animation-delay: 0.00s; }
-      #splash.fc-intro-play .fc-hair-top   { animation-delay: 0.03s; }
-      #splash.fc-intro-play .fc-hair-right { animation-delay: 0.02s; }
-      #splash.fc-intro-play .fc-hair-bot   { animation-delay: 0.05s; }
-      #splash.fc-intro-cross .fc-hair {
-        animation: fc-hair-out 0.16s ease forwards;
+      #splash.fc-intro-retract .fc-hair-top {
+        top: calc(50% - var(--fc-logo-h) * 0.62);
+        height: calc(var(--fc-logo-h) * 0.38);
       }
-      @keyframes fc-hair-in {
-        0%   { opacity: 0; }
-        14%  { opacity: 1; }
-        100% { transform: translate3d(0, 0, 0); opacity: 1; }
+      #splash.fc-intro-retract .fc-hair-right {
+        left: calc(50% + var(--fc-logo-w) * var(--fc-cross-w) * 0.12);
+        width: calc(var(--fc-logo-w) * var(--fc-cross-w) * 0.58);
       }
-      @keyframes fc-hair-out {
-        to { opacity: 0; transform: scale(0.35); }
+      #splash.fc-intro-retract .fc-hair-bot {
+        top: calc(50% + var(--fc-logo-h) * 0.08);
+        height: calc(var(--fc-logo-h) * 0.38);
       }
+      #splash.fc-intro-cross .fc-hair { opacity: 0; }
       @media (prefers-reduced-motion: reduce) {
         .fc-intro-lines { display: none; }
         .fc-intro-logo {
@@ -435,7 +441,8 @@
           }
           splash.offsetWidth;
           splash.classList.add('fc-intro-play');
-          setTimeout(function () { splash.classList.add('fc-intro-cross'); }, 540);
+          setTimeout(function () { splash.classList.add('fc-intro-retract'); }, 160);
+          setTimeout(function () { splash.classList.add('fc-intro-cross'); }, 480);
           setTimeout(function () { splash.classList.add('fc-intro-reveal'); }, 820);
           setTimeout(function () {
             splash.classList.add('fc-intro-sub-on');
