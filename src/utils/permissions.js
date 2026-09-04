@@ -34,6 +34,7 @@ export const NAV_VENDEDOR_DEFAULT = [
   "midia",
   "pos",
   "dev",
+  "ped_mostrador",
   "agenda",
   "recibir",
   "inv",
@@ -109,6 +110,13 @@ export function inyectarNavOperacionPiso(ids) {
   const out = Array.isArray(ids) ? [...ids] : [];
   if (!out.includes("recibir") && out.includes("inv")) {
     out.splice(out.indexOf("inv"), 0, "recibir");
+  }
+  // Lista viva de lo que piden en mostrador: visible en piso (POS/inv).
+  if (!out.includes("ped_mostrador") && (out.includes("pos") || out.includes("inv"))) {
+    const afterDev = out.indexOf("dev");
+    if (afterDev >= 0) out.splice(afterDev + 1, 0, "ped_mostrador");
+    else if (out.includes("pos")) out.splice(out.indexOf("pos") + 1, 0, "ped_mostrador");
+    else out.push("ped_mostrador");
   }
   if (!out.includes("ayuda")) {
     const at = out.indexOf("inv");

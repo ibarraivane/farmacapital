@@ -14,7 +14,8 @@ export const GLOSARIO = [
   { id: "anaquel", term: "Anaquel", aliases: ["piso", "mostrador"], def: "Lo que está en el piso de venta, no en un papel ni en un PDF." },
   { id: "pvp", term: "PVP", aliases: ["precio de venta", "precio al público"], def: "Precio al público. La vendedora lo consulta en el POS al escanear, no en el Catálogo. No se captura al recibir. Lo define el dueño." },
   { id: "costo", term: "Costo", aliases: ["precio de compra", "en cuánto compramos"], def: "Lo que se pagó al proveedor. El piso no lo ve: ni en Catálogo, ni en Recibir (estimado). Vive en el lote y lo ve el dueño." },
-  { id: "reabasto", term: "Reabasto", aliases: ["qué comprar", "sugerido", "agotados", "stock bajo"], def: "Reporte de agotados y stock bajo para armar pedidos. Cada ítem va al surtidor con mejor precio y sale en su hoja. No es Recibir." },
+  { id: "reabasto", term: "Reabasto", aliases: ["qué comprar", "sugerido", "agotados", "stock bajo"], def: "Reporte de agotados y stock bajo para armar pedidos. Cada ítem va al surtidor con mejor precio y sale en su hoja. No es Recibir. Tampoco es «Lo que buscan» (eso es lo que el cliente pidió en mostrador)." },
+  { id: "lo-que-buscan", term: "Lo que buscan", aliases: ["pedidos de mostrador", "faltantes de mostrador", "solicitudes", "lo que piden"], def: "Lista viva: el piso anota lo que el cliente pidió y no hay (o no está en catálogo), con vendedor, cliente, teléfono y si dejó depósito. Sirve para decidir qué comprar." },
   { id: "pos", term: "POS", aliases: ["punto de venta", "caja registradora"], def: "Punto de venta: escanear, cobrar, receta. En el POS no se elige lote: el sistema descuenta por FEFO." },
   { id: "receta", term: "Receta", aliases: ["requiere receta", "controlado"], def: "En antibióticos se recomienda receta, pero no detiene la venta. Solo los controlados exigen receta en el POS (médico, cédula, paciente)." },
   { id: "corte", term: "Corte de caja", aliases: ["fondo", "arqueo"], def: "Cierre del turno: se cuenta el efectivo y se compara con lo que el sistema dice que debió haber." },
@@ -129,6 +130,25 @@ export const TEMAS = [
     ],
     dudas: [
       { q: "¿Puedo devolver sin ticket?", a: "Intenta con el teléfono. Si no aparece, el dueño revisa Transacciones." },
+    ],
+  },
+  {
+    id: "lo-que-buscan",
+    moduloId: "ped_mostrador",
+    titulo: "Lo que buscan",
+    resumen: "Lista viva de lo que piden en mostrador y no hay (o no está en catálogo), con cliente y anticipo.",
+    pasos: [
+      "Abre Lo que buscan en el menú.",
+      "Anota qué piden, cantidad y para cuándo (hoy / mañana / sin prisa).",
+      "Si está en catálogo, búscala y vincúlala (queda como agotado). Si no, deja el texto libre.",
+      "Opcional: nombre y teléfono del cliente, y si dejó depósito o pagó todo.",
+      "El sistema te registra a ti como vendedor automáticamente.",
+      "Admin/gerencia cambia el estado: Pedir → Pedido → Llegó (o Descartado).",
+      "La pestaña Más pedidos muestra el ranking de los últimos 30 días para decidir compras.",
+    ],
+    dudas: [
+      { q: "¿Es lo mismo que Reabasto?", a: "No. Reabasto mira stock bajo del catálogo. Esto es lo que la gente pidió aunque no exista en catálogo." },
+      { q: "¿El depósito entra a caja?", a: "Esta lista solo lo anota para seguimiento. El cobro del depósito se registra en el POS / caja como corresponda." },
     ],
   },
   {
