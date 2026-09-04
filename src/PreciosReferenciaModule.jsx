@@ -30,6 +30,7 @@ import {
   instanteBotVentaGlobal,
   fmtBotCuando,
   productoSubtituloReferencia,
+  captionRefNoComparable,
 } from "./lib/preciosReferencia";
 import {
   coherenciaSugeridosPorTamano,
@@ -352,6 +353,31 @@ function DiffBadge({ pct, mode, C, vsLabel }) {
     <span style={{ padding: "2px 6px", borderRadius: 20, fontSize: 9, fontWeight: 700, color: col, background: bg }}>
       {prefix}{pct}% vs ref.
     </span>
+  );
+}
+
+function displayRefVenta(p, fuente, row, pct, C) {
+  const precio = row?.precio;
+  if (precio == null) return "—";
+  const cap = captionRefNoComparable(p, fuente, row);
+  if (cap) {
+    return (
+      <>
+        <div style={{ color: C.textMid, textDecoration: "line-through" }}>{fmtPrecioRef(precio)}</div>
+        <div
+          style={{ fontSize: 10, fontWeight: 700, marginTop: 2, color: C.amber, lineHeight: 1.25 }}
+          title={cap.detalle || cap.texto}
+        >
+          {cap.texto}
+        </div>
+      </>
+    );
+  }
+  return (
+    <>
+      <div>{fmtPrecioRef(precio)}</div>
+      <DiffBadge pct={pct} mode="venta" C={C} />
+    </>
   );
 }
 
@@ -714,7 +740,12 @@ function TablaVenta({
             <th style={{ ...thS("tuVenta"), textAlign: "right" }}>Tu venta</th>
             <th style={{ ...thS("margen"), textAlign: "right" }}>Margen %</th>
             <th style={{ ...thS("fahorro"), textAlign: "right" }}>Del Ahorro</th>
-            <th style={{ ...thS("similares"), textAlign: "right" }}>Similares</th>
+            <th
+              style={{ ...thS("similares"), textAlign: "right" }}
+              title={FUENTE_META.similares?.hint}
+            >
+              Similares
+            </th>
             <th
               style={{ ...thS("otros_venta"), textAlign: "right" }}
               title={FUENTE_META.otros_venta?.hint}
@@ -813,12 +844,7 @@ function TablaVenta({
                   onCancel={onCancel}
                   editTitle="Clic para editar. Deja vacío para quitar la referencia."
                   tdStyle={{ ...tdS("fahorro", { background: rowBg }) }}
-                  display={fah != null ? (
-                    <>
-                      <div>{fmtPrecioRef(fah)}</div>
-                      <DiffBadge pct={dAho} mode="venta" C={C} />
-                    </>
-                  ) : "—"}
+                  display={displayRefVenta(p, "fahorro", refs.fahorro, dAho, C)}
                 />
                 <EditablePrecioCell
                   C={C}
@@ -833,12 +859,7 @@ function TablaVenta({
                   onCancel={onCancel}
                   editTitle="Clic para editar. Deja vacío para quitar la referencia."
                   tdStyle={{ ...tdS("similares", { background: rowBg }) }}
-                  display={sim != null ? (
-                    <>
-                      <div>{fmtPrecioRef(sim)}</div>
-                      <DiffBadge pct={dSim} mode="venta" C={C} />
-                    </>
-                  ) : "—"}
+                  display={displayRefVenta(p, "similares", refs.similares, dSim, C)}
                 />
                 <EditablePrecioCell
                   C={C}
@@ -853,12 +874,7 @@ function TablaVenta({
                   onCancel={onCancel}
                   editTitle="Promedio de mercado o consulta manual. Vacío = quitar."
                   tdStyle={{ ...tdS("otros_venta", { background: rowBg }) }}
-                  display={otr != null ? (
-                    <>
-                      <div>{fmtPrecioRef(otr)}</div>
-                      <DiffBadge pct={dOtr} mode="venta" C={C} />
-                    </>
-                  ) : "—"}
+                  display={displayRefVenta(p, "otros_venta", refs.otros_venta, dOtr, C)}
                 />
                 <td style={{ ...tdS("refMin", { textAlign: "right", color: C.textMid, background: rowBg }) }}>
                   {refMin != null ? fmtPrecioRef(refMin) : "—"}

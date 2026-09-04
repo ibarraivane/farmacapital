@@ -4,6 +4,7 @@ import {
   calcPrecioSugeridoReferencias,
   resolverDecisionSugeridoFila,
   listarSubidasSugeridas,
+  captionRefNoComparable,
 } from "./preciosReferencia";
 
 test("percentil 40 no es el mínimo", () => {
@@ -63,6 +64,24 @@ test("la fila no tapa revisar_compra con un subir por pesos", () => {
   });
   expect(out.alerta).toBe("piso_gt_techo");
   expect(out.accion).toBe("revisar_compra");
+});
+
+test("Similares genérico no baja el techo de Contac ni pide revisar compra", () => {
+  const p = {
+    nombre: "Contac Ultra",
+    marca: "Contac",
+    tipo: "GENERICO",
+    forma_farmaceutica: "tabletas",
+    principio_activo: "Paracetamol + Fenilefrina + Clorfenamina",
+    costo: 32.34,
+    precio: 44,
+  };
+  const r = refs({ similares: 36 });
+  r.similares.nombre_fuente = "CLORFENAMINA / FENILEFRINA / PARACETAMOL 24 TABLETAS";
+  const out = calcPrecioSugeridoReferencias(p, r);
+  expect(out.sugerido).toBeNull();
+  expect(out.accion).toBeNull();
+  expect(captionRefNoComparable(p, "similares", r.similares).texto).toMatch(/No es Contac/i);
 });
 
 test("el lote de subidas no incluye piso arriba del mercado", () => {

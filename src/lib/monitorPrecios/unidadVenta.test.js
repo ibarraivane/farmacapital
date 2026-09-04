@@ -3,7 +3,10 @@ const {
   extraerUnidadProducto,
   mismaUnidadVenta,
   diagnosticoRefRappi,
+  diagnosticoRefCadena,
   ofertaRappiComparable,
+  esMarcaPatente,
+  marcaBusqueda,
 } = require("./unidadVenta");
 
 const ensureBotella = {
@@ -238,4 +241,59 @@ test("el mismo EAN es comparable aunque el nombre no traiga la marca", () => {
     { nombre: "Lizovag", codigo_barras: "7501075717150", precio: 26 },
     { nombre: "Ketoconazol 200 mg", ean: "7501075717150", precio: 29 },
   )).toBe(true);
+});
+
+test("Contac mal etiquetado GENERICO no se compara con el genérico de Similares", () => {
+  const contac = {
+    nombre: "Contac Ultra",
+    marca: "Contac",
+    tipo: "GENERICO",
+    principio_activo: "Paracetamol + Fenilefrina + Clorfenamina",
+    presentacion: "C/12",
+    precio: 44,
+  };
+  expect(marcaBusqueda(contac)).toBe("contac");
+  expect(esMarcaPatente(contac)).toBe(true);
+  expect(diagnosticoRefCadena(contac, "similares", {
+    nombre_fuente: "CLORFENAMINA / FENILEFRINA / PARACETAMOL 24 TABLETAS",
+    precio: 36,
+  }).ok).toBe(false);
+  expect(diagnosticoRefCadena(contac, "similares", { precio: 36 }).ok).toBe(false);
+  expect(diagnosticoRefCadena(contac, "fahorro", { precio: 89 }).ok).toBe(true);
+});
+
+test("XL-3 se reconoce aunque el guion parta el nombre", () => {
+  const xl3 = {
+    nombre: "XL-3 Xtra C/12",
+    marca: "XL-3",
+    tipo: "generico",
+    principio_activo: "Paracetamol + Fenilefrina + Clorfenamina",
+    presentacion: "C/12",
+    precio: 49,
+  };
+  expect(marcaBusqueda(xl3)).toBe("xl3");
+  expect(esMarcaPatente(xl3)).toBe(true);
+  expect(diagnosticoRefCadena(xl3, "similares", {
+    nombre_fuente: "CLORFENAMINA / FENILEFRINA / PARACETAMOL 24 TABLETAS",
+    precio: 36,
+  }).motivo).toBe("otra_marca");
+  expect(diagnosticoRefRappi(xl3, {
+    nombre_fuente: "XL-3 Xtra 12 tabletas — Farmacias del Ahorro",
+    precio: 52,
+  }).ok).toBe(true);
+});
+
+test("Amoxicilina genérica sí se compara con Similares del mismo PA", () => {
+  const amox = {
+    nombre: "Amoxicilina 500 mg",
+    tipo: "generico",
+    principio_activo: "Amoxicilina",
+    presentacion: "C/12",
+    precio: 32,
+  };
+  expect(esMarcaPatente(amox)).toBe(false);
+  expect(diagnosticoRefCadena(amox, "similares", {
+    nombre_fuente: "AMOXICILINA 500 MG 12 CAPSULAS",
+    precio: 18,
+  }).ok).toBe(true);
 });

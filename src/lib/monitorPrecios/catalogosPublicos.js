@@ -5,6 +5,8 @@
 
 "use strict";
 
+const { esMarcaPatente } = require("./unidadVenta");
+
 const UA = "FarmaCapitalPricingBot/1.0 (+https://www.farmacapital.mx)";
 
 const URLS = {
@@ -120,6 +122,12 @@ function extraerVtex(raw, fuente) {
 }
 
 function terminoBusqueda(producto) {
+  if (esMarcaPatente(producto)) {
+    const marca = String(producto.marca || "").trim();
+    if (marca.length >= 3) return marca.split(/\s+/)[0];
+    const nomMarca = String(producto.nombre || "").trim();
+    if (nomMarca) return nomMarca.split(/\s+/)[0];
+  }
   const pa = String(producto.principio_activo || "").trim();
   if (pa && pa.length >= 4 && !/desodorante|shampoo|jabon|panal/i.test(pa)) {
     return pa.split(/\s+/).slice(0, 3).join(" ");

@@ -3,7 +3,7 @@
  * Espejo simplificado de scripts/pricing_preview.py (classify + piso de margen).
  */
 
-import { diagnosticoRefRappi } from "./monitorPrecios/unidadVenta";
+import { diagnosticoRefCadena } from "./monitorPrecios/unidadVenta";
 import { coherenciaSugeridosPorTamano, proponerPreciosVentaPorTamano } from "./preciosPorTamano";
 
 /** Columnas visibles en la tabla Compra (no inflar con fuentes de pocos matches). */
@@ -140,7 +140,12 @@ export const FUENTE_META = {
     listaDistribuidor: false,
     hint: "Otro abarrotero barato o lista de representante. No uses esto para City Club/Sam's: no son el mismo piso que Zorro.",
   },
-  similares: { label: "Similares", tipo: "venta", listaDistribuidor: false },
+  similares: {
+    label: "Similares",
+    tipo: "venta",
+    listaDistribuidor: false,
+    hint: "Misma marca y presentación. Su genérico (Contac ≠ clorfenamina/fenilefrina/paracetamol) no cuenta.",
+  },
   fahorro: { label: "Del Ahorro", tipo: "venta", listaDistribuidor: false },
   otros_venta: {
     label: "Otros",
@@ -405,9 +410,29 @@ export function refsVentaComparables(producto, refsMap, fuentes = FUENTES_VENTA)
   for (const id of fuentes) {
     const row = out[id];
     if (!row) continue;
-    if (!diagnosticoRefRappi(producto, row).ok) delete out[id];
+    if (!diagnosticoRefCadena(producto, id, row).ok) delete out[id];
   }
   return out;
+}
+
+/** Por qué una celda de cadena no entra al sugerido (genérico de Similares, otro empaque…). */
+export function captionRefNoComparable(producto, fuente, row) {
+  if (!row || !(parseFloat(row.precio) > 0)) return null;
+  const d = diagnosticoRefCadena(producto, fuente, row);
+  if (d.ok) return null;
+  const marca = String(producto?.marca || "").trim()
+    || String(producto?.nombre || "").trim().split(/\s+/)[0]
+    || "esta marca";
+  if (d.motivo === "otra_marca") {
+    return { texto: `No es ${marca}`, detalle: d.nombre || "" };
+  }
+  if (d.motivo === "otro_empaque" || d.motivo === "precio_otro_empaque") {
+    return { texto: "Otro empaque", detalle: d.nombre || "" };
+  }
+  if (d.motivo === "otra_concentracion") {
+    return { texto: "Otra concentración", detalle: d.nombre || "" };
+  }
+  return null;
 }
 
 export function refsVentaDeProducto(refsMap) {

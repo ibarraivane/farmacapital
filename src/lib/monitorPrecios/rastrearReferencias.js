@@ -13,6 +13,7 @@ const {
   terminoBusqueda,
 } = require("./catalogosPublicos");
 const { matchOferta, matchMejorCandidato, precioOtrosMercado } = require("./matchCatalogo");
+const { diagnosticoRefCadena } = require("./unidadVenta");
 
 const DIAS_STALE = 7;
 const LOTE_VENTA = 6;
@@ -101,6 +102,7 @@ async function rastrearReferencias(input) {
         busquedasVenta += 1;
         const best = matchMejorCandidato(p, cands);
         if (!best) continue;
+        if (!diagnosticoRefCadena(p, cadena, best).ok) continue;
         porFuente[cadena] = best.precio;
         filas.push(filaRef(p.id, cadena, "venta", best.precio, best.nombre, best.confianza));
       } catch (err) {

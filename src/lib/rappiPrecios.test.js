@@ -54,10 +54,17 @@ test("mezcla Del Ahorro / Similares con farmacias Rappi", () => {
     rappi_gdl: 50,
     rappi_super: 20,
   });
+  r.similares.nombre_fuente = "Agrifen 10 tabletas";
   const out = calcPrecioSugeridoRappi(otc, r);
   expect(out.refMin).toBe(28);
   expect(precioCalleDe(otc, r)).toBe(28);
   expect(tieneRefRappi(r)).toBe(true);
+});
+
+test("Similares sin la marca no cuenta para Agrifen", () => {
+  const r = refs({ fahorro: 30, similares: 28 });
+  r.similares.nombre_fuente = "PARACETAMOL / FENILEFRINA / CLORFENAMINA 10 TABLETAS";
+  expect(precioCalleDe(otc, r)).toBe(30);
 });
 
 test("Ensure: el 6-pack de Rappi no mueve el sugerido", () => {
@@ -112,9 +119,11 @@ test("Calle Advance o dieta genérica no cuentan para Ensure Regular", () => {
 test("el lote de sugerencias incluye subidas y bajadas", () => {
   const barato = { ...otc, id: 1, precio: 20 };
   const caro = { ...otc, id: 2, precio: 80 };
+  const r40 = refs({ similares: 40 });
+  r40.similares.nombre_fuente = "Agrifen 10 tabletas";
   const mapa = {
-    1: refs({ similares: 40 }),
-    2: refs({ similares: 40 }),
+    1: r40,
+    2: r40,
   };
   const todas = listarSugerenciasRappi([barato, caro], mapa);
   expect(todas.map((s) => s.producto.id).sort()).toEqual([1, 2]);
@@ -134,6 +143,7 @@ test("el lote de sugerencias incluye subidas y bajadas", () => {
 test("el promedio no persigue al más barato; el piso de patente es 20%", () => {
   const patente = { ...otc, tipo: "marca", costo: 80, precio: 90 };
   const r = refs({ rappi_gdl: 88, rappi_farmatodo: 92, similares: 90 });
+  r.similares.nombre_fuente = "Agrifen 10 tabletas";
   const out = calcPrecioSugeridoRappi(patente, r);
   expect(out.refPromedio).toBeCloseTo(90, 5);
   expect(out.sugerido).toBe(100);

@@ -194,16 +194,28 @@ function mismaUnidadVenta(a, b) {
   return true;
 }
 
+/** XL-3 → xl3; no partir en "xl" (2 letras no identifican la marca). */
+function colapsarMarca(texto) {
+  return colapsar(String(texto || "").replace(/-/g, ""));
+}
+
 function marcaBusqueda(producto) {
-  const marca = colapsar(producto && producto.marca);
-  if (marca && marca.length >= 4) return marca.split(/\s+/)[0];
-  const nom = colapsar(producto && producto.nombre);
-  return (nom && nom.split(/\s+/).find((t) => t.length >= 4)) || null;
+  const marca = colapsarMarca(producto && producto.marca);
+  if (marca && marca.length >= 3) return marca.split(/\s+/)[0];
+  const nom = colapsarMarca(producto && producto.nombre);
+  return (nom && nom.split(/\s+/).find((t) => t.length >= 3)) || null;
 }
 
 function ofertaTieneMarca(normOferta, marca) {
   if (!marca) return true;
-  return new RegExp(`(?:^|\\s)${marca}(?:\\s|$)`).test(normOferta || "");
+  const hay = normOferta || "";
+  if (new RegExp(`(?:^|\\s)${marca}(?:\\s|$)`).test(hay)) return true;
+  // Oferta "XL-3 VR" colapsa a "xl 3 vr"; nuestra marca es xl3.
+  if (/^[a-z]+\d+$/.test(marca)) {
+    const spaced = marca.replace(/(\d+)/g, " $1").trim();
+    if (spaced !== marca && new RegExp(`(?:^|\\s)${spaced}(?:\\s|$)`).test(hay)) return true;
+  }
+  return false;
 }
 
 function tokensPrincipioActivo(producto) {
@@ -217,11 +229,19 @@ function ofertaTienePrincipio(normOferta, producto) {
   return tokensPrincipioActivo(producto).some((w) => new RegExp(`(?:^|\\s)${w}(?:\\s|$)`).test(hay));
 }
 
+/**
+ * Marcas de patente / OTC de laboratorio. Similares no las vende:
+ * pone el genérico (PA + piezas) a otro precio. No usar ese $ como techo.
+ * Incluye fichas mal etiquetadas GENERICO (Contac, XL-3 Xtra).
+ */
+const MARCAS_PATENTE_OTC =
+  /\b(ensure|pediasure|glucerna|electrolit|contac|xl3|desenfriol|flanax|saridon|centrum|sensodyne|histiacil|silka|cafiaspirina|aspirina|tempra|tylenol|advil|buscapina|tabcin)\b/;
+
 function esMarcaPatente(producto) {
   const t = String((producto && producto.tipo) || "").toLowerCase();
-  if (t === "generico" || t === "genérico") return false;
   const marca = marcaBusqueda(producto);
-  if (marca && /\b(ensure|pediasure|glucerna|electrolit)\b/.test(marca)) return true;
+  if (marca && MARCAS_PATENTE_OTC.test(marca)) return true;
+  if (t === "generico" || t === "genérico") return false;
   return t === "marca" || t === "patente";
 }
 
@@ -286,6 +306,23 @@ function ofertaRappiComparable(producto, oferta) {
   return diagnosticoRefRappi(producto, oferta).ok;
 }
 
+/**
+ * Similares no stockea Contac / XL-3 / Flanax: el match por PA es otro producto.
+ * Sin nombre de oferta tampoco se asume que el $ sea esa patente.
+ * Del Ahorro / Otros sin nombre sí se dejan (captura manual de la misma ficha).
+ */
+function diagnosticoRefCadena(producto, fuente, refRow) {
+  const d = diagnosticoRefRappi(producto, refRow);
+  if (!d.ok) return d;
+  if (String(fuente || "") !== "similares") return d;
+  if (!esMarcaPatente(producto)) return d;
+  const marca = marcaBusqueda(producto);
+  if (marca && !ofertaTieneMarca(d.theirs && d.theirs.texto, marca)) {
+    return { ...d, ok: false, motivo: "otra_marca" };
+  }
+  return d;
+}
+
 function motivoEsOtroEmpaque(motivo) {
   return motivo === "otro_empaque" || motivo === "precio_otro_empaque";
 }
@@ -302,9 +339,11 @@ module.exports = {
   marcaBusqueda,
   tokensPrincipioActivo,
   esMarcaPatente,
+  ofertaTieneMarca,
   mismaUnidadVenta,
   mismaConcentracionMg,
   diagnosticoRefRappi,
+  diagnosticoRefCadena,
   ofertaRappiComparable,
   motivoEsOtroEmpaque,
   textoProductoUnidad,

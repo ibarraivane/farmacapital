@@ -6,11 +6,24 @@ const {
 const { matchOferta, precioOtrosMercado } = require("./matchCatalogo");
 const { productosParaVenta, rastrearReferencias } = require("./rastrearReferencias");
 
-test("termino de búsqueda usa principio activo", () => {
+test("genérico busca por principio activo; patente por la marca", () => {
+  expect(terminoBusqueda({
+    nombre: "Amoxicilina 500 mg",
+    tipo: "generico",
+    principio_activo: "Amoxicilina",
+  })).toBe("Amoxicilina");
+  expect(terminoBusqueda({
+    nombre: "Contac Ultra",
+    marca: "Contac",
+    tipo: "GENERICO",
+    principio_activo: "Paracetamol + Fenilefrina + Clorfenamina",
+  })).toBe("Contac");
   expect(terminoBusqueda({
     nombre: "Histiacil NF jarabe",
+    marca: "Histiacil",
+    tipo: "marca",
     principio_activo: "ambroxol dextrometorfano",
-  })).toBe("ambroxol dextrometorfano");
+  })).toBe("Histiacil");
 });
 
 test("VTEX extrae precio de Similares", () => {
