@@ -3,6 +3,7 @@ import {
   MENSAJE_FLUJO_SIN_CONFIG,
   parseFlujoBundle,
   flujoEstaConfigurado,
+  textoOrigenPiso,
   mesesSinCompraDesdeValor,
   toggleMesSinCompra,
   labelSemana,
@@ -12,18 +13,28 @@ import {
 } from "./flujoCaja";
 
 describe("flujoCaja", () => {
-  test("piso de fondo es el 18-ago-2026 (Parte 8.7)", () => {
+  test("piso de fondo documentado es el 18-ago-2026 (Parte 8.7)", () => {
     expect(PISO_FONDO_FLUJO).toBe("2026-08-18");
   });
 
-  test("bundle vacío no está configurado y no inventa números", () => {
+  test("el texto del piso dice que sale de la apertura, no de Ajustes", () => {
+    expect(textoOrigenPiso({
+      origen_piso: "sesion",
+      piso_aplicado: "2026-08-18",
+      saldo_inicial: 282,
+    })).toMatch(/primera apertura/);
+    expect(textoOrigenPiso({ origen_piso: "config", piso_aplicado: "2026-09-01", saldo_inicial: 1000 }))
+      .toMatch(/override/);
+  });
+
+  test("sin apertura con fondo no está configurado y no inventa números", () => {
     const b = parseFlujoBundle({
       configurado: false,
-      faltan: ["finanzas_fecha_inicio", "finanzas_saldo_inicial"],
+      faltan: ["caja_sesiones.fondo_contado"],
       mensaje: MENSAJE_FLUJO_SIN_CONFIG,
     });
     expect(flujoEstaConfigurado(b)).toBe(false);
-    expect(b.faltan).toEqual(["finanzas_fecha_inicio", "finanzas_saldo_inicial"]);
+    expect(b.faltan).toEqual(["caja_sesiones.fondo_contado"]);
     expect(b.entro).toBeUndefined();
   });
 

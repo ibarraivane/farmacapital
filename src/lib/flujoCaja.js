@@ -12,7 +12,20 @@ export const CLAVES_FINANZAS = Object.freeze({
 });
 
 export const MENSAJE_FLUJO_SIN_CONFIG =
-  "Falta poner la fecha de inicio y el saldo inicial en Metas y Precios → Finanzas. Hasta entonces no se calcula el flujo: un saldo inventado mentiría igual que el 0.55.";
+  "No hay ninguna apertura de caja con fondo contado. El flujo usa esa primera apertura como semilla (no el fondo de hoy). Abre caja contando el cambio; no hace falta teclear un saldo en Ajustes.";
+
+export function textoOrigenPiso(bundle) {
+  const b = bundle || {};
+  const fecha = b.piso_aplicado || b.fecha_inicio || b.piso_fondo || PISO_FONDO_FLUJO;
+  const saldo = Number(b.saldo_inicial);
+  const semilla = Number.isFinite(saldo)
+    ? saldo.toLocaleString("es-MX", { style: "currency", currency: "MXN" })
+    : "";
+  if (b.origen_piso === "config") {
+    return `Piso ${fecha}${semilla ? ` · semilla ${semilla}` : ""} (override en Metas y Precios). Entró = cortes. Nómina se teclea.`;
+  }
+  return `Piso ${fecha}${semilla ? ` · semilla ${semilla}` : ""} (primera apertura con fondo). Entró = cortes. Nómina se teclea: RRHH no tiene filas.`;
+}
 
 export function parseFlujoBundle(raw) {
   const b = parseRpcJsonObject(raw);

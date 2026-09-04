@@ -116,8 +116,8 @@ const FIELDS = {
   estimado_receta_externa:   { tab:"cons",      grupo:"avanzado",       label:"Estimado ticket receta afuera", def:350, tipo:"currency" },
 
   // ── TAB 5 · Finanzas (flujo de caja). Vacías a propósito hasta que el dueño las ponga.
-  finanzas_fecha_inicio:     { tab:"finanzas",  grupo:"piso",           label:"Fecha de inicio del flujo", def:"", tipo:"date" },
-  finanzas_saldo_inicial:    { tab:"finanzas",  grupo:"piso",           label:"Saldo inicial (ese día)",   def:"", tipo:"currency_optional" },
+  finanzas_fecha_inicio:     { tab:"finanzas",  grupo:"piso",           label:"Fecha de inicio (override)", def:"", tipo:"date" },
+  finanzas_saldo_inicial:    { tab:"finanzas",  grupo:"piso",           label:"Saldo inicial (override)",   def:"", tipo:"currency_optional" },
 };
 
 const ALL_KEYS = Object.keys(FIELDS);
@@ -191,9 +191,9 @@ function InputField({ clave, valor, onChange, compact = false }) {
   const step = esMoneda ? "10" : "1";
   const min = def.tipo === "percent_signed" ? undefined : 0;
   const sugerencia = esFecha
-    ? "YYYY-MM-DD · no antes del 18-ago-2026"
+    ? "Vacío = primera apertura con fondo"
     : esMoneda
-      ? (def.def === "" ? "Vacío hasta que lo pongas" : fmtMXN(def.def))
+      ? (def.def === "" ? "Vacío = fondo de esa apertura" : fmtMXN(def.def))
       : esPct ? `${def.def}%` : def.def;
 
   return (
@@ -669,14 +669,15 @@ export default function ConfigConsultorioModule() {
 
       {tab === "finanzas" && (
         <>
-          <Box style={{ padding: 20, marginBottom: 16, background: C.amberDim, border: `1px solid ${C.amber}40` }}>
-            <SectionTitle sub="Sin estas dos claves el Dashboard → Flujo de caja se queda vacío. No inventamos el saldo: un número inventado mentiría igual que el 0.55.">
-              PISO DEL FLUJO DE CAJA
+          <Box style={{ padding: 20, marginBottom: 16 }}>
+            <SectionTitle sub="Vacío = lo toma de la primera apertura de caja con fondo contado. No hace falta llenar esto para ver el Flujo.">
+              OVERRIDE OPCIONAL DEL PISO
             </SectionTitle>
             <p style={{ color: C.textMid, fontSize: 12.5, lineHeight: 1.5, margin: "0 0 14px" }}>
-              La serie de cortes es confiable desde el <strong style={{ color: C.text }}>18-ago-2026</strong> (primera sesión con fondo contado).
-              Si pones una fecha anterior, el servidor la recorta a ese día. El saldo inicial es el dinero que había
-              en caja al empezar esa fecha, <em>antes</em> del corte de ese día.
+              Entró sale de los <strong style={{ color: C.text }}>cortes</strong>. La semilla es el fondo de esa primera apertura
+              (18-ago-2026, no el fondo de hoy: ese crecimiento ya viaja en <code>total_general</code>).
+              Nómina, renta y pago a proveedor se teclean: RRHH y compras no tienen filas.
+              Solo llena las dos cajas si quieres arrancar en otra fecha con otro saldo.
             </p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,220px),1fr))", gap: 14 }}>
               <InputField clave="finanzas_fecha_inicio" valor={valores.finanzas_fecha_inicio} onChange={setValor} />
@@ -684,7 +685,7 @@ export default function ConfigConsultorioModule() {
             </div>
           </Box>
           <Btn col={BRAND.primary} onClick={() => guardarTab("finanzas")} dis={guardando}>
-            {guardando ? "Guardando…" : "Guardar piso del flujo"}
+            {guardando ? "Guardando…" : "Guardar override (opcional)"}
           </Btn>
         </>
       )}

@@ -22,6 +22,7 @@ import {
   parseFlujoBundle,
   pctBarra,
   textoCompletitud,
+  textoOrigenPiso,
 } from "./lib/flujoCaja";
 
 const C = C_LIGHT;
@@ -260,19 +261,20 @@ export default function FlujoCajaTab({ usuario, setPage, showConfirm }) {
         <SubNav value={sub} onChange={setSub} />
         <Box style={{ padding: 22, background: C.amberDim, border: `1px solid ${C.amber}55` }}>
           <div style={{ color: C.text, fontWeight: 800, fontSize: 16, marginBottom: 8 }}>
-            Flujo de caja sin configurar
+            Falta una apertura de caja con fondo
           </div>
           <p style={{ color: C.textMid, fontSize: 13, lineHeight: 1.55, margin: "0 0 12px" }}>
             {bundle?.mensaje || MENSAJE_FLUJO_SIN_CONFIG}
           </p>
           <p style={{ color: C.textMid, fontSize: 13, lineHeight: 1.55, margin: "0 0 16px" }}>
-            El piso de la serie es el <strong style={{ color: C.text }}>{PISO_FONDO_FLUJO}</strong>{" "}
-            (primera sesión con fondo contado). Antes de esa fecha el corte cuenta el cambio como venta.
-            No inventamos el saldo inicial.
+            Lo que entra lo leemos de los cortes. La semilla es el <strong style={{ color: C.text }}>fondo de la primera apertura</strong>
+            {" "}(en esta farmacia, a partir del {PISO_FONDO_FLUJO}). No uses el fondo de hoy: ese crecimiento ya viaja en los cortes.
           </p>
-          <Btn col={BRAND.primary} onClick={() => irAjustesFinanzas(setPage)}>
-            Ir a Metas y Precios → Finanzas
-          </Btn>
+          {typeof setPage === "function" ? (
+            <Btn ol col={BRAND.primary} onClick={() => irAjustesFinanzas(setPage)}>
+              Override opcional en Metas y Precios
+            </Btn>
+          ) : null}
         </Box>
       </div>
     );
@@ -307,7 +309,9 @@ export default function FlujoCajaTab({ usuario, setPage, showConfirm }) {
         ))}
         <span style={{ color: C.textDim, fontSize: 11 }}>
           {bundle.desde} → {bundle.hasta}
-          {bundle.recortado_por_fondo ? ` · serie cortada el ${bundle.piso_aplicado}` : ""}
+          {" · "}
+          {textoOrigenPiso(bundle)}
+          {bundle.recortado_por_fondo ? ` · recortado al ${bundle.piso_aplicado}` : ""}
         </span>
       </div>
 
