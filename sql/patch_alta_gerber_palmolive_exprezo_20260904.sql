@@ -107,8 +107,12 @@ begin
      where i.producto_id = v_pid_g and i.url = v_foto_g
   ) then
     insert into public.producto_imagenes
-      (producto_id, url, orden, es_principal, origen)
-    values (v_pid_g, v_foto_g, 1, true, 'catalogo-propia');
+      (producto_id, url, storage_path, posicion, es_principal, origen)
+    values (
+      v_pid_g, v_foto_g,
+      'catalogo-propia/gerber-etapa2-frutas-mixtas-100g.jpg',
+      1, true, 'propia'
+    );
   end if;
 
   -- Recibir: Exprezo 1279718 si vivo; si no, folio 20260904-EXPREZO-FM
@@ -258,8 +262,12 @@ begin
      where i.producto_id = v_pid_p and i.url = v_foto_p
   ) then
     insert into public.producto_imagenes
-      (producto_id, url, orden, es_principal, origen)
-    values (v_pid_p, v_foto_p, 1, true, 'catalogo-propia');
+      (producto_id, url, storage_path, posicion, es_principal, origen)
+    values (
+      v_pid_p, v_foto_p,
+      'catalogo-propia/palmolive-neutro-balance-humectacion-diaria-400ml.jpg',
+      1, true, 'propia'
+    );
   end if;
 
   -- Stock 1 con lote/caducidad de la botella (no inventados)
