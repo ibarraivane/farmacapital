@@ -48,6 +48,27 @@ describe("itemMatchScan", () => {
   test("otro EAN no pega", () => {
     expect(itemMatchScan(IFC_TIJERA, "7500000000000", CAT)).toBe(false);
   });
+
+  test("EAN de exhibidor anotado en descripción abre la pieza", () => {
+    const item = {
+      id: 9,
+      confirmado: false,
+      codigo_escaneado: null,
+      sku: "FC-EXP-OPT48",
+      producto_id: 501,
+      origen: "pdf",
+    };
+    const cat = [
+      {
+        id: 501,
+        sku: "FC-EXP-OPT48",
+        codigo_barras: "7509546015699",
+        descripcion: "Se vende el sobre. EAN pieza/exhibidor 7509546015699.",
+        activo: true,
+      },
+    ];
+    expect(itemMatchScan(item, "7509546015699", cat)).toBe(true);
+  });
 });
 
 describe("resolverEscaneoRecepcion", () => {

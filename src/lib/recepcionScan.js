@@ -27,10 +27,16 @@ export function barcodeDigitsMatch(scanRaw, storedRaw) {
   return false;
 }
 
+/** EAN principal, alias en descripción (pieza vs exhibidor) y SKU. */
 function productMatchesCodigo(product, codigo) {
   if (!product || !codigo) return false;
   const cb = product.codigo_barras ? String(product.codigo_barras).trim() : "";
   if (cb && barcodeDigitsMatch(codigo, cb)) return true;
+  // EANs del otro empaque anotados en la ficha (ej. bote Broncolin / pack Optims).
+  const desc = String(product.descripcion || "");
+  for (const m of desc.match(/\d{12,14}/g) || []) {
+    if (barcodeDigitsMatch(codigo, m)) return true;
+  }
   if (product.sku && String(product.sku).toUpperCase() === String(codigo).toUpperCase()) return true;
   return false;
 }
