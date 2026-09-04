@@ -8,6 +8,7 @@
 > Las **cinco fases** están en la Parte 4. **No las hagas de un jalón.**
 > La UI acordada está en [`docs/finanzas-maqueta.html`](finanzas-maqueta.html). Ábrela en el navegador antes de dibujar un pixel.
 > Las nueve consultas de sólo lectura están en [`sql/diagnostico_finanzas_20260904.sql`](../sql/diagnostico_finanzas_20260904.sql).
+> **La Parte 8 manda sobre la Parte 2** en nómina, servicios y “qué es automático en v1”. Se escribió con el resultado real de la consulta 9 (4-sep-2026).
 
 Hay un documento hermano, [`PROMPT_CURSOR_RENTABILIDAD.md`](PROMPT_CURSOR_RENTABILIDAD.md), escrito antes. Cubre redondeo al peso, gastos y la cascada conceptual. **Este archivo gana** en tres puntos donde aquel se quedó corto o se equivocó:
 
@@ -40,7 +41,7 @@ Eres un ingeniero senior en **FarmaCapital**: POS + inventario + consultorio de 
    - Si sale **< 80%**: **detente**. Dilo fuerte. Un P&L con costos faltantes reporta márgenes inflados justo cuando peor están los datos. Lo primero es capturar costos (Recibir / catálogo / lotes), no programar el módulo.  
    - Si sale ≥ 80% pero la cobertura **por lote** es mucho más baja que la del catálogo, dilo también: el P&L va a usar `productos.costo` actual y **se reescribe solo** cada vez que Recibir pise el costo.
 3. Confirma contra el esquema real (no adivines) las columnas de: `pedidos`, `pedido_items`, `lotes`, `productos`, `devoluciones`, `devolucion_items`, `cortes_caja`, `nomina_empleados`, `compras`, `recepciones`, `pagos_servicio`, `configuracion`. Si el esquema no cuadra con este documento, **gana el código**. Pregunta; no implementes sobre una suposición.
-4. Contesta las **ocho preguntas** de la Parte 6. Sin esas respuestas no hay diseño que implementar.
+4. Contesta las preguntas **aún abiertas** de la Parte 6 (1, 2, 5, 6, 7). Las 3, 4 y 8 las cerró la Parte 8 con la consulta 9. No las reabras.
 5. Lista discrepancias entre este documento y lo que viste. Luego espera aprobación.
 
 Trabaja **fase por fase**. Al terminar cada fase: `npm run build`, resumen de archivos, **espera aprobación**.
@@ -195,7 +196,7 @@ No las reabras. Si una te parece mal, **pregunta** — no la “mejores” en si
 6. **Compuerta 80%.** Si la consulta 4 sale abajo, se detiene el desarrollo del P&L y se captura costo. Un margen con costos faltantes se ve *mejor* precisamente cuando los datos están peor.
 7. **Comprar inventario no es gasto.** `recepciones.total_ticket` y `compras.total` son cambio de dinero por activo. Se vuelven COGS al vender. Meterlos en el P&L hunde los meses de resurtido.
 8. **Nada de constantes.** Se mata el `0.55`. Si un dato no se puede calcular, se muestra “No disponible” y se dice qué capturar.
-9. **Gastos manuales vs. derivados, sin doble conteo.** Renta/luz/etc. a mano. Nómina desde `nomina_empleados`. Comisión TPV / plataforma = % configurable sobre el universo que corresponda. Merma = lotes vencidos × `costo_unitario`. Índice único `(origen, ref_id)` para que un job no duplique.
+9. **Gastos manuales vs. derivados, sin doble conteo.** Renta/luz/etc. a mano. ~~Nómina desde `nomina_empleados`~~ → **v1 es captura manual** (Parte 8; la tabla está vacía). Comisión TPV / plataforma = % configurable. Merma = lotes vencidos × `costo_unitario`. Índice único `(origen, ref_id)` para que un job no duplique.
 10. **La UI es la de la maqueta.** `docs/finanzas-maqueta.html`. No rediseñes. Estilos `C_LIGHT` / `BRAND`. Cambios quirúrgicos a `DashboardModule.jsx` (1,200+ líneas: metas, drag & drop, pendientes). No lo reescribas de cero.
 11. **Recuperación de inversión = utilidad acumulada / CAPEX**, no ventas / CAPEX. Las ventas acumuladas se quedan como métrica secundaria con otro nombre.
 12. **RPC + bundle.** Un jsonb, no diez round-trips. `fn_require_admin` para números financieros.
@@ -337,11 +338,11 @@ Con los resultados del SQL delante. Respuesta corta + número que la respalda. S
 2. **¿Las consultas (`pedidos.tipo = 'consulta'`) van dentro de las ventas brutas del P&L o en un renglón aparte?**  
    Hoy el Resumen las mezcla y a veces las vuelve a sumar (`PROMPT_CURSOR_RENTABILIDAD.md` §1.5). El consultorio no tiene COGS de mercancía. ¿Ingreso operativo aparte, debajo de utilidad bruta de farmacia?
 
-3. **¿`pagos_servicio` es ingreso o pass-through?**  
-   `monto_servicio` + `comision` = `total_cobrado`. El cliente deja el total en caja; a CFE/Telcel se le paga el monto. ¿El P&L solo reconoce `comision`? ¿El flujo de caja sí ve el `total_cobrado` el día del cobro y una salida el día de la liquidación? ¿Esa liquidación está registrada?
+3. **¿`pagos_servicio` es ingreso o pass-through?** — **CERRADA (Parte 8).**  
+   P&L = `comision + compensacion_mp` (`total_utilidad` del RPC). Flujo = las dos patas (entra `total_cobrado` vía el corte, sale `costo_liquidacion`) o ninguna.
 
-4. **Nómina en v1: ¿derivada de `nomina_empleados.neto_pagar` o captura manual?**  
-   La consulta 9 te dice si RRHH ya tiene filas. Si está vacío, derivar produce $0 y la utilidad operativa miente hacia arriba — el mismo pecado del 0.55, al revés.
+4. **Nómina en v1: ¿derivada o captura manual?** — **CERRADA (Parte 8).**  
+   `nomina_empleados` tiene 0 filas. v1 es **manual**. Un ausente no es un cero.
 
 5. **¿Quién ve Finanzas?**  
    ¿Sólo admin (`fn_require_admin`)? ¿Encargado también? El vendedor **no**. Hoy el nav admin no tiene el ítem (`src/constants.js:52-71`).
@@ -352,8 +353,8 @@ Con los resultados del SQL delante. Respuesta corta + número que la respalda. S
 7. **¿El redondeo al peso entra en este trabajo?**  
    Está especificado en `PROMPT_CURSOR_RENTABILIDAD.md` §1.5 y Fase 1.2. Toca POS, ticket, firma de `create_sale_transaction_secure` (riesgo de overload en PostgREST) y `cobrar_consulta`. ¿Va en un PR aparte, después de Finanzas, o es prerrequisito porque si no `SUM(items) ≠ pedidos.total`?
 
-8. **¿De dónde sale “pagado a proveedor” para el flujo de caja?**  
-   No hay tabla de pagos a proveedor. Hay `recepciones.total_ticket` (lo que entró, no necesariamente lo que se pagó), `compras.total` (poco usada) y el efectivo que salió del cajón sin registro. ¿v1 muestra solo “contado − nómina − gastos manuales” y deja el pago a Nadro/Levic como captura manual, o se usa `recepciones.confirmada` como proxy de salida — sabiendo que crédito ≠ pagado?
+8. **¿De dónde sale “pagado a proveedor” para el flujo de caja?** — **CERRADA (Parte 8).**  
+   `compras` = 0 filas. `recepciones` confirmadas = $3,710 en 12 movimientos: no es todo lo que se compra. v1 = **captura manual**. No uses `recepciones.total_ticket` como proxy de pagado.
 
 ---
 
@@ -391,6 +392,78 @@ Con los resultados del SQL delante. Respuesta corta + número que la respalda. S
 - [ ] Móvil usable.
 - [ ] RPC validan sesión y rol.
 - [ ] Cero `supabase.from()` nuevos de costo/caja.
+- [ ] Completitud de captura visible junto a la utilidad (Parte 8). Nómina/renta/proveedores no capturados ≠ $0.
+- [ ] Servicios: P&L usa `total_utilidad`; flujo usa las dos patas o ninguna.
+
+---
+
+## PARTE 8 — Lo que la consulta 9 ya cerró (manda sobre la Parte 2)
+
+Escrito el 4-sep-2026 con el jsonb real de la consulta 9. **Si esta parte y la Parte 2 discrepan, gana esta.** Un dato ausente no es un dato en cero — el mismo pecado del `0.55`, al revés.
+
+### 8.1 Resultado vivo (no volver a pedirlo)
+
+```
+nomina_filas: 0
+compras_filas: 0
+tabla_gastos_existe: false
+recepciones_confirmadas: 12 · total_ticket $3,710.15
+pagos_servicio: 21 · cobrado $1,146 · comision $11
+merma_vencida: 6 pzas · $336.29 a costo
+```
+
+### 8.2 Nómina v1 = manual
+
+`nomina_empleados` está vacía. Derivar `neto_pagar` pone la nómina en $0 y la utilidad operativa se ve mejor de lo que es. En v1 se captura a mano (igual que renta, luz, contador). Cuando RRHH tenga filas, el job derivado entra — no antes.
+
+### 8.3 Servicios: el corte ya trae los $1,146, no los $11
+
+`reconcile_shift_cash` / el bundle de corte (`sql/patch_corte_electronicos_servidor.sql:83-94`, vivo también en `sql/patch_caja_cadena_continua_20260824.sql:130`):
+
+```
+efectivo_sistema = v_ef_pedidos + v_ef_serv
+v_ef_serv = SUM(pagos_servicio.total_cobrado) WHERE metodo_pago = 'efectivo'
+```
+
+O sea `cortes_caja.total_general` **ya incluye el cobro completo**. Ese dinero entra al cajón y tiene que salir a reponer el saldo de Mercado Pago. La salida está en `pagos_servicio.costo_liquidacion` (`sql/patch_pagos_servicio_compensacion_mp.sql:12, 39, 285`). La UI ya lo advierte en `src/CorteCajaModule.jsx:773-775`.
+
+| Reporte | Qué usar | No usar |
+|---|---|---|
+| **P&L** | `comision + compensacion_mp` — el RPC ya lo nombra `total_utilidad` (`patch_pagos_servicio_compensacion_mp.sql:284`) | `total_cobrado` |
+| **Flujo** | Las **dos** patas: entra el cobro (ya va en el corte), sale `costo_liquidacion` — **o ninguna** | Sólo la entrada |
+
+Hoy la diferencia es ~$1,135 (`1,146 − 11`). Es chico, pero es error de **fórmula**, no de escala. Si pones sólo la entrada, el efectivo se ve libre cuando ya está comprometido.
+
+Consulta 9 actualizada pide también `compensacion_mp` y `costo_liquidacion` para no volver a inferirlos.
+
+### 8.4 En v1 casi todo el gasto es manual
+
+Automático, de verdad:
+
+- lo que entró por caja (`cortes.total_general`, desde fondo confiable)
+- COGS, **si** la consulta 4 pasa la compuerta
+- merma de lotes vencidos ($336 hoy)
+- utilidad de servicios (`total_utilidad`, $11 + compensación)
+
+A mano: nómina, renta, luz, contador, **pago a proveedores**. `recepciones` ($3,710 / 12) no es el resurtido real. `compras` está vacía.
+
+Bájale a la promesa de la maqueta. No ofrezcas una columna “lo que llega solo” que en v1 no existe. Se siente peor que pedir la captura de frente.
+
+### 8.5 Completitud de captura, junto a la utilidad
+
+Mientras nómina y compras se tecleen, **un mes sin capturar se ve excelente**. Mismo veneno que el costo faltante → margen 100%.
+
+Al lado de la utilidad operativa (y del “Quedó” del flujo) va un indicador de completitud, igual que la cobertura de costo:
+
+- ¿Hay nómina este período?
+- ¿Hay renta / fijos del mes?
+- ¿Hay al menos un pago a proveedor, o está marcado “sin compra”?
+
+Si falta alguno: el número va en gris / ámbar con *“captura incompleta — no es que hayas gastado $0”*. No se publica un % de rentabilidad que parezca limpio.
+
+### 8.6 Sigue faltando (yo no tengo tu Supabase)
+
+Las consultas **2** y **4** del mismo archivo. Sin ellas no hay fecha de corte de `fondo_inicial` ni go/no-go del P&L. Quien sacó la 9 puede sacar esas dos. Pégalas; no las pidas a un agente sin acceso a la base.
 
 ---
 

@@ -229,6 +229,7 @@
             <div class="lab">Utilidad bruta</div>
             <div class="val" style="color:var(--green)">$40,700</div>
             <div class="hint">Después del medicamento. Antes de renta, nómina y luz. Esta es la respuesta a la pregunta original.</div>
+            <div class="hint" style="color:var(--amber);font-weight:700;margin-top:8px">Captura incompleta — falta nómina y renta de este mes. No es que hayas gastado $0.</div>
           </div>
           <div class="kpi">
             <div class="lab">Margen bruto</div>
@@ -357,7 +358,7 @@
           <div class="kpi">
             <div class="lab">Nómina pagada</div>
             <div class="val" style="color:var(--red)">−$18,400</div>
-            <div class="hint">nomina_empleados.neto_pagar, pagado = true</div>
+            <div class="hint">v1 se teclea. La tabla de RRHH está vacía; derivarla pone $0.</div>
           </div>
           <div class="kpi">
             <div class="lab">Gastos manuales</div>
@@ -368,7 +369,14 @@
             <div class="lab">Efectivo generado</div>
             <div class="val" style="color:var(--green)">$96,850</div>
             <div class="hint">No es utilidad. No resta COGS. Es caja.</div>
+            <div class="hint" style="color:var(--amber);font-weight:700">Falta captura: nómina, renta, pago a Nadro/Levic.</div>
           </div>
+        </div>
+        <div class="banner warn">
+          <span class="ttl">v1: casi todo se teclea.</span>
+          Automático de verdad: lo que entró por caja, COGS si pasa la consulta 4, merma ($336) y utilidad de servicios (<code>total_utilidad</code>, no el cobro).
+          Nómina, renta, luz y pago a proveedor van a mano. No hay columna “lo que llega solo”.
+          Servicios: el corte ya trae los $1,146 cobrados; hay que sacar <code>costo_liquidacion</code> o no poner ninguna de las dos patas.
         </div>
         <div class="card">
           <h2>Punto de equilibrio</h2>
@@ -393,7 +401,7 @@
           <h2>Qué no va aquí</h2>
           <div class="body" style="font-size:13px;line-height:1.55;color:var(--textMid)">
             Una recepción de Nadro/Levic <strong>no</strong> es un gasto del P&amp;L ni se resta de la utilidad bruta.
-            Es cambio de dinero por activo. El pago a proveedor, si se muestra, es captura manual o la respuesta a la pregunta 8 — no <code>recepciones.total_ticket</code> disfrazado.
+            Es cambio de dinero por activo. El pago a proveedor en v1 se teclea — <code>recepciones</code> trae $3,710 en 12 movimientos; no es todo lo que compras.
           </div>
         </div>
       </section>
@@ -416,7 +424,7 @@
               <input type="text" placeholder="$ 12,000" />
               <button class="btn" type="button">Guardar</button>
             </div>
-            <p class="muted" style="margin:8px 0 0">Nómina, comisión TPV y merma las genera el job (origen derivado). No se teclean. Índice único (origen, ref_id) para no duplicar.</p>
+            <p class="muted" style="margin:8px 0 0">v1: nómina, renta y proveedor se teclean. Lo único derivado hoy es merma de lotes vencidos y la utilidad de recargas (<code>comision + compensacion_mp</code>). Cuando RRHH tenga filas, la nómina pasa a job. Índice único (origen, ref_id) para no duplicar.</p>
           </div>
         </div>
         <div class="card">
@@ -427,7 +435,7 @@
             </thead>
             <tbody>
               <tr><td>01-sep</td><td>renta</td><td>Local plaza</td><td>manual</td><td style="font-weight:700">$12,000</td></tr>
-              <tr><td>01-sep</td><td>nomina</td><td>Semana 35</td><td>derivado</td><td style="font-weight:700">$18,400</td></tr>
+              <tr><td>01-sep</td><td>nomina</td><td>Semana 35</td><td>manual (v1)</td><td style="font-weight:700">$18,400</td></tr>
               <tr><td>02-sep</td><td>servicios</td><td>CFE</td><td>manual</td><td style="font-weight:700">$2,180</td></tr>
               <tr><td>03-sep</td><td>comisiones</td><td>TPV 3.5%</td><td>derivado</td><td style="font-weight:700">$1,640</td></tr>
               <tr><td>03-sep</td><td>mermas</td><td>Lotes vencidos</td><td>derivado</td><td style="font-weight:700">$420</td></tr>

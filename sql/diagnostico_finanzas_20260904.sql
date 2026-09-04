@@ -420,6 +420,12 @@ select
       (select round(sum(total_cobrado), 2) from public.pagos_servicio),
     'pagos_servicio_comision',
       (select round(sum(comision), 2) from public.pagos_servicio),
+    'pagos_servicio_compensacion_mp',
+      (select round(sum(compensacion_mp), 2) from public.pagos_servicio),
+    'pagos_servicio_utilidad',
+      (select round(sum(comision + compensacion_mp), 2) from public.pagos_servicio),
+    'pagos_servicio_costo_liquidacion',
+      (select round(sum(coalesce(costo_liquidacion, monto_servicio)), 2) from public.pagos_servicio),
     'merma_lotes_vencidos_piezas',
       (select coalesce(sum(cantidad_actual), 0) from public.lotes
         where coalesce(activo, true)
@@ -439,5 +445,5 @@ select
         where table_schema = 'public' and table_name = 'gastos'
       ),
     'aviso',
-      'Compras y recepciones NO van al P&L. Nómina vacía + utilidad operativa = el mismo pecado del 0.55 al revés.'
+      'Compras y recepciones NO van al P&L. Nómina vacía + utilidad operativa = el mismo pecado del 0.55 al revés. El corte ya trae total_cobrado de servicios; el flujo tiene que sacar costo_liquidacion o no poner ninguna de las dos patas.'
   ) as derivados_disponibles;
