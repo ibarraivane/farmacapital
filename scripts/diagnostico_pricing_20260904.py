@@ -888,41 +888,26 @@ Regenerar: python3 scripts/diagnostico_pricing_20260904.py
     vals = ",\n".join(f"      ('{ean}', '{lab}')" for ean, lab in lab_pares)
     lab_sql = ROOT / "sql" / "patch_laboratorio_columna_20260904.sql"
     lab_sql.write_text(
-        """-- Columna laboratorio (distinta de marca) + backfill FarmaLive.
--- Un bloque: crea la columna si falta y llena en un solo update.
+        """-- Laboratorio: DOS corridas en el SQL Editor. No pegues las dos juntas.
 -- FarmaLive a veces manda EAN sin dígito (650240010712 vs 6502400107128).
 
-do $$
-begin
-  if not exists (
-    select 1
-      from information_schema.columns
-     where table_schema = 'public'
-       and table_name = 'productos'
-       and column_name = 'laboratorio'
-  ) then
-    alter table public.productos add column laboratorio text;
-  end if;
+-- ===== CORRIDA 1: solo crea la columna. Run. Espera Success. =====
+alter table public.productos
+  add column if not exists laboratorio text;
 
-  update public.productos p
-     set laboratorio = v.lab
-    from (values
+-- ===== CORRIDA 2: pega desde aquí (sin el ALTER de arriba). Run. =====
+update public.productos p
+   set laboratorio = v.lab
+  from (values
 """
         + vals
         + """
-    ) as v(ean, lab)
-   where (p.laboratorio is null or btrim(p.laboratorio) = '')
-     and (
-       regexp_replace(coalesce(p.codigo_barras, ''), '\\D', '', 'g') = v.ean
-       or regexp_replace(coalesce(p.codigo_barras, ''), '\\D', '', 'g') like v.ean || '_'
-     );
-end $$;
-
-comment on column public.productos.laboratorio is
-  'Laboratorio fabricante (FarmaLive). Distinto de marca de mostrador.';
-
-select count(*) filter (where laboratorio is not null and btrim(laboratorio) <> '') as con_lab
-from public.productos;
+  ) as v(ean, lab)
+ where (p.laboratorio is null or btrim(p.laboratorio) = '')
+   and (
+     regexp_replace(coalesce(p.codigo_barras, ''), '\\D', '', 'g') = v.ean
+     or regexp_replace(coalesce(p.codigo_barras, ''), '\\D', '', 'g') like v.ean || '_'
+   );
 """,
         encoding="utf-8",
     )
