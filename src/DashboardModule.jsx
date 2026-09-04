@@ -7,6 +7,7 @@ import { AyudaDesplegable, SkeletonKPIs, SkeletonTable, SkeletonCard, KPI, KPI_R
 import { CONSULTA_PRECIO_DEFAULT } from "./utils/consultaConstants";
 import { resumenLineasReceta } from "./utils/recetaLineas";
 import TransaccionesTab from "./TransaccionesTab";
+import FlujoCajaTab from "./FlujoCajaTab";
 import { countPedidosTiendaPendientesHead } from "./utils/pedidosTiendaWeb";
 import { rolEsAdmin } from "./utils/permissions";
 import { fixLegacyFarmaxBrand } from "./utils/brandText";
@@ -113,13 +114,14 @@ function sumCapexMontos(lineas) {
 }
 
 /** Pestañas operativas; «Proyecto / inversión» va aparte para no mezclar CAPEX con el día a día. */
-const DASHBOARD_TABS_DEFAULT = ["operacion", "resumen", "transacciones", "margen"];
+const DASHBOARD_TABS_DEFAULT = ["operacion", "resumen", "transacciones", "margen", "flujo"];
 const DASHBOARD_TAB_LABELS_MOBILE = {
   proyecto: "💼 Proyecto",
   operacion: "📊 Operación",
   resumen: "📈 Resumen",
   transacciones: "🔄 Movimientos",
   margen: "💹 Margen",
+  flujo: "💧 Flujo",
 };
 const DASHBOARD_TAB_LABELS = {
   proyecto: "💼 Proyecto Farma · inversión",
@@ -127,6 +129,7 @@ const DASHBOARD_TAB_LABELS = {
   resumen: "📈 Resumen por período",
   transacciones: "🔄 Transacciones",
   margen: "💹 Margen por categoría",
+  flujo: "💧 Flujo de caja",
 };
 
 function loadDashboardTabOrder() {
@@ -1065,6 +1068,10 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
 
       {panelTab==="transacciones" && (
         <TransaccionesTab usuario={usuario} showConfirm={showConfirm} />
+      )}
+
+      {panelTab==="flujo" && (
+        <FlujoCajaTab usuario={usuario} setPage={setPage} showConfirm={showConfirm} />
       )}
 
       {panelTab==="resumen" && (
