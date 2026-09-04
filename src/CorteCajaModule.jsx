@@ -450,11 +450,15 @@ export default function CorteCajaModule({usuario }) {
     setSaving(false);
     if (error) {
       const raw = error.message || "";
-      const msg = /empleado_id_fkey|foreign key/i.test(raw)
-        ? "Falta actualizar la base. Ejecuta sql/patch_cortes_caja_fk_usuarios.sql en Supabase."
-        : /ya existe un corte/i.test(raw)
-          ? "Ya existe un corte de este turno hoy. No se puede guardar otro."
-          : "Error al guardar corte: " + raw;
+      // Firma rota: la tablet manda p_confirmar (cadena continua) y la base
+      // tiene la de 13 args (electronicos) o ninguna. Sin esto, la caja no cierra.
+      const msg = /could not find the function .*registrar_corte_caja|schema cache/i.test(raw)
+        ? "Falta la función de corte en la base. En Supabase pega sql/patch_corte_restaurar_firma_20260904.sql (si falla, el de cadena continua 20260824)."
+        : /empleado_id_fkey|foreign key/i.test(raw)
+          ? "Falta actualizar la base. Ejecuta sql/patch_cortes_caja_fk_usuarios.sql en Supabase."
+          : /ya existe un corte/i.test(raw)
+            ? "Ya existe un corte de este turno hoy. No se puede guardar otro."
+            : "Error al guardar corte: " + raw;
       showToast(msg, "error");
       return;
     }
