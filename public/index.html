@@ -194,6 +194,11 @@
       @media (max-width: 480px) {
         #splash { --fc-logo-w: calc(100vw - 2 * var(--fc-gutter)); }
       }
+      #splash.fc-intro-out .fc-intro-logo,
+      #splash.fc-intro-out .fc-intro-sub {
+        opacity: 0 !important;
+        transition: opacity 0.18s ease !important;
+      }
       #splash.hide { opacity: 0; pointer-events: none; }
       .fc-intro-stage {
         position: relative;
@@ -444,10 +449,13 @@
           splash.setAttribute('aria-busy', 'false');
           var logo = splash.querySelector('.fc-intro-logo');
           if (logo) logo.style.willChange = 'auto';
-          splash.classList.add('hide');
+          splash.classList.add('fc-intro-out');
           setTimeout(function () {
-            if (splash && splash.parentNode) splash.remove();
-          }, 340);
+            splash.classList.add('hide');
+            setTimeout(function () {
+              if (splash && splash.parentNode) splash.remove();
+            }, 340);
+          }, 180);
         }
 
         window.__fcOcultarSplash = function () {
