@@ -41,7 +41,7 @@ Eres un ingeniero senior en **FarmaCapital**: POS + inventario + consultorio de 
    - Si sale **< 80%**: **detente**. Dilo fuerte. Un P&L con costos faltantes reporta márgenes inflados justo cuando peor están los datos. Lo primero es capturar costos (Recibir / catálogo / lotes), no programar el módulo.  
    - Si sale ≥ 80% pero la cobertura **por lote** es mucho más baja que la del catálogo, dilo también: el P&L va a usar `productos.costo` actual y **se reescribe solo** cada vez que Recibir pise el costo.
 3. Confirma contra el esquema real (no adivines) las columnas de: `pedidos`, `pedido_items`, `lotes`, `productos`, `devoluciones`, `devolucion_items`, `cortes_caja`, `nomina_empleados`, `compras`, `recepciones`, `pagos_servicio`, `configuracion`. Si el esquema no cuadra con este documento, **gana el código**. Pregunta; no implementes sobre una suposición.
-4. Contesta las preguntas **aún abiertas** de la Parte 6 (1, 2, 5, 6, 7). Las 3, 4 y 8 las cerró la Parte 8 con la consulta 9. No las reabras.
+4. Contesta las preguntas **aún abiertas** de la Parte 6 (2, 5, 6, 7). Las 1, 3, 4 y 8 las cerró la Parte 8. No las reabras.
 5. Lista discrepancias entre este documento y lo que viste. Luego espera aprobación.
 
 Trabaja **fase por fase**. Al terminar cada fase: `npm run build`, resumen de archivos, **espera aprobación**.
@@ -408,9 +408,16 @@ nomina_filas: 0
 compras_filas: 0
 tabla_gastos_existe: false
 recepciones_confirmadas: 12 · total_ticket $3,710.15
-pagos_servicio: 21 · cobrado $1,146 · comision $11
+pagos_servicio: 21
+  cobrado            $1,146.00   ← ya va dentro de cortes.total_general
+  comision           $   11.00
+  compensacion_mp    $   11.35   ← vive en saldo MP, no en el cajón
+  total_utilidad     $   22.35   ← P&L (comision + compensacion_mp)
+  costo_liquidacion  $1,135.00   ← hay que SACARLO del flujo, o no poner ninguna pata
 merma_vencida: 6 pzas · $336.29 a costo
 ```
+
+Cuadre de servicios: `1,146 − 1,135 = 11` (la comisión se quedó en caja). La compensación ($11.35) no está en el cajón.
 
 ### 8.2 Nómina v1 = manual
 
@@ -432,7 +439,7 @@ O sea `cortes_caja.total_general` **ya incluye el cobro completo**. Ese dinero e
 | **P&L** | `comision + compensacion_mp` — el RPC ya lo nombra `total_utilidad` (`patch_pagos_servicio_compensacion_mp.sql:284`) | `total_cobrado` |
 | **Flujo** | Las **dos** patas: entra el cobro (ya va en el corte), sale `costo_liquidacion` — **o ninguna** | Sólo la entrada |
 
-Hoy la diferencia es ~$1,135 (`1,146 − 11`). Es chico, pero es error de **fórmula**, no de escala. Si pones sólo la entrada, el efectivo se ve libre cuando ya está comprometido.
+Hoy: entra $1,146 (ya en el corte), sale $1,135 (`costo_liquidacion` medido, no inferido). Es chico, pero es error de **fórmula**, no de escala. Si pones sólo la entrada, el efectivo se ve libre cuando ya está comprometido. El P&L de servicios es **$22.35**, no $11.
 
 Consulta 9 actualizada pide también `compensacion_mp` y `costo_liquidacion` para no volver a inferirlos.
 
@@ -442,8 +449,8 @@ Automático, de verdad:
 
 - lo que entró por caja (`cortes.total_general`, desde fondo confiable)
 - COGS, **si** la consulta 4 pasa la compuerta
-- merma de lotes vencidos ($336 hoy)
-- utilidad de servicios (`total_utilidad`, $11 + compensación)
+- merma de lotes vencidos ($336.29 hoy)
+- utilidad de servicios (`total_utilidad` = **$22.35**)
 
 A mano: nómina, renta, luz, contador, **pago a proveedores**. `recepciones` ($3,710 / 12) no es el resurtido real. `compras` está vacía.
 
