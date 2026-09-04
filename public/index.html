@@ -242,16 +242,19 @@
       }
 
       .fc-intro-tag {
-        margin-top: 8px;
-        width: 100%;
+        /* Centrado bajo el wordmark (no bajo cruz+texto) */
+        margin-top: 6px;
+        margin-left: calc(var(--fc-cross-ratio) * 100%);
+        width: calc((1 - var(--fc-cross-ratio)) * 100%);
+        box-sizing: border-box;
         color: var(--fc-text-mid);
         font-family: var(--fc-body);
-        font-size: clamp(13px, 2.8vw, 17px);
+        font-size: clamp(15px, 3.4vw, 20px);
         font-weight: 600;
-        letter-spacing: 0.2em;
+        letter-spacing: 0.18em;
         text-transform: uppercase;
         text-align: center;
-        line-height: 1.2;
+        line-height: 1.15;
         opacity: 0;
         transform: translateY(6px);
         will-change: opacity, transform;
