@@ -226,23 +226,29 @@ function tokensPrincipioActivo(producto) {
 
 function ofertaTienePrincipio(normOferta, producto) {
   const hay = normOferta || "";
-  return tokensPrincipioActivo(producto).some((w) => new RegExp(`(?:^|\\s)${w}(?:\\s|$)`).test(hay));
+  // Similares escribe PA con / (trimetoprima/sulfametoxazol); \s no basta.
+  return tokensPrincipioActivo(producto).some((w) => new RegExp(`\\b${w}\\b`).test(hay));
 }
 
 /**
- * Marcas de patente / OTC de laboratorio. Similares no las vende:
- * pone el genérico (PA + piezas) a otro precio. No usar ese $ como techo.
- * Incluye fichas mal etiquetadas GENERICO (Contac, XL-3 Xtra).
+ * Anaquel conocido: se cruza por el nombre (Contac ≠ el triple de Similares).
+ * Laboratorio / INN (Bactiver, Clamoxin, Amoxicilina AMSA): por el genérico.
+ * No uses tipo=marca: en el catálogo casi todo está así, también los de lab.
  */
-const MARCAS_PATENTE_OTC =
-  /\b(ensure|pediasure|glucerna|electrolit|contac|xl3|desenfriol|flanax|saridon|centrum|sensodyne|histiacil|silka|cafiaspirina|aspirina|tempra|tylenol|advil|buscapina|tabcin)\b/;
+const MARCAS_MERCADO =
+  /\b(ensure|pediasure|glucerna|electrolit|pedialyte|contac|xl3|desenfriol|flanax|saridon|centrum|sensodyne|histiacil|silka|cafiaspirina|aspirina|tempra|tylenol|advil|buscapina|tabcin|agrifen|vicks?|neurobion|afrin|alkaseltzer|alka seltzer|lomecan|bepanthen|mertiolate|hipoglos|neomelubrina|neo melubrina|aderogyl|riopan|theraflu|rinomar|tums|bisolvon|tukol|tukold|antiflu|syncol|graneodin|vitacilina|asepxia|mexsana|picot|microdacyn|nasalub|iodex|ting|next)\b/;
+
+function textoMarcaMercado(producto) {
+  return colapsarMarca([producto && producto.marca, producto && producto.nombre].filter(Boolean).join(" "));
+}
+
+function esMarcaComercialMercado(producto) {
+  const blob = textoMarcaMercado(producto);
+  return Boolean(blob) && MARCAS_MERCADO.test(blob);
+}
 
 function esMarcaPatente(producto) {
-  const t = String((producto && producto.tipo) || "").toLowerCase();
-  const marca = marcaBusqueda(producto);
-  if (marca && MARCAS_PATENTE_OTC.test(marca)) return true;
-  if (t === "generico" || t === "genérico") return false;
-  return t === "marca" || t === "patente";
+  return esMarcaComercialMercado(producto);
 }
 
 function eanNorm(value) {
@@ -339,6 +345,7 @@ module.exports = {
   marcaBusqueda,
   tokensPrincipioActivo,
   esMarcaPatente,
+  esMarcaComercialMercado,
   ofertaTieneMarca,
   mismaUnidadVenta,
   mismaConcentracionMg,

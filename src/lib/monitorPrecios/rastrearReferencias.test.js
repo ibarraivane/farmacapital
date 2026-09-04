@@ -6,12 +6,18 @@ const {
 const { matchOferta, precioOtrosMercado } = require("./matchCatalogo");
 const { productosParaVenta, rastrearReferencias } = require("./rastrearReferencias");
 
-test("genérico busca por principio activo; patente por la marca", () => {
+test("anaquel busca por la marca; laboratorio por el genérico", () => {
   expect(terminoBusqueda({
     nombre: "Amoxicilina 500 mg",
     tipo: "generico",
     principio_activo: "Amoxicilina",
   })).toBe("Amoxicilina");
+  expect(terminoBusqueda({
+    nombre: "Bactiver F",
+    marca: "Bactiver",
+    tipo: "marca",
+    principio_activo: "Sulfametoxazol + Trimetoprima",
+  })).toBe("Sulfametoxazol + Trimetoprima");
   expect(terminoBusqueda({
     nombre: "Contac Ultra",
     marca: "Contac",

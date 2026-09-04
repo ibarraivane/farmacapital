@@ -144,7 +144,7 @@ export const FUENTE_META = {
     label: "Similares",
     tipo: "venta",
     listaDistribuidor: false,
-    hint: "Misma marca y presentación. Su genérico (Contac ≠ clorfenamina/fenilefrina/paracetamol) no cuenta.",
+    hint: "Anaquel (Contac, XL-3, Flanax): mismo nombre. Laboratorio (Amoxicilina, Bactiver): el genérico de la misma presentación.",
   },
   fahorro: { label: "Del Ahorro", tipo: "venta", listaDistribuidor: false },
   otros_venta: {

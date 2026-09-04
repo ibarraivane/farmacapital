@@ -6,6 +6,7 @@ const {
   diagnosticoRefCadena,
   ofertaRappiComparable,
   esMarcaPatente,
+  esMarcaComercialMercado,
   marcaBusqueda,
 } = require("./unidadVenta");
 
@@ -295,5 +296,35 @@ test("Amoxicilina genérica sí se compara con Similares del mismo PA", () => {
   expect(diagnosticoRefCadena(amox, "similares", {
     nombre_fuente: "AMOXICILINA 500 MG 12 CAPSULAS",
     precio: 18,
+  }).ok).toBe(true);
+});
+
+test("laboratorio tipo=marca se compara por el genérico, no por el nombre de lab", () => {
+  const bactiver = {
+    nombre: "Bactiver F (Sulfametoxazol/Trimetoprima)",
+    marca: "Bactiver",
+    tipo: "marca",
+    principio_activo: "Sulfametoxazol + Trimetoprima",
+    presentacion: "16 TABLETAS",
+    precio: 22,
+  };
+  const tarmin = {
+    nombre: "Tarmin 2 Mg /12",
+    marca: "Tarmin",
+    tipo: "marca",
+    principio_activo: "Loperamida",
+    presentacion: "12 TABLETAS",
+    concentracion: "2 mg",
+    precio: 18,
+  };
+  expect(esMarcaComercialMercado(bactiver)).toBe(false);
+  expect(esMarcaPatente(bactiver)).toBe(false);
+  expect(diagnosticoRefCadena(bactiver, "similares", {
+    nombre_fuente: "TRIMETOPRIMA/SULFAMETOXAZOL 800/400 MG 16 TABLETAS",
+    precio: 31,
+  }).ok).toBe(true);
+  expect(diagnosticoRefCadena(tarmin, "similares", {
+    nombre_fuente: "LOPERAMIDA 2 MG 12 TABLETAS",
+    precio: 12.5,
   }).ok).toBe(true);
 });

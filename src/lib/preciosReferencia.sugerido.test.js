@@ -66,6 +66,25 @@ test("la fila no tapa revisar_compra con un subir por pesos", () => {
   expect(out.accion).toBe("revisar_compra");
 });
 
+test("Bactiver de laboratorio sí usa el genérico de Similares", () => {
+  const p = {
+    nombre: "Bactiver F (Sulfametoxazol/Trimetoprima)",
+    marca: "Bactiver",
+    tipo: "marca",
+    forma_farmaceutica: "tabletas",
+    principio_activo: "Sulfametoxazol + Trimetoprima",
+    presentacion: "16 TABLETAS",
+    costo: 16.89,
+    precio: 22,
+  };
+  const r = refs({ similares: 31 });
+  r.similares.nombre_fuente = "TRIMETOPRIMA/SULFAMETOXAZOL 800/400 MG 16 TABLETAS";
+  const out = calcPrecioSugeridoReferencias(p, r);
+  expect(out.sugerido).not.toBeNull();
+  expect(out.refMin).toBe(31);
+  expect(captionRefNoComparable(p, "similares", r.similares)).toBeNull();
+});
+
 test("Similares genérico no baja el techo de Contac ni pide revisar compra", () => {
   const p = {
     nombre: "Contac Ultra",
