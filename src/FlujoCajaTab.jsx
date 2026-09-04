@@ -97,6 +97,7 @@ export default function FlujoCajaTab({ usuario, setPage, showConfirm }) {
   const [periodo, setPeriodo] = useState("mes");
   const [bundle, setBundle] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [errorCarga, setErrorCarga] = useState(null);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(() => ({
     fecha: hoyISOMexico(),
@@ -117,6 +118,7 @@ export default function FlujoCajaTab({ usuario, setPage, showConfirm }) {
       return;
     }
     setLoading(true);
+    setErrorCarga(null);
     const { data, error } = await supabase.rpc("admin_flujo_caja_bundle", {
       p_session_token: tok,
       p_desde: rango.desdeFecha,
@@ -124,7 +126,13 @@ export default function FlujoCajaTab({ usuario, setPage, showConfirm }) {
     });
     if (error) {
       console.error("[FlujoCaja] bundle:", error);
-      showToast("No se pudo cargar el flujo: " + (error.message || "error"), "error");
+      const msg = error.message || "error";
+      const sqlPendiente = /could not find|does not exist|schema cache/i.test(msg);
+      const texto = sqlPendiente
+        ? "Falta aplicar en Supabase sql/patch_finanzas_gastos_20260904.sql y sql/patch_finanzas_flujo_caja_20260904.sql."
+        : "No se pudo cargar el flujo: " + msg;
+      showToast(texto, "error");
+      setErrorCarga(texto);
       setBundle(null);
       setLoading(false);
       return;
@@ -227,6 +235,21 @@ export default function FlujoCajaTab({ usuario, setPage, showConfirm }) {
         <SubNav value={sub} onChange={setSub} />
         <SkeletonKPIs count={4} />
         <SkeletonTable rows={4} cols={6} />
+      </div>
+    );
+  }
+
+  if (errorCarga) {
+    return (
+      <div>
+        <SubNav value={sub} onChange={setSub} />
+        <Box style={{ padding: 22, background: C.redDim, border: `1px solid ${C.red}40` }}>
+          <div style={{ color: C.text, fontWeight: 800, fontSize: 16, marginBottom: 8 }}>
+            No se pudo cargar el flujo
+          </div>
+          <p style={{ color: C.textMid, fontSize: 13, lineHeight: 1.55, margin: "0 0 12px" }}>{errorCarga}</p>
+          <Btn ol col={BRAND.primary} onClick={cargar}>Reintentar</Btn>
+        </Box>
       </div>
     );
   }
