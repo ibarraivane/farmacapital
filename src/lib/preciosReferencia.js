@@ -687,6 +687,34 @@ export function accionPrecioSugerido(precioActual, sugerido) {
   return "mantener";
 }
 
+/**
+ * La fila de Referencias no puede tapar piso_gt_techo / revisar_compra
+ * con un subir/bajar por diferencia de pesos.
+ */
+export function resolverDecisionSugeridoFila(base, {
+  precioActual,
+  sugeridoFinal,
+  margenSugerido,
+  ajusteManual = false,
+} = {}) {
+  const tone = margenSugerido?.tone ?? null;
+  let alerta = ajusteManual ? null : (base?.alerta ?? null);
+  if (tone === "debajo_costo") alerta = "debajo_costo";
+  else if (alerta !== "piso_gt_techo" && tone === "debajo_piso") alerta = "debajo_piso";
+
+  const pisoGtTecho = !ajusteManual && (
+    alerta === "piso_gt_techo" || base?.accion === "revisar_compra"
+  );
+  const accion = pisoGtTecho
+    ? "revisar_compra"
+    : (accionPrecioSugerido(precioActual, sugeridoFinal) ?? base?.accion ?? null);
+  return { alerta, accion };
+}
+
+export function esRevisarCompra(calc) {
+  return calc?.accion === "revisar_compra" || calc?.alerta === "piso_gt_techo";
+}
+
 /** Subidas y bajadas: aplicar el sugerido al PVP. */
 export function listarSugerenciasAplicables(productos, refsByProduct, calcFn) {
   const filas = [];
@@ -694,6 +722,7 @@ export function listarSugerenciasAplicables(productos, refsByProduct, calcFn) {
     if (typeof calcFn !== "function") continue;
     const r = calcFn(p, refsByProduct?.[p.id] || {});
     if (r.sugerido == null) continue;
+    if (esRevisarCompra(r)) continue;
     filas.push({ producto: p, sugerido: r.sugerido, refMin: r.refMin, calc: r });
   }
   // No sugerir bajar la botella grande por debajo de la chica (agua oxigenada, etc.).

@@ -2,6 +2,8 @@ import {
   percentilRefs,
   calcPrecioSugeridoVenta,
   calcPrecioSugeridoReferencias,
+  resolverDecisionSugeridoFila,
+  listarSubidasSugeridas,
 } from "./preciosReferencia";
 
 test("percentil 40 no es el mínimo", () => {
@@ -46,4 +48,35 @@ test("sin refs no inventa precio", () => {
   const out = calcPrecioSugeridoReferencias({ costo: 10, precio: 16 }, {});
   expect(out.sugerido).toBeNull();
   expect(out.nota).toMatch(/sin referencias/i);
+});
+
+test("la fila no tapa revisar_compra con un subir por pesos", () => {
+  const base = {
+    alerta: "piso_gt_techo",
+    accion: "revisar_compra",
+    sugerido: 59,
+  };
+  const out = resolverDecisionSugeridoFila(base, {
+    precioActual: 49,
+    sugeridoFinal: 59,
+    margenSugerido: { tone: null },
+  });
+  expect(out.alerta).toBe("piso_gt_techo");
+  expect(out.accion).toBe("revisar_compra");
+});
+
+test("el lote de subidas no incluye piso arriba del mercado", () => {
+  const p = {
+    id: 9,
+    nombre: "Amoxicilina 500",
+    tipo: "generico",
+    forma_farmaceutica: "tableta",
+    principio_activo: "Amoxicilina",
+    costo: 20,
+    precio: 16,
+  };
+  const r = { 9: refs({ similares: 18, fahorro: 30, otros_venta: 28 }) };
+  const neu = calcPrecioSugeridoReferencias(p, r[9]);
+  expect(neu.accion).toBe("revisar_compra");
+  expect(listarSubidasSugeridas([p], r, calcPrecioSugeridoReferencias)).toHaveLength(0);
 });

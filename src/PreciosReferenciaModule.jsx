@@ -16,7 +16,7 @@ import {
   calcMejorCompra,
   calcPrecioSugeridoReferencias,
   listarSubidasSugeridas,
-  accionPrecioSugerido,
+  resolverDecisionSugeridoFila,
   calcMargenVenta,
   precioDesdeMargen,
   margenToneColors,
@@ -150,7 +150,7 @@ const COL_LABELS_VENTA = {
   fahorro: "Del Ahorro",
   similares: "Similares",
   otros_venta: "Otros",
-  refMin: "Ref. mín.",
+  refMin: "Ref. mercado",
   sugerido: "Sugerido",
   margenEst: "Marg. est.",
   nota: "Nota",
@@ -174,12 +174,14 @@ function resolveSugeridoFila(producto, refs, overrides, sugeridoFamilia = null) 
     ? calcMargenVenta(sugerido, producto)
     : base.margenSugerido;
 
-  let alerta = null;
-  if (margenSugerido.tone === "debajo_costo") alerta = "debajo_costo";
-  else if (margenSugerido.tone === "debajo_piso") alerta = "debajo_piso";
+  const { alerta, accion } = resolverDecisionSugeridoFila(base, {
+    precioActual: producto.precio,
+    sugeridoFinal: sugerido,
+    margenSugerido,
+    ajusteManual: esAjusteManual,
+  });
 
   let nota = base.nota;
-  const accion = accionPrecioSugerido(producto.precio, sugerido) ?? base.accion;
   if (coherenciaTamano) {
     nota = `Subimos a ${fmtPrecioVenta(sugerido)} para no vender la botella grande más barata que un tamaño menor de la misma línea.`;
   } else if (esAjusteManual) {
@@ -624,13 +626,23 @@ function TablaVenta({
   productos, refsByProduct, C, busq, colWidths,
   inlineEdit, savingKey, onStartEdit, onDraft, onCommit, onCancel,
   onAplicar, onAceptar, applyingId, sugeridoOverrides, onResetCompetir,
-  revision, onCorregirPorTamano,
+  revision, onCorregirPorTamano, filtroAccion = "todos",
 }) {
-  const fil = productos.filter((p) => inventarioProductMatchesBusqueda(p, busq));
   const sugeridosFamilia = useMemo(
     () => mapaSugeridosPorTamano(productos, refsByProduct, sugeridoOverrides),
     [productos, refsByProduct, sugeridoOverrides]
   );
+  const fil = productos.filter((p) => {
+    if (!inventarioProductMatchesBusqueda(p, busq)) return false;
+    if (filtroAccion === "todos") return true;
+    const calc = resolveSugeridoFila(
+      p,
+      refsByProduct[p.id] || {},
+      sugeridoOverrides,
+      sugeridosFamilia.get(p.id),
+    );
+    return calc.accion === filtroAccion;
+  });
   const inversiones = useMemo(
     () => detectarInversionesPrecioPorTamano(productos),
     [productos]
@@ -738,7 +750,7 @@ function TablaVenta({
             });
             const botones = accionesRevisionFila({ pendiente, accion, sugerido });
             const sugeridoCol =
-              alerta === "debajo_costo" ? C.red :
+              alerta === "debajo_costo" || alerta === "piso_gt_techo" ? C.red :
               alerta === "debajo_piso" ? C.amber :
               esAjusteManual ? C.blue :
               accion === "subir" ? C.green :
@@ -888,6 +900,18 @@ function TablaVenta({
                 <td style={{ ...tdS("nota", { fontSize: 10, color: C.textMid, background: rowBg }) }}>{nota}</td>
                 <td style={{ ...tdS("accion", { background: rowBg }) }}>
                   <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-start" }}>
+                    {accion === "revisar_compra" ? (
+                      <span
+                        title="El piso de margen está arriba del mercado. No bajes a Similares: renegocia o no resurtas."
+                        style={{
+                          fontSize: 10, fontWeight: 800, color: C.red,
+                          background: C.redDim || "#fee2e2",
+                          borderRadius: 5, padding: "2px 6px",
+                        }}
+                      >
+                        Revisar compra
+                      </span>
+                    ) : null}
                     <AccionesPrecioRevision
                       botones={botones}
                       applying={applyingId != null}
@@ -956,6 +980,7 @@ export default function PreciosReferenciaModule() {
   const [loading, setLoading] = useState(true);
   const [schemaOk, setSchemaOk] = useState(true);
   const [busq, setBusq] = useState("");
+  const [filtroAccion, setFiltroAccion] = useState("todos");
   const [applyingId, setApplyingId] = useState(null);
   const [showColSizer, setShowColSizer] = useState(false);
   const [colWidthsCompra, setColWidthsCompra] = useState(() => loadColWidths("compra"));
@@ -1305,6 +1330,25 @@ export default function PreciosReferenciaModule() {
     [productos, refsByProduct, revision]
   );
 
+  const conteosAccion = useMemo(() => {
+    const c = { todos: 0, subir: 0, bajar: 0, revisar_compra: 0 };
+    const familia = mapaSugeridosPorTamano(productos, refsByProduct, sugeridoOverrides);
+    for (const p of productos || []) {
+      if (!inventarioProductMatchesBusqueda(p, busq)) continue;
+      const calc = resolveSugeridoFila(
+        p,
+        refsByProduct[p.id] || {},
+        sugeridoOverrides,
+        familia.get(p.id),
+      );
+      c.todos += 1;
+      if (calc.accion === "subir") c.subir += 1;
+      else if (calc.accion === "bajar") c.bajar += 1;
+      else if (calc.accion === "revisar_compra") c.revisar_compra += 1;
+    }
+    return c;
+  }, [productos, refsByProduct, sugeridoOverrides, busq]);
+
   const aceptarPrecio = async (producto) => {
     const calc = calcPrecioSugeridoReferencias(producto, refsByProduct[producto.id] || {});
     const next = marcarRevisados(revision, [producto.id], { [producto.id]: { huella: huellaMercado(calc) } });
@@ -1579,6 +1623,34 @@ export default function PreciosReferenciaModule() {
           onChange={(e) => setBusq(e.target.value)}
           style={{ ...inpS, maxWidth: 280 }}
         />
+        {tab === "venta" ? (
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {[
+              ["todos", `Todos (${conteosAccion.todos})`],
+              ["subir", `Subir (${conteosAccion.subir})`],
+              ["bajar", `Bajar (${conteosAccion.bajar})`],
+              ["revisar_compra", `Revisar compra (${conteosAccion.revisar_compra})`],
+            ].map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setFiltroAccion(id)}
+                style={{
+                  padding: "6px 10px",
+                  borderRadius: 20,
+                  border: `1px solid ${filtroAccion === id ? BRAND.primary : C.border}`,
+                  background: filtroAccion === id ? BRAND.primary : C.card,
+                  color: filtroAccion === id ? "#fff" : C.text,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        ) : null}
       </div>
 
       {showColSizer && (
@@ -1614,11 +1686,13 @@ export default function PreciosReferenciaModule() {
             <> El bot aún no ha escrito precios de venta.</>
           )}
           {" "}Precios en <strong>pesos enteros</strong>. <strong>Otros</strong> = promedio cuando hay más de una cadena.
-          Sugerido = ~2% bajo la ref. más barata. Si hoy vendes más barato, el botón dice <strong>Subir</strong> (estabas dejando margen). Si vendes más caro, dice <strong>Bajar</strong>.
-          Badge ámbar vs ref. = demasiado barato frente al mercado. Edita margen % o sugerido; <strong>↺ Competir</strong> restaura mercado.
+          Sugerido = percentil de mercado (misma presentación), nunca por debajo de tu piso (60% genérico / 25% marca sobre costo).
+          Si el piso está arriba del mercado, no baja a Similares: marca <strong>Revisar compra</strong>.
+          Si hoy vendes más barato, el botón dice <strong>Subir</strong>. Si vendes más caro, dice <strong>Bajar</strong>.
+          Edita margen % o sugerido; <strong>↺ Competir</strong> restaura mercado.
           Margen: <strong style={{ color: C.green }}>verde</strong> ok,
           <strong style={{ color: C.amber }}> ámbar</strong> bajo piso,
-          <strong style={{ color: C.red }}> rojo</strong> bajo costo.
+          <strong style={{ color: C.red }}> rojo</strong> bajo costo o piso arriba del mercado.
         </p>
       )}
 
@@ -1658,6 +1732,7 @@ export default function PreciosReferenciaModule() {
           onResetCompetir={resetSugeridoCompetir}
           revision={revision}
           onCorregirPorTamano={corregirPorTamano}
+          filtroAccion={filtroAccion}
         />
       )}
     </div>

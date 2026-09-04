@@ -4,7 +4,7 @@
 **Código leído en este repo.** Si este doc y el código no coinciden, gana el código.  
 **Datos:** snapshot `sql/preview_catalogo_campos_y_precios.csv` (14-ago-2026, 626 SKUs). Regenerar números: `python3 scripts/diagnostico_pricing_20260904.py`.
 
-No se aplicó ningún cambio en Supabase.
+En Supabase ya corrieron (4-sep): 10 PVP seguros + 10 liberaciones de EAN duplicado. Siguiente SQL: 96 EAN exactos. Este PR aún no está en el sitio.
 
 ---
 
