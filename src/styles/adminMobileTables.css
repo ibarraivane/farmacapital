@@ -14,6 +14,37 @@
   box-sizing: border-box;
 }
 
+/* Títulos fijos al bajar y barra horizontal fácil de agarrar con el mouse. */
+.fc-tabla-scroll--freeze thead th {
+  position: sticky;
+  top: 0;
+  z-index: 12;
+}
+
+.fc-tabla-hscroll {
+  scrollbar-width: auto;
+  scrollbar-color: #64748b #e2e8f0;
+}
+
+.fc-tabla-hscroll::-webkit-scrollbar {
+  height: 14px;
+}
+
+.fc-tabla-hscroll::-webkit-scrollbar-thumb {
+  background: #64748b;
+  border-radius: 8px;
+  border: 2px solid #e2e8f0;
+}
+
+.fc-tabla-hscroll::-webkit-scrollbar-track {
+  background: #e2e8f0;
+}
+
+.fc-tabla-scroll-body::-webkit-scrollbar:horizontal {
+  height: 0;
+  display: none;
+}
+
 @media (max-width: 767px) {
   .farmacapital-admin-root table {
     font-variant-numeric: tabular-nums;
