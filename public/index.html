@@ -114,6 +114,7 @@
 
     <!-- Manifest -->
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    <link rel="preload" as="image" href="%PUBLIC_URL%/brand/farmacapital-logo-full.png?v=6" fetchpriority="high" />
 
     <!-- Preconnect fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -157,47 +158,228 @@
         touch-action: manipulation;
         overscroll-behavior-y: auto;
       }
-      /* Splash screen mientras carga */
+      /* Intro animada pre-React — sin GIF/video; solo HTML/CSS/SVG/JS */
       #splash {
-        position: fixed; inset: 0; z-index: 9999;
+        --fc-ink: #001534;
+        --fc-blue: #054ABC;
+        --fc-jade: #02A158;
+        --fc-cross-ratio: 0.2107;
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
         background: var(--fc-canvas);
-        display: flex; align-items: center; justify-content: center;
-        flex-direction: column; gap: 20px;
-        transition: opacity 0.32s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        padding:
+          max(16px, env(safe-area-inset-top, 0px))
+          max(24px, env(safe-area-inset-right, 0px))
+          max(16px, env(safe-area-inset-bottom, 0px))
+          max(24px, env(safe-area-inset-left, 0px));
+        transition: opacity 0.36s ease;
       }
       #splash.hide { opacity: 0; pointer-events: none; }
-      .splash-logo img {
-        height: 56px;
-        width: auto;
-        max-width: min(calc(100vw - 48px), 320px);
-        display: block;
-        object-fit: contain;
+
+      .fc-intro {
+        position: relative;
+        width: min(100%, 560px);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
       }
-      .splash-sub {
-        color: var(--fc-text-mid);
-        font-size: 12px;
-        letter-spacing: 2px;
-        text-transform: uppercase;
-        font-weight: 600;
+
+      .fc-intro-lines {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: min(42vw, 160px);
+        height: min(42vw, 160px);
+        transform: translate(-50%, calc(-50% - 12px));
+        overflow: visible;
+        pointer-events: none;
+        opacity: 0;
+        z-index: 3;
       }
-      .splash-loader {
-        width: 56px;
-        height: 3px;
-        background: var(--fc-border);
-        border-radius: 2px;
+      .fc-intro-lines .fc-streak {
+        fill: none;
+        stroke-linecap: round;
+        vector-effect: non-scaling-stroke;
+      }
+
+      .fc-intro-core {
+        position: relative;
+        z-index: 2;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        /* Centra la cruz visible al inicio; vuelve a 0 con la cortinilla */
+        transform: translateX(calc((1 - var(--fc-cross-ratio)) * 50%));
+        will-change: transform;
+      }
+
+      .fc-intro-logo-frame {
         overflow: hidden;
+        width: 100%;
+        line-height: 0;
+        opacity: 0;
+        transform: scale(0.96);
+        /* Solo la cruz; se abre a la derecha sincronizado con el slide */
+        clip-path: inset(0 calc((1 - var(--fc-cross-ratio)) * 100%) 0 0);
+        will-change: clip-path, opacity, transform;
       }
-      .splash-loader-bar {
-        height: 100%;
-        width: 40%;
-        background: var(--fc-accent);
-        border-radius: 2px;
-        animation: splash-bar 1.2s ease-in-out infinite;
+      .fc-intro-logo {
+        display: block;
+        width: 100%;
+        height: auto;
+        aspect-ratio: 1623 / 358;
+        object-fit: contain;
+        object-position: left center;
+        user-select: none;
+        -webkit-user-drag: none;
       }
-      @keyframes splash-bar {
-        0% { transform: translateX(-120%); }
-        100% { transform: translateX(320%); }
+
+      .fc-intro-tag {
+        /* Tamaño grande; centrado solo bajo FarmaCapital */
+        margin-top: 6px;
+        margin-left: calc(var(--fc-cross-ratio) * 100%);
+        width: calc((1 - var(--fc-cross-ratio)) * 100%);
+        box-sizing: border-box;
+        color: var(--fc-text-mid);
+        font-family: var(--fc-body);
+        font-size: clamp(15px, 3.4vw, 20px);
+        font-weight: 600;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        text-align: center;
+        line-height: 1.15;
+        opacity: 0;
+        transform: translateY(6px);
+        will-change: opacity, transform;
       }
+
+      /* Secuencia ~2.5 s hasta logo completo; el fade espera a React */
+      .fc-intro--play .fc-intro-lines {
+        animation:
+          fc-lines-in 0.12s ease-out forwards,
+          fc-lines-out 0.28s ease-in 0.55s forwards;
+      }
+      .fc-intro--play .fc-streak-1 {
+        stroke: var(--fc-ink);
+        stroke-width: 3.2;
+        stroke-dasharray: 120;
+        stroke-dashoffset: 120;
+        animation: fc-dash 0.42s cubic-bezier(0.2, 0.8, 0.2, 1) 0.06s forwards;
+      }
+      .fc-intro--play .fc-streak-2 {
+        stroke: var(--fc-blue);
+        stroke-width: 2.6;
+        stroke-dasharray: 120;
+        stroke-dashoffset: 120;
+        animation: fc-dash 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) 0.12s forwards;
+      }
+      .fc-intro--play .fc-streak-3 {
+        stroke: var(--fc-jade);
+        stroke-width: 2.2;
+        stroke-dasharray: 100;
+        stroke-dashoffset: 100;
+        animation: fc-dash 0.38s cubic-bezier(0.2, 0.8, 0.2, 1) 0.16s forwards;
+      }
+      .fc-intro--play .fc-streak-4 {
+        stroke: var(--fc-ink);
+        stroke-width: 3;
+        stroke-dasharray: 110;
+        stroke-dashoffset: 110;
+        animation: fc-dash 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) 0.1s forwards;
+      }
+      .fc-intro--play .fc-streak-5 {
+        stroke: var(--fc-blue);
+        stroke-width: 2.4;
+        stroke-dasharray: 100;
+        stroke-dashoffset: 100;
+        animation: fc-dash 0.36s cubic-bezier(0.2, 0.8, 0.2, 1) 0.18s forwards;
+      }
+      .fc-intro--play .fc-streak-6 {
+        stroke: var(--fc-jade);
+        stroke-width: 2;
+        stroke-dasharray: 90;
+        stroke-dashoffset: 90;
+        animation: fc-dash 0.34s cubic-bezier(0.2, 0.8, 0.2, 1) 0.22s forwards;
+      }
+      .fc-intro--play .fc-intro-logo-frame {
+        animation:
+          fc-cross-in 0.26s ease-out 0.5s forwards,
+          fc-curtain-clip 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.72s forwards;
+      }
+      .fc-intro--play .fc-intro-core {
+        animation: fc-curtain-slide 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.72s forwards;
+      }
+      .fc-intro--play .fc-intro-tag {
+        animation: fc-tag-in 0.3s ease-out 1.22s forwards;
+      }
+
+      @keyframes fc-dash {
+        to { stroke-dashoffset: 0; }
+      }
+      @keyframes fc-lines-in {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      @keyframes fc-lines-out {
+        from { opacity: 1; transform: translate(-50%, calc(-50% - 12px)) scale(1); }
+        to { opacity: 0; transform: translate(-50%, calc(-50% - 12px)) scale(0.86); }
+      }
+      @keyframes fc-cross-in {
+        from { opacity: 0; transform: scale(0.96); }
+        to { opacity: 1; transform: scale(1); }
+      }
+      @keyframes fc-curtain-clip {
+        from { clip-path: inset(0 calc((1 - var(--fc-cross-ratio)) * 100%) 0 0); }
+        to { clip-path: inset(0 0 0 0); }
+      }
+      @keyframes fc-curtain-slide {
+        from { transform: translateX(calc((1 - var(--fc-cross-ratio)) * 50%)); }
+        to { transform: translateX(0); }
+      }
+      @keyframes fc-tag-in {
+        from { opacity: 0; transform: translateY(6px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      /* Accesibilidad: logo completo sin movimientos fuertes */
+      @media (prefers-reduced-motion: reduce) {
+        .fc-intro-lines { display: none !important; }
+        .fc-intro-core {
+          transform: none;
+          animation: none !important;
+        }
+        .fc-intro-logo-frame {
+          opacity: 1;
+          transform: none;
+          clip-path: none;
+          animation: none !important;
+        }
+        .fc-intro-tag {
+          opacity: 1;
+          transform: none;
+          animation: none !important;
+        }
+        #splash { transition: opacity 0.2s ease; }
+      }
+      .fc-intro--reduced .fc-intro-lines { display: none; }
+      .fc-intro--reduced .fc-intro-core { transform: none; }
+      .fc-intro--reduced .fc-intro-logo-frame {
+        opacity: 1;
+        transform: none;
+        clip-path: none;
+      }
+      .fc-intro--reduced .fc-intro-tag {
+        opacity: 1;
+        transform: none;
+      }
+
       /* Ocultar scrollbar en móvil */
       ::-webkit-scrollbar { width: 4px; height: 4px; }
       ::-webkit-scrollbar-thumb { background: var(--fc-border-hi, #CFC0AC); border-radius: 2px; }
@@ -207,13 +389,36 @@
     </style>
   </head>
   <body>
-    <!-- Splash screen -->
-    <div id="splash">
-      <div class="splash-logo">
-        <img src="%PUBLIC_URL%/brand/farmacapital-logo-full.png?v=6" srcset="%PUBLIC_URL%/brand/farmacapital-logo-full@1x.png?v=6 812w, %PUBLIC_URL%/brand/farmacapital-logo-full.png?v=6 1623w" sizes="320px" alt="FarmaCapital" decoding="async" />
+    <!-- Intro de marca (pre-React): líneas → cruz oficial → cortinilla wordmark → tagline → fade -->
+    <div id="splash" role="presentation" aria-hidden="true">
+      <div class="fc-intro" id="fc-intro">
+        <svg class="fc-intro-lines" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+          <!-- Horizontales (entran desde los lados) -->
+          <path class="fc-streak fc-streak-1" d="M -28 50 H 72" />
+          <path class="fc-streak fc-streak-2" d="M 128 46 H 28" />
+          <path class="fc-streak fc-streak-3" d="M -18 54 H 58" />
+          <!-- Verticales (entran desde arriba/abajo) -->
+          <path class="fc-streak fc-streak-4" d="M 50 -24 V 76" />
+          <path class="fc-streak fc-streak-5" d="M 46 124 V 30" />
+          <path class="fc-streak fc-streak-6" d="M 54 -10 V 62" />
+        </svg>
+        <div class="fc-intro-core">
+          <div class="fc-intro-logo-frame">
+            <img
+              class="fc-intro-logo"
+              src="%PUBLIC_URL%/brand/farmacapital-logo-full.png?v=6"
+              srcset="%PUBLIC_URL%/brand/farmacapital-logo-full@1x.png?v=6 812w, %PUBLIC_URL%/brand/farmacapital-logo-full.png?v=6 1623w"
+              sizes="(max-width: 600px) calc(100vw - 48px), 560px"
+              width="1623"
+              height="358"
+              alt="FarmaCapital"
+              decoding="sync"
+              fetchpriority="high"
+            />
+          </div>
+        </div>
+        <div class="fc-intro-tag">Farmacia &amp; Salud</div>
       </div>
-      <div class="splash-sub">Farmacia & Salud</div>
-      <div class="splash-loader"><div class="splash-loader-bar"></div></div>
     </div>
 
     <noscript>Para usar FarmaCapital necesitas activar JavaScript en tu navegador.</noscript>
@@ -222,21 +427,52 @@
     <script>
       // Registrar Service Worker
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
+        window.addEventListener('load', function () {
           navigator.serviceWorker.register('/service-worker.js')
-            .catch(e => console.warn('SW error:', e));
+            .catch(function (e) { console.warn('SW error:', e); });
         });
       }
-      // Ocultar splash. Antes habia un setTimeout de 1200 ms que hacia
-      // esperar al usuario aunque React ya estuviera listo. Ahora lo
-      // llama React al montar (src/index.js) y 'load' queda de respaldo.
-      window.__fcOcultarSplash = function () {
-        const splash = document.getElementById('splash');
-        if (!splash || splash.classList.contains('hide')) return;
-        splash.classList.add('hide');
-        setTimeout(() => splash.remove(), 320);
-      };
-      window.addEventListener('load', () => window.__fcOcultarSplash());
+
+      // Intro: no ocultar hasta completar la secuencia mínima Y que la app esté lista.
+      // React llama __fcOcultarSplash al montar; 'load' es respaldo.
+      (function () {
+        var splash = document.getElementById('splash');
+        var intro = document.getElementById('fc-intro');
+        if (!splash || !intro) return;
+
+        var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        var MIN_MS = reduced ? 420 : 2480;
+        var FADE_MS = reduced ? 200 : 340;
+        var appReady = false;
+        var minDone = false;
+        var hiding = false;
+
+        function tryHide() {
+          if (hiding || !appReady || !minDone) return;
+          hiding = true;
+          splash.classList.add('hide');
+          setTimeout(function () {
+            if (splash && splash.parentNode) splash.parentNode.removeChild(splash);
+          }, FADE_MS);
+        }
+
+        window.__fcOcultarSplash = function () {
+          appReady = true;
+          tryHide();
+        };
+
+        intro.classList.add(reduced ? 'fc-intro--reduced' : 'fc-intro--play');
+
+        setTimeout(function () {
+          minDone = true;
+          splash.classList.add('fc-intro-ready');
+          tryHide();
+        }, MIN_MS);
+
+        window.addEventListener('load', function () {
+          window.__fcOcultarSplash();
+        });
+      })();
     </script>
   </body>
 </html>
