@@ -9,6 +9,11 @@ Los dos primeros ya los corriste (4-sep). Siguiente: códigos de barras exactos.
    Afrin 113, Amikacina 55, Penipot 31, Clindamicina 135, Listerine 97, Pedialyte 35, Ibupro-Cafe 41, Tropharma 62, Dac 66, Grisi 33.  
    Backup: `productos_precio_backup_20260904`.
 
+1b. **Subidas Similares (misma caja) — 3 SKUs** — acéptalo y córrelo  
+   `patch_precios_venta_subidas_similares_20260904.sql`  
+   Cloxan 15, Alopurinol 35, Zukedib 40.  
+   Backup: `productos_precio_backup_20260904_sim`.
+
 2. **Duplicados — 10 liberaciones**  
    `patch_barcodes_duplicados_20260904.sql`  
    Deja el EAN en la tarjeta con más stock; las extras quedan sin código (no se borran).
