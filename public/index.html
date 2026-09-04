@@ -181,7 +181,9 @@
         position: fixed;
         inset: 0;
         z-index: 9999;
-        background: var(--fc-canvas);
+        background:
+          radial-gradient(ellipse 72% 50% at 50% 48%, #E7F1FB 0%, rgba(246, 248, 250, 0) 64%),
+          #F6F8FA;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -217,25 +219,29 @@
         aspect-ratio: 1623 / 358;
         object-fit: contain;
         opacity: 0;
-        transform: translateX(calc(var(--fc-shift) * 100%));
+        transform-origin: 10.505% 50%;
+        transform: translateX(calc(var(--fc-shift) * 100%)) scale(0.84);
         clip-path: inset(0 var(--fc-clip-r) 0 0);
         -webkit-clip-path: inset(0 var(--fc-clip-r) 0 0);
         will-change: transform, clip-path;
       }
       #splash.fc-intro-cross .fc-intro-logo {
         opacity: 1;
-        transition: opacity 0.2s ease;
+        transform: translateX(calc(var(--fc-shift) * 100%)) scale(1);
+        transition:
+          opacity 0.16s ease,
+          transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
       }
       #splash.fc-intro-reveal .fc-intro-logo {
         opacity: 1;
-        transform: translateX(0);
+        transform: translateX(0) scale(1);
         clip-path: inset(0 0 0 0);
         -webkit-clip-path: inset(0 0 0 0);
         transition:
-          transform 0.62s cubic-bezier(0.22, 1, 0.36, 1),
-          clip-path 0.62s cubic-bezier(0.22, 1, 0.36, 1),
-          -webkit-clip-path 0.62s cubic-bezier(0.22, 1, 0.36, 1),
-          opacity 0.2s ease;
+          transform 0.58s cubic-bezier(0.22, 1, 0.36, 1),
+          clip-path 0.58s cubic-bezier(0.22, 1, 0.36, 1),
+          -webkit-clip-path 0.58s cubic-bezier(0.22, 1, 0.36, 1),
+          opacity 0.16s ease;
       }
       .fc-intro-sub {
         position: absolute;
@@ -243,16 +249,16 @@
         width: calc(100% - var(--fc-text-x));
         top: calc(100% + 6px);
         margin: 0;
-        color: var(--fc-ink);
+        color: var(--fc-text-mid);
         font-family: var(--fc-body);
-        font-size: clamp(14px, 2.55vw, 18px);
-        font-weight: 700;
-        letter-spacing: 0.16em;
+        font-size: clamp(13px, 2.4vw, 16px);
+        font-weight: 600;
+        letter-spacing: 0.18em;
         line-height: 1.15;
         text-transform: uppercase;
         text-align: center;
         opacity: 0;
-        transform: translateY(6px);
+        transform: translateY(4px);
         pointer-events: none;
       }
       #splash.fc-intro-sub-on .fc-intro-sub {
@@ -267,101 +273,58 @@
         pointer-events: none;
         z-index: 2;
       }
-      .fc-bar {
+      .fc-hair {
         position: absolute;
+        background: currentColor;
+        opacity: 0;
+        border-radius: 0;
+      }
+      .fc-hair-navy { color: var(--fc-ink); }
+      .fc-hair-blue { color: var(--fc-blue); }
+      .fc-hair-jade { color: var(--fc-jade); }
+      .fc-hair-h { height: 2px; width: min(46vw, 320px); }
+      .fc-hair-v { width: 2px; height: min(38vh, 260px); }
+      .fc-hair-left {
+        top: calc(50% - 1px);
+        right: 50%;
+        transform-origin: right center;
+        transform: translate3d(-36vw, calc(var(--fc-logo-h) * -0.42), 0);
+      }
+      .fc-hair-top {
+        left: calc(50% - 1px);
+        bottom: 50%;
+        transform-origin: center bottom;
+        transform: translate3d(calc(var(--fc-logo-h) * -0.42), -30vh, 0);
+      }
+      .fc-hair-right {
+        top: calc(50% - 1px);
         left: 50%;
+        transform-origin: left center;
+        transform: translate3d(36vw, calc(var(--fc-logo-h) * 0.42), 0);
+      }
+      .fc-hair-bot {
+        left: calc(50% - 1px);
         top: 50%;
-        border-radius: 999px;
-        opacity: 0;
-        will-change: transform;
+        transform-origin: center top;
+        transform: translate3d(calc(var(--fc-logo-h) * 0.42), 30vh, 0);
       }
-      .fc-bar-navy { background: var(--fc-ink); }
-      .fc-bar-blue { background: var(--fc-blue); }
-      .fc-bar-jade { background: var(--fc-jade); }
-      .fc-bar-h {
-        width: calc(var(--fc-logo-w) * var(--fc-cross-w));
-        height: calc(var(--fc-logo-h) * 0.23);
-        margin: calc(var(--fc-logo-h) * -0.115) 0 0 calc(var(--fc-logo-w) * var(--fc-cross-w) * -0.5);
+      #splash.fc-intro-play .fc-hair {
+        animation: fc-hair-in 0.52s cubic-bezier(0.18, 0.82, 0.2, 1) forwards;
       }
-      .fc-bar-v {
-        width: calc(var(--fc-logo-h) * 0.23);
-        height: var(--fc-logo-h);
-        margin: calc(var(--fc-logo-h) * -0.5) 0 0 calc(var(--fc-logo-h) * -0.115);
+      #splash.fc-intro-play .fc-hair-left  { animation-delay: 0.00s; }
+      #splash.fc-intro-play .fc-hair-top   { animation-delay: 0.03s; }
+      #splash.fc-intro-play .fc-hair-right { animation-delay: 0.02s; }
+      #splash.fc-intro-play .fc-hair-bot   { animation-delay: 0.05s; }
+      #splash.fc-intro-cross .fc-hair {
+        animation: fc-hair-out 0.16s ease forwards;
       }
-      .fc-bar-thin-h {
-        width: calc(var(--fc-logo-w) * var(--fc-cross-w) * 0.78);
-        height: calc(var(--fc-logo-h) * 0.09);
-        margin: calc(var(--fc-logo-h) * -0.045) 0 0 calc(var(--fc-logo-w) * var(--fc-cross-w) * -0.39);
-      }
-      .fc-bar-thin-v {
-        width: calc(var(--fc-logo-h) * 0.085);
-        height: calc(var(--fc-logo-h) * 0.72);
-        margin: calc(var(--fc-logo-h) * -0.36) 0 0 calc(var(--fc-logo-h) * -0.0425);
-      }
-      .fc-from-left  { transform: translateX(calc(-50vw - 80%)); }
-      .fc-from-right { transform: translateX(calc(50vw + 80%)); }
-      .fc-from-top   { transform: translateY(calc(-50vh - 80%)); }
-      .fc-from-bot   { transform: translateY(calc(50vh + 80%)); }
-      .fc-from-bl    { transform: translate(-55vw, 48vh) rotate(-38deg); }
-      .fc-from-tr    { transform: translate(52vw, -42vh) rotate(-18deg); }
-      #splash.fc-intro-play .fc-bar {
-        animation: fc-bar-in 0.56s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-      }
-      #splash.fc-intro-play .fc-s1 { animation-delay: 0.00s; }
-      #splash.fc-intro-play .fc-s2 { animation-delay: 0.04s; }
-      #splash.fc-intro-play .fc-s3 { animation-delay: 0.07s; }
-      #splash.fc-intro-play .fc-s4 { animation-delay: 0.10s; }
-      #splash.fc-intro-play .fc-s5 { animation-delay: 0.11s; }
-      #splash.fc-intro-play .fc-s6 { animation-delay: 0.14s; }
-      #splash.fc-intro-play .fc-s7 { animation-delay: 0.16s; }
-      #splash.fc-intro-play .fc-s8 { animation-delay: 0.19s; }
-      #splash.fc-intro-cross .fc-intro-lines {
-        opacity: 0;
-        transition: opacity 0.2s ease 0.04s;
-      }
-      @keyframes fc-bar-in {
+      @keyframes fc-hair-in {
         0%   { opacity: 0; }
-        16%  { opacity: 1; }
-        100% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+        14%  { opacity: 1; }
+        100% { transform: translate3d(0, 0, 0); opacity: 1; }
       }
-      #splash.fc-intro-play .fc-s5 {
-        animation-name: fc-bar-in-swoosh-g;
-      }
-      #splash.fc-intro-play .fc-s4 {
-        animation-name: fc-bar-in-swoosh-b;
-      }
-      @keyframes fc-bar-in-swoosh-g {
-        0%   { opacity: 0; }
-        16%  { opacity: 1; }
-        100% { transform: translate(-12%, 22%) rotate(-38deg); opacity: 1; }
-      }
-      @keyframes fc-bar-in-swoosh-b {
-        0%   { opacity: 0; }
-        16%  { opacity: 1; }
-        100% { transform: translate(10%, 8%) rotate(-8deg); opacity: 1; }
-      }
-      .fc-intro-swoosh {
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        width: calc(var(--fc-logo-w) * var(--fc-cross-w));
-        height: var(--fc-logo-h);
-        transform: translate(-50%, -50%);
-        overflow: visible;
-        pointer-events: none;
-      }
-      .fc-swoosh-path {
-        stroke-dasharray: 160;
-        stroke-dashoffset: 160;
-        opacity: 0;
-      }
-      #splash.fc-intro-play .fc-swoosh-path {
-        animation: fc-swoosh-draw 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.12s forwards;
-      }
-      @keyframes fc-swoosh-draw {
-        0%   { stroke-dashoffset: 160; opacity: 0; }
-        20%  { opacity: 1; }
-        100% { stroke-dashoffset: 0; opacity: 1; }
+      @keyframes fc-hair-out {
+        to { opacity: 0; transform: scale(0.35); }
       }
       @media (prefers-reduced-motion: reduce) {
         .fc-intro-lines { display: none; }
@@ -390,18 +353,10 @@
     <!-- Intro FarmaCapital: líneas → cruz oficial → cortinilla del wordmark -->
     <div id="splash" role="img" aria-label="FarmaCapital" aria-busy="true">
       <div class="fc-intro-lines" aria-hidden="true">
-        <span class="fc-bar fc-bar-navy fc-bar-h fc-from-left fc-s1"></span>
-        <span class="fc-bar fc-bar-navy fc-bar-h fc-from-right fc-s2"></span>
-        <span class="fc-bar fc-bar-navy fc-bar-v fc-from-top fc-s3"></span>
-        <span class="fc-bar fc-bar-blue fc-bar-thin-h fc-from-right fc-s4"></span>
-        <span class="fc-bar fc-bar-jade fc-bar-thin-h fc-from-bl fc-s5"></span>
-        <span class="fc-bar fc-bar-navy fc-bar-v fc-from-bot fc-s6"></span>
-        <span class="fc-bar fc-bar-blue fc-bar-thin-v fc-from-top fc-s7"></span>
-        <span class="fc-bar fc-bar-jade fc-bar-thin-v fc-from-bot fc-s8"></span>
-        <svg class="fc-intro-swoosh" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" focusable="false">
-          <path class="fc-swoosh-path fc-swoosh-blue" d="M118 61 C 86 57 64 52 50 50" fill="none" stroke="#054ABC" stroke-width="5.2" stroke-linecap="round" />
-          <path class="fc-swoosh-path fc-swoosh-jade" d="M14 112 C 28 84 40 62 50 50" fill="none" stroke="#02A158" stroke-width="5.2" stroke-linecap="round" />
-        </svg>
+        <span class="fc-hair fc-hair-navy fc-hair-h fc-hair-left"></span>
+        <span class="fc-hair fc-hair-navy fc-hair-v fc-hair-top"></span>
+        <span class="fc-hair fc-hair-blue fc-hair-h fc-hair-right"></span>
+        <span class="fc-hair fc-hair-jade fc-hair-v fc-hair-bot"></span>
       </div>
       <div class="fc-intro-stage">
         <img
@@ -480,14 +435,14 @@
           }
           splash.offsetWidth;
           splash.classList.add('fc-intro-play');
-          setTimeout(function () { splash.classList.add('fc-intro-cross'); }, 500);
-          setTimeout(function () { splash.classList.add('fc-intro-reveal'); }, 740);
+          setTimeout(function () { splash.classList.add('fc-intro-cross'); }, 540);
+          setTimeout(function () { splash.classList.add('fc-intro-reveal'); }, 820);
           setTimeout(function () {
             splash.classList.add('fc-intro-sub-on');
             var logoEl = splash.querySelector('.fc-intro-logo');
             if (logoEl) logoEl.style.willChange = 'auto';
-          }, 1320);
-          setTimeout(terminarSecuencia, 2260);
+          }, 1420);
+          setTimeout(terminarSecuencia, 2320);
         }
 
         iniciar();
