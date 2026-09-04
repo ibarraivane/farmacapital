@@ -12,7 +12,8 @@ import { iniciarVigilanciaDeploy } from "./utils/appUpdate";
 aplicarTokensCSS();
 initEventStore();
 
-// El splash se va en cuanto React esta listo, sin espera artificial.
+// Splash: __fcOcultarSplash espera la secuencia mínima de la intro
+// (public/index.html) y luego desvanece cuando React ya montó.
 if (typeof window !== "undefined" && typeof window.__fcOcultarSplash === "function") {
   requestAnimationFrame(() => window.__fcOcultarSplash());
 }
