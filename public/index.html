@@ -242,9 +242,10 @@
       }
 
       .fc-intro-tag {
-        /* Centrado bajo el bloque completo (cruz + FarmaCapital) */
+        /* Tamaño grande; centrado solo bajo FarmaCapital */
         margin-top: 6px;
-        width: 100%;
+        margin-left: calc(var(--fc-cross-ratio) * 100%);
+        width: calc((1 - var(--fc-cross-ratio)) * 100%);
         box-sizing: border-box;
         color: var(--fc-text-mid);
         font-family: var(--fc-body);
