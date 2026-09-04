@@ -62,9 +62,10 @@ select
   count(*) filter (where coalesce(fondo_inicial, 0) > 0)          as fondo_positivo,
   min(fecha) filter (where coalesce(fondo_inicial, 0) > 0)        as primera_fecha_fondo_ok,
   max(fecha) filter (where coalesce(fondo_inicial, 0) = 0)        as ultima_fecha_fondo_cero,
-  round(avg(fondo_inicial) filter (where fondo_inicial > 0), 2)   as fondo_promedio_cuando_hay,
-  round(percentile_cont(0.5) within group (order by fondo_inicial)
-        filter (where fondo_inicial > 0), 2)                      as fondo_mediana_cuando_hay,
+  round((avg(fondo_inicial) filter (where fondo_inicial > 0))::numeric, 2)
+                                                                  as fondo_promedio_cuando_hay,
+  round((percentile_cont(0.5) within group (order by fondo_inicial)
+        filter (where fondo_inicial > 0))::numeric, 2)            as fondo_mediana_cuando_hay,
   min(fecha)                                                      as primer_corte,
   max(fecha)                                                      as ultimo_corte
 from public.cortes_caja
@@ -76,7 +77,8 @@ select
   count(*)                                                        as cortes,
   count(*) filter (where coalesce(fondo_inicial, 0) = 0)          as fondo_cero,
   count(*) filter (where coalesce(fondo_inicial, 0) > 0)          as fondo_ok,
-  round(avg(fondo_inicial) filter (where fondo_inicial > 0), 2)   as fondo_promedio,
+  round((avg(fondo_inicial) filter (where fondo_inicial > 0))::numeric, 2)
+                                                                  as fondo_promedio,
   round(sum(total_general), 2)                                    as suma_total_general
 from public.cortes_caja
 where anulado_at is null
@@ -95,8 +97,8 @@ order by 1;
 
 with params as (
   select coalesce(
-    percentile_cont(0.5) within group (order by fondo_inicial)
-      filter (where fondo_inicial > 0),
+    (percentile_cont(0.5) within group (order by fondo_inicial)
+      filter (where fondo_inicial > 0))::numeric,
     0
   ) as fondo_tipico_ok
   from public.cortes_caja
@@ -119,7 +121,7 @@ select
   round(sum(c.total_general) filter (where c.fondo_inicial = 0), 2)
                                                                   as total_general_solo_fondo_cero,
   round(
-    count(*) filter (where c.fondo_inicial = 0) * p.fondo_tipico_ok
+    (count(*) filter (where c.fondo_inicial = 0) * p.fondo_tipico_ok)::numeric
   , 2)                                                            as sobreestima_si_fondo_fuera_la_mediana,
   p.fondo_tipico_ok
 from public.cortes_caja c
@@ -156,12 +158,12 @@ select
         filter (where coalesce(l.costo_unitario, pr.costo, 0) > 0), 2)
                                                                   as ingreso_con_algun_costo,
   round(
-    100.0 * sum(x.precio_unitario * x.cantidad)
+    100 * sum(x.precio_unitario * x.cantidad)
               filter (where coalesce(l.costo_unitario, 0) > 0)
     / nullif(sum(x.precio_unitario * x.cantidad), 0)
   , 1)                                                            as cobertura_lote_pct,
   round(
-    100.0 * sum(x.precio_unitario * x.cantidad)
+    100 * sum(x.precio_unitario * x.cantidad)
               filter (where coalesce(l.costo_unitario, pr.costo, 0) > 0)
     / nullif(sum(x.precio_unitario * x.cantidad), 0)
   , 1)                                                            as cobertura_algun_costo_pct,
@@ -197,7 +199,7 @@ select
         filter (where coalesce(l.costo_unitario, pr.costo, 0) <= 0), 2)
                                                                   as ingreso_sin_costo,
   round(
-    100.0 * sum(x.precio_unitario * x.cantidad)
+    100 * sum(x.precio_unitario * x.cantidad)
               filter (where coalesce(l.costo_unitario, pr.costo, 0) > 0)
     / nullif(sum(x.precio_unitario * x.cantidad), 0)
   , 1)                                                            as cobertura_pct
@@ -223,22 +225,22 @@ select
   (select count(*) from public.productos
     where coalesce(activo, true) and coalesce(costo, 0) > 0)                    as productos_con_costo,
   round(
-    100.0 * (select count(*) from public.productos
+    (100.0 * (select count(*) from public.productos
               where coalesce(activo, true) and coalesce(costo, 0) > 0)
     / nullif((select count(*) from public.productos where coalesce(activo, true)), 0)
-  , 1)                                                                          as productos_con_costo_pct,
+    )::numeric, 1)                                                              as productos_con_costo_pct,
   (select count(*) from public.lotes
     where coalesce(activo, true) and coalesce(cantidad_actual, 0) > 0)          as lotes_vivos,
   (select count(*) from public.lotes
     where coalesce(activo, true) and coalesce(cantidad_actual, 0) > 0
       and coalesce(costo_unitario, 0) > 0)                                      as lotes_vivos_con_costo,
   round(
-    100.0 * (select count(*) from public.lotes
+    (100.0 * (select count(*) from public.lotes
               where coalesce(activo, true) and coalesce(cantidad_actual, 0) > 0
                 and coalesce(costo_unitario, 0) > 0)
     / nullif((select count(*) from public.lotes
                where coalesce(activo, true) and coalesce(cantidad_actual, 0) > 0), 0)
-  , 1)                                                                          as lotes_vivos_con_costo_pct,
+    )::numeric, 1)                                                              as lotes_vivos_con_costo_pct,
   (select round(sum(cantidad_actual * costo_unitario), 2) from public.lotes
     where coalesce(activo, true) and coalesce(cantidad_actual, 0) > 0
       and coalesce(costo_unitario, 0) > 0)                                      as valor_inventario_a_costo_parcial;
@@ -259,8 +261,8 @@ select
   count(*) filter (
     where x.lote_id is not null and coalesce(l.costo_unitario, 0) <= 0
   )                                                               as con_lote_sin_costo,
-  round(100.0 * count(*) filter (where x.lote_id is not null)
-        / nullif(count(*), 0), 1)                                 as con_lote_id_pct,
+  round((100.0 * count(*) filter (where x.lote_id is not null)
+        / nullif(count(*), 0))::numeric, 1)                       as con_lote_id_pct,
   round(sum(x.precio_unitario * x.cantidad)
         filter (where x.lote_id is null), 2)                      as ingreso_sin_lote_id
 from public.pedido_items x
@@ -349,8 +351,8 @@ select
   round(sum(p.total), 2)                                          as suma_totales,
   round(sum(i.suma_renglones), 2)                                 as suma_renglones,
   round(sum(i.suma_renglones) - sum(p.total), 2)                  as renglones_menos_totales,
-  round(avg(i.suma_renglones - p.total)
-        filter (where abs(coalesce(i.suma_renglones, 0) - p.total) > 0.05), 2)
+  round((avg(i.suma_renglones - p.total)
+        filter (where abs(coalesce(i.suma_renglones, 0) - p.total) > 0.05))::numeric, 2)
                                                                   as desfase_promedio_cuando_hay
 from public.pedidos p
 left join (
