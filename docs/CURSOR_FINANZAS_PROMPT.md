@@ -332,14 +332,14 @@ No inventes gráficas con librería. `div` + %. Móvil: `useMediaQuery("(max-wid
 
 Con los resultados del SQL delante. Respuesta corta + número que la respalda. Si no puedes, la pregunta sigue abierta y no se escribe código de esa parte.
 
-1. **¿Desde qué fecha `fondo_inicial` es confiable?** — **CERRADA (Parte 8.6).**  
+1. **¿Desde qué fecha `fondo_inicial` es confiable?** — **CERRADA (Parte 8.7).**  
    `caja_sesiones.fondo_contado` > 0 desde el **18-ago-2026**. El RPC lo copia al corte. Flujo de caja corta ahí. El fondo que crece ($282 → $3,881) es cambio que se quedó, no venta.
 
 2. **¿Las consultas (`pedidos.tipo = 'consulta'`) van dentro de las ventas brutas del P&L o en un renglón aparte?**  
    Hoy el Resumen las mezcla y a veces las vuelve a sumar (`PROMPT_CURSOR_RENTABILIDAD.md` §1.5). El consultorio no tiene COGS de mercancía. ¿Ingreso operativo aparte, debajo de utilidad bruta de farmacia?
 
 3. **¿`pagos_servicio` es ingreso o pass-through?** — **CERRADA (Parte 8).**  
-   P&L = `comision + compensacion_mp` (`total_utilidad` del RPC). Flujo = las dos patas (entra `total_cobrado` vía el corte, sale `costo_liquidacion`) o ninguna.
+   P&L = `total_utilidad` = **$22.35** (`comision + compensacion_mp`). Flujo = dos cubetas (cajón y saldo MP), no una. Ver §8.5.
 
 4. **Nómina en v1: ¿derivada o captura manual?** — **CERRADA (Parte 8).**  
    `nomina_empleados` tiene 0 filas. v1 es **manual**. Un ausente no es un cero.
@@ -423,7 +423,7 @@ Cuadre de servicios: `1,146 − 1,135 = 11` (la comisión se quedó en caja). La
 
 `nomina_empleados` está vacía. Derivar `neto_pagar` pone la nómina en $0 y la utilidad operativa se ve mejor de lo que es. En v1 se captura a mano (igual que renta, luz, contador). Cuando RRHH tenga filas, el job derivado entra — no antes.
 
-### 8.3 Servicios: el corte ya trae los $1,146, no los $11
+### 8.3 Servicios: el corte ya trae los $1,146 (el cobro, no la utilidad)
 
 `reconcile_shift_cash` / el bundle de corte (`sql/patch_corte_electronicos_servidor.sql:83-94`, vivo también en `sql/patch_caja_cadena_continua_20260824.sql:130`):
 
@@ -456,7 +456,35 @@ A mano: nómina, renta, luz, contador, **pago a proveedores**. `recepciones` ($3
 
 Bájale a la promesa de la maqueta. No ofrezcas una columna “lo que llega solo” que en v1 no existe. Se siente peor que pedir la captura de frente.
 
-### 8.5 Completitud de captura, junto a la utilidad
+### 8.5 Dos cubetas: cajón ≠ saldo Mercado Pago
+
+El desglose de las 21 operaciones (consulta 9, 4-sep-2026). Al P&L entran **$22.35**, no $11: la compensación de MP también es ingreso ganado, aunque no toque el cajón.
+
+```
+Cajón          +1,146.00   el cliente pagó (efectivo / point)
+Saldo MP       −1,135.00   se liquidó el servicio contra ese saldo
+Saldo MP          +11.35   compensación
+               ─────────
+Posición total    +22.35   ← coincide con el ingreso del P&L
+```
+
+| Campo | Monto | Cubeta |
+|---|---|---|
+| `total_cobrado` | $1,146.00 | Cajón (ya dentro de `cortes.total_general`) |
+| `costo_liquidacion` | $1,135.00 | Saldo MP, salida |
+| `comision` | $11.00 | Cajón (se quedó: 1,146 − 1,135) |
+| `compensacion_mp` | $11.35 | Saldo MP, entrada — **nunca aparece en el cajón** |
+| `total_utilidad` | **$22.35** | P&L |
+
+El cajón se ve +$1,146, pero **$1,135 de eso ya están comprometidos**: hay que moverlos de vuelta al saldo de Mercado Pago para seguir cobrando servicios. Si el flujo tiene una sola cubeta “dinero en caja” y omite la liquidación, el disponible se infla en el **98% del pass-through** (`1,135 / 1,146`). Es el mismo error contra el que va el resto del documento: un número que se ve bien porque le falta la salida.
+
+Regla: el flujo **muestra cajón y saldo MP por separado**, o al menos resta `costo_liquidacion` el mismo día que entra el cobro. Las dos patas o ninguna.
+
+No recalcules. Reusa `empleado_conciliar_pagos_servicio_dia` (`sql/patch_pagos_servicio_compensacion_mp.sql:300-333`): ya arma `costo_liquidacion`, `compensacion_mp`, `comision_farmacia`, `utilidad` del día. El comentario del SQL es comparar eso contra los débitos de recarga en Actividad MP.
+
+Esto **no** toca el go/no-go del P&L de mercancía. Sigue siendo la consulta 4.
+
+### 8.6 Completitud de captura, junto a la utilidad
 
 Mientras nómina y compras se tecleen, **un mes sin capturar se ve excelente**. Mismo veneno que el costo faltante → margen 100%.
 
@@ -468,7 +496,7 @@ Al lado de la utilidad operativa (y del “Quedó” del flujo) va un indicador 
 
 Si falta alguno: el número va en gris / ámbar con *“captura incompleta — no es que hayas gastado $0”*. No se publica un % de rentabilidad que parezca limpio.
 
-### 8.6 Fondo: la serie de sesiones ya cierra la fecha (pregunta 1)
+### 8.7 Fondo: la serie de sesiones ya cierra la fecha (pregunta 1)
 
 Listado vivo de `caja_sesiones` (no es `cortes_caja`; es mejor). Al cortar, `registrar_corte_caja` copia `fondo_contado` → `cortes.fondo_inicial` (`sql/patch_caja_sesiones_vendedor.sql:519`).
 
@@ -480,7 +508,7 @@ Listado vivo de `caja_sesiones` (no es `cortes_caja`; es mejor). Al cortar, `reg
 
 Pregunta 1: **cerrada**. Piso del flujo = `2026-08-18`.
 
-### 8.7 Sigue faltando: solo la consulta 4
+### 8.8 Sigue faltando: solo la consulta 4
 
 Cobertura de costo de lo **vendido** (`veredicto` / `cobertura_algun_costo_pct`). Sin eso no hay go/no-go del P&L. No pegas tablas markdown en el SQL Editor — por eso salió `syntax error at or near "|"`.
 
