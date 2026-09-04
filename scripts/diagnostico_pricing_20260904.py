@@ -874,25 +874,40 @@ Regenerar: python3 scripts/diagnostico_pricing_20260904.py
     dlines += ["", "commit;", ""]
     dupe_sql.write_text("\n".join(dlines), encoding="utf-8")
 
+    lab_pares = []
+    seen_ean = set()
+    for t in tickets_ean:
+        if not (t.get("laboratorio") and t.get("ean") and "farmalive" in t["fuente"]):
+            continue
+        ean = digits(t["ean"])
+        if not ean or ean in seen_ean:
+            continue
+        seen_ean.add(ean)
+        lab = str(t["laboratorio"]).replace("'", "''")
+        lab_pares.append((ean, lab))
+    vals = ",\n".join(f"      ('{ean}', '{lab}')" for ean, lab in lab_pares)
     lab_sql = ROOT / "sql" / "patch_laboratorio_columna_20260904.sql"
     lab_sql.write_text(
-        """-- Columna laboratorio (distinta de marca). Idempotente.
-begin;
-alter table if exists public.productos
+        """-- Laboratorio: DOS corridas en el SQL Editor. No pegues las dos juntas.
+-- FarmaLive a veces manda EAN sin dígito (650240010712 vs 6502400107128).
+
+-- ===== CORRIDA 1: solo crea la columna. Run. Espera Success. =====
+alter table public.productos
   add column if not exists laboratorio text;
 
--- Backfill desde FarmaLive (ticket 9861) por EAN exacto, solo si está vacío.
+-- ===== CORRIDA 2: pega desde aquí (sin el ALTER de arriba). Run. =====
+update public.productos p
+   set laboratorio = v.lab
+  from (values
 """
-        + "\n".join(
-            f"update public.productos set laboratorio = '{str(t['laboratorio']).replace(chr(39), chr(39)*2)}' "
-            f"where codigo_barras = '{t['ean']}' "
-            f"and (laboratorio is null or btrim(laboratorio) = '');"
-            for t in tickets_ean
-            if t.get("laboratorio") and t.get("ean") and "farmalive" in t["fuente"]
-        )
+        + vals
         + """
-
-commit;
+  ) as v(ean, lab)
+ where (p.laboratorio is null or btrim(p.laboratorio) = '')
+   and (
+     regexp_replace(coalesce(p.codigo_barras, ''), '\\D', '', 'g') = v.ean
+     or regexp_replace(coalesce(p.codigo_barras, ''), '\\D', '', 'g') like v.ean || '_'
+   );
 """,
         encoding="utf-8",
     )
