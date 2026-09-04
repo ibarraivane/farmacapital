@@ -34,6 +34,7 @@ import PrecioOferta from "./components/PrecioOferta";
 import { mapaPromosPorProducto, ofertaDeProducto } from "./lib/precioOferta";
 import { hoyISOMexico } from "./lib/fecha";
 import { useImagenesPrincipales, useProductoImagenes } from "./hooks/useProductoImagenes";
+import { CATALOGO_PAGE_SIZE, clearStaleProductosCache, tiendaCardImageUrl } from "./utils/tiendaCardImage";
 import { useCatalogoVivo } from "./hooks/useCatalogoVivo";
 import { setBloqueaReloadApp } from "./utils/appUpdate";
 import { pageIdToTiendaPath, resolveTiendaPage, tiendaPathnameToPageId, tiendaPathSuggestsReceta, tiendaProductIdFromSearch } from "./shared/tiendaRoutes";
@@ -1838,8 +1839,10 @@ function ProductCard({prod,addToCart,onClick}){
       >
         {imgSrc ? (
           <img
-            src={imgSrc}
+            src={tiendaCardImageUrl(imgSrc)}
             alt=""
+            loading="lazy"
+            decoding="async"
             draggable={false}
             style={{maxWidth:"100%",maxHeight:"100%",width:"auto",height:"auto",objectFit:"contain",display:"block"}}
           />
@@ -2960,9 +2963,11 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
   const [tipo,setTipo]=useState(()=>sessionStorage.getItem("farmacapital_tipo")||"todos");
   const [openCategorias, setOpenCategorias] = useState(false);
   const [busqFocus,setBusqFocus]=useState(false);
+  const [visibles, setVisibles] = useState(CATALOGO_PAGE_SIZE);
   useEffect(()=>{ sessionStorage.setItem("farmacapital_cat",cat); },[cat]);
   useEffect(()=>{ sessionStorage.setItem("farmacapital_busq",busq); },[busq]);
   useEffect(()=>{ sessionStorage.setItem("farmacapital_tipo",tipo); },[tipo]);
+  useEffect(() => { setVisibles(CATALOGO_PAGE_SIZE); }, [cat, tipo, busq, filtroRx]);
   useEffect(()=>{
     const t = busqHero != null && String(busqHero).trim();
     if (t) {
@@ -2985,6 +2990,8 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
     const arr = basePool.filter((p)=>tiendaProductMatchesBusqueda(p, busq));
     return sortCatalogoTienda(arr, busq);
   }, [basePool, busq]);
+  const pageFil = useMemo(() => fil.slice(0, visibles), [fil, visibles]);
+  const hayMasCatalogo = fil.length > visibles;
   const poolCatalogo = useMemo(
     ()=>poolCatalogoTienda(productos),
     [productos]
@@ -3027,6 +3034,7 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
           : agotadosCount > 0
             ? `${fil.length} productos · ${disponiblesCount} disponibles, ${agotadosCount} agotados`
             : `${fil.length} productos disponibles`}
+        {hayMasCatalogo ? ` · mostrando ${pageFil.length}` : ""}
       </div>
       <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:20,marginBottom:20}}>
         <TiendaBusquedaBar
@@ -3122,8 +3130,20 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
               ))
             : fil.length===0
               ? <div style={{padding:40,textAlign:"center",color:C.mid,gridColumn:"1/-1"}}>{busq ? `Sin resultados para "${busq}"` : "No hay productos disponibles por el momento."}</div>
-              : fil.map(p=><ProductCard key={p.id} prod={p} addToCart={addToCart} onClick={()=>{setProdDetalle(p);setPage("detalle", { productId: p.id });}}/>)
+              : pageFil.map(p=><ProductCard key={p.id} prod={p} addToCart={addToCart} onClick={()=>{setProdDetalle(p);setPage("detalle", { productId: p.id });}}/>)
           }
+          {hayMasCatalogo && !(loadingProductos && productos.length===0) && (
+            <div style={{gridColumn:"1/-1",display:"flex",justifyContent:"center",padding:"8px 0 4px"}}>
+              <Btn
+                type="button"
+                outline
+                col={BRAND.primary}
+                onClick={() => setVisibles((n) => n + CATALOGO_PAGE_SIZE)}
+              >
+                Cargar más · {fil.length - pageFil.length} restantes
+              </Btn>
+            </div>
+          )}
         </div>
         {stack && busqActiva ? (
           <div
@@ -3252,7 +3272,7 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
             <div key={item.id} style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:16,marginBottom:12,display:"flex",gap:16,alignItems:"center",flexWrap:"wrap"}}>
               <div style={{background:"#fff",border:`1px solid ${C.border}`,borderRadius:10,width:64,height:64,overflow:"hidden",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
                 {lineImg ? (
-                  <img src={lineImg} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                  <img src={tiendaCardImageUrl(lineImg, 128)} alt="" loading="lazy" decoding="async" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
                 ) : (
                   <Pill size={24} strokeWidth={1.75} color={BRAND.primary} aria-hidden />
                 )}
@@ -5988,23 +6008,12 @@ export default function TiendaFarmaCapital(){
   const cartUserIdRef = useRef(user?.id ?? null);
   const skipCartSaveRef = useRef(false);
   const [misPedidos, setMisPedidos] = useState([]);
-  const [productos,setProductos] = useState(()=>{
-    try {
-      const cached = localStorage.getItem("farmacapital_productos_cache");
-      if (cached) { const p = JSON.parse(cached); if (Array.isArray(p) && p.length) return p; }
-    } catch(_) {}
-    return [];
-  });
+  const [productos,setProductos] = useState([]);
   const [cargando,setCargando]   = useState(false);
-  const [loadingProductos,setLoadingProductos] = useState(productos.length === 0);
+  const [loadingProductos,setLoadingProductos] = useState(true);
   const [prodDetalle,setProdDRaw] = useState(() => {
     try {
       const id = tiendaProductIdFromSearch(window.location.search);
-      const cached = JSON.parse(localStorage.getItem("farmacapital_productos_cache") || "[]");
-      if (id && Array.isArray(cached)) {
-        const found = cached.find((x) => String(x?.id) === String(id));
-        if (found) return found;
-      }
       const raw = sessionStorage.getItem("farmacapital_prod_detalle");
       if (!raw) return null;
       const saved = JSON.parse(raw);
@@ -6037,11 +6046,7 @@ export default function TiendaFarmaCapital(){
       try { return tiendaProductIdFromSearch(window.location.search); } catch { return ""; }
     })();
     let found = null;
-    try {
-      const cached = JSON.parse(localStorage.getItem("farmacapital_productos_cache") || "[]");
-      if (id && Array.isArray(cached)) found = cached.find((x) => String(x?.id) === String(id)) || null;
-    } catch (_) { /* noop */ }
-    if (!found && id && productos.length) {
+    if (id && productos.length) {
       found = productos.find((x) => String(x?.id) === String(id)) || null;
     }
     if (found) {
@@ -6081,6 +6086,7 @@ export default function TiendaFarmaCapital(){
   // Refresh silencioso (catálogo vivo): actualiza lista/detalle/carrito, no cambia de página.
   const recargarProductosRef = useRef(async () => {});
   useEffect(()=>{
+    clearStaleProductosCache();
     let cancelled = false;
     const MAX_INTENTOS = 4;
     const aplicarLista = (data) => {
@@ -6123,10 +6129,8 @@ export default function TiendaFarmaCapital(){
         }
         if (data?.length) {
           aplicarLista(data);
-          try { localStorage.setItem("farmacapital_productos_cache", JSON.stringify(data)); } catch(_) {}
         } else if (data && data.length === 0) {
           setProductos([]);
-          try { localStorage.removeItem("farmacapital_productos_cache"); } catch(_) {}
         }
         if (!silencioso) setLoadingProductos(false);
       } catch(e) {
