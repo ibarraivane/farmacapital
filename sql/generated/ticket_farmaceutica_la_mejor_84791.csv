@@ -1,0 +1,5 @@
+linea,folio,fecha,proveedor,ean,descripcion_ticket,cantidad,precio_unitario,subtotal,lote,caducidad,sku_farmacapital,total_ticket,accion,nota
+1,84791,2026-09-05,Farmaceutica La Mejor,7501417515949,BOCASAN POLVO C/24 SOBRES,2,127.30,254.60,,,FC-41751594,736.72,alta,Lista 148.02 · 14% desc · neto 127.30
+2,84791,2026-09-05,Farmaceutica La Mejor,7501836003393,DUALGOS PARACET/IBUPR C/20,5,39.01,195.05,,,FC-36009661,736.72,recibir,Lista 144.90 · 73.08% desc · catálogo también EAN 7501836009661
+3,84791,2026-09-05,Farmaceutica La Mejor,7502227426982,ML-PRIM C/12 CAPS,5,47.79,238.95,,,FC-27427392,736.72,recibir,Ticket imprimió 5114210000000 inválido · caja 7502227426982 · lista 177 · 73% desc
+4,84791,2026-09-05,Farmaceutica La Mejor,7501537194178,NEDICLON T 100MG C20 VI,3,16.04,48.12,,,EQ-BRU053,736.72,recibir,Lista 59.40 · 73% desc · catálogo también EAN 7501537102845
