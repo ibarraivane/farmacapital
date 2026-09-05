@@ -95,4 +95,23 @@ describe("parseTicketCsv", () => {
     expect(renglones.some((r) => r.codigo === "037836051227")).toBe(true);
     expect(renglones.some((r) => r.codigo === "3337875917810" && r.costo === 372.2)).toBe(true);
   });
+
+  test("Farmaceutica La Mejor 84791 generado", () => {
+    const csv = readFileSync(
+      join(__dirname, "../../sql/generated/ticket_farmaceutica_la_mejor_84791.csv"),
+      "utf8"
+    );
+    const { renglones, folio, proveedor, total } = parseTicketCsv(csv);
+    expect(folio).toBe("84791");
+    expect(proveedor).toBe("Farmaceutica La Mejor");
+    expect(total).toBe(736.72);
+    expect(renglones).toHaveLength(4);
+    expect(renglones.reduce((a, r) => a + r.cantidad, 0)).toBe(15);
+    expect(renglones.every((r) => r.codigo && r.codigo.length >= 8)).toBe(true);
+    expect(renglones.every((r) => !r.numero_lote)).toBe(true);
+    expect(renglones.some((r) => r.codigo === "7501417515949" && r.cantidad === 2 && r.costo === 127.3)).toBe(true);
+    expect(renglones.some((r) => r.codigo === "7501836003393" && r.cantidad === 5 && r.costo === 39.01)).toBe(true);
+    expect(renglones.some((r) => r.codigo === "7502227426982" && r.sku === "FC-27427392")).toBe(true);
+    expect(renglones.some((r) => r.codigo === "7501537194178" && r.cantidad === 3 && r.costo === 16.04)).toBe(true);
+  });
 });
