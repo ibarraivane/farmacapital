@@ -180,11 +180,12 @@ function moneyCell(n, { color, weight } = {}) {
   };
 }
 
-export default function FlujoCajaTab({ usuario, setPage, showConfirm }) {
+export default function FlujoCajaTab({ usuario, setPage, showConfirm, demoBundle }) {
+  const esDemo = Boolean(demoBundle);
   const [sub, setSub] = useState("flujo");
   const [periodo, setPeriodo] = useState("mes");
-  const [bundle, setBundle] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [bundle, setBundle] = useState(() => (demoBundle ? parseFlujoBundle(demoBundle) : null));
+  const [loading, setLoading] = useState(!demoBundle);
   const [errorCarga, setErrorCarga] = useState(null);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(() => ({
@@ -199,6 +200,12 @@ export default function FlujoCajaTab({ usuario, setPage, showConfirm }) {
   const rango = useMemo(() => rangoReporteMexico(periodo), [periodo]);
 
   const cargar = useCallback(async () => {
+    if (esDemo) {
+      setBundle(parseFlujoBundle(demoBundle));
+      setLoading(false);
+      setErrorCarga(null);
+      return;
+    }
     const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) {
       showToast("Sesión no iniciada", "error");
@@ -227,7 +234,7 @@ export default function FlujoCajaTab({ usuario, setPage, showConfirm }) {
     }
     setBundle(parseFlujoBundle(data));
     setLoading(false);
-  }, [rango.desdeFecha, rango.hastaFecha]);
+  }, [demoBundle, esDemo, rango.desdeFecha, rango.hastaFecha]);
 
   useEffect(() => { cargar(); }, [cargar]);
 
@@ -239,6 +246,10 @@ export default function FlujoCajaTab({ usuario, setPage, showConfirm }) {
   const fechaApertura = bundle?.fecha_inicio || bundle?.piso_aplicado || PISO_FONDO_FLUJO;
 
   const registrar = async () => {
+    if (esDemo) {
+      showToast("Esta es una vista de ejemplo: aquí no se guarda.", "info");
+      return;
+    }
     const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) { showToast("Sesión no iniciada", "error"); return; }
     const monto = parseFloat(String(form.monto).replace(",", "."));
@@ -299,6 +310,10 @@ export default function FlujoCajaTab({ usuario, setPage, showConfirm }) {
   };
 
   const marcarSinCompra = async (marcar) => {
+    if (esDemo) {
+      setBundle((b) => (b ? { ...b, completitud: { ...(b.completitud || {}), sin_compra: marcar } } : b));
+      return;
+    }
     const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) return;
     const { data, error } = await supabase.rpc("admin_marcar_periodo_sin_compra", {
