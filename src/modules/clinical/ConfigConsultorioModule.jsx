@@ -9,7 +9,14 @@ import { invalidarCacheMetas } from "../../utils/turnosMetas";
 
 const C = C_LIGHT;
 
+const CLAVES_FINANZAS_ADMIN = new Set([
+  "finanzas_fecha_inicio",
+  "finanzas_saldo_inicial",
+  "finanzas_sin_compra_meses",
+]);
+
 // F6: sin INSERT/UPDATE directo; usa RPC SECURITY DEFINER.
+// Claves de finanzas: solo admin (fn_require_admin). El resto sigue siendo empleado.
 async function upsertConfig(clave, valor) {
   const tok = sessionStorage.getItem("farmacapital_session_token");
   if (!tok) {
@@ -17,7 +24,10 @@ async function upsertConfig(clave, valor) {
     console.error(`[ConfigCons] upsert ${clave}:`, err);
     return err;
   }
-  const { data, error } = await supabase.rpc("empleado_upsert_configuracion", {
+  const rpcName = CLAVES_FINANZAS_ADMIN.has(clave)
+    ? "admin_upsert_configuracion_finanzas"
+    : "empleado_upsert_configuracion";
+  const { data, error } = await supabase.rpc(rpcName, {
     p_session_token: tok,
     p_clave: clave,
     p_valor: String(valor),
@@ -104,6 +114,10 @@ const FIELDS = {
   bono_doctora_80_99:        { tab:"cons",      grupo:"bono_doctora",   label:"Bono 80-99%",               def:500,  tipo:"currency" },
   bono_doctora_100_plus:     { tab:"cons",      grupo:"bono_doctora",   label:"Bono 100% o más",           def:1500, tipo:"currency" },
   estimado_receta_externa:   { tab:"cons",      grupo:"avanzado",       label:"Estimado ticket receta afuera", def:350, tipo:"currency" },
+
+  // ── TAB 5 · Finanzas (flujo de caja). Vacías a propósito hasta que el dueño las ponga.
+  finanzas_fecha_inicio:     { tab:"finanzas",  grupo:"piso",           label:"Fecha de inicio (override)", def:"", tipo:"date" },
+  finanzas_saldo_inicial:    { tab:"finanzas",  grupo:"piso",           label:"Saldo inicial (override)",   def:"", tipo:"currency_optional" },
 };
 
 const ALL_KEYS = Object.keys(FIELDS);
@@ -115,6 +129,19 @@ function validarCampo(clave, raw) {
   if (def.tipo === "toggle") {
     const on = raw === "1" || raw === 1 || raw === true || raw === "true";
     return { ok: true, num: on ? 1 : 0 };
+  }
+  if (def.tipo === "date") {
+    const s = String(raw ?? "").trim();
+    if (s === "") return { ok: true, num: "" };
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return { ok: false, msg: `"${def.label}" debe ser una fecha.` };
+    return { ok: true, num: s };
+  }
+  if (def.tipo === "currency_optional") {
+    const s = String(raw ?? "").trim();
+    if (s === "") return { ok: true, num: "" };
+    const nOpt = parseFloat(s);
+    if (!Number.isFinite(nOpt) || nOpt < 0) return { ok: false, msg: `"${def.label}" debe ser un monto ≥ 0.` };
+    return { ok: true, num: nOpt };
   }
   const n = parseFloat(raw);
   if (!Number.isFinite(n)) return { ok: false, msg: `"${def.label}" debe ser un número.` };
@@ -157,12 +184,17 @@ function TabButton({ active, onClick, children }) {
 
 function InputField({ clave, valor, onChange, compact = false }) {
   const def = FIELDS[clave];
-  const esMoneda = def.tipo === "currency";
+  const esFecha = def.tipo === "date";
+  const esMoneda = def.tipo === "currency" || def.tipo === "currency_optional";
   const esPct = def.tipo === "percent" || def.tipo === "percent_signed";
-  const simbolo = esMoneda ? "$" : esPct ? "%" : "#";
+  const simbolo = esFecha ? "" : esMoneda ? "$" : esPct ? "%" : "#";
   const step = esMoneda ? "10" : "1";
   const min = def.tipo === "percent_signed" ? undefined : 0;
-  const sugerencia = esMoneda ? fmtMXN(def.def) : esPct ? `${def.def}%` : def.def;
+  const sugerencia = esFecha
+    ? "Vacío = primera apertura con fondo"
+    : esMoneda
+      ? (def.def === "" ? "Vacío = fondo de esa apertura" : fmtMXN(def.def))
+      : esPct ? `${def.def}%` : def.def;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -170,13 +202,13 @@ function InputField({ clave, valor, onChange, compact = false }) {
         {def.label}
       </label>
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        {!esPct && (
+        {!esPct && !esFecha && (
           <span style={{ color: C.textDim, fontWeight: 700, fontSize: 14, width: 12 }}>{simbolo}</span>
         )}
         <input
-          type="number"
-          step={step}
-          min={min}
+          type={esFecha ? "date" : "number"}
+          step={esFecha ? undefined : step}
+          min={esFecha ? undefined : min}
           value={valor}
           onChange={(e) => onChange(clave, e.target.value)}
           style={{
@@ -223,7 +255,7 @@ export default function ConfigConsultorioModule() {
     try {
       const t = sessionStorage.getItem("farmacapital_config_tab");
       if (t) sessionStorage.removeItem("farmacapital_config_tab");
-      if (t === "ventas" || t === "servicios" || t === "bonos" || t === "cons") return t;
+      if (t === "ventas" || t === "servicios" || t === "bonos" || t === "cons" || t === "finanzas") return t;
     } catch { /* noop */ }
     return "servicios";
   });
@@ -295,7 +327,11 @@ export default function ConfigConsultorioModule() {
       for (const k of keys) {
         const def = FIELDS[k];
         const v = validarCampo(k, valores[k]);
-        const payload = def.tipo === "toggle" ? String(v.num) : String(parseFloat(valores[k]));
+        const payload = def.tipo === "toggle"
+          ? String(v.num)
+          : (def.tipo === "date" || def.tipo === "currency_optional")
+            ? String(v.num)
+            : String(parseFloat(valores[k]));
         const err = await upsertConfig(k, payload);
         if (err) errores.push({ k, err });
       }
@@ -375,6 +411,11 @@ export default function ConfigConsultorioModule() {
         <div style={{ flexShrink: 0 }}>
           <TabButton active={tab === "cons"} onClick={() => setTab("cons")}>
             {isMobileCfg ? "🩺 Metas cons." : "🩺 Metas del consultorio"}
+          </TabButton>
+        </div>
+        <div style={{ flexShrink: 0 }}>
+          <TabButton active={tab === "finanzas"} onClick={() => setTab("finanzas")}>
+            {isMobileCfg ? "💧 Finanzas" : "💧 Finanzas"}
           </TabButton>
         </div>
       </div>
@@ -622,6 +663,29 @@ export default function ConfigConsultorioModule() {
 
           <Btn col={BRAND.primary} onClick={() => guardarTab("cons")} dis={guardando}>
             {guardando ? "Guardando…" : "Guardar metas del consultorio"}
+          </Btn>
+        </>
+      )}
+
+      {tab === "finanzas" && (
+        <>
+          <Box style={{ padding: 20, marginBottom: 16 }}>
+            <SectionTitle sub="Vacío = lo toma de la primera apertura de caja con fondo contado. No hace falta llenar esto para ver el Flujo.">
+              OVERRIDE OPCIONAL DEL PISO
+            </SectionTitle>
+            <p style={{ color: C.textMid, fontSize: 12.5, lineHeight: 1.5, margin: "0 0 14px" }}>
+              Entró sale de los <strong style={{ color: C.text }}>cortes</strong>. La semilla es el fondo de esa primera apertura
+              (18-ago-2026, no el fondo de hoy: ese crecimiento ya viaja en <code>total_general</code>).
+              Nómina, renta y pago a proveedor se teclean: RRHH y compras no tienen filas.
+              Solo llena las dos cajas si quieres arrancar en otra fecha con otro saldo.
+            </p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,220px),1fr))", gap: 14 }}>
+              <InputField clave="finanzas_fecha_inicio" valor={valores.finanzas_fecha_inicio} onChange={setValor} />
+              <InputField clave="finanzas_saldo_inicial" valor={valores.finanzas_saldo_inicial} onChange={setValor} />
+            </div>
+          </Box>
+          <Btn col={BRAND.primary} onClick={() => guardarTab("finanzas")} dis={guardando}>
+            {guardando ? "Guardando…" : "Guardar override (opcional)"}
           </Btn>
         </>
       )}

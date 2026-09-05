@@ -334,4 +334,140 @@ describe("catalog search dimensions", () => {
     expect(tiendaProductMatchesBusqueda(fotosun, "la roche")).toBe(false);
     expect(inventarioProductMatchesBusqueda(fotosun, "la roche")).toBe(false);
   });
+
+  test("pegamento dental encuentra Corega y no se confunde con pasta ni parches", () => {
+    const corega = {
+      id: 501,
+      activo: true,
+      nombre: "Corega Ultra Sin Sabor 40 g",
+      marca: "Corega",
+      principio_activo: "Crema adhesiva para protesis dentales",
+      categoria: "Cuidado personal",
+      subcategoria: "Protesis dental / adhesivo",
+      sku: "FC-09490651",
+      codigo_barras: "7896009490651",
+    };
+    const fixodent = {
+      id: 502,
+      activo: true,
+      nombre: "Fixodent Original crema dental 40 mL",
+      marca: "Fixodent",
+      categoria: "Cuidado personal",
+      sku: "FC-74305449",
+      codigo_barras: "5000174305449",
+    };
+    const colgate = {
+      id: 503,
+      activo: true,
+      nombre: "Colgate Total 65 mL",
+      marca: "Colgate",
+      categoria: "Cuidado personal",
+      sku: "FC-66534951",
+    };
+    const parches = {
+      id: 504,
+      activo: true,
+      nombre: "Parches adhesivos Alfa Med 2 tamaños blanco",
+      marca: "Alfa Med",
+      categoria: "Botiquín",
+      sku: "FC-14279552",
+    };
+    const ibuprofeno = {
+      id: 505,
+      activo: true,
+      nombre: "Ibuprofeno 400 mg",
+      marca: "Genérico",
+      principio_activo: "Ibuprofeno",
+      subcategoria: "Analgésico",
+    };
+    const frases = [
+      "pegamento",
+      "pegamento dental",
+      "pegamento para dentadura",
+      "adhesivo dental",
+      "adhesivo para dentadura",
+      "dentadura",
+      "prótesis dental",
+    ];
+    for (const q of frases) {
+      expect(tiendaProductMatchesBusqueda(corega, q)).toBe(true);
+      expect(inventarioProductMatchesBusqueda(corega, q)).toBe(true);
+      expect(tiendaProductMatchesBusqueda(fixodent, q)).toBe(true);
+      expect(tiendaProductMatchesBusqueda(colgate, q)).toBe(false);
+      expect(tiendaProductMatchesBusqueda(parches, q)).toBe(false);
+    }
+    expect(tiendaProductMatchesBusqueda({ ...corega, principio_activo: "", subcategoria: "" }, "pegamento dental")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(corega, "corega")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(ibuprofeno, "dolor dental")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(corega, "dolor dental")).toBe(false);
+    expect(tiendaSearchRelevanceRank(corega, "pegamento dental")).toBeLessThan(60);
+  });
+
+  test("otras frases de mostrador encuentran la marca aunque el SKU no las diga", () => {
+    const sensodyne = {
+      id: 601,
+      nombre: "Pasta Dent Sensodyne Original",
+      marca: "Sensodyne",
+      categoria: "Cuidado personal",
+    };
+    const colgatePasta = {
+      id: 602,
+      nombre: "Colgate Triple Acc Original",
+      marca: "Colgate",
+      categoria: "Cuidado personal",
+    };
+    const cepillo = {
+      id: 603,
+      nombre: "Cepillo Colgate Premier Clean",
+      marca: "Colgate",
+      categoria: "Cuidado personal",
+    };
+    const saba = {
+      id: 604,
+      nombre: "Saba buenas noches",
+      marca: "Saba",
+      categoria: "Higiene",
+    };
+    const huggies = {
+      id: 605,
+      nombre: "Toallitas húmedas Huggies",
+      marca: "Huggies",
+      categoria: "Higiene",
+    };
+    const hisopos = {
+      id: 606,
+      nombre: "Jaloma Kiuts hisopos biodegradables C/100",
+      marca: "Jaloma",
+      categoria: "Botiquín",
+    };
+    const nan = {
+      id: 607,
+      nombre: "Leche en polvo NAN Optimal Pro 1/ 0 a 6 M",
+      marca: "Nestle",
+      categoria: "Higiene",
+    };
+    const sildenafil = {
+      id: 608,
+      nombre: "Sildenafil 4 Tab 100 Mg",
+      principio_activo: "Sildenafil",
+    };
+    const broncolinAzul = {
+      id: 609,
+      nombre: "Broncolin Etiqueta Azul jarabe oral 140 ml",
+      marca: "Broncolin",
+    };
+    expect(tiendaProductMatchesBusqueda(sensodyne, "pasta de dientes")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(colgatePasta, "pasta dental")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(cepillo, "pasta de dientes")).toBe(false);
+    expect(tiendaProductMatchesBusqueda(saba, "toallas sanitarias")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(saba, "toallas femeninas")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(huggies, "toallas sanitarias")).toBe(false);
+    expect(tiendaProductMatchesBusqueda(hisopos, "cotonetes")).toBe(true);
+    expect(inventarioProductMatchesBusqueda(hisopos, "cotonetes")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(nan, "formula")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(nan, "leche de fórmula")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(sildenafil, "pastilla azul")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(sildenafil, "viagra")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(broncolinAzul, "pastilla azul")).toBe(false);
+  });
 });

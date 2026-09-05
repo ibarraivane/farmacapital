@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useLayoutEffect, useCallback, useMemo, useRef } from "react";
 import { useMediaQuery } from "./hooks/useMediaQuery";
 import { C_LIGHT } from "./constants";
 import { supabase } from "./supabase";
@@ -35,6 +35,15 @@ import {
   fetchLotesInventario,
 } from "./lib/inventarioHubData";
 import { DIAS_CADUCIDAD_ALERTA, DIAS_CADUCIDAD_CRITICO, esPorCaducar } from "./lib/caducidad";
+import {
+  INV_CHECKBOX_COL_WIDTH,
+  INV_COL_WIDTHS_DEFAULT,
+  INV_STICKY_COL_IDS,
+  invColumnPixelWidth,
+  inventarioStickyStyle,
+  invTablePixelWidth,
+  stickyWidthsEqual,
+} from "./lib/inventarioTablaSticky";
 
 const leerSesion = () => {
   try {
@@ -405,7 +414,8 @@ function InventarioEditableCell({
         onStart(productId, field, value);
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.background = "rgba(30, 58, 138, 0.07)";
+        // Opaco: si el fondo es rgba, las columnas que pasan debajo se leen encima (scroll).
+        e.currentTarget.style.background = "#dbeafe";
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.background = rowBg || "";
@@ -415,21 +425,6 @@ function InventarioEditableCell({
     </td>
   );
 }
-
-const INV_CHECKBOX_COL_WIDTH = 38;
-const INV_STICKY_COL_IDS = ["foto", "acciones", "skuFarmaCapital", "nombre"];
-
-const INV_COL_WIDTHS_DEFAULT = {
-  acciones: 104,
-  codigoBarras: 128,
-  nombre: 272,
-  marca: 130,
-  presentacion: 160,
-  principio: 200,
-  ubicacion: 180,
-  categoria: 120,
-  proveedor: 140,
-};
 
 const INV_COLUMN_DEFS = {
   foto: { label: "Foto", hint: "" },
@@ -501,48 +496,6 @@ const INV_COLUMN_ORDER_DEFAULT = [
   "desc",
   "estado",
 ];
-
-function invColumnPixelWidth(colId, colWidths) {
-  const map = {
-    foto: 44,
-    acciones: Math.max(88, Number(colWidths?.acciones) || INV_COL_WIDTHS_DEFAULT.acciones),
-    skuFarmaCapital: 118,
-    codigoBarras: Math.max(100, Number(colWidths?.codigoBarras) || INV_COL_WIDTHS_DEFAULT.codigoBarras),
-    nombre: Math.max(200, Number(colWidths?.nombre) || INV_COL_WIDTHS_DEFAULT.nombre),
-    marca: Math.max(90, Number(colWidths?.marca) || INV_COL_WIDTHS_DEFAULT.marca),
-    presentacion: Math.max(110, Number(colWidths?.presentacion) || INV_COL_WIDTHS_DEFAULT.presentacion),
-    principio: Math.max(130, Number(colWidths?.principio) || INV_COL_WIDTHS_DEFAULT.principio),
-    ubicacion: Math.max(120, Number(colWidths?.ubicacion) || INV_COL_WIDTHS_DEFAULT.ubicacion),
-    categoria: Math.max(100, Number(colWidths?.categoria) || INV_COL_WIDTHS_DEFAULT.categoria),
-    proveedor: Math.max(100, Number(colWidths?.proveedor) || INV_COL_WIDTHS_DEFAULT.proveedor),
-  };
-  return map[colId] ?? 96;
-}
-
-function inventarioStickyStyle(colId, colOrder, colWidths, { header, bg, hasCheckbox = true }) {
-  if (!INV_STICKY_COL_IDS.includes(colId)) return {};
-  const myIndex = colOrder.indexOf(colId);
-  if (myIndex < 0) return {};
-  let left = hasCheckbox ? INV_CHECKBOX_COL_WIDTH : 0;
-  for (const id of colOrder) {
-    if (id === colId) break;
-    if (INV_STICKY_COL_IDS.includes(id)) left += invColumnPixelWidth(id, colWidths);
-  }
-  const w = invColumnPixelWidth(colId, colWidths);
-  const stickyRank = INV_STICKY_COL_IDS.indexOf(colId);
-  const hasStickyAfter = colOrder.slice(myIndex + 1).some((id) => INV_STICKY_COL_IDS.includes(id));
-  return {
-    position: "sticky",
-    left,
-    width: w,
-    minWidth: w,
-    maxWidth: w,
-    boxSizing: "border-box",
-    zIndex: header ? 5 + stickyRank : 2 + stickyRank,
-    background: bg,
-    borderRight: !hasStickyAfter ? "1px solid #e2e8f0" : undefined,
-  };
-}
 
 function loadInvColumnOrder() {
   try {
@@ -2253,11 +2206,11 @@ function renderInventarioColumnCell(colId, ctx) {
             whiteSpace: "nowrap",
             verticalAlign: "middle",
             background: stickyRowBg,
-            ...sticky(),
             ...w("acciones"),
+            ...sticky(),
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "nowrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "nowrap", overflow: "hidden", maxWidth: "100%" }}>
           <button
             type="button"
             onClick={() => abrirEdicionProducto(p)}
@@ -2346,8 +2299,8 @@ function renderInventarioColumnCell(colId, ctx) {
             textAlign: "left",
             verticalAlign: "middle",
             background: stickyRowBg,
-            ...sticky(),
             ...w("skuFarmaCapital"),
+            ...sticky(),
           }}
         />
       );
@@ -2389,7 +2342,7 @@ function renderInventarioColumnCell(colId, ctx) {
               {nombreTabla}
             </span>
           }
-          tdStyle={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, verticalAlign: "middle", background: stickyRowBg, ...sticky(), ...w("nombre") }}
+          tdStyle={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, verticalAlign: "middle", background: stickyRowBg, ...w("nombre"), ...sticky() }}
         />
       );
     case "marca":
@@ -2474,7 +2427,7 @@ function renderInventarioColumnCell(colId, ctx) {
               {p.tipo === "marca" || p.tipo === "patente" ? "Patente" : "Genérico"}
             </span>
           }
-          tdStyle={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, background: stickyRowBg }}
+          tdStyle={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, background: stickyRowBg, ...w("tipo") }}
         />
       );
     case "proveedor":
@@ -2499,7 +2452,7 @@ function renderInventarioColumnCell(colId, ctx) {
           value={String(p.stock ?? 0)}
           type="number"
           display={<span style={{ fontWeight: 700, color: bajo ? C.amber : C.green }}>{p.stock_peps ?? p.stock}</span>}
-          tdStyle={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, background: stickyRowBg }}
+          tdStyle={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, background: stickyRowBg, ...w("stock") }}
         />
       );
     case "min":
@@ -2512,7 +2465,7 @@ function renderInventarioColumnCell(colId, ctx) {
           value={String(p.stock_minimo ?? 0)}
           type="number"
           display={p.stock_minimo ?? 0}
-          tdStyle={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}`, background: stickyRowBg }}
+          tdStyle={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}`, background: stickyRowBg, ...w("min") }}
         />
       );
     case "precio":
@@ -2531,7 +2484,7 @@ function renderInventarioColumnCell(colId, ctx) {
               `$${parseFloat(p.precio || 0).toFixed(2)}`
             )
           }
-          tdStyle={{ padding: "8px 12px", color: C.text, borderBottom: `1px solid ${C.border}`, background: stickyRowBg }}
+          tdStyle={{ padding: "8px 12px", color: C.text, borderBottom: `1px solid ${C.border}`, background: stickyRowBg, ...w("precio") }}
         />
       );
     case "costo":
@@ -2544,11 +2497,11 @@ function renderInventarioColumnCell(colId, ctx) {
           value={String(parseFloat(p.costo || 0))}
           type="number"
           display={`$${parseFloat(p.costo || 0).toFixed(2)}`}
-          tdStyle={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}`, background: stickyRowBg }}
+          tdStyle={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}`, background: stickyRowBg, ...w("costo") }}
         />
       );
     case "margen":
-      return <td key={colId} style={{ padding: "8px 12px", fontWeight: 700, borderBottom: `1px solid ${C.border}`, color: mgnCol, background: stickyRowBg }}>{mgn}</td>;
+      return <td key={colId} style={{ padding: "8px 12px", fontWeight: 700, borderBottom: `1px solid ${C.border}`, color: mgnCol, background: stickyRowBg, ...w("margen") }}>{mgn}</td>;
     case "cad": {
       const loteRef = resolverLoteCaducidadProducto(p);
       const puedeCad = true;
@@ -2666,7 +2619,7 @@ function renderInventarioColumnCell(colId, ctx) {
     }
     case "agot":
       return (
-        <td key={colId} style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, background: stickyRowBg }}>
+        <td key={colId} style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, background: stickyRowBg, ...w("agot") }}>
           {(() => {
             if (!p.stock || !p.stock_minimo) return "—";
             const ventaDiaria = Math.max(p.stock_minimo * 0.15, 0.5);
@@ -2686,12 +2639,12 @@ function renderInventarioColumnCell(colId, ctx) {
           value={String(p.descuento_pct ?? 0)}
           type="number"
           display={p.descuento_pct > 0 ? <span style={{ color: C.amber, fontWeight: 700 }}>{p.descuento_pct}%</span> : "—"}
-          tdStyle={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, background: stickyRowBg }}
+          tdStyle={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, background: stickyRowBg, ...w("desc") }}
         />
       );
     case "estado":
       return (
-        <td key={colId} style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, background: stickyRowBg }}>
+        <td key={colId} style={{ padding: "8px 12px", borderBottom: `1px solid ${C.border}`, background: stickyRowBg, ...w("estado") }}>
           <span style={{ padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 700, background: p.activo ? C.greenDim : C.redDim, color: p.activo ? C.green : C.red }}>
             {p.activo ? "Activo" : "Inactivo"}
           </span>
@@ -2772,21 +2725,44 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
     }
   }, [colOrder]);
 
+  const tableRef = useRef(null);
+  const [measuredStickyWidths, setMeasuredStickyWidths] = useState(null);
+  const tablePixelWidth = useMemo(
+    () => invTablePixelWidth(colOrderVisible, colWidths, { hasCheckbox: !modoConsulta }),
+    [colOrderVisible, colWidths, modoConsulta]
+  );
+
   const inventarioStickyStyleFor = useCallback(
     (colId, opts) => inventarioStickyStyle(colId, colOrderVisible, colWidths, {
       ...opts,
       hasCheckbox: !modoConsulta,
+      measuredWidths: measuredStickyWidths,
     }),
-    [colOrderVisible, colWidths, modoConsulta]
+    [colOrderVisible, colWidths, modoConsulta, measuredStickyWidths]
   );
 
   const invColWidthStyle = useCallback(
     (id) => {
       const w = invColumnPixelWidth(id, colWidths);
-      return { width: w, minWidth: w, maxWidth: w, boxSizing: "border-box" };
+      return { width: w, minWidth: w, maxWidth: w, boxSizing: "border-box", overflow: "hidden" };
     },
     [colWidths]
   );
+
+  useLayoutEffect(() => {
+    if (loading) return;
+    const table = tableRef.current;
+    if (!table) return;
+    const next = {};
+    table.querySelectorAll("thead [data-inv-col]").forEach((el) => {
+      const id = el.getAttribute("data-inv-col");
+      if (!id) return;
+      next[id] = el.offsetWidth;
+    });
+    if (!Object.keys(next).length) return;
+    setMeasuredStickyWidths((prev) => (stickyWidthsEqual(prev, next) ? prev : next));
+  }, [colOrderVisible, colWidths, modoConsulta, loading, tablePixelWidth]);
+
   const headerSelectAllRef = useRef(null);
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
 
@@ -4126,11 +4102,30 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
       ) : (
         <>
         <HorizontalScrollSync data-tour="inv-tabla">
-          <table style={{width:"max-content",minWidth:1640,tableLayout:"fixed",borderCollapse:"separate",borderSpacing:0,fontSize:12}}>
+          <table
+            ref={tableRef}
+            className="fc-inv-tabla"
+            style={{
+              width: tablePixelWidth,
+              minWidth: tablePixelWidth,
+              tableLayout: "fixed",
+              borderCollapse: "separate",
+              borderSpacing: 0,
+              fontSize: 12,
+            }}
+          >
+            <colgroup>
+              {!modoConsulta && <col style={{ width: INV_CHECKBOX_COL_WIDTH }} />}
+              {colOrderVisible.map((id) => (
+                <col key={id} style={{ width: invColumnPixelWidth(id, colWidths) }} />
+              ))}
+            </colgroup>
             <thead>
               <tr>
                 {!modoConsulta && (
-                <th style={{
+                <th
+                  data-inv-col="checkbox"
+                  style={{
                   padding: "8px 4px",
                   textAlign: "center",
                   color: C.textMid,
@@ -4141,7 +4136,9 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
                   left: 0,
                   width: INV_CHECKBOX_COL_WIDTH,
                   minWidth: INV_CHECKBOX_COL_WIDTH,
+                  maxWidth: INV_CHECKBOX_COL_WIDTH,
                   boxSizing: "border-box",
+                  overflow: "hidden",
                   zIndex: 40,
                   background: C.card,
                 }}>
@@ -4162,6 +4159,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
                   return (
                   <th
                     key={colId}
+                    data-inv-col={colId}
                     title={col.hint || undefined}
                     style={{
                       padding: compactHead ? "8px 6px" : "10px 12px",
@@ -4173,8 +4171,8 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
                       whiteSpace: "nowrap",
                       cursor: col.hint ? "help" : undefined,
                       verticalAlign: "middle",
-                      ...inventarioStickyStyleFor(colId, { header: true, bg: C.card }),
                       ...invColWidthStyle(colId),
+                      ...inventarioStickyStyleFor(colId, { header: true, bg: C.card }),
                     }}
                   >
                     {col.label}
@@ -4252,7 +4250,9 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
                       left: 0,
                       width: INV_CHECKBOX_COL_WIDTH,
                       minWidth: INV_CHECKBOX_COL_WIDTH,
+                      maxWidth: INV_CHECKBOX_COL_WIDTH,
                       boxSizing: "border-box",
+                      overflow: "hidden",
                       zIndex: 20,
                       background: stickyRowBg,
                     }}>

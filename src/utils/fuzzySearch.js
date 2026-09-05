@@ -44,6 +44,7 @@ const CATALOG_NAME_LIKE_KINDS = new Set([
   "concentracion",
   "presentacion",
   "forma_farmaceutica",
+  "subcategoria",
 ]);
 
 function isPureNumericSearchToken(tok) {
@@ -119,6 +120,7 @@ function catalogSearchFieldEntries(product, { inventario = false } = {}) {
     ["sku", product?.sku],
     ["codigo_barras", product?.codigo_barras],
     ["categoria", product?.categoria],
+    ["subcategoria", product?.subcategoria],
   ];
   if (inventario) {
     pairs.push(
@@ -271,6 +273,37 @@ const CATALOG_VERNACULAR_GROUPS = [
     query: ["roche", "roch"],
     catalog: ["la roche", "roche posay", "anthelios", "uvair", "anthe"],
   },
+  {
+    query: ["pegamento", "corega", "fixodent", "polident"],
+    catalog: ["corega", "fixodent", "polident", "protesis"],
+  },
+  {
+    query: ["dentifrico", "dentifricos"],
+    catalog: [
+      "pasta dent",
+      "pasta dental",
+      "colgate triple",
+      "colgate max",
+      "colgate total",
+      "sensodyne",
+    ],
+  },
+  {
+    query: ["toalla-sanitaria", "sanitaria", "sanitarias"],
+    catalog: ["saba", "kotex", "always"],
+  },
+  {
+    query: ["cotonete", "cotonetes", "q-tips", "qtips"],
+    catalog: ["hisopo", "hisopos", "kiuts"],
+  },
+  {
+    query: ["formula", "formulas"],
+    catalog: ["nan", "enfamil", "similac", "formula"],
+  },
+  {
+    query: ["viagra", "cialis"],
+    catalog: ["sildenafil", "tadalafil", "viagra", "cialis"],
+  },
 ];
 
 function vernacularAltsForToken(tok) {
@@ -311,6 +344,23 @@ const CATALOG_QUERY_REPLACEMENTS = [
   [/\bpanales?\s+(?:desechables?\s+)?(?:para\s+)?adultos?\b/g, "panal"],
   [/\bpants?\s+(?:desechables?\s+)?(?:para\s+)?adultos?\b/g, "panal"],
   [/\bropa\s+interior\s+desechable\b/g, "panal"],
+  [/\bpegamentos?(?:\s+(?:dental(?:es)?|para\s+(?:la\s+|el\s+)?(?:dentadura|protesis|dientes)))?\b/g, "pegamento"],
+  [/\badhesivos?\s+(?:dental(?:es)?|para\s+(?:la\s+|el\s+)?(?:dentadura|protesis|dientes)|protesis)\b/g, "pegamento"],
+  [/\bcrema\s+adhesiva(?:\s+(?:dental(?:es)?|para\s+(?:la\s+|el\s+)?(?:dentadura|protesis)))?\b/g, "pegamento"],
+  [/\bdientes?\s+postizos?\b/g, "pegamento"],
+  [/\bprotesis\s+dental(?:es)?\b/g, "pegamento"],
+  [/\bdentaduras?(?:\s+postizas?)?\b/g, "pegamento"],
+  [/\bpastas?\s+(?:de\s+)?dientes?\b/g, "dentifrico"],
+  [/\bpastas?\s+dentales?\b/g, "dentifrico"],
+  [/\bdentifricos?\b/g, "dentifrico"],
+  [/\btoallas?\s+(?:sanitarias?|femeninas?|higienicas?)\b/g, "toalla-sanitaria"],
+  [/\bcotonetes?\b/g, "hisopo"],
+  [/\b(?:q-?tips|qtips)\b/g, "hisopo"],
+  [/\bleche\s+(?:de\s+)?formulas?\b/g, "formula"],
+  [/\bformulas?\s+(?:para\s+)?(?:bebes?|infantil(?:es)?|lactantes?)\b/g, "formula"],
+  [/\bleche\s+para\s+bebes?\b/g, "formula"],
+  [/\bpastillas?\s+azul(?:es)?\b/g, "sildenafil"],
+  [/\bviagras?\b/g, "sildenafil"],
 ];
 
 export function normalizeCatalogSearchQuery(raw) {
@@ -488,6 +538,7 @@ function catalogPrimaryRawFields(product, { inventario = false } = {}) {
     product?.sku,
     product?.codigo_barras,
     product?.categoria,
+    product?.subcategoria,
   ];
   if (inventario) {
     fields.push(
@@ -571,6 +622,7 @@ function catalogSearchRelevanceRank(product, queryRaw, { inventario = false } = 
   const sku = normalizeForSearch(String(product?.sku ?? ""));
   const cb = normalizeForSearch(String(product?.codigo_barras ?? ""));
   const cat = normalizeForSearch(product?.categoria || "");
+  const sub = normalizeForSearch(product?.subcategoria || "");
   const ubic = normalizeForSearch(product?.ubicacion_texto || product?.ubicacion || "");
   const everyIn = (hay) =>
     tokens.length > 0 && tokens.every((t) => shortCatalogTokenMatchesNormalizedField(t, hay));
@@ -602,6 +654,7 @@ function catalogSearchRelevanceRank(product, queryRaw, { inventario = false } = 
   if (everyInNameLike) return 5;
   if (conc.includes(qn) || pres.includes(qn) || forma.includes(qn)) return 6;
   if (inventario && everyIn(ubic)) return 8;
+  if (everyIn(sub)) return 10;
   if (everyIn(cat)) return 12;
   if (catalogProductMatchesBusqueda(product, raw, { inventario, allowDescripcion: false })) return 20;
   return 60;
