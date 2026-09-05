@@ -1,9 +1,10 @@
 /**
- * Packs de sobres / tiras que se venden por pieza.
- * Al cargar un ticket ("Pack 48 sobres…", qty 1, costo del pack)
- * se expanden a N piezas con costo unitario = pack / N.
+ * Packs de sobres / tiras / exhibidores de dulces que se venden por pieza.
+ * Al cargar un ticket ("Pack 48 sobres…", "ORBIT 4P FRESA, 24/40PZ", qty 1,
+ * costo del pack) se expanden a N piezas con costo unitario = pack / N.
  *
- * Solo toca higiene de sobres/sachets/tiras. No C/N de medicamentos.
+ * Sobres/sachets/tiras de higiene y mayoreo dulces N/MPZ.
+ * No C/N de medicamentos.
  */
 
 /** Piezas por empaque según el nombre del ticket/proveedor. */
@@ -23,6 +24,18 @@ export function piezasPorEmpaqueDesdeNombre(nombre) {
   if (nSobres) {
     const p = parseInt(nSobres[1], 10);
     if (p >= 2 && p <= 200) return p;
+  }
+
+  // Mayoreo dulces Central de Abasto: "ORBIT 4P FRESA, 24/40PZ",
+  // "CLORETS 4 S PLUS 24/40PZ", "HALLS YERBA 30/12PZ".
+  // El 2.º número es el exhibidor/cuadreta que se compra (piezas a vender).
+  // Skittles "24/10PZ" es caja de 24 bolsas → usa el 1.º.
+  const mayoreo = n.match(/\b(\d{1,3})\s*\/\s*(\d{1,3})\s*pz(?:as?)?\b/i);
+  if (mayoreo) {
+    const caja = parseInt(mayoreo[1], 10);
+    const exhibidor = parseInt(mayoreo[2], 10);
+    if (/skittles/i.test(n) && caja >= 2 && caja <= 200) return caja;
+    if (exhibidor >= 2 && exhibidor <= 200) return exhibidor;
   }
 
   return null;

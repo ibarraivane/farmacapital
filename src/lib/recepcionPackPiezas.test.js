@@ -21,6 +21,16 @@ describe("piezasPorEmpaqueDesdeNombre", () => {
   test("no toca C/N de medicamento", () => {
     expect(piezasPorEmpaqueDesdeNombre("Aspirina Protect C/28 tabletas")).toBeNull();
   });
+
+  test("mayoreo dulces Orbit/Clorets 24/40PZ → 40", () => {
+    expect(piezasPorEmpaqueDesdeNombre("ORBIT 4P FRESA, 24/40PZ")).toBe(40);
+    expect(piezasPorEmpaqueDesdeNombre("CLORETS 4 S PLUS 24/40PZ")).toBe(40);
+    expect(piezasPorEmpaqueDesdeNombre("HALLS YERBA 30/12PZ")).toBe(12);
+  });
+
+  test("Skittles 24/10PZ → 24 bolsas (no 10)", () => {
+    expect(piezasPorEmpaqueDesdeNombre("SKITTLES ORIGINAL, 24/10PZ")).toBe(24);
+  });
 });
 
 describe("expandirPackAPiezas", () => {
