@@ -1,4 +1,13 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import {
+  Activity,
+  ArrowLeftRight,
+  Building2,
+  CalendarRange,
+  PieChart,
+  RefreshCw,
+  Wallet,
+} from "lucide-react";
 import { useMediaQuery } from "./hooks/useMediaQuery";
 import { C_LIGHT, BRAND } from "./constants";
 import { supabase } from "./supabase";
@@ -115,22 +124,50 @@ function sumCapexMontos(lineas) {
 
 /** Pestañas operativas; «Proyecto / inversión» va aparte para no mezclar CAPEX con el día a día. */
 const DASHBOARD_TABS_DEFAULT = ["operacion", "resumen", "transacciones", "margen", "flujo"];
-const DASHBOARD_TAB_LABELS_MOBILE = {
-  proyecto: "💼 Proyecto",
-  operacion: "📊 Operación",
-  resumen: "📈 Resumen",
-  transacciones: "🔄 Movimientos",
-  margen: "💹 Margen",
-  flujo: "💧 Flujo",
+const DASHBOARD_TAB_META = {
+  proyecto: { label: "Proyecto Farma", title: "Inversión y CAPEX de apertura", Icon: Building2 },
+  operacion: { label: "Operación", title: "Operación de farmacia", Icon: Activity },
+  resumen: { label: "Resumen", title: "Resumen por período", Icon: CalendarRange },
+  transacciones: { label: "Transacciones", title: "Movimientos y ventas", Icon: ArrowLeftRight },
+  margen: { label: "Margen", title: "Margen por categoría", Icon: PieChart },
+  flujo: { label: "Flujo de caja", labelMobile: "Flujo", title: "Entradas, salidas y caja", Icon: Wallet },
 };
-const DASHBOARD_TAB_LABELS = {
-  proyecto: "💼 Proyecto Farma · inversión",
-  operacion: "📊 Operación — farmacia",
-  resumen: "📈 Resumen por período",
-  transacciones: "🔄 Transacciones",
-  margen: "💹 Margen por categoría",
-  flujo: "💧 Flujo de caja",
-};
+
+function DashboardNavTab({ id, active, onClick, isMobile }) {
+  const meta = DASHBOARD_TAB_META[id];
+  if (!meta) return null;
+  const Icon = meta.Icon;
+  const label = isMobile && meta.labelMobile ? meta.labelMobile : meta.label;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={meta.title}
+      aria-current={active ? "page" : undefined}
+      className={`fc-dash-nav-tab${active ? " is-active" : ""}`}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 7,
+        padding: "10px 12px",
+        marginBottom: -1,
+        background: "transparent",
+        border: "none",
+        borderBottom: `2px solid ${active ? BRAND.primary : "transparent"}`,
+        color: active ? BRAND.primary : C_LIGHT.textMid,
+        fontWeight: 700,
+        fontSize: 13,
+        cursor: "pointer",
+        flexShrink: 0,
+        whiteSpace: "nowrap",
+        transition: "color .15s, border-color .15s",
+      }}
+    >
+      <Icon size={isMobile ? 17 : 15} strokeWidth={2.1} aria-hidden />
+      {label}
+    </button>
+  );
+}
 
 function loadDashboardTabOrder() {
   try {
@@ -858,49 +895,48 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
         </div>
         <div style={{display:"flex",gap:10,alignItems:"center",flexShrink:0,flexWrap:"wrap"}}>
           <div className="fc-dash-greet" style={{color:C.textMid,fontSize:12}}><strong style={{color:C.text}}>{saludoUsuario(usuario?.nombre)}</strong> 👋</div>
-          <button type="button" onClick={()=>{ fetchAll(); if(panelTab==="resumen"||panelTab==="margen") fetchRep(); }} style={{padding:"7px 14px",borderRadius:8,border:`1px solid ${C.border}`,background:"transparent",color:C.textMid,cursor:"pointer",fontWeight:700,fontSize:12}}>🔄 Actualizar</button>
+          <button type="button" onClick={()=>{ fetchAll(); if(panelTab==="resumen"||panelTab==="margen") fetchRep(); }} style={{display:"inline-flex",alignItems:"center",gap:6,padding:"7px 14px",borderRadius:8,border:`1px solid ${C.border}`,background:"transparent",color:C.textMid,cursor:"pointer",fontWeight:700,fontSize:12}}>
+            <RefreshCw size={13} strokeWidth={2.1} aria-hidden />
+            Actualizar
+          </button>
         </div>
       </div>
 
-      <div style={{
-        display:"flex",
-        alignItems:"center",
-        gap:8,
-        flexWrap:isMobileDash?"nowrap":"wrap",
-        marginBottom:20,
-        borderBottom:`1px solid ${C.border}`,
-        paddingBottom:12,
-        overflowX:isMobileDash?"auto":"visible",
-        WebkitOverflowScrolling:"touch",
-        scrollbarWidth:"thin",
-      }}>
+      <div
+        className="fc-dash-tabs"
+        style={{
+          display: "flex",
+          alignItems: "stretch",
+          gap: 2,
+          flexWrap: "nowrap",
+          marginBottom: 20,
+          borderBottom: `1px solid ${C.border}`,
+          overflowX: "auto",
+          WebkitOverflowScrolling: "touch",
+        }}
+      >
         {!soloTransacciones && (
-        <button
-          type="button"
-          onClick={()=>setPanelTab("proyecto")}
-          style={{
-            padding:"8px 14px",
-            borderRadius:8,
-            border:`1px solid ${panelTab==="proyecto"?BRAND.primary:C.border}`,
-            background:panelTab==="proyecto"?BRAND.primary+"22":"transparent",
-            color:panelTab==="proyecto"?BRAND.primary:C.textMid,
-            fontWeight:700,
-            fontSize:12,
-            cursor:"pointer",
-            whiteSpace:"nowrap",
-            flexShrink:0,
-          }}
-        >
-          {(isMobileDash?DASHBOARD_TAB_LABELS_MOBILE:DASHBOARD_TAB_LABELS).proyecto}
-        </button>
-        )}
-        {!soloTransacciones && !isMobileDash && (
-          <span style={{color:C.textDim,fontSize:11,marginRight:4,flexShrink:0}} title="Arrastra ⋮⋮ para cambiar el orden de las pestañas">Orden:</span>
+          <>
+            <DashboardNavTab
+              id="proyecto"
+              active={panelTab === "proyecto"}
+              onClick={() => setPanelTab("proyecto")}
+              isMobile={isMobileDash}
+            />
+            <span className="fc-dash-tabs-sep" aria-hidden style={{
+              width: 1,
+              alignSelf: "center",
+              height: 18,
+              background: C.border,
+              margin: "0 8px",
+              flexShrink: 0,
+            }} />
+          </>
         )}
         {tabsOperativas.map((id) => (
           <div
             key={id}
-            style={{display:"flex",alignItems:"center",gap:2,flexShrink:0}}
+            style={{ display: "flex", alignItems: "stretch", flexShrink: 0 }}
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => {
               e.preventDefault();
@@ -909,8 +945,9 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
               dragTabId.current = null;
             }}
           >
-            {!soloTransacciones && !isMobileDash && (
+            {!soloTransacciones && (
               <span
+                className="fc-dash-tab-move"
                 draggable
                 onDragStart={(e) => {
                   dragTabId.current = id;
@@ -922,19 +959,21 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
                 style={{
                   cursor: "grab",
                   color: C.textDim,
-                  fontSize: 12,
-                  padding: "6px 4px",
+                  fontSize: 10,
+                  padding: "10px 2px 10px 4px",
                   userSelect: "none",
                   lineHeight: 1,
+                  opacity: 0.4,
                 }}
                 aria-hidden
               >⋮⋮</span>
             )}
-            <button type="button" onClick={()=>setPanelTab(id)} style={{
-              padding:"8px 14px",borderRadius:8,border:`1px solid ${panelTab===id?BRAND.primary:C.border}`,
-              background:panelTab===id?BRAND.primary+"22":"transparent",color:panelTab===id?BRAND.primary:C.textMid,
-              fontWeight:700,fontSize:12,cursor:"pointer",whiteSpace:"nowrap",
-            }}>{(isMobileDash?DASHBOARD_TAB_LABELS_MOBILE:DASHBOARD_TAB_LABELS)[id]}</button>
+            <DashboardNavTab
+              id={id}
+              active={panelTab === id}
+              onClick={() => setPanelTab(id)}
+              isMobile={isMobileDash}
+            />
           </div>
         ))}
       </div>

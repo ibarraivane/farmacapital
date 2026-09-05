@@ -92,3 +92,19 @@ textarea.farmacapital-field-input::placeholder {
 /* ── Escala tipográfica del sistema visual ──
    Los titulares usan la display serif; el resto hereda del body. */
 .fc-display { font-family: var(--fc-display); font-weight: 600; letter-spacing: -.025em; }
+
+/* Dashboard: una sola fila de pestañas, sin chips que se caen a la segunda línea. */
+.fc-dash-tabs {
+  scrollbar-width: none;
+}
+.fc-dash-tabs::-webkit-scrollbar {
+  display: none;
+}
+.fc-dash-nav-tab:hover:not(.is-active) {
+  color: #0f172a;
+}
+@media (max-width: 900px) {
+  .fc-dash-tab-move {
+    display: none !important;
+  }
+}

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { BarChart3, Receipt, Wallet } from "lucide-react";
 import { C_LIGHT, BRAND } from "./constants";
 import { supabase } from "./supabase";
 import { $ } from "./utils";
@@ -61,34 +62,56 @@ function Banner({ nivel, titulo, children }) {
 
 function SubNav({ value, onChange }) {
   const items = [
-    { id: "flujo", label: "Flujo", disabled: false },
-    { id: "resultados", label: "Resultados", disabled: true },
-    { id: "gastos", label: "Gastos", disabled: false },
+    { id: "flujo", label: "Flujo", disabled: false, Icon: Wallet },
+    { id: "resultados", label: "Resultados", disabled: true, Icon: BarChart3 },
+    { id: "gastos", label: "Gastos", disabled: false, Icon: Receipt },
   ];
   return (
-    <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-      {items.map((it) => (
-        <button
-          key={it.id}
-          type="button"
-          disabled={it.disabled}
-          title={it.disabled ? "P&L bloqueado: falta la cobertura de costo de lo vendido (consulta 4)." : undefined}
-          onClick={() => { if (!it.disabled) onChange(it.id); }}
-          style={{
-            padding: "7px 14px",
-            borderRadius: 8,
-            border: `1px solid ${value === it.id ? BRAND.primary : C.border}`,
-            background: value === it.id ? `${BRAND.primary}16` : "transparent",
-            color: it.disabled ? C.textDim : value === it.id ? BRAND.primary : C.textMid,
-            fontWeight: 700,
-            fontSize: 12,
-            cursor: it.disabled ? "not-allowed" : "pointer",
-            opacity: it.disabled ? 0.55 : 1,
-          }}
-        >
-          {it.label}{it.disabled ? " · pronto" : ""}
-        </button>
-      ))}
+    <div
+      className="fc-dash-tabs"
+      style={{
+        display: "flex",
+        gap: 2,
+        marginBottom: 16,
+        flexWrap: "nowrap",
+        overflowX: "auto",
+        borderBottom: `1px solid ${C.border}`,
+      }}
+    >
+      {items.map((it) => {
+        const active = value === it.id;
+        const Icon = it.Icon;
+        return (
+          <button
+            key={it.id}
+            type="button"
+            disabled={it.disabled}
+            title={it.disabled ? "P&L bloqueado: falta la cobertura de costo de lo vendido (consulta 4)." : undefined}
+            onClick={() => { if (!it.disabled) onChange(it.id); }}
+            className={`fc-dash-nav-tab${active ? " is-active" : ""}`}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 7,
+              padding: "8px 12px",
+              marginBottom: -1,
+              border: "none",
+              borderBottom: `2px solid ${active ? BRAND.primary : "transparent"}`,
+              background: "transparent",
+              color: it.disabled ? C.textDim : active ? BRAND.primary : C.textMid,
+              fontWeight: 700,
+              fontSize: 13,
+              cursor: it.disabled ? "not-allowed" : "pointer",
+              opacity: it.disabled ? 0.55 : 1,
+              whiteSpace: "nowrap",
+              flexShrink: 0,
+            }}
+          >
+            <Icon size={15} strokeWidth={2.1} aria-hidden />
+            {it.label}{it.disabled ? " · pronto" : ""}
+          </button>
+        );
+      })}
     </div>
   );
 }
