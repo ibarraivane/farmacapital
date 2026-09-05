@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { BarChart3, Receipt, Wallet } from "lucide-react";
+import { Banknote, BarChart3, Receipt } from "lucide-react";
 import { C_LIGHT, BRAND } from "./constants";
 import { supabase } from "./supabase";
 import { $ } from "./utils";
@@ -62,7 +62,7 @@ function Banner({ nivel, titulo, children }) {
 
 function SubNav({ value, onChange }) {
   const items = [
-    { id: "flujo", label: "Flujo", disabled: false, Icon: Wallet },
+    { id: "flujo", label: "Flujo", disabled: false, Icon: Banknote },
     { id: "resultados", label: "Resultados", disabled: true, Icon: BarChart3 },
     { id: "gastos", label: "Gastos", disabled: false, Icon: Receipt },
   ];

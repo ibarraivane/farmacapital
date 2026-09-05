@@ -2,11 +2,11 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import {
   Activity,
   ArrowLeftRight,
+  Banknote,
   Building2,
   CalendarRange,
   PieChart,
   RefreshCw,
-  Wallet,
 } from "lucide-react";
 import { useMediaQuery } from "./hooks/useMediaQuery";
 import { C_LIGHT, BRAND } from "./constants";
@@ -130,7 +130,7 @@ const DASHBOARD_TAB_META = {
   resumen: { label: "Resumen", title: "Resumen por período", Icon: CalendarRange },
   transacciones: { label: "Transacciones", title: "Movimientos y ventas", Icon: ArrowLeftRight },
   margen: { label: "Margen", title: "Margen por categoría", Icon: PieChart },
-  flujo: { label: "Flujo de caja", labelMobile: "Flujo", title: "Entradas, salidas y caja", Icon: Wallet },
+  flujo: { label: "Flujo de caja", labelMobile: "Flujo", title: "Entradas, salidas y caja", Icon: Banknote },
 };
 
 export function DashboardNavTab({ id, active, onClick, isMobile }) {
@@ -163,7 +163,7 @@ export function DashboardNavTab({ id, active, onClick, isMobile }) {
         transition: "color .15s, border-color .15s",
       }}
     >
-      <Icon size={isMobile ? 17 : 15} strokeWidth={2.1} aria-hidden />
+      <Icon size={isMobile ? 18 : 16} strokeWidth={2} aria-hidden />
       {label}
     </button>
   );
