@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+import re
 from pathlib import Path
 
 
@@ -10,6 +11,11 @@ def sql_str(v: str | None) -> str:
     if v is None:
         return "null"
     return "'" + str(v).replace("'", "''") + "'"
+
+
+def temp_table_name(folio: str, proveedor_ilike: str) -> str:
+    slug = re.sub(r"[^a-zA-Z0-9]+", "", f"{proveedor_ilike}{folio}")[:24] or "ticket"
+    return f"_fc_rx_{slug.lower()}"
 
 
 def write_ticket_csv(path: Path, *, folio: str, fecha: str, proveedor: str, total: float, rows: list) -> None:
@@ -40,85 +46,140 @@ def write_recepcion_sql(
     notas: str,
     rows: list,
 ) -> None:
+    """SQL sin bloques dollar-quote: el SQL Editor de Supabase corta do $$."""
+    tmp = temp_table_name(folio, proveedor_ilike)
+    folio_sql = sql_str(folio)
+    prov_sql = sql_str(proveedor)
+    prov_ilike_sql = sql_str("%" + proveedor_ilike + "%")
+    fecha_sql = sql_str(fecha)
+    notas_sql = sql_str(notas)
+
     lines = [
         f"-- Pedido {proveedor} {folio} ({fecha}) — cola Recibir, borrador.",
+        "-- SIN bloques dollar-quote (do $$). El SQL Editor de Supabase los corta.",
         "-- No suma stock: las piezas entran al escanear con pistola y poner MMAA de la caja.",
         "-- El pedido no trae lote ni caducidad; se quedan en null. No inventar 0000.",
-        "-- Idempotente. Pegar en Supabase → SQL Editor → Run.",
+        "-- Idempotente mientras el ticket siga en borrador.",
+        "-- Si ya está confirmado/cerrado, no crea otro ni toca renglones.",
+        "-- Pegar TODO este archivo en Supabase → SQL Editor → Run.",
         "",
         "begin;",
         "",
-        "do $$",
-        "declare",
-        "  v_id bigint;",
-        "  r record;",
-        "  v_pid bigint;",
-        "begin",
-        "  select id into v_id",
-        "  from public.recepciones",
-        f"  where folio = {sql_str(folio)} and coalesce(proveedor, '') ilike {sql_str('%' + proveedor_ilike + '%')}",
-        "  order by id desc",
-        "  limit 1;",
+        f"create temp table {tmp} (",
+        "  linea integer primary key,",
+        "  ean text,",
+        "  sku text,",
+        "  nombre text not null,",
+        "  qty integer not null,",
+        "  costo numeric(12,2) not null",
+        ") on commit drop;",
         "",
-        "  if v_id is not null and (select estado from public.recepciones where id = v_id) <> 'borrador' then",
-        f"    raise notice 'Recepcion {proveedor} {folio} ya cerrada (id %)', v_id;",
-        "  else",
-        "    if v_id is null then",
-        "      insert into public.recepciones (proveedor, folio, fecha, total_ticket, estado, notas)",
-        f"      values ({sql_str(proveedor)}, {sql_str(folio)}, {sql_str(fecha)}, {total:.2f}, 'borrador',",
-        f"              {sql_str(notas)})",
-        "      returning id into v_id;",
-        "    else",
-        "      delete from public.recepcion_items where recepcion_id = v_id;",
-        "      update public.recepciones",
-        f"      set total_ticket = {total:.2f}, fecha = {sql_str(fecha)}, proveedor = {sql_str(proveedor)}, updated_at = now()",
-        "      where id = v_id;",
-        "    end if;",
-        "",
-        "    for r in",
-        "      select * from (values",
+        f"insert into {tmp} (linea, ean, sku, nombre, qty, costo) values",
     ]
+
     vals = []
-    for i, row in enumerate(rows):
-        ean = row.get("ean") or ""
+    for i, row in enumerate(rows, start=1):
+        ean = row.get("ean") or None
         sku = row.get("sku") or None
-        costo = f"{row['pu']:.2f}::numeric" if i == 0 else f"{row['pu']:.2f}"
         vals.append(
-            f"        ({sql_str(ean)}, {sql_str(row['nombre'])}, {int(row['qty'])}, {costo}, {sql_str(sku)})"
+            f"  ({i}, {sql_str(ean)}, {sql_str(sku)}, {sql_str(row['nombre'])}, "
+            f"{int(row['qty'])}, {row['pu']:.2f})"
         )
-    lines.append(",\n".join(vals))
+    lines.append(",\n".join(vals) + ";")
+
     lines += [
-        "      ) as t(ean, nombre, qty, costo, sku)",
-        "    loop",
-        "      v_pid := null;",
-        "      if r.ean is not null and btrim(r.ean) <> '' then",
-        "        v_pid := public.fc_buscar_producto_escaneo(r.ean);",
-        "      end if;",
-        "      if v_pid is null and r.sku is not null then",
-        "        v_pid := public.fc_buscar_producto_escaneo(r.sku);",
-        "      end if;",
         "",
-        "      insert into public.recepcion_items (",
-        "        recepcion_id, producto_id, codigo_escaneado, nombre_snapshot,",
-        "        cantidad, fecha_caducidad, numero_lote, costo_estimado, pendiente_alta,",
-        "        origen, confirmado, lote_distinto, lote_id",
-        "      ) values (",
-        "        v_id, v_pid, nullif(btrim(r.ean), ''), r.nombre, r.qty, null, null, r.costo,",
-        "        (v_pid is null), 'pdf', false,",
-        "        (v_pid is not null and exists (",
-        "          select 1 from public.lotes l",
-        "          where l.producto_id = v_pid and coalesce(l.activo, true)",
-        "            and coalesce(l.cantidad_actual, 0) > 0",
-        "        )),",
-        "        null",
-        "      );",
-        "    end loop;",
+        "insert into public.recepciones (proveedor, folio, fecha, total_ticket, estado, notas)",
+        "select",
+        f"  {prov_sql},",
+        f"  {folio_sql},",
+        f"  {fecha_sql},",
+        f"  {total:.2f},",
+        "  'borrador',",
+        f"  {notas_sql}",
+        "where not exists (",
+        "  select 1 from public.recepciones",
+        f"  where folio = {folio_sql} and coalesce(proveedor, '') ilike {prov_ilike_sql}",
+        ");",
         "",
-        f"    raise notice 'Recepcion {proveedor} {folio} lista id=% — escanear caja por caja', v_id;",
-        "  end if;",
-        "end $$;",
+        "update public.recepciones",
+        "set",
+        f"  total_ticket = {total:.2f},",
+        f"  fecha = {fecha_sql},",
+        f"  proveedor = {prov_sql},",
+        f"  notas = {notas_sql},",
+        "  updated_at = now()",
+        f"where folio = {folio_sql}",
+        f"  and coalesce(proveedor, '') ilike {prov_ilike_sql}",
+        "  and estado = 'borrador';",
+        "",
+        "delete from public.recepcion_items i",
+        "using public.recepciones r",
+        "where i.recepcion_id = r.id",
+        f"  and r.folio = {folio_sql}",
+        f"  and coalesce(r.proveedor, '') ilike {prov_ilike_sql}",
+        "  and r.estado = 'borrador';",
+        "",
+        "insert into public.recepcion_items (",
+        "  recepcion_id, producto_id, codigo_escaneado, nombre_snapshot,",
+        "  cantidad, fecha_caducidad, numero_lote, costo_estimado, pendiente_alta,",
+        "  origen, confirmado, lote_distinto, lote_id",
+        ")",
+        "select",
+        "  r.id,",
+        "  v.pid,",
+        "  nullif(btrim(t.ean), ''),",
+        "  t.nombre,",
+        "  t.qty,",
+        "  null,",
+        "  null,",
+        "  t.costo,",
+        "  (v.pid is null),",
+        "  'pdf',",
+        "  false,",
+        "  (",
+        "    v.pid is not null and exists (",
+        "      select 1 from public.lotes l",
+        "      where l.producto_id = v.pid",
+        "        and coalesce(l.activo, true)",
+        "        and coalesce(l.cantidad_actual, 0) > 0",
+        "    )",
+        "  ),",
+        "  null",
+        f"from {tmp} t",
+        "join public.recepciones r",
+        f"  on r.folio = {folio_sql}",
+        f" and coalesce(r.proveedor, '') ilike {prov_ilike_sql}",
+        " and r.estado = 'borrador'",
+        "left join lateral (",
+        "  select coalesce(",
+        "    case when nullif(btrim(t.ean), '') is not null",
+        "      then public.fc_buscar_producto_escaneo(nullif(btrim(t.ean), ''))",
+        "      else null end,",
+        "    case when nullif(btrim(t.sku), '') is not null",
+        "      then public.fc_buscar_producto_escaneo(nullif(btrim(t.sku), ''))",
+        "      else null end",
+        "  ) as pid",
+        ") v on true",
+        "order by t.linea;",
         "",
         "commit;",
+        "",
+        "-- Diagnóstico: si renglones = 0 y estado <> borrador → ya estaba cerrada.",
+        "-- Si 0 filas → no se insertó (revisa error arriba).",
+        "select",
+        "  r.id as recepcion_id,",
+        "  r.folio,",
+        "  r.estado,",
+        "  r.total_ticket,",
+        "  count(i.*) as renglones,",
+        "  count(*) filter (where not coalesce(i.confirmado, false)) as pendientes_pistola",
+        "from public.recepciones r",
+        "left join public.recepcion_items i on i.recepcion_id = r.id",
+        f"where r.folio = {folio_sql}",
+        f"  and coalesce(r.proveedor, '') ilike {prov_ilike_sql}",
+        "group by r.id, r.folio, r.estado, r.total_ticket",
+        "order by r.id;",
         "",
         "select",
         "  i.id,",
@@ -129,7 +190,7 @@ def write_recepcion_sql(
         "  case when i.pendiente_alta then 'ALTA NUEVA' else 'YA EXISTE' end as estado",
         "from public.recepcion_items i",
         "join public.recepciones r on r.id = i.recepcion_id",
-        f"where r.folio = {sql_str(folio)} and coalesce(r.proveedor, '') ilike {sql_str('%' + proveedor_ilike + '%')}",
+        f"where r.folio = {folio_sql} and coalesce(r.proveedor, '') ilike {prov_ilike_sql}",
         "order by i.id;",
         "",
     ]
