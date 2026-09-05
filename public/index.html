@@ -196,6 +196,11 @@
         --fc-hair: 3px;
         --fc-sx: 0.22;
         --fc-sy: 0.28;
+        --fc-intro-ink: #001534;
+        --fc-intro-blue: #054ABC;
+        --fc-intro-jade: #02A158;
+        --fc-intro-mid: #5A6472;
+        --fc-ease-out: cubic-bezier(0.2, 0, 0, 1);
         position: fixed;
         inset: 0;
         z-index: 9999;
@@ -310,41 +315,42 @@
         height: 100%;
       }
       #splash.fc-intro-play .fc-intro-cross-clip {
-        animation: fc-intro-cross 2.6s cubic-bezier(0.4, 0, 0.2, 1) both;
+        animation: fc-intro-cross 2.45s var(--fc-ease-out) both;
       }
       #splash.fc-intro-play .fc-intro-word-window {
-        animation: fc-word-window 2.6s cubic-bezier(0.4, 0, 0.2, 1) both;
+        animation: fc-word-window 2.45s var(--fc-ease-out) both;
       }
       #splash.fc-intro-play .fc-intro-word-slide {
-        animation: fc-word-slide 2.6s cubic-bezier(0.4, 0, 0.2, 1) both;
+        animation: fc-word-slide 2.45s var(--fc-ease-out) both;
       }
       #splash.fc-intro-play .fc-intro-word {
-        animation: fc-word-fade 2.6s cubic-bezier(0.4, 0, 0.2, 1) both;
+        animation: fc-word-fade 2.45s var(--fc-ease-out) both;
       }
+      /* Sin meseta: la cruz no se queda quieta. Aparece y ya camina. */
       @keyframes fc-intro-cross {
-        0%, 26% { opacity: 0; transform: translate3d(calc(var(--fc-shift) * var(--fc-logo-w)), 0, 0); }
-        30%, 46% { opacity: 1; transform: translate3d(calc(var(--fc-shift) * var(--fc-logo-w)), 0, 0); }
-        70%, 100% { opacity: 1; transform: translate3d(0, 0, 0); }
+        0%, 18% { opacity: 0; transform: translate3d(calc(var(--fc-shift) * var(--fc-logo-w)), 0, 0); }
+        26% { opacity: 1; transform: translate3d(calc(var(--fc-shift) * var(--fc-logo-w)), 0, 0); }
+        60%, 100% { opacity: 1; transform: translate3d(0, 0, 0); }
       }
       @keyframes fc-word-window {
-        0%, 46% { transform: translate3d(calc(var(--fc-wake) * var(--fc-logo-w) + var(--fc-pad)), 0, 0); }
-        70%, 100% { transform: translate3d(calc(var(--fc-cross-w) * var(--fc-logo-w) + var(--fc-pad)), 0, 0); }
+        0%, 26% { transform: translate3d(calc(var(--fc-wake) * var(--fc-logo-w) + var(--fc-pad)), 0, 0); }
+        60%, 100% { transform: translate3d(calc(var(--fc-cross-w) * var(--fc-logo-w) + var(--fc-pad)), 0, 0); }
       }
       @keyframes fc-word-slide {
-        0%, 46% { transform: translate3d(calc((var(--fc-wake) * var(--fc-logo-w) + var(--fc-pad)) * -1), 0, 0); }
-        70%, 100% { transform: translate3d(calc((var(--fc-cross-w) * var(--fc-logo-w) + var(--fc-pad)) * -1), 0, 0); }
+        0%, 26% { transform: translate3d(calc((var(--fc-wake) * var(--fc-logo-w) + var(--fc-pad)) * -1), 0, 0); }
+        60%, 100% { transform: translate3d(calc((var(--fc-cross-w) * var(--fc-logo-w) + var(--fc-pad)) * -1), 0, 0); }
       }
       @keyframes fc-word-fade {
-        0%, 45% { opacity: 0; }
-        52%, 100% { opacity: 1; }
+        0%, 24% { opacity: 0; }
+        30%, 100% { opacity: 1; }
       }
       .fc-intro-sub {
         position: relative;
         left: auto;
         width: calc(100% - var(--fc-text-x));
         margin: 6px 0 0 var(--fc-text-x);
-        color: var(--fc-text-mid);
-        font-family: var(--fc-body);
+        color: var(--fc-intro-mid);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         font-size: clamp(13px, 2.4vw, 16px);
         font-weight: 600;
         letter-spacing: 0.18em;
@@ -356,11 +362,11 @@
         pointer-events: none;
       }
       #splash.fc-intro-play .fc-intro-sub {
-        animation: fc-intro-sub 2.6s cubic-bezier(0.4, 0, 0.2, 1) both;
+        animation: fc-intro-sub 2.45s var(--fc-ease-out) both;
       }
       @keyframes fc-intro-sub {
-        0%, 70% { opacity: 0; transform: translateY(4px); }
-        80%, 100% { opacity: 1; transform: translateY(0); }
+        0%, 58% { opacity: 0; transform: translateY(4px); }
+        70%, 100% { opacity: 1; transform: translateY(0); }
       }
       .fc-intro-lines {
         position: absolute;
@@ -405,7 +411,7 @@
         left: 0;
         width: calc(var(--fc-lnx) + var(--fc-over));
         color: #BEC5D1;
-        --fc-sat: var(--fc-ink);
+        --fc-sat: #001534;
         transform-origin: 100% 50%;
         transform: scaleX(1);
       }
@@ -414,7 +420,7 @@
         top: var(--fc-v0);
         height: calc(var(--fc-lny) + var(--fc-over) - var(--fc-v0));
         color: #BEC5D1;
-        --fc-sat: var(--fc-ink);
+        --fc-sat: #001534;
         transform-origin: 50% 100%;
         transform: scaleY(1);
       }
@@ -423,7 +429,7 @@
         left: calc(var(--fc-lbx) - var(--fc-over));
         width: calc(100% - (var(--fc-lbx) - var(--fc-over)));
         color: #99B5E8;
-        --fc-sat: var(--fc-blue);
+        --fc-sat: #054ABC;
         transform-origin: 0 50%;
         transform: scaleX(1);
       }
@@ -432,52 +438,56 @@
         top: calc(var(--fc-lby) - var(--fc-over));
         height: calc(var(--fc-v1) - (var(--fc-lby) - var(--fc-over)));
         color: #93D9BA;
-        --fc-sat: var(--fc-jade);
+        --fc-sat: #02A158;
         transform-origin: 50% 0;
         transform: scaleY(1);
       }
       #splash.fc-intro-play .fc-hair-left {
-        animation: fc-navy-h 1.15s cubic-bezier(0.4, 0, 0.2, 1) both;
+        animation: fc-navy-h 1s var(--fc-ease-out) both;
       }
       #splash.fc-intro-play .fc-hair-top {
-        animation: fc-navy-v 1.15s cubic-bezier(0.4, 0, 0.2, 1) both;
+        animation: fc-navy-v 1s var(--fc-ease-out) both;
       }
       #splash.fc-intro-play .fc-hair-right {
-        animation: fc-blue-h 1.15s cubic-bezier(0.4, 0, 0.2, 1) both;
+        animation: fc-blue-h 1s var(--fc-ease-out) both;
       }
       #splash.fc-intro-play .fc-hair-bot {
-        animation: fc-jade-v 1.15s cubic-bezier(0.4, 0, 0.2, 1) both;
+        animation: fc-jade-v 1s var(--fc-ease-out) both;
       }
       #splash.fc-intro-play .fc-hair::after {
-        animation: fc-sat 1.15s cubic-bezier(0.4, 0, 0.2, 1) both;
+        animation: fc-sat 1s var(--fc-ease-out) both;
       }
       @keyframes fc-navy-h {
-        0%, 32% { transform: scaleX(1); opacity: 1; }
-        68%, 86% { transform: scaleX(var(--fc-sx)); opacity: 1; }
+        0% { transform: scaleX(1); opacity: 1; }
+        18% { transform: scaleX(1); opacity: 1; }
+        78% { transform: scaleX(var(--fc-sx)); opacity: 1; }
         100% { transform: scaleX(var(--fc-sx)); opacity: 0; }
       }
       @keyframes fc-navy-v {
-        0%, 18% { transform: scaleY(1); opacity: 1; }
-        32% { transform: scaleY(0.72); opacity: 1; }
-        68%, 86% { transform: scaleY(var(--fc-sy)); opacity: 1; }
+        0% { transform: scaleY(1); opacity: 1; }
+        10% { transform: scaleY(1); opacity: 1; }
+        28% { transform: scaleY(0.72); opacity: 1; }
+        78% { transform: scaleY(var(--fc-sy)); opacity: 1; }
         100% { transform: scaleY(var(--fc-sy)); opacity: 0; }
       }
       @keyframes fc-blue-h {
-        0%, 32% { transform: scaleX(1); opacity: 1; }
-        68%, 86% { transform: scaleX(var(--fc-sx)); opacity: 1; }
+        0% { transform: scaleX(1); opacity: 1; }
+        18% { transform: scaleX(1); opacity: 1; }
+        78% { transform: scaleX(var(--fc-sx)); opacity: 1; }
         100% { transform: scaleX(var(--fc-sx)); opacity: 0; }
       }
       @keyframes fc-jade-v {
-        0%, 18% { transform: scaleY(1); opacity: 1; }
-        32% { transform: scaleY(0.72); opacity: 1; }
-        68%, 86% { transform: scaleY(var(--fc-sy)); opacity: 1; }
+        0% { transform: scaleY(1); opacity: 1; }
+        10% { transform: scaleY(1); opacity: 1; }
+        28% { transform: scaleY(0.72); opacity: 1; }
+        78% { transform: scaleY(var(--fc-sy)); opacity: 1; }
         100% { transform: scaleY(var(--fc-sy)); opacity: 0; }
       }
       @keyframes fc-sat {
         0% { opacity: 0; }
-        18% { opacity: 0.45; }
-        32%, 68% { opacity: 1; }
-        86% { opacity: 0.2; }
+        14% { opacity: 0.5; }
+        28% { opacity: 1; }
+        72% { opacity: 1; }
         100% { opacity: 0; }
       }
       @media (prefers-reduced-motion: reduce) {
@@ -515,7 +525,7 @@
   </head>
   <body>
     <!-- Intro FarmaCapital: líneas → cruz oficial → cortinilla del wordmark -->
-    <div id="splash" role="img" aria-label="FarmaCapital" aria-busy="true">
+    <div id="splash" class="fc-intro-play" role="img" aria-label="FarmaCapital" aria-busy="true">
       <div class="fc-intro-cluster">
         <div class="fc-intro-stage">
           <div class="fc-intro-lines" aria-hidden="true">
@@ -581,14 +591,19 @@
         var sequenceDone = false;
         var hiding = false;
 
+        function soltarCapas() {
+          if (!splash) return;
+          var els = splash.querySelectorAll('.fc-intro-cross-clip, .fc-intro-word-window, .fc-intro-word-slide, .fc-hair');
+          for (var i = 0; i < els.length; i++) els[i].style.willChange = 'auto';
+        }
+
         function ocultar() {
           if (hiding || !splash || splash.classList.contains('hide')) return;
           if (!sequenceDone) return;
           if (!appReady) return;
           hiding = true;
           splash.setAttribute('aria-busy', 'false');
-          var clip = splash.querySelector('.fc-intro-cross-clip');
-          if (clip) clip.style.willChange = 'auto';
+          soltarCapas();
           splash.classList.add('fc-intro-out');
           setTimeout(function () {
             splash.classList.add('hide');
@@ -608,51 +623,14 @@
           ocultar();
         }
 
-        function medirEstelas() {
-          if (!splash) return;
-          var cs = getComputedStyle(splash);
-          var th = parseFloat(cs.getPropertyValue('--fc-trail-h')) || 44;
-          var tv = parseFloat(cs.getPropertyValue('--fc-trail-v')) || 32;
-          function ratio(sel, axis) {
-            var el = splash.querySelector(sel);
-            if (!el) return 0.2;
-            var box = el.getBoundingClientRect();
-            var full = axis === 'x' ? box.width : box.height;
-            if (!(full > 1)) return 0.2;
-            return Math.min(0.92, Math.max(0.05, (axis === 'x' ? th : tv) / full));
-          }
-          splash.style.setProperty('--fc-sx', String(ratio('.fc-hair-left', 'x')));
-          splash.style.setProperty('--fc-sy', String(ratio('.fc-hair-top', 'y')));
-        }
-
-        var started = false;
-        function iniciar() {
-          if (started) return;
-          started = true;
-          if (!splash) {
-            sequenceDone = true;
-            return;
-          }
-          if (reduced) {
-            splash.classList.add('fc-intro-reduced', 'fc-intro-play');
-            setTimeout(terminarSecuencia, 280);
-            return;
-          }
-          splash.offsetWidth;
-          medirEstelas();
-          splash.classList.add('fc-intro-play');
-          setTimeout(function () {
-            var els = splash.querySelectorAll('.fc-intro-cross-clip, .fc-intro-word-window, .fc-intro-word-slide, .fc-hair');
-            for (var i = 0; i < els.length; i++) els[i].style.willChange = 'auto';
-          }, 1900);
-          setTimeout(terminarSecuencia, 2620);
-        }
-
-        requestAnimationFrame(function () {
-          iniciar();
+        if (reduced) {
+          splash && splash.classList.add('fc-intro-reduced');
+          setTimeout(terminarSecuencia, 280);
+        } else {
           var logoEl = splash && splash.querySelector('.fc-intro-cross');
           if (logoEl && logoEl.decode) logoEl.decode().catch(function () {});
-        });
+          setTimeout(terminarSecuencia, 2480);
+        }
 
         window.addEventListener('load', function () {
           window.__fcOcultarSplash();
