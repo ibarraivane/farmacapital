@@ -159,7 +159,7 @@ ROWS = [
         "marca": "Serral", "laboratorio": "Laboratorios Serral",
         "presentacion": "Tubo 60 g",
         "principio": None, "concentracion": "FPS 50+", "receta": False,
-        "ya": False, "foto_file": None,
+        "ya": False, "foto_file": "serral-fps50-60g.jpg",
     },
     {
         "ean": "7506267905186",
@@ -371,7 +371,7 @@ ROWS = [
         "marca": "Savilé", "laboratorio": None,
         "presentacion": "Frasco 180 ml",
         "principio": None, "concentracion": None, "receta": False,
-        "ya": False, "foto_file": None,
+        "ya": False, "foto_file": "savile-celulas-madre-180ml.jpg",
     },
     {
         "ean": "7509552844184",
