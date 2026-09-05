@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Banknote, BarChart3, Receipt } from "lucide-react";
 import { C_LIGHT, BRAND } from "./constants";
 import { SegmentedNav } from "./components/SegmentedNav";
+import { Switch } from "./components/Switch";
 import { supabase } from "./supabase";
 import { $ } from "./utils";
 import { Box, Btn, KPI, KPI_ROW, SkeletonKPIs, SkeletonTable, Tag, showToast } from "./ui";
@@ -15,7 +16,6 @@ import {
   opcionesCategoriaGasto,
 } from "./constants/categoriasGasto";
 import {
-  MENSAJE_FLUJO_SIN_CONFIG,
   PISO_FONDO_FLUJO,
   anioMesDe,
   flujoEstaConfigurado,
@@ -23,11 +23,16 @@ import {
   maxAbsSemanas,
   parseFlujoBundle,
   pctBarra,
-  textoCompletitud,
-  textoOrigenPiso,
 } from "./lib/flujoCaja";
 
 const C = C_LIGHT;
+
+const TITLE_RESULTADOS = "Disponible cuando el sistema sepa cuánto costó lo que vendiste.";
+
+const MESES_LARGOS = [
+  "enero", "febrero", "marzo", "abril", "mayo", "junio",
+  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+];
 
 const inp = {
   padding: "9px 11px",
@@ -47,37 +52,132 @@ function irAjustesFinanzas(setPage) {
   if (typeof setPage === "function") setPage("config_cons");
 }
 
-function Banner({ nivel, titulo, children }) {
-  const bg = nivel === "ok" ? C.greenDim : nivel === "info" ? C.amberDim : C.amberDim;
-  const bd = nivel === "ok" ? `${C.green}40` : `${C.amber}55`;
-  const fg = nivel === "ok" ? C.greenDark : C.text;
-  return (
-    <Box style={{ padding: 14, marginBottom: 14, background: bg, border: `1px solid ${bd}` }}>
-      {titulo ? (
-        <div style={{ color: fg, fontWeight: 800, fontSize: 13, marginBottom: 6 }}>{titulo}</div>
-      ) : null}
-      <div style={{ color: C.textMid, fontSize: 12.5, lineHeight: 1.5 }}>{children}</div>
-    </Box>
-  );
+function partesYmd(iso) {
+  const [y, m, d] = String(iso || "").slice(0, 10).split("-").map(Number);
+  if (!y || !m || !d) return null;
+  return { y, m, d };
 }
 
-function SubNav({ value, onChange }) {
+function leyendaRango(desde, hasta) {
+  const a = partesYmd(desde);
+  const b = partesYmd(hasta);
+  if (!a || !b) return "";
+  const mesA = MESES_LARGOS[a.m - 1];
+  const mesB = MESES_LARGOS[b.m - 1];
+  if (a.y === b.y && a.m === b.m) return `${a.d} – ${b.d} de ${mesA}`;
+  if (a.y === b.y) return `${a.d} de ${mesA} – ${b.d} de ${mesB}`;
+  return `${a.d} de ${mesA} de ${a.y} – ${b.d} de ${mesB} de ${b.y}`;
+}
+
+function leyendaApertura(fecha, saldo) {
+  const p = partesYmd(fecha);
+  if (!p) return "";
+  const money = Number.isFinite(Number(saldo))
+    ? Number(saldo).toLocaleString("es-MX", { style: "currency", currency: "MXN" })
+    : "";
+  return `Caja abierta el ${p.d} de ${MESES_LARGOS[p.m - 1]}${money ? ` con ${money}` : ""}`;
+}
+
+function subtextoSalio(salio) {
+  const s = salio || {};
+  const parts = [
+    { n: Number(s.medicamento) || 0, label: "medicamento" },
+    { n: Number(s.nomina) || 0, label: "nómina" },
+    { n: Number(s.otros_gastos) || 0, label: "gastos" },
+    { n: Number(s.liquidacion_mp) || 0, label: "liquidación Mercado Pago" },
+  ].filter((p) => p.n !== 0);
+  if (parts.length === 1 && parts[0].label === "liquidación Mercado Pago") {
+    return "Todo de liquidación Mercado Pago";
+  }
+  if (parts.length === 0) return "Sin salidas en este período";
+  if (parts.length === 1) return `Todo de ${parts[0].label}`;
+  return parts.map((p) => p.label).join(" · ");
+}
+
+function esCero(n) {
+  return !(Number(n) || 0);
+}
+
+function nombreCorto(nombre) {
+  const t = String(nombre || "").trim();
+  if (!t) return "";
+  return t.split(/\s+/)[0];
+}
+
+function FlujoRails({ sub, onSub, periodo, onPeriodo }) {
   return (
-    <div style={{ marginBottom: 16 }}>
+    <div className="fc-flujo-rails">
       <SegmentedNav
         size="sm"
         activation="auto"
+        idPrefix="flujo"
         ariaLabel="Secciones de flujo de caja"
-        value={value}
-        onChange={onChange}
+        value={sub}
+        onChange={onSub}
         items={[
           { id: "flujo", label: "Flujo", Icon: Banknote },
-          { id: "resultados", label: "Resultados · pronto", Icon: BarChart3, disabled: true, title: "P&L bloqueado: falta la cobertura de costo de lo vendido (consulta 4)." },
+          { id: "resultados", label: "Resultados · pronto", Icon: BarChart3, disabled: true, title: TITLE_RESULTADOS },
           { id: "gastos", label: "Gastos", Icon: Receipt },
+        ]}
+      />
+      <SegmentedNav
+        size="sm"
+        activation="auto"
+        ariaLabel="Período del flujo"
+        value={periodo}
+        onChange={onPeriodo}
+        items={[
+          { id: "dia", label: "Hoy" },
+          { id: "semana", label: "Esta semana" },
+          { id: "mes", label: "Este mes" },
         ]}
       />
     </div>
   );
+}
+
+function FlujoHead({ setPage, onRegistrar }) {
+  return (
+    <div className="fc-flujo-head">
+      <h2>Flujo de caja</h2>
+      <div className="fc-flujo-actions">
+        <button
+          type="button"
+          className="fc-btn-tertiary"
+          onClick={() => showToast("La exportación llega en una siguiente versión.", "info")}
+        >
+          Exportar XLS
+        </button>
+        {typeof setPage === "function" ? (
+          <Btn sm ol col={C.textMid} onClick={() => irAjustesFinanzas(setPage)}>
+            Ajustes de finanzas
+          </Btn>
+        ) : null}
+        <Btn sm col={BRAND.primary} onClick={onRegistrar}>+ Registrar gasto</Btn>
+      </div>
+    </div>
+  );
+}
+
+function Fold({ title, children }) {
+  return (
+    <details className="fc-fold">
+      <summary>{title}</summary>
+      <div className="fc-fold-body">{children}</div>
+    </details>
+  );
+}
+
+function moneyCell(n, { color, weight } = {}) {
+  const zero = esCero(n);
+  return {
+    padding: "10px",
+    borderBottom: `1px solid ${C.border}`,
+    textAlign: "right",
+    fontVariantNumeric: "tabular-nums",
+    color: zero ? "#94a3b8" : (color || C.text),
+    fontWeight: zero ? 400 : (weight || 700),
+  };
 }
 
 export default function FlujoCajaTab({ usuario, setPage, showConfirm }) {
@@ -117,7 +217,7 @@ export default function FlujoCajaTab({ usuario, setPage, showConfirm }) {
       const msg = error.message || "error";
       const sqlPendiente = /could not find|does not exist|schema cache/i.test(msg);
       const texto = sqlPendiente
-        ? "Falta aplicar en Supabase sql/patch_finanzas_gastos_20260904.sql y sql/patch_finanzas_flujo_caja_20260904.sql."
+        ? "Falta aplicar en la base las actualizaciones de finanzas."
         : "No se pudo cargar el flujo: " + msg;
       showToast(texto, "error");
       setErrorCarga(texto);
@@ -132,14 +232,11 @@ export default function FlujoCajaTab({ usuario, setPage, showConfirm }) {
   useEffect(() => { cargar(); }, [cargar]);
 
   const configurado = flujoEstaConfigurado(bundle);
-  const alertas = bundle?.alertas || [];
-  const alertaCompletitud = alertas.find((a) => a.tipo === "completitud");
-  const alertaMed = alertas.find((a) => a.tipo === "medicamento");
-  const alertaCub = alertas.find((a) => a.tipo === "cubetas");
   const semanas = bundle?.semanas || [];
   const maxSem = maxAbsSemanas(semanas);
   const incompleta = bundle?.completitud?.incompleta !== false;
   const mesMarca = bundle?.completitud?.mes || anioMesDe(rango.hastaFecha);
+  const fechaApertura = bundle?.fecha_inicio || bundle?.piso_aplicado || PISO_FONDO_FLUJO;
 
   const registrar = async () => {
     const tok = sessionStorage.getItem("farmacapital_session_token");
@@ -217,10 +314,12 @@ export default function FlujoCajaTab({ usuario, setPage, showConfirm }) {
     cargar();
   };
 
+  const irGastos = () => setSub("gastos");
+
   if (loading && !bundle) {
     return (
       <div>
-        <SubNav value={sub} onChange={setSub} />
+        <FlujoRails sub={sub} onSub={setSub} periodo={periodo} onPeriodo={setPeriodo} />
         <SkeletonKPIs count={4} />
         <SkeletonTable rows={4} cols={6} />
       </div>
@@ -230,7 +329,7 @@ export default function FlujoCajaTab({ usuario, setPage, showConfirm }) {
   if (errorCarga) {
     return (
       <div>
-        <SubNav value={sub} onChange={setSub} />
+        <FlujoRails sub={sub} onSub={setSub} periodo={periodo} onPeriodo={setPeriodo} />
         <Box style={{ padding: 22, background: C.redDim, border: `1px solid ${C.red}40` }}>
           <div style={{ color: C.text, fontWeight: 800, fontSize: 16, marginBottom: 8 }}>
             No se pudo cargar el flujo
@@ -245,21 +344,23 @@ export default function FlujoCajaTab({ usuario, setPage, showConfirm }) {
   if (!configurado) {
     return (
       <div>
-        <SubNav value={sub} onChange={setSub} />
+        <FlujoRails sub={sub} onSub={setSub} periodo={periodo} onPeriodo={setPeriodo} />
         <Box style={{ padding: 22, background: C.amberDim, border: `1px solid ${C.amber}55` }}>
           <div style={{ color: C.text, fontWeight: 800, fontSize: 16, marginBottom: 8 }}>
             Falta una apertura de caja con fondo
           </div>
           <p style={{ color: C.textMid, fontSize: 13, lineHeight: 1.55, margin: "0 0 12px" }}>
-            {bundle?.mensaje || MENSAJE_FLUJO_SIN_CONFIG}
+            No hay ninguna apertura de caja con fondo contado. El flujo usa esa primera apertura — no el fondo de hoy.
+            Abre caja contando el cambio; no hace falta teclear un saldo en Ajustes.
           </p>
           <p style={{ color: C.textMid, fontSize: 13, lineHeight: 1.55, margin: "0 0 16px" }}>
-            Lo que entra lo leemos de los cortes. La semilla es el <strong style={{ color: C.text }}>fondo de la primera apertura</strong>
-            {" "}(en esta farmacia, a partir del {PISO_FONDO_FLUJO}). No uses el fondo de hoy: ese crecimiento ya viaja en los cortes.
+            Lo que entra lo leemos de los cortes. El punto de partida es el{" "}
+            <strong style={{ color: C.text }}>fondo de la primera apertura</strong>
+            {" "}(en esta farmacia, a partir del 18 de agosto). No uses el fondo de hoy: ese crecimiento ya viaja en los cortes.
           </p>
           {typeof setPage === "function" ? (
             <Btn ol col={BRAND.primary} onClick={() => irAjustesFinanzas(setPage)}>
-              Override opcional en Metas y Precios
+              Ajuste opcional en Metas y Precios
             </Btn>
           ) : null}
         </Box>
@@ -269,129 +370,127 @@ export default function FlujoCajaTab({ usuario, setPage, showConfirm }) {
 
   const quedoCol = incompleta ? C.textMid : (Number(bundle.quedo) >= 0 ? C.green : C.red);
   const cajaCol = incompleta ? C.textMid : C.teal;
+  const liq = Number(bundle.cubetas?.saldo_mp_liquidacion) || 0;
+  const utilidad = Number(bundle.cubetas?.utilidad_servicios) || 0;
+  const marcadoPor = nombreCorto(usuario?.nombre);
+  const leyenda = [
+    leyendaRango(bundle.desde, bundle.hasta),
+    leyendaApertura(fechaApertura, bundle.saldo_inicial),
+  ].filter(Boolean).join(" · ");
 
   return (
     <div>
-      <SubNav value={sub} onChange={setSub} />
+      <FlujoHead setPage={setPage} onRegistrar={irGastos} />
+      <FlujoRails sub={sub} onSub={setSub} periodo={periodo} onPeriodo={setPeriodo} />
 
-      <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
-        <SegmentedNav
-          size="sm"
-          activation="auto"
-          ariaLabel="Período del flujo"
-          value={periodo}
-          onChange={setPeriodo}
-          items={[
-            { id: "dia", label: "Hoy" },
-            { id: "semana", label: "Esta semana" },
-            { id: "mes", label: "Este mes" },
-          ]}
-        />
-        <span style={{ color: C.textDim, fontSize: 11 }}>
-          {bundle.desde} → {bundle.hasta}
-          {" · "}
-          {textoOrigenPiso(bundle)}
-          {bundle.recortado_por_fondo ? ` · recortado al ${bundle.piso_aplicado}` : ""}
-        </span>
+      <div className="fc-flujo-legend">
+        <span>{leyenda}</span>
+        <Fold title="ⓘ Cómo se calcula">
+          Lo que entra sale de los cortes de caja. El punto de partida es la primera apertura con fondo
+          {bundle.origen_piso === "config" ? " (o el ajuste que pusiste en Metas y Precios)" : ""}.
+          {bundle.recortado_por_fondo ? " El período se recorta al día de esa apertura." : ""}
+          {" "}Nómina, renta y pago a proveedor los capturas tú.
+        </Fold>
       </div>
 
-      {sub === "resultados" ? (
-        <Banner nivel="info" titulo="Resultados (P&L) no está en esta fase">
-          Falta la cobertura de costo de lo vendido (consulta 4). Un P&L con costos faltantes infla el margen.
-          Esta pestaña solo muestra dinero contado.
-        </Banner>
-      ) : null}
-
       {sub === "flujo" && (
-        <>
+        <div
+          id="flujo-panel-flujo"
+          role="tabpanel"
+          aria-labelledby="flujo-tab-flujo"
+          tabIndex={0}
+        >
           <div style={KPI_ROW}>
             <KPI
               label="Entró"
               value={$(bundle.entro)}
               col={C.teal}
-              icon="↓"
-              sub="Cortes vigentes · total_general. No es una estimación."
+              sub="De los cortes de caja"
             />
             <KPI
               label="Salió"
               value={$(bundle.salio?.total)}
               col={C.red}
-              icon="↑"
-              sub={`Medicamento ${$(bundle.salio?.medicamento)} · Nómina ${$(bundle.salio?.nomina)} · Gastos ${$(bundle.salio?.otros_gastos)} · Liquidación MP ${$(bundle.salio?.liquidacion_mp)}`}
+              sub={subtextoSalio(bundle.salio)}
             />
             <KPI
               label="Quedó"
               value={$(bundle.quedo)}
               col={quedoCol}
-              icon="="
-              sub={textoCompletitud(bundle.completitud)}
+              sub={incompleta ? <span className="fc-chip-amber">Faltan gastos por capturar</span> : null}
             />
             <KPI
               label="En caja hoy"
               value={$(bundle.en_caja_hoy)}
               col={cajaCol}
-              icon="▣"
-              sub={
-                Number(bundle.comprometido_30d) > 0
-                  ? `Comprometido a 30 días (recurrentes capturados): ${$(bundle.comprometido_30d)}. No es todo libre.`
-                  : "Saldo inicial + cortes − salidas desde el piso. No descuenta lo que no capturaste."
-              }
+              sub="Dinero contado hasta hoy"
             />
           </div>
 
-          <Banner
-            nivel={alertaCompletitud?.nivel === "ok" ? "ok" : "ambar"}
-            titulo={alertaCompletitud?.nivel === "ok" ? "Captura completa" : "Captura incompleta"}
-          >
-            {alertaCompletitud?.texto || textoCompletitud(bundle.completitud)}
-            <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: C.text, cursor: "pointer" }}>
-                <input
-                  type="checkbox"
+          {incompleta ? (
+            <div className="fc-alert">
+              <h6>Faltan gastos por capturar este mes</h6>
+              <p>
+                Las ventas y los cortes entran solos. La nómina, la renta y el pago a proveedor los capturas tú — por eso Quedó se ve más alto de lo que realmente es.
+              </p>
+              <div className="fc-alert-foot">
+                <Btn sm col={BRAND.primary} onClick={irGastos}>Capturar gastos</Btn>
+                <Switch
+                  id="flujo-sin-compra"
                   checked={Boolean(bundle.completitud?.sin_compra)}
-                  onChange={(e) => marcarSinCompra(e.target.checked)}
+                  onChange={marcarSinCompra}
+                  label="Este mes no compré a proveedor"
                 />
-                Este mes ({mesMarca}) no hubo compra a proveedor
-              </label>
-              {usuario?.nombre ? (
-                <span style={{ color: C.textDim, fontSize: 11 }}>Lo marca {usuario.nombre}</span>
-              ) : null}
-            </div>
-          </Banner>
-
-          <Banner nivel="info" titulo="Comprar medicamento no es pérdida">
-            {alertaMed?.texto}
-          </Banner>
-
-          <Banner nivel="info" titulo="Cajón ≠ saldo Mercado Pago">
-            {alertaCub?.texto}
-            <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,160px),1fr))", gap: 10 }}>
-              <div>
-                <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700 }}>CAJÓN (ya en el corte)</div>
-                <div style={{ color: C.text, fontWeight: 800 }}>{$(bundle.cubetas?.cajon_cobrado_servicios)}</div>
-              </div>
-              <div>
-                <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700 }}>LIQUIDACIÓN MP</div>
-                <div style={{ color: C.red, fontWeight: 800 }}>−{$(bundle.cubetas?.saldo_mp_liquidacion)}</div>
-              </div>
-              <div>
-                <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700 }}>COMPENSACIÓN MP</div>
-                <div style={{ color: C.textMid, fontWeight: 800 }}>{$(bundle.cubetas?.saldo_mp_compensacion)}</div>
-                <div style={{ color: C.textDim, fontSize: 10 }}>No está en el cajón</div>
-              </div>
-              <div>
-                <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700 }}>UTILIDAD SERVICIOS</div>
-                <div style={{ color: C.green, fontWeight: 800 }}>{$(bundle.cubetas?.utilidad_servicios)}</div>
-                <div style={{ color: C.textDim, fontSize: 10 }}>P&L, no flujo</div>
+                {bundle.completitud?.sin_compra && marcadoPor ? (
+                  <span className="fc-alert-attr">Marcado por {marcadoPor}</span>
+                ) : null}
               </div>
             </div>
-          </Banner>
+          ) : null}
+
+          <section className="fc-recon">
+            <h3 className="fc-recon-title">Recargas: el efectivo ya está contado</h3>
+            <dl className="fc-recon-grid">
+              <div>
+                <dt>Cobrado en efectivo</dt>
+                <dd>
+                  {$(bundle.cubetas?.cajon_cobrado_servicios)}
+                  <span className="fc-recon-note">entró al cajón</span>
+                </dd>
+              </div>
+              <div>
+                <dt>Descontado por Mercado Pago</dt>
+                <dd className="is-neg">
+                  −{$(bundle.cubetas?.saldo_mp_liquidacion)}
+                  <span className="fc-recon-note">el mismo día</span>
+                </dd>
+              </div>
+              <div>
+                <dt>Te abonó Mercado Pago</dt>
+                <dd>
+                  {$(bundle.cubetas?.saldo_mp_compensacion)}
+                  <span className="fc-recon-note">no pasa por el cajón</span>
+                </dd>
+              </div>
+              <div>
+                <dt>Tu ganancia</dt>
+                <dd className="is-pos">
+                  {$(bundle.cubetas?.utilidad_servicios)}
+                  <span className="fc-recon-note">esto sí es utilidad</span>
+                </dd>
+              </div>
+            </dl>
+            <Fold title={`¿Por qué los ${$(liq)} aparecen dos veces?`}>
+              Cuando cobras una recarga, el efectivo entra al cajón y se cuenta en el corte. Ese mismo día Mercado Pago te descuenta el monto de tu saldo. Es el mismo dinero pasando, no un error. Lo que de verdad ganaste fueron {$(utilidad)}.
+            </Fold>
+          </section>
+
+          <Fold title="¿Por qué comprar medicamento no aparece como pérdida?">
+            Porque cambiaste dinero por inventario. El dinero sale del flujo —ya no lo tienes— pero no perdiste nada: la mercancía vale lo que pagaste por ella. La ganancia o la pérdida se calcula cuando la vendes.
+          </Fold>
 
           <Box style={{ padding: 16, marginBottom: 16, overflow: "auto" }}>
-            <div style={{ color: C.text, fontWeight: 800, fontSize: 14, marginBottom: 6 }}>Por semana</div>
-            <p style={{ color: C.textDim, fontSize: 12, margin: "0 0 12px", lineHeight: 1.45 }}>
-              Lo que entró sale de los cortes, no de una estimación. v1: medicamento, nómina y gastos se teclean.
-            </p>
+            <div style={{ color: C.text, fontWeight: 800, fontSize: 14, marginBottom: 12 }}>Por semana</div>
             {!semanas.length ? (
               <div style={{ color: C.textMid, fontSize: 12 }}>Sin semanas en este período.</div>
             ) : (
@@ -412,26 +511,31 @@ export default function FlujoCajaTab({ usuario, setPage, showConfirm }) {
                           <div style={{ width: `${pctBarra(s.entro, maxSem)}%`, height: "100%", background: C.teal, borderRadius: 4 }} />
                         </div>
                       </td>
-                      <td style={{ padding: "10px", borderBottom: `1px solid ${C.border}`, textAlign: "right", fontVariantNumeric: "tabular-nums", color: C.teal, fontWeight: 700 }}>{$(s.entro)}</td>
-                      <td style={{ padding: "10px", borderBottom: `1px solid ${C.border}`, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{$(s.medicamento)}</td>
-                      <td style={{ padding: "10px", borderBottom: `1px solid ${C.border}`, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{$(s.nomina)}</td>
-                      <td style={{ padding: "10px", borderBottom: `1px solid ${C.border}`, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{$(s.gastos)}</td>
-                      <td style={{ padding: "10px", borderBottom: `1px solid ${C.border}`, textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 800, color: Number(s.quedo) >= 0 ? C.green : C.red }}>{$(s.quedo)}</td>
+                      <td style={moneyCell(s.entro, { color: C.teal })}>{$(s.entro)}</td>
+                      <td style={moneyCell(s.medicamento)}>{$(s.medicamento)}</td>
+                      <td style={moneyCell(s.nomina)}>{$(s.nomina)}</td>
+                      <td style={moneyCell(s.gastos)}>{$(s.gastos)}</td>
+                      <td style={moneyCell(s.quedo, { color: Number(s.quedo) >= 0 ? C.green : C.red, weight: 800 })}>{$(s.quedo)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             )}
           </Box>
-        </>
+        </div>
       )}
 
       {sub === "gastos" && (
-        <>
-          <Banner nivel="info" titulo="v1: casi todo se teclea">
-            Automático de verdad: lo que entró por caja y la liquidación de recargas (se resta sola; no la captures otra vez).
-            Nómina, renta, luz y pago a Nadro/Levic van a mano. No hay columna “lo que llega solo”.
-          </Banner>
+        <div
+          id="flujo-panel-gastos"
+          role="tabpanel"
+          aria-labelledby="flujo-tab-gastos"
+          tabIndex={0}
+        >
+          <p style={{ color: C.textMid, fontSize: 12.5, lineHeight: 1.5, margin: "0 0 16px", maxWidth: "78ch" }}>
+            Las ventas y los cortes entran solos. La liquidación de recargas se resta sola: no la captures otra vez.
+            Nómina, renta, luz y pago a Nadro o Levic los escribes tú.
+          </p>
 
           <Box style={{ padding: 16, marginBottom: 16 }}>
             <div style={{ color: C.text, fontWeight: 800, fontSize: 14, marginBottom: 10 }}>Alta rápida — menos de 10 segundos</div>
@@ -496,7 +600,7 @@ export default function FlujoCajaTab({ usuario, setPage, showConfirm }) {
             </div>
             {form.categoria === CATEGORIA_COMPRA_INVENTARIO ? (
               <p style={{ color: C.textMid, fontSize: 12, margin: "10px 0 0", lineHeight: 1.45 }}>
-                Esta salida cuenta en Flujo. <strong style={{ color: C.text }}>No es pérdida</strong>: el servidor pone afecta_pl = false.
+                Esta salida cuenta en Flujo. <strong style={{ color: C.text }}>No es pérdida</strong>: cambiaste dinero por inventario.
               </p>
             ) : null}
           </Box>
@@ -505,7 +609,7 @@ export default function FlujoCajaTab({ usuario, setPage, showConfirm }) {
             <table style={{ width: "100%", minWidth: 560, borderCollapse: "collapse", fontSize: 12 }}>
               <thead>
                 <tr style={{ background: C.cardDark }}>
-                  {["Fecha", "Categoría", "Concepto", "Origen", "P&L", "Monto", ""].map((h) => (
+                  {["Fecha", "Categoría", "Concepto", "Origen", "Ganancias", "Monto", ""].map((h) => (
                     <th key={h || "x"} style={{ padding: "10px 12px", textAlign: h === "Monto" ? "right" : "left", color: C.textMid, fontWeight: 700, borderBottom: `1px solid ${C.border}` }}>{h}</th>
                   ))}
                 </tr>
@@ -523,7 +627,7 @@ export default function FlujoCajaTab({ usuario, setPage, showConfirm }) {
                     <td style={{ padding: "10px 12px", borderBottom: `1px solid ${C.border}` }}>{etiquetaCategoriaGasto(g.categoria)}</td>
                     <td style={{ padding: "10px 12px", borderBottom: `1px solid ${C.border}`, color: C.text, fontWeight: 600 }}>{g.concepto}</td>
                     <td style={{ padding: "10px 12px", borderBottom: `1px solid ${C.border}` }}>
-                      <Tag sm col={g.origen === "manual" ? C.textMid : C.teal}>{g.origen === "manual" ? "manual (v1)" : g.origen}</Tag>
+                      <Tag sm col={g.origen === "manual" ? C.textMid : C.teal}>{g.origen === "manual" ? "a mano" : g.origen}</Tag>
                     </td>
                     <td style={{ padding: "10px 12px", borderBottom: `1px solid ${C.border}`, color: C.textDim, fontSize: 11 }}>
                       {g.afecta_pl === false ? "No (inventario)" : "Sí"}
@@ -552,7 +656,7 @@ export default function FlujoCajaTab({ usuario, setPage, showConfirm }) {
               </tbody>
             </table>
           </Box>
-        </>
+        </div>
       )}
     </div>
   );

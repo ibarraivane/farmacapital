@@ -93,6 +93,23 @@ test("size=sm no pinta fondo inline en el well", () => {
   expect(well.getAttribute("style") || "").not.toMatch(/background/);
 });
 
+test("cada tab tiene aria-controls y existe el panel con ese id", () => {
+  render(
+    <div>
+      <SegmentedNav idPrefix="dash" items={ITEMS} value="a" onChange={() => {}} ariaLabel="t" />
+      {ITEMS.map((it) => (
+        <div key={it.id} id={`dash-panel-${it.id}`} role="tabpanel" aria-labelledby={`dash-tab-${it.id}`} />
+      ))}
+    </div>
+  );
+  const tabs = screen.getAllByRole("tab");
+  tabs.forEach((tab) => {
+    const controls = tab.getAttribute("aria-controls");
+    expect(controls).toBeTruthy();
+    expect(document.getElementById(controls)).toBeTruthy();
+  });
+});
+
 test("FlujoCajaTab deja es_recurrente como checkbox", () => {
   const src = readFileSync(join(__dirname, "FlujoCajaTab.jsx"), "utf8");
   expect(src).toMatch(/checked=\{form\.es_recurrente\}/);

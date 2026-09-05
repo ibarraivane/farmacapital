@@ -48,10 +48,16 @@ export function SegmentedNav({
   useEffect(() => {
     updateMore();
     const rail = railRef.current;
-    if (!rail || typeof ResizeObserver === "undefined") return undefined;
-    const ro = new ResizeObserver(updateMore);
-    ro.observe(rail);
-    return () => ro.disconnect();
+    window.addEventListener("resize", updateMore);
+    let ro;
+    if (rail && typeof ResizeObserver !== "undefined") {
+      ro = new ResizeObserver(updateMore);
+      ro.observe(rail);
+    }
+    return () => {
+      window.removeEventListener("resize", updateMore);
+      ro?.disconnect();
+    };
   }, [updateMore, items, value, size]);
 
   const activate = (id) => {
@@ -97,71 +103,79 @@ export function SegmentedNav({
   };
 
   const iconSize = size === "sm" ? 13 : 15;
+  const focusedDisabled = items.find((it) => it.id === focusId && it.disabled);
 
   return (
-    <div className={`fc-dash-seg-wrap${size === "sm" ? " fc-dash-seg-wrap--sm" : ""}${hasMore ? " has-more" : ""}`}>
-      <div
-        ref={railRef}
-        className={`fc-dash-seg${size === "sm" ? " fc-dash-seg--sm" : ""}`}
-        role="tablist"
-        aria-label={ariaLabel}
-        onScroll={updateMore}
-        onKeyDown={onKeyDown}
-      >
-        {items.map((it) => {
-          const active = value === it.id;
-          const label = isMobile && it.labelMobile ? it.labelMobile : it.label;
-          const tabId = idPrefix ? `${idPrefix}-tab-${it.id}` : undefined;
-          return (
-            <div
-              key={it.id}
-              className="fc-dash-seg-item"
-              onDragOver={(e) => { if (onReorder) e.preventDefault(); }}
-              onDrop={(e) => {
-                if (!onReorder) return;
-                e.preventDefault();
-                const from = e.dataTransfer.getData("text/dashboard-tab") || dragRef?.current;
-                onReorder(from, it.id);
-                if (dragRef) dragRef.current = null;
-              }}
-            >
-              {onReorder && (
-                <span
-                  className="fc-dash-tab-move"
-                  draggable
-                  onDragStart={(e) => {
-                    if (dragRef) dragRef.current = it.id;
-                    e.dataTransfer.setData("text/dashboard-tab", it.id);
-                    e.dataTransfer.effectAllowed = "move";
-                  }}
-                  onDragEnd={() => { if (dragRef) dragRef.current = null; }}
-                  title="Arrastrar para reordenar"
-                  aria-hidden
-                >⋮⋮</span>
-              )}
-              <button
-                id={tabId}
-                ref={(el) => { btnRefs.current[it.id] = el; }}
-                type="button"
-                role="tab"
-                aria-selected={active}
-                aria-disabled={it.disabled ? "true" : undefined}
-                tabIndex={focusId === it.id ? 0 : -1}
-                title={it.title}
-                onClick={() => {
-                  if (it.disabled) return;
-                  setFocusId(it.id);
-                  activate(it.id);
+    <div className="fc-dash-seg-block">
+      <div className={`fc-dash-seg-wrap${size === "sm" ? " fc-dash-seg-wrap--sm" : ""}${hasMore ? " has-more" : ""}`}>
+        <div
+          ref={railRef}
+          className={`fc-dash-seg${size === "sm" ? " fc-dash-seg--sm" : ""}`}
+          role="tablist"
+          aria-label={ariaLabel}
+          onScroll={updateMore}
+          onKeyDown={onKeyDown}
+        >
+          {items.map((it) => {
+            const active = value === it.id;
+            const label = isMobile && it.labelMobile ? it.labelMobile : it.label;
+            const tabId = idPrefix ? `${idPrefix}-tab-${it.id}` : undefined;
+            const panelId = idPrefix ? `${idPrefix}-panel-${it.id}` : undefined;
+            return (
+              <div
+                key={it.id}
+                className="fc-dash-seg-item"
+                onDragOver={(e) => { if (onReorder) e.preventDefault(); }}
+                onDrop={(e) => {
+                  if (!onReorder) return;
+                  e.preventDefault();
+                  const from = e.dataTransfer.getData("text/dashboard-tab") || dragRef?.current;
+                  onReorder(from, it.id);
+                  if (dragRef) dragRef.current = null;
                 }}
-                className={`fc-dash-seg-tab${active ? " is-active" : ""}${it.Icon ? "" : " no-icon"}`}
               >
-                {it.Icon && <IconWell Icon={it.Icon} active={active && !it.disabled} size={iconSize} />}
-                {label}
-              </button>
-            </div>
-          );
-        })}
+                {onReorder && (
+                  <span
+                    className="fc-dash-tab-move"
+                    draggable
+                    onDragStart={(e) => {
+                      if (dragRef) dragRef.current = it.id;
+                      e.dataTransfer.setData("text/dashboard-tab", it.id);
+                      e.dataTransfer.effectAllowed = "move";
+                    }}
+                    onDragEnd={() => { if (dragRef) dragRef.current = null; }}
+                    title="Arrastrar para reordenar"
+                    aria-hidden
+                  >⋮⋮</span>
+                )}
+                <button
+                  id={tabId}
+                  ref={(el) => { btnRefs.current[it.id] = el; }}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  aria-controls={panelId}
+                  aria-disabled={it.disabled ? "true" : undefined}
+                  tabIndex={focusId === it.id ? 0 : -1}
+                  title={it.title}
+                  onClick={() => {
+                    setFocusId(it.id);
+                    if (it.disabled) return;
+                    activate(it.id);
+                  }}
+                  className={`fc-dash-seg-tab${active ? " is-active" : ""}${it.Icon ? "" : " no-icon"}`}
+                >
+                  {it.Icon && <IconWell Icon={it.Icon} active={active && !it.disabled} size={iconSize} />}
+                  {label}
+                </button>
+              </div>
+            );
+          })}
+        </div>
       </div>
+      {focusedDisabled?.title ? (
+        <p className="fc-dash-tab-reason" role="note">{focusedDisabled.title}</p>
+      ) : null}
     </div>
   );
 }

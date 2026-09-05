@@ -142,9 +142,11 @@ export function DashboardNavTab({ id, active, onClick, isMobile, tone = "segment
   const isContext = tone === "context";
   return (
     <button
+      id={`dash-tab-${id}`}
       type="button"
       role="tab"
       aria-selected={active}
+      aria-controls={`dash-panel-${id}`}
       onClick={onClick}
       title={meta.title}
       className={`fc-dash-seg-tab${active ? " is-active" : ""}${isContext ? " is-context" : ""}`}
@@ -184,6 +186,7 @@ export function DashboardTabsRail({
       <SegmentedNav
         size="md"
         activation="manual"
+        idPrefix="dash"
         ariaLabel="Secciones del dashboard"
         items={items}
         value={activeId}
@@ -192,6 +195,19 @@ export function DashboardTabsRail({
         onReorder={onReorder}
         dragRef={dragRef}
       />
+    </div>
+  );
+}
+
+function DashPanel({ tabId, children }) {
+  return (
+    <div
+      id={`dash-panel-${tabId}`}
+      role="tabpanel"
+      aria-labelledby={`dash-tab-${tabId}`}
+      tabIndex={0}
+    >
+      {children}
     </div>
   );
 }
@@ -940,6 +956,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
       />
 
       {panelTab==="proyecto" && (
+        <DashPanel tabId="proyecto">
         <div>
           <AyudaDesplegable style={{ margin: "0 0 20px" }}>
             Indicadores <strong style={{ color: C.text }}>macro del proyecto</strong>: capital invertido en apertura (obra, mobiliario, stock inicial, trámites) y recuperación frente a ventas acumuladas.
@@ -1064,17 +1081,23 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
             </div>
           </div>
         </div>
+        </DashPanel>
       )}
 
       {panelTab==="transacciones" && (
+        <DashPanel tabId="transacciones">
         <TransaccionesTab usuario={usuario} showConfirm={showConfirm} />
+        </DashPanel>
       )}
 
       {panelTab==="flujo" && (
+        <DashPanel tabId="flujo">
         <FlujoCajaTab usuario={usuario} setPage={setPage} showConfirm={showConfirm} />
+        </DashPanel>
       )}
 
       {panelTab==="resumen" && (
+        <DashPanel tabId="resumen">
         <div>
           <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap"}}>
             {[["dia","Hoy"],["semana","Esta semana"],["mes","Este mes"]].map(([v,l])=>(
@@ -1132,9 +1155,11 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
             </>
           )}
         </div>
+        </DashPanel>
       )}
 
       {panelTab==="margen" && (
+        <DashPanel tabId="margen">
         <div>
           <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap"}}>
             {[["dia","Hoy"],["semana","Esta semana"],["mes","Este mes"]].map(([v,l])=>(
@@ -1183,9 +1208,12 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
             </div>
           )}
         </div>
+        </DashPanel>
       )}
 
-      {panelTab==="operacion" && (<>
+      {panelTab==="operacion" && (
+      <DashPanel tabId="operacion">
+      <>
       <TodoHoy items={todoItems}/>
 
       {dashboardLoadWarning && (
@@ -1300,7 +1328,9 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
         }
       </div>
 
-      </>)}
+      </>
+      </DashPanel>
+      )}
     </div>
   );
 }
