@@ -23,6 +23,8 @@ import { CLAVES_SALDO_MP, fechaLocalMexico, parseSaldoConfig } from "./lib/pagoS
 import ImageUploader from "./components/ImageUploader";
 import GestionUsuariosTabla from "./components/GestionUsuariosTabla";
 import { GRID_STACK_2COL } from "./constants/layout";
+import { UserPlus } from "lucide-react";
+import { PageHero } from "./components/AdminChrome";
 
 // Fallback estático para estilos fuera de componentes (evita undefined en import).
 const C = C_LIGHT;
@@ -1495,7 +1497,7 @@ function GestionUsuarios({ showConfirm }){
   return(
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:10}}>
-        <h1 style={{color:C.text,fontSize:20,fontWeight:800,margin:0}}>👤 Gestión de Usuarios</h1>
+        <PageHero Icon={UserPlus}>Gestión de Usuarios</PageHero>
         <div style={{display:"flex",gap:8}}>
           <Btn col={BRAND.primary} onClick={()=>setModal(true)}>+ Nuevo usuario</Btn>
         </div>

@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
+import { FolderOpen } from "lucide-react";
 import { C_LIGHT, BRAND } from "../../../constants";
+import { PageHero } from "../../../components/AdminChrome";
 import { supabase } from "../../../supabase";
 import { Box, Tag, Inp, Modal, SkeletonTable } from "../../../ui";
 import { CitaFichaModal } from "../CitaFichaDoctora";
@@ -115,7 +117,7 @@ export default function ExpedientesDoctora() {
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
         <div style={{ flex: "1 1 240px", minWidth: 0 }}>
-          <h1 style={{ color: C.text, fontSize: 20, fontWeight: 800, margin: 0 }}>📂 Expedientes</h1>
+          <PageHero Icon={FolderOpen}>Expedientes</PageHero>
           <p style={{ color: C.textMid, fontSize: 12, margin: "6px 0 0", maxWidth: 560, lineHeight: 1.45 }}>
             Pacientes que ya tuvieron consulta (completada, en curso o con diagnóstico), agrupados por teléfono.
           </p>

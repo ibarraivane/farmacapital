@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
+import { Heart, ShoppingCart, Star, Users } from "lucide-react";
 import { useMediaQuery } from "./hooks/useMediaQuery";
 import { C_LIGHT } from "./constants";
+import { SegmentedNav } from "./components/SegmentedNav";
+import { PageHero } from "./components/AdminChrome";
 import { supabase } from "./supabase";
 import { SkeletonTable, Paginador, SearchDropdown, showToast } from "./ui";
 import { nombreCompletoPacienteValido, telefonoMxValido, soloDigitosTel, normalizarTelefonoMxGuardar } from "./utils";
@@ -334,14 +337,19 @@ function ClienteDetalle({ cliente, onReload, onDeleted }) {
         )}
       </div>
 
-      <div style={{ display:"flex", gap:2, padding:"0 16px", borderBottom:`1px solid ${C.border}`, background:C.card }}>
-        {[["compras","🛒 Compras"],["consultas","♥ Consultas"],["puntos","⭐ Puntos"]].map(([id,label])=>(
-          <button key={id} onClick={()=>setTab(id)} style={{
-            padding:"9px 16px", border:"none", cursor:"pointer", fontWeight:700, fontSize:12,
-            background:"transparent", color:tab===id?C.blue:C.textMid,
-            borderBottom:tab===id?`2px solid ${C.blue}`:"2px solid transparent",
-          }}>{label}</button>
-        ))}
+      <div style={{ padding: "10px 16px", borderBottom: `1px solid ${C.border}`, background: C.card }}>
+        <SegmentedNav
+          size="sm"
+          activation="auto"
+          ariaLabel="Historial del cliente"
+          value={tab}
+          onChange={setTab}
+          items={[
+            { id: "compras", label: "Compras", Icon: ShoppingCart },
+            { id: "consultas", label: "Consultas", Icon: Heart },
+            { id: "puntos", label: "Puntos", Icon: Star },
+          ]}
+        />
       </div>
 
       <div style={{ flex:1, overflowY:isMobile?"visible":"auto", padding:20 }}>
@@ -532,7 +540,7 @@ export default function ClientesModule() {
         overflow: "visible",
       }}>
         <div style={{ padding:"18px 16px 12px", borderBottom:`1px solid ${C.border}` }}>
-          <h1 className="fc-page-hero" style={{ margin:"0 0 10px", color:C.text, fontSize:17, fontWeight:800 }}>◉ Clientes</h1>
+          <PageHero Icon={Users} size={17} style={{ marginBottom: 10 }}>Clientes</PageHero>
           <SearchDropdown value={busqueda} onChange={setBusqueda} onSelect={c=>{setBusqueda(c.nombre);setClienteSel(c);}} placeholder="🔍 Buscar por nombre o teléfono…" items={clientes} labelKey="nombre" subKey="telefono" badgeKey="puntos" badgeCol="#7c3aed" style={{flex:1}} emptyMsg="Sin clientes con ese nombre/teléfono"/>
           <div style={{ color:C.textDim, fontSize:10, marginTop:6 }}>{filtrados.length} cliente{filtrados.length!==1?"s":""}</div>
         </div>

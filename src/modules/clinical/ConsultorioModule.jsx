@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
+import { HeartPulse, Hourglass, Hospital, Phone, Stethoscope, Syringe, UserRound } from "lucide-react";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { C_LIGHT } from "../../constants";
+import { SegmentedNav } from "../../components/SegmentedNav";
+import { PageHero, RefreshButton } from "../../components/AdminChrome";
 import { GRID_STACK_2COL } from "../../constants/layout";
 import { supabase } from "../../supabase";
 import { showToast } from "../../ui";
@@ -242,27 +245,27 @@ function ListaEspera({ onLlamoPaciente }) {
 
   const badgeListaEspera = (c) => {
     const pago = labelEstadoPagoCita(c);
-    if (c.estado === "en_consulta") return { bg:C.blueDim, col:C.blue, txt:"🩺 En consulta", pago };
-    if (c.estado === "completada") return { bg:C.greenDim, col:C.green, txt:"✅ Completada", pago };
-    if (c.estado === "pagada") return { bg:"#dcfce7", col:"#16a34a", txt:"💰 Pagada", pago };
+    if (c.estado === "en_consulta") return { bg:C.blueDim, col:C.blue, txt:"En consulta", pago };
+    if (c.estado === "completada") return { bg:C.greenDim, col:C.green, txt:"Completada", pago };
+    if (c.estado === "pagada") return { bg:"#dcfce7", col:"#16a34a", txt:"Pagada", pago };
     if (c.estado === "confirmada")
-      return { bg:C.amberDim, col:C.amber, txt: citaPagoOk(c) ? "⏳ Esperando" : "⏳ Sin pago", pago };
-    if (c.estado === "agendada" && citaPagoOk(c)) return { bg:C.amberDim, col:C.amber, txt:"⏳ Listo (pagó en caja)", pago };
+      return { bg:C.amberDim, col:C.amber, txt: citaPagoOk(c) ? "Esperando" : "Sin pago", pago };
+    if (c.estado === "agendada" && citaPagoOk(c)) return { bg:C.amberDim, col:C.amber, txt:"Listo (pagó en caja)", pago };
     if (c.estado === "agendada")
-      return { bg:C.amberDim, col:C.amber, txt:"📅 Agendada", pago };
+      return { bg:C.amberDim, col:C.amber, txt:"Agendada", pago };
     return { bg:C.border, col:C.textMid, txt:c.estado || "—", pago };
   };
 
   return (
     <div>
       <div data-tour="cons-kpis" style={{display:"flex",gap:12,marginBottom:20,flexWrap:"wrap"}}>
-        {[["⏳ Esperando (pagadas)",esperando,C.amber],["💳 Pendiente de pago",sinPago,"#d97706"],["🩺 En consulta",enConsulta,C.blue],["✅ Completadas",completadas,C.green],["💰 Pagadas (cobro)",citas.filter((c) => citaEstaPagada(c)).length,"#16a34a"]].map(([lbl,val,col])=>(
+        {[["Esperando (pagadas)",esperando,C.amber],["Pendiente de pago",sinPago,"#d97706"],["En consulta",enConsulta,C.blue],["Completadas",completadas,C.green],["Pagadas (cobro)",citas.filter((c) => citaEstaPagada(c)).length,"#16a34a"]].map(([lbl,val,col])=>(
           <div key={lbl} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"10px 18px",minWidth:130}}>
             <div style={{color:col,fontWeight:800,fontSize:22}}>{val}</div>
             <div style={{color:C.textMid,fontSize:11}}>{lbl}</div>
           </div>
         ))}
-        <button onClick={fetchCitas} style={{...btnSecondary,marginLeft:"auto",alignSelf:"center"}}>🔄 Actualizar</button>
+        <RefreshButton onClick={fetchCitas} style={{ marginLeft: "auto", alignSelf: "center" }} />
       </div>
       {loading ? <div style={{color:C.textMid,textAlign:"center",padding:40}}>Cargando…</div> : (
         <div data-tour="cons-lista" style={{overflowX:"auto",borderRadius:12,border:`1px solid ${C.border}`}}>
@@ -302,7 +305,10 @@ function ListaEspera({ onLlamoPaciente }) {
                             if(!window.confirm(`📋 Historial previo:\n\n${msg}\n\n¿Llamar al paciente?`)) return;
                           }
                           cambiarEstado(c.id,"en_consulta");
-                        }} style={{...mkBtnSmBlue(C),marginRight:6,fontWeight:800}}>📞 Llamar</button>
+                        }} style={{...mkBtnSmBlue(C),marginRight:6,fontWeight:800,display:"inline-flex",alignItems:"center",gap:5}}>
+                          <Phone size={12} strokeWidth={2.1} aria-hidden />
+                          Llamar
+                        </button>
                       )}
                       {c.estado==="en_consulta"&&<button onClick={()=>cambiarEstado(c.id,"completada")} style={mkBtnSmGreen(C)}>Terminar consulta</button>}
                     </td>
@@ -537,12 +543,12 @@ function EnConsulta() {
   if (loading) return <div style={{color:C.textMid,textAlign:"center",padding:60}}>Cargando…</div>;
   if (!citaActual) return (
     <div style={{textAlign:"center",padding:60}}>
-      <div style={{fontSize:48,marginBottom:16}}>🏥</div>
+      <Hospital size={44} strokeWidth={1.6} color={C.textDim} aria-hidden style={{ marginBottom: 16 }} />
       <div style={{color:C.text,fontWeight:700,fontSize:16,marginBottom:8}}>Nadie en sala todavía</div>
       <div style={{color:C.textMid,fontSize:13,maxWidth:420,margin:"0 auto",lineHeight:1.5}}>
-        En <strong>Lista de espera</strong> pulsa <strong>📞 Llamar</strong> en un paciente pagado; entonces se abre su ficha aquí. Ahí documentás diagnóstico, receta, procedimientos y material usado, y con <strong>Guardar consulta</strong> cerrás.
+        En <strong>Lista de espera</strong> pulsa <strong>Llamar</strong> en un paciente pagado; entonces se abre su ficha aquí. Ahí documentás diagnóstico, receta, procedimientos y material usado, y con <strong>Guardar consulta</strong> cerrás.
       </div>
-      <button onClick={fetchActual} style={{...btnSecondary,marginTop:16}}>🔄 Actualizar</button>
+      <RefreshButton onClick={fetchActual} style={{ marginTop: 16 }} />
     </div>
   );
 
@@ -843,18 +849,20 @@ export default function ConsultorioModule({ usuario }) {
   const btnSmGreen = mkBtnSmGreen(C);
   const btnSmRed = mkBtnSmRed(C);
   const [tab, setTab] = useState("espera");
-  const TABS_ALL = isMobile
-    ? [["espera","⏳ Lista"],["consulta","🏥 Consulta"],["procedimientos","⚕ Procedim."],["medicos","👨‍⚕️ Médicos"]]
-    : [["espera","⏳ Lista de espera"],["consulta","🏥 En consulta"],["procedimientos","⚕ Procedimientos"],["medicos","👨‍⚕️ Médicos"]];
-  const TABS = isDoctora ? TABS_ALL.filter(([id]) => id !== "medicos") : TABS_ALL;
+  const TABS_ALL = [
+    { id: "espera", label: "Lista de espera", labelMobile: "Lista", Icon: Hourglass },
+    { id: "consulta", label: "En consulta", labelMobile: "Consulta", Icon: HeartPulse },
+    { id: "procedimientos", label: "Procedimientos", labelMobile: "Procedim.", Icon: Syringe },
+    { id: "medicos", label: "Médicos", Icon: UserRound },
+  ];
+  const TABS = isDoctora ? TABS_ALL.filter((t) => t.id !== "medicos") : TABS_ALL;
   useEffect(() => {
     if (isDoctora && tab === "medicos") setTab("espera");
   }, [isDoctora, tab]);
   return (
     <div style={{padding:isMobile?0:24,background:C.bg,minHeight:"100dvh",fontFamily:"var(--fc-body)"}}>
       <div style={{marginBottom:20}}>
-        <h1 className="fc-page-hero" style={{margin:0,color:C.text,fontSize:20,fontWeight:800}}>♥ Consultorio</h1>
-        <p style={{margin:"4px 0 0",color:C.textMid,fontSize:12}}>Gestión médica · FarmaCapital</p>
+        <PageHero Icon={Stethoscope} sub="Gestión médica · FarmaCapital">Consultorio</PageHero>
         {isDoctora && (
           <div
             style={{
@@ -869,38 +877,22 @@ export default function ConsultorioModule({ usuario }) {
             }}
           >
             <strong>Atender un paciente:</strong> en <em>Lista de espera</em> elige a quien ya pagó caja y pulsa{" "}
-            <strong>📞 Llamar</strong> (pasa a <em>en consulta</em> y se abre la pestaña <strong>En consulta</strong>). Ahí ves la
+            <strong>Llamar</strong> (pasa a <em>en consulta</em> y se abre la pestaña <strong>En consulta</strong>). Ahí ves la
             ficha, diagnóstico, medicamentos, procedimientos y <strong>Guardar consulta</strong>. Tu 70% de ingresos: menú{" "}
             <strong>Consultas e ingresos</strong>.
           </div>
         )}
       </div>
-      <div style={{
-        display:"flex",
-        gap:6,
-        marginBottom:24,
-        borderBottom:`1px solid ${C.border}`,
-        overflowX:isMobile?"auto":"visible",
-        WebkitOverflowScrolling:"touch",
-        flexWrap:"nowrap",
-        scrollbarWidth:"thin",
-      }}>
-        {TABS.map(([id,label])=>(
-          <button key={id} onClick={()=>setTab(id)} style={{
-            padding:isMobile?"10px 14px":"9px 18px",
-            border:"none",
-            cursor:"pointer",
-            fontWeight:700,
-            fontSize:isMobile?13:12,
-            borderRadius:"8px 8px 0 0",
-            background:tab===id?C.card:"transparent",
-            color:tab===id?C.blue:C.textMid,
-            borderBottom:tab===id?`2px solid ${C.blue}`:"2px solid transparent",
-            flexShrink:0,
-            whiteSpace:"nowrap",
-            lineHeight:1.2,
-          }}>{label}</button>
-        ))}
+      <div style={{ marginBottom: 24 }}>
+        <SegmentedNav
+          size="md"
+          activation="auto"
+          ariaLabel="Secciones del consultorio"
+          items={TABS}
+          value={tab}
+          onChange={setTab}
+          isMobile={isMobile}
+        />
       </div>
       {tab === "espera" && <ListaEspera onLlamoPaciente={() => setTab("consulta")} />}
       {tab === "consulta" && <EnConsulta />}
