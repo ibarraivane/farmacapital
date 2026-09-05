@@ -17,41 +17,43 @@
     .sheet {
       width: 100%;
       height: 100%;
-      padding: 8% 5%;
+      padding: 6% 4%;
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      justify-content: center;
       gap: 3%;
     }
     .kicker {
-      font-size: 8pt;
-      letter-spacing: 0.28em;
-      font-weight: 700;
+      font-size: 11vmin;
+      letter-spacing: 0.06em;
+      font-weight: 800;
       writing-mode: vertical-rl;
       transform: rotate(180deg);
       color: #111;
     }
     .marks {
-      flex: 1;
+      flex: 0 1 auto;
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 7mm;
+      justify-content: center;
+      gap: 1.6vmin;
     }
     .mark {
-      flex: 1;
-      height: 22mm;
+      flex: 0 0 auto;
+      height: 86%;
       display: flex;
       align-items: center;
       justify-content: center;
     }
     .mark img, .contactless {
-      max-width: 100%;
-      max-height: 22mm;
+      max-width: 26vmin;
+      max-height: 86%;
+      height: 86%;
+      width: auto;
       object-fit: contain;
       display: block;
     }
-    .contactless { height: 16mm; }
+    .contactless { height: 70%; max-height: 70%; }
   </style>
 </head>
 <body>
