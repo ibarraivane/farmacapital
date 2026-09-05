@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Banknote, BarChart3, Receipt } from "lucide-react";
 import { C_LIGHT, BRAND } from "./constants";
+import { SegmentedNav } from "./components/SegmentedNav";
 import { supabase } from "./supabase";
 import { $ } from "./utils";
 import { Box, Btn, KPI, KPI_ROW, SkeletonKPIs, SkeletonTable, Tag, showToast } from "./ui";
@@ -61,57 +62,18 @@ function Banner({ nivel, titulo, children }) {
 }
 
 function SubNav({ value, onChange }) {
-  const items = [
-    { id: "flujo", label: "Flujo", disabled: false, Icon: Banknote },
-    { id: "resultados", label: "Resultados", disabled: true, Icon: BarChart3 },
-    { id: "gastos", label: "Gastos", disabled: false, Icon: Receipt },
-  ];
   return (
-    <div
-      className="fc-dash-tabs"
-      style={{
-        display: "flex",
-        gap: 2,
-        marginBottom: 16,
-        flexWrap: "nowrap",
-        overflowX: "auto",
-        borderBottom: `1px solid ${C.border}`,
-      }}
-    >
-      {items.map((it) => {
-        const active = value === it.id;
-        const Icon = it.Icon;
-        return (
-          <button
-            key={it.id}
-            type="button"
-            disabled={it.disabled}
-            title={it.disabled ? "P&L bloqueado: falta la cobertura de costo de lo vendido (consulta 4)." : undefined}
-            onClick={() => { if (!it.disabled) onChange(it.id); }}
-            className={`fc-dash-nav-tab${active ? " is-active" : ""}`}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 7,
-              padding: "8px 12px",
-              marginBottom: -1,
-              border: "none",
-              borderBottom: `2px solid ${active ? BRAND.primary : "transparent"}`,
-              background: "transparent",
-              color: it.disabled ? C.textDim : active ? BRAND.primary : C.textMid,
-              fontWeight: 700,
-              fontSize: 13,
-              cursor: it.disabled ? "not-allowed" : "pointer",
-              opacity: it.disabled ? 0.55 : 1,
-              whiteSpace: "nowrap",
-              flexShrink: 0,
-            }}
-          >
-            <Icon size={15} strokeWidth={2.1} aria-hidden />
-            {it.label}{it.disabled ? " · pronto" : ""}
-          </button>
-        );
-      })}
+    <div style={{ marginBottom: 16 }}>
+      <SegmentedNav
+        ariaLabel="Secciones de flujo de caja"
+        value={value}
+        onChange={onChange}
+        items={[
+          { id: "flujo", label: "Flujo", Icon: Banknote },
+          { id: "resultados", label: "Resultados · pronto", Icon: BarChart3, disabled: true, title: "P&L bloqueado: falta la cobertura de costo de lo vendido (consulta 4)." },
+          { id: "gastos", label: "Gastos", Icon: Receipt },
+        ]}
+      />
     </div>
   );
 }

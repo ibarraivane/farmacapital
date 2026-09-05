@@ -93,15 +93,43 @@ textarea.farmacapital-field-input::placeholder {
    Los titulares usan la display serif; el resto hereda del body. */
 .fc-display { font-family: var(--fc-display); font-weight: 600; letter-spacing: -.025em; }
 
-/* Dashboard: una sola fila de pestañas, sin chips que se caen a la segunda línea. */
+/* Dashboard: riel tipo Vercel/shadcn — una fila, sin chips huérfanos. */
 .fc-dash-tabs {
   scrollbar-width: none;
 }
 .fc-dash-tabs::-webkit-scrollbar {
   display: none;
 }
-.fc-dash-nav-tab:hover:not(.is-active) {
+.fc-dash-seg {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  background: #eef2f7;
+  border: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+.fc-dash-seg-tab:hover:not(.is-active):not(:disabled) {
   color: #0f172a;
+  background: rgba(255, 255, 255, 0.55);
+}
+.fc-dash-seg-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.fc-dash-tab-move {
+  position: absolute;
+  left: 6px;
+  top: 2px;
+  opacity: 0;
+  pointer-events: none;
+}
+.fc-dash-seg-item:hover .fc-dash-tab-move {
+  opacity: 0.35;
+  pointer-events: auto;
 }
 @media (max-width: 900px) {
   .fc-dash-tab-move {

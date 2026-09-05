@@ -8,9 +8,9 @@ jest.mock("./supabase", () => ({
 
 test("Flujo de caja usa Banknote, no una gota", () => {
   const { container } = render(<DashboardNavTab id="flujo" active onClick={() => {}} isMobile={false} />);
-  expect(screen.getByRole("button", { name: /flujo de caja/i })).toBeInTheDocument();
+  expect(screen.getByRole("tab", { name: /flujo de caja/i })).toBeInTheDocument();
   expect(container.textContent).not.toMatch(/💧/);
-  const { container: money } = render(<Banknote size={16} strokeWidth={2} />);
+  const { container: money } = render(<Banknote size={15} strokeWidth={1.9} />);
   expect(container.querySelector("svg")?.innerHTML).toBe(money.querySelector("svg")?.innerHTML);
 });
 

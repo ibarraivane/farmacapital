@@ -17,6 +17,7 @@ import { CONSULTA_PRECIO_DEFAULT } from "./utils/consultaConstants";
 import { resumenLineasReceta } from "./utils/recetaLineas";
 import TransaccionesTab from "./TransaccionesTab";
 import FlujoCajaTab from "./FlujoCajaTab";
+import { IconWell } from "./components/SegmentedNav";
 import { countPedidosTiendaPendientesHead } from "./utils/pedidosTiendaWeb";
 import { rolEsAdmin } from "./utils/permissions";
 import { fixLegacyFarmaxBrand } from "./utils/brandText";
@@ -133,39 +134,116 @@ const DASHBOARD_TAB_META = {
   flujo: { label: "Flujo de caja", labelMobile: "Flujo", title: "Entradas, salidas y caja", Icon: Banknote },
 };
 
-export function DashboardNavTab({ id, active, onClick, isMobile }) {
+export function DashboardNavTab({ id, active, onClick, isMobile, tone = "segment" }) {
   const meta = DASHBOARD_TAB_META[id];
   if (!meta) return null;
   const Icon = meta.Icon;
   const label = isMobile && meta.labelMobile ? meta.labelMobile : meta.label;
+  const isContext = tone === "context";
   return (
     <button
       type="button"
+      role="tab"
+      aria-selected={active}
       onClick={onClick}
       title={meta.title}
-      aria-current={active ? "page" : undefined}
-      className={`fc-dash-nav-tab${active ? " is-active" : ""}`}
+      className={`fc-dash-seg-tab${active ? " is-active" : ""}${isContext ? " is-context" : ""}`}
       style={{
         display: "inline-flex",
         alignItems: "center",
-        gap: 7,
-        padding: "10px 12px",
-        marginBottom: -1,
-        background: "transparent",
-        border: "none",
-        borderBottom: `2px solid ${active ? BRAND.primary : "transparent"}`,
-        color: active ? BRAND.primary : C_LIGHT.textMid,
-        fontWeight: 700,
+        gap: 8,
+        padding: "4px 10px 4px 4px",
+        border: isContext ? `1px solid ${active ? BRAND.primary : C_LIGHT.border}` : "none",
+        borderRadius: 10,
+        background: active || isContext ? "#fff" : "transparent",
+        boxShadow: active
+          ? (isContext ? "0 1px 2px rgba(30,58,186,.14)" : "0 1px 2px rgba(15,23,42,.08), 0 0 0 1px rgba(15,23,42,.05)")
+          : "none",
+        color: active ? (isContext ? BRAND.primary : C_LIGHT.text) : C_LIGHT.textMid,
+        fontWeight: active ? 700 : 600,
         fontSize: 13,
         cursor: "pointer",
         flexShrink: 0,
         whiteSpace: "nowrap",
-        transition: "color .15s, border-color .15s",
       }}
     >
-      <Icon size={isMobile ? 18 : 16} strokeWidth={2} aria-hidden />
+      <IconWell Icon={Icon} active={active} size={isMobile ? 16 : 15} />
       {label}
     </button>
+  );
+}
+
+export function DashboardTabsRail({
+  activeId,
+  onSelect,
+  operativaIds,
+  showProyecto = true,
+  isMobile = false,
+  onReorder,
+  dragRef,
+}) {
+  return (
+    <div
+      className="fc-dash-tabs"
+      role="tablist"
+      aria-label="Secciones del dashboard"
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        flexWrap: "nowrap",
+        marginBottom: 20,
+        overflowX: "auto",
+        WebkitOverflowScrolling: "touch",
+      }}
+    >
+      {showProyecto && (
+        <DashboardNavTab
+          id="proyecto"
+          tone="context"
+          active={activeId === "proyecto"}
+          onClick={() => onSelect("proyecto")}
+          isMobile={isMobile}
+        />
+      )}
+      <div className="fc-dash-seg">
+        {operativaIds.map((id) => (
+          <div
+            key={id}
+            className="fc-dash-seg-item"
+            onDragOver={(e) => { if (onReorder) e.preventDefault(); }}
+            onDrop={(e) => {
+              if (!onReorder) return;
+              e.preventDefault();
+              const from = e.dataTransfer.getData("text/dashboard-tab") || dragRef?.current;
+              onReorder(from, id);
+              if (dragRef) dragRef.current = null;
+            }}
+          >
+            {onReorder && (
+              <span
+                className="fc-dash-tab-move"
+                draggable
+                onDragStart={(e) => {
+                  if (dragRef) dragRef.current = id;
+                  e.dataTransfer.setData("text/dashboard-tab", id);
+                  e.dataTransfer.effectAllowed = "move";
+                }}
+                onDragEnd={() => { if (dragRef) dragRef.current = null; }}
+                title="Arrastrar para reordenar"
+                aria-hidden
+              >⋮⋮</span>
+            )}
+            <DashboardNavTab
+              id={id}
+              active={activeId === id}
+              onClick={() => onSelect(id)}
+              isMobile={isMobile}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -902,81 +980,15 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
         </div>
       </div>
 
-      <div
-        className="fc-dash-tabs"
-        style={{
-          display: "flex",
-          alignItems: "stretch",
-          gap: 2,
-          flexWrap: "nowrap",
-          marginBottom: 20,
-          borderBottom: `1px solid ${C.border}`,
-          overflowX: "auto",
-          WebkitOverflowScrolling: "touch",
-        }}
-      >
-        {!soloTransacciones && (
-          <>
-            <DashboardNavTab
-              id="proyecto"
-              active={panelTab === "proyecto"}
-              onClick={() => setPanelTab("proyecto")}
-              isMobile={isMobileDash}
-            />
-            <span className="fc-dash-tabs-sep" aria-hidden style={{
-              width: 1,
-              alignSelf: "center",
-              height: 18,
-              background: C.border,
-              margin: "0 8px",
-              flexShrink: 0,
-            }} />
-          </>
-        )}
-        {tabsOperativas.map((id) => (
-          <div
-            key={id}
-            style={{ display: "flex", alignItems: "stretch", flexShrink: 0 }}
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => {
-              e.preventDefault();
-              const from = e.dataTransfer.getData("text/dashboard-tab") || dragTabId.current;
-              reorderTabs(from, id);
-              dragTabId.current = null;
-            }}
-          >
-            {!soloTransacciones && (
-              <span
-                className="fc-dash-tab-move"
-                draggable
-                onDragStart={(e) => {
-                  dragTabId.current = id;
-                  e.dataTransfer.setData("text/dashboard-tab", id);
-                  e.dataTransfer.effectAllowed = "move";
-                }}
-                onDragEnd={() => { dragTabId.current = null; }}
-                title="Arrastrar para reordenar pestañas"
-                style={{
-                  cursor: "grab",
-                  color: C.textDim,
-                  fontSize: 10,
-                  padding: "10px 2px 10px 4px",
-                  userSelect: "none",
-                  lineHeight: 1,
-                  opacity: 0.4,
-                }}
-                aria-hidden
-              >⋮⋮</span>
-            )}
-            <DashboardNavTab
-              id={id}
-              active={panelTab === id}
-              onClick={() => setPanelTab(id)}
-              isMobile={isMobileDash}
-            />
-          </div>
-        ))}
-      </div>
+      <DashboardTabsRail
+        activeId={panelTab}
+        onSelect={setPanelTab}
+        operativaIds={tabsOperativas}
+        showProyecto={!soloTransacciones}
+        isMobile={isMobileDash}
+        onReorder={soloTransacciones ? undefined : reorderTabs}
+        dragRef={dragTabId}
+      />
 
       {panelTab==="proyecto" && (
         <div>
