@@ -191,6 +191,8 @@
         --fc-v0: 12vh;
         --fc-v1: 73vh;
         --fc-hair: 3px;
+        --fc-sx: 0.22;
+        --fc-sy: 0.28;
         position: fixed;
         inset: 0;
         z-index: 9999;
@@ -210,7 +212,8 @@
         #splash { --fc-logo-w: calc(100vw - 2 * var(--fc-gutter)); }
       }
       #splash.fc-intro-out .fc-intro-logo,
-      #splash.fc-intro-out .fc-intro-sub {
+      #splash.fc-intro-out .fc-intro-sub,
+      #splash.fc-intro-out .fc-intro-word-clip {
         opacity: 0 !important;
         animation: none !important;
         transition: opacity 0.18s ease !important;
@@ -242,40 +245,55 @@
         max-width: 100%;
         aspect-ratio: 1623 / 358;
         object-fit: contain;
+        backface-visibility: hidden;
+      }
+      .fc-intro-cross {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
         opacity: 0;
-        transform-origin: 10.505% 50%;
-        transform: translateX(calc(var(--fc-shift) * 100%));
         clip-path: inset(0 var(--fc-clip-r) 0 0);
         -webkit-clip-path: inset(0 var(--fc-clip-r) 0 0);
+        transform: translate3d(calc(var(--fc-shift) * 100%), 0, 0);
+        will-change: transform, opacity;
       }
-      #splash.fc-intro-play .fc-intro-logo {
-        animation: fc-intro-logo 2.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+      #splash.fc-intro-play .fc-intro-cross {
+        animation: fc-intro-cross 2.6s cubic-bezier(0.4, 0, 0.2, 1) both;
       }
-      @keyframes fc-intro-logo {
-        0%, 26% {
-          opacity: 0;
-          transform: translateX(calc(var(--fc-shift) * 100%));
-          clip-path: inset(0 var(--fc-clip-r) 0 0);
-          -webkit-clip-path: inset(0 var(--fc-clip-r) 0 0);
-        }
-        30%, 46% {
-          opacity: 1;
-          transform: translateX(calc(var(--fc-shift) * 100%));
-          clip-path: inset(0 var(--fc-clip-r) 0 0);
-          -webkit-clip-path: inset(0 var(--fc-clip-r) 0 0);
-        }
-        62% {
-          opacity: 1;
-          transform: translateX(calc(var(--fc-shift) * 42%));
-          clip-path: inset(0 0 0 0);
-          -webkit-clip-path: inset(0 0 0 0);
-        }
-        72%, 100% {
-          opacity: 1;
-          transform: translateX(0);
-          clip-path: inset(0 0 0 0);
-          -webkit-clip-path: inset(0 0 0 0);
-        }
+      @keyframes fc-intro-cross {
+        0%, 26% { opacity: 0; transform: translate3d(calc(var(--fc-shift) * 100%), 0, 0); }
+        30%, 46% { opacity: 1; transform: translate3d(calc(var(--fc-shift) * 100%), 0, 0); }
+        72%, 100% { opacity: 1; transform: translate3d(0, 0, 0); }
+      }
+      .fc-intro-word-clip {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        overflow: hidden;
+        transform-origin: var(--fc-text-x) 50%;
+        transform: scaleX(0.001);
+        will-change: transform;
+        backface-visibility: hidden;
+      }
+      .fc-intro-word {
+        transform-origin: var(--fc-text-x) 50%;
+        transform: scaleX(1000);
+        clip-path: inset(0 0 0 var(--fc-text-x));
+        -webkit-clip-path: inset(0 0 0 var(--fc-text-x));
+      }
+      #splash.fc-intro-play .fc-intro-word-clip {
+        animation: fc-word-clip 2.6s cubic-bezier(0.4, 0, 0.2, 1) both;
+      }
+      #splash.fc-intro-play .fc-intro-word {
+        animation: fc-word-inner 2.6s cubic-bezier(0.4, 0, 0.2, 1) both;
+      }
+      @keyframes fc-word-clip {
+        0%, 46% { transform: scaleX(0.001); }
+        70%, 100% { transform: scaleX(1); }
+      }
+      @keyframes fc-word-inner {
+        0%, 46% { transform: scaleX(1000); }
+        70%, 100% { transform: scaleX(1); }
       }
       .fc-intro-sub {
         position: relative;
@@ -295,7 +313,7 @@
         pointer-events: none;
       }
       #splash.fc-intro-play .fc-intro-sub {
-        animation: fc-intro-sub 2.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+        animation: fc-intro-sub 2.6s cubic-bezier(0.4, 0, 0.2, 1) both;
       }
       @keyframes fc-intro-sub {
         0%, 70% { opacity: 0; transform: translateY(4px); }
@@ -318,6 +336,9 @@
         position: absolute;
         background: currentColor;
         border-radius: 0;
+        will-change: transform, opacity;
+        backface-visibility: hidden;
+        contain: layout style;
       }
       .fc-hair-h {
         height: var(--fc-hair);
@@ -332,153 +353,83 @@
         left: 0;
         width: calc(var(--fc-lnx) + var(--fc-over));
         color: #BEC5D1;
+        transform-origin: 100% 50%;
+        transform: scaleX(1);
       }
       .fc-hair-top {
         left: var(--fc-lnx);
         top: var(--fc-v0);
         height: calc(var(--fc-lny) + var(--fc-over) - var(--fc-v0));
         color: #BEC5D1;
+        transform-origin: 50% 100%;
+        transform: scaleY(1);
       }
       .fc-hair-right {
         top: var(--fc-lby);
         left: calc(var(--fc-lbx) - var(--fc-over));
         width: calc(100% - (var(--fc-lbx) - var(--fc-over)));
         color: #99B5E8;
+        transform-origin: 0 50%;
+        transform: scaleX(1);
       }
       .fc-hair-bot {
         left: var(--fc-lbx);
         top: calc(var(--fc-lby) - var(--fc-over));
         height: calc(var(--fc-v1) - (var(--fc-lby) - var(--fc-over)));
         color: #93D9BA;
+        transform-origin: 50% 0;
+        transform: scaleY(1);
       }
       #splash.fc-intro-play .fc-hair-left {
-        animation: fc-navy-h 1.15s cubic-bezier(0.55, 0.05, 0.2, 1) both;
+        animation: fc-navy-h 1.15s cubic-bezier(0.4, 0, 0.2, 1) both;
       }
       #splash.fc-intro-play .fc-hair-top {
-        animation: fc-navy-v 1.15s cubic-bezier(0.55, 0.05, 0.2, 1) both;
+        animation: fc-navy-v 1.15s cubic-bezier(0.4, 0, 0.2, 1) both;
       }
       #splash.fc-intro-play .fc-hair-right {
-        animation: fc-blue-h 1.15s cubic-bezier(0.55, 0.05, 0.2, 1) both;
+        animation: fc-blue-h 1.15s cubic-bezier(0.4, 0, 0.2, 1) both;
       }
       #splash.fc-intro-play .fc-hair-bot {
-        animation: fc-jade-v 1.15s cubic-bezier(0.55, 0.05, 0.2, 1) both;
+        animation: fc-jade-v 1.15s cubic-bezier(0.4, 0, 0.2, 1) both;
       }
       @keyframes fc-navy-h {
-        0%, 32% {
-          left: 0;
-          width: calc(var(--fc-lnx) + var(--fc-over));
-          color: #BEC5D1;
-          opacity: 1;
-        }
+        0%, 32% { transform: scaleX(1); color: #BEC5D1; opacity: 1; }
         18% { color: #5A6A7E; }
         32% { color: var(--fc-ink); }
-        68%, 86% {
-          left: calc(var(--fc-lnx) + var(--fc-over) - var(--fc-trail-h));
-          width: var(--fc-trail-h);
-          color: var(--fc-ink);
-          opacity: 1;
-        }
+        68%, 86% { transform: scaleX(var(--fc-sx)); color: var(--fc-ink); opacity: 1; }
         86% { color: #C5CCD6; }
-        100% {
-          left: calc(var(--fc-lnx) + var(--fc-over) - var(--fc-trail-h));
-          width: var(--fc-trail-h);
-          color: #C5CCD6;
-          opacity: 0;
-        }
+        100% { transform: scaleX(var(--fc-sx)); color: #C5CCD6; opacity: 0; }
       }
       @keyframes fc-navy-v {
-        0% {
-          top: var(--fc-v0);
-          height: calc(var(--fc-lny) + var(--fc-over) - var(--fc-v0));
-          color: #BEC5D1;
-          opacity: 1;
-        }
-        18% {
-          top: var(--fc-v0);
-          height: calc(var(--fc-lny) + var(--fc-over) - var(--fc-v0));
-          color: #5A6A7E;
-          opacity: 1;
-        }
-        32% {
-          top: calc(var(--fc-v0) + 7vh);
-          height: calc(var(--fc-lny) + var(--fc-over) - var(--fc-v0) - 7vh);
-          color: var(--fc-ink);
-          opacity: 1;
-        }
-        68%, 86% {
-          top: calc(var(--fc-lny) + var(--fc-over) - var(--fc-trail-v));
-          height: var(--fc-trail-v);
-          color: var(--fc-ink);
-          opacity: 1;
-        }
+        0%, 18% { transform: scaleY(1); color: #BEC5D1; opacity: 1; }
+        18% { color: #5A6A7E; }
+        32% { transform: scaleY(0.72); color: var(--fc-ink); opacity: 1; }
+        68%, 86% { transform: scaleY(var(--fc-sy)); color: var(--fc-ink); opacity: 1; }
         86% { color: #C5CCD6; }
-        100% {
-          top: calc(var(--fc-lny) + var(--fc-over) - var(--fc-trail-v));
-          height: var(--fc-trail-v);
-          color: #C5CCD6;
-          opacity: 0;
-        }
+        100% { transform: scaleY(var(--fc-sy)); color: #C5CCD6; opacity: 0; }
       }
       @keyframes fc-blue-h {
-        0%, 32% {
-          left: calc(var(--fc-lbx) - var(--fc-over));
-          width: calc(100% - (var(--fc-lbx) - var(--fc-over)));
-          color: #99B5E8;
-          opacity: 1;
-        }
+        0%, 32% { transform: scaleX(1); color: #99B5E8; opacity: 1; }
         18% { color: #6A93DC; }
         32% { color: var(--fc-blue); }
-        68%, 86% {
-          left: calc(var(--fc-lbx) - var(--fc-over));
-          width: var(--fc-trail-h);
-          color: var(--fc-blue);
-          opacity: 1;
-        }
+        68%, 86% { transform: scaleX(var(--fc-sx)); color: var(--fc-blue); opacity: 1; }
         86% { color: #C5D6F2; }
-        100% {
-          left: calc(var(--fc-lbx) - var(--fc-over));
-          width: var(--fc-trail-h);
-          color: #C5D6F2;
-          opacity: 0;
-        }
+        100% { transform: scaleX(var(--fc-sx)); color: #C5D6F2; opacity: 0; }
       }
       @keyframes fc-jade-v {
-        0% {
-          top: calc(var(--fc-lby) - var(--fc-over));
-          height: calc(var(--fc-v1) - (var(--fc-lby) - var(--fc-over)));
-          color: #93D9BA;
-          opacity: 1;
-        }
-        18% {
-          top: calc(var(--fc-lby) - var(--fc-over));
-          height: calc(var(--fc-v1) - (var(--fc-lby) - var(--fc-over)));
-          color: #4EC89A;
-          opacity: 1;
-        }
-        32% {
-          top: calc(var(--fc-lby) - var(--fc-over));
-          height: calc(var(--fc-v1) - (var(--fc-lby) - var(--fc-over)) - 7vh);
-          color: var(--fc-jade);
-          opacity: 1;
-        }
-        68%, 86% {
-          top: calc(var(--fc-lby) - var(--fc-over));
-          height: var(--fc-trail-v);
-          color: var(--fc-jade);
-          opacity: 1;
-        }
+        0%, 18% { transform: scaleY(1); color: #93D9BA; opacity: 1; }
+        18% { color: #4EC89A; }
+        32% { transform: scaleY(0.72); color: var(--fc-jade); opacity: 1; }
+        68%, 86% { transform: scaleY(var(--fc-sy)); color: var(--fc-jade); opacity: 1; }
         86% { color: #B8E6D2; }
-        100% {
-          top: calc(var(--fc-lby) - var(--fc-over));
-          height: var(--fc-trail-v);
-          color: #B8E6D2;
-          opacity: 0;
-        }
+        100% { transform: scaleY(var(--fc-sy)); color: #B8E6D2; opacity: 0; }
       }
       @media (prefers-reduced-motion: reduce) {
         .fc-intro-lines { display: none; }
         .fc-intro-logo,
         #splash.fc-intro-play .fc-intro-logo,
+        .fc-intro-word-clip,
+        #splash.fc-intro-play .fc-intro-word-clip,
         .fc-intro-sub,
         #splash.fc-intro-play .fc-intro-sub {
           opacity: 1 !important;
@@ -488,6 +439,7 @@
           animation: none !important;
           transition: none !important;
         }
+        .fc-intro-cross { display: none !important; }
       }
       /* Ocultar scrollbar en móvil */
       ::-webkit-scrollbar { width: 4px; height: 4px; }
@@ -508,15 +460,28 @@
             <span class="fc-hair fc-hair-blue fc-hair-h fc-hair-right"></span>
             <span class="fc-hair fc-hair-jade fc-hair-v fc-hair-bot"></span>
           </div>
+          <div class="fc-intro-word-clip" aria-hidden="true">
+            <img
+              class="fc-intro-logo fc-intro-word"
+              src="%PUBLIC_URL%/brand/farmacapital-logo-full.png?v=6"
+              srcset="%PUBLIC_URL%/brand/farmacapital-logo-full@1x.png?v=6 812w, %PUBLIC_URL%/brand/farmacapital-logo-full.png?v=6 1623w"
+              sizes="(max-width: 480px) calc(100vw - 44px), (max-width: 1100px) 62vw, 680px"
+              alt=""
+              width="1623"
+              height="358"
+              decoding="async"
+              draggable="false"
+            />
+          </div>
           <img
-            class="fc-intro-logo"
+            class="fc-intro-logo fc-intro-cross"
             src="%PUBLIC_URL%/brand/farmacapital-logo-full.png?v=6"
             srcset="%PUBLIC_URL%/brand/farmacapital-logo-full@1x.png?v=6 812w, %PUBLIC_URL%/brand/farmacapital-logo-full.png?v=6 1623w"
             sizes="(max-width: 480px) calc(100vw - 44px), (max-width: 1100px) 62vw, 680px"
             alt="FarmaCapital"
             width="1623"
             height="358"
-            decoding="sync"
+            decoding="async"
             fetchpriority="high"
             draggable="false"
           />
@@ -573,6 +538,23 @@
           ocultar();
         }
 
+        function medirEstelas() {
+          if (!splash) return;
+          var cs = getComputedStyle(splash);
+          var th = parseFloat(cs.getPropertyValue('--fc-trail-h')) || 44;
+          var tv = parseFloat(cs.getPropertyValue('--fc-trail-v')) || 32;
+          function ratio(sel, axis) {
+            var el = splash.querySelector(sel);
+            if (!el) return 0.2;
+            var box = el.getBoundingClientRect();
+            var full = axis === 'x' ? box.width : box.height;
+            if (!(full > 1)) return 0.2;
+            return Math.min(0.92, Math.max(0.05, (axis === 'x' ? th : tv) / full));
+          }
+          splash.style.setProperty('--fc-sx', String(ratio('.fc-hair-left', 'x')));
+          splash.style.setProperty('--fc-sy', String(ratio('.fc-hair-top', 'y')));
+        }
+
         var started = false;
         function iniciar() {
           if (started) return;
@@ -587,24 +569,20 @@
             return;
           }
           splash.offsetWidth;
+          medirEstelas();
           splash.classList.add('fc-intro-play');
           setTimeout(function () {
-            var logoEl = splash.querySelector('.fc-intro-logo');
-            if (logoEl) logoEl.style.willChange = 'auto';
+            var els = splash.querySelectorAll('.fc-intro-cross, .fc-intro-word-clip, .fc-hair');
+            for (var i = 0; i < els.length; i++) els[i].style.willChange = 'auto';
           }, 1900);
           setTimeout(terminarSecuencia, 2620);
         }
 
-        (function esperarLogo() {
-          var logoEl = splash && splash.querySelector('.fc-intro-logo');
-          if (!logoEl || logoEl.complete) {
-            iniciar();
-            return;
-          }
-          logoEl.addEventListener('load', iniciar, { once: true });
-          logoEl.addEventListener('error', iniciar, { once: true });
-          setTimeout(iniciar, 450);
-        })();
+        requestAnimationFrame(function () {
+          iniciar();
+          var logoEl = splash && splash.querySelector('.fc-intro-cross');
+          if (logoEl && logoEl.decode) logoEl.decode().catch(function () {});
+        });
 
         window.addEventListener('load', function () {
           window.__fcOcultarSplash();
