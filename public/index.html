@@ -179,6 +179,7 @@
         --fc-shift: 0.39495;
         --fc-clip-r: 78.928%;
         --fc-text-x: 25.57%;
+        --fc-wake: 0.60567;
         --fc-cw: calc(var(--fc-logo-w) * var(--fc-cross-w));
         --fc-ch: var(--fc-logo-h);
         --fc-lnx: calc(50% - var(--fc-cw) * 0.161);
@@ -204,6 +205,8 @@
         justify-content: center;
         overflow: hidden;
         isolation: isolate;
+        contain: paint;
+        transform: translate3d(0, 0, 0);
         padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
         touch-action: none;
         transition: opacity 0.32s ease;
@@ -213,7 +216,7 @@
       }
       #splash.fc-intro-out .fc-intro-logo,
       #splash.fc-intro-out .fc-intro-sub,
-      #splash.fc-intro-out .fc-intro-word-clip {
+      #splash.fc-intro-out .fc-intro-word-window {
         opacity: 0 !important;
         animation: none !important;
         transition: opacity 0.18s ease !important;
@@ -228,6 +231,7 @@
         width: var(--fc-logo-w);
         max-width: 100%;
         flex-shrink: 0;
+        transform: translate3d(0, 0, 0);
       }
       .fc-intro-stage {
         position: relative;
@@ -247,9 +251,33 @@
         object-fit: contain;
         backface-visibility: hidden;
       }
-      .fc-intro-cross {
+      /* Cortinilla en GPU: clip-path estático + translate3d. El clip animado
+         pintaba cada frame y era el tirón. La ventana y la cruz recorren
+         la misma distancia (shift) para que el texto salga justo detrás. */
+      .fc-intro-word-window {
         position: absolute;
         inset: 0;
+        z-index: 1;
+        overflow: hidden;
+        pointer-events: none;
+        transform: translate3d(calc(var(--fc-wake) * 100%), 0, 0);
+        will-change: transform;
+        backface-visibility: hidden;
+      }
+      .fc-intro-word-slide {
+        width: 100%;
+        height: 100%;
+        transform: translate3d(calc(var(--fc-wake) * -100%), 0, 0);
+        will-change: transform;
+        backface-visibility: hidden;
+      }
+      .fc-intro-word {
+        clip-path: inset(0 0 0 var(--fc-text-x));
+        -webkit-clip-path: inset(0 0 0 var(--fc-text-x));
+        opacity: 0;
+      }
+      .fc-intro-cross {
+        position: relative;
         z-index: 2;
         opacity: 0;
         clip-path: inset(0 var(--fc-clip-r) 0 0);
@@ -260,40 +288,31 @@
       #splash.fc-intro-play .fc-intro-cross {
         animation: fc-intro-cross 2.6s cubic-bezier(0.4, 0, 0.2, 1) both;
       }
+      #splash.fc-intro-play .fc-intro-word-window {
+        animation: fc-word-window 2.6s cubic-bezier(0.4, 0, 0.2, 1) both;
+      }
+      #splash.fc-intro-play .fc-intro-word-slide {
+        animation: fc-word-slide 2.6s cubic-bezier(0.4, 0, 0.2, 1) both;
+      }
+      #splash.fc-intro-play .fc-intro-word {
+        animation: fc-word-fade 2.6s cubic-bezier(0.4, 0, 0.2, 1) both;
+      }
       @keyframes fc-intro-cross {
         0%, 26% { opacity: 0; transform: translate3d(calc(var(--fc-shift) * 100%), 0, 0); }
         30%, 46% { opacity: 1; transform: translate3d(calc(var(--fc-shift) * 100%), 0, 0); }
-        72%, 100% { opacity: 1; transform: translate3d(0, 0, 0); }
+        70%, 100% { opacity: 1; transform: translate3d(0, 0, 0); }
       }
-      .fc-intro-word-clip {
-        position: absolute;
-        inset: 0;
-        z-index: 1;
-        overflow: hidden;
-        transform-origin: var(--fc-text-x) 50%;
-        transform: scaleX(0.001);
-        will-change: transform;
-        backface-visibility: hidden;
+      @keyframes fc-word-window {
+        0%, 46% { transform: translate3d(calc(var(--fc-wake) * 100%), 0, 0); }
+        70%, 100% { transform: translate3d(calc(var(--fc-cross-w) * 100%), 0, 0); }
       }
-      .fc-intro-word {
-        transform-origin: var(--fc-text-x) 50%;
-        transform: scaleX(1000);
-        clip-path: inset(0 0 0 var(--fc-text-x));
-        -webkit-clip-path: inset(0 0 0 var(--fc-text-x));
+      @keyframes fc-word-slide {
+        0%, 46% { transform: translate3d(calc(var(--fc-wake) * -100%), 0, 0); }
+        70%, 100% { transform: translate3d(calc(var(--fc-cross-w) * -100%), 0, 0); }
       }
-      #splash.fc-intro-play .fc-intro-word-clip {
-        animation: fc-word-clip 2.6s cubic-bezier(0.4, 0, 0.2, 1) both;
-      }
-      #splash.fc-intro-play .fc-intro-word {
-        animation: fc-word-inner 2.6s cubic-bezier(0.4, 0, 0.2, 1) both;
-      }
-      @keyframes fc-word-clip {
-        0%, 46% { transform: scaleX(0.001); }
-        70%, 100% { transform: scaleX(1); }
-      }
-      @keyframes fc-word-inner {
-        0%, 46% { transform: scaleX(1000); }
-        70%, 100% { transform: scaleX(1); }
+      @keyframes fc-word-fade {
+        0%, 45% { opacity: 0; }
+        52%, 100% { opacity: 1; }
       }
       .fc-intro-sub {
         position: relative;
@@ -425,11 +444,12 @@
         100% { transform: scaleY(var(--fc-sy)); color: #B8E6D2; opacity: 0; }
       }
       @media (prefers-reduced-motion: reduce) {
-        .fc-intro-lines { display: none; }
+        .fc-intro-lines,
+        .fc-intro-word-window { display: none !important; }
         .fc-intro-logo,
         #splash.fc-intro-play .fc-intro-logo,
-        .fc-intro-word-clip,
-        #splash.fc-intro-play .fc-intro-word-clip,
+        .fc-intro-cross,
+        #splash.fc-intro-play .fc-intro-cross,
         .fc-intro-sub,
         #splash.fc-intro-play .fc-intro-sub {
           opacity: 1 !important;
@@ -439,7 +459,6 @@
           animation: none !important;
           transition: none !important;
         }
-        .fc-intro-cross { display: none !important; }
       }
       /* Ocultar scrollbar en móvil */
       ::-webkit-scrollbar { width: 4px; height: 4px; }
@@ -460,18 +479,20 @@
             <span class="fc-hair fc-hair-blue fc-hair-h fc-hair-right"></span>
             <span class="fc-hair fc-hair-jade fc-hair-v fc-hair-bot"></span>
           </div>
-          <div class="fc-intro-word-clip" aria-hidden="true">
-            <img
-              class="fc-intro-logo fc-intro-word"
-              src="%PUBLIC_URL%/brand/farmacapital-logo-full.png?v=6"
-              srcset="%PUBLIC_URL%/brand/farmacapital-logo-full@1x.png?v=6 812w, %PUBLIC_URL%/brand/farmacapital-logo-full.png?v=6 1623w"
-              sizes="(max-width: 480px) calc(100vw - 44px), (max-width: 1100px) 62vw, 680px"
-              alt=""
-              width="1623"
-              height="358"
-              decoding="async"
-              draggable="false"
-            />
+          <div class="fc-intro-word-window" aria-hidden="true">
+            <div class="fc-intro-word-slide">
+              <img
+                class="fc-intro-logo fc-intro-word"
+                src="%PUBLIC_URL%/brand/farmacapital-logo-full.png?v=6"
+                srcset="%PUBLIC_URL%/brand/farmacapital-logo-full@1x.png?v=6 812w, %PUBLIC_URL%/brand/farmacapital-logo-full.png?v=6 1623w"
+                sizes="(max-width: 480px) calc(100vw - 44px), (max-width: 1100px) 62vw, 680px"
+                alt=""
+                width="1623"
+                height="358"
+                decoding="async"
+                draggable="false"
+              />
+            </div>
           </div>
           <img
             class="fc-intro-logo fc-intro-cross"
@@ -517,7 +538,7 @@
           if (!appReady) return;
           hiding = true;
           splash.setAttribute('aria-busy', 'false');
-          var logo = splash.querySelector('.fc-intro-logo');
+          var logo = splash.querySelector('.fc-intro-cross');
           if (logo) logo.style.willChange = 'auto';
           splash.classList.add('fc-intro-out');
           setTimeout(function () {
@@ -572,7 +593,7 @@
           medirEstelas();
           splash.classList.add('fc-intro-play');
           setTimeout(function () {
-            var els = splash.querySelectorAll('.fc-intro-cross, .fc-intro-word-clip, .fc-hair');
+            var els = splash.querySelectorAll('.fc-intro-cross, .fc-intro-word-window, .fc-intro-word-slide, .fc-hair');
             for (var i = 0; i < els.length; i++) els[i].style.willChange = 'auto';
           }, 1900);
           setTimeout(terminarSecuencia, 2620);
