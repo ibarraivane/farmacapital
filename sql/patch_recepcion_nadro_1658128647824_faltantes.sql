@@ -1,11 +1,10 @@
--- Pedido Nadro 1658128647824-01 (2026-08-30) — cola Recibir, borrador.
--- SIN bloques dollar-quote (do $$). El SQL Editor de Supabase los corta.
--- No suma stock: las piezas entran al escanear con pistola y poner MMAA de la caja.
--- El pedido no trae lote ni caducidad; se quedan en null. No inventar 0000.
--- Idempotente mientras el ticket siga en borrador.
--- Si ya está confirmado/descuadre/cerrado, no crea otro ni toca renglones.
---   En ese caso (y si faltan EAN): usa patch_recepcion_nadro_1658128647824_faltantes.sql
--- Pegar TODO este archivo en Supabase → SQL Editor → Run.
+-- Faltantes Nadro 1658128647824-01 — cola Recibir, borrador nuevo.
+-- La recepción folio 1658128647824-01 ya está en descuadre (46/50 confirmados):
+-- NO se reabre ni se toca. El stock de esas 46 ya entró.
+-- Este patch abre folio 1658128647824-01-FALT solo con los EAN que faltan.
+-- SIN do $$. Stock al escanear + MMAA de la caja. No inventar 0000.
+-- Idempotente mientras el FALT siga en borrador.
+-- Pegar TODO en Supabase → SQL Editor → Run.
 
 begin;
 
@@ -70,34 +69,51 @@ insert into _fc_rx_nadro165812864782401 (linea, ean, sku, nombre, qty, costo) va
   (49, '7501008499092', null, 'Flanax Nocto 220/25 mg 20 Comprimidos', 1, 130.50),
   (50, '7501008499412', null, 'FLANAX-660 660 MG 8 TAB', 1, 230.00);
 
+-- EAN del pedido que NO están en el folio original (descuadre).
+create temp table _fc_falt on commit drop as
+select t.*
+from _fc_rx_nadro165812864782401 t
+where nullif(btrim(t.ean), '') is not null
+  and not exists (
+    select 1
+    from public.recepcion_items i
+    join public.recepciones r on r.id = i.recepcion_id
+    where r.folio = '1658128647824-01'
+      and coalesce(r.proveedor, '') ilike '%nadro%'
+      and i.codigo_escaneado = t.ean
+  );
+
+-- Abrir borrador FALT solo si hay faltantes y aún no existe ese folio.
 insert into public.recepciones (proveedor, folio, fecha, total_ticket, estado, notas)
 select
   'Nadro',
-  '1658128647824-01',
+  '1658128647824-01-FALT',
   '2026-08-30',
-  5617.17,
+  (select coalesce(sum(f.qty * f.costo), 0) from _fc_falt f),
   'borrador',
-  'Pedido Nadro 1658128647824-01 · entrega 31-ago · EAN de iNadro · cola Recibir; stock al confirmar pistola'
-where not exists (
-  select 1 from public.recepciones
-  where folio = '1658128647824-01' and coalesce(proveedor, '') ilike '%nadro%'
-);
+  'Faltantes Nadro 1658128647824-01 · no reabre el descuadre · stock al escanear + MMAA de la caja'
+where exists (select 1 from _fc_falt)
+  and not exists (
+    select 1 from public.recepciones
+    where folio = '1658128647824-01-FALT'
+      and coalesce(proveedor, '') ilike '%nadro%'
+  );
 
 update public.recepciones
 set
-  total_ticket = 5617.17,
+  total_ticket = (select coalesce(sum(f.qty * f.costo), 0) from _fc_falt f),
   fecha = '2026-08-30',
   proveedor = 'Nadro',
-  notas = 'Pedido Nadro 1658128647824-01 · entrega 31-ago · EAN de iNadro · cola Recibir; stock al confirmar pistola',
+  notas = 'Faltantes Nadro 1658128647824-01 · no reabre el descuadre · stock al escanear + MMAA de la caja',
   updated_at = now()
-where folio = '1658128647824-01'
+where folio = '1658128647824-01-FALT'
   and coalesce(proveedor, '') ilike '%nadro%'
   and estado = 'borrador';
 
 delete from public.recepcion_items i
 using public.recepciones r
 where i.recepcion_id = r.id
-  and r.folio = '1658128647824-01'
+  and r.folio = '1658128647824-01-FALT'
   and coalesce(r.proveedor, '') ilike '%nadro%'
   and r.estado = 'borrador';
 
@@ -127,9 +143,9 @@ select
     )
   ),
   null
-from _fc_rx_nadro165812864782401 t
+from _fc_falt t
 join public.recepciones r
-  on r.folio = '1658128647824-01'
+  on r.folio = '1658128647824-01-FALT'
  and coalesce(r.proveedor, '') ilike '%nadro%'
  and r.estado = 'borrador'
 left join lateral (
@@ -144,10 +160,17 @@ left join lateral (
 ) v on true
 order by t.linea;
 
+-- Si no había faltantes, quita un FALT vacío en borrador.
+delete from public.recepciones r
+where r.folio = '1658128647824-01-FALT'
+  and coalesce(r.proveedor, '') ilike '%nadro%'
+  and r.estado = 'borrador'
+  and not exists (
+    select 1 from public.recepcion_items i where i.recepcion_id = r.id
+  );
+
 commit;
 
--- Diagnóstico: si renglones = 0 y estado <> borrador → ya estaba cerrada.
--- Si 0 filas → no se insertó (revisa error arriba).
 select
   r.id as recepcion_id,
   r.folio,
@@ -157,13 +180,12 @@ select
   count(*) filter (where not coalesce(i.confirmado, false)) as pendientes_pistola
 from public.recepciones r
 left join public.recepcion_items i on i.recepcion_id = r.id
-where r.folio = '1658128647824-01'
-  and coalesce(r.proveedor, '') ilike '%nadro%'
+where coalesce(r.proveedor, '') ilike '%nadro%'
+  and r.folio in ('1658128647824-01', '1658128647824-01-FALT')
 group by r.id, r.folio, r.estado, r.total_ticket
 order by r.id;
 
 select
-  i.id,
   i.codigo_escaneado as ean,
   left(i.nombre_snapshot, 48) as nombre,
   i.cantidad,
@@ -171,5 +193,6 @@ select
   case when i.pendiente_alta then 'ALTA NUEVA' else 'YA EXISTE' end as estado
 from public.recepcion_items i
 join public.recepciones r on r.id = i.recepcion_id
-where r.folio = '1658128647824-01' and coalesce(r.proveedor, '') ilike '%nadro%'
+where r.folio = '1658128647824-01-FALT'
+  and coalesce(r.proveedor, '') ilike '%nadro%'
 order by i.id;

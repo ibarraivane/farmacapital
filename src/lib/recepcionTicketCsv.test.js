@@ -68,6 +68,17 @@ describe("parseTicketCsv", () => {
     expect(renglones.reduce((a, r) => a + r.cantidad, 0)).toBe(89);
     expect(renglones.every((r) => r.codigo && r.codigo.length >= 8)).toBe(true);
     expect(renglones.every((r) => !r.numero_lote)).toBe(true);
+
+    // Supabase SQL Editor corta do $$ — el patch debe ser solo SQL plano.
+    const sql = readFileSync(
+      join(__dirname, "../../sql/patch_recepcion_nadro_1658128647824_corroborar.sql"),
+      "utf8",
+    );
+    expect(sql).toMatch(/SIN bloques dollar-quote/);
+    expect(sql).not.toMatch(/\ndo\s*\$\$/);
+    expect(sql).not.toMatch(/\nend\s*\$\$/);
+    expect(sql).toMatch(/folio = '1658128647824-01'/);
+    expect((sql.match(/^\s*\(\d+,/gm) || []).length).toBe(50);
   });
 
   test("Nadro 20260901 generado", () => {
