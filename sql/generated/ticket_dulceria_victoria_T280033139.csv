@@ -1,0 +1,6 @@
+linea,folio,fecha,proveedor,ean,descripcion_ticket,nombre_mostrador,cantidad_ticket,piezas,precio_unitario_ticket,costo_pieza,pvp_sugerido,marca,presentacion,categoria,sku_farmacapital,ean_estado,notas
+1,T280033139,2026-09-05,Dulcería La Victoria,,SKITTLES ORIGINAL, 24/10PZ,Skittles Original bolsa,1,24,74.60,3.1083,5,Skittles,Bolsa (caja mayoreo 24/10PZ),Impulso,FC-LV-SKITTLES24,pendiente_caja,Ticket imprime La Famosa · negocio La Victoria Bodega F-20
+2,T280033139,2026-09-05,Dulcería La Victoria,,HALLS YERBA 30/12PZ,Halls Yerbabuena pack,1,12,74.00,6.1667,9,Halls,Pack (cuadreta 12 · master 30),Impulso,FC-LV-HALLSY12,pendiente_caja,Cuadreta 12 packs
+3,T280033139,2026-09-05,Dulcería La Victoria,,ORBIT 4P FRESA, 24/40PZ,Orbit 4's Fresa,1,40,87.06,2.1765,4,Orbit,Pack 4 pastillas (exhibidor 40),Impulso,FC-LV-ORBITFRE40,pendiente_caja,Exhibidor 40 · caja master 24
+4,T280033139,2026-09-05,Dulcería La Victoria,,ORBIT 4P HIERBABUENA, 24/40PZ,Orbit 4's Hierbabuena,1,40,87.06,2.1765,4,Orbit,Pack 4 pastillas (exhibidor 40),Impulso,FC-LV-ORBITHB40,pendiente_caja,Exhibidor 40 · caja master 24
+5,T280033139,2026-09-05,Dulcería La Victoria,,CLORETS 4 S PLUS 24/40PZ,Clorets Plus 4's,1,40,82.17,2.0543,3,Clorets,Pack 4 pastillas (exhibidor 40),Impulso,FC-LV-CLORETS40,pendiente_caja,Exhibidor 40 · caja master 24
