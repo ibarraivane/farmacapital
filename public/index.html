@@ -179,6 +179,7 @@
         --fc-shift: 0.39495;
         --fc-clip-r: 78.928%;
         --fc-text-x: 25.57%;
+        --fc-text-n: 0.2557;
         --fc-wake: 0.60567;
         --fc-cw: calc(var(--fc-logo-w) * var(--fc-cross-w));
         --fc-ch: var(--fc-logo-h);
@@ -216,7 +217,8 @@
       }
       #splash.fc-intro-out .fc-intro-logo,
       #splash.fc-intro-out .fc-intro-sub,
-      #splash.fc-intro-out .fc-intro-word-window {
+      #splash.fc-intro-out .fc-intro-word-window,
+      #splash.fc-intro-out .fc-intro-cross-clip {
         opacity: 0 !important;
         animation: none !important;
         transition: opacity 0.18s ease !important;
@@ -251,41 +253,62 @@
         object-fit: contain;
         backface-visibility: hidden;
       }
-      /* Cortinilla en GPU: clip-path estático + translate3d. El clip animado
-         pintaba cada frame y era el tirón. La ventana y la cruz recorren
-         la misma distancia (shift) para que el texto salga justo detrás. */
+      /* Cortinilla en GPU: overflow + translate3d (misma distancia).
+         Nada de clip-path animado: en móvil rasterizaba borroso. */
       .fc-intro-word-window {
         position: absolute;
         inset: 0;
         z-index: 1;
         overflow: hidden;
         pointer-events: none;
-        transform: translate3d(calc(var(--fc-wake) * 100%), 0, 0);
+        transform: translate3d(calc(var(--fc-wake) * var(--fc-logo-w)), 0, 0);
         will-change: transform;
         backface-visibility: hidden;
       }
       .fc-intro-word-slide {
+        position: relative;
         width: 100%;
         height: 100%;
-        transform: translate3d(calc(var(--fc-wake) * -100%), 0, 0);
+        transform: translate3d(calc(var(--fc-wake) * var(--fc-logo-w) * -1), 0, 0);
         will-change: transform;
         backface-visibility: hidden;
       }
+      .fc-intro-word-crop {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: calc(var(--fc-text-n) * var(--fc-logo-w));
+        width: calc((1 - var(--fc-text-n)) * var(--fc-logo-w));
+        overflow: hidden;
+      }
       .fc-intro-word {
-        clip-path: inset(0 0 0 var(--fc-text-x));
-        -webkit-clip-path: inset(0 0 0 var(--fc-text-x));
+        position: absolute;
+        top: 0;
+        left: calc(var(--fc-text-n) * var(--fc-logo-w) * -1);
+        width: var(--fc-logo-w);
+        max-width: none;
+        height: 100%;
         opacity: 0;
+      }
+      .fc-intro-cross-clip {
+        position: absolute;
+        left: 0;
+        top: 0;
+        z-index: 2;
+        width: calc(var(--fc-cross-w) * 100%);
+        height: 100%;
+        overflow: hidden;
+        opacity: 0;
+        transform: translate3d(calc(var(--fc-shift) * var(--fc-logo-w)), 0, 0);
+        will-change: transform, opacity;
+        backface-visibility: hidden;
       }
       .fc-intro-cross {
-        position: relative;
-        z-index: 2;
-        opacity: 0;
-        clip-path: inset(0 var(--fc-clip-r) 0 0);
-        -webkit-clip-path: inset(0 var(--fc-clip-r) 0 0);
-        transform: translate3d(calc(var(--fc-shift) * 100%), 0, 0);
-        will-change: transform, opacity;
+        width: var(--fc-logo-w);
+        max-width: none;
+        height: 100%;
       }
-      #splash.fc-intro-play .fc-intro-cross {
+      #splash.fc-intro-play .fc-intro-cross-clip {
         animation: fc-intro-cross 2.6s cubic-bezier(0.4, 0, 0.2, 1) both;
       }
       #splash.fc-intro-play .fc-intro-word-window {
@@ -298,17 +321,17 @@
         animation: fc-word-fade 2.6s cubic-bezier(0.4, 0, 0.2, 1) both;
       }
       @keyframes fc-intro-cross {
-        0%, 26% { opacity: 0; transform: translate3d(calc(var(--fc-shift) * 100%), 0, 0); }
-        30%, 46% { opacity: 1; transform: translate3d(calc(var(--fc-shift) * 100%), 0, 0); }
+        0%, 26% { opacity: 0; transform: translate3d(calc(var(--fc-shift) * var(--fc-logo-w)), 0, 0); }
+        30%, 46% { opacity: 1; transform: translate3d(calc(var(--fc-shift) * var(--fc-logo-w)), 0, 0); }
         70%, 100% { opacity: 1; transform: translate3d(0, 0, 0); }
       }
       @keyframes fc-word-window {
-        0%, 46% { transform: translate3d(calc(var(--fc-wake) * 100%), 0, 0); }
-        70%, 100% { transform: translate3d(calc(var(--fc-cross-w) * 100%), 0, 0); }
+        0%, 46% { transform: translate3d(calc(var(--fc-wake) * var(--fc-logo-w)), 0, 0); }
+        70%, 100% { transform: translate3d(calc(var(--fc-cross-w) * var(--fc-logo-w)), 0, 0); }
       }
       @keyframes fc-word-slide {
-        0%, 46% { transform: translate3d(calc(var(--fc-wake) * -100%), 0, 0); }
-        70%, 100% { transform: translate3d(calc(var(--fc-cross-w) * -100%), 0, 0); }
+        0%, 46% { transform: translate3d(calc(var(--fc-wake) * var(--fc-logo-w) * -1), 0, 0); }
+        70%, 100% { transform: translate3d(calc(var(--fc-cross-w) * var(--fc-logo-w) * -1), 0, 0); }
       }
       @keyframes fc-word-fade {
         0%, 45% { opacity: 0; }
@@ -446,6 +469,14 @@
       @media (prefers-reduced-motion: reduce) {
         .fc-intro-lines,
         .fc-intro-word-window { display: none !important; }
+        .fc-intro-cross-clip,
+        #splash.fc-intro-play .fc-intro-cross-clip {
+          width: 100% !important;
+          overflow: visible !important;
+          opacity: 1 !important;
+          transform: none !important;
+          animation: none !important;
+        }
         .fc-intro-logo,
         #splash.fc-intro-play .fc-intro-logo,
         .fc-intro-cross,
@@ -454,8 +485,8 @@
         #splash.fc-intro-play .fc-intro-sub {
           opacity: 1 !important;
           transform: none !important;
-          clip-path: none !important;
-          -webkit-clip-path: none !important;
+          width: 100% !important;
+          max-width: 100% !important;
           animation: none !important;
           transition: none !important;
         }
@@ -481,31 +512,35 @@
           </div>
           <div class="fc-intro-word-window" aria-hidden="true">
             <div class="fc-intro-word-slide">
-              <img
-                class="fc-intro-logo fc-intro-word"
-                src="%PUBLIC_URL%/brand/farmacapital-logo-full.png?v=6"
-                srcset="%PUBLIC_URL%/brand/farmacapital-logo-full@1x.png?v=6 812w, %PUBLIC_URL%/brand/farmacapital-logo-full.png?v=6 1623w"
-                sizes="(max-width: 480px) calc(100vw - 44px), (max-width: 1100px) 62vw, 680px"
-                alt=""
-                width="1623"
-                height="358"
-                decoding="async"
-                draggable="false"
-              />
+              <div class="fc-intro-word-crop">
+                <img
+                  class="fc-intro-logo fc-intro-word"
+                  src="%PUBLIC_URL%/brand/farmacapital-logo-full.png?v=6"
+                  srcset="%PUBLIC_URL%/brand/farmacapital-logo-full@1x.png?v=6 812w, %PUBLIC_URL%/brand/farmacapital-logo-full.png?v=6 1623w"
+                  sizes="(max-width: 480px) calc(100vw - 44px), (max-width: 1100px) 62vw, 680px"
+                  alt=""
+                  width="1623"
+                  height="358"
+                  decoding="async"
+                  draggable="false"
+                />
+              </div>
             </div>
           </div>
-          <img
-            class="fc-intro-logo fc-intro-cross"
-            src="%PUBLIC_URL%/brand/farmacapital-logo-full.png?v=6"
-            srcset="%PUBLIC_URL%/brand/farmacapital-logo-full@1x.png?v=6 812w, %PUBLIC_URL%/brand/farmacapital-logo-full.png?v=6 1623w"
-            sizes="(max-width: 480px) calc(100vw - 44px), (max-width: 1100px) 62vw, 680px"
-            alt="FarmaCapital"
-            width="1623"
-            height="358"
-            decoding="async"
-            fetchpriority="high"
-            draggable="false"
-          />
+          <div class="fc-intro-cross-clip">
+            <img
+              class="fc-intro-logo fc-intro-cross"
+              src="%PUBLIC_URL%/brand/farmacapital-logo-full.png?v=6"
+              srcset="%PUBLIC_URL%/brand/farmacapital-logo-full@1x.png?v=6 812w, %PUBLIC_URL%/brand/farmacapital-logo-full.png?v=6 1623w"
+              sizes="(max-width: 480px) calc(100vw - 44px), (max-width: 1100px) 62vw, 680px"
+              alt="FarmaCapital"
+              width="1623"
+              height="358"
+              decoding="async"
+              fetchpriority="high"
+              draggable="false"
+            />
+          </div>
         </div>
         <p class="fc-intro-sub">Farmacia &amp; Salud</p>
       </div>
@@ -538,8 +573,8 @@
           if (!appReady) return;
           hiding = true;
           splash.setAttribute('aria-busy', 'false');
-          var logo = splash.querySelector('.fc-intro-cross');
-          if (logo) logo.style.willChange = 'auto';
+          var clip = splash.querySelector('.fc-intro-cross-clip');
+          if (clip) clip.style.willChange = 'auto';
           splash.classList.add('fc-intro-out');
           setTimeout(function () {
             splash.classList.add('hide');
@@ -593,7 +628,7 @@
           medirEstelas();
           splash.classList.add('fc-intro-play');
           setTimeout(function () {
-            var els = splash.querySelectorAll('.fc-intro-cross, .fc-intro-word-window, .fc-intro-word-slide, .fc-hair');
+            var els = splash.querySelectorAll('.fc-intro-cross-clip, .fc-intro-word-window, .fc-intro-word-slide, .fc-hair');
             for (var i = 0; i < els.length; i++) els[i].style.willChange = 'auto';
           }, 1900);
           setTimeout(terminarSecuencia, 2620);
