@@ -200,7 +200,7 @@
         --fc-intro-blue: #054ABC;
         --fc-intro-jade: #02A158;
         --fc-intro-mid: #5A6472;
-        --fc-ease-out: cubic-bezier(0.2, 0, 0, 1);
+        --fc-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
         position: fixed;
         inset: 0;
         z-index: 9999;
@@ -328,21 +328,21 @@
       }
       /* Sin meseta: la cruz no se queda quieta. Aparece y ya camina. */
       @keyframes fc-intro-cross {
-        0%, 18% { opacity: 0; transform: translate3d(calc(var(--fc-shift) * var(--fc-logo-w)), 0, 0); }
-        26% { opacity: 1; transform: translate3d(calc(var(--fc-shift) * var(--fc-logo-w)), 0, 0); }
-        60%, 100% { opacity: 1; transform: translate3d(0, 0, 0); }
+        0%, 16% { opacity: 0; transform: translate3d(calc(var(--fc-shift) * var(--fc-logo-w)), 0, 0); }
+        22% { opacity: 1; transform: translate3d(calc(var(--fc-shift) * var(--fc-logo-w)), 0, 0); }
+        56%, 100% { opacity: 1; transform: translate3d(0, 0, 0); }
       }
       @keyframes fc-word-window {
-        0%, 26% { transform: translate3d(calc(var(--fc-wake) * var(--fc-logo-w) + var(--fc-pad)), 0, 0); }
-        60%, 100% { transform: translate3d(calc(var(--fc-cross-w) * var(--fc-logo-w) + var(--fc-pad)), 0, 0); }
+        0%, 22% { transform: translate3d(calc(var(--fc-wake) * var(--fc-logo-w) + var(--fc-pad)), 0, 0); }
+        56%, 100% { transform: translate3d(calc(var(--fc-cross-w) * var(--fc-logo-w) + var(--fc-pad)), 0, 0); }
       }
       @keyframes fc-word-slide {
-        0%, 26% { transform: translate3d(calc((var(--fc-wake) * var(--fc-logo-w) + var(--fc-pad)) * -1), 0, 0); }
-        60%, 100% { transform: translate3d(calc((var(--fc-cross-w) * var(--fc-logo-w) + var(--fc-pad)) * -1), 0, 0); }
+        0%, 22% { transform: translate3d(calc((var(--fc-wake) * var(--fc-logo-w) + var(--fc-pad)) * -1), 0, 0); }
+        56%, 100% { transform: translate3d(calc((var(--fc-cross-w) * var(--fc-logo-w) + var(--fc-pad)) * -1), 0, 0); }
       }
       @keyframes fc-word-fade {
-        0%, 24% { opacity: 0; }
-        30%, 100% { opacity: 1; }
+        0%, 20% { opacity: 0; }
+        26%, 100% { opacity: 1; }
       }
       .fc-intro-sub {
         position: relative;
@@ -365,8 +365,8 @@
         animation: fc-intro-sub 2.45s var(--fc-ease-out) both;
       }
       @keyframes fc-intro-sub {
-        0%, 58% { opacity: 0; transform: translateY(4px); }
-        70%, 100% { opacity: 1; transform: translateY(0); }
+        0%, 54% { opacity: 0; transform: translateY(4px); }
+        66%, 100% { opacity: 1; transform: translateY(0); }
       }
       .fc-intro-lines {
         position: absolute;
