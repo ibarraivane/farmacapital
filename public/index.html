@@ -181,6 +181,7 @@
         --fc-text-x: 25.57%;
         --fc-text-n: 0.2557;
         --fc-wake: 0.60567;
+        --fc-pad: calc(var(--fc-logo-w) * 0.01);
         --fc-cw: calc(var(--fc-logo-w) * var(--fc-cross-w));
         --fc-ch: var(--fc-logo-h);
         --fc-lnx: calc(50% - var(--fc-cw) * 0.161);
@@ -261,7 +262,7 @@
         z-index: 1;
         overflow: hidden;
         pointer-events: none;
-        transform: translate3d(calc(var(--fc-wake) * var(--fc-logo-w)), 0, 0);
+        transform: translate3d(calc(var(--fc-wake) * var(--fc-logo-w) + var(--fc-pad)), 0, 0);
         will-change: transform;
         backface-visibility: hidden;
       }
@@ -269,7 +270,7 @@
         position: relative;
         width: 100%;
         height: 100%;
-        transform: translate3d(calc(var(--fc-wake) * var(--fc-logo-w) * -1), 0, 0);
+        transform: translate3d(calc((var(--fc-wake) * var(--fc-logo-w) + var(--fc-pad)) * -1), 0, 0);
         will-change: transform;
         backface-visibility: hidden;
       }
@@ -326,12 +327,12 @@
         70%, 100% { opacity: 1; transform: translate3d(0, 0, 0); }
       }
       @keyframes fc-word-window {
-        0%, 46% { transform: translate3d(calc(var(--fc-wake) * var(--fc-logo-w)), 0, 0); }
-        70%, 100% { transform: translate3d(calc(var(--fc-cross-w) * var(--fc-logo-w)), 0, 0); }
+        0%, 46% { transform: translate3d(calc(var(--fc-wake) * var(--fc-logo-w) + var(--fc-pad)), 0, 0); }
+        70%, 100% { transform: translate3d(calc(var(--fc-cross-w) * var(--fc-logo-w) + var(--fc-pad)), 0, 0); }
       }
       @keyframes fc-word-slide {
-        0%, 46% { transform: translate3d(calc(var(--fc-wake) * var(--fc-logo-w) * -1), 0, 0); }
-        70%, 100% { transform: translate3d(calc(var(--fc-cross-w) * var(--fc-logo-w) * -1), 0, 0); }
+        0%, 46% { transform: translate3d(calc((var(--fc-wake) * var(--fc-logo-w) + var(--fc-pad)) * -1), 0, 0); }
+        70%, 100% { transform: translate3d(calc((var(--fc-cross-w) * var(--fc-logo-w) + var(--fc-pad)) * -1), 0, 0); }
       }
       @keyframes fc-word-fade {
         0%, 45% { opacity: 0; }
@@ -382,6 +383,15 @@
         backface-visibility: hidden;
         contain: layout style;
       }
+      .fc-hair::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: var(--fc-sat, currentColor);
+        opacity: 0;
+        will-change: opacity;
+        pointer-events: none;
+      }
       .fc-hair-h {
         height: var(--fc-hair);
         margin-top: calc(var(--fc-hair) / -2);
@@ -395,6 +405,7 @@
         left: 0;
         width: calc(var(--fc-lnx) + var(--fc-over));
         color: #BEC5D1;
+        --fc-sat: var(--fc-ink);
         transform-origin: 100% 50%;
         transform: scaleX(1);
       }
@@ -403,6 +414,7 @@
         top: var(--fc-v0);
         height: calc(var(--fc-lny) + var(--fc-over) - var(--fc-v0));
         color: #BEC5D1;
+        --fc-sat: var(--fc-ink);
         transform-origin: 50% 100%;
         transform: scaleY(1);
       }
@@ -411,6 +423,7 @@
         left: calc(var(--fc-lbx) - var(--fc-over));
         width: calc(100% - (var(--fc-lbx) - var(--fc-over)));
         color: #99B5E8;
+        --fc-sat: var(--fc-blue);
         transform-origin: 0 50%;
         transform: scaleX(1);
       }
@@ -419,6 +432,7 @@
         top: calc(var(--fc-lby) - var(--fc-over));
         height: calc(var(--fc-v1) - (var(--fc-lby) - var(--fc-over)));
         color: #93D9BA;
+        --fc-sat: var(--fc-jade);
         transform-origin: 50% 0;
         transform: scaleY(1);
       }
@@ -434,37 +448,37 @@
       #splash.fc-intro-play .fc-hair-bot {
         animation: fc-jade-v 1.15s cubic-bezier(0.4, 0, 0.2, 1) both;
       }
+      #splash.fc-intro-play .fc-hair::after {
+        animation: fc-sat 1.15s cubic-bezier(0.4, 0, 0.2, 1) both;
+      }
       @keyframes fc-navy-h {
-        0%, 32% { transform: scaleX(1); color: #BEC5D1; opacity: 1; }
-        18% { color: #5A6A7E; }
-        32% { color: var(--fc-ink); }
-        68%, 86% { transform: scaleX(var(--fc-sx)); color: var(--fc-ink); opacity: 1; }
-        86% { color: #C5CCD6; }
-        100% { transform: scaleX(var(--fc-sx)); color: #C5CCD6; opacity: 0; }
+        0%, 32% { transform: scaleX(1); opacity: 1; }
+        68%, 86% { transform: scaleX(var(--fc-sx)); opacity: 1; }
+        100% { transform: scaleX(var(--fc-sx)); opacity: 0; }
       }
       @keyframes fc-navy-v {
-        0%, 18% { transform: scaleY(1); color: #BEC5D1; opacity: 1; }
-        18% { color: #5A6A7E; }
-        32% { transform: scaleY(0.72); color: var(--fc-ink); opacity: 1; }
-        68%, 86% { transform: scaleY(var(--fc-sy)); color: var(--fc-ink); opacity: 1; }
-        86% { color: #C5CCD6; }
-        100% { transform: scaleY(var(--fc-sy)); color: #C5CCD6; opacity: 0; }
+        0%, 18% { transform: scaleY(1); opacity: 1; }
+        32% { transform: scaleY(0.72); opacity: 1; }
+        68%, 86% { transform: scaleY(var(--fc-sy)); opacity: 1; }
+        100% { transform: scaleY(var(--fc-sy)); opacity: 0; }
       }
       @keyframes fc-blue-h {
-        0%, 32% { transform: scaleX(1); color: #99B5E8; opacity: 1; }
-        18% { color: #6A93DC; }
-        32% { color: var(--fc-blue); }
-        68%, 86% { transform: scaleX(var(--fc-sx)); color: var(--fc-blue); opacity: 1; }
-        86% { color: #C5D6F2; }
-        100% { transform: scaleX(var(--fc-sx)); color: #C5D6F2; opacity: 0; }
+        0%, 32% { transform: scaleX(1); opacity: 1; }
+        68%, 86% { transform: scaleX(var(--fc-sx)); opacity: 1; }
+        100% { transform: scaleX(var(--fc-sx)); opacity: 0; }
       }
       @keyframes fc-jade-v {
-        0%, 18% { transform: scaleY(1); color: #93D9BA; opacity: 1; }
-        18% { color: #4EC89A; }
-        32% { transform: scaleY(0.72); color: var(--fc-jade); opacity: 1; }
-        68%, 86% { transform: scaleY(var(--fc-sy)); color: var(--fc-jade); opacity: 1; }
-        86% { color: #B8E6D2; }
-        100% { transform: scaleY(var(--fc-sy)); color: #B8E6D2; opacity: 0; }
+        0%, 18% { transform: scaleY(1); opacity: 1; }
+        32% { transform: scaleY(0.72); opacity: 1; }
+        68%, 86% { transform: scaleY(var(--fc-sy)); opacity: 1; }
+        100% { transform: scaleY(var(--fc-sy)); opacity: 0; }
+      }
+      @keyframes fc-sat {
+        0% { opacity: 0; }
+        18% { opacity: 0.45; }
+        32%, 68% { opacity: 1; }
+        86% { opacity: 0.2; }
+        100% { opacity: 0; }
       }
       @media (prefers-reduced-motion: reduce) {
         .fc-intro-lines,
