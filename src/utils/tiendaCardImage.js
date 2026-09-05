@@ -2,9 +2,10 @@
  * Fotos de tarjeta: el packshot de Storage suele ser 600–1200 px.
  * En un recuadro de ~152 px Safari decodifica el bitmap completo (~2–6 MB).
  * La API render de Supabase entrega un thumb de verdad.
+ * 480 px cubre pantalla 3× (152×3) sin bajar el JPEG original.
  */
 
-export const TIENDA_CARD_THUMB_PX = 320;
+export const TIENDA_CARD_THUMB_PX = 480;
 export const CATALOGO_PAGE_SIZE = 36;
 export const PRODUCTOS_CACHE_KEY = "farmacapital_productos_cache";
 
