@@ -1,3 +1,7 @@
+-- DEPRECATED: la factura real es folio 6089573392 (foto 01-sep-2026).
+-- Pega en su lugar: sql/patch_carga_nadro_6089573392.sql
+-- (renombra 20260901 → 6089573392 si el borrador sigue vivo + fichas iNadro).
+--
 -- Pedido Nadro 20260901 (2026-09-01) — altas + cola Recibir.
 -- SIN bloques dollar-quote (do $$). El SQL Editor de Supabase los corta.
 -- 10 altas stock 0. 3 ya estaban: solo costo, no PVP.

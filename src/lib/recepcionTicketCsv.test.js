@@ -84,4 +84,24 @@ describe("parseTicketCsv", () => {
     expect(renglones.some((r) => r.codigo === "037836051227")).toBe(true);
     expect(renglones.some((r) => r.codigo === "3337875917810" && r.costo === 372.2)).toBe(true);
   });
+
+  test("Nadro factura 6089573392 (folio real) generado", () => {
+    const csv = readFileSync(join(__dirname, "../../sql/generated/ticket_nadro_6089573392.csv"), "utf8");
+    const sql = readFileSync(join(__dirname, "../../sql/patch_carga_nadro_6089573392.sql"), "utf8");
+    const { renglones, folio, proveedor, total } = parseTicketCsv(csv);
+    expect(folio).toBe("6089573392");
+    expect(proveedor).toBe("Nadro");
+    expect(total).toBe(848.05);
+    expect(renglones).toHaveLength(13);
+    expect(renglones.reduce((a, r) => a + r.cantidad, 0)).toBe(15);
+    expect(renglones.some((r) => r.codigo === "3337875917810" && r.costo === 372.2)).toBe(true);
+    expect(sql).not.toMatch(/do\s*\$\$/i);
+    expect(sql).toMatch(/La Roche-Posay Anthelios UV Air/i);
+    expect(sql).toMatch(/'La Roche-Posay'/);
+    expect(sql).toMatch(/folio = '6089573392'/);
+    expect(sql).toMatch(/folio = '20260901'/);
+    // snap del ticket sí puede quedar; el nombre de catálogo no
+    expect(sql).toMatch(/'La Roche-Posay Anthelios UV Air FPS 50\+ Protector Solar Ligero 40 ml'/);
+    expect(sql).toMatch(/'BLOQ ANTHE UVAIR 50\+ FLU INV 40ML'/);
+  });
 });

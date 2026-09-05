@@ -5,14 +5,18 @@
 -- al pegar el alta: entra al escanear la caja y teclear el MMAA de la tapa.
 -- 0000 es inválido. Si no hay fecha en la caja, el renglón se queda gris.
 --
+-- Preferible: sql/patch_carga_nadro_6089573392.sql (factura completa + fichas).
+-- Este script solo repara el renglón Anthelios si el pedido ya se cerró sin él.
+--
 -- Este script:
---   1) Diagnostica producto / lotes / renglón del ticket Nadro 20260901.
+--   1) Diagnostica producto / lotes / renglón del ticket Nadro 6089573392 / 20260901.
 --   2) Enlaza el EAN 3337875917810 a la ficha (ya no «pendiente de alta»).
 --   3) Si el pedido ya se cerró sin esta caja, abre un borrador vivo
---      folio 20260901-UVAIR para terminar con la pistola.
+--      folio 6089573392-UVAIR (o 20260901-UVAIR legacy) para terminar con la pistola.
 --
 -- NO suma stock. NO inventa caducidad ni número de lote.
 -- Requiere haber corrido sql/patch_alta_anthelios_uvair_nadro_20260901.sql
+--   o sql/patch_carga_nadro_6089573392.sql
 -- Pegar en Supabase → SQL Editor → Run.
 -- ============================================================================
 
