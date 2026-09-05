@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
+import { Plus, Receipt } from "lucide-react";
 import { C_LIGHT } from "./constants";
+import { SegmentedNav } from "./components/SegmentedNav";
+import { PageHero } from "./components/AdminChrome";
 import { supabase } from "./supabase";
 import { downloadFacturaPDF } from "./utils/generateFacturaPDF";
 
@@ -266,7 +269,7 @@ export default function FacturacionModule() {
   return (
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-        <h1 className="fc-page-hero" style={{color:C.text,fontSize:20,fontWeight:800,margin:0}}>🧾 Facturación CFDI</h1>
+        <PageHero Icon={Receipt}>Facturación CFDI</PageHero>
         {PAC_CONFIG.modo==="simulado"&&(
           <span style={{padding:"4px 12px",borderRadius:20,fontSize:11,fontWeight:700,background:C.amberDim,color:"#92400e"}}>
             ⚠️ Modo prueba — Sin PAC real
@@ -308,15 +311,18 @@ export default function FacturacionModule() {
       </div>
 
       {/* Tabs */}
-      <div style={{display:"flex",gap:4,marginBottom:20,borderBottom:`1px solid ${C.border}`}}>
-        {[["facturas","🧾 Facturas emitidas"],["nueva","➕ Nueva factura"]].map(([id,label])=>(
-          <button key={id} onClick={()=>setTab(id)} style={{
-            padding:"8px 18px",border:"none",cursor:"pointer",fontWeight:700,fontSize:12,
-            borderRadius:"8px 8px 0 0",background:"transparent",
-            color:tab===id?BRAND.primary:C.textMid,
-            borderBottom:tab===id?`2px solid ${BRAND.primary}`:"2px solid transparent",
-          }}>{label}</button>
-        ))}
+      <div style={{ marginBottom: 20 }}>
+        <SegmentedNav
+          size="md"
+          activation="auto"
+          ariaLabel="Secciones de facturación"
+          value={tab}
+          onChange={setTab}
+          items={[
+            { id: "facturas", label: "Facturas emitidas", Icon: Receipt },
+            { id: "nueva", label: "Nueva factura", Icon: Plus },
+          ]}
+        />
       </div>
 
       {/* Tab: Facturas */}

@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
+import { Tag, TrendingUp } from "lucide-react";
 import { C_LIGHT } from "./constants";
+import { SegmentedNav } from "./components/SegmentedNav";
+import { PageHero } from "./components/AdminChrome";
 import { supabase } from "./supabase";
 import { showToast } from "./ui";
 import { hoyISOMexico } from "./lib/fecha";
@@ -313,18 +316,21 @@ export default function PromocionesModule({ onNavigate }) {
   return (
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-        <h1 className="fc-page-hero" style={{color:C.text,fontSize:20,fontWeight:800,margin:0}}>🏷️ Promociones</h1>
+        <PageHero Icon={Tag}>Promociones</PageHero>
       </div>
 
-      <div style={{display:"flex",gap:4,marginBottom:20,borderBottom:`1px solid ${C.border}`}}>
-        {[["promos","🏷️ Promociones activas"],["precios","📊 Precios vs competencia"]].map(([id,label])=>(
-          <button key={id} onClick={()=>setTab(id)} style={{
-            padding:"8px 18px",border:"none",cursor:"pointer",fontWeight:700,fontSize:12,
-            borderRadius:"8px 8px 0 0",background:"transparent",
-            color:tab===id?BRAND.primary:C.textMid,
-            borderBottom:tab===id?`2px solid ${BRAND.primary}`:"2px solid transparent",
-          }}>{label}</button>
-        ))}
+      <div style={{ marginBottom: 20 }}>
+        <SegmentedNav
+          size="md"
+          activation="auto"
+          ariaLabel="Secciones de promociones"
+          value={tab}
+          onChange={setTab}
+          items={[
+            { id: "promos", label: "Promociones activas", Icon: Tag },
+            { id: "precios", label: "Precios vs competencia", Icon: TrendingUp },
+          ]}
+        />
       </div>
 
       {tab==="promos"  && <Promociones productos={productos}/>}

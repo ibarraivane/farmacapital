@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { Award, Banknote, CircleDollarSign, SlidersHorizontal, Stethoscope, TrendingUp } from "lucide-react";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { C_LIGHT, BRAND } from "../../constants";
+import { SegmentedNav } from "../../components/SegmentedNav";
+import { PageHero } from "../../components/AdminChrome";
 import { supabase } from "../../supabase";
 import { Box, Btn, showToast } from "../../ui";
 import { CONSULTA_PRECIO_DEFAULT } from "../../utils/consultaConstants";
@@ -160,27 +163,6 @@ function validarCampo(clave, raw) {
 // ═══════════════════════════════════════════════════════════════
 // UI HELPERS
 // ═══════════════════════════════════════════════════════════════
-
-function TabButton({ active, onClick, children }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      style={{
-        padding: "9px 16px",
-        borderRadius: 8,
-        border: `1px solid ${active ? BRAND.primary : C.border}`,
-        background: active ? BRAND.primary + "16" : "transparent",
-        color: active ? BRAND.primary : C.textMid,
-        fontSize: 13,
-        fontWeight: 700,
-        cursor: "pointer",
-      }}
-    >
-      {children}
-    </button>
-  );
-}
 
 function InputField({ clave, valor, onChange, compact = false }) {
   const def = FIELDS[clave];
@@ -379,45 +361,27 @@ export default function ConfigConsultorioModule() {
   // ═══════════════════════════════════════════════════════════
   return (
     <div style={{ padding: 24, maxWidth: 960 }}>
-      <h1 className="fc-page-hero" style={{ color: C.text, fontSize: 20, fontWeight: 800, margin: "0 0 8px" }}>🎯 Metas y Precios</h1>
+      <PageHero Icon={SlidersHorizontal} style={{ marginBottom: 8 }}>Metas y Precios</PageHero>
       <p style={{ color: C.textMid, fontSize: 13, marginBottom: 20, lineHeight: 1.5 }}>
         Centro de control de <strong>precios, metas y bonos</strong> de la farmacia. Cada tab se guarda por separado.
       </p>
 
-      <div style={{
-        display: "flex",
-        gap: 8,
-        marginBottom: 20,
-        flexWrap: isMobileCfg ? "nowrap" : "wrap",
-        overflowX: isMobileCfg ? "auto" : "visible",
-        WebkitOverflowScrolling: "touch",
-        scrollbarWidth: "thin",
-      }}>
-        <div style={{ flexShrink: 0 }}>
-          <TabButton active={tab === "servicios"} onClick={() => setTab("servicios")}>
-            {isMobileCfg ? "💵 Precios" : "💵 Precios de servicios"}
-          </TabButton>
-        </div>
-        <div style={{ flexShrink: 0 }}>
-          <TabButton active={tab === "ventas"} onClick={() => setTab("ventas")}>
-            {isMobileCfg ? "📈 Metas ventas" : "📈 Metas de ventas"}
-          </TabButton>
-        </div>
-        <div style={{ flexShrink: 0 }}>
-          <TabButton active={tab === "bonos"} onClick={() => setTab("bonos")}>
-            {isMobileCfg ? "🏆 Bonos" : "🏆 Bonos por desempeño"}
-          </TabButton>
-        </div>
-        <div style={{ flexShrink: 0 }}>
-          <TabButton active={tab === "cons"} onClick={() => setTab("cons")}>
-            {isMobileCfg ? "🩺 Metas cons." : "🩺 Metas del consultorio"}
-          </TabButton>
-        </div>
-        <div style={{ flexShrink: 0 }}>
-          <TabButton active={tab === "finanzas"} onClick={() => setTab("finanzas")}>
-            {isMobileCfg ? "💧 Finanzas" : "💧 Finanzas"}
-          </TabButton>
-        </div>
+      <div style={{ marginBottom: 20 }}>
+        <SegmentedNav
+          size="md"
+          activation="auto"
+          ariaLabel="Secciones de metas y precios"
+          isMobile={isMobileCfg}
+          value={tab}
+          onChange={setTab}
+          items={[
+            { id: "servicios", label: "Precios de servicios", labelMobile: "Precios", Icon: CircleDollarSign },
+            { id: "ventas", label: "Metas de ventas", labelMobile: "Metas ventas", Icon: TrendingUp },
+            { id: "bonos", label: "Bonos por desempeño", labelMobile: "Bonos", Icon: Award },
+            { id: "cons", label: "Metas del consultorio", labelMobile: "Metas cons.", Icon: Stethoscope },
+            { id: "finanzas", label: "Finanzas", Icon: Banknote },
+          ]}
+        />
       </div>
 
       {/* ══════════════ TAB 1: PRECIOS DE SERVICIOS ══════════════ */}
