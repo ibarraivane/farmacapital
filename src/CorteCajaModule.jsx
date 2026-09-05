@@ -1097,6 +1097,12 @@ function ResultadoCorte({ C, resultado, turno, dif, difCol, difBg, difTxt,
               De las ventas en efectivo, {fmt(detalle.efectivo_servicios)} son recargas / pagos de servicio.
             </div>
           )}
+          {detalle && parseFloat(detalle.efectivo_ya_en_fondo || 0) > 0 && (
+            <div style={{color:C.textDim,fontSize:11,marginTop:4,lineHeight:1.4}}>
+              Hubo {fmt(detalle.efectivo_ya_en_fondo)} entre el corte anterior y esta apertura.
+              Ya iban en el fondo; no se vuelven a sumar al esperado.
+            </div>
+          )}
           {detalle && (detalle.tarjeta_servicios > 0) && (
             <div style={{color:C.textDim,fontSize:11,marginTop:4}}>
               De la tarjeta, {fmt(detalle.tarjeta_servicios)} son pagos de servicio.

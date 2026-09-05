@@ -3,8 +3,9 @@
 --
 -- Tablet: sistema $214 · 4 ventas $134 · faltante $23
 -- Día calendario (ya corrido): pedidos $134 + servicios $50 = $184
--- Hueco que queda: $214 − $184 = $30  → casi seguro la ventana
---   “desde el corte anterior” (cadena continua), no el día 5-sep.
+-- Hueco: $214 − $184 = $30. Ese $30 es de DESPUÉS del corte previo y
+-- ANTES de abrir hoy. Ya iba en el fondo; el sistema lo volvió a sumar
+-- (patch_corte_ventana_sesion_20260905.sql lo corta).
 -- ============================================================
 
 -- 1. Cortes del 5-sep
