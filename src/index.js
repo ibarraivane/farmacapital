@@ -117,4 +117,18 @@ window.addEventListener(
   true
 );
 
-ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+async function mountRoot() {
+  if (process.env.NODE_ENV === "development") {
+    try {
+      const preview = new URLSearchParams(window.location.search).get("preview");
+      if (preview === "dash-tabs") {
+        const { default: DashboardTabsPreview } = await import("./DashboardTabsPreview");
+        ReactDOM.createRoot(document.getElementById("root")).render(<DashboardTabsPreview />);
+        return;
+      }
+    } catch (_) { /* noop */ }
+  }
+  ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+}
+
+void mountRoot();

@@ -92,3 +92,164 @@ textarea.farmacapital-field-input::placeholder {
 /* ── Escala tipográfica del sistema visual ──
    Los titulares usan la display serif; el resto hereda del body. */
 .fc-display { font-family: var(--fc-display); font-weight: 600; letter-spacing: -.025em; }
+
+/* Dashboard: riel tipo Vercel/shadcn — una fila, sin chips huérfanos. */
+.fc-dash-tabs {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: nowrap;
+  margin-bottom: 20px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.fc-dash-tabs::-webkit-scrollbar {
+  display: none;
+}
+.fc-dash-seg-wrap {
+  position: relative;
+  flex-shrink: 1;
+  min-width: 0;
+}
+.fc-dash-seg-wrap::after {
+  content: "";
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  bottom: 1px;
+  width: 30px;
+  border-radius: 0 11px 11px 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(238, 242, 247, 0), #eef2f7 72%);
+  opacity: 0;
+  transition: opacity .18s;
+}
+.fc-dash-seg-wrap.has-more::after { opacity: 1; }
+.fc-dash-seg-wrap--sm::after {
+  border-radius: 0 9px 9px 0;
+  background: linear-gradient(90deg, rgba(241, 245, 249, 0), #f1f5f9 72%);
+}
+.fc-dash-seg {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 12px;
+  background: #eef2f7;
+  border: 1px solid #e2e8f0;
+  max-width: 100%;
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  scrollbar-width: none;
+}
+.fc-dash-seg::-webkit-scrollbar { display: none; }
+.fc-dash-seg--sm {
+  padding: 3px;
+  border-radius: 10px;
+  background: #f1f5f9;
+}
+.fc-dash-seg-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px 4px 4px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: #475569;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.fc-dash-seg-tab.no-icon { padding: 4px 11px; }
+.fc-dash-seg--sm .fc-dash-seg-tab {
+  gap: 6px;
+  padding: 3px 9px 3px 3px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+.fc-dash-seg--sm .fc-dash-seg-tab.no-icon { padding: 3px 11px; }
+.fc-dash-seg-tab.is-active {
+  background: #fff;
+  color: #0f172a;
+  font-weight: 700;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .08), 0 0 0 1px rgba(15, 23, 42, .05);
+}
+.fc-dash-seg--sm .fc-dash-seg-tab.is-active {
+  box-shadow: 0 1px 1px rgba(15, 23, 42, .07), 0 0 0 1px rgba(15, 23, 42, .05);
+}
+.fc-dash-seg-tab.is-context {
+  border: 1px solid #e2e8f0;
+  background: #fff;
+}
+.fc-dash-seg-tab.is-context.is-active {
+  border-color: #1E3ABA;
+  color: #1E3ABA;
+  box-shadow: 0 1px 2px rgba(30, 58, 186, .14);
+}
+.fc-dash-seg-tab:hover:not(.is-active):not([aria-disabled="true"]) {
+  color: #0f172a;
+  background: rgba(255, 255, 255, .6);
+}
+.fc-dash-seg-tab:focus-visible {
+  outline: 2px solid #1E3ABA;
+  outline-offset: 1px;
+}
+.fc-dash-seg-tab[aria-disabled="true"] {
+  opacity: .55;
+  cursor: not-allowed;
+  color: #94a3b8;
+}
+.fc-dash-tab-well {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: transparent;
+  color: #94a3b8;
+}
+.fc-dash-tab-well.is-active {
+  background: rgba(30, 58, 186, .16);
+  color: #1E3ABA;
+}
+.fc-dash-seg--sm .fc-dash-tab-well,
+.fc-dash-seg--sm .fc-dash-tab-well.is-active {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: transparent;
+}
+.fc-dash-seg--sm .fc-dash-tab-well.is-active { color: #1E3ABA; }
+.fc-dash-seg-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.fc-dash-tab-move {
+  position: absolute;
+  left: 6px;
+  top: 2px;
+  opacity: 0;
+  pointer-events: none;
+}
+.fc-dash-seg-item:hover .fc-dash-tab-move {
+  opacity: 0.35;
+  pointer-events: auto;
+}
+@media (max-width: 900px) {
+  .fc-dash-tab-move { display: none !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fc-dash-seg-tab,
+  .fc-dash-tab-well,
+  .fc-dash-seg-wrap::after {
+    transition: none !important;
+  }
+}

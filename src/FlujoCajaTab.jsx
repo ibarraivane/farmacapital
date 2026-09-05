@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Banknote, BarChart3, Receipt } from "lucide-react";
 import { C_LIGHT, BRAND } from "./constants";
+import { SegmentedNav } from "./components/SegmentedNav";
 import { supabase } from "./supabase";
 import { $ } from "./utils";
 import { Box, Btn, KPI, KPI_ROW, SkeletonKPIs, SkeletonTable, Tag, showToast } from "./ui";
@@ -60,35 +62,20 @@ function Banner({ nivel, titulo, children }) {
 }
 
 function SubNav({ value, onChange }) {
-  const items = [
-    { id: "flujo", label: "Flujo", disabled: false },
-    { id: "resultados", label: "Resultados", disabled: true },
-    { id: "gastos", label: "Gastos", disabled: false },
-  ];
   return (
-    <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-      {items.map((it) => (
-        <button
-          key={it.id}
-          type="button"
-          disabled={it.disabled}
-          title={it.disabled ? "P&L bloqueado: falta la cobertura de costo de lo vendido (consulta 4)." : undefined}
-          onClick={() => { if (!it.disabled) onChange(it.id); }}
-          style={{
-            padding: "7px 14px",
-            borderRadius: 8,
-            border: `1px solid ${value === it.id ? BRAND.primary : C.border}`,
-            background: value === it.id ? `${BRAND.primary}16` : "transparent",
-            color: it.disabled ? C.textDim : value === it.id ? BRAND.primary : C.textMid,
-            fontWeight: 700,
-            fontSize: 12,
-            cursor: it.disabled ? "not-allowed" : "pointer",
-            opacity: it.disabled ? 0.55 : 1,
-          }}
-        >
-          {it.label}{it.disabled ? " · pronto" : ""}
-        </button>
-      ))}
+    <div style={{ marginBottom: 16 }}>
+      <SegmentedNav
+        size="sm"
+        activation="auto"
+        ariaLabel="Secciones de flujo de caja"
+        value={value}
+        onChange={onChange}
+        items={[
+          { id: "flujo", label: "Flujo", Icon: Banknote },
+          { id: "resultados", label: "Resultados · pronto", Icon: BarChart3, disabled: true, title: "P&L bloqueado: falta la cobertura de costo de lo vendido (consulta 4)." },
+          { id: "gastos", label: "Gastos", Icon: Receipt },
+        ]}
+      />
     </div>
   );
 }
@@ -287,26 +274,19 @@ export default function FlujoCajaTab({ usuario, setPage, showConfirm }) {
     <div>
       <SubNav value={sub} onChange={setSub} />
 
-      <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
-        {[["dia", "Hoy"], ["semana", "Esta semana"], ["mes", "Este mes"]].map(([v, l]) => (
-          <button
-            key={v}
-            type="button"
-            onClick={() => setPeriodo(v)}
-            style={{
-              padding: "6px 14px",
-              borderRadius: 8,
-              border: `1px solid ${periodo === v ? BRAND.primary : C.border}`,
-              background: periodo === v ? `${BRAND.primary}18` : "transparent",
-              color: periodo === v ? BRAND.primary : C.textMid,
-              fontSize: 12,
-              fontWeight: 700,
-              cursor: "pointer",
-            }}
-          >
-            {l}
-          </button>
-        ))}
+      <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
+        <SegmentedNav
+          size="sm"
+          activation="auto"
+          ariaLabel="Período del flujo"
+          value={periodo}
+          onChange={setPeriodo}
+          items={[
+            { id: "dia", label: "Hoy" },
+            { id: "semana", label: "Esta semana" },
+            { id: "mes", label: "Este mes" },
+          ]}
+        />
         <span style={{ color: C.textDim, fontSize: 11 }}>
           {bundle.desde} → {bundle.hasta}
           {" · "}
