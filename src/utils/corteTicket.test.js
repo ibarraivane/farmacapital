@@ -44,7 +44,7 @@ describe("detalle de corte: recargas + ventas", () => {
     expect(merged.reduce((a, t) => a + t.total, 0)).toBe(85);
   });
 
-  test("el hueco 214 vs 134 se explica si falta una recarga de 80", () => {
+  test("el hueco sistema vs tickets se cierra al sumar recargas", () => {
     const ventas = [
       { id: 189, created_at: "2026-09-05T19:37:00Z", metodo_pago: "efectivo", total: 5, items: [] },
       { id: 188, created_at: "2026-09-05T18:26:00Z", metodo_pago: "efectivo", total: 55, items: [] },
