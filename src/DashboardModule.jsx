@@ -17,7 +17,7 @@ import { CONSULTA_PRECIO_DEFAULT } from "./utils/consultaConstants";
 import { resumenLineasReceta } from "./utils/recetaLineas";
 import TransaccionesTab from "./TransaccionesTab";
 import FlujoCajaTab from "./FlujoCajaTab";
-import { IconWell } from "./components/SegmentedNav";
+import { IconWell, SegmentedNav } from "./components/SegmentedNav";
 import { countPedidosTiendaPendientesHead } from "./utils/pedidosTiendaWeb";
 import { rolEsAdmin } from "./utils/permissions";
 import { fixLegacyFarmaxBrand } from "./utils/brandText";
@@ -148,24 +148,6 @@ export function DashboardNavTab({ id, active, onClick, isMobile, tone = "segment
       onClick={onClick}
       title={meta.title}
       className={`fc-dash-seg-tab${active ? " is-active" : ""}${isContext ? " is-context" : ""}`}
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 8,
-        padding: "4px 10px 4px 4px",
-        border: isContext ? `1px solid ${active ? BRAND.primary : C_LIGHT.border}` : "none",
-        borderRadius: 10,
-        background: active || isContext ? "#fff" : "transparent",
-        boxShadow: active
-          ? (isContext ? "0 1px 2px rgba(30,58,186,.14)" : "0 1px 2px rgba(15,23,42,.08), 0 0 0 1px rgba(15,23,42,.05)")
-          : "none",
-        color: active ? (isContext ? BRAND.primary : C_LIGHT.text) : C_LIGHT.textMid,
-        fontWeight: active ? 700 : 600,
-        fontSize: 13,
-        cursor: "pointer",
-        flexShrink: 0,
-        whiteSpace: "nowrap",
-      }}
     >
       <IconWell Icon={Icon} active={active} size={isMobile ? 16 : 15} />
       {label}
@@ -182,21 +164,14 @@ export function DashboardTabsRail({
   onReorder,
   dragRef,
 }) {
+  const items = operativaIds
+    .map((id) => {
+      const meta = DASHBOARD_TAB_META[id];
+      return meta ? { id, label: meta.label, labelMobile: meta.labelMobile, title: meta.title, Icon: meta.Icon } : null;
+    })
+    .filter(Boolean);
   return (
-    <div
-      className="fc-dash-tabs"
-      role="tablist"
-      aria-label="Secciones del dashboard"
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        flexWrap: "nowrap",
-        marginBottom: 20,
-        overflowX: "auto",
-        WebkitOverflowScrolling: "touch",
-      }}
-    >
+    <div className="fc-dash-tabs">
       {showProyecto && (
         <DashboardNavTab
           id="proyecto"
@@ -206,43 +181,17 @@ export function DashboardTabsRail({
           isMobile={isMobile}
         />
       )}
-      <div className="fc-dash-seg">
-        {operativaIds.map((id) => (
-          <div
-            key={id}
-            className="fc-dash-seg-item"
-            onDragOver={(e) => { if (onReorder) e.preventDefault(); }}
-            onDrop={(e) => {
-              if (!onReorder) return;
-              e.preventDefault();
-              const from = e.dataTransfer.getData("text/dashboard-tab") || dragRef?.current;
-              onReorder(from, id);
-              if (dragRef) dragRef.current = null;
-            }}
-          >
-            {onReorder && (
-              <span
-                className="fc-dash-tab-move"
-                draggable
-                onDragStart={(e) => {
-                  if (dragRef) dragRef.current = id;
-                  e.dataTransfer.setData("text/dashboard-tab", id);
-                  e.dataTransfer.effectAllowed = "move";
-                }}
-                onDragEnd={() => { if (dragRef) dragRef.current = null; }}
-                title="Arrastrar para reordenar"
-                aria-hidden
-              >⋮⋮</span>
-            )}
-            <DashboardNavTab
-              id={id}
-              active={activeId === id}
-              onClick={() => onSelect(id)}
-              isMobile={isMobile}
-            />
-          </div>
-        ))}
-      </div>
+      <SegmentedNav
+        size="md"
+        activation="manual"
+        ariaLabel="Secciones del dashboard"
+        items={items}
+        value={activeId}
+        onChange={onSelect}
+        isMobile={isMobile}
+        onReorder={onReorder}
+        dragRef={dragRef}
+      />
     </div>
   );
 }

@@ -65,6 +65,8 @@ function SubNav({ value, onChange }) {
   return (
     <div style={{ marginBottom: 16 }}>
       <SegmentedNav
+        size="sm"
+        activation="auto"
         ariaLabel="Secciones de flujo de caja"
         value={value}
         onChange={onChange}
@@ -272,26 +274,19 @@ export default function FlujoCajaTab({ usuario, setPage, showConfirm }) {
     <div>
       <SubNav value={sub} onChange={setSub} />
 
-      <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
-        {[["dia", "Hoy"], ["semana", "Esta semana"], ["mes", "Este mes"]].map(([v, l]) => (
-          <button
-            key={v}
-            type="button"
-            onClick={() => setPeriodo(v)}
-            style={{
-              padding: "6px 14px",
-              borderRadius: 8,
-              border: `1px solid ${periodo === v ? BRAND.primary : C.border}`,
-              background: periodo === v ? `${BRAND.primary}18` : "transparent",
-              color: periodo === v ? BRAND.primary : C.textMid,
-              fontSize: 12,
-              fontWeight: 700,
-              cursor: "pointer",
-            }}
-          >
-            {l}
-          </button>
-        ))}
+      <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
+        <SegmentedNav
+          size="sm"
+          activation="auto"
+          ariaLabel="Período del flujo"
+          value={periodo}
+          onChange={setPeriodo}
+          items={[
+            { id: "dia", label: "Hoy" },
+            { id: "semana", label: "Esta semana" },
+            { id: "mes", label: "Este mes" },
+          ]}
+        />
         <span style={{ color: C.textDim, fontSize: 11 }}>
           {bundle.desde} → {bundle.hasta}
           {" · "}
