@@ -60,7 +60,7 @@ const getRangoFiltro = (filtro) => {
   return null;
 };
 
-export default function CorteCajaModule({usuario }) {
+export default function CorteCajaModule({usuario, onCerrarSesion }) {
   const C = C_LIGHT;
   const isMobile = useMediaQuery("(max-width: 900px)");
   const inputStyle = { ...mkInputStyle(C), fontSize: isMobile ? 16 : 13 };
@@ -378,11 +378,20 @@ export default function CorteCajaModule({usuario }) {
   // Detalle de las ventas del turno. Se carga DESPUÉS de guardar: si estuviera
   // disponible antes, el cajero podría sumar las ventas en efectivo y deducir
   // el número que se supone que debe descubrir contando.
-  const cargarReporteZ = useCallback(async () => {
+  const cargarReporteZ = useCallback(async (ventana) => {
     setCargandoZ(true);
     try {
       const tok = sessionStorage.getItem("farmacapital_session_token");
-      const { inicio, fin } = getRango(turno);
+      let inicio;
+      let fin;
+      if (ventana?.inicio && ventana?.fin) {
+        inicio = typeof ventana.inicio === "string" ? ventana.inicio : new Date(ventana.inicio).toISOString();
+        fin = typeof ventana.fin === "string" ? ventana.fin : new Date(ventana.fin).toISOString();
+      } else {
+        const r = getRango(turno);
+        inicio = r.inicio;
+        fin = r.fin;
+      }
       const ventas = tok
         ? await cargarVentasDetalleTurno(supabase, tok, inicio, fin)
         : [];
@@ -475,7 +484,7 @@ export default function CorteCajaModule({usuario }) {
       mercadopago: data?.mercadopago ?? mp,
       denominaciones: usaDenoms ? denomsLimpios : data?.denominaciones,
     });
-    cargarReporteZ();
+    cargarReporteZ({ inicio: data?.ventana_inicio, fin: data?.ventana_fin });
     try {
       const { data: ns } = await supabase.rpc("empleado_marcar_citas_no_show_corte", {
         p_session_token: tok,
@@ -542,6 +551,7 @@ export default function CorteCajaModule({usuario }) {
           btnSecondary={btnSecondary} onNuevo={nuevoCorte} cajero={usuario?.nombre}
           denominaciones={resultado?.denominaciones}
           permitirOtro={!esVendedor(usuario)}
+          onCerrarSesion={onCerrarSesion}
           cierreHint={jornada?.cubre_ambos
             ? "Hoy cubres ambos. Abre el siguiente turno en el POS."
             : "Turno cerrado. El otro turno lo abre tu compañera."}
@@ -968,7 +978,7 @@ export default function CorteCajaModule({usuario }) {
 // ══════════════════════════════════════════════════════════════
 function ResultadoCorte({ C, resultado, turno, dif, difCol, difBg, difTxt,
                           zTransac, cargandoZ, btnSecondary, onNuevo, cajero,
-                          denominaciones, permitirOtro, cierreHint }) {
+                          denominaciones, permitirOtro, cierreHint, onCerrarSesion }) {
   const esperado  = parseFloat(resultado?.esperado ?? 0);
   const sistema   = parseFloat(resultado?.efectivo_sistema ?? 0);
   const fondoRes  = parseFloat(resultado?.fondo_inicial ?? 0);
@@ -1038,6 +1048,11 @@ function ResultadoCorte({ C, resultado, turno, dif, difCol, difBg, difTxt,
   };
 
   const totalZ = (zTransac || []).reduce((a,t)=>a+parseFloat(t.total||0),0);
+  const nServicios = (zTransac || []).filter((t) => t.tipo === "servicio").length;
+  const nVentas = (zTransac || []).length - nServicios;
+  const etiquetaDetalle = nServicios
+    ? `${nVentas} venta(s) · ${nServicios} recarga(s) · ${fmt(totalZ)}`
+    : `${nVentas} venta(s) · ${fmt(totalZ)}`;
 
   return (
     <div style={{display:"flex",flexDirection:"column",gap:16,maxWidth:820}}>
@@ -1077,6 +1092,11 @@ function ResultadoCorte({ C, resultado, turno, dif, difCol, difBg, difTxt,
               <span style={{color:C.text,fontSize:13,fontWeight:600}}>{fmt(v)}</span>
             </div>
           ))}
+          {detalle && parseFloat(detalle.efectivo_servicios || 0) > 0 && (
+            <div style={{color:C.textDim,fontSize:11,marginTop:4}}>
+              De las ventas en efectivo, {fmt(detalle.efectivo_servicios)} son recargas / pagos de servicio.
+            </div>
+          )}
           {detalle && (detalle.tarjeta_servicios > 0) && (
             <div style={{color:C.textDim,fontSize:11,marginTop:4}}>
               De la tarjeta, {fmt(detalle.tarjeta_servicios)} son pagos de servicio.
@@ -1102,7 +1122,7 @@ function ResultadoCorte({ C, resultado, turno, dif, difCol, difBg, difTxt,
       <div style={{background:C.card,borderRadius:12,border:`1px solid ${C.border}`,padding:20}}>
         <div style={{display:"flex",alignItems:"center",marginBottom:12}}>
           <div style={{color:C.text,fontWeight:800,fontSize:14,flex:1}}>
-            🧾 Detalle del turno {cargandoZ ? "" : `· ${(zTransac||[]).length} venta(s) · ${fmt(totalZ)}`}
+            🧾 Detalle del turno {cargandoZ ? "" : `· ${etiquetaDetalle}`}
           </div>
           <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
           <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",justifyContent:"flex-end"}}>
@@ -1186,6 +1206,13 @@ function ResultadoCorte({ C, resultado, turno, dif, difCol, difBg, difTxt,
       ) : (
         <div style={{color:C.textMid,fontSize:13,lineHeight:1.45}}>
           {cierreHint || "Turno cerrado. El otro turno lo abre tu compañera."}
+          {onCerrarSesion && (
+            <div style={{marginTop:14}}>
+              <button type="button" onClick={onCerrarSesion} style={{...btnSecondary,padding:"10px 18px"}}>
+                Cerrar sesión
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
