@@ -133,7 +133,7 @@ const DASHBOARD_TAB_META = {
   flujo: { label: "Flujo de caja", labelMobile: "Flujo", title: "Entradas, salidas y caja", Icon: Wallet },
 };
 
-function DashboardNavTab({ id, active, onClick, isMobile }) {
+export function DashboardNavTab({ id, active, onClick, isMobile }) {
   const meta = DASHBOARD_TAB_META[id];
   if (!meta) return null;
   const Icon = meta.Icon;
