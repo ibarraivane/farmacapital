@@ -1,0 +1,3 @@
+linea,folio,fecha,proveedor,ean,descripcion_ticket,cantidad,precio_unitario,subtotal,lote,caducidad,sku_farmacapital,total_ticket,match
+1,122573,2026-09-05,IFC F8 Tienda,7503002045008,Del Viejito Reomatolum pomada 60 g,5,20.00,100.00,,,FC-1FBF5206,120.00,catalogo
+2,122573,2026-09-05,IFC F8 Tienda,7506346604917,Kohn lavaojos de plástico,5,4.00,20.00,,,FC-46604917,120.00,sufarmed
