@@ -147,12 +147,23 @@ export function FlyerCard({ qrUrl, compact = false }) {
           style={{
             display: "flex",
             justifyContent: "center",
-            marginBottom: compact ? 10 : 14,
+            marginBottom: compact ? 8 : 12,
             overflow: "visible",
           }}
         >
-          <FlyerLogo compact={compact} />
+          <FlyerCruz size={compact ? 72 : 96} />
         </div>
+        <h1
+          style={{
+            margin: 0,
+            fontSize: compact ? 28 : "clamp(34px, 9vw, 44px)",
+            fontWeight: 800,
+            lineHeight: 1.05,
+            letterSpacing: -1.2,
+          }}
+        >
+          FarmaCapital
+        </h1>
         <div
           style={{
             fontSize: 11,
@@ -160,12 +171,12 @@ export function FlyerCard({ qrUrl, compact = false }) {
             textTransform: "uppercase",
             fontWeight: 700,
             color: "rgba(255,255,255,0.62)",
-            marginBottom: 8,
+            margin: "8px 0 0",
           }}
         >
           Farmacia · Consulta · Envío
         </div>
-        <p style={{ margin: "4px auto 0", maxWidth: 320, fontSize: 14, lineHeight: 1.5, color: "rgba(255,255,255,0.82)" }}>
+        <p style={{ margin: "10px auto 0", maxWidth: 320, fontSize: 14, lineHeight: 1.5, color: "rgba(255,255,255,0.82)" }}>
           Entra, busca lo que necesitas y compra. Si no está en el catálogo, te lo conseguimos a domicilio.
         </p>
 

@@ -18,9 +18,9 @@ test("el flyer usa el lockup oficial en claro", () => {
   expect(screen.getByAltText("FarmaCapital")).toBeTruthy();
 });
 
-test("la tarjeta lleva el logo oficial, no un FarmaCapital tipográfico", () => {
+test("la tarjeta dice FarmaCapital y usa el isotipo oficial", () => {
   const { container } = render(<FlyerCard qrUrl="https://www.farmacapital.mx/" />);
+  expect(container.querySelector("h1")?.textContent).toBe("FarmaCapital");
   const imgs = [...container.querySelectorAll("img")];
-  expect(imgs.some((img) => /farmacapital-logo-full-light\.png/.test(img.getAttribute("src") || ""))).toBe(true);
-  expect(container.querySelector("h1")).toBeNull();
+  expect(imgs.some((img) => /farmacapital-icon-light\.png/.test(img.getAttribute("src") || ""))).toBe(true);
 });
