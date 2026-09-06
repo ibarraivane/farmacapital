@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { Undo2 } from "lucide-react";
 import { C_LIGHT } from "./constants";
+import { PageHero } from "./components/AdminChrome";
 import { supabase } from "./supabase";
 import { productMatchesSearchQuery } from "./utils/fuzzySearch";
 import { queryRpcDevolucion } from "./utils/busquedaDevolucion";
@@ -687,7 +689,7 @@ export default function DevolucionesModule({ usuario }) {
   return (
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-        <h1 className="fc-page-hero" style={{color:C.text,fontSize:20,fontWeight:800,margin:0}}>↩️ Devoluciones</h1>
+        <PageHero Icon={Undo2}>Devoluciones</PageHero>
         <button style={btnPrimary} onClick={()=>setModal(true)}>+ Nueva devolución</button>
       </div>
 

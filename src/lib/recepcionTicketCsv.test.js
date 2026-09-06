@@ -68,6 +68,17 @@ describe("parseTicketCsv", () => {
     expect(renglones.reduce((a, r) => a + r.cantidad, 0)).toBe(89);
     expect(renglones.every((r) => r.codigo && r.codigo.length >= 8)).toBe(true);
     expect(renglones.every((r) => !r.numero_lote)).toBe(true);
+
+    // Supabase SQL Editor corta do $$ — el patch debe ser solo SQL plano.
+    const sql = readFileSync(
+      join(__dirname, "../../sql/patch_recepcion_nadro_1658128647824_corroborar.sql"),
+      "utf8",
+    );
+    expect(sql).toMatch(/SIN bloques dollar-quote/);
+    expect(sql).not.toMatch(/\ndo\s*\$\$/);
+    expect(sql).not.toMatch(/\nend\s*\$\$/);
+    expect(sql).toMatch(/folio = '1658128647824-01'/);
+    expect((sql.match(/^\s*\(\d+,/gm) || []).length).toBe(50);
   });
 
   test("Nadro 20260901 generado", () => {
@@ -83,5 +94,24 @@ describe("parseTicketCsv", () => {
     expect(renglones.some((r) => r.codigo === "7506494600038" && r.cantidad === 1)).toBe(true);
     expect(renglones.some((r) => r.codigo === "037836051227")).toBe(true);
     expect(renglones.some((r) => r.codigo === "3337875917810" && r.costo === 372.2)).toBe(true);
+  });
+
+  test("Farmaceutica La Mejor 84791 generado", () => {
+    const csv = readFileSync(
+      join(__dirname, "../../sql/generated/ticket_farmaceutica_la_mejor_84791.csv"),
+      "utf8"
+    );
+    const { renglones, folio, proveedor, total } = parseTicketCsv(csv);
+    expect(folio).toBe("84791");
+    expect(proveedor).toBe("Farmaceutica La Mejor");
+    expect(total).toBe(736.72);
+    expect(renglones).toHaveLength(4);
+    expect(renglones.reduce((a, r) => a + r.cantidad, 0)).toBe(15);
+    expect(renglones.every((r) => r.codigo && r.codigo.length >= 8)).toBe(true);
+    expect(renglones.every((r) => !r.numero_lote)).toBe(true);
+    expect(renglones.some((r) => r.codigo === "7501417515949" && r.cantidad === 2 && r.costo === 127.3)).toBe(true);
+    expect(renglones.some((r) => r.codigo === "7501836003393" && r.cantidad === 5 && r.costo === 39.01)).toBe(true);
+    expect(renglones.some((r) => r.codigo === "7502227426982" && r.sku === "FC-27427392")).toBe(true);
+    expect(renglones.some((r) => r.codigo === "7501537194178" && r.cantidad === 3 && r.costo === 16.04)).toBe(true);
   });
 });

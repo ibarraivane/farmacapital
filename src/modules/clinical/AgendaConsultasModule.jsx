@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { CalendarDays } from "lucide-react";
 import { C_LIGHT, BRAND } from "../../constants";
+import { PageHero } from "../../components/AdminChrome";
 import { supabase } from "../../supabase";
 import { nombreCompletoPacienteValido, telefonoMxValido, normalizarTelefonoMxGuardar } from "../../utils";
 import { Box, Tag, Btn, KPI, KPI_ROW, Modal, showToast, SkeletonKPIs, SkeletonTable, Inp } from "../../ui";
@@ -505,7 +507,7 @@ export default function AgendaConsultasModule({ usuario, onNavigate }) {
         }}
       >
         <div>
-          <h1 className="fc-page-hero" style={{ color: C.text, fontSize: 22, fontWeight: 800, margin: 0 }}>{titulo}</h1>
+          <PageHero Icon={CalendarDays} size={22}>{titulo}</PageHero>
           <p style={{ color: C.textMid, fontSize: 13, margin: "6px 0 0" }}>
             {mode === "vendedor"
               ? "Consultas del día y cobros en mostrador; sin detalle clínico completo."

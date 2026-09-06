@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
+import { ClipboardList, Pill, ShieldCheck, TriangleAlert } from "lucide-react";
 import { C_LIGHT } from "./constants";
+import { SegmentedNav } from "./components/SegmentedNav";
+import { PageHero } from "./components/AdminChrome";
 import { supabase } from "./supabase";
 import { productMatchesSearchQuery } from "./utils/fuzzySearch";
 import { fixLegacyFarmaxBrand } from "./utils/brandText";
@@ -336,22 +339,24 @@ export default function COFEPRISModule() {
   const btnSecondary = mkBtnSecondary(C);
   const btnSmBlue = mkBtnSmBlue(C);
   const [tab, setTab] = useState("alertas");
-  const TABS = [["alertas","🚦 Alertas legales"],["bitacora","📋 Bitácora antibióticos"],["controlados","💊 Controlados"]];
   return (
     <div style={{padding:24,background:C.bg,minHeight:"100dvh",fontFamily:"var(--fc-body)"}}>
       <div style={{marginBottom:20}}>
-        <h1 className="fc-page-hero" style={{margin:0,color:C.text,fontSize:20,fontWeight:800}}>⚕ COFEPRIS</h1>
-        <p style={{margin:"4px 0 0",color:C.textMid,fontSize:12}}>Cumplimiento regulatorio · FarmaCapital</p>
+        <PageHero Icon={ShieldCheck} sub="Cumplimiento regulatorio · FarmaCapital">COFEPRIS</PageHero>
       </div>
-      <div style={{display:"flex",gap:4,marginBottom:24,borderBottom:`1px solid ${C.border}`}}>
-        {TABS.map(([id,label])=>(
-          <button key={id} onClick={()=>setTab(id)} style={{
-            padding:"9px 18px",border:"none",cursor:"pointer",fontWeight:700,fontSize:12,
-            borderRadius:"8px 8px 0 0",background:tab===id?C.card:"transparent",
-            color:tab===id?C.blue:C.textMid,
-            borderBottom:tab===id?`2px solid ${C.blue}`:"2px solid transparent",
-          }}>{label}</button>
-        ))}
+      <div style={{ marginBottom: 24 }}>
+        <SegmentedNav
+          size="md"
+          activation="auto"
+          ariaLabel="Secciones de COFEPRIS"
+          value={tab}
+          onChange={setTab}
+          items={[
+            { id: "alertas", label: "Alertas legales", Icon: TriangleAlert },
+            { id: "bitacora", label: "Bitácora antibióticos", Icon: ClipboardList },
+            { id: "controlados", label: "Controlados", Icon: Pill },
+          ]}
+        />
       </div>
       {tab==="alertas"     && <AlertasLegales/>}
       {tab==="bitacora"    && <BitacoraAntibioticos/>}

@@ -21,6 +21,11 @@ export function normalizeProveedorCompra(nombre) {
   if (/nadro/i.test(n)) return "Nadro";
   if (/marzam/i.test(n)) return "Marzam";
   if (/scorpion/i.test(n)) return "Scorpion";
+  // Ticket WinCaja imprime "Dulceria La Famosa" (clave LAFAM…); el negocio
+  // es Dulcería La Victoria, Bodega F-20 Central de Abasto.
+  if (/famosa|la\s*victoria|dulcer[ií]a\s*la\s*victoria|lafam/i.test(n)) {
+    return "Dulcería La Victoria";
+  }
   return n;
 }
 

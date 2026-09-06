@@ -5,6 +5,7 @@ import {
   Banknote,
   Building2,
   CalendarRange,
+  LayoutDashboard,
   PieChart,
   RefreshCw,
 } from "lucide-react";
@@ -932,7 +933,10 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
       <div className="fc-dash-hero" style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16,flexWrap:"wrap",gap:12}}>
         <div style={{minWidth:0,flex:"1 1 200px"}}>
           <h1 style={{margin:0,color:C.text,fontSize:"clamp(17px, 2.5vw, 20px)",fontWeight:800,lineHeight:1.2}}>
-            {soloTransacciones ? "◈ Transacciones" : "◈ Dashboard y reportes"}
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+              {soloTransacciones ? <ArrowLeftRight size={18} strokeWidth={2} aria-hidden /> : <LayoutDashboard size={18} strokeWidth={2} aria-hidden />}
+              {soloTransacciones ? "Transacciones" : "Dashboard y reportes"}
+            </span>
           </h1>
           <p style={{margin:"4px 0 0",color:C.textMid,fontSize:12,textTransform:"capitalize"}}>{fmtDate()}</p>
         </div>

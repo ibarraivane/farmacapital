@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { UserCog } from "lucide-react";
+import { PageHero } from "./components/AdminChrome";
 import { useMediaQuery } from './hooks/useMediaQuery';
 import { supabase } from './supabase';
 import { showToast } from './ui';
@@ -433,7 +435,7 @@ export default function RRHHModule() {
     <>
     <div style={S.wrap}>
       <div style={{ marginBottom:24 }}>
-        <h1 className="fc-page-hero" style={{ fontSize:22, fontWeight:800, color:C.text, margin:0 }}>◑ Recursos Humanos</h1>
+        <PageHero Icon={UserCog} size={22}>Recursos Humanos</PageHero>
         <p style={{ color:C.textMid, margin:'4px 0 0', fontSize:13 }}>Empleados · Horarios · Nómina quincenal — FarmaCapital</p>
       </div>
 

@@ -21,6 +21,7 @@ import {
 import { fmtPrecioVenta } from "./lib/preciosReferencia";
 import { parseTicketCsv } from "./lib/recepcionTicketCsv";
 import { prepararRenglonesPackAPiezas } from "./lib/recepcionPackPiezas";
+import { normalizeProveedorCompra } from "./lib/ultimaCompra";
 import {
   recepcionEsTicketDocumento,
   resolverEscaneoRecepcion,
@@ -442,7 +443,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     if (!file) return;
     const text = await file.text();
     const parsed = parseTicketCsv(text);
-    if (parsed.proveedor) setProveedor(parsed.proveedor);
+    if (parsed.proveedor) setProveedor(normalizeProveedorCompra(parsed.proveedor));
     if (parsed.folio) setFolio(parsed.folio);
     if (parsed.total != null) setTotalTicket(String(parsed.total));
     await cargarRenglones(parsed.renglones, parsed);
@@ -474,12 +475,12 @@ export default function RecepcionModule({ ocultarMontos = false }) {
         showToast(json.error || "No se pudo leer el PDF", "error");
         return;
       }
-      if (json.proveedor) setProveedor(json.proveedor);
+      if (json.proveedor) setProveedor(normalizeProveedorCompra(json.proveedor));
       if (json.folio) setFolio(String(json.folio));
       if (json.total != null) setTotalTicket(String(json.total));
       await cargarRenglones(json.renglones || [], {
         folio: json.folio,
-        proveedor: json.proveedor,
+        proveedor: normalizeProveedorCompra(json.proveedor) || json.proveedor,
         total: json.total,
       });
     } catch (e) {
@@ -780,7 +781,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
           {
             id: nuevo.producto_id,
             nombre: pdata.nombre,
-            sku: null,
+            sku: pdata.sku,
             codigo_barras: pdata.codigo_barras,
             activo: true,
             costo: pdata.costo,
@@ -1135,6 +1136,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
                 id="rc-prov"
                 value={proveedor}
                 onChange={setProveedor}
+                onCommit={(n) => setProveedor(normalizeProveedorCompra(n) || n)}
                 proveedores={proveedores}
                 C={C}
                 style={inpBase(C)}

@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { History, Plus, Wallet } from "lucide-react";
 import { C_LIGHT } from "./constants";
+import { SegmentedNav } from "./components/SegmentedNav";
+import { PageHero, RefreshButton } from "./components/AdminChrome";
 import { supabase } from "./supabase";
 import { showToast } from "./ui";
 import OnboardingTour from "./components/OnboardingTour";
@@ -512,20 +515,23 @@ export default function CorteCajaModule({usuario }) {
     <div style={{padding:isMobile?0:24,background:C.bg,minHeight:"100dvh",fontFamily:"var(--fc-body)",maxWidth:"100%",colorScheme:"light"}}>
 
       <div style={{marginBottom:24}}>
-        <h1 className="fc-page-hero" style={{margin:0,color:C.text,fontSize:20,fontWeight:800}}>⊞ Corte de Caja</h1>
-        <p style={{margin:"4px 0 0",color:C.textMid,fontSize:12}}>Control de turnos · FarmaCapital</p>
+        <PageHero Icon={Wallet} sub="Control de turnos · FarmaCapital">Corte de Caja</PageHero>
       </div>
 
-      {/* Tabs */}
-      <div style={{display:"flex",gap:4,marginBottom:24,borderBottom:`1px solid ${C.border}`}}>
-        {(esVendedor(usuario) ? [["nuevo","➕ Cerrar turno"]] : [["nuevo","➕ Nuevo Corte"],["historial","📋 Historial"]]).map(([id,label])=>(
-          <button key={id} onClick={()=>setTab(id)} style={{
-            padding:"9px 20px",border:"none",cursor:"pointer",fontWeight:700,fontSize:13,
-            borderRadius:"8px 8px 0 0", background:tab===id?C.card:"transparent",
-            color:tab===id?C.blue:C.textMid,
-            borderBottom:tab===id?`2px solid ${C.blue}`:"2px solid transparent",
-          }}>{label}</button>
-        ))}
+      <div style={{ marginBottom: 24 }}>
+        <SegmentedNav
+          size="md"
+          activation="auto"
+          ariaLabel="Secciones de corte de caja"
+          value={tab}
+          onChange={setTab}
+          items={esVendedor(usuario)
+            ? [{ id: "nuevo", label: "Cerrar turno", Icon: Plus }]
+            : [
+                { id: "nuevo", label: "Nuevo corte", Icon: Plus },
+                { id: "historial", label: "Historial", Icon: History },
+              ]}
+        />
       </div>
 
       {/* ══ NUEVO CORTE ══ */}
@@ -836,7 +842,7 @@ export default function CorteCajaModule({usuario }) {
               <option value="semana">Esta semana</option>
               <option value="mes">Este mes</option>
             </select>
-            <button onClick={fetchCortes} style={{...btnSecondary,padding:"8px 14px",fontSize:12}}>🔄 Actualizar</button>
+            <RefreshButton onClick={fetchCortes} />
             <span style={{color:C.textMid,fontSize:11,marginLeft:"auto"}}>{cortes.length} corte{cortes.length!==1?"s":""}</span>
           </div>
 

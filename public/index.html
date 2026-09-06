@@ -114,6 +114,13 @@
 
     <!-- Manifest -->
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    <link
+      rel="preload"
+      as="image"
+      href="%PUBLIC_URL%/brand/farmacapital-logo-full.png?v=6"
+      imagesrcset="%PUBLIC_URL%/brand/farmacapital-logo-full@1x.png?v=6 812w, %PUBLIC_URL%/brand/farmacapital-logo-full.png?v=6 1623w"
+      imagesizes="(max-width: 480px) calc(100vw - 44px), (max-width: 1100px) 62vw, 680px"
+    />
 
     <!-- Preconnect fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -125,6 +132,8 @@
          estos valores antes de que cargue el bundle de React. */
       :root {
         --fc-ink: #001534;
+        --fc-blue: #054ABC;
+        --fc-jade: #02A158;
         --fc-canvas: #F4ECE2;
         --fc-surface: #FBFAF8;
         --fc-border: #E4D9CA;
@@ -157,46 +166,364 @@
         touch-action: manipulation;
         overscroll-behavior-y: auto;
       }
-      /* Splash screen mientras carga */
+      /* Intro FarmaCapital — HTML/CSS, logo oficial PNG.
+         Cruz 0–21.072%, centro 10.505%, wordmark desde 25.570%.
+         Las L copian el GIF: dos escuadras en los hombros de la cruz,
+         verticales primero, estela que palidece, cruz oficial sin deformar. */
       #splash {
-        position: fixed; inset: 0; z-index: 9999;
-        background: var(--fc-canvas);
-        display: flex; align-items: center; justify-content: center;
-        flex-direction: column; gap: 20px;
+        --fc-gutter: max(22px, env(safe-area-inset-left), env(safe-area-inset-right));
+        --fc-logo-w: min(calc(100vw - 2 * var(--fc-gutter)), clamp(300px, 62vw, 680px));
+        --fc-logo-h: calc(var(--fc-logo-w) * 358 / 1623);
+        --fc-cross-w: 0.21072;
+        --fc-cross-c: 0.10505;
+        --fc-shift: 0.39495;
+        --fc-clip-r: 78.928%;
+        --fc-text-x: 25.57%;
+        --fc-text-n: 0.2557;
+        --fc-wake: 0.60567;
+        --fc-pad: calc(var(--fc-logo-w) * 0.01);
+        --fc-cw: calc(var(--fc-logo-w) * var(--fc-cross-w));
+        --fc-ch: var(--fc-logo-h);
+        --fc-lnx: calc(50% - var(--fc-cw) * 0.161);
+        --fc-lny: calc(50% - var(--fc-ch) * 0.176);
+        --fc-lbx: calc(50% + var(--fc-cw) * 0.161);
+        --fc-lby: calc(50% + var(--fc-ch) * 0.159);
+        --fc-over: max(3px, calc(var(--fc-cw) * 0.04));
+        --fc-trail-h: max(44px, calc(var(--fc-cw) * 0.72));
+        --fc-trail-v: max(32px, calc(var(--fc-ch) * 0.48));
+        --fc-v0: 12vh;
+        --fc-v1: 73vh;
+        --fc-hair: 3px;
+        --fc-sx: 0.22;
+        --fc-sy: 0.28;
+        --fc-intro-ink: #001534;
+        --fc-intro-blue: #054ABC;
+        --fc-intro-jade: #02A158;
+        --fc-intro-mid: #5A6472;
+        --fc-ease: cubic-bezier(0.4, 0, 0.2, 1);
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        background:
+          radial-gradient(ellipse 72% 50% at 50% 48%, #E7F1FB 0%, rgba(246, 248, 250, 0) 64%),
+          #F6F8FA;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        isolation: isolate;
+        contain: paint;
+        transform: translate3d(0, 0, 0);
+        padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+        touch-action: none;
         transition: opacity 0.32s ease;
       }
+      @media (max-width: 480px) {
+        #splash { --fc-logo-w: calc(100vw - 2 * var(--fc-gutter)); }
+      }
+      #splash.fc-intro-out .fc-intro-logo,
+      #splash.fc-intro-out .fc-intro-sub,
+      #splash.fc-intro-out .fc-intro-word-window,
+      #splash.fc-intro-out .fc-intro-cross-clip,
+      #splash.fc-intro-out .fc-intro-lines {
+        opacity: 0 !important;
+        animation: none !important;
+        transition: opacity 0.18s ease !important;
+      }
       #splash.hide { opacity: 0; pointer-events: none; }
-      .splash-logo img {
-        height: 56px;
-        width: auto;
-        max-width: min(calc(100vw - 48px), 320px);
+      .fc-intro-cluster {
+        position: relative;
+        z-index: 3;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        width: var(--fc-logo-w);
+        max-width: 100%;
+        flex-shrink: 0;
+        transform: translate3d(0, 0, 0);
+      }
+      .fc-intro-stage {
+        position: relative;
+        z-index: 3;
+        width: 100%;
+        height: var(--fc-logo-h);
+        max-width: 100%;
+        aspect-ratio: 1623 / 358;
+        overflow: visible;
+      }
+      .fc-intro-logo {
         display: block;
+        width: 100%;
+        height: 100%;
+        max-width: 100%;
+        aspect-ratio: 1623 / 358;
         object-fit: contain;
+        backface-visibility: hidden;
       }
-      .splash-sub {
-        color: var(--fc-text-mid);
-        font-size: 12px;
-        letter-spacing: 2px;
-        text-transform: uppercase;
-        font-weight: 600;
+      /* Cortinilla en GPU: overflow + translate3d (misma distancia).
+         Nada de clip-path animado: en móvil rasterizaba borroso. */
+      .fc-intro-word-window {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        overflow: hidden;
+        pointer-events: none;
+        transform: translate3d(calc(var(--fc-wake) * var(--fc-logo-w) + var(--fc-pad)), 0, 0);
+        will-change: transform;
+        backface-visibility: hidden;
       }
-      .splash-loader {
-        width: 56px;
-        height: 3px;
-        background: var(--fc-border);
-        border-radius: 2px;
+      .fc-intro-word-slide {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        transform: translate3d(calc((var(--fc-wake) * var(--fc-logo-w) + var(--fc-pad)) * -1), 0, 0);
+        will-change: transform;
+        backface-visibility: hidden;
+      }
+      .fc-intro-word-crop {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: calc(var(--fc-text-n) * var(--fc-logo-w));
+        width: calc((1 - var(--fc-text-n)) * var(--fc-logo-w));
         overflow: hidden;
       }
-      .splash-loader-bar {
+      .fc-intro-word {
+        position: absolute;
+        top: 0;
+        left: calc(var(--fc-text-n) * var(--fc-logo-w) * -1);
+        width: var(--fc-logo-w);
+        max-width: none;
         height: 100%;
-        width: 40%;
-        background: var(--fc-accent);
-        border-radius: 2px;
-        animation: splash-bar 1.2s ease-in-out infinite;
+        opacity: 0;
       }
-      @keyframes splash-bar {
-        0% { transform: translateX(-120%); }
-        100% { transform: translateX(320%); }
+      .fc-intro-cross-clip {
+        position: absolute;
+        left: 0;
+        top: 0;
+        z-index: 2;
+        width: calc(var(--fc-cross-w) * 100%);
+        height: 100%;
+        overflow: hidden;
+        opacity: 0;
+        transform: translate3d(calc(var(--fc-shift) * var(--fc-logo-w)), 0, 0);
+        will-change: transform, opacity;
+        backface-visibility: hidden;
+      }
+      .fc-intro-cross {
+        width: var(--fc-logo-w);
+        max-width: none;
+        height: 100%;
+      }
+      #splash.fc-intro-play .fc-intro-cross-clip {
+        animation: fc-intro-cross 2.4s var(--fc-ease) both;
+      }
+      #splash.fc-intro-play .fc-intro-word-window {
+        animation: fc-word-window 2.4s var(--fc-ease) both;
+      }
+      #splash.fc-intro-play .fc-intro-word-slide {
+        animation: fc-word-slide 2.4s var(--fc-ease) both;
+      }
+      #splash.fc-intro-play .fc-intro-word {
+        animation: fc-word-fade 2.4s var(--fc-ease) both;
+      }
+      #splash.fc-intro-play .fc-intro-lines {
+        animation: fc-intro-lines 2.4s var(--fc-ease) both;
+      }
+      /* Las L viajan con la cruz: no hay instante quieto ni estelas sueltas. */
+      @keyframes fc-intro-cross {
+        0%, 14% { opacity: 0; transform: translate3d(calc(var(--fc-shift) * var(--fc-logo-w)), 0, 0); }
+        20% { opacity: 1; transform: translate3d(calc(var(--fc-shift) * var(--fc-logo-w)), 0, 0); }
+        62%, 100% { opacity: 1; transform: translate3d(0, 0, 0); }
+      }
+      @keyframes fc-intro-lines {
+        0%, 20% { transform: translate(-50%, -50%) translate3d(0, 0, 0); }
+        62%, 100% { transform: translate(-50%, -50%) translate3d(calc(var(--fc-shift) * var(--fc-logo-w) * -1), 0, 0); }
+      }
+      @keyframes fc-word-window {
+        0%, 20% { transform: translate3d(calc(var(--fc-wake) * var(--fc-logo-w) + var(--fc-pad)), 0, 0); }
+        62%, 100% { transform: translate3d(calc(var(--fc-cross-w) * var(--fc-logo-w) + var(--fc-pad)), 0, 0); }
+      }
+      @keyframes fc-word-slide {
+        0%, 20% { transform: translate3d(calc((var(--fc-wake) * var(--fc-logo-w) + var(--fc-pad)) * -1), 0, 0); }
+        62%, 100% { transform: translate3d(calc((var(--fc-cross-w) * var(--fc-logo-w) + var(--fc-pad)) * -1), 0, 0); }
+      }
+      @keyframes fc-word-fade {
+        0%, 18% { opacity: 0; }
+        26%, 100% { opacity: 1; }
+      }
+      .fc-intro-sub {
+        position: relative;
+        left: auto;
+        width: calc(100% - var(--fc-text-x));
+        margin: 6px 0 0 var(--fc-text-x);
+        color: var(--fc-intro-mid);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        font-size: clamp(13px, 2.4vw, 16px);
+        font-weight: 600;
+        letter-spacing: 0.18em;
+        line-height: 1.15;
+        text-transform: uppercase;
+        text-align: center;
+        opacity: 0;
+        transform: translateY(4px);
+        pointer-events: none;
+      }
+      #splash.fc-intro-play .fc-intro-sub {
+        animation: fc-intro-sub 2.4s var(--fc-ease) both;
+      }
+      @keyframes fc-intro-sub {
+        0%, 62% { opacity: 0; transform: translateY(4px); }
+        72%, 100% { opacity: 1; transform: translateY(0); }
+      }
+      .fc-intro-lines {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 100vw;
+        height: 100vh;
+        width: 100dvw;
+        height: 100dvh;
+        transform: translate(-50%, -50%);
+        overflow: hidden;
+        pointer-events: none;
+        z-index: 4;
+        will-change: transform;
+        backface-visibility: hidden;
+      }
+      .fc-hair {
+        position: absolute;
+        background: currentColor;
+        border-radius: 0;
+        will-change: transform, opacity;
+        backface-visibility: hidden;
+        contain: layout style;
+      }
+      .fc-hair::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: var(--fc-sat, currentColor);
+        opacity: 0;
+        will-change: opacity;
+        pointer-events: none;
+      }
+      .fc-hair-h {
+        height: var(--fc-hair);
+        margin-top: calc(var(--fc-hair) / -2);
+      }
+      .fc-hair-v {
+        width: var(--fc-hair);
+        margin-left: calc(var(--fc-hair) / -2);
+      }
+      .fc-hair-left {
+        top: var(--fc-lny);
+        left: 0;
+        width: calc(var(--fc-lnx) + var(--fc-over));
+        color: #BEC5D1;
+        --fc-sat: #001534;
+        transform-origin: 100% 50%;
+        transform: scaleX(1);
+      }
+      .fc-hair-top {
+        left: var(--fc-lnx);
+        top: var(--fc-v0);
+        height: calc(var(--fc-lny) + var(--fc-over) - var(--fc-v0));
+        color: #BEC5D1;
+        --fc-sat: #001534;
+        transform-origin: 50% 100%;
+        transform: scaleY(1);
+      }
+      .fc-hair-right {
+        top: var(--fc-lby);
+        left: calc(var(--fc-lbx) - var(--fc-over));
+        width: calc(100% - (var(--fc-lbx) - var(--fc-over)));
+        color: #99B5E8;
+        --fc-sat: #054ABC;
+        transform-origin: 0 50%;
+        transform: scaleX(1);
+      }
+      .fc-hair-bot {
+        left: var(--fc-lbx);
+        top: calc(var(--fc-lby) - var(--fc-over));
+        height: calc(var(--fc-v1) - (var(--fc-lby) - var(--fc-over)));
+        color: #93D9BA;
+        --fc-sat: #02A158;
+        transform-origin: 50% 0;
+        transform: scaleY(1);
+      }
+      #splash.fc-intro-play .fc-hair-left {
+        animation: fc-navy-h 0.95s var(--fc-ease) both;
+      }
+      #splash.fc-intro-play .fc-hair-top {
+        animation: fc-navy-v 0.95s var(--fc-ease) both;
+      }
+      #splash.fc-intro-play .fc-hair-right {
+        animation: fc-blue-h 0.95s var(--fc-ease) both;
+      }
+      #splash.fc-intro-play .fc-hair-bot {
+        animation: fc-jade-v 0.95s var(--fc-ease) both;
+      }
+      #splash.fc-intro-play .fc-hair::after {
+        animation: fc-sat 0.95s var(--fc-ease) both;
+      }
+      @keyframes fc-navy-h {
+        0% { transform: scaleX(1); opacity: 1; }
+        10% { transform: scaleX(1); opacity: 1; }
+        72% { transform: scaleX(var(--fc-sx)); opacity: 1; }
+        100% { transform: scaleX(var(--fc-sx)); opacity: 0; }
+      }
+      @keyframes fc-navy-v {
+        0% { transform: scaleY(1); opacity: 1; }
+        8% { transform: scaleY(1); opacity: 1; }
+        24% { transform: scaleY(0.72); opacity: 1; }
+        72% { transform: scaleY(var(--fc-sy)); opacity: 1; }
+        100% { transform: scaleY(var(--fc-sy)); opacity: 0; }
+      }
+      @keyframes fc-blue-h {
+        0% { transform: scaleX(1); opacity: 1; }
+        10% { transform: scaleX(1); opacity: 1; }
+        72% { transform: scaleX(var(--fc-sx)); opacity: 1; }
+        100% { transform: scaleX(var(--fc-sx)); opacity: 0; }
+      }
+      @keyframes fc-jade-v {
+        0% { transform: scaleY(1); opacity: 1; }
+        8% { transform: scaleY(1); opacity: 1; }
+        24% { transform: scaleY(0.72); opacity: 1; }
+        72% { transform: scaleY(var(--fc-sy)); opacity: 1; }
+        100% { transform: scaleY(var(--fc-sy)); opacity: 0; }
+      }
+      @keyframes fc-sat {
+        0% { opacity: 0; }
+        14% { opacity: 0.5; }
+        28% { opacity: 1; }
+        72% { opacity: 1; }
+        100% { opacity: 0; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .fc-intro-lines,
+        .fc-intro-word-window { display: none !important; }
+        .fc-intro-cross-clip,
+        #splash.fc-intro-play .fc-intro-cross-clip {
+          width: 100% !important;
+          overflow: visible !important;
+          opacity: 1 !important;
+          transform: none !important;
+          animation: none !important;
+        }
+        .fc-intro-logo,
+        #splash.fc-intro-play .fc-intro-logo,
+        .fc-intro-cross,
+        #splash.fc-intro-play .fc-intro-cross,
+        .fc-intro-sub,
+        #splash.fc-intro-play .fc-intro-sub {
+          opacity: 1 !important;
+          transform: none !important;
+          width: 100% !important;
+          max-width: 100% !important;
+          animation: none !important;
+          transition: none !important;
+        }
       }
       /* Ocultar scrollbar en móvil */
       ::-webkit-scrollbar { width: 4px; height: 4px; }
@@ -207,13 +534,50 @@
     </style>
   </head>
   <body>
-    <!-- Splash screen -->
-    <div id="splash">
-      <div class="splash-logo">
-        <img src="%PUBLIC_URL%/brand/farmacapital-logo-full.png?v=6" srcset="%PUBLIC_URL%/brand/farmacapital-logo-full@1x.png?v=6 812w, %PUBLIC_URL%/brand/farmacapital-logo-full.png?v=6 1623w" sizes="320px" alt="FarmaCapital" decoding="async" />
+    <!-- Intro FarmaCapital: líneas → cruz oficial → cortinilla del wordmark -->
+    <div id="splash" class="fc-intro-play" role="img" aria-label="FarmaCapital" aria-busy="true">
+      <div class="fc-intro-cluster">
+        <div class="fc-intro-stage">
+          <div class="fc-intro-lines" aria-hidden="true">
+            <span class="fc-hair fc-hair-navy fc-hair-h fc-hair-left"></span>
+            <span class="fc-hair fc-hair-navy fc-hair-v fc-hair-top"></span>
+            <span class="fc-hair fc-hair-blue fc-hair-h fc-hair-right"></span>
+            <span class="fc-hair fc-hair-jade fc-hair-v fc-hair-bot"></span>
+          </div>
+          <div class="fc-intro-word-window" aria-hidden="true">
+            <div class="fc-intro-word-slide">
+              <div class="fc-intro-word-crop">
+                <img
+                  class="fc-intro-logo fc-intro-word"
+                  src="%PUBLIC_URL%/brand/farmacapital-logo-full.png?v=6"
+                  srcset="%PUBLIC_URL%/brand/farmacapital-logo-full@1x.png?v=6 812w, %PUBLIC_URL%/brand/farmacapital-logo-full.png?v=6 1623w"
+                  sizes="(max-width: 480px) calc(100vw - 44px), (max-width: 1100px) 62vw, 680px"
+                  alt=""
+                  width="1623"
+                  height="358"
+                  decoding="async"
+                  draggable="false"
+                />
+              </div>
+            </div>
+          </div>
+          <div class="fc-intro-cross-clip">
+            <img
+              class="fc-intro-logo fc-intro-cross"
+              src="%PUBLIC_URL%/brand/farmacapital-logo-full.png?v=6"
+              srcset="%PUBLIC_URL%/brand/farmacapital-logo-full@1x.png?v=6 812w, %PUBLIC_URL%/brand/farmacapital-logo-full.png?v=6 1623w"
+              sizes="(max-width: 480px) calc(100vw - 44px), (max-width: 1100px) 62vw, 680px"
+              alt="FarmaCapital"
+              width="1623"
+              height="358"
+              decoding="async"
+              fetchpriority="high"
+              draggable="false"
+            />
+          </div>
+        </div>
+        <p class="fc-intro-sub">Farmacia &amp; Salud</p>
       </div>
-      <div class="splash-sub">Farmacia & Salud</div>
-      <div class="splash-loader"><div class="splash-loader-bar"></div></div>
     </div>
 
     <noscript>Para usar FarmaCapital necesitas activar JavaScript en tu navegador.</noscript>
@@ -227,16 +591,66 @@
             .catch(e => console.warn('SW error:', e));
         });
       }
-      // Ocultar splash. Antes habia un setTimeout de 1200 ms que hacia
-      // esperar al usuario aunque React ya estuviera listo. Ahora lo
-      // llama React al montar (src/index.js) y 'load' queda de respaldo.
-      window.__fcOcultarSplash = function () {
-        const splash = document.getElementById('splash');
-        if (!splash || splash.classList.contains('hide')) return;
-        splash.classList.add('hide');
-        setTimeout(() => splash.remove(), 320);
-      };
-      window.addEventListener('load', () => window.__fcOcultarSplash());
+      // Intro: React (src/index.js) y 'load' solo avisan que la app está lista.
+      // Si llegan antes, se espera la secuencia mínima. Si tardan, el logo
+      // completo se queda en pantalla y el desvanecido ocurre al estar listos.
+      (function () {
+        var splash = document.getElementById('splash');
+        var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        var appReady = false;
+        var sequenceDone = false;
+        var hiding = false;
+
+        function soltarCapas() {
+          if (!splash) return;
+          var els = splash.querySelectorAll('.fc-intro-cross-clip, .fc-intro-word-window, .fc-intro-word-slide, .fc-intro-lines, .fc-hair');
+          for (var i = 0; i < els.length; i++) els[i].style.willChange = 'auto';
+        }
+
+        function ocultar() {
+          if (hiding || !splash || splash.classList.contains('hide')) return;
+          if (!sequenceDone) return;
+          if (!appReady) return;
+          hiding = true;
+          splash.setAttribute('aria-busy', 'false');
+          soltarCapas();
+          splash.classList.add('fc-intro-out');
+          setTimeout(function () {
+            splash.classList.add('hide');
+            setTimeout(function () {
+              if (splash && splash.parentNode) splash.remove();
+            }, 340);
+          }, 180);
+        }
+
+        window.__fcOcultarSplash = function () {
+          appReady = true;
+          ocultar();
+        };
+
+        function terminarSecuencia() {
+          sequenceDone = true;
+          ocultar();
+        }
+
+        if (reduced) {
+          splash && splash.classList.add('fc-intro-reduced');
+          setTimeout(terminarSecuencia, 280);
+        } else {
+          var logoEl = splash && splash.querySelector('.fc-intro-cross');
+          if (logoEl && logoEl.decode) logoEl.decode().catch(function () {});
+          setTimeout(terminarSecuencia, 2450);
+        }
+
+        window.addEventListener('load', function () {
+          window.__fcOcultarSplash();
+        });
+        setTimeout(function () {
+          appReady = true;
+          sequenceDone = true;
+          ocultar();
+        }, 10000);
+      })();
     </script>
   </body>
 </html>
