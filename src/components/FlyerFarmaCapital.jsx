@@ -4,7 +4,7 @@ import { Download, Link2, Mail, MessageCircle, QrCode } from "lucide-react";
 import { showToast } from "../ui";
 import { FARMACIA_FISCAL } from "../constants/farmaciaFiscal";
 import { HORARIO_FARMACIA } from "../constants/turnos";
-import { logoFullSrc, logoFullSrcSet, logoIconStyle } from "../brand";
+import { logoAspect, logoFullSrc, logoIconStyle } from "../brand";
 import {
   flyerHomeUrl,
   flyerMailtoShareUrl,
@@ -43,6 +43,18 @@ async function canvasFromNode(node) {
     scale: 2,
     useCORS: true,
     logging: false,
+    onclone(_doc, cloned) {
+      cloned.querySelectorAll("img").forEach((img) => {
+        img.removeAttribute("srcset");
+        img.removeAttribute("sizes");
+        const w = Number(img.getAttribute("width")) || img.naturalWidth;
+        const h = Number(img.getAttribute("height")) || img.naturalHeight;
+        if (w) img.style.width = `${w}px`;
+        if (h) img.style.height = `${h}px`;
+        img.style.objectFit = "contain";
+        img.style.maxWidth = "none";
+      });
+    },
   });
 }
 
@@ -61,24 +73,25 @@ export function FlyerCruz({ size = 88 }) {
   );
 }
 
-/** Lockup oficial: cruz + wordmark, versión clara para fondo oscuro. */
+/** Lockup oficial: cruz + wordmark. Alto fijo: html2canvas recortaba height:auto a un arco. */
 export function FlyerLogo({ compact = false }) {
-  const width = compact ? 220 : 320;
+  const width = compact ? 220 : 300;
+  const height = Math.round(width / logoAspect());
   return (
     <img
       src={logoFullSrc({ light: true })}
-      srcSet={logoFullSrcSet({ light: true })}
-      sizes={`${width}px`}
       alt="FarmaCapital"
       width={width}
+      height={height}
       decoding="async"
       draggable={false}
       style={{
         width,
+        height,
         maxWidth: "100%",
-        height: "auto",
         display: "block",
         objectFit: "contain",
+        flexShrink: 0,
       }}
     />
   );
@@ -96,7 +109,7 @@ export function FlyerCard({ qrUrl, compact = false }) {
         background: `linear-gradient(165deg, ${NAVY} 0%, #102a4a 52%, ${BLUE} 100%)`,
         color: "#fff",
         borderRadius: compact ? 12 : 28,
-        padding: compact ? "28px 14px 16px" : "48px 22px 28px",
+        padding: compact ? "22px 14px 16px" : "32px 22px 28px",
         boxShadow: compact ? "none" : "0 24px 60px rgba(13,27,42,0.35)",
         fontFamily: "var(--fc-body), 'Plus Jakarta Sans', system-ui, sans-serif",
         position: "relative",
@@ -130,7 +143,14 @@ export function FlyerCard({ qrUrl, compact = false }) {
       />
 
       <div style={{ position: "relative" }}>
-        <div style={{ display: "flex", justifyContent: "center", marginBottom: compact ? 10 : 14, paddingTop: 2 }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            marginBottom: compact ? 10 : 14,
+            overflow: "visible",
+          }}
+        >
           <FlyerLogo compact={compact} />
         </div>
         <div

@@ -13,6 +13,8 @@ test("el flyer usa el lockup oficial en claro", () => {
   const { container } = render(<FlyerLogo />);
   const img = container.querySelector("img");
   expect(img.getAttribute("src")).toMatch(/farmacapital-logo-full-light\.png/);
+  expect(Number(img.getAttribute("width"))).toBeGreaterThan(200);
+  expect(Number(img.getAttribute("height"))).toBeGreaterThan(50);
   expect(screen.getByAltText("FarmaCapital")).toBeTruthy();
 });
 
