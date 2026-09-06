@@ -173,20 +173,19 @@ export function FlyerCard({ qrUrl, compact = false }) {
           style={{
             display: "flex",
             justifyContent: "center",
-            marginBottom: compact ? 10 : 14,
-            padding: compact ? 8 : 10,
+            marginBottom: compact ? -10 : -16,
             overflow: "visible",
           }}
         >
-          <FlyerCruz size={compact ? 72 : 96} />
+          <FlyerCruz size={compact ? 92 : 124} />
         </div>
         <h1
           style={{
             margin: 0,
-            padding: "4px 8px 8px",
+            padding: "0 8px 6px",
             fontSize: compact ? 28 : 40,
             fontWeight: 800,
-            lineHeight: 1.3,
+            lineHeight: 1.25,
             letterSpacing: -1.2,
             overflow: "visible",
           }}
