@@ -20,7 +20,11 @@ test("el flyer usa el lockup oficial en claro", () => {
 
 test("la tarjeta dice FarmaCapital y usa el isotipo oficial", () => {
   const { container } = render(<FlyerCard qrUrl="https://www.farmacapital.mx/" />);
-  expect(container.querySelector("h1")?.textContent).toBe("FarmaCapital");
+  const card = container.querySelector("[data-flyer-card]");
+  const title = container.querySelector("h1");
+  expect(title?.textContent).toBe("FarmaCapital");
+  expect(card.style.overflow).toBe("visible");
+  expect(Number.parseFloat(title.style.lineHeight)).toBeGreaterThanOrEqual(1.2);
   const imgs = [...container.querySelectorAll("img")];
   expect(imgs.some((img) => /farmacapital-icon-light\.png/.test(img.getAttribute("src") || ""))).toBe(true);
 });

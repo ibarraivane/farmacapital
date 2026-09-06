@@ -43,7 +43,16 @@ async function canvasFromNode(node) {
     scale: 2,
     useCORS: true,
     logging: false,
+    scrollX: 0,
+    scrollY: 0,
+    windowWidth: Math.max(node.scrollWidth, node.clientWidth),
+    windowHeight: Math.max(node.scrollHeight, node.clientHeight),
     onclone(_doc, cloned) {
+      cloned.style.overflow = "visible";
+      cloned.style.height = "auto";
+      cloned.querySelectorAll("[data-flyer-clip]").forEach((el) => {
+        el.style.overflow = "visible";
+      });
       cloned.querySelectorAll("img").forEach((img) => {
         img.removeAttribute("srcset");
         img.removeAttribute("sizes");
@@ -53,6 +62,12 @@ async function canvasFromNode(node) {
         if (h) img.style.height = `${h}px`;
         img.style.objectFit = "contain";
         img.style.maxWidth = "none";
+        img.style.overflow = "visible";
+      });
+      cloned.querySelectorAll("h1").forEach((h) => {
+        h.style.overflow = "visible";
+        h.style.lineHeight = "1.3";
+        h.style.paddingBottom = "6px";
       });
     },
   });
@@ -99,6 +114,7 @@ export function FlyerLogo({ compact = false }) {
 
 export function FlyerCard({ qrUrl, compact = false }) {
   const qr = compact ? 132 : 172;
+  const radius = compact ? 12 : 28;
   return (
     <article
       data-flyer-card={compact ? undefined : "1"}
@@ -108,46 +124,57 @@ export function FlyerCard({ qrUrl, compact = false }) {
         margin: "0 auto",
         background: `linear-gradient(165deg, ${NAVY} 0%, #102a4a 52%, ${BLUE} 100%)`,
         color: "#fff",
-        borderRadius: compact ? 12 : 28,
-        padding: compact ? "22px 14px 16px" : "32px 22px 28px",
+        borderRadius: radius,
+        padding: compact ? "28px 14px 16px" : "40px 22px 28px",
         boxShadow: compact ? "none" : "0 24px 60px rgba(13,27,42,0.35)",
         fontFamily: "var(--fc-body), 'Plus Jakarta Sans', system-ui, sans-serif",
         position: "relative",
-        overflow: "hidden",
+        overflow: "visible",
         textAlign: "center",
       }}
     >
       <div
         aria-hidden
+        data-flyer-clip="blobs"
         style={{
           position: "absolute",
-          width: 220,
-          height: 220,
-          borderRadius: "50%",
-          background: "rgba(34,197,94,0.12)",
-          top: 40,
-          right: -70,
+          inset: 0,
+          borderRadius: radius,
+          overflow: "hidden",
+          pointerEvents: "none",
         }}
-      />
-      <div
-        aria-hidden
-        style={{
-          position: "absolute",
-          width: 160,
-          height: 160,
-          borderRadius: "50%",
-          background: "rgba(30,58,186,0.35)",
-          bottom: 40,
-          left: -70,
-        }}
-      />
+      >
+        <div
+          style={{
+            position: "absolute",
+            width: 220,
+            height: 220,
+            borderRadius: "50%",
+            background: "rgba(34,197,94,0.12)",
+            top: 40,
+            right: -70,
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            width: 160,
+            height: 160,
+            borderRadius: "50%",
+            background: "rgba(30,58,186,0.35)",
+            bottom: 40,
+            left: -70,
+          }}
+        />
+      </div>
 
-      <div style={{ position: "relative" }}>
+      <div style={{ position: "relative", overflow: "visible" }}>
         <div
           style={{
             display: "flex",
             justifyContent: "center",
-            marginBottom: compact ? 8 : 12,
+            marginBottom: compact ? 10 : 14,
+            padding: compact ? 8 : 10,
             overflow: "visible",
           }}
         >
@@ -156,10 +183,12 @@ export function FlyerCard({ qrUrl, compact = false }) {
         <h1
           style={{
             margin: 0,
-            fontSize: compact ? 28 : "clamp(34px, 9vw, 44px)",
+            padding: "4px 8px 8px",
+            fontSize: compact ? 28 : 40,
             fontWeight: 800,
-            lineHeight: 1.05,
+            lineHeight: 1.3,
             letterSpacing: -1.2,
+            overflow: "visible",
           }}
         >
           FarmaCapital
@@ -269,14 +298,7 @@ function WhatsAppChatPreview({ origin, qrUrl }) {
             boxShadow: "0 1px 2px rgba(0,0,0,0.25)",
           }}
         >
-          <div
-            style={{
-              borderRadius: 8,
-              overflow: "hidden",
-              transform: "scale(1)",
-              transformOrigin: "top center",
-            }}
-          >
+          <div style={{ borderRadius: 8, overflow: "visible" }}>
             <FlyerCard qrUrl={qrUrl} compact />
           </div>
           <div
