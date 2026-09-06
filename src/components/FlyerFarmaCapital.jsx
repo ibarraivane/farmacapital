@@ -4,6 +4,7 @@ import { Download, Link2, Mail, MessageCircle, QrCode } from "lucide-react";
 import { showToast } from "../ui";
 import { FARMACIA_FISCAL } from "../constants/farmaciaFiscal";
 import { HORARIO_FARMACIA } from "../constants/turnos";
+import { logoFullSrc, logoIconStyle } from "../brand";
 import {
   flyerHomeUrl,
   flyerMailtoShareUrl,
@@ -21,7 +22,21 @@ function siteOrigin() {
   return window.location.origin || "https://www.farmacapital.mx";
 }
 
+async function waitForImages(node) {
+  const imgs = [...node.querySelectorAll("img")];
+  await Promise.all(
+    imgs.map((img) => {
+      if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+      return new Promise((resolve) => {
+        img.addEventListener("load", resolve, { once: true });
+        img.addEventListener("error", resolve, { once: true });
+      });
+    }),
+  );
+}
+
 async function canvasFromNode(node) {
+  await waitForImages(node);
   const html2canvas = (await import("html2canvas")).default;
   return html2canvas(node, {
     backgroundColor: NAVY,
@@ -31,28 +46,23 @@ async function canvasFromNode(node) {
   });
 }
 
-/** Cruz llena y cerrada. El PNG oficial es un trazo abierto; a tamaño chico se ve cortado. */
+/** Isotipo oficial (trazo redondeado + acento verde). No inventar otra cruz. */
 export function FlyerCruz({ size = 88 }) {
   return (
-    <svg
+    <img
+      src={logoFullSrc({ iconOnly: true, light: true })}
+      alt=""
       width={size}
       height={size}
-      viewBox="0 0 88 88"
-      aria-hidden
-      style={{ display: "block", overflow: "visible" }}
-    >
-      <circle cx="44" cy="44" r="42" fill="rgba(255,255,255,0.10)" />
-      <path
-        fill="#fff"
-        d="M36.5 14c0-2.5 2-4.5 4.5-4.5h6c2.5 0 4.5 2 4.5 4.5v17h17c2.5 0 4.5 2 4.5 4.5v6c0 2.5-2 4.5-4.5 4.5h-17v17c0 2.5-2 4.5-4.5 4.5h-6c-2.5 0-4.5-2-4.5-4.5v-17h-17c-2.5 0-4.5-2-4.5-4.5v-6c0-2.5 2-4.5 4.5-4.5h17V14z"
-      />
-      <circle cx="64" cy="64" r="7" fill="#22C55E" />
-    </svg>
+      decoding="async"
+      draggable={false}
+      style={logoIconStyle(size)}
+    />
   );
 }
 
 export function FlyerCard({ qrUrl, compact = false }) {
-  const cruz = compact ? 72 : 92;
+  const cruz = compact ? 78 : 104;
   const qr = compact ? 132 : 172;
   return (
     <article
