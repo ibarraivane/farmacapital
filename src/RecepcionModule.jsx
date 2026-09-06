@@ -213,6 +213,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
   const qtyRef = useRef(null);
   const cadRef = useRef(null);
   const costoRef = useRef(null);
+  const altaNombreRef = useRef(null);
   const pdfRef = useRef(null);
   const csvRef = useRef(null);
 
@@ -603,6 +604,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     }
     try { scanRef.current?.blur(); } catch (_) { /* Safari */ }
     const codigo = codigoOverride || it.codigo_escaneado || it.sku || "";
+    const nombreSnap = String(it.nombre || "").trim();
     setErrorLinea("");
     setPendiente({
       codigo,
@@ -616,7 +618,13 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     setScan(codigo);
     setQty(String(it.cantidad || 1));
     setCosto(it.costo_estimado != null ? String(it.costo_estimado) : "");
-    setTimeout(() => cadRef.current?.focus(), 30);
+    // Ticket PDF/CSV ya trae descripción en nombre_snapshot: precargar el alta.
+    // Antes el input quedaba vacío y parecía que "no llenamos el nombre".
+    setAltaNombre(it.pendiente_alta ? nombreSnap : "");
+    setTimeout(() => {
+      if (it.pendiente_alta && !nombreSnap) altaNombreRef.current?.focus();
+      else cadRef.current?.focus();
+    }, 30);
   };
 
   const tomarScan = (raw) => {
@@ -658,7 +666,14 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     setPendiente(r);
     setScan(r.codigo);
     setCosto(r.producto?.costo != null ? String(r.producto.costo) : "");
-    setTimeout(() => qtyRef.current?.focus(), 30);
+    setAltaNombre(r.pendienteAlta ? String(r.producto?.nombre || "").trim() : "");
+    setTimeout(() => {
+      if (r.pendienteAlta && !String(r.producto?.nombre || "").trim()) {
+        altaNombreRef.current?.focus();
+      } else {
+        qtyRef.current?.focus();
+      }
+    }, 30);
   };
 
   const cancelScanIdle = () => {
@@ -1225,6 +1240,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
                       <label style={labelS(C)} htmlFor="rc-alta-nombre">Nombre</label>
                       <input
                         id="rc-alta-nombre"
+                        ref={altaNombreRef}
                         value={altaNombre}
                         onChange={(e) => setAltaNombre(e.target.value)}
                         placeholder="Como dice la caja"
