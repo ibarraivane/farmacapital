@@ -1,0 +1,172 @@
+sku,ean,nombre,marca,presentacion,stock,motivo
+FC-07521317,7501507521317,Gotero cristal,Genérico,,100,insumo_generico_dificil
+FC-22300881,7506022300881,Jeringa insulina SensiMedical 1 mL 27G x 13 mm,SensiMedical,1 pieza 1 mL 27G x 13 mm,99,insumo_generico_dificil
+FMX-506389,7506022300829,Jeringa SensiMedical 5 mL 21G x 32 mm verde,SensiMedical,Pieza 5 mL 21G x 32 mm (caja C/100 verde),97,insumo_generico_dificil
+FMX-307658,7506022314741,Jeringa SensiMedical 20 mL 21G x 32 mm verde,SensiMedical,Pieza 20 mL 21G x 32 mm (caja C/50 verde),50,insumo_generico_dificil
+IFC-ALCANFOR,7503048936018,Velázquez alcanfor pastillas C/50 sobres,Velázquez,Caja con 50 sobres,50,ean_sin_packshot_publico_encontrado
+FC-68900226,7501868900226,Alcohol Etilico Rojo 96°,Dibar,250 ML,36,ean_sin_packshot_publico_encontrado
+FMX-301138,,Cinta-Microporosa-Codifarma 2.5 Cm X 5 M C/1 Blanco,,,17,sin_ean
+FC-08491074,7501008491074,Aspirina,Aspirina,80 TABLETAS,16,ean_sin_packshot_publico_encontrado
+FC-IFC-PEI01,2008560100015,Peine caballero profesional N1 C/12,,Paquete con 12,12,ean_interno
+FC-BCF59548,2008480100010,Perilla Edigar N1 (jeringa pera toda de hule),Edigar,PIEZA,12,ean_interno
+FMX-301565,7506022307897,Jeringa-Sensimedical 60 Ml Pivote/Concentrico,sensimedical,C/1,11,insumo_generico_dificil
+FC-84500607,7506484500607,Cinta micropore blanca 2.5 cm x 9.1 m,Cintapore,1 pz,8,insumo_generico_dificil
+FC-17500820,7503017500820,Sanax Silica Gran,Sanax,,8,ean_sin_packshot_publico_encontrado
+FC-75073114,75073114,Rexona Men Clinical Clean stick 46 g,,,7,ean_sin_packshot_publico_encontrado
+FC-06246652,7506306246652,Jabón Dove blanco 90 g,,,6,ean_sin_packshot_publico_encontrado
+FC-26EA40A4,,Ramcinet,Ramcinet,10 TABLETAS,6,sin_ean
+FC-95779436,,Acetilsalicilico Ef,Acido,20 TABLETAS,5,sin_ean
+FC-A0D320D1,,Amoxicilina,,12 CAPSULAS,5,sin_ean
+FC-08DB70CB,7503022640153,Bicarbonato Velazquez Grande 200G,Bicarbonato,bolsa 200g,5,ean_sin_packshot_publico_encontrado
+FMX-301139,7506484500539,Cintapore cinta microporosa 1.25 cm x 5 m piel,CINTAPORE,1 ROLLO,5,insumo_generico_dificil
+FMX-301135,7506484500515,Cintapore cinta microporosa blanca 1.25 cm x 5 m,Cintapore,Rollo 1.25 cm x 5 m blanca,5,insumo_generico_dificil
+FC-64EB83AA,,Compl,Bencil/Benz,1 FRASCO AMPULA,5,sin_ean
+FC-08895196,7502208895196,KY6,KY6,C/10,5,ean_sin_packshot_publico_encontrado
+EQ-AMS318,7501349028159,Losartan AMSA 30 comprimidos 50 mg,AMSA,Caja con 30 comprimidos,5,generico_lab_sin_packshot_publico
+EQ-ALP0634,7502226294766,Losartan Alpharma 30 tab 50 mg,Alpharma,Caja con 30 tabletas,5,generico_lab_sin_packshot_publico
+FC-931B4809,3311000001476,Mercurio Aceite Coco,Mercurio,50 mL,5,mercurio_herbolario_sin_packshot_publico
+FC-46601138,7506346601138,Merthorab Frasco 20 mL Kohn,Kohn,Frasco 20 mL,5,ean_sin_packshot_publico_encontrado
+FC-926099D3,,Mertiolate Kohn Rojo,Mertiolate,C/25,5,sin_ean
+FMX-506935,,Normogotero-Sensimedical Piezas C/1 S/Aguja,,,5,sin_ean
+FC-IFC-PER01,2008540100011,Perfilador Tinkle C/3 pzs,Tinkle,Blister con 3,5,ean_interno
+EQ-NOV176,7501075727517,Pirinovag 10 Tab 500 Mg,Novag,Caja con 10 tabletas,5,ean_sin_packshot_publico_encontrado
+FC-00001049,3311000001049,Pomada de árnica Tarro 50 g Mercurio,Mercurio,Tarro 50 g,5,mercurio_herbolario_sin_packshot_publico
+FC-45720215,7502245720215,Quitaesmalte SKN · variante 215 · confirmar,SKN,100 ML,5,ean_sin_packshot_publico_encontrado
+FC-75102537,7506475102537,Gerber Etapa 2 comida casera pollo 100 g,,,4,ean_sin_packshot_publico_encontrado
+FC-75102520,7506475102520,Gerber Etapa 2 comida casera res 100 g,,,4,ean_sin_packshot_publico_encontrado
+FC-IFC-PEI03,2008580100019,Peine para piojos de acero económico 9309,,Pieza,4,ean_interno
+FC-45720567,7502245720567,Quitaesmalte coco,SKN,100 ML,4,ean_sin_packshot_publico_encontrado
+FC-73909859,7501573909859,Sarox (Omeprazol) 20 mg,Biomep,Caja con 28 cápsulas,4,generico_lab_sin_packshot_publico
+FC-IFC-TIJ01,2008510100010,Tijera para bigote,,Pieza,4,ean_interno
+FC-40053634,650240053634,Alli Triple 50/.25/50/50 mg 6 tabletas,,,3,ean_sin_packshot_publico_encontrado
+EQ-BIO002,7501573900535,Biomesina 10 tab 10 mg,Biomep,Caja con 10 tabletas,3,ean_sin_packshot_publico_encontrado
+FC-02045312,7503002045312,Esencia de clavo Frasco gotero Herbotec,Herbotec,Frasco gotero,3,insumo_generico_dificil
+FC-63975795,,Gentamicina,,25 COMPRIMIDOS,3,sin_ean
+FC-75102476,7506475102476,Gerber Etapa 2 durazno 100 g,,,3,ean_sin_packshot_publico_encontrado
+FC-75102469,7506475102469,Gerber Etapa 2 mango 100 g,,,3,ean_sin_packshot_publico_encontrado
+FC-75102421,7506475102421,Gerber Etapa 2 manzana 100 g,,,3,ean_sin_packshot_publico_encontrado
+FC-75102452,7506475102452,Gerber Etapa 2 pera 100 g,,,3,ean_sin_packshot_publico_encontrado
+FC-58651129,7501058651129,Gerber Junior pouch frutas mixtas 95 g,,,3,ean_sin_packshot_publico_encontrado
+FC-00001612,3311000001612,Jarabe de granada Frasco 50 mL Mercurio,Mercurio,Frasco 50 mL,3,mercurio_herbolario_sin_packshot_publico
+FC-DFF99C3F,,Mercurio,Mercurio,JARABE,3,sin_ean
+FC-69387811,3311000001421,Mercurio Aceite Gomenolado,Mercurio,frasco 50 mL,3,mercurio_herbolario_sin_packshot_publico
+FC-9827438F,3311000000882,Mercurio Veneno De Abeja,Mercurio,frasco 50 g,3,mercurio_herbolario_sin_packshot_publico
+FC-C4530823,3311000000936,Mercurio óxido de zinc C/50,Mercurio,frasco 50 g,3,mercurio_herbolario_sin_packshot_publico
+FC-45720574,7502245720574,Quitaesmalte SKN · variante 574 · confirmar,SKN,100 ML,3,ean_sin_packshot_publico_encontrado
+FC-12225133,354312225133,Vitacilina ungüento 28 g,,,3,ean_sin_packshot_publico_encontrado
+EQ-MAV204,7502009744358,Alderan Losartán 15 tab 100 mg,Maver,Caja con 15 tabletas,2,ean_sin_packshot_publico_encontrado
+FC-89100101,7501868910010,Algodón 200 g,Dibar,200 G,2,insumo_generico_dificil
+FC-65011649,7501165011649,Buscapina 10 mg 24 grageas,,,2,ean_sin_packshot_publico_encontrado
+FC-08491096,7501008491096,Cafiaspirina tartrato C/100,Cafiaspirina,C/100,2,ean_sin_packshot_publico_encontrado
+FMX-502046,637420223803,Calazin Suspension Topica C/180 Ml,SOLAR,180 mL,2,ean_sin_packshot_publico_encontrado
+FC-49022768,7501349022768,Cefalotina 1 g solución inyectable FA 5 ml LGEN,,,2,ean_sin_packshot_publico_encontrado
+FC-25195105,7501125195105,Cefuroxima 750 mg FA + ampolleta 5 ml,,,2,ean_sin_packshot_publico_encontrado
+FMX-301136,,Cintapore cinta microporosa piel 2.5 cm x 5 m,Cintapore,Rollo 2.5 cm x 5 m color piel,2,sin_ean
+FC-84500546,7506484500546,Cintapore cinta microporosa piel 2.5 cm x 5m,Cintapore,Rollo 2.5 cm x 5m color piel,2,insumo_generico_dificil
+EQ-BIO212,7501573909958,Colchicina 30 Tab 1 Mg,Biomep,Caja con 30 tabletas,2,ean_sin_packshot_publico_encontrado
+FC-68541491,7502268541491,Electrolife Zero uva 625 ml,,,2,ean_sin_packshot_publico_encontrado
+FC-53008221,855553008221,Encendedor desechable Riegel,Riegel,1 pieza,2,ean_sin_packshot_publico_encontrado
+FC-C8B741F6,,FC producto botiquín,Fc,,2,sin_ean
+FC-40036354,6502400363548,Genoprazol tabletas C/7,Genoprazol,7 CAPSULAS,2,ean_sin_packshot_publico_encontrado
+FC-16804708,7502216804708,Irbesartán 150 mg frasco 28 tabletas LGEN,,,2,ean_sin_packshot_publico_encontrado
+EQ-MAV102,7502009740794,Lincover lincomicina 16 cáps 500 mg,Maver,Caja con 16 cápsulas,2,ean_sin_packshot_publico_encontrado
+EQ-SON084,7502001161597,Lisonin 1 amp 300 mg/1 ml,SON'S,1 ampolleta 1 mL,2,ean_sin_packshot_publico_encontrado
+FC-LV-GNO016,6502400291650,Lomecan Duo 3 óvulos y crema 200 mg,Genomma Lab,Caja con 3 óvulos y crema,2,ean_sin_packshot_publico_encontrado
+EQ-BEA367,7501342803548,Losartan beadvance 60 tab 50 mg,beadvance,Caja con 60 tabletas,2,generico_lab_sin_packshot_publico
+FC-5D59ED54,3311000000776,Mercurio Cloruro De Magnesio Cajita,Mercurio,bolsa 100g,2,mercurio_herbolario_sin_packshot_publico
+FC-16792760,7502216792760,Omeprazol 20 mg 30 cápsulas LGEN,,,2,generico_lab_sin_packshot_publico
+FC-82200016,7501482200016,Omeprazol Aktyzar,Aktyzar,C/120,2,generico_lab_sin_packshot_publico
+EQ-INN022,008400005656,Optimila-H Grin gotas 15 mL,Grin,Frasco gotero 15 mL,2,ean_sin_packshot_publico_encontrado
+FC-27879597,7502227879597,Oxitetraciclina 500 mg 16 cápsulas,,,2,ean_sin_packshot_publico_encontrado
+FC-9A1C64E7,,Perilla Edigar N O Caja,Perilla,,2,sin_ean
+FC-C22EBFE6,,Perilla N2,Edigar,PIEZA,2,sin_ean
+FC-614E4F82,,Perilla N3,Edigar,PIEZA,2,sin_ean
+FC-FFC25DD1,,Perilla N4,Edigar,PIEZA,2,sin_ean
+FC-A871D831,,Perilla N6,Edigar,PIEZA,2,sin_ean
+FC-2E5B7248,,Reumatol,Del Viejito,60 G,2,sin_ean
+FMX-302884,,Sol-Sun Crema C/50 Gr 50-Fps/Ah Av,,,2,sin_ean
+FC-46505283,7501846505283,Xiomara Cera Mate,Xiomara,,2,ean_sin_packshot_publico_encontrado
+FC-44B6751A,,Aquito 500/100/30/4 Mg,Laur,3 AMPOLLETA,1,sin_ean
+FC-00450227,7501300450227,Bactrim 200/40 mg suspensión 100 ml,,,1,ean_sin_packshot_publico_encontrado
+FC-00450210,7501300450210,Bactrim F 800/160 mg 15 tabletas,,,1,ean_sin_packshot_publico_encontrado
+FC-B8D7C997,3311000003715,Bicarbonato Sobres,Bicarbonato,C/50,1,ean_sin_packshot_publico_encontrado
+EQ-VIT073,7501478317421,Bocetix 1 Sol 50 Mg 150 Ml,Vitae,Caja con 1 solución,1,ean_sin_packshot_publico_encontrado
+FC-21440013,7502321440013,Buscapina Duo 10/500 mg 10 tabletas,,,1,ean_sin_packshot_publico_encontrado
+EQ-AMS349,7501349021808,Cefotaxima IM 500 mg/2 ml,AMSA,Frasco ámpula 500 mg + diluyente 2 mL,1,ean_sin_packshot_publico_encontrado
+FC-84500522,7506484500522,Cinta micropore blanca 2.5 cm x 5 m,,1 pz,1,insumo_generico_dificil
+FMX-302947,,Citrato Magnesio/Lecitina Soya-Naturex Capsulas C/30,,,1,sin_ean
+FMX-502465,,Colageno-Naturex Tabletas C/60,,,1,sin_ean
+FC-49029613,7501349029613,Combedi DX Complejo B / Dexametasona 6 amp AMSA,,,1,ean_sin_packshot_publico_encontrado
+FC-85171118,7501685171118,Condón Sico,Sico,C/3,1,ean_sin_packshot_publico_encontrado
+IFC-LAVAOJOS,2008490100017,Copa lavaojos de vidrio,Arfam,1 copa de vidrio,1,ean_interno
+FC-40030963,6502400309638,Crema Teatrical Cel-Ma Nutrit,Teatrical,400 ML,1,ean_sin_packshot_publico_encontrado
+FC-40013850,6502400138504,Crema Teatrical Lanolina,Teatrical,52 g,1,ean_sin_packshot_publico_encontrado
+FC-20500171,8101205001716,Crema para peinar Pert aceite oliva aguacate,Pert,100 ML,1,ean_sin_packshot_publico_encontrado
+FC-00100013,2008500100013,Cubrebocas tricapa desechable C/100,,Caja C/100,1,ean_interno
+FC-09747786,7502009747786,Culminax Pediátrico (Carbocisteína) 250 mg/5 mL,Maver,Frasco 150 mL con vaso dosificador · sabor chabacano,1,ean_sin_packshot_publico_encontrado
+FC-49013223,7501349013223,Deflazacort 30 mg 10 tabletas LGEN,,,1,ean_sin_packshot_publico_encontrado
+FC-75064938,75064938,Desodorante Ego Force 24H roll-on,Ego,45 ML,1,ean_sin_packshot_publico_encontrado
+FC-IFC-DON01,2008550100018,Dona / bolsa IJJ-10 C/12,,Paquete con 12,1,ean_interno
+FC-93888302,7501493888302,Doxiciclina 100 mg 10 cápsulas Ken LGEN,,,1,ean_sin_packshot_publico_encontrado
+FC-AA7B0686,,Drosquim adulto jarabe 300/160,Drosquim,200 ML,1,sin_ean
+FC-DB4A39AE,,Eferox (Cefalexina),Calcio,12 COMPRIMIDOS,1,sin_ean
+EQ-VAL129,7501122961901,Eldoquin crema 4% 30 g,Eldoquin,Tubo 30 g,1,ean_sin_packshot_publico_encontrado
+FMX-501619,,Eucalin-Miel Jarabe C/120 Ml,,,1,sin_ean
+FC-00631702,4005800631702,Eucerin pH5 pomada labial,,,1,ean_sin_packshot_publico_encontrado
+FC-08498866,7501008498866,Flanax 550 mg 6 tabletas,,,1,ean_sin_packshot_publico_encontrado
+FC-08499412,7501008499412,Flanax 660 mg 8 tabletas,,,1,ean_sin_packshot_publico_encontrado
+FC-08499092,7501008499092,Flanax Nocto 220/25 mg 20 comprimidos,,,1,ean_sin_packshot_publico_encontrado
+FMX-501000,,Gelcavit-Colors Capsulas C/30,,,1,sin_ean
+FMX-500998,,Gelcavit-Platinum Capsulas C/30,,,1,sin_ean
+FMX-501003,,Gelcavit-Q-10 Capsulas C/30,,,1,sin_ean
+FC-49026377,7501349026377,Gentamicina 160 mg solución inyectable 2 ml AMSA,,,1,generico_lab_sin_packshot_publico
+FC-70100013,2008470100013,Gillette Prestobarba 3 rastrillo desechable 1 pza,Gillette,1 pieza desechable 3 hojas,1,ean_interno
+FC-1321B34F,,Hidroxon,Hidroxon,30 TABLETAS,1,sin_ean
+FC-42700643,7506442700643,Irbesartán + HCTZ 150/12.5 mg 28 tabletas Camber,,,1,ean_sin_packshot_publico_encontrado
+FC-49022492,7501349022492,Irbesartán 150 mg 28 tabletas LGEN,,,1,ean_sin_packshot_publico_encontrado
+FC-40036965,6502400369656,Jabon Asepxia Bicarbon,Asepxia,100 G,1,ean_sin_packshot_publico_encontrado
+FC-38891190,0672388911904,Jabon Dove Original,Dove,135 G,1,ean_sin_packshot_publico_encontrado
+FC-40025839,6502400258394,Jabon Intimo Lomecan V,Lomecan,200 ML,1,ean_sin_packshot_publico_encontrado
+FC-40030338,6502400303384,Jabon Intimo Lomecan V Aclar,Lomecan,200 ML,1,ean_sin_packshot_publico_encontrado
+FC-EXP-PALM8,,Jabón Palmolive Neutro Balance 100 g 8 pack,,,1,sin_ean
+FMX-307657,7506022300690,Jeringa SensiMedical 10 mL 22G x 32 mm negra,SensiMedical,Pieza 10 mL 22G x 32 mm (caja C/100 negra),1,insumo_generico_dificil
+FMX-506388,7506022300751,Jeringa SensiMedical 3 mL 21G x 32 mm verde,SensiMedical,Pieza 3 mL 21G x 32 mm (caja C/100 verde),1,insumo_generico_dificil
+FMX-506386,7506022300843,Jeringa SensiMedical 5 mL 22G x 32 mm negra,SensiMedical,Pieza 5 mL 22G x 32 mm (caja C/100 negra),1,insumo_generico_dificil
+FC-01167001,7502001167001,LAÜR Infantil solución inyectable C/3,SON'S,"Caja con 3 frascos ámpula, 3 ampolletas 3 mL y 3 jeringas",1,ean_sin_packshot_publico_encontrado
+FC-00948670,4005900948670,Labello Caring Beauty Red 4.8 g,,,1,ean_sin_packshot_publico_encontrado
+FC-54503637,7501054503637,Labello Med Protection 4.8 g,,,1,ean_sin_packshot_publico_encontrado
+EQ-SON083,7502001161627,Lisonin 1 amp 600 mg/2 ml,SON'S,1 ampolleta 2 mL,1,ean_sin_packshot_publico_encontrado
+FC-58752796,7501058752796,Lysol desinfectante antibacterial Crisp Linen 475 g,,,1,ean_sin_packshot_publico_encontrado
+FC-D037156B,3311000003708,Mercurio Bismuto Subnitrato,Mercurio,C/50,1,mercurio_herbolario_sin_packshot_publico
+FC-578F060C,3311000003739,Mercurio Borax Polvo,Mercurio,C/50,1,mercurio_herbolario_sin_packshot_publico
+FC-5EF90195,3311000003845,Mercurio Flor De Arnica,Mercurio,C/50,1,mercurio_herbolario_sin_packshot_publico
+FC-CB5C11ED,3311000003425,Mercurio Magnesia Anisada,Mercurio,C/50,1,mercurio_herbolario_sin_packshot_publico
+FC-47AAF23B,3311000003494,Mercurio Sulfatiazol Polvo,Mercurio,C/50,1,mercurio_herbolario_sin_packshot_publico
+FC-49028234,7501349028234,Omeprazol 40 mg solución inyectable ampolleta LGEN,,,1,generico_lab_sin_packshot_publico
+FC-56729917,7502256729917,Oxímetro Inhala Care pulso dedo FS10E,,,1,ean_sin_packshot_publico_encontrado
+FC-01303454,7501001303454,Pantene Control caída anticaída,Pantene,400 ML,1,ean_sin_packshot_publico_encontrado
+FC-19068911,7501019068911,Panty protector Saba largo 28,,,1,ean_sin_packshot_publico_encontrado
+FC-19039355,7501019039355,Parches Saba térmicos 3 pz,,,1,ean_sin_packshot_publico_encontrado
+FC-58715913,7501058715913,Picot Plus 9 sobres efervescentes,,,1,ean_sin_packshot_publico_encontrado
+FC-IFC-PIN01,2008530100014,Pinza depilar Mereje tenaza C/12,Mereje,Paquete con 12,1,ean_interno
+FMX-303091,793969285204,Piojitos Shampoo C/150 Gr,PIOJITOS,150G,1,ean_sin_packshot_publico_encontrado
+FMX-505937,,Pleniform-40 Tabletas C/30,,,1,sin_ean
+FC-6B2ADEE9,7501109900008,Protect aerosol 200 dosis,Protect,12.80 G,1,ean_sin_packshot_publico_encontrado
+FC-27870259,7502227870259,Roxidolin Doxiciclina 100 mg 10 cápsulas,,,1,ean_sin_packshot_publico_encontrado
+FC-20500201,8101205002010,Shampoo Pert Aceite oliva,Pert,400 ML,1,ean_sin_packshot_publico_encontrado
+FC-36033735,0378360337358,Shampoo Ricitos de Oro Agua De Coco,Ricitos de Oro,250 ML,1,ean_sin_packshot_publico_encontrado
+FC-36032776,0378360327762,Shampoo Ricitos de Oro Biopure,Ricitos de Oro,250 ML,1,ean_sin_packshot_publico_encontrado
+FC-00661391,6502400661391,Suerox 8 Iones Frutos Rojos 630 ML,Suerox,630 ML,1,ean_sin_packshot_publico_encontrado
+FC-00721541,6502400721541,Suerox Vitamins Manzana V-Limón 630 ML,Suerox,630 ML,1,ean_sin_packshot_publico_encontrado
+FC-6C2878CF,,Susp 125 Mg/Ml,Budenova,5 AMPOLLETA,1,sin_ean
+FC-19032424,7501019032424,Tampones Saba compactos super,,,1,ean_sin_packshot_publico_encontrado
+FC-89592876,4001895928765,Tegaderm 3M 10 x 12 cm C/50,Tegaderm,Caja con 50 apósitos 10 x 12 cm,1,ean_sin_packshot_publico_encontrado
+FC-19050473,7501019050473,Toalla húmeda Tena adulto EG,,,1,ean_sin_packshot_publico_encontrado
+FC-85800198,6195858001980,Toallitas Bebin Super,Bebin Super,C/80,1,ean_sin_packshot_publico_encontrado
+FC-85103015,6195851030154,Toallitas Humedas Bebin Super,Bebin Super,40 PZA,1,ean_sin_packshot_publico_encontrado
+FC-3E863E37,,Tratidri,Tratidri,1 GEL,1,sin_ean
+FC-00315021,6502400315021,Tukol-D jarabe infantil,Tukol-D,Jarabe 125 mL,1,ean_sin_packshot_publico_encontrado
+FC-405A75E3,,Ursodesoxicolico,Acido,50 CAPSULAS,1,sin_ean
+FMX-301721,,Vita/Kid/C Jarabe C/240 Ml,,,1,sin_ean
+FC-46504859,7501846504859,Xiomara Pomada B,Xiomara,,1,ean_sin_packshot_publico_encontrado
+FC-46506198,7501846506198,Xiomara cera modeladora telaraña 100 g,Xiomara,Frasco 100 g,1,ean_sin_packshot_publico_encontrado

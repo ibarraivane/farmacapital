@@ -1736,6 +1736,7 @@ function Header({page,setPage,cart,user,setUser,busqHero,setBusqHero,productos,s
           <TiendaBusquedaBar
             compact
             showCita={false}
+            showCatalogo={false}
             inputRef={searchInputRef}
             stack={stackHeader}
             value={busqHero || ""}
@@ -1791,6 +1792,7 @@ function ProductCard({prod,addToCart,onClick}){
   const C = useTheme();
   const narrow = useMediaQuery("(max-width: 768px)");
   const [added,setAdded]=useState(false);
+  const [imgRota,setImgRota]=useState(false);
   const promosProd = usePromosProducto(prod?.id);
   const oferta = ofertaDeProducto(prod, promosProd);
   const agotado = productoAgotadoTienda(prod);
@@ -1798,6 +1800,7 @@ function ProductCard({prod,addToCart,onClick}){
   const placeholderUrl = useContext(TiendaPlaceholderCtx);
   const fotoCatalogoDe = useImagenesPrincipales();
   const imgSrc = productImageUrl(prod, narrow, placeholderUrl, fotoCatalogoDe(prod?.id));
+  useEffect(() => { setImgRota(false); }, [imgSrc]);
   const handleDetailClick = () => { onClick?.(); };
   const handleAddClick = (e) => {
     e.stopPropagation();
@@ -1842,13 +1845,14 @@ function ProductCard({prod,addToCart,onClick}){
           WebkitTapHighlightColor:"transparent",
         }}
       >
-        {imgSrc ? (
+        {imgSrc && !imgRota ? (
           <img
             src={tiendaCardImageUrl(imgSrc)}
             alt=""
             loading="lazy"
             decoding="async"
             draggable={false}
+            onError={() => setImgRota(true)}
             style={{maxWidth:"100%",maxHeight:"100%",width:"auto",height:"auto",objectFit:"contain",display:"block"}}
           />
         ) : (
@@ -2369,6 +2373,7 @@ function HomeServices({setPage}){
   const C = useTheme();
   const [modalAbierto,setModalAbierto]=useState(null);
   const servicios = [
+    { key:"catalogo", titulo:"Ver catálogo", desc:"Medicamentos y más", color:BRAND.primary, tipo:"page", destino:"catalogo", icon:Pill },
     { key:"pickup", titulo:"Pick-up gratis", desc:"Recoge hoy", color:BRAND.primary, tipo:"modal", icon:Store },
     { key:"cdmx", titulo:"CDMX express", desc:"Uber Direct", color:BRAND.secondary, tipo:"modal", icon:Bike },
 
@@ -2377,8 +2382,10 @@ function HomeServices({setPage}){
     { key:"conseguir", titulo:"Te lo conseguimos", desc:"Si no está en catálogo", color:BRAND.accent, tipo:"page", destino:"conseguir", icon:PackageSearch },
   ];
   const handleClick = (s)=>{
-    if (s.tipo==="page") setPage(s.destino);
-    else setModalAbierto(s.key);
+    if (s.tipo==="page") {
+      if (s.destino === "catalogo") setPage("catalogo", { rx: false });
+      else setPage(s.destino);
+    } else setModalAbierto(s.key);
   };
   return (
     <>
@@ -2435,7 +2442,7 @@ function HomeServices({setPage}){
           @media (min-width: 769px) {
             .farmacapital-home-services-scroll {
               display: grid !important;
-              grid-template-columns: repeat(5, minmax(0, 1fr));
+              grid-template-columns: repeat(6, minmax(0, 1fr));
               overflow-x: visible !important;
               scroll-snap-type: none;
             }
@@ -2631,7 +2638,7 @@ function TiendaSearchSuggestions({ suggestions, productos, onPick, C }) {
   );
 }
 
-/** Buscador de catálogo + CTA consultorio (icono fijo, texto legible en dark mode OS). */
+/** Buscador de catálogo + CTAs (Ver catálogo / Agendar cita). */
 function TiendaBusquedaBar({
   value,
   onChange,
@@ -2646,10 +2653,16 @@ function TiendaBusquedaBar({
   stack,
   compact = false,
   showCita = true,
+  showCatalogo = true,
   inputRef = null,
 }) {
   const C = useTheme();
   const q = String(value || "").trim();
+  const showActions = showCita || showCatalogo;
+  const btnRadius = compact ? 10 : 30;
+  const btnMinH = compact ? 44 : 52;
+  const btnPad = stack ? "13px 14px" : "14px 18px";
+  const btnFont = stack ? 13 : 15;
 
   return (
     <div
@@ -2713,33 +2726,73 @@ function TiendaBusquedaBar({
           C={C}
         />
       </div>
-      {showCita && (
-      <button
-        type="button"
-        onClick={() => navigateToCita(setPage)}
-        style={{
-          flexShrink: 0,
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 8,
-          padding: stack ? "13px 18px" : "14px 20px",
-          borderRadius: compact ? 10 : 30,
-          border: "none",
-          background: BRAND.gradient,
-          color: "#fff",
-          fontWeight: 800,
-          fontSize: stack ? 14 : 15,
-          fontFamily: "var(--fc-body)",
-          cursor: "pointer",
-          boxShadow: "0 4px 16px rgba(30,58,186,.22)",
-          whiteSpace: "nowrap",
-          minHeight: compact ? 44 : 52,
-        }}
-      >
-        <Stethoscope size={18} strokeWidth={2.25} aria-hidden />
-        Agendar cita
-      </button>
+      {showActions && (
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            gap: 8,
+            flexShrink: 0,
+            width: stack ? "100%" : "auto",
+            alignItems: "stretch",
+          }}
+        >
+          {showCatalogo && (
+            <button
+              type="button"
+              onClick={() => setPage("catalogo", { rx: false })}
+              style={{
+                flex: stack ? 1 : "0 0 auto",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                padding: btnPad,
+                borderRadius: btnRadius,
+                border: `2px solid ${BRAND.primary}`,
+                background: C.white,
+                color: BRAND.primary,
+                fontWeight: 800,
+                fontSize: btnFont,
+                fontFamily: "var(--fc-body)",
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+                minHeight: btnMinH,
+              }}
+            >
+              <Pill size={18} strokeWidth={2.25} aria-hidden />
+              Ver catálogo
+            </button>
+          )}
+          {showCita && (
+            <button
+              type="button"
+              onClick={() => navigateToCita(setPage)}
+              style={{
+                flex: stack ? 1 : "0 0 auto",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                padding: btnPad,
+                borderRadius: btnRadius,
+                border: "none",
+                background: BRAND.gradient,
+                color: "#fff",
+                fontWeight: 800,
+                fontSize: btnFont,
+                fontFamily: "var(--fc-body)",
+                cursor: "pointer",
+                boxShadow: "0 4px 16px rgba(30,58,186,.22)",
+                whiteSpace: "nowrap",
+                minHeight: btnMinH,
+              }}
+            >
+              <Stethoscope size={18} strokeWidth={2.25} aria-hidden />
+              Agendar cita
+            </button>
+          )}
+        </div>
       )}
     </div>
   );
