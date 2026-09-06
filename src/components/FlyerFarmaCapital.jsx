@@ -4,7 +4,7 @@ import { Download, Link2, Mail, MessageCircle, QrCode } from "lucide-react";
 import { showToast } from "../ui";
 import { FARMACIA_FISCAL } from "../constants/farmaciaFiscal";
 import { HORARIO_FARMACIA } from "../constants/turnos";
-import { logoFullSrc, logoIconStyle } from "../brand";
+import { logoFullSrc, logoFullSrcSet, logoIconStyle } from "../brand";
 import {
   flyerHomeUrl,
   flyerMailtoShareUrl,
@@ -61,8 +61,30 @@ export function FlyerCruz({ size = 88 }) {
   );
 }
 
+/** Lockup oficial: cruz + wordmark, versión clara para fondo oscuro. */
+export function FlyerLogo({ compact = false }) {
+  const width = compact ? 220 : 320;
+  return (
+    <img
+      src={logoFullSrc({ light: true })}
+      srcSet={logoFullSrcSet({ light: true })}
+      sizes={`${width}px`}
+      alt="FarmaCapital"
+      width={width}
+      decoding="async"
+      draggable={false}
+      style={{
+        width,
+        maxWidth: "100%",
+        height: "auto",
+        display: "block",
+        objectFit: "contain",
+      }}
+    />
+  );
+}
+
 export function FlyerCard({ qrUrl, compact = false }) {
-  const cruz = compact ? 78 : 104;
   const qr = compact ? 132 : 172;
   return (
     <article
@@ -108,8 +130,8 @@ export function FlyerCard({ qrUrl, compact = false }) {
       />
 
       <div style={{ position: "relative" }}>
-        <div style={{ display: "flex", justifyContent: "center", marginBottom: compact ? 10 : 16, paddingTop: 4 }}>
-          <FlyerCruz size={cruz} />
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: compact ? 10 : 14, paddingTop: 2 }}>
+          <FlyerLogo compact={compact} />
         </div>
         <div
           style={{
@@ -123,18 +145,7 @@ export function FlyerCard({ qrUrl, compact = false }) {
         >
           Farmacia · Consulta · Envío
         </div>
-        <h1
-          style={{
-            margin: 0,
-            fontSize: compact ? 28 : "clamp(34px, 9vw, 44px)",
-            fontWeight: 800,
-            lineHeight: 1.05,
-            letterSpacing: -1.2,
-          }}
-        >
-          FarmaCapital
-        </h1>
-        <p style={{ margin: "12px auto 0", maxWidth: 320, fontSize: 14, lineHeight: 1.5, color: "rgba(255,255,255,0.82)" }}>
+        <p style={{ margin: "4px auto 0", maxWidth: 320, fontSize: 14, lineHeight: 1.5, color: "rgba(255,255,255,0.82)" }}>
           Entra, busca lo que necesitas y compra. Si no está en el catálogo, te lo conseguimos a domicilio.
         </p>
 
@@ -370,10 +381,11 @@ export default function FlyerFarmaCapital({ setPage }) {
           <QrCode size={16} /> Flyer para WhatsApp
         </div>
         <h2 style={{ margin: "8px 0 6px", fontSize: 22, fontWeight: 800, color: NAVY }}>
-          Compártelo con tus contactos
+          Manda la foto, no esta página
         </h2>
         <p style={{ margin: 0, color: "#475569", fontSize: 14, lineHeight: 1.5 }}>
-          WhatsApp: foto + link. Correo: ligas para entrar a la tienda. Si no está, levantan el pedido y tú pasas el costo.
+          WhatsApp: la imagen de la tarjeta + el texto con el link de la tienda.
+          El contacto no ve botones: toca el link o escanea el QR. Esta página es solo para ti.
         </p>
       </div>
 
@@ -384,7 +396,7 @@ export default function FlyerFarmaCapital({ setPage }) {
       <WhatsAppChatPreview origin={origin} qrUrl={qrUrl} />
 
       <p style={{ margin: "16px 0 0", color: "#64748b", fontSize: 13, lineHeight: 1.5, textAlign: "center" }}>
-        WhatsApp: se manda esa foto + el texto de abajo (sin botones). Correo: ligas clicables.
+        No compartas /tarjeta. Se manda la foto de arriba + el texto (con el link). Correo: ligas clicables.
       </p>
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 14 }}>
