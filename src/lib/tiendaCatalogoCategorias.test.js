@@ -1,6 +1,9 @@
 import {
   bandasCatalogoPorCategoria,
   irACatalogoCategoria,
+  leerVistaCatalogo,
+  guardarVistaCatalogo,
+  VISTA_CATALOGO_KEY,
 } from "./tiendaCatalogoCategorias";
 
 describe("bandasCatalogoPorCategoria", () => {
@@ -57,5 +60,21 @@ describe("irACatalogoCategoria", () => {
     irACatalogoCategoria((p, opts) => pages.push([p, opts]), "Alergia");
     expect(sessionStorage.getItem("farmacapital_cat")).toBe("Alergia");
     expect(pages).toEqual([["catalogo", { rx: false }]]);
+  });
+});
+
+describe("vista catálogo grid/bandas", () => {
+  beforeEach(() => {
+    localStorage.removeItem(VISTA_CATALOGO_KEY);
+  });
+
+  test("por defecto es grid", () => {
+    expect(leerVistaCatalogo()).toBe("grid");
+  });
+
+  test("guarda y lee bandas", () => {
+    expect(guardarVistaCatalogo("bandas")).toBe("bandas");
+    expect(leerVistaCatalogo()).toBe("bandas");
+    expect(guardarVistaCatalogo("rara")).toBe("grid");
   });
 });

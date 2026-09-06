@@ -84,3 +84,26 @@ export function irACatalogoCategoria(setPage, categoria) {
   }
   setPage?.("catalogo", { rx: false });
 }
+
+/** Preferencia de layout del catálogo: cuadrícula o bandas horizontales. */
+export const VISTA_CATALOGO_KEY = "farmacapital_vista_catalogo";
+export const VISTAS_CATALOGO = Object.freeze(["grid", "bandas"]);
+
+export function leerVistaCatalogo() {
+  try {
+    const v = localStorage.getItem(VISTA_CATALOGO_KEY);
+    return VISTAS_CATALOGO.includes(v) ? v : "grid";
+  } catch {
+    return "grid";
+  }
+}
+
+export function guardarVistaCatalogo(vista) {
+  const v = VISTAS_CATALOGO.includes(vista) ? vista : "grid";
+  try {
+    localStorage.setItem(VISTA_CATALOGO_KEY, v);
+  } catch {
+    /* ignore */
+  }
+  return v;
+}
