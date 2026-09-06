@@ -181,7 +181,6 @@
         --fc-text-x: 25.57%;
         --fc-text-n: 0.2557;
         --fc-wake: 0.60567;
-        --fc-pad: calc(var(--fc-logo-w) * 0.01);
         --fc-cw: calc(var(--fc-logo-w) * var(--fc-cross-w));
         --fc-ch: var(--fc-logo-h);
         --fc-lnx: calc(50% - var(--fc-cw) * 0.161);
@@ -196,11 +195,6 @@
         --fc-hair: 3px;
         --fc-sx: 0.22;
         --fc-sy: 0.28;
-        --fc-intro-ink: #001534;
-        --fc-intro-blue: #054ABC;
-        --fc-intro-jade: #02A158;
-        --fc-intro-mid: #5A6472;
-        --fc-ease: cubic-bezier(0.4, 0, 0.2, 1);
         position: fixed;
         inset: 0;
         z-index: 9999;
@@ -224,8 +218,7 @@
       #splash.fc-intro-out .fc-intro-logo,
       #splash.fc-intro-out .fc-intro-sub,
       #splash.fc-intro-out .fc-intro-word-window,
-      #splash.fc-intro-out .fc-intro-cross-clip,
-      #splash.fc-intro-out .fc-intro-lines {
+      #splash.fc-intro-out .fc-intro-cross-clip {
         opacity: 0 !important;
         animation: none !important;
         transition: opacity 0.18s ease !important;
@@ -240,7 +233,6 @@
         width: var(--fc-logo-w);
         max-width: 100%;
         flex-shrink: 0;
-        transform: translate3d(0, 0, 0);
       }
       .fc-intro-stage {
         position: relative;
@@ -268,7 +260,7 @@
         z-index: 1;
         overflow: hidden;
         pointer-events: none;
-        transform: translate3d(calc(var(--fc-wake) * var(--fc-logo-w) + var(--fc-pad)), 0, 0);
+        transform: translate3d(calc(var(--fc-wake) * var(--fc-logo-w)), 0, 0);
         will-change: transform;
         backface-visibility: hidden;
       }
@@ -276,7 +268,7 @@
         position: relative;
         width: 100%;
         height: 100%;
-        transform: translate3d(calc((var(--fc-wake) * var(--fc-logo-w) + var(--fc-pad)) * -1), 0, 0);
+        transform: translate3d(calc(var(--fc-wake) * var(--fc-logo-w) * -1), 0, 0);
         will-change: transform;
         backface-visibility: hidden;
       }
@@ -316,49 +308,43 @@
         height: 100%;
       }
       #splash.fc-intro-play .fc-intro-cross-clip {
-        animation: fc-intro-cross 2.4s var(--fc-ease) both;
+        animation: fc-intro-cross 2.6s cubic-bezier(0.22, 1, 0.36, 1) both;
       }
       #splash.fc-intro-play .fc-intro-word-window {
-        animation: fc-word-window 2.4s var(--fc-ease) both;
+        animation: fc-word-window 2.6s cubic-bezier(0.22, 1, 0.36, 1) both;
       }
       #splash.fc-intro-play .fc-intro-word-slide {
-        animation: fc-word-slide 2.4s var(--fc-ease) both;
+        animation: fc-word-slide 2.6s cubic-bezier(0.22, 1, 0.36, 1) both;
       }
       #splash.fc-intro-play .fc-intro-word {
-        animation: fc-word-fade 2.4s var(--fc-ease) both;
+        animation: fc-word-fade 2.6s cubic-bezier(0.22, 1, 0.36, 1) both;
       }
-      #splash.fc-intro-play .fc-intro-lines {
-        animation: fc-intro-lines 2.4s var(--fc-ease) both;
-      }
-      /* Las L viajan con la cruz: no hay instante quieto ni estelas sueltas. */
+      /* Misma coreografía que #112: L → cruz al centro → luego el nombre. */
       @keyframes fc-intro-cross {
-        0%, 14% { opacity: 0; transform: translate3d(calc(var(--fc-shift) * var(--fc-logo-w)), 0, 0); }
-        20% { opacity: 1; transform: translate3d(calc(var(--fc-shift) * var(--fc-logo-w)), 0, 0); }
-        62%, 100% { opacity: 1; transform: translate3d(0, 0, 0); }
-      }
-      @keyframes fc-intro-lines {
-        0%, 20% { transform: translate(-50%, -50%) translate3d(0, 0, 0); }
-        62%, 100% { transform: translate(-50%, -50%) translate3d(calc(var(--fc-shift) * var(--fc-logo-w) * -1), 0, 0); }
+        0%, 26% { opacity: 0; transform: translate3d(calc(var(--fc-shift) * var(--fc-logo-w)), 0, 0); }
+        30%, 46% { opacity: 1; transform: translate3d(calc(var(--fc-shift) * var(--fc-logo-w)), 0, 0); }
+        62% { opacity: 1; transform: translate3d(calc(var(--fc-shift) * 0.42 * var(--fc-logo-w)), 0, 0); }
+        72%, 100% { opacity: 1; transform: translate3d(0, 0, 0); }
       }
       @keyframes fc-word-window {
-        0%, 20% { transform: translate3d(calc(var(--fc-wake) * var(--fc-logo-w) + var(--fc-pad)), 0, 0); }
-        62%, 100% { transform: translate3d(calc(var(--fc-cross-w) * var(--fc-logo-w) + var(--fc-pad)), 0, 0); }
+        0%, 46% { transform: translate3d(calc(var(--fc-wake) * var(--fc-logo-w)), 0, 0); }
+        62%, 100% { transform: translate3d(0, 0, 0); }
       }
       @keyframes fc-word-slide {
-        0%, 20% { transform: translate3d(calc((var(--fc-wake) * var(--fc-logo-w) + var(--fc-pad)) * -1), 0, 0); }
-        62%, 100% { transform: translate3d(calc((var(--fc-cross-w) * var(--fc-logo-w) + var(--fc-pad)) * -1), 0, 0); }
+        0%, 46% { transform: translate3d(calc(var(--fc-wake) * var(--fc-logo-w) * -1), 0, 0); }
+        62%, 100% { transform: translate3d(0, 0, 0); }
       }
       @keyframes fc-word-fade {
-        0%, 18% { opacity: 0; }
-        26%, 100% { opacity: 1; }
+        0%, 46% { opacity: 0; }
+        52%, 100% { opacity: 1; }
       }
       .fc-intro-sub {
         position: relative;
         left: auto;
         width: calc(100% - var(--fc-text-x));
         margin: 6px 0 0 var(--fc-text-x);
-        color: var(--fc-intro-mid);
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        color: var(--fc-text-mid);
+        font-family: var(--fc-body);
         font-size: clamp(13px, 2.4vw, 16px);
         font-weight: 600;
         letter-spacing: 0.18em;
@@ -370,11 +356,11 @@
         pointer-events: none;
       }
       #splash.fc-intro-play .fc-intro-sub {
-        animation: fc-intro-sub 2.4s var(--fc-ease) both;
+        animation: fc-intro-sub 2.6s cubic-bezier(0.22, 1, 0.36, 1) both;
       }
       @keyframes fc-intro-sub {
-        0%, 62% { opacity: 0; transform: translateY(4px); }
-        72%, 100% { opacity: 1; transform: translateY(0); }
+        0%, 70% { opacity: 0; transform: translateY(4px); }
+        80%, 100% { opacity: 1; transform: translateY(0); }
       }
       .fc-intro-lines {
         position: absolute;
@@ -388,8 +374,6 @@
         overflow: hidden;
         pointer-events: none;
         z-index: 4;
-        will-change: transform;
-        backface-visibility: hidden;
       }
       .fc-hair {
         position: absolute;
@@ -453,51 +437,47 @@
         transform: scaleY(1);
       }
       #splash.fc-intro-play .fc-hair-left {
-        animation: fc-navy-h 0.95s var(--fc-ease) both;
+        animation: fc-navy-h 1.15s cubic-bezier(0.55, 0.05, 0.2, 1) both;
       }
       #splash.fc-intro-play .fc-hair-top {
-        animation: fc-navy-v 0.95s var(--fc-ease) both;
+        animation: fc-navy-v 1.15s cubic-bezier(0.55, 0.05, 0.2, 1) both;
       }
       #splash.fc-intro-play .fc-hair-right {
-        animation: fc-blue-h 0.95s var(--fc-ease) both;
+        animation: fc-blue-h 1.15s cubic-bezier(0.55, 0.05, 0.2, 1) both;
       }
       #splash.fc-intro-play .fc-hair-bot {
-        animation: fc-jade-v 0.95s var(--fc-ease) both;
+        animation: fc-jade-v 1.15s cubic-bezier(0.55, 0.05, 0.2, 1) both;
       }
       #splash.fc-intro-play .fc-hair::after {
-        animation: fc-sat 0.95s var(--fc-ease) both;
+        animation: fc-sat 1.15s cubic-bezier(0.55, 0.05, 0.2, 1) both;
       }
       @keyframes fc-navy-h {
-        0% { transform: scaleX(1); opacity: 1; }
-        10% { transform: scaleX(1); opacity: 1; }
-        72% { transform: scaleX(var(--fc-sx)); opacity: 1; }
+        0%, 32% { transform: scaleX(1); opacity: 1; }
+        68%, 86% { transform: scaleX(var(--fc-sx)); opacity: 1; }
         100% { transform: scaleX(var(--fc-sx)); opacity: 0; }
       }
       @keyframes fc-navy-v {
-        0% { transform: scaleY(1); opacity: 1; }
-        8% { transform: scaleY(1); opacity: 1; }
-        24% { transform: scaleY(0.72); opacity: 1; }
-        72% { transform: scaleY(var(--fc-sy)); opacity: 1; }
+        0%, 18% { transform: scaleY(1); opacity: 1; }
+        32% { transform: scaleY(0.72); opacity: 1; }
+        68%, 86% { transform: scaleY(var(--fc-sy)); opacity: 1; }
         100% { transform: scaleY(var(--fc-sy)); opacity: 0; }
       }
       @keyframes fc-blue-h {
-        0% { transform: scaleX(1); opacity: 1; }
-        10% { transform: scaleX(1); opacity: 1; }
-        72% { transform: scaleX(var(--fc-sx)); opacity: 1; }
+        0%, 32% { transform: scaleX(1); opacity: 1; }
+        68%, 86% { transform: scaleX(var(--fc-sx)); opacity: 1; }
         100% { transform: scaleX(var(--fc-sx)); opacity: 0; }
       }
       @keyframes fc-jade-v {
-        0% { transform: scaleY(1); opacity: 1; }
-        8% { transform: scaleY(1); opacity: 1; }
-        24% { transform: scaleY(0.72); opacity: 1; }
-        72% { transform: scaleY(var(--fc-sy)); opacity: 1; }
+        0%, 18% { transform: scaleY(1); opacity: 1; }
+        32% { transform: scaleY(0.72); opacity: 1; }
+        68%, 86% { transform: scaleY(var(--fc-sy)); opacity: 1; }
         100% { transform: scaleY(var(--fc-sy)); opacity: 0; }
       }
       @keyframes fc-sat {
         0% { opacity: 0; }
-        14% { opacity: 0.5; }
-        28% { opacity: 1; }
-        72% { opacity: 1; }
+        18% { opacity: 0.45; }
+        32%, 68% { opacity: 1; }
+        86% { opacity: 0.2; }
         100% { opacity: 0; }
       }
       @media (prefers-reduced-motion: reduce) {
@@ -603,7 +583,7 @@
 
         function soltarCapas() {
           if (!splash) return;
-          var els = splash.querySelectorAll('.fc-intro-cross-clip, .fc-intro-word-window, .fc-intro-word-slide, .fc-intro-lines, .fc-hair');
+          var els = splash.querySelectorAll('.fc-intro-cross-clip, .fc-intro-word-window, .fc-intro-word-slide, .fc-hair');
           for (var i = 0; i < els.length; i++) els[i].style.willChange = 'auto';
         }
 
@@ -639,7 +619,7 @@
         } else {
           var logoEl = splash && splash.querySelector('.fc-intro-cross');
           if (logoEl && logoEl.decode) logoEl.decode().catch(function () {});
-          setTimeout(terminarSecuencia, 2450);
+          setTimeout(terminarSecuencia, 2620);
         }
 
         window.addEventListener('load', function () {
