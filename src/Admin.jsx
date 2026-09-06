@@ -415,7 +415,7 @@ function AdminNavSidebar({active,setActive,negocio,setNegocio,usuario,onLogout,a
       width:220,flexShrink:0,background:C.card,borderRight:`1px solid ${C.border}`,
       boxShadow: mobile?"4px 0 24px rgba(0,0,0,.12)":"2px 0 8px rgba(0,0,0,.06)",
       display:"flex",flexDirection:"column",position:"fixed",left:mobile?(navOpen?0:-220):0,top:0,
-      height:"100vh",maxHeight:"100dvh",zIndex:mobile?1001:100,overflow:"hidden",transition:"left .22s ease",
+      height:"100vh",maxHeight:"100dvh",zIndex:mobile?2101:100,overflow:"hidden",transition:"left .22s ease",
     }}>
       <div style={{flexShrink:0,padding:"18px 14px 14px",borderBottom:`1px solid ${C.border}`}}>
         <Logo size={32} showText={true}/>
@@ -2220,23 +2220,23 @@ export default function FarmaCapitalAdmin(){
         if (!canAccessRoute(usuario.rol, "/pos")) {
           return <div>No autorizado</div>;
         }
-        return <POS negocio={neg} usuario={usuario} initialTab="venta" onNavigate={setPageAndSave} onSesionExpirada={forzarLoginPorSesion}/>;
+        return <POS negocio={neg} usuario={usuario} initialTab="venta" onNavigate={setPageAndSave} onSesionExpirada={forzarLoginPorSesion} onCerrarSesion={logout}/>;
       case "cons":      return <ConsultorioModule usuario={usuario}/>;
       case "config_cons": return <ConfigConsultorioModule />;
-      case "cons_cobro":return <POS negocio={neg} usuario={usuario} initialTab="consultas" onNavigate={setPageAndSave} onSesionExpirada={forzarLoginPorSesion}/>;
+      case "cons_cobro":return <POS negocio={neg} usuario={usuario} initialTab="consultas" onNavigate={setPageAndSave} onSesionExpirada={forzarLoginPorSesion} onCerrarSesion={logout}/>;
       case "agenda":
       case "cons_dr":
         return <AgendaConsultasModule usuario={usuario} onNavigate={setPageAndSave} />;
       case "exp_dr":    return <ExpedientesDoctora />;
       case "ped_online":
-        return <POS negocio={neg} usuario={usuario} initialTab="online" onNavigate={setPageAndSave} onSesionExpirada={forzarLoginPorSesion} />;
+        return <POS negocio={neg} usuario={usuario} initialTab="online" onNavigate={setPageAndSave} onSesionExpirada={forzarLoginPorSesion} onCerrarSesion={logout} />;
       case "inventario":
       case "inv":
         return <InventarioHub initialTab={invInitialTab} usuario={usuario} onNavigate={setPageAndSave}/>;
       case "recibir":
         return <RecepcionModule ocultarMontos={usuario?.rol === "vendedor"} />;
       case "rrhh": return <RRHHModule/>;
-      case "caja":  return <CorteCajaModule usuario={usuario}/>;
+      case "caja":  return <CorteCajaModule usuario={usuario} onCerrarSesion={logout}/>;
       case "cof":      return <COFEPRISModule/>;
       case "promo":    return <PromocionesModule onNavigate={setPageAndSave}/>;
       case "dev":      return <DevolucionesModule usuario={usuario}/>;
@@ -2306,7 +2306,7 @@ body{
           role="presentation"
           onClick={()=>setMobileNavOpen(false)}
           style={{
-            position:"fixed",inset:0,zIndex:1000,
+            position:"fixed",inset:0,zIndex:2099,
             background:"rgba(15,23,42,.45)",backdropFilter:"blur(2px)",cursor:"pointer",
           }}
         />
@@ -2321,7 +2321,7 @@ body{
             position:"fixed",
             top:"calc(12px + env(safe-area-inset-top, 0px))",
             left:"calc(12px + env(safe-area-inset-left, 0px))",
-            zIndex:40,
+            zIndex:2100,
             width:48,height:48,borderRadius:12,
             border:`1px solid ${C.border}`,background:C.card,
             boxShadow:"0 4px 20px rgba(0,0,0,.08)",cursor:"pointer",
