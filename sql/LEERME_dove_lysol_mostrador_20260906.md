@@ -7,6 +7,7 @@
 | Dove antitranspirante aerosol Tono Uniforme Caléndula 150 ml | `7506306241152` | **No** (hay cercanos con otro EAN) | Alta nueva `FC-06241152` |
 | eGo Force roll-on 45 ml | `75064938` (oficial Unilever) | **Sí** `FC-75064938` | No tocar. Foto sigue pendiente. |
 | Lysol Crisp Linen desinfectante antibacterial 354 g | `7501058796882` | **No** (sí hay el de **475 g**) | Alta nueva `FC-58796882` |
+| Desenfriol D tabletas C/6 | `7502276040641` | **No** (sí hay C/30 `7502276040368`) | Alta nueva `FC-27604064` · cad JUL/2027 · stock 1 |
 
 ## No confundir
 
@@ -22,7 +23,8 @@
 
 ## Qué pegar en Supabase
 
-1. `sql/patch_alta_dove_lysol_mostrador_20260906.sql` — altas (stock 0).
-2. Tras deploy Vercel: `sql/patch_fotos_dove_lysol_mostrador_20260906.sql`.
+1. `sql/patch_alta_dove_lysol_mostrador_20260906.sql` — Dove + Lysol (stock 0).
+2. `sql/patch_alta_desenfriol_d_c6_7502276040641.sql` — Desenfriol D C/6 (stock 1, lote cad 2027-07-31).
+3. Tras deploy Vercel: `sql/patch_fotos_dove_lysol_mostrador_20260906.sql`.
 
-Sin ticket de compra: no inventar recepción ni costo. Cuando haya remisión, armar Recibir.
+Sin ticket de compra para Dove/Lysol/Desenfriol: no inventar recepción ni costo. Cuando haya remisión, armar Recibir.

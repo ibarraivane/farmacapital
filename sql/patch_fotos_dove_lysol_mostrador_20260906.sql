@@ -2,6 +2,7 @@
 -- Archivos:
 --   public/catalogo-propia/dove-tono-uniforme-calendula-150ml.jpg
 --   public/catalogo-propia/lysol-crisp-linen-354g.jpg
+--   public/catalogo-propia/desenfriol-d-c6.jpg
 -- SIN do $$. Pegar TODO en Supabase → SQL Editor → Run.
 
 begin;
@@ -59,6 +60,32 @@ where (p.codigo_barras = '7501058796882' or p.sku in ('FC-58796882', 'FC-ND-5879
       and i.url like '%catalogo-propia/lysol-crisp-linen-354g%'
   );
 
+update public.productos
+set imagen_url = 'https://www.farmacapital.mx/catalogo-propia/desenfriol-d-c6.jpg'
+where (codigo_barras = '7502276040641' or sku in ('FC-27604064', 'FC-ND-27604064'))
+  and (
+    imagen_url is null
+    or btrim(imagen_url) = ''
+    or imagen_url not like '%catalogo-propia/desenfriol-d-c6%'
+  );
+
+insert into public.producto_imagenes (producto_id, url, posicion, es_principal, origen)
+select p.id,
+       'https://www.farmacapital.mx/catalogo-propia/desenfriol-d-c6.jpg',
+       coalesce((select max(i.posicion) from public.producto_imagenes i where i.producto_id = p.id), 0) + 1,
+       not exists (
+         select 1 from public.producto_imagenes i
+         where i.producto_id = p.id and i.es_principal
+       ),
+       'propia'
+from public.productos p
+where (p.codigo_barras = '7502276040641' or p.sku in ('FC-27604064', 'FC-ND-27604064'))
+  and not exists (
+    select 1 from public.producto_imagenes i
+    where i.producto_id = p.id
+      and i.url like '%catalogo-propia/desenfriol-d-c6%'
+  );
+
 commit;
 
 select
@@ -67,6 +94,9 @@ select
   nombre,
   left(coalesce(imagen_url, ''), 100) as imagen
 from public.productos
-where codigo_barras in ('7506306241152', '7501058796882')
-   or sku in ('FC-06241152', 'FC-58796882', 'FC-ND-06241152', 'FC-ND-58796882')
+where codigo_barras in ('7506306241152', '7501058796882', '7502276040641')
+   or sku in (
+     'FC-06241152', 'FC-58796882', 'FC-27604064',
+     'FC-ND-06241152', 'FC-ND-58796882', 'FC-ND-27604064'
+   )
 order by nombre;
