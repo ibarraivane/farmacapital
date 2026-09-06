@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { Download, Link2, Mail, MessageCircle, QrCode } from "lucide-react";
-import { Logo, showToast } from "../ui";
+import { showToast } from "../ui";
 import { FARMACIA_FISCAL } from "../constants/farmaciaFiscal";
 import { HORARIO_FARMACIA } from "../constants/turnos";
 import {
@@ -31,22 +31,47 @@ async function canvasFromNode(node) {
   });
 }
 
-export function FlyerCard({ qrUrl }) {
+/** Cruz completa (el PNG oficial es un trazo abierto y a tamaño chico se ve cortado). */
+export function FlyerCruz({ size = 80 }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 80 80"
+      aria-hidden
+      style={{ display: "block", overflow: "visible" }}
+    >
+      <rect x="32" y="8" width="16" height="64" rx="8" fill="#fff" />
+      <rect x="8" y="32" width="64" height="16" rx="8" fill="#fff" />
+      <path
+        d="M26 54c1-10 8-16 16-16"
+        fill="none"
+        stroke="#22C55E"
+        strokeWidth="4.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+export function FlyerCard({ qrUrl, compact = false }) {
+  const cruz = compact ? 64 : 80;
+  const qr = compact ? 132 : 172;
   return (
     <article
-      data-flyer-card="1"
+      data-flyer-card={compact ? undefined : "1"}
       style={{
         width: "100%",
-        maxWidth: 420,
+        maxWidth: compact ? "100%" : 420,
         margin: "0 auto",
         background: `linear-gradient(165deg, ${NAVY} 0%, #102a4a 52%, ${BLUE} 100%)`,
         color: "#fff",
-        borderRadius: 28,
-        padding: "32px 22px 26px",
-        boxShadow: "0 24px 60px rgba(13,27,42,0.35)",
+        borderRadius: compact ? 12 : 28,
+        padding: compact ? "20px 14px 16px" : "32px 22px 26px",
+        boxShadow: compact ? "none" : "0 24px 60px rgba(13,27,42,0.35)",
         fontFamily: "var(--fc-body), 'Plus Jakarta Sans', system-ui, sans-serif",
         position: "relative",
-        overflow: "hidden",
+        overflow: "visible",
         textAlign: "center",
       }}
     >
@@ -76,8 +101,8 @@ export function FlyerCard({ qrUrl }) {
       />
 
       <div style={{ position: "relative" }}>
-        <div data-brand-surface="dark" style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}>
-          <Logo size={28} light iconOnly />
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: compact ? 10 : 16 }}>
+          <FlyerCruz size={cruz} />
         </div>
         <div
           style={{
@@ -94,7 +119,7 @@ export function FlyerCard({ qrUrl }) {
         <h1
           style={{
             margin: 0,
-            fontSize: "clamp(34px, 9vw, 44px)",
+            fontSize: compact ? 28 : "clamp(34px, 9vw, 44px)",
             fontWeight: 800,
             lineHeight: 1.05,
             letterSpacing: -1.2,
@@ -111,10 +136,10 @@ export function FlyerCard({ qrUrl }) {
           style={{
             display: "block",
             margin: "22px auto 8px",
-            width: 196,
+            width: qr + 24,
             background: "#fff",
-            borderRadius: 20,
-            padding: 12,
+            borderRadius: compact ? 14 : 20,
+            padding: compact ? 8 : 12,
             textDecoration: "none",
             boxShadow: "0 10px 28px rgba(0,0,0,0.22)",
           }}
@@ -122,7 +147,7 @@ export function FlyerCard({ qrUrl }) {
         >
           <QRCodeSVG
             value={qrUrl}
-            size={172}
+            size={qr}
             bgColor="#ffffff"
             fgColor={NAVY}
             level="M"
@@ -150,6 +175,79 @@ export function FlyerCard({ qrUrl }) {
         </div>
       </div>
     </article>
+  );
+}
+
+function WhatsAppChatPreview({ origin, qrUrl }) {
+  const caption = flyerShareCaption(origin);
+  return (
+    <section
+      aria-label="Así se ve en WhatsApp"
+      style={{
+        maxWidth: 420,
+        margin: "28px auto 0",
+        background: "#0b141a",
+        borderRadius: 20,
+        overflow: "hidden",
+        boxShadow: "0 16px 40px rgba(11,20,26,0.28)",
+      }}
+    >
+      <div
+        style={{
+          background: "#202c33",
+          color: "#e9edef",
+          padding: "12px 16px",
+          fontSize: 13,
+          fontWeight: 700,
+        }}
+      >
+        Así se ve en WhatsApp
+      </div>
+      <div
+        style={{
+          padding: "18px 14px 16px",
+          background:
+            "linear-gradient(#0b141a, #0b141a), repeating-linear-gradient(0deg, transparent, transparent 11px, rgba(255,255,255,0.015) 11px, rgba(255,255,255,0.015) 12px)",
+        }}
+      >
+        <div
+          style={{
+            marginLeft: "auto",
+            width: "min(100%, 300px)",
+            background: "#005c4b",
+            borderRadius: "12px 12px 4px 12px",
+            padding: 6,
+            boxShadow: "0 1px 2px rgba(0,0,0,0.25)",
+          }}
+        >
+          <div
+            style={{
+              borderRadius: 8,
+              overflow: "hidden",
+              transform: "scale(1)",
+              transformOrigin: "top center",
+            }}
+          >
+            <FlyerCard qrUrl={qrUrl} compact />
+          </div>
+          <div
+            style={{
+              color: "#e9edef",
+              fontSize: 13,
+              lineHeight: 1.45,
+              padding: "8px 8px 4px",
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
+            }}
+          >
+            {caption}
+          </div>
+          <div style={{ textAlign: "right", color: "rgba(233,237,239,0.55)", fontSize: 11, padding: "0 8px 4px" }}>
+            12:30 ✓✓
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -276,8 +374,10 @@ export default function FlyerFarmaCapital({ setPage }) {
         <FlyerCard qrUrl={qrUrl} />
       </div>
 
+      <WhatsAppChatPreview origin={origin} qrUrl={qrUrl} />
+
       <p style={{ margin: "16px 0 0", color: "#64748b", fontSize: 13, lineHeight: 1.5, textAlign: "center" }}>
-        WhatsApp: manda la imagen (sin botones; el QR y el link hacen el trabajo). Correo: van ligas clicables, no botones pintados.
+        WhatsApp: se manda esa foto + el texto de abajo (sin botones). Correo: ligas clicables.
       </p>
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 14 }}>
