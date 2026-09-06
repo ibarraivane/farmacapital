@@ -52,7 +52,7 @@ import {
 import { notifyCitaConfirmacion, formatTelefonoDisplay, formatCitaFecha } from "./utils/citaWhatsApp";
 import { fetchUberDirectQuote, attachUberDirectQuote, formatUberFee, formatUberEta, explainUberQuoteError, checkoutPuedePagarEnvio, isUberCoverageError } from "./lib/uberDirectClient";
 import DestinationPicker from "./components/DestinationPicker";
-import RecompraStrip from "./components/RecompraStrip";
+import RecompraStrip, { ProductosStripStyles } from "./components/RecompraStrip";
 import SocialLoginButtons from "./components/SocialLoginButtons";
 import {
   cleanCheckoutColonia,
@@ -69,6 +69,7 @@ import {
   mergeCartLines,
 } from "./lib/tiendaCartStorage";
 import { recomprasFromPedidos, sugeridosFromRecompras } from "./lib/tiendaRecompras";
+import { bandasCatalogoPorCategoria, irACatalogoCategoria, leerVistaCatalogo, guardarVistaCatalogo } from "./lib/tiendaCatalogoCategorias";
 import { FARMACIA_FISCAL } from "./constants/farmaciaFiscal";
 import { HORARIO_FARMACIA } from "./constants/turnos";
 import { validarPasswordTienda, PASSWORD_RULES_TEXT, PASSWORD_MIN_LENGTH } from "./utils/passwordPolicy";
@@ -81,6 +82,7 @@ import {
   Store, Bike, PackageCheck, Trophy, CreditCard, Search, Calendar,
   Gift, Truck, Cake, LogOut, Key, Trash2, PackageSearch,
   MessageCircle, Lock, ClipboardList, CircleCheck,
+  LayoutGrid, GalleryHorizontal,
 } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════
@@ -2744,6 +2746,76 @@ function TiendaBusquedaBar({
 }
 
 // ── HOME ──────────────────────────────────────────────────────
+/** Home: catálogo en bandas horizontales por categoría (mejor que A–Z al entrar sin cuenta). */
+function HomeCatalogoPorCategoria({productos,loadingProductos,addToCart,setProdDetalle,setPage,setBusqHero}){
+  const C = useTheme();
+  const bandas = useMemo(
+    () => bandasCatalogoPorCategoria(poolCatalogoTienda(productos), { perCat: 12, maxCats: 14 }),
+    [productos]
+  );
+  const abrirCategoria = (categoria) => {
+    setBusqHero?.("");
+    irACatalogoCategoria(setPage, categoria);
+  };
+
+  if (loadingProductos && (!productos || productos.length === 0)) {
+    return (
+      <div style={{maxWidth:1200,margin:"0 auto",padding:"8px 16px 48px"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:12}}>
+          <div>
+            <h2 style={{color:C.dark,fontSize:"clamp(20px,4.5vw,24px)",fontWeight:800,margin:0}}>Explora por categoría</h2>
+            <div style={{color:C.mid,fontSize:13,marginTop:4}}>Desliza cada banda para ver más productos</div>
+          </div>
+        </div>
+        {Array.from({length:2}).map((_,i)=>(
+          <div key={i} style={{marginBottom:28}}>
+            <div style={{height:22,width:140,borderRadius:8,background:C.surface,marginBottom:12,opacity:0.8}}/>
+            <div style={{display:"flex",gap:14,overflow:"hidden"}}>
+              {Array.from({length:4}).map((__,j)=>(
+                <div key={j} style={{flex:"0 0 auto",width:200,height:260,borderRadius:12,background:C.surface,animation:"pulse 1.4s ease-in-out infinite",opacity:0.7}}/>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (!bandas.length) return null;
+
+  return (
+    <div style={{maxWidth:1200,margin:"0 auto",padding:"8px 16px 48px"}}>
+      <ProductosStripStyles />
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:8,flexWrap:"wrap",gap:12}}>
+        <div>
+          <h2 style={{color:C.dark,fontSize:"clamp(20px,4.5vw,24px)",fontWeight:800,margin:0}}>Explora por categoría</h2>
+          <div style={{color:C.mid,fontSize:13,marginTop:4,lineHeight:1.4}}>
+            Desliza de derecha a izquierda · Analgésicos, alergia, vitaminas y más
+          </div>
+        </div>
+        <Btn onClick={()=>setPage("catalogo",{rx:false})} outline col={BRAND.primary} sm>Ver catálogo completo →</Btn>
+      </div>
+      {bandas.map((banda)=>(
+        <RecompraStrip
+          key={banda.categoria}
+          title={banda.categoria}
+          actionLabel="Ver todos →"
+          onAction={()=>abrirCategoria(banda.categoria)}
+        >
+          {banda.productos.map((p)=>(
+            <ProductCard
+              key={p.id}
+              prod={p}
+              addToCart={addToCart}
+              onClick={()=>{setProdDetalle(p);setPage("detalle",{ productId: p.id });}}
+            />
+          ))}
+        </RecompraStrip>
+      ))}
+    </div>
+  );
+}
+
 function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,precioConsulta,loadingProductos,recompras=[],sugeridos=[]}){
   const C = useTheme();
   const stack = useMediaQuery("(max-width: 768px)");
@@ -2849,13 +2921,14 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
       <HomePromociones promos={promos} setPage={setPage}/>
 
       {(recompras.length > 0 || sugeridos.length > 0) && (
-        <div style={{maxWidth:1200,margin:"0 auto",padding:"0 16px 32px"}}>
+        <div style={{maxWidth:1200,margin:"0 auto",padding:"0 16px 8px"}}>
+          <ProductosStripStyles />
           <RecompraStrip
             title="Comprar de nuevo"
             subtitle="Lo que ya pediste en FarmaCapital, listo para agregar."
             empty={recompras.length === 0}
           >
-            {recompras.slice(0, 6).map((r) => (
+            {recompras.slice(0, 8).map((r) => (
               <ProductCard
                 key={r.prod.id}
                 prod={r.prod}
@@ -2881,23 +2954,15 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
         </div>
       )}
 
-      {/* Más vendidos */}
-      <div style={{maxWidth:1200,margin:"0 auto",padding:"0 16px 48px"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24,flexWrap:"wrap",gap:12}}>
-          <h2 style={{color:C.dark,fontSize:"clamp(20px,4.5vw,24px)",fontWeight:800,margin:0}}>Más vendidos en FarmaCapital</h2>
-          <Btn onClick={()=>setPage("catalogo",{rx:false})} outline col={BRAND.primary} sm>Ver catálogo →</Btn>
-        </div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(100%,220px),1fr))",gap:16}}>
-          {loadingProductos && productos.length===0
-            ? Array.from({length:6}).map((_,i)=>(
-                <div key={i} style={{borderRadius:12,background:C.surface,height:260,animation:"pulse 1.4s ease-in-out infinite",opacity:0.7}}/>
-              ))
-            : sortCatalogoTienda(productos, "")
-                .slice(0, 6)
-                .map(p=><ProductCard key={p.id} prod={p} addToCart={addToCart} onClick={()=>{setProdDetalle(p);setPage("detalle", { productId: p.id });}}/>)
-          }
-        </div>
-      </div>
+      {/* Catálogo por categoría (bandas horizontales) */}
+      <HomeCatalogoPorCategoria
+        productos={productos}
+        loadingProductos={loadingProductos}
+        addToCart={addToCart}
+        setProdDetalle={setProdDetalle}
+        setPage={setPage}
+        setBusqHero={setBusqHero}
+      />
 
       {/* Consultorio */}
       <div style={{background:BRAND.primary+"12",padding:"48px 24px"}}>
@@ -2968,6 +3033,8 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
   const [openCategorias, setOpenCategorias] = useState(false);
   const [busqFocus,setBusqFocus]=useState(false);
   const [visibles, setVisibles] = useState(CATALOGO_PAGE_SIZE);
+  const [vista, setVista] = useState(() => leerVistaCatalogo());
+  const setVistaCatalogo = (v) => setVista(guardarVistaCatalogo(v));
   useEffect(()=>{ sessionStorage.setItem("farmacapital_cat",cat); },[cat]);
   useEffect(()=>{ sessionStorage.setItem("farmacapital_busq",busq); },[busq]);
   useEffect(()=>{ sessionStorage.setItem("farmacapital_tipo",tipo); },[tipo]);
@@ -2996,6 +3063,10 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
   }, [basePool, busq]);
   const pageFil = useMemo(() => fil.slice(0, visibles), [fil, visibles]);
   const hayMasCatalogo = fil.length > visibles;
+  const bandasVista = useMemo(
+    () => (vista === "bandas" ? bandasCatalogoPorCategoria(fil, { perCat: 16, maxCats: 24 }) : []),
+    [vista, fil]
+  );
   const poolCatalogo = useMemo(
     ()=>poolCatalogoTienda(productos),
     [productos]
@@ -3032,13 +3103,56 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
           <Btn sm outline col={BRAND.primary} onClick={()=>onClearRx?.()}>Ver catálogo completo</Btn>
         </div>
       )}
-      <div style={{color:C.dim,fontSize:14,marginBottom:24}}>
-        {busqActiva
-          ? `${fil.length} resultado${fil.length === 1 ? "" : "s"}${agotadosCount > 0 ? ` · ${disponiblesCount} disponible${disponiblesCount === 1 ? "" : "s"}, ${agotadosCount} agotado${agotadosCount === 1 ? "" : "s"}` : ""} · refiná con filtros o escribí más palabras (ej. «ácido fólico»)`
-          : agotadosCount > 0
-            ? `${fil.length} productos · ${disponiblesCount} disponibles, ${agotadosCount} agotados`
-            : `${fil.length} productos disponibles`}
-        {hayMasCatalogo ? ` · mostrando ${pageFil.length}` : ""}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,flexWrap:"wrap",marginBottom:24}}>
+        <div style={{color:C.dim,fontSize:14,lineHeight:1.45,minWidth:0,flex:"1 1 200px"}}>
+          {busqActiva
+            ? `${fil.length} resultado${fil.length === 1 ? "" : "s"}${agotadosCount > 0 ? ` · ${disponiblesCount} disponible${disponiblesCount === 1 ? "" : "s"}, ${agotadosCount} agotado${agotadosCount === 1 ? "" : "s"}` : ""} · refiná con filtros o escribí más palabras (ej. «ácido fólico»)`
+            : agotadosCount > 0
+              ? `${fil.length} productos · ${disponiblesCount} disponibles, ${agotadosCount} agotados`
+              : `${fil.length} productos disponibles`}
+          {vista === "grid" && hayMasCatalogo ? ` · mostrando ${pageFil.length}` : ""}
+          {vista === "bandas" ? " · vista en bandas por categoría" : ""}
+        </div>
+        <div
+          role="group"
+          aria-label="Cómo ver el catálogo"
+          style={{display:"inline-flex",border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden",flexShrink:0,background:C.white}}
+        >
+          <button
+            type="button"
+            title="Vista cuadrícula"
+            aria-pressed={vista === "grid"}
+            onClick={() => setVistaCatalogo("grid")}
+            style={{
+              display:"inline-flex",alignItems:"center",gap:6,
+              padding:"8px 12px",border:"none",cursor:"pointer",
+              background: vista === "grid" ? BRAND.primary + "18" : "transparent",
+              color: vista === "grid" ? BRAND.primary : C.mid,
+              fontWeight: vista === "grid" ? 700 : 500,
+              fontSize:12,fontFamily:"var(--fc-body)",
+            }}
+          >
+            <LayoutGrid size={16} strokeWidth={2} aria-hidden />
+            <span>Cuadrícula</span>
+          </button>
+          <button
+            type="button"
+            title="Vista en bandas"
+            aria-pressed={vista === "bandas"}
+            onClick={() => setVistaCatalogo("bandas")}
+            style={{
+              display:"inline-flex",alignItems:"center",gap:6,
+              padding:"8px 12px",border:"none",borderLeft:`1px solid ${C.border}`,cursor:"pointer",
+              background: vista === "bandas" ? BRAND.primary + "18" : "transparent",
+              color: vista === "bandas" ? BRAND.primary : C.mid,
+              fontWeight: vista === "bandas" ? 700 : 500,
+              fontSize:12,fontFamily:"var(--fc-body)",
+            }}
+          >
+            <GalleryHorizontal size={16} strokeWidth={2} aria-hidden />
+            <span>Bandas</span>
+          </button>
+        </div>
       </div>
       <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:20,marginBottom:20}}>
         <TiendaBusquedaBar
@@ -3119,24 +3233,69 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
             height: "auto",
             overflow: "visible",
             position: "relative",
-            display: "grid",
+            display: vista === "bandas" ? "block" : "grid",
             gap: stack ? 16 : 18,
             /** Móvil: una columna; laptop/desktop: rejilla tipo “antes”, varias tarjetas por fila */
-            gridTemplateColumns: stack
-              ? "1fr"
-              : "repeat(auto-fill, minmax(min(100%, 220px), 1fr))",
+            gridTemplateColumns: vista === "bandas"
+              ? undefined
+              : stack
+                ? "1fr"
+                : "repeat(auto-fill, minmax(min(100%, 220px), 1fr))",
             alignItems: "stretch",
           }}
         >
           {loadingProductos && productos.length===0
-            ? Array.from({length:8}).map((_,i)=>(
-                <div key={i} style={{borderRadius:12,background:"#F1E8DD",height:260,animation:"pulse 1.4s ease-in-out infinite",opacity:0.7}}/>
-              ))
+            ? (vista === "bandas"
+                ? (
+                  <div>
+                    <ProductosStripStyles />
+                    {Array.from({length:2}).map((_,i)=>(
+                      <div key={i} style={{marginBottom:24}}>
+                        <div style={{height:20,width:120,borderRadius:8,background:"#F1E8DD",marginBottom:12,opacity:0.8}}/>
+                        <div style={{display:"flex",gap:14,overflow:"hidden"}}>
+                          {Array.from({length:4}).map((__,j)=>(
+                            <div key={j} style={{flex:"0 0 auto",width:200,height:260,borderRadius:12,background:"#F1E8DD",animation:"pulse 1.4s ease-in-out infinite",opacity:0.7}}/>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )
+                : Array.from({length:8}).map((_,i)=>(
+                    <div key={i} style={{borderRadius:12,background:"#F1E8DD",height:260,animation:"pulse 1.4s ease-in-out infinite",opacity:0.7}}/>
+                  ))
+              )
             : fil.length===0
               ? <CatalogoVacioConseguir busq={busq} setPage={setPage} />
-              : pageFil.map(p=><ProductCard key={p.id} prod={p} addToCart={addToCart} onClick={()=>{setProdDetalle(p);setPage("detalle", { productId: p.id });}}/>)
+              : vista === "bandas"
+                ? (
+                  <div>
+                    <ProductosStripStyles />
+                    {bandasVista.map((banda)=>(
+                      <RecompraStrip
+                        key={banda.categoria}
+                        title={banda.categoria}
+                        actionLabel={cat === banda.categoria ? undefined : "Ver todos →"}
+                        onAction={cat === banda.categoria ? undefined : () => {
+                          setCat(banda.categoria);
+                          setVistaCatalogo("grid");
+                        }}
+                      >
+                        {banda.productos.map((p)=>(
+                          <ProductCard
+                            key={p.id}
+                            prod={p}
+                            addToCart={addToCart}
+                            onClick={()=>{setProdDetalle(p);setPage("detalle", { productId: p.id });}}
+                          />
+                        ))}
+                      </RecompraStrip>
+                    ))}
+                  </div>
+                )
+                : pageFil.map(p=><ProductCard key={p.id} prod={p} addToCart={addToCart} onClick={()=>{setProdDetalle(p);setPage("detalle", { productId: p.id });}}/>)
           }
-          {hayMasCatalogo && !(loadingProductos && productos.length===0) && (
+          {vista === "grid" && hayMasCatalogo && !(loadingProductos && productos.length===0) && (
             <div style={{gridColumn:"1/-1",display:"flex",justifyContent:"center",padding:"8px 0 4px"}}>
               <Btn
                 type="button"
@@ -5690,12 +5849,13 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
           <div>
             {addToCart ? (
               <div>
+          <ProductosStripStyles />
           <RecompraStrip
             title="Comprar de nuevo"
             subtitle="Tus compras anteriores. Un toque y vuelven al carrito."
             empty={recompras.length === 0}
           >
-            {recompras.slice(0, 6).map((r) => (
+            {recompras.slice(0, 8).map((r) => (
               <ProductCard
                 key={r.prod.id}
                 prod={r.prod}
