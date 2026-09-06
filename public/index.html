@@ -200,7 +200,7 @@
         --fc-intro-blue: #054ABC;
         --fc-intro-jade: #02A158;
         --fc-intro-mid: #5A6472;
-        --fc-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+        --fc-ease: cubic-bezier(0.4, 0, 0.2, 1);
         position: fixed;
         inset: 0;
         z-index: 9999;
@@ -224,7 +224,8 @@
       #splash.fc-intro-out .fc-intro-logo,
       #splash.fc-intro-out .fc-intro-sub,
       #splash.fc-intro-out .fc-intro-word-window,
-      #splash.fc-intro-out .fc-intro-cross-clip {
+      #splash.fc-intro-out .fc-intro-cross-clip,
+      #splash.fc-intro-out .fc-intro-lines {
         opacity: 0 !important;
         animation: none !important;
         transition: opacity 0.18s ease !important;
@@ -315,34 +316,41 @@
         height: 100%;
       }
       #splash.fc-intro-play .fc-intro-cross-clip {
-        animation: fc-intro-cross 2.45s var(--fc-ease-out) both;
+        animation: fc-intro-cross 2.4s var(--fc-ease) both;
       }
       #splash.fc-intro-play .fc-intro-word-window {
-        animation: fc-word-window 2.45s var(--fc-ease-out) both;
+        animation: fc-word-window 2.4s var(--fc-ease) both;
       }
       #splash.fc-intro-play .fc-intro-word-slide {
-        animation: fc-word-slide 2.45s var(--fc-ease-out) both;
+        animation: fc-word-slide 2.4s var(--fc-ease) both;
       }
       #splash.fc-intro-play .fc-intro-word {
-        animation: fc-word-fade 2.45s var(--fc-ease-out) both;
+        animation: fc-word-fade 2.4s var(--fc-ease) both;
       }
-      /* Sin meseta: la cruz no se queda quieta. Aparece y ya camina. */
+      #splash.fc-intro-play .fc-intro-lines {
+        animation: fc-intro-lines 2.4s var(--fc-ease) both;
+      }
+      /* Las L viajan con la cruz: no hay instante quieto ni estelas sueltas. */
       @keyframes fc-intro-cross {
-        0%, 16% { opacity: 0; transform: translate3d(calc(var(--fc-shift) * var(--fc-logo-w)), 0, 0); }
-        22%, 40% { opacity: 1; transform: translate3d(calc(var(--fc-shift) * var(--fc-logo-w)), 0, 0); }
-        68%, 100% { opacity: 1; transform: translate3d(0, 0, 0); }
+        0%, 14% { opacity: 0; transform: translate3d(calc(var(--fc-shift) * var(--fc-logo-w)), 0, 0); }
+        20% { opacity: 1; transform: translate3d(calc(var(--fc-shift) * var(--fc-logo-w)), 0, 0); }
+        62%, 100% { opacity: 1; transform: translate3d(0, 0, 0); }
+      }
+      @keyframes fc-intro-lines {
+        0%, 20% { transform: translate(-50%, -50%) translate3d(0, 0, 0); }
+        62%, 100% { transform: translate(-50%, -50%) translate3d(calc(var(--fc-shift) * var(--fc-logo-w) * -1), 0, 0); }
       }
       @keyframes fc-word-window {
-        0%, 40% { transform: translate3d(calc(var(--fc-wake) * var(--fc-logo-w) + var(--fc-pad)), 0, 0); }
-        68%, 100% { transform: translate3d(calc(var(--fc-cross-w) * var(--fc-logo-w) + var(--fc-pad)), 0, 0); }
+        0%, 20% { transform: translate3d(calc(var(--fc-wake) * var(--fc-logo-w) + var(--fc-pad)), 0, 0); }
+        62%, 100% { transform: translate3d(calc(var(--fc-cross-w) * var(--fc-logo-w) + var(--fc-pad)), 0, 0); }
       }
       @keyframes fc-word-slide {
-        0%, 40% { transform: translate3d(calc((var(--fc-wake) * var(--fc-logo-w) + var(--fc-pad)) * -1), 0, 0); }
-        68%, 100% { transform: translate3d(calc((var(--fc-cross-w) * var(--fc-logo-w) + var(--fc-pad)) * -1), 0, 0); }
+        0%, 20% { transform: translate3d(calc((var(--fc-wake) * var(--fc-logo-w) + var(--fc-pad)) * -1), 0, 0); }
+        62%, 100% { transform: translate3d(calc((var(--fc-cross-w) * var(--fc-logo-w) + var(--fc-pad)) * -1), 0, 0); }
       }
       @keyframes fc-word-fade {
-        0%, 38% { opacity: 0; }
-        44%, 100% { opacity: 1; }
+        0%, 18% { opacity: 0; }
+        26%, 100% { opacity: 1; }
       }
       .fc-intro-sub {
         position: relative;
@@ -362,11 +370,11 @@
         pointer-events: none;
       }
       #splash.fc-intro-play .fc-intro-sub {
-        animation: fc-intro-sub 2.45s var(--fc-ease-out) both;
+        animation: fc-intro-sub 2.4s var(--fc-ease) both;
       }
       @keyframes fc-intro-sub {
-        0%, 66% { opacity: 0; transform: translateY(4px); }
-        76%, 100% { opacity: 1; transform: translateY(0); }
+        0%, 62% { opacity: 0; transform: translateY(4px); }
+        72%, 100% { opacity: 1; transform: translateY(0); }
       }
       .fc-intro-lines {
         position: absolute;
@@ -380,6 +388,8 @@
         overflow: hidden;
         pointer-events: none;
         z-index: 4;
+        will-change: transform;
+        backface-visibility: hidden;
       }
       .fc-hair {
         position: absolute;
@@ -443,44 +453,44 @@
         transform: scaleY(1);
       }
       #splash.fc-intro-play .fc-hair-left {
-        animation: fc-navy-h 1s var(--fc-ease-out) both;
+        animation: fc-navy-h 0.95s var(--fc-ease) both;
       }
       #splash.fc-intro-play .fc-hair-top {
-        animation: fc-navy-v 1s var(--fc-ease-out) both;
+        animation: fc-navy-v 0.95s var(--fc-ease) both;
       }
       #splash.fc-intro-play .fc-hair-right {
-        animation: fc-blue-h 1s var(--fc-ease-out) both;
+        animation: fc-blue-h 0.95s var(--fc-ease) both;
       }
       #splash.fc-intro-play .fc-hair-bot {
-        animation: fc-jade-v 1s var(--fc-ease-out) both;
+        animation: fc-jade-v 0.95s var(--fc-ease) both;
       }
       #splash.fc-intro-play .fc-hair::after {
-        animation: fc-sat 1s var(--fc-ease-out) both;
+        animation: fc-sat 0.95s var(--fc-ease) both;
       }
       @keyframes fc-navy-h {
         0% { transform: scaleX(1); opacity: 1; }
-        18% { transform: scaleX(1); opacity: 1; }
-        78% { transform: scaleX(var(--fc-sx)); opacity: 1; }
+        10% { transform: scaleX(1); opacity: 1; }
+        72% { transform: scaleX(var(--fc-sx)); opacity: 1; }
         100% { transform: scaleX(var(--fc-sx)); opacity: 0; }
       }
       @keyframes fc-navy-v {
         0% { transform: scaleY(1); opacity: 1; }
-        10% { transform: scaleY(1); opacity: 1; }
-        28% { transform: scaleY(0.72); opacity: 1; }
-        78% { transform: scaleY(var(--fc-sy)); opacity: 1; }
+        8% { transform: scaleY(1); opacity: 1; }
+        24% { transform: scaleY(0.72); opacity: 1; }
+        72% { transform: scaleY(var(--fc-sy)); opacity: 1; }
         100% { transform: scaleY(var(--fc-sy)); opacity: 0; }
       }
       @keyframes fc-blue-h {
         0% { transform: scaleX(1); opacity: 1; }
-        18% { transform: scaleX(1); opacity: 1; }
-        78% { transform: scaleX(var(--fc-sx)); opacity: 1; }
+        10% { transform: scaleX(1); opacity: 1; }
+        72% { transform: scaleX(var(--fc-sx)); opacity: 1; }
         100% { transform: scaleX(var(--fc-sx)); opacity: 0; }
       }
       @keyframes fc-jade-v {
         0% { transform: scaleY(1); opacity: 1; }
-        10% { transform: scaleY(1); opacity: 1; }
-        28% { transform: scaleY(0.72); opacity: 1; }
-        78% { transform: scaleY(var(--fc-sy)); opacity: 1; }
+        8% { transform: scaleY(1); opacity: 1; }
+        24% { transform: scaleY(0.72); opacity: 1; }
+        72% { transform: scaleY(var(--fc-sy)); opacity: 1; }
         100% { transform: scaleY(var(--fc-sy)); opacity: 0; }
       }
       @keyframes fc-sat {
@@ -593,7 +603,7 @@
 
         function soltarCapas() {
           if (!splash) return;
-          var els = splash.querySelectorAll('.fc-intro-cross-clip, .fc-intro-word-window, .fc-intro-word-slide, .fc-hair');
+          var els = splash.querySelectorAll('.fc-intro-cross-clip, .fc-intro-word-window, .fc-intro-word-slide, .fc-intro-lines, .fc-hair');
           for (var i = 0; i < els.length; i++) els[i].style.willChange = 'auto';
         }
 
@@ -629,7 +639,7 @@
         } else {
           var logoEl = splash && splash.querySelector('.fc-intro-cross');
           if (logoEl && logoEl.decode) logoEl.decode().catch(function () {});
-          setTimeout(terminarSecuencia, 2480);
+          setTimeout(terminarSecuencia, 2450);
         }
 
         window.addEventListener('load', function () {
