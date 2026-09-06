@@ -25,6 +25,7 @@ const FUENTE_POR_SURTIDOR = {
   "Bodega F-42": "surtidor:bodega_f42",
   IFC: "surtidor:ifc",
   "Farma MX": "surtidor:farma_mx",
+  "Farma Mayoreo": "surtidor:farma_mayoreo",
 };
 
 export function stockDe(p) {
