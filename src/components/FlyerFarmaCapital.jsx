@@ -52,7 +52,7 @@ export function FlyerCruz({ size = 88 }) {
 }
 
 export function FlyerCard({ qrUrl, compact = false }) {
-  const cruz = compact ? 64 : 80;
+  const cruz = compact ? 72 : 92;
   const qr = compact ? 132 : 172;
   return (
     <article
@@ -64,11 +64,11 @@ export function FlyerCard({ qrUrl, compact = false }) {
         background: `linear-gradient(165deg, ${NAVY} 0%, #102a4a 52%, ${BLUE} 100%)`,
         color: "#fff",
         borderRadius: compact ? 12 : 28,
-        padding: compact ? "20px 14px 16px" : "32px 22px 26px",
+        padding: compact ? "28px 14px 16px" : "48px 22px 28px",
         boxShadow: compact ? "none" : "0 24px 60px rgba(13,27,42,0.35)",
         fontFamily: "var(--fc-body), 'Plus Jakarta Sans', system-ui, sans-serif",
         position: "relative",
-        overflow: "visible",
+        overflow: "hidden",
         textAlign: "center",
       }}
     >
@@ -80,8 +80,8 @@ export function FlyerCard({ qrUrl, compact = false }) {
           height: 220,
           borderRadius: "50%",
           background: "rgba(34,197,94,0.12)",
-          top: -80,
-          right: -60,
+          top: 40,
+          right: -70,
         }}
       />
       <div
@@ -98,7 +98,7 @@ export function FlyerCard({ qrUrl, compact = false }) {
       />
 
       <div style={{ position: "relative" }}>
-        <div style={{ display: "flex", justifyContent: "center", marginBottom: compact ? 10 : 16 }}>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: compact ? 10 : 16, paddingTop: 4 }}>
           <FlyerCruz size={cruz} />
         </div>
         <div
