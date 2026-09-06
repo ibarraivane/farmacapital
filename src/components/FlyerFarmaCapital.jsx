@@ -31,25 +31,22 @@ async function canvasFromNode(node) {
   });
 }
 
-/** Cruz completa (el PNG oficial es un trazo abierto y a tamaño chico se ve cortado). */
-export function FlyerCruz({ size = 80 }) {
+/** Cruz llena y cerrada. El PNG oficial es un trazo abierto; a tamaño chico se ve cortado. */
+export function FlyerCruz({ size = 88 }) {
   return (
     <svg
       width={size}
       height={size}
-      viewBox="0 0 80 80"
+      viewBox="0 0 88 88"
       aria-hidden
       style={{ display: "block", overflow: "visible" }}
     >
-      <rect x="32" y="8" width="16" height="64" rx="8" fill="#fff" />
-      <rect x="8" y="32" width="64" height="16" rx="8" fill="#fff" />
+      <circle cx="44" cy="44" r="42" fill="rgba(255,255,255,0.10)" />
       <path
-        d="M26 54c1-10 8-16 16-16"
-        fill="none"
-        stroke="#22C55E"
-        strokeWidth="4.5"
-        strokeLinecap="round"
+        fill="#fff"
+        d="M36.5 14c0-2.5 2-4.5 4.5-4.5h6c2.5 0 4.5 2 4.5 4.5v17h17c2.5 0 4.5 2 4.5 4.5v6c0 2.5-2 4.5-4.5 4.5h-17v17c0 2.5-2 4.5-4.5 4.5h-6c-2.5 0-4.5-2-4.5-4.5v-17h-17c-2.5 0-4.5-2-4.5-4.5v-6c0-2.5 2-4.5 4.5-4.5h17V14z"
       />
+      <circle cx="64" cy="64" r="7" fill="#22C55E" />
     </svg>
   );
 }
