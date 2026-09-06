@@ -27,9 +27,8 @@ export function flyerWhatsAppFarmaciaUrl(telefono = "5562530631") {
 export function flyerShareCaption(origin) {
   const url = flyerHomeUrl(origin);
   return (
-    "FarmaCapital — tu farmacia en Iztapalapa.\n" +
-    "Entra, busca lo que necesitas y compra en línea. " +
-    "Si no está, te lo conseguimos a domicilio (el envío tiene costo).\n\n" +
+    "FarmaCapital\n" +
+    "Entra, busca y compra en línea. Si no está, te lo conseguimos.\n" +
     url
   );
 }
@@ -37,4 +36,29 @@ export function flyerShareCaption(origin) {
 /** Abre el selector de contactos de WhatsApp (no un número fijo). */
 export function flyerWhatsAppShareUrl(origin) {
   return `https://wa.me/?text=${encodeURIComponent(flyerShareCaption(origin))}`;
+}
+
+export function flyerEmailUrl(origin) {
+  const base = String(origin || FLYER_SITE).replace(/\/+$/, "") || FLYER_SITE;
+  return `${base}/?utm_source=flyer&utm_medium=email&utm_campaign=tarjeta`;
+}
+
+export function flyerEmailBody(origin) {
+  const base = String(origin || FLYER_SITE).replace(/\/+$/, "") || FLYER_SITE;
+  const home = flyerEmailUrl(origin);
+  return (
+    "Hola,\n\n" +
+    "Te comparto FarmaCapital. Entra, busca lo que necesitas y compra en línea. " +
+    "Si no está en el catálogo, te lo conseguimos (el envío a domicilio tiene costo).\n\n" +
+    `Pedir en línea: ${home}\n` +
+    `¿No lo encuentras?: ${base}/conseguir\n` +
+    `WhatsApp: ${flyerWhatsAppFarmaciaUrl()}\n\n` +
+    "FarmaCapital"
+  );
+}
+
+export function flyerMailtoShareUrl(origin) {
+  const subject = encodeURIComponent("FarmaCapital — pide en línea");
+  const body = encodeURIComponent(flyerEmailBody(origin));
+  return `mailto:?subject=${subject}&body=${body}`;
 }
