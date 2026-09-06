@@ -781,7 +781,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
           {
             id: nuevo.producto_id,
             nombre: pdata.nombre,
-            sku: null,
+            sku: pdata.sku,
             codigo_barras: pdata.codigo_barras,
             activo: true,
             costo: pdata.costo,

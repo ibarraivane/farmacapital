@@ -33,13 +33,28 @@ export function precioSugeridoAltaRecepcion(costo, tipo) {
   return roundPrecioVenta(c * (1 + markupAltaRecepcion(tipo)));
 }
 
+/**
+ * SKU FarmaCapital para altas desde Recibir.
+ * Misma regla que cargas SQL / tickets: FC- + últimos 8 dígitos del EAN.
+ * Sin código usable → FC- + reloj (productos.sku es NOT NULL).
+ */
+export function skuAltaRecepcion(codigo, now = Date.now()) {
+  const bc = String(codigo || "").replace(/\D/g, "");
+  if (bc.length >= 8) return `FC-${bc.slice(-8)}`;
+  const digitos = String(Math.abs(Number(now)) || 0).replace(/\D/g, "");
+  const cola = digitos.length >= 8 ? digitos.slice(-8) : digitos.padStart(8, "0");
+  return `FC-${cola}`;
+}
+
 export function payloadAltaRecepcion({ nombre, codigo, tipo, costo }) {
   const tipoN = tipoAltaNormalizado(tipo);
   const costoN = Number(costo);
   const precio = precioSugeridoAltaRecepcion(costoN, tipoN);
+  const codigo_barras = String(codigo || "").replace(/\D/g, "") || null;
   return {
     nombre: String(nombre || "").trim(),
-    codigo_barras: String(codigo || "").replace(/\D/g, "") || null,
+    sku: skuAltaRecepcion(codigo_barras || codigo),
+    codigo_barras,
     tipo: tipoN,
     categoria: "Otro",
     costo: Number.isFinite(costoN) && costoN > 0 ? costoN : null,
