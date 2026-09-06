@@ -17,6 +17,7 @@ describe("pedidosMostrador", async () => {
     etiquetaEstado,
     etiquetaUrgencia,
     etiquetaTipo,
+    etiquetaOrigen,
     etiquetaPago,
     siguientesEstados,
     normalizarTextoSolicitud,
@@ -61,6 +62,8 @@ describe("pedidosMostrador", async () => {
   it("etiqueta tipo, urgencia, estado y pago (depósito / todo)", () => {
     assert.match(etiquetaTipo("agotado"), /Agotado/);
     assert.match(etiquetaTipo("no_catalogo"), /catálogo/i);
+    assert.equal(etiquetaOrigen("tienda"), "Tienda web");
+    assert.equal(etiquetaOrigen("mostrador"), "Mostrador");
     assert.equal(etiquetaEstado("pendiente"), "Pendiente");
     assert.equal(etiquetaUrgencia("hoy"), "Hoy");
     assert.match(etiquetaPago("nada"), /Sin anticipo/i);

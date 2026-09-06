@@ -13,6 +13,7 @@ const {
 } = require('../_lib/orderNotifications');
 const { getSupabaseAdminConfig, validateEmployeeSession } = require('../_lib/supabaseAdmin');
 const { handleWhatsAppManualSend } = require('../_lib/whatsappSendHandler');
+const { handleSolicitudTienda } = require('../_lib/solicitudTiendaHandler');
 const {
   ensurePedidoReciboToken,
   buildReciboPublicUrl,
@@ -35,12 +36,14 @@ function resolveNotificationType(req, body) {
   if (q === 'pos-ticket' || q === 'pos_ticket') return 'pos-ticket';
   if (q === 'recibo-ensure' || q === 'recibo_ensure') return 'recibo-ensure';
   if (q === 'whatsapp' || q === 'whatsapp-send') return 'whatsapp';
+  if (q === 'solicitud' || q === 'solicitudes' || q === 'conseguir') return 'solicitud';
   const b = String(body?.type || body?.notificationType || '').trim().toLowerCase();
   if (b === 'cita' || b === 'cita-confirmacion') return 'cita';
   if (b === 'order' || b === 'order-receipt') return 'order';
   if (b === 'pos-ticket' || b === 'pos_ticket') return 'pos-ticket';
   if (b === 'recibo-ensure' || b === 'recibo_ensure') return 'recibo-ensure';
   if (b === 'whatsapp' || b === 'whatsapp-send') return 'whatsapp';
+  if (b === 'solicitud' || b === 'solicitudes' || b === 'conseguir') return 'solicitud';
   if (body?.citaId != null && body?.pedidoId == null) return 'cita';
   if (body?.pedidoId != null && body?.citaId == null) return 'order';
   return '';
@@ -471,12 +474,16 @@ async function handleReciboEnsure(req, res, body) {
 
 module.exports = async function handler(req, res) {
   try {
+    const body = await safeJson(req);
+    const type = resolveNotificationType(req, body);
+
+    if (type === 'solicitud') {
+      return handleSolicitudTienda(req, res, body);
+    }
+
     if (req.method !== 'POST') {
       return res.status(405).json({ ok: false, error: 'method_not_allowed' });
     }
-
-    const body = await safeJson(req);
-    const type = resolveNotificationType(req, body);
 
     if (type === 'cita') {
       return handleCitaConfirmacion(req, res, body);

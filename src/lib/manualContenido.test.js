@@ -95,6 +95,16 @@ describe("manualContenido", () => {
     expect(hayrol(undefined, "vendedor")).toBe(true);
   });
 
+  test("Lo que buscan cubre tienda web, correos y flyer", () => {
+    const t = TEMAS.find((x) => x.id === "lo-que-buscan");
+    const blob = [t.resumen, ...(t.pasos || []), ...(t.dudas || []).flatMap((d) => [d.q, d.a])].join(" ");
+    expect(blob).toMatch(/tienda web/i);
+    expect(blob).toMatch(/contacto@farmacapital.mx/);
+    expect(blob).toMatch(/farmacapital@outlook.com/);
+    expect(blob).toMatch(/Flyer|WhatsApp/i);
+    expect(blob).toMatch(/liga de pago/i);
+  });
+
   test("vendedor ve recargas; doctora no", () => {
     const vend = temasParaUsuario({ rol: "vendedor" }, (_u, id) => ["pos", "caja", "ayuda"].includes(id));
     const doc = temasParaUsuario({ rol: "doctora" }, (_u, id) => ["cons_dr", "exp_dr", "ayuda"].includes(id));

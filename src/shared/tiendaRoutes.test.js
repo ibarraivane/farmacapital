@@ -39,5 +39,15 @@ describe("tiendaRoutes", () => {
     expect(pageIdToTiendaPath("faq")).toBe("/preguntas");
     expect(pageIdToTiendaPath("detalle", { productId: "abc-1" })).toBe("/producto?id=abc-1");
     expect(pageIdToTiendaPath("auth-callback")).toBe("/auth/callback");
+    expect(pageIdToTiendaPath("tarjeta")).toBe("/tarjeta");
+    expect(pageIdToTiendaPath("conseguir", { search: "losartan" })).toBe("/conseguir?q=losartan");
+  });
+
+  test("aliases de flyer y te lo conseguimos", () => {
+    expect(resolveTiendaPage("flyer")).toBe("tarjeta");
+    expect(resolveTiendaPage("hola")).toBe("tarjeta");
+    expect(resolveTiendaPage("te-lo-conseguimos")).toBe("conseguir");
+    expect(tiendaPathnameToPageId("/tarjeta")).toBe("tarjeta");
+    expect(tiendaPathnameToPageId("/conseguir")).toBe("conseguir");
   });
 });

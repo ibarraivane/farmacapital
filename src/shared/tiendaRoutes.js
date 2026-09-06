@@ -22,6 +22,8 @@ export const TIENDA_PAGE_IDS = [
   "terminos",
   "envios",
   "terminos-puntos",
+  "tarjeta",
+  "conseguir",
 ];
 
 /** Destinos válidos para banners (CTA). detalle/checkout/reset no se eligen a mano. */
@@ -40,6 +42,8 @@ export const TIENDA_BANNER_DESTINOS = [
   { id: "terminos", label: "Términos y condiciones" },
   { id: "envios", label: "Política de envíos" },
   { id: "terminos-puntos", label: "Términos de puntos" },
+  { id: "tarjeta", label: "Flyer / tarjeta WhatsApp" },
+  { id: "conseguir", label: "Te lo conseguimos" },
 ];
 
 const PAGE_TO_SLUG = {
@@ -61,6 +65,8 @@ const PAGE_TO_SLUG = {
   terminos: "terminos",
   envios: "envios",
   "terminos-puntos": "terminos-puntos",
+  tarjeta: "tarjeta",
+  conseguir: "conseguir",
 };
 
 const SLUG_TO_PAGE = {
@@ -94,6 +100,11 @@ const SLUG_TO_PAGE = {
   terminos: "terminos",
   envios: "envios",
   "terminos-puntos": "terminos-puntos",
+  tarjeta: "tarjeta",
+  flyer: "tarjeta",
+  hola: "tarjeta",
+  conseguir: "conseguir",
+  "te-lo-conseguimos": "conseguir",
 };
 
 /**

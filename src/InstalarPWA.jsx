@@ -108,6 +108,26 @@ export default function InstalarPWA() {
         Cada una tiene su propio manifest; en Chrome puedes instalar ambas con iconos y nombres distintos.
       </p>
 
+      <a
+        href="/tarjeta"
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{
+          display: "block",
+          textDecoration: "none",
+          background: BRAND.gradient,
+          borderRadius: 14,
+          padding: "16px 18px",
+          marginBottom: 20,
+          color: "#fff",
+        }}
+      >
+        <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 4 }}>Flyer para WhatsApp</div>
+        <div style={{ fontSize: 13, opacity: 0.9, lineHeight: 1.45 }}>
+          Tarjeta con QR y links. Compártela a tus contactos: entran a farmacapital.mx, buscan y si no está levantan el pedido.
+        </div>
+      </a>
+
       <div
         style={{
           background: "#eff6ff",

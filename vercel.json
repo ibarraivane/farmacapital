@@ -154,6 +154,10 @@
       "destination": "/api/notifications/send?type=whatsapp"
     },
     {
+      "source": "/api/solicitudes",
+      "destination": "/api/notifications/send?type=solicitud"
+    },
+    {
       "source": "/api/notifications/cita-confirmacion",
       "destination": "/api/notifications/send?type=cita"
     },

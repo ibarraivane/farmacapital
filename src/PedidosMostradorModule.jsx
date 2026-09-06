@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ClipboardList, Plus, RefreshCw, Search, X } from "lucide-react";
+import { ClipboardList, MessageCircle, Plus, QrCode, RefreshCw, Search, X } from "lucide-react";
 import { C_LIGHT, BRAND } from "./constants";
 import { supabase } from "./supabase";
 import { showToast } from "./ui";
@@ -10,6 +10,7 @@ import {
   PAGOS,
   URGENCIAS,
   etiquetaEstado,
+  etiquetaOrigen,
   etiquetaPago,
   etiquetaTipo,
   etiquetaUrgencia,
@@ -17,6 +18,7 @@ import {
   puedeGuardarSolicitud,
   siguientesEstados,
 } from "./lib/pedidosMostrador";
+import { buildSolicitudWhatsAppCliente } from "./lib/solicitudTienda";
 
 const C = C_LIGHT;
 
@@ -275,11 +277,30 @@ export default function PedidosMostradorModule({ usuario }) {
           <div>
             <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: C.text }}>Lo que buscan</h1>
             <p style={{ margin: "2px 0 0", color: C.textMid, fontSize: 13 }}>
-              Anota lo que piden y no hay. Incluye cliente y si dejaron depósito.
+              Lo que piden en mostrador o en la tienda web. Incluye cliente y si dejaron depósito.
             </p>
           </div>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
+          <button
+            type="button"
+            onClick={() => window.open("/tarjeta", "_blank", "noopener,noreferrer")}
+            style={{
+              padding: "8px 12px",
+              borderRadius: 8,
+              border: `1px solid ${C.border}`,
+              background: C.card,
+              color: C.textMid,
+              fontWeight: 700,
+              fontSize: 12,
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            <QrCode size={14} /> Flyer
+          </button>
           <button
             type="button"
             onClick={() => cargar()}
@@ -652,22 +673,56 @@ export default function PedidosMostradorModule({ usuario }) {
                         {chip(est.bg, est.color, etiquetaEstado(s.estado))}
                         {chip(urg.bg, urg.color, etiquetaUrgencia(s.urgencia))}
                         {chip(C.cardDark, C.textMid, etiquetaTipo(s.tipo))}
+                        {s.origen === "tienda"
+                          ? chip(C.tealDim, C.teal, etiquetaOrigen("tienda"))
+                          : chip(C.cardDark, C.textMid, etiquetaOrigen(s.origen))}
                         {s.pago_tipo && s.pago_tipo !== "nada"
                           ? chip(C.greenDim, C.greenDark, etiquetaPago(s.pago_tipo, s.pago_monto))
                           : null}
                       </div>
                       <div style={{ fontSize: 12, color: C.textMid }}>
-                        Vendedor: {s.anotado_por_nombre || "—"} · {fmtCuando(s.created_at)}
+                        {s.origen === "tienda"
+                          ? "Llegó de la tienda web"
+                          : `Vendedor: ${s.anotado_por_nombre || "—"}`}
+                        {" · "}
+                        {fmtCuando(s.created_at)}
                         {s.producto_nombre ? ` · Catálogo: ${s.producto_nombre}` : ""}
                       </div>
-                      {(s.cliente_nombre || s.cliente_telefono) && (
+                      {(s.cliente_nombre || s.cliente_telefono || s.cliente_email) && (
                         <div style={{ fontSize: 12, color: C.text, marginTop: 4 }}>
                           Cliente: {s.cliente_nombre || "—"}
                           {s.cliente_telefono ? ` · ${s.cliente_telefono}` : ""}
+                          {s.cliente_email ? ` · ${s.cliente_email}` : ""}
                         </div>
                       )}
+                      {s.direccion ? (
+                        <div style={{ fontSize: 12, color: C.textMid, marginTop: 4 }}>Envío: {s.direccion}</div>
+                      ) : null}
                       {s.notas ? (
                         <div style={{ fontSize: 12, color: C.text, marginTop: 4 }}>Nota: {s.notas}</div>
+                      ) : null}
+                      {s.cliente_telefono ? (
+                        <a
+                          href={buildSolicitudWhatsAppCliente({
+                            telefono: s.cliente_telefono,
+                            texto: s.texto,
+                            nombre: s.cliente_nombre,
+                          })}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 6,
+                            marginTop: 8,
+                            color: "#16a34a",
+                            fontWeight: 700,
+                            fontSize: 12,
+                            textDecoration: "none",
+                          }}
+                        >
+                          <MessageCircle size={14} /> Pasar costo por WhatsApp
+                        </a>
                       ) : null}
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>

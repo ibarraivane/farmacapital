@@ -26,6 +26,7 @@ function mustInclude(haystack, needle, msg) {
 }
 
 const sql = read("sql/patch_pedidos_mostrador_20260904.sql");
+const sqlTienda = read("sql/patch_solicitudes_tienda_20260906.sql");
 const ui = read("src/PedidosMostradorModule.jsx");
 const constants = read("src/constants.js");
 const permissions = read("src/utils/permissions.js");
@@ -50,6 +51,12 @@ mustInclude(sql, "empleado_listar_solicitudes_mostrador", "SQL debe crear RPC de
 mustInclude(sql, "empleado_actualizar_estado_solicitud_mostrador", "SQL debe crear RPC de estado");
 mustInclude(sql, "empleado_contar_solicitudes_mostrador_abiertas", "SQL debe crear RPC de conteo/badge");
 mustInclude(sql, "empleado_ranking_solicitudes_mostrador", "SQL debe crear RPC de ranking");
+mustInclude(sqlTienda, "origen", "Patch tienda debe agregar origen");
+mustInclude(sqlTienda, "cliente_email", "Patch tienda debe agregar cliente_email");
+mustInclude(sqlTienda, "alter column anotado_por drop not null", "Patch tienda debe permitir anotado_por null");
+mustInclude(ui, "etiquetaOrigen", "UI debe etiquetar origen mostrador/tienda");
+mustInclude(ui, "Pasar costo por WhatsApp", "UI debe abrir WhatsApp al cliente de la tienda");
+mustInclude(ui, "/tarjeta", "UI debe enlazar el flyer");
 
 // ── UI: formulario + lista ───────────────────────────────────
 mustInclude(ui, "clienteNombre", "UI debe capturar nombre del cliente");

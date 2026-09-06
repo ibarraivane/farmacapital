@@ -38,6 +38,8 @@ import { CATALOGO_PAGE_SIZE, clearStaleProductosCache, tiendaCardImageUrl } from
 import { useCatalogoVivo } from "./hooks/useCatalogoVivo";
 import { setBloqueaReloadApp } from "./utils/appUpdate";
 import { pageIdToTiendaPath, resolveTiendaPage, tiendaPathnameToPageId, tiendaPathSuggestsReceta, tiendaProductIdFromSearch } from "./shared/tiendaRoutes";
+import FlyerFarmaCapital from "./components/FlyerFarmaCapital";
+import SolicitudCatalogoForm, { CatalogoVacioConseguir } from "./components/SolicitudCatalogoForm";
 import { canjePorPuntos, guardarCanjeActivo, leerCanjeActivo, limpiarCanjeActivo } from "./utils/puntosCanje";
 import { TOKENS as T, RADIO, SOMBRA } from "./theme/tokens";
 import {
@@ -77,7 +79,7 @@ import {
   MapPin, Clock, Phone, Mail, HelpCircle, FileText,
   LogIn, UserPlus, User, ChevronRight, Menu, Package,
   Store, Bike, PackageCheck, Trophy, CreditCard, Search, Calendar,
-  Gift, Truck, Cake, LogOut, Key, Trash2,
+  Gift, Truck, Cake, LogOut, Key, Trash2, PackageSearch,
   MessageCircle, Lock, ClipboardList, CircleCheck,
 } from "lucide-react";
 
@@ -335,6 +337,7 @@ const FAQ_ITEMS = [
   { p:"¿Cómo puedo facturar mi compra?", r:"Solicita tu factura CFDI en el mostrador al momento de tu compra o escríbenos a contacto@farmacapital.mx dentro de las 24 horas siguientes." },
   { p:"¿Cuál es la política de devoluciones?", r:"Aceptamos devoluciones dentro de 72 horas si el producto está en perfecto estado y sin abrir. Medicamentos controlados y con receta no tienen devolución. Consulta nuestra política completa." },
   { p:"¿Tienen medicamentos genéricos?", r:"Sí. Tenemos una amplia variedad de genéricos intercambiables certificados por COFEPRIS, con el mismo principio activo que las marcas de patente pero a menor precio." },
+  { p:"¿Qué hago si no está en el catálogo?", r:"En catálogo toca «Te lo conseguimos» o entra a /conseguir. Anotas lo que buscas y te escribimos por WhatsApp o correo con el costo y la liga de pago. El envío a domicilio tiene costo. Medicamentos controlados solo en mostrador con receta oficial." },
 ];
 
 const HORARIOS_DOCTORA = [
@@ -2099,7 +2102,7 @@ function Footer({setPage}){
         {/* Mi consultorio */}
         <div>
           <div style={{color:C.white,fontWeight:700,fontSize:14,marginBottom:16,textTransform:"uppercase",letterSpacing:1}}>Mi consultorio</div>
-          {[["Agendar cita","cita"],["Preguntas frecuentes","faq"],["Surtir receta","catalogo"],["Mis puntos FarmaCapital","puntos"],["Mi cuenta","cuenta"]].map(([l,pg])=>(
+          {[["Agendar cita","cita"],["Preguntas frecuentes","faq"],["Surtir receta","catalogo"],["Te lo conseguimos","conseguir"],["Flyer WhatsApp","tarjeta"],["Mis puntos FarmaCapital","puntos"],["Mi cuenta","cuenta"]].map(([l,pg])=>(
             <button key={l} onClick={()=> l==="Surtir receta" ? goSurtirReceta() : l==="Agendar cita" ? navigateToCita(setPage) : setPage(pg)} style={{display:"block",background:"none",border:"none",color:"rgba(255,255,255,.6)",fontSize:13,cursor:"pointer",marginBottom:8,textAlign:"left",padding:0,fontFamily:"var(--fc-body)"}}
               onMouseEnter={e=>(e.currentTarget.style.color="rgba(255,255,255,.9)")}
               onMouseLeave={e=>(e.currentTarget.style.color="rgba(255,255,255,.6)")}>{l}</button>
@@ -2369,6 +2372,7 @@ function HomeServices({setPage}){
 
     { key:"puntos", titulo:"Tus puntos", desc:"Acumula y canjea", color:BRAND.cta, tipo:"page", destino:"puntos", icon:Trophy },
     { key:"pago", titulo:"Pago online", desc:"Mercado Pago", color:T.amber, tipo:"modal", icon:CreditCard },
+    { key:"conseguir", titulo:"Te lo conseguimos", desc:"Si no está en catálogo", color:BRAND.accent, tipo:"page", destino:"conseguir", icon:PackageSearch },
   ];
   const handleClick = (s)=>{
     if (s.tipo==="page") setPage(s.destino);
@@ -3129,7 +3133,7 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
                 <div key={i} style={{borderRadius:12,background:"#F1E8DD",height:260,animation:"pulse 1.4s ease-in-out infinite",opacity:0.7}}/>
               ))
             : fil.length===0
-              ? <div style={{padding:40,textAlign:"center",color:C.mid,gridColumn:"1/-1"}}>{busq ? `Sin resultados para "${busq}"` : "No hay productos disponibles por el momento."}</div>
+              ? <CatalogoVacioConseguir busq={busq} setPage={setPage} />
               : pageFil.map(p=><ProductCard key={p.id} prod={p} addToCart={addToCart} onClick={()=>{setProdDetalle(p);setPage("detalle", { productId: p.id });}}/>)
           }
           {hayMasCatalogo && !(loadingProductos && productos.length===0) && (
@@ -5905,11 +5909,12 @@ export default function TiendaFarmaCapital(){
     if (initialResetToken) return "reset-password";
     return tiendaPathnameToPageId(window.location.pathname) || "home";
   });
-  const writeTiendaHistory = (target, { replace = false, rx = false, token = "", productId = "" } = {}) => {
+  const writeTiendaHistory = (target, { replace = false, rx = false, token = "", productId = "", search = "" } = {}) => {
     const path = pageIdToTiendaPath(target, {
       rx: target === "catalogo" && rx,
       reset: target === "reset-password" ? token : undefined,
       productId: target === "detalle" ? productId : undefined,
+      search: target === "conseguir" ? search : undefined,
     });
     const fn = replace ? window.history.replaceState : window.history.pushState;
     fn.call(window.history, { page: target, productId: target === "detalle" ? productId : undefined }, "", path);
@@ -5937,6 +5942,7 @@ export default function TiendaFarmaCapital(){
         rx: nextRx,
         token: resetToken,
         productId: target === "detalle" ? (opts.productId || "") : undefined,
+        search: target === "conseguir" ? (opts.search || busqHero || "") : undefined,
       });
     } catch {
       try { window.history.pushState({ page: target }, "", window.location.pathname); } catch (_) { /* noop */ }
@@ -6325,9 +6331,11 @@ export default function TiendaFarmaCapital(){
     terminos:      <TerminosCondiciones setPage={setPage}/>,
     envios:        <PoliticaEnvios setPage={setPage}/>,
     "terminos-puntos": <TerminosPuntos setPage={setPage}/>,
+    tarjeta:       <FlyerFarmaCapital setPage={setPage}/>,
+    conseguir:     <SolicitudCatalogoForm setPage={setPage} user={user} textoInicial={busqHero}/>,
   };
 
-  const sinFooter=["home"];
+  const sinFooter=["home","tarjeta"];
 
   return(
     <TiendaPlaceholderCtx.Provider value={placeholderProductoUrl}>

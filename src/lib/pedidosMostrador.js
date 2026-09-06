@@ -45,6 +45,11 @@ export function etiquetaTipo(tipo) {
   return tipo || "—";
 }
 
+export function etiquetaOrigen(origen) {
+  if (origen === "tienda") return "Tienda web";
+  return "Mostrador";
+}
+
 export function etiquetaPago(pagoTipo, monto) {
   if (pagoTipo === "deposito") {
     return monto != null && Number(monto) > 0
