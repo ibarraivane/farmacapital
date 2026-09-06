@@ -52,7 +52,7 @@ import {
 import { notifyCitaConfirmacion, formatTelefonoDisplay, formatCitaFecha } from "./utils/citaWhatsApp";
 import { fetchUberDirectQuote, attachUberDirectQuote, formatUberFee, formatUberEta, explainUberQuoteError, checkoutPuedePagarEnvio, isUberCoverageError } from "./lib/uberDirectClient";
 import DestinationPicker from "./components/DestinationPicker";
-import RecompraStrip from "./components/RecompraStrip";
+import RecompraStrip, { ProductosStripStyles } from "./components/RecompraStrip";
 import SocialLoginButtons from "./components/SocialLoginButtons";
 import {
   cleanCheckoutColonia,
@@ -69,6 +69,7 @@ import {
   mergeCartLines,
 } from "./lib/tiendaCartStorage";
 import { recomprasFromPedidos, sugeridosFromRecompras } from "./lib/tiendaRecompras";
+import { bandasCatalogoPorCategoria, irACatalogoCategoria } from "./lib/tiendaCatalogoCategorias";
 import { FARMACIA_FISCAL } from "./constants/farmaciaFiscal";
 import { HORARIO_FARMACIA } from "./constants/turnos";
 import { validarPasswordTienda, PASSWORD_RULES_TEXT, PASSWORD_MIN_LENGTH } from "./utils/passwordPolicy";
@@ -2744,6 +2745,76 @@ function TiendaBusquedaBar({
 }
 
 // ── HOME ──────────────────────────────────────────────────────
+/** Home: catálogo en bandas horizontales por categoría (mejor que A–Z al entrar sin cuenta). */
+function HomeCatalogoPorCategoria({productos,loadingProductos,addToCart,setProdDetalle,setPage,setBusqHero}){
+  const C = useTheme();
+  const bandas = useMemo(
+    () => bandasCatalogoPorCategoria(poolCatalogoTienda(productos), { perCat: 12, maxCats: 14 }),
+    [productos]
+  );
+  const abrirCategoria = (categoria) => {
+    setBusqHero?.("");
+    irACatalogoCategoria(setPage, categoria);
+  };
+
+  if (loadingProductos && (!productos || productos.length === 0)) {
+    return (
+      <div style={{maxWidth:1200,margin:"0 auto",padding:"8px 16px 48px"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:12}}>
+          <div>
+            <h2 style={{color:C.dark,fontSize:"clamp(20px,4.5vw,24px)",fontWeight:800,margin:0}}>Explora por categoría</h2>
+            <div style={{color:C.mid,fontSize:13,marginTop:4}}>Desliza cada banda para ver más productos</div>
+          </div>
+        </div>
+        {Array.from({length:2}).map((_,i)=>(
+          <div key={i} style={{marginBottom:28}}>
+            <div style={{height:22,width:140,borderRadius:8,background:C.surface,marginBottom:12,opacity:0.8}}/>
+            <div style={{display:"flex",gap:14,overflow:"hidden"}}>
+              {Array.from({length:4}).map((__,j)=>(
+                <div key={j} style={{flex:"0 0 auto",width:200,height:260,borderRadius:12,background:C.surface,animation:"pulse 1.4s ease-in-out infinite",opacity:0.7}}/>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (!bandas.length) return null;
+
+  return (
+    <div style={{maxWidth:1200,margin:"0 auto",padding:"8px 16px 48px"}}>
+      <ProductosStripStyles />
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:8,flexWrap:"wrap",gap:12}}>
+        <div>
+          <h2 style={{color:C.dark,fontSize:"clamp(20px,4.5vw,24px)",fontWeight:800,margin:0}}>Explora por categoría</h2>
+          <div style={{color:C.mid,fontSize:13,marginTop:4,lineHeight:1.4}}>
+            Desliza de derecha a izquierda · Analgésicos, alergia, vitaminas y más
+          </div>
+        </div>
+        <Btn onClick={()=>setPage("catalogo",{rx:false})} outline col={BRAND.primary} sm>Ver catálogo completo →</Btn>
+      </div>
+      {bandas.map((banda)=>(
+        <RecompraStrip
+          key={banda.categoria}
+          title={banda.categoria}
+          actionLabel="Ver todos →"
+          onAction={()=>abrirCategoria(banda.categoria)}
+        >
+          {banda.productos.map((p)=>(
+            <ProductCard
+              key={p.id}
+              prod={p}
+              addToCart={addToCart}
+              onClick={()=>{setProdDetalle(p);setPage("detalle",{ productId: p.id });}}
+            />
+          ))}
+        </RecompraStrip>
+      ))}
+    </div>
+  );
+}
+
 function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,precioConsulta,loadingProductos,recompras=[],sugeridos=[]}){
   const C = useTheme();
   const stack = useMediaQuery("(max-width: 768px)");
@@ -2849,13 +2920,14 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
       <HomePromociones promos={promos} setPage={setPage}/>
 
       {(recompras.length > 0 || sugeridos.length > 0) && (
-        <div style={{maxWidth:1200,margin:"0 auto",padding:"0 16px 32px"}}>
+        <div style={{maxWidth:1200,margin:"0 auto",padding:"0 16px 8px"}}>
+          <ProductosStripStyles />
           <RecompraStrip
             title="Comprar de nuevo"
             subtitle="Lo que ya pediste en FarmaCapital, listo para agregar."
             empty={recompras.length === 0}
           >
-            {recompras.slice(0, 6).map((r) => (
+            {recompras.slice(0, 8).map((r) => (
               <ProductCard
                 key={r.prod.id}
                 prod={r.prod}
@@ -2881,23 +2953,15 @@ function Home({setPage,addToCart,productos,setProdDetalle,busqHero,setBusqHero,p
         </div>
       )}
 
-      {/* Más vendidos */}
-      <div style={{maxWidth:1200,margin:"0 auto",padding:"0 16px 48px"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24,flexWrap:"wrap",gap:12}}>
-          <h2 style={{color:C.dark,fontSize:"clamp(20px,4.5vw,24px)",fontWeight:800,margin:0}}>Más vendidos en FarmaCapital</h2>
-          <Btn onClick={()=>setPage("catalogo",{rx:false})} outline col={BRAND.primary} sm>Ver catálogo →</Btn>
-        </div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(100%,220px),1fr))",gap:16}}>
-          {loadingProductos && productos.length===0
-            ? Array.from({length:6}).map((_,i)=>(
-                <div key={i} style={{borderRadius:12,background:C.surface,height:260,animation:"pulse 1.4s ease-in-out infinite",opacity:0.7}}/>
-              ))
-            : sortCatalogoTienda(productos, "")
-                .slice(0, 6)
-                .map(p=><ProductCard key={p.id} prod={p} addToCart={addToCart} onClick={()=>{setProdDetalle(p);setPage("detalle", { productId: p.id });}}/>)
-          }
-        </div>
-      </div>
+      {/* Catálogo por categoría (bandas horizontales) */}
+      <HomeCatalogoPorCategoria
+        productos={productos}
+        loadingProductos={loadingProductos}
+        addToCart={addToCart}
+        setProdDetalle={setProdDetalle}
+        setPage={setPage}
+        setBusqHero={setBusqHero}
+      />
 
       {/* Consultorio */}
       <div style={{background:BRAND.primary+"12",padding:"48px 24px"}}>
@@ -5690,12 +5754,13 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
           <div>
             {addToCart ? (
               <div>
+          <ProductosStripStyles />
           <RecompraStrip
             title="Comprar de nuevo"
             subtitle="Tus compras anteriores. Un toque y vuelven al carrito."
             empty={recompras.length === 0}
           >
-            {recompras.slice(0, 6).map((r) => (
+            {recompras.slice(0, 8).map((r) => (
               <ProductCard
                 key={r.prod.id}
                 prod={r.prod}
