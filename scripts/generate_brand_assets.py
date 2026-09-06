@@ -178,11 +178,11 @@ def main():
     save_png(light.resize((lw // 2, max(1, lh // 2)), Image.Resampling.LANCZOS),
              os.path.join(OUT_BRAND, "farmacapital-logo-full-light@1x.png"))
 
-    icon_master = fit_square(icon_src, 512, pad=0.08)
+    icon_master = fit_square(icon_src, 512, pad=0.16)
     save_png(icon_master, os.path.join(OUT_BRAND, "farmacapital-icon.png"))
 
     icon_light_src = make_light_variant(icon_src)
-    icon_light_master = fit_square(icon_light_src, 512, pad=0.08)
+    icon_light_master = fit_square(icon_light_src, 512, pad=0.16)
     save_png(icon_light_master, os.path.join(OUT_BRAND, "farmacapital-icon-light.png"))
 
     for s in (16, 32, 48, 72, 96, 128, 192, 512):

@@ -1,6 +1,6 @@
 // Logotipo oficial FarmaCapital — PNG maestro HD (1754×897)
 const BASE = process.env.PUBLIC_URL || "";
-const V = "6";
+const V = "7";
 
 export const BRAND_LOGO = {
   /** Recorte HD ~1623×358 — escalar hacia abajo = nítido */
