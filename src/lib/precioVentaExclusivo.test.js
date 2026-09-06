@@ -1,5 +1,10 @@
 import { cobroLinea } from "../utils/pesoPublico";
-import { importeCajasFefo, precioLineaCajaPos, precioUnitarioCaja } from "./precioVentaExclusivo";
+import {
+  importeCajasFefo,
+  precioLineaCajaPos,
+  precioUnitarioCaja,
+  resumenFefoMostrador,
+} from "./precioVentaExclusivo";
 
 const HOY = "2026-06-01";
 
@@ -94,4 +99,41 @@ test("linea POS: especial pone descuento_pct en 0", () => {
   expect(r.fuentePrecio).toBe("caducidad");
   expect(r.descuento_pct).toBe(0);
   expect(r.precio).toBe(70);
+});
+
+test("resumen FEFO: toma el más próximo y menciona el siguiente", () => {
+  const r = resumenFefoMostrador(
+    {
+      lotes: [
+        { id: 2, cantidad_actual: 12, fecha_caducidad: "2026-12-31", activo: true },
+        { id: 1, cantidad_actual: 4, fecha_caducidad: "2026-07-31", activo: true },
+        { id: 9, cantidad_actual: 2, fecha_caducidad: "2025-01-31", activo: true },
+      ],
+    },
+    {},
+    HOY
+  );
+  expect(r.ok).toBe(true);
+  expect(r.loteId).toBe(1);
+  expect(r.etiquetaCad).toBe("jul 2026");
+  expect(r.titulo).toContain("jul 2026");
+  expect(r.titulo).toContain("4 cajas");
+  expect(r.secundaria).toContain("dic 2026");
+  expect(r.nivel).toBe("alerta");
+});
+
+test("resumen FEFO: sin MMAA se vende primero", () => {
+  const r = resumenFefoMostrador(
+    {
+      lotes: [
+        { id: 3, cantidad_actual: 2, fecha_caducidad: "2026-12-31", activo: true },
+        { id: 1, cantidad_actual: 1, fecha_caducidad: null, activo: true },
+      ],
+    },
+    {},
+    HOY
+  );
+  expect(r.loteId).toBe(1);
+  expect(r.nivel).toBe("sin_fecha");
+  expect(r.titulo).toContain("sin MMAA");
 });
