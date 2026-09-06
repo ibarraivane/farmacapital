@@ -118,15 +118,16 @@ def write_favicon_svg(icon_light_im, icon_dark_im, path):
 
 
 def make_light_variant(im):
-    """Wordmark blanco + cruz blanca; conserva el verde de marca para fondos oscuros."""
+    """Fondo oscuro: tinta navy → blanco. Conserva verde y azul de marca."""
     arr = rgba_arr(im).copy()
     r, g, b, a = arr[:, :, 0], arr[:, :, 1], arr[:, :, 2], arr[:, :, 3]
     visible = a > 10
-    green = visible & (g > r + 35) & (g > b + 10) & (g > 100)
-    colored = visible & ~green
-    arr[colored, 0] = 255
-    arr[colored, 1] = 255
-    arr[colored, 2] = 255
+    green = visible & (g > r + 25) & (g > b + 10) & (g > 80)
+    blue = visible & ~green & (b > r + 15) & (b > 90)
+    ink = visible & ~green & ~blue
+    arr[ink, 0] = 255
+    arr[ink, 1] = 255
+    arr[ink, 2] = 255
     return Image.fromarray(arr)
 
 
