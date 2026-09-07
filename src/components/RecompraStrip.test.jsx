@@ -49,3 +49,11 @@ it("al click de la flecha avanza una página de productos", () => {
   fireEvent.click(screen.getByLabelText("Siguientes productos"));
   expect(scrollTo).toHaveBeenCalledWith({ left: 800, behavior: "smooth" });
 });
+
+it("mete cada producto en un hueco de 220px, como la cuadrícula", () => {
+  const { container } = renderBanda();
+  const slots = container.querySelectorAll(".farmacapital-productos-strip-item");
+  expect(slots).toHaveLength(6);
+  expect(slots[0].style.width).toBe("220px");
+  expect(slots[0].style.maxWidth).toBe("min(220px, 72vw)");
+});
