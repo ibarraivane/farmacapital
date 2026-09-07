@@ -3,6 +3,7 @@
 
 Fuente: ticket físico «Cliente: PUBLICO EN GENERAL».
 84 líneas / 119 piezas / $5,007.41. Sin lote ni MMAA.
+INCOMPLETO sin patch_alta_catalogo_citymark_20260905.sql (71 altas).
 """
 from __future__ import annotations
 
@@ -94,7 +95,9 @@ def write_sql(data: list[dict]) -> None:
         "EAN del ticket · cola Recibir; stock al confirmar pistola"
     )
     lines = [
-        f"-- Pedido City Mark {FOLIO} ({FECHA}) — cola Recibir, borrador.",
+        f"-- Pedido City Mark {FOLIO} ({FECHA}) — SOLO cola Recibir.",
+        "-- INCOMPLETO: no da de alta catálogo. Usar patch_alta_catalogo_citymark_20260905.sql",
+        "-- NO regenerar/pegar si ya escanearon: borra MMAA/lote.",
         "-- No suma stock: las piezas entran al escanear con pistola y poner MMAA de la caja.",
         "-- El pedido no trae lote ni caducidad; se quedan en null. No inventar 0000.",
         "-- Idempotente. Pegar en Supabase → SQL Editor → Run.",

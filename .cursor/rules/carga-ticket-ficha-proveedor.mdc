@@ -31,3 +31,7 @@ Cada producto nuevo **tiene que llevar foto** antes de dar por cerrado el alta.
 ## Caso que no se repite
 
 Nadro 01-sep-2026, EAN `3337875917810`: el ticket dice `BLOQ ANTHE UVAIR…`. La página dice **La Roche-Posay Anthelios UV Air FPS 50+ protector solar ligero 40 ml**.
+
+## El ticket no está cerrado si falta un EAN en catálogo
+
+Ver `ticket-alta-catalogo-obligatoria.mdc`. Armar solo la cola Recibir y dejar «N sin registrar» **no cuenta**. City Mark 20260905: 71 EANs sin alta; al escanear no subió stock.

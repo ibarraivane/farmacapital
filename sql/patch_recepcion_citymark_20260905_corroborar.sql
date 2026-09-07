@@ -1,4 +1,6 @@
--- Pedido City Mark 20260905 (2026-09-05) — cola Recibir, borrador.
+-- Pedido City Mark 20260905 (2026-09-05) — SOLO cola Recibir.
+-- INCOMPLETO: no da de alta catálogo. Usar sql/patch_alta_catalogo_citymark_20260905.sql
+-- NO volver a correr si ya escanearon: el DELETE de items borra MMAA/lote.
 -- No suma stock: las piezas entran al escanear con pistola y poner MMAA de la caja.
 -- El pedido no trae lote ni caducidad; se quedan en null. No inventar 0000.
 -- Idempotente. Pegar en Supabase → SQL Editor → Run.

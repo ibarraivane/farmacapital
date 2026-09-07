@@ -20,7 +20,7 @@ import { productoEsVendible } from "../../../utils/productoVendible";
 import { IconoAnaquel, IconoBolsa, IconoBuscar, IconoCaja, IconoChevron, IconoPieza, filaIconoBtn } from "../../../components/pos/PosIconos";
 import { cobroLinea, pesoPublico } from "../../../utils/pesoPublico";
 import PrecioOferta from "../../../components/PrecioOferta";
-import { precioLineaCajaPos } from "../../../lib/precioVentaExclusivo";
+import { precioLineaCajaPos, ordenarLotesFefo, resumenFefoMostrador } from "../../../lib/precioVentaExclusivo";
 import { fechaLocalMexico } from "../../../lib/pagoServicio";
 import { hoyISOMexico } from "../../../lib/fecha";
 import { esCategoriaAntibiotico, esMedicamentoControlado } from "../../../constants/categoriasProducto";
@@ -205,15 +205,19 @@ async function fetchProductosCatalogoPos(sessionToken) {
   return { data: fallback.data || [], error: null };
 }
 
-function enrichPosProductosConLotes(prodsRaw, lotesByProducto = {}) {
+function enrichPosProductosConLotes(prodsRaw, lotesByProducto = {}, hoy = hoyISOMexico()) {
   return (prodsRaw || []).map((p) => {
     const nested = Array.isArray(p.lotes) ? p.lotes : [];
     const extra = lotesByProducto[p.id] || lotesByProducto[String(p.id)] || [];
     const lotes = nested.some((l) => Number(l?.cantidad_actual) > 0) ? nested : (extra.length ? extra : nested);
-    const activos = lotes.filter(
-      (l) => l?.activo !== false && Number(l?.cantidad_actual || 0) > 0 && l.fecha_caducidad
-    );
-    const minCad = activos.reduce((m, l) => (!m || l.fecha_caducidad < m) ? l.fecha_caducidad : m, null);
+    // Solo lotes vendibles (FEFO excluye vencidos): la ficha/bloqueo no deben
+    // tumbar la venta si hay otro lote fresco del mismo EAN.
+    const fefo = ordenarLotesFefo(lotes, hoy);
+    const minCad = fefo.reduce((m, l) => {
+      const cad = l?.fecha_caducidad ? String(l.fecha_caducidad).slice(0, 10) : null;
+      if (!cad) return m;
+      return !m || cad < m ? cad : m;
+    }, null);
     return { ...p, lotes, min_caducidad_lotes: minCad };
   });
 }
@@ -308,6 +312,7 @@ function PosProductoFichaPanel({
   productoSinLotesPEPS,
   enCarrito = 0,
   stockFifo = 0,
+  resumenFefo = null,
   usoTexto,
   usoLoading,
   C,
@@ -574,6 +579,60 @@ function PosProductoFichaPanel({
               {item.ubicacion_texto || "Sin ubicación"}
             </span>
           </div>
+
+          {resumenFefo?.ok && (
+            <div
+              data-testid="pos-fefo-aviso"
+              style={{
+                borderRadius: 10,
+                padding: "10px 12px",
+                border: `1px solid ${
+                  resumenFefo.nivel === "critico" || resumenFefo.nivel === "sin_fecha"
+                    ? C.amber
+                    : resumenFefo.nivel === "alerta"
+                      ? "#f59e0b55"
+                      : C.border
+                }`,
+                background:
+                  resumenFefo.nivel === "critico" || resumenFefo.nivel === "sin_fecha"
+                    ? "#fffbeb"
+                    : resumenFefo.nivel === "alerta"
+                      ? "#fffbeb"
+                      : C.bg,
+              }}
+            >
+              <div style={{ fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: 0.4, marginBottom: 4, textTransform: "uppercase" }}>
+                Caducidad · se vende primero
+              </div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: C.text, lineHeight: 1.35 }}>
+                {resumenFefo.titulo}
+              </div>
+              {resumenFefo.secundaria && (
+                <div style={{ fontSize: 12, color: C.textMid, marginTop: 4, fontWeight: 600 }}>
+                  {resumenFefo.secundaria}
+                </div>
+              )}
+              {resumenFefo.especial != null && (
+                <div style={{ fontSize: 12, color: C.amber, marginTop: 4, fontWeight: 800 }}>
+                  Precio especial {$(resumenFefo.especial)} · por caducar
+                </div>
+              )}
+              {typeof resumenFefo.dias === "number" && resumenFefo.dias <= 90 && (
+                <div style={{ fontSize: 11, color: C.textMid, marginTop: 4 }}>
+                  {resumenFefo.dias === 0
+                    ? "Caduca hoy (fin de mes)."
+                    : resumenFefo.dias < 0
+                      ? "Lote vencido — no debería venderse."
+                      : `Quedan ${resumenFefo.dias} días hasta fin de mes.`}
+                </div>
+              )}
+              {resumenFefo.nivel === "sin_fecha" && (
+                <div style={{ fontSize: 11, color: C.amber, marginTop: 4, fontWeight: 700 }}>
+                  Sin MMAA se vende primero. Corrige en Lotes o Recibir.
+                </div>
+              )}
+            </div>
+          )}
 
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, paddingTop: 4 }}>
             {sinPrecio ? (
@@ -1300,11 +1359,13 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       showToast(`"${item?.nombre || "Producto"}" no tiene precio de venta. Cárgalo en Inventario antes de cobrarlo.`, "warning");
       return false;
     }
-    // Validar que el lote FEFO activo más próximo no esté vencido
-    if(item.min_caducidad_lotes) {
+    // Validar lotes vencidos solo si no queda nada vendible por FEFO
+    if (!esUnidad) {
       const hoy = hoyISOMexico();
-      if(item.min_caducidad_lotes < hoy) {
-        showToast(`⚠️ ${item.nombre} tiene lote VENCIDO (${item.min_caducidad_lotes}). No se puede vender.`, "error");
+      const fefo = ordenarLotesFefo(item.lotes || [], hoy);
+      const hayFilasLote = Array.isArray(item.lotes) && item.lotes.some((l) => l?.activo !== false);
+      if (hayFilasLote && fefo.length === 0) {
+        showToast(`⚠️ ${item.nombre}: solo hay lotes vencidos o sin stock. No se puede vender.`, "error");
         return false;
       }
     }
@@ -1342,13 +1403,15 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       return false;
     }
 
+    let added = true;
     setCart(p=>{
       const disponibleFifo = getStockFifoDisponible(item);
       const ex=p.find(c=>c.id===item.id);
       const qtyActual = Number(ex?.qty || 0);
 
       if(qtyActual + 1 > disponibleFifo){
-        showToast(`Stock FIFO insuficiente. Disponible por lotes: ${disponibleFifo}, en carrito: ${qtyActual}.`, "warning");
+        showToast(`Stock insuficiente. Disponible por lotes: ${disponibleFifo}, en carrito: ${qtyActual}.`, "warning");
+        added = false;
         return p;
       }
 
@@ -1368,6 +1431,11 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
         ...precioCajaDesdeProducto(item, 1, especialesRef.current),
       }];
     });
+    if (!added) return false;
+    const aviso = resumenFefoMostrador(item, especialesRef.current, hoyISOMexico());
+    if (aviso.ok) {
+      showToast(aviso.titulo, aviso.nivel === "critico" || aviso.nivel === "sin_fecha" ? "warning" : "info");
+    }
     return true;
   };
   addRef.current = add;
@@ -1443,13 +1511,15 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
   const getStockFifoDisponible = (producto) => {
     if (!producto) return 0;
     const lotes = Array.isArray(producto.lotes) ? producto.lotes : [];
-    const fromLots = lotes.reduce((sum, lote) => {
-      if (lote?.activo === false) return sum;
-      return sum + getLoteCantidadDisponible(lote);
-    }, 0);
+    const hayFilasLote = lotes.some((l) => l?.activo !== false);
+    // Misma regla que SQL get_lote_fefo: no contar vencidos.
+    const fromLots = ordenarLotesFefo(lotes, hoyISOMexico()).reduce(
+      (sum, lote) => sum + getLoteCantidadDisponible(lote),
+      0
+    );
     if (fromLots > 0) return fromLots;
-    // Sin piezas en lotes (payload vacío o solo lotes en 0): usar el caché
-    // productos.stock. Un lote fantasma qty=0 no debe bloquear la venta.
+    // Hay lotes (aunque vencidos o en 0): no usar el caché productos.stock
+    if (hayFilasLote) return 0;
     return Math.max(0, Number(producto?.stock || 0));
   };
 
@@ -1594,7 +1664,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       const qtyActual = Number(ex?.qty || 0);
 
       if (qtyActual + 1 > disponibleFifo) {
-        showToast(`Stock FIFO insuficiente. Disponible por lotes: ${disponibleFifo}, en carrito: ${qtyActual}.`, "warning");
+        showToast(`Stock insuficiente. Disponible por lotes: ${disponibleFifo}, en carrito: ${qtyActual}.`, "warning");
         return p;
       }
 
@@ -2170,9 +2240,26 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:6,marginBottom:8}}>
               <div style={{flex:1,lineHeight:1.3}}>
                 <div style={{color:C.text,fontSize:14,fontWeight:700}}>{item.nombre}</div>
-                {item.fuentePrecio === "caducidad" && (
-                  <div style={{color:C.amber,fontSize:11,fontWeight:700,marginTop:2}}>Precio especial por caducar</div>
-                )}
+                {(() => {
+                  if (item.esUnidad) {
+                    return item.fuentePrecio === "caducidad" ? (
+                      <div style={{color:C.amber,fontSize:11,fontWeight:700,marginTop:2}}>Precio especial por caducar</div>
+                    ) : null;
+                  }
+                  const prod = productos.find((x) => String(x.id) === String(item.producto_id ?? item.id)) || item;
+                  const aviso = resumenFefoMostrador(prod, especialesRef.current, hoyISOMexico());
+                  if (aviso.ok) {
+                    return (
+                      <div style={{ color: aviso.nivel === "critico" || aviso.nivel === "sin_fecha" || item.fuentePrecio === "caducidad" ? C.amber : C.textMid, fontSize: 11, fontWeight: 700, marginTop: 2 }}>
+                        {aviso.etiquetaCad ? `Se vende cad. ${aviso.etiquetaCad}` : "Se vende lote sin MMAA"}
+                        {item.fuentePrecio === "caducidad" ? " · precio especial" : ""}
+                      </div>
+                    );
+                  }
+                  return item.fuentePrecio === "caducidad" ? (
+                    <div style={{color:C.amber,fontSize:11,fontWeight:700,marginTop:2}}>Precio especial por caducar</div>
+                  ) : null;
+                })()}
               </div>
               <button onClick={()=>setCart(p=>p.filter(c=>c.id!==item.id))} style={{background:"none",border:"none",color:C.red,cursor:"pointer",fontSize:18,lineHeight:1,padding:"0 2px",flexShrink:0}}>×</button>
             </div>
@@ -2195,7 +2282,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
               }
               const prod = productos.find(x=>String(x.id)===String(item.producto_id??item.id));
               const maxF = prod ? getStockFifoDisponible(prod) : 0;
-              if(c.qty>=maxF){ showToast(`Stock FIFO insuficiente. Disponible: ${maxF}`,"warning"); return c; }
+              if(c.qty>=maxF){ showToast(`Stock insuficiente. Disponible: ${maxF}`,"warning"); return c; }
               const qty = c.qty + 1;
               return {...c,qty,...precioCajaDesdeProducto(prod || c, qty, especialesRef.current)};
             }))} style={{width:28,height:28,borderRadius:6,border:`1px solid ${C.border}`,background:"none",color:C.text,cursor:"pointer",fontSize:16,fontWeight:700}}>+</button>
@@ -3092,6 +3179,11 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
               productoSinLotesPEPS={productoSinLotesPEPS}
               enCarrito={fichaProd ? getCantidadEnCarrito(cart, fichaProd.id, false) : 0}
               stockFifo={fichaProd ? getStockFifoDisponible(fichaProd) : 0}
+              resumenFefo={
+                fichaProd
+                  ? resumenFefoMostrador(fichaProd, especialesRef.current, hoyISOMexico())
+                  : null
+              }
               C={C}
               isMobilePos={isMobilePos}
               isNarrow={isNarrow}
