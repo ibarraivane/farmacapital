@@ -1788,9 +1788,10 @@ function Header({page,setPage,cart,user,setUser,busqHero,setBusqHero,productos,s
 }
 
 // ── PRODUCT CARD ──────────────────────────────────────────────
-function ProductCard({prod,addToCart,onClick}){
+function ProductCard({prod,addToCart,onClick,compact}){
   const C = useTheme();
   const narrow = useMediaQuery("(max-width: 768px)");
+  const desktopCompact = Boolean(compact) && !narrow;
   const [added,setAdded]=useState(false);
   const [imgRota,setImgRota]=useState(false);
   const promosProd = usePromosProducto(prod?.id);
@@ -1836,8 +1837,8 @@ function ProductCard({prod,addToCart,onClick}){
         style={{
           background:"#fff",
           overflow:"hidden",
-          minHeight:152,
-          height:152,
+          minHeight: desktopCompact ? 118 : 152,
+          height: desktopCompact ? 118 : 152,
           display:"flex",
           alignItems:"center",
           justifyContent:"center",
@@ -1863,14 +1864,14 @@ function ProductCard({prod,addToCart,onClick}){
       </div>
       <div
         style={{
-          padding:"14px",
+          padding: desktopCompact ? "10px 12px 12px" : "14px",
           flex:1,
           display:"flex",
           flexDirection:"column",
           WebkitTapHighlightColor:"transparent",
         }}
       >
-        <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:8}}>
+        <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom: desktopCompact ? 6 : 8}}>
           {agotado
             ? <Tag col={C.red} sm>Agotado</Tag>
             : prod.stock<=3
@@ -1880,8 +1881,8 @@ function ProductCard({prod,addToCart,onClick}){
           {prod.tipo==="generico"&&<Tag col={BRAND.secondary} sm>Genérico</Tag>}
           {prod.requiere_receta&&<Tag col={C.red} sm>Rx</Tag>}
         </div>
-        <div style={{color:C.dark,fontWeight:700,fontSize:14,marginBottom:4,lineHeight:1.3,pointerEvents:"none"}}>{prod.nombre}</div>
-        <div style={{color:C.dim,fontSize:11,marginBottom:8,flex:1}}>{descripcionPublicaTienda(prod) || prod.presentacion || ""}</div>
+        <div style={{color:C.dark,fontWeight:700,fontSize: desktopCompact ? 13 : 14,marginBottom:4,lineHeight:1.3,pointerEvents:"none"}}>{prod.nombre}</div>
+        <div style={{color:C.dim,fontSize:11,marginBottom: desktopCompact ? 6 : 8,flex:1}}>{descripcionPublicaTienda(prod) || prod.presentacion || ""}</div>
         <div style={{marginBottom:10}}>
           <PrecioOferta prod={prod} promos={promosProd} size="sm" />
           {!oferta.hayOferta && prod.precio_marca ? (
@@ -2817,15 +2818,15 @@ function HomeCatalogoPorCategoria({productos,loadingProductos,addToCart,setProdD
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:12}}>
           <div>
             <h2 style={{color:C.dark,fontSize:"clamp(20px,4.5vw,24px)",fontWeight:800,margin:0}}>Explora por categoría</h2>
-            <div style={{color:C.mid,fontSize:13,marginTop:4}}>Desliza cada banda para ver más productos</div>
+            <div style={{color:C.mid,fontSize:13,marginTop:4}}>En celular desliza · en laptop usa la flecha para ver más</div>
           </div>
         </div>
         {Array.from({length:2}).map((_,i)=>(
           <div key={i} style={{marginBottom:28}}>
             <div style={{height:22,width:140,borderRadius:8,background:C.surface,marginBottom:12,opacity:0.8}}/>
-            <div style={{display:"flex",gap:14,overflow:"hidden"}}>
-              {Array.from({length:4}).map((__,j)=>(
-                <div key={j} style={{flex:"0 0 auto",width:200,height:260,borderRadius:12,background:C.surface,animation:"pulse 1.4s ease-in-out infinite",opacity:0.7}}/>
+            <div style={{display:"flex",gap:12,overflow:"hidden"}}>
+              {Array.from({length:5}).map((__,j)=>(
+                <div key={j} style={{flex:"0 0 auto",width:"calc((100% - 48px) / 5)",minWidth:160,height:260,borderRadius:12,background:C.surface,animation:"pulse 1.4s ease-in-out infinite",opacity:0.7}}/>
               ))}
             </div>
           </div>
@@ -2843,7 +2844,7 @@ function HomeCatalogoPorCategoria({productos,loadingProductos,addToCart,setProdD
         <div>
           <h2 style={{color:C.dark,fontSize:"clamp(20px,4.5vw,24px)",fontWeight:800,margin:0}}>Explora por categoría</h2>
           <div style={{color:C.mid,fontSize:13,marginTop:4,lineHeight:1.4}}>
-            Desliza de derecha a izquierda · Analgésicos, alergia, vitaminas y más
+            En celular desliza · en laptop usa la flecha para ver más · Analgésicos, alergia, vitaminas y más
           </div>
         </div>
         <Btn onClick={()=>setPage("catalogo",{rx:false})} outline col={BRAND.primary} sm>Ver catálogo completo →</Btn>
@@ -3305,9 +3306,9 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
                     {Array.from({length:2}).map((_,i)=>(
                       <div key={i} style={{marginBottom:24}}>
                         <div style={{height:20,width:120,borderRadius:8,background:"#F1E8DD",marginBottom:12,opacity:0.8}}/>
-                        <div style={{display:"flex",gap:14,overflow:"hidden"}}>
-                          {Array.from({length:4}).map((__,j)=>(
-                            <div key={j} style={{flex:"0 0 auto",width:200,height:260,borderRadius:12,background:"#F1E8DD",animation:"pulse 1.4s ease-in-out infinite",opacity:0.7}}/>
+                        <div style={{display:"flex",gap:12,overflow:"hidden"}}>
+                          {Array.from({length:5}).map((__,j)=>(
+                            <div key={j} style={{flex:"0 0 auto",width:"calc((100% - 48px) / 5)",minWidth:160,height:260,borderRadius:12,background:"#F1E8DD",animation:"pulse 1.4s ease-in-out infinite",opacity:0.7}}/>
                           ))}
                         </div>
                       </div>
