@@ -5,6 +5,8 @@ import {
   recepcionItemEnAnaquel,
   recepcionItemVerdeSinStock,
   recepcionItemsVerdeSinStock,
+  progresoTicketRecibir,
+  etiquetaProgresoTicketRecibir,
 } from "./recepcionScan";
 
 const TEGADERM = {
@@ -146,5 +148,21 @@ describe("recepcionItemVerdeSinStock", () => {
       { id: 3, confirmado: false, fecha_caducidad: null, lote_id: null, pendiente_alta: false },
     ];
     expect(recepcionItemsVerdeSinStock(items).map((i) => i.id)).toEqual([2]);
+  });
+});
+
+describe("progresoTicketRecibir", () => {
+  test("24 ok y 5 por escanear", () => {
+    expect(progresoTicketRecibir({ renglones: 29, sin_confirmar: 5 })).toEqual({
+      total: 29,
+      ok: 24,
+      falta: 5,
+    });
+    expect(etiquetaProgresoTicketRecibir({ renglones: 29, sin_confirmar: 5 })).toBe("24 ok · faltan 5");
+  });
+
+  test("nada escaneado y todo ok", () => {
+    expect(etiquetaProgresoTicketRecibir({ renglones: 84, sin_confirmar: 84 })).toBe("faltan 84");
+    expect(etiquetaProgresoTicketRecibir({ renglones: 18, sin_confirmar: 0 })).toBe("18 ok");
   });
 });

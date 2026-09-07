@@ -131,3 +131,21 @@ export function recepcionItemVerdeSinStock(it) {
 export function recepcionItemsVerdeSinStock(items) {
   return (Array.isArray(items) ? items : []).filter(recepcionItemVerdeSinStock);
 }
+
+/** Avance de un ticket vivo: ok = confirmados, falta = sin escanear. */
+export function progresoTicketRecibir(t) {
+  const total = Math.max(0, Number(t?.renglones || 0));
+  const falta = Math.max(0, Number(t?.sin_confirmar ?? t?.pendientes ?? 0));
+  const cappedFalta = total > 0 ? Math.min(falta, total) : falta;
+  const ok = Math.max(0, total - cappedFalta);
+  return { total, ok, falta: cappedFalta };
+}
+
+/** «24 ok · faltan 5» — no usar 24/5 a secas: se lee como 24 de 5. */
+export function etiquetaProgresoTicketRecibir(t) {
+  const { total, ok, falta } = progresoTicketRecibir(t);
+  if (total <= 0) return "Sin renglones";
+  if (falta === 0) return `${ok} ok`;
+  if (ok === 0) return `faltan ${falta}`;
+  return `${ok} ok · faltan ${falta}`;
+}

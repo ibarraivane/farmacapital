@@ -27,6 +27,8 @@ import {
   resolverEscaneoRecepcion,
   recepcionItemVerdeSinStock,
   recepcionItemsVerdeSinStock,
+  progresoTicketRecibir,
+  etiquetaProgresoTicketRecibir,
 } from "./lib/recepcionScan";
 import { $ as fmt, getSessionToken, esErrorSesionEmpleado } from "./utils";
 import { notifySesionEmpleadoInvalida } from "./utils/sesionEmpleadoAuth";
@@ -1097,10 +1099,18 @@ export default function RecepcionModule({ ocultarMontos = false }) {
       {!doc && tabBar}
 
       {pendientes.length > 0 && !doc && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(158px, 1fr))",
+            gap: 8,
+            marginBottom: 16,
+          }}
+        >
           {pendientes.map((t) => {
             const activo = doc?.id === t.id;
-            const cajas = t.renglones || 0;
+            const { total, ok, falta } = progresoTicketRecibir(t);
+            const avance = total > 0 ? ok / total : 0;
             return (
               <button
                 key={t.id}
@@ -1108,7 +1118,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
                 onClick={() => elegirCarga(t.id)}
                 disabled={saving}
                 style={{
-                  flex: "1 1 140px",
+                  minWidth: 0,
                   textAlign: "left",
                   background: activo ? `${BRAND.primary}14` : C.card,
                   border: `2px solid ${activo ? BRAND.primary : C.border}`,
@@ -1120,8 +1130,37 @@ export default function RecepcionModule({ ocultarMontos = false }) {
                 <div style={{ color: activo ? BRAND.primary : C.text, fontWeight: 800, fontSize: 16 }}>
                   {etiquetaProveedorLista(t.proveedor)}
                 </div>
-                <div style={{ color: C.textMid, fontSize: 12, marginTop: 2 }}>
-                  {cajas} {cajas === 1 ? "caja" : "cajas"}
+                {ok > 0 && falta > 0 ? (
+                  <div style={{ marginTop: 4 }}>
+                    <div style={{ color: C.text, fontSize: 15, fontWeight: 800 }}>
+                      {ok}/{falta}
+                    </div>
+                    <div style={{ color: C.textMid, fontSize: 12, marginTop: 2 }}>
+                      {etiquetaProgresoTicketRecibir(t)}
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ color: C.textMid, fontSize: 12, marginTop: 4, fontWeight: 700 }}>
+                    {etiquetaProgresoTicketRecibir(t)}
+                  </div>
+                )}
+                <div
+                  aria-hidden
+                  style={{
+                    marginTop: 8,
+                    height: 4,
+                    borderRadius: 99,
+                    background: C.border,
+                    overflow: "hidden",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: `${Math.round(avance * 100)}%`,
+                      height: "100%",
+                      background: falta === 0 ? C.green : BRAND.primary,
+                    }}
+                  />
                 </div>
               </button>
             );

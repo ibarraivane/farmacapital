@@ -23,6 +23,12 @@ if (/id=["']rc-scan["'][\s\S]{0,400}disabled=\{/.test(rec)) {
 if (/lazy\s*\(\s*\(\)\s*=>\s*import\(\s*["']\.\/RecepcionModule["']/.test(read("src/InventarioHub.jsx"))) {
   fail("InventarioHub: Recibir no debe ir lazy; la tablet se queda con un chunk viejo tras el deploy.");
 }
+if (/flex:\s*["']1 1 140px["']/.test(read("src/RecepcionModule.jsx"))) {
+  fail("Recibir: las tarjetas de proveedor no deben crecer (flex 1 1) — Exprezo se estira solo.");
+}
+if (!/auto-fill/.test(read("src/RecepcionModule.jsx"))) {
+  fail("Recibir: la lista de tickets vivos debe ser grid auto-fill para que todas midan igual.");
+}
 
 async function assertScanLogic() {
   const scanUrl = pathToFileURL(path.join(root, "src/lib/recepcionScan.js")).href;
@@ -33,6 +39,8 @@ async function assertScanLogic() {
     pedidoEsperaEntrada,
     recepcionEsTicket,
     matchScanEnTicket,
+    progresoTicketRecibir,
+    etiquetaProgresoTicketRecibir,
   } = await import(scanUrl);
   const { parseCaducidadMMAA } = await import(cadUrl);
 
@@ -58,6 +66,13 @@ async function assertScanLogic() {
   }
   if (!pedidoEsperaEntrada({ renglones: 11, sin_confirmar: 11, estado: "borrador" })) {
     fail("Ticket con cajas pendientes debe ser pedido vivo.");
+  }
+  const prog = progresoTicketRecibir({ renglones: 29, sin_confirmar: 5 });
+  if (prog.ok !== 24 || prog.falta !== 5) {
+    fail("progresoTicketRecibir debe ser 24 ok / 5 faltan.");
+  }
+  if (etiquetaProgresoTicketRecibir({ renglones: 29, sin_confirmar: 5 }) !== "24 ok · faltan 5") {
+    fail("La tarjeta Recibir debe leer «24 ok · faltan 5», no 24/5 a secas.");
   }
   if (parseCaducidadMMAA("0000") != null) {
     fail("0000 no es caducidad: parseCaducidadMMAA debe devolver null.");
