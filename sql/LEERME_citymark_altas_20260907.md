@@ -6,17 +6,19 @@ Regla nueva (siempre): `.cursor/rules/ticket-alta-catalogo-obligatoria.mdc`. Un 
 
 ## Qué pegar en Supabase (en este orden)
 
+Abrir el enlace → **Raw** (arriba a la derecha) → seleccionar todo → pegar en Supabase → SQL Editor → Run.
+
 1. **Si nunca corriste el parche de verde sin stock**  
-   `sql/patch_recepcion_verde_sin_stock_20260903.sql`  
+   [patch_recepcion_verde_sin_stock_20260903.sql](https://github.com/ibarraivane/farmacapital/blob/cursor/citymark-altas-catalogo-c115/sql/patch_recepcion_verde_sin_stock_20260903.sql)  
    Deja el RPC `recepcion_reparar_stock_huerfanos`. Sin esto, el paso 2 avisa `skipped`.
 
 2. **Altas City Mark + relink de ese folio**  
-   `sql/patch_alta_catalogo_citymark_20260905.sql`  
+   [patch_alta_catalogo_citymark_20260905.sql](https://github.com/ibarraivane/farmacapital/blob/cursor/citymark-altas-catalogo-c115/sql/patch_alta_catalogo_citymark_20260905.sql)  
    84 renglones del ticket. Inserta los que falten (los 71 del aviso). Stock 0. No borra lo ya escaneado. PVP = ceil(costo × 1.25).  
    Al final: `siguen_sin_alta` tiene que ser **0**. `pendiente_alta` de ese folio, **0**.
 
 3. **Resto de tickets (Farmalive, Nadro, Levic, Exprezo…)**  
-   `sql/patch_recepcion_tickets_relink_stock_20260907.sql`  
+   [patch_recepcion_tickets_relink_stock_20260907.sql](https://github.com/ibarraivane/farmacapital/blob/cursor/citymark-altas-catalogo-c115/sql/patch_recepcion_tickets_relink_stock_20260907.sql)  
    Enlaza cualquier EAN que ya esté en catálogo y entra stock de verdes con MMAA sin lote.  
    El SELECT final lista lo que **sigue** sin alta. Si sale vacío, no faltan productos.
 
@@ -28,13 +30,13 @@ Busca por marca o nombre de mostrador (no el código del ticket): `adidas`, `jal
 
 Si el alta ya está y el stock es **0**: Recibir todavía no escaneó MMAA de esa caja. El SQL de alta no inventa piezas. Agua oxigenada / alcohol / Alli / Bedoyecta de esa lista **no** son City Mark: son otros agotados del catálogo.
 
-Si el nombre sigue en MAYÚSCULAS del PDF (`ADIDAS 150ML SPY CONTROL`): Recibir o un alta previa guardó el código del ticket y el SQL de altas no lo pisó. Pega:
+Si el nombre sigue en MAYÚSCULAS del PDF (`ADIDAS 150ML SPY CONTROL`): Recibir o un alta previa guardó el código del ticket y el SQL de altas no lo pisó. Abre y pega:
 
-`sql/patch_nombres_mostrador_citymark_20260905.sql`
+[patch_nombres_mostrador_citymark_20260905.sql](https://github.com/ibarraivane/farmacapital/blob/cursor/citymark-altas-catalogo-c115/sql/patch_nombres_mostrador_citymark_20260905.sql)
 
 Eso corrige nombre, marca y proveedor. **No** sube stock.
 
-Para cruzar ticket vs anaquel: `sql/verificar_stock_citymark_20260905.sql`
+Para cruzar ticket vs anaquel: [verificar_stock_citymark_20260905.sql](https://github.com/ibarraivane/farmacapital/blob/cursor/citymark-altas-catalogo-c115/sql/verificar_stock_citymark_20260905.sql)
 
 ## Después de pegar
 
