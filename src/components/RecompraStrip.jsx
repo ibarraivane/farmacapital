@@ -175,6 +175,9 @@ export function ProductosStripStyles() {
         box-sizing: border-box;
       }
       @media (min-width: 768px) {
+        .farmacapital-productos-strip {
+          padding-inline-end: 48px;
+        }
         .farmacapital-productos-strip > * {
           width: calc((100% - 24px) / 3) !important;
           max-width: none !important;
