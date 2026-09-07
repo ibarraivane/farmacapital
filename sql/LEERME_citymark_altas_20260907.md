@@ -20,6 +20,14 @@ Regla nueva (siempre): `.cursor/rules/ticket-alta-catalogo-obligatoria.mdc`. Un 
    Enlaza cualquier EAN que ya esté en catálogo y entra stock de verdes con MMAA sin lote.  
    El SELECT final lista lo que **sigue** sin alta. Si sale vacío, no faltan productos.
 
+## Cómo ver el stock en Inventario
+
+Busca por marca o nombre de mostrador (no el código del ticket): `speed stick`, `colgate`, `neutrogena`, `savile`, `axe`. La columna Stock sale de los lotes.
+
+Si el alta ya está y el stock es **0**: Recibir todavía no escaneó MMAA de esa caja. El SQL de alta no inventa piezas.
+
+Para cruzar ticket vs anaquel: `sql/verificar_stock_citymark_20260905.sql`
+
 ## Después de pegar
 
 - City Mark: vuelve a Recibir. Los 71 ya no salen en ámbar. Escanea caja + MMAA; el stock tiene que subir.

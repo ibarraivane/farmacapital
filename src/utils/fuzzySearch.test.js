@@ -470,4 +470,39 @@ describe("catalog search dimensions", () => {
     expect(tiendaProductMatchesBusqueda(sildenafil, "viagra")).toBe(true);
     expect(tiendaProductMatchesBusqueda(broncolinAzul, "pastilla azul")).toBe(false);
   });
+
+  test("City Mark 20260905: marca y nombre de mostrador salen en Inventario", () => {
+    const speed = {
+      id: 901,
+      activo: true,
+      nombre: "Speed Stick Xtreme Night crema 30 g",
+      marca: "Speed Stick",
+      codigo_barras: "7501033204920",
+      sku: "FC-033204920",
+    };
+    const colgate = {
+      id: 902,
+      activo: true,
+      nombre: "Colgate Triple Acción 150 ml",
+      marca: "Colgate",
+      codigo_barras: "7509546000350",
+      sku: "FC-46000350",
+    };
+    const neutro = {
+      id: 903,
+      activo: true,
+      nombre: "Neutrogena agua micelar 200 ml",
+      marca: "Neutrogena",
+      codigo_barras: "7891010245160",
+    };
+    for (const q of ["speed stick", "xtreme", "7501033204920"]) {
+      expect(inventarioProductMatchesBusqueda(speed, q)).toBe(true);
+    }
+    for (const q of ["colgate", "triple acción", "7509546000350"]) {
+      expect(inventarioProductMatchesBusqueda(colgate, q)).toBe(true);
+    }
+    expect(inventarioProductMatchesBusqueda(neutro, "neutrogena")).toBe(true);
+    expect(inventarioProductMatchesBusqueda(neutro, "agua micelar")).toBe(true);
+    expect(inventarioProductMatchesBusqueda(colgate, "speed stick")).toBe(false);
+  });
 });
