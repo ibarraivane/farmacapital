@@ -56,6 +56,9 @@ def write_recepcion_sql(
 
     lines = [
         f"-- Pedido {proveedor} {folio} ({fecha}) — cola Recibir, borrador.",
+        "-- INCOMPLETO si hay EANs nuevos: este archivo NO da de alta catálogo.",
+        "-- Obligatorio: insertar productos (ficha del proveedor) hasta pendiente_alta = 0.",
+        "-- Ver .cursor/rules/ticket-alta-catalogo-obligatoria.mdc — City Mark 20260905.",
         "-- SIN bloques dollar-quote (do $$). El SQL Editor de Supabase los corta.",
         "-- No suma stock: las piezas entran al escanear con pistola y poner MMAA de la caja.",
         "-- El pedido no trae lote ni caducidad; se quedan en null. No inventar 0000.",

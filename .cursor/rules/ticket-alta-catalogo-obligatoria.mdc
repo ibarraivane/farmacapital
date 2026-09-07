@@ -1,0 +1,42 @@
+---
+description: Al cargar un ticket, TODOS los EANs deben quedar dados de alta en catálogo. Cero pendiente_alta. El stock entra al escanear, no al armar la cola.
+alwaysApply: true
+---
+
+# Ticket = altas + cola Recibir (nunca solo la cola)
+
+Si el usuario sube un ticket / PDF / CSV / foto de compra, **no está terminado** hasta que Recibir pueda escanear cada caja y el stock suba. El aviso rojo «N productos sin registrar en catálogo» es un fallo del agente, no una tarea de Erika.
+
+## Criterio de cierre (obligatorio)
+
+1. Cada EAN del ticket existe en `productos` **antes** de dar por cerrada la carga.
+2. Tras el SQL, `pendiente_alta` de ese folio tiene que ser **0**. Si no, faltan altas.
+3. Nombres de mostrador desde la ficha del proveedor (`carga-ticket-ficha-proveedor`), no el código del PDF.
+4. Stock **0** en el alta. Las piezas entran al escanear + MMAA de la caja. No inventar `0000`.
+5. Un SQL que solo inserta `recepcion_items` (`generar_recepcion_borrador`, `*_corroborar.sql`) **no basta**. Hay que crear/enlazar catálogo en el mismo trabajo.
+
+## Qué hacer en cada ticket
+
+1. Lista todos los EANs (y cantidades).
+2. Para cada EAN nuevo: alta con `nombre`, `marca`, `presentacion`, `categoria`, `subcategoria`, `forma_farmaceutica`, `imagen_url`, `sku` (`FC-` + últimos 8), costo del ticket, PVP = ceil(costo × 1.25 marca / × 1.60 genérico).
+3. Foto: ficha del proveedor o `public/catalogo-propia/`. Sin foto = TODO explícito, no se ignora.
+4. Relink: `producto_id` + `pendiente_alta = false` en los renglones de ese folio. **No borres** renglones ya escaneados (se pierde MMAA/lote).
+5. Si ya escanearon y el renglón quedó verde sin `lote_id`, repara stock (`recepcion_reparar_stock_huerfanos` o `receive_merchandise_lote`). No pidas que «lo den de alta a mano».
+
+## Stock que no sube al escanear
+
+Causas reales, en este orden:
+
+1. `pendiente_alta` / `producto_id` null → el RPC no crea lote. **Alta + relink**, luego reescanear (o reparar si ya hay MMAA).
+2. Verde mentiroso: `confirmado` + MMAA + sin `lote_id` → correr reparación, no volver a cargar el ticket.
+3. Ticket PDF: un EAN que no está en la lista no suma (correcto). Uno que sí está y es verde tiene que sumar.
+
+## Caso que no se repite
+
+City Mark folio `20260905` (05-sep-2026): 84 renglones, 71 «sin registrar». La cola existía; las altas no. Recibir avisó y esas piezas no entraron a stock.
+
+## No hacer
+
+- Dejar el ticket en Recibir y decir «dalo de alta en Inventario → Catálogo → + Nuevo producto».
+- Re-generar la cola en borrador si ya escanearon: el `DELETE` de items borra caducidades.
+- Copiar el nombre interno del ticket como nombre de mostrador.
