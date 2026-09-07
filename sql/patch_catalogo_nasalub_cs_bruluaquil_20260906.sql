@@ -15,6 +15,9 @@
 -- de Vercel. Si corres antes, las URLs dan 404.
 -- También alinea Solución CS 500 mL (FC-25100123) a Hidratación
 -- (estaba en Dispositivo médico).
+--
+-- Galería: inserta la foto propia con es_principal=false y LUEGO
+-- marca solo esa como principal (evita ux_producto_imagenes_una_principal).
 
 begin;
 
@@ -46,7 +49,7 @@ select
   'https://www.farmacapital.mx/catalogo-propia/solucion-cs-pisa-250ml.jpg',
   'catalogo-propia/solucion-cs-pisa-250ml.jpg',
   coalesce((select max(posicion) from public.producto_imagenes i where i.producto_id = p.id), 0) + 1,
-  true,
+  false,
   'propia'
 from public.productos p
 where p.sku = 'FC-25100116'
@@ -56,9 +59,18 @@ where p.sku = 'FC-25100116'
       and i.url like '%catalogo-propia/solucion-cs-pisa-250ml%'
   );
 
+-- Dos pasos: primero quitar la principal actual, luego marcar la nueva.
 update public.producto_imagenes i
-set es_principal = (i.url like '%catalogo-propia/solucion-cs-pisa-250ml%')
-where i.producto_id = (select id from public.productos where sku = 'FC-25100116' limit 1);
+set es_principal = false
+where i.producto_id = (select id from public.productos where sku = 'FC-25100116' limit 1)
+  and i.es_principal
+  and i.url not like '%catalogo-propia/solucion-cs-pisa-250ml%';
+
+update public.producto_imagenes i
+set es_principal = true
+where i.producto_id = (select id from public.productos where sku = 'FC-25100116' limit 1)
+  and i.url like '%catalogo-propia/solucion-cs-pisa-250ml%'
+  and not i.es_principal;
 
 -- ── 4) Bruluaquil · foto sin marca de agua ───────────────────
 update public.productos
@@ -74,7 +86,7 @@ select
   'https://www.farmacapital.mx/catalogo-propia/bruluaquil-24tab.jpg',
   'catalogo-propia/bruluaquil-24tab.jpg',
   coalesce((select max(posicion) from public.producto_imagenes i where i.producto_id = p.id), 0) + 1,
-  true,
+  false,
   'propia'
 from public.productos p
 where p.sku = 'FC-08895042'
@@ -85,8 +97,16 @@ where p.sku = 'FC-08895042'
   );
 
 update public.producto_imagenes i
-set es_principal = (i.url like '%catalogo-propia/bruluaquil-24tab%')
-where i.producto_id = (select id from public.productos where sku = 'FC-08895042' limit 1);
+set es_principal = false
+where i.producto_id = (select id from public.productos where sku = 'FC-08895042' limit 1)
+  and i.es_principal
+  and i.url not like '%catalogo-propia/bruluaquil-24tab%';
+
+update public.producto_imagenes i
+set es_principal = true
+where i.producto_id = (select id from public.productos where sku = 'FC-08895042' limit 1)
+  and i.url like '%catalogo-propia/bruluaquil-24tab%'
+  and not i.es_principal;
 
 commit;
 
