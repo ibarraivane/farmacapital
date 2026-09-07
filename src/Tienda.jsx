@@ -1788,10 +1788,9 @@ function Header({page,setPage,cart,user,setUser,busqHero,setBusqHero,productos,s
 }
 
 // ── PRODUCT CARD ──────────────────────────────────────────────
-function ProductCard({prod,addToCart,onClick,compact}){
+function ProductCard({prod,addToCart,onClick}){
   const C = useTheme();
   const narrow = useMediaQuery("(max-width: 768px)");
-  const desktopCompact = Boolean(compact) && !narrow;
   const [added,setAdded]=useState(false);
   const [imgRota,setImgRota]=useState(false);
   const promosProd = usePromosProducto(prod?.id);
@@ -1837,8 +1836,8 @@ function ProductCard({prod,addToCart,onClick,compact}){
         style={{
           background:"#fff",
           overflow:"hidden",
-          minHeight: desktopCompact ? 118 : 152,
-          height: desktopCompact ? 118 : 152,
+          minHeight:152,
+          height:152,
           display:"flex",
           alignItems:"center",
           justifyContent:"center",
@@ -1864,14 +1863,14 @@ function ProductCard({prod,addToCart,onClick,compact}){
       </div>
       <div
         style={{
-          padding: desktopCompact ? "10px 12px 12px" : "14px",
+          padding:"14px",
           flex:1,
           display:"flex",
           flexDirection:"column",
           WebkitTapHighlightColor:"transparent",
         }}
       >
-        <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom: desktopCompact ? 6 : 8}}>
+        <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:8}}>
           {agotado
             ? <Tag col={C.red} sm>Agotado</Tag>
             : prod.stock<=3
@@ -1881,8 +1880,8 @@ function ProductCard({prod,addToCart,onClick,compact}){
           {prod.tipo==="generico"&&<Tag col={BRAND.secondary} sm>Genérico</Tag>}
           {prod.requiere_receta&&<Tag col={C.red} sm>Rx</Tag>}
         </div>
-        <div style={{color:C.dark,fontWeight:700,fontSize: desktopCompact ? 13 : 14,marginBottom:4,lineHeight:1.3,pointerEvents:"none"}}>{prod.nombre}</div>
-        <div style={{color:C.dim,fontSize:11,marginBottom: desktopCompact ? 6 : 8,flex:1}}>{descripcionPublicaTienda(prod) || prod.presentacion || ""}</div>
+        <div style={{color:C.dark,fontWeight:700,fontSize:14,marginBottom:4,lineHeight:1.3,pointerEvents:"none"}}>{prod.nombre}</div>
+        <div style={{color:C.dim,fontSize:11,marginBottom:8,flex:1}}>{descripcionPublicaTienda(prod) || prod.presentacion || ""}</div>
         <div style={{marginBottom:10}}>
           <PrecioOferta prod={prod} promos={promosProd} size="sm" />
           {!oferta.hayOferta && prod.precio_marca ? (
@@ -2826,7 +2825,7 @@ function HomeCatalogoPorCategoria({productos,loadingProductos,addToCart,setProdD
             <div style={{height:22,width:140,borderRadius:8,background:C.surface,marginBottom:12,opacity:0.8}}/>
             <div style={{display:"flex",gap:12,overflow:"hidden"}}>
               {Array.from({length:5}).map((__,j)=>(
-                <div key={j} style={{flex:"0 0 auto",width:"calc((100% - 48px) / 5)",minWidth:160,height:260,borderRadius:12,background:C.surface,animation:"pulse 1.4s ease-in-out infinite",opacity:0.7}}/>
+                <div key={j} style={{flex:"0 0 auto",width:220,maxWidth:"min(220px,72vw)",height:260,borderRadius:12,background:C.surface,animation:"pulse 1.4s ease-in-out infinite",opacity:0.7}}/>
               ))}
             </div>
           </div>
@@ -3283,9 +3282,13 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
         <div
           id="farmacapital-catalogo-resultados"
           style={{
+            gridArea: "resultados",
             width: "100%",
+            minWidth: 0,
+            maxWidth: "100%",
             height: "auto",
-            overflow: "visible",
+            overflowX: vista === "bandas" ? "hidden" : "visible",
+            overflowY: "visible",
             position: "relative",
             display: vista === "bandas" ? "block" : "grid",
             gap: stack ? 16 : 18,
@@ -3308,7 +3311,7 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
                         <div style={{height:20,width:120,borderRadius:8,background:"#F1E8DD",marginBottom:12,opacity:0.8}}/>
                         <div style={{display:"flex",gap:12,overflow:"hidden"}}>
                           {Array.from({length:5}).map((__,j)=>(
-                            <div key={j} style={{flex:"0 0 auto",width:"calc((100% - 48px) / 5)",minWidth:160,height:260,borderRadius:12,background:"#F1E8DD",animation:"pulse 1.4s ease-in-out infinite",opacity:0.7}}/>
+                            <div key={j} style={{flex:"0 0 auto",width:220,maxWidth:"min(220px,72vw)",height:260,borderRadius:12,background:"#F1E8DD",animation:"pulse 1.4s ease-in-out infinite",opacity:0.7}}/>
                           ))}
                         </div>
                       </div>

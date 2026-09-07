@@ -1,10 +1,14 @@
-import { Children, cloneElement, isValidElement, useCallback, useEffect, useRef, useState } from "react";
+import { Children, useCallback, useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { stripArrowState, stripPageScrollLeft } from "../lib/productosStrip";
 
+/** Mismo ancho que la cuadrícula del catálogo (`minmax(min(100%, 220px), 1fr)`). */
+export const STRIP_CARD_WIDTH_PX = 220;
+
 /**
  * Franja horizontal de productos (recompra, sugeridos o categoría).
- * Celular: desliza. Laptop: ~5 tarjetas y flechas para el siguiente grupo.
+ * Las tarjetas son las de la cuadrícula, en fila. Celular: desliza.
+ * Laptop: ~5 por banda y flechas para el siguiente grupo.
  */
 export default function RecompraStrip({
   title,
@@ -50,10 +54,22 @@ export default function RecompraStrip({
 
   if (empty) return null;
 
-  const items = Children.map(children, (child) => {
-    if (!isValidElement(child) || typeof child.type === "string") return child;
-    return cloneElement(child, { compact: true });
-  });
+  const items = Children.map(children, (child, i) => (
+    <div
+      key={child?.key ?? i}
+      className="farmacapital-productos-strip-item"
+      style={{
+        flex: "0 0 auto",
+        width: STRIP_CARD_WIDTH_PX,
+        maxWidth: "min(220px, 72vw)",
+        minWidth: 0,
+        boxSizing: "border-box",
+        scrollSnapAlign: "start",
+      }}
+    >
+      {child}
+    </div>
+  ));
 
   return (
     <div style={{ marginBottom: 28 }}>
@@ -163,30 +179,29 @@ export function ProductosStripStyles() {
     <style>{`
       .farmacapital-productos-strip-wrap {
         position: relative;
+        min-width: 0;
+        max-width: 100%;
+      }
+      .farmacapital-productos-strip {
+        min-width: 0;
+        max-width: 100%;
       }
       .farmacapital-productos-strip::-webkit-scrollbar { display: none; }
-      /* El ProductCard trae width:100% inline (para la cuadrícula). Aquí hay que ganarle. */
-      .farmacapital-productos-strip > * {
-        flex: 0 0 auto !important;
-        width: min(200px, 72vw) !important;
-        max-width: 220px !important;
-        min-width: 0 !important;
-        scroll-snap-align: start;
+      .farmacapital-productos-strip-item {
+        flex: 0 0 auto;
+        width: 220px;
+        max-width: min(220px, 72vw);
         box-sizing: border-box;
+        scroll-snap-align: start;
+      }
+      .farmacapital-productos-strip-item > * {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 100%;
       }
       @media (min-width: 768px) {
         .farmacapital-productos-strip {
           padding-inline-end: 48px;
-        }
-        .farmacapital-productos-strip > * {
-          width: calc((100% - 24px) / 3) !important;
-          max-width: none !important;
-        }
-      }
-      @media (min-width: 1024px) {
-        .farmacapital-productos-strip > * {
-          width: calc((100% - 48px) / 5) !important;
-          max-width: none !important;
         }
       }
       .farmacapital-productos-strip-arrow {
