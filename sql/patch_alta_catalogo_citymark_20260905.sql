@@ -158,12 +158,21 @@ where p.id = public.fc_buscar_producto_escaneo(t.ean)
 
 update public.productos p
 set
-  marca = coalesce(nullif(trim(p.marca), ''), t.marca),
+  nombre = case
+    when upper(btrim(p.nombre)) = upper(btrim(t.snap)) then t.nombre
+    else p.nombre
+  end,
+  marca = coalesce(nullif(trim(t.marca), ''), nullif(trim(p.marca), '')),
   presentacion = coalesce(nullif(trim(p.presentacion), ''), t.presentacion),
+  categoria = case
+    when coalesce(nullif(trim(p.categoria), ''), 'Otro') in ('Otro', '') then t.categoria
+    else p.categoria
+  end,
   subcategoria = coalesce(nullif(trim(p.subcategoria), ''), t.subcategoria),
   forma_farmaceutica = coalesce(nullif(trim(p.forma_farmaceutica), ''), t.forma),
   imagen_url = coalesce(nullif(trim(p.imagen_url), ''), t.imagen),
-  imagen_mobile_url = coalesce(nullif(trim(p.imagen_mobile_url), ''), t.imagen)
+  imagen_mobile_url = coalesce(nullif(trim(p.imagen_mobile_url), ''), t.imagen),
+  proveedor = coalesce(nullif(trim(p.proveedor), ''), 'City Mark')
 from _fc_cm20260905 t
 where p.id = public.fc_buscar_producto_escaneo(t.ean);
 

@@ -16,6 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "sql" / "generated" / "ticket_citymark_20260905.csv"
 OBF = ROOT / "sql" / "generated" / "citymark_obf_lookup.json"
 OUT_SQL = ROOT / "sql" / "patch_alta_catalogo_citymark_20260905.sql"
+OUT_NOMBRES = ROOT / "sql" / "patch_nombres_mostrador_citymark_20260905.sql"
 
 FOLIO = "20260905"
 PROVEEDOR = "City Mark"
@@ -292,12 +293,21 @@ def write_sql(rows: list[dict]) -> None:
         "",
         "update public.productos p",
         "set",
-        "  marca = coalesce(nullif(trim(p.marca), ''), t.marca),",
+        "  nombre = case",
+        "    when upper(btrim(p.nombre)) = upper(btrim(t.snap)) then t.nombre",
+        "    else p.nombre",
+        "  end,",
+        "  marca = coalesce(nullif(trim(t.marca), ''), nullif(trim(p.marca), '')),",
         "  presentacion = coalesce(nullif(trim(p.presentacion), ''), t.presentacion),",
+        "  categoria = case",
+        "    when coalesce(nullif(trim(p.categoria), ''), 'Otro') in ('Otro', '') then t.categoria",
+        "    else p.categoria",
+        "  end,",
         "  subcategoria = coalesce(nullif(trim(p.subcategoria), ''), t.subcategoria),",
         "  forma_farmaceutica = coalesce(nullif(trim(p.forma_farmaceutica), ''), t.forma),",
         "  imagen_url = coalesce(nullif(trim(p.imagen_url), ''), t.imagen),",
-        "  imagen_mobile_url = coalesce(nullif(trim(p.imagen_mobile_url), ''), t.imagen)",
+        "  imagen_mobile_url = coalesce(nullif(trim(p.imagen_mobile_url), ''), t.imagen),",
+        "  proveedor = coalesce(nullif(trim(p.proveedor), ''), 'City Mark')",
         "from _fc_cm20260905 t",
         "where p.id = public.fc_buscar_producto_escaneo(t.ean);",
         "",
@@ -364,5 +374,88 @@ def write_sql(rows: list[dict]) -> None:
     print(f"wrote {OUT_SQL} lineas={len(rows)} altas_esperadas={altas} ya={len(rows)-altas}")
 
 
+def write_nombres_sql(rows: list[dict]) -> None:
+    """Re-runnable: ticket ALL CAPS → nombre de mostrador. No toca stock."""
+    lines = [
+        "-- City Mark 20260905 — nombres de ticket → mostrador.",
+        "-- NO sube stock. El 0 es correcto hasta Recibir (pistola + MMAA).",
+        "-- Solo pisa el nombre si sigue siendo el código del PDF (snap).",
+        "-- SIN bloques dollar-quote. Pegar TODO en Supabase → SQL Editor → Run.",
+        "",
+        "begin;",
+        "",
+        "create temp table _fc_cm_nom (",
+        "  ean text primary key,",
+        "  nombre text not null,",
+        "  snap text not null,",
+        "  marca text,",
+        "  presentacion text,",
+        "  categoria text not null,",
+        "  subcategoria text,",
+        "  forma text,",
+        "  imagen text",
+        ") on commit drop;",
+        "",
+        "insert into _fc_cm_nom (",
+        "  ean, nombre, snap, marca, presentacion, categoria, subcategoria, forma, imagen",
+        ") values",
+    ]
+    vals = []
+    for r in rows:
+        vals.append(
+            "  ({ean}, {nombre}, {snap}, {marca}, {pres}, {cat}, {sub}, {forma}, {img})".format(
+                ean=sql_str(r["ean"]),
+                nombre=sql_str(r["nombre"]),
+                snap=sql_str(r["snap"]),
+                marca=sql_str(r["marca"]),
+                pres=sql_str(r["presentacion"]),
+                cat=sql_str(r["categoria"]),
+                sub=sql_str(r["subcategoria"]),
+                forma=sql_str(r["forma"]),
+                img=sql_str(r["imagen"]),
+            )
+        )
+    lines.append(",\n".join(vals) + ";")
+    lines += [
+        "",
+        "update public.productos p",
+        "set",
+        "  nombre = t.nombre,",
+        "  marca = coalesce(nullif(trim(t.marca), ''), nullif(trim(p.marca), '')),",
+        "  presentacion = coalesce(nullif(trim(p.presentacion), ''), t.presentacion),",
+        "  categoria = case",
+        "    when coalesce(nullif(trim(p.categoria), ''), 'Otro') in ('Otro', '') then t.categoria",
+        "    else p.categoria",
+        "  end,",
+        "  subcategoria = coalesce(nullif(trim(p.subcategoria), ''), t.subcategoria),",
+        "  forma_farmaceutica = coalesce(nullif(trim(p.forma_farmaceutica), ''), t.forma),",
+        "  imagen_url = coalesce(nullif(trim(p.imagen_url), ''), t.imagen),",
+        "  imagen_mobile_url = coalesce(nullif(trim(p.imagen_mobile_url), ''), t.imagen),",
+        "  proveedor = coalesce(nullif(trim(p.proveedor), ''), 'City Mark')",
+        "from _fc_cm_nom t",
+        "where p.id = public.fc_buscar_producto_escaneo(t.ean)",
+        "  and upper(btrim(p.nombre)) = upper(btrim(t.snap));",
+        "",
+        "select",
+        "  count(*) filter (where upper(btrim(p.nombre)) = upper(btrim(t.snap))) as siguen_nombre_ticket,",
+        "  count(*) filter (where p.nombre = t.nombre) as ya_mostrador,",
+        "  count(*) as lineas",
+        "from _fc_cm_nom t",
+        "left join public.productos p on p.id = public.fc_buscar_producto_escaneo(t.ean);",
+        "",
+        "select p.sku, left(p.nombre, 56) as nombre, p.marca, p.proveedor, p.stock",
+        "from _fc_cm_nom t",
+        "join public.productos p on p.id = public.fc_buscar_producto_escaneo(t.ean)",
+        "order by p.nombre;",
+        "",
+        "commit;",
+        "",
+    ]
+    OUT_NOMBRES.write_text("\n".join(lines), encoding="utf-8")
+    print(f"wrote {OUT_NOMBRES} lineas={len(rows)}")
+
+
 if __name__ == "__main__":
-    write_sql(load_ticket())
+    ticket = load_ticket()
+    write_sql(ticket)
+    write_nombres_sql(ticket)

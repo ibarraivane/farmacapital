@@ -22,9 +22,17 @@ Regla nueva (siempre): `.cursor/rules/ticket-alta-catalogo-obligatoria.mdc`. Un 
 
 ## Cómo ver el stock en Inventario
 
-Busca por marca o nombre de mostrador (no el código del ticket): `speed stick`, `colgate`, `neutrogena`, `savile`, `axe`. La columna Stock sale de los lotes.
+El filtro **Agotados** solo lista stock 0. Eso no significa que el alta falló.
 
-Si el alta ya está y el stock es **0**: Recibir todavía no escaneó MMAA de esa caja. El SQL de alta no inventa piezas.
+Busca por marca o nombre de mostrador (no el código del ticket): `adidas`, `jaloma`, `speed stick`, `colgate`. Quita Agotados (o Limpiar filtros) si quieres ver los que ya tienen piezas.
+
+Si el alta ya está y el stock es **0**: Recibir todavía no escaneó MMAA de esa caja. El SQL de alta no inventa piezas. Agua oxigenada / alcohol / Alli / Bedoyecta de esa lista **no** son City Mark: son otros agotados del catálogo.
+
+Si el nombre sigue en MAYÚSCULAS del PDF (`ADIDAS 150ML SPY CONTROL`): Recibir o un alta previa guardó el código del ticket y el SQL de altas no lo pisó. Pega:
+
+`sql/patch_nombres_mostrador_citymark_20260905.sql`
+
+Eso corrige nombre, marca y proveedor. **No** sube stock.
 
 Para cruzar ticket vs anaquel: `sql/verificar_stock_citymark_20260905.sql`
 
