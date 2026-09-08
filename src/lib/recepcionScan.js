@@ -7,7 +7,7 @@
  * Sin imports a React ni a utils/: el build lo audita con Node (check-recibir-tablet).
  */
 
-import { EAN_PARES_CONOCIDOS } from "./eanParesConocidos";
+import { EAN_PARES_CONOCIDOS } from "./eanParesConocidos.js";
 
 export function normalizeBarcodeRaw(raw) {
   let t = String(raw ?? "").trim();

@@ -1,4 +1,4 @@
-import { EAN_PARES_CONOCIDOS } from "../lib/eanParesConocidos";
+import { EAN_PARES_CONOCIDOS } from "../lib/eanParesConocidos.js";
 import { normalizeForSearch } from "../utils";
 
 export { EAN_PARES_CONOCIDOS };
