@@ -49,6 +49,28 @@ describe("itemMatchScan", () => {
     expect(itemMatchScan(IFC_TIJERA, "7500000000000", CAT)).toBe(false);
   });
 
+  test("Dibar 500 ml: EAN del bote abre el renglón del ticket OCR", () => {
+    const item = {
+      id: 4,
+      confirmado: false,
+      codigo_escaneado: "7501868990023",
+      sku: "FC-68990023",
+      producto_id: 340,
+      origen: "pdf",
+    };
+    const cat = [
+      {
+        id: 340,
+        sku: "FC-68990023",
+        codigo_barras: "7501868990023",
+        activo: true,
+      },
+    ];
+    expect(itemMatchScan(item, "7501868900233", cat)).toBe(true);
+    expect(itemMatchScan(item, "7501868990023", cat)).toBe(true);
+    expect(itemMatchScan(item, "7501868900226", cat)).toBe(false);
+  });
+
   test("EAN de exhibidor anotado en descripción abre la pieza", () => {
     const item = {
       id: 9,
@@ -111,6 +133,28 @@ describe("resolverEscaneoRecepcion", () => {
       esTicketDocumento: false,
     });
     expect(r.tipo).toBe("nuevo");
+  });
+
+  test("Dibar 500 ml en ticket PDF: el EAN del bote no queda fuera", () => {
+    const item = {
+      id: 4,
+      confirmado: false,
+      codigo_escaneado: "7501868990023",
+      sku: "FC-68990023",
+      producto_id: 340,
+      origen: "pdf",
+    };
+    const cat = [
+      { id: 340, sku: "FC-68990023", codigo_barras: "7501868990023", activo: true },
+    ];
+    const r = resolverEscaneoRecepcion({
+      items: [item],
+      codigo: "7501868900233",
+      productos: cat,
+      esTicketDocumento: true,
+    });
+    expect(r.tipo).toBe("gris");
+    expect(r.item.id).toBe(4);
   });
 });
 
