@@ -1,4 +1,4 @@
-import { costoSugeridoRecepcion, parseCostoRecepcion } from "./recepcionCosto";
+import { costoSugeridoRecepcion, mensajeErrorRecepcion, parseCostoRecepcion } from "./recepcionCosto";
 
 test("el ticket manda sobre el catálogo", () => {
   expect(costoSugeridoRecepcion({
@@ -20,6 +20,11 @@ test("si tampoco hay catálogo, usa última compra", () => {
     producto: { costo: 0 },
     ultimaCompra: { precio: 59.45 },
   })).toBe(59.45);
+});
+
+test("el error de borrador se entiende en mostrador", () => {
+  expect(mensajeErrorRecepcion({ message: "solo se edita una recepcion en borrador" }))
+    .toMatch(/ya no está en borrador/i);
 });
 
 test("cero o vacío no sirve", () => {

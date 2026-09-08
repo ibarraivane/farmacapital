@@ -19,7 +19,7 @@ import {
   precioSugeridoAltaRecepcion,
 } from "./lib/recepcionAlta";
 import { fmtPrecioVenta } from "./lib/preciosReferencia";
-import { costoSugeridoRecepcion } from "./lib/recepcionCosto";
+import { costoSugeridoRecepcion, mensajeErrorRecepcion } from "./lib/recepcionCosto";
 import { parseTicketCsv } from "./lib/recepcionTicketCsv";
 import { prepararRenglonesPackAPiezas } from "./lib/recepcionPackPiezas";
 import { normalizeProveedorCompra } from "./lib/ultimaCompra";
@@ -345,8 +345,8 @@ export default function RecepcionModule({ ocultarMontos = false }) {
   }, [loading, doc, pendiente, vista]);
 
   const rpcError = (err, fallback) => {
-    const msg = err?.message || fallback;
-    if (/does not exist|schema cache|cargar_renglones|confirmar_item|listar_abiertas|abrir_existente/i.test(msg)) {
+    const msg = mensajeErrorRecepcion(err?.message ? err : { message: fallback });
+    if (/does not exist|schema cache|cargar_renglones|confirmar_item|listar_abiertas|abrir_existente/i.test(err?.message || "")) {
       showToast("Falta correr sql/patch_recepcion_lista_pendientes_20260821.sql en Supabase.", "error");
       return;
     }
@@ -839,7 +839,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
       }));
     }
     setSaving(false);
-    if (error) { setErrorLinea(error.message); return; }
+    if (error) { setErrorLinea(mensajeErrorRecepcion(error)); return; }
     const applied = aplicarDoc(data);
     const huerfanos = recepcionItemsVerdeSinStock(applied?.items);
     if (huerfanos.length > 0) {

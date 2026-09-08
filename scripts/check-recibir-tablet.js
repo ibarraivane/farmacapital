@@ -24,6 +24,10 @@ const sqlPrecio = read("sql/patch_recibir_precio_auto_20260908.sql");
 if (!/'costo_estimado', i\.costo_estimado/.test(sqlPrecio)) {
   fail("fc_recepcion_json tiene que mandar costo_estimado para que Recibir lo ponga solo.");
 }
+const sqlVivo = read("sql/patch_recibir_guardar_caducidad_vivo_20260908.sql");
+if (!/pendiente_caducidad/.test(sqlVivo) || !/recepcion_confirmar_item/.test(sqlVivo)) {
+  fail("Hay que poder grabar MMAA en un ticket vivo, no solo en borrador.");
+}
 if (/id=["']rc-scan["'][\s\S]{0,400}disabled=\{/.test(rec)) {
   fail("RecepcionModule: el recuadro de pistola no debe usar disabled (Safari/iPad tira NotFoundError). Usa readOnly.");
 }
