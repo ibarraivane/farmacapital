@@ -1525,7 +1525,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
     const enCarrito = getCantidadEnCarrito(cartActual, item.id, false);
 
     if (disponibleFifo <= 0) {
-      showToast("Este producto no tiene lotes disponibles para venta. Revisa inventario/lotes antes de venderlo.", "warning");
+      showToast("Stock 0: no se puede cobrar. Entrá las piezas en Recibir (pistola + caducidad MMAA), no lo des de alta otra vez.", "warning");
       return false;
     }
 
