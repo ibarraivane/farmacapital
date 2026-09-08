@@ -34,6 +34,20 @@ const sqlVivo = read("sql/patch_recibir_guardar_caducidad_vivo_20260908.sql");
 if (!/pendiente_caducidad/.test(sqlVivo) || !/recepcion_confirmar_item/.test(sqlVivo)) {
   fail("Hay que poder grabar MMAA en un ticket vivo, no solo en borrador.");
 }
+if (/update public\.recepciones[\s\S]{0,400}estado = 'borrador'[\s\S]{0,500}confirmada/.test(sqlVivo)) {
+  fail("El SQL de caducidad viva no puede reabrir tickets confirmada/descuadre.");
+}
+const sqlCerrar = read("sql/patch_recibir_cerrar_reabiertos_20260908.sql");
+if (!/backfill ticket inicial/.test(sqlCerrar) || !/1658128647824-01/.test(sqlCerrar)) {
+  fail("El SQL correctivo tiene que cerrar el historial y el Nadro ya recibido.");
+}
+if (!/pedidoEsperaEntrada/.test(rec)) {
+  fail("RecepcionModule: la lista de Recibir debe filtrar con pedidoEsperaEntrada.");
+}
+const handler = read("api/_lib/recepcionAbiertasHandler.js");
+if (/falta > 0 \|\| t\.estado === 'borrador'/.test(handler)) {
+  fail("esPedidoVivo no debe listar todo borrador; solo cajas pendientes.");
+}
 if (/id=["']rc-scan["'][\s\S]{0,400}disabled=\{/.test(rec)) {
   fail("RecepcionModule: el recuadro de pistola no debe usar disabled (Safari/iPad tira NotFoundError). Usa readOnly.");
 }
@@ -75,6 +89,9 @@ async function assertScanLogic() {
   }
   if (!pedidoEsperaEntrada({ renglones: 11, sin_confirmar: 11, estado: "borrador" })) {
     fail("Ticket con cajas pendientes debe ser pedido vivo.");
+  }
+  if (pedidoEsperaEntrada({ renglones: 184, sin_confirmar: 0, estado: "borrador" })) {
+    fail("Historial ya recibido (todo verde) no debe volver a Recibir.");
   }
   if (parseCaducidadMMAA("0000") != null) {
     fail("0000 no es caducidad: parseCaducidadMMAA debe devolver null.");
