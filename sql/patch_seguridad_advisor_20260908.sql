@@ -20,10 +20,11 @@
 --     cuerpos. Incluye extensions (pgcrypto en Supabase).
 --
 -- WARNINGS / INFO que se dejan a propósito
---   - anon/authenticated EXECUTE en RPCs SECURITY DEFINER:
---     el POS, admin, login, recepción y tienda llaman esas
---     funciones como anon con p_session_token. Revocar EXECUTE
---     tumba la app. Cada RPC valida el token adentro.
+--   - anon/authenticated EXECUTE en RPCs de sesión (admin_*,
+--     empleado_*, cliente_*, *_secure, recepción, login):
+--     el POS las llama como anon con p_session_token. Revocar
+--     esas tumba la app. Triggers y mutadores legacy SIN token
+--     se cierran en patch_seguridad_advisor_20260908_b.sql.
 --   - rls_enabled_no_policy (sesiones, audit, recetas, etc.):
 --     RLS ON + cero policies = deny-all por REST. Es el diseño
 --     F6c. No agregar policies SELECT.
