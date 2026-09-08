@@ -19,6 +19,7 @@ import {
   precioSugeridoAltaRecepcion,
 } from "./lib/recepcionAlta";
 import { fmtPrecioVenta } from "./lib/preciosReferencia";
+import { costoSugeridoRecepcion } from "./lib/recepcionCosto";
 import { parseTicketCsv } from "./lib/recepcionTicketCsv";
 import { prepararRenglonesPackAPiezas } from "./lib/recepcionPackPiezas";
 import { normalizeProveedorCompra } from "./lib/ultimaCompra";
@@ -294,7 +295,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     const [provRes, prodRes] = await Promise.all([
       supabase.rpc("empleado_listar_proveedores_catalogo", { p_session_token: tok }),
       fetchProductosPaginados({
-        select: "id,nombre,sku,codigo_barras,activo,costo,tipo",
+        select: "id,nombre,sku,codigo_barras,activo,costo,precio,tipo",
         activosSolo: true,
         order: "nombre",
       }),
@@ -320,7 +321,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     const tok = sessionTok();
     if (!tok) return;
     const prodRes = await fetchProductosPaginados({
-      select: "id,nombre,sku,codigo_barras,activo,costo,tipo",
+      select: "id,nombre,sku,codigo_barras,activo,costo,precio,tipo",
       activosSolo: true,
       order: "nombre",
     });
@@ -605,10 +606,21 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     try { scanRef.current?.blur(); } catch (_) { /* Safari */ }
     const codigo = codigoOverride || it.codigo_escaneado || it.sku || "";
     const nombreSnap = String(it.nombre || "").trim();
+    const prodCat = it.producto_id
+      ? productos.find((p) => p.id === it.producto_id)
+      : findProductExactScan(productos, codigo);
+    const costoAuto = costoSugeridoRecepcion({ item: it, producto: prodCat });
     setErrorLinea("");
     setPendiente({
       codigo,
-      producto: { nombre: it.nombre, sku: it.sku },
+      producto: {
+        id: it.producto_id || prodCat?.id,
+        nombre: it.nombre || prodCat?.nombre,
+        sku: it.sku || prodCat?.sku,
+        costo: prodCat?.costo,
+        precio: it.precio ?? prodCat?.precio,
+        tipo: it.tipo || prodCat?.tipo,
+      },
       pendienteAlta: it.pendiente_alta,
       itemId: it.id,
       loteDistinto: it.lote_distinto,
@@ -617,7 +629,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     });
     setScan(codigo);
     setQty(String(it.cantidad || 1));
-    setCosto(it.costo_estimado != null ? String(it.costo_estimado) : "");
+    setCosto(costoAuto != null ? String(costoAuto) : "");
     // Ticket PDF/CSV ya trae descripción en nombre_snapshot: precargar el alta.
     // Antes el input quedaba vacío y parecía que "no llenamos el nombre".
     setAltaNombre(it.pendiente_alta ? nombreSnap : "");
@@ -665,7 +677,8 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     setErrorLinea("");
     setPendiente(r);
     setScan(r.codigo);
-    setCosto(r.producto?.costo != null ? String(r.producto.costo) : "");
+    const costoAuto = costoSugeridoRecepcion({ producto: r.producto });
+    setCosto(costoAuto != null ? String(costoAuto) : "");
     setAltaNombre(r.pendienteAlta ? String(r.producto?.nombre || "").trim() : "");
     setTimeout(() => {
       if (r.pendienteAlta && !String(r.producto?.nombre || "").trim()) {
@@ -1298,6 +1311,11 @@ export default function RecepcionModule({ ocultarMontos = false }) {
                         Lote distinto al de anaquel{Array.isArray(pendiente.lotesPiso) && pendiente.lotesPiso.length ? ` (piso: ${pendiente.lotesPiso.filter(Boolean).join(", ")})` : ""}. Confirma caducidad de esta caja.
                       </div>
                     )}
+                    {(pendiente.producto?.precio || precioSugeridoAltaRecepcion(costo, pendiente.producto?.tipo)) ? (
+                      <div style={{ color: C.textMid, fontSize: 12, fontWeight: 600, marginTop: 6 }}>
+                        Venta {fmtPrecioVenta(pendiente.producto?.precio || precioSugeridoAltaRecepcion(costo, pendiente.producto?.tipo))} — corrobora. La caducidad sale de la caja.
+                      </div>
+                    ) : null}
                   </div>
                 )}
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(112px, 1fr))", gap: 10 }}>
@@ -1350,7 +1368,9 @@ export default function RecepcionModule({ ocultarMontos = false }) {
                     <div style={{ color: costoCambia ? "#b45309" : C.textDim, fontSize: 11, fontWeight: costoCambia ? 700 : 400, marginTop: 4 }}>
                       {costoCambia
                         ? `Antes ${fmt(costoAnterior)} — se guarda el nuevo`
-                        : "El de la factura. Así queda en Historia."}
+                        : costo.trim()
+                          ? "Ya viene del ticket o del catálogo. Corrobora si la factura dice otro."
+                          : "Si la factura trae costo, escríbelo. La caducidad sí o sí sale de la caja."}
                     </div>
                   </div>
                 </div>

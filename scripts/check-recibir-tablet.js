@@ -17,6 +17,13 @@ function fail(msg) {
 }
 
 const rec = read("src/RecepcionModule.jsx");
+if (!/costoSugeridoRecepcion/.test(rec)) {
+  fail("RecepcionModule: el costo del renglón tiene que salir solo (costoSugeridoRecepcion).");
+}
+const sqlPrecio = read("sql/patch_recibir_precio_auto_20260908.sql");
+if (!/'costo_estimado', i\.costo_estimado/.test(sqlPrecio)) {
+  fail("fc_recepcion_json tiene que mandar costo_estimado para que Recibir lo ponga solo.");
+}
 if (/id=["']rc-scan["'][\s\S]{0,400}disabled=\{/.test(rec)) {
   fail("RecepcionModule: el recuadro de pistola no debe usar disabled (Safari/iPad tira NotFoundError). Usa readOnly.");
 }
