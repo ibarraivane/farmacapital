@@ -114,4 +114,21 @@ describe("parseTicketCsv", () => {
     expect(renglones.some((r) => r.codigo === "7502227426982" && r.sku === "FC-27427392")).toBe(true);
     expect(renglones.some((r) => r.codigo === "7501537194178" && r.cantidad === 3 && r.costo === 16.04)).toBe(true);
   });
+
+  test("City Mark 20260905: costo por pieza, no el importe de dos", () => {
+    const csv = readFileSync(join(__dirname, "../../sql/generated/ticket_citymark_20260905.csv"), "utf8");
+    const { renglones } = parseTicketCsv(csv);
+    const neutrogena = renglones.find((r) => r.codigo === "7891010245160");
+    expect(neutrogena.cantidad).toBe(2);
+    expect(neutrogena.costo).toBe(45.89);
+    expect(renglones.every((r) => r.costo == null || r.cantidad === 1 || r.costo < 200)).toBe(true);
+  });
+
+  test("si costo trae el importe del renglón, se parte por pieza", () => {
+    const csv = `ean,descripcion,cantidad,costo,subtotal
+7891010245160,NEUTROGENA 200ML,2,91.78,91.78`;
+    const { renglones } = parseTicketCsv(csv);
+    expect(renglones[0].costo).toBe(45.89);
+    expect(renglones[0].cantidad).toBe(2);
+  });
 });

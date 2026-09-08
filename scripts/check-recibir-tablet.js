@@ -24,6 +24,9 @@ const sqlPrecio = read("sql/patch_recibir_precio_auto_20260908.sql");
 if (!/'costo_estimado', i\.costo_estimado/.test(sqlPrecio)) {
   fail("fc_recepcion_json tiene que mandar costo_estimado para que Recibir lo ponga solo.");
 }
+if (!/fc_costo_unitario_renglon/.test(sqlPrecio) || !/45\.890/.test(sqlPrecio)) {
+  fail("El SQL de precio tiene que partir el importe del renglón (Neutrogena 45.89, no 91.78).");
+}
 const sqlVivo = read("sql/patch_recibir_guardar_caducidad_vivo_20260908.sql");
 if (!/pendiente_caducidad/.test(sqlVivo) || !/recepcion_confirmar_item/.test(sqlVivo)) {
   fail("Hay que poder grabar MMAA en un ticket vivo, no solo en borrador.");

@@ -1,4 +1,9 @@
-import { costoSugeridoRecepcion, mensajeErrorRecepcion, parseCostoRecepcion } from "./recepcionCosto";
+import {
+  costoSugeridoRecepcion,
+  mensajeErrorRecepcion,
+  parseCostoRecepcion,
+  unidadDesdeImporte,
+} from "./recepcionCosto";
 
 test("el ticket manda sobre el catálogo", () => {
   expect(costoSugeridoRecepcion({
@@ -31,4 +36,29 @@ test("cero o vacío no sirve", () => {
   expect(parseCostoRecepcion(0)).toBeNull();
   expect(parseCostoRecepcion("")).toBeNull();
   expect(costoSugeridoRecepcion({ item: { costo_estimado: 0 }, producto: {} })).toBeNull();
+});
+
+test("Neutrogena City Mark: 2 pzas a 45.89, no el importe 91.78", () => {
+  expect(unidadDesdeImporte(91.78, 2, { subtotal: 91.78 })).toBe(45.89);
+  expect(unidadDesdeImporte(45.89, 2, { subtotal: 91.78 })).toBe(45.89);
+  expect(costoSugeridoRecepcion({
+    item: { costo_estimado: 91.78, cantidad: 2, subtotal: 91.78 },
+  })).toBe(45.89);
+  expect(costoSugeridoRecepcion({
+    item: { costo_estimado: 45.89, cantidad: 2, subtotal: 91.78 },
+  })).toBe(45.89);
+});
+
+test("si el catálogo tiene el de una y el renglón trajo el de dos, usa el de una", () => {
+  expect(costoSugeridoRecepcion({
+    item: { costo_estimado: 91.78, cantidad: 2 },
+    producto: { costo: 45.89 },
+  })).toBe(45.89);
+});
+
+test("qty 2 con costo unitario real no se parte a la mitad", () => {
+  expect(costoSugeridoRecepcion({
+    item: { costo_estimado: 45.89, cantidad: 2 },
+    producto: { costo: 45.89 },
+  })).toBe(45.89);
 });

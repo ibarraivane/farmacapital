@@ -1,5 +1,7 @@
 /** Parseo de CSV de ticket para Recibir. No inventa caducidad. */
 
+import { unidadDesdeImporte } from "./recepcionCosto";
+
 function splitCsvLine(line) {
   const out = [];
   let cur = "";
@@ -43,7 +45,8 @@ const COL = {
   sku: ["sku", "sku_farmacapital", "sku_fc"],
   nombre: ["nombre", "descripcion", "descripcion_ticket", "producto"],
   cantidad: ["cantidad", "qty", "cant", "stock", "piezas"],
-  costo: ["costo", "precio_unitario", "precio", "p_u", "pu"],
+  costo: ["precio_unitario", "costo_unitario", "p_u", "pu", "costo", "precio"],
+  subtotal: ["subtotal", "importe_renglon", "importe_linea"],
   lote: ["lote", "numero_lote"],
   folio: ["folio", "ticket"],
   proveedor: ["proveedor"],
@@ -92,13 +95,20 @@ export function parseTicketCsv(text) {
     const nombre = pick(row, COL.nombre);
     if (!codigo && !sku && !nombre) continue;
     const qty = parseInt(pick(row, COL.cantidad).replace(/\D/g, ""), 10);
+    const cantidad = Number.isFinite(qty) && qty > 0 ? qty : 1;
     const costoN = Number(pick(row, COL.costo).replace(/[$,\s]/g, ""));
+    const subN = Number(pick(row, COL.subtotal).replace(/[$,\s]/g, ""));
+    const costo = unidadDesdeImporte(
+      Number.isFinite(costoN) && costoN > 0 ? costoN : null,
+      cantidad,
+      { subtotal: Number.isFinite(subN) && subN > 0 ? subN : null },
+    );
     renglones.push({
       codigo: codigo || null,
       sku: sku || null,
       nombre: nombre || codigo || sku,
-      cantidad: Number.isFinite(qty) && qty > 0 ? qty : 1,
-      costo: Number.isFinite(costoN) && costoN > 0 ? costoN : null,
+      cantidad,
+      costo,
       numero_lote: pick(row, COL.lote) || null,
     });
   }
