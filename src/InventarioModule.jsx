@@ -33,6 +33,7 @@ import {
   diasParaCaducar,
   enriquecerProductoConLotes,
   fetchLotesInventario,
+  patchProductoSinColumnaProveedor,
 } from "./lib/inventarioHubData";
 import { DIAS_CADUCIDAD_ALERTA, DIAS_CADUCIDAD_CRITICO, esPorCaducar } from "./lib/caducidad";
 import {
@@ -64,6 +65,14 @@ const EMPTY = {
 };
 
 /** PostgREST puede devolver una fila como array o como objeto según versión/cliente */
+function mensajeErrorProveedor(error) {
+  const msg = error?.message || String(error || "");
+  if (/admin_guardar_proveedor_producto|Could not find the function|schema cache/i.test(msg)) {
+    return "El proveedor se guarda en el lote. Aplica en Supabase sql/patch_admin_guardar_proveedor_producto.sql y reintenta.";
+  }
+  return msg;
+}
+
 function productoIdDesdeCreateRpc(data) {
   if (data == null) return null;
   const row = Array.isArray(data) ? data[0] : data;
@@ -147,6 +156,14 @@ async function rpcGuardarCaducidadProducto(sessionToken, productoId, fecha, lote
     p_producto_id: productoId,
     p_fecha_caducidad: fecha,
     p_lote_id: loteId,
+  });
+}
+
+async function rpcGuardarProveedorProducto(sessionToken, productoId, proveedor) {
+  return supabase.rpc("admin_guardar_proveedor_producto", {
+    p_session_token: sessionToken,
+    p_producto_id: productoId,
+    p_proveedor: proveedor || null,
   });
 }
 
@@ -315,7 +332,6 @@ const INV_INLINE_FIELD_PATCH = {
   ubicacion: "ubicacion_texto",
   categoria: "categoria",
   tipo: "tipo",
-  proveedor: "proveedor",
   min: "stock_minimo",
   precio: "precio",
   costo: "costo",
@@ -444,7 +460,7 @@ const INV_COLUMN_DEFS = {
   ubicacion: { label: "Ubicación", hint: "" },
   categoria: { label: "Categoría", hint: "" },
   tipo: { label: "Tipo", hint: "" },
-  proveedor: { label: "Proveedor", hint: "" },
+  proveedor: { label: "Proveedor", hint: "Tienda de compra del lote (Nadro, Surtidor…). Se guarda en el lote, no en la ficha." },
   stock: { label: "Stock", hint: "" },
   min: { label: "Mín", hint: "" },
   precio: { label: "Precio", hint: "" },
@@ -981,6 +997,7 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
       const costoNum = parseFloat(form.costo) || 0;
 
       // Campos del producto (sin stock/costo que viajan al lote en el alta)
+      const proveedorTxt = (form.proveedor ?? "").trim() || null;
       const productoFields = aplicarReglaPrecioUnidad({
         nombre: (form.nombre ?? "").trim(),
         sku: (form.sku ?? "").trim() || null,
@@ -990,7 +1007,6 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
         costo: costoNum,
         stock_minimo: form.stock_minimo !== "" ? parseInt(form.stock_minimo) : 0,
         tipo: form.tipo,
-        proveedor: (form.proveedor ?? "").trim() || null,
         descuento_pct: parseFloat(form.descuento_pct) || 0,
         principio_activo: (form.principio_activo ?? "").trim() || null,
         denominacion_generica: (form.denominacion_generica ?? "").trim() || null,
@@ -1019,18 +1035,22 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
       let err;
       const urlNow = (form.imagen_url || "").trim();
       if (form.id) {
-        const patch = {
+        const patch = patchProductoSinColumnaProveedor({
           ...productoFields,
           costo: costoNum,
           imagen_url: urlNow || null,
           imagen_mobile_url: urlNow || null,
-        };
+        });
         const { error: editErr } = await supabase.rpc("admin_editar_producto", {
           p_session_token: tok,
           p_producto_id: form.id,
           p_patch: patch,
         });
         err = editErr;
+        if (!err) {
+          const { error: provErr } = await rpcGuardarProveedorProducto(tok, form.id, proveedorTxt);
+          if (provErr) err = provErr;
+        }
         if (!err) {
           const { error: adjErr } = await supabase.rpc("adjust_stock_secure", {
             p_session_token: tok,
@@ -1055,9 +1075,16 @@ function ProductoModal({ initial, onClose, onSaved, onEditarCaducidad, onRecibir
           p_costo_unitario: costoNum || null,
         });
         err = rpcErr;
+        if (!err && proveedorTxt) {
+          const newId = productoIdDesdeCreateRpc(created);
+          if (newId != null) {
+            const { error: provErr } = await rpcGuardarProveedorProducto(tok, newId, proveedorTxt);
+            if (provErr) err = provErr;
+          }
+        }
       }
       if (err) {
-        showToast("Error al guardar: " + (err.message || String(err)), "error");
+        showToast("Error al guardar: " + mensajeErrorProveedor(err), "error");
         return;
       }
       if (form.id) {
@@ -2916,7 +2943,6 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
             precio: resto.precio,
             costo: costo != null && costo !== "" ? Number(costo) : null,
             stock_minimo: resto.stock_minimo,
-            proveedor: resto.proveedor || null,
             descuento_pct: resto.descuento_pct,
             activo: resto.activo !== false,
             ...extrasPatch,
@@ -2924,11 +2950,18 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
           const { error: edErr } = await supabase.rpc("admin_editar_producto", {
             p_session_token: tok,
             p_producto_id: existingId,
-            p_patch: patch,
+            p_patch: patchProductoSinColumnaProveedor(patch),
           });
           if (edErr) {
             console.error("Import actualizar:", edErr);
             return "err";
+          }
+          if (resto.proveedor) {
+            const { error: provErr } = await rpcGuardarProveedorProducto(tok, existingId, resto.proveedor);
+            if (provErr) {
+              console.error("Import proveedor:", provErr);
+              return "err";
+            }
           }
           const stockNum = parseInt(stock, 10) || 0;
           if (stockNum > 0) {
@@ -2951,7 +2984,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
 
         const { data: respCreacion, error: rpcErr } = await supabase.rpc("create_producto_secure", {
           p_session_token: tok,
-          p_producto_data: { ...resto, codigo_barras: cbNorm, costo: costo ?? null, ...extrasPatch },
+          p_producto_data: patchProductoSinColumnaProveedor({ ...resto, codigo_barras: cbNorm, costo: costo ?? null, ...extrasPatch }),
           p_cantidad_inicial: stock || 0,
           p_numero_lote: lote || null,
           p_fecha_caducidad: fecha_caducidad || null,
@@ -2963,6 +2996,13 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
         }
         const newId = productoIdDesdeCreateRpc(respCreacion);
         if (newId != null) {
+          if (resto.proveedor) {
+            const { error: provErr } = await rpcGuardarProveedorProducto(tok, newId, resto.proveedor);
+            if (provErr) {
+              console.error("Import alta (proveedor):", provErr);
+              return "err";
+            }
+          }
           const { error: metaErr } = await supabase.rpc("admin_editar_producto", {
             p_session_token: tok,
             p_producto_id: newId,
@@ -3296,6 +3336,24 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
             : "Caducidad actualizada",
         "success"
       );
+      return true;
+    }
+
+    if (field === "proveedor") {
+      const next = draft || null;
+      const prev = (product.proveedor || "").trim() || null;
+      if ((next || "") === (prev || "")) return true;
+      const { data: resp, error } = await rpcGuardarProveedorProducto(tok, product.id, next);
+      if (error) {
+        showToast(mensajeErrorProveedor(error), "error");
+        return false;
+      }
+      if (resp && resp.success === false) {
+        showToast(resp.error || "No se pudo guardar el proveedor.", "error");
+        return false;
+      }
+      await fetchProductos();
+      showToast("Proveedor guardado en el lote", "success");
       return true;
     }
 
