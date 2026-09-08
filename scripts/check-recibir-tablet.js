@@ -27,6 +27,9 @@ if (!/'costo_estimado', i\.costo_estimado/.test(sqlPrecio)) {
 if (!/fc_costo_unitario_renglon/.test(sqlPrecio) || !/45\.890/.test(sqlPrecio)) {
   fail("El SQL de precio tiene que partir el importe del renglón (Neutrogena 45.89, no 91.78).");
 }
+if (/update public\.recepcion_items i[\s\S]{0,240}join public\.productos p on p\.id = i\.producto_id/.test(sqlPrecio)) {
+  fail("UPDATE recepcion_items no puede JOIN productos con i en el FROM (Postgres 42P01).");
+}
 const sqlVivo = read("sql/patch_recibir_guardar_caducidad_vivo_20260908.sql");
 if (!/pendiente_caducidad/.test(sqlVivo) || !/recepcion_confirmar_item/.test(sqlVivo)) {
   fail("Hay que poder grabar MMAA en un ticket vivo, no solo en borrador.");

@@ -269,20 +269,23 @@ where i.cantidad > 1
   );
 
 -- El renglón trae el de N y el catálogo / última compra trae el de una.
+-- No JOIN de productos en el FROM del UPDATE: Postgres no deja usar i ahí (42P01).
 update public.recepcion_items i
 set costo_estimado = round(i.costo_estimado / i.cantidad, 4)
 from public.recepciones r
-left join public.productos p on p.id = i.producto_id
 where i.recepcion_id = r.id
   and r.estado in ('borrador', 'pendiente_alta', 'pendiente_caducidad')
   and i.cantidad > 1
   and i.costo_estimado is not null
   and i.costo_estimado > 0
   and (
-    (
-      coalesce(p.costo, 0) > 0
-      and i.costo_estimado > p.costo * 1.1
-      and abs(i.costo_estimado - p.costo * i.cantidad) <= greatest(0.05, 0.02 * i.costo_estimado)
+    exists (
+      select 1
+      from public.productos p
+      where p.id = i.producto_id
+        and coalesce(p.costo, 0) > 0
+        and i.costo_estimado > p.costo * 1.1
+        and abs(i.costo_estimado - p.costo * i.cantidad) <= greatest(0.05, 0.02 * i.costo_estimado)
     )
     or exists (
       select 1
@@ -299,8 +302,8 @@ where i.recepcion_id = r.id
 -- City Mark 20260905: el ticket trae precio unitario. Neutrogena = 45.89, no 91.78.
 update public.recepcion_items i
 set costo_estimado = v.unit
-from public.recepciones r
-join (
+from public.recepciones r,
+(
   values
     ('7891010245160', 45.890),
     ('7502221187575', 45.915),
@@ -329,7 +332,7 @@ join (
     ('7891024027363', 13.040),
     ('759684313295', 25.775),
     ('7501033204920', 14.383)
-) as v(ean, unit) on true
+) as v(ean, unit)
 where i.recepcion_id = r.id
   and r.folio = '20260905'
   and coalesce(r.proveedor, '') ilike '%city mark%'
