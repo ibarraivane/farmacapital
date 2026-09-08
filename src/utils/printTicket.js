@@ -5,6 +5,12 @@ import { isCoarsePointer } from "./touchKeyboard";
 
 const PRINT_IFRAME_ID = "fc-epson-print-frame";
 
+/** Cola del rollo después de farmacapital.mx: 1 cm. */
+export const TICKET_COLA_MM = 10;
+/** Chrome en tablet ignora 80mm y usa carta (216 mm). */
+export const THERMAL_FILL_ZOOM = 2.7;
+export const LETTER_WIDTH_MM = 216;
+
 export function isStandalonePwa() {
   if (typeof window === "undefined") return false;
   const standalone = typeof window.matchMedia === "function"
@@ -26,13 +32,13 @@ html, body { margin: 0; padding: 0; width: 80mm; max-width: 80mm; background: #f
 @page { size: 80mm auto; margin: 0; }
 @media print {
   html, body { width: 80mm !important; max-width: 80mm !important; margin: 0 !important; padding: 0 !important; }
-  #farmacapital-ticket { width: 80mm !important; max-width: 80mm !important; padding: 3mm 2mm 13mm 2mm !important; }
+  #farmacapital-ticket { width: 80mm !important; max-width: 80mm !important; padding: 3mm 2mm ${TICKET_COLA_MM}mm 2mm !important; }
 }
 /* Android/iPad: Chrome ignora @page 80mm y manda una hoja carta.
    TM Print Assistant encoge toda la hoja → ticket minúsculo.
    zoom 2.7 ≈ 216mm/80mm para que el ticket ocupe el ancho y al encoger quede a 80 mm. */
 @media print {
-  html.fc-thermal-fill { zoom: 2.7; }
+  html.fc-thermal-fill { zoom: ${THERMAL_FILL_ZOOM}; }
   #farmacapital-ticket, #farmacapital-ticket *:not(svg):not(svg *) {
     color: #000 !important;
     -webkit-text-stroke: 0.4px #000;
@@ -61,7 +67,7 @@ html, body { margin: 0; padding: 0; width: 80mm; max-width: 80mm; background: #f
   max-width: 80mm;
   background: #ffffff;
   color: #000000;
-  padding: 10px 8px calc(10px + 10mm);
+  padding: 8px 6px ${TICKET_COLA_MM}mm;
   margin: 0;
   box-sizing: border-box;
 }
@@ -70,7 +76,7 @@ html, body { margin: 0; padding: 0; width: 80mm; max-width: 80mm; background: #f
   -webkit-print-color-adjust: exact !important;
   print-color-adjust: exact !important;
 }
-.ticket { width: 80mm; max-width: 80mm; font-family: Arial, Helvetica, sans-serif; font-size: 12px; font-weight: 700; line-height: 1.4; background: #fff; color: #000; padding: 8px 6px calc(8px + 10mm); }
+.ticket { width: 80mm; max-width: 80mm; font-family: Arial, Helvetica, sans-serif; font-size: 12px; font-weight: 700; line-height: 1.4; background: #fff; color: #000; padding: 8px 6px ${TICKET_COLA_MM}mm; }
 .center { text-align: center; }
 .left   { text-align: left; }
 .right  { text-align: right; }
@@ -80,8 +86,8 @@ html, body { margin: 0; padding: 0; width: 80mm; max-width: 80mm; background: #f
 .product-name  { width: 60%; word-break: break-word; }
 .product-total { width: 40%; text-align: right; font-weight: 800; }
 .total-line { display: flex; justify-content: space-between; font-weight: 700; font-size: 12px; padding: 2px 0; }
-.qr-section { text-align: center; margin-top: 10px; margin-bottom: 4mm; page-break-inside: avoid; }
-.footer { text-align: center; margin-top: 8px; margin-bottom: 2mm; font-size: 12px; font-weight: 700; color: #000; page-break-inside: avoid; }
+.qr-section { text-align: center; margin-top: 10px; margin-bottom: 2mm; page-break-inside: avoid; }
+.footer { text-align: center; margin-top: 8px; margin-bottom: 0; font-size: 12px; font-weight: 700; color: #000; page-break-inside: avoid; }
 .ticket-puntos { background: #000 !important; color: #fff !important; text-align: center; padding: 6px 4px; font-size: 12px; font-weight: 900; margin: 6px 0; letter-spacing: 0.5px; }
 .ticket-block { font-size: 12px; font-weight: 700; line-height: 1.45; color: #000; }
 .ticket-product-name { font-size: 13px; font-weight: 800; }
@@ -127,6 +133,44 @@ function escTitle(title) {
   return String(title || "Ticket FarmaCapital").replace(/[&<>"']/g, (c) => (
     { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
   ));
+}
+
+/** Hoja a la medida del ticket. Si Chrome manda carta, sobran 6–8 cm de papel. */
+export function thermalCanvasPageMm(canvas, { tablet = false } = {}) {
+  const width = Number(canvas?.width) || 0;
+  const height = Number(canvas?.height) || 0;
+  const widthMm = tablet ? LETTER_WIDTH_MM : 80;
+  if (width <= 0 || height <= 0) {
+    return { widthMm, heightMm: 80 };
+  }
+  const heightMm = Math.max(40, Math.round(((widthMm * height) / width) * 10) / 10);
+  return { widthMm, heightMm };
+}
+
+export function applyThermalPageSize(doc) {
+  if (!doc) return null;
+  const ticket = doc.getElementById("farmacapital-ticket");
+  const img = ticket ? null : doc.querySelector("img");
+  const el = ticket || img;
+  if (!el) return null;
+  const fill = doc.documentElement?.classList?.contains("fc-thermal-fill");
+  const px = Math.max(
+    Number(el.scrollHeight) || 0,
+    Number(el.offsetHeight) || 0,
+    Number(el.naturalHeight) || 0,
+  );
+  if (px < 20) return null;
+  const contentMm = (px * 25.4) / 96;
+  const widthMm = fill ? LETTER_WIDTH_MM : 80;
+  const heightMm = Math.max(40, Math.round((fill ? contentMm * THERMAL_FILL_ZOOM : contentMm) * 10) / 10);
+  let style = doc.getElementById("fc-thermal-page");
+  if (!style) {
+    style = doc.createElement("style");
+    style.id = "fc-thermal-page";
+    doc.head?.appendChild(style);
+  }
+  style.textContent = `@page { size: ${widthMm}mm ${heightMm}mm; margin: 0 !important; }`;
+  return { widthMm, heightMm };
 }
 
 function wrapTicketHtml(innerHtml, title = "Ticket FarmaCapital") {
@@ -190,6 +234,7 @@ function launchPrintOnWindow(win, { closeAfter, onClose }) {
     await waitForPrintAssets(win.document);
     if (win.closed) return;
     try {
+      applyThermalPageSize(win.document);
       win.focus();
       win.print();
     } catch (e) {
@@ -264,20 +309,22 @@ function printRawHtml(html) {
   return false;
 }
 
-/** Imagen a todo el ancho de la hoja. Chrome manda carta; al encoger a 80 mm el ticket llena el rollo. */
+/** Imagen al ancho de la hoja, alto del ticket. Sin eso Chrome rellena carta y sobra papel. */
 function printCanvasFullBleed(canvas) {
   const png = canvas.toDataURL("image/png");
+  const tablet = shouldKeepPrintWindowOpen();
+  const { widthMm, heightMm } = thermalCanvasPageMm(canvas, { tablet });
   return printRawHtml(`<!DOCTYPE html>
 <html lang="es"><head>
 <meta charset="UTF-8">
 <title>Ticket FarmaCapital</title>
 <style>
-html, body { margin: 0; padding: 0; background: #fff; }
-img { display: block; width: 100%; height: auto; }
+html, body { margin: 0; padding: 0; background: #fff; width: ${widthMm}mm; height: ${heightMm}mm; }
+img { display: block; width: ${widthMm}mm; height: ${heightMm}mm; }
 @media print {
-  @page { margin: 0; }
-  html, body { margin: 0; width: 100%; }
-  img { width: 100% !important; height: auto !important; }
+  @page { size: ${widthMm}mm ${heightMm}mm; margin: 0; }
+  html, body { margin: 0; width: ${widthMm}mm; height: ${heightMm}mm; }
+  img { width: ${widthMm}mm !important; height: ${heightMm}mm !important; }
 }
 </style>
 </head>
@@ -335,6 +382,7 @@ async function printElementAs80mmPdf(el) {
       t.style.color = "#000";
       t.style.background = "#fff";
       t.style.position = "static";
+      t.style.paddingBottom = `${TICKET_COLA_MM}mm`;
       hardenTicketForThermal(t, doc.defaultView);
       t.querySelectorAll("img").forEach((img) => {
         img.style.filter = "grayscale(1) contrast(8) brightness(0.15)";

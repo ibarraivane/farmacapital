@@ -24,7 +24,7 @@
     top: 0 !important;
     width: 80mm !important;
     max-width: 80mm !important;
-    padding: 3mm 2mm 13mm 2mm !important; /* +10mm abajo: evita corte del QR en térmica */
+    padding: 3mm 2mm 10mm 2mm !important; /* 1 cm después de farmacapital.mx */
     margin: 0 !important;
     font-size: 12px !important;
     line-height: 1.4 !important;
@@ -105,7 +105,7 @@
   max-width: 280px;
   background: #ffffff;
   color: #000000;
-  padding: 10px 8px calc(10px + 10mm);
+  padding: 8px 6px 10mm;
   margin: 0 auto;
   box-sizing: border-box;
 }
@@ -457,7 +457,7 @@
   line-height: 1.4;
   background: #fff;
   color: #000;
-  padding: 8px 6px calc(8px + 10mm);
+  padding: 8px 6px 10mm;
 }
 
 .center { text-align: center; }
@@ -487,14 +487,14 @@
 .qr-section {
   text-align: center;
   margin-top: 10px;
-  margin-bottom: 4mm;
+  margin-bottom: 2mm;
   page-break-inside: avoid;
 }
 
 .footer {
   text-align: center;
   margin-top: 8px;
-  margin-bottom: 2mm;
+  margin-bottom: 0;
   font-size: 12px;
   font-weight: 700;
   color: #000;
