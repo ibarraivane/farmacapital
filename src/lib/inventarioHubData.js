@@ -42,7 +42,8 @@ export function stockDesdeLotes(lotes) {
     .reduce((s, l) => s + (Number(l.cantidad_actual) || 0), 0);
 }
 
-export function proveedorDesdeLotes(lotes) {
+/** Lote que representa el proveedor visible en Inventario (más piezas, luego el más reciente). */
+export function loteObjetivoProveedor(lotes) {
   const list = (lotes || []).filter((l) => l.activo !== false);
   const conNombre = list.filter((l) => l.proveedores?.nombre || l.proveedor_nombre);
   const pool = (conNombre.length ? conNombre : list)
@@ -53,8 +54,24 @@ export function proveedorDesdeLotes(lotes) {
       if (sb !== sa) return sb - sa;
       return String(b.fecha_recepcion || b.id || "").localeCompare(String(a.fecha_recepcion || a.id || ""));
     });
-  const top = pool[0];
+  return pool[0] || null;
+}
+
+export function proveedorDesdeLotes(lotes) {
+  const top = loteObjetivoProveedor(lotes);
   return (top?.proveedores?.nombre || top?.proveedor_nombre || "").trim();
+}
+
+/**
+ * `productos.proveedor` no existe. Quitar esa clave del patch de
+ * `admin_editar_producto` para no tumbar el resto de la ficha.
+ */
+export function patchProductoSinColumnaProveedor(patch) {
+  if (!patch || typeof patch !== "object" || Array.isArray(patch)) return patch;
+  if (!Object.prototype.hasOwnProperty.call(patch, "proveedor")) return patch;
+  const next = { ...patch };
+  delete next.proveedor;
+  return next;
 }
 
 export function filasJson(data) {
