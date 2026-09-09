@@ -1,0 +1,9 @@
+linea,folio,fecha,proveedor,ean,descripcion_ticket,cantidad,precio_unitario,subtotal,lote,caducidad,sku_farmacapital,total_ticket,match,nota
+1,352582,2026-09-08,Sahuayo,013117054149,PZA.CHICOLASTIC CLASS.GDE 1/14,1,53.24,53.24,,,FC-11705414,429.79,upc,Chicolastic Classic etapa 4 Grande 14 pzas · UPC 013117054149
+2,352582,2026-09-08,Sahuayo,013117050103,PZA.AFFECTIVE PREDOBLADO 1/10,2,70.57,141.14,,,FC-11705010,429.79,upc,Affective Predoblado unitalla C/10 · UPC 013117050103 · ahorro ticket $35.56
+3,352582,2026-09-08,Sahuayo,013117010879,PZA.CHICOLASTIC CLAS.CHIC 1/14,1,38.92,38.92,,,FC-11701087,429.79,upc,Chicolastic Classic etapa 2 Chico 14 pzas · UPC 013117010879
+4,352582,2026-09-08,Sahuayo,013117012682,PZA.CHICOLAS.CLASSIC R/N 1/14,1,35.96,35.96,,,FC-11701268,429.79,upc,Chicolastic Classic etapa 1 Pequeño/RN 14 pzas · UPC 013117012682
+5,352582,2026-09-08,Sahuayo,013117011746,PZA.CHICOLASTIC CLAS.E/GD 1/14,1,61.96,61.96,,,FC-11701174,429.79,upc,Chicolastic Classic etapa 5 Extra Grande 14 pzas · UPC 013117011746
+6,352582,2026-09-08,Sahuayo,013117053142,PZA.CHICOLASTIC CLASS.MED 1/14,1,34.97,34.97,,,FC-11705314,429.79,upc,Chicolastic Classic etapa 3 Mediano 14 pzas · UPC 013117053142 · ahorro ticket $10.46
+7,352582,2026-09-08,Sahuayo,7501943411449,PZA.KOTEX MAXI NOC.ALA10s 1/10,2,16.00,32.00,,,FC-43411449,429.79,ean,Kotex Maxi Nocturna con alas C/10 · EAN 7501943411449 · ahorro ticket $11.48
+8,352582,2026-09-08,Sahuayo,7501943418509,PZA.KOTEX NOCTU.C/A 8s 1/8 UNI,2,15.80,31.60,,,FC-43418509,429.79,ean,Kotex Nocturna con alas C/8 · EAN 7501943418509 · ahorro ticket $11.26
