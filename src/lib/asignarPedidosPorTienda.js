@@ -8,7 +8,7 @@
  */
 
 import { FUENTE_META } from "./preciosReferencia";
-import { esFamiliaSurtidor } from "./reporteReabasto";
+import { destCanonicoCompra, esFamiliaSurtidor } from "./reporteReabasto";
 
 export const AHORRO_MIN_LINEA_MXN = 8;
 export const AHORRO_MIN_LINEA_PCT = 0.04;
@@ -89,13 +89,13 @@ export function elegirDestinoLinea(producto, cantidad) {
   const cheapest = tiendas[0];
   const familia = familiaDeFuente(cheapest.fuente);
   const hubId = HUB_FAMILIA[familia];
-  const hub = hubId ? tiendas.find((t) => t.fuente === hubId) : null;
+  const hub = hubId ? tiendas.find((t) => destCanonicoCompra(t.fuente) === hubId) : null;
 
   let elegido = cheapest;
   let motivoAgrupado = null;
   let ahorroLinea = 0;
 
-  if (hub && cheapest.fuente !== hub.fuente) {
+  if (hub && destCanonicoCompra(cheapest.fuente) !== destCanonicoCompra(hub.fuente)) {
     ahorroLinea = (hub.precio - cheapest.precio) * qty;
     if (!lineaValeLaPena(ahorroLinea, hub.precio, qty)) {
       elegido = hub;
@@ -104,11 +104,12 @@ export function elegirDestinoLinea(producto, cantidad) {
     }
   }
 
+  const destId = destCanonicoCompra(elegido.fuente);
   return {
-    destId: elegido.fuente,
-    destLabel: elegido.label || labelDe(elegido.fuente),
-    destFuente: elegido.fuente,
-    familia: familiaDeFuente(elegido.fuente),
+    destId,
+    destLabel: destId === "farmacity" ? "Farma City" : (elegido.label || labelDe(destId)),
+    destFuente: destId,
+    familia: familiaDeFuente(destId),
     precioUnit: elegido.precio,
     ahorroLinea,
     motivoAgrupado,

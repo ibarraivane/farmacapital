@@ -55,9 +55,18 @@ describe("mejor surtidor", () => {
     expect(ops[0].precio).toBe(49);
   });
 
+  test("lista Farma City y ticket Cityfarma son la misma tienda", () => {
+    const refs = { farmacity: { fuente: "farmacity", precio: 28 } };
+    const ops = opcionesPedidoProducto(refs, { proveedor: "Cityfarma Iztapalapa", precio: 22 });
+    expect(ops).toHaveLength(1);
+    expect(ops[0].fuente).toBe("farmacity");
+    expect(ops[0].label).toBe("Farma City");
+    expect(ops[0].precio).toBe(22);
+  });
+
   test("id de surtidor conocido", () => {
     expect(idFuenteSurtidor("El Surtidor de su Farmacia")).toBe("surtidor:el_surtidor");
-    expect(idFuenteSurtidor("Cityfarma Iztapalapa")).toBe("surtidor:farma_city");
+    expect(idFuenteSurtidor("Cityfarma Iztapalapa")).toBe("farmacity");
     expect(idFuenteSurtidor("Farmalive Club")).toBe("farmalive");
   });
 });
