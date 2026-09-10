@@ -26,6 +26,16 @@ export function piezasPorEmpaqueDesdeNombre(nombre) {
     if (p >= 2 && p <= 200) return p;
   }
 
+  // Jeringas hipodérmicas: el ticket compra la caja C/100 (o C/50);
+  // el SKU de mostrador es la pieza. No aplica a C/N de medicamentos.
+  if (/\bjeringas?\b/i.test(n)) {
+    const cajaJeringa = n.match(/\bc\s*\/\s*(\d{2,3})\b/i);
+    if (cajaJeringa) {
+      const p = parseInt(cajaJeringa[1], 10);
+      if (p >= 20 && p <= 200) return p;
+    }
+  }
+
   // Mayoreo dulces Central de Abasto: "ORBIT 4P FRESA, 24/40PZ",
   // "CLORETS 4 S PLUS 24/40PZ", "HALLS YERBA 30/12PZ".
   // El 2.º número es el exhibidor/cuadreta que se compra (piezas a vender).

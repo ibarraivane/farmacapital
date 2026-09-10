@@ -22,6 +22,21 @@ describe("piezasPorEmpaqueDesdeNombre", () => {
     expect(piezasPorEmpaqueDesdeNombre("Aspirina Protect C/28 tabletas")).toBeNull();
   });
 
+  test("jeringa C/100 del ticket se vende por pieza", () => {
+    expect(
+      piezasPorEmpaqueDesdeNombre("JERINGA-SENSIMEDICAL 3 ML 22X32 C/100 NEGRA"),
+    ).toBe(100);
+    expect(
+      piezasPorEmpaqueDesdeNombre("Jeringa SensiMedical 20 mL 21G x 32 mm C/50 verde"),
+    ).toBe(50);
+  });
+
+  test("jeringa suelta no se expande", () => {
+    expect(
+      piezasPorEmpaqueDesdeNombre("Jeringa Sensi Medical 3 mL 22G x 32 mm negra"),
+    ).toBeNull();
+  });
+
   test("mayoreo dulces Orbit/Clorets 24/40PZ → 40", () => {
     expect(piezasPorEmpaqueDesdeNombre("ORBIT 4P FRESA, 24/40PZ")).toBe(40);
     expect(piezasPorEmpaqueDesdeNombre("CLORETS 4 S PLUS 24/40PZ")).toBe(40);
@@ -65,6 +80,17 @@ describe("expandirPackAPiezas", () => {
     expect(r.expandido).toBe(false);
     expect(r.cantidad).toBe(3);
     expect(r.costo).toBe(18.63);
+  });
+
+  test("1 caja jeringa C/100 → 100 pzas y costo de pieza", () => {
+    const r = expandirPackAPiezas({
+      nombre: "JERINGA-SENSIMEDICAL 3 ML 22X32 C/100 NEGRA",
+      cantidad: 1,
+      costo: 155,
+    });
+    expect(r.expandido).toBe(true);
+    expect(r.cantidad).toBe(100);
+    expect(r.costo).toBe(1.55);
   });
 });
 
