@@ -1110,7 +1110,14 @@ export default function RecepcionModule({ ocultarMontos = false }) {
       {!doc && tabBar}
 
       {pendientes.length > 0 && !doc && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(158px, 1fr))",
+            gap: 8,
+            marginBottom: 16,
+          }}
+        >
           {pendientes.map((t) => {
             const activo = doc?.id === t.id;
             const cajas = t.renglones || 0;
@@ -1121,7 +1128,8 @@ export default function RecepcionModule({ ocultarMontos = false }) {
                 onClick={() => elegirCarga(t.id)}
                 disabled={saving}
                 style={{
-                  flex: "1 1 140px",
+                  minWidth: 0,
+                  width: "100%",
                   textAlign: "left",
                   background: activo ? `${BRAND.primary}14` : C.card,
                   border: `2px solid ${activo ? BRAND.primary : C.border}`,

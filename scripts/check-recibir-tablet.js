@@ -40,6 +40,12 @@ if (/id=["']rc-scan["'][\s\S]{0,400}disabled=\{/.test(rec)) {
 if (/lazy\s*\(\s*\(\)\s*=>\s*import\(\s*["']\.\/RecepcionModule["']/.test(read("src/InventarioHub.jsx"))) {
   fail("InventarioHub: Recibir no debe ir lazy; la tablet se queda con un chunk viejo tras el deploy.");
 }
+if (/flex:\s*["']1 1 140px["']/.test(rec)) {
+  fail("Recibir: las tarjetas de proveedor no deben crecer (flex 1 1) — Nadro/Exprezo se estiran solos.");
+}
+if (!/auto-fill/.test(rec)) {
+  fail("Recibir: la lista de tickets vivos debe ser grid auto-fill para que todas midan igual.");
+}
 
 async function assertScanLogic() {
   const scanUrl = pathToFileURL(path.join(root, "src/lib/recepcionScan.js")).href;
