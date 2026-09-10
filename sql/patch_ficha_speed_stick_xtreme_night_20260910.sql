@@ -8,7 +8,9 @@
 --      el código del ticket.
 --
 -- PVP $25 = ancla Fahorro / La Comer / Rappi (~$25.50). Costo City Mark $14.38.
--- Foto Fahorro mientras corre el deploy; después:
+-- EAN del tubo (foto mostrador): 7501033204920. Foto de la pieza en
+-- public/catalogo-propia/speed-stick-xtreme-night-crema-30g.jpg
+-- Fahorro mientras corre el deploy; después:
 --   sql/patch_fotos_speed_stick_xtreme_night_20260910.sql
 -- Idempotente. SIN do $$. Pegar TODO en Supabase → SQL Editor → Run.
 

@@ -1,6 +1,6 @@
 -- Foto catalogo-propia · corrida DESPUÉS del deploy de Vercel.
 -- Archivo: public/catalogo-propia/speed-stick-xtreme-night-crema-30g.jpg
--- (packshot Fahorro del tubo 30 g, EAN 7501033204920)
+-- Pieza de mostrador (tubo). EAN del envase: 7501033204920.
 -- SIN do $$. Pegar TODO en Supabase → SQL Editor → Run.
 
 begin;
