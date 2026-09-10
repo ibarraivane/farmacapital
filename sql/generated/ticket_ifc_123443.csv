@@ -1,0 +1,10 @@
+linea,folio,fecha,proveedor,ean,descripcion_ticket,cantidad,precio_unitario,subtotal,lote,caducidad,sku_farmacapital,total_ticket,match
+1,123443,2026-09-10,IFC F8 Tienda,,Brocha para tinte con peine de cola,4,5.50,22.00,,,FC-IFC-82084,571.50,sin_ean
+2,123443,2026-09-10,IFC F8 Tienda,,Guantes de nitrilo negro mediano C/100,1,104.00,104.00,,,FC-IFC-83947,571.50,sin_ean
+3,123443,2026-09-10,IFC F8 Tienda,,Guantes de nitrilo azul chico C/100,1,92.00,92.00,,,FC-IFC-83490,571.50,sin_ean
+4,123443,2026-09-10,IFC F8 Tienda,,Venda Stick cohesiva 3 pulg × 4.5 m piel,1,45.00,45.00,,,FC-IFC-82912P,571.50,sin_ean
+5,123443,2026-09-10,IFC F8 Tienda,,Venda Stick cohesiva 3 pulg × 4.5 m azul,1,47.50,47.50,,,FC-IFC-82912A,571.50,sin_ean
+6,123443,2026-09-10,IFC F8 Tienda,,Venditas adhesivas redondas Jayor C/100,1,52.50,52.50,,,FC-IFC-83613,571.50,sin_ean
+7,123443,2026-09-10,IFC F8 Tienda,,Venda Stick cohesiva 2 pulg × 4.5 m rojo,2,29.50,59.00,,,FC-IFC-83552,571.50,sin_ean
+8,123443,2026-09-10,IFC F8 Tienda,,Guantes de nitrilo azul grande C/100,1,92.00,92.00,,,FC-IFC-83125,571.50,sin_ean
+9,123443,2026-09-10,IFC F8 Tienda,,Gel sanitizante Dibar 50 ml,5,11.50,57.50,,,FC-IFC-83368,571.50,sin_ean
