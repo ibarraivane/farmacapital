@@ -3,8 +3,10 @@
  * Al cargar un ticket ("Pack 48 sobres…", "ORBIT 4P FRESA, 24/40PZ", qty 1,
  * costo del pack) se expanden a N piezas con costo unitario = pack / N.
  *
- * Sobres/sachets/tiras de higiene y mayoreo dulces N/MPZ.
- * No C/N de medicamentos.
+ * Sobres/sachets/tiras de higiene, mayoreo dulces N/MPZ, y cajas C/N
+ * de botiquín que en mostrador se venden por pieza (jeringa, aguja,
+ * guante, cubrebocas, Tegaderm).
+ * No C/N de medicamentos ni tarros (hisopos, cotonetes).
  */
 
 /** Piezas por empaque según el nombre del ticket/proveedor. */
@@ -26,12 +28,11 @@ export function piezasPorEmpaqueDesdeNombre(nombre) {
     if (p >= 2 && p <= 200) return p;
   }
 
-  // Jeringas hipodérmicas: el ticket compra la caja C/100 (o C/50);
-  // el SKU de mostrador es la pieza. No aplica a C/N de medicamentos.
-  if (/\bjeringas?\b/i.test(n)) {
-    const cajaJeringa = n.match(/\bc\s*\/\s*(\d{2,3})\b/i);
-    if (cajaJeringa) {
-      const p = parseInt(cajaJeringa[1], 10);
+  // Botiquín: el ticket compra la caja C/100 (o C/50); el SKU es la pieza.
+  if (esCajaDispositivoVentaPieza(n)) {
+    const cajaN = n.match(/\bc\s*\/\s*(\d{2,3})\b/i);
+    if (cajaN) {
+      const p = parseInt(cajaN[1], 10);
       if (p >= 20 && p <= 200) return p;
     }
   }
@@ -79,6 +80,13 @@ export function expandirPackAPiezas(row) {
     piezas_por_empaque: piezas,
     expandido: true,
   };
+}
+
+/** Caja C/N que en piso se abre y se cobra por pieza. */
+export function esCajaDispositivoVentaPieza(nombre) {
+  const n = String(nombre || "");
+  if (/\b(hisopos?|cotonetes?|torundas?)\b/i.test(n)) return false;
+  return /\b(jeringas?|agujas?|guantes?|cubre(?:bocas?)?|mascarillas?|tegaderm)\b/i.test(n);
 }
 
 function norm(s) {

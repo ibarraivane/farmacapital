@@ -37,6 +37,29 @@ describe("piezasPorEmpaqueDesdeNombre", () => {
     ).toBeNull();
   });
 
+  test("guante / cubrebocas / Tegaderm C/N → piezas", () => {
+    expect(
+      piezasPorEmpaqueDesdeNombre("GUANTE/ESTERIL-PROTEC CLASICO C/100 MEDIANO"),
+    ).toBe(100);
+    expect(
+      piezasPorEmpaqueDesdeNombre("Cubrebocas tricapa desechable C/100"),
+    ).toBe(100);
+    expect(
+      piezasPorEmpaqueDesdeNombre("Tegaderm 3M 10 x 12 cm C/50"),
+    ).toBe(50);
+  });
+
+  test("hisopos y cotonetes C/100 se venden el tarro, no la pieza", () => {
+    expect(piezasPorEmpaqueDesdeNombre("Jaloma Kiuts hisopos biodegradables C/100")).toBeNull();
+    expect(piezasPorEmpaqueDesdeNombre("Cotonetes Quirmex Tarro C/100")).toBeNull();
+  });
+
+  test("aguja C/1 del ticket no se expande (qty ya viene en piezas)", () => {
+    expect(
+      piezasPorEmpaqueDesdeNombre("AGUJA-HIPODERMICA-SENSIMEDICAL 22 G X 32 MM C/1 NEGRO"),
+    ).toBeNull();
+  });
+
   test("mayoreo dulces Orbit/Clorets 24/40PZ → 40", () => {
     expect(piezasPorEmpaqueDesdeNombre("ORBIT 4P FRESA, 24/40PZ")).toBe(40);
     expect(piezasPorEmpaqueDesdeNombre("CLORETS 4 S PLUS 24/40PZ")).toBe(40);
