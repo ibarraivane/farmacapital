@@ -877,90 +877,90 @@ set es_principal = (i.url like '%7502216804708%')
 where i.producto_id = (select id from public.productos where sku = 'FC-16804708' limit 1);
 
 
--- FC-24028827 | 7891024028827 | ENJ BUC COLGATE TOTAL12 CLEAN 60ML · farmatodo
+-- FC-24028827 | 7891024028827 | ENJ BUC COLGATE TOTAL12 CLEAN 60ML · farmatodo (copia propia)
 update public.productos
-set imagen_url = 'https://gruporfp.vteximg.com.br/arquivos/ids/6996858/7891024028827_01.jpg',
-    imagen_mobile_url = 'https://gruporfp.vteximg.com.br/arquivos/ids/6996858/7891024028827_01.jpg'
+set imagen_url = 'https://www.farmacapital.mx/catalogo-propia/colgate-total12-enjuague-60ml.jpg',
+    imagen_mobile_url = 'https://www.farmacapital.mx/catalogo-propia/colgate-total12-enjuague-60ml.jpg'
 where sku = 'FC-24028827' and codigo_barras = '7891024028827'
   and (
     imagen_url is null
     or btrim(imagen_url) = ''
-    or imagen_url not like '%7891024028827%'
+    or imagen_url not like '%catalogo-propia/colgate-total12-enjuague-60ml%'
   );
 
 insert into public.producto_imagenes
   (producto_id, url, storage_path, posicion, es_principal, origen)
 select p.id,
-  'https://gruporfp.vteximg.com.br/arquivos/ids/6996858/7891024028827_01.jpg',
-  'distribuidor/colgate-total12-enjuague-60ml.jpg',
+  'https://www.farmacapital.mx/catalogo-propia/colgate-total12-enjuague-60ml.jpg',
+  'catalogo-propia/colgate-total12-enjuague-60ml.jpg',
   coalesce((select max(posicion) from public.producto_imagenes i where i.producto_id = p.id), 0) + 1,
-  true, 'distribuidor'
+  true, 'propia'
 from public.productos p where p.sku = 'FC-24028827'
   and not exists (
     select 1 from public.producto_imagenes i
-    where i.producto_id = p.id and i.url like '%7891024028827%'
+    where i.producto_id = p.id and i.url like '%catalogo-propia/colgate-total12-enjuague-60ml%'
   );
 
 update public.producto_imagenes i
-set es_principal = (i.url like '%7891024028827%')
+set es_principal = (i.url like '%catalogo-propia/colgate-total12-enjuague-60ml%')
 where i.producto_id = (select id from public.productos where sku = 'FC-24028827' limit 1);
 
 
--- FC-25195105 | 7501125195105 | Cefuroxima 750 mg FA + ampolleta 5 ml · farmatodo
+-- FC-25195105 | 7501125195105 | Cefuroxima 750 mg FA + ampolleta 5 ml · farmatodo (copia propia)
 update public.productos
-set imagen_url = 'https://gruporfp.vteximg.com.br/arquivos/ids/7006278/7501125195105_01.jpg',
-    imagen_mobile_url = 'https://gruporfp.vteximg.com.br/arquivos/ids/7006278/7501125195105_01.jpg'
+set imagen_url = 'https://www.farmacapital.mx/catalogo-propia/cefuroxima-750mg-amp-amsa.jpg',
+    imagen_mobile_url = 'https://www.farmacapital.mx/catalogo-propia/cefuroxima-750mg-amp-amsa.jpg'
 where sku = 'FC-25195105' and codigo_barras = '7501125195105'
   and (
     imagen_url is null
     or btrim(imagen_url) = ''
-    or imagen_url not like '%7501125195105%'
+    or imagen_url not like '%catalogo-propia/cefuroxima-750mg-amp-amsa%'
   );
 
 insert into public.producto_imagenes
   (producto_id, url, storage_path, posicion, es_principal, origen)
 select p.id,
-  'https://gruporfp.vteximg.com.br/arquivos/ids/7006278/7501125195105_01.jpg',
-  'distribuidor/cefuroxima-750mg-amp-amsa.jpg',
+  'https://www.farmacapital.mx/catalogo-propia/cefuroxima-750mg-amp-amsa.jpg',
+  'catalogo-propia/cefuroxima-750mg-amp-amsa.jpg',
   coalesce((select max(posicion) from public.producto_imagenes i where i.producto_id = p.id), 0) + 1,
-  true, 'distribuidor'
+  true, 'propia'
 from public.productos p where p.sku = 'FC-25195105'
   and not exists (
     select 1 from public.producto_imagenes i
-    where i.producto_id = p.id and i.url like '%7501125195105%'
+    where i.producto_id = p.id and i.url like '%catalogo-propia/cefuroxima-750mg-amp-amsa%'
   );
 
 update public.producto_imagenes i
-set es_principal = (i.url like '%7501125195105%')
+set es_principal = (i.url like '%catalogo-propia/cefuroxima-750mg-amp-amsa%')
 where i.producto_id = (select id from public.productos where sku = 'FC-25195105' limit 1);
 
 
--- FC-35911024 | 7501035911024 | C D COLGATE MFP 125ML · farmatodo
+-- FC-35911024 | 7501035911024 | C D COLGATE MFP 125ML · farmatodo (copia propia)
 update public.productos
-set imagen_url = 'https://gruporfp.vteximg.com.br/arquivos/ids/6996753/7501035911024_01.jpg',
-    imagen_mobile_url = 'https://gruporfp.vteximg.com.br/arquivos/ids/6996753/7501035911024_01.jpg'
+set imagen_url = 'https://www.farmacapital.mx/catalogo-propia/colgate-mfp-familiar-125ml.jpg',
+    imagen_mobile_url = 'https://www.farmacapital.mx/catalogo-propia/colgate-mfp-familiar-125ml.jpg'
 where sku = 'FC-35911024' and codigo_barras = '7501035911024'
   and (
     imagen_url is null
     or btrim(imagen_url) = ''
-    or imagen_url not like '%7501035911024%'
+    or imagen_url not like '%catalogo-propia/colgate-mfp-familiar-125ml%'
   );
 
 insert into public.producto_imagenes
   (producto_id, url, storage_path, posicion, es_principal, origen)
 select p.id,
-  'https://gruporfp.vteximg.com.br/arquivos/ids/6996753/7501035911024_01.jpg',
-  'distribuidor/colgate-mfp-familiar-125ml.jpg',
+  'https://www.farmacapital.mx/catalogo-propia/colgate-mfp-familiar-125ml.jpg',
+  'catalogo-propia/colgate-mfp-familiar-125ml.jpg',
   coalesce((select max(posicion) from public.producto_imagenes i where i.producto_id = p.id), 0) + 1,
-  true, 'distribuidor'
+  true, 'propia'
 from public.productos p where p.sku = 'FC-35911024'
   and not exists (
     select 1 from public.producto_imagenes i
-    where i.producto_id = p.id and i.url like '%7501035911024%'
+    where i.producto_id = p.id and i.url like '%catalogo-propia/colgate-mfp-familiar-125ml%'
   );
 
 update public.producto_imagenes i
-set es_principal = (i.url like '%7501035911024%')
+set es_principal = (i.url like '%catalogo-propia/colgate-mfp-familiar-125ml%')
 where i.producto_id = (select id from public.productos where sku = 'FC-35911024' limit 1);
 
 
