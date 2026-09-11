@@ -321,6 +321,8 @@ const tdEllipsisStyle = {
 
 /** Offset bajo tabs sticky de InventarioHub */
 const INV_TOOLBAR_STICKY_TOP = { mobile: 92, desktop: 112 };
+/** Encima de th sticky (checkbox z=40, Foto/SKU ~20–25) para que no se empalmen con el buscador. */
+const INV_TOOLBAR_Z_INDEX = 50;
 
 const INV_INLINE_FIELD_PATCH = {
   sku: "sku",
@@ -3794,7 +3796,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
         style={{
           position: "sticky",
           top: isMobileInv ? INV_TOOLBAR_STICKY_TOP.mobile : INV_TOOLBAR_STICKY_TOP.desktop,
-          zIndex: 24,
+          zIndex: INV_TOOLBAR_Z_INDEX,
           background: C.bg,
           margin: "0 -24px",
           padding: "0 24px 12px",
