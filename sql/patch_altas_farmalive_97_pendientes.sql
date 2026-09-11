@@ -277,23 +277,23 @@ where i.recepcion_id = r.id
   and public.fc_buscar_producto_escaneo(i.codigo_escaneado) is not null;
 
 -- Suerox: ticket trae 12 dígitos; catálogo tiene EAN-13 con dígito verificador.
+-- (no referenciar "i" dentro del JOIN ON — Postgres 42P01)
 update public.recepcion_items i
 set
   producto_id = p.id,
   pendiente_alta = false
-from public.recepciones r
-join public.productos p
-  on p.codigo_barras in ('6502400721541', '6502400322712')
- and (
-      (i.codigo_escaneado = '650240072154' and p.codigo_barras = '6502400721541')
-   or (i.codigo_escaneado = '650240032271' and p.codigo_barras = '6502400322712')
- )
+from public.recepciones r,
+     public.productos p
 where i.recepcion_id = r.id
   and r.folio = '97'
   and coalesce(r.proveedor, '') ilike '%farmalive%'
   and r.estado = 'borrador'
   and coalesce(i.pendiente_alta, false)
-  and i.producto_id is null;
+  and i.producto_id is null
+  and (
+      (i.codigo_escaneado = '650240072154' and p.codigo_barras = '6502400721541')
+   or (i.codigo_escaneado = '650240032271' and p.codigo_barras = '6502400322712')
+  );
 
 commit;
 
