@@ -477,6 +477,9 @@ export default function TicketPreviewModal({
             style={{...btnBase,border:"none",background:"linear-gradient(135deg,#0D1B2A,#1E3ABA)",color:"#fff",fontWeight:800,opacity:(pedidoId && ticketUrlLoading)?0.65:1}}>
             {pedidoId && ticketUrlLoading ? "Preparando QR…" : `🖨️ Imprimir ticket ${esInvitado ? "(si el cliente lo pide)" : ""}`}
           </button>
+          <div style={{fontSize:11,lineHeight:1.35,color:"#64748b",padding:"0 2px"}}>
+            Epson TM (PC): en el diálogo elige la impresora térmica y papel <strong style={{color:"#334155"}}>Roll Paper 80 mm</strong> (no Letter/A4). Márgenes en 0.
+          </div>
 
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
             <button type="button" onClick={() => setShowFactura((v) => !v)}
