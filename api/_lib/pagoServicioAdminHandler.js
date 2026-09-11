@@ -39,8 +39,9 @@ function patchError(data) {
 
 function recargoCategoriaValido(comision, categoria) {
   const n = roundMoney(comision);
+  if (!Number.isFinite(n) || n < 0) return false;
   if (String(categoria || '').toLowerCase() === 'recarga') return n === 0;
-  return n > 0;
+  return n >= 0;
 }
 
 function folioServicioMexico(id) {
@@ -103,7 +104,7 @@ async function pagoServicioAdminHandler(req, res) {
           ok: false,
           error: categoria === 'recarga'
             ? 'Las recargas no llevan recargo de farmacia. Solo el monto de tiempo aire.'
-            : 'El recargo de farmacia es obligatorio en recibos. No se guarda en cero.',
+            : 'Recargo inválido. Usa 0 o un monto positivo.',
         });
       }
       if (metodo !== 'efectivo' && metodo !== 'tarjeta') {
@@ -250,7 +251,7 @@ async function pagoServicioAdminHandler(req, res) {
           ok: false,
           error: cat === 'recarga'
             ? 'Las recargas no llevan recargo de farmacia.'
-            : 'El recargo de farmacia es obligatorio en recibos.',
+            : 'Recargo inválido. Usa 0 o un monto positivo.',
         });
       }
       patch.total_cobrado = roundMoney(monto + com);

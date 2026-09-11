@@ -419,7 +419,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
           throw new Error(
             modalEditar.categoria === "recarga"
               ? "Las recargas no llevan recargo de farmacia. Déjalo en 0."
-              : "El recargo de farmacia es obligatorio en recibos. No se guarda en cero."
+              : "Recargo inválido. Usa 0 o un monto positivo."
           );
         }
         await guardarPagoServicioAdmin("editar", {
@@ -836,7 +836,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
 
             {esPagoServicio(modalDetalle) ? (
               <div style={{ background: C.cardDark, borderRadius: 8, padding: 14, fontSize: 12, color: C.textMid, lineHeight: 1.5 }}>
-                Recarga registrada en POS → Servicios. En tiempo aire el recargo va en 0; en recibos es lo que le cobraste al cliente. La compensación MP (1%) entra al saldo de Mercado Pago, no al cajón. No es una venta de producto: no tiene folio VTA.
+                Recarga registrada en POS → Servicios. En tiempo aire el recargo va en 0; en recibos/otros arranca en 0 y se puede ajustar a mano. La compensación MP (1%) entra al saldo de Mercado Pago, no al cajón. No es una venta de producto: no tiene folio VTA.
               </div>
             ) : (
             <>
@@ -967,7 +967,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                   </div>
                   <div>
                     <label style={{ color: C.textMid, fontSize: 10, fontWeight: 700, display: "block", marginBottom: 4 }}>
-                      {modalEditar.categoria === "recarga" ? "RECARGO (SIEMPRE 0)" : "RECARGO FARMACIA"}
+                      {modalEditar.categoria === "recarga" ? "RECARGO (SIEMPRE 0)" : "RECARGO FARMACIA (0 O MÁS)"}
                     </label>
                     <input
                       value={editForm.comision || ""}
