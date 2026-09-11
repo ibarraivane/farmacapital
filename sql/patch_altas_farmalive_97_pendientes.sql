@@ -223,6 +223,8 @@ where public.fc_buscar_producto_escaneo(t.ean) is null
   );
 
 -- Galería: una fila por foto propia (idempotente).
+-- ux_producto_imagenes_una_principal: solo 1 es_principal=true por producto.
+-- Siempre insertar en false; bajar la actual; subir la nuestra (2 pasos).
 insert into public.producto_imagenes
   (producto_id, url, storage_path, posicion, es_principal, origen)
 select
@@ -230,7 +232,7 @@ select
   t.foto,
   'catalogo-propia/' || regexp_replace(t.foto, '^.*/', ''),
   coalesce((select max(i.posicion) from public.producto_imagenes i where i.producto_id = p.id), 0) + 1,
-  true,
+  false,
   'propia'
 from _fc_alta_fl97 t
 join public.productos p on p.codigo_barras = t.ean
@@ -240,6 +242,24 @@ where t.foto is not null
     where i.producto_id = p.id
       and i.url = t.foto
   );
+
+update public.producto_imagenes i
+set es_principal = false
+from _fc_alta_fl97 t
+join public.productos p on p.codigo_barras = t.ean
+where i.producto_id = p.id
+  and t.foto is not null
+  and coalesce(i.es_principal, false)
+  and i.url is distinct from t.foto;
+
+update public.producto_imagenes i
+set es_principal = true
+from _fc_alta_fl97 t
+join public.productos p on p.codigo_barras = t.ean
+where i.producto_id = p.id
+  and t.foto is not null
+  and i.url = t.foto
+  and not coalesce(i.es_principal, false);
 
 -- Re-enlace exacto por EAN del ticket (altas nuevas + las que ya existían).
 update public.recepcion_items i
