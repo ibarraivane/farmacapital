@@ -16,6 +16,10 @@ import {
 import { fetchJornadaHoy } from "../../utils/cajaSesion";
 import { formatFolioPOS } from "../../utils/orderReceiptWhatsApp";
 import { categoriaCanon } from "../../constants/categoriasProducto";
+import {
+  sumarVentasConRecargas,
+  acumularRecargasPorDia,
+} from "../../lib/recargasEnMetas";
 
 const C = C_LIGHT;
 
@@ -276,6 +280,9 @@ export default function MiDia({ usuario, setPage }) {
       const snap = snapRes?.data || {};
       const pedTurno = snap.ped_turno || [];
       const pedMes = snap.ped_mes || [];
+      // Recargas (tiempo aire) atribuidas a esta vendedora — suman a la meta.
+      const recTurno = snap.rec_turno || [];
+      const recMes = snap.rec_mes || [];
       const citasEspera = typeof snap.citas_espera === "number" ? snap.citas_espera : 0;
 
       // ── Meta del turno (si cubre ambos, es la meta de todo el día).
@@ -293,8 +300,9 @@ export default function MiDia({ usuario, setPage }) {
         metaTurno = Math.round(parseFloat(configMap[claveMeta] || 0) * multTurno);
       }
 
-      // ── KPIs del turno.
-      const ventasTurno = pedTurno.reduce((a, p) => a + parseFloat(p.total || 0), 0);
+      // ── KPIs del turno (tickets = productos; ventas = productos + recargas).
+      const ventasPedTurno = pedTurno.reduce((a, p) => a + parseFloat(p.total || 0), 0);
+      const ventasTurno = sumarVentasConRecargas(ventasPedTurno, recTurno);
       const tickets = pedTurno.length;
       const itemsTotales = pedTurno.reduce((a, p) => a + (p.pedido_items || []).reduce((b, i) => b + (i.cantidad || 0), 0), 0);
       const ticketsConDosItems = pedTurno.filter((p) => (p.pedido_items || []).length >= 2).length;
@@ -311,13 +319,14 @@ export default function MiDia({ usuario, setPage }) {
       let totalUnidadesCategoriaTop = 0;
       catCount.forEach((v, k) => { if (v > totalUnidadesCategoriaTop) { categoriaTop = k; totalUnidadesCategoriaTop = v; } });
 
-      // ── Mes: agrupar ventas por día y comparar contra meta del día.
+      // ── Mes: agrupar ventas por día (pedidos + recargas) vs meta del día.
       const ventasPorDia = new Map();
       pedMes.forEach((p) => {
         const d = new Date(p.created_at);
         const k = d.toISOString().slice(0, 10);
         ventasPorDia.set(k, (ventasPorDia.get(k) || 0) + parseFloat(p.total || 0));
       });
+      acumularRecargasPorDia(ventasPorDia, recMes);
       const diasTrabajados = ventasPorDia.size;
       let diasCumplidos = 0;
       let rachaActual = 0;
@@ -347,7 +356,8 @@ export default function MiDia({ usuario, setPage }) {
         else break;
       }
 
-      const ventasMes = pedMes.reduce((a, p) => a + parseFloat(p.total || 0), 0);
+      const ventasPedMes = pedMes.reduce((a, p) => a + parseFloat(p.total || 0), 0);
+      const ventasMes = sumarVentasConRecargas(ventasPedMes, recMes);
       const metaMes = parseFloat(configMap.meta_ventas_mes || 0);
 
       setData({
@@ -368,7 +378,7 @@ export default function MiDia({ usuario, setPage }) {
 
   useEffect(() => { cargarDatos(); }, [cargarDatos]);
 
-  // ── Realtime: recargar al insertar/actualizar pedidos del vendedor.
+  // ── Realtime: pedidos y recargas del vendedor refrescan el % de meta.
   useEffect(() => {
     if (!usuario?.id) return;
     let channel;
@@ -380,6 +390,10 @@ export default function MiDia({ usuario, setPage }) {
         .channel(`mi-dia-${empleadoId}`)
         .on("postgres_changes", {
           event: "*", schema: "public", table: "pedidos",
+          filter: `atendido_por=eq.${empleadoId}`,
+        }, () => { cargarDatos(); })
+        .on("postgres_changes", {
+          event: "*", schema: "public", table: "pagos_servicio",
           filter: `atendido_por=eq.${empleadoId}`,
         }, () => { cargarDatos(); })
         .subscribe();

@@ -60,16 +60,18 @@ export const TEMAS = [
     moduloId: "midia",
     roles: ["vendedor"],
     titulo: "Mi Día",
-    resumen: "Tu inicio de turno: cómo vas, tickets del turno y atajos. No se reciben cajas aquí.",
+    resumen: "Tu inicio de turno: cómo vas (tickets + recargas), tickets del turno y atajos. No se reciben cajas aquí.",
     pasos: [
       "Al entrar con perfil vendedor aterrizas en Mi Día. En el menú también ves Recibir, Inventario y Manual.",
       "El recuadro Tickets se toca: abre folio, hora y artículos de TU turno. Sin montos ni edición.",
+      "Las [[recarga]]s de tiempo aire que anotas en Servicios también suman a tu % de meta (turno y mes).",
       "Para vender: Punto de Venta. Para meter cajas: Recibir. Inventario solo consulta existencias.",
       "Si te pide abrir caja, cuenta el [[fondo]] antes de cobrar.",
     ],
     dudas: [
       { q: "No veo costos ni ganancias", a: "Así debe ser. Costos y Dashboard son del dueño." },
       { q: "Toco Tickets y no pasa nada", a: "Recarga fuerte o cierra la app instalada. Debe decir «Toca para ver los tickets»." },
+      { q: "¿Las recargas cuentan para mi meta?", a: "Sí. Telcel, AT&T, Movistar y Unefon suman al % del turno y del mes. CFE, Sky y otros recibos no." },
     ],
   },
   {
@@ -114,7 +116,7 @@ export const TEMAS = [
       { q: "La Point no deja recargar", a: "Casi siempre se acabó el [[saldo-mp]]. No es un fallo del POS. Avisa para fondear la cuenta." },
       { q: "¿Mercado Pago avisa si se acaba el saldo?", a: "No. El dueño carga el saldo en POS → Servicios (lo que ve en la app de MP) y un mínimo (ej. $500). FarmaCapital avisa a los admins cuando baja. Cada recarga descuenta de ese control." },
       { q: "¿Puedo dejar el recargo en 0?", a: "En recargas ya va en 0. En recibos de servicios el POS pone el recargo solo ($8 CFE, $10 Sky). Si de verdad no cobraste, el dueño lo corrige en Transacciones." },
-      { q: "¿Esto es una venta?", a: "No. No tiene folio VTA ni ticket de productos. Vive en POS → Servicios y en Transacciones como recarga." },
+      { q: "¿Esto es una venta?", a: "No es ticket de productos (no tiene folio VTA). Vive en POS → Servicios. Aun así, la recarga de tiempo aire sí cuenta en tu meta de Mi Día y en comisiones." },
     ],
   },
   {

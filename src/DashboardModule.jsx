@@ -41,6 +41,7 @@ import {
 } from "./lib/dashboardVentas";
 import { cargarConfigMetas, invalidarCacheMetas, mezclarCfgMetas } from "./utils/turnosMetas";
 import { metasDelPeriodo } from "./lib/metasDelPeriodo";
+import { acumularRecargasEnMapaEmpleado, esRecargaCategoria } from "./lib/recargasEnMetas";
 
 function rpcBundleRows(bundle, key) {
   return parseRpcJsonArray(parseRpcJsonObject(bundle)[key]);
@@ -483,6 +484,7 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
       serieRes,
       acumRes,
       metasTurnoCfg,
+      pagosSrvMesRes,
     ] = await Promise.all([
       adminTok
         ? supabase.rpc("empleado_dashboard_operacion_bundle", {
@@ -520,6 +522,14 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
           })
         : Promise.resolve({ data: null, error: null }),
       cargarConfigMetas(),
+      adminTok
+        ? supabase.rpc("empleado_listar_pagos_servicio_rango", {
+            p_session_token: adminTok,
+            p_desde: month.start,
+            p_hasta: todayEndIncl,
+            p_limite: 800,
+          })
+        : Promise.resolve({ data: null, error: null }),
     ]);
     const B = parseRpcJsonObject(bundleRes.data);
     const H = parseRpcJsonObject(homeRes.data);
@@ -717,6 +727,15 @@ export default function DashboardModule({ usuario, setPage, showConfirm, initial
       const k = p.usuarios?.nombre || p.atendido_por || "Sin asignar";
       byEmp[k] = (byEmp[k] || 0) + parseFloat(p.total || 0);
     });
+    // Recargas (tiempo aire) del mes: misma atribución que Mi Día / comisiones.
+    if (pagosSrvMesRes?.error) {
+      console.warn("[Dashboard] pagos servicio mes:", pagosSrvMesRes.error.message);
+    } else {
+      const pagosMes = parseRpcJsonArray(pagosSrvMesRes?.data).filter(
+        (r) => esRecargaCategoria(r.categoria) && ymdMexico(r.created_at) >= inicioMesLocal && ymdMexico(r.created_at) <= hoyLocal
+      );
+      acumularRecargasEnMapaEmpleado(byEmp, pagosMes);
+    }
     const empleados = Object.entries(byEmp).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
     const byProd = {};
