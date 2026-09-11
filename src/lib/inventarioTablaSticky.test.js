@@ -77,6 +77,8 @@ describe("inventarioStickyStyle", () => {
     const th = inventarioStickyStyle("nombre", ORDER, INV_COL_WIDTHS_DEFAULT, { header: true, bg: "#fff" });
     const td = inventarioStickyStyle("nombre", ORDER, INV_COL_WIDTHS_DEFAULT, { header: false, bg: "#fff" });
     expect(th.zIndex).toBeGreaterThan(td.zIndex);
+    expect(th.top).toBe(0);
+    expect(td.top).toBeUndefined();
   });
 
   test("columna no sticky no recibe position", () => {
