@@ -221,7 +221,11 @@ export default function AperturaCajaModal({ usuario, onAbierta, onSesionExpirada
           color: BRAND.primary,
           marginBottom: 8,
         }}>
-          {jornada?.cubre_ambos ? "Día de cobertura · ambos turnos" : "Inicio de turno"}
+          {jornada?.cubre_ambos
+            ? "Día de cobertura · ambos turnos"
+            : (jornada?.cobertura || (turnoAbrir && turnoAsignado && turnoAbrir !== turnoAsignado))
+              ? "Cobertura · abres un turno que no es el tuyo de RH"
+              : "Inicio de turno"}
         </div>
         <h1 style={{ margin: 0, color: C.text, fontSize: 22, fontWeight: 800 }}>
           Abre caja para empezar, {nombre}
@@ -233,7 +237,9 @@ export default function AperturaCajaModal({ usuario, onAbierta, onSesionExpirada
             ? " RH aún no te asigna turno: no puedes abrir caja."
             : jornada?.cubre_ambos
               ? <> Hoy cubres <strong>los dos turnos</strong>. Este conteo es el <strong>{etiquetaTurno(turnoAbrir || turnoAsignado)}</strong>. Al corte, vuelves a abrir el siguiente.</>
-              : <> Turno: <strong>{etiquetaTurno(turnoAbrir || turnoAsignado)}</strong>.</>}
+              : (jornada?.cobertura || (turnoAbrir && turnoAbrir !== turnoAsignado))
+                ? <> Tu perfil es <strong>{etiquetaTurno(turnoAsignado)}</strong>, pero ahora abres <strong>{etiquetaTurno(turnoAbrir)}</strong> (cobertura). Las ventas de esta caja cuentan para ti.</>
+                : <> Turno: <strong>{etiquetaTurno(turnoAbrir || turnoAsignado)}</strong>.</>}
         </p>
 
         <div style={{

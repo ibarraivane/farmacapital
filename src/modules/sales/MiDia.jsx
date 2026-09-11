@@ -19,7 +19,7 @@ import { categoriaCanon } from "../../constants/categoriasProducto";
 import { parseRpcJsonArray, parseRpcJsonObject } from "../../utils/rpcJson";
 import { getSessionToken } from "../../utils";
 import { hoyISOMexico, rangoDiaMexico } from "../../lib/fecha";
-import { resolverTurnoMiDia, resolverVentanaVentasMiDia } from "../../lib/miDiaTurno";
+import { resolverTurnoMiDia, resolverVentanaVentasMiDia, resolverTurnosMetaHoy } from "../../lib/miDiaTurno";
 
 const C = C_LIGHT;
 
@@ -263,8 +263,14 @@ export default function MiDia({ usuario, setPage }) {
         usuario,
         now: hoyAncla,
       });
-      // Meta en $ sigue el turno; la ventana de tickets NO se recorta por
-      // perfil vespertino (eso ponía 0% con ventas de la mañana).
+      const { turnos: turnosMeta } = resolverTurnosMetaHoy({
+        jornada: j,
+        sesionCaja: sesionCaja?.abierta ? sesionCaja : null,
+        usuario,
+        now: hoyAncla,
+      });
+      // Meta en $ sigue los turnos que realmente abrió; la ventana de tickets
+      // es el día / la sesión (no se recorta por perfil vespertino).
       const ventana = resolverVentanaVentasMiDia({
         sesionCaja: sesionCaja?.abierta ? sesionCaja : null,
         diaRango,
@@ -302,19 +308,20 @@ export default function MiDia({ usuario, setPage }) {
       const pedMes = parseRpcJsonArray(snap.ped_mes);
       const citasEspera = typeof snap.citas_espera === "number" ? snap.citas_espera : 0;
 
-      // ── Meta del turno (si cubre ambos, es la meta de todo el día).
+      // ── Meta: suma de los turnos que abrió hoy (cobertura = mat + vesp).
       const multTurno = calcularMultiplicador(hoyAncla, configMap);
-      let metaTurno;
-      if (cubreAmbos) {
-        const claveM = claveMetaTurno(hoyAncla, "matutino");
-        const claveV = claveMetaTurno(hoyAncla, "vespertino");
-        const mm = parseFloat(configMap[claveM] || 0);
-        const mv = claveV === claveM ? 0 : parseFloat(configMap[claveV] || 0);
-        metaTurno = Math.round((mm + mv) * multTurno);
-      } else {
-        const claveMeta = claveMetaTurno(hoyAncla, turno);
-        metaTurno = Math.round(parseFloat(configMap[claveMeta] || 0) * multTurno);
-      }
+      let metaTurno = 0;
+      const clavesVistas = new Set();
+      const listaTurnos = turnosMeta.length
+        ? turnosMeta
+        : (cubreAmbos ? ["matutino", "vespertino"] : (turno ? [turno] : []));
+      listaTurnos.forEach((t) => {
+        const clave = claveMetaTurno(hoyAncla, t);
+        if (clavesVistas.has(clave)) return;
+        clavesVistas.add(clave);
+        metaTurno += parseFloat(configMap[clave] || 0);
+      });
+      metaTurno = Math.round(metaTurno * multTurno);
 
       // ── KPIs del turno.
       const ventasTurno = pedTurno.reduce((a, p) => a + parseFloat(p.total || 0), 0);
@@ -480,11 +487,17 @@ export default function MiDia({ usuario, setPage }) {
     ? `descansas (${etiquetaDiaDescanso(jornada.dia_descanso) || "hoy"})`
     : jornada?.cubre_ambos
       ? "hoy cubres ambos turnos"
-      : (turnoResuelto.turno === "matutino"
-        ? "turno matutino"
-        : turnoResuelto.turno === "vespertino"
-          ? "turno vespertino"
-          : "sin turno asignado");
+      : jornada?.cobertura
+        ? (turnoResuelto.turno === "matutino"
+          ? "cobertura · turno matutino"
+          : turnoResuelto.turno === "vespertino"
+            ? "cobertura · turno vespertino"
+            : "cobertura de turno")
+        : (turnoResuelto.turno === "matutino"
+          ? "turno matutino"
+          : turnoResuelto.turno === "vespertino"
+            ? "turno vespertino"
+            : "sin turno asignado");
 
   return (
     <div style={{ padding: 24, maxWidth: 1100, margin: "0 auto", background: C.bg, minHeight: "100dvh", fontFamily: "var(--fc-body)" }}>
@@ -532,7 +545,12 @@ export default function MiDia({ usuario, setPage }) {
                               : `Arrancando el turno. ${faltaDia}% para la meta.`}
           {jornada?.cubre_ambos && (
             <div style={{ fontSize: 12, opacity: 0.9, marginTop: 8 }}>
-              Hoy estás sola en caja: la meta es la de los dos turnos. Cierra el matutino a las 15:30 y abre el vespertino.
+              Hoy cubres ambos turnos: la meta es la de la mañana más la de la tarde. Al cortar el matutino, vuelve a abrir el vespertino.
+            </div>
+          )}
+          {!jornada?.cubre_ambos && jornada?.cobertura && (
+            <div style={{ fontSize: 12, opacity: 0.9, marginTop: 8 }}>
+              Estás en cobertura: las ventas cuentan para ti mientras tengas la caja abierta, aunque tu turno de RH sea otro.
             </div>
           )}
         </div>

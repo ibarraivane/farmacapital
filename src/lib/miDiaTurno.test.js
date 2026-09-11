@@ -1,4 +1,8 @@
-import { resolverTurnoMiDia, resolverVentanaVentasMiDia } from "./miDiaTurno";
+import {
+  resolverTurnoMiDia,
+  resolverVentanaVentasMiDia,
+  resolverTurnosMetaHoy,
+} from "./miDiaTurno";
 
 describe("resolverTurnoMiDia", () => {
   const manana = new Date("2026-09-11T15:00:00.000Z"); // 09:00 CDMX
@@ -13,7 +17,7 @@ describe("resolverTurnoMiDia", () => {
     ).toEqual({ turno: null, cubreAmbos: true, fuente: "cubre_ambos" });
   });
 
-  test("caja abierta manda sobre el perfil", () => {
+  test("caja abierta manda sobre el perfil (cobertura matutino)", () => {
     expect(
       resolverTurnoMiDia({
         jornada: { turno_habitual: "vespertino" },
@@ -22,6 +26,32 @@ describe("resolverTurnoMiDia", () => {
         now: manana,
       })
     ).toEqual({ turno: "matutino", cubreAmbos: false, fuente: "caja" });
+  });
+
+  test("cobertura puntual usa turno_abrir", () => {
+    expect(
+      resolverTurnoMiDia({
+        jornada: {
+          turno_habitual: "vespertino",
+          turno_abrir: "matutino",
+          cobertura: true,
+        },
+        usuario: { turno: "vespertino" },
+        now: manana,
+      })
+    ).toEqual({ turno: "matutino", cubreAmbos: false, fuente: "cobertura" });
+  });
+
+  test("dos sesiones hoy = cubre ambos", () => {
+    expect(
+      resolverTurnoMiDia({
+        jornada: {
+          turno_habitual: "vespertino",
+          turnos_hoy: ["matutino", "vespertino"],
+        },
+        now: manana,
+      })
+    ).toEqual({ turno: null, cubreAmbos: true, fuente: "sesiones_hoy" });
   });
 
   test("sin caja usa turno habitual / perfil", () => {
@@ -33,11 +63,28 @@ describe("resolverTurnoMiDia", () => {
       }).turno
     ).toBe("matutino");
   });
+});
 
-  test("sin perfil infiere por reloj", () => {
+describe("resolverTurnosMetaHoy", () => {
+  const manana = new Date("2026-09-11T15:00:00.000Z");
+
+  test("sesión matutina de vespertina: solo meta matutina", () => {
     expect(
-      resolverTurnoMiDia({ jornada: null, usuario: {}, now: manana })
-    ).toEqual({ turno: "matutino", cubreAmbos: false, fuente: "reloj" });
+      resolverTurnosMetaHoy({
+        jornada: { turno_habitual: "vespertino", cobertura: true, turnos_hoy: ["matutino"] },
+        sesionCaja: { abierta: true, turno: "matutino" },
+        now: manana,
+      })
+    ).toEqual({ turnos: ["matutino"], cubreAmbos: false, fuente: "sesiones_hoy" });
+  });
+
+  test("cubre_ambos suma ambas metas", () => {
+    expect(
+      resolverTurnosMetaHoy({
+        jornada: { cubre_ambos: true, turno_habitual: "vespertino" },
+        now: manana,
+      }).turnos
+    ).toEqual(["matutino", "vespertino"]);
   });
 });
 
@@ -67,7 +114,6 @@ describe("resolverVentanaVentasMiDia", () => {
     });
     expect(v.fuente).toBe("dia_completo");
     expect(v.inicio).toBe(diaRango.start);
-    // Incluye ventas ~09:06 CDMX (15:06Z)
     expect(new Date("2026-09-11T15:06:00.000Z").getTime()).toBeGreaterThanOrEqual(new Date(v.inicio).getTime());
     expect(new Date("2026-09-11T15:06:00.000Z").getTime()).toBeLessThanOrEqual(new Date(v.fin).getTime());
   });
