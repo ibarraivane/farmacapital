@@ -39,6 +39,23 @@ describe("posTituloProducto", () => {
     expect(posTituloProducto({ nombre: "Novag", marca: "Novag" })).toBe("Novag");
   });
 
+  test("Tervutan: marca de caja delante cuando el nombre es solo la molécula", () => {
+    const oxi = {
+      nombre: "Oxitetraciclina 500 mg 16 cápsulas",
+      marca: "Tervutan",
+      tipo: "generico",
+      principio_activo: "Oxitetraciclina",
+      forma_farmaceutica: "Cápsulas",
+    };
+    expect(posTituloProducto(oxi)).toMatch(/^Tervutan/i);
+    expect(posTituloProducto(oxi)).toMatch(/oxitetraciclina/i);
+    expect(posTituloProducto({
+      nombre: "Tervutan Oxitetraciclina 500 mg 16 cápsulas",
+      marca: "Tervutan",
+      tipo: "generico",
+    })).toMatch(/^Tervutan/i);
+  });
+
   test("leche en polvo no se corta en la palabra polvo", () => {
     expect(
       posTituloProducto({

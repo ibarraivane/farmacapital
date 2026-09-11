@@ -470,4 +470,17 @@ describe("catalog search dimensions", () => {
     expect(tiendaProductMatchesBusqueda(sildenafil, "viagra")).toBe(true);
     expect(tiendaProductMatchesBusqueda(broncolinAzul, "pastilla azul")).toBe(false);
   });
+
+  test("terbutan (como lo dicen en mostrador) encuentra Tervutan oxitetraciclina", () => {
+    const tervutan = {
+      id: 710,
+      nombre: "Tervutan Oxitetraciclina 500 mg 16 cápsulas",
+      marca: "Tervutan",
+      tipo: "generico",
+      principio_activo: "Oxitetraciclina",
+    };
+    expect(tiendaProductMatchesBusqueda(tervutan, "terbutan")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(tervutan, "tervutan")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(tervutan, "oxitetraciclina")).toBe(true);
+  });
 });
