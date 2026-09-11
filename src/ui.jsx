@@ -448,25 +448,76 @@ export function SkeletonCard({ height=80, style={} }) {
   );
 }
 
-/**
- * Contenedor con scroll horizontal sincronizado: barra arriba y abajo (misma posición).
- * Con bodyMaxHeight el cuerpo hace scroll vertical y el thead sticky (Referencias de precio) se congela.
- */
-export function HorizontalScrollSync({ children, style = {}, topBarHeight = 12, bodyMaxHeight, className, ...rest }) {
+function TablaHScrollBar({ scrollRef, onScroll, trackW, height, placement }) {
   const C = C_LIGHT;
+  const thick = placement === "bottom";
+  const barH = thick ? Math.max(height, 16) + 8 : height + 6;
+  return (
+    <div
+      ref={scrollRef}
+      onScroll={onScroll}
+      data-tabla-hscroll={placement}
+      title="Desplazar tabla horizontalmente"
+      aria-label={placement === "bottom" ? "Barra de desplazamiento horizontal" : "Barra de desplazamiento horizontal superior"}
+      className="fc-tabla-hscroll"
+      style={{
+        overflowX: "auto",
+        overflowY: "hidden",
+        height: barH,
+        maxHeight: barH,
+        flexShrink: 0,
+        borderBottom: placement === "top" ? `1px solid ${C.border}` : undefined,
+        borderTop: placement === "bottom" ? `1px solid ${C.border}` : undefined,
+        background: C.cardDark,
+        WebkitOverflowScrolling: "touch",
+      }}
+    >
+      <div style={{ width: trackW > 0 ? trackW : "100%", height: 1, pointerEvents: "none" }} aria-hidden />
+    </div>
+  );
+}
+
+/**
+ * Contenedor con scroll horizontal sincronizado: barra arriba y, si la tabla
+ * tiene altura limitada, otra abajo siempre visible (se puede arrastrar con el mouse).
+ * Con bodyMaxHeight / fillViewport el cuerpo hace scroll vertical y el thead se congela.
+ */
+export function HorizontalScrollSync({
+  children,
+  style = {},
+  topBarHeight = 12,
+  bodyMaxHeight,
+  fillViewport = false,
+  viewportBottomReserve = 72,
+  className,
+  ...rest
+}) {
+  const C = C_LIGHT;
+  const rootRef = useRef(null);
   const topRef = useRef(null);
-  const bottomRef = useRef(null);
+  const bodyRef = useRef(null);
+  const bottomBarRef = useRef(null);
   const innerRef = useRef(null);
   const [trackW, setTrackW] = useState(0);
+  const [fillMax, setFillMax] = useState(null);
   const syncing = useRef(false);
 
   const measure = useCallback(() => {
-    const bottom = bottomRef.current;
+    const body = bodyRef.current;
     const inner = innerRef.current;
-    if (!bottom) return;
-    const w = inner ? Math.max(inner.scrollWidth, inner.offsetWidth) : bottom.scrollWidth;
+    if (!body) return;
+    const w = inner ? Math.max(inner.scrollWidth, inner.offsetWidth) : body.scrollWidth;
     setTrackW(w);
   }, []);
+
+  const measureFill = useCallback(() => {
+    if (!fillViewport) return;
+    const el = rootRef.current;
+    if (!el) return;
+    const top = el.getBoundingClientRect().top;
+    const next = Math.max(260, Math.floor(window.innerHeight - top - viewportBottomReserve));
+    setFillMax((prev) => (prev === next ? prev : next));
+  }, [fillViewport, viewportBottomReserve]);
 
   useLayoutEffect(() => {
     measure();
@@ -483,34 +534,51 @@ export function HorizontalScrollSync({ children, style = {}, topBarHeight = 12, 
   }, [measure]);
 
   useLayoutEffect(() => {
-    const onResize = () => measure();
+    const onResize = () => {
+      measure();
+      measureFill();
+    };
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
-  }, [measure]);
+  }, [measure, measureFill]);
 
-  const onTopScroll = (e) => {
+  useLayoutEffect(() => {
+    if (!fillViewport) return undefined;
+    measureFill();
+    const prev = rootRef.current?.previousElementSibling;
+    const parent = rootRef.current?.parentElement;
+    if (typeof ResizeObserver === "undefined") return undefined;
+    const ro = new ResizeObserver(() => measureFill());
+    if (prev) ro.observe(prev);
+    if (parent) ro.observe(parent);
+    return () => ro.disconnect();
+  }, [fillViewport, measureFill]);
+
+  const applyScrollLeft = (left) => {
+    if (topRef.current && topRef.current.scrollLeft !== left) topRef.current.scrollLeft = left;
+    if (bodyRef.current && bodyRef.current.scrollLeft !== left) bodyRef.current.scrollLeft = left;
+    if (bottomBarRef.current && bottomBarRef.current.scrollLeft !== left) bottomBarRef.current.scrollLeft = left;
+  };
+
+  const onSyncedScroll = (e) => {
     if (syncing.current) return;
     syncing.current = true;
-    const left = e.target.scrollLeft;
-    if (bottomRef.current) bottomRef.current.scrollLeft = left;
+    applyScrollLeft(e.target.scrollLeft);
     requestAnimationFrame(() => {
       syncing.current = false;
     });
   };
-  const onBottomScroll = (e) => {
-    if (syncing.current) return;
-    syncing.current = true;
-    const left = e.target.scrollLeft;
-    if (topRef.current) topRef.current.scrollLeft = left;
-    requestAnimationFrame(() => {
-      syncing.current = false;
-    });
-  };
+
+  const constrained = Boolean(bodyMaxHeight) || fillViewport;
+  const rootMaxHeight = fillViewport
+    ? (fillMax != null ? fillMax : "calc(100dvh - 280px)")
+    : undefined;
 
   return (
     <div
       {...rest}
-      className={["fc-tabla-scroll", className].filter(Boolean).join(" ")}
+      ref={rootRef}
+      className={["fc-tabla-scroll", constrained ? "fc-tabla-scroll--freeze" : "", className].filter(Boolean).join(" ")}
       style={{
         borderRadius: 12,
         border: `1px solid ${C.border}`,
@@ -519,42 +587,47 @@ export function HorizontalScrollSync({ children, style = {}, topBarHeight = 12, 
         maxWidth: "100%",
         minWidth: 0,
         boxSizing: "border-box",
+        display: "flex",
+        flexDirection: "column",
+        maxHeight: rootMaxHeight,
         ...style,
       }}
     >
+      <TablaHScrollBar
+        scrollRef={topRef}
+        onScroll={onSyncedScroll}
+        trackW={trackW}
+        height={topBarHeight}
+        placement="top"
+      />
       <div
-        ref={topRef}
-        onScroll={onTopScroll}
-        title="Desplazar tabla horizontalmente"
+        ref={bodyRef}
+        data-tabla-hscroll="body"
+        onScroll={onSyncedScroll}
+        className={constrained ? "fc-tabla-scroll-body" : undefined}
         style={{
           overflowX: "auto",
-          overflowY: "hidden",
-          height: topBarHeight + 6,
-          maxHeight: topBarHeight + 6,
-          flexShrink: 0,
-          borderBottom: `1px solid ${C.border}`,
-          background: C.cardDark,
+          overflowY: constrained ? "auto" : "hidden",
+          maxHeight: fillViewport ? undefined : bodyMaxHeight,
+          flex: fillViewport ? 1 : undefined,
+          minHeight: fillViewport ? 0 : undefined,
           WebkitOverflowScrolling: "touch",
-          scrollbarWidth: "thin",
-        }}
-      >
-        <div style={{ width: trackW > 0 ? trackW : "100%", height: 1, pointerEvents: "none" }} aria-hidden />
-      </div>
-      <div
-        ref={bottomRef}
-        onScroll={onBottomScroll}
-        style={{
-          overflowX: "auto",
-          overflowY: bodyMaxHeight ? "auto" : "hidden",
-          maxHeight: bodyMaxHeight,
-          WebkitOverflowScrolling: "touch",
-          scrollbarWidth: "thin",
+          scrollbarWidth: constrained ? undefined : "thin",
         }}
       >
         <div ref={innerRef} style={{ minWidth: "min-content" }}>
           {children}
         </div>
       </div>
+      {constrained ? (
+        <TablaHScrollBar
+          scrollRef={bottomBarRef}
+          onScroll={onSyncedScroll}
+          trackW={trackW}
+          height={topBarHeight}
+          placement="bottom"
+        />
+      ) : null}
     </div>
   );
 }

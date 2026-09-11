@@ -115,6 +115,7 @@ export function inventarioStickyStyle(colId, colOrder, colWidths, {
   return {
     position: "sticky",
     left,
+    ...(header ? { top: 0 } : {}),
     width: w,
     minWidth: w,
     maxWidth: w,

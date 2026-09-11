@@ -319,9 +319,6 @@ const tdEllipsisStyle = {
   whiteSpace: "nowrap",
 };
 
-/** Offset bajo tabs sticky de InventarioHub */
-const INV_TOOLBAR_STICKY_TOP = { mobile: 92, desktop: 112 };
-
 const INV_INLINE_FIELD_PATCH = {
   sku: "sku",
   codigo_barras: "codigo_barras",
@@ -3792,14 +3789,9 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
 
       <div
         style={{
-          position: "sticky",
-          top: isMobileInv ? INV_TOOLBAR_STICKY_TOP.mobile : INV_TOOLBAR_STICKY_TOP.desktop,
-          zIndex: 24,
           background: C.bg,
-          margin: "0 -24px",
-          padding: "0 24px 12px",
-          borderBottom: `1px solid ${C.border}`,
-          boxShadow: "0 6px 20px rgba(15,23,42,.06)",
+          marginBottom: 12,
+          paddingBottom: 4,
         }}
       >
       {selectionMode && !modoConsulta && (
@@ -4159,7 +4151,11 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
         <SkeletonTable rows={8} cols={12}/>
       ) : (
         <>
-        <HorizontalScrollSync data-tour="inv-tabla">
+        <HorizontalScrollSync
+          data-tour="inv-tabla"
+          fillViewport
+          viewportBottomReserve={isMobileInv ? 96 : 80}
+        >
           <table
             ref={tableRef}
             className="fc-inv-tabla"
@@ -4191,6 +4187,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
                   borderBottom: `1px solid ${C.border}`,
                   verticalAlign: "middle",
                   position: "sticky",
+                  top: 0,
                   left: 0,
                   width: INV_CHECKBOX_COL_WIDTH,
                   minWidth: INV_CHECKBOX_COL_WIDTH,
