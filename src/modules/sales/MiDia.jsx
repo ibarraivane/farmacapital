@@ -263,12 +263,20 @@ export default function MiDia({ usuario, setPage }) {
         usuario,
         now: hoyAncla,
       });
-      const inicioTurno = cubreAmbos
-        ? diaRango.start
-        : inicioDelTurno(hoyAncla, turno).toISOString();
-      const finTurno = cubreAmbos
-        ? new Date(new Date(diaRango.end).getTime() - 1).toISOString()
-        : finDelTurno(hoyAncla, turno).toISOString();
+      // Si tiene caja abierta, la ventana es la de la sesión (igual que el
+      // corte): así no se pierden ventas si el perfil dice otro turno.
+      let inicioTurno;
+      let finTurno;
+      if (sesionCaja?.abierta && sesionCaja.abierta_at) {
+        inicioTurno = new Date(sesionCaja.abierta_at).toISOString();
+        finTurno = new Date().toISOString();
+      } else if (cubreAmbos) {
+        inicioTurno = diaRango.start;
+        finTurno = new Date(new Date(diaRango.end).getTime() - 1).toISOString();
+      } else {
+        inicioTurno = inicioDelTurno(hoyAncla, turno).toISOString();
+        finTurno = finDelTurno(hoyAncla, turno).toISOString();
+      }
       const inicioMesYmd = `${hoyYmd.slice(0, 7)}-01`;
       const inicioMes = rangoDiaMexico(inicioMesYmd).start;
 
@@ -523,7 +531,7 @@ export default function MiDia({ usuario, setPage }) {
             : pctDia >= 70  ? `¡Vas muy bien! Faltan ${faltaDia}% para cumplir.`
             : pctDia >= 40  ? `Vamos a medio camino — ${faltaDia}% para la meta.`
                             : data.tickets === 0
-                              ? "Aún no hay tickets a tu nombre en este turno. Si ya vendiste, en Transacciones revisa la columna Vendedor y reasigna."
+                              ? "Aún no hay tickets en tu turno de caja. Si ya cobraste, pide al admin pegar el SQL de Mi Día (sesión de caja) o reasigna el Vendedor en Transacciones."
                               : `Arrancando el turno. ${faltaDia}% para la meta.`}
           {jornada?.cubre_ambos && (
             <div style={{ fontSize: 12, opacity: 0.9, marginTop: 8 }}>
