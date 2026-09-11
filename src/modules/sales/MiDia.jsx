@@ -10,15 +10,16 @@ import { idEmpleadoUsuarios } from "../../utils/usuarioId";
 import { saludoUsuario } from "../../utils";
 import { etiquetaDiaDescanso } from "../../constants/turnos";
 import {
-  inicioDelTurno, finDelTurno, claveMetaTurno,
+  claveMetaTurno,
   calcularMultiplicador, cargarConfigMetas, escalonBono, bonosActivos,
 } from "../../utils/turnosMetas";
 import { fetchJornadaHoy, fetchSesionCajaAbierta } from "../../utils/cajaSesion";
 import { formatFolioPOS } from "../../utils/orderReceiptWhatsApp";
 import { categoriaCanon } from "../../constants/categoriasProducto";
 import { parseRpcJsonArray, parseRpcJsonObject } from "../../utils/rpcJson";
+import { getSessionToken } from "../../utils";
 import { hoyISOMexico, rangoDiaMexico } from "../../lib/fecha";
-import { resolverTurnoMiDia } from "../../lib/miDiaTurno";
+import { resolverTurnoMiDia, resolverVentanaVentasMiDia } from "../../lib/miDiaTurno";
 
 const C = C_LIGHT;
 
@@ -251,36 +252,32 @@ export default function MiDia({ usuario, setPage }) {
       // Ancla local al mediodía CDMX del día civil (evita que el huso del
       // dispositivo mueva el corte 15:30 o el mes).
       const hoyAncla = new Date(`${hoyYmd}T12:00:00-06:00`);
-      const [{ jornada: jRaw }, { sesion: sesionCaja }] = await Promise.all([
+      const [{ jornada: j }, { sesion: sesionCaja }] = await Promise.all([
         fetchJornadaHoy(),
         fetchSesionCajaAbierta(),
       ]);
-      const j = parseRpcJsonObject(jRaw);
-      setJornada(Object.keys(j).length ? j : null);
+      setJornada(j);
       const { turno, cubreAmbos } = resolverTurnoMiDia({
         jornada: j,
         sesionCaja: sesionCaja?.abierta ? sesionCaja : null,
         usuario,
         now: hoyAncla,
       });
-      // Si tiene caja abierta, la ventana es la de la sesión (igual que el
-      // corte): así no se pierden ventas si el perfil dice otro turno.
-      let inicioTurno;
-      let finTurno;
-      if (sesionCaja?.abierta && sesionCaja.abierta_at) {
-        inicioTurno = new Date(sesionCaja.abierta_at).toISOString();
-        finTurno = new Date().toISOString();
-      } else if (cubreAmbos) {
-        inicioTurno = diaRango.start;
-        finTurno = new Date(new Date(diaRango.end).getTime() - 1).toISOString();
-      } else {
-        inicioTurno = inicioDelTurno(hoyAncla, turno).toISOString();
-        finTurno = finDelTurno(hoyAncla, turno).toISOString();
-      }
+      // Meta en $ sigue el turno; la ventana de tickets NO se recorta por
+      // perfil vespertino (eso ponía 0% con ventas de la mañana).
+      const ventana = resolverVentanaVentasMiDia({
+        sesionCaja: sesionCaja?.abierta ? sesionCaja : null,
+        diaRango,
+        hoyAncla,
+        turno,
+        cubreAmbos,
+      });
+      const inicioTurno = ventana.inicio;
+      const finTurno = ventana.fin;
       const inicioMesYmd = `${hoyYmd.slice(0, 7)}-01`;
       const inicioMes = rangoDiaMexico(inicioMesYmd).start;
 
-      const tok = sessionStorage.getItem("farmacapital_session_token");
+      const tok = getSessionToken();
       const [configMap, snapRes] = await Promise.all([
         cargarConfigMetas(),
         tok
