@@ -18,6 +18,7 @@ export function normalizeProveedorCompra(nombre) {
   if (/bodega|f-?42/i.test(n)) return "Bodega F-42";
   if (/\bifc\b/i.test(n)) return "IFC";
   if (/farma\s*mx|farmamx/i.test(n)) return "Farma MX";
+  if (/farma\s*mayoreo|farmamayoreo/i.test(n)) return "Farma Mayoreo";
   if (/nadro/i.test(n)) return "Nadro";
   if (/marzam/i.test(n)) return "Marzam";
   if (/scorpion/i.test(n)) return "Scorpion";
