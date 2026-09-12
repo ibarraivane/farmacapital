@@ -5,6 +5,7 @@ import { hayPiezasDenominacion } from "../../../constants/caja";
 import ArqueoDenominaciones from "../../../components/ArqueoDenominaciones";
 import { abrirSesionCaja, fetchJornadaHoy } from "../../../utils/cajaSesion";
 import { showToast } from "../../../ui";
+import { writeAdminUser, readAdminUser } from "../../../utils";
 
 /**
  * Pantalla bloqueante: el vendedor no vende hasta contar el fondo que le entregaron.
@@ -18,7 +19,11 @@ export default function AperturaCajaModal({ usuario, onAbierta, onSesionExpirada
   const [jornada, setJornada] = useState(null);
   const [jornadaListo, setJornadaListo] = useState(false);
   const [revisando, setRevisando] = useState(false);
-  const turnoAsignado = turnoDePerfil(usuario);
+  // Fuente de verdad: usuarios.turno en DB (jornada.turno_habitual).
+  // La sesión de login puede quedar vieja si RH asignó el turno después.
+  const turnoAsignado =
+    turnoDePerfil(usuario) ||
+    (jornadaListo ? turnoDePerfil({ turno: jornada?.turno_habitual }) : null);
   const turnoAbrir = jornadaListo ? (jornada?.turno_abrir || null) : null;
   const nombre = (usuario?.nombre || "Vendedor").split(" ")[0];
   const ocupadaPor = jornadaListo ? (jornada?.caja_ocupada_por || null) : null;
@@ -29,8 +34,13 @@ export default function AperturaCajaModal({ usuario, onAbierta, onSesionExpirada
     if (j) setJornada(j);
     if (error) showToast(error, "error");
     setJornadaListo(true);
+    const habitual = turnoDePerfil({ turno: j?.turno_habitual });
+    if (habitual && !turnoDePerfil(usuario)) {
+      const cached = readAdminUser() || usuario || {};
+      writeAdminUser({ ...cached, turno: habitual });
+    }
     return j;
-  }, []);
+  }, [usuario]);
 
   useEffect(() => {
     let cancel = false;
@@ -39,9 +49,15 @@ export default function AperturaCajaModal({ usuario, onAbierta, onSesionExpirada
       if (j) setJornada(j);
       if (error) showToast(error, "error");
       setJornadaListo(true);
+      // Si RH ya asignó en DB pero la sesión se abrió antes, refrescar el cache.
+      const habitual = turnoDePerfil({ turno: j?.turno_habitual });
+      if (habitual && !turnoDePerfil(usuario)) {
+        const cached = readAdminUser() || usuario || {};
+        writeAdminUser({ ...cached, turno: habitual });
+      }
     });
     return () => { cancel = true; };
-  }, []);
+  }, [usuario]);
 
   const revisarDeNuevo = async () => {
     setRevisando(true);
