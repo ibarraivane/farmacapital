@@ -34,8 +34,6 @@ where p.nombre ~ '^[A-Za-zÁÉÍÓÚÑáéíóúñ][A-Za-zÁÉÍÓÚÑáéíóú
 
 commit;
 
-commit;
-
 -- ===== Diagnóstico post-corrida =====
 select
   count(*) as total,
