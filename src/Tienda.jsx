@@ -1813,6 +1813,8 @@ function ProductCard({prod,addToCart,onClick}){
     setAdded(true);
     setTimeout(()=>setAdded(false),1500);
   };
+  // width/maxWidth 100%: llena la celda del grid O el hueco de 220px de RecompraStrip.
+  // Nunca quitar el wrapper fijo de RecompraStrip: sin él la banda se ve como 1 tarjeta a todo el ancho.
   return(
     <div style={{
       background:C.white,
@@ -2817,15 +2819,15 @@ function HomeCatalogoPorCategoria({productos,loadingProductos,addToCart,setProdD
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:12}}>
           <div>
             <h2 style={{color:C.dark,fontSize:"clamp(20px,4.5vw,24px)",fontWeight:800,margin:0}}>Explora por categoría</h2>
-            <div style={{color:C.mid,fontSize:13,marginTop:4}}>Desliza cada banda para ver más productos</div>
+            <div style={{color:C.mid,fontSize:13,marginTop:4}}>En celular desliza · en laptop usa la flecha para ver más</div>
           </div>
         </div>
         {Array.from({length:2}).map((_,i)=>(
           <div key={i} style={{marginBottom:28}}>
             <div style={{height:22,width:140,borderRadius:8,background:C.surface,marginBottom:12,opacity:0.8}}/>
-            <div style={{display:"flex",gap:14,overflow:"hidden"}}>
-              {Array.from({length:4}).map((__,j)=>(
-                <div key={j} style={{flex:"0 0 auto",width:200,height:260,borderRadius:12,background:C.surface,animation:"pulse 1.4s ease-in-out infinite",opacity:0.7}}/>
+            <div style={{display:"flex",gap:12,overflow:"hidden"}}>
+              {Array.from({length:5}).map((__,j)=>(
+                <div key={j} style={{flex:"0 0 auto",width:220,maxWidth:"min(220px,72vw)",height:260,borderRadius:12,background:C.surface,animation:"pulse 1.4s ease-in-out infinite",opacity:0.7}}/>
               ))}
             </div>
           </div>
@@ -2843,7 +2845,7 @@ function HomeCatalogoPorCategoria({productos,loadingProductos,addToCart,setProdD
         <div>
           <h2 style={{color:C.dark,fontSize:"clamp(20px,4.5vw,24px)",fontWeight:800,margin:0}}>Explora por categoría</h2>
           <div style={{color:C.mid,fontSize:13,marginTop:4,lineHeight:1.4}}>
-            Desliza de derecha a izquierda · Analgésicos, alergia, vitaminas y más
+            En celular desliza · en laptop usa la flecha para ver más · Analgésicos, alergia, vitaminas y más
           </div>
         </div>
         <Btn onClick={()=>setPage("catalogo",{rx:false})} outline col={BRAND.primary} sm>Ver catálogo completo →</Btn>
@@ -3282,9 +3284,13 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
         <div
           id="farmacapital-catalogo-resultados"
           style={{
+            gridArea: "resultados",
             width: "100%",
+            minWidth: 0,
+            maxWidth: "100%",
             height: "auto",
-            overflow: "visible",
+            overflowX: vista === "bandas" ? "hidden" : "visible",
+            overflowY: "visible",
             position: "relative",
             display: vista === "bandas" ? "block" : "grid",
             gap: stack ? 16 : 18,
@@ -3305,9 +3311,9 @@ function Catalogo({addToCart,productos,setProdDetalle,setPage,busqHero,setBusqHe
                     {Array.from({length:2}).map((_,i)=>(
                       <div key={i} style={{marginBottom:24}}>
                         <div style={{height:20,width:120,borderRadius:8,background:"#F1E8DD",marginBottom:12,opacity:0.8}}/>
-                        <div style={{display:"flex",gap:14,overflow:"hidden"}}>
-                          {Array.from({length:4}).map((__,j)=>(
-                            <div key={j} style={{flex:"0 0 auto",width:200,height:260,borderRadius:12,background:"#F1E8DD",animation:"pulse 1.4s ease-in-out infinite",opacity:0.7}}/>
+                        <div style={{display:"flex",gap:12,overflow:"hidden"}}>
+                          {Array.from({length:5}).map((__,j)=>(
+                            <div key={j} style={{flex:"0 0 auto",width:220,maxWidth:"min(220px,72vw)",height:260,borderRadius:12,background:"#F1E8DD",animation:"pulse 1.4s ease-in-out infinite",opacity:0.7}}/>
                           ))}
                         </div>
                       </div>
