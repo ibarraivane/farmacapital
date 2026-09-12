@@ -653,7 +653,7 @@ function PosProductoFichaPanel({
   );
 }
 
-export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSesionExpirada}){
+export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSesionExpirada,onCerrarSesion}){
   const exigeCaja = esVendedor(usuario);
   const [cajaAbierta, setCajaAbierta] = useState(() => !esVendedor(usuario));
   const [cajaCheck, setCajaCheck] = useState(() => !esVendedor(usuario));
@@ -2390,6 +2390,19 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
             >
               Reintentar
             </button>
+            {onCerrarSesion && (
+              <button
+                type="button"
+                onClick={onCerrarSesion}
+                style={{
+                  width: "100%", marginTop: 10, padding: "12px 16px", borderRadius: 10,
+                  border: `1px solid ${C.border}`, background: "transparent",
+                  color: C.textMid, fontWeight: 700, fontSize: 14, cursor: "pointer",
+                }}
+              >
+                Cerrar sesión
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -2397,6 +2410,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
         <AperturaCajaModal
           usuario={usuario}
           onSesionExpirada={onSesionExpirada}
+          onCerrarSesion={onCerrarSesion}
           onAbierta={(s) => { setSesionCaja(s); setCajaAbierta(true); }}
         />
       )}

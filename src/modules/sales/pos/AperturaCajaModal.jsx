@@ -11,7 +11,25 @@ import { writeAdminUser, readAdminUser } from "../../../utils";
  * Pantalla bloqueante: el vendedor no vende hasta contar el fondo que le entregaron.
  * Esa confirmación es también la hora de entrada.
  */
-export default function AperturaCajaModal({ usuario, onAbierta, onSesionExpirada }) {
+function BotonCerrarSesion({ onCerrarSesion, C }) {
+  if (!onCerrarSesion) return null;
+  return (
+    <button
+      type="button"
+      onClick={onCerrarSesion}
+      style={{
+        marginTop: 22, padding: "12px 20px", borderRadius: 10,
+        border: `1px solid ${C.border}`, background: "transparent",
+        color: C.textMid, fontSize: 14, fontWeight: 700,
+        fontFamily: "inherit", cursor: "pointer", width: "100%",
+      }}
+    >
+      Cerrar sesión
+    </button>
+  );
+}
+
+export default function AperturaCajaModal({ usuario, onAbierta, onSesionExpirada, onCerrarSesion }) {
   const C = C_LIGHT;
   const [denoms, setDenoms] = useState({});
   const [nota, setNota] = useState("");
@@ -131,6 +149,7 @@ export default function AperturaCajaModal({ usuario, onAbierta, onSesionExpirada
             Tu día libre es el <strong>{dia}</strong>. La compañera cubre matutino y vespertino.
             No abras caja hoy.
           </p>
+          <BotonCerrarSesion onCerrarSesion={onCerrarSesion} C={C} />
         </div>
       </div>
     );
@@ -171,6 +190,7 @@ export default function AperturaCajaModal({ usuario, onAbierta, onSesionExpirada
               al momento{jornada?.mi_corte_id ? <> (corte #{jornada.mi_corte_id})</> : null}.
             </p>
           )}
+          <BotonCerrarSesion onCerrarSesion={onCerrarSesion} C={C} />
         </div>
       </div>
     );
@@ -214,6 +234,7 @@ export default function AperturaCajaModal({ usuario, onAbierta, onSesionExpirada
           >
             {revisando ? "Revisando…" : "Ya cortó, revisar"}
           </button>
+          <BotonCerrarSesion onCerrarSesion={onCerrarSesion} C={C} />
         </div>
       </div>
     );
@@ -328,6 +349,7 @@ export default function AperturaCajaModal({ usuario, onAbierta, onSesionExpirada
                 ? "Revisando turno…"
                 : "Confirmar y empezar turno"}
         </button>
+        <BotonCerrarSesion onCerrarSesion={onCerrarSesion} C={C} />
       </div>
     </div>
   );
