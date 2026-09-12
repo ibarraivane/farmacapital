@@ -1,15 +1,15 @@
 -- =============================================================================
 -- ESTE es el archivo para Supabase (SQL). NO pegues scripts/generar_carga_*.py
--- (ese empieza con #!/usr/bin/env python3 y marca error 42601).
 -- Archivo: sql/patch_carga_cityfarma_s321781.sql
 -- Pegar TODO abajo en Supabase → SQL Editor → Run.
+-- Si no ves tarjeta en Recibir después: corre el SELECT final y mándame el resultado.
 -- =============================================================================
 -- Cityfarma Iztapalapa · orden S321781 · 2026-09-10 17:04
 -- Ticket térmico Central de Abastos. P.U. ya trae IVA (suma renglones = $815.88).
--- El ticket imprime Total $0.00 / Pendiente de pago; se usa la suma de renglones (igual que S320861).
+-- El ticket imprime Total $0.00 / Pendiente de pago; se usa la suma de renglones.
 -- 2 altas stock 0. Sin lote ni caducidad (MMAA de la caja). No inventar 0000.
 -- Nombres de ficha (YZA/Fahorro/Farmamedical), no del ticket.
--- Fotos en public/catalogo-propia/ (tras deploy).
+-- Misma forma que Nadro 20260901 (que sí aparece en Recibir).
 -- SIN bloques dollar-quote. Idempotente mientras el ticket siga en borrador.
 
 begin;
@@ -33,7 +33,6 @@ create temp table _fc_cf_s321781 (
   principio_activo text,
   concentracion text,
   receta boolean not null,
-  ya boolean not null,
   imagen text,
   foto_file text
 ) on commit drop;
@@ -41,16 +40,15 @@ create temp table _fc_cf_s321781 (
 insert into _fc_cf_s321781 (
   linea, ean, sku, nombre, snap, qty, costo, precio, tipo, categoria,
   subcategoria, forma, marca, laboratorio, presentacion, principio_activo,
-  concentracion, receta, ya, imagen, foto_file
+  concentracion, receta, imagen, foto_file
 ) values
-  (1, '7501871720620', 'FC-71720620', 'Geslutin progesterona 200 mg C/15 perlas', 'GESLUTIN 200MG PERLA', 1, 459.50, 736, 'marca', 'Hormonales', null, 'Perlas', 'Geslutin', 'ASOFARMA', 'Caja con 15 perlas', 'Progesterona micronizada', '200 mg', false, false, 'https://www.farmacapital.mx/catalogo-propia/geslutin-200mg-15-perlas.jpg', 'catalogo-propia/geslutin-200mg-15-perlas.jpg'),
-  (2, '7501471800265', 'FC-71800265', 'Panclasa floroglucinol/trimetilfloroglucinol 80/80 mg C/20', 'PANCLASA C/20 CAPS', 2, 178.19, 286, 'marca', 'Gastro', 'Antiespasmódico', 'Cápsulas', 'Panclasa', 'ATLANTIS', 'Caja con 20 cápsulas', 'Floroglucinol + trimetilfloroglucinol', '80/80 mg', false, false, 'https://www.farmacapital.mx/catalogo-propia/panclasa-80-80mg-c20.jpg', 'catalogo-propia/panclasa-80-80mg-c20.jpg');
+  (1, '7501871720620', 'FC-71720620', 'Geslutin progesterona 200 mg C/15 perlas', 'GESLUTIN 200MG PERLA', 1, 459.50, 736, 'marca', 'Hormonales', null, 'Perlas', 'Geslutin', 'ASOFARMA', 'Caja con 15 perlas', 'Progesterona micronizada', '200 mg', false, 'https://www.farmacapital.mx/catalogo-propia/geslutin-200mg-15-perlas.jpg', 'catalogo-propia/geslutin-200mg-15-perlas.jpg'),
+  (2, '7501471800265', 'FC-71800265', 'Panclasa floroglucinol/trimetilfloroglucinol 80/80 mg C/20', 'PANCLASA C/20 CAPS', 2, 178.19, 286, 'marca', 'Gastro', 'Antiespasmódico', 'Cápsulas', 'Panclasa', 'ATLANTIS', 'Caja con 20 cápsulas', 'Floroglucinol + trimetilfloroglucinol', '80/80 mg', false, 'https://www.farmacapital.mx/catalogo-propia/panclasa-80-80mg-c20.jpg', 'catalogo-propia/panclasa-80-80mg-c20.jpg');
 
+-- Altas mínimas (mismo set de columnas que Nadro).
 insert into public.productos (
-  nombre, sku, codigo_barras, categoria, subcategoria, tipo, descripcion,
-  costo, precio, stock, stock_minimo, activo, requiere_receta,
-  marca, presentacion, forma_farmaceutica, principio_activo, concentracion,
-  laboratorio, imagen_url, imagen_mobile_url
+  nombre, sku, codigo_barras, categoria, tipo, descripcion,
+  costo, precio, stock, stock_minimo, activo, requiere_receta
 )
 select
   t.nombre,
@@ -63,7 +61,6 @@ select
   end,
   t.ean,
   t.categoria,
-  t.subcategoria,
   t.tipo,
   'Alta Cityfarma S321781 · 2026-09-10 · listo para pistola',
   t.costo,
@@ -71,15 +68,7 @@ select
   0,
   1,
   true,
-  t.receta,
-  t.marca,
-  t.presentacion,
-  t.forma,
-  t.principio_activo,
-  t.concentracion,
-  t.laboratorio,
-  t.imagen,
-  t.imagen
+  t.receta
 from _fc_cf_s321781 t
 where public.fc_buscar_producto_escaneo(t.ean) is null;
 
@@ -98,7 +87,7 @@ where p.id = public.fc_buscar_producto_escaneo(t.ean)
     or coalesce(p.precio, 0) <= 0
   );
 
--- Ficha vacía / foto si falta. No pisa una foto que ya esté.
+-- Ficha / foto si faltan (no pisa lo que ya esté).
 update public.productos p
 set
   marca = coalesce(nullif(trim(p.marca), ''), t.marca),
@@ -130,10 +119,12 @@ update public.recepciones
 set
   total_ticket = 815.88,
   fecha = '2026-09-10',
-  proveedor = 'Cityfarma Iztapalapa'
+  proveedor = 'Cityfarma Iztapalapa',
+  estado = 'borrador',
+  notas = 'Ticket Cityfarma S321781 · 2026-09-10 · cola Recibir; stock al confirmar pistola'
 where folio = 'S321781'
   and coalesce(proveedor, '') ilike '%cityfarma%'
-  and estado = 'borrador';
+  and estado in ('borrador', 'pendiente_alta', 'pendiente_caducidad');
 
 delete from public.recepcion_items i
 using public.recepciones r
@@ -182,11 +173,10 @@ left join lateral (
 order by t.linea;
 
 insert into public.producto_imagenes
-  (producto_id, url, storage_path, posicion, es_principal, origen)
+  (producto_id, url, posicion, es_principal, origen)
 select
   p.id,
   t.imagen,
-  t.foto_file,
   coalesce((
     select max(i.posicion) from public.producto_imagenes i
     where i.producto_id = p.id
@@ -206,31 +196,25 @@ where t.imagen is not null
 
 commit;
 
+-- Debe devolver 1 fila (tarjeta) y 2 renglones. Si sale vacío, el SQL no quedó.
 select
-  i.id,
+  r.id,
+  r.proveedor,
+  r.folio,
+  r.estado,
+  r.total_ticket,
+  (select count(*) from public.recepcion_items i where i.recepcion_id = r.id) as renglones
+from public.recepciones r
+where r.folio = 'S321781'
+order by r.id desc;
+
+select
   i.codigo_escaneado as ean,
   left(i.nombre_snapshot, 52) as nombre,
   i.cantidad,
   i.costo_estimado,
-  case when i.pendiente_alta then 'ALTA NUEVA' else 'YA EXISTE' end as estado
+  case when i.pendiente_alta then 'ALTA NUEVA' else 'EN CATALOGO' end as estado
 from public.recepcion_items i
 join public.recepciones r on r.id = i.recepcion_id
 where r.folio = 'S321781' and coalesce(r.proveedor, '') ilike '%cityfarma%'
 order by i.id;
-
-select
-  p.sku,
-  p.codigo_barras as ean,
-  left(p.nombre, 52) as nombre,
-  p.marca,
-  p.presentacion,
-  p.costo,
-  p.precio,
-  p.stock,
-  left(coalesce(p.imagen_url, ''), 56) as foto
-from public.productos p
-where p.codigo_barras in (
-  '7501871720620',
-  '7501471800265'
-)
-order by p.nombre;
