@@ -57,3 +57,25 @@ it("mete cada producto en un hueco de 220px, como la cuadrícula", () => {
   expect(slots[0].style.width).toBe("220px");
   expect(slots[0].style.maxWidth).toBe("min(220px, 72vw)");
 });
+
+it("no deja que ProductCard (width:100% inline) estire la tarjeta a todo el ancho", () => {
+  // Regresión: sin wrapper fijo + !important, cada banda se veía como 1 tarjeta gigante.
+  const { container } = render(
+    <>
+      <ProductosStripStyles />
+      <RecompraStrip title="Antiinflamatorio">
+        <div style={{ width: "100%", maxWidth: "100%" }} data-testid="card-ancha">
+          Card
+        </div>
+        <div style={{ width: "100%", maxWidth: "100%" }}>Card2</div>
+        <div style={{ width: "100%", maxWidth: "100%" }}>Card3</div>
+      </RecompraStrip>
+    </>
+  );
+  const slot = container.querySelector(".farmacapital-productos-strip-item");
+  const css = container.querySelector("style")?.textContent || "";
+  expect(slot.style.width).toBe("220px");
+  expect(css).toMatch(/\.farmacapital-productos-strip-item\s*>\s*\*\s*\{[^}]*width:\s*100%\s*!important/);
+  expect(css).toMatch(/max-width:\s*100%\s*!important/);
+  expect(container.querySelectorAll(".farmacapital-productos-strip-item")).toHaveLength(3);
+});

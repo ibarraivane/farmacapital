@@ -2,7 +2,12 @@ import { Children, useCallback, useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { stripArrowState, stripPageScrollLeft } from "../lib/productosStrip";
 
-/** Mismo ancho que la cuadrícula del catálogo (`minmax(min(100%, 220px), 1fr)`). */
+/**
+ * Ancho fijo de cada tarjeta en banda = celda de la cuadrícula del catálogo.
+ * NO volver a dejar que ProductCard (width:100% inline) mande el ancho del flex:
+ * eso regenera el bug de “1 tarjeta gigante por categoría”.
+ * El ítem wrapper + `width: 100% !important` en el hijo lo evitan.
+ */
 export const STRIP_CARD_WIDTH_PX = 220;
 
 /**
