@@ -16,6 +16,10 @@ describe("compra vigente", () => {
     expect(normalizeProveedorCompra("DULCERIA LA FAMOSA")).toBe("Dulcería La Victoria");
     expect(normalizeProveedorCompra("Dulcería La Victoria")).toBe("Dulcería La Victoria");
     expect(normalizeProveedorCompra("clave LAFAM73305")).toBe("Dulcería La Victoria");
+    expect(normalizeProveedorCompra("FARMACIA GUADALAJARA, S.A. DE C.V.")).toBe(
+      "Farmacias Guadalajara"
+    );
+    expect(normalizeProveedorCompra("Farmacias Guadalajara")).toBe("Farmacias Guadalajara");
   });
 
   test("solo reemplaza si el nuevo es más barato", () => {
