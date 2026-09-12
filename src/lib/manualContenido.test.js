@@ -83,6 +83,8 @@ describe("manualContenido", () => {
     const midia = TEMAS.find((x) => x.id === "midia");
     const cat = TEMAS.find((x) => x.id === "catalogo");
     expect(midia.pasos.join(" ")).toMatch(/Tickets/);
+    expect(midia.pasos.join(" ")).toMatch(/recarga/i);
+    expect(midia.dudas.some((d) => /recargas y servicios cuentan/i.test(d.q))).toBe(true);
     expect(cat.pasos.join(" ")).toMatch(/Activos/);
     expect(cat.pasos.join(" ")).toMatch(/Recibir cajas/);
     expect(cat.pasos.join(" ")).toMatch(/pvp|POS|pos/i);

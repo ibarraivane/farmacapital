@@ -182,6 +182,42 @@ begin
         and (p.estado)::text = 'completado'
         and p.created_at >= p_mes_start
     ), '[]'::jsonb),
+    -- Pagos de servicio (recargas + recibos) para metas Mi Día.
+    'srv_turno', coalesce((
+      select jsonb_agg(
+        jsonb_build_object(
+          'id', ps.id,
+          'total_cobrado', ps.total_cobrado,
+          'monto_servicio', ps.monto_servicio,
+          'categoria', ps.categoria,
+          'proveedor', ps.proveedor,
+          'folio', ps.folio,
+          'created_at', ps.created_at
+        )
+        order by ps.created_at
+      )
+      from public.pagos_servicio ps
+      where ps.atendido_por = p_empleado_id
+        and ps.created_at >= p_turno_start
+        and ps.created_at <= p_turno_end
+    ), '[]'::jsonb),
+    'srv_mes', coalesce((
+      select jsonb_agg(
+        jsonb_build_object(
+          'id', ps.id,
+          'total_cobrado', ps.total_cobrado,
+          'monto_servicio', ps.monto_servicio,
+          'categoria', ps.categoria,
+          'proveedor', ps.proveedor,
+          'folio', ps.folio,
+          'created_at', ps.created_at
+        )
+        order by ps.created_at
+      )
+      from public.pagos_servicio ps
+      where ps.atendido_por = p_empleado_id
+        and ps.created_at >= p_mes_start
+    ), '[]'::jsonb),
     'citas_espera', (
       select count(*)::int
       from public.citas c
@@ -945,18 +981,37 @@ declare
 begin
   v_dummy := public.fn_require_empleado(p_session_token);
   return coalesce((
-    select jsonb_agg(
-      jsonb_build_object(
-        'total', p.total,
-        'atendido_por', p.atendido_por,
-        'usuarios', jsonb_build_object('nombre', u.nombre)
-      )
-      order by p.created_at desc
-    )
-    from public.pedidos p
-    left join public.usuarios u on u.id = p.atendido_por
-    where (p.estado)::text = 'completado'
-      and p.created_at >= p_desde
+    select jsonb_agg(row_js order by ord desc)
+    from (
+      select
+        jsonb_build_object(
+          'total', p.total,
+          'atendido_por', p.atendido_por,
+          'usuarios', jsonb_build_object('nombre', u.nombre),
+          'fuente', 'pedido',
+          'created_at', p.created_at
+        ) as row_js,
+        p.created_at as ord
+      from public.pedidos p
+      left join public.usuarios u on u.id = p.atendido_por
+      where (p.estado)::text = 'completado'
+        and p.created_at >= p_desde
+
+      union all
+
+      select
+        jsonb_build_object(
+          'total', ps.total_cobrado,
+          'atendido_por', ps.atendido_por,
+          'usuarios', jsonb_build_object('nombre', u2.nombre),
+          'fuente', 'servicio',
+          'created_at', ps.created_at
+        ) as row_js,
+        ps.created_at as ord
+      from public.pagos_servicio ps
+      left join public.usuarios u2 on u2.id = ps.atendido_por
+      where ps.created_at >= p_desde
+    ) q
   ), '[]'::jsonb);
 end;
 $$;
