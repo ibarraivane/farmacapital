@@ -1,0 +1,4 @@
+linea,folio,fecha,proveedor,ean,descripcion_ticket,cantidad,precio_unitario,subtotal,lote,caducidad,sku_farmacapital,total_ticket,match
+1,123816,2026-09-12,IFC F8 Tienda,,Pinza depilar Lady chica,2,7.50,15.00,,,FC-IFC-PINZACH,65.00,sin_ean
+2,123816,2026-09-12,IFC F8 Tienda,,Pinza depilar Lady grande,2,8.00,16.00,,,FC-IFC-PINZAGR,65.00,sin_ean
+3,123816,2026-09-12,IFC F8 Tienda,,Mercurio Aceite Almendras,4,8.50,34.00,,,FC-D4AC123B,65.00,sku_existente

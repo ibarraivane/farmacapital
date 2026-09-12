@@ -1,0 +1,18 @@
+linea,folio,fecha,proveedor,ean,descripcion_ticket,cantidad,precio_unitario,subtotal,lote,caducidad,sku_farmacapital,total_ticket,match
+1,20260912,2026-09-12,City Mark,7501943476271,Kleenex pañuelos bote C/50,2,29.14,58.28,,,,1486.47,ticket
+2,20260912,2026-09-12,City Mark,070330731813,BIC Soleil 3 Color Collection 12 pzas,1,155.32,155.32,,,,1486.47,ticket
+3,20260912,2026-09-12,City Mark,070330717541,BIC Advance tira rastrillo 12 pzas,1,169.60,169.60,,,,1486.47,ticket
+4,20260912,2026-09-12,City Mark,850040940602,Grisi Organ Silver shampoo 400 ml + canas 130 ml,1,87.35,87.35,,,,1486.47,ticket
+5,20260912,2026-09-12,City Mark,810120500164,Pert crema peinar kera + aguacate 100 ml,2,14.80,29.60,,,,1486.47,ticket
+6,20260912,2026-09-12,City Mark,7502254073371,Seda Pure silica argán spray 300 ml,1,69.04,69.04,,,,1486.47,ticket
+7,20260912,2026-09-12,City Mark,7502254073357,Seda Pure silica uva spray 300 ml,1,69.05,69.05,,,,1486.47,ticket
+8,20260912,2026-09-12,City Mark,7506306208315,St Ives colágeno y elastina 200 ml,1,32.31,32.31,,,,1486.47,ticket
+9,20260912,2026-09-12,City Mark,7501080111455,Just For Men tinte barba/bigote negro,2,171.14,342.28,,,,1486.47,ticket
+10,20260912,2026-09-12,City Mark,7502254073715,Seda Pure acondicionador kerat bifásico 250 ml,1,55.10,55.10,,,,1486.47,ticket
+11,20260912,2026-09-12,City Mark,810120500171,Pert crema peinar oliva + aguacate 100 ml,2,14.80,29.60,,,FC-20500171,1486.47,ticket
+12,20260912,2026-09-12,City Mark,7702031887928,Listerine Care Zero menta 250 ml,1,63.53,63.53,,,FC-31887928,1486.47,ticket
+13,20260912,2026-09-12,City Mark,7891010974329,Listerine Zero menta suave 250 ml,1,54.06,54.06,,,FC-10974329,1486.47,ticket
+14,20260912,2026-09-12,City Mark,7702035433299,Listerine Defense 250 ml,1,63.86,63.86,,,,1486.47,ticket
+15,20260912,2026-09-12,City Mark,7501027233974,L'Oréal Fix Inv ultra fijación gel 180 g,1,58.10,58.10,,,,1486.47,ticket
+16,20260912,2026-09-12,City Mark,7502254072831,Seda Pure silica brillo extremo 125 ml,2,58.54,117.08,,,,1486.47,ticket
+17,20260912,2026-09-12,City Mark,7506306208353,St Ives avena y karité 200 ml,1,32.31,32.31,,,,1486.47,ticket
