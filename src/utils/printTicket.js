@@ -28,7 +28,7 @@ html, body { margin: 0; padding: 0; width: 80mm; max-width: 80mm; background: #f
   html, body { width: 80mm !important; max-width: 80mm !important; margin: 0 !important; padding: 0 !important; }
   #farmacapital-ticket { width: 80mm !important; max-width: 80mm !important; padding: 3mm 2mm 13mm 2mm !important; }
 }
-/* Android/iPad: Chrome ignora @page 80mm y manda una hoja carta.
+/* Chrome (PC/Android/iPad) a menudo ignora @page 80mm y manda una hoja carta.
    TM Print Assistant encoge toda la hoja → ticket minúsculo.
    zoom 2.7 ≈ 216mm/80mm para que el ticket ocupe el ancho y al encoger quede a 80 mm. */
 @media print {
@@ -364,20 +364,29 @@ async function printHtmlAs80mmPdf(html) {
   return true;
 }
 
-/** Tablet: iframe oculto. PC: popup que se cierra al terminar. */
+/**
+ * Siempre captura a imagen 80 mm.
+ * Chrome en PC también ignora `@page { size: 80mm }` y manda carta;
+ * la imagen a todo el ancho, al encoger con TM Print Assistant / rollo 80 mm, llena el ticket.
+ * Tablet/PWA: iframe. PC: popup (shouldKeepPrintWindowOpen).
+ */
 export function printPreparedHtml(html) {
   if (typeof window === "undefined") return false;
-  if (shouldKeepPrintWindowOpen()) {
-    printHtmlAs80mmPdf(html).catch((e) => {
-      console.error("[FarmaCapital] PDF térmico:", e);
-      printRawHtml(html);
-    });
-    return true;
-  }
-  if (printViaPopup(html)) return true;
-  if (printViaIframe(html)) return true;
-  alert(popupBlockedMessage());
-  return false;
+  printHtmlAs80mmPdf(html).catch((e) => {
+    console.error("[FarmaCapital] PDF térmico:", e);
+    printRawHtml(html);
+  });
+  return true;
+}
+
+function cloneTicketForPrint(ticket) {
+  const clone = ticket.cloneNode(true);
+  const srcSvgs = ticket.querySelectorAll("svg");
+  const dstSvgs = clone.querySelectorAll("svg");
+  srcSvgs.forEach((src, i) => {
+    if (dstSvgs[i]) dstSvgs[i].replaceWith(src.cloneNode(true));
+  });
+  return clone;
 }
 
 /**
@@ -392,28 +401,11 @@ export function printTicket(ticketId = "farmacapital-ticket") {
     return false;
   }
 
-  if (shouldKeepPrintWindowOpen()) {
-    printElementAs80mmPdf(ticket).catch((e) => {
-      console.error("[FarmaCapital] PDF térmico:", e);
-      const clone = ticket.cloneNode(true);
-      const srcSvgs = ticket.querySelectorAll("svg");
-      const dstSvgs = clone.querySelectorAll("svg");
-      srcSvgs.forEach((src, i) => {
-        if (dstSvgs[i]) dstSvgs[i].replaceWith(src.cloneNode(true));
-      });
-      printPreparedHtml(wrapTicketHtml(clone.outerHTML));
-    });
-    return true;
-  }
-
-  const clone = ticket.cloneNode(true);
-  const srcSvgs = ticket.querySelectorAll("svg");
-  const dstSvgs = clone.querySelectorAll("svg");
-  srcSvgs.forEach((src, i) => {
-    if (dstSvgs[i]) dstSvgs[i].replaceWith(src.cloneNode(true));
+  printElementAs80mmPdf(ticket).catch((e) => {
+    console.error("[FarmaCapital] PDF térmico:", e);
+    printRawHtml(wrapTicketHtml(cloneTicketForPrint(ticket).outerHTML));
   });
-
-  return printPreparedHtml(wrapTicketHtml(clone.outerHTML));
+  return true;
 }
 
 /**
