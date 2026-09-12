@@ -41,5 +41,9 @@ describe("recetaPrint", () => {
     expect(html).toContain("Consultorio médico");
     expect(html).toContain("Amoxicilina 500");
     expect(html).not.toContain("Punto de Venta");
+    expect(html).toMatch(/size:\s*letter/i);
+    expect(html).toContain("Brother DCP-L2660DW");
+    expect(html).toMatch(/una cara/i);
+    expect(html).not.toContain("80mm");
   });
 });
