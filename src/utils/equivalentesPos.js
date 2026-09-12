@@ -81,6 +81,14 @@ function consultaEsClara(query, resultados) {
   });
 }
 
+/** Jaloma, Colgate…: la misma marca cubre familias distintas. */
+function marcaConVariasFamilias(resultados, query) {
+  const directos = (resultados || []).filter((p) => coincideConsultaDirecta(p, query));
+  if (directos.length < 2) return false;
+  const claves = new Set(directos.map((p) => claveSustancia(p)));
+  return claves.size > 1;
+}
+
 /** La vendedora escribió la marca: todos esos SKU van arriba, no solo el primero. */
 function nombreContieneConsulta(texto, q) {
   const n = norm(texto);
@@ -173,6 +181,10 @@ export function grupoEquivalentesDeBusqueda(productos, resultados, query = "") {
   if (primero && coincideConsultaDirecta(primero, query) && !claveSustancia(primero)) {
     return null;
   }
+
+  // Una marca con varias familias (Jaloma aceite vs Jaloma agua) no se
+  // puede colapsar a "opciones con PARAFINA": esconde el resto.
+  if (marcaConVariasFamilias(resultados, query)) return null;
 
   // Marca o nombre escrito de verdad (Treda, Nineka), no un prefijo de sustancia
   // que también abre otro SKU ("neomici" → "Neomici Polimixi…").
