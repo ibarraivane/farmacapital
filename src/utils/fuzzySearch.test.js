@@ -483,4 +483,16 @@ describe("catalog search dimensions", () => {
     expect(tiendaProductMatchesBusqueda(tervutan, "tervutan")).toBe(true);
     expect(tiendaProductMatchesBusqueda(tervutan, "oxitetraciclina")).toBe(true);
   });
+
+  test("kenciclen encuentra doxiciclina Kenciclen", () => {
+    const kenciclen = {
+      id: 711,
+      nombre: "Kenciclen Doxiciclina 100 mg 10 cápsulas",
+      marca: "Kenciclen",
+      tipo: "generico",
+      principio_activo: "Doxiciclina",
+    };
+    expect(tiendaProductMatchesBusqueda(kenciclen, "kenciclen")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(kenciclen, "doxiciclina")).toBe(true);
+  });
 });

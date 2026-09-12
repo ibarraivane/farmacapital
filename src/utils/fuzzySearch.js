@@ -240,6 +240,11 @@ const CATALOG_VERNACULAR_GROUPS = [
     catalog: ["tervutan", "oxitetraciclina"],
   },
   {
+    // Ticket Nadro decía "Ken LGEN"; en caja es Kenciclen (doxiciclina Kener).
+    query: ["kenciclen", "kenciclén"],
+    catalog: ["kenciclen", "doxiciclina"],
+  },
+  {
     query: ["curita", "curitas", "bandaid", "band-aid"],
     catalog: ["curita", "bandaid", "band-aid", "nexcare", "aposito"],
   },

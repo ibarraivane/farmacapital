@@ -56,6 +56,17 @@ describe("posTituloProducto", () => {
     })).toMatch(/^Tervutan/i);
   });
 
+  test("Kenciclen: marca delante si el nombre sigue siendo solo doxiciclina", () => {
+    const ken = {
+      nombre: "Doxiciclina 100 mg 10 cápsulas Ken LGEN",
+      marca: "Kenciclen",
+      tipo: "generico",
+      principio_activo: "Doxiciclina",
+    };
+    expect(posTituloProducto(ken)).toMatch(/^Kenciclen/i);
+    expect(posTituloProducto(ken)).toMatch(/doxiciclina/i);
+  });
+
   test("leche en polvo no se corta en la palabra polvo", () => {
     expect(
       posTituloProducto({
