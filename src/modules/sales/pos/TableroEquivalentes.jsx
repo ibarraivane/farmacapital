@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { C_LIGHT } from "../../../constants";
 import { $ } from "../../../utils";
 import { posDestacadoTarjeta, posSubtituloProducto, posTituloProducto } from "../../../utils/posProductDisplay";
@@ -16,9 +16,19 @@ function fotoTarjeta(producto, fotoDe) {
   return fotoDe?.(producto?.id) || producto?.imagen_url || producto?.imagen_mobile_url || "";
 }
 
+function PlaceholderFoto({ texto, C }) {
+  return (
+    <span style={{ fontSize: 18, fontWeight: 900, color: "#92400e", textAlign: "center", lineHeight: 1.1, overflowWrap: "anywhere" }}>
+      {texto}
+    </span>
+  );
+}
+
 function TarjetaProducto({ producto, onSelect, onAdd, estadoStock, diferencia, fotoDe }) {
   const C = C_LIGHT;
   const foto = fotoTarjeta(producto, fotoDe);
+  const [fotoRota, setFotoRota] = useState(false);
+  const mostrarFoto = Boolean(foto) && !fotoRota;
   const titulo = posTituloProducto(producto) || producto.nombre;
   const tipo = etiquetaTipoProducto(producto);
   const destacado = posDestacadoTarjeta(producto);
@@ -28,8 +38,17 @@ function TarjetaProducto({ producto, onSelect, onAdd, estadoStock, diferencia, f
   return (
     <article style={{ border: `1px solid ${C.border}`, borderRadius: 12, background: C.card, padding: 10, display: "flex", flexDirection: "column", gap: 6, minWidth: 0, height: "100%", boxSizing: "border-box" }}>
       <button type="button" onClick={() => onSelect(producto)} aria-label={`Ver ficha de ${titulo}`} style={{ border: 0, padding: 0, background: "transparent", cursor: "pointer", textAlign: "left", color: "inherit", font: "inherit", display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
-        <div style={{ height: 200, borderRadius: 10, overflow: "hidden", background: foto ? "#fff" : C.amberDim, border: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center", padding: 4, boxSizing: "border-box" }}>
-          {foto ? <img src={foto} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} /> : <span style={{ fontSize: 18, fontWeight: 900, color: "#92400e", textAlign: "center", lineHeight: 1.1, overflowWrap: "anywhere" }}>{producto.marca || titulo}</span>}
+        <div style={{ height: 200, borderRadius: 10, overflow: "hidden", background: mostrarFoto ? "#fff" : C.amberDim, border: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center", padding: 4, boxSizing: "border-box" }}>
+          {mostrarFoto ? (
+            <img
+              src={foto}
+              alt=""
+              onError={() => setFotoRota(true)}
+              style={{ width: "100%", height: "100%", objectFit: "contain" }}
+            />
+          ) : (
+            <PlaceholderFoto texto={producto.marca || titulo} C={C} />
+          )}
         </div>
         <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: 15, fontWeight: 900, color: C.text, lineHeight: 1.2 }}>{titulo}</div>

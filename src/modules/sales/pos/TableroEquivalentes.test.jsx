@@ -76,3 +76,20 @@ it("la búsqueda genérica usa las mismas tarjetas con Agregar y ficha", () => {
   fireEvent.click(screen.getAllByRole("button", { name: "Agregar" })[0]);
   expect(onAdd).toHaveBeenCalledWith(treda);
 });
+
+it("si la URL de foto falla, muestra el placeholder de marca en vez del icono roto", () => {
+  const { container } = render(
+    <TableroResultados
+      productos={[nineka]}
+      titulo="1 resultado"
+      onSelect={() => {}}
+      onAdd={() => {}}
+      estadoStock={() => ({ agotado: false, etiqueta: "1 disp." })}
+    />,
+  );
+  const img = container.querySelector("img");
+  expect(img).toBeTruthy();
+  fireEvent.error(img);
+  expect(container.querySelector("img")).toBeNull();
+  expect(screen.getAllByText("Nineka").length).toBeGreaterThan(0);
+});
