@@ -1844,6 +1844,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       setMontoRecibido("");
       setUsarCredito(false);
       setMontoCredito("");
+      // Quita la ficha del producto: tras cobrar no debe quedarse pegada en pantalla.
+      clearPosSearch();
     } catch(e) {
       console.error(e);
       const msg = e?.message || e?.details || String(e);
@@ -2804,7 +2806,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
         origen={ticket.origen || "tienda"}
         autoWhatsApp={ticket.autoWhatsApp === true}
         onClose={()=>setTicket(null)}
-        onNuevaVenta={()=>{ setTicket(null); setCart([]); setTel(""); setCli(null); }}
+        onNuevaVenta={()=>{ setTicket(null); setCart([]); setTel(""); setCli(null); clearPosSearch(); }}
       />}
 
       {modalDev && (
@@ -3075,13 +3077,22 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
             <PosProductoFichaPanel
               item={fichaProd}
               productos={productos}
-              onVolver={srch.trim() && !srchEsEscaneo ? () => {
-                setFichaProd(null);
-                // La pistola escanea a nivel documento, pero devolver el foco
-                // deja al vendedor listo para teclear sin buscar el campo.
-                srchRef.current?.focus();
-              } : undefined}
-              volverTexto={grupoEquivalentes ? `Volver a las ${grupoEquivalentes.total} opciones` : "Volver a los resultados"}
+              onVolver={() => {
+                if (srch.trim() && !srchEsEscaneo) {
+                  setFichaProd(null);
+                  // La pistola escanea a nivel documento, pero devolver el foco
+                  // deja al vendedor listo para teclear sin buscar el campo.
+                  srchRef.current?.focus();
+                } else {
+                  // Tras escaneo el buscador queda vacío: sin esto no había forma de cerrar la ficha.
+                  clearPosSearch();
+                }
+              }}
+              volverTexto={
+                srch.trim() && !srchEsEscaneo
+                  ? (grupoEquivalentes ? `Volver a las ${grupoEquivalentes.total} opciones` : "Volver a los resultados")
+                  : "Cerrar producto"
+              }
               usoTexto={fichaProd ? (usoByProdId[fichaProd.id] || (posDescripcionEsUsoValido(fichaProd) ? fichaProd.descripcion : null)) : null}
               usoLoading={!!fichaProd && usoLoadingId === fichaProd.id}
               onSelectVariante={setFichaProd}
