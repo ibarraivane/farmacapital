@@ -6,29 +6,20 @@
 -- de la caja, y al Guardar renglón truena.
 --
 -- Este patch:
---   1) Reabre tickets que todavía tienen renglones sin grabar.
---   2) Confirmar / agregar / quitar aceptan cualquier ticket vivo.
+--   1) Confirmar / agregar / quitar aceptan cualquier ticket vivo
+--      (borrador / pendiente_alta / pendiente_caducidad).
+--   2) NO reabre confirmada ni descuadre. Un ticket ya recibido se queda
+--      cerrado aunque le falte MMAA en el papel (el historial no es cola).
+--
+-- Si ya corriste una versión que reabrió el historial, usa
+-- sql/patch_recibir_cerrar_reabiertos_20260908.sql
 --
 -- Ejecutar TODO en Supabase → SQL Editor → Run. Idempotente.
 
 begin;
 
--- City Mark y cualquier otro que Recibir sigue mostrando con cajas pendientes.
-update public.recepciones r
-set
-  estado = 'borrador',
-  cerrado_en = null,
-  updated_at = now()
-where r.estado in ('pendiente_alta', 'pendiente_caducidad', 'confirmada', 'descuadre')
-  and exists (
-    select 1
-    from public.recepcion_items i
-    where i.recepcion_id = r.id
-      and (
-        coalesce(i.confirmado, false) = false
-        or i.fecha_caducidad is null
-      )
-  );
+-- NUNCA reabrir confirmada/descuadre. City Mark se edita porque ya es
+-- ticket vivo; confirmar_item ahora acepta esos estados.
 
 create or replace function public.recepcion_confirmar_item(
   p_session_token uuid,
@@ -300,14 +291,14 @@ notify pgrst, 'reload schema';
 
 commit;
 
--- ─────────────── City Mark / tickets reabiertos ───────────────
+-- ─────────────── City Mark / cola viva (no el historial) ───────────────
 select r.id, r.proveedor, r.folio, r.estado,
-  count(*) filter (where not i.confirmado or i.fecha_caducidad is null) as sin_grabar
+  count(*) filter (where not coalesce(i.confirmado, false)) as sin_confirmar,
+  count(*) filter (where i.lote_id is not null and i.fecha_caducidad is null) as sin_mmaa_anaquel
 from public.recepciones r
 join public.recepcion_items i on i.recepcion_id = r.id
 where r.folio in ('20260905')
    or r.proveedor ilike '%city mark%'
-   or r.estado in ('borrador', 'pendiente_alta', 'pendiente_caducidad')
 group by r.id
 order by r.updated_at desc
 limit 20;
