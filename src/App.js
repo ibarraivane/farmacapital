@@ -70,7 +70,9 @@ class TiendaRouteBoundary extends React.Component {
               No pudimos cargar la tienda
             </h1>
             <p style={{ margin: "0 0 18px", color: "#475569", fontSize: 14, lineHeight: 1.55 }}>
-              Hubo un error al iniciar la farmacia en línea. Probá recargar la página; si acabas de un deploy, espera un minuto y vuelve a intentar.
+              {/websocket|insecure|inseguro/i.test(this.state.errMsg || "")
+                ? "Este navegador bloqueó la conexión en vivo (pasa en el preview de Vercel o en la app de Google). Abrí https://www.farmacapital.mx en Safari o Chrome."
+                : "Hubo un error al iniciar la farmacia en línea. Probá recargar la página; si acabas de un deploy, espera un minuto y vuelve a intentar."}
             </p>
             {this.state.errMsg ? (
               <p style={{

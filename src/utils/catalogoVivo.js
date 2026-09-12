@@ -70,20 +70,27 @@ export function suscribirCatalogoVivo(onRefresh, opts = {}) {
 
   let channel = null;
   if (supabase && typeof supabase.channel === "function") {
-    const id = `catalogo-vivo-${Math.random().toString(36).slice(2, 10)}`;
-    let ch = supabase.channel(id);
-    for (const table of tablas) {
-      ch = ch.on(
-        "postgres_changes",
-        { event: "*", schema: "public", table },
-        (payload) => debounced({
-          origen: "realtime",
-          table: payload?.table || table,
-          event: payload?.eventType || payload?.event,
-        })
-      );
+    try {
+      const id = `catalogo-vivo-${Math.random().toString(36).slice(2, 10)}`;
+      let ch = supabase.channel(id);
+      for (const table of tablas) {
+        ch = ch.on(
+          "postgres_changes",
+          { event: "*", schema: "public", table },
+          (payload) => debounced({
+            origen: "realtime",
+            table: payload?.table || table,
+            event: payload?.eventType || payload?.event,
+          })
+        );
+      }
+      channel = ch.subscribe();
+    } catch (err) {
+      // Safari / WebView: WS inseguro no debe tumbar la tienda.
+      // eslint-disable-next-line no-console
+      console.warn("[catalogoVivo] Realtime no disponible:", err?.message || err);
+      channel = null;
     }
-    channel = ch.subscribe();
   }
 
   return () => {

@@ -2077,22 +2077,29 @@ export default function FarmaCapitalAdmin(){
 
   useEffect(()=>{
     if(!usuario) return;
-    const ch=supabase.channel("farmacapital-rt")
-      .on("postgres_changes",{event:"INSERT",schema:"public",table:"password_reset_requests"},
-        payload=>{
-          const req = payload.new;
-          addNotif(
-            "🔑 Solicitud de contraseña",
-            `Usuario: ${req.email_o_telefono} — toca para atender`,
-            "🔑","#f59e0b",
-            "password_reset"
-          );
-          showToast(`🔑 Solicitud de reset: ${req.email_o_telefono}`,"warning");
-        })
-      .on("postgres_changes",{event:"UPDATE",schema:"public",table:"pedidos"},
-        pl=>{ if(pl.new?.estado==="listo") addNotif("✅ Pedido listo",`Pedido #${pl.new.id} listo para entrega — toca para ver`,"✅","#16a34a","ped_online"); })
-      .subscribe();
-    return ()=>supabase.removeChannel(ch);
+    let ch;
+    try {
+      ch=supabase.channel("farmacapital-rt")
+        .on("postgres_changes",{event:"INSERT",schema:"public",table:"password_reset_requests"},
+          payload=>{
+            const req = payload.new;
+            addNotif(
+              "🔑 Solicitud de contraseña",
+              `Usuario: ${req.email_o_telefono} — toca para atender`,
+              "🔑","#f59e0b",
+              "password_reset"
+            );
+            showToast(`🔑 Solicitud de reset: ${req.email_o_telefono}`,"warning");
+          })
+        .on("postgres_changes",{event:"UPDATE",schema:"public",table:"pedidos"},
+          pl=>{ if(pl.new?.estado==="listo") addNotif("✅ Pedido listo",`Pedido #${pl.new.id} listo para entrega — toca para ver`,"✅","#16a34a","ped_online"); })
+        .subscribe();
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn("[Admin] Realtime no disponible:", err?.message || err);
+      return undefined;
+    }
+    return ()=>{ try { supabase.removeChannel(ch); } catch (_) { /* noop */ } };
   },[usuario,addNotif, pushNotif]);
   const [neg,setNeg]     = useState("farmacia");
   const [alertas,setAlr] = useState({stock:0,pedidos:0,citas:0});
