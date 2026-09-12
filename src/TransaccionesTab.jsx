@@ -8,13 +8,14 @@ import { printServicioTicket } from "./utils/servicioTicket";
 import { labelTipoEntregaPedido, labelTipoPedido, pedidoCoincideFiltroTipo, pedidoEsTipoOnline, pedidoEsTipoServicio } from "./utils/orderChannels";
 import { configRowsToMap, mergeFarmaciaConfig } from "./constants/farmaciaFiscal";
 import { productMatchesSearchQuery } from "./utils/fuzzySearch";
-import { parseRpcJsonArray } from "./utils/rpcJson";
+import { parseRpcJsonArray, parseRpcJsonObject } from "./utils/rpcJson";
 import { notifyPosTicket, notifyOnlineOrderReceipt, formatFolioPOS, formatFolioOnline, formatWhatsAppSendError, formatWhatsAppSuccessMessage } from "./utils/orderReceiptWhatsApp";
 import { usePedidoTicketUrl } from "./hooks/usePedidoTicketUrl";
 import { telefonoMxValido, $ } from "./utils";
 import { rolEsAdmin } from "./utils/permissions";
 import { fmtDateTimeMexico } from "./lib/ventasVsMeta";
 import { recargoEsValido } from "./lib/pagoServicio";
+import { resumenTotalesTransacciones } from "./lib/transaccionesTotales";
 
 function esPagoServicio(p) {
   return p?.origen === "pago_servicio" || pedidoEsTipoServicio(p?.tipo);
@@ -193,12 +194,14 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
         p_created_desde: rango?.desde ?? null,
         p_created_hasta: rango?.hasta ?? null,
       });
+      const devObj = parseRpcJsonObject(dev);
       setDevolucionesPeriodo({
-        total_devuelto: parseFloat(dev?.total_devuelto || 0),
-        n: parseInt(dev?.n || 0, 10) || 0,
+        total_devuelto: parseFloat(devObj.total_devuelto || 0) || 0,
+        n: parseInt(devObj.n || 0, 10) || 0,
+        monto_efectivo: parseFloat(devObj.monto_efectivo || 0) || 0,
       });
     } catch {
-      setDevolucionesPeriodo({ total_devuelto: 0, n: 0 });
+      setDevolucionesPeriodo({ total_devuelto: 0, n: 0, monto_efectivo: 0 });
     }
     setLoading(false);
   }, [filtroFecha, fechaDesde, fechaHasta]);
@@ -570,9 +573,8 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
     </button>
   );
 
-  const sumaTotal = filtradosTodos.reduce((a, p) => a + parseFloat(p.total || 0), 0);
-  const promedio = filtradosTodos.length ? sumaTotal / filtradosTodos.length : 0;
-  const byMetodo = filtradosTodos.reduce((acc, p) => { const k = p.metodo_pago || "otro"; acc[k] = (acc[k] || 0) + parseFloat(p.total || 0); return acc; }, {});
+  const resumen = resumenTotalesTransacciones(filtradosTodos, devolucionesPeriodo, filtroEstado);
+  const { brutas, netas, promedio, byMetodo, totalDevuelto, mostrarDevoluciones } = resumen;
 
   return (
     <div style={{ colorScheme: "light" }}>
@@ -738,11 +740,16 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
       {filtradosTodos.length > 0 && (
         <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
           <div><div style={{ color: C.textMid, fontSize: 10, fontWeight: 700 }}>TRANSACCIONES</div><div style={{ color: C.blue, fontWeight: 800, fontSize: 18 }}>{filtradosTodos.length}</div></div>
-          <div><div style={{ color: C.textMid, fontSize: 10, fontWeight: 700 }}>TOTAL PERÍODO</div><div style={{ color: C.green, fontWeight: 800, fontSize: 18 }}>{fmtM(sumaTotal)}</div></div>
-          {devolucionesPeriodo.n > 0 && (
+          <div>
+            <div style={{ color: C.textMid, fontSize: 10, fontWeight: 700 }}>
+              {mostrarDevoluciones || filtroEstado === "cancelado" ? "VENTAS NETAS" : "TOTAL PERÍODO"}
+            </div>
+            <div style={{ color: C.green, fontWeight: 800, fontSize: 18 }}>{fmtM(netas)}</div>
+          </div>
+          {mostrarDevoluciones && (
             <>
-              <div><div style={{ color: C.textMid, fontSize: 10, fontWeight: 700 }}>DEVOLUCIONES</div><div style={{ color: C.red, fontWeight: 800, fontSize: 18 }}>−{fmtM(devolucionesPeriodo.total_devuelto)}</div></div>
-              <div><div style={{ color: C.textMid, fontSize: 10, fontWeight: 700 }}>VENTAS NETAS</div><div style={{ color: C.text, fontWeight: 800, fontSize: 18 }}>{fmtM(sumaTotal - devolucionesPeriodo.total_devuelto)}</div></div>
+              <div><div style={{ color: C.textMid, fontSize: 10, fontWeight: 700 }}>BRUTAS</div><div style={{ color: C.text, fontWeight: 800, fontSize: 18 }}>{fmtM(brutas)}</div></div>
+              <div><div style={{ color: C.textMid, fontSize: 10, fontWeight: 700 }}>DEVOLUCIONES</div><div style={{ color: C.red, fontWeight: 800, fontSize: 18 }}>−{fmtM(totalDevuelto)}</div></div>
             </>
           )}
           <div><div style={{ color: C.textMid, fontSize: 10, fontWeight: 700 }}>PROMEDIO</div><div style={{ color: C.purple, fontWeight: 800, fontSize: 18 }}>{fmtM(promedio)}</div></div>
