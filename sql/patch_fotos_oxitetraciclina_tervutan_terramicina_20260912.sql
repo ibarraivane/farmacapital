@@ -4,8 +4,9 @@
 --   Terramicina 7501287630506 → Pharmafast CDN (Pfizer 125 mg / 24 pastillas)
 -- Archivos en public/catalogo-propia/ (este commit).
 -- ORDEN: 1) merge/deploy a Vercel  2) pegar este SQL en Supabase.
--- Antes del deploy la URL 404; después del SQL el POS deja de mostrar
--- placeholder ámbar (Tervutan) e ícono roto (Terramicina).
+--
+-- Galería: inserta con es_principal=false y LUEGO degrada la anterior /
+-- marca la nueva (evita ux_producto_imagenes_una_principal).
 -- Idempotente: no pisa otra foto distinta; no duplica la misma URL.
 begin;
 
@@ -26,7 +27,7 @@ select p.id,
   'https://www.farmacapital.mx/catalogo-propia/tervutan-oxitetraciclina-500mg-16caps.jpg',
   'catalogo-propia/tervutan-oxitetraciclina-500mg-16caps.jpg',
   coalesce((select max(posicion) from public.producto_imagenes i where i.producto_id = p.id), 0) + 1,
-  true, 'propia'
+  false, 'propia'
 from public.productos p
 where (p.sku = 'FC-27879597' or p.codigo_barras = '7502227879597')
   and not exists (
@@ -35,11 +36,22 @@ where (p.sku = 'FC-27879597' or p.codigo_barras = '7502227879597')
   );
 
 update public.producto_imagenes i
-set es_principal = (i.url like '%catalogo-propia/tervutan-oxitetraciclina-500mg-16caps%')
+set es_principal = false
 where i.producto_id in (
   select id from public.productos
   where sku = 'FC-27879597' or codigo_barras = '7502227879597'
-);
+)
+  and i.es_principal
+  and i.url not like '%catalogo-propia/tervutan-oxitetraciclina-500mg-16caps%';
+
+update public.producto_imagenes i
+set es_principal = true
+where i.producto_id in (
+  select id from public.productos
+  where sku = 'FC-27879597' or codigo_barras = '7502227879597'
+)
+  and i.url like '%catalogo-propia/tervutan-oxitetraciclina-500mg-16caps%'
+  and not i.es_principal;
 
 
 -- Terramicina | 7501287630506 | Oxitetraciclina 125 mg 24 trociscos/pastillas
@@ -55,7 +67,6 @@ where (
     imagen_url is null
     or btrim(imagen_url) = ''
     or imagen_url not like '%catalogo-propia/terramicina-oxitetraciclina-125mg-24trociscos%'
-    -- URL rota / CDN muerto: reemplazar
     or imagen_url !~* 'farmacapital\.mx/catalogo-propia/'
   );
 
@@ -65,7 +76,7 @@ select p.id,
   'https://www.farmacapital.mx/catalogo-propia/terramicina-oxitetraciclina-125mg-24trociscos.jpg',
   'catalogo-propia/terramicina-oxitetraciclina-125mg-24trociscos.jpg',
   coalesce((select max(posicion) from public.producto_imagenes i where i.producto_id = p.id), 0) + 1,
-  true, 'propia'
+  false, 'propia'
 from public.productos p
 where (
     p.codigo_barras = '7501287630506'
@@ -77,12 +88,24 @@ where (
   );
 
 update public.producto_imagenes i
-set es_principal = (i.url like '%catalogo-propia/terramicina-oxitetraciclina-125mg-24trociscos%')
+set es_principal = false
 where i.producto_id in (
   select id from public.productos
   where codigo_barras = '7501287630506'
      or (nombre ilike '%Terramicina%' and nombre ilike '%Oxitetraciclina%')
-);
+)
+  and i.es_principal
+  and i.url not like '%catalogo-propia/terramicina-oxitetraciclina-125mg-24trociscos%';
+
+update public.producto_imagenes i
+set es_principal = true
+where i.producto_id in (
+  select id from public.productos
+  where codigo_barras = '7501287630506'
+     or (nombre ilike '%Terramicina%' and nombre ilike '%Oxitetraciclina%')
+)
+  and i.url like '%catalogo-propia/terramicina-oxitetraciclina-125mg-24trociscos%'
+  and not i.es_principal;
 
 commit;
 
