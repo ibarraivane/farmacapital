@@ -14,29 +14,29 @@ create temporary table _fc_fotos_ph (
 ) on commit drop;
 
 insert into _fc_fotos_ph (sku, ean, nombre_ilike, archivo) values
-  ('FC-30000039', '8907730000039', '%Acetif%SI%', 'acetif-si-1000mg-100ml.jpg')
-  ('FC-04908776', '7503004908776', '%Metformina%Alpharma%850%', 'metformina-alpharma-850-c30.jpg')
-  ('EQ-SON164', '7502001163485', '%Clotrimazol%Dual%', 'clotrimazol-dual-sons.jpg')
-  ('FC-26294254', '7502226294254', '%terbinafina%spray%', 'losil-s-terbinafina-spray.jpg')
-  ('FC-09744440', '7502009744440', '%Valtrover%G%', 'valtrover-g-4mg-c10.jpg')
-  ('FC-DE106642', '780083140939', '%Ampigrin%Infantil%', 'ampigrin-infantil-3amp.jpg')
-  ('FC-49027343', '7501349027343', '%Amsafast%120%', 'amsafast-120mg-c21.jpg')
-  ('FC-09747052', '7502009747052', '%Coriver%750%', 'coriver-750mg-c10.jpg')
-  ('FC-49028036', '7501349028036', '%Mometasona%AMSA%', 'mometasona-amsa-18ml.jpg')
-  ('FC-2001A890', '780083140922', '%Ampigrin%AD%', 'ampigrin-ad-3amp.jpg')
-  ('EQ-SON033', '7502001160019', '%Busconet%', 'busconet-inyectable-5ml.jpg')
-  ('EQ-NOV005', '75006433', '%Cirulan%', 'cirulan-gotas-20ml.jpg')
-  ('FC-11705010', '013117050103', '%Affective%Predoblado%', 'affective-predoblado-10-013117050103.jpg')
-  ('FC-11705414', '013117054149', null, 'chicolastic-classic-e4-14-013117054149.jpg')
-  ('FC-11701087', '013117010879', null, 'chicolastic-classic-e2-14-013117010879.jpg')
-  ('FC-11701268', '013117012682', null, 'chicolastic-classic-e1-14-013117012682.jpg')
-  ('FC-11701174', '013117011746', null, 'chicolastic-classic-e5-14-013117011746.jpg')
-  ('FC-11705314', '013117053142', null, 'chicolastic-classic-e3-14-013117053142.jpg')
-  ('FC-43411449', '7501943411449', '%Kotex%Maxi%Nocturna%', 'kotex-maxi-nocturna-alas-10-7501943411449.jpg')
-  ('FC-43418509', '7501943418509', '%Kotex%Nocturna%', 'kotex-nocturna-alas-8-7501943418509.jpg')
-  ('FC-03440534', '3616303440534', '%ADIDAS%CONTROL%', 'adidas-control-150ml-3616303440534.jpg')
-  ('FC-03441173', '3616303441173', '%ADIDAS%DYNAMIC%PULSE%', 'adidas-dynamic-pulse-150ml-3616303441173.jpg')
-  ('FC-03441302', '3616303441302', '%ADIDAS%TEAMFORCE%', 'adidas-teamforce-150ml-3616303441302.jpg')
+  ('FC-30000039', '8907730000039', '%Acetif%SI%', 'acetif-si-1000mg-100ml.jpg'),
+  ('FC-04908776', '7503004908776', '%Metformina%Alpharma%850%', 'metformina-alpharma-850-c30.jpg'),
+  ('EQ-SON164', '7502001163485', '%Clotrimazol%Dual%', 'clotrimazol-dual-sons.jpg'),
+  ('FC-26294254', '7502226294254', '%terbinafina%spray%', 'losil-s-terbinafina-spray.jpg'),
+  ('FC-09744440', '7502009744440', '%Valtrover%G%', 'valtrover-g-4mg-c10.jpg'),
+  ('FC-DE106642', '780083140939', '%Ampigrin%Infantil%', 'ampigrin-infantil-3amp.jpg'),
+  ('FC-49027343', '7501349027343', '%Amsafast%120%', 'amsafast-120mg-c21.jpg'),
+  ('FC-09747052', '7502009747052', '%Coriver%750%', 'coriver-750mg-c10.jpg'),
+  ('FC-49028036', '7501349028036', '%Mometasona%AMSA%', 'mometasona-amsa-18ml.jpg'),
+  ('FC-2001A890', '780083140922', '%Ampigrin%AD%', 'ampigrin-ad-3amp.jpg'),
+  ('EQ-SON033', '7502001160019', '%Busconet%', 'busconet-inyectable-5ml.jpg'),
+  ('EQ-NOV005', '75006433', '%Cirulan%', 'cirulan-gotas-20ml.jpg'),
+  ('FC-11705010', '013117050103', '%Affective%Predoblado%', 'affective-predoblado-10-013117050103.jpg'),
+  ('FC-11705414', '013117054149', null, 'chicolastic-classic-e4-14-013117054149.jpg'),
+  ('FC-11701087', '013117010879', null, 'chicolastic-classic-e2-14-013117010879.jpg'),
+  ('FC-11701268', '013117012682', null, 'chicolastic-classic-e1-14-013117012682.jpg'),
+  ('FC-11701174', '013117011746', null, 'chicolastic-classic-e5-14-013117011746.jpg'),
+  ('FC-11705314', '013117053142', null, 'chicolastic-classic-e3-14-013117053142.jpg'),
+  ('FC-43411449', '7501943411449', '%Kotex%Maxi%Nocturna%', 'kotex-maxi-nocturna-alas-10-7501943411449.jpg'),
+  ('FC-43418509', '7501943418509', '%Kotex%Nocturna%', 'kotex-nocturna-alas-8-7501943418509.jpg'),
+  ('FC-03440534', '3616303440534', '%ADIDAS%CONTROL%', 'adidas-control-150ml-3616303440534.jpg'),
+  ('FC-03441173', '3616303441173', '%ADIDAS%DYNAMIC%PULSE%', 'adidas-dynamic-pulse-150ml-3616303441173.jpg'),
+  ('FC-03441302', '3616303441302', '%ADIDAS%TEAMFORCE%', 'adidas-teamforce-150ml-3616303441302.jpg'),
   ('FC-03842420', '3616303842420', '%ADIDAS%POWER%BOOSTER%', 'adidas-power-booster-150ml-3616303842420.jpg');
 
 create temporary table _fc_fotos_match on commit drop as
