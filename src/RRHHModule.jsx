@@ -179,7 +179,10 @@ export default function RRHHModule() {
       );
       return;
     }
-    showToast("Turno asignado.", "success");
+    showToast(
+      "Turno de caja guardado. Si ya tenía abierta la pantalla de caja, que recargue o cierre sesión y vuelva a entrar.",
+      "success"
+    );
     fetchEmpleados();
   };
 
@@ -442,7 +445,7 @@ export default function RRHHModule() {
       <div style={S.section}>
         <div style={S.h2}>◐ Turnos de caja</div>
         <p style={{ color:C.textMid, fontSize:13, margin:'0 0 16px', lineHeight:1.45 }}>
-          Turno habitual de cada una. El día de descanso, la otra cubre matutino y vespertino: abre, corta a las 15:30 y vuelve a abrir. Quien ya salió no aparece aquí; sus ventas y cortes quedan a su nombre.
+          Aquí se asigna el turno que permite abrir caja (usuarios.turno). El de la lista de empleados es de nómina y no basta. El día de descanso, la otra cubre matutino y vespertino: abre, corta a las 15:30 y vuelve a abrir.
         </p>
         {loading ? <p style={{ color:C.textMid }}>Cargando…</p> :
          !perfilesCaja.length ? (
