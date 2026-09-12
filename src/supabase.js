@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { normalizeSupabaseProjectUrl } from './utils/supabaseProjectUrl';
 import { notifySesionEmpleadoInvalida, rpcIndicaSesionEmpleadoMuerta } from './utils/sesionEmpleadoAuth';
+import { createSafeRealtimeTransport } from './utils/safeRealtimeTransport';
 
 const runtimeEnv =
   typeof window !== "undefined" && window.__FARMACAPITAL_ENV ? window.__FARMACAPITAL_ENV : {};
@@ -78,7 +79,11 @@ export const isSupabaseProductionMisconfigured =
     !supabaseProjectUrl ||
     !supabaseAnonKey);
 
-export const supabase = createClient(supabaseProjectUrl, supabaseAnonKey);
+const safeTransport = createSafeRealtimeTransport();
+
+export const supabase = createClient(supabaseProjectUrl, supabaseAnonKey, {
+  realtime: safeTransport ? { transport: safeTransport } : undefined,
+});
 
 const _rpc = supabase.rpc.bind(supabase);
 supabase.rpc = (fn, args, options) =>
