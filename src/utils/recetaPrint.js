@@ -62,7 +62,7 @@ function lineasMed(medicamentos) {
   );
 }
 
-function detalleLinea(m) {
+export function detallePosologia(m) {
   const dosis = String(m.dosis || "").trim();
   const via = String(m.via || m.via_admin || "").trim();
   const frec = String(m.frecuencia || "").trim();
@@ -142,7 +142,7 @@ export function buildRecetaHtml(opts = {}) {
     .map((m, idx) => {
       const nom = esc(m.medicamento || m.nombre);
       const cant = Math.max(1, Number(m.cantidad) || 1);
-      const detalle = esc(detalleLinea(m) || "—");
+      const detalle = esc(detallePosologia(m) || "—");
       return `<tr>
         <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;vertical-align:top;width:28px;color:#64748b;font-size:11px">${idx + 1}</td>
         <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;font-weight:600;vertical-align:top">${nom}${cant > 1 ? ` <span style="color:#64748b;font-weight:500">×${cant}</span>` : ""}</td>
@@ -395,7 +395,7 @@ export function buildRecetaPdf(opts = {}) {
     doc.setFont("helvetica", "bold");
     doc.text(`${idx + 1}. ${nom}${cant > 1 ? `  ×${cant}` : ""}`, M, y);
     y += 4;
-    const det = detalleLinea(m) || "—";
+    const det = detallePosologia(m) || "—";
     doc.setFont("helvetica", "normal");
     doc.setTextColor(...GRIS);
     const detLines = doc.splitTextToSize(det, W - M * 2 - 4);

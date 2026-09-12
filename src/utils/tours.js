@@ -143,7 +143,7 @@ export const TOURS = {
         target: '[data-tour="cons-lista"]',
         title: "3. Cobro y recetas",
         content:
-          "El cobro de la consulta se hace en el POS → pestaña «Consultas». Si la doctora registró medicamentos en la receta y el paciente los compra en FarmaCapital, el sistema los marca como surtidos automáticamente.",
+          "El cobro de la consulta se hace en el POS → pestaña «Consultas». Cuando la doctora envía la receta, llega aquí: se imprime en la Brother (carta) y «Surtir en mostrador» carga al carrito lo que sí vendemos.",
         placement: "top",
       },
     ],
