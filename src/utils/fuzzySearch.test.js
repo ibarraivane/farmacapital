@@ -470,4 +470,29 @@ describe("catalog search dimensions", () => {
     expect(tiendaProductMatchesBusqueda(sildenafil, "viagra")).toBe(true);
     expect(tiendaProductMatchesBusqueda(broncolinAzul, "pastilla azul")).toBe(false);
   });
+
+  test("terbutan (como lo dicen en mostrador) encuentra Tervutan oxitetraciclina", () => {
+    const tervutan = {
+      id: 710,
+      nombre: "Tervutan Oxitetraciclina 500 mg 16 cápsulas",
+      marca: "Tervutan",
+      tipo: "generico",
+      principio_activo: "Oxitetraciclina",
+    };
+    expect(tiendaProductMatchesBusqueda(tervutan, "terbutan")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(tervutan, "tervutan")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(tervutan, "oxitetraciclina")).toBe(true);
+  });
+
+  test("kenciclen encuentra doxiciclina Kenciclen", () => {
+    const kenciclen = {
+      id: 711,
+      nombre: "Kenciclen Doxiciclina 100 mg 10 cápsulas",
+      marca: "Kenciclen",
+      tipo: "generico",
+      principio_activo: "Doxiciclina",
+    };
+    expect(tiendaProductMatchesBusqueda(kenciclen, "kenciclen")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(kenciclen, "doxiciclina")).toBe(true);
+  });
 });

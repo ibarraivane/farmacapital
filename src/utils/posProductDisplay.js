@@ -119,6 +119,33 @@ export function posTituloProducto(p) {
       limpio.split(/\s+/).length <= 5 &&
       limpio.length <= 40;
     if (cortoConMarca) return titleCase(limpio);
+
+    // Genérico cuyo nombre es la molécula (Oxitetraciclina) pero en caja/anaquel
+    // va la marca (Tervutan bajo la T). No anteponer laboratorio (Merck, Novag)
+    // a nombres ya comerciales (Dolo-Neurobion, Alu-Mag).
+    if (
+      marca &&
+      !/gen[eé]rico/i.test(marca) &&
+      !limpio.toLowerCase().startsWith(marca.toLowerCase()) &&
+      !comercial.toLowerCase().includes(marca.toLowerCase())
+    ) {
+      const primera = comercial.split(/\s+/)[0].replace(/[.,;:()]/g, "");
+      const paTok = String(pa || p.denominacion_generica || "")
+        .trim()
+        .toLowerCase()
+        .split(/[^a-záéíóúñü]+/i)[0] || "";
+      const coincidePa =
+        Boolean(paTok) &&
+        primera.toLowerCase().startsWith(paTok.slice(0, Math.min(6, paTok.length)));
+      const moleculaSinMarcaEnNombre =
+        !/-/.test(primera) &&
+        primera.length >= 10 &&
+        (p.tipo === "generico" || p.requiere_receta);
+      if (coincidePa || moleculaSinMarcaEnNombre) {
+        return titleCase(`${marca} · ${comercial}`);
+      }
+    }
+
     return titleCase(comercial);
   }
 

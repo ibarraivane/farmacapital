@@ -235,6 +235,16 @@ const CATALOG_VERNACULAR_GROUPS = [
     catalog: ["loratadina", "clarityne", "claritin"],
   },
   {
+    // Mostrador suele decir "Terbutan"; en caja es Tervutan (oxitetraciclina).
+    query: ["terbutan", "tervutan"],
+    catalog: ["tervutan", "oxitetraciclina"],
+  },
+  {
+    // Ticket Nadro decía "Ken LGEN"; en caja es Kenciclen (doxiciclina Kener).
+    query: ["kenciclen", "kenciclén"],
+    catalog: ["kenciclen", "doxiciclina"],
+  },
+  {
     query: ["curita", "curitas", "bandaid", "band-aid"],
     catalog: ["curita", "bandaid", "band-aid", "nexcare", "aposito"],
   },
