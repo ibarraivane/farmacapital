@@ -154,8 +154,8 @@ export function generarESCPOS(ticketData) {
   data.push("!Vuelva pronto!\n");
   data.push("farmacapital.mx\n");
 
-  // CORTE
-  data.push(CMD.FEED_LINES(3));
+  // 1 cm de cola (una línea). El corte de la TM-T20 ya deja ~9 mm.
+  data.push(CMD.FEED_LINES(1));
   data.push(CMD.CUT_PAPER);
 
   return data;
