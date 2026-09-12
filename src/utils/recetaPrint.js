@@ -2,13 +2,16 @@
  * Receta médica — Consultorio FarmaCapital (México).
  *
  * Reglamento de Insumos para la Salud, art. 29: nombre del médico, domicilio
- * del consultorio, cédula profesional, fecha y firma. Formato carta (letter).
- * Marca de consultorio, no ticket de farmacia.
+ * del consultorio, cédula profesional, fecha y firma. Formato carta (letter)
+ * para Brother DCP-L2660DW (láser, una cara). No ticket de 80 mm / Epson.
  * Estupefacientes (grupo I) requieren recetario oficial COFEPRIS — fuera de alcance.
  */
 
 import { jsPDF } from "jspdf";
 import { FARMACIA_FISCAL } from "../constants/farmaciaFiscal";
+import { LEYENDA_DIALOGO_RECETA, LEYENDA_IMPRESORA_RECETA } from "../constants/impresoras";
+
+export { LEYENDA_DIALOGO_RECETA, LEYENDA_IMPRESORA_RECETA };
 
 const LOGO_SRC = "/brand/farmacapital-icon.png?v=6";
 
@@ -168,9 +171,11 @@ export function buildRecetaHtml(opts = {}) {
   <meta charset="UTF-8"/>
   <title>Receta médica — ${esc(c.folio)}</title>
   <style>
-    @page { size: letter; margin: 14mm; }
+    /* Brother DCP-L2660DW: láser carta. No 80 mm. México usa Letter, no A4. */
+    @page { size: letter portrait; margin: 14mm; }
     * { margin:0; padding:0; box-sizing:border-box; }
     body { font-family: Georgia, "Times New Roman", serif; font-size: 13px; color: #0f172a; padding: 28px; max-width: 720px; margin: 0 auto; background:#fff; }
+    .print-hint { font-family: Arial, Helvetica, sans-serif; background:#eff6ff; border:1px solid #93c5fd; color:#1e3a8a; border-radius:8px; padding:10px 12px; margin-bottom:16px; font-size:12px; line-height:1.45; }
     .header { display:flex; justify-content:space-between; align-items:flex-start; border-bottom: 2.5px solid #0D1B2A; padding-bottom: 14px; margin-bottom: 18px; gap:16px; }
     .brand-name { font-family: Arial, Helvetica, sans-serif; font-size: 18px; font-weight: 800; color:#0D1B2A; letter-spacing:0.02em; margin-top:6px; }
     .brand-sub { font-family: Arial, Helvetica, sans-serif; font-size:11px; color:#475569; margin-top:2px; }
@@ -188,13 +193,24 @@ export function buildRecetaHtml(opts = {}) {
     .dx { background:#f8fafc; border-radius:8px; padding:12px 16px; margin-bottom:16px; font-family: Arial, Helvetica, sans-serif; }
     .notas { border:1px solid #e2e8f0; border-radius:8px; padding:12px 16px; margin-bottom:16px; font-family: Arial, Helvetica, sans-serif; }
     .aviso { font-family: Arial, Helvetica, sans-serif; font-size:10px; color:#64748b; margin:12px 0 0; line-height:1.45; }
-    .firma { display:grid; grid-template-columns:1fr 1fr; gap:40px; margin-top:36px; font-family: Arial, Helvetica, sans-serif; }
+    .firma { display:grid; grid-template-columns:1fr 1fr; gap:40px; margin-top:36px; font-family: Arial, Helvetica, sans-serif; page-break-inside:avoid; }
     .firma-box { text-align:center; font-size:11px; color:#475569; }
     .footer { text-align:center; font-size:10px; color:#94a3b8; border-top:1px solid #e2e8f0; padding-top:12px; margin-top:20px; font-family: Arial, Helvetica, sans-serif; line-height:1.5; }
-    @media print { body { padding:12px; } .no-print { display:none !important; } }
+    @media print {
+      html, body { width: 215.9mm; max-width: 215.9mm; background:#fff; }
+      body { padding:0; max-width:none; }
+      .no-print { display:none !important; }
+      /* Chrome apaga fondos por defecto; la Brother láser imprime bordes. */
+      .medico, .dx, thead tr { background:transparent !important; }
+      .medico, .dx { border:1px solid #0f172a; }
+    }
   </style>
 </head>
 <body>
+  <div class="no-print print-hint">
+    ${esc(LEYENDA_IMPRESORA_RECETA)}<br/>
+    ${esc(LEYENDA_DIALOGO_RECETA)}
+  </div>
   <div class="header">
     <div>
       <div class="logo"><img src="${LOGO_SRC}" alt="FarmaCapital"/></div>
@@ -275,6 +291,11 @@ export function buildRecetaHtml(opts = {}) {
   </div>
 </body>
 </html>`;
+}
+
+/** Imprime la receta carta (diálogo del navegador → Brother DCP-L2660DW). */
+export function imprimirRecetaCarta(opts = {}) {
+  return openRecetaPrint(buildRecetaHtml(opts));
 }
 
 /** PDF carta (letter, 215.9 × 279.4 mm). */

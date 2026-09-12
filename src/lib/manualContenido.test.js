@@ -112,6 +112,19 @@ describe("manualContenido", () => {
     expect(doc.some((t) => t.id === "recargas")).toBe(false);
   });
 
+  test("Imprimir receta apunta a Brother carta, no a la Epson", () => {
+    const t = TEMAS.find((x) => x.id === "imprimir-receta");
+    const blob = [t.resumen, ...(t.pasos || []), ...(t.dudas || []).flatMap((d) => [d.q, d.a])].join(" ");
+    expect(blob).toMatch(/Brother/i);
+    expect(blob).toMatch(/DCP-L2660DW/);
+    expect(blob).toMatch(/carta|letter/i);
+    expect(blob).toMatch(/Epson/i);
+    expect(blob).toMatch(/dúplex|duplex|una cara/i);
+    const r = buscarManual("brother receta", [t], GLOSARIO);
+    expect(r.temas.some((x) => x.id === "imprimir-receta")).toBe(true);
+    expect(r.glosario.some((g) => g.id === "brother")).toBe(true);
+  });
+
   test("Recargas explica Point, 1% y que no va al cajón", () => {
     const t = TEMAS.find((x) => x.id === "recargas");
     const blob = [t.resumen, ...(t.pasos || []), ...(t.dudas || []).flatMap((d) => [d.q, d.a])].join(" ");

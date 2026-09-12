@@ -877,7 +877,7 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
         <Box style={{ padding: 14, marginBottom: 12 }}>
           <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, marginBottom: 8 }}>RECETA MÉXICO · FOLIO + CAJA</div>
           <p style={{ color: C.textMid, fontSize: 11, lineHeight: 1.45, margin: "0 0 10px" }}>
-            Formato carta (consultorio, no ticket). Cédula obligatoria. Al enviar, baja a POS → Consultas para imprimir y surtir.
+            Formato carta para la Brother DCP-L2660DW (una cara, no la Epson térmica). Cédula obligatoria. Al enviar, baja a POS → Consultas para imprimir y surtir.
           </p>
           {puedeEditar && (
             <>
