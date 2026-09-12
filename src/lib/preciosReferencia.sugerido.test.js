@@ -1,4 +1,5 @@
 import {
+  FUENTES_COMPRA_TABLA,
   percentilRefs,
   calcPrecioSugeridoVenta,
   calcPrecioSugeridoReferencias,
@@ -6,6 +7,13 @@ import {
   listarSubidasSugeridas,
   captionRefNoComparable,
 } from "./preciosReferencia";
+
+test("compra compara Farma City, no la columna Otros", () => {
+  expect(FUENTES_COMPRA_TABLA).toEqual([
+    "exprezo", "marzam", "nadro", "levic", "farmalive", "farmacity",
+  ]);
+  expect(FUENTES_COMPRA_TABLA).not.toContain("otros_compra");
+});
 
 test("percentil 40 no es el mínimo", () => {
   expect(percentilRefs([10, 20, 30, 40, 50], 0.4)).toBe(26);

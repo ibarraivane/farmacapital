@@ -7,9 +7,9 @@ import { diagnosticoRefCadena } from "./monitorPrecios/unidadVenta";
 import { coherenciaSugeridosPorTamano, proponerPreciosVentaPorTamano } from "./preciosPorTamano";
 
 /** Columnas visibles en la tabla Compra (no inflar con fuentes de pocos matches). */
-export const FUENTES_COMPRA_TABLA = ["exprezo", "marzam", "nadro", "levic", "farmalive", "otros_compra"];
+export const FUENTES_COMPRA_TABLA = ["exprezo", "marzam", "nadro", "levic", "farmalive", "farmacity"];
 /** Entran a «Comprar en» / mejor precio, sin columna propia. */
-export const FUENTES_COMPRA_EXTRA = ["scorpion", "abarrotero", "mayoreototal"];
+export const FUENTES_COMPRA_EXTRA = ["scorpion", "abarrotero", "mayoreototal", "otros_compra"];
 export const FUENTES_COMPRA = [...FUENTES_COMPRA_TABLA, ...FUENTES_COMPRA_EXTRA];
 export const FUENTES_VENTA = ["fahorro", "similares", "otros_venta"];
 /** Referencias: percentil 40, al mercado, piso sí manda. */
@@ -109,6 +109,12 @@ export const FUENTE_META = {
     tipo: "compra",
     listaDistribuidor: false,
     hint: "Lista Club Iztapalapa. Precio base (2%), sin campañas de día.",
+  },
+  farmacity: {
+    label: "Farma City",
+    tipo: "compra",
+    listaDistribuidor: false,
+    hint: "Lista Cityfarma Iztapalapa (4-sep-2026). Precio neto de mayoreo, no PVP.",
   },
   scorpion: {
     label: "Scorpion",

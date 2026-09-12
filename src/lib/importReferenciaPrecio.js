@@ -16,6 +16,7 @@ export const FUENTES_IMPORT = [
   { id: "nadro", label: "Nadro (medicamento)", tipo: "compra", adapter: "generico" },
   { id: "levic", label: "Levic (medicamento)", tipo: "compra", adapter: "generico" },
   { id: "farmalive", label: "Farmalive (lista Club Iztapalapa)", tipo: "compra", adapter: "generico" },
+  { id: "farmacity", label: "Farma City (lista Cityfarma Iztapalapa)", tipo: "compra", adapter: "generico" },
   { id: "fahorro", label: "Del Ahorro (venta)", tipo: "venta", adapter: "generico" },
 ];
 
@@ -92,9 +93,9 @@ export function parseGenericoRows(rows, headers) {
     return i >= 0 ? headers[i] : null;
   };
   const skuH = findCol(["sku", "sku_farmacapital"]);
-  const eanH = findCol(["ean", "codigo", "codigo_barras", "codigobarras", "barcode", "upc"]);
+  const eanH = findCol(["ean", "codigo", "codigo_barras", "codigobarras", "barcode", "upc", "cod.barras", "cod_barras", "cod barras"]);
   const nomH = findCol(["nombre", "producto", "descripcion"]);
-  const preH = findCol(["precio", "precio_ref", "precio_mayoreo", "precio_similares", "precio_del_ahorro", "precio 2%"]);
+  const preH = findCol(["precio", "precio_ref", "precio_mayoreo", "precio_similares", "precio_del_ahorro", "precio 2%", "precio neto", "precio_neto", "neto"]);
   if (!preH) throw new Error("Falta columna de precio (precio, precio_ref, …)");
   return rows.map((row) => {
     const precio = parseMoney(row[preH]);
