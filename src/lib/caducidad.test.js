@@ -1,4 +1,11 @@
-import { parseCaducidadMMAA, formatCaducidadMesAnio, etiquetaCaducidadMMAA, esPorCaducar } from "./caducidad";
+import {
+  parseCaducidadMMAA,
+  formatCaducidadMesAnio,
+  etiquetaCaducidadMMAA,
+  etiquetaCaducidadIso,
+  diasRestantesCaducidad,
+  esPorCaducar,
+} from "./caducidad";
 
 describe("parseCaducidadMMAA", () => {
   test("0629 → último día de junio 2029", () => {
@@ -31,6 +38,17 @@ describe("format / etiqueta", () => {
   });
   test("preview MMAA", () => {
     expect(etiquetaCaducidadMMAA("0629")).toBe("jun 2029");
+  });
+  test("ISO a etiqueta corta", () => {
+    expect(etiquetaCaducidadIso("2029-06-30")).toBe("jun 2029");
+    expect(etiquetaCaducidadIso(null)).toBe("");
+  });
+});
+
+describe("diasRestantesCaducidad", () => {
+  test("cuenta días civiles", () => {
+    expect(diasRestantesCaducidad("2026-06-30", "2026-06-01")).toBe(29);
+    expect(diasRestantesCaducidad("2026-05-31", "2026-06-01")).toBe(-1);
   });
 });
 

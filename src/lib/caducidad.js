@@ -46,6 +46,28 @@ export function etiquetaCaducidadMMAA(raw) {
   return `${MESES_CORTOS[mi - 1]} ${y}`;
 }
 
+/** ISO (último día del mes) → "jun 2029". Sin fecha → "". */
+export function etiquetaCaducidadIso(iso) {
+  if (!iso) return "";
+  const [y, m] = String(iso).slice(0, 10).split("-");
+  const mi = parseInt(m, 10);
+  const year = parseInt(y, 10);
+  if (!mi || mi < 1 || mi > 12 || !year) return "";
+  return `${MESES_CORTOS[mi - 1]} ${year}`;
+}
+
+/** Días civiles hasta la caducidad (hoy farmacia YYYY-MM-DD). Sin fecha → null. */
+export function diasRestantesCaducidad(iso, hoyIso) {
+  const cad = String(iso || "").slice(0, 10);
+  const hoy = String(hoyIso || "").slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(cad) || !/^\d{4}-\d{2}-\d{2}$/.test(hoy)) return null;
+  const [cy, cm, cd] = cad.split("-").map(Number);
+  const [hy, hm, hd] = hoy.split("-").map(Number);
+  const a = Date.UTC(cy, cm - 1, cd);
+  const b = Date.UTC(hy, hm - 1, hd);
+  return Math.floor((a - b) / 86400000);
+}
+
 export function esPorCaducar(dias) {
   return typeof dias === "number" && dias >= 0 && dias <= DIAS_CADUCIDAD_ALERTA;
 }
