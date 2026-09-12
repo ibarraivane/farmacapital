@@ -24,7 +24,7 @@ TOTAL = 65.00
 
 ROWS = [
     {
-        "nombre": "Pinza depilar Lady chica",
+        "nombre": "Pinza tijera Lady Curtis chica",
         "desc_ticket": "PINZA DEPILAR LADY CHICA",
         "qty": 2,
         "pu": 7.50,
@@ -32,16 +32,16 @@ ROWS = [
         "ean": "",
         "sku": "FC-IFC-PINZACH",
         "match": "sin_ean",
-        "marca": "Lady",
+        "marca": "Curtis",
         "presentacion": "Chica",
         "forma": "Accesorio",
         "categoria": "Cuidado personal",
-        "foto": None,  # TODO foto: packshot de la pinza chica
+        "foto": "https://www.farmacapital.mx/catalogo-propia/pinza-lady-curtis-chica.jpg",
         "receta": False,
         "alta": True,
     },
     {
-        "nombre": "Pinza depilar Lady grande",
+        "nombre": "Pinza tijera Lady Curtis grande",
         "desc_ticket": "PINZA DEPILAR LADY GRANDE",
         "qty": 2,
         "pu": 8.00,
@@ -49,11 +49,11 @@ ROWS = [
         "ean": "",
         "sku": "FC-IFC-PINZAGR",
         "match": "sin_ean",
-        "marca": "Lady",
+        "marca": "Curtis",
         "presentacion": "Grande",
         "forma": "Accesorio",
         "categoria": "Cuidado personal",
-        "foto": None,  # TODO foto: packshot de la pinza grande
+        "foto": "https://www.farmacapital.mx/catalogo-propia/pinza-lady-curtis-grande.jpg",
         "receta": False,
         "alta": True,
     },
@@ -94,7 +94,7 @@ def write_carga_sql(path: Path) -> None:
         "-- SIN bloques dollar-quote. Stock = 0; entra al escanear en Recibir.",
         "-- Sin EAN público (códigos IFC del ticket no son GS1). codigo_barras = null.",
         "-- Aceite almendras ya existe (FC-D4AC123B): solo actualiza costo.",
-        "-- TODO foto: FC-IFC-PINZACH / FC-IFC-PINZAGR.",
+        "-- Fotos Curtis Lady en catalogo-propia/.",
         "-- Orden: 1) este archivo  2) patch_recepcion_ifc_123816.sql",
         "-- Idempotente. Pegar TODO en Supabase → SQL Editor → Run.",
         "",

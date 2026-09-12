@@ -18,8 +18,8 @@ create temp table _fc_rx_ifc123816 (
 ) on commit drop;
 
 insert into _fc_rx_ifc123816 (linea, ean, sku, nombre, qty, costo) values
-  (1, null, 'FC-IFC-PINZACH', 'Pinza depilar Lady chica', 2, 7.50),
-  (2, null, 'FC-IFC-PINZAGR', 'Pinza depilar Lady grande', 2, 8.00),
+  (1, null, 'FC-IFC-PINZACH', 'Pinza tijera Lady Curtis chica', 2, 7.50),
+  (2, null, 'FC-IFC-PINZAGR', 'Pinza tijera Lady Curtis grande', 2, 8.00),
   (3, null, 'FC-D4AC123B', 'Mercurio Aceite Almendras', 4, 8.50);
 
 insert into public.recepciones (proveedor, folio, fecha, total_ticket, estado, notas)
