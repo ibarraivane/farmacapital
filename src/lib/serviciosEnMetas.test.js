@@ -61,6 +61,8 @@ describe("serviciosEnMetas", () => {
         id: 10,
         created_at: "2026-09-12T15:00:00.000Z",
         cliente_id: 1,
+        total: 120,
+        metodo_pago: "efectivo",
         pedido_items: [{ cantidad: 2, productos: { nombre: "Aspirina" }, lotes: {} }],
       }],
       [{
@@ -76,6 +78,9 @@ describe("serviciosEnMetas", () => {
     expect(list[0].folioLabel).toBe("SRV-20260912-000099");
     expect(list[0].items[0].nombre).toBe("Recarga Telcel");
     expect(list[1].pedidoId).toBe(10);
+    expect(list[1].total).toBe(120);
+    expect(list[1].metodoPago).toBe("efectivo");
+    expect(list[0].servicio?.folio).toBe("SRV-20260912-000099");
   });
 
   test("snapshot acepta srv_* o rec_*", () => {
