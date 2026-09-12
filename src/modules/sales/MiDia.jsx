@@ -16,6 +16,12 @@ import {
 import { fetchJornadaHoy } from "../../utils/cajaSesion";
 import { formatFolioPOS } from "../../utils/orderReceiptWhatsApp";
 import { categoriaCanon } from "../../constants/categoriasProducto";
+import {
+  sumarVentasConServicios,
+  acumularServiciosPorDia,
+  ticketsTurnoDesdePedidosYServicios,
+  filasServicioDesdeSnapshot,
+} from "../../lib/serviciosEnMetas";
 
 const C = C_LIGHT;
 
@@ -83,22 +89,6 @@ function KpiCell({ icon, value, label, col, onClick, expanded }) {
   );
 }
 
-/** Lista de piso: folio, hora y artículos. Nunca montos. */
-function ticketsTurnoDesdePedidos(pedTurno) {
-  return [...(pedTurno || [])]
-    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-    .map((p) => ({
-      id: p.id,
-      created_at: p.created_at,
-      conCliente: p.cliente_id != null,
-      items: (p.pedido_items || []).map((it) => ({
-        cantidad: it.cantidad || 0,
-        nombre: String(it.productos?.nombre || it.productos?.categoria || "Artículo").trim() || "Artículo",
-        lote: it.lotes?.numero_lote || null,
-      })),
-    }));
-}
-
 function TicketsTurnoList({ tickets }) {
   return (
     <section
@@ -134,10 +124,11 @@ function TicketsTurnoList({ tickets }) {
             >
               <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
                 <div style={{ color: C.text, fontWeight: 800, fontSize: 14, fontVariantNumeric: "tabular-nums" }}>
-                  {formatFolioPOS(t.id)}
+                  {t.folioLabel || formatFolioPOS(t.pedidoId)}
                 </div>
                 <div style={{ color: C.textMid, fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
                   {t.created_at ? fmtHora(new Date(t.created_at)) : "—"}
+                  {t.esServicio ? " · servicio" : ""}
                   {t.conCliente ? " · con cliente" : ""}
                 </div>
               </div>
@@ -214,7 +205,7 @@ export default function MiDia({ usuario, setPage }) {
   const [now, setNow] = useState(() => new Date());
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({
-    ventasTurno: 0, metaTurno: 0, tickets: 0, itemsTotales: 0,
+    ventasTurno: 0, metaTurno: 0, tickets: 0, ticketsProducto: 0, itemsTotales: 0,
     ticketsConDosItems: 0, ticketsConCliente: 0,
     ventasMes: 0, metaMes: 0,
     diasTrabajados: 0, diasCumplidos: 0, rachaActual: 0,
@@ -276,6 +267,8 @@ export default function MiDia({ usuario, setPage }) {
       const snap = snapRes?.data || {};
       const pedTurno = snap.ped_turno || [];
       const pedMes = snap.ped_mes || [];
+      const srvTurno = filasServicioDesdeSnapshot(snap, "turno");
+      const srvMes = filasServicioDesdeSnapshot(snap, "mes");
       const citasEspera = typeof snap.citas_espera === "number" ? snap.citas_espera : 0;
 
       // ── Meta del turno (si cubre ambos, es la meta de todo el día).
@@ -293,10 +286,13 @@ export default function MiDia({ usuario, setPage }) {
         metaTurno = Math.round(parseFloat(configMap[claveMeta] || 0) * multTurno);
       }
 
-      // ── KPIs del turno.
-      const ventasTurno = pedTurno.reduce((a, p) => a + parseFloat(p.total || 0), 0);
-      const tickets = pedTurno.length;
+      // ── KPIs del turno (tickets = productos + servicios; % meta suma ambos).
+      const ventasPedTurno = pedTurno.reduce((a, p) => a + parseFloat(p.total || 0), 0);
+      const ventasTurno = sumarVentasConServicios(ventasPedTurno, srvTurno);
+      const ticketsProducto = pedTurno.length;
+      const tickets = ticketsProducto + srvTurno.length;
       const itemsTotales = pedTurno.reduce((a, p) => a + (p.pedido_items || []).reduce((b, i) => b + (i.cantidad || 0), 0), 0);
+      // Cruzada / prod / cliente: solo tickets de producto.
       const ticketsConDosItems = pedTurno.filter((p) => (p.pedido_items || []).length >= 2).length;
       const ticketsConCliente = pedTurno.filter((p) => p.cliente_id != null).length;
 
@@ -311,13 +307,14 @@ export default function MiDia({ usuario, setPage }) {
       let totalUnidadesCategoriaTop = 0;
       catCount.forEach((v, k) => { if (v > totalUnidadesCategoriaTop) { categoriaTop = k; totalUnidadesCategoriaTop = v; } });
 
-      // ── Mes: agrupar ventas por día y comparar contra meta del día.
+      // ── Mes: agrupar ventas por día (pedidos + servicios) vs meta del día.
       const ventasPorDia = new Map();
       pedMes.forEach((p) => {
         const d = new Date(p.created_at);
         const k = d.toISOString().slice(0, 10);
         ventasPorDia.set(k, (ventasPorDia.get(k) || 0) + parseFloat(p.total || 0));
       });
+      acumularServiciosPorDia(ventasPorDia, srvMes);
       const diasTrabajados = ventasPorDia.size;
       let diasCumplidos = 0;
       let rachaActual = 0;
@@ -347,18 +344,19 @@ export default function MiDia({ usuario, setPage }) {
         else break;
       }
 
-      const ventasMes = pedMes.reduce((a, p) => a + parseFloat(p.total || 0), 0);
+      const ventasPedMes = pedMes.reduce((a, p) => a + parseFloat(p.total || 0), 0);
+      const ventasMes = sumarVentasConServicios(ventasPedMes, srvMes);
       const metaMes = parseFloat(configMap.meta_ventas_mes || 0);
 
       setData({
-        ventasTurno, metaTurno, tickets, itemsTotales,
+        ventasTurno, metaTurno, tickets, ticketsProducto, itemsTotales,
         ticketsConDosItems, ticketsConCliente,
         ventasMes, metaMes,
         diasTrabajados, diasCumplidos, rachaActual,
         categoriaTop, totalUnidadesCategoriaTop,
         citasEnEspera: citasEspera,
         bonosOn: bonosActivos(configMap),
-        ticketsTurno: ticketsTurnoDesdePedidos(pedTurno),
+        ticketsTurno: ticketsTurnoDesdePedidosYServicios(pedTurno, srvTurno),
       });
     } catch (e) {
       console.warn("[MiDia] cargarDatos:", e?.message || e);
@@ -368,7 +366,7 @@ export default function MiDia({ usuario, setPage }) {
 
   useEffect(() => { cargarDatos(); }, [cargarDatos]);
 
-  // ── Realtime: recargar al insertar/actualizar pedidos del vendedor.
+  // ── Realtime: pedidos y pagos de servicio del vendedor refrescan el % de meta.
   useEffect(() => {
     if (!usuario?.id) return;
     let channel;
@@ -380,6 +378,10 @@ export default function MiDia({ usuario, setPage }) {
         .channel(`mi-dia-${empleadoId}`)
         .on("postgres_changes", {
           event: "*", schema: "public", table: "pedidos",
+          filter: `atendido_por=eq.${empleadoId}`,
+        }, () => { cargarDatos(); })
+        .on("postgres_changes", {
+          event: "*", schema: "public", table: "pagos_servicio",
           filter: `atendido_por=eq.${empleadoId}`,
         }, () => { cargarDatos(); })
         .subscribe();
@@ -394,9 +396,11 @@ export default function MiDia({ usuario, setPage }) {
   const pctDia = data.metaTurno > 0 ? Math.round((data.ventasTurno / data.metaTurno) * 100) : 0;
   const pctMes = data.metaMes > 0 ? Math.round((data.ventasMes / data.metaMes) * 100) : 0;
   const faltaDia = Math.max(0, 100 - pctDia);
-  const prodPorTicket = data.tickets > 0 ? (data.itemsTotales / data.tickets) : 0;
-  const pctCruzada = data.tickets > 0 ? Math.round((data.ticketsConDosItems / data.tickets) * 100) : 0;
-  const pctPuntos = data.tickets > 0 ? Math.round((data.ticketsConCliente / data.tickets) * 100) : 0;
+  // Prod/cruzada/cliente solo sobre tickets de producto.
+  const denomProducto = data.ticketsProducto > 0 ? data.ticketsProducto : 0;
+  const prodPorTicket = denomProducto > 0 ? (data.itemsTotales / denomProducto) : 0;
+  const pctCruzada = denomProducto > 0 ? Math.round((data.ticketsConDosItems / denomProducto) * 100) : 0;
+  const pctPuntos = denomProducto > 0 ? Math.round((data.ticketsConCliente / denomProducto) * 100) : 0;
   const escalon = data.bonosOn ? escalonBono(pctMes) : null;
   const escalonSiguiente = useMemo(() => {
     if (!escalon) return escalonBono(70);
@@ -427,7 +431,7 @@ export default function MiDia({ usuario, setPage }) {
         sub: `${data.totalUnidadesCategoriaTop} unidades vendidas en el turno.`,
       });
     }
-    if (pctPuntos >= 60 && data.tickets >= 3) {
+    if (pctPuntos >= 60 && data.ticketsProducto >= 3) {
       out.push({
         icon: UsersIcon,
         col: C.blue,
