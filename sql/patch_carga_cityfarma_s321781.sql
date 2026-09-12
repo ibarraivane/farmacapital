@@ -1,3 +1,9 @@
+-- =============================================================================
+-- ESTE es el archivo para Supabase (SQL). NO pegues scripts/generar_carga_*.py
+-- (ese empieza con #!/usr/bin/env python3 y marca error 42601).
+-- Archivo: sql/patch_carga_cityfarma_s321781.sql
+-- Pegar TODO abajo en Supabase → SQL Editor → Run.
+-- =============================================================================
 -- Cityfarma Iztapalapa · orden S321781 · 2026-09-10 17:04
 -- Ticket térmico Central de Abastos. P.U. ya trae IVA (suma renglones = $815.88).
 -- El ticket imprime Total $0.00 / Pendiente de pago; se usa la suma de renglones (igual que S320861).
@@ -5,7 +11,6 @@
 -- Nombres de ficha (YZA/Fahorro/Farmamedical), no del ticket.
 -- Fotos en public/catalogo-propia/ (tras deploy).
 -- SIN bloques dollar-quote. Idempotente mientras el ticket siga en borrador.
--- Pegar TODO este archivo en Supabase → SQL Editor → Run.
 
 begin;
 

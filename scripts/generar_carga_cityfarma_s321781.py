@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# NO pegar este archivo en Supabase. Genera el SQL; el que se corre es:
+#   sql/patch_carga_cityfarma_s321781.sql
 """Ticket Cityfarma S321781 (10-sep-2026) → catálogo + cola Recibir.
 
 Nombres de mostrador salen de ficha (YZA/Fahorro Geslutin; Fahorro/Farmamedical
