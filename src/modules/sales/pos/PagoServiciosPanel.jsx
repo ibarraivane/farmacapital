@@ -74,6 +74,7 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
   const [selId, setSelId] = useState("telcel");
   const [referencia, setReferencia] = useState("");
   const [montoStr, setMontoStr] = useState("");
+  const [comisionStr, setComisionStr] = useState("0");
   const [notas, setNotas] = useState("");
   const [liquidado, setLiquidado] = useState(false);
   const [guardando, setGuardando] = useState(false);
@@ -90,8 +91,18 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
     [selId]
   );
 
+  useEffect(() => {
+    setComisionStr(String(recargoCatalogoDe(servicio.id)));
+  }, [servicio.id]);
+
   const monto = parseMonto(montoStr);
-  const comision = recargoCatalogoDe(servicio.id);
+  const comision =
+    servicio.categoria === "recarga"
+      ? 0
+      : (() => {
+          const n = parseMonto(comisionStr === "" ? "0" : comisionStr);
+          return Number.isFinite(n) ? n : NaN;
+        })();
   const total = Number.isFinite(monto) && Number.isFinite(comision) ? Math.round((monto + comision) * 100) / 100 : 0;
   const compensacionMp = Number.isFinite(monto) ? compensacionMpDe(monto) : 0;
   const utilidad = Number.isFinite(comision) ? utilidadServicio({ comision, compensacionMp }) : 0;
@@ -127,6 +138,7 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
   const limpiarForm = () => {
     setReferencia("");
     setMontoStr("");
+    setComisionStr(String(recargoCatalogoDe(selId)));
     setNotas("");
     setLiquidado(false);
   };
@@ -177,7 +189,7 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
       showToast(
         servicio.categoria === "recarga"
           ? "Las recargas no llevan recargo. Solo el monto de tiempo aire."
-          : `El recargo de ${servicio.proveedor} va automático ($${servicio.comision}).`,
+          : "Recargo inválido. Déjalo en 0 o pon un monto positivo.",
         "error",
       );
       return false;
@@ -315,13 +327,13 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
           {servicio.categoria === "recarga" ? (
             <><strong>Recargas.</strong> Primero el tiempo aire en la Point. Aquí solo anotas el monto: <strong>sin recargo</strong>. Prefiere <strong>Efectivo</strong>.</>
           ) : (
-            <><strong>Pago de recibos.</strong> Primero el pago en la Point. Aquí pones el monto: el recargo ({$(servicio.comision)}) se suma solo. Prefiere <strong>Efectivo</strong>.</>
+            <><strong>Pago de recibos.</strong> Primero el pago en la Point. Aquí pones el monto: el recargo arranca en <strong>$0</strong> y se puede ajustar a mano. Prefiere <strong>Efectivo</strong>.</>
           )}
         </div>
         <div style={{ color: C.textMid, fontSize: 11, marginTop: 8, lineHeight: 1.45 }}>
           {servicio.categoria === "recarga"
             ? "No se cobra comisión de farmacia. Mercado Pago te acredita aparte el 1% en su app (Actividad)."
-            : "El recargo entra al cajón. Mercado Pago te acredita aparte el 1% en su app (Actividad), no en efectivo."}
+            : "Por ahora no cobramos recargo fijo (metro, CFE, Sky…). Si lo pones, entra al cajón. Mercado Pago te acredita aparte el 1% en su app."}
         </div>
       </div>
 
@@ -385,22 +397,35 @@ export default function PagoServiciosPanel({ onCobrarPoint, isNarrow, refreshTok
             <Inp value={montoStr} onChange={(e) => setMontoStr(e.target.value)} placeholder="100" style={{ width: "100%", boxSizing: "border-box" }} />
           </div>
 
+          {servicio.categoria !== "recarga" && (
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ color: C.textMid, fontSize: 11, marginBottom: 4 }}>Recargo farmacia (opcional)</div>
+              <Inp
+                value={comisionStr}
+                onChange={(e) => setComisionStr(e.target.value)}
+                placeholder="0"
+                style={{ width: "100%", boxSizing: "border-box" }}
+              />
+              <div style={{ color: C.textDim, fontSize: 11, marginTop: 4, lineHeight: 1.4 }}>
+                Va en 0 por default. Solo súbelo si de verdad lo cobras (metro, CFE, etc.).
+              </div>
+            </div>
+          )}
+
           <div style={{ background: C.bg, borderRadius: 8, padding: "10px 12px", marginBottom: 12 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
               <span style={{ color: C.textMid, fontSize: 12 }}>Recarga</span>
               <span style={{ color: C.text, fontWeight: 700, fontSize: 13 }}>{Number.isFinite(monto) && monto > 0 ? $(monto) : "—"}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <span style={{ color: C.textMid, fontSize: 12 }}>
-                {servicio.categoria === "recarga" ? "Recargo farmacia" : `Recargo ${servicio.proveedor} (automático)`}
-              </span>
-              <span style={{ color: C.text, fontWeight: 700, fontSize: 13 }}>{comision > 0 ? `+${$(comision)}` : "Sin recargo"}</span>
+              <span style={{ color: C.textMid, fontSize: 12 }}>Recargo farmacia</span>
+              <span style={{ color: C.text, fontWeight: 700, fontSize: 13 }}>{Number.isFinite(comision) && comision > 0 ? `+${$(comision)}` : "Sin recargo"}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span style={{ color: C.textMid, fontSize: 12 }}>Total a cobrar</span>
-              <span style={{ color: C.green, fontWeight: 900, fontSize: 20 }}>{$(total)}</span>
+              <span style={{ color: C.green, fontWeight: 900, fontSize: 20 }}>{Number.isFinite(total) ? $(total) : "—"}</span>
             </div>
-            {Number.isFinite(monto) && monto > 0 && (
+            {Number.isFinite(monto) && monto > 0 && Number.isFinite(comision) && (
               <div style={{ color: C.textDim, fontSize: 11, marginTop: 8, lineHeight: 1.45 }}>
                 El cliente deja {$(total)}. Mercado Pago te acredita aparte {$(compensacionMp)} (1%) en su app. Utilidad {$(utilidad)}.
               </div>

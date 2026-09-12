@@ -20,23 +20,24 @@ export function esMismoDiaMexico(iso, dia = fechaLocalMexico()) {
 }
 
 /** Recargo de mostrador por servicio. No lo pone Mercado Pago: lo pone FarmaCapital.
- *  Recargas (tiempo aire): comision 0. Recibos (CFE, Sky…): sí llevan recargo. */
+ *  Por ahora el catálogo arranca en 0 (zona con poca demanda; cobros altos espantan).
+ *  Recargas (tiempo aire): siempre 0. Recibos/otros: default 0 y se ajustan a mano en el POS. */
 export const CATALOGO_SERVICIOS = [
   { id: "telcel", categoria: "recarga", proveedor: "Telcel", comision: 0, emoji: "📱" },
   { id: "movistar", categoria: "recarga", proveedor: "Movistar", comision: 0, emoji: "📱" },
   { id: "att", categoria: "recarga", proveedor: "AT&T", comision: 0, emoji: "📱" },
   { id: "unefon", categoria: "recarga", proveedor: "Unefon", comision: 0, emoji: "📱" },
-  { id: "cfe", categoria: "luz", proveedor: "CFE", comision: 8, emoji: "💡" },
-  { id: "telmex", categoria: "telefonia", proveedor: "Telmex", comision: 8, emoji: "☎️" },
-  { id: "totalplay", categoria: "telefonia", proveedor: "Totalplay", comision: 8, emoji: "📺" },
-  { id: "izzi", categoria: "telefonia", proveedor: "Izzi", comision: 8, emoji: "📺" },
-  { id: "sky", categoria: "tv", proveedor: "Sky", comision: 10, emoji: "📡" },
-  { id: "agua", categoria: "agua", proveedor: "Agua (local)", comision: 8, emoji: "💧" },
-  { id: "gas", categoria: "gas", proveedor: "Gas Natural", comision: 8, emoji: "🔥" },
-  { id: "otro", categoria: "otro", proveedor: "Otro servicio", comision: 10, emoji: "📋" },
+  { id: "cfe", categoria: "luz", proveedor: "CFE", comision: 0, emoji: "💡" },
+  { id: "telmex", categoria: "telefonia", proveedor: "Telmex", comision: 0, emoji: "☎️" },
+  { id: "totalplay", categoria: "telefonia", proveedor: "Totalplay", comision: 0, emoji: "📺" },
+  { id: "izzi", categoria: "telefonia", proveedor: "Izzi", comision: 0, emoji: "📺" },
+  { id: "sky", categoria: "tv", proveedor: "Sky", comision: 0, emoji: "📡" },
+  { id: "agua", categoria: "agua", proveedor: "Agua (local)", comision: 0, emoji: "💧" },
+  { id: "gas", categoria: "gas", proveedor: "Gas Natural", comision: 0, emoji: "🔥" },
+  { id: "otro", categoria: "otro", proveedor: "Otro servicio", comision: 0, emoji: "📋" },
 ];
 
-/** Recargo fijo del catálogo. El piso no lo captura. */
+/** Default del catálogo (hoy 0). En recibos el piso puede subirlo a mano. */
 export function recargoCatalogoDe(idOrProveedor) {
   const key = String(idOrProveedor || "").trim().toLowerCase();
   const hit = CATALOGO_SERVICIOS.find(
@@ -45,12 +46,15 @@ export function recargoCatalogoDe(idOrProveedor) {
   return money2(hit?.comision ?? 0);
 }
 
-/** Recargas van en 0. Recibos de servicio sí llevan recargo.
+/** Recargas van en 0. Recibos/otros aceptan 0 o más (ajuste manual).
  *  La RPC registrar_pago_servicio_pos debe usar la misma regla. */
 export function recargoEsValido(comision, categoria) {
-  const n = money2(comision);
+  if (comision == null || comision === "") return false;
+  const x = Number(comision);
+  if (!Number.isFinite(x) || x < 0) return false;
+  const n = money2(x);
   if (String(categoria || "").toLowerCase() === "recarga") return n === 0;
-  return n > 0;
+  return n >= 0;
 }
 
 export function money2(n) {
