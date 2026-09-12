@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 420" role="img" aria-label="Ubicación de las piezas en fachada y cristal">
+  <rect width="920" height="420" fill="#e8eef3"/>
+  <text x="40" y="36" font-family="Helvetica, Arial, sans-serif" font-size="16" font-weight="700" fill="#102030">FarmaCapital · Radiodifusora 100</text>
+  <text x="40" y="56" font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#4a6070">Muros laterales = banderola. Cristal = vinil por dentro.</text>
+
+  <!-- left wall -->
+  <rect x="40" y="80" width="120" height="280" fill="#c5d0d8"/>
+  <rect x="86" y="150" width="74" height="92" rx="6" fill="#ffe600" stroke="#111" stroke-width="1"/>
+  <text x="123" y="198" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="9" font-weight="700" fill="#111">MP</text>
+  <text x="123" y="212" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="8" fill="#111">28×35</text>
+  <text x="100" y="378" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#102030">Muro izq.</text>
+
+  <!-- storefront -->
+  <rect x="170" y="80" width="580" height="280" fill="#9aa8b4"/>
+  <rect x="190" y="108" width="540" height="200" fill="#d7ecf6" stroke="#6b7c88" stroke-width="3"/>
+  <rect x="430" y="210" width="60" height="98" fill="#7d8c97"/>
+  <!-- cards strip on glass -->
+  <rect x="220" y="250" width="150" height="42" rx="4" fill="#fff" stroke="#111" stroke-width="1"/>
+  <text x="295" y="276" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="9" font-weight="700" fill="#111">Tarjetas 20×8</text>
+  <!-- pedidos -->
+  <rect x="580" y="168" width="120" height="150" rx="4" fill="#07111a"/>
+  <text x="640" y="240" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="9" font-weight="700" fill="#fff">Pedidos</text>
+  <text x="640" y="256" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="8" fill="#9bb4c7">20×25</text>
+  <text x="460" y="378" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#102030">Cristal frente al mostrador</text>
+
+  <!-- right wall -->
+  <rect x="760" y="80" width="120" height="280" fill="#c5d0d8"/>
+  <circle cx="850" cy="196" r="46" fill="#ff441f"/>
+  <text x="850" y="200" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="700" fill="#fff">Rappi</text>
+  <text x="820" y="378" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#102030">Muro der.</text>
+</svg>
