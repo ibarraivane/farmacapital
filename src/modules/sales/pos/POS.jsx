@@ -52,6 +52,8 @@ import { esPedidoTiendaWebPendiente, fetchPedidosTiendaPendientesMerged } from "
 import { desgloseCambioMN, sugerenciasPagoCliente } from "../../../utils/cambioCaja";
 import { marcarMedicamentosRecetaFarmaCapitalSurtidos } from "../../../utils/recetaCitaSync";
 import { openRecetaPdf, recetaOptsDesdeFila } from "../../../utils/recetaPrint";
+import { planSurtirReceta } from "../../../utils/recetaDisponibilidad";
+import RecetaColaMostrador from "../../../components/receta/RecetaColaMostrador";
 import OnboardingTour from "../../../components/OnboardingTour";
 import { TOURS } from "../../../utils/tours";
 import { labelTipoEntregaPedido } from "../../../utils/orderChannels";
@@ -716,6 +718,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
   const [consxCobrar,setConsCobrar] = useState([]);
   /** Recetas del consultorio en cola para imprimir / surtir (planta baja). */
   const [recetasPorSurtir, setRecetasPorSurtir] = useState([]);
+  const [imprimiendoRecetaId, setImprimiendoRecetaId] = useState(null);
   const [consultaTelById, setConsultaTelById] = useState({});
   const [consultaCliById, setConsultaCliById] = useState({});
   const [consultaPayById, setConsultaPayById] = useState({});
@@ -1371,6 +1374,92 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
     return true;
   };
   addRef.current = add;
+
+  const imprimirRecetaBrother = async (rxRow) => {
+    if (!rxRow?.id) return;
+    setImprimiendoRecetaId(rxRow.id);
+    try {
+      openRecetaPdf(recetaOptsDesdeFila(rxRow));
+      const tokRx = sessionStorage.getItem("farmacapital_session_token");
+      if (tokRx) {
+        const { error: mErr } = await supabase.rpc("empleado_marcar_receta_impresa", {
+          p_session_token: tokRx,
+          p_receta_id: rxRow.id,
+        });
+        if (mErr) console.warn("[POS] marcar impresa:", mErr);
+      }
+      showToast("Receta lista para Brother (hoja carta). Elige la Brother en el diálogo de impresión.", "success");
+      refrescarCitasPOS();
+    } finally {
+      setImprimiendoRecetaId(null);
+    }
+  };
+
+  const surtirRecetaEnMostrador = (rxRow) => {
+    if (!rxRow) return;
+    const productosFifo = (productos || []).map((p) => ({
+      ...p,
+      stock: getStockFifoDisponible(p),
+    }));
+    const plan = planSurtirReceta({
+      medicamentos: rxRow.medicamentos,
+      productos: productosFifo,
+      cart,
+    });
+    const rxI = {
+      receta: rxRow.folio || "",
+      medico: rxRow.medico_nombre || "",
+      cedula: rxRow.medico_cedula || "",
+      paciente: rxRow.paciente_nombre || "",
+      indicaciones: "",
+    };
+    if (plan.lineas.length) {
+      setCart((prev) => {
+        let next = [...prev];
+        for (const { producto, qty } of plan.lineas) {
+          const ex = next.find((c) => String(c.id) === String(producto.id) && !c.esUnidad);
+          if (ex) {
+            const newQty = (Number(ex.qty) || 0) + qty;
+            const priced = precioCajaDesdeProducto(producto, newQty, especialesRef.current);
+            next = next.map((c) =>
+              c.id === producto.id && !c.esUnidad ? { ...c, qty: newQty, rxI, ...priced } : c
+            );
+          } else {
+            next = [
+              ...next,
+              {
+                ...producto,
+                producto_id: producto.id,
+                qty,
+                rxI,
+                esUnidad: false,
+                nombre: posTituloProducto(producto),
+                ...precioCajaDesdeProducto(producto, qty, especialesRef.current),
+              },
+            ];
+          }
+        }
+        return next;
+      });
+    }
+    setRecetaOrigenSel("medico_farmacapital");
+    recetaOrigenPendienteRef.current = "medico_farmacapital";
+    recetaOrigenEfectivoRef.current = "medico_farmacapital";
+    if (rxRow.paciente_telefono) setTel(String(rxRow.paciente_telefono));
+    setTab("venta");
+    setCartOpen(true);
+    const avisos = [];
+    if (plan.lineas.length) avisos.push(`${plan.lineas.length} pieza(s) al carrito`);
+    if (plan.libres.length) avisos.push(`No lo vendemos: ${plan.libres.join(", ")}`);
+    if (plan.sinPiezas.length) avisos.push(`Sin stock: ${plan.sinPiezas.join(", ")}`);
+    if (!plan.lineas.length && (plan.libres.length || plan.sinPiezas.length)) {
+      showToast(avisos.join(" · ") || "Nada que surtir de catálogo.", "warning");
+    } else if (avisos.length) {
+      showToast(`${avisos.join(" · ")}. Cobra con origen «médico FarmaCapital».`, plan.libres.length || plan.sinPiezas.length ? "warning" : "success");
+    } else {
+      showToast("Esa receta no trae renglones.", "warning");
+    }
+  };
 
   const finalizarEscaneoExitoso = useCallback((exact, raw) => {
     const now = Date.now();
@@ -2546,7 +2635,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
           marginRight: isMobilePos ? -4 : 0,
           width: isMobilePos ? "100%" : undefined,
         }}>
-          {[["venta","Venta"],["online",`Online (${pedOnline.length})`],["consultas",`Consultas${consPendientesCount ? ` (${consPendientesCount})` : ""}`],["servicios","Servicios"]].map(([v,l])=>(
+          {[["venta","Venta"],["online",`Online (${pedOnline.length})`],["consultas",`Consultas${consPendientesCount ? ` (${consPendientesCount})` : ""}${recetasPorSurtir.length ? ` · Rx ${recetasPorSurtir.length}` : ""}`],["servicios","Servicios"]].map(([v,l])=>(
             <button key={v} type="button" onClick={()=>setTab(v)} style={{
               padding:isMobilePos ? "8px 12px" : "6px 12px",
               borderRadius:8,
@@ -2820,6 +2909,11 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       {/* TAB: VENTA NORMAL */}
       {tab==="venta"&&(
         <>
+        <RecetaColaMostrador
+          compact
+          recetas={recetasPorSurtir}
+          onVerTodas={() => setTab("consultas")}
+        />
         <div
           className={`farmacapital-pos-venta-grid${isMobilePos ? " farmacapital-pos-venta-narrow" : ""}`}
           style={{
@@ -3463,43 +3557,12 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
             ))}
           </div>
 
-          {!!recetasPorSurtir.length && (
-            <Box style={{padding:16,marginBottom:16,border:`1px solid ${C.green}40`,background:C.greenDim}}>
-              <div style={{color:C.text,fontWeight:800,fontSize:14,marginBottom:6}}>Recetas del consultorio por imprimir</div>
-              <div style={{color:C.textMid,fontSize:12,marginBottom:12,lineHeight:1.45}}>
-                La doctora envió estas recetas desde el 2.º piso. Imprimí carta, entregá al paciente y surtí con origen «médico FarmaCapital».
-              </div>
-              {recetasPorSurtir.map((rxRow) => (
-                <div key={rxRow.id} style={{display:"flex",justifyContent:"space-between",gap:10,flexWrap:"wrap",alignItems:"center",padding:"10px 0",borderTop:`1px solid ${C.border}`}}>
-                  <div>
-                    <div style={{fontWeight:800,color:C.text}}>{rxRow.folio} · {rxRow.paciente_nombre || "Paciente"}</div>
-                    <div style={{fontSize:12,color:C.textMid,marginTop:2}}>
-                      {rxRow.medico_nombre || "Médico"} · {rxRow.estado === "impresa" ? "Ya impresa · surtir" : "Pendiente de imprimir"}
-                    </div>
-                  </div>
-                  <Btn
-                    sm
-                    col={BRAND.primary}
-                    onClick={async () => {
-                      openRecetaPdf(recetaOptsDesdeFila(rxRow));
-                      const tokRx = sessionStorage.getItem("farmacapital_session_token");
-                      if (tokRx) {
-                        const { error: mErr } = await supabase.rpc("empleado_marcar_receta_impresa", {
-                          p_session_token: tokRx,
-                          p_receta_id: rxRow.id,
-                        });
-                        if (mErr) console.warn("[POS] marcar impresa:", mErr);
-                      }
-                      showToast("Receta impresa · lista para surtir.", "success");
-                      refrescarCitasPOS();
-                    }}
-                  >
-                    Imprimir receta
-                  </Btn>
-                </div>
-              ))}
-            </Box>
-          )}
+          <RecetaColaMostrador
+            recetas={recetasPorSurtir}
+            imprimiendoId={imprimiendoRecetaId}
+            onImprimir={imprimirRecetaBrother}
+            onSurtir={surtirRecetaEnMostrador}
+          />
 
           <div style={{color:C.text,fontWeight:800,fontSize:14,marginBottom:10}}>💳 Cobrar en caja</div>
           <div style={{color:C.textMid,fontSize:12,marginBottom:14}}>Citas con consulta o consumibles pendientes de cobro. Al pagar, el estado cambia a <strong style={{color:C.green}}>Pagada</strong>. Si no vinieron o hay que anular, usa <em>No se presentó</em> o <em>Cancelar cita</em>.</div>

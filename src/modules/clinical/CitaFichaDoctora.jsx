@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { supabase } from "../../supabase";
 import { C_LIGHT, BRAND } from "../../constants";
 import { $ } from "../../utils";
@@ -12,6 +12,7 @@ import {
   openRecetaPrint,
   openRecetaPdf,
 } from "../../utils/recetaPrint";
+import { disponibilidadDeStock, disponibilidadLineaReceta } from "../../utils/recetaDisponibilidad";
 
 const C = C_LIGHT;
 
@@ -52,6 +53,7 @@ function parseMedsPrescritos(mp) {
         duracion: m.duracion != null ? String(m.duracion) : "",
         indicaciones: m.indicaciones != null ? String(m.indicaciones) : "",
         surtido: m.surtido === "farmacapital" || m.surtido === "externa" ? m.surtido : "pendiente",
+        stock_snapshot: m.stock_snapshot != null ? Number(m.stock_snapshot) : (m.stock != null ? Number(m.stock) : null),
       }))
       .filter((m) => m.medicamento || m.producto_id);
   }
@@ -86,6 +88,7 @@ function serializeMeds(rows) {
       duracion: rest.duracion != null ? String(rest.duracion) : "",
       indicaciones: rest.indicaciones != null ? String(rest.indicaciones) : "",
       surtido: rest.surtido === "farmacapital" || rest.surtido === "externa" ? rest.surtido : "pendiente",
+      stock_snapshot: rest.stock_snapshot != null ? Number(rest.stock_snapshot) : null,
     }))
     .filter((m) => m.medicamento || m.producto_id);
 }
@@ -307,7 +310,12 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
     if (!open || !cita?.id || readOnly) return;
     let cancelled = false;
     (async () => {
-      const { data } = await supabase.from("productos").select("id,nombre,precio,sku,stock").eq("activo", true).order("nombre").limit(2500);
+      const { data } = await supabase
+        .from("productos")
+        .select("id,nombre,precio,sku,stock,marca,presentacion,principio_activo")
+        .eq("activo", true)
+        .order("nombre")
+        .limit(2500);
       if (!cancelled) setProdCatalog(data || []);
     })();
     return () => {
@@ -385,6 +393,22 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
     await reload();
   };
 
+  const catalogById = useMemo(() => {
+    const map = new Map();
+    for (const p of prodCatalog) map.set(Number(p.id), p);
+    return map;
+  }, [prodCatalog]);
+
+  const catalogSearchItems = useMemo(
+    () =>
+      prodCatalog.map((p) => {
+        const d = disponibilidadDeStock(p.stock);
+        const sub = [p.marca, p.presentacion, p.sku].filter(Boolean).join(" · ");
+        return { ...p, stock_label: d.short, stock_tone: d.tone, stock_col: d.col, sub: sub || p.sku };
+      }),
+    [prodCatalog]
+  );
+
   const medicoSel = medicos.find((m) => String(m.id) === String(medicoId)) || null;
 
   const avisarAlergia = (nombreMed) => {
@@ -415,6 +439,7 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
         duracion: "",
         indicaciones: "",
         surtido: "pendiente",
+        stock_snapshot: prod.stock != null ? Number(prod.stock) : null,
       },
     ]);
     setProdBusq("");
@@ -497,8 +522,7 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
       if (error) throw error;
       if (!resp?.success) throw new Error(resp?.error || "No se pudo emitir");
       setRecetaEmitida({ id: resp.receta_id, folio: resp.folio });
-      showToast(`Receta ${resp.folio} enviada a caja para imprimir y surtir.`, "success");
-      openRecetaPdf(recetaOptsActuales(resp.folio));
+      showToast(`Receta ${resp.folio} enviada a mostrador. La vendedora imprime en la Brother y surte.`, "success");
       onSaved?.();
     } catch (e) {
       const msg = String(e.message || e);
@@ -728,10 +752,11 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
         </Box>
 
         <Box style={{ padding: 14, marginBottom: 12 }}>
-          <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, marginBottom: 6 }}>MEDICAMENTOS (catálogo FarmaCapital + texto libre)</div>
+          <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, marginBottom: 6 }}>RECETA · ¿LO VENDEMOS?</div>
           {!readOnly && (
-            <div style={{ color: C.textMid, fontSize: 10, marginBottom: 10, lineHeight: 1.45 }}>
-              Agrega productos del <strong>inventario</strong> para vincular con caja: cuando el paciente pague en mostrador con «receta de médico FarmaCapital», el sistema marcará esas líneas como surtidas aquí. Puedes añadir líneas solo con nombre si la receta es externa o a mano.
+            <div style={{ color: C.textMid, fontSize: 11, marginBottom: 10, lineHeight: 1.45 }}>
+              Busca en el <strong>inventario de FarmaCapital</strong>. Verde = hay en mostrador. Ámbar = lo vendemos pero quedan pocas. Rojo = lo vendemos, hoy sin piezas. Si no aparece, usa línea libre: no lo tenemos y el paciente lo busca afuera.
+              En cada renglón pon dosis, cada cuánto y por cuántos días. Al enviar, baja a la vendedora para imprimir en la Brother y surtir.
             </div>
           )}
           {puedeEditar && (
@@ -740,15 +765,17 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
                 value={prodBusq}
                 onChange={setProdBusq}
                 onSelect={(p) => agregarMedCatalogo(p)}
-                placeholder="🔍 Buscar medicamento en inventario…"
-                items={prodCatalog}
+                placeholder="🔍 ¿Lo vendemos? Busca nombre, marca o principio…"
+                items={catalogSearchItems}
                 labelKey="nombre"
-                subKey="sku"
-                badgeKey="stock"
-                badgeCol="#1E3ABA"
+                subKey="sub"
+                badgeKey="stock_label"
+                badgeColorFn={(item) => item.stock_col || C.blue}
+                extraSearchKeys={["marca", "presentacion", "principio_activo", "sku"]}
+                searchMode="inventario"
                 maxResults={12}
                 style={{ width: "100%" }}
-                emptyMsg="Sin coincidencias"
+                emptyMsg="No lo vendemos con ese nombre. Prueba el genérico o agrega línea libre."
               />
               <button
                 type="button"
@@ -804,6 +831,14 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
                         style={{ flex: 1, minWidth: 160 }}
                       />
                     )}
+                    {(() => {
+                      const disp = disponibilidadLineaReceta(row, catalogById);
+                      return (
+                        <Tag col={disp.col} sm>
+                          {disp.label}
+                        </Tag>
+                      );
+                    })()}
                     {!readOnly && row.surtido === "farmacapital" && (
                       <Tag col={C.green} sm>
                         Surtido FarmaCapital
@@ -875,9 +910,9 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
         </Box>
 
         <Box style={{ padding: 14, marginBottom: 12 }}>
-          <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, marginBottom: 8 }}>RECETA MÉXICO · FOLIO + CAJA</div>
+          <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, marginBottom: 8 }}>ENVIAR A MOSTRADOR</div>
           <p style={{ color: C.textMid, fontSize: 11, lineHeight: 1.45, margin: "0 0 10px" }}>
-            Formato carta (consultorio, no ticket). Cédula obligatoria. Al enviar, baja a POS → Consultas para imprimir y surtir.
+            Receta carta (consultorio, no ticket de caja). Cédula obligatoria. Al enviar, le llega a la vendedora en POS → Consultas: ella imprime en la Brother y surte lo que sí tenemos.
           </p>
           {puedeEditar && (
             <>
@@ -925,7 +960,7 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
               {firmaModo === "digital" && <FirmaPad value={firmaDataUrl} onChange={setFirmaDataUrl} disabled={!puedeEditar} />}
               {recetaEmitida?.folio && (
                 <div style={{ margin: "8px 0", fontSize: 12, fontWeight: 700, color: C.green }}>
-                  En cola de caja · folio {recetaEmitida.folio}
+                  En cola de mostrador · folio {recetaEmitida.folio}
                 </div>
               )}
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
@@ -933,7 +968,7 @@ export function CitaFichaModal({ cita, open, onClose, prodList, procsList, onSav
                   Vista previa PDF carta
                 </Btn>
                 <Btn col={BRAND.primary} onClick={emitirRecetaACaja} dis={enviandoReceta}>
-                  {enviandoReceta ? "Enviando…" : "Enviar a caja para imprimir"}
+                  {enviandoReceta ? "Enviando…" : "Enviar a mostrador"}
                 </Btn>
               </div>
             </>
