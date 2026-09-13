@@ -711,6 +711,7 @@ export default function CorteCajaModule({usuario }) {
                   {desgloseTarjeta && (desgloseTarjeta.servicios > 0)
                     ? `Ventas ${fmt(desgloseTarjeta.pedidos)} + pagos de servicio ${fmt(desgloseTarjeta.servicios)}. Se vuelve a calcular al guardar.`
                     : "Lo calcula el sistema al guardar, con lo cobrado hasta ese momento."}
+                  {" "}Incluye la parte en tarjeta de ventas mixtas.
                 </div>
               </div>
 

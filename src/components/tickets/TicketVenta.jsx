@@ -124,8 +124,14 @@ const TicketVenta = forwardRef(({
 
       {/* ══ MÉTODO DE PAGO ══ */}
       <div className="ticket-block">Método: {metodoPago}</div>
-      {metodoPago === "Efectivo" && venta.recibido != null && (
+      {(metodoPago === "Efectivo" || String(metodoPago || "").startsWith("Mixto")) && venta.recibido != null && (
         <div className="ticket-block" style={{marginTop:4}}>
+          {venta.montoEfectivo != null && venta.montoTarjeta != null && (
+            <>
+              <div>Efectivo: {fmt(venta.montoEfectivo)}</div>
+              <div>Tarjeta: {fmt(venta.montoTarjeta)}</div>
+            </>
+          )}
           <div>Recibido: {fmt(venta.recibido)}</div>
           <div>Cambio: {fmt(venta.cambio)}</div>
           {venta.cambioDesglose && (
