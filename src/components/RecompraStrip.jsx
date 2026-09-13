@@ -1,6 +1,14 @@
+import { Children, useCallback, useEffect, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { stripArrowState, stripPageScrollLeft } from "../lib/productosStrip";
+
+/** Mismo ancho que la cuadrícula del catálogo (`minmax(min(100%, 220px), 1fr)`). */
+export const STRIP_CARD_WIDTH_PX = 220;
+
 /**
  * Franja horizontal de productos (recompra, sugeridos o categoría).
- * Scroll horizontal — estilo “banda” de catálogo.
+ * Las tarjetas son las de la cuadrícula, en fila. Celular: desliza.
+ * Laptop: ~5 por banda y flechas para el siguiente grupo.
  */
 export default function RecompraStrip({
   title,
@@ -10,7 +18,59 @@ export default function RecompraStrip({
   actionLabel,
   onAction,
 }) {
+  const scrollerRef = useRef(null);
+  const [arrows, setArrows] = useState({ canPrev: false, canNext: false });
+
+  const syncArrows = useCallback(() => {
+    setArrows(stripArrowState(scrollerRef.current));
+  }, []);
+
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    syncArrows();
+    el.addEventListener("scroll", syncArrows, { passive: true });
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(syncArrows) : null;
+    ro?.observe(el);
+    window.addEventListener("resize", syncArrows);
+    return () => {
+      el.removeEventListener("scroll", syncArrows);
+      ro?.disconnect();
+      window.removeEventListener("resize", syncArrows);
+    };
+  }, [syncArrows, children]);
+
+  const irPagina = (dir) => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const left = stripPageScrollLeft(el, dir);
+    if (typeof el.scrollTo === "function") {
+      el.scrollTo({ left, behavior: "smooth" });
+    } else {
+      el.scrollLeft = left;
+    }
+    syncArrows();
+  };
+
   if (empty) return null;
+
+  const items = Children.map(children, (child, i) => (
+    <div
+      key={child?.key ?? i}
+      className="farmacapital-productos-strip-item"
+      style={{
+        flex: "0 0 auto",
+        width: STRIP_CARD_WIDTH_PX,
+        maxWidth: "min(220px, 72vw)",
+        minWidth: 0,
+        boxSizing: "border-box",
+        scrollSnapAlign: "start",
+      }}
+    >
+      {child}
+    </div>
+  ));
+
   return (
     <div style={{ marginBottom: 28 }}>
       <div
@@ -61,21 +121,53 @@ export default function RecompraStrip({
           </button>
         ) : null}
       </div>
-      <div
-        className="farmacapital-productos-strip"
-        style={{
-          display: "flex",
-          gap: 14,
-          overflowX: "auto",
-          scrollSnapType: "x mandatory",
-          WebkitOverflowScrolling: "touch",
-          scrollbarWidth: "none",
-          paddingBottom: 6,
-          marginInline: -4,
-          paddingInline: 4,
-        }}
-      >
-        {children}
+      <div className="farmacapital-productos-strip-wrap">
+        <button
+          type="button"
+          className="farmacapital-productos-strip-arrow farmacapital-productos-strip-arrow--prev"
+          aria-label="Productos anteriores"
+          disabled={!arrows.canPrev}
+          onClick={() => irPagina(-1)}
+        >
+          <ChevronLeft size={22} strokeWidth={2.25} aria-hidden />
+        </button>
+        <div
+          ref={scrollerRef}
+          className="farmacapital-productos-strip"
+          tabIndex={arrows.canPrev || arrows.canNext ? 0 : undefined}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowRight" && arrows.canNext) {
+              e.preventDefault();
+              irPagina(1);
+            }
+            if (e.key === "ArrowLeft" && arrows.canPrev) {
+              e.preventDefault();
+              irPagina(-1);
+            }
+          }}
+          style={{
+            display: "flex",
+            gap: 12,
+            overflowX: "auto",
+            scrollSnapType: "x mandatory",
+            WebkitOverflowScrolling: "touch",
+            scrollbarWidth: "none",
+            paddingBottom: 6,
+            marginInline: -4,
+            paddingInline: 4,
+          }}
+        >
+          {items}
+        </div>
+        <button
+          type="button"
+          className="farmacapital-productos-strip-arrow farmacapital-productos-strip-arrow--next"
+          aria-label="Siguientes productos"
+          disabled={!arrows.canNext}
+          onClick={() => irPagina(1)}
+        >
+          <ChevronRight size={22} strokeWidth={2.25} aria-hidden />
+        </button>
       </div>
     </div>
   );
@@ -85,12 +177,65 @@ export default function RecompraStrip({
 export function ProductosStripStyles() {
   return (
     <style>{`
+      .farmacapital-productos-strip-wrap {
+        position: relative;
+        min-width: 0;
+        max-width: 100%;
+      }
+      .farmacapital-productos-strip {
+        min-width: 0;
+        max-width: 100%;
+      }
       .farmacapital-productos-strip::-webkit-scrollbar { display: none; }
-      .farmacapital-productos-strip > * {
+      .farmacapital-productos-strip-item {
         flex: 0 0 auto;
-        width: min(200px, 72vw);
-        max-width: 220px;
+        width: 220px;
+        max-width: min(220px, 72vw);
+        box-sizing: border-box;
         scroll-snap-align: start;
+      }
+      .farmacapital-productos-strip-item > * {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 100%;
+      }
+      @media (min-width: 768px) {
+        .farmacapital-productos-strip {
+          padding-inline-end: 48px;
+        }
+      }
+      .farmacapital-productos-strip-arrow {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 3;
+        width: 42px;
+        height: 42px;
+        border-radius: 999px;
+        border: 1px solid #e2e8f0;
+        background: #fff;
+        color: #1E3ABA;
+        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.16);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        padding: 0;
+        font: inherit;
+      }
+      .farmacapital-productos-strip-arrow:hover:not(:disabled) {
+        background: #1E3ABA;
+        color: #fff;
+        border-color: #1E3ABA;
+      }
+      .farmacapital-productos-strip-arrow:disabled {
+        opacity: 0;
+        pointer-events: none;
+      }
+      .farmacapital-productos-strip-arrow--prev { left: 2px; }
+      .farmacapital-productos-strip-arrow--next { right: 2px; }
+      @media (min-width: 768px) {
+        .farmacapital-productos-strip-arrow { display: inline-flex; }
       }
     `}</style>
   );
