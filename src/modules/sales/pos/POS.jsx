@@ -50,6 +50,7 @@ import {
 import { puedeCancelarCitaCaja, esCitaNoShow } from "../../../utils/citasAgenda";
 import { esPedidoTiendaWebPendiente, fetchPedidosTiendaPendientesMerged } from "../../../utils/pedidosTiendaWeb";
 import { desgloseCambioMN, sugerenciasPagoCliente } from "../../../utils/cambioCaja";
+import { desgloseMixto, mensajeErrorMixto } from "../../../utils/pagoMixto";
 import { marcarMedicamentosRecetaFarmaCapitalSurtidos } from "../../../utils/recetaCitaSync";
 import { openRecetaPdf, recetaOptsDesdeFila } from "../../../utils/recetaPrint";
 import OnboardingTour from "../../../components/OnboardingTour";
@@ -698,6 +699,11 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
   };
   const [pay,setPay]         = useState("efectivo");
   const [montoRecibido, setMontoRecibido] = useState("");
+  /** Parte de la cuenta en efectivo cuando pay === "mixto". */
+  const [montoMixtoEfectivo, setMontoMixtoEfectivo] = useState("");
+  /** Canal de la pata tarjeta en mixto: Point MP o terminal BBVA. */
+  const [mixtoCanalTarjeta, setMixtoCanalTarjeta] = useState("tarjeta");
+  const mixtoMontosRef = useRef({ efectivo: 0, tarjeta: 0 });
   const [usarCredito, setUsarCredito] = useState(false);
   const [montoCredito, setMontoCredito] = useState("");
   const [tel,setTel]         = useState("");
@@ -1284,6 +1290,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
     spei_mp:        "SPEI MP",
     mercadopago:    "Tarjeta MP",
     bbva_terminal:  "Tarjeta BBVA",
+    mixto:          "Mixto",
   }[method] || "Otro");
 
   const totalCobroConsulta = (cita) => {
@@ -1637,7 +1644,15 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
     return Number.isFinite(n) ? Math.round(n * 100) / 100 : NaN;
   };
   const recibidoNum = parseMontoEfectivo(montoRecibido);
-  const cambioNum = pay === "efectivo" && Number.isFinite(recibidoNum) ? Math.round(Math.max(0, recibidoNum - aCobrar) * 100) / 100 : null;
+  const mixtoParts = pay === "mixto" ? desgloseMixto(aCobrar, montoMixtoEfectivo) : null;
+  const mixtoEfectivoParte = mixtoParts?.ok ? mixtoParts.efectivo : null;
+  const mixtoTarjetaParte = mixtoParts?.ok ? mixtoParts.tarjeta : null;
+  const cambioNum =
+    pay === "efectivo" && Number.isFinite(recibidoNum)
+      ? Math.round(Math.max(0, recibidoNum - aCobrar) * 100) / 100
+      : pay === "mixto" && mixtoEfectivoParte != null && Number.isFinite(recibidoNum)
+        ? Math.round(Math.max(0, recibidoNum - mixtoEfectivoParte) * 100) / 100
+        : null;
 
   const abrirModalRecetaVenta = (modo) => {
     if (!cart.length) return;
@@ -1647,6 +1662,19 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
         showToast(`Indica cuánto te entregó el cliente en efectivo (mínimo ${$(aCobrar)}).`, "warning");
         return;
       }
+    }
+    if (modo === "mixto" || modo === "mixto_tarjeta" || modo === "mixto_bbva") {
+      const parts = desgloseMixto(aCobrar, montoMixtoEfectivo);
+      if (!parts.ok) {
+        showToast(mensajeErrorMixto(parts.reason, aCobrar, $), "warning");
+        return;
+      }
+      const rec = parseMontoEfectivo(montoRecibido);
+      if (!Number.isFinite(rec) || rec < parts.efectivo) {
+        showToast(`Indica cuánto te entregó en efectivo (mínimo ${$(parts.efectivo)} de la parte en efectivo).`, "warning");
+        return;
+      }
+      mixtoMontosRef.current = { efectivo: parts.efectivo, tarjeta: parts.tarjeta };
     }
     setRecetaOrigenSel("no_aplica");
     setModalRecetaModo(modo);
@@ -1682,6 +1710,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
     const metodoPagoInterno = metodoPagoOverride || pay;
     // El DB solo acepta los valores clásicos del constraint chk_metodo_pago.
     // bbva_terminal y mercadopago (Point MP) se registran como "tarjeta".
+    // mixto se guarda como "mixto" con monto_efectivo + monto_tarjeta.
     const DB_METODO_MAP = { bbva_terminal: "tarjeta", mercadopago_point: "tarjeta", spei_mp: "spei" };
     const metodoPagoFinal = DB_METODO_MAP[metodoPagoInterno] ?? metodoPagoInterno;
     if (metodoPagoFinal === "efectivo" && aCobrar > 0) {
@@ -1690,6 +1719,26 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
         showToast(`Indica cuánto te entregó el cliente en efectivo (mínimo ${$(aCobrar)}).`, "warning");
         return;
       }
+    }
+    let mixtoEf = null;
+    let mixtoTar = null;
+    if (metodoPagoFinal === "mixto") {
+      const fromRef = mixtoMontosRef.current;
+      const parts =
+        fromRef?.efectivo > 0 && fromRef?.tarjeta > 0
+          ? { ok: true, efectivo: fromRef.efectivo, tarjeta: fromRef.tarjeta }
+          : desgloseMixto(aCobrar, montoMixtoEfectivo);
+      if (!parts.ok) {
+        showToast(mensajeErrorMixto(parts.reason, aCobrar, $), "warning");
+        return;
+      }
+      const rec = parseMontoEfectivo(montoRecibido);
+      if (!Number.isFinite(rec) || rec < parts.efectivo) {
+        showToast(`Indica cuánto te entregó en efectivo (mínimo ${$(parts.efectivo)}).`, "warning");
+        return;
+      }
+      mixtoEf = parts.efectivo;
+      mixtoTar = parts.tarjeta;
     }
     setGuard(true);
     setModalConfirmEfectivo(false);
@@ -1713,7 +1762,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
         modo_venta: c.esUnidad ? "unidad" : "caja",
       }));
 
-      const rpcName = creditoNum > 0 ? "empleado_cobrar_venta_pos" : "create_sale_transaction_secure";
+      const usaMixtoOCredito = creditoNum > 0 || metodoPagoFinal === "mixto";
+      const rpcName = usaMixtoOCredito ? "empleado_cobrar_venta_pos" : "create_sale_transaction_secure";
       const rpcArgs = {
         p_session_token: tok,
         p_metodo_pago: aCobrar === 0 ? "efectivo" : metodoPagoFinal,
@@ -1724,6 +1774,9 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
         p_tipo_entrega: null,
         p_direccion: null,
         ...(creditoNum > 0 ? { p_monto_credito: creditoNum } : {}),
+        ...(metodoPagoFinal === "mixto"
+          ? { p_monto_efectivo: mixtoEf, p_monto_tarjeta: mixtoTar, p_monto_credito: creditoNum }
+          : {}),
       };
       const { data: rpcData, error: rpcError } = await supabase.rpc(rpcName, rpcArgs);
 
@@ -1814,9 +1867,17 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       const ivaAmt = parseFloat((total * 0.16 / 1.16).toFixed(2));
       const netoAmt = parseFloat((total - ivaAmt).toFixed(2));
       const folioVenta = `VTA-${String(pedidoId).padStart(8,"0")}`;
-      const recEf = metodoPagoFinal === "efectivo" ? parseMontoEfectivo(montoRecibido) : null;
-      const cambioEf = metodoPagoFinal === "efectivo" && Number.isFinite(recEf) ? Math.round(Math.max(0, recEf - aCobrar) * 100) / 100 : null;
-      const desgloseEf = metodoPagoFinal === "efectivo" && cambioEf != null && cambioEf > 0 ? desgloseCambioMN(cambioEf) : "";
+      const esEfectivoTicket = metodoPagoFinal === "efectivo" || metodoPagoFinal === "mixto";
+      const baseCambio = metodoPagoFinal === "mixto" ? mixtoEf : aCobrar;
+      const recEf = esEfectivoTicket ? parseMontoEfectivo(montoRecibido) : null;
+      const cambioEf = esEfectivoTicket && Number.isFinite(recEf) && baseCambio != null
+        ? Math.round(Math.max(0, recEf - baseCambio) * 100) / 100
+        : null;
+      const desgloseEf = esEfectivoTicket && cambioEf != null && cambioEf > 0 ? desgloseCambioMN(cambioEf) : "";
+      const payLabel =
+        metodoPagoFinal === "mixto" && mixtoEf != null && mixtoTar != null
+          ? `Mixto · Ef ${$(mixtoEf)} + Tarjeta ${$(mixtoTar)}`
+          : paymentLabel(metodoPagoFinal);
       setTicket({
         id:pedidoId,
         folio:folioVenta,
@@ -1825,23 +1886,27 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
         total,
         neto:netoAmt,
         iva:ivaAmt,
-        pay:paymentLabel(metodoPagoFinal),
+        pay:payLabel,
         cli,
         ptsG,
         origen: "tienda",
-        ...(pay === "efectivo" && Number.isFinite(recEf)
+        ...(metodoPagoFinal === "mixto" ? { montoEfectivo: mixtoEf, montoTarjeta: mixtoTar } : {}),
+        ...(esEfectivoTicket && Number.isFinite(recEf)
           ? { recibido: recEf, cambio: cambioEf, cambioDesglose: desgloseEf }
           : {}),
       });
       setVentasDia(p=>({total:p.total+total, count:p.count+1}));
       logAudit(usuario, "VENTA", "pedidos", pedidoId, {
         total, metodo_pago: metodoPagoFinal, items: cart.length,
-        ...(metodoPagoFinal === "efectivo" && Number.isFinite(recEf) ? { efectivo_recibido: recEf, cambio: cambioEf } : {}),
+        ...(metodoPagoFinal === "mixto" ? { monto_efectivo: mixtoEf, monto_tarjeta: mixtoTar } : {}),
+        ...(esEfectivoTicket && Number.isFinite(recEf) ? { efectivo_recibido: recEf, cambio: cambioEf } : {}),
       });
       showToast("Venta registrada correctamente", "success");
       avisarCatalogoCambio({ origen: "pos-venta" });
       setCart([]); setTel(""); setCli(null);
       setMontoRecibido("");
+      setMontoMixtoEfectivo("");
+      mixtoMontosRef.current = { efectivo: 0, tarjeta: 0 };
       setUsarCredito(false);
       setMontoCredito("");
     } catch(e) {
@@ -1882,7 +1947,16 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       recetaOrigenPendienteRef.current = ro;
       setMpFolio(folioActual || "VTA-PENDIENTE");
       setMpModal(true);
+    } else if (modo === "mixto_tarjeta") {
+      mpCitaRef.current = null;
+      recetaOrigenPendienteRef.current = ro;
+      setMpFolio(folioActual || "VTA-PENDIENTE");
+      setMpModal(true);
     } else if (modo === "bbva_terminal") {
+      recetaOrigenPendienteRef.current = ro;
+      setBbvaFolio(folioActual || "VTA-PENDIENTE");
+      setBbvaModal(true);
+    } else if (modo === "mixto_bbva") {
       recetaOrigenPendienteRef.current = ro;
       setBbvaFolio(folioActual || "VTA-PENDIENTE");
       setBbvaModal(true);
@@ -2239,12 +2313,13 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
         <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
           {[
             ["efectivo","💵 Efectivo"],
+            ["mixto","💵💳 Mixto"],
             ["tarjeta","💳 Point MP"],
             ["bbva_terminal","🏦 Terminal BBVA"],
             ["spei","💸 Transferencia"],
             ["spei_mp","💸 Transferencia MP"],
           ].map(([v,l])=>(
-            <button key={v} type="button" onClick={()=>{ setPay(v); if(v!=="efectivo") setMontoRecibido(""); }} style={{padding:isMobilePos?"8px 14px":"4px 10px",borderRadius:20,border:`1px solid ${pay===v?C.blue:C.border}`,background:pay===v?C.blueDim:"transparent",color:pay===v?C.blue:C.textMid,fontSize:isMobilePos?13:10,fontWeight:700,cursor:"pointer",minHeight:isMobilePos?40:undefined}}>{l}</button>
+            <button key={v} type="button" onClick={()=>{ setPay(v); if(v!=="efectivo"&&v!=="mixto") setMontoRecibido(""); if(v!=="mixto") setMontoMixtoEfectivo(""); }} style={{padding:isMobilePos?"8px 14px":"4px 10px",borderRadius:20,border:`1px solid ${pay===v?C.blue:C.border}`,background:pay===v?C.blueDim:"transparent",color:pay===v?C.blue:C.textMid,fontSize:isMobilePos?13:10,fontWeight:700,cursor:"pointer",minHeight:isMobilePos?40:undefined}}>{l}</button>
           ))}
         </div>
       </Box>
@@ -2289,6 +2364,68 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
           </div>
         </Box>
       )}
+      {pay==="mixto"&&cart.length>0&&aCobrar>0&&(
+        <Box style={{padding:14,marginBottom:12,background:C.blueDim,border:`1px solid ${C.blue}25`}}>
+          <div style={{color:C.textDim,fontSize:10,letterSpacing:1.2,textTransform:"uppercase",marginBottom:8}}>Pago mixto</div>
+          <div style={{color:C.textMid,fontSize:11,marginBottom:8}}>¿Cuánto de la cuenta va en efectivo?</div>
+          <Inp
+            value={montoMixtoEfectivo}
+            onChange={(e)=>setMontoMixtoEfectivo(e.target.value)}
+            placeholder={`Menos de ${$(aCobrar)}`}
+            inputMode="decimal"
+            style={{width:"100%",boxSizing:"border-box",marginBottom:8,fontSize:16,fontWeight:700}}
+          />
+          {mixtoParts?.ok ? (
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:10,gap:8,flexWrap:"wrap"}}>
+              <span style={{color:C.textMid,fontSize:12}}>En efectivo <strong style={{color:C.text}}>{$(mixtoEfectivoParte)}</strong></span>
+              <span style={{color:C.textMid,fontSize:12}}>En tarjeta <strong style={{color:C.blue}}>{$(mixtoTarjetaParte)}</strong></span>
+            </div>
+          ) : montoMixtoEfectivo.trim() ? (
+            <div style={{color:C.red,fontSize:11,fontWeight:700,marginBottom:8}}>{mensajeErrorMixto(mixtoParts?.reason, aCobrar, $)}</div>
+          ) : null}
+          <div style={{color:C.textMid,fontSize:11,marginBottom:6}}>Terminal para la parte en tarjeta</div>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
+            {[
+              ["tarjeta","💳 Point MP"],
+              ["bbva_terminal","🏦 BBVA"],
+            ].map(([v,l])=>(
+              <button key={v} type="button" onClick={()=>setMixtoCanalTarjeta(v)} style={{padding:"6px 12px",borderRadius:16,border:`1px solid ${mixtoCanalTarjeta===v?C.blue:C.border}`,background:mixtoCanalTarjeta===v?C.blueDim:"#fff",color:mixtoCanalTarjeta===v?C.blue:C.textMid,fontSize:11,fontWeight:700,cursor:"pointer"}}>{l}</button>
+            ))}
+          </div>
+          <div style={{color:C.textMid,fontSize:11,marginBottom:8}}>¿Cuánto te entregó en efectivo? (para el cambio)</div>
+          <Inp
+            value={montoRecibido}
+            onChange={(e)=>setMontoRecibido(e.target.value)}
+            placeholder={mixtoEfectivoParte != null ? `Mínimo ${$(mixtoEfectivoParte)}` : "Monto entregado"}
+            inputMode="decimal"
+            style={{width:"100%",boxSizing:"border-box",marginBottom:8,fontSize:16,fontWeight:700}}
+          />
+          {mixtoEfectivoParte != null && (
+            <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
+              <button type="button" onClick={()=>setMontoRecibido(String(mixtoEfectivoParte))} style={{padding:"4px 10px",borderRadius:8,border:`1px solid ${C.green}`,background:"#fff",color:C.green,fontSize:10,fontWeight:700,cursor:"pointer"}}>Exacto {$(mixtoEfectivoParte)}</button>
+              {sugerenciasPagoCliente(mixtoEfectivoParte).map(({billete,cambio})=>(
+                <button key={billete} type="button" onClick={()=>setMontoRecibido(String(billete))} style={{padding:"4px 10px",borderRadius:8,border:`1px solid ${C.border}`,background:C.card,fontSize:10,fontWeight:600,cursor:"pointer",color:C.text}}>
+                  ${billete} → cambio {$(cambio)}
+                </button>
+              ))}
+            </div>
+          )}
+          {mixtoEfectivoParte != null && Number.isFinite(recibidoNum) && recibidoNum >= mixtoEfectivoParte && (
+            <div style={{marginBottom:4}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
+                <span style={{color:C.textMid,fontSize:12}}>Cambio a entregar</span>
+                <span style={{color:C.green,fontWeight:900,fontSize:22}}>{$(cambioNum)}</span>
+              </div>
+            </div>
+          )}
+          {mixtoEfectivoParte != null && Number.isFinite(recibidoNum) && recibidoNum > 0 && recibidoNum < mixtoEfectivoParte && (
+            <div style={{color:C.red,fontSize:11,fontWeight:700}}>Falta ${(mixtoEfectivoParte - recibidoNum).toFixed(2)} en efectivo</div>
+          )}
+          <div style={{color:C.textDim,fontSize:9,marginTop:8,lineHeight:1.35}}>
+            Primero se cobra la tarjeta por {mixtoTarjetaParte != null ? $(mixtoTarjetaParte) : "la diferencia"}; al aprobarse se registra la venta mixta y el corte suma cada parte donde corresponde.
+          </div>
+        </Box>
+      )}
       {/* Total */}
       <div data-tour="pos-cobrar">
       <Box style={{padding:16}}>
@@ -2316,6 +2453,30 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
           <Btn onClick={cobrar} full col={C.green} dis={!cart.length||guardando||(!Number.isFinite(recibidoNum)||recibidoNum<aCobrar)}
             onKeyDown={e=>e.key==="Enter"&&!guardando&&cart.length&&Number.isFinite(recibidoNum)&&recibidoNum>=aCobrar&&cobrar()}
           >{guardando?"Procesando...":"✅ Cobrar "+$(aCobrar)}</Btn>
+        ) : pay==="mixto" ? (
+          <div>
+            <Btn
+              onClick={() => abrirModalRecetaVenta(mixtoCanalTarjeta === "bbva_terminal" ? "mixto_bbva" : "mixto_tarjeta")}
+              full
+              col={mixtoCanalTarjeta === "bbva_terminal" ? "#1a237e" : "#009ee3"}
+              dis={
+                !cart.length
+                || guardando
+                || !mixtoParts?.ok
+                || !Number.isFinite(recibidoNum)
+                || recibidoNum < (mixtoEfectivoParte || 0)
+              }
+            >
+              {guardando
+                ? "Procesando..."
+                : mixtoCanalTarjeta === "bbva_terminal"
+                  ? `🏦 Cobrar mixto · tarjeta ${mixtoTarjetaParte != null ? $(mixtoTarjetaParte) : ""}`
+                  : `💳 Cobrar mixto · Point ${mixtoTarjetaParte != null ? $(mixtoTarjetaParte) : ""}`}
+            </Btn>
+            <div style={{color:C.textDim,fontSize:10,marginTop:10,lineHeight:1.45}}>
+              Se cobra primero la tarjeta; al aprobarse se registra efectivo + tarjeta en la misma venta.
+            </div>
+          </div>
         ) : pay==="tarjeta" ? (
           <div>
             <Btn onClick={()=>abrirModalRecetaVenta("tarjeta")}
@@ -2677,7 +2838,9 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
             ? totalCobroConsulta(mpCitaRef.current)
             : mpServicioRef.current
               ? mpServicioRef.current.total
-              : total
+              : (pay === "mixto" && mixtoMontosRef.current?.tarjeta > 0
+                ? mixtoMontosRef.current.tarjeta
+                : (creditoNum > 0 ? aCobrar : total))
         }
         folio={
           mpCitaRef.current
@@ -2689,7 +2852,9 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
             ? (mpServicioRef.current.categoria === "recarga"
               ? "Cobra al cliente solo el monto de la recarga en la Point. El tiempo aire ya salió del saldo MP. Prefiere efectivo: la comisión de Point se come el 1%."
               : "Cobra al cliente el recibo + tu recargo en la Point. El servicio ya se pagó con saldo MP. Prefiere efectivo: la comisión de Point se come la ganancia.")
-            : "El terminal recibe el monto; al aprobarse se registra la venta y podrás imprimir o enviar el ticket por WhatsApp."
+            : pay === "mixto"
+              ? `Pago mixto: cobra solo ${mixtoMontosRef.current?.tarjeta > 0 ? $(mixtoMontosRef.current.tarjeta) : "la parte en tarjeta"} en el Point. El efectivo ya lo capturaste aparte.`
+              : "El terminal recibe el monto; al aprobarse se registra la venta y podrás imprimir o enviar el ticket por WhatsApp."
         }
         onSuccess={async ()=>{
           setMpModal(false);
@@ -2723,7 +2888,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
           else {
             const ro = recetaOrigenPendienteRef.current || "no_aplica";
             recetaOrigenPendienteRef.current = "no_aplica";
-            await ejecutarCobrar(ro);
+            await ejecutarCobrar(ro, pay === "mixto" ? "mixto" : null);
           }
         }}
         onCancel={()=>{ setMpModal(false); mpCitaRef.current = null; mpServicioRef.current = null; recetaOrigenPendienteRef.current = "no_aplica"; }}
@@ -2732,9 +2897,19 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       {/* Terminal BBVA Modal */}
       <BBVATerminalModal
         open={bbvaModal}
-        total={bbvaCitaRef.current ? totalCobroConsulta(bbvaCitaRef.current) : total}
+        total={
+          bbvaCitaRef.current
+            ? totalCobroConsulta(bbvaCitaRef.current)
+            : (pay === "mixto" && mixtoMontosRef.current?.tarjeta > 0
+              ? mixtoMontosRef.current.tarjeta
+              : (creditoNum > 0 ? aCobrar : total))
+        }
         folio={bbvaCitaRef.current ? `CONS-${bbvaCitaRef.current.id}` : bbvaFolio}
-        hint="Ingresa el monto en la terminal física BBVA, procesa la tarjeta del cliente y confirma aquí el resultado del voucher."
+        hint={
+          pay === "mixto"
+            ? `Pago mixto: ingresa solo ${mixtoMontosRef.current?.tarjeta > 0 ? $(mixtoMontosRef.current.tarjeta) : "la parte en tarjeta"} en la terminal BBVA.`
+            : "Ingresa el monto en la terminal física BBVA, procesa la tarjeta del cliente y confirma aquí el resultado del voucher."
+        }
         onSuccess={async () => {
           setBbvaModal(false);
           const citaBbva = bbvaCitaRef.current;
@@ -2748,7 +2923,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
           } else {
             const ro = recetaOrigenPendienteRef.current || "no_aplica";
             recetaOrigenPendienteRef.current = "no_aplica";
-            await ejecutarCobrar(ro, "bbva_terminal");
+            await ejecutarCobrar(ro, pay === "mixto" ? "mixto" : "bbva_terminal");
           }
         }}
         onCancel={() => {
@@ -2795,7 +2970,20 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
 
       {ticket&&<TicketPreviewModal
         open={!!ticket}
-        venta={{id:ticket.id, folio:ticket.folio, total:ticket.total, created_at:new Date().toISOString(), metodo_pago:ticket.pay, neto:ticket.neto, iva:ticket.iva}}
+        venta={{
+          id:ticket.id,
+          folio:ticket.folio,
+          total:ticket.total,
+          created_at:new Date().toISOString(),
+          metodo_pago:ticket.pay,
+          neto:ticket.neto,
+          iva:ticket.iva,
+          recibido:ticket.recibido,
+          cambio:ticket.cambio,
+          cambioDesglose:ticket.cambioDesglose,
+          montoEfectivo:ticket.montoEfectivo,
+          montoTarjeta:ticket.montoTarjeta,
+        }}
         productos={ticket.items}
         cliente={ticket.cli}
         metodoPago={ticket.pay}

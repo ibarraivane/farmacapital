@@ -25,6 +25,7 @@ function horaLocal(iso) {
 function etiquetaMetodo(m) {
   const x = String(m || "").toLowerCase();
   if (x === "efectivo") return "efectivo";
+  if (x === "mixto") return "mixto";
   if (x === "tarjeta" || x === "bbva_terminal") return "tarjeta";
   if (x === "mercadopago" || x === "mercadopago_point") return "MercadoPago";
   if (x === "spei") return "SPEI";
