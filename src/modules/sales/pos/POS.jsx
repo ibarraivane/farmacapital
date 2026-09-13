@@ -51,7 +51,7 @@ import { puedeCancelarCitaCaja, esCitaNoShow } from "../../../utils/citasAgenda"
 import { esPedidoTiendaWebPendiente, fetchPedidosTiendaPendientesMerged } from "../../../utils/pedidosTiendaWeb";
 import { desgloseCambioMN, sugerenciasPagoCliente } from "../../../utils/cambioCaja";
 import { marcarMedicamentosRecetaFarmaCapitalSurtidos } from "../../../utils/recetaCitaSync";
-import { openRecetaPdf, recetaOptsDesdeFila } from "../../../utils/recetaPrint";
+import { imprimirRecetaCarta, recetaOptsDesdeFila } from "../../../utils/recetaPrint";
 import OnboardingTour from "../../../components/OnboardingTour";
 import { TOURS } from "../../../utils/tours";
 import { labelTipoEntregaPedido } from "../../../utils/orderChannels";
@@ -3467,7 +3467,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
             <Box style={{padding:16,marginBottom:16,border:`1px solid ${C.green}40`,background:C.greenDim}}>
               <div style={{color:C.text,fontWeight:800,fontSize:14,marginBottom:6}}>Recetas del consultorio por imprimir</div>
               <div style={{color:C.textMid,fontSize:12,marginBottom:12,lineHeight:1.45}}>
-                La doctora envió estas recetas desde el 2.º piso. Imprimí carta, entregá al paciente y surtí con origen «médico FarmaCapital».
+                La doctora envió estas recetas desde el 2.º piso. Imprimí en la Brother DCP-L2660DW (hoja carta, una cara), no en la Epson térmica. Entregá al paciente y surtí con origen «médico FarmaCapital».
               </div>
               {recetasPorSurtir.map((rxRow) => (
                 <div key={rxRow.id} style={{display:"flex",justifyContent:"space-between",gap:10,flexWrap:"wrap",alignItems:"center",padding:"10px 0",borderTop:`1px solid ${C.border}`}}>
@@ -3481,7 +3481,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                     sm
                     col={BRAND.primary}
                     onClick={async () => {
-                      openRecetaPdf(recetaOptsDesdeFila(rxRow));
+                      imprimirRecetaCarta(recetaOptsDesdeFila(rxRow));
                       const tokRx = sessionStorage.getItem("farmacapital_session_token");
                       if (tokRx) {
                         const { error: mErr } = await supabase.rpc("empleado_marcar_receta_impresa", {

@@ -4,6 +4,8 @@
 // Descarga: https://qz.io/download/
 // ═══════════════════════════════════════════════════════════
 
+import { elegirImpresoraTermica } from "../constants/impresoras";
+
 // ── Verificar si QZ Tray está disponible ─────────────────
 export function isQZAvailable() {
   return typeof window.qz !== "undefined";
@@ -32,16 +34,10 @@ export async function listarImpresoras() {
   return window.qz.printers.find();
 }
 
-// ── Buscar Epson TM-T20III ────────────────────────────────
+// ── Buscar Epson TM-T20III (nunca la Brother láser de recetas) ─
 export async function buscarEpson() {
   const impresoras = await listarImpresoras();
-  const epson = impresoras.find(p =>
-    p.toLowerCase().includes("epson") ||
-    p.toLowerCase().includes("tm-t20") ||
-    p.toLowerCase().includes("thermal") ||
-    p.toLowerCase().includes("receipt")
-  );
-  return epson || impresoras[0] || null;
+  return elegirImpresoraTermica(impresoras);
 }
 
 // ── Comandos ESC/POS básicos ──────────────────────────────
