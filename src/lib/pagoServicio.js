@@ -26,6 +26,7 @@ export const CATALOGO_SERVICIOS = [
   { id: "movistar", categoria: "recarga", proveedor: "Movistar", comision: 0, emoji: "📱" },
   { id: "att", categoria: "recarga", proveedor: "AT&T", comision: 0, emoji: "📱" },
   { id: "unefon", categoria: "recarga", proveedor: "Unefon", comision: 0, emoji: "📱" },
+  { id: "movilidad-cdmx", categoria: "recarga", proveedor: "Tarjeta Movilidad CDMX", comision: 0, emoji: "🚇" },
   { id: "cfe", categoria: "luz", proveedor: "CFE", comision: 8, emoji: "💡" },
   { id: "telmex", categoria: "telefonia", proveedor: "Telmex", comision: 8, emoji: "☎️" },
   { id: "totalplay", categoria: "telefonia", proveedor: "Totalplay", comision: 8, emoji: "📺" },

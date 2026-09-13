@@ -37,6 +37,8 @@ describe("pagoServicio", () => {
     expect(recargoCatalogoDe("att")).toBe(0);
     expect(recargoCatalogoDe("AT&T")).toBe(0);
     expect(recargoCatalogoDe("Movistar")).toBe(0);
+    expect(recargoCatalogoDe("movilidad-cdmx")).toBe(0);
+    expect(recargoCatalogoDe("Tarjeta Movilidad CDMX")).toBe(0);
     expect(recargoCatalogoDe("CFE")).toBe(8);
     expect(recargoCatalogoDe("Sky")).toBe(10);
     expect(recargoCatalogoDe("desconocido")).toBe(0);
