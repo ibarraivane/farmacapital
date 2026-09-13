@@ -3528,6 +3528,24 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
     onQuitarCad: quitarCaducidadInline,
   };
 
+  const esErrorFkProducto = (msg) =>
+    /foreign key|movimientos_inventario|pedido_items|compra_items|violates foreign key/i.test(
+      String(msg || "")
+    );
+
+  /** Si el DELETE duro choca con kardex/FKs, oculta el producto (activo=false). */
+  const softDeleteProductoFallback = async (tok, id) => {
+    const { data: resp, error } = await supabase.rpc("admin_toggle_producto", {
+      p_session_token: tok,
+      p_producto_id: id,
+      p_activo: false,
+    });
+    if (error || !resp?.success) {
+      return { ok: false, error: error?.message || "No se pudo ocultar el producto." };
+    }
+    return { ok: true, softDeleted: true, motivo: "referencias_fk" };
+  };
+
   const eliminarProducto = async (id, { confirmMsg } = {}) => {
     const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) {
@@ -3538,7 +3556,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
       confirmMsg != null &&
       !window.confirm(
         confirmMsg ||
-          "¿Eliminar este producto? Si tiene historial de ventas o compras solo se ocultará (desactivará)."
+          "¿Eliminar este producto? Si tiene historial (ventas, compras o movimientos de inventario) solo se ocultará."
       )
     ) {
       return { ok: false, cancelled: true };
@@ -3548,6 +3566,12 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
       p_producto_id: id,
     });
     if (error) {
+      if (esErrorFkProducto(error.message)) {
+        const soft = await softDeleteProductoFallback(tok, id);
+        if (soft.ok) return soft;
+        showToast(`Error al eliminar: ${soft.error || error.message}`, "error");
+        return { ok: false, error: soft.error || error.message };
+      }
       showToast(`Error al eliminar: ${error.message}`, "error");
       return { ok: false, error: error.message };
     }
@@ -3581,7 +3605,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
   };
   const eliminarUno = async (p) => {
     const result = await eliminarProducto(p.id, {
-      confirmMsg: `¿Eliminar «${p.nombre || "producto"}»? Si tiene ventas o compras registradas solo se ocultará.`,
+      confirmMsg: `¿Eliminar «${p.nombre || "producto"}»? Si tiene historial (ventas, compras o inventario) solo se ocultará.`,
     });
     if (!result.ok) return;
     if (result.softDeleted) {
@@ -3699,7 +3723,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
     if (!ids.length) return;
     if (
       !window.confirm(
-        `¿Eliminar ${ids.length} producto(s)? Los que tienen ventas o compras registradas solo se ocultarán (desactivarán).`
+        `¿Eliminar ${ids.length} producto(s)? Los que tienen historial (ventas, compras o inventario) solo se ocultarán.`
       )
     ) {
       return;
