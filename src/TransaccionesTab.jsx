@@ -873,12 +873,13 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
       {ticketReprint && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,.6)", backdropFilter: "blur(4px)", zIndex: 500, display: "flex", alignItems: "center", justifyContent: "center", padding: "max(12px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px))", boxSizing: "border-box" }}
           onClick={(e) => e.target === e.currentTarget && setTicketReprint(null)}>
-          <div style={{ background: C.card, borderRadius: 16, width: "min(380px, 100%)", maxHeight: "min(90dvh, 92vh)", overflowY: "auto", WebkitOverflowScrolling: "touch", boxShadow: "0 24px 80px rgba(0,82,204,.2)", minWidth: 0 }}>
-            <div style={{ padding: "14px 20px", borderBottom: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center", background: "linear-gradient(135deg,#7c3aed,#9d6fff)", borderRadius: "16px 16px 0 0" }}>
+          <div style={{ background: C.card, borderRadius: 16, width: "min(380px, 100%)", maxHeight: "min(90dvh, 92vh)", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 24px 80px rgba(0,82,204,.2)", minWidth: 0 }}>
+            <div style={{ flexShrink: 0, padding: "14px 20px", borderBottom: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center", background: "linear-gradient(135deg,#7c3aed,#9d6fff)", borderRadius: "16px 16px 0 0" }}>
               <div style={{ color: "#fff", fontWeight: 800, fontSize: 15 }}>🖨️ Reimprimir Ticket #{ticketReprint.venta.id}</div>
               <button type="button" onClick={() => setTicketReprint(null)} style={{ background: "rgba(255,255,255,.2)", border: "none", color: "#fff", width: 28, height: 28, borderRadius: "50%", cursor: "pointer", fontSize: 16 }}>✕</button>
             </div>
-            <div style={{ padding: 16, background: "#f8fafc", display: "flex", justifyContent: "center", borderBottom: "1px solid #e2e8f0", maxHeight: "60vh", overflowY: "visible" }}>
+            {/* Ticket scrollea solo; botones quedan fijos abajo y no tapan el QR */}
+            <div style={{ flex: "1 1 auto", minHeight: 0, padding: 16, background: "#f8fafc", display: "flex", justifyContent: "center", borderBottom: "1px solid #e2e8f0", overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
               <div style={{ background: C.card, boxShadow: "0 2px 12px rgba(0,0,0,.1)", borderRadius: 4, padding: 4 }}>
                 <TicketVenta
                   venta={ticketReprint.venta}
@@ -890,7 +891,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                 />
               </div>
             </div>
-            <div style={{ padding: 16, display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <div style={{ flexShrink: 0, padding: 16, display: "flex", gap: 10, flexWrap: "wrap", background: C.card }}>
               <button type="button" onClick={() => printTicket("farmacapital-ticket")} disabled={reprintTicketUrlLoading} style={{ flex: "2 1 160px", minHeight: 44, padding: "11px", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#7c3aed,#9d6fff)", color: "#fff", fontWeight: 800, fontSize: 14, cursor: "pointer", opacity: reprintTicketUrlLoading ? 0.65 : 1 }}>
                 {reprintTicketUrlLoading ? "Preparando QR…" : "🖨️ Imprimir"}
               </button>
