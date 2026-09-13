@@ -542,3 +542,13 @@ describe("loratadina vs marcas y desloratadina", () => {
     expect(tiendaProductMatchesBusqueda(desloro, "loratadina")).toBe(false);
   });
 });
+describe("vernáculo bidireccional fármaco", () => {
+  test("sildenafil encuentra viagra y loratadina encuentra Clarityne sin PA", () => {
+    const viagra = { id: 301, activo: true, nombre: "Viagra 50 mg", marca: "Viagra", principio_activo: "Sildenafil" };
+    const gen = { id: 302, activo: true, nombre: "Sildenafil 50 mg", marca: "Genérico", principio_activo: "Sildenafil" };
+    const clarityne = { id: 303, activo: true, nombre: "Clarityne", marca: "Clarityne", principio_activo: "" };
+    expect(tiendaProductMatchesBusqueda(viagra, "sildenafil")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(gen, "viagra")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(clarityne, "loratadina")).toBe(true);
+  });
+});

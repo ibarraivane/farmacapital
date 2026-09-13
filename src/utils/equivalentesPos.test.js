@@ -252,4 +252,82 @@ describe("grupoEquivalentesDeBusqueda", () => {
     expect(ids).not.toContain(4);
     expect(claveSustancia(laritolEx)).toBe("ambroxol+loratadina");
   });
+
+  it("familias grandes se truncan pero no tumbaron el tablero (todas las búsquedas)", () => {
+    const ancla = {
+      id: 1,
+      nombre: "Paracetamol 500 mg",
+      marca: "Genérico",
+      tipo: "generico",
+      principio_activo: "Paracetamol",
+      forma_farmaceutica: "Tabletas",
+      presentacion: "C/10",
+      precio: 20,
+      activo: true,
+    };
+    const catalogo = [ancla];
+    for (let i = 2; i <= 50; i += 1) {
+      catalogo.push({
+        ...ancla,
+        id: i,
+        nombre: `Paracetamol marca ${i}`,
+        marca: `Marca${i}`,
+        precio: 10 + i,
+      });
+    }
+    const grupo = grupoEquivalentesDeBusqueda(catalogo, catalogo.slice(0, 10), "paracetamol");
+    expect(grupo).not.toBeNull();
+    expect(grupo.total).toBe(50);
+    expect(grupo.mostrados).toBeLessThanOrEqual(80);
+    const ids = [
+      ...grupo.coincidenciasDirectas,
+      ...grupo.mismaConfiguracion,
+      ...grupo.otroContenido,
+      ...grupo.otrasPresentaciones,
+    ].map((p) => p.id);
+    expect(ids.length).toBe(grupo.mostrados);
+  });
+
+  it("ibuprofeno incluye combinaciones igual que loratadina (regla general de sustancia)", () => {
+    const solo = {
+      id: 1,
+      nombre: "Ibuprofeno 400 mg",
+      marca: "Genérico",
+      tipo: "generico",
+      principio_activo: "Ibuprofeno",
+      forma_farmaceutica: "Tabletas",
+      precio: 30,
+      activo: true,
+    };
+    const advil = {
+      id: 2,
+      nombre: "Advil 400 mg",
+      marca: "Advil",
+      tipo: "marca",
+      principio_activo: "Ibuprofeno",
+      forma_farmaceutica: "Tabletas",
+      precio: 80,
+      activo: true,
+    };
+    const combo = {
+      id: 3,
+      nombre: "Ibuprofeno / Cafeína",
+      marca: "Genérico",
+      tipo: "generico",
+      principio_activo: "Ibuprofeno / Cafeína",
+      forma_farmaceutica: "Tabletas",
+      precio: 35,
+      activo: true,
+    };
+    const resultados = [solo, advil, combo];
+    const grupo = grupoEquivalentesDeBusqueda(resultados, resultados, "ibuprofeno");
+    expect(grupo).not.toBeNull();
+    const ids = [
+      ...grupo.coincidenciasDirectas,
+      ...grupo.mismaConfiguracion,
+      ...grupo.otroContenido,
+      ...grupo.otrasPresentaciones,
+    ].map((p) => p.id).sort();
+    expect(ids).toEqual([1, 2, 3]);
+  });
 });

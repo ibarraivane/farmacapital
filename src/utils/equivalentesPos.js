@@ -5,9 +5,9 @@ import { normalizedTextFuzzyMatch } from "./fuzzySearch";
 const RUIDO_SUSTANCIA = new Set(["clorhidrato", "hidrocloruro", "maleato", "sulfato", "fosfato", "nitrato", "acetato", "tartrato", "citrato", "succinato", "besilato", "mesilato", "sodico", "sodica", "sodio", "calcico", "calcio", "potasico", "potasio", "magnesico", "acido", "dihidratado", "monohidratado", "trihidrato", "anhidro", "micronizado", "purificado", "del", "con", "mas", "por"]);
 const NO_ES_SUSTANCIA = new Set(["producto", "homeopatico", "homeopatica", "natural", "naturales", "material", "curacion", "plastico", "sintetico", "sinteticos", "suplemento", "nutricional", "alimento", "cosmetico", "cosmeticos", "formula", "surfactantes", "tensioactivos", "detergentes", "capilar", "corporal", "facial", "emolientes", "humectantes", "antitranspirante", "desodorante", "jabon", "latex", "absorbente", "celulosa", "limpiadora", "limpiador", "solucion", "higiene", "aseo", "varios", "otros", "generico", "genericos"]);
 const CONSULTAS_AMBIGUAS = new Set(["para", "dolor", "medicina", "medicamento", "pastilla", "pastillas", "jarabe", "crema", "gotas", "adulto", "nino", "nina"]);
-const MAX_OPCIONES_GRUPO = 24;
-const MAX_OPCIONES_SUSTANCIA = 48;
-const RESULTADOS_QUE_DECIDEN = 8;
+const MAX_OPCIONES_GRUPO = 36;
+const MAX_OPCIONES_SUSTANCIA = 80;
+const RESULTADOS_QUE_DECIDEN = 24;
 const cacheClave = new WeakMap();
 
 export function claveSustancia(producto) {
@@ -143,6 +143,10 @@ function ordenarProductos(opciones, query) {
     const aDirecto = q && [a?.nombre, a?.marca].some((x) => norm(x).includes(q));
     const bDirecto = q && [b?.nombre, b?.marca].some((x) => norm(x).includes(q));
     if (aDirecto !== bDirecto) return aDirecto ? -1 : 1;
+    // Al buscar el genérico, la patente no debe hundirse solo por precio.
+    const aPat = etiquetaTipoProducto(a) === "Patente" ? 0 : 1;
+    const bPat = etiquetaTipoProducto(b) === "Patente" ? 0 : 1;
+    if (aPat !== bPat) return aPat - bPat;
     return precioNum(a) - precioNum(b) || String(a?.nombre || "").localeCompare(String(b?.nombre || ""), "es");
   });
 }
@@ -162,9 +166,14 @@ export function grupoOpcionesRelacionadas(productos, ancla, query = "") {
     return expandirPorSustancia && claveContieneSustancia(c, tokensBuscados);
   });
   const max = expandirPorSustancia ? MAX_OPCIONES_SUSTANCIA : MAX_OPCIONES_GRUPO;
-  if (opciones.length < 2 || opciones.length > max) return null;
+  if (opciones.length < 2) return null;
+  // Familias grandes: truncar, no tumbar el tablero (antes >max devolvía null y se perdía el agrupado).
+  const opcionesCapped = opciones.length > max
+    ? ordenarProductos(opciones, query).slice(0, max)
+    : opciones;
+  const totalReal = opciones.length;
   const secciones = { mismaConfiguracion: [], otroContenido: [], otrasPresentaciones: [] };
-  opciones.forEach((p) => {
+  opcionesCapped.forEach((p) => {
     const c = claveSustancia(p);
     // Combinaciones u otras claves que contienen la sustancia → otras presentaciones.
     const relacion = c === clave ? clasificarRelacionProducto(p, ancla) : "otra_forma";
@@ -192,7 +201,8 @@ export function grupoOpcionesRelacionadas(productos, ancla, query = "") {
     etiqueta: String(ancla?.principio_activo || ancla?.denominacion_generica || "").trim(),
     etiquetaDirecta: coincidenciasDirectas.length ? etiquetaDirectaDe(coincidenciasDirectas, query) : "",
     ancla,
-    total: opciones.length,
+    total: totalReal,
+    mostrados: opcionesCapped.length,
     coincidenciasDirectas: ordenarProductos(coincidenciasDirectas, query),
     ...secciones,
   };
@@ -242,13 +252,14 @@ function idsDelGrupo(grupo) {
  * caso se conserva TableroResultados.
  */
 function grupoCubreLoBuscado(grupo, resultados, query) {
+  // Con la lista de búsqueda siempre visible debajo, el tablero puede quedarse
+  // aunque no cubra el 100%. Sólo se descarta si casi no aporta (cubre < 40%).
   if (!grupo) return false;
-  // Nombre/marca y también PA: si el tablero esconde Laritol EX al buscar loratadina, no sirve.
   const directos = coincidenciasVisiblesDeBusqueda(resultados, query);
   if (directos.length <= 1) return true;
   const ids = idsDelGrupo(grupo);
   const cubiertos = directos.filter((p) => ids.has(p.id)).length;
-  return cubiertos >= Math.ceil(directos.length * (2 / 3));
+  return cubiertos >= Math.max(1, Math.ceil(directos.length * 0.4));
 }
 
 /** Incorpora hits de búsqueda que el grupo exacto dejó fuera (homeopáticos, marcas sin PA…). */
