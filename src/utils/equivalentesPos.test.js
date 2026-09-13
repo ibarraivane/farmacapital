@@ -123,4 +123,66 @@ describe("grupoEquivalentesDeBusqueda", () => {
     expect(coincideConsultaDirecta(nodrip, "afrin")).toBe(true);
     expect(coincideConsultaDirecta({ nombre: "Neomici Polimixi", marca: "Exakta", tipo: "generico" }, "neomici")).toBe(false);
   });
+
+  it("arnica no reduce a 2 pomadas: árnica / árnica montana / homeopático son familias distintas en catálogo", () => {
+    const pomada = {
+      id: 1,
+      nombre: "Pomada De Árnica Tarro",
+      marca: "Mercurio",
+      tipo: "marca",
+      principio_activo: "Árnica",
+      forma_farmaceutica: "Pomada",
+      presentacion: "Tarro 50 g",
+      precio: 17,
+      activo: true,
+    };
+    const parche = {
+      id: 2,
+      nombre: "Arnica León Parche",
+      marca: "Curitas",
+      tipo: "generico",
+      principio_activo: "Arnica",
+      forma_farmaceutica: "Parche",
+      presentacion: "1 parche",
+      precio: 95,
+      activo: true,
+    };
+    const untar = {
+      id: 3,
+      nombre: "Mercurio Arnica Untar",
+      marca: "Mercurio",
+      tipo: "marca",
+      principio_activo: "Arnica montana",
+      forma_farmaceutica: "Ungüento",
+      presentacion: "C/25",
+      precio: 12,
+      activo: true,
+    };
+    const tomar = {
+      id: 4,
+      nombre: "Mercurio Arnica Tomar",
+      marca: "Mercurio",
+      tipo: "marca",
+      principio_activo: "Arnica montana",
+      forma_farmaceutica: "Gotas",
+      presentacion: "C/25",
+      precio: 12,
+      activo: true,
+    };
+    const flor = {
+      id: 5,
+      nombre: "Mercurio Flor De Arnica",
+      marca: "Mercurio",
+      tipo: "marca",
+      principio_activo: "Producto homeopatico / natural",
+      forma_farmaceutica: "Globulos",
+      presentacion: "C/50",
+      precio: 88,
+      activo: true,
+    };
+    const resultados = [pomada, parche, untar, tomar, flor];
+    // Sin el freno de cobertura, el tablero solo juntaba clave "arnica" (pomada+parche)
+    // y escondía untar/tomar (arnica+montana) y flor (sin clave usable).
+    expect(grupoEquivalentesDeBusqueda(resultados, resultados, "arnica")).toBeNull();
+  });
 });

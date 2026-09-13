@@ -163,6 +163,43 @@ export function grupoOpcionesRelacionadas(productos, ancla, query = "") {
   };
 }
 
+/** Productos cuyo nombre/marca ya nombran lo tecleado (no solo el PA). */
+function coincidenciasPorNombreOMarca(resultados, query) {
+  const q = norm(query);
+  if (!q || q.length < 4) return [];
+  return (resultados || []).filter((p) => {
+    const campos = [p?.nombre, p?.marca, p?.denominacion_distintiva].map(norm).filter(Boolean);
+    return campos.some((campo) => campo === q || campo.startsWith(`${q} `) || campo.includes(` ${q} `) || campo.includes(` ${q}`) || campo.startsWith(q));
+  });
+}
+
+function idsDelGrupo(grupo) {
+  const ids = new Set();
+  for (const lista of [grupo?.coincidenciasDirectas, grupo?.mismaConfiguracion, grupo?.otroContenido, grupo?.otrasPresentaciones]) {
+    (lista || []).forEach((p) => { if (p?.id != null) ids.add(p.id); });
+  }
+  return ids;
+}
+
+/**
+ * El tablero sustituye la lista de búsqueda. Si deja fuera varios productos que
+ * ya traen la consulta en el nombre (árnica montana vs árnica, homeopáticos sin
+ * PA usable, misma marca con otra fórmula), la vendedora pierde piezas. En ese
+ * caso se conserva TableroResultados.
+ */
+function grupoCubreLoBuscado(grupo, resultados, query) {
+  if (!grupo) return false;
+  const directos = coincidenciasPorNombreOMarca(resultados, query);
+  if (directos.length <= 1) return true;
+  const ids = idsDelGrupo(grupo);
+  const cubiertos = directos.filter((p) => ids.has(p.id)).length;
+  return cubiertos >= Math.ceil(directos.length * (2 / 3));
+}
+
+function conCoberturaONull(grupo, resultados, query) {
+  return grupoCubreLoBuscado(grupo, resultados, query) ? grupo : null;
+}
+
 export function grupoEquivalentesDeBusqueda(productos, resultados, query = "") {
   if (!consultaEsClara(query, resultados)) return null;
   const top = (resultados || []).slice(0, RESULTADOS_QUE_DECIDEN);
@@ -190,7 +227,7 @@ export function grupoEquivalentesDeBusqueda(productos, resultados, query = "") {
   if (anclaDirecta) {
     // Si el producto directo no tiene alternativas, no buscamos un grupo ajeno:
     // se conserva la lista/ficha normal para esa búsqueda.
-    return grupoOpcionesRelacionadas(productos, anclaDirecta, query);
+    return conCoberturaONull(grupoOpcionesRelacionadas(productos, anclaDirecta, query), resultados, query);
   }
 
   const candidatos = new Map();
@@ -202,7 +239,7 @@ export function grupoEquivalentesDeBusqueda(productos, resultados, query = "") {
   });
   const ordenados = [...candidatos.values()].sort((a, b) => b.n - a.n || a.orden - b.orden);
   for (const candidato of ordenados) {
-    const grupo = grupoOpcionesRelacionadas(productos, candidato.ancla, query);
+    const grupo = conCoberturaONull(grupoOpcionesRelacionadas(productos, candidato.ancla, query), resultados, query);
     if (grupo) return grupo;
   }
   return null;
