@@ -496,3 +496,49 @@ describe("catalog search dimensions", () => {
     expect(tiendaProductMatchesBusqueda(kenciclen, "doxiciclina")).toBe(true);
   });
 });
+
+describe("loratadina vs marcas y desloratadina", () => {
+  const loratadina = {
+    id: 201,
+    activo: true,
+    nombre: "Loratadina 10 mg",
+    marca: "Genérico",
+    principio_activo: "Loratadina",
+  };
+  const clarityne = {
+    id: 202,
+    activo: true,
+    nombre: "Clarityne 10 mg tabletas",
+    marca: "Clarityne",
+    principio_activo: "Loratadina",
+  };
+  const clarityneSinPa = {
+    id: 203,
+    activo: true,
+    nombre: "Clarityne",
+    marca: "Clarityne",
+    principio_activo: "",
+  };
+  const combinacion = {
+    id: 204,
+    activo: true,
+    nombre: "Laritol EX",
+    marca: "Maver",
+    principio_activo: "Loratadina / Ambroxol",
+  };
+  const desloro = {
+    id: 205,
+    activo: true,
+    nombre: "Histapharm 5 mg",
+    marca: "Quimpharma",
+    principio_activo: "Desloratadina",
+  };
+
+  test("loratadina encuentra genérico, Clarityne y combinación; no desloratadina", () => {
+    expect(tiendaProductMatchesBusqueda(loratadina, "loratadina")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(clarityne, "loratadina")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(clarityneSinPa, "loratadina")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(combinacion, "loratadina")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(desloro, "loratadina")).toBe(false);
+  });
+});

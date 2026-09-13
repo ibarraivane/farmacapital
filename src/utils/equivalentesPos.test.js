@@ -181,8 +181,75 @@ describe("grupoEquivalentesDeBusqueda", () => {
       activo: true,
     };
     const resultados = [pomada, parche, untar, tomar, flor];
-    // Sin el freno de cobertura, el tablero solo juntaba clave "arnica" (pomada+parche)
-    // y escondía untar/tomar (arnica+montana) y flor (sin clave usable).
-    expect(grupoEquivalentesDeBusqueda(resultados, resultados, "arnica")).toBeNull();
+    // Buscar "arnica" debe traer árnica, árnica montana y el homeopático por nombre.
+    const grupo = grupoEquivalentesDeBusqueda(resultados, resultados, "arnica");
+    expect(grupo).not.toBeNull();
+    const ids = [
+      ...grupo.coincidenciasDirectas,
+      ...grupo.mismaConfiguracion,
+      ...grupo.otroContenido,
+      ...grupo.otrasPresentaciones,
+    ].map((p) => p.id).sort();
+    expect(ids).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it("loratadina trae genéricos, combinaciones y marca Clarityne, no desloratadina", () => {
+    const generico = {
+      id: 1,
+      nombre: "Loratadina 10 mg",
+      marca: "Genérico",
+      tipo: "generico",
+      principio_activo: "Loratadina",
+      forma_farmaceutica: "Tabletas",
+      presentacion: "C/10",
+      precio: 25,
+      activo: true,
+    };
+    const clarityne = {
+      id: 2,
+      nombre: "Clarityne 10 mg",
+      marca: "Clarityne",
+      tipo: "marca",
+      principio_activo: "Loratadina",
+      forma_farmaceutica: "Tabletas",
+      presentacion: "C/10",
+      precio: 95,
+      activo: true,
+    };
+    const laritolEx = {
+      id: 3,
+      nombre: "Laritol EX",
+      marca: "Maver",
+      tipo: "marca",
+      principio_activo: "Loratadina / Ambroxol",
+      forma_farmaceutica: "Jarabe",
+      presentacion: "120 mL",
+      precio: 31,
+      activo: true,
+    };
+    const desloro = {
+      id: 4,
+      nombre: "Histapharm 5 mg",
+      marca: "Quimpharma",
+      tipo: "generico",
+      principio_activo: "Desloratadina",
+      forma_farmaceutica: "Tabletas",
+      presentacion: "C/10",
+      precio: 36,
+      activo: true,
+    };
+    const catalogo = [generico, clarityne, laritolEx, desloro];
+    const resultados = [generico, clarityne, laritolEx]; // desloro ya no debe entrar por substring
+    const grupo = grupoEquivalentesDeBusqueda(catalogo, resultados, "loratadina");
+    expect(grupo).not.toBeNull();
+    const ids = [
+      ...grupo.coincidenciasDirectas,
+      ...grupo.mismaConfiguracion,
+      ...grupo.otroContenido,
+      ...grupo.otrasPresentaciones,
+    ].map((p) => p.id).sort();
+    expect(ids).toEqual([1, 2, 3]);
+    expect(ids).not.toContain(4);
+    expect(claveSustancia(laritolEx)).toBe("ambroxol+loratadina");
   });
 });

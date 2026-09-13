@@ -6,6 +6,7 @@ const RUIDO_SUSTANCIA = new Set(["clorhidrato", "hidrocloruro", "maleato", "sulf
 const NO_ES_SUSTANCIA = new Set(["producto", "homeopatico", "homeopatica", "natural", "naturales", "material", "curacion", "plastico", "sintetico", "sinteticos", "suplemento", "nutricional", "alimento", "cosmetico", "cosmeticos", "formula", "surfactantes", "tensioactivos", "detergentes", "capilar", "corporal", "facial", "emolientes", "humectantes", "antitranspirante", "desodorante", "jabon", "latex", "absorbente", "celulosa", "limpiadora", "limpiador", "solucion", "higiene", "aseo", "varios", "otros", "generico", "genericos"]);
 const CONSULTAS_AMBIGUAS = new Set(["para", "dolor", "medicina", "medicamento", "pastilla", "pastillas", "jarabe", "crema", "gotas", "adulto", "nino", "nina"]);
 const MAX_OPCIONES_GRUPO = 24;
+const MAX_OPCIONES_SUSTANCIA = 48;
 const RESULTADOS_QUE_DECIDEN = 8;
 const cacheClave = new WeakMap();
 
@@ -115,6 +116,27 @@ function etiquetaDirectaDe(productos, query) {
   return q.charAt(0).toUpperCase() + q.slice(1);
 }
 
+
+function tokensDeClave(clave) {
+  return String(clave || "").split("+").filter(Boolean);
+}
+
+/** Si la consulta nombra la sustancia del ancla (loratadina, árnica…), expandimos a claves que la contengan. */
+function tokensSustanciaBuscada(query, claveAncla) {
+  const qTokens = norm(query).split(" ").filter((t) => t.length >= 4);
+  if (!qTokens.length || !claveAncla) return [];
+  const anclaSet = new Set(tokensDeClave(claveAncla));
+  const exactos = qTokens.filter((t) => anclaSet.has(t));
+  // Solo si escribió la sustancia completa ("loratadina"), no un prefijo ("neomici").
+  return exactos.length === qTokens.length ? exactos : [];
+}
+
+function claveContieneSustancia(clave, tokensSustancia) {
+  if (!tokensSustancia.length) return false;
+  const set = new Set(tokensDeClave(clave));
+  return tokensSustancia.every((t) => set.has(t));
+}
+
 function ordenarProductos(opciones, query) {
   const q = norm(query);
   return [...opciones].sort((a, b) => {
@@ -128,11 +150,24 @@ function ordenarProductos(opciones, query) {
 export function grupoOpcionesRelacionadas(productos, ancla, query = "") {
   const clave = claveSustancia(ancla);
   if (!clave) return null;
-  const opciones = (productos || []).filter((p) => p?.activo !== false && claveSustancia(p) === clave);
-  if (opciones.length < 2 || opciones.length > MAX_OPCIONES_GRUPO) return null;
+  const tokensBuscados = tokensSustanciaBuscada(query, clave);
+  const expandirPorSustancia = tokensBuscados.length > 0;
+  const opciones = (productos || []).filter((p) => {
+    if (p?.activo === false) return false;
+    const c = claveSustancia(p);
+    if (!c) return false;
+    if (c === clave) return true;
+    // "loratadina" debe traer también Loratadina/Ambroxol; "arnica" → árnica montana.
+    // "afrin" (marca) no expande: tokensBuscados queda vacío.
+    return expandirPorSustancia && claveContieneSustancia(c, tokensBuscados);
+  });
+  const max = expandirPorSustancia ? MAX_OPCIONES_SUSTANCIA : MAX_OPCIONES_GRUPO;
+  if (opciones.length < 2 || opciones.length > max) return null;
   const secciones = { mismaConfiguracion: [], otroContenido: [], otrasPresentaciones: [] };
   opciones.forEach((p) => {
-    const relacion = clasificarRelacionProducto(p, ancla);
+    const c = claveSustancia(p);
+    // Combinaciones u otras claves que contienen la sustancia → otras presentaciones.
+    const relacion = c === clave ? clasificarRelacionProducto(p, ancla) : "otra_forma";
     if (relacion === "misma_configuracion") secciones.mismaConfiguracion.push(p);
     else if (relacion === "otro_contenido") secciones.otroContenido.push(p);
     else if (relacion === "otra_forma") secciones.otrasPresentaciones.push(p);
@@ -173,6 +208,25 @@ function coincidenciasPorNombreOMarca(resultados, query) {
   });
 }
 
+/** Hits de búsqueda que nombran la consulta en nombre/marca/PA (para no esconderlos). */
+function coincidenciasVisiblesDeBusqueda(resultados, query) {
+  const q = norm(query);
+  if (!q || q.length < 4) return [];
+  const tokens = q.split(" ").filter((t) => t.length >= 4);
+  return (resultados || []).filter((p) => {
+    const campos = [p?.nombre, p?.marca, p?.denominacion_distintiva, p?.principio_activo, p?.denominacion_generica].map(norm).filter(Boolean);
+    if (campos.some((campo) => campo === q || campo.startsWith(`${q} `) || campo.includes(` ${q} `) || campo.includes(` ${q}`) || campo.startsWith(q))) {
+      return true;
+    }
+    // Token de sustancia como palabra completa en PA: "loratadina" en "loratadina ambroxol",
+    // no dentro de "desloratadina".
+    return tokens.some((t) => campos.some((campo) => {
+      const partes = campo.split(" ").filter(Boolean);
+      return partes.some((w) => w === t || w === `${t}s`);
+    }));
+  });
+}
+
 function idsDelGrupo(grupo) {
   const ids = new Set();
   for (const lista of [grupo?.coincidenciasDirectas, grupo?.mismaConfiguracion, grupo?.otroContenido, grupo?.otrasPresentaciones]) {
@@ -189,15 +243,39 @@ function idsDelGrupo(grupo) {
  */
 function grupoCubreLoBuscado(grupo, resultados, query) {
   if (!grupo) return false;
-  const directos = coincidenciasPorNombreOMarca(resultados, query);
+  // Nombre/marca y también PA: si el tablero esconde Laritol EX al buscar loratadina, no sirve.
+  const directos = coincidenciasVisiblesDeBusqueda(resultados, query);
   if (directos.length <= 1) return true;
   const ids = idsDelGrupo(grupo);
   const cubiertos = directos.filter((p) => ids.has(p.id)).length;
   return cubiertos >= Math.ceil(directos.length * (2 / 3));
 }
 
+/** Incorpora hits de búsqueda que el grupo exacto dejó fuera (homeopáticos, marcas sin PA…). */
+function fusionarHitsFaltantes(grupo, resultados, query) {
+  if (!grupo) return null;
+  const ids = idsDelGrupo(grupo);
+  const tokensGrupo = tokensDeClave(grupo.clave);
+  const faltantes = coincidenciasVisiblesDeBusqueda(resultados, query).filter((p) => {
+    if (p?.id == null || ids.has(p.id)) return false;
+    const c = claveSustancia(p);
+    // Homeopático / sin PA: si el nombre ya dice lo buscado, se queda.
+    if (!c) return true;
+    // Combinaciones de la misma sustancia (loratadina+ambroxol). No un SKU
+    // que solo comparte prefijo de nombre ("neomici" → Neomici Polimixi…).
+    return tokensGrupo.length > 0 && tokensGrupo.every((t) => tokensDeClave(c).includes(t));
+  });
+  if (!faltantes.length) return grupo;
+  return {
+    ...grupo,
+    otrasPresentaciones: ordenarProductos([...(grupo.otrasPresentaciones || []), ...faltantes], query),
+    total: grupo.total + faltantes.length,
+  };
+}
+
 function conCoberturaONull(grupo, resultados, query) {
-  return grupoCubreLoBuscado(grupo, resultados, query) ? grupo : null;
+  const completo = fusionarHitsFaltantes(grupo, resultados, query);
+  return grupoCubreLoBuscado(completo, resultados, query) ? completo : null;
 }
 
 export function grupoEquivalentesDeBusqueda(productos, resultados, query = "") {

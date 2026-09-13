@@ -73,12 +73,19 @@ export const tokenMatchesInNormalizedHaystack = (needle, haystack) => {
   const n = String(needle);
   const h = String(haystack);
   if (!n || !h.includes(n)) return false;
-  if (!isNormalizedDoseUnitToken(n)) return true;
   let i = 0;
   while ((i = h.indexOf(n, i)) !== -1) {
     const before = i === 0 ? "" : h[i - 1];
-    const after = i + n.length >= h.length ? "" : h[i + n.length];
-    if (!/\d/.test(before) && !/\d/.test(after)) return true;
+    const rest = h.slice(i + n.length);
+    const after = rest[0] || "";
+    if (isNormalizedDoseUnitToken(n)) {
+      if (!/\d/.test(before) && !/\d/.test(after)) return true;
+    } else {
+      // Prefijo de otra molécula: "des"+"loratadina". Plural OK: "hisopo"+"s".
+      if (/[a-z]/.test(before)) { i += 1; continue; }
+      if (!/[a-z]/.test(after)) return true;
+      if (/^(s|es)(?![a-z])/.test(rest)) return true;
+    }
     i += 1;
   }
   return false;

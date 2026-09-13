@@ -223,15 +223,15 @@ const CATALOG_VERNACULAR_GROUPS = [
     catalog: ["affective", "cover pro", "empapador", "sabanilla"],
   },
   {
-    query: ["tempra", "tylenol", "acetaminofen"],
+    query: ["tempra", "tylenol", "acetaminofen", "paracetamol"],
     catalog: ["paracetamol", "tempra", "tylenol", "acetaminofen"],
   },
   {
-    query: ["advil", "motrin"],
+    query: ["advil", "motrin", "ibuprofeno"],
     catalog: ["ibuprofeno", "advil", "motrin"],
   },
   {
-    query: ["clarityne", "claritin"],
+    query: ["clarityne", "claritin", "loratadina"],
     catalog: ["loratadina", "clarityne", "claritin"],
   },
   {
@@ -488,13 +488,25 @@ export function levenshtein(a, b) {
   return prev[t.length];
 }
 
+/** "loratadina" dentro de "desloratadina" no es typo: es otra molécula. */
+function isAffixedSubstanceCollision(a, b) {
+  if (!a || !b || a === b) return false;
+  // Solo tokens sueltos: "desloratadina" vs "loratadina".
+  // "loratadina ambroxol" sí debe poder coincidir con "loratadina".
+  if (a.includes(" ") || b.includes(" ")) return false;
+  return a.includes(b) || b.includes(a);
+}
+
 export function minEditDistanceQueryToText(queryNorm, textNorm) {
   if (!queryNorm || !textNorm) return Infinity;
-  const full = levenshtein(queryNorm, textNorm);
+  const full = isAffixedSubstanceCollision(queryNorm, textNorm)
+    ? Infinity
+    : levenshtein(queryNorm, textNorm);
   const words = textNorm.split(/\s+/).filter((w) => w.length >= 2);
   let m = full;
   for (const w of words) {
     if (Math.abs(w.length - queryNorm.length) > 6) continue;
+    if (isAffixedSubstanceCollision(queryNorm, w)) continue;
     const d = levenshtein(queryNorm, w);
     if (d < m) m = d;
   }
@@ -514,12 +526,14 @@ function fuzzyMatchRatio(queryNorm, textNorm) {
   if (!queryNorm || !textNorm) return { dist, ratio: 1 };
   const words = textNorm.split(/\s+/).filter((word) => word.length >= 2);
   if (!words.length) {
+    if (isAffixedSubstanceCollision(queryNorm, textNorm)) return { dist, ratio: 1 };
     const denom = Math.max(queryNorm.length, textNorm.length);
     return { dist, ratio: denom ? dist / denom : 1 };
   }
   let bestRatio = 1;
   for (const w of words) {
     if (Math.abs(w.length - queryNorm.length) > 6) continue;
+    if (isAffixedSubstanceCollision(queryNorm, w)) continue;
     const d = levenshtein(queryNorm, w);
     const denom = Math.max(queryNorm.length, w.length);
     if (denom) bestRatio = Math.min(bestRatio, d / denom);
@@ -599,7 +613,12 @@ export function catalogProductMatchesBusqueda(product, queryRaw, options = {}) {
     product?.principio_activo,
     product?.denominacion_generica,
   ].map((value) => normalizeForSearch(value)).filter(Boolean);
-  if (directIdentityFields.some((field) => field === directQ || field.includes(directQ))) return true;
+  if (directIdentityFields.some((field) => {
+    if (field === directQ) return true;
+    // Evita desloratadina al buscar loratadina; permite "loratadina ambroxol".
+    if (isAffixedSubstanceCollision(field, directQ)) return false;
+    return field.includes(directQ);
+  })) return true;
 
   if (catalogFieldsMatchAllTokens(product, raw, { inventario })) return true;
 
