@@ -20,13 +20,20 @@ export function shouldKeepPrintWindowOpen() {
   return isCoarsePointer() || isStandalonePwa();
 }
 
+/**
+ * Epson TM-T20III: papel 80 mm, área imprimible ~72 mm.
+ * Con padding lateral 2 mm el texto quedaba fuera (~1 carácter por lado).
+ * 6 mm por lado → contenido ~68 mm, dentro del cabezal.
+ */
+export const TICKET_SIDE_PAD_MM = 6;
+
 export const TICKET_CSS = `
 * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 html, body { margin: 0; padding: 0; width: 80mm; max-width: 80mm; background: #fff; }
 @page { size: 80mm auto; margin: 0; }
 @media print {
   html, body { width: 80mm !important; max-width: 80mm !important; margin: 0 !important; padding: 0 !important; }
-  #farmacapital-ticket { width: 80mm !important; max-width: 80mm !important; padding: 3mm 2mm 13mm 2mm !important; }
+  #farmacapital-ticket { width: 80mm !important; max-width: 80mm !important; padding: 3mm ${TICKET_SIDE_PAD_MM}mm 13mm ${TICKET_SIDE_PAD_MM}mm !important; }
 }
 /* Android/iPad: Chrome ignora @page 80mm y manda una hoja carta.
    TM Print Assistant encoge toda la hoja → ticket minúsculo.
@@ -61,16 +68,17 @@ html, body { margin: 0; padding: 0; width: 80mm; max-width: 80mm; background: #f
   max-width: 80mm;
   background: #ffffff;
   color: #000000;
-  padding: 10px 8px calc(10px + 10mm);
+  padding: 10px ${TICKET_SIDE_PAD_MM}mm calc(10px + 10mm);
   margin: 0;
   box-sizing: border-box;
+  overflow-x: hidden;
 }
 #farmacapital-ticket * {
   font-family: Arial, Helvetica, sans-serif;
   -webkit-print-color-adjust: exact !important;
   print-color-adjust: exact !important;
 }
-.ticket { width: 80mm; max-width: 80mm; font-family: Arial, Helvetica, sans-serif; font-size: 12px; font-weight: 700; line-height: 1.4; background: #fff; color: #000; padding: 8px 6px calc(8px + 10mm); }
+.ticket { width: 80mm; max-width: 80mm; font-family: Arial, Helvetica, sans-serif; font-size: 12px; font-weight: 700; line-height: 1.4; background: #fff; color: #000; padding: 8px ${TICKET_SIDE_PAD_MM}mm calc(8px + 10mm); box-sizing: border-box; }
 .center { text-align: center; }
 .left   { text-align: left; }
 .right  { text-align: right; }
@@ -264,7 +272,8 @@ function printRawHtml(html) {
   return false;
 }
 
-/** Imagen a todo el ancho de la hoja. Chrome manda carta; al encoger a 80 mm el ticket llena el rollo. */
+/** Imagen al ancho del rollo. El padding del ticket (~6 mm) queda en la PNG
+ *  para que el cabezal de 72 mm no se coma Sucursal:/precios. */
 function printCanvasFullBleed(canvas) {
   const png = canvas.toDataURL("image/png");
   return printRawHtml(`<!DOCTYPE html>
@@ -332,6 +341,9 @@ async function printElementAs80mmPdf(el) {
       const t = doc.getElementById(el.id) || doc.body;
       t.style.width = "80mm";
       t.style.maxWidth = "80mm";
+      t.style.paddingLeft = `${TICKET_SIDE_PAD_MM}mm`;
+      t.style.paddingRight = `${TICKET_SIDE_PAD_MM}mm`;
+      t.style.boxSizing = "border-box";
       t.style.color = "#000";
       t.style.background = "#fff";
       t.style.position = "static";

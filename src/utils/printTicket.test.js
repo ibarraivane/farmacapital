@@ -1,4 +1,4 @@
-import { isStandalonePwa, shouldKeepPrintWindowOpen } from "./printTicket";
+import { isStandalonePwa, shouldKeepPrintWindowOpen, TICKET_CSS, TICKET_SIDE_PAD_MM } from "./printTicket";
 
 function mockMatchMedia(matchesByQuery) {
   window.matchMedia = (query) => ({
@@ -52,5 +52,15 @@ describe("impresión tablet / PWA", () => {
     });
     expect(isStandalonePwa()).toBe(true);
     expect(shouldKeepPrintWindowOpen()).toBe(true);
+  });
+});
+
+describe("márgenes térmicos Epson 80 mm", () => {
+  test("padding lateral deja el texto dentro del área imprimible (~72 mm)", () => {
+    expect(TICKET_SIDE_PAD_MM).toBeGreaterThanOrEqual(5);
+    // 80 − 2×pad ≤ 72 mm del cabezal TM-T20
+    expect(80 - 2 * TICKET_SIDE_PAD_MM).toBeLessThanOrEqual(72);
+    expect(TICKET_CSS).toContain(`${TICKET_SIDE_PAD_MM}mm`);
+    expect(TICKET_CSS).not.toMatch(/padding:\s*3mm 2mm/);
   });
 });
