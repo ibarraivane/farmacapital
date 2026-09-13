@@ -1179,14 +1179,32 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
   const srchEsEscaneo = isAllDigitsInput(srch);
 
   /**
-   * Tablero de equivalentes del mejor resultado. El orden por parecido de texto
-   * hunde la patente (Treda no se llama "neomicina caolín pectina"), así que el
-   * grupo completo se arma aparte y se pinta arriba de la lista.
+   * Equivalentes por PA: enriquecen la búsqueda (Treda al buscar neomicina…).
+   * NUNCA sustituyen la lista: lo que coincidió por nombre/marca/PA siempre se ve.
    */
   const grupoEquivalentes = React.useMemo(() => {
     if (srchEsEscaneo || !srch.trim() || !fil.length) return null;
     return grupoEquivalentesDeBusqueda(productos, fil, srch);
   }, [productos, fil, srch, srchEsEscaneo]);
+
+  const idsEnGrupoEquivalentes = React.useMemo(() => {
+    if (!grupoEquivalentes) return null;
+    const ids = new Set();
+    for (const lista of [
+      grupoEquivalentes.coincidenciasDirectas,
+      grupoEquivalentes.mismaConfiguracion,
+      grupoEquivalentes.otroContenido,
+      grupoEquivalentes.otrasPresentaciones,
+    ]) {
+      (lista || []).forEach((p) => { if (p?.id != null) ids.add(p.id); });
+    }
+    return ids;
+  }, [grupoEquivalentes]);
+
+  const filFueraDelGrupo = React.useMemo(() => {
+    if (!idsEnGrupoEquivalentes) return fil;
+    return fil.filter((p) => !idsEnGrupoEquivalentes.has(p.id));
+  }, [fil, idsEnGrupoEquivalentes]);
 
   const clearPosSearch = useCallback(() => {
     setSrch("");
@@ -3097,21 +3115,26 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
               isNarrow={isNarrow}
               sticky={!!srch.trim() || !!fichaProd}
             />
-            ) : grupoEquivalentes ? (
-              <TableroEquivalentes
-                grupo={grupoEquivalentes}
-                onSelect={setFichaProd}
-                onAdd={(it) => add(it, false)}
-                estadoStock={estadoStockPos}
-              />
             ) : srch.trim() && !srchEsEscaneo && fil.length > 0 && !looksLikeBarcodeInput(normalizeBarcodeRaw(srch) || srch) ? (
-              <TableroResultados
-                productos={fil.slice(0, 60)}
-                titulo={tituloResultados}
-                onSelect={setFichaProd}
-                onAdd={(it) => add(it, false)}
-                estadoStock={estadoStockPos}
-              />
+              <>
+                {grupoEquivalentes ? (
+                  <TableroEquivalentes
+                    grupo={grupoEquivalentes}
+                    onSelect={setFichaProd}
+                    onAdd={(it) => add(it, false)}
+                    estadoStock={estadoStockPos}
+                  />
+                ) : null}
+                {(!grupoEquivalentes || filFueraDelGrupo.length > 0) ? (
+                  <TableroResultados
+                    productos={(grupoEquivalentes ? filFueraDelGrupo : fil).slice(0, 80)}
+                    titulo={grupoEquivalentes ? (filFueraDelGrupo.length === 1 ? "También coincide con tu búsqueda" : `También coinciden · ${filFueraDelGrupo.length}`) : tituloResultados}
+                    onSelect={setFichaProd}
+                    onAdd={(it) => add(it, false)}
+                    estadoStock={estadoStockPos}
+                  />
+                ) : null}
+              </>
             ) : srch.trim() ? null : (
             <PosProductoFichaPanel
               item={null}

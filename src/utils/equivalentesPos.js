@@ -5,8 +5,9 @@ import { normalizedTextFuzzyMatch } from "./fuzzySearch";
 const RUIDO_SUSTANCIA = new Set(["clorhidrato", "hidrocloruro", "maleato", "sulfato", "fosfato", "nitrato", "acetato", "tartrato", "citrato", "succinato", "besilato", "mesilato", "sodico", "sodica", "sodio", "calcico", "calcio", "potasico", "potasio", "magnesico", "acido", "dihidratado", "monohidratado", "trihidrato", "anhidro", "micronizado", "purificado", "del", "con", "mas", "por"]);
 const NO_ES_SUSTANCIA = new Set(["producto", "homeopatico", "homeopatica", "natural", "naturales", "material", "curacion", "plastico", "sintetico", "sinteticos", "suplemento", "nutricional", "alimento", "cosmetico", "cosmeticos", "formula", "surfactantes", "tensioactivos", "detergentes", "capilar", "corporal", "facial", "emolientes", "humectantes", "antitranspirante", "desodorante", "jabon", "latex", "absorbente", "celulosa", "limpiadora", "limpiador", "solucion", "higiene", "aseo", "varios", "otros", "generico", "genericos"]);
 const CONSULTAS_AMBIGUAS = new Set(["para", "dolor", "medicina", "medicamento", "pastilla", "pastillas", "jarabe", "crema", "gotas", "adulto", "nino", "nina"]);
-const MAX_OPCIONES_GRUPO = 24;
-const RESULTADOS_QUE_DECIDEN = 8;
+const MAX_OPCIONES_GRUPO = 36;
+const MAX_OPCIONES_SUSTANCIA = 80;
+const RESULTADOS_QUE_DECIDEN = 24;
 const cacheClave = new WeakMap();
 
 export function claveSustancia(producto) {
@@ -115,12 +116,37 @@ function etiquetaDirectaDe(productos, query) {
   return q.charAt(0).toUpperCase() + q.slice(1);
 }
 
+
+function tokensDeClave(clave) {
+  return String(clave || "").split("+").filter(Boolean);
+}
+
+/** Si la consulta nombra la sustancia del ancla (loratadina, árnica…), expandimos a claves que la contengan. */
+function tokensSustanciaBuscada(query, claveAncla) {
+  const qTokens = norm(query).split(" ").filter((t) => t.length >= 4);
+  if (!qTokens.length || !claveAncla) return [];
+  const anclaSet = new Set(tokensDeClave(claveAncla));
+  const exactos = qTokens.filter((t) => anclaSet.has(t));
+  // Solo si escribió la sustancia completa ("loratadina"), no un prefijo ("neomici").
+  return exactos.length === qTokens.length ? exactos : [];
+}
+
+function claveContieneSustancia(clave, tokensSustancia) {
+  if (!tokensSustancia.length) return false;
+  const set = new Set(tokensDeClave(clave));
+  return tokensSustancia.every((t) => set.has(t));
+}
+
 function ordenarProductos(opciones, query) {
   const q = norm(query);
   return [...opciones].sort((a, b) => {
     const aDirecto = q && [a?.nombre, a?.marca].some((x) => norm(x).includes(q));
     const bDirecto = q && [b?.nombre, b?.marca].some((x) => norm(x).includes(q));
     if (aDirecto !== bDirecto) return aDirecto ? -1 : 1;
+    // Al buscar el genérico, la patente no debe hundirse solo por precio.
+    const aPat = etiquetaTipoProducto(a) === "Patente" ? 0 : 1;
+    const bPat = etiquetaTipoProducto(b) === "Patente" ? 0 : 1;
+    if (aPat !== bPat) return aPat - bPat;
     return precioNum(a) - precioNum(b) || String(a?.nombre || "").localeCompare(String(b?.nombre || ""), "es");
   });
 }
@@ -128,11 +154,29 @@ function ordenarProductos(opciones, query) {
 export function grupoOpcionesRelacionadas(productos, ancla, query = "") {
   const clave = claveSustancia(ancla);
   if (!clave) return null;
-  const opciones = (productos || []).filter((p) => p?.activo !== false && claveSustancia(p) === clave);
-  if (opciones.length < 2 || opciones.length > MAX_OPCIONES_GRUPO) return null;
+  const tokensBuscados = tokensSustanciaBuscada(query, clave);
+  const expandirPorSustancia = tokensBuscados.length > 0;
+  const opciones = (productos || []).filter((p) => {
+    if (p?.activo === false) return false;
+    const c = claveSustancia(p);
+    if (!c) return false;
+    if (c === clave) return true;
+    // "loratadina" debe traer también Loratadina/Ambroxol; "arnica" → árnica montana.
+    // "afrin" (marca) no expande: tokensBuscados queda vacío.
+    return expandirPorSustancia && claveContieneSustancia(c, tokensBuscados);
+  });
+  const max = expandirPorSustancia ? MAX_OPCIONES_SUSTANCIA : MAX_OPCIONES_GRUPO;
+  if (opciones.length < 2) return null;
+  // Familias grandes: truncar, no tumbar el tablero (antes >max devolvía null y se perdía el agrupado).
+  const opcionesCapped = opciones.length > max
+    ? ordenarProductos(opciones, query).slice(0, max)
+    : opciones;
+  const totalReal = opciones.length;
   const secciones = { mismaConfiguracion: [], otroContenido: [], otrasPresentaciones: [] };
-  opciones.forEach((p) => {
-    const relacion = clasificarRelacionProducto(p, ancla);
+  opcionesCapped.forEach((p) => {
+    const c = claveSustancia(p);
+    // Combinaciones u otras claves que contienen la sustancia → otras presentaciones.
+    const relacion = c === clave ? clasificarRelacionProducto(p, ancla) : "otra_forma";
     if (relacion === "misma_configuracion") secciones.mismaConfiguracion.push(p);
     else if (relacion === "otro_contenido") secciones.otroContenido.push(p);
     else if (relacion === "otra_forma") secciones.otrasPresentaciones.push(p);
@@ -157,10 +201,92 @@ export function grupoOpcionesRelacionadas(productos, ancla, query = "") {
     etiqueta: String(ancla?.principio_activo || ancla?.denominacion_generica || "").trim(),
     etiquetaDirecta: coincidenciasDirectas.length ? etiquetaDirectaDe(coincidenciasDirectas, query) : "",
     ancla,
-    total: opciones.length,
+    total: totalReal,
+    mostrados: opcionesCapped.length,
     coincidenciasDirectas: ordenarProductos(coincidenciasDirectas, query),
     ...secciones,
   };
+}
+
+/** Productos cuyo nombre/marca ya nombran lo tecleado (no solo el PA). */
+function coincidenciasPorNombreOMarca(resultados, query) {
+  const q = norm(query);
+  if (!q || q.length < 4) return [];
+  return (resultados || []).filter((p) => {
+    const campos = [p?.nombre, p?.marca, p?.denominacion_distintiva].map(norm).filter(Boolean);
+    return campos.some((campo) => campo === q || campo.startsWith(`${q} `) || campo.includes(` ${q} `) || campo.includes(` ${q}`) || campo.startsWith(q));
+  });
+}
+
+/** Hits de búsqueda que nombran la consulta en nombre/marca/PA (para no esconderlos). */
+function coincidenciasVisiblesDeBusqueda(resultados, query) {
+  const q = norm(query);
+  if (!q || q.length < 4) return [];
+  const tokens = q.split(" ").filter((t) => t.length >= 4);
+  return (resultados || []).filter((p) => {
+    const campos = [p?.nombre, p?.marca, p?.denominacion_distintiva, p?.principio_activo, p?.denominacion_generica].map(norm).filter(Boolean);
+    if (campos.some((campo) => campo === q || campo.startsWith(`${q} `) || campo.includes(` ${q} `) || campo.includes(` ${q}`) || campo.startsWith(q))) {
+      return true;
+    }
+    // Token de sustancia como palabra completa en PA: "loratadina" en "loratadina ambroxol",
+    // no dentro de "desloratadina".
+    return tokens.some((t) => campos.some((campo) => {
+      const partes = campo.split(" ").filter(Boolean);
+      return partes.some((w) => w === t || w === `${t}s`);
+    }));
+  });
+}
+
+function idsDelGrupo(grupo) {
+  const ids = new Set();
+  for (const lista of [grupo?.coincidenciasDirectas, grupo?.mismaConfiguracion, grupo?.otroContenido, grupo?.otrasPresentaciones]) {
+    (lista || []).forEach((p) => { if (p?.id != null) ids.add(p.id); });
+  }
+  return ids;
+}
+
+/**
+ * El tablero sustituye la lista de búsqueda. Si deja fuera varios productos que
+ * ya traen la consulta en el nombre (árnica montana vs árnica, homeopáticos sin
+ * PA usable, misma marca con otra fórmula), la vendedora pierde piezas. En ese
+ * caso se conserva TableroResultados.
+ */
+function grupoCubreLoBuscado(grupo, resultados, query) {
+  // Con la lista de búsqueda siempre visible debajo, el tablero puede quedarse
+  // aunque no cubra el 100%. Sólo se descarta si casi no aporta (cubre < 40%).
+  if (!grupo) return false;
+  const directos = coincidenciasVisiblesDeBusqueda(resultados, query);
+  if (directos.length <= 1) return true;
+  const ids = idsDelGrupo(grupo);
+  const cubiertos = directos.filter((p) => ids.has(p.id)).length;
+  return cubiertos >= Math.max(1, Math.ceil(directos.length * 0.4));
+}
+
+/** Incorpora hits de búsqueda que el grupo exacto dejó fuera (homeopáticos, marcas sin PA…). */
+function fusionarHitsFaltantes(grupo, resultados, query) {
+  if (!grupo) return null;
+  const ids = idsDelGrupo(grupo);
+  const tokensGrupo = tokensDeClave(grupo.clave);
+  const faltantes = coincidenciasVisiblesDeBusqueda(resultados, query).filter((p) => {
+    if (p?.id == null || ids.has(p.id)) return false;
+    const c = claveSustancia(p);
+    // Homeopático / sin PA: si el nombre ya dice lo buscado, se queda.
+    if (!c) return true;
+    // Combinaciones de la misma sustancia (loratadina+ambroxol). No un SKU
+    // que solo comparte prefijo de nombre ("neomici" → Neomici Polimixi…).
+    return tokensGrupo.length > 0 && tokensGrupo.every((t) => tokensDeClave(c).includes(t));
+  });
+  if (!faltantes.length) return grupo;
+  return {
+    ...grupo,
+    otrasPresentaciones: ordenarProductos([...(grupo.otrasPresentaciones || []), ...faltantes], query),
+    total: grupo.total + faltantes.length,
+  };
+}
+
+function conCoberturaONull(grupo, resultados, query) {
+  const completo = fusionarHitsFaltantes(grupo, resultados, query);
+  return grupoCubreLoBuscado(completo, resultados, query) ? completo : null;
 }
 
 export function grupoEquivalentesDeBusqueda(productos, resultados, query = "") {
@@ -190,7 +316,7 @@ export function grupoEquivalentesDeBusqueda(productos, resultados, query = "") {
   if (anclaDirecta) {
     // Si el producto directo no tiene alternativas, no buscamos un grupo ajeno:
     // se conserva la lista/ficha normal para esa búsqueda.
-    return grupoOpcionesRelacionadas(productos, anclaDirecta, query);
+    return conCoberturaONull(grupoOpcionesRelacionadas(productos, anclaDirecta, query), resultados, query);
   }
 
   const candidatos = new Map();
@@ -202,7 +328,7 @@ export function grupoEquivalentesDeBusqueda(productos, resultados, query = "") {
   });
   const ordenados = [...candidatos.values()].sort((a, b) => b.n - a.n || a.orden - b.orden);
   for (const candidato of ordenados) {
-    const grupo = grupoOpcionesRelacionadas(productos, candidato.ancla, query);
+    const grupo = conCoberturaONull(grupoOpcionesRelacionadas(productos, candidato.ancla, query), resultados, query);
     if (grupo) return grupo;
   }
   return null;

@@ -123,7 +123,7 @@ export default function TableroEquivalentes({ grupo, onSelect, onAdd, estadoStoc
   const otras = [...(grupo.otroContenido || []), ...(grupo.otrasPresentaciones || [])];
   const idsOtroContenido = new Set((grupo.otroContenido || []).map((p) => p.id));
   return (
-    <MarcoTablero titulo={`${grupo.total} opciones con ${etiquetaSustanciaVisible(grupo.etiqueta)}`}>
+    <MarcoTablero titulo={`${grupo.total} opciones con ${etiquetaSustanciaVisible(grupo.etiqueta)}${grupo.mostrados && grupo.mostrados < grupo.total ? ` · mostrando ${grupo.mostrados}` : ""}`}>
       <Seccion titulo={grupo.etiquetaDirecta || "Lo que buscaste"} productos={grupo.coincidenciasDirectas} onSelect={onSelect} onAdd={onAdd} estadoStock={estadoStock} fotoDe={fotoDe} />
       <Seccion titulo="Misma presentación" productos={grupo.mismaConfiguracion} onSelect={onSelect} onAdd={onAdd} estadoStock={estadoStock} fotoDe={fotoDe} />
       <Seccion titulo="Otras presentaciones" productos={otras} diferencia={(p) => idsOtroContenido.has(p.id) ? "Cambia contenido" : "Cambia forma, vía o concentración"} onSelect={onSelect} onAdd={onAdd} estadoStock={estadoStock} fotoDe={fotoDe} />

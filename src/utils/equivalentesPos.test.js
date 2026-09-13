@@ -123,4 +123,211 @@ describe("grupoEquivalentesDeBusqueda", () => {
     expect(coincideConsultaDirecta(nodrip, "afrin")).toBe(true);
     expect(coincideConsultaDirecta({ nombre: "Neomici Polimixi", marca: "Exakta", tipo: "generico" }, "neomici")).toBe(false);
   });
+
+  it("arnica no reduce a 2 pomadas: árnica / árnica montana / homeopático son familias distintas en catálogo", () => {
+    const pomada = {
+      id: 1,
+      nombre: "Pomada De Árnica Tarro",
+      marca: "Mercurio",
+      tipo: "marca",
+      principio_activo: "Árnica",
+      forma_farmaceutica: "Pomada",
+      presentacion: "Tarro 50 g",
+      precio: 17,
+      activo: true,
+    };
+    const parche = {
+      id: 2,
+      nombre: "Arnica León Parche",
+      marca: "Curitas",
+      tipo: "generico",
+      principio_activo: "Arnica",
+      forma_farmaceutica: "Parche",
+      presentacion: "1 parche",
+      precio: 95,
+      activo: true,
+    };
+    const untar = {
+      id: 3,
+      nombre: "Mercurio Arnica Untar",
+      marca: "Mercurio",
+      tipo: "marca",
+      principio_activo: "Arnica montana",
+      forma_farmaceutica: "Ungüento",
+      presentacion: "C/25",
+      precio: 12,
+      activo: true,
+    };
+    const tomar = {
+      id: 4,
+      nombre: "Mercurio Arnica Tomar",
+      marca: "Mercurio",
+      tipo: "marca",
+      principio_activo: "Arnica montana",
+      forma_farmaceutica: "Gotas",
+      presentacion: "C/25",
+      precio: 12,
+      activo: true,
+    };
+    const flor = {
+      id: 5,
+      nombre: "Mercurio Flor De Arnica",
+      marca: "Mercurio",
+      tipo: "marca",
+      principio_activo: "Producto homeopatico / natural",
+      forma_farmaceutica: "Globulos",
+      presentacion: "C/50",
+      precio: 88,
+      activo: true,
+    };
+    const resultados = [pomada, parche, untar, tomar, flor];
+    // Buscar "arnica" debe traer árnica, árnica montana y el homeopático por nombre.
+    const grupo = grupoEquivalentesDeBusqueda(resultados, resultados, "arnica");
+    expect(grupo).not.toBeNull();
+    const ids = [
+      ...grupo.coincidenciasDirectas,
+      ...grupo.mismaConfiguracion,
+      ...grupo.otroContenido,
+      ...grupo.otrasPresentaciones,
+    ].map((p) => p.id).sort();
+    expect(ids).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it("loratadina trae genéricos, combinaciones y marca Clarityne, no desloratadina", () => {
+    const generico = {
+      id: 1,
+      nombre: "Loratadina 10 mg",
+      marca: "Genérico",
+      tipo: "generico",
+      principio_activo: "Loratadina",
+      forma_farmaceutica: "Tabletas",
+      presentacion: "C/10",
+      precio: 25,
+      activo: true,
+    };
+    const clarityne = {
+      id: 2,
+      nombre: "Clarityne 10 mg",
+      marca: "Clarityne",
+      tipo: "marca",
+      principio_activo: "Loratadina",
+      forma_farmaceutica: "Tabletas",
+      presentacion: "C/10",
+      precio: 95,
+      activo: true,
+    };
+    const laritolEx = {
+      id: 3,
+      nombre: "Laritol EX",
+      marca: "Maver",
+      tipo: "marca",
+      principio_activo: "Loratadina / Ambroxol",
+      forma_farmaceutica: "Jarabe",
+      presentacion: "120 mL",
+      precio: 31,
+      activo: true,
+    };
+    const desloro = {
+      id: 4,
+      nombre: "Histapharm 5 mg",
+      marca: "Quimpharma",
+      tipo: "generico",
+      principio_activo: "Desloratadina",
+      forma_farmaceutica: "Tabletas",
+      presentacion: "C/10",
+      precio: 36,
+      activo: true,
+    };
+    const catalogo = [generico, clarityne, laritolEx, desloro];
+    const resultados = [generico, clarityne, laritolEx]; // desloro ya no debe entrar por substring
+    const grupo = grupoEquivalentesDeBusqueda(catalogo, resultados, "loratadina");
+    expect(grupo).not.toBeNull();
+    const ids = [
+      ...grupo.coincidenciasDirectas,
+      ...grupo.mismaConfiguracion,
+      ...grupo.otroContenido,
+      ...grupo.otrasPresentaciones,
+    ].map((p) => p.id).sort();
+    expect(ids).toEqual([1, 2, 3]);
+    expect(ids).not.toContain(4);
+    expect(claveSustancia(laritolEx)).toBe("ambroxol+loratadina");
+  });
+
+  it("familias grandes se truncan pero no tumbaron el tablero (todas las búsquedas)", () => {
+    const ancla = {
+      id: 1,
+      nombre: "Paracetamol 500 mg",
+      marca: "Genérico",
+      tipo: "generico",
+      principio_activo: "Paracetamol",
+      forma_farmaceutica: "Tabletas",
+      presentacion: "C/10",
+      precio: 20,
+      activo: true,
+    };
+    const catalogo = [ancla];
+    for (let i = 2; i <= 50; i += 1) {
+      catalogo.push({
+        ...ancla,
+        id: i,
+        nombre: `Paracetamol marca ${i}`,
+        marca: `Marca${i}`,
+        precio: 10 + i,
+      });
+    }
+    const grupo = grupoEquivalentesDeBusqueda(catalogo, catalogo.slice(0, 10), "paracetamol");
+    expect(grupo).not.toBeNull();
+    expect(grupo.total).toBe(50);
+    expect(grupo.mostrados).toBeLessThanOrEqual(80);
+    const ids = [
+      ...grupo.coincidenciasDirectas,
+      ...grupo.mismaConfiguracion,
+      ...grupo.otroContenido,
+      ...grupo.otrasPresentaciones,
+    ].map((p) => p.id);
+    expect(ids.length).toBe(grupo.mostrados);
+  });
+
+  it("ibuprofeno incluye combinaciones igual que loratadina (regla general de sustancia)", () => {
+    const solo = {
+      id: 1,
+      nombre: "Ibuprofeno 400 mg",
+      marca: "Genérico",
+      tipo: "generico",
+      principio_activo: "Ibuprofeno",
+      forma_farmaceutica: "Tabletas",
+      precio: 30,
+      activo: true,
+    };
+    const advil = {
+      id: 2,
+      nombre: "Advil 400 mg",
+      marca: "Advil",
+      tipo: "marca",
+      principio_activo: "Ibuprofeno",
+      forma_farmaceutica: "Tabletas",
+      precio: 80,
+      activo: true,
+    };
+    const combo = {
+      id: 3,
+      nombre: "Ibuprofeno / Cafeína",
+      marca: "Genérico",
+      tipo: "generico",
+      principio_activo: "Ibuprofeno / Cafeína",
+      forma_farmaceutica: "Tabletas",
+      precio: 35,
+      activo: true,
+    };
+    const resultados = [solo, advil, combo];
+    const grupo = grupoEquivalentesDeBusqueda(resultados, resultados, "ibuprofeno");
+    expect(grupo).not.toBeNull();
+    const ids = [
+      ...grupo.coincidenciasDirectas,
+      ...grupo.mismaConfiguracion,
+      ...grupo.otroContenido,
+      ...grupo.otrasPresentaciones,
+    ].map((p) => p.id).sort();
+    expect(ids).toEqual([1, 2, 3]);
+  });
 });
