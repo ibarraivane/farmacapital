@@ -1813,6 +1813,8 @@ function ProductCard({prod,addToCart,onClick}){
     setAdded(true);
     setTimeout(()=>setAdded(false),1500);
   };
+  // width/maxWidth 100%: llena la celda del grid O el hueco de 220px de RecompraStrip.
+  // Nunca quitar el wrapper fijo de RecompraStrip: sin él la banda se ve como 1 tarjeta a todo el ancho.
   return(
     <div style={{
       background:C.white,
