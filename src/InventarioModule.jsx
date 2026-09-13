@@ -319,11 +319,6 @@ const tdEllipsisStyle = {
   whiteSpace: "nowrap",
 };
 
-/** Offset bajo tabs sticky de InventarioHub */
-const INV_TOOLBAR_STICKY_TOP = { mobile: 92, desktop: 112 };
-/** Encima de th sticky (checkbox z=40, Foto/SKU ~20–25) para que no se empalmen con el buscador. */
-const INV_TOOLBAR_Z_INDEX = 50;
-
 const INV_INLINE_FIELD_PATCH = {
   sku: "sku",
   codigo_barras: "codigo_barras",
@@ -2514,6 +2509,7 @@ function renderInventarioColumnCell(colId, ctx) {
             )
           }
           tdStyle={{ padding: "8px 12px", color: C.text, borderBottom: `1px solid ${C.border}`, background: stickyRowBg, ...w("precio") }}
+          readOnly={false}
         />
       );
     case "costo":
@@ -2684,7 +2680,7 @@ function renderInventarioColumnCell(colId, ctx) {
   }
 }
 
-const INV_COLS_OCULTAS_CONSULTA = ["costo", "margen", "acciones", "precio", "desc"];
+const INV_COLS_OCULTAS_CONSULTA = ["costo", "margen", "acciones", "desc"];
 
 export default function InventarioModule({ modoConsulta = false, onIrARecibir, onIrAReabasto }) {
   const C = C_LIGHT;
@@ -3292,8 +3288,8 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
     }
     const draft = String(rawDraft ?? "").trim();
 
-    if (modoConsulta && field !== "cad" && field !== "codigo_barras") {
-      showToast("En este perfil solo puedes corregir código de barras y caducidad.", "error");
+    if (modoConsulta && field !== "cad" && field !== "codigo_barras" && field !== "precio") {
+      showToast("En este perfil solo puedes corregir código de barras, caducidad y precio de venta.", "error");
       return false;
     }
 
@@ -3416,6 +3412,24 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
         return false;
       }
       patchValue = n;
+      if (modoConsulta && field === "precio") {
+        const { data, error } = await supabase.rpc("empleado_guardar_precio", {
+          p_session_token: tok,
+          p_producto_id: product.id,
+          p_precio: patchValue,
+        });
+        if (error) {
+          showToast(error.message, "error");
+          return false;
+        }
+        if (!data?.success) {
+          showToast(data?.error || "No se pudo guardar el precio.", "error");
+          return false;
+        }
+        await fetchProductos();
+        showToast("Precio de venta guardado", "success");
+        return true;
+      }
     } else if (field === "min") {
       const n = parseInt(draft, 10);
       if (Number.isNaN(n) || n < 0) {
@@ -3794,14 +3808,9 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
 
       <div
         style={{
-          position: "sticky",
-          top: isMobileInv ? INV_TOOLBAR_STICKY_TOP.mobile : INV_TOOLBAR_STICKY_TOP.desktop,
-          zIndex: INV_TOOLBAR_Z_INDEX,
           background: C.bg,
-          margin: "0 -24px",
-          padding: "0 24px 12px",
-          borderBottom: `1px solid ${C.border}`,
-          boxShadow: "0 6px 20px rgba(15,23,42,.06)",
+          marginBottom: 12,
+          paddingBottom: 4,
         }}
       >
       {selectionMode && !modoConsulta && (
@@ -3885,7 +3894,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
           <h1 style={{margin:0,color:C.text,fontSize:20,fontWeight:800}}>▤ Inventario</h1>
           <p style={{margin:"4px 0 0",color:C.textMid,fontSize:12}}>
             {modoConsulta
-              ? "Toca el código de barras o la caducidad para corregirlos. El precio se consulta en el POS."
+              ? "Toca el código de barras, la caducidad o el precio de venta para corregirlos."
               : "Clic en cualquier celda para editar · ↔ Columnas para ordenar y ajustar anchos"}
           </p>
         </div>
@@ -3930,9 +3939,9 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
           {label:"Bajo stock",  val:bajoStock,  col:C.amber, click:()=>setFiltroAlerta(filtroAlerta==="bajo_stock"?"todos":"bajo_stock"), on: filtroAlerta==="bajo_stock"},
           {label:"Por caducar", val:porCaducar, col:C.red,   click:()=>setFiltroAlerta(filtroAlerta==="por_caducar"?"todos":"por_caducar"), on: filtroAlerta==="por_caducar"},
           {label:"Sin cód. barras", val:sinCodigoBarras, col:C.blue, click:()=>setFiltroAlerta(filtroAlerta==="sin_codigo_barras"?"todos":"sin_codigo_barras"), on: filtroAlerta==="sin_codigo_barras"},
+          {label:"Sin precio", val:sinPrecioVenta, col:C.red, click:()=>setFiltroAlerta(filtroAlerta==="sin_precio"?"todos":"sin_precio"), on: filtroAlerta==="sin_precio"},
           ...(!modoConsulta ? [
             {label:"Sin foto", val:sinFoto, col:C.amber, click:()=>setFiltroAlerta(filtroAlerta==="sin_foto"?"todos":"sin_foto"), on: filtroAlerta==="sin_foto"},
-            {label:"Sin precio", val:sinPrecioVenta, col:C.red, click:()=>setFiltroAlerta(filtroAlerta==="sin_precio"?"todos":"sin_precio"), on: filtroAlerta==="sin_precio"},
             {label:"Inactivos",   val:inactivos,  col:C.textMid, click:()=>{ setVerInactivos(true); setFiltroAlerta("todos"); }, on: !!verInactivos},
           ] : []),
         ].map(s=>(
@@ -3989,7 +3998,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
           <option value="por_caducar">⏰ Por caducar ({DIAS_CADUCIDAD_ALERTA}d)</option>
           <option value="sin_codigo_barras">🏷️ Sin código de barras</option>
           <option value="sin_foto">🖼 Sin foto</option>
-          {!modoConsulta && <option value="sin_precio">Sin precio de venta</option>}
+          <option value="sin_precio">Sin precio de venta</option>
         </select>
         {!modoConsulta && (
         <label style={{display:"flex",alignItems:"center",gap:7,cursor:"pointer",color:C.textMid,fontSize:12,fontWeight:600}}>
@@ -4161,7 +4170,11 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
         <SkeletonTable rows={8} cols={12}/>
       ) : (
         <>
-        <HorizontalScrollSync data-tour="inv-tabla">
+        <HorizontalScrollSync
+          data-tour="inv-tabla"
+          fillViewport
+          viewportBottomReserve={isMobileInv ? 96 : 80}
+        >
           <table
             ref={tableRef}
             className="fc-inv-tabla"
@@ -4193,6 +4206,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
                   borderBottom: `1px solid ${C.border}`,
                   verticalAlign: "middle",
                   position: "sticky",
+                  top: 0,
                   left: 0,
                   width: INV_CHECKBOX_COL_WIDTH,
                   minWidth: INV_CHECKBOX_COL_WIDTH,
