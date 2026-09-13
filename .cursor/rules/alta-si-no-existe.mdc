@@ -1,0 +1,25 @@
+---
+description: Si un EAN no está en catálogo (Recibir “sin registrar”), créalo. No dejes el renglón para alta manual en Catálogo.
+alwaysApply: true
+---
+
+# Alta automática cuando el EAN no existe
+
+Cuando en Recibir salga **“productos sin registrar en catálogo”** (o un escaneo no matchee `fc_buscar_producto_escaneo`), **no mandes a Inventario → Catálogo a mano**. Arma el alta y créalos.
+
+## Qué hacer
+
+1. Lista cada EAN del recuadro rojo / `pendiente_alta` / `codigo_escaneado`.
+2. Identifica el producto por ficha de proveedor o retailer (misma regla que `carga-ticket-ficha-proveedor.mdc`): nombre de mostrador, marca, presentación, foto. No uses el código del PDF.
+3. **SKU canónico:** `FC-` + últimos 8 dígitos del EAN (`skuAltaRecepcion` en `src/lib/recepcionAlta.js`).
+   - Si ese SKU ya pertenece a **otro** EAN → `FC-ND-` + últimos 8.
+   - Sin código usable (≥8 dígitos) → `FC-` + reloj (`Date.now()`), no inventes letras libres.
+4. SQL idempotente: inserta solo si `fc_buscar_producto_escaneo(ean)` es null y no existe el `codigo_barras` / SKU. Stock `0` hasta Recibir. Sin inventar caducidad.
+5. Campos mínimos: `nombre`, `sku`, `codigo_barras`, `marca`, `presentacion`, `categoria`, `subcategoria`, `forma_farmaceutica`, `tipo`, `precio` (ancla retail si no hay costo), `imagen_url` (o SQL de foto + `catalogo-propia/` después del deploy).
+6. Tras el alta: vuelve a escanear o enlaza pendientes; las piezas deben poder entrar a stock.
+
+## No hacer
+
+- Dejar el aviso rojo como única instrucción (“dalos de alta en Catálogo”).
+- SKUs inventados tipo `STI-CR-COL-200ML` o hex al azar cuando hay EAN.
+- Cerrar Recibir dejando esos EANs fuera del catálogo.
