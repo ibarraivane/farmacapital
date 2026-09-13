@@ -1,0 +1,10 @@
+linea,folio,fecha,proveedor,ean,descripcion_ticket,cantidad,precio_unitario,subtotal,lote,caducidad,sku_farmacapital,total_ticket,match
+1,S322410,2026-09-12,Cityfarma Iztapalapa,7501165001725,Allegra fexofenadina 180 mg C/10,2,348.98,697.96,,,FC-16500172,1916.97,ya
+2,S322410,2026-09-12,Cityfarma Iztapalapa,7501165006386,Allegra D fexofenadina/fenilefrina 60/25 mg C/10,1,302.23,302.23,,,FC-65006386,1916.97,alta
+3,S322410,2026-09-12,Cityfarma Iztapalapa,7501165006171,Allegra suspensión 6 mg/mL 150 mL,1,324.07,324.07,,,FC-65006171,1916.97,alta
+4,S322410,2026-09-12,Cityfarma Iztapalapa,7501300420824,Dolac ketorolaco sublingual 30 mg C/6,1,136.28,136.28,,,FC-00420824,1916.97,alta
+5,S322410,2026-09-12,Cityfarma Iztapalapa,7501349027060,Fexofenadina 120 mg C/10 AMSA,2,34.51,69.02,,,FC-49027060,1916.97,alta
+6,S322410,2026-09-12,Cityfarma Iztapalapa,7501349025059,Fexofenadina 180 mg C/10 AMSA,2,47.89,95.78,,,FC-49025059,1916.97,alta
+7,S322410,2026-09-12,Cityfarma Iztapalapa,7500435230445,NyQuil Z difenhidramina 25 mg C/10,1,103.85,103.85,,,FC-35230445,1916.97,alta
+8,S322410,2026-09-12,Cityfarma Iztapalapa,7502208895219,Portem AS paracetamol/cafeína 500/50 mg C/20,3,15.26,45.78,,,FC-08895219,1916.97,alta
+9,S322410,2026-09-12,Cityfarma Iztapalapa,7501298281209,Sedalmerck C/20 tabletas,2,71.00,142.00,,,FC-8281209,1916.97,ya
