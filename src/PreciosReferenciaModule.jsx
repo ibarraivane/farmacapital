@@ -66,7 +66,7 @@ const COL_DEFAULTS_COMPRA = {
   nadro: 68,
   levic: 68,
   farmalive: 72,
-  otros_compra: 68,
+  farmacity: 72,
   mejor: 100,
 };
 
@@ -140,7 +140,7 @@ const COL_LABELS_COMPRA = {
   nadro: "Nadro",
   levic: "Levic",
   farmalive: "Farmalive",
-  otros_compra: "Otros",
+  farmacity: "Farma City",
   mejor: "Mejor opción",
 };
 
@@ -461,7 +461,7 @@ function ColumnSizer({ tab, colWidths, setColWidths, C }) {
     nadro: [52, 120],
     levic: [52, 120],
     farmalive: [52, 120],
-    otros_compra: [52, 120],
+    farmacity: [52, 120],
     fahorro: [52, 120],
     similares: [52, 120],
     otros_venta: [52, 120],
@@ -1472,8 +1472,7 @@ export default function PreciosReferenciaModule() {
             Precios de mercado (compra y venta). Clic en un precio para editarlo. Tu <strong>costo</strong> y <strong>venta</strong> usan el mismo guardado que Inventario.
             No hace falta darnos usuario ni contraseña. Medicamento: Nadro, Marzam, Levic.
             Higiene y abarrotes: <strong>Exprezo (Zorro)</strong> es el piso barato; no se compara con City Club ni Sam's (otro tipo de precio y empaque).
-            Si un abarrotero te da lista igual de barata, impórtala en <strong>Otros</strong>.
-            Scorpion y Abarrotero no tienen columna: ganan en <strong>Mejor opción</strong>.
+            Farma City es la lista Cityfarma (precio neto). Scorpion, Abarrotero y el viejo «Otros» de compra no tienen columna: ganan en <strong>Mejor opción</strong>.
             <strong> Actualizar</strong> baja listas públicas y recarga. Si el bot cambia una referencia, vuelven <strong>Subir / Bajar / Aceptar</strong>.
             El pedido de resurtido está en Reabasto.
           </AyudaDesplegable>

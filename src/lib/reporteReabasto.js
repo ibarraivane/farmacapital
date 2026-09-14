@@ -20,7 +20,7 @@ const FUENTE_POR_SURTIDOR = {
   Farmalive: "farmalive",
   Scorpion: "scorpion",
   "El Surtidor": "surtidor:el_surtidor",
-  "Farma City": "surtidor:farma_city",
+  "Farma City": "farmacity",
   Equilibrio: "surtidor:equilibrio",
   "Bodega F-42": "surtidor:bodega_f42",
   IFC: "surtidor:ifc",
@@ -67,29 +67,56 @@ export function idFuenteSurtidor(nombre) {
   return `surtidor:${n.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "")}`;
 }
 
+/** Lista B2B y ticket Cityfarma son la misma tienda física. */
+export const DESTINO_COMPRA_CANONICO = {
+  "surtidor:farma_city": "farmacity",
+};
+
+export function destCanonicoCompra(fuenteId) {
+  return DESTINO_COMPRA_CANONICO[fuenteId] || fuenteId;
+}
+
 export function esFamiliaSurtidor(fuenteId) {
-  return String(fuenteId || "").startsWith("surtidor:");
+  const id = destCanonicoCompra(fuenteId);
+  return id === "farmacity" || String(id || "").startsWith("surtidor:");
+}
+
+function labelDestinoCompra(fuenteId, fallback) {
+  const id = destCanonicoCompra(fuenteId);
+  if (id === "farmacity") return "Farma City";
+  return fallback || id;
 }
 
 export function opcionesPedidoProducto(refsMap, meta = {}) {
-  const tiendas = opcionesTiendaCompra(refsMap).map((t) => ({ ...t }));
+  const byFuente = new Map();
+  for (const t of opcionesTiendaCompra(refsMap)) {
+    const fuente = destCanonicoCompra(t.fuente);
+    const row = {
+      ...t,
+      fuente,
+      label: labelDestinoCompra(fuente, t.label),
+    };
+    const prev = byFuente.get(fuente);
+    if (!prev || row.precio < prev.precio) byFuente.set(fuente, row);
+  }
+
   const quien = proveedorCompraVisible(meta.proveedor || meta.nombre_fuente);
   const precio = parseCostoTicket(meta.precio ?? meta.costo);
   if (quien && precio) {
-    const fuente = idFuenteSurtidor(quien);
-    const existing = tiendas.find((t) => t.fuente === fuente);
+    const fuente = destCanonicoCompra(idFuenteSurtidor(quien));
+    const existing = byFuente.get(fuente);
     if (existing) {
       if (precio < existing.precio - 0.005) existing.precio = precio;
     } else {
-      tiendas.push({
+      byFuente.set(fuente, {
         fuente,
-        label: quien,
+        label: labelDestinoCompra(fuente, quien),
         precio,
         esSurtidorTicket: true,
       });
     }
   }
-  return tiendas
+  return [...byFuente.values()]
     .filter((t) => t?.fuente && Number(t.precio) > 0)
     .sort((a, b) => a.precio - b.precio);
 }

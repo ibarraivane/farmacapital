@@ -76,4 +76,33 @@ describe("asignar pedidos por surtidor", () => {
     ]);
     expect(ordenes.map((o) => o.proveedor).sort()).toEqual(["Farma City", "Levic"]);
   });
+
+  test("lista farmacity y ticket Cityfarma caen en un solo pedido", () => {
+    const a = item({
+      id: 20,
+      nombre: "Lista",
+      mejorTienda: {
+        opciones: [{ fuente: "farmacity", label: "Farma City", precio: 18 }],
+      },
+    }).producto;
+    const b = item({
+      id: 21,
+      nombre: "Ticket",
+      mejorTienda: {
+        opciones: [{ fuente: "surtidor:farma_city", label: "Farma City", precio: 20 }],
+      },
+    }).producto;
+    expect(familiaDeFuente("farmacity")).toBe("surtidor");
+    const destA = elegirDestinoLinea(a, 2);
+    const destB = elegirDestinoLinea(b, 2);
+    expect(destA.destId).toBe("farmacity");
+    expect(destB.destId).toBe("farmacity");
+    const ordenes = asignarPedidosPorTienda([
+      { producto: a, cantidad: 2 },
+      { producto: b, cantidad: 2 },
+    ]);
+    expect(ordenes).toHaveLength(1);
+    expect(ordenes[0].proveedor).toBe("Farma City");
+    expect(ordenes[0].productos).toHaveLength(2);
+  });
 });

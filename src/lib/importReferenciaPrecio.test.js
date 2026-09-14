@@ -41,6 +41,19 @@ const oxigenadas = [
   },
 ];
 
+describe("import ReferenciaPrecio Farma City", () => {
+  test("lee COD.BARRAS + PRECIO NETO", () => {
+    const rows = parseGenericoRows(
+      [{ "COD.BARRAS": "736085400892", DESCRIPCION: "3A OFT GTS 5ML", "PRECIO NETO": "500", _line: 2 }],
+      ["COD.BARRAS", "DESCRIPCION", "PRECIO NETO"]
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0].ean).toBe("736085400892");
+    expect(rows[0].nombre_fuente).toBe("3A OFT GTS 5ML");
+    expect(rows[0].precio).toBe(500);
+  });
+});
+
 describe("import ReferenciaPrecio Farmalive", () => {
   test("lee ean + precio 2%", () => {
     const rows = parseGenericoRows(

@@ -24,7 +24,8 @@ INSERT INTO public.fuentes_precio (id, nombre, tipo, metodo, notas) VALUES
   ('similares', 'Farmacias Similares',          'venta',  'job_api',        'Job VTEX semanal'),
   ('fahorro',   'Farmacias del Ahorro',         'venta',  'manual',         'Captura manual / CSV hasta confirmar API'),
   ('otros_compra', 'Otros (compra)',            'compra', 'manual',         'Promedio de mercado o consulta manual (Claude, Google, etc.)'),
-  ('otros_venta',  'Otros (venta)',             'venta',  'manual',         'Promedio de mercado o consulta manual (Claude, Google, etc.)')
+  ('otros_venta',  'Otros (venta)',             'venta',  'manual',         'Promedio de mercado o consulta manual (Claude, Google, etc.)'),
+  ('farmacity',    'Farma City',                 'compra', 'import_archivo', 'Lista Cityfarma Iztapalapa. Precio neto de mayoreo.')
 ON CONFLICT (id) DO UPDATE SET
   nombre = EXCLUDED.nombre,
   tipo = EXCLUDED.tipo,

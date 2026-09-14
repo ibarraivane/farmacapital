@@ -58,6 +58,7 @@ FUENTE_TIPO = {
     "nadro": "compra",
     "levic": "compra",
     "farmalive": "compra",
+    "farmacity": "compra",
     "similares": "venta",
     "fahorro": "venta",
     "otros_venta": "venta",
@@ -432,6 +433,13 @@ def ensure_fuentes(url: str, key: str, fuentes: set[str]) -> None:
             "tipo": "compra",
             "metodo": "import_archivo",
             "notas": "Lista normal Club Iztapalapa. Precio base (2%), no campañas de día.",
+        },
+        "farmacity": {
+            "id": "farmacity",
+            "nombre": "Farma City",
+            "tipo": "compra",
+            "metodo": "import_archivo",
+            "notas": "Lista Cityfarma Iztapalapa. Precio neto de mayoreo.",
         },
     }
     payload = [presets[f] for f in sorted(fuentes) if f in presets]

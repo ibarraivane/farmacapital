@@ -100,7 +100,7 @@ Los grupos útiles para laboratorio son los de INN real (ej. paracetamol + fenil
 
 - Unidades vendidas (no hay export de `pedido_items` en el repo).
 - Refs vigentes en `producto_precios_referencia_actual` (las columnas `precio_similares` / `precio_del_ahorro` del snapshot van vacías; se usó el match file de sept-3).
-- Lista FarmaCity ~3,487 de la Mac de Claude (no está commiteada). El cruce equivalente aquí es `04_cruce_tickets_ean.csv` + Levic.
+- Lista Farma City 4-sep-2026: `sql/patch_farmacity_lista_20260904.sql` (593 matches EAN; el xlsx no se commitea). El cruce de tickets sigue en `04_cruce_tickets_ean.csv` + Levic.
 
 ---
 
