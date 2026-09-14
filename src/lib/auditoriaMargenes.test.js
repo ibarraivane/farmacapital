@@ -1,8 +1,10 @@
 import {
   auditarMargenProducto,
-  costoParecePartidoPorCantidad,
+  costoUnitarioDeRenglonTicket,
+  csvGuardoImporteComoUnitario,
   familiaMargen,
   refsVentaComparablesAuditoria,
+  ultimaPareceImporteDeVariasPiezas,
 } from "./auditoriaMargenes";
 
 const sedal135 = {
@@ -110,8 +112,14 @@ test("genérico apenas sobre el piso 1.55× no es alerta", () => {
   expect(a.accion).toBe("ok");
 });
 
-test("Escudo Rosa $4.48 es el ticket $8.97 partido entre 2", () => {
-  expect(costoParecePartidoPorCantidad(4.48, 8.965, 2)).toBe(true);
+test("CSV $8.97 es el importe de 2 Escudo; el unitario es $4.48 y el PVP $42 se baja", () => {
+  expect(csvGuardoImporteComoUnitario(4.48, 8.965, 2)).toBe(true);
+  expect(costoUnitarioDeRenglonTicket({
+    cantidad: 2,
+    precioEtiquetado: 8.965,
+    subtotal: 17.93,
+    costoCatalogo: 4.48,
+  })).toBe(4.48);
   const a = auditarMargenProducto(
     {
       nombre: "Escudo Rosa Cuidado",
@@ -121,9 +129,34 @@ test("Escudo Rosa $4.48 es el ticket $8.97 partido entre 2", () => {
     },
     { costoTicket: 8.965, cantidadTicket: 2 },
   );
-  expect(a.accion).toBe("revisar_costo");
-  expect(a.costoSugerido).toBe(8.97);
-  expect(a.sugerido).toBeNull();
+  expect(a.accion).toBe("bajar");
+  expect(a.sugerido).toBe(10);
+});
+
+test("Sedal: 2 pzas, importe $18.16 → unitario $9.08 (no $18.16)", () => {
+  expect(csvGuardoImporteComoUnitario(9.08, 18.165, 2)).toBe(true);
+  expect(costoUnitarioDeRenglonTicket({
+    cantidad: 2,
+    precioEtiquetado: 18.165,
+    costoCatalogo: 9.08,
+  })).toBe(9.08);
+  const a = auditarMargenProducto({ ...sedal135, precio: 20 });
+  expect(a.accion).toBe("ok");
+});
+
+test("última compra = importe de 2 pzas no tapa el margen alto", () => {
+  expect(ultimaPareceImporteDeVariasPiezas(4.48, 8.96)).toBe(true);
+  const a = auditarMargenProducto(
+    {
+      nombre: "Escudo Rosa Cuidado",
+      categoria: "Higiene",
+      costo: 4.48,
+      precio: 42,
+    },
+    { ultimaCompra: 8.96 },
+  );
+  expect(a.accion).toBe("bajar");
+  expect(a.sugerido).toBe(10);
 });
 
 test("última compra mucho más cara que el costo catálogo → revisar, no bajar", () => {

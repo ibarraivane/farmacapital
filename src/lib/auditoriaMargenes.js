@@ -66,15 +66,55 @@ function num(v) {
 }
 
 /**
- * El catálogo a veces guardó (importe del renglón / qty) / qty otra vez.
- * Escudo Rosa: ticket $8.97 × 2 = $17.93; el costo quedó en $4.48.
+ * El CSV de Bodega (y copias) a veces guarda el IMPORTE del renglón
+ * en la columna `precio_unitario` y luego `subtotal = ese × cantidad`.
+ * Escudo Rosa: 2 pzas, importe $8.96 → unitario $4.48. El $8.96 no es el de una.
+ * Si catálogo × qty ≈ "unitario" del CSV, el catálogo es el costo real.
  */
-export function costoParecePartidoPorCantidad(costoCatalogo, costoTicket, cantidad) {
+export function csvGuardoImporteComoUnitario(costoCatalogo, precioCsv, cantidad) {
   const c = num(costoCatalogo);
-  const t = num(costoTicket);
+  const t = num(precioCsv);
   const q = num(cantidad);
   if (c <= 0 || t <= 0 || q < 2) return false;
   return Math.abs(c * q - t) <= 0.25 || Math.abs(c * q - t) / t <= 0.03;
+}
+
+/** @deprecated usar csvGuardoImporteComoUnitario — el catálogo no está partido. */
+export function costoParecePartidoPorCantidad(costoCatalogo, costoTicket, cantidad) {
+  return csvGuardoImporteComoUnitario(costoCatalogo, costoTicket, cantidad);
+}
+
+/** Última compra = importe de 2/3/4 pzas guardado como si fuera de una. */
+export function ultimaPareceImporteDeVariasPiezas(costoCatalogo, ultimaCompra) {
+  const c = num(costoCatalogo);
+  const u = num(ultimaCompra);
+  if (c <= 0 || u <= 0) return false;
+  return [2, 3, 4].some((q) => Math.abs(c * q - u) <= 0.25 || Math.abs(c * q - u) / u <= 0.03);
+}
+
+/**
+ * Unitario real del renglón. Si el CSV puso el importe en "precio_unitario",
+ * se parte entre las piezas. No se usa el subtotal inflado (importe × qty).
+ */
+export function costoUnitarioDeRenglonTicket({
+  cantidad,
+  precioEtiquetado,
+  subtotal,
+  costoCatalogo,
+} = {}) {
+  const qty = num(cantidad) || 1;
+  const pu = num(precioEtiquetado);
+  const sub = num(subtotal);
+  const cat = num(costoCatalogo);
+  if (qty >= 2 && cat > 0 && pu > 0 && csvGuardoImporteComoUnitario(cat, pu, qty)) {
+    return Math.round((pu / qty) * 100) / 100;
+  }
+  if (qty >= 2 && pu > 0 && sub > 0 && Math.abs(pu - sub) <= 0.03) {
+    return Math.round((sub / qty) * 100) / 100;
+  }
+  if (pu > 0) return Math.round(pu * 100) / 100;
+  if (sub > 0 && qty > 0) return Math.round((sub / qty) * 100) / 100;
+  return null;
 }
 
 /** Refs de venta usables: descarta matches locos (Similares $92 en una crema de $9). */
@@ -151,19 +191,19 @@ export function auditarMargenProducto(producto, opts = {}) {
 
   const ticket = num(opts.costoTicket);
   const qtyTicket = num(opts.cantidadTicket);
-  if (ticket > 0 && (costoParecePartidoPorCantidad(costo, ticket, qtyTicket) || ticket > costo * 1.4)) {
+  const csvEsImporte = csvGuardoImporteComoUnitario(costo, ticket, qtyTicket);
+  if (ticket > 0 && !csvEsImporte && ticket > costo * 1.4) {
     return {
       ...base,
       accion: "revisar_costo",
-      motivo: costoParecePartidoPorCantidad(costo, ticket, qtyTicket)
-        ? `Costo catálogo $${costo.toFixed(2)} parece el del ticket ($${ticket.toFixed(2)}) partido entre ${qtyTicket} piezas`
-        : `Ticket $${ticket.toFixed(2)} vs costo catálogo $${costo.toFixed(2)} — no bajar el PVP a ciegas`,
+      motivo: `Ticket $${ticket.toFixed(2)} vs costo catálogo $${costo.toFixed(2)} — no bajar el PVP a ciegas`,
       costoSugerido: Math.round(ticket * 100) / 100,
       sugerido: null,
     };
   }
 
-  const costoDudoso = ultima > 0 && ultima > costo * 1.4;
+  const costoDudoso =
+    ultima > 0 && ultima > costo * 1.4 && !ultimaPareceImporteDeVariasPiezas(costo, ultima);
   if (costoDudoso && precio > (techoOk || 0) + 0.5) {
     return {
       ...base,

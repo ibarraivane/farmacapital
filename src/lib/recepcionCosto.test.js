@@ -62,3 +62,11 @@ test("qty 2 con costo unitario real no se parte a la mitad", () => {
     producto: { costo: 45.89 },
   })).toBe(45.89);
 });
+
+test("Bodega Escudo: el CSV puso el importe $8.96 como unitario; con catálogo $4.48 se parte", () => {
+  expect(unidadDesdeImporte(8.965, 2, { subtotal: 17.93, unitRef: 4.48 })).toBe(4.48);
+  expect(costoSugeridoRecepcion({
+    item: { costo_estimado: 8.965, cantidad: 2, subtotal: 17.93 },
+    producto: { costo: 4.48 },
+  })).toBe(4.48);
+});

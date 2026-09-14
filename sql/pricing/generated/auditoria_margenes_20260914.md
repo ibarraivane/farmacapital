@@ -1,6 +1,6 @@
 # Auditoría de márgenes — 14 sep 2026
 
-**Corrección:** varios costos del catálogo están partidos. Escudo Rosa no costó $4.48; el ticket es **$8.97**. Ver `verificacion_costos_20260914.md` y `sql/patch_corregir_costos_partida_qty_20260914.sql` **antes** de tocar PVP.
+**Costos:** el unitario es importe ÷ piezas. Escudo Rosa costó **$4.48** (2 pzas, renglón $8.96), no $8.97. Sedal 135 ml **$9.08** (2 pzas, renglón $18.16), no $18.17. Ver `verificacion_costos_20260914.md`.
 
 Catálogo vivo: **1504 productos activos**.
 
