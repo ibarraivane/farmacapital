@@ -639,6 +639,7 @@ export function Paginador({ total, porPagina=50, pagina, setPagina }) {
 export function SearchDropdown({
   value, onChange, onSelect, placeholder="🔍 Buscar...",
   items=[], labelKey="nombre", subKey=null, badgeKey=null, badgeCol=null,
+  badgeColorFn=null,
   extraSearchKeys=[],
   matchFn=null,
   rankFn=null,
@@ -771,7 +772,7 @@ export function SearchDropdown({
                 {subKey&&item[subKey]&&<div style={{color:"#94a3b8",fontSize:11,marginTop:1}}>{item[subKey]}</div>}
               </div>
               {badgeKey&&item[badgeKey]!==undefined&&(
-                <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:(badgeCol||"#1E3ABA")+"18",color:badgeCol||"#1E3ABA",flexShrink:0,whiteSpace:"nowrap"}}>
+                <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:(badgeColorFn?badgeColorFn(item):(badgeCol||"#1E3ABA"))+"18",color:badgeColorFn?badgeColorFn(item):(badgeCol||"#1E3ABA"),flexShrink:0,whiteSpace:"nowrap"}}>
                   {item[badgeKey]}
                 </span>
               )}

@@ -1,4 +1,4 @@
-import { folioFromCita, esFolioReceta, validarRecetaMx, stockBadgeLabel, buildRecetaHtml } from "./recetaPrint";
+import { folioFromCita, esFolioReceta, validarRecetaMx, stockBadgeLabel, buildRecetaHtml, detallePosologia } from "./recetaPrint";
 
 describe("recetaPrint", () => {
   test("folio local de respaldo", () => {
@@ -26,6 +26,11 @@ describe("recetaPrint", () => {
     expect(stockBadgeLabel(0).tone).toBe("red");
     expect(stockBadgeLabel(2).tone).toBe("amber");
     expect(stockBadgeLabel(10).tone).toBe("green");
+  });
+
+  test("detallePosologia junta dosis y frecuencia", () => {
+    expect(detallePosologia({ dosis: "1 tab", frecuencia: "c/8 h", duracion: "5 días" })).toMatch(/Dosis: 1 tab/);
+    expect(detallePosologia({ dosis: "1 tab", frecuencia: "c/8 h", duracion: "5 días" })).toMatch(/Frecuencia/);
   });
 
   test("HTML carta incluye folio, cédula y consultorio (no ticket de farmacia)", () => {
