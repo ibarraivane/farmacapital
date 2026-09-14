@@ -53,9 +53,10 @@ Otras cajas altas (Acetif SI, Mometasona nasal, Losil spray, Cefotaxima, Cefurox
 
 ## Qué pegar en Supabase
 
-1. Deploy de los JPG en `public/catalogo-propia/` (keto + pirinovag + calazin + culminax + eucalin + reomatolum + **dove-original-90g + aktyzar + bocetix**).
+1. Deploy de los JPG en `public/catalogo-propia/` (keto + pirinovag + calazin + culminax + eucalin + reomatolum + dove-original-90g + aktyzar + bocetix + **12 JPG de la tercera pasada**).
 2. `sql/patch_fotos_frente_y_faltantes_20260914.sql` (ya corrido).
-3. `sql/patch_fotos_nombre_exprezo_levic_20260914.sql` (este lote por nombre).
+3. `sql/patch_fotos_nombre_exprezo_levic_20260914.sql` (ya corrido).
+4. `sql/patch_fotos_resto_129_20260914.sql` (este lote: 22 fotos).
 
 ## Segunda pasada: Exprezo + Levic + Nadro por nombre (14-sep tarde)
 
@@ -77,26 +78,39 @@ No se usó: Gerber 113 g ≠ 100 g; Dove 135 g ≠ 90 g; Pantene 400 ml ≠ EAN 
 
 JPG nuevos (piden **deploy**): `dove-original-90g.jpg`, `aktyzar-omeprazol-20mg-120cap.jpg`, `bocetix-levocetirizina-150ml.jpg`.
 
+## Tercera pasada: los 129 (14-sep noche)
+
+Se buscó otra vez en Nadro i22, Fahorro CDN + VTEX, Farmatodo, Similares, San Pablo, Open Facts, Levic (claves), Curitek, Buscamed, MiFarma, WeCare, Medi Beyond, Farmamedical.
+
+`sql/patch_fotos_resto_129_20260914.sql` — **22 packshots** verificados (frente). Los 12 JPG nuevos piden **deploy**.
+
+| Grupo | SKUs |
+|---|---|
+| Fahorro EAN exacto | Suerox Vitamins 630 ml, Skittles 22 g, Lysol 475 g, Dove 135 g, Honey Keeper gel 200 ml (frente; Nadro era el dorso), gotero Damaco |
+| Nadro / Farmatodo EAN o nombre | Teatrical Células Madre 400 ml, Grisi concha nácar 80 ml, Brut Deep Blue, Pert oliva 180 ml |
+| catalogo-propia | Savile manzanilla 150 ml, Colchicina Biomep C/30, Sarox C/28, Nordiko Original / Icy Blast, Pleniform-40, KY6 C/10, LAÜR Infantil C/3, SensiMedical 10 ml 22G, Sol-Sun Face 50 g, Tegaderm 1626W C/50, Vita Kid-C 240 ml |
+
+No se usó: Aspirina EAN `…1074` (20/40 son otros códigos); Losartán Alpharma (placeholder Buscamed); Jaloma Mertodol 40 ml ≠ 60 ml; Gerber 113 g ≠ 100 g; Rexona stick ≠ R-ON; Ego aerosol ≠ roll-on; Sico lubricante ≠ condón.
+
+JPG nuevos: `savile-manzanilla-spray-150ml.jpg`, `colchicina-biomep-1mg-c30.jpg`, `sarox-omeprazol-20mg-c28.jpg`, `nordiko-original-130g.jpg`, `nordiko-icy-blast-130g.jpg`, `pleniform-40-c30.jpg`, `ky6-clorfenamina-compuesta-c10.jpg`, `laur-infantil-c3.jpg`, `sensimedical-10ml-22gx32.jpg`, `solsun-cara-face-50g-fps50.jpg`, `tegaderm-3m-10x12-c50.jpg`, `vita-kid-c-jarabe-240ml.jpg`.
+
 ## Lo que queda — `sql/generated/fotos_pendientes_tras_lote_20260914.csv`
 
-129 SKUs. Nadro i22 a veces responde con **otro EAN** (no se usa). `visoti.mx` caído.
+107 SKUs. Nadro i22 a veces responde con **otro EAN** (no se usa). `visoti.mx` caído.
 
 ### Medicamentos con EAN, sin packshot público de esa caja
 
 | Stock | SKU | EAN | Producto |
 |---:|---|---|---|
 | 16 | `FC-08491074` | 7501008491074 | Aspirina (no hay ficha de este EAN; 20/40 son otros códigos) |
-| 5 | `EQ-ALP0634` | 7502226294766 | Losartán Alpharma 50 mg C/30 |
-| 4 | `FC-73909859` | 7501573909859 | Sarox Omeprazol 20 mg C/28 (Levic BIO213; sin foto limpia) |
-| 2 | `EQ-BIO212` | 7501573909958 | Colchicina Biomep 1 mg C/30 (Levic BIO212; visoti caído) |
-| 1 | `FC-01167001` | 7502001167001 | LAÜR Infantil C/3 (no usar adulto SON264) |
+| 5 | `EQ-ALP0634` | 7502226294766 | Losartán Alpharma 50 mg C/30 (Buscamed = placeholder) |
 
 ### Realmente no se sabe qué son (sin EAN / nombre de ticket)
 
-Ramcinet, Compl, Acetilsalicílico Ef, Amoxicilina, Gentamicina, Mertiolate Kohn Rojo, Hidroxon, Tratidri, Ursodesoxicólico, Aquito, Drosquim, Eferox, «Susp 125 Mg/Ml», «FC producto botiquín», Vita Kid C / Sol-Sun / Pleniform sin código usable (Levic CMD126 / BLB037 / BMI076 existen; falta foto).
+Ramcinet, Compl, Acetilsalicílico Ef, Amoxicilina, Gentamicina, Mertiolate Kohn Rojo, Hidroxon, Tratidri, Ursodesoxicólico, Aquito, Drosquim, Eferox, «Susp 125 Mg/Ml», «FC producto botiquín».
 
 No se inventa foto a ciegas.
 
-### No se busca packshot (regla del catálogo)
+### Insumos / herbolario / EAN interno todavía sin packshot usable
 
-Jeringas SensiMedical, goteros, cintas, cubrebocas, perillas, Tegaderm C/50, Mercurio/Velázquez, EANs internos `200…`, alcohol Dibar 250 ml (el 125 ml ya tiene foto propia).
+Otras jeringas SensiMedical (5/3/20/60 ml — no se reutiliza la de 10 ml), cintas Cintapore, cubrebocas, perillas, Mercurio/Velázquez, EANs `200…`, alcohol Dibar 96°, Jaloma 60 ml / agua de rosas / arroz.
