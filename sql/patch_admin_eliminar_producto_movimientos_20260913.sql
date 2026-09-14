@@ -1,6 +1,18 @@
--- Permite eliminar/desactivar productos aunque tengan compras, kardex u otras FKs (soft-delete).
--- Ejecutar en Supabase SQL Editor.
--- Ver también: patch_admin_eliminar_producto_movimientos_20260913.sql (misma función, fecha 2026-09-13).
+-- ============================================================
+-- Fix: borrar producto con movimientos_inventario (kardex)
+-- ============================================================
+-- Síntoma (admin):
+--   update or delete on table "productos" violates foreign key constraint
+--   "movimientos_inventario_producto_id_fkey" on table "movimientos_inventario"
+--
+-- Causa: admin_eliminar_producto hacía DELETE duro si no había ventas/compras,
+-- pero el producto ya tenía entradas en el kardex (recibir / ajustes).
+--
+-- Solución: soft-delete (activo=false) si hay ventas, compras O movimientos.
+-- Si el DELETE duro falla por cualquier otra FK, también soft-delete.
+--
+-- Ejecutar en Supabase SQL Editor (una vez).
+-- ============================================================
 
 create or replace function public.admin_eliminar_producto(
   p_session_token uuid,
@@ -73,6 +85,7 @@ begin
     );
   end if;
 
+  -- Sin historial: desactivar lotes e intentar borrado duro
   if to_regclass('public.lotes') is not null then
     update public.lotes set activo = false where producto_id = p_producto_id;
   end if;

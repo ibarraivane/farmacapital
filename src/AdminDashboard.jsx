@@ -147,7 +147,7 @@ export default function AdminDashboard() {
   };
 
   const onDelete = async (id) => {
-    if (!window.confirm("¿Eliminar este producto?")) return;
+    if (!window.confirm("¿Eliminar este producto? Si tiene historial solo se ocultará.")) return;
     setError("");
     setOkMsg("");
     const tok = sessionStorage.getItem("farmacapital_session_token");
@@ -155,11 +155,26 @@ export default function AdminDashboard() {
     const { data: resp, error: delError } = await supabase.rpc("admin_eliminar_producto", {
       p_session_token: tok, p_producto_id: id,
     });
-    if (delError || !resp?.success) {
-      setError(`No se pudo eliminar: ${resp?.error || delError?.message}`);
+    if (delError) {
+      const msg = delError.message || "";
+      if (/foreign key|movimientos_inventario|violates foreign key/i.test(msg)) {
+        const { data: softResp, error: softErr } = await supabase.rpc("admin_toggle_producto", {
+          p_session_token: tok, p_producto_id: id, p_activo: false,
+        });
+        if (!softErr && softResp?.success) {
+          setOkMsg("Producto ocultado (tiene historial de inventario).");
+          await loadProductos();
+          return;
+        }
+      }
+      setError(`No se pudo eliminar: ${msg}`);
       return;
     }
-    setOkMsg("Producto eliminado.");
+    if (!resp?.success) {
+      setError(`No se pudo eliminar: ${resp?.error || "error"}`);
+      return;
+    }
+    setOkMsg(resp.soft_deleted ? "Producto ocultado (tiene historial)." : "Producto eliminado.");
     await loadProductos();
   };
 
