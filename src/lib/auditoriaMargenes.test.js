@@ -1,5 +1,6 @@
 import {
   auditarMargenProducto,
+  costoParecePartidoPorCantidad,
   familiaMargen,
   refsVentaComparablesAuditoria,
 } from "./auditoriaMargenes";
@@ -107,6 +108,22 @@ test("genérico apenas sobre el piso 1.55× no es alerta", () => {
     precio: 42,
   });
   expect(a.accion).toBe("ok");
+});
+
+test("Escudo Rosa $4.48 es el ticket $8.97 partido entre 2", () => {
+  expect(costoParecePartidoPorCantidad(4.48, 8.965, 2)).toBe(true);
+  const a = auditarMargenProducto(
+    {
+      nombre: "Escudo Rosa Cuidado",
+      categoria: "Higiene",
+      costo: 4.48,
+      precio: 42,
+    },
+    { costoTicket: 8.965, cantidadTicket: 2 },
+  );
+  expect(a.accion).toBe("revisar_costo");
+  expect(a.costoSugerido).toBe(8.97);
+  expect(a.sugerido).toBeNull();
 });
 
 test("última compra mucho más cara que el costo catálogo → revisar, no bajar", () => {

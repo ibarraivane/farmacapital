@@ -1,5 +1,7 @@
 # Auditoría de márgenes — 14 sep 2026
 
+**Corrección:** varios costos del catálogo están partidos. Escudo Rosa no costó $4.48; el ticket es **$8.97**. Ver `verificacion_costos_20260914.md` y `sql/patch_corregir_costos_partida_qty_20260914.sql` **antes** de tocar PVP.
+
 Catálogo vivo: **1504 productos activos**.
 
 Calibración: Sedal Rizos Definidos 135 ml se compró a **$9.08** y se vendía a **$61** (recargo 572%). Ya está en **$20** (~2.2×). Esa es la regla de techo para higiene / cuidado personal.

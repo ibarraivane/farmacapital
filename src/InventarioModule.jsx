@@ -3983,7 +3983,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
         )}
         {!modoConsulta && filtroAlerta === "margen_alto" && (
         <span style={{padding:"4px 10px",borderRadius:8,background:"#fef2f2",color:C.red,fontWeight:600}}>
-          PVP muy arriba del costo (como Sedal rizos a $61 vs compra $9). El sugerido no se aplica solo.
+          PVP muy arriba del costo. Si el costo se ve irreal (jabón a $4), revisa el ticket: a veces se partió entre las piezas.
         </span>
         )}
         {!modoConsulta && onIrAReabasto && (filtroAlerta === "bajo_stock" || filtroAlerta === "agotados") && (

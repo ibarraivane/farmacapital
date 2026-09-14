@@ -65,6 +65,18 @@ function num(v) {
   return Number.isFinite(n) ? n : 0;
 }
 
+/**
+ * El catálogo a veces guardó (importe del renglón / qty) / qty otra vez.
+ * Escudo Rosa: ticket $8.97 × 2 = $17.93; el costo quedó en $4.48.
+ */
+export function costoParecePartidoPorCantidad(costoCatalogo, costoTicket, cantidad) {
+  const c = num(costoCatalogo);
+  const t = num(costoTicket);
+  const q = num(cantidad);
+  if (c <= 0 || t <= 0 || q < 2) return false;
+  return Math.abs(c * q - t) <= 0.25 || Math.abs(c * q - t) / t <= 0.03;
+}
+
 /** Refs de venta usables: descarta matches locos (Similares $92 en una crema de $9). */
 export function refsVentaComparablesAuditoria(costo, piso, techoOk, refsVenta = []) {
   const hi = Math.max(techoOk * 2.5, costo * 4, 1);
@@ -89,6 +101,8 @@ function percentil40(vals) {
  * @param {object} producto
  * @param {object} [opts]
  * @param {number} [opts.ultimaCompra]
+ * @param {number} [opts.costoTicket]
+ * @param {number} [opts.cantidadTicket]
  * @param {Array<{precio?: number, fuente?: string}>} [opts.refsVenta]
  */
 export function auditarMargenProducto(producto, opts = {}) {
@@ -132,6 +146,20 @@ export function auditarMargenProducto(producto, opts = {}) {
       accion: "bajo_costo",
       motivo: "Se vende más barato de lo que costó",
       sugerido: piso || techoOk,
+    };
+  }
+
+  const ticket = num(opts.costoTicket);
+  const qtyTicket = num(opts.cantidadTicket);
+  if (ticket > 0 && (costoParecePartidoPorCantidad(costo, ticket, qtyTicket) || ticket > costo * 1.4)) {
+    return {
+      ...base,
+      accion: "revisar_costo",
+      motivo: costoParecePartidoPorCantidad(costo, ticket, qtyTicket)
+        ? `Costo catálogo $${costo.toFixed(2)} parece el del ticket ($${ticket.toFixed(2)}) partido entre ${qtyTicket} piezas`
+        : `Ticket $${ticket.toFixed(2)} vs costo catálogo $${costo.toFixed(2)} — no bajar el PVP a ciegas`,
+      costoSugerido: Math.round(ticket * 100) / 100,
+      sugerido: null,
     };
   }
 
