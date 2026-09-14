@@ -1,15 +1,12 @@
 sku,ean,nombre,marca,stock,motivo
-FMX-506386,7506022300843,Jeringa SensiMedical 5 mL 22G x 32 mm negra,SensiMedical,100,insumo_sin_packshot_publico
 FMX-506388,7506022300751,Jeringa SensiMedical 3 mL 21G x 32 mm verde,SensiMedical,100,insumo_sin_packshot_publico
 FC-22300881,7506022300881,Jeringa insulina SensiMedical 1 mL 27G x 13 mm,SensiMedical,99,insumo_sin_packshot_publico
 FC-00100013,2008500100013,Cubrebocas tricapa desechable C/100,,98,ean_interno
 FMX-506389,7506022300829,Jeringa SensiMedical 5 mL 21G x 32 mm verde,SensiMedical,92,insumo_sin_packshot_publico
-FMX-307658,7506022314741,Jeringa SensiMedical 20 mL 21G x 32 mm verde,SensiMedical,50,insumo_sin_packshot_publico
 IFC-ALCANFOR,7503048936018,Velázquez alcanfor pastillas C/50 sobres,Velázquez,50,herbolario_sin_packshot_publico
 FC-68900226,7501868900226,Alcohol Etilico Rojo 96°,Dibar,36,otro_ean_sin_packshot
 FC-17500820,7503017500820,Sanax Silica Gran,Sanax,18,herbolario_sin_packshot_publico
 FMX-301138,,Cinta-Microporosa-Codifarma 2.5 Cm X 5 M C/1 Blanco,,17,insumo_sin_packshot_publico
-FC-08491074,7501008491074,Aspirina,Aspirina,16,medicamento_ean_sin_packshot_publico
 FC-BCF59548,2008480100010,Perilla Edigar N1 (jeringa pera toda de hule),Edigar,12,ean_interno
 FC-IFC-PEI01,2008560100015,Peine caballero profesional N1 C/12,,12,ean_interno
 FC-IFC-PIN01,7896075701040,Pinza depilar Mereje tenaza C/12,Mereje,12,insumo_sin_packshot_publico
@@ -18,10 +15,8 @@ FC-84500607,7506484500607,Cinta micropore blanca 2.5 cm x 9.1 m,Cintapore,8,insu
 FC-00001049,3311000001049,Pomada de árnica Tarro 50 g Mercurio,Mercurio,5,herbolario_sin_packshot_publico
 FC-08DB70CB,7503022640153,Bicarbonato Velazquez Grande 200G,Bicarbonato,5,herbolario_sin_packshot_publico
 FC-45720215,7502245720215,Quitaesmalte SKN · variante 215 · confirmar,SKN,5,cuidado_ean_sin_packshot_exacto
-FC-64EB83AA,,Compl,Bencil/Benz,5,sin_ean_no_identificado
 FC-68950702,7501868950702,Vaso recolector de muestras Dibar 100 ml,Dibar,5,insumo_sin_packshot_publico
 FC-931B4809,3311000001476,Mercurio Aceite Coco,Mercurio,5,herbolario_sin_packshot_publico
-FC-95779436,,Acetilsalicilico Ef,Acido,5,sin_ean_no_identificado
 FC-A0D320D1,,Amoxicilina,,5,sin_ean_no_identificado
 FC-IFC-PER01,2008540100011,Perfilador Tinkle C/3 pzs,Tinkle,5,ean_interno
 FMX-301135,7506484500515,Cintapore cinta microporosa blanca 1.25 cm x 5 m,Cintapore,5,insumo_sin_packshot_publico

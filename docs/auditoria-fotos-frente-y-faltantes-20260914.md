@@ -58,6 +58,7 @@ Otras cajas altas (Acetif SI, Mometasona nasal, Losil spray, Cefotaxima, Cefurox
 3. `sql/patch_fotos_nombre_exprezo_levic_20260914.sql` (ya corrido).
 4. `sql/patch_fotos_resto_129_20260914.sql` (ya corrido: 22 fotos).
 5. Deploy de los 7 JPG de fabricante + `sql/patch_fotos_meds_fabricante_20260914.sql`.
+6. Deploy de 5 JPG más + `sql/patch_fotos_resto_busqueda_20260914.sql`.
 
 ## Segunda pasada: Exprezo + Levic + Nadro por nombre (14-sep tarde)
 
@@ -112,23 +113,40 @@ Se hizo lo que se hace a mano: Google + ficha del fabricante + ML. `sql/patch_fo
 
 No se copió EAN: ya está en `FC-27872123` / `EQ-MAI099` / `EQ-QUM070` / `EQ-SON264` (`codigo_barras` UNIQUE).
 
+## Quinta pasada: el resto, Google + fabricante
+
+El inventario sí traía presentación en varios (Aspirina **80** tabs, Compl = **1 FA**, AAS Ef = **20** tabs). Con eso se buscó otra vez.
+
+`sql/patch_fotos_resto_busqueda_20260914.sql` — **5 packshots**. Piden **deploy**.
+
+| Stock | SKU | Ticket | Ahora | Fuente |
+|---:|---|---|---|---|
+| 16 | `FC-08491074` | Aspirina | Aspirina 500 mg C/80 | BuscaMed / Chedraui (no es C/20 ni C/40) |
+| 5 | `FC-64EB83AA` | Compl | Bencil/Benz Comp AMSA 1.2 M UI 1 FA | Galarza; EQ-AMS398 ya tiene el EAN |
+| 5 | `FC-95779436` | Acetilsalicílico Ef | AAS efervescente AMSA 300 mg C/20 | BuscaMed |
+| 100 | `FMX-506386` | SensiMedical 5 ml 22G | igual | Promexsa caja C/100 |
+| 50 | `FMX-307658` | SensiMedical 20 ml 21G | igual | Promexsa caja C/50 |
+
+No se usó: Dibar 250 (la foto pública es de **1 L**); Ursofalk (el ticket no dice lab); Jaloma Mertodol 60 ml (en web solo hay 40 ml); otras jeringas SensiMedical (3 ml / 21G / insulina ≠ esta caja).
+
 ## Lo que queda — `sql/generated/fotos_pendientes_tras_lote_20260914.csv`
 
-99 SKUs. Nadro i22 a veces responde con **otro EAN** (no se usa). `visoti.mx` caído.
+94 SKUs.
 
-### Medicamentos con EAN, sin packshot público de esa caja
+### Medicamentos todavía sin caja pública de *esa* pieza
 
-| Stock | SKU | EAN | Producto |
+| Stock | SKU | Qué hay | Por qué no |
 |---:|---|---|---|
-| 16 | `FC-08491074` | 7501008491074 | Aspirina (no hay ficha de este EAN; 20/40 son otros códigos) |
-| 1 | `FC-6B2ADEE9` | 7501109900008 | Protect aerosol 200 dosis (Nadro devolvió Spiriva; ≠ Protaisol) |
-
-### Realmente no se sabe qué son (sin EAN / nombre de ticket)
-
-Compl (marca Bencil/Benz — posible bencilpenicilina, sin UI), Acetilsalicílico Ef, Amoxicilina, Gentamicina, Tratidri, Ursodesoxicólico, Eferox (el ticket dice cefalexina; el Eferox alemán es levotiroxina), «FC producto botiquín».
+| 5 | `FC-A0D320D1` | Amoxicilina 12 cápsulas | sin laboratorio |
+| 3 | `FC-63975795` | Gentamicina 25 comprimidos | sin laboratorio (oral es raro) |
+| 1 | `FC-3E863E37` | Tratidri 1 gel | no hay ficha; Triderm es crema |
+| 1 | `FC-405A75E3` | Ursodesoxicólico 50 cáps | Ursofalk / Durcox / Marca del Ahorro |
+| 1 | `FC-DB4A39AE` | Eferox (Cefalexina) 12 comp | Eferox DE = levotiroxina |
+| 1 | `FC-6B2ADEE9` | Protect 200 dosis 12.80 g | ≠ Protaisol / Spiriva |
+| 2 | `FC-C8B741F6` | FC producto botiquín | no se sabe qué es |
 
 No se inventa foto a ciegas.
 
 ### Insumos / herbolario / EAN interno todavía sin packshot usable
 
-Otras jeringas SensiMedical (5/3/20/60 ml — no se reutiliza la de 10 ml), cintas Cintapore, cubrebocas, perillas, Mercurio/Velázquez, EANs `200…`, alcohol Dibar 96°, Jaloma 60 ml / agua de rosas / arroz.
+Otras jeringas SensiMedical (3 ml 21G, 5 ml 21G, insulina 1 ml, 60 ml — no se reutiliza otra caja), cintas Cintapore, cubrebocas, perillas, Mercurio/Velázquez, EANs `200…`, alcohol Dibar 96° 250 ml (la foto pública es de 1 L), Jaloma 60 ml / agua de rosas / arroz.
