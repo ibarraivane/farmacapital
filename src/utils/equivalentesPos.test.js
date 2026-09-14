@@ -113,6 +113,55 @@ describe("grupoEquivalentesDeBusqueda", () => {
     expect(grupoEquivalentesDeBusqueda([broncolin, ...ruido], [broncolin, ...ruido], "paleta")).toBeNull();
   });
 
+  it("Jaloma no se colapsa a parafina: aceite y agua salen en la lista normal", () => {
+    const aceiteLavanda = {
+      id: 1001,
+      nombre: "Aceite Bebé Jaloma Lavanda",
+      marca: "Jaloma",
+      tipo: "marca",
+      principio_activo: "PARAFINA",
+      forma_farmaceutica: "Aceite",
+      precio: 26,
+      activo: true,
+    };
+    const aceiteManzanilla = {
+      id: 1002,
+      nombre: "Aceite Bebé Jaloma Manzanilla Y Caléndula",
+      marca: "Jaloma",
+      tipo: "marca",
+      principio_activo: "parafina",
+      forma_farmaceutica: "Aceite",
+      precio: 30,
+      activo: true,
+    };
+    const aguaRosas = {
+      id: 1003,
+      nombre: "Jaloma Agua De Rosas",
+      marca: "Jaloma",
+      tipo: "marca",
+      principio_activo: "Agua de rosas",
+      forma_farmaceutica: "Solución",
+      precio: 24,
+      activo: true,
+    };
+    const aguaArroz = {
+      id: 1004,
+      nombre: "Jaloma Agua De Arroz",
+      marca: "Jaloma",
+      tipo: "generico",
+      principio_activo: "",
+      forma_farmaceutica: "Solución",
+      precio: 60,
+      activo: true,
+    };
+    const catalogoJaloma = [aceiteLavanda, aceiteManzanilla, aguaRosas, aguaArroz];
+    expect(coincideConsultaDirecta(aceiteLavanda, "jaloma")).toBe(true);
+    expect(coincideConsultaDirecta(aguaRosas, "jaloma")).toBe(true);
+    expect(coincideConsultaDirecta(aguaArroz, "jaloma")).toBe(true);
+    expect(grupoEquivalentesDeBusqueda(catalogoJaloma, catalogoJaloma, "jaloma")).toBeNull();
+    expect(grupoEquivalentesDeBusqueda(catalogoJaloma, [aguaRosas, aguaArroz], "jaloma agua")).toBeNull();
+  });
+
   it("si busca Afrin, todas las Afrin van arriba aunque cambie la presentación", () => {
     const adulto = { id: 901, nombre: "Afrin Adulto Spray", marca: "Afrin", tipo: "marca", principio_activo: "Oximetazolina", forma_farmaceutica: "Spray", concentracion: "0.05%", presentacion: "20 mL", precio: 120, activo: true };
     const nodrip = { id: 902, nombre: "Afrin No Drip Solución Nasal", marca: "Afrin", tipo: "marca", principio_activo: "Oximetazolina", forma_farmaceutica: "Solución", concentracion: "0.05%", presentacion: "15 mL", precio: 140, activo: true };

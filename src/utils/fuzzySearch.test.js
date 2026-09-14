@@ -60,6 +60,29 @@ describe("catalog search dimensions", () => {
     );
   });
 
+  test("Jaloma o agua solas encuentran el agua de rosas", () => {
+    const aceite = {
+      id: 520,
+      nombre: "Aceite Bebé Jaloma Lavanda",
+      marca: "Jaloma",
+      principio_activo: "PARAFINA",
+    };
+    const agua = {
+      id: 521,
+      nombre: "Jaloma Agua De Rosas",
+      marca: "Jaloma",
+      principio_activo: "Agua de rosas",
+    };
+    expect(tiendaProductMatchesBusqueda(aceite, "jaloma")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(agua, "jaloma")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(agua, "agua")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(agua, "jaloma agua")).toBe(true);
+    expect(tiendaProductMatchesBusqueda(aceite, "jaloma agua")).toBe(false);
+    expect(tiendaSearchRelevanceRank(agua, "jaloma")).toBeLessThanOrEqual(
+      tiendaSearchRelevanceRank(aceite, "jaloma")
+    );
+  });
+
   test("Treda no se confunde con crema", () => {
     const treda = { id: 501, nombre: "Treda Antidiarreico", marca: "Treda", principio_activo: "Neomicina + Caolín + Pectina" };
     const crema = { id: 502, nombre: "Colgate Max Clean", marca: "Colgate", forma_farmaceutica: "Crema", principio_activo: "Fluoruro de sodio" };
