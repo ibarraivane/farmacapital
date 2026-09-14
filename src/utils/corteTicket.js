@@ -69,10 +69,47 @@ function mapVenta(t) {
     metodo_pago: etiquetaMetodo(t.metodo_pago),
     total: parseFloat(t.total || 0),
     estado: t.estado || "",
+    tipo: t.tipo || "venta",
     notas: t.notas || "",
     cajero_venta: t.usuarios?.nombre || t.cajero_venta || "",
     items,
   };
+}
+
+/** Recarga / CFE / etc. El efectivo del sistema las suma; el detalle no las listaba. */
+export function mapPagoServicio(s) {
+  const total = parseFloat(s.total_cobrado || 0);
+  const nombre = [s.proveedor, s.categoria].filter(Boolean).join(" · ") || "Pago de servicio";
+  const folio = s.folio || (s.id != null ? `SRV-${s.id}` : "SRV");
+  return {
+    id: folio,
+    created_at: s.created_at,
+    metodo_pago: etiquetaMetodo(s.metodo_pago),
+    total,
+    estado: "servicio",
+    tipo: "servicio",
+    notas: s.notas || "",
+    cajero_venta: s.atendido_por_nombre || "",
+    items: [{
+      nombre,
+      sku: folio,
+      cantidad: 1,
+      precio_unitario: total,
+      subtotal: total,
+      lote: "",
+      caducidad: "",
+    }],
+  };
+}
+
+export function mergeDetalleTurno(ventas, servicios) {
+  const a = Array.isArray(ventas) ? ventas : [];
+  const b = (Array.isArray(servicios) ? servicios : []).map(mapPagoServicio);
+  return [...a, ...b].sort((x, y) => {
+    const tb = new Date(y.created_at || 0).getTime();
+    const ta = new Date(x.created_at || 0).getTime();
+    return tb - ta;
+  });
 }
 
 export async function enrichPedidosConItems(supabase, sessionToken, pedidos) {
@@ -104,7 +141,22 @@ export async function cargarVentasDetalleTurno(supabase, sessionToken, desdeIso,
         p_limite: 400,
       })
     : { data: [] };
-  return enrichPedidosConItems(supabase, tok, parseJsonArray(data));
+  const ventas = await enrichPedidosConItems(supabase, tok, parseJsonArray(data));
+  let servicios = [];
+  if (tok) {
+    try {
+      const { data: serv } = await supabase.rpc("empleado_listar_pagos_servicio_rango", {
+        p_session_token: tok,
+        p_desde: desdeIso,
+        p_hasta: hastaIso,
+        p_limite: 400,
+      });
+      servicios = parseJsonArray(serv);
+    } catch {
+      /* RPC viejo: el detalle queda sin recargas; el efectivo del sistema sí las trae. */
+    }
+  }
+  return mergeDetalleTurno(ventas, servicios);
 }
 
 function filasDenoms(denoms) {
