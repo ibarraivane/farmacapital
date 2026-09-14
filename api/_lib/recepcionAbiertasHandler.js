@@ -26,7 +26,7 @@ async function restGet(supabaseUrl, serviceKey, pathAndQuery) {
 function esPedidoVivo(t) {
   const renglones = Number(t.renglones || 0);
   const falta = Number(t.sin_confirmar || 0) + Number(t.sin_caducidad_anaquel || 0);
-  return renglones > 0 && (falta > 0 || t.estado === 'borrador' || t.estado === 'pendiente_caducidad');
+  return renglones > 0 && falta > 0;
 }
 
 function agruparTickets(recepciones, items) {

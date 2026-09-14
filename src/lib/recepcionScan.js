@@ -98,10 +98,18 @@ export function eanPistolaListo(raw) {
 
 export function pedidoEsperaEntrada(t) {
   if (!t) return false;
+  const renglones = Number(t.renglones || 0);
   const sin = Number(t.sin_confirmar ?? t.pendientes ?? 0);
-  const estado = String(t.estado || "").toLowerCase();
-  if (sin > 0) return true;
-  return estado === "borrador" || estado === "parcial" || estado === "abierto";
+  const sinCad = Number(t.sin_caducidad_anaquel || 0);
+  // Cola Recibir = cajas pendientes (gris o MMAA de anaquel). Un ticket
+  // ya recibido (todo verde, sin caducidad de anaquel) no vuelve a la lista
+  // solo porque el estado quedó en borrador.
+  if (sin > 0 || sinCad > 0) return true;
+  if (renglones === 0) {
+    const estado = String(t.estado || "").toLowerCase();
+    return estado === "borrador" || estado === "parcial" || estado === "abierto";
+  }
+  return false;
 }
 
 export function matchScanEnTicket(items, codigo) {

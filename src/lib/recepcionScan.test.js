@@ -5,6 +5,7 @@ import {
   recepcionItemEnAnaquel,
   recepcionItemVerdeSinStock,
   recepcionItemsVerdeSinStock,
+  pedidoEsperaEntrada,
 } from "./recepcionScan";
 
 const TEGADERM = {
@@ -146,5 +147,24 @@ describe("recepcionItemVerdeSinStock", () => {
       { id: 3, confirmado: false, fecha_caducidad: null, lote_id: null, pendiente_alta: false },
     ];
     expect(recepcionItemsVerdeSinStock(items).map((i) => i.id)).toEqual([2]);
+  });
+});
+
+describe("pedidoEsperaEntrada", () => {
+  test("ticket con cajas grises es pedido vivo", () => {
+    expect(pedidoEsperaEntrada({ renglones: 11, sin_confirmar: 11, estado: "borrador" })).toBe(true);
+  });
+
+  test("historial ya recibido no vuelve a Recibir solo por estar en borrador", () => {
+    expect(pedidoEsperaEntrada({ renglones: 184, sin_confirmar: 0, estado: "borrador" })).toBe(false);
+  });
+
+  test("falta MMAA de anaquel sigue en la cola", () => {
+    expect(pedidoEsperaEntrada({
+      renglones: 10,
+      sin_confirmar: 0,
+      sin_caducidad_anaquel: 3,
+      estado: "borrador",
+    })).toBe(true);
   });
 });

@@ -28,6 +28,7 @@ import {
   resolverEscaneoRecepcion,
   recepcionItemVerdeSinStock,
   recepcionItemsVerdeSinStock,
+  pedidoEsperaEntrada,
 } from "./lib/recepcionScan";
 import { $ as fmt, getSessionToken, esErrorSesionEmpleado } from "./utils";
 import { notifySesionEmpleadoInvalida } from "./utils/sesionEmpleadoAuth";
@@ -281,7 +282,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
       return;
     }
     const raw = unwrapJson(data);
-    setPendientes(Array.isArray(raw) ? raw : []);
+    setPendientes(Array.isArray(raw) ? raw.filter(pedidoEsperaEntrada) : []);
   }, []);
 
   const cargar = useCallback(async () => {
