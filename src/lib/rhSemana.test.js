@@ -4,8 +4,10 @@ import {
   diarioDeSemanal,
   diasHastaEnSemana,
   diasLaboralesSemana,
+  esRpcRhPendiente,
   etiquetaRangoSemana,
   martesDeSemana,
+  salarioSemanalDe,
   viernesDeSemana,
 } from "./rhSemana";
 
@@ -61,6 +63,17 @@ describe("pago Erika $1,133.32", () => {
     const mid = calcularNominaSemanal({ salarioSemanal: 1133.32, diasTrabajo: 2 });
     expect(mid.bruto).toBe(566.66);
     expect(mid.neto).toBe(566.66);
+  });
+
+  test("no convierte el quincenal viejo en semanal", () => {
+    expect(salarioSemanalDe({ salario_semanal: 1133.32, salario_quincenal: 3500 })).toBe(1133.32);
+    expect(salarioSemanalDe({ salario_quincenal: 3500 })).toBe(0);
+    expect(salarioSemanalDe({ salario_semanal: 0 })).toBe(0);
+  });
+
+  test("detecta RPC de nómina semanal pendiente en la base", () => {
+    expect(esRpcRhPendiente({ message: "Could not find the function public.rh_semana_empleado" })).toBe(true);
+    expect(esRpcRhPendiente({ message: "Ya hay un pago registrado para esta semana" })).toBe(false);
   });
 
   test("IMSS apagado por defecto; si se aplica, solo el 2.375%", () => {

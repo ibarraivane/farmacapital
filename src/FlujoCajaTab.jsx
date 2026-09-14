@@ -14,6 +14,8 @@ import {
   etiquetaCategoriaGasto,
   gastoAfectaPl,
   opcionesCategoriaGasto,
+  periodicidadGasto,
+  placeholderConceptoGasto,
 } from "./constants/categoriasGasto";
 import {
   PISO_FONDO_FLUJO,
@@ -271,7 +273,7 @@ export default function FlujoCajaTab({ usuario, setPage, showConfirm, demoBundle
         monto,
         proveedor: String(form.proveedor || "").trim() || null,
         es_recurrente: Boolean(form.es_recurrente),
-        periodicidad: form.es_recurrente ? "mensual" : null,
+        periodicidad: periodicidadGasto(form.categoria, form.es_recurrente),
         afecta_pl: gastoAfectaPl(form.categoria, true),
       },
     });
@@ -446,7 +448,7 @@ export default function FlujoCajaTab({ usuario, setPage, showConfirm, demoBundle
             <div className="fc-alert">
               <h6>Faltan gastos por capturar este mes</h6>
               <p>
-                Las ventas y los cortes entran solos. La nómina, la renta y el pago a proveedor los capturas tú — por eso Quedó se ve más alto de lo que realmente es.
+                Las ventas y los cortes entran solos. La nómina se paga los viernes: anótala cada semana en Gastos. La renta y el pago a proveedor los capturas tú — por eso Quedó se ve más alto de lo que realmente es.
               </p>
               <div className="fc-alert-foot">
                 <Btn sm col={BRAND.primary} onClick={irGastos}>Capturar gastos</Btn>
@@ -549,7 +551,7 @@ export default function FlujoCajaTab({ usuario, setPage, showConfirm, demoBundle
         >
           <p style={{ color: C.textMid, fontSize: 12.5, lineHeight: 1.5, margin: "0 0 16px", maxWidth: "78ch" }}>
             Las ventas y los cortes entran solos. La liquidación de recargas se resta sola: no la captures otra vez.
-            Nómina, renta, luz y pago a Nadro o Levic los escribes tú.
+            Nómina (viernes), renta, luz y pago a Nadro o Levic los escribes tú. El recibo de nómina no se copia solo.
           </p>
 
           <Box style={{ padding: 16, marginBottom: 16 }}>
@@ -576,7 +578,7 @@ export default function FlujoCajaTab({ usuario, setPage, showConfirm, demoBundle
                 <input
                   value={form.concepto}
                   onChange={(e) => setForm((f) => ({ ...f, concepto: e.target.value }))}
-                  placeholder={form.categoria === CATEGORIA_COMPRA_INVENTARIO ? "Ej. Pago Nadro 4-sep" : "Ej. Renta septiembre"}
+                  placeholder={placeholderConceptoGasto(form.categoria)}
                   style={inp}
                 />
               </label>
@@ -607,7 +609,9 @@ export default function FlujoCajaTab({ usuario, setPage, showConfirm, demoBundle
                   checked={form.es_recurrente}
                   onChange={(e) => setForm((f) => ({ ...f, es_recurrente: e.target.checked }))}
                 />
-                Recurrente (entra a comprometido 30 días)
+                {form.categoria === "nomina"
+                  ? "Recurrente (nómina: cada viernes)"
+                  : "Recurrente (entra a comprometido 30 días)"}
               </label>
               <Btn col={BRAND.primary} onClick={registrar} dis={saving || !usuario}>
                 {saving ? "Guardando…" : "Guardar"}

@@ -4,6 +4,8 @@ import {
   esCompraInventario,
   gastoAfectaPl,
   etiquetaCategoriaGasto,
+  periodicidadGasto,
+  placeholderConceptoGasto,
 } from "./categoriasGasto";
 
 describe("categoriasGasto", () => {
@@ -23,5 +25,16 @@ describe("categoriasGasto", () => {
   test("etiqueta de mostrador, no el código interno", () => {
     expect(etiquetaCategoriaGasto("compra_inventario")).toBe("Compra de medicamento");
     expect(etiquetaCategoriaGasto("nomina")).toBe("Nómina");
+  });
+
+  test("nómina recurrente es semanal (viernes); renta sigue mensual", () => {
+    expect(periodicidadGasto("nomina", true)).toBe("semanal");
+    expect(periodicidadGasto("renta", true)).toBe("mensual");
+    expect(periodicidadGasto("nomina", false)).toBeNull();
+  });
+
+  test("placeholder de nómina menciona el viernes", () => {
+    expect(placeholderConceptoGasto("nomina")).toMatch(/viernes/i);
+    expect(placeholderConceptoGasto("compra_inventario")).toMatch(/Nadro/i);
   });
 });

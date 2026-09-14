@@ -63,6 +63,8 @@ describe("flujoCaja", () => {
 
   test("completitud nunca trata un ausente como cero limpio", () => {
     expect(textoCompletitud({ incompleta: true, tiene_nomina: false, tiene_renta: false, tiene_proveedor: false }))
+      .toMatch(/nómina de esta semana \(viernes\)/);
+    expect(textoCompletitud({ incompleta: true, tiene_nomina: false, tiene_renta: false, tiene_proveedor: false }))
       .toMatch(/no es que hayas gastado \$0/);
     expect(textoCompletitud({ incompleta: false })).toMatch(/completa/);
   });

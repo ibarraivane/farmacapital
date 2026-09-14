@@ -80,3 +80,15 @@ export function opcionesCategoriaGasto() {
     label: CATEGORIA_GASTO_LABELS[id] || id,
   }));
 }
+
+/** Nómina se paga los viernes; el resto de recurrentes sigue mensual. */
+export function periodicidadGasto(categoria, esRecurrente) {
+  if (!esRecurrente) return null;
+  return String(categoria || "") === "nomina" ? "semanal" : "mensual";
+}
+
+export function placeholderConceptoGasto(categoria) {
+  if (esCompraInventario(categoria)) return "Ej. Pago Nadro 4-sep";
+  if (String(categoria || "") === "nomina") return "Ej. Nómina viernes 11-sep";
+  return "Ej. Renta septiembre";
+}
