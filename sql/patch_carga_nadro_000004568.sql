@@ -39,7 +39,7 @@ values
   (2, '7501022112250', 'FC-22112250', 'C-Boost colágeno + biotina + ácido hialurónico 90 gomitas', 'C-BOOST SUP ALIM COLAGENO FCO90GOM', 1, 109.91, 147, 'marca', 'Vitaminas', 'Colágeno', 'C-Boost', 'Frasco con 90 gomitas', 'Gomita', 'Grisi', 'Colágeno / biotina / ácido hialurónico', false, true),
   (3, '7502009746321', 'FC-09746321', 'Nisolver (prednisolona) 1 mg/ml solución oral 100 ml', 'PREDNIS 1MG/1ML SOL FCO100ML LGEN', 1, 80.14, 201, 'generico', 'Medicamentos', 'Hormonas', 'Nisolver', 'Caja con frasco 100 ml', 'Solución oral', 'Maver', 'Prednisolona 1 mg/ml', true, true),
   (4, '7509552875461', 'FC-52875461', 'Garnier Express Aclara sérum anti-imperfecciones 4% 30 ml', 'SERUM GARNIER EXPRES BOOS 4% 30ML', 1, 129.78, 174, 'marca', 'Cuidado personal', 'Cuidado de la piel', 'Garnier', '30 ml', 'Sérum', 'L''Oréal', null, false, true),
-  (5, '7501587010404', 'FC-87010404', 'Vivioptal oral 30 cápsulas', 'VIVIOPTAL 30 CAPS', 1, 160.59, 215, 'marca', 'Vitaminas y suplementos', 'Multivitamínicos', 'Vivioptal', 'Caja con 30 cápsulas', 'Cápsula', 'Bomuca', null, false, true);
+  (5, '7501587010404', 'FC-87010404', 'Vivioptal oral 30 cápsulas', 'VIVIOPTAL 30 CAPS', 1, 160.59, 215, 'marca', 'Vitaminas', 'Multivitamínicos', 'Vivioptal', 'Caja con 30 cápsulas', 'Cápsula', 'Bomuca', null, false, true);
 
 -- Altas nuevas (solo si el EAN no existe).
 insert into public.productos (

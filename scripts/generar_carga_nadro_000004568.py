@@ -122,7 +122,7 @@ RAW = [
         "nadro",
         "Vivioptal oral 30 cápsulas",
         "marca",
-        "Vitaminas y suplementos",
+        "Vitaminas",
         "Multivitamínicos",
         "Vivioptal",
         "Caja con 30 cápsulas",
