@@ -68,7 +68,7 @@ RAW = [
         "nadro",
         "C-Boost colágeno + biotina + ácido hialurónico 90 gomitas",
         "marca",
-        "Vitaminas y suplementos",
+        "Vitaminas",
         "Colágeno",
         "C-Boost",
         "Frasco con 90 gomitas",
