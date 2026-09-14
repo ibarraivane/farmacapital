@@ -162,7 +162,11 @@ def clase_y_stock(sim: dict) -> tuple[str, int, int]:
         return "B", 2, 4
     if "inyect" in (forma or "") or "ampolleta" in nd or "ampolla" in nd:
         return "INY", 2, 3
-    if "material de curaci" in linea_n or linea_n == "material de curacion":
+    if (
+        "curaci" in linea_n
+        or "material de curaci" in linea_n
+        or "material de curaci" in norm(jer)
+    ):
         return "CUR", 6, 10
     if any(tok in nd for tok in CLASE_A):
         return "A", 6, 10
@@ -572,8 +576,7 @@ def escribir_md(path: Path, resumen: dict, huecos: list[dict]) -> None:
     lineas = [
         f"# Cruce FarmaCapital vs surtido Similares ({resumen['fecha']})",
         "",
-        "El Excel de artículos (`pricing/fuentes/articulos_farmacias.xlsx`) no se versiona.",
-        f"Este cruce usó el catálogo público de Similares (VTEX) del {resumen['fecha']}: la misma lista de farmacia, precios al día.",
+        f"Fuente: **{resumen['fuente']}**.",
         "",
         "El match es por **genérico** (principio + concentración + forma), no por marca comercial.",
         "Si Similares vende ibuprofeno 400 mg 10 tabletas y nosotros tenemos AMSA/Ultra de esa misma presentación, cuenta como cubierto.",
@@ -598,6 +601,7 @@ def escribir_md(path: Path, resumen: dict, huecos: list[dict]) -> None:
         "",
         "Archivos:",
         "",
+        f"- `{resumen.get('xlsx_pedido') or ''}` — Excel para surtir (alta rotación)",
         f"- `{resumen['csv_prioridad']}` — huecos A + B + curación (comprar primero)",
         f"- `{resumen['csv_huecos']}` — resto de huecos (especialidad)",
         f"- `{resumen['csv_rellenar']}` — ya los tenemos, stock bajo el mínimo",
@@ -630,6 +634,130 @@ def escribir_md(path: Path, resumen: dict, huecos: list[dict]) -> None:
     if n == 0:
         lineas.append("| — | — | (no hubo huecos clase A) | — |")
     path.write_text("\n".join(lineas) + "\n", encoding="utf-8")
+
+
+def escribir_xlsx_pedido(path: Path, resumen: dict, huecos: list[dict], rellenar: list[dict]) -> None:
+    """Excel para surtir: alta rotación primero, luego media, luego rellenar."""
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+    from openpyxl.utils import get_column_letter
+
+    wb = Workbook()
+    fill_h = PatternFill("solid", fgColor="1A1A1A")
+    font_h = Font(name="Calibri", bold=True, color="FFFFFF", size=10)
+    font_t = Font(name="Calibri", bold=True, size=16)
+    thin = Border(
+        left=Side(style="thin", color="DDDDDD"),
+        right=Side(style="thin", color="DDDDDD"),
+        top=Side(style="thin", color="DDDDDD"),
+        bottom=Side(style="thin", color="DDDDDD"),
+    )
+    fill_a = PatternFill("solid", fgColor="F8D7DA")
+    fill_b = PatternFill("solid", fgColor="FFF3CD")
+    fill_cur = PatternFill("solid", fgColor="D6EAF8")
+
+    def style_header(ws, ncols):
+        for col in range(1, ncols + 1):
+            cell = ws.cell(1, col)
+            cell.fill = fill_h
+            cell.font = font_h
+            cell.alignment = Alignment(wrap_text=True, vertical="center")
+        ws.auto_filter.ref = f"A1:{get_column_letter(ncols)}1"
+        ws.freeze_panes = "A2"
+        ws.row_dimensions[1].height = 22
+
+    def fill_clase(clase):
+        return {"A": fill_a, "B": fill_b, "CUR": fill_cur, "INY": fill_cur}.get(clase)
+
+    alta = [r for r in huecos if r["clase"] == "A"]
+    media = [r for r in huecos if r["clase"] in ("B", "CUR")]
+    rell_ab = [r for r in rellenar if r["clase"] in ("A", "B", "CUR")]
+
+    ws = wb.active
+    ws.title = "Resumen"
+    ws["A1"] = "Pedido para igualar surtido Similares (alta rotación)"
+    ws["A1"].font = font_t
+    ws.merge_cells("A1:B1")
+    ws["A2"] = f"Fuente: {resumen['fuente']} · inventario vivo {resumen['fecha']}"
+    ws["A3"] = "Compara por genérico (principio + concentración + forma), no por marca comercial."
+    rows_r = [
+        ("Genéricos únicos Similares (farmacia)", resumen["similares_unicos"]),
+        ("Productos activos en tu inventario", resumen["inventario_activo"]),
+        ("Ya cubiertos", resumen["cubiertos"]),
+        ("Cobertura", f"{resumen['cobertura_pct']}%"),
+        ("Huecos totales", resumen["huecos"]),
+        ("  · clase A — comprar primero (alta rotación)", resumen["huecos_a"]),
+        ("  · clase B — rotación media", resumen["huecos_b"]),
+        ("  · curación", resumen["huecos_cur"]),
+        ("Piezas a pedir — solo clase A", sum(r["pedir"] for r in alta)),
+        ("Piezas a pedir — A + B + curación", sum(r["pedir"] for r in alta + media)),
+        ("Piezas a rellenar (ya los tienes, stock bajo)", sum(r["pedir"] for r in rell_ab)),
+    ]
+    ws["A5"] = "Métrica"
+    ws["B5"] = "Valor"
+    style_header(ws, 2)
+    for i, (a, b) in enumerate(rows_r, start=6):
+        ws.cell(i, 1, a)
+        ws.cell(i, 2, b)
+    ws["A19"] = (
+        "Hoja 1_Alta_rotacion: los indispensables de mostrador que Similares sí tiene y tú no. "
+        "Pide esas piezas (columna Pedir) a Levic / Farmalive / AMSA del mismo genérico. "
+        "No copies la marca propia Simi: busca el equivalente genérico."
+    )
+    ws.merge_cells("A19:E21")
+    ws["A19"].alignment = Alignment(wrap_text=True, vertical="top")
+    ws.column_dimensions["A"].width = 64
+    ws.column_dimensions["B"].width = 18
+
+    def sheet_pedido(name, data, extra_fc=False):
+        ws = wb.create_sheet(name)
+        headers = [
+            "Prioridad", "Clase", "Pedir", "SKU Similares", "Genérico",
+            "Concentración", "Contenido", "Forma", "Línea",
+            "Precio venta Similares",
+        ]
+        if extra_fc:
+            headers += ["Tu SKU", "Tu producto", "Stock hoy"]
+        for i, h in enumerate(headers, 1):
+            ws.cell(1, i, h)
+        style_header(ws, len(headers))
+        for r_i, r in enumerate(data, start=2):
+            conc = r.get("concentracion") or " ".join(sorted(r.get("concentraciones") or []))
+            contenido = r.get("contenido") or r.get("presentacion") or ""
+            vals = [
+                r_i - 1,
+                r["clase"],
+                r["pedir"],
+                r["sim_sku"],
+                r["descripcion"],
+                conc,
+                contenido,
+                r.get("forma") or "",
+                r.get("linea") or "",
+                r.get("precio") or 0,
+            ]
+            if extra_fc:
+                vals += [r.get("fc_sku") or "", r.get("fc_nombre") or "", r.get("stock") or 0]
+            for c_i, v in enumerate(vals, 1):
+                cell = ws.cell(r_i, c_i, v)
+                cell.border = thin
+                if c_i == 2:
+                    fill = fill_clase(r["clase"])
+                    if fill:
+                        cell.fill = fill
+            ws.cell(r_i, 3).font = Font(name="Calibri", bold=True, size=12)
+        widths = [10, 8, 8, 14, 46, 18, 22, 12, 24, 16, 16, 36, 12]
+        for i, w in enumerate(widths[:len(headers)], 1):
+            ws.column_dimensions[get_column_letter(i)].width = w
+        if data:
+            ws.auto_filter.ref = f"A1:{get_column_letter(len(headers))}{len(data)+1}"
+        return ws
+
+    sheet_pedido("1_Alta_rotacion", alta)
+    sheet_pedido("2_Media_y_curacion", media)
+    sheet_pedido("3_Rellenar_lo_que_ya_tienes", rell_ab, extra_fc=True)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    wb.save(path)
 
 
 def cargar_snapshot_csv(ruta: Path) -> list[dict]:
@@ -711,11 +839,15 @@ def main() -> int:
     p1 = [r for r in huecos if r["clase"] in ("A", "B", "CUR")]
     p_resto = [r for r in huecos if r["clase"] not in ("A", "B", "CUR")]
 
+    xlsx_pedido = REPORTE_DIR / f"cruce_similares_pedido_{tag}.xlsx"
     escribir_csv(ROOT / csv_prioridad, p1, extra_fc=False)
     escribir_csv(ROOT / csv_huecos, p_resto, extra_fc=False)
     escribir_csv(ROOT / csv_rellenar, rellenar, extra_fc=True)
     escribir_csv(ROOT / csv_cubiertos, ok, extra_fc=True)
-    escribir_snapshot(snap_path, sim)
+    if fuente.startswith("excel:"):
+        escribir_snapshot(SNAPSHOT_DIR / f"similares_excel_{tag}.csv", sim)
+    else:
+        escribir_snapshot(snap_path, sim)
 
     resumen = {
         "fecha": HOY,
@@ -736,10 +868,13 @@ def main() -> int:
         "csv_huecos": csv_huecos,
         "csv_rellenar": csv_rellenar,
         "csv_cubiertos": csv_cubiertos,
+        "xlsx_pedido": str(xlsx_pedido.relative_to(ROOT)),
     }
+    escribir_xlsx_pedido(xlsx_pedido, resumen, huecos, rellenar)
     escribir_md(md_path, resumen, huecos)
-    print(json.dumps({k: v for k, v in resumen.items() if not str(k).startswith("csv")}, indent=2))
+    print(json.dumps({k: v for k, v in resumen.items() if not str(k).startswith("csv") and k != "xlsx_pedido"}, indent=2))
     print("md", md_path)
+    print("xlsx", xlsx_pedido)
     return 0
 
 

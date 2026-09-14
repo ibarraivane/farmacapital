@@ -1,31 +1,31 @@
 # Cruce FarmaCapital vs surtido Similares (2026-09-14)
 
-El Excel de artículos (`pricing/fuentes/articulos_farmacias.xlsx`) no se versiona.
-Este cruce usó el catálogo público de Similares (VTEX) del 2026-09-14: la misma lista de farmacia, precios al día.
+Fuente: **excel:articulos_farmacias.xlsx**.
 
 El match es por **genérico** (principio + concentración + forma), no por marca comercial.
 Si Similares vende ibuprofeno 400 mg 10 tabletas y nosotros tenemos AMSA/Ultra de esa misma presentación, cuenta como cubierto.
 
 ## Resumen
 
-- Artículos únicos Similares (farmacia, sin souvenirs/perfumería/alimentos): **1313**
+- Artículos únicos Similares (farmacia, sin souvenirs/perfumería/alimentos): **1281**
 - Productos activos en nuestro inventario: **1503**
-- Ya cubiertos (los tenemos, aunque sea otra marca): **437** (33.3%)
-  - con stock suficiente: **135**
-  - hay que rellenar (bajo el mínimo sucursal): **302**
-- Huecos (Similares lo vende y nosotros no): **876**
-  - clase A (rotación alta): **63**
-  - clase B: **172**
-  - clase C: **576**
-  - inyectables: **16**
-  - curación: **49**
+- Ya cubiertos (los tenemos, aunque sea otra marca): **430** (33.6%)
+  - con stock suficiente: **96**
+  - hay que rellenar (bajo el mínimo sucursal): **334**
+- Huecos (Similares lo vende y nosotros no): **851**
+  - clase A (rotación alta): **86**
+  - clase B: **203**
+  - clase C: **510**
+  - inyectables: **0**
+  - curación: **52**
 
 Para igualar el surtido de mostrador de Similares, el pedido útil es **clase A + B + curación**
-(284 huecos).
+(341 huecos).
 Clase C (especialidad / marca propia Simi) se pide de 2 en 2 cuando ya hay consulta.
 
 Archivos:
 
+- `pricing/reportes/cruce_similares_pedido_20260914.xlsx` — Excel para surtir (alta rotación)
 - `pricing/reportes/cruce_similares_20260914_prioridad.csv` — huecos A + B + curación (comprar primero)
 - `pricing/reportes/cruce_similares_20260914_huecos.csv` — resto de huecos (especialidad)
 - `pricing/reportes/cruce_similares_20260914_rellenar.csv` — ya los tenemos, stock bajo el mínimo
@@ -35,68 +35,68 @@ Archivos:
 
 | Línea | Huecos A/B/curación |
 | --- | ---: |
-| Material de curación | 50 |
-| Analgésicos | 34 |
-| Funcionamiento gastrointestinal | 18 |
-| Antihipertensivo | 16 |
-| Medicamentos éticos | 16 |
-| Aparato respiratorio | 13 |
-| Antibiótico | 12 |
-| Antimicótico | 10 |
-| Dermatológico | 9 |
-| Antigripal | 8 |
-| Antialérgico | 7 |
-| Antiinflamatorio | 6 |
-| Diabetes | 6 |
-| Material de diagnóstico | 6 |
-| Gripa y tos | 5 |
-| Oftalmológico | 5 |
-| Protector solar | 5 |
-| Sistema inmune | 4 |
-| Enfermedades mentales | 4 |
-| Antiparasitario | 3 |
+| CURACION Y MEDICION | 61 |
+| RESPIRATORIOS | 51 |
+| ESTOMACALES (GASTRO) | 48 |
+| CARDIOVASCULARES | 43 |
+| ANALGESICOS | 26 |
+| ANTIBIOTICOS | 24 |
+| DIABETES | 15 |
+| SISTEMA NERVIOSO | 15 |
+| MULTIVITAMINICOS | 9 |
+| ANTIMICOTICOS | 9 |
+| ANTIHISTAMINICOS | 7 |
+| OFTALMOLOGICOS | 6 |
+| ENFERMEDADES DE LA PIEL | 5 |
+| MATERNIDAD Y LACTANTES | 4 |
+| ESPECIALIDAD | 4 |
+| CUIDADO DE LA PIEL | 3 |
+| SEXUALIDAD | 3 |
+| MATERIAL DE CURACION | 2 |
+| PESO Y METABOLISMO | 2 |
+| HORMONALES | 2 |
 
 ## Huecos clase A (muestra)
 
 | Pedir | Precio Simi | Genérico | Línea |
 | ---: | ---: | --- | --- |
-| 6 | $119 | AMBROXOL 20MG 18 PASTILLAS HISTIACIL GR3 | Gripa y tos |
-| 5 | $119 | CLORZOXAZONA / KETOPROFENO 250/50MG 10 TABLETAS | Analgésicos |
-| 5 | $116 | FLOROGLUCINOL 2GR/100ML  SOLUCION GOTAS SABOR LIMON 30 ML 1 PIEZA | Analgésicos |
-| 6 | $103 | PARACETAMOL 80MG 30 TABLETAS MASTICABLES TEMPRA | Analgésicos |
-| 6 | $99 | IBUPROFENO / DIFENHIDRAMINA 200MG/25MG 10 CAPSULAS GEL | Analgésicos |
-| 5 | $99 | ITOPRIDA 50 MG 30 TABLETAS | Funcionamiento gastrointestinal |
-| 5 | $98 | BUSCAPINA 12 TABLETAS CON HIOSCINA. AUXILIAR EN EL ALIVIO DEL DOLOR DE | Analgésicos |
-| 6 | $94 | PARACETAMOL / FENIRAMINA / FENILEFRINA SABOR MANZANA CANELA GRANULADO  | Antigripal |
-| 5 | $89 | GEL TOPICO MENTOL / ARNICA / CALENDULA / SABILA 100 GR 1 PIEZA | Analgésicos |
-| 6 | $89 | NAPROXENO/CARISOPRODOL 250MG/200MG 30CAPSULAS | Antiinflamatorio |
-| 6 | $84 | LEVODROPROPIZINA / AMBROXOL 0.6/0.3GR/100ML SOLUCION 120ML | Aparato respiratorio |
-| 5 | $82 | SUCRALFATO 1 GR 40 TABLETAS | Funcionamiento gastrointestinal |
-| 6 | $72 | PARACETAMOL 80MG 30 TABLETAS MASTICABLES MEJORALITO | Analgésicos |
-| 6 | $71 | CIPROFLOXACINO / DEXAMETASONA 3.5/1 MG SOLUCION OFTALMICA 5 ML 1 PIEZA | Oftalmológico |
-| 6 | $69 | CLOTRIMAZOL/ DEXAMETASONA 1GR/0.04GR CREMA 30 GR GENERICO | Antimicótico |
-| 5 | $69 | CUO PROTECT 100 MG 30 TABLETAS LIBERACION RETARDADA | Analgésicos |
-| 6 | $69 | DICLOFENACO .18 GR SUSPENSION 120 ML 1 PIEZA | Antiinflamatorio |
-| 5 | $66 | ACARBOSA 50 MG 30 TABLETAS | Diabetes |
-| 6 | $66 | CAPTOPRIL 50 MG 30 TABLETAS | Antihipertensivo |
-| 6 | $66 | METRONIDAZOL / DIYODOHIDROXIQUINOLEINA SUSPENSION 120 ML 1 PIEZA | Antiparasitario |
-| 6 | $64 | DICLOFENACO SODICO / VITAMINAS B1 / B6 / B12 30 TABLETAS | Antiinflamatorio |
-| 6 | $64 | LEVOCETIRIZINA 0.5MG SOLUCION | Antialérgico |
-| 6 | $62 | METFORMINA 750 MG 30 TABLETAS LIBERACION PROLONGADA | Diabetes |
-| 6 | $61 | DEXTROMETORFANO 10 MG/ PARACETAMOL 250 MG/ BROMFENIRAMINA 2 MG/ FENILE | Antigripal |
-| 6 | $59 | CLOTRIMAZOL DUAL (CREMA VAGINAL 10 GR/ 3 OVULOS) | Antimicótico |
-| 6 | $59 | IBUPROFENO 40MG/1ML SUSPENSION 15 ML 1 PIEZA | Analgésicos |
-| 5 | $55 | ARNICA 6C 30 TABLETAS | Analgésicos |
-| 5 | $54 | ARNICA MONTANA / HAMAMELIS VIRGINIANA UNGÜENTO 30 GR 1 PIEZA | Analgésicos |
-| 5 | $53 | BUTILHIOSCINA SOLUCION 15 ML 1 PIEZA | Analgésicos |
-| 6 | $52 | PARACETAMOL/CAFEINA/FENILEFRINA 10 TABLETAS SEDALMERCK | Analgésicos |
-| 6 | $51 | PARACETAMOL 300 MG 6 SUPOSITORIOS | Analgésicos |
-| 5 | $49 | ALUMINIO / MAGNESIO / DIMETICONA / METOCLOPRAMIDA 30 TABLETAS | Funcionamiento gastrointestinal |
-| 6 | $49 | AMBROXOL/DEXTROMETORFANO 22.5/22.5MG 20 TABLETAS | Gripa y tos |
-| 6 | $49 | DEXTROMETORFANO / PARACETAMOL / CLORFENAMINA / FENILEFRINA 12 CAPSULAS | Antigripal |
-| 6 | $49 | METFORMINA / GLIBENCLAMIDA 500/2.5MG 60 TABLETAS | Diabetes |
-| 6 | $48 | ACIDO ACETILSALICILICO 500MG 12 TABLETAS EFERVESCENTES ASPIRINA | Analgésicos |
-| 6 | $48 | FENILEFRINA / CLORFENAMINA / GUAIFENESINA / PARACETAMOL INFANTIL JARAB | Antigripal |
-| 6 | $48 | KETOPROFENO / PARACETAMOL 100/300MG 12 TABLETAS | Antiinflamatorio |
-| 6 | $48 | PARACETAMOL / BUTILHIOSCINA 100/2 MG SOLUCION GOTAS 20 ML 1 PIEZA | Analgésicos |
-| 6 | $42 | LORATADINA / BETAMETASONA  5 /.25 MG 10 TABLETAS | Antialérgico |
+| 6 | $119 | AMBROXOL 20MG 18PAST HISTIACIL GR3 | RESPIRATORIOS |
+| 5 | $119 | METOPROLOL 95MG 20TAB LP | CARDIOVASCULARES |
+| 5 | $119 | RACECADOTRILO 30MG PVO 18 SOBRES GRANUL | ESTOMACALES (GASTRO) |
+| 5 | $119 | TRIBENOSIDO/LIDOCAINA 5GR/2GR 30GR CREMA | ANALGESICOS |
+| 5 | $116 | FLOROGLUCINOL 2GR/100ML GTS 30ML SAB LIM | ESTOMACALES (GASTRO) |
+| 5 | $112 | HIDROXOCOBALAMINA 50000UI 5AMP | ANALGESICOS |
+| 5 | $110 | BISOPROLOL 5MG 30TAB | CARDIOVASCULARES |
+| 5 | $107 | NORFENEFRINA 10MG/1ML SOL 24ML | CARDIOVASCULARES |
+| 5 | $99 | ESPORAS BAC CLAUSII 4BILL UFC SUSP 5AMP | ESTOMACALES (GASTRO) |
+| 6 | $99 | IBUPROFENO/DIFENHID 200MG/25MG 10CAP GEL | ANALGESICOS |
+| 5 | $99 | ITOPRIDA 50MG 30TAB | ESTOMACALES (GASTRO) |
+| 5 | $99 | RACECADOTRILO 10MG PVO 18 SOBRES GRANUL | ESTOMACALES (GASTRO) |
+| 5 | $99 | RAMIPRIL 5MG 16TAB | CARDIOVASCULARES |
+| 5 | $98 | BUTILHIO(HIOSCINA) 10MG 12 TAB BUSCAPINA | ESTOMACALES (GASTRO) |
+| 5 | $95 | FELODIPINO 5MG 20TAB LP | CARDIOVASCULARES |
+| 5 | $94 | CLONIX LIS/BUTI 125/10MG 20TAB | ESTOMACALES (GASTRO) |
+| 5 | $94 | LOXCELL QUINF/ALBEND 300/400MG 1TAB | ESTOMACALES (GASTRO) |
+| 5 | $94 | METFOR/GLIB 1GR/5MG 40TAB | DIABETES |
+| 6 | $94 | PARACETAMOL/FENIRA/FENIL 6SOB MZNA/CANEL | RESPIRATORIOS |
+| 5 | $91 | CLOROPIRAMINA 25MG 20TAB | ANTIHISTAMINICOS |
+| 6 | $89 | NAPROXENO/CARISOPRODOL 250MG/200MG 30CAP | ANALGESICOS |
+| 5 | $83 | LOXCELL QUINF/ALBEND 100/200MG SUSP 10ML | ESTOMACALES (GASTRO) |
+| 5 | $83 | LOXCELL QUINF/ALBEND 200/400MG SUSP 20ML | ESTOMACALES (GASTRO) |
+| 5 | $82 | SUCRALFATO 1GR CAJA 40TAB | ESTOMACALES (GASTRO) |
+| 5 | $81 | ALENDRONATO 70MG 4TAB | ANALGESICOS |
+| 6 | $79 | METFORMINA 1000MG 30TAB | DIABETES |
+| 5 | $77 | ATENOLOL 100MG 28TAB | CARDIOVASCULARES |
+| 6 | $74 | METFORMINA 1000MG 40TAB | DIABETES |
+| 5 | $73 | CARBONATO D CALCIO 500MG 100TAB SABORES | ESTOMACALES (GASTRO) |
+| 6 | $71 | CIPROFLOXACINO/DEXAMET OFT 5ML | ANTIBIOTICOS |
+| 5 | $71 | CLONIX LIS/BUTI 250/10MG 10TAB | ESTOMACALES (GASTRO) |
+| 5 | $71 | SIMI DIAB PLUS 30CAP | DIABETES |
+| 5 | $69 | CUO PROTECT 100MG 30TAB LR | CARDIOVASCULARES |
+| 6 | $69 | DICLOFENACO AC LIBRE SUSP 120ML | ANALGESICOS |
+| 5 | $66 | ACARBOSA 50MG 30TAB | DIABETES |
+| 6 | $66 | ATORVASTATINA 10MG 20TAB | CARDIOVASCULARES |
+| 6 | $66 | CAPTOPRIL 50MG 30TAB | CARDIOVASCULARES |
+| 5 | $66 | METILDOPA 250MG 30TAB | CARDIOVASCULARES |
+| 6 | $66 | METRONIDAZOL/DIYODOH SUSP 120ML | ESTOMACALES (GASTRO) |
+| 6 | $65 | LORATADINA/FENIL/PARA JBE 120ML | RESPIRATORIOS |

@@ -33,6 +33,17 @@ class ActivosYClase(unittest.TestCase):
         })
         self.assertEqual(clase, "C")
 
+    def test_curacion_excel_linea(self):
+        clase, *_ = cruce.clase_y_stock({
+            "descripcion": "GASA ESTERIL 10X10 10 PIEZAS",
+            "marca": "",
+            "forma": "",
+            "jerarquia": "MATERIAL DE CURACION",
+            "linea": "CURACION Y MEDICION",
+            "precio": 25,
+        })
+        self.assertEqual(clase, "CUR")
+
     def test_desodorante_no_es_curacion(self):
         clase, *_ = cruce.clase_y_stock({
             "descripcion": "DESODORANTE ANTITRANSPIRANTE GEL CABALLERO GILLETTE 82 GR",
