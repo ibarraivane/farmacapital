@@ -237,4 +237,4 @@ No se inventa foto a ciegas.
 
 ### Insumos / herbolario / EAN interno todavía sin packshot usable
 
-SensiMedical 3 ml 22G y 60 ml (no se reutiliza otra caja), cintas Cintapore, cubrebocas, perillas, Mercurio/Velázquez, EANs `200…`, alcohol Dibar 96° 250 ml (la foto pública es de 1 L), Jaloma Mertodol 60 ml / agua de rosas **130 ml**.
+Cintas Cintapore, cubrebocas, perillas, Mercurio/Velázquez, EANs `200…`, alcohol Dibar 96° 250 ml (la foto pública es de 1 L), Jaloma Mertodol 60 ml / agua de rosas **130 ml**.
