@@ -27,6 +27,24 @@ class ParesCurados(unittest.TestCase):
         self.assertFalse(any(r[0] == "FC-63975795" for r in dups.DUPLICADOS))
         self.assertTrue(any(r[0] == "FC-63975795" for r in dups.UNICOS_SIN_EAN))
 
+    def test_mercurio_arnica_no_va_en_el_sql(self):
+        self.assertFalse(any(r[0] == "FC-89F00320" for r in dups.DUPLICADOS))
+
+    def test_sql_exige_ean_del_bueno(self):
+        sql = dups.escribir_sql.__doc__ or ""
+        from io import StringIO
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as td:
+            p = Path(td) / "x.sql"
+            dups.escribir_sql(p)
+            txt = p.read_text()
+        self.assertIn("ean_del_bueno_no_cuadra", txt)
+        self.assertIn("listo_para_desactivar", txt)
+        self.assertNotIn("FC-89F00320", txt)
+        self.assertIn("EQ-BRL072-1", txt)
+        self.assertGreaterEqual(len(dups.COMPRAR), 7)
+
 
 if __name__ == "__main__":
     unittest.main()

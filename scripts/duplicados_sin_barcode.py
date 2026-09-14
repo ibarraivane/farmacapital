@@ -81,9 +81,6 @@ DUPLICADOS = [
     ("FMX-506935", "Normogotero-Sensimedical Piezas C/1 S/Aguja", 5,
      "FC-22322395", "Normogotero Sensi Medical", "7506022322395", 5,
      "Mismo gotero. Stocks 5 y 5: probable doble conteo."),
-    ("FC-89F00320", "Mercurio Arnica C/25", 5,
-     "FC-00003920", "Arnica Mercurio", "3311000003944", 8,
-     "Árnica Mercurio en glóbulos C/25."),
 ]
 
 # Sin EAN pero NO son el mismo producto que otro SKU (les falta código, no desactivar).
@@ -106,6 +103,29 @@ UNICOS_SIN_EAN = [
     ("FMX-302884", "Sol-Sun Crema C/50 Gr 50-Fps", 2, "Único."),
     ("FMX-502700", "La-Femme Capsulas C/30", 1, "Único."),
     ("FMX-301138", "Cinta-Microporosa-Codifarma 2.5 cm × 5 m blanco", 17, "Otra marca (Codifarma), no Cintapore."),
+    ("FC-IFC-83368", "Gel sanitizante Dibar 50 ml", 5, "Único. Falta EAN."),
+    ("FC-IFC-83613", "Venditas adhesivas redondas Jayor C/100", 1, "Único. Falta EAN."),
+    ("FC-IFC-83490", "Guantes de nitrilo azul chico C/100", 1, "Único. Falta EAN."),
+    ("FC-IFC-83125", "Guantes de nitrilo azul grande C/100", 1, "Único. Falta EAN."),
+    ("FC-IFC-83947", "Guantes de nitrilo negro mediano C/100", 1, "Único. Falta EAN."),
+    ("FC-IFC-82084", "Brocha para tinte con peine de cola", 4, "Único. Falta EAN."),
+    ("FC-IFC-83552", "Venda Stick cohesiva 2 pulg × 4.5 m rojo", 2, "Único. Falta EAN."),
+    ("FC-IFC-82912A", "Venda Stick cohesiva 3 pulg × 4.5 m azul", 1, "Único. Falta EAN."),
+    ("FC-IFC-82912P", "Venda Stick cohesiva 3 pulg × 4.5 m piel", 1, "Único. Falta EAN."),
+    ("FC-EXP-PALM8", "Palmolive Neutro Balance jabón 100 g 8 pack", 1, "Único. Falta EAN."),
+    ("FC-89F00320", "Mercurio Arnica C/25", 5, "Parece Árnica Mercurio glóbulos, pero no lo desactivo sin ver la caja."),
+    ("FC-DFF99C3F", "Mercurio (ficha mezclada)", 3, "La ficha está sucia (árnica + jarabe de granada). Identificar en anaquel."),
+]
+
+# Huecos reales de mostrador: no están ni como ficha pobre ni con EAN.
+COMPRAR = [
+    (10, "Metformina 1000 mg 30 tabletas", "Diabetes — hoy solo hay 500 y 850"),
+    (6, "Metformina 750 mg LP 30 tabletas", "Diabetes liberación prolongada"),
+    (6, "Racecadotrilo 30 mg 18 sobres", "Diarrea niños — no hay Hidrasec ni genérico"),
+    (6, "Racecadotrilo 10 mg 18 sobres", "Diarrea bebés"),
+    (3, "Racecadotrilo 100 mg 9 cápsulas", "Diarrea adulto"),
+    (6, "Atenolol 50 mg 28 tabletas", "Presión — no hay betabloqueador"),
+    (6, "Atenolol 100 mg 28 tabletas", "Presión"),
 ]
 
 
@@ -151,8 +171,9 @@ def escribir_xlsx(path: Path) -> None:
     res["A2"].alignment = Alignment(wrap_text=True, vertical="top")
     filas = [
         ("Fecha", date.today().isoformat()),
-        ("Duplicados confirmados (desactivar el sin EAN)", len(DUPLICADOS)),
-        ("Sin EAN pero únicos (solo falta código)", len(UNICOS_SIN_EAN)),
+        ("Duplicados confirmados (SQL desactiva el sin EAN)", len(DUPLICADOS)),
+        ("Sin EAN pero únicos (no desactivar)", len(UNICOS_SIN_EAN)),
+        ("A comprar — no están en catálogo", len(COMPRAR)),
         ("Único caso para pasar stock", "Cintapore FMX-301136 → FC-84500546 (el de EAN tiene 0)"),
     ]
     res["A7"] = "Métrica"
@@ -189,6 +210,18 @@ def escribir_xlsx(path: Path) -> None:
         ws.column_dimensions[get_column_letter(i)].width = w
     ws.auto_filter.ref = f"A1:J{len(DUPLICADOS)+1}"
 
+    ws3 = wb.create_sheet("NO_ESTAN_COMPRAR", 1)
+    header(ws3, ["Pedir", "Qué comprar (genérico)", "Para qué"])
+    for r_i, row in enumerate(COMPRAR, start=2):
+        for c_i, v in enumerate(row, 1):
+            cell = ws3.cell(r_i, c_i, v)
+            cell.border = thin
+            if r_i % 2 == 0:
+                cell.fill = fill_alt
+        ws3.cell(r_i, 1).font = Font(name="Calibri", bold=True, size=14)
+    for i, w in enumerate([8, 48, 48], 1):
+        ws3.column_dimensions[get_column_letter(i)].width = w
+
     ws2 = wb.create_sheet("UNICOS_falta_EAN")
     header(ws2, ["SKU", "Nombre", "Stock", "Por qué no es duplicado"])
     for r_i, row in enumerate(UNICOS_SIN_EAN, start=2):
@@ -218,38 +251,121 @@ def escribir_csv(path: Path) -> None:
             w.writerow(["desactivar", pobre, nom_p, stk_p, bueno, nom_b, ean, stk_b, pasar, nota])
 
 
-def escribir_sql(path: Path) -> None:
-    lines = [
-        "-- Desactiva fichas pobres sin EAN que ya existen con código de barras.",
-        "-- NO suma stock (salvo Cintapore: el de EAN tiene 0).",
-        "-- Revisar anaquel antes de correr. Idempotente: solo toca si sigue activo y sin EAN.",
-        "begin;",
-        "",
-    ]
+def _sql_values() -> str:
+    rows = []
     for pobre, nom_p, stk_p, bueno, nom_b, ean, stk_b, nota in DUPLICADOS:
-        lines.append(f"-- {pobre} ({nom_p}, stk {stk_p}) → {bueno} / {ean}")
-        lines.append(f"-- {nota}")
-        if stk_b == 0 and stk_p:
-            lines += [
-                "update public.productos p",
-                "   set stock = coalesce(p.stock, 0) + (",
-                "     select coalesce(stock, 0) from public.productos",
-                f"      where sku = '{pobre}' and activo = true",
-                "       and (codigo_barras is null or btrim(codigo_barras) = '')",
-                "   )",
-                f" where p.sku = '{bueno}';",
-            ]
-        lines += [
-            "update public.productos",
-            "   set activo = false",
-            f" where sku = '{pobre}'",
-            "   and activo = true",
-            "   and (codigo_barras is null or btrim(codigo_barras) = '');",
-            "",
-        ]
-    lines.append("commit;")
+        pasar = "true" if stk_b == 0 else "false"
+        def q(s: str) -> str:
+            return "'" + s.replace("'", "''") + "'"
+        rows.append(
+            f"  ({q(pobre)}, {q(nom_p)}, {q(bueno)}, {q(ean)}, {pasar})"
+        )
+    return ",\n".join(rows)
+
+
+def escribir_sql(path: Path) -> None:
+    values = _sql_values()
+    sql = f"""-- Desactiva fichas pobres SIN EAN que ya existen con código de barras.
+-- 22 pares confirmados. No toca Mercurio Árnica (revisar caja).
+--
+-- Candados:
+--   · el SKU pobre sigue activo y sin codigo_barras
+--   · el SKU bueno está activo y tiene exactamente ese EAN
+--   · NO suma stock (el mismo lote se contó dos veces), salvo Cintapore
+--     (FMX-301136 → FC-84500546: el de EAN tiene 0; pasa las 2 piezas)
+--   · deja stock 0 y apaga lotes del SKU pobre para que no siga en caducidad
+--
+-- Idempotente. Correr en Supabase SQL Editor.
+
+begin;
+
+create temporary table _fc_dup_sin_ean (
+  sku_pobre text primary key,
+  nombre_pobre text,
+  sku_bueno text not null,
+  ean_bueno text not null,
+  pasar_stock boolean not null default false
+) on commit drop;
+
+insert into _fc_dup_sin_ean (sku_pobre, nombre_pobre, sku_bueno, ean_bueno, pasar_stock)
+values
+{values};
+
+-- Vista previa (debe dar 22 filas listo_para_desactivar).
+select
+  d.sku_pobre,
+  p.nombre as pobre_nombre,
+  p.stock as pobre_stock,
+  d.sku_bueno,
+  b.nombre as bueno_nombre,
+  b.codigo_barras as bueno_ean,
+  b.stock as bueno_stock,
+  d.pasar_stock,
+  case
+    when p.id is null then 'pobre_ya_no_existe'
+    when p.activo is not true then 'pobre_ya_inactivo'
+    when nullif(btrim(p.codigo_barras), '') is not null then 'pobre_ahora_tiene_ean'
+    when b.id is null then 'bueno_no_existe'
+    when b.activo is not true then 'bueno_inactivo'
+    when regexp_replace(coalesce(b.codigo_barras, ''), '\\D', '', 'g')
+         <> regexp_replace(d.ean_bueno, '\\D', '', 'g') then 'ean_del_bueno_no_cuadra'
+    else 'listo_para_desactivar'
+  end as estado
+from _fc_dup_sin_ean d
+left join public.productos p on p.sku = d.sku_pobre
+left join public.productos b on b.sku = d.sku_bueno
+order by d.sku_pobre;
+
+-- Cintapore: el de EAN tiene 0. Pasa el stock del pobre.
+update public.productos b
+   set stock = coalesce(b.stock, 0) + coalesce(p.stock, 0)
+  from _fc_dup_sin_ean d
+  join public.productos p
+    on p.sku = d.sku_pobre
+   and p.activo = true
+   and (p.codigo_barras is null or btrim(p.codigo_barras) = '')
+ where d.pasar_stock
+   and b.sku = d.sku_bueno
+   and b.activo = true
+   and regexp_replace(coalesce(b.codigo_barras, ''), '\\D', '', 'g')
+       = regexp_replace(d.ean_bueno, '\\D', '', 'g')
+   and coalesce(b.stock, 0) = 0;
+
+update public.lotes l
+   set activo = false
+  from public.productos p
+  join _fc_dup_sin_ean d on d.sku_pobre = p.sku
+  join public.productos b on b.sku = d.sku_bueno
+ where l.producto_id = p.id
+   and l.activo = true
+   and p.activo = true
+   and (p.codigo_barras is null or btrim(p.codigo_barras) = '')
+   and b.activo = true
+   and regexp_replace(coalesce(b.codigo_barras, ''), '\\D', '', 'g')
+       = regexp_replace(d.ean_bueno, '\\D', '', 'g');
+
+update public.productos p
+   set activo = false,
+       stock = 0
+  from _fc_dup_sin_ean d
+  join public.productos b on b.sku = d.sku_bueno
+ where p.sku = d.sku_pobre
+   and p.activo = true
+   and (p.codigo_barras is null or btrim(p.codigo_barras) = '')
+   and b.activo = true
+   and regexp_replace(coalesce(b.codigo_barras, ''), '\\D', '', 'g')
+       = regexp_replace(d.ean_bueno, '\\D', '', 'g');
+
+-- Verificación: pobres deben quedar inactivos.
+select p.sku, p.nombre, p.activo, p.stock, p.codigo_barras
+  from public.productos p
+  join _fc_dup_sin_ean d on d.sku_pobre = p.sku
+ order by p.sku;
+
+commit;
+"""
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    path.write_text(sql, encoding="utf-8")
 
 
 def main() -> int:
