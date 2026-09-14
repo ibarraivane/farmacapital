@@ -136,6 +136,7 @@ function escXml(s) {
 function formaPagoSAT(metodoPosStr) {
   const m = (metodoPosStr || "").toLowerCase();
   if (m === "efectivo")            return "01"; // Efectivo
+  if (m === "mixto")               return "99"; // Combinado efectivo+tarjeta
   if (m.includes("tarjeta"))       return "04"; // Tarjeta de crédito (genérico)
   if (m.includes("bbva"))          return "04"; // Tarjeta de débito/crédito BBVA
   if (m.includes("mercadopago") || m.includes("point")) return "04";

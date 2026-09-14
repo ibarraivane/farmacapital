@@ -91,6 +91,7 @@ export const TEMAS = [
     dudas: [
       { q: "¿Puedo elegir qué lote descontar?", a: "No. Se descuenta el que caduca primero. Si la fecha está mal, corrígela en Recibir/Lotes, no en el POS." },
       { q: "El código no existe", a: "No lo inventes. Avísale al dueño. Si acaba de llegar, primero Recibir." },
+      { q: "¿Se puede cobrar parte en efectivo y parte en tarjeta?", a: "Sí: método Mixto. Capta cuánto va en efectivo, cobra el resto en Point o BBVA; el corte suma cada parte donde corresponde." },
       { q: "¿Dónde anoto una recarga de Telcel?", a: "Pestaña Servicios. El paso a paso está en el tema Recargas y pago de servicios." },
     ],
   },
