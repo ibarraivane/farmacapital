@@ -11,6 +11,9 @@
 -- ORDEN: 1) merge/deploy  2) pegar este SQL en Supabase.
 -- Galería: inserta es_principal=false y luego rota la principal
 -- (evita ux_producto_imagenes_una_principal).
+-- origen de producto_imagenes SOLO admite
+-- rappi | distribuidor | propia | gs1 | otro
+-- (farmatodo/nadro → distribuidor).
 -- Idempotente: no duplica la misma URL.
 
 begin;
@@ -28,55 +31,55 @@ values
   -- reemplazo de lado → frente
   ('EQ-AMS075', '7501349024045',
    'https://gruporfp.vteximg.com.br/arquivos/ids/7008309/7501349024045_01.jpg',
-   'farmatodo', true),
+   'distribuidor', true),
   -- faltantes medicamentos
   ('FC-63310269', '7501563310269',
    'https://gruporfp.vteximg.com.br/arquivos/ids/7006977/7501563310269_01.jpg',
-   'farmatodo', false),
+   'distribuidor', false),
   ('FC-27870259', '7502227870259',
    'https://nadro.vtexassets.com/arquivos/ids/242647/7502227870259_01.jpg',
-   'nadro', false),
+   'distribuidor', false),
   ('FC-42700643', '7506442700643',
    'https://gruporfp.vteximg.com.br/arquivos/ids/7013995/7506442700643_01.jpg',
-   'farmatodo', false),
+   'distribuidor', false),
   ('FC-49022492', '7501349022492',
    'https://nadro.vtexassets.com/arquivos/ids/213677/7501349022492_01.jpg',
-   'nadro', false),
+   'distribuidor', false),
   ('FC-42700629', '7506442700629',
    'https://nadro.vtexassets.com/arquivos/ids/215208/7506442700629_01.jpg',
-   'nadro', false),
+   'distribuidor', false),
   ('FC-LV-GNO016', '6502400291650',
    'https://nadro.vtexassets.com/arquivos/ids/199866/650240029165_01.jpg',
-   'nadro', false),
+   'distribuidor', false),
   ('FC-40036354', '6502400363548',
    'https://gruporfp.vteximg.com.br/arquivos/ids/7005425/650240036354_01.jpg',
-   'farmatodo', false),
+   'distribuidor', false),
   ('FC-00315021', '6502400315021',
    'https://gruporfp.vteximg.com.br/arquivos/ids/7005995/650240031502_01.jpg',
-   'farmatodo', false),
+   'distribuidor', false),
   -- cuidado / identificables
   ('FC-75073114', '75073114',
    'https://nadro.vtexassets.com/arquivos/ids/203236/75073114_01.jpg',
-   'nadro', false),
+   'distribuidor', false),
   ('FC-00661391', '6502400661391',
    'https://gruporfp.vteximg.com.br/arquivos/ids/7010364/650240066139_01.jpg',
-   'farmatodo', false),
+   'distribuidor', false),
   ('FC-00024798', '056100024798',
    'https://gruporfp.vteximg.com.br/arquivos/ids/7007967/056100024798_01.jpg',
-   'farmatodo', false),
+   'distribuidor', false),
   ('FC-86494286', '7501086494286',
    'https://gruporfp.vteximg.com.br/arquivos/ids/6996705/7501086494286_01.jpg',
-   'farmatodo', false),
+   'distribuidor', false),
   ('FC-03477270', '7702003477270',
    'https://gruporfp.vteximg.com.br/arquivos/ids/6998470/7702003477270_01.jpg',
-   'farmatodo', false),
+   'distribuidor', false),
   ('FC-19039355', '7501019039355',
    'https://nadro.vtexassets.com/arquivos/ids/171546/7501019039355_01.jpg',
-   'nadro', false),
+   'distribuidor', false),
   -- segunda pasada: Nadro exacto + internet (frente de caja/frasco)
   ('FC-98062243', '3664798062243',
    'https://nadro.vtexassets.com/arquivos/ids/218373/3664798062243_01.jpg',
-   'nadro', false),
+   'distribuidor', false),
   ('EQ-NOV176', '7501075727517',
    'https://www.farmacapital.mx/catalogo-propia/pirinovag-500mg-10tab.jpg',
    'propia', false),
@@ -88,13 +91,13 @@ values
    'propia', false),
   ('FMX-500998', null,
    'https://nadro.vtexassets.com/arquivos/ids/242566/7501130713851_01.jpg',
-   'nadro', false),
+   'distribuidor', false),
   ('FMX-501000', null,
    'https://nadro.vtexassets.com/arquivos/ids/242105/7501130713547_01.jpg',
-   'nadro', false),
+   'distribuidor', false),
   ('FMX-501003', null,
    'https://nadro.vtexassets.com/arquivos/ids/242085/7501130711642_01.jpg',
-   'nadro', false),
+   'distribuidor', false),
   ('FMX-501619', null,
    'https://www.farmacapital.mx/catalogo-propia/eucalin-miel-120ml.jpg',
    'propia', false),
@@ -135,7 +138,10 @@ select
   null,
   coalesce((select max(i.posicion) from public.producto_imagenes i where i.producto_id = m.producto_id), 0) + 1,
   false,
-  m.origen
+  case
+    when m.origen in ('rappi', 'distribuidor', 'propia', 'gs1', 'otro') then m.origen
+    else 'distribuidor'
+  end
 from tmp_foto_match m
 where not exists (
   select 1 from public.producto_imagenes i
