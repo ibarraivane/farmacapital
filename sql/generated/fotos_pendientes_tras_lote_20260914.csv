@@ -1,5 +1,4 @@
 sku,ean,nombre,marca,stock,motivo
-FC-22300775,7506022300775,Jeringa Sensi Medical 3 mL 22G x 32 mm negra,Sensi Medical,99,packshot_pendiente
 FC-00100013,2008500100013,Cubrebocas tricapa desechable C/100,,98,ean_interno
 IFC-ALCANFOR,7503048936018,Velázquez alcanfor pastillas C/50 sobres,Velázquez,50,packshot_pendiente
 FC-68900226,7501868900226,Alcohol Etilico Rojo 96°,Dibar,36,packshot_pendiente
@@ -8,7 +7,6 @@ FMX-301138,,Cinta-Microporosa-Codifarma 2.5 Cm X 5 M C/1 Blanco,,17,sin_ean_no_i
 FC-BCF59548,2008480100010,Perilla Edigar N1 (jeringa pera toda de hule),Edigar,12,ean_interno
 FC-IFC-PIN01,7896075701040,Pinza depilar Mereje tenaza C/12,Mereje,12,packshot_pendiente
 FC-IFC-PEI01,2008560100015,Peine caballero profesional N1 C/12,,12,ean_interno
-FMX-301565,7506022307897,Jeringa-Sensimedical 60 Ml Pivote/Concentrico,sensimedical,11,packshot_pendiente
 FC-IFC-PEI02,2008570100012,Peine mango chico colores C/12 pzs,,11,ean_interno
 FC-68900127,7501868900127,Gasa 10 x 10,Dibar,9,packshot_pendiente
 FC-84500607,7506484500607,Cinta micropore blanca 2.5 cm x 9.1 m,Cintapore,8,packshot_pendiente
@@ -61,11 +59,8 @@ FC-405A75E3,,Ursodesoxicolico,Acido,1,sin_ean_no_identificado
 FC-6B2ADEE9,7501109900008,Protect aerosol 200 dosis,Protect,1,packshot_pendiente
 FC-DB4A39AE,,Eferox (Cefalexina),Calcio,1,sin_ean_no_identificado
 FC-3E863E37,,Tratidri,Tratidri,1,sin_ean_no_identificado
-FC-75069223,75069223,Rexona Sport Stick,Rexona,1,packshot_pendiente
 FC-84900280,7596849002808,Jaloma Agua de Rosas,Jaloma,1,packshot_pendiente
 FC-01303454,7501001303454,Pantene Control caída anticaída,Pantene,1,packshot_pendiente
-FC-85800198,6195858001980,Toallitas Bebin Super,Bebin Super,1,packshot_pendiente
-FC-85103015,6195851030154,Toallitas Humedas Bebin Super,Bebin Super,1,packshot_pendiente
 FC-75163051,7501027516305,Mamila Evenflo Micro Air Vents,Evenflo,1,packshot_pendiente
 FC-D037156B,3311000003708,Mercurio Bismuto Subnitrato,Mercurio,1,packshot_pendiente
 FC-B8D7C997,3311000003715,Bicarbonato Sobres,Bicarbonato,1,packshot_pendiente
@@ -78,7 +73,6 @@ FC-85171118,7501685171118,Condón Sico,Sico,1,packshot_pendiente
 FC-74792047,7502274792047,"Voldratol Electrolitos sabor natural, sobre 27.9 g",Solfran,1,packshot_pendiente
 FMX-502700,,La-Femme Capsulas C/30,,1,sin_ean_no_identificado
 FMX-303091,793969285204,Piojitos Shampoo C/150 Gr,PIOJITOS,1,packshot_pendiente
-EQ-AMS234,,Pregabalina 28 Cáps 150 mg AMSA,AMSA,1,sin_ean_no_identificado
 FC-70100013,2008470100013,Gillette Prestobarba 3 rastrillo desechable 1 pza,Gillette,1,ean_interno
 IFC-LAVAOJOS,2008490100017,Copa lavaojos de vidrio,Arfam,1,ean_interno
 FC-46504859,7501846504859,Xiomara Pomada B,Xiomara,1,packshot_pendiente

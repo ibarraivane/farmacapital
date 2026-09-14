@@ -60,7 +60,8 @@ Otras cajas altas (Acetif SI, Mometasona nasal, Losil spray, Cefotaxima, Cefurox
 5. Deploy de los 7 JPG de fabricante + `sql/patch_fotos_meds_fabricante_20260914.sql`.
 6. Deploy de 5 JPG más + `sql/patch_fotos_resto_busqueda_20260914.sql`.
 7. Los SQL 2–6 y `patch_fotos_google_chedraui` / `patch_fotos_google_ean` **ya se corrieron**.
-8. Deploy de los 16 JPG de la octava pasada + `sql/patch_fotos_resto_105_20260914.sql`.
+8. Deploy de los 16 JPG de la octava pasada + `sql/patch_fotos_resto_105_20260914.sql` (**ya corrido**).
+9. Deploy de 6 JPG más + `sql/patch_fotos_resto_89_20260914.sql`.
 
 ## Segunda pasada: Exprezo + Levic + Nadro por nombre (14-sep tarde)
 
@@ -204,6 +205,21 @@ No se usó: Dibar 250 (la foto de Promexsa sigue siendo **1 L**); Jaloma Mertodo
 ## Lo que queda — `sql/generated/fotos_pendientes_tras_lote_20260914.csv`
 
 ~89 SKUs (105 vivos menos este lote de 16).
+
+## Novena pasada: resto de 89
+
+`sql/patch_fotos_resto_89_20260914.sql` — **6 packshots**. Piden **deploy**.
+
+| Stock | SKU | Ahora | Fuente |
+|---:|---|---|---|
+| 99 | `FC-22300775` | SensiMedical 3 ml 22G × 32 mm | Promexsa C/100 |
+| 11 | `FMX-301565` | SensiMedical 60 ml sin aguja | Promexsa C/50 |
+| 1 | `FC-75069223` | Rexona Sport Intense stick **45 g** | Monjaras EAN `75069223` (Chedraui es 50 g) |
+| 1 | `EQ-AMS234` | Pregabalina 150 mg C/28 AMSA | Mexipharmacy (no se copió EAN) |
+| 1 | `FC-85103015` | Bebin Super C/40 | Básicos |
+| 1 | `FC-85800198` | Bebin Super C/80 con tapa | Chedraui (no el de 120) |
+
+No se usó: Rexona 50 g; Bebin 120; Tinkle solo collage de tienda.
 
 ### Medicamentos todavía sin caja pública de *esa* pieza
 
