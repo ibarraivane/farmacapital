@@ -1,11 +1,6 @@
 sku,ean,nombre,marca,stock,motivo
-FC-23273451,7506022327338,Jeringa insulina 0.5 ml Sensi Medical,Sensi Medical,100,packshot_pendiente
-FMX-506388,7506022300751,Jeringa SensiMedical 3 mL 21G x 32 mm verde,SensiMedical,100,packshot_pendiente
-FC-22300881,7506022300881,Jeringa insulina SensiMedical 1 mL 27G x 13 mm,SensiMedical,99,packshot_pendiente
 FC-22300775,7506022300775,Jeringa Sensi Medical 3 mL 22G x 32 mm negra,Sensi Medical,99,packshot_pendiente
 FC-00100013,2008500100013,Cubrebocas tricapa desechable C/100,,98,ean_interno
-FC-23272151,7506022327208,Jeringa insulina 0.3 ml Sensi Medical,Sensi Medical,97,packshot_pendiente
-FMX-506389,7506022300829,Jeringa SensiMedical 5 mL 21G x 32 mm verde,SensiMedical,92,packshot_pendiente
 IFC-ALCANFOR,7503048936018,Velázquez alcanfor pastillas C/50 sobres,Velázquez,50,packshot_pendiente
 FC-68900226,7501868900226,Alcohol Etilico Rojo 96°,Dibar,36,packshot_pendiente
 FC-17500820,7503017500820,Sanax Silica Gran,Sanax,18,packshot_pendiente
@@ -55,11 +50,7 @@ FC-614E4F82,,Perilla N3,Edigar,2,sin_ean_no_identificado
 FC-C22EBFE6,,Perilla N2,Edigar,2,sin_ean_no_identificado
 FC-5D59ED54,3311000000776,Mercurio Cloruro De Magnesio Cajita,Mercurio,2,packshot_pendiente
 FC-C8B741F6,,FC producto botiquín,Fc,2,sin_ean_no_identificado
-FC-50608272,75029650608272,Contac Ultra,Contac,2,packshot_pendiente
-FC-42003469,070942003469,Gel Dental  GUM Paw Patrol,GUM,2,packshot_pendiente
 FMX-301136,,Cintapore cinta microporosa piel 2.5 cm x 5 m,Cintapore,2,sin_ean_no_identificado
-FC-28951141,7501289511414,Pasta Lassar Andromaco 60 g,Andromaco,2,packshot_pendiente
-FC-46506181,7501846506181,Xiomara Cera Fix,Xiomara,2,packshot_pendiente
 EQ-LOE111,7502211788843,Metronidazol Cent Nitro 12 Óvulos 300 Mg,Loeffler,2,packshot_pendiente
 FC-53008221,855553008221,Encendedor desechable Riegel,Riegel,2,packshot_pendiente
 FC-84313295,759684313295,JALOMA ATOMIZADOR 60ML MERTODOL BLANCO,Jaloma,2,packshot_pendiente
@@ -73,8 +64,6 @@ FC-3E863E37,,Tratidri,Tratidri,1,sin_ean_no_identificado
 FC-75069223,75069223,Rexona Sport Stick,Rexona,1,packshot_pendiente
 FC-84900280,7596849002808,Jaloma Agua de Rosas,Jaloma,1,packshot_pendiente
 FC-01303454,7501001303454,Pantene Control caída anticaída,Pantene,1,packshot_pendiente
-FC-75064938,75064938,Desodorante Ego Force 24H roll-on,Ego,1,packshot_pendiente
-FC-36033735,0378360337358,Shampoo Ricitos de Oro Agua De Coco,Ricitos de Oro,1,packshot_pendiente
 FC-85800198,6195858001980,Toallitas Bebin Super,Bebin Super,1,packshot_pendiente
 FC-85103015,6195851030154,Toallitas Humedas Bebin Super,Bebin Super,1,packshot_pendiente
 FC-75163051,7501027516305,Mamila Evenflo Micro Air Vents,Evenflo,1,packshot_pendiente
@@ -86,19 +75,14 @@ FC-5EF90195,3311000003845,Mercurio Flor De Arnica,Mercurio,1,packshot_pendiente
 FC-47AAF23B,3311000003494,Mercurio Sulfatiazol Polvo,Mercurio,1,packshot_pendiente
 FC-84500522,7506484500522,Cinta micropore blanca 2.5 cm x 5 m,,1,packshot_pendiente
 FC-85171118,7501685171118,Condón Sico,Sico,1,packshot_pendiente
-FC-7048853,7891317048853,Melox Plus,Eurofarma,1,packshot_pendiente
-FC-42507240,070942507240,GUM cera de ortodoncia menta C/5,GUM,1,packshot_pendiente
 FC-74792047,7502274792047,"Voldratol Electrolitos sabor natural, sobre 27.9 g",Solfran,1,packshot_pendiente
 FMX-502700,,La-Femme Capsulas C/30,,1,sin_ean_no_identificado
 FMX-303091,793969285204,Piojitos Shampoo C/150 Gr,PIOJITOS,1,packshot_pendiente
 EQ-AMS234,,Pregabalina 28 Cáps 150 mg AMSA,AMSA,1,sin_ean_no_identificado
 FC-70100013,2008470100013,Gillette Prestobarba 3 rastrillo desechable 1 pza,Gillette,1,ean_interno
-FC-79807468,3664798074680,Enterogermina 2 billones C/10,Enterogermina,1,packshot_pendiente
-FC-08006033,020800600330,Tampax Super C/10,Tampax,1,packshot_pendiente
 IFC-LAVAOJOS,2008490100017,Copa lavaojos de vidrio,Arfam,1,ean_interno
 FC-46504859,7501846504859,Xiomara Pomada B,Xiomara,1,packshot_pendiente
 FC-IFC-DON01,2008550100018,Dona / bolsa IJJ-10 C/12,,1,ean_interno
-FC-EXP-PALM8,,Jabón Palmolive Neutro Balance 100 g 8 pack,,1,sin_ean_no_identificado
 FC-45116656,074451166561,Baby Einstein Neptune's Busy Bubbles juguete sensorial Ocean Explorers,Baby Einstein,1,packshot_pendiente
 FMX-71074,6977587671074,Termo Fifa,,1,packshot_pendiente
 FC-84500546,7506484500546,Cintapore cinta microporosa piel 2.5 cm x 5m,Cintapore,0,packshot_pendiente

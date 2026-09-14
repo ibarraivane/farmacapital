@@ -59,6 +59,8 @@ Otras cajas altas (Acetif SI, Mometasona nasal, Losil spray, Cefotaxima, Cefurox
 4. `sql/patch_fotos_resto_129_20260914.sql` (ya corrido: 22 fotos).
 5. Deploy de los 7 JPG de fabricante + `sql/patch_fotos_meds_fabricante_20260914.sql`.
 6. Deploy de 5 JPG más + `sql/patch_fotos_resto_busqueda_20260914.sql`.
+7. Los SQL 2–6 y `patch_fotos_google_chedraui` / `patch_fotos_google_ean` **ya se corrieron**.
+8. Deploy de los 16 JPG de la octava pasada + `sql/patch_fotos_resto_105_20260914.sql`.
 
 ## Segunda pasada: Exprezo + Levic + Nadro por nombre (14-sep tarde)
 
@@ -172,9 +174,36 @@ Cuidado: Rexona Marine/Sport/V8 + sticks Bamboo/Powder Dry/Happy Morning; Axe Ex
 
 No se usó: Pasta Lassar (solo costado legal); Enterogermina 4 billones ≠ 2 billones C/10; placeholders `generica_1`; Pantene `…3454` ≠ `…3464`.
 
+## Octava pasada: el resto de 105 (después de correr los SQL)
+
+Inventario vivo: 1503 activos · 105 sin `imagen_url` (102 con stock). Se buscó otra vez por EAN y ficha (Nadro, Fahorro, YZA, Promexsa, Curitek, Círculo B, Farmamedical, Phemedica, Scorpion, Farmacia Herrera).
+
+`sql/patch_fotos_resto_105_20260914.sql` — **16 packshots**. Piden **deploy**.
+
+| Stock | SKU | Ahora | Fuente |
+|---:|---|---|---|
+| 100 | `FC-23273451` | SensiMedical insulina 0.5 ml 31G × 6 mm | Promexsa C/100 |
+| 100 | `FMX-506388` | SensiMedical 3 ml 21G × 32 mm | Promexsa C/100 |
+| 99 | `FC-22300881` | SensiMedical insulina 1 ml 27G × 13 mm | Promexsa C/100 |
+| 97 | `FC-23272151` | SensiMedical insulina 0.3 ml 31G × 6 mm | Promexsa C/100 |
+| 92 | `FMX-506389` | SensiMedical 5 ml 21G × 32 mm | Promexsa C/100 |
+| 2 | `FC-50608272` | Contac Ultra C/12 | Curitek |
+| 2 | `FC-42003469` | GUM Paw Patrol gel 50 g | Nadro EAN `070942003469` |
+| 2 | `FC-28951141` | Pasta Lassar Andrómaco tarro 60 g | YZA (el tarro, no el costado legal) |
+| 2 | `FC-46506181` | Xiomara Cera modeladora 100 g | Círculo B EAN `7501846506181` |
+| 1 | `FC-75064938` | Ego Force roll-on 45 ml | Farmamedical (no el spray 150 ml) |
+| 1 | `FC-36033735` | Ricitos de Oro Agua de Coco 250 ml | ficha 250 ml (no la crema) |
+| 1 | `FC-7048853` | Melox Plus menta C/50 | Farmacia Herrera (Nadro solo tenía el dorso) |
+| 1 | `FC-42507240` | GUM cera ortodoncia menta C/5 | Nadro EAN `070942507240` |
+| 1 | `FC-79807468` | Enterogermina 2 billones C/10 | Phemedica (Fahorro es 4 billones) |
+| 1 | `FC-08006033` | Tampax Super C/10 | Nadro (no Super Plus) |
+| 1 | `FC-EXP-PALM8` | Palmolive Neutro Balance 8 × 100 g | Scorpion |
+
+No se usó: Dibar 250 (la foto de Promexsa sigue siendo **1 L**); Jaloma Mertodol 40 ml ≠ 60 ml; Jaloma rosas 250 ml ≠ 130 ml; Gerber 113 g ≠ 100 g; Voldratol sobre suelto ≠ caja C/25; Valclan 500/125 ≠ EAN `7503000422795`; SensiMedical 3 ml 22G / 60 ml.
+
 ## Lo que queda — `sql/generated/fotos_pendientes_tras_lote_20260914.csv`
 
-~105 SKUs (146 vivos menos este lote; varios ya tenían SQL anterior sin correr).
+~89 SKUs (105 vivos menos este lote de 16).
 
 ### Medicamentos todavía sin caja pública de *esa* pieza
 
@@ -192,4 +221,4 @@ No se inventa foto a ciegas.
 
 ### Insumos / herbolario / EAN interno todavía sin packshot usable
 
-Otras jeringas SensiMedical (3 ml 21G, 5 ml 21G, insulina 1 ml, 60 ml — no se reutiliza otra caja), cintas Cintapore, cubrebocas, perillas, Mercurio/Velázquez, EANs `200…`, alcohol Dibar 96° 250 ml (la foto pública es de 1 L), Jaloma Mertodol 60 ml / agua de rosas **130 ml**.
+SensiMedical 3 ml 22G y 60 ml (no se reutiliza otra caja), cintas Cintapore, cubrebocas, perillas, Mercurio/Velázquez, EANs `200…`, alcohol Dibar 96° 250 ml (la foto pública es de 1 L), Jaloma Mertodol 60 ml / agua de rosas **130 ml**.
