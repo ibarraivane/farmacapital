@@ -674,8 +674,8 @@ export default function RRHHModule() {
                   <option value="nocturno">Nocturno (turno retirado)</option>
                 )}
               </select></div>
-            <div><label style={S.label}>Salario semanal (viernes) *</label>
-              <input style={S.input} type="number" min="0" step="0.01" value={form.salario_semanal} onChange={e=>setForm({...form,salario_semanal:e.target.value})} placeholder="1133.32"/></div>
+            <div><label style={S.label} htmlFor="rh-ficha-salario-semanal">Salario semanal (viernes) *</label>
+              <input id="rh-ficha-salario-semanal" style={S.input} type="number" min="0" step="0.01" value={form.salario_semanal} onChange={e=>setForm({...form,salario_semanal:e.target.value})} placeholder="1133.32"/></div>
           </div>
           <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
             <button type="submit" style={{ ...S.btnBlue, padding:"12px 18px", fontSize:14 }}>

@@ -40,11 +40,10 @@ test("Flujo muestra textos de mostrador y las mismas cifras", async () => {
 });
 
 test("en Gastos la nómina se describe como semanal de viernes", async () => {
-  const user = userEvent.setup();
   render(<FlujoCajaTab usuario={{ nombre: "Ivan Ibarra" }} demoBundle={FLUJO_DEMO_BUNDLE} />);
-  await user.click(screen.getByRole("tab", { name: "Gastos" }));
+  await userEvent.click(screen.getByRole("tab", { name: "Gastos" }));
   expect(await screen.findByText(/Nómina \(viernes\)/)).toBeInTheDocument();
-  await user.selectOptions(screen.getByDisplayValue("Renta"), "nomina");
+  await userEvent.selectOptions(screen.getByDisplayValue("Renta"), "nomina");
   expect(screen.getByPlaceholderText(/Nómina viernes/i)).toBeInTheDocument();
   expect(screen.getByText(/nómina: cada viernes/i)).toBeInTheDocument();
 });

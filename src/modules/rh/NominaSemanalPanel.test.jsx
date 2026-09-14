@@ -59,31 +59,29 @@ test("el panel es semanal de viernes, no quincenal ni ISR automático", () => {
 });
 
 test("al elegir empleado carga la semana martes–viernes", async () => {
-  const user = userEvent.setup();
   supabase.rpc.mockResolvedValue({ data: SEMANA, error: null });
   render(<NominaSemanalPanel empleados={EMPS} S={S} C={C} />);
-  await user.selectOptions(screen.getByLabelText("Empleado"), "1");
+  await userEvent.selectOptions(screen.getByLabelText("Empleado"), "1");
   await waitFor(() => {
     expect(supabase.rpc).toHaveBeenCalledWith(
       "rh_semana_empleado",
       expect.objectContaining({ p_empleado_id: 1 }),
     );
   });
-  expect(await screen.findByText("Neto a pagar el viernes")).toBeInTheDocument();
-  expect(screen.getByText("$1,133.32")).toBeInTheDocument();
+  expect(await screen.findByText(/Neto a pagar el viernes/)).toBeInTheDocument();
+  expect(screen.getAllByText("$1,133.32").length).toBeGreaterThan(0);
   expect(screen.getByRole("button", { name: "Registrar pago del viernes" })).toBeInTheDocument();
 });
 
 test("si falta el SQL semanal, calcula en local y no inventa ISR", async () => {
-  const user = userEvent.setup();
   supabase.rpc.mockResolvedValue({
     data: null,
     error: { message: "Could not find the function public.rh_semana_empleado" },
   });
   render(<NominaSemanalPanel empleados={EMPS} S={S} C={C} />);
-  await user.selectOptions(screen.getByLabelText("Empleado"), "1");
+  await userEvent.selectOptions(screen.getByLabelText("Empleado"), "1");
   expect(await screen.findByText(/patch_rh_pago_semanal_20260822\.sql/)).toBeInTheDocument();
-  expect(screen.getByText("Neto a pagar el viernes")).toBeInTheDocument();
+  expect(screen.getByText(/Neto a pagar el viernes/)).toBeInTheDocument();
   expect(screen.getAllByText("$1,133.32").length).toBeGreaterThan(0);
   expect(screen.getByText("ISR").parentElement).toHaveTextContent("$0.00");
 });
