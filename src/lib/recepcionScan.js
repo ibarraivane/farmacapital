@@ -7,6 +7,8 @@
  * Sin imports a React ni a utils/: el build lo audita con Node (check-recibir-tablet).
  */
 
+import { EAN_PARES_CONOCIDOS } from "./eanParesConocidos.js";
+
 export function normalizeBarcodeRaw(raw) {
   let t = String(raw ?? "").trim();
   t = t.replace(/^[\]C1\][\x00-\x1f]*/i, "");
@@ -27,15 +29,35 @@ export function barcodeDigitsMatch(scanRaw, storedRaw) {
   return false;
 }
 
+function eansAliasDe(ean) {
+  const d = String(ean || "").replace(/\D/g, "");
+  if (!d) return [];
+  const extra = [];
+  for (const par of EAN_PARES_CONOCIDOS) {
+    if (par.some((p) => barcodeDigitsMatch(d, p))) {
+      for (const p of par) {
+        if (!extra.some((x) => barcodeDigitsMatch(x, p))) extra.push(p);
+      }
+    }
+  }
+  return extra;
+}
+
+function codigoEsAlias(scan, stored) {
+  if (!scan || !stored) return false;
+  if (barcodeDigitsMatch(scan, stored)) return true;
+  return eansAliasDe(stored).some((a) => barcodeDigitsMatch(scan, a));
+}
+
 /** EAN principal, alias en descripción (pieza vs exhibidor) y SKU. */
 function productMatchesCodigo(product, codigo) {
   if (!product || !codigo) return false;
   const cb = product.codigo_barras ? String(product.codigo_barras).trim() : "";
-  if (cb && barcodeDigitsMatch(codigo, cb)) return true;
+  if (cb && codigoEsAlias(codigo, cb)) return true;
   // EANs del otro empaque anotados en la ficha (ej. bote Broncolin / pack Optims).
   const desc = String(product.descripcion || "");
   for (const m of desc.match(/\d{12,14}/g) || []) {
-    if (barcodeDigitsMatch(codigo, m)) return true;
+    if (codigoEsAlias(codigo, m)) return true;
   }
   if (product.sku && String(product.sku).toUpperCase() === String(codigo).toUpperCase()) return true;
   return false;
@@ -52,7 +74,7 @@ export function recepcionEsTicket(doc) {
 
 export function itemMatchScan(it, codigo, productos = []) {
   if (!it || !codigo) return false;
-  if (it.codigo_escaneado && barcodeDigitsMatch(codigo, it.codigo_escaneado)) return true;
+  if (it.codigo_escaneado && codigoEsAlias(codigo, it.codigo_escaneado)) return true;
   if (it.sku && String(it.sku).toUpperCase() === String(codigo).toUpperCase()) return true;
 
   const porId = it.producto_id != null

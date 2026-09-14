@@ -1,4 +1,7 @@
+import { EAN_PARES_CONOCIDOS } from "../lib/eanParesConocidos.js";
 import { normalizeForSearch } from "../utils";
+
+export { EAN_PARES_CONOCIDOS };
 
 /** Texto crudo del escáner (sin normalizar). */
 export function normalizeBarcodeRaw(raw) {
@@ -63,11 +66,6 @@ export function shouldClearScanMiss(raw, { fromEnter = false } = {}) {
 export function looksLikeInternalSku(raw) {
   return /^(FC|EQ|FMX)[-_]/i.test(String(raw || "").trim());
 }
-
-/** Un mismo producto con dos empaques (pieza y bote). */
-export const EAN_PARES_CONOCIDOS = [
-  ["747589705123", "714706903205"], // Broncolin paleta suelta / vitrolero C/50
-];
 
 function digitsOnly(raw) {
   return String(raw || "").replace(/\D/g, "");

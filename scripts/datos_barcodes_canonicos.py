@@ -61,6 +61,19 @@ CORRECCIONES: list[ProductoCanonico] = [
         notas="OCR ticket: 65024000740024 → patch erróneo 6502400074024",
     ),
     ProductoCanonico(
+        barcode="7501868900233",
+        fix_sku="FC-68990023",
+        action="fix_barcode",
+        nombre="Alcohol Etilico Rojo 96°",
+        marca="Dibar",
+        presentacion="500 ML",
+        principio_activo="Alcohol etilico",
+        forma_farmaceutica="Alcohol",
+        categoria="Botiquín",
+        tipo="marca",
+        notas="Ticket 112558 OCR 7501868990023 (checksum GS1 inválido); el bote escanea 7501868900233",
+    ),
+    ProductoCanonico(
         barcode="7501095409004",
         fix_sku="FC-58715517",
         action="fix_and_stock",
@@ -426,6 +439,7 @@ ALTAS_MANUALES: list[ProductoCanonico] = [
 MAPA_OCR_A_CANONICO: dict[str, str] = {
     "65024000740024": "650240007408",
     "6502400074024": "650240007408",
+    "7501868990023": "7501868900233",  # Dibar rojo 500 ml: ticket OCR vs bote
     "7501058715517": "7501095409004",  # solo si FC-58715517 es frambuesa en tu anaquel
     "7501354312225027": "3543122250276",
     "7501354312250": "3543122250276",

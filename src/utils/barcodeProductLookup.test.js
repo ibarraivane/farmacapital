@@ -21,6 +21,37 @@ describe("queryCatalogoDesdeInputPos", () => {
   });
 });
 
+describe("Dibar rojo 500 ml: bote vs ticket OCR", () => {
+  const dibar500 = {
+    id: 340,
+    activo: true,
+    sku: "FC-68990023",
+    nombre: "Alcohol Etilico Rojo 96°",
+    codigo_barras: "7501868990023",
+    descripcion: "EAN bote 7501868900233 · EAN ticket OCR 7501868990023.",
+  };
+
+  test("el EAN del bote abre el SKU que nació con el código del ticket", () => {
+    expect(codigosBarrasDeProducto(dibar500)).toEqual(
+      expect.arrayContaining(["7501868900233", "7501868990023"])
+    );
+    expect(findProductExactScan([dibar500], "7501868900233")?.id).toBe(340);
+    expect(findProductExactScan([dibar500], "7501868990023")?.id).toBe(340);
+  });
+
+  test("no confunde el 500 ml con el 250 ml", () => {
+    const rojo250 = {
+      id: 338,
+      activo: true,
+      sku: "FC-68900226",
+      nombre: "Alcohol Etilico Rojo 96°",
+      codigo_barras: "7501868900226",
+    };
+    expect(findProductExactScan([dibar500, rojo250], "7501868900233")?.id).toBe(340);
+    expect(findProductExactScan([dibar500, rojo250], "7501868900226")?.id).toBe(338);
+  });
+});
+
 describe("Broncolin paleta: bote y pieza", () => {
   const paleta = {
     id: 702,
