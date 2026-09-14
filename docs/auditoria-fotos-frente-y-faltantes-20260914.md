@@ -123,11 +123,22 @@ El inventario sí traía presentación en varios (Aspirina **80** tabs, Compl = 
 |---:|---|---|---|---|
 | 16 | `FC-08491074` | Aspirina | Aspirina 500 mg C/80 | BuscaMed / Chedraui (no es C/20 ni C/40) |
 | 5 | `FC-64EB83AA` | Compl | Bencil/Benz Comp AMSA 1.2 M UI 1 FA | Galarza; EQ-AMS398 ya tiene el EAN |
-| 5 | `FC-95779436` | Acetilsalicílico Ef | AAS efervescente AMSA 300 mg C/20 | BuscaMed |
+| 5 | `FC-95779436` | Acetilsalicílico Ef | AAS efervescente Psicofarma 300 mg C/20 | [Farmasmart](https://farmasmart.com/acido-acetilsalicilico-ef-20-tab-300-mg) · EAN `7501384504908` ya en EQ-ALP0300 |
 | 100 | `FMX-506386` | SensiMedical 5 ml 22G | igual | Promexsa caja C/100 |
 | 50 | `FMX-307658` | SensiMedical 20 ml 21G | igual | Promexsa caja C/50 |
 
 No se usó: Dibar 250 (la foto pública es de **1 L**); Ursofalk (el ticket no dice lab); Jaloma Mertodol 60 ml (en web solo hay 40 ml); otras jeringas SensiMedical (3 ml / 21G / insulina ≠ esta caja).
+
+## Corrección: Farmasmart + Vitau (AAS y Alendrónico)
+
+`sql/patch_fotos_aas_psicofarma_alendronico_20260914.sql` — pisa el AAS si el lote anterior lo dejó como AMSA. El JPG de Alendrónico pide **deploy** (la URL de `EQ-AMS147` ya existía y daba 404).
+
+| Stock | SKU | Ticket / catálogo | Ahora | Fuente |
+|---:|---|---|---|---|
+| 5 | `FC-95779436` | Acetilsalicílico Ef | AAS efervescente **Psicofarma** 300 mg C/20 | [Farmasmart](https://farmasmart.com/acido-acetilsalicilico-ef-20-tab-300-mg) · EAN `7501384504908` ya en `EQ-ALP0300` |
+| 3 | `EQ-AMS147` | Ácido alendrónico 10 mg C/30 AMSA | misma ficha; foto de la caja | [Vitau](https://vitau.mx/acido-alendronico-10mg-caja-con-30-tabletas-15236) + caja de mostrador · EAN `7501349014190` |
+
+No se copió el EAN del AAS (UNIQUE). Farmasmart tiene **otro** SKU AMSA efervescente (`7501349020719`); el ticket dice *Acetilsalicílico Ef* = línea Psicofarma / ALP0300.
 
 ## Lo que queda — `sql/generated/fotos_pendientes_tras_lote_20260914.csv`
 

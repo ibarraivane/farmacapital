@@ -5,7 +5,8 @@
 -- Fuentes (cada caja se abrió):
 --   Aspirina Bayer 500 mg C/80 · BuscaMed / Chedraui (inventario: 80 tabletas)
 --   Compl = Bencil/Benz Comp AMSA 1.2 M UI 1 FA · Galarza EAN 7501349025271
---   Acetilsalicílico Ef = AAS efervescente AMSA 300 mg C/20
+--   Acetilsalicílico Ef = AAS efervescente Psicofarma 300 mg C/20
+--     (Farmasmart EAN 7501384504908; EQ-ALP0300 ya tiene ese EAN)
 --   SensiMedical 5 ml 22G x 32 mm C/100 · Promexsa
 --   SensiMedical 20 ml 21G x 32 mm C/50 · Promexsa
 --
@@ -40,13 +41,13 @@ where sku = 'FC-64EB83AA';
 
 update public.productos
 set nombre = 'Ácido acetilsalicílico efervescente 300 mg C/20',
-    marca = 'AMSA',
+    marca = 'Psicofarma',
     presentacion = 'Caja con 20 tabletas efervescentes',
     concentracion = '300 mg',
     principio_activo = coalesce(nullif(btrim(principio_activo), ''), 'Ácido acetilsalicílico'),
     forma_farmaceutica = coalesce(nullif(btrim(forma_farmaceutica), ''), 'Tabletas efervescentes'),
     categoria = case when coalesce(categoria, '') in ('', 'Otro') then 'Analgésico' else categoria end,
-    descripcion = 'Ácido acetilsalicílico efervescente AMSA 300 mg C/20'
+    descripcion = 'Ácido acetilsalicílico efervescente Psicofarma 300 mg C/20'
 where sku = 'FC-95779436';
 
 create temporary table tmp_foto_resto2 (
@@ -64,8 +65,8 @@ values
    'https://www.farmacapital.mx/catalogo-propia/bencil-benz-compuesta-amsa-12m.jpg',
    'propia'), -- Compl = Bencil/Benz Comp AMSA 1 FA
   ('FC-95779436',
-   'https://www.farmacapital.mx/catalogo-propia/aas-efervescente-amsa-300mg-c20.jpg',
-   'propia'), -- Acetilsalicílico Ef 20 tabletas
+   'https://www.farmacapital.mx/catalogo-propia/aas-efervescente-psicofarma-300mg-c20.jpg',
+   'propia'), -- Acetilsalicílico Ef = Psicofarma 300 mg C/20 · no AMSA
   ('FMX-506386',
    'https://www.farmacapital.mx/catalogo-propia/sensimedical-5ml-22gx32-c100.jpg',
    'propia'), -- solo 5 ml 22G x 32 mm negra
