@@ -1,5 +1,5 @@
 -- Levic · factura interna A 9012242979 · CFDI 14-sep-2026 03:41
--- Folio fiscal C7F561F1-1FC5-4B04-99CF-3CF83FA37ED8 (OCR parcial) · entrega 832819990 · PUE efectivo $1557.92
+-- Folio fiscal C7F561F1-1FC5-4804-99CF-3CF83FA37ED8 (OCR parcial) · entrega 832819990 · PUE efectivo $1557.92
 -- Receptor LUIS ANGEL PALILLERO VENTURA · 24 renglones · 46 pzas (TOT 46 hoja 2).
 -- Subtotal CFDI $1538.94 + IVA $18.98 = $1557.92.
 -- Costo = Precio neto. Lote = de fábrica (sí viene en la factura; OCR de foto).
@@ -115,13 +115,13 @@ begin
     if v_id is null then
       insert into public.recepciones (proveedor, folio, fecha, total_ticket, estado, notas)
       values ('Levic', '9012242979', '2026-09-14', 1557.92, 'borrador',
-              'Factura Levic A 9012242979 · CFDI C7F561F1-1FC5-4B04-99CF-3CF83FA37ED8 · entrega 832819990 · cola Recibir; stock al confirmar pistola · lote de fábrica en el papel; MMAA de la caja; TODO foto Visoti/catalogo-propia para altas nuevas')
+              'Factura Levic A 9012242979 · CFDI C7F561F1-1FC5-4804-99CF-3CF83FA37ED8 · entrega 832819990 · cola Recibir; stock al confirmar pistola · lote de fábrica en el papel; MMAA de la caja; TODO foto Visoti/catalogo-propia para altas nuevas')
       returning id into v_id;
     else
       delete from public.recepcion_items where recepcion_id = v_id;
       update public.recepciones
       set total_ticket = 1557.92, fecha = '2026-09-14',
-          proveedor = 'Levic', notas = 'Factura Levic A 9012242979 · CFDI C7F561F1-1FC5-4B04-99CF-3CF83FA37ED8 · entrega 832819990 · cola Recibir; stock al confirmar pistola · lote de fábrica en el papel; MMAA de la caja; TODO foto Visoti/catalogo-propia para altas nuevas', updated_at = now()
+          proveedor = 'Levic', notas = 'Factura Levic A 9012242979 · CFDI C7F561F1-1FC5-4804-99CF-3CF83FA37ED8 · entrega 832819990 · cola Recibir; stock al confirmar pistola · lote de fábrica en el papel; MMAA de la caja; TODO foto Visoti/catalogo-propia para altas nuevas', updated_at = now()
       where id = v_id;
     end if;
 
