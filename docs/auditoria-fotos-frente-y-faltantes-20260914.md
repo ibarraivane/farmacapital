@@ -61,7 +61,8 @@ Otras cajas altas (Acetif SI, Mometasona nasal, Losil spray, Cefotaxima, Cefurox
 6. Deploy de 5 JPG más + `sql/patch_fotos_resto_busqueda_20260914.sql`.
 7. Los SQL 2–6 y `patch_fotos_google_chedraui` / `patch_fotos_google_ean` **ya se corrieron**.
 8. Deploy de los 16 JPG de la octava pasada + `sql/patch_fotos_resto_105_20260914.sql` (**ya corrido**).
-9. Deploy de 6 JPG más + `sql/patch_fotos_resto_89_20260914.sql`.
+9. Deploy de 6 JPG más + `sql/patch_fotos_resto_89_20260914.sql` (**ya corrido**).
+10. Deploy de 11 JPG más + `sql/patch_fotos_resto_83_20260914.sql`.
 
 ## Segunda pasada: Exprezo + Levic + Nadro por nombre (14-sep tarde)
 
@@ -204,7 +205,7 @@ No se usó: Dibar 250 (la foto de Promexsa sigue siendo **1 L**); Jaloma Mertodo
 
 ## Lo que queda — `sql/generated/fotos_pendientes_tras_lote_20260914.csv`
 
-~89 SKUs (105 vivos menos este lote de 16).
+~72 SKUs (83 vivos menos este lote de 11).
 
 ## Novena pasada: resto de 89
 
@@ -238,3 +239,25 @@ No se inventa foto a ciegas.
 ### Insumos / herbolario / EAN interno todavía sin packshot usable
 
 Cintas Cintapore, cubrebocas, perillas, Mercurio/Velázquez, EANs `200…`, alcohol Dibar 96° 250 ml (la foto pública es de 1 L), Jaloma Mertodol 60 ml / agua de rosas **130 ml**.
+
+## Décima pasada: más tiendas (Curtis, Curitek, DAX, Kids2, Superdtodo)
+
+Inventario vivo después del SQL 9: 1503 activos · **83** sin `imagen_url` (80 con stock). Se buscó otra vez en Nadro, Fahorro, Farmatodo, Chedraui, San Pablo, Similares, YZA, Promexsa, Curitek, DAX, Curtis, Kids2, Mayoreo Farmacéutico, Superdtodo, Andrade, Medicar.
+
+`sql/patch_fotos_resto_83_20260914.sql` — **11 packshots**. Piden **deploy**.
+
+| Stock | SKU | Ahora | Fuente |
+|---:|---|---|---|
+| 12 | `FC-IFC-PIN01` | Merheje Basic pinzas C/12 | Andrade EAN `7896075701040` |
+| 9 | `FC-68900127` | Dibar gasa simple 10 × 10 C/10 | [Curitek](https://curitek.com/producto/dibar-gasa-simple-10x10-10pz/) |
+| 4 | `FC-75102520` | Gerber Comidita casera res 100 g | Superdtodo EAN `7506475102520` |
+| 4 | `FC-75102537` | Gerber Comidita casera pollo 100 g | Superdtodo EAN `7506475102537` |
+| 3 | `FC-75102469` | Gerber Cosecha natural mango 100 g | Superdtodo EAN `7506475102469` |
+| 3 | `FC-75102476` | Gerber Cosecha natural durazno 100 g | Superdtodo EAN `7506475102476` |
+| 2 | `EQ-LOE111` | Centrassol 300/15/6 C/12 Loeffler | Mayoreo EAN `7502211788843` |
+| 2 | `FC-IFC-PINZACH` | Curtis Lady Mini 58LC | [curtis.com.mx](https://curtis.com.mx/mini-pinza-lady/) |
+| 2 | `FC-IFC-PINZAGR` | Curtis Lady Maxi 57LC | [curtis.com.mx](https://curtis.com.mx/maxi-pinza-lady/) |
+| 1 | `FC-46504859` | Xiomara Wax & Shine Black 60 g | DAX EAN `7501846504859` |
+| 1 | `FC-45116656` | Baby Einstein Busy Bubbles 16656 | [Kids2](https://www.kids2.com/products/16656-000-baby-einstein-neptunes-busy-bubbles-sensory-activity-toy) |
+
+No se usó: Promexsa «250 ml» Dibar = **1 L**; Jaloma 250 ≠ 130; Mertodol 40 ≠ 60; Cintapore ≠ 3M; SKN Nadro = Silica gloss; Protect = Sporasec; Sanax foto borrosa; vaso Dibar ilegible.
