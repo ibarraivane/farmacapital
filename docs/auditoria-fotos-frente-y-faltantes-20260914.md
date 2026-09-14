@@ -160,11 +160,21 @@ No se copió el EAN del AAS (UNIQUE). Farmasmart tiene **otro** SKU AMSA eferves
 | `FC-66022610` | Honey Keeper Kids Chamomile 414 ml | Chedraui EAN `814266022610` (el ticket decía Honey) |
 | `FC-66022627` | Honey Keeper Kids Lavender 414 ml | Chedraui EAN `814266022627` |
 
-No se usó: Jaloma rosas **130 ml** (el packshot público es de 250 ml); Gerber 113 g ≠ 100 g; Sico `7501685171113` ≠ `7501685171118`; Savile roll-on `75068622`; Honey Keeper oat 414 ml (otro EAN).
+No se usó: Jaloma rosas **130 ml** (el packshot público es de 250 ml); Gerber 113 g ≠ 100 g; Sico `7501685171113` ≠ `7501685171118`.
+
+## Séptima pasada: Google + Nadro/Farmatodo/Chedraui/Fahorro por EAN
+
+Se buscó cada pendiente vivo (146 sin `imagen_url`) por EAN en Nadro i22, Farmatodo, Chedraui y Fahorro, más fichas de marca. `sql/patch_fotos_google_ean_20260914.sql` — **41 packshots**. Piden **deploy**.
+
+Medicamentos: Aderogyl C/4, Pharmaton C/30, Dolo-Neurobión C/20 y DC C/3, Dolac C/10, Brunadol C/10, Alli-Triple C/10, Pepto-Bismol 118 ml, Alka-Seltzer C/100 y Boost C/10, Bronco Rub 40 g.
+
+Cuidado: Rexona Marine/Sport/V8 + sticks Bamboo/Powder Dry/Happy Morning; Axe Excite/Dark/Gold; Listerine ×3; Oral-B 250 ml; Sensodyne ×2; Nivea Facial 5 en 1 (el ticket decía 7 en 1; el EAN es 5 en 1); Nivea Milk combo 400+100; Kleenex, Huggies 80, Diapro C/10, Curitas Transpiel 100; Xiomara Classic / Telaraña 60 g / Elastik 100 g; Palmolive brillantina; Honey Keeper oat 414 ml; GUM 129 m; Savilé roll-on; Colgate Premier Clean; Suerox Vitamins Naranja Mango 630 ml.
+
+No se usó: Pasta Lassar (solo costado legal); Enterogermina 4 billones ≠ 2 billones C/10; placeholders `generica_1`; Pantene `…3454` ≠ `…3464`.
 
 ## Lo que queda — `sql/generated/fotos_pendientes_tras_lote_20260914.csv`
 
-84 SKUs.
+~105 SKUs (146 vivos menos este lote; varios ya tenían SQL anterior sin correr).
 
 ### Medicamentos todavía sin caja pública de *esa* pieza
 
