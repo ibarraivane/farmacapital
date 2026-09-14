@@ -8,12 +8,17 @@ import { supabase } from "../../supabase";
 import { showToast } from "../../ui";
 import { idEmpleadoUsuarios } from "../../utils/usuarioId";
 import { saludoUsuario } from "../../utils";
-import { turnoDePerfil, etiquetaDiaDescanso } from "../../constants/turnos";
+import { etiquetaDiaDescanso, rangoDiaCalendario } from "../../constants/turnos";
 import {
-  inferirTurno, inicioDelTurno, finDelTurno, claveMetaTurno,
+  claveMetaTurno,
   calcularMultiplicador, cargarConfigMetas, escalonBono, bonosActivos,
 } from "../../utils/turnosMetas";
-import { fetchJornadaHoy } from "../../utils/cajaSesion";
+import { fetchJornadaHoy, fetchSesionCajaAbierta } from "../../utils/cajaSesion";
+import {
+  resolverTurnoMiDia,
+  resolverVentanaVentasMiDia,
+  resolverTurnosMetaHoy,
+} from "../../lib/miDiaTurno";
 import { formatFolioPOS } from "../../utils/orderReceiptWhatsApp";
 import { categoriaCanon } from "../../constants/categoriasProducto";
 import {
@@ -249,6 +254,7 @@ export default function MiDia({ usuario, setPage }) {
     ticketsTurno: [],
   });
   const [jornada, setJornada] = useState(null);
+  const [estadoTurno, setEstadoTurno] = useState({ turno: null, cubreAmbos: false, fuente: null });
   const [verTickets, setVerTickets] = useState(false);
   const [ticketReprint, setTicketReprint] = useState(null);
   const [reimprimiendoId, setReimprimiendoId] = useState(null);
@@ -326,9 +332,6 @@ export default function MiDia({ usuario, setPage }) {
     return () => clearInterval(t);
   }, []);
 
-  const turnoAsignado = turnoDePerfil(usuario);
-  const turno = turnoAsignado || inferirTurno(now);
-
   const cargarDatos = useCallback(async () => {
     if (!usuario) return;
     setLoading(true);
@@ -341,15 +344,36 @@ export default function MiDia({ usuario, setPage }) {
       }
 
       const hoy = new Date();
-      const { jornada: j } = await fetchJornadaHoy();
+      const [{ jornada: j }, { sesion: sesionCaja }] = await Promise.all([
+        fetchJornadaHoy(),
+        fetchSesionCajaAbierta(),
+      ]);
       setJornada(j);
-      const cubreAmbos = !!j?.cubre_ambos;
-      const inicioTurno = cubreAmbos
-        ? new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate(), 0, 0, 0).toISOString()
-        : inicioDelTurno(hoy, turno).toISOString();
-      const finTurno = cubreAmbos
-        ? new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate(), 23, 59, 59, 999).toISOString()
-        : finDelTurno(hoy, turno).toISOString();
+      // Quien abre caja trabaja ese turno. El perfil RH no recorta tickets.
+      const sesionActiva = sesionCaja?.abierta ? sesionCaja : null;
+      const resTurno = resolverTurnoMiDia({
+        jornada: j,
+        sesionCaja: sesionActiva,
+        usuario,
+        now: hoy,
+      });
+      const turnoCaja = resTurno.turno;
+      const cubreAmbos = resTurno.cubreAmbos;
+      setEstadoTurno({ turno: turnoCaja, cubreAmbos, fuente: resTurno.fuente });
+      const { turnos: turnosMeta } = resolverTurnosMetaHoy({
+        jornada: j,
+        sesionCaja: sesionActiva,
+        usuario,
+        now: hoy,
+      });
+      const diaRango = rangoDiaCalendario(hoy);
+      const ventana = resolverVentanaVentasMiDia({
+        sesionCaja: sesionActiva,
+        diaRango: { inicio: diaRango.inicio, fin: diaRango.fin },
+        hoyAncla: hoy,
+        turno: turnoCaja,
+        cubreAmbos,
+      });
       const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString();
 
       const tok = sessionStorage.getItem("farmacapital_session_token");
@@ -359,13 +383,18 @@ export default function MiDia({ usuario, setPage }) {
           ? supabase.rpc("empleado_midia_snapshot", {
               p_session_token: tok,
               p_empleado_id: empleadoId,
-              p_turno_start: inicioTurno,
-              p_turno_end: finTurno,
+              p_turno_start: ventana.inicio,
+              p_turno_end: ventana.fin,
               p_mes_start: inicioMes,
               p_fecha_citas: hoy.toISOString().slice(0, 10),
             })
           : Promise.resolve({ data: null, error: { message: "sin sesión" } }),
       ]);
+
+      if (snapRes?.error) {
+        console.warn("[MiDia] snapshot:", snapRes.error.message || snapRes.error);
+        showToast(snapRes.error.message || "No se pudieron cargar tus ventas de hoy.", "error");
+      }
 
       const snap = snapRes?.data || {};
       const pedTurno = snap.ped_turno || [];
@@ -374,20 +403,21 @@ export default function MiDia({ usuario, setPage }) {
       const srvMes = filasServicioDesdeSnapshot(snap, "mes");
       const citasEspera = typeof snap.citas_espera === "number" ? snap.citas_espera : 0;
 
-      // ── Meta del turno (si cubre ambos, es la meta de todo el día).
-      const cubreAmbosMeta = !!j?.cubre_ambos;
+      // Meta $ = turnos que sí abrió (caja), no el horario de RH.
+      const cubreAmbosMeta = cubreAmbos || !!j?.cubre_ambos;
       const multTurno = calcularMultiplicador(hoy, configMap);
-      let metaTurno;
-      if (cubreAmbosMeta) {
-        const claveM = claveMetaTurno(hoy, "matutino");
-        const claveV = claveMetaTurno(hoy, "vespertino");
-        const mm = parseFloat(configMap[claveM] || 0);
-        const mv = claveV === claveM ? 0 : parseFloat(configMap[claveV] || 0);
-        metaTurno = Math.round((mm + mv) * multTurno);
-      } else {
-        const claveMeta = claveMetaTurno(hoy, turno);
-        metaTurno = Math.round(parseFloat(configMap[claveMeta] || 0) * multTurno);
-      }
+      let metaTurno = 0;
+      const listaTurnos = turnosMeta.length
+        ? turnosMeta
+        : (cubreAmbosMeta ? ["matutino", "vespertino"] : (turnoCaja ? [turnoCaja] : []));
+      const vistas = new Set();
+      listaTurnos.forEach((t) => {
+        const clave = claveMetaTurno(hoy, t);
+        if (vistas.has(clave)) return;
+        vistas.add(clave);
+        metaTurno += parseFloat(configMap[clave] || 0);
+      });
+      metaTurno = Math.round(metaTurno * multTurno);
 
       // ── KPIs del turno (tickets = productos + servicios; % meta suma ambos).
       const ventasPedTurno = pedTurno.reduce((a, p) => a + parseFloat(p.total || 0), 0);
@@ -465,7 +495,7 @@ export default function MiDia({ usuario, setPage }) {
       console.warn("[MiDia] cargarDatos:", e?.message || e);
     }
     setLoading(false);
-  }, [usuario, turno]);
+  }, [usuario]);
 
   useEffect(() => { cargarDatos(); }, [cargarDatos]);
 
@@ -556,11 +586,17 @@ export default function MiDia({ usuario, setPage }) {
   const saludo = saludoUsuario(usuario?.nombre);
   const turnoLabel = jornada?.es_descanso
     ? `descansas (${etiquetaDiaDescanso(jornada.dia_descanso) || "hoy"})`
-    : jornada?.cubre_ambos
+    : (estadoTurno.cubreAmbos || jornada?.cubre_ambos)
       ? "hoy cubres ambos turnos"
-      : (turnoAsignado
-        ? (turno === "matutino" ? "turno matutino" : "turno vespertino")
-        : "sin turno asignado");
+      : estadoTurno.turno === "matutino"
+        ? (estadoTurno.fuente === "caja" || estadoTurno.fuente === "cobertura"
+          ? "caja matutina abierta"
+          : "turno matutino")
+        : estadoTurno.turno === "vespertino"
+          ? (estadoTurno.fuente === "caja" || estadoTurno.fuente === "cobertura"
+            ? "caja vespertina abierta"
+            : "turno vespertino")
+          : "abre caja para empezar tu turno";
 
   return (
     <div style={{ padding: 24, maxWidth: 1100, margin: "0 auto", background: C.bg, minHeight: "100dvh", fontFamily: "var(--fc-body)" }}>
@@ -590,7 +626,7 @@ export default function MiDia({ usuario, setPage }) {
           <div style={{ fontSize: 54, fontWeight: 800, lineHeight: 1 }}>{pctDia}%</div>
           {data.metaTurno > 0 && (
             <div style={{ fontSize: 13, opacity: 0.85 }}>
-              del objetivo del turno
+              del objetivo del turno · ventas de hoy
             </div>
           )}
         </div>
@@ -606,7 +642,7 @@ export default function MiDia({ usuario, setPage }) {
                             : `Arrancando el turno. ${faltaDia}% para la meta.`}
           {jornada?.cubre_ambos && (
             <div style={{ fontSize: 12, opacity: 0.9, marginTop: 8 }}>
-              Hoy estás sola en caja: la meta es la de los dos turnos. Cierra el matutino a las 15:30 y abre el vespertino.
+              Hoy cubres ambos turnos: la meta suma matutino + vespertino. Al cortar uno, abre el siguiente.
             </div>
           )}
         </div>

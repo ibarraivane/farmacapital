@@ -72,15 +72,17 @@
     background: #f8fafc;
   }
 
-  /* Listas del día: ficha, no excel en 390 px. */
-  .farmacapital-admin-root *:has(> table.fc-tabla-cards) {
+  /* Listas del día: ficha, no excel en 390 px.
+     No tocar .fc-modal-panel: el detalle de pedido mete fc-tabla-cards
+     como hijo y sin esta exclusión el fondo blanco queda transparente. */
+  .farmacapital-admin-root *:has(> table.fc-tabla-cards):not(.fc-modal-panel) {
     overflow: visible !important;
     border: none !important;
     background: transparent !important;
     box-shadow: none !important;
   }
 
-  .farmacapital-admin-root *:has(> table.fc-tabla-cards)::before {
+  .farmacapital-admin-root *:has(> table.fc-tabla-cards):not(.fc-modal-panel)::before {
     content: none;
   }
 

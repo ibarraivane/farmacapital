@@ -759,7 +759,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
 
       {modalDetalle && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,.45)", backdropFilter: "blur(4px)", zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center", padding: "max(12px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px))", boxSizing: "border-box" }} onClick={(e) => e.target === e.currentTarget && setModalDet(null)}>
-          <div style={{ background: C.card, borderRadius: 14, width: "min(600px, 100%)", maxHeight: "min(85dvh, 90vh)", overflowY: "auto", WebkitOverflowScrolling: "touch", padding: "clamp(16px, 4vw, 24px)", boxShadow: "0 20px 60px rgba(0,82,204,.15)", minWidth: 0 }}>
+          <div className="fc-modal-panel" style={{ background: C.card, borderRadius: 14, width: "min(600px, 100%)", maxHeight: "min(85dvh, 90vh)", overflowY: "auto", WebkitOverflowScrolling: "touch", padding: "clamp(16px, 4vw, 24px)", boxShadow: "0 20px 60px rgba(0,82,204,.15)", minWidth: 0 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
               <h3 style={{ margin: 0, color: C.text, fontSize: 15, fontWeight: 800 }}>
                 👁 Detalle — {esPagoServicio(modalDetalle) ? (modalDetalle.folio || "Servicio") : `Pedido #${modalDetalle.id}`}
@@ -839,7 +839,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                 Recarga registrada en POS → Servicios. En tiempo aire el recargo va en 0; en recibos es lo que le cobraste al cliente. La compensación MP (1%) entra al saldo de Mercado Pago, no al cajón. No es una venta de producto: no tiene folio VTA.
               </div>
             ) : (
-            <>
+            <div>
             <div style={{ fontWeight: 700, color: C.text, fontSize: 13, marginBottom: 10 }}>Productos vendidos:</div>
             {loadDet ? <SkeletonTable rows={3} cols={4} /> : (
               <table className="fc-tabla-cards" style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
@@ -864,7 +864,7 @@ export default function TransaccionesTab({ usuario, showConfirm }) {
                 </tbody>
               </table>
             )}
-            </>
+            </div>
             )}
           </div>
         </div>

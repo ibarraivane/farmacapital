@@ -1,4 +1,4 @@
-import { idxDiaDescanso, planSemanaCaja, descansosChocan, etiquetaDiaDescanso, perfilesTurnoCaja } from "./turnos";
+import { idxDiaDescanso, planSemanaCaja, descansosChocan, etiquetaDiaDescanso, perfilesTurnoCaja, rangoTurno, rangoDiaCalendario, inferirTurno } from "./turnos";
 
 describe("plan 6+1 (descanso y cobertura)", () => {
   const mary = { id: 1, nombre: "Mary", rol: "vendedor", turno: "matutino", dia_descanso: 0 };
@@ -42,5 +42,32 @@ describe("plan 6+1 (descanso y cobertura)", () => {
     const lun = planSemanaCaja([baja, ana, rene])[0];
     expect(lun.celdas.find((c) => c.id === 1)).toBeUndefined();
     expect(descansosChocan([baja, { ...rene, dia_descanso: 0 }])).toHaveLength(0);
+  });
+});
+
+describe("rangos de turno vs crédito personal (Mi Día)", () => {
+  const dia = new Date(2026, 8, 14, 15, 23, 0); // 14-sep-2026 15:23
+
+  test("venta 15:11 queda fuera del rango de caja vespertino (corte 15:30)", () => {
+    const venta = new Date(2026, 8, 14, 15, 11, 0);
+    const vesp = rangoTurno(dia, "vespertino");
+    expect(venta.getTime()).toBeLessThan(vesp.inicio.getTime());
+    expect(inferirTurno(venta)).toBe("matutino");
+  });
+
+  test("rangoDiaCalendario incluye la venta del traslape para Mi Día", () => {
+    const venta = new Date(2026, 8, 14, 15, 11, 0);
+    const { inicio, fin } = rangoDiaCalendario(dia);
+    expect(inicio.getHours()).toBe(0);
+    expect(inicio.getMinutes()).toBe(0);
+    expect(fin.getHours()).toBe(23);
+    expect(venta.getTime()).toBeGreaterThanOrEqual(inicio.getTime());
+    expect(venta.getTime()).toBeLessThanOrEqual(fin.getTime());
+  });
+
+  test("caja matutino y vespertino no se traslapan", () => {
+    const m = rangoTurno(dia, "matutino");
+    const v = rangoTurno(dia, "vespertino");
+    expect(m.fin.getTime()).toBeLessThan(v.inicio.getTime());
   });
 });
