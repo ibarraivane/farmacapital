@@ -182,7 +182,7 @@ export default function AperturaCajaModal({ usuario, onAbierta, onSesionExpirada
                     : <>Tu turno de hoy ya tiene corte. </>}
                   Un turno se cierra una sola vez al día.
                 </>
-              : <>Tu turno es el <strong>{habitual}</strong>. El otro lo abre tu compañera.</>}
+              : <>Ahora no hay turno libre para abrir (¿la caja sigue ocupada o ya cortaste los dos?). Tu perfil RH es <strong>{habitual}</strong>.</>}
           </p>
           {jornada?.ya_cerro_turno && (
             <p style={{ color: C.textDim, fontSize: 13, lineHeight: 1.5, margin: "14px 0 0" }}>
@@ -258,7 +258,11 @@ export default function AperturaCajaModal({ usuario, onAbierta, onSesionExpirada
           color: BRAND.primary,
           marginBottom: 8,
         }}>
-          {jornada?.cubre_ambos ? "Día de cobertura · ambos turnos" : "Inicio de turno"}
+          {jornada?.cubre_ambos
+            ? "Día de cobertura · ambos turnos"
+            : (jornada?.cobertura || (turnoAbrir && turnoAsignado && turnoAbrir !== turnoAsignado))
+              ? "Cobertura · abres el turno que está libre"
+              : "Inicio de turno"}
         </div>
         <h1 style={{ margin: 0, color: C.text, fontSize: 22, fontWeight: 800 }}>
           Abre caja para empezar, {nombre}
@@ -267,10 +271,12 @@ export default function AperturaCajaModal({ usuario, onAbierta, onSesionExpirada
           Cuenta las piezas que te entregaron. El total se calcula solo.
           Esta hora queda como tu entrada.
           {!turnoAsignado
-            ? " RH aún no te asigna turno: no puedes abrir caja."
+            ? " RH aún no te asigna turno (matutino o vespertino): no puedes abrir caja."
             : jornada?.cubre_ambos
-              ? <> Hoy cubres <strong>los dos turnos</strong>. Este conteo es el <strong>{etiquetaTurno(turnoAbrir || turnoAsignado)}</strong>. Al corte, vuelves a abrir el siguiente.</>
-              : <> Turno: <strong>{etiquetaTurno(turnoAbrir || turnoAsignado)}</strong>.</>}
+              ? <> Hoy cubres <strong>los dos turnos</strong>. Este conteo es el <strong>{etiquetaTurno(turnoAbrir || turnoAsignado)}</strong>. Al corte, vuelve a abrir el siguiente.</>
+              : (turnoAbrir && turnoAsignado && turnoAbrir !== turnoAsignado)
+                ? <> Tu perfil RH es <strong>{etiquetaTurno(turnoAsignado)}</strong>, pero abres <strong>{etiquetaTurno(turnoAbrir)}</strong> porque esa caja está libre. Quien abre, vende y corta ese turno.</>
+                : <> Turno de caja: <strong>{etiquetaTurno(turnoAbrir || turnoAsignado)}</strong>. Quien abre, vende en ese turno.</>}
         </p>
 
         <div style={{
