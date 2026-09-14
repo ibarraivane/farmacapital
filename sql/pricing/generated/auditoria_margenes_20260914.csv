@@ -1,0 +1,90 @@
+accion,sku,ean,nombre,marca,presentacion,categoria,familia,stock,costo,precio,sugerido,piso,techo,markup,margen_venta,utilidad,ultima,motivo
+bajar,FC-43489004,7501943489004,Escudo Rosa Cuidado,Escudo,110 G,Higiene,higiene,2.0,4.48,42.0,10,10,10,837.5,89.3,37.52,4.48,PVP 837.5% sobre costo
+bajar,FC-54558682,7501054558682,Nivea Milk Crema corp 400 ML,Nivea,400 ML,Cuidado personal,higiene,1.0,22.3,207.0,50,32,50,828.3,89.2,184.7,22.3,PVP 828.3% sobre costo
+bajar,FC-22105207,7501022105207,Jabon Grisi Neutro,Grisi,150 G,Higiene,higiene,1.0,6.96,56.0,16,12,16,704.6,87.6,49.04,6.96,PVP 704.6% sobre costo
+bajar,FC-25605514,7506425605514,Escudo Antibacterial Frescura,Escudo,110 G,Higiene,higiene,2.0,7.23,42.0,16,13,16,480.9,82.8,34.77,7.22,PVP 480.9% sobre costo
+bajar,FC-27512574,7501027512574,Evenflo Colors,Evenflo,240 ML,Higiene,higiene,3.0,15.48,63.0,35,22,35,307.0,75.4,47.52,15.48,PVP 307.0% sobre costo
+bajar,FC-20500164,810120500164,Pert crema para peinar kera + aguacate 100 ml,Pert,100 ml,Cuidado personal,higiene,2.0,14.8,55.0,33,21,33,271.6,73.1,40.2,14.8,PVP 271.6% sobre costo
+bajar,FC-43427754,7501943427754,Toallas Kotex Nocturna Ext Largo cn alas,Kotex,C/5,Higiene,higiene,0.0,5.01,16.0,12,11,12,219.4,68.7,10.99,5.0,PVP 219.4% sobre costo
+bajar,FC-38891190,0672388911904,Jabon Dove Original,Dove,135 G,Higiene,higiene,1.0,15.1,47.0,34,22,34,211.3,67.9,31.9,15.1,PVP 211.3% sobre costo
+bajar,FC-25652716,7506425652716,Escudo Antibacterial Original,Escudo,135 G,Higiene,higiene,5.0,13.65,42.0,31,20,31,207.7,67.5,28.35,7.39,PVP 207.7% sobre costo
+bajar,FC-21012303,7502221012303,Claris toallas desmaquillantes aloe C/40,Claris,C/40,Higiene,higiene,2.0,9.43,27.0,21,15,21,186.3,65.1,17.57,9.43,PVP 186.3% sobre costo
+bajar,FC-19006371,7501019006371,Toallas Saba Invisible con alas C/10,Saba,C/10,Higiene,higiene,1.0,10.17,29.0,16,16,23,185.2,64.9,18.83,10.17,PVP 185.2% sobre costo
+bajar,FC-75064938,75064938,Desodorante Ego Force 24H roll-on,Ego,45 ML,Higiene,higiene,1.0,11.95,34.0,27,17,27,184.5,64.9,22.05,11.95,PVP 184.5% sobre costo
+bajar,FC-20500171,8101205001716,Crema para peinar Pert aceite oliva aguacate,Pert,100 ML,Cuidado personal,higiene,3.0,7.4,21.0,17,13,17,183.8,64.8,13.6,7.4,PVP 183.8% sobre costo
+bajar,FC-46683133,7509546683133,Palmolive Neutro-Bal Dermo Limp,Palmolive,120 G,Higiene,higiene,1.0,13.07,37.0,29,19,29,183.1,64.7,23.93,13.07,PVP 183.1% sobre costo
+bajar,FC-99425580,7501199425580,Gel X-Treme Titan,X-Treme,250 G,Cuidado personal,higiene,1.0,11.31,32.0,25,17,25,182.9,64.7,20.69,11.31,PVP 182.9% sobre costo
+bajar,FC-99428024,7501199428024,Gel Moco de Gorila Punk,Moco de Gorila,80 G,Cuidado personal,higiene,2.0,14.15,40.0,32,20,32,182.7,64.6,25.85,14.15,PVP 182.7% sobre costo
+bajar,FC-08837311,4005808837311,Nivea Antitransp Pearlb Spray,Nivea,150 ML,Higiene,higiene,2.0,32.37,91.0,56,46,72,181.1,64.4,58.63,32.37,PVP 181.1% sobre costo
+bajar,FC-06241206,7506306241206,Dove tono uniforme 72h,Dove,SPRAY 150 ML,Higiene,higiene,1.0,32.14,90.0,71,45,71,180.0,64.3,57.86,32.14,PVP 180.0% sobre costo
+bajar,FC-46059556,7509546059556,Palmolive líquido neutro,Palmolive,221 ML,Higiene,higiene,0.0,35.61,98.0,79,50,79,175.2,63.7,62.39,35.61,PVP 175.2% sobre costo
+bajar,FC-52844825,7509552844825,Desodorante Obao Ritual Natural Coco (Mujer),Obao,Roll-ON 65 G,Higiene,higiene,2.0,24.95,68.0,41,35,55,172.5,63.3,43.05,24.95,PVP 172.5% sobre costo
+bajar,FC-54549796,7501054549796,Crema Nivea Milk Nutritiva,Nivea,100 mL,Cuidado personal,higiene,4.0,25.86,69.0,57,37,57,166.8,62.5,43.14,25.86,PVP 166.8% sobre costo
+bajar,FC-27250612,7501027250612,Desodorante Obao Piel Delicada,Obao,R-ON 65 G,Higiene,higiene,2.0,25.83,68.0,57,37,57,163.3,62.0,42.17,24.71,PVP 163.3% sobre costo
+bajar,FC-54549819,7501054549819,Crema Nivea Softmilk,Nivea,100 ML,Cuidado personal,higiene,0.0,26.3,69.0,56,37,58,162.4,61.9,42.7,26.3,PVP 162.4% sobre costo
+bajar,FC-22150801,7501022150801,Jabon Grisi Avena,Grisi,125 G,Higiene,higiene,1.0,21.72,56.0,31,31,48,157.8,61.2,34.28,21.72,PVP 157.8% sobre costo
+bajar,FC-22150092,7501022150092,Grisi Leche De Burra,Grisi,125 G,Higiene,higiene,1.0,21.88,56.0,49,31,49,155.9,60.9,34.12,21.88,PVP 155.9% sobre costo
+bajar,FC-08802838,4005808802838,Crema Nivea Softmilk,Nivea,400 mL,Cuidado personal,higiene,1.0,84.49,207.0,186,119,186,145.0,59.2,122.51,84.49,PVP 145.0% sobre costo
+bajar,FC-86472048,7501086472048,Cepillo Dent Mayor Alcance Pro,PRO,1 PZ,Higiene,higiene,1.0,13.5,33.0,25,19,30,144.4,59.1,19.5,13.5,PVP 144.4% sobre costo
+bajar,FC-86494262,7501086494262,Cepillo Oral-B Indicat,Oral-B,1 pz,Higiene,higiene,1.0,15.51,37.0,35,22,35,138.6,58.1,21.49,15.51,PVP 138.6% sobre costo
+bajar,FC-17360604,7501017360604,Toallas Kotex Regular Flujo Amb,Kotex,10 pzs,Higiene,higiene,2.0,10.61,25.0,24,16,24,135.6,57.6,14.39,10.4,PVP 135.6% sobre costo
+bajar,FC-14983726,7502214983726,Prudence Natural Lubricante Natural,Prudence,75 ML,Higiene,higiene,1.0,62.06,139.0,87,87,137,124.0,55.4,76.94,62.06,PVP 124.0% sobre costo
+bajar,FC-14983153,7502214983153,Lubricante Intimo Prudence Grosella,Prudence,75 ML,Cuidado personal,higiene,1.0,62.06,139.0,115,87,137,124.0,55.4,76.94,68.2,PVP 124.0% sobre costo
+bajar,FC-14980350,7502214980350,Prudence Lub lubricante íntimo mora azul 75 ml,Prudence,75 ML,Higiene,higiene,1.0,62.06,139.0,87,87,137,124.0,55.4,76.94,62.06,PVP 124.0% sobre costo
+bajar,EQ-AMS406,7501349027312,Cinitaprida 25 Comp 1 Mg,AMSA,Caja con comprimidos,Gastro,med_generico,3.0,17.58,119.0,46,29,46,576.9,85.2,101.42,17.58,PVP 576.9% sobre costo
+bajar,EQ-MAV187,7502009744129,Erispan Compuesto 1 Sol 5/100mg/60 Ml,Maver,Frasco 60 mL,Alergia,sin_clasificar,1.0,22.53,112.0,59,31,59,397.1,79.9,89.47,22.53,PVP 397.1% sobre costo
+bajar,EQ-ULT103,7502216802919,Diclofenaco 20 Tab 100 Mg,Ultra,Caja con 20 tabletas,Analgésico,med_generico,3.0,7.6,35.0,20,13,20,360.5,78.3,27.4,7.6,PVP 360.5% sobre costo
+bajar,FC-58715517,7501095409004,Graneodin B Frambuesa,Graneodin,C/24 pastillas,GENERAL,sin_clasificar,2.0,42.64,193.0,111,58,111,352.6,77.9,150.36,42.64,PVP 352.6% sobre costo
+bajar,FC-40007651,650240007651,BIO ELCTRO,,,Otro,sin_clasificar,4.0,16.6,75.0,44,23,44,351.8,77.9,58.4,16.6,PVP 351.8% sobre costo
+bajar,EQ-ULT146,7502216796737,Pioglitazona,Ultra,C/7,Diabetes,med_generico,5.0,13.35,60.0,35,22,35,349.4,77.8,46.65,13.35,PVP 349.4% sobre costo
+bajar,FC-EADF1484,7501342804484,Diosmina Hesperidina,beadvance,20 TABLETAS,Otro,med_generico,3.0,39.41,176.0,103,64,103,346.6,77.6,136.59,39.41,PVP 346.6% sobre costo
+bajar,FC-F4E9C71F,7501349021839,Amoxicilina,AMSA,1 SUSPENSION,Antibiótico,med_generico,1.0,23.57,98.0,62,38,62,315.8,75.9,74.43,23.57,PVP 315.8% sobre costo
+bajar,FC-CF18C740,7501349020788,Clindamicina,AMSA,16 CAPSULAS,Antibiótico,med_generico,3.0,30.54,120.0,80,49,80,292.9,74.6,89.46,30.54,PVP 292.9% sobre costo
+bajar,EQ-PGE052,7503027446125,Ercatriv M Calcitriol 30 Caps 0.25 Mcg,PROGELA,Caja con 30 cápsulas,Suplemento,vitaminas,1.0,47.13,167.0,95,69,95,254.3,71.8,119.87,47.13,PVP 254.3% sobre costo
+bajar,FC-62746605,7500462746605,Jarabe Ajolotiux Orig Con Miel,Ajolotiux,250 mL,Vitaminas,vitaminas,1.0,28.0,98.0,43,41,56,250.0,71.4,70.0,28.0,PVP 250.0% sobre costo
+bajar,FC-49029040,7501349029040,Ketorolaco / Tramadol solución inyectable 10 mg - 25 mg / 1 mL AMSA,AMSA,Caja con 3 ampolletas de 1 mL,Analgésico,med_generico,2.0,100.0,350.0,260,160,260,250.0,71.4,250.0,100.0,PVP 250.0% sobre costo
+bajar,FMX-307626,7501384505271,Bromuro-Pinaverio-Alpharma Tabletas 100 Mg C/14,NEOLPHARMA,C/14,Medicamentos,sin_clasificar,1.0,16.88,59.0,44,23,44,249.5,71.4,42.12,16.88,PVP 249.5% sobre costo
+bajar,FC-9233072,7501059233072,Nido Kinder 1+ bolsa 144 g,Nido,144 G,Abarrotes,impulso,1.0,30.28,92.0,61,43,61,203.8,67.1,61.72,30.28,PVP 203.8% sobre costo
+bajar,FC-51078531,7506475107853,Leche en Polvo NAN Optimal Pro 2 / 6 a 12 M,Nestle,120 g,Abarrotes,bebe,1.0,58.7,170.0,106,77,106,189.6,65.5,111.3,58.7,PVP 189.6% sobre costo
+bajar,FC-0211225,7501590211225,Dibenel cápsulas vitaminas omega 3 C/30,Dibenel,C/30,Vitaminas,vitaminas,1.0,47.08,127.0,95,69,95,169.8,62.9,79.92,47.08,PVP 169.8% sobre costo
+bajar,FC-51078461,7506475107846,Leche en polvo NAN Optimal Pro 1/ 0 a 6 M,Nestle,120 g,Abarrotes,bebe,2.0,63.41,170.0,115,83,115,168.1,62.7,106.59,63.41,PVP 168.1% sobre costo
+bajo_costo,FC-08011145,7501080111455,Just For Men tinte barba y bigote negro,Just For Men,Kit gel,Cuidado personal,higiene,2.0,171.14,165.0,240,240,377,-3.6,-3.7,-6.14,171.14,Se vende más barato de lo que costó
+bajo_costo,FC-73629981,7501017362998,Pañuelos Kleenex,Kleenex,15 pzs,Higiene,higiene,17.0,32.83,10.0,46,46,73,-69.5,-228.3,-22.83,32.83,Se vende más barato de lo que costó
+bajo_costo,FC-06246652,7506306246652,Jabón Dove blanco 90 g,,,Cuidado personal,higiene,6.0,111.8,25.0,157,157,246,-77.6,-347.2,-86.8,111.8,Se vende más barato de lo que costó
+bajo_costo,FC-05809248,7506205809248,Enfagrow Premium etapa 3 lata 800 g,,,Bebés,bebe,1.0,568.96,408.0,740,740,1025,-28.3,-39.5,-160.96,568.96,Se vende más barato de lo que costó
+bajo_costo,FC-75005092,0608875005092,Heinz pouch papilla manzana 113 g,,,Bebés,bebe,3.0,32.04,20.0,42,42,58,-37.6,-60.2,-12.04,32.04,Se vende más barato de lo que costó
+bajo_costo,FC-58651129,7501058651129,Gerber Junior pouch frutas mixtas 95 g,,,Bebés,bebe,3.0,38.38,18.0,50,50,70,-53.1,-113.2,-20.38,38.38,Se vende más barato de lo que costó
+bajo_costo,FC-75102476,7506475102476,Gerber Etapa 2 durazno 100 g,,,Bebés,bebe,3.0,32.04,15.0,42,42,58,-53.2,-113.6,-17.04,32.04,Se vende más barato de lo que costó
+bajo_costo,FC-75102421,7506475102421,Gerber Etapa 2 manzana 100 g,,,Bebés,bebe,3.0,32.04,15.0,42,42,58,-53.2,-113.6,-17.04,32.04,Se vende más barato de lo que costó
+bajo_costo,FC-75102452,7506475102452,Gerber Etapa 2 pera 100 g,,,Bebés,bebe,3.0,32.04,15.0,42,42,58,-53.2,-113.6,-17.04,32.04,Se vende más barato de lo que costó
+bajo_costo,FC-75102469,7506475102469,Gerber Etapa 2 mango 100 g,,,Bebés,bebe,3.0,32.04,15.0,42,42,58,-53.2,-113.6,-17.04,32.04,Se vende más barato de lo que costó
+bajo_costo,FC-75102537,7506475102537,Gerber Etapa 2 comida casera pollo 100 g,,,Bebés,bebe,4.0,42.72,15.0,56,56,77,-64.9,-184.8,-27.72,42.72,Se vende más barato de lo que costó
+bajo_costo,FC-75102520,7506475102520,Gerber Etapa 2 comida casera res 100 g,,,Bebés,bebe,4.0,42.72,15.0,56,56,77,-64.9,-184.8,-27.72,42.72,Se vende más barato de lo que costó
+bajo_costo,EQ-MAV198,7502009744426,Oxatech 14 Tab 10 Mg,Maver,Caja con 14 tabletas,Medicamentos,med_generico,3.0,26.46,8.27,43,43,69,-68.7,-220.0,-18.19,26.46,Se vende más barato de lo que costó
+revisar_costo,FC-IFC-PEI02,2008570100012,Peine mango chico colores C/12 pzs,,Paquete con 12,Cuidado personal,higiene,11.0,1.75,5.0,,7,4,185.7,65.0,3.25,0,Costo < $2 — revisar ticket / pieza vs caja
+revisar_costo,FC-IFC-DON01,2008550100018,Dona / bolsa IJJ-10 C/12,,Paquete con 12,Cuidado personal,higiene,1.0,6.16,15.0,,12,14,143.5,58.9,8.84,74.0,Última compra $74.00 vs costo $6.16
+revisar_costo,FC-EXP-OPT48,7509546015699,Palmolive Optims Vital Keratina 2 en 1 sobre 10 ml,Palmolive,Sobre 10 ml,Cuidado personal,higiene,48.0,1.57,3.0,,7,4,91.1,47.7,1.43,75.3,Costo < $2 — revisar ticket / pieza vs caja
+revisar_costo,EQ-PYG016,0020800790246,Metanucil 1 Polvo Sabor Natural 504 G,Metamucil,Bote 504 g sabor natural,Medicamentos,sin_clasificar,0.0,0.01,150.0,,6,1,1499900.0,100.0,149.99,0,Costo < $2 — revisar ticket / pieza vs caja
+revisar_costo,FC-0ACC5B6A,3311000003722,Mercurio Oxido De Zinc,Mercurio,C/50,Herbolario,sin_clasificar,1.0,1.08,14.0,,7,3,1196.3,92.3,12.92,9.0,Costo < $2 — revisar ticket / pieza vs caja
+revisar_costo,FC-00100013,2008500100013,Cubrebocas tricapa desechable C/100,,Caja C/100,Dispositivo médico,sin_clasificar,98.0,0.8,6.0,,6,3,650.0,86.7,5.2,80.0,Costo < $2 — revisar ticket / pieza vs caja
+revisar_costo,FC-C4530823,3311000000936,Mercurio óxido de zinc C/50,Mercurio,frasco 50 g,Herbolario,sin_clasificar,3.0,9.0,54.0,,14,24,500.0,83.3,45.0,54.0,Última compra $54.00 vs costo $9.00
+revisar_costo,FC-22300775,7506022300775,Jeringa Sensi Medical 3 mL 22G x 32 mm negra,Sensi Medical,1 pieza 3 mL 22G x 32 mm,Dispositivo médico,material,99.0,1.4,8.0,,7,3,471.4,82.5,6.6,0.01,Costo < $2 — revisar ticket / pieza vs caja
+revisar_costo,FC-22300881,7506022300881,Jeringa insulina SensiMedical 1 mL 27G x 13 mm,SensiMedical,1 pieza 1 mL 27G x 13 mm,Dispositivo médico,material,99.0,1.37,7.0,,7,3,410.9,80.4,5.63,0.01,Costo < $2 — revisar ticket / pieza vs caja
+revisar_costo,FMX-506388,7506022300751,Jeringa SensiMedical 3 mL 21G x 32 mm verde,SensiMedical,Pieza 3 mL 21G x 32 mm (caja C/100 verde),Dispositivo médico,material,100.0,1.4,7.0,,7,3,400.0,80.0,5.6,1.55,Costo < $2 — revisar ticket / pieza vs caja
+revisar_costo,FMX-506386,7506022300843,Jeringa SensiMedical 5 mL 22G x 32 mm negra,SensiMedical,Pieza 5 mL 22G x 32 mm (caja C/100 negra),Dispositivo médico,material,100.0,1.48,7.0,,7,3,373.0,78.9,5.52,1.65,Costo < $2 — revisar ticket / pieza vs caja
+revisar_costo,FMX-506389,7506022300829,Jeringa SensiMedical 5 mL 21G x 32 mm verde,SensiMedical,Pieza 5 mL 21G x 32 mm (caja C/100 verde),Dispositivo médico,material,92.0,1.48,7.0,,7,3,373.0,78.9,5.52,1.65,Costo < $2 — revisar ticket / pieza vs caja
+revisar_costo,FC-07521317,7501507521317,Gotero cristal,Genérico,,Botiquín,material,98.0,1.2,5.0,,7,3,316.7,76.0,3.8,1.2,Costo < $2 — revisar ticket / pieza vs caja
+revisar_costo,FC-23272151,7506022327208,Jeringa insulina 0.3 ml Sensi Medical,Sensi Medical,1 pz,Botiquín,material,97.0,2.128,8.0,,8,5,275.9,73.4,5.87,217.2,Última compra $217.20 vs costo $2.13
+revisar_costo,FC-23273451,7506022327338,Jeringa insulina 0.5 ml Sensi Medical,Sensi Medical,1 pz,Botiquín,material,100.0,2.13,8.0,,8,5,275.6,73.4,5.87,217.2,Última compra $217.20 vs costo $2.13
+revisar_costo,FC-68900134,7501868900134,Gasa Lox10 C/100,Dibar,C/100,Dispositivo médico,material,93.0,1.09,3.0,,7,3,175.2,63.7,1.91,108.88,Costo < $2 — revisar ticket / pieza vs caja
+revisar_costo,FC-0287855,7501590287855,Vita Kid-C jarabe vitamina C naranja 240 ml,Vita Kid-C,240 ML,Vitaminas,vitaminas,1.0,29.14,65.0,,43,59,123.1,55.2,35.86,47.08,Última compra $47.08 vs costo $29.14
+revisar_costo,FMX-300644,7501048920556,Guante/Esteril-Protec Clasico C/100 Mediano,PROTEC,100 PZ,Dispositivo médico,material,89.0,1.61,3.0,,7,4,86.3,46.3,1.39,160.56,Costo < $2 — revisar ticket / pieza vs caja
+revisar_costo,FMX-504321,7506022304124,Aguja-Hipodermica-Sensimedical 22 G X 32 Mm C/1 Negro,SENSIMEDICAL,C/1,Dispositivo médico,sin_clasificar,100.0,0.55,1.0,,6,2,81.8,45.0,0.45,0.55,Costo < $2 — revisar ticket / pieza vs caja
+revisar_costo,FC-5145497,7500435145497,NyQuil Z difenhidramina 25 mg C/30,NyQuil,C/30,Medicamentos,sin_costo,0.0,0.0,100.0,,,,,,,0,Sin costo de compra
+revisar_costo,FC-98062243,3664798062243,Pharmaton Complete tabletas C/100,Pharmaton,Caja con 100 tabletas de 773 mg,Vitaminas,sin_costo,2.0,0.0,100.0,,,,,,,0.01,Sin costo de compra
+revisar_costo,FC-58752796,7501058752796,Lysol desinfectante antibacterial Crisp Linen 475 g,,,Higiene,sin_costo,1.0,0.0,175.0,,,,,,,0,Sin costo de compra
+revisar_costo,FMX-71074,6977587671074,Termo Fifa,,,Otro,sin_costo,1.0,0.0,100.0,,,,,,,0,Sin costo de compra
+revisar_costo,FC-45116656,074451166561,Baby Einstein Neptune's Busy Bubbles juguete sensorial Ocean Explorers,Baby Einstein,1 pieza · modelo 16656 · 3+ meses,Otro,sin_costo,1.0,0.0,250.0,,,,,,,0,Sin costo de compra
+revisar_costo,FC-06241152,7506306241152,Dove antitranspirante aerosol Tono Uniforme Caléndula 150 ml,Dove,Aerosol 150 ml (87 g),Higiene,sin_costo,2.0,0.0,90.0,,,,,,,0,Sin costo de compra
+revisar_costo,FC-58796882,7501058796882,Lysol desinfectante antibacterial Crisp Linen 354 g,Lysol,Aerosol 354 g,Higiene,sin_costo,1.0,0.0,140.0,,,,,,,0,Sin costo de compra
+revisar_costo,FC-09272342,7501092723424,Exkruthera Fruquintinib 1 mg caja con frasco 21 cápsulas,Takeda,Caja con frasco con 21 cápsulas,Medicamentos,sin_clasificar,4.0,0.01,0.01,,6,1,0.0,0.0,0.0,0,Costo < $2 — revisar ticket / pieza vs caja

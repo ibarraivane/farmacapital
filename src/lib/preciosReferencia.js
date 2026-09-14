@@ -515,13 +515,13 @@ export function calcMejorCompra(costo, refsMap, meta = {}) {
   };
 }
 
-function minProfit(costo) {
+export function minProfit(costo) {
   if (costo < 20) return 5;
   if (costo < 50) return 8;
   return 0;
 }
 
-function calcPriceFloor(costo, markup) {
+export function calcPriceFloor(costo, markup) {
   const base = costo * (1 + markup);
   const floor = costo + minProfit(costo);
   return Math.ceil(Math.max(base, floor));

@@ -20,6 +20,7 @@ import { useImagenesPrincipales, useProductoImagenes } from "./hooks/useProducto
 import { useCatalogoVivo } from "./hooks/useCatalogoVivo";
 import { avisarCatalogoCambio } from "./utils/catalogoVivo";
 import { sugerirPrecioUnidad, aplicarReglaPrecioUnidad, margenBrutoPct } from "./utils/precioUnidad";
+import { auditarMargenProducto, esAlertaMargen } from "./lib/auditoriaMargenes";
 import { productoEsVendible } from "./utils/productoVendible";
 import {
   CATEGORIAS_PRODUCTO as CATEGORIAS,
@@ -2529,8 +2530,20 @@ function renderInventarioColumnCell(colId, ctx) {
           tdStyle={{ padding: "8px 12px", color: C.textMid, borderBottom: `1px solid ${C.border}`, background: stickyRowBg, ...w("costo") }}
         />
       );
-    case "margen":
-      return <td key={colId} style={{ padding: "8px 12px", fontWeight: 700, borderBottom: `1px solid ${C.border}`, color: mgnCol, background: stickyRowBg, ...w("margen") }}>{mgn}</td>;
+    case "margen": {
+      const audit = auditarMargenProducto(p);
+      return (
+        <td key={colId} style={{ padding: "8px 12px", fontWeight: 700, borderBottom: `1px solid ${C.border}`, color: mgnCol, background: stickyRowBg, ...w("margen") }}>
+          {mgn}
+          {audit.accion === "bajar" && audit.sugerido != null ? (
+            <div style={{ fontSize: 10, fontWeight: 600, opacity: 0.85 }}>sugerido ${audit.sugerido}</div>
+          ) : null}
+          {audit.accion === "bajo_costo" ? (
+            <div style={{ fontSize: 10, fontWeight: 600, opacity: 0.85 }}>bajo costo</div>
+          ) : null}
+        </td>
+      );
+    }
     case "cad": {
       const loteRef = resolverLoteCaducidadProducto(p);
       const puedeCad = true;
@@ -3190,6 +3203,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
       filtroAlerta === "sin_codigo_barras" ? productoSinCodigoBarras(p) :
       filtroAlerta === "sin_precio" ? productoSinPrecioVenta(p) :
       filtroAlerta === "sin_foto" ? productoSinFoto(p, fotoCatalogoDe) :
+      filtroAlerta === "margen_alto" ? esAlertaMargen(auditarMargenProducto(p)) :
       true;
     return cat && alerta;
   }), [productos, filtroCategoria, filtroAlerta, fotoCatalogoDe]);
@@ -3249,6 +3263,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
   const sinCodigoBarras = productos.filter(p => p.activo && productoSinCodigoBarras(p)).length;
   const sinPrecioVenta = productos.filter(p => p.activo && productoSinPrecioVenta(p)).length;
   const sinFoto = productos.filter(p => p.activo && productoSinFoto(p, fotoCatalogoDe)).length;
+  const margenAlto = productos.filter(p => p.activo && esAlertaMargen(auditarMargenProducto(p))).length;
   const inactivos  = productos.filter(p => !p.activo).length;
 
   const abrirEdicionProducto = useCallback((p, { focusBarcode = false } = {}) => {
@@ -3933,6 +3948,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
           ...(!modoConsulta ? [
             {label:"Sin foto", val:sinFoto, col:C.amber, click:()=>setFiltroAlerta(filtroAlerta==="sin_foto"?"todos":"sin_foto"), on: filtroAlerta==="sin_foto"},
             {label:"Sin precio", val:sinPrecioVenta, col:C.red, click:()=>setFiltroAlerta(filtroAlerta==="sin_precio"?"todos":"sin_precio"), on: filtroAlerta==="sin_precio"},
+            {label:"Margen raro", val:margenAlto, col:C.red, click:()=>setFiltroAlerta(filtroAlerta==="margen_alto"?"todos":"margen_alto"), on: filtroAlerta==="margen_alto"},
             {label:"Inactivos",   val:inactivos,  col:C.textMid, click:()=>{ setVerInactivos(true); setFiltroAlerta("todos"); }, on: !!verInactivos},
           ] : []),
         ].map(s=>(
@@ -3965,6 +3981,11 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
           📊 Referencias de mercado: Inventario → «Referencias de precio»
         </span>
         )}
+        {!modoConsulta && filtroAlerta === "margen_alto" && (
+        <span style={{padding:"4px 10px",borderRadius:8,background:"#fef2f2",color:C.red,fontWeight:600}}>
+          PVP muy arriba del costo (como Sedal rizos a $61 vs compra $9). El sugerido no se aplica solo.
+        </span>
+        )}
         {!modoConsulta && onIrAReabasto && (filtroAlerta === "bajo_stock" || filtroAlerta === "agotados") && (
         <button type="button" onClick={onIrAReabasto} style={{
           padding:"4px 10px",borderRadius:8,border:"none",cursor:"pointer",
@@ -3990,6 +4011,7 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
           <option value="sin_codigo_barras">🏷️ Sin código de barras</option>
           <option value="sin_foto">🖼 Sin foto</option>
           {!modoConsulta && <option value="sin_precio">Sin precio de venta</option>}
+          {!modoConsulta && <option value="margen_alto">Margen raro (PVP vs costo)</option>}
         </select>
         {!modoConsulta && (
         <label style={{display:"flex",alignItems:"center",gap:7,cursor:"pointer",color:C.textMid,fontSize:12,fontWeight:600}}>
@@ -4254,8 +4276,12 @@ export default function InventarioModule({ modoConsulta = false, onIrARecibir, o
                 const dias    = diasParaCaducar(proxCad);
                 const nearCad = esPorCaducar(dias);
                 const mgn     = margen(p.precio, p.costo);
-                const mgnNum  = parseFloat(mgn);
-                const mgnCol  = isNaN(mgnNum)?C.textMid:mgnNum>=50?C.green:mgnNum>=25?C.amber:C.red;
+                const auditMgn = auditarMargenProducto(p);
+                const mgnCol  = auditMgn.accion === "bajar" || auditMgn.accion === "bajo_costo"
+                  ? C.red
+                  : auditMgn.accion === "revisar_costo"
+                    ? C.amber
+                    : (parseFloat(mgn) >= 25 ? C.green : C.amber);
                 const marcaDisp = (p.marca || "").trim();
                 const { nombre: nombreTabla, presentacion: presInferida } = nombreYPresentacionTabla(p);
                 const presDisp = presInferida || "—";
