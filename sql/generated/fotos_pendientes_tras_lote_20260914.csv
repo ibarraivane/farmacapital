@@ -18,7 +18,6 @@ FC-IFC-PEI01,2008560100015,Peine caballero profesional N1 C/12,,12,ean_interno
 FC-IFC-PIN01,7896075701040,Pinza depilar Mereje tenaza C/12,Mereje,12,insumo_sin_packshot_publico
 FMX-301565,7506022307897,Jeringa-Sensimedical 60 Ml Pivote/Concentrico,sensimedical,11,insumo_sin_packshot_publico
 FC-84500607,7506484500607,Cinta micropore blanca 2.5 cm x 9.1 m,Cintapore,8,insumo_sin_packshot_publico
-FC-06246652,7506306246652,Jabón Dove blanco 90 g,,6,cuidado_ean_sin_packshot_exacto
 FC-26EA40A4,,Ramcinet,Ramcinet,6,sin_ean_no_identificado
 EQ-ALP0634,7502226294766,Losartan Alpharma 30 tab 50 mg,Alpharma,5,medicamento_ean_sin_packshot_publico
 FC-00001049,3311000001049,Pomada de árnica Tarro 50 g Mercurio,Mercurio,5,herbolario_sin_packshot_publico
@@ -37,7 +36,6 @@ FC-LV-SKITTLES24,7502226816944,Skittles Original bolsa,Skittles,5,cuidado_ean_si
 FMX-301135,7506484500515,Cintapore cinta microporosa blanca 1.25 cm x 5 m,Cintapore,5,insumo_sin_packshot_publico
 FMX-506935,,Normogotero-Sensimedical Piezas C/1 S/Aguja,,5,insumo_sin_packshot_publico
 FC-45720567,7502245720567,Quitaesmalte coco,SKN,4,cuidado_ean_sin_packshot_exacto
-FC-50343065,7502250343065,VITACILINA 2X1 16g,,4,otro_ean_sin_packshot
 FC-73909859,7501573909859,Sarox (Omeprazol) 20 mg,Biomep,4,medicamento_ean_sin_packshot_publico
 FC-75102520,7506475102520,Gerber Etapa 2 comida casera res 100 g,,4,cuidado_ean_sin_packshot_exacto
 FC-75102537,7506475102537,Gerber Etapa 2 comida casera pollo 100 g,,4,cuidado_ean_sin_packshot_exacto
@@ -46,9 +44,6 @@ FC-IFC-TIJ01,2008510100010,Tijera para bigote,,4,ean_interno
 FC-00001612,3311000001612,Jarabe de granada Frasco 50 mL Mercurio,Mercurio,3,herbolario_sin_packshot_publico
 FC-00721541,6502400721541,Suerox Vitamins Manzana V-Limón 630 ML,Suerox,3,otro_ean_sin_packshot
 FC-02045312,7503002045312,Esencia de clavo Frasco gotero Herbotec,Herbotec,3,insumo_sin_packshot_publico
-FC-05405168,7503005405168,Estropajo Saluk Fashion F-Clean clásica,Saluk Fashion,3,insumo_sin_packshot_publico
-FC-06251847,7506306251847,DESOD AXE BLACK REMIX SPY 210 ML,Axe,3,cuidado_ean_sin_packshot_exacto
-FC-20500171,8101205001716,Crema para peinar Pert aceite oliva aguacate,Pert,3,cuidado_ean_sin_packshot_exacto
 FC-45720574,7502245720574,Quitaesmalte SKN · variante 574 · confirmar,SKN,3,cuidado_ean_sin_packshot_exacto
 FC-63975795,,Gentamicina,,3,sin_ean_no_identificado
 FC-69387811,3311000001421,Mercurio Aceite Gomenolado,Mercurio,3,herbolario_sin_packshot_publico
@@ -60,22 +55,12 @@ FC-DFF99C3F,,Mercurio,Mercurio,3,herbolario_sin_packshot_publico
 FC-IFC-PEI03,2008580100019,Peine para piojos de acero económico 9309,,3,ean_interno
 FMX-301139,7506484500539,Cintapore cinta microporosa 1.25 cm x 5 m piel,CINTAPORE,3,insumo_sin_packshot_publico
 EQ-BIO212,7501573909958,Colchicina 30 Tab 1 Mg,Biomep,2,medicamento_ean_sin_packshot_publico
-FC-03440534,3616303440534,ADIDAS 150ML SPY CONTROL,Adidas,2,otro_ean_sin_packshot
-FC-08491096,7501008491096,Cafiaspirina tartrato C/100,Cafiaspirina,2,medicamento_ean_sin_packshot_publico
-FC-18132592,761318132592,PEINES REVLON SALON CARBON 2PK,Revlon,2,insumo_sin_packshot_publico
 FC-21187575,7502221187575,DESOD BRUT DEEPBLUE 48HR SPY150ML,Brut,2,cuidado_ean_sin_packshot_exacto
-FC-25108747,3614225108747,KOLESTON CASTAÑO 40,,2,cuidado_ean_sin_packshot_exacto
-FC-25108761,3614225108761,KOLESTON BORGOÑA INTENSO 466,,2,cuidado_ean_sin_packshot_exacto
-FC-25108877,3614225108877,KOLESTON RUBIO MEDIO 70,,2,cuidado_ean_sin_packshot_exacto
 FC-25629442,7506425629442,ESCUDO SOL ANTISEP P/MAN SPY 200ML ENE27,Escudo,2,otro_ean_sin_packshot
 FC-46505283,7501846505283,Xiomara Cera Mate,Xiomara,2,cuidado_ean_sin_packshot_exacto
-FC-46698137,7509546698137,C D COLGATE LUMIN W COHIT BRILL 66MLN,Colgate,2,otro_ean_sin_packshot
-FC-52900247,7506552900247,ALMOHADILLAS DE ALGON QUIRMEX,,2,otro_ean_sin_packshot
 FC-53008221,855553008221,Encendedor desechable Riegel,Riegel,2,insumo_sin_packshot_publico
 FC-5D59ED54,3311000000776,Mercurio Cloruro De Magnesio Cajita,Mercurio,2,herbolario_sin_packshot_publico
 FC-614E4F82,,Perilla N3,Edigar,2,insumo_sin_packshot_publico
-FC-82731071,7501082731071,DESOD NUVEL TROPIC WOM SPY 170 ML,Nuvel,2,cuidado_ean_sin_packshot_exacto
-FC-82736021,7501082736021,DEO NUVEL ACLA WOM SPY150ML,Nuvel,2,otro_ean_sin_packshot
 FC-84313295,759684313295,JALOMA ATOMIZADOR 60ML MERTODOL BLANCO,Jaloma,2,otro_ean_sin_packshot
 FC-89100101,7501868910010,Algodón 200 g,Dibar,2,insumo_sin_packshot_publico
 FC-9A1C64E7,,Perilla Edigar N O Caja,Perilla,2,insumo_sin_packshot_publico
@@ -88,52 +73,26 @@ FC-IFC-PINZACH,7501370204584,Pinza depilar Lady chica,Lady,2,insumo_sin_packshot
 FC-IFC-PINZAGR,7501370204577,Pinza depilar Lady grande,Lady,2,insumo_sin_packshot_publico
 FMX-301136,,Cintapore cinta microporosa piel 2.5 cm x 5 m,Cintapore,2,insumo_sin_packshot_publico
 FMX-302884,,Sol-Sun Crema C/50 Gr 50-Fps/Ah Av,,2,sin_ean_no_identificado
-EQ-VIT073,7501478317421,Bocetix 1 Sol 50 Mg 150 Ml,Vitae,1,medicamento_ean_sin_packshot_publico
 FC-01167001,7502001167001,LAÜR Infantil solución inyectable C/3,SON'S,1,medicamento_ean_sin_packshot_publico
 FC-01303454,7501001303454,Pantene Control caída anticaída,Pantene,1,cuidado_ean_sin_packshot_exacto
-FC-03441302,3616303441302,ADIDAS 150ML SPY TEAMFORCE,Adidas,1,otro_ean_sin_packshot
-FC-03842550,3616303842550,ADIDAS 150ML SPY FRESH ENDURANCE,Adidas,1,otro_ean_sin_packshot
 FC-06209763,7506306209763,DESOD SAVILE MANZANILLA SPY 150ML,Savile,1,cuidado_ean_sin_packshot_exacto
-FC-06209855,7506306209855,DESOD AXE ANARC FLO 48H SPY 150ML,Axe,1,cuidado_ean_sin_packshot_exacto
 FC-06215528,7506306215528,DEO SAVILE B-SOD Y LIM SPY150ML,Savile,1,otro_ean_sin_packshot
-FC-09864839,7506309864839,DESOD GTTE END COOL SPY150ML,Gillette,1,cuidado_ean_sin_packshot_exacto
 FC-1321B34F,,Hidroxon,Hidroxon,1,sin_ean_no_identificado
-FC-15592837,7896015592837,CEP SENSODYNE GENTLE CARE XTR SUAV 3PZ,Sensodyne,1,otro_ean_sin_packshot
-FC-18020639,761318020639,CEP REVLON ACOLCHMGO GOMARV2063LA,Revlon,1,medicamento_ean_sin_packshot_publico
-FC-18128335,761318128335,CEP REVLON MOD PALETA RV2833LA,Revlon,1,otro_ean_sin_packshot
-FC-19036590,7501019036590,SABA BUENAS NOCHES EXTRA 12 TOALLAS,,1,cuidado_ean_sin_packshot_exacto
 FC-20500201,8101205002010,Shampoo Pert Aceite oliva,Pert,1,cuidado_ean_sin_packshot_exacto
-FC-22107201,7501022107201,SH PERRO CONSE ANTI OLORES 500ML,Conse,1,otro_ean_sin_packshot
-FC-36007279,037836007279,SH PERRO CONSE GUAU ALOE VERA 400ML,Conse,1,otro_ean_sin_packshot
-FC-36032776,0378360327762,Shampoo Ricitos de Oro Biopure,Ricitos de Oro,1,cuidado_ean_sin_packshot_exacto
 FC-36033735,0378360337358,Shampoo Ricitos de Oro Agua De Coco,Ricitos de Oro,1,cuidado_ean_sin_packshot_exacto
-FC-36084508,037836084508,SH GRISI PERRO AGRADE AVENA 400ML,Grisi,1,otro_ean_sin_packshot
 FC-38891190,0672388911904,Jabon Dove Original,Dove,1,cuidado_ean_sin_packshot_exacto
-FC-39349146,7506339349146,DESOD OLD SPICE WOLFTHORN SPY 150ML,Old Spice,1,cuidado_ean_sin_packshot_exacto
 FC-3E863E37,,Tratidri,Tratidri,1,sin_ean_no_identificado
-FC-40013850,6502400138504,Crema Teatrical Lanolina,Teatrical,1,cuidado_ean_sin_packshot_exacto
-FC-40025839,6502400258394,Jabon Intimo Lomecan V,Lomecan,1,cuidado_ean_sin_packshot_exacto
-FC-40030338,6502400303384,Jabon Intimo Lomecan V Aclar,Lomecan,1,cuidado_ean_sin_packshot_exacto
 FC-40030963,6502400309638,Crema Teatrical Cel-Ma Nutrit,Teatrical,1,cuidado_ean_sin_packshot_exacto
-FC-40036965,6502400369656,Jabon Asepxia Bicarbon,Asepxia,1,cuidado_ean_sin_packshot_exacto
 FC-40071775,650240071775,NORDIKO ORIGINAL,,1,cuidado_ean_sin_packshot_exacto
 FC-40071799,650240071799,NORDIKO ICY BLAST,,1,cuidado_ean_sin_packshot_exacto
 FC-405A75E3,,Ursodesoxicolico,Acido,1,sin_ean_no_identificado
 FC-42478359,3600542478359,AGUA MIC GARNIER JELLY CARB 400ML,Garnier,1,otro_ean_sin_packshot
 FC-44B6751A,,Aquito 500/100/30/4 Mg,Laur,1,sin_ean_no_identificado
 FC-45116656,074451166561,Baby Einstein Neptune's Busy Bubbles juguete sensorial Ocean Explorers,Baby Einstein,1,otro_ean_sin_packshot
-FC-46015514,7509546015514,DESOD LADYSS D-DEF A-FSH 45G,Lady Speed Stick,1,cuidado_ean_sin_packshot_exacto
-FC-46029153,7509546029153,DESOD LADYSS FLORAL FRESH GEL 65GN,Lady Speed Stick,1,cuidado_ean_sin_packshot_exacto
-FC-46078434,7509546078434,DESOD STEFANO ALP MEN SPY 113G,Stefano,1,cuidado_ean_sin_packshot_exacto
 FC-46504859,7501846504859,Xiomara Pomada B,Xiomara,1,cuidado_ean_sin_packshot_exacto
 FC-46506198,7501846506198,Xiomara cera modeladora telaraña 100 g,Xiomara,1,cuidado_ean_sin_packshot_exacto
-FC-46651743,7509546651743,DESOD STEFANO TRIUMPH 159 ML,Stefano,1,cuidado_ean_sin_packshot_exacto
-FC-46654997,7509546654997,MOUSSE CAPRICE FINAL TOUCH 200 G,Caprice,1,otro_ean_sin_packshot
-FC-46694702,7509546694702,DESOD STEFANO NEXT LEVEL SPY150MLN,Stefano,1,cuidado_ean_sin_packshot_exacto
 FC-47AAF23B,3311000003494,Mercurio Sulfatiazol Polvo,Mercurio,1,herbolario_sin_packshot_publico
-FC-50342563,7502250342563,VITACILINA FACILA SERUM COLÁGENO,,1,otro_ean_sin_packshot
 FC-50343102,7502250343102,VITACILINA FACIAL MELATONINA,,1,otro_ean_sin_packshot
-FC-52828078,7509552828078,MASCARILLA PARA CABELLO DEBIL HAIR FOOD,,1,otro_ean_sin_packshot
 FC-578F060C,3311000003739,Mercurio Borax Polvo,Mercurio,1,herbolario_sin_packshot_publico
 FC-58752796,7501058752796,Lysol desinfectante antibacterial Crisp Linen 475 g,,1,otro_ean_sin_packshot
 FC-5EF90195,3311000003845,Mercurio Flor De Arnica,Mercurio,1,herbolario_sin_packshot_publico
@@ -144,13 +103,10 @@ FC-67923654,7506267923654,GEL HONEY KEEPER MZNILL MIE 200ML,Honey Keeper,1,otro_
 FC-6B2ADEE9,7501109900008,Protect aerosol 200 dosis,Protect,1,otro_ean_sin_packshot
 FC-6C2878CF,,Susp 125 Mg/Ml,Budenova,1,sin_ean_no_identificado
 FC-70100013,2008470100013,Gillette Prestobarba 3 rastrillo desechable 1 pza,Gillette,1,ean_interno
-FC-75064891,75064891,DESOD SAVILE AGUA/ROSA R-ON 45ML MAR27,Savile,1,cuidado_ean_sin_packshot_exacto
 FC-75064938,75064938,Desodorante Ego Force 24H roll-on,Ego,1,cuidado_ean_sin_packshot_exacto
 FC-75068622,75068622,DESOD SAVILE B-SOD Y LIM R-ON45ML ABRIL27,Savile,1,cuidado_ean_sin_packshot_exacto
 FC-75068639,75068639,DESOD SAVILE B-SOD Y LIM STICK45G,Savile,1,cuidado_ean_sin_packshot_exacto
 FC-75075996,75075996,DESOD REXON HAPPY MOR 48H R-ON 50ML,Rexona,1,cuidado_ean_sin_packshot_exacto
-FC-78926523,78926523,DESOD REXONA WOM AEMOT R-ON 50G,Rexona,1,cuidado_ean_sin_packshot_exacto
-FC-82200016,7501482200016,Omeprazol Aktyzar,Aktyzar,1,medicamento_ean_sin_packshot_publico
 FC-84500522,7506484500522,Cinta micropore blanca 2.5 cm x 5 m,,1,insumo_sin_packshot_publico
 FC-84900259,759684900259,JALOMA AGUA DE ARROZ 250ML SPRAY C24 PZS,Jaloma,1,otro_ean_sin_packshot
 FC-85103015,6195851030154,Toallitas Humedas Bebin Super,Bebin Super,1,otro_ean_sin_packshot
@@ -164,14 +120,11 @@ FC-DB4A39AE,,Eferox (Cefalexina),Calcio,1,sin_ean_no_identificado
 FC-EXP-PALM8,,Jabón Palmolive Neutro Balance 100 g 8 pack,,1,cuidado_ean_sin_packshot_exacto
 FC-IFC-DON01,2008550100018,Dona / bolsa IJJ-10 C/12,,1,ean_interno
 FMX-301721,,Vita/Kid/C Jarabe C/240 Ml,,1,sin_ean_no_identificado
-FMX-302947,,Citrato Magnesio/Lecitina Soya-Naturex Capsulas C/30,,1,sin_ean_no_identificado
 FMX-303091,793969285204,Piojitos Shampoo C/150 Gr,PIOJITOS,1,cuidado_ean_sin_packshot_exacto
-FMX-502465,,Colageno-Naturex Tabletas C/60,,1,sin_ean_no_identificado
 FMX-505937,,Pleniform-40 Tabletas C/30,,1,sin_ean_no_identificado
 FMX-71074,6977587671074,Termo Fifa,,1,otro_ean_sin_packshot
 IFC-LAVAOJOS,2008490100017,Copa lavaojos de vidrio,Arfam,1,ean_interno
 FC-36040450,0378360404500,Crema Grisi concha nácar para manos,Grisi,0,otro_ean_sin_packshot
-FC-40013898,6502400138986,Crema Teatrical Lanol/Ros,Teatrical,0,cuidado_ean_sin_packshot_exacto
 FC-45720208,7502245720208,Quitaesmalte SKN · variante 208 · confirmar,SKN,0,cuidado_ean_sin_packshot_exacto
 FC-84500546,7506484500546,Cintapore cinta microporosa piel 2.5 cm x 5m,Cintapore,0,insumo_sin_packshot_publico
 FC-IFC-SIL01,2008520100017,Silika Seda Pure Fruit Pera 120 mL,Silika,0,ean_interno
