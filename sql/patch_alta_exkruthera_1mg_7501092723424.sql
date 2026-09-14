@@ -1,7 +1,8 @@
 -- Exkruthera Fruquintinib 1 mg · Takeda · caja con frasco 21 cápsulas.
 -- Ficha SFE Pacientes (https://pacientes.sfe.com.mx/Productos/5043), no un ticket.
 -- EAN/GTIN 7501092723424 (dígito de control OK). Registro 295M2025 SSA IV.
--- 4 pzas en stock. Costo y PVP en NULL = por definir (POS no vende si precio ≤ 0.01).
+-- 4 pzas en stock. Costo y PVP = 0.01 (placeholder: precio es NOT NULL;
+-- el POS no vende si precio ≤ 0.01).
 -- Caducidad NO: no vino la caja. No inventar lote ni MMAA.
 -- Foto: public/catalogo-propia/exkruthera-fruquintinib-1mg-21caps.jpg
 --       (packshot SFE). Correr este SQL DESPUÉS del deploy de Vercel.
@@ -22,14 +23,14 @@ select
   'Medicamentos',
   'Oncología',
   'marca',
-  'Alta mostrador · ficha SFE / Takeda · registro 295M2025 SSA IV · costo y PVP por definir · 4 pzas sin lote (caducidad de la caja)',
+  'Alta mostrador · ficha SFE / Takeda · registro 295M2025 SSA IV · costo y PVP 0.01 por definir · 4 pzas sin lote (caducidad de la caja)',
   'Takeda',
   'Caja con frasco con 21 cápsulas',
   'Fruquintinib',
   '1 mg',
   'Cápsula',
-  null,
-  null,
+  0.01,
+  0.01,
   'https://www.farmacapital.mx/catalogo-propia/exkruthera-fruquintinib-1mg-21caps.jpg',
   'https://www.farmacapital.mx/catalogo-propia/exkruthera-fruquintinib-1mg-21caps.jpg',
   4,
