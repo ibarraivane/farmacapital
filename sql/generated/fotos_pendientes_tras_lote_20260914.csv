@@ -15,15 +15,11 @@ FC-IFC-PEI01,2008560100015,Peine caballero profesional N1 C/12,,12,ean_interno
 FC-IFC-PIN01,7896075701040,Pinza depilar Mereje tenaza C/12,Mereje,12,insumo_sin_packshot_publico
 FMX-301565,7506022307897,Jeringa-Sensimedical 60 Ml Pivote/Concentrico,sensimedical,11,insumo_sin_packshot_publico
 FC-84500607,7506484500607,Cinta micropore blanca 2.5 cm x 9.1 m,Cintapore,8,insumo_sin_packshot_publico
-FC-26EA40A4,,Ramcinet,Ramcinet,6,sin_ean_no_identificado
-EQ-ALP0634,7502226294766,Losartan Alpharma 30 tab 50 mg,Alpharma,5,medicamento_ean_sin_packshot_publico
 FC-00001049,3311000001049,Pomada de árnica Tarro 50 g Mercurio,Mercurio,5,herbolario_sin_packshot_publico
 FC-08DB70CB,7503022640153,Bicarbonato Velazquez Grande 200G,Bicarbonato,5,herbolario_sin_packshot_publico
 FC-45720215,7502245720215,Quitaesmalte SKN · variante 215 · confirmar,SKN,5,cuidado_ean_sin_packshot_exacto
-FC-46601138,7506346601138,Merthorab Frasco 20 mL Kohn,Kohn,5,otro_ean_sin_packshot
 FC-64EB83AA,,Compl,Bencil/Benz,5,sin_ean_no_identificado
 FC-68950702,7501868950702,Vaso recolector de muestras Dibar 100 ml,Dibar,5,insumo_sin_packshot_publico
-FC-926099D3,,Mertiolate Kohn Rojo,Mertiolate,5,sin_ean_no_identificado
 FC-931B4809,3311000001476,Mercurio Aceite Coco,Mercurio,5,herbolario_sin_packshot_publico
 FC-95779436,,Acetilsalicilico Ef,Acido,5,sin_ean_no_identificado
 FC-A0D320D1,,Amoxicilina,,5,sin_ean_no_identificado
@@ -65,12 +61,10 @@ FC-IFC-PINZAGR,7501370204577,Pinza depilar Lady grande,Lady,2,insumo_sin_packsho
 FMX-301136,,Cintapore cinta microporosa piel 2.5 cm x 5 m,Cintapore,2,insumo_sin_packshot_publico
 FC-01303454,7501001303454,Pantene Control caída anticaída,Pantene,1,cuidado_ean_sin_packshot_exacto
 FC-06215528,7506306215528,DEO SAVILE B-SOD Y LIM SPY150ML,Savile,1,otro_ean_sin_packshot
-FC-1321B34F,,Hidroxon,Hidroxon,1,sin_ean_no_identificado
 FC-36033735,0378360337358,Shampoo Ricitos de Oro Agua De Coco,Ricitos de Oro,1,cuidado_ean_sin_packshot_exacto
 FC-3E863E37,,Tratidri,Tratidri,1,sin_ean_no_identificado
 FC-405A75E3,,Ursodesoxicolico,Acido,1,sin_ean_no_identificado
 FC-42478359,3600542478359,AGUA MIC GARNIER JELLY CARB 400ML,Garnier,1,otro_ean_sin_packshot
-FC-44B6751A,,Aquito 500/100/30/4 Mg,Laur,1,sin_ean_no_identificado
 FC-45116656,074451166561,Baby Einstein Neptune's Busy Bubbles juguete sensorial Ocean Explorers,Baby Einstein,1,otro_ean_sin_packshot
 FC-46504859,7501846504859,Xiomara Pomada B,Xiomara,1,cuidado_ean_sin_packshot_exacto
 FC-46506198,7501846506198,Xiomara cera modeladora telaraña 100 g,Xiomara,1,cuidado_ean_sin_packshot_exacto
@@ -82,7 +76,6 @@ FC-66022610,814266022610,SH HK KIDS HONEY,Honey Keeper,1,otro_ean_sin_packshot
 FC-66022627,814266022627,SH HONEYKEEPER KIDS LAVANDA 3EN1 414ML,Honey Keeper,1,otro_ean_sin_packshot
 FC-67917516,7506267917516,CRA HK KIDS OAT 414ML,Honey Keeper,1,otro_ean_sin_packshot
 FC-6B2ADEE9,7501109900008,Protect aerosol 200 dosis,Protect,1,otro_ean_sin_packshot
-FC-6C2878CF,,Susp 125 Mg/Ml,Budenova,1,sin_ean_no_identificado
 FC-70100013,2008470100013,Gillette Prestobarba 3 rastrillo desechable 1 pza,Gillette,1,ean_interno
 FC-75064938,75064938,Desodorante Ego Force 24H roll-on,Ego,1,cuidado_ean_sin_packshot_exacto
 FC-75068622,75068622,DESOD SAVILE B-SOD Y LIM R-ON45ML ABRIL27,Savile,1,cuidado_ean_sin_packshot_exacto
@@ -93,7 +86,6 @@ FC-84900259,759684900259,JALOMA AGUA DE ARROZ 250ML SPRAY C24 PZS,Jaloma,1,otro_
 FC-85103015,6195851030154,Toallitas Humedas Bebin Super,Bebin Super,1,otro_ean_sin_packshot
 FC-85171118,7501685171118,Condón Sico,Sico,1,otro_ean_sin_packshot
 FC-85800198,6195858001980,Toallitas Bebin Super,Bebin Super,1,otro_ean_sin_packshot
-FC-AA7B0686,,Drosquim adulto jarabe 300/160,Drosquim,1,sin_ean_no_identificado
 FC-B8D7C997,3311000003715,Bicarbonato Sobres,Bicarbonato,1,otro_ean_sin_packshot
 FC-CB5C11ED,3311000003425,Mercurio Magnesia Anisada,Mercurio,1,herbolario_sin_packshot_publico
 FC-D037156B,3311000003708,Mercurio Bismuto Subnitrato,Mercurio,1,herbolario_sin_packshot_publico

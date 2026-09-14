@@ -56,7 +56,8 @@ Otras cajas altas (Acetif SI, Mometasona nasal, Losil spray, Cefotaxima, Cefurox
 1. Deploy de los JPG en `public/catalogo-propia/` (keto + pirinovag + calazin + culminax + eucalin + reomatolum + dove-original-90g + aktyzar + bocetix + **12 JPG de la tercera pasada**).
 2. `sql/patch_fotos_frente_y_faltantes_20260914.sql` (ya corrido).
 3. `sql/patch_fotos_nombre_exprezo_levic_20260914.sql` (ya corrido).
-4. `sql/patch_fotos_resto_129_20260914.sql` (este lote: 22 fotos).
+4. `sql/patch_fotos_resto_129_20260914.sql` (ya corrido: 22 fotos).
+5. Deploy de los 7 JPG de fabricante + `sql/patch_fotos_meds_fabricante_20260914.sql`.
 
 ## Segunda pasada: Exprezo + Levic + Nadro por nombre (14-sep tarde)
 
@@ -94,20 +95,37 @@ No se usó: Aspirina EAN `…1074` (20/40 son otros códigos); Losartán Alpharm
 
 JPG nuevos: `savile-manzanilla-spray-150ml.jpg`, `colchicina-biomep-1mg-c30.jpg`, `sarox-omeprazol-20mg-c28.jpg`, `nordiko-original-130g.jpg`, `nordiko-icy-blast-130g.jpg`, `pleniform-40-c30.jpg`, `ky6-clorfenamina-compuesta-c10.jpg`, `laur-infantil-c3.jpg`, `sensimedical-10ml-22gx32.jpg`, `solsun-cara-face-50g-fps50.jpg`, `tegaderm-3m-10x12-c50.jpg`, `vita-kid-c-jarabe-240ml.jpg`.
 
+## Cuarta pasada: fabricante / Google (14-sep noche)
+
+Se hizo lo que se hace a mano: Google + ficha del fabricante + ML. `sql/patch_fotos_meds_fabricante_20260914.sql` — **8 packshots** + corrección de typos. Los 7 JPG nuevos piden **deploy**.
+
+| Stock | SKU | Ticket | Ahora | Fuente |
+|---:|---|---|---|---|
+| 5 | `FC-46601138` | Merthorab 20 ml Kohn | Merthiolate Rojo Kohn 20 ml | [kohnmexico.com](https://kohnmexico.com/producto/merthiolate-rojo-kohn/) |
+| 5 | `FC-926099D3` | Mertiolate Kohn Rojo | Merthiolate Rojo Kohn 20 ml (C/25 = paquete) | misma foto oficial |
+| 6 | `FC-26EA40A4` | Ramcinet | Raamcinet cetirizina 10 mg C/10 | WeCare / [ML](https://www.mercadolibre.com.mx/raamcinet-tableta-10-mg-10-tabletas/p/MLM39474398) |
+| 5 | `EQ-ALP0634` | Losartán Alpharma 50 mg C/30 | igual | foto de la caja de mostrador |
+| 1 | `FC-AA7B0686` | Drosquim 300/160 | Drosequim Adulto 200 ml | Sanorim / Quimpharma (no infantil 150/80) |
+| 1 | `FC-6C2878CF` | Susp 125 Mg/Ml | Budenova 0.125 mg/ml 5 amp × 2 ml | Curitek / Novag |
+| 1 | `FC-1321B34F` | Hidroxon | Hidroxin 10 mg C/30 | [Mavi](https://www.mavifarmaceutica.com/hidroxin) |
+| 1 | `FC-44B6751A` | Aquito 500/100/30/4 | LAÜR Adulto C/3 | MiFarma (no es el infantil) |
+
+No se copió EAN: ya está en `FC-27872123` / `EQ-MAI099` / `EQ-QUM070` / `EQ-SON264` (`codigo_barras` UNIQUE).
+
 ## Lo que queda — `sql/generated/fotos_pendientes_tras_lote_20260914.csv`
 
-107 SKUs. Nadro i22 a veces responde con **otro EAN** (no se usa). `visoti.mx` caído.
+99 SKUs. Nadro i22 a veces responde con **otro EAN** (no se usa). `visoti.mx` caído.
 
 ### Medicamentos con EAN, sin packshot público de esa caja
 
 | Stock | SKU | EAN | Producto |
 |---:|---|---|---|
 | 16 | `FC-08491074` | 7501008491074 | Aspirina (no hay ficha de este EAN; 20/40 son otros códigos) |
-| 5 | `EQ-ALP0634` | 7502226294766 | Losartán Alpharma 50 mg C/30 (Buscamed = placeholder) |
+| 1 | `FC-6B2ADEE9` | 7501109900008 | Protect aerosol 200 dosis (Nadro devolvió Spiriva; ≠ Protaisol) |
 
 ### Realmente no se sabe qué son (sin EAN / nombre de ticket)
 
-Ramcinet, Compl, Acetilsalicílico Ef, Amoxicilina, Gentamicina, Mertiolate Kohn Rojo, Hidroxon, Tratidri, Ursodesoxicólico, Aquito, Drosquim, Eferox, «Susp 125 Mg/Ml», «FC producto botiquín».
+Compl (marca Bencil/Benz — posible bencilpenicilina, sin UI), Acetilsalicílico Ef, Amoxicilina, Gentamicina, Tratidri, Ursodesoxicólico, Eferox (el ticket dice cefalexina; el Eferox alemán es levotiroxina), «FC producto botiquín».
 
 No se inventa foto a ciegas.
 
