@@ -27,9 +27,9 @@ OUT_SQL = ROOT / "sql" / "patch_carga_levic_9012242979.sql"
 FOLIO = "9012242979"
 PROVEEDOR = "Levic"
 FECHA = "2026-09-14"
-TOTAL_TICKET = 1538.94  # suma importes CFDI (IVA 0)
+TOTAL_TICKET = 1557.92  # bases 1538.94 + IVA 18.98 (Clorofil+Ferro-4)
 SUBTOTAL_CFDI = 1538.94
-IVA_CFDI = 0.00
+IVA_CFDI = 18.98  # Clorofil 9.78 + Ferro-4 9.20
 UUID = "C7F561F1-1FC5-4B04-99CF-3CF83FA37ED8"  # OCR parcial del papel
 ENTREGA = "832819990"
 
@@ -69,8 +69,8 @@ ROWS = [
         "qty": 1,
         "pu": 18.75,
         "sub": 18.75,
-        "lote": "7210536",
-        "caducidad": "2028-06-30",
+        "lote": "7230526",
+        "caducidad": "2029-05-30",
         "sku": "EQ-ALP0608",
         "match": True,
         "categoria": "Medicamentos",
@@ -90,7 +90,7 @@ ROWS = [
         "qty": 2,
         "pu": 28.97,
         "sub": 57.94,
-        "lote": "8204307",
+        "lote": "B26A507",
         "caducidad": "2028-04-30",
         "sku": "EQ-AMS132",
         "match": False,
@@ -111,8 +111,8 @@ ROWS = [
         "qty": 1,
         "pu": 23.55,
         "sub": 23.55,
-        "lote": "",
-        "caducidad": "",
+        "lote": "U26A275",
+        "caducidad": "2028-04-30",
         "sku": "EQ-AMS147",
         "match": False,
         "categoria": "Medicamentos",
@@ -132,7 +132,7 @@ ROWS = [
         "qty": 3,
         "pu": 23.96,
         "sub": 71.88,
-        "lote": "D606M20",
+        "lote": "0806M26",
         "caducidad": "2028-06-30",
         "sku": "EQ-APO216",
         "match": False,
@@ -153,7 +153,7 @@ ROWS = [
         "qty": 2,
         "pu": 4.37,
         "sub": 8.74,
-        "lote": "AF26155",
+        "lote": "SF26155",
         "caducidad": "2028-06-30",
         "sku": "EQ-AVT218",
         "match": False,
@@ -174,7 +174,7 @@ ROWS = [
         "qty": 3,
         "pu": 7.67,
         "sub": 23.01,
-        "lote": "670100",
+        "lote": "670186",
         "caducidad": "2028-06-01",
         "sku": "EQ-BEA424",
         "match": True,
@@ -195,7 +195,7 @@ ROWS = [
         "qty": 2,
         "pu": 27.88,
         "sub": 55.76,
-        "lote": "6140154",
+        "lote": "614015A",
         "caducidad": "2028-07-01",
         "sku": "EQ-GEN062",
         "match": False,
@@ -216,8 +216,8 @@ ROWS = [
         "qty": 1,
         "pu": 61.15,
         "sub": 61.15,
-        "lote": "0220107",
-        "caducidad": "2028-01-07",
+        "lote": "0200107",
+        "caducidad": "2029-01-07",
         "sku": "EQ-JAV050",
         "match": False,
         "categoria": "Suplementos",
@@ -237,7 +237,7 @@ ROWS = [
         "qty": 2,
         "pu": 55.87,
         "sub": 111.74,
-        "lote": "B2407206",
+        "lote": "6A0023C06",
         "caducidad": "2028-01-12",
         "sku": "EQ-JAY216",
         "match": False,
@@ -280,7 +280,7 @@ ROWS = [
         "pu": 16.87,
         "sub": 33.74,
         "lote": "262633",
-        "caducidad": "2028-05-20",
+        "caducidad": "2028-05-30",
         "sku": "EQ-MAV176",
         "match": False,
         "categoria": "Medicamentos",
@@ -321,7 +321,7 @@ ROWS = [
         "qty": 2,
         "pu": 17.61,
         "sub": 35.22,
-        "lote": "264160",
+        "lote": "264180",
         "caducidad": "2028-07-30",
         "sku": "EQ-MAV342",
         "match": False,
@@ -447,7 +447,7 @@ ROWS = [
         "qty": 2,
         "pu": 28.38,
         "sub": 56.76,
-        "lote": "RBA029",
+        "lote": "RBR029",
         "caducidad": "2028-03-30",
         "sku": "EQ-RAM141",
         "match": False,
@@ -792,5 +792,5 @@ if __name__ == "__main__":
     )
     print(f"altas {sum(1 for r in ROWS if not r['match'])}  recibir {sum(1 for r in ROWS if r['match'])}")
     print(f"piezas {sum(r['qty'] for r in ROWS)}")
-    assert abs(suma - TOTAL_TICKET) < 0.01, (suma, TOTAL_TICKET)
+    assert abs(suma + IVA_CFDI - TOTAL_TICKET) < 0.01, (suma, IVA_CFDI, TOTAL_TICKET)
     assert sum(r["qty"] for r in ROWS) == 46
