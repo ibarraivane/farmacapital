@@ -13,6 +13,8 @@ describe("compra vigente", () => {
     expect(normalizeProveedorCompra("Cityfarma Iztapalapa")).toBe("Farma City");
     expect(normalizeProveedorCompra("Levic")).toBe("Levic");
     expect(normalizeProveedorCompra("EQUILIBRIO FARMACEÚTICO")).toBe("Equilibrio");
+    expect(normalizeProveedorCompra("FARMA MAYOREO")).toBe("Farma Mayoreo");
+    expect(normalizeProveedorCompra("FARMAMAYOREO CENTRAL")).toBe("Farma Mayoreo");
     expect(normalizeProveedorCompra("DULCERIA LA FAMOSA")).toBe("Dulcería La Victoria");
     expect(normalizeProveedorCompra("Dulcería La Victoria")).toBe("Dulcería La Victoria");
     expect(normalizeProveedorCompra("clave LAFAM73305")).toBe("Dulcería La Victoria");

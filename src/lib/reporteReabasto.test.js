@@ -68,6 +68,7 @@ describe("mejor surtidor", () => {
     expect(idFuenteSurtidor("El Surtidor de su Farmacia")).toBe("surtidor:el_surtidor");
     expect(idFuenteSurtidor("Cityfarma Iztapalapa")).toBe("farmacity");
     expect(idFuenteSurtidor("Farmalive Club")).toBe("farmalive");
+    expect(idFuenteSurtidor("FARMA MAYOREO")).toBe("surtidor:farma_mayoreo");
   });
 });
 
