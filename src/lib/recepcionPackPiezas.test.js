@@ -22,6 +22,44 @@ describe("piezasPorEmpaqueDesdeNombre", () => {
     expect(piezasPorEmpaqueDesdeNombre("Aspirina Protect C/28 tabletas")).toBeNull();
   });
 
+  test("jeringa C/100 del ticket se vende por pieza", () => {
+    expect(
+      piezasPorEmpaqueDesdeNombre("JERINGA-SENSIMEDICAL 3 ML 22X32 C/100 NEGRA"),
+    ).toBe(100);
+    expect(
+      piezasPorEmpaqueDesdeNombre("Jeringa SensiMedical 20 mL 21G x 32 mm C/50 verde"),
+    ).toBe(50);
+  });
+
+  test("jeringa suelta no se expande", () => {
+    expect(
+      piezasPorEmpaqueDesdeNombre("Jeringa Sensi Medical 3 mL 22G x 32 mm negra"),
+    ).toBeNull();
+  });
+
+  test("guante / cubrebocas / Tegaderm C/N → piezas", () => {
+    expect(
+      piezasPorEmpaqueDesdeNombre("GUANTE/ESTERIL-PROTEC CLASICO C/100 MEDIANO"),
+    ).toBe(100);
+    expect(
+      piezasPorEmpaqueDesdeNombre("Cubrebocas tricapa desechable C/100"),
+    ).toBe(100);
+    expect(
+      piezasPorEmpaqueDesdeNombre("Tegaderm 3M 10 x 12 cm C/50"),
+    ).toBe(50);
+  });
+
+  test("hisopos y cotonetes C/100 se venden el tarro, no la pieza", () => {
+    expect(piezasPorEmpaqueDesdeNombre("Jaloma Kiuts hisopos biodegradables C/100")).toBeNull();
+    expect(piezasPorEmpaqueDesdeNombre("Cotonetes Quirmex Tarro C/100")).toBeNull();
+  });
+
+  test("aguja C/1 del ticket no se expande (qty ya viene en piezas)", () => {
+    expect(
+      piezasPorEmpaqueDesdeNombre("AGUJA-HIPODERMICA-SENSIMEDICAL 22 G X 32 MM C/1 NEGRO"),
+    ).toBeNull();
+  });
+
   test("mayoreo dulces Orbit/Clorets 24/40PZ → 40", () => {
     expect(piezasPorEmpaqueDesdeNombre("ORBIT 4P FRESA, 24/40PZ")).toBe(40);
     expect(piezasPorEmpaqueDesdeNombre("CLORETS 4 S PLUS 24/40PZ")).toBe(40);
@@ -65,6 +103,17 @@ describe("expandirPackAPiezas", () => {
     expect(r.expandido).toBe(false);
     expect(r.cantidad).toBe(3);
     expect(r.costo).toBe(18.63);
+  });
+
+  test("1 caja jeringa C/100 → 100 pzas y costo de pieza", () => {
+    const r = expandirPackAPiezas({
+      nombre: "JERINGA-SENSIMEDICAL 3 ML 22X32 C/100 NEGRA",
+      cantidad: 1,
+      costo: 155,
+    });
+    expect(r.expandido).toBe(true);
+    expect(r.cantidad).toBe(100);
+    expect(r.costo).toBe(1.55);
   });
 });
 
