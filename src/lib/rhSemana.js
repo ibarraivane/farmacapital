@@ -35,6 +35,16 @@ export function diarioDeSemanal(salarioSemanal) {
   return round2(Number(salarioSemanal || 0) / 4);
 }
 
+/** Salario del viernes. No se inventa a partir del quincenal viejo. */
+export function salarioSemanalDe(emp) {
+  const n = Number(emp?.salario_semanal);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+export function esRpcRhPendiente(error) {
+  return /could not find the function|pgrst202/i.test(String(error?.message || error || ""));
+}
+
 const IMSS_OBRERO = 0.02375;
 
 export function calcularNominaSemanal({ salarioSemanal, diasTrabajo, aplicarImss = false }) {

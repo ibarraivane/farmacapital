@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import FlujoCajaTab from "./FlujoCajaTab";
 import { FLUJO_DEMO_BUNDLE } from "./lib/flujoCajaDemo";
 
@@ -25,6 +26,7 @@ test("Flujo muestra textos de mostrador y las mismas cifras", async () => {
   expect(screen.getByText("Faltan gastos por capturar")).toBeInTheDocument();
   expect(screen.getByText("Dinero contado hasta hoy")).toBeInTheDocument();
   expect(screen.getByText("Faltan gastos por capturar este mes")).toBeInTheDocument();
+  expect(screen.getByText(/La nómina se paga los viernes/)).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Capturar gastos" })).toBeInTheDocument();
   expect(screen.getByText("Este mes no compré a proveedor")).toBeInTheDocument();
   expect(screen.getByText("Recargas: el efectivo ya está contado")).toBeInTheDocument();
@@ -38,4 +40,13 @@ test("Flujo muestra textos de mostrador y las mismas cifras", async () => {
   expect(visible).not.toMatch(/total_general|costo_liquidacion|\bv1\b|RRHH|semilla|cubeta|pass-through|P&L|consulta 4/i);
   expect(visible).not.toMatch(/\bpiso\b/i);
   expect(supabase.rpc).not.toHaveBeenCalled();
+});
+
+test("en Gastos la nómina se describe como semanal de viernes", async () => {
+  render(<FlujoCajaTab usuario={{ nombre: "Ivan Ibarra" }} demoBundle={FLUJO_DEMO_BUNDLE} />);
+  await userEvent.click(screen.getByRole("tab", { name: "Gastos" }));
+  expect(await screen.findByText(/Nómina \(viernes\)/)).toBeInTheDocument();
+  await userEvent.selectOptions(screen.getByDisplayValue("Renta"), "nomina");
+  expect(screen.getByPlaceholderText(/Nómina viernes/i)).toBeInTheDocument();
+  expect(screen.getByText(/nómina: cada viernes/i)).toBeInTheDocument();
 });

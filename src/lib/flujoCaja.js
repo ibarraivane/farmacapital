@@ -98,7 +98,7 @@ export function textoCompletitud(completitud) {
     return "Captura del período completa: hay nómina, renta y pago a proveedor (o marcaste “sin compra”).";
   }
   const faltan = [];
-  if (!c.tiene_nomina) faltan.push("nómina");
+  if (!c.tiene_nomina) faltan.push("nómina de esta semana (viernes)");
   if (!c.tiene_renta) faltan.push("renta");
   if (!c.tiene_proveedor && !c.sin_compra) faltan.push("pago a proveedor");
   if (!faltan.length) {

@@ -1,26 +1,19 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { UserCog } from "lucide-react";
 import { PageHero } from "./components/AdminChrome";
 import { useMediaQuery } from './hooks/useMediaQuery';
 import { supabase } from './supabase';
 import { showToast } from './ui';
-import { C_LIGHT, BRAND } from "./constants";
+import { C_LIGHT } from "./constants";
 import { TURNOS_LISTA, etiquetaTurno, DIAS_SEMANA, planSemanaCaja, descansosChocan, etiquetaDiaDescanso, perfilesTurnoCaja } from "./constants/turnos";
 import { cargarConfigMetas, bonosActivos } from "./utils/turnosMetas";
 import EmpleadoDocumentos from "./modules/rh/EmpleadoDocumentos";
+import NominaSemanalPanel from "./modules/rh/NominaSemanalPanel";
+import { esRpcRhPendiente, salarioSemanalDe } from "./lib/rhSemana";
+import { parseRpcJsonObject } from "./utils/rpcJson";
 
 const fmt = (n) =>
   new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(n || 0);
-
-function getQuincena() {
-  const hoy = new Date();
-  const y = hoy.getFullYear(), m = hoy.getMonth();
-  if (hoy.getDate() <= 15) {
-    return { inicio: new Date(y,m,1).toISOString().slice(0,10), fin: new Date(y,m,15).toISOString().slice(0,10) };
-  }
-  const lastDay = new Date(y, m+1, 0).getDate();
-  return { inicio: new Date(y,m,16).toISOString().slice(0,10), fin: new Date(y,m,lastDay).toISOString().slice(0,10) };
-}
 
 const mkS = (C) => ({
   wrap:    { background:C.bg, minHeight:'100dvh', padding:'24px', fontFamily:"var(--fc-body)", color:C.text },
@@ -90,23 +83,16 @@ function TurnoSelect({ value, onChange, style, compact, allowEmpty = true }) {
 
 export default function RRHHModule() {
   const C = C_LIGHT;
-  const s = mkS(C);
   const S = mkS(C);
   const isMobile = useMediaQuery("(max-width: 768px)");
   const [empleados, setEmpleados] = useState([]);
   const [perfiles, setPerfiles]   = useState([]);
   const [loading, setLoading]     = useState(true);
-  const emptyForm = { nombre:'', telefono:'', rol:'vendedor', turno:'matutino', salario_quincenal:'' };
+  const emptyForm = { nombre:'', telefono:'', rol:'vendedor', turno:'matutino', salario_semanal:'' };
   const [form, setForm]           = useState(emptyForm);
   const [formMsg, setFormMsg]     = useState(null);
   const [editingId, setEditingId] = useState(null);
   const formRef = useRef(null);
-  const [selEmpId, setSelEmpId]   = useState('');
-  const [calcBase, setCalcBase]   = useState(0);
-  const [calcHE, setCalcHE]       = useState(0);
-  const [calcPD, setCalcPD]       = useState(0);
-  const [calcBono, setCalcBono]   = useState(0);
-  const [nominaMsg, setNominaMsg] = useState(null);
   const [comisiones, setComisiones] = useState([]);
   const [loadCom, setLoadCom]       = useState(false);
   const [periCom, setPeriCom]       = useState("mes"); // dia|semana|mes
@@ -269,7 +255,7 @@ export default function RRHHModule() {
       telefono: emp.telefono || "",
       rol: emp.rol || "vendedor",
       turno: emp.turno === "vespertino" ? "vespertino" : "matutino",
-      salario_quincenal: emp.salario_quincenal != null ? String(emp.salario_quincenal) : "",
+      salario_semanal: salarioSemanalDe(emp) ? String(salarioSemanalDe(emp)) : "",
     });
     setFormMsg(null);
     requestAnimationFrame(() => {
@@ -288,16 +274,18 @@ export default function RRHHModule() {
     if (!form.nombre.trim()) { setFormMsg({ ok:false, text:'El nombre es obligatorio.' }); return; }
     const tok = sessionStorage.getItem("farmacapital_session_token");
     if (!tok) { setFormMsg({ ok:false, text:'Sesión expirada.' }); return; }
+    const prev = editingId ? empleados.find((e) => String(e.id) === String(editingId)) : null;
+    const semanal = parseFloat(form.salario_semanal) || 0;
     const payload = {
       p_session_token: tok,
       p_nombre: form.nombre.trim(),
       p_telefono: form.telefono.trim() || null,
       p_rol: form.rol,
       p_turno: form.turno,
-      p_salario_quincenal: parseFloat(form.salario_quincenal) || 0,
+      p_salario_quincenal: prev ? (parseFloat(prev.salario_quincenal) || 0) : 0,
+      p_salario_semanal: semanal,
     };
     if (editingId) {
-      const prev = empleados.find((e) => String(e.id) === String(editingId));
       const nombreAntes = String(prev?.nombre || "").trim().toLowerCase();
       const nombreAhora = form.nombre.trim().toLowerCase();
       if (nombreAntes && nombreAntes !== nombreAhora) {
@@ -307,16 +295,37 @@ export default function RRHHModule() {
         if (!ok) return;
       }
     }
-    const { error } = editingId
+    let res = editingId
       ? await supabase.rpc("admin_actualizar_empleado", { ...payload, p_empleado_id: editingId })
       : await supabase.rpc("admin_crear_empleado", payload);
-    if (error) {
-      const faltaFn = /could not find the function|pgrst202/i.test(error.message || "");
+    if (res.error && esRpcRhPendiente(res.error)) {
+      const { p_salario_semanal, ...sinSemanal } = payload;
+      res = editingId
+        ? await supabase.rpc("admin_actualizar_empleado", { ...sinSemanal, p_empleado_id: editingId })
+        : await supabase.rpc("admin_crear_empleado", sinSemanal);
+      const id = editingId || parseRpcJsonObject(res.data).empleado_id;
+      if (!res.error && id) {
+        const setSal = await supabase.rpc("rh_set_salario_semanal", {
+          p_session_token: tok,
+          p_empleado_id: id,
+          p_salario_semanal,
+        });
+        if (setSal.error && esRpcRhPendiente(setSal.error)) {
+          setFormMsg({
+            ok: false,
+            text: "La ficha se guardó, pero falta el salario semanal en la base. Ejecuta sql/patch_rh_nomina_viernes_20260914.sql en Supabase.",
+          });
+          fetchEmpleados();
+          return;
+        }
+      }
+    }
+    if (res.error) {
       setFormMsg({
         ok: false,
-        text: faltaFn
-          ? "Falta actualizar la base. Ejecuta sql/patch_rh_actualizar_empleado.sql en Supabase."
-          : `Error: ${error.message}`,
+        text: esRpcRhPendiente(res.error)
+          ? "Falta actualizar la base. Ejecuta sql/patch_rh_nomina_viernes_20260914.sql en Supabase."
+          : `Error: ${res.error.message}`,
       });
       return;
     }
@@ -324,70 +333,6 @@ export default function RRHHModule() {
     setEditingId(null);
     setForm(emptyForm);
     fetchEmpleados();
-  };
-
-  const selEmp = empleados.find(e => String(e.id) === String(selEmpId));
-  useEffect(() => { if (selEmp) setCalcBase(parseFloat(selEmp.salario_quincenal) || 0); }, [selEmpId]);
-
-  const imss         = calcBase * 0.02375;
-  const isr          = calcBase * 0.08;
-  const montoHE      = calcHE * 50;
-  const percepciones = calcBase + montoHE + parseFloat(calcPD || 0) + parseFloat(calcBono || 0);
-  const deducciones  = imss + isr;
-  const neto         = percepciones - deducciones;
-
-  const guardarNomina = async () => {
-    if (!selEmp) { setNominaMsg({ ok:false, text:'Selecciona un empleado.' }); return; }
-    const { inicio, fin } = getQuincena();
-    const tok = sessionStorage.getItem("farmacapital_session_token");
-    if (!tok) { setNominaMsg({ ok:false, text:'Sesión expirada.' }); return; }
-    const { error } = await supabase.rpc("registrar_nomina", {
-      p_session_token: tok,
-      p_empleado_id: selEmp.id,
-      p_periodo_inicio: inicio,
-      p_periodo_fin: fin,
-      p_salario_base: calcBase,
-      p_horas_extra: parseFloat(calcHE) || 0,
-      p_prima_dominical: parseFloat(calcPD) || 0,
-      p_bono: parseFloat(calcBono) || 0,
-      p_total_percepciones: percepciones,
-      p_imss_obrero: imss,
-      p_isr: isr,
-      p_total_deducciones: deducciones,
-      p_neto_pagar: neto,
-    });
-    if (error) setNominaMsg({ ok:false, text:`Error: ${error.message}` });
-    else       setNominaMsg({ ok:true,  text:`✅ Nómina guardada para ${selEmp.nombre}.` });
-  };
-
-  const exportarTXT = () => {
-    if (!selEmp) return;
-    const { inicio, fin } = getQuincena();
-    const L = '─'.repeat(44);
-    const txt = [
-      '╔══════════════════════════════════════════╗',
-      '║         FARMACAPITAL — NÓMINA QUINCENAL        ║',
-      '╚══════════════════════════════════════════╝',
-      '', `Empleado : ${selEmp.nombre}`, `Rol      : ${selEmp.rol}`,
-      `Turno    : ${selEmp.turno}`, `Periodo  : ${inicio}  →  ${fin}`, '',
-      L, 'PERCEPCIONES', L,
-      `  Salario base          : ${fmt(calcBase)}`,
-      `  Horas extra (${calcHE}h × $50) : ${fmt(montoHE)}`,
-      `  Prima dominical       : ${fmt(calcPD)}`,
-      `  Bono                  : ${fmt(calcBono)}`,
-      `  TOTAL PERCEPCIONES    : ${fmt(percepciones)}`, '',
-      L, 'DEDUCCIONES', L,
-      `  IMSS obrero (2.375%)  : ${fmt(imss)}`,
-      `  ISR estimado (8%)     : ${fmt(isr)}`,
-      `  TOTAL DEDUCCIONES     : ${fmt(deducciones)}`, '',
-      L, `  NETO A PAGAR          : ${fmt(neto)}`, L, '',
-      `Generado: ${new Date().toLocaleString('es-MX')}`,
-      'FarmaCapital · Chinampac de Juárez · CDMX',
-    ].join('\n');
-    const blob = new Blob([txt], { type:'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = `nomina_${selEmp.nombre.replace(/ /g,'_')}_${inicio}.txt`; a.click();
-    URL.revokeObjectURL(url);
   };
 
   const rolColor = r => ({ admin:'#9d6fff', vendedor:C.blue, doctora:C.green, farmaceutico:C.amber }[r] || C.textMid);
@@ -439,7 +384,7 @@ export default function RRHHModule() {
     <div style={S.wrap}>
       <div style={{ marginBottom:24 }}>
         <PageHero Icon={UserCog} size={22}>Recursos Humanos</PageHero>
-        <p style={{ color:C.textMid, margin:'4px 0 0', fontSize:13 }}>Empleados · Horarios · Nómina quincenal — FarmaCapital</p>
+        <p style={{ color:C.textMid, margin:'4px 0 0', fontSize:13 }}>Empleados · Horarios · Nómina semanal (viernes) — FarmaCapital</p>
       </div>
 
       <div style={S.section}>
@@ -549,8 +494,8 @@ export default function RRHHModule() {
                     />
                   </div>
                   <div>
-                    <div style={{ ...S.label, marginBottom:2 }}>Salario qna.</div>
-                    <div style={{ fontWeight:700, color:C.green }}>{fmt(emp.salario_quincenal)}</div>
+                    <div style={{ ...S.label, marginBottom:2 }}>Salario sem.</div>
+                    <div style={{ fontWeight:700, color:C.green }}>{fmt(salarioSemanalDe(emp))}</div>
                   </div>
                 </div>
                 <div style={{ display:'flex', flexWrap:'wrap', alignItems:'center', justifyContent:'space-between', gap:8, paddingTop:10, borderTop:`1px solid ${C.border}` }}>
@@ -614,7 +559,7 @@ export default function RRHHModule() {
           <div style={{ overflowX:'auto' }}>
             <table style={{ width:'100%', borderCollapse:'collapse' }}>
               <thead><tr>
-                {['Nombre','Teléfono','Rol','Turno','Salario Qna.','Estado','Acciones'].map(h =>
+                {['Nombre','Teléfono','Rol','Turno','Salario sem.','Estado','Acciones'].map(h =>
                   <th key={h} style={S.th}>{h}</th>)}
               </tr></thead>
               <tbody>
@@ -636,7 +581,7 @@ export default function RRHHModule() {
                         onChange={(t) => asignarTurnoEmpleado(emp.id, t)}
                       />
                     </td>
-                    <td style={{ ...S.td, fontWeight:700, color:C.green }}>{fmt(emp.salario_quincenal)}</td>
+                    <td style={{ ...S.td, fontWeight:700, color:C.green }}>{fmt(salarioSemanalDe(emp))}</td>
                     <td style={S.td}>
                       <span style={{ background: emp.estado?'#16a34a22':'#e0525222', color:emp.estado?C.green:C.red, padding:'3px 10px', borderRadius:20, fontSize:11, fontWeight:700 }}>
                         {emp.estado ? '● Activo' : '● Inactivo'}
@@ -729,8 +674,8 @@ export default function RRHHModule() {
                   <option value="nocturno">Nocturno (turno retirado)</option>
                 )}
               </select></div>
-            <div><label style={S.label}>Salario quincenal *</label>
-              <input style={S.input} type="number" min="0" step="0.01" value={form.salario_quincenal} onChange={e=>setForm({...form,salario_quincenal:e.target.value})} placeholder="3500.00"/></div>
+            <div><label style={S.label} htmlFor="rh-ficha-salario-semanal">Salario semanal (viernes) *</label>
+              <input id="rh-ficha-salario-semanal" style={S.input} type="number" min="0" step="0.01" value={form.salario_semanal} onChange={e=>setForm({...form,salario_semanal:e.target.value})} placeholder="1133.32"/></div>
           </div>
           <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
             <button type="submit" style={{ ...S.btnBlue, padding:"12px 18px", fontSize:14 }}>
@@ -788,73 +733,7 @@ export default function RRHHModule() {
         )}
       </div>
 
-      {/* CALCULADORA NÓMINA */}
-      <div style={S.section}>
-        <div style={S.h2}>💰 Calculadora nómina quincenal</div>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 160px), 1fr))', gap:14, marginBottom:20 }}>
-          <div><label style={S.label}>Empleado</label>
-            <select style={S.select} value={selEmpId} onChange={e=>setSelEmpId(e.target.value)}>
-              <option value="">— Seleccionar —</option>
-              {empleadosOrden.map(e=><option key={e.id} value={e.id}>{e.nombre}</option>)}
-            </select></div>
-          <div><label style={S.label}>Salario base</label>
-            <input style={S.input} type="number" min="0" step="0.01" value={calcBase} onChange={e=>setCalcBase(parseFloat(e.target.value)||0)}/></div>
-          <div><label style={S.label}>Horas extra</label>
-            <input style={S.input} type="number" min="0" step="0.5" value={calcHE} onChange={e=>setCalcHE(parseFloat(e.target.value)||0)} placeholder="0"/></div>
-          <div><label style={S.label}>Prima dominical</label>
-            <input style={S.input} type="number" min="0" step="0.01" value={calcPD} onChange={e=>setCalcPD(e.target.value)} placeholder="0"/></div>
-          <div><label style={S.label}>Bono {bonosOn ? "" : "(manual)"}</label>
-            <input style={S.input} type="number" min="0" step="0.01" value={calcBono} onChange={e=>setCalcBono(e.target.value)} placeholder="0"/>
-            {!bonosOn && <div style={{ fontSize:11, color:C.textMid, marginTop:4 }}>Los bonos automáticos están apagados. Este campo es un ajuste puntual.</div>}
-          </div>
-        </div>
-
-        <div style={{ background:C.bg, border:`1px solid ${C.border}`, borderRadius:10, padding:20, marginBottom:16 }}>
-          <div style={{
-            display:isMobile ? 'flex' : 'grid',
-            flexDirection:isMobile ? 'column' : undefined,
-            gridTemplateColumns:isMobile ? undefined : '1fr 1fr',
-            gap:isMobile ? 20 : '0 32px',
-          }}>
-            <div style={{ minWidth:0 }}>
-              <p style={{ fontSize:11, color:C.textMid, fontWeight:700, textTransform:'uppercase', marginBottom:12 }}>📈 Percepciones</p>
-              {[['Salario base',fmt(calcBase)],[`Horas extra (${calcHE}h × $50)`,fmt(montoHE)],['Prima dominical',fmt(calcPD)],['Bono',fmt(calcBono)]].map(([lbl,val])=>(
-                <div key={lbl} style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:10, padding:'5px 0', borderBottom:`1px solid ${C.border}` }}>
-                  <span style={{ fontSize:12, color:C.textMid, flex:'1 1 auto', minWidth:0, lineHeight:1.4 }}>{lbl}</span>
-                  <span style={{ fontSize:12, color:C.text, fontWeight:600, flexShrink:0, textAlign:'right' }}>{val}</span>
-                </div>
-              ))}
-              <div style={{ display:'flex', justifyContent:'space-between', gap:10, padding:'10px 0 0', flexWrap:'wrap' }}>
-                <span style={{ fontWeight:700, color:C.green, fontSize:13 }}>Total percepciones</span>
-                <span style={{ fontWeight:800, color:C.green, fontSize:15 }}>{fmt(percepciones)}</span>
-              </div>
-            </div>
-            <div style={{ minWidth:0, paddingTop:isMobile ? 4 : 0, borderTop:isMobile ? `1px solid ${C.border}` : 'none' }}>
-              <p style={{ fontSize:11, color:C.textMid, fontWeight:700, textTransform:'uppercase', marginBottom:12, marginTop:isMobile ? 4 : 0 }}>📉 Deducciones</p>
-              {[['IMSS obrero (2.375%)',fmt(imss)],['ISR estimado (8%)',fmt(isr)]].map(([lbl,val])=>(
-                <div key={lbl} style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:10, padding:'5px 0', borderBottom:`1px solid ${C.border}` }}>
-                  <span style={{ fontSize:12, color:C.textMid, flex:'1 1 auto', minWidth:0, lineHeight:1.4 }}>{lbl}</span>
-                  <span style={{ fontSize:12, color:C.red, fontWeight:600, flexShrink:0, textAlign:'right' }}>{val}</span>
-                </div>
-              ))}
-              <div style={{ display:'flex', justifyContent:'space-between', gap:10, padding:'8px 0', borderBottom:`1px solid ${C.border}`, flexWrap:'wrap' }}>
-                <span style={{ fontWeight:700, color:C.red, fontSize:13 }}>Total deducciones</span>
-                <span style={{ fontWeight:800, color:C.red, fontSize:14 }}>{fmt(deducciones)}</span>
-              </div>
-              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', gap:10, padding:'14px 0 0', flexWrap:'wrap' }}>
-                <span style={{ fontWeight:800, fontSize:15, color:C.text }}>💵 Neto a pagar</span>
-                <span style={{ fontWeight:900, fontSize: isMobile ? 18 : 20, color:C.green, wordBreak:'break-word', textAlign:'right' }}>{fmt(neto)}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
-          <button style={S.btnBlue} onClick={guardarNomina}>💾 Guardar nómina</button>
-          <button style={{ ...S.btnGreen, opacity:selEmp?1:.5, cursor:selEmp?'pointer':'not-allowed' }} onClick={exportarTXT} disabled={!selEmp}>📥 Exportar TXT</button>
-        </div>
-        {nominaMsg && <p style={{ marginTop:10, color:nominaMsg.ok?C.green:C.red, fontSize:13, fontWeight:700 }}>{nominaMsg.text}</p>}
-      </div>
+      <NominaSemanalPanel empleados={empleadosOrden} S={S} C={C} isMobile={isMobile} />
     </div>
 
     {/* ── COMISIONES POR VENTAS ── */}
