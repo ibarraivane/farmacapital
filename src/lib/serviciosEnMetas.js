@@ -87,6 +87,10 @@ export function ticketsTurnoDesdePedidosYServicios(pedTurno, srvTurno) {
     created_at: p.created_at,
     conCliente: p.cliente_id != null,
     esServicio: false,
+    // Campos internos para reimpresión (no se muestran en la lista de Mi Día).
+    total: p.total != null ? Number(p.total) : null,
+    metodoPago: p.metodo_pago || null,
+    clienteId: p.cliente_id ?? null,
     items: (p.pedido_items || []).map((it) => ({
       cantidad: it.cantidad || 0,
       nombre: String(it.productos?.nombre || it.productos?.categoria || "Artículo").trim() || "Artículo",
@@ -100,6 +104,9 @@ export function ticketsTurnoDesdePedidosYServicios(pedTurno, srvTurno) {
     created_at: s.created_at,
     conCliente: false,
     esServicio: true,
+    total: s.total_cobrado != null ? Number(s.total_cobrado) : null,
+    metodoPago: s.metodo_pago || null,
+    servicio: s,
     items: [{ cantidad: 1, nombre: labelServicioTicket(s), lote: null }],
   }));
   return [...fromPed, ...fromSrv].sort(

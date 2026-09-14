@@ -2,7 +2,7 @@
 // Muestra solo % y conteos (nunca montos de ventas en pesos) para no exponer
 // información de negocio al personal de piso.
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Gauge, ShoppingCart, ClipboardList, Target, Award, Zap, Flame, Users as UsersIcon, Undo2 } from "lucide-react";
+import { Gauge, ShoppingCart, ClipboardList, Target, Award, Zap, Flame, Users as UsersIcon, Undo2, Printer } from "lucide-react";
 import { C_LIGHT, BRAND } from "../../constants";
 import { supabase } from "../../supabase";
 import { showToast } from "../../ui";
@@ -22,6 +22,12 @@ import {
   ticketsTurnoDesdePedidosYServicios,
   filasServicioDesdeSnapshot,
 } from "../../lib/serviciosEnMetas";
+import TicketVenta from "../../components/tickets/TicketVenta";
+import { printTicket } from "../../utils/printTicket";
+import { printServicioTicket } from "../../utils/servicioTicket";
+import { configRowsToMap, mergeFarmaciaConfig } from "../../constants/farmaciaFiscal";
+import { parseRpcJsonArray } from "../../utils/rpcJson";
+import { usePedidoTicketUrl } from "../../hooks/usePedidoTicketUrl";
 
 const C = C_LIGHT;
 
@@ -89,7 +95,7 @@ function KpiCell({ icon, value, label, col, onClick, expanded }) {
   );
 }
 
-function TicketsTurnoList({ tickets }) {
+function TicketsTurnoList({ tickets, onReimprimir, reimprimiendoId }) {
   return (
     <section
       id="midia-tickets-turno"
@@ -104,51 +110,79 @@ function TicketsTurnoList({ tickets }) {
     >
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, marginBottom: 12, flexWrap: "wrap" }}>
         <div style={{ color: C.textDim, fontSize: 10, fontWeight: 700, letterSpacing: 1.5 }}>
-          TUS TICKETS · SOLO LECTURA
+          TUS TICKETS · REIMPRIMIR
         </div>
-        <div style={{ color: C.textMid, fontSize: 11 }}>Sin totales ni edición</div>
+        <div style={{ color: C.textMid, fontSize: 11 }}>Sin totales en la lista · puedes volver a imprimir</div>
       </div>
       {!tickets.length ? (
         <p style={{ margin: 0, color: C.textMid, fontSize: 13 }}>Aún no registras tickets en este turno.</p>
       ) : (
         <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 10 }}>
-          {tickets.map((t) => (
-            <li
-              key={t.id}
-              style={{
-                border: `1px solid ${C.border}`,
-                borderRadius: 10,
-                padding: "12px 14px",
-                background: C.bg,
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
-                <div style={{ color: C.text, fontWeight: 800, fontSize: 14, fontVariantNumeric: "tabular-nums" }}>
-                  {t.folioLabel || formatFolioPOS(t.pedidoId)}
+          {tickets.map((t) => {
+            const busy = reimprimiendoId === t.id;
+            return (
+              <li
+                key={t.id}
+                style={{
+                  border: `1px solid ${C.border}`,
+                  borderRadius: 10,
+                  padding: "12px 14px",
+                  background: C.bg,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
+                  <div style={{ minWidth: 0, flex: "1 1 160px" }}>
+                    <div style={{ color: C.text, fontWeight: 800, fontSize: 14, fontVariantNumeric: "tabular-nums" }}>
+                      {t.folioLabel || formatFolioPOS(t.pedidoId)}
+                    </div>
+                    <div style={{ color: C.textMid, fontSize: 12, fontVariantNumeric: "tabular-nums", marginTop: 2 }}>
+                      {t.created_at ? fmtHora(new Date(t.created_at)) : "—"}
+                      {t.esServicio ? " · servicio" : ""}
+                      {t.conCliente ? " · con cliente" : ""}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onReimprimir?.(t)}
+                    disabled={busy || !onReimprimir}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      padding: "8px 12px",
+                      borderRadius: 8,
+                      border: `1px solid ${C.purple || BRAND.primary}40`,
+                      background: "#ede9fe",
+                      color: C.purple || BRAND.primary,
+                      fontWeight: 700,
+                      fontSize: 12,
+                      cursor: busy ? "wait" : "pointer",
+                      opacity: busy ? 0.7 : 1,
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Printer size={14} strokeWidth={2.3} aria-hidden />
+                    {busy ? "Cargando…" : "Reimprimir"}
+                  </button>
                 </div>
-                <div style={{ color: C.textMid, fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
-                  {t.created_at ? fmtHora(new Date(t.created_at)) : "—"}
-                  {t.esServicio ? " · servicio" : ""}
-                  {t.conCliente ? " · con cliente" : ""}
-                </div>
-              </div>
-              {t.items.length === 0 ? (
-                <div style={{ color: C.textMid, fontSize: 13 }}>Sin artículos en este ticket.</div>
-              ) : (
-                <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 4 }}>
-                  {t.items.map((it, i) => (
-                    <li key={`${t.id}-${i}`} style={{ color: C.text, fontSize: 13, lineHeight: 1.35 }}>
-                      <span style={{ fontWeight: 800, fontVariantNumeric: "tabular-nums", marginRight: 6 }}>{it.cantidad}×</span>
-                      {it.nombre}
-                      {it.lote ? (
-                        <span style={{ color: C.textMid, fontSize: 12 }}> · Lote {it.lote}</span>
-                      ) : null}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </li>
-          ))}
+                {t.items.length === 0 ? (
+                  <div style={{ color: C.textMid, fontSize: 13 }}>Sin artículos en este ticket.</div>
+                ) : (
+                  <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 4 }}>
+                    {t.items.map((it, i) => (
+                      <li key={`${t.id}-${i}`} style={{ color: C.text, fontSize: 13, lineHeight: 1.35 }}>
+                        <span style={{ fontWeight: 800, fontVariantNumeric: "tabular-nums", marginRight: 6 }}>{it.cantidad}×</span>
+                        {it.nombre}
+                        {it.lote ? (
+                          <span style={{ color: C.textMid, fontSize: 12 }}> · Lote {it.lote}</span>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
     </section>
@@ -216,6 +250,75 @@ export default function MiDia({ usuario, setPage }) {
   });
   const [jornada, setJornada] = useState(null);
   const [verTickets, setVerTickets] = useState(false);
+  const [ticketReprint, setTicketReprint] = useState(null);
+  const [reimprimiendoId, setReimprimiendoId] = useState(null);
+  const [farmaciaConfig, setFarmaciaConfig] = useState(() => mergeFarmaciaConfig({}));
+
+  useEffect(() => {
+    supabase.from("configuracion").select("clave,valor").then(({ data }) => {
+      if (data?.length) setFarmaciaConfig(mergeFarmaciaConfig(configRowsToMap(data)));
+    });
+  }, []);
+
+  const { ticketUrl: reprintTicketUrl, loading: reprintTicketUrlLoading } = usePedidoTicketUrl(
+    ticketReprint?.venta?.id,
+    Boolean(ticketReprint)
+  );
+
+  const mapItemsBasico = useCallback((items) =>
+    parseRpcJsonArray(items).map((i) => ({
+      nombre: i.productos?.nombre || "Producto",
+      qty: i.cantidad,
+      precio: i.precio_unitario,
+    })), []);
+
+  const reimprimirTicket = useCallback(async (t) => {
+    if (!t) return;
+    if (t.esServicio) {
+      printServicioTicket(t.servicio || {
+        folio: t.folioLabel,
+        created_at: t.created_at,
+        total_cobrado: t.total,
+        metodo_pago: t.metodoPago,
+      }, farmaciaConfig);
+      return;
+    }
+    if (!t.pedidoId) {
+      showToast("Este ticket no tiene folio de venta para reimprimir.", "warning");
+      return;
+    }
+    setReimprimiendoId(t.id);
+    try {
+      const tok = sessionStorage.getItem("farmacapital_session_token");
+      if (!tok) throw new Error("Sesión expirada");
+      const { data: items, error } = await supabase.rpc("empleado_listar_pedido_items_basico", {
+        p_session_token: tok,
+        p_pedido_id: t.pedidoId,
+      });
+      if (error) throw new Error(error.message);
+      const productos = mapItemsBasico(items);
+      if (!productos.length) {
+        showToast("No se encontraron artículos para este ticket.", "warning");
+        return;
+      }
+      setTicketReprint({
+        venta: {
+          id: t.pedidoId,
+          folio: t.folioLabel || formatFolioPOS(t.pedidoId),
+          total: t.total ?? productos.reduce((a, p) => a + (Number(p.precio) || 0) * (Number(p.qty) || 0), 0),
+          created_at: t.created_at,
+          metodo_pago: t.metodoPago || "Efectivo",
+        },
+        productos,
+        cliente: null,
+        metodoPago: t.metodoPago || "Efectivo",
+      });
+    } catch (e) {
+      showToast(e.message || "No se pudo cargar el ticket", "error");
+    } finally {
+      setReimprimiendoId(null);
+    }
+  }, [farmaciaConfig, mapItemsBasico]);
 
   // Reloj vivo (solo para la hora visible).
   useEffect(() => {
@@ -524,7 +627,13 @@ export default function MiDia({ usuario, setPage }) {
         <KpiCell icon="⭐" value={`${pctPuntos}%`}                     label="Con cliente"    col={C.green}/>
       </div>
 
-      {verTickets && <TicketsTurnoList tickets={data.ticketsTurno || []} />}
+      {verTickets && (
+        <TicketsTurnoList
+          tickets={data.ticketsTurno || []}
+          onReimprimir={reimprimirTicket}
+          reimprimiendoId={reimprimiendoId}
+        />
+      )}
 
       {/* ── SECCIÓN 4: TU MES ─────────────────────────────── */}
       <div style={{
@@ -613,6 +722,50 @@ export default function MiDia({ usuario, setPage }) {
           <Gauge size={12} style={{ verticalAlign: "middle", marginRight: 6 }} /> Cargando datos…
         </div>
       )}
+
+      {ticketReprint && (
+        <div
+          style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,.6)", backdropFilter: "blur(4px)", zIndex: 500, display: "flex", alignItems: "center", justifyContent: "center", padding: "max(12px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px))", boxSizing: "border-box" }}
+          onClick={(e) => e.target === e.currentTarget && setTicketReprint(null)}
+        >
+          <div style={{ background: C.card, borderRadius: 16, width: "min(380px, 100%)", maxHeight: "min(90dvh, 92vh)", overflowY: "auto", WebkitOverflowScrolling: "touch", boxShadow: "0 24px 80px rgba(0,82,204,.2)", minWidth: 0 }}>
+            <div style={{ padding: "14px 20px", borderBottom: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center", background: "linear-gradient(135deg,#7c3aed,#9d6fff)", borderRadius: "16px 16px 0 0" }}>
+              <div style={{ color: "#fff", fontWeight: 800, fontSize: 15 }}>🖨️ Reimprimir {ticketReprint.venta.folio || `#${ticketReprint.venta.id}`}</div>
+              <button type="button" onClick={() => setTicketReprint(null)} style={{ background: "rgba(255,255,255,.2)", border: "none", color: "#fff", width: 28, height: 28, borderRadius: "50%", cursor: "pointer", fontSize: 16 }}>✕</button>
+            </div>
+            <div style={{ padding: 16, background: "#f8fafc", display: "flex", justifyContent: "center", borderBottom: "1px solid #e2e8f0", maxHeight: "60vh", overflowY: "visible" }}>
+              <div style={{ background: C.card, boxShadow: "0 2px 12px rgba(0,0,0,.1)", borderRadius: 4, padding: 4 }}>
+                <TicketVenta
+                  venta={ticketReprint.venta}
+                  productos={ticketReprint.productos}
+                  cliente={ticketReprint.cliente}
+                  metodoPago={ticketReprint.metodoPago}
+                  config={farmaciaConfig}
+                  ticketUrl={reprintTicketUrl}
+                />
+              </div>
+            </div>
+            <div style={{ padding: 16, display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <button
+                type="button"
+                onClick={() => printTicket("farmacapital-ticket")}
+                disabled={reprintTicketUrlLoading}
+                style={{ flex: "2 1 160px", minHeight: 44, padding: "11px", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#7c3aed,#9d6fff)", color: "#fff", fontWeight: 800, fontSize: 14, cursor: "pointer", opacity: reprintTicketUrlLoading ? 0.65 : 1 }}
+              >
+                {reprintTicketUrlLoading ? "Preparando QR…" : "🖨️ Imprimir"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setTicketReprint(null)}
+                style={{ flex: "1 1 120px", minHeight: 44, padding: "11px", borderRadius: 10, border: "1px solid #e2e8f0", background: "transparent", color: "#475569", fontWeight: 700, fontSize: 14, cursor: "pointer" }}
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
