@@ -1,6 +1,6 @@
 /** Totales del Dashboard: un solo calendario (día civil CDMX) y ventas netas. */
 
-import { addDaysISO, hoyISOMexico, lunesISODe, rangoDiaMexico } from "./fecha";
+import { addDaysISO, hoyISOMexico, lunesISODe, rangoDiaMexico, ultimoDiaMesISO } from "./fecha";
 
 /** Último instante inclusive de un rango [start, end) para RPCs que usan `<= fin`. */
 export function finInclusivoIso(endExclusiveIso) {
@@ -43,10 +43,37 @@ export function rangosDashboardMexico(now = new Date()) {
 }
 
 /**
+ * Mes calendario completo (o mes en curso hasta hoy).
+ * Meses futuros se recortan al mes actual.
+ */
+export function rangoMesCalendarioMexico(anioMes, now = new Date()) {
+  const hoy = hoyISOMexico(now);
+  const mesHoy = hoy.slice(0, 7);
+  const ym = String(anioMes || mesHoy).slice(0, 7);
+  if (!/^\d{4}-\d{2}$/.test(ym) || ym > mesHoy) {
+    return {
+      desde: rangoDiaMexico(`${mesHoy}-01`).start,
+      hasta: rangoDiaMexico(hoy).end,
+      desdeFecha: `${mesHoy}-01`,
+      hastaFecha: hoy,
+    };
+  }
+  const desdeFecha = `${ym}-01`;
+  const hastaFecha = ym === mesHoy ? hoy : ultimoDiaMesISO(ym);
+  return {
+    desde: rangoDiaMexico(desdeFecha).start,
+    hasta: rangoDiaMexico(hastaFecha).end,
+    desdeFecha,
+    hastaFecha,
+  };
+}
+
+/**
  * Resumen / margen: mismas ventanas que Operación.
  * Antes "Hoy" era las últimas 24 h (metía la tarde de ayer) y "mes" eran 30 días rodantes.
+ * `anioMes` (YYYY-MM) solo aplica cuando periodo === "mes": permite historial.
  */
-export function rangoReporteMexico(periodo, now = new Date()) {
+export function rangoReporteMexico(periodo, now = new Date(), { anioMes } = {}) {
   const r = rangosDashboardMexico(now);
   if (periodo === "dia") {
     return { desde: r.today.start, hasta: r.today.end, desdeFecha: r.hoy, hastaFecha: r.hoy };
@@ -54,6 +81,7 @@ export function rangoReporteMexico(periodo, now = new Date()) {
   if (periodo === "semana") {
     return { desde: r.week.start, hasta: r.today.end, desdeFecha: r.lunes, hastaFecha: r.hoy };
   }
+  if (anioMes) return rangoMesCalendarioMexico(anioMes, now);
   return { desde: r.month.start, hasta: r.today.end, desdeFecha: r.inicioMes, hastaFecha: r.hoy };
 }
 

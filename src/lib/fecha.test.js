@@ -1,4 +1,4 @@
-import { addDaysISO, hoyISOMexico, lunesISODe, rangoDiaMexico, ymdMexico } from "./fecha";
+import { addDaysISO, addMonthsYm, hoyISOMexico, lunesISODe, rangoDiaMexico, ultimoDiaMesISO, ymdMexico } from "./fecha";
 
 describe("rangoDiaMexico", () => {
   test("cubre todo el día civil CDMX aunque el reloj esté en UTC", () => {
@@ -25,6 +25,13 @@ describe("rangoDiaMexico", () => {
   test("addDaysISO no depende del huso del navegador", () => {
     expect(addDaysISO("2026-08-28", 1)).toBe("2026-08-29");
     expect(addDaysISO("2026-08-28", -1)).toBe("2026-08-27");
+  });
+
+  test("addMonthsYm y ultimoDiaMesISO son calendario civil", () => {
+    expect(addMonthsYm("2026-09", -1)).toBe("2026-08");
+    expect(addMonthsYm("2026-01", -1)).toBe("2025-12");
+    expect(ultimoDiaMesISO("2026-08")).toBe("2026-08-31");
+    expect(ultimoDiaMesISO("2026-02")).toBe("2026-02-28");
   });
 
   test("lunesISODe es el lunes de esa semana (lun–dom)", () => {

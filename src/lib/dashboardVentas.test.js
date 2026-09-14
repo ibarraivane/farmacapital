@@ -1,6 +1,7 @@
 import {
   finInclusivoIso,
   gananciaNetaEstMes,
+  rangoMesCalendarioMexico,
   rangoReporteMexico,
   rangosDashboardMexico,
   resolverVentasAcumuladas,
@@ -49,6 +50,31 @@ describe("rangoReporteMexico", () => {
     const mes = rangoReporteMexico("mes", now);
     expect(mes.desdeFecha).toBe("2026-08-01");
     expect(mes.desde).toBe(rangoDiaMexico("2026-08-01").start);
+  });
+
+  test("mes con anioMes pasado cubre el mes completo", () => {
+    const sep = new Date("2026-09-14T18:00:00.000Z");
+    const ago = rangoReporteMexico("mes", sep, { anioMes: "2026-08" });
+    expect(ago.desdeFecha).toBe("2026-08-01");
+    expect(ago.hastaFecha).toBe("2026-08-31");
+    expect(ago.desde).toBe(rangoDiaMexico("2026-08-01").start);
+    expect(ago.hasta).toBe(rangoDiaMexico("2026-08-31").end);
+  });
+});
+
+describe("rangoMesCalendarioMexico", () => {
+  test("mes en curso llega hasta hoy, no al fin de mes", () => {
+    const now = new Date("2026-09-14T18:00:00.000Z");
+    const r = rangoMesCalendarioMexico("2026-09", now);
+    expect(r.desdeFecha).toBe("2026-09-01");
+    expect(r.hastaFecha).toBe("2026-09-14");
+  });
+
+  test("mes futuro se recorta al mes actual", () => {
+    const now = new Date("2026-09-14T18:00:00.000Z");
+    const r = rangoMesCalendarioMexico("2026-10", now);
+    expect(r.desdeFecha).toBe("2026-09-01");
+    expect(r.hastaFecha).toBe("2026-09-14");
   });
 });
 

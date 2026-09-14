@@ -16,6 +16,9 @@ beforeEach(() => {
 test("Flujo muestra textos de mostrador y las mismas cifras", async () => {
   render(<FlujoCajaTab usuario={{ nombre: "Ivan Ibarra" }} demoBundle={FLUJO_DEMO_BUNDLE} />);
   expect(await screen.findByText(/1 – 5 de septiembre/)).toBeInTheDocument();
+  expect(screen.getByLabelText("Mes del flujo")).toBeInTheDocument();
+  expect(screen.getByLabelText("Mes anterior")).toBeInTheDocument();
+  expect(screen.getByLabelText("Mes siguiente")).toBeDisabled();
   expect(screen.getByText(/Caja abierta el 18 de agosto con \$282\.00/)).toBeInTheDocument();
   expect(screen.getByText("De los cortes de caja")).toBeInTheDocument();
   expect(screen.getByText("Todo de liquidación Mercado Pago")).toBeInTheDocument();

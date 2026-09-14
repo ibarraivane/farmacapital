@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Banknote, BarChart3, Receipt } from "lucide-react";
+import { Banknote, BarChart3, ChevronLeft, ChevronRight, Receipt } from "lucide-react";
 import { C_LIGHT, BRAND } from "./constants";
 import { SegmentedNav } from "./components/SegmentedNav";
 import { Switch } from "./components/Switch";
@@ -8,7 +8,7 @@ import { $ } from "./utils";
 import { Box, Btn, KPI, KPI_ROW, SkeletonKPIs, SkeletonTable, Tag, showToast } from "./ui";
 import { parseRpcJsonObject } from "./utils/rpcJson";
 import { rangoReporteMexico } from "./lib/dashboardVentas";
-import { hoyISOMexico } from "./lib/fecha";
+import { addMonthsYm, hoyISOMexico } from "./lib/fecha";
 import {
   CATEGORIA_COMPRA_INVENTARIO,
   etiquetaCategoriaGasto,
@@ -78,6 +78,16 @@ function leyendaApertura(fecha, saldo) {
   return `Caja abierta el ${p.d} de ${MESES_LARGOS[p.m - 1]}${money ? ` con ${money}` : ""}`;
 }
 
+function etiquetaMesLargo(ym) {
+  const [y, m] = String(ym || "").slice(0, 7).split("-").map(Number);
+  if (!y || !m || m < 1 || m > 12) return String(ym || "");
+  return `${MESES_LARGOS[m - 1]} ${y}`;
+}
+
+function mesActualMexico() {
+  return anioMesDe(hoyISOMexico());
+}
+
 function subtextoSalio(salio) {
   const s = salio || {};
   const parts = [
@@ -104,7 +114,42 @@ function nombreCorto(nombre) {
   return t.split(/\s+/)[0];
 }
 
-function FlujoRails({ sub, onSub, periodo, onPeriodo }) {
+function FlujoMesNav({ mesVista, mesActual, onMesVista }) {
+  const puedeSig = mesVista < mesActual;
+  return (
+    <div className="fc-flujo-mes-nav" role="group" aria-label="Mes del flujo">
+      <button
+        type="button"
+        className="fc-flujo-mes-btn"
+        aria-label="Mes anterior"
+        onClick={() => onMesVista(addMonthsYm(mesVista, -1))}
+      >
+        <ChevronLeft size={16} strokeWidth={2.2} aria-hidden />
+      </button>
+      <span className="fc-flujo-mes-label">{etiquetaMesLargo(mesVista)}</span>
+      <button
+        type="button"
+        className="fc-flujo-mes-btn"
+        aria-label="Mes siguiente"
+        disabled={!puedeSig}
+        onClick={() => onMesVista(addMonthsYm(mesVista, 1))}
+      >
+        <ChevronRight size={16} strokeWidth={2.2} aria-hidden />
+      </button>
+    </div>
+  );
+}
+
+function FlujoRails({ sub, onSub, periodo, onPeriodo, mesVista, mesActual, onMesVista }) {
+  const esMesActual = mesVista === mesActual;
+  const labelMesSeg = esMesActual
+    ? "Este mes"
+    : (() => {
+        const [, m] = String(mesVista || "").split("-").map(Number);
+        if (!m || m < 1 || m > 12) return "Mes";
+        const nom = MESES_LARGOS[m - 1];
+        return nom.charAt(0).toUpperCase() + nom.slice(1);
+      })();
   return (
     <div className="fc-flujo-rails">
       <SegmentedNav
@@ -120,18 +165,23 @@ function FlujoRails({ sub, onSub, periodo, onPeriodo }) {
           { id: "gastos", label: "Gastos", Icon: Receipt },
         ]}
       />
-      <SegmentedNav
-        size="sm"
-        activation="auto"
-        ariaLabel="Período del flujo"
-        value={periodo}
-        onChange={onPeriodo}
-        items={[
-          { id: "dia", label: "Hoy" },
-          { id: "semana", label: "Esta semana" },
-          { id: "mes", label: "Este mes" },
-        ]}
-      />
+      <div className="fc-flujo-period-wrap">
+        <SegmentedNav
+          size="sm"
+          activation="auto"
+          ariaLabel="Período del flujo"
+          value={periodo}
+          onChange={onPeriodo}
+          items={[
+            { id: "dia", label: "Hoy" },
+            { id: "semana", label: "Esta semana" },
+            { id: "mes", label: labelMesSeg },
+          ]}
+        />
+        {periodo === "mes" ? (
+          <FlujoMesNav mesVista={mesVista} mesActual={mesActual} onMesVista={onMesVista} />
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -184,6 +234,7 @@ export default function FlujoCajaTab({ usuario, setPage, showConfirm, demoBundle
   const esDemo = Boolean(demoBundle);
   const [sub, setSub] = useState("flujo");
   const [periodo, setPeriodo] = useState("mes");
+  const [mesVista, setMesVista] = useState(() => mesActualMexico());
   const [bundle, setBundle] = useState(() => (demoBundle ? parseFlujoBundle(demoBundle) : null));
   const [loading, setLoading] = useState(!demoBundle);
   const [errorCarga, setErrorCarga] = useState(null);
@@ -197,7 +248,17 @@ export default function FlujoCajaTab({ usuario, setPage, showConfirm, demoBundle
     es_recurrente: false,
   }));
 
-  const rango = useMemo(() => rangoReporteMexico(periodo), [periodo]);
+  const mesActual = mesActualMexico();
+  const rango = useMemo(
+    () => rangoReporteMexico(periodo, new Date(), periodo === "mes" ? { anioMes: mesVista } : {}),
+    [periodo, mesVista],
+  );
+
+  const cambiarPeriodo = (p) => {
+    setPeriodo(p);
+    if (p === "mes") setMesVista(mesActualMexico());
+  };
+
 
   const cargar = useCallback(async () => {
     if (esDemo) {
@@ -261,11 +322,12 @@ export default function FlujoCajaTab({ usuario, setPage, showConfirm, demoBundle
       showToast("Escribe el concepto.", "warning");
       return;
     }
+    const fechaGasto = form.fecha || hoyISOMexico();
     setSaving(true);
     const { data, error } = await supabase.rpc("admin_registrar_gasto", {
       p_session_token: tok,
       p_gasto: {
-        fecha: form.fecha || hoyISOMexico(),
+        fecha: fechaGasto,
         categoria: form.categoria,
         concepto: String(form.concepto).trim(),
         monto,
@@ -281,8 +343,16 @@ export default function FlujoCajaTab({ usuario, setPage, showConfirm, demoBundle
       showToast(out.error || error?.message || "No se guardó el gasto", "error");
       return;
     }
-    showToast("Gasto guardado", "success");
     setForm((f) => ({ ...f, concepto: "", monto: "", proveedor: "" }));
+    const fuera = fechaGasto < rango.desdeFecha || fechaGasto > rango.hastaFecha;
+    if (fuera) {
+      const ym = anioMesDe(fechaGasto);
+      setPeriodo("mes");
+      setMesVista(ym);
+      showToast(`Gasto guardado · mostrando ${etiquetaMesLargo(ym)}`, "success");
+      return;
+    }
+    showToast("Gasto guardado", "success");
     cargar();
   };
 
@@ -331,10 +401,23 @@ export default function FlujoCajaTab({ usuario, setPage, showConfirm, demoBundle
 
   const irGastos = () => setSub("gastos");
 
+  const rails = (
+    <FlujoRails
+      sub={sub}
+      onSub={setSub}
+      periodo={periodo}
+      onPeriodo={cambiarPeriodo}
+      mesVista={mesVista}
+      mesActual={mesActual}
+      onMesVista={setMesVista}
+    />
+  );
+
+
   if (loading && !bundle) {
     return (
       <div>
-        <FlujoRails sub={sub} onSub={setSub} periodo={periodo} onPeriodo={setPeriodo} />
+        {rails}
         <SkeletonKPIs count={4} />
         <SkeletonTable rows={4} cols={6} />
       </div>
@@ -344,7 +427,7 @@ export default function FlujoCajaTab({ usuario, setPage, showConfirm, demoBundle
   if (errorCarga) {
     return (
       <div>
-        <FlujoRails sub={sub} onSub={setSub} periodo={periodo} onPeriodo={setPeriodo} />
+        {rails}
         <Box style={{ padding: 22, background: C.redDim, border: `1px solid ${C.red}40` }}>
           <div style={{ color: C.text, fontWeight: 800, fontSize: 16, marginBottom: 8 }}>
             No se pudo cargar el flujo
@@ -359,7 +442,7 @@ export default function FlujoCajaTab({ usuario, setPage, showConfirm, demoBundle
   if (!configurado) {
     return (
       <div>
-        <FlujoRails sub={sub} onSub={setSub} periodo={periodo} onPeriodo={setPeriodo} />
+        {rails}
         <Box style={{ padding: 22, background: C.amberDim, border: `1px solid ${C.amber}55` }}>
           <div style={{ color: C.text, fontWeight: 800, fontSize: 16, marginBottom: 8 }}>
             Falta una apertura de caja con fondo
@@ -396,7 +479,7 @@ export default function FlujoCajaTab({ usuario, setPage, showConfirm, demoBundle
   return (
     <div>
       <FlujoHead setPage={setPage} onRegistrar={irGastos} />
-      <FlujoRails sub={sub} onSub={setSub} periodo={periodo} onPeriodo={setPeriodo} />
+      {rails}
 
       <div className="fc-flujo-legend">
         <span>{leyenda}</span>
