@@ -140,9 +140,31 @@ No se usó: Dibar 250 (la foto pública es de **1 L**); Ursofalk (el ticket no d
 
 No se copió el EAN del AAS (UNIQUE). Farmasmart tiene **otro** SKU AMSA efervescente (`7501349020719`); el ticket dice *Acetilsalicílico Ef* = línea Psicofarma / ALP0300.
 
+## Sexta pasada: Google + ficha oficial (URLs del mostrador)
+
+`sql/patch_fotos_google_chedraui_20260914.sql` — **13 packshots**. Piden **deploy**. Adidas / Allegra D / Jaloma 250 pisan URLs `cm-…` que daban 404.
+
+| SKU | Ahora | Fuente |
+|---|---|---|
+| `FC-42478359` | Garnier Agua Micelar Carbón 400 ml | [garnier.com.mx](https://www.garnier.com.mx/skin-active/agua-micelar-carbon) · EAN `3600542478359` |
+| `FC-84900204` | Jaloma Agua de Rosas **250 ml** | [jaloma.com.mx](https://jaloma.com.mx/product/agua-de-rosas-250-ml/) |
+| `FC-84900259` | Jaloma Agua de Arroz 250 ml | jaloma.com.mx / DAX EAN `759684900259` |
+| `FC-03842420` | Adidas Power Booster spray 150 ml | [Chedraui](https://www.chedraui.com.mx/antitranspirante-adidas-power-booster-spray-hombre-150ml-3783701/p) |
+| `FC-65006386` | Allegra D 60/25 mg C/10 | [allegra.com.mx](https://www.allegra.com.mx/productos/alivio-para-alergias-y-congestion/allegra-D) |
+| `FC-46505283` | Xiomara Cera Mate 60 g | Chedraui EAN `7501846505283` |
+| `FC-50343102` | Vitacilina Facial Melatonina | Chedraui EAN `7502250343102` |
+| `FC-75075996` | Rexona Happy Morning roll-on 50 ml | Chedraui EAN `75075996` |
+| `FC-06215528` | Savilé bicarbonato+limón spray 150 ml | [savilemexico.com.mx](https://www.savilemexico.com.mx/p/antitranspirante-en-aerosol-savile-bicarbonato-y-limon.html/07506306215528) |
+| `FC-75068639` | Savilé bicarbonato+limón stick 45 g | Chedraui EAN `75068639` |
+| `FC-25629442` | Escudo antiséptico spray 200 ml | Chedraui EAN `7506425629442` |
+| `FC-66022610` | Honey Keeper Kids Chamomile 414 ml | Chedraui EAN `814266022610` (el ticket decía Honey) |
+| `FC-66022627` | Honey Keeper Kids Lavender 414 ml | Chedraui EAN `814266022627` |
+
+No se usó: Jaloma rosas **130 ml** (el packshot público es de 250 ml); Gerber 113 g ≠ 100 g; Sico `7501685171113` ≠ `7501685171118`; Savile roll-on `75068622`; Honey Keeper oat 414 ml (otro EAN).
+
 ## Lo que queda — `sql/generated/fotos_pendientes_tras_lote_20260914.csv`
 
-94 SKUs.
+84 SKUs.
 
 ### Medicamentos todavía sin caja pública de *esa* pieza
 
@@ -160,4 +182,4 @@ No se inventa foto a ciegas.
 
 ### Insumos / herbolario / EAN interno todavía sin packshot usable
 
-Otras jeringas SensiMedical (3 ml 21G, 5 ml 21G, insulina 1 ml, 60 ml — no se reutiliza otra caja), cintas Cintapore, cubrebocas, perillas, Mercurio/Velázquez, EANs `200…`, alcohol Dibar 96° 250 ml (la foto pública es de 1 L), Jaloma 60 ml / agua de rosas / arroz.
+Otras jeringas SensiMedical (3 ml 21G, 5 ml 21G, insulina 1 ml, 60 ml — no se reutiliza otra caja), cintas Cintapore, cubrebocas, perillas, Mercurio/Velázquez, EANs `200…`, alcohol Dibar 96° 250 ml (la foto pública es de 1 L), Jaloma Mertodol 60 ml / agua de rosas **130 ml**.
