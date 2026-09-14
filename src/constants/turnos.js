@@ -50,6 +50,21 @@ export function rangoTurno(fecha, turno) {
   return { inicio: corte, fin };
 }
 
+/**
+ * Día calendario local [00:00, 23:59:59.999] para crédito personal (Mi Día).
+ *
+ * El corte a las 15:30 es de caja: una venta no puede ir a dos cortes. El
+ * personal vespertino entra desde las 15:00; si cobra a las 15:11 esa venta
+ * es del corte matutino, pero sí debe contar en la meta de quien la atendió.
+ */
+export function rangoDiaCalendario(fecha = new Date()) {
+  const inicio = new Date(fecha);
+  inicio.setHours(0, 0, 0, 0);
+  const fin = new Date(fecha);
+  fin.setHours(23, 59, 59, 999);
+  return { inicio, fin };
+}
+
 /** "Matutino 8:00 – 15:30h" — para selects y etiquetas. */
 export function etiquetaTurno(turno) {
   const t = TURNOS[turno];

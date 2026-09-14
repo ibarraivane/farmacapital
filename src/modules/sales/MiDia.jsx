@@ -8,9 +8,9 @@ import { supabase } from "../../supabase";
 import { showToast } from "../../ui";
 import { idEmpleadoUsuarios } from "../../utils/usuarioId";
 import { saludoUsuario } from "../../utils";
-import { turnoDePerfil, etiquetaDiaDescanso } from "../../constants/turnos";
+import { turnoDePerfil, etiquetaDiaDescanso, rangoDiaCalendario } from "../../constants/turnos";
 import {
-  inferirTurno, inicioDelTurno, finDelTurno, claveMetaTurno,
+  inferirTurno, claveMetaTurno,
   calcularMultiplicador, cargarConfigMetas, escalonBono, bonosActivos,
 } from "../../utils/turnosMetas";
 import { fetchJornadaHoy } from "../../utils/cajaSesion";
@@ -343,13 +343,9 @@ export default function MiDia({ usuario, setPage }) {
       const hoy = new Date();
       const { jornada: j } = await fetchJornadaHoy();
       setJornada(j);
-      const cubreAmbos = !!j?.cubre_ambos;
-      const inicioTurno = cubreAmbos
-        ? new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate(), 0, 0, 0).toISOString()
-        : inicioDelTurno(hoy, turno).toISOString();
-      const finTurno = cubreAmbos
-        ? new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate(), 23, 59, 59, 999).toISOString()
-        : finDelTurno(hoy, turno).toISOString();
+      // Crédito personal = día calendario. El corte 15:30 es solo de caja;
+      // ventas del traslape (15:00–15:30) deben verse en Mi Día de quien cobró.
+      const { inicio: inicioDia, fin: finDia } = rangoDiaCalendario(hoy);
       const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString();
 
       const tok = sessionStorage.getItem("farmacapital_session_token");
@@ -359,13 +355,18 @@ export default function MiDia({ usuario, setPage }) {
           ? supabase.rpc("empleado_midia_snapshot", {
               p_session_token: tok,
               p_empleado_id: empleadoId,
-              p_turno_start: inicioTurno,
-              p_turno_end: finTurno,
+              p_turno_start: inicioDia.toISOString(),
+              p_turno_end: finDia.toISOString(),
               p_mes_start: inicioMes,
               p_fecha_citas: hoy.toISOString().slice(0, 10),
             })
           : Promise.resolve({ data: null, error: { message: "sin sesión" } }),
       ]);
+
+      if (snapRes?.error) {
+        console.warn("[MiDia] snapshot:", snapRes.error.message || snapRes.error);
+        showToast(snapRes.error.message || "No se pudieron cargar tus ventas de hoy.", "error");
+      }
 
       const snap = snapRes?.data || {};
       const pedTurno = snap.ped_turno || [];
@@ -590,7 +591,7 @@ export default function MiDia({ usuario, setPage }) {
           <div style={{ fontSize: 54, fontWeight: 800, lineHeight: 1 }}>{pctDia}%</div>
           {data.metaTurno > 0 && (
             <div style={{ fontSize: 13, opacity: 0.85 }}>
-              del objetivo del turno
+              del objetivo del turno · ventas de hoy
             </div>
           )}
         </div>
