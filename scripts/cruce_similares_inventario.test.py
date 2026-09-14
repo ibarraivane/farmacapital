@@ -161,5 +161,95 @@ class CruceFalsosPositivos(unittest.TestCase):
         self.assertEqual(len(ok) + len(rellenar), 1)
 
 
+class PedidoMostrador(unittest.TestCase):
+    def test_racecadotrilo_si_se_pide(self):
+        self.assertTrue(cruce.es_indispensable_mostrador({
+            "descripcion": "RACECADOTRILO 30MG PVO 18 SOBRES GRANUL",
+            "ingredientes": ["racecadotrilo"],
+        }))
+
+    def test_felodipino_no_es_mostrador(self):
+        self.assertFalse(cruce.es_indispensable_mostrador({
+            "descripcion": "FELODIPINO 5MG 20TAB LP",
+            "ingredientes": ["felodipino"],
+        }))
+
+    def test_arnica_homeopatica_no(self):
+        self.assertFalse(cruce.es_indispensable_mostrador({
+            "descripcion": "ARNICA 6C 150 GLOBULOS",
+            "ingredientes": ["arnica"],
+        }))
+
+    def test_ya_hay_butilhioscina_tabletas(self):
+        productos = [{
+            "nombre": "Biomesina 10 tab 10 mg",
+            "principio_activo": "Butilhioscina",
+            "forma_farmaceutica": "tableta",
+            "stock": 3,
+        }]
+        idx = cruce.indice_molecula(productos)
+        self.assertTrue(cruce.ya_hay_equivalente({
+            "descripcion": "BUTILHIO(HIOSCINA) 10MG 12 TAB BUSCAPINA",
+            "ingredientes": ["butilhioscina"],
+            "forma": "tableta",
+        }, idx, productos))
+
+    def test_metformina_1000_no_la_cubre_850(self):
+        productos = [{
+            "nombre": "Metformina 30 Tab 850 Mg",
+            "principio_activo": "Metformina",
+            "forma_farmaceutica": "tableta",
+            "concentracion": "850 mg",
+            "stock": 4,
+        }]
+        idx = cruce.indice_molecula(productos)
+        self.assertFalse(cruce.ya_hay_equivalente({
+            "descripcion": "METFORMINA 1000MG 30TAB",
+            "ingredientes": ["metformina"],
+            "forma": "tableta",
+        }, idx, productos))
+
+    def test_jeringa_3ml_si_ya_hay(self):
+        productos = [{
+            "nombre": "Jeringa SensiMedical 3 mL 21G x 32 mm verde",
+            "principio_activo": "",
+            "forma_farmaceutica": "Jeringa",
+            "stock": 100,
+        }]
+        idx = cruce.indice_molecula(productos)
+        self.assertTrue(cruce.ya_hay_equivalente({
+            "descripcion": "JERINGA DESECHABLE 3ML 4PZAS 21X32",
+            "ingredientes": [],
+            "forma": "",
+        }, idx, productos))
+
+    def test_yodopovidona_si_hay_dermodine(self):
+        productos = [{
+            "nombre": "Dermodine solución antiséptica 120 ml",
+            "principio_activo": "Iodopovidona",
+            "forma_farmaceutica": "solucion",
+            "stock": 2,
+        }]
+        idx = cruce.indice_molecula(productos)
+        self.assertTrue(cruce.ya_hay_equivalente({
+            "descripcion": "YODOPOVIDONA ANTISEPTICA 120ML",
+            "ingredientes": ["yodopovidona"],
+            "forma": "solucion",
+        }, idx, productos))
+
+    def test_ketoprofeno_no_es_mostrador(self):
+        self.assertFalse(cruce.es_indispensable_mostrador({
+            "descripcion": "KETOPROFENO 100MG 15CAP",
+            "ingredientes": ["ketoprofeno"],
+        }))
+
+    def test_diclofenaco_susp_no_es_mostrador(self):
+        self.assertFalse(cruce.es_indispensable_mostrador({
+            "descripcion": "DICLOFENACO AC LIBRE SUSP 120ML",
+            "ingredientes": ["diclofenaco"],
+            "forma": "suspension",
+        }))
+
+
 if __name__ == "__main__":
     unittest.main()

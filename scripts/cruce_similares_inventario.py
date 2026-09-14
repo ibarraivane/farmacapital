@@ -45,6 +45,16 @@ sync = ex.sync
 sync.SINONIMOS.setdefault("cla", "clavulanico")
 sync.SINONIMOS.setdefault("clavulanico", "clavulanico")
 sync.SINONIMOS.setdefault("tioctico", "tioctico")
+sync.SINONIMOS.setdefault("butilhio", "butilhioscina")
+sync.SINONIMOS.setdefault("iodopovidona", "yodopovidona")
+sync.SINONIMOS.setdefault("yodopovidona", "yodopovidona")
+sync.SINONIMOS.setdefault("povidona", "yodopovidona")
+sync.SINONIMOS.setdefault("simeticona", "dimeticona")
+sync.SINONIMOS.setdefault("dimeticona", "dimeticona")
+sync.SINONIMOS.setdefault("peroxido", "oxigenada")
+sync.SINONIMOS.setdefault("oxigenada", "oxigenada")
+sync.SINONIMOS.setdefault("mebendazol", "albendazol")
+sync.SINONIMOS.setdefault("albendazol", "albendazol")
 
 UMBRAL_CUBIERTO = 80
 UMBRAL_EQUIV = 70
@@ -138,8 +148,17 @@ def norm(s: str) -> str:
 def activos_sim(desc: str) -> list[str]:
     """Moléculas del genérico Similares: cabeza de cada segmento antes de la dosis."""
     cabeza = re.split(r"\d", desc or "", maxsplit=1)[0]
-    ings = sync.ingredientes(cabeza.replace("/", " + "))
-    return [x for x in ings if x not in PA_DEBIL and len(x) >= 5]
+    ings = [sync.canonico(x) for x in sync.ingredientes(cabeza.replace("/", " + "))]
+    toks = [sync.canonico(t) for t in sync.tokens_utiles(cabeza)]
+    out: list[str] = []
+    conocidos = INDISPENSABLE_TOKENS | CLASE_A
+    for x in ings + toks:
+        if x in PA_DEBIL or len(x) < 5:
+            continue
+        if x in ings or x in conocidos:
+            if x not in out:
+                out.append(x)
+    return out
 
 
 def clase_y_stock(sim: dict) -> tuple[str, int, int]:
@@ -176,6 +195,261 @@ def clase_y_stock(sim: dict) -> tuple[str, int, int]:
     if any(x in linea for x in ("antibiot", "respirator", "antimicot")):
         return "B", 3, 6
     return "C", 2, 4
+
+
+# Genéricos que sí se piden todos los días en mostrador (farmacia tipo Similares).
+INDISPENSABLE_TOKENS = {
+    "paracetamol", "ibuprofeno", "naproxeno", "diclofenaco", "ketorolaco", "metamizol",
+    "acetilsalicilico",
+    "omeprazol", "butilhioscina", "hioscina", "racecadotrilo",
+    "metronidazol", "bismuto", "aluminio", "dimeticona", "mebendazol",
+    "metformina", "glibenclamida",
+    "losartan", "amlodipino", "enalapril", "captopril", "atenolol", "furosemida",
+    "ambroxol", "dextrometorfano", "guaifenesina", "oxolamina", "clorfenamina",
+    "loratadina", "cetirizina", "levocetirizina", "salbutamol", "fenilefrina",
+    "amoxicilina", "ampicilina", "trimetoprima", "sulfametoxazol",
+    "clotrimazol", "albendazol",
+    "yodopovidona", "iodopovidona", "algodon", "termometro", "oxigenada",
+}
+
+EXCLUIR_SURTIR = re.compile(
+    r"\b(6c|globulo|globulos|simi diab|simibaby|simiplaneta|simi chapulin|"
+    r"cubreboca|tobillera|kitocream|kitocell|pirfen|candesartan|olmesartan|"
+    r"nebivolol|lercanidipino|valsartan|pregabalina|gabapentina|mirtazapina|"
+    r"risperidona|modafinilo|aripiprazol|desvenlafaxina|atomoxetina|"
+    r"bicalutamida|mesalazina|orlistat|topiramato|oxcarbazepina|"
+    r"hidroxocobalamina|norfenefrina|felodipino|ramipril|bisoprolol|"
+    r"metoprolol|lisinopril|verapamilo|nifedipino|propranolol|clortalidona|"
+    r"clort\b|isosorbida|metildopa|acarbosa|alendronato|itoprida|floroglucinol|"
+    r"cuo protect|enteroger|sinuberase|bac claus|ultra fine|pluma|"
+    r"oftal|otica|cabestrillo|kn95|nitrilo|genciana|pirfen|"
+    r"sitagliptina|vildagliptina|linagliptina|dapagliflozina|empagliflozina|"
+    r"ketoprofeno|sucralfato|parche|ampolleta|inyect)\b",
+    re.I,
+)
+
+CURACION_INDISPENSABLE = re.compile(
+    r"\b(yodopovidona|agua oxigenada|venda adhesiva|vendas adhesivas|"
+    r"tela adhesiva|algodon|termometro digital|prueba de embarazo analog|"
+    r"jeringa desechable 3ml|jeringa desechable 5ml)\b",
+    re.I,
+)
+
+
+def por_que_surtir(desc: str) -> str:
+    nd = norm(desc)
+    pares = [
+        (("paracetamol", "ibuprofeno", "naproxeno", "diclofenaco", "metamizol",
+          "ketorolaco", "ketoprofeno", "acetilsalicilico"), "Analgésico de mostrador"),
+        (("butilhioscina", "hioscina", "buscapina"), "Cólico / dolor de panza"),
+        (("racecadotrilo",), "Diarrea — no hay hidrasec/genérico en anaquel"),
+        (("metformina", "glibenclamida"), "Diabetes de mostrador"),
+        (("ambroxol", "dextrometorfano", "guaifenesina", "oxolamina", "histiacil"),
+         "Tos / gripa"),
+        (("loratadina", "cetirizina", "clorfenamina", "levocetirizina"), "Alergia / gripa"),
+        (("omeprazol", "sucralfato", "aluminio", "bismuto", "picot", "alka"),
+         "Estómago / acidez"),
+        (("amoxicilina", "ampicilina", "trimetoprima", "ceftriaxona", "metronidazol"),
+         "Antibiótico de mostrador"),
+        (("losartan", "amlodipino", "enalapril", "captopril", "atenolol"),
+         "Presión / corazón de mostrador"),
+        (("clotrimazol",), "Hongos / ginecológico"),
+        (("mebendazol", "albendazol"), "Lombrices"),
+        (("yodo", "oxigenada", "venda", "jeringa", "algodon", "termometro", "embarazo"),
+         "Botiquín / curación que se acaba"),
+    ]
+    for toks, label in pares:
+        if any(t in nd for t in toks):
+            return label
+    return "Alta rotación de mostrador"
+
+
+def es_indispensable_mostrador(r: dict) -> bool:
+    """True si el hueco es de los que hay que surtir ya (no especialidad)."""
+    desc = r.get("descripcion") or ""
+    nd = norm(desc)
+    if EXCLUIR_SURTIR.search(desc) or EXCLUIR_SURTIR.search(nd):
+        return False
+    if r.get("clase") == "INY":
+        return False
+    # En mostrador el líquido de fiebre/dolor es ibuprofeno o Tempra, no diclofenaco.
+    if "diclofenaco" in nd and re.search(r"\b(susp|jarabe|solucion)\b", nd):
+        return False
+    if MARCA_PROPIA_SIMI.search(desc) and "ambroxol" not in nd and "paracetamol" not in nd:
+        return False
+    if CURACION_INDISPENSABLE.search(desc) or CURACION_INDISPENSABLE.search(nd):
+        return True
+    toks = set(sync.tokens_utiles(desc))
+    toks.update(r.get("ingredientes") or [])
+    toks.update(activos_sim(desc))
+    toks = {sync.canonico(t) for t in toks}
+    return bool(toks & INDISPENSABLE_TOKENS)
+
+
+BOTIQUIN_EQUIV = (
+    (re.compile(r"jeringa desechable 3\s*ml|jeringa.{0,12}3\s*ml", re.I),
+     re.compile(r"jeringa.{0,24}3\s*ml", re.I)),
+    (re.compile(r"jeringa desechable 5\s*ml|jeringa.{0,12}5\s*ml", re.I),
+     re.compile(r"jeringa.{0,24}5\s*ml", re.I)),
+    (re.compile(r"agua oxigenada", re.I),
+     re.compile(r"agua oxigenada|peroxido de hidrogeno", re.I)),
+    (re.compile(r"\balgodon\b", re.I),
+     re.compile(r"\balgodon\b", re.I)),
+    (re.compile(r"tela adhesiva", re.I),
+     re.compile(r"tela adhesiva", re.I)),
+    (re.compile(r"venda adhesiva|vendas adhesivas", re.I),
+     re.compile(r"curita|vendita|venda adhesiva|vendas adhesivas", re.I)),
+    (re.compile(r"termometro", re.I),
+     re.compile(r"termometro", re.I)),
+    (re.compile(r"yodopovidona|iodopovidona", re.I),
+     re.compile(r"yodopovidona|iodopovidona|isodine|dermodine", re.I)),
+    (re.compile(r"prueba de embarazo", re.I),
+     re.compile(r"prueba.{0,12}embarazo|meditest", re.I)),
+)
+
+
+def _blob_producto(p: dict) -> str:
+    return norm(" ".join(filter(None, [
+        str(p.get("nombre") or ""),
+        str(p.get("principio_activo") or ""),
+        str(p.get("forma_farmaceutica") or ""),
+        str(p.get("concentracion") or ""),
+        str(p.get("presentacion") or ""),
+    ])))
+
+
+def ya_hay_botiquin(desc: str, productos: list[dict]) -> bool:
+    nd = norm(desc)
+    for pat_sim, pat_fc in BOTIQUIN_EQUIV:
+        if not pat_sim.search(nd):
+            continue
+        for p in productos:
+            if int(p.get("stock") or 0) <= 0:
+                continue
+            if pat_fc.search(_blob_producto(p)):
+                return True
+    return False
+
+
+def moleculas_texto(texto: str) -> list[str]:
+    conocidos = INDISPENSABLE_TOKENS | CLASE_A
+    ings = [sync.canonico(x) for x in sync.ingredientes(texto)]
+    toks = [sync.canonico(t) for t in sync.tokens_utiles(texto)]
+    out: list[str] = []
+    for x in ings + toks:
+        if x in PA_DEBIL or len(x) < 5:
+            continue
+        if x in ings or x in conocidos:
+            if x not in out:
+                out.append(x)
+    return out
+
+
+def ya_hay_equivalente(r: dict, idx_mol: dict[tuple[str, str], list[dict]],
+                       productos: list[dict] | None = None) -> bool:
+    """Si ya tenemos el mismo genérico en la misma familia de forma, no lo vuelvas a pedir.
+
+    Excepción: pediátrico (suspensión/jarabe/gotas/supositorio) pide la misma vía.
+    Excepción: metformina 1000 / 750 LP si en anaquel solo hay 500 u 850.
+    """
+    desc = r.get("descripcion") or ""
+    if productos and ya_hay_botiquin(desc, productos):
+        return True
+    ings = [sync.canonico(x) for x in (r.get("ingredientes") or []) if x not in PA_DEBIL]
+    ings = [x for x in ings if x]
+    extra = activos_sim(desc)
+    for x in extra:
+        if x not in ings:
+            ings.append(x)
+    if not ings:
+        return False
+    forma = r.get("forma") or ""
+    fam = FORMA_FAMILIA.get(forma) or forma or ""
+    nd = norm(desc)
+    pediatrico = forma in {"suspension", "jarabe", "gotas", "supositorio"} or bool(
+        re.search(r"\b(ped|infantil|nino|bebe|gotas|supos)\b", nd)
+    )
+    candidatos = []
+    for mol in ings:
+        for (m, f), rows in idx_mol.items():
+            if m != mol:
+                continue
+            if f == fam or (not fam) or (not f):
+                candidatos.extend(rows)
+    if not candidatos:
+        return False
+    if "metformina" in nd and re.search(r"\b(1000|1\s*gr|750)", nd):
+        tienen = " ".join(
+            norm(p.get("nombre") or "") + " " + str(p.get("concentracion") or "")
+            for p in candidatos
+        )
+        if re.search(r"\b(1000|1\s*gr)", nd):
+            return bool(re.search(r"\b(1000|1\s*g\b|1\s*gr)", tienen))
+        if re.search(r"\b750", nd):
+            return "750" in tienen
+    if pediatrico:
+        forma_ok = {forma} if forma else set()
+        if forma in {"suspension", "jarabe"}:
+            forma_ok.update({"suspension", "jarabe"})
+        if forma == "gotas":
+            forma_ok.add("gotas")
+        if forma == "supositorio":
+            forma_ok.add("supositorio")
+        return any(
+            sync.extraer_forma((p.get("nombre") or "") + " " + (p.get("forma_farmaceutica") or ""))
+            in forma_ok
+            for p in candidatos
+            if int(p.get("stock") or 0) > 0
+        )
+    return any(int(p.get("stock") or 0) > 0 for p in candidatos)
+
+
+def indice_molecula(productos: list[dict]) -> dict[tuple[str, str], list[dict]]:
+    idx: dict[tuple[str, str], list[dict]] = defaultdict(list)
+    for p in productos:
+        texto = " ".join(filter(None, [
+            str(p.get("principio_activo") or ""),
+            str(p.get("nombre") or ""),
+            str(p.get("forma_farmaceutica") or ""),
+        ]))
+        ings = moleculas_texto(texto)
+        forma = sync.extraer_forma(texto) or sync.extraer_forma(p.get("forma_farmaceutica") or "")
+        fam = FORMA_FAMILIA.get(forma or "") or (forma or "")
+        for ing in ings:
+            idx[(ing, fam)].append(p)
+    return idx
+
+
+def elegir_pedido_surtir(huecos: list[dict], productos: list[dict]) -> list[dict]:
+    """Faltantes que sí hay que comprar ahora: alta rotación y sin equivalente en anaquel."""
+    idx = indice_molecula(productos)
+    out = []
+    vistos: set[str] = set()
+    for r in huecos:
+        if not es_indispensable_mostrador(r):
+            continue
+        if ya_hay_equivalente(r, idx, productos):
+            continue
+        ings = activos_sim(r.get("descripcion") or "") or (r.get("ingredientes") or [])
+        # Un renglón por genérico+forma+dosis redondeada, no 3 SKUs Simi del mismo.
+        clave = (
+            " ".join(sorted(ings))
+            + "|"
+            + (r.get("forma") or "")
+            + "|"
+            + " ".join(sorted(r.get("concentraciones") or [])[:3])
+        )
+        if clave in vistos and "jeringa" not in norm(r.get("descripcion") or ""):
+            continue
+        vistos.add(clave)
+        rec = dict(r)
+        rec["por_que"] = por_que_surtir(r.get("descripcion") or "")
+        rec["pedir"] = 6 if r.get("clase") in ("A", "CUR") else max(int(r.get("pedir") or 3), 3)
+        if "metformina" in norm(rec["descripcion"]) and re.search(r"1000|1\s*gr", norm(rec["descripcion"])):
+            rec["pedir"] = 10
+        out.append(rec)
+    out.sort(key=lambda x: (x.get("por_que") or "", -(x.get("precio") or 0)))
+    return out
 
 
 def _vtex_get(url: str) -> tuple[list, str]:
@@ -335,22 +609,44 @@ def cargar_similares_excel(ruta: Path) -> list[dict]:
 
 
 def fetch_productos_stock(url: str, key: str) -> list[dict]:
-    H = {"apikey": key, "Authorization": f"Bearer {key}"}
+    H = {
+        "apikey": key,
+        "Authorization": f"Bearer {key}",
+        "Accept": "application/json",
+        "Prefer": "count=exact",
+    }
+    select = (
+        "id,sku,nombre,principio_activo,marca,presentacion,"
+        "forma_farmaceutica,concentracion,costo,precio,categoria,tipo,stock,stock_minimo,activo"
+    )
+    page = 250
     out = []
     start = 0
     while True:
-        req = urllib.request.Request(
-            url + "/rest/v1/productos?select=id,sku,nombre,principio_activo,marca,presentacion,"
-            "forma_farmaceutica,concentracion,costo,precio,categoria,tipo,stock,stock_minimo,activo"
-            "&activo=eq.true&order=nombre",
-            headers={**H, "Range": f"{start}-{start + 999}"},
-        )
-        with urllib.request.urlopen(req, timeout=90) as r:
-            chunk = json.loads(r.read())
+        last_err: Exception | None = None
+        chunk: list = []
+        for intento in range(6):
+            try:
+                req = urllib.request.Request(
+                    url + f"/rest/v1/productos?select={select}"
+                    "&activo=eq.true&order=nombre.asc",
+                    headers={**H, "Range": f"{start}-{start + page - 1}"},
+                )
+                with urllib.request.urlopen(req, timeout=45) as r:
+                    chunk = json.loads(r.read())
+                last_err = None
+                break
+            except Exception as exc:
+                last_err = exc
+                time.sleep(2 * (intento + 1))
+        if last_err:
+            raise last_err
+        if not isinstance(chunk, list):
+            raise RuntimeError("Respuesta inesperada de productos")
         out.extend(chunk)
-        if len(chunk) < 1000:
+        if len(chunk) < page:
             break
-        start += 1000
+        start += page
     return out
 
 
@@ -453,7 +749,7 @@ def cruzar(sim: list[dict], productos: list[dict]) -> tuple[list[dict], list[dic
             if equiv and score < UMBRAL_EQUIV:
                 score = max(score, UMBRAL_EQUIV)
                 razones = razones + ["equivalente PA+concentración+forma"]
-            if score == 0 or (razones == ["sin identidad comprobable"] and nombre_sim < 80):
+            if score == 0 or (razones == ["sin identidad comprobable"] and nombre_set < 80):
                 continue
             if score > best_score:
                 best_score = score
@@ -601,7 +897,8 @@ def escribir_md(path: Path, resumen: dict, huecos: list[dict]) -> None:
         "",
         "Archivos:",
         "",
-        f"- `{resumen.get('xlsx_pedido') or ''}` — Excel para surtir (alta rotación)",
+        f"- `{resumen.get('xlsx_surtir') or ''}` — **Excel para surtir** (solo alta rotación de mostrador)",
+        f"- `{resumen.get('xlsx_pedido') or ''}` — cruce completo (A/B/curación + rellenar)",
         f"- `{resumen['csv_prioridad']}` — huecos A + B + curación (comprar primero)",
         f"- `{resumen['csv_huecos']}` — resto de huecos (especialidad)",
         f"- `{resumen['csv_rellenar']}` — ya los tenemos, stock bajo el mínimo",
@@ -760,6 +1057,115 @@ def escribir_xlsx_pedido(path: Path, resumen: dict, huecos: list[dict], rellenar
     wb.save(path)
 
 
+def escribir_xlsx_surtir(path: Path, resumen: dict, pedido: list[dict]) -> None:
+    """Excel corto para surtir: solo indispensables de alta rotación."""
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+    from openpyxl.utils import get_column_letter
+
+    wb = Workbook()
+    fill_h = PatternFill("solid", fgColor="1A1A1A")
+    font_h = Font(name="Calibri", bold=True, color="FFFFFF", size=11)
+    thin = Border(
+        left=Side(style="thin", color="DDDDDD"),
+        right=Side(style="thin", color="DDDDDD"),
+        top=Side(style="thin", color="DDDDDD"),
+        bottom=Side(style="thin", color="DDDDDD"),
+    )
+    fill_alt = PatternFill("solid", fgColor="FFF8E7")
+
+    ws = wb.active
+    ws.title = "COMPRAR"
+    headers = [
+        "Pedir", "Qué comprar (genérico)", "Concentración / contenido",
+        "Forma", "Línea", "Para qué", "Precio ref. Similares", "SKU Similares",
+    ]
+    for i, h in enumerate(headers, 1):
+        c = ws.cell(1, i, h)
+        c.fill = fill_h
+        c.font = font_h
+        c.alignment = Alignment(wrap_text=True, vertical="center")
+    ws.freeze_panes = "A2"
+    ws.row_dimensions[1].height = 24
+    ws.auto_filter.ref = f"A1:{get_column_letter(len(headers))}1"
+
+    for r_i, r in enumerate(pedido, start=2):
+        conc = (r.get("concentracion") or "").strip()
+        if not conc:
+            conc = " ".join(sorted(r.get("concentraciones") or []))
+        contenido = r.get("contenido") or r.get("presentacion") or ""
+        pres = " · ".join(x for x in [conc, contenido] if x)
+        vals = [
+            r["pedir"],
+            r["descripcion"],
+            pres,
+            r.get("forma") or "",
+            r.get("linea") or "",
+            r.get("por_que") or "",
+            r.get("precio") or 0,
+            r.get("sim_sku") or "",
+        ]
+        for c_i, v in enumerate(vals, 1):
+            cell = ws.cell(r_i, c_i, v)
+            cell.border = thin
+            if r_i % 2 == 0:
+                cell.fill = fill_alt
+        ws.cell(r_i, 1).font = Font(name="Calibri", bold=True, size=14)
+
+    widths = [8, 48, 28, 12, 22, 36, 16, 14]
+    for i, w in enumerate(widths, 1):
+        ws.column_dimensions[get_column_letter(i)].width = w
+    if pedido:
+        ws.auto_filter.ref = f"A1:H{len(pedido)+1}"
+
+    res = wb.create_sheet("Resumen", 0)
+    res["A1"] = "Pedido de alta rotación — FarmaCapital vs Similares"
+    res["A1"].font = Font(name="Calibri", bold=True, size=16)
+    res.merge_cells("A1:B1")
+    res["A2"] = (
+        "Solo lo que se pide en mostrador y hoy no tenemos (ni un genérico equivalente). "
+        "Compra el mismo principio/dosis/forma en Levic, Farmalive o AMSA. "
+        "No copies la marca propia Simi."
+    )
+    res.merge_cells("A2:B4")
+    res["A2"].alignment = Alignment(wrap_text=True, vertical="top")
+    filas = [
+        ("Fecha", resumen["fecha"]),
+        ("Fuente", resumen["fuente"]),
+        ("Renglones a comprar", len(pedido)),
+        ("Piezas a pedir", sum(r["pedir"] for r in pedido)),
+        ("Huecos totales Similares (referencia)", resumen["huecos"]),
+        ("De esos, alta rotación a surtir", len(pedido)),
+    ]
+    res["A6"] = "Métrica"
+    res["B6"] = "Valor"
+    for i in (6,):
+        for col in range(1, 3):
+            res.cell(i, col).fill = fill_h
+            res.cell(i, col).font = font_h
+    for i, (a, b) in enumerate(filas, start=7):
+        res.cell(i, 1, a)
+        res.cell(i, 2, b)
+    por = Counter(r.get("por_que") or "" for r in pedido)
+    res["A15"] = "Por rubro"
+    res["A15"].font = Font(name="Calibri", bold=True, size=12)
+    res["A16"] = "Rubro"
+    res["B16"] = "Renglones"
+    for i, h in enumerate(["A16", "B16"], 1):
+        pass
+    for col in range(1, 3):
+        res.cell(16, col).fill = fill_h
+        res.cell(16, col).font = font_h
+    for i, (k, n) in enumerate(por.most_common(), start=17):
+        res.cell(i, 1, k)
+        res.cell(i, 2, n)
+    res.column_dimensions["A"].width = 56
+    res.column_dimensions["B"].width = 22
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    wb.save(path)
+
+
 def cargar_snapshot_csv(ruta: Path) -> list[dict]:
     out = []
     with ruta.open(encoding="utf-8") as f:
@@ -870,9 +1276,35 @@ def main() -> int:
         "csv_cubiertos": csv_cubiertos,
         "xlsx_pedido": str(xlsx_pedido.relative_to(ROOT)),
     }
+    pedido = elegir_pedido_surtir(huecos, productos)
+    xlsx_surtir = REPORTE_DIR / f"pedido_alta_rotacion_surtir_{tag}.xlsx"
+    csv_surtir = REPORTE_DIR / f"pedido_alta_rotacion_surtir_{tag}.csv"
     escribir_xlsx_pedido(xlsx_pedido, resumen, huecos, rellenar)
+    escribir_xlsx_surtir(xlsx_surtir, resumen, pedido)
+    with csv_surtir.open("w", encoding="utf-8", newline="") as f:
+        w = csv.writer(f)
+        w.writerow([
+            "pedir", "generico", "concentracion_contenido", "forma", "linea",
+            "para_que", "precio_similares", "sku_similares",
+        ])
+        for r in pedido:
+            conc = r.get("concentracion") or " ".join(sorted(r.get("concentraciones") or []))
+            contenido = r.get("contenido") or r.get("presentacion") or ""
+            w.writerow([
+                r["pedir"], r["descripcion"], " · ".join(x for x in [conc, contenido] if x),
+                r.get("forma") or "", r.get("linea") or "", r.get("por_que") or "",
+                r.get("precio") or 0, r.get("sim_sku") or "",
+            ])
+    resumen["xlsx_surtir"] = str(xlsx_surtir.relative_to(ROOT))
+    resumen["pedido_surtir"] = len(pedido)
+    resumen["pzas_surtir"] = sum(r["pedir"] for r in pedido)
     escribir_md(md_path, resumen, huecos)
-    print(json.dumps({k: v for k, v in resumen.items() if not str(k).startswith("csv") and k != "xlsx_pedido"}, indent=2))
+    print(json.dumps({
+        k: v for k, v in resumen.items()
+        if k in ("fecha", "fuente", "similares_unicos", "inventario_activo",
+                 "cubiertos", "huecos", "cobertura_pct", "pedido_surtir", "pzas_surtir")
+    }, indent=2))
+    print("surtir", xlsx_surtir, "renglones", len(pedido))
     print("md", md_path)
     print("xlsx", xlsx_pedido)
     return 0

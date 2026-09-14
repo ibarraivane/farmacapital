@@ -9,23 +9,24 @@ Si Similares vende ibuprofeno 400 mg 10 tabletas y nosotros tenemos AMSA/Ultra d
 
 - Artículos únicos Similares (farmacia, sin souvenirs/perfumería/alimentos): **1281**
 - Productos activos en nuestro inventario: **1503**
-- Ya cubiertos (los tenemos, aunque sea otra marca): **430** (33.6%)
-  - con stock suficiente: **96**
-  - hay que rellenar (bajo el mínimo sucursal): **334**
-- Huecos (Similares lo vende y nosotros no): **851**
-  - clase A (rotación alta): **86**
+- Ya cubiertos (los tenemos, aunque sea otra marca): **433** (33.8%)
+  - con stock suficiente: **98**
+  - hay que rellenar (bajo el mínimo sucursal): **335**
+- Huecos (Similares lo vende y nosotros no): **848**
+  - clase A (rotación alta): **85**
   - clase B: **203**
-  - clase C: **510**
+  - clase C: **509**
   - inyectables: **0**
-  - curación: **52**
+  - curación: **51**
 
 Para igualar el surtido de mostrador de Similares, el pedido útil es **clase A + B + curación**
-(341 huecos).
+(339 huecos).
 Clase C (especialidad / marca propia Simi) se pide de 2 en 2 cuando ya hay consulta.
 
 Archivos:
 
-- `pricing/reportes/cruce_similares_pedido_20260914.xlsx` — Excel para surtir (alta rotación)
+- `pricing/reportes/pedido_alta_rotacion_surtir_20260914.xlsx` — **Excel para surtir** (solo alta rotación de mostrador)
+- `pricing/reportes/cruce_similares_pedido_20260914.xlsx` — cruce completo (A/B/curación + rellenar)
 - `pricing/reportes/cruce_similares_20260914_prioridad.csv` — huecos A + B + curación (comprar primero)
 - `pricing/reportes/cruce_similares_20260914_huecos.csv` — resto de huecos (especialidad)
 - `pricing/reportes/cruce_similares_20260914_rellenar.csv` — ya los tenemos, stock bajo el mínimo
@@ -35,9 +36,9 @@ Archivos:
 
 | Línea | Huecos A/B/curación |
 | --- | ---: |
-| CURACION Y MEDICION | 61 |
+| CURACION Y MEDICION | 60 |
 | RESPIRATORIOS | 51 |
-| ESTOMACALES (GASTRO) | 48 |
+| ESTOMACALES (GASTRO) | 47 |
 | CARDIOVASCULARES | 43 |
 | ANALGESICOS | 26 |
 | ANTIBIOTICOS | 24 |
@@ -73,7 +74,6 @@ Archivos:
 | 5 | $99 | ITOPRIDA 50MG 30TAB | ESTOMACALES (GASTRO) |
 | 5 | $99 | RACECADOTRILO 10MG PVO 18 SOBRES GRANUL | ESTOMACALES (GASTRO) |
 | 5 | $99 | RAMIPRIL 5MG 16TAB | CARDIOVASCULARES |
-| 5 | $98 | BUTILHIO(HIOSCINA) 10MG 12 TAB BUSCAPINA | ESTOMACALES (GASTRO) |
 | 5 | $95 | FELODIPINO 5MG 20TAB LP | CARDIOVASCULARES |
 | 5 | $94 | CLONIX LIS/BUTI 125/10MG 20TAB | ESTOMACALES (GASTRO) |
 | 5 | $94 | LOXCELL QUINF/ALBEND 300/400MG 1TAB | ESTOMACALES (GASTRO) |
@@ -100,3 +100,4 @@ Archivos:
 | 5 | $66 | METILDOPA 250MG 30TAB | CARDIOVASCULARES |
 | 6 | $66 | METRONIDAZOL/DIYODOH SUSP 120ML | ESTOMACALES (GASTRO) |
 | 6 | $65 | LORATADINA/FENIL/PARA JBE 120ML | RESPIRATORIOS |
+| 6 | $64 | LEVOCETIRIZINA 0.5MG SOL | ANTIHISTAMINICOS |
