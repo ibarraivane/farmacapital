@@ -508,6 +508,69 @@ details.fc-fold summary:focus-visible {
   padding: 0 2px 8px 22px;
 }
 
+/* Bandas de catálogo: hueco fijo 220px. ProductCard trae width:100% inline;
+   sin wrapper + !important cada producto se estira a todo el ancho. */
+.farmacapital-productos-strip-wrap {
+  position: relative;
+  min-width: 0;
+  max-width: 100%;
+}
+.farmacapital-productos-strip {
+  min-width: 0;
+  max-width: 100%;
+}
+.farmacapital-productos-strip::-webkit-scrollbar { display: none; }
+.farmacapital-productos-strip-item {
+  flex: 0 0 auto;
+  width: 220px;
+  max-width: min(220px, 72vw);
+  box-sizing: border-box;
+  scroll-snap-align: start;
+}
+.farmacapital-productos-strip-item > * {
+  width: 100% !important;
+  max-width: 100% !important;
+  height: 100%;
+}
+@media (min-width: 768px) {
+  .farmacapital-productos-strip {
+    padding-inline-end: 48px;
+  }
+}
+.farmacapital-productos-strip-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3;
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #1E3ABA;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.16);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+}
+.farmacapital-productos-strip-arrow:hover:not(:disabled) {
+  background: #1E3ABA;
+  color: #fff;
+  border-color: #1E3ABA;
+}
+.farmacapital-productos-strip-arrow:disabled {
+  opacity: 0;
+  pointer-events: none;
+}
+.farmacapital-productos-strip-arrow--prev { left: 2px; }
+.farmacapital-productos-strip-arrow--next { right: 2px; }
+@media (min-width: 768px) {
+  .farmacapital-productos-strip-arrow { display: inline-flex; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .fc-dash-seg-tab,
   .fc-dash-tab-well,

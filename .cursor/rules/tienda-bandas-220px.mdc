@@ -1,0 +1,24 @@
+---
+description: Bandas de catálogo en tienda siempre con tarjetas de 220px y flechas (nunca a todo el ancho)
+globs: src/components/RecompraStrip.jsx,src/Tienda.jsx,src/lib/productosStrip.js,src/index.css
+alwaysApply: true
+---
+
+# Bandas de tienda: tarjetas 220px + flechas
+
+En home (“Comprar de nuevo”, “Sugerido para ti”, “Explora por categoría”) y catálogo vista bandas, **cada producto va en un hueco fijo de 220px** (igual que la cuadrícula). Varias tarjetas en fila; en laptop **flecha derecha** para el siguiente grupo y **flecha izquierda** para volver.
+
+Aunque haya **un solo** producto, la tarjeta no se estira a todo el ancho.
+
+Este arreglo se hizo 4 veces y nunca llegó a `main` (PRs #149, #186, #196). No lo “simplifiques” quitando wrapper, `!important` o flechas.
+
+## Prohibido
+
+- Quitar el wrapper `.farmacapital-productos-strip-item` con `width: 220px`.
+- Quitar el CSS `width/max-width: 100% !important` del hijo (ProductCard trae `width:100%` inline y sin `!important` se estira a toda la banda).
+- Volver a poner solo CSS en `.strip > *` sin wrapper: **pierde** contra estilos inline.
+- Quitar las flechas de `RecompraStrip` en laptop.
+
+## Correcto
+
+`RecompraStrip` envuelve cada child en el ítem de 220px; `STRIP_CARD_WIDTH_PX` + tests en `RecompraStrip.test.jsx` / `productosStrip.test.js`. El CSS también está en `src/index.css`.
