@@ -21,5 +21,17 @@ export const FLUJO_DEMO_BUNDLE = {
   semanas: [
     { semana: "2026-08-31", entro: -30.5, medicamento: 0, nomina: 0, gastos: 0, quedo: -210.5 },
   ],
-  gastos: [],
+  gastos: [
+    {
+      id: 7,
+      fecha: "2026-08-21",
+      categoria: "renta",
+      concepto: "Erika",
+      monto: 1133.32,
+      origen: "manual",
+      proveedor: null,
+      afecta_pl: true,
+      es_recurrente: false,
+    },
+  ],
 };
