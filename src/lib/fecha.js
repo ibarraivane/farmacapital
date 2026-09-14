@@ -37,6 +37,25 @@ export function addDaysISO(iso, days) {
   return dt.toISOString().slice(0, 10);
 }
 
+/** YYYY-MM ± n meses (calendario). */
+export function addMonthsYm(ym, delta) {
+  const [y, m] = String(ym || "").slice(0, 7).split("-").map(Number);
+  if (!y || !m) return String(ym || "").slice(0, 7);
+  const dt = new Date(Date.UTC(y, m - 1 + Number(delta), 1));
+  const yy = dt.getUTCFullYear();
+  const mm = String(dt.getUTCMonth() + 1).padStart(2, "0");
+  return `${yy}-${mm}`;
+}
+
+/** Último día civil del mes YYYY-MM → YYYY-MM-DD. */
+export function ultimoDiaMesISO(ym) {
+  const [y, m] = String(ym || "").slice(0, 7).split("-").map(Number);
+  if (!y || !m) return "";
+  const dt = new Date(Date.UTC(y, m, 0));
+  // eslint-disable-next-line no-restricted-syntax -- aritmética Date.UTC, no "hoy" de mostrador
+  return dt.toISOString().slice(0, 10);
+}
+
 export function dowISO(iso) {
   const [y, m, d] = String(iso).slice(0, 10).split("-").map(Number);
   return new Date(Date.UTC(y, m - 1, d)).getUTCDay();
