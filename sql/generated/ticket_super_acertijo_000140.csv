@@ -1,0 +1,5 @@
+linea,folio,fecha,proveedor,ean,descripcion_ticket,cantidad,precio_unitario,subtotal,lote,caducidad,sku_farmacapital,total_ticket,match,nota
+1,000140,2026-09-08,Super Acertijo,3614225108853,KOLESTON TINTE # 67 C/12,1,53.50,53.50,,,FC-25108853,214.00,ean,Pedido 614698 · código prov 001123 · 1 kit (no caja 12) · Koleston 67 Chocolate · EAN 3614225108853
+2,000140,2026-09-08,Super Acertijo,3614225109003,KOLESTON TINTE # 64 C/12,1,53.50,53.50,,,FC-25109003,214.00,ean,Pedido 614698 · código prov 001120 · 1 kit · Koleston 64 Caoba Cobrizo · EAN 3614225109003
+3,000140,2026-09-08,Super Acertijo,3614225108860,KOLESTON TINTE # 674 C/12,1,53.50,53.50,,,FC-25108860,214.00,ean,Pedido 614698 · código prov 004220 · 1 kit · Koleston 674 Tabaco Cobrizo · EAN 3614225108860
+4,000140,2026-09-08,Super Acertijo,3614225108914,KOLESTON TINTE # 77 C/12,1,53.50,53.50,,,FC-25108914,214.00,ean,Pedido 614698 · código prov 001128 · 1 kit · Koleston 77 Castaño Bambi · EAN 3614225108914
