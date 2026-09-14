@@ -1,4 +1,12 @@
-import { idxDiaDescanso, planSemanaCaja, descansosChocan, etiquetaDiaDescanso, perfilesTurnoCaja } from "./turnos";
+import {
+  idxDiaDescanso,
+  planSemanaCaja,
+  descansosChocan,
+  etiquetaDiaDescanso,
+  perfilesTurnoCaja,
+  esFinDeSemanaCaja,
+  coberturaFindeDuenos,
+} from "./turnos";
 
 describe("plan 6+1 (descanso y cobertura)", () => {
   const mary = { id: 1, nombre: "Mary", rol: "vendedor", turno: "matutino", dia_descanso: 0 };
@@ -33,6 +41,24 @@ describe("plan 6+1 (descanso y cobertura)", () => {
   test("etiqueta del día", () => {
     expect(etiquetaDiaDescanso(0)).toBe("lunes");
     expect(etiquetaDiaDescanso(5)).toBe("sábado");
+  });
+
+  test("sábado y domingo no se pisan ambas: cada una su turno, el hueco es de los dueños", () => {
+    const cynthia = { id: 10, nombre: "Cynthia", rol: "vendedor", turno: "vespertino", dia_descanso: 6 };
+    const rosa = { id: 11, nombre: "Rosa", rol: "vendedor", turno: "matutino", dia_descanso: 5 };
+    const plan = planSemanaCaja([cynthia, rosa]);
+    const sab = plan[5];
+    const dom = plan[6];
+    expect(sab.celdas.find((c) => c.id === 11).estado).toBe("descanso");
+    expect(sab.celdas.find((c) => c.id === 10).estado).toBe("vespertino");
+    expect(dom.celdas.find((c) => c.id === 10).estado).toBe("descanso");
+    expect(dom.celdas.find((c) => c.id === 11).estado).toBe("matutino");
+    expect(esFinDeSemanaCaja(5)).toBe(true);
+    expect(esFinDeSemanaCaja(4)).toBe(false);
+    expect(coberturaFindeDuenos([cynthia, rosa])).toEqual([
+      { idx: 5, corto: "Sáb", turno: "matutino", descansa: "Rosa" },
+      { idx: 6, corto: "Dom", turno: "vespertino", descansa: "Cynthia" },
+    ]);
   });
 
   test("una baja no entra a la caja ni choca descansos", () => {

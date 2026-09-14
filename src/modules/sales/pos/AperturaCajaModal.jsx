@@ -128,8 +128,11 @@ export default function AperturaCajaModal({ usuario, onAbierta, onSesionExpirada
             Hoy descansas, {nombre}
           </h1>
           <p style={{ color: C.textMid, fontSize: 14, lineHeight: 1.5, margin: "10px 0 0" }}>
-            Tu día libre es el <strong>{dia}</strong>. La compañera cubre matutino y vespertino.
-            No abras caja hoy.
+            Tu día libre es el <strong>{dia}</strong>.{" "}
+            {Number(jornada.dia_descanso) === 5 || Number(jornada.dia_descanso) === 6
+              ? "La compañera se queda en su turno. El medio hueco lo cubren Luis e Iván."
+              : "La compañera cubre matutino y vespertino."}
+            {" "}No abras caja hoy.
           </p>
         </div>
       </div>

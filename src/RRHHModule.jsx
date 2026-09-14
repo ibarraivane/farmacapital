@@ -5,7 +5,7 @@ import { useMediaQuery } from './hooks/useMediaQuery';
 import { supabase } from './supabase';
 import { showToast } from './ui';
 import { C_LIGHT } from "./constants";
-import { TURNOS_LISTA, etiquetaTurno, DIAS_SEMANA, planSemanaCaja, descansosChocan, etiquetaDiaDescanso, perfilesTurnoCaja } from "./constants/turnos";
+import { TURNOS_LISTA, etiquetaTurno, DIAS_SEMANA, planSemanaCaja, descansosChocan, etiquetaDiaDescanso, perfilesTurnoCaja, coberturaFindeDuenos, esFinDeSemanaCaja } from "./constants/turnos";
 import { cargarConfigMetas, bonosActivos } from "./utils/turnosMetas";
 import EmpleadoDocumentos from "./modules/rh/EmpleadoDocumentos";
 import NominaSemanalPanel from "./modules/rh/NominaSemanalPanel";
@@ -370,12 +370,14 @@ export default function RRHHModule() {
   });
   const semana = planSemanaCaja(perfilesCaja);
   const choques = descansosChocan(perfilesCaja);
+  const findeDuenos = coberturaFindeDuenos(perfilesCaja);
 
   const etiquetaCelda = (estado) => {
     if (estado === "descanso") return { txt: "Descanso", col: C.textMid };
     if (estado === "ambos") return { txt: "Ambos turnos", col: C.amber };
     if (estado === "matutino") return { txt: "Matutino", col: C.blue };
     if (estado === "vespertino") return { txt: "Vespertino", col: C.purple };
+    if (estado === "libre") return { txt: "—", col: C.textMid };
     return { txt: "Sin turno", col: C.textMid };
   };
 
@@ -390,7 +392,7 @@ export default function RRHHModule() {
       <div style={S.section}>
         <div style={S.h2}>◐ Turnos de caja</div>
         <p style={{ color:C.textMid, fontSize:13, margin:'0 0 16px', lineHeight:1.45 }}>
-          Aquí se asigna el turno que permite abrir caja (usuarios.turno). El de la lista de empleados es de nómina y no basta. El día de descanso, la otra cubre matutino y vespertino: abre, corta a las 15:30 y vuelve a abrir.
+          Aquí se asigna el turno que permite abrir caja (usuarios.turno). El de la lista de empleados es de nómina y no basta. De lunes a viernes, si una descansa, la otra cubre ambos. Sábado y domingo cada una se queda en el suyo: el medio turno lo cubren Luis e Iván.
         </p>
         {loading ? <p style={{ color:C.textMid }}>Cargando…</p> :
          !perfilesCaja.length ? (
@@ -697,7 +699,8 @@ export default function RRHHModule() {
       <div style={S.section}>
         <div style={S.h2}>📅 Semana · 6 días y 1 descanso</div>
         <p style={{ color:C.textMid, fontSize:13, margin:'0 0 16px', lineHeight:1.45 }}>
-          Se arma sola con el turno habitual y el día libre. El día que una descansa, la otra aparece en ambos turnos.
+          Se arma sola con el turno habitual y el día libre. Lunes a viernes, si una descansa, la otra cubre ambos.
+          Sábado y domingo ninguna cubre el día completo: Luis e Iván toman el medio turno para que el descanso aplique.
         </p>
         {!perfilesCaja.length ? (
           <p style={{ color:C.textMid }}>Asigna turno y descanso arriba.</p>
@@ -727,6 +730,20 @@ export default function RRHHModule() {
                     })}
                   </tr>
                 ))}
+                {findeDuenos.some((h) => h.turno) && (
+                  <tr>
+                    <td style={{ ...S.td, fontWeight:700, whiteSpace:'nowrap' }}>Luis / Iván</td>
+                    {semana.map((d) => {
+                      const hueco = findeDuenos.find((h) => h.idx === d.idx);
+                      const est = etiquetaCelda(esFinDeSemanaCaja(d.idx) && hueco?.turno ? hueco.turno : "libre");
+                      return (
+                        <td key={d.idx} style={{ ...S.td, textAlign:'center' }}>
+                          <span style={{ color: est.col, fontWeight: 700, fontSize: 11 }}>{est.txt}</span>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

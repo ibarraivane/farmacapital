@@ -97,8 +97,21 @@ export function etiquetaDiaDescanso(idx) {
   return d ? d.largo : null;
 }
 
+/** Sábado=5, domingo=6. Ese medio turno lo cubren Luis e Iván, no la compañera. */
+export function esFinDeSemanaCaja(idx) {
+  const n = Number(idx);
+  return n === 5 || n === 6;
+}
+
+function diaDescansoNum(p) {
+  if (p?.dia_descanso == null || p.dia_descanso === "") return null;
+  return Number(p.dia_descanso);
+}
+
 /**
- * Semana 6+1: quien descansa ese día; las demás cubren ambos turnos.
+ * Semana 6+1.
+ * Lun–vie: si una descansa, la otra cubre ambos turnos.
+ * Sáb–dom: cada una se queda en el suyo; el medio hueco lo cubren los dueños.
  * perfiles: { id, nombre, rol, turno, dia_descanso }
  */
 export function planSemanaCaja(perfiles) {
@@ -106,16 +119,30 @@ export function planSemanaCaja(perfiles) {
   return DIAS_SEMANA.map((d) => ({
     ...d,
     celdas: piso.map((p) => {
-      const descansoNum = p.dia_descanso == null || p.dia_descanso === ""
-        ? null
-        : Number(p.dia_descanso);
+      const descansoNum = diaDescansoNum(p);
       if (descansoNum === d.idx) return { id: p.id, nombre: p.nombre, estado: "descanso" };
-      const alguienDescansa = piso.some((o) => Number(o.dia_descanso) === d.idx && String(o.id) !== String(p.id));
-      if (alguienDescansa) return { id: p.id, nombre: p.nombre, estado: "ambos" };
+      const alguienDescansa = piso.some((o) => diaDescansoNum(o) === d.idx && String(o.id) !== String(p.id));
+      if (alguienDescansa && !esFinDeSemanaCaja(d.idx)) {
+        return { id: p.id, nombre: p.nombre, estado: "ambos" };
+      }
       const t = turnoDePerfil(p);
       return { id: p.id, nombre: p.nombre, estado: t || "sin_turno" };
     }),
   }));
+}
+
+/** Medio turno que queda libre sáb/dom (el de quien descansa). Lo cubren Luis e Iván. */
+export function coberturaFindeDuenos(perfiles) {
+  const piso = perfilesTurnoCaja(perfiles);
+  return DIAS_SEMANA.filter((d) => esFinDeSemanaCaja(d.idx)).map((d) => {
+    const quien = piso.find((p) => diaDescansoNum(p) === d.idx);
+    return {
+      idx: d.idx,
+      corto: d.corto,
+      turno: turnoDePerfil(quien) || null,
+      descansa: quien?.nombre || null,
+    };
+  });
 }
 
 export function descansosChocan(perfiles) {
