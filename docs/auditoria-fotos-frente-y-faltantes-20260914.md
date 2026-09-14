@@ -53,9 +53,15 @@ Otras cajas altas (Acetif SI, Mometasona nasal, Losil spray, Cefotaxima, Cefurox
 
 ## Qué pegar en Supabase
 
-1. Deploy de los JPG en `public/catalogo-propia/` (keto + pirinovag + calazin + culminax + eucalin + reomatolum + **dove-original-90g + aktyzar + bocetix**).
+1. Deploy de los JPG en `public/catalogo-propia/` (keto + pirinovag + calazin + culminax + eucalin + reomatolum + dove-original-90g + aktyzar + bocetix + **12 JPG de la tercera pasada**).
 2. `sql/patch_fotos_frente_y_faltantes_20260914.sql` (ya corrido).
-3. `sql/patch_fotos_nombre_exprezo_levic_20260914.sql` (este lote por nombre).
+3. `sql/patch_fotos_nombre_exprezo_levic_20260914.sql` (ya corrido).
+4. `sql/patch_fotos_resto_129_20260914.sql` (ya corrido: 22 fotos).
+5. Deploy de los 7 JPG de fabricante + `sql/patch_fotos_meds_fabricante_20260914.sql`.
+6. Deploy de 5 JPG más + `sql/patch_fotos_resto_busqueda_20260914.sql`.
+7. Los SQL 2–6 y `patch_fotos_google_chedraui` / `patch_fotos_google_ean` **ya se corrieron**.
+8. Deploy de los 16 JPG de la octava pasada + `sql/patch_fotos_resto_105_20260914.sql` (**ya corrido**).
+9. Deploy de 6 JPG más + `sql/patch_fotos_resto_89_20260914.sql`.
 
 ## Segunda pasada: Exprezo + Levic + Nadro por nombre (14-sep tarde)
 
@@ -77,26 +83,158 @@ No se usó: Gerber 113 g ≠ 100 g; Dove 135 g ≠ 90 g; Pantene 400 ml ≠ EAN 
 
 JPG nuevos (piden **deploy**): `dove-original-90g.jpg`, `aktyzar-omeprazol-20mg-120cap.jpg`, `bocetix-levocetirizina-150ml.jpg`.
 
+## Tercera pasada: los 129 (14-sep noche)
+
+Se buscó otra vez en Nadro i22, Fahorro CDN + VTEX, Farmatodo, Similares, San Pablo, Open Facts, Levic (claves), Curitek, Buscamed, MiFarma, WeCare, Medi Beyond, Farmamedical.
+
+`sql/patch_fotos_resto_129_20260914.sql` — **22 packshots** verificados (frente). Los 12 JPG nuevos piden **deploy**.
+
+| Grupo | SKUs |
+|---|---|
+| Fahorro EAN exacto | Suerox Vitamins 630 ml, Skittles 22 g, Lysol 475 g, Dove 135 g, Honey Keeper gel 200 ml (frente; Nadro era el dorso), gotero Damaco |
+| Nadro / Farmatodo EAN o nombre | Teatrical Células Madre 400 ml, Grisi concha nácar 80 ml, Brut Deep Blue, Pert oliva 180 ml |
+| catalogo-propia | Savile manzanilla 150 ml, Colchicina Biomep C/30, Sarox C/28, Nordiko Original / Icy Blast, Pleniform-40, KY6 C/10, LAÜR Infantil C/3, SensiMedical 10 ml 22G, Sol-Sun Face 50 g, Tegaderm 1626W C/50, Vita Kid-C 240 ml |
+
+No se usó: Aspirina EAN `…1074` (20/40 son otros códigos); Losartán Alpharma (placeholder Buscamed); Jaloma Mertodol 40 ml ≠ 60 ml; Gerber 113 g ≠ 100 g; Rexona stick ≠ R-ON; Ego aerosol ≠ roll-on; Sico lubricante ≠ condón.
+
+JPG nuevos: `savile-manzanilla-spray-150ml.jpg`, `colchicina-biomep-1mg-c30.jpg`, `sarox-omeprazol-20mg-c28.jpg`, `nordiko-original-130g.jpg`, `nordiko-icy-blast-130g.jpg`, `pleniform-40-c30.jpg`, `ky6-clorfenamina-compuesta-c10.jpg`, `laur-infantil-c3.jpg`, `sensimedical-10ml-22gx32.jpg`, `solsun-cara-face-50g-fps50.jpg`, `tegaderm-3m-10x12-c50.jpg`, `vita-kid-c-jarabe-240ml.jpg`.
+
+## Cuarta pasada: fabricante / Google (14-sep noche)
+
+Se hizo lo que se hace a mano: Google + ficha del fabricante + ML. `sql/patch_fotos_meds_fabricante_20260914.sql` — **8 packshots** + corrección de typos. Los 7 JPG nuevos piden **deploy**.
+
+| Stock | SKU | Ticket | Ahora | Fuente |
+|---:|---|---|---|---|
+| 5 | `FC-46601138` | Merthorab 20 ml Kohn | Merthiolate Rojo Kohn 20 ml | [kohnmexico.com](https://kohnmexico.com/producto/merthiolate-rojo-kohn/) |
+| 5 | `FC-926099D3` | Mertiolate Kohn Rojo | Merthiolate Rojo Kohn 20 ml (C/25 = paquete) | misma foto oficial |
+| 6 | `FC-26EA40A4` | Ramcinet | Raamcinet cetirizina 10 mg C/10 | WeCare / [ML](https://www.mercadolibre.com.mx/raamcinet-tableta-10-mg-10-tabletas/p/MLM39474398) |
+| 5 | `EQ-ALP0634` | Losartán Alpharma 50 mg C/30 | igual | foto de la caja de mostrador |
+| 1 | `FC-AA7B0686` | Drosquim 300/160 | Drosequim Adulto 200 ml | Sanorim / Quimpharma (no infantil 150/80) |
+| 1 | `FC-6C2878CF` | Susp 125 Mg/Ml | Budenova 0.125 mg/ml 5 amp × 2 ml | Curitek / Novag |
+| 1 | `FC-1321B34F` | Hidroxon | Hidroxin 10 mg C/30 | [Mavi](https://www.mavifarmaceutica.com/hidroxin) |
+| 1 | `FC-44B6751A` | Aquito 500/100/30/4 | LAÜR Adulto C/3 | MiFarma (no es el infantil) |
+
+No se copió EAN: ya está en `FC-27872123` / `EQ-MAI099` / `EQ-QUM070` / `EQ-SON264` (`codigo_barras` UNIQUE).
+
+## Quinta pasada: el resto, Google + fabricante
+
+El inventario sí traía presentación en varios (Aspirina **80** tabs, Compl = **1 FA**, AAS Ef = **20** tabs). Con eso se buscó otra vez.
+
+`sql/patch_fotos_resto_busqueda_20260914.sql` — **5 packshots**. Piden **deploy**.
+
+| Stock | SKU | Ticket | Ahora | Fuente |
+|---:|---|---|---|---|
+| 16 | `FC-08491074` | Aspirina | Aspirina 500 mg C/80 | BuscaMed / Chedraui (no es C/20 ni C/40) |
+| 5 | `FC-64EB83AA` | Compl | Bencil/Benz Comp AMSA 1.2 M UI 1 FA | Galarza; EQ-AMS398 ya tiene el EAN |
+| 5 | `FC-95779436` | Acetilsalicílico Ef | AAS efervescente Psicofarma 300 mg C/20 | [Farmasmart](https://farmasmart.com/acido-acetilsalicilico-ef-20-tab-300-mg) · EAN `7501384504908` ya en EQ-ALP0300 |
+| 100 | `FMX-506386` | SensiMedical 5 ml 22G | igual | Promexsa caja C/100 |
+| 50 | `FMX-307658` | SensiMedical 20 ml 21G | igual | Promexsa caja C/50 |
+
+No se usó: Dibar 250 (la foto pública es de **1 L**); Ursofalk (el ticket no dice lab); Jaloma Mertodol 60 ml (en web solo hay 40 ml); otras jeringas SensiMedical (3 ml / 21G / insulina ≠ esta caja).
+
+## Corrección: Farmasmart + Vitau (AAS y Alendrónico)
+
+`sql/patch_fotos_aas_psicofarma_alendronico_20260914.sql` — pisa el AAS si el lote anterior lo dejó como AMSA. El JPG de Alendrónico pide **deploy** (la URL de `EQ-AMS147` ya existía y daba 404).
+
+| Stock | SKU | Ticket / catálogo | Ahora | Fuente |
+|---:|---|---|---|---|
+| 5 | `FC-95779436` | Acetilsalicílico Ef | AAS efervescente **Psicofarma** 300 mg C/20 | [Farmasmart](https://farmasmart.com/acido-acetilsalicilico-ef-20-tab-300-mg) · EAN `7501384504908` ya en `EQ-ALP0300` |
+| 3 | `EQ-AMS147` | Ácido alendrónico 10 mg C/30 AMSA | misma ficha; foto de la caja | [Vitau](https://vitau.mx/acido-alendronico-10mg-caja-con-30-tabletas-15236) + caja de mostrador · EAN `7501349014190` |
+
+No se copió el EAN del AAS (UNIQUE). Farmasmart tiene **otro** SKU AMSA efervescente (`7501349020719`); el ticket dice *Acetilsalicílico Ef* = línea Psicofarma / ALP0300.
+
+## Sexta pasada: Google + ficha oficial (URLs del mostrador)
+
+`sql/patch_fotos_google_chedraui_20260914.sql` — **13 packshots**. Piden **deploy**. Adidas / Allegra D / Jaloma 250 pisan URLs `cm-…` que daban 404.
+
+| SKU | Ahora | Fuente |
+|---|---|---|
+| `FC-42478359` | Garnier Agua Micelar Carbón 400 ml | [garnier.com.mx](https://www.garnier.com.mx/skin-active/agua-micelar-carbon) · EAN `3600542478359` |
+| `FC-84900204` | Jaloma Agua de Rosas **250 ml** | [jaloma.com.mx](https://jaloma.com.mx/product/agua-de-rosas-250-ml/) |
+| `FC-84900259` | Jaloma Agua de Arroz 250 ml | jaloma.com.mx / DAX EAN `759684900259` |
+| `FC-03842420` | Adidas Power Booster spray 150 ml | [Chedraui](https://www.chedraui.com.mx/antitranspirante-adidas-power-booster-spray-hombre-150ml-3783701/p) |
+| `FC-65006386` | Allegra D 60/25 mg C/10 | [allegra.com.mx](https://www.allegra.com.mx/productos/alivio-para-alergias-y-congestion/allegra-D) |
+| `FC-46505283` | Xiomara Cera Mate 60 g | Chedraui EAN `7501846505283` |
+| `FC-50343102` | Vitacilina Facial Melatonina | Chedraui EAN `7502250343102` |
+| `FC-75075996` | Rexona Happy Morning roll-on 50 ml | Chedraui EAN `75075996` |
+| `FC-06215528` | Savilé bicarbonato+limón spray 150 ml | [savilemexico.com.mx](https://www.savilemexico.com.mx/p/antitranspirante-en-aerosol-savile-bicarbonato-y-limon.html/07506306215528) |
+| `FC-75068639` | Savilé bicarbonato+limón stick 45 g | Chedraui EAN `75068639` |
+| `FC-25629442` | Escudo antiséptico spray 200 ml | Chedraui EAN `7506425629442` |
+| `FC-66022610` | Honey Keeper Kids Chamomile 414 ml | Chedraui EAN `814266022610` (el ticket decía Honey) |
+| `FC-66022627` | Honey Keeper Kids Lavender 414 ml | Chedraui EAN `814266022627` |
+
+No se usó: Jaloma rosas **130 ml** (el packshot público es de 250 ml); Gerber 113 g ≠ 100 g; Sico `7501685171113` ≠ `7501685171118`.
+
+## Séptima pasada: Google + Nadro/Farmatodo/Chedraui/Fahorro por EAN
+
+Se buscó cada pendiente vivo (146 sin `imagen_url`) por EAN en Nadro i22, Farmatodo, Chedraui y Fahorro, más fichas de marca. `sql/patch_fotos_google_ean_20260914.sql` — **41 packshots**. Piden **deploy**.
+
+Medicamentos: Aderogyl C/4, Pharmaton C/30, Dolo-Neurobión C/20 y DC C/3, Dolac C/10, Brunadol C/10, Alli-Triple C/10, Pepto-Bismol 118 ml, Alka-Seltzer C/100 y Boost C/10, Bronco Rub 40 g.
+
+Cuidado: Rexona Marine/Sport/V8 + sticks Bamboo/Powder Dry/Happy Morning; Axe Excite/Dark/Gold; Listerine ×3; Oral-B 250 ml; Sensodyne ×2; Nivea Facial 5 en 1 (el ticket decía 7 en 1; el EAN es 5 en 1); Nivea Milk combo 400+100; Kleenex, Huggies 80, Diapro C/10, Curitas Transpiel 100; Xiomara Classic / Telaraña 60 g / Elastik 100 g; Palmolive brillantina; Honey Keeper oat 414 ml; GUM 129 m; Savilé roll-on; Colgate Premier Clean; Suerox Vitamins Naranja Mango 630 ml.
+
+No se usó: Pasta Lassar (solo costado legal); Enterogermina 4 billones ≠ 2 billones C/10; placeholders `generica_1`; Pantene `…3454` ≠ `…3464`.
+
+## Octava pasada: el resto de 105 (después de correr los SQL)
+
+Inventario vivo: 1503 activos · 105 sin `imagen_url` (102 con stock). Se buscó otra vez por EAN y ficha (Nadro, Fahorro, YZA, Promexsa, Curitek, Círculo B, Farmamedical, Phemedica, Scorpion, Farmacia Herrera).
+
+`sql/patch_fotos_resto_105_20260914.sql` — **16 packshots**. Piden **deploy**.
+
+| Stock | SKU | Ahora | Fuente |
+|---:|---|---|---|
+| 100 | `FC-23273451` | SensiMedical insulina 0.5 ml 31G × 6 mm | Promexsa C/100 |
+| 100 | `FMX-506388` | SensiMedical 3 ml 21G × 32 mm | Promexsa C/100 |
+| 99 | `FC-22300881` | SensiMedical insulina 1 ml 27G × 13 mm | Promexsa C/100 |
+| 97 | `FC-23272151` | SensiMedical insulina 0.3 ml 31G × 6 mm | Promexsa C/100 |
+| 92 | `FMX-506389` | SensiMedical 5 ml 21G × 32 mm | Promexsa C/100 |
+| 2 | `FC-50608272` | Contac Ultra C/12 | Curitek |
+| 2 | `FC-42003469` | GUM Paw Patrol gel 50 g | Nadro EAN `070942003469` |
+| 2 | `FC-28951141` | Pasta Lassar Andrómaco tarro 60 g | YZA (el tarro, no el costado legal) |
+| 2 | `FC-46506181` | Xiomara Cera modeladora 100 g | Círculo B EAN `7501846506181` |
+| 1 | `FC-75064938` | Ego Force roll-on 45 ml | Farmamedical (no el spray 150 ml) |
+| 1 | `FC-36033735` | Ricitos de Oro Agua de Coco 250 ml | ficha 250 ml (no la crema) |
+| 1 | `FC-7048853` | Melox Plus menta C/50 | Farmacia Herrera (Nadro solo tenía el dorso) |
+| 1 | `FC-42507240` | GUM cera ortodoncia menta C/5 | Nadro EAN `070942507240` |
+| 1 | `FC-79807468` | Enterogermina 2 billones C/10 | Phemedica (Fahorro es 4 billones) |
+| 1 | `FC-08006033` | Tampax Super C/10 | Nadro (no Super Plus) |
+| 1 | `FC-EXP-PALM8` | Palmolive Neutro Balance 8 × 100 g | Scorpion |
+
+No se usó: Dibar 250 (la foto de Promexsa sigue siendo **1 L**); Jaloma Mertodol 40 ml ≠ 60 ml; Jaloma rosas 250 ml ≠ 130 ml; Gerber 113 g ≠ 100 g; Voldratol sobre suelto ≠ caja C/25; Valclan 500/125 ≠ EAN `7503000422795`; SensiMedical 3 ml 22G / 60 ml.
+
 ## Lo que queda — `sql/generated/fotos_pendientes_tras_lote_20260914.csv`
 
-129 SKUs. Nadro i22 a veces responde con **otro EAN** (no se usa). `visoti.mx` caído.
+~89 SKUs (105 vivos menos este lote de 16).
 
-### Medicamentos con EAN, sin packshot público de esa caja
+## Novena pasada: resto de 89
 
-| Stock | SKU | EAN | Producto |
+`sql/patch_fotos_resto_89_20260914.sql` — **6 packshots**. Piden **deploy**.
+
+| Stock | SKU | Ahora | Fuente |
 |---:|---|---|---|
-| 16 | `FC-08491074` | 7501008491074 | Aspirina (no hay ficha de este EAN; 20/40 son otros códigos) |
-| 5 | `EQ-ALP0634` | 7502226294766 | Losartán Alpharma 50 mg C/30 |
-| 4 | `FC-73909859` | 7501573909859 | Sarox Omeprazol 20 mg C/28 (Levic BIO213; sin foto limpia) |
-| 2 | `EQ-BIO212` | 7501573909958 | Colchicina Biomep 1 mg C/30 (Levic BIO212; visoti caído) |
-| 1 | `FC-01167001` | 7502001167001 | LAÜR Infantil C/3 (no usar adulto SON264) |
+| 99 | `FC-22300775` | SensiMedical 3 ml 22G × 32 mm | Promexsa C/100 |
+| 11 | `FMX-301565` | SensiMedical 60 ml sin aguja | Promexsa C/50 |
+| 1 | `FC-75069223` | Rexona Sport Intense stick **45 g** | Monjaras EAN `75069223` (Chedraui es 50 g) |
+| 1 | `EQ-AMS234` | Pregabalina 150 mg C/28 AMSA | Mexipharmacy (no se copió EAN) |
+| 1 | `FC-85103015` | Bebin Super C/40 | Básicos |
+| 1 | `FC-85800198` | Bebin Super C/80 con tapa | Chedraui (no el de 120) |
 
-### Realmente no se sabe qué son (sin EAN / nombre de ticket)
+No se usó: Rexona 50 g; Bebin 120; Tinkle solo collage de tienda.
 
-Ramcinet, Compl, Acetilsalicílico Ef, Amoxicilina, Gentamicina, Mertiolate Kohn Rojo, Hidroxon, Tratidri, Ursodesoxicólico, Aquito, Drosquim, Eferox, «Susp 125 Mg/Ml», «FC producto botiquín», Vita Kid C / Sol-Sun / Pleniform sin código usable (Levic CMD126 / BLB037 / BMI076 existen; falta foto).
+### Medicamentos todavía sin caja pública de *esa* pieza
+
+| Stock | SKU | Qué hay | Por qué no |
+|---:|---|---|---|
+| 5 | `FC-A0D320D1` | Amoxicilina 12 cápsulas | sin laboratorio |
+| 3 | `FC-63975795` | Gentamicina 25 comprimidos | sin laboratorio (oral es raro) |
+| 1 | `FC-3E863E37` | Tratidri 1 gel | no hay ficha; Triderm es crema |
+| 1 | `FC-405A75E3` | Ursodesoxicólico 50 cáps | Ursofalk / Durcox / Marca del Ahorro |
+| 1 | `FC-DB4A39AE` | Eferox (Cefalexina) 12 comp | Eferox DE = levotiroxina |
+| 1 | `FC-6B2ADEE9` | Protect 200 dosis 12.80 g | ≠ Protaisol / Spiriva |
+| 2 | `FC-C8B741F6` | FC producto botiquín | no se sabe qué es |
 
 No se inventa foto a ciegas.
 
-### No se busca packshot (regla del catálogo)
+### Insumos / herbolario / EAN interno todavía sin packshot usable
 
-Jeringas SensiMedical, goteros, cintas, cubrebocas, perillas, Tegaderm C/50, Mercurio/Velázquez, EANs internos `200…`, alcohol Dibar 250 ml (el 125 ml ya tiene foto propia).
+Cintas Cintapore, cubrebocas, perillas, Mercurio/Velázquez, EANs `200…`, alcohol Dibar 96° 250 ml (la foto pública es de 1 L), Jaloma Mertodol 60 ml / agua de rosas **130 ml**.
