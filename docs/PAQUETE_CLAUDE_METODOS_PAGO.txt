@@ -517,7 +517,6 @@ Implementa SOLO la fase (b) primero: pickup sin Preference, gate de cola
 extendido, SQL patch + tests. No mezcles BBVA, mínimo ni recargo en ese PR.
 Cuando (b) esté verde, sigue (a) → (c) → (d) en PRs separados.
 Decisiones de la sección B están cerradas.
-)
 </tool_call>
 
 <tool_call>
