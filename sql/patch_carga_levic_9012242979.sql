@@ -1,12 +1,12 @@
 -- Levic · factura interna A 9012242979 · CFDI 14-sep-2026 03:41
--- Folio fiscal C7F561F1-1FC5-4804-99CF-3CF83FA37ED8 (OCR parcial) · entrega 832819990 · PUE efectivo $1557.92
+-- Folio fiscal C7F561F1-1FC5-4804-99CF-3CF83FA37ED8 · entrega 832819990 · PUE efectivo $1557.92
 -- Receptor LUIS ANGEL PALILLERO VENTURA · 24 renglones · 46 pzas (TOT 46 hoja 2).
--- Subtotal CFDI $1538.94 + IVA $18.98 = $1557.92.
--- Costo = Precio neto. Lote = de fábrica (sí viene en la factura; OCR de foto).
+-- Subtotal CFDI $1538.94 + IVA $18.98 (Clorofil $9.78 + Ferro-4 $9.20) = $1557.92.
+-- Costo = Precio neto. Lote = de fábrica (sí viene en la factura).
 -- Caducidad del papel NO se escribe aquí: Recibir captura MMAA de la caja.
 -- 0000 es inválido.
--- TODO foto: Visoti bloqueado en este entorno; copiar packshot a
---   public/catalogo-propia/ y SQL de imagen_url después del deploy.
+-- TODO foto: Visoti bloqueado; copiar packshot a public/catalogo-propia/
+--   y SQL de imagen_url después del deploy.
 --
 -- 6 ya estaban · 18 altas nuevas.
 -- Altas: stock 0. En existentes solo se actualiza costo (no el PVP).
@@ -24,13 +24,13 @@ declare
 begin
   for r in
     select * from (values
-      ('7506335701214', 'EQ-ACC092', 'HT-Bloc Accord ondansetrón 1 amp 4 mg/2 mL', 'Medicamentos', 'marca', 44.64::numeric, 72.00, 2, 'Accord', 'Caja con 1 ampolleta 4 mg/2 mL', 'Ondansetrón', '4 mg/2 mL', true, 'Factura Levic 9012242979 · clave ACC092 · lote M2408436', true),
+      ('7506335701214', 'EQ-ACC092', 'HT-Bloc Accord ondansetrón 1 amp 4 mg/2 mL', 'Medicamentos', 'marca', 44.64::numeric, 72.00, 2, 'Accord', 'Caja con 1 ampolleta 4 mg/2 mL', 'Ondansetrón', '4 mg/2 mL', true, 'Factura Levic 9012242979 · clave ACC092 · lote M2406436', true),
       ('7501384541163', 'EQ-ALP0608', 'Carbamazepina Alpharma 20 tab 200 mg', 'Medicamentos', 'generico', 18.75, 30.00, 1, 'Alpharma', 'Caja con 20 tabletas', 'Carbamazepina', '200 mg', true, 'Factura Levic 9012242979 · clave ALP0608 · lote 7230526', false),
       ('7501349020122', 'EQ-AMS132', 'Clonixinato de lisina AMSA 5 amp 100 mg/2 mL', 'Medicamentos', 'generico', 28.97, 47.00, 2, 'AMSA', 'Caja con 5 ampolletas 100 mg/2 mL', 'Clonixinato de lisina', '100 mg/2 mL', true, 'Factura Levic 9012242979 · clave AMS132 · lote B26A507', true),
       ('7501349014190', 'EQ-AMS147', 'Ácido alendrónico AMSA 30 tab 10 mg', 'Medicamentos', 'generico', 23.55, 38.00, 1, 'AMSA', 'Caja con 30 tabletas', 'Ácido alendrónico', '10 mg', true, 'Factura Levic 9012242979 · clave AMS147 · lote U26A275', true),
       ('7501277071685', 'EQ-APO216', 'Prochor Apotex propranolol 30 tab 40 mg', 'Medicamentos', 'marca', 23.96, 39.00, 2, 'Apotex', 'Caja con 30 tabletas', 'Propranolol', '40 mg', true, 'Factura Levic 9012242979 · clave APO216 · lote 0806M26', true),
       ('7502209850231', 'EQ-AVT218', 'Zagapsol amlodipino 10 tab 5 mg', 'Medicamentos', 'generico', 4.37, 7.00, 2, 'Zagapsol', 'Caja con 10 tabletas', 'Amlodipino', '5 mg', true, 'Factura Levic 9012242979 · clave AVT218 · lote SF26155', true),
-      ('7501342804408', 'EQ-BEA424', 'Metoprolol beadvance 20 tab 100 mg', 'Medicamentos', 'generico', 7.67, 13.00, 2, 'beadvance', 'Caja con 20 tabletas', 'Metoprolol', '100 mg', true, 'Factura Levic 9012242979 · clave BEA424 · lote 670186', false),
+      ('7501342804408', 'EQ-BEA424', 'Metoprolol beadvance 20 tab 100 mg', 'Medicamentos', 'generico', 7.67, 13.00, 2, 'beadvance', 'Caja con 20 tabletas', 'Metoprolol', '100 mg', true, 'Factura Levic 9012242979 · clave BEA424 · lote 670188', false),
       ('7501842951657', 'EQ-GEN062', 'Pakid Genética paracetamol/ibuprofeno 20 tab 325/200 mg', 'Medicamentos', 'marca', 27.88, 45.00, 2, 'Pakid', 'Caja con 20 tabletas', 'Paracetamol / Ibuprofeno', '325 mg / 200 mg', false, 'Factura Levic 9012242979 · clave GEN062 · lote 614015A', true),
       ('6358975544000', 'EQ-JAV050', 'Clorofil Jahvs solución clorofila 500 mL', 'Suplementos', 'marca', 61.15, 98.00, 1, 'Clorofil Jahvs', 'Frasco 500 mL', 'Clorofila', null, false, 'Factura Levic 9012242979 · clave JAV050 · lote 0200107', true),
       ('7506022315038', 'EQ-JAY216', 'Navontec Jayor ondansetrón 3 amp 8 mg/4 mL', 'Medicamentos', 'marca', 55.87, 90.00, 2, 'Jayor', 'Caja con 3 ampolletas 8 mg/4 mL', 'Ondansetrón', '8 mg/4 mL', true, 'Factura Levic 9012242979 · clave JAY216 · lote 6A0023C06', true),
@@ -43,7 +43,7 @@ begin
       ('7503027446279', 'EQ-PGE057', 'Gelubrin Progela ibuprofeno 10 cáps 600 mg', 'Medicamentos', 'marca', 22.58, 37.00, 2, 'Gelubrin', 'Caja con 10 cápsulas', 'Ibuprofeno', '600 mg', false, 'Factura Levic 9012242979 · clave PGE057 · lote U0400', false),
       ('7501563380163', 'EQ-RAD081', 'Fumarato ferroso Randall 50 tab 200 mg', 'Medicamentos', 'generico', 14.20, 23.00, 1, 'Randall', 'Caja con 50 tabletas', 'Fumarato ferroso', '200 mg', false, 'Factura Levic 9012242979 · clave RAD081 · lote 28563', false),
       ('7501563380415', 'EQ-RAD097', 'Tretinoína Randall crema 0.05% 20 g', 'Medicamentos', 'generico', 10.93, 18.00, 2, 'Randall', 'Tubo 20 g', 'Tretinoína', '0.05%', true, 'Factura Levic 9012242979 · clave RAD097 · lote 21902', true),
-      ('7502227876428', 'EQ-RAM141', 'Breflumar Raam flunarizina 20 tab 5 mg', 'Medicamentos', 'marca', 28.38, 46.00, 2, 'Raam', 'Caja con 20 tabletas', 'Flunarizina', '5 mg', true, 'Factura Levic 9012242979 · clave RAM141 · lote RBR029', true),
+      ('7502227876428', 'EQ-RAM141', 'Breflumar Raam flunarizina 20 tab 5 mg', 'Medicamentos', 'marca', 28.38, 46.00, 2, 'Raam', 'Caja con 20 tabletas', 'Flunarizina', '5 mg', true, 'Factura Levic 9012242979 · clave RAM141 · lote RBA029', true),
       ('7501258203593', 'EQ-SER024', 'Lonixer Serral clonixinato 10 tab 125 mg', 'Medicamentos', 'marca', 30.65, 50.00, 2, 'Serral', 'Caja con 10 tabletas', 'Clonixinato de lisina', '125 mg', true, 'Factura Levic 9012242979 · clave SER024 · lote 260057', true),
       ('7501258203586', 'EQ-SER025', 'Lonixer Serral clonixinato 10 tab 250 mg', 'Medicamentos', 'marca', 37.63, 61.00, 2, 'Serral', 'Caja con 10 tabletas', 'Clonixinato de lisina', '250 mg', true, 'Factura Levic 9012242979 · clave SER025 · lote 260186', false),
       ('7506281106019', 'EQ-STR005', 'Ferro-4 Streger 30 grageas 300/150/50/10 mg', 'Suplementos', 'marca', 57.49, 92.00, 1, 'Streger', 'Caja con 30 grageas', 'Fumarato ferroso / vitaminas', '300/150/50/10 mg', false, 'Factura Levic 9012242979 · clave STR005 · lote SU01US', true),
@@ -127,13 +127,13 @@ begin
 
     for r in
       select * from (values
-        ('7506335701214', 'HT-Bloc Accord ondansetrón 1 amp 4 mg/2 mL', 2, 44.64::numeric, 'EQ-ACC092', 'M2408436'),
+        ('7506335701214', 'HT-Bloc Accord ondansetrón 1 amp 4 mg/2 mL', 2, 44.64::numeric, 'EQ-ACC092', 'M2406436'),
         ('7501384541163', 'Carbamazepina Alpharma 20 tab 200 mg', 1, 18.75, 'EQ-ALP0608', '7230526'),
         ('7501349020122', 'Clonixinato de lisina AMSA 5 amp 100 mg/2 mL', 2, 28.97, 'EQ-AMS132', 'B26A507'),
         ('7501349014190', 'Ácido alendrónico AMSA 30 tab 10 mg', 1, 23.55, 'EQ-AMS147', 'U26A275'),
         ('7501277071685', 'Prochor Apotex propranolol 30 tab 40 mg', 3, 23.96, 'EQ-APO216', '0806M26'),
         ('7502209850231', 'Zagapsol amlodipino 10 tab 5 mg', 2, 4.37, 'EQ-AVT218', 'SF26155'),
-        ('7501342804408', 'Metoprolol beadvance 20 tab 100 mg', 3, 7.67, 'EQ-BEA424', '670186'),
+        ('7501342804408', 'Metoprolol beadvance 20 tab 100 mg', 3, 7.67, 'EQ-BEA424', '670188'),
         ('7501842951657', 'Pakid Genética paracetamol/ibuprofeno 20 tab 325/200 mg', 2, 27.88, 'EQ-GEN062', '614015A'),
         ('6358975544000', 'Clorofil Jahvs solución clorofila 500 mL', 1, 61.15, 'EQ-JAV050', '0200107'),
         ('7506022315038', 'Navontec Jayor ondansetrón 3 amp 8 mg/4 mL', 2, 55.87, 'EQ-JAY216', '6A0023C06'),
@@ -146,7 +146,7 @@ begin
         ('7503027446279', 'Gelubrin Progela ibuprofeno 10 cáps 600 mg', 3, 22.58, 'EQ-PGE057', 'U0400'),
         ('7501563380163', 'Fumarato ferroso Randall 50 tab 200 mg', 1, 14.20, 'EQ-RAD081', '28563'),
         ('7501563380415', 'Tretinoína Randall crema 0.05% 20 g', 2, 10.93, 'EQ-RAD097', '21902'),
-        ('7502227876428', 'Breflumar Raam flunarizina 20 tab 5 mg', 2, 28.38, 'EQ-RAM141', 'RBR029'),
+        ('7502227876428', 'Breflumar Raam flunarizina 20 tab 5 mg', 2, 28.38, 'EQ-RAM141', 'RBA029'),
         ('7501258203593', 'Lonixer Serral clonixinato 10 tab 125 mg', 3, 30.65, 'EQ-SER024', '260057'),
         ('7501258203586', 'Lonixer Serral clonixinato 10 tab 250 mg', 3, 37.63, 'EQ-SER025', '260186'),
         ('7506281106019', 'Ferro-4 Streger 30 grageas 300/150/50/10 mg', 1, 57.49, 'EQ-STR005', 'SU01US'),

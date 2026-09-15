@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 """Factura Levic A 9012242979 (CFDI 14-sep-2026) → CSV Recibir + SQL.
 
-Hojas 1–2 del CFDI (TOT 46 pzas; hoja 3 solo totales/timbre).
-Costo = Precio neto. IVA 0% en todos los renglones.
+Hojas 1–2 del CFDI (TOT 46; hoja 3 solo totales/timbre).
+Costo = Precio neto. IVA $18.98 = Clorofil Jahvs ($9.78) + Ferro-4 ($9.20).
 Lote de fábrica sí viene en la factura (se anota en el ticket).
 Caducidad del papel NO se escribe en SQL: MMAA sale de la caja. 0000 inválido.
 
 Nombres de mostrador (no el código interno del PDF). EAN desde portal Levic /
-Sufarmed / Farmahome / Prixz / DISA cuando la ficha lo publica.
-Fotos Visoti no alcanzables desde este entorno → TODO foto en SQL.
+Sufarmed / Farmahome / Prixz cuando la ficha lo publica.
 """
 from __future__ import annotations
 
@@ -27,10 +26,10 @@ OUT_SQL = ROOT / "sql" / "patch_carga_levic_9012242979.sql"
 FOLIO = "9012242979"
 PROVEEDOR = "Levic"
 FECHA = "2026-09-14"
-TOTAL_TICKET = 1557.92  # bases 1538.94 + IVA 18.98 (Clorofil+Ferro-4)
 SUBTOTAL_CFDI = 1538.94
 IVA_CFDI = 18.98  # Clorofil 9.78 + Ferro-4 9.20
-UUID = "C7F561F1-1FC5-4804-99CF-3CF83FA37ED8"  # OCR parcial del papel
+TOTAL_TICKET = 1557.92
+UUID = "C7F561F1-1FC5-4804-99CF-3CF83FA37ED8"
 ENTREGA = "832819990"
 
 
@@ -39,6 +38,7 @@ def ceil_pvp(costo: float, factor: float = 1.6) -> float:
 
 
 # match=True → ya había EAN/SKU en portal o inventario local.
+# Lotes re-leídos de hojas 1–2 (fotos claras 15-sep).
 ROWS = [
     {
         "clave": "ACC092",
@@ -48,7 +48,7 @@ ROWS = [
         "qty": 2,
         "pu": 44.64,
         "sub": 89.28,
-        "lote": "M2408436",
+        "lote": "M2406436",
         "caducidad": "2027-06-30",
         "sku": "EQ-ACC092",
         "match": False,
@@ -174,7 +174,7 @@ ROWS = [
         "qty": 3,
         "pu": 7.67,
         "sub": 23.01,
-        "lote": "670186",
+        "lote": "670188",
         "caducidad": "2028-06-01",
         "sku": "EQ-BEA424",
         "match": True,
@@ -427,7 +427,7 @@ ROWS = [
         "pu": 10.93,
         "sub": 21.86,
         "lote": "21902",
-        "caducidad": "2027-05-08",
+        "caducidad": "2027-05-06",
         "sku": "EQ-RAD097",
         "match": False,
         "categoria": "Medicamentos",
@@ -447,7 +447,7 @@ ROWS = [
         "qty": 2,
         "pu": 28.38,
         "sub": 56.76,
-        "lote": "RBR029",
+        "lote": "RBA029",
         "caducidad": "2028-03-30",
         "sku": "EQ-RAM141",
         "match": False,
@@ -574,15 +574,16 @@ def write_sql() -> None:
     )
     lines = [
         f"-- Levic · factura interna A {FOLIO} · CFDI 14-sep-2026 03:41",
-        f"-- Folio fiscal {UUID} (OCR parcial) · entrega {ENTREGA} · PUE efectivo ${TOTAL_TICKET:.2f}",
+        f"-- Folio fiscal {UUID} · entrega {ENTREGA} · PUE efectivo ${TOTAL_TICKET:.2f}",
         f"-- Receptor LUIS ANGEL PALILLERO VENTURA · {len(ROWS)} renglones · "
         f"{sum(r['qty'] for r in ROWS)} pzas (TOT 46 hoja 2).",
-        f"-- Subtotal CFDI ${SUBTOTAL_CFDI:.2f} + IVA ${IVA_CFDI:.2f} = ${TOTAL_TICKET:.2f}.",
-        "-- Costo = Precio neto. Lote = de fábrica (sí viene en la factura; OCR de foto).",
+        f"-- Subtotal CFDI ${SUBTOTAL_CFDI:.2f} + IVA ${IVA_CFDI:.2f} "
+        f"(Clorofil $9.78 + Ferro-4 $9.20) = ${TOTAL_TICKET:.2f}.",
+        "-- Costo = Precio neto. Lote = de fábrica (sí viene en la factura).",
         "-- Caducidad del papel NO se escribe aquí: Recibir captura MMAA de la caja.",
         "-- 0000 es inválido.",
-        "-- TODO foto: Visoti bloqueado en este entorno; copiar packshot a",
-        "--   public/catalogo-propia/ y SQL de imagen_url después del deploy.",
+        "-- TODO foto: Visoti bloqueado; copiar packshot a public/catalogo-propia/",
+        "--   y SQL de imagen_url después del deploy.",
         "--",
         f"-- {len(ROWS) - len(altas)} ya estaban · {len(altas)} altas nuevas.",
         "-- Altas: stock 0. En existentes solo se actualiza costo (no el PVP).",
@@ -607,7 +608,7 @@ def write_sql() -> None:
         precio = f"{ceil_pvp(r['pu']):.2f}"
         receta = "true" if r["receta"] else "false"
         alta = "true" if not r["match"] else "false"
-        nota = f"Factura Levic {FOLIO} · clave {r['clave']} · lote {r['lote'] or 's/lote OCR'}"
+        nota = f"Factura Levic {FOLIO} · clave {r['clave']} · lote {r['lote']}"
         vals.append(
             "      ({ean}, {sku}, {nombre}, {cat}, {tipo}, {costo}, {precio}, {smin}, "
             "{marca}, {pres}, {pa}, {conc}, {receta}, {notas}, {alta})".format(
@@ -713,10 +714,9 @@ def write_sql() -> None:
     recv = []
     for i, r in enumerate(ROWS):
         costo = f"{r['pu']:.2f}::numeric" if i == 0 else f"{r['pu']:.2f}"
-        lote = r["lote"] or None
         recv.append(
             f"        ({sql_str(r['ean'])}, {sql_str(r['nombre'])}, {r['qty']}, {costo}, "
-            f"{sql_str(r['sku'])}, {sql_str(lote)})"
+            f"{sql_str(r['sku'])}, {sql_str(r['lote'])})"
         )
     lines.append(",\n".join(recv))
     lines += [
@@ -792,5 +792,8 @@ if __name__ == "__main__":
     )
     print(f"altas {sum(1 for r in ROWS if not r['match'])}  recibir {sum(1 for r in ROWS if r['match'])}")
     print(f"piezas {sum(r['qty'] for r in ROWS)}")
-    assert abs(suma + IVA_CFDI - TOTAL_TICKET) < 0.01, (suma, IVA_CFDI, TOTAL_TICKET)
+    assert abs(suma - SUBTOTAL_CFDI) < 0.01, (suma, SUBTOTAL_CFDI)
+    assert abs(suma + IVA_CFDI - TOTAL_TICKET) < 0.01
     assert sum(r["qty"] for r in ROWS) == 46
+    # mismo EAN en catálogo y recepción
+    assert len({r["ean"] for r in ROWS}) == 24
