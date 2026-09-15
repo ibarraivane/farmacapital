@@ -7,7 +7,7 @@ const {
   extractUberWebhookDelivery,
   mapUberDeliveryStatus,
 } = require('../_lib/uberDirect');
-const handleUberDirectHttp = require('../_lib/uberDirectHttp');
+const handleEnvioDomicilioHttp = require('../_lib/envioDomicilioHttp');
 const handleAddressSuggestHttp = require('../_lib/addressSuggestHttp');
 const handleAddressColoniasHttp = require('../_lib/addressColoniasHttp');
 
@@ -186,8 +186,11 @@ async function handleUberDirect(req, res, body) {
 
 module.exports = async function handler(req, res) {
   const typeEarly = String(getQuery(req).type || '').toLowerCase();
+  if (typeEarly === 'envio-api' || typeEarly === 'envio' || typeEarly === 'envio_api') {
+    return handleEnvioDomicilioHttp(req, res);
+  }
   if (typeEarly === 'uber-api' || typeEarly === 'uber_api') {
-    return handleUberDirectHttp(req, res);
+    return handleEnvioDomicilioHttp(req, res);
   }
   // Autocomplete de dirección: reescritura desde /api/address/suggest
   // (no crear api/address/*.js — Hobby de Vercel = máx. 12 Serverless Functions).

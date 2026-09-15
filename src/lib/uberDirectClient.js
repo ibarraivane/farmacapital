@@ -1,13 +1,10 @@
-/** Cliente tienda/POS → API de logística (nunca llama a Uber desde el navegador). */
-
-const UBER_QUOTE_URL = "/api/logistics/webhook?type=uber-api";
+/** Uber Direct API retirada. Los helpers quedan por tests legacy; no llaman a Uber. */
 
 function errorBlob(err, detail) {
   const code = typeof err === "object" && err ? String(err.code || err.message || "") : String(err || "");
   return `${code} ${detail || ""} ${typeof err === "object" && err ? JSON.stringify(err) : ""}`.toLowerCase();
 }
 
-/** Uber rechaza la zona (incluso la sucursal). No es un CP mal escrito. */
 export function isUberCoverageError(err, detail) {
   const blob = errorBlob(err, detail);
   return (
@@ -19,21 +16,12 @@ export function isUberCoverageError(err, detail) {
   );
 }
 
-/** Se puede pagar envío: cotización Uber o, si Uber no cubre, envío coordinado por la farmacia. */
 export function checkoutPuedePagarEnvio({
   entrega,
   direccionOk,
-  uberQuoteStatus,
-  uberQuote,
-  envioFee,
 } = {}) {
   if (entrega === "pickup") return true;
-  if (!direccionOk) return false;
-  if (uberQuoteStatus === "ok" && uberQuote?.ok && Number(envioFee) > 0) return true;
-  if (uberQuoteStatus === "error" && isUberCoverageError(uberQuote?.error, uberQuote?.detail)) {
-    return true;
-  }
-  return false;
+  return Boolean(direccionOk);
 }
 
 export function explainUberQuoteError(err, detail) {
@@ -74,97 +62,14 @@ export function formatUberEta(quote) {
   return `${lo}–${hi} min`;
 }
 
-export async function fetchUberDirectQuote({ calle, colonia, cp, referencia, lat, lng }) {
-  const resp = await fetch(UBER_QUOTE_URL, {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      action: "quote",
-      calle: String(calle || "").trim(),
-      colonia: String(colonia || "").trim(),
-      cp: String(cp || "").trim(),
-      referencia: String(referencia || "").trim(),
-      lat: lat != null && Number.isFinite(Number(lat)) ? Number(lat) : undefined,
-      lng: lng != null && Number.isFinite(Number(lng)) ? Number(lng) : undefined,
-    }),
-  });
-  const data = await resp.json().catch(() => ({}));
-  if (!resp.ok || !data?.ok) {
-    const err = data?.error || data?.message || `http_${resp.status}`;
-    return {
-      ok: false,
-      error: err,
-      detail: data?.detail || data?.error?.message || null,
-      hint: explainUberQuoteError(err, data?.detail),
-    };
-  }
-  return data;
+export async function fetchUberDirectQuote() {
+  return { ok: false, error: "uber_direct_retired", hint: "Usar /api/logistics/envio" };
 }
 
-export async function attachUberDirectQuote({
-  pedidoId,
-  sessionToken,
-  guest,
-  guestPhone,
-  calle,
-  colonia,
-  cp,
-  referencia,
-  displayedFeeMxn,
-  lat,
-  lng,
-}) {
-  const resp = await fetch(UBER_QUOTE_URL, {
-    method: "POST",
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
-    },
-    body: JSON.stringify({
-      action: "attach",
-      pedidoId,
-      guest: Boolean(guest),
-      guestPhone,
-      calle: String(calle || "").trim(),
-      colonia: String(colonia || "").trim(),
-      cp: String(cp || "").trim(),
-      referencia: String(referencia || "").trim(),
-      displayed_fee_mxn: displayedFeeMxn,
-      lat: lat != null && Number.isFinite(Number(lat)) ? Number(lat) : undefined,
-      lng: lng != null && Number.isFinite(Number(lng)) ? Number(lng) : undefined,
-    }),
-  });
-  const data = await resp.json().catch(() => ({}));
-  if (!resp.ok || !data?.ok) {
-    return {
-      ok: false,
-      error: data?.error || `http_${resp.status}`,
-      quote: data?.quote || null,
-      detail: data?.detail || null,
-    };
-  }
-  return data;
+export async function attachUberDirectQuote() {
+  return { ok: false, error: "uber_direct_retired", hint: "Usar /api/logistics/envio action=attach" };
 }
 
-export async function dispatchUberDirectDelivery({ pedidoId, sessionToken }) {
-  const resp = await fetch(UBER_QUOTE_URL, {
-    method: "POST",
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
-    },
-    body: JSON.stringify({ action: "create", pedidoId }),
-  });
-  const data = await resp.json().catch(() => ({}));
-  if (!resp.ok || !data?.ok) {
-    return {
-      ok: false,
-      error: data?.error || `http_${resp.status}`,
-      detail: data?.detail || null,
-    };
-  }
-  return data;
+export async function dispatchUberDirectDelivery() {
+  return { ok: false, error: "uber_direct_retired", hint: "Usar /api/logistics/envio action=dispatch" };
 }

@@ -111,18 +111,6 @@ module.exports = async function handler(req, res) {
     if (!Number.isFinite(totalDb) || totalDb <= 0) return res.status(400).json({ ok: false, error: 'invalid_db_total' });
     if (Math.abs(totalDb - amount) > 0.01) return res.status(409).json({ ok: false, error: 'amount_mismatch' });
 
-    const uberSecret = String(process.env.UBER_DIRECT_CLIENT_SECRET || '').trim();
-    if (pedido.tipo_entrega === 'envio' && uberSecret) {
-      const meta = pedido.logistics_meta && typeof pedido.logistics_meta === 'object' ? pedido.logistics_meta : {};
-      const fee = Number(meta?.uber_direct?.fee_mxn);
-      const provider = String(pedido.delivery_provider || meta.logistics_provider || '').toLowerCase();
-      const hasMetaFee = Number.isFinite(fee) && fee >= 0 && provider === 'uber_direct';
-      const hasProviderOnly = pedido.logistics_meta == null && provider === 'uber_direct';
-      if (!hasMetaFee && !hasProviderOnly) {
-        return res.status(409).json({ ok: false, error: 'uber_quote_required' });
-      }
-    }
-
     const siteDefault = String(process.env.PUBLIC_SITE_URL || 'https://www.farmacapital.mx').replace(/\/+$/, '');
     const safeBase = isAllowedReturnBase(baseUrl) ? String(baseUrl).replace(/\/+$/, '') : siteDefault;
     const externalReference = `FARMACAPITAL-PED-${pedidoId}`;

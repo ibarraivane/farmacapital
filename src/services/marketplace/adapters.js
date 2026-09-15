@@ -60,14 +60,13 @@ export async function ingestUberEatsOrderPlaceholder(_payload) {
 }
 
 /**
- * Solicitar recolección Uber Direct.
- * El navegador no lleva el secreto: usar POST /api/logistics/uber-direct
- * `{ action: "create", pedidoId }` con sesión de empleado.
+ * Última milla de la tienda propia: Plan B (cotización + link de pago).
+ * POST /api/logistics/envio — no se nombra proveedor al cliente.
  */
 export async function requestUberDirectDeliveryPlaceholder(_args) {
   return {
     ok: false,
     error: "use_server",
-    hint: "POST /api/logistics/uber-direct action=create con UBER_DIRECT_CLIENT_SECRET. Cotización visible en checkout (la paga el comprador).",
+    hint: "POST /api/logistics/envio action=quote|create-payment-link con sesión de empleado.",
   };
 }

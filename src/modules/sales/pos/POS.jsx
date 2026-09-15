@@ -72,11 +72,12 @@ import {
 } from "../../../utils/orderReceiptWhatsApp";
 import { formatTelefonoDisplay } from "../../../utils/citaWhatsApp";
 import { configRowsToMap, mergeFarmaciaConfig, FARMACIA_FISCAL } from "../../../constants/farmaciaFiscal";
-import { dispatchUberDirectDelivery } from "../../../lib/uberDirectClient";
+import EnvioCotizacionPanel from "../../../components/EnvioCotizacionPanel";
+import { despacharEnvioPedido } from "../../../lib/envioDomicilioClient";
 
 const PEDIDOS_TIENDA_SELECT_POS = `
             id,total,created_at,tipo,metodo_pago,estado,tipo_entrega,direccion,
-            guest_nombre,guest_telefono,guest_email,
+            guest_nombre,guest_telefono,guest_email,logistics_meta,costo_envio,
             clientes(nombre,telefono),
             pedido_items(cantidad,precio_unitario,productos(nombre,sku,ubicacion_texto))
           `;
@@ -2094,24 +2095,14 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       if (!resp?.success) throw new Error(resp?.error || "No se pudo surtir");
       setPedOn(p=>p.filter(x=>x.id!==pedido.id));
       setPedOnHist((prev) => [{ ...pedido, estado: "listo" }, ...prev.filter((x) => x.id !== pedido.id)].slice(0, 20));
-      let uberHint = "";
-      let uberOk = true;
-      if (pedido.tipo_entrega === "envio") {
-        const uber = await dispatchUberDirectDelivery({ pedidoId: pedido.id, sessionToken: tok });
-        uberOk = Boolean(uber.ok);
-        if (uber.ok) {
-          uberHint = uber.tracking_url ? " · Uber pedido (tracking listo)" : " · Uber pedido";
-        } else {
-          uberHint = " · Uber no se pudo pedir (reintenta)";
-        }
-      }
+      const envioHint = pedido.tipo_entrega === "envio" ? " · cotiza el envío y manda el link de pago" : "";
       const telCli = pedido.clientes?.telefono || pedido.guest_telefono;
       if (telCli) {
         const wa = await notifyOrderReady({ pedidoId: pedido.id, telefono: telCli });
         if (wa?.sent) {
           showToast(
-            (pedido.tipo_entrega === "envio" ? "Pedido listo" : "Pedido listo · pase de recogida enviado por WhatsApp") + uberHint,
-            uberOk ? "success" : "warning"
+            (pedido.tipo_entrega === "envio" ? "Pedido listo" : "Pedido listo · pase de recogida enviado por WhatsApp") + envioHint,
+            "success"
           );
         } else {
           const hint = formatWhatsAppSendError({
@@ -2119,10 +2110,10 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
             detail: wa?.detail,
             telefono: telCli,
           });
-          showToast((hint || "Pedido listo (WhatsApp no enviado)") + uberHint, "warning");
+          showToast((hint || "Pedido listo (WhatsApp no enviado)") + envioHint, "warning");
         }
       } else {
-        showToast("Pedido marcado como listo" + uberHint, uberOk ? "success" : "warning");
+        showToast("Pedido marcado como listo" + envioHint, "success");
       }
     } catch(e) { console.error(e); }
     setGuard(false);
@@ -3639,7 +3630,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       {tab==="online"&&(
         <div>
           <div style={{background:C.blueDim,border:`1px solid ${C.blue}30`,borderRadius:10,padding:"10px 14px",marginBottom:14,fontSize:12,color:C.blue,lineHeight:1.45}}>
-            <strong>Operación:</strong> aquí solo aparecen pedidos con <strong>pago aprobado</strong> en Mercado Pago. Surtir y marcar listo cuando el producto esté preparado.
+            <strong>Operación:</strong> aquí solo aparecen pedidos con <strong>pago aprobado</strong> en Mercado Pago. Surtir cuando esté preparado. En domicilio: cotiza (DiDi primero) y manda el link de pago; no se pide un proveedor automático.
           </div>
           {loading ? <SkeletonTable rows={3} cols={4}/> : (
             <>
@@ -3685,6 +3676,19 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                       <span style={{marginTop:1}}><IconoAnaquel size={13} /></span>
                       {p.direccion}
                     </div>
+                  )}
+                  {p.tipo_entrega==="envio" && (
+                    <EnvioCotizacionPanel
+                      pedido={p}
+                      showToast={showToast}
+                      onUpdated={(envio) => {
+                        setPedOn((rows) => rows.map((x) => (
+                          x.id === p.id
+                            ? { ...x, logistics_meta: { ...(x.logistics_meta || {}), envio } }
+                            : x
+                        )));
+                      }}
+                    />
                   )}
                   <div style={{color:C.textDim,fontSize:11,marginTop:2}}>{new Date(p.created_at).toLocaleString("es-MX")}</div>
                 </div>
@@ -3741,14 +3745,14 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                         {p.tipo_entrega==="envio" && !p.delivery_tracking_url && (
                           <Btn sm col={C.teal} dis={guardando} onClick={async()=>{
                             const tokU = sessionStorage.getItem("farmacapital_session_token");
-                            const uber = await dispatchUberDirectDelivery({ pedidoId: p.id, sessionToken: tokU });
-                            if (uber.ok) {
-                              showToast(uber.tracking_url ? "Uber pedido · tracking listo" : "Uber pedido", "success");
-                              setPedOnHist((prev)=>prev.map((x)=>x.id===p.id ? { ...x, delivery_tracking_url: uber.tracking_url || x.delivery_tracking_url } : x));
+                            const r = await despacharEnvioPedido({ pedidoId: p.id, sessionToken: tokU });
+                            if (r.ok) {
+                              showToast("Marcado en ruta", "success");
+                              setPedOnHist((prev)=>prev.map((x)=>x.id===p.id ? { ...x, delivery_status: "in_route" } : x));
                             } else {
-                              showToast("No se pudo pedir Uber: " + (uber.detail || uber.error || "intenta de nuevo"), "warning");
+                              showToast(r.error === "envio_no_pagado" ? "Falta el pago del envío." : `No se despachó: ${r.error}`, "warning");
                             }
-                          }}>Pedir Uber</Btn>
+                          }}>Marcar en ruta</Btn>
                         )}
                         {p.delivery_tracking_url && (
                           <a href={p.delivery_tracking_url} target="_blank" rel="noreferrer" style={{fontSize:11,fontWeight:700,color:C.blue}}>Tracking</a>

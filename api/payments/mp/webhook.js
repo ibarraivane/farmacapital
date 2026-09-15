@@ -80,6 +80,88 @@ module.exports = async function handler(req, res) {
     }
 
     const externalRef = String(payment?.external_reference || '');
+    const envMatch = externalRef.match(/FARMACAPITAL-ENV-(\d+)/);
+    if (envMatch) {
+      const pedidoId = Number(envMatch[1]);
+      const status = String(payment?.status || '').toLowerCase();
+      const approved = status === 'approved';
+      const paidAmount = Number(payment?.transaction_amount);
+      const pedidoResp = await fetch(
+        `${SUPABASE_URL}/rest/v1/pedidos?id=eq.${pedidoId}&select=id,logistics_meta,costo_envio&limit=1`,
+        {
+          headers: {
+            apikey: SUPABASE_SERVICE_ROLE_KEY,
+            Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          },
+        }
+      );
+      const pedidoRows = await pedidoResp.json().catch(() => []);
+      const pedidoBefore = Array.isArray(pedidoRows) ? pedidoRows[0] : null;
+      if (!pedidoBefore) {
+        return res.status(200).json({ ok: true, ignored: true, reason: 'envio_pedido_missing', pedidoId });
+      }
+      const meta = pedidoBefore.logistics_meta && typeof pedidoBefore.logistics_meta === 'object'
+        ? pedidoBefore.logistics_meta
+        : {};
+      const envio = meta.envio && typeof meta.envio === 'object' ? meta.envio : {};
+      const expected = Number(envio.costo_cotizado ?? pedidoBefore.costo_envio ?? 0);
+      if (approved && Number.isFinite(expected) && expected > 0) {
+        if (!Number.isFinite(paidAmount) || Math.abs(paidAmount - expected) > 0.5) {
+          return res.status(409).json({
+            ok: false,
+            error: 'envio_payment_amount_mismatch',
+            expected,
+            paid: paidAmount,
+          });
+        }
+      }
+      const nextEnvio = {
+        ...envio,
+        estado: approved ? 'pagado' : (envio.estado || 'link_enviado'),
+        mp_payment_id: String(payment?.id || dataId),
+        mp_payment_status: status || 'unknown',
+        pagado_at: approved ? new Date().toISOString() : envio.pagado_at || null,
+      };
+      const patchResp = await fetch(`${SUPABASE_URL}/rest/v1/pedidos?id=eq.${pedidoId}`, {
+        method: 'PATCH',
+        headers: {
+          apikey: SUPABASE_SERVICE_ROLE_KEY,
+          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          'Content-Type': 'application/json',
+          Prefer: 'return=representation',
+        },
+        body: JSON.stringify({
+          costo_envio: Number.isFinite(expected) ? expected : paidAmount,
+          logistics_meta: {
+            ...meta,
+            logistics_provider: envio.proveedor || meta.logistics_provider || 'didi',
+            envio: nextEnvio,
+          },
+        }),
+      });
+      if (!patchResp.ok) {
+        let detail = null;
+        try { detail = await patchResp.json(); } catch { detail = await patchResp.text(); }
+        return res.status(502).json({ ok: false, error: 'supabase_envio_update_failed', detail });
+      }
+      if (approved) {
+        await fetch(`${SUPABASE_URL}/rest/v1/envios?pedido_id=eq.${pedidoId}`, {
+          method: 'PATCH',
+          headers: {
+            apikey: SUPABASE_SERVICE_ROLE_KEY,
+            Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            estado: 'pagado',
+            mp_payment_id: String(payment?.id || dataId),
+            costo_cotizado: expected,
+          }),
+        }).catch(() => null);
+      }
+      return res.status(200).json({ ok: true, kind: 'envio', pedidoId, status });
+    }
+
     const m = externalRef.match(/FARMACAPITAL-PED-(\d+)/);
     const pedidoId = m ? Number(m[1]) : null;
     if (!pedidoId) return res.status(200).json({ ok: true, ignored: true, reason: 'no_pedido_reference' });
