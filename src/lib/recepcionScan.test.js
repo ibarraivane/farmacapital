@@ -260,4 +260,37 @@ describe("GS1 / DataMatrix en Recibir", () => {
     expect(r.tipo).toBe("fuera");
     expect(r.motivo).toBe("serial_point");
   });
+
+  test("Equilibrio 20260914: DataMatrix GS1 abre cada renglón gris pendiente", () => {
+    // EANs del ticket Palillero (los 8 sin caducidad de la foto).
+    const grises = [
+      { sku: "EQ-AMS160", ean: "7501349023369", lote: "U26J016" },
+      { sku: "EQ-AVI026", ean: "7502216803893", lote: "530175" },
+      { sku: "EQ-ULT117", ean: "7502216793439", lote: "6H445" },
+      { sku: "FC-09747328", ean: "7502009747328", lote: "6FN231C" },
+      { sku: "EQ-ALP0628", ean: "7502226293776", lote: "B25T515" },
+      { sku: "EQ-ALP0120", ean: "7502226291871", lote: "2603022" },
+      { sku: "EQ-NOV006", ean: "7501075711035", lote: "140185" },
+    ];
+    const items = grises.map((g, i) => ({
+      id: i + 1,
+      confirmado: false,
+      codigo_escaneado: g.ean,
+      sku: g.sku,
+      origen: "pdf",
+    }));
+    for (const g of grises) {
+      const gs1 = `010${g.ean}17280311\x1d10${g.lote}`;
+      expect(extractGs1Gtin(gs1)).toBe(g.ean);
+      const r = resolverEscaneoRecepcion({
+        items,
+        codigo: gs1,
+        productos: [],
+        esTicketDocumento: true,
+      });
+      expect(r.tipo).toBe("gris");
+      expect(r.codigo).toBe(g.ean);
+      expect(r.item.sku).toBe(g.sku);
+    }
+  });
 });
