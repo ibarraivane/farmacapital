@@ -206,7 +206,7 @@ select
     select 1 from public.producto_imagenes i
     where i.producto_id = p.id and coalesce(i.es_principal, false)
   ),
-  'catalogo-propia'
+  'propia'
 from _fc_cf_s322819 t
 join public.productos p on p.id = public.fc_buscar_producto_escaneo(t.ean)
 where t.imagen is not null
@@ -447,7 +447,7 @@ select
     select 1 from public.producto_imagenes i
     where i.producto_id = p.id and coalesce(i.es_principal, false)
   ),
-  'catalogo-propia'
+  'propia'
 from _fc_cf_s322895 t
 join public.productos p on p.id = public.fc_buscar_producto_escaneo(t.ean)
 where t.imagen is not null
@@ -686,7 +686,7 @@ select
     select 1 from public.producto_imagenes i
     where i.producto_id = p.id and coalesce(i.es_principal, false)
   ),
-  'catalogo-propia'
+  'propia'
 from _fc_cf_s322903 t
 join public.productos p on p.id = public.fc_buscar_producto_escaneo(t.ean)
 where t.imagen is not null
@@ -927,7 +927,7 @@ select
     select 1 from public.producto_imagenes i
     where i.producto_id = p.id and coalesce(i.es_principal, false)
   ),
-  'catalogo-propia'
+  'propia'
 from _fc_eq_444555 t
 join public.productos p on p.id = public.fc_buscar_producto_escaneo(t.ean)
 where t.imagen is not null
@@ -1167,7 +1167,7 @@ select
     select 1 from public.producto_imagenes i
     where i.producto_id = p.id and coalesce(i.es_principal, false)
   ),
-  'catalogo-propia'
+  'propia'
 from _fc_bf42_27163 t
 join public.productos p on p.id = public.fc_buscar_producto_escaneo(t.ean)
 where t.imagen is not null
