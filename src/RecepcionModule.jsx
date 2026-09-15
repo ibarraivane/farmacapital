@@ -29,6 +29,8 @@ import {
   recepcionItemVerdeSinStock,
   recepcionItemsVerdeSinStock,
   pedidoEsperaEntrada,
+  eanPistolaListo,
+  esSerialTerminalPoint,
 } from "./lib/recepcionScan";
 import { $ as fmt, getSessionToken, esErrorSesionEmpleado } from "./utils";
 import { notifySesionEmpleadoInvalida } from "./utils/sesionEmpleadoAuth";
@@ -296,7 +298,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     const [provRes, prodRes] = await Promise.all([
       supabase.rpc("empleado_listar_proveedores_catalogo", { p_session_token: tok }),
       fetchProductosPaginados({
-        select: "id,nombre,sku,codigo_barras,activo,costo,precio,tipo",
+        select: "id,nombre,sku,codigo_barras,descripcion,activo,costo,precio,tipo",
         activosSolo: true,
         order: "nombre",
       }),
@@ -322,7 +324,7 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     const tok = sessionTok();
     if (!tok) return;
     const prodRes = await fetchProductosPaginados({
-      select: "id,nombre,sku,codigo_barras,activo,costo,precio,tipo",
+      select: "id,nombre,sku,codigo_barras,descripcion,activo,costo,precio,tipo",
       activosSolo: true,
       order: "nombre",
     });
@@ -659,7 +661,11 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     }
     if (hit.tipo === "fuera") {
       setScan("");
-      setErrorLinea("No corresponde a ninguno de los ítems de este ticket.");
+      if (hit.motivo === "serial_point" || esSerialTerminalPoint(codigo)) {
+        setErrorLinea("Eso es el serial de la terminal Point, no un producto. Escanea el código de barras de la caja.");
+      } else {
+        setErrorLinea("No corresponde a ninguno de los ítems de este ticket. Escanea el EAN de la caja (no el lote).");
+      }
       return;
     }
     if (hit.tipo === "gris") {
@@ -702,7 +708,9 @@ export default function RecepcionModule({ ocultarMontos = false }) {
     const codigo = normalizeBarcodeRaw(raw);
     if (looksLikeInternalSku(codigo)) {
       /* SKU interno: disparar igual que EAN completo */
-    } else if (!(looksLikeBarcodeInput(codigo) && [8, 12, 13, 14].includes(codigo.length))) {
+    } else if (esSerialTerminalPoint(codigo)) {
+      /* Serial Point: avisar al soltar beep, no dejarlo pegado en el recuadro */
+    } else if (!eanPistolaListo(codigo)) {
       return;
     }
     scanIdleRef.current = setTimeout(() => {

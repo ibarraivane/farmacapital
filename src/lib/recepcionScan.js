@@ -16,6 +16,62 @@ export function normalizeBarcodeRaw(raw) {
   return t;
 }
 
+/**
+ * GTIN/EAN embebido en DataMatrix GS1 (cajas de medicamento).
+ * Formatos: (01)GTIN, 01+GTIN-14, o EAN-13 MX (750…) dentro de un beep largo.
+ */
+export function extractGs1Gtin(raw) {
+  const t = normalizeBarcodeRaw(raw);
+  if (!t) return null;
+
+  const paren = t.match(/\(01\)(\d{13,14})/);
+  if (paren) {
+    const g = paren[1];
+    return g.length === 14 && g.startsWith("0") ? g.slice(1) : g;
+  }
+
+  // AI 01 + GTIN-14 (a veces con FNC1 / GS como separador ya strippeado)
+  const ai01 = t.match(/(?:^|[^0-9])01(\d{14})/);
+  if (ai01) {
+    const g = ai01[1];
+    return g.startsWith("0") ? g.slice(1) : g;
+  }
+
+  const digits = t.replace(/\D/g, "");
+  if (digits.length <= 14) return null;
+
+  if (digits.startsWith("01") && digits.length >= 16) {
+    const g = digits.slice(2, 16);
+    return g.startsWith("0") ? g.slice(1) : g;
+  }
+
+  // México: EAN-13 suele empezar en 750
+  const mx = digits.match(/750\d{10}/);
+  if (mx) return mx[0];
+
+  return null;
+}
+
+/** Serial / etiqueta de terminal Point Smart — no es producto. */
+export function esSerialTerminalPoint(raw) {
+  const t = normalizeBarcodeRaw(raw).toUpperCase();
+  if (!t) return false;
+  if (/^N950/i.test(t)) return true;
+  if (/^NCCC\d{8,}$/i.test(t)) return true;
+  if (/NEWLAND_N950/i.test(t)) return true;
+  return false;
+}
+
+/** Códigos candidatos a matchear: crudo + GTIN GS1 si viene en beep largo. */
+export function scanCodigoCandidates(raw) {
+  const code = normalizeBarcodeRaw(raw) || String(raw || "").trim();
+  if (!code) return [];
+  const out = [code];
+  const gtin = extractGs1Gtin(code);
+  if (gtin && !out.some((c) => barcodeDigitsMatch(c, gtin))) out.push(gtin);
+  return out;
+}
+
 export function barcodeDigitsMatch(scanRaw, storedRaw) {
   const scan = normalizeBarcodeRaw(scanRaw).replace(/\D/g, "");
   const stored = normalizeBarcodeRaw(storedRaw).replace(/\D/g, "");
@@ -72,7 +128,7 @@ export function recepcionEsTicket(doc) {
   return recepcionEsTicketDocumento(doc?.items || doc || []);
 }
 
-export function itemMatchScan(it, codigo, productos = []) {
+function itemMatchScanOne(it, codigo, productos = []) {
   if (!it || !codigo) return false;
   if (it.codigo_escaneado && codigoEsAlias(codigo, it.codigo_escaneado)) return true;
   if (it.sku && String(it.sku).toUpperCase() === String(codigo).toUpperCase()) return true;
@@ -91,6 +147,11 @@ export function itemMatchScan(it, codigo, productos = []) {
   return false;
 }
 
+export function itemMatchScan(it, codigo, productos = []) {
+  if (!it || !codigo) return false;
+  return scanCodigoCandidates(codigo).some((c) => itemMatchScanOne(it, c, productos));
+}
+
 /**
  * @returns {{ tipo: 'vacio'|'gris'|'ya_confirmado'|'fuera'|'nuevo', item?: object, codigo?: string }}
  */
@@ -100,22 +161,30 @@ export function resolverEscaneoRecepcion({ items, codigo, productos, esTicketDoc
 
   const lista = Array.isArray(items) ? items : [];
   const catalogo = Array.isArray(productos) ? productos : [];
+  const matchCode = extractGs1Gtin(code) || code;
 
   const ya = lista.find((it) => it.confirmado && itemMatchScan(it, code, catalogo));
-  if (ya) return { tipo: "ya_confirmado", item: ya, codigo: code };
+  if (ya) return { tipo: "ya_confirmado", item: ya, codigo: matchCode };
 
   const gris = lista.find((it) => !it.confirmado && itemMatchScan(it, code, catalogo));
-  if (gris) return { tipo: "gris", item: gris, codigo: code };
+  if (gris) return { tipo: "gris", item: gris, codigo: matchCode };
+
+  if (esSerialTerminalPoint(code)) {
+    return { tipo: "fuera", codigo: code, motivo: "serial_point" };
+  }
 
   if (esTicketDocumento) return { tipo: "fuera", codigo: code };
 
-  return { tipo: "nuevo", codigo: code };
+  return { tipo: "nuevo", codigo: matchCode };
 }
 
 /** EAN-8/12/13/14 listo: dispara sin Enter (pistola / tablet). */
 export function eanPistolaListo(raw) {
   const t = normalizeBarcodeRaw(raw);
-  return /^\d{8}$|^\d{12,14}$/.test(t);
+  if (/^\d{8}$|^\d{12,14}$/.test(t)) return true;
+  // DataMatrix GS1: beep largo con GTIN embebido — disparar sin Enter.
+  const gtin = extractGs1Gtin(t);
+  return !!(gtin && /^\d{8}$|^\d{12,14}$/.test(gtin));
 }
 
 export function pedidoEsperaEntrada(t) {
