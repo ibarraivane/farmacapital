@@ -1,0 +1,58 @@
+producto_id,codigo_barras,nombre,marca,presentacion,motivo
+57,,Ursodesoxicolico,Acido,50 CAPSULAS,"sin codigo de barras: no hay nada que buscar, foto propia"
+93,7501109900008,Protect aerosol 200 dosis,Protect,12.80 G,buscado sin coincidencia exacta de EAN; candidatos ambiguos de sabor/presentacion
+94,,Eferox (Cefalexina),Calcio,12 COMPRIMIDOS,"sin codigo de barras: no hay nada que buscar, foto propia"
+96,,Gentamicina,,25 COMPRIMIDOS,"sin codigo de barras: no hay nada que buscar, foto propia"
+140,,Tratidri,Tratidri,1 GEL,"sin codigo de barras: no hay nada que buscar, foto propia"
+243,7501001303454,Pantene Control caída anticaída,Pantene,400 ML,buscado sin coincidencia exacta de EAN; candidatos ambiguos de sabor/presentacion
+277,7502245720567,Quitaesmalte coco,SKN,100 ML,buscado sin coincidencia exacta de EAN; candidatos ambiguos de sabor/presentacion
+373,7501868910010,Algodón 200 g,Dibar,200 G,buscado sin coincidencia exacta de EAN; candidatos ambiguos de sabor/presentacion
+518,,Mercurio,Mercurio,JARABE,"sin codigo de barras: no hay nada que buscar, foto propia"
+533,,Perilla N6,Edigar,PIEZA,"sin codigo de barras: no hay nada que buscar, foto propia"
+537,,Perilla Edigar N O Caja,Perilla,,"sin codigo de barras: no hay nada que buscar, foto propia"
+539,,Perilla N4,Edigar,PIEZA,"sin codigo de barras: no hay nada que buscar, foto propia"
+540,,Perilla N3,Edigar,PIEZA,"sin codigo de barras: no hay nada que buscar, foto propia"
+541,,Perilla N2,Edigar,PIEZA,"sin codigo de barras: no hay nada que buscar, foto propia"
+542,2008480100010,Perilla Edigar N1 (jeringa pera toda de hule),Edigar,PIEZA,"codigo interno de la farmacia (prefijo 2): no existe en ningun catalogo externo, foto propia"
+547,7503022640153,Bicarbonato Velazquez Grande 200G,Bicarbonato,bolsa 200g,buscado sin coincidencia exacta de EAN; candidatos ambiguos de sabor/presentacion
+551,3311000000776,Mercurio Cloruro De Magnesio Cajita,Mercurio,bolsa 100g,buscado sin coincidencia exacta de EAN; candidatos ambiguos de sabor/presentacion
+560,,FC producto botiquín,Fc,,"sin codigo de barras: no hay nada que buscar, foto propia"
+586,7506484500522,Cinta micropore blanca 2.5 cm x 5 m,,1 pz,buscado sin coincidencia exacta de EAN; candidatos ambiguos de sabor/presentacion
+587,7506484500607,Cinta micropore blanca 2.5 cm x 9.1 m,Cintapore,1 pz,buscado sin coincidencia exacta de EAN; candidatos ambiguos de sabor/presentacion
+609,7501685171118,Condón Sico,Sico,C/3,buscado sin coincidencia exacta de EAN; candidatos ambiguos de sabor/presentacion
+1075,,Cinta-Microporosa-Codifarma 2.5 Cm X 5 M C/1 Blanco,,,"sin codigo de barras: no hay nada que buscar, foto propia"
+1097,793969285204,Piojitos Shampoo C/150 Gr,PIOJITOS,150G,buscado sin coincidencia exacta de EAN; candidatos ambiguos de sabor/presentacion
+1127,7506484500539,Cintapore cinta microporosa 1.25 cm x 5 m piel,CINTAPORE,1 ROLLO,buscado sin coincidencia exacta de EAN; candidatos ambiguos de sabor/presentacion
+1132,7506484500546,Cintapore cinta microporosa piel 2.5 cm x 5m,Cintapore,Rollo 2.5 cm x 5m color piel,buscado sin coincidencia exacta de EAN; candidatos ambiguos de sabor/presentacion
+1142,7506484500515,Cintapore cinta microporosa blanca 1.25 cm x 5 m,Cintapore,Rollo 1.25 cm x 5 m blanca,buscado sin coincidencia exacta de EAN; candidatos ambiguos de sabor/presentacion
+1177,7503002045312,Esencia de clavo Frasco gotero Herbotec,Herbotec,Frasco gotero,buscado sin coincidencia exacta de EAN; candidatos ambiguos de sabor/presentacion
+1232,2008470100013,Gillette Prestobarba 3 rastrillo desechable 1 pza,Gillette,1 pieza desechable 3 hojas,"codigo interno de la farmacia (prefijo 2): no existe en ningun catalogo externo, foto propia"
+1252,2008490100017,Copa lavaojos de vidrio,Arfam,1 copa de vidrio,"codigo interno de la farmacia (prefijo 2): no existe en ningun catalogo externo, foto propia"
+1253,7503048936018,Velázquez alcanfor pastillas C/50 sobres,Velázquez,Caja con 50 sobres,buscado sin coincidencia exacta de EAN; candidatos ambiguos de sabor/presentacion
+1256,2008500100013,Cubrebocas tricapa desechable C/100,,Caja C/100,"codigo interno de la farmacia (prefijo 2): no existe en ningun catalogo externo, foto propia"
+1266,7502245720215,Quitaesmalte SKN · variante 215 · confirmar,SKN,100 ML,buscado sin coincidencia exacta de EAN; candidatos ambiguos de sabor/presentacion
+1270,7501846504859,Xiomara Pomada B,Xiomara,,buscado sin coincidencia exacta de EAN; candidatos ambiguos de sabor/presentacion
+1273,7502245720208,Quitaesmalte SKN · variante 208 · confirmar,SKN,100 ML,buscado sin coincidencia exacta de EAN; candidatos ambiguos de sabor/presentacion
+1274,7502245720574,Quitaesmalte SKN · variante 574 · confirmar,SKN,100 ML,buscado sin coincidencia exacta de EAN; candidatos ambiguos de sabor/presentacion
+1281,7503017500820,Sanax Silica Gran,Sanax,,buscado sin coincidencia exacta de EAN; candidatos ambiguos de sabor/presentacion
+1282,2008510100010,Tijera para bigote,,Pieza,"codigo interno de la farmacia (prefijo 2): no existe en ningun catalogo externo, foto propia"
+1283,2008520100017,Silika Seda Pure Fruit Pera 120 mL,Silika,Frasco 120 mL,"codigo interno de la farmacia (prefijo 2): no existe en ningun catalogo externo, foto propia"
+1284,7896075701040,Pinza depilar Mereje tenaza C/12,Mereje,,buscado sin coincidencia exacta de EAN; candidatos ambiguos de sabor/presentacion
+1285,2008540100011,Perfilador Tinkle C/3 pzs,Tinkle,Blister con 3,"codigo interno de la farmacia (prefijo 2): no existe en ningun catalogo externo, foto propia"
+1286,2008550100018,Dona / bolsa IJJ-10 C/12,,Paquete con 12,"codigo interno de la farmacia (prefijo 2): no existe en ningun catalogo externo, foto propia"
+1287,2008560100015,Peine caballero profesional N1 C/12,,Paquete con 12,"codigo interno de la farmacia (prefijo 2): no existe en ningun catalogo externo, foto propia"
+1289,2008580100019,Peine para piojos de acero económico 9309,,Pieza,"codigo interno de la farmacia (prefijo 2): no existe en ningun catalogo externo, foto propia"
+1304,855553008221,Encendedor desechable Riegel,Riegel,1 pieza,buscado sin coincidencia exacta de EAN; candidatos ambiguos de sabor/presentacion
+1315,7506475102520,Gerber Etapa 2 comida casera res 100 g,,,buscado sin coincidencia exacta de EAN; candidatos ambiguos de sabor/presentacion
+1316,7506475102537,Gerber Etapa 2 comida casera pollo 100 g,,,buscado sin coincidencia exacta de EAN; candidatos ambiguos de sabor/presentacion
+1633,759684313295,JALOMA ATOMIZADOR 60ML MERTODOL BLANCO,Jaloma,60 ml,buscado sin coincidencia exacta de EAN; candidatos ambiguos de sabor/presentacion
+1642,759684900280,Jaloma agua de rosas spray 130 ml,Jaloma,130 ml,buscado sin coincidencia exacta de EAN; candidatos ambiguos de sabor/presentacion
+1667,,Brocha para tinte con peine de cola,,Pieza,"sin codigo de barras: no hay nada que buscar, foto propia"
+1711,7501868950702,Vaso recolector de muestras Dibar 100 ml,Dibar,Vaso 100 ml,buscado sin coincidencia exacta de EAN; candidatos ambiguos de sabor/presentacion
+1720,7501370204584,Pinza depilar Lady chica,Lady,Chica,buscado sin coincidencia exacta de EAN; candidatos ambiguos de sabor/presentacion
+1721,7501370204577,Pinza depilar Lady grande,Lady,Grande,buscado sin coincidencia exacta de EAN; candidatos ambiguos de sabor/presentacion
+1748,6977587671074,Termo Fifa,,,buscado sin coincidencia exacta de EAN; candidatos ambiguos de sabor/presentacion
+1760,7502209850231,Zagapsol amlodipino 10 tab 5 mg,Zagapsol,Caja con 10 tabletas,buscado sin coincidencia exacta de EAN; candidatos ambiguos de sabor/presentacion
+1762,6358975544000,Clorofil Jahvs solución clorofila 500 mL,Clorofil Jahvs,Frasco 500 mL,buscado sin coincidencia exacta de EAN; candidatos ambiguos de sabor/presentacion
+1771,7506281106019,Ferro-4 Streger 30 grageas 300/150/50/10 mg,Streger,Caja con 30 grageas,buscado sin coincidencia exacta de EAN; candidatos ambiguos de sabor/presentacion
+1801,7506494600311,Cloropiramina 25 mg tabletas,Cloropiramina,,buscado sin coincidencia exacta de EAN; candidatos ambiguos de sabor/presentacion
