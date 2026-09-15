@@ -1,0 +1,33 @@
+linea,folio,fecha,proveedor,ean,descripcion_ticket,cantidad,precio_unitario,subtotal,lote,caducidad,sku_farmacapital,total_ticket,match
+1,12790,2026-09-15,Farmalive,7501065065322,Advil 12 Horas ibuprofeno 600 mg C/6 | Haleon,1,222.46,222.46,,,,3534.11,ticket
+2,12790,2026-09-15,Farmalive,7501108763468,Advil ibuprofeno 200 mg cápsulas C/10 | Haleon,1,138.18,138.18,,,,3534.11,ticket
+3,12790,2026-09-15,Farmalive,020800600347,Tampax Super Plus tampones C/10 | P&G,2,43.12,86.24,,,,3534.11,ticket
+4,12790,2026-09-15,Farmalive,7501017362998,Kleenex pañuelos pack C/8 | Kimberly-Clark,1,32.83,32.83,,,,3534.11,ticket
+5,12790,2026-09-15,Farmalive,7501008499245,Aspirina GO sobres C/10 | Bayer,10,58.80,588.00,,,,3534.11,ticket
+6,12790,2026-09-15,Farmalive,7501065028785,Mejoral tabletas C/12 | Haleon,4,27.14,108.58,,,,3534.11,ticket
+7,12790,2026-09-15,Farmalive,7501008499429,Aspirina tabletas C/40 3-pack | Bayer,1,115.15,115.15,,,,3534.11,ticket
+8,12790,2026-09-15,Farmalive,7502214983207,Lubricante Prudence uva 75 mL | DKT,1,70.17,70.17,,,,3534.11,ticket
+9,12790,2026-09-15,Farmalive,7506460101460,Condón Durex Sico Retardante C/3 | RB Health,1,46.75,46.75,,,,3534.11,ticket
+10,12790,2026-09-15,Farmalive,7501369200085,Estomaquil sobres C/10 | Lab Higia,2,60.53,121.07,,,,3534.11,ticket
+11,12790,2026-09-15,Farmalive,7501098603867,Losec A omeprazol 20 mg C/14 | Genomma,1,29.40,29.40,,,,3534.11,ticket
+12,12790,2026-09-15,Farmalive,3614225108785,Tinte Koleston #50 castaño claro | Wella,2,53.90,107.80,,,,3534.11,ticket
+13,12790,2026-09-15,Farmalive,7501033954061,Ensure líquido chocolate 237 mL | Abbott,1,42.63,42.63,,,,3534.11,ticket
+14,12790,2026-09-15,Farmalive,7501122962816,Espaven Alcalino suspensión 360 mL | Bausch + Lomb,1,173.26,173.26,,,,3534.11,ticket
+15,12790,2026-09-15,Farmalive,7501088509926,Gotinal spray adulto 15 mL | Chinoin,1,127.30,127.30,,,,3534.11,ticket
+16,12790,2026-09-15,Farmalive,780083144302,Collifrin solución nasal adulto 20 mL | Collins,3,35.38,106.13,,,,3534.11,ticket
+17,12790,2026-09-15,Farmalive,3600542641074,Parche Garnier anti-acné invisible C/22 | L'Oréal,2,106.23,212.46,,,,3534.11,ticket
+18,12790,2026-09-15,Farmalive,650240036187,Kaopectate tabletas C/10 | Genomma,1,57.53,57.53,,,,3534.11,ticket
+19,12790,2026-09-15,Farmalive,7502214986031,Lubricante Prudence gel natural 100 mL | DKT,1,101.33,101.33,,,,3534.11,ticket
+20,12790,2026-09-15,Farmalive,650240013898,Crema Teatrical rosa (lanolina) 52 g | Genomma,3,31.07,93.20,,,,3534.11,ticket
+21,12790,2026-09-15,Farmalive,650240078996,Crema Teatrical azul 19 g | Genomma,3,15.11,45.32,,,,3534.11,ticket
+22,12790,2026-09-15,Farmalive,650240013850,Crema Teatrical azul 52 g | Genomma,3,31.07,93.20,,,,3534.11,ticket
+23,12790,2026-09-15,Farmalive,7501033954078,Ensure líquido fresa 237 mL | Abbott,1,42.63,42.63,,,,3534.11,ticket
+24,12790,2026-09-15,Farmalive,650240079009,Crema Teatrical rosa (lanolina) 19 g | Genomma,3,15.11,45.32,,,,3534.11,ticket
+25,12790,2026-09-15,Farmalive,7502214982446,Anillo vibrador Prudence | DKT,1,86.04,86.04,,,,3534.11,ticket
+26,12790,2026-09-15,Farmalive,7501065013767,Advil ibuprofeno 200 mg tabletas C/12 | Haleon,1,42.14,42.14,,,,3534.11,ticket
+27,12790,2026-09-15,Farmalive,650240069277,QG5 tabletas C/30 | Genomma,1,15.68,15.68,,,,3534.11,ticket
+28,12790,2026-09-15,Farmalive,650240028335,Gargax bucofaríngeo solución 60 mL | Genomma,2,121.12,242.25,,,,3534.11,ticket
+29,12790,2026-09-15,Farmalive,7502214982477,Condón Prudence fresa C/3 | DKT,3,34.30,102.90,,,,3534.11,ticket
+30,12790,2026-09-15,Farmalive,7502214982477,Condón Prudence fresa C/3 (promo) | DKT,1,0.01,0.01,,,,3534.11,ticket
+31,12790,2026-09-15,Farmalive,7502214982439,Condón Prudence retardante C/3 | DKT,5,47.63,238.14,,,,3534.11,ticket
+32,12790,2026-09-15,Farmalive,7502214982439,Condón Prudence retardante C/3 (promo) | DKT,1,0.01,0.01,,,,3534.11,ticket
