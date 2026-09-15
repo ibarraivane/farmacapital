@@ -1,5 +1,6 @@
 import {
   auditarMargenProducto,
+  catalogoGuardoImporteComoCosto,
   costoUnitarioDeRenglonTicket,
   csvGuardoImporteComoUnitario,
   familiaMargen,
@@ -157,6 +158,27 @@ test("última compra = importe de 2 pzas no tapa el margen alto", () => {
   );
   expect(a.accion).toBe("bajar");
   expect(a.sugerido).toBe(10);
+});
+
+test("Exprezo: catálogo guardó el importe de N piezas como costo de una", () => {
+  expect(catalogoGuardoImporteComoCosto(111.8, 18.63, 6)).toBe(true);
+  expect(catalogoGuardoImporteComoCosto(32.04, 10.68, 3)).toBe(true);
+  expect(catalogoGuardoImporteComoCosto(42.72, 10.68, 4)).toBe(true);
+  expect(catalogoGuardoImporteComoCosto(38.38, 12.79, 3)).toBe(true);
+  expect(catalogoGuardoImporteComoCosto(18.63, 18.63, 6)).toBe(false);
+  expect(costoUnitarioDeRenglonTicket({
+    cantidad: 6,
+    precioEtiquetado: 18.63,
+    subtotal: 111.8,
+  })).toBe(18.63);
+});
+
+test("Kleenex Sellapack: Farmalive cobró el C/8; el EAN es de una", () => {
+  expect(costoUnitarioDeRenglonTicket({
+    cantidad: 8,
+    precioEtiquetado: 32.83,
+    subtotal: 32.83,
+  })).toBe(4.1);
 });
 
 test("última compra mucho más cara que el costo catálogo → revisar, no bajar", () => {
