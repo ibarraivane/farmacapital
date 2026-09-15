@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Pedidos de medicamentos · FarmaCapital · 20 × 25 cm</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet" />
+  <style>
+    @page { size: 200mm 250mm; margin: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: #07111a;
+      font-family: "Plus Jakarta Sans", Helvetica, Arial, sans-serif;
+      color: #e4eef8;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .sheet {
+      width: 100%;
+      height: 100%;
+      padding: 8%;
+      display: flex;
+      flex-direction: column;
+    }
+    .logo {
+      width: 78%;
+      height: auto;
+      display: block;
+    }
+    .rule {
+      width: 14%;
+      height: 6px;
+      background: #00c46a;
+      border-radius: 4px;
+      margin: 8% 0 5%;
+    }
+    h1 {
+      font-size: 8.6vmin;
+      font-weight: 800;
+      letter-spacing: -0.035em;
+      line-height: 1.02;
+      color: #fff;
+    }
+    .lead {
+      margin-top: 4%;
+      font-size: 4.4vmin;
+      font-weight: 600;
+      color: #9bb4c7;
+      line-height: 1.3;
+      max-width: 96%;
+    }
+    .wa {
+      margin-top: auto;
+      background: #0c1824;
+      border: 1px solid #1f3347;
+      border-radius: 16px;
+      padding: 6% 6%;
+    }
+    .wa-label {
+      font-size: 2.6vmin;
+      letter-spacing: 0.16em;
+      font-weight: 800;
+      color: #00c46a;
+    }
+    .wa-num {
+      margin-top: 3%;
+      font-size: 6.8vmin;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: #fff;
+    }
+    .wa-note {
+      margin-top: 2%;
+      font-size: 2.8vmin;
+      color: #9bb4c7;
+    }
+  </style>
+</head>
+<body>
+  <div class="sheet">
+    <img class="logo" src="../logos/farmacapital-logo-light.png" alt="FarmaCapital" />
+    <div class="rule"></div>
+    <h1>Pedidos de<br />medicamentos</h1>
+    <p class="lead">Dilo en mostrador o mándanos el nombre por WhatsApp. Te avisamos cuando esté listo.</p>
+    <div class="wa">
+      <p class="wa-label">WHATSAPP</p>
+      <p class="wa-num">55 6253 0631</p>
+      <p class="wa-note">Radiodifusora 100, Chinampac de Juárez</p>
+    </div>
+  </div>
+</body>
+</html>
