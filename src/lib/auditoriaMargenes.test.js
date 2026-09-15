@@ -160,6 +160,29 @@ test("última compra = importe de 2 pzas no tapa el margen alto", () => {
   expect(a.sugerido).toBe(10);
 });
 
+test("Bodega: Pert kera $14.80 es el importe de 2 del oliva; unitario $7.40", () => {
+  expect(catalogoGuardoImporteComoCosto(14.8, 7.4, 2)).toBe(true);
+  expect(costoUnitarioDeRenglonTicket({
+    cantidad: 2,
+    precioEtiquetado: 14.8,
+    subtotal: 29.6,
+    costoCatalogo: 7.4,
+  })).toBe(7.4);
+});
+
+test("Bodega: Speed Stick $29.91 es el de 2; unitario $14.95", () => {
+  expect(catalogoGuardoImporteComoCosto(29.905, 14.95, 2)).toBe(true);
+});
+
+test("Mercurio C/50: el $54 es la caja; se vende por pieza a $1.08", () => {
+  expect(catalogoGuardoImporteComoCosto(54, 1.08, 50)).toBe(true);
+  expect(costoUnitarioDeRenglonTicket({
+    cantidad: 50,
+    precioEtiquetado: 54,
+    subtotal: 54,
+  })).toBe(1.08);
+});
+
 test("Exprezo: catálogo guardó el importe de N piezas como costo de una", () => {
   expect(catalogoGuardoImporteComoCosto(111.8, 18.63, 6)).toBe(true);
   expect(catalogoGuardoImporteComoCosto(32.04, 10.68, 3)).toBe(true);

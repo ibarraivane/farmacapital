@@ -59,3 +59,30 @@ Queda el único margen negativo (−3.7%) hasta que aparezca la compra.
 - Alliviax `FC-40013805`: Exprezo 3 × $100.50; Farmalive después 3 × $59.29. Catálogo $59.29 / PVP $110.
 - Escudo azul `FC-25652716`: Exprezo 3 × $13.65. Catálogo $13.65 / PVP $31.
 - Optims `FC-EXP-OPT48`: pack $75.30 ÷ 48 = $1.57 (ya partido).
+
+## 6. Precio de dos como costo de uno (tras el primer parche)
+
+SQL: `sql/patch_costos_dos_como_uno_regalos_20260915.sql`
+
+Sí: en higiene de Bodega el CSV pone el **importe de 2** en `precio_unitario`. El resto de qty≥2 de ese ticket ya estaba partido (Sedal $9.08, Escudo Rosa $4.48, Pert oliva $7.40). Quedaron:
+
+| SKU | Producto | Qué quedó | Unitario |
+|---|---|---:|---:|
+| `FC-46682815` | Speed Stick sensitive | **$29.91** = importe de 2 | **$14.95** |
+| `FC-20500164` | Pert kera 100 ml | **$14.80** pegado del oliva (2 pzas) | **$7.40** |
+
+## 7. Paquete que se vende por pieza
+
+| SKU | Producto | Costo vivo | Pieza |
+|---|---|---:|---:|
+| `FC-C4530823` | Mercurio óxido de zinc C/50 | **$9** (pomada C/25 pegada) | **$1.08** (caja $54 ÷ 50) |
+| `FC-0ACC5B6A` | Mercurio Oxido De Zinc | $1.08 | ya partido · no se toca |
+
+## 8. Regalos por caducar (costo $0)
+
+No se inventa caducidad.
+
+| SKU | Producto | Costo vivo | Tras el parche |
+|---|---|---:|---|
+| `EQ-PYG016` | Metamucil 504 g | $0.01 | **$0** |
+| `FC-98062243` | Pharmaton C/100 | $0 (ya) | **$0** + nota de regalo |
