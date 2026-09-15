@@ -94,5 +94,11 @@ describe('envioDomicilio SLA y despacho', () => {
     assert.equal(puedeDespacharEnvio({ estado: 'cotizado', costo_cotizado: 0 }), true);
     assert.equal(puedeDespacharEnvio({ estado: 'cotizado', costo_cotizado: 45 }), false);
     assert.equal(puedeDespacharEnvio({ estado: 'pendiente_cotizacion' }), false);
+    assert.equal(puedeDespacharEnvio({
+      estado: 'cotizado', costo_cotizado: 45, cobrado_en_checkout: true,
+    }), false);
+    assert.equal(puedeDespacharEnvio({
+      estado: 'cotizado', costo_cotizado: 45, cobrado_en_checkout: true,
+    }, { paymentApproved: true }), true);
   });
 });

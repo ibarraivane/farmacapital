@@ -165,10 +165,9 @@ export function formatEnvioMoney(n) {
 export function checkoutPuedePedirEnvio({ entrega, direccionOk, estimacion } = {}) {
   if (entrega === "pickup") return true;
   if (!direccionOk) return false;
-  if (!estimacion) return true;
-  if (estimacion.error === "coords_invalidas") return true;
-  if (estimacion.error === "fuera_radio") return false;
-  return estimacion.ok !== false;
+  if (!estimacion) return false;
+  if (estimacion.error === "fuera_radio" || estimacion.error === "coords_invalidas") return false;
+  return estimacion.ok === true && Number(estimacion.costo) >= 0;
 }
 
 export function minutosRestantesCotizacion(cotizarAntesDe, now = new Date()) {
@@ -183,4 +182,20 @@ export function leerMetaEnvio(pedido) {
   if (!meta || typeof meta !== "object") return {};
   if (meta.envio && typeof meta.envio === "object") return meta.envio;
   return {};
+}
+
+/** Etiqueta de cuenta/cliente: el envío va en el total, no hay segundo link. */
+export function etiquetaEstadoEnvioCliente(envio = {}, paymentStatus) {
+  const es = String(envio?.estado || "").toLowerCase();
+  const paid = String(paymentStatus || "").toLowerCase() === "approved";
+  if (es === "en_ruta") return "En ruta";
+  if (es === "fuera_radio") return "Fuera de zona";
+  if (es === "vencido") return "Cotización vencida";
+  if (es === "pagado") return "Envío pagado";
+  if (envio.cobrado_en_checkout && (es === "cotizado" || es === "pendiente_cotizacion" || !es)) {
+    return paid ? "Envío pagado" : "Envío en el total";
+  }
+  if (es === "cotizado" || es === "link_enviado") return "Envío por pagar";
+  if (es === "pendiente_cotizacion") return "Preparando envío";
+  return "";
 }

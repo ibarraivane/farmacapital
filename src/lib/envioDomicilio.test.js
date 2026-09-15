@@ -2,6 +2,7 @@ import {
   calcularCostoEnvio,
   checkoutPuedePedirEnvio,
   estimarEnvioDesdeCoords,
+  etiquetaEstadoEnvioCliente,
   getEnvioConfigCliente,
   haversineKm,
   minutosRestantesCotizacion,
@@ -28,6 +29,16 @@ describe("envioDomicilio cliente", () => {
       direccionOk: true,
       estimacion: { ok: true, costo: 30 },
     })).toBe(true);
+    expect(checkoutPuedePedirEnvio({
+      entrega: "cdmx",
+      direccionOk: true,
+      estimacion: { ok: true, costo: 0, gratis: true },
+    })).toBe(true);
+    expect(checkoutPuedePedirEnvio({
+      entrega: "cdmx",
+      direccionOk: true,
+      estimacion: { ok: false, error: "coords_invalidas" },
+    })).toBe(false);
     expect(checkoutPuedePedirEnvio({ entrega: "cdmx", direccionOk: false })).toBe(false);
   });
 
@@ -48,5 +59,12 @@ describe("envioDomicilio cliente", () => {
     const past = new Date(Date.now() - 60_000).toISOString();
     expect(minutosRestantesCotizacion(past)).toBe(0);
     expect(proveedorSugerido("Roma")).toBe("didi");
+  });
+
+  test("etiqueta de cuenta: cobrado en checkout, no segundo link", () => {
+    expect(etiquetaEstadoEnvioCliente({ estado: "cotizado", cobrado_en_checkout: true }, "approved")).toBe("Envío pagado");
+    expect(etiquetaEstadoEnvioCliente({ estado: "cotizado", cobrado_en_checkout: true }, "pending")).toBe("Envío en el total");
+    expect(etiquetaEstadoEnvioCliente({ estado: "link_enviado" }, "approved")).toBe("Envío por pagar");
+    expect(etiquetaEstadoEnvioCliente({ estado: "en_ruta" })).toBe("En ruta");
   });
 });

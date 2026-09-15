@@ -54,6 +54,7 @@ import { attachEnvioPedido } from "./lib/envioDomicilioClient";
 import {
   checkoutPuedePedirEnvio,
   estimarEnvioDesdeCoords,
+  etiquetaEstadoEnvioCliente,
   formatEnvioMoney,
   getEnvioConfigCliente,
 } from "./lib/envioDomicilio";
@@ -338,7 +339,7 @@ function productImageUrl(prod, narrow, placeholderFallback = "", fotoCatalogo = 
 // ── FAQ ───────────────────────────────────────────────────────
 const FAQ_ITEMS = [
   { p:"¿Cómo hago un pedido en línea?", r:"Agrega los productos al carrito, selecciona tu tipo de entrega (pick-up o envío), ingresa tus datos y elige tu método de pago. Recibirás confirmación por WhatsApp." },
-  { p:"¿Cuánto tarda el envío?", r:"Entrega a domicilio en zona cercana (hasta 5 km de la farmacia). El costo se confirma al cotizar; no se cobra en el checkout. Te avisamos por WhatsApp. Rappi es otra app, no un mensajero de farmacapital.mx." },
+  { p:"¿Cuánto tarda el envío?", r:"Entrega a domicilio en zona cercana (hasta 5 km de la farmacia). El costo del envío se suma al total y lo pagas en el checkout. Te avisamos por WhatsApp cuando salga. Rappi es otra app, no un mensajero de farmacapital.mx." },
   { p:"¿Puedo recoger mi pedido en la farmacia?", r:"Sí. El pick-up es gratis y el mismo día. Recibirás un mensaje cuando tu pedido esté listo." },
   { p:"¿Cómo funcionan los Puntos FarmaCapital?", r:"Ganas 1 punto por cada $10 de compra. 1 punto equivale a $0.50 de descuento. Puedes usarlos en farmacia, minisuper y consultorio." },
   { p:"¿Qué hago si necesito un medicamento con receta?", r:"Agrégalo al carrito normalmente. En antibióticos te recomendamos traer receta al recoger; no es obligatoria. Los medicamentos controlados sí requieren receta original vigente." },
@@ -2203,12 +2204,12 @@ function ContenidoCDMX({ color }){
   return (
     <>
       <p style={{margin:"0 0 12px"}}>
-        Recibe tu pedido en domicilio si estás cerca de la farmacia (hasta 5 km). El costo se confirma al cotizar y se paga después; no va en el checkout. Rappi no entrega pedidos de esta tienda: si pides en Rappi, es en su propia app.
+        Recibe tu pedido en domicilio si estás cerca de la farmacia (hasta 5 km). El costo del envío se ve en el checkout y lo pagas junto con los productos. Rappi no entrega pedidos de esta tienda: si pides en Rappi, es en su propia app.
       </p>
       <h4 style={sH4(color)}>¿Cómo funciona?</h4>
       <ol style={sList}>
         <li style={sListItem}>Haz tu pedido en línea y elige &quot;Entrega a domicilio&quot;</li>
-        <li style={sListItem}>Elige &quot;Entrega a domicilio&quot; y paga solo los productos. Te confirmamos el costo del envío al cotizar</li>
+        <li style={sListItem}>Elige &quot;Entrega a domicilio&quot; y paga productos + envío en el mismo checkout</li>
         <li style={sListItem}>Preparamos el pedido en FarmaCapital</li>
         <li style={sListItem}>Un servicio de mensajería recoge en la farmacia y lo lleva a tu domicilio</li>
       </ol>
@@ -2218,7 +2219,7 @@ function ContenidoCDMX({ color }){
       </p>
       <h4 style={sH4(color)}>Costo</h4>
       <p style={{margin:"0 0 12px"}}>
-        Te confirmamos el costo según tu dirección (referencia en checkout). Se paga aparte, cuando esté cotizado. No es Rappi.
+        Según tu dirección (hasta 5 km). Se suma al total y lo pagas ahora, con los productos. No es Rappi.
       </p>
       <h4 style={sH4(color)}>Horario de servicio</h4>
       <p style={{margin:"0 0 12px"}}>
@@ -2383,7 +2384,7 @@ function HomeServices({setPage}){
   const servicios = [
     { key:"catalogo", titulo:"Ver catálogo", desc:"Medicamentos y más", color:BRAND.primary, tipo:"page", destino:"catalogo", icon:Pill },
     { key:"pickup", titulo:"Pick-up gratis", desc:"Recoge hoy", color:BRAND.primary, tipo:"modal", icon:Store },
-    { key:"cdmx", titulo:"Entrega a domicilio", desc:"Zona cercana · te cotizamos", color:BRAND.secondary, tipo:"modal", icon:Bike },
+    { key:"cdmx", titulo:"Entrega a domicilio", desc:"Zona cercana · se paga en checkout", color:BRAND.secondary, tipo:"modal", icon:Bike },
 
     { key:"puntos", titulo:"Tus puntos", desc:"Acumula y canjea", color:BRAND.cta, tipo:"page", destino:"puntos", icon:Trophy },
     { key:"pago", titulo:"Pago online", desc:"Mercado Pago", color:T.amber, tipo:"modal", icon:CreditCard },
@@ -3523,7 +3524,7 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
         <div style={{background:C.white,borderRadius:14,border:`1px solid ${C.border}`,padding:24,position:stack?"relative":"sticky",top:"calc(env(safe-area-inset-top, 0px) + 100px)"}}>
           <div style={{color:C.dark,fontWeight:800,fontSize:16,marginBottom:14}}>Tipo de entrega</div>
           <div role="radiogroup" aria-label="Tipo de entrega">
-          {[{id:"pickup",label:"Pick-up en FarmaCapital",sub:"Gratis · Mismo día",Icon:Store},{id:"cdmx",label:"Entrega a domicilio",sub:"Zona cercana · te cotizamos",Icon:Bike}].map(({id,label,sub,Icon})=>(
+          {[{id:"pickup",label:"Pick-up en FarmaCapital",sub:"Gratis · Mismo día",Icon:Store},{id:"cdmx",label:"Entrega a domicilio",sub:"Zona cercana · lo pagas en el checkout",Icon:Bike}].map(({id,label,sub,Icon})=>(
             <button
               key={id}
               type="button"
@@ -3542,7 +3543,7 @@ function Carrito({cart,setCart,setPage,setEntregaGlobal}){
             </button>
           ))}
           </div>
-          {entrega==="cdmx"&&(<div style={{background:"#fef3c7",border:"1px solid #f59e0b30",borderRadius:8,padding:"10px 12px",marginBottom:8}}><div style={{color:"#92400e",fontSize:12,display:"flex",alignItems:"flex-start",gap:8}}><Bike size={14} strokeWidth={1.75} color="#92400e" aria-hidden style={{marginTop:2,flexShrink:0}}/>Entrega en zona cercana (hasta 5 km). El costo se confirma al cotizar; no se cobra en este pago. Un servicio de mensajería recoge en FarmaCapital.</div></div>)}
+          {entrega==="cdmx"&&(<div style={{background:"#fef3c7",border:"1px solid #f59e0b30",borderRadius:8,padding:"10px 12px",marginBottom:8}}><div style={{color:"#92400e",fontSize:12,display:"flex",alignItems:"flex-start",gap:8}}><Bike size={14} strokeWidth={1.75} color="#92400e" aria-hidden style={{marginTop:2,flexShrink:0}}/>Entrega en zona cercana (hasta 5 km). El envío se suma al total y lo pagas ahora. Un servicio de mensajería recoge en FarmaCapital.</div></div>)}
           {entrega==="cdmx"&&(
             <div style={{background:"#EAF0FB",border:`1px solid ${BRAND.secondary}35`,borderRadius:8,padding:"10px 12px",marginBottom:8}}>
               <div style={{color:BRAND.primary,fontSize:11,lineHeight:1.45}}>
@@ -3631,8 +3632,6 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
   });
   const [, setCanjeTick] = useState(0);
   const sub=cart.reduce((a,c)=>a+cobroDe(c),0);
-  const envioFee = 0;
-  const totalPagar = Math.round(sub * 100) / 100;
   const ptsG=Math.floor(sub/10);
   const canjeActivo = leerCanjeActivo();
 
@@ -3782,6 +3781,8 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
     estimacion: envioEstimacionActiva,
   });
   const envioFueraRadio = entrega === "cdmx" && envioEstimacionActiva?.error === "fuera_radio";
+  const envioFee = entrega !== "pickup" && envioEstimacionActiva?.ok ? Number(envioEstimacionActiva.costo) || 0 : 0;
+  const totalPagar = Math.round((sub + envioFee) * 100) / 100;
 
   useEffect(() => {
     if (entrega === "pickup" || !direccionOk) {
@@ -3975,8 +3976,8 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
       }
 
       const subSnap = reconciled.reduce((a,c)=>a+cobroDe(c),0);
-      const totalSnap = subSnap;
-      const envioSnap = 0;
+      let totalSnap = subSnap;
+      let envioSnap = 0;
 
       if (tipo_entrega === "envio") {
         const attached = await attachEnvioPedido({
@@ -3990,15 +3991,34 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
           referencia: datos.referencia,
           lat: datos.lat,
           lng: datos.lng,
+          displayedFeeMxn: envioFee,
         });
+        if (!attached.ok && attached.error === "quote_changed") {
+          setEnvioEstimacion((prev) => ({ ...(prev || {}), ok: true, costo: Number(attached.costo) }));
+          notifyCheckout(
+            `El envío quedó en ${formatEnvioMoney(attached.costo)}. Revisa el total y confirma de nuevo.`,
+            "warning"
+          );
+          setG(false);
+          return;
+        }
         if (!attached.ok && attached.error === "fuera_radio") {
           notifyCheckout("Esa dirección está fuera de la zona de entrega (hasta 5 km). Elige pick-up en tienda.", "warning");
           setG(false);
           return;
         }
         if (!attached.ok) {
-          console.warn("[Checkout] attach envío:", attached.error);
+          notifyCheckout(
+            attached.error === "coords_required"
+              ? "Ubica la dirección en el mapa para calcular el envío y pagarlo en este checkout."
+              : "No se pudo calcular el envío. Revisa la dirección o elige pick-up.",
+            "error"
+          );
+          setG(false);
+          return;
         }
+        totalSnap = Number(attached.total);
+        envioSnap = Number(attached.costo_envio || 0);
       }
 
       if (metodo === "mercadopago") {
@@ -4110,7 +4130,9 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
     };
     const instruccionEntrega = esPickup
       ? `Muestra este folio en farmacia o menciona tu teléfono. Prepararemos tu pedido y te avisamos cuando esté listo.`
-      : "El envío no se cobró en este pago. Te confirmamos el costo y el tiempo al cotizar (unos minutos). Si estás fuera de 5 km, te ofrecemos pick-up.";
+      : lastOrder.envioFee
+        ? `Ya pagaste el envío (${formatEnvioMoney(lastOrder.envioFee)}) junto con los productos. Te avisamos cuando salga el mensajero.`
+        : "Envío incluido en tu pago. Te avisamos cuando salga el mensajero.";
     const IconoEntrega = esPickup ? Store : Bike;
     return(
       <div style={{maxWidth:560,margin:"clamp(32px,10vw,72px) auto",padding:"0 16px",textAlign:"center"}}>
@@ -4301,14 +4323,14 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                         )}
                         {envioEstimacionActiva?.ok && (
                           <div style={{fontSize:13,color:"#166534",lineHeight:1.45}}>
-                            Referencia {formatEnvioMoney(envioEstimacionActiva.costo)}
+                            Envío {formatEnvioMoney(envioEstimacionActiva.costo)}
                             {envioEstimacionActiva.distancia_km != null ? ` · ${envioEstimacionActiva.distancia_km.toFixed(1)} km` : ""}
-                            <div style={{fontSize:11,marginTop:4,fontWeight:500}}>No se cobra ahora. Te confirmamos el costo al cotizar (hasta 15 min).</div>
+                            <div style={{fontSize:11,marginTop:4,fontWeight:500}}>Se suma al total y lo pagas ahora, con los productos.</div>
                           </div>
                         )}
                         {direccionOk && envioEstimacionActiva?.error === "coords_invalidas" && (
                           <div style={{fontSize:12,color:"#92400e",lineHeight:1.45}}>
-                            Te confirmamos cobertura y costo al cotizar. No se cobra envío en este pago.
+                            Ubica la dirección en el mapa para ver el envío en el total.
                           </div>
                         )}
                       </div>
@@ -4381,8 +4403,9 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
                 </div>
                 {entrega!=="pickup" && (
                   <div style={{marginTop:4,color:"#92400e",fontWeight:600}}>
-                    Envío sujeto a cotización · no se cobra ahora
-                    {envioEstimacionActiva?.ok ? ` · referencia ${formatEnvioMoney(envioEstimacionActiva.costo)}` : ""}
+                    {envioEstimacionActiva?.ok
+                      ? `Envío ${formatEnvioMoney(envioEstimacionActiva.costo)} · se paga en este checkout`
+                      : "Ubica la dirección en el mapa para ver el envío"}
                   </div>
                 )}
                 <div style={{marginTop:4,color:C.mid}}>Pago con Mercado Pago</div>
@@ -4398,8 +4421,8 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
               ))}
               {entrega!=="pickup"&&(
                 <div style={{display:"flex",justifyContent:"space-between",marginTop:8}}>
-                  <span style={{color:C.mid,fontSize:13}}>Envío (se cotiza después)</span>
-                  <span style={{color:C.dark,fontWeight:700}}>Pendiente</span>
+                  <span style={{color:C.mid,fontSize:13}}>Envío a domicilio</span>
+                  <span style={{color:C.dark,fontWeight:700}}>{$(envioFee)}</span>
                 </div>
               )}
               <div style={{display:"flex",justifyContent:"space-between",marginTop:12,paddingTop:10,borderTop:`1px solid ${C.border}`}}>
@@ -4420,8 +4443,8 @@ function Checkout({cart,setCart,setPage,user,setUser,entrega="pickup",catalogoPr
           {cart.map(item=>(<div key={item.id} style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><span style={{color:C.mid,fontSize:13}}>{item.nombre} ×{item.qty}</span><span style={{color:C.dark,fontSize:13,fontWeight:600}}>{$(cobroDe(item))}</span></div>))}
           {entrega!=="pickup"&&(
             <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
-              <span style={{color:C.mid,fontSize:13}}>Envío (se cotiza después)</span>
-              <span style={{color:C.dark,fontSize:13,fontWeight:700}}>Pendiente</span>
+              <span style={{color:C.mid,fontSize:13}}>Envío a domicilio</span>
+              <span style={{color:C.dark,fontSize:13,fontWeight:700}}>{$(envioFee)}</span>
             </div>
           )}
           <div style={{borderTop:`1px solid ${C.border}`,marginTop:12,paddingTop:12}}><div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:C.dark,fontWeight:800}}>Total</span><span style={{color:BRAND.primary,fontWeight:900,fontSize:20}}>{$(totalPagar)}</span></div></div>
@@ -4913,7 +4936,7 @@ function PoliticaEnvios({setPage}){
   return(
     <PaginaLegal titulo="Política de Envíos y Devoluciones" setPage={setPage}>
       {[
-        ["Tipos de entrega disponibles","• Pick-up en FarmaCapital: Gratis. Disponible el mismo día. Te avisamos cuando tu pedido esté listo.\n• Entrega a domicilio: zona cercana (hasta 5 km). El costo se confirma al cotizar y se paga después; no va en el checkout. Un servicio de mensajería recoge en la farmacia.\n• Rappi no es un envío de esta página: los pedidos Rappi se hacen en la app de Rappi."],
+        ["Tipos de entrega disponibles","• Pick-up en FarmaCapital: Gratis. Disponible el mismo día. Te avisamos cuando tu pedido esté listo.\n• Entrega a domicilio: zona cercana (hasta 5 km). El costo se calcula en el checkout y se paga junto con los productos. Un servicio de mensajería recoge en la farmacia.\n• Rappi no es un envío de esta página: los pedidos Rappi se hacen en la app de Rappi."],
         ["Política de devoluciones","Aceptamos devoluciones dentro de las 72 horas siguientes a la entrega, siempre que el producto esté en perfecto estado, sin abrir y con su empaque original. No se aceptan devoluciones de: medicamentos controlados, productos refrigerados, ni artículos de uso personal."],
         ["Proceso de devolución","Para iniciar una devolución, contáctanos a contacto@farmacapital.mx dentro del plazo indicado. Una vez aprobada la devolución, el reembolso se realizará en un plazo máximo de 5 días hábiles al mismo método de pago utilizado."],
         ["Productos dañados o incorrectos","Si recibes un producto dañado o diferente al solicitado, contáctanos de inmediato. Haremos el reemplazo o reembolso sin costo adicional para ti."],
@@ -5643,15 +5666,21 @@ function etiquetaLogisticaPedido(p) {
   const danger = "#C62828";
   const envio = p?.logistics_meta?.envio && typeof p.logistics_meta.envio === "object" ? p.logistics_meta.envio : {};
   const es = String(envio.estado || "").toLowerCase();
-  if (es === "pendiente_cotizacion") return { label: "Cotizando envío", col: "#d97706" };
-  if (es === "cotizado" || es === "link_enviado") return { label: "Envío por pagar", col: "#0ea5e9" };
-  if (es === "pagado") return { label: "Envío pagado", col: BRAND.accent };
-  if (es === "en_ruta") return { label: "En ruta", col: "#0ea5e9" };
-  if (es === "vencido") return { label: "Cotización vencida", col: danger };
-  if (es === "fuera_radio") return { label: "Fuera de zona", col: danger };
+  const labelEnvio = etiquetaEstadoEnvioCliente(envio, p?.payment_status);
+  if (labelEnvio === "En ruta") return { label: labelEnvio, col: "#0ea5e9" };
+  if (labelEnvio === "Fuera de zona") return { label: labelEnvio, col: danger };
+  if (labelEnvio === "Cotización vencida") return { label: labelEnvio, col: danger };
+  if (labelEnvio === "Envío pagado") return { label: labelEnvio, col: BRAND.accent };
+  if (labelEnvio === "Envío en el total") return { label: labelEnvio, col: "#0ea5e9" };
+  if (labelEnvio === "Envío por pagar") return { label: labelEnvio, col: "#0ea5e9" };
+  if (es === "pendiente_cotizacion" || labelEnvio === "Preparando envío") {
+    return { label: envio.cobrado_en_checkout ? "Envío en el total" : "Preparando envío", col: "#d97706" };
+  }
   const ds = String(p?.delivery_status || "").toLowerCase();
   if (ds === "ready_for_pickup") return { label: "Listo para recoger", col: BRAND.accent };
-  if (ds === "quoted" || ds === "courier_requested") return { label: "Envío en cotización", col: "#0ea5e9" };
+  if (ds === "quoted" || ds === "courier_requested") {
+    return { label: envio.cobrado_en_checkout ? "Envío en el total" : "Preparando envío", col: "#0ea5e9" };
+  }
   if (ds === "in_route") return { label: "En ruta", col: "#0ea5e9" };
   if (ds === "delivered") return { label: "Entregado", col: BRAND.primary };
   if (ds === "cancelled") return { label: "Entrega cancelada", col: danger };
@@ -5915,9 +5944,9 @@ function Cuenta({user,setPage,setUser,addToCart,productos=[],setProdDetalle}){
           <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:10}}>
             {(()=>{ const ep = etiquetaEstadoPagoPedido(p); return <Tag col={ep.col} sm>{ep.label}</Tag>; })()}
             {(()=>{ const el = etiquetaLogisticaPedido(p); return <Tag col={el.col} sm>{el.label}</Tag>; })()}
-            {p.tipo_entrega === "envio" && p.logistics_meta?.envio?.cotizar_antes_de && String(p.logistics_meta.envio.estado || "") === "pendiente_cotizacion" ? (
-              <Tag col="#d97706" sm>
-                Cotizamos hasta {new Date(p.logistics_meta.envio.cotizar_antes_de).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })}
+            {p.tipo_entrega === "envio" && Number(p.costo_envio) >= 0 && p.logistics_meta?.envio?.cobrado_en_checkout ? (
+              <Tag col={BRAND.accent} sm>
+                Envío {formatEnvioMoney(p.costo_envio)} en el pago
               </Tag>
             ) : null}
           </div>

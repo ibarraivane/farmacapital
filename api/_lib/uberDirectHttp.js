@@ -426,6 +426,6 @@ module.exports = async function handler(req, res) {
   return res.status(410).json({
     ok: false,
     error: 'uber_direct_retired',
-    hint: 'Usar POST /api/logistics/envio (Plan B: cotización DiDi + link de pago).',
+    hint: 'Usar POST /api/logistics/envio (tarifa en checkout; DiDi solo para despacho).',
   });
 };

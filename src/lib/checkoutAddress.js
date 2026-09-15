@@ -135,7 +135,7 @@ export function formatDestinoLabel({ calle, numero, colonia, cp } = {}) {
   return [street, col, zip.length === 5 ? zip : ""].filter(Boolean).join(", ");
 }
 
-/** Qué falta para cotizar: calle+número, colonia y CP. */
+/** Qué falta para estimar el envío: calle+número, colonia y CP. */
 export function checkoutDestinoFaltantes({ calle, numero, colonia, cp } = {}) {
   const f = [];
   const street = composeCheckoutCalle(calle, numero);
@@ -145,7 +145,7 @@ export function checkoutDestinoFaltantes({ calle, numero, colonia, cp } = {}) {
   return f;
 }
 
-/** Destino listo para cotizar: calle+número, colonia y CP. */
+/** Destino listo para estimar el envío: calle+número, colonia y CP. */
 export function isCheckoutDestinoListo(dest = {}) {
   return checkoutDestinoFaltantes(dest).length === 0;
 }

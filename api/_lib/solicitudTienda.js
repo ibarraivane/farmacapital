@@ -76,7 +76,7 @@ function buildStaffEmail({ value, id }) {
     '',
     'Ya está (o debería estar) en Admin → Lo que buscan.',
     'Escríbele por WhatsApp o correo con el costo y la liga de pago.',
-    'El envío a domicilio se cotiza aparte.',
+    'El envío a domicilio, si aplica, se cobra en el checkout junto con los productos.',
   ];
   return { subject, text: lines.join('\n'), to: STAFF_EMAILS.slice() };
 }

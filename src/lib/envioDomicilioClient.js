@@ -1,4 +1,4 @@
-/** Cliente tienda/POS → API de envío a domicilio (Plan B). */
+/** Cliente tienda/POS → API de envío a domicilio (tarifa en checkout). */
 
 const ENVIO_API = "/api/logistics/envio";
 
@@ -39,6 +39,7 @@ export function attachEnvioPedido({
   referencia,
   lat,
   lng,
+  displayedFeeMxn,
 }) {
   return postEnvio(
     "attach",
@@ -52,6 +53,7 @@ export function attachEnvioPedido({
       referencia,
       lat,
       lng,
+      displayed_fee_mxn: displayedFeeMxn,
     },
     sessionToken,
   );
@@ -65,6 +67,7 @@ export function cotizarEnvioPedido({ pedidoId, sessionToken, costo, proveedor, d
   );
 }
 
+/** @deprecated El envío se cobra en checkout. La API responde 410. */
 export function crearLinkPagoEnvio({ pedidoId, sessionToken, baseUrl }) {
   return postEnvio(
     "create-payment-link",

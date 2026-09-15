@@ -201,11 +201,14 @@ function cotizacionVencida(cotizarAntesDe, now = new Date()) {
   return now.getTime() > t;
 }
 
-function puedeDespacharEnvio(envio = {}) {
+function puedeDespacharEnvio(envio = {}, opts = {}) {
   const estado = String(envio.estado || '');
   const costo = Number(envio.costo_cotizado);
   if (estado === 'pagado') return true;
   if (estado === 'cotizado' && Number.isFinite(costo) && costo === 0) return true;
+  if (envio.cobrado_en_checkout && opts.paymentApproved && ['cotizado', 'pagado'].includes(estado)) {
+    return true;
+  }
   return false;
 }
 

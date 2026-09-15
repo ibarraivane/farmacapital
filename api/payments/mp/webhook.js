@@ -205,6 +205,22 @@ module.exports = async function handler(req, res) {
         last_event_at: new Date().toISOString(),
       },
     };
+    if (approved && pedidoBefore && pedidoBefore.tipo_entrega === 'envio') {
+      const meta = pedidoBefore.logistics_meta && typeof pedidoBefore.logistics_meta === 'object'
+        ? pedidoBefore.logistics_meta
+        : {};
+      const envio = meta.envio && typeof meta.envio === 'object' ? meta.envio : {};
+      patch.logistics_meta = {
+        ...meta,
+        envio: {
+          ...envio,
+          estado: 'pagado',
+          cobrado_en_checkout: true,
+          pagado_at: new Date().toISOString(),
+          mp_payment_id: String(payment?.id || dataId),
+        },
+      };
+    }
 
     const patchResp = await fetch(`${SUPABASE_URL}/rest/v1/pedidos?id=eq.${pedidoId}`, {
       method: 'PATCH',
@@ -220,6 +236,21 @@ module.exports = async function handler(req, res) {
       let detail = null;
       try { detail = await patchResp.json(); } catch { detail = await patchResp.text(); }
       return res.status(502).json({ ok: false, error: 'supabase_update_failed', detail });
+    }
+
+    if (approved && pedidoBefore && pedidoBefore.tipo_entrega === 'envio') {
+      await fetch(`${SUPABASE_URL}/rest/v1/envios?pedido_id=eq.${pedidoId}`, {
+        method: 'PATCH',
+        headers: {
+          apikey: SUPABASE_SERVICE_ROLE_KEY,
+          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          estado: 'pagado',
+          mp_payment_id: String(payment?.id || dataId),
+        }),
+      }).catch(() => null);
     }
 
     if (approved) {

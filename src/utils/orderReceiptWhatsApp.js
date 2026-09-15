@@ -214,7 +214,7 @@ export function buildOnlineOrderReceiptMessage({
   const pickupNote =
     tipoEntrega === "recoger"
       ? `\n\n🏪 Muestra tu folio *${folio}* o menciona tu teléfono al llegar.\n📍 ${FARMACIA_MAPS_URL}`
-      : "\n\n🛵 Entrega a domicilio: el costo se confirma al cotizar (no se cobró en este pago). Te avisamos por WhatsApp.";
+      : "\n\n🛵 Entrega a domicilio: el envío ya va incluido en tu pago. Te avisamos cuando salga el mensajero.";
   const pagoTxt = metodoPago
     ? `\n💳 *Pago:* ${String(metodoPago).replace(/_/g, " ")}`
     : "";

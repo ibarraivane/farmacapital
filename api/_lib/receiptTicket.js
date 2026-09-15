@@ -181,7 +181,7 @@ function generatePickupPassHTML({ pedido, ticketUrl, mode = 'pickup' }) {
     badgeText = 'Listo para envío';
     headline = 'Tu pedido está listo para salir';
     detail =
-      'Entrega a domicilio: te confirmamos el costo al cotizar. Te avisamos cuando salga el mensajero.';
+      'Entrega a domicilio: el envío ya está pagado. Te avisamos cuando salga el mensajero.';
   }
 
   return `<!DOCTYPE html>

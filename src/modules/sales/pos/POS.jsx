@@ -2095,7 +2095,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       if (!resp?.success) throw new Error(resp?.error || "No se pudo surtir");
       setPedOn(p=>p.filter(x=>x.id!==pedido.id));
       setPedOnHist((prev) => [{ ...pedido, estado: "listo" }, ...prev.filter((x) => x.id !== pedido.id)].slice(0, 20));
-      const envioHint = pedido.tipo_entrega === "envio" ? " · cotiza el envío y manda el link de pago" : "";
+      const envioHint = pedido.tipo_entrega === "envio" ? " · pide el mensajero (el cliente ya pagó el envío)" : "";
       const telCli = pedido.clientes?.telefono || pedido.guest_telefono;
       if (telCli) {
         const wa = await notifyOrderReady({ pedidoId: pedido.id, telefono: telCli });
@@ -3630,7 +3630,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       {tab==="online"&&(
         <div>
           <div style={{background:C.blueDim,border:`1px solid ${C.blue}30`,borderRadius:10,padding:"10px 14px",marginBottom:14,fontSize:12,color:C.blue,lineHeight:1.45}}>
-            <strong>Operación:</strong> aquí solo aparecen pedidos con <strong>pago aprobado</strong> en Mercado Pago. Surtir cuando esté preparado. En domicilio: cotiza (DiDi primero) y manda el link de pago; no se pide un proveedor automático.
+            <strong>Operación:</strong> aquí solo aparecen pedidos con <strong>pago aprobado</strong> en Mercado Pago. Surtir cuando esté preparado. En domicilio el cliente ya pagó el envío en checkout: abre DiDi (o propio) y marca en ruta.
           </div>
           {loading ? <SkeletonTable rows={3} cols={4}/> : (
             <>

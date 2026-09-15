@@ -1,4 +1,4 @@
--- FARMAX — Envío a domicilio Plan B (cotización + link de pago)
+-- FARMAX — Envío a domicilio Plan B (tarifa en checkout, un solo pago MP)
 -- Aditivo. No toca RH, corte de caja ni FEFO.
 -- Validaciones de radio, proveedor y despacho van en SQL, no solo en UI.
 
@@ -181,7 +181,7 @@ begin
     end if;
     if tg_op = 'UPDATE'
        and coalesce(old.estado, '') not in ('pagado', 'en_ruta', 'entregado') then
-      raise exception 'envio_no_pagado: hay que cobrar el envío (link de pago) antes de despachar';
+      raise exception 'envio_no_pagado: el envío debe estar cobrado en checkout (o pagado) antes de despachar';
     end if;
   end if;
   if new.proveedor is not null and new.proveedor not in ('didi', 'uber', 'propio') then
