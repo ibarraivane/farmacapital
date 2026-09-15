@@ -37,6 +37,7 @@ import {
 } from "../../../utils/posConocimientoFarmacia";
 import { Box, Tag, Btn, Inp, Modal, showToast, SearchDropdown, SkeletonTable } from "../../../ui";
 import GaleriaProducto from "../../../components/GaleriaProducto";
+import AvisosDisponibilidadPanel from "../../../components/AvisosDisponibilidadPanel";
 import { useProductoImagenes } from "../../../hooks/useProductoImagenes";
 import {
   CONSULTA_PRECIO_DEFAULT,
@@ -669,6 +670,7 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
   /** Solo celular / pantalla muy estrecha: carrito en modal + barra Carrito/total/? (no afecta escritorio). */
   const isMobilePos = useMediaQuery("(max-width: 768px)");
   const [tab,setTab]         = useState(initialTab); // venta | online | consultas | servicios
+  const [onlineSubTab, setOnlineSubTab] = useState("pedidos"); // pedidos | avisos
   const [productos,setProds] = useState([]);
   const [cart,setCart]       = useState([]);
   const especialesRef = useRef({});
@@ -3638,6 +3640,37 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
       {/* TAB: PEDIDOS ONLINE */}
       {tab==="online"&&(
         <div>
+          <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:12}}>
+            <button
+              type="button"
+              onClick={()=>setOnlineSubTab("pedidos")}
+              style={{
+                border:`1px solid ${onlineSubTab==="pedidos"?C.blue:C.border}`,
+                background:onlineSubTab==="pedidos"?C.blueDim:"#fff",
+                color:onlineSubTab==="pedidos"?C.blue:C.textMid,
+                borderRadius:999,padding:"7px 14px",fontWeight:800,fontSize:12,cursor:"pointer",
+              }}
+            >
+              Pedidos pagados
+            </button>
+            <button
+              type="button"
+              onClick={()=>setOnlineSubTab("avisos")}
+              style={{
+                border:`1px solid ${onlineSubTab==="avisos"?C.green:C.border}`,
+                background:onlineSubTab==="avisos"?(C.greenDim||"#ecfdf5"):"#fff",
+                color:onlineSubTab==="avisos"?(C.green||"#16a34a"):C.textMid,
+                borderRadius:999,padding:"7px 14px",fontWeight:800,fontSize:12,cursor:"pointer",
+              }}
+            >
+              Avisos de disponibilidad
+            </button>
+          </div>
+
+          {onlineSubTab==="avisos" ? (
+            <AvisosDisponibilidadPanel C={C} isNarrow={isNarrow} />
+          ) : (
+          <>
           <div style={{background:C.blueDim,border:`1px solid ${C.blue}30`,borderRadius:10,padding:"10px 14px",marginBottom:14,fontSize:12,color:C.blue,lineHeight:1.45}}>
             <strong>Operación:</strong> aquí solo aparecen pedidos con <strong>pago aprobado</strong> en Mercado Pago. Surtir y marcar listo cuando el producto esté preparado.
           </div>
@@ -3759,6 +3792,8 @@ export default function POS({negocio,usuario,initialTab="venta",onNavigate,onSes
                 ))}
               </div>
             </>
+          )}
+          </>
           )}
         </div>
       )}

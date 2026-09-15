@@ -14,6 +14,7 @@ const {
 const { getSupabaseAdminConfig, validateEmployeeSession } = require('../_lib/supabaseAdmin');
 const { handleWhatsAppManualSend } = require('../_lib/whatsappSendHandler');
 const { handleSolicitudTienda } = require('../_lib/solicitudTiendaHandler');
+const { handleAvisoDisponibilidad } = require('../_lib/avisoDisponibilidadHandler');
 const {
   ensurePedidoReciboToken,
   buildReciboPublicUrl,
@@ -37,6 +38,9 @@ function resolveNotificationType(req, body) {
   if (q === 'recibo-ensure' || q === 'recibo_ensure') return 'recibo-ensure';
   if (q === 'whatsapp' || q === 'whatsapp-send') return 'whatsapp';
   if (q === 'solicitud' || q === 'solicitudes' || q === 'conseguir') return 'solicitud';
+  if (q === 'aviso' || q === 'avisos' || q === 'aviso-disponibilidad' || q === 'avisos-disponibilidad') {
+    return 'aviso-disponibilidad';
+  }
   const b = String(body?.type || body?.notificationType || '').trim().toLowerCase();
   if (b === 'cita' || b === 'cita-confirmacion') return 'cita';
   if (b === 'order' || b === 'order-receipt') return 'order';
@@ -44,6 +48,9 @@ function resolveNotificationType(req, body) {
   if (b === 'recibo-ensure' || b === 'recibo_ensure') return 'recibo-ensure';
   if (b === 'whatsapp' || b === 'whatsapp-send') return 'whatsapp';
   if (b === 'solicitud' || b === 'solicitudes' || b === 'conseguir') return 'solicitud';
+  if (b === 'aviso' || b === 'avisos' || b === 'aviso-disponibilidad' || b === 'avisos-disponibilidad') {
+    return 'aviso-disponibilidad';
+  }
   if (body?.citaId != null && body?.pedidoId == null) return 'cita';
   if (body?.pedidoId != null && body?.citaId == null) return 'order';
   return '';
@@ -479,6 +486,10 @@ module.exports = async function handler(req, res) {
 
     if (type === 'solicitud') {
       return handleSolicitudTienda(req, res, body);
+    }
+
+    if (type === 'aviso-disponibilidad') {
+      return handleAvisoDisponibilidad(req, res, body);
     }
 
     if (req.method !== 'POST') {

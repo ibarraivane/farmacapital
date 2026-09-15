@@ -293,6 +293,16 @@ export function puedeMarcarEncargoAceptado({ cotizacion_estado } = {}) {
   return cotizacion_estado === "aceptada";
 }
 
+/** Path público Caso A (rewrite → notifications/send?type=aviso-disponibilidad). */
+export const AVISO_API_PATH = "/api/avisos-disponibilidad";
+
+/** Deriva estado de cola admin a partir de notificado + stock. */
+export function estadoUiAviso({ notificado, producto_stock } = {}) {
+  if (notificado) return AVISO_ESTADOS_UI.avisado;
+  if (Number(producto_stock) > 0) return AVISO_ESTADOS_UI.listo_avisar;
+  return AVISO_ESTADOS_UI.pendiente;
+}
+
 export function buildAvisoDisponibilidadWhatsApp({
   telefono,
   nombre,

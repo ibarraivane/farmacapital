@@ -1,19 +1,14 @@
-Specs de encargo — estado en repo
+Specs de encargo — estado en el repo
 
 Presentes:
-- docs/claude_encargo-medicamentos.md (fuente exacta enums/flujo)
-- docs/claude_envio-domicilio.md (rediseño DiDi + preauth MP)
+- docs/claude_encargo-medicamentos.md
+- docs/claude_envio-domicilio.md
 
-Ausente:
-- perfil-vendedor-pos.md (no llegó; el tercer pegado fue FEFO).
-  solicitud_producto = aspiracional; no migrar/tocar.
+Ausente: perfil-vendedor-pos.md (aspiracional). FEFO no tocado.
 
-Decisiones de producto: respuestas E.1–E.11 del mensaje de confirmación.
+Fases:
+- (a) modelo SQL aviso/encargo/cotizacion — aplicado
+- (b) Caso A CTA + API + cola Pedidos online + trigger restock — en este branch
+- (f) BLOQUEADA: envío DiDi/preauth aún no existe; Uber Direct sigue vivo
 
-Envío a domicilio en CÓDIGO hoy:
-- Sigue vivo Uber Direct (api/_lib/uberDirect.js, Tienda/POS).
-- NO hay tabla_tarifa_envio, direccion_entrega, envio, preauth MP ni DiDi.
-- Fase (f) del encargo = BLOQUEADA hasta implementar claude_envio-domicilio.md.
-- Fases (a)–(e) siguen; Caso B con recoger_en_tienda no depende de (f).
-
-FEFO: no tocar (regla explícita).
+SQL fase b: sql/patch_aviso_disponibilidad_fase_b_20260915.sql

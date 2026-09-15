@@ -40,6 +40,7 @@ import { setBloqueaReloadApp } from "./utils/appUpdate";
 import { pageIdToTiendaPath, resolveTiendaPage, tiendaPathnameToPageId, tiendaPathSuggestsReceta, tiendaProductIdFromSearch } from "./shared/tiendaRoutes";
 import FlyerFarmaCapital from "./components/FlyerFarmaCapital";
 import SolicitudCatalogoForm, { CatalogoVacioConseguir } from "./components/SolicitudCatalogoForm";
+import AvisoDisponibilidadForm from "./components/AvisoDisponibilidadForm";
 import { canjePorPuntos, guardarCanjeActivo, leerCanjeActivo, limpiarCanjeActivo } from "./utils/puntosCanje";
 import { TOKENS as T, RADIO, SOMBRA } from "./theme/tokens";
 import {
@@ -2035,7 +2036,12 @@ function DetalleProducto({prod,productos,addToCart,setPage,setProdDetalle,busqHe
           )}
           {agotado&&(
             <div style={{background:C.red+"10",border:`1px solid ${C.red}30`,borderRadius:10,padding:"10px 14px",marginBottom:16}}>
-              <div style={{color:C.red,fontWeight:700,fontSize:13}}>Producto agotado por el momento. Puedes ver la ficha; cuando haya stock podrás agregarlo al carrito.</div>
+              <div style={{color:C.red,fontWeight:700,fontSize:13,marginBottom:10}}>Producto agotado por el momento. Puedes ver la ficha; cuando haya stock podrás agregarlo al carrito.</div>
+              <AvisoDisponibilidadForm
+                productoId={prod.id}
+                productoNombre={prod.nombre}
+                brandPrimary={BRAND.primary}
+              />
             </div>
           )}
           <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>

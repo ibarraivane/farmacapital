@@ -158,6 +158,10 @@
       "destination": "/api/notifications/send?type=solicitud"
     },
     {
+      "source": "/api/avisos-disponibilidad",
+      "destination": "/api/notifications/send?type=aviso-disponibilidad"
+    },
+    {
       "source": "/api/notifications/cita-confirmacion",
       "destination": "/api/notifications/send?type=cita"
     },
