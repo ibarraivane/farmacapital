@@ -54,6 +54,9 @@ if (/id=["']rc-scan["'][\s\S]{0,400}disabled=\{/.test(rec)) {
 if (/lazy\s*\(\s*\(\)\s*=>\s*import\(\s*["']\.\/RecepcionModule["']/.test(read("src/InventarioHub.jsx"))) {
   fail("InventarioHub: Recibir no debe ir lazy; la tablet se queda con un chunk viejo tras el deploy.");
 }
+if (!/codigo_barras,descripcion/.test(rec)) {
+  fail("RecepcionModule: el catálogo de Recibir debe traer descripcion (EANs de exhibidor/pieza).");
+}
 if (/flex:\s*["']1 1 140px["']/.test(rec)) {
   fail("Recibir: las tarjetas de proveedor no deben crecer (flex 1 1) — Nadro/Exprezo se estiran solos.");
 }
@@ -70,6 +73,8 @@ async function assertScanLogic() {
     pedidoEsperaEntrada,
     recepcionEsTicket,
     matchScanEnTicket,
+    extractGs1Gtin,
+    esSerialTerminalPoint,
   } = await import(scanUrl);
   const { parseCaducidadMMAA } = await import(cadUrl);
 
@@ -117,6 +122,19 @@ async function assertScanLogic() {
   }
   if (!matchScanEnTicket(ticket.items, "4001895928765").yaConfirmado) {
     fail("Tegaderm ya confirmado debe detectarse.");
+  }
+  const gs1 = "01040018959287651728031110LOTE";
+  if (extractGs1Gtin(gs1) !== "4001895928765") {
+    fail("GS1 AI 01 debe extraer el GTIN/EAN de la caja.");
+  }
+  if (!itemMatchScan(tegaderm, gs1)) {
+    fail("DataMatrix GS1 de Tegaderm debe abrir el renglón gris.");
+  }
+  if (!eanPistolaListo(gs1)) {
+    fail("Beep GS1 largo debe disparar sin Enter.");
+  }
+  if (!esSerialTerminalPoint("NCCC05728001")) {
+    fail("Serial Point NCCC… debe reconocerse para no dejarlo pegado.");
   }
 }
 
