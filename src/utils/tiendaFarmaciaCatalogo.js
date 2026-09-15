@@ -49,5 +49,5 @@ export function razonBloqueoProductoTiendaFarmacia(row) {
   if (productoEsCajaAbiertaMostrador(row)) {
     return "Se vende por pieza en la farmacia, no por caja en línea.";
   }
-  return "No disponible en tienda en línea (receta, controlado u oculto).";
+  return "No disponible en tienda en línea (controlado u oculto).";
 }

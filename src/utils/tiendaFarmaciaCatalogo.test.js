@@ -30,3 +30,35 @@ test("Tabcin C/12 sí se puede comprar en línea", () => {
     }),
   ).toBe(true);
 });
+
+test("medicamento con receta (no controlado) sí se compra en línea", () => {
+  expect(
+    productoPermitidoEnTiendaFarmaciaWeb({
+      activo: true,
+      nombre: "Exkruthera Fruquintinib 1 mg caja con frasco 21 cápsulas",
+      presentacion: "Caja con frasco con 21 cápsulas",
+      categoria: "Medicamentos",
+      requiere_receta: true,
+      controlado: false,
+    }),
+  ).toBe(true);
+});
+
+test("controlado sigue solo en mostrador", () => {
+  expect(
+    productoPermitidoEnTiendaFarmaciaWeb({
+      activo: true,
+      nombre: "Medicamento controlado ejemplo",
+      categoria: "Medicamentos",
+      requiere_receta: true,
+      controlado: true,
+    }),
+  ).toBe(false);
+  expect(
+    razonBloqueoProductoTiendaFarmacia({
+      activo: true,
+      controlado: true,
+      categoria: "Medicamentos",
+    }),
+  ).toMatch(/controlado|oculto/i);
+});
